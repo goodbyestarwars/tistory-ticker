@@ -1,5 +1,10 @@
+import json
+import os
 import pathlib
 import re
+import shutil
+import subprocess
+import tempfile
 import unittest
 
 
@@ -349,7 +354,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260830-no-paint-guard-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260904-us-index-session-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -385,7 +390,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260830-no-paint-guard-v1", skin)
+        self.assertIn("style.css?v=20260904-us-name-cell-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -405,7 +410,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260830-no-paint-guard-v1", skin)
+        self.assertIn("skin-main.js?v=20260904-us-index-session-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -721,10 +726,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260830-idle-wics-v1", main)
+        self.assertIn("home-realtime-table.js?v=20260904-us-name-cell-v1", main)
         for token in (
             "function localizedUsName(item)",
-            "name_ko || item.display_name",
+            "item.display_name || item.name_en",
             "US_DISPLAY_NAMES",
             "state.pendingMarket = currentMarket()",
             "if (currentMarket() !== market) return;",
@@ -2649,6 +2654,111 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("#order-book .ob-summary {", narrow)
         self.assertIn("#order-book .ob-summary-item {", narrow)
         self.assertIn("padding-left: 6px;", narrow)
+
+    def test_home_us_index_strip_switches_to_futures_when_cash_market_is_closed(self):
+        """미국 상단 지수 스트립이 "표현만 되는" 상태로 남지 않게 한다.
+
+        나스닥·S&P500 현물은 한국시간 22:30~05:00에만 움직인다. 그 밖의 시간에
+        미국증시 탭을 열면 전날 종가가 굳어 있는 카드를 계속 보게 된다(2026-09-04
+        사용자 지적). 본장이 닫혀 있고 지수선물이 열려 있으면 이미 수집 중인
+        나스닥100·S&P500 선물로 바꿔 실제로 움직이는 값을 보여준다.
+
+        심볼이 바뀌어도 나머지 미국 화면(요약 카드·환율·투자자 동향)이 국내 화면으로
+        되돌아가지 않아야 하므로, 미국 세션 판별은 keys[0]가 아니라 session.market이다.
+        """
+        main = self.read("js/skin-main.js")
+        self.assertIn("function usFuturesSessionOpen(now)", main)
+        self.assertIn("function usIndexSessionState(now)", main)
+        self.assertIn("keys: ['NASDAQ100', 'SP500']", main)
+        # 미국 여부 판정이 상단 스트립 심볼에 묶여 있으면 선물 전환과 함께 깨진다.
+        self.assertNotIn("keys[0] === 'NASDAQ_INDEX'", main)
+        self.assertNotIn("nextKey !== 'NASDAQ_INDEX|SP500_INDEX'", main)
+        self.assertIn("market: 'us',", main)
+        self.assertIn("market: 'domestic',", main)
+        self.assertIn("session.market === 'us'", main)
+        # 카드 상태 문구는 현물/선물/휴장이 서로 달라야 하므로 세션이 들고 다닌다.
+        self.assertIn("session.statusLabel || '장중'", main)
+        # 심볼이 그대로여도 세션 상태가 바뀌면 부제를 갱신한다.
+        self.assertIn("var sessionSignature = session.keys.join('|') + '·'", main)
+        # QuickIndices가 없는 페이지의 폴백 요청에도 선물 심볼이 들어가야 한다.
+        self.assertIn("NASDAQ100%2CSP500%2CKOSPI200_NIGHT", main)
+
+    @unittest.skipUnless(shutil.which("node"), "node가 없으면 건너뛴다")
+    def test_us_index_session_boundaries(self):
+        """세션 경계를 실제로 실행해 확인한다(ET 기준, 서머타임은 Intl이 처리).
+
+        CME 주가지수 선물은 일요일 18:00에 열려 금요일 17:00에 닫히고 매일
+        17:00~18:00를 쉰다. 현물 본장은 평일 09:30~16:00다.
+        """
+        main = self.read("js/skin-main.js")
+        start = main.index("    function nyClockParts(now) {")
+        end = main.index("    // 코스피 야간선물은 국내 거래소 휴장일에는")
+        script = main[start:end] + """
+const cases = JSON.parse(process.argv[2]);
+console.log(JSON.stringify(cases.map(function (iso) {
+  const state = usIndexSessionState(new Date(iso));
+  return [state.source, state.statusLabel];
+})));
+"""
+        # 2026년 미국 서머타임(3/8~11/1) 안이라 ET = UTC-4.
+        cases = [
+            "2026-09-04T17:00:00Z",  # 금 13:00 ET - 본장 장중
+            "2026-09-04T10:05:00Z",  # 금 06:05 ET - 본장 마감 전, 선물 거래중
+            "2026-09-04T21:30:00Z",  # 금 17:30 ET - 선물 주간 마감(현물은 당일 본장 마감)
+            "2026-09-06T21:00:00Z",  # 일 17:00 ET - 아직 닫힘
+            "2026-09-06T23:00:00Z",  # 일 19:00 ET - 선물 개장
+            "2026-09-08T21:30:00Z",  # 화 17:30 ET - 일일 휴식 1시간
+        ]
+        with tempfile.NamedTemporaryFile("w", suffix=".js", encoding="utf-8", delete=False) as handle:
+            handle.write(script)
+            path = handle.name
+        try:
+            output = subprocess.check_output(["node", path, json.dumps(cases)], text=True)
+        finally:
+            os.unlink(path)
+        self.assertEqual(json.loads(output), [
+            ["spot", "장중"],
+            ["futures", "선물 거래중"],
+            ["spot", "본장 마감"],
+            ["spot", "미국장 휴장"],
+            ["futures", "선물 거래중"],
+            ["spot", "본장 마감"],
+        ])
+
+
+    def test_us_stock_name_cell_survives_long_names_on_mobile(self):
+        """2026-09-04 사용자 리포트: 미국 종목판 5·13·17·19행이 "순위 + 로고 + ..."만 남았다.
+
+        모바일에서 종목 셀은 table-cell이고 `<a>`는 inline-block이다. `<a>`의
+        max-width가 셀 폭 100%라 앞의 순위·로고(37px)만큼 셀 밖으로 나가는데,
+        inline-block은 쪼갤 수 없어서 셀의 text-overflow가 글자를 자르는 대신 박스
+        전체를 "..."로 바꾼다 - 이름과 티커가 같이 사라진다(헤드리스 크롬 재현).
+
+        순위 폭을 고정하고 `<a>`가 항상 셀 안에 들어오게 하면 잘림이 `<a>` 자신의
+        말줄임으로 처리된다("ISHARES SEMICOND...").
+        """
+        css = self.read("style.css")
+        mobile = css[css.index('@media (max-width: 720px)', css.index('.hrt-etf-toggle')):]
+        self.assertIn("max-width: calc(100% - 44px);", mobile)
+        rank_rule = mobile[mobile.index(".home-realtime-board .hrt-rank {"):]
+        self.assertIn("display: inline-block;", rank_rule[:200])
+        self.assertIn("width: 15px;", rank_rule[:200])
+
+    def test_us_display_name_ignores_english_text_in_the_korean_field(self):
+        """KIS 해외 순위는 ETF에서 한글명 칸에 영문 정식명을, 영문명 칸에 티커를 넣는다.
+
+        VM(scripts/cloud-vm/market_board.py)에서 정리하지만 GAS 폴백과 localStorage에
+        남은 이전 응답도 같은 모양이라 화면에서도 한 번 더 거른다.
+        """
+        source = self.read("js/home-realtime-table.js")
+        self.assertIn("var HANGUL_RE = /[가-힣]/;", source)
+        self.assertIn("if (korean && (state.market !== 'us' || HANGUL_RE.test(korean))) return korean;", source)
+        # 영문명 칸이 티커뿐이면 한글명 칸의 영문 정식명이 유일한 이름이다.
+        self.assertIn("english.toUpperCase() === symbol.toUpperCase()", source)
+        backend = self.read("scripts/cloud-vm/market_board.py")
+        self.assertIn("def _normalize_us_names(", backend)
+        self.assertIn("name_en, name_ko = _normalize_us_names(", backend)
+
 
 
 if __name__ == "__main__":

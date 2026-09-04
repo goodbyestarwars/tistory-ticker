@@ -137,10 +137,23 @@
     });
   }
 
+  // 2026-09-04: KIS 해외 순위 응답은 ETF에서 한글명 칸에 영문 정식명을 넣어 보낸다
+  // (SOXX -> "ISHARES SEMICONDUCTOR", RDIV -> "INVESCO S&P ULTRA DIVIDEND REVENUE").
+  // VM 쪽(scripts/cloud-vm/market_board.py _normalize_us_names)에서 걸러내지만,
+  // GAS 폴백과 캐시에 남은 이전 응답도 같은 모양이라 화면에서도 한 번 더 본다.
+  var HANGUL_RE = /[가-힣]/;
+
   function localizedUsName(item) {
     var code = String(item && (item.code || item.symbol) || '').replace(/^US:/i, '').toUpperCase();
     if (state.market === 'us' && US_DISPLAY_NAMES[code]) return US_DISPLAY_NAMES[code];
-    return item && (item.name_ko || item.display_name || item.name_en || item.name || item.symbol) || code;
+    var korean = item && item.name_ko;
+    if (korean && (state.market !== 'us' || HANGUL_RE.test(korean))) return korean;
+    var english = item && (item.display_name || item.name_en || item.name);
+    var symbol = String((item && item.symbol) || '');
+    // 영문명 칸이 티커뿐인 응답(ETF에서 자주 그렇다)에서는 한글명 칸에 들어온
+    // 영문 정식명이 유일한 이름이다. 티커를 두 줄로 반복하지 않도록 그쪽을 쓴다.
+    if (korean && (!english || english.toUpperCase() === symbol.toUpperCase())) return korean;
+    return english || symbol || code;
   }
 
   function cssEscape(value) {

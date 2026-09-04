@@ -6666,9 +6666,25 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  /* 2026-09-04 사용자 리포트(미국 종목판 5·13·17·19행이 "순위 + 로고 + ..."만 남음).
+     위 규칙의 max-width:100%는 셀 폭 전체를 뜻하는데, <a> 앞에 순위·로고가 이미
+     37px를 쓰고 있어 긴 이름에서 <a>가 셀 밖으로 삐져나간다. <a>는 inline-block,
+     즉 쪼갤 수 없는 한 덩어리라 셀의 text-overflow가 글자를 자르는 대신 박스 전체를
+     버리고 "..."로 대체한다 - 이름과 티커가 같이 사라지던 이유다(실측 재현).
+     앞 두 요소가 쓰는 만큼을 빼서 <a>가 항상 셀 안에 들어오게 하면, 잘림은 <a>
+     자신의 말줄임으로 처리돼 "ISHARES SEMICON..." 처럼 앞부분이 남는다. */
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock a {
+    max-width: calc(100% - 44px);
+  }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock strong { font-size: 12px !important; }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-stock small { font-size: 11px !important; }
-  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-rank { width: 15px; font-size: 11px; }
+  /* 순위는 인라인 <span>이라 선언한 width가 먹지 않아 자릿수에 따라 앞 여백이
+     달라졌다(1자리 34px, 2자리 40px). 위 calc가 성립하려면 이 폭이 고정이어야 한다. */
+  body#tt-body-index .home-editorial-page .home-realtime-board .hrt-rank {
+    display: inline-block;
+    width: 15px;
+    font-size: 11px;
+  }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
     padding-top: 6px;
     font-size: 11px;

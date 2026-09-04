@@ -185,7 +185,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260830-idle-wics-v1';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20260904-us-name-cell-v1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-free-translation-fallback-v3';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20260831-mobile-legibility-v1';
 
@@ -432,7 +432,7 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function applyHomeSummarySession(session) {
-      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
+      var isUs = !!session && session.market === 'us';
       var usSession = isUs ? usRegularSessionState() : null;
       var title = dashboardSection.querySelector('[data-home-summary-field="title"]');
       var meta = dashboardSection.querySelector('[data-home-summary-field="meta"]');
@@ -582,31 +582,88 @@ document.documentElement.classList.add('skin-ready');
       }
     }
 
+    function nyClockParts(now) {
+      var parts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/New_York',
+        weekday: 'short',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        hourCycle: 'h23'
+      }).formatToParts(now || new Date()).reduce(function (result, part) {
+        result[part.type] = part.value;
+        return result;
+      }, {});
+      var hour = Number(parts.hour);
+      if (hour === 24) hour = 0;
+      return { weekday: parts.weekday, minutes: hour * 60 + Number(parts.minute) };
+    }
+
     function usRegularSessionState(now) {
-      var parts;
+      var clock;
       try {
-        parts = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'America/New_York',
-          weekday: 'short',
-          hour: '2-digit',
-          minute: '2-digit',
-          hour12: false,
-          hourCycle: 'h23'
-        }).formatToParts(now || new Date()).reduce(function (result, part) {
-          result[part.type] = part.value;
-          return result;
-        }, {});
+        clock = nyClockParts(now);
       } catch (error) {
         return { open: false, label: '본장 상태 확인 중', subtitle: '미국 현물 · 본장 상태 확인 중' };
       }
-      var hour = Number(parts.hour);
-      if (hour === 24) hour = 0;
-      var minute = hour * 60 + Number(parts.minute);
-      var weekend = parts.weekday === 'Sat' || parts.weekday === 'Sun';
+      var minute = clock.minutes;
+      var weekend = clock.weekday === 'Sat' || clock.weekday === 'Sun';
       if (weekend) return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
       if (minute < 9 * 60 + 30) return { open: false, label: '본장 개장 전', subtitle: '미국 현물 · 본장 개장 전' };
       if (minute >= 16 * 60) return { open: false, label: '본장 마감', subtitle: '미국 현물 · 본장 마감' };
       return { open: true, label: '장중', subtitle: '미국 현물 · 장중' };
+    }
+
+    // CME 주가지수 선물 거래시간(ET) 근사. 일요일 18:00에 열려 금요일 17:00에 닫히고,
+    // 매일 17:00~18:00 한 시간을 쉰다. 공휴일 단축거래는 반영하지 않는다.
+    function usFuturesSessionOpen(now) {
+      var clock;
+      try {
+        clock = nyClockParts(now);
+      } catch (error) {
+        return false;
+      }
+      if (clock.weekday === 'Sat') return false;
+      if (clock.weekday === 'Sun') return clock.minutes >= 18 * 60;
+      if (clock.weekday === 'Fri') return clock.minutes < 17 * 60;
+      return clock.minutes < 17 * 60 || clock.minutes >= 18 * 60;
+    }
+
+    // 2026-09-04: 미국 화면의 상단 지수 스트립이 항상 나스닥·S&P500 "현물"을 그리고 있었다.
+    // 현물은 한국시간 22:30~05:00(서머타임 기준)에만 움직여서, 낮에 미국증시 탭을 열면
+    // 전날 종가가 그대로 굳어 있는 카드를 계속 보게 된다(사용자 지적: "미국 실시간 티커에
+    // 표현만 되는게 있어"). 본장이 닫혀 있고 지수선물이 열려 있는 시간대에는 이미 수집 중인
+    // 나스닥100·S&P500 선물로 바꿔 실제로 움직이는 값을 보여준다.
+    function usIndexSessionState(now) {
+      var spot = usRegularSessionState(now);
+      if (spot.open) {
+        return {
+          source: 'spot',
+          keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
+          labels: ['나스닥', 'S&P500'],
+          live: '나스닥 · S&P500',
+          statusLabel: spot.label,
+          subtitle: spot.subtitle
+        };
+      }
+      if (usFuturesSessionOpen(now)) {
+        return {
+          source: 'futures',
+          keys: ['NASDAQ100', 'SP500'],
+          labels: ['나스닥100 선물', 'S&P500 선물'],
+          live: '나스닥100 · S&P500 선물',
+          statusLabel: '선물 거래중',
+          subtitle: '미국 지수선물 · 거래중(현물 ' + spot.label + ')'
+        };
+      }
+      return {
+        source: 'spot',
+        keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
+        labels: ['나스닥', 'S&P500'],
+        live: '나스닥 · S&P500',
+        statusLabel: spot.label,
+        subtitle: spot.subtitle
+      };
     }
 
     // 코스피 야간선물은 국내 거래소 휴장일에는 최신 가격이 남아 있어도
@@ -747,6 +804,8 @@ document.documentElement.classList.add('skin-ready');
       KOSDAQ: [756.88, 758.4, 761.2, 759.6, 763.8, 766.1, 764.2, 768.7, 771.5, 770.2, 774.9, 777.1, 775.4, 779.8, 782.6, 785.3],
       NASDAQ_INDEX: [18342.2, 18358.4, 18351.1, 18376.8, 18392.5, 18384.7, 18410.2, 18428.6, 18419.3, 18445.7, 18462.1, 18451.8, 18479.4, 18496.2, 18488.5, 18512.7],
       SP500_INDEX: [5440.1, 5447.8, 5444.2, 5453.9, 5461.7, 5458.4, 5468.2, 5475.6, 5471.9, 5482.3, 5490.1, 5487.6, 5498.4, 5505.2, 5501.8, 5512.6],
+      NASDAQ100: [19842.5, 19860.2, 19851.4, 19878.6, 19895.1, 19886.3, 19912.8, 19931.4, 19922.0, 19949.6, 19966.2, 19955.8, 19983.7, 20001.5, 19993.2, 20018.4],
+      SP500: [5452.3, 5460.1, 5456.4, 5466.2, 5474.1, 5470.8, 5480.7, 5488.2, 5484.4, 5495.0, 5502.9, 5500.3, 5511.2, 5518.1, 5514.6, 5525.5],
       kospiNight: [360.4, 361.1, 360.8, 361.7, 362.2, 361.9, 362.8, 363.4, 363.1, 364.0, 364.6, 364.2, 365.0, 365.5, 365.2, 366.1]
     };
 
@@ -809,6 +868,7 @@ document.documentElement.classList.add('skin-ready');
         ? window.HomeMarketSelection.get() : null;
       if (selected === 'closed') return {
         closed: true,
+        market: 'closed',
         title: '휴장',
         live: '토요일 · 일요일',
         subtitle: '국내·미국 증시 · 휴장',
@@ -818,17 +878,21 @@ document.documentElement.classList.add('skin-ready');
       var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
       var isUsSession = selected === 'us'
         || (!selected && (minutes >= 17 * 60 || minutes < 9 * 60));
-      var usSession = usRegularSessionState();
+      var usSession = usIndexSessionState();
       return isUsSession ? {
+        market: 'us',
         title: '미국 시장',
-        live: '나스닥 · S&P500',
+        live: usSession.live,
         subtitle: usSession.subtitle,
-        keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
-        labels: ['나스닥', 'S&P500']
+        statusLabel: usSession.statusLabel,
+        keys: usSession.keys,
+        labels: usSession.labels
       } : {
+        market: 'domestic',
         title: '국내 시장',
         live: '실시간',
         subtitle: '오늘의 시장판 · 시세 확인 중',
+        statusLabel: '장중',
         keys: ['KOSPI', 'KOSDAQ'],
         labels: ['KOSPI', 'KOSDAQ']
       };
@@ -861,9 +925,10 @@ document.documentElement.classList.add('skin-ready');
       var updated = document.getElementById('hmbUpdated');
       if (title) title.textContent = session.title;
       if (live) live.textContent = session.live;
-      if (updated && (!updated.dataset || updated.dataset.homeSession !== session.keys.join('|'))) {
+      var sessionSignature = session.keys.join('|') + '·' + (session.subtitle || '');
+      if (updated && (!updated.dataset || updated.dataset.homeSession !== sessionSignature)) {
         updated.textContent = session.subtitle;
-        if (updated.dataset) updated.dataset.homeSession = session.keys.join('|');
+        if (updated.dataset) updated.dataset.homeSession = sessionSignature;
       }
       ['primary', 'secondary'].forEach(function (slot, index) {
         var card = homeIndexCard(slot);
@@ -892,7 +957,7 @@ document.documentElement.classList.add('skin-ready');
       var bySymbol = {};
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
       latestHomeIndices = items || [];
-      if (session.keys[0] === 'NASDAQ_INDEX' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
+      if (session.market === 'us' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
       // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
       // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
       var nightItem = bySymbol.KOSPI200_NIGHT;
@@ -933,7 +998,7 @@ document.documentElement.classList.add('skin-ready');
         var chartEl = card.querySelector('[data-index-field="chart"]');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
-        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || (session.keys[0] === 'KOSPI' ? '장중' : usRegularSessionState().label)) : '· 데이터 지연';
+        if (statusEl) statusEl.textContent = item ? '· ' + (item.status || session.statusLabel || '장중') : '· 데이터 지연';
         renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
       });
     }
@@ -944,7 +1009,7 @@ document.documentElement.classList.add('skin-ready');
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CKOSPI200_NIGHT', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
@@ -1052,7 +1117,7 @@ document.documentElement.classList.add('skin-ready');
         summarySessionKey = '';
         return;
       }
-      var isUs = session && session.keys && session.keys[0] === 'NASDAQ_INDEX';
+      var isUs = !!session && session.market === 'us';
       var nextKey = (session.keys || []).join('|');
       summarySessionKey = nextKey;
       applyHomeSummarySession(session);
@@ -1071,11 +1136,11 @@ document.documentElement.classList.add('skin-ready');
     fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
-        if (homeMarketSession().keys[0] === 'NASDAQ_INDEX') renderMarketExchange(market);
+        if (homeMarketSession().market === 'us') renderMarketExchange(market);
         else renderMarketTemperature(market);
       })
       .catch(function () {
-        if (!cachedMarketTemp && homeMarketSession().keys[0] !== 'NASDAQ_INDEX') {
+        if (!cachedMarketTemp && homeMarketSession().market !== 'us') {
           setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
@@ -1214,7 +1279,7 @@ document.documentElement.classList.add('skin-ready');
       }
       var nextKey = (session.keys || []).join('|');
       if (nextKey !== summarySessionKey) loadSummaryForSession(session);
-      else if (nextKey !== 'NASDAQ_INDEX|SP500_INDEX') loadHomeInvestorTrend();
+      else if (session.market !== 'us') loadHomeInvestorTrend();
     }, 60 * 1000);
 
     function calendarMeta(rawTitle) {
