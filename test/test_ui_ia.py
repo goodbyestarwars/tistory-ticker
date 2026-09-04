@@ -2818,6 +2818,41 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", self.read("style.css"))
 
 
+    def test_brand_icon_urls_carry_a_version_so_stale_favicons_refresh(self):
+        """브랜드 아이콘만 ?v= 캐시 문자열이 없어서 옛 파비콘이 남을 수 있었다.
+
+        2026-08-17에 9bolt 번개(icon-9bolt-transparent.svg)에서 심장박동기
+        (heart-monitor.svg)로 바뀌었다 - 파일을 덮어쓴 게 아니라 새 경로를 추가하고
+        참조를 옮긴 것이라 GitHub Pages는 처음부터 새 로고를 서빙한다. 문제는 파비콘을
+        브라우저가 응답의 max-age(600초)와 무관하게 아주 오래 붙잡는다는 점이다.
+
+        skin.html은 티스토리 관리자에서만 고칠 수 있으므로 js/skin-shell.js가 런타임에도
+        같은 버전을 붙여 다시 쓴다. 두 곳의 버전 문자열은 같아야 하며, 그래야 스킨이
+        나중에 갱신될 때 런타임 재작성이 자연히 no-op이 된다.
+        """
+        version = "20260817-heart-monitor"
+        skin = self.read("skin.html")
+        shell = self.read("js/skin-shell.js")
+        self.assertIn("var LOGO_VERSION = '" + version + "';", shell)
+        self.assertIn("function refreshBrandIcon()", shell)
+        # 파비콘은 href만 바꾸면 브라우저가 다시 읽지 않는 경우가 있어 link를 새로 만든다.
+        self.assertIn("document.head.appendChild(replacement);", shell)
+        for path in ("skin.html", "legal/privacy.html", "legal/terms.html",
+                     "legal/opensource-license.html", "legal/guide.html"):
+            source = self.read(path)
+            for line in source.splitlines():
+                if "heart-monitor.svg" in line:
+                    with self.subTest(path=path, line=line.strip()[:60]):
+                        self.assertIn("heart-monitor.svg?v=" + version, line)
+        # 옛 9bolt 아이콘은 라이브 지면 어디에서도 참조하지 않는다(test/ 픽스처만 남는다).
+        # skin-shell.js는 주석으로 경위를 설명하므로 파일명이 등장하는 것 자체는 정상이다.
+        for path in ("skin.html", "legal/privacy.html", "legal/terms.html",
+                     "legal/opensource-license.html", "legal/guide.html"):
+            with self.subTest(path=path):
+                self.assertNotIn("icon-9bolt", self.read(path))
+        self.assertNotIn("icon-9bolt", skin)
+
+
 
 if __name__ == "__main__":
     unittest.main()

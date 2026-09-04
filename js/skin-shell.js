@@ -69,6 +69,52 @@
   });
 
   /*
+   * 로고 캐시 무효화 (2026-09-04).
+   *
+   * 브랜드 아이콘은 2026-08-17에 9bolt 번개(img/icon-9bolt-transparent.svg)에서
+   * 심장박동기(img/heart-monitor.svg)로 바뀌었다. 파일을 덮어쓴 게 아니라 새 경로를
+   * 추가하고 참조를 옮긴 것이라 GitHub Pages는 처음부터 새 로고를 서빙하고 있다.
+   *
+   * 그런데 skin.html의 두 로고 참조(파비콘 link, 네비바 img)에는 다른 자산과 달리
+   * ?v= 캐시 문자열이 없다. 파비콘은 브라우저가 응답의 max-age(600초)와 무관하게
+   * 아주 오래 붙잡는다 - 크롬은 별도 저장소에 두고 며칠씩 재검증하지 않는다.
+   * 그래서 개편 전에 방문했던 브라우저의 탭 아이콘이 옛 로고로 남아 있을 수 있다
+   * (사용자 리포트: "시간상 이전 게 빨리 나오는 경우가 존재해").
+   *
+   * skin.html은 티스토리 관리자에서만 고칠 수 있으므로 여기서 런타임에 버전을 붙여
+   * 다시 쓴다. 값은 로고가 바뀐 날짜다 - 로고를 또 교체할 때만 올리면 된다.
+   * skin.html이 나중에 같은 ?v=로 갱신되면 이 코드는 자연히 no-op이 된다.
+   */
+  var LOGO_VERSION = '20260817-heart-monitor';
+
+  function versionedLogoUrl(url) {
+    if (!url || url.indexOf('heart-monitor.svg') === -1) return null;
+    if (url.indexOf('v=' + LOGO_VERSION) !== -1) return null;  // 이미 최신
+    return url.split('?')[0] + '?v=' + LOGO_VERSION;
+  }
+
+  function refreshBrandIcon() {
+    var image = document.querySelector('.nav-logo-image');
+    if (image) {
+      var next = versionedLogoUrl(image.getAttribute('src'));
+      if (next) image.setAttribute('src', next);
+    }
+    // 파비콘은 href만 바꿔도 브라우저가 다시 읽지 않는 경우가 있어 link를 새로 만든다.
+    var icon = document.querySelector('link[rel="icon"]');
+    if (!icon) return;
+    var href = versionedLogoUrl(icon.getAttribute('href'));
+    if (!href) return;
+    var replacement = document.createElement('link');
+    replacement.setAttribute('rel', 'icon');
+    replacement.setAttribute('type', icon.getAttribute('type') || 'image/svg+xml');
+    replacement.setAttribute('href', href);
+    icon.parentNode.removeChild(icon);
+    document.head.appendChild(replacement);
+  }
+
+  refreshBrandIcon();
+
+  /*
    * Tistory's manager link and this site's Google account are different
    * authentication realms. Keep the original manager URL, but let the gear
    * button choose between Tistory/Kakao administration and Google services.
