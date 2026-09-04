@@ -480,3 +480,15 @@ html.dark #order-book .ob-trade-price.ob-down,
 html.dark #order-book .ob-trade-qty.ob-down { color: #6ea8e8 !important; }
 html.dark #order-book .ob-trade-price.ob-flat,
 html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !important; }
+
+
+/* ============================================================
+   2026-09-04 모바일 터치 영역 정비
+   Chromium 360px 실측에서 이 화면의 조작부가 22~38px였다. Apple HIG 44pt /
+   Material 48dp 기준에 못 미쳐 손가락으로 정확히 누르기 어렵다("모바일 앱 수준으로"
+   요청의 실체). PC는 마우스라 그대로 두고 720px 이하에서만 키운다.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* 실측 35px. 종목 입력은 키보드를 띄우는 첫 조작이라 특히 크게 잡는다. */
+  #order-book .ob-input { min-height: 44px; }
+}

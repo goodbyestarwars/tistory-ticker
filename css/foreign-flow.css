@@ -2864,3 +2864,17 @@ html.dark #foreign-flow .ff-view-tab.ui-btn-tab.active {
 @media (max-width: 640px) {
   #foreign-flow .ff-view-tab.ui-btn-tab { padding: 7px 11px !important; font-size: 12px !important; }
 }
+
+
+/* ============================================================
+   2026-09-04 모바일 터치 영역 정비
+   Chromium 360px 실측에서 이 화면의 조작부가 22~38px였다. Apple HIG 44pt /
+   Material 48dp 기준에 못 미쳐 손가락으로 정확히 누르기 어렵다("모바일 앱 수준으로"
+   요청의 실체). PC는 마우스라 그대로 두고 720px 이하에서만 키운다.
+   ============================================================ */
+@media (max-width: 720px) {
+  /* 실측: 탐색 탭 38px, 조회 입력·버튼 36px. */
+  #foreign-flow .ff-explore-tab { min-height: 44px; }
+  #foreign-flow .ff-input,
+  #foreign-flow .ff-search-btn { min-height: 44px; }
+}
