@@ -89,3 +89,43 @@ class MobileTouchTargetTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class RealtimeBoardChangeRateTests(unittest.TestCase):
+    """실시간 종목판의 등락률 표시.
+
+    2026-09-04 요청: "실시간 종목판에 몇 % 오르고 내렸는지 표시해줘".
+    모바일은 컬럼이 종목/현재가/활성 탭 값 3개뿐이라, 거래대금·거래량·시가총액 탭에서는
+    등락률이 아예 안 보였다(상승률·하락률 탭에서만 보였다). 현재가 칸 안에 등락률 줄을
+    넣어 어느 탭에서든 보이게 했고, PC는 상승률·하락률 컬럼이 이미 있어 감춘다.
+    """
+
+    def test_render_and_live_update_share_one_builder(self):
+        """가장 위험한 회귀: 렌더와 실시간 갱신이 서로 다른 결과를 내는 것.
+
+        updateRow는 현재가 셀을 통째로 다시 쓴다. 예전처럼 textContent로 쓰면 안에 있는
+        등락률 줄이 첫 체결에 지워져서, 처음엔 보이다가 시세가 움직이면 사라진다.
+        """
+        source = read('js/home-realtime-table.js')
+        self.assertIn('function priceCellInner(price, currency, rate)', source)
+        # 렌더 경로
+        self.assertIn("priceCellInner(item.price, item.currency, rate)", source)
+        # 실시간 갱신 경로 - 같은 함수를 써야 한다
+        self.assertIn('priceCell.innerHTML = priceCellInner(price, item && item.currency,', source)
+        # textContent 대입이 남아 있으면 등락률 줄이 지워진다
+        self.assertNotIn("priceCell.textContent = fmtPrice(", source)
+
+    def test_change_rate_keeps_the_semantic_colors(self):
+        # CLAUDE.md: 상승은 빨강, 하락은 파랑. 기존 컬럼과 같은 클래스를 재사용한다.
+        source = read('js/home-realtime-table.js')
+        self.assertIn("var tone = parsed > 0 ? 'hrt-up' : parsed < 0 ? 'hrt-down' : 'hrt-flat';", source)
+        self.assertIn("+ (parsed > 0 ? '+' : '') + parsed.toFixed(2) + '%</small>';", source)
+
+    def test_hidden_on_pc_shown_on_mobile(self):
+        style = read('style.css')
+        # PC 기본값은 숨김 - 상승률·하락률 컬럼과 중복되면 안 된다.
+        self.assertIn('.hrt-price-rate { display: none; }', style)
+        # 모바일 구간에서만 켠다.
+        block = mobile_blocks(style)
+        self.assertIn('.home-realtime-board .hrt-table-wrap .hrt-price-rate {', block)
+        self.assertIn('display: block;', block)

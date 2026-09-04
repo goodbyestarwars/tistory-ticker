@@ -4042,6 +4042,16 @@ html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
   .home-realtime-board .hrt-table-wrap td[data-field="industry"] { width: 48%; }
   .home-realtime-board .hrt-table-wrap .hrt-stock strong { font-size: 12px; }
   .home-realtime-board .hrt-table-wrap .hrt-stock small { font-size: 11px; }
+  /* 2026-09-04: 모바일은 컬럼이 종목/현재가/활성 탭 값 3개뿐이라 거래대금·거래량·
+     시가총액 탭에서 등락률이 안 보였다. 현재가 바로 아래 줄에 붙여 어느 탭에서든
+     보이게 한다. 상승 빨강·하락 파랑 의미색은 .hrt-up/.hrt-down을 그대로 쓴다. */
+  .home-realtime-board .hrt-table-wrap .hrt-price-rate {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 1.2;
+  }
 }
 
 /* ============ iframe 모드 (모달 안에서 열릴 때) ============ */
@@ -4665,6 +4675,9 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
 .hrt-stock small { display: block; margin-top: 2px; color: #a0a8b2; font-size: 10px; }
 .hrt-rank { width: 16px; color: #8e98a4; font-size: 12px; text-align: center; }
 .hrt-price { color: #152033; font-weight: 700; }
+/* 2026-09-04: 현재가 칸 안의 등락률 줄. PC는 상승률·하락률 컬럼이 이미 보이므로
+   중복을 피해 감추고, 컬럼이 3개뿐인 모바일에서만 켠다(아래 720px 구간). */
+.hrt-price-rate { display: none; }
 .hrt-up { color: #e34d4b; }
 .hrt-down { color: #2674d9; }
 .hrt-flat, .hrt-muted { color: #9da5ad; }

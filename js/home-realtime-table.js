@@ -403,6 +403,22 @@
       + Math.abs(parsed).toFixed(2) + '%</span>';
   }
 
+  /* 2026-09-04 요청("몇 % 오르고 내렸는지 표시해줘"): 모바일은 컬럼이 종목/현재가/
+     활성 탭 값 3개뿐이라, 거래대금·거래량·시가총액 탭에서는 등락률이 아예 안 보였다
+     (상승률·하락률 탭에서만 보였다). 등락률을 현재가 칸 안에 함께 넣어 어느 탭에서든
+     보이게 한다 - 토스·네이버금융도 쓰는 배치다. PC는 상승률·하락률 컬럼이 이미
+     보이므로 style.css에서 이 줄을 감춘다(중복 방지).
+     렌더와 실시간 갱신(updateRow)이 반드시 같은 결과를 내야 해서 한 함수로 둔다 -
+     updateRow가 현재가 셀을 통째로 다시 쓰기 때문이다. */
+  function priceCellInner(price, currency, rate) {
+    var parsed = number(rate);
+    var html = fmtPrice(price, currency);
+    if (parsed == null) return html;
+    var tone = parsed > 0 ? 'hrt-up' : parsed < 0 ? 'hrt-down' : 'hrt-flat';
+    return html + '<small class="hrt-price-rate ' + tone + '">'
+      + (parsed > 0 ? '+' : '') + parsed.toFixed(2) + '%</small>';
+  }
+
   function signedRate(rate) {
     var parsed = number(rate);
     if (parsed == null) return '<span class="hrt-muted">-</span>';
@@ -431,7 +447,7 @@
       stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
         + '&name=' + encodeURIComponent(displayName) + '"><strong>' + escapeHtml(displayName) + '</strong><small>'
         + escapeHtml(item.symbol || code) + '</small></a></td>',
-      price: '<td class="hrt-price" data-field="price">' + fmtPrice(item.price, item.currency) + '</td>',
+      price: '<td class="hrt-price" data-field="price">' + priceCellInner(item.price, item.currency, rate) + '</td>',
       amount: '<td data-field="amount">' + fmtAmount(item.trade_amount, item.currency) + '</td>',
       volume: '<td data-field="volume">' + fmtCount(item.trade_volume) + '</td>',
       rising: '<td data-field="rising">' + rateCell(rate, true) + '</td>',
@@ -651,7 +667,11 @@
     if (!item) item = (state.data && state.data.rows || []).find(function (candidate) { return candidate.code === code; });
     if (item) { if (price != null) item.price = price; if (rate != null) item.change_rate = rate; }
     var priceCell = row.querySelector('[data-field="price"]');
-    if (priceCell && price != null) priceCell.textContent = fmtPrice(price, item && item.currency);
+    // textContent로 쓰면 안에 있는 등락률 줄이 첫 체결에 지워진다.
+    if (priceCell && price != null) {
+      priceCell.innerHTML = priceCellInner(price, item && item.currency,
+        rate != null ? rate : (item && item.change_rate));
+    }
     var rising = row.querySelector('[data-field="rising"]');
     var falling = row.querySelector('[data-field="falling"]');
     if (rising) rising.innerHTML = rateCell(rate, true);
