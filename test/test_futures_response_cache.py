@@ -62,5 +62,27 @@ class FuturesResponseCacheTests(unittest.TestCase):
         self.assertEqual(main._futures_response(None, entry).body, entry['raw'])
 
 
+class FuturesCacheTtlTests(unittest.TestCase):
+    """캐시 TTL은 수집 주기보다 짧을 이유가 없다.
+
+    2026-09-04: 10초 -> 30초. 수집기 세 개가 전부 30초 주기라, 그보다 짧은 TTL은 같은
+    숫자를 다시 만들기만 한다 - 신선도는 하나도 못 얻고 1.36MB 직렬화만 3배로 한다.
+    캐시가 만료될 때마다 첫 요청이 TTFB 2.6초를 뒤집어썼고, 프론트가 이 요청에 10초
+    abort를 걸고 있어 휴대폰 회선에서 종종 그 문턱을 넘겼다.
+    """
+
+    def test_ttl_is_at_least_the_collector_poll_interval(self):
+        import btc_futures
+        import domestic_futures
+        import foreign_futures
+        for module in (foreign_futures, domestic_futures, btc_futures):
+            with self.subTest(collector=module.__name__):
+                self.assertGreaterEqual(main._FUTURES_TTL, module._REALTIME_POLL_SEC)
+
+    def test_ttl_stays_short_enough_to_look_live(self):
+        # 너무 길면 "실시간"이라고 부르기 어려워진다 - 프론트 폴링(20~30초)과 같은 눈금.
+        self.assertLessEqual(main._FUTURES_TTL, 60)
+
+
 if __name__ == '__main__':
     unittest.main()

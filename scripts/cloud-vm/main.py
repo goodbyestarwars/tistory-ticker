@@ -306,10 +306,18 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # 렌더)·코스피 선물 페이지(30초 폴링)·GAS AI 해설(gas/ticker-proxy.gs가 서버사이드로 또 호출)이
 # 같은 데이터를 각자 조회한다 - 방문자가 여러 명이면 같은 쿼리가 계속 겹쳐 DB를 반복해서
 # 읽고 있었다(2026-07-31 "첫 로딩 30초" 신고).
-# 수집 주기(실시간 30초 폴링, 분봉 5분)보다 짧은 TTL이라 신선도 손실 없이 중복 조회만 없앤다
-# (_market_rank_cache와 동일 패턴).
-_FUTURES_TTL = 10
-_futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'data':..}
+# 2026-09-04: 10초 -> 30초. 수집기 세 개(foreign_futures / domestic_futures / btc_futures)가
+# 전부 _REALTIME_POLL_SEC = 30으로 돌기 때문에, 30초보다 짧은 TTL은 **같은 숫자를 다시
+# 만들기만 한다** - 신선도는 하나도 못 얻고 1.36MB(days=365 기준) 직렬화만 3배로 한다.
+# 이 값이 화면에서 문제가 된 경로(같은 날 사용자 리포트): 캐시가 만료될 때마다 첫 요청이
+# TTFB 2.6초를 뒤집어썼고, js/kospi-futures.js·js/overnight-market.js가 이 요청에 10초
+# abort를 걸고 있어 휴대폰 회선에서 종종 그 문턱을 넘겼다. TTL을 수집 주기에 맞추면
+# 미스 빈도가 1/3로 줄어든다. 아래 test/test_futures_response_cache.py가 이 관계
+# (TTL >= 수집 주기)를 고정한다.
+# USDKRW·KOSPI200_NIGHT는 라우트 안에서 한 번 더 보정하는데, 그 보정도 결국 30초 주기로
+# 갱신되는 소스를 읽으므로 TTL을 늘려도 어긋나지 않는다.
+_FUTURES_TTL = 30
+_futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'raw':.., 'gzip':.., 'data':..}
 _MARKET_INDICATOR_SYMBOLS = {
     'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX',
     'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD',
