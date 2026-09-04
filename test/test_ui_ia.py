@@ -399,7 +399,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-board-site-palette-v4", skin)
+        self.assertIn("style.css?v=20260904-flip-only-v5", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -735,7 +735,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260904-solari-flap-v2", main)
+        self.assertIn("home-realtime-table.js?v=20260904-flip-only-v5", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -2769,124 +2769,30 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("name_en, name_ko = _normalize_us_names(", backend)
 
 
-    def test_realtime_board_uses_departure_board_styling(self):
-        """2026-09-04 요청: 실시간 종목판을 공항·기차역 출발안내 전광판(솔라리)으로.
+    def test_realtime_board_only_flips_cells_whose_value_changed(self):
+        """2026-09-04 최종: 전광판 색·질감은 전부 되돌리고 넘어가는 효과만 남긴다.
 
-        첫 시도에서 판 배경이 라이브에서 안 칠해졌다. 홈 편집 지면이
-        `.home-widget--full.home-realtime-board`에 `background: transparent !important`를
-        걸고 있는데 판 규칙을 `.home-realtime-board`(클래스 하나)로만 써서 진 것이다.
-        앰버 글자만 크림색 지면에 남아 글씨가 거의 안 보였다. 그래서 판에 관한 규칙은
-        같은 id 접두어를 함께 달고, 상대가 !important를 쓴 자리에는 이쪽도 쓴다.
-        """
-        css = self.read("style.css")
-        board = css[css.index("실시간 종목판 - 공항·기차역 출발안내 전광판"):]
-        # 지면의 transparent !important를 넘지 못하면 글자만 남고 판이 사라진다.
-        self.assertIn(
-            "body#tt-body-index .home-editorial-page .home-widget--full.home-realtime-board {",
-            board)
-        self.assertIn("background: var(--hrt-board-bg) !important;", board)
-        for token in (
-            # 홈 규칙이 참조하는 토큰을 판 안에서 갈아끼우는 것이 이 스타일의 핵심이다.
-            "--text-main: var(--hrt-board-ink-strong);",
-            "--rule: var(--hrt-board-seam);",
-            # th/td에 font-family !important가 걸려 있어 토큰으로 등폭을 넣는다.
-            "--font-data: ui-monospace",
-            "font-variant-numeric: tabular-nums;",
-        ):
-            self.assertIn(token, board)
-        # 양각·음각은 값이 아니라 토큰으로 들어가야 테마별로 뒤집을 수 있다.
-        self.assertIn("inset 0 1px 0 var(--hrt-emboss)", board)
-        self.assertIn("inset 0 -1px 0 var(--hrt-deboss)", board)
-        self.assertIn("var(--hrt-fold) calc(50% - 1px)", board)
-        # 색 정지 위치에 단위 없는 0을 쓰면 선언이 통째로 무효가 된다.
-        self.assertNotIn("var(--hrt-flap-top) 0,", board)
-
-        # 2026-09-04 재요청("색이 왜이래? 기존 사이트 색상으로 해줘"): 앰버·아이보리를
-        # 버리고 :root / html.dark가 정의한 값을 그대로 쓴다. 전광판 성격은 색이 아니라
-        # 플랩 형태와 넘어가는 움직임으로 남긴다.
-        light = board[:board.index("html.dark .home-realtime-board,")]
-        for token, why in (
-            ("--hrt-board-bg: #FFFEFC;", "--surface"),
-            ("--hrt-board-ink: #171717;", "--text-main"),
-            ("--hrt-board-ink-dim: #6F7480;", "--text-sub"),
-            ("--hrt-board-seam: #D8D8D8;", "--rule"),
-            ("--up: #B42318;", "--up"),
-            ("--down: #245B9E;", "--down"),
-            ("--neutral: #777777;", "--neutral"),
-        ):
-            with self.subTest(token=token, site_token=why):
-                self.assertIn(token, light)
-        # 앰버는 어느 테마에도 남아 있으면 안 된다.
-        self.assertNotIn("#f7d774", board.lower())
-        # 다크는 사이트 다크 토큰(html.dark) 값을 쓴다.
-        dark = board[board.index("html.dark .home-realtime-board,"):]
-        self.assertIn("--hrt-board-bg: #1A1A1A;", dark)
-        self.assertIn("--hrt-board-ink: #F5EFE0;", dark)
-        self.assertIn("--hrt-board-seam: rgba(245, 239, 224, .16);", dark)
-        self.assertIn("background: var(--hrt-board-bg) !important;", dark)
-        self.assertIn("@media (prefers-reduced-motion: reduce)", board)
-
-    def test_realtime_board_rows_flip_in_like_a_departure_board(self):
-        """"움직이는" 판 - 목록이 새로 그려지면 위에서부터 한 줄씩 넘어간다.
-
-        rowHtml이 행마다 --hrt-i(순위)를 심고 CSS가 그것으로 지연을 준다.
+        "색은 완전 원복해줘. 난 숫자가 변할 때만 넘어가는 효과를 원한거야."
+        검은 판/앰버, 아이보리 플랩, 칸 머리 띠, 램프, 등폭 서체, 목록 전체가 차례로
+        넘어가던 연출은 전부 제거했다. 판의 색은 지면의 기존 스타일을 쓴다.
         """
         css = self.read("style.css")
         source = self.read("js/home-realtime-table.js")
-        self.assertIn("style=\"--hrt-i:' + rank + '\"", source)
-        self.assertIn("animation-delay: calc(var(--hrt-i, 0) * 18ms);", css)
+
+        # 되돌린 것들이 다시 들어오지 않게 막는다.
+        for gone in ("--hrt-board-bg", "--hrt-flap-top", "--hrt-emboss", "--hrt-head-bg",
+                     "#f7d774", "hrtBoardLamp", "--hrt-i"):
+            with self.subTest(removed=gone):
+                self.assertNotIn(gone, css)
+        self.assertNotIn("--hrt-i", source)
+
+        # 남는 것은 값이 바뀐 현재가 칸의 flip 하나뿐이다.
+        self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", css)
         self.assertIn("@keyframes hrtFlap", css)
-
-    def test_realtime_board_flaps_only_cells_whose_value_changed(self):
-        """솔라리 플랩은 값이 실제로 바뀐 칸에서만 돈다.
-
-        같은 값이 다시 들어오는 체결에서도 뒤집히면 어디가 갱신됐는지 알 수 없다.
-        클래스를 떼고 바로 붙이면 브라우저가 같은 프레임으로 묶어 애니메이션이
-        재시작하지 않으므로 강제 리플로우로 한 번 끊는다.
-        """
-        source = self.read("js/home-realtime-table.js")
+        self.assertIn("@media (prefers-reduced-motion: reduce)", css)
         self.assertIn("function flapCell(cell)", source)
-        self.assertIn("cell.classList.remove('hrt-flip');", source)
         self.assertIn("void cell.offsetWidth;", source)
-        self.assertIn("cell.classList.add('hrt-flip');", source)
         self.assertIn("if (previous !== priceCell.textContent) flapCell(priceCell);", source)
-        self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", self.read("style.css"))
-
-
-    def test_brand_icon_urls_carry_a_version_so_stale_favicons_refresh(self):
-        """브랜드 아이콘만 ?v= 캐시 문자열이 없어서 옛 파비콘이 남을 수 있었다.
-
-        2026-08-17에 9bolt 번개(icon-9bolt-transparent.svg)에서 심장박동기
-        (heart-monitor.svg)로 바뀌었다 - 파일을 덮어쓴 게 아니라 새 경로를 추가하고
-        참조를 옮긴 것이라 GitHub Pages는 처음부터 새 로고를 서빙한다. 문제는 파비콘을
-        브라우저가 응답의 max-age(600초)와 무관하게 아주 오래 붙잡는다는 점이다.
-
-        skin.html은 티스토리 관리자에서만 고칠 수 있으므로 js/skin-shell.js가 런타임에도
-        같은 버전을 붙여 다시 쓴다. 두 곳의 버전 문자열은 같아야 하며, 그래야 스킨이
-        나중에 갱신될 때 런타임 재작성이 자연히 no-op이 된다.
-        """
-        version = "20260817-heart-monitor"
-        skin = self.read("skin.html")
-        shell = self.read("js/skin-shell.js")
-        self.assertIn("var LOGO_VERSION = '" + version + "';", shell)
-        self.assertIn("function refreshBrandIcon()", shell)
-        # 파비콘은 href만 바꾸면 브라우저가 다시 읽지 않는 경우가 있어 link를 새로 만든다.
-        self.assertIn("document.head.appendChild(replacement);", shell)
-        for path in ("skin.html", "legal/privacy.html", "legal/terms.html",
-                     "legal/opensource-license.html", "legal/guide.html"):
-            source = self.read(path)
-            for line in source.splitlines():
-                if "heart-monitor.svg" in line:
-                    with self.subTest(path=path, line=line.strip()[:60]):
-                        self.assertIn("heart-monitor.svg?v=" + version, line)
-        # 옛 9bolt 아이콘은 라이브 지면 어디에서도 참조하지 않는다(test/ 픽스처만 남는다).
-        # skin-shell.js는 주석으로 경위를 설명하므로 파일명이 등장하는 것 자체는 정상이다.
-        for path in ("skin.html", "legal/privacy.html", "legal/terms.html",
-                     "legal/opensource-license.html", "legal/guide.html"):
-            with self.subTest(path=path):
-                self.assertNotIn("icon-9bolt", self.read(path))
-        self.assertNotIn("icon-9bolt", skin)
-
 
     def test_stock_search_result_row_survives_long_stock_names(self):
         """2026-09-04 사용자 스크린샷: "KODEX SK하이닉스단일종목레버리지"를 검색하면
