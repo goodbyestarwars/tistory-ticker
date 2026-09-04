@@ -1,5 +1,48 @@
 # 9Pay 주요 작업이력
 
+**2026-09-04 차트검색에 "거래량 돌파(10분)" 탭 추가**
+
+요청: "차트 검색에 전일 거래량이 오늘 10분만에 돌파한거 추가 하고 싶다".
+
+**성격이 다른 스캔이다.** 차트검색의 기존 탭은 전부 `daily_scan.py`가 장 마감 뒤(16:00 KST)
+하루 1회 돌리는 일봉 패턴인데, "개장 후 10분"은 시각 자체가 조건이라 그 순간에 찍어야만
+알 수 있다. 그래서 **09:10 KST 평일 1회** 스냅샷 타이머를 따로 뒀다. 장중 계속 감시할
+이유는 없다 - "10분 안에 넘었는가"는 09:10에 확정되고 이후 바뀌지 않는다.
+
+주요 변경:
+- `scripts/cloud-vm/volume_breakout_scan.py`(신규): KIS 순위 API의 당일 거래량·거래대금·
+  거래증가율 상위 목록을 후보로 모아, 각 종목의 **오늘 누적 거래량**(순위 응답 `trade_volume`)이
+  **전일 총 거래량**(`daily_prices`의 오늘 이전 최근 영업일 `volume`) 이상인지 본다.
+  배수 내림차순 상위 40종목을 `patternScan.patterns.volumeBreakout`에 저장한다.
+  다른 스캐너 결과를 덮어쓰지 않도록 잠금이 걸린 `daily_scan_cache.update()`를 쓴다.
+- `scripts/cloud-vm/setup_volumebreakout_timer.sh`(신규): 평일 00:10 UTC(=09:10 KST).
+  `Persistent=false` - VM이 꺼졌다 켜질 때 지난 회차를 몰아 돌리면 장중 스냅샷의 의미가
+  사라진다.
+- `scripts/cloud-vm/main.py`, `gas/ticker-proxy.gs`: `volumeBreakout`과
+  `volumeBreakoutScannedAt`을 두 경로 모두 같은 모양으로 서빙(프론트가 VM→GAS 폴백).
+- `js/pattern-scan.js`: "거래량 돌파(10분)" 탭 + 신호 문구("전일 대비 N.NN배").
+  일봉 재판정 대상이 아니므로 `GAS_REDETECTED_PATTERNS`에는 넣지 않는다.
+
+**의도적으로 쓰지 않은 것**: KIS 순위 API의 거래증가율(`vol_inrt`)은 무엇 대비 증가율인지
+이 저장소에서 확인된 바가 없어 판정에 쓰지 않았다(CLAUDE.md: 미검증 API 필드를 확정값처럼
+쓰지 않는다). 의미가 분명한 두 값(오늘 누적 거래량, 전일 총 거래량)만 비교한다. 참고로
+`kis_client.fetch_domestic_volume_rank`의 `sort_code='0'`은 독스트링엔 "평균거래량",
+`market_board`에선 "거래량"으로 쓰여 서로 어긋나 있다 - 후보 수집에만 쓰고 판정에는
+관여하지 않게 설계했다.
+
+**한계**: 후보가 순위 API 상위 목록(섹션당 최대 40, 합쳐 최대 ~120종목)이라 완전 탐색이
+아니다. 전일 하루치를 10분 만에 넘긴 종목은 그 시각 거래량 최상위권일 수밖에 없어 대부분
+잡히지만, 순위 밖으로 밀리면 놓친다.
+
+검증: `python3 -m pytest test -q` 877 passed. 신규 `test/test_volume_breakout_scan.py`가
+판정 로직(같은 값도 돌파로 인정, 전일 데이터 없으면 제외, 배수 정렬·상한, 섹션 중복 제거)과
+**daily_prices에 오늘 행이 있어도 전일을 고르는지**(가장 위험한 함정 - 오늘을 오늘과 비교하면
+배수가 항상 1.0이 된다), 그리고 VM·GAS·프론트·타이머 배선을 고정한다.
+
+**배포 주의**: `scripts/cloud-vm/`는 `master` 반영 후 자동 배포되지만, **systemd 타이머는
+VM에서 한 번 수동 등록해야 한다**: `bash scripts/cloud-vm/setup_volumebreakout_timer.sh`.
+등록 전까지는 탭이 보이되 항상 비어 있다.
+
 **2026-09-04 모바일 내비게이션 원복(상단 메뉴) + 전 페이지 터치 영역 정비**
 
 사용자 판단: "모바일인데 메뉴가 사라졌네? 밑이 두는게 이상해. UI도 모바일은 아니고.

@@ -300,6 +300,12 @@ dict 구성을 함께 대조한다.
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
 
+`/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:10 KST 스냅샷**이다
+(`volume_breakout_scan.py`, 평일 전용 systemd 타이머). "전일 거래량을 개장 10분 만에
+넘었는가"는 그 시각에만 확정되는 조건이라 장 마감 뒤 도는 `daily_scan.py`로는 알 수 없다.
+스캔 시각이 다른 탭과 달라 `volumeBreakoutScannedAt`을 따로 내려준다. 후보는 KIS 순위
+API의 당일 거래량·거래대금·거래증가율 상위 목록(섹션당 최대 40)이라 **완전 탐색이 아니다**.
+
 `/invest-signal`, `/pattern-scan`은 브라우저가 GAS를 거치지 않고 직접 부르는 공개 경로다
 (`/flow-chart/{code}`와 같은 모델 - X-API-Key 없이 CORS로 블로그 도메인만 허용하고
 레이트리밋 분당 30회). 응답은 `gas/ticker-proxy.gs`의 `getInvestSignalResult()`/

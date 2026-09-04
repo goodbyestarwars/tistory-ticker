@@ -2795,8 +2795,12 @@ function getPatternScanResult() {
       angleMomentum: (patternScan.patterns && patternScan.patterns.angleMomentum) || [],
       // 2026-08-20: "공파산 타점"(역매공파, gongpasan_scan.py) 탭 추가 - 각도기 테스트와
       // 독립된 별개 전략(서로 로직을 공유하지 않음).
-      gongpasan: (patternScan.patterns && patternScan.patterns.gongpasan) || []
+      gongpasan: (patternScan.patterns && patternScan.patterns.gongpasan) || [],
+      // 2026-09-04: 장중 09:10 스냅샷(volume_breakout_scan.py) - 전일 거래량을
+      // 개장 10분 만에 넘어선 종목. 다른 탭과 스캔 시각이 다르다.
+      volumeBreakout: (patternScan.patterns && patternScan.patterns.volumeBreakout) || []
     },
+    volumeBreakoutScannedAt: data.volumeBreakoutScannedAt || null,
     // 각도기 테스트 탭 전용 - 과거 entry_signal 발생분 전체를 5일 보유로 백테스트한 요약
     // (승률/평균수익률 등). 다른 패턴엔 없는 필드라 patterns 밖에 별도로 둔다.
     angleMomentumBacktest: data.angleMomentumBacktest || null,
