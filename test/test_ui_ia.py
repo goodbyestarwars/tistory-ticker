@@ -2864,7 +2864,25 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertNotIn("35%", summary)
         self.assertNotIn("30종목", summary)
 
+    def test_brand_favicon_wins_over_tistory_injected_icons(self):
+        """티스토리가 <head>에 자기 파비콘 link를 스킨보다 먼저 넣는다(2026-09-04 실측).
 
+        href만 고치는 방식은 무력화된다 - querySelector('link[rel="icon"]')가 문서
+        순서상 티스토리의 .ico를 집어오기 때문이다. 경쟁하는 icon link를 전부 걷어내고
+        우리 것 하나만 마지막에 새로 넣어야 한다.
+        """
+        source = self.read("js/skin-shell.js")
+        # URL은 DOM 값을 손보는 게 아니라 상수에서 만든다(라이브 link가 낡아도 같은 결과).
+        self.assertIn("var LOGO_URL = ", source)
+        self.assertIn("img/heart-monitor.svg?v=' + LOGO_VERSION", source)
+        # 경쟁 link를 전부 제거한다. 하나만 집어오는 querySelector로는 안 된다.
+        self.assertIn('document.querySelectorAll(\'link[rel~="icon"]\')', source)
+        self.assertIn("removeChild(links[i])", source)
+        self.assertNotIn("document.querySelector('link[rel=\"icon\"]')", source)
+        # 제거 뒤 새 link를 head 끝에 붙인다.
+        self.assertIn("document.head.appendChild(icon)", source)
+        # apple-touch-icon은 건드리지 않는다(정사각형 PNG 자산이 없어 지우면 더 나빠진다).
+        self.assertNotIn("apple-touch-icon\']", source)
 
 if __name__ == "__main__":
     unittest.main()
