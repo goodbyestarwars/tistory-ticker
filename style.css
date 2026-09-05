@@ -4617,9 +4617,21 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
   11%  { opacity: 1; filter: drop-shadow(0 0 4px rgba(255,180,90,1)); }
   15%  { opacity: 0.85; filter: drop-shadow(0 0 1px rgba(255,180,90,0.5)); }
 }
+/* 2026-09-05: 로고를 <img src> 교체가 아니라 CSS 배경으로 그린다.
+   skin.html은 티스토리 관리자에만 있어서 우리가 못 고치는데, 거기 박힌 이미지와 JS가
+   넣으려는 이미지가 서로 달랐다. 그래서 회선·캐시 상태에 따라 skin.html 쪽이 먼저
+   그려졌다가 바뀌며 깜빡였다(사용자: "깜박임 있어"). style.css는 GitHub Pages에서
+   <head>로 오므로 첫 페인트부터 맞는 그림이 나오고, 교체 자체가 없으니 깜빡일 구간이
+   아예 없다. 이미지는 배너 원본(account-cpr-logo.png, 1.6MB)을 지금 화면과 같은 크롭
+   (object-fit: cover + center)으로 256x256, 65KB로 구운 것이다. */
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
+  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20260905-banner-v1");
+  background-size: cover;
+  background-position: center;
+  border-radius: 8px;
 }
+.nav-logo-emblem img { display: none; }
 .nav-logo-image {
   display: block;
   width: 34px;

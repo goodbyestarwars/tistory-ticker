@@ -400,7 +400,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260904-flip-faster-v6", skin)
+        self.assertIn("style.css?v=20260905-banner-v1", skin)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))
@@ -2886,10 +2886,14 @@ console.log(JSON.stringify(cases.map(function (iso) {
         source = self.read("js/skin-shell.js")
         # URL은 DOM 값을 손보는 게 아니라 상수에서 만든다(라이브 link가 낡아도 같은 결과).
         self.assertIn("var LOGO_URL = ", source)
-        self.assertIn("'brand-mono.svg?v=' + LOGO_VERSION", source)
-        # 2026-09-05: 배너와 탭 아이콘을 여기 한 곳에서만 정한다. skin-menu.js가 1.6MB짜리
-        # account-cpr-logo.png로 덮어쓰던 걸 걷어내 아이콘이 겹쳐 깜빡이던 문제를 없앴다.
-        self.assertIn("document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image')", source)
+        self.assertIn("'brand-banner.png?v=' + LOGO_VERSION", source)
+        # 2026-09-05: 네비 로고는 JS가 <img src>를 갈아끼우지 않는다. skin.html(티스토리
+        # 관리자에만 있어 우리가 못 고친다)이 박아둔 이미지가 먼저 그려졌다가 바뀌며
+        # 깜빡였다. 로고는 style.css의 배경으로 옮겨 첫 페인트부터 확정시킨다.
+        style = self.read("style.css")
+        self.assertIn("background-image: url(\"https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png", style)
+        self.assertIn(".nav-logo-emblem img { display: none; }", style)
+        self.assertNotIn("document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image')", source)
         # 주석은 왜 걷어냈는지 설명하느라 파일명을 언급하므로 실제 대입만 본다.
         self.assertNotIn("img/account-cpr-logo.png'", self.read("js/skin-menu.js"))
         # 경쟁 link를 전부 제거한다. 하나만 집어오는 querySelector로는 안 된다.
