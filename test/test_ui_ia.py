@@ -364,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260905-main-news-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-main-news-v2", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -420,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260905-main-news-v1", skin)
+        self.assertIn("skin-main.js?v=20260905-main-news-v2", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2945,7 +2945,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         main = self.read("js/skin-main.js")
 
         # 메뉴는 시장 하위, 마켓브리핑 바로 뒤.
-        self.assertIn("{ href: '/page/main-news', label: '주요 뉴스' },", menu)
+        self.assertIn("{ href: '/pages/main-news', label: '주요 뉴스' },", menu)
         market_group = menu[menu.index("label: '시장'"):menu.index("label: '종목'")]
         self.assertLess(market_group.index("마켓브리핑"), market_group.index("주요 뉴스"))
         self.assertLess(market_group.index("주요 뉴스"), market_group.index("증시온도"))
@@ -2964,6 +2964,16 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("renderColumn(container, pair[0], [], true)", source)
         # 미국 기사는 서버 번역 제목이 있으면 그것을 우선한다(기존 규약).
         self.assertIn("item.title_ko", source)
+
+        # 출처 표기(2026-09-05 운영 API 실측): 미국 source는 언론사명("CNBC"), 국내 source는
+        # 도메인("mk.co.kr")이라 그대로 쓰면 국내만 지저분해진다. 아는 곳은 이름으로 바꾼다.
+        self.assertIn("var PRESS_BY_DOMAIN = {", source)
+        self.assertIn("'mk.co.kr': '매일경제'", source)
+        self.assertIn("function registrableDomain(host)", source)
+        # mk.co.kr을 두 조각으로 자르면 "co.kr"이 되므로 3조각일 때도 검사해야 한다.
+        self.assertIn("if (parts.length >= 3 && /^(co|or|go|ne|re|pe|ac)$/", source)
+        # category는 국내·미국 모두 "시장"으로만 와서 폴백으로 쓰면 모든 줄이 같아진다.
+        self.assertNotIn("return market === 'us' ? '해외' : '국내';", source)
 
         # 2칼럼. minmax(0, ...)이 없으면 긴 제목이 트랙을 밀어 칼럼이 겹친다.
         self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)

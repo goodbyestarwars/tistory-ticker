@@ -13,7 +13,10 @@
         { href: '/category/마켓 브리핑', label: '마켓브리핑' },
         // 2026-09-05: 마켓브리핑(직접 쓴 해석) 바로 뒤에 둔다. 둘 다 "무슨 일이
         // 있었나"를 읽는 자리고, 지표 두 개는 그 다음에 숫자로 확인하는 순서다.
-        { href: '/page/main-news', label: '주요 뉴스' },
+        // 실제 페이지는 /pages/(복수형)로 만들어져 있다. 티스토리는 둘 다 쓰이고 있고
+        // (마켓·종목 메뉴에 /page/와 /pages/가 섞여 있다), skin-main.js의 로더는 두 형태를
+        // 모두 잡지만 메뉴 링크는 하나뿐이라 실제 주소를 써야 404가 안 난다.
+        { href: '/pages/main-news', label: '주요 뉴스' },
         { href: '/page/market-temp', label: '증시온도' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
         { href: '/pages/kospi-futures', label: '국내시장지표' }

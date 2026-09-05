@@ -1,5 +1,39 @@
 # 9Pay 주요 작업이력
 
+**2026-09-05 주요 뉴스 - 실제 페이지 주소 반영 + 출처 표기 정정**
+
+사용자가 페이지를 `/pages/main-news`(복수형)로 만들었다. 메뉴 링크는 `/page/`로 넣어둬서
+404가 났다. `js/skin-main.js`의 로더 정규식은 두 형태를 다 잡지만 메뉴 링크는 하나뿐이라
+실제 주소를 써야 한다(티스토리에 `/page/`와 `/pages/`가 섞여 있다).
+
+**운영 API를 실측했다**(Actions api-probe). 둘 다 200, 40건씩.
+
+| | `source` 값 | `title_ko` |
+|---|---|---|
+| `/foreign-news` | `CNBC`(19) · `Bloomberg`(14) · `Reuters`(7) - **언론사명** | 40건 중 **37건** 있음 |
+| `/domestic-news` | `mk.co.kr` · `magazine.hankyung.com` · `ifs.or.kr` - **도메인** | 해당 없음 |
+
+`category`는 국내·미국 모두 `"시장"` 하나로만 와서 정보가 없다. 처음 코드는 `press`(존재하지
+않는 필드) → `category` 순으로 폴백해서 **모든 줄에 "시장"만 찍힐** 뻔했다.
+
+- `js/main-news.js`: `sourceLabel()`을 실측 형태에 맞게 고쳤다. 값에 점이 없으면 이미
+  언론사명이므로 그대로 쓰고(CNBC 등), 도메인이면 `PRESS_BY_DOMAIN` 표(주요 20곳)로
+  이름을 찾는다. 표에 없으면 등록 도메인만 남긴다(`www.`/`m.`/`view.`/`news.`/`magazine.`
+  접두사 제거). 출처가 비면 span 자체를 넣지 않아 빈 칸이 남지 않는다.
+  `category` 폴백은 제거했다.
+- `registrableDomain()` 버그 수정: 조각이 정확히 3개일 때 국가 도메인 검사를 건너뛰어
+  `mk.co.kr`이 **`co.kr`**로 잘렸다(`> 3` → `>= 3`).
+- `js/skin-menu.js`: 메뉴 링크를 `/pages/main-news`로.
+- `test/main-news.html`: 목 데이터를 실측 형태로(미국=언론사명, 국내=도메인).
+
+검증: 실측 `source` 값 15종을 넣어 변환 확인 - `mk.co.kr`→매일경제,
+`view.asiae.co.kr`→아시아경제, `magazine.hankyung.com`→한국경제, `news.mt.co.kr`→머니투데이,
+표에 없는 `kbmaeil.com`→도메인 그대로, 빈 값·null→빈 문자열. 라이브 HTML 위
+`/pages/main-news` 진입으로 마운트·2칼럼 렌더 확인. PC·모바일·다크 재확인.
+`pytest test` → 913 passed(기존 실패 3건 유지).
+배포: `js/`·`css/`는 GitHub Pages 자동 반영.
+
+
 **2026-09-05 시장 > 주요 뉴스 페이지 추가 (한국 + 미국)**
 
 사용자 요청: "시장 밑에 주요 뉴스를 만들고 싶어 / 미국 + 한국".
