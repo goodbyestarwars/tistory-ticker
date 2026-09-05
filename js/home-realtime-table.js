@@ -213,12 +213,10 @@
     if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
       return global.HomeMarketSelection.get();
     }
-    var now = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    var hour = now.getUTCHours();
-    var minute = now.getUTCMinutes();
-    // skin-main.js의 HomeMarketSelection과 동일하게 프리마켓 시작부터 미국 화면을 쓴다.
     // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
-    return hour >= 17 || hour < 9 ? 'us' : 'domestic';
+    // 경계는 복제하지 않고 js/skin-shell.js의 MarketHours를 그대로 쓴다.
+    var hours = global.MarketHours;
+    return hours ? hours.homeMarket() : 'domestic';
   }
 
   function tabsForMarket() {
@@ -240,44 +238,19 @@
   }
 
   function isWeekendInKst() {
-    // 프리/애프터마켓을 포함한 홈 전환 경계와 맞춘다.
-    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    var day = kst.getUTCDay();
-    var hour = kst.getUTCHours();
-    if (day === 6) return hour >= 9;
-    if (day === 0) return true;
-    if (day === 1) return hour < 9;
-    return false;
+    var hours = global.MarketHours;
+    return hours ? hours.isWeekendClosed() : false;
   }
 
   function usSessionLabel() {
-    var zone = '';
-    try {
-      zone = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York', timeZoneName: 'short'
-      }).formatToParts(new Date()).filter(function (part) {
-        return part.type === 'timeZoneName';
-      }).map(function (part) { return part.value; }).join('');
-    } catch (error) {}
-    return /EDT|GMT-04|UTC-04/.test(zone)
-      ? '미국시장 · 정규장 22:30~05:00'
-      : '미국시장 · 정규장 23:30~06:00';
+    var hours = global.MarketHours;
+    // 서머타임이면 22:30~05:00, 표준시면 23:30~06:00. 판정은 MarketHours가 한다.
+    return '미국시장 · 정규장 ' + (hours ? hours.us().kst.regular : '22:30~05:00');
   }
 
   function isUsRegularSessionOpen() {
-    try {
-      var parts = new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit', hour12: false
-      }).formatToParts(new Date());
-      var weekday = (parts.find(function (part) { return part.type === 'weekday'; }) || {}).value || '';
-      var hour = Number((parts.find(function (part) { return part.type === 'hour'; }) || {}).value || 0);
-      var minute = Number((parts.find(function (part) { return part.type === 'minute'; }) || {}).value || 0);
-      if (weekday === 'Sat' || weekday === 'Sun') return false;
-      var totalMinutes = hour * 60 + minute;
-      return totalMinutes >= 9 * 60 + 30 && totalMinutes < 16 * 60;
-    } catch (error) {
-      return false;
-    }
+    var hours = global.MarketHours;
+    return hours ? hours.us().open : false;
   }
 
   function isMarketLive(market) {

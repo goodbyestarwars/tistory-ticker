@@ -179,10 +179,15 @@
     var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
     var isWeekday = day >= 1 && day <= 5;
 
+    // 2026-09-05: 세션 경계는 js/skin-shell.js의 MarketHours 하나만 쓴다. 현물 정규장은
+    // 15:30, 지수선물은 15:45에 끝나는데 파일마다 15:30/15:45가 섞여 있었다.
+    var hours = window.MarketHours;
     if (key === 'kospi' || key === 'kosdaq') {
+      if (hours) return hours.krCash().open ? '실시간' : '장마감';
       return (isWeekday && mins >= 9 * 60 && mins < 15 * 60 + 30) ? '실시간' : '장마감';
     }
     if (key === 'kospi_night') {
+      if (hours) return hours.krFutures().phase === 'night' ? '실시간' : '장마감';
       var eveningOpen = isWeekday && mins >= 18 * 60;
       var earlyMorningOpen = day >= 2 && day <= 6 && mins < 6 * 60;
       return (eveningOpen || earlyMorningOpen) ? '실시간' : '장마감';

@@ -16,6 +16,219 @@
  * 남아있지만(치환 태그가 없어 존재해도 무해), 굳이 지우려면 skin.html 재배포가 필요해
  * 손대지 않았다.
  */
+/* ──────────────────────────────────────────────────────────────────────────
+   시장 시간 단일 기준 (2026-09-05)
+
+   왜 여기 있나: skin.html은 티스토리 관리자에서만 고칠 수 있어 새 <script> 태그를
+   추가할 수 없다. 이 파일은 skin.html이 skin-menu.js·skin-main.js보다 **먼저**
+   defer로 부르는 유일한 공통 스크립트라, 여기 두면 모든 소비자가 자기 코드가 돌기
+   전에 window.MarketHours를 확실히 볼 수 있다(주입 방식은 경쟁 조건이 생긴다).
+
+   왜 만들었나: 같은 판정이 파일마다 다른 경계로 복제돼 있었다.
+     미국 전환   skin-main 17:00 / home-widgets 20:30 / home-economic-news 17:00
+     휴장 창     skin-main 토09:00~월09:00 / home-weekly-report 토07:00~월06:00
+     현물 마감   quick-indices 15:30 / domestic-market-indicators 15:45
+   토 07:00~09:00처럼 창이 어긋나는 구간에서 실제로 화면이 깨졌다(2026-09-04 휴장
+   안내가 주간 리포트 아래로 밀린 건). 경계를 한 곳에만 둔다.
+
+   기준 시간표(한국거래소 / KST):
+     정규장(현물)      09:00 ~ 15:30
+     장 시작 동시호가  08:30 ~ 09:00
+     장 마감 동시호가  15:20 ~ 15:30   (정규장 안)
+     시간외 종가 장전  08:30 ~ 08:40   (전일 종가로 거래)
+     시간외 종가 장후  15:40 ~ 16:00   (당일 종가로 거래)
+     시간외 단일가     16:00 ~ 18:00   (10분 단위 체결, 당일 종가 대비 ±10%)
+     대체거래소(NXT)   08:00 ~ 20:00
+     지수선물 정규장   09:00 ~ 15:45   (현물보다 15분 늦게 끝난다)
+     지수선물 야간     18:00 ~ 익일 06:00
+
+   미국(현지 ET → KST). 서머타임이면 한 시간씩 당겨진다:
+     프리마켓 04:00~09:30 ET → EDT 17:00~22:30 / EST 18:00~23:30
+     정규장   09:30~16:00 ET → EDT 22:30~05:00 / EST 23:30~06:00
+     애프터   16:00~20:00 ET → EDT 05:00~09:00 / EST 06:00~10:00
+   서머타임 여부는 규칙을 직접 갖지 않고 Intl로 실제 뉴욕 시각을 물어 판정한다.
+   ────────────────────────────────────────────────────────────────────────── */
+(function (global) {
+  'use strict';
+  if (global.MarketHours) return;
+
+  var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
+  var M = function (h, m) { return h * 60 + (m || 0); };
+
+  // 한국거래소 휴장일. js/domestic-market-indicators.js와 js/kospi-futures.js에
+  // 따로 있던 표를 여기로 모았다. 해가 바뀌면 이 표만 갱신하면 된다.
+  var KRX_HOLIDAYS = {
+    '2026': {
+      '20260101': 1, '20260216': 1, '20260217': 1, '20260218': 1,
+      '20260301': 1, '20260302': 1, '20260501': 1, '20260505': 1,
+      '20260525': 1, '20260603': 1, '20260606': 1, '20260717': 1,
+      '20260815': 1, '20260817': 1, '20260924': 1, '20260925': 1,
+      '20260926': 1, '20261003': 1, '20261005': 1, '20261009': 1,
+      '20261225': 1, '20261231': 1
+    }
+  };
+
+  // Date.now()는 방문자 위치와 무관하게 항상 UTC epoch ms라서, 9시간을 더하면
+  // 방문자 시간대와 상관없이 정확한 KST가 나온다(기존 파일들과 같은 기법).
+  function kst(date) {
+    var t = date ? (date.getTime ? date.getTime() : Number(date)) : Date.now();
+    var d = new Date(t + KST_OFFSET_MS);
+    var y = d.getUTCFullYear();
+    var mo = String(d.getUTCMonth() + 1);
+    var da = String(d.getUTCDate());
+    return {
+      year: y,
+      day: d.getUTCDay(),                                   // 0=일 ... 6=토
+      minutes: d.getUTCHours() * 60 + d.getUTCMinutes(),
+      dateKey: String(y) + (mo.length < 2 ? '0' : '') + mo + (da.length < 2 ? '0' : '') + da
+    };
+  }
+
+  function isKrHoliday(date) {
+    var k = kst(date);
+    if (k.day === 0 || k.day === 6) return true;
+    var year = KRX_HOLIDAYS[String(k.year)];
+    return !!(year && year[k.dateKey]);
+  }
+
+  function isKrTradingDay(date) { return !isKrHoliday(date); }
+
+  /* 현물 세션. phase는 화면에 한 줄로 쓸 수 있게 하나만 고르고, 겹치는 제도
+     (마감 동시호가·시간외 종가 장전·NXT)는 별도 플래그로 함께 돌려준다. */
+  function krCash(date) {
+    var k = kst(date);
+    var m = k.minutes;
+    var nxtOpen = !isKrHoliday(date) && m >= M(8) && m < M(20);
+    var out = {
+      phase: 'closed', open: false, label: '휴장',
+      closeAuction: false, preClosePrice: false, nxtOpen: nxtOpen
+    };
+    if (isKrHoliday(date)) return out;
+    out.closeAuction = m >= M(15, 20) && m < M(15, 30);
+    out.preClosePrice = m >= M(8, 30) && m < M(8, 40);
+    if (m >= M(9) && m < M(15, 30)) {
+      out.phase = 'regular'; out.open = true;
+      out.label = out.closeAuction ? '마감 동시호가' : '정규장';
+    } else if (m >= M(8, 30) && m < M(9)) {
+      out.phase = 'preAuction'; out.label = '장 시작 동시호가';
+    } else if (m >= M(15, 40) && m < M(16)) {
+      out.phase = 'afterClose'; out.label = '시간외 종가';
+    } else if (m >= M(16) && m < M(18)) {
+      out.phase = 'singlePrice'; out.label = '시간외 단일가';
+    } else if (nxtOpen) {
+      out.phase = 'nxt'; out.label = 'NXT 거래';
+    } else {
+      out.label = '장 마감';
+    }
+    return out;
+  }
+
+  /* 지수선물. 정규장은 현물보다 15분 늦은 15:45에 끝나고, 야간 세션은 18:00에
+     열려 다음 날 06:00에 닫힌다. 00:00~06:00은 전날 저녁에 시작한 세션이므로
+     휴장 판정도 전날 기준으로 한다. */
+  function krFutures(date) {
+    var k = kst(date);
+    var m = k.minutes;
+    if (m < M(6)) {
+      var prev = new Date((date ? date.getTime() : Date.now()) - 24 * 60 * 60 * 1000);
+      return isKrHoliday(prev)
+        ? { phase: 'closed', open: false, label: '휴장' }
+        : { phase: 'night', open: true, label: '야간선물' };
+    }
+    if (isKrHoliday(date)) return { phase: 'closed', open: false, label: '휴장' };
+    if (m >= M(9) && m < M(15, 45)) return { phase: 'regular', open: true, label: '정규장' };
+    if (m >= M(18)) return { phase: 'night', open: true, label: '야간선물' };
+    return { phase: 'closed', open: false, label: '장 마감' };
+  }
+
+  /* 뉴욕 현지 시각. 서머타임 규칙을 직접 갖지 않고 Intl에 묻는다. */
+  function nyClock(date) {
+    var parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'America/New_York', weekday: 'short',
+      hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short'
+    }).formatToParts(date || new Date()).reduce(function (acc, part) {
+      acc[part.type] = part.value; return acc;
+    }, {});
+    var hour = Number(parts.hour);
+    if (hour === 24) hour = 0;                              // 자정을 24로 주는 엔진 대응
+    return {
+      weekday: parts.weekday,
+      minutes: hour * 60 + Number(parts.minute),
+      dst: /EDT|GMT-4|GMT-04|UTC-4|UTC-04/.test(String(parts.timeZoneName || ''))
+    };
+  }
+
+  // Intl의 timeZone을 못 쓰는 구형 WebView 폴백. 미국 서머타임은 3월 둘째 일요일
+  // ~ 11월 첫째 일요일이라 월만으로도 대부분 맞고, 경계 달만 날짜를 따진다.
+  function usDstFallback(date) {
+    var d = date ? new Date(date.getTime()) : new Date();
+    var month = d.getUTCMonth() + 1;
+    if (month > 3 && month < 11) return true;
+    if (month < 3 || month > 11) return false;
+    var day = d.getUTCDate();
+    return month === 3 ? day >= 8 : day < 8;
+  }
+
+  function us(date) {
+    var clock;
+    try {
+      clock = nyClock(date);
+    } catch (error) {
+      clock = null;
+    }
+    var dst = clock ? clock.dst : usDstFallback(date);
+    var windows = dst
+      ? { pre: '17:00~22:30', regular: '22:30~05:00', after: '05:00~09:00' }
+      : { pre: '18:00~23:30', regular: '23:30~06:00', after: '06:00~10:00' };
+    var out = { phase: 'closed', open: false, label: '휴장', dst: dst, kst: windows };
+    if (!clock) { out.label = '상태 확인 중'; out.phase = 'unknown'; return out; }
+    if (clock.weekday === 'Sat' || clock.weekday === 'Sun') return out;
+    var m = clock.minutes;
+    if (m >= M(9, 30) && m < M(16)) { out.phase = 'regular'; out.open = true; out.label = '정규장'; }
+    else if (m >= M(4) && m < M(9, 30)) { out.phase = 'pre'; out.label = '프리마켓'; }
+    else if (m >= M(16) && m < M(20)) { out.phase = 'after'; out.label = '애프터마켓'; }
+    else { out.label = '장 마감'; }
+    return out;
+  }
+
+  /* 미국 프리마켓이 열리는 KST 시각. 홈이 미국 화면으로 넘어가는 기준이다.
+     서머타임이면 17:00, 표준시면 18:00 - 예전엔 17:00으로 박혀 있어 겨울에는
+     한 시간 일찍 미국 화면으로 넘어갔다. */
+  function usPreOpenKstMinutes(date) { return us(date).dst ? M(17) : M(18); }
+  /* 금요일 애프터마켓이 끝나 주말 휴장이 시작되는 토요일 KST 시각(09:00 / 10:00). */
+  function weekendStartKstMinutes(date) { return us(date).dst ? M(9) : M(10); }
+
+  /* 주말 휴장 창: 토요일 미국 애프터마켓 종료 ~ 월요일 KOSPI 개장(09:00). */
+  function isWeekendClosed(date) {
+    var k = kst(date);
+    if (k.day === 6) return k.minutes >= weekendStartKstMinutes(date);
+    if (k.day === 0) return true;
+    if (k.day === 1) return k.minutes < M(9);
+    return false;
+  }
+
+  /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다. */
+  function homeMarket(date) {
+    if (isWeekendClosed(date)) return 'closed';
+    var k = kst(date);
+    return (k.minutes >= usPreOpenKstMinutes(date) || k.minutes < M(9)) ? 'us' : 'domestic';
+  }
+
+  global.MarketHours = {
+    KST_OFFSET_MS: KST_OFFSET_MS,
+    kst: kst,
+    isKrHoliday: isKrHoliday,
+    isKrTradingDay: isKrTradingDay,
+    krCash: krCash,
+    krFutures: krFutures,
+    us: us,
+    usPreOpenKstMinutes: usPreOpenKstMinutes,
+    weekendStartKstMinutes: weekendStartKstMinutes,
+    isWeekendClosed: isWeekendClosed,
+    homeMarket: homeMarket
+  };
+})(window);
+
 (function () {
   'use strict';
 

@@ -76,23 +76,14 @@
   // 방식(KST 기준 요일+시각, 주말·공휴일은 별도 목록)으로 "(휴장)"/"(장 마감)" 배지를
   // 추가한다. 이 위젯은 코스피·코스닥 현물(09:00~15:45, 야간 세션 없음)만 다루므로
   // kospi-futures.js보다 단순한 단일 세션 판정이면 충분하다.
-  var KRX_HOLIDAYS_2026 = {
-    '20260101': true, '20260216': true, '20260217': true, '20260218': true,
-    '20260301': true, '20260302': true, '20260501': true, '20260505': true,
-    '20260525': true, '20260603': true, '20260606': true, '20260717': true,
-    '20260815': true, '20260817': true, '20260924': true, '20260925': true,
-    '20260926': true, '20261003': true, '20261005': true, '20261009': true,
-    '20261225': true, '20261231': true
-  };
   function domesticCashMarketStatusLabel() {
-    var kst = new Date(Date.now() + 9 * 60 * 60000);
-    var day = kst.getUTCDay(); // 0=일 ... 6=토
-    var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-    var dateKey = String(kst.getUTCFullYear()) + String(kst.getUTCMonth() + 1).padStart(2, '0') + String(kst.getUTCDate()).padStart(2, '0');
-    var isHoliday = day === 0 || day === 6 || !!KRX_HOLIDAYS_2026[dateKey];
-    var isWeekdayOpenHours = !isHoliday && mins >= 9 * 60 && mins < 15 * 60 + 45;
-    if (isWeekdayOpenHours) return '';
-    return isHoliday ? '(휴장)' : '(장 마감)';
+    // 2026-09-05: 판정을 js/skin-shell.js의 MarketHours로 옮겼다. 이 위젯은 현물을
+    // 다루는데 마감을 15:45(지수선물 마감)로 잡고 있어서 15:30~15:45에 정규장인 것처럼
+    // 보였다. 휴장일 표도 MarketHours가 단독으로 들고 있다.
+    var hours = window.MarketHours;
+    if (!hours) return '';
+    if (hours.isKrHoliday()) return '(휴장)';
+    return hours.krCash().open ? '' : '(장 마감)';
   }
 
   var LIVE_STATUS_STATE = { '실시간': 'live', '지연': 'stale', '연결 재시도': 'retry' };
