@@ -1,11 +1,14 @@
-/* 주요 뉴스(/page/main-news): 한국·미국 시장 뉴스를 한 화면에 나란히 보여준다.
+/* 주요 뉴스(/page/main-news): 한국·미국 시장 뉴스를 시간순 한 줄기로 보여준다.
  *
- * 2026-09-05 요청("시장 밑에 주요 뉴스를 만들고 싶어 / 미국 + 한국").
+ * 2026-09-05 요청("시장 밑에 주요 뉴스를 만들고 싶어 / 미국 + 한국"),
+ * 이어서 "한줄에 나와도 되고 플래그로 한국 미국 구분만 지어줘".
  *
- * 홈의 경제 종합뉴스(js/home-economic-news.js)는 **지금 시장 하나만** 보여준다.
- * 장중이면 국내, 프리마켓부터는 미국으로 자동 전환된다. 이 페이지는 그 반대로
- * 두 시장을 동시에 놓고 비교해 읽는 자리다. 그래서 탭 전환이 아니라 두 칼럼이다
- * (모바일에서는 세로로 쌓이고 국내가 위로 온다).
+ * 처음엔 두 칼럼이었는데 한 목록으로 합쳤다. 칼럼을 나누면 "어느 쪽이 더 최근인가"를
+ * 눈으로 맞춰봐야 하고 모바일에서는 한쪽을 다 지나야 다른 쪽이 나온다. 하나로 섞어
+ * 시간순으로 세우면 그 두 문제가 같이 사라지고, 시장 구분은 줄머리 국기로 한다.
+ *
+ * 홈의 경제 종합뉴스(js/home-economic-news.js)는 **지금 시장 하나만** 보여준다
+ * (장중이면 국내, 프리마켓부터는 미국). 이 페이지는 두 시장을 함께 놓는 자리다.
  *
  * 데이터는 이미 있는 엔드포인트를 그대로 쓴다. 새 백엔드 경로를 만들지 않는다.
  *   GET /domestic-news?kind=news&limit=N   네이버 국내 뉴스(공시 제외)
@@ -20,10 +23,14 @@
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=40';
   var REFRESH_MS = 5 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 15000;
-  var RENDER_LIMIT = 30;
-  // 모바일은 두 칼럼이 세로로 쌓이므로, 접지 않으면 한국 30건을 다 지나야 미국이 나온다.
-  // 처음엔 이만큼만 펴 두고 "더 보기"로 나머지를 연다(PC에서는 CSS가 항상 다 편다).
-  var MOBILE_COLLAPSE_AT = 10;
+  // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
+  var RENDER_LIMIT = 25;
+  var MARKETS = [
+    // 국기는 지역 표시 문자(regional indicator)라 윈도우 크롬에서는 두 글자(KR/US)로
+    // 그려진다. 그래도 구분은 되므로 그대로 쓰고, 화면 낭독기용 이름을 따로 붙인다.
+    { key: 'domestic', flag: '\uD83C\uDDF0\uD83C\uDDF7', label: '한국' },
+    { key: 'us', flag: '\uD83C\uDDFA\uD83C\uDDF8', label: '미국' }
+  ];
 
   var state = { container: null, timer: null, generation: 0 };
 
@@ -125,81 +132,77 @@
       .finally(function () { if (timer) clearTimeout(timer); });
   }
 
+  function marketOf(item) {
+    return item && item._market === 'us' ? MARKETS[1] : MARKETS[0];
+  }
+
   function rowHtml(item) {
     var title = displayTitle(item);
     if (!title) return '';
+    var market = marketOf(item);
     var href = String((item && item.link) || '').trim();
     var time = timeLabel(item && item.pubDate);
+    var source = sourceLabel(item);
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
-    var source = sourceLabel(item);
     return open
-      + '<div class="mn-row-meta">'
+      + '<span class="mn-flag" role="img" aria-label="' + market.label + '">' + market.flag + '</span>'
+      + '<span class="mn-row-body">'
+      + '<span class="mn-row-meta">'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '')
       + (source ? '<span class="mn-row-source">' + escapeHtml(source) + '</span>' : '')
-      + '</div>'
+      + '</span>'
       + '<strong class="mn-row-title">' + escapeHtml(title) + '</strong>'
+      + '</span>'
       + close;
-  }
-
-  function columnHtml(market, label, sub) {
-    return '<section class="mn-column" data-mn-column="' + market + '" aria-label="' + escapeHtml(label) + '">'
-      + '<div class="mn-column-head"><strong>' + escapeHtml(label) + '</strong><span>' + escapeHtml(sub) + '</span>'
-      + '<small data-mn-updated></small></div>'
-      + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>'
-      + '<button type="button" class="mn-more" data-mn-more hidden>더 보기</button>'
-      + '</section>';
   }
 
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국·미국 시장 뉴스를 함께 봅니다. 제목을 누르면 원문으로 이동합니다.</p>'
+      + '<p>한국 ' + MARKETS[0].flag + ' · 미국 ' + MARKETS[1].flag + ' 시장 뉴스를 최신순으로 함께 봅니다.'
+      + ' 제목을 누르면 원문으로 이동합니다.</p>'
+      + '<small data-mn-updated></small>'
       + '</div>'
-      + '<div class="mn-columns">'
-      + columnHtml('domestic', '한국', '네이버 뉴스')
-      + columnHtml('us', '미국', 'CNBC · Bloomberg · Finnhub')
-      + '</div>';
+      + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
 
-  function renderColumn(container, market, items, error) {
-    var column = container.querySelector('[data-mn-column="' + market + '"]');
-    if (!column) return;
-    var list = column.querySelector('[data-mn-list]');
-    var updated = column.querySelector('[data-mn-updated]');
-    var more = column.querySelector('[data-mn-more]');
-    if (more) more.hidden = true;
-    column.classList.remove('is-expanded');
-    if (error) {
-      list.innerHTML = '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>';
-      return;
-    }
+  function render(container, items, failed) {
+    var list = container.querySelector('[data-mn-list]');
+    var updated = container.querySelector('[data-mn-updated]');
+    if (!list) return;
     if (!items.length) {
-      list.innerHTML = '<p class="mn-state">표시할 뉴스가 없습니다.</p>';
+      list.innerHTML = failed.length
+        ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
+        : '<p class="mn-state">표시할 뉴스가 없습니다.</p>';
       return;
     }
-    list.innerHTML = items.map(rowHtml).join('');
-    if (more && items.length > MOBILE_COLLAPSE_AT) {
-      more.hidden = false;
-      more.textContent = '더 보기 (' + (items.length - MOBILE_COLLAPSE_AT) + '건)';
-    }
+    // 한쪽만 실패하면 나머지는 그대로 보여주되, 무엇이 빠졌는지는 숨기지 않는다.
+    var notice = failed.length
+      ? '<p class="mn-state mn-state--error">' + failed.join('·') + ' 뉴스를 불러오지 못했습니다.</p>'
+      : '';
+    list.innerHTML = notice + items.map(rowHtml).join('');
     if (updated) updated.textContent = timeLabel(new Date().toISOString()) + ' 기준';
   }
 
   function refresh(container) {
     var generation = ++state.generation;
-    [['domestic', DOMESTIC_API_URL], ['us', US_API_URL]].forEach(function (pair) {
-      // 두 시장을 따로 그린다 - 한쪽이 실패해도 다른 쪽은 그대로 보여야 한다.
-      // 지역 함수가 아니라 export를 거쳐 부른다 - test/main-news.html이 이 한 지점만
-      // 갈아끼워 목 데이터로 렌더를 검증한다(js/overnight-market.js와 같은 규약).
-      MainNews.fetchJson(pair[1])
+    var collected = [];
+    var failed = [];
+    var pending = MARKETS.length;
+    MARKETS.forEach(function (market) {
+      var url = market.key === 'us' ? US_API_URL : DOMESTIC_API_URL;
+      MainNews.fetchJson(url)
         .then(function (items) {
-          if (generation !== state.generation) return;
-          renderColumn(container, pair[0], items, null);
+          items.forEach(function (item) { item._market = market.key; });
+          collected = collected.concat(items);
         })
-        .catch(function () {
-          if (generation !== state.generation) return;
-          renderColumn(container, pair[0], [], true);
+        .catch(function () { failed.push(market.label); })
+        .then(function () {
+          if (--pending || generation !== state.generation) return;
+          // 두 시장을 하나로 세우려면 여기서 다시 정렬해야 한다(각 응답은 자기 안에서만 정렬돼 있다).
+          collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
+          render(container, collected, failed);
         });
     });
   }
@@ -209,14 +212,6 @@
     if (!container) return;
     state.container = container;
     container.innerHTML = buildShell();
-    container.addEventListener('click', function (event) {
-      var button = event.target.closest ? event.target.closest('[data-mn-more]') : null;
-      if (!button) return;
-      var column = button.closest('.mn-column');
-      if (!column) return;
-      column.classList.add('is-expanded');
-      button.hidden = true;
-    });
     refresh(container);
     if (state.timer) clearInterval(state.timer);
     state.timer = setInterval(function () { refresh(container); }, REFRESH_MS);
