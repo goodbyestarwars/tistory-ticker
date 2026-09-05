@@ -1116,7 +1116,7 @@ function futuresLine_(item, label) {
 // 생성된 캐시가 즉시 무효화되게 했다.
 function getKospiFuturesAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v5';
+  var cacheKey = CACHE_PREFIX + 'kospi_futures_analysis_v6';
   // 2026-08-03: 실패-캐시로 저장된 ''을 `if (cached)`가 falsy로 오판해 백오프가 무력화되던
   // 버그 수정(getMarketAnalysis와 동일 원인, null 여부로 정확히 구분).
   var cached = cache.get(cacheKey);
@@ -1143,10 +1143,10 @@ function getKospiFuturesAnalysis() {
 
   var prompt = '오늘/간밤 코스피 선물 지표야: ' + lines.join(', ') + '. ' +
     '코스피200 옵션(콜/풋) 미결제약정(OI) 동향: ' + optionLines.join(', ') + '. ' +
-    '코스피200 선물(주간·야간)이 다음 거래일 개장에 주는 시사점을 한 문장, 옵션 OI로 본 콜·풋 심리를 ' +
-    '한 문장으로 짚어줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 언급하지 마. 투자자 유형(외국인· ' +
-    '기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. 마지막 한 문장은 이 지표를 볼 때 ' +
-    '주의할 점을 알려줘. 투자자 관점에서 총 4~5문장으로, 반드시 한국어로만(한자·중국어 금지) 정리해줘. ' +
+    '코스피200 선물(주간·야간)이 다음 거래일 개장에 주는 시사점을 한 문장, 옵션 OI로 본 콜·풋 심리와 ' +
+    '주의할 점을 묶어서 한 문장으로 짚어줘 - 옵션 데이터가 "데이터 미제공"이면 그 옵션은 언급하지 마. ' +
+    '투자자 유형(외국인·기관·개인)별 매수·매도 데이터는 없으니 그걸 안다고 지어내지 마. 총 2문장을 ' +
+    '넘기지 말고 각 문장은 60자 이내로, 반드시 한국어로만(한자·중국어 금지) 정리해줘. ' +
     GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
@@ -1207,7 +1207,7 @@ function fundsLine_(label, value, recentAvg, yearAvg, unit) {
 
 function getDomesticFundsAnalysis() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'domestic_funds_analysis_v2';
+  var cacheKey = CACHE_PREFIX + 'domestic_funds_analysis_v3';
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
 
@@ -1256,8 +1256,8 @@ function getDomesticFundsAnalysis() {
   var prompt = '오늘 한국 증시자금 지표야(괄호 안은 비교 기준 평균): ' + lines.join('. ') + '. ' +
     '각 지표를 최근 20일 평균·1년 평균과 비교해서 지금이 평소보다 높은지 낮은지를 반드시 근거로 들어가며, ' +
     '개인투자자의 빚투(레버리지) 심리와 매수 여력이 지금 뜨거운지 차분한지, 프로그램매매(차익·비차익거래) ' +
-    '동향이 시사하는 바를 종합해줘. 마지막 한 문장은 이 조합을 볼 때 지금 주의해야 할 점이나 함께 ' +
-    '확인하면 좋은 지표를 알려줘. 한국어 5~6문장으로 정리하고, 데이터가 없는 지표는 언급하지 마. ' +
+    '동향이 시사하는 바를 종합해줘. 마지막 한 문장은 이 조합을 볼 때 지금 주의해야 할 점을 알려줘. ' +
+    '총 3문장을 넘기지 말고 각 문장은 70자 이내로, 데이터가 없는 지표는 언급하지 마. ' +
     GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });

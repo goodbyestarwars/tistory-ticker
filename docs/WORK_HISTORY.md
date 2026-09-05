@@ -1,5 +1,30 @@
 # 9Pay 주요 작업이력
 
+**2026-09-06 국내시장지표 야간선물 휴장 배지 + 참고의견 길이 축소**
+
+두 가지 리포트. (1) 국내시장지표에서 야간선물이 휴장인데 "(휴장)" 배지가 안 뜬다,
+(2) 참고의견이 너무 길다.
+
+배지 원인은 `MarketHours` 판정이 아니라(일요일 05:40 KST에 `krFutures()`는 정상적으로
+`휴장`, `isNightSessionHoliday()`는 `true`를 반환하는 것을 확인) **렌더가 배지를 덮어쓰는
+것**이었다. `js/kospi-futures.js`의 `renderAll()`이 시세를 그릴 때마다 `buildQuoteRow()`로
+`<tbody>`를 통째로 새로 만드는데, 이 행의 `.kf-stat-status`는 항상 빈 칸이다. 배지는
+`updateMarketStatusBadges()`가 따로 채우는데 초기 1회(`init`)와 30초 타이머에서만 돌아서,
+첫 렌더 직후 fetch가 끝나면 즉시 지워지고 다음 타이머까지 안 보였다 - 30초 주기 안에서도
+`refresh()`(비동기)가 나중에 끝나 배지를 지우므로 사실상 계속 안 보이는 상태였다.
+`renderAll()`이 `<tbody>`를 바꾼 직후 `updateMarketStatusBadges()`를 부르도록 고쳤다.
+같은 파일에 2026-09-05 정정(#391)이 반영 안 된 라벨 "야간선물 (18:00~06:00)" 두 곳도
+`18:00~05:00`으로 맞췄다.
+
+참고의견은 `gas/ticker-proxy.gs`의 프롬프트 문장 수를 줄였다 - 코스피200 선물
+(`getKospiFuturesAnalysis`) 4~5문장 -> **2문장 이내(문장당 60자)**, 증시자금
+(`getDomesticFundsAnalysis`) 5~6문장 -> **3문장 이내(문장당 70자)**. 옛 프롬프트로 만든
+캐시가 남지 않도록 캐시 키를 각각 `v5`->`v6`, `v2`->`v3`으로 올렸다.
+
+검증: `pytest test/test_ui_ia.py` 146 passed. `MarketHours.krFutures()`를 금 20:00 /
+토 03:00(금요일 세션 연장) / 토 20:00 / 일 05:40으로 실측해 야간 세션 판정이 맞는 것을
+확인. 배포는 `js/`가 GitHub Pages, `gas/ticker-proxy.gs`가 GitHub Actions(clasp) 자동.
+
 **2026-09-05 뉴스 제목 번역 캐시에 만료·강제 재번역 추가**
 
 사용자가 "번역이 토큰을 얼마나 쓰냐"고 물어 코드를 확인하다 발견한 문제.
