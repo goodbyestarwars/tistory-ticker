@@ -4626,7 +4626,7 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
    (object-fit: cover + center)으로 256x256, 65KB로 구운 것이다. */
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
-  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20260905-banner-v1");
+  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20260905-banner-v2");
   background-size: cover;
   background-position: center;
   border-radius: 8px;

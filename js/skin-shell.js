@@ -327,9 +327,12 @@
    *
    * LOGO_VERSION 값은 로고가 바뀐 날짜다. 로고를 또 교체할 때만 올린다.
    */
-  var LOGO_VERSION = '20260905-banner-v1';
+  var LOGO_VERSION = '20260905-banner-v2';
   var LOGO_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/';
-  var LOGO_URL = LOGO_BASE + 'brand-banner.png?v=' + LOGO_VERSION;
+  // 탭 아이콘은 전용 64x64(5.7KB)를 쓴다. 네비 배경용 128x128(18.9KB)을 그대로 쓰면
+  // 그게 다 내려오기 전까지 브라우저가 옛 아이콘을 계속 띄운다 - 사용자가 본 "구버전
+  // 로고가 0.5초 먼저 뜬다"가 이 다운로드 시간이다. 작을수록 교체가 빨라진다.
+  var LOGO_URL = LOGO_BASE + 'favicon.png?v=' + LOGO_VERSION;
   var TOUCH_ICON_URL = LOGO_BASE + 'apple-touch-icon.png?v=' + LOGO_VERSION;
 
   function refreshBrandIcon() {
