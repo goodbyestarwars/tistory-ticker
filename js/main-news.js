@@ -19,9 +19,10 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  // 화면에 그리는 수(RENDER_LIMIT)만큼만 받는다. 40건을 받아 25건만 쓰던 걸 맞췄다.
-  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
-  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
+  // 시장별로 FETCH_LIMIT만큼 받아 섞은 뒤 12시간 컷을 적용하고 RENDER_LIMIT으로 자른다.
+  // 컷 때문에 버려지는 몫이 있으니 받는 수는 화면 상한보다 넉넉해야 한다.
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
   var REFRESH_MS = 5 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 15000;
   // 실패가 잠깐이면(서버 재시작·순간 혼잡·429) 5분을 기다리지 않고 한 번 더 시도한다.
@@ -31,7 +32,15 @@
   // 지났을 때만 다시 부른다.
   var STALE_MS = 60 * 1000;
   // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
-  var RENDER_LIMIT = 25;
+  var FETCH_LIMIT = 50;
+  // 섞은 뒤 화면에 그리는 최종 상한. 2026-09-06 이전엔 이 상한이 없어서 두 시장이 받아온
+  // 만큼(25+25) 그대로 다 그리고 있었다 - 실제 화면 건수가 설정값과 어긋나 있었다.
+  var RENDER_LIMIT = 50;
+  // 최근 12시간 안의 기사만 보여준다(2026-09-06 사용자 요청). 다만 새벽·주말처럼 발행이
+  // 뜸한 시간대엔 12시간 안이 몇 건 안 될 수 있어, 그때는 컷을 풀고 최신순으로 채운다 -
+  // 뉴스 전용 지면이 서너 줄만 남는 것보다 낫다.
+  var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;
+  var RECENT_MIN_ROWS = 15;
   // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(사용자 요청 "kor, us 이런 형태로").
   // 국기는 지역 표시 문자라 윈도우 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다.
   // 글자는 어디서나 같고 낭독기에도 그대로 읽힌다 - aria-label로 한글 이름을 붙인다.
@@ -135,7 +144,7 @@
         var items = (data.items || []).filter(function (item) { return item && item.title; });
         // 서버가 시간순을 보장하지 않는 경로가 섞여 있어(RSS 합본) 여기서 한 번 더 정렬한다.
         items.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
-        return items.slice(0, RENDER_LIMIT);
+        return items.slice(0, FETCH_LIMIT);
       })
       .finally(function () { if (timer) clearTimeout(timer); });
   }
@@ -168,11 +177,19 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국(' + MARKETS[0].code + ')·미국(' + MARKETS[1].code + ') 시장 뉴스를 최신순으로 함께 봅니다.'
+      + '<p>한국(' + MARKETS[0].code + ')·미국(' + MARKETS[1].code + ') 시장 뉴스를 최근 12시간 기준 최신순으로 함께 봅니다.'
       + ' 제목을 누르면 원문으로 이동합니다.</p>'
       + '<small data-mn-updated></small>'
       + '</div>'
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
+  }
+
+  /* 최근 12시간 컷 + 최종 상한. 컷 결과가 너무 적으면 컷을 포기하고 최신순으로 채운다.
+     pubDate를 못 읽는 항목(dateValue가 0)은 컷에서 떨어지므로, 폴백이 그 구제 경로도 된다. */
+  function limitRows(items) {
+    var cutoff = Date.now() - RECENT_WINDOW_MS;
+    var recent = items.filter(function (item) { return dateValue(item && item.pubDate) >= cutoff; });
+    return (recent.length >= RECENT_MIN_ROWS ? recent : items).slice(0, RENDER_LIMIT);
   }
 
   function render(container, items, failed) {
@@ -210,7 +227,7 @@
           if (--pending || generation !== state.generation) return;
           // 두 시장을 하나로 세우려면 여기서 다시 정렬해야 한다(각 응답은 자기 안에서만 정렬돼 있다).
           collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
-          render(container, collected, failed);
+          render(container, limitRows(collected), failed);
           if (collected.length) state.loadedAt = Date.now();
           // 전부 실패했을 때만 한 번 더. 성공분이 있으면 5분 주기에 맡긴다.
           if (!collected.length && failed.length && !state.retryTimer) {

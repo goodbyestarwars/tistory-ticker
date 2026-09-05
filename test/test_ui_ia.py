@@ -2970,9 +2970,15 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 전부 실패하면 5분을 기다리지 않고 한 번 더 시도한다.
         self.assertIn("var RETRY_MS = 6000;", source)
         self.assertIn("if (!collected.length && failed.length && !state.retryTimer)", source)
-        # 그리는 수만큼만 받는다.
-        self.assertIn("domestic-news?kind=news&limit=25", source)
-        self.assertIn("foreign-news?limit=25", source)
+        # 2026-09-06: 최근 12시간 컷 + 최종 상한 50건. 컷에서 떨어지는 몫이 있으니
+        # 받는 수(FETCH_LIMIT)는 화면 상한과 같은 50으로 두고, 컷 결과가 너무 적으면
+        # 컷을 포기하고 최신순으로 채운다(새벽·주말 대비).
+        self.assertIn("domestic-news?kind=news&limit=50", source)
+        self.assertIn("foreign-news?limit=50", source)
+        self.assertIn("var FETCH_LIMIT = 50;", source)
+        self.assertIn("var RENDER_LIMIT = 50;", source)
+        self.assertIn("var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;", source)
+        self.assertIn("render(container, limitRows(collected), failed);", source)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)
