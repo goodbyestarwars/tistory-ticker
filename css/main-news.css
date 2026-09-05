@@ -30,9 +30,9 @@
 }
 
 #main-news .mn-row {
-  /* 국기 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. */
+  /* 시장 배지 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. KOR(3글자)이 기준이다. */
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 34px minmax(0, 1fr);
   gap: 0 10px;
   align-items: start;
   padding: 11px 0;
@@ -41,11 +41,18 @@
   text-decoration: none;
 }
 #main-news a.mn-row:hover .mn-row-title { text-decoration: underline; }
-#main-news .mn-flag {
-  /* 윈도우에서는 국기가 두 글자(KR/US)로 그려지므로 그 폭에서도 안 넘치게 줄여 둔다. */
-  font-size: 15px;
-  line-height: 1.5;
-  letter-spacing: -.06em;
+/* 시장 배지. 상승·하락 의미색(빨강/파랑)은 시세용이라 여기 쓰지 않는다 - 글자만으로
+   구분되므로 중립 톤 한 가지로 두고, KOR/US 폭 차이는 가운데 정렬로 흡수한다. */
+#main-news .mn-market {
+  display: inline-block;
+  min-width: 34px;
+  padding: 1px 0;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--text-sub);
+  font: 700 10px/1.6 var(--font-ui);
+  letter-spacing: .04em;
+  text-align: center;
   white-space: nowrap;
 }
 #main-news .mn-row-body { min-width: 0; }
