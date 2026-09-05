@@ -364,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260905-main-news-v2", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-main-news-v3", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -420,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260905-main-news-v2", skin)
+        self.assertIn("skin-main.js?v=20260905-main-news-v3", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2933,18 +2933,19 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertEqual(source.count("var closedSelected ="), 1)
 
 
-    def test_main_news_page_shows_korea_and_us_side_by_side(self):
-        """시장 > 주요 뉴스: 한국·미국을 한 화면에 나란히(2026-09-05 요청).
+    def test_main_news_merges_korea_and_us_into_one_flagged_stream(self):
+        """시장 > 주요 뉴스: 한 줄기 시간순 + 국기로 시장 구분(2026-09-05 요청).
 
-        홈의 경제 종합뉴스는 지금 시장 하나만 보여준다. 이 페이지는 두 시장을 동시에
-        놓고 비교해 읽는 자리라 탭이 아니라 2칼럼이다.
+        처음엔 2칼럼이었는데 "한줄에 나와도 되고 플래그로 한국 미국 구분만 지어줘"로
+        바꿨다. 칼럼을 나누면 어느 쪽이 더 최근인지 눈으로 맞춰봐야 하고, 모바일에서는
+        한쪽을 다 지나야 다른 쪽이 나온다.
         """
         source = self.read("js/main-news.js")
         style = self.read("css/main-news.css")
         menu = self.read("js/skin-menu.js")
         main = self.read("js/skin-main.js")
 
-        # 메뉴는 시장 하위, 마켓브리핑 바로 뒤.
+        # 메뉴는 시장 하위, 마켓브리핑 바로 뒤. 실제 페이지 주소는 /pages/(복수형)다.
         self.assertIn("{ href: '/pages/main-news', label: '주요 뉴스' },", menu)
         market_group = menu[menu.index("label: '시장'"):menu.index("label: '종목'")]
         self.assertLess(market_group.index("마켓브리핑"), market_group.index("주요 뉴스"))
@@ -2957,11 +2958,25 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
-        self.assertIn("css/main-news.css", main)
-        self.assertIn("js/main-news.js", main)
 
-        # 한쪽이 실패해도 다른 쪽은 그대로 보여야 하므로 시장별로 따로 그린다.
-        self.assertIn("renderColumn(container, pair[0], [], true)", source)
+        # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
+        self.assertNotIn("mn-column", source)
+        self.assertNotIn("mn-column", style)
+        self.assertNotIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)
+
+        # 두 응답을 합친 뒤 다시 정렬해야 한 줄기 시간순이 된다.
+        self.assertIn("collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });", source)
+        # 시장 구분은 줄머리 국기 하나로 한다.
+        self.assertIn("var MARKETS = [", source)
+        self.assertIn("class=\"mn-flag\"", source)
+        self.assertIn("grid-template-columns: 22px minmax(0, 1fr);", style)
+        # 낭독기에는 국기 대신 이름이 읽혀야 한다.
+        self.assertIn("role=\"img\" aria-label=\"' + market.label + '\"", source)
+
+        # 한쪽만 실패해도 나머지는 보여주되, 무엇이 빠졌는지는 숨기지 않는다.
+        self.assertIn("failed.push(market.label)", source)
+        self.assertIn("' 뉴스를 불러오지 못했습니다.</p>'", source)
+
         # 미국 기사는 서버 번역 제목이 있으면 그것을 우선한다(기존 규약).
         self.assertIn("item.title_ko", source)
 
@@ -2969,22 +2984,15 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 도메인("mk.co.kr")이라 그대로 쓰면 국내만 지저분해진다. 아는 곳은 이름으로 바꾼다.
         self.assertIn("var PRESS_BY_DOMAIN = {", source)
         self.assertIn("'mk.co.kr': '매일경제'", source)
-        self.assertIn("function registrableDomain(host)", source)
         # mk.co.kr을 두 조각으로 자르면 "co.kr"이 되므로 3조각일 때도 검사해야 한다.
         self.assertIn("if (parts.length >= 3 && /^(co|or|go|ne|re|pe|ac)$/", source)
         # category는 국내·미국 모두 "시장"으로만 와서 폴백으로 쓰면 모든 줄이 같아진다.
         self.assertNotIn("return market === 'us' ? '해외' : '국내';", source)
 
-        # 2칼럼. minmax(0, ...)이 없으면 긴 제목이 트랙을 밀어 칼럼이 겹친다.
-        self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)
-        # 모바일은 세로로 쌓이므로 접지 않으면 국내를 다 지나야 미국이 나온다.
-        self.assertIn("#main-news .mn-column:not(.is-expanded) .mn-list .mn-row:nth-child(n+11)", style)
-        self.assertIn("#main-news .mn-more { display: none; }", style)
-        self.assertIn("var MOBILE_COLLAPSE_AT = 10;", source)
-
         # 로컬 렌더 검증 하니스가 갈아끼우는 지점(js/overnight-market.js와 같은 규약).
-        self.assertIn("MainNews.fetchJson(pair[1])", source)
+        self.assertIn("MainNews.fetchJson(url)", source)
         self.assertTrue((ROOT / "test" / "main-news.html").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

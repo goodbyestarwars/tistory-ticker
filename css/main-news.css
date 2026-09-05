@@ -1,13 +1,15 @@
-/* 주요 뉴스(/page/main-news). 한국·미국을 나란히 놓고 비교해 읽는 화면이라
-   PC는 2칼럼, 모바일(720px 이하)은 세로로 쌓고 국내를 위에 둔다. */
+/* 주요 뉴스(/page/main-news).
+   2026-09-05: 두 칼럼에서 시간순 한 줄기로 바꿨다. 칼럼을 나누면 어느 쪽이 더 최근인지
+   눈으로 맞춰봐야 하고, 모바일에서는 한쪽을 다 지나야 다른 쪽이 나왔다. 시장 구분은
+   줄머리 국기 하나로 충분하다. */
 #main-news {
   font-family: var(--font-ui);
   color: var(--text-main);
 }
 #main-news .mn-head {
-  padding-bottom: 14px;
-  margin-bottom: 18px;
-  border-bottom: 1px solid var(--rule);
+  padding-bottom: 12px;
+  margin-bottom: 4px;
+  border-bottom: 2px solid var(--text-main);
 }
 #main-news .mn-head h2 {
   margin: 0 0 6px;
@@ -20,55 +22,38 @@
   line-height: 1.6;
   color: var(--text-sub);
 }
-
-#main-news .mn-columns {
-  display: grid;
-  /* minmax(0, ...)이 없으면 긴 제목이 트랙을 밀어 칼럼이 겹친다. */
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-}
-#main-news .mn-column { min-width: 0; }
-#main-news .mn-column + .mn-column {
-  padding-left: 24px;
-  border-left: 1px solid var(--rule);
-}
-
-#main-news .mn-column-head {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding-bottom: 10px;
-  margin-bottom: 6px;
-  border-bottom: 2px solid var(--text-main);
-}
-#main-news .mn-column-head strong {
-  font: 700 16px/1.2 var(--font-ui);
-  letter-spacing: -.02em;
-}
-#main-news .mn-column-head span {
+#main-news .mn-head small {
+  display: block;
+  margin-top: 6px;
   font-size: 11px;
   color: var(--text-sub);
-}
-#main-news .mn-column-head small {
-  margin-left: auto;
-  font-size: 11px;
-  color: var(--text-sub);
-  white-space: nowrap;
 }
 
 #main-news .mn-row {
-  display: block;
+  /* 국기 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. */
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 0 10px;
+  align-items: start;
   padding: 11px 0;
   border-bottom: 1px solid var(--rule);
   color: inherit;
   text-decoration: none;
 }
 #main-news a.mn-row:hover .mn-row-title { text-decoration: underline; }
+#main-news .mn-flag {
+  /* 윈도우에서는 국기가 두 글자(KR/US)로 그려지므로 그 폭에서도 안 넘치게 줄여 둔다. */
+  font-size: 15px;
+  line-height: 1.5;
+  letter-spacing: -.06em;
+  white-space: nowrap;
+}
+#main-news .mn-row-body { min-width: 0; }
 #main-news .mn-row-meta {
   display: flex;
   align-items: center;
   gap: 7px;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
   font-size: 11px;
   color: var(--text-sub);
 }
@@ -79,51 +64,23 @@
   white-space: nowrap;
 }
 #main-news .mn-row-title {
-  display: block;
-  font: 500 14px/1.5 var(--font-ui);
-  letter-spacing: -.01em;
-  /* 제목이 길어도 카드 높이가 들쭉날쭉하지 않게 세 줄에서 자른다. */
   display: -webkit-box;
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  font: 500 14px/1.5 var(--font-ui);
+  letter-spacing: -.01em;
 }
-
-/* "더 보기"는 모바일 전용이다. PC는 두 칼럼이 나란히 있어 접을 이유가 없다. */
-#main-news .mn-more { display: none; }
 
 #main-news .mn-state {
   margin: 0;
-  padding: 22px 0;
+  padding: 18px 0;
   font-size: 13px;
   color: var(--text-sub);
 }
 #main-news .mn-state--error { color: var(--up); }
 
 @media (max-width: 720px) {
-  #main-news .mn-columns {
-    grid-template-columns: minmax(0, 1fr);
-    gap: 26px;
-  }
-  #main-news .mn-column + .mn-column {
-    padding-left: 0;
-    border-left: 0;
-  }
-  #main-news .mn-row { padding: 10px 0; }
+  #main-news .mn-row { padding: 10px 0; gap: 0 8px; }
   #main-news .mn-row-title { font-size: 14px; }
-  /* 접힌 상태에서는 앞 10건만 둔다 - 국내를 다 지나야 미국이 나오는 걸 막는다. */
-  #main-news .mn-column:not(.is-expanded) .mn-list .mn-row:nth-child(n+11) { display: none; }
-  #main-news .mn-more {
-    display: block;
-    width: 100%;
-    margin-top: 10px;
-    padding: 10px 0;
-    border: 1px solid var(--rule);
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-sub);
-    font: 500 13px/1 var(--font-ui);
-    cursor: pointer;
-  }
-  #main-news .mn-column.is-expanded .mn-more { display: none; }
 }
