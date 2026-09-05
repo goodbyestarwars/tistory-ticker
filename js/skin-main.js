@@ -140,6 +140,33 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
+  /* 주요 뉴스(/page/main-news): 한국·미국 뉴스를 나란히 보여주는 전용 지면.
+     티스토리 페이지 본문에 아무것도 없어도 되도록 mount까지 여기서 만든다 - 사용자는
+     주소만 맞춰 빈 페이지를 하나 만들면 되고, 본문 HTML을 관리할 필요가 없다
+     (loadMyDashboard와 같은 패턴). */
+  (function loadMainNews() {
+    if (!/^\/(?:page|pages)\/main-news\/?$/.test(location.pathname)) return;
+    if (!document.querySelector('link[data-main-news-css]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260905-main-news-v1';
+      link.setAttribute('data-main-news-css', '1');
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('#main-news')) {
+      var mount = document.createElement('div');
+      mount.id = 'main-news';
+      var host = document.querySelector('.article-view, .entry-content, .feed') || document.body;
+      host.appendChild(mount);
+    }
+    if (document.querySelector('script[data-main-news]')) return;
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260905-main-news-v1';
+    script.defer = true;
+    script.setAttribute('data-main-news', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {
