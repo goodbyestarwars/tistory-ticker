@@ -320,14 +320,17 @@
    * 라이브 skin.html의 link가 낡았거나 없어도 결과가 같아야 한다.
    * skin.html은 티스토리 관리자에서만 고칠 수 있으므로 런타임에서 해결한다.
    *
-   * apple-touch-icon(홈 화면 추가용)은 손대지 않는다. iOS는 SVG를 받지 않는데 정사각형
-   * PNG 로고 자산이 아직 없다 - 티스토리 기본값을 지우기만 하면 스크린샷으로 떨어져서
-   * 지금보다 나빠진다.
+   * apple-touch-icon(홈 화면 추가용)도 2026-09-05부터 함께 바꾼다. iOS는 SVG를 안 받아서
+   * 한동안 티스토리 기본 "T"가 그대로 나갔는데(지우기만 하면 페이지 스크린샷으로 떨어져
+   * 더 나빠진다), 같은 흑백 마크를 180x180 PNG(img/apple-touch-icon.png)로 굽고 그걸
+   * 가리키게 했다. 홈 화면 아이콘은 iOS가 모서리를 깎으므로 여백을 넉넉히 두고 구웠다.
    *
    * LOGO_VERSION 값은 로고가 바뀐 날짜다. 로고를 또 교체할 때만 올린다.
    */
   var LOGO_VERSION = '20260905-brand-mono';
-  var LOGO_URL = 'https://goodbyestarwars.github.io/tistory-ticker/img/brand-mono.svg?v=' + LOGO_VERSION;
+  var LOGO_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/';
+  var LOGO_URL = LOGO_BASE + 'brand-mono.svg?v=' + LOGO_VERSION;
+  var TOUCH_ICON_URL = LOGO_BASE + 'apple-touch-icon.png?v=' + LOGO_VERSION;
 
   function refreshBrandIcon() {
     // 2026-09-05: 네비 배너와 탭 아이콘을 여기 한 곳에서만 정한다.
@@ -353,8 +356,8 @@
       if (image.getAttribute('src') !== LOGO_URL) image.setAttribute('src', LOGO_URL);
     }
 
-    // rel~="icon"은 rel="icon"과 rel="shortcut icon"을 잡고 apple-touch-icon은 건드리지
-    // 않는다(공백으로 나뉜 단어 단위 비교라 "apple-touch-icon"은 "icon"과 다른 단어다).
+    // rel~="icon"은 rel="icon"과 rel="shortcut icon"만 잡는다(공백으로 나뉜 단어 단위
+    // 비교라 "apple-touch-icon"은 "icon"과 다른 단어다). 홈 화면 아이콘은 아래에서 따로.
     var links = document.querySelectorAll('link[rel~="icon"]');
     for (var i = 0; i < links.length; i++) {
       if (links[i].parentNode) links[i].parentNode.removeChild(links[i]);
@@ -364,6 +367,18 @@
     icon.setAttribute('type', 'image/svg+xml');
     icon.setAttribute('href', LOGO_URL);
     document.head.appendChild(icon);
+
+    // 홈 화면 추가 아이콘도 같은 방식으로 갈아끼운다. 티스토리가 자기 것을 먼저 넣어둬서
+    // href만 고치는 걸로는 안 되고, 있는 것을 걷어낸 뒤 우리 것 하나만 남겨야 한다.
+    var touchLinks = document.querySelectorAll('link[rel~="apple-touch-icon"], link[rel~="apple-touch-icon-precomposed"]');
+    for (var t = 0; t < touchLinks.length; t++) {
+      if (touchLinks[t].parentNode) touchLinks[t].parentNode.removeChild(touchLinks[t]);
+    }
+    var touch = document.createElement('link');
+    touch.setAttribute('rel', 'apple-touch-icon');
+    touch.setAttribute('sizes', '180x180');
+    touch.setAttribute('href', TOUCH_ICON_URL);
+    document.head.appendChild(touch);
   }
 
   refreshBrandIcon();
