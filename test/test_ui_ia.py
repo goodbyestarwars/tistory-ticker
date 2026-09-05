@@ -364,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260905-night-futures-v2", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-main-news-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -420,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260905-night-futures-v2", skin)
+        self.assertIn("skin-main.js?v=20260905-main-news-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2932,6 +2932,49 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 위치 판정에 쓰이던 두 번째 closedSelected 재선언이 남아 있으면 안 된다.
         self.assertEqual(source.count("var closedSelected ="), 1)
 
+
+    def test_main_news_page_shows_korea_and_us_side_by_side(self):
+        """시장 > 주요 뉴스: 한국·미국을 한 화면에 나란히(2026-09-05 요청).
+
+        홈의 경제 종합뉴스는 지금 시장 하나만 보여준다. 이 페이지는 두 시장을 동시에
+        놓고 비교해 읽는 자리라 탭이 아니라 2칼럼이다.
+        """
+        source = self.read("js/main-news.js")
+        style = self.read("css/main-news.css")
+        menu = self.read("js/skin-menu.js")
+        main = self.read("js/skin-main.js")
+
+        # 메뉴는 시장 하위, 마켓브리핑 바로 뒤.
+        self.assertIn("{ href: '/page/main-news', label: '주요 뉴스' },", menu)
+        market_group = menu[menu.index("label: '시장'"):menu.index("label: '종목'")]
+        self.assertLess(market_group.index("마켓브리핑"), market_group.index("주요 뉴스"))
+        self.assertLess(market_group.index("주요 뉴스"), market_group.index("증시온도"))
+
+        # 새 백엔드 경로를 만들지 않고 기존 엔드포인트를 그대로 쓴다.
+        self.assertIn("goodbyestar.cloud/domestic-news?kind=news", source)
+        self.assertIn("goodbyestar.cloud/foreign-news?limit=", source)
+
+        # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
+        self.assertIn("function loadMainNews()", main)
+        self.assertIn("mount.id = 'main-news';", main)
+        self.assertIn("css/main-news.css", main)
+        self.assertIn("js/main-news.js", main)
+
+        # 한쪽이 실패해도 다른 쪽은 그대로 보여야 하므로 시장별로 따로 그린다.
+        self.assertIn("renderColumn(container, pair[0], [], true)", source)
+        # 미국 기사는 서버 번역 제목이 있으면 그것을 우선한다(기존 규약).
+        self.assertIn("item.title_ko", source)
+
+        # 2칼럼. minmax(0, ...)이 없으면 긴 제목이 트랙을 밀어 칼럼이 겹친다.
+        self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)
+        # 모바일은 세로로 쌓이므로 접지 않으면 국내를 다 지나야 미국이 나온다.
+        self.assertIn("#main-news .mn-column:not(.is-expanded) .mn-list .mn-row:nth-child(n+11)", style)
+        self.assertIn("#main-news .mn-more { display: none; }", style)
+        self.assertIn("var MOBILE_COLLAPSE_AT = 10;", source)
+
+        # 로컬 렌더 검증 하니스가 갈아끼우는 지점(js/overnight-market.js와 같은 규약).
+        self.assertIn("MainNews.fetchJson(pair[1])", source)
+        self.assertTrue((ROOT / "test" / "main-news.html").exists())
 
 if __name__ == "__main__":
     unittest.main()

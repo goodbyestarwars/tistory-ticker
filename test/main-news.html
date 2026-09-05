@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>main-news(주요 뉴스) 로컬 테스트</title>
+<link rel="stylesheet" href="../css/main-news.css" />
+<style>
+  :root {
+    --font-title: Georgia, serif; --font-ui: system-ui, sans-serif;
+    --text-main: #171717; --text-sub: #6F7480; --rule: #D8D8D8; --up: #B42318;
+    --page-bg: rgb(255,254,252);
+  }
+  html.dark {
+    --text-main: #F5EFE0; --text-sub: rgba(245,239,224,.65);
+    --rule: rgba(245,239,224,.16); --page-bg: #1A1A1A;
+  }
+  body { margin: 0; background: var(--page-bg); }
+  .page-body { max-width: 900px; margin: 30px auto; padding: 0 16px; }
+  .tools { margin-bottom: 16px; display: flex; gap: 8px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="page-body">
+  <div class="tools">
+    <button onclick="document.documentElement.classList.toggle('dark')">다크모드</button>
+    <button onclick="setMock('ok')">정상</button>
+    <button onclick="setMock('empty')">뉴스 없음</button>
+    <button onclick="setMock('error')">양쪽 오류</button>
+    <button onclick="setMock('half')">미국만 오류</button>
+  </div>
+  <div id="main-news"></div>
+</div>
+
+<script src="../js/main-news.js"></script>
+<script>
+  function mockItems(market, n) {
+    var titles = market === 'us'
+      ? ['Fed holds rates steady as inflation cools further than expected',
+         'Nvidia beats on earnings, raises guidance on AI demand',
+         'Oil slips as OPEC+ signals output increase',
+         'Treasury yields fall after weaker jobs data',
+         'Dollar weakens against yen ahead of BOJ meeting']
+      : ['코스피, 외국인 순매수에 사흘째 상승 마감',
+         '반도체 수출 회복세... 4개월 연속 증가',
+         '원/달러 환율 1,480원대로 하락',
+         '한국은행, 기준금리 동결 결정',
+         '정부, 밸류업 프로그램 2단계 발표'];
+    var out = [];
+    for (var i = 0; i < n; i++) {
+      var t = titles[i % titles.length];
+      out.push({
+        title: t,
+        title_ko: market === 'us' && i % 2 === 0 ? '[번역] ' + t : '',
+        link: 'https://example.com/' + market + '/' + i,
+        pubDate: new Date(Date.now() - i * 37 * 60000).toISOString(),
+        press: market === 'us' ? ['CNBC', 'Bloomberg', 'Reuters'][i % 3] : ['연합뉴스', '한국경제', '매일경제'][i % 3]
+      });
+    }
+    return out;
+  }
+  var mode = 'ok';
+  MainNews.fetchJson = function (url) {
+    var market = url.indexOf('foreign-news') !== -1 ? 'us' : 'domestic';
+    if (mode === 'error' || (mode === 'half' && market === 'us')) return Promise.reject(new Error('mock'));
+    if (mode === 'empty') return Promise.resolve([]);
+    return Promise.resolve(mockItems(market, 12));
+  };
+  function setMock(next) { mode = next; MainNews.init(); }
+  MainNews.init();
+</script>
+</body>
+</html>

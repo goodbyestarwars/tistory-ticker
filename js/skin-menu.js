@@ -11,6 +11,9 @@
       label: '시장',
       children: [
         { href: '/category/마켓 브리핑', label: '마켓브리핑' },
+        // 2026-09-05: 마켓브리핑(직접 쓴 해석) 바로 뒤에 둔다. 둘 다 "무슨 일이
+        // 있었나"를 읽는 자리고, 지표 두 개는 그 다음에 숫자로 확인하는 순서다.
+        { href: '/page/main-news', label: '주요 뉴스' },
         { href: '/page/market-temp', label: '증시온도' },
         { href: '/pages/overnight-market', label: '글로벌 시장지표' },
         { href: '/pages/kospi-futures', label: '국내시장지표' }
