@@ -19,10 +19,17 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=40';
-  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=40';
+  // 화면에 그리는 수(RENDER_LIMIT)만큼만 받는다. 40건을 받아 25건만 쓰던 걸 맞췄다.
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
   var REFRESH_MS = 5 * 60 * 1000;
   var FETCH_TIMEOUT_MS = 15000;
+  // 실패가 잠깐이면(서버 재시작·순간 혼잡·429) 5분을 기다리지 않고 한 번 더 시도한다.
+  var RETRY_MS = 6000;
+  // 탭에 돌아올 때마다 다시 부르면 앱을 몇 번 오가는 것만으로 요청이 쌓인다.
+  // /domestic-news는 IP당 60초에 20회 제한이라 실제로 429가 날 수 있다 - 이만큼
+  // 지났을 때만 다시 부른다.
+  var STALE_MS = 60 * 1000;
   // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
   var RENDER_LIMIT = 25;
   var MARKETS = [
@@ -32,7 +39,7 @@
     { key: 'us', flag: '\uD83C\uDDFA\uD83C\uDDF8', label: '미국' }
   ];
 
-  var state = { container: null, timer: null, generation: 0 };
+  var state = { container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -203,6 +210,14 @@
           // 두 시장을 하나로 세우려면 여기서 다시 정렬해야 한다(각 응답은 자기 안에서만 정렬돼 있다).
           collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
           render(container, collected, failed);
+          if (collected.length) state.loadedAt = Date.now();
+          // 전부 실패했을 때만 한 번 더. 성공분이 있으면 5분 주기에 맡긴다.
+          if (!collected.length && failed.length && !state.retryTimer) {
+            state.retryTimer = setTimeout(function () {
+              state.retryTimer = null;
+              if (state.container) refresh(state.container);
+            }, RETRY_MS);
+          }
         });
     });
   }
@@ -215,9 +230,12 @@
     refresh(container);
     if (state.timer) clearInterval(state.timer);
     state.timer = setInterval(function () { refresh(container); }, REFRESH_MS);
-    // 탭을 다시 열었을 때 오래된 목록을 보고 있지 않게 한다.
+    // 탭을 다시 열었을 때 오래된 목록을 보고 있지 않게 한다. 다만 앱을 오갈 때마다
+    // 부르면 요청이 쌓여 오히려 429로 화면이 비므로, 충분히 지났을 때만 부른다.
     document.addEventListener('visibilitychange', function () {
-      if (!document.hidden && state.container) refresh(state.container);
+      if (document.hidden || !state.container) return;
+      if (Date.now() - state.loadedAt < STALE_MS) return;
+      refresh(state.container);
     });
   }
 
