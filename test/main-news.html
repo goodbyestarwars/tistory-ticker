@@ -54,7 +54,9 @@
         title_ko: market === 'us' && i % 2 === 0 ? '[번역] ' + t : '',
         link: 'https://example.com/' + market + '/' + i,
         pubDate: new Date(Date.now() - i * 37 * 60000).toISOString(),
-        press: market === 'us' ? ['CNBC', 'Bloomberg', 'Reuters'][i % 3] : ['연합뉴스', '한국경제', '매일경제'][i % 3]
+        // 운영 API 실측값과 같은 모양: 미국은 언론사명, 국내는 도메인이 온다.
+        source: market === 'us' ? ['CNBC', 'Bloomberg', 'Reuters'][i % 3]
+                                : ['mk.co.kr', 'magazine.hankyung.com', 'view.asiae.co.kr', 'kbmaeil.com'][i % 4]
       });
     }
     return out;

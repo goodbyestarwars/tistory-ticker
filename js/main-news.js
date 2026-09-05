@@ -61,12 +61,44 @@
     return day === today ? clock : fmt({ month: '2-digit', day: '2-digit' }) + ' ' + clock;
   }
 
-  function sourceLabel(item, market) {
-    var press = String((item && (item.press || item.source)) || '').trim();
-    if (press) return press;
-    var category = String((item && item.category) || '').trim();
-    if (category && category !== '일반') return category;
-    return market === 'us' ? '해외' : '국내';
+  /* 출처 표기.
+   *
+   * 실측(2026-09-05, Actions 러너로 운영 API 확인):
+   *   /foreign-news 의 source → "CNBC"(19) "Bloomberg"(14) "Reuters"(7)  = 언론사명
+   *   /domestic-news 의 source → "mk.co.kr" "magazine.hankyung.com" ...  = 도메인
+   * 미국 쪽은 그대로 쓰면 되고 국내 쪽만 도메인이라, 아는 곳은 이름으로 바꾸고
+   * 모르는 곳은 등록 도메인만 남긴다(www./m./view./news. 같은 접두사 제거).
+   *
+   * category는 국내·미국 모두 "시장" 하나로만 와서 정보가 없다 - 폴백으로 쓰지 않는다.
+   * 표에 없는 매체가 나와도 도메인이 보이므로 어디 기사인지는 알 수 있다. */
+  var PRESS_BY_DOMAIN = {
+    'yna.co.kr': '연합뉴스', 'mk.co.kr': '매일경제', 'hankyung.com': '한국경제',
+    'sedaily.com': '서울경제', 'edaily.co.kr': '이데일리', 'asiae.co.kr': '아시아경제',
+    'etoday.co.kr': '이투데이', 'fnnews.com': '파이낸셜뉴스', 'mt.co.kr': '머니투데이',
+    'hankookilbo.com': '한국일보', 'chosun.com': '조선일보', 'joongang.co.kr': '중앙일보',
+    'donga.com': '동아일보', 'khan.co.kr': '경향신문', 'hani.co.kr': '한겨레',
+    'newsis.com': '뉴시스', 'news1.kr': '뉴스1', 'inews24.com': '아이뉴스24',
+    'thebell.co.kr': '더벨', 'businesspost.co.kr': '비즈니스포스트'
+  };
+
+  function registrableDomain(host) {
+    var name = String(host || '').trim().toLowerCase().replace(/^(?:www|m|view|news|magazine)\./, '');
+    var parts = name.split('.');
+    // co.kr·or.kr처럼 2단계 국가 도메인은 세 조각을 남겨야 이름이 된다
+    // (mk.co.kr을 두 조각으로 자르면 "co.kr"이 되어 버린다).
+    if (parts.length >= 3 && /^(co|or|go|ne|re|pe|ac)$/.test(parts[parts.length - 2])) {
+      return parts.slice(-3).join('.');
+    }
+    if (parts.length > 2) return parts.slice(-2).join('.');
+    return name;
+  }
+
+  function sourceLabel(item) {
+    var raw = String((item && (item.press || item.source)) || '').trim();
+    if (!raw) return '';
+    if (raw.indexOf('.') === -1) return raw;          // 이미 언론사명(CNBC 등)
+    var domain = registrableDomain(raw);
+    return PRESS_BY_DOMAIN[domain] || domain;
   }
 
   function displayTitle(item) {
@@ -93,17 +125,18 @@
       .finally(function () { if (timer) clearTimeout(timer); });
   }
 
-  function rowHtml(item, market) {
+  function rowHtml(item) {
     var title = displayTitle(item);
     if (!title) return '';
     var href = String((item && item.link) || '').trim();
     var time = timeLabel(item && item.pubDate);
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
+    var source = sourceLabel(item);
     return open
       + '<div class="mn-row-meta">'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '')
-      + '<span class="mn-row-source">' + escapeHtml(sourceLabel(item, market)) + '</span>'
+      + (source ? '<span class="mn-row-source">' + escapeHtml(source) + '</span>' : '')
       + '</div>'
       + '<strong class="mn-row-title">' + escapeHtml(title) + '</strong>'
       + close;
@@ -145,7 +178,7 @@
       list.innerHTML = '<p class="mn-state">표시할 뉴스가 없습니다.</p>';
       return;
     }
-    list.innerHTML = items.map(function (item) { return rowHtml(item, market); }).join('');
+    list.innerHTML = items.map(rowHtml).join('');
     if (more && items.length > MOBILE_COLLAPSE_AT) {
       more.hidden = false;
       more.textContent = '더 보기 (' + (items.length - MOBILE_COLLAPSE_AT) + '건)';
