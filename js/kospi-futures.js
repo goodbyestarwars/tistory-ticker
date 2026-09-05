@@ -255,26 +255,10 @@
   }
 
   // 한국거래소 파생상품 야간장은 세션 시작일이 휴일이면 열리지 않는다. 날짜 계산은
-  function kstDateParts() {
-    var kst = new Date(Date.now() + 9 * 60 * 60000);
-    return {
-      year: kst.getUTCFullYear(),
-      month: kst.getUTCMonth() + 1,
-      date: kst.getUTCDate(),
-      day: kst.getUTCDay(),
-      mins: kst.getUTCHours() * 60 + kst.getUTCMinutes()
-    };
-  }
-
   function isSessionHoliday(panelKey) {
     var hours = window.MarketHours;
     if (!hours) return false;
-    // 야간선물 00:00~06:00 구간은 전날 저녁에 시작한 세션이라 전날로 판정한다.
-    var now = kstDateParts();
-    if (panelKey === 'night' && now.mins < 6 * 60) {
-      return hours.isKrHoliday(new Date(Date.now() - 24 * 60 * 60 * 1000));
-    }
-    return hours.isKrHoliday();
+    return panelKey === 'night' ? hours.isNightSessionHoliday() : hours.isKrHoliday();
   }
 
   // 가격 fetch 성공/실패와 무관하게(시각은 API 응답 없이도 계산 가능) 항상 최신 상태를

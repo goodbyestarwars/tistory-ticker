@@ -35,9 +35,10 @@ KR_FUTURES = [
     ("2026-09-07T09:00", "regular"),
     ("2026-09-07T15:44", "regular"),             # 선물은 현물보다 15분 늦게 끝난다
     ("2026-09-07T15:45", "closed"),
-    ("2026-09-07T18:00", "night"),               # 야간 18:00~익일 06:00
-    ("2026-09-08T05:59", "night"),
-    ("2026-09-08T06:00", "closed"),
+    ("2026-09-07T18:00", "night"),               # 야간 18:00~익일 05:00
+    ("2026-09-08T04:59", "night"),
+    ("2026-09-08T05:00", "closed"),              # 2026-09-05 정정: 예전엔 06:00까지 열린 것으로 봤다
+    ("2026-09-08T05:59", "closed"),
 ]
 
 # 9월은 서머타임(EDT), 1월은 표준시(EST).
@@ -91,7 +92,10 @@ console.log(JSON.stringify({
   preClose: [MH.krCash(at('2026-09-07T08:30')).preClosePrice, MH.krCash(at('2026-09-07T08:40')).preClosePrice],
   nxt: [MH.krCash(at('2026-09-07T08:00')).nxtOpen, MH.krCash(at('2026-09-07T07:59')).nxtOpen,
         MH.krCash(at('2026-09-07T19:59')).nxtOpen, MH.krCash(at('2026-09-07T20:00')).nxtOpen],
-  weekend: [MH.isWeekendClosed(at('2026-09-05T07:30')), MH.isWeekendClosed(at('2026-09-05T09:00'))]
+  weekend: [MH.isWeekendClosed(at('2026-09-05T07:30')), MH.isWeekendClosed(at('2026-09-05T09:00'))],
+  // 추석 연휴 09-25(금) 밤에 시작한 세션은 09-26(토) 새벽까지 같은 휴장일로 본다.
+  nightHoliday: [MH.isNightSessionHoliday(at('2026-09-26T04:59')),
+                 MH.isNightSessionHoliday(at('2026-09-08T04:59'))]
 }));
 """
     )
@@ -142,6 +146,8 @@ class MarketHoursTest(unittest.TestCase):
         self.assertEqual([True, False], self.result["preClose"])   # 시간외 종가(전일) 08:30~08:40
         self.assertEqual([True, False, True, False], self.result["nxt"])  # NXT 08:00~20:00
         self.assertEqual([False, True], self.result["weekend"])
+        # 야간 세션은 00:00~05:00 동안 전날 기준으로 휴장을 따진다.
+        self.assertEqual([True, False], self.result["nightHoliday"])
 
     def test_holiday_table_lives_in_one_place(self):
         """휴장일 표가 다시 여러 파일로 흩어지지 않게 막는다."""

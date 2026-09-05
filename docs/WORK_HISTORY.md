@@ -1,5 +1,23 @@
 # 9Pay 주요 작업이력
 
+**2026-09-05 야간선물 거래시간 정정 (18:00~06:00 → 18:00~05:00)**
+
+전날 MarketHours로 옮길 때 기존 코드의 06:00을 그대로 들고 왔는데, 코스피200 야간선물은
+18:00에 열려 **익일 05:00**에 닫힌다. 05:00~06:00 한 시간은 이미 끝난 세션을
+"실시간"으로 표시하고 시세도 계속 폴링하던 구간이다.
+
+- `js/skin-shell.js`: `krFutures()` 야간 경계 06:00 → 05:00. 야간 세션 휴장 판정
+  `isNightSessionHoliday()`를 MarketHours에 추가 - `skin-main.js`·`kospi-futures.js`가
+  각자 "00:00~06:00은 전날" 규칙을 복제하고 있어서 경계를 세 곳에서 재고 있었다.
+- `js/skin-main.js`·`js/kospi-futures.js`: 위 함수로 교체, 죽은 `kstDateParts` 제거.
+- `js/quick-indices.js`: MarketHours 없을 때만 쓰이는 폴백도 05:00으로 맞췄다.
+
+검증: `test/test_market_hours.py`에 04:59(개장)/05:00·05:59(마감) 경계와, 추석 연휴
+금요일 밤 세션이 토요일 새벽까지 같은 휴장일로 잡히는지 확인하는 케이스 추가.
+`pytest test` → 912 passed, 108 subtests(기존 실패 3건 유지).
+배포: `js/`는 GitHub Pages 자동 반영. `skin.html`은 `?v=`만 올렸으므로 수동 반영 불필요.
+
+
 **2026-09-05 시장구분 단일 기준 도입 (MarketHours)**
 
 사용자 요청: "시장구분을 확실하게 하자". 한국거래소 시간표와 미국 거래시간을 주면서

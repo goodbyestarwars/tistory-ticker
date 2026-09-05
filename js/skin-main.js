@@ -661,12 +661,7 @@ document.documentElement.classList.add('skin-ready');
     // 복제돼 있어서, 해가 바뀌면 세 군데를 다 고쳐야 했다. 이제 한 곳만 고친다.
     function isNightFuturesHoliday() {
       var hours = window.MarketHours;
-      if (!hours) return false;
-      // 00:00~06:00은 전날 저녁 세션의 연장 시간이므로 전날을 판정한다.
-      var kst = hours.kst();
-      return kst.minutes < 6 * 60
-        ? hours.isKrHoliday(new Date(Date.now() - 24 * 60 * 60 * 1000))
-        : hours.isKrHoliday();
+      return hours ? hours.isNightSessionHoliday() : false;
     }
 
     function summarizeUsMarket(data, indexItems) {

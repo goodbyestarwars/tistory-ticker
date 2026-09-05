@@ -40,7 +40,7 @@
      시간외 단일가     16:00 ~ 18:00   (10분 단위 체결, 당일 종가 대비 ±10%)
      대체거래소(NXT)   08:00 ~ 20:00
      지수선물 정규장   09:00 ~ 15:45   (현물보다 15분 늦게 끝난다)
-     지수선물 야간     18:00 ~ 익일 06:00
+     지수선물 야간     18:00 ~ 익일 05:00
 
    미국(현지 ET → KST). 서머타임이면 한 시간씩 당겨진다:
      프리마켓 04:00~09:30 ET → EDT 17:00~22:30 / EST 18:00~23:30
@@ -124,12 +124,16 @@
   }
 
   /* 지수선물. 정규장은 현물보다 15분 늦은 15:45에 끝나고, 야간 세션은 18:00에
-     열려 다음 날 06:00에 닫힌다. 00:00~06:00은 전날 저녁에 시작한 세션이므로
-     휴장 판정도 전날 기준으로 한다. */
+     열려 다음 날 05:00에 닫힌다. 00:00~05:00은 전날 저녁에 시작한 세션이므로
+     휴장 판정도 전날 기준으로 한다.
+
+     2026-09-05: 야간 종료를 06:00에서 05:00으로 정정했다. 옮겨온 코드
+     (js/kospi-futures.js·js/quick-indices.js)가 06:00을 쓰고 있었는데, 그 한 시간은
+     이미 닫힌 세션을 "실시간"으로 표시하고 시세도 계속 폴링하던 구간이다. */
   function krFutures(date) {
     var k = kst(date);
     var m = k.minutes;
-    if (m < M(6)) {
+    if (m < M(5)) {
       var prev = new Date((date ? date.getTime() : Date.now()) - 24 * 60 * 60 * 1000);
       return isKrHoliday(prev)
         ? { phase: 'closed', open: false, label: '휴장' }
@@ -139,6 +143,15 @@
     if (m >= M(9) && m < M(15, 45)) return { phase: 'regular', open: true, label: '정규장' };
     if (m >= M(18)) return { phase: 'night', open: true, label: '야간선물' };
     return { phase: 'closed', open: false, label: '장 마감' };
+  }
+
+  /* 야간선물 세션의 휴장 여부. 00:00~05:00은 전날 저녁에 시작한 세션이라 전날로
+     판정한다. 소비자(skin-main.js·kospi-futures.js)가 각자 경계를 재지 않게 여기 둔다. */
+  function isNightSessionHoliday(date) {
+    var t = date ? (date.getTime ? date.getTime() : Number(date)) : Date.now();
+    return kst(t).minutes < M(5)
+      ? isKrHoliday(new Date(t - 24 * 60 * 60 * 1000))
+      : isKrHoliday(new Date(t));
   }
 
   /* 뉴욕 현지 시각. 서머타임 규칙을 직접 갖지 않고 Intl에 묻는다. */
@@ -219,6 +232,7 @@
     kst: kst,
     isKrHoliday: isKrHoliday,
     isKrTradingDay: isKrTradingDay,
+    isNightSessionHoliday: isNightSessionHoliday,
     krCash: krCash,
     krFutures: krFutures,
     us: us,
