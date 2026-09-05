@@ -178,14 +178,10 @@
     document.querySelectorAll('.nav-logo-name').forEach(function (item) {
       item.textContent = 'ㄱㅖ조 ㅏ심폐소생술';
     });
-    // skin.html을 티스토리 관리자에서 아직 갱신하지 않은 경우에도 새 로고를 즉시 반영한다.
-    document.querySelectorAll('.nav-logo-emblem img').forEach(function (item) {
-      item.className = 'nav-logo-image';
-      item.src = 'https://goodbyestarwars.github.io/tistory-ticker/img/account-cpr-logo.png';
-      item.alt = '계좌 심폐소생술 로고';
-      item.width = 34;
-      item.height = 34;
-    });
+    // 2026-09-05: 로고 지정을 js/skin-shell.js의 refreshBrandIcon()으로 옮겼다.
+    // 여기서 1.6MB짜리 account-cpr-logo.png를 34x34 자리에 덮어쓰고 있었는데, 그게
+    // 도착할 때까지 skin.html의 컬러 SVG가 떠 있어서 아이콘이 겹쳐 깜빡였다.
+    // skin-shell.js가 이 파일보다 먼저 로드되므로 거기서 한 번만 넣는 게 맞다.
 
     if (mount) {
       selectedGroupIndex = activeGroupIndex();
