@@ -1,5 +1,36 @@
 # 9Pay 주요 작업이력
 
+**2026-09-05 뉴스 제목 번역 캐시에 만료·강제 재번역 추가**
+
+사용자가 "번역이 토큰을 얼마나 쓰냐"고 물어 코드를 확인하다 발견한 문제.
+번역은 LLM이 아니라 무료 엔드포인트(`translate.googleapis.com` 1순위,
+`api.mymemory.translated.net` 폴백)를 쓰므로 **토큰은 0**이다. 대신 캐시 쪽에 구멍이
+둘 있었다.
+
+`news_translation_cache(title PRIMARY KEY, translated, updated_at)`에 **TTL도 정리도
+없었다.** `updated_at`을 기록만 하고 만료에 쓰지 않았다.
+1. 테이블이 무한히 커진다 - 메모리 캐시만 2048건 상한이 있고 SQLite는 없었다.
+2. **한번 잘못 번역된 제목이 영구 고정된다.** 검증(한글 포함 + 원문과 다름)만 통과하면
+   오역이어도 계속 그 값을 쓰고, 캐시가 있으면 외부 호출 자체를 안 하므로 고칠 방법이
+   없었다.
+
+- `prune_translation_cache(days=90)`: 보관 기간이 지난 행을 지운다. 사라진 기사의 제목을
+  무한히 들고 있을 이유가 없고, 다시 나타나면 한 번 더 번역하면 된다(무료라 재번역
+  비용은 호출 한 번).
+- `forget_translations(titles)`: 지정 제목을 메모리·SQLite 양쪽에서 지운다. 오역을
+  고치는 유일한 방법이다.
+- 기존 번역 프리워머 루프(75초 주기)에 **하루 한 번만** 정리를 태웠다
+  (`_prune_translation_cache_if_due`). 75초마다 DELETE를 돌릴 이유가 없다.
+- CLI 추가(`python3 news_aggregator.py --stats / --forget "제목" / --prune [--days N]`).
+  HTTP 관리자 엔드포인트는 만들지 않았다 - 인증 표면이 느는 데 비해 쓰는 빈도가 낮다.
+
+검증: `test/test_translation_cache.py`(신규 5건) - 보관 경계(89일 유지·200일 삭제),
+`--days` 조절, forget이 메모리·SQLite 둘 다 지우는지, 빈 입력 무시, 하루 1회 스로틀.
+임시 DB로 CLI 3종 실제 실행 확인(`--stats` 3행 → `--forget` 1행 삭제 → `--prune` 1행 정리).
+`pytest test` → 918 passed(기존 실패 3건 유지).
+배포: `scripts/cloud-vm/`은 `master` 반영 후 VM 자동 배포.
+
+
 **2026-09-05 주요 뉴스 시장 구분을 국기에서 KOR/US 글자 배지로**
 
 사용자: "뉴스 국기 말고 kor, us 이런 형태로".
