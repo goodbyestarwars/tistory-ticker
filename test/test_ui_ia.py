@@ -364,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260905-main-news-v3", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-main-news-v4", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -420,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260905-main-news-v3", skin)
+        self.assertIn("skin-main.js?v=20260905-main-news-v4", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2958,6 +2958,21 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
+        # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
+        # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
+        # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
+        self.assertIn("var hostSelectors = ['.contents_style', '.post-single-body',", main)
+        self.assertNotIn("document.querySelector('.article-view, .entry-content, .feed')", main)
+
+        # 탭에 돌아올 때마다 다시 부르면 /domestic-news의 IP당 60초 20회 제한에 걸린다.
+        self.assertIn("var STALE_MS = 60 * 1000;", source)
+        self.assertIn("if (Date.now() - state.loadedAt < STALE_MS) return;", source)
+        # 전부 실패하면 5분을 기다리지 않고 한 번 더 시도한다.
+        self.assertIn("var RETRY_MS = 6000;", source)
+        self.assertIn("if (!collected.length && failed.length && !state.retryTimer)", source)
+        # 그리는 수만큼만 받는다.
+        self.assertIn("domestic-news?kind=news&limit=25", source)
+        self.assertIn("foreign-news?limit=25", source)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)
