@@ -364,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260905-main-news-v4", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-main-news-v5", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -420,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260905-main-news-v4", skin)
+        self.assertIn("skin-main.js?v=20260905-main-news-v5", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -2981,12 +2981,19 @@ console.log(JSON.stringify(cases.map(function (iso) {
 
         # 두 응답을 합친 뒤 다시 정렬해야 한 줄기 시간순이 된다.
         self.assertIn("collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });", source)
-        # 시장 구분은 줄머리 국기 하나로 한다.
+        # 시장 구분은 줄머리 배지 하나로 한다. 2026-09-05: 국기 이모지에서 글자로 바꿨다
+        # (국기는 지역 표시 문자라 윈도우에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
         self.assertIn("var MARKETS = [", source)
-        self.assertIn("class=\"mn-flag\"", source)
-        self.assertIn("grid-template-columns: 22px minmax(0, 1fr);", style)
-        # 낭독기에는 국기 대신 이름이 읽혀야 한다.
-        self.assertIn("role=\"img\" aria-label=\"' + market.label + '\"", source)
+        self.assertIn("{ key: 'domestic', code: 'KOR', label: '한국' },", source)
+        self.assertIn("{ key: 'us', code: 'US', label: '미국' }", source)
+        self.assertIn("class=\"mn-market\"", source)
+        self.assertNotIn("mn-flag", source)
+        self.assertNotIn("mn-flag", style)
+        # KOR(3글자) 기준으로 폭을 고정해야 제목 왼쪽이 정렬된다.
+        self.assertIn("grid-template-columns: 34px minmax(0, 1fr);", style)
+        self.assertIn("min-width: 34px;", style)
+        # 낭독기에는 약칭 대신 이름이 읽혀야 한다.
+        self.assertIn("aria-label=\"' + market.label + '\"", source)
 
         # 한쪽만 실패해도 나머지는 보여주되, 무엇이 빠졌는지는 숨기지 않는다.
         self.assertIn("failed.push(market.label)", source)

@@ -32,11 +32,12 @@
   var STALE_MS = 60 * 1000;
   // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
   var RENDER_LIMIT = 25;
+  // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(사용자 요청 "kor, us 이런 형태로").
+  // 국기는 지역 표시 문자라 윈도우 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다.
+  // 글자는 어디서나 같고 낭독기에도 그대로 읽힌다 - aria-label로 한글 이름을 붙인다.
   var MARKETS = [
-    // 국기는 지역 표시 문자(regional indicator)라 윈도우 크롬에서는 두 글자(KR/US)로
-    // 그려진다. 그래도 구분은 되므로 그대로 쓰고, 화면 낭독기용 이름을 따로 붙인다.
-    { key: 'domestic', flag: '\uD83C\uDDF0\uD83C\uDDF7', label: '한국' },
-    { key: 'us', flag: '\uD83C\uDDFA\uD83C\uDDF8', label: '미국' }
+    { key: 'domestic', code: 'KOR', label: '한국' },
+    { key: 'us', code: 'US', label: '미국' }
   ];
 
   var state = { container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null };
@@ -153,7 +154,7 @@
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
     return open
-      + '<span class="mn-flag" role="img" aria-label="' + market.label + '">' + market.flag + '</span>'
+      + '<span class="mn-market" aria-label="' + market.label + '">' + market.code + '</span>'
       + '<span class="mn-row-body">'
       + '<span class="mn-row-meta">'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '')
@@ -167,7 +168,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국 ' + MARKETS[0].flag + ' · 미국 ' + MARKETS[1].flag + ' 시장 뉴스를 최신순으로 함께 봅니다.'
+      + '<p>한국(' + MARKETS[0].code + ')·미국(' + MARKETS[1].code + ') 시장 뉴스를 최신순으로 함께 봅니다.'
       + ' 제목을 누르면 원문으로 이동합니다.</p>'
       + '<small data-mn-updated></small>'
       + '</div>'
