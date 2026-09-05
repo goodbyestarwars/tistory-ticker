@@ -63,7 +63,7 @@
   var PANEL_ORDER = ['KOSPI200_DAY', 'KOSPI200_NIGHT'];
   var PANEL_LABELS = {
     KOSPI200_DAY: 'KOSPI200 주간선물 (09:00~15:45)',
-    KOSPI200_NIGHT: 'KOSPI200 야간선물 (18:00~06:00)'
+    KOSPI200_NIGHT: 'KOSPI200 야간선물 (18:00~05:00)'
   };
   // buildQuoteRow/updateMarketStatusBadges가 심볼 -> 세션 종류를 찾을 때 쓴다(아래 isMarketOpen).
   var PANEL_KEY_BY_SYMBOL = { KOSPI200_DAY: 'day', KOSPI200_NIGHT: 'night' };
@@ -78,7 +78,7 @@
   // 예제 저장소에서 TR(FHKIF03020200)을 찾아 실측 확인함(night_futures_ws.py 참고).
   var CHARTS = [
     { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: 'KOSPI200 주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
-    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: 'KOSPI200 야간선물 (18:00~06:00)', intervals: ['minute', 'day', 'week'] }
+    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: 'KOSPI200 야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
   var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-chart-controls-v2';
@@ -1047,6 +1047,10 @@
     if (tableBody) tableBody.innerHTML = PANEL_ORDER.map(function (symbol) {
       return buildQuoteRow(bySymbol[symbol], symbol);
     }).join('');
+    // 2026-09-06: buildQuoteRow가 만드는 .kf-stat-status는 항상 빈 칸이라, 시세를 새로
+    // 그릴 때마다 "(휴장)"/"(장 마감)" 배지가 지워지고 다음 타이머(30초)까지 안 보였다.
+    // 첫 렌더 직후 fetch가 끝나면 곧바로 지워지므로 사실상 배지가 안 뜨는 것과 같았다.
+    updateMarketStatusBadges(container);
 
     CHARTS.forEach(function (cfg) {
       panelState[cfg.key].dayItem = bySymbol[cfg.symbol];
