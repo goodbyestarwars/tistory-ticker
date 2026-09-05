@@ -177,7 +177,7 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260905-main-news-v5';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260906-main-news-v6';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
