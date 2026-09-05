@@ -189,7 +189,7 @@
     if (key === 'kospi_night') {
       if (hours) return hours.krFutures().phase === 'night' ? '실시간' : '장마감';
       var eveningOpen = isWeekday && mins >= 18 * 60;
-      var earlyMorningOpen = day >= 2 && day <= 6 && mins < 6 * 60;
+      var earlyMorningOpen = day >= 2 && day <= 6 && mins < 5 * 60;
       return (eveningOpen || earlyMorningOpen) ? '실시간' : '장마감';
     }
     if (key === 'btc') return '실시간';
