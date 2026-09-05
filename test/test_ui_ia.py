@@ -323,7 +323,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('data-home-market-switch="domestic"', source)
         self.assertIn('data-home-market-switch="us"', source)
         self.assertIn('data-home-market-switch="closed"', source)
-        self.assertIn("if (isClosedWindowKst()) return 'closed';", source)
+        self.assertIn("return hours ? hours.homeMarket() : 'domestic';", source)
+        self.assertIn("function isWeekendClosed(date) {", self.read("js/skin-shell.js"))
         self.assertIn("market === 'us' || market === 'closed'", source)
         self.assertIn('data-home-closed-page', source)
 
@@ -363,7 +364,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260904-us-index-session-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260905-market-hours-v1", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -419,7 +420,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260904-us-index-session-v1", skin)
+        self.assertIn("skin-main.js?v=20260905-market-hours-v1", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -798,10 +799,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_home_realtime_table_reconnects_after_websocket_disconnect(self):
         source = self.read("js/home-realtime-table.js")
         main = self.read("scripts/cloud-vm/main.py")
-        self.assertIn("미국시장 · 정규장 22:30~05:00", source)
-        self.assertIn("미국시장 · 정규장 23:30~06:00", source)
+        # 라벨의 시각 문자열은 js/skin-shell.js의 MarketHours가 단독으로 들고 있다.
+        shell = self.read("js/skin-shell.js")
+        self.assertIn("regular: '22:30~05:00'", shell)
+        self.assertIn("regular: '23:30~06:00'", shell)
+        self.assertIn("'미국시장 · 정규장 ' + (hours ? hours.us().kst.regular", source)
         self.assertIn("미국시장 · 정규장 ' + hours", self.read("scripts/cloud-vm/market_board.py"))
-        self.assertIn("America/New_York", source)
+        self.assertIn("America/New_York", self.read("js/skin-shell.js"))
         self.assertIn("function isUsRegularSessionOpen()", source)
         self.assertIn("function isMarketLive(market)", source)
         self.assertIn("최근 장마감 · ", source)
@@ -1014,9 +1018,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         main = self.read("js/skin-main.js")
         board = self.read("js/home-realtime-table.js")
         news = self.read("js/home-economic-news.js")
-        self.assertIn("minutes >= 17 * 60 || minutes < 9 * 60", main)
-        self.assertIn("hour >= 17 || hour < 9 ? 'us' : 'domestic'", board)
-        self.assertIn("hour >= 17 || hour < 9 ? 'us' : 'domestic'", news)
+        shell = self.read("js/skin-shell.js")
+        widgets = self.read("js/home-widgets.js")
+        # 2026-09-05: 경계는 js/skin-shell.js의 MarketHours 한 곳에만 있다. 예전엔 네
+        # 파일이 각자 시각을 재서 17:00/17:00/17:00/20:30으로 어긋나 있었다.
+        self.assertIn("function usPreOpenKstMinutes(date) { return us(date).dst ? M(17) : M(18); }", shell)
+        self.assertIn("function homeMarket(date) {", shell)
+        for source in (main, board, news, widgets):
+            self.assertIn("MarketHours", source)
+            self.assertIn("homeMarket()", source)
+            self.assertNotIn("hour >= 17 || hour < 9", source)
+        self.assertNotIn("hour > 20 || (hour === 20 && minute >= 30)", widgets)
 
     def test_visible_provider_labels_are_removed_from_content_pages(self):
         sources = (
@@ -2705,7 +2717,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         """
         main = self.read("js/skin-main.js")
         start = main.index("    function nyClockParts(now) {")
-        end = main.index("    // 코스피 야간선물은 국내 거래소 휴장일에는")
+        end = main.index("    // 2026-09-05: 코스피 야간선물 휴장 판정을")
         script = main[start:end] + """
 const cases = JSON.parse(process.argv[2]);
 console.log(JSON.stringify(cases.map(function (iso) {

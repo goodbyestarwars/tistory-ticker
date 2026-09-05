@@ -245,35 +245,16 @@
   // 야간선물은 "평일 저녁에 열려 다음날 새벽에 닫히는" 세션이라 시작(그날이 평일 저녁)과
   // 종료(전날이 평일이었던 새벽, 즉 오늘이 화~토)를 따로 확인해야 토요일 밤(금요일 세션의
   // 정상 연장)은 열림으로, 일요일 새벽(토요일엔 세션이 없었으므로)은 닫힘으로 구분된다.
+  // 2026-09-05: 세션 경계와 휴장일 표를 js/skin-shell.js의 MarketHours로 옮겼다.
+  // 지수선물 정규장은 현물(15:30)보다 15분 늦은 15:45에 끝나고, 야간은 18:00~익일 06:00.
   function isMarketOpen(panelKey) {
-    // Date.now()는 방문자 위치와 무관하게 항상 UTC epoch ms라서, 9시간을 더하면 방문자
-    // 로컬 시간대와 상관없이 정확한 KST 시각이 나온다(js/quick-indices.js와 동일 기법).
-    var kst = new Date(Date.now() + 9 * 60 * 60000);
-    var day = kst.getUTCDay(); // 0=일요일 ... 6=토요일
-    var mins = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-    var isWeekday = day >= 1 && day <= 5;
-    if (panelKey === 'day') {
-      return isWeekday && mins >= 9 * 60 && mins < 15 * 60 + 45;
-    }
-    var eveningOpen = isWeekday && mins >= 18 * 60;
-    var earlyMorningOpen = day >= 2 && day <= 6 && mins < 6 * 60;
-    return eveningOpen || earlyMorningOpen;
+    var hours = window.MarketHours;
+    if (!hours) return false;
+    var futures = hours.krFutures();
+    return panelKey === 'day' ? futures.phase === 'regular' : futures.phase === 'night';
   }
 
   // 한국거래소 파생상품 야간장은 세션 시작일이 휴일이면 열리지 않는다. 날짜 계산은
-  // 방문자 로컬 타임존이 아니라 KST 기준으로 고정하고, 공휴일은 매년 거래소 일정에
-  // 맞춰 갱신할 수 있도록 연도별 목록으로 둔다. 주말은 목록을 보완하는 휴장일로 처리한다.
-  var KRX_HOLIDAYS = {
-    '2026': {
-      '20260101': true, '20260216': true, '20260217': true, '20260218': true,
-      '20260301': true, '20260302': true, '20260501': true, '20260505': true,
-      '20260525': true, '20260603': true, '20260606': true, '20260717': true,
-      '20260815': true, '20260817': true, '20260924': true, '20260925': true,
-      '20260926': true, '20261003': true, '20261005': true, '20261009': true,
-      '20261225': true, '20261231': true
-    }
-  };
-
   function kstDateParts() {
     var kst = new Date(Date.now() + 9 * 60 * 60000);
     return {
@@ -285,32 +266,15 @@
     };
   }
 
-  function dateKey(parts) {
-    return String(parts.year) + String(parts.month).padStart(2, '0') + String(parts.date).padStart(2, '0');
-  }
-
-  function previousDateParts(parts) {
-    var previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.date - 1));
-    return {
-      year: previous.getUTCFullYear(),
-      month: previous.getUTCMonth() + 1,
-      date: previous.getUTCDate(),
-      day: previous.getUTCDay(),
-      mins: parts.mins
-    };
-  }
-
-  function isKrxHoliday(parts) {
-    if (parts.day === 0 || parts.day === 6) return true;
-    var yearHolidays = KRX_HOLIDAYS[String(parts.year)];
-    return !!(yearHolidays && yearHolidays[dateKey(parts)]);
-  }
-
   function isSessionHoliday(panelKey) {
+    var hours = window.MarketHours;
+    if (!hours) return false;
+    // 야간선물 00:00~06:00 구간은 전날 저녁에 시작한 세션이라 전날로 판정한다.
     var now = kstDateParts();
-    // 야간선물 00:00~06:00 구간은 전날 저녁에 시작한 세션이므로 전날을 판정한다.
-    var sessionDate = panelKey === 'night' && now.mins < 6 * 60 ? previousDateParts(now) : now;
-    return isKrxHoliday(sessionDate);
+    if (panelKey === 'night' && now.mins < 6 * 60) {
+      return hours.isKrHoliday(new Date(Date.now() - 24 * 60 * 60 * 1000));
+    }
+    return hours.isKrHoliday();
   }
 
   // 가격 fetch 성공/실패와 무관하게(시각은 API 응답 없이도 계산 가능) 항상 최신 상태를

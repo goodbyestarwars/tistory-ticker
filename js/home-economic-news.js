@@ -46,11 +46,10 @@
     if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
       return global.HomeMarketSelection.get();
     }
-    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    var hour = kst.getUTCHours();
-    // skin-main.js의 HomeMarketSelection과 동일하게 프리마켓 시작부터 미국 뉴스를 쓴다.
     // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
-    return hour >= 17 || hour < 9 ? 'us' : 'domestic';
+    // 경계는 복제하지 않고 js/skin-shell.js의 MarketHours를 그대로 쓴다.
+    var hours = global.MarketHours;
+    return hours ? hours.homeMarket() : 'domestic';
   }
 
   function timeLabel(value) {

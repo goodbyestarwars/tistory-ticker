@@ -151,23 +151,13 @@ document.documentElement.classList.add('skin-ready');
 
     window.HomeMarketSelection = window.HomeMarketSelection || (function () {
       var selected = null;
-      // 홈은 미국 프리마켓(뉴욕 04:00)부터 미국 시세·뉴스를 우선한다. 서머타임에는
-      // KST 17:00~익일 09:00이며, KOSPI 현물이 시작하는 09:00에 국내 시장으로 넘긴다.
-      function isClosedWindowKst() {
-        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        var day = kst.getUTCDay(); // 0=일 ... 6=토
-        var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-        if (day === 6) return minutes >= 9 * 60; // 금요일 미국 장후 종료 뒤 토요일 09:00부터
-        if (day === 0) return true;         // 일요일 종일
-        if (day === 1) return minutes < 9 * 60; // 월요일 KOSPI 개장 전까지
-        return false;
-      }
+      // 2026-09-05: 시장 경계는 js/skin-shell.js의 MarketHours 하나만 쓴다. 예전엔 이
+      // 안에 직접 박아뒀는데 같은 판정이 파일마다 다른 경계로 복제돼 있었고(미국 전환
+      // 17:00/20:30, 휴장 창 토09:00/토07:00), 어긋나는 구간에서 실제로 화면이 깨졌다.
+      // skin.html이 skin-shell.js를 이 파일보다 먼저 defer로 부르므로 항상 존재한다.
       function autoMarket() {
-        if (isClosedWindowKst()) return 'closed';
-        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-        var isUsHour = minutes >= 17 * 60 || minutes < 9 * 60;
-        return isUsHour ? 'us' : 'domestic';
+        var hours = window.MarketHours;
+        return hours ? hours.homeMarket() : 'domestic';
       }
       return {
         get: function () { return selected || autoMarket(); },
@@ -666,53 +656,17 @@ document.documentElement.classList.add('skin-ready');
       };
     }
 
-    // 코스피 야간선물은 국내 거래소 휴장일에는 최신 가격이 남아 있어도
-    // 거래 중인 것처럼 표시하지 않는다. 기존 코스피 선물 화면과 같은
-    // KST 기준 공휴일 목록을 사용해 주말·대체공휴일까지 공통 처리한다.
-    var KRX_HOLIDAYS = {
-      '2026': {
-        '20260101': true, '20260216': true, '20260217': true, '20260218': true,
-        '20260301': true, '20260302': true, '20260501': true, '20260505': true,
-        '20260525': true, '20260603': true, '20260606': true, '20260717': true,
-        '20260815': true, '20260817': true, '20260924': true, '20260925': true,
-        '20260926': true, '20261003': true, '20261005': true, '20261009': true,
-        '20261225': true, '20261231': true
-      }
-    };
-
-    function kstDateParts() {
-      var kst = new Date(Date.now() + 9 * 60 * 60000);
-      return {
-        year: kst.getUTCFullYear(),
-        month: kst.getUTCMonth() + 1,
-        date: kst.getUTCDate(),
-        day: kst.getUTCDay(),
-        mins: kst.getUTCHours() * 60 + kst.getUTCMinutes()
-      };
-    }
-
-    function kstDateKey(parts) {
-      return String(parts.year) + String(parts.month).padStart(2, '0') + String(parts.date).padStart(2, '0');
-    }
-
-    function previousKstDate(parts) {
-      var previous = new Date(Date.UTC(parts.year, parts.month - 1, parts.date - 1));
-      return {
-        year: previous.getUTCFullYear(),
-        month: previous.getUTCMonth() + 1,
-        date: previous.getUTCDate(),
-        day: previous.getUTCDay(),
-        mins: parts.mins
-      };
-    }
-
+    // 2026-09-05: 코스피 야간선물 휴장 판정을 js/skin-shell.js의 MarketHours로 옮겼다.
+    // 휴장일 표가 이 파일·kospi-futures.js·domestic-market-indicators.js 세 곳에
+    // 복제돼 있어서, 해가 바뀌면 세 군데를 다 고쳐야 했다. 이제 한 곳만 고친다.
     function isNightFuturesHoliday() {
-      var parts = kstDateParts();
+      var hours = window.MarketHours;
+      if (!hours) return false;
       // 00:00~06:00은 전날 저녁 세션의 연장 시간이므로 전날을 판정한다.
-      if (parts.mins < 6 * 60) parts = previousKstDate(parts);
-      if (parts.day === 0 || parts.day === 6) return true;
-      var holidays = KRX_HOLIDAYS[String(parts.year)];
-      return !!(holidays && holidays[kstDateKey(parts)]);
+      var kst = hours.kst();
+      return kst.minutes < 6 * 60
+        ? hours.isKrHoliday(new Date(Date.now() - 24 * 60 * 60 * 1000))
+        : hours.isKrHoliday();
     }
 
     function summarizeUsMarket(data, indexItems) {
@@ -863,7 +817,6 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function homeMarketSession() {
-      var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
       var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
         ? window.HomeMarketSelection.get() : null;
       if (selected === 'closed') return {
@@ -875,9 +828,9 @@ document.documentElement.classList.add('skin-ready');
         keys: [],
         labels: []
       };
-      var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-      var isUsSession = selected === 'us'
-        || (!selected && (minutes >= 17 * 60 || minutes < 9 * 60));
+      // get()은 항상 값을 돌려주므로(선택값 없으면 MarketHours.homeMarket()) 여기서
+      // 시각을 다시 계산하지 않는다 - 경계를 두 곳에서 재는 일이 없어야 한다.
+      var isUsSession = selected === 'us';
       var usSession = usIndexSessionState();
       return isUsSession ? {
         market: 'us',

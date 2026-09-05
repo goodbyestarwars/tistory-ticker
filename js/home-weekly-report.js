@@ -454,12 +454,11 @@
     }).join('') + '</ul>';
   }
   function isWeekendWindow(date) {
-    // 2026-08-22: skin-main.js의 HomeMarketSelection 휴장 판정(토요일 07:00~월요일
-    // 06:00)과 동일한 경계로 통일 - 예전엔 06:00/07:00으로 살짝 어긋나 있었다.
-    var kst = new Date(date.getTime() + 9 * 60 * 60 * 1000);
-    var day = kst.getUTCDay();
-    var hour = kst.getUTCHours();
-    return (day === 6 && hour >= 7) || day === 0 || (day === 1 && hour < 6);
+    // 2026-09-05: js/skin-shell.js의 MarketHours 하나만 본다. 여기 있던 창(토 07:00~
+    // 월 06:00)이 홈의 휴장 창(토 09:00~월 09:00)과 달라서, 겹치지 않는 토 07:00~09:00에
+    // 들어오면 리포트가 대시보드 앞에 붙고 휴장 안내가 화면 맨 밑으로 밀렸다.
+    var hours = window.MarketHours;
+    return hours ? hours.isWeekendClosed(date) : false;
   }
   function render(root, payload) {
     var data = payload && payload.data ? payload.data : payload || {};

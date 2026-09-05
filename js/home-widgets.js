@@ -745,12 +745,11 @@
     if (global.HomeMarketSelection && typeof global.HomeMarketSelection.get === 'function') {
       return global.HomeMarketSelection.get();
     }
-    var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-    var hour = kst.getUTCHours();
-    var minute = kst.getUTCMinutes();
-    // 2026-08-22: skin-main.js의 HomeMarketSelection과 동일한 경계(20:30/07:00)로 갱신 -
     // HomeMarketSelection이 아직 안 실린 페이지에서만 쓰이는 방어적 폴백.
-    return hour > 20 || (hour === 20 && minute >= 30) || hour < 7 ? 'us' : 'domestic';
+    // 2026-09-05: 여기만 20:30/07:00으로 혼자 달랐다. 경계는 복제하지 않고
+    // js/skin-shell.js의 MarketHours를 그대로 쓴다.
+    var hours = global.MarketHours;
+    return hours ? hours.homeMarket() : 'domestic';
   }
 
   function setDisclosureHeader(market, meta) {
