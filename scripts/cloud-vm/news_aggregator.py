@@ -55,6 +55,15 @@ TRANSLATION_TIMEOUT_SEC = 5
 TRANSLATION_CACHE_MAX = 2048
 TRANSLATION_BATCH_SIZE = 10
 TRANSLATION_RATE_LIMIT_COOLDOWN_SEC = 5 * 60
+# 2026-09-05: 번역 캐시에 만료가 없어서 두 가지 문제가 있었다.
+#   (1) 테이블이 무한히 커진다 - 메모리 캐시만 2048건 상한이 있고 SQLite는 없었다.
+#   (2) 한번 이상하게 번역된 제목이 영구 고정된다 - 검증(한글 포함 + 원문과 다름)만
+#       통과하면 오역이어도 계속 그 값을 쓰고, 고칠 방법이 없었다.
+# updated_at을 기록만 하고 안 쓰고 있었으므로 그걸 만료 기준으로 삼는다. 지운 제목은
+# 다음에 다시 나오면 새로 번역된다(무료 엔드포인트라 재번역 비용은 호출 한 번뿐).
+TRANSLATION_CACHE_TTL_DAYS = 90
+TRANSLATION_PRUNE_INTERVAL_SEC = 24 * 60 * 60
+_translation_pruned_at = 0.0
 TRANSLATION_CACHE_LOCK = threading.Lock()
 TRANSLATION_REQUEST_LOCK = threading.Lock()
 _translation_cache = {}
@@ -317,6 +326,61 @@ def _save_persistent_translations(translations):
             ''', [(title, translated, int(time.time())) for title, translated in valid.items()])
     except sqlite3.Error:
         logger.warning('News translation cache write failed', exc_info=True)
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def prune_translation_cache(max_age_days=TRANSLATION_CACHE_TTL_DAYS):
+    """오래된 번역 캐시 행을 지운다. 지운 행 수를 돌려준다.
+
+    보관 기간이 지난 제목은 어차피 목록에서 사라진 기사다. 다시 나타나면 그때
+    한 번 더 번역하면 되므로, 무한히 들고 있을 이유가 없다.
+    """
+    cutoff = int(time.time()) - int(max_age_days) * 86400
+    conn = None
+    try:
+        conn = _cache_connect()
+        with conn:
+            cursor = conn.execute(
+                'DELETE FROM news_translation_cache WHERE updated_at < ?', (cutoff,))
+        removed = cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
+        if removed:
+            logger.info('Pruned %d translation cache rows older than %d days', removed, max_age_days)
+        return removed
+    except sqlite3.Error:
+        logger.warning('News translation cache prune failed', exc_info=True)
+        return 0
+    finally:
+        if conn is not None:
+            conn.close()
+
+
+def forget_translations(titles):
+    """지정한 제목의 번역을 캐시에서 지운다(메모리·SQLite 둘 다). 지운 행 수를 돌려준다.
+
+    오역을 고치는 유일한 방법이다. 캐시가 남아 있으면 외부 호출 자체를 안 하므로
+    행을 지워야 다음 조회 때 새로 번역한다. 프로세스가 여럿이면 메모리 캐시는 자기
+    것만 지워지지만, SQLite에서 사라졌으므로 다른 프로세스도 다음 재시작 때 반영된다.
+    """
+    wanted = [str(title or '').strip() for title in (titles or [])]
+    wanted = [title for title in wanted if title]
+    if not wanted:
+        return 0
+    with TRANSLATION_CACHE_LOCK:
+        for title in wanted:
+            _translation_cache.pop(title, None)
+    conn = None
+    try:
+        conn = _cache_connect()
+        placeholders = ','.join('?' for _ in wanted)
+        with conn:
+            cursor = conn.execute(
+                'DELETE FROM news_translation_cache WHERE title IN (%s)' % placeholders, wanted)
+        return cursor.rowcount if cursor.rowcount and cursor.rowcount > 0 else 0
+    except sqlite3.Error:
+        logger.warning('News translation cache delete failed', exc_info=True)
+        return 0
     finally:
         if conn is not None:
             conn.close()
@@ -657,12 +721,26 @@ def _prewarm_general_translations_once(alpha_api_key='', finnhub_api_key=''):
             time.sleep(TRANSLATION_PREWARM_MICRO_PAUSE_SEC)
 
 
+def _prune_translation_cache_if_due():
+    """하루에 한 번만 정리한다. 이 루프는 75초마다 도는데 DELETE를 매번 돌릴 이유가 없다."""
+    global _translation_pruned_at
+    now = time.time()
+    if now - _translation_pruned_at < TRANSLATION_PRUNE_INTERVAL_SEC:
+        return
+    _translation_pruned_at = now
+    prune_translation_cache()
+
+
 def _translation_prewarm_loop(alpha_api_key='', finnhub_api_key=''):
     while True:
         try:
             _prewarm_general_translations_once(alpha_api_key, finnhub_api_key)
         except Exception:
             logger.warning('translation prewarm loop iteration failed', exc_info=True)
+        try:
+            _prune_translation_cache_if_due()
+        except Exception:
+            logger.warning('translation cache prune failed', exc_info=True)
         time.sleep(TRANSLATION_PREWARM_INTERVAL_SEC)
 
 
@@ -1177,3 +1255,47 @@ def _parse_date(value):
         return int(parsedate_to_datetime(text).timestamp())
     except (TypeError, ValueError, OverflowError):
         return 0
+
+
+# 번역 캐시 손질용 CLI. 오역을 고치려면 그 제목의 캐시 행을 지워야 다음 조회에서 다시
+# 번역한다(캐시가 남아 있으면 외부 호출 자체를 안 한다). HTTP 관리자 엔드포인트를 새로
+# 만들지 않은 이유: 인증 표면이 늘어나는 데 비해 쓰는 빈도가 낮다.
+#
+#   python3 news_aggregator.py --stats
+#   python3 news_aggregator.py --forget "Fed holds rates steady as inflation cools"
+#   python3 news_aggregator.py --prune            # 기본 90일
+#   python3 news_aggregator.py --prune --days 30
+if __name__ == '__main__':
+    import argparse
+
+    parser = argparse.ArgumentParser(description='뉴스 제목 번역 캐시 관리')
+    parser.add_argument('--forget', nargs='+', metavar='TITLE',
+                        help='이 영어 제목들의 번역 캐시를 지운다(다음 조회 때 재번역)')
+    parser.add_argument('--prune', action='store_true', help='오래된 캐시 행을 지운다')
+    parser.add_argument('--days', type=int, default=TRANSLATION_CACHE_TTL_DAYS,
+                        help='--prune 보관 기간(일, 기본 %d)' % TRANSLATION_CACHE_TTL_DAYS)
+    parser.add_argument('--stats', action='store_true', help='캐시 행 수와 최신/최고령 시각')
+    args = parser.parse_args()
+
+    if args.stats:
+        connection = _cache_connect()
+        try:
+            row = connection.execute(
+                'SELECT COUNT(*) AS n, MIN(updated_at) AS oldest, MAX(updated_at) AS newest'
+                ' FROM news_translation_cache').fetchone()
+            print('행 수: %d' % (row['n'] or 0))
+            for label, value in (('가장 오래된', row['oldest']), ('가장 최근', row['newest'])):
+                if value:
+                    print('%s: %s' % (label, datetime.fromtimestamp(value, timezone.utc)
+                                      .astimezone().strftime('%Y-%m-%d %H:%M')))
+        finally:
+            connection.close()
+
+    if args.forget:
+        print('지운 행: %d' % forget_translations(args.forget))
+
+    if args.prune:
+        print('정리한 행: %d (보관 %d일)' % (prune_translation_cache(args.days), args.days))
+
+    if not (args.stats or args.forget or args.prune):
+        parser.print_help()
