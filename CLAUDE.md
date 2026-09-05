@@ -42,7 +42,7 @@
 | DB·캐시·데이터 보존 | `docs/DB_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, `scripts/cloud-vm/db_schema.py`, 관련 캐시 모듈 | SQLite 스키마, JSON 캐시, 온디맨드/배치, 보존·백업 |
 | 백엔드 소스 수정 | `docs/SOURCE_CODE_SPEC.md`, `API_REFERENCE.md`, `docs/DB_SPEC.md` | 파일 역할, 함수 연결, 응답·저장 구조 |
 | UI·반응형 수정 | `docs/UI_GUIDE.md`, `ARCHITECTURE.md`, 관련 `js/`·`css/` 파일 | Tistory/GitHub Pages 경로, 디자인·모바일·캐시 버전 |
-| Tistory 스킨 수정 | `ARCHITECTURE.md`, `docs/ARCHITECTURE_SPEC.md`, `skin.html` | 자동 배포 여부와 Tistory 관리자 수동 반영 필요성 |
+| Tistory 스킨 수정 | `ARCHITECTURE.md`, `docs/ARCHITECTURE_SPEC.md`, `docs/SKIN_HTML_PENDING.md`, `skin.html` | 자동 배포 여부, 관리자 수동 반영 필요성, 이미 밀려 있는 항목 |
 | GAS 수정 | `ARCHITECTURE.md`, `docs/API_OPERATION_SPEC.md`, `docs/GAS_AUTO_DEPLOY.md`, `gas/ticker-proxy.gs` | Script Properties, VM 인증, Actions/clasp 배포 |
 | VM 배포·장애 점검 | `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, `docs/DB_SPEC.md`, `scripts/cloud-vm/deploy_check.sh` | health, 로그, DB 유지보수, 자동 배포·롤백 |
 | 작업 이력·인수인계 | `docs/WORK_HISTORY.md`, 최신 `docs/HANDOFF_*.md` | 최근 변경, 검증 결과, 남은 수동 반영·주의사항 |
@@ -68,6 +68,11 @@
 - `js/`, `css/`, `data/`: `master` 반영 후 GitHub Pages 자동 배포
 - `scripts/cloud-vm/`: `master` 반영 후 VM 자동 배포
 - `gas/ticker-proxy.gs`: `master` 반영 후 GitHub Actions(clasp)가 자동 배포(2026-08-14부터). 저장소 Secrets(`CLASP_CREDENTIALS`/`CLASP_DEPLOYMENT_ID`) 없으면 예전처럼 GAS에서 수동 배포
+- `skin.html`을 바꾸면 해결되는 문제에는 **런타임 우회를 새로 만들지 않는다.**
+  `docs/SKIN_HTML_PENDING.md`에 기록하고 사용자에게 알린다(2026-09-05 지시:
+  "html 바꾸면 되는 문제는 기억만해, 땜질식으로 수정할 필요없어"). 이미 들어가 있는
+  우회는 반영 전까지 화면을 지탱하므로 먼저 지우지 않는다. 티스토리가 매 요청마다
+  주입하는 것(파비콘 link 등)은 예외 - 스킨을 갱신해도 남으므로 런타임 처리가 맞다.
 - `skin.html`: Tistory 관리자에서 수동 반영. 단 **마크업이 바뀐 경우만** 그렇다.
   `?v=` 캐시 문자열만 올린 변경은 수동 반영 없이도 사용자에게 닿는다 - GitHub Pages는
   `?v=` 값과 무관하게 같은 파일을 서빙하고 `cache-control: max-age=600`이라, 옛 `?v=`가
