@@ -2886,7 +2886,12 @@ console.log(JSON.stringify(cases.map(function (iso) {
         source = self.read("js/skin-shell.js")
         # URL은 DOM 값을 손보는 게 아니라 상수에서 만든다(라이브 link가 낡아도 같은 결과).
         self.assertIn("var LOGO_URL = ", source)
-        self.assertIn("img/heart-monitor.svg?v=' + LOGO_VERSION", source)
+        self.assertIn("img/brand-mono.svg?v=' + LOGO_VERSION", source)
+        # 2026-09-05: 배너와 탭 아이콘을 여기 한 곳에서만 정한다. skin-menu.js가 1.6MB짜리
+        # account-cpr-logo.png로 덮어쓰던 걸 걷어내 아이콘이 겹쳐 깜빡이던 문제를 없앴다.
+        self.assertIn("document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image')", source)
+        # 주석은 왜 걷어냈는지 설명하느라 파일명을 언급하므로 실제 대입만 본다.
+        self.assertNotIn("img/account-cpr-logo.png'", self.read("js/skin-menu.js"))
         # 경쟁 link를 전부 제거한다. 하나만 집어오는 querySelector로는 안 된다.
         self.assertIn('document.querySelectorAll(\'link[rel~="icon"]\')', source)
         self.assertIn("removeChild(links[i])", source)

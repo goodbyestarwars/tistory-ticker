@@ -326,12 +326,32 @@
    *
    * LOGO_VERSION 값은 로고가 바뀐 날짜다. 로고를 또 교체할 때만 올린다.
    */
-  var LOGO_VERSION = '20260817-heart-monitor';
-  var LOGO_URL = 'https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=' + LOGO_VERSION;
+  var LOGO_VERSION = '20260905-brand-mono';
+  var LOGO_URL = 'https://goodbyestarwars.github.io/tistory-ticker/img/brand-mono.svg?v=' + LOGO_VERSION;
 
   function refreshBrandIcon() {
-    var image = document.querySelector('.nav-logo-image');
-    if (image && image.getAttribute('src') !== LOGO_URL) image.setAttribute('src', LOGO_URL);
+    // 2026-09-05: 네비 배너와 탭 아이콘을 여기 한 곳에서만 정한다.
+    //
+    // 그 전에는 한 자리를 놓고 셋이 싸웠다(실측: 이미지 요청 3건).
+    //   1. skin.html의 <img src="heart-monitor.svg">        - 컬러, 751바이트, 즉시 그려짐
+    //   2. 이 함수가 heart-monitor.svg?v=...로 재작성        - 컬러, 캐시 무효화라 또 받음
+    //   3. skin-menu.js가 account-cpr-logo.png로 덮어씀      - 흑백, **1.6MB**, 1536x1024
+    // 34x34 자리에 1.6MB를 받는 동안 컬러 아이콘이 계속 떠 있다가 흑백으로 바뀌어서,
+    // 사용자에게는 두 아이콘이 겹쳐 깜빡이는 것으로 보였다("탭 컬러 아이콘이 먼저 떠
+    // 그래서 겹쳐보여"). skin-menu.js의 덮어쓰기는 제거했고, 여기서 배너 톤에 맞춘
+    // 808바이트짜리 흑백 벡터(img/brand-mono.svg)를 첫 스크립트 시점에 한 번만 넣는다.
+    //
+    // 선택자에 .nav-logo-emblem img를 함께 두는 이유: 티스토리 관리자에 아직 옛
+    // skin.html이 올라가 있어 img에 클래스가 없을 수도 있다(skin-menu.js가 쓰던 선택자).
+    var images = document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image');
+    for (var n = 0; n < images.length; n++) {
+      var image = images[n];
+      image.className = 'nav-logo-image';
+      image.setAttribute('alt', '계좌 심폐소생술 로고');
+      image.setAttribute('width', '34');
+      image.setAttribute('height', '34');
+      if (image.getAttribute('src') !== LOGO_URL) image.setAttribute('src', LOGO_URL);
+    }
 
     // rel~="icon"은 rel="icon"과 rel="shortcut icon"을 잡고 apple-touch-icon은 건드리지
     // 않는다(공백으로 나뉜 단어 단위 비교라 "apple-touch-icon"은 "icon"과 다른 단어다).
