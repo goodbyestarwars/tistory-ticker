@@ -2886,7 +2886,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         source = self.read("js/skin-shell.js")
         # URL은 DOM 값을 손보는 게 아니라 상수에서 만든다(라이브 link가 낡아도 같은 결과).
         self.assertIn("var LOGO_URL = ", source)
-        self.assertIn("img/brand-mono.svg?v=' + LOGO_VERSION", source)
+        self.assertIn("'brand-mono.svg?v=' + LOGO_VERSION", source)
         # 2026-09-05: 배너와 탭 아이콘을 여기 한 곳에서만 정한다. skin-menu.js가 1.6MB짜리
         # account-cpr-logo.png로 덮어쓰던 걸 걷어내 아이콘이 겹쳐 깜빡이던 문제를 없앴다.
         self.assertIn("document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image')", source)
@@ -2898,8 +2898,12 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertNotIn("document.querySelector('link[rel=\"icon\"]')", source)
         # 제거 뒤 새 link를 head 끝에 붙인다.
         self.assertIn("document.head.appendChild(icon)", source)
-        # apple-touch-icon은 건드리지 않는다(정사각형 PNG 자산이 없어 지우면 더 나빠진다).
-        self.assertNotIn("apple-touch-icon\']", source)
+        # 2026-09-05: 홈 화면 추가 아이콘도 같은 방식으로 갈아끼운다. iOS는 SVG를 안 받아서
+        # 같은 흑백 마크를 180x180 PNG로 구웠다(img/apple-touch-icon.png).
+        self.assertIn("link[rel~=\"apple-touch-icon\"], link[rel~=\"apple-touch-icon-precomposed\"]", source)
+        self.assertIn("'apple-touch-icon.png?v=' + LOGO_VERSION", source)
+        self.assertIn("touch.setAttribute('sizes', '180x180')", source)
+        self.assertTrue((ROOT / "img" / "apple-touch-icon.png").exists())
 
     def test_weekly_report_always_sits_after_the_dashboard(self):
         """주간 리포트는 항상 대시보드 뒤에 둔다(2026-09-04 사용자 리포트).

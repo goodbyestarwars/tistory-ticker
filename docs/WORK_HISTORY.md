@@ -1,5 +1,28 @@
 # 9Pay 주요 작업이력
 
+**2026-09-05 홈 화면 추가 아이콘(apple-touch-icon)도 흑백 마크로 교체**
+
+사용자 선택: 흑백으로 통일(1), 흰 바탕 + 검정 선(b).
+
+홈 화면에 추가하면 티스토리 기본 "T"(`tistory-apple-touch-favicon.png`)가 그대로
+나오고 있었다. 전날 파비콘을 고칠 때 이건 일부러 남겨뒀다 - iOS는 SVG를 아이콘으로
+받지 않는데 정사각형 PNG 자산이 없어서, 티스토리 것만 지우면 페이지 스크린샷으로
+떨어져 지금보다 나빠지기 때문이다.
+
+- `img/apple-touch-icon.png` 신규(180x180, 4.4KB): `img/brand-mono.svg`와 같은 흑백
+  마크를 헤드리스 크로미움으로 구웠다. iOS가 모서리를 깎으므로 여백을 넉넉히 뒀다.
+- `js/skin-shell.js`: 파비콘과 같은 방식으로 교체한다 - 티스토리가 자기 것을 먼저
+  넣어둬서 href만 고쳐선 안 되고, `rel~="apple-touch-icon"`(precomposed 포함)을 전부
+  걷어낸 뒤 우리 것 하나만 남긴다.
+- `skin.html`: 같은 link를 미리 넣어뒀다(관리자 반영 시 런타임 교체 없이 처음부터 맞다).
+
+검증: 라이브 head 순서를 재현한 하니스에서 최종 `<head>`에 아이콘 link가 정확히 둘만
+남는 것을 확인 - `icon → brand-mono.svg`, `apple-touch-icon → apple-touch-icon.png`
+(티스토리의 .ico·bi-tistory-favicon.svg·tistory-apple-touch-favicon.png 모두 제거됨).
+`pytest test` → 912 passed(기존 실패 3건 유지).
+배포: `js/`·`img/`는 GitHub Pages 자동 반영.
+
+
 **2026-09-05 로고 깜빡임 제거 + 배너·탭 아이콘 흑백 통일**
 
 사용자: "그 탭 컬러 아이콘이 먼저 떠 그래서 겹쳐보여".
