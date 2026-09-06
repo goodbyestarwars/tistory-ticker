@@ -1905,6 +1905,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("signalRequestSeq !== requestId", source)
         self.assertIn("bannerBox.innerHTML = '';", source)
 
+    def test_flow_sort_select_is_bound_to_change_not_click(self):
+        """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
+
+        2026-09-06 리포트("정렬 선택이 안 된다")의 원인. click 위임에서 처리하면
+        (1) 클릭 시점의 select.value가 아직 고르기 전 값이고 (2) 그 자리에서
+        renderExplore()가 목록을 다시 그리며 select를 교체해 드롭다운이 닫혔다.
+        """
+        source = self.read("js/foreign-flow.js")
+        change_handler = (
+            "container.addEventListener('change', function (e) {\n"
+            "      var sortSelect = e.target && e.target.closest "
+            "? e.target.closest('.ff-explore-sort') : null;"
+        )
+        self.assertIn(change_handler, source)
+        # click 위임에는 남아 있으면 안 된다.
+        click_block = source[source.index("container.addEventListener('click', function (e) {"):
+                             source.index("container.addEventListener('change', function (e) {")]
+        self.assertNotIn(".ff-explore-sort", click_block)
+
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
@@ -2978,7 +2997,11 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("var FETCH_LIMIT = 50;", source)
         self.assertIn("var RENDER_LIMIT = 50;", source)
         self.assertIn("var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;", source)
-        self.assertIn("render(container, limitRows(collected), failed);", source)
+        # 2026-09-06 실측: 국내 50건이 2시간 16분에 몰려 있어, 합친 뒤 한 번만 자르면
+        # 미국 기사가 시간순으로 밀려 통째로 사라졌다. 시장별로 먼저 자른 뒤 섞는다.
+        self.assertIn("var MARKET_LIMIT = 25;", source)
+        self.assertIn("collected = collected.concat(limitMarketRows(items));", source)
+        self.assertIn("render(container, collected.slice(0, RENDER_LIMIT), failed);", source)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)
