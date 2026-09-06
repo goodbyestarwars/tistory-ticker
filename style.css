@@ -3508,6 +3508,27 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 }
 .site-footer-links a:last-child { border-right: none; }
 .site-footer-links a:hover { color: #374151; }
+/* PC 화면 모드 전환(2026-09-06). 링크 4종과 한 줄에 서므로 같은 모양으로 맞춘다.
+   PC 폭에서는 의미가 없어 숨기되, PC 모드로 켜 둔 동안에는 남긴다 - 폰에서 켜면
+   뷰포트가 1280이 되어 이 미디어쿼리에 걸리는데 버튼까지 사라지면 되돌릴 수 없다. */
+.site-footer-links a:last-child { border-right: 1px solid #e5e7eb; }
+.site-footer-viewmode {
+  appearance: none;
+  margin: 0;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font: inherit;
+  line-height: inherit;
+  cursor: pointer;
+  transition: color .15s;
+}
+.site-footer-viewmode:hover { color: #374151; }
+@media (min-width: 900px) {
+  html:not(.view-pc) .site-footer-viewmode { display: none; }
+  html:not(.view-pc) .site-footer-links a:last-child { border-right: none; }
+}
 /* 카피라이트를 링크 구분선과 같은 스타일(굵기·색·간격)로 이어붙임 - 문의하기 오른쪽에
    별도 텍스트 "|" 넣었을 때보다 자연스러움(2026-07-23, 사용자 실측 피드백으로 교체). */
 .copyright {

@@ -205,19 +205,38 @@ document.documentElement.classList.add('skin-ready');
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20260906-market-indicators-v1'
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20260906-market-indicators-v1',
+        // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다.
+        styles: []
       },
       {
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20260906-market-indicators-v1'
+        script: ASSET_BASE + 'js/overnight-market.js?v=20260906-market-indicators-v1',
+        // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
+        // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
+        // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20260906-market-indicators-v2']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
     if (!matched) return;
     var slug = matched[1].toLowerCase();
     var initialKey = TABS.filter(function (tab) { return tab.slug === slug; })[0].key;
+
+    /* 이미 같은 파일을 가리키는 <link>가 있으면(티스토리 페이지 본문에 박혀 있는 경우)
+       중복으로 넣지 않는다. 파일명만 보고 판단한다 - ?v= 값은 서로 다를 수 있다. */
+    function ensureStyle(href, key) {
+      var file = href.split('?')[0].split('/').pop();
+      if (document.querySelector('link[data-mi-css="' + key + '"]')) return;
+      if (document.querySelector('link[href*="/css/' + file + '"]')) return;
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = href;
+      link.setAttribute('data-mi-css', key);
+      document.head.appendChild(link);
+    }
 
     function tabByKey(key) {
       return TABS.filter(function (tab) { return tab.key === key; })[0] || null;
@@ -271,13 +290,12 @@ document.documentElement.classList.add('skin-ready');
       }
       if (!anchor || !anchor.parentNode) return;
 
-      if (!document.querySelector('link[data-mi-css]')) {
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = CSS_URL;
-        link.setAttribute('data-mi-css', '1');
-        document.head.appendChild(link);
-      }
+      ensureStyle(CSS_URL, 'tabs');
+      // 두 탭의 CSS를 처음부터 같이 넣는다. 탭을 여는 순간 받으면 스타일 없는 화면이
+      // 한 번 스쳐 지나간다(FOUC).
+      TABS.forEach(function (tab) {
+        (tab.styles || []).forEach(function (href) { ensureStyle(href, tab.key); });
+      });
 
       var wrap = document.createElement('div');
       wrap.className = 'mi-wrap';
