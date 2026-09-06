@@ -2990,14 +2990,17 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 시장 구분은 줄머리 배지 하나로 한다. 2026-09-05: 국기 이모지에서 글자로 바꿨다
         # (국기는 지역 표시 문자라 윈도우에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
         self.assertIn("var MARKETS = [", source)
-        self.assertIn("{ key: 'domestic', code: 'KOR', label: '한국' },", source)
-        self.assertIn("{ key: 'us', code: 'US', label: '미국' }", source)
+        # 2026-09-06: 홈·휴장 지면 경제 종합뉴스(.app-news-market)와 같은 표기·모양으로
+        # 맞췄다 - 라벨은 한국/미국, 배지는 알약 대신 밑줄 한 줄.
+        self.assertIn("{ key: 'domestic', code: '한국', label: '한국' },", source)
+        self.assertIn("{ key: 'us', code: '미국', label: '미국' }", source)
         self.assertIn("class=\"mn-market\"", source)
         self.assertNotIn("mn-flag", source)
         self.assertNotIn("mn-flag", style)
-        # KOR(3글자) 기준으로 폭을 고정해야 제목 왼쪽이 정렬된다.
-        self.assertIn("grid-template-columns: 34px minmax(0, 1fr);", style)
-        self.assertIn("min-width: 34px;", style)
+        # 한국/미국(2글자) 기준으로 폭을 고정해야 제목 왼쪽이 정렬된다.
+        self.assertIn("grid-template-columns: 30px minmax(0, 1fr);", style)
+        self.assertIn("min-width: 30px;", style)
+        self.assertIn("border-bottom: 1px solid var(--rule);", style)
         # 낭독기에는 약칭 대신 이름이 읽혀야 한다.
         self.assertIn("aria-label=\"' + market.label + '\"", source)
 

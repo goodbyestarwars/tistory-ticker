@@ -158,7 +158,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-main-news-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260905-main-news-v5';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260906-main-news-v7';
       link.setAttribute('data-main-news-css', '1');
       document.head.appendChild(link);
     }
@@ -177,7 +177,7 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260906-main-news-v6';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260906-main-news-v7';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
