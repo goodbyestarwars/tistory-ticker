@@ -164,7 +164,7 @@
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
     return open
-      + '<span class="mn-market" aria-label="' + market.label + '">' + market.code + '</span>'
+      + '<span class="mn-market mn-market--' + market.key + '" aria-label="' + market.label + '">' + market.code + '</span>'
       + '<span class="mn-row-body">'
       + '<span class="mn-row-meta">'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '')

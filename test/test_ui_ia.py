@@ -2990,17 +2990,24 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 시장 구분은 줄머리 배지 하나로 한다. 2026-09-05: 국기 이모지에서 글자로 바꿨다
         # (국기는 지역 표시 문자라 윈도우에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
         self.assertIn("var MARKETS = [", source)
-        # 2026-09-06: 홈·휴장 지면 경제 종합뉴스(.app-news-market)와 같은 표기·모양으로
-        # 맞췄다 - 라벨은 한국/미국, 배지는 알약 대신 밑줄 한 줄.
+        # 2026-09-06: 홈·휴장 지면 경제 종합뉴스(.app-news-market)와 표기·모양을
+        # 통일했다 - 라벨은 한국/미국, 배지는 알약 하나(사용자 결정 "알약으로 통일").
         self.assertIn("{ key: 'domestic', code: '한국', label: '한국' },", source)
         self.assertIn("{ key: 'us', code: '미국', label: '미국' }", source)
-        self.assertIn("class=\"mn-market\"", source)
+        self.assertIn("class=\"mn-market mn-market--' + market.key + '\"", source)
         self.assertNotIn("mn-flag", source)
         self.assertNotIn("mn-flag", style)
-        # 한국/미국(2글자) 기준으로 폭을 고정해야 제목 왼쪽이 정렬된다.
-        self.assertIn("grid-template-columns: 30px minmax(0, 1fr);", style)
-        self.assertIn("min-width: 30px;", style)
-        self.assertIn("border-bottom: 1px solid var(--rule);", style)
+        # 한국/미국(2글자) 알약 기준으로 폭을 고정해야 제목 왼쪽이 정렬된다.
+        self.assertIn("grid-template-columns: 38px minmax(0, 1fr);", style)
+        self.assertIn("min-width: 38px;", style)
+        # 색값은 style.css의 .app-news-market--한국/--미국과 같은 값을 쓴다.
+        self.assertIn("#main-news .mn-market--domestic { color: #b45309; background: #fff7ed; }", style)
+        self.assertIn("#main-news .mn-market--us { color: #1d4ed8; background: #eff6ff; }", style)
+        skin_style = self.read("style.css")
+        self.assertIn(".app-news-market--한국 { color: #b45309; background: #fff7ed; }", skin_style)
+        # 시장 배지만 평탄화(알약 제거) 규칙에서 빠져 있어야 알약이 유지된다.
+        self.assertNotIn("html:not(.font-gothic) body .app-news-market,", skin_style)
+        self.assertNotIn("body#tt-body-index .home-editorial-page .app-news-market,", skin_style)
         # 낭독기에는 약칭 대신 이름이 읽혀야 한다.
         self.assertIn("aria-label=\"' + market.label + '\"", source)
 
