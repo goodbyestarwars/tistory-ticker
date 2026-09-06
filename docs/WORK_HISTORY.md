@@ -1,5 +1,27 @@
 # 9Pay 주요 작업이력
 
+**2026-09-06 글로벌 탭 CSS 누락 수정 + 푸터 PC 화면 모드**
+
+**(1) 글로벌 시장지표 CSS가 예전과 다르다는 리포트.** 직전 통합(#407)의 회귀였다.
+`js/overnight-market.js`는 자기 CSS를 스스로 넣지 않고 티스토리 페이지 본문의 `<link>`에
+기대고 있어서(`kospi-futures.js`는 `installKospiFuturesStyle()`로 스스로 넣는다),
+국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. `loadMarketIndicatorTabs()`에
+`ensureStyle()`을 추가해 두 탭의 CSS를 지면 진입 시 함께 넣는다 - 탭을 여는 순간 받으면
+스타일 없는 화면이 한 번 스쳐 지나가기 때문이다. 페이지 본문에 같은 파일이 이미 있으면
+(`?v=`가 달라도) 파일명으로 알아보고 중복으로 넣지 않는다.
+
+**(2) 푸터 '문의하기' 옆에 PC 화면 모드 추가.** 모바일에서 데스크톱 폭으로 보고 싶을 때
+쓴다. `viewport` 메타의 width를 `1280`으로 바꾸는 방식이라 CSS의 720px 구간이 안 걸리고
+PC 레이아웃이 그대로 나온다. 선택은 `localStorage('bolt-view-mode')`에 남겨 다음 방문에도
+유지한다. 버튼은 PC 폭에서 숨기되 **PC 모드로 켜 둔 동안에는 남긴다** - 폰에서 켜면
+뷰포트가 1280이 되어 그 미디어쿼리에 걸리는데, 거기서 버튼까지 사라지면 되돌릴 방법이
+없어진다(`html:not(.view-pc)` 조건).
+
+검증: `pytest test/test_ui_ia.py` 150 passed(신규 2건). Playwright로 실측 -
+국내 주소에서 stylesheet 4종(`market-indicators`·`overnight-market`·`kospi-futures`·
+`domestic-market-indicators`)이 모두 붙는 것, 푸터 버튼의 초기값·클릭·새로고침 유지·
+되돌리기에서 `viewport` 메타와 `view-pc` 클래스가 함께 바뀌는 것을 확인.
+
 **2026-09-06 글로벌·국내 시장지표를 한 지면 탭으로 통합**
 
 "시장 메뉴의 글로벌/국내 시장지표에서 코스피가 중복 같다, 한 페이지에 버튼으로 구분하자"는

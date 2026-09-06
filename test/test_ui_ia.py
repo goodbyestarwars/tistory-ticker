@@ -1938,6 +1938,36 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/market-indicators.css")
         self.assertIn(".mi-panel[hidden] { display: none; }", style)
 
+    def test_global_indicator_tab_brings_its_own_stylesheet(self):
+        """글로벌 탭은 자기 CSS를 같이 넣어야 한다.
+
+        2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"). overnight-market.js는
+        자기 CSS를 스스로 넣지 않고 티스토리 페이지 본문의 <link>에 기대고 있어서, 국내
+        주소에서 글로벌 탭을 열면 스타일 없이 그려졌다.
+        """
+        main = self.read("js/skin-main.js")
+        self.assertIn("function ensureStyle(href, key)", main)
+        self.assertIn("css/overnight-market.css?v=", main)
+        # 전제: 모듈 자신은 CSS를 넣지 않는다(넣게 되면 이 주입은 중복이 된다).
+        self.assertNotIn("css/overnight-market.css", self.read("js/overnight-market.js"))
+        # 티스토리 페이지 본문에 이미 같은 파일이 있으면 중복으로 넣지 않는다.
+        self.assertIn("""link[href*="/css/' + file + '"]""", main)
+
+    def test_footer_has_pc_view_mode_toggle(self):
+        """푸터 '문의하기' 옆 PC 화면 모드 전환(2026-09-06 요청)."""
+        shell = self.read("js/skin-shell.js")
+        self.assertIn("data-view-mode-toggle", shell)
+        self.assertIn("var VIEW_MODE_KEY = 'bolt-view-mode';", shell)
+        self.assertIn("pc: 'width=1280',", shell)
+        self.assertIn("mobile: 'width=device-width, initial-scale=1.0'", shell)
+        # 문의하기 바로 뒤에 온다.
+        self.assertLess(shell.index("문의하기"), shell.index("site-footer-viewmode"))
+
+        style = self.read("style.css")
+        # PC 폭에서는 숨기되, PC 모드로 켜 둔 동안에는 남긴다 - 폰에서 켜면 뷰포트가
+        # 1280이 되어 이 미디어쿼리에 걸리는데 버튼까지 사라지면 되돌릴 수 없다.
+        self.assertIn("html:not(.view-pc) .site-footer-viewmode { display: none; }", style)
+
     def test_flow_sort_select_is_bound_to_change_not_click(self):
         """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
 

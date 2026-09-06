@@ -287,12 +287,66 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
+        // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
+        '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
+        ' aria-pressed="false">PC 화면</button>' +
       '</nav>'
   };
 
   Object.keys(SHELL).forEach(function (key) {
     var mount = document.getElementById('shell-' + key);
     if (mount) mount.outerHTML = SHELL[key];
+  });
+
+  /* PC 화면 모드 (2026-09-06 요청, 푸터 '문의하기' 옆).
+
+     모바일에서 데스크톱 폭으로 보고 싶을 때 쓴다. viewport 메타의 width를 고정 폭으로
+     바꾸는 방식이다 - CSS의 720px 구간이 안 걸리므로 PC 레이아웃이 그대로 나온다.
+     선택은 localStorage에 남겨 다음 방문에도 유지한다(다크모드와 같은 방식).
+
+     버튼은 PC 폭에서는 숨기되(style.css), PC 모드로 켜 둔 동안에는 남겨 둔다 -
+     폰에서 켜면 뷰포트가 1280이 되어 "넓은 화면" 조건에 걸리는데, 거기서 버튼까지
+     사라지면 되돌릴 방법이 없어진다. */
+  var VIEW_MODE_KEY = 'bolt-view-mode';
+  var VIEWPORT_BY_MODE = {
+    pc: 'width=1280',
+    mobile: 'width=device-width, initial-scale=1.0'  // skin.html의 원래 값
+  };
+
+  function readViewMode() {
+    try {
+      return localStorage.getItem(VIEW_MODE_KEY) === 'pc' ? 'pc' : 'mobile';
+    } catch (error) {
+      return 'mobile';
+    }
+  }
+
+  function applyViewMode(mode) {
+    var meta = document.querySelector('meta[name="viewport"]');
+    if (!meta) {
+      meta = document.createElement('meta');
+      meta.setAttribute('name', 'viewport');
+      document.head.appendChild(meta);
+    }
+    meta.setAttribute('content', VIEWPORT_BY_MODE[mode] || VIEWPORT_BY_MODE.mobile);
+    document.documentElement.classList.toggle('view-pc', mode === 'pc');
+    var label = mode === 'pc' ? '모바일 화면' : 'PC 화면';
+    document.querySelectorAll('[data-view-mode-toggle]').forEach(function (button) {
+      button.textContent = label;
+      button.setAttribute('aria-pressed', mode === 'pc' ? 'true' : 'false');
+    });
+  }
+
+  applyViewMode(readViewMode());
+  // 푸터가 나중에 다시 그려져도 동작하도록 문서 위임으로 받는다.
+  document.addEventListener('click', function (event) {
+    var button = event.target && event.target.closest
+      ? event.target.closest('[data-view-mode-toggle]')
+      : null;
+    if (!button) return;
+    var next = readViewMode() === 'pc' ? 'mobile' : 'pc';
+    try { localStorage.setItem(VIEW_MODE_KEY, next); } catch (error) {}
+    applyViewMode(next);
   });
 
   /*
