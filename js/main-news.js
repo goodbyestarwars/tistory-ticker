@@ -33,14 +33,18 @@
   var STALE_MS = 60 * 1000;
   // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
   var FETCH_LIMIT = 50;
-  // 섞은 뒤 화면에 그리는 최종 상한. 2026-09-06 이전엔 이 상한이 없어서 두 시장이 받아온
-  // 만큼(25+25) 그대로 다 그리고 있었다 - 실제 화면 건수가 설정값과 어긋나 있었다.
+  // 시장별 상한. 합친 뒤에 한 번만 자르면 발행이 잦은 쪽이 목록을 통째로 먹는다 -
+  // 2026-09-06 실측: 국내 50건이 12:00~14:16(2시간 16분)에 몰려 있었고, 미국 최신
+  // 기사(11:30)는 시간순으로 51번째 뒤로 밀려 화면에서 통째로 사라졌다. 시장마다
+  // 따로 자른 뒤 섞어야 양쪽이 함께 보인다.
+  var MARKET_LIMIT = 25;
+  // 섞은 뒤 화면에 그리는 최종 상한(= MARKET_LIMIT x 시장 수).
   var RENDER_LIMIT = 50;
   // 최근 12시간 안의 기사만 보여준다(2026-09-06 사용자 요청). 다만 새벽·주말처럼 발행이
-  // 뜸한 시간대엔 12시간 안이 몇 건 안 될 수 있어, 그때는 컷을 풀고 최신순으로 채운다 -
-  // 뉴스 전용 지면이 서너 줄만 남는 것보다 낫다.
+  // 뜸한 시간대엔 12시간 안이 몇 건 안 될 수 있어, 그때는 그 시장만 컷을 풀고 최신순으로
+  // 채운다 - 미국은 주말에 발행이 뚝 끊기므로 시장별로 따져야 한쪽만 살아남지 않는다.
   var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;
-  var RECENT_MIN_ROWS = 15;
+  var RECENT_MIN_ROWS = 5;
   // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(국기는 지역 표시 문자라 윈도우
   // 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
   // 2026-09-06: 홈·휴장 지면의 경제 종합뉴스가 쓰는 표기(.app-news-market)에 맞춰
@@ -185,12 +189,13 @@
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
 
-  /* 최근 12시간 컷 + 최종 상한. 컷 결과가 너무 적으면 컷을 포기하고 최신순으로 채운다.
+  /* 한 시장의 목록에 최근 12시간 컷 + 시장별 상한을 적용한다. 컷 결과가 너무 적으면
+     그 시장만 컷을 포기하고 최신순으로 채운다(주말 미국장처럼 발행이 끊기는 구간 대비).
      pubDate를 못 읽는 항목(dateValue가 0)은 컷에서 떨어지므로, 폴백이 그 구제 경로도 된다. */
-  function limitRows(items) {
+  function limitMarketRows(items) {
     var cutoff = Date.now() - RECENT_WINDOW_MS;
     var recent = items.filter(function (item) { return dateValue(item && item.pubDate) >= cutoff; });
-    return (recent.length >= RECENT_MIN_ROWS ? recent : items).slice(0, RENDER_LIMIT);
+    return (recent.length >= RECENT_MIN_ROWS ? recent : items).slice(0, MARKET_LIMIT);
   }
 
   function render(container, items, failed) {
@@ -221,14 +226,15 @@
       MainNews.fetchJson(url)
         .then(function (items) {
           items.forEach(function (item) { item._market = market.key; });
-          collected = collected.concat(items);
+          // 합치기 전에 시장별로 자른다 - 합친 뒤 한 번만 자르면 발행이 잦은 쪽이 다 먹는다.
+          collected = collected.concat(limitMarketRows(items));
         })
         .catch(function () { failed.push(market.label); })
         .then(function () {
           if (--pending || generation !== state.generation) return;
           // 두 시장을 하나로 세우려면 여기서 다시 정렬해야 한다(각 응답은 자기 안에서만 정렬돼 있다).
           collected.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
-          render(container, limitRows(collected), failed);
+          render(container, collected.slice(0, RENDER_LIMIT), failed);
           if (collected.length) state.loadedAt = Date.now();
           // 전부 실패했을 때만 한 번 더. 성공분이 있으면 5분 주기에 맡긴다.
           if (!collected.length && failed.length && !state.retryTimer) {

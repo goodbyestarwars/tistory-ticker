@@ -2978,7 +2978,11 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("var FETCH_LIMIT = 50;", source)
         self.assertIn("var RENDER_LIMIT = 50;", source)
         self.assertIn("var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;", source)
-        self.assertIn("render(container, limitRows(collected), failed);", source)
+        # 2026-09-06 실측: 국내 50건이 2시간 16분에 몰려 있어, 합친 뒤 한 번만 자르면
+        # 미국 기사가 시간순으로 밀려 통째로 사라졌다. 시장별로 먼저 자른 뒤 섞는다.
+        self.assertIn("var MARKET_LIMIT = 25;", source)
+        self.assertIn("collected = collected.concat(limitMarketRows(items));", source)
+        self.assertIn("render(container, collected.slice(0, RENDER_LIMIT), failed);", source)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)
