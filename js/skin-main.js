@@ -183,6 +183,150 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
+  /* 시장지표 통합 지면(/pages/kospi-futures = 국내, /pages/overnight-market = 글로벌).
+
+     2026-09-06 요청: 두 페이지가 코스피·코스닥을 각각 들고 있어 중복이라는 지적. 한 지면에서
+     버튼으로 오가게 하고, 글로벌 쪽 코스피·코스닥 카드는 뺐다(js/overnight-market.js CATEGORIES).
+
+     주소는 둘 다 살려 둔다 - 기존 링크·북마크·티스토리 페이지가 그대로 동작하고, 들어온
+     주소가 첫 탭을 정한다. 티스토리 페이지 본문에 이미 들어 있는 mount는 그대로 재사용해
+     옮겨 담고, 없는 쪽은 여기서 만든다.
+
+     탭을 열 때마다 그 모듈의 init()을 다시 부른다. 접힌·숨겨진 컨테이너에서 만든
+     lightweight-charts는 0x0으로 굳는 문제가 이 저장소에서 여러 번 재발했는데(작업이력
+     2026-08-14), 보이는 상태에서 다시 그리면 그 경로를 아예 피할 수 있다. 두 모듈 모두
+     init()이 자기 타이머를 clearInterval하고 WebSocket도 중복 연결을 막으므로 재호출이
+     안전하다. */
+  (function loadMarketIndicatorTabs() {
+    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20260906-market-indicators-v1';
+    var TABS = [
+      {
+        key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
+        mountIds: ['domestic-market-indicators', 'kospi-futures'],
+        globalName: 'KospiFutures',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20260906-market-indicators-v1'
+      },
+      {
+        key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
+        mountIds: ['overnight-market'],
+        globalName: 'OvernightMarket',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20260906-market-indicators-v1'
+      }
+    ];
+    var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
+    if (!matched) return;
+    var slug = matched[1].toLowerCase();
+    var initialKey = TABS.filter(function (tab) { return tab.slug === slug; })[0].key;
+
+    function tabByKey(key) {
+      return TABS.filter(function (tab) { return tab.key === key; })[0] || null;
+    }
+
+    /* 이미 페이지 본문에 있는 <script>도 세어야 한다. 티스토리 페이지 HTML이 자기 모듈을
+       불러오는 중일 수 있는데, 여기서 같은 파일을 또 넣으면 모듈 IIFE가 두 번 돈다. */
+    function ensureScript(tab) {
+      if (document.querySelector('script[data-mi-script="' + tab.key + '"]')) return;
+      if (document.querySelector('script[src*="/js/' + tab.slug + '.js"]')) return;
+      var script = document.createElement('script');
+      script.src = tab.script;
+      script.defer = true;
+      script.setAttribute('data-mi-script', tab.key);
+      document.body.appendChild(script);
+    }
+
+    function activate(key) {
+      var tab = tabByKey(key);
+      if (!tab) return;
+      var module = window[tab.globalName];
+      if (module && typeof module.init === 'function') {
+        module.init();
+        return;
+      }
+      ensureScript(tab); // 스크립트가 붙으면 모듈이 스스로 init한다
+    }
+
+    function select(key) {
+      TABS.forEach(function (tab) {
+        var on = tab.key === key;
+        var panel = document.querySelector('.mi-panel[data-mi-panel="' + tab.key + '"]');
+        if (panel) panel.hidden = !on;
+        var button = document.querySelector('.mi-tab[data-mi-tab="' + tab.key + '"]');
+        if (button) {
+          button.classList.toggle('active', on);
+          button.setAttribute('aria-selected', on ? 'true' : 'false');
+        }
+      });
+      activate(key);
+    }
+
+    function build() {
+      if (document.querySelector('[data-mi-tabs]')) return;
+      // 본문에 들어 있는 mount를 기준점으로 삼는다. 둘 다 없으면 이 지면이 아니다.
+      var anchor = null;
+      for (var i = 0; i < TABS.length && !anchor; i++) {
+        for (var j = 0; j < TABS[i].mountIds.length && !anchor; j++) {
+          anchor = document.getElementById(TABS[i].mountIds[j]);
+        }
+      }
+      if (!anchor || !anchor.parentNode) return;
+
+      if (!document.querySelector('link[data-mi-css]')) {
+        var link = document.createElement('link');
+        link.rel = 'stylesheet';
+        link.href = CSS_URL;
+        link.setAttribute('data-mi-css', '1');
+        document.head.appendChild(link);
+      }
+
+      var wrap = document.createElement('div');
+      wrap.className = 'mi-wrap';
+      anchor.parentNode.insertBefore(wrap, anchor);
+
+      var bar = document.createElement('div');
+      bar.className = 'mi-tabs';
+      bar.setAttribute('data-mi-tabs', '1');
+      bar.setAttribute('role', 'tablist');
+      wrap.appendChild(bar);
+
+      TABS.forEach(function (tab) {
+        var button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'mi-tab';
+        button.textContent = tab.label;
+        button.setAttribute('data-mi-tab', tab.key);
+        button.setAttribute('role', 'tab');
+        bar.appendChild(button);
+
+        var panel = document.createElement('div');
+        panel.className = 'mi-panel';
+        panel.setAttribute('data-mi-panel', tab.key);
+        wrap.appendChild(panel);
+        tab.mountIds.forEach(function (id) {
+          var mount = document.getElementById(id);
+          if (!mount) {
+            mount = document.createElement('div');
+            mount.id = id;
+          }
+          panel.appendChild(mount);
+        });
+      });
+
+      bar.addEventListener('click', function (event) {
+        var button = event.target && event.target.closest ? event.target.closest('[data-mi-tab]') : null;
+        if (button) select(button.getAttribute('data-mi-tab'));
+      });
+
+      select(initialKey);
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', build);
+    } else {
+      build();
+    }
+  })();
+
   /* 홈은 기존 위젯/API를 시장 상황판 구조로 재배치한다. 백엔드 계산과 URL은 그대로 두고,
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {

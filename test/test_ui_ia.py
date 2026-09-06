@@ -108,10 +108,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         market_temp = self.read("js/market-temp.js")
         futures = self.read("js/kospi-futures.js")
         self.assertIn("{ href: '/page/market-temp', label: '증시온도' }", menu)
-        self.assertIn("{ href: '/pages/kospi-futures', label: '국내시장지표' }", menu)
+        # 2026-09-06: '글로벌 시장지표'와 한 칸으로 합쳐 '시장지표'가 됐다. 두 지면이
+        # 코스피·코스닥을 각각 들고 있어 중복이었고, 이제 한 지면에서 버튼으로 오간다.
+        self.assertIn("{ href: '/pages/kospi-futures', label: '시장지표' }", menu)
         self.assertNotIn("domestic-market-indicators", market_temp)
         self.assertIn("function loadDomesticMarketIndicators(container)", futures)
-        self.assertIn("/pages/kospi-futures", futures)
+        # 2026-09-06: 국내/글로벌을 한 지면에서 탭으로 오가게 되면서, 글로벌 주소로 들어와
+        # 국내 탭을 눌러도 국내시장지표 mount가 붙어야 한다 - 게이트가 두 주소를 다 받는다.
+        self.assertIn("kospi-futures|overnight-market", futures)
         self.assertIn("container.parentNode.insertBefore(mount, container)", futures)
 
     def test_domestic_major_stocks_has_independent_market_temperature_view(self):
@@ -1092,8 +1096,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("body { word-break: keep-all; overflow-wrap: normal; }", style)
 
         # 상단 메뉴가 모든 목적지를 담는지 - 탭바를 없앤 전제다.
+        # /pages/overnight-market은 2026-09-06부터 메뉴에 없다 - '시장지표' 한 칸
+        # (/pages/kospi-futures) 안의 글로벌 탭이 그 지면이고, 옛 주소로 들어와도 같은
+        # 화면이 글로벌 탭으로 열린다(js/skin-main.js loadMarketIndicatorTabs).
         for token in ("/page/foreign-flow", "/page/pattern-scan", "/page/strategy-search",
-                      "/page/stock-calendar", "/pages/overnight-market", "/pages/kospi-futures",
+                      "/page/stock-calendar", "/pages/kospi-futures",
                       "/page/market-temp", "/page/watchlist", "/guestbook"):
             self.assertIn(token, menu)
 
@@ -1904,6 +1911,32 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var requestId = ++signalRequestSeq;", source)
         self.assertIn("signalRequestSeq !== requestId", source)
         self.assertIn("bannerBox.innerHTML = '';", source)
+
+    def test_market_indicator_pages_are_one_screen_with_tabs(self):
+        """국내/글로벌 시장지표는 한 지면에서 버튼으로 오간다(2026-09-06 요청).
+
+        두 지면이 코스피·코스닥을 각각 들고 있어 중복이라는 지적. 주소는 둘 다 살려 두고
+        (기존 링크·북마크·티스토리 페이지가 그대로 동작한다) 들어온 주소가 첫 탭을 정한다.
+        """
+        main = self.read("js/skin-main.js")
+        self.assertIn("function loadMarketIndicatorTabs()", main)
+        self.assertIn("key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',", main)
+        self.assertIn("key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',", main)
+        # skin-main.js는 global 별칭이 없는 파일이다 - window로 읽어야 ReferenceError가 안 난다.
+        self.assertIn("var module = window[tab.globalName];", main)
+        self.assertNotIn("var module = global[tab.globalName];", main)
+        # 같은 파일이 두 번 실행되지 않도록 티스토리 페이지 본문의 <script>도 센다.
+        self.assertIn("""script[src*="/js/' + tab.slug + '.js"]""", main)
+
+        # 글로벌 탭에서 코스피·코스닥 카드를 뺐다 - 국내 탭이 같은 지수를 차트까지 갖고 있다.
+        overnight = self.read("js/overnight-market.js")
+        self.assertIn(
+            "symbols: ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW', 'SOX'] }",
+            overnight)
+        self.assertNotIn("symbols: ['KOSPI', 'KOSDAQ'", overnight)
+
+        style = self.read("css/market-indicators.css")
+        self.assertIn(".mi-panel[hidden] { display: none; }", style)
 
     def test_flow_sort_select_is_bound_to_change_not_click(self):
         """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
