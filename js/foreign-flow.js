@@ -920,13 +920,6 @@
         renderExplore(container);
         return;
       }
-      var sortSelect = e.target.closest ? e.target.closest('.ff-explore-sort') : null;
-      if (sortSelect) {
-        flowSortKey = sortSelect.value || 'signal';
-        flowVisibleCount = SIGNAL_PAGE_SIZE;
-        renderExplore(container);
-        return;
-      }
       var flowMore = e.target.closest ? e.target.closest('.ff-flow-more') : null;
       if (flowMore) {
         flowVisibleCount += SIGNAL_PAGE_SIZE;
@@ -947,6 +940,18 @@
       if (detailLink) {
         openFullDetail(container, detailLink.getAttribute('data-open-detail'), detailLink.getAttribute('data-open-detail-name'));
       }
+    });
+
+    /* 정렬 <select>는 click이 아니라 change로 받는다. 2026-09-06 리포트("차트 흐름
+       정렬이 선택이 안 된다")의 원인이 여기였다 - 위 click 위임에서 처리하면 (1) 클릭
+       시점의 select.value는 아직 고르기 전 값이고 (2) 그 자리에서 renderExplore()가
+       목록을 다시 그리면서 select 자체가 교체돼 열려 있던 드롭다운이 닫혔다. */
+    container.addEventListener('change', function (e) {
+      var sortSelect = e.target && e.target.closest ? e.target.closest('.ff-explore-sort') : null;
+      if (!sortSelect) return;
+      flowSortKey = sortSelect.value || 'signal';
+      flowVisibleCount = SIGNAL_PAGE_SIZE;
+      renderExplore(container);
     });
   }
 

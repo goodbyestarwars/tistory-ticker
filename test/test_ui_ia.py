@@ -1905,6 +1905,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("signalRequestSeq !== requestId", source)
         self.assertIn("bannerBox.innerHTML = '';", source)
 
+    def test_flow_sort_select_is_bound_to_change_not_click(self):
+        """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
+
+        2026-09-06 리포트("정렬 선택이 안 된다")의 원인. click 위임에서 처리하면
+        (1) 클릭 시점의 select.value가 아직 고르기 전 값이고 (2) 그 자리에서
+        renderExplore()가 목록을 다시 그리며 select를 교체해 드롭다운이 닫혔다.
+        """
+        source = self.read("js/foreign-flow.js")
+        change_handler = (
+            "container.addEventListener('change', function (e) {\n"
+            "      var sortSelect = e.target && e.target.closest "
+            "? e.target.closest('.ff-explore-sort') : null;"
+        )
+        self.assertIn(change_handler, source)
+        # click 위임에는 남아 있으면 안 된다.
+        click_block = source[source.index("container.addEventListener('click', function (e) {"):
+                             source.index("container.addEventListener('change', function (e) {")]
+        self.assertNotIn(".ff-explore-sort", click_block)
+
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
