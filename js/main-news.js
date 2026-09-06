@@ -41,12 +41,13 @@
   // 뉴스 전용 지면이 서너 줄만 남는 것보다 낫다.
   var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;
   var RECENT_MIN_ROWS = 15;
-  // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(사용자 요청 "kor, us 이런 형태로").
-  // 국기는 지역 표시 문자라 윈도우 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다.
-  // 글자는 어디서나 같고 낭독기에도 그대로 읽힌다 - aria-label로 한글 이름을 붙인다.
+  // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(국기는 지역 표시 문자라 윈도우
+  // 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
+  // 2026-09-06: 홈·휴장 지면의 경제 종합뉴스가 쓰는 표기(.app-news-market)에 맞춰
+  // KOR/US -> 한국/미국으로 통일했다. 사이트 안에서 같은 뜻을 두 표기로 쓰지 않는다.
   var MARKETS = [
-    { key: 'domestic', code: 'KOR', label: '한국' },
-    { key: 'us', code: 'US', label: '미국' }
+    { key: 'domestic', code: '한국', label: '한국' },
+    { key: 'us', code: '미국', label: '미국' }
   ];
 
   var state = { container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null };
@@ -163,7 +164,7 @@
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
     return open
-      + '<span class="mn-market" aria-label="' + market.label + '">' + market.code + '</span>'
+      + '<span class="mn-market mn-market--' + market.key + '" aria-label="' + market.label + '">' + market.code + '</span>'
       + '<span class="mn-row-body">'
       + '<span class="mn-row-meta">'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '')
@@ -177,7 +178,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국(' + MARKETS[0].code + ')·미국(' + MARKETS[1].code + ') 시장 뉴스를 최근 12시간 기준 최신순으로 함께 봅니다.'
+      + '<p>' + MARKETS[0].code + '·' + MARKETS[1].code + ' 시장 뉴스를 최근 12시간 기준 최신순으로 함께 봅니다.'
       + ' 제목을 누르면 원문으로 이동합니다.</p>'
       + '<small data-mn-updated></small>'
       + '</div>'

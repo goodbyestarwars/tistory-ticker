@@ -30,9 +30,9 @@
 }
 
 #main-news .mn-row {
-  /* 시장 배지 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. KOR(3글자)이 기준이다. */
+  /* 시장 배지 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. 한국/미국(2글자) 알약 기준이다. */
   display: grid;
-  grid-template-columns: 34px minmax(0, 1fr);
+  grid-template-columns: 38px minmax(0, 1fr);
   gap: 0 10px;
   align-items: start;
   padding: 11px 0;
@@ -41,20 +41,24 @@
   text-decoration: none;
 }
 #main-news a.mn-row:hover .mn-row-title { text-decoration: underline; }
-/* 시장 배지. 상승·하락 의미색(빨강/파랑)은 시세용이라 여기 쓰지 않는다 - 글자만으로
-   구분되므로 중립 톤 한 가지로 두고, KOR/US 폭 차이는 가운데 정렬로 흡수한다. */
+/* 시장 배지. 2026-09-06: 홈·휴장 지면 경제 종합뉴스(.app-news-market)와 알약 하나로
+   통일했다 - 색값도 style.css의 .app-news-market--한국/--미국과 같은 값을 쓴다.
+   미국의 파랑은 하락 의미색이 아니라 이 배지 전용 톤이다(경제 종합뉴스와 동일). */
 #main-news .mn-market {
   display: inline-block;
-  min-width: 34px;
-  padding: 1px 0;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  color: var(--text-sub);
-  font: 700 10px/1.6 var(--font-ui);
-  letter-spacing: .04em;
+  box-sizing: border-box;
+  min-width: 38px;
+  padding: 3px 6px;
+  border: 0;
+  border-radius: 5px;
+  font: 800 10px/1.2 var(--font-ui);
   text-align: center;
   white-space: nowrap;
 }
+#main-news .mn-market--domestic { color: #b45309; background: #fff7ed; }
+#main-news .mn-market--us { color: #1d4ed8; background: #eff6ff; }
+html.dark #main-news .mn-market--domestic { color: #fbbf24; background: rgba(180, 83, 9, .22); }
+html.dark #main-news .mn-market--us { color: #93c5fd; background: rgba(29, 78, 216, .26); }
 #main-news .mn-row-body { min-width: 0; }
 #main-news .mn-row-meta {
   display: flex;

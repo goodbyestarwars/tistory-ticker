@@ -1,5 +1,29 @@
 # 9Pay 주요 작업이력
 
+**2026-09-06 뉴스 시장 배지를 사이트 전체 알약 하나로 통일**
+
+주요 뉴스(`/pages/main-news`)의 시장 표시를 홈·휴장 지면 경제 종합뉴스와 맞춰 달라는
+요청에서 시작해, 사용자가 "알약으로 통일"로 결정했다.
+
+경제 종합뉴스의 `.app-news-market`은 `style.css`에 주황(한국)·파랑(미국) 알약으로
+정의돼 있었지만, 신문형 타이포그래피 정리 때 들어간 `html:not(.font-gothic) body ...`
+규칙이 `padding`·`background`·`border-radius`를 `!important`로 걷어내고 있었다.
+`font-gothic` 클래스는 `js/skin-menu.js`가 런타임에 항상 지우므로 이 평탄화는 언제나
+적용됐고, 실제 화면은 밑줄 텍스트였다.
+
+- `style.css`: 두 평탄화 규칙(`html:not(.font-gothic) body`, `.home-editorial-page`)에서
+  `.app-news-market`만 제외해 알약을 되살렸다. 다른 태그(`.app-news-type` 등)는 평탄화된
+  텍스트 그대로 둔다. 다크에서 라이트 알약 배경이 밝은 판때기가 되므로 `html.dark` 톤을
+  따로 추가했다.
+- `js/main-news.js`·`css/main-news.css`: 라벨을 KOR/US -> 한국/미국으로 바꾸고 같은 색값의
+  알약으로 그린다. 배지에 `mn-market--domestic|us` 수식 클래스를 추가했다.
+- 같은 배지를 쓰는 종목분석 관련뉴스(`stock-search`·`stock-news`·`us-stocks`)도 전부
+  `--한국`/`--미국` 수식 클래스를 이미 붙이고 있어 함께 알약으로 바뀐다.
+
+검증: `pytest test/test_ui_ia.py` 146 passed. 로컬 정적 프리뷰를 헤드리스 크롬으로 띄워
+라이트·다크 두 모드 스크린샷으로 알약 렌더·정렬 확인. `js/`·`css/`·`style.css` 모두
+GitHub Pages 자동 배포, `skin.html` 수동 반영 불필요.
+
 **2026-09-06 주요 뉴스 최근 12시간 컷 + 상한 50건**
 
 "주요 뉴스를 50건으로 늘릴까"라는 질문에서 시작해 코드를 확인하다 **설정값과 실제 화면

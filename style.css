@@ -4854,6 +4854,11 @@ html.dark .navbar .nav-search-input-wrap:focus-within { border-color: #ff6b5b; b
 .app-news-market, .app-news-type { padding: 3px 6px; border-radius: 5px; font-size: 9px; font-weight: 800; }
 .app-news-market--한국 { color: #b45309; background: #fff7ed; }
 .app-news-market--미국 { color: #1d4ed8; background: #eff6ff; }
+/* 2026-09-06: 시장 배지를 알약으로 통일하면서(아래 두 평탄화 규칙에서 제외) 다크에서도
+   읽히도록 톤을 따로 준다. 라이트 알약 배경을 그대로 두면 어두운 지면에서 밝은 판때기가
+   된다. 나머지 태그(.app-news-type 등)는 평탄화된 텍스트 그대로 둔다. */
+html.dark .app-news-market--한국 { color: #fbbf24; background: rgba(180, 83, 9, .22); }
+html.dark .app-news-market--미국 { color: #93c5fd; background: rgba(29, 78, 216, .26); }
 .app-news-type--뉴스 { color: #0f766e; background: #ecfdf5; }
 .app-news-type--공시 { color: #7c3aed; background: #f5f3ff; }
 .app-news-body > strong, .app-news-body > b { display: block; color: #24324a; font-size: 13px; line-height: 1.45; }
@@ -5124,8 +5129,9 @@ html:not(.font-gothic) body .ps-tabs {
   box-shadow: none !important;
 }
 
-/* 경제뉴스: 민트/네온 배지를 없애고 텍스트 태그와 얇은 타임라인으로 표시한다. */
-html:not(.font-gothic) body .app-news-market,
+/* 경제뉴스: 민트/네온 배지를 없애고 텍스트 태그와 얇은 타임라인으로 표시한다.
+   2026-09-06: 시장 배지(.app-news-market)만 이 평탄화에서 뺐다 - 한국/미국 구분은
+   주요 뉴스(/pages/main-news)와 같은 알약 하나로 통일한다는 사용자 결정. */
 html:not(.font-gothic) body .app-news-type,
 html:not(.font-gothic) body .hen-breaking-badge,
 html:not(.font-gothic) body .hen-main em {
@@ -5711,7 +5717,6 @@ body#tt-body-index .home-editorial-page .app-news-body {
   transform: none;
 }
 body#tt-body-index .home-editorial-page .app-news-meta > small,
-body#tt-body-index .home-editorial-page .app-news-market,
 body#tt-body-index .home-editorial-page .app-news-type,
 body#tt-body-index .home-editorial-page .hen-main em {
   padding: 0;
