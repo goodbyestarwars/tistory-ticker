@@ -166,8 +166,12 @@
   // 카테고리별로 카드를 묶어 보여주고, 종합 요약(buildSummaryText)도 이 방향을 반영해 계산한다 -
   // "환율/VIX/채권은 오른다고 무조건 좋은 게 아니다"라는 사용자 지적을 코드로 명시한 것.
   var CATEGORIES = [
+    // 2026-09-06: 코스피·코스닥을 뺐다. 국내 시장지표 탭(js/kospi-futures.js +
+    // domestic-market-indicators.js)이 같은 지수를 차트까지 갖고 있어 한 지면 안에서
+    // 두 번 나오던 것(사용자 지적 "코스피는 중복 같고"). LABELS에는 남겨 둔다 -
+    // 다른 코드가 심볼 이름을 물어볼 때 쓰는 표라 지울 이유가 없다.
     { key: 'index', label: '시장지수', direction: 1,
-      symbols: ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW', 'SOX'] },
+      symbols: ['NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW', 'SOX'] },
     // VIX/환율은 한 카드씩이라 각자 카테고리로 나누면 한 줄에 하나만 놓여 어색해 보인다는
     // 지적(2026-07-18) - 같은 카테고리로 묶어 한 줄에 나란히 표시. listIndividually:true는
     // buildSummaryText가 "2개 중 N개 상승" 집계 대신 심볼별로 따로 풀어 쓰게 하는 표시(둘의

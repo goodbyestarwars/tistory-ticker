@@ -1,0 +1,32 @@
+/* 시장지표 통합 지면(/pages/kospi-futures, /pages/overnight-market)의 국내/글로벌 탭 줄.
+   2026-09-06: 두 페이지가 코스피·코스닥을 각각 들고 있어 중복이라는 지적을 받아 한 지면으로
+   합쳤다. 지면 내용의 스타일은 각 모듈 CSS(kospi-futures.css / overnight-market 쪽)가 그대로
+   담당하고, 여기서는 탭 버튼만 그린다. */
+.mi-tabs {
+  display: flex;
+  gap: 4px;
+  margin: 0 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.mi-tab {
+  appearance: none;
+  margin: 0;
+  padding: 9px 14px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  color: var(--text-sub);
+  font: 700 14px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+.mi-tab:hover { color: var(--text-main); }
+.mi-tab.active {
+  color: var(--text-main);
+  border-bottom-color: var(--text-main);
+}
+.mi-panel[hidden] { display: none; }
+
+@media (max-width: 720px) {
+  .mi-tabs { gap: 0; }
+  .mi-tab { flex: 1; padding: 9px 4px 10px; font-size: 13px; }
+}

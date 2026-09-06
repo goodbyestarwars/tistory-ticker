@@ -1,5 +1,34 @@
 # 9Pay 주요 작업이력
 
+**2026-09-06 글로벌·국내 시장지표를 한 지면 탭으로 통합**
+
+"시장 메뉴의 글로벌/국내 시장지표에서 코스피가 중복 같다, 한 페이지에 버튼으로 구분하자"는
+요청. 실제로 `js/overnight-market.js`의 '시장지수' 카테고리에 KOSPI·KOSDAQ이 있었고,
+국내 지면(`js/kospi-futures.js` + `domestic-market-indicators.js`)은 같은 지수를 차트까지
+갖고 있었다.
+
+- `js/skin-main.js`에 `loadMarketIndicatorTabs()` 추가. `/pages/kospi-futures`와
+  `/pages/overnight-market` 두 주소 모두에서 같은 지면을 띄우고, **들어온 주소가 첫 탭**을
+  정한다. 주소를 하나로 합치지 않은 이유는 기존 링크·북마크·티스토리 페이지를 그대로
+  살리기 위해서다(새 페이지를 만들 필요도 없다).
+- 티스토리 페이지 본문에 이미 있는 mount는 재사용해 패널로 옮겨 담고, 없는 쪽은 만든다.
+  탭을 열 때마다 그 모듈의 `init()`을 다시 부른다 - **숨겨진 컨테이너에서 만든
+  lightweight-charts가 0x0으로 굳는 문제**(2026-08-14 이력)를 아예 피하려는 것. 두 모듈
+  모두 `init()`이 자기 타이머를 `clearInterval`하고 WebSocket 중복 연결도 막아 재호출이
+  안전하다.
+- 같은 파일이 두 번 실행되지 않도록, 스크립트 주입 전에 티스토리 페이지 본문의 `<script>`도
+  함께 센다.
+- 글로벌 탭에서 KOSPI·KOSDAQ 심볼 제거(LABELS 표는 유지). `js/kospi-futures.js`의
+  국내시장지표 mount 게이트가 두 주소를 모두 받도록 완화.
+- 메뉴 '글로벌 시장지표'·'국내시장지표' 두 칸을 **'시장지표' 한 칸**으로.
+- 탭 줄 스타일은 새 `css/market-indicators.css`. 지면 내용 스타일은 각 모듈 CSS 그대로.
+
+검증: `pytest test/test_ui_ia.py` 148 passed. Playwright로 로컬 하니스를 띄워
+(`/pages/kospi-futures/`, `/pages/overnight-market/` 두 경로, github.io 자산은 로컬 저장소
+파일로 fulfill) **주소별 초기 탭·패널 토글·양쪽 모듈 렌더·페이지 에러 0건**을 실측했다.
+이 과정에서 `global[tab.globalName]`이 `ReferenceError`를 내던 것을 잡았다 -
+`skin-main.js`에는 `global` 별칭이 없어 `window`로 읽어야 한다.
+
 **2026-09-06 종목분석 차트 흐름별 탐색 - 정렬 선택이 안 되던 문제**
 
 "정렬 부분이 선택이 안 된다"는 리포트. 정렬 `<select>`가 `container`의 **click 위임**에서

@@ -18,8 +18,10 @@
         // 모두 잡지만 메뉴 링크는 하나뿐이라 실제 주소를 써야 404가 안 난다.
         { href: '/pages/main-news', label: '주요 뉴스' },
         { href: '/page/market-temp', label: '증시온도' },
-        { href: '/pages/overnight-market', label: '글로벌 시장지표' },
-        { href: '/pages/kospi-futures', label: '국내시장지표' }
+        // 2026-09-06: '글로벌 시장지표'·'국내시장지표' 두 칸을 한 칸으로 합쳤다. 두 지면이
+        // 코스피·코스닥을 각각 들고 있어 중복이었고, 이제 한 지면에서 버튼으로 오간다
+        // (js/skin-main.js loadMarketIndicatorTabs). 옛 주소도 그대로 열린다.
+        { href: '/pages/kospi-futures', label: '시장지표' }
       ]
     },
     // 2026-09-04: '종목검색'(차트검색·전략검색 2개)을 '종목'으로 합치고, 1차 메뉴를

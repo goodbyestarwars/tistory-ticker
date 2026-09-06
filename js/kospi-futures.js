@@ -1089,7 +1089,9 @@
   function loadDomesticMarketIndicators(container) {
     if (!container || !container.parentNode) return;
     // 로컬 단위 테스트나 다른 화면에 같은 mount가 있어도 국내시장지표를 끼워 넣지 않는다.
-    if (location.pathname.replace(/\/$/, '') !== '/pages/kospi-futures') return;
+    // 2026-09-06: 국내/글로벌을 한 지면에서 탭으로 오가게 되면서(js/skin-main.js
+    // loadMarketIndicatorTabs) 글로벌 주소로 들어와 국내 탭을 눌러도 여기가 돌아야 한다.
+    if (!/^\/(?:page|pages)\/(?:kospi-futures|overnight-market)$/i.test(location.pathname.replace(/\/$/, ''))) return;
     var mount = document.getElementById('domestic-market-indicators');
     if (!mount) {
       mount = document.createElement('div');
