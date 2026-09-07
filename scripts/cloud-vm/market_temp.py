@@ -93,7 +93,31 @@ def ensure_schema(conn):
     """
     conn.execute('CREATE TABLE IF NOT EXISTS market_temp_daily ('
                  ' date TEXT PRIMARY KEY, temp REAL NOT NULL)')
+    # 장중 누적 거래대금 이력(2026-09-07). 거래대금 배점이 "직전 거래일들의 같은 시각까지
+    # 누적"과 비교할 수 있게 3분 주기 계산이 지나갈 때마다 5분 버킷으로 남긴다.
+    conn.execute('CREATE TABLE IF NOT EXISTS market_temp_intraday ('
+                 ' date TEXT NOT NULL, minute INTEGER NOT NULL, total REAL NOT NULL,'
+                 ' PRIMARY KEY(date, minute))')
     conn.commit()
+
+
+# 한국거래소 휴장일. 프론트는 js/skin-shell.js의 MarketHours가 같은 표를 들고 있다 -
+# 런타임이 달라 공유할 수 없으니 **해가 바뀌면 두 곳을 같이 갱신**한다.
+# 2026-09-07: 토·일에도 온도가 기록돼 "5일 내내 올랐다"처럼 보이던 문제(사용자 리포트)를
+# 막으려고 들여왔다. 거래일이 아니면 온도도, 장중 거래대금도 남기지 않는다.
+KRX_HOLIDAYS_2026 = {
+    '2026-01-01', '2026-02-16', '2026-02-17', '2026-02-18', '2026-03-01', '2026-03-02',
+    '2026-05-01', '2026-05-05', '2026-05-25', '2026-06-03', '2026-06-06', '2026-07-17',
+    '2026-08-15', '2026-08-17', '2026-09-24', '2026-09-25', '2026-09-26', '2026-10-03',
+    '2026-10-05', '2026-10-09', '2026-12-25', '2026-12-31',
+}
+
+
+def is_kr_trading_day(now_kst):
+    """주말·공휴일이면 False. 표에 없는 해는 주말만 걸러진다(보수적으로 True)."""
+    if now_kst.weekday() >= 5:
+        return False
+    return now_kst.strftime('%Y-%m-%d') not in KRX_HOLIDAYS_2026
 
 
 def read_daily_history(conn):
@@ -103,10 +127,14 @@ def read_daily_history(conn):
     return [{'date': r[0], 'temp': r[1]} for r in reversed(rows)]
 
 
-def upsert_daily_temp(conn, temp, today):
-    """오늘 온도를 기록하고 갱신된 이력을 돌려준다(GAS upsertDailyMarketTemp_와 동일)."""
+def upsert_daily_temp(conn, temp, today, trading_day=True):
+    """오늘 온도를 기록하고 갱신된 이력을 돌려준다(GAS upsertDailyMarketTemp_와 동일).
+
+    2026-09-07: 휴장일에는 기록하지 않는다. 토·일에도 3분마다 값이 들어가 추이 차트에
+    금요일 값이 복사된 것 같은 날이 두 개 더 붙었다(사용자 리포트 "5일 내내 올랐나").
+    """
     ensure_schema(conn)
-    if temp is None:
+    if temp is None or not trading_day:
         return read_daily_history(conn)
     conn.execute('INSERT INTO market_temp_daily(date, temp) VALUES (?, ?) '
                  'ON CONFLICT(date) DO UPDATE SET temp=excluded.temp', (today, temp))
@@ -175,7 +203,21 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     quotes = data.fetch_quotes(codes)
     prior_values = data.prior_trading_values(conn, codes, today)
 
-    quote_parts = data.build_quote_components(quotes, universe, prior_values)
+    # 거래대금은 "같은 시각까지 누적"끼리 비교해야 하루 종일 같은 뜻의 숫자가 된다.
+    # 장중이 아니거나(마감 후) 휴장이면 예전처럼 종일 총액끼리 비교한다.
+    trading_day = is_kr_trading_day(now_kst)
+    elapsed_ratio = data.session_elapsed_ratio(now_kst) if trading_day else None
+    bucket = data.intraday_bucket(now_kst.hour * 60 + now_kst.minute)
+    ensure_schema(conn)
+    same_time_totals = (data.intraday_prior_totals(conn, today, bucket)
+                        if elapsed_ratio is not None else [])
+
+    quote_parts = data.build_quote_components(quotes, universe, prior_values,
+                                              same_time_totals=same_time_totals,
+                                              elapsed_ratio=elapsed_ratio)
+    if elapsed_ratio is not None:
+        data.record_intraday_trading_value(conn, today, bucket,
+                                           quote_parts['todayTradingValue'])
     market_parts = data.market_components_from_db(conn, now_kst)
     week52 = data.week52_component(week52_cache_file)
     credit = score.score_kofia_credit(kofia)
@@ -200,7 +242,7 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
          if not (k == 'creditRisk' and not credit_available)],
         credit_available)
 
-    history_rows = upsert_daily_temp(conn, totals['temp'], today)
+    history_rows = upsert_daily_temp(conn, totals['temp'], today, trading_day=trading_day)
     # 테마별 자금 흐름은 위에서 이미 받아둔 시세·유니버스만 쓴다 - 외부 호출이 늘지 않는다.
     # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)

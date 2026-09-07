@@ -225,6 +225,89 @@ class TradingValueHistoryTest(unittest.TestCase):
         self.assertEqual(mts.score_trading_value(1e12, prior)['score'], 7.5)
 
 
+class TradingValueComparisonBasisTest(unittest.TestCase):
+    """거래대금 비교 기준(2026-09-07).
+
+    장중 누적을 종일 총액 평균과 비교하던 구조를 고쳤다. 실측(13:31, 정규장 69.5% 경과)에서
+    today 12.95조 / avg5 19.39조 = 0.668이 나와 경과 비율과 거의 같았고, 그래서 오전 내내
+    0점이 박혔다 - 분자는 그 시각까지, 분모는 하루치 전체였다.
+    """
+
+    PRIOR = [19.39e12] * 5
+    TODAY = 12.95e12
+
+    def test_full_day_basis_is_unchanged_after_close(self):
+        got = mts.score_trading_value(self.TODAY, self.PRIOR)
+        self.assertEqual(got['mode'], 'fullDay')
+        self.assertEqual(got['score'], 0)
+        self.assertEqual(got['band'], '평균대비 70% 미만')
+
+    def test_same_time_basis_wins_when_history_is_enough(self):
+        got = mts.score_trading_value(self.TODAY, self.PRIOR,
+                                      same_time_totals=[13.0e12] * 4, elapsed_ratio=0.695)
+        self.assertEqual(got['mode'], 'sameTime')
+        self.assertEqual(got['sameTimeDays'], 4)
+        self.assertEqual(got['score'], 7)
+        self.assertEqual(got['band'], '같은 시각 대비 90~110%')
+
+    def test_elapsed_ratio_is_the_fallback_until_history_accumulates(self):
+        got = mts.score_trading_value(self.TODAY, self.PRIOR,
+                                      same_time_totals=[13.0e12] * 2, elapsed_ratio=0.695)
+        self.assertEqual(got['mode'], 'elapsedAdjusted')
+        self.assertEqual(got['score'], 7)
+        self.assertAlmostEqual(got['elapsedRatio'], 0.695)
+
+    def test_band_boundaries_are_the_same_table_in_every_mode(self):
+        for mode_kwargs, expected_mode in (
+            ({'same_time_totals': [10e12] * 3}, 'sameTime'),
+            ({'elapsed_ratio': 0.5}, 'elapsedAdjusted'),
+            ({}, 'fullDay'),
+        ):
+            basis_prior = [20e12] * 5  # elapsed 0.5 -> 기준 10조, fullDay -> 20조
+            today = 13e12 if expected_mode != 'fullDay' else 26e12
+            got = mts.score_trading_value(today, basis_prior, **mode_kwargs)
+            self.assertEqual(got['mode'], expected_mode)
+            self.assertEqual(got['score'], 15)  # 셋 다 기준의 130%
+
+
+class TradingDayGateTest(unittest.TestCase):
+    """휴장일에는 온도·장중 거래대금을 기록하지 않는다(2026-09-07).
+
+    토·일에도 3분마다 값이 들어가 추이 차트에 금요일 값이 복사된 것 같은 날이 두 개 더
+    붙었다(사용자 리포트 "5일 내내 올랐나").
+    """
+
+    def test_weekend_and_holiday_are_not_trading_days(self):
+        import datetime
+        import market_temp
+        kst = datetime.timezone(datetime.timedelta(hours=9))
+
+        def at(month, day):
+            return datetime.datetime(2026, month, day, 10, 0, tzinfo=kst)
+
+        self.assertTrue(market_temp.is_kr_trading_day(at(9, 4)))    # 금
+        self.assertFalse(market_temp.is_kr_trading_day(at(9, 5)))   # 토
+        self.assertFalse(market_temp.is_kr_trading_day(at(9, 6)))   # 일
+        self.assertTrue(market_temp.is_kr_trading_day(at(9, 7)))    # 월
+        self.assertFalse(market_temp.is_kr_trading_day(at(9, 24)))  # 추석 연휴
+
+    def test_session_elapsed_ratio_is_none_outside_regular_hours(self):
+        import datetime
+        import market_temp_data
+        kst = datetime.timezone(datetime.timedelta(hours=9))
+
+        def ratio(hour, minute):
+            return market_temp_data.session_elapsed_ratio(
+                datetime.datetime(2026, 9, 7, hour, minute, tzinfo=kst))
+
+        self.assertIsNone(ratio(8, 50))
+        self.assertIsNone(ratio(9, 0))
+        self.assertIsNone(ratio(15, 30))
+        self.assertIsNone(ratio(16, 0))
+        self.assertAlmostEqual(ratio(13, 31), (811 - 540) / 390.0)
+
+
+
 class FlowAndTimeWeightTest(unittest.TestCase):
     """수급 변환과 미국선물 시간가중치가 GAS와 같은지."""
 

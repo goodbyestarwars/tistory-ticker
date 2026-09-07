@@ -52,29 +52,73 @@ def score_vix(vix):
     return {'score': score, 'value': vix, 'band': band}
 
 
-def score_trading_value(today, prior_totals):
-    """거래대금. prior_totals는 오늘을 뺀 직전 최대 5거래일 합계 목록.
+# 거래대금 밴드. 경계와 점수는 GAS 이식 이후 그대로다 - 바뀌는 건 "무엇과 비교하느냐"
+# (분모)뿐이고, 비율이 정해진 뒤의 판정은 셋 다 같은 표를 쓴다.
+_TRADING_VALUE_BANDS = ((1.3, 15), (1.1, 11), (0.9, 7), (0.7, 4))
 
-    GAS는 이 이력을 PropertiesService에 넣어뒀다. VM으로 옮기면 SQLite로 가는데,
-    옮긴 직후엔 이력이 비어 3영업일이 쌓일 때까지 중립(7.5)이 나온다 - 배선 단계에서
-    GAS 이력을 한 번 이관하거나 며칠 중립을 감수할지 정해야 한다.
+_TRADING_VALUE_BAND_TEXT = {
+    'sameTime': ('같은 시각 대비 130% 이상', '같은 시각 대비 110~130%', '같은 시각 대비 90~110%',
+                 '같은 시각 대비 70~90%', '같은 시각 대비 70% 미만'),
+    'elapsedAdjusted': ('진행률 보정 130% 이상', '진행률 보정 110~130%', '진행률 보정 90~110%',
+                        '진행률 보정 70~90%', '진행률 보정 70% 미만'),
+    'fullDay': ('평균대비 130% 이상', '평균대비 110~130%', '평균대비 90~110%',
+                '평균대비 70~90%', '평균대비 70% 미만'),
+}
+
+
+def _trading_value_band(relative, mode):
+    texts = _TRADING_VALUE_BAND_TEXT[mode]
+    for index, (threshold, points) in enumerate(_TRADING_VALUE_BANDS):
+        if relative >= threshold:
+            return points, texts[index]
+    return 0, texts[-1]
+
+
+def score_trading_value(today, prior_totals, same_time_totals=None, elapsed_ratio=None):
+    """거래대금. prior_totals는 오늘을 뺀 직전 최대 5거래일 **종일** 합계 목록.
+
+    2026-09-07 리포트("거래대금은 계속 점수가 낮아")로 구조를 고쳤다. 원래는 장중 누적인
+    `today`를 종일 총액 평균과 그냥 비교했다 - 분자는 그 시각까지, 분모는 하루치 전체라
+    시간이 갈수록만 올라가는 값이었다. 실측(13:31, 정규장 69.5% 경과)에서 relative가
+    0.668로 경과 비율과 거의 같게 나와 오전 내내 0점이 박혔다.
+
+    그래서 비교 기준을 셋으로 나눈다. 위에서부터 정확한 순서다.
+
+    1. `same_time_totals` - 직전 거래일들의 **같은 시각까지 누적** 목록. 사과 대 사과라
+       09시든 15시든 같은 뜻("지금 이 시각 기준 평소보다 몰리나")의 숫자가 나온다.
+    2. `elapsed_ratio` - 1번 이력이 아직 없을 때의 폴백. 종일 평균에 장중 진행률을 곱해
+       분모를 깎는다. 거래대금은 개장 직후·마감 무렵에 몰리는 U자형이라 시간대별 편향이
+       남지만, 하루 종일 0점이 박히는 것보다는 낫다.
+    3. 둘 다 없으면(장 마감 후·휴장) 예전과 같이 종일 총액끼리 비교한다 - 이때는 분자도
+       종일 값이라 원래 정확했다.
+
+    반환의 `mode`로 어느 기준이었는지 밝힌다. 화면 문구도 그에 맞춰 달라진다.
     """
-    if len(prior_totals) < 3:
-        return {'score': 7.5, 'today': today,
+    if same_time_totals and len(same_time_totals) >= 3:
+        basis = sum(same_time_totals) / len(same_time_totals)
+        mode = 'sameTime'
+    elif len(prior_totals) < 3:
+        return {'score': 7.5, 'today': today, 'mode': 'insufficient',
                 'note': '5일 평균 기준 데이터 누적 중(3영업일 미만) - 중립 처리'}
-    avg5 = sum(prior_totals) / len(prior_totals)
-    relative = (today / avg5) if avg5 > 0 else 1
-    if relative >= 1.3:
-        score, band = 15, '평균대비 130% 이상'
-    elif relative >= 1.1:
-        score, band = 11, '평균대비 110~130%'
-    elif relative >= 0.9:
-        score, band = 7, '평균대비 90~110%'
-    elif relative >= 0.7:
-        score, band = 4, '평균대비 70~90%'
+    elif elapsed_ratio is not None and 0 < elapsed_ratio < 1:
+        basis = (sum(prior_totals) / len(prior_totals)) * elapsed_ratio
+        mode = 'elapsedAdjusted'
     else:
-        score, band = 0, '평균대비 70% 미만'
-    return {'score': score, 'today': today, 'avg5': avg5, 'relative': relative, 'band': band}
+        basis = sum(prior_totals) / len(prior_totals)
+        mode = 'fullDay'
+
+    relative = (today / basis) if basis > 0 else 1
+    score, band = _trading_value_band(relative, mode)
+    result = {'score': score, 'today': today, 'relative': relative, 'band': band,
+              'mode': mode, 'basis': basis}
+    # avg5는 화면·디버깅에서 "평소 하루 거래대금"으로 계속 쓰이므로 기준이 바뀌어도 싣는다.
+    if prior_totals:
+        result['avg5'] = sum(prior_totals) / len(prior_totals)
+    if mode == 'elapsedAdjusted':
+        result['elapsedRatio'] = elapsed_ratio
+    if mode == 'sameTime':
+        result['sameTimeDays'] = len(same_time_totals)
+    return result
 
 
 def score_avg_change(avg_change_rate, quote_count=1):
