@@ -1997,6 +1997,31 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("#market-temp .mt-summary-score {", style)
         self.assertIn("#market-temp .mt-axis-row {", style)
 
+    def test_us_market_holidays_are_judged_in_one_place(self):
+        """미국 휴장일 표는 MarketHours 한 곳에만 둔다(2026-09-07 리포트).
+
+        노동절(9/7)인데 휴장으로 안 나왔다 - 미국 세션 판정이 주말만 걸러내고 있었다.
+        판정을 여러 파일에 복제했다가 화면이 갈렸던 전례(2026-09-05 MarketHours 도입)를
+        반복하지 않도록, 홈의 미국 현물 상태도 이 표를 빌려 쓴다.
+        """
+        shell = self.read("js/skin-shell.js")
+        self.assertIn("var US_HOLIDAYS_2026 = {", shell)
+        self.assertIn("'2026-09-07': 1,  // 노동절", shell)
+        # 7/4가 토요일이라 앞당겨진 휴장 - 규칙만으로는 못 만드는 날이라 표가 필요하다.
+        self.assertIn("'2026-07-03': 1,", shell)
+        self.assertIn("function isUsHoliday(date)", shell)
+        self.assertIn("isUsHoliday: isUsHoliday,", shell)
+        # 휴장 판정은 KST가 아니라 뉴욕 현지 날짜로 한다.
+        self.assertIn("dateKey: parts.year + '-' + parts.month + '-' + parts.day,", shell)
+        self.assertIn("if (US_HOLIDAYS_2026[clock.dateKey]) { out.holiday = true; return out; }", shell)
+        # 조기 마감일(13:00 ET)은 휴장이 아니라 별도 표다.
+        self.assertIn("var US_EARLY_CLOSE_2026 = {", shell)
+
+        # 홈의 미국 현물 상태는 자기 표를 갖지 않고 MarketHours를 빌려 쓴다.
+        main = self.read("js/skin-main.js")
+        self.assertIn("window.MarketHours.isUsHoliday(now)", main)
+        self.assertNotIn("global.MarketHours.isUsHoliday", main)
+
     def test_flow_sort_select_is_bound_to_change_not_click(self):
         """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
 
@@ -2829,7 +2854,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         main = self.read("js/skin-main.js")
         start = main.index("    function nyClockParts(now) {")
         end = main.index("    // 2026-09-05: 코스피 야간선물 휴장 판정을")
-        script = main[start:end] + """
+        script = """
+// 2026-09-07: 미국 휴장일 판정은 MarketHours(js/skin-shell.js)에 있고 이 슬라이스는
+// 그걸 window로 빌려 쓴다. 여기서는 세션 경계만 보므로 빈 stub으로 충분하다
+// (휴장일 배선 자체는 test_us_market_holidays_are_judged_in_one_place가 고정한다).
+var window = {};
+""" + main[start:end] + """
 const cases = JSON.parse(process.argv[2]);
 console.log(JSON.stringify(cases.map(function (iso) {
   const state = usIndexSessionState(new Date(iso));

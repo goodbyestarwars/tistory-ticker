@@ -804,6 +804,16 @@ document.documentElement.classList.add('skin-ready');
       var minute = clock.minutes;
       var weekend = clock.weekday === 'Sat' || clock.weekday === 'Sun';
       if (weekend) return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
+      // 2026-09-07 리포트("미국장 노동절인데 휴장 아닌 걸로 나와"): 여기 판정이 주말만
+      // 보고 있었다. 휴장일 표는 js/skin-shell.js의 MarketHours 한 곳에만 둔다 - 같은
+      // 판정을 여러 파일에 복제했다가 화면이 갈렸던 전례(2026-09-05 MarketHours 도입)를
+      // 반복하지 않는다.
+      // skin-main.js에는 global 별칭이 없다 - window로 읽어야 ReferenceError가 안 난다
+      // (2026-09-06 시장지표 탭에서 같은 실수를 했다).
+      if (window.MarketHours && window.MarketHours.isUsHoliday
+          && window.MarketHours.isUsHoliday(now)) {
+        return { open: false, label: '미국장 휴장', subtitle: '미국 현물 · 휴장' };
+      }
       if (minute < 9 * 60 + 30) return { open: false, label: '본장 개장 전', subtitle: '미국 현물 · 본장 개장 전' };
       if (minute >= 16 * 60) return { open: false, label: '본장 마감', subtitle: '미국 현물 · 본장 마감' };
       return { open: true, label: '장중', subtitle: '미국 현물 · 장중' };
