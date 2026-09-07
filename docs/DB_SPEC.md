@@ -325,6 +325,30 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 ---
 
+### 2.17 `market_temp_daily` — 증시온도 일별 이력
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| date | TEXT | PK, `YYYY-MM-DD` | 거래일 |
+| temp | REAL | NOT NULL | 그날 마지막으로 계산된 증시온도 |
+
+`/market-temp`의 추이 차트(`recentDays`·`history`) 원본이다. 3분 주기 배치가 갱신하며
+최근 N일만 남기고 자른다. **거래일에만 기록한다** - 2026-09-07 이전에는 토·일에도 값이
+들어가 추이에 금요일 값이 복사된 것 같은 날이 붙었다(`market_temp.is_kr_trading_day`).
+
+### 2.18 `market_temp_intraday` — 장중 누적 거래대금 이력
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| date | TEXT | PK(date, minute) | 거래일 `YYYY-MM-DD` |
+| minute | INTEGER | PK(date, minute) | KST 자정 기준 분, 5분 버킷으로 내림(09:05 = 545) |
+| total | REAL | NOT NULL | 그 시각까지의 섹터 풀 누적 거래대금 |
+
+거래대금 배점이 **"직전 거래일들의 같은 시각까지 누적"**과 비교하기 위한 이력이다
+(2026-09-07 신설). 예전에는 장중 누적을 종일 총액 평균과 비교해서 분자만 그 시각까지인
+탓에 오전 내내 0점이 박혔다. 3분 주기 배치가 정규장(09:00~15:30) 동안만 남기고,
+최근 15일치만 보관한다. 이력이 3거래일 미만이면 배점이 진행률 보정으로 폴백한다.
+
 ## 3. `news_momentum.db`
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.

@@ -227,10 +227,17 @@ def breadth_by_market(quotes, universe_with_sectors):
     return result
 
 
-def build_quote_components(quotes, universe_with_sectors, prior_trading_values):
-    """시세 하나로 나오는 4개 컴포넌트(거래대금·평균등락·상승비율·섹터강세)를 만든다."""
+def build_quote_components(quotes, universe_with_sectors, prior_trading_values,
+                           same_time_totals=None, elapsed_ratio=None):
+    """시세 하나로 나오는 4개 컴포넌트(거래대금·평균등락·상승비율·섹터강세)를 만든다.
+
+    same_time_totals/elapsed_ratio는 거래대금 배점의 비교 기준이다 -
+    `market_temp_score.score_trading_value` 독스트링 참고.
+    """
     today_value = sum((q.get('price') or 0) * (q.get('volume') or 0) for q in quotes)
-    trading_value = score.score_trading_value(today_value, prior_trading_values)
+    trading_value = score.score_trading_value(today_value, prior_trading_values,
+                                              same_time_totals=same_time_totals,
+                                              elapsed_ratio=elapsed_ratio)
 
     if quotes:
         avg = sum(q.get('changeRate') or 0 for q in quotes) / len(quotes)
@@ -306,6 +313,60 @@ def prior_trading_values(conn, codes, today_kst, limit=5):
     totals = [r[1] for r in rows if r[1]]
     totals.reverse()
     return totals
+
+
+# 국내 정규장 09:00~15:30. 장중 누적 거래대금 이력의 시각 버킷과 진행률 계산에 쓴다.
+SESSION_OPEN_MINUTE = 9 * 60
+SESSION_CLOSE_MINUTE = 15 * 60 + 30
+INTRADAY_BUCKET_MINUTES = 5
+INTRADAY_RETENTION_DAYS = 15
+
+
+def intraday_bucket(minute_of_day):
+    """분 단위 시각을 5분 버킷으로 내림한다(3분 주기 계산이 버킷을 촘촘히 채우지 않게)."""
+    return int(minute_of_day) // INTRADAY_BUCKET_MINUTES * INTRADAY_BUCKET_MINUTES
+
+
+def session_elapsed_ratio(now_kst):
+    """정규장 진행률(0~1). 장 시작 전·마감 후에는 None.
+
+    None이면 호출부가 "장중이 아니다"로 읽는다 - 마감 후에는 오늘 값도 종일 총액이라
+    예전처럼 종일끼리 비교하는 게 맞다.
+    """
+    minute = now_kst.hour * 60 + now_kst.minute
+    if minute <= SESSION_OPEN_MINUTE or minute >= SESSION_CLOSE_MINUTE:
+        return None
+    return (minute - SESSION_OPEN_MINUTE) / float(SESSION_CLOSE_MINUTE - SESSION_OPEN_MINUTE)
+
+
+def record_intraday_trading_value(conn, date, bucket, total):
+    """장중 누적 거래대금을 (날짜, 5분 버킷)으로 남긴다.
+
+    이 이력이 있어야 다음부터 "직전 거래일들의 같은 시각까지 누적"과 비교할 수 있다.
+    같은 버킷이 다시 들어오면 큰 값으로 갱신한다 - 누적이라 단조증가여야 한다.
+    """
+    if not total:
+        return
+    conn.execute('INSERT INTO market_temp_intraday(date, minute, total) VALUES (?, ?, ?) '
+                 'ON CONFLICT(date, minute) DO UPDATE SET total=MAX(total, excluded.total)',
+                 (date, int(bucket), float(total)))
+    conn.execute('DELETE FROM market_temp_intraday WHERE date NOT IN '
+                 '(SELECT DISTINCT date FROM market_temp_intraday ORDER BY date DESC LIMIT ?)',
+                 (INTRADAY_RETENTION_DAYS,))
+    conn.commit()
+
+
+def intraday_prior_totals(conn, date, bucket, limit=5):
+    """직전 거래일들의 "그 시각까지 누적" 목록. 오늘은 뺀다.
+
+    정확히 같은 버킷이 없을 수 있어(계산이 걸러진 주기 등) `minute <= bucket` 중 최댓값을
+    쓴다 - 누적값이라 그 시각까지의 마지막 관측치가 된다.
+    """
+    rows = conn.execute(
+        'SELECT date, MAX(total) FROM market_temp_intraday '
+        'WHERE date < ? AND minute <= ? GROUP BY date ORDER BY date DESC LIMIT ?',
+        (date, int(bucket), int(limit))).fetchall()
+    return [r[1] for r in rows if r[1]]
 
 
 def us_futures_time_weight(now_kst=None):
