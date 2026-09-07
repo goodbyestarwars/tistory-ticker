@@ -214,6 +214,85 @@ def total_and_temperature(component_scores, credit_available):
     temp = _round_half_up(total * (40.0 / max_possible), 1)
     return {'score': total, 'maxScore': max_possible, 'temp': temp}
 
+# ---- 3축 요약(2026-09-07) ----
+#
+# "지표가 10개라 아무도 안 본다"는 사용자 판단으로 도입했다. 배점 자체는 그대로 두고
+# (10개 컴포넌트는 '자세히'에서 계속 보여준다) 그 위에 사람이 셀 수 있는 축 3개를 얹는다.
+#
+# 축 안에서는 **단순 평균**이다. 예전 총점은 VIX 20 대 환율 5처럼 4배 차이 나는 가중치를
+# 갖고 있었는데 왜 4배인지 설명할 수 없었다. 설명 못 하는 가중치는 신뢰를 못 얻는다.
+#
+# 섹터강도·미국선물은 축에서 뺐다 - 앞의 것은 상승비율과, 뒤의 것은 15:30 이후 중립으로
+# 굳어 정보가 겹친다. 화면 '자세히'에는 그대로 남는다.
+AXES = (
+    ('money', '돈', '돈이 들어오나', ('tradingValue', 'flow')),
+    ('price', '가격', '실제로 오르나', ('avgChange', 'riseRatio', 'week52')),
+    # 이 셋은 점수가 높을수록 "안전"이다(VIX가 낮으면 20점). 축 값은 뒤집어서
+    # "위험도"로 내보낸다 - 화면에서 '위험 23 = 낮음'으로 읽혀야 하기 때문이다.
+    ('risk', '위험', '무리하고 있나', ('vix', 'exchange', 'creditRisk')),
+)
+
+# 3등급. 5등급은 경계에서 흔들리기만 하고 뜻이 안 갈렸다.
+# 경계는 옛 40℃ 밴드를 비율로 옮긴 값이다(옛 중립 구간 50~70%가 새 '보통'의 가운데).
+GRADE3 = (
+    (50, {'emoji': '🔵', 'label': '공포', 'tone': 'fear'}),
+    (75, {'emoji': '🟡', 'label': '보통', 'tone': 'neutral'}),
+    (None, {'emoji': '🔥', 'label': '과열', 'tone': 'greed'}),
+)
+
+
+def _axis_ratio(components, keys):
+    """축에 속한 컴포넌트의 (점수/만점) 평균. 값이 없는 컴포넌트는 빼고 센다."""
+    ratios = []
+    for key in keys:
+        comp = components.get(key) or {}
+        value = comp.get('score')
+        maximum = COMPONENT_MAX.get(key)
+        if value is None or not maximum:
+            continue
+        ratios.append(_clamp(value / float(maximum), 0.0, 1.0))
+    if not ratios:
+        return None
+    return sum(ratios) / len(ratios)
+
+
+def grade_for_score100(score100):
+    for threshold, grade in GRADE3:
+        if threshold is None or score100 < threshold:
+            return dict(grade)
+    return dict(GRADE3[-1][1])
+
+
+def build_axes(components):
+    """10개 컴포넌트를 돈·가격·위험 3축(각 0~100)과 종합점수(0~100)로 접는다.
+
+    종합점수는 세 축의 단순 평균이다. 위험 축만 화면 표기가 뒤집혀 있으므로(높을수록
+    나쁨) 평균에는 그 반대인 '안전도'를 넣는다 - 즉 세 축 모두 "높을수록 좋음"으로
+    맞춘 뒤 평균한다.
+    """
+    axes = {}
+    contributions = []
+    for key, label, question, comp_keys in AXES:
+        ratio = _axis_ratio(components, comp_keys)
+        if ratio is None:
+            axes[key] = {'label': label, 'question': question, 'value': None,
+                         'components': list(comp_keys)}
+            continue
+        good = ratio * 100.0                      # 높을수록 좋은 값
+        shown = (100.0 - good) if key == 'risk' else good
+        axes[key] = {
+            'label': label, 'question': question,
+            'value': _round_half_up(shown, 0),
+            'inverted': key == 'risk',
+            'components': list(comp_keys),
+        }
+        contributions.append(good)
+
+    score100 = _round_half_up(sum(contributions) / len(contributions), 0) if contributions else None
+    return {'axes': axes, 'score100': score100,
+            'grade3': grade_for_score100(score100) if score100 is not None else None}
+
+
 # ---- 신용융자 위험도(GAS scoreKofiaCredit_ 이식) ----
 
 _CREDIT_PENDING = {'available': False, 'score': None, 'max': 10,

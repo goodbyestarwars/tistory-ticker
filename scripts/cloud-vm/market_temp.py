@@ -98,6 +98,12 @@ def ensure_schema(conn):
     conn.execute('CREATE TABLE IF NOT EXISTS market_temp_intraday ('
                  ' date TEXT NOT NULL, minute INTEGER NOT NULL, total REAL NOT NULL,'
                  ' PRIMARY KEY(date, minute))')
+    # 2026-09-07: 3축 종합점수(0~100). 옛 40℃ 온도와 스케일이 달라 같은 컬럼에 섞으면
+    # 추이 차트가 전환일에 튄다 - 컬럼을 따로 둔다. 과거 행은 NULL이고 화면은 값이 있는
+    # 날부터 그린다.
+    columns = {row[1] for row in conn.execute('PRAGMA table_info(market_temp_daily)')}
+    if 'score100' not in columns:
+        conn.execute('ALTER TABLE market_temp_daily ADD COLUMN score100 REAL')
     conn.commit()
 
 
@@ -122,12 +128,12 @@ def is_kr_trading_day(now_kst):
 
 def read_daily_history(conn):
     rows = conn.execute(
-        'SELECT date, temp FROM market_temp_daily ORDER BY date DESC LIMIT ?',
+        'SELECT date, temp, score100 FROM market_temp_daily ORDER BY date DESC LIMIT ?',
         (DAILY_HISTORY_MAX,)).fetchall()
-    return [{'date': r[0], 'temp': r[1]} for r in reversed(rows)]
+    return [{'date': r[0], 'temp': r[1], 'score': r[2]} for r in reversed(rows)]
 
 
-def upsert_daily_temp(conn, temp, today, trading_day=True):
+def upsert_daily_temp(conn, temp, today, trading_day=True, score100=None):
     """오늘 온도를 기록하고 갱신된 이력을 돌려준다(GAS upsertDailyMarketTemp_와 동일).
 
     2026-09-07: 휴장일에는 기록하지 않는다. 토·일에도 3분마다 값이 들어가 추이 차트에
@@ -136,8 +142,10 @@ def upsert_daily_temp(conn, temp, today, trading_day=True):
     ensure_schema(conn)
     if temp is None or not trading_day:
         return read_daily_history(conn)
-    conn.execute('INSERT INTO market_temp_daily(date, temp) VALUES (?, ?) '
-                 'ON CONFLICT(date) DO UPDATE SET temp=excluded.temp', (today, temp))
+    conn.execute('INSERT INTO market_temp_daily(date, temp, score100) VALUES (?, ?, ?) '
+                 'ON CONFLICT(date) DO UPDATE SET temp=excluded.temp, '
+                 'score100=COALESCE(excluded.score100, market_temp_daily.score100)',
+                 (today, temp, score100))
     conn.execute('DELETE FROM market_temp_daily WHERE date NOT IN '
                  '(SELECT date FROM market_temp_daily ORDER BY date DESC LIMIT ?)',
                  (DAILY_HISTORY_MAX,))
@@ -180,9 +188,13 @@ def compute_history(current_temp, stored_history, today):
     }
 
 
-def compute_sparkline(current_temp, stored_history, today):
+def compute_sparkline(current_temp, stored_history, today, current_score=None):
+    """추이 차트용 최근 N일. 2026-09-07부터 3축 종합점수(score)를 함께 싣는다.
+
+    옛 40℃ 온도(temp)와 스케일이 달라 화면은 score가 있는 날만 새 기준으로 그린다.
+    """
     prior = [h for h in stored_history if h['date'] != today][-SPARKLINE_DAYS:]
-    return prior + [{'date': today, 'temp': current_temp}]
+    return prior + [{'date': today, 'temp': current_temp, 'score': current_score}]
 
 
 # ---- 조립 ----
@@ -242,7 +254,12 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
          if not (k == 'creditRisk' and not credit_available)],
         credit_available)
 
-    history_rows = upsert_daily_temp(conn, totals['temp'], today, trading_day=trading_day)
+    # 2026-09-07: 10개 컴포넌트를 돈·가격·위험 3축(각 0~100)과 종합점수(0~100)로 접는다.
+    # "지표가 10개라 아무도 안 본다"는 판단으로 화면의 주인공을 이쪽으로 옮겼다 -
+    # 컴포넌트 원본은 응답에 그대로 남아 '자세히'에서 계속 보인다.
+    summary = score.build_axes(components)
+    history_rows = upsert_daily_temp(conn, totals['temp'], today, trading_day=trading_day,
+                                     score100=summary['score100'])
     # 테마별 자금 흐름은 위에서 이미 받아둔 시세·유니버스만 쓴다 - 외부 호출이 늘지 않는다.
     # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)
@@ -252,15 +269,25 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         data.attach_flow_multiple(industry_flow, baselines)
     except Exception:
         LOGGER.exception('테마 평소 대비 배수 계산 실패 - 거래대금 순위는 그대로 낸다')
+    prior_scores = [h['score'] for h in history_rows
+                    if h['date'] != today and h.get('score') is not None]
     return {
         'score': totals['score'],
         'maxScore': totals['maxScore'],
         'temp': totals['temp'],
         'grade': grade_for_temp(totals['temp']),
+        # 3축 요약. 화면은 이 셋과 score100만 크게 보여준다.
+        'score100': summary['score100'],
+        'axes': summary['axes'],
+        'grade3': summary['grade3'],
+        # 사람이 반응하는 건 절대값보다 "어제보다 얼마"다. 직전 거래일 종합점수와의 차.
+        'scoreDelta': (score._round_half_up(summary['score100'] - prior_scores[-1], 0)
+                       if summary['score100'] is not None and prior_scores else None),
         'components': components,
         'kofia': kofia,
         'history': compute_history(totals['temp'], history_rows, today),
-        'recentDays': compute_sparkline(totals['temp'], history_rows, today),
+        'recentDays': compute_sparkline(totals['temp'], history_rows, today,
+                                       current_score=summary['score100']),
         'updatedAt': now_kst.strftime('%Y-%m-%d %H:%M:%S'),
         'quoteCount': len(quotes),
         'industryFlow': industry_flow,
