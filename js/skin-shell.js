@@ -154,10 +154,39 @@
       : isKrHoliday(new Date(t));
   }
 
+  /* 뉴욕 증시 휴장일(NYSE). 2026-09-07 리포트: 노동절인데 휴장으로 안 나왔다 -
+     여기 표가 아예 없어서 주말만 걸러지고 있었다.
+
+     **뉴욕 현지 날짜** 기준이다(KST가 아니다). 한국 시각으로는 이미 다음 날이어도
+     뉴욕이 아직 그날이면 휴장이다.
+
+     이 표는 매년 갱신해야 한다 - 부활절에 따라 움직이는 성금요일, 주말에 걸리면
+     앞뒤로 옮겨지는 독립기념일·성탄절 때문에 규칙만으로는 못 만든다.
+     (2026: 7/4가 토요일이라 7/3 금요일로 앞당겨 휴장) */
+  var US_HOLIDAYS_2026 = {
+    '2026-01-01': 1,  // 신정
+    '2026-01-19': 1,  // 마틴 루터 킹 데이
+    '2026-02-16': 1,  // 대통령의 날
+    '2026-04-03': 1,  // 성금요일
+    '2026-05-25': 1,  // 메모리얼 데이
+    '2026-06-19': 1,  // 준틴스
+    '2026-07-03': 1,  // 독립기념일(7/4 토요일 -> 금요일로 앞당김)
+    '2026-09-07': 1,  // 노동절
+    '2026-11-26': 1,  // 추수감사절
+    '2026-12-25': 1   // 성탄절
+  };
+
+  /* 조기 마감일(정규장이 13:00 ET에 끝난다). 휴장은 아니라 별도 표다. */
+  var US_EARLY_CLOSE_2026 = {
+    '2026-11-27': 1,  // 추수감사절 다음 날
+    '2026-12-24': 1   // 크리스마스 이브
+  };
+
   /* 뉴욕 현지 시각. 서머타임 규칙을 직접 갖지 않고 Intl에 묻는다. */
   function nyClock(date) {
     var parts = new Intl.DateTimeFormat('en-US', {
       timeZone: 'America/New_York', weekday: 'short',
+      year: 'numeric', month: '2-digit', day: '2-digit',
       hour: '2-digit', minute: '2-digit', hour12: false, timeZoneName: 'short'
     }).formatToParts(date || new Date()).reduce(function (acc, part) {
       acc[part.type] = part.value; return acc;
@@ -166,9 +195,18 @@
     if (hour === 24) hour = 0;                              // 자정을 24로 주는 엔진 대응
     return {
       weekday: parts.weekday,
+      // 뉴욕 현지 날짜. 휴장일 판정은 반드시 이 값으로 한다(KST 날짜가 아니다).
+      dateKey: parts.year + '-' + parts.month + '-' + parts.day,
       minutes: hour * 60 + Number(parts.minute),
       dst: /EDT|GMT-4|GMT-04|UTC-4|UTC-04/.test(String(parts.timeZoneName || ''))
     };
+  }
+
+  /* 뉴욕 현지 날짜가 휴장일인지. 표에 없는 해는 주말만 걸러진다(보수적으로 false). */
+  function isUsHoliday(date) {
+    var clock;
+    try { clock = nyClock(date); } catch (error) { return false; }
+    return !!US_HOLIDAYS_2026[clock.dateKey];
   }
 
   // Intl의 timeZone을 못 쓰는 구형 WebView 폴백. 미국 서머타임은 3월 둘째 일요일
@@ -196,10 +234,18 @@
     var out = { phase: 'closed', open: false, label: '휴장', dst: dst, kst: windows };
     if (!clock) { out.label = '상태 확인 중'; out.phase = 'unknown'; return out; }
     if (clock.weekday === 'Sat' || clock.weekday === 'Sun') return out;
+    if (US_HOLIDAYS_2026[clock.dateKey]) { out.holiday = true; return out; }
+    // 조기 마감일은 정규장이 13:00 ET에 끝나고 애프터마켓도 17:00에 닫힌다.
+    var earlyClose = !!US_EARLY_CLOSE_2026[clock.dateKey];
+    var closeMinute = earlyClose ? M(13) : M(16);
+    var afterEnd = earlyClose ? M(17) : M(20);
+    out.earlyClose = earlyClose;
     var m = clock.minutes;
-    if (m >= M(9, 30) && m < M(16)) { out.phase = 'regular'; out.open = true; out.label = '정규장'; }
-    else if (m >= M(4) && m < M(9, 30)) { out.phase = 'pre'; out.label = '프리마켓'; }
-    else if (m >= M(16) && m < M(20)) { out.phase = 'after'; out.label = '애프터마켓'; }
+    if (m >= M(9, 30) && m < closeMinute) {
+      out.phase = 'regular'; out.open = true;
+      out.label = earlyClose ? '정규장(조기 마감)' : '정규장';
+    } else if (m >= M(4) && m < M(9, 30)) { out.phase = 'pre'; out.label = '프리마켓'; }
+    else if (m >= closeMinute && m < afterEnd) { out.phase = 'after'; out.label = '애프터마켓'; }
     else { out.label = '장 마감'; }
     return out;
   }
@@ -233,6 +279,7 @@
     isKrHoliday: isKrHoliday,
     isKrTradingDay: isKrTradingDay,
     isNightSessionHoliday: isNightSessionHoliday,
+    isUsHoliday: isUsHoliday,
     krCash: krCash,
     krFutures: krFutures,
     us: us,
