@@ -1113,3 +1113,79 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
   }
   #market-temp .mt-flow-periods { gap: 6px; }
 }
+
+/* ── 3축 요약 카드(2026-09-07) ─────────────────────────────────────────────
+   "지표가 10개라 아무도 안 본다"는 판단으로 첫 화면을 숫자 하나 + 3축으로 줄였다.
+   레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 화면에서 뺐다. */
+#market-temp .mt-summary-card { padding: 18px 16px 16px; }
+#market-temp .mt-summary-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #eee;
+}
+#market-temp .mt-summary-score {
+  font: 800 44px/1 var(--font-ui);
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+#market-temp .mt-summary-score small { margin-left: 3px; font-size: 15px; font-weight: 700; color: #888; }
+#market-temp .mt-summary-side { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+#market-temp .mt-val-flat { color: #8b929d; font-weight: 600; }
+#market-temp .mt-summary-grade { font-size: 14px; font-weight: 800; }
+
+#market-temp .mt-axis-list { padding: 12px 0 4px; }
+#market-temp .mt-axis-row {
+  display: grid;
+  /* 이름 · 막대 · 숫자 · 한 단어. 숫자 칸을 고정해야 세 줄의 막대 끝이 맞는다. */
+  grid-template-columns: 74px minmax(0, 1fr) 34px 34px;
+  align-items: center;
+  gap: 0 8px;
+  padding: 5px 0;
+}
+#market-temp .mt-axis-name { font-size: 13px; font-weight: 700; white-space: nowrap; }
+#market-temp .mt-axis-bar {
+  height: 9px;
+  border-radius: 5px;
+  background: #eee;
+  overflow: hidden;
+}
+#market-temp .mt-axis-bar i {
+  display: block;
+  height: 100%;
+  border-radius: 5px;
+  transition: width .5s ease;
+}
+/* 상승 빨강·하락 파랑은 시세용 의미색이라 여기 쓰지 않는다 - 축은 "좋음/보통/나쁨"이다. */
+#market-temp .mt-axis-good { background: #2f9e6b; }
+#market-temp .mt-axis-mid { background: #e0a03c; }
+#market-temp .mt-axis-bad { background: #8b929d; }
+#market-temp .mt-axis-value { font: 800 14px/1 var(--font-ui); text-align: right; font-variant-numeric: tabular-nums; }
+#market-temp .mt-axis-word { color: #8b929d; font-size: 11px; text-align: right; }
+#market-temp .mt-summary-note { padding-top: 10px; color: #8b929d; font-size: 11px; line-height: 1.5; }
+
+#market-temp .mt-detail-fold > summary {
+  padding: 10px 4px;
+  color: #666;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
+#market-temp .mt-detail-fold[open] > summary { margin-bottom: 6px; }
+
+@media (max-width: 720px) {
+  #market-temp .mt-summary-score { font-size: 38px; }
+  #market-temp .mt-axis-row { grid-template-columns: 62px minmax(0, 1fr) 30px 30px; }
+  #market-temp .mt-axis-name { font-size: 12px; }
+}
+
+html.dark #market-temp .mt-summary-head { border-bottom-color: rgba(245, 239, 224, .18) !important; }
+html.dark #market-temp .mt-axis-bar { background: rgba(245, 239, 224, .14) !important; }
+html.dark #market-temp .mt-axis-good { background: #6fcf9a !important; }
+html.dark #market-temp .mt-axis-mid { background: #e6b768 !important; }
+html.dark #market-temp .mt-axis-bad { background: rgba(245, 239, 224, .4) !important; }
+html.dark #market-temp .mt-summary-score small,
+html.dark #market-temp .mt-axis-word,
+html.dark #market-temp .mt-summary-note { color: rgba(245, 239, 224, .55) !important; }

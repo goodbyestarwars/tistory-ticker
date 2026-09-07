@@ -1968,6 +1968,35 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 1280이 되어 이 미디어쿼리에 걸리는데 버튼까지 사라지면 되돌릴 수 없다.
         self.assertIn("html:not(.view-pc) .site-footer-viewmode { display: none; }", style)
 
+    def test_market_temp_front_page_is_one_score_and_three_axes(self):
+        """증시온도 단순화(2026-09-07).
+
+        "지표가 10개라 아무도 안 본다"는 사용자 판단. 첫 화면을 종합점수 하나 + 돈·가격·
+        위험 3축으로 줄이고, 10개 컴포넌트 막대는 '자세히'로 접었다. 레이더 차트는 같은
+        값을 막대와 두 번 그리던 것이라 뺐다.
+        """
+        source = self.read("js/market-temp.js")
+        self.assertIn("function buildSummaryCard(data)", source)
+        self.assertIn("buildSummaryCard(data),", source)
+        self.assertIn("var AXIS_ORDER = [", source)
+        for token in ("{ key: 'money'", "{ key: 'price'", "{ key: 'risk'"):
+            self.assertIn(token, source)
+        # 10개 컴포넌트는 사라지지 않고 접힌다.
+        self.assertIn("<summary>자세히 - 지표 10개</summary>", source)
+        # 레이더 차트와 2열 래퍼는 화면에서 뺐다.
+        self.assertNotIn("function buildRadar(", source)
+        self.assertNotIn("function row2col(", source)
+        # 서버가 내려주는 3축 종합점수를 우선 쓴다.
+        self.assertIn("var summary = Number(data && data.score100);", source)
+        # 2026-09-02 요청 기능(상승·하락 코스피/코스닥 따로)은 버리지 않고 요약 카드로 옮겼다.
+        self.assertIn("+ buildBreadth(data)", source)
+        # 비교할 어제가 없는 것과 "어제와 같음"을 뭉뚱그리지 않는다.
+        self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
+
+        style = self.read("css/market-temp.css")
+        self.assertIn("#market-temp .mt-summary-score {", style)
+        self.assertIn("#market-temp .mt-axis-row {", style)
+
     def test_flow_sort_select_is_bound_to_change_not_click(self):
         """차트 흐름별 탐색의 정렬 <select>는 change로 받아야 한다.
 

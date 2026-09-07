@@ -373,7 +373,9 @@ class MarketTempAssemblyTest(unittest.TestCase):
             mt.upsert_daily_temp(conn, 20.0, '2026-08-31')
             mt.upsert_daily_temp(conn, 24.0, '2026-08-31')   # 같은 날 재계산 -> 덮어쓰기
             rows = mt.read_daily_history(conn)
-            self.assertEqual(rows, [{'date': '2026-08-31', 'temp': 24.0}])
+            # 2026-09-07: 3축 종합점수(score100)를 같은 행에 따로 담는다. 옛 40℃ 온도와
+            # 스케일이 달라 같은 컬럼에 섞으면 추이 차트가 전환일에 튄다.
+            self.assertEqual(rows, [{'date': '2026-08-31', 'temp': 24.0, 'score': None}])
             for i in range(1, mt.DAILY_HISTORY_MAX + 20):
                 mt.upsert_daily_temp(conn, float(i), '2026-%02d-%02d' % (1 + i // 28, 1 + i % 28))
             self.assertLessEqual(len(mt.read_daily_history(conn)), mt.DAILY_HISTORY_MAX)
@@ -398,8 +400,9 @@ class MarketTempAssemblyTest(unittest.TestCase):
     def test_sparkline_appends_today_after_prior_days(self):
         import market_temp as mt
         hist = [{'date': '2026-08-28', 'temp': 20.0}, {'date': '2026-08-31', 'temp': 24.0}]
-        got = mt.compute_sparkline(24.0, hist, '2026-08-31')
-        self.assertEqual(got[-1], {'date': '2026-08-31', 'temp': 24.0})
+        got = mt.compute_sparkline(24.0, hist, '2026-08-31', current_score=66.0)
+        # 2026-09-07: 추이도 3축 종합점수로 그리므로 오늘 항목에 score를 함께 싣는다.
+        self.assertEqual(got[-1], {'date': '2026-08-31', 'temp': 24.0, 'score': 66.0})
         self.assertEqual([g['date'] for g in got], ['2026-08-28', '2026-08-31'])
 
     def test_missing_credit_risk_lowers_max_score_so_temperature_stays_normalised(self):
@@ -760,3 +763,51 @@ class BreadthFailureIsolationTest(unittest.TestCase):
         with mock.patch.object(kis_client, 'get_token', return_value='t'), \
              mock.patch.object(kis_client, 'fetch_index_price', return_value={}):
             self.assertIsNone(self.mtd.fetch_market_breadth('key', 'secret'))
+
+
+class ThreeAxisSummaryTest(unittest.TestCase):
+    """3축 요약(2026-09-07). "지표가 10개라 아무도 안 본다"는 판단으로 도입."""
+
+    # 2026-09-07 13:31 라이브 실측 컴포넌트(거래대금만 #409 적용 후 값 7로).
+    LIVE = {
+        'vix': {'score': 20}, 'flow': {'score': 10}, 'tradingValue': {'score': 7},
+        'avgChange': {'score': 12}, 'riseRatio': {'score': 8}, 'sectorStrength': {'score': 7},
+        'week52': {'score': 6}, 'exchange': {'score': 2.6}, 'usFutures': {'score': 2.5},
+        'creditRisk': {'score': 8},
+    }
+
+    def test_axes_are_simple_averages_of_their_components(self):
+        got = mts.build_axes(self.LIVE)
+        # 돈 = (7/15 + 10/20)/2 = 0.4833
+        self.assertEqual(got['axes']['money']['value'], 48)
+        # 가격 = (12/15 + 8/10 + 6/10)/3 = 0.7333
+        self.assertEqual(got['axes']['price']['value'], 73)
+        # 위험 = 100 - (20/20 + 2.6/5 + 8/10)/3 = 100 - 77.33
+        self.assertEqual(got['axes']['risk']['value'], 23)
+        self.assertTrue(got['axes']['risk']['inverted'])
+
+    def test_total_is_the_average_of_three_axes_with_risk_flipped_back(self):
+        got = mts.build_axes(self.LIVE)
+        self.assertEqual(got['score100'], 66)   # (48.3 + 73.3 + 77.3)/3
+        self.assertEqual(got['grade3']['label'], '보통')
+
+    def test_dropped_components_do_not_move_the_total(self):
+        """섹터강도·미국선물은 축에서 뺐다 - 값이 바뀌어도 종합점수는 그대로여야 한다."""
+        louder = dict(self.LIVE)
+        louder['sectorStrength'] = {'score': 0}
+        louder['usFutures'] = {'score': 5}
+        self.assertEqual(mts.build_axes(louder)['score100'],
+                         mts.build_axes(self.LIVE)['score100'])
+
+    def test_missing_component_is_skipped_not_counted_as_zero(self):
+        without_credit = dict(self.LIVE)
+        without_credit['creditRisk'] = {'score': None}
+        got = mts.build_axes(without_credit)
+        # 위험 = 100 - (20/20 + 2.6/5)/2 = 100 - 76
+        self.assertEqual(got['axes']['risk']['value'], 24)
+
+    def test_three_grades_replace_the_old_five(self):
+        self.assertEqual(mts.grade_for_score100(49)['label'], '공포')
+        self.assertEqual(mts.grade_for_score100(50)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(74)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(75)['label'], '과열')
