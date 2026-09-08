@@ -1,5 +1,42 @@
 # 9Pay 주요 작업이력
 
+**2026-09-08 뉴스가 느린 진짜 원인 - 번역이 요청 경로에 있었다**
+
+VM 재시작으로 뉴스가 다시 뜬 뒤에도 "엄청 느리다"는 리포트. 같은 요청을 연속 두 번
+태워 캐시가 실제로 먹는지 갈랐다.
+
+| 요청 | 결과 |
+|---|---|
+| `/domestic-news?limit=25` 2회차 | 5.84초, **`src: "cache"`** |
+| `/foreign-news?limit=25` 1회차 / 2회차 | 5.53초 / 5.64초 (차이 없음) |
+
+**캐시를 맞췄는데 5.8초**다. 즉 느린 곳은 캐시 조회가 아니라 그 뒤였다.
+
+`news_aggregator.get_general_news()`의 캐시 히트 경로가 매번
+`translate_news_titles(...)`를 부르고 있었다. 번역은 메모리·SQLite 캐시를 먼저 보지만,
+거기 없는 제목이 **하나라도** 있으면 `_translate_title_batch()`로 외부 엔드포인트
+(`translate.googleapis.com` -> mymemory 폴백)를 동기 호출한다. 뉴스는 계속 새 제목이
+들어오므로 사실상 매 요청이 번역 왕복을 물었다. 방문자가 그걸 기다린 것이다.
+
+- `_translations_for_titles(titles, allow_fetch=True)`: `False`면 캐시(메모리·SQLite)만
+  보고 끝낸다.
+- `translate_news_titles(items, max_items, allow_fetch=True)`: `False`면 캐시에 있는 것만
+  붙이고, 빠진 제목은 `_backfill_translations_async()`로 백그라운드에 넘긴다.
+  다음 요청부터 한국어가 나온다.
+- `get_general_news`의 **캐시 히트 경로만** `allow_fetch=False`로 바꿨다. 캐시 갱신
+  경로는 워머가 타는 자리라 그대로 둔다.
+- 보충 스레드는 한 번에 하나만 돈다 - 방문자가 몰릴 때 같은 제목을 여러 스레드가 동시에
+  번역하러 나가면 무료 엔드포인트가 429로 막힌다(5분 쿨다운).
+
+첫 노출에서 새 기사 제목이 잠깐 영어로 보일 수 있다. 5.8초를 기다리는 것보다 낫다고 봤다.
+
+검증: `pytest test/test_news_aggregator.py` 22 passed(신규 4건 - 요청 경로가 번역기를
+직접 부르지 않고 백그라운드로 넘기는지, 이미 캐시된 건 그대로 붙는지, 기본 경로는
+여전히 번역하는지, 캐시 히트 경로가 `allow_fetch=False`인지). 전체 635 passed.
+
+앞선 조치도 함께 기록: VM 자동 배포(#413 머지)가 `sudo systemctl restart kiwoom-api`를
+수행해 뉴스 핸들러 교착이 풀렸다 - SSH 없이 배포 타이머로 재시작한 사례다.
+
 **2026-09-08 응답시간 모니터 - 한글 쿼리 인코딩 누락 수정 + 뉴스 엔드포인트 추가**
 
 주요 뉴스 장애를 쫓다가 `/health/latency` 로그에서 두 가지를 발견했다.

@@ -550,7 +550,14 @@ def _translate_title_batch(titles):
         return cached
 
 
-def _translations_for_titles(titles):
+def _translations_for_titles(titles, allow_fetch=True):
+    """제목 -> 한국어. `allow_fetch=False`면 캐시(메모리·SQLite)만 보고 끝낸다.
+
+    2026-09-08: 외부 번역 호출이 **요청 경로에 있었다.** `get_general_news`가 캐시를
+    맞춘 뒤에도 매번 이 함수를 불렀고, 캐시에 없는 제목이 하나라도 있으면 방문자가
+    번역 왕복을 그대로 기다렸다(실측: `src=cache`인데 응답 5.8초). 방문자를 막는
+    경로에서는 `allow_fetch=False`로 부르고, 빠진 건 백그라운드에서 채운다.
+    """
     titles = list(dict.fromkeys(str(title or '').strip() for title in titles if str(title or '').strip()))
     result = {}
     with TRANSLATION_CACHE_LOCK:
@@ -562,6 +569,8 @@ def _translations_for_titles(titles):
         with TRANSLATION_CACHE_LOCK:
             _translation_cache.update(persisted)
     missing = [title for title in missing if title not in result]
+    if not allow_fetch:
+        return result
     for start in range(0, len(missing), TRANSLATION_BATCH_SIZE):
         translated = _translate_title_batch(missing[start:start + TRANSLATION_BATCH_SIZE])
         if translated:
@@ -572,6 +581,36 @@ def _translations_for_titles(titles):
     return result
 
 
+# 번역 보충은 한 번에 하나만 돈다 - 방문자가 몰릴 때 같은 제목을 여러 스레드가
+# 동시에 번역하러 나가면 무료 엔드포인트가 429로 막힌다(5분 쿨다운).
+TRANSLATION_BACKFILL_LOCK = threading.Lock()
+_translation_backfill_running = False
+
+
+def _backfill_translations_async(titles):
+    """요청을 막지 않고 번역 캐시를 채운다. 다음 요청부터 한국어가 붙는다."""
+    global _translation_backfill_running
+    pending = [title for title in dict.fromkeys(titles) if title]
+    if not pending:
+        return
+    with TRANSLATION_BACKFILL_LOCK:
+        if _translation_backfill_running:
+            return
+        _translation_backfill_running = True
+
+    def run():
+        global _translation_backfill_running
+        try:
+            _translations_for_titles(pending, allow_fetch=True)
+        except Exception:
+            logging.getLogger(__name__).debug('뉴스 제목 번역 보충 실패', exc_info=True)
+        finally:
+            with TRANSLATION_BACKFILL_LOCK:
+                _translation_backfill_running = False
+
+    threading.Thread(target=run, name='news-translation-backfill', daemon=True).start()
+
+
 def translate_news_title(title):
     """Translate one public headline, reusing the same persistent free cache."""
     text = str(title or '').strip()
@@ -580,19 +619,25 @@ def translate_news_title(title):
     return _translations_for_titles([text]).get(text, text)
 
 
-def translate_news_titles(items, max_items=10):
-    """Attach successful Korean translations without caching failure fallbacks."""
+def translate_news_titles(items, max_items=10, allow_fetch=True):
+    """Attach successful Korean translations without caching failure fallbacks.
+
+    `allow_fetch=False`는 방문자를 막지 않는 모드다 - 캐시에 있는 것만 붙이고, 빠진
+    제목은 백그라운드로 넘겨 다음 요청부터 한국어가 나오게 한다.
+    """
     rows = list(items or [])
     selected = rows[:max(0, int(max_items or 0))]
     if not selected:
         return rows
     titles = [str(item.get('title') or '').strip() for item in selected]
-    translations = _translations_for_titles(titles)
+    translations = _translations_for_titles(titles, allow_fetch=allow_fetch)
     for item, title in zip(selected, titles):
         if title in translations:
             item['title_ko'] = translations[title]
         else:
             item.pop('title_ko', None)
+    if not allow_fetch:
+        _backfill_translations_async([title for title in titles if title and title not in translations])
     return rows
 
 
@@ -606,7 +651,9 @@ def get_general_news(alpha_api_key='', finnhub_api_key='', limit=20, ttl_sec=Non
     now = time.time()
     fetched_at, cached_items = _general_news_cache
     if fetched_at and now - fetched_at < ttl:
-        translate_news_titles(cached_items, max_items=min(20, len(cached_items)))
+        # 캐시를 맞춘 요청은 외부 번역 왕복을 기다리지 않는다(2026-09-08 실측:
+        # src=cache인데 5.8초였던 원인). 빠진 제목은 백그라운드가 채운다.
+        translate_news_titles(cached_items, max_items=min(20, len(cached_items)), allow_fetch=False)
         return list(cached_items[:max(1, int(limit))])
 
     # 2026-08-31: 아래 갱신은 여러 공급자(RSS 2곳 + Finnhub + Alpha)를 다 받을 때까지
