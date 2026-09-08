@@ -3,6 +3,7 @@ import os
 import sys
 import tempfile
 import time
+import inspect
 import unittest
 from unittest import mock
 
@@ -388,3 +389,68 @@ class GeneralNewsStaleWhileRevalidateTest(unittest.TestCase):
             news_aggregator.get_general_news(limit=5)
         self.assertEqual(len(calls), 1, '캐시가 없으면 건너뛰지 말고 실제로 받아와야 한다')
         self.assertFalse(news_aggregator.GENERAL_NEWS_CACHE_LOCK.locked(), '락이 반드시 풀려야 한다')
+
+
+class TranslationOffRequestPathTest(unittest.TestCase):
+    """번역이 요청 경로를 막지 않아야 한다(2026-09-08).
+
+    `get_general_news`가 캐시를 맞춘 뒤에도 매번 번역을 돌렸고, 캐시에 없는 제목이
+    하나라도 있으면 방문자가 외부 번역 왕복을 그대로 기다렸다 - 실측에서 `src=cache`인데
+    응답이 5.8초였다.
+    """
+
+    def setUp(self):
+        news_aggregator._translation_cache.clear()
+        self.calls = []
+
+        def fake_batch(titles):
+            self.calls.append(list(titles))
+            return {title: '번역:' + title for title in titles}
+
+        self._real_batch = news_aggregator._translate_title_batch
+        self._real_persist = news_aggregator._load_persistent_translations
+        news_aggregator._translate_title_batch = fake_batch
+        news_aggregator._load_persistent_translations = lambda titles: {}
+
+    def tearDown(self):
+        news_aggregator._translate_title_batch = self._real_batch
+        news_aggregator._load_persistent_translations = self._real_persist
+        news_aggregator._translation_cache.clear()
+
+    def test_allow_fetch_false_hands_missing_titles_to_the_background(self):
+        # 백그라운드 보충은 스레드라 경합이 생긴다 - 여기서는 "요청 경로가 직접
+        # 번역하지 않고 넘겼는지"만 본다(실제 번역은 다음 요청에 반영된다).
+        handed = []
+        real_backfill = news_aggregator._backfill_translations_async
+        news_aggregator._backfill_translations_async = lambda titles: handed.append(list(titles))
+        try:
+            items = [{'title': 'Fed holds rates steady'}]
+            news_aggregator.translate_news_titles(items, max_items=1, allow_fetch=False)
+        finally:
+            news_aggregator._backfill_translations_async = real_backfill
+        self.assertEqual([], self.calls, '요청 경로에서 외부 번역을 부르면 안 된다')
+        self.assertEqual([['Fed holds rates steady']], handed)
+        self.assertNotIn('title_ko', items[0])
+
+    def test_allow_fetch_false_still_uses_what_is_already_cached(self):
+        news_aggregator._translation_cache['Fed holds rates steady'] = '연준 금리 동결'
+        real_backfill = news_aggregator._backfill_translations_async
+        news_aggregator._backfill_translations_async = lambda titles: None
+        try:
+            items = [{'title': 'Fed holds rates steady'}]
+            news_aggregator.translate_news_titles(items, max_items=1, allow_fetch=False)
+        finally:
+            news_aggregator._backfill_translations_async = real_backfill
+        self.assertEqual('연준 금리 동결', items[0]['title_ko'])
+        self.assertEqual([], self.calls)
+
+    def test_default_still_translates(self):
+        items = [{'title': 'Jobs report beats estimates'}]
+        news_aggregator.translate_news_titles(items, max_items=1)
+        self.assertEqual(1, len(self.calls))
+        self.assertEqual('번역:Jobs report beats estimates', items[0]['title_ko'])
+
+    def test_cache_hit_path_does_not_block_on_translation(self):
+        """get_general_news의 캐시 히트 경로가 allow_fetch=False로 부르는지 고정한다."""
+        source = inspect.getsource(news_aggregator.get_general_news)
+        self.assertIn('allow_fetch=False', source)
