@@ -122,3 +122,35 @@ class BuildUrlEncodingTest(unittest.TestCase):
         # 화면이 실제로 부르는 건수와 같아야 체감과 같은 숫자가 나온다.
         self.assertEqual('25', params['/domestic-news']['limit'])
         self.assertEqual('25', params['/foreign-news']['limit'])
+
+
+class OverseasQuoteDiagnosticTest(unittest.TestCase):
+    """미국 애프터장 실측용 진단 엔드포인트(2026-09-08).
+
+    "애프터장 반영이 안 된다"는 리포트를 데이터로 확인하려면 KIS 원본 응답이 애프터
+    시간대에 움직이는지 봐야 한다. 이 샌드박스에는 fastapi가 없어 실행 대신 소스로
+    계약을 고정한다.
+    """
+
+    def setUp(self):
+        path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            'scripts', 'cloud-vm', 'main.py')
+        with open(path, encoding='utf-8') as handle:
+            self.source = handle.read()
+
+    def test_route_exists_and_returns_raw_kis_fields(self):
+        self.assertIn("@app.get('/health/overseas-quote')", self.source)
+        self.assertIn("kis_client.fetch_overseas_price(token, appkey, appsecret, exchange, symbol)",
+                      self.source)
+        # 원본을 그대로 실어야 어느 필드가 애프터에 움직이는지 볼 수 있다.
+        self.assertIn("'raw': row,", self.source)
+
+    def test_inputs_are_restricted(self):
+        # EXCD는 알려진 미국 거래소만, 티커는 문자와 점만 받는다.
+        self.assertIn("if exchange not in ('NAS', 'NYS', 'AMS'):", self.source)
+        self.assertIn("allowed = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ.')", self.source)
+        # main.py는 re를 import하지 않으므로 정규식을 쓰면 런타임에 NameError가 난다.
+        self.assertNotIn('\nimport re\n', self.source)
+
+    def test_missing_credentials_do_not_raise(self):
+        self.assertIn("'configured': False, 'message': 'KIS 인증정보 미설정'", self.source)

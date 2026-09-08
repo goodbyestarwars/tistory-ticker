@@ -862,6 +862,51 @@ def reset_user_sector_cards(request: Request):
     return envelope(_load_user_sector_cards(request))
 
 
+@app.get('/health/overseas-quote')
+def overseas_quote_health(symb: str = Query('AAPL', min_length=1, max_length=8),
+                          excd: str = Query('NAS', min_length=3, max_length=3)):
+    """KIS 해외주식 현재가상세(HHDFS76200200) **원본 필드**를 그대로 보여주는 진단용.
+
+    2026-09-08 사용자 리포트("미국 증시 애프터장 반영이 안 된다")를 데이터로 확인하려고
+    추가했다. 미국 애프터장(16:00~20:00 ET = KST 05:00~09:00)에 이 값이 실제로 움직이는지,
+    움직인다면 어느 필드인지를 알아야 화면을 어떻게 고칠지 정할 수 있다 - KIS가 애프터
+    시세를 주는지 자체가 리포에 기록이 없고, 추측으로 파라미터를 바꾸면 헛돈다.
+
+    인증 없음 - `/health/latency`와 같은 공개 수준이고, 시세 자체는 `/market-board`가
+    이미 공개한다. EXCD는 알려진 미국 거래소 코드만 받는다.
+    """
+    exchange = str(excd or '').strip().upper()
+    if exchange not in ('NAS', 'NYS', 'AMS'):
+        raise HTTPException(status_code=400, detail='excd must be one of NAS, NYS, AMS')
+    # main.py는 re를 import하지 않는다 - 티커 검증은 단순 문자 검사로 충분하다.
+    symbol = str(symb or '').strip().upper()
+    allowed = set('ABCDEFGHIJKLMNOPQRSTUVWXYZ.')
+    if not symbol or symbol[0] == '.' or any(ch not in allowed for ch in symbol):
+        raise HTTPException(status_code=400, detail='symb must be a US ticker')
+    appkey = os.environ.get('KIS_APPKEY', '').strip()
+    appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not (appkey and appsecret):
+        return envelope({'configured': False, 'message': 'KIS 인증정보 미설정'})
+    now_kst = datetime.now(timezone(timedelta(hours=9)))
+    try:
+        token = kis_client.get_token(appkey, appsecret)
+        row = kis_client.fetch_overseas_price(token, appkey, appsecret, exchange, symbol)
+        if isinstance(row, list):
+            row = row[0] if row else {}
+    except Exception as exc:
+        return envelope({'configured': True, 'symb': symbol, 'excd': exchange,
+                         'error': str(exc)[:300], 'kst': now_kst.isoformat(timespec='seconds')})
+    # 애프터장 판정에 쓸 만한 필드만 추려서 앞에 놓고, 원본도 통째로 함께 낸다.
+    picked = {key: row.get(key) for key in ('last', 'base', 'open', 'high', 'low',
+                                            'tvol', 'tamt', 'rate', 'diff', 'sign')}
+    return envelope({
+        'configured': True, 'symb': symbol, 'excd': exchange,
+        'kst': now_kst.isoformat(timespec='seconds'),
+        'picked': picked,
+        'raw': row,
+    })
+
+
 @app.get('/health/latency')
 def latency_health(lines: int = Query(50, ge=1, le=500)):
     """latency_monitor.py(deploy_check.sh가 5분마다 백그라운드로 실행)가 남기는 로컬
