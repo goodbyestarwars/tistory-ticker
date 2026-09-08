@@ -19,12 +19,19 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  // 시장별로 FETCH_LIMIT만큼 받아 섞은 뒤 12시간 컷을 적용하고 RENDER_LIMIT으로 자른다.
-  // 컷 때문에 버려지는 몫이 있으니 받는 수는 화면 상한보다 넉넉해야 한다.
-  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=50';
-  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=50';
+  // 시장별로 FETCH_LIMIT만큼 받아 12시간 컷·시장별 상한을 적용한 뒤 섞는다.
+  //
+  // 2026-09-08: 받는 수를 50 -> 25로 내렸다. 시장별 상한(MARKET_LIMIT)이 25인데 50을
+  // 받고 있었다 - API가 최신순으로 주므로 뒤 25건은 어떤 경우에도 버려지는 몫이었고,
+  // 12시간 컷도 "오래된 것"만 걷어내니 더 받아봐야 최신 기사가 늘지 않는다. 서버를
+  // 두 배로 굴리기만 했다(2026-09-06 시장별 상한을 넣으면서 받는 수를 같이 안 내린 실수).
+  var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
+  var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
   var REFRESH_MS = 5 * 60 * 1000;
-  var FETCH_TIMEOUT_MS = 15000;
+  // 2026-09-08 실측: /foreign-news가 5건에 13.5초 걸리는 상태였다(캐시 미스 시 외부
+  // 소스를 요청 경로에서 부르는 구조). 15초는 여유가 없어 서버가 조금만 느려도 양쪽이
+  // 다 실패하고 "뉴스를 불러오지 못했습니다"만 남는다.
+  var FETCH_TIMEOUT_MS = 25000;
   // 실패가 잠깐이면(서버 재시작·순간 혼잡·429) 5분을 기다리지 않고 한 번 더 시도한다.
   var RETRY_MS = 6000;
   // 탭에 돌아올 때마다 다시 부르면 앱을 몇 번 오가는 것만으로 요청이 쌓인다.
@@ -32,7 +39,7 @@
   // 지났을 때만 다시 부른다.
   var STALE_MS = 60 * 1000;
   // 시장별로 받아 와 섞으므로 한쪽이 시간대를 독차지하지 않게 같은 수로 자른다.
-  var FETCH_LIMIT = 50;
+  var FETCH_LIMIT = 25;
   // 시장별 상한. 합친 뒤에 한 번만 자르면 발행이 잦은 쪽이 목록을 통째로 먹는다 -
   // 2026-09-06 실측: 국내 50건이 12:00~14:16(2시간 16분)에 몰려 있었고, 미국 최신
   // 기사(11:30)는 시간순으로 51번째 뒤로 밀려 화면에서 통째로 사라졌다. 시장마다

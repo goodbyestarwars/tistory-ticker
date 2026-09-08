@@ -3114,9 +3114,14 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 2026-09-06: 최근 12시간 컷 + 최종 상한 50건. 컷에서 떨어지는 몫이 있으니
         # 받는 수(FETCH_LIMIT)는 화면 상한과 같은 50으로 두고, 컷 결과가 너무 적으면
         # 컷을 포기하고 최신순으로 채운다(새벽·주말 대비).
-        self.assertIn("domestic-news?kind=news&limit=50", source)
-        self.assertIn("foreign-news?limit=50", source)
-        self.assertIn("var FETCH_LIMIT = 50;", source)
+        # 2026-09-08: 받는 수를 시장별 상한과 같은 25로 내렸다. API가 최신순으로 주므로
+        # 50을 받아도 뒤 25건은 버려지는 몫이었다(서버만 두 배로 굴림).
+        self.assertIn("domestic-news?kind=news&limit=25", source)
+        self.assertIn("foreign-news?limit=25", source)
+        self.assertIn("var FETCH_LIMIT = 25;", source)
+        self.assertIn("var MARKET_LIMIT = 25;", source)
+        # 실측 13.5초까지 걸리는 구간이 있어 15초로는 양쪽이 다 실패한다.
+        self.assertIn("var FETCH_TIMEOUT_MS = 25000;", source)
         self.assertIn("var RENDER_LIMIT = 50;", source)
         self.assertIn("var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;", source)
         # 2026-09-06 실측: 국내 50건이 2시간 16분에 몰려 있어, 합친 뒤 한 번만 자르면
