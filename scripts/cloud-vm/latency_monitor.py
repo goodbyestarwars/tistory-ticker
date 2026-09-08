@@ -13,6 +13,7 @@ localhost(같은 VM 안)만 호출한다 - 순수 서버 처리시간이 목적�
 """
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 
@@ -38,6 +39,11 @@ def _endpoints():
         ('/investor-trend', {'period': 'day', 'market': 'kospi'}),
         ('/foreign-flow/%s' % REPRESENTATIVE_CODE, {'days': str(_foreign_flow_days_for_now())}),
         ('/investor-flow/%s' % REPRESENTATIVE_CODE, {'name': REPRESENTATIVE_NAME}),
+        # 2026-09-08 추가: 주요 뉴스가 "불러오지 못했습니다"로 멈췄을 때 이 목록에 뉴스가
+        # 없어서 /health/latency만으로는 원인을 못 좁히고 VM SSH까지 갔다. 화면이 실제로
+        # 부르는 건수(25)와 같게 재야 그 화면의 체감과 같은 숫자가 나온다.
+        ('/domestic-news', {'kind': 'news', 'limit': '25'}),
+        ('/foreign-news', {'limit': '25'}),
     ]
 
 
@@ -47,10 +53,16 @@ TIMEOUT_SEC = 25  # 프론트 클라이언트 타임아웃(20초)보다 살짝 �
 
 
 def _build_url(path, params):
+    """쿼리는 반드시 퍼센트 인코딩한다.
+
+    2026-09-08: `name=삼성전자`를 그대로 붙이고 있어서 `/investor-flow`가 5분마다
+    `ERR:UnicodeEncodeError`로 실패하고 있었다(0.000초 - 요청을 보내기도 전에
+    urlopen이 URL을 ASCII로 인코딩하려다 터진 것). 덕분에 이 엔드포인트의 응답시간은
+    도입 이후 한 번도 측정된 적이 없었다.
+    """
     if not params:
         return BASE_URL + path
-    query = '&'.join('%s=%s' % (k, v) for k, v in params.items())
-    return BASE_URL + path + '?' + query
+    return BASE_URL + path + '?' + urllib.parse.urlencode(params)
 
 
 def check_one(path, params):
