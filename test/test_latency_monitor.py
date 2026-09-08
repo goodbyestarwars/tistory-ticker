@@ -94,3 +94,31 @@ class TrimLogTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class BuildUrlEncodingTest(unittest.TestCase):
+    """쿼리 퍼센트 인코딩(2026-09-08).
+
+    `name=삼성전자`를 그대로 붙이고 있어서 `/investor-flow`가 5분마다
+    `ERR:UnicodeEncodeError`로 실패했다 - 0.000초, 즉 요청을 보내기도 전에 urlopen이
+    URL을 ASCII로 인코딩하려다 터진 것이라 이 엔드포인트는 도입 이후 한 번도 측정된 적이
+    없었다.
+    """
+
+    def test_non_ascii_query_is_percent_encoded(self):
+        url = latency_monitor._build_url('/investor-flow/005930', {'name': '삼성전자'})
+        self.assertIn('name=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90', url)
+        url.encode('ascii')   # urlopen이 하는 일 - 여기서 터지면 안 된다
+
+    def test_url_without_params_is_untouched(self):
+        self.assertTrue(latency_monitor._build_url('/futures', {}).endswith('/futures'))
+
+    def test_news_endpoints_are_watched(self):
+        """뉴스가 멈췄을 때 /health/latency만으로 원인을 좁힐 수 있어야 한다."""
+        paths = [path for path, _ in latency_monitor._endpoints()]
+        self.assertIn('/domestic-news', paths)
+        self.assertIn('/foreign-news', paths)
+        params = dict(latency_monitor._endpoints())
+        # 화면이 실제로 부르는 건수와 같아야 체감과 같은 숫자가 나온다.
+        self.assertEqual('25', params['/domestic-news']['limit'])
+        self.assertEqual('25', params['/foreign-news']['limit'])
