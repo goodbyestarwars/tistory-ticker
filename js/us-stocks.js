@@ -750,8 +750,12 @@
       var dateText = isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' });
       return '<a class="app-news-event ss-news-item us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
         + '<div class="app-news-date"><strong>' + escapeHtml(dateText) + '</strong><small>' + escapeHtml(formatNewsTime(pubDate)) + '</small></div>'
-        + '<div class="app-news-rail ss-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
-        + '<div class="app-news-body ss-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
+        // 2026-09-12: 레일에 us-stocks-news-rail을 빠뜨려 css/us-stocks.css의 레일 디자인이
+        // 한 번도 적용된 적이 없었다. #stock-search 안에 임베드될 때만 .ss-news-rail 규칙이
+        // 닿고, 독립 미국주식 페이지에서는 공통 .app-news-rail로 폴백해 선이 열 왼쪽 끝에
+        // 붙어 날짜/시간 바로 옆에 그려졌다(사용자 리포트).
+        + '<div class="app-news-rail ss-news-rail us-stocks-news-rail" aria-hidden="true"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
+        + '<div class="app-news-body ss-news-body us-stocks-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--미국">미국</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
         + '<strong>' + escapeHtml(item.title_ko || item.title || '') + '</strong></div></a>';
     }).join('') + '</div>';
   }

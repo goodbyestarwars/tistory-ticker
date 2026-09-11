@@ -46,6 +46,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("event.stopImmediatePropagation()", shell)
         self.assertIn("(window.top || window).location.href = writeUrl", shell)
 
+    def test_us_related_news_rail_uses_its_own_style(self):
+        """미국 관련 뉴스 레일이 css/us-stocks.css의 디자인을 실제로 입는다.
+
+        2026-09-12 사용자 리포트("미국장 뉴스만 이렇게 나와"). 마크업이
+        `app-news-rail ss-news-rail`만 달고 있어서 us-stocks.css의 레일 규칙이 한 번도
+        적용된 적이 없었다. `.ss-news-rail` 규칙은 `#stock-search` 안에서만 닿으므로,
+        독립 미국주식 페이지에서는 공통 `.app-news-rail`로 폴백해 선이 열 왼쪽 끝
+        (날짜 바로 옆)에 그려졌다. 로컬 렌더로 재현·확인함.
+        """
+        source = self.read("js/us-stocks.js")
+        style = self.read("css/us-stocks.css")
+        self.assertIn('class="app-news-rail ss-news-rail us-stocks-news-rail"', source)
+        self.assertIn('class="app-news-body ss-news-body us-stocks-news-body"', source)
+        # 공통 .app-news-rail의 border-left를 끄지 않으면 열 왼쪽(폴백 선)과
+        # 가운데(::after 선)에 선이 두 줄로 겹친다.
+        self.assertIn(".us-stocks-news-item .us-stocks-news-rail", style)
+        self.assertIn("border-left: 0", style)
+
     def test_stale_skin_workarounds_are_gone_after_the_skin_was_applied(self):
         """2026-09-11: 운영 스킨을 저장소 skin.html로 갱신해서 런타임 우회를 걷어냈다.
 

@@ -131,7 +131,9 @@
 .us-stocks-news-group h5 { display: flex; align-items: baseline; gap: 6px; margin: 8px 0 0; padding-bottom: 5px; border-bottom: 1px solid #eef2f7; color: #334155; font-size: 13px; }
 .us-stocks-news-group h5 small { color: #94a3b8; font-size: 11px; font-weight: 500; }
 .us-stocks-news-item { position: relative; display: grid; grid-template-columns: 56px 13px minmax(0, 1fr); align-items: start; gap: 10px; min-width: 0; padding: 9px 0 11px; color: inherit; text-decoration: none; }
-.us-stocks-news-rail { position: relative; display: block; width: auto; min-height: 62px; }
+/* 공통 .app-news-rail이 열 왼쪽 끝에 긋는 1px 선을 끈다. 여기서는 아래 ::after가
+   열 가운데(left:6px)에 선을 그으므로, 끄지 않으면 선이 두 줄로 겹친다. */
+.us-stocks-news-item .us-stocks-news-rail { position: relative; display: block; width: auto; min-height: 62px; border-left: 0; }
 .us-stocks-news-rail::after { content: ''; position: absolute; top: 12px; bottom: -11px; left: 6px; width: 1px; background: #e5e7eb; }
 .us-stocks-news-item:last-child .us-stocks-news-rail::after { display: none; }
 .us-stocks-news-rail i { position: absolute; z-index: 1; top: 4px; left: 2px; width: 7px; height: 7px; border: 2px solid #cbd5e1; border-radius: 50%; background: rgb(255, 254, 252); box-sizing: border-box; }
