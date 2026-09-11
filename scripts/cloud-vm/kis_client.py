@@ -10,7 +10,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,12 @@ _token_cache = {'token': None, 'expires_at': 0}
 _approval_lock = threading.Lock()
 _approval_cache = {'key': None, 'issued_at': 0}
 _APPROVAL_TTL = 12 * 3600  # 접속키 자체 유효기간은 24h - 여유있게 12h마다 갱신
+
+_KST = timezone(timedelta(hours=9))
+
+# KIS가 "기간이 만료된 token 입니다"로 거절할 때 쓰는 코드. 응답 본문이 예외 메시지에
+# 그대로 실려오므로 문자열로 판별한다.
+_EXPIRED_TOKEN_MARKERS = ('EGW00123',)
 
 
 def _post_json(path, body):
@@ -56,9 +62,74 @@ def get_token(appkey, appsecret):
         if not token:
             raise RuntimeError('KIS 토큰 발급 실패: ' + json.dumps(data, ensure_ascii=False))
         expires_in = int(data.get('expires_in') or 86400)
+        # 2026-09-11: 만료를 now+expires_in으로만 잡으면 **이미 발급된 토큰을 돌려받았을 때**
+        # 실제 남은 수명보다 늦게 만료된다고 믿는다(이 함수 docstring이 전제하는 재사용 동작).
+        # 그 차이만큼 캐시가 죽은 토큰을 계속 내주고, 그 워커의 KIS 호출은 전부 실패한다
+        # (2026-09-09 실측: /health/overseas-quote가 EGW00123을 반복 반환하는 동안 같은 시각
+        # 다른 워커의 순위 조회는 성공 - 워커별 캐시가 따로라 생기는 간헐 실패).
+        expires_at = now + expires_in
+        absolute = _parse_kst_expiry(data.get('access_token_token_expired'))
+        if absolute is not None and now < absolute < expires_at:
+            expires_at = absolute
+        # 파싱이 어긋나도 매 호출 재발급으로 번지지 않게 최소 수명을 둔다(KIS는 토큰 발급을
+        # 분당 1회로 제한한다).
         _token_cache['token'] = token
-        _token_cache['expires_at'] = now + expires_in
+        _token_cache['expires_at'] = max(expires_at, now + 60)
         return token
+
+
+def _parse_kst_expiry(value):
+    """KIS 토큰 응답의 절대 만료 시각('YYYY-MM-DD HH:MM:SS', KST)을 epoch로 바꾼다.
+
+    이 필드의 형식·의미는 리포에서 검증된 값이 아니므로 **캐시를 줄이는 쪽으로만** 쓴다
+    (get_token에서 now+expires_in보다 이를 때만 채택). 읽을 수 없으면 None을 돌려
+    기존 계산을 그대로 쓰게 한다.
+    """
+    text = str(value or '').strip()
+    if not text:
+        return None
+    try:
+        parsed = datetime.strptime(text, '%Y-%m-%d %H:%M:%S')
+    except (ValueError, TypeError):
+        return None
+    return parsed.replace(tzinfo=_KST).timestamp()
+
+
+def is_expired_token_error(exc):
+    """예외가 '만료된 토큰' 거절인지 본다. 응답 본문이 예외 메시지에 실려 있다."""
+    return any(marker in str(exc) for marker in _EXPIRED_TOKEN_MARKERS)
+
+
+def invalidate_token(stale_token=None):
+    """만료된 토큰을 캐시에서 버려 다음 get_token이 재발급하게 한다.
+
+    ``stale_token``을 주면 캐시에 든 값이 그것과 같을 때만 버린다. 여러 스레드가 같은
+    만료 토큰으로 동시에 실패했을 때, 먼저 재발급한 스레드의 새 토큰을 뒤늦게 지워
+    발급을 또 부르는 일을 막는다(KIS 발급은 분당 1회 제한).
+    """
+    with _token_lock:
+        if stale_token and _token_cache['token'] != stale_token:
+            return False
+        _token_cache['token'] = None
+        _token_cache['expires_at'] = 0
+        return True
+
+
+def _with_token_retry(call, token, appkey, appsecret):
+    """만료 토큰으로 실패하면 캐시를 버리고 **한 번만** 재발급해 다시 부른다.
+
+    호출부는 보통 get_token을 한 번 불러 받은 토큰을 여러 조회에 돌려쓴다. 그 토큰이
+    도중에 죽으면 호출부는 스스로 회복할 방법이 없으므로, 공통 호출기가 여기서 받아낸다.
+    만료 외의 실패는 그대로 올린다.
+    """
+    try:
+        return call(token)
+    except RuntimeError as exc:
+        if not is_expired_token_error(exc):
+            raise
+        logger.info('KIS 토큰 만료 - 재발급 후 1회 재시도한다.')
+        invalidate_token(token)
+        return call(get_token(appkey, appsecret))
 
 
 def get_approval_key(appkey, appsecret):
@@ -316,26 +387,30 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
     """
     path = ('/uapi/overseas-price/v1/quotations/price-detail'
             '?AUTH=&EXCD=%s&SYMB=%s' % (excd, symb))
-    req = urllib.request.Request(
-        BASE_URL + path,
-        headers={
-            'Content-Type': 'application/json; charset=utf-8',
-            'authorization': 'Bearer ' + token,
-            'appkey': appkey,
-            'appsecret': appsecret,
-            'tr_id': 'HHDFS76200200',
-            'custtype': 'P',
-        },
-        method='GET',
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as res:
-            data = json.loads(res.read().decode('utf-8'))
-    except urllib.error.HTTPError as e:
-        raise RuntimeError('HHDFS76200200 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
-    if data.get('rt_cd') not in (None, '0', 0):
-        raise RuntimeError('HHDFS76200200 실패: ' + json.dumps(data, ensure_ascii=False))
-    return data.get('output') or data.get('output1') or {}
+
+    def call(tok):
+        req = urllib.request.Request(
+            BASE_URL + path,
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'authorization': 'Bearer ' + tok,
+                'appkey': appkey,
+                'appsecret': appsecret,
+                'tr_id': 'HHDFS76200200',
+                'custtype': 'P',
+            },
+            method='GET',
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as res:
+                data = json.loads(res.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            raise RuntimeError('HHDFS76200200 HTTP %s: %s' % (e.code, e.read().decode('utf-8', 'ignore')))
+        if data.get('rt_cd') not in (None, '0', 0):
+            raise RuntimeError('HHDFS76200200 실패: ' + json.dumps(data, ensure_ascii=False))
+        return data.get('output') or data.get('output1') or {}
+
+    return _with_token_retry(call, token, appkey, appsecret)
 
 
 def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
@@ -347,32 +422,36 @@ def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
     ``return_continuation=True``로 다음 페이지 여부를 함께 받는다.
     """
     query = urllib.parse.urlencode(params)
-    headers = {
-        'Content-Type': 'application/json; charset=utf-8',
-        'authorization': 'Bearer ' + token,
-        'appkey': appkey,
-        'appsecret': appsecret,
-        'tr_id': tr_id,
-        'custtype': 'P',
-    }
-    if tr_cont:
-        headers['tr_cont'] = tr_cont
-    req = urllib.request.Request(
-        BASE_URL + path + '?' + query,
-        headers=headers,
-        method='GET',
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as res:
-            data = json.loads(res.read().decode('utf-8'))
-            continuation = (res.headers.get('tr_cont') or '').strip()
-    except urllib.error.HTTPError as e:
-        raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
-    if data.get('rt_cd') != '0':
-        raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
-    if return_continuation:
-        return data, continuation
-    return data
+
+    def call(tok):
+        headers = {
+            'Content-Type': 'application/json; charset=utf-8',
+            'authorization': 'Bearer ' + tok,
+            'appkey': appkey,
+            'appsecret': appsecret,
+            'tr_id': tr_id,
+            'custtype': 'P',
+        }
+        if tr_cont:
+            headers['tr_cont'] = tr_cont
+        req = urllib.request.Request(
+            BASE_URL + path + '?' + query,
+            headers=headers,
+            method='GET',
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as res:
+                data = json.loads(res.read().decode('utf-8'))
+                continuation = (res.headers.get('tr_cont') or '').strip()
+        except urllib.error.HTTPError as e:
+            raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
+        if data.get('rt_cd') != '0':
+            raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
+        if return_continuation:
+            return data, continuation
+        return data
+
+    return _with_token_retry(call, token, appkey, appsecret)
 
 
 def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, period='D', max_pages=10):
@@ -555,26 +634,30 @@ def _avg_delta(rows):
 def _get_overseas_rank(token, appkey, appsecret, path, tr_id, params):
     """KIS 해외주식 순위 REST 공통 호출기."""
     query = urllib.parse.urlencode(params)
-    req = urllib.request.Request(
-        BASE_URL + path + '?' + query,
-        headers={
-            'Content-Type': 'application/json; charset=utf-8',
-            'authorization': 'Bearer ' + token,
-            'appkey': appkey,
-            'appsecret': appsecret,
-            'tr_id': tr_id,
-            'custtype': 'P',
-        },
-        method='GET',
-    )
-    try:
-        with urllib.request.urlopen(req, timeout=15) as res:
-            data = json.loads(res.read().decode('utf-8'))
-    except urllib.error.HTTPError as e:
-        raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
-    if data.get('rt_cd') not in (None, '0', 0):
-        raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
-    return data
+
+    def call(tok):
+        req = urllib.request.Request(
+            BASE_URL + path + '?' + query,
+            headers={
+                'Content-Type': 'application/json; charset=utf-8',
+                'authorization': 'Bearer ' + tok,
+                'appkey': appkey,
+                'appsecret': appsecret,
+                'tr_id': tr_id,
+                'custtype': 'P',
+            },
+            method='GET',
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=15) as res:
+                data = json.loads(res.read().decode('utf-8'))
+        except urllib.error.HTTPError as e:
+            raise RuntimeError('%s HTTP %s: %s' % (tr_id, e.code, e.read().decode('utf-8', 'ignore')))
+        if data.get('rt_cd') not in (None, '0', 0):
+            raise RuntimeError('%s 실패: %s' % (tr_id, json.dumps(data, ensure_ascii=False)))
+        return data
+
+    return _with_token_retry(call, token, appkey, appsecret)
 
 
 def fetch_domestic_quote(token, appkey, appsecret, code, market='UN'):
