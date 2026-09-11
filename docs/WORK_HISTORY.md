@@ -1,5 +1,32 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 미국 관련 뉴스 타임라인 레일이 제 디자인을 못 입던 문제**
+
+"미국장 실시간 뉴스만 이렇게 나와"(스크린샷: 레일 선이 날짜/시간에 바짝 붙어 그려짐).
+
+원인: `js/us-stocks.js`가 레일을 `class="app-news-rail ss-news-rail"`로만 내보내
+`css/us-stocks.css`의 `.us-stocks-news-rail` 디자인이 **한 번도 적용된 적이 없었다.**
+`.ss-news-rail` 규칙은 전부 `#stock-search` 범위라 종목검색 화면에 임베드될 때만 닿고,
+독립 미국주식 페이지에서는 공통 `.app-news-rail`(열 왼쪽 끝 `border-left`, 점은
+`left:-4px`)로 폴백한다. 그래서 미국 화면에서만 선이 날짜 바로 옆에 붙었다.
+
+로컬 렌더로 재현·확인했다(Playwright + 실제 style.css·us-stocks.css, 같은 마크업):
+
+    수정 전  border-left 1px, 점 left:-4px  → 선이 날짜 오른쪽 4px 지점
+    수정 후  border-left 0,   ::after 선 left:6px(모바일 5px), 점 left:2px(1px)
+             → 13px 레일 열 가운데(모바일 11px)
+
+수정: 마크업에 `us-stocks-news-rail`·`us-stocks-news-body`를 붙이고, `.us-stocks-news-rail`에
+`border-left: 0`을 더해 공통 폴백 선과 겹치지 않게 했다. 점 색은 신문 타이포 오버라이드
+(`html:not(.font-gothic) body .app-news-rail i.is-latest`)가 그대로 잡으므로 다른 화면과
+같은 상승색을 유지한다.
+
+남은 것: `css/us-stocks.css`의 `.us-stocks-news-group`·`.us-stocks-news-time`도 JS가
+내보내지 않는 죽은 클래스다. 이번 리포트 범위 밖이라 두었다.
+
+검증: `pytest test/test_ui_ia.py` 153 passed(신규 1건 - 레일 클래스 3개가 마크업에 있고
+폴백 border가 꺼져 있는지). 전체 653 passed.
+
 **2026-09-11 skin.html 반영 확인 + 스킨 낡음 때문에 있던 런타임 우회 제거**
 
 사용자가 저장소의 `skin.html`을 티스토리 관리자에 반영했다. 지우기 전에 라이브 HTML을
