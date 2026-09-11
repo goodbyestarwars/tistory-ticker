@@ -823,6 +823,20 @@ def _kis_us_row(row):
         _kis_value(row, 'hts_kor_isnm', 'knam', 'name', 'korean_name') or '',
         symbol,
     )
+    # 2026-09-09: KIS 해외 순위 응답의 diff(대비)는 **부호 없는 크기**로 내려온다.
+    # 방향은 rate(등락률)에만 들어 있다. 그대로 쓰면 하락 종목이 대비 +로 남아
+    # 등락률과 부호가 정반대가 된다(2026-09-09 15:53 KST 실측:
+    #   SPY  765.96 / diff 4.23  / rate -0.55
+    #   NVDA 225.73 / diff 4.63  / rate -2.01
+    #   MU  1000.26 / diff 16.33 / rate -1.61
+    # 크기는 맞다 - 225.73/(1-0.0201)=230.36, 230.36-225.73=4.63).
+    # 화면 여러 곳이 방향은 change로, 숫자는 |change_rate|로 그리므로(예:
+    # arrowSymbol(change) + Math.abs(changeRate)) 부호가 어긋나면 하락 종목이
+    # 상승 화살표·상승색으로 찍힌다. rate를 방향의 기준으로 삼아 맞춘다.
+    change = _number(_kis_value(row, 'diff', 'pred_pre', 'change'))
+    change_rate = _number(_kis_value(row, 'rate', 'flu_rt', 'change_rate')) or 0
+    if change is not None:
+        change = -abs(change) if change_rate < 0 else abs(change)
     return {
         'market': 'us',
         'code': 'US:' + symbol,
@@ -832,8 +846,8 @@ def _kis_us_row(row):
         'name_en': name_en,
         'display_name': name_en,
         'price': price,
-        'change': _number(_kis_value(row, 'diff', 'pred_pre', 'change')),
-        'change_rate': _number(_kis_value(row, 'rate', 'flu_rt', 'change_rate')) or 0,
+        'change': change,
+        'change_rate': change_rate,
         'trade_volume': volume,
         'trade_amount': amount if amount is not None else price * volume,
         # HHDFS76350100의 tomv는 백만 USD 단위 시가총액이다.

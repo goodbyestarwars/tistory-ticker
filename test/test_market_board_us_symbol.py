@@ -99,3 +99,41 @@ class UsNameNormalizationTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class KisUsChangeSignTests(unittest.TestCase):
+    """KIS 해외 순위 응답의 diff는 부호 없는 크기다 - 방향은 rate에만 있다.
+
+    2026-09-09 실측(/market-board?market=us, 15:53 KST): SPY last 765.96 / diff 4.23 /
+    rate -0.55, NVDA last 225.73 / diff 4.63 / rate -2.01처럼 하락 종목인데 diff가
+    양수로 내려왔다. 화면 여러 곳이 방향을 change로, 숫자를 |change_rate|로 그리므로
+    (arrowSymbol(change) + Math.abs(changeRate)) 그대로 두면 하락 종목이 상승 화살표로
+    찍힌다.
+    """
+
+    def _row(self, raw):
+        return market_board._kis_us_row(raw)
+
+    def test_unsigned_diff_follows_negative_rate(self):
+        item = self._row({'symb': 'NVDA', 'last': '225.73', 'diff': '4.63', 'rate': '-2.01'})
+        self.assertEqual(item['change_rate'], -2.01)
+        self.assertEqual(item['change'], -4.63)
+
+    def test_rising_row_keeps_positive_change(self):
+        item = self._row({'symb': 'INTC', 'last': '104.47', 'diff': '8.67', 'rate': '9.05'})
+        self.assertEqual(item['change'], 8.67)
+
+    def test_already_signed_diff_is_not_flipped_twice(self):
+        # 키움 폴백처럼 부호가 이미 붙어 오는 경우에도 결과 부호는 rate와 같아야 한다.
+        item = self._row({'symb': 'AAPL', 'last': '317.28', 'diff': '-2.69', 'rate': '-0.84'})
+        self.assertEqual(item['change'], -2.69)
+
+    def test_missing_diff_stays_none(self):
+        item = self._row({'symb': 'SPY', 'last': '765.96', 'rate': '-0.55'})
+        self.assertIsNone(item['change'])
+        self.assertEqual(item['change_rate'], -0.55)
+
+    def test_flat_row_keeps_zero(self):
+        item = self._row({'symb': 'QQQ', 'last': '718.36', 'diff': '0', 'rate': '0'})
+        self.assertEqual(item['change'], 0)
+        self.assertEqual(item['change_rate'], 0)
