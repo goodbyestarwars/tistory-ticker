@@ -1,5 +1,35 @@
 # 9Pay 주요 작업이력
 
+**2026-09-11 skin.html 반영 확인 + 스킨 낡음 때문에 있던 런타임 우회 제거**
+
+사용자가 저장소의 `skin.html`을 티스토리 관리자에 반영했다. 지우기 전에 라이브 HTML을
+실측했다(api-probe로 `ghlee.tistory.com/` 24KB) - 네비 로고 `<img>`가
+`img/brand-banner.png`(새 경로), `.nav-logo-name`이 이미 `ㄱㅖ조 ㅏ심폐소생술`,
+`nav-icons`에 옛 MY 아이콘·폰트 전환 버튼 없음. 셋 다 `js/skin-menu.js`가 런타임에
+고쳐주던 것이라 이제 죽은 코드다.
+
+걷어낸 것: `removeLegacyFontToggle()`(옛 폰트 버튼 제거 + `font-gothic` 해제 +
+`bolt-font` 정리), `.nav-my-btn` 런타임 제거, 로고 텍스트 런타임 덮어쓰기,
+`style.css`의 `.nav-font-btn { display: none !important; }`.
+`font-gothic`은 저장소 어디에도 **붙이는** 코드가 없고 CSS가 `html:not(.font-gothic)`로
+읽기만 해서, 정리 코드를 지워도 되살아나지 않는다.
+
+남긴 것:
+
+- **`img/heart-monitor.svg`는 지우지 않았다.** `docs/SKIN_HTML_PENDING.md`의 2026-09-05
+  판에 "아무도 참조하지 않게 되므로 삭제 가능"이라고 적혀 있었지만 **틀린 기록이다.**
+  `legal/` 4개 페이지(privacy·terms·opensource-license·guide)가 아직 파비콘 `<link>`로
+  이 파일을 가리킨다. 문서를 바로잡았다.
+- `style.css`의 `.nav-logo-emblem` 배경과 `img { display:none }` - 배경과 `<img>`가 같은
+  `brand-banner.png`를 가리켜 결과가 같다. 한쪽만 지우면 렌더 방식만 바뀌고 겹칠 위험만
+  생긴다.
+- `js/skin-shell.js`의 파비콘 link 교체 - 티스토리가 매 요청마다 주입하므로 계속 필요하다.
+
+검증: `pytest test/test_ui_ia.py` 152 passed(+14 subtests). 기존
+`test_legacy_font_toggle_is_removed_from_the_live_skin`(우회가 **있는지** 고정하던 것)을
+`test_stale_skin_workarounds_are_gone_after_the_skin_was_applied`로 바꿔, 우회 코드가
+없다는 것과 스킨에 그 UI가 없다는 것을 함께 고정했다. 전체 652 passed.
+
 **2026-09-11 KIS 토큰 만료 처리 - 캐시 수명 보정 + 만료 시 1회 자동 재발급**
 
 2026-09-09 실측에서 `/health/overseas-quote`가 KIS의 `EGW00123`("기간이 만료된 token
