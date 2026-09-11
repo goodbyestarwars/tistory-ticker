@@ -154,42 +154,17 @@
     });
   }
 
-  /*
-   * 운영 티스토리 스킨은 관리자가 마지막으로 붙여넣은 HTML이 저장되므로,
-   * 저장소에서 폰트 전환 UI를 삭제해도 예전 버튼(#fontModeBtn)이 남을 수 있다.
-   * 신문사형 타이포그래피는 이제 CSS에서 고정하므로 이 버튼과 이전 선택값을
-   * 런타임에 정리한다. 정적 스킨을 다시 붙여넣기 전에도 같은 화면을 보장한다.
-   */
-  function removeLegacyFontToggle() {
-    document.querySelectorAll('#fontModeBtn, .nav-font-btn').forEach(function (item) {
-      item.remove();
-    });
-    document.documentElement.classList.remove('font-gothic');
-    try { localStorage.removeItem('bolt-font'); } catch (err) {}
-  }
-
   function render() {
     var searchMount = document.getElementById('navSearchMount');
     var mount = document.getElementById('nav-menu-mount');
     if (searchMount) searchMount.innerHTML = SEARCH_HTML;
 
-    removeLegacyFontToggle();
-
-    // 관심종목은 모든 페이지의 우측 고정 드로어로 제공한다. 운영 스킨에 남아 있는
-    // 이전 MY 아이콘도 정적 자산 배포만으로 즉시 제거되도록 런타임에서 함께 정리한다.
-    document.querySelectorAll('.nav-my-btn').forEach(function (item) { item.remove(); });
-
-    // 2026-07-31: 로고 텍스트 변경(사용자 요청) - skin.html은 티스토리 관리자 수동 반영
-    // 대상이라 git push만으로는 운영 화면에 안 뜬다. 이 스크립트는 정적 자산이라 master
-    // push 즉시 배포되므로, 운영 스킨에 남아있는 이전 텍스트를 런타임에 덮어써 수동 반영
-    // 없이도 바로 보이게 한다(위 MY 아이콘 정리와 동일한 패턴).
-    document.querySelectorAll('.nav-logo-name').forEach(function (item) {
-      item.textContent = 'ㄱㅖ조 ㅏ심폐소생술';
-    });
-    // 2026-09-05: 로고 지정을 js/skin-shell.js의 refreshBrandIcon()으로 옮겼다.
-    // 여기서 1.6MB짜리 account-cpr-logo.png를 34x34 자리에 덮어쓰고 있었는데, 그게
-    // 도착할 때까지 skin.html의 컬러 SVG가 떠 있어서 아이콘이 겹쳐 깜빡였다.
-    // skin-shell.js가 이 파일보다 먼저 로드되므로 거기서 한 번만 넣는 게 맞다.
+    // 2026-09-11: 운영 스킨을 저장소의 skin.html로 갱신해서(사용자 반영), 여기 있던
+    // 런타임 우회 세 가지를 걷어냈다 - 옛 폰트 전환 버튼 제거, 옛 MY 아이콘 제거,
+    // 로고 텍스트 덮어쓰기. 라이브 HTML 실측으로 셋 다 불필요함을 확인했다:
+    // nav-icons에 #fontModeBtn·.nav-my-btn이 없고 .nav-logo-name이 이미 새 문구다.
+    // 로고 이미지는 js/skin-shell.js의 refreshBrandIcon()이 맡는다(여기서 덮어쓰면
+    // skin.html의 아이콘과 겹쳐 깜빡였다 - 2026-09-05).
 
     if (mount) {
       selectedGroupIndex = activeGroupIndex();

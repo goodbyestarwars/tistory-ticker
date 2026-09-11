@@ -46,13 +46,31 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("event.stopImmediatePropagation()", shell)
         self.assertIn("(window.top || window).location.href = writeUrl", shell)
 
-    def test_legacy_font_toggle_is_removed_from_the_live_skin(self):
+    def test_stale_skin_workarounds_are_gone_after_the_skin_was_applied(self):
+        """2026-09-11: 운영 스킨을 저장소 skin.html로 갱신해서 런타임 우회를 걷어냈다.
+
+        라이브 HTML 실측(ghlee.tistory.com): nav-icons에 #fontModeBtn·.nav-my-btn이
+        없고 .nav-logo-name이 이미 'ㄱㅖ조 ㅏ심폐소생술'이다. 셋 다 skin-menu.js가
+        런타임에 고쳐주던 것들이라 이제 죽은 코드다.
+        """
         menu = self.read("js/skin-menu.js")
         style = self.read("style.css")
-        self.assertIn("function removeLegacyFontToggle()", menu)
-        self.assertIn("#fontModeBtn, .nav-font-btn", menu)
-        self.assertIn("localStorage.removeItem('bolt-font')", menu)
-        self.assertIn(".nav-font-btn { display: none !important; }", style)
+        skin = self.read("skin.html")
+        # 주석에 이름이 남는 건 상관없다 - 실행되는 코드만 본다.
+        for gone in ("function removeLegacyFontToggle()",
+                     "querySelectorAll('#fontModeBtn, .nav-font-btn')",
+                     "localStorage.removeItem('bolt-font')",
+                     "querySelectorAll('.nav-my-btn')"):
+            with self.subTest(gone=gone):
+                self.assertNotIn(gone, menu)
+        self.assertNotIn(".nav-font-btn { display: none !important; }", style)
+        # 걷어낸 근거: 스킨 자체에 그 UI가 없다.
+        for absent in ("fontModeBtn", "nav-font-btn", "nav-my-btn"):
+            with self.subTest(absent=absent):
+                self.assertNotIn(absent, skin)
+        # 로고 텍스트는 이제 마크업이 직접 들고 있다(런타임 덮어쓰기 없음).
+        self.assertIn("ㄱㅖ조 ㅏ심폐소생술", skin)
+        self.assertNotIn("item.textContent = 'ㄱㅖ조 ㅏ심폐소생술'", menu)
 
     def test_market_briefing_category_uses_stable_newspaper_layout(self):
         source = self.read("js/skin-main.js")
