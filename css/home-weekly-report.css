@@ -317,29 +317,15 @@ html.dark .hwr-news-event-body h4 { color: #F5EFE0; }
 /* 2026-08-22 신설: 지난 2주 스윙 추천 결과("기록 공유") 섹션 - T+5/T+10 배지 2개가
    .hwr-stock-values의 기존 ":first-child는 회색 고정" 규칙과 충돌하지 않도록 별도
    스코프에서 색상을 다시 정의한다(상승=빨강/하락=파랑, 사이트 공통 규칙). */
-.hwr-outcome-values { flex-direction: column; align-items: flex-end; gap: 2px; }
+/* 2026-09-12(2차): 값을 오른쪽 끝으로 미는 세로 스택이었는데, --four 안에서는 형제
+   목록과 같이 "이름 아래 가로로" 놓여야 한다(.hwr-stock-list--four .hwr-stock-values가
+   그렇게 정의돼 있다). flex-direction/align-items를 여기서 다시 덮지 않는다. */
 .hwr-outcome-values > b:first-child { color: inherit; font-weight: 600; }
 .hwr-outcome-values .is-up { color: #d24f45; }
 .hwr-outcome-values .is-down { color: #1261c4; }
 .hwr-outcome-values .is-flat { color: #64748b; }
 .hwr-outcome-pending { color: #94a3b8; font-weight: 500; }
 html.dark .hwr-outcome-pending { color: #7d8593; }
-
-/* 2026-09-12 사용자 지적("이 짧은 정보를 한 줄에?"): 이 목록만 .hwr-columns 같은 그리드
-   래퍼 없이 section 바로 밑에 <ul>로 있어 전체 폭 1열이었다. 종목명·신호일(왼쪽)과
-   T+5/T+10(오른쪽) 사이가 데스크탑에서 1,000px 넘게 벌어진다. 같은 파일의
-   .hwr-stock-list--four와 같은 방식(데스크탑 4열 / 720px 이하 2열)으로 열을 나눈다.
-   행 구분선은 --four와 동일하게 각 행의 첫 칸들만 border-top을 없애는 nth-child로 맞춘다. */
-.hwr-outcome-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 18px; }
-.hwr-outcome-list > li:nth-child(-n+4) { border-top: 0; }
-/* 이 블록은 반드시 위 데스크톱 규칙 "뒤"에 있어야 한다 - 특이도가 같아 소스 순서로
-   이긴다. 파일 앞쪽(82행대) 미디어쿼리에 넣었더니 375px에서도 4열 70px로 남았다
-   (로컬 iframe 실측). --four는 기본 규칙이 그 미디어쿼리보다 앞에 있어 문제가 없었다. */
-@media (max-width: 720px) {
-  .hwr-outcome-list { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
-  .hwr-outcome-list > li:nth-child(-n+4) { border-top: 1px solid #f0f2f5; }
-  .hwr-outcome-list > li:nth-child(-n+2) { border-top: 0; }
-}
 
 /* 2026-08-22(2차) 신설: 목록 위 승률/평균수익률 요약카드("성과지표") - 표본이 200건까지
    넉넉해도 목록엔 최근 8건만 보이므로, 이 카드가 없으면 8건짜리 국지적 결과를 전체

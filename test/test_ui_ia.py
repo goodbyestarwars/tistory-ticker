@@ -690,7 +690,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         # 2026-09-12: 스윙 추천 결과 목록 리셋 수정으로 캐시 문자열을 올렸다.
-        self.assertIn("home-weekly-report.css?v=20260912-outcome-list-grid-v1", script)
+        self.assertIn("home-weekly-report.css?v=20260912-outcome-card-v2", script)
         self.assertIn("home-weekly-report.js?v=20260904-closed-order-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)

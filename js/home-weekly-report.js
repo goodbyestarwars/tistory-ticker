@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260912-outcome-list-grid-v1';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260912-outcome-card-v2';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -231,13 +231,21 @@
   }
   function pastOutcomeList(items, stats) {
     if (!items || !items.length) return '';
+    // 2026-09-12(2차) 사용자 지적("일관성이 부족해"): 이 섹션만 <article> 카드 없이
+    // 맨 <ul>이었고(형제 섹션은 전부 .hwr-columns > article 카드), 목록도 혼자
+    // 값을 오른쪽 끝으로 미는 flex라 값이 다음 칸 종목명에 붙어 읽혔다.
+    // 바로 위 형제인 "2주 스윙 상승 후보"와 같은 내용 성격이므로 구조를 동일하게 맞춘다
+    // - .hwr-columns > article 카드 + .hwr-stock-list--four(값이 이름 아래).
+    // 신호일과 진입의견도 형제처럼 <small>(메타)/<em class="hwr-stock-reason">(사유)로 나눈다.
     return '<section class="hwr-stock-section hwr-outcome-section"><div class="hwr-section-heading"><strong>지난 2주 스윙 추천 결과</strong><span>신호일 대비 T+5·T+10 실제 수익률(확정된 건만 표시)</span></div>'
+      + '<div class="hwr-columns"><article><div class="hwr-card-title"><strong>국내 결과</strong><span>신호일 대비 확정 수익률</span></div>'
       + pastOutcomeStatsCard(stats)
-      + '<ul class="hwr-stock-list hwr-outcome-list">' + items.map(function (item) {
+      + '<ul class="hwr-stock-list hwr-stock-list--four hwr-outcome-list">' + items.map(function (item) {
         var t5 = item.t5ReturnPct != null ? '<b class="' + signClass(item.t5ReturnPct) + '">T+5 ' + signed(item.t5ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+5 집계 중</b>';
         var t10 = item.t10ReturnPct != null ? '<b class="' + signClass(item.t10ReturnPct) + '">T+10 ' + signed(item.t10ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+10 집계 중</b>';
-        return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name || item.code || '') + '</strong><small>' + escapeHtml(dateLabel(item.asOfDate)) + ' 신호 · ' + escapeHtml(item.entryOpinion || '') + '</small></span><span class="hwr-stock-values hwr-outcome-values">' + t5 + t10 + '</span></li>';
-      }).join('') + '</ul></section>';
+        var opinion = item.entryOpinion ? '<em class="hwr-stock-reason">' + escapeHtml(item.entryOpinion) + '</em>' : '';
+        return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name || item.code || '') + '</strong><small>' + escapeHtml(dateLabel(item.asOfDate)) + ' 신호</small>' + opinion + '</span><span class="hwr-stock-values hwr-outcome-values">' + t5 + t10 + '</span></li>';
+      }).join('') + '</ul></article></div></section>';
   }
   function indexSummary(indices) {
     var displayOrder = {
