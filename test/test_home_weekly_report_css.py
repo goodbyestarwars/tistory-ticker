@@ -12,6 +12,10 @@ margin-top 16px - 대조군(.hwr-columns 안)은 none/0/0.
 
 그래서 "이 목록을 .hwr-columns로 감싸라"가 아니라 "리셋을 컴포넌트 자신에 걸어라"로
 고쳤다. 배치가 달라져도 다시 깨지지 않는다.
+
+2026-09-12(2차) 사용자 지적("일관성이 부족해"): 결국 형제 섹션과 맞추려고
+.hwr-columns > article 카드 안으로 옮겼다. 리셋을 컴포넌트에 걸어둔 덕에 옮기는 것만으로
+깨지지 않았다 - 위 판단이 실제로 값을 한 셈. 이 파일의 리셋 테스트는 그대로 유효하다.
 """
 import pathlib
 import re
@@ -49,39 +53,52 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
         self.assertTrue(line, 'html.dark 구분선 규칙을 못 찾았다')
         self.assertIn('html.dark .hwr-stock-list > li', line[0])
 
-    def test_outcome_list_is_still_the_one_rendered_outside_hwr_columns(self):
-        """이 테스트가 지키려는 상황 자체가 사라지지 않았는지 확인한다.
-        pastOutcomeList가 .hwr-columns로 감싸도록 바뀌면 위 규칙들의 근거가 달라진다."""
+    def test_component_reset_survives_being_moved_into_a_card(self):
+        """2026-09-12(2차)에 pastOutcomeList를 .hwr-columns > article 안으로 옮겼다.
+        위 리셋 규칙들의 원래 근거("이 목록만 .hwr-columns 밖에 있다")는 사라졌지만,
+        리셋을 조상이 아니라 컴포넌트 자신에 걸어둔 덕에 옮겨도 안 깨졌다 - 그게 #422의
+        의도였으므로 규칙은 그대로 둔다. 다시 조상 의존으로 되돌리지 않기 위한 가드."""
         js = self.js()
         block = js[js.index('function pastOutcomeList'):]
         block = block[:block.index('function indexSummary')]
-        self.assertIn("<ul class=\"hwr-stock-list hwr-outcome-list\">", block)
-        self.assertNotIn('hwr-columns', block)
-
-    def test_outcome_list_is_a_multi_column_grid(self):
-        """2026-09-12 사용자 지적("이 짧은 정보를 한 줄에?"): 이 목록만 전체 폭 1열이라
-        데스크탑에서 종목명과 T+5/T+10 사이가 1,000px 넘게 벌어졌다. 같은 파일의
-        .hwr-stock-list--four와 같이 데스크탑 4열 / 720px 이하 2열로 나눈다."""
+        self.assertIn('hwr-columns', block)
+        self.assertIn('hwr-outcome-list', block)
         css = self.css()
-        self.assertIn('.hwr-outcome-list { display: grid; grid-template-columns: repeat(4', css)
-        self.assertIn('.hwr-outcome-list { grid-template-columns: repeat(2', css)
+        self.assertIn('.hwr-stock-list { list-style: none; margin: 0; padding: 0; }', css)
 
-    def test_outcome_list_mobile_rule_comes_after_the_desktop_rule(self):
-        """특이도가 같아 소스 순서로 이긴다. 모바일 규칙을 파일 앞쪽(82행대) 미디어쿼리에
-        두면 데스크탑 규칙이 뒤에 와서 375px에서도 4열(칸당 70px)로 남는다 - 실제로
-        그렇게 났던 버그라 순서를 테스트로 고정한다."""
-        css = self.css()
-        desktop = css.index('.hwr-outcome-list { display: grid;')
-        mobile = css.index('.hwr-outcome-list { grid-template-columns: repeat(2')
-        self.assertLess(desktop, mobile,
-                        '모바일 2열 규칙이 데스크탑 4열 규칙보다 앞서면 적용되지 않는다')
+    def test_outcome_list_matches_its_sibling_sections(self):
+        """2026-09-12(2차) "일관성이 부족해": 이 섹션만 <article> 카드 없이 맨 <ul>이었고
+        값도 혼자 오른쪽 끝으로 밀려 다음 칸 종목명에 붙어 읽혔다. 바로 위 형제인
+        "2주 스윙 상승 후보"와 같은 성격이라 구조를 동일하게 맞췄다."""
+        js = self.js()
+        block = js[js.index('function pastOutcomeList'):]
+        block = block[:block.index('function indexSummary')]
+        self.assertIn('<div class="hwr-columns"><article>', block)
+        self.assertIn('hwr-stock-list hwr-stock-list--four hwr-outcome-list', block)
 
-    def test_outcome_list_row_separators_follow_the_grid(self):
-        """1열일 땐 :first-child만 구분선을 지우면 됐지만, 그리드에선 각 행의 첫 칸들이
-        대상이다(--four와 동일한 nth-child 방식)."""
+    def test_outcome_values_are_not_restacked_against_the_four_column_layout(self):
+        """--four는 값을 이름 아래 가로로 놓는다(.hwr-stock-list--four .hwr-stock-values).
+        .hwr-outcome-values가 flex-direction:column으로 다시 덮으면 형제와 어긋난다."""
         css = self.css()
-        self.assertIn('.hwr-outcome-list > li:nth-child(-n+4) { border-top: 0; }', css)
-        self.assertIn('.hwr-outcome-list > li:nth-child(-n+2) { border-top: 0; }', css)
+        match = re.search(r'^\.hwr-outcome-values \{([^}]*)\}', css, re.M)
+        if match:
+            self.assertNotIn('flex-direction: column', match.group(1))
+
+    def test_outcome_list_does_not_define_its_own_grid(self):
+        """자체 그리드를 다시 두면 --four와 칸 폭이 갈려 일관성이 깨진다."""
+        css = self.css()
+        self.assertNotIn('.hwr-outcome-list { display: grid;', css)
+        self.assertNotIn('.hwr-outcome-list { grid-template-columns:', css)
+
+    def test_outcome_stats_sit_inside_the_card(self):
+        """요약카드가 카드 밖에 있으면 폭이 전체(1452px)로 벌어져 목록 카드(723px)와
+        어긋난다 - 로컬 실측으로 확인하고 카드 안으로 옮겼다."""
+        js = self.js()
+        block = js[js.index('function pastOutcomeList'):]
+        block = block[:block.index('function indexSummary')]
+        self.assertLess(block.index('<div class="hwr-columns"><article>'),
+                        block.index('pastOutcomeStatsCard(stats)'))
+
 
 if __name__ == '__main__':
     unittest.main()
