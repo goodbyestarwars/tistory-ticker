@@ -1,5 +1,51 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 휴장 대시보드 "지난 2주 스윙 추천 결과" 목록이 통째로 깨지던 문제**
+
+사용자 리포트 + 스크린샷: 휴장 대시보드에서 이 섹션만 종목이 브라우저 기본 불릿으로
+들여쓰기돼 나오고, 오른쪽에 있어야 할 T+5/T+10 값이 제자리에 없었다.
+
+원인은 CSS 리셋이 **조상 선택자에만** 걸려 있던 것이다.
+
+    css/home-weekly-report.css:34
+    .hwr-columns ul, .hwr-schedule ul { list-style: none; margin: 0; padding: 0; }
+    .hwr-columns li { display: flex; justify-content: space-between; border-top: ... }
+
+주간 리포트의 다른 섹션은 전부 `<div class="hwr-columns">`로 목록을 감싸는데,
+`pastOutcomeList()`(js/home-weekly-report.js:236)만 `<ul class="hwr-stock-list
+hwr-outcome-list">`를 `<section>` 바로 밑에 둔다. 그래서 이 목록에만 리셋도 행
+레이아웃도 닿지 않았다.
+
+헤드리스 크롬으로 실제 CSS를 올려 재현:
+
+    .hwr-columns 안 목록  list-style none / padding-left 0px   / margin-top 0px
+    스윙 추천 결과 목록    list-style disc / padding-left 40px  / margin-top 16px
+
+고친 방향: "이 목록도 `.hwr-columns`로 감싸라"가 아니라 **리셋을 컴포넌트 자신에
+걸었다**. 배치가 달라져도 다시 깨지지 않는다.
+
+    .hwr-stock-list { list-style: none; margin: 0; padding: 0; }
+    .hwr-stock-list > li { display: flex; ... border-top: 1px solid #f0f2f5; }
+    .hwr-stock-list > li:first-child { border-top: 0; }
+
+다크모드 구분선 색(`html.dark .hwr-columns li, ...`)도 같은 범위로 넓혔다 - 빠지면
+어두운 배경에 밝은 선이 남는다. `.hwr-schedule-list`는 이미 자기 `li` 규칙을 갖고
+있어 대상이 아니라 건드리지 않았다.
+
+기존 변형이 안 깨지는지 같이 확인했다. 새 규칙은 뒤에 오는 `.hwr-stock-list li`
+(align-items: center)와 `.hwr-stock-list--four li`(display: block)에 그대로 덮여,
+`--four` 4열 변형은 렌더 결과가 동일하다(실측: display block 유지).
+
+CSS 캐시 문자열을 `?v=20260912-outcome-list-reset-v1`로 올렸다. `test_ui_ia.py`가 이
+값을 고정하고 있어 함께 갱신했다(그 테스트가 제 역할을 한 것).
+
+검증: `pytest test/` **671 passed**(직전 667 + 신규 4), 118 skipped, 87 subtests.
+신규 `test_home_weekly_report_css.py` 4건은 고치기 전 CSS로 되돌려 3건이 실제로
+실패하는 것까지 확인했다. 남은 2건은 작업 환경 아웃바운드 차단으로 항상 실패하는
+네트워크 의존 테스트다.
+
+배포: `css/`·`js/`는 master 반영 후 GitHub Pages 자동. `skin.html` 변경 없음.
+
 **2026-09-12 /foreign-flow 직렬 구간 제거 - ka10008을 KIS 페이징과 병렬화**
 
 종목분석에서 가장 오래 걸리는 호출이 `/foreign-flow/{code}`다(실측 3.2~10.5초).

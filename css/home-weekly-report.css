@@ -34,6 +34,17 @@
 .hwr-columns ul, .hwr-schedule ul { list-style: none; margin: 0; padding: 0; }
 .hwr-columns li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f2f5; }
 .hwr-columns li:first-child { border-top: 0; }
+/* 2026-09-12 휴장 대시보드 깨짐: 위 목록 리셋·행 레이아웃이 전부 .hwr-columns(또는
+   .hwr-schedule) 조상에만 걸려 있었다. "지난 2주 스윙 추천 결과"(pastOutcomeList)만
+   <ul>을 .hwr-columns 없이 section 바로 밑에 두는데, 그래서 그 목록만 브라우저 기본
+   불릿 + padding-left 40px + margin-top 16px로 떨어졌다(로컬 실측: list-style disc,
+   padding-left 40px). 리셋을 조상이 아니라 컴포넌트 자신에 걸어 배치와 무관하게 만든다.
+   .hwr-schedule-list는 이미 자기 li 규칙을 갖고 있어 대상이 아니다.
+   아래 .hwr-stock-list li / --four 규칙이 뒤에 와서 align-items·display를 그대로
+   덮어쓰므로 기존 변형들의 모양은 바뀌지 않는다. */
+.hwr-stock-list { list-style: none; margin: 0; padding: 0; }
+.hwr-stock-list > li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f2f5; }
+.hwr-stock-list > li:first-child { border-top: 0; }
 .hwr-columns li a { overflow: hidden; color: #24324a; font-size: 11px; line-height: 1.45; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
 .hwr-columns li small { display: block; margin-top: 2px; color: #94a3b8; font-size: 9px; }
 .hwr-stock-list li { align-items: center; }
@@ -65,7 +76,7 @@ html.dark .home-weekly-report { color: #f5efe0; }
    리포트: "중간에 흰색 줄(진한색) 주위 선색이랑 같게 해줘"). */
 html.dark .hwr-head { border-color: rgba(245,239,224,.16); }
 html.dark .hwr-index-card, html.dark .hwr-summary-row article, html.dark .hwr-columns article, html.dark .hwr-schedule { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .hwr-columns li, html.dark .hwr-schedule-list li { border-color: rgba(245,239,224,.1); }
+html.dark .hwr-columns li, html.dark .hwr-schedule-list li, html.dark .hwr-stock-list > li { border-color: rgba(245,239,224,.1); }
 html.dark .hwr-columns li a, html.dark .hwr-loading strong { color: #f5efe0; }
 html.dark .hwr-source-note, html.dark .hwr-loading { border-color: rgba(245,239,224,.2); }
 @media (max-width: 720px) {
