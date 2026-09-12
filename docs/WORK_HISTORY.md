@@ -1,5 +1,100 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 휴장 대시보드 "지난 2주 스윙 추천 결과" 목록이 통째로 깨지던 문제**
+
+사용자 리포트 + 스크린샷: 휴장 대시보드에서 이 섹션만 종목이 브라우저 기본 불릿으로
+들여쓰기돼 나오고, 오른쪽에 있어야 할 T+5/T+10 값이 제자리에 없었다.
+
+원인은 CSS 리셋이 **조상 선택자에만** 걸려 있던 것이다.
+
+    css/home-weekly-report.css:34
+    .hwr-columns ul, .hwr-schedule ul { list-style: none; margin: 0; padding: 0; }
+    .hwr-columns li { display: flex; justify-content: space-between; border-top: ... }
+
+주간 리포트의 다른 섹션은 전부 `<div class="hwr-columns">`로 목록을 감싸는데,
+`pastOutcomeList()`(js/home-weekly-report.js:236)만 `<ul class="hwr-stock-list
+hwr-outcome-list">`를 `<section>` 바로 밑에 둔다. 그래서 이 목록에만 리셋도 행
+레이아웃도 닿지 않았다.
+
+헤드리스 크롬으로 실제 CSS를 올려 재현:
+
+    .hwr-columns 안 목록  list-style none / padding-left 0px   / margin-top 0px
+    스윙 추천 결과 목록    list-style disc / padding-left 40px  / margin-top 16px
+
+고친 방향: "이 목록도 `.hwr-columns`로 감싸라"가 아니라 **리셋을 컴포넌트 자신에
+걸었다**. 배치가 달라져도 다시 깨지지 않는다.
+
+    .hwr-stock-list { list-style: none; margin: 0; padding: 0; }
+    .hwr-stock-list > li { display: flex; ... border-top: 1px solid #f0f2f5; }
+    .hwr-stock-list > li:first-child { border-top: 0; }
+
+다크모드 구분선 색(`html.dark .hwr-columns li, ...`)도 같은 범위로 넓혔다 - 빠지면
+어두운 배경에 밝은 선이 남는다. `.hwr-schedule-list`는 이미 자기 `li` 규칙을 갖고
+있어 대상이 아니라 건드리지 않았다.
+
+기존 변형이 안 깨지는지 같이 확인했다. 새 규칙은 뒤에 오는 `.hwr-stock-list li`
+(align-items: center)와 `.hwr-stock-list--four li`(display: block)에 그대로 덮여,
+`--four` 4열 변형은 렌더 결과가 동일하다(실측: display block 유지).
+
+CSS 캐시 문자열을 `?v=20260912-outcome-list-reset-v1`로 올렸다. `test_ui_ia.py`가 이
+값을 고정하고 있어 함께 갱신했다(그 테스트가 제 역할을 한 것).
+
+검증: `pytest test/` **671 passed**(직전 667 + 신규 4), 118 skipped, 87 subtests.
+신규 `test_home_weekly_report_css.py` 4건은 고치기 전 CSS로 되돌려 3건이 실제로
+실패하는 것까지 확인했다. 남은 2건은 작업 환경 아웃바운드 차단으로 항상 실패하는
+네트워크 의존 테스트다.
+
+배포: `css/`·`js/`는 master 반영 후 GitHub Pages 자동. `skin.html` 변경 없음.
+
+**2026-09-12 /foreign-flow 직렬 구간 제거 - ka10008을 KIS 페이징과 병렬화**
+
+종목분석에서 가장 오래 걸리는 호출이 `/foreign-flow/{code}`다(실측 3.2~10.5초).
+앞선 작업(같은 날 "대시보드 속도 개선")에서 프론트 상한만 씌웠고 서버는 손대지
+않았는데, 정상 경로를 줄이려면 여기를 봐야 한다.
+
+`fetch_foreign_inst_daily()`의 구조는 이랬다.
+
+    ka10059  ──────────────(백그라운드)
+    ka10008  ──▶ (직렬 대기)
+                 KIS 일별 페이징(30영업일/회, 기본 63일 = 3회 순차) ──▶ 출력
+
+2026-08-21 코드 감사가 ka10059만 백그라운드로 빼면서 ka10008은 "frgn_by_date가
+out 계산에 바로 필요해" 직렬로 남겼다. **그 판단이 틀렸다.** `frgn_by_date`는 KIS
+페이징이 전부 끝난 뒤 출력 행을 만드는 루프에서만 읽힌다(`_daily_rows_from_kis`
+마지막 for). 네트워크 대기 구간에서는 쓰이지 않아 페이징과 겹칠 수 있다.
+
+바꾼 것: ka10008도 풀에 넣고(`max_workers=2`), `frgn_by_date`를 dict가 아니라
+메모이즈된 무인자 provider로 내려보낸다. `_daily_rows_from_kis`는 출력 루프 직전에,
+캐시 폴백 경로(`_remerge_foreign_holdings`)는 자기 시점에 resolve한다. 키움 폴백
+경로만 dict를 그대로 받으므로 `if out is None:` 안에서 resolve한다. 세 함수 모두
+`kiwoom_market.py` 내부 전용이라 외부 호출부·시그니처 영향 없음.
+
+맞바꾼 것: ka10008이 실패하면 예전에는 KIS를 한 번도 안 부르고 끝났는데 이제는
+페이징을 돈 뒤 실패한다(KIS 쿼터를 그만큼 헛씀). ka10008 실패는 드물고 매 요청
+직렬 1회를 없애는 이득이 크다고 보고 받아들였다. 요청 전체가 실패하는 동작 자체는
+예전과 같다(main.py가 DB 확정 데이터로 폴백).
+
+손대지 않은 것:
+
+- `KIS_PAGE_THROTTLE_SEC`(0.15초): 3페이지 합계 0.3초라 병목이 아니다.
+- **KIS 페이징 횟수 자체**: `kis_flow_cache`(SQLite)에 과거 확정 행이 이미 있으니
+  최신 1페이지만 받아 병합하면 3회→1회가 된다. 다만 "과거 행은 안 바뀐다"는 가정에
+  기대는 변경이고 액면분할·무상증자가 소급해 과거 종가/거래량을 바꾼다. 별도 판단이
+  필요해 이번에 하지 않았다. **다음에 볼 후보 1순위.**
+- 요청 경로의 `upsert_investor_flow_daily`(최대 63행 SQLite 쓰기): 응답에 필요한
+  작업은 아니지만 비용이 작고, 빼면 내구성 의미가 달라져 그대로 뒀다.
+
+검증: `pytest test/` **667 passed**(직전 664 + 신규 3), 118 skipped, 87 subtests.
+신규 `ForeignFlowConcurrencyTests` 3건은 소스 문자열이 아니라 **실제 호출 타이밍**을
+본다(ka10008 start/end와 KIS 페이지 start를 기록해 겹침을 확인, 보유주수·비중이
+행에 실리는지, ka10008이 정확히 1회만 나가는지). 옛 직렬 코드로 되돌려 실행해
+`test_ka10008_overlaps_the_kis_paging`이 실제로 실패하는 것까지 확인했다.
+남은 2건은 작업 환경 아웃바운드 차단으로 항상 실패하는 네트워크 의존 테스트다.
+
+배포: `scripts/cloud-vm/`은 master 반영 후 VM 자동 배포. 반영 뒤
+`/foreign-flow/005930` 재측정 필요(직전 실측 3.24s, 그 전 10.53s - 편차가 커서
+단발 비교로는 판단할 수 없고 여러 번 재야 한다).
+
 **2026-09-12 대시보드 속도 개선 - 워머 양쪽 시장, KIS 조회 웨이브 축소, 브라우저 캐시, 종목분석 상한**
 
 앞선 실측(같은 날 "대시보드 속도 실측" 항목)에서 나온 원인 네 가지를 순서대로
