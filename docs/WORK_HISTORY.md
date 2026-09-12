@@ -1,5 +1,77 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 대시보드 속도 개선 - 워머 양쪽 시장, KIS 조회 웨이브 축소, 브라우저 캐시, 종목분석 상한**
+
+앞선 실측(같은 날 "대시보드 속도 실측" 항목)에서 나온 원인 네 가지를 순서대로
+반영했다. 화면에 **무엇을 그리는지는 바꾸지 않고**, 기다리는 시간만 줄인다.
+
+**1. 종목분석 종목조회가 30초였던 원인**
+
+실측(러너 → VM): `/foreign-flow/005930` 10.5초, `/flow-chart/005930` 4.0초(웜 1.0초),
+`/investor-flow/005930` 2.7초, GAS `?action=fundamentals` 2.1초. 어느 하나가 30초인
+게 아니라, `js/foreign-flow.js`가 이들을 `Promise.all`로 전부 기다리는 동안 **상한이
+사실상 없었다**. 특히 `fetchFlow`는 VM 타임아웃 60초 + 재시도 1회 + GAS 폴백 20초라
+최악 140초까지 화면을 막을 수 있었다.
+
+- `FLOW_VM_TIMEOUT_MS` 20초 신설(60초 → 20초). 실측 10.5초라 정상 응답은 다 통과한다.
+- `FLOW_CHART_GAS_TIMEOUT_MS` 10초 신설. GAS `?action=flowChart`는 VM `/ohlc`를 다시
+  부르는 경유지라 28~30초가 걸린 적이 있다(2026-09-03). `renderResult`는 차트가 없으면
+  `buildFlowChartFallback`으로 대체하므로 무한정 기다릴 이유가 없다.
+- `INVESTOR_FLOW_DEADLINE_MS` 8초 신설. 실측 2.7초라 평소엔 값이 그대로 실리고 꼬리만
+  잘린다. `entry`는 코드 전역이 `entry && ...`로 다루는 값이라 null이 이미 정상 입력이다.
+- 검색 경로(`search()`)와 **랭킹 리스트 클릭 경로(`loadSignalSummary()`) 둘 다** 적용.
+  후자는 2026-09-03 데드라인 작업에서 빠져 있어 같은 증상이 다른 입구로 남아 있었다.
+- 펀더멘탈은 데드라인을 걸지 **않았다**. `computeFundamentalScore`를 거쳐 화면의
+  "종합점수"에 들어가는 값이라, 반쪽 데이터로 계산한 점수가 나오면 안 된다는 기존
+  결정을 유지한다.
+
+기대 효과는 정직하게: 정상 경로는 `/foreign-flow` 10.5초가 지배하므로 크게 빨라지지
+않는다. 30초·45초짜리 병적인 꼬리가 20초대로 묶이는 것이 이번 변경의 몫이다. 정상
+경로를 줄이려면 `/foreign-flow` 자체를 손봐야 한다(미착수).
+
+**2. `/market-board` 워머가 한쪽 시장만 덥히던 것**
+
+`_market_board_warm_loop`이 `_economic_news_market()`으로 고른 시간대 기본 시장
+하나만 덥혔다. 홈에서 시장 탭을 반대쪽으로 바꾼 방문자는 캐시 미스(실측 7.6~8.4초,
+적중은 0.36~1.0초)를 그대로 맞았다. 국내·미국을 `ThreadPoolExecutor(max_workers=2)`로
+동시에 덥힌다 - 순차로 돌리면 두 조회 시간이 더해져 주기가 `_MARKET_BOARD_TTL`(30초)을
+넘긴다. `time.sleep`도 걸린 시간을 빼고 재우도록 고쳐, 주기가 "조회 후 20초"가 아니라
+"20초마다"가 된다(예전엔 조회 8초 + 20초 = 실질 28초로 TTL에 육박했다).
+
+**3. KIS 조회 웨이브 축소**
+
+- `_enrich_domestic_kis_week52` 워커 4 → 8(`_WEEK52_ENRICH_WORKERS`). 최대 40종목이
+  10웨이브 → 5웨이브. KIS 시세는 종목당 1회 + 15분 캐시라 동시 8건이 유량 제한에 닿는
+  수준이 아니다.
+- 국내 순위 7종 워커 4 → `len(tasks)`. 서로 다른 TR이라 순서 의존이 없어 한 웨이브로
+  끝내면 가장 느린 1건의 시간만 남는다.
+- 미국 경로(`_fetch_us_kis_metric`, `fetch_us_kis`)는 "지표 3 x 거래소 3 = 동시 9건"으로
+  **의도적으로 묶여 있어 건드리지 않았다.** 여기를 올리려면 KIS 유량 제한 근거가 먼저
+  필요하다. 실수로 풀리지 않게 테스트로 고정했다.
+
+**4. `/market-board`에 브라우저 캐시 헤더**
+
+이 응답에는 `cache-control`이 전혀 없었다. 서버 캐시가 적중해도 브라우저는 매번
+200KB 본문을 다시 받는다 - 탭 전환·재방문·새로고침이 전부 왕복이다.
+`public, max-age=15, stale-while-revalidate=30`을 붙였다. 15초는 서버 TTL(30초)과
+프론트 메모리 캐시(`js/home-realtime-table.js` `REFRESH_MS`=30초) 안쪽이라 화면에
+보이는 신선도를 낮추지 않는다. `fresh=1`은 캐시를 일부러 우회하려는 요청(워머 루프백,
+WebSocket 틱)이라 `no-store`로 둔다.
+
+ETag는 넣지 않았다. FastAPI가 dict를 나중에 직렬화하는 구조라 본문 해시를 쓰려면
+직렬화를 직접 해야 해서 변경 폭이 커진다. `max-age`만으로 "요청 자체를 안 보내는"
+몫은 이미 얻는다.
+
+검증: `pytest test/` **664 passed**(기존 653 + 신규 11), 118 skipped, 87 subtests.
+남은 2건(`test_domestic_market_indicators`·`test_domestic_news`)은 작업 환경 아웃바운드
+차단으로 항상 실패하는 네트워크 의존 테스트다. `node --check js/foreign-flow.js` 통과.
+신규 테스트: `test_foreign_flow_timeouts.py`(4), `test_market_board_cache_headers.py`(3),
+`test_market_board.py::MarketBoardConcurrencyTests`(3), 워머 테스트 1건 추가.
+
+배포: `js/`는 GitHub Pages 자동, `scripts/cloud-vm/`은 VM 자동(`kiwoom-deploy.timer`).
+`skin.html` 변경 없음. 반영 후 page-speed 재측정 필요(이번 변경 전후 비교 기준선은
+같은 날 "대시보드 속도 실측" 항목의 표).
+
 **2026-09-12 대시보드 속도 실측 - 측정 도구 ready 기준 교정 + 기준선 기록**
 
 "대시보드가 너무 느리다"를 추정 대신 실측했다. 먼저 `page-speed`가 내는 숫자를

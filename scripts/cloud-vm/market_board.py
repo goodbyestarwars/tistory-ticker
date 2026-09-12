@@ -30,6 +30,8 @@ _FX_TTL_SEC = 15 * 60
 _fx_cache = {}
 _WICS_MAP_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js'
 _WICS_MAP_TTL_SEC = 6 * 60 * 60
+# 52주 고가/저가 보강(_enrich_domestic_kis_week52)의 동시 호출 수.
+_WEEK52_ENRICH_WORKERS = 8
 _wics_map_cache = {'t': 0, 'data': {}}
 
 # 순위 TR이 일시적으로 비어도 홈 보드를 비우지 않기 위한 유동성 높은 대표 종목 목록.
@@ -293,7 +295,11 @@ def _enrich_domestic_kis_week52(token, appkey, appsecret, rows, codes):
     if not targets:
         return rows
     enriched = {}
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    # 2026-09-12: 워커 4로는 최대 40종목이 10웨이브가 돼, 이 보강만으로 /market-board
+    # 캐시 미스의 절반 가까이를 썼다(미스 전체 실측 7.6~8.4초). 8로 올려 웨이브를
+    # 절반으로 줄인다. KIS 시세 조회는 종목당 1회 + 15분 캐시(_KIS_QUOTE_TTL_SEC)라
+    # 동시 8건이 유량 제한에 닿는 수준은 아니다.
+    with ThreadPoolExecutor(max_workers=_WEEK52_ENRICH_WORKERS) as pool:
         futures = [pool.submit(enrich, row) for row in targets]
         for future in as_completed(futures):
             try:
@@ -497,7 +503,9 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     }
     rank_rows = {}
     errors = []
-    with ThreadPoolExecutor(max_workers=4) as pool:
+    # 순위 7종을 워커 4로 돌리면 2웨이브가 된다. 서로 다른 TR이라 순서 의존이 없고
+    # 한 웨이브로 끝내면 가장 느린 1건의 시간만 남는다.
+    with ThreadPoolExecutor(max_workers=len(tasks)) as pool:
         futures = {name: pool.submit(fn) for name, fn in tasks.items()}
         for name, future in futures.items():
             try:

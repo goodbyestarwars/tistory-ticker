@@ -3087,17 +3087,34 @@ def _note_market_board_real_hit(request):
 def _market_board_warm_loop():
     port = (os.environ.get('PORT', '') or os.environ.get('APP_PORT', '') or '8080').strip()
     log = logging.getLogger('main')
+
+    def warm(market):
+        url = 'http://127.0.0.1:%s/market-board?market=%s&limit=40&fresh=1' % (port, market)
+        req = urllib.request.Request(url, headers={'User-Agent': 'market-board-warmer/1'})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            resp.read()
+
     while True:
+        started = time.time()
         try:
             if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:
-                market = _economic_news_market()
-                url = 'http://127.0.0.1:%s/market-board?market=%s&limit=40&fresh=1' % (port, market)
-                req = urllib.request.Request(url, headers={'User-Agent': 'market-board-warmer/1'})
-                with urllib.request.urlopen(req, timeout=20) as resp:
-                    resp.read()
+                # 2026-09-12: 예전에는 _economic_news_market()이 고른 "그 시간대의 기본
+                # 시장" 한쪽만 데웠다. 그래서 홈에서 시장 탭을 반대쪽으로 바꾼 방문자는
+                # 캐시 미스를 그대로 맞았다(실측: 미스 7.6~8.4초 / 히트 0.36~1.0초).
+                # 국내·미국을 동시에 데운다 - 순차로 돌리면 두 번의 조회 시간이 더해져
+                # 주기가 _MARKET_BOARD_TTL(30초)을 넘겨 캐시에 구멍이 생긴다.
+                with ThreadPoolExecutor(max_workers=2) as pool:
+                    futures = {m: pool.submit(warm, m) for m in ('domestic', 'us')}
+                    for market, future in futures.items():
+                        try:
+                            future.result()
+                        except Exception:
+                            log.debug('market-board 캐시 워머 갱신 실패(%s)', market, exc_info=True)
         except Exception:
-            log.debug('market-board 캐시 워머 갱신 실패', exc_info=True)
-        time.sleep(_MARKET_BOARD_WARM_INTERVAL_SEC)
+            log.debug('market-board 캐시 워머 루프 오류', exc_info=True)
+        # 조회에 걸린 시간을 빼고 재운다. 그래야 주기가 조회 시간만큼 늘어나
+        # 캐시 TTL을 넘기는 일이 없다.
+        time.sleep(max(1.0, _MARKET_BOARD_WARM_INTERVAL_SEC - (time.time() - started)))
 
 
 def _start_market_board_warmer():
@@ -3146,12 +3163,21 @@ def _start_domestic_news_warmer():
 
 @app.get('/market-board')
 def market_board_endpoint(request: Request,
+                          response: Response,
                           market: str = Query('domestic'),
                           limit: int = Query(20, ge=6, le=40),
                           fresh: bool = Query(False)):
     """홈 증권사형 실시간 종목판. 국내·미국 세션별 같은 행 모델을 반환한다."""
     _check_rate_limit('market_board', request, max_per_window=30)
     _note_market_board_real_hit(request)
+    # 2026-09-12: 이 응답에는 캐시 헤더가 전혀 없었다. 서버 캐시가 적중해도(0.36~1.0초)
+    # 브라우저는 매번 200KB 본문을 다시 받는다 - 탭 전환·재방문·새로고침이 전부 왕복이다.
+    # max-age 15초는 서버 TTL(_MARKET_BOARD_TTL=30초)과 프론트 메모리 캐시
+    # (js/home-realtime-table.js REFRESH_MS=30초) 안쪽이라 화면에 보이는 신선도를
+    # 낮추지 않으면서 그 왕복만 없앤다. fresh=1은 캐시를 일부러 우회하려는 요청
+    # (워머·WebSocket 틱)이라 저장하지 않는다.
+    response.headers['Cache-Control'] = ('no-store' if fresh
+                                         else 'public, max-age=15, stale-while-revalidate=30')
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()
