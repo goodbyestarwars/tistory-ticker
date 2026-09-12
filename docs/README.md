@@ -16,6 +16,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `ARCHITECTURE_SPEC.md` | 컴포넌트 간 호출·인증·캐싱·동시성 상세 | 인프라 심화 작업 |
 | `DB_SPEC.md` | SQLite 2종 + 파일 기반 데이터 스키마 정의 | DB/캐시 구조 작업 |
 | `SKIN_HTML_PENDING.md` | 운영 스킨(skin.html) 미반영 항목과 임시 우회 목록 | skin.html 관련 작업 |
+| `HANDOFF_*.md` | 세션 인수인계서(날짜별). 최신 것부터 본다 | 작업을 이어받을 때 |
 | `../.claude/rules/` | 경로별 세부 규칙 | 관련 파일 작업 시 |
 | `../.claude/skills/` | 반복 작업 절차 | Skill 호출 시 |
 
