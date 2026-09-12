@@ -48,7 +48,12 @@ def _bluechip_rows():
     drop_total = 0.08
     for i in range(drop_days):
         price = peak * (1 - drop_total * (i + 1) / drop_days)
-        vol = max(1800 - i * 130, 100)
+        # 2026-09-12: pullback_daily()와 같은 1400 기준이어야 한다. 1800이면 조정구간
+        # 최대거래량(1800)이 상승구간 최대(2100)의 PULLBACK_MAX_VOL_RATIO(0.70=1470)를
+        # 넘어 detect_pullback이 신호를 내지 않는다 - 이 상한은 픽스처(feed0b7)보다
+        # 나중에(f2bd1d9) 들어왔고, pandas 없는 환경에서 클래스가 통째로 skip돼
+        # 3주간 드러나지 않았다.
+        vol = max(1400 - i * 130, 100)
         daily.append({
             "date": (start + timedelta(days=len(daily))).isoformat(),
             "open": price * 1.001, "high": price * 1.006, "low": price * 0.995, "close": price, "volume": vol,
