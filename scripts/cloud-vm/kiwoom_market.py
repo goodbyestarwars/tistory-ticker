@@ -279,7 +279,7 @@ def _frgn_by_date_from_ka10008(frgn_res):
     return out
 
 
-def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days=FLOW_DEFAULT_DAYS):
+def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days=FLOW_DEFAULT_DAYS):
     """KIS 종목별투자자매매동향(일별)(FHPTJ04160001, FID_COND_MRKT_DIV_CODE=UN)로 종가/거래량/
     개인/기관/외국인을 채운다. 2026-07-19 실측(005930): UN(KRX+NXT 통합)으로 조회하니 종가·
     거래량·개인·기관이 Toss/키움HTS와 정확히 일치했고, 외국인은 frgn_reg_ntby_qty(등록
@@ -293,7 +293,9 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, 
     주고 날짜범위 파라미터가 없어서, target_days(1개월=30/3개월=63/6개월=126/1년=252)를
     채울 때까지 이미 받은 행 중 가장 오래된 날짜의 하루 전을 다음 date1로 삼아 반복
     호출한다. 종목마다 상장일이 다르니 새 행이 하나도 안 늘면(상장일 도달 등) 즉시 멈추고,
-    API 남용 방지로 FLOW_MAX_KIS_PAGES(10회=최대 약 300영업일)에서 강제 종료한다."""
+    API 남용 방지로 FLOW_MAX_KIS_PAGES(10회=최대 약 300영업일)에서 강제 종료한다.
+    2026-09-12: frgn_by_date를 dict가 아니라 무인자 provider로 받는다 - 이 값은 아래
+    출력 루프에서만 읽히므로, 호출부가 ka10008을 이 페이징과 병렬로 받아둘 수 있다."""
     kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
 
     rows_by_date = {}
@@ -316,6 +318,8 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, 
     if not rows_by_date:
         raise RuntimeError('KIS investor-trade-by-stock-daily returned no rows')
 
+    # 여기서 처음 필요해진다. 위 페이징이 도는 동안 ka10008은 병렬로 끝나 있다.
+    frgn_by_date = frgn_by_date_provider()
     out = []
     for dt in sorted(rows_by_date.keys(), reverse=True)[:target_days]:
         r = rows_by_date[dt]
@@ -351,7 +355,7 @@ def _remerge_foreign_holdings(rows, frgn_by_date):
     return rows
 
 
-def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days):
+def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days):
     """_daily_rows_from_kis()를 호출하되, KIS가 실패하면(특히 00:00~15:40 TIME LIMIT) 키움
     폴백으로 곧장 넘어가는 대신 최근(_KIS_SUCCESS_TTL_SEC 이내) 성공했던 KIS 결과를 먼저
     재사용한다 - 과거 확정일 데이터는 안 바뀌므로 몇 시간 지난 캐시라도 키움 폴백(NXT
@@ -362,7 +366,7 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
     conn = db_schema.get_conn()
     try:
         try:
-            rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
+            rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days)
             db_schema.upsert_kis_flow_cache(conn, code, target_days, rows, datetime.now(timezone.utc).isoformat())
             return rows
         except Exception as e:
@@ -373,7 +377,7 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
             if age_sec >= _KIS_SUCCESS_TTL_SEC:
                 raise
             logger.warning('KIS 실패(%s), %.0f분 전 성공 캐시로 재사용(키움 폴백 대신): %s', code, age_sec / 60, e)
-            return _remerge_foreign_holdings(cached_rows, frgn_by_date)
+            return _remerge_foreign_holdings(cached_rows, frgn_by_date_provider())
     finally:
         conn.close()
 
@@ -464,20 +468,37 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
     잠정치라는 성격상 원래도 근사치라 허용)."""
     end_dt = datetime.now().strftime('%Y%m%d')
 
-    # 2026-08-21 코드 감사: ka10059는 out(ka10008 기반 frgn_by_date가 필요한 KIS/키움
-    # 일별 조회 - 여러 페이지를 순차 호출할 수 있어 가장 오래 걸림)가 다 끝난 뒤에야
-    # 쓰이므로(ind_net 보완, 오늘 실시간 병합), out 계산과 동시에 백그라운드에서
-    # 미리 받아둔다 - ka10008(frgn_res)은 frgn_by_date가 out 계산에 바로 필요해 그대로 둠.
-    with ThreadPoolExecutor(max_workers=1) as pool:
+    # 2026-08-21 코드 감사: ka10059는 out(KIS/키움 일별 조회 - 여러 페이지를 순차
+    # 호출할 수 있어 가장 오래 걸림)가 다 끝난 뒤에야 쓰이므로(ind_net 보완, 오늘
+    # 실시간 병합), out 계산과 동시에 백그라운드에서 미리 받아둔다.
+    #
+    # 2026-09-12: 그때 ka10008은 "frgn_by_date가 out 계산에 바로 필요해" 직렬로
+    # 남겼는데, 다시 보니 사실이 아니다. frgn_by_date는 KIS 페이징이 전부 끝난 뒤
+    # 출력 행을 만드는 루프에서만 읽힌다(_daily_rows_from_kis 마지막 for). 즉 네트워크
+    # 대기 구간에서는 쓰이지 않아 페이징과 겹칠 수 있다. 지연 provider로 넘겨서
+    # 필요한 순간에만 resolve한다.
+    #
+    # 맞바꾼 것: ka10008이 실패할 경우 예전에는 KIS를 한 번도 부르지 않고 끝났는데,
+    # 이제는 페이징을 돈 뒤에 실패한다(그만큼 KIS 쿼터를 헛씀). ka10008 실패는 드물고,
+    # 매 요청 직렬 1회를 없애는 이득이 더 크다고 보고 받아들인다. 실패 시 요청 전체가
+    # 실패하는 동작 자체는 예전과 같다.
+    with ThreadPoolExecutor(max_workers=2) as pool:
         ka10059_future = pool.submit(_fetch_ka10059_rows, token, code, end_dt)
+        frgn_future = pool.submit(
+            kiwoom_client.call_tr, token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code},
+        )
 
-        frgn_res = kiwoom_client.call_tr(token, 'ka10008', '/api/dostk/frgnistt', {'stk_cd': code})
-        frgn_by_date = _frgn_by_date_from_ka10008(frgn_res)
+        frgn_cache = {}
+
+        def frgn_by_date_provider():
+            if 'v' not in frgn_cache:
+                frgn_cache['v'] = _frgn_by_date_from_ka10008(frgn_future.result())
+            return frgn_cache['v']
 
         out = None
         if kis_appkey and kis_appsecret:
             try:
-                out = _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date, target_days)
+                out = _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days)
             except Exception as e:
                 # 2026-07-19: 이 예외를 조용히 삼키고 키움으로 폴백하기만 해서, 폴백이 실제로
                 # 언제·왜 발동됐는지 확인할 방법이 없었음(KIS 고객센터 문의로 원인 규명) - 최소한
@@ -490,7 +511,10 @@ def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, t
         ka10059_rows = ka10059_future.result()
 
     if out is None:
-        out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date, target_days)
+        # 키움 폴백 경로만 dict를 그대로 받는다. KIS 경로가 성공했다면 이미 provider
+        # 안에서 resolve됐으므로 여기서 또 부를 이유가 없다(Future.result()는 풀이
+        # 닫힌 뒤에도 동작한다 - 이미 완료된 결과를 돌려줄 뿐이다).
+        out = _daily_rows_from_kiwoom(token, code, end_dt, ka10059_rows, frgn_by_date_provider(), target_days)
 
     # KIS 일별 응답에서 개인 열이 간헐적으로 비어도, 같은 요청에서 이미 받은
     # 키움 확정 행에 해당 날짜의 개인 수급이 있으면 그 값으로 보완한다. 이 단계는

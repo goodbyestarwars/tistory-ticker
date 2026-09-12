@@ -1,7 +1,9 @@
 # -*- coding: utf-8 -*-
 import os
 import sys
+import time
 import unittest
+from unittest import mock
 
 CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
 if CLOUD_VM_DIR not in sys.path:
@@ -111,3 +113,81 @@ class MergeLiveRowTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class ForeignFlowConcurrencyTests(unittest.TestCase):
+    """2026-09-12: /foreign-flow/{code}가 종목분석에서 가장 오래 걸리는 호출이었다
+    (실측 3.2~10.5초). ka10008이 KIS 일별 페이징 앞에 직렬로 놓여 있었는데,
+    frgn_by_date는 페이징이 끝난 뒤 출력 루프에서만 읽히므로 겹칠 수 있다.
+
+    소스 문자열이 아니라 실제 호출 타이밍으로 검증한다 - 겹치는지 여부는 구현의
+    본질이고, 문자열 검사는 나중에 구조가 바뀌면 조용히 무의미해진다."""
+
+    def setUp(self):
+        self.events = []          # (이름, 'start'|'end', 시각)
+        self.page_calls = 0
+
+    def _record(self, name, phase):
+        self.events.append((name, phase, time.time()))
+
+    def _fake_call_tr(self, token, tr, path, payload, *a, **kw):
+        if tr == 'ka10008':
+            self._record('ka10008', 'start')
+            time.sleep(0.05)
+            self._record('ka10008', 'end')
+            return {'stk_frgnr': [{'dt': '20260911', 'poss_stkcnt': '100', 'wght': '50.0'}]}
+        if tr == 'ka10059':
+            time.sleep(0.01)
+            return {'stk_invsr_orgn': []}
+        raise AssertionError('예상치 못한 TR: %s' % tr)
+
+    def _fake_fetch_investor_trade_daily(self, token, appkey, secret, code, cursor_dt, div):
+        self.page_calls += 1
+        self._record('kis_page', 'start')
+        time.sleep(0.05)
+        self._record('kis_page', 'end')
+        # 페이지마다 새 날짜를 주되, target_days를 채우기 전에 두 번은 돌게 한다.
+        base = 20260911 - (self.page_calls - 1) * 2
+        rows = [{'stck_bsop_date': str(base - i), 'stck_clpr': '100', 'prdy_ctrt': '1.0',
+                 'acml_vol': '10', 'orgn_ntby_qty': '1', 'frgn_reg_ntby_qty': '2',
+                 'prsn_ntby_qty': '3'} for i in range(2)]
+        return None, rows
+
+    def _run(self):
+        import concurrent.futures
+        with mock.patch.object(kiwoom_market.kiwoom_client, 'call_tr', side_effect=self._fake_call_tr), \
+             mock.patch.object(kiwoom_market.kis_client, 'get_token', return_value='tok'), \
+             mock.patch.object(kiwoom_market.kis_client, 'fetch_investor_trade_daily',
+                               side_effect=self._fake_fetch_investor_trade_daily), \
+             mock.patch.object(kiwoom_market.db_schema, 'get_conn'), \
+             mock.patch.object(kiwoom_market.db_schema, 'upsert_kis_flow_cache'):
+            return kiwoom_market.fetch_foreign_inst_daily(
+                'kiwoom-token', '005930', kis_appkey='k', kis_appsecret='s', target_days=4,
+            )
+
+    def test_ka10008_overlaps_the_kis_paging(self):
+        self._run()
+        starts = {name: t for name, phase, t in self.events if phase == 'start' and name == 'ka10008'}
+        ka_start = starts['ka10008']
+        ka_end = [t for name, phase, t in self.events if name == 'ka10008' and phase == 'end'][0]
+        page_starts = [t for name, phase, t in self.events if name == 'kis_page' and phase == 'start']
+        self.assertTrue(page_starts, 'KIS 페이징이 한 번도 안 돌았다')
+        # 첫 KIS 페이지가 ka10008이 끝나기를 기다리지 않고 시작해야 한다.
+        self.assertLess(page_starts[0], ka_end,
+                        'ka10008이 끝난 뒤에야 KIS 페이징이 시작됐다 - 직렬로 되돌아갔다')
+        self.assertGreaterEqual(page_starts[0], ka_start)
+
+    def test_result_still_carries_foreign_holdings_from_ka10008(self):
+        """병렬로 바꾸면서 ka10008 결과가 행에 안 실리면 보유주수/비중이 통째로 빈다."""
+        out = self._run()
+        self.assertTrue(out)
+        row = [r for r in out if r['date'] == '2026-09-11']
+        self.assertTrue(row, '20260911 행이 없다')
+        self.assertEqual(100, row[0]['foreign_shares'])
+        self.assertEqual(50.0, row[0]['foreign_ratio'])
+
+    def test_ka10008_is_fetched_exactly_once(self):
+        """provider를 여러 번 불러도 ka10008은 한 번만 나가야 한다(메모이즈)."""
+        self._run()
+        ka_starts = [t for name, phase, t in self.events if name == 'ka10008' and phase == 'start']
+        self.assertEqual(1, len(ka_starts))
