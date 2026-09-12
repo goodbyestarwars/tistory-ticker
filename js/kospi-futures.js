@@ -19,15 +19,9 @@
  * 둘 다 VM의 /futures 엔드포인트 하나로 묶여서 나온다(js/overnight-market.js와 동일 API,
  * 이 페이지가 쓰는 심볼만 다름).
  *
- * AI 해설은 GAS(gas/ticker-proxy.gs의 getKospiFuturesAnalysis, ?action=kospiFuturesAnalysis)가
- * /futures 응답을 프롬프트에 그대로 넣어 생성 - 화면 숫자와 AI 문장이 어긋나지 않도록 소스를
- * 통일했다(과거 코스피 100배 버그로 AI가 엉뚱한 숫자를 지어낸 전례 있음).
- *
- * 2026-07-22: AI 해설(getKospiFuturesAnalysis)이 /option-flow 응답도 같이 받아 콜/풋 OI
- * 동향(신규 진입/청산, 상승·하락 어느 쪽 심리가 우세한지)까지 해석해서 문장에 포함하도록 확장했다
- * - 참고의견(buildAiSection)과 옵션 수급 원자료(buildOptionSection)는 한 차례 한 섹션으로
- * 합쳤다가, 페이지 흐름(참고의견 -> 지수 -> 차트 -> 옵션 원자료)을 위해 다시 분리했다
- * (buildAiSection은 최상단 단독 섹션, buildOptionSection은 차트 다음 맨 아래).
+ * 2026-09-12 사용자 요청으로 참고의견(AI 해설) 섹션을 제거했다. GAS
+ * getKospiFuturesAnalysis(?action=kospiFuturesAnalysis)는 다른 화면이 쓰지 않으므로
+ * 이 파일에서만 호출이 사라진다(GAS 쪽 함수는 그대로 두었다).
  *
  * 큰 차트는 js/foreign-flow.js의 renderLwChart 패턴(캔들스틱, 크로스헤어 활성화, 축 표시)을
  * 그대로 재사용한다 - js/overnight-market.js의 축 없는 스파크라인과 다르게 여기는 인터랙션을
@@ -81,7 +75,7 @@
     { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: 'KOSPI200 야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
-  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260827-kf-chart-controls-v2';
+  var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260912-remove-ai-section-v1';
 
   var CHART_EL_BY_KEY = {};
   CHARTS.forEach(function (c) { CHART_EL_BY_KEY[c.key] = c.elId; });
@@ -170,25 +164,6 @@
       .then(function (json) {
         if (timer) clearTimeout(timer);
         return json.data || [];
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
-  }
-
-  function fetchAiSummary() {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(GAS_TICKER_URL + '?action=kospiFuturesAnalysis', hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data && data.analysis;
       })
       .catch(function (err) {
         if (timer) clearTimeout(timer);
@@ -309,26 +284,9 @@
     }).join('');
 
     return ''
-      + buildAiSection()
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
       + '<div class="kf-chart-grid">' + sections + '</div>'
       + buildOptionSection();
-  }
-
-  // ---- 참고의견(선물 AI 해설) ----
-  // 2026-07-22: AI 해설(getKospiFuturesAnalysis)이 옵션 OI 데이터도 같이 받아 콜/풋 포지션
-  // 해석까지 문장에 포함한다(gas/ticker-proxy.gs 참고) - 그래서 이 박스 자체는 "선물"만이
-  // 아니라 "선물+옵션" 해설이지만, 페이지 흐름상(참고의견 -> 지수 -> 차트 -> 옵션 원자료)
-  // 최상단에 단독 섹션으로 둔다(사용자 요청, 한 차례 옵션 카드와 합쳤다가 다시 분리함).
-  var KF_AI_ICON = '<svg class="kf-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
-    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
-    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-
-  function buildAiSection() {
-    return '<div class="kf-section" data-section-key="ai">'
-      + '<div class="kf-section-head"><div class="kf-section-title kf-ai-head">' + KF_AI_ICON + '참고의견</div></div>'
-      + '<div class="kf-ai" id="kfAi" hidden></div>'
-      + '</div>';
   }
 
   // ---- 옵션 수급(콜/풋 OI 원자료) ----
@@ -1071,18 +1029,6 @@
       });
   }
 
-  function renderAiSummary(container) {
-    var box = container.querySelector('#kfAi');
-    if (!box) return;
-    KospiFutures.fetchAiSummary()
-      .then(function (text) {
-        if (!text) { box.hidden = true; return; }
-        box.hidden = false;
-        box.innerHTML = '<p>' + escapeHtml(text) + '</p>';
-      })
-      .catch(function () { box.hidden = true; });
-  }
-
   // 국내시장지표는 증시온도에 포함하지 않고, 코스피 선물 화면과 하나의 시장 지표 메뉴로
   // 제공한다. 운영 티스토리 페이지에는 기존 #kospi-futures mount만 있을 수 있으므로,
   // 여기서 국내시장지표 mount를 앞에 만들고 정적 스크립트를 지연 로드한다.
@@ -1159,17 +1105,7 @@
 
     refreshOptionFlow(container);
 
-    // AI 해설(GAS)은 생성에 수십 초가 걸릴 수 있고 서버에서 /futures와 /option-flow를 또
-    // 호출하므로, 차트 데이터가 먼저 도착하도록 뒤로 미룬다 - 차트 응답이 끝나는 즉시, 늦어도
-    // 3초 뒤에는 시작한다(차트 요청이 실패·지연돼도 참고의견이 안 뜨는 일은 없게).
-    var aiStarted = false;
-    function startAi() {
-      if (aiStarted) return;
-      aiStarted = true;
-      renderAiSummary(container);
-    }
-    refresh(container).then(startAi);
-    setTimeout(startAi, 3000);
+    refresh(container);
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () {
@@ -1194,7 +1130,6 @@
   var KospiFutures = {
     init: init,
     fetchFutures: fetchFutures,
-    fetchAiSummary: fetchAiSummary,
     fetchOptionFlow: fetchOptionFlow
   };
   global.KospiFutures = KospiFutures;

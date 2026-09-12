@@ -1,5 +1,27 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 시장지표(선물) 참고의견 섹션 제거**
+
+사용자 요청. 이 섹션은 AI 응답이 없거나 실패하면 `#kfAi`가 `hidden`이 되는데 **제목
+줄("참고의견")은 그대로 남아**, 화면에는 빈 헤딩만 덩그러니 뜨고 바로 아래 지수 표가
+붙어 보였다(사용자 스크린샷).
+
+제거 범위는 `js/kospi-futures.js` 한 화면뿐이다 - 참고의견 상자는 사이트 6곳
+(증시온도·종목뉴스·섹터·국내시장지표·야간시황 등)에 있고 나머지는 그대로 둔다.
+
+지운 것: `fetchAiSummary()`(GAS `?action=kospiFuturesAnalysis` 호출), `KF_AI_ICON`,
+`buildAiSection()`과 그 호출, `renderAiSummary()`, 지연 실행 스케줄러(`startAi` /
+`setTimeout 3초`), `KospiFutures.fetchAiSummary` export, `css/kospi-futures.css`의
+`.kf-ai*` 규칙(다크모드 포함), `test/kospi-futures.html`의 mock.
+GAS `getKospiFuturesAnalysis` 함수 자체는 남겨뒀다(다른 경로에서 되살릴 수 있게).
+
+확인: `node --check` 통과, 잔여 참조 0건(주석 설명만 남김).
+`css/domestic-market-indicators.css`가 `.kf-ai`를 "같은 박스 스타일"이라고 주석으로
+참조하고 있었는데, `.dmi-ai`는 독립 규칙이라 영향이 없음을 확인하고 주석만 갱신했다.
+`js/kospi-futures.js`·`css/kospi-futures.css` 둘 다 바뀌어 캐시 문자열 2개
+(`skin-main.js`의 js `?v=`, `kospi-futures.js`의 css `?v=`)를 함께 올리고
+`test_ui_ia.py`의 고정값도 맞췄다. 911 passed.
+
 **2026-09-12(2차) 스윙 추천 결과 섹션을 형제 섹션과 동일 구조로**
 
 사용자 지적: "일관성이 부족해". 앞선 4열 그리드는 폭 문제만 줄였을 뿐 **형제 섹션과

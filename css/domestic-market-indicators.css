@@ -21,8 +21,9 @@
 .dmi-shell .dmi-ai,
 .dmi-shell .dmi-ai *,
 .dmi-shell .dmi-error { color: #000 !important; }
-/* 증시자금 카드 위 "종합 요약" - js/kospi-futures.js의 .kf-ai와 동일한 박스 스타일.
-   글자색은 위 .dmi-shell .dmi-ai * 규칙(항상 검정)을 그대로 따른다. */
+/* 증시자금 카드 위 "종합 요약". 원래 js/kospi-futures.js의 .kf-ai와 같은 박스
+   스타일이었으나 그쪽 참고의견은 2026-09-12 사용자 요청으로 제거됐다 - 이 규칙은
+   독립적으로 유지된다. 글자색은 위 .dmi-shell .dmi-ai * 규칙(항상 검정)을 따른다. */
 .dmi-ai { padding: 12px 14px; margin-bottom: 14px; background: #f0f6ff; border-radius: 10px; font-size: 13px; line-height: 1.6; }
 .dmi-ai-title { display: flex; align-items: center; gap: 6px; font-weight: 700; margin-bottom: 4px; }
 .dmi-ai-icon { flex: 0 0 auto; }
