@@ -13,6 +13,15 @@ import kis_client
 
 
 class DomesticMarketIndicatorsTest(unittest.TestCase):
+    def setUp(self):
+        # 2026-09-12: fetch_program_trading은 토큰을 보기 전에 모듈 전역
+        # _program_trading_cache(10분 TTL, 2026-09-01 도입)를 먼저 읽는다. 그래서
+        # ..._retries_previous_business_day...가 (알파벳 순으로 먼저 돌며) 캐시를
+        # 채우면 ..._unavailable_without_token...이 캐시된 available=True를 받아
+        # 실패했다. 파일 단위로 돌릴 때만 깨져서 그동안 "작업 환경 아웃바운드 차단"
+        # 탓으로 기록돼 있었으나 실제로는 테스트 격리 문제다(단독 실행은 통과).
+        dmi._program_trading_cache = {'t': 0.0, 'data': None}
+
     def test_normalises_minute_and_daily_candles(self):
         minute = dmi._sort_rows([
             {'ts': 100, 'openPrice': '-10', 'highPrice': '-12', 'lowPrice': '-9', 'currentPrice': '-11'},

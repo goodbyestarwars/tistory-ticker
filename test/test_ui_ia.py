@@ -690,7 +690,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { display: grid; grid-template-columns: repeat(4", style)
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         # 2026-09-12: 스윙 추천 결과 목록 리셋 수정으로 캐시 문자열을 올렸다.
-        self.assertIn("home-weekly-report.css?v=20260912-outcome-list-reset-v1", script)
+        self.assertIn("home-weekly-report.css?v=20260912-outcome-list-grid-v1", script)
         self.assertIn("home-weekly-report.js?v=20260904-closed-order-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
@@ -2916,7 +2916,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
             handle.write(script)
             path = handle.name
         try:
-            output = subprocess.check_output(["node", path, json.dumps(cases)], text=True)
+            output = subprocess.check_output(["node", path, json.dumps(cases)],
+                                            text=True, encoding="utf-8")
         finally:
             os.unlink(path)
         self.assertEqual(json.loads(output), [

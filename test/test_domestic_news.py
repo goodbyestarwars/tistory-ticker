@@ -322,8 +322,13 @@ class DomesticNewsTests(unittest.TestCase):
         self.assertEqual(fetch.call_count, 2)
 
     def test_general_disclosures_default_to_fifty_items(self):
-        rows = [{'id': str(index), 'pubDate': '20260816'} for index in range(80)]
-        with mock.patch.object(domestic_news, '_dart_items', return_value=rows):
+        # 2026-09-12: title이 없으면 _dedupe_disclosures가 전부 버려(3e27288에서 들어온
+        # 가드) 항상 0건이 됐다. 이 실패는 그동안 "작업 환경 아웃바운드 차단" 탓으로
+        # 기록돼 있었으나 실제로는 픽스처 문제다. _kind_items도 형제 테스트와 같이
+        # 막아 네트워크 의존을 없앤다.
+        rows = [{'id': str(index), 'pubDate': '20260816',
+                 'title': '공시 %d' % index} for index in range(80)]
+        with mock.patch.object(domestic_news, '_dart_items', return_value=rows),                 mock.patch.object(domestic_news, '_kind_items', return_value=[]):
             items = domestic_news.get_disclosures()
         self.assertEqual(len(items), 30)
 
