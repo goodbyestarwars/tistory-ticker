@@ -149,15 +149,6 @@
       }
       return Promise.resolve(payload);
     };
-    KospiFutures.fetchAiSummary = function () {
-      console.log('[mock] fetchAiSummary');
-      if (window.__mockMode === 'error') return Promise.reject(new Error('mock error'));
-      return Promise.resolve('코스피200 야간선물이 주간선물 종가 대비 소폭 상승 마감하며 위험선호 심리가 '
-        + '이어졌습니다. 야간선물은 미국 증시 마감 이후 흐름을 가장 먼저 반영하는 지표라, 이 흐름이 '
-        + '이어진다면 다음 거래일 코스피 현물은 상승 출발할 가능성이 있습니다. '
-        + '다만 야간선물 거래량이 주간 대비 적어 변동성이 과장될 수 있는 점은 유의해야 합니다. '
-        + '결국 실제 개장 후 방향은 외국인·기관 수급이 확인돼야 더 신뢰할 수 있습니다.');
-    };
     // 2026-07-20: 콜은 정상 거래되는데 풋만 거래량 0으로 종일 이어지는 실제 라이브 현상을
     // 재현해서 "데이터 미제공" 표시(optTendency)가 제대로 뜨는지 검증하기 위한 mock.
     KospiFutures.fetchOptionFlow = function () {

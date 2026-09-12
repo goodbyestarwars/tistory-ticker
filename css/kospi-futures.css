@@ -4,33 +4,6 @@
   font-family: inherit;
 }
 
-#kospi-futures .kf-ai {
-  padding: 12px 0;
-  margin: 0;
-  background: transparent;
-  border-top: 1px solid #e7e7e7;
-  border-bottom: 1px solid #e7e7e7;
-  border-radius: 0;
-  font-size: 13px;
-  line-height: 1.6;
-}
-
-#kospi-futures .kf-ai p {
-  margin: 0;
-  color: #000;
-}
-
-#kospi-futures .kf-ai-head {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-#kospi-futures .kf-ai-icon {
-  flex: 0 0 auto;
-  color: #000;
-}
-
 #kospi-futures .kf-panel {
   display: block;
   margin-bottom: 20px;
@@ -407,9 +380,6 @@
 
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
-html.dark #kospi-futures .kf-ai { background: transparent !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #kospi-futures .kf-ai p { color: #F5EFE0 !important; }
-html.dark #kospi-futures .kf-ai-icon { color: #F5EFE0 !important; }
 html.dark #kospi-futures .kf-quote-table th,
 html.dark #kospi-futures .kf-quote-table td { color: #F5EFE0; border-bottom-color: rgba(245,239,224,.12); }
 html.dark #kospi-futures .kf-quote-table { border-color: rgba(245,239,224,.2); }

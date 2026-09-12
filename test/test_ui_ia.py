@@ -208,7 +208,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
         self.assertIn("domestic-market-indicators.css?v=20260827-dmi-chart-controls-v6", frontend)
         self.assertIn("domestic-market-indicators.js?v=20260827-dmi-funds-live-v5", loader)
-        self.assertIn("kospi-futures.css?v=20260827-kf-chart-controls-v2", loader)
+        self.assertIn("kospi-futures.css?v=20260912-remove-ai-section-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
         self.assertIn("installKospiFuturesStyle();", loader)
         self.assertIn(".kf-option-profile-scroll { max-height: 390px; overflow-y: auto;", self.read("css/kospi-futures.css"))
@@ -328,7 +328,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("dmi-draw-toggle", frontend)
         overnight = self.read("js/overnight-market.js")
         self.assertIn('class="om-ai-icon"', overnight)
-        self.assertIn('class="kf-ai-icon"', futures_script)
+        # 2026-09-12 사용자 요청으로 시장지표(선물) 참고의견 섹션을 제거했다. AI 박스가
+        # hidden이면 제목만 덩그러니 남아 빈 헤딩으로 보이던 자리다. 되살아나지 않게 가드.
+        self.assertNotIn('class="kf-ai-icon"', futures_script)
+        self.assertNotIn('data-section-key="ai"', futures_script)
+        self.assertNotIn('id="kfAi"', futures_script)
         self.assertIn('class="kf-quote-table"', futures_script)
         self.assertIn('function buildQuoteRow(item, symbol)', futures_script)
         self.assertIn('class="kf-draw-toggle"', futures_script)
