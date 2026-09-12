@@ -20,14 +20,23 @@ const READY_TIMEOUT = 45000;
 
 // ready 기준은 "데이터가 실제로 들어찬 요소"여야 한다. 컨테이너만 보면 껍데기가
 // 먼저 그려지는 페이지에서 실제보다 빠르게 측정된다.
+//
+// 2026-09-11 교정: 홈·캘린더는 스켈레톤을 세고 있었고, 증시온도는 없어진 클래스를
+// 기다리고 있었다.
+//  - 홈 '.hrt-table-wrap tbody tr td'는 "불러오는 중" 스피너 행(td.hrt-state)에도
+//    걸려 데이터 도착 전에 ready가 찍혔다. 실제 행은 tr[data-code]다.
+//  - 캘린더 '.sc-day'는 fetch 전에 그려지는 달력 격자다(renderSchedule(state, true)).
+//    일정이 실제로 채워진 신호는 .sc-ev-item이고, 일정이 없는 날은 .sc-empty다.
+//  - 증시온도 '.mt-hero-current'는 js/market-temp.js에 더 이상 없어 3회 전부 45초
+//    타임아웃이 났다. 현재 점수는 .mt-summary-score에 찍힌다.
 const PAGES = [
-  { name: '홈',       url: '/',                    ready: '.hrt-table-wrap tbody tr td' },
-  { name: '증시온도', url: '/page/market-temp',    ready: '#market-temp .mt-hero-current' },
+  { name: '홈',       url: '/',                    ready: '.hrt-table-wrap tbody tr[data-code]' },
+  { name: '증시온도', url: '/page/market-temp',    ready: '#market-temp .mt-summary-score' },
   { name: '차트검색', url: '/page/pattern-scan',   ready: '#pattern-scan .ps-item[data-code]' },
   { name: '전략검색', url: '/page/strategy-search',ready: '#strategy-search .ss-row[data-code], #strategy-search .ss-table-row[data-code]' },
   { name: '종목분석', url: '/page/foreign-flow',   ready: '#foreign-flow #ffSigList .ff-flow-card, #foreign-flow #ffSigList .ff-flow-empty' },
   { name: '종목분석(종목조회)', url: '/page/foreign-flow?code=005930&name=%EC%82%BC%EC%84%B1%EC%A0%84%EC%9E%90', ready: '#foreign-flow #ffResult .ff-header' },
-  { name: '캘린더',   url: '/page/stock-calendar', ready: '#stock-calendar .sc-day' },
+  { name: '캘린더',   url: '/page/stock-calendar', ready: '#stock-calendar .sc-ev-item, #stock-calendar .sc-empty' },
 ];
 
 function median(values) {

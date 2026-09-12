@@ -31,6 +31,18 @@
   // 그리고, 늦게 도착한 값은 각자의 경로로 반영된다(시세는 startQuotePolling이 헤더를
   // 갱신하고, 나머지는 캐시에 남아 탭을 열 때 쓰인다).
   var SIDE_DATA_DEADLINE_MS = 2500;
+  // 2026-09-12: 예전에는 60초였다. 실측(/foreign-flow/005930)은 10.5초라 60초는 정상
+  // 응답을 기다리는 시간이 아니라 죽은 요청을 붙들고 있는 시간이다. 실패 시 재시도
+  // 한 번 + GAS 폴백까지 더하면 최악 140초 동안 Promise.all이 화면을 막았다.
+  var FLOW_VM_TIMEOUT_MS = 20000;
+  // GAS ?action=flowChart는 VM /ohlc를 다시 부르는 중간 경유지라 운영 실측에서
+  // 28~30초가 걸린 적이 있다(2026-09-03). renderResult는 차트가 없으면
+  // buildFlowChartFallback으로 대체하므로 무한정 기다릴 이유가 없다.
+  var FLOW_CHART_GAS_TIMEOUT_MS = 10000;
+  // 수급 보조지표(공매도·신용·연기금). 실측 2.7초라 이 한도는 정상 응답을 자르지
+  // 않고 꼬리만 자른다. entry는 코드 전역이 `entry && ...`로 다루는 값이라 null이
+  // 이미 정상 입력이다.
+  var INVESTOR_FLOW_DEADLINE_MS = 8000;
   // 전종목 차트 흐름 집계는 GAS가 약 2.4MB 스냅샷을 반환하고 콜드 스타트가 겹치면
   // 기본 조회보다 오래 걸릴 수 있다. 짧은 제한시간 때문에 정상 응답도 오류 화면으로
   // 바뀌던 문제를 막기 위해 초기 집계 요청만 별도 여유를 둔다.
@@ -639,7 +651,11 @@
     var flowPromise = ForeignFlow.fetchFlow(code, name)
       .then(function (d) { if (d && (d.error || d.detail) && !flowErr_) flowErr_ = d.message || d.error || d.detail; return d; })
       .catch(function (err) { flowErr_ = err && err.message; return null; });
-    Promise.all([flowPromise, chartPromise, investorFlowPromise, quotePromise, fundamentalsPromise])
+    // search()와 같은 이유로 보조지표에만 한도를 둔다 - 리스트 클릭 경로도 같은
+    // 다섯 요청을 전부 기다리고 있었다. entry는 renderSignalBanner/
+    // renderSignalSummaryPanel 둘 다 `entry && ...`로 다루는 값이다.
+    var investorFlowRaced = withDeadline(investorFlowPromise, INVESTOR_FLOW_DEADLINE_MS, null);
+    Promise.all([flowPromise, chartPromise, investorFlowRaced, quotePromise, fundamentalsPromise])
       .then(function (results) {
         if (activeSignalCode !== code || signalRequestSeq !== requestId) return; // 이전 요청 응답은 무시(레이스 방지)
         var data = results[0], chartData = results[1], entry = results[2], quote = results[3], fundamentals = results[4];
@@ -1281,10 +1297,11 @@
     // 펀더멘탈은 여기 넣지 않는다 - computeFundamentalScore를 거쳐 화면의 "종합점수"에
     // 들어가는 값이라, 없는 채로 그리면 점수가 나중 값과 달라진다. 반쪽 데이터로 계산한
     // 점수를 보여주느니 기다리는 게 맞다.
+    var investorFlowRaced = withDeadline(investorFlowPromise, INVESTOR_FLOW_DEADLINE_MS, null);
     var quoteRaced = withDeadline(quotePromise, SIDE_DATA_DEADLINE_MS, null);
     var opinionRaced = withDeadline(opinionPromise, SIDE_DATA_DEADLINE_MS, null);
     var etfInfoRaced = withDeadline(etfInfoPromise, SIDE_DATA_DEADLINE_MS, null);
-    Promise.all([flowPromise, chartPromise, investorFlowPromise, quoteRaced, fundamentalsPromise, opinionRaced, etfInfoRaced])
+    Promise.all([flowPromise, chartPromise, investorFlowRaced, quoteRaced, fundamentalsPromise, opinionRaced, etfInfoRaced])
       .then(function (results) {
         if (requestId !== searchRequestSeq) return; // 이전 검색 응답은 무시(레이스 방지)
         var data = results[0];
@@ -1334,7 +1351,7 @@
 
     var vmUrl = KIWOOM_VM_URL + '/foreign-flow/' + encodeURIComponent(code) + '?days=' + days;
     function fetchFromVm() {
-      return fetchJson(vmUrl, 60000).then(function (envelope) {
+      return fetchJson(vmUrl, FLOW_VM_TIMEOUT_MS).then(function (envelope) {
         var data = envelope && envelope.data;
         if (!data || data.error) throw new Error('VM 수급 데이터 없음');
         return data;
@@ -1393,7 +1410,7 @@
         return d;
       })
       .catch(function () {
-        return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code));
+        return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), FLOW_CHART_GAS_TIMEOUT_MS);
       })
       .then(function (data) {
         delete flowChartInflight[code];

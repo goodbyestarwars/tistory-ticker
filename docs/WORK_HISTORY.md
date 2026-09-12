@@ -1,5 +1,123 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 대시보드 속도 개선 - 워머 양쪽 시장, KIS 조회 웨이브 축소, 브라우저 캐시, 종목분석 상한**
+
+앞선 실측(같은 날 "대시보드 속도 실측" 항목)에서 나온 원인 네 가지를 순서대로
+반영했다. 화면에 **무엇을 그리는지는 바꾸지 않고**, 기다리는 시간만 줄인다.
+
+**1. 종목분석 종목조회가 30초였던 원인**
+
+실측(러너 → VM): `/foreign-flow/005930` 10.5초, `/flow-chart/005930` 4.0초(웜 1.0초),
+`/investor-flow/005930` 2.7초, GAS `?action=fundamentals` 2.1초. 어느 하나가 30초인
+게 아니라, `js/foreign-flow.js`가 이들을 `Promise.all`로 전부 기다리는 동안 **상한이
+사실상 없었다**. 특히 `fetchFlow`는 VM 타임아웃 60초 + 재시도 1회 + GAS 폴백 20초라
+최악 140초까지 화면을 막을 수 있었다.
+
+- `FLOW_VM_TIMEOUT_MS` 20초 신설(60초 → 20초). 실측 10.5초라 정상 응답은 다 통과한다.
+- `FLOW_CHART_GAS_TIMEOUT_MS` 10초 신설. GAS `?action=flowChart`는 VM `/ohlc`를 다시
+  부르는 경유지라 28~30초가 걸린 적이 있다(2026-09-03). `renderResult`는 차트가 없으면
+  `buildFlowChartFallback`으로 대체하므로 무한정 기다릴 이유가 없다.
+- `INVESTOR_FLOW_DEADLINE_MS` 8초 신설. 실측 2.7초라 평소엔 값이 그대로 실리고 꼬리만
+  잘린다. `entry`는 코드 전역이 `entry && ...`로 다루는 값이라 null이 이미 정상 입력이다.
+- 검색 경로(`search()`)와 **랭킹 리스트 클릭 경로(`loadSignalSummary()`) 둘 다** 적용.
+  후자는 2026-09-03 데드라인 작업에서 빠져 있어 같은 증상이 다른 입구로 남아 있었다.
+- 펀더멘탈은 데드라인을 걸지 **않았다**. `computeFundamentalScore`를 거쳐 화면의
+  "종합점수"에 들어가는 값이라, 반쪽 데이터로 계산한 점수가 나오면 안 된다는 기존
+  결정을 유지한다.
+
+기대 효과는 정직하게: 정상 경로는 `/foreign-flow` 10.5초가 지배하므로 크게 빨라지지
+않는다. 30초·45초짜리 병적인 꼬리가 20초대로 묶이는 것이 이번 변경의 몫이다. 정상
+경로를 줄이려면 `/foreign-flow` 자체를 손봐야 한다(미착수).
+
+**2. `/market-board` 워머가 한쪽 시장만 덥히던 것**
+
+`_market_board_warm_loop`이 `_economic_news_market()`으로 고른 시간대 기본 시장
+하나만 덥혔다. 홈에서 시장 탭을 반대쪽으로 바꾼 방문자는 캐시 미스(실측 7.6~8.4초,
+적중은 0.36~1.0초)를 그대로 맞았다. 국내·미국을 `ThreadPoolExecutor(max_workers=2)`로
+동시에 덥힌다 - 순차로 돌리면 두 조회 시간이 더해져 주기가 `_MARKET_BOARD_TTL`(30초)을
+넘긴다. `time.sleep`도 걸린 시간을 빼고 재우도록 고쳐, 주기가 "조회 후 20초"가 아니라
+"20초마다"가 된다(예전엔 조회 8초 + 20초 = 실질 28초로 TTL에 육박했다).
+
+**3. KIS 조회 웨이브 축소**
+
+- `_enrich_domestic_kis_week52` 워커 4 → 8(`_WEEK52_ENRICH_WORKERS`). 최대 40종목이
+  10웨이브 → 5웨이브. KIS 시세는 종목당 1회 + 15분 캐시라 동시 8건이 유량 제한에 닿는
+  수준이 아니다.
+- 국내 순위 7종 워커 4 → `len(tasks)`. 서로 다른 TR이라 순서 의존이 없어 한 웨이브로
+  끝내면 가장 느린 1건의 시간만 남는다.
+- 미국 경로(`_fetch_us_kis_metric`, `fetch_us_kis`)는 "지표 3 x 거래소 3 = 동시 9건"으로
+  **의도적으로 묶여 있어 건드리지 않았다.** 여기를 올리려면 KIS 유량 제한 근거가 먼저
+  필요하다. 실수로 풀리지 않게 테스트로 고정했다.
+
+**4. `/market-board`에 브라우저 캐시 헤더**
+
+이 응답에는 `cache-control`이 전혀 없었다. 서버 캐시가 적중해도 브라우저는 매번
+200KB 본문을 다시 받는다 - 탭 전환·재방문·새로고침이 전부 왕복이다.
+`public, max-age=15, stale-while-revalidate=30`을 붙였다. 15초는 서버 TTL(30초)과
+프론트 메모리 캐시(`js/home-realtime-table.js` `REFRESH_MS`=30초) 안쪽이라 화면에
+보이는 신선도를 낮추지 않는다. `fresh=1`은 캐시를 일부러 우회하려는 요청(워머 루프백,
+WebSocket 틱)이라 `no-store`로 둔다.
+
+ETag는 넣지 않았다. FastAPI가 dict를 나중에 직렬화하는 구조라 본문 해시를 쓰려면
+직렬화를 직접 해야 해서 변경 폭이 커진다. `max-age`만으로 "요청 자체를 안 보내는"
+몫은 이미 얻는다.
+
+검증: `pytest test/` **664 passed**(기존 653 + 신규 11), 118 skipped, 87 subtests.
+남은 2건(`test_domestic_market_indicators`·`test_domestic_news`)은 작업 환경 아웃바운드
+차단으로 항상 실패하는 네트워크 의존 테스트다. `node --check js/foreign-flow.js` 통과.
+신규 테스트: `test_foreign_flow_timeouts.py`(4), `test_market_board_cache_headers.py`(3),
+`test_market_board.py::MarketBoardConcurrencyTests`(3), 워머 테스트 1건 추가.
+
+배포: `js/`는 GitHub Pages 자동, `scripts/cloud-vm/`은 VM 자동(`kiwoom-deploy.timer`).
+`skin.html` 변경 없음. 반영 후 page-speed 재측정 필요(이번 변경 전후 비교 기준선은
+같은 날 "대시보드 속도 실측" 항목의 표).
+
+**2026-09-12 대시보드 속도 실측 - 측정 도구 ready 기준 교정 + 기준선 기록**
+
+"대시보드가 너무 느리다"를 추정 대신 실측했다. 먼저 `page-speed`가 내는 숫자를
+믿을 수 없다는 걸 발견해 `.github/scripts/page-speed.js`의 ready 셀렉터 3건을
+고쳤다.
+
+- 홈 `.hrt-table-wrap tbody tr td` → `tr[data-code]`. 옛 셀렉터가 "불러오는 중"
+  스피너 행(`td.hrt-state`)에도 걸려 데이터 도착 전에 ready가 찍혔다.
+- 캘린더 `.sc-day` → `.sc-ev-item, .sc-empty`. `.sc-day`는 fetch 전에 그려지는
+  달력 격자다(`renderSchedule(state, true)`).
+- 증시온도 `.mt-hero-current` → `.mt-summary-score`. 앞 클래스는 `js/market-temp.js`에
+  더 이상 없어 3회 전부 45초 타임아웃이 났다. 페이지 장애가 아니라 셀렉터가 낡은
+  것이었다.
+
+교정 후 실측(모바일, 3회 중앙값, 러너 위치가 한국 사용자와 달라 절대값이 아니라
+페이지 간·변경 전후 비교용):
+
+    페이지                FCP    LCP    쓸 수 있게
+    홈                   1.69s  1.69s   4.94s
+    증시온도              1.34s  1.61s   3.51s
+    차트검색              1.28s  1.41s   3.29s
+    전략검색              1.30s  3.10s   3.42s
+    종목분석              1.24s  1.39s   4.34s   3회 중 1회 45초 타임아웃
+    종목분석(종목조회)      2.29s  2.29s  30.24s   3회 중 1회 45초 타임아웃
+    캘린더                1.49s  1.62s   2.84s
+
+원인 분해:
+
+- FCP 1.2~2.3s는 대부분 티스토리 플랫폼 자산이다(`pc/dist/index.js` 198KB +
+  AdSense 220KB). 우리 `js/`·`css/`가 아니다.
+- "쓸 수 있게"는 API 응답시간이 지배한다. `/market-board`를 러너에서 직접 재니
+  **캐시 미스 7.6~8.4s, 캐시 적중 0.36~1.0s**로 20배 차이였다.
+- 미스가 비싼 이유: `fetch_domestic_kis()`가 KIS 순위 7종을 4워커로 부르고(2웨이브),
+  이어 `_enrich_domestic_kis_week52()`가 최대 40종목의 52주 시세를 역시 4워커로
+  개별 호출한다(10웨이브).
+- 워머(`_market_board_warm_loop`)는 최근 180초 내 실제 트래픽이 있을 때만 돌고,
+  그것도 시간대 기본 시장 **한쪽만** `limit=40`으로 덥힌다. 조용하던 시간의 첫
+  방문자와, 다른 시장 탭을 누른 방문자는 8초를 그대로 맞는다.
+- `/health/latency` 기록: `/foreign-news` 8.7s, `/domestic-news` 5.9~6.2s,
+  `/futures`·`/market-rank` 1.6~3.7s, `/foreign-flow/005930` 3.2~3.4s.
+- 응답에 `cache-control`·`etag`가 전혀 없다(`/health` 포함).
+
+검증: 코드 변경은 측정 스크립트뿐이라 `node --check`만 돌렸다. 운영 자산
+(`js/`·`css/`·`scripts/cloud-vm/`·`skin.html`) 변경 없음. 이 교정 전후의 속도
+값은 서로 비교하지 않는다.
+
 **2026-09-12 2026-09-14 거래소 제도 개편 반영 - 시간외 단일가 폐지, 애프터마켓 신설**
 
 사용자가 토스증권 "거래소 제도 개편 및 최선집행기준 개정 안내"(2026-09-07 공지,

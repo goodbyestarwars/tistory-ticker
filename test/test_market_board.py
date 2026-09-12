@@ -369,3 +369,40 @@ class MarketBoardTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class MarketBoardConcurrencyTests(unittest.TestCase):
+    """2026-09-12: /market-board 캐시 미스가 7.6~8.4초였다(적중은 0.36~1.0초).
+    미스 비용의 큰 몫이 KIS 조회의 웨이브 수라서 동시 실행 폭을 고정한다."""
+
+    def test_week52_enrichment_runs_wide_enough_to_halve_the_waves(self):
+        # 보강 대상은 최대 query_limit(=40)종목이다. 워커 4면 10웨이브,
+        # 8이면 5웨이브가 된다.
+        self.assertGreaterEqual(market_board._WEEK52_ENRICH_WORKERS, 8)
+        source = self._source()
+        self.assertIn(
+            'with ThreadPoolExecutor(max_workers=_WEEK52_ENRICH_WORKERS) as pool:',
+            source,
+        )
+
+    def test_domestic_rank_fetches_run_in_one_wave(self):
+        """국내 순위 7종은 서로 다른 TR이라 순서 의존이 없다. 워커를 작업 수에
+        맞추면 가장 느린 1건의 시간만 남는다."""
+        source = self._source()
+        self.assertIn('with ThreadPoolExecutor(max_workers=len(tasks)) as pool:', source)
+
+    def test_us_rank_concurrency_stays_capped_on_purpose(self):
+        """미국 경로는 '지표 3 x 거래소 3 = 동시 9건'으로 의도적으로 묶여 있다.
+        여기를 올리려면 KIS 유량 제한 근거가 먼저 필요하다 - 실수로 풀리지 않게 고정한다."""
+        source = self._source()
+        self.assertIn(
+            '# 지표별 3개 거래소 조회를 동시에 하되, KIS 호출 폭주를 피하기 위해',
+            source,
+        )
+        self.assertIn('with ThreadPoolExecutor(max_workers=3) as pool:', source)
+
+    def _source(self):
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)),
+                            'scripts', 'cloud-vm', 'market_board.py')
+        with open(path, encoding='utf-8') as handle:
+            return handle.read()
