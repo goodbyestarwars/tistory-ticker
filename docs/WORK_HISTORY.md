@@ -1,5 +1,30 @@
 # 9Pay 주요 작업이력
 
+**2026-09-14 VM 배포: 실행 경로가 바뀐 커밋에만 FastAPI 재시작·검색 스캔 재실행**
+
+사용자 승인("ㅇㅇ 진행해"). `deploy_check.sh`는 새 `master` 커밋마다 - js/css만 바뀐 커밋도 -
+`.py` 복사, `kiwoom-api` 재시작, 배포 후 점검, 백그라운드 패턴·전략 스캔 재실행을 했다.
+2026-09-12~14 프론트 수정만 연달아 8번 머지하는 동안 VM이 매번 재시작·재스캔했고, 같은 날
+라이브에서 같은 소켓(`/ws/market-indicators`)의 핸드셰이크가 몇 분 사이 3초 ↔ 9초 넘게
+무응답으로 흔들렸다. 주말 새벽 전략검색 `scannedAt`이 찍힌 것도 이 배포 후 재스캔이었다.
+
+변경: `git pull`과 배포 SHA 기록은 매 커밋 하되, 복사·재시작·점검·재스캔은
+`git diff --quiet 직전SHA 새SHA -- scripts/cloud-vm/ data/`가 차이를 낼 때만 한다.
+`data/`를 넣은 이유는 `sector_cards.py`가 `../../data/sectors-v3.js`를 **로컬에서** 읽기
+때문이다(수동 백테스트 도구 `backtest_swing.py`도 `data/krx_map.js`를 로컬에서 읽는다. 나머지 `data/*.js`는 GitHub Pages URL로 받아 재시작과 무관). 직전 SHA를 모르거나
+체크아웃에 없는 커밋이면 예전처럼 전부 수행한다. 뉴스 모멘텀 배포 후 검증도 기존 인자
+(`$DEPLOY_OCCURRED`)를 그대로 따라 재시작이 없으면 돌지 않는다.
+
+검증: 오늘 실제 커밋으로 판정 규칙을 재현 - #424~#430(js/css/style.css)은 전부 "재시작 생략",
+#431(`scripts/cloud-vm/`)은 "재시작", 알 수 없는 SHA는 "재시작". Windows에서도 도는 계약 테스트
+`test/test_deploy_check_contract.py` 추가(기존 `test_news_momentum.py`의 배포 계약은 fcntl 때문에
+Windows에서 수집되지 않음), Git Bash `bash -n` 구문 통과. 이 커밋 자체는 `scripts/cloud-vm/`
+변경이라 한 번 재시작된다.
+
+주의: 타이머가 실행하는 스크립트 경로는 저장소에 유닛 파일이 없어 문서로만 추정했다 -
+2026-09-04 `ensure_volume_breakout_timer` 추가가 수동 단계 없이 VM에 반영된 이력으로 보아
+체크아웃 안의 `scripts/cloud-vm/deploy_check.sh`를 실행한다.
+
 **2026-09-14 증시온도 업종 TOP 순위 변화를 서버의 직전 거래일 순위와 비교**
 
 사용자 지적: "순위가 왜 다 New야". 순위 변화(계단↑↓·NEW)를 브라우저 localStorage에 남긴
