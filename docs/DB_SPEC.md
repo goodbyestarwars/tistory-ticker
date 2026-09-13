@@ -349,6 +349,22 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 탓에 오전 내내 0점이 박혔다. 3분 주기 배치가 정규장(09:00~15:30) 동안만 남기고,
 최근 15일치만 보관한다. 이력이 3거래일 미만이면 배점이 진행률 보정으로 폴백한다.
 
+### 2.19 `market_temp_industry_rank` — 업종 TOP 거래일별 순위
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| date | TEXT | PK(date, rank) | 거래일 `YYYY-MM-DD` |
+| rank | INTEGER | PK(date, rank) | 거래대금 기준 순위(1부터) |
+| industry | TEXT | NOT NULL | 테마 이름(`data/sectors-v3.js`) |
+
+증시온도 "오늘 업종 TOP"의 순위 변화(계단↑↓·NEW) 비교 기준이다(2026-09-14 신설). 전에는
+브라우저 localStorage의 '그 브라우저가 마지막으로 본 날'과만 비교해 대부분 전부 NEW였다.
+3분 주기 배치가 **정규장이 시작된 거래일에만** 그날 순위를 통째로 덮어써 마지막 계산이 그날
+값이 되고, 장 시작 전·주말·휴장에는 기록하지 않는다(시세가 직전 거래일 마감값이라 오늘 날짜로
+찍으면 금요일 순위에 월요일 날짜가 붙는다). 최근 15거래일만 보관한다. 조회는
+`market_temp_data.industry_rank_baseline()`이 화면 값이 가리키는 거래일의 **직전 거래일**
+순위를 돌려준다.
+
 ## 3. `news_momentum.db`
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.

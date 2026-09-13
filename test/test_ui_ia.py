@@ -2867,6 +2867,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("'<span><b class=\"' + stockTone_(rate) + '\">'", source)
         # 2026-09-13: 종합점수(돈·가격·위험)와 최근 단기흐름을 PC에서 1:1로 둔다.
         self.assertIn("'<div class=\"mt-summary-trend-row\">'", source)
+        # 2026-09-14: 순위 변화 기준은 서버의 직전 거래일 순위(없을 때만 브라우저 저장분),
+        # 비교할 날이 아예 없으면 전부 NEW로 칠하지 않는다.
+        self.assertIn("function renderIndustryFlow_(mount, rows, dateKey, serverPrevious)", source)
+        self.assertIn("payload.previousRanks", source)
+        self.assertIn("if (!hasBaseline) { moveText = '—'; moveClass = 'is-same'; }", source)
+        backend = self.read("scripts/cloud-vm/main.py")
+        self.assertIn("'previousRanks': result.get('industryFlowPreviousRanks'),", backend)
         self.assertIn("#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", css)
         # 모바일 그리드 열 수가 데스크톱과 달라지면 항목이 넘쳐 행이 두 줄로 접힌다
         # (실제로 그렇게 깨졌다).

@@ -321,6 +321,16 @@ SESSION_CLOSE_MINUTE = 15 * 60 + 30
 INTRADAY_BUCKET_MINUTES = 5
 INTRADAY_RETENTION_DAYS = 15
 
+# 2026-09-14 사용자 지적("순위가 왜 다 New야"): 업종 TOP의 순위 변화를 브라우저
+# localStorage에 남긴 '그 브라우저가 마지막으로 본 날' 스냅샷과 비교하고 있었다. 그 날을
+# 방문하지 않은 사람(대부분)은 비교 대상이 없어 전부 NEW였고, 방문일이 띄엄띄엄이면
+# 열흘 전과 비교되기도 했다(라이브 브라우저 저장분: 8/30·9/01·9/13). 서버가 거래일마다
+# 마지막 순위를 남기고 직전 거래일 순위를 내려준다. 운영 DB에 테이블 하나만 추가한다.
+INDUSTRY_RANK_RETENTION_DAYS = 15
+INDUSTRY_RANK_TABLE_DDL = ('CREATE TABLE IF NOT EXISTS market_temp_industry_rank ('
+                           ' date TEXT NOT NULL, rank INTEGER NOT NULL, industry TEXT NOT NULL,'
+                           ' PRIMARY KEY(date, rank))')
+
 
 def intraday_bucket(minute_of_day):
     """분 단위 시각을 5분 버킷으로 내림한다(3분 주기 계산이 버킷을 촘촘히 채우지 않게)."""
@@ -354,6 +364,51 @@ def record_intraday_trading_value(conn, date, bucket, total):
                  '(SELECT DISTINCT date FROM market_temp_intraday ORDER BY date DESC LIMIT ?)',
                  (INTRADAY_RETENTION_DAYS,))
     conn.commit()
+
+
+def record_industry_ranks(conn, date, rows):
+    """그날의 테마 TOP 순위를 남긴다. 3분마다 통째로 덮어써서 마지막 계산이 그날 값이 된다."""
+    names = [r.get('industry') for r in (rows or []) if r and r.get('industry')]
+    if not names:
+        return
+    conn.execute('DELETE FROM market_temp_industry_rank WHERE date = ?', (date,))
+    conn.executemany('INSERT INTO market_temp_industry_rank(date, rank, industry) VALUES (?, ?, ?)',
+                     [(date, index + 1, name) for index, name in enumerate(names)])
+    conn.execute('DELETE FROM market_temp_industry_rank WHERE date NOT IN '
+                 '(SELECT DISTINCT date FROM market_temp_industry_rank ORDER BY date DESC LIMIT ?)',
+                 (INDUSTRY_RANK_RETENTION_DAYS,))
+    conn.commit()
+
+
+def _latest_rank_date_before(conn, date):
+    row = conn.execute('SELECT MAX(date) FROM market_temp_industry_rank WHERE date < ?',
+                       (date,)).fetchone()
+    return row[0] if row and row[0] else None
+
+
+def industry_rank_baseline(conn, today, rows, session_started):
+    """지금 화면의 순위를 무엇과 비교할지 정하고 (비교 날짜, {테마: 순위})를 돌려준다.
+
+    - 장이 열린 거래일(session_started): 오늘 순위를 기록하고 직전 거래일과 비교한다.
+    - 장 시작 전·주말·휴장: 시세가 아직 직전 거래일 마감값이라 오늘 날짜로 기록하지 않는다
+      (기록하면 금요일 순위에 월요일 날짜가 찍힌다). 화면 값이 가리키는 마지막 거래일을
+      기준으로 그 전 거래일과 비교한다.
+    비교할 날이 없으면(기록 시작 직후) (None, {})이다 - 호출부는 'NEW'로 칠하지 않는다.
+    """
+    if session_started:
+        record_industry_ranks(conn, today, rows)
+        base = today
+    else:
+        base = _latest_rank_date_before(conn, today)
+    if not base:
+        return None, {}
+    previous = _latest_rank_date_before(conn, base)
+    if not previous:
+        return None, {}
+    ranks = {industry: rank for rank, industry in conn.execute(
+        'SELECT rank, industry FROM market_temp_industry_rank WHERE date = ? ORDER BY rank',
+        (previous,))}
+    return previous, ranks
 
 
 def intraday_prior_totals(conn, date, bucket, limit=5):

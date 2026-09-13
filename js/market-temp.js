@@ -316,11 +316,27 @@
     });
   }
 
-  function renderIndustryFlow_(mount, rows, dateKey) {
-    var snapshots = readIndustryFlowSnapshots_();
-    var previous = previousSnapshot_(snapshots, dateKey);
+  // 2026-09-14 사용자 지적("순위가 왜 다 New야"): 순위 변화를 이 브라우저가 마지막으로 본
+  // 날의 localStorage 스냅샷과만 비교해, 전날 이 페이지를 안 연 사람은 전부 NEW였다.
+  // serverPrevious({date, ranks})가 오면 서버의 직전 거래일 순위를 쓰고, 없을 때(옛 VM
+  // 응답·폴백 경로)만 예전 저장분으로 물러난다. 비교할 날 자체가 없으면 NEW 대신 '—'.
+  function renderIndustryFlow_(mount, rows, dateKey, serverPrevious) {
     var previousByName = {};
-    previous.forEach(function (row, index) { previousByName[row.industry] = { rank: index + 1 }; });
+    var hasBaseline = false;
+    var rankBasisText;
+    if (serverPrevious && serverPrevious.date && serverPrevious.ranks) {
+      Object.keys(serverPrevious.ranks).forEach(function (name) {
+        previousByName[name] = { rank: Number(serverPrevious.ranks[name]) };
+      });
+      hasBaseline = true;
+      rankBasisText = '순위 변화는 직전 거래일(' + escapeHtml(String(serverPrevious.date).slice(5).replace('-', '/')) + ') 마지막 순위와 비교하며,';
+    } else {
+      var snapshots = readIndustryFlowSnapshots_();
+      var previous = previousSnapshot_(snapshots, dateKey);
+      previous.forEach(function (row, index) { previousByName[row.industry] = { rank: index + 1 }; });
+      hasBaseline = previous.length > 0;
+      rankBasisText = '순위 변화는 이 브라우저가 관측한 마지막 거래일과 비교하며,';
+    }
     function stockPrice_(value) {
       var n = Number(value);
       return isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') + '원' : '-';
@@ -365,7 +381,8 @@
       // 순위 변화에 ▲▼를 쓰면 바로 옆 등락률의 ▲▼와 같은 기호라 "2% 상승"으로 읽힌다
       // (2026-09-01 사용자 지적). 계단 수를 명시하고 화살표도 ↑↓로 바꿔 구분한다.
       var moveText, moveClass;
-      if (!old) { moveText = 'NEW'; moveClass = 'is-new'; }
+      if (!hasBaseline) { moveText = '—'; moveClass = 'is-same'; }
+      else if (!old) { moveText = 'NEW'; moveClass = 'is-new'; }
       else if (old.rank === rank) { moveText = '유지'; moveClass = 'is-same'; }
       else {
         var diff = old.rank - rank;
@@ -398,7 +415,7 @@
       + '<div class="mt-industry-flow-head"><strong>' + title + '</strong><span>거래대금이 많이 몰린 순서</span></div>'
       + '<div class="mt-industry-flow-columns"><span></span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>순위</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
-      + '<p class="mt-industry-flow-note">테마별 대표 종목들의 거래대금을 합산합니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 색의 길이는 1위 테마 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 한 종목이 여러 테마에 속할 수 있어 테마 합계는 시장 전체와 다릅니다. 순위 변화는 이 브라우저가 관측한 마지막 거래일과 비교하며, 누르면 대표 종목이 열립니다.</p>'
+      + '<p class="mt-industry-flow-note">테마별 대표 종목들의 거래대금을 합산합니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 색의 길이는 1위 테마 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 한 종목이 여러 테마에 속할 수 있어 테마 합계는 시장 전체와 다릅니다. ' + rankBasisText + ' 누르면 대표 종목이 열립니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
@@ -435,7 +452,10 @@
         var rows = (payload && payload.rows) || [];
         if (!rows.length) throw new Error('industry flow empty');
         writeIndustryFlowSnapshot_(dateKey, rows);
-        renderIndustryFlow_(mount, rows, dateKey);
+        // 2026-09-14: 서버가 직전 거래일 순위를 주면 그걸 기준으로 삼는다.
+        var serverPrevious = payload && payload.previousDate && payload.previousRanks
+          ? { date: payload.previousDate, ranks: payload.previousRanks } : null;
+        renderIndustryFlow_(mount, rows, dateKey, serverPrevious);
       })
       .catch(function () { return loadIndustryFlowFromBoard_(mount, dateKey); })
       .catch(function () {
