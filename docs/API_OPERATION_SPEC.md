@@ -16,7 +16,7 @@
 | 지연 모니터 | `GET /health/latency?lines=50` |
 | WebSocket | `wss://goodbyestar.cloud/ws/quotes`, `wss://goodbyestar.cloud/ws/economic-news` |
 | 실행 형태 | FastAPI + Uvicorn, VM systemd 서비스 |
-| 배포 | `master` push 후 VM 자동 배포, 약 5분 내 반영 |
+| 배포 | `master` push 후 VM 자동 배포, 약 5분 내 반영. FastAPI 재시작·검색 스캔 재실행은 `scripts/cloud-vm/`·`data/`가 바뀐 커밋에만(js/css만 바뀐 커밋은 재시작 없음) |
 
 REST 성공 응답은 일반적으로 다음 envelope을 사용한다.
 

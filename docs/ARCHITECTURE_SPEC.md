@@ -54,6 +54,7 @@ flowchart LR
 - git push 후 VM이 약 5분 내 자동 재배포(구체 CI/CD는 저장소 밖 VM 설정).
 - 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력으로 비활성화되어 있다. 대신 `deploy_check.sh`가 장외 시간에 `maintenance.py`를 실행해 뉴스 DB 삭제 전 `backup_sqlite.py` 백업, 앱 로그 상한, 뉴스·매물대 보존 정리, SQLite WAL 체크포인트·`PRAGMA optimize`를 수행한다. 주말에는 VM의 현재 syslog 계열 로그를 비우고 회전·압축 로그와 systemd journal도 정리한다. 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다.
 - `deploy_check.sh`는 전체를 `flock`으로 감싸 5분 타이머 중첩 실행을 방지하고, Asia/Seoul 날짜 마커로 뉴스모멘텀 8종목 배치를 하루 1회만 실행한다.
+- 새 `master` 커밋마다 `git pull`과 배포 SHA 기록은 하지만, `.py` 복사·`kiwoom-api` 재시작·배포 후 점검·검색 스캔 재실행은 **`scripts/cloud-vm/` 또는 `data/`가 바뀐 커밋에만** 한다(2026-09-14). js/css만 바뀐 커밋에도 재시작해 연속 머지 때 WebSocket이 끊기고 VM이 무거워졌기 때문이다. 직전 배포 SHA를 모르면 예전처럼 전부 수행한다.
 
 #### 2.3.1 인증 모델 (두 그룹)
 

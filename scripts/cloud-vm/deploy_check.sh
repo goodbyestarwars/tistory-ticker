@@ -192,24 +192,50 @@ git fetch origin master -q
 REMOTE="$(git rev-parse origin/master)"
 DEPLOY_OCCURRED=0
 
+# 2026-09-14 사용자 승인: master가 바뀔 때마다(js/css만 바뀐 커밋도) FastAPI를 재시작하고
+# 검색 스캔을 다시 돌려, 연속 머지 때 WebSocket이 끊기고 1코어 VM이 무거워졌다(같은 날 라이브
+# 측정: 같은 소켓의 핸드셰이크가 몇 분 사이 3초 <-> 9초 넘게 무응답). VM이 실제로 실행하거나
+# 로컬에서 읽는 경로가 바뀐 커밋에만 복사·재시작·재스캔한다.
+# - scripts/cloud-vm/: VM 코드 전부
+# - data/: sector_cards.py가 ../../data/sectors-v3.js를 로컬에서 읽는다. 다른 data/*.js는
+#   GitHub Pages URL로 받아 재시작과 무관하지만, 앞으로 로컬로 읽는 파일이 생겨도 빠지지
+#   않게 디렉터리째 본다(data/ 변경은 드물다).
+VM_WATCH_PATHS="scripts/cloud-vm/ data/"
+
 if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   git pull origin master -q
 
-  # SQLite 백업은 198MB DB에서 배포를 장시간 붙잡고 VM 자원을 소모하므로 비활성화한다.
-  # 기존 backups 파일은 유지하며, 필요할 때 별도 수동 백업으로 처리한다.
-  echo "SQLite deploy backup disabled"
+  # 직전 배포 SHA를 모르거나(첫 실행·파일 유실) 이 체크아웃에 없는 커밋이면 판단할 수
+  # 없으니 예전처럼 전부 수행한다. git diff는 커밋 트리끼리 비교하므로 스파스 체크아웃과 무관하다.
+  VM_CODE_CHANGED=1
+  # shellcheck disable=SC2086  # VM_WATCH_PATHS는 공백으로 나눈 경로 목록이라 일부러 따옴표를 뺀다
+  if [ -n "$LAST_DEPLOYED" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
+      && git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $VM_WATCH_PATHS; then
+    VM_CODE_CHANGED=0
+  fi
 
-  cp "$APP_DIR"/scripts/cloud-vm/*.py "$APP_DIR"/
+  if [ "$VM_CODE_CHANGED" = "1" ]; then
+    # SQLite 백업은 198MB DB에서 배포를 장시간 붙잡고 VM 자원을 소모하므로 비활성화한다.
+    # 기존 backups 파일은 유지하며, 필요할 때 별도 수동 백업으로 처리한다.
+    echo "SQLite deploy backup disabled"
 
-  # 이 sudo는 기존 FastAPI 배포가 원래 사용하던 재시작 권한이다.
-  # 모멘텀 배치 자체에는 sudo나 별도 systemd 유닛이 없다.
-  sudo systemctl restart kiwoom-api
-  "$PYTHON" "$APP_DIR/post_deploy_check.py" --base-only
+    cp "$APP_DIR"/scripts/cloud-vm/*.py "$APP_DIR"/
 
+    # 이 sudo는 기존 FastAPI 배포가 원래 사용하던 재시작 권한이다.
+    # 모멘텀 배치 자체에는 sudo나 별도 systemd 유닛이 없다.
+    sudo systemctl restart kiwoom-api
+    "$PYTHON" "$APP_DIR/post_deploy_check.py" --base-only
+    DEPLOY_OCCURRED=1
+  else
+    echo "VM 실행 경로($VM_WATCH_PATHS) 변경 없음 - FastAPI 재시작·검색 스캔 재실행 생략"
+  fi
+
+  # 재시작을 건너뛰어도 SHA는 기록한다 - 안 하면 5분마다 같은 커밋을 다시 판정한다.
   printf '%s\n' "$REMOTE" > "$DEPLOYED_FILE"
-  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) deployed $REMOTE" >> "$APP_DIR/deploy.log"
-  DEPLOY_OCCURRED=1
-  run_search_scan_refresh_after_deploy
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) deployed $REMOTE vm_code_changed=$VM_CODE_CHANGED" >> "$APP_DIR/deploy.log"
+  if [ "$DEPLOY_OCCURRED" = "1" ]; then
+    run_search_scan_refresh_after_deploy
+  fi
 fi
 
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
