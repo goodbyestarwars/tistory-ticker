@@ -2782,6 +2782,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-row-basis-tag:empty", css)
         # 스캔 값일 때는 색으로도 구분한다.
         self.assertIn(".ss-col-price.is-scan .ss-price-basis", css)
+        # 2026-09-13: 스캔가 대비 등락을 색 배지로 올리고 0.0%여도 보여준다(두 스캐너 공통).
+        # 스캔 시각은 바꾸지 않았다(사용자 선택: 표시만 개선).
+        self.assertIn("function scanGapHtml(livePrice, scanPrice, scanDate)", source)
+        self.assertIn("data-scan-date", source)
+        self.assertNotIn("function priceBasisText(", source)
+        self.assertIn(".ss-scan-gap.is-up", css)
+        self.assertIn(".ss-scan-gap.is-down", css)
+        pattern_js = self.read("js/pattern-scan.js")
+        pattern_css = self.read("css/pattern-scan.css")
+        self.assertIn("function scanGapHtml(livePrice, scanPrice, scanDate)", pattern_js)
+        self.assertIn("data-scan-date", pattern_js)
+        self.assertNotIn("function priceBasisText(", pattern_js)
+        self.assertIn(".ps-scan-gap.is-up", pattern_css)
+        self.assertIn(".ps-scan-gap.is-down", pattern_css)
 
     def test_home_realtime_board_stock_cell_stays_on_one_line_on_mobile(self):
         """홈 실시간 종목판에서 번호·로고·종목명이 각각 다른 줄로 쪼개졌다

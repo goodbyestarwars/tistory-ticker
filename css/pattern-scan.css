@@ -46,6 +46,13 @@
    "스캔 시점"이라고 밝힌다. 값이 같으면(장 마감 등) 비어서 자동으로 사라진다. */
 #pattern-scan .ps-price-basis { font-size: 10px; color: #9aa3ad; flex-basis: 100%; }
 #pattern-scan .ps-price-basis:empty { display: none; }
+/* 2026-09-13 사용자 요청("어제 이 검색기들의 등락을 눈으로 알고 싶어"): 스캔가 대비
+   지금 등락 배지. 상승 빨강·하락 파랑(docs/UI_GUIDE.md), 각진 모서리. */
+#pattern-scan .ps-scan-gap { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#pattern-scan .ps-scan-gap.is-up { color: #d24f45; background: #fff0ee; }
+#pattern-scan .ps-scan-gap.is-down { color: #1261c4; background: #eaf2fd; }
+#pattern-scan .ps-scan-gap.is-flat { color: #64748b; background: #f1f4f7; }
+#pattern-scan .ps-scan-ref { margin-left: 5px; color: #94a3b8; font-size: 10px; font-weight: 500; white-space: nowrap; }
 
 #pattern-scan .ps-tab-desc {
   font-size: 12.5px;
@@ -527,6 +534,8 @@
   }
   #pattern-scan .ps-price { font-size: 11px; }
   #pattern-scan .ps-rate { font-size: 10px; }
+  #pattern-scan .ps-scan-gap { padding: 0 4px; font-size: 10px; }
+  #pattern-scan .ps-scan-ref { display: none; }
   #pattern-scan .ps-observation,
   #pattern-scan .ps-interpretation {
     grid-column: 2;
@@ -597,6 +606,10 @@ html.dark #pattern-scan .ps-meta {
 html.dark #pattern-scan .ps-price-basis-note { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #pattern-scan .ps-price-basis-note.is-stale { color: #e0a458 !important; }
 html.dark #pattern-scan .ps-price-basis { color: rgba(245, 239, 224, 0.42) !important; }
+html.dark #pattern-scan .ps-scan-gap.is-up { color: #ff6b6b !important; background: rgba(255, 107, 107, 0.14) !important; }
+html.dark #pattern-scan .ps-scan-gap.is-down { color: #4dabf7 !important; background: rgba(77, 171, 247, 0.14) !important; }
+html.dark #pattern-scan .ps-scan-gap.is-flat { color: rgba(245, 239, 224, 0.6) !important; background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #pattern-scan .ps-scan-ref { color: rgba(245, 239, 224, 0.42) !important; }
 
 html.dark #pattern-scan .ps-tab-desc {
   color: rgba(245, 239, 224, 0.6) !important;

@@ -1175,6 +1175,15 @@ html.dark .ss-dividend-history li b { color: #F5EFE0; }
 /* 아직 스캔 값일 때는 조금 더 눈에 띄게 - 값의 시점을 착각하지 않도록. */
 #strategy-search .ss-col-price.is-scan .ss-price-basis,
 #strategy-search .ss-row-quote.is-scan .ss-row-basis-tag { color: #b45309; }
+/* 2026-09-13 사용자 요청("어제 이 검색기들의 등락을 눈으로 알고 싶어"): 스캔가 대비
+   지금 등락 배지. 상승 빨강·하락 파랑(docs/UI_GUIDE.md), 각진 모서리. */
+#strategy-search .ss-scan-gap { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+#strategy-search .ss-scan-gap.is-up { color: #d24f45; background: #fff0ee; }
+#strategy-search .ss-scan-gap.is-down { color: #1261c4; background: #eaf2fd; }
+#strategy-search .ss-scan-gap.is-flat { color: #64748b; background: #f1f4f7; }
+#strategy-search .ss-scan-ref { margin-left: 5px; color: #94a3b8; font-size: 10px; font-weight: 500; white-space: nowrap; }
+/* 표 뷰는 열이 좁아 스캔일·스캔가를 배지 아래 줄로 내린다. */
+#strategy-search .ss-col-price .ss-scan-ref { display: block; margin: 2px 0 0; }
 
 #strategy-search .ss-price-basis-note {
   margin-top: 4px;
@@ -1199,6 +1208,10 @@ html.dark #strategy-search .ss-price-basis-note { color: rgba(245, 239, 224, 0.5
 html.dark #strategy-search .ss-col-price.is-scan .ss-price-basis,
 html.dark #strategy-search .ss-row-quote.is-scan .ss-row-basis-tag,
 html.dark #strategy-search .ss-price-basis-note.is-stale { color: #e0a458 !important; }
+html.dark #strategy-search .ss-scan-gap.is-up { color: #ff6b6b !important; background: rgba(255, 107, 107, 0.14) !important; }
+html.dark #strategy-search .ss-scan-gap.is-down { color: #4dabf7 !important; background: rgba(77, 171, 247, 0.14) !important; }
+html.dark #strategy-search .ss-scan-gap.is-flat { color: rgba(245, 239, 224, 0.6) !important; background: rgba(245, 239, 224, 0.08) !important; }
+html.dark #strategy-search .ss-scan-ref { color: rgba(245, 239, 224, 0.42) !important; }
 html.dark #strategy-search .ss-gap-tools { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #strategy-search .ss-gap-tools select { background: #241f1c !important; border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
 html.dark #strategy-search .ss-gap-count { color: rgba(245, 239, 224, 0.42) !important; }
