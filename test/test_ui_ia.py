@@ -1880,8 +1880,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("pattern-up", source)
         self.assertNotIn("pattern-down", source)
         self.assertIn("var foreignSeries = chart.addSeries(LWC.LineSeries", source)
-        self.assertIn("title: '외국인' }, 2)", source)
-        self.assertIn("<span>거래량</span><span>외국인·기관 순매수</span>", source)
+        # 2026-09-12: 외국인·기관 이름은 축 배지(title)가 아니라 패널 라벨 범례로 둔다(겹침).
+        self.assertNotIn("title: '외국인'", source)
+        self.assertIn('class="ff-pane-legend"', source)
+        self.assertIn(".ff-lwc-pane-labels .ff-pane-legend", style)
+        # 2026-09-12: '수급' 마커와 그 범례는 제거했다(대형주는 거의 매일 찍혀 뒤덮였다).
+        self.assertNotIn("'수급', '#d946ef'", source)
+        self.assertNotIn('#d946ef"></i>수급', source)
         self.assertIn(".ff-volume-study-label", style)
         self.assertIn(".ff-chart-candle::after", style)
         self.assertNotIn(".ff-chart-news-detail", style)
@@ -2658,6 +2663,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("data-calendar-action=\"next\"", source)
         self.assertIn("data-calendar-action=\"today\"", source)
         self.assertIn("function loadMonth(year, month, selected)", source)
+        # 2026-09-12: 느린 /earnings-calendar(라이브 12.7초)가 빠른 Google 일정과 저장된
+        # 일정까지 붙잡지 않도록 저장분을 먼저 그리고, 공급자가 도착하는 대로 다시 그린다.
+        self.assertIn("function fetchEvents(year, month, onProgress)", source)
+        self.assertIn("state.events = storedMonthEvents(state.viewYear, state.viewMonth);", source)
+        self.assertIn("renderSchedule(state, !state.events.length);", source)
+        self.assertNotIn("state.events = [];\n      var currentRequest", source)
         self.assertNotIn('id="scSearch"', source)
         self.assertNotIn("연간 일정", source)
         self.assertIn("eventText = meta.text", source)
