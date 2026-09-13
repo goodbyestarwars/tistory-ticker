@@ -98,6 +98,8 @@ def ensure_schema(conn):
     conn.execute('CREATE TABLE IF NOT EXISTS market_temp_intraday ('
                  ' date TEXT NOT NULL, minute INTEGER NOT NULL, total REAL NOT NULL,'
                  ' PRIMARY KEY(date, minute))')
+    # 업종 TOP 거래일별 순위(2026-09-14). 순위 변화(계단↑↓·NEW)의 비교 기준을 서버가 들고 있는다.
+    conn.execute(data.INDUSTRY_RANK_TABLE_DDL)
     # 2026-09-07: 3축 종합점수(0~100). 옛 40℃ 온도와 스케일이 달라 같은 컬럼에 섞으면
     # 추이 차트가 전환일에 튄다 - 컬럼을 따로 둔다. 과거 행은 NULL이고 화면은 값이 있는
     # 날부터 그린다.
@@ -269,6 +271,14 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         data.attach_flow_multiple(industry_flow, baselines)
     except Exception:
         LOGGER.exception('테마 평소 대비 배수 계산 실패 - 거래대금 순위는 그대로 낸다')
+    # 순위 변화의 비교 기준(직전 거래일 순위). 실패해도 흐름 자체는 그대로 낸다.
+    industry_prev_date, industry_prev_ranks = None, {}
+    try:
+        session_started = trading_day and (now_kst.hour * 60 + now_kst.minute) >= data.SESSION_OPEN_MINUTE
+        industry_prev_date, industry_prev_ranks = data.industry_rank_baseline(
+            conn, today, industry_flow, session_started)
+    except Exception:
+        LOGGER.exception('업종 순위 이력 기록/조회 실패 - 순위 변화 표시만 빠진다')
     prior_scores = [h['score'] for h in history_rows
                     if h['date'] != today and h.get('score') is not None]
     return {
@@ -291,6 +301,9 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'updatedAt': now_kst.strftime('%Y-%m-%d %H:%M:%S'),
         'quoteCount': len(quotes),
         'industryFlow': industry_flow,
+        # 직전 거래일 업종 순위({테마: 순위})와 그 날짜. 비교할 날이 없으면 None/{}.
+        'industryFlowPreviousDate': industry_prev_date,
+        'industryFlowPreviousRanks': industry_prev_ranks,
         # 전종목(코스피+코스닥) 등락 종목 수. 위 컴포넌트들은 섹터 풀 237종목 기준이라
         # 시장 전체 그림과 다르다 - 화면이 둘을 구분해 보여줄 수 있게 함께 싣는다.
         # 조회 실패·키 미설정이면 None이고, 온도 계산에는 전혀 관여하지 않는다.

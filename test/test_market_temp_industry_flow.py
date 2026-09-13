@@ -122,6 +122,66 @@ class IndustryFlowTest(unittest.TestCase):
 
 
 
+class IndustryRankBaselineTest(unittest.TestCase):
+    """업종 TOP 순위 변화의 비교 기준을 서버가 들고 있는다(2026-09-14).
+
+    전에는 브라우저 localStorage의 '그 브라우저가 마지막으로 본 날'과만 비교해, 전날 페이지를
+    안 연 사람은 전부 NEW였다. 이제 거래일마다 마지막 순위를 남기고 직전 거래일과 비교한다.
+    """
+
+    def setUp(self):
+        import sqlite3
+        self.conn = sqlite3.connect(':memory:')
+        self.conn.execute(data.INDUSTRY_RANK_TABLE_DDL)
+
+    def tearDown(self):
+        self.conn.close()
+
+    @staticmethod
+    def rows(*names):
+        return [{'industry': name} for name in names]
+
+    def test_first_trading_day_has_no_baseline(self):
+        self.assertEqual(data.industry_rank_baseline(self.conn, '2026-09-14', self.rows('반도체'), True),
+                         (None, {}))
+
+    def test_compares_with_previous_trading_day(self):
+        data.industry_rank_baseline(self.conn, '2026-09-11', self.rows('반도체', '자동차', '조선'), True)
+        date, ranks = data.industry_rank_baseline(self.conn, '2026-09-14', self.rows('자동차', '반도체', '원전'), True)
+        self.assertEqual(date, '2026-09-11')
+        self.assertEqual(ranks, {'반도체': 1, '자동차': 2, '조선': 3})
+
+    def test_before_open_does_not_stamp_today_and_keeps_last_comparison(self):
+        """장 시작 전·주말 계산은 시세가 직전 거래일 값이라 오늘 날짜로 남기면 안 된다."""
+        data.industry_rank_baseline(self.conn, '2026-09-10', self.rows('조선', '반도체'), True)
+        data.industry_rank_baseline(self.conn, '2026-09-11', self.rows('반도체', '조선'), True)
+        date, ranks = data.industry_rank_baseline(self.conn, '2026-09-12', self.rows('반도체', '조선'), False)
+        self.assertEqual(date, '2026-09-10')
+        self.assertEqual(ranks, {'조선': 1, '반도체': 2})
+        stamped = self.conn.execute(
+            "SELECT COUNT(*) FROM market_temp_industry_rank WHERE date = '2026-09-12'").fetchone()[0]
+        self.assertEqual(stamped, 0)
+
+    def test_same_day_rerun_replaces_ranks(self):
+        data.industry_rank_baseline(self.conn, '2026-09-11', self.rows('반도체', '자동차', '조선'), True)
+        data.industry_rank_baseline(self.conn, '2026-09-11', self.rows('원전', '반도체'), True)
+        rows = self.conn.execute(
+            "SELECT rank, industry FROM market_temp_industry_rank WHERE date = '2026-09-11' ORDER BY rank").fetchall()
+        self.assertEqual(rows, [(1, '원전'), (2, '반도체')])
+
+    def test_retention_keeps_recent_days_only(self):
+        for day in range(1, 21):
+            data.record_industry_ranks(self.conn, '2026-08-%02d' % day, self.rows('반도체'))
+        dates = [r[0] for r in self.conn.execute(
+            'SELECT DISTINCT date FROM market_temp_industry_rank ORDER BY date')]
+        self.assertEqual(len(dates), data.INDUSTRY_RANK_RETENTION_DAYS)
+        self.assertEqual(dates[-1], '2026-08-20')
+
+    def test_empty_rows_are_not_recorded(self):
+        data.record_industry_ranks(self.conn, '2026-09-11', [])
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM market_temp_industry_rank').fetchone()[0], 0)
+
+
 class FlowMultipleTest(unittest.TestCase):
     """'평소 대비 배수' - 거래대금 절대액만 보면 매일 덩치 순서라 돈의 이동이 안 보인다.
 

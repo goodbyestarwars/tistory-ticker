@@ -2900,6 +2900,10 @@ def industry_flow_endpoint(request: Request):
     return envelope({
         'rows': result.get('industryFlow') or [],
         'updatedAt': result.get('updatedAt'),
+        # 2026-09-14: 순위 변화 기준(직전 거래일 순위). 배포 직후 옛 캐시에는 키가 없어
+        # None이 가고, 프론트는 그때만 예전 브라우저 저장분으로 물러난다.
+        'previousDate': result.get('industryFlowPreviousDate'),
+        'previousRanks': result.get('industryFlowPreviousRanks'),
     })
 
 
