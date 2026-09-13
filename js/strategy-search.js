@@ -1064,6 +1064,7 @@
       + (secondary ? '<div class="ss-row-secondary">' + (it.strategy === 'etfReturn' ? secondary : escapeHtml(secondary)) + '</div>' : '')
       + '<div class="ss-row-bottom"><span class="ss-row-quote is-scan"'
       + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeAttr(String(Number(it.price))) + '"')
+      + (it.date ? ' data-scan-date="' + escapeAttr(String(it.date)) + '"' : '')
       + '><span class="ss-row-price">' + fmt(it.price) + '</span><span class="ss-row-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
       + '<span class="ss-row-basis-tag">스캔 시점</span></span>'
       + (basis ? '<span class="ss-row-basis">' + escapeHtml(basis) + '</span>' : '') + '</div>'
@@ -1112,7 +1113,8 @@
   function priceCellHtml(item, label) {
     var scan = (item.price == null || isNaN(Number(item.price))) ? '' : String(Number(item.price));
     return '<td class="ss-col-price is-scan" data-label="' + (label || '현재가') + '"'
-      + (scan ? ' data-scan-price="' + escapeAttr(scan) + '"' : '') + '>'
+      + (scan ? ' data-scan-price="' + escapeAttr(scan) + '"' : '')
+      + (item.date ? ' data-scan-date="' + escapeAttr(String(item.date)) + '"' : '') + '>'
       + '<span class="ss-price-val">' + fmtWon(item.price) + '</span>'
       + '<span class="ss-price-basis">스캔 시점</span>'
       + '</td>';
@@ -1127,12 +1129,24 @@
     return (livePrice - scanPrice) / scanPrice * 100;
   }
 
-  // 실시간 값이 스캔 값과 다를 때만 "스캔 대비"를 덧붙인다. 같으면(장 마감 등) 군더더기다.
-  function priceBasisText(livePrice, scanPrice) {
+  // 2026-09-13 사용자 요청("어제 이 검색기들의 등락을 눈으로 아 이렇구나 알고 싶어"):
+  // 스캔 시각은 그대로(장 마감 직후 1회) 두고 표시만 바꾼다. 스캔가 대비 지금 등락을
+  // 회색 10px 글자로만 붙였고 값이 같으면 아예 숨겼는데, 스캔 이후 얼마나 움직였는지가
+  // 이 목록을 보는 이유라 색 배지로 올리고 움직이지 않았어도(0.0%) 보여준다.
+  // 스캔일·스캔가는 옆에 작게 둔다.
+  function scanDateLabel(value) {
+    var m = String(value || '').match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+    return m ? m[2] + '/' + m[3] : '';
+  }
+  function scanGapHtml(livePrice, scanPrice, scanDate) {
     var gap = gapPercent(livePrice, scanPrice);
     if (gap == null) return '';
-    if (Math.round(livePrice) === Math.round(scanPrice)) return '';
-    return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+    var rounded = Math.round(gap * 10) / 10;
+    var tone = rounded > 0 ? 'is-up' : (rounded < 0 ? 'is-down' : 'is-flat');
+    var sign = rounded > 0 ? '+' : (rounded < 0 ? '-' : '');
+    var date = scanDateLabel(scanDate);
+    return '<b class="ss-scan-gap ' + tone + '">스캔 대비 ' + sign + Math.abs(rounded).toFixed(1) + '%</b>'
+      + '<span class="ss-scan-ref">' + (date ? escapeHtml(date) + ' ' : '') + '스캔가 ' + fmt(scanPrice) + '원</span>';
   }
 
   // 렌더될 때마다 GAS를 부르면 안 된다. renderCards는 탭 전환뿐 아니라 ETF 검색창
@@ -1214,7 +1228,7 @@
         var valEl = priceCell.querySelector('.ss-price-val');
         var basisEl = priceCell.querySelector('.ss-price-basis');
         if (valEl) valEl.textContent = fmtWon(live.price);
-        if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
+        if (basisEl) basisEl.innerHTML = scanGapHtml(Number(live.price), scanPrice, priceCell.getAttribute('data-scan-date'));
         priceCell.className = priceCell.className.replace('is-scan', 'is-live');
       }
 
@@ -1225,7 +1239,7 @@
         var cardPrice = quote.querySelector('.ss-row-price');
         var cardTag = quote.querySelector('.ss-row-basis-tag');
         if (cardPrice) cardPrice.textContent = fmt(live.price);
-        if (cardTag) cardTag.textContent = priceBasisText(Number(live.price), cardScan);
+        if (cardTag) cardTag.innerHTML = scanGapHtml(Number(live.price), cardScan, quote.getAttribute('data-scan-date'));
         quote.className = quote.className.replace('is-scan', 'is-live');
       }
       var cardRate = row.querySelector('.ss-row-rate');
@@ -1249,7 +1263,7 @@
   //
   // 2026-09-02 사용자 지적: "다 오른 지표만 보고 매매할 수는 없잖아". 맞는 말이다.
   // 조건 판정은 어제 종가 기준인데 진입은 오늘 아침이라, 목록 상단이 이미 뛴 종목으로
-  // 채워지기 쉽다. 갭 값은 이미 계산하고 있었으니(priceBasisText) 그걸 기준으로
+  // 채워지기 쉽다. 갭 값은 이미 계산하고 있었으니(gapPercent) 그걸 기준으로
   // "아직 안 오른 것"을 골라볼 수 있게 한다.
   //
   // 순위 열은 그대로 스캔 순위다 - 정렬을 바꿔도 순위 숫자를 다시 매기지 않는다.
@@ -1342,7 +1356,7 @@
     var meta = container.querySelector('#ssPriceBasis');
     if (!meta) return;
     meta.textContent = live
-      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·전략 지표·재무는 스캔 시점 기준입니다.'
+      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·전략 지표·재무는 스캔 시점 기준입니다. "스캔 대비"는 스캔가에서 지금까지 움직인 폭입니다.'
       : '실시간 시세를 불러오지 못해 가격·등락률도 스캔 시점 값을 그대로 보여줍니다.';
     meta.className = 'ss-price-basis-note' + (live ? '' : ' is-stale');
   }

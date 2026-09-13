@@ -480,6 +480,7 @@
         + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '<span class="ps-quote is-scan"'
         + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeHtml(String(Number(it.price))) + '"')
+        + (it.date ? ' data-scan-date="' + escapeHtml(String(it.date)) + '"' : '')
         + '><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
         + '<span class="ps-price-basis">스캔 시점</span></span>'
@@ -529,18 +530,31 @@
     return (livePrice - scanPrice) / scanPrice * 100;
   }
 
-  function priceBasisText(livePrice, scanPrice) {
+  // 2026-09-13 사용자 요청("어제 이 검색기들의 등락을 눈으로 아 이렇구나 알고 싶어"):
+  // 스캔 시각은 그대로(장 마감 직후 1회) 두고 표시만 바꾼다. 스캔가 대비 지금 등락을
+  // 회색 10px 글자로만 붙였고 값이 같으면 아예 숨겼는데, 스캔 이후 얼마나 움직였는지가
+  // 이 목록을 보는 이유라 색 배지로 올리고 움직이지 않았어도(0.0%) 보여준다.
+  // 스캔일·스캔가는 옆에 작게 둔다.
+  function scanDateLabel(value) {
+    var m = String(value || '').match(/^(\d{4})-?(\d{2})-?(\d{2})/);
+    return m ? m[2] + '/' + m[3] : '';
+  }
+  function scanGapHtml(livePrice, scanPrice, scanDate) {
     var gap = gapPercent(livePrice, scanPrice);
     if (gap == null) return '';
-    if (Math.round(livePrice) === Math.round(scanPrice)) return '';
-    return '스캔 ' + fmt(scanPrice) + ' · ' + (gap > 0 ? '+' : '') + gap.toFixed(1) + '%';
+    var rounded = Math.round(gap * 10) / 10;
+    var tone = rounded > 0 ? 'is-up' : (rounded < 0 ? 'is-down' : 'is-flat');
+    var sign = rounded > 0 ? '+' : (rounded < 0 ? '-' : '');
+    var date = scanDateLabel(scanDate);
+    return '<b class="ps-scan-gap ' + tone + '">스캔 대비 ' + sign + Math.abs(rounded).toFixed(1) + '%</b>'
+      + '<span class="ps-scan-ref">' + (date ? escapeHtml(date) + ' ' : '') + '스캔가 ' + fmt(scanPrice) + '원</span>';
   }
 
   function markPriceBasis(container, live) {
     var meta = container.querySelector('#psPriceBasis');
     if (!meta) return;
     meta.textContent = live
-      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·감지 신호는 스캔 시점 기준입니다.'
+      ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·감지 신호는 스캔 시점 기준입니다. "스캔 대비"는 스캔가에서 지금까지 움직인 폭입니다.'
       : '실시간 시세를 불러오지 못해 가격·등락률도 스캔 시점 값을 그대로 보여줍니다.';
     meta.className = 'ps-price-basis-note' + (live ? '' : ' is-stale');
   }
@@ -555,7 +569,7 @@
       var priceEl = quote.querySelector('.ps-price');
       var basisEl = quote.querySelector('.ps-price-basis');
       if (priceEl) priceEl.textContent = fmt(live.price);
-      if (basisEl) basisEl.textContent = priceBasisText(Number(live.price), scanPrice);
+      if (basisEl) basisEl.innerHTML = scanGapHtml(Number(live.price), scanPrice, quote.getAttribute('data-scan-date'));
       quote.className = quote.className.replace('is-scan', 'is-live');
       var rateEl = quote.querySelector('.ps-rate');
       if (rateEl && live.changeRate != null && !isNaN(live.changeRate)) {
