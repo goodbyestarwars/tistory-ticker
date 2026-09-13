@@ -36,6 +36,13 @@ if ! flock -n 200; then
   echo "이전 배포/점검이 아직 진행 중 - 이번 5분 회차는 건너뜁니다."
   exit 0
 fi
+# 2026-09-14 사용자 승인: 아래에서 `&`로 띄우는 백그라운드 작업(배포 후 검색 재스캔, 새벽
+# 유지보수, 지연 측정)은 이 셸의 fd 200을 그대로 물려받는다. flock은 같은 열린 파일을 가진
+# 프로세스가 **하나라도** 남아 있으면 풀리지 않으므로, 본체가 끝나도 그 작업이 끝날 때까지
+# 다음 5분 회차가 전부 "진행 중"으로 건너뛰었다. 같은 날 /health/latency(본체가 끝까지 돈
+# 회차에만 남는 기록) 간격이 5~6분에서 27·51·32분으로 벌어진 게 그 흔적이고, 2026-08-23
+# 인수인계서의 "스캔 프로세스가 오래 붙어 있으면 배포가 스킵" 증상도 같은 원인이다.
+# 백그라운드로 띄우는 모든 곳에서 `200>&-`로 이 fd를 닫고 넘긴다(각자 자기 잠금은 따로 쓴다).
 
 run_news_momentum_if_due() {
   local verify_after_deploy="${1:-0}"
@@ -157,7 +164,7 @@ run_search_scan_refresh_after_deploy() {
     "$PYTHON" "$APP_DIR/strategy_scan.py" \
       || echo "strategy cache refresh failed; strategy timer will retry" >&2
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh finished"
-  ) 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
+  ) 200>&- 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
   disown
 }
 
@@ -183,7 +190,7 @@ run_off_hours_maintenance_if_due() {
     else
       echo "장외 VM 유지보수 실패: 다음 5분 회차에서 재시도" >&2
     fi
-  ) 211>"$MAINTENANCE_TRIGGER_LOCK" >>"$APP_DIR/maintenance.log" 2>&1 &
+  ) 200>&- 211>"$MAINTENANCE_TRIGGER_LOCK" >>"$APP_DIR/maintenance.log" 2>&1 &
   disown
 }
 
@@ -251,5 +258,5 @@ run_off_hours_maintenance_if_due || true
 # 던지고 기다리지 않는다 - latency_monitor.py 내부에서 각 호출을 개별 예외 처리하고 결과를
 # 파일에 추가만 하므로, 이 회차가 안 끝난 채 다음 5분 회차가 겹쳐도(위 flock과 무관하게 이
 # 백그라운드 프로세스는 별도) 로그 줄이 뒤섞이는 정도이지 크래시하지 않는다.
-"$PYTHON" "$APP_DIR/latency_monitor.py" >/dev/null 2>&1 &
+"$PYTHON" "$APP_DIR/latency_monitor.py" 200>&- >/dev/null 2>&1 &
 disown

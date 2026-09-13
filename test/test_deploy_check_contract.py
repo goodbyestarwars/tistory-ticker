@@ -8,6 +8,7 @@ master가 바뀔 때마다(js/css만 바뀐 커밋도) FastAPI를 재시작하�
 """
 
 import os
+import re
 import shutil
 import subprocess
 import unittest
@@ -47,6 +48,20 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 기록하지 않으면 5분마다 같은 커밋을 다시 판정한다.
         record = self.block.index('printf \'%s\\n\' "$REMOTE" > "$DEPLOYED_FILE"')
         self.assertGreater(record, self.block.index('else\n    echo "VM 실행 경로'))
+
+    def test_background_jobs_do_not_inherit_the_deploy_lock(self):
+        """백그라운드 작업이 fd 200을 물려받으면 본체가 끝나도 배포 잠금이 안 풀린다(2026-09-14).
+
+        flock은 같은 열린 파일을 가진 프로세스가 하나라도 남으면 유지된다. 배포 후 재스캔이
+        돌던 20여 분 동안 다음 5분 회차가 전부 "진행 중"으로 건너뛰었다.
+        """
+        lines = self.script.splitlines()
+        background = [line for line in lines if re.search(r'(^|[^&])&\s*$', line)]
+        self.assertTrue(background, '백그라운드 실행 줄을 찾지 못했다')
+        for line in background:
+            self.assertIn('200>&-', line, '배포 잠금 fd를 닫지 않은 백그라운드 실행: ' + line.strip())
+        # disown 개수와 백그라운드 실행 개수가 같아야 누락이 없다.
+        self.assertEqual(len(background), self.script.count('disown'))
 
     @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Linux bash에서만 구문 검사')
     def test_script_parses(self):
