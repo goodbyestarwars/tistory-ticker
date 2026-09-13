@@ -63,6 +63,26 @@ class DeployRestartScopeTest(unittest.TestCase):
         # disown 개수와 백그라운드 실행 개수가 같아야 누락이 없다.
         self.assertEqual(len(background), self.script.count('disown'))
 
+    def test_news_momentum_batch_runs_outside_the_deploy_lock(self):
+        """전 종목 뉴스 모멘텀 배치(20분 슬라이스)가 배포 잠금을 쥔 채 전면에서 돌아
+        하루 대부분 배포가 최대 20분씩 밀렸다(2026-09-14, VM fuser로 확인)."""
+        start = self.script.index('run_news_momentum_if_due() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        # 설명 주석에도 파일 이름이 나오므로 실제 실행 인자로 찾는다.
+        scan = body.index('"$APP_DIR/news_momentum_scan.py"')
+        opener = body.rindex('\n  (\n', 0, scan)
+        closer = body.index('\n  ) 200>&- &\n  disown', scan)
+        self.assertLess(opener, scan)
+        self.assertLess(scan, closer)
+        # 겹침은 배치 전용 잠금이 막는다(실행 중이면 75로 즉시 빠진다).
+        self.assertIn('flock -n -E 75 "$MOMENTUM_LOCK"', body[opener:closer])
+
+    def test_price_recap_cleanup_waits_for_the_momentum_lock(self):
+        """배치가 백그라운드로 가면 같은 news_momentum.db를 동시에 쓸 수 있다."""
+        start = self.script.index('run_price_recap_cleanup_once() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        self.assertIn('flock -n "$MOMENTUM_LOCK" "$PYTHON" "$APP_DIR/cleanup_price_recap_topics.py"', body)
+
     @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Linux bash에서만 구문 검사')
     def test_script_parses(self):
         subprocess.run(['bash', '-n', SCRIPT], check=True)
