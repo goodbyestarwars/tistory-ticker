@@ -340,7 +340,8 @@
         var name = String(stock.name || code || '-').trim();
         var rate = Number(stock.change_rate != null ? stock.change_rate : stock.changeRate);
         return '<a class="mt-industry-flow-stock" href="/page/stock-search?code=' + encodeURIComponent(code) + '&amp;name=' + encodeURIComponent(name) + '" aria-label="' + escapeHtml(name) + ' 실시간 시세 보기">'
-          + '<span><b>' + escapeHtml(name) + '</b><small>' + escapeHtml(code || '-') + '</small></span>'
+          // 2026-09-13 사용자 요청: 종목명도 상승 빨강·하락 파랑으로(등락률과 같은 색).
+          + '<span><b class="' + stockTone_(rate) + '">' + escapeHtml(name) + '</b><small>' + escapeHtml(code || '-') + '</small></span>'
           + '<span><strong>' + stockPrice_(stock.price) + '</strong><em class="' + stockTone_(rate) + '">' + stockRate_(rate) + '</em></span>'
           + '</a>';
       }).join('');
@@ -1839,8 +1840,13 @@
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
-      buildSummaryCard(data),                       // ① 종합점수 · 어제 대비 · 돈/가격/위험
-      buildSparkline(data, false),                  // ② 최근 추이
+      // 2026-09-13 사용자 요청("정보가 너무 가로로 길게 되어 있어, PC에선 가독성이 떨어져.
+      // 밑에 최근 단기흐름이랑 1:1 비율로 합쳐도 좋을꺼 같아"): ①②를 PC에서 한 줄에 1:1로
+      // 둔다. 760px 이하에서는 예전처럼 위아래로 쌓는다(css .mt-summary-trend-row).
+      '<div class="mt-summary-trend-row">'
+        + buildSummaryCard(data)                    // ① 종합점수 · 어제 대비 · 돈/가격/위험
+        + buildSparkline(data, false)               // ② 최근 추이
+        + '</div>',
       '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
       buildBriefingStrategy(grade),                 // ④ 시장 브리핑 + 오늘의 전략
