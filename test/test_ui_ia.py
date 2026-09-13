@@ -454,10 +454,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-briefing-small .post-title", style)
         self.assertIn("border: 1px solid var(--up)", style)
         self.assertIn("border-radius: 999px", style)
+        # 시장지표 섹션 제목(글로벌 .om-title / 국내 .dmi-subheading h3)은 데이터·UI
+        # 문맥이라 명조 제목 체계에서 뺀다. 2026-09-12: 국내만 명조 목록에 남아 한
+        # 지면에서 국내는 명조, 글로벌은 프리텐다드로 갈렸던 걸 같은 예외로 합쳤다.
         self.assertIn(
-            'html:not(.font-gothic) body .om-title {\n  font-family: var(--font-ui) !important;',
+            'html:not(.font-gothic) body .om-title,\n'
+            'html:not(.font-gothic) body .dmi-subheading h3 {\n'
+            '  font-family: var(--font-ui) !important;',
             style,
         )
+        # 명조 목록에 다시 들어가면 원래 증상으로 되돌아간다.
+        self.assertNotIn('body .dmi-subheading h3,\n', style)
         self.assertIn(".navbar .nav-search-icon { display: inline-flex; order: 2;", style)
         self.assertIn(".navbar .nav-search-input { order: 1; font-size: 13px;", style)
         # 2026-08-30: 모바일 종목검색 입력창은 16px 미만이면 iOS 사파리가 탭 순간 페이지를

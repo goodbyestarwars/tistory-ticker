@@ -1,5 +1,39 @@
 # 9Pay 주요 작업이력
 
+**2026-09-12 국내시장지표 섹션 제목 폰트를 글로벌과 통일**
+
+사용자 지적: "`KOSPI · KOSDAQ 현물 (09:00~15:45) (휴장)` 폰트가 혼자 저래, 다르잖아".
+
+**원인은 캐스케이드 사고가 아니라 명시적 등록이었다.** `style.css`의 명조 제목 목록에
+`.dmi-subheading h3`가 들어가 있었다. 같은 목록 바로 아래에는 이미
+"글로벌 시장지표의 카드·차트 제목은 데이터/UI 문맥이므로 명조에서 제외한다"며
+`.om-title`을 프리텐다드로 되돌리는 예외가 있었는데, **국내(dmi)만 그 예외에서 빠져**
+한 지면에서 국내는 명조, 글로벌은 프리텐다드로 갈렸다.
+
+실측(로컬 iframe, computed style):
+
+| 요소 | 전 | 후 |
+|---|---|---|
+| `.dmi-subheading h3`(현물·투자자별·증시자금) | MaruBuri 20px | **Pretendard 20px** |
+| `.kf-section-title`(바로 아래 선물 섹션) | Pretendard 15px | 그대로 |
+| `.dmi-heading h2`("국내시장지표" 페이지 제목) | MaruBuri 28px | 그대로(규약 유지) |
+
+수정은 위젯 CSS가 아니라 **디자인 시스템 원본**에서 했다. 처음엔
+`css/domestic-market-indicators.css`에 `.dmi-shell .dmi-subheading h3`(0,2,1) !important
+override를 넣었는데 안 먹었다 - `style.css`에 `html:not(.font-gothic) body
+.dmi-subheading h3`(0,3,3)가 있어 특이도로 졌다. **CSSOM으로 매칭 규칙을 전수 열거해
+승자를 찾고 나서야** 원인을 짚었다(추측으로 두 번 틀림). override는 되돌리고 목록에서
+빼 `.om-title` 예외에 합쳤다.
+
+부수 발견(미수정): `css/domestic-market-indicators.css`의 `.dmi-panel-title`
+`.dmi-flow-title` `.dmi-fund-label`은 MaruBuri로 선언돼 있으나 전역
+`html body * !important`에 눌려 실제로는 전부 프리텐다드로 그려진다(죽은 선언).
+동작에 영향이 없어 이번 범위에서 건드리지 않았다.
+
+배포: `style.css`만 변경. `?v=`는 `skin.html`에 있어 올리면 티스토리 수동 반영이 필요한데,
+내용 변경은 `max-age=600`으로 10분 내 전파되므로 올리지 않았다. **수동 반영 불필요.**
+911 passed.
+
 **2026-09-12 시장지표(선물) 참고의견 섹션 제거**
 
 사용자 요청. 이 섹션은 AI 응답이 없거나 실패하면 `#kfAi`가 `hidden`이 되는데 **제목
