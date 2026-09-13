@@ -72,37 +72,45 @@ run_news_momentum_if_due() {
     return 0
   fi
 
-  # flock 종료코드 75는 다른 5분 회차가 이미 배치를 실행 중이라는 뜻이다.
-  # --full은 전 상장종목이 대상이지만 한 회차에 20분 시간 예산까지만 쓰고 커서를
-  # 남긴다(news_momentum_cursor.json). 종료코드 2 = 시간 예산으로 슬라이스만 끝났고
-  # 오늘 API 호출 예산이 남아 있다는 뜻이라, 날짜 마커를 기록하지 않고 다음 5분
-  # 회차가 커서부터 이어받는다. 0 = 전수 완료 또는 오늘 호출 예산 소진(= 오늘 할 일 끝).
-  if flock -n -E 75 "$MOMENTUM_LOCK" \
-      "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
-      --full \
-      --db "$MOMENTUM_DB" \
-      --lock-file "$APP_DIR/.news_momentum_python.lock"; then
-    if "$PYTHON" "$APP_DIR/verify_news_momentum_db.py" \
-        && "$PYTHON" "$APP_DIR/post_deploy_check.py" --momentum-only; then
-      # 배치·DB·API 검증이 모두 성공한 뒤에만 KST 날짜 마커를 원자적으로 교체한다.
-      printf '%s\n' "$today_kst" > "$MOMENTUM_MARKER.tmp"
-      mv "$MOMENTUM_MARKER.tmp" "$MOMENTUM_MARKER"
-      printf '%s\n' "$MOMENTUM_SCHEMA_VERSION" > "$MOMENTUM_SCHEMA_MARKER.tmp"
-      mv "$MOMENTUM_SCHEMA_MARKER.tmp" "$MOMENTUM_SCHEMA_MARKER"
-      echo "뉴스 모멘텀 일일 배치 완료: $today_kst"
+  # 2026-09-14 사용자 승인: 이 배치는 전 상장종목(3,913)을 20분 슬라이스로 이어 도는데, 예전엔
+  # 배포 잠금(fd 200)을 쥔 채 전면에서 돌아 하루 대부분 배포가 최대 20분씩 밀렸다(같은 날 VM
+  # fuser로 확인한 잠금 보유자: deploy_check.sh -> flock -> news_momentum_scan.py). 배포와 무관한
+  # 수집이라 백그라운드로 떼고 fd 200은 닫는다. 겹침은 원래 쓰던 전용 잠금($MOMENTUM_LOCK,
+  # 실행 중이면 종료코드 75로 즉시 빠짐)이 그대로 막는다. 날짜 마커·검증·로그 문구는 그대로다.
+  (
+    # flock 종료코드 75는 다른 5분 회차가 이미 배치를 실행 중이라는 뜻이다.
+    # --full은 전 상장종목이 대상이지만 한 회차에 20분 시간 예산까지만 쓰고 커서를
+    # 남긴다(news_momentum_cursor.json). 종료코드 2 = 시간 예산으로 슬라이스만 끝났고
+    # 오늘 API 호출 예산이 남아 있다는 뜻이라, 날짜 마커를 기록하지 않고 다음 5분
+    # 회차가 커서부터 이어받는다. 0 = 전수 완료 또는 오늘 호출 예산 소진(= 오늘 할 일 끝).
+    if flock -n -E 75 "$MOMENTUM_LOCK" \
+        "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
+        --full \
+        --db "$MOMENTUM_DB" \
+        --lock-file "$APP_DIR/.news_momentum_python.lock"; then
+      if "$PYTHON" "$APP_DIR/verify_news_momentum_db.py" \
+          && "$PYTHON" "$APP_DIR/post_deploy_check.py" --momentum-only; then
+        # 배치·DB·API 검증이 모두 성공한 뒤에만 KST 날짜 마커를 원자적으로 교체한다.
+        printf '%s\n' "$today_kst" > "$MOMENTUM_MARKER.tmp"
+        mv "$MOMENTUM_MARKER.tmp" "$MOMENTUM_MARKER"
+        printf '%s\n' "$MOMENTUM_SCHEMA_VERSION" > "$MOMENTUM_SCHEMA_MARKER.tmp"
+        mv "$MOMENTUM_SCHEMA_MARKER.tmp" "$MOMENTUM_SCHEMA_MARKER"
+        echo "뉴스 모멘텀 일일 배치 완료: $today_kst"
+      else
+        echo "뉴스 모멘텀 검증 실패: 날짜 마커 미기록, 5분 뒤 재시도" >&2
+      fi
     else
-      echo "뉴스 모멘텀 검증 실패: 날짜 마커 미기록, 5분 뒤 재시도" >&2
+      lock_status=$?
+      if [ "$lock_status" = "75" ]; then
+        echo "뉴스 모멘텀 건너뜀: 이전 배치 실행 중"
+      elif [ "$lock_status" = "2" ]; then
+        echo "뉴스 모멘텀 슬라이스 완료(전수 수집 진행 중): 날짜 마커 미기록, 다음 회차에서 이어서 수집"
+      else
+        echo "뉴스 모멘텀 배치 실패(exit=$lock_status): 날짜 마커 미기록, 5분 뒤 재시도" >&2
+      fi
     fi
-  else
-    lock_status=$?
-    if [ "$lock_status" = "75" ]; then
-      echo "뉴스 모멘텀 건너뜀: 이전 배치 실행 중"
-    elif [ "$lock_status" = "2" ]; then
-      echo "뉴스 모멘텀 슬라이스 완료(전수 수집 진행 중): 날짜 마커 미기록, 다음 회차에서 이어서 수집"
-    else
-      echo "뉴스 모멘텀 배치 실패(exit=$lock_status): 날짜 마커 미기록, 5분 뒤 재시도" >&2
-    fi
-  fi
+  ) 200>&- &
+  disown
   return 0
 }
 
@@ -137,7 +145,10 @@ run_price_recap_cleanup_once() {
   if [ ! -f "$MOMENTUM_DB" ]; then
     return 0  # DB가 아직 없으면(모멘텀 배치 첫 실행 전) 정리할 것도 없음 - 다음 회차 재확인
   fi
-  if "$PYTHON" "$APP_DIR/cleanup_price_recap_topics.py" \
+  # 2026-09-14: 뉴스 모멘텀 배치가 백그라운드로 옮겨가 같은 news_momentum.db를 동시에 쓸 수 있어
+  # 배치 전용 잠금을 잡고 실행한다. 배치가 도는 중이면 잠금을 못 잡아 아래 실패 분기로 가고
+  # 마커가 남지 않으니 다음 5분 회차가 다시 시도한다.
+  if flock -n "$MOMENTUM_LOCK" "$PYTHON" "$APP_DIR/cleanup_price_recap_topics.py" \
       --db "$MOMENTUM_DB" --backup-dir "$APP_DIR/backups" --apply; then
     touch "$PRICE_RECAP_CLEANUP_MARKER"
     echo "가격서술 노이즈 이슈 정리 완료(1회성)"

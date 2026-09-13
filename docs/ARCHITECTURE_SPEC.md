@@ -53,7 +53,7 @@ flowchart LR
 - 엔트리포인트 `main.py`(`uvicorn main:app`), systemd 상시 구동.
 - git push 후 VM이 약 5분 내 자동 재배포(구체 CI/CD는 저장소 밖 VM 설정).
 - 대용량 `ohlc_snapshot.db`의 배포 직전 백업은 I/O 병목 이력으로 비활성화되어 있다. 대신 `deploy_check.sh`가 장외 시간에 `maintenance.py`를 실행해 뉴스 DB 삭제 전 `backup_sqlite.py` 백업, 앱 로그 상한, 뉴스·매물대 보존 정리, SQLite WAL 체크포인트·`PRAGMA optimize`를 수행한다. 주말에는 VM의 현재 syslog 계열 로그를 비우고 회전·압축 로그와 systemd journal도 정리한다. 배포 후 `/health`·`/news-momentum/000660`·인증 `/ohlc/005930`을 점검한다.
-- `deploy_check.sh`는 전체를 `flock`으로 감싸 5분 타이머 중첩 실행을 방지하고, Asia/Seoul 날짜 마커로 뉴스모멘텀 8종목 배치를 하루 1회만 실행한다.
+- `deploy_check.sh`는 전체를 `flock`으로 감싸 5분 타이머 중첩 실행을 방지한다. 뉴스 모멘텀 배치는 전 상장종목을 20분 슬라이스로 이어 수집하고(커서 `news_momentum_cursor.json`), 하루 할 일이 끝나면 Asia/Seoul 날짜 마커로 그날은 다시 돌지 않는다. 2026-09-14부터 이 배치는 배포 잠금 밖 백그라운드에서 돌고 전용 잠금(`.news_momentum_timer.lock`)으로만 겹침을 막는다 — 전면에서 돌 때는 하루 대부분 배포가 최대 20분씩 밀렸다. 같은 DB를 쓰는 1회성 정리(`cleanup_price_recap_topics.py`)도 이 전용 잠금을 잡고 실행한다.
 - 새 `master` 커밋마다 `git pull`과 배포 SHA 기록은 하지만, `.py` 복사·`kiwoom-api` 재시작·배포 후 점검·검색 스캔 재실행은 **`scripts/cloud-vm/` 또는 `data/`가 바뀐 커밋에만** 한다(2026-09-14). js/css만 바뀐 커밋에도 재시작해 연속 머지 때 WebSocket이 끊기고 VM이 무거워졌기 때문이다. 직전 배포 SHA를 모르면 예전처럼 전부 수행한다.
 - `deploy_check.sh`가 `&`로 띄우는 백그라운드 작업(배포 후 검색 재스캔·새벽 유지보수·지연 측정)은 `200>&-`로 배포 잠금 fd를 닫고 시작한다(2026-09-14). 물려받으면 본체가 끝나도 그 작업이 끝날 때까지 다음 회차가 전부 건너뛰어 배포가 20~50분씩 밀렸다.
 
