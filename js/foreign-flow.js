@@ -4157,12 +4157,8 @@
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
-      // 2026-09-01 사용자 리포트("차트 밑에 범례가 이상해 - 공시 실적??"): 범례가 실제
-      // 차트와 어긋나 있었다. buildChartMarkers()가 그리는 마커는 '수급'(#d946ef 네모)
-      // **하나뿐**인데, 범례는 그려지지도 않는 공시(#f59e0b)·실적(#8b5cf6)을 광고하고
-      // 정작 수급은 빠져 있었다. 예전에 있던 마커를 지우면서 범례를 같이 안 지운 흔적이다.
-      // 실제 그려지는 것만 남긴다.
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d946ef"></i>수급</span>'
+      // 2026-09-01: 범례는 실제 그려지는 것만 둔다(그려지지도 않는 공시·실적을 광고하던
+      // 흔적을 지웠다). 2026-09-12에 '수급' 마커 자체를 없애 그 범례 항목도 함께 뺐다.
       + '</div>';
   }
 
@@ -5341,14 +5337,11 @@
       if (markerByKey[key]) return;
       markerByKey[key] = { time: date, position: position || 'aboveBar', color: color, shape: shape || 'circle', text: text };
     }
-    var flowMap = {};
-    (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
-    for (var k = Math.max(0, daily.length - 60); k < daily.length; k++) {
-      var flow = flowMap[chartDate(daily[k].date)];
-      if (!flow) continue;
-      var net = Math.abs(Number(flow.foreign_net) || 0) + Math.abs(Number(flow.inst_net) || 0);
-      if (net > 0 && net >= 200000) add(daily[k].date, 'flow', '수급', '#d946ef', 'belowBar', 'square');
-    }
+    // 2026-09-12 사용자 요청("수급 표시 없애줘, 너무 많이 표기되는 경우가 있어"):
+    // 최근 60봉 중 외국인+기관 순매수 절댓값 합이 20만 주 이상인 날마다 '수급' 네모를
+    // 찍었는데, 대형주는 거의 매일 넘어 캔들 밑이 마커로 뒤덮였다. 수급은 아래
+    // 외국인·기관 순매수 패널이 이미 선으로 보여주므로 마커는 그리지 않는다.
+    // add()/정렬 골격은 다른 마커를 다시 넣을 때를 위해 남긴다.
     return Object.keys(markerByKey).map(function (key) { return markerByKey[key]; })
       .sort(function (a, b) { return String(a.time).localeCompare(String(b.time)); });
   }
@@ -5455,8 +5448,13 @@
 
       var flowMap = {};
       (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
-      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: '#8b5cf6', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '외국인' }, 2);
-      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: '#0ca678', lineWidth: 2, lastValueVisible: true, priceLineVisible: false, title: '기관' }, 2);
+      // 2026-09-12 사용자 요청("기관, 외국인 표시를 범주로 변경해줘, 겹쳐서 안보여"):
+      // 시리즈 title을 가격축 값 배지에 붙이면 두 값이 비슷할 때 '외국인'·'기관' 글자가
+      // 서로 덮였다. 이름은 패널 라벨의 범례(색 네모)로 옮기고 축에는 숫자만 남긴다.
+      var FOREIGN_COLOR = '#8b5cf6';
+      var INSTITUTION_COLOR = '#0ca678';
+      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: FOREIGN_COLOR, lineWidth: 2, lastValueVisible: true, priceLineVisible: false }, 2);
+      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: INSTITUTION_COLOR, lineWidth: 2, lastValueVisible: true, priceLineVisible: false }, 2);
       foreignSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.foreign_net != null ? { time: d.date, value: Number(r.foreign_net) } : null; }).filter(Boolean));
       institutionSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.inst_net != null ? { time: d.date, value: Number(r.inst_net) } : null; }).filter(Boolean));
 
@@ -5467,7 +5465,9 @@
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ff-lwc-pane-labels';
-      paneLabels.innerHTML = '<span>거래량</span><span>외국인·기관 순매수</span>';
+      paneLabels.innerHTML = '<span>거래량</span>'
+        + '<span>순매수 <i class="ff-pane-legend" style="background:' + FOREIGN_COLOR + '"></i>외국인'
+        + '<i class="ff-pane-legend" style="background:' + INSTITUTION_COLOR + '"></i>기관</span>';
       container.appendChild(paneLabels);
 
       // 각 패널을 초기 비율로 나누되 layout.panes.enableResize=true로 사용자가 구분선을 드래그할 수 있다.

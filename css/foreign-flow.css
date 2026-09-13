@@ -810,6 +810,13 @@
   background: rgba(255,255,255,.72);
   border-radius: 3px;
 }
+#foreign-flow .ff-lwc-pane-labels .ff-pane-legend {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 3px 0 7px;
+  vertical-align: -1px;
+}
 #foreign-flow .ff-chart-candle { height: 760px !important; }
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
@@ -2645,12 +2652,11 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   gap: 9px;
   min-height: 25px;
   padding: 2px 7px;
-  border-radius: 7px;
+  border-radius: 0;
 }
 #foreign-flow .ff-apt-simple-row.is-current { background: #eefbf8; }
 #foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-price,
 #foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-volume { color: #9aa7b5; }
-#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-track { background: repeating-linear-gradient(90deg, #edf1f5 0 6px, #fff 6px 10px); }
 #foreign-flow .ff-apt-simple-price,
 #foreign-flow .ff-apt-simple-volume {
   color: #627080;
@@ -2660,12 +2666,15 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 }
 #foreign-flow .ff-apt-simple-price { text-align: right; }
 #foreign-flow .ff-apt-simple-volume { text-align: right; }
+/* 2026-09-12 사용자 요청("애플 스타일 말고 각진 스타일, 음영은 빗금"): 둥근 알약 막대를
+   직각으로, 막대 뒤 옅은 회색 바탕(1위 가격대 대비 남은 몫)을 사선 빗금으로 바꿨다.
+   거래가 없는 가격대(is-empty)도 막대 폭이 0이라 같은 빗금만 보인다 - 따로 규칙을 두지 않는다. */
 #foreign-flow .ff-apt-simple-track {
   display: block;
   height: 10px;
   overflow: hidden;
-  border-radius: 999px;
-  background: #edf1f5;
+  border-radius: 0;
+  background: repeating-linear-gradient(135deg, #d6dde5 0 1px, #f4f6f9 1px 5px);
 }
 #foreign-flow .ff-apt-simple-track i {
   display: block;
@@ -2697,7 +2706,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 }
 #foreign-flow .ff-apt-simple-markers span {
   padding: 2px 5px;
-  border-radius: 999px;
+  border-radius: 2px;
   background: #f1f4f7;
 }
 #foreign-flow .ff-apt-simple-markers .current { color: #087f69; background: #dff7f1; }
@@ -2712,7 +2721,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 #foreign-flow .ff-apt-simple-legend span::before {
   width: 7px;
   height: 7px;
-  border-radius: 50%;
+  border-radius: 0;
   background: #9aa8b7;
   content: '';
 }
@@ -2747,12 +2756,11 @@ html.dark #foreign-flow .ff-apt-simple-summary strong,
 html.dark #foreign-flow .ff-apt-simple-head strong,
 html.dark #foreign-flow .ff-apt-simple-note strong { color: #f5efe0; }
 html.dark #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
-html.dark #foreign-flow .ff-apt-simple-track { background: #333a40; }
+html.dark #foreign-flow .ff-apt-simple-track { background: repeating-linear-gradient(135deg, #454d55 0 1px, #262b30 1px 5px); }
 html.dark #foreign-flow .ff-apt-simple-side-heading { border-top-color: rgba(245,239,224,.14); color: #9da8b2; }
 html.dark #foreign-flow .ff-apt-simple-side-heading.above strong { color: #8db9f0; }
 html.dark #foreign-flow .ff-apt-simple-side-heading.below strong { color: #f09b94; }
 html.dark #foreign-flow .ff-apt-simple-side-heading.current strong { color: #69bfa9; }
-html.dark #foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-track { background: repeating-linear-gradient(90deg, #333a40 0 6px, #1f2326 6px 10px); }
 html.dark #foreign-flow .ff-apt-simple-limits .basis { color: #9da8b2; background: transparent; }
 html.dark #foreign-flow .ff-apt-simple-limits .open { color: #b8c0c7; background: #333a40; }
 html.dark #foreign-flow .ff-apt-simple-limits .lower { color: #8db9f0; background: rgba(18,97,196,.2); }

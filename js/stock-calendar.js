@@ -196,10 +196,25 @@
 
   }
 
-  function fetchEvents(year, month) {
+  // 2026-09-12 사용자 지적("캘린더 표시가 계속 잘 안된다"): 두 공급자를 Promise.all로
+  // 묶어 둘 다 끝나야 화면이 채워졌다. 라이브 실측으로 Google Calendar는 0.34초인데
+  // /earnings-calendar가 12.7초(러너 기준 콜드 3.8초·웜 1.4초) 걸려, 그동안 달력 점도
+  // 목록도 비어 있었다. onProgress를 넘기면 각 공급자가 도착하는 즉시 그때까지 모인
+  // 월 일정을 넘겨준다. 반환 Promise(둘 다 끝난 최종 결과)는 기존 호출부(skin-main.js
+  // 홈 일정 카드)를 위해 그대로 둔다.
+  function fetchEvents(year, month, onProgress) {
     var key = String(year) + '-' + String(month == null ? 'year' : month);
     if (monthFetchInflight[key]) return monthFetchInflight[key];
-    var request = Promise.all([fetchGoogleEvents(year, month), fetchEarnings(year, month)])
+    var sources = [fetchGoogleEvents(year, month), fetchEarnings(year, month)];
+    if (typeof onProgress === 'function' && month != null) {
+      sources.forEach(function (source) {
+        source.then(function (events) {
+          upsertStoredCalendarEvents(events || []);
+          onProgress(mergeEvents(storedMonthEvents(year, month), []));
+        }, function () { /* 각 공급자는 이미 빈 배열로 실패를 흡수한다 */ });
+      });
+    }
+    var request = Promise.all(sources)
       .then(function (results) {
         upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
         return mergeEvents(storedMonthEvents(year, month), []);
@@ -459,10 +474,17 @@
       state.viewYear = target.getFullYear();
       state.viewMonth = target.getMonth();
       state.selectedKey = selected || dateKey(target);
-      state.events = [];
+      // 2026-09-12: 이전에 받아 localStorage에 저장해 둔 이 달 일정을 먼저 그린다.
+      // 예전엔 []로 비우고 "불러오는 중"만 띄워, 새로 받기 전까지 이미 아는 일정도 안 보였다.
+      // 저장분이 전혀 없을 때만 로딩 문구를 쓴다.
+      state.events = storedMonthEvents(state.viewYear, state.viewMonth);
       var currentRequest = ++requestId;
-      renderSchedule(state, true);
-      StockCalendar.fetchEvents(state.viewYear, state.viewMonth)
+      renderSchedule(state, !state.events.length);
+      StockCalendar.fetchEvents(state.viewYear, state.viewMonth, function (partial) {
+        if (currentRequest !== requestId) return;
+        state.events = partial || [];
+        renderSchedule(state, false);
+      })
         .then(function (events) {
           if (currentRequest !== requestId) return;
           state.events = events || [];
