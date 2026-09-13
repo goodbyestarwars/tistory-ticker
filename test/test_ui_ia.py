@@ -2030,7 +2030,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         """
         source = self.read("js/market-temp.js")
         self.assertIn("function buildSummaryCard(data)", source)
-        self.assertIn("buildSummaryCard(data),", source)
+        # 2026-09-13: 첫 화면 ①종합점수·②최근 단기흐름을 PC에서 1:1로 한 줄에 묶었다.
+        self.assertIn("+ buildSummaryCard(data)", source)
+        self.assertIn("+ buildSparkline(data, false)", source)
         self.assertIn("var AXIS_ORDER = [", source)
         for token in ("{ key: 'money'", "{ key: 'price'", "{ key: 'risk'"):
             self.assertIn(token, source)
@@ -2859,6 +2861,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn(".mt-industry-flow-row.is-up > span:first-of-type", css)
         self.assertIn(".mt-industry-flow-row.is-up .mt-if-rate", css)
         self.assertIn(".mt-if-amount", css)
+        # 2026-09-13: 펼친 대표 종목명이 테마명(12px)보다 크게(본문 15px 상속) 보였다.
+        self.assertIn("#market-temp .mt-industry-flow-stock b { font-size:12px;", css)
+        # 종목명도 등락 방향색(상승 빨강·하락 파랑)을 따른다.
+        self.assertIn("'<span><b class=\"' + stockTone_(rate) + '\">'", source)
+        # 2026-09-13: 종합점수(돈·가격·위험)와 최근 단기흐름을 PC에서 1:1로 둔다.
+        self.assertIn("'<div class=\"mt-summary-trend-row\">'", source)
+        self.assertIn("#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", css)
         # 모바일 그리드 열 수가 데스크톱과 달라지면 항목이 넘쳐 행이 두 줄로 접힌다
         # (실제로 그렇게 깨졌다).
         flow_grids = re.findall(

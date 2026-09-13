@@ -60,6 +60,15 @@
 }
 #market-temp .mt-row-2col > .mt-card { margin: 0; }
 
+/* 2026-09-13 사용자 요청: 종합점수(돈·가격·위험)와 최근 단기흐름을 PC에서 1:1로 나란히 둔다.
+   한 카드씩 전체 폭(1,225px)을 쓰면 축 막대가 1,027px까지 늘어져 읽기 어려웠다(라이브 실측).
+   760px 이하에서는 위아래로 쌓는다(모바일은 기존 배치가 좋다는 사용자 의견). */
+#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; align-items: stretch; }
+#market-temp .mt-summary-trend-row > .mt-card { margin: 0; min-width: 0; }
+@media (max-width: 760px) {
+  #market-temp .mt-summary-trend-row { grid-template-columns: 1fr; }
+}
+
 /* ---- 섹션 페이드인(순차 등장) ---- */
 #market-temp .mt-fade-in {
   animation: mtFadeIn 0.45s ease both;
@@ -590,7 +599,10 @@
 #market-temp .mt-industry-flow-stock { display:flex; align-items:center; justify-content:space-between; gap:12px; min-width:0; padding:6px 2px; border-top:1px solid #e5edf6; color:#1f2937; text-decoration:none; }
 #market-temp .mt-industry-flow-stock:hover { color:#2563eb; }
 #market-temp .mt-industry-flow-stock > span:first-child { display:flex; align-items:baseline; gap:7px; min-width:0; }
-#market-temp .mt-industry-flow-stock b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+/* 2026-09-13 사용자 지적("테마업종 폰트보다 클릭하면 종목명이 더 커"): 펼친 목록은 12px인
+   .mt-industry-flow-row 밖(형제)이라 페이지 본문 15px을 그대로 물려받았다(라이브 실측 12px vs 15px).
+   테마명과 같은 12px로 맞춘다. 색은 JS가 붙이는 is-up/is-down(아래 규칙)을 따른다. */
+#market-temp .mt-industry-flow-stock b { font-size:12px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 #market-temp .mt-industry-flow-stock small { color:#94a3b8; font-size:9px; white-space:nowrap; }
 #market-temp .mt-industry-flow-stock > span:last-child { display:inline-flex; flex:0 0 auto; align-items:baseline; gap:8px; white-space:nowrap; }
 #market-temp .mt-industry-flow-stock strong { font-size:11px; }
