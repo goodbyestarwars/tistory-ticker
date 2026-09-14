@@ -442,6 +442,19 @@
   }
 
   // WebSocket 틱마다 목록 전체를 다시 그리지 않고 해당 종목 행의 가격/등락률 텍스트만 갱신한다.
+  // 2026-09-14: 서버가 KIS 실시간 등록 자리(40)에 못 넣은 종목을 `coverage`로 알려준다. 그
+  // 종목은 서버가 REST 통합 시세로 약 15초마다 채워 보내므로 행에 "지연"을 표시한다.
+  function markDelayedMyRows(delayed) {
+    var mount = document.getElementById('homeMyList');
+    if (!mount) return;
+    var map = {};
+    (delayed || []).forEach(function (code) { map[code] = true; });
+    var rows = mount.querySelectorAll('.home-my-row[data-code]');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle('is-delayed', !!map[rows[i].getAttribute('data-code')]);
+    }
+  }
+
   function updateMyRow(code, quote) {
     var mount = document.getElementById('homeMyList');
     if (!mount) return;
@@ -513,6 +526,7 @@
         try {
           var quote = JSON.parse(event.data);
           if (quote.type === 'quote' && quote.code) updateMyRow(quote.code, quote);
+          else if (quote.type === 'coverage') markDelayedMyRows(quote.delayed);
         } catch (err) {}
       };
 

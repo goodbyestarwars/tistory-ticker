@@ -855,6 +855,17 @@
       + '</div>';
   }
 
+  // 2026-09-14: 서버가 KIS 실시간 등록 자리(40)에 못 넣은 종목을 `coverage`로 알려준다. 그
+  // 종목은 서버가 REST 통합 시세로 약 15초마다 채워 보내므로 카드에 "지연"을 표시한다.
+  function markDelayedCards_(container, delayed) {
+    var map = {};
+    (delayed || []).forEach(function (code) { map[code] = true; });
+    var cards = container.querySelectorAll('.wl-card[data-code]');
+    for (var i = 0; i < cards.length; i++) {
+      cards[i].classList.toggle('is-delayed', !!map[cards[i].getAttribute('data-code')]);
+    }
+  }
+
   function updateCard(container, code, quote) {
     publishQuote(code, quote);
     var card = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"]');
@@ -982,6 +993,7 @@
         try {
           var quote = JSON.parse(event.data);
           if (quote.type === 'quote' && quote.code) updateCard(container, quote.code, quote);
+          else if (quote.type === 'coverage') markDelayedCards_(container, quote.delayed);
         } catch (err) {}
       };
 

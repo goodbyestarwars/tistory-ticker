@@ -445,6 +445,10 @@ html.dark #watchlist .wl-msg {
   border-color: #5a3333 !important;
 }
 html.dark #watchlist .wl-empty { color: rgba(245, 239, 224, 0.5) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
+/* 2026-09-14: KIS 실시간 등록 자리에 못 들어가 REST 통합 시세(약 15초)로 갱신되는 종목. */
+#watchlist .wl-card.is-delayed [data-field="price"]::after { content: '지연'; margin-left: 4px; padding: 0 4px; border-radius: 3px; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; }
+html.dark #watchlist .wl-card.is-delayed [data-field="price"]::after { background: rgba(251,191,36,.18); color: #fcd34d; }
+
 html.dark #watchlist .wl-card {
   background: transparent !important;
   border: 0 !important;

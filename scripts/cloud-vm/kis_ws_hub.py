@@ -136,6 +136,9 @@ class KisWsHub:
         self._key_order = {}
         self._seq = 0
         self._registered = set()
+        # 다른 스레드(브라우저 중계)가 읽는 등록 키 사본. 세트를 통째로 바꿔 끼워 읽는 쪽이
+        # 허브 스레드의 변경 도중을 보지 않게 한다.
+        self._registered_view = frozenset()
         self._running = False
         self._thread = None
         self._ready = None
@@ -334,6 +337,7 @@ class KisWsHub:
                 with self._lock:
                     self._state['connected'] = False
                     self._state['registeredCount'] = 0
+                    self._registered_view = frozenset()
                 self._registered = set()
 
     async def _send_registration(self, ws, approval_key, tr_type, key):
@@ -369,6 +373,7 @@ class KisWsHub:
             self._registered.add(key)
         with self._lock:
             self._state['registeredCount'] = len(self._registered)
+            self._registered_view = frozenset(self._registered)
 
     async def _handle_frame(self, ws, raw):
         if isinstance(raw, bytes):
@@ -429,6 +434,11 @@ class KisWsHub:
                 pass
 
     # ---- 상태 ----
+
+    def registered_keys(self):
+        """지금 KIS 세션에 실제로 등록된 (tr_id, tr_key). 연결이 끊겨 있으면 비어 있다."""
+        with self._lock:
+            return self._registered_view
 
     def health(self):
         desired, dropped = self._desired()

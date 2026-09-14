@@ -861,7 +861,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function isUsRegularSessionOpen()", source)
         self.assertIn("function isMarketLive(market)", source)
         self.assertIn("최근 장마감 · ", source)
-        self.assertIn("국내시장 · 오전 08:00~오후 08:00", source)
+        # 2026-09-14 사용자 지적("지금도 구분이 안되어 있잖아?"): 고정 문구 대신 지금 세션
+        # (정규장·애프터마켓·NXT 거래 등)을 MarketHours.krCash()에서 받아 쓴다.
+        self.assertNotIn("return market === 'us' ? usSessionLabel() : '국내시장 · 오전 08:00~오후 08:00';", source)
+        self.assertIn("return '국내시장 · ' + (session ? session.label : '오전 08:00~오후 08:00');", source)
+        self.assertIn("return session ? !!(session.open || session.nxtOpen) : !isWeekendInKst();", source)
+        # 실시간 등록 자리에 못 들어간 종목("지연")을 네 화면이 모두 표시한다.
+        for path, handler in (
+            ("js/home-realtime-table.js", "applyCoverage(quote.delayed)"),
+            ("js/sector-dashboard-v4.js", "applyCardCoverage_(cardRealtime.container, quote.delayed)"),
+            ("js/watchlist.js", "markDelayedCards_(container, quote.delayed)"),
+            ("js/home-widgets.js", "markDelayedMyRows(quote.delayed)"),
+        ):
+            self.assertIn("quote.type === 'coverage'", self.read(path), path)
+            self.assertIn(handler, self.read(path), path)
         for token in (
             "['amount', '거래대금']",
             "['cap', '시가총액']",
