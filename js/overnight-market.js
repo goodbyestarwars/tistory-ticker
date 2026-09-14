@@ -370,7 +370,93 @@
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
-      + groups;
+      + groups
+      + buildBinanceShell();
+  }
+
+  // ---- 바이낸스 국내주식 토큰(참고 지표) ----
+  // 2026-09-15 작업지시서: 국내 증시가 닫힌 주말·야간에 SAMSUNGUSDT·SKHYNIXUSDT 무기한선물 가격을
+  // 월요일 개장 전 참고로 보여준다. 파생상품 가격이라 실제 주식 수급이 아니므로 "참고 지표"를 밝힌다.
+  // 원화 환산은 하지 않는다 - 토큰 1개가 주식 몇 주에 해당하는지 확인하지 않은 단위라서다.
+  var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';
+  var BINANCE_REFRESH_MS = 5 * 60 * 1000;
+  var binanceTimer = null;
+
+  function buildBinanceShell() {
+    return '<div class="om-category om-binance" id="omBinance" hidden>'
+      + '<div class="om-cat-head"><span class="om-cat-label">바이낸스 국내주식 토큰</span>'
+      + '<div class="om-cat-hint">참고 지표 · 무기한선물 가격(실제 주식 수급 아님)</div></div>'
+      + '<div class="om-grid" data-binance-grid></div>'
+      + '<div class="om-binance-note" data-binance-note></div>'
+      + '</div>';
+  }
+
+  function binanceSparkline(points, positive) {
+    if (!points || points.length < 2) return '';
+    var closes = points.map(function (p) { return Number(p[1]); }).filter(function (v) { return isFinite(v); });
+    if (closes.length < 2) return '';
+    var min = Math.min.apply(null, closes);
+    var max = Math.max.apply(null, closes);
+    var span = max - min || 1;
+    var w = 160, h = 40;
+    var coords = closes.map(function (v, i) {
+      var x = (i / (closes.length - 1)) * w;
+      var y = h - ((v - min) / span) * (h - 4) - 2;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    return '<svg class="om-bn-spark ' + (positive ? 'om-pos' : 'om-neg') + '" viewBox="0 0 ' + w + ' ' + h
+      + '" preserveAspectRatio="none" aria-hidden="true"><polyline points="' + coords + '" /></svg>';
+  }
+
+  function binanceCardHtml(item) {
+    var rate = Number(item.changeRate);
+    var tone = rate > 0 ? 'om-pos' : rate < 0 ? 'om-neg' : 'om-zero';
+    var arrow = rate > 0 ? '▲' : rate < 0 ? '▼' : '';
+    var funding = Number(item.fundingRate);
+    var meta = [];
+    if (isFinite(Number(item.markPrice)) && item.markPrice != null) meta.push('마크 ' + Number(item.markPrice).toFixed(2));
+    if (isFinite(funding) && item.fundingRate != null) meta.push('펀딩 ' + (funding * 100).toFixed(4) + '%');
+    if (item.market === 'spot') meta.push('현물');
+    return '<div class="om-card" data-binance-symbol="' + escapeHtml(item.symbol) + '">'
+      + '<div class="om-title">' + escapeHtml(item.label) + ' <small>' + escapeHtml(item.symbol) + '</small></div>'
+      + '<div class="om-body">'
+      + '<div class="om-price ' + tone + '">' + Number(item.price).toFixed(2) + ' USDT</div>'
+      + '<div class="om-change ' + tone + '">' + arrow + ' ' + (isFinite(rate) ? fmtSigned(rate, 2) + '%' : '-') + ' <small>24시간</small></div>'
+      + binanceSparkline(item.klines, rate >= 0)
+      + (meta.length ? '<div class="om-bn-meta">' + escapeHtml(meta.join(' · ')) + '</div>' : '')
+      + '</div></div>';
+  }
+
+  function renderBinance(container, payload) {
+    var box = container.querySelector('#omBinance');
+    if (!box) return;
+    var grid = box.querySelector('[data-binance-grid]');
+    var note = box.querySelector('[data-binance-note]');
+    var data = payload && payload.data ? payload.data : payload;
+    if (!data) { box.hidden = true; return; }
+    if (data.restricted) {
+      grid.innerHTML = '';
+      note.textContent = '서버 위치 제한으로 바이낸스 시세를 불러오지 못했습니다.';
+      box.hidden = false;
+      return;
+    }
+    var items = data.items || [];
+    if (!items.length) { box.hidden = true; return; }
+    grid.innerHTML = items.map(binanceCardHtml).join('');
+    var when = data.updatedAt ? new Date(data.updatedAt) : null;
+    note.textContent = (data.note || '') + (when && !isNaN(when) ? ' 갱신 ' + when.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '');
+    box.hidden = false;
+  }
+
+  function loadBinance(container) {
+    if (document.hidden || !('fetch' in global)) return;
+    var controller = 'AbortController' in global ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, 10000) : null;
+    fetch(BINANCE_API, controller ? { signal: controller.signal } : {})
+      .then(function (res) { return res.ok ? res.json() : null; })
+      .then(function (payload) { renderBinance(container, payload); })
+      .catch(function () { /* 참고 지표라 실패하면 섹션을 숨긴 채 둔다 */ })
+      .then(function () { if (timer) clearTimeout(timer); });
   }
 
   function buildCardBody(item) {
@@ -865,6 +951,9 @@
     refresh(container);
     connectIndicatorSocket();
     renderAiSummary(container);
+    loadBinance(container);
+    if (binanceTimer) clearInterval(binanceTimer);
+    binanceTimer = setInterval(function () { loadBinance(container); }, BINANCE_REFRESH_MS);
 
     // 장기평균 참고선 데이터는 페이지 진입 시 심볼별로 1회만 불러온다(AI 해설과 동일한 이유 -
     // 30초마다 다시 부를 필요 없는 장기 통계). 전부 도착하면 해당 카드들이 참고선 포함해서

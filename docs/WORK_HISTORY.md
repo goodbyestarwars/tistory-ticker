@@ -1,5 +1,29 @@
 # 9Pay 주요 작업이력
 
+**2026-09-15 바이낸스 국내주식 토큰 참고 시세(작업지시서)**
+
+목적: 국내 증시가 닫힌 주말·야간에 SAMSUNGUSDT·SKHYNIXUSDT 바이낸스 무기한선물 가격을 월요일 개장 전
+참고 지표로 노출. 실주문·자동매매는 범위 밖.
+
+확인(2026-09-15 로컬 실측): 선물 `exchangeInfo`에서 SAMSUNGUSDT·SKHYNIXUSDT 모두 status=TRADING,
+contractType=TRADIFI_PERPETUAL, underlyingType=KR_EQUITY(같은 계열 SAMSUNGEMUSDT·SKHYUSDT 등도 있으나
+지시서 대상 두 개만). ticker/24hr·premiumIndex·klines 200, 요청 가중치 1~3.
+
+변경:
+- `binance_client.py`: 조회 전용 래퍼. 429/418은 Retry-After(최대 60초) 후 재시도, 5xx·네트워크는 짧은 백오프,
+  HTTP 451(서버 위치 제한)은 `BinanceRestricted`, -1121은 `BinanceInvalidSymbol`.
+- `binance_flow.py`: 심볼 확인 하루 1번(선물 TRADING → 없으면 현물 확인 → 둘 다 없으면 조용히 건너뜀),
+  국내 장 닫힘 5분·장중 30분 주기로 24시간 시세+마크가격·펀딩비, 1시간 캔들 48개는 1시간마다.
+  별도 SQLite `binance_quotes.db`(symbol, ts, price, source) 14일 보관. 451이면 6시간마다만 재시도.
+- `GET /binance-kr-equity`(공개, 백그라운드 결과만 읽음).
+- 글로벌 시장지표 페이지(`js/overnight-market.js`)에 "바이낸스 국내주식 토큰 · 참고 지표" 섹션: USDT 가격,
+  24시간 등락, 1시간 종가 스파크라인, 마크가격·펀딩비. 원화 환산은 하지 않는다(토큰 1개당 주식 수 미확인).
+
+설계 결정(지시서 제안과 다름): 별도 `binance/` 패키지·주기 스크립트·`.binance_lock` 대신 `scripts/cloud-vm/`
+평면 모듈 + FastAPI 스레드 하나. 배포가 `scripts/cloud-vm/*.py`만 복사하고, e2-micro에서 파이썬 프로세스를
+하나 더 띄우는 것이 부담이라서다(전날 스캔 몰림 장애). 운영 VM이 미국(us-central1)이라 바이낸스가 451로
+막을 수 있다 - 그 경우 화면에 사유를 보이고 수집은 쉰다(한국 리전 서버 이전 후 해소 예상).
+
 **2026-09-15 핫픽스: #444 배포 후 `/health` 500**
 
 #444에서 `/health`에 배포 커밋을 붙이며 SHA 형식 검사에 `re.fullmatch`를 썼는데 `main.py`에 `import re`가
@@ -19,6 +43,19 @@ FastAPI 스레드별 누적 CPU 초(threading 이름으로 표시), 같은 VM의
 .py 파일 이름·RSS·누적 CPU 초·경과 초를 낸다. 명령줄 인자는 내보내지 않는다. 두 번 불러 차이를 보면
 그 사이 CPU를 쓴 수집기를 알 수 있다. 테스트 `test_load_probe.py`(가짜 /proc 트리, 괄호가 섞인 comm,
 인자 비노출).
+
+첫 실측(#445 배포 재시작 20초 뒤, 2026-09-14 17:49 UTC - 재시작 직후라 평상시 대표값은 아님): loadAvg 0.99,
+메모리 953.6MB 중 여유 457.4MB, 스왑 2,048MB(여유 2,003MB), FastAPI RSS 155.4MB·스레드 31개(누적 CPU는
+MainThread 1.9초, 수집기 각 0.4초 이하). 같은 시각 다른 파이썬 프로세스: 배포 직후 재스캔 `rescan_patterns.py`(74MB),
+`news_momentum_scan.py`(77MB), `latency_monitor.py`(21MB).
+
+3분 창 비교(17:49~17:52 UTC, 새벽 02:49 KST): FastAPI 프로세스 전체 CPU +2.2초/181초(코어 1개의 약 1%) -
+증시온도 +0.7초, 해외선물 +0.5초, 채권 +0.3초, 나머지 0.1초 이하. 반면 배포 직후 재스캔 `rescan_patterns.py`는
+100.2초/199초(약 50%), 뉴스 모멘텀 13.2초/199초(약 7%). 메모리 여유 454MB, 스왑 사용 45MB. 결론: 서버 안
+수집기는 부하가 거의 없고, 무거운 것은 스캔 배치이며 특히 VM 코드 배포마다 자동으로 도는 재스캔이다.
+후속(같은 날): `deploy_check.sh`의 배포 직후 재스캔을 검색 규칙 코드(`pattern_detect.py`·`rescan_patterns.py`·
+`strategy_scan.py`·`invest_signal.py`·`invest_opinion.py`·`daily_scan_cache.py`·`scan_forward.py`·`data/`)가 바뀐
+배포에서만 돌게 했다. 직전 배포 SHA를 모르면 예전처럼 돈다.
 
 **2026-09-15 서버 부하 절감(무료 VM 유지) + 배포 커밋 표시**
 
@@ -42,7 +79,7 @@ FastAPI 스레드별 누적 CPU 초(threading 이름으로 표시), 같은 VM의
   기록되고 성과는 "스캔일 다음 거래일부터" 세므로, 자정 이후 스캔은 금요일 결과를 토요일로 기록해
   T+5/10/20이 하루씩 밀린다. 00:00은 뉴스 모멘텀 배치 시작과도 겹치고, 옮겨도 총부하는 같다(#443으로
   이미 한 번에 하나·낮은 우선순위). 새벽 이동을 하려면 기록 날짜를 마지막 거래일로 바꾸는 수정이 먼저다.
-- 스왑 파일: 메모리 부족 시 멈춤 대신 느려지게 하지만 VM 설정을 영구히 바꾸고(디스크 91% 전례) 사용자 확인이 필요해 보류.
+- 스왑 파일 추가는 하지 않았다. 이후 `/health/load` 실측(17:49 UTC)으로 VM에 이미 스왑 2GB(여유 2,003MB)가 있음을 확인했다.
 - 검증: 전체 976 passed(fcntl 6개 모듈 제외), `test_server_load_reduction.py`(시계 구간·배선·/health·지연 모니터),
   `test_kis_ws_hub.py`(캐시 무효화).
 

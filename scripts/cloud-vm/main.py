@@ -55,6 +55,7 @@ import market_board
 import option_flow
 import order_book
 import public_data
+import binance_flow
 import kis_ws_hub
 import load_probe
 import market_clock
@@ -169,6 +170,13 @@ def _start_futures_collectors():
     # 2026-09-14: 국내 주요종목 "오늘 돈이 몰린 섹터"는 손으로 만든 섹터가 아니라 키움 테마
     # (ka90001/ka90002)로 계산한다. 3분 백그라운드 - 요청 경로에서 키움을 부르지 않는다.
     theme_flow.start_background(kiwoom_appkey, kiwoom_secretkey)
+
+    # 2026-09-15 작업지시서: 바이낸스 국내주식 토큰(SAMSUNGUSDT·SKHYNIXUSDT) 참고 시세.
+    # 국내 장이 닫힌 시간 5분·장중 30분 주기의 가벼운 스레드 하나(별도 프로세스 없음, binance_flow.py).
+    try:
+        binance_flow.start_background()
+    except Exception:
+        logging.getLogger('main').exception('바이낸스 참고 시세 수집 시작 실패')
 
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
@@ -2996,6 +3004,17 @@ def theme_flow_endpoint(request: Request):
             status_code=503,
             detail=cached.get('error') or '테마 흐름을 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
     return envelope(result)
+
+
+@app.get('/binance-kr-equity')
+def binance_kr_equity_endpoint(request: Request):
+    """바이낸스 국내주식 토큰 참고 시세(백그라운드 수집 결과만 읽음).
+
+    2026-09-15 작업지시서. 무기한선물(파생상품) 가격이라 실제 주식 수급이 아닌 참고 지표다.
+    서버 위치 제한(HTTP 451)이면 restricted=True와 사유를 그대로 돌려준다.
+    """
+    _check_rate_limit('binance_kr_equity', request, max_per_window=30)
+    return envelope(binance_flow.get_payload())
 
 
 @app.get('/kofia-market')

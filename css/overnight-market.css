@@ -234,6 +234,19 @@
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 참고선 색(om-benchmark 주황/6m 보라)은 차트 실선 색과
    맞춰야 하는 의미색이라 유지. */
+/* 2026-09-15 바이낸스 국내주식 토큰(참고 지표) - 기존 카드 스타일을 그대로 쓰고 부가 요소만 둔다. */
+#overnight-market .om-binance .om-title small { color: #94a3b8; font-size: 10px; font-weight: 500; }
+#overnight-market .om-binance .om-change small { color: #94a3b8; font-size: 10px; }
+#overnight-market .om-bn-spark { display: block; width: 100%; height: 40px; margin: 6px 0 4px; }
+#overnight-market .om-bn-spark polyline { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+#overnight-market .om-bn-spark.om-pos polyline { stroke: #d24f45; }
+#overnight-market .om-bn-spark.om-neg polyline { stroke: #1261c4; }
+#overnight-market .om-bn-meta { color: #64748b; font-size: 11px; }
+#overnight-market .om-binance-note { margin-top: 6px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+html.dark #overnight-market .om-bn-meta, html.dark #overnight-market .om-binance-note { color: rgba(245, 239, 224, 0.6); }
+html.dark #overnight-market .om-bn-spark.om-pos polyline { stroke: #ff8a83; }
+html.dark #overnight-market .om-bn-spark.om-neg polyline { stroke: #80b8ff; }
+
 html.dark #overnight-market .om-card {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.2) !important;

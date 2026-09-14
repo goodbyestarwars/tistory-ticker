@@ -235,6 +235,16 @@ run_search_scan_refresh_after_deploy() {
     echo "검색 스캔 갱신 건너뜀: 장중(평일 08:00~20:00 KST) - 20:00 이후 정기 스캔이 반영"
     return 0
   fi
+  # 2026-09-15 실측(/health/load): 배포마다 도는 재스캔 rescan_patterns.py가 코어 약 50%를 3분 넘게 썼고,
+  # 같은 창에서 FastAPI 수집기 전체는 약 1%였다. 검색 규칙 코드가 바뀐 배포에서만 다시 돈다.
+  # 직전 배포 SHA를 모르거나 이 체크아웃에 없으면 예전처럼 돈다.
+  local scan_rule_paths="scripts/cloud-vm/pattern_detect.py scripts/cloud-vm/rescan_patterns.py scripts/cloud-vm/strategy_scan.py scripts/cloud-vm/invest_signal.py scripts/cloud-vm/invest_opinion.py scripts/cloud-vm/daily_scan_cache.py scripts/cloud-vm/scan_forward.py data/"
+  # shellcheck disable=SC2086  # 공백으로 나눈 경로 목록이라 일부러 따옴표를 뺀다
+  if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
+      && git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $scan_rule_paths; then
+    echo "검색 스캔 갱신 건너뜀: 검색 규칙 코드 변경 없음"
+    return 0
+  fi
   (
     flock -n 210 || exit 0
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh started"
