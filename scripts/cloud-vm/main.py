@@ -951,14 +951,15 @@ _FLASH_MACRO_RULES = (
 def _economic_news_market():
     # WebSocket의 기본 시장은 시간대 기준이다. 사용자가 시장 탭을 선택하면
     # 프론트가 해당 시장 REST 결과를 사용하고, 다른 시장의 소켓 패킷은 무시한다.
-    # js/skin-main.js와 동일하게 미국 프리마켓(KST 17:00)부터 미국 뉴스를 기본 송신한다.
+    # js/skin-shell.js MarketHours.homeMarket()과 같은 시각에 미국 뉴스로 넘어간다.
+    # 2026-09-14: KRX 애프터마켓이 20:00까지 열려 전환을 미국 프리마켓(17:00)에서 21:00으로 늦췄다.
     now = datetime.now(timezone(timedelta(hours=9)))
     minutes = now.hour * 60 + now.minute
     if now.weekday() == 5 and minutes >= 9 * 60:
         return 'domestic'
     if now.weekday() == 6 or (now.weekday() == 0 and minutes < 9 * 60):
         return 'domestic'
-    return 'us' if minutes >= 17 * 60 or minutes < 9 * 60 else 'domestic'
+    return 'us' if minutes >= 21 * 60 or minutes < 9 * 60 else 'domestic'
 
 
 def _fetch_economic_news_snapshot(market):
