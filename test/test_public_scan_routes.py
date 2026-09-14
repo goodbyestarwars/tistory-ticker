@@ -131,6 +131,12 @@ class PublicScanRouteTests(unittest.TestCase):
         # 파일이 바뀌면 다시 만든다.
         with open(self._path, 'w', encoding='utf-8') as f:
             json.dump(dict(CACHE, universe=2901), f)
+        # 2026-09-15: 캐시 서명은 (st_mtime_ns, st_size)다. 2900→2901은 크기가 같고, Windows에서는 곧바로
+        # 다시 쓴 파일의 mtime이 같은 틱에 머물 수 있어 옛 응답이 나오며 이 테스트가 간헐적으로 실패했다
+        # (이번 변경 전 커밋에서도 3회 중 2회). 실제 스캔은 몇 분 간격으로 파일을 새로 쓰므로, 테스트에서만
+        # mtime을 확실히 앞으로 옮겨 "파일이 바뀌었다"를 재현한다.
+        stat = os.stat(self._path)
+        os.utime(self._path, ns=(stat.st_atime_ns, stat.st_mtime_ns + 2_000_000_000))
         main._daily_scan_cache_mem = {}
         rebuilt = json.loads(gzip.decompress(main.invest_signal_result(FakeRequest()).body).decode('utf-8'))
         self.assertEqual(rebuilt['data']['universe'], 2901)
