@@ -57,6 +57,7 @@ import order_book
 import public_data
 import kis_ws_hub
 import realtime_quotes
+import theme_flow
 import scan_forward
 import sector_cards
 import swing_model
@@ -162,6 +163,10 @@ def _start_futures_collectors():
             kis_ws_hub.start(kis_appkey, kis_appsecret)
         except Exception:
             logging.getLogger('main').exception('KIS 공유 WebSocket 허브 시작 실패')
+
+    # 2026-09-14: 국내 주요종목 "오늘 돈이 몰린 섹터"는 손으로 만든 섹터가 아니라 키움 테마
+    # (ka90001/ka90002)로 계산한다. 3분 백그라운드 - 요청 경로에서 키움을 부르지 않는다.
+    theme_flow.start_background(kiwoom_appkey, kiwoom_secretkey)
 
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
@@ -2927,6 +2932,26 @@ def industry_flow_endpoint(request: Request):
         'previousDate': result.get('industryFlowPreviousDate'),
         'previousRanks': result.get('industryFlowPreviousRanks'),
     })
+
+
+@app.get('/theme-flow')
+def theme_flow_endpoint(request: Request):
+    """국내 주요종목 "오늘 돈이 몰린 섹터" - 증권사(키움) 테마 기준.
+
+    2026-09-14 사용자 지적("광통신이 상한가 갔는데 하나도 없네, 증권사 섹터로 해"). 예전
+    `/industry-flow`는 data/sectors-v3.js(손으로 만든 37개 테마)만 묶어 거기 없는 테마는
+    나올 수 없었다. 등락률 상위 키움 테마 20개를 구성종목 거래대금(현재가×누적거래량 추정)
+    순으로 준다. 백그라운드가 3분마다 받아 둔 결과만 읽는다(theme_flow.py).
+    `/industry-flow`는 증시온도 "오늘 업종 TOP"이 계속 쓴다.
+    """
+    _check_rate_limit('theme_flow', request, max_per_window=30)
+    cached = theme_flow.get_cached()
+    result = cached.get('result')
+    if not result:
+        raise HTTPException(
+            status_code=503,
+            detail=cached.get('error') or '테마 흐름을 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
+    return envelope(result)
 
 
 @app.get('/kofia-market')
