@@ -246,6 +246,59 @@ class KisWsHubTests(unittest.TestCase):
         self.run_scenario(scenario)
 
 
+class RelayRegistrationTests(unittest.TestCase):
+    """브라우저 연결 하나가 허브에 어떤 키를 올리는지(등록 자리 40을 아껴 쓰는지)."""
+
+    def registrations_for(self, codes):
+        import realtime_quotes
+
+        captured = {}
+
+        class FakeSub:
+            queue = asyncio.Queue()
+
+            def close(self):
+                captured['closed'] = True
+
+        class FakeHub:
+            def subscribe(self, keys):
+                captured['keys'] = list(keys)
+                return FakeSub()
+
+        class StopRelay(Exception):
+            pass
+
+        class FakeBrowser:
+            async def send_json(self, payload):
+                raise StopRelay()
+
+        original_start = kis_ws_hub.start
+        original_env = {k: os.environ.get(k) for k in ('KIS_APPKEY', 'KIS_APPSECRET')}
+        kis_ws_hub.start = lambda appkey, appsecret: FakeHub()
+        os.environ['KIS_APPKEY'] = 'k'
+        os.environ['KIS_APPSECRET'] = 's'
+        try:
+            with self.assertRaises(StopRelay):
+                asyncio.run(realtime_quotes._relay_once_kis(FakeBrowser(), codes, []))
+        finally:
+            kis_ws_hub.start = original_start
+            for key, value in original_env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+        self.assertTrue(captured.get('closed'))
+        return [(tr_id, code) for tr_id, code, _priority in captured['keys']]
+
+    def test_single_code_order_book_gets_trades_and_orderbook(self):
+        self.assertEqual(self.registrations_for(['005930']),
+                         [('H0UNCNT0', '005930'), ('H0UNASP0', '005930')])
+
+    def test_multi_code_list_pages_register_trades_only(self):
+        keys = self.registrations_for(['005930', '000660', '035420'])
+        self.assertEqual(keys, [('H0UNCNT0', '005930'), ('H0UNCNT0', '000660'), ('H0UNCNT0', '035420')])
+
+
 class SingleKisSessionContractTests(unittest.TestCase):
     """KIS WebSocket을 직접 여는 코드는 허브 한 곳에만 있어야 한다."""
 

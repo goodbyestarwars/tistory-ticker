@@ -305,11 +305,16 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
         raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못했습니다.')
 
     registrations = []
+    # 호가(orderbook) 메시지를 쓰는 화면은 한 종목짜리 호가창(js/order-book.js)뿐이다. 종목판·
+    # 카드·관심종목처럼 여러 종목을 여는 연결까지 호가를 등록하면 KIS 세션 등록 자리(40)를
+    # 두 배로 먹어, 2026-09-14 라이브에서 국내 주요종목 한 페이지만으로 103건이 밀려났다.
+    include_orderbook = len(domestic_codes) == 1
     for code in domestic_codes:
-        # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 호가는 호가창 화면 말고는 REST 폴링이
-        # 있으므로 등록 자리가 모자라면 체결보다 먼저 빠지게 우선순위를 낮춘다.
+        # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 호가는 REST 폴링도 있으므로 등록 자리가
+        # 모자라면 체결보다 먼저 빠지게 우선순위를 낮춘다.
         registrations.append(('H0UNCNT0', code, kis_ws_hub.PRIORITY_QUOTES))
-        registrations.append(('H0UNASP0', code, kis_ws_hub.PRIORITY_ORDERBOOK))
+        if include_orderbook:
+            registrations.append(('H0UNASP0', code, kis_ws_hub.PRIORITY_ORDERBOOK))
     for key, tr_id in _kis_us_keys(us_symbols):
         registrations.append((tr_id, key, kis_ws_hub.PRIORITY_QUOTES))
     if not registrations:
