@@ -32,6 +32,9 @@ SESSION_INTERVAL_SEC = 15
 OFF_SESSION_INTERVAL_SEC = 600
 MAX_CODES_PER_CYCLE = 60
 WORKERS = 4
+# 서버 전체 초당 조회 상한. KIS REST 초당 한도는 종목판·수급 등 다른 작업과 같은 앱키로 나눠 쓴다.
+# 한 페이지가 250종목을 열어도 여기서 흘려보내며, 그만큼 한 바퀴가 길어진다(250종목이면 약 50초).
+MAX_REQUESTS_PER_SEC = 5
 _LOOP_SLEEP_SEC = 1.0
 
 _SIGN = {'1': 1, '2': 1, '3': 0, '4': -1, '5': -1}
@@ -82,9 +85,15 @@ def in_session(now_kst):
 
 class RestQuoteFallback:
     def __init__(self, fetch, clock=time.time, now_kst=lambda: datetime.now(KST),
-                 max_codes=MAX_CODES_PER_CYCLE, workers=WORKERS):
+                 max_codes=MAX_CODES_PER_CYCLE, workers=WORKERS,
+                 max_rps=MAX_REQUESTS_PER_SEC, sleep=time.sleep, monotonic=time.monotonic):
         self._fetch = fetch
         self._clock = clock
+        self._sleep = sleep
+        self._monotonic = monotonic
+        self._min_gap = (1.0 / max_rps) if max_rps and max_rps > 0 else 0.0
+        self._rate_lock = threading.Lock()
+        self._next_slot = 0.0
         self._now_kst = now_kst
         self.max_codes = max_codes
         self._workers = workers
@@ -127,7 +136,21 @@ class RestQuoteFallback:
             due.sort(key=lambda code: self._fetched_at.get(code, 0))
         return due[:self.max_codes]
 
+    def _wait_rate_slot(self):
+        """워커가 여럿이어도 서버 전체 조회 간격을 1/max_rps초 이상으로 벌린다."""
+        if self._min_gap <= 0:
+            return 0.0
+        with self._rate_lock:
+            now = self._monotonic()
+            slot = max(now, self._next_slot)
+            self._next_slot = slot + self._min_gap
+        wait = slot - now
+        if wait > 0:
+            self._sleep(wait)
+        return wait
+
     def _fetch_one(self, code):
+        self._wait_rate_slot()
         started = self._clock()
         try:
             event = quote_event(code, self._fetch(code), started)

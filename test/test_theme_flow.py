@@ -86,6 +86,18 @@ class ThemeFlowTests(unittest.TestCase):
         result = theme_flow.fetch_theme_flow('tok', call_tr=flaky, sleep=lambda s: None)
         self.assertEqual([r['industry'] for r in result['rows']], ['광통신'])
 
+    def test_integrated_market_suffix_is_stripped_from_codes(self):
+        """라이브 ka90002(stex_tp=3)는 `069540_AL`처럼 접미사를 붙여 준다 - 링크가 깨졌었다."""
+        groups = [{'thema_grp_cd': '9', 'thema_nm': '광통신', 'flu_rt': '+1.0'}]
+        stocks = {'9': [
+            {'stk_cd': '069540_AL', 'stk_nm': '빛과전자', 'cur_prc': '4320', 'flu_rt': '+11.63', 'acc_trde_qty': '100'},
+            {'stk_cd': '010170_NX', 'stk_nm': '대한광통신', 'cur_prc': '14230', 'flu_rt': '+0.57', 'acc_trde_qty': '10'},
+        ]}
+        row = theme_flow.build_theme_rows(groups, stocks)[0]
+        # codes는 거래대금 순서(빛과전자 4320×100 > 대한광통신 14230×10).
+        self.assertEqual(row['codes'], ['069540', '010170'])
+        self.assertEqual({s['code'] for s in row['stocks']}, {'069540', '010170'})
+
     def test_empty_listing_gives_no_rows(self):
         result = theme_flow.fetch_theme_flow(
             'tok', call_tr=lambda *a: {'thema_grp': []}, sleep=lambda s: None)

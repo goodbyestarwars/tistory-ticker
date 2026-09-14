@@ -57,7 +57,18 @@ class FallbackPollingTests(unittest.TestCase):
             self.calls.append(code)
             return {'stck_prpr': '1000', 'prdy_vrss': '10', 'prdy_vrss_sign': '2', 'prdy_ctrt': '1.01'}
         return rqf.RestQuoteFallback(fetch, clock=lambda: self.clock[0], now_kst=lambda: now_kst,
-                                     max_codes=max_codes)
+                                     max_codes=max_codes, max_rps=0)
+
+    def test_rate_limit_spaces_requests_across_workers(self):
+        waits = []
+        fixed_now = [50.0]
+        fb = rqf.RestQuoteFallback(lambda code: {'stck_prpr': '1'}, max_rps=5,
+                                   sleep=waits.append, monotonic=lambda: fixed_now[0],
+                                   now_kst=lambda: SESSION)
+        fb.want(['A', 'B', 'C'])
+        fb.poll_once()
+        # 같은 순간에 세 건이 몰려도 0.2초 간격 슬롯으로 나뉜다(첫 건은 기다리지 않는다).
+        self.assertEqual([round(w, 3) for w in waits], [0.2, 0.4])
 
     def test_only_wanted_codes_are_fetched_and_shared_across_viewers(self):
         fb = self.make()
@@ -138,7 +149,7 @@ class RelayCoverageTests(unittest.TestCase):
             def subscribe(self, keys):
                 return FakeSub()
 
-            def registered_keys(self):
+            def live_or_pending_keys(self):
                 return frozenset({('H0UNCNT0', '005930')})
 
             def health(self):
@@ -206,6 +217,107 @@ class RelayCoverageTests(unittest.TestCase):
         self.assertTrue(delayed_quotes[0]['delayed'])
         self.assertEqual(fallback.wanted, [{'000660'}])
         self.assertEqual(fallback.released, [{'000660'}])  # 연결이 끝나면 조회 요청을 거둔다
+
+
+class RelayBeyondRealtimeCapTests(unittest.TestCase):
+    """50종목을 넘게 여는 연결: 앞 50개만 실시간 등록, 나머지는 delayed로 REST 갱신."""
+
+    def test_codes_beyond_cap_are_delayed_not_dropped(self):
+        import asyncio
+        import kis_ws_hub
+        import realtime_quotes
+
+        codes = ['%06d' % i for i in range(1, 61)]
+        captured = {}
+
+        class FakeSub:
+            def __init__(self):
+                self.queue = asyncio.Queue()
+
+            def close(self):
+                pass
+
+        class FakeHub:
+            def subscribe(self, keys):
+                captured['keys'] = list(keys)
+                return FakeSub()
+
+            def live_or_pending_keys(self):
+                return frozenset((tr_id, code) for tr_id, code, _p in captured['keys'])
+
+            def health(self):
+                return {'connected': True, 'lastTickAgeSec': 0}
+
+        class FakeFallback:
+            def __init__(self):
+                self.wanted = set()
+
+            def want(self, items):
+                self.wanted |= set(items)
+
+            def release(self, items):
+                self.wanted -= set(items)
+
+            def latest(self, code):
+                return None
+
+        class FakeBrowser:
+            def __init__(self):
+                self.sent = []
+
+            async def send_json(self, payload):
+                self.sent.append(payload)
+
+        fallback = FakeFallback()
+        browser = FakeBrowser()
+        patches = {
+            (kis_ws_hub, 'start'): lambda a, b: FakeHub(),
+            (rqf, 'start'): lambda a, b: fallback,
+            (realtime_quotes, '_COVERAGE_GRACE_SEC'): 0,
+            (realtime_quotes, '_RELAY_TICK_SEC'): 0.05,
+        }
+        originals = {key: getattr(key[0], key[1]) for key in patches}
+        env = {k: os.environ.get(k) for k in ('KIS_APPKEY', 'KIS_APPSECRET')}
+        os.environ['KIS_APPKEY'] = 'k'
+        os.environ['KIS_APPSECRET'] = 's'
+        for (module, name), value in patches.items():
+            setattr(module, name, value)
+        try:
+            normalized = realtime_quotes.normalize_codes(codes, limit=realtime_quotes.MAX_REQUEST_CODES)
+            self.assertEqual(len(normalized), 60)
+
+            async def run():
+                task = asyncio.ensure_future(realtime_quotes._relay_once_kis(browser, normalized, []))
+                await asyncio.sleep(0.3)
+                seen_wanted = set(fallback.wanted)
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+                return seen_wanted
+            wanted_while_open = asyncio.run(run())
+        finally:
+            for (module, name), value in originals.items():
+                setattr(module, name, value)
+            for key, value in env.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value
+
+        self.assertEqual(len(captured['keys']), 50)
+        self.assertEqual({tr_id for tr_id, _c, _p in captured['keys']}, {'H0UNCNT0'})
+        coverage = [m for m in browser.sent if m['type'] == 'coverage']
+        self.assertEqual(len(coverage), 1)
+        self.assertEqual(coverage[0]['live'], codes[:50])
+        self.assertEqual(coverage[0]['delayed'], codes[50:])
+        self.assertEqual(wanted_while_open, set(codes[50:]))
+        self.assertEqual(fallback.wanted, set())   # 연결이 끝나면 조회 요청을 거둔다
+
+    def test_default_normalize_limit_is_unchanged(self):
+        import realtime_quotes
+        self.assertEqual(len(realtime_quotes.normalize_codes(['%06d' % i for i in range(1, 80)])), 50)
 
 
 if __name__ == '__main__':

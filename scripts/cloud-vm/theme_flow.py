@@ -56,6 +56,15 @@ def _number(value):
         return None
 
 
+def _stock_code(value):
+    """키움 통합 조회(stex_tp=3)의 종목코드는 `069540_AL`처럼 거래소 접미사가 붙어 온다
+    (2026-09-14 라이브 확인). 화면 링크·실시간 구독은 6자리 코드를 쓰므로 떼어낸다."""
+    text = str(value or '').strip().upper()
+    if not text:
+        return ''
+    return text.split('_', 1)[0]
+
+
 def build_theme_rows(groups, constituents_by_code, top_n=CANDIDATE_THEMES, stocks_per=STOCKS_PER_THEME):
     """ka90001 목록과 ka90002 구성종목(테마코드별)으로 화면용 행을 만든다(순수 함수)."""
     rows = []
@@ -67,7 +76,7 @@ def build_theme_rows(groups, constituents_by_code, top_n=CANDIDATE_THEMES, stock
         stocks = []
         upper_limit = 0
         for item in constituents_by_code.get(theme_code) or []:
-            code = str(item.get('stk_cd') or '').strip()
+            code = _stock_code(item.get('stk_cd'))
             if not code:
                 continue
             price = abs(_number(item.get('cur_prc')) or 0)

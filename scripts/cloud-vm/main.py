@@ -1126,7 +1126,9 @@ async def realtime_quote_socket(websocket: WebSocket):
         return
 
     raw_codes = (websocket.query_params.get('codes') or '').split(',')
-    domestic_codes = realtime_quotes.normalize_codes(raw_codes)
+    # 2026-09-14: 50종목 넘게 여는 화면(국내 주요종목 카드 250종목)도 받는다. 실시간 등록은
+    # 앞 50종목까지만 하고 나머지는 REST 통합 시세 폴백으로 "지연" 갱신한다(realtime_quotes).
+    domestic_codes = realtime_quotes.normalize_codes(raw_codes, limit=realtime_quotes.MAX_REQUEST_CODES)
     us_codes = []
     seen_us = set()
     for raw_code in raw_codes:
