@@ -1065,7 +1065,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("# WebSocket의 기본 시장은 시간대 기준이다.", vm)
         self.assertIn("def _economic_news_market():", vm)
         # 2026-09-14: 홈과 같은 21:00에 미국 뉴스로 넘어간다(KRX 애프터마켓 ~20:00).
-        self.assertIn("minutes >= 21 * 60 or minutes < 9 * 60", vm)
+        # 2026-09-15: 국내 복귀는 홈과 같은 08:00(NXT 프리마켓).
+        self.assertIn("minutes >= 21 * 60 or minutes < 8 * 60", vm)
 
     def test_home_economic_news_has_keyless_browser_translation_fallback(self):
         news = self.read("js/home-economic-news.js")
@@ -1092,7 +1093,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeMarket(date) {", shell)
         # 2026-09-14 사용자 결정: 홈의 미국 전환은 프리마켓이 아니라 21:00 KST.
         self.assertIn("var HOME_US_SWITCH_KST_MINUTES = M(21);", shell)
-        self.assertIn("k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < M(9)", shell)
+        # 2026-09-15 사용자 지적: 국내 복귀는 09:00이 아니라 NXT 프리마켓 08:00.
+        self.assertIn("var HOME_DOMESTIC_START_KST_MINUTES = M(8);", shell)
+        self.assertIn("k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < HOME_DOMESTIC_START_KST_MINUTES", shell)
+        self.assertIn("var SWITCH_HOURS = [8, 21];", main)
         for source in (main, board, news, widgets):
             self.assertIn("MarketHours", source)
             self.assertIn("homeMarket()", source)
