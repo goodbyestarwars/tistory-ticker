@@ -79,6 +79,7 @@ CHART_SYMBOLS = {
 }
 
 _REALTIME_POLL_SEC = 30
+_OFF_HOURS_POLL_SEC = 120
 _HISTORY_REFRESH_INTERVAL = 6 * 3600
 
 
@@ -260,7 +261,9 @@ def refresh_minute_all():
 def _poll_loop(use_kis_realtime=False):
     last_history_refresh = 0
     last_minute_refresh = 0
+    import market_clock
     while True:
+        kr_active = market_clock.kr_market_active()
         try:
             # KIS WebSocket가 정상 구성된 경우 주간선물 현재가·호가는 KIS가
             # 단일 실시간 소스가 된다. KOSPI/KOSDAQ/환율은 기존 Naver 수집을
@@ -292,13 +295,15 @@ def _poll_loop(use_kis_realtime=False):
             except Exception:
                 logger.exception('refresh_history_all failed')
             last_history_refresh = now
-        if now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
+        # 주간선물 분봉은 장중에만 새로 생긴다.
+        if kr_active and now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
             try:
                 refresh_minute_all()
             except Exception:
                 logger.exception('refresh_minute_all failed')
             last_minute_refresh = now
-        time.sleep(_REALTIME_POLL_SEC)
+        # 2026-09-15 부하 절감: 국내 장이 닫힌 시간에는 2분마다만(원/달러는 밤에도 움직여 15분까지 늦추지 않는다).
+        time.sleep(_REALTIME_POLL_SEC if kr_active else _OFF_HOURS_POLL_SEC)
 
 
 def start_background():

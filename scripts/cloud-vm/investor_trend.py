@@ -404,7 +404,9 @@ def _poll_loop(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_s
                               market_state[market_key])
             except Exception:
                 logger.exception('investor_trend[%s] poll tick failed', market_cfg['db'])
-        time.sleep(_RECENT_POLL_SEC)
+        # 2026-09-15 부하 절감: 국내 장이 닫힌 시간에는 "오늘" 행이 바뀌지 않으므로 15분마다만.
+        import market_clock
+        time.sleep(market_clock.sleep_seconds(market_clock.kr_market_active(), _RECENT_POLL_SEC))
 
 
 def start_background(kis_appkey=None, kis_appsecret=None, kiwoom_appkey=None, kiwoom_secretkey=None):

@@ -139,6 +139,10 @@ class KisWsHub:
         # 다른 스레드(브라우저 중계)가 읽는 등록 키 사본. 세트를 통째로 바꿔 끼워 읽는 쪽이
         # 허브 스레드의 변경 도중을 보지 않게 한다.
         self._registered_view = frozenset()
+        # live_or_pending_keys() 캐시 무효화용 버전(구독·등록이 바뀔 때만 다시 계산).
+        self._subs_version = 0
+        self._registered_version = 0
+        self._live_cache = None
         self._running = False
         self._thread = None
         self._ready = None
@@ -169,6 +173,7 @@ class KisWsHub:
             self._seq += 1
             sub = Subscription(self, self._seq, normalized, loop, maxsize)
             self._subs[sub.id] = sub
+            self._subs_version += 1
             for key in normalized:
                 self._key_order.setdefault(key, self._seq)
         self._poke()
@@ -177,6 +182,7 @@ class KisWsHub:
     def _remove(self, sub_id):
         with self._lock:
             self._subs.pop(sub_id, None)
+            self._subs_version += 1
             alive = set()
             for sub in self._subs.values():
                 alive.update(sub.keys)
@@ -338,6 +344,7 @@ class KisWsHub:
                     self._state['connected'] = False
                     self._state['registeredCount'] = 0
                     self._registered_view = frozenset()
+                    self._registered_version += 1
                 self._registered = set()
 
     async def _send_registration(self, ws, approval_key, tr_type, key):
@@ -374,6 +381,7 @@ class KisWsHub:
         with self._lock:
             self._state['registeredCount'] = len(self._registered)
             self._registered_view = frozenset(self._registered)
+            self._registered_version += 1
 
     async def _handle_frame(self, ws, raw):
         if isinstance(raw, bytes):
@@ -447,11 +455,23 @@ class KisWsHub:
         '지연'으로 잡혀 REST 조회가 50건 나갔다(5.8초 시점 live 0 → 10.8초 live 37). 등록 차례를
         기다리는 키는 지연으로 보지 않는다. 연결이 끊겨 있으면 아무것도 실시간이 아니다.
         """
-        desired, _dropped = self._desired()
+        # 2026-09-15 부하 절감: 브라우저 연결마다 1초에 한 번씩 부르는데, 매번 전체 구독 키를
+        # 정렬하면 연결 수 × 키 수만큼 CPU를 쓴다. 구독·등록·연결 상태가 바뀔 때만 다시 계산한다.
         with self._lock:
-            if not self._state['connected']:
-                return frozenset()
-            return frozenset(desired) | self._registered_view
+            connected = bool(self._state['connected'])
+            token = (self._subs_version, self._registered_version, connected)
+            cached = self._live_cache
+            if cached is not None and cached[0] == token:
+                return cached[1]
+        if not connected:
+            result = frozenset()
+        else:
+            desired, _dropped = self._desired()
+            with self._lock:
+                result = frozenset(desired) | self._registered_view
+        with self._lock:
+            self._live_cache = (token, result)
+        return result
 
     def health(self):
         desired, dropped = self._desired()

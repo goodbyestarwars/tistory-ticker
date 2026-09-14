@@ -341,5 +341,9 @@ run_off_hours_maintenance_if_due || true
 # 던지고 기다리지 않는다 - latency_monitor.py 내부에서 각 호출을 개별 예외 처리하고 결과를
 # 파일에 추가만 하므로, 이 회차가 안 끝난 채 다음 5분 회차가 겹쳐도(위 flock과 무관하게 이
 # 백그라운드 프로세스는 별도) 로그 줄이 뒤섞이는 정도이지 크래시하지 않는다.
-"$PYTHON" "$APP_DIR/latency_monitor.py" 200>&- >/dev/null 2>&1 &
-disown
+# 2026-09-15 부하 절감: 무거운 엔드포인트(외국인 수급·뉴스 등 7개)를 5분마다 부르던 것을 15분마다로
+# 줄인다(e2-micro 부하). 이 스크립트는 5분 주기라 매시 00·15·30·45분이 들어간 회차에서만 잰다.
+if [ $((10#$(date -u +%M) % 15)) -lt 5 ]; then
+  "$PYTHON" "$APP_DIR/latency_monitor.py" 200>&- >/dev/null 2>&1 &
+  disown
+fi

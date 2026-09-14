@@ -253,7 +253,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 | Method | Endpoint | 인증 | 캐시/갱신 | 비고 |
 |---|---|---|---|---|
-| GET | `/health` | 불필요 | - | 헬스체크, `{"status":"ok"}` |
+| GET | `/health` | 불필요 | - | 헬스체크, `{"status":"ok"}` + 배포 확인용 `deployedCommit`(deploy_check.sh가 처리한 master SHA)·`deployRecordedAt`·`processStartedAt`(2026-09-15) |
 | GET | `/futures/avg` | 불필요 | 없음(즉시계산) | 쿼리 `symbol`(필수) · `days`(1~1000, 기본365) - 지정 심볼의 장기평균/최고/최저 |
 | GET | `/naver-news` | **필요** | 없음 | 쿼리 `query`(필수, 1~100자) - 네이버 뉴스검색 프록시, 호출마다 네이버 API 쿼터 소모 |
 | GET | `/investor-flow-batch` | **필요** | 하루 1회(`batch_scan.py`) | 섹터 풀(238종목) 공매도/대차/연기금 배치 캐시 |
