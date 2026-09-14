@@ -51,6 +51,7 @@ class FakeKis:
     def __init__(self):
         self.connections = 0
         self.registrations = []
+        self.unregistrations = []
         self.pingpong_echoes = 0
         self.clients = []
 
@@ -66,7 +67,13 @@ class FakeKis:
                     self.pingpong_echoes += 1
                     continue
                 body = (data.get('body') or {}).get('input') or {}
-                regs.append((body.get('tr_id'), body.get('tr_key')))
+                key = (body.get('tr_id'), body.get('tr_key'))
+                if (data.get('header') or {}).get('tr_type') == '2':
+                    self.unregistrations.append(key)
+                    if key in regs:
+                        regs.remove(key)
+                else:
+                    regs.append(key)
         except Exception:
             pass
         finally:
@@ -90,8 +97,7 @@ class KisWsHubTests(unittest.TestCase):
             port = _free_port()
             async with serve(fake.handler, '127.0.0.1', port):
                 kwargs = dict(url='ws://127.0.0.1:%d' % port, approval_key_fn=lambda: 'test-key',
-                              watchdog_sec=30, reconnect_min_sec=0.1, reconnect_max_sec=0.5,
-                              rebuild_min_interval_sec=0)
+                              watchdog_sec=30, reconnect_min_sec=0.1, reconnect_max_sec=0.5)
                 kwargs.update(hub_kwargs)
                 hub = kis_ws_hub.KisWsHub('app', 'secret', **kwargs)
                 hub.start()
@@ -166,25 +172,44 @@ class KisWsHubTests(unittest.TestCase):
             self.assertTrue(await _wait_until(lambda: fake.registrations and fake.registrations[-1]))
             hub.subscribe([('H0UNCNT0', '005930')])
             hub.subscribe([('H0MFCNT0', 'A01609', kis_ws_hub.PRIORITY_FUTURES)])
-            # 옵션이 두 자리 중 하나를 쥐고 있으면 세션을 다시 맺어 선물·종목만 올린다.
+            # 옵션이 두 자리 중 하나를 쥐고 있으면 옵션만 해제하고 선물·종목을 올린다(같은 세션).
             self.assertTrue(await _wait_until(
                 lambda: set(fake.registrations[-1]) == {('H0MFCNT0', 'A01609'), ('H0UNCNT0', '005930')}))
+            self.assertEqual(fake.connections, 1)
+            self.assertEqual(fake.unregistrations, [('H0IOCNT0', '201W09250')])
             health = hub.health()
             self.assertEqual(health['droppedCount'], 1)
             self.assertEqual(health['droppedRegistrations'][0]['trId'], 'H0IOCNT0')
             self.assertFalse(options.closed)
-        self.run_scenario(scenario, max_registrations=2)
+        self.run_scenario(scenario, max_registrations=2, options_budget=2)
 
-    def test_closed_subscription_frees_its_slot_through_rebuild(self):
+    def test_closed_subscription_frees_its_slot_without_reconnect(self):
+        """새 페이지의 첫 체결이 세션 재구성을 기다리면 안 된다(라이브 16초 지연)."""
         async def scenario(fake, hub):
             first = hub.subscribe([('H0UNCNT0', '005930')])
             self.assertTrue(await _wait_until(lambda: fake.registrations and fake.registrations[-1]))
             first.close()
+            started = time.time()
             hub.subscribe([('H0UNCNT0', '000660')])
             self.assertTrue(await _wait_until(
-                lambda: fake.registrations[-1] == [('H0UNCNT0', '000660')]))
-            self.assertGreaterEqual(hub.health()['rebuilds'], 1)
+                lambda: fake.registrations[-1] == [('H0UNCNT0', '000660')], timeout=2))
+            self.assertLess(time.time() - started, 1.5)
+            self.assertEqual(fake.connections, 1)
+            self.assertEqual(fake.unregistrations, [('H0UNCNT0', '005930')])
+            self.assertEqual(hub.health()['unsubscribes'], 1)
         self.run_scenario(scenario, max_registrations=1)
+
+    def test_options_use_at_most_their_budget(self):
+        async def scenario(fake, hub):
+            hub.subscribe([('H0IOCNT0', '201W0925%d' % i, kis_ws_hub.PRIORITY_OPTIONS) for i in range(6)])
+            hub.subscribe([('H0UNCNT0', '005930')])
+            self.assertTrue(await _wait_until(lambda: fake.registrations and len(fake.registrations[-1]) == 4))
+            await asyncio.sleep(0.2)
+            regs = fake.registrations[-1]
+            self.assertEqual(sum(1 for key in regs if key[0] == 'H0IOCNT0'), 3)
+            self.assertIn(('H0UNCNT0', '005930'), regs)
+            self.assertEqual(hub.health()['droppedCount'], 3)
+        self.run_scenario(scenario, max_registrations=10, options_budget=3)
 
     def test_resubscribing_same_keys_with_free_slots_keeps_the_session(self):
         """옵션 수집기는 5분마다 같은 계약을 닫고 다시 구독한다 - 그때마다 세션을 갈아엎으면
@@ -200,20 +225,9 @@ class KisWsHubTests(unittest.TestCase):
             await asyncio.sleep(0.3)
             self.assertEqual(fake.connections, 1)
             self.assertEqual(len(fake.registrations[0]), 13)
-            self.assertEqual(hub.health()['rebuilds'], 0)
+            self.assertEqual(fake.unregistrations, [])
+            self.assertEqual(hub.health()['unsubscribes'], 0)
         self.run_scenario(scenario, max_registrations=40)
-
-    def test_rebuild_is_rate_limited(self):
-        async def scenario(fake, hub):
-            first = hub.subscribe([('H0UNCNT0', '005930')])
-            self.assertTrue(await _wait_until(lambda: fake.registrations and fake.registrations[-1]))
-            first.close()
-            hub.subscribe([('H0UNCNT0', '000660')])
-            await asyncio.sleep(0.4)
-            self.assertEqual(fake.connections, 1)  # 간격(1초)이 차기 전엔 재구성하지 않는다
-            self.assertTrue(await _wait_until(
-                lambda: fake.registrations[-1] == [('H0UNCNT0', '000660')], timeout=5))
-        self.run_scenario(scenario, max_registrations=1, rebuild_min_interval_sec=1)
 
     def test_watchdog_reconnects_when_upstream_goes_silent(self):
         async def scenario(fake, hub):
