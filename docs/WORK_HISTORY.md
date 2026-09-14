@@ -1,5 +1,18 @@
 # 9Pay 주요 작업이력
 
+**2026-09-15 차트검색 "거래량 돌파(10분)" 스캔이 9/4 추가 이후 한 번도 저장되지 않던 문제**
+
+증상: 운영 `/pattern-scan`의 `volumeBreakout`이 0건, `volumeBreakoutScannedAt`이 null. 저장 경로(다른 스캐너는
+전부 잠금 병합)·판정 로직(테스트 16건)은 정상이었다.
+
+원인(VM `journalctl -u kiwoom-volumebreakout` 실측): 타이머는 평일 09:10에 떴지만 매번 1초 만에 종료.
+systemd 유닛에는 키 환경변수가 없는데 `volume_breakout_scan.py`만 `.env`를 읽지 않아(daily_scan 등은 읽음)
+KIS 순위를 건너뛰었고, 키움 폴백은 `kiwoom_client.get_token()`을 appkey/secretkey 없이 불러 `TypeError`.
+
+변경: `main()` 첫 줄에서 `.env` 로드(기존 환경변수는 덮어쓰지 않음), 키움 폴백에 `KIWOOM_APPKEY`/`KIWOOM_SECRETKEY`
+전달, 두 키가 모두 없으면 원인이 보이는 오류 메시지. 스캔 시각·후보 방식·부하는 그대로(순위 API 몇 회 + DB 조회,
+수 초). 테스트 `VolumeBreakoutKeyLoadingTests` 5건 추가. 첫 실제 확인은 다음 평일 09:10 실행 뒤 `/pattern-scan`.
+
 **2026-09-15 메인페이지 VI·사이드카 배지(작업지시서)**
 
 목적: 코스피/코스닥 사이드카와 개별종목 VI 발동을 메인페이지 "국내 시장" 카드에서 바로 인지.

@@ -201,3 +201,81 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
         # Persistent=true면 VM이 꺼져 있다 켜질 때 지난 회차를 몰아서 실행한다 -
         # 장중 스냅샷은 그 시각에 찍어야 의미가 있으므로 뒤늦게 돌면 안 된다.
         self.assertIn('Persistent=false', setup)
+
+
+class VolumeBreakoutKeyLoadingTests(unittest.TestCase):
+    """2026-09-15 운영 로그로 확인한 장애: 9/4 추가 이후 매일 09:10에 1초 만에 죽었다.
+
+    systemd 유닛에는 키 환경변수가 없는데 이 스크립트가 .env를 안 읽어서 KIS 순위를 건너뛰고,
+    키움 폴백은 get_token()을 인자 없이 불러 TypeError로 끝났다. 탭은 계속 비어 있었다.
+    """
+
+    KEYS = ('KIS_APPKEY', 'KIS_APPSECRET', 'KIWOOM_APPKEY', 'KIWOOM_SECRETKEY')
+
+    def setUp(self):
+        import tempfile
+        self._env = {k: os.environ.get(k) for k in self.KEYS}
+        for k in self.KEYS:
+            os.environ.pop(k, None)
+        self._file = vbs.__file__
+        self._tmp = tempfile.mkdtemp()
+        self._orig = (vbs.market_board.load_wics_map, vbs.market_board.fetch_domestic,
+                      vbs.market_board.fetch_domestic_kis, sys.modules.get('kiwoom_client'))
+        vbs.market_board.load_wics_map = lambda: {}
+
+    def tearDown(self):
+        for k, v in self._env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        vbs.__file__ = self._file
+        (vbs.market_board.load_wics_map, vbs.market_board.fetch_domestic,
+         vbs.market_board.fetch_domestic_kis, kiwoom) = self._orig
+        if kiwoom is None:
+            sys.modules.pop('kiwoom_client', None)
+        else:
+            sys.modules['kiwoom_client'] = kiwoom
+
+    def test_main_loads_dotenv_before_fetching_the_board(self):
+        with open(self._file, encoding='utf-8') as f:
+            source = f.read()
+        body = source[source.index('def main():'):]
+        self.assertLess(body.index('load_dotenv()'), body.index('board = load_board()'))
+
+    def test_load_dotenv_reads_keys_without_overriding_existing_env(self):
+        with open(os.path.join(self._tmp, '.env'), 'w', encoding='utf-8') as f:
+            f.write('# comment\nKIS_APPKEY="from-file"\nKIWOOM_APPKEY=from-file\n')
+        os.environ['KIWOOM_APPKEY'] = 'already-set'
+        vbs.__file__ = os.path.join(self._tmp, 'volume_breakout_scan.py')
+        vbs.load_dotenv()
+        self.assertEqual(os.environ.get('KIS_APPKEY'), 'from-file')
+        self.assertEqual(os.environ.get('KIWOOM_APPKEY'), 'already-set')
+
+    def test_kiwoom_fallback_passes_its_keys_to_get_token(self):
+        import types
+        calls = []
+        sys.modules['kiwoom_client'] = types.SimpleNamespace(
+            get_token=lambda appkey, secretkey: calls.append((appkey, secretkey)) or 'tok')
+        vbs.market_board.fetch_domestic = lambda token, limit=20, wics_map=None: {'token': token}
+        os.environ['KIWOOM_APPKEY'] = 'kw-key'
+        os.environ['KIWOOM_SECRETKEY'] = 'kw-secret'
+        self.assertEqual(vbs.load_board(), {'token': 'tok'})
+        self.assertEqual(calls, [('kw-key', 'kw-secret')])
+
+    def test_kis_failure_falls_back_to_kiwoom(self):
+        import types
+        sys.modules['kiwoom_client'] = types.SimpleNamespace(get_token=lambda appkey, secretkey: 'tok')
+
+        def kis_down(*args, **kwargs):
+            raise RuntimeError('KIS down')
+        vbs.market_board.fetch_domestic_kis = kis_down
+        vbs.market_board.fetch_domestic = lambda token, limit=20, wics_map=None: {'via': 'kiwoom'}
+        for k, v in zip(self.KEYS, ('a', 'b', 'c', 'd')):
+            os.environ[k] = v
+        self.assertEqual(vbs.load_board(), {'via': 'kiwoom'})
+
+    def test_missing_every_key_fails_with_a_clear_message(self):
+        with self.assertRaises(RuntimeError) as ctx:
+            vbs.load_board()
+        self.assertIn('.env', str(ctx.exception))

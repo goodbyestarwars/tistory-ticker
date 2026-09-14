@@ -61,6 +61,25 @@ def log(msg):
     print('[volume_breakout_scan] ' + msg, flush=True)
 
 
+def load_dotenv():
+    """같은 폴더 .env를 환경변수로 올린다(daily_scan.load_dotenv와 같은 형식).
+
+    2026-09-15 운영 로그로 확인: systemd 유닛에는 키가 없어서, 이걸 안 부르면 KIS 키가
+    비어 순위 조회를 건너뛰고 키움 폴백까지 실패해 9/4 추가 이후 한 번도 저장되지 않았다.
+    이미 설정된 환경변수는 덮어쓰지 않는다.
+    """
+    env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.env')
+    if not os.path.exists(env_path):
+        return
+    with open(env_path, 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith('#') or '=' not in line:
+                continue
+            key, _, value = line.partition('=')
+            os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
 def today_kst():
     return datetime.now(KST).strftime('%Y-%m-%d')
 
@@ -179,11 +198,16 @@ def load_board():
             log('KIS 순위 실패(%s) - 키움으로 폴백' % type(exc).__name__)
     # main.py의 종목판과 같은 폴백 순서를 따른다.
     import kiwoom_client
-    token = kiwoom_client.get_token()
+    kiwoom_appkey = os.environ.get('KIWOOM_APPKEY', '').strip()
+    kiwoom_secretkey = os.environ.get('KIWOOM_SECRETKEY', '').strip()
+    if not kiwoom_appkey or not kiwoom_secretkey:
+        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET, KIWOOM_APPKEY/KIWOOM_SECRETKEY 모두 없음 - .env 확인')
+    token = kiwoom_client.get_token(kiwoom_appkey, kiwoom_secretkey)
     return market_board.fetch_domestic(token, limit=RANK_LIMIT, wics_map=wics_map)
 
 
 def main():
+    load_dotenv()
     scanned_at = datetime.now(timezone.utc).isoformat()
     board = load_board()
     etf_codes = load_etf_codes()
