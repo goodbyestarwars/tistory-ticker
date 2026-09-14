@@ -1198,7 +1198,8 @@ document.documentElement.classList.add('skin-ready');
     // 시각 3분 전부터만 뜨는 라인아트 링 배지. 위치를 정확히 어디에 둬야 할지 몰라
     // 화면 좌하단 고정으로 두었다(style.css .home-switch-countdown 주석 참고).
     (function setupHomeSwitchCountdown() {
-      var SWITCH_HOURS = [9, 17]; // KST, homeMarketSession()과 동일 기준
+      // KST, MarketHours.homeMarket()과 동일 기준(국내 08:00·미국 21:00). 2026-09-15: 옛 9/17 기준이 남아 있었다.
+      var SWITCH_HOURS = [8, 21];
       var WARN_SECONDS = 180; // 3분 전부터 노출
       var RING_R = 16;
       var RING_C = 2 * Math.PI * RING_R;
@@ -1221,7 +1222,7 @@ document.documentElement.classList.add('skin-ready');
         timeEl = el.querySelector('.hsc-time');
       }
 
-      // 다음 전환(09:00 또는 17:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
+      // 다음 전환(08:00 또는 21:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
       function nextSwitch(kstNowSec) {
         var best = null;
         SWITCH_HOURS.forEach(function (hour) {
@@ -1244,13 +1245,13 @@ document.documentElement.classList.add('skin-ready');
           return;
         }
         mount();
-        var toUs = next.hour === 17;
+        var toUs = next.hour === 21;
         if (!wasVisible) {
           // 새로 나타날 때만 innerHTML을 건드려 애니메이션(hscFadeIn)이 다시 재생되게 한다.
           el.hidden = false;
           el.classList.toggle('hsc-to-us', toUs);
           el.classList.toggle('hsc-to-kr', !toUs);
-          labelEl.textContent = toUs ? '미국장 프리마켓까지' : 'KOSPI 개장까지';
+          labelEl.textContent = toUs ? '미국장 화면 전환까지' : '국내장(NXT) 개장까지';
           wasVisible = true;
         }
         var minutes = Math.floor(next.secondsLeft / 60);

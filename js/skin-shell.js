@@ -267,12 +267,12 @@
   /* 금요일 애프터마켓이 끝나 주말 휴장이 시작되는 토요일 KST 시각(09:00 / 10:00). */
   function weekendStartKstMinutes(date) { return us(date).dst ? M(9) : M(10); }
 
-  /* 주말 휴장 창: 토요일 미국 애프터마켓 종료 ~ 월요일 KOSPI 개장(09:00). */
+  /* 주말 휴장 창: 토요일 미국 애프터마켓 종료 ~ 월요일 국내 화면 시작(08:00, NXT 프리마켓). */
   function isWeekendClosed(date) {
     var k = kst(date);
     if (k.day === 6) return k.minutes >= weekendStartKstMinutes(date);
     if (k.day === 0) return true;
-    if (k.day === 1) return k.minutes < M(9);
+    if (k.day === 1) return k.minutes < HOME_DOMESTIC_START_KST_MINUTES;
     return false;
   }
 
@@ -282,13 +282,19 @@
      한창인 17~20시에 미국 화면을 보여줬다. 애프터마켓·NXT가 끝난(20:00) 뒤 여유를 두고
      21:00에 넘긴다. 미국 세션 판정(us(), usPreOpenKstMinutes)은 그대로다. */
   var HOME_US_SWITCH_KST_MINUTES = M(21);
+  /* 홈이 미국 화면에서 국내 화면으로 돌아오는 KST 시각.
+     2026-09-15 사용자 지적("08:00시 넘었는데 아직도 미국장 대시보드야"): 09:00(KOSPI 정규장)에
+     맞춰 넘어가 NXT 프리마켓(08:00~)이 열린 동안 미국 화면을 보여줬다. 08:00으로 되돌린다. */
+  var HOME_DOMESTIC_START_KST_MINUTES = M(8);
 
   /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다(VM main.py
      _economic_news_market()이 같은 시각을 쓴다). */
   function homeMarket(date) {
     if (isWeekendClosed(date)) return 'closed';
     var k = kst(date);
-    return (k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < M(9)) ? 'us' : 'domestic';
+    // 토요일 오전엔 국내장이 없고 미국 금요일 애프터마켓만 남는다 - 08:00 복귀를 적용하지 않고 예전처럼 09:00 전은 미국.
+    if (k.day === 6 && k.minutes < M(9)) return 'us';
+    return (k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < HOME_DOMESTIC_START_KST_MINUTES) ? 'us' : 'domestic';
   }
 
   global.MarketHours = {

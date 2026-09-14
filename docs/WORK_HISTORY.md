@@ -1,5 +1,16 @@
 # 9Pay 주요 작업이력
 
+**2026-09-15 홈 미국→국내 전환을 08:00 KST로 (NXT 프리마켓)**
+
+사용자 지적: "08:00시 넘었는데 아직도 미국장 대시보드야". 라이브 08:05 실측 `MarketHours.homeMarket()`='us',
+`krCash()`='NXT 거래'. 홈이 KOSPI 정규장(09:00)에 맞춰 국내로 돌아와 NXT 프리마켓(08:00~)이 열린 동안
+미국 화면을 보여줬다(8/13엔 08:00 기준이었음).
+
+변경: `js/skin-shell.js`에 `HOME_DOMESTIC_START_KST_MINUTES = M(8)`을 두고 `homeMarket()`과 월요일 휴장 창
+끝을 이 값으로 통일. 같은 시각을 쓰는 VM `main.py` `_economic_news_market()`도 `8 * 60`. 홈 전환 카운트다운
+배지(`skin-main.js`)는 옛 9/17시 기준이 남아 있어 8/21시로 맞췄다. 미국 전환 21:00·토요일 휴장 시작은 그대로.
+테스트: `test_market_hours.py` 경계(월 07:59 휴장/08:00 국내, 화 07:59 미국/08:00·08:59 국내), `test_ui_ia.py` 고정값.
+
 **2026-09-15 차트검색 "거래량 돌파(10분)" 스캔이 9/4 추가 이후 한 번도 저장되지 않던 문제**
 
 증상: 운영 `/pattern-scan`의 `volumeBreakout`이 0건, `volumeBreakoutScannedAt`이 null. 저장 경로(다른 스캐너는
