@@ -16,9 +16,12 @@ JSON 제어 메시지를 전부 버리고 있어서 KIS가 무엇을 거절했�
   넘치면 우선순위(선물 > 종목 체결 > 호가 > 옵션)가 낮은 키부터 빠지고 `/health/realtime`에
   드러난다. KIS가 돌려주는 거절 메시지(`rt_cd != 0`)는 이제 경고 로그와 상태에 남으므로,
   실제 상한은 배포 후 로그로 확정한다.
-- 구독 해제 프레임(tr_type)은 값이 문서마다 달라 보내지 않는다. 더 이상 아무도 원하지 않는
-  키가 자리를 차지해 새 키를 못 올리거나 일정 수 이상 쌓이면 세션을 다시 맺어 필요한 키만
-  등록한다.
+- 더 이상 아무도 원하지 않는 키는 자리가 남는 동안 그대로 두고(옵션 수집기가 5분마다 같은
+  계약을 닫고 다시 구독한다), 새 키가 들어갈 자리가 없을 때만 해제 프레임(tr_type '2' - KIS
+  공식 예제 open-trading-api `kis_auth.py` unsubscribe 기준)을 보내 자리를 비운다. 처음엔
+  세션을 다시 맺어 정리했는데, 라이브에서 새 페이지의 첫 체결이 재구성 간격만큼(16초) 늦었다.
+- 옵션은 등록 자리의 절반(`KIS_WS_OPTIONS_BUDGET`)까지만 쓴다. 옵션 40건이 자리를 전부
+  차지해 브라우저 종목이 들어갈 때마다 옵션을 밀어내야 했다(2026-09-14 라이브).
 - PINGPONG은 받은 텍스트를 그대로 되돌려 보낸다(WebSocket pong 프레임이 아니다).
 - 일정 시간 아무 프레임도 없으면(워치독) 스스로 다시 연결한다.
 
@@ -48,10 +51,8 @@ DEFAULT_MAX_REGISTRATIONS = 40
 DEFAULT_WATCHDOG_SEC = 180
 RECONNECT_MIN_SEC = 5
 RECONNECT_MAX_SEC = 60
-# 세션 재구성(쓰지 않는 등록 정리)은 브라우저 체결도 잠깐 끊으므로 이 간격보다 자주 하지 않는다.
-# 등록 자리가 남아 있으면 재구성하지 않는다 - 옵션 수집기가 5분마다 같은 계약을 닫고 다시
-# 구독하는 사이에 세션을 갈아엎지 않기 위해서다.
-REBUILD_MIN_INTERVAL_SEC = 30
+TR_TYPE_REGISTER = '1'
+TR_TYPE_UNREGISTER = '2'
 QUEUE_MAXSIZE = 2000
 _SEND_GAP_SEC = 0.05
 
@@ -113,7 +114,7 @@ class KisWsHub:
     def __init__(self, appkey, appsecret, url=None, approval_key_fn=None, connect_fn=None,
                  max_registrations=None, watchdog_sec=None,
                  reconnect_min_sec=RECONNECT_MIN_SEC, reconnect_max_sec=RECONNECT_MAX_SEC,
-                 rebuild_min_interval_sec=REBUILD_MIN_INTERVAL_SEC):
+                 options_budget=None):
         self._url = url or kis_client.WS_URL
         self._approval_key_fn = approval_key_fn or (
             lambda: kis_client.get_approval_key(appkey, appsecret))
@@ -126,8 +127,9 @@ class KisWsHub:
         self.watchdog_sec = max(0.1, float(watchdog_sec))
         self.reconnect_min_sec = reconnect_min_sec
         self.reconnect_max_sec = reconnect_max_sec
-        self.rebuild_min_interval_sec = rebuild_min_interval_sec
-        self._rebuild_timer = None
+        if options_budget is None:
+            options_budget = _env_int('KIS_WS_OPTIONS_BUDGET', self.max_registrations // 2)
+        self.options_budget = max(0, int(options_budget))
 
         self._lock = threading.Lock()
         self._subs = {}
@@ -135,7 +137,6 @@ class KisWsHub:
         self._seq = 0
         self._registered = set()
         self._running = False
-        self._rebuild_requested = False
         self._thread = None
         self._ready = None
         self._loop = None
@@ -144,7 +145,7 @@ class KisWsHub:
         self._state = {
             'connected': False, 'connectedAt': None, 'lastFrameAt': None, 'lastTickAt': None,
             'framesThisSession': 0, 'frames': 0, 'registeredCount': 0,
-            'reconnects': 0, 'watchdogReconnects': 0, 'rebuilds': 0,
+            'reconnects': 0, 'watchdogReconnects': 0, 'unsubscribes': 0,
             'pingpongs': 0, 'controlOk': 0, 'controlErrors': 0,
             'lastError': None, 'lastControl': None, 'lastDisconnect': None,
             'lastTickByTr': {},
@@ -198,7 +199,15 @@ class KisWsHub:
                     if key not in priority or value < priority[key]:
                         priority[key] = value
             ordered = sorted(priority, key=lambda key: (priority[key], self._key_order.get(key, 0)))
-        return ordered[:self.max_registrations], ordered[self.max_registrations:]
+        kept, over_budget, options = [], [], 0
+        for key in ordered:
+            if priority[key] >= PRIORITY_OPTIONS:
+                options += 1
+                if options > self.options_budget:
+                    over_budget.append(key)
+                    continue
+            kept.append(key)
+        return kept[:self.max_registrations], kept[self.max_registrations:] + over_budget
 
     # ---- 스레드 수명 ----
 
@@ -261,12 +270,6 @@ class KisWsHub:
                 logger.warning('KIS 공유 WebSocket 끊김, 재접속 예정: %s', exc)
             if not self._running:
                 break
-            if self._rebuild_requested:
-                self._rebuild_requested = False
-                with self._lock:
-                    self._state['rebuilds'] += 1
-                await asyncio.sleep(0.2)
-                continue
             with self._lock:
                 got_frames = self._state['framesThisSession'] > 0
                 self._state['reconnects'] += 1
@@ -319,23 +322,6 @@ class KisWsHub:
                         wake_task = asyncio.ensure_future(self._wake.wait())
                         if not self._running:
                             return
-                        if self._needs_rebuild():
-                            with self._lock:
-                                age = time.time() - (self._state.get('connectedAt') or 0)
-                            wait = self.rebuild_min_interval_sec - age
-                            if wait > 0:
-                                # 너무 잦은 재구성은 브라우저 체결을 계속 끊는다 - 들어갈 만큼만
-                                # 올려 두고 간격이 차면 다시 깨운다.
-                                await self._sync_registrations(ws, approval_key)
-                                loop = asyncio.get_running_loop()
-                                timer = self._rebuild_timer
-                                if timer is None or timer.cancelled() or timer.when() <= loop.time():
-                                    self._rebuild_timer = loop.call_later(wait, self._wake.set)
-                                continue
-                            self._rebuild_requested = True
-                            self._set_disconnect('rebuild: 쓰지 않는 구독 정리')
-                            logger.info('KIS 공유 WebSocket 구독 정리를 위해 세션을 다시 맺는다')
-                            return
                         await self._sync_registrations(ws, approval_key)
                     if recv_task in done:
                         raw = recv_task.result()
@@ -350,36 +336,39 @@ class KisWsHub:
                     self._state['registeredCount'] = 0
                 self._registered = set()
 
+    async def _send_registration(self, ws, approval_key, tr_type, key):
+        await ws.send(json.dumps({
+            'header': {
+                'approval_key': approval_key,
+                'custtype': 'P',
+                'tr_type': tr_type,
+                'content-type': 'utf-8',
+            },
+            'body': {'input': {'tr_id': key[0], 'tr_key': key[1]}},
+        }))
+        await asyncio.sleep(_SEND_GAP_SEC)
+
     async def _sync_registrations(self, ws, approval_key):
         desired, _dropped = self._desired()
-        for tr_id, tr_key in desired:
-            if (tr_id, tr_key) in self._registered:
-                continue
+        desired_set = set(desired)
+        missing = [key for key in desired if key not in self._registered]
+        # 자리가 남는 동안 쓰지 않는 등록은 그대로 둔다(프레임은 구독자 쪽에서 코드로 거른다).
+        # 새 키가 들어갈 자리가 모자랄 때만 그만큼 해제한다.
+        overflow = len(self._registered) + len(missing) - self.max_registrations
+        if overflow > 0:
+            stale = sorted(self._registered - desired_set)
+            for key in stale[:overflow]:
+                await self._send_registration(ws, approval_key, TR_TYPE_UNREGISTER, key)
+                self._registered.discard(key)
+                with self._lock:
+                    self._state['unsubscribes'] += 1
+        for key in missing:
             if len(self._registered) >= self.max_registrations:
                 break
-            await ws.send(json.dumps({
-                'header': {
-                    'approval_key': approval_key,
-                    'custtype': 'P',
-                    'tr_type': '1',
-                    'content-type': 'utf-8',
-                },
-                'body': {'input': {'tr_id': tr_id, 'tr_key': tr_key}},
-            }))
-            self._registered.add((tr_id, tr_key))
-            await asyncio.sleep(_SEND_GAP_SEC)
+            await self._send_registration(ws, approval_key, TR_TYPE_REGISTER, key)
+            self._registered.add(key)
         with self._lock:
             self._state['registeredCount'] = len(self._registered)
-
-    def _needs_rebuild(self):
-        desired, _dropped = self._desired()
-        desired_set = set(desired)
-        stale = self._registered - desired_set
-        if not stale:
-            return False
-        # 자리가 남아 있으면 쓰지 않는 등록은 그대로 둔다(프레임은 구독자 쪽에서 코드로 거른다).
-        missing = [key for key in desired if key not in self._registered]
-        return bool(missing) and len(self._registered) + len(missing) > self.max_registrations
 
     async def _handle_frame(self, ws, raw):
         if isinstance(raw, bytes):
@@ -465,7 +454,8 @@ class KisWsHub:
             'droppedRegistrations': [{'trId': key[0], 'trKey': key[1]} for key in dropped[:20]],
             'reconnects': state['reconnects'],
             'watchdogReconnects': state['watchdogReconnects'],
-            'rebuilds': state['rebuilds'],
+            'unsubscribes': state['unsubscribes'],
+            'optionsBudget': self.options_budget,
             'pingpongs': state['pingpongs'],
             'controlOk': state['controlOk'],
             'controlErrors': state['controlErrors'],
