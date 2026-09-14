@@ -202,6 +202,11 @@ class WiringTests(unittest.TestCase):
         self.assertIn("var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';", js)
         self.assertIn('참고 지표 · 무기한선물 가격(실제 주식 수급 아님)', js)
         self.assertIn('loadBinance(container);', js)
+        # 운영 VM에서 451(서버 위치 제한)이면 오류 문구 대신 섹션을 숨긴다(2026-09-15 배포 후 실측).
+        start = js.index('    if (data.restricted) {')
+        branch = js[start:js.index('      return;', start)]
+        self.assertIn('box.hidden = true;', branch)
+        self.assertNotIn('box.hidden = false;', branch)
 
     def test_no_separate_process_or_timer_is_added(self):
         # VM 메모리 여유가 없어 별도 스캔 프로세스·systemd 타이머를 두지 않는다.

@@ -24,6 +24,13 @@ contractType=TRADIFI_PERPETUAL, underlyingType=KR_EQUITY(같은 계열 SAMSUNGEM
 하나 더 띄우는 것이 부담이라서다(전날 스캔 몰림 장애). 운영 VM이 미국(us-central1)이라 바이낸스가 451로
 막을 수 있다 - 그 경우 화면에 사유를 보이고 수집은 쉰다(한국 리전 서버 이전 후 해소 예상).
 
+배포 후 실측(#446, 17:59 UTC 재시작): `/binance-kr-equity`가 `restricted=true`, `error="HTTP 451 restricted location"` -
+운영 VM(us-central1)에서는 바이낸스 조회가 막힌다(로컬에서는 같은 요청이 200). 지시서의 "불가하면 중단"에 따라
+화면 섹션은 restricted일 때 숨기도록 바꿨다(오류 문구를 방문자에게 계속 보이지 않게). 백엔드는 6시간마다만
+다시 시도하므로 부하는 무시할 수준이고, 서버를 한국 리전으로 옮기면 코드 변경 없이 다시 나타난다.
+같은 배포 직후 `/health/load`: 이 회차는 배포 스크립트가 새 재스캔 조건을 읽기 전에 돌아 `strategy_scan.py`가 한 번 돌았고
+(RSS 241MB, 417초에 CPU 66초), 그동안 메모리 여유 309MB·스왑 사용 약 960MB까지 올라갔다가 끝난 뒤 여유 424MB로 회복.
+
 **2026-09-15 핫픽스: #444 배포 후 `/health` 500**
 
 #444에서 `/health`에 배포 커밋을 붙이며 SHA 형식 검사에 `re.fullmatch`를 썼는데 `main.py`에 `import re`가
