@@ -125,6 +125,10 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   white-space: nowrap;
 }
 
+/* 2026-09-14: KIS 실시간 등록 자리에 못 들어가 REST 통합 시세(약 15초)로 갱신되는 종목. */
+.sector-row.is-delayed .sector-row-name::after { content: '지연'; margin-left: 4px; padding: 0 4px; border-radius: 3px; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; }
+html.dark .sector-row.is-delayed .sector-row-name::after { background: rgba(251,191,36,.18); color: #fcd34d; }
+
 .sector-row-price {
   color: #6b7280;
   margin-right: 6px;

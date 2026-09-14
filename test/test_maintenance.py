@@ -15,7 +15,10 @@ class MaintenanceTests(unittest.TestCase):
     def test_market_hours_are_blocked(self):
         self.assertFalse(maintenance.is_off_hours(datetime(2026, 8, 17, 10, 0, tzinfo=maintenance.KST)))
         self.assertTrue(maintenance.is_off_hours(datetime(2026, 8, 17, 8, 59, tzinfo=maintenance.KST)))
-        self.assertTrue(maintenance.is_off_hours(datetime(2026, 8, 17, 15, 41, tzinfo=maintenance.KST)))
+        # 2026-09-14 KRX 애프터마켓(16:00~20:00) 도입으로 거래 시간이 20:00까지 늘었다.
+        self.assertFalse(maintenance.is_off_hours(datetime(2026, 9, 14, 15, 41, tzinfo=maintenance.KST)))
+        self.assertFalse(maintenance.is_off_hours(datetime(2026, 9, 14, 19, 59, tzinfo=maintenance.KST)))
+        self.assertTrue(maintenance.is_off_hours(datetime(2026, 9, 14, 20, 1, tzinfo=maintenance.KST)))
 
     def test_weekend_is_off_hours(self):
         self.assertTrue(maintenance.is_off_hours(datetime(2026, 8, 16, 12, 0, tzinfo=maintenance.KST)))

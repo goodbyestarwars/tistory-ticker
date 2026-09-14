@@ -253,12 +253,38 @@
     return hours ? hours.us().open : false;
   }
 
+  function krSession() {
+    var hours = global.MarketHours;
+    return hours && typeof hours.krCash === 'function' ? hours.krCash() : null;
+  }
+
   function isMarketLive(market) {
-    return market === 'us' ? isUsRegularSessionOpen() : !isWeekendInKst();
+    if (market === 'us') return isUsRegularSessionOpen();
+    var session = krSession();
+    // NXT(08:00~20:00)나 KRX 정규장·애프터마켓 중 하나라도 열려 있으면 체결이 온다.
+    return session ? !!(session.open || session.nxtOpen) : !isWeekendInKst();
   }
 
   function marketLabel(market) {
-    return market === 'us' ? usSessionLabel() : '국내시장 · 오전 08:00~오후 08:00';
+    if (market === 'us') return usSessionLabel();
+    // 2026-09-14 사용자 지적("지금도 구분이 안되어 있잖아?"): 고정 문구(08:00~20:00)라
+    // 정규장·애프터마켓(16:00~20:00)·NXT 단독 시간이 구분되지 않았다. 세션 이름을 그대로 쓴다.
+    var session = krSession();
+    return '국내시장 · ' + (session ? session.label : '오전 08:00~오후 08:00');
+  }
+
+  // 2026-09-14: 서버가 KIS 실시간 등록 자리(40)에 못 넣은 종목을 `coverage`로 알려준다.
+  // 그 종목은 REST 통합 시세(약 15초 간격)로 갱신되므로 행에 "지연"을 표시한다.
+  function applyCoverage(delayed) {
+    var map = {};
+    (delayed || []).forEach(function (code) { map[code] = true; });
+    state.delayedCodes = map;
+    if (!state.mount) return;
+    state.mount.querySelectorAll('tr[data-code]').forEach(function (row) {
+      row.classList.toggle('hrt-delayed', !!map[row.getAttribute('data-code')]);
+    });
+    var count = Object.keys(map).length;
+    setRealtimeStatus(count ? '실시간 연결됨 · 지연 ' + count + '종목' : '실시간 연결됨');
   }
 
   function stockIconHtml(item) {
@@ -443,7 +469,8 @@
       week52Low: '<td data-field="week52Low">' + fmtPrice(item.week52_low, item.currency) + '</td>',
       industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
     };
-    return '<tr data-code="' + escapeHtml(code) + '">' + columnsForMarket().map(function (column) {
+    var delayedClass = state.delayedCodes && state.delayedCodes[code] ? ' class="hrt-delayed"' : '';
+    return '<tr data-code="' + escapeHtml(code) + '"' + delayedClass + '>' + columnsForMarket().map(function (column) {
       return cells[column[0]];
     }).join('') + '</tr>';
   }
@@ -598,6 +625,8 @@
         if (quote.type === 'quote' && quote.code) {
           updateRow(quote.code, quote);
           scheduleRankRefresh();
+        } else if (quote.type === 'coverage') {
+          applyCoverage(quote.delayed);
         }
       } catch (error) {}
     };
@@ -810,7 +839,11 @@
       if (!document.hidden) fetchBoard();
     }, REFRESH_MS);
     setInterval(function () {
-      if (!document.hidden && currentMarket() !== state.market) fetchBoard();
+      if (document.hidden) return;
+      if (currentMarket() !== state.market) { fetchBoard(); return; }
+      // 정규장→애프터마켓(16:00)·마감(20:00)처럼 같은 시장 안의 세션 전환도 제목에 반영한다.
+      var session = state.mount && state.mount.querySelector('[data-hrt-session]');
+      if (session) session.textContent = marketLabel(state.market);
     }, SESSION_CHECK_MS);
   }
 

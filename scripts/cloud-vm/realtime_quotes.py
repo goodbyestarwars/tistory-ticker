@@ -16,6 +16,7 @@ import re
 import kiwoom_client
 import kis_client
 import kis_ws_hub
+import rest_quote_fallback
 import us_stocks
 
 logger = logging.getLogger(__name__)
@@ -26,6 +27,9 @@ _CODE_RE = re.compile(r'^[0-9A-Z]{6}$')
 _MAX_CODES = 50
 # 허브 쪽 상태를 브라우저에 알리는 주기. 틱이 없는 동안에만 보낸다(화면이 "지연"을 판단할 근거).
 _RELAY_STATUS_INTERVAL_SEC = 15
+# 등록 여부(coverage)를 다시 보는 주기와, 구독 직후 허브가 KIS에 등록할 틈.
+_RELAY_TICK_SEC = 1.0
+_COVERAGE_GRACE_SEC = 3.0
 
 
 def normalize_codes(raw_codes):
@@ -322,6 +326,17 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
 
     wanted = set(domestic_codes) | {'US:' + symbol for symbol in us_symbols}
     subscription = hub.subscribe(registrations)
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    last_message_at = started
+    next_coverage_check = started + _COVERAGE_GRACE_SEC
+    # 2026-09-14: 허브 등록 자리(40)에 못 들어간 종목은 체결이 오지 않는데 화면은 그걸 몰라
+    # 멈춘 가격을 실시간처럼 보여줬다. 등록 여부를 `coverage`로 알려주고, 빠진 종목은 REST
+    # 통합 시세를 `delayed: true` quote로 대신 보낸다(rest_quote_fallback.py).
+    fallback = None
+    fallback_codes = set()
+    delayed_sent = None
+    last_fallback_at = {}
     try:
         await browser_ws.send_json({
             'type': 'ready',
@@ -329,20 +344,55 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
         })
         while True:
             try:
-                raw = await asyncio.wait_for(subscription.queue.get(), timeout=_RELAY_STATUS_INTERVAL_SEC)
+                raw = await asyncio.wait_for(subscription.queue.get(), timeout=_RELAY_TICK_SEC)
             except asyncio.TimeoutError:
+                raw = None
+            now = loop.time()
+            if raw is not None:
+                for event in _kis_quote_events(raw):
+                    if event.get('code') in wanted:
+                        await browser_ws.send_json(event)
+                        last_message_at = now
+            if domestic_codes and now >= next_coverage_check:
+                next_coverage_check = now + _RELAY_TICK_SEC
+                live_keys = hub.registered_keys()
+                delayed = [code for code in domestic_codes if ('H0UNCNT0', code) not in live_keys]
+                if delayed != delayed_sent:
+                    if delayed and fallback is None:
+                        fallback = rest_quote_fallback.start(appkey, appsecret)
+                    if fallback is not None:
+                        delayed_set = set(delayed)
+                        if fallback_codes - delayed_set:
+                            fallback.release(fallback_codes - delayed_set)
+                        if delayed_set - fallback_codes:
+                            fallback.want(delayed_set - fallback_codes)
+                        fallback_codes = delayed_set
+                    await browser_ws.send_json({
+                        'type': 'coverage',
+                        'live': [code for code in domestic_codes if code not in set(delayed)],
+                        'delayed': delayed,
+                    })
+                    delayed_sent = delayed
+                    last_message_at = now
+                if fallback is not None:
+                    for code in delayed:
+                        event = fallback.latest(code)
+                        if event and event.get('fetchedAt') != last_fallback_at.get(code):
+                            last_fallback_at[code] = event.get('fetchedAt')
+                            await browser_ws.send_json(event)
+                            last_message_at = now
+            if now - last_message_at >= _RELAY_STATUS_INTERVAL_SEC:
                 status = hub.health()
                 await browser_ws.send_json({
                     'type': 'status',
                     'upstream': 'connected' if status.get('connected') else 'retrying',
                     'lastTickAgeSec': status.get('lastTickAgeSec'),
                 })
-                continue
-            for event in _kis_quote_events(raw):
-                if event.get('code') in wanted:
-                    await browser_ws.send_json(event)
+                last_message_at = now
     finally:
         subscription.close()
+        if fallback is not None and fallback_codes:
+            fallback.release(fallback_codes)
 
 
 async def relay_quotes(browser_ws, codes, us_symbols=None):

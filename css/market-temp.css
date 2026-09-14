@@ -631,6 +631,9 @@
 #market-temp .sector-row-name { color: #374151; font-weight: 500; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-right: 8px; }
 #market-temp .sector-row > span:last-child { white-space: nowrap; }
 #market-temp .sector-row-price { color: #6b7280; margin-right: 6px; }
+/* 2026-09-14: KIS 실시간 등록 자리에 못 들어가 REST 통합 시세(약 15초)로 갱신되는 종목. */
+#market-temp .sector-row.is-delayed .sector-row-name::after { content: '지연'; margin-left: 4px; padding: 0 4px; border-radius: 3px; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; }
+html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { background: rgba(251,191,36,.18); color: #fcd34d; }
 #market-temp .sector-row-rate { font-weight: 600; }
 #market-temp .sector-row-rate.sector-up { color: #d24f45; }
 #market-temp .sector-row-rate.sector-down { color: #1261c4; }

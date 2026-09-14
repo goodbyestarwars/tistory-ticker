@@ -56,12 +56,16 @@ def _kst_now():
 
 
 def is_off_hours(now=None):
-    """현금시장 정규장(평일 09:00~15:40) 밖인지 확인한다."""
+    """현금시장 거래 시간(평일 09:00~20:00) 밖인지 확인한다.
+
+    2026-09-14 KRX 애프터마켓(16:00~20:00)이 열려, 예전 기준(15:40)으로는 체결이 한창인
+    저녁에 DB 유지보수가 돌 수 있었다.
+    """
     current = now or _kst_now()
     if current.weekday() >= 5:
         return True
     minutes = current.hour * 60 + current.minute
-    return minutes < 9 * 60 or minutes > 15 * 60 + 40
+    return minutes < 9 * 60 or minutes > 20 * 60
 
 
 def is_weekend(now=None):

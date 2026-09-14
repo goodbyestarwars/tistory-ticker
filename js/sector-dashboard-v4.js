@@ -402,6 +402,30 @@
     }
   }
 
+  // 2026-09-14 사용자 지적("지금도 구분이 안되어 있잖아?"): KIS 실시간 등록 자리(40)에 못 들어간
+  // 종목은 체결이 오지 않는데 카드는 그걸 몰라 멈춘 가격을 그대로 보여줬다. 서버가 `coverage`로
+  // 알려주는 종목에 "지연"을 표시하고(값은 서버가 REST 통합 시세로 약 15초마다 채워 보낸다),
+  // 상태 문구에 지금 세션(정규장·애프터마켓·NXT 거래 등)과 지연 종목 수를 함께 쓴다.
+  function cardLiveStatusText_() {
+    var hours = global.MarketHours;
+    var session = hours && typeof hours.krCash === 'function' ? hours.krCash() : null;
+    var text = (session ? session.label + ' · ' : '') + '실시간 연결됨';
+    if (cardRealtime.delayedCount) text += ' · 지연 ' + cardRealtime.delayedCount + '종목';
+    return text;
+  }
+
+  function applyCardCoverage_(container, delayed) {
+    if (!container) return;
+    var map = {};
+    (delayed || []).forEach(function (code) { map[code] = true; });
+    cardRealtime.delayedCount = (delayed || []).length;
+    var rows = container.querySelectorAll('.sector-row[data-code]');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].classList.toggle('is-delayed', !!map[rows[i].getAttribute('data-code')]);
+    }
+    setCardRealtimeStatus(container, cardLiveStatusText_());
+  }
+
   function setCardRealtimeStatus(container, text) {
     var status = container && container.querySelector('[data-card-realtime-status]');
     if (status) status.textContent = text;
@@ -445,6 +469,7 @@
     }
     cardRealtime.container = null;
     cardRealtime.codes = [];
+    cardRealtime.delayedCount = 0;
   }
 
   function scheduleCardRealtimeReconnect(generation) {
@@ -476,7 +501,7 @@
       cardRealtime.keepaliveTimer = setInterval(function () {
         if (socket.readyState === WebSocket.OPEN) socket.send('ping');
       }, CARD_WS_KEEPALIVE_MS);
-      setCardRealtimeStatus(cardRealtime.container, '실시간 연결됨');
+      setCardRealtimeStatus(cardRealtime.container, cardLiveStatusText_());
     };
     socket.onmessage = function (event) {
       if (generation !== cardRealtime.generation || !cardRealtime.container) return;
@@ -484,7 +509,9 @@
         var quote = JSON.parse(event.data);
         if (quote.type === 'quote' && quote.code) {
           updateSectorRowQuote(cardRealtime.container, quote.code, quote);
-          setCardRealtimeStatus(cardRealtime.container, '실시간 연결됨');
+          setCardRealtimeStatus(cardRealtime.container, cardLiveStatusText_());
+        } else if (quote.type === 'coverage') {
+          applyCardCoverage_(cardRealtime.container, quote.delayed);
         }
       } catch (err) {}
     };
