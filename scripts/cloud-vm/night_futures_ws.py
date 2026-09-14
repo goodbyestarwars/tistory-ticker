@@ -21,6 +21,7 @@ import websockets
 
 import db_schema
 import kis_client
+import kis_ws_hub
 import night_futures_code
 
 logger = logging.getLogger('night_futures_ws')
@@ -50,6 +51,8 @@ _HISTORY_DAYS = 250  # domestic_futures.py DAY_RANGE(주간선물)와 맞춘 값
 # 기준 100건 이내로 여유) 나눠 여러 번 호출해 합친다. 과거 90일 단일 호출이던 시절엔 주간선물
 # (250일, 네이버 소스라 제한 없음)과 야간선물 일봉 캔들 개수가 서로 달랐음(2026-07-16 발견).
 _HISTORY_CHUNK_DAYS = 90
+# 허브에 붙은 뒤로는 끊겨서 재접속할 일이 드물어, 근월물 교체를 재접속 때만 확인하면 놓친다.
+_FRONT_MONTH_RECHECK_SEC = 6 * 3600
 KST = timezone(timedelta(hours=9))
 
 
@@ -183,58 +186,58 @@ def refresh_minute(appkey, appsecret, code):
 
 
 async def _run_once(appkey, appsecret, code, last_history_refresh=0, last_minute_refresh=0):
-    approval_key = kis_client.get_approval_key(appkey, appsecret)
-    url = kis_client.WS_URL
+    # 2026-09-14: KIS WebSocket을 직접 열지 않고 프로세스 공용 허브에 구독만 한다. 예전엔
+    # 이 리스너가 24시간 KIS 세션을 쥐고 있어 같은 앱키의 브라우저 중계 세션이 곧바로 끊겼다.
+    # PINGPONG 되돌림도 허브가 한다(여기서는 ws.pong으로 보내고 있었는데 KIS는 텍스트 되돌림을 기대한다).
+    hub = kis_ws_hub.start(appkey, appsecret)
+    if hub is None:
+        raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못함')
     conn = db_schema.get_conn()
     loop = asyncio.get_running_loop()
+    subscription = hub.subscribe([(TR_ID, code, kis_ws_hub.PRIORITY_FUTURES)])
+    logger.info('night futures subscribed via shared KIS WS hub: code=%s', code)
+    last_code_check = time.time()
     try:
-        async with websockets.connect(url, ping_interval=None) as ws:
-            req = {
-                'header': {
-                    'approval_key': approval_key,
-                    'custtype': 'P',
-                    'tr_type': '1',
-                    'content-type': 'utf-8',
-                },
-                'body': {'input': {'tr_id': TR_ID, 'tr_key': code}},
-            }
-            await ws.send(json.dumps(req))
-            logger.info('night futures ws subscribed: code=%s', code)
+        while True:
+            try:
+                raw = await asyncio.wait_for(subscription.queue.get(), timeout=30)
+            except asyncio.TimeoutError:
+                raw = None
+            if raw and raw[0] in ('0', '1'):
+                row = _parse_tick(raw)
+                if row:
+                    _upsert_tick(conn, row)
 
-            async for raw in ws:
-                if raw and raw[0] in ('0', '1'):
-                    row = _parse_tick(raw)
-                    if row:
-                        _upsert_tick(conn, row)
-                else:
+            now = time.time()
+            if now - last_history_refresh > _HISTORY_REFRESH_INTERVAL:
+                last_history_refresh = now
+                # urllib은 동기 호출이라 그대로 부르면 이벤트루프가 막힌다 - 스레드풀로 넘긴다
+                async def _refresh():
                     try:
-                        msg = json.loads(raw)
-                    except json.JSONDecodeError:
-                        continue
-                    tr_id = msg.get('header', {}).get('tr_id')
-                    if tr_id == 'PINGPONG':
-                        await ws.pong(raw)
-
-                now = time.time()
-                if now - last_history_refresh > _HISTORY_REFRESH_INTERVAL:
-                    last_history_refresh = now
-                    # urllib은 동기 호출이라 그대로 부르면 이벤트루프가 막혀 PINGPONG 응답이
-                    # 늦어질 수 있음 - 스레드풀로 넘겨서 웹소켓 수신 루프와 겹치게 실행
-                    async def _refresh():
-                        try:
-                            await loop.run_in_executor(None, refresh_history, appkey, appsecret, code)
-                        except Exception:
-                            logger.exception('night futures history refresh failed')
-                    asyncio.ensure_future(_refresh())
-                if now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
-                    last_minute_refresh = now
-                    async def _refresh_minute():
-                        try:
-                            await loop.run_in_executor(None, refresh_minute, appkey, appsecret, code)
-                        except Exception:
-                            logger.exception('night futures minute refresh failed')
-                    asyncio.ensure_future(_refresh_minute())
+                        await loop.run_in_executor(None, refresh_history, appkey, appsecret, code)
+                    except Exception:
+                        logger.exception('night futures history refresh failed')
+                asyncio.ensure_future(_refresh())
+            if now - last_minute_refresh > _MINUTE_REFRESH_INTERVAL:
+                last_minute_refresh = now
+                async def _refresh_minute():
+                    try:
+                        await loop.run_in_executor(None, refresh_minute, appkey, appsecret, code)
+                    except Exception:
+                        logger.exception('night futures minute refresh failed')
+                asyncio.ensure_future(_refresh_minute())
+            if now - last_code_check > _FRONT_MONTH_RECHECK_SEC:
+                last_code_check = now
+                try:
+                    latest = await loop.run_in_executor(None, night_futures_code.get_front_month_code)
+                except Exception:
+                    logger.exception('night futures front-month recheck failed')
+                    latest = code
+                if latest and latest != code:
+                    logger.info('night futures front month changed: %s -> %s', code, latest)
+                    return
     finally:
+        subscription.close()
         conn.close()
 
 

@@ -2,7 +2,9 @@
 """KIS/키움 실시간 체결 WebSocket을 브라우저 관심종목 화면으로 안전하게 중계한다.
 
 브라우저에는 키움 Access Token을 절대 전달하지 않는다. 각 브라우저 연결은 자신이 요청한
-최대 50종목만 하나의 키움 WebSocket 세션에서 구독하며, 연결 종료 시 upstream도 닫힌다.
+최대 50종목만 구독한다. KIS 경로는 2026-09-14부터 브라우저 연결마다 KIS 세션을 새로 열지
+않고 프로세스 공용 허브(kis_ws_hub.py)에 구독만 한다 - 연결마다 세션을 열던 구조에서 같은
+앱키의 다른 세션과 충돌해 체결이 0건 들어왔다. 키움 폴백 경로는 예전 그대로다.
 """
 
 import asyncio
@@ -13,6 +15,7 @@ import re
 
 import kiwoom_client
 import kis_client
+import kis_ws_hub
 import us_stocks
 
 logger = logging.getLogger(__name__)
@@ -21,6 +24,8 @@ KIWOOM_WS_URL = 'wss://api.kiwoom.com:10000/api/dostk/websocket'
 KIS_WS_URL = kis_client.WS_URL
 _CODE_RE = re.compile(r'^[0-9A-Z]{6}$')
 _MAX_CODES = 50
+# 허브 쪽 상태를 브라우저에 알리는 주기. 틱이 없는 동안에만 보낸다(화면이 "지연"을 판단할 근거).
+_RELAY_STATUS_INTERVAL_SEC = 15
 
 
 def normalize_codes(raw_codes):
@@ -290,61 +295,49 @@ def _kis_us_keys(symbols):
 
 
 async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
-    """한 번의 KIS 실시간 체결 세션을 연결한다."""
-    try:
-        import websockets
-    except ImportError as exc:
-        raise RuntimeError('websockets 패키지가 설치되지 않았습니다.') from exc
-
+    """KIS 공용 허브에 구독해 이 브라우저 연결이 원한 종목의 체결·호가만 넘긴다."""
     appkey = os.environ.get('KIS_APPKEY')
     appsecret = os.environ.get('KIS_APPSECRET')
     if not appkey or not appsecret:
         raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
-    approval_key = await asyncio.to_thread(kis_client.get_approval_key, appkey, appsecret)
+    hub = kis_ws_hub.start(appkey, appsecret)
+    if hub is None:
+        raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못했습니다.')
+
     registrations = []
     for code in domestic_codes:
-        # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 같은 종목을 KRX/NXT
-        # 두 스트림에 중복 등록하면 브라우저에 중복 체결이 전달된다.
-        registrations.extend((tr_id, code) for tr_id in ('H0UNCNT0', 'H0UNASP0'))
-    registrations.extend(_kis_us_keys(us_symbols)[:max(0, _MAX_CODES - len(registrations))])
+        # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 호가는 호가창 화면 말고는 REST 폴링이
+        # 있으므로 등록 자리가 모자라면 체결보다 먼저 빠지게 우선순위를 낮춘다.
+        registrations.append(('H0UNCNT0', code, kis_ws_hub.PRIORITY_QUOTES))
+        registrations.append(('H0UNASP0', code, kis_ws_hub.PRIORITY_ORDERBOOK))
+    for key, tr_id in _kis_us_keys(us_symbols):
+        registrations.append((tr_id, key, kis_ws_hub.PRIORITY_QUOTES))
     if not registrations:
         raise RuntimeError('KIS 실시간 구독 종목이 없습니다.')
 
-    async with websockets.connect(
-        KIS_WS_URL,
-        open_timeout=10,
-        close_timeout=5,
-        ping_interval=None,
-        max_size=2 * 1024 * 1024,
-    ) as upstream:
-        for tr_id, key in registrations:
-            await upstream.send(json.dumps({
-                'header': {
-                    'approval_key': approval_key,
-                    'custtype': 'P',
-                    'tr_type': '1',
-                    'content-type': 'utf-8',
-                },
-                'body': {'input': {'tr_id': tr_id, 'tr_key': key}},
-            }))
-            await asyncio.sleep(0.05)
+    wanted = set(domestic_codes) | {'US:' + symbol for symbol in us_symbols}
+    subscription = hub.subscribe(registrations)
+    try:
         await browser_ws.send_json({
             'type': 'ready',
             'codes': domestic_codes + ['US:' + symbol for symbol in us_symbols],
         })
-
         while True:
-            raw = await upstream.recv()
-            if isinstance(raw, str) and raw.startswith('{'):
-                try:
-                    message = json.loads(raw)
-                except json.JSONDecodeError:
-                    message = {}
-                if (message.get('header') or {}).get('tr_id') == 'PINGPONG':
-                    await upstream.send(raw)
+            try:
+                raw = await asyncio.wait_for(subscription.queue.get(), timeout=_RELAY_STATUS_INTERVAL_SEC)
+            except asyncio.TimeoutError:
+                status = hub.health()
+                await browser_ws.send_json({
+                    'type': 'status',
+                    'upstream': 'connected' if status.get('connected') else 'retrying',
+                    'lastTickAgeSec': status.get('lastTickAgeSec'),
+                })
                 continue
             for event in _kis_quote_events(raw):
-                await browser_ws.send_json(event)
+                if event.get('code') in wanted:
+                    await browser_ws.send_json(event)
+    finally:
+        subscription.close()
 
 
 async def relay_quotes(browser_ws, codes, us_symbols=None):

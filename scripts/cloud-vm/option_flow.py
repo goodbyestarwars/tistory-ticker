@@ -23,6 +23,7 @@ from datetime import datetime, timedelta, timezone
 
 import db_schema
 import kis_client
+import kis_ws_hub
 import polling
 
 logger = logging.getLogger('option_flow')
@@ -260,51 +261,48 @@ async def _ws_loop(appkey, appsecret):
                 await asyncio.sleep(30)
                 continue
 
-            approval_key = await asyncio.to_thread(kis_client.get_approval_key, appkey, appsecret)
-            async with websockets.connect(kis_client.WS_URL, ping_interval=None, open_timeout=10, close_timeout=5) as ws:
-                for tr_id in (OPTION_TRADE_TR_ID, OPTION_QUOTE_TR_ID):
-                    for code in selected_codes:
-                        await ws.send(json.dumps({
-                            'header': {
-                                'approval_key': approval_key, 'custtype': 'P', 'tr_type': '1',
-                                'content-type': 'utf-8',
-                            },
-                            'body': {'input': {'tr_id': tr_id, 'tr_key': code}},
-                        }))
-                        await asyncio.sleep(0.05)
-                logger.info('KIS option WebSocket subscribed: maturity=%s contracts=%d', mtrt, len(selected_codes))
-                async for raw in ws:
-                    # 최근월물·거래량 상위 계약이 바뀔 수 있으므로 5분마다
-                    # 전광판 REST 스냅샷을 다시 읽고 구독 목록을 재구성한다.
-                    if time.time() - last_board >= _POLL_INTERVAL_SEC:
-                        await ws.close()
-                        break
-                    if isinstance(raw, str) and raw.startswith('0|'):
-                        parts = raw.split('|', 3)
-                        tr_id = parts[1] if len(parts) > 1 else ''
-                        fields = OPTION_TRADE_FIELDS if tr_id == OPTION_TRADE_TR_ID else OPTION_QUOTE_FIELDS
-                        for update in _parse_ws_rows(raw, fields):
-                            code = _option_code(update)
-                            if code in by_code:
-                                by_code[code] = _merge_ws_row(by_code[code], update)
-                        if time.time() - last_persist >= _WS_PERSIST_INTERVAL_SEC:
-                            # WS는 거래량 상위 일부 계약만 구독한다. 여기서 selected
-                            # 행만 저장하면 전체 OI/거래량과 행사가 프로파일이 20개 계약으로
-                            # 축소되는 회귀가 생기므로, REST 전광판 전체 행을 기준으로
-                            # 구독 계약의 최신값만 합쳐서 저장한다.
-                            _persist_rows(
-                                _board_with_ws_updates(calls, by_code),
-                                _board_with_ws_updates(puts, by_code),
-                                mtrt,
-                            )
-                            last_persist = time.time()
-                        continue
+            # 2026-09-14: KIS WebSocket을 직접 열지 않고 프로세스 공용 허브에 구독한다. 옵션은
+            # 등록 자리가 모자랄 때 가장 먼저 빠지는 우선순위다(REST 전광판 5분 스냅샷이 있다).
+            hub = kis_ws_hub.start(appkey, appsecret)
+            if hub is None:
+                await asyncio.sleep(30)
+                continue
+            subscription = hub.subscribe([
+                (tr_id, code, kis_ws_hub.PRIORITY_OPTIONS)
+                for tr_id in (OPTION_TRADE_TR_ID, OPTION_QUOTE_TR_ID)
+                for code in selected_codes
+            ])
+            logger.info('KIS option realtime subscribed via shared hub: maturity=%s contracts=%d',
+                        mtrt, len(selected_codes))
+            try:
+                # 최근월물·거래량 상위 계약이 바뀔 수 있으므로 5분마다 전광판 REST 스냅샷을
+                # 다시 읽고 구독 목록을 재구성한다(루프를 나가면 바깥에서 새로 구독한다).
+                while time.time() - last_board < _POLL_INTERVAL_SEC:
                     try:
-                        message = json.loads(raw)
-                    except (TypeError, json.JSONDecodeError):
+                        raw = await asyncio.wait_for(subscription.queue.get(), timeout=5)
+                    except asyncio.TimeoutError:
                         continue
-                    if (message.get('header') or {}).get('tr_id') == 'PINGPONG':
-                        await ws.send(raw)
+                    if not (isinstance(raw, str) and raw.startswith('0|')):
+                        continue
+                    parts = raw.split('|', 3)
+                    tr_id = parts[1] if len(parts) > 1 else ''
+                    fields = OPTION_TRADE_FIELDS if tr_id == OPTION_TRADE_TR_ID else OPTION_QUOTE_FIELDS
+                    for update in _parse_ws_rows(raw, fields):
+                        code = _option_code(update)
+                        if code in by_code:
+                            by_code[code] = _merge_ws_row(by_code[code], update)
+                    if time.time() - last_persist >= _WS_PERSIST_INTERVAL_SEC:
+                        # WS는 거래량 상위 일부 계약만 구독한다. 여기서 selected 행만 저장하면
+                        # 전체 OI/거래량과 행사가 프로파일이 축소되므로, REST 전광판 전체 행을
+                        # 기준으로 구독 계약의 최신값만 합쳐서 저장한다.
+                        _persist_rows(
+                            _board_with_ws_updates(calls, by_code),
+                            _board_with_ws_updates(puts, by_code),
+                            mtrt,
+                        )
+                        last_persist = time.time()
+            finally:
+                subscription.close()
         except asyncio.CancelledError:
             raise
         except Exception:

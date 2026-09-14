@@ -55,6 +55,7 @@ import market_board
 import option_flow
 import order_book
 import public_data
+import kis_ws_hub
 import realtime_quotes
 import scan_forward
 import sector_cards
@@ -152,6 +153,15 @@ def _start_futures_collectors():
     # 둘 다 없으면 네이버로 자동 폴백한다(investor_trend.py 상단 독스트링 참고) - 그래서 위
     # 야간선물/옵션수급과 달리 "미설정 시 건너뜀"이 아니라 항상 시작한다.
     investor_trend.start_background(kis_appkey, kis_appsecret, kiwoom_appkey, kiwoom_secretkey)
+
+    # 2026-09-14: KIS 실시간 WebSocket은 프로세스 전체가 세션 하나를 같이 쓴다(kis_ws_hub.py).
+    # 야간선물·주간선물·옵션 수집기와 /ws/quotes 중계는 모두 이 허브에 구독만 한다 - 각자
+    # 세션을 열던 구조에서 같은 앱키끼리 충돌해 브라우저 실시간 체결이 0건이었다.
+    if kis_appkey and kis_appsecret:
+        try:
+            kis_ws_hub.start(kis_appkey, kis_appsecret)
+        except Exception:
+            logging.getLogger('main').exception('KIS 공유 WebSocket 허브 시작 실패')
 
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
@@ -905,6 +915,17 @@ def overseas_quote_health(symb: str = Query('AAPL', min_length=1, max_length=8),
         'picked': picked,
         'raw': row,
     })
+
+
+@app.get('/health/realtime')
+def health_realtime():
+    """KIS 실시간 공유 허브 상태 - VM 접속 없이 실시간이 살아 있는지 본다.
+
+    2026-09-14 장애 때 브라우저 실시간이 0건인데도 어디에도 드러나지 않아 사용자가 눈으로
+    먼저 발견했다. 연결 여부, 마지막 체결 시각(과 경과 초), 등록·누락된 구독 수, 재접속·
+    워치독 횟수, KIS가 마지막으로 돌려준 오류 메시지를 보여준다. 앱키·접속키는 담지 않는다.
+    """
+    return envelope(kis_ws_hub.health_snapshot())
 
 
 @app.get('/health/latency')

@@ -62,13 +62,15 @@ flowchart LR
 | 그룹 | 라우트 예 | 인증 |
 |---|---|---|
 | GAS 전용(비공개) | `/quote`, `/ohlc/{code}`, `/naver-news`, `/investor-flow-batch`, `/fundamentals-batch`, `/fundamentals/{code}`, `/daily-scan-batch`, `/week52-batch` | `X-API-Key` 헤더 필수(`require_api_key`, `main.py:187-192`) |
-| 브라우저 직접 호출(공개) | `/futures`, `/futures/avg`, `/option-flow`, `/market-rank`, `/order-book/{code}`, `/investor-trend`, `/investor-flow/{code}`, `/foreign-flow/{code}`, `/earnings-calendar`, `/news-momentum/{code}`, `/health`, `/health/latency` | 인증 없음, `CORSMiddleware`(`allow_origins=['https://ghlee.tistory.com']`, GET만)로 브라우저 측만 제한 |
+| 브라우저 직접 호출(공개) | `/futures`, `/futures/avg`, `/option-flow`, `/market-rank`, `/order-book/{code}`, `/investor-trend`, `/investor-flow/{code}`, `/foreign-flow/{code}`, `/earnings-calendar`, `/news-momentum/{code}`, `/health`, `/health/latency`, `/health/realtime` | 인증 없음, `CORSMiddleware`(`allow_origins=['https://ghlee.tistory.com']`, GET만)로 브라우저 측만 제한 |
 
 CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적용되지 않는다 — 즉 "공개" 그룹은 사실상 누구나 직접 호출 가능한 공개 API다. 이는 "GAS→VM 구간 간헐적 차단" 문제를 우회하기 위한 의도된 설계이며(`main.py:88-97` 주석), 공개 시세 데이터라 민감정보 노출은 아니지만 레이트리밋이 없다(상세는 `SOURCE_CODE_SPEC.md` §6.3).
 
 `/ws/quotes`(WebSocket)는 `Origin` 헤더 검사로만 접근을 제한하며(`main.py`의
 `realtime_quote_socket`), 동시 연결 수 상한(`_WS_MAX_CONNECTIONS=200`)도 적용한다.
 국내 종목코드는 그대로 받고 미국 종목은 `US:SYMBOL` 형식으로 같은 연결에서 구독한다.
+KIS 실시간은 프로세스 공용 허브(`kis_ws_hub.py`)가 KIS WebSocket을 하나만 유지하고
+중계·수집기가 구독만 한다(2026-09-14). 상태는 `/health/realtime`으로 노출한다.
 
 `/ws/economic-news`는 `https://ghlee.tistory.com` Origin만 허용하고 연결 즉시 현재 시장
 스냅샷을 보낸다. 국내/미국 시장은 프론트의 선택 상태와 분리해 서버가 수집하며, 서버 측
