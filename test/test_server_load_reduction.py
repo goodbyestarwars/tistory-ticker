@@ -86,8 +86,9 @@ class HealthCommitTests(unittest.TestCase):
         self.assertIn("'.last_deployed_sha'", main)
         # deploy_check.sh가 쓰는 파일 이름과 같아야 한다.
         self.assertIn('DEPLOYED_FILE="$APP_DIR/.last_deployed_sha"', read('deploy_check.sh'))
-        # 파일 내용이 SHA 모양이 아니면 내보내지 않는다.
-        self.assertIn("re.fullmatch(r'[0-9a-f]{7,40}', sha or '')", main)
+        # 파일 내용이 SHA 모양이 아니면 내보내지 않는다(main.py는 re를 import하지 않으므로 문자 집합 검사).
+        self.assertIn("if not (sha and 7 <= len(sha) <= 40 and set(sha) <= _HEX_CHARS):", main)
+        self.assertNotIn('re.fullmatch(', main)  # 설명 주석에는 이름이 나오므로 호출 형태로 확인
 
 
 if __name__ == '__main__':

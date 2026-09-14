@@ -56,6 +56,7 @@ import option_flow
 import order_book
 import public_data
 import kis_ws_hub
+import load_probe
 import market_clock
 import realtime_quotes
 import theme_flow
@@ -612,6 +613,7 @@ def _upstream_http_exception(message, exc):
 # processStartedAt이 deployRecordedAt 이후인지로 본다.
 _PROCESS_STARTED_AT = datetime.now(timezone.utc).isoformat(timespec='seconds')
 _DEPLOYED_SHA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.last_deployed_sha')
+_HEX_CHARS = frozenset('0123456789abcdef')
 
 
 def _deployed_commit():
@@ -621,7 +623,9 @@ def _deployed_commit():
         recorded = datetime.fromtimestamp(os.path.getmtime(_DEPLOYED_SHA_FILE), timezone.utc)
     except OSError:
         return None, None
-    if not re.fullmatch(r'[0-9a-f]{7,40}', sha or ''):
+    # main.py는 re를 import하지 않는다(test_latency_monitor 계약) - 문자 집합으로 검사한다.
+    # 2026-09-15: 처음엔 re.fullmatch를 써서 배포 뒤 /health가 NameError로 500을 냈다.
+    if not (sha and 7 <= len(sha) <= 40 and set(sha) <= _HEX_CHARS):
         return None, None
     return sha, recorded.isoformat(timespec='seconds')
 
@@ -639,6 +643,17 @@ def health():
         'deployRecordedAt': recorded_at,
         'processStartedAt': _PROCESS_STARTED_AT,
     })
+
+
+@app.get('/health/load')
+def health_load(request: Request):
+    """VM 부하 스냅샷(읽기 전용) - 스레드별·프로세스별 누적 CPU 초와 메모리.
+
+    2026-09-15: 장애 때 SSH가 열리지 않아 무엇이 부하인지 확인하지 못했다. 두 번 불러 CPU 초
+    차이를 보면 그 사이 어떤 수집기·스캔이 CPU를 썼는지 알 수 있다. 명령줄 인자는 내보내지 않는다.
+    """
+    _check_rate_limit('health_load', request, max_per_window=20)
+    return envelope(load_probe.snapshot())
 
 
 @app.get('/auth/google/start')

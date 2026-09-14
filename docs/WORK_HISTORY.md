@@ -1,5 +1,25 @@
 # 9Pay 주요 작업이력
 
+**2026-09-15 핫픽스: #444 배포 후 `/health` 500**
+
+#444에서 `/health`에 배포 커밋을 붙이며 SHA 형식 검사에 `re.fullmatch`를 썼는데 `main.py`에 `import re`가
+없어, 배포 뒤 `/health`가 `Internal Server Error`(500)를 냈다(17:38 UTC 실측, 다른 라우트는 정상 - market-board
+200). 계약 테스트가 소스 문자열만 확인해 못 잡았다. main.py는 `re`를 import하지 않는 규칙이 이미 있어
+(`test_latency_monitor.py`), 정규식 대신 길이(7~40)와 16진수 문자 집합으로 검사하도록 고쳤다. `main`을 실제로
+import해 `health()`·`_deployed_commit()`을 부르는 `test_health_endpoint_runtime.py`를 더했다.
+
+**2026-09-15 `/health/load` - VM 부하를 접속 없이 측정**
+
+사용자 제안(추측이라고 명시): "부하 걸리는 작업은 전부 새벽으로 하고, 장 시작은 뉴스 + 시세 정도만 계속
+업데이트". 전날 장애 때 SSH가 열리지 않아 무엇이 CPU·메모리를 쓰는지 확인하지 못했으므로, 기능을 끄거나
+옮기기 전에 근거를 모은다.
+
+변경: 신규 `load_probe.py` + `GET /health/load`(읽기 전용). /proc에서 load average, 메모리·스왑,
+FastAPI 스레드별 누적 CPU 초(threading 이름으로 표시), 같은 VM의 다른 파이썬 프로세스(스캔·배치)의
+.py 파일 이름·RSS·누적 CPU 초·경과 초를 낸다. 명령줄 인자는 내보내지 않는다. 두 번 불러 차이를 보면
+그 사이 CPU를 쓴 수집기를 알 수 있다. 테스트 `test_load_probe.py`(가짜 /proc 트리, 괄호가 섞인 comm,
+인자 비노출).
+
 **2026-09-15 서버 부하 절감(무료 VM 유지) + 배포 커밋 표시**
 
 사용자 지시: "지금 돈 쓰는 건 무리야. 다른 방법으로 서버 부하를 낮춰야해", "커밋 표시하고, 스캔 시작을
