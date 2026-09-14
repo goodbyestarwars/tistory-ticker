@@ -51,6 +51,27 @@ class ScanTimerScheduleTest(unittest.TestCase):
         # 원래 간격(daily 뒤 20분, 이후 5분씩)을 유지한다 - daily_scan 소요시간 실측이 없어 검증된 간격을 쓴다.
         self.assertEqual(kst_minutes(EXPECTED['strategyscan']) - daily, 20)
 
+    def test_scans_run_one_at_a_time_below_fastapi_priority(self):
+        """2026-09-14 23:08 KST 장애: 스캔이 한꺼번에 떠 1코어 VM의 응답이 전부 멈췄다."""
+        for name in EXPECTED:
+            with open(os.path.join(CLOUD_VM, 'setup_%s_timer.sh' % name), encoding='utf-8') as handle:
+                source = handle.read()
+            self.assertIn('ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python ', source, name)
+            for line in ('Nice=10', 'CPUWeight=20', 'IOSchedulingClass=idle'):
+                self.assertIn(line + '\n', source, name)
+        with open(os.path.join(CLOUD_VM, 'deploy_check.sh'), encoding='utf-8') as handle:
+            deploy = handle.read()
+        self.assertIn('flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/rescan_patterns.py"', deploy)
+        self.assertIn('flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py"', deploy)
+        # 이미 몰려 떠 있던 스캔은 새 유닛 설치 전에 한 번 멈추고, 돌고 있지 않으면 건드리지 않는다.
+        start = deploy.index('stop_piled_up_scans_once() {')
+        body = deploy[start:deploy.index('\n}\n', start)]
+        # Type=oneshot 스캔은 실행 중 ActiveState가 activating이라 is-active로는 못 잡는다.
+        self.assertIn('systemctl show -p ActiveState --value "kiwoom-${name}.service"', body)
+        self.assertIn('if [ "$state" = "activating" ] || [ "$state" = "active" ]; then', body)
+        self.assertNotIn('systemctl is-active', body)
+        self.assertLess(deploy.index('stop_piled_up_scans_once || true'), deploy.index('ensure_scan_timers_current || true'))
+
     def test_intraday_volume_breakout_stays_at_0910_kst(self):
         # "개장 10분 만에 전일 거래량을 넘었는가"는 09:10에만 판정할 수 있다.
         self.assertEqual(on_calendar('volumebreakout'), 'Mon..Fri *-*-* 00:10:00')
