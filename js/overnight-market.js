@@ -435,9 +435,12 @@
     var data = payload && payload.data ? payload.data : payload;
     if (!data) { box.hidden = true; return; }
     if (data.restricted) {
+      // 2026-09-15 배포 후 실측: 운영 VM(미국 리전)에서 바이낸스가 HTTP 451로 막혔다. 방문자에게 매번
+      // "불러오지 못했습니다"를 보이는 대신 섹션을 숨긴다. 서버는 6시간마다 다시 시도하므로 서버를
+      // 한국 리전으로 옮기면 코드 변경 없이 다시 나타난다.
       grid.innerHTML = '';
-      note.textContent = '서버 위치 제한으로 바이낸스 시세를 불러오지 못했습니다.';
-      box.hidden = false;
+      note.textContent = '';
+      box.hidden = true;
       return;
     }
     var items = data.items || [];
