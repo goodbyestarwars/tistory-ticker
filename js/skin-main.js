@@ -507,7 +507,13 @@ document.documentElement.classList.add('skin-ready');
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
-        + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div><span class="home-market-live" data-home-market-field="live">실시간</span></div>'
+        + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
+        // 2026-09-15 작업지시서: "실시간" 옆에 사이드카(지수 전체) 알약 배지와 VI(개별종목) 카운트 배지를 따로 둔다.
+        // 발동이 없으면 둘 다 hidden이라 공간을 차지하지 않는다(아래 homeCircuitBreakerBadges가 채운다).
+        + '<div class="home-cb-wrap"><span class="home-cb-sidecar" data-home-cb-sidecar hidden></span>'
+        + '<button type="button" class="home-cb-vi" data-home-cb-vi hidden aria-expanded="false" aria-controls="homeCbDropdown"></button>'
+        + '<span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
+        + '<div class="home-cb-dropdown" id="homeCbDropdown" data-home-cb-dropdown hidden></div>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
@@ -2131,5 +2137,122 @@ document.documentElement.classList.add('skin-ready');
         if (sl2) sl2.style.top = '';
       }
     });
+  })();
+
+  /* 2026-09-15 작업지시서: 메인페이지 "국내 시장" 카드 헤더의 VI·사이드카 배지.
+     서버 한 곳이 20초마다 조회해 둔 캐시(/api/circuit-breaker)만 읽는다 - 브라우저가 증권사 API를
+     직접 부르지 않는다. 사이드카(지수 전체)와 VI(개별종목)는 위계가 달라 배지 두 개로 나누고,
+     발동이 없으면 둘 다 숨긴다. 사이드카는 확인된 데이터 출처가 생기기 전까지 서버가 available=false로
+     보내 배지가 뜨지 않는다. */
+  (function homeCircuitBreakerBadges() {
+    var CB_API = 'https://goodbyestar.cloud/api/circuit-breaker';
+    var CB_POLL_MS = 20000;
+    var SIDECAR_RELEASE_MS = 5000;
+    var lastSidecarActive = false;
+    var sidecarReleaseTimer = null;
+    var dropdownOpen = false;
+
+    function q(selector) {
+      var board = document.getElementById('homeMarketBoard');
+      return board ? board.querySelector(selector) : null;
+    }
+    function hhmm(iso) {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return '';
+      return d.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Seoul' });
+    }
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function isDomesticCard() {
+      var title = q('[data-home-market-field="title"]');
+      return !!title && title.textContent.indexOf('국내') === 0;
+    }
+    function setDropdown(open) {
+      dropdownOpen = open;
+      var dropdown = q('[data-home-cb-dropdown]');
+      var button = q('[data-home-cb-vi]');
+      if (dropdown) dropdown.hidden = !open;
+      if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
+    }
+    function hideAll() {
+      var sidecar = q('[data-home-cb-sidecar]');
+      var button = q('[data-home-cb-vi]');
+      if (sidecar) sidecar.hidden = true;
+      if (button) button.hidden = true;
+      setDropdown(false);
+    }
+
+    function renderSidecar(el, sidecar) {
+      if (!el) return;
+      var active = !!(sidecar && sidecar.available && sidecar.active);
+      if (active) {
+        clearTimeout(sidecarReleaseTimer);
+        sidecarReleaseTimer = null;
+        var market = sidecar.market === 'KOSPI' ? '코스피' : sidecar.market === 'KOSDAQ' ? '코스닥' : (sidecar.market || '');
+        // 발동 순간에만 한 번 펄스(과도한 깜빡임 지양), 지속 중에는 상시 노출.
+        el.className = 'home-cb-sidecar is-active' + (lastSidecarActive ? '' : ' is-pulse');
+        el.innerHTML = '<i aria-hidden="true"></i>' + esc((market ? market + ' ' : '') + '사이드카 발동 ' + hhmm(sidecar.triggered_at));
+        el.hidden = false;
+      } else if (lastSidecarActive) {
+        el.className = 'home-cb-sidecar is-released';
+        el.textContent = '사이드카 해제';
+        el.hidden = false;
+        clearTimeout(sidecarReleaseTimer);
+        sidecarReleaseTimer = setTimeout(function () { el.hidden = true; sidecarReleaseTimer = null; }, SIDECAR_RELEASE_MS);
+      } else if (!sidecarReleaseTimer) {
+        el.hidden = true;
+      }
+      lastSidecarActive = active;
+    }
+
+    function renderVi(button, dropdown, data) {
+      if (!button || !dropdown) return;
+      var list = (data && data.vi_list) || [];
+      var activeCount = Number(data && data.vi_active_count) || 0;
+      if (!list.length) {
+        button.hidden = true;
+        setDropdown(false);
+        return;
+      }
+      button.textContent = 'VI ' + activeCount + '건';
+      button.hidden = false;
+      dropdown.innerHTML = '<div class="home-cb-dropdown-head">변동성완화장치(VI) · 최근 발동 순</div><ul>'
+        + list.map(function (row) {
+          var released = row.status === 'released';
+          return '<li class="' + (released ? 'is-released' : 'is-active') + '">'
+            + '<a href="/page/stock-search?code=' + encodeURIComponent(row.code) + '&amp;name=' + encodeURIComponent(row.name) + '">' + esc(row.name) + '</a>'
+            + '<time>' + esc(hhmm(row.triggered_at)) + '</time>'
+            + '<b>' + (released ? '해제' : '발동') + '</b></li>';
+        }).join('') + '</ul>';
+      dropdown.hidden = !dropdownOpen;
+    }
+
+    function tick() {
+      if (document.hidden || !document.getElementById('homeMarketBoard')) return;
+      if (!q('[data-home-cb-vi]')) return;
+      if (!isDomesticCard()) { hideAll(); return; }
+      fetch(CB_API)
+        .then(function (res) { return res.ok ? res.json() : null; })
+        .then(function (body) {
+          var data = body && body.data ? body.data : body;
+          if (!data || !isDomesticCard()) return;
+          renderSidecar(q('[data-home-cb-sidecar]'), data.sidecar);
+          renderVi(q('[data-home-cb-vi]'), q('[data-home-cb-dropdown]'), data);
+        })
+        .catch(function () { /* 보조 표시라 실패하면 직전 상태를 그대로 둔다 */ });
+    }
+
+    document.addEventListener('click', function (event) {
+      var button = event.target.closest && event.target.closest('[data-home-cb-vi]');
+      if (button) { setDropdown(!dropdownOpen); return; }
+      var dropdown = q('[data-home-cb-dropdown]');
+      if (dropdownOpen && dropdown && !dropdown.contains(event.target)) setDropdown(false);
+    });
+    document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
+    setTimeout(tick, 2000);   // 홈 카드가 그려진 뒤 첫 조회
+    setInterval(tick, CB_POLL_MS);
   })();
 

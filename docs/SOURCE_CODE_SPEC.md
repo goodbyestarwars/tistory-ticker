@@ -178,6 +178,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `rest_quote_fallback.py` | 190 | 실시간 등록 자리에 못 들어간 국내 종목의 REST 통합(UN) 시세 폴백 | `RestQuoteFallback.want/release/latest`, `quote_event`, `start` |
 | `binance_client.py` | 120 | 바이낸스 공개 시세 API 래퍼(재시도·429 Retry-After·451 제한 구분) | `get_json`, `futures_symbol_info`, `ticker_24hr`, `premium_index`, `klines` |
 | `binance_flow.py` | 230 | 바이낸스 국내주식 토큰 참고 시세 수집(스레드 1개, 별도 SQLite) | `refresh_once`, `resolve_markets`, `get_payload`, `start_background` |
+| `circuit_breaker.py` | 200 | 메인 VI·사이드카 배지 - KIS VI 현황 20초 폴링(거래 시간만)·메모리 캐시 | `refresh_once`, `parse_rows`, `build_payload`, `get_payload`, `start_background` |
 | `load_probe.py` | 160 | `/health/load` VM 부하 스냅샷(/proc 읽기 전용) | `snapshot` |
 | `market_clock.py` | 60 | 국내 장 활성·미국 선물 주말 휴장 판정(수집 주기 완화용) | `kr_market_active`, `us_futures_weekend_closed`, `sleep_seconds` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
