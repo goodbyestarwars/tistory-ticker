@@ -172,7 +172,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `btc_futures.py` | 156 | BTC/ETH(업비트) | `fetch_ticker`, `refresh_realtime` |
 | `bond_yield.py` | 197 | 국고채3년(네이버)+미국채(FRED) | `fetch_fred_series`, `refresh_fred_all` |
 | `option_flow.py` | 88 | 코스피200 옵션 콜/풋 수급 집계 | `refresh_option_flow` |
-| `realtime_quotes.py` | 122 | 키움 0B 웹소켓→브라우저 중계 | `relay_quotes` |
+| `realtime_quotes.py` | 122 | KIS(공용 허브 구독)/키움 0B 실시간→브라우저 중계 | `relay_quotes` |
+| `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
 | `night_futures_ws.py` | 263 | 야간선물 실시간(KIS WS)+일/분봉 백필 | `_run_once`, `refresh_minute` |
 | `week52.py` | 28 | 52주 신고가/신저가 순수 계산 | `compute_week52` |

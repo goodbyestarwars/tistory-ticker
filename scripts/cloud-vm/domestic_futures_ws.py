@@ -19,6 +19,7 @@ from datetime import datetime, timezone
 
 import db_schema
 import kis_client
+import kis_ws_hub
 
 logger = logging.getLogger('domestic_futures_ws')
 
@@ -27,6 +28,8 @@ DISPLAY_NAME = '코스피200 주간선물'
 TRADE_TR_ID = 'H0IFCNT0'
 QUOTE_TR_ID = 'H0IFASP0'
 MST_URL = 'https://new.real.download.dws.co.kr/common/master/fo_idx_code_mts.mst.zip'
+# 허브에 붙은 뒤로는 재접속이 드물어 근월물 교체를 따로 확인한다.
+_FRONT_MONTH_RECHECK_SEC = 6 * 3600
 
 TRADE_FIELDS = [
     'futs_shrn_iscd', 'bsop_hour', 'futs_prdy_vrss', 'prdy_vrss_sign', 'futs_prdy_ctrt',
@@ -157,21 +160,22 @@ def _upsert_quote(row):
 
 
 async def _run_once(appkey, appsecret, code):
-    import websockets
-
-    approval_key = await asyncio.to_thread(kis_client.get_approval_key, appkey, appsecret)
-    async with websockets.connect(kis_client.WS_URL, ping_interval=None, open_timeout=10, close_timeout=5) as ws:
-        for tr_id in (TRADE_TR_ID, QUOTE_TR_ID):
-            await ws.send(json.dumps({
-                'header': {
-                    'approval_key': approval_key, 'custtype': 'P', 'tr_type': '1',
-                    'content-type': 'utf-8',
-                },
-                'body': {'input': {'tr_id': tr_id, 'tr_key': code}},
-            }))
-            await asyncio.sleep(0.05)
-        logger.info('KIS domestic futures WebSocket subscribed: code=%s', code)
-        async for raw in ws:
+    # 2026-09-14: KIS WebSocket을 직접 열지 않고 프로세스 공용 허브(kis_ws_hub.py)에 구독한다.
+    hub = kis_ws_hub.start(appkey, appsecret)
+    if hub is None:
+        raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못함')
+    subscription = hub.subscribe([
+        (TRADE_TR_ID, code, kis_ws_hub.PRIORITY_FUTURES),
+        (QUOTE_TR_ID, code, kis_ws_hub.PRIORITY_FUTURES),
+    ])
+    logger.info('KIS domestic futures subscribed via shared KIS WS hub: code=%s', code)
+    last_code_check = time.time()
+    try:
+        while True:
+            try:
+                raw = await asyncio.wait_for(subscription.queue.get(), timeout=60)
+            except asyncio.TimeoutError:
+                raw = None
             if isinstance(raw, str) and raw.startswith('0|'):
                 if TRADE_TR_ID in raw.split('|', 3)[1:2]:
                     for row in _parse_rows(raw, TRADE_FIELDS):
@@ -179,13 +183,18 @@ async def _run_once(appkey, appsecret, code):
                 elif QUOTE_TR_ID in raw.split('|', 3)[1:2]:
                     for row in _parse_rows(raw, QUOTE_FIELDS):
                         await asyncio.to_thread(_upsert_quote, row)
-                continue
-            try:
-                message = json.loads(raw)
-            except (TypeError, json.JSONDecodeError):
-                continue
-            if (message.get('header') or {}).get('tr_id') == 'PINGPONG':
-                await ws.send(raw)
+            if time.time() - last_code_check > _FRONT_MONTH_RECHECK_SEC:
+                last_code_check = time.time()
+                try:
+                    latest = await asyncio.to_thread(get_front_month_code)
+                except Exception:
+                    logger.exception('KIS domestic futures front-month recheck failed')
+                    latest = code
+                if latest and latest != code:
+                    logger.info('KIS domestic futures front month changed: %s -> %s', code, latest)
+                    return
+    finally:
+        subscription.close()
 
 
 async def _reconnect_loop(appkey, appsecret):

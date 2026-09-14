@@ -282,6 +282,7 @@ dict 구성을 함께 대조한다.
 | GET | `/domestic-news` | 없음 | 국내 일반뉴스·DART 공시 |
 | GET | `/foreign-news` | 없음 | 미국·글로벌 일반뉴스 |
 | GET | `/market-board` | 없음 | 시장별 실시간 종목판·업종 TOP |
+| GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
 | GET | `/industry-flow` | 없음 | 증시온도 업종 TOP 10(테마별 거래대금·평균등락·대표 종목). 증시온도 백그라운드 계산(3분)의 저장값을 서빙. `previousDate`·`previousRanks`(`{테마: 순위}`)는 직전 거래일 순위로, 비교할 날이 없거나 배포 직후 옛 캐시면 `null` |
 | GET | `/domestic-market-indicators` | 없음 | 국내시장 요약 지표 |
 | GET | `/kofia-market` | 없음 | 신용·예탁금·반대매매 보조지표 |

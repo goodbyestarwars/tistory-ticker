@@ -71,6 +71,7 @@ X-API-Key: <VM_API_TOKEN>
 |---|---|---|---|
 | GET | `/health` | 없음 | 서비스 상태와 배포 가드 버전 |
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
+| GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
 | GET | `/auth/google/start` | 없음 | OAuth 시작, `return_to` 선택 |
 | GET | `/auth/google/callback` | OAuth state/nonce | OAuth 콜백 및 세션 발급 |
 | GET | `/auth/google/me` | 세션 선택 | 로그인 상태 확인 |
@@ -160,6 +161,14 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 - 동시 연결 상한은 200이다.
 - KIS 국내·미국 WebSocket을 우선 사용하고, 설정·실패 시 기존 키움/Finnhub 경로로
   폴백한다.
+- KIS 경로는 브라우저 연결마다 KIS 세션을 열지 않는다. 프로세스 공용 허브
+  (`kis_ws_hub.py`)가 KIS WebSocket 하나를 유지하고, 야간선물·주간선물·옵션 수집기와 이
+  중계가 모두 여기에 구독만 한다(2026-09-14, 같은 앱키 세션끼리 충돌해 체결이 0건이던 장애).
+- 틱이 없는 동안 15초마다 `{"type":"status","upstream":"connected|retrying","lastTickAgeSec":…}`를
+  보낸다. 화면은 이것으로 "지연"을 판단할 수 있다.
+- 허브 상태는 `GET /health/realtime`(연결 여부, 마지막 체결 시각, 등록·누락 구독 수,
+  재접속·워치독 횟수, KIS 마지막 오류 메시지)으로 확인한다. 세션당 등록 상한은 미검증이라
+  `KIS_WS_MAX_REGISTRATIONS`(기본 40)로 두고, 넘치면 선물 > 종목 체결 > 호가 > 옵션 순으로 남긴다.
 - 연결이 끊기면 프론트가 재연결하며, 휴장 중 값이 움직이지 않는 것은 정상이다.
 
 ### `/ws/economic-news`
