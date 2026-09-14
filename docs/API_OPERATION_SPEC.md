@@ -72,6 +72,7 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/health` | 없음 | 서비스 상태와 배포 가드 버전 |
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
 | GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
+| GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
 | GET | `/auth/google/start` | 없음 | OAuth 시작, `return_to` 선택 |
 | GET | `/auth/google/callback` | OAuth state/nonce | OAuth 콜백 및 세션 발급 |
 | GET | `/auth/google/me` | 세션 선택 | 로그인 상태 확인 |
