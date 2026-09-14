@@ -138,6 +138,40 @@ ensure_volume_breakout_timer() {
   return 0
 }
 
+# 2026-09-14 사용자 지시("20:00시까지는 스캔 돌리지마. 장 끝나고 돌려"): 스캔·배치 타이머를
+# KRX 애프터마켓·NXT 마감(20:00) 뒤로 옮겼다. 설치 스크립트만 고치면 VM의 유닛 파일은 예전
+# 시각 그대로라(volumebreakout 말고는 VM에서 사람이 한 번 돌려야 했다), 스크립트 내용이 바뀐
+# 경우에만 여기서 다시 설치하고 타이머를 재시작해 새 시각을 바로 적용한다. 내용 해시를
+# 마커로 남기므로 이후 회차는 해시 비교 한 번으로 지나간다.
+ensure_scan_timers_current() {
+  local name setup_script marker current
+  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do
+    setup_script="$APP_DIR/scripts/cloud-vm/setup_${name}_timer.sh"
+    if [ ! -f "$setup_script" ]; then
+      continue  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다
+    fi
+    marker="$APP_DIR/.timer_${name}.sha256"
+    current="$(sha256sum "$setup_script" | cut -d' ' -f1)"
+    if [ "$(cat "$marker" 2>/dev/null || echo "")" = "$current" ]; then
+      continue
+    fi
+    # OnCalendar를 바꾼 뒤에는 start만으로 다음 실행 시각이 새로 계산되지 않을 수 있어 restart한다.
+    # 타이머가 Persistent=true라, 오늘 예전 시각(16:00대)에 이미 돌았어도 새 시각(20:10대)이
+    # 지난 뒤 재시작하면 "놓친 실행"으로 보고 여섯 개가 한꺼번에 즉시 돈다(daily_scan이 끝나기
+    # 전에 DB 전용 스캔이 먼저 도는 순서 역전 포함). 마지막 실행 기록(stamp)을 지금으로 맞춰
+    # 그 몰아치기를 막는다 - 다음 실행은 새 시각의 다음 회차다.
+    if bash "$setup_script" >/dev/null \
+        && sudo touch "/var/lib/systemd/timers/stamp-kiwoom-${name}.timer" \
+        && sudo systemctl restart "kiwoom-${name}.timer"; then
+      printf '%s\n' "$current" > "$marker"
+      echo "kiwoom-${name}.timer 재설치 완료(설치 스크립트 변경 반영)"
+    else
+      echo "kiwoom-${name}.timer 재설치 실패: 5분 뒤 재시도" >&2
+    fi
+  done
+  return 0
+}
+
 run_price_recap_cleanup_once() {
   if [ -f "$PRICE_RECAP_CLEANUP_MARKER" ]; then
     return 0
@@ -165,6 +199,16 @@ run_price_recap_cleanup_once() {
 run_search_scan_refresh_after_deploy() {
   if [ "$(id -un)" != "goodbyestarwars" ]; then
     echo "검색 스캔 갱신 건너뜀: 실행 사용자가 goodbyestarwars가 아닙니다."
+    return 0
+  fi
+  # 2026-09-14 사용자 지시("20:00시까지는 스캔 돌리지마"): 평일 장중(08:00~20:00 KST, NXT
+  # 프리마켓~애프터마켓 마감)에 배포되면 재스캔을 건너뛴다. 20:00 뒤 정기 스캔 타이머
+  # (daily_scan·strategy_scan)가 새 규칙으로 다시 돈다.
+  local kst_dow kst_hm
+  kst_dow="$(TZ=Asia/Seoul date +%u)"
+  kst_hm=$((10#$(TZ=Asia/Seoul date +%H%M)))
+  if [ "$kst_dow" -le 5 ] && [ "$kst_hm" -ge 800 ] && [ "$kst_hm" -lt 2000 ]; then
+    echo "검색 스캔 갱신 건너뜀: 장중(평일 08:00~20:00 KST) - 20:00 이후 정기 스캔이 반영"
     return 0
   fi
   (
@@ -261,6 +305,7 @@ run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
 # 실패해도 배포 결과를 되돌리지 않는다 - 다음 5분 회차에서 다시 시도한다.
 ensure_volume_breakout_timer || true
+ensure_scan_timers_current || true
 run_off_hours_maintenance_if_due || true
 
 # 2026-08-03: 주요 엔드포인트 로컬 응답시간을 5분마다 기록(GET /health/latency로 노출) -

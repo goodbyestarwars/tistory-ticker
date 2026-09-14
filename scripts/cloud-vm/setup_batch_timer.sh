@@ -1,6 +1,9 @@
 #!/bin/bash
-# kiwoom-batch.service/.timer를 등록해서 batch_scan.py가 하루 1회(20:00 KST=11:00 UTC,
-# 장 마감 후 데이터 정산 시간 감안) 자동 실행되게 한다.
+# kiwoom-batch.service/.timer를 등록해서 batch_scan.py가 하루 1회(21:00 KST=12:00 UTC,
+# 예전 20:00 KST - 애프터마켓·NXT 마감 후 데이터 정산 시간 감안) 자동 실행되게 한다.
+# 2026-09-14 사용자 지시("20:00시까지는 스캔 돌리지마. 장 끝나고 돌려")로 KRX 애프터마켓·NXT
+# 마감(20:00) 뒤로 옮겼다. 이 파일이 바뀌면 deploy_check.sh(ensure_scan_timers_current)가
+# VM에 다시 설치하고 타이머를 재시작한다 - 사람이 VM에서 다시 돌릴 필요는 없다.
 # VM에서 한 번만 실행하면 됨: bash scripts/cloud-vm/setup_batch_timer.sh
 set -e
 HOME_DIR="$HOME/kiwoom-api"
@@ -18,10 +21,10 @@ SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-batch.timer > /dev/null << TIMEREOF
 [Unit]
-Description=Run kiwoom-batch daily at 20:00 KST (11:00 UTC)
+Description=Run kiwoom-batch daily at 21:00 KST (12:00 UTC)
 
 [Timer]
-OnCalendar=*-*-* 11:00:00
+OnCalendar=*-*-* 12:00:00
 Persistent=true
 
 [Install]

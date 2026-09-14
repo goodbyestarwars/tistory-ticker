@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """daily_scan.py처럼 키움 API를 호출하지 않고, SQLite(daily_prices)에 이미 저장된 OHLC만
 읽어서 차트패턴(5종)+눌림목을 전종목 재채점한다. pattern_detect.py에 새 스캐너 함수를
-추가했을 때, 다음날 daily_scan.py(API 기반, 07:00 UTC) 실행을 기다리지 않고 즉시
+추가했을 때, 다음날 daily_scan.py(API 기반, 11:10 UTC = 20:10 KST) 실행을 기다리지 않고 즉시
 전종목 재채점하는 용도 - 종목 하나씩 커서 순회라 메모리엔 종목 1개분만 올라간다.
 investSignal(수급 기반, 실시간성이 필요)은 이 스크립트가 다루지 않고 기존
 daily_scan_cache.json의 investSignal 섹션을 그대로 보존한다.

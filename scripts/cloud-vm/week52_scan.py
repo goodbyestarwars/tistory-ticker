@@ -4,8 +4,8 @@ data/sectors-v3.js 섹터 풀(238종목, 전체 종목이 아님 - gas의 fetchS
 대상으로 52주 고가/저가 갱신 여부를 계산한다.
 
 2026-07-14: 키움 API를 직접 호출하던 걸 SQLite(daily_prices) 읽기로 교체 - daily_scan.py가
-매일 07:00 UTC에 전종목(섹터 풀 포함) OHLC를 daily_prices에 이미 저장해두므로, 이 배치가
-같은 종목을 또 API로 조회하던 중복 호출을 없앤 것(이 타이머는 10:30 UTC라 daily_scan.py가
+매일 11:10 UTC(20:10 KST)에 전종목(섹터 풀 포함) OHLC를 daily_prices에 이미 저장해두므로, 이 배치가
+같은 종목을 또 API로 조회하던 중복 호출을 없앤 것(이 타이머는 11:50 UTC(20:50 KST)라 daily_scan.py가
 끝난 뒤 실행됨). API 키/네트워크 호출이 전혀 필요 없어져서 실행 시간도 초 단위로 줄어듦.
 systemd timer로 하루 1회 실행 - main.py의 /week52-batch가 결과를 즉시 서빙한다."""
 

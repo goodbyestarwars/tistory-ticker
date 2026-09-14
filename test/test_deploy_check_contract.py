@@ -83,6 +83,33 @@ class DeployRestartScopeTest(unittest.TestCase):
         body = self.script[start:self.script.index('\n}\n', start)]
         self.assertIn('flock -n "$MOMENTUM_LOCK" "$PYTHON" "$APP_DIR/cleanup_price_recap_topics.py"', body)
 
+    def test_scan_timers_are_reinstalled_when_setup_script_changes(self):
+        """설치 스크립트의 시각만 바꾸면 VM 유닛은 예전 시각 그대로였다(2026-09-14 스캔 시각 이동)."""
+        start = self.script.index('ensure_scan_timers_current() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do', body)
+        self.assertIn('sha256sum "$setup_script"', body)
+        self.assertIn('sudo systemctl restart "kiwoom-${name}.timer"', body)
+        # Persistent=true 타이머가 재시작 직후 "놓친 실행"을 한꺼번에 몰아 돌지 않게 stamp를 먼저 맞춘다.
+        self.assertLess(body.index('sudo touch "/var/lib/systemd/timers/stamp-kiwoom-${name}.timer"'),
+                        body.index('sudo systemctl restart "kiwoom-${name}.timer"'))
+        # 성공했을 때만 해시 마커를 남겨 실패하면 다음 회차가 다시 시도한다.
+        self.assertLess(body.index('sudo systemctl restart'), body.index('> "$marker"'))
+        self.assertIn('ensure_scan_timers_current || true', self.script)
+        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch'):
+            setup = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_%s_timer.sh' % name)
+            with open(setup, encoding='utf-8') as handle:
+                self.assertIn('kiwoom-%s.timer' % name, handle.read(), setup)
+
+    def test_post_deploy_rescan_skips_weekday_market_hours(self):
+        """사용자 지시(2026-09-14): 20:00까지는 스캔을 돌리지 않는다."""
+        start = self.script.index('run_search_scan_refresh_after_deploy() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        gate = body.index('if [ "$kst_dow" -le 5 ] && [ "$kst_hm" -ge 800 ] && [ "$kst_hm" -lt 2000 ]; then')
+        self.assertIn('kst_hm=$((10#$(TZ=Asia/Seoul date +%H%M)))', body)
+        self.assertLess(gate, body.index('"$APP_DIR/rescan_patterns.py"'))
+        self.assertLess(gate, body.index('"$APP_DIR/strategy_scan.py"'))
+
     @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Linux bash에서만 구문 검사')
     def test_script_parses(self):
         subprocess.run(['bash', '-n', SCRIPT], check=True)
