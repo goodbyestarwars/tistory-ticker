@@ -6,7 +6,7 @@
 기관 순매매)을 쓰므로 IP 차단 위험이 없고, 종목당 일봉 크롤링을 1회만 해서 세 스캔이
 공유한다(kiwoom_market 참고). 수급(외국인/기관) 소스는 2026-07-20부터 ka10045(NXT 미포함,
 부정확) 대신 fetch_foreign_inst_daily(KIS 우선, 종목분석 페이지와 동일 소스)로 교체됨.
-systemd timer로 하루 1회 실행(16:00 KST, KIS TIME LIMIT 15:40 이후라 안전) - main.py의
+systemd timer로 하루 1회 실행(20:10 KST = 11:10 UTC, 2026-09-14부터 KRX 애프터마켓·NXT 20:00 마감 뒤) - main.py의
 /daily-scan-batch가 결과를 즉시 서빙한다."""
 
 import json
