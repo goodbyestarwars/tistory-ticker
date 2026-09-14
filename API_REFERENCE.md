@@ -285,7 +285,7 @@ dict 구성을 함께 대조한다.
 | GET | `/market-board` | 없음 | 시장별 실시간 종목판·업종 TOP |
 | GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
-| GET | `/binance-kr-equity` | 없음 | 바이낸스 국내주식 토큰(SAMSUNGUSDT·SKHYNIXUSDT) 참고 시세: 가격(USDT)·24시간 등락·마크가격·펀딩비·1시간 종가 48개. 국내 장 닫힘 5분/장중 30분 백그라운드, 451이면 `restricted` |
+| GET | `/binance-kr-equity` | 없음 | 바이낸스 국내주식 토큰(SAMSUNGUSDT·SKHYNIXUSDT) 참고 시세: 가격(USDT)·24시간 등락·마크가격·펀딩비·1시간 종가 48개. 국내 장 닫힘 5분/장중 30분 백그라운드, 451이면 `restricted`. 2026-09-15부터 화면은 방문자 브라우저가 `fapi.binance.com`을 직접 조회하고(CORS 허용) 이 엔드포인트는 폴백 |
 | GET | `/industry-flow` | 없음 | 증시온도 업종 TOP 10(테마별 거래대금·평균등락·대표 종목). 증시온도 백그라운드 계산(3분)의 저장값을 서빙. `previousDate`·`previousRanks`(`{테마: 순위}`)는 직전 거래일 순위로, 비교할 날이 없거나 배포 직후 옛 캐시면 `null` |
 | GET | `/domestic-market-indicators` | 없음 | 국내시장 요약 지표 |
 | GET | `/kofia-market` | 없음 | 신용·예탁금·반대매매 보조지표 |
