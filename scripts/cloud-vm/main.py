@@ -56,6 +56,7 @@ import option_flow
 import order_book
 import public_data
 import kis_ws_hub
+import market_clock
 import realtime_quotes
 import theme_flow
 import scan_forward
@@ -604,13 +605,39 @@ def _upstream_http_exception(message, exc):
     return HTTPException(status_code=502, detail=message)
 
 
+# 2026-09-15 사용자 요청("커밋 표시하고"): 전날 밤 장애 때 머지한 수정이 VM에 실제로 반영됐는지
+# 밖에서 알 방법이 없어, 실시간 허브의 connectedAt 변화로 재시작을 추측해야 했다.
+# deploy_check.sh가 처리한 master 커밋(.last_deployed_sha)과 이 프로세스의 시작 시각을 함께 보여준다.
+# js/css만 바뀐 커밋은 재시작 없이 SHA만 기록되므로, "코드가 실제로 올라갔는가"는
+# processStartedAt이 deployRecordedAt 이후인지로 본다.
+_PROCESS_STARTED_AT = datetime.now(timezone.utc).isoformat(timespec='seconds')
+_DEPLOYED_SHA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), '.last_deployed_sha')
+
+
+def _deployed_commit():
+    try:
+        with open(_DEPLOYED_SHA_FILE, encoding='utf-8') as handle:
+            sha = handle.read().strip()
+        recorded = datetime.fromtimestamp(os.path.getmtime(_DEPLOYED_SHA_FILE), timezone.utc)
+    except OSError:
+        return None, None
+    if not re.fullmatch(r'[0-9a-f]{7,40}', sha or ''):
+        return None, None
+    return sha, recorded.isoformat(timespec='seconds')
+
+
 @app.get('/health')
 def health():
+    sha, recorded_at = _deployed_commit()
     return envelope({
         'status': 'ok',
         'deployGuardVersion': 2,
         'momentumSchedulerVersion': 'deploy-timer-flock-v1',
         'momentumAggregationVersion': 3,
+        'deployedCommit': sha,
+        'deployedCommitShort': sha[:7] if sha else None,
+        'deployRecordedAt': recorded_at,
+        'processStartedAt': _PROCESS_STARTED_AT,
     })
 
 
@@ -3038,7 +3065,9 @@ def _refresh_domestic_market_indicators():
 def _domestic_market_indicators_loop():
     while True:
         _refresh_domestic_market_indicators()
-        time.sleep(_DOMESTIC_MARKET_INDICATORS_TTL)
+        # 2026-09-15 부하 절감: 국내 장이 닫힌 시간(밤·주말·휴장일)에는 15분마다만 갱신한다.
+        time.sleep(market_clock.sleep_seconds(market_clock.kr_market_active(),
+                                              _DOMESTIC_MARKET_INDICATORS_TTL))
 
 
 def _start_domestic_market_indicators_refresher():

@@ -69,7 +69,7 @@ X-API-Key: <VM_API_TOKEN>
 
 | Method | Endpoint | 인증 | 운영 역할 |
 |---|---|---|---|
-| GET | `/health` | 없음 | 서비스 상태와 배포 가드 버전 |
+| GET | `/health` | 없음 | 서비스 상태와 배포 가드 버전 + `deployedCommit`/`deployedCommitShort`(VM이 처리한 master 커밋), `deployRecordedAt`(그 기록 시각), `processStartedAt`(FastAPI 시작 시각 - 이 값이 기록 시각보다 뒤면 그 커밋의 VM 코드가 실행 중) |
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
 | GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |

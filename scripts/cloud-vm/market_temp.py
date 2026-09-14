@@ -358,9 +358,12 @@ def start_background(conn_factory, week52_cache_file, kofia_factory,
     load_cache()        # 첫 계산이 끝나기 전까지 지난 값으로 버틴다
 
     def loop():
+        import market_clock
         while True:
             refresh_once(conn_factory, week52_cache_file, kofia_factory)
-            time.sleep(interval)
+            # 2026-09-15 부하 절감: 국내 장이 닫힌 시간에는 15분마다만 다시 계산한다
+            # (238종목 시세 조회 + DB 계산이라 이 프로세스에서 무거운 축에 든다).
+            time.sleep(market_clock.sleep_seconds(market_clock.kr_market_active(), interval))
 
     threading.Thread(target=loop, name='market-temp', daemon=True).start()
     LOGGER.info('market-temp 백그라운드 계산 시작(%d초 주기)', interval)

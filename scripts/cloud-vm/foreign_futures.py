@@ -133,6 +133,7 @@ def refresh_history_all():
 
 
 def _poll_loop():
+    import market_clock
     last_history_refresh = 0
     while True:
         try:
@@ -146,7 +147,8 @@ def _poll_loop():
             except Exception:
                 logger.exception('refresh_history_all failed')
             last_history_refresh = now
-        time.sleep(_REALTIME_POLL_SEC)
+        # 2026-09-15 부하 절감: 미국 지수선물·원자재가 주말로 닫힌 동안(토 08:00~월 06:00 KST)은 15분마다만.
+        time.sleep(market_clock.sleep_seconds(not market_clock.us_futures_weekend_closed(), _REALTIME_POLL_SEC))
 
 
 def start_background():

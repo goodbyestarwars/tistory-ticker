@@ -267,6 +267,20 @@ class LiveOrPendingKeysTests(unittest.TestCase):
         self.assertIn(('H0UNCNT0', '000660'), keys)      # 상한 안에서 차례 대기
         self.assertNotIn(('H0UNCNT0', '035420'), keys)   # 상한 밖 → 지연
 
+    def test_result_is_cached_until_subscriptions_change(self):
+        """브라우저 연결마다 1초에 한 번 부르므로 바뀐 게 없으면 다시 계산하지 않는다(2026-09-15)."""
+        hub, loop = self.make_hub(max_registrations=5)
+        hub.subscribe([('H0UNCNT0', '005930')], loop=loop)
+        with hub._lock:
+            hub._state['connected'] = True
+        first = hub.live_or_pending_keys()
+        self.assertIs(hub.live_or_pending_keys(), first)
+        hub.subscribe([('H0UNCNT0', '000660')], loop=loop)
+        self.assertIn(('H0UNCNT0', '000660'), hub.live_or_pending_keys())
+        with hub._lock:
+            hub._state['connected'] = False
+        self.assertEqual(hub.live_or_pending_keys(), frozenset())
+
     def test_nothing_is_live_while_disconnected(self):
         hub, loop = self.make_hub(max_registrations=40)
         hub.subscribe([('H0UNCNT0', '005930')], loop=loop)
