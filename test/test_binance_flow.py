@@ -202,6 +202,14 @@ class WiringTests(unittest.TestCase):
         self.assertIn("var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';", js)
         self.assertIn('참고 지표 · 무기한선물 가격(실제 주식 수급 아님)', js)
         self.assertIn('loadBinance(container);', js)
+        # 운영 VM(미국)은 451로 막히므로 방문자 브라우저가 바이낸스를 직접 조회하고(CORS 허용 실측),
+        # 실패하면 서버 수집 결과로 물러난다(2026-09-15).
+        self.assertIn("var BINANCE_FAPI = 'https://fapi.binance.com/fapi/v1';", js)
+        self.assertIn("BINANCE_FAPI + '/ticker/24hr?symbol='", js)
+        self.assertIn("BINANCE_FAPI + '/premiumIndex?symbol='", js)
+        self.assertIn('else loadBinanceFromServer(container);', js)
+        self.assertIn('loadBinance(container, true);', js)
+        self.assertIn('실제 주식 수급이 아닌 참고 지표입니다.', js)
         # 운영 VM에서 451(서버 위치 제한)이면 오류 문구 대신 섹션을 숨긴다(2026-09-15 배포 후 실측).
         start = js.index('    if (data.restricted) {')
         branch = js[start:js.index('      return;', start)]

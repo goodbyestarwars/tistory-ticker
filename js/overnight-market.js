@@ -381,6 +381,13 @@
   var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';
   var BINANCE_REFRESH_MS = 5 * 60 * 1000;
   var binanceTimer = null;
+  // 2026-09-15: 운영 VM(미국 리전)은 바이낸스가 HTTP 451로 막는다. 바이낸스 선물 공개 API는 CORS를
+  // 허용한다(Access-Control-Allow-Origin: *, 실측) - 방문자 브라우저가 직접 조회해 서버 부하 없이 보여준다.
+  // 브라우저에서도 막히면(방문자 지역 제한 등) 서버 수집 결과로 물러나고, 그것도 제한이면 섹션을 숨긴다.
+  var BINANCE_FAPI = 'https://fapi.binance.com/fapi/v1';
+  var BINANCE_SYMBOLS = [['SAMSUNGUSDT', '삼성전자'], ['SKHYNIXUSDT', 'SK하이닉스']];
+  var BINANCE_KLINES_TTL_MS = 30 * 60 * 1000;
+  var binanceKlinesCache = {};
 
   function buildBinanceShell() {
     return '<div class="om-category om-binance" id="omBinance" hidden>'
@@ -451,15 +458,86 @@
     box.hidden = false;
   }
 
-  function loadBinance(container) {
-    if (document.hidden || !('fetch' in global)) return;
+  function binanceGet(url) {
     var controller = 'AbortController' in global ? new AbortController() : null;
     var timer = controller ? setTimeout(function () { controller.abort(); }, 10000) : null;
-    fetch(BINANCE_API, controller ? { signal: controller.signal } : {})
-      .then(function (res) { return res.ok ? res.json() : null; })
+    return fetch(url, controller ? { signal: controller.signal } : {})
+      .then(function (res) {
+        if (timer) clearTimeout(timer);
+        if (!res.ok) { var err = new Error('HTTP ' + res.status); err.status = res.status; throw err; }
+        return res.json();
+      }, function (err) {
+        if (timer) clearTimeout(timer);
+        throw err;
+      });
+  }
+
+  // 1시간 캔들은 자주 바뀌지 않으므로 30분 동안 다시 부르지 않는다(방문자 브라우저 호출 수 절약).
+  function binanceKlines(symbol) {
+    var cached = binanceKlinesCache[symbol];
+    if (cached && Date.now() - cached.t < BINANCE_KLINES_TTL_MS) return Promise.resolve(cached.rows);
+    return binanceGet(BINANCE_FAPI + '/klines?symbol=' + encodeURIComponent(symbol) + '&interval=1h&limit=48')
+      .then(function (rows) {
+        var closes = (rows || []).map(function (r) { return [Number(r[0]), Number(r[4])]; })
+          .filter(function (p) { return isFinite(p[0]) && isFinite(p[1]); });
+        binanceKlinesCache[symbol] = { t: Date.now(), rows: closes };
+        return closes;
+      })
+      .catch(function () { return cached ? cached.rows : []; });
+  }
+
+  function binanceSymbolItem(pair) {
+    var symbol = pair[0];
+    var q = encodeURIComponent(symbol);
+    return Promise.all([
+      binanceGet(BINANCE_FAPI + '/ticker/24hr?symbol=' + q),
+      binanceGet(BINANCE_FAPI + '/premiumIndex?symbol=' + q).catch(function () { return null; }),
+      binanceKlines(symbol)
+    ]).then(function (res) {
+      var ticker = res[0] || {};
+      var price = Number(ticker.lastPrice);
+      if (!isFinite(price)) return null;
+      return {
+        symbol: symbol,
+        label: pair[1],
+        market: 'futures',
+        price: price,
+        changeRate: Number(ticker.priceChangePercent),
+        markPrice: res[1] ? Number(res[1].markPrice) : null,
+        fundingRate: res[1] ? Number(res[1].lastFundingRate) : null,
+        klines: res[2]
+      };
+    }).catch(function () { return null; });   // 미상장·지역 제한 등은 그 종목만 조용히 뺀다
+  }
+
+  function loadBinanceDirect() {
+    return Promise.all(BINANCE_SYMBOLS.map(binanceSymbolItem)).then(function (items) {
+      items = items.filter(Boolean);
+      if (!items.length) return null;
+      return {
+        items: items,
+        updatedAt: new Date().toISOString(),
+        note: '바이낸스 무기한선물(파생상품) 가격을 이 브라우저에서 직접 조회합니다. 실제 주식 수급이 아닌 참고 지표입니다.'
+      };
+    });
+  }
+
+  function loadBinanceFromServer(container) {
+    binanceGet(BINANCE_API)
       .then(function (payload) { renderBinance(container, payload); })
-      .catch(function () { /* 참고 지표라 실패하면 섹션을 숨긴 채 둔다 */ })
-      .then(function () { if (timer) clearTimeout(timer); });
+      .catch(function () { /* 참고 지표라 실패하면 섹션을 숨긴 채 둔다 */ });
+  }
+
+  function loadBinance(container, initial) {
+    if (!('fetch' in global)) return;
+    // 첫 표시는 탭이 가려져 있어도 한 번 채우고, 주기 갱신은 보이는 동안에만 한다.
+    if (document.hidden && !initial) return;
+    loadBinanceDirect()
+      .then(function (payload) {
+        if (payload) renderBinance(container, payload);
+        else loadBinanceFromServer(container);
+      })
+      .catch(function () { loadBinanceFromServer(container); });
   }
 
   function buildCardBody(item) {
@@ -954,7 +1032,7 @@
     refresh(container);
     connectIndicatorSocket();
     renderAiSummary(container);
-    loadBinance(container);
+    loadBinance(container, true);
     if (binanceTimer) clearInterval(binanceTimer);
     binanceTimer = setInterval(function () { loadBinance(container); }, BINANCE_REFRESH_MS);
 
