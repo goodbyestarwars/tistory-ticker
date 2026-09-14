@@ -276,11 +276,19 @@
     return false;
   }
 
-  /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다. */
+  /* 홈이 국내 화면에서 미국 화면으로 넘어가는 KST 시각.
+     2026-09-14 사용자 결정("늦춰야지 21:00로 해"): 같은 날부터 KRX 애프터마켓이 20:00까지
+     열리는데 홈은 미국 프리마켓(서머타임 17:00·표준시 18:00)에 맞춰 넘어가, 국내 체결이
+     한창인 17~20시에 미국 화면을 보여줬다. 애프터마켓·NXT가 끝난(20:00) 뒤 여유를 두고
+     21:00에 넘긴다. 미국 세션 판정(us(), usPreOpenKstMinutes)은 그대로다. */
+  var HOME_US_SWITCH_KST_MINUTES = M(21);
+
+  /* 홈이 어느 시장 화면을 보여줄지. 이 함수가 유일한 기준이다(VM main.py
+     _economic_news_market()이 같은 시각을 쓴다). */
   function homeMarket(date) {
     if (isWeekendClosed(date)) return 'closed';
     var k = kst(date);
-    return (k.minutes >= usPreOpenKstMinutes(date) || k.minutes < M(9)) ? 'us' : 'domestic';
+    return (k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < M(9)) ? 'us' : 'domestic';
   }
 
   global.MarketHours = {
