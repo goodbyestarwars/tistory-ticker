@@ -56,6 +56,7 @@ import option_flow
 import order_book
 import public_data
 import binance_flow
+import circuit_breaker
 import kis_ws_hub
 import load_probe
 import market_clock
@@ -177,6 +178,13 @@ def _start_futures_collectors():
         binance_flow.start_background()
     except Exception:
         logging.getLogger('main').exception('바이낸스 참고 시세 수집 시작 실패')
+
+    # 2026-09-15 작업지시서: 메인페이지 VI·사이드카 배지. 서버 한 곳에서만 20초마다 조회(정규장·애프터마켓만),
+    # 방문자 브라우저는 /api/circuit-breaker 캐시만 읽는다(circuit_breaker.py).
+    try:
+        circuit_breaker.start_background(kis_appkey, kis_appsecret)
+    except Exception:
+        logging.getLogger('main').exception('VI 배지 조회 시작 실패')
 
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
@@ -3004,6 +3012,18 @@ def theme_flow_endpoint(request: Request):
             status_code=503,
             detail=cached.get('error') or '테마 흐름을 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
     return envelope(result)
+
+
+@app.get('/api/circuit-breaker')
+def circuit_breaker_endpoint(request: Request):
+    """메인페이지 VI·사이드카 배지(서버 캐시만 읽는 가벼운 GET).
+
+    2026-09-15 작업지시서. 스키마: sidecar{available, active, market, triggered_at, note},
+    vi_active_count, vi_list[{code, name, status(active|released), triggered_at, released_at}](최근 발동 순 최대 10,
+    해제 후 5분까지), fetchedAt, error. 사이드카는 확인된 출처가 없어 available=False.
+    """
+    _check_rate_limit('circuit_breaker', request, max_per_window=60)
+    return envelope(circuit_breaker.get_payload())
 
 
 @app.get('/binance-kr-equity')
