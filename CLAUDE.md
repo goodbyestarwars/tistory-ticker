@@ -9,6 +9,7 @@
 - 운영 API: `https://goodbyestar.cloud`
 - 운영 사이트: `https://ghlee.tistory.com`
 - 기본·배포 브랜치: `master`
+- VM은 e2-micro(메모리 1GB)다. 새 수집은 별도 프로세스·타이머 대신 FastAPI 안의 가벼운 스레드로, 국내 장이 닫힌 시간엔 느린 주기로 둔다(`market_clock.py`). 예: 바이낸스 국내주식 토큰 참고 시세 `binance_flow.py`(2026-09-15)
 
 ## 필수 규칙
 

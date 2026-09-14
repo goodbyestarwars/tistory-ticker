@@ -176,6 +176,10 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
 | `theme_flow.py` | 200 | 키움 테마(ka90001/ka90002) 기준 "오늘 돈이 몰린 섹터" 3분 백그라운드 수집 | `fetch_theme_flow`, `build_theme_rows`, `start_background`, `get_cached` |
 | `rest_quote_fallback.py` | 190 | 실시간 등록 자리에 못 들어간 국내 종목의 REST 통합(UN) 시세 폴백 | `RestQuoteFallback.want/release/latest`, `quote_event`, `start` |
+| `binance_client.py` | 120 | 바이낸스 공개 시세 API 래퍼(재시도·429 Retry-After·451 제한 구분) | `get_json`, `futures_symbol_info`, `ticker_24hr`, `premium_index`, `klines` |
+| `binance_flow.py` | 230 | 바이낸스 국내주식 토큰 참고 시세 수집(스레드 1개, 별도 SQLite) | `refresh_once`, `resolve_markets`, `get_payload`, `start_background` |
+| `load_probe.py` | 160 | `/health/load` VM 부하 스냅샷(/proc 읽기 전용) | `snapshot` |
+| `market_clock.py` | 60 | 국내 장 활성·미국 선물 주말 휴장 판정(수집 주기 완화용) | `kr_market_active`, `us_futures_weekend_closed`, `sleep_seconds` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
 | `night_futures_ws.py` | 263 | 야간선물 실시간(KIS WS)+일/분봉 백필 | `_run_once`, `refresh_minute` |
 | `week52.py` | 28 | 52주 신고가/신저가 순수 계산 | `compute_week52` |

@@ -110,6 +110,19 @@ class DeployRestartScopeTest(unittest.TestCase):
         self.assertLess(gate, body.index('"$APP_DIR/rescan_patterns.py"'))
         self.assertLess(gate, body.index('"$APP_DIR/strategy_scan.py"'))
 
+    def test_post_deploy_rescan_only_when_scan_rule_code_changed(self):
+        """2026-09-15 /health/load 실측: 배포마다 도는 재스캔이 코어 약 50%, 수집기 전체는 약 1%."""
+        start = self.script.index('run_search_scan_refresh_after_deploy() {')
+        body = self.script[start:self.script.index('\n}\n', start)]
+        gate = body.index('git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $scan_rule_paths; then')
+        self.assertLess(gate, body.index('"$APP_DIR/rescan_patterns.py"'))
+        self.assertLess(gate, body.index('"$APP_DIR/strategy_scan.py"'))
+        for path in ('scripts/cloud-vm/pattern_detect.py', 'scripts/cloud-vm/rescan_patterns.py',
+                     'scripts/cloud-vm/strategy_scan.py', 'scripts/cloud-vm/invest_signal.py', 'data/'):
+            self.assertIn(path, body)
+        # 직전 SHA를 모르면 건너뛰지 않고 예전처럼 돈다.
+        self.assertIn('if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null', body)
+
     @unittest.skipUnless(os.name != 'nt' and shutil.which('bash'), 'Linux bash에서만 구문 검사')
     def test_script_parses(self):
         subprocess.run(['bash', '-n', SCRIPT], check=True)
