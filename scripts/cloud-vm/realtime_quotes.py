@@ -25,6 +25,10 @@ KIWOOM_WS_URL = 'wss://api.kiwoom.com:10000/api/dostk/websocket'
 KIS_WS_URL = kis_client.WS_URL
 _CODE_RE = re.compile(r'^[0-9A-Z]{6}$')
 _MAX_CODES = 50
+# 한 브라우저 연결이 요청할 수 있는 종목 수. KIS 허브 실시간 등록은 앞의 _MAX_CODES개까지만 하고
+# 나머지는 REST 통합 시세 폴백으로 "지연" 갱신한다. 2026-09-14 라이브: 국내 주요종목 카드가
+# 250종목을 여는데 여기서 50개로 잘려, 나머지 200종목은 소켓이 열린 동안 아무 갱신도 없었다.
+MAX_REQUEST_CODES = 300
 # 허브 쪽 상태를 브라우저에 알리는 주기. 틱이 없는 동안에만 보낸다(화면이 "지연"을 판단할 근거).
 _RELAY_STATUS_INTERVAL_SEC = 15
 # 등록 여부(coverage)를 다시 보는 주기와, 구독 직후 허브가 KIS에 등록할 틈.
@@ -32,7 +36,7 @@ _RELAY_TICK_SEC = 1.0
 _COVERAGE_GRACE_SEC = 3.0
 
 
-def normalize_codes(raw_codes):
+def normalize_codes(raw_codes, limit=_MAX_CODES):
     """중복을 제거하면서 입력 순서를 보존하고 유효한 종목코드만 반환한다."""
     result = []
     seen = set()
@@ -42,7 +46,7 @@ def normalize_codes(raw_codes):
             continue
         seen.add(code)
         result.append(code)
-        if len(result) >= _MAX_CODES:
+        if len(result) >= limit:
             break
     return result
 
@@ -313,7 +317,8 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
     # 카드·관심종목처럼 여러 종목을 여는 연결까지 호가를 등록하면 KIS 세션 등록 자리(40)를
     # 두 배로 먹어, 2026-09-14 라이브에서 국내 주요종목 한 페이지만으로 103건이 밀려났다.
     include_orderbook = len(domestic_codes) == 1
-    for code in domestic_codes:
+    # 실시간 등록은 앞 _MAX_CODES개만. 그 뒤 종목은 아래 coverage에서 delayed로 잡혀 REST로 채워진다.
+    for code in domestic_codes[:_MAX_CODES]:
         # KIS 통합 TR 하나로 KRX와 NXT를 함께 받는다. 호가는 REST 폴링도 있으므로 등록 자리가
         # 모자라면 체결보다 먼저 빠지게 우선순위를 낮춘다.
         registrations.append(('H0UNCNT0', code, kis_ws_hub.PRIORITY_QUOTES))
@@ -355,7 +360,7 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
                         last_message_at = now
             if domestic_codes and now >= next_coverage_check:
                 next_coverage_check = now + _RELAY_TICK_SEC
-                live_keys = hub.registered_keys()
+                live_keys = hub.live_or_pending_keys()
                 delayed = [code for code in domestic_codes if ('H0UNCNT0', code) not in live_keys]
                 if delayed != delayed_sent:
                     if delayed and fallback is None:
@@ -408,7 +413,8 @@ async def relay_quotes(browser_ws, codes, us_symbols=None):
             if use_kis:
                 await _relay_once_kis(browser_ws, codes, us_symbols)
             else:
-                await _relay_once(browser_ws, codes)
+                # 키움 폴백 경로는 예전과 같이 50종목까지만 등록한다.
+                await _relay_once(browser_ws, codes[:_MAX_CODES])
         except asyncio.CancelledError:
             raise
         except Exception as exc:

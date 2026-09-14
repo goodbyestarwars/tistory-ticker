@@ -246,6 +246,33 @@ class KisWsHubTests(unittest.TestCase):
         self.run_scenario(scenario)
 
 
+class LiveOrPendingKeysTests(unittest.TestCase):
+    """중계가 '지연'을 판단하는 기준: 연결 중 등록됐거나 상한 안에서 등록 차례를 기다리는 키."""
+
+    def make_hub(self, max_registrations):
+        hub = kis_ws_hub.KisWsHub('app', 'secret', approval_key_fn=lambda: 'k',
+                                  max_registrations=max_registrations, options_budget=0)
+        loop = asyncio.new_event_loop()
+        self.addCleanup(loop.close)
+        return hub, loop
+
+    def test_pending_keys_within_cap_count_as_live_while_connected(self):
+        hub, loop = self.make_hub(max_registrations=2)
+        hub.subscribe([('H0UNCNT0', '005930'), ('H0UNCNT0', '000660'), ('H0UNCNT0', '035420')], loop=loop)
+        with hub._lock:
+            hub._state['connected'] = True
+            hub._registered_view = frozenset({('H0UNCNT0', '005930')})
+        keys = hub.live_or_pending_keys()
+        self.assertIn(('H0UNCNT0', '005930'), keys)      # 등록됨
+        self.assertIn(('H0UNCNT0', '000660'), keys)      # 상한 안에서 차례 대기
+        self.assertNotIn(('H0UNCNT0', '035420'), keys)   # 상한 밖 → 지연
+
+    def test_nothing_is_live_while_disconnected(self):
+        hub, loop = self.make_hub(max_registrations=40)
+        hub.subscribe([('H0UNCNT0', '005930')], loop=loop)
+        self.assertEqual(hub.live_or_pending_keys(), frozenset())
+
+
 class RelayRegistrationTests(unittest.TestCase):
     """브라우저 연결 하나가 허브에 어떤 키를 올리는지(등록 자리 40을 아껴 쓰는지)."""
 

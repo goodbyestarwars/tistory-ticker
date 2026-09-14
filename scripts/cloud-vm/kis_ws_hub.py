@@ -440,6 +440,19 @@ class KisWsHub:
         with self._lock:
             return self._registered_view
 
+    def live_or_pending_keys(self):
+        """실시간을 받고 있거나 곧 받을 키: 연결된 동안 등록됐거나 상한 안에서 등록 차례를 기다리는 키.
+
+        2026-09-14 라이브: 50종목 연결 직후 허브가 등록 프레임을 보내는 몇 초 동안 전 종목이
+        '지연'으로 잡혀 REST 조회가 50건 나갔다(5.8초 시점 live 0 → 10.8초 live 37). 등록 차례를
+        기다리는 키는 지연으로 보지 않는다. 연결이 끊겨 있으면 아무것도 실시간이 아니다.
+        """
+        desired, _dropped = self._desired()
+        with self._lock:
+            if not self._state['connected']:
+                return frozenset()
+            return frozenset(desired) | self._registered_view
+
     def health(self):
         desired, dropped = self._desired()
         now = time.time()
