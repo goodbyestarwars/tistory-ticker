@@ -2174,6 +2174,10 @@ document.documentElement.classList.add('skin-ready');
       dropdownOpen = open;
       var dropdown = q('[data-home-cb-dropdown]');
       var button = q('[data-home-cb-vi]');
+      var heading = q('.home-card-heading');
+      // 헤더 높이가 화면(편집판·모바일)마다 달라 고정 top이면 "VI N건" 버튼을 덮었다(2026-09-15 라이브 확인).
+      // 열 때마다 실제 헤더 바로 아래에 붙인다.
+      if (dropdown && open && heading) dropdown.style.top = (heading.offsetTop + heading.offsetHeight + 6) + 'px';
       if (dropdown) dropdown.hidden = !open;
       if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }

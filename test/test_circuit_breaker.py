@@ -130,6 +130,8 @@ class WiringTests(unittest.TestCase):
         self.assertIn('data-home-cb-sidecar', js)
         self.assertIn('data-home-cb-vi', js)
         self.assertIn('data-home-cb-dropdown', js)
+        # 드롭다운은 실제 헤더 바로 아래에 붙여 VI 버튼을 가리지 않는다(고정 top이 버튼을 덮었던 라이브 확인).
+        self.assertIn("dropdown.style.top = (heading.offsetTop + heading.offsetHeight + 6) + 'px';", js)
 
 
 if __name__ == '__main__':
