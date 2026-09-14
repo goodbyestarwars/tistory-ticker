@@ -10,6 +10,9 @@
 # 주의: gongpasan_scan.py는 pandas/numpy가 필요하다(accumulation_angle.py 모듈 docstring
 # 참고) - 이 저장소엔 requirements.txt가 없어 VM venv에 없으면 먼저
 # `$HOME/kiwoom-api/venv/bin/pip install pandas numpy`를 수동으로 실행해야 한다.
+# 2026-09-14 장애: 타이머 재설치 직후(23:08 KST) VM 응답이 전부 25초 넘게 멈췄다 - 스캔 여러 개가
+# 한꺼번에 떠 1코어 VM을 다 쓴 것으로 본다. 그래서 스캔은 공용 잠금(.scan_serial.lock)으로
+# 한 번에 하나만 돌고(겹치면 줄 서서 기다린다), CPU·디스크 우선순위를 FastAPI보다 낮춘다.
 set -e
 HOME_DIR="$HOME/kiwoom-api"
 
@@ -21,7 +24,10 @@ Description=Kiwoom gongpasan(yeokmaegongpa) scan (full universe, DB-only, no ext
 Type=oneshot
 User=$USER
 WorkingDirectory=$HOME_DIR
-ExecStart=$HOME_DIR/venv/bin/python $HOME_DIR/gongpasan_scan.py
+ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/gongpasan_scan.py
+Nice=10
+CPUWeight=20
+IOSchedulingClass=idle
 SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-gongpasanscan.timer > /dev/null << TIMEREOF

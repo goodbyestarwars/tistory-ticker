@@ -172,6 +172,30 @@ ensure_scan_timers_current() {
   return 0
 }
 
+# 2026-09-15 장애 대응(1회성): 2026-09-14 23:08 KST 타이머 재설치 직후 스캔이 한꺼번에 떠 VM 응답이
+# 전부 멈췄다. 잠금·우선순위가 들어간 새 유닛이 설치되기 전에 이미 떠 있던 스캔은 그대로 남으므로,
+# 지금 돌고 있는 스캔 서비스만 한 번 멈춘다(돌고 있지 않으면 아무것도 하지 않는다). 멈춘 스캔은
+# 다음 정기 회차(20:10 KST~)에 다시 돌고, 그때까지 화면은 직전 스캔 결과를 그대로 보여준다.
+stop_piled_up_scans_once() {
+  local marker="$APP_DIR/.scan_pileup_stop_20260915.done"
+  local name state stopped=""
+  if [ -f "$marker" ]; then
+    return 0
+  fi
+  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do
+    # Type=oneshot 서비스는 실행 중에 "activating" 상태라 is-active로는 잡히지 않는다.
+    state="$(systemctl show -p ActiveState --value "kiwoom-${name}.service" 2>/dev/null || echo "")"
+    if [ "$state" = "activating" ] || [ "$state" = "active" ]; then
+      if sudo systemctl stop "kiwoom-${name}.service"; then
+        stopped="$stopped $name"
+      fi
+    fi
+  done
+  touch "$marker"
+  echo "몰린 스캔 정리(1회성): 멈춘 서비스=[${stopped# }]"
+  return 0
+}
+
 run_price_recap_cleanup_once() {
   if [ -f "$PRICE_RECAP_CLEANUP_MARKER" ]; then
     return 0
@@ -214,9 +238,11 @@ run_search_scan_refresh_after_deploy() {
   (
     flock -n 210 || exit 0
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh started"
-    "$PYTHON" "$APP_DIR/rescan_patterns.py" \
+    # 2026-09-15: 정기 스캔 타이머와 같은 공용 잠금으로 줄 세우고 우선순위를 낮춘다(스캔이 몰려
+    # 1코어 VM 응답이 전부 멈췄던 장애). flock은 기다렸다가 차례가 오면 실행한다.
+    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/rescan_patterns.py" \
       || echo "pattern cache refresh failed; daily timer will retry" >&2
-    "$PYTHON" "$APP_DIR/strategy_scan.py" \
+    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py" \
       || echo "strategy cache refresh failed; strategy timer will retry" >&2
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh finished"
   ) 200>&- 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
@@ -305,6 +331,7 @@ run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
 # 실패해도 배포 결과를 되돌리지 않는다 - 다음 5분 회차에서 다시 시도한다.
 ensure_volume_breakout_timer || true
+stop_piled_up_scans_once || true
 ensure_scan_timers_current || true
 run_off_hours_maintenance_if_due || true
 
