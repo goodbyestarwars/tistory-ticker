@@ -111,7 +111,8 @@ class RealtimeBoardChangeRateTests(unittest.TestCase):
         # 렌더 경로
         self.assertIn("priceCellInner(item.price, item.currency, rate)", source)
         # 실시간 갱신 경로 - 같은 함수를 써야 한다
-        self.assertIn('priceCell.innerHTML = priceCellInner(price, item && item.currency,', source)
+        # 2026-09-15: 바뀐 글자만 점수판처럼 넘기는 splitFlapCell도 같은 priceCellInner 결과를 받는다.
+        self.assertIn('splitFlapCell(priceCell, priceCellInner(price, item && item.currency,', source)
         # textContent 대입이 남아 있으면 등락률 줄이 지워진다
         self.assertNotIn("priceCell.textContent = fmtPrice(", source)
 

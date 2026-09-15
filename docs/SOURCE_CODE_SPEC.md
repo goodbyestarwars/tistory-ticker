@@ -174,6 +174,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `option_flow.py` | 88 | 코스피200 옵션 콜/풋 수급 집계 | `refresh_option_flow` |
 | `realtime_quotes.py` | 122 | KIS(공용 허브 구독)/키움 0B 실시간→브라우저 중계 | `relay_quotes` |
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
+| `kiwoom_ws_hub.py` | 470 | 키움 실시간 WebSocket 공유 허브 - KIS 자리를 넘친 국내 종목 0B 체결(연결 1개, 전체 목록 REG·접미사 재시도·상태) | `start`, `KiwoomWsHub.subscribe/live_codes`, `health_snapshot` |
 | `theme_flow.py` | 200 | 키움 테마(ka90001/ka90002) 기준 "오늘 돈이 몰린 섹터" 3분 백그라운드 수집 | `fetch_theme_flow`, `build_theme_rows`, `start_background`, `get_cached` |
 | `rest_quote_fallback.py` | 190 | 실시간 등록 자리에 못 들어간 국내 종목의 REST 통합(UN) 시세 폴백 | `RestQuoteFallback.want/release/latest`, `quote_event`, `start` |
 | `binance_client.py` | 120 | 바이낸스 공개 시세 API 래퍼(재시도·429 Retry-After·451 제한 구분) | `get_json`, `futures_symbol_info`, `ticker_24hr`, `premium_index`, `klines` |

@@ -227,7 +227,8 @@ class KisWsHubTests(unittest.TestCase):
             self.assertEqual(len(fake.registrations[0]), 13)
             self.assertEqual(fake.unregistrations, [])
             self.assertEqual(hub.health()['unsubscribes'], 0)
-        self.run_scenario(scenario, max_registrations=40)
+        # 옵션 12건이 모두 들어가야 하는 시나리오라 옵션 몫을 명시한다(기본값은 2026-09-15부터 10).
+        self.run_scenario(scenario, max_registrations=40, options_budget=20)
 
     def test_watchdog_reconnects_when_upstream_goes_silent(self):
         async def scenario(fake, hub):
