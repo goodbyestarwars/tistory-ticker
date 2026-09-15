@@ -940,13 +940,16 @@
     var delta = Number(data.scoreDelta);
     // delta가 아예 없는 건 "어제와 같다"가 아니라 "비교할 어제가 없다"는 뜻이다
     // (기록 시작 직후·기준 전환 직후). 둘을 같은 문구로 뭉뚱그리면 거짓말이 된다.
+    // 2026-09-16: 비교 기준을 날짜로 밝힌다(서버 scoreDeltaFrom). 새벽·주말엔 "어제"가 직전 거래일이라
+    // "어제보다"라고 쓰면 틀린 말이 된다. 구버전 응답(날짜 없음)만 예전 문구를 쓴다.
+    var fromText = data.scoreDeltaFrom ? shortDate_(data.scoreDeltaFrom) + ' 대비 ' : '';
     var deltaHtml;
     if (!isFinite(delta)) {
       deltaHtml = '<span class="mt-val-flat">오늘부터 일별 기록을 시작했습니다.</span>';
     } else if (delta === 0) {
-      deltaHtml = '<span class="mt-val-flat">어제와 같음</span>';
+      deltaHtml = '<span class="mt-val-flat">' + (fromText ? fromText + '변화 없음' : '어제와 같음') + '</span>';
     } else {
-      deltaHtml = '<span class="' + (delta > 0 ? 'mt-val-pos' : 'mt-val-neg') + '">어제보다 '
+      deltaHtml = '<span class="' + (delta > 0 ? 'mt-val-pos' : 'mt-val-neg') + '">' + (fromText || '어제보다 ')
         + (delta > 0 ? '+' : '') + delta.toFixed(0) + '점</span>';
     }
     var axes = data.axes || {};
@@ -1227,8 +1230,13 @@
     var borders = [75, 50].map(function (value) {
       return '<line class="mt-rib-border" x1="0" y1="' + yOf(value).toFixed(1) + '" x2="' + W + '" y2="' + yOf(value).toFixed(1) + '"></line>';
     }).join('');
+    // 2026-09-16 사용자 요청("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지"): 점은 작은 사각형.
+    function square(className, point, size) {
+      return '<rect class="' + className + '" x="' + (point.x - size / 2).toFixed(1) + '" y="' + (point.y - size / 2).toFixed(1)
+        + '" width="' + size + '" height="' + size + '"></rect>';
+    }
     var dots = points.slice(0, -1).map(function (point) {
-      return '<circle class="mt-rib-dot mt-rib-tone-' + scoreTone_(point.score) + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="3"></circle>';
+      return square('mt-rib-dot mt-rib-tone-' + scoreTone_(point.score), point, 5);
     }).join('');
     var nowTone = scoreTone_(now.score);
     var nowWeather = marketWeather_(now.score);
@@ -1239,8 +1247,8 @@
       + '<path class="mt-rib-area" d="' + area + '" fill="url(#' + uid + 'Heat)"></path>'
       + '<path class="mt-rib-line mt-spark-draw" d="' + line + '" stroke="url(#' + uid + 'Heat)"></path>'
       + dots
-      + '<circle class="mt-rib-pulse mt-rib-tone-' + nowTone + '" cx="' + now.x.toFixed(1) + '" cy="' + now.y.toFixed(1) + '" r="6"></circle>'
-      + '<circle class="mt-rib-now mt-rib-tone-' + nowTone + '" cx="' + now.x.toFixed(1) + '" cy="' + now.y.toFixed(1) + '" r="6"></circle>'
+      + square('mt-rib-pulse mt-rib-tone-' + nowTone, now, 9)
+      + square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)
       + '</svg>';
     // 글자는 SVG 밖 HTML로 얹는다 - viewBox가 폭에 맞춰 줄면 SVG 글자도 같이 작아져 폰에서 안 읽힌다.
     var overlay = [['greed', '과열', 87.5], ['neutral', '보통', 62.5], ['fear', '공포', 25]].map(function (zone) {

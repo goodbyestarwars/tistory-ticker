@@ -1706,16 +1706,29 @@ function computeMarketTempSparkline_(currentTemp, storedHistory) {
 // 프롬프트에 정확한 수치로 명시해 AI가 숫자를 지어내지 않게 한다(코스피 100배 버그 전례 -
 // VM 응답을 유일한 소스로 삼는 기존 원칙과 동일하게 여기선 이 TOP5 계산 결과를 유일한
 // 소스로 프롬프트에 박음). getMarketTemp()와 같은 30분 캐시 주기.
+//
+// 2026-09-16: 입력을 GAS 자체 getMarketTemp()(옛 40℃ 온도)에서 VM `/market-temp`로 바꿨다. 화면은
+// 2026-09-02부터 VM 값을, 2026-09-07부터 100점 종합점수(score100·grade3·돈/가격/위험 3축)를 보여주는데
+// 브리핑만 GAS의 따로 계산한 ℃로 설명해 화면 숫자와 어긋났다. 기여도 TOP5 계산식은 그대로 둔다.
+var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
+
+function fetchMarketTempFromVm_() {
+  var res = UrlFetchApp.fetch(MARKET_TEMP_VM_URL, { muteHttpExceptions: true });
+  if (res.getResponseCode() !== 200) return null;
+  var body = JSON.parse(res.getContentText('UTF-8'));
+  return (body && body.data) || null;
+}
+
 function getMarketTempBriefing() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v2';
+  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v3';
   // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
 
-  var data = safeCall(getMarketTemp);
-  if (!data) {
-    console.log('getMarketTempBriefing: getMarketTemp()이 예외를 던져 실패 (safeCall이 삼킴)');
+  var data = safeCall(fetchMarketTempFromVm_);
+  if (!data || typeof data.score100 !== 'number' || !data.components) {
+    console.log('getMarketTempBriefing: VM /market-temp 응답이 없거나 score100이 없음');
     return { analysis: null };
   }
 
@@ -1734,12 +1747,25 @@ function getMarketTempBriefing() {
     return c.label + ' ' + (c.contribution >= 0 ? '+' : '') + c.contribution.toFixed(1) + '점';
   });
 
-  var prompt = '오늘 국내 증시 "온도"는 ' + data.temp.toFixed(1) + '℃(' + data.grade.label + ') 입니다' +
-    '(0~40 스케일, 낮을수록 공포·높을수록 탐욕). 오늘 온도에 가장 큰 영향을 준 요인 TOP5' +
-    '(점수는 중립 대비 기여도, 양수=탐욕 방향/음수=공포 방향)는 다음과 같습니다: ' + lines.join(', ') + '. ' +
-    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 설명해줘. 마지막 한 문장은 이 온도 상태에서 ' +
-    '투자자가 주의할 점을 알려줘. 한국어 평문 4~6문장으로 쓰고(제공되지 않은 다른 수치나 종목명을 ' +
-    '지어내지 말고, 위 수치만 언급), ' + GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
+  var axes = data.axes || {};
+  var axisLines = [
+    ['money', '돈(거래대금·수급, 높을수록 활발)'],
+    ['price', '가격(평균등락률·상승비율·52주 신고가, 높을수록 오름세)'],
+    ['risk', '위험(VIX·환율·빚투, 높을수록 위험)']
+  ].map(function (item) {
+    var axis = axes[item[0]];
+    return axis && typeof axis.value === 'number' ? item[1] + ' ' + axis.value.toFixed(0) + '점' : null;
+  }).filter(function (text) { return text; });
+  var gradeLabel = (data.grade3 && data.grade3.label) || '';
+
+  var prompt = '오늘 국내 증시 분위기 점수는 100점 만점에 ' + data.score100.toFixed(0) + '점(' + gradeLabel + ') 입니다' +
+    '(50점 미만 공포 · 50~75점 보통 · 75점 이상 과열). ' +
+    (axisLines.length ? '세 묶음 점수(각 0~100)는 ' + axisLines.join(', ') + '입니다. ' : '') +
+    '가장 크게 영향을 준 지표 TOP5(중립 대비 기여도, 양수=과열 방향/음수=공포 방향)는 다음과 같습니다: ' + lines.join(', ') + '. ' +
+    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 개인 투자자가 알아듣기 쉬운 말로 설명해줘. 마지막 한 문장은 ' +
+    '이런 분위기에서 개인 투자자가 주의할 점을 알려줘. 온도(℃)라는 표현은 쓰지 말고 점수로 말해줘. ' +
+    '한국어 평문 4~6문장으로 쓰고(제공되지 않은 다른 수치나 종목명을 지어내지 말고, 위 수치만 언급), ' +
+    GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
   cache.put(cacheKey, analysis || '', analysis ? MARKET_TEMP_CACHE_TTL : 120);
