@@ -1492,9 +1492,50 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("30일 평균", source)
         self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
         self.assertIn("slice(-40)", gas)
-        self.assertIn(".mt-wave-zero", style)
-        self.assertIn(".mt-wave-segment-pos", style)
-        self.assertIn(".mt-wave-segment-neg", style)
+        # 2026-09-16 사용자 요청("그래프 모양을 좀 신박한 걸로, 우와 신기한데? 이런거"): 30일 평균 편차
+        # 물결 대신 0~100 점수를 공포·보통·과열 배경 위에 그리는 '증시 날씨 리본'과 날씨 아이콘 줄.
+        self.assertIn("function marketWeather_(score)", source)
+        self.assertIn('gradientUnits="userSpaceOnUse"', source)
+        self.assertIn("data-rib-stage", source)
+        self.assertIn("mt-weather-strip", source)
+        self.assertIn("function animateHistory(root)", source)
+        self.assertIn("animateHistory(content);", source)
+        self.assertIn("panel.addEventListener('pointermove', scrub);", source)
+        for token in (".mt-rib-zone-fear", ".mt-rib-pulse", ".mt-weather-day", "@keyframes mtRibPulse",
+                      "#market-temp .mt-rib-tip[hidden]"):
+            self.assertIn(token, style)
+        self.assertNotIn("mt-wave-segment-", source)
+
+    def test_market_temperature_score_says_scale_meaning_and_retail_action(self):
+        """2026-09-16 사용자 지적.
+
+        - "점수가 그냥 숫자야. 몇 점 만점인지도 몰라. 그래서 뭐 어쩌라는거지?"
+        - "분할매수가 많은데, 보통 개미들은 분할매수 안 해. 현금이 30%? 나중에 뭐하라고?"
+        """
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        self.assertIn("<small>/100점</small>", source)
+        self.assertIn("function buildScoreGauge(value, tone)", source)
+        self.assertIn("그래서?", source)
+        self.assertIn('<a href="#mt-ant-guide">', source)
+        self.assertIn('id="mt-ant-guide"', source)
+        self.assertIn("오늘의 개미 체크리스트", source)
+        # 행동 문구는 종합점수 3등급(grade3)을 따른다 - 옛 40℃ 5단계와 어긋나지 않게.
+        self.assertIn("var ANT_GUIDE_BY_TONE = {", source)
+        self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
+        self.assertIn("buildBriefingStrategy(data)", source)
+        # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.
+        for gone in ("action: '적극 분할매수'", "summary: '공포 우세 구간 · 분할 매수 후보를 확인'",
+                     "stock: 70, cash: 30", "<span>주식비중</span>", "var STRATEGY_BY_TONE", "var SIGNAL_BY_TONE"):
+            self.assertNotIn(gone, source)
+        # 설명문도 실제 계산(3축 평균, 50/75 경계)과 맞춘다.
+        self.assertNotIn("원점수 120점을 100점으로 환산", source)
+        self.assertIn("50점 미만 공포 · 50~75점 보통 · 75점 이상 과열", source)
+        self.assertIn("코스피 시장 전체 최근 5일 수급", source)
+        self.assertNotIn("KODEX 200 최근 5일", source)
+        for token in (".mt-score-gauge-marker", ".mt-summary-sowhat", ".mt-ant-list li"):
+            self.assertIn(token, style)
+        self.assertNotIn(".mt-strategy-bar-fill", style)
 
     def test_market_temperature_industry_flow_uses_reader_friendly_parent_labels(self):
         source = self.read("js/market-temp.js")
