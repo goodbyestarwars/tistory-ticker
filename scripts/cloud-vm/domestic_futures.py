@@ -176,21 +176,45 @@ def fetch_fx_realtime():
     return {'price': price, 'change': change, 'change_rate': change_rate, 'high': None, 'low': None}
 
 
-def fetch_fx_daily_chart():
-    # 주말 환율 리포트에서 1년 관측 구간을 보여주기 위해 최근 365개 거래일을
-    # 한 번에 저장한다. 응답이 짧아도 기존 데이터는 그대로 누적된다.
-    url = 'https://api.stock.naver.com/marketindex/exchange/FX_USDKRW/prices?page=1&pageSize=365'
-    data = _get_json(url)
-    rows = []
-    for r in data:
+# 2026-09-16 사용자 리포트("환율이 계속 네이버랑 좀 다른거 같아"): 2026-08-16(#235)에 1년치를 한 번에 받으려고
+# pageSize=365로 바꿨는데 네이버는 60 초과를 거절한다(실측 HTTP 400 "getExchangeClosingPrices.pageSize: must be
+# less than or equal to 60"). 예외가 refresh_history_all에서 로그로만 삼켜져 원/달러 일봉이 8/14에서 멈췄고,
+# 현재가(실시간 API)만 새 값이라 카드가 "1,362.50원인데 기간 저가 1,411.00, 4개월 평균 1,490원"처럼 어긋났다.
+# 60건씩 페이지로 받는다(page=1..8 × 60건이 겹침 없이 이어지는 것 실측 확인).
+FX_DAILY_PAGE_SIZE = 60
+FX_DAILY_PAGES = 7          # 420거래일 - 주말 환율 리포트의 1년 관측 구간(365)을 덮는다
+FX_DAILY_PAGE_GAP_SEC = 0.3
+
+
+def fetch_fx_daily_chart(get_json=None, sleep=time.sleep):
+    get_json = get_json or _get_json
+    by_date = {}
+    for page in range(1, FX_DAILY_PAGES + 1):
+        url = ('https://api.stock.naver.com/marketindex/exchange/FX_USDKRW/prices?page=%d&pageSize=%d'
+               % (page, FX_DAILY_PAGE_SIZE))
         try:
-            date = str(r['localTradedAt']).replace('-', '')  # 'YYYY-MM-DD' -> 'YYYYMMDD' 통일
-            close = float(str(r['closePrice']).replace(',', ''))
-            rows.append({'date': date, 'open': close, 'high': close, 'low': close, 'close': close})
-        except (KeyError, ValueError, TypeError):
-            continue
-    rows.reverse()  # API가 최신순으로 주므로 upsert 전에 날짜 오름차순으로 뒤집음(다른 심볼과 통일)
-    return rows
+            data = get_json(url)
+        except Exception:
+            if page == 1:
+                raise
+            # 뒤 페이지 실패는 앞 페이지(최근 구간)만이라도 저장한다 - 기존 행은 upsert라 지워지지 않는다.
+            logger.warning('USDKRW history page %d fetch failed - keeping %d rows', page, len(by_date))
+            break
+        if not isinstance(data, list) or not data:
+            break
+        for r in data:
+            try:
+                date = str(r['localTradedAt']).replace('-', '')  # 'YYYY-MM-DD' -> 'YYYYMMDD' 통일
+                close = float(str(r['closePrice']).replace(',', ''))
+            except (KeyError, ValueError, TypeError):
+                continue
+            by_date.setdefault(date, {'date': date, 'open': close, 'high': close, 'low': close, 'close': close})
+        if len(data) < FX_DAILY_PAGE_SIZE:
+            break
+        if page < FX_DAILY_PAGES:
+            sleep(FX_DAILY_PAGE_GAP_SEC)
+    # API가 최신순으로 주므로 날짜 오름차순으로 정렬해 돌려준다(다른 심볼과 통일).
+    return [by_date[date] for date in sorted(by_date)]
 
 
 def refresh_realtime_all():
