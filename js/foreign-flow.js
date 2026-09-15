@@ -4308,9 +4308,8 @@
   var APT_BIN_STEPS = [12, 18, 24, 36, 48];
   var APT_BIN_DEFAULT_INDEX = 2; // 24층 기본
 
-  // bins[i].low/high를 직접 훑어 찾는다(예전엔 minLow+i*binSize로 계산했는데, 균등폭
-  // bins에서만 맞는 공식이라 "실제 체결가" 매물대처럼 실제 호가 경계에 맞춰 폭이 들쭉날쭉한
-  // bins(computeRealVolumeProfile 참고)에서는 틀린 값이 나왔다).
+  // bins[i].low/high를 직접 훑어 찾는다(구간 폭이 일정하지 않은 bins가 들어와도 맞도록
+  // minLow+i*binSize 공식에 기대지 않는다).
   function aptBinIndex(profile, price) {
     if (!profile || price == null || !(profile.maxHigh > profile.minLow)) return -1;
     var bins = profile.bins;
@@ -4527,19 +4526,14 @@
       + '<div class="ff-apt-simple-note" role="note"><strong class="' + relationTone + '">' + relation + '</strong><span>' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
   }
 
-  // 한국투자 pbar-tratio(실제 체결가) 기반 - ?days=로 VM이 SQLite 누적분까지 합산해준다.
-  // 조회할 때마다 그날 스냅샷이 쌓여서 daysIncluded가 자연히 늘어난다.
-  // 2026-08-05: "최근 120일(근사)" 병행 뷰는 혼란만 준다는 사용자 판단으로 제거하고
-  // 이 실제 체결가 뷰 하나로 통일했다(computeVolumeProfile 자체는 차트 탭 매물대
-  // 오버레이(addVolumeProfileOverlay)가 여전히 써서 남겨둠).
+  // 2026-09-15 사용자 결정: MY 매물대와 같은 최근 120거래일 일봉 추정치 하나로 통일했다
+  // (buildApproxVolumeProfile 참고). 2026-08-05에 실제 체결가(/pbar-tratio) 뷰로 바꿨었지만
+  // 조회된 날만 누적돼 종목마다 기간이 달랐고 MY 매물대와 값이 어긋났다.
   function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
-    var sourceText = profile.source === 'ohlc-estimate'
-      ? '일봉 고가·저가·거래량 기반 근사치'
-      : '실제 체결가·체결거래량 기준';
-    var footnote = '<div class="ff-footnote ff-apt-simple-source">' + sourceText + ' · 최근 <b>'
-      + (daysIncluded || 1) + '거래일</b> 반영</div>';
-    var periodLabel = (daysIncluded || 1) === 1 ? '오늘' : '최근 ' + daysIncluded + '거래일';
-    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel)
+    var days = daysIncluded || 1;
+    var footnote = '<div class="ff-footnote ff-apt-simple-source">일봉 고가·저가·거래량을 가격 구간에 비례 배분한 추정치 · 최근 <b>'
+      + days + '거래일</b> 반영</div>';
+    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉')
       + footnote;
   }
 
@@ -4561,70 +4555,45 @@
     });
   }
 
-  // 실제 체결가 매물대(한국투자 pbar-tratio, ?days=로 VM이 SQLite 누적분까지 합산해줌) 캐시 -
-  // 같은 종목을 다시 열거나 층수만 바꿀 때 매번 재조회하지 않도록 1분 캐시.
-  var realAptCache = {};
-  var REAL_APT_CACHE_MS = 60 * 1000;
-
-  function fetchRealVolumeProfile(code, days) {
-    var cached = realAptCache[code];
-    if (cached && Date.now() - cached.t < REAL_APT_CACHE_MS) return Promise.resolve(cached);
-    return fetchJson(KIWOOM_VM_URL + '/pbar-tratio/' + encodeURIComponent(code) + '?days=' + days)
-      .then(function (json) {
-        var data = (json && json.data) || {};
-        var result = { bins: data.bins || [], daysIncluded: data.daysIncluded || 1, avgPrice: data.avgPrice };
-        realAptCache[code] = { t: Date.now(), bins: result.bins, daysIncluded: result.daysIncluded, avgPrice: result.avgPrice };
-        return result;
-      });
+  // MY(js/my-dashboard.js buildDailyVolumeProfile)와 같은 규칙으로 값을 읽는다 - number()와 동일.
+  function volumeProfileNumber(value, fallback) {
+    if (value == null || value === '') return fallback == null ? null : fallback;
+    var normalized = typeof value === 'string'
+      ? value.replace(/,/g, '').replace(/%/g, '').replace(/[−–—]/g, '-').trim()
+      : value;
+    var n = Number(normalized);
+    return isFinite(n) ? n : (fallback == null ? 0 : fallback);
   }
 
-  // KIS 가격대 API가 휴장일·장 시작 전·일시적인 호출 제한으로 실패해도
-  // OHLC에 거래량이 있으면 근사 매물대를 표시한다. 실제 체결가와 섞지 않고
-  // 결과에 출처를 남겨 화면에서 구분한다.
+  // MY와 같은 일봉 정리: 저가·고가·종가가 비었거나 고가<저가·종가<=0인 날은 빼고,
+  // 거래량이 비면 0, 날짜 오름차순. 이렇게 정리한 일봉을 computeVolumeProfile에 넘기면
+  // MY와 구간 경계·거래량·최대 매물대가 똑같이 나온다(test/test_volume_profile_parity.py).
+  function normalizeDailyForVolumeProfile(daily) {
+    if (!Array.isArray(daily)) return [];
+    return daily.map(function (row) {
+      var low = volumeProfileNumber(row.low, null), high = volumeProfileNumber(row.high, null);
+      var close = volumeProfileNumber(row.close, null), volume = Math.max(0, volumeProfileNumber(row.volume, 0));
+      if (low == null || high == null || close == null || high < low || close <= 0) return null;
+      return { date: String(row.date || ''), low: low, high: high, close: close, volume: volume };
+    }).filter(Boolean).sort(function (a, b) { return a.date.localeCompare(b.date); });
+  }
+
+  // 2026-09-15 사용자 결정("120거래일 일봉"): 종목분석 매물대를 MY와 같은 기준으로 통일했다 -
+  // 최근 120거래일 일봉의 고가~저가 구간에 거래량을 비례 배분한 동일 가격폭 구간(기본 24개,
+  // 화면 12행). 예전엔 조회된 날만 누적되는 실제 체결가(/pbar-tratio)라 종목마다 기간이
+  // 7~17거래일처럼 들쭉날쭉해 MY 매물대와 값이 달랐다.
   function buildApproxVolumeProfile(daily, binCount) {
-    var profile = computeVolumeProfile(daily, APT_LOOKBACK_DAYS, binCount);
+    var profile = computeVolumeProfile(normalizeDailyForVolumeProfile(daily), APT_LOOKBACK_DAYS, binCount);
     if (!profile) return null;
     var total = profile.bins.reduce(function (sum, bin) { return sum + Math.max(0, Number(bin.volume) || 0); }, 0);
     var avg = total > 0 ? profile.bins.reduce(function (sum, bin) {
       return sum + ((Number(bin.low) + Number(bin.high)) / 2) * (Math.max(0, Number(bin.volume) || 0));
     }, 0) / total : null;
     return {
-      bins: profile.bins.map(function (bin) {
-        return { price: (Number(bin.low) + Number(bin.high)) / 2, volume: Number(bin.volume) || 0 };
-      }),
+      profile: profile,
       daysIncluded: profile.days,
       avgPrice: avg,
       source: 'ohlc-estimate'
-    };
-  }
-
-  // 실제 체결가 매물대는 이미 실제 가격×체결거래량 쌍(pbar-tratio, 실제 호가단위로 옴)이다.
-  // (maxHigh-minLow)/binCount로 균등분할하면 근사치와 똑같은 문제(구간 경계가 실제
-  // 존재한 적 없는 가격이 됨)가 재발하므로, 대신 정렬된 원본 가격들을 개수 기준으로
-  // binCount개 묶음으로 나눈다 - 각 층의 저가/고가가 항상 실제 체결가 중 하나가 된다.
-  function computeRealVolumeProfile(rawBins, binCount, trendUp) {
-    if (!rawBins || !rawBins.length) return null;
-    var n = rawBins.length;
-    var perBucket = Math.max(1, Math.ceil(n / binCount));
-    var bins = [];
-    for (var start = 0; start < n; start += perBucket) {
-      var chunk = rawBins.slice(start, start + perBucket);
-      var volume = 0;
-      chunk.forEach(function (r) { volume += r.volume || 0; });
-      bins.push({ low: chunk[0].price, high: chunk[chunk.length - 1].price, volume: volume });
-    }
-    // 묶음이 가격 1개짜리라 low===high인 층은 다음 층의 저가까지 살짝 넓혀(실제 가격이라
-    // 안전) 폭 0 막대가 이상해 보이지 않게 한다. 마지막 층은 넓힐 다음 층이 없으면 그대로 둔다.
-    for (var i = 0; i < bins.length - 1; i++) {
-      if (bins[i].high === bins[i].low) bins[i].high = bins[i + 1].low;
-    }
-    var maxVolume = 0, pocIndex = 0;
-    bins.forEach(function (b, i) { if (b.volume > maxVolume) { maxVolume = b.volume; pocIndex = i; } });
-    if (maxVolume <= 0) return null;
-    return {
-      bins: bins, maxVolume: maxVolume, pocIndex: pocIndex,
-      minLow: bins[0].low, maxHigh: bins[bins.length - 1].high,
-      days: 1, trendUp: trendUp
     };
   }
 
@@ -4650,9 +4619,9 @@
     };
   }
 
-  // 확대(+)/축소(-) 버튼: 캐시된 pbar-tratio 원자료로 층수(bin count)만 바꿔 즉시
-  // 재계산한다(fetchRealVolumeProfile 자체가 1분 캐시라 층수만 바꿀 땐 재조회 없음) -
-  // 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성을 구현.
+  // 확대(+)/축소(-) 버튼: 이미 받은 일봉으로 구간 수(bin count)만 바꿔 즉시 재계산한다
+  // (서버 재조회 없음) - 토스 차트에서 확대/축소하면 매물대가 다시 그려지는 것과 같은 반응성.
+  // 기본 24구간은 MY 매물대와 같다.
   function wireAptTabs(box, chartDaily, currentPrice, code, openPrice) {
     var card = box.querySelector('#ffAptCard');
     if (!card) return;
@@ -4743,44 +4712,22 @@
     }
     card.__updateCurrentPrice = updateCurrentPrice;
 
-    function trendUpFromDaily() {
-      if (!chartDaily || !chartDaily.length) return true;
-      var last = chartDaily[chartDaily.length - 1], prev = chartDaily[chartDaily.length - 2];
-      return last && prev ? last.close >= prev.close : true;
-    }
-
     function render() {
       var dynamic = card.querySelector('#ffAptDynamic');
       if (!dynamic) return;
-      fetchRealVolumeProfile(code, APT_LOOKBACK_DAYS).then(function (result) {
-        var profile = computeRealVolumeProfile(result.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
-        if (!profile) throw new Error('실제 체결 데이터가 비어 있습니다.');
-        profile = attachAptPriceLimits(profile, openPrice);
-        profile.source = result.source || 'kis-pbar';
-        activeProfile = profile;
-        dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, result.daysIncluded, result.avgPrice);
-        wireZoom();
-        wireBinRail();
-        playAptEntrance(card);
-      }).catch(function () {
-        var fallback = buildApproxVolumeProfile(chartDaily, APT_BIN_STEPS[stepIndex]);
-        if (!fallback) {
-          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 불러오지 못했어요. 거래량 데이터가 없습니다.</div>';
-          return;
-        }
-        var fallbackProfile = computeRealVolumeProfile(fallback.bins, APT_BIN_STEPS[stepIndex], trendUpFromDaily());
-        if (!fallbackProfile) {
-          dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
-          return;
-        }
-        fallbackProfile = attachAptPriceLimits(fallbackProfile, openPrice);
-        fallbackProfile.source = fallback.source;
-        activeProfile = fallbackProfile;
-        dynamic.innerHTML = buildAptDynamicHtml(fallbackProfile, currentPrice, stepIndex, fallback.daysIncluded, fallback.avgPrice);
-        wireZoom();
-        wireBinRail();
-        playAptEntrance(card);
-      });
+      // 2026-09-15: MY 매물대와 같은 최근 120거래일 일봉 추정치(buildApproxVolumeProfile)만 쓴다.
+      var estimate = buildApproxVolumeProfile(chartDaily, APT_BIN_STEPS[stepIndex]);
+      if (!estimate) {
+        dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
+        return;
+      }
+      var profile = attachAptPriceLimits(estimate.profile, openPrice);
+      profile.source = estimate.source;
+      activeProfile = profile;
+      dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, estimate.daysIncluded, estimate.avgPrice);
+      wireZoom();
+      wireBinRail();
+      playAptEntrance(card);
     }
 
     function wireZoom() {
@@ -5966,6 +5913,8 @@
     // ForeignFlow.fetchJson을 몽키패치해 mock 데이터로 검증할 수 있게 한다(js/invest-signal.js와
     // 동일한 관례).
     fetchJson: fetchJson,
+    // 2026-09-15: MY 매물대가 종목분석과 같은 일봉(VM /flow-chart 우선, GAS 폴백, 5분 캐시)을 쓰도록 공개.
+    fetchFlowChart: fetchFlowChart,
     fetchNewsMomentum: fetchNewsMomentum,
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
