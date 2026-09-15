@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
-"""종목분석 매물대와 MY 매물대가 같은 값을 내는지(2026-09-15).
+"""종목분석·MY 매물대 통일 + 호가단위 경계 계약(2026-09-15).
 
-사용자 지적: "종목분석 > 매물대랑 MY에서 보여주는 매물대랑 달라". 종목분석은 조회된 날만 누적되는
-실제 체결가(/pbar-tratio), MY는 최근 120거래일 일봉 추정치라 달랐다. 사용자 선택("120거래일 일봉")에
-따라 종목분석도 MY와 같은 계산을 쓴다. 두 파일의 실제 함수를 node로 실행해 같은 일봉에서 구간 경계·
-거래량·최대 매물대가 똑같이 나오는지 고정한다.
+사용자 지적:
+- "종목분석 > 매물대랑 MY에서 보여주는 매물대랑 달라" → 사용자 선택 "120거래일 일봉".
+- "그래프 모양 등 다 통일해 종목분석 쪽으로 맞춰" → MY는 종목분석(js/foreign-flow.js)의 계산·그래프를 그대로 쓴다.
+- "뒷자리가 원단위로 끝나서 신뢰가 좀 이상해" → 구간 경계를 KRX 호가단위의 배수로 맞춘다.
+
+두 파일의 실제 함수를 node로 실행해 경계가 실제 호가인지, 그래프 행이 고르게 묶이는지 고정한다.
 """
 
 import json
@@ -29,82 +31,120 @@ def _function(source, name):
 
 
 def _var(source, name):
-    match = re.search(r'  var %s = [^;]+;\n' % re.escape(name), source)
-    return match.group(0)
+    # 세미콜론 뒤에 줄 끝 주석이 붙은 선언도 있다(var APT_BIN_DEFAULT_INDEX = 2; // 24층 기본).
+    return re.search(r'  var %s = [^;]+;' % re.escape(name), source).group(0) + '\n'
 
 
-def _sample_daily():
+def _daily(base, step, count=130, decimals=False):
     rows = []
-    for i in range(130):
-        base = 50000 + (i % 17) * 400 - (i % 5) * 250
-        rows.append({
-            'date': '2026-%02d-%02d' % (3 + i // 28, 1 + i % 28),
-            'open': base, 'high': base + 900 + (i % 7) * 100, 'low': base - 700,
-            'close': base + 200, 'volume': 100000 + (i * 7919) % 50000,
-        })
-    rows[10]['low'] = None                       # 값이 빈 날은 뺀다
-    rows[20]['volume'] = 0                       # 거래량 0인 날은 범위에만 들어간다
-    rows[30]['high'] = rows[30]['low'] = rows[30]['close'] = 51000   # 고가=저가(상하한가 등)
-    rows[40]['volume'] = '123,456'               # 쉼표 문자열도 같은 규칙으로 읽는다
-    rows.reverse()                               # 역순으로 와도 날짜순으로 정리한다
+    for i in range(count):
+        mid = base + ((i % 17) - 8) * step
+        low, high = mid - step * 3, mid + step * 4
+        if decimals:
+            low, high, mid = round(low + 0.37, 2), round(high + 0.81, 2), round(mid + 0.5, 2)
+        else:
+            low, high, mid = int(low), int(high), int(mid)
+        rows.append({'date': '2026-%02d-%02d' % (3 + i // 28, 1 + i % 28), 'open': mid,
+                     'high': high, 'low': low, 'close': mid, 'volume': 100000 + (i * 7919) % 50000})
     return rows
 
 
 @unittest.skipUnless(shutil.which('node'), 'node 필요')
-class VolumeProfileParityTests(unittest.TestCase):
-    def run_node(self):
+class TickAlignedVolumeProfileTests(unittest.TestCase):
+    def run_node(self, cases):
         flow = _read('js/foreign-flow.js')
-        my = _read('js/my-dashboard.js')
-        script = '\n'.join([
-            _var(flow, 'APT_LOOKBACK_DAYS'),
-            _var(flow, 'VP_LOOKBACK_DAYS'),
-            _var(flow, 'VP_BIN_COUNT'),
-            _function(flow, 'volumeProfileNumber'),
-            _function(flow, 'normalizeDailyForVolumeProfile'),
-            _function(flow, 'computeVolumeProfile'),
-            _function(flow, 'buildApproxVolumeProfile'),
-            'const flowApi = { build: buildApproxVolumeProfile };',
-            '(function () {',
-            _var(my, 'MY_VOLUME_LOOKBACK_DAYS'),
-            _var(my, 'MY_VOLUME_BIN_COUNT'),
-            _function(my, 'number'),
-            _function(my, 'buildDailyVolumeProfile'),
-            '  global.myBuild = buildDailyVolumeProfile;',
-            '})();',
-            'const daily = JSON.parse(process.env.DAILY);',
-            'const flow = flowApi.build(daily, 24);',
-            'const mine = myBuild({ daily: daily }, "000000");',
-            'console.log(JSON.stringify({',
-            '  flow: { days: flow.daysIncluded, poc: flow.profile.pocIndex,',
-            '          bins: flow.profile.bins.map(b => [b.low, b.high, b.volume]) },',
-            '  my: { days: mine.daysIncluded, pocLow: mine.pocLow, pocHigh: mine.pocHigh,',
-            '        bins: mine.bins.map(b => [b.low, b.high, b.volume]) }',
-            '}));',
-        ])
-        env = dict(os.environ, DAILY=json.dumps(_sample_daily()))
-        out = subprocess.run(['node', '-e', script], capture_output=True, text=True, encoding='utf-8',
-                             env=env, timeout=30)
+        parts = [_var(flow, name) for name in ('APT_LOOKBACK_DAYS', 'APT_BIN_STEPS', 'APT_BIN_DEFAULT_INDEX',
+                                                 'VP_LOOKBACK_DAYS', 'VP_BIN_COUNT')]
+        parts += [_function(flow, name) for name in (
+            'krxTickSize', 'roundPriceUnit', 'volumeProfileGrid', 'computeVolumeProfile',
+            'volumeProfileNumber', 'normalizeDailyForVolumeProfile', 'buildApproxVolumeProfile',
+            'floorToKrxTick', 'ceilToKrxTick', 'buildVolumeProfileSummary', 'compactAptProfileBins',
+            'attachAptPriceLimits')]
+        parts.append('''
+const cases = JSON.parse(process.env.CASES);
+console.log(JSON.stringify(cases.map(function (daily) {
+  const estimate = buildApproxVolumeProfile(daily, 24);
+  const summary = buildVolumeProfileSummary(daily);
+  return {
+    bins: estimate.profile.bins.map(b => [b.low, b.high]),
+    rows: compactAptProfileBins(estimate.profile, 12).map(r => [r.low, r.high, r.end - r.start + 1]),
+    integerPrices: estimate.profile.integerPrices,
+    pocLow: summary.pocLow, pocHigh: summary.pocHigh, days: summary.daysIncluded,
+    limits: attachAptPriceLimits(estimate.profile, 249500)
+  };
+})));''')
+        env = dict(os.environ, CASES=json.dumps(cases))
+        out = subprocess.run(['node', '-e', '\n'.join(parts)], capture_output=True, text=True,
+                             encoding='utf-8', env=env, timeout=30)
         self.assertEqual(out.returncode, 0, out.stderr)
         return json.loads(out.stdout)
 
-    def test_stock_analysis_and_my_produce_identical_bins(self):
-        result = self.run_node()
-        flow, mine = result['flow'], result['my']
-        self.assertEqual(flow['days'], 120)
-        self.assertEqual(flow['days'], mine['days'])
-        self.assertEqual(len(flow['bins']), 24)
-        self.assertEqual(flow['bins'], mine['bins'])
-        poc = flow['bins'][flow['poc']]
-        self.assertEqual([poc[0], poc[1]], [mine['pocLow'], mine['pocHigh']])
+    def assert_grid(self, result, unit, decimals=False):
+        bins = result['bins']
+        # 요청 24구간: 폭을 호가단위 정수배로 올리므로 요청값보다 약간 많아질 수는 있어도 크게 줄지 않는다.
+        self.assertGreaterEqual(len(bins), 22)
+        self.assertLessEqual(len(bins), 27)
+        for low, high in bins:
+            for value in (low, high):
+                if decimals:
+                    self.assertAlmostEqual(value * 100, round(value * 100), places=6)
+                else:
+                    self.assertEqual(value % unit, 0, value)
+        for (_, high), (low, _) in zip(bins, bins[1:]):
+            self.assertEqual(high, low)        # 구간이 빈틈 없이 이어진다
+        widths = {round(high - low, 6) for low, high in bins}
+        self.assertEqual(len(widths), 1)       # 모든 구간 폭이 같다
 
-    def test_stock_analysis_card_no_longer_reads_pbar_tratio(self):
+    def test_krw_boundaries_are_real_krx_ticks_and_rows_are_even(self):
+        big, small = self.run_node([_daily(250000, 3000), _daily(1500, 20)])
+        self.assert_grid(big, 500)            # 20만~50만원 호가단위 500원
+        self.assertTrue(big['integerPrices'])
+        self.assertEqual(big['days'], 120)
+        self.assertEqual(big['pocLow'] % 500, 0)
+        rows = big['rows']
+        self.assertLessEqual(len(rows), 13)
+        self.assertEqual(len({size for _, _, size in rows[:-1]}), 1)   # 마지막 행만 짧을 수 있다
+        self.assert_grid(small, 5)            # 2천원 미만도 ETF 5원 단위에 맞게 최소 5원
+        # 시가 249,500원 기준 ±30%: 상한가 324,350 → 500원 절사 324,000 / 하한가 174,650 → 100원 올림 174,700
+        self.assertEqual(big['limits']['upperLimit'], 324000)
+        self.assertEqual(big['limits']['lowerLimit'], 174700)
+
+    def test_decimal_prices_use_cent_grid(self):
+        (us,) = self.run_node([_daily(182.0, 1.5, decimals=True)])
+        self.assertFalse(us['integerPrices'])
+        self.assert_grid(us, None, decimals=True)
+
+
+class MyUsesStockAnalysisVolumeProfileTests(unittest.TestCase):
+    def test_my_delegates_calculation_and_chart_to_foreign_flow(self):
+        my = _read('js/my-dashboard.js')
         flow = _read('js/foreign-flow.js')
+        self.assertIn('api.buildVolumeProfileSummary(chart.daily)', my)
+        self.assertIn('api.renderVolumeProfileHtml(daily, number(livePrice, lastClose))', my)
+        self.assertIn('<div class="ff-vp-host">', my)
+        self.assertNotIn('MY_VOLUME_BIN_COUNT', my)
+        self.assertNotIn('my-volume-row', my)
+        self.assertIn('buildVolumeProfileSummary: buildVolumeProfileSummary,', flow)
+        self.assertIn('renderVolumeProfileHtml: renderVolumeProfileHtml,', flow)
+        self.assertIn('flowApi.fetchFlowChart(item.code)', my)
+
+    def test_my_page_loads_the_same_chart_styles(self):
+        main = _read('js/skin-main.js')
+        style = _read('css/foreign-flow.css')
+        self.assertIn("css/foreign-flow.css?v=20260915-vp-host-v1", main)
+        self.assertIn("link[data-foreign-flow-css]", main)
+        for selector in (':is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row {',
+                         ':is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple {',
+                         'html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track {'):
+            self.assertIn(selector, style)
+        # 종목분석 전체 화면 규칙(검색창 등)은 넓히지 않는다.
+        self.assertIn('#foreign-flow .ff-search {', style)
+
+    def test_stock_analysis_summary_shows_tick_values(self):
+        flow = _read('js/foreign-flow.js')
+        self.assertIn("(pocBin ? rangeText(pocBin) + '원' : '-')", flow)
+        self.assertIn('won(displayAvg)', flow)
         self.assertNotIn("'/pbar-tratio/'", flow)
-        self.assertNotIn('computeRealVolumeProfile', flow)
-        self.assertIn('var APT_LOOKBACK_DAYS = 120;', flow)
-        self.assertIn('var APT_BIN_DEFAULT_INDEX = 2; // 24층 기본', flow)
-        self.assertIn('var APT_BIN_STEPS = [12, 18, 24, 36, 48];', flow)
-        self.assertIn("buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉')", flow)
 
 
 if __name__ == '__main__':

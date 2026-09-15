@@ -176,6 +176,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
 | `kiwoom_ws_hub.py` | 470 | 키움 실시간 WebSocket 공유 허브 - KIS 자리를 넘친 국내 종목 0B 체결(연결 1개, 전체 목록 REG·접미사 재시도·상태) | `start`, `KiwoomWsHub.subscribe/live_codes`, `health_snapshot` |
 | `theme_flow.py` | 200 | 키움 테마(ka90001/ka90002) 기준 "오늘 돈이 몰린 섹터" 3분 백그라운드 수집 | `fetch_theme_flow`, `build_theme_rows`, `start_background`, `get_cached` |
+| `volume_profile_collector.py` | 270 | 매물대 실제 체결가 일별 수집(KRX 거래일 18:10~20:00 하루 1회, 순위·최근 조회 종목 최대 120, `volume_profile_daily`) | `start_background`, `run_once`, `should_run`, `select_codes`, `get_status` |
 | `rest_quote_fallback.py` | 190 | 실시간 등록 자리에 못 들어간 국내 종목의 REST 통합(UN) 시세 폴백 | `RestQuoteFallback.want/release/latest`, `quote_event`, `start` |
 | `binance_client.py` | 120 | 바이낸스 공개 시세 API 래퍼(재시도·429 Retry-After·451 제한 구분) | `get_json`, `futures_symbol_info`, `ticker_24hr`, `premium_index`, `klines` |
 | `binance_flow.py` | 230 | 바이낸스 국내주식 토큰 참고 시세 수집(스레드 1개, 별도 SQLite) | `refresh_once`, `resolve_markets`, `get_payload`, `start_background` |

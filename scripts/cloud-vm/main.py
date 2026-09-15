@@ -63,6 +63,7 @@ import load_probe
 import market_clock
 import realtime_quotes
 import theme_flow
+import volume_profile_collector
 import scan_forward
 import sector_cards
 import swing_model
@@ -186,6 +187,13 @@ def _start_futures_collectors():
         circuit_breaker.start_background(kis_appkey, kis_appsecret)
     except Exception:
         logging.getLogger('main').exception('VI 배지 조회 시작 실패')
+
+    # 2026-09-15 사용자 결정: 매물대를 나중에 실제 체결가 기준으로 옮길 수 있게, KRX 거래일 장 마감 뒤
+    # (18:10~20:00) 하루 한 번 상위·최근 조회 종목의 당일 매물대를 volume_profile_daily에 쌓는다.
+    try:
+        volume_profile_collector.start_background(kis_appkey, kis_appsecret, _volume_profile_board_codes)
+    except Exception:
+        logging.getLogger('main').exception('매물대 실제 체결가 수집 시작 실패')
 
     if night_futures_ws is None:
         logging.getLogger('main').warning('websockets 미설치 - 야간선물 수집 건너뜀(pip install websockets 필요)')
@@ -979,6 +987,38 @@ def overseas_quote_health(symb: str = Query('AAPL', min_length=1, max_length=8),
         'picked': picked,
         'raw': row,
     })
+
+
+def _volume_profile_board_codes():
+    """매물대 실제 체결가 수집 대상(volume_profile_collector.py): 종목판 캐시의 국내 순위 종목.
+    그날 방문자가 없어 캐시가 비어 있으면 KIS 순위를 한 번 직접 조회한다."""
+    def codes_from(data):
+        result = []
+        for rows in ((data or {}).get('sections') or {}).values():
+            for row in rows or []:
+                code = str((row or {}).get('code') or '').strip()
+                if code:
+                    result.append(code)
+        return result
+
+    codes = []
+    for key, entry in list(_market_board_cache.items()):
+        if isinstance(key, tuple) and key and key[0] == 'domestic':
+            codes.extend(codes_from((entry or {}).get('data')))
+    if codes:
+        return codes
+    kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not kis_appkey or not kis_appsecret:
+        return []
+    return codes_from(market_board.fetch_domestic_kis(kis_appkey, kis_appsecret, limit=40))
+
+
+@app.get('/health/volume-profile')
+def health_volume_profile(request: Request):
+    """매물대 실제 체결가 일별 수집 상태(마지막 실행일·저장 종목 수·실패 수). 앱키는 담지 않는다."""
+    _check_rate_limit('health_volume_profile', request, max_per_window=20)
+    return envelope(volume_profile_collector.get_status())
 
 
 @app.get('/health/realtime')

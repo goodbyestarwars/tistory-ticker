@@ -488,96 +488,26 @@
         return '<div class="my-flow-row"><span>' + row[0] + '</span><b class="' + signClass(row[1]) + '">' + formatSignedShares(row[1]) + '</b><small>5일 ' + formatSignedShares(row[2]) + '</small></div>';
       }).join('') + '</div>' + buildMyFlowMiniChart(flow) + '<p class="my-analysis-footnote">+는 순매수, -는 순매도입니다. 수급은 투자 참고용으로만 확인하세요.</p></section>';
   }
-  var MY_VOLUME_LOOKBACK_DAYS = 120;
-  var MY_VOLUME_BIN_COUNT = 24;
-  var MY_VOLUME_DISPLAY_COUNT = 12;
-
-  // 호가/오늘 체결량과 섞지 않고, 완전한 일봉 OHLCV로 최근 체결 매물대를
-  // 계산한다. 하루 거래량은 그날의 고가~저가 구간에 비례 배분한다.
+  // 2026-09-15 사용자 결정("그래프 모양 등 다 통일해 종목분석 쪽으로 맞춰"): MY 매물대는 계산과 그래프를
+  // 종목분석(js/foreign-flow.js)의 것을 그대로 쓴다 - 따로 계산하던 코드가 기간·구간·표시를 어긋나게 했다.
+  // chart는 ForeignFlow.fetchFlowChart로 받으므로 이 함수가 불릴 때는 ForeignFlow가 이미 로드돼 있다.
   function buildDailyVolumeProfile(chart, code) {
-    if (!chart || !Array.isArray(chart.daily)) return null;
-    var points = chart.daily.map(function (row) {
-      var low = number(row.low, null), high = number(row.high, null);
-      var close = number(row.close, null), volume = Math.max(0, number(row.volume, 0));
-      if (low == null || high == null || close == null || high < low || close <= 0) return null;
-      return { date: String(row.date || ''), low: low, high: high, close: close, volume: volume };
-    }).filter(Boolean).sort(function (a, b) { return a.date.localeCompare(b.date); }).slice(-MY_VOLUME_LOOKBACK_DAYS);
-    if (points.length < 2) return null;
-    var minLow = Math.min.apply(null, points.map(function (row) { return row.low; }));
-    var maxHigh = Math.max.apply(null, points.map(function (row) { return row.high; }));
-    if (!(maxHigh > minLow)) return null;
-    var binSize = (maxHigh - minLow) / MY_VOLUME_BIN_COUNT;
-    var bins = [];
-    for (var i = 0; i < MY_VOLUME_BIN_COUNT; i++) {
-      bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
-    }
-    points.forEach(function (row) {
-      if (!(row.volume > 0)) return;
-      var range = row.high - row.low;
-      if (!(range > 0)) {
-        var flatIndex = Math.min(MY_VOLUME_BIN_COUNT - 1, Math.max(0, Math.floor((row.close - minLow) / binSize)));
-        bins[flatIndex].volume += row.volume;
-        return;
-      }
-      var startIndex = Math.max(0, Math.floor((row.low - minLow) / binSize));
-      var endIndex = Math.min(MY_VOLUME_BIN_COUNT - 1, Math.floor((row.high - minLow) / binSize));
-      for (var index = startIndex; index <= endIndex; index++) {
-        var overlap = Math.min(bins[index].high, row.high) - Math.max(bins[index].low, row.low);
-        if (overlap > 0) bins[index].volume += row.volume * (overlap / range);
-      }
-    });
-    var pocIndex = 0, maxVolume = 0;
-    bins.forEach(function (bin, index) {
-      if (bin.volume > maxVolume) { maxVolume = bin.volume; pocIndex = index; }
-    });
-    if (!(maxVolume > 0)) return null;
-    return {
-      code: code,
-      currentPrice: points[points.length - 1].close,
-      daysIncluded: points.length,
-      approximate: true,
-      source: 'daily-ohlcv',
-      poc: (bins[pocIndex].low + bins[pocIndex].high) / 2,
-      pocLow: bins[pocIndex].low,
-      pocHigh: bins[pocIndex].high,
-      bins: bins.map(function (bin) {
-        return { price: (bin.low + bin.high) / 2, low: bin.low, high: bin.high, volume: bin.volume };
-      })
-    };
+    var api = global.ForeignFlow;
+    if (!chart || !Array.isArray(chart.daily) || !api || !api.buildVolumeProfileSummary) return null;
+    var summary = api.buildVolumeProfileSummary(chart.daily);
+    if (!summary) return null;
+    summary.code = code;
+    return summary;
   }
   function buildVolumeCard(volume, chart, code, livePrice) {
-    volume = buildDailyVolumeProfile(chart, code);
-    if (!volume || !volume.bins || !volume.bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격·거래량 데이터가 부족해 그래프를 표시할 수 없습니다.</p></section>';
-    var bins = volume.bins.map(function (bin) {
-      var low = number(bin.low, null), high = number(bin.high, null);
-      var price = number(bin.price, null);
-      if (low == null || high == null) return null;
-      return { price: price == null ? (low + high) / 2 : price, low: low, high: high, volume: Math.max(0, number(bin.volume || bin.vol, 0)) };
-    }).filter(Boolean);
-    bins = bins.filter(function (bin) { return bin.price > 0 && bin.high >= bin.low; });
-    if (!bins.length) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격대별 거래량이 없습니다.</p></section>';
-    var poc = volume.poc || volume.pocPrice || bins[0].price;
-    var bucketSize = Math.max(1, Math.ceil(bins.length / MY_VOLUME_DISPLAY_COUNT));
-    var compact = [];
-    for (var i = 0; i < bins.length; i += bucketSize) {
-      var part = bins.slice(i, i + bucketSize);
-      compact.push({ low: part[0].low, high: part[part.length - 1].high, volume: part.reduce(function (sum, bin) { return sum + bin.volume; }, 0) });
-    }
-    var maxVolume = compact.reduce(function (best, bin) { return Math.max(best, bin.volume); }, 0) || 1;
-    var current = number(livePrice, number(volume.currentPrice, null));
-    var rows = compact.map(function (bin) {
-      var width = Math.max(4, Math.round(bin.volume / maxVolume * 100));
-      var isPoc = poc >= bin.low && poc <= bin.high;
-      var isCurrent = current != null && current >= bin.low && current <= bin.high;
-      var rangeLabel = formatPrice(bin.low, volume.code || '') + ' ~ ' + formatPrice(bin.high, volume.code || '');
-      return '<div class="my-volume-row' + (isPoc ? ' is-poc' : '') + (isCurrent ? ' is-current' : '') + '"><span>' + rangeLabel + '</span><i><b style="width:' + width + '%"></b></i><small>' + formatNumber(bin.volume, 0) + '</small></div>';
-    }).join('');
-    var periodLabel = '최근 ' + volume.daysIncluded + '거래일 일봉';
-    return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong><span>' + periodLabel + '</span></div>'
-      + '<div class="my-volume-highlight"><span>최근 체결량 최대 구간</span><strong>' + formatPrice(volume.pocLow, volume.code || '') + ' ~ ' + formatPrice(volume.pocHigh, volume.code || '') + '</strong></div>'
-      + '<div class="my-volume-chart" aria-label="가격대별 매물대 간략 그래프">' + rows + '</div>'
-      + '<div class="my-volume-legend"><span><i class="is-poc"></i>거래량 최다</span><span><i class="is-current"></i>현재가</span></div>'
-      + '<p class="my-analysis-footnote">호가창의 현재 대기 물량과는 다른 지표입니다. 현재가가 두꺼운 매물대 위에 있으면 지지, 아래에 있으면 저항 후보로 참고하세요. 일봉 고가·저가·거래량을 구간에 비례 배분한 추정치입니다.</p></section>';
+    var api = global.ForeignFlow;
+    var daily = chart && Array.isArray(chart.daily) ? chart.daily : null;
+    var lastClose = daily && daily.length ? number(daily[daily.length - 1].close, null) : null;
+    var html = daily && api && api.renderVolumeProfileHtml
+      ? api.renderVolumeProfileHtml(daily, number(livePrice, lastClose)) : '';
+    if (!html) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격·거래량 데이터가 부족해 그래프를 표시할 수 없습니다.</p></section>';
+    return '<section class="my-analysis-card my-volume-card"><div class="my-card-title"><strong>매물대</strong></div>'
+      + '<div class="ff-vp-host">' + html + '</div></section>';
   }
   function buildChartShapeCard(chart, summary) {
     var notes = summaryNotes(summary);
