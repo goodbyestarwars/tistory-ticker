@@ -842,7 +842,11 @@
     var quotePromise = global.Watchlist.fetchQuotes([item.code]).then(function (quotes) { state.quotes[item.code] = quotes[item.code] || {}; return quotes[item.code] || {}; }).catch(function () { return state.quotes[item.code] || {}; });
     var flowPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchFlow(item.code, displayName(item), 63); }).catch(function () { return null; });
     var summaryPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchAnalysisSummary(item.code, displayName(item)); }).catch(function () { return null; });
-    var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) { return flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code)); }).catch(function () { return null; });
+    // 2026-09-15: 매물대가 종목분석과 같은 값이 나오도록 같은 일봉 조회(ForeignFlow.fetchFlowChart)를 쓴다.
+    var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) {
+      return flowApi.fetchFlowChart ? flowApi.fetchFlowChart(item.code)
+        : flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code));
+    }).catch(function () { return null; });
     var volumePromise = Promise.resolve(null);
     Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
       if (id !== state.requestId || !itemByCode(item.code)) return;
