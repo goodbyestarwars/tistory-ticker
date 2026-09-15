@@ -955,6 +955,17 @@ def prune_volume_profile_daily(conn, cutoff_date):
     conn.commit()
 
 
+def list_volume_profile_codes(conn, since_date):
+    """since_date('YYYY-MM-DD') 이후 volume_profile_daily에 저장된 적 있는 종목코드, 최근 저장일 순.
+    volume_profile_collector.py가 "최근 조회·수집된 종목"을 매일 수집 대상에 넣을 때 쓴다."""
+    rows = conn.execute(
+        'SELECT code, MAX(trade_date) AS last_date FROM volume_profile_daily WHERE trade_date>=? '
+        'GROUP BY code ORDER BY last_date DESC, code',
+        (since_date,),
+    ).fetchall()
+    return [r[0] for r in rows]
+
+
 if __name__ == '__main__':
     conn = get_conn()
     create_schema(conn)

@@ -555,7 +555,7 @@
    buildAptChartHtml 상단 주석 참고). 페이지 진입 시 건물 전체가 아래에서 살짝 올라오며
    페이드인 - 진짜 값은 .ff-apt-in 클래스와 무관하게 이미 다 그려져 있어(애니메이션
    실패해도 최종 상태는 항상 정확) market-temp.js와 같은 안전 패턴을 따를 필요는 없다. */
-#foreign-flow .ff-apt-chart-wrap {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap {
   position: relative;
   width: 100%;
   box-sizing: border-box;
@@ -568,7 +568,7 @@
   transform: translateY(14px);
   transition: opacity 0.6s ease, transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
-#foreign-flow .ff-apt-chart-wrap.ff-apt-in { opacity: 1; transform: translateY(0); }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-in { opacity: 1; transform: translateY(0); }
 /* 층마다 가격 좌우에 미니 창문 2개 - "촘촘한 격자"가 아니라 행당 아이콘 2개뿐이라
    24행이 쌓여도 밀도 문제가 재발하지 않는다(위 buildAptChartHtml 주석 참고). */
 #foreign-flow .ff-apt-mini-window {
@@ -593,11 +593,11 @@
 #foreign-flow .ff-apt-bar-slot-buy { justify-content: flex-start; }
 #foreign-flow .ff-apt-bar-sell { background: #4A90E2; transform-origin: right center; }
 #foreign-flow .ff-apt-bar-buy { background: #FF5B6E; transform-origin: left center; }
-#foreign-flow .ff-apt-chart-wrap.ff-apt-in .ff-apt-bar { transform: scaleX(1); }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-in .ff-apt-bar { transform: scaleX(1); }
 #foreign-flow .ff-apt-elevator-car-up { animation-direction: reverse; }
 
 /* 미래형 글라스 타워 + 절제된 제품 카드 표면 */
-#foreign-flow .ff-apt-chart-wrap {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap {
   background: linear-gradient(155deg, rgba(255,255,255,.98), rgba(242,247,251,.92));
   border: 1px solid rgba(171,184,198,.32);
   border-radius: 24px;
@@ -607,7 +607,7 @@
 @media (max-width: 520px) {
 }
 
-#foreign-flow .ff-apt-empty {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-empty {
   padding: 18px 10px;
   text-align: center;
   color: #999;
@@ -866,7 +866,7 @@
 #foreign-flow .ff-tt-row b { font-weight: 700; }
 #foreign-flow .ff-tt-sub { color: #888; font-size: 11px; }
 
-#foreign-flow .ff-footnote {
+:is(#foreign-flow, .ff-vp-host) .ff-footnote {
   font-size: 12px;
   color: #999;
   margin-top: 10px;
@@ -1524,7 +1524,7 @@ html.dark #foreign-flow .ff-tt {
   color: #F5EFE0 !important;
 }
 html.dark #foreign-flow .ff-tt-sub { color: rgba(245, 239, 224, 0.6) !important; }
-html.dark #foreign-flow .ff-footnote { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-footnote { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-badge-legend { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-badge-legend b { color: rgba(245, 239, 224, 0.65) !important; }
 
@@ -1613,14 +1613,14 @@ html.dark #foreign-flow .ff-apt-tab[data-apt-type="ind"].active { background: #f
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="foreign"].active { background: #e8590c !important; border-color: #e8590c !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-tab[data-apt-type="inst"].active { background: #7c5cdb !important; border-color: #7c5cdb !important; color: #fff !important; }
 html.dark #foreign-flow .ff-apt-totals { color: rgba(245, 239, 224, 0.65) !important; }
-html.dark #foreign-flow .ff-apt-chart-wrap { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-apt-mini-window { background: rgba(245, 239, 224, 0.12) !important; border-color: rgba(245, 239, 224, 0.3) !important; }
 html.dark #foreign-flow .ff-apt-mini-window::after { background: rgba(245, 239, 224, 0.3) !important; }
 html.dark #foreign-flow .ff-apt-bar-sell { background: #5b9ee8 !important; }
 html.dark #foreign-flow .ff-apt-bar-buy { background: #ff7d8e !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #foreign-flow .ff-apt-zoom-btn:disabled { opacity: 0.35 !important; }
-html.dark #foreign-flow .ff-apt-empty { color: rgba(245, 239, 224, 0.6) !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-empty { color: rgba(245, 239, 224, 0.6) !important; }
 html.dark #foreign-flow .ff-apt-stat { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
 html.dark #foreign-flow .ff-apt-stat-title { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #foreign-flow .ff-apt-stat-value { color: #F5EFE0 !important; }
@@ -2522,26 +2522,26 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 }
 
 /* 종목분석 > 매물대: 장식 없이 가격·거래량 관계만 보여주는 compact profile */
-#foreign-flow .ff-apt-simple-summary {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 8px;
   margin: 4px 0 10px;
 }
-#foreign-flow .ff-apt-simple-summary > div {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div {
   min-width: 0;
   padding: 11px 12px;
   border: 1px solid #e4e9ef;
   border-radius: 11px;
   background: #f8fafc;
 }
-#foreign-flow .ff-apt-simple-summary span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary span {
   display: block;
   margin-bottom: 3px;
   color: #7b8794;
   font-size: 10px;
 }
-#foreign-flow .ff-apt-simple-summary strong {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong {
   display: block;
   overflow: hidden;
   color: #26384a;
@@ -2550,7 +2550,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-chart-wrap.ff-apt-simple {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple {
   min-height: 0;
   padding: 15px 16px 13px;
   border: 1px solid #e4e9ef;
@@ -2559,39 +2559,39 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   box-shadow: none;
   transform: translateY(4px);
 }
-#foreign-flow .ff-apt-chart-wrap.ff-apt-simple.ff-apt-in { transform: translateY(0); }
-#foreign-flow .ff-apt-simple-head {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple.ff-apt-in { transform: translateY(0); }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 12px;
 }
-#foreign-flow .ff-apt-simple-head strong {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head strong {
   display: block;
   color: #26384a;
   font-size: 13px;
 }
-#foreign-flow .ff-apt-simple-head span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head span {
   display: block;
   margin-top: 2px;
   color: #8a96a3;
   font-size: 10px;
 }
-#foreign-flow .ff-apt-simple-head em {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head em {
   flex: 0 0 auto;
   color: #7b8794;
   font-size: 10px;
   font-style: normal;
 }
-#foreign-flow .ff-apt-simple-head-right {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head-right {
   display: flex;
   flex: 0 0 auto;
   flex-direction: column;
   align-items: flex-end;
   gap: 4px;
 }
-#foreign-flow .ff-apt-simple-signal {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal {
   padding: 5px 8px;
   border-radius: 999px;
   font-size: 11px;
@@ -2599,32 +2599,32 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-weight: 800;
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-simple-signal.up,
-#foreign-flow .ff-apt-simple-note strong.up { color: #d24f45; background: #fff0ee; }
-#foreign-flow .ff-apt-simple-signal.down,
-#foreign-flow .ff-apt-simple-note strong.down { color: #1261c4; background: #eaf2fd; }
-#foreign-flow .ff-apt-simple-signal.neutral,
-#foreign-flow .ff-apt-simple-note strong.neutral { color: #526173; background: #f1f4f7; }
-#foreign-flow .ff-apt-simple-limits {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.up,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.up { color: #d24f45; background: #fff0ee; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.down,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.down { color: #1261c4; background: #eaf2fd; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.neutral,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.neutral { color: #526173; background: #f1f4f7; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 5px;
   margin: -4px 0 10px;
 }
-#foreign-flow .ff-apt-simple-limits span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits span {
   padding: 3px 7px;
   border-radius: 999px;
   font-size: 9px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-simple-limits .basis { color: #7b8794; background: transparent; }
-#foreign-flow .ff-apt-simple-limits .open { color: #647180; background: #f1f4f7; }
-#foreign-flow .ff-apt-simple-limits .lower { color: #1261c4; background: #eaf2fd; }
-#foreign-flow .ff-apt-simple-limits .upper { color: #d24f45; background: #fff0ee; }
-#foreign-flow .ff-apt-simple-chart { display: grid; gap: 3px; }
-#foreign-flow .ff-apt-simple-side-heading {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .basis { color: #7b8794; background: transparent; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .open { color: #647180; background: #f1f4f7; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: #1261c4; background: #eaf2fd; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: #d24f45; background: #fff0ee; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-chart { display: grid; gap: 3px; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
@@ -2635,17 +2635,17 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   color: #82909e;
   font-size: 9px;
 }
-#foreign-flow .ff-apt-simple-side-heading strong {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading strong {
   font-size: 10px;
   font-weight: 800;
 }
-#foreign-flow .ff-apt-simple-side-heading span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading span {
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-simple-side-heading.above strong { color: #1261c4; }
-#foreign-flow .ff-apt-simple-side-heading.below strong { color: #d24f45; }
-#foreign-flow .ff-apt-simple-side-heading.current strong { color: #087f69; }
-#foreign-flow .ff-apt-simple-row {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.above strong { color: #1261c4; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.below strong { color: #d24f45; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.current strong { color: #087f69; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row {
   display: grid;
   grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;
   align-items: center;
@@ -2654,49 +2654,49 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   padding: 2px 7px;
   border-radius: 0;
 }
-#foreign-flow .ff-apt-simple-row.is-current { background: #eefbf8; }
-#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-price,
-#foreign-flow .ff-apt-simple-row.is-empty .ff-apt-simple-volume { color: #9aa7b5; }
-#foreign-flow .ff-apt-simple-price,
-#foreign-flow .ff-apt-simple-volume {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current { background: #eefbf8; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-empty .ff-apt-simple-price,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-empty .ff-apt-simple-volume { color: #9aa7b5; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume {
   color: #627080;
   font-size: 10px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-simple-price { text-align: right; }
-#foreign-flow .ff-apt-simple-volume { text-align: right; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price { text-align: right; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume { text-align: right; }
 /* 2026-09-12 사용자 요청("애플 스타일 말고 각진 스타일, 음영은 빗금"): 둥근 알약 막대를
    직각으로, 막대 뒤 옅은 회색 바탕(1위 가격대 대비 남은 몫)을 사선 빗금으로 바꿨다.
    거래가 없는 가격대(is-empty)도 막대 폭이 0이라 같은 빗금만 보인다 - 따로 규칙을 두지 않는다. */
-#foreign-flow .ff-apt-simple-track {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track {
   display: block;
   height: 10px;
   overflow: hidden;
   border-radius: 0;
   background: repeating-linear-gradient(135deg, #d6dde5 0 1px, #f4f6f9 1px 5px);
 }
-#foreign-flow .ff-apt-simple-track i {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track i {
   display: block;
   height: 100%;
   border-radius: inherit;
   background: #b9c8d8;
   transition: width .35s ease;
 }
-#foreign-flow .ff-apt-simple-row.is-current .ff-apt-simple-track { box-shadow: 0 0 0 1px #3aa68c; }
-#foreign-flow .ff-apt-simple-row.is-current .ff-apt-simple-track i { background: #69bfa9; }
-#foreign-flow .ff-apt-simple-row.is-poc .ff-apt-simple-track i { background: #f19a59; }
-#foreign-flow .ff-apt-simple-row.is-current.is-poc .ff-apt-simple-track i {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current .ff-apt-simple-track { box-shadow: 0 0 0 1px #3aa68c; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current .ff-apt-simple-track i { background: #69bfa9; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-poc .ff-apt-simple-track i { background: #f19a59; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current.is-poc .ff-apt-simple-track i {
   background: linear-gradient(90deg, #69bfa9 0 48%, #f19a59 48% 100%);
 }
-#foreign-flow .ff-apt-simple-markers {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers {
   display: flex;
   align-items: center;
   gap: 3px;
   min-height: 18px;
 }
-#foreign-flow .ff-apt-simple-markers span,
-#foreign-flow .ff-apt-simple-legend span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers span,
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend span {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2704,31 +2704,31 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 9px;
   white-space: nowrap;
 }
-#foreign-flow .ff-apt-simple-markers span {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers span {
   padding: 2px 5px;
   border-radius: 2px;
   background: #f1f4f7;
 }
-#foreign-flow .ff-apt-simple-markers .current { color: #087f69; background: #dff7f1; }
-#foreign-flow .ff-apt-simple-markers .average { color: #2166b1; background: #e7f0fb; }
-#foreign-flow .ff-apt-simple-markers .poc { color: #c65f1a; background: #fff0e5; }
-#foreign-flow .ff-apt-simple-legend {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers .current { color: #087f69; background: #dff7f1; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers .average { color: #2166b1; background: #e7f0fb; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers .poc { color: #c65f1a; background: #fff0e5; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
   margin-top: 11px;
 }
-#foreign-flow .ff-apt-simple-legend span::before {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend span::before {
   width: 7px;
   height: 7px;
   border-radius: 0;
   background: #9aa8b7;
   content: '';
 }
-#foreign-flow .ff-apt-simple-legend .current::before { background: #3aa68c; }
-#foreign-flow .ff-apt-simple-legend .average::before { background: #4d86c5; }
-#foreign-flow .ff-apt-simple-legend .poc::before { background: #f08c46; }
-#foreign-flow .ff-apt-simple-note {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend .current::before { background: #3aa68c; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend .average::before { background: #4d86c5; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend .poc::before { background: #f08c46; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note {
   display: flex;
   align-items: baseline;
   gap: 8px;
@@ -2740,8 +2740,8 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 10px;
   line-height: 1.5;
 }
-#foreign-flow .ff-apt-simple-note strong { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #33475b; font-size: 11px; }
-#foreign-flow .ff-footnote.ff-apt-simple-source {
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #33475b; font-size: 11px; }
+:is(#foreign-flow, .ff-vp-host) .ff-footnote.ff-apt-simple-source {
   margin: 7px 2px 0;
   padding: 0;
   border: 0;
@@ -2750,48 +2750,48 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   font-size: 9px;
 }
 
-html.dark #foreign-flow .ff-apt-simple-summary > div,
-html.dark #foreign-flow .ff-apt-simple-note { border-color: rgba(245,239,224,.14); background: #24292d; }
-html.dark #foreign-flow .ff-apt-simple-summary strong,
-html.dark #foreign-flow .ff-apt-simple-head strong,
-html.dark #foreign-flow .ff-apt-simple-note strong { color: #f5efe0; }
-html.dark #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
-html.dark #foreign-flow .ff-apt-simple-track { background: repeating-linear-gradient(135deg, #454d55 0 1px, #262b30 1px 5px); }
-html.dark #foreign-flow .ff-apt-simple-side-heading { border-top-color: rgba(245,239,224,.14); color: #9da8b2; }
-html.dark #foreign-flow .ff-apt-simple-side-heading.above strong { color: #8db9f0; }
-html.dark #foreign-flow .ff-apt-simple-side-heading.below strong { color: #f09b94; }
-html.dark #foreign-flow .ff-apt-simple-side-heading.current strong { color: #69bfa9; }
-html.dark #foreign-flow .ff-apt-simple-limits .basis { color: #9da8b2; background: transparent; }
-html.dark #foreign-flow .ff-apt-simple-limits .open { color: #b8c0c7; background: #333a40; }
-html.dark #foreign-flow .ff-apt-simple-limits .lower { color: #8db9f0; background: rgba(18,97,196,.2); }
-html.dark #foreign-flow .ff-apt-simple-limits .upper { color: #f09b94; background: rgba(210,79,69,.2); }
-html.dark #foreign-flow .ff-apt-simple-row.is-current { background: rgba(39,138,116,.17); }
-html.dark #foreign-flow .ff-apt-simple-price,
-html.dark #foreign-flow .ff-apt-simple-volume,
-html.dark #foreign-flow .ff-apt-simple-note { color: #b8c0c7; }
-html.dark #foreign-flow .ff-apt-simple-signal.up,
-html.dark #foreign-flow .ff-apt-simple-note strong.up { color: #f09b94 !important; background: rgba(210,79,69,.2); }
-html.dark #foreign-flow .ff-apt-simple-signal.down,
-html.dark #foreign-flow .ff-apt-simple-note strong.down { color: #8db9f0 !important; background: rgba(18,97,196,.2); }
-html.dark #foreign-flow .ff-apt-simple-signal.neutral,
-html.dark #foreign-flow .ff-apt-simple-note strong.neutral { color: #c2cad1 !important; background: #333a40; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note { border-color: rgba(245,239,224,.14); background: #24292d; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head strong,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong { color: #f5efe0; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple { border-color: rgba(245,239,224,.17) !important; background: #1f2326 !important; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track { background: repeating-linear-gradient(135deg, #454d55 0 1px, #262b30 1px 5px); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading { border-top-color: rgba(245,239,224,.14); color: #9da8b2; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.above strong { color: #8db9f0; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.below strong { color: #f09b94; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading.current strong { color: #69bfa9; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .basis { color: #9da8b2; background: transparent; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .open { color: #b8c0c7; background: #333a40; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: #8db9f0; background: rgba(18,97,196,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: #f09b94; background: rgba(210,79,69,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current { background: rgba(39,138,116,.17); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note { color: #b8c0c7; }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.up,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.up { color: #f09b94 !important; background: rgba(210,79,69,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.down,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.down { color: #8db9f0 !important; background: rgba(18,97,196,.2); }
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.neutral,
+html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.neutral { color: #c2cad1 !important; background: #333a40; }
 
 @media (max-width: 640px) {
-  #foreign-flow .ff-apt-simple-summary { gap: 5px; }
-  #foreign-flow .ff-apt-simple-summary > div { padding: 9px 8px; }
-  #foreign-flow .ff-apt-simple-summary strong { font-size: 12px; }
-  #foreign-flow .ff-apt-chart-wrap.ff-apt-simple { padding: 13px 9px 11px; }
-  #foreign-flow .ff-apt-simple-row { grid-template-columns: 78px minmax(64px, 1fr) 48px 62px; gap: 5px; padding-inline: 3px; }
-  #foreign-flow .ff-apt-simple-limits { justify-content: flex-start; margin-top: -2px; }
-  #foreign-flow .ff-apt-simple-price,
-  #foreign-flow .ff-apt-simple-volume { font-size: 8px; }
-  #foreign-flow .ff-apt-simple-markers { gap: 2px; }
-  #foreign-flow .ff-apt-simple-markers span { padding: 2px 3px; font-size: 8px; }
-  #foreign-flow .ff-apt-simple-side-heading { margin-inline: 3px; }
-  #foreign-flow .ff-apt-simple-side-heading strong { font-size: 9px; }
-  #foreign-flow .ff-apt-simple-side-heading span { font-size: 8px; }
-  #foreign-flow .ff-apt-simple-note { display: block; }
-  #foreign-flow .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary { gap: 5px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div { padding: 9px 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong { font-size: 12px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple { padding: 13px 9px 11px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row { grid-template-columns: 78px minmax(64px, 1fr) 48px 62px; gap: 5px; padding-inline: 3px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits { justify-content: flex-start; margin-top: -2px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price,
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume { font-size: 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers { gap: 2px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers span { padding: 2px 3px; font-size: 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading { margin-inline: 3px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading strong { font-size: 9px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading span { font-size: 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note { display: block; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
 }
 
 html.dark #foreign-flow .ff-opinion-summary-card {

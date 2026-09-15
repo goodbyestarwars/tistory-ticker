@@ -96,7 +96,8 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/quote?code=000000` | API 키 | VM 단기 LRU | 키움 기본정보 원본 가공 응답 |
 | `/ohlc/{code}` | API 키 | VM 단기 LRU | 국내 일봉 |
 | `/ohlc-minute/{code}` | 없음 | VM 단기 LRU | 국내 분봉 |
-| `/pbar-tratio/{code}?days=N` | 없음 | VM 5분 + SQLite 온디맨드 | 실제 체결가 매물대 |
+| `/pbar-tratio/{code}?days=N` | 없음 | VM 5분 + SQLite(온디맨드 + 거래일 18:10 일별 수집) | 실제 체결가 매물대(화면은 2026-09-15부터 일봉 추정치 사용) |
+| `/health/volume-profile` | 없음 | 실시간 | 매물대 실제 체결가 일별 수집 상태 |
 | `/etf-components/{code}` | 없음 | VM 캐시 | ETF 구성종목 |
 | `/foreign-flow/{code}?days=N` | 없음 | VM 5분 | 외국인·기관 일별 수급 |
 | `/investor-flow/{code}?name=...` | 없음 | VM 5분 | 공매도·대차·연기금 |

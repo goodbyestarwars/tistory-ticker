@@ -1330,7 +1330,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("localizedUsName", "name: '인텔'", "name: '스트래티지'", "name: '크라우드스트라이크'", "name: '씨게이트 테크놀로지'"):
             self.assertIn(token, watchlist)
         self.assertIn("/page/watchlist", bootstrap)
-        for token in ("flowAiSummary", "MY_VOLUME_LOOKBACK_DAYS", "MY_VOLUME_BIN_COUNT", "buildDailyVolumeProfile", "buildMyFlowMiniChart", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "my-volume-chart", "차트 모양 분석", "5일 변화", "20일 변화", "60일 변화", "112일 변화", "224일 변화", "data-my-watchlist-add", "data-my-watchlist-modal", "data-my-watchlist-add-confirm", "addFromWatchlistModal", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절", "단타 · 5·20일선", "중장기 · 60·224일선", "watchlistCollapsed", "data-my-watchlist-show", "updateWatchlistVisibility", "function localizedUsName", "US_NAME_ALIASES", "INTC: '인텔'", "MSTR: '스트래티지'", "CRWD: '크라우드스트라이크'", "STX: '씨게이트 테크놀로지'"):
+        for token in ("flowAiSummary", "renderVolumeProfileHtml", "buildVolumeProfileSummary", "buildDailyVolumeProfile", "buildMyFlowMiniChart", "myStockInput", "myStockOptions", "data-my-calc=\"budget\"", "data-my-group-toggle", "groupedWatchlist", "ff-vp-host", "차트 모양 분석", "5일 변화", "20일 변화", "60일 변화", "112일 변화", "224일 변화", "data-my-watchlist-add", "data-my-watchlist-modal", "data-my-watchlist-add-confirm", "addFromWatchlistModal", "물타기 계산기", "my-position-advice", "data-my-calc-recovery", "chartNote", "arrangeAnalysisSections", "modestProfit", "보유 · 추세 확인", "매수 당일이나 초기 수익만으로 분할 익절", "단타 · 5·20일선", "중장기 · 60·224일선", "watchlistCollapsed", "data-my-watchlist-show", "updateWatchlistVisibility", "function localizedUsName", "US_NAME_ALIASES", "INTC: '인텔'", "MSTR: '스트래티지'", "CRWD: '크라우드스트라이크'", "STX: '씨게이트 테크놀로지'"):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)
@@ -1939,15 +1939,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("row.volume > 0 && maxVolume > 0", source)
         self.assertNotIn("Math.max(3, Math.round(row.volume / maxVolume", source)
         self.assertIn("function attachAptPriceLimits(profile, openPrice)", source)
-        self.assertIn("lowerLimit: Math.round(base * 0.7)", source)
-        self.assertIn("upperLimit: Math.round(base * 1.3)", source)
+        # 2026-09-15: 참고 상·하한가도 KRX 호가단위에 맞춘다(원화).
+        self.assertIn("lowerLimit: krw ? ceilToKrxTick(base * 0.7) : Math.round(base * 0.7)", source)
+        self.assertIn("upperLimit: krw ? floorToKrxTick(base * 1.3) : Math.round(base * 1.3)", source)
         self.assertIn("시가 기준 참고 가격 범위", source)
         self.assertIn('class="basis">시가 기준 ±30%', source)
         self.assertIn('class="lower">하한가', source)
         self.assertIn('class="upper">상한가', source)
         self.assertIn('<div class="ff-extra-card-title">매물대</div>', source)
         self.assertNotIn('<div class="ff-extra-card-title">🏢 매물대</div>', source)
-        self.assertIn("#foreign-flow .ff-apt-simple-row", style)
+        # 2026-09-15: MY 매물대(.ff-vp-host)도 같은 그래프 스타일을 쓴다.
+        self.assertIn(":is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row", style)
         self.assertIn("grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;", style)
         self.assertIn("@media (max-width: 640px)", style)
         self.assertIn(".ff-apt-simple-limits", style)

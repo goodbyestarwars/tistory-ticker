@@ -4319,16 +4319,17 @@
     return bins.length - 1;
   }
 
-  // 원본 매물대는 최대 48개 가격 구간까지 내려오지만, 화면에서는 인접 구간을 12개로
+  // 원본 매물대는 최대 48개 가격 구간까지 내려오지만, 화면에서는 인접 구간을 12행 안팎으로
   // 합쳐 가격의 연속성은 유지하면서 한눈에 비교할 수 있게 한다.
+  // 2026-09-15: 구간 경계를 호가단위에 맞춘 뒤로 구간 수가 요청값 근처로 달라진다. 비율로 나누면
+  // 행마다 묶는 구간 수가 들쭉날쭉해 행 폭이 달라지므로, 아래(낮은 가격)부터 같은 개수씩 묶는다.
   function compactAptProfileBins(profile, rowCount) {
     if (!profile || !profile.bins || !profile.bins.length) return [];
     var bins = profile.bins;
-    var count = Math.max(1, Math.min(Number(rowCount) || 12, bins.length));
+    var groupSize = Math.max(1, Math.round(bins.length / Math.max(1, Number(rowCount) || 12)));
     var compacted = [];
-    for (var i = 0; i < count; i++) {
-      var start = Math.floor(i * bins.length / count);
-      var end = Math.max(start + 1, Math.floor((i + 1) * bins.length / count));
+    for (var start = 0; start < bins.length; start += groupSize) {
+      var end = Math.min(bins.length, start + groupSize);
       var chunk = bins.slice(start, end);
       var volume = chunk.reduce(function (sum, bin) {
         return sum + Math.max(0, Number(bin.volume) || 0);
@@ -4370,7 +4371,10 @@
     }) : -1;
     if (currentIndex < 0 && isFinite(current)) {
       var insertIndex = actualRows.findIndex(function (row) { return Number(row.low) > current; });
-      var currentRow = emptyRow(current - step / 2, current + step / 2);
+      // 2026-09-15: 빈 현재가 행도 호가단위에 맞춘 구간 격자 위에 둔다(현재가±반 칸이면 어중간한 가격이 됨).
+      var gridOrigin = Number(actualRows[0].low);
+      var gridLow = gridOrigin + Math.floor((current - gridOrigin) / step) * step;
+      var currentRow = emptyRow(gridLow, gridLow + step);
       currentRow.isCurrent = true;
       if (insertIndex < 0) {
         actualRows.push(currentRow);
@@ -4415,7 +4419,10 @@
     var orderBook = buildAptOrderBookRows(compactRows, currentPrice);
     var rows = orderBook.rows;
     var pocBin = profile.bins[profile.pocIndex];
-    var pocMid = pocBin ? (Number(pocBin.low) + Number(pocBin.high)) / 2 : null;
+    // 2026-09-15: 평균단가는 가중평균이라 호가단위에 맞지 않는 값이 나온다 - 화면에는 가장 가까운 호가로 보인다.
+    var avgNumber = Number(avgPrice);
+    var displayAvg = avgPrice != null && isFinite(avgNumber) && profile.integerPrices
+      ? Math.round(avgNumber / krxTickSize(avgNumber)) * krxTickSize(avgNumber) : avgPrice;
     var maxVolume = rows.reduce(function (max, row) { return Math.max(max, row.volume); }, 0);
     var pocRow = rows.findIndex(function (row) {
       return profile.pocIndex >= row.start && profile.pocIndex <= row.end;
@@ -4514,8 +4521,8 @@
 
     return '<div class="ff-apt-simple-summary">'
       + '<div><span>현재가</span><strong data-apt-simple-current>' + won(currentPrice) + '</strong></div>'
-      + '<div><span>최대 매물대</span><strong>' + won(pocMid) + '</strong></div>'
-      + '<div><span>평균단가</span><strong>' + won(avgPrice) + '</strong></div>'
+      + '<div><span>최대 매물대</span><strong>' + (pocBin ? rangeText(pocBin) + '원' : '-') + '</strong></div>'
+      + '<div><span>평균단가</span><strong>' + won(displayAvg) + '</strong></div>'
       + '</div>'
       + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
       + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
@@ -4597,6 +4604,48 @@
     };
   }
 
+  function floorToKrxTick(value) {
+    var tick = krxTickSize(value);
+    return Math.floor(value / tick) * tick;
+  }
+
+  function ceilToKrxTick(value) {
+    var tick = krxTickSize(value);
+    return Math.ceil(value / tick) * tick;
+  }
+
+  // 2026-09-15 사용자 결정("그래프 모양 등 다 통일해 종목분석 쪽으로 맞춰"): MY(js/my-dashboard.js)가
+  // 종목분석과 같은 매물대 계산·같은 그래프를 쓰도록 공개한다(기본 24구간 = 종목분석 기본 줌).
+  function buildVolumeProfileSummary(daily) {
+    var estimate = buildApproxVolumeProfile(daily, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
+    if (!estimate) return null;
+    var profile = estimate.profile;
+    var poc = profile.bins[profile.pocIndex];
+    return {
+      daysIncluded: estimate.daysIncluded,
+      avgPrice: estimate.avgPrice,
+      approximate: true,
+      source: 'daily-ohlcv',
+      poc: (poc.low + poc.high) / 2,
+      pocLow: poc.low,
+      pocHigh: poc.high,
+      bins: profile.bins.map(function (bin) {
+        return { price: (bin.low + bin.high) / 2, low: bin.low, high: bin.high, volume: bin.volume };
+      })
+    };
+  }
+
+  function renderVolumeProfileHtml(daily, currentPrice) {
+    var estimate = buildApproxVolumeProfile(daily, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
+    if (!estimate) return '';
+    var last = Array.isArray(daily) && daily.length ? daily[daily.length - 1] : null;
+    var profile = attachAptPriceLimits(estimate.profile, last && Number(last.open));
+    profile.source = estimate.source;
+    // 종목분석은 탭을 열 때 playAptEntrance로 ff-apt-in을 붙이지만 MY는 바로 보여야 해서 처음부터 붙인다.
+    return buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX, estimate.daysIncluded, estimate.avgPrice)
+      .replace('class="ff-apt-chart-wrap ff-apt-simple"', 'class="ff-apt-chart-wrap ff-apt-simple ff-apt-in"');
+  }
+
   // 체결 데이터가 없는 가격대를 profile 원자료에 임의로 덧붙이면 실제 매물대처럼
   // 보이는 문제가 생긴다. 실제 profile은 그대로 두고, 화면 표시 단계에서만 현재가
   // 위·아래 방향을 읽기 위한 빈 구간을 synthetic으로 추가한다(매물대 계산에는 불포함).
@@ -4605,17 +4654,21 @@
     if (!profile || !profile.bins || !profile.bins.length) return profile;
     var base = Number(openPrice);
     if (!(base > 0) || !isFinite(base)) return profile;
+    // 2026-09-15: KRX처럼 상한가는 호가단위 미만을 버리고 하한가는 올려 실제 호가로 보인다(원화만).
+    var krw = profile.integerPrices !== false;
     return {
       bins: profile.bins,
       maxVolume: profile.maxVolume,
       pocIndex: profile.pocIndex,
       minLow: profile.minLow,
       maxHigh: profile.maxHigh,
+      binSize: profile.binSize,
+      integerPrices: profile.integerPrices,
       days: profile.days,
       trendUp: profile.trendUp,
       openPrice: base,
-      lowerLimit: Math.round(base * 0.7),
-      upperLimit: Math.round(base * 1.3)
+      lowerLimit: krw ? ceilToKrxTick(base * 0.7) : Math.round(base * 0.7),
+      upperLimit: krw ? floorToKrxTick(base * 1.3) : Math.round(base * 1.3)
     };
   }
 
@@ -4838,6 +4891,38 @@
   // lookbackDays/binCount 생략 시 차트 탭 오버레이 기본값(VP_LOOKBACK_DAYS/VP_BIN_COUNT)을
   // 쓴다. 매물대 아파트 카드(위 aptBinIndex 등)도 이 함수를 그대로 재사용해 층수(줌)만
   // 다르게 넘긴다 - 계산 로직이 완전히 같아 중복 구현을 피한다.
+  // 2026-09-15 사용자 지적("정확하다곤 하는데, 뒷자리가 원단위로 끝나서 신뢰가 좀 이상해"): 구간 경계를
+  // (최고가-최저가)/N으로 나누면 262,104원처럼 실제로 체결될 수 없는 가격이 나온다. 구간 폭을 호가단위의
+  // 정수배로 올려 잡고 경계를 그 배수에 맞춘다. 원화(가격이 전부 정수)는 KRX 호가단위(2023-01-25
+  // 개편, 코스피·코스닥 공통)를 최고가 기준으로 쓰되 ETF(5원 단위)에서도 실제 호가가 되도록 최소 5원,
+  // 소수 가격(미국 주식)은 0.01달러 단위. 경계가 최고가 구간의 호가단위 배수라 더 낮은 가격대에서도
+  // 항상 유효한 호가다. 구간 수는 요청값 근처(보통 +0~+2)가 된다.
+  function krxTickSize(price) {
+    if (price < 2000) return 1;
+    if (price < 5000) return 5;
+    if (price < 20000) return 10;
+    if (price < 50000) return 50;
+    if (price < 200000) return 100;
+    if (price < 500000) return 500;
+    return 1000;
+  }
+
+  function roundPriceUnit(value) {
+    return Math.round(value * 1e6) / 1e6;
+  }
+
+  function volumeProfileGrid(minLow, maxHigh, binCount, integerPrices) {
+    var unit = integerPrices ? Math.max(5, krxTickSize(maxHigh)) : 0.01;
+    var raw = (maxHigh - minLow) / binCount;
+    // 호가단위의 정수배 중 요청 폭 이상인 가장 작은 값. 1·2·5배만 쓰면 폭이 최대 2.5배로 뛰어
+    // 24구간을 요청해도 15구간까지 줄었다(테스트로 확인) - 정수배면 구간 수가 요청값 근처로 남는다.
+    var step = roundPriceUnit(Math.max(1, Math.ceil(raw / unit - 1e-9)) * unit);
+    var bottom = roundPriceUnit(Math.floor(minLow / step + 1e-9) * step);
+    var top = roundPriceUnit(Math.ceil(maxHigh / step - 1e-9) * step);
+    if (!(top > bottom)) top = roundPriceUnit(bottom + step);
+    return { step: step, bottom: bottom, count: Math.max(1, Math.round((top - bottom) / step)) };
+  }
+
   function computeVolumeProfile(daily, lookbackDays, binCount) {
     lookbackDays = lookbackDays || VP_LOOKBACK_DAYS;
     binCount = binCount || VP_BIN_COUNT;
@@ -4847,10 +4932,19 @@
     var maxHigh = Math.max.apply(null, win.map(function (d) { return d.high; }));
     if (!(maxHigh > minLow)) return null;
 
-    var binSize = (maxHigh - minLow) / binCount;
+    var integerPrices = win.every(function (d) {
+      return Math.floor(d.low) === d.low && Math.floor(d.high) === d.high;
+    });
+    var grid = volumeProfileGrid(minLow, maxHigh, binCount, integerPrices);
+    var binSize = grid.step;
+    var count = grid.count;
     var bins = [];
-    for (var i = 0; i < binCount; i++) {
-      bins.push({ low: minLow + i * binSize, high: minLow + (i + 1) * binSize, volume: 0 });
+    for (var i = 0; i < count; i++) {
+      bins.push({
+        low: roundPriceUnit(grid.bottom + i * binSize),
+        high: roundPriceUnit(grid.bottom + (i + 1) * binSize),
+        volume: 0
+      });
     }
 
     win.forEach(function (d) {
@@ -4858,12 +4952,12 @@
       var range = d.high - d.low;
       if (!(range > 0)) {
         // 하루 종일 가격 변동이 없으면(상하한가 등) 종가가 속한 구간에 거래량 전량 배정
-        var idx = Math.min(binCount - 1, Math.max(0, Math.floor((d.close - minLow) / binSize)));
+        var idx = Math.min(count - 1, Math.max(0, Math.floor((d.close - grid.bottom) / binSize)));
         bins[idx].volume += d.volume;
         return;
       }
-      var startIdx = Math.max(0, Math.floor((d.low - minLow) / binSize));
-      var endIdx = Math.min(binCount - 1, Math.floor((d.high - minLow) / binSize));
+      var startIdx = Math.max(0, Math.floor((d.low - grid.bottom) / binSize));
+      var endIdx = Math.min(count - 1, Math.floor((d.high - grid.bottom) / binSize));
       for (var b = startIdx; b <= endIdx; b++) {
         var overlap = Math.min(bins[b].high, d.high) - Math.max(bins[b].low, d.low);
         if (overlap > 0) bins[b].volume += d.volume * (overlap / range);
@@ -4878,7 +4972,8 @@
     var last = win[win.length - 1], prev = win[win.length - 2];
     return {
       bins: bins, maxVolume: maxVolume, pocIndex: pocIndex,
-      minLow: minLow, maxHigh: maxHigh, binSize: binSize, days: win.length,
+      minLow: grid.bottom, maxHigh: roundPriceUnit(grid.bottom + count * binSize),
+      binSize: binSize, days: win.length, integerPrices: integerPrices,
       trendUp: last && prev ? last.close >= prev.close : true
     };
   }
@@ -5915,6 +6010,8 @@
     fetchJson: fetchJson,
     // 2026-09-15: MY 매물대가 종목분석과 같은 일봉(VM /flow-chart 우선, GAS 폴백, 5분 캐시)을 쓰도록 공개.
     fetchFlowChart: fetchFlowChart,
+    buildVolumeProfileSummary: buildVolumeProfileSummary,
+    renderVolumeProfileHtml: renderVolumeProfileHtml,
     fetchNewsMomentum: fetchNewsMomentum,
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.

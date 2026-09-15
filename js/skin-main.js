@@ -132,6 +132,15 @@ document.documentElement.classList.add('skin-ready');
       link.setAttribute('data-my-dashboard-css', '1');
       document.head.appendChild(link);
     }
+    // 2026-09-15: MY 매물대가 종목분석과 같은 그래프(foreign-flow.css의 .ff-apt-simple, 범위
+    // :is(#foreign-flow, .ff-vp-host))를 쓴다. 이 스타일시트는 종목분석 페이지 본문에서만 불러왔었다.
+    if (!document.querySelector('link[data-foreign-flow-css]')) {
+      var ffLink = document.createElement('link');
+      ffLink.rel = 'stylesheet';
+      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20260915-vp-host-v1';
+      ffLink.setAttribute('data-foreign-flow-css', '1');
+      document.head.appendChild(ffLink);
+    }
     if (document.querySelector('script[data-my-dashboard]')) return;
     var script = document.createElement('script');
     script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260829-my-quotes-layout-v1';

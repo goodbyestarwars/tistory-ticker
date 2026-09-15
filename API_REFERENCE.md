@@ -100,6 +100,14 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
+### `GET /health/volume-profile`
+
+| 항목 | 내용 |
+|---|---|
+| 인증 필요 여부 | 불필요(레이트리밋 20) |
+| 응답 JSON 구조 | `data` = `{"running", "threadAlive", "lastRunDate", "lastRun": {"date","requested","stored","failed","rows","stoppedEarly","lastError","durationSec"}, "lastError", "schedule", "maxCodes", "recentDays"}` |
+| 용도 | 매물대 실제 체결가 일별 수집(`volume_profile_collector.py`)이 오늘 돌았는지·몇 종목을 저장했는지 VM 접속 없이 확인(2026-09-15) |
+
 ### `GET /pbar-tratio/{code}`
 
 | 항목 | 내용 |
@@ -109,7 +117,8 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 선택 파라미터 | `days`: 1~120(기본 1) - 1이면 오늘치만, 2 이상이면 SQLite(`volume_profile_daily`)에 누적된 과거 거래일과 오늘 실시간 응답을 가격별로 합산 |
 | 응답 JSON 구조 | `data` = `{"currentPrice": .., "avgPrice": .., "daysIncluded": N, "bins": [{"price":..,"volume":..}, ...]}`, `bins`는 가격 오름차순. `daysIncluded`는 실제로 합산에 반영된 거래일 수(요청한 `days`보다 적을 수 있음). `avgPrice`는 거래량 가중평균가(VWAP, Σ가격×거래량/Σ거래량) - `bins`가 실제 체결가·체결거래량이라 정확히 계산됨(비중%이 아님) |
 | 시장 범위 | KIS FHPST01130000(국내주식 매물대/거래비중, [국내주식-196]) - HTS(eFriend Plus) [0113] 당일가격대별 매물대 화면과 동일. `js/foreign-flow.js`의 `computeVolumeProfile`(최근 120거래일 근사치)과 별개로 실제 체결가 기반 뷰 |
-| 데이터 누적 방식 | 배치 없음 - 이 엔드포인트가 호출될 때(=사용자가 실제로 조회한 종목만)마다 그날 최신 누적 스냅샷을 `volume_profile_daily`에 UPSERT(같은 날은 덮어쓰기, 더하지 않음 - pbar-tratio 응답 자체가 이미 그 시점까지의 당일 누적치라서). 그래서 "최근 N일"은 정확히 최근 N거래일이 아니라 "조회된 적 있는 날짜 중 최근 N개"임(뜸하게 조회되는 종목은 커버리지가 듬성듬성할 수 있음). 200일보다 오래된 행은 시간당 최대 1회 정리(`_maybe_prune_volume_profile`) |
+| 데이터 누적 방식 | 이 엔드포인트가 호출될 때마다 그날 최신 누적 스냅샷을 `volume_profile_daily`에 UPSERT(같은 날은 덮어쓰기, 더하지 않음 - pbar-tratio 응답 자체가 이미 그 시점까지의 당일 누적치라서). 2026-09-15부터 `volume_profile_collector.py`가 KRX 거래일 18:10~20:00 KST 하루 1회 종목판 국내 순위 종목 + 최근 30일 저장 종목(최대 120)도 같은 방식으로 저장한다. 그 밖의 종목은 여전히 "조회된 적 있는 날짜 중 최근 N개"다. 200일보다 오래된 행은 시간당 최대 1회 정리(`_maybe_prune_volume_profile`) |
+| 화면 사용 | 2026-09-15부터 종목분석·MY 매물대 화면은 이 엔드포인트를 부르지 않는다(최근 120거래일 일봉 추정치로 통일). 실제 체결가 날수가 충분히 쌓이면 전환을 검토한다 |
 | 선택 환경변수 | `KIS_APPKEY`/`KIS_APPSECRET` 미설정 시 503 |
 | 캐시 시간 | VM 프로세스 메모리 5분(`_LIVE_CACHE_TTL=300`), `(code, days)` 단위 |
 | 호출 예시 | `curl "https://goodbyestar.cloud/pbar-tratio/005930?days=120"` |
