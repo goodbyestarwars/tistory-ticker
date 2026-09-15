@@ -279,8 +279,9 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
             conn, today, industry_flow, session_started)
     except Exception:
         LOGGER.exception('업종 순위 이력 기록/조회 실패 - 순위 변화 표시만 빠진다')
-    prior_scores = [h['score'] for h in history_rows
-                    if h['date'] != today and h.get('score') is not None]
+    prior_score_rows = [h for h in history_rows
+                        if h['date'] != today and h.get('score') is not None]
+    has_delta = summary['score100'] is not None and bool(prior_score_rows)
     return {
         'score': totals['score'],
         'maxScore': totals['maxScore'],
@@ -291,8 +292,11 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'axes': summary['axes'],
         'grade3': summary['grade3'],
         # 사람이 반응하는 건 절대값보다 "어제보다 얼마"다. 직전 거래일 종합점수와의 차.
-        'scoreDelta': (score._round_half_up(summary['score100'] - prior_scores[-1], 0)
-                       if summary['score100'] is not None and prior_scores else None),
+        'scoreDelta': (score._round_half_up(summary['score100'] - prior_score_rows[-1]['score'], 0)
+                       if has_delta else None),
+        # 2026-09-16: 비교한 날짜. 새벽·주말·연휴에는 "어제"가 달력상 어제가 아니라 직전 거래일이고,
+        # 그날 점수는 장 마감 뒤 밤사이 해외지표까지 반영된 마지막 값이다 - 화면이 "9/15 대비"로 밝힌다.
+        'scoreDeltaFrom': prior_score_rows[-1]['date'] if has_delta else None,
         'components': components,
         'kofia': kofia,
         'history': compute_history(totals['temp'], history_rows, today),

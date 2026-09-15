@@ -1537,6 +1537,45 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
+    def test_market_temperature_follow_ups_square_design_briefing_and_delta_date(self):
+        """2026-09-16 후속.
+
+        - "bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지" → 날씨 칸의 굵은 밑줄·둥근 모서리,
+          굵은 선·알약 라벨·동그라미 점을 걷어낸다.
+        - AI 브리핑이 화면(VM 100점)과 다른 GAS 자체 40℃로 설명하던 것을 VM 값으로.
+        - 새벽·주말의 "어제보다"를 비교 날짜로 밝힌다.
+        """
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        gas = self.read("gas/ticker-proxy.gs")
+        vm = self.read("scripts/cloud-vm/market_temp.py")
+
+        def rule(selector):
+            start = style.index(selector + " {")
+            return style[start:style.index("}", start)]
+
+        weather = rule("#market-temp .mt-weather-day")
+        self.assertNotIn("border-bottom: 3px", weather)
+        self.assertIn("border-radius: 0", weather)
+        self.assertIn("stroke-width: 2;", rule("#market-temp .mt-rib-line"))
+        for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
+            self.assertIn("border-radius: 0", rule(selector))
+        self.assertNotIn("border-radius: 50%", rule("#market-temp .mt-score-gauge-marker"))
+        self.assertIn("square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)", source)
+        self.assertNotIn('<circle class="mt-rib-dot', source)
+
+        start = gas.index("function getMarketTempBriefing()")
+        briefing = gas[start:gas.index("\n}\n", start)]
+        self.assertIn("safeCall(fetchMarketTempFromVm_)", briefing)
+        self.assertIn("market_temp_briefing_v3", briefing)
+        self.assertIn("100점 만점에", briefing)
+        self.assertNotIn("safeCall(getMarketTemp)", briefing)
+        self.assertNotIn("data.temp.toFixed", briefing)
+        self.assertIn("var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';", gas)
+
+        self.assertIn("'scoreDeltaFrom': prior_score_rows[-1]['date'] if has_delta else None,", vm)
+        self.assertIn("shortDate_(data.scoreDeltaFrom) + ' 대비 '", source)
+
     def test_market_temperature_industry_flow_uses_reader_friendly_parent_labels(self):
         source = self.read("js/market-temp.js")
         for token in (
