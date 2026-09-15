@@ -23,6 +23,7 @@ import invest_opinion
 import invest_signal
 import kiwoom_client
 import kiwoom_market
+import market_clock
 import public_data
 import scan_forward
 import pattern_detect as pd
@@ -264,6 +265,12 @@ def save_investor_flow(conn, code, flow_rows):
 
 
 def main():
+    # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
+    # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
+    skip_today, scan_day = market_clock.skip_scan_today()
+    if skip_today:
+        log('휴장일(%s) - 스캔을 건너뜁니다(직전 거래일 결과 유지).' % scan_day)
+        return
     load_dotenv()
     appkey = os.environ.get('KIWOOM_APPKEY')
     secretkey = os.environ.get('KIWOOM_SECRETKEY')

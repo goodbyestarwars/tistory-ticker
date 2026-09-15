@@ -17,6 +17,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 import db_schema
+import market_clock
 import week52
 
 SECTOR_POOL_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/sectors-v3.js'
@@ -39,6 +40,12 @@ def load_sector_pool():
 
 
 def main():
+    # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
+    # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
+    skip_today, scan_day = market_clock.skip_scan_today()
+    if skip_today:
+        log('휴장일(%s) - 스캔을 건너뜁니다(직전 거래일 결과 유지).' % scan_day)
+        return
     codes_map = load_sector_pool()
     if not codes_map:
         log('섹터 풀을 못 불러왔습니다.')

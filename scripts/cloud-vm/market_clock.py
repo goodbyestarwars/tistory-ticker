@@ -9,9 +9,13 @@
 한국 휴장일 표는 market_temp.KRX_HOLIDAYS_2026 하나만 쓴다(프론트 js/skin-shell.js와 같은 표).
 """
 
+import os
 from datetime import datetime, timedelta, timezone
 
 KST = timezone(timedelta(hours=9))
+
+# 휴장일에도 스캔을 돌리고 싶을 때(수동 재실행·디버깅)만 '1'로 둔다.
+SCAN_FORCE_ENV = 'KIWOOM_SCAN_FORCE'
 
 # NXT 프리마켓(08:00) 조금 전부터 KRX 애프터마켓·NXT 마감(20:00) 직후까지.
 KR_ACTIVE_START_MIN = 7 * 60 + 50
@@ -27,6 +31,20 @@ def kst_now():
 def is_kr_trading_day(now_kst):
     import market_temp  # 휴장일 표의 단일 출처. 이미 프로세스에 올라와 있는 모듈이다.
     return market_temp.is_kr_trading_day(now_kst)
+
+
+def skip_scan_today(now_kst=None):
+    """휴장일(주말·공휴일)이면 (True, 'YYYY-MM-DD') - 스캔 스크립트가 시작하자마자 끝내는 데 쓴다.
+
+    2026-09-16 사용자 지시("휴장은 쉬게 하자"). 스캔은 끝날 때 자기 몫의 결과를 통째로 덮어쓰므로
+    (daily_scan.py 주석 "차트검색 캐시도 매일 덮어써서 이력이 없다"), 휴장일에 그냥 돌면 직전 거래일에
+    잡힌 목록이 같은 데이터로 다시 계산되거나(주말) 비어버릴 수 있다(공휴일 - 순위 조회가 그날치를
+    못 준다). 건너뛰면 화면은 직전 거래일 결과와 그때의 스캔 시각을 그대로 유지한다.
+    """
+    now_kst = now_kst or kst_now()
+    if os.environ.get(SCAN_FORCE_ENV) == '1':
+        return False, now_kst.strftime('%Y-%m-%d')
+    return (not is_kr_trading_day(now_kst)), now_kst.strftime('%Y-%m-%d')
 
 
 def kr_market_active(now_kst=None):
