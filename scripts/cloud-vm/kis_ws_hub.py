@@ -128,7 +128,9 @@ class KisWsHub:
         self.reconnect_min_sec = reconnect_min_sec
         self.reconnect_max_sec = reconnect_max_sec
         if options_budget is None:
-            options_budget = _env_int('KIS_WS_OPTIONS_BUDGET', self.max_registrations // 2)
+            # 2026-09-15 사용자 결정("적용해 1,2번"): 절반(20)에서 4분의 1(10)로 줄여 종목 체결 자리를 늘린다.
+            # 라이브 08:40 기준 원하는 등록 23건 중 20건이 옵션 호가였다.
+            options_budget = _env_int('KIS_WS_OPTIONS_BUDGET', self.max_registrations // 4)
         self.options_budget = max(0, int(options_budget))
 
         self._lock = threading.Lock()

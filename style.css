@@ -6791,25 +6791,91 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
 }
 
 /* ============================================================================
-   실시간 종목판 - 값이 바뀐 칸만 한 장 넘어가는 효과
+   실시간 종목판 - 값이 바뀐 글자만 점수판처럼 넘어가는 효과
    2026-09-04: 전광판 색·질감(검은 판/앰버, 아이보리 플랩, 칸 머리 띠, 램프,
    등폭 서체, 목록 전체가 차례로 넘어가던 연출)은 전부 되돌렸다. 사용자가 원한 것은
    "숫자가 변할 때만 넘어가는 효과" 하나였다. 판의 색은 지면의 기존 스타일
    (위 4645~ 기본 규칙과 홈 편집 지면 규칙)을 그대로 쓴다.
 
-   js/home-realtime-table.js updateRow가 값이 실제로 바뀐 현재가 칸에만 .hrt-flip을
-   붙인다. 같은 값이 다시 들어오는 체결에서는 움직이지 않아야 어디가 갱신됐는지
-   눈으로 따라갈 수 있다.
+   2026-09-15 사용자 요청("변하는 숫자만 스코어링처럼", "반절만 움직이는 그런거"):
+   칸 전체가 한 번 뒤집히던 효과를, 바뀐 글자만 스플릿 플랩으로 넘기는 것으로 바꿨다.
+   js/home-realtime-table.js splitFlapText가 바뀐 글자마다 반쪽 네 장(.hrt-flap-half)을
+   쌓는다. 앞 절반: 이전 숫자의 윗반쪽이 아래로 접힌다. 뒤 절반: 새 숫자의 아랫반쪽이
+   위에서 펼쳐져 내려온다. 배경색을 깔지 않으므로(지면 색 유지) 두 글자가 겹쳐 보이지
+   않게 반쪽마다 보이는 시점을 절반씩 나눈다. 자릿수 폭이 흔들리지 않게 고정폭 숫자를 쓴다.
    ========================================================================== */
-.home-realtime-board .hrt-price.hrt-flip {
-  transform-origin: 50% 0;
-  animation: hrtFlap .18s cubic-bezier(.2, .9, .3, 1);
+.home-realtime-board .hrt-price,
+.home-realtime-board [data-field="rising"],
+.home-realtime-board [data-field="falling"] {
+  font-variant-numeric: tabular-nums;
 }
-@keyframes hrtFlap {
-  0% { transform: perspective(300px) rotateX(-84deg); }
-  62% { transform: perspective(300px) rotateX(8deg); }
-  100% { transform: none; }
+.home-realtime-board .hrt-flap {
+  position: relative;
+  display: inline-block;
+  height: 1.2em;
+  line-height: 1.2em;
+  vertical-align: bottom;
+  perspective: 12em;
+}
+.home-realtime-board .hrt-flap-base {
+  visibility: hidden;
+}
+.home-realtime-board .hrt-flap-half {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+  overflow: hidden;
+  backface-visibility: hidden;
+}
+.home-realtime-board .hrt-flap-half > span {
+  display: block;
+  height: 1.2em;
+  line-height: 1.2em;
+  text-align: center;
+}
+.home-realtime-board .hrt-flap-top {
+  top: 0;
+  transform-origin: 50% 100%;
+}
+.home-realtime-board .hrt-flap-bottom {
+  bottom: 0;
+  transform-origin: 50% 0;
+}
+.home-realtime-board .hrt-flap-bottom > span {
+  transform: translateY(-50%);
+}
+.home-realtime-board .hrt-flap-top.hrt-flap-old {
+  animation: hrtFlapFoldTop .18s ease-in both;
+}
+.home-realtime-board .hrt-flap-top.hrt-flap-new {
+  animation: hrtFlapShowHalf .36s steps(1, end) both;
+}
+.home-realtime-board .hrt-flap-bottom.hrt-flap-old {
+  animation: hrtFlapHideHalf .36s steps(1, end) both;
+}
+.home-realtime-board .hrt-flap-bottom.hrt-flap-new {
+  animation: hrtFlapUnfoldBottom .18s ease-out .18s both;
+}
+@keyframes hrtFlapFoldTop {
+  from { transform: rotateX(0deg); }
+  to { transform: rotateX(-90deg); }
+}
+@keyframes hrtFlapUnfoldBottom {
+  from { transform: rotateX(90deg); }
+  to { transform: rotateX(0deg); }
+}
+@keyframes hrtFlapShowHalf {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 1; }
+}
+@keyframes hrtFlapHideHalf {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .home-realtime-board .hrt-price.hrt-flip { animation: none; }
+  .home-realtime-board .hrt-flap-half { animation: none; }
+  .home-realtime-board .hrt-flap-old { visibility: hidden; }
 }

@@ -788,7 +788,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260904-flip-only-v5", main)
+        self.assertIn("home-realtime-table.js?v=20260915-digit-roll-v1", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -3054,13 +3054,20 @@ console.log(JSON.stringify(cases.map(function (iso) {
                 self.assertNotIn(gone, css)
         self.assertNotIn("--hrt-i", source)
 
-        # 남는 것은 값이 바뀐 현재가 칸의 flip 하나뿐이다.
-        self.assertIn(".home-realtime-board .hrt-price.hrt-flip {", css)
-        self.assertIn("@keyframes hrtFlap", css)
+        # 2026-09-15 사용자 요청("반절만 움직이는 그런거"): 칸 전체 flip 대신 바뀐 글자만
+        # 점수판(스플릿 플랩)처럼 윗반쪽이 접히고 아랫반쪽이 펼쳐진다.
+        self.assertIn(".home-realtime-board .hrt-flap {", css)
+        self.assertIn("@keyframes hrtFlapFoldTop", css)
+        self.assertIn("@keyframes hrtFlapUnfoldBottom", css)
+        self.assertIn("font-variant-numeric: tabular-nums;", css)
         self.assertIn("@media (prefers-reduced-motion: reduce)", css)
-        self.assertIn("function flapCell(cell)", source)
-        self.assertIn("void cell.offsetWidth;", source)
-        self.assertIn("if (previous !== priceCell.textContent) flapCell(priceCell);", source)
+        self.assertNotIn(".hrt-price.hrt-flip {", css)
+        self.assertNotIn("hrt-roll", css)
+        self.assertNotIn("function flapCell(cell)", source)
+        self.assertIn("function splitFlapText(oldText, newText)", source)
+        self.assertIn("function splitFlapCell(cell, html)", source)
+        self.assertIn("if (previousHtml === html) return;", source)
+        self.assertIn("if (rising) splitFlapCell(rising, rateCell(rate, true));", source)
 
     def test_stock_search_result_row_survives_long_stock_names(self):
         """2026-09-04 사용자 스크린샷: "KODEX SK하이닉스단일종목레버리지"를 검색하면

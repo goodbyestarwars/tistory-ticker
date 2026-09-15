@@ -71,6 +71,8 @@ CORS는 서버-서버 호출(브라우저가 아닌 curl/스크립트)에는 적
 국내 종목코드는 그대로 받고 미국 종목은 `US:SYMBOL` 형식으로 같은 연결에서 구독한다.
 KIS 실시간은 프로세스 공용 허브(`kis_ws_hub.py`)가 KIS WebSocket을 하나만 유지하고
 중계·수집기가 구독만 한다(2026-09-14). 상태는 `/health/realtime`으로 노출한다.
+KIS 자리를 넘친 국내 종목은 키움 공유 허브(`kiwoom_ws_hub.py`, 연결 1개)가 먼저 받고, 키움도 받지
+못하는 종목만 REST 폴백("지연")으로 채운다(2026-09-15). 키움 상태는 `/health/realtime`의 `kiwoom`.
 
 `/ws/economic-news`는 `https://ghlee.tistory.com` Origin만 허용하고 연결 즉시 현재 시장
 스냅샷을 보낸다. 국내/미국 시장은 프론트의 선택 상태와 분리해 서버가 수집하며, 서버 측

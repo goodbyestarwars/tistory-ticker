@@ -16,6 +16,7 @@ import re
 import kiwoom_client
 import kis_client
 import kis_ws_hub
+import kiwoom_ws_hub
 import rest_quote_fallback
 import us_stocks
 
@@ -34,6 +35,10 @@ _RELAY_STATUS_INTERVAL_SEC = 15
 # 등록 여부(coverage)를 다시 보는 주기와, 구독 직후 허브가 KIS에 등록할 틈.
 _RELAY_TICK_SEC = 1.0
 _COVERAGE_GRACE_SEC = 3.0
+# 키움 허브 체결을 KIS 대기 사이사이에 꺼내 보내는 주기(키움 구독이 있는 연결만).
+_KIWOOM_DRAIN_SEC = 0.25
+# 키움 통합(_AL)·NXT(_NX) 종목코드 접미사.
+_KIWOOM_SUFFIX_RE = re.compile(r'_(AL|NX)$')
 
 
 def normalize_codes(raw_codes, limit=_MAX_CODES):
@@ -101,7 +106,7 @@ def _quote_events(message):
                     return values[key]
             return None
 
-        code = str(row.get('item') or value('9001', 'code') or '').lstrip('A').upper()
+        code = _KIWOOM_SUFFIX_RE.sub('', str(row.get('item') or value('9001', 'code') or '').lstrip('A').upper())
         if not _CODE_RE.match(code):
             continue
         price = _number(value('10', 'price'))
@@ -342,14 +347,21 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
     fallback_codes = set()
     delayed_sent = None
     last_fallback_at = {}
+    # 2026-09-15 사용자 결정("적용해 1,2번"): KIS 자리에 못 들어간 종목은 먼저 키움 실시간(공용 허브
+    # kiwoom_ws_hub.py)으로 받고, 키움도 받지 못하는 종목만 위 REST 폴백("지연")으로 채운다.
+    kiwoom_hub = None
+    kiwoom_unavailable = False
+    kiwoom_sub = None
+    kiwoom_codes = frozenset()
     try:
         await browser_ws.send_json({
             'type': 'ready',
             'codes': domestic_codes + ['US:' + symbol for symbol in us_symbols],
         })
         while True:
+            wait_sec = _KIWOOM_DRAIN_SEC if kiwoom_sub is not None else _RELAY_TICK_SEC
             try:
-                raw = await asyncio.wait_for(subscription.queue.get(), timeout=_RELAY_TICK_SEC)
+                raw = await asyncio.wait_for(subscription.queue.get(), timeout=wait_sec)
             except asyncio.TimeoutError:
                 raw = None
             now = loop.time()
@@ -358,10 +370,31 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
                     if event.get('code') in wanted:
                         await browser_ws.send_json(event)
                         last_message_at = now
+            if kiwoom_sub is not None:
+                while not kiwoom_sub.queue.empty():
+                    event = kiwoom_sub.queue.get_nowait()
+                    if event.get('code') in kiwoom_codes:
+                        await browser_ws.send_json(event)
+                        last_message_at = now
             if domestic_codes and now >= next_coverage_check:
                 next_coverage_check = now + _RELAY_TICK_SEC
                 live_keys = hub.live_or_pending_keys()
-                delayed = [code for code in domestic_codes if ('H0UNCNT0', code) not in live_keys]
+                kis_missing = [code for code in domestic_codes if ('H0UNCNT0', code) not in live_keys]
+                if kis_missing and kiwoom_hub is None and not kiwoom_unavailable:
+                    kiwoom_hub = kiwoom_ws_hub.start(
+                        os.environ.get('KIWOOM_APPKEY'), os.environ.get('KIWOOM_SECRETKEY'))
+                    kiwoom_unavailable = kiwoom_hub is None
+                kiwoom_live = frozenset()
+                if kiwoom_hub is not None:
+                    missing_set = frozenset(kis_missing)
+                    if missing_set != kiwoom_codes:
+                        if kiwoom_sub is None:
+                            kiwoom_sub = kiwoom_hub.subscribe(missing_set)
+                        else:
+                            kiwoom_sub.update(missing_set)
+                        kiwoom_codes = missing_set
+                    kiwoom_live = kiwoom_hub.live_codes()
+                delayed = [code for code in kis_missing if code not in kiwoom_live]
                 if delayed != delayed_sent:
                     if delayed and fallback is None:
                         fallback = rest_quote_fallback.start(appkey, appsecret)
@@ -396,6 +429,8 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
                 last_message_at = now
     finally:
         subscription.close()
+        if kiwoom_sub is not None:
+            kiwoom_sub.close()
         if fallback is not None and fallback_codes:
             fallback.release(fallback_codes)
 

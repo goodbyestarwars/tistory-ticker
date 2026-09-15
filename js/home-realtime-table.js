@@ -666,15 +666,73 @@
     connectRealtime(state.realtimeGeneration);
   }
 
-  /* 전광판 플랩: 값이 실제로 바뀐 칸만 한 번 뒤집는다(style.css의 .hrt-flip).
-     같은 값이 다시 들어오는 체결에서는 움직이지 않아야 어디가 갱신됐는지 눈으로
-     따라갈 수 있다. 애니메이션이 겹치지 않도록 붙이기 전에 한 번 뗀다. */
-  function flapCell(cell) {
-    cell.classList.remove('hrt-flip');
-    // 클래스를 떼자마자 다시 붙이면 브라우저가 같은 프레임으로 묶어 애니메이션이
-    // 재시작하지 않는다. 강제 리플로우로 한 번 끊어준다.
-    void cell.offsetWidth;
-    cell.classList.add('hrt-flip');
+  /* 2026-09-15 사용자 요청("숫자 변하는 값이 부자연스러워 변하는 숫자만 스코어링처럼 넘어가게",
+     "반절만 움직이는 그런거"): 칸 전체를 뒤집던 플랩 대신 바뀐 글자만 점수판(스플릿 플랩)처럼
+     이전 숫자의 윗반쪽이 접혀 내려오고 새 숫자의 아랫반쪽이 펼쳐진다(style.css의 .hrt-flap).
+     오른쪽 끝(원·%)부터 맞춰 비교해 자릿수가 늘거나 줄어도 같은 자리끼리 비교된다.
+     같은 값이 다시 오면 움직이지 않는다. 애니메이션이 끝나면 원래 HTML로 되돌려
+     다음 비교·복사가 평문 기준이 되게 한다. */
+  var FLAP_MS = 450;
+
+  function flapHalf(position, age, text) {
+    return '<span class="hrt-flap-half hrt-flap-' + position + ' hrt-flap-' + age + '"><span>'
+      + escapeHtml(text) + '</span></span>';
+  }
+
+  function splitFlapText(oldText, newText) {
+    var html = '';
+    var width = Math.max(oldText.length, newText.length);
+    for (var fromRight = width; fromRight >= 1; fromRight -= 1) {
+      var newIndex = newText.length - fromRight;
+      var oldIndex = oldText.length - fromRight;
+      var next = newIndex >= 0 ? newText.charAt(newIndex) : '';
+      var prev = oldIndex >= 0 ? oldText.charAt(oldIndex) : '';
+      if (!next) continue;
+      if (next === prev) { html += escapeHtml(next); continue; }
+      // 쌓는 순서가 곧 앞뒤 순서다: 새 윗반쪽(뒤) → 이전 아랫반쪽 → 접히는 이전 윗반쪽 → 펼쳐지는 새 아랫반쪽(맨 앞).
+      html += '<span class="hrt-flap"><span class="hrt-flap-base">' + escapeHtml(next) + '</span>'
+        + flapHalf('top', 'new', next) + flapHalf('bottom', 'old', prev)
+        + flapHalf('top', 'old', prev) + flapHalf('bottom', 'new', next) + '</span>';
+    }
+    return html;
+  }
+
+  function textNodesOf(root) {
+    var nodes = [];
+    var walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null);
+    while (walker.nextNode()) nodes.push(walker.currentNode);
+    return nodes;
+  }
+
+  function splitFlapCell(cell, html) {
+    var previousHtml = cell._hrtPlainHtml != null ? cell._hrtPlainHtml : cell.innerHTML;
+    if (previousHtml === html) return;
+    cell._hrtPlainHtml = html;
+    var before = document.createElement('div');
+    var after = document.createElement('div');
+    before.innerHTML = previousHtml;
+    after.innerHTML = html;
+    var oldNodes = textNodesOf(before);
+    var newNodes = textNodesOf(after);
+    var changed = false;
+    if (oldNodes.length === newNodes.length) {
+      newNodes.forEach(function (node, index) {
+        var oldText = oldNodes[index].nodeValue;
+        if (oldText === node.nodeValue) return;
+        changed = true;
+        var span = document.createElement('span');
+        span.className = 'hrt-flap-text';
+        span.innerHTML = splitFlapText(oldText, node.nodeValue);
+        node.parentNode.replaceChild(span, node);
+      });
+    }
+    // 글자 칸 구조가 달라지면(값 없음 → 값 생김 등) 넘기지 않고 바로 바꾼다.
+    cell.innerHTML = changed ? after.innerHTML : html;
+    clearTimeout(cell._hrtFlapTimer);
+    if (!changed) return;
+    cell._hrtFlapTimer = setTimeout(function () {
+      if (cell._hrtPlainHtml === html) cell.innerHTML = html;
+    }, FLAP_MS);
   }
 
   function updateRow(code, quote) {
@@ -695,15 +753,13 @@
     var priceCell = row.querySelector('[data-field="price"]');
     // textContent로 쓰면 안에 있는 등락률 줄이 첫 체결에 지워진다.
     if (priceCell && price != null) {
-      var previous = priceCell.textContent;
-      priceCell.innerHTML = priceCellInner(price, item && item.currency,
-        rate != null ? rate : (item && item.change_rate));
-      if (previous !== priceCell.textContent) flapCell(priceCell);
+      splitFlapCell(priceCell, priceCellInner(price, item && item.currency,
+        rate != null ? rate : (item && item.change_rate)));
     }
     var rising = row.querySelector('[data-field="rising"]');
     var falling = row.querySelector('[data-field="falling"]');
-    if (rising) rising.innerHTML = rateCell(rate, true);
-    if (falling) falling.innerHTML = rateCell(rate, false);
+    if (rising) splitFlapCell(rising, rateCell(rate, true));
+    if (falling) splitFlapCell(falling, rateCell(rate, false));
   }
 
   function fetchBoard(force) {

@@ -58,6 +58,7 @@ import public_data
 import binance_flow
 import circuit_breaker
 import kis_ws_hub
+import kiwoom_ws_hub
 import load_probe
 import market_clock
 import realtime_quotes
@@ -988,7 +989,10 @@ def health_realtime():
     먼저 발견했다. 연결 여부, 마지막 체결 시각(과 경과 초), 등록·누락된 구독 수, 재접속·
     워치독 횟수, KIS가 마지막으로 돌려준 오류 메시지를 보여준다. 앱키·접속키는 담지 않는다.
     """
-    return envelope(kis_ws_hub.health_snapshot())
+    snapshot = kis_ws_hub.health_snapshot()
+    # 2026-09-15: KIS 자리를 넘친 종목을 받는 키움 공유 허브 상태(등록 응답·체결 수·접미사)도 함께 본다.
+    snapshot['kiwoom'] = kiwoom_ws_hub.health_snapshot()
+    return envelope(snapshot)
 
 
 @app.get('/health/latency')
