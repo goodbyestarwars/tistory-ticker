@@ -22,6 +22,7 @@ from datetime import datetime, timezone
 
 import daily_scan_cache
 import db_schema
+import market_clock
 import gongpasan_strategy as gp
 import pattern_detect as pd
 
@@ -112,6 +113,12 @@ def _rank_and_cap(matches):
 
 
 def main():
+    # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
+    # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
+    skip_today, scan_day = market_clock.skip_scan_today()
+    if skip_today:
+        log('휴장일(%s) - 스캔을 건너뜁니다(직전 거래일 결과 유지).' % scan_day)
+        return
     name_map, etf_names = load_universe_metadata()
     if not name_map:
         log('전종목 이름 매핑을 못 불러왔습니다.')
