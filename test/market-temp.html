@@ -75,9 +75,23 @@
       : temp < 35 ? { emoji: '🟠', label: '탐욕', tone: 'greed' }
       : { emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed' };
 
+    // 2026-09-16: 화면은 서버 3축 종합점수(score100·axes·grade3)를 주인공으로 쓴다 - mock도 같은 모양을 준다.
+    var score100 = Math.round(frac * 100);
+    recentDays.forEach(function (day) { day.score = Math.round(day.temp / 40 * 100); });
+    var grade3 = score100 < 50 ? { emoji: '🔵', label: '공포', tone: 'fear' }
+      : score100 < 75 ? { emoji: '🟡', label: '보통', tone: 'neutral' }
+      : { emoji: '🔥', label: '과열', tone: 'greed' };
     return {
       score: total,
       maxScore: MAX_POSSIBLE,
+      score100: score100,
+      grade3: grade3,
+      scoreDelta: total === 12 ? null : 4 * sign,
+      axes: {
+        money: { label: '돈', question: '돈이 들어오나', value: Math.max(0, score100 - 20), inverted: false },
+        price: { label: '가격', question: '실제로 오르나', value: Math.min(100, score100 + 5), inverted: false },
+        risk: { label: '위험', question: '무리하고 있나', value: 100 - score100, inverted: true }
+      },
       // 전종목 등락 종목 수(KIS 업종지수). 2026-09-02 운영 응답 실측값 모양 그대로.
       marketBreadth: {
         byMarket: {

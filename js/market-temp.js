@@ -109,9 +109,11 @@
     { key: 'vix', label: 'VIX', max: 20, unit: 'index', icon: '😨', barClass: 'mt-bar-vix', source: 'Yahoo Finance ^VIX',
       guide: '15 미만=20점 · 15~20=16점 · 20~25=10점 · 25~30=5점 · 30 이상=0점',
       desc: '변동성지수(공포지수). 미국 S&P500 옵션의 내재변동성으로 산출 - 낮을수록 시장이 안정적이라는 뜻' },
-    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '🏦', barClass: 'mt-bar-flow', source: 'KODEX 200 최근 5일 수급',
+    { key: 'flow', label: '수급(외국인+기관)', max: 20, unit: 'flow', icon: '🏦', barClass: 'mt-bar-flow', source: '코스피 시장 전체 최근 5일 수급',
       guide: '외국인 75% + 기관 25% 가중 순매수강도. 중립은 50%, 이를 20점으로 환산',
-      desc: 'KODEX 200 최근 5일 순매수를 20일 평균과 비교, 외국인 75%+기관 25% 가중합산' },
+      // 2026-09-16: VM이 2026-09-01부터 KODEX 200 대리지표 대신 코스피 시장 전체 수급을 쓰는데
+      // 화면 문구만 옛 출처로 남아 있었다(market_temp_data.flow_component_from_market_trend).
+      desc: '코스피 시장 전체 최근 5일 순매수를 20일 평균과 비교, 외국인 75%+기관 25% 가중합산' },
     { key: 'tradingValue', label: '거래대금', max: 15, unit: 'pct', icon: '📊', barClass: 'mt-bar-vol', source: '섹터 풀 실시간 시세',
       guide: '기준 대비 130% 이상=15점 · 110~130%=11점 · 90~110%=7점 · 70~90%=4점 · 70% 미만=0점',
       // 2026-09-07: 장중에는 "직전 5거래일의 같은 시각까지 누적"이 기준이다. 예전엔 장중
@@ -157,30 +159,57 @@
   var GRADE_BY_TONE = {};
   GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
 
-  // 역발상형 투자시그널(사용자 확정: 공포=매수 신호, CNN Fear&Greed 지수의 통상적 활용법).
-  // actionTone: 2026-07-18(6차) - Hero의 "매수"가 등급색(공포=하늘색 #42A5F5)을 그대로 써서
-  // "매수인데 파란색으로 보인다"는 피드백 - 오늘의 전략과 동일하게 매수=빨강/매도=파랑
-  // (사이트 공통 부호색)으로 통일. 등급 자체를 나타내는 mt-grade-pill(예: "🔵 공포")은
-  // 온도 밴드 색상이 맞으므로 그대로 grade.color 유지.
-  var SIGNAL_BY_TONE = {
-    'extreme-fear': { label: '적극매수', stars: 5, tone: 'mt-val-pos', summary: '공포가 과도합니다 · 한 번에 매수하지 말고 분할 접근' },
-    'fear': { label: '매수', stars: 4, tone: 'mt-val-pos', summary: '공포 우세 구간 · 분할 매수 후보를 확인' },
-    'neutral': { label: '관망', stars: 3, tone: 'mt-val-zero', summary: '혼조 구간 · 신규 매수보다 종목 선별 우선' },
-    'greed': { label: '주의', stars: 2, tone: 'mt-val-neg', summary: '과열 접근 · 추격 매수는 피하고 비중 점검' },
-    'extreme-greed': { label: '위험', stars: 1, tone: 'mt-val-neg', summary: '과열 경고 · 신규 매수는 멈추고 보유 비중 점검' }
+  // 2026-09-16 사용자 지적("분할매수가 많은데, 보통 개미들은 분할매수 안 해", "현금이 30%? 나중에
+  // 뭐하라고?"). 예전엔 역발상 5단계로 '적극 분할매수 · 주식 80%/현금 20%' 같은 기관식 비중표를 줬는데,
+  // 이 사이트의 독자(개인 투자자)는 비중을 나눠 들고 있지 않아 행동으로 옮길 수가 없었다.
+  // 종합점수 3등급(서버 grade3)에 맞춰 "해볼 것 / 참을 것"을 개인이 실제로 하는 행동으로 적는다.
+  // 매수·매도 지시가 아니라 그런 분위기의 날 흔히 하는 실수를 막는 점검표다.
+  var ANT_GUIDE_BY_TONE = {
+    fear: {
+      mood: '팔려는 사람이 더 많은 날',
+      title: '겁날 때 서두르지 않기',
+      short: '급하게 팔기 전에 이유부터 확인하고, 사고 싶던 종목이 얼마나 싸졌는지 보기',
+      todo: ['내 종목이 왜 빠졌는지 뉴스·공시부터 확인', '평소 사고 싶던 종목이 얼마나 싸졌는지 보기', '미리 정해둔 손절 기준이 있다면 그 기준대로만'],
+      avoid: ['무섭다고 한꺼번에 던지기', '빚(신용·미수)으로 물타기']
+    },
+    neutral: {
+      mood: '뚜렷한 방향이 없는 날',
+      title: '시장보다 종목 보기',
+      short: '시장 전체 방향보다 돈이 몰리는 업종·종목을 확인',
+      todo: ['아래 업종 TOP에서 돈 몰리는 업종 확인', '관심종목 차트·수급을 차분히 점검'],
+      avoid: ['뉴스 하나에 급등주 따라 사기', '심심해서 하는 잦은 단타']
+    },
+    greed: {
+      mood: '사려는 사람이 몰려 들뜬 날',
+      title: '들뜰 때 한 발 물러서기',
+      short: '급등주 추격은 참고, 수익 난 종목의 익절 기준 점검',
+      todo: ['수익 난 종목의 목표가·익절 기준 다시 보기', '이미 많이 오른 종목은 쉬어갈 때까지 기다리기'],
+      avoid: ['"나만 못 벌까" 조급한 추격 매수', '빚투·미수로 크게 베팅']
+    }
   };
 
-  // 오늘 투자전략 카드(같은 역발상 논리) - 사용자 확정 룩업.
-  // actionTone: 2026-07-18(5차) 추가 - "매수는 빨간색, 매도는 파란색(분할 포함)"(사용자
-  // 요청) - 등급색(grade.color) 대신 사이트 공통 부호색(mt-val-pos=빨강/neg=파랑/zero=회색)
-  // 을 그대로 재사용해 매수/매도 방향성만 표시.
-  var STRATEGY_BY_TONE = {
-    'extreme-fear': { action: '적극 분할매수', actionTone: 'mt-val-pos', stock: 80, cash: 20, note: '변동성 확대 구간 - 분할 대응 권장' },
-    'fear': { action: '분할매수', actionTone: 'mt-val-pos', stock: 70, cash: 30, note: '수급 개선 여부 확인 필요' },
-    'neutral': { action: '관망', actionTone: 'mt-val-zero', stock: 50, cash: 50, note: '방향성 탐색 구간' },
-    'greed': { action: '비중축소 검토', actionTone: 'mt-val-neg', stock: 30, cash: 70, note: '단기 과열 신호 주의' },
-    'extreme-greed': { action: '현금 확보', actionTone: 'mt-val-neg', stock: 10, cash: 90, note: '극단적 과열 - 조정 리스크 유의' }
-  };
+  // 서버 grade3(fear/neutral/greed)를 쓴다. 예전엔 옛 40℃ 온도의 5단계 grade로 행동을 정해
+  // 종합점수 등급과 어긋날 수 있었다. 구버전 응답의 5단계 tone은 가까운 3등급으로 접는다.
+  function crowdTone(data) {
+    var tone = (data && data.grade3 && data.grade3.tone) || (data && data.grade && data.grade.tone) || 'neutral';
+    if (tone === 'extreme-fear') return 'fear';
+    if (tone === 'extreme-greed') return 'greed';
+    return ANT_GUIDE_BY_TONE[tone] ? tone : 'neutral';
+  }
+
+  function antGuide(data) {
+    var tone = crowdTone(data);
+    var base = ANT_GUIDE_BY_TONE[tone];
+    var axes = (data && data.axes) || {};
+    var todo = base.todo.slice();
+    var avoid = base.avoid.slice();
+    var risk = Number(axes.risk && axes.risk.value);
+    var money = Number(axes.money && axes.money.value);
+    // 등급만 보면 매일 같은 문구다 - 축 값이 한쪽으로 치우친 날만 한 줄씩 덧붙인다.
+    if (isFinite(risk) && risk >= 65) avoid.unshift('위험 신호(변동성·환율·빚투)가 높은 날 - 빚투·레버리지는 특히 금물');
+    if (isFinite(money) && money < 35 && tone !== 'greed') todo.push('거래가 한산한 날이라 급한 결정은 하루 미뤄도 늦지 않음');
+    return { tone: tone, mood: base.mood, title: base.title, short: base.short, todo: todo, avoid: avoid };
+  }
 
   // 증시온도 화면은 온도 게이지(buildCard)만 렌더링하고, 카드/히트맵 탐색은
   // ?view=stocks의 국내 주요종목 화면에서 별도로 렌더링한다. 기존 호출부의
@@ -850,10 +879,18 @@
     { key: 'risk', icon: '⚠️' }
   ];
 
+  // 2026-09-16 사용자 지적("점수가 그냥 숫자야. 몇 점 만점인지도 몰라. 그래서 뭐 어쩌라는거지?").
+  // 축 옆 한 단어를 '강함/약함'이 아니라 무엇이 어떤지로 쓴다 - '돈 18 약함'은 뜻이 안 읽혔다.
+  var AXIS_WORDS = {
+    money: ['적게 들어옴', '평소 수준', '많이 들어옴'],
+    price: ['내림 우세', '비슷함', '오름 우세'],
+    risk: ['낮음', '보통', '높음']
+  };
+
   function axisWord(key, value) {
     if (!isFinite(value)) return '';
-    if (key === 'risk') return value >= 65 ? '높음' : value >= 35 ? '보통' : '낮음';
-    return value >= 65 ? '강함' : value >= 35 ? '보통' : '약함';
+    var words = AXIS_WORDS[key] || ['약함', '보통', '강함'];
+    return value >= 65 ? words[2] : value >= 35 ? words[1] : words[0];
   }
 
   function buildAxisRow(axis, icon) {
@@ -865,16 +902,41 @@
       : (pct >= 65 ? 'mt-axis-good' : pct >= 35 ? 'mt-axis-mid' : 'mt-axis-bad');
     return ''
       + '<div class="mt-axis-row">'
-      + '<span class="mt-axis-name">' + icon + ' ' + escapeHtml((axis && axis.label) || '') + '</span>'
+      + '<span class="mt-axis-name">' + icon + ' ' + escapeHtml((axis && axis.label) || '')
+      + (axis && axis.question ? '<small>' + escapeHtml(axis.question) + '</small>' : '') + '</span>'
       + '<span class="mt-axis-bar"><i class="' + tone + '" style="width:' + pct.toFixed(0) + '%"></i></span>'
       + '<b class="mt-axis-value">' + (isFinite(value) ? value.toFixed(0) : '-') + '</b>'
       + '<small class="mt-axis-word">' + escapeHtml(axisWord(axis && axis.key, value)) + '</small>'
       + '</div>';
   }
 
+  // 0~100 눈금 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 보이게 한다.
+  // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
+  function buildScoreGauge(value, tone) {
+    var pct = Math.max(0, Math.min(100, value)).toFixed(1);
+    function zoneLabel(key, text, left) {
+      return '<span class="mt-score-zone-label' + (tone === key ? ' is-active' : '') + '" style="left:' + left + '%">' + text + '</span>';
+    }
+    return ''
+      + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + Number(pct).toFixed(0) + '점">'
+      + '<div class="mt-score-gauge-track">'
+      + '<span class="mt-score-zone mt-score-zone-fear"></span>'
+      + '<span class="mt-score-zone mt-score-zone-neutral"></span>'
+      + '<span class="mt-score-zone mt-score-zone-greed"></span>'
+      + '<i class="mt-score-gauge-marker mt-anim-left" style="left:' + pct + '%;--mt-target-left:' + pct + '%"></i>'
+      + '</div>'
+      + '<div class="mt-score-gauge-scale">'
+      + '<span style="left:0%">0</span>' + zoneLabel('fear', '공포', 25)
+      + '<span style="left:50%">50</span>' + zoneLabel('neutral', '보통', 62.5)
+      + '<span style="left:75%">75</span>' + zoneLabel('greed', '과열', 87.5)
+      + '<span style="left:100%">100</span>'
+      + '</div></div>';
+  }
+
   function buildSummaryCard(data) {
     var value = score100(data);
     var grade = data.grade3 || data.grade || { emoji: '', label: '' };
+    var guide = antGuide(data);
     var delta = Number(data.scoreDelta);
     // delta가 아예 없는 건 "어제와 같다"가 아니라 "비교할 어제가 없다"는 뜻이다
     // (기록 시작 직후·기준 전환 직후). 둘을 같은 문구로 뭉뚱그리면 거짓말이 된다.
@@ -884,8 +946,8 @@
     } else if (delta === 0) {
       deltaHtml = '<span class="mt-val-flat">어제와 같음</span>';
     } else {
-      deltaHtml = '<span class="' + (delta > 0 ? 'mt-val-pos' : 'mt-val-neg') + '">어제 '
-        + (delta > 0 ? '+' : '') + delta.toFixed(0) + '</span>';
+      deltaHtml = '<span class="' + (delta > 0 ? 'mt-val-pos' : 'mt-val-neg') + '">어제보다 '
+        + (delta > 0 ? '+' : '') + delta.toFixed(0) + '점</span>';
     }
     var axes = data.axes || {};
     var rows = AXIS_ORDER.map(function (item) {
@@ -895,17 +957,24 @@
       return buildAxisRow(axis, item.icon);
     }).join('');
     return ''
-      + '<div class="mt-section mt-card mt-summary-card">'
+      + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
+      + '<div class="mt-summary-kicker">오늘 시장 분위기 점수</div>'
       + '<div class="mt-summary-head">'
-      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>점</small></strong>'
-      + '<div class="mt-summary-side">' + deltaHtml
+      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/100점</small></strong>'
+      + '<div class="mt-summary-side">'
       + '<b class="mt-summary-grade">' + escapeHtml(grade.emoji || '') + ' ' + escapeHtml(grade.label || '') + '</b>'
+      + deltaHtml
       + '</div></div>'
+      + '<div class="mt-summary-mood">' + escapeHtml(guide.mood) + '</div>'
+      + buildScoreGauge(value, guide.tone)
+      // "그래서 뭐 어쩌라는거지?"에 대한 답을 점수 바로 밑에 한 줄로 둔다. 자세한 점검표는 아래 카드.
+      + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short) + '</span>'
+      + '<a href="#mt-ant-guide">체크리스트 ↓</a></div>'
       + (rows ? '<div class="mt-axis-list">' + rows + '</div>' : '')
       // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 단순화하면서도
       // 버리지 않는다 - 옛 Hero 카드에 있던 것을 여기로 옮겼다.
       + buildBreadth(data)
-      + '<div class="mt-summary-note">돈·가격·위험 세 축의 평균입니다. 각 축은 속한 지표의 단순 평균이고, 위험만 높을수록 나쁩니다. 투자 권유가 아닙니다.</div>'
+      + '<div class="mt-summary-note">0점에 가까울수록 시장이 겁먹은 상태, 100점에 가까울수록 들뜬 상태입니다. 돈·가격·위험 세 가지를 평균냈고, 위험만 높을수록 나쁩니다. 투자 권유가 아닙니다.</div>'
       + '</div>';
   }
 
@@ -1028,21 +1097,20 @@
         + escapeHtml(meta.guide) + '</span><small>데이터: ' + escapeHtml(meta.source) + '</small></li>';
     }).join('');
     var normalizedScore = score100(data);
-    var grade = data.grade || { tone: 'neutral', label: '중립' };
-    var signal = SIGNAL_BY_TONE[grade.tone] || SIGNAL_BY_TONE.neutral;
+    var guide = antGuide(data);
     return ''
       + '<div class="mt-card mt-decision-card">'
       + '<div class="mt-card-title">📊 오늘 시장 판단</div>'
       + '<div class="mt-market-decision">'
-      + '<div><span class="mt-market-decision-label">오늘 점수</span><strong>' + normalizedScore.toFixed(1) + '<small>/100</small></strong></div>'
-      + '<div class="mt-market-decision-action ' + signal.tone + '"><span>오늘 행동</span><b>' + escapeHtml(signal.label) + '</b><small>' + escapeHtml(signal.summary) + '</small></div>'
+      + '<div><span class="mt-market-decision-label">오늘 점수</span><strong>' + normalizedScore.toFixed(0) + '<small>/100</small></strong></div>'
+      + '<div class="mt-market-decision-action"><span>오늘 행동</span><b>' + escapeHtml(guide.title) + '</b><small>' + escapeHtml(guide.short) + '</small></div>'
       + '</div>'
       + '<div class="mt-driver-grid">'
       + buildDriverGroup('▲ 점수를 올린 요인', 'up', rising)
       + buildDriverGroup('▼ 점수를 내린 요인', 'down', falling)
       + '</div>'
       + '<div class="mt-driver-legend"><span>막대가 길수록 오늘 점수에 미친 영향이 큽니다.</span><span>빨강: 과열 방향 · 파랑: 공포 방향</span></div>'
-      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>10개 지표의 원점수 120점을 100점으로 환산합니다. 50~70점은 중립, 높을수록 과열 방향·낮을수록 공포 방향입니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
+      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>100점 만점입니다. 지표를 돈(거래대금·수급)·가격(평균등락률·상승비율·52주 신고가/신저가)·위험(VIX·환율·빚투) 세 묶음으로 나눠 각 묶음은 점수÷만점의 평균, 종합점수는 세 묶음의 평균입니다(위험은 뒤집어 안전도로 넣음). 50점 미만 공포 · 50~75점 보통 · 75점 이상 과열. 섹터 강도·미국 선물지수는 참고로만 보여주고 종합점수에는 넣지 않습니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
       + '</div>';
   }
 
@@ -1050,16 +1118,18 @@
 
   function historyDays_(data) {
     // 2026-09-07: 추이도 3축 종합점수(0~100)로 그린다. 옛 40℃ 온도와 스케일이 달라
-    // 섞으면 전환일에 선이 튄다 - score가 있는 날만 쓰고, 하나도 없으면(구버전 응답)
-    // 예전처럼 temp로 그린다.
+    // 섞으면 전환일에 선이 튄다 - score가 있는 날만 쓴다. 하나도 없으면(구버전 응답)
+    // 온도를 같은 100점 눈금으로 환산해 그린다.
     var days = (data.recentDays || []).filter(function (item) {
       return item && typeof item.score === 'number' && isFinite(item.score);
     }).map(function (item) {
-      return { date: item.date, temp: item.score };
+      return { date: item.date, score: item.score };
     });
     if (days.length) return days.slice(-40);
     return (data.recentDays || []).filter(function (item) {
       return item && typeof item.temp === 'number' && isFinite(item.temp);
+    }).map(function (item) {
+      return { date: item.date, score: item.temp / GAUGE_MAX_TEMP * 100 };
     }).slice(-40);
   }
 
@@ -1076,9 +1146,42 @@
       + p2.x.toFixed(1) + ',' + p2.y.toFixed(1);
   }
 
-  function signedTemp_(value) {
-    var rounded = Math.round(value * 10) / 10;
-    return (rounded > 0 ? '+' : '') + rounded.toFixed(1) + '℃';
+  /* ---- 최근 단기흐름: 증시 날씨 리본(2026-09-16) ----
+
+     사용자 요청("그래프 모양을 좀 신박한 걸로 바꾸고 싶어. 우와 신기한데? 이런거").
+     예전 그래프는 30일 평균에서 벗어난 편차를 위아래로 그려 "가운데 위 = 좋음"인지 "점수가 높음"인지
+     헷갈렸다. 이제 0~100 점수를 그대로 올리고 배경에 공포·보통·과열 구간을 깐다. 선 색은 높이에 따라
+     파랑(공포)→노랑(보통)→빨강(과열)으로 변하고, 마지막 점은 맥박처럼 뛰며, 그래프를 훑으면 그날
+     점수가 뜬다. 아래에는 날짜별 '증시 날씨' 아이콘 줄을 붙여 숫자를 안 읽어도 흐름이 보이게 했다. */
+  var MARKET_WEATHER = [
+    { max: 25, icon: '🥶', word: '꽁꽁' },
+    { max: 50, icon: '🌧️', word: '흐림' },
+    { max: 62.5, icon: '⛅', word: '구름 조금' },
+    { max: 75, icon: '🌤️', word: '맑음' },
+    { max: 88, icon: '☀️', word: '더움' },
+    { max: Infinity, icon: '🔥', word: '폭염' }
+  ];
+  var sparkSeq_ = 0;
+
+  function marketWeather_(score) {
+    for (var i = 0; i < MARKET_WEATHER.length; i++) {
+      if (score < MARKET_WEATHER[i].max) return MARKET_WEATHER[i];
+    }
+    return MARKET_WEATHER[MARKET_WEATHER.length - 1];
+  }
+
+  function scoreTone_(score) {
+    return score < 50 ? 'fear' : score < 75 ? 'neutral' : 'greed';
+  }
+
+  function shortDate_(date) {
+    var match = /^\d{4}-(\d{2})-(\d{2})/.exec(String(date || ''));
+    return match ? parseInt(match[1], 10) + '/' + parseInt(match[2], 10) : String(date || '');
+  }
+
+  function signedPoints_(value) {
+    var rounded = Math.round(value);
+    return (rounded > 0 ? '+' : '') + rounded + '점';
   }
 
   function buildSparklineContent(data, period) {
@@ -1086,62 +1189,127 @@
     if (!days.length) return '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>';
     var shown = days.slice(-period);
     if (shown.length === 1) {
-      return '<div class="mt-spark-single"><strong>' + shown[0].temp.toFixed(1) + '℃</strong>'
+      var only = marketWeather_(shown[0].score);
+      return '<div class="mt-spark-single"><strong>' + only.icon + ' ' + shown[0].score.toFixed(0) + '점</strong>'
         + '<span>' + escapeHtml(shown[0].date) + '</span><small>단기흐름 데이터가 더 쌓이면 기간을 비교할 수 있습니다.</small></div>';
     }
 
-    // 현재값을 포함하지 않은 최근 30개를 기준선으로 삼아, 오늘이 평소보다
-    // 높은지(빨강) 낮은지(파랑)를 바로 읽게 한다.
+    // 현재값을 뺀 최근 30개의 평균을 점선으로 깐다 - 오늘이 평소보다 높은지 낮은지 보는 기준.
     var priorDays = days.slice(0, -1);
     var baselineRows = (priorDays.length ? priorDays : days).slice(-30);
-    var baseline = baselineRows.reduce(function (sum, item) { return sum + item.temp; }, 0) / baselineRows.length;
-    var deltas = shown.map(function (item) { return item.temp - baseline; });
-    var maxAbs = Math.max.apply(null, deltas.map(function (value) { return Math.abs(value); })) || 1;
-    var W = 640, H = 142, PAD = 12, center = H / 2, half = H / 2 - PAD;
-    var stepX = (W - PAD * 2) / (shown.length - 1);
+    var baseline = baselineRows.reduce(function (sum, item) { return sum + item.score; }, 0) / baselineRows.length;
+
+    var W = 640, H = 210, PX = 18, PT = 18, PB = 12;
+    var plotH = H - PT - PB;
+    function yOf(value) { return PT + (1 - Math.max(0, Math.min(100, value)) / 100) * plotH; }
+    function pctX(x) { return (x / W * 100).toFixed(2); }
+    function pctY(y) { return (y / H * 100).toFixed(2); }
+    var stepX = (W - PX * 2) / (shown.length - 1);
     var points = shown.map(function (item, i) {
-      return { x: PAD + i * stepX, y: center - (deltas[i] / maxAbs) * half, temp: item.temp, delta: deltas[i], date: item.date };
+      return { x: PX + i * stepX, y: yOf(item.score), score: item.score, date: item.date };
     });
-    var segmentPaths = points.slice(1).map(function (point, i) {
-      var previous = points[i];
-      var tone = (previous.delta + point.delta) / 2 > 0 ? 'pos' : (previous.delta + point.delta) / 2 < 0 ? 'neg' : 'zero';
-      return '<path class="mt-spark-segment mt-spark-draw mt-wave-segment-' + tone + '" d="' + smoothSegment_(points, i) + '"></path>';
+    var uid = 'mtRib' + (++sparkSeq_);
+    var line = 'M' + points[0].x.toFixed(1) + ',' + points[0].y.toFixed(1) + points.slice(1).map(function (point, i) {
+      return smoothSegment_(points, i).replace(/^M\S+\s/, ' ');
     }).join('');
-    var areaPaths = points.slice(1).map(function (point, i) {
-      var previous = points[i];
-      var tone = (previous.delta + point.delta) / 2 > 0 ? 'pos' : 'neg';
-      return '<path class="mt-wave-area mt-wave-area-' + tone + '" d="M' + previous.x.toFixed(1) + ',' + center.toFixed(1)
-        + ' L' + previous.x.toFixed(1) + ',' + previous.y.toFixed(1) + ' L' + point.x.toFixed(1) + ',' + point.y.toFixed(1)
-        + ' L' + point.x.toFixed(1) + ',' + center.toFixed(1) + ' Z"></path>';
+    var floor = yOf(0).toFixed(1);
+    var now = points[points.length - 1];
+    var area = line + ' L' + now.x.toFixed(1) + ',' + floor + ' L' + points[0].x.toFixed(1) + ',' + floor + ' Z';
+    // 높이별 색. offset 0 = 100점(위), 1 = 0점(아래). userSpaceOnUse라 거의 수평인 선에도 색이 먹는다.
+    var stops = [[0, '#E53935'], [0.25, '#FB8C00'], [0.4, '#F4B400'], [0.5, '#8EC1EC'], [0.62, '#42A5F5'], [1, '#1565C0']]
+      .map(function (stop) { return '<stop offset="' + stop[0] + '" stop-color="' + stop[1] + '"></stop>'; }).join('');
+    var gradient = '<linearGradient id="' + uid + 'Heat" gradientUnits="userSpaceOnUse" x1="0" y1="' + yOf(100).toFixed(1)
+      + '" x2="0" y2="' + yOf(0).toFixed(1) + '">' + stops + '</linearGradient>';
+    var zones = [['greed', 100, 75], ['neutral', 75, 50], ['fear', 50, 0]].map(function (zone) {
+      return '<rect class="mt-rib-zone mt-rib-zone-' + zone[0] + '" x="0" y="' + yOf(zone[1]).toFixed(1) + '" width="' + W
+        + '" height="' + (yOf(zone[2]) - yOf(zone[1])).toFixed(1) + '"></rect>';
     }).join('');
-    var dots = points.map(function (point, i) {
-      var tone = point.delta > 0 ? 'pos' : point.delta < 0 ? 'neg' : 'zero';
-      return '<circle class="mt-spark-dot mt-wave-dot-' + tone + (i === points.length - 1 ? ' mt-spark-current-dot' : '')
-        + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + (i === points.length - 1 ? 4.5 : 2.5) + '"><title>'
-        + escapeHtml(point.date) + ' ' + point.temp.toFixed(1) + '℃ (' + signedTemp_(point.delta) + ')</title></circle>';
+    var borders = [75, 50].map(function (value) {
+      return '<line class="mt-rib-border" x1="0" y1="' + yOf(value).toFixed(1) + '" x2="' + W + '" y2="' + yOf(value).toFixed(1) + '"></line>';
     }).join('');
-    var gridLines = [0.25, 0.5, 0.75].map(function (ratio) {
-      var y = (PAD + (H - PAD * 2) * ratio).toFixed(1);
-      return '<line class="mt-spark-grid-line" x1="' + PAD + '" y1="' + y + '" x2="' + (W - PAD) + '" y2="' + y + '"></line>';
+    var dots = points.slice(0, -1).map(function (point) {
+      return '<circle class="mt-rib-dot mt-rib-tone-' + scoreTone_(point.score) + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="3"></circle>';
     }).join('');
-    var current = points[points.length - 1];
-    var first = points[0];
-    var periodDelta = current.delta - first.delta;
+    var nowTone = scoreTone_(now.score);
+    var nowWeather = marketWeather_(now.score);
+    var svg = '<svg class="mt-rib-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="최근 ' + shown.length + '거래일 종합점수 흐름">'
+      + '<defs>' + gradient + '</defs>'
+      + zones + borders
+      + '<line class="mt-rib-avg" x1="' + PX + '" y1="' + yOf(baseline).toFixed(1) + '" x2="' + (W - PX) + '" y2="' + yOf(baseline).toFixed(1) + '"></line>'
+      + '<path class="mt-rib-area" d="' + area + '" fill="url(#' + uid + 'Heat)"></path>'
+      + '<path class="mt-rib-line mt-spark-draw" d="' + line + '" stroke="url(#' + uid + 'Heat)"></path>'
+      + dots
+      + '<circle class="mt-rib-pulse mt-rib-tone-' + nowTone + '" cx="' + now.x.toFixed(1) + '" cy="' + now.y.toFixed(1) + '" r="6"></circle>'
+      + '<circle class="mt-rib-now mt-rib-tone-' + nowTone + '" cx="' + now.x.toFixed(1) + '" cy="' + now.y.toFixed(1) + '" r="6"></circle>'
+      + '</svg>';
+    // 글자는 SVG 밖 HTML로 얹는다 - viewBox가 폭에 맞춰 줄면 SVG 글자도 같이 작아져 폰에서 안 읽힌다.
+    var overlay = [['greed', '과열', 87.5], ['neutral', '보통', 62.5], ['fear', '공포', 25]].map(function (zone) {
+      return '<span class="mt-rib-zone-label mt-rib-tone-' + zone[0] + '" style="top:' + pctY(yOf(zone[2])) + '%">' + zone[1] + '</span>';
+    }).join('')
+      + '<span class="mt-rib-avg-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균 ' + baseline.toFixed(0) + '</span>'
+      + '<span class="mt-rib-now-label mt-rib-tone-' + nowTone + (now.y < H * 0.3 ? ' is-below' : '') + '" style="left:' + pctX(now.x)
+      + '%;top:' + pctY(now.y) + '%">' + nowWeather.icon + ' ' + now.score.toFixed(0) + '점</span>'
+      + '<i class="mt-rib-cursor" hidden></i><div class="mt-rib-tip" hidden></div>';
+    var pointData = points.map(function (point) {
+      return pctX(point.x) + ',' + pctY(point.y) + ',' + point.score.toFixed(0) + ',' + point.date;
+    }).join(';');
+
+    // 날씨 줄: 기간이 길어도 10칸까지만 고르게 뽑는다(폰 폭에서 한 줄 유지).
+    var stripCount = Math.min(shown.length, 10);
+    var strip = '';
+    for (var s = 0; s < stripCount; s++) {
+      var index = Math.round(s * (shown.length - 1) / (stripCount - 1));
+      var day = shown[index];
+      var weather = marketWeather_(day.score);
+      strip += '<li class="mt-weather-day mt-rib-tone-' + scoreTone_(day.score) + (index === shown.length - 1 ? ' is-today' : '')
+        + '" style="--mt-i:' + s + '" title="' + escapeHtml(day.date + ' ' + day.score.toFixed(0) + '점 · ' + weather.word) + '">'
+        + '<span class="mt-weather-icon" aria-hidden="true">' + weather.icon + '</span>'
+        + '<b>' + day.score.toFixed(0) + '</b><small>' + escapeHtml(shortDate_(day.date)) + '</small></li>';
+    }
+
+    var low = shown.reduce(function (a, b) { return b.score < a.score ? b : a; });
+    var high = shown.reduce(function (a, b) { return b.score > a.score ? b : a; });
+    var periodDelta = now.score - points[0].score;
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
-    var labels = '<span><i class="mt-wave-dot-neg"></i>낮음 <b class="mt-val-neg">-</b></span>'
-      + '<span><i class="mt-wave-dot-zero"></i>30일 평균 <b>' + baseline.toFixed(1) + '℃</b></span>'
-      + '<span><i class="mt-wave-dot-pos"></i>높음 <b class="mt-val-pos">+</b></span>';
     var metrics = '<div class="mt-history-metrics">'
-      + '<span><small>30일 기준선</small><b>' + baseline.toFixed(1) + '℃</b></span>'
-      + '<span><small>최저 편차</small><b class="mt-val-neg">' + signedTemp_(Math.min.apply(null, deltas)) + '</b></span>'
-      + '<span><small>최고 편차</small><b class="mt-val-pos">' + signedTemp_(Math.max.apply(null, deltas)) + '</b></span>'
-      + '<span><small>기간 변화</small><b class="' + periodTone + '">' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedTemp_(periodDelta) + '</b></span>'
+      + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
+      + '<span><small>가장 낮았던 날</small><b>' + marketWeather_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
+      + '<span><small>가장 높았던 날</small><b>' + marketWeather_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
+      + '<span><small>기간 변화</small><b class="' + periodTone + '">' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></span>'
       + '</div>';
-    return '<div class="mt-history-chart-meta"><span>30일 평균 ' + baseline.toFixed(1) + '℃ 기준</span><b class="' + periodTone + '">현재 ' + signedTemp_(current.delta) + '</b></div>'
-      + '<svg class="mt-spark mt-wave-spark" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + period + '일 단기흐름">'
-      + gridLines + '<line class="mt-wave-zero" x1="' + PAD + '" y1="' + center + '" x2="' + (W - PAD) + '" y2="' + center + '"></line>'
-      + areaPaths + segmentPaths + dots + '</svg>'
-      + '<div class="mt-spark-labels mt-wave-legend">' + labels + '</div>' + metrics;
+    return '<div class="mt-history-chart-meta"><span>위로 갈수록 들뜬 시장 · 아래로 갈수록 겁먹은 시장</span>'
+      + '<b class="mt-rib-tone-' + nowTone + '">지금 ' + nowWeather.icon + ' ' + escapeHtml(nowWeather.word) + '</b></div>'
+      + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
+      + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
+      + metrics;
+  }
+
+  // 선 그리기(stroke-dasharray)와 리본·날씨 줄 등장 효과. rAF나 문서 타임라인이 안 도는 환경(백그라운드
+  // 탭 등)에서도 결국 정답 상태로 보이게 setTimeout으로 마무리한다(countUp과 같은 이유).
+  function animateHistory(root) {
+    var sparkPaths = root.querySelectorAll('.mt-spark-draw');
+    if (sparkPaths.length) {
+      var revealed = false;
+      var reveal = function () {
+        if (revealed) return;
+        revealed = true;
+        sparkPaths.forEach(function (path) { path.style.strokeDashoffset = '0'; });
+      };
+      sparkPaths.forEach(function (path) {
+        if (!path.getTotalLength) return;
+        var len = path.getTotalLength();
+        path.style.strokeDasharray = len;
+        path.style.strokeDashoffset = len;
+      });
+      requestAnimationFrame(function () { requestAnimationFrame(reveal); });
+      setTimeout(reveal, 1000);
+    }
+    var animated = root.querySelectorAll('.mt-rib-anim');
+    if (animated.length) {
+      setTimeout(function () {
+        animated.forEach(function (el) { el.classList.remove('mt-rib-anim'); });
+      }, 1800);
+    }
   }
 
   function buildSparkline(data, compact, selectedPeriod) {
@@ -1157,7 +1325,7 @@
         + ' aria-label="최근 ' + period + '일 흐름" aria-selected="' + (selected === period ? 'true' : 'false') + '">' + period + '일</button>';
     }).join('');
     return '<div class="' + frameClass + '" data-mt-history-panel>'
-      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">🌦️ 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
       + '<div data-mt-history-content>' + buildSparklineContent(data, selected) + '</div>'
       + '</div>';
   }
@@ -1177,30 +1345,77 @@
         item.setAttribute('aria-selected', active ? 'true' : 'false');
       });
       content.innerHTML = buildSparklineContent(data, period);
+      animateHistory(content);
+    });
+
+    // 그래프를 훑으면(마우스 이동·손가락 가로 드래그) 가장 가까운 날의 점수와 날씨를 띄운다.
+    function scrub(event) {
+      var stage = event.target.closest && event.target.closest('[data-rib-stage]');
+      if (!stage) return;
+      var rect = stage.getBoundingClientRect();
+      if (!rect.width) return;
+      var at = (event.clientX - rect.left) / rect.width * 100;
+      var best = null;
+      (stage.getAttribute('data-rib-points') || '').split(';').forEach(function (raw) {
+        var fields = raw.split(',');
+        if (fields.length < 4) return;
+        var point = { x: parseFloat(fields[0]), y: parseFloat(fields[1]), score: parseFloat(fields[2]), date: fields[3] };
+        if (!best || Math.abs(point.x - at) < Math.abs(best.x - at)) best = point;
+      });
+      if (!best) return;
+      var cursor = stage.querySelector('.mt-rib-cursor');
+      var tip = stage.querySelector('.mt-rib-tip');
+      var weather = marketWeather_(best.score);
+      if (cursor) {
+        cursor.hidden = false;
+        cursor.style.left = best.x + '%';
+      }
+      if (tip) {
+        tip.hidden = false;
+        tip.className = 'mt-rib-tip mt-rib-tone-' + scoreTone_(best.score) + (best.y < 34 ? ' is-below' : '');
+        tip.style.left = Math.max(14, Math.min(86, best.x)) + '%';
+        tip.style.top = best.y + '%';
+        tip.innerHTML = '<span aria-hidden="true">' + weather.icon + '</span> <b>' + best.score.toFixed(0) + '점</b> <small>'
+          + escapeHtml(shortDate_(best.date)) + ' · ' + escapeHtml(weather.word) + '</small>';
+      }
+      stage.classList.add('is-scrubbing');
+    }
+    panel.addEventListener('pointermove', scrub);
+    panel.addEventListener('pointerdown', scrub);
+    // 손가락은 떼는 순간 pointerleave가 와서 툴팁이 번쩍 사라진다 - 마우스일 때만 숨긴다.
+    panel.addEventListener('pointerleave', function (event) {
+      if (event.pointerType && event.pointerType !== 'mouse') return;
+      var stage = panel.querySelector('[data-rib-stage]');
+      if (!stage) return;
+      stage.classList.remove('is-scrubbing');
+      stage.querySelectorAll('.mt-rib-cursor, .mt-rib-tip').forEach(function (el) { el.hidden = true; });
     });
   }
 
   // ---- ⑦ 시장 레이더 차트 ----
 
-  function buildStrategy(grade) {
-    var s = STRATEGY_BY_TONE[grade.tone] || STRATEGY_BY_TONE.neutral;
+  // 2026-09-16: 주식/현금 비중 막대를 개인 투자자용 점검표로 바꿨다(ANT_GUIDE_BY_TONE 주석 참고).
+  function buildStrategy(data) {
+    var guide = antGuide(data);
+    function list(items) {
+      return items.map(function (text) { return '<li>' + escapeHtml(text) + '</li>'; }).join('');
+    }
     return ''
-      + '<div class="mt-strategy-panel">'
-      + '<div class="mt-strategy-panel-title">🎯 오늘의 전략</div>'
-      + '<div class="mt-strategy-action ' + s.actionTone + '">' + escapeHtml(s.action) + '</div>'
-      + '<div class="mt-strategy-bars">'
-      + '<div class="mt-strategy-bar-row"><span>주식비중</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-stock" style="width:' + s.stock + '%"></div></div><b>' + s.stock + '%</b></div>'
-      + '<div class="mt-strategy-bar-row"><span>현금</span><div class="mt-strategy-bar"><div class="mt-strategy-bar-fill mt-strategy-bar-cash" style="width:' + s.cash + '%"></div></div><b>' + s.cash + '%</b></div>'
-      + '</div>'
-      + '<div class="mt-strategy-note">⚠ ' + escapeHtml(s.note) + '</div>'
+      + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
+      + '<div class="mt-strategy-panel-title">🐜 오늘의 개미 체크리스트</div>'
+      + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
+      + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
+      + '<div class="mt-ant-list mt-ant-todo"><b>✅ 해볼 것</b><ul>' + list(guide.todo) + '</ul></div>'
+      + '<div class="mt-ant-list mt-ant-avoid"><b>🚫 참을 것</b><ul>' + list(guide.avoid) + '</ul></div>'
+      + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
       + '</div>';
   }
 
-  function buildBriefingStrategy(grade) {
+  function buildBriefingStrategy(data) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
-      + buildStrategy(grade)
+      + buildStrategy(data)
       + '</div>'
       + '</div>';
   }
@@ -1833,7 +2048,7 @@
     if (!data.grade) data.grade = { emoji: '', label: '', tone: 'neutral' };
     data.grade.color = (GRADE_BY_TONE[data.grade.tone] || GRADE_BY_TONE.neutral).color;
     var grade = data.grade;
-    var tone = grade.tone || 'neutral';
+    var tone = crowdTone(data);
 
     // 2026-09-07 단순화. "지표가 10개라 아무도 안 본다"는 판단으로 첫 화면을
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
@@ -1848,7 +2063,7 @@
         + '</div>',
       '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
-      buildBriefingStrategy(grade),                 // ④ 시장 브리핑 + 오늘의 전략
+      buildBriefingStrategy(data),                  // ④ 시장 브리핑 + 오늘의 개미 체크리스트
       '<div data-industry-flow></div>',             // ⑤ 업종 TOP 당일·전일 흐름
     ];
 
@@ -1913,26 +2128,7 @@
       if (!isNaN(target)) countUp(scoreEl, target, 800);
     }
 
-    // 스파크라인 draw-on-load(stroke-dasharray 트릭). rAF가 안 도는 환경(백그라운드 탭 등)
-    // 에서 선이 영원히 안 그려진 채로 남는 걸 막기 위해 setTimeout 안전장치를 같이 건다
-    // (countUp과 동일한 이유 - 위 주석 참고).
-    var sparkPaths = container.querySelectorAll('.mt-spark-draw');
-    if (sparkPaths.length) {
-      var revealed = false;
-      function reveal() {
-        if (revealed) return;
-        revealed = true;
-        sparkPaths.forEach(function (path) { path.style.strokeDashoffset = '0'; });
-      }
-      sparkPaths.forEach(function (path) {
-        if (!path.getTotalLength) return;
-        var len = path.getTotalLength();
-        path.style.strokeDasharray = len;
-        path.style.strokeDashoffset = len;
-      });
-      requestAnimationFrame(function () { requestAnimationFrame(reveal); });
-      setTimeout(reveal, 1000);
-    }
+    animateHistory(container);
 
     wireHistoryPeriods(container, data);
     wireTooltipClamp(container);
