@@ -5129,6 +5129,15 @@ html:not(.font-gothic) body .sidebar-left .nav-primary-item[aria-expanded="true"
   border-bottom-color: #111 !important;
   color: #111 !important;
 }
+/* 같은 이유로 다크모드에서 활성·hover 메뉴 글자도 #111로 눌려 있었다(실측). 위 4633행의
+   html.dark 규칙(#F5EFE0)은 명조 규칙보다 구체성이 낮아 밀리므로 같은 강도로 되돌린다. */
+html.dark:not(.font-gothic) body .sidebar-left .nav-primary-item:hover,
+html.dark:not(.font-gothic) body .sidebar-left .nav-primary-item:focus-visible,
+html.dark:not(.font-gothic) body .sidebar-left .nav-primary-item.nav-item-active,
+html.dark:not(.font-gothic) body .sidebar-left .nav-primary-item[aria-expanded="true"] {
+  border-bottom-color: #F5EFE0 !important;
+  color: #F5EFE0 !important;
+}
 /* 마켓 브리핑 제목 목록은 항목마다 아래 구분선만 사용한다.
    공통 카드 테두리의 윗선까지 겹치면 포스트 사이가 이중선으로 보인다. */
 html:not(.font-gothic) body .feed-block-headline .post-card.feed-headline-item {
@@ -5190,6 +5199,16 @@ html:not(.font-gothic) body #foreign-flow .ff-swing-action strong,
 html:not(.font-gothic) body #foreign-flow .ff-swing-fact:first-child b {
   color: #111 !important;
   font-weight: 700 !important;
+}
+/* 2026-09-16 사용자 리포트(다크모드 캡처): 위 명조 규칙이 !important라 다크모드에서도 #111이 적용돼
+   2주 스윙 판정의 국면·진단·행동 값이 검은 배경(#1A1A1A)에 묻혔다(실측 rgb(17,17,17)).
+   foreign-flow.css의 다크 규칙은 !important가 없어 이길 수 없으므로 여기서 같은 강도로 되돌린다. */
+html.dark:not(.font-gothic) body #foreign-flow .ff-swing-regime strong,
+html.dark:not(.font-gothic) body #foreign-flow .ff-swing-step strong,
+html.dark:not(.font-gothic) body #foreign-flow .ff-swing-diagnosis strong,
+html.dark:not(.font-gothic) body #foreign-flow .ff-swing-action strong,
+html.dark:not(.font-gothic) body #foreign-flow .ff-swing-fact:first-child b {
+  color: #F5EFE0 !important;
 }
 html:not(.font-gothic) body .sidebar-left .nav-item-home,
 html:not(.font-gothic) body .sidebar-left .nav-item-home .nav-item-label,
