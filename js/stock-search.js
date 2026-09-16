@@ -147,6 +147,25 @@
     // 붙이기"를 먼저 시도했지만 막대 시작 위치를 못 미리 알아 자리가 계속 안 맞았음 -
     // 막대 위치 자체를 고정하는 쪽으로 대신 해결).
     if (volumeLegend) volumeLegend.style.top = (actualMainHeight + 6) + 'px';
+    fitVolumeLegend(volumeLegend, actualVolumeHeight);
+  }
+
+  // 2026-09-16 사용자 민원("차트 안 글자가 겹쳐 보임"): 폭이 좁으면 거래량 범례가 4~5줄(실측 66px)로
+  // 접혀 거래량 패널(실측 그보다 얕음)을 넘어 RSI 패널 위까지 덮었다. 패널 높이에 맞을 때까지
+  // 덜 중요한 것부터 단계적으로 접는다 - 자리가 넉넉한 PC에서는 지금 정보가 그대로 남는다.
+  function fitVolumeLegend(volumeLegend, volumeHeight) {
+    if (!volumeLegend || !Number.isFinite(volumeHeight) || volumeHeight <= 0) return;
+    var budget = volumeHeight - 8;
+    // RSI 구역 캔버스가 매 프레임 positionLwcPaneLabels()를 부르므로, 같은 높이로 이미 맞춰 뒀으면
+    // offsetHeight를 다시 읽지 않는다(강제 레이아웃 회피). 범례는 다시 그릴 때 새로 만들어지므로
+    // 내용이 바뀌면 이 표시도 함께 사라진다.
+    if (volumeLegend.dataset.fitBudget === String(budget)) return;
+    volumeLegend.dataset.fitBudget = String(budget);
+    volumeLegend.classList.remove('is-compact', 'is-minimal');
+    if (volumeLegend.offsetHeight <= budget) return;
+    volumeLegend.classList.add('is-compact');   // 괄호 안 상세(20일 대비·현재 %)
+    if (volumeLegend.offsetHeight <= budget) return;
+    volumeLegend.classList.add('is-minimal');   // 5일·20일 평균 줄
   }
 
   function sizeStockChartPanes(panes, totalHeight) {
