@@ -357,6 +357,8 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
+        // 2026-09-17 요청("맨 하단에 주식 이야기 하나 만들어서, 기초 공부 사이트"): 초보자용 5장 커리큘럼.
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
         // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +

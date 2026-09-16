@@ -76,12 +76,47 @@ a { color: #d24f45; }
   color: #94a3b8;
 }
 
+/* ── 주식 이야기(learn/*.html) 전용 - 목차·표·짚고 넘어갈 상자·이전다음 이동 ── */
+.learn-toc { margin: 0 0 12px; padding-left: 22px; }
+.learn-toc li { margin-bottom: 14px; }
+.learn-toc a { font-size: 16px; font-weight: 700; text-decoration: none; }
+.learn-toc small { display: block; margin-top: 2px; color: #6b7280; font-size: 13px; line-height: 1.6; }
+
+.learn-note {
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border-left: 3px solid #d24f45;
+  background: #f6f4ec;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.learn-table { width: 100%; margin: 0 0 14px; border-collapse: collapse; font-size: 14px; }
+.learn-table th, .learn-table td { padding: 7px 10px; border-bottom: 1px solid #e7e4d8; text-align: left; }
+.learn-table th { color: #6b7280; font-size: 12px; font-weight: 700; }
+
+.learn-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 36px;
+  padding-top: 18px;
+  border-top: 1px solid #eee;
+  font-size: 14px;
+}
+.learn-nav a { text-decoration: none; }
+
 @media (prefers-color-scheme: dark) {
   body { background: #0f1420; color: #d3dbe8; }
   h1, h2, h3 { color: #ffffff; }
   h2, .legal-contact { border-top-color: #263048; }
   .legal-back, .legal-effective-date, .legal-contact { color: #6b7889; }
   a { color: #ff8a80; }
+  .learn-toc small { color: #8b97a8; }
+  .learn-note { background: #161d2c; border-left-color: #ff8a80; }
+  .learn-table th, .learn-table td { border-bottom-color: #263048; }
+  .learn-table th { color: #8b97a8; }
+  .learn-nav { border-top-color: #263048; }
 }
 
 @media (max-width: 480px) {
