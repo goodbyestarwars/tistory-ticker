@@ -5,6 +5,38 @@
 > 이 파일도 통독하지 말고 위에서부터 필요한 만큼만 읽거나 `grep`으로 찾는다.
 
 
+**2026-09-17(4차) 07:30 마감 리퍼 첫 실전 - oneshot은 "activating"이라 유닛 중단이 통째로 건너뛰어졌다**
+
+첫 실행(22:30 UTC = 07:30 KST)을 지켜본 결과. 마감은 지켜졌지만 **의도한 경로가 아니라 백업
+경로로** 지켜졌다.
+
+당시 상황: 어제 21:00 KST에 뜬 `kiwoom-batch`가 새벽 장애로 공용 잠금을 9시간 12분 기다리다
+07:12 KST에야 실제로 돌기 시작했고, 마감 시각에 2,276/3,913(58%)을 지나고 있었다.
+
+리퍼 로그:
+```
+07:30 마감 확인: 실행 중인 스캔 없음      <- 틀린 판정
+잠금을 아직 쥔 프로세스가 있어 정리한다     <- 실제로 잡은 건 이쪽
+.scan_serial.lock: 379693 442640
+```
+
+원인: 스캔 유닛이 전부 `Type=oneshot`이라 ExecStart가 도는 동안 ActiveState가 `active`가 아니라
+**`activating`** 이다. `systemctl is-active --quiet`는 이때 거짓을 돌려주므로 유닛 중단 루프가
+모든 유닛을 건너뛴다. 마감을 지킨 건 뒤의 `fuser -k`였는데, systemd가 모르는 죽음이라 유닛이
+`failed`(Result=signal)로 남는다.
+
+수정:
+- ActiveState를 직접 읽어 `active|activating|reloading`을 잡는다 → `systemctl stop`으로 얌전히 끊긴다
+- 마감 로직을 ExecStart 인라인에서 `/usr/local/sbin/kiwoom-scan-reaper.sh`로 분리했다.
+  인라인이면 heredoc의 `$(...)`와 systemd의 `$VAR` 확장이 겹쳐 무엇이 언제 펼쳐지는지 확신할 수
+  없다. 이제 ExecStart에 `$`가 하나도 없다.
+- 중단한 유닛은 상태까지 로그에 남긴다: `07:30 마감으로 중단: kiwoom-batch(activating)`
+
+검증: `test/test_scan_reaper_behavior.py` 신설 - 가짜 systemctl로 리퍼를 실제 실행해 (1) activating
+유닛을 멈추는지 (2) 조용한 밤엔 아무것도 안 건드리는지 (3) 잠금 점유자를 TERM→KILL 하는지 확인.
+7개 통과. 운영 조치로 failed로 남아 있던 `kiwoom-batch`는 `systemctl reset-failed`로 정리했다
+(다음 실행 12:00 UTC = 21:00 KST 정상 예약 확인).
+
 **2026-09-17(3차) 작업이력 분할 - 문서 읽기 토큰 비용 정리**
 
 사용자 질문: ".md 파일이 너무 늘어나는데 토큰은 정기적으로 추가 소비되고, 다른 방안은?"
