@@ -82,11 +82,12 @@ a { color: #d24f45; }
 .learn-toc a { font-size: 16px; font-weight: 700; text-decoration: none; }
 .learn-toc small { display: block; margin-top: 2px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 
+/* 2026-09-17 사용자 지시("AI가 자주 쓰는 저 bar 쓰지마"): 왼쪽 색 막대(border-left 강조) 없이
+   배경만 있는 평범한 상자로 둔다. */
 .learn-note {
   margin: 0 0 16px;
-  padding: 12px 14px;
-  border-left: 3px solid #d24f45;
-  background: #f6f4ec;
+  padding: 13px 15px;
+  background: #f4f2e8;
   font-size: 14px;
   line-height: 1.7;
 }
@@ -134,7 +135,7 @@ a { color: #d24f45; }
   .legal-back, .legal-effective-date, .legal-contact { color: #6b7889; }
   a { color: #ff8a80; }
   .learn-toc small { color: #8b97a8; }
-  .learn-note { background: #161d2c; border-left-color: #ff8a80; }
+  .learn-note { background: #161d2c; }
   .learn-table th, .learn-table td { border-bottom-color: #263048; }
   .learn-table th { color: #8b97a8; }
   .learn-nav { border-top-color: #263048; }
