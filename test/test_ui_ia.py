@@ -1549,7 +1549,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertLess(block.index("오픈소스 라이선스"), block.index("주식 이야기"))
         self.assertLess(block.index("주식 이야기"), block.index("문의하기"))
 
-        chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html"]
+        chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
+                    "money.html", "macro.html"]
         index = self.read("learn/index.html")
         for chapter in chapters:
             with self.subTest(chapter=chapter):
