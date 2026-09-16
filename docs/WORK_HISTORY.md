@@ -1,5 +1,35 @@
 # 9Pay 주요 작업이력
 
+**2026-09-17 야간 장애(스왑 고갈) 복구와 재발 방지 - 스캔 겹침 제거 + 07:30 마감 타이머**
+
+장애: 09-17 00:04~05:45 KST VM이 사실상 멈췄다. 외부에서 `/health`가 40초 타임아웃, nginx 504,
+`/health/latency` 기록에 25초 타임아웃이 00:04부터 이어짐. VM 실측(gcloud SSH): load average 16.9,
+메모리 여유 11MB, **스왑 2,048MB 전부 사용**.
+
+원인(시간 순):
+1. 20:10 `daily_scan`이 3시간 50분 걸려 00:00에 끝남
+2. 잠금을 넘겨받은 `strategy_scan`이 01:31에 완료 로그를 찍고도 프로세스가 05:38까지 남음
+   (메인 스레드 D 상태 - 스왑 스래싱으로 디스크 대기에 묶임, RSS 187MB)
+3. 같은 00:00에 `monitor_swing_recommendations`가 **공용 잠금 밖**(dailyscan 유닛의 ExecStartPost)에서 시작
+4. `news_momentum_scan --full`(배포 점검)과 03:00 `maintenance.py`도 각자 잠금만 써서 합류
+5. 네 개가 겹쳐 1GB VM의 스왑을 소진 → API 프로세스도 20:32 UTC 이후 응답 불가
+
+복구: 멈춘 `strategy_scan`(작업은 이미 완료)과 4시간 46분 묶여 있던 `apt-get`(osconfig) 종료 →
+부하 16.9→4.9, 스왑 2,047→288MB. 그래도 API가 응답하지 않아 `kiwoom-api` 재시작 → 밖에서
+`/health` 1.0초, `/market-temp` 1.2초, `/pattern-scan` 1.7초로 회복.
+
+재발 방지(이번 커밋):
+- `setup_dailyscan_timer.sh`: ExecStartPost(후속 작업)를 `.scan_serial.lock` 안으로
+- `deploy_check.sh`: 뉴스 모멘텀 배치와 야간 유지보수를 같은 잠금으로 감싸되 **기다리지 않고**
+  건너뛴다(`flock -n -E 76`, 5분 뒤 재시도). 로그로 사유를 구분한다.
+- `setup_scanreaper_timer.sh` 신설 + 타이머 자동 설치 목록에 추가: **07:30 KST(22:30 UTC) 마감** -
+  남아 있는 스캔 서비스를 멈추고, 잠금을 쥔 채 죽지 않는 프로세스는 TERM→KILL로 정리한다.
+  사용자 기준: "스캔은 07:30분까지는 끝내야 해"(건너뛰기는 하지 않는다).
+- 스캔 유닛의 `Nice=10`·`CPUWeight=20`·`IOSchedulingClass=idle`은 이미 적용돼 있어 그대로 둔다.
+
+검증: `test/test_deploy_check_contract.py`에 잠금 공유·마감 타이머 계약 추가, `bash -n` 통과.
+남은 과제: `daily_scan`이 3시간 50분 걸리는 것 자체(2,400종목)와 완료 후 프로세스가 안 죽은 원인.
+
 **2026-09-17(4차) 주식 이야기 보강 - 애프터마켓·캔들 모양·차트 모양·배당 + 모바일 잘림 점검**
 
 사용자 요청: "시간외 거래?? 애프터마켓 도입되었잖어 / 캔들 샛별형 무슨 형 이런거 보강 / 차트 중에 저점상승 =

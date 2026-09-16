@@ -83,7 +83,10 @@ run_news_momentum_if_due() {
     # 남긴다(news_momentum_cursor.json). 종료코드 2 = 시간 예산으로 슬라이스만 끝났고
     # 오늘 API 호출 예산이 남아 있다는 뜻이라, 날짜 마커를 기록하지 않고 다음 5분
     # 회차가 커서부터 이어받는다. 0 = 전수 완료 또는 오늘 호출 예산 소진(= 오늘 할 일 끝).
-    if flock -n -E 75 "$MOMENTUM_LOCK" \
+    # 2026-09-17 장애: 이 배치가 스캔 공용 잠금 밖에서 돌아 저녁 스캔과 겹쳤다(스왑 2GB 소진).
+    # 스캔이 돌고 있으면 이번 회차는 건너뛰고(-n) 5분 뒤 다시 본다 - 커서가 남아 이어서 돈다.
+    if flock -n -E 76 "$APP_DIR/.scan_serial.lock" \
+        flock -n -E 75 "$MOMENTUM_LOCK" \
         "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
         --full \
         --db "$MOMENTUM_DB" \
@@ -101,7 +104,9 @@ run_news_momentum_if_due() {
       fi
     else
       lock_status=$?
-      if [ "$lock_status" = "75" ]; then
+      if [ "$lock_status" = "76" ]; then
+        echo "뉴스 모멘텀 건너뜀: 스캔 실행 중(공용 잠금) - 다음 회차에서 이어서 수집"
+      elif [ "$lock_status" = "75" ]; then
         echo "뉴스 모멘텀 건너뜀: 이전 배치 실행 중"
       elif [ "$lock_status" = "2" ]; then
         echo "뉴스 모멘텀 슬라이스 완료(전수 수집 진행 중): 날짜 마커 미기록, 다음 회차에서 이어서 수집"
@@ -145,7 +150,8 @@ ensure_volume_breakout_timer() {
 # 마커로 남기므로 이후 회차는 해시 비교 한 번으로 지나간다.
 ensure_scan_timers_current() {
   local name setup_script marker current
-  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do
+  # scanreaper: 2026-09-17 신설 - 07:30 KST 마감 타이머(setup_scanreaper_timer.sh 주석 참고).
+  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper; do
     setup_script="$APP_DIR/scripts/cloud-vm/setup_${name}_timer.sh"
     if [ ! -f "$setup_script" ]; then
       continue  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다
@@ -274,12 +280,20 @@ run_off_hours_maintenance_if_due() {
   fi
   (
     flock -n 211 || exit 0
-    if "$PYTHON" "$APP_DIR/maintenance.py"; then
+    # 2026-09-17 장애: 03:00 정리 작업이 아직 끝나지 않은 저녁 스캔과 겹쳐 스왑이 바닥났다.
+    # 잠금을 기다리지 않는다(-n) - 기다리면 스캔이 늦어진 밤에 유지보수가 낮까지 밀린다.
+    # 창이 05:00까지라 이번 회차를 건너뛰어도 5분 뒤 다시 시도한다.
+    if flock -n -E 76 "$APP_DIR/.scan_serial.lock" "$PYTHON" "$APP_DIR/maintenance.py"; then
       printf '%s\n' "$today_kst" > "$MAINTENANCE_MARKER.tmp"
       mv "$MAINTENANCE_MARKER.tmp" "$MAINTENANCE_MARKER"
       echo "장외 VM 유지보수 완료: $today_kst"
     else
-      echo "장외 VM 유지보수 실패: 다음 5분 회차에서 재시도" >&2
+      maint_status=$?
+      if [ "$maint_status" = "76" ]; then
+        echo "스캔 실행 중 - 장외 유지보수는 다음 회차로 미룸"
+      else
+        echo "장외 VM 유지보수 실패: 다음 5분 회차에서 재시도" >&2
+      fi
     fi
   ) 200>&- 211>"$MAINTENANCE_TRIGGER_LOCK" >>"$APP_DIR/maintenance.log" 2>&1 &
   disown
