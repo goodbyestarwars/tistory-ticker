@@ -106,6 +106,27 @@ a { color: #d24f45; }
 }
 .learn-nav a { text-decoration: none; }
 
+/* 그림(인라인 SVG). viewBox 폭을 420 안팎으로 잡아 폰에서 글자가 실제 12~13px로 읽히게 한다. */
+.learn-fig { margin: 0 0 20px; }
+.learn-fig svg { display: block; width: 100%; height: auto; }
+.learn-fig figcaption { margin-top: 6px; color: #6b7280; font-size: 12.5px; line-height: 1.6; }
+.learn-fig text { font-family: 'MaruBuri', Georgia, serif; }
+.fig-soft { fill: #f4f2e8; }
+.fig-soft2 { fill: #e8e5d6; }
+.fig-line { fill: none; stroke: #cfcbbb; stroke-width: 1; }
+.fig-dash { fill: none; stroke: #cfcbbb; stroke-width: 1; stroke-dasharray: 4 4; }
+.fig-ink { fill: #1f2937; font-size: 13px; font-weight: 700; }
+.fig-sub { fill: #6b7280; font-size: 11.5px; }
+.fig-up { fill: #d24f45; }
+.fig-down { fill: #1261c4; }
+.fig-up-line { fill: none; stroke: #d24f45; stroke-width: 2; }
+.fig-down-line { fill: none; stroke: #1261c4; stroke-width: 2; }
+.fig-ink-line { fill: none; stroke: #1f2937; stroke-width: 1.5; }
+.fig-white { fill: #fdfdf7; }
+.fig-marker { fill: #1f2937; }
+/* 색 채운 막대 위에 얹는 글자 - 라이트/다크 모두 대비를 유지한다. */
+.fig-on-accent { fill: #fdfdf7; font-size: 13px; font-weight: 700; }
+
 @media (prefers-color-scheme: dark) {
   body { background: #0f1420; color: #d3dbe8; }
   h1, h2, h3 { color: #ffffff; }
@@ -117,6 +138,20 @@ a { color: #d24f45; }
   .learn-table th, .learn-table td { border-bottom-color: #263048; }
   .learn-table th { color: #8b97a8; }
   .learn-nav { border-top-color: #263048; }
+  .learn-fig figcaption { color: #8b97a8; }
+  .fig-soft { fill: #161d2c; }
+  .fig-soft2 { fill: #1d2637; }
+  .fig-line, .fig-dash { stroke: #2f3b52; }
+  .fig-ink { fill: #e8eef7; }
+  .fig-sub { fill: #8b97a8; }
+  .fig-up { fill: #ff8a80; }
+  .fig-down { fill: #7fb3ff; }
+  .fig-up-line { stroke: #ff8a80; }
+  .fig-down-line { stroke: #7fb3ff; }
+  .fig-ink-line { stroke: #d3dbe8; }
+  .fig-white { fill: #0f1420; }
+  .fig-marker { fill: #d3dbe8; }
+  .fig-on-accent { fill: #16202f; }
 }
 
 @media (max-width: 480px) {

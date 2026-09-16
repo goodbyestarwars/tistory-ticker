@@ -1559,6 +1559,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
                 self.assertIn("css/legal.css", page)                  # 정적 페이지 공통 스타일
                 self.assertIn("learn/index.html", page)               # 차례로 돌아가기
                 self.assertIn('<div class="learn-nav">', page)
+                # 2026-09-17(3차) "그림으로 배우는" 컨셉 - 장마다 그림이 최소 한 개.
+                self.assertIn('<figure class="learn-fig">', page)
+                self.assertIn('<svg viewBox=', page)
+                self.assertIn('<figcaption>', page)
+        # 그림 안에서는 HTML 태그가 렌더링되지 않는다 - 강조는 tspan으로.
+        for chapter in chapters + ["index.html"]:
+            page = self.read("learn/" + chapter)
+            for svg in re.findall(r"<svg.*?</svg>", page, re.S):
+                self.assertNotIn("<b>", svg)
+        # 사용자 요청으로 기존 장에 흡수한 주제들(새 장을 만들지 않았다).
+        self.assertIn("VI (변동성완화장치)", self.read("learn/market.html"))
+        self.assertIn("사이드카", self.read("learn/market.html"))
+        self.assertIn("서킷브레이커", self.read("learn/market.html"))
+        self.assertIn("검색기는 왜 있나", self.read("learn/chart.html"))
+        self.assertIn("선물과 옵션", self.read("learn/money.html"))
+        self.assertIn("콜옵션", self.read("learn/money.html"))
+        self.assertIn("상승장·하락장·박스권", self.read("learn/risk.html"))
         # 마지막 장은 투자 권유가 아님을 분명히 적는다.
         self.assertIn("투자 권유가 아닙니다", self.read("learn/risk.html"))
         self.assertIn("투자 권유가 아닙니다", index)
