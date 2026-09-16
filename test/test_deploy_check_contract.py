@@ -87,7 +87,7 @@ class DeployRestartScopeTest(unittest.TestCase):
         """설치 스크립트의 시각만 바꾸면 VM 유닛은 예전 시각 그대로였다(2026-09-14 스캔 시각 이동)."""
         start = self.script.index('ensure_scan_timers_current() {')
         body = self.script[start:self.script.index('\n}\n', start)]
-        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do', body)
+        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper; do', body)
         self.assertIn('sha256sum "$setup_script"', body)
         self.assertIn('sudo systemctl restart "kiwoom-${name}.timer"', body)
         # Persistent=true 타이머가 재시작 직후 "놓친 실행"을 한꺼번에 몰아 돌지 않게 stamp를 먼저 맞춘다.
@@ -96,7 +96,8 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 성공했을 때만 해시 마커를 남겨 실패하면 다음 회차가 다시 시도한다.
         self.assertLess(body.index('sudo systemctl restart'), body.index('> "$marker"'))
         self.assertIn('ensure_scan_timers_current || true', self.script)
-        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch'):
+        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch',
+                     'scanreaper'):
             setup = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_%s_timer.sh' % name)
             with open(setup, encoding='utf-8') as handle:
                 self.assertIn('kiwoom-%s.timer' % name, handle.read(), setup)
@@ -130,3 +131,38 @@ class DeployRestartScopeTest(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+    def test_heavy_jobs_share_one_scan_lock(self):
+        """2026-09-17 장애: 밤새 스캔·후속작업·뉴스배치·야간정리가 겹쳐 스왑 2GB가 바닥났다.
+
+        1GB VM이라 무거운 파이썬 작업은 한 번에 하나만 돌아야 한다. 겹칠 수 있는 진입점이
+        모두 공용 잠금(.scan_serial.lock)을 거치는지 고정한다.
+        """
+        daily_unit = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_dailyscan_timer.sh')
+        with open(daily_unit, encoding='utf-8') as handle:
+            unit = handle.read()
+        # 차트검색 후속 작업(ExecStartPost)도 같은 잠금 안에서 줄 선다.
+        self.assertIn('ExecStartPost=/usr/bin/flock $HOME_DIR/.scan_serial.lock', unit)
+        # 뉴스 모멘텀 배치: 스캔이 돌면 기다리지 않고 건너뛴다(-n), 전용 잠금과 구분되는 종료코드.
+        self.assertIn('flock -n -E 76 "$APP_DIR/.scan_serial.lock"', self.script)
+        self.assertIn('뉴스 모멘텀 건너뜀: 스캔 실행 중(공용 잠금)', self.script)
+        # 야간 유지보수도 같은 방식으로 겹치지 않는다.
+        self.assertIn('flock -n -E 76 "$APP_DIR/.scan_serial.lock" "$PYTHON" "$APP_DIR/maintenance.py"',
+                      self.script)
+        self.assertIn('스캔 실행 중 - 장외 유지보수는 다음 회차로 미룸', self.script)
+
+    def test_scan_deadline_reaper_is_installed(self):
+        """사용자 기준(2026-09-17): "스캔은 07:30분까지는 끝내야 해".
+
+        건너뛰지 않고 마감만 강제한다 - 07:30 KST(22:30 UTC)에 남아 있는 스캔을 정리한다.
+        """
+        self.assertIn('week52 batch scanreaper; do', self.script)
+        reaper = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_scanreaper_timer.sh')
+        self.assertTrue(os.path.exists(reaper))
+        with open(reaper, encoding='utf-8') as handle:
+            script = handle.read()
+        self.assertIn('OnCalendar=*-*-* 22:30:00', script)          # 07:30 KST
+        self.assertIn('systemctl stop kiwoom-\\$unit.service', script)
+        # 잠금을 쥔 채 죽지 않는 프로세스(2026-09-17 strategy_scan)가 있으면 그것까지 정리한다.
+        self.assertIn('fuser -k -TERM', script)
+        self.assertIn('fuser -k -KILL', script)

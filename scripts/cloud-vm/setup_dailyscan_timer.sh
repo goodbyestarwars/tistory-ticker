@@ -24,7 +24,10 @@ ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $
 Nice=10
 CPUWeight=20
 IOSchedulingClass=idle
-ExecStartPost=$HOME_DIR/venv/bin/python $HOME_DIR/monitor_swing_recommendations.py
+# 2026-09-17 장애: 이 후속 작업이 공용 잠금 밖에서 돌아, 잠금을 넘겨받은 다음 스캔
+# (strategy_scan)과 동시에 실행됐다. 둘이 각각 150~190MB를 쓰면서 1GB VM의 스왑 2GB를
+# 전부 소진해 API가 몇 시간 동안 응답하지 못했다. 같은 잠금 안에서 줄 서게 한다.
+ExecStartPost=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/monitor_swing_recommendations.py
 SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-dailyscan.timer > /dev/null << TIMEREOF
