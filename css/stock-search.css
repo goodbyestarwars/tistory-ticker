@@ -476,6 +476,11 @@
   line-height: 1.35;
   pointer-events: none;
 }
+/* 범례가 거래량 패널보다 높아지면 js/stock-search.js fitVolumeLegend()가 단계적으로 접는다
+   (2026-09-16 민원 "차트 안 글자가 겹쳐 보임" - 좁은 폭에서 RSI 패널까지 덮었다). */
+#stock-search .ss-volume-study-label.is-compact em { display: none; }
+#stock-search .ss-volume-study-label.is-minimal .ss-volume-ma5-value,
+#stock-search .ss-volume-study-label.is-minimal .ss-volume-ma-value { display: none; }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #stock-search .ss-volume-study-label em { color: #8a9099; font-size: 9.5px; font-style: normal; font-weight: 400; }
 #stock-search .ss-volume-study-label .ss-volume-current-label b,

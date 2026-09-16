@@ -1537,6 +1537,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
+    def test_stock_search_volume_legend_never_covers_the_rsi_pane(self):
+        """2026-09-16 민원("차트 안 글자가 겹쳐 보임").
+
+        좁은 폭에서 거래량 범례가 4~5줄(실측 66px)로 접혀 거래량 패널을 넘어 RSI 패널까지 덮었다.
+        패널 높이에 맞을 때까지 상세 → 5·20일평균 순으로 접는다(PC에서는 그대로 남는다).
+        """
+        source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
+        self.assertIn("function fitVolumeLegend(volumeLegend, volumeHeight)", source)
+        self.assertIn("fitVolumeLegend(volumeLegend, actualVolumeHeight);", source)
+        self.assertIn("volumeLegend.classList.add('is-compact')", source)
+        self.assertIn("volumeLegend.classList.add('is-minimal')", source)
+        # 매 프레임 호출되는 RSI 구역 캔버스 때문에 강제 레이아웃이 반복되지 않게 가드를 둔다.
+        self.assertIn("volumeLegend.dataset.fitBudget === String(budget)", source)
+        self.assertIn("#stock-search .ss-volume-study-label.is-compact em { display: none; }", style)
+        self.assertIn(".ss-volume-study-label.is-minimal .ss-volume-ma-value { display: none; }", style)
+
     def test_market_temperature_follow_ups_square_design_briefing_and_delta_date(self):
         """2026-09-16 후속.
 
