@@ -476,6 +476,14 @@
   line-height: 1.35;
   pointer-events: none;
 }
+/* 범례는 거래량 막대·축 숫자 위에 얹히므로 RSI 라벨과 같은 반투명 배경을 깔아 읽히게 한다
+   (2026-09-16 민원 캡처에서 막대·'1M' 축 글자와 겹쳐 안 읽혔다). */
+#stock-search .ss-volume-study-label > span,
+#stock-search .ss-volume-study-label > b {
+  padding: 2px 4px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .72);
+}
 /* 범례가 거래량 패널보다 높아지면 js/stock-search.js fitVolumeLegend()가 단계적으로 접는다
    (2026-09-16 민원 "차트 안 글자가 겹쳐 보임" - 좁은 폭에서 RSI 패널까지 덮었다). */
 #stock-search .ss-volume-study-label.is-compact em { display: none; }
@@ -722,6 +730,8 @@ html.dark #stock-search .ss-minute-scope select { border-color: rgba(245, 239, 2
 html.dark #stock-search .ss-chart::after { border-top-color: rgba(245, 239, 224, 0.16) !important; }
 html.dark #stock-search .ss-price-study-label .ss-ichimoku-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #stock-search .ss-volume-study-label > span,
+html.dark #stock-search .ss-volume-study-label > b { background: rgba(26, 26, 26, .72) !important; }
 html.dark #stock-search .ss-volume-study-label em,
 html.dark #stock-search .ss-volume-study-label .ss-volume-amount-label { color: rgba(245, 239, 224, 0.58) !important; }
 html.dark #stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #fbbf24 !important; }

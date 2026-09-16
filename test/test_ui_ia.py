@@ -1553,6 +1553,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("volumeLegend.dataset.fitBudget === String(budget)", source)
         self.assertIn("#stock-search .ss-volume-study-label.is-compact em { display: none; }", style)
         self.assertIn(".ss-volume-study-label.is-minimal .ss-volume-ma-value { display: none; }", style)
+        # 막대·축 숫자 위에 얹히는 글자라 RSI 라벨과 같은 반투명 배경을 깐다.
+        self.assertIn("#stock-search .ss-volume-study-label > span,", style)
+        self.assertIn("background: rgba(255, 255, 255, .72);", style)
+        # RSI 70/30 기준선의 축 라벨 칩은 가격축 눈금(70.0·30.0)과 겹쳐 꺼 둔다.
+        self.assertNotIn("lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '70'", source)
+        self.assertIn("axisLabelVisible: false, title: '30'", source)
 
     def test_market_temperature_follow_ups_square_design_briefing_and_delta_date(self):
         """2026-09-16 후속.
