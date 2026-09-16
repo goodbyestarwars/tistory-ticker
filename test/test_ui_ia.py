@@ -1537,6 +1537,36 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
+    def test_footer_links_the_beginner_study_pages(self):
+        """2026-09-17 요청("맨 하단에 주식 이야기 하나 만들어서, 기초 공부 사이트").
+
+        legal/처럼 GitHub Pages 정적 페이지(learn/*.html)로 두고 푸터에서 연결한다.
+        """
+        shell = self.read("js/skin-shell.js")
+        self.assertIn("learn/index.html\">주식 이야기</a>", shell)
+        # 순서 비교는 footerLinks 블록 안에서만 한다 - 위쪽 주석에도 같은 낱말이 나온다.
+        block = shell[shell.index("'<nav class=\"site-footer-links\">'"):shell.index("site-footer-viewmode")]
+        self.assertLess(block.index("오픈소스 라이선스"), block.index("주식 이야기"))
+        self.assertLess(block.index("주식 이야기"), block.index("문의하기"))
+
+        chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html"]
+        index = self.read("learn/index.html")
+        for chapter in chapters:
+            with self.subTest(chapter=chapter):
+                page = self.read("learn/" + chapter)
+                self.assertIn("learn/" + chapter, index)              # 차례에서 연결
+                self.assertIn("css/legal.css", page)                  # 정적 페이지 공통 스타일
+                self.assertIn("learn/index.html", page)               # 차례로 돌아가기
+                self.assertIn('<div class="learn-nav">', page)
+        # 마지막 장은 투자 권유가 아님을 분명히 적는다.
+        self.assertIn("투자 권유가 아닙니다", self.read("learn/risk.html"))
+        self.assertIn("투자 권유가 아닙니다", index)
+        # 사용법에서도 입문 경로를 안내한다.
+        self.assertIn("learn/index.html", self.read("legal/guide.html"))
+        style = self.read("css/legal.css")
+        for token in (".learn-toc", ".learn-note", ".learn-table", ".learn-nav"):
+            self.assertIn(token, style)
+
     def test_stock_search_volume_legend_never_covers_the_rsi_pane(self):
         """2026-09-16 민원("차트 안 글자가 겹쳐 보임").
 
