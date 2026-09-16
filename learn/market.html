@@ -31,32 +31,49 @@
   </ul>
   <p>같은 뉴스에도 두 시장이 다르게 반응합니다. "오늘 시장 좋다"는 말도 어느 쪽인지 구분해서 들어야 합니다.</p>
 
-  <h2>하루 거래 시간표</h2>
-  <p>기본은 <b>정규장</b>입니다. 평일 오전 9시에 열어 오후 3시 30분에 닫습니다. 주말과 공휴일은 쉽니다. 대체거래소(NXT)가 생기면서 아침 8시부터 저녁 8시까지 거래가 이어지는 구간이 생겼습니다.</p>
+  <h2>하루 거래 시간표 — 이제 저녁 8시까지</h2>
+  <p>예전에는 "주식은 오후 3시 30분이면 끝"이었습니다. 지금은 다릅니다. 대체거래소(NXT)가 생기고 <b>애프터마켓</b>이 도입되면서, 아침 8시부터 저녁 8시까지 거래할 수 있는 시간이 크게 늘었습니다.</p>
 
   <figure class="learn-fig">
-    <svg viewBox="0 0 420 150" role="img" aria-label="하루 거래 시간표: 오전 8시 프리마켓, 오전 9시부터 오후 3시 30분 정규장, 이후 시간외 거래가 저녁 8시까지">
-      <rect class="fig-soft" x="0" y="40" width="80" height="36" />
-      <rect class="fig-up" x="80" y="34" width="180" height="48" />
-      <rect class="fig-soft" x="260" y="40" width="160" height="36" />
-      <text class="fig-on-accent" x="88" y="63">정규장 09:00 ~ 15:30</text>
-      <text class="fig-sub" x="4" y="63">프리마켓</text>
-      <text class="fig-sub" x="268" y="63">시간외 거래</text>
-      <path class="fig-line" d="M0 92 L420 92" />
-      <path class="fig-line" d="M0 88 L0 96 M80 88 L80 96 M260 88 L260 96 M420 88 L420 96" />
-      <text class="fig-sub" x="0" y="110">08:00</text>
-      <text class="fig-sub" x="62" y="110">09:00</text>
-      <text class="fig-sub" x="238" y="110">15:30</text>
-      <text class="fig-sub" x="390" y="110">20:00</text>
-      <text class="fig-sub" x="0" y="134">사람이 가장 많은 시간(붉은 칸)에 원하는 가격에 체결될 확률이 높다</text>
-      <text class="fig-sub" x="0" y="20">← 하루 →</text>
+    <svg viewBox="0 0 420 216" role="img" aria-label="하루 거래 시간표: 08시 프리마켓, 09시부터 15시 30분 정규장, 15시 30분 이후 시간외 종가, 16시부터 20시까지 애프터마켓">
+      <text class="fig-sub" x="0" y="14">하루 전체 거래 가능 시간 (08:00 ~ 20:00)</text>
+      <rect class="fig-soft2" x="0" y="24" width="60" height="40" />
+      <rect class="fig-up" x="60" y="18" width="195" height="52" />
+      <rect class="fig-soft2" x="255" y="24" width="30" height="40" />
+      <rect class="fig-soft" x="285" y="24" width="135" height="40" />
+      <text class="fig-on-accent" x="76" y="49">정규장 09:00 ~ 15:30</text>
+      <text class="fig-sub" x="4" y="49">프리마켓</text>
+      <text class="fig-sub" x="292" y="49">애프터마켓</text>
+      <path class="fig-line" d="M0 78 L420 78" />
+      <path class="fig-line" d="M0 74 L0 82 M60 74 L60 82 M255 74 L255 82 M285 74 L285 82 M420 74 L420 82" />
+      <text class="fig-sub" x="0" y="96">08:00</text>
+      <text class="fig-sub" x="44" y="96">09:00</text>
+      <text class="fig-sub" x="222" y="96">15:30</text>
+      <text class="fig-sub" x="420" y="96" text-anchor="end">20:00</text>
+      <text class="fig-sub" x="0" y="126">① 프리마켓 08:00~ · 정규장 전 미리 거래</text>
+      <text class="fig-sub" x="0" y="146">② 정규장 09:00~15:30 · 사람이 가장 많고 가격도 가장 촘촘</text>
+      <text class="fig-sub" x="0" y="166">③ 시간외 종가 15:30~16:00 · 그날 종가 그대로 사고팜</text>
+      <text class="fig-sub" x="0" y="186">④ 애프터마켓 16:00~20:00 · 저녁에도 거래 가능, 참여자는 적음</text>
+      <text class="fig-sub" x="0" y="206">투자자 확정 집계도 정규장은 15:35, 애프터마켓 포함은 20:05에 나온다</text>
     </svg>
-    <figcaption>붉은 칸이 정규장입니다. 양옆 회색 칸은 참여자가 적어 가격이 듬성듬성 움직입니다.</figcaption>
+    <figcaption>붉은 칸이 정규장입니다. 앞뒤 칸은 거래는 되지만 사람이 적어 가격이 듬성듬성 움직입니다.</figcaption>
   </figure>
 
+  <h3>시간대별 성격</h3>
+  <table class="learn-table">
+    <thead><tr><th>시간</th><th>이름</th><th>특징</th></tr></thead>
+    <tbody>
+      <tr><td>08:00 ~ 09:00</td><td>프리마켓</td><td>밤사이 미국장·뉴스 반영. 호가가 얇아 가격이 튄다</td></tr>
+      <tr><td>09:00 ~ 15:30</td><td>정규장</td><td>거래량 대부분이 여기. 원하는 가격에 체결될 확률이 가장 높다</td></tr>
+      <tr><td>15:30 ~ 16:00</td><td>시간외 종가</td><td>그날 종가로만 사고판다. 가격 흥정이 없다</td></tr>
+      <tr><td>16:00 ~ 20:00</td><td>애프터마켓</td><td>저녁에도 거래. 장 마감 후 나온 공시·실적에 먼저 반응한다</td></tr>
+    </tbody>
+  </table>
+
   <div class="learn-note">
-    <b>초보자는 정규장 안에서</b> 시간외 거래는 사람이 적어 "사고 싶은데 파는 사람이 없는" 상황이 자주 생깁니다. 밤사이 큰 뉴스가 터졌을 때 급하게 대응하려다 이상한 가격에 체결되는 일도 흔합니다. 익숙해지기 전에는 오전 9시~오후 3시 30분 안에서만 거래하세요.
+    <b>애프터마켓이 생겨서 달라진 것</b> 예전에는 장 마감 뒤 악재가 나오면 다음 날 아침까지 아무것도 못 하고 기다려야 했습니다. 이제는 저녁에도 대응할 수 있습니다. 다만 <b>참여자가 적다</b>는 성질은 그대로라, 같은 악재에도 정규장보다 훨씬 크게 출렁입니다. 저녁에 급하게 시장가로 던지면 손해가 커지기 쉽습니다(2장).
   </div>
+  <p>초보자라면 <b>정규장 안에서 거래하는 습관</b>을 먼저 들이세요. 프리마켓·애프터마켓은 "급한 일이 생겼을 때 쓸 수 있는 비상구"로 알아 두면 충분합니다. 참고로 거래 가능 시간과 방식은 증권사·거래소에 따라 다를 수 있으니, 실제로 쓰기 전에 본인 증권사 화면에서 확인하세요.</p>
 
   <h2>하루에 움직일 수 있는 한계, ±30%</h2>
   <p>국내 주식은 하루에 오르내릴 수 있는 폭이 정해져 있습니다. 전날 종가에서 <b>위로 30%, 아래로 30%</b>까지입니다. 위쪽 끝이 상한가, 아래쪽 끝이 하한가입니다.</p>
@@ -89,7 +106,7 @@
   <p>가격이 너무 빠르게 움직이면 거래소가 <b>잠깐 멈춰 세웁니다.</b> 놀이공원 놀이기구가 흔들림이 심하면 안전장치가 걸리는 것과 같습니다. 크기 순서로 세 가지가 있습니다.</p>
 
   <figure class="learn-fig">
-    <svg viewBox="0 0 420 216" role="img" aria-label="VI는 개별 종목, 사이드카는 프로그램 매매, 서킷브레이커는 시장 전체를 멈추는 안전장치">
+    <svg viewBox="0 0 420 222" role="img" aria-label="VI는 개별 종목, 사이드카는 프로그램 매매, 서킷브레이커는 시장 전체를 멈추는 안전장치">
       <rect class="fig-soft" x="0" y="16" width="420" height="56" />
       <text class="fig-ink" x="16" y="38">① VI · 개별 종목 브레이크</text>
       <text class="fig-sub" x="16" y="58">한 종목이 갑자기 튀거나 빠질 때 · 짧게 단일가로 전환</text>
@@ -128,7 +145,7 @@
   <p>주식 가격은 아무 숫자나 될 수 없습니다. 가격대마다 <b>한 칸의 크기(호가단위)</b>가 정해져 있습니다. 3만 원짜리 주식은 10원 단위로만 움직이므로 30,005원이라는 가격은 아예 존재하지 않습니다.</p>
 
   <figure class="learn-fig">
-    <svg viewBox="0 0 420 180" role="img" aria-label="가격이 비쌀수록 호가단위가 커지는 계단 그림">
+    <svg viewBox="0 0 420 188" role="img" aria-label="가격이 비쌀수록 호가단위가 커지는 계단 그림">
       <rect class="fig-soft" x="0" y="150" width="60" height="18" />
       <rect class="fig-soft" x="60" y="132" width="60" height="36" />
       <rect class="fig-soft" x="120" y="114" width="60" height="54" />

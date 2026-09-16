@@ -1576,6 +1576,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("선물과 옵션", self.read("learn/money.html"))
         self.assertIn("콜옵션", self.read("learn/money.html"))
         self.assertIn("상승장·하락장·박스권", self.read("learn/risk.html"))
+        # 2026-09-17(4차) 보강: 애프터마켓 도입 반영, 캔들·차트 모양 이름, 배당.
+        market = self.read("learn/market.html")
+        for token in ("애프터마켓", "프리마켓", "시간외 종가", "16:00 ~ 20:00"):
+            self.assertIn(token, market)
+        chart = self.read("learn/chart.html")
+        for token in ("샛별형", "저녁별형", "망치형", "유성형", "도지", "저점상승형", "에너지"):
+            self.assertIn(token, chart)
+        company = self.read("learn/company.html")
+        for token in ("배당주는 왜 사나", "배당수익률", "배당락", "두 마리 토끼"):
+            self.assertIn(token, company)
         # 마지막 장은 투자 권유가 아님을 분명히 적는다.
         self.assertIn("투자 권유가 아닙니다", self.read("learn/risk.html"))
         self.assertIn("투자 권유가 아닙니다", index)
