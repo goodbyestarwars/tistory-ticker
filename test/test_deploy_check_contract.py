@@ -35,7 +35,8 @@ class DeployRestartScopeTest(unittest.TestCase):
         self.assertLess(gate, self.block.index('cp "$APP_DIR"/scripts/cloud-vm/*.py "$APP_DIR"/'))
         self.assertLess(gate, self.block.index('sudo systemctl restart kiwoom-api'))
         self.assertLess(gate, self.block.index('post_deploy_check.py" --base-only'))
-        self.assertIn('if [ "$DEPLOY_OCCURRED" = "1" ]; then\n    run_search_scan_refresh_after_deploy', self.block)
+        self.assertIn('if [ "$DEPLOY_OCCURRED" = "1" ] && [ "$POST_CHECK" = "ok" ]; then'
+                      '\n    run_search_scan_refresh_after_deploy', self.block)
         # 재시작하지 않았으면 뉴스 모멘텀의 배포 후 검증도 돌지 않게 기존 인자를 그대로 쓴다.
         self.assertIn('run_news_momentum_if_due "$DEPLOY_OCCURRED" || true', self.script)
 
@@ -48,6 +49,25 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 기록하지 않으면 5분마다 같은 커밋을 다시 판정한다.
         record = self.block.index('printf \'%s\\n\' "$REMOTE" > "$DEPLOYED_FILE"')
         self.assertGreater(record, self.block.index('else\n    echo "VM 실행 경로'))
+
+    def test_failed_post_check_still_records_the_sha(self):
+        """2026-09-17: 점검 실패로 SHA가 안 남아 5분마다 재배포·재시작이 반복됐다.
+
+        기동이 41~64초 걸리는데 점검 대기가 25초여서 배포마다 결정적으로 실패했고,
+        set -e가 SHA 기록 앞에서 스크립트를 끊었다. 배포는 실제로 끝났으므로 기록한다.
+        """
+        check = self.block.index('post_deploy_check.py" --base-only')
+        record = self.block.index('> "$DEPLOYED_FILE"')
+        self.assertLess(check, record)
+        self.assertIn('POST_CHECK=failed', self.block)
+        # 점검 줄이 그대로 set -e에 걸려 스크립트를 끊으면 안 된다.
+        self.assertNotIn('\n    "$PYTHON" "$APP_DIR/post_deploy_check.py" --base-only\n', self.block)
+        self.assertIn('post_check=$POST_CHECK', self.block)
+
+    def test_rescan_is_skipped_when_post_check_failed(self):
+        """API가 성치 않은 상태에서 1코어 VM에 재스캔을 얹지 않는다."""
+        self.assertIn('[ "$POST_CHECK" = "ok" ]', self.block)
+        self.assertIn('POST_CHECK=skipped', self.script)
 
     def test_background_jobs_do_not_inherit_the_deploy_lock(self):
         """백그라운드 작업이 fd 200을 물려받으면 본체가 끝나도 배포 잠금이 안 풀린다(2026-09-14).

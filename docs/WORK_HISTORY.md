@@ -1,5 +1,34 @@
 # 9Pay 주요 작업이력
 
+**2026-09-17(2차) 배포 재시작 루프 차단 - /health 대기를 마감 시각 기준으로**
+
+증상: 06:00 KST 확인 시 `kiwoom-api`가 5분마다 재시작되고 있었다. `/health`의 `deployedCommitShort`는
+`5a9ab14`(#470)에 멈춘 채 #471·#472가 반영된 것으로 보이지 않았다.
+
+원인: 배포는 실제로 성공했다(VM 저장소 HEAD·복사본 모두 최신). 그 뒤 `post_deploy_check.py`의
+`/health` 대기가 "5초 타임아웃 20회"였는데, 연결이 즉시 거부되는 구간에서는 이게 실측 25초밖에
+되지 않았다. 반면 FastAPI가 포트를 여는 데 걸리는 시간은 저널 실측 **41초·41초·64초**(Started →
+Uvicorn running)였다. 그래서 점검이 결정적으로 실패했고, `deploy_check.sh`의 `set -e`가 SHA 기록
+**앞에서** 스크립트를 끊어 `.last_deployed_sha`가 갱신되지 않았다. 5분 뒤 같은 커밋을 새 배포로
+판정해 다시 복사·재시작 - 루프.
+
+수정:
+- `post_deploy_check.py`: 횟수가 아니라 마감 시각으로 기다린다(`wait_for_health`, 기본 180초,
+  `KIWOOM_POST_DEPLOY_HEALTH_WAIT`로 조정). 실패 시 대기 시간과 마지막 사유를 메시지에 남겨
+  기동 지연과 실제 장애를 구분할 수 있게 했다.
+- `deploy_check.sh`: 회귀 점검이 실패해도 SHA는 기록한다(재시작은 이미 끝났으므로 배포는 일어난
+  사실이다). 결과는 `deploy.log`에 `post_check=ok|failed|skipped`로 남기고 저널에 경고를 찍는다.
+  점검이 실패한 회차에서는 배포 후 재스캔을 돌리지 않는다(API가 성치 않은데 1코어 VM에 무거운
+  작업을 얹지 않는다).
+
+운영 조치: 루프를 즉시 끊기 위해 VM의 `.last_deployed_sha`를 현재 HEAD(`6eb3ab57`)로 기록했다.
+직후 회차에서 `ensure_scan_timers_current`가 정상 진행돼 **#471의 `kiwoom-scanreaper.timer`가
+설치**됐다(다음 실행 22:30 UTC = 07:30 KST).
+
+검증: `test/test_post_deploy_health_wait.py` 신설(64초 기동을 기다리는지, 마감에서 사유와 함께
+포기하는지), `test/test_deploy_check_contract.py`에 SHA 기록·재스캔 차단 계약 추가.
+전체 1,047 passed(fcntl 수집 오류 6건은 리눅스 전용 모듈로 기존과 동일).
+
 **2026-09-17 야간 장애(스왑 고갈) 복구와 재발 방지 - 스캔 겹침 제거 + 07:30 마감 타이머**
 
 장애: 09-17 00:04~05:45 KST VM이 사실상 멈췄다. 외부에서 `/health`가 40초 타임아웃, nginx 504,
