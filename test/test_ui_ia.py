@@ -1545,9 +1545,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         shell = self.read("js/skin-shell.js")
         self.assertIn("learn/index.html\">주식 이야기</a>", shell)
         # 순서 비교는 footerLinks 블록 안에서만 한다 - 위쪽 주석에도 같은 낱말이 나온다.
-        block = shell[shell.index("'<nav class=\"site-footer-links\">'"):shell.index("site-footer-viewmode")]
-        self.assertLess(block.index("오픈소스 라이선스"), block.index("주식 이야기"))
-        self.assertLess(block.index("주식 이야기"), block.index("문의하기"))
+        first_row = shell[shell.index("'<nav class=\"site-footer-links\">'"):shell.index("site-footer-viewmode")]
+        self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
+        # 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자"):
+        # 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면 + 카피라이트, 주식 이야기는 둘째 줄.
+        self.assertNotIn("주식 이야기", first_row)
+        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
+        self.assertIn("주식 이야기", learn_row[:500])
+        # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
+        style = self.read("style.css")
+        self.assertIn(".copyright { order: 1; }", style)
+        self.assertIn(".site-footer-learn { order: 2; flex: 0 0 100%; }", style)
 
         chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
                     "money.html", "macro.html"]
@@ -1587,8 +1595,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in ("배당주는 왜 사나", "배당수익률", "배당락", "두 마리 토끼"):
             self.assertIn(token, company)
         # 마지막 장은 투자 권유가 아님을 분명히 적는다.
-        self.assertIn("투자 권유가 아닙니다", self.read("learn/risk.html"))
-        self.assertIn("투자 권유가 아닙니다", index)
+        # 2026-09-17 지시로 문체를 평서체로 바꿨다("존댓말 금지"). 어미까지 고정하면 문체를
+        # 손볼 때마다 여기가 깨지므로 두 어미를 모두 받는다("아닙니다"에는 "아니"가 연속으로
+        # 들어 있지 않다 - 아·닙·니·다).
+        for page in ("learn/risk.html", "learn/index.html"):
+            with self.subTest(page=page):
+                self.assertRegex(self.read(page), r"투자 권유가 아(니다|닙니다)")
         # 사용법에서도 입문 경로를 안내한다.
         self.assertIn("learn/index.html", self.read("legal/guide.html"))
         style = self.read("css/legal.css")
