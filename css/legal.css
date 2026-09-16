@@ -107,17 +107,27 @@ a { color: #d24f45; }
 }
 .learn-nav a { text-decoration: none; }
 
-/* 그림(인라인 SVG). viewBox 폭을 420 안팎으로 잡아 폰에서 글자가 실제 12~13px로 읽히게 한다. */
+/* 그림(인라인 SVG). viewBox 폭은 420 안팎으로 잡는다.
+   2026-09-17 실측: 375px 폰에서 그림이 실제로 그려지는 폭은 본문단 343px이라 배율이 0.82였고,
+   그래서 fig-sub 11.5px가 화면에서는 9.4px로 읽혔다(본문 14px의 3분의 2). "12~13px로 읽힌다"고
+   적혀 있던 옛 주석은 틀린 값이었다. 두 가지로 고친다.
+     (1) 폰에서는 그림만 본문 여백 바깥까지 쓴다(아래 480px 미디어쿼리) - 배율 0.82 -> 0.89
+     (2) 글자 자체도 조금 키운다(sub 11.5 -> 12.5, ink 13 -> 14)
+   결과 실효 크기: 주 라벨 12.5px, 보조 라벨 11.2px. 글자를 크게 올리면 22개 그림에서 잘림과
+   겹침이 새로 생기므로, 폭을 먼저 벌고 글자는 8%만 올린다. */
 .learn-fig { margin: 0 0 20px; }
-.learn-fig svg { display: block; width: 100%; height: auto; }
-.learn-fig figcaption { margin-top: 6px; color: #6b7280; font-size: 12.5px; line-height: 1.6; }
+/* PC에서 본문단(680px)을 꽉 채우면 420 단위로 그린 그림이 1.62배로 확대돼 라벨이 20px까지
+   커진다(본문 15px). 포스터처럼 보여서 480px로 묶는다 - 배율 1.14, 라벨 14~16px로 본문과
+   같은 눈높이가 된다(2026-09-17 실측). 폰에서는 폭이 이보다 좁아 영향이 없다. */
+.learn-fig svg { display: block; width: 100%; max-width: 480px; height: auto; margin: 0 auto; }
+.learn-fig figcaption { margin-top: 6px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 .learn-fig text { font-family: 'MaruBuri', Georgia, serif; }
 .fig-soft { fill: #f4f2e8; }
 .fig-soft2 { fill: #e8e5d6; }
 .fig-line { fill: none; stroke: #cfcbbb; stroke-width: 1; }
 .fig-dash { fill: none; stroke: #cfcbbb; stroke-width: 1; stroke-dasharray: 4 4; }
-.fig-ink { fill: #1f2937; font-size: 13px; font-weight: 700; }
-.fig-sub { fill: #6b7280; font-size: 11.5px; }
+.fig-ink { fill: #1f2937; font-size: 14px; font-weight: 700; }
+.fig-sub { fill: #6b7280; font-size: 12.5px; }
 .fig-up { fill: #d24f45; }
 .fig-down { fill: #1261c4; }
 .fig-up-line { fill: none; stroke: #d24f45; stroke-width: 2; }
@@ -126,7 +136,7 @@ a { color: #d24f45; }
 .fig-white { fill: #fdfdf7; }
 .fig-marker { fill: #1f2937; }
 /* 색 채운 막대 위에 얹는 글자 - 라이트/다크 모두 대비를 유지한다. */
-.fig-on-accent { fill: #fdfdf7; font-size: 13px; font-weight: 700; }
+.fig-on-accent { fill: #fdfdf7; font-size: 14px; font-weight: 700; }
 
 @media (prefers-color-scheme: dark) {
   body { background: #0f1420; color: #d3dbe8; }
@@ -156,6 +166,12 @@ a { color: #d24f45; }
 }
 
 @media (max-width: 480px) {
-  body { padding: 32px 16px 60px; font-size: 14px; }
+  /* 본문 14px는 세리프(마루부리)로 읽기엔 작았다 - 본문은 PC와 같은 15px로 둔다. */
+  body { padding: 32px 16px 60px; font-size: 15px; }
   h1 { font-size: 20px; }
+  /* 그림만 좌우 여백(16px)을 일부 넘어 더 넓게 쓴다 - 같은 글자가 더 크게 읽힌다.
+     끝까지(-16px) 빼면 x=0에서 시작하는 라벨이 화면 모서리에 붙어 본문보다 답답해 보여서
+     6px은 남긴다. 배율 0.82 -> 0.86, 보조 라벨 실효 9.4px -> 10.8px. */
+  .learn-fig { margin-left: -10px; margin-right: -10px; }
+  .learn-fig figcaption { padding: 0 10px; }
 }
