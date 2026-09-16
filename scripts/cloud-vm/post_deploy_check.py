@@ -12,6 +12,11 @@ import urllib.request
 
 
 BASE_URL = os.environ.get('KIWOOM_LOCAL_API_URL', 'http://127.0.0.1:8080')
+# 2026-09-17: FastAPI가 재시작 후 포트를 여는 데 실측 41~64초가 걸린다(저널 Started ->
+# Uvicorn running). 예전 코드는 5초 타임아웃 20회로 기다렸는데, 연결이 즉시 거부되는
+# 구간에서는 이게 실측 25초밖에 안 돼 배포마다 점검이 실패했다. 횟수가 아니라 마감
+# 시각으로 기다린다.
+HEALTH_WAIT_SECONDS = float(os.environ.get('KIWOOM_POST_DEPLOY_HEALTH_WAIT', '180'))
 
 
 def load_dotenv():
@@ -38,6 +43,31 @@ def fetch_json(path, api_token=None, timeout=30):
         return json.loads(response.read().decode('utf-8'))
 
 
+def wait_for_health(wait_seconds=None):
+    """재시작한 FastAPI가 /health를 정상 응답할 때까지 마감 시각까지 기다린다.
+
+    기다린 초를 돌려준다. 마감까지 못 받으면 마지막 실패 사유를 담아 예외를 낸다 -
+    "왜 실패했는지"가 로그에 남아야 다음 사람이 기동 지연과 실제 장애를 구분한다.
+    """
+    limit = HEALTH_WAIT_SECONDS if wait_seconds is None else wait_seconds
+    started = time.monotonic()
+    last_error = '응답 없음'
+    while True:
+        try:
+            health = fetch_json('/health', timeout=5)
+            status = (health.get('data') or {}).get('status')
+            if status == 'ok':
+                return time.monotonic() - started
+            last_error = 'status=%s' % status
+        except Exception as error:  # 연결 거부 = 아직 포트가 안 열린 것
+            last_error = '%s: %s' % (type(error).__name__, error)
+        waited = time.monotonic() - started
+        if waited >= limit:
+            raise RuntimeError('/health 회귀 점검 실패(%.0f초 대기, 마지막 사유: %s)'
+                               % (waited, last_error))
+        time.sleep(2)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description='배포 후 API 회귀 점검')
     mode = parser.add_mutually_exclusive_group()
@@ -53,16 +83,8 @@ def main(argv=None):
         if not token:
             raise SystemExit('API_TOKEN이 없어 인증 시세 API 회귀 점검을 수행할 수 없습니다.')
 
-        health = None
-        for _ in range(20):
-            try:
-                health = fetch_json('/health', timeout=5)
-                break
-            except Exception:
-                time.sleep(1)
-        if not health or health.get('data', {}).get('status') != 'ok':
-            raise RuntimeError('/health 회귀 점검 실패')
-        print('PASS /health')
+        waited = wait_for_health()
+        print('PASS /health (%.0f초 만에 응답)' % waited)
 
         ohlc = fetch_json('/ohlc/005930', token, timeout=60)
         if not isinstance(ohlc.get('data'), list) or not ohlc['data']:

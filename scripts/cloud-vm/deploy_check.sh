@@ -303,6 +303,7 @@ LAST_DEPLOYED="$(cat "$DEPLOYED_FILE" 2>/dev/null || echo "")"
 git fetch origin master -q
 REMOTE="$(git rev-parse origin/master)"
 DEPLOY_OCCURRED=0
+POST_CHECK=skipped
 
 # 2026-09-14 사용자 승인: master가 바뀔 때마다(js/css만 바뀐 커밋도) FastAPI를 재시작하고
 # 검색 스캔을 다시 돌려, 연속 머지 때 WebSocket이 끊기고 1코어 VM이 무거워졌다(같은 날 라이브
@@ -336,7 +337,16 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
     # 이 sudo는 기존 FastAPI 배포가 원래 사용하던 재시작 권한이다.
     # 모멘텀 배치 자체에는 sudo나 별도 systemd 유닛이 없다.
     sudo systemctl restart kiwoom-api
-    "$PYTHON" "$APP_DIR/post_deploy_check.py" --base-only
+    # 2026-09-17: 회귀 점검이 실패해도 여기서 중단하지 않는다. set -e로 끊기면 아래 SHA
+    # 기록까지 못 가고, 5분 뒤 같은 커밋을 다시 배포하며 FastAPI를 또 재시작한다. 실제로
+    # 이날 아침 기동 시간(41~64초)이 점검 대기(25초)를 넘기면서 이 재시작 루프가 돌았다.
+    # 배포는 일어난 대로 기록하고, 점검 결과는 deploy.log와 저널에 남겨 눈에 띄게 한다.
+    if "$PYTHON" "$APP_DIR/post_deploy_check.py" --base-only; then
+      POST_CHECK=ok
+    else
+      POST_CHECK=failed
+      echo "배포 후 회귀 점검 실패 - 재배포 루프를 막기 위해 SHA는 기록한다(재시작은 이미 끝났다)" >&2
+    fi
     DEPLOY_OCCURRED=1
   else
     echo "VM 실행 경로($VM_WATCH_PATHS) 변경 없음 - FastAPI 재시작·검색 스캔 재실행 생략"
@@ -344,8 +354,10 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
 
   # 재시작을 건너뛰어도 SHA는 기록한다 - 안 하면 5분마다 같은 커밋을 다시 판정한다.
   printf '%s\n' "$REMOTE" > "$DEPLOYED_FILE"
-  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) deployed $REMOTE vm_code_changed=$VM_CODE_CHANGED" >> "$APP_DIR/deploy.log"
-  if [ "$DEPLOY_OCCURRED" = "1" ]; then
+  echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) deployed $REMOTE vm_code_changed=$VM_CODE_CHANGED post_check=$POST_CHECK" >> "$APP_DIR/deploy.log"
+  # 점검이 실패했으면 재스캔은 돌리지 않는다 - API가 성치 않은 상태에서 1코어 VM에 무거운
+  # 작업을 얹지 않는다. 다음 커밋이 배포될 때 정상 경로로 다시 돈다.
+  if [ "$DEPLOY_OCCURRED" = "1" ] && [ "$POST_CHECK" = "ok" ]; then
     run_search_scan_refresh_after_deploy
   fi
 fi
