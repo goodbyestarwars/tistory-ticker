@@ -47,7 +47,7 @@
 | Tistory 스킨 수정 | `ARCHITECTURE.md`, `docs/ARCHITECTURE_SPEC.md`, `docs/SKIN_HTML_PENDING.md`, `skin.html` | 자동 배포 여부, 관리자 수동 반영 필요성, 이미 밀려 있는 항목 |
 | GAS 수정 | `ARCHITECTURE.md`, `docs/API_OPERATION_SPEC.md`, `docs/GAS_AUTO_DEPLOY.md`, `gas/ticker-proxy.gs` | Script Properties, VM 인증, Actions/clasp 배포 |
 | VM 배포·장애 점검 | `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, `docs/DB_SPEC.md`, `scripts/cloud-vm/deploy_check.sh` | health, 로그, DB 유지보수, 자동 배포·롤백 |
-| 작업 이력·인수인계 | `docs/WORK_HISTORY.md`, 최신 `docs/HANDOFF_*.md` | 최근 변경, 검증 결과, 남은 수동 반영·주의사항 |
+| 작업 이력·인수인계 | `docs/WORK_HISTORY.md`, **가장 최근** `docs/HANDOFF_*.md` 1개 | 최근 변경, 검증 결과, 남은 수동 반영·주의사항 |
 | 인증·외부 데이터 설정 | 해당 `docs/*_SETUP.md`, `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md` | 키 저장 위치, 공급자 폴백, 운영 도메인 제한 |
 
 최신 작업을 이어받을 때는 `docs/HANDOFF_*.md`를 먼저 확인하되, 그것을 현재 코드의
@@ -56,6 +56,20 @@
 
 문서 전체 목록과 목적은 `docs/README.md`를 기준으로 한다. 중요 변경은
 `docs/WORK_HISTORY.md`에도 기록한다.
+
+## 문서 읽기 비용 규칙
+
+문서가 늘어나는 것 자체는 비용이 아니다(자동으로 읽히는 건 `CLAUDE.md`와 memory뿐이다).
+비용은 **한 파일을 통째로 읽을 때** 생긴다. 2026-09-17 기준 작업이력이 736KB까지 자라
+한 번 통독하면 약 20만 토큰을 썼다.
+
+- `docs/WORK_HISTORY.md`는 **통독하지 않는다.** 기본은 위에서부터 필요한 만큼(예: `head -80`),
+  특정 사건을 찾을 때는 `grep`으로 해당 항목만 본다. 최신순 정렬이라 위쪽이 최근이다.
+- 지난 기록은 `docs/history/`에 있다. **`grep`으로만** 본다. 통독 대상이 아니다.
+- 작업이력 항목이 50건을 넘으면 오래된 쪽을 `docs/history/WORK_HISTORY_<시작일>_<종료일>.md`로
+  옮긴다. 내용은 지우지 않고 그대로 옮긴다.
+- 인수인계서는 **가장 최근 1개만** 읽는다. 과거본은 필요할 때만 `grep`으로 본다.
+- 스펙 문서(`docs/*_SPEC.md`, `API_REFERENCE.md`)도 관련 구간만 읽는다.
 
 ## 작업별 Skill
 
