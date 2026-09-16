@@ -2092,8 +2092,10 @@
       rsiSeries.setData(bars.map(function (bar, index) {
         return rsiValues[index] == null ? null : { time: bar.date, value: rsiValues[index] };
       }).filter(Boolean));
-      rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '70' });
-      rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: '30' });
+      // 2026-09-16 민원("차트 안 글자가 겹쳐 보임"): 축 라벨 칩('70'·'30')이 가격축 눈금(70.0·30.0)
+      // 바로 옆에 겹쳐 찍혀 같은 숫자가 두 번 보였다. 점선은 그대로 두고 중복 칩만 끈다.
+      rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+      rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
       // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
       // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널
       // 자체를 없애고 거래량·RSI 2개만 남긴다.
