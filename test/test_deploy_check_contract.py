@@ -107,7 +107,8 @@ class DeployRestartScopeTest(unittest.TestCase):
         """설치 스크립트의 시각만 바꾸면 VM 유닛은 예전 시각 그대로였다(2026-09-14 스캔 시각 이동)."""
         start = self.script.index('ensure_scan_timers_current() {')
         body = self.script[start:self.script.index('\n}\n', start)]
-        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper; do', body)
+        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch '
+                      'scanreaper volumebreakout; do', body)
         self.assertIn('sha256sum "$setup_script"', body)
         self.assertIn('sudo systemctl restart "kiwoom-${name}.timer"', body)
         # Persistent=true 타이머가 재시작 직후 "놓친 실행"을 한꺼번에 몰아 돌지 않게 stamp를 먼저 맞춘다.
@@ -116,8 +117,10 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 성공했을 때만 해시 마커를 남겨 실패하면 다음 회차가 다시 시도한다.
         self.assertLess(body.index('sudo systemctl restart'), body.index('> "$marker"'))
         self.assertIn('ensure_scan_timers_current || true', self.script)
+        # volumebreakout: 2026-09-17 추가. ensure_volume_breakout_timer는 유닛이 없을 때만 설치해서
+        # 이미 깔린 VM에는 설치 스크립트 변경(09:05 관측 타이머)이 닿지 않았다.
         for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch',
-                     'scanreaper'):
+                     'scanreaper', 'volumebreakout'):
             setup = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_%s_timer.sh' % name)
             with open(setup, encoding='utf-8') as handle:
                 self.assertIn('kiwoom-%s.timer' % name, handle.read(), setup)

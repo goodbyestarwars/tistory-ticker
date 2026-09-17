@@ -11,7 +11,16 @@
 #
 # 2026-09-04: 이 스크립트를 사람이 직접 돌릴 필요는 없다. deploy_check.sh가 5분마다
 # 돌면서 /etc/systemd/system/kiwoom-volumebreakout.timer가 없으면 여기를 실행한다
-# (ensure_volume_breakout_timer). 배포가 VM에 닿고 5분 안에 자동 등록된다.
+# (ensure_volume_breakout_timer). 배포가 VM에 닿고 5분 안에 자동 등록된다. 2026-09-17부터는
+# ensure_scan_timers_current 목록에도 들어 있어, 이 파일이 바뀌면 해시 비교로 다시 설치된다.
+#
+# 2026-09-17 사용자 지적("10분에 잡으니까 너무 떠서 가는데, 5분으로 줄일까?").
+# 그날 09:10 실측 16종목의 등락률 중앙값이 +9.34%였다. 다만 조건이 "누적 >= 전일 하루치"라
+# 시각만 5분으로 당기면 문턱이 두 배로 세져 잡히는 종목이 급감한다(그날 절반이 1.0~1.3배
+# 턱걸이였다). 앞당기려면 문턱도 같이 낮춰야 하는데 그 값을 모른다.
+# 그래서 09:05에 **관측 전용** 패스(--probe)를 하나 더 둔다. 화면에 쓰는 결과는 건드리지
+# 않고 "5분 시점에 전일 대비 몇 배였나"만 기록한다. 09:10 본 스캔이 자기 결과와 맞춰
+# "5분 시점 X배면 10분에 1.0배가 되더라"를 로그로 남기므로, 며칠이면 X가 나온다.
 #
 # 수동으로 돌려야 할 때는 GCP VM 안에서만 된다 - Cloud Shell에는 이 리포 체크아웃도
 # ~/kiwoom-api도 없어서 "No such file or directory"가 난다.
@@ -41,9 +50,32 @@ Persistent=false
 WantedBy=timers.target
 TIMEREOF
 
+sudo tee /etc/systemd/system/kiwoom-volumebreakout-probe.service > /dev/null << PROBESERVICEEOF
+[Unit]
+Description=Kiwoom volume breakout PROBE (records 5-minute ratios only, writes no screen data)
+
+[Service]
+Type=oneshot
+User=$USER
+WorkingDirectory=$HOME_DIR
+ExecStart=$HOME_DIR/venv/bin/python $HOME_DIR/volume_breakout_scan.py --probe
+PROBESERVICEEOF
+
+sudo tee /etc/systemd/system/kiwoom-volumebreakout-probe.timer > /dev/null << PROBETIMEREOF
+[Unit]
+Description=Run volume breakout probe on weekdays at 09:05 KST (00:05 UTC)
+
+[Timer]
+OnCalendar=Mon..Fri *-*-* 00:05:00
+Persistent=false
+
+[Install]
+WantedBy=timers.target
+PROBETIMEREOF
+
 sudo systemctl daemon-reload
-sudo systemctl enable kiwoom-volumebreakout.timer
-sudo systemctl start kiwoom-volumebreakout.timer
+sudo systemctl enable kiwoom-volumebreakout.timer kiwoom-volumebreakout-probe.timer
+sudo systemctl restart kiwoom-volumebreakout.timer kiwoom-volumebreakout-probe.timer
 
 echo "=== timer 등록 결과 ==="
-systemctl list-timers kiwoom-volumebreakout.timer --no-pager
+systemctl list-timers kiwoom-volumebreakout.timer kiwoom-volumebreakout-probe.timer --no-pager
