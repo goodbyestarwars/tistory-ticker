@@ -626,8 +626,17 @@ def get_kiwoom_token():
 
 
 def _upstream_http_exception(message, exc):
-    """외부 공급자 오류는 서버 로그에만 남기고 안전한 메시지로 변환한다."""
-    logging.getLogger('main').warning('%s: %s', message, type(exc).__name__)
+    """외부 공급자 오류는 서버 로그에만 남기고 안전한 메시지로 변환한다.
+
+    2026-09-17: 예전에는 예외 '이름'만 남겨서, 미국 호가가 502를 뱉는데도 로그만 보고는
+    왜인지 알 수 없었다(실제 원인은 키움 토큰 8005였다). 사유와 원인 예외까지 남긴다 -
+    공급자 오류 메시지에는 키가 들어가지 않는다.
+    """
+    cause = getattr(exc, '__cause__', None)
+    detail = '%s: %s' % (type(exc).__name__, exc)
+    if cause is not None:
+        detail += ' <- %s: %s' % (type(cause).__name__, str(cause)[:300])
+    logging.getLogger('main').warning('%s: %s', message, detail)
     return HTTPException(status_code=502, detail=message)
 
 

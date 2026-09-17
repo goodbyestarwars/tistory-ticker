@@ -128,6 +128,8 @@ class KiwoomWsHub:
                  idle_close_sec=IDLE_CLOSE_SEC, parse_fn=None):
         self._url = url or KIWOOM_WS_URL
         self._token_fn = token_fn or (lambda: kiwoom_client.get_token(appkey, secretkey))
+        # 이번 세션이 LOGIN에 쓴 토큰. 거부당하면 이 값만 캐시에서 지운다.
+        self._login_token = None
         self._connect_fn = connect_fn or _default_connect
         if max_codes is None:
             max_codes = _env_int('KIWOOM_WS_MAX_CODES', DEFAULT_MAX_CODES)
@@ -316,6 +318,7 @@ class KiwoomWsHub:
 
     async def _session(self):
         token = await asyncio.to_thread(self._token_fn)
+        self._login_token = token
         async with self._connect_fn(self._url) as ws:
             with self._lock:
                 self._state.update(connected=True, loggedIn=False, connectedAt=time.time(), framesThisSession=0)
@@ -417,6 +420,10 @@ class KiwoomWsHub:
             return False
         if trnm == 'LOGIN':
             if not _return_ok(message):
+                # 2026-09-17: 죽은 토큰으로 로그인하면 6초마다 영원히 같은 실패를 반복했다.
+                # 거부당한 토큰을 캐시에서 지워야 다음 재접속이 새 토큰을 받는다.
+                if kiwoom_client.is_token_invalid(message):
+                    kiwoom_client.invalidate_token(getattr(self, '_login_token', None))
                 raise RuntimeError('키움 실시간 로그인 실패: %s' % str(message.get('return_msg') or '')[:120])
             with self._lock:
                 self._state['loggedIn'] = True
