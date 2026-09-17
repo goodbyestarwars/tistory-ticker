@@ -2231,7 +2231,13 @@ document.documentElement.classList.add('skin-ready');
         setDropdown(false);
         return;
       }
-      button.textContent = 'VI ' + activeCount + '건';
+      // 2026-09-17 사용자 지시: 발동 중이 0건인데 "VI 0건"이라고만 떠 있으면 왜 보이는지
+      // 헷갈린다. 이 배지는 오늘 발동 이력이 있을 때만 뜨므로, 0건이면 "VI 이력"으로 적어
+      // "지금 걸린 건 없지만 오늘 있었다"는 뜻이 드러나게 한다. 눌러서 목록을 보는 건 같다.
+      button.textContent = activeCount > 0 ? ('VI ' + activeCount + '건') : 'VI 이력';
+      button.title = activeCount > 0
+        ? ('지금 변동성완화장치(VI)가 걸린 종목 ' + activeCount + '건')
+        : '지금 걸린 종목 없음 · 오늘 발동했던 이력';
       button.hidden = false;
       dropdown.innerHTML = '<div class="home-cb-dropdown-head">변동성완화장치(VI) · 최근 발동 순</div><ul>'
         + list.map(function (row) {

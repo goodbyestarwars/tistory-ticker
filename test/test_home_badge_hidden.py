@@ -48,6 +48,22 @@ class BadgeHiddenTest(unittest.TestCase):
         """VI 배지도 같은 방식으로 숨기므로 함께 막아 둔다."""
         self.assertIn('.home-card-heading .home-cb-vi[hidden]', self.css)
 
+    def test_vi_label_says_history_when_nothing_is_active(self):
+        """2026-09-17 사용자 지시: "VI 0건"은 왜 떠 있는지 헷갈린다 -> "VI 이력".
+
+        이 배지는 오늘 발동 이력이 있을 때만 뜬다(list가 비면 숨긴다). 그래서 0건일 때의
+        뜻은 "지금은 없지만 오늘 있었다"이고, 그게 문구로 드러나야 한다.
+        """
+        self.assertIn("activeCount > 0 ? ('VI ' + activeCount + '건') : 'VI 이력'", self.js)
+
+    def test_vi_badge_still_hides_when_there_is_no_history(self):
+        """이력 자체가 없으면 배지를 아예 숨긴다(0건 표시로 남기지 않는다)."""
+        start = self.js.index('function renderVi(')
+        body = self.js[start:self.js.index('function tick(', start)]
+        self.assertIn('if (!list.length) {', body)
+        gate = body.index('if (!list.length) {')
+        self.assertIn('button.hidden = true;', body[gate:body.index('}', gate) + 40])
+
     def test_markup_starts_hidden(self):
         """처음 그릴 때부터 숨어 있어야 데이터가 오기 전에 빈 배지가 안 보인다."""
         self.assertIn('class="home-cb-sidecar" data-home-cb-sidecar hidden', self.js)
