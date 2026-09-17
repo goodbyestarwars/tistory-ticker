@@ -91,15 +91,16 @@ class SymbolListTest(unittest.TestCase):
     def test_rows_are_compact_tuples(self):
         """e2-micro(1GB)라 19,222행을 dict로 들면 7.1MB, 튜플이면 1.4MB다(VM 실측)."""
         rows, _ = self._call()
-        self.assertEqual(rows[0], ('A', '애질런트 테크놀로지스', 'NY', False))
+        self.assertEqual(rows[0][:4], ('A', '애질런트 테크놀로지스', 'NY', False))
+        self.assertIn('agilenttechnologiesinc', rows[0][4])
         for entry in rows:
             self.assertIsInstance(entry, tuple)
-            self.assertEqual(len(entry), 4)
+            self.assertEqual(len(entry), 5)
 
     def test_korean_names_survive(self):
         """야후 폴백으로는 못 얻던 것. 이게 이 호출을 살리는 이유다."""
         rows, _ = self._call()
-        self.assertIn(('NVDA', '엔비디아', 'ND', False), rows)
+        self.assertIn(('NVDA', '엔비디아', 'ND', False), [entry[:4] for entry in rows])
 
     def test_exchange_hints_are_recorded(self):
         self._call()
@@ -170,6 +171,62 @@ class RankingTest(unittest.TestCase):
     def test_an_etf_query_is_not_penalised_into_uselessness(self):
         """ETF만 걸리는 검색이면 ETF가 1등이어야 한다 - 감점은 동점일 때만 작동한다."""
         self.assertEqual(self._search('일드맥스')[0]['symbol'], 'NVDY')
+
+
+class NameMatchingTest(unittest.TestCase):
+    """영문 회사명과 띄어쓰기.
+
+    #489·#490 배포 뒤 라이브에서 확인하니 둘 다 안 됐다:
+      - "apple"/"tesla"/"microsoft" -> 없음. 키움 목록은 한글명(`stk_nm`)을 주는데 영문명
+        (`stk_enm`)을 안 들고 왔다. 야후로 폴백하던 시절보다 오히려 못해진 것이다.
+      - "일라이릴리" -> 없음. 목록의 한글명은 "일라이 릴리"로 띄어져 있다.
+    """
+
+    ROWS = [
+        {'stex_tp': 'ND', 'stk_cd': 'AAPL', 'stk_nm': '애플', 'stk_enm': 'APPLE INC', 'isEtf': 'N'},
+        {'stex_tp': 'NY', 'stk_cd': 'LLY', 'stk_nm': '일라이 릴리', 'stk_enm': 'ELI LILLY & CO', 'isEtf': 'N'},
+        {'stex_tp': 'ND', 'stk_cd': 'MSFT', 'stk_nm': '마이크로소프트', 'stk_enm': 'MICROSOFT CORP', 'isEtf': 'N'},
+        {'stex_tp': 'NY', 'stk_cd': 'AAAC', 'stk_nm': 'COLUMBIA AAA CLO', 'stk_enm': 'COLUMBIA AAA CLO', 'isEtf': 'Y'},
+    ]
+
+    def setUp(self):
+        us_stocks._symbol_cache.update(saved_at=0, rows=[])
+        us_stocks._symbol_exchange.clear()
+        us_stocks._search_cache.clear()
+
+    def _search(self, query, limit=5):
+        response = {'return_code': 0, 'list': self.ROWS}
+        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'),                 mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+            return [row['symbol'] for row in us_stocks.search(query, limit=limit)]
+
+    def test_english_company_name_finds_the_stock(self):
+        self.assertEqual(self._search('apple')[0], 'AAPL')
+        self.assertEqual(self._search('microsoft')[0], 'MSFT')
+
+    def test_english_name_is_case_insensitive(self):
+        self.assertEqual(self._search('APPLE')[0], 'AAPL')
+
+    def test_spacing_in_the_korean_name_is_ignored(self):
+        """목록은 "일라이 릴리", 사용자는 "일라이릴리"라고 친다."""
+        self.assertEqual(self._search('일라이릴리')[0], 'LLY')
+        self.assertEqual(self._search('일라이 릴리')[0], 'LLY')
+
+    def test_alias_and_raw_text_are_both_tried(self):
+        """별칭표는 영문명으로 옮겨 준다. 원문도 같이 찾아야 한글명에 걸린다."""
+        self.assertEqual(self._search('릴리')[0], 'LLY')
+
+    def test_duplicate_english_name_is_not_stored_twice(self):
+        """한글명 자리에 영문이 그대로 들어온 행은 같은 문자열을 두 번 들지 않는다."""
+        response = {'return_code': 0, 'list': self.ROWS}
+        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'),                 mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+            rows = us_stocks._records_from_kiwoom_symbol_list()
+        by_symbol = {entry[0]: entry for entry in rows}
+        self.assertEqual(by_symbol['AAAC'][4], 'aaac|columbiaaaaclo|',
+                         '한글명과 같으면 영문명 자리는 비운다')
+        self.assertEqual(by_symbol['AAPL'][4], 'aapl|애플|appleinc')
+
+    def test_korean_query_still_wins_over_english(self):
+        self.assertEqual(self._search('애플')[0], 'AAPL')
 
 
 class SearchThroughRealResponseTest(unittest.TestCase):
