@@ -45,7 +45,8 @@ _cache_lock = threading.Lock()
 _search_cache = {}
 _quote_cache = {}
 _chart_cache = {}
-_symbol_cache = {'saved_at': 0, 'rows': []}
+_symbol_cache = {'saved_at': 0, 'rows': [], 'loading': False}
+_symbol_cache_lock = threading.Lock()
 _symbol_exchange = {}
 
 
@@ -172,6 +173,63 @@ def _search_entry(symbol, name, exchange, is_etf, english=''):
             symbol.casefold() + '|' + folded_name + '|' + folded_english)
 
 
+def _load_symbol_list():
+    """키움에서 종목 목록을 받아 캐시에 채운다. 백그라운드 스레드에서만 부른다.
+
+    VM 실측으로 토큰 1.7초 + 전송·파싱 10.3초 + 정규화 2.5초 = 약 13초가 든다(11.2MB).
+    이걸 사용자 요청 안에서 하면 6시간마다 누군가 한 명이 검색 한 번에 15초를 기다린다
+    (실측 21.5초). 그래서 적재는 스레드에서 하고, 요청은 있는 것만 쓰거나 폴백으로 내려간다.
+    """
+    rows = _records_from_kiwoom_symbol_list()
+    _symbol_cache.update(saved_at=time.time(), rows=rows)
+    return rows
+
+
+def _start_symbol_list_refresh():
+    """이미 받는 중이 아니면 백그라운드 적재를 시작한다. 요청을 막지 않는다."""
+    if not _has_kiwoom():
+        return False
+    with _symbol_cache_lock:
+        if _symbol_cache['loading']:
+            return False
+        _symbol_cache['loading'] = True
+
+    def run():
+        try:
+            rows = _load_symbol_list()
+            logger.info('미국 종목 목록 %d행 적재 완료', len(rows))
+        except Exception as exc:
+            logger.warning('미국 종목 목록 적재 실패: %s', exc)
+        finally:
+            with _symbol_cache_lock:
+                _symbol_cache['loading'] = False
+
+    threading.Thread(target=run, name='us-symbol-list', daemon=True).start()
+    return True
+
+
+def warm_symbol_list():
+    """서버가 뜰 때 한 번 불러 첫 검색이 13초를 물지 않게 한다."""
+    return _start_symbol_list_refresh()
+
+
+def symbol_list_for_search():
+    """검색이 쓸 목록. **절대 기다리지 않는다.**
+
+    - 신선하면 그대로 준다.
+    - 오래됐으면 지금 것을 주고 뒤에서 새로 받는다(상장·폐지는 하루 단위라 몇 분 낡아도 된다).
+    - 아예 없으면 적재를 시작하고 예외를 낸다 -> search()가 야후·티커 폴백으로 내려간다.
+      13초쯤 뒤 두 번째 검색부터는 제대로 나온다.
+    """
+    rows = _symbol_cache['rows']
+    if rows and time.time() - _symbol_cache['saved_at'] < SYMBOL_LIST_TTL_SEC:
+        return rows
+    _start_symbol_list_refresh()
+    if rows:
+        return rows
+    raise UsStockUnavailable('미국 종목 목록을 아직 받지 못했습니다.')
+
+
 def _records_from_kiwoom_symbol_list():
     """키움 미국주식 종목 목록을 (symbol, name, exchange) 튜플로 돌려준다.
 
@@ -198,9 +256,6 @@ def _records_from_kiwoom_symbol_list():
 
     같은 종목이 응답에 두 번 들어 있는 경우가 있어(실측) 심볼 기준으로 한 번만 담는다.
     """
-    now = time.time()
-    if _symbol_cache['rows'] and now - _symbol_cache['saved_at'] < SYMBOL_LIST_TTL_SEC:
-        return _symbol_cache['rows']
     if not _has_kiwoom():
         raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
     token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
@@ -223,7 +278,6 @@ def _records_from_kiwoom_symbol_list():
         broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange.strip().upper()
         if broker_exchange in ('ND', 'NY', 'NA'):
             _symbol_exchange[symbol] = broker_exchange
-    _symbol_cache.update(saved_at=now, rows=normalized)
     return normalized
 
 
@@ -273,7 +327,7 @@ def search(query, limit=8):
     if cached is not None:
         return cached
     try:
-        rows = _records_from_kiwoom_symbol_list()
+        rows = symbol_list_for_search()
         # 별칭은 한글 질의를 영문 회사명으로 옮겨 주는 표다. 키움 목록은 한글명을 주므로
         # 별칭만 쓰면 오히려 못 찾는다("일라이릴리" -> "lilly" -> 한글명에 없음).
         # 원문과 별칭을 둘 다 찾아보고, 더 잘 맞는 쪽으로 순위를 매긴다.

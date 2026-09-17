@@ -19,6 +19,7 @@
 
 import os
 import sys
+import time
 import unittest
 from unittest import mock
 
@@ -50,6 +51,30 @@ NVDA_FAMILY = [
 REAL_RESPONSE = {'return_code': 0, 'return_msg': '정상적으로 처리되었습니다', 'list': REAL_ROWS}
 
 
+def load(payload):
+    """응답을 목록으로 바꾼다(네트워크 없이)."""
+    with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
+            mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=payload):
+        return us_stocks._records_from_kiwoom_symbol_list()
+
+
+def seed(payload):
+    """검색 테스트용으로 목록 캐시를 채운다.
+
+    실제 적재는 백그라운드 스레드에서 돈다(사용자 요청이 13초를 물지 않게). 검색 자체를 보는
+    테스트는 그 타이밍이 아니라 목록이 있을 때의 동작이 관심사라 직접 앉힌다.
+    """
+    rows = load(payload)
+    us_stocks._symbol_cache.update(saved_at=time.time(), rows=rows, loading=False)
+    return rows
+
+
+def reset():
+    us_stocks._symbol_cache.update(saved_at=0, rows=[], loading=False)
+    us_stocks._symbol_exchange.clear()
+    us_stocks._search_cache.clear()
+
+
 class RecordsUnwrapTest(unittest.TestCase):
     def test_list_wrapper_is_unwrapped(self):
         """URI를 고쳐도 이게 빠져 있으면 목록은 계속 비어 있다."""
@@ -65,9 +90,7 @@ class RecordsUnwrapTest(unittest.TestCase):
 
 class SymbolListTest(unittest.TestCase):
     def setUp(self):
-        us_stocks._symbol_cache.update(saved_at=0, rows=[])
-        us_stocks._symbol_exchange.clear()
-        us_stocks._search_cache.clear()
+        reset()
         os.environ.setdefault('KIWOOM_APPKEY', 'test-key')
         os.environ.setdefault('KIWOOM_SECRETKEY', 'test-secret')
 
@@ -111,11 +134,42 @@ class SymbolListTest(unittest.TestCase):
         with self.assertRaises(us_stocks.UsStockUnavailable):
             self._call({'return_code': 1, 'return_msg': '잘못된 요청입니다[1504:...]'})
 
-    def test_second_call_within_the_ttl_reuses_the_cache(self):
+    def test_a_fresh_cache_is_served_without_refetching(self):
         """19,222행(원시 11.2MB)을 10분마다 다시 받지 않는다."""
-        self._call()
-        _, calls = self._call()
-        self.assertEqual(calls, [], '캐시가 살아 있으면 다시 부르지 않는다')
+        seed(REAL_RESPONSE)
+        started = []
+        with mock.patch.object(us_stocks, '_start_symbol_list_refresh',
+                               side_effect=lambda: started.append(1)):
+            rows = us_stocks.symbol_list_for_search()
+        self.assertTrue(rows)
+        self.assertEqual(started, [], '신선하면 다시 받지 않는다')
+
+    def test_a_stale_cache_is_served_immediately_while_refreshing(self):
+        """오래됐다고 사용자를 13초 기다리게 하지 않는다. 지금 것을 주고 뒤에서 받는다."""
+        rows = seed(REAL_RESPONSE)
+        us_stocks._symbol_cache['saved_at'] = time.time() - us_stocks.SYMBOL_LIST_TTL_SEC - 1
+        started = []
+        with mock.patch.object(us_stocks, '_start_symbol_list_refresh',
+                               side_effect=lambda: started.append(1)):
+            served = us_stocks.symbol_list_for_search()
+        self.assertEqual(served, rows, '낡아도 있는 것을 먼저 준다')
+        self.assertEqual(started, [1], '뒤에서 새로 받기 시작한다')
+
+    def test_an_empty_cache_raises_so_search_falls_back(self):
+        reset()
+        started = []
+        with mock.patch.object(us_stocks, '_start_symbol_list_refresh',
+                               side_effect=lambda: started.append(1)):
+            with self.assertRaises(us_stocks.UsStockUnavailable):
+                us_stocks.symbol_list_for_search()
+        self.assertEqual(started, [1], '없으면 적재를 시작은 해 둔다')
+
+    def test_refresh_is_not_started_twice_at_once(self):
+        """11.2MB를 동시에 두 번 받으면 e2-micro가 흔들린다."""
+        reset()
+        us_stocks._symbol_cache['loading'] = True
+        self.addCleanup(lambda: us_stocks._symbol_cache.update(loading=False))
+        self.assertFalse(us_stocks._start_symbol_list_refresh())
 
     def test_symbol_list_ttl_is_longer_than_the_search_result_ttl(self):
         self.assertGreater(us_stocks.SYMBOL_LIST_TTL_SEC, us_stocks.SEARCH_TTL_SEC)
@@ -131,15 +185,11 @@ class RankingTest(unittest.TestCase):
     """
 
     def setUp(self):
-        us_stocks._symbol_cache.update(saved_at=0, rows=[])
-        us_stocks._symbol_exchange.clear()
-        us_stocks._search_cache.clear()
+        reset()
+        seed({'return_code': 0, 'list': NVDA_FAMILY})
 
     def _search(self, query, limit=8):
-        response = {'return_code': 0, 'list': NVDA_FAMILY}
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
-                mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
-            return us_stocks.search(query, limit=limit)
+        return us_stocks.search(query, limit=limit)
 
     def test_the_real_stock_comes_first(self):
         rows = self._search('엔비디아')
@@ -190,14 +240,11 @@ class NameMatchingTest(unittest.TestCase):
     ]
 
     def setUp(self):
-        us_stocks._symbol_cache.update(saved_at=0, rows=[])
-        us_stocks._symbol_exchange.clear()
-        us_stocks._search_cache.clear()
+        reset()
+        seed({'return_code': 0, 'list': self.ROWS})
 
     def _search(self, query, limit=5):
-        response = {'return_code': 0, 'list': self.ROWS}
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'),                 mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
-            return [row['symbol'] for row in us_stocks.search(query, limit=limit)]
+        return [row['symbol'] for row in us_stocks.search(query, limit=limit)]
 
     def test_english_company_name_finds_the_stock(self):
         self.assertEqual(self._search('apple')[0], 'AAPL')
@@ -217,9 +264,7 @@ class NameMatchingTest(unittest.TestCase):
 
     def test_duplicate_english_name_is_not_stored_twice(self):
         """한글명 자리에 영문이 그대로 들어온 행은 같은 문자열을 두 번 들지 않는다."""
-        response = {'return_code': 0, 'list': self.ROWS}
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'),                 mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
-            rows = us_stocks._records_from_kiwoom_symbol_list()
+        rows = load({'return_code': 0, 'list': self.ROWS})
         by_symbol = {entry[0]: entry for entry in rows}
         self.assertEqual(by_symbol['AAAC'][4], 'aaac|columbiaaaaclo|',
                          '한글명과 같으면 영문명 자리는 비운다')
@@ -233,23 +278,18 @@ class SearchThroughRealResponseTest(unittest.TestCase):
     """실제 응답 모양 그대로 search()까지 통과하는지."""
 
     def setUp(self):
-        us_stocks._symbol_cache.update(saved_at=0, rows=[])
-        us_stocks._symbol_exchange.clear()
-        us_stocks._search_cache.clear()
+        reset()
 
     def test_korean_query_finds_the_stock(self):
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
-                mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=REAL_RESPONSE):
-            rows = us_stocks.search('엔비디아')
+        seed(REAL_RESPONSE)
+        rows = us_stocks.search('엔비디아')
         self.assertEqual([row['symbol'] for row in rows], ['NVDA'])
         self.assertEqual(rows[0]['name'], '엔비디아')
         self.assertEqual(rows[0]['exchange'], 'ND')
 
     def test_broken_upstream_still_returns_a_typed_ticker(self):
-        """폴백은 그대로 둔다 - 키움이 죽어도 티커 직접 입력은 돼야 한다."""
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
-                mock.patch.object(us_stocks.kiwoom_client, 'call_tr',
-                                  return_value={'return_code': 1, 'return_msg': '잘못된 요청입니다'}):
+        """폴백은 그대로 둔다 - 목록이 아직 없어도 티커 직접 입력은 돼야 한다."""
+        with mock.patch.object(us_stocks, '_start_symbol_list_refresh', return_value=False):
             rows = us_stocks.search('TSLA')
         self.assertEqual([row['symbol'] for row in rows], ['TSLA'])
 

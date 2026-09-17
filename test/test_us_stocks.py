@@ -13,7 +13,7 @@ class UsStockTests(unittest.TestCase):
         us_stocks._search_cache.clear()
         us_stocks._quote_cache.clear()
         us_stocks._chart_cache.clear()
-        us_stocks._symbol_cache.update(saved_at=0, rows=[])
+        us_stocks._symbol_cache.update(saved_at=0, rows=[], loading=False)
         us_stocks._symbol_exchange.clear()
 
     def test_search_uses_kiwoom_symbol_list(self):
@@ -24,7 +24,7 @@ class UsStockTests(unittest.TestCase):
             us_stocks._search_entry('MSFT', 'Microsoft Corporation', 'ND', False, ''),
             us_stocks._search_entry('7203.T', 'Toyota', 'TSE', False, ''),
         ]
-        with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
+        with mock.patch.object(us_stocks, 'symbol_list_for_search', return_value=rows):
             rows = us_stocks.search('apple')
         self.assertEqual([row['symbol'] for row in rows], ['AAPL'])
         self.assertEqual(rows[0]['code'], 'US:AAPL')
@@ -33,7 +33,7 @@ class UsStockTests(unittest.TestCase):
 
     def test_search_supports_korean_alias_for_e_lilly(self):
         rows = [us_stocks._search_entry('LLY', '일라이 릴리', 'NY', False, 'ELI LILLY & CO')]
-        with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
+        with mock.patch.object(us_stocks, 'symbol_list_for_search', return_value=rows):
             result = us_stocks.search('일라이릴리')
         self.assertEqual([row['symbol'] for row in result], ['LLY'])
 
