@@ -148,6 +148,30 @@ def _exchange_code(exchange, broker):
     return {'NASDAQ': 'NAS', 'NMS': 'NAS', 'NYSE': 'NYS', 'NYQ': 'NYS', 'AMEX': 'AMS', 'ASE': 'AMS'}.get(text)
 
 
+def _fold(text):
+    """검색 비교용으로 문자열을 접는다 - 공백을 없애고 대소문자를 지운다.
+
+    키움 목록의 한글명은 띄어쓰기가 제각각이다("일라이 릴리"). 사용자가 "일라이릴리"라고 붙여
+    쳐도 찾아야 한다. `|`는 검색 문자열의 구분자로 쓰므로 이름에 들어 있으면 지운다.
+    """
+    return ''.join(str(text or '').replace('|', ' ').split()).casefold()
+
+
+def _search_entry(symbol, name, exchange, is_etf, english=''):
+    """검색 목록 한 줄을 만든다. 마지막 자리는 `심볼|한글명|영문명`을 접어 이어 붙인 것이다.
+
+    영문명 원문은 따로 들고 있지 않는다. 화면에 내보내는 이름은 `name`이고, 영문명은 검색에만
+    쓰이므로 접힌 사본 하나면 충분하다. 19,161행 기준 원문까지 들면 8.1MB, 접힌 것만 들면
+    6.7MB다(같은 크기의 합성 데이터로 실측). 한글명과 같은 문자열이면 아예 비운다.
+    """
+    folded_name = _fold(name)
+    folded_english = _fold(english)
+    if folded_english == folded_name:
+        folded_english = ''
+    return (symbol, name, exchange, is_etf,
+            symbol.casefold() + '|' + folded_name + '|' + folded_english)
+
+
 def _records_from_kiwoom_symbol_list():
     """키움 미국주식 종목 목록을 (symbol, name, exchange) 튜플로 돌려준다.
 
@@ -162,6 +186,15 @@ def _records_from_kiwoom_symbol_list():
     네 번째 자리의 ETF 여부(`isEtf`)는 순위 때문에 같이 들고 온다. "엔비디아"로 찾으면 원종목
     NVDA 하나에 레버리지·인버스 ETF가 12개 딸려 나온다(NVDL, NVDU, NVDQ, ...). 전부 이름에
     "엔비디아"가 들어가서, 이 신호가 없으면 심볼 알파벳순에 밀려 NVDA가 뒤로 간다.
+
+    다섯 번째 자리는 영문명(`stk_enm`)이다. 이게 없으면 "apple"·"tesla"로는 아무것도 못 찾는다.
+    한글명만 들고 있었더니 야후로 폴백하던 시절보다 오히려 못해졌다(실측). 한글명과 같은
+    문자열이면 빈 값으로 둬서 같은 문자열을 두 번 들고 있지 않는다.
+
+    여섯 번째 자리는 세 문자열을 접어 이어 붙인 검색용 문자열이다. 자동완성이 타이핑마다
+    질의를 날리는데, 그때마다 19,000행을 접으면 검색 한 번이 3.5배 비싸진다(실측 2.6ms ->
+    9.2ms). 한 번 접어서 들고 있으면 행마다 `in` 한 번으로 끝난다. 구분자 `|`는 이름 경계를
+    넘어가는 엉뚱한 일치를 막는다.
 
     같은 종목이 응답에 두 번 들어 있는 경우가 있어(실측) 심볼 기준으로 한 번만 담는다.
     """
@@ -183,9 +216,10 @@ def _records_from_kiwoom_symbol_list():
             continue
         seen.add(symbol)
         name = _first(row, 'stk_nm', 'stk_enm', 'name', 'short_name') or symbol
+        english = str(_first(row, 'stk_enm', 'english_name') or '')
         exchange = str(_first(row, 'stex_tp', 'exchange') or '')
         is_etf = str(_first(row, 'isEtf', 'is_etf') or '').strip().upper() == 'Y'
-        normalized.append((symbol, name, exchange, is_etf))
+        normalized.append(_search_entry(symbol, name, exchange, is_etf, english))
         broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange.strip().upper()
         if broker_exchange in ('ND', 'NY', 'NA'):
             _symbol_exchange[symbol] = broker_exchange
@@ -195,7 +229,7 @@ def _records_from_kiwoom_symbol_list():
 
 def _symbol_row(entry):
     """검색이 돌려줄 행 하나를 만든다. 목록 전체를 이 모양으로 들고 있지는 않는다."""
-    symbol, name, exchange, is_etf = entry
+    symbol, name, exchange, is_etf, _haystack = entry
     return {
         'market': 'us',
         'symbol': symbol,
@@ -212,16 +246,18 @@ def _search_rank(entry, needle):
     ETF 여부가 세 번째로 들어가는 게 핵심이다. "엔비디아"를 치면 원종목 NVDA와 그것을 2배·인버스로
     따라가는 ETF 12개가 똑같이 이름에 "엔비디아"를 달고 나온다. 이 자리가 없으면 알파벳순에 밀려
     NVC(코기 엔비디아 2X)가 NVDA보다 먼저 뜬다.
+
+    접기는 목록을 만들 때 이미 끝냈다. 여기서는 그 문자열을 다시 쪼개 쓴다.
     """
-    symbol, name, _exchange, is_etf = entry
-    lowered_symbol = symbol.casefold()
-    lowered_name = name.casefold()
+    symbol, name, _exchange, is_etf, haystack = entry
+    folded_symbol, folded_name, folded_english = haystack.split('|')
+    names = (folded_name, folded_english) if folded_english else (folded_name,)
     return (
-        0 if lowered_symbol == needle else 1,
-        0 if lowered_name == needle else 1,
+        0 if folded_symbol == needle else 1,
+        0 if needle in names else 1,
         1 if is_etf else 0,
-        0 if lowered_symbol.startswith(needle) else 1,
-        0 if lowered_name.startswith(needle) else 1,
+        0 if folded_symbol.startswith(needle) else 1,
+        0 if any(text.startswith(needle) for text in names) else 1,
         len(name),
         symbol,
     )
@@ -238,10 +274,16 @@ def search(query, limit=8):
         return cached
     try:
         rows = _records_from_kiwoom_symbol_list()
-        needle = US_SEARCH_ALIASES.get(text.casefold(), text.casefold())
+        # 별칭은 한글 질의를 영문 회사명으로 옮겨 주는 표다. 키움 목록은 한글명을 주므로
+        # 별칭만 쓰면 오히려 못 찾는다("일라이릴리" -> "lilly" -> 한글명에 없음).
+        # 원문과 별칭을 둘 다 찾아보고, 더 잘 맞는 쪽으로 순위를 매긴다.
+        needles = [_fold(text)]
+        alias = US_SEARCH_ALIASES.get(text.casefold())
+        if alias and _fold(alias) not in needles:
+            needles.append(_fold(alias))
         matched = [entry for entry in rows
-                   if needle in entry[0].casefold() or needle in entry[1].casefold()]
-        matched.sort(key=lambda entry: _search_rank(entry, needle))
+                   if any(needle in entry[4] for needle in needles)]
+        matched.sort(key=lambda entry: min(_search_rank(entry, needle) for needle in needles))
         result = [_symbol_row(entry) for entry in matched[:limit]]
     except Exception as exc:
         logger.warning('Kiwoom 미국주식 검색 실패: %s', exc)
