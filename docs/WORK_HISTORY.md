@@ -5,6 +5,42 @@
 > 이 파일도 통독하지 말고 위에서부터 필요한 만큼만 읽거나 `grep`으로 찾는다.
 
 
+**2026-09-18(2차) 스윙 추천 결과 채우기를 daily_scan에서 떼어내 별도 타이머로**
+
+서버 상태 점검 중 발견. `kiwoom-dailyscan.service`가 `activating(start-post)`으로 **3시간 36분**
+남아 있었다. 스캔 자체는 14:57:58에 끝나 캐시까지 저장했는데, `ExecStartPost`
+(`monitor_swing_recommendations.py`)가 공용 잠금(`.scan_serial.lock`)을 기다리는 중이었다.
+daily_scan이 잠금을 놓는 순간, 12:00부터 줄 서 있던 batch_scan이 먼저 가져가기 때문이다.
+
+그대로 두면 두 가지가 잘못된다.
+1. **07:30 마감 리퍼가 `activating` 유닛을 멈춘다**(그게 원래 할 일이다). 줄이 길었던 날은
+   후속 작업이 한 번도 못 돌고 죽는다. 실제로 이날 batch_scan은 펀더멘탈 구간에서 종목당
+   17초씩 쓰며 **10시간 넘게** 잠금을 쥘 상태였다 - 리퍼 전에 차례가 올 수 없었다.
+2. 유닛 상태만 봐서는 스캔 중인지 후속 대기 중인지 구분이 안 된다.
+
+잠금은 그대로 뒀다. 2026-09-17에 이 작업을 잠금 **밖에서** 돌렸다가 strategy_scan과 동시에
+실행되면서 둘이 각각 150~190MB를 써 1GB VM의 스왑 2GB를 전부 소진했고 API가 몇 시간 응답하지
+못했다. 그 교훈은 유효하다.
+
+수정:
+- `setup_swingmonitor_timer.sh` 신설 - `kiwoom-swingmonitor.service`/`.timer`.
+  `setup_dailyscan_timer.sh`의 `ExecStartPost`는 제거.
+- 실행 시각은 **22:45 UTC(07:45 KST) - 07:30 마감 리퍼 직후**로 잡았다. "줄이 빌 시각"을
+  달력으로 맞히는 건 못 믿는다(위 10시간 사례). 리퍼가 남은 스캔을 멈추고 잠금까지 정리한
+  직후가 하루 중 잠금이 비어 있음이 보장되는 유일한 순간이다. 개장(09:00 KST)과 거래량 돌파
+  관측(09:05 KST)보다 앞이라 장중 작업과도 안 겹친다.
+- 기다림에 상한을 뒀다: `flock -w 1800 -E 76` + `SuccessExitStatus=76`. 30분 안에 못 잡으면
+  그날은 건너뛰되 **failed로 남기지 않는다.** 이 작업은 여러 번 돌려도 안전하고
+  (`monitor_swing_recommendations.py` 독스트링: "safe to run repeatedly") `t10_return`이 비어
+  있는 행만 다시 본다. 하루 걸러도 다음 날 같은 행을 채운다 - 영영 못 도는 것보다 낫다.
+- `deploy_check.sh`의 타이머 재설치 목록과 리퍼의 정리 대상 목록에 `swingmonitor` 추가.
+  목록에서 빠지면 이미 깔린 VM에는 새 타이머가 영영 안 닿는다(volumebreakout 전례).
+
+검증: VM에서 `flock -w 1 -E 76` 동작 실측(잠금 바쁠 때 76, 한가할 때 0).
+`test/test_swing_monitor_timer.py` 13건 신설. `test_deploy_check_contract.py`의 타이머 목록
+검사를 문자열 통째 비교에서 포함 여부 검사로 바꿨다(타이머가 늘 때마다 걸리던 것).
+전체 1,164 passed.
+
 **2026-09-18(1차) 미국 종목목록 TR이 지원하지 않는 URI로 불리고 있었다 - 한 번도 성공한 적 없음**
 
 2026-09-17 토큰 장애(13차)를 추적하다 발견한 별개 문제.

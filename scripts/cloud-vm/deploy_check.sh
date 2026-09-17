@@ -154,7 +154,9 @@ ensure_scan_timers_current() {
   # volumebreakout: 2026-09-17 추가 - 아래 ensure_volume_breakout_timer는 유닛이 없을 때만
   # 설치해서, 이미 깔린 VM에는 설치 스크립트 변경(09:05 관측 타이머 신설)이 영영 안 닿았다.
   # 해시 비교로 다시 설치하는 이 목록에 넣어 둔다.
-  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout; do
+  # swingmonitor: 2026-09-18 신설 - dailyscan의 ExecStartPost에서 떼어낸 후속 작업
+  # (setup_swingmonitor_timer.sh 주석 참고).
+  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout swingmonitor; do
     setup_script="$APP_DIR/scripts/cloud-vm/setup_${name}_timer.sh"
     if [ ! -f "$setup_script" ]; then
       continue  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다

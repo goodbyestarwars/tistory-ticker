@@ -35,7 +35,7 @@ set -u
 LOCK="$SCAN_HOME/.scan_serial.lock"
 
 stopped=""
-for unit in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch; do
+for unit in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch swingmonitor; do
   # oneshot은 도는 동안 activating이다. active만 보면 영영 못 잡는다(위 주석 (1)).
   state=$(systemctl show -p ActiveState --value "kiwoom-$unit.service" 2>/dev/null || echo unknown)
   case "$state" in
