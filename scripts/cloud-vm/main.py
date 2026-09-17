@@ -2977,8 +2977,10 @@ def option_flow_endpoint():
     maturity = option_flow.nearest_option_maturity_yyyymm()
     data['maturity'] = maturity
     data['maturity_label'] = '%s년 %s월물' % (maturity[:4], maturity[4:])
-    data['source'] = 'KIS 옵션 전광판 REST + KIS WebSocket'
     data['websocket'] = option_flow.websocket_available()
+    # 2026-09-17: 옵션 실시간을 끄면(기본) WebSocket은 안 쓴다 - 출처 문구도 따라가야 한다.
+    data['source'] = ('KIS 옵션 전광판 REST + KIS WebSocket' if data['websocket']
+                      else 'KIS 옵션 전광판 REST (5분 스냅샷)')
     return envelope(data)
 
 
