@@ -194,8 +194,8 @@ def search(query, limit=8):
     return result
 
 
-def _market_state():
-    now = datetime.now(NY_TZ)
+def _market_state(now=None):
+    now = now or datetime.now(NY_TZ)
     if now.weekday() >= 5:
         return 'closed'
     current = now.time()
@@ -206,6 +206,32 @@ def _market_state():
     if datetime_time(16, 0) <= current < datetime_time(20, 0):
         return 'post'
     return 'closed'
+
+
+def _session_date(now=None):
+    """이 시세가 어느 날 장을 기준으로 한 값인지(뉴욕 날짜, YYYY-MM-DD).
+
+    2026-09-17 사용자 지적: "미국장 인텔 기준으로 아직도 4%대 상승인데? 이거 어제 기준 같은데?"
+    맞는 지적이었다. 한국 낮 12:40은 뉴욕 수요일 밤 23:40이라 정규장이 7시간 전에 끝나 있다.
+    그런데 화면은 조회 시각(`updated_at`)을 한국시간으로 보여줘서 방금 시세처럼 읽혔다.
+
+    KIS 해외주식 현재가상세(HHDFS76200200) 응답에는 **체결 날짜 필드가 없다**
+    (kis_client.fetch_overseas_price 주석의 필드 목록 참고). 그래서 뉴욕 시각으로 유추한다.
+    **미국 공휴일은 반영하지 못한다** - `_market_state()`가 이미 같은 한계를 갖고 있고,
+    여기서 더 정확한 척하지 않는다. 휴장일에는 직전 거래일 날짜가 아니라 그날 날짜가 나온다.
+
+    - 장이 열려 있거나(프리/정규/애프터) 애프터마켓이 끝난 뒤(20:00 ET~자정)는 오늘
+    - 자정~04:00 ET와 주말은 **직전 평일**(그 장이 마지막으로 끝난 날)
+    """
+    now = now or datetime.now(NY_TZ)
+    day = now.date()
+    if now.weekday() < 5 and now.time() >= datetime_time(4, 0):
+        return day.isoformat()
+    # 아직 프리마켓 전(새벽)이거나 주말 - 마지막으로 열렸던 평일로 되돌아간다.
+    while True:
+        day = day - timedelta(days=1)
+        if day.weekday() < 5:
+            return day.isoformat()
 
 
 def _normalize_quote(row, symbol, provider, exchange):
@@ -282,6 +308,9 @@ def _normalize_quote(row, symbol, provider, exchange):
         'week52_low': abs(week52_low) if week52_low is not None else None,
         'shares_outstanding': abs(shares) if shares is not None else None,
         'market_state': _market_state(),
+        # 2026-09-17: 조회 시각(updated_at)만으로는 "언제 기준 시세인지"를 알 수 없었다.
+        # 시세가 속한 장의 날짜를 같이 준다(_session_date 주석 참고 - 공휴일 미반영).
+        'session_date': _session_date(),
         'updated_at': int(time.time()),
         'source': provider,
         'provider': 'kiwoom' if provider.startswith('키움') else ('kis' if provider.startswith('한국투자') else 'yahoo'),
