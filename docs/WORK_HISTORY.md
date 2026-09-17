@@ -5,6 +5,52 @@
 > 이 파일도 통독하지 말고 위에서부터 필요한 만큼만 읽거나 `grep`으로 찾는다.
 
 
+**2026-09-18(1차) 미국 종목목록 TR이 지원하지 않는 URI로 불리고 있었다 - 한 번도 성공한 적 없음**
+
+2026-09-17 토큰 장애(13차)를 추적하다 발견한 별개 문제.
+
+`us_stocks._records_from_kiwoom_symbol_list()`가 `usa10099`를 `/api/us/mrkcond`로 보내고
+있었는데, **그 URI는 이 API ID를 받지 않는다.** 운영 VM 실측:
+
+```
+stex_tp='%'  -> return_code=1
+                잘못된 요청입니다[1504:해당 URI에서는 지원하는 API ID가 아닙니다.
+                API ID=usa10099, URI=/api/us/mrkcond]
+```
+
+겉으로는 멀쩡해 보였다. `search()`가 예외를 삼키고 야후로 폴백했기 때문이다. 대신 **한글
+종목명("엔비디아")과 거래소 코드를 잃었고**, 로그에는 매번 "종목 목록이 비어 있습니다"가
+남았다. 토큰과 무관하게 처음부터 그랬다.
+
+원인이 둘이었다. URI만 고쳐도 여전히 빈 목록이었을 것이다 - `_records()`의 포장 키 목록에
+`'list'`가 빠져 있었다(주석에는 list를 읽는다고 적혀 있었다). 키움 미국 응답은 `list`에 담겨 온다.
+
+올바른 경로를 실측으로 찾았다(추측하지 않고 6개 경로 x 3개 파라미터를 전부 찔러 봤다):
+```
+/api/us/stkinfo  {'stex_tp': '%'}  -> return_code=0, list 19,222행
+  {"stex_tp":"NY","stk_cd":"A","stk_nm":"애질런트 테크놀로지스",
+   "stk_enm":"AGILENT TECHNOLOGIES INC","mkgb":"NYSE","upgb":"바이오","isEtf":"N"}
+```
+
+수정(`scripts/cloud-vm/us_stocks.py`):
+- URI를 `/api/us/stkinfo`로. `_records()`가 `list` 포장을 읽도록.
+- **목록을 dict 대신 (symbol, name, exchange) 튜플로 보관.** VM이 e2-micro(1GB)고 이미
+  스와핑 중이라 실측했다 - 19,161행이 dict면 7.1MB, 튜플이면 1.4MB다. 검색이 실제로
+  돌려주는 건 최대 20행이라 그때만 dict로 만든다(`_symbol_row()`).
+- `SYMBOL_LIST_TTL_SEC = 6시간` 신설. 원시 응답이 11.2MB인데 검색결과 TTL(10분)에 묶여
+  10분마다 다시 받을 이유가 없다. 상장·폐지는 하루 단위다.
+- `_exchange_hint(symbol, broker)` + `_EXCHANGE_ALIASES` 신설. 목록이 살아나면
+  `_symbol_exchange`가 키움 코드(ND/NY/NA)로 19,000개 넘게 채워지는데, 그걸 KIS에 그대로
+  넘기면 **종목마다 없는 거래소를 한 번씩 찔러 보고 버린다.** 꺼내 쓸 때 각 증권사 코드로
+  옮긴다(ND<->NAS, NY<->NYS, NA<->AMS). 이 수정이 없었으면 목록을 살린 대가로 KIS 시세가
+  매번 한 번씩 느려졌을 것이다.
+
+폴백(야후)은 그대로 뒀다. 키움이 죽어도 티커 직접 입력은 돼야 한다.
+
+검증: 라이브에서 `/us-search?q=엔비디아` → `name: "엔비디아"`, `exchange: "ND"`.
+`test/test_us_symbol_list.py` 17건 신설, 기존 `test_us_stocks.py`의 목록 모킹을 튜플 계약으로
+갱신. 검색 비용 실측 5회 12.9ms(캐시 미스, 19,200행). 전체 1,136 passed.
+
 **2026-09-17(13차) 키움 토큰 수명을 잘못 계산해 반나절 동안 죽은 토큰을 쓰고 있었다**
 
 사용자 지적: "미장은 호가가 안나오네?"
