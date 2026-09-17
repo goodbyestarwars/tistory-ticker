@@ -5,6 +5,30 @@
 > 이 파일도 통독하지 말고 위에서부터 필요한 만큼만 읽거나 `grep`으로 찾는다.
 
 
+**2026-09-17(12차) 메인 헤더의 빈 빨간 알약 제거 - [hidden]이 CSS display에 지고 있었다**
+
+사용자 지적: "위치가 너무 부자연스러워. 빨간색은 뭐야."
+
+"국내 시장" 카드 헤더의 `VI 0건` 배지 왼쪽에 **글자 없는 빈 빨간 알약**이 떠 있었다.
+정체는 **사이드카 배지**다. CLAUDE.md대로 사이드카는 검증된 증권사 필드가 없어 `available=false`로
+늘 숨김 상태인데, **그 숨김이 2026-09-15 배지 신설 때부터 먹지 않고 있었다.**
+
+원인: `skin-main.js`는 `el.hidden = true`로 숨기는데, `[hidden] { display: none }`은 **브라우저
+기본 스타일**이라 `style.css`의 작성자 규칙 `display: inline-flex`에 진다. 라이브 실측으로
+확인했다 - `hidden: true`인데 `display: flex`, **폭 17px**로 실제 렌더되고 있었다
+(inline-flex가 flex item이 되며 flex로 계산됨).
+
+수정: `display`를 직접 거는 배지에 `[hidden]` 규칙을 같이 적는다.
+```css
+.home-card-heading .home-cb-sidecar[hidden],
+.home-card-heading .home-cb-vi[hidden] { display: none; }
+```
+VI 배지는 `display`를 안 걸어 원래 정상이었지만 같은 실수를 막으려고 함께 넣었다.
+
+검증: 라이브 페이지에 규칙을 주입해 `display: flex / 폭 17px` → `display: none / 폭 0` 확인.
+`test/test_home_badge_hidden.py` 5건 신설(JS가 여전히 hidden을 쓰는지, display를 거는 요소에
+[hidden] 규칙이 있는지, 마크업이 처음부터 hidden인지). 전체 1,098 passed.
+
 **2026-09-17(11차) 주식 이야기 보강 - 지지·저항, 응축과 폭발, 모멘텀, 펀더멘탈**
 
 사용자 요청: "차트 쪽이 약한 거 같아. 에너지가 왜 응축되고 폭발하는지, 각 차트별로 지지/저항인데
