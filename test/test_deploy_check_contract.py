@@ -107,8 +107,12 @@ class DeployRestartScopeTest(unittest.TestCase):
         """설치 스크립트의 시각만 바꾸면 VM 유닛은 예전 시각 그대로였다(2026-09-14 스캔 시각 이동)."""
         start = self.script.index('ensure_scan_timers_current() {')
         body = self.script[start:self.script.index('\n}\n', start)]
-        self.assertIn('for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch '
-                      'scanreaper volumebreakout; do', body)
+        # 이름을 한 줄로 못 박으면 타이머가 늘 때마다 여기서 걸린다. 목록에 무엇이 들어
+        # 있는지만 본다 - 빠진 타이머는 이미 깔린 VM에 영영 안 닿는 게 문제다.
+        listed = re.search(r'^  for name in (.+); do$', body, re.M).group(1).split()
+        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan',
+                     'week52', 'batch', 'scanreaper', 'volumebreakout', 'swingmonitor'):
+            self.assertIn(name, listed)
         self.assertIn('sha256sum "$setup_script"', body)
         self.assertIn('sudo systemctl restart "kiwoom-${name}.timer"', body)
         # Persistent=true 타이머가 재시작 직후 "놓친 실행"을 한꺼번에 몰아 돌지 않게 stamp를 먼저 맞춘다.
