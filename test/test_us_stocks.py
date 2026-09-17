@@ -20,9 +20,9 @@ class UsStockTests(unittest.TestCase):
         # 목록은 (symbol, name, exchange) 튜플로 들고 있다 - 19,222행을 dict로 쌓으면
         # e2-micro에서 7.1MB다. dict는 실제로 돌려주는 행에만 만든다.
         rows = [
-            ('AAPL', 'Apple Inc.', 'ND'),
-            ('MSFT', 'Microsoft Corporation', 'ND'),
-            ('7203.T', 'Toyota', 'TSE'),
+            ('AAPL', 'Apple Inc.', 'ND', False),
+            ('MSFT', 'Microsoft Corporation', 'ND', False),
+            ('7203.T', 'Toyota', 'TSE', False),
         ]
         with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
             rows = us_stocks.search('apple')
@@ -32,7 +32,7 @@ class UsStockTests(unittest.TestCase):
         self.assertEqual(rows[0]['market'], 'us')
 
     def test_search_supports_korean_alias_for_e_lilly(self):
-        rows = [('LLY', 'Eli Lilly and Company', 'NY')]
+        rows = [('LLY', 'Eli Lilly and Company', 'NY', False)]
         with mock.patch.object(us_stocks, '_records_from_kiwoom_symbol_list', return_value=rows):
             result = us_stocks.search('일라이릴리')
         self.assertEqual([row['symbol'] for row in result], ['LLY'])

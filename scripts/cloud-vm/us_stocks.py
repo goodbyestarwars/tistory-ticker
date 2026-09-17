@@ -158,6 +158,12 @@ def _records_from_kiwoom_symbol_list():
 
     dict 대신 튜플로 들고 있는 이유: VM이 e2-micro(1GB)다. 같은 목록을 dict로 쌓으면 7.1MB,
     튜플이면 1.4MB다(VM 실측). 검색이 실제로 돌려주는 건 최대 20행이라 그때만 dict로 만든다.
+
+    네 번째 자리의 ETF 여부(`isEtf`)는 순위 때문에 같이 들고 온다. "엔비디아"로 찾으면 원종목
+    NVDA 하나에 레버리지·인버스 ETF가 12개 딸려 나온다(NVDL, NVDU, NVDQ, ...). 전부 이름에
+    "엔비디아"가 들어가서, 이 신호가 없으면 심볼 알파벳순에 밀려 NVDA가 뒤로 간다.
+
+    같은 종목이 응답에 두 번 들어 있는 경우가 있어(실측) 심볼 기준으로 한 번만 담는다.
     """
     now = time.time()
     if _symbol_cache['rows'] and now - _symbol_cache['saved_at'] < SYMBOL_LIST_TTL_SEC:
@@ -170,13 +176,16 @@ def _records_from_kiwoom_symbol_list():
     if not rows:
         raise UsStockUnavailable('키움 미국주식 종목 목록이 비어 있습니다.')
     normalized = []
+    seen = set()
     for row in rows:
         symbol = str(_first(row, 'stk_cd', 'symbol', 'code') or '').upper()
-        if not SYMBOL_RE.fullmatch(symbol):
+        if not SYMBOL_RE.fullmatch(symbol) or symbol in seen:
             continue
+        seen.add(symbol)
         name = _first(row, 'stk_nm', 'stk_enm', 'name', 'short_name') or symbol
         exchange = str(_first(row, 'stex_tp', 'exchange') or '')
-        normalized.append((symbol, name, exchange))
+        is_etf = str(_first(row, 'isEtf', 'is_etf') or '').strip().upper() == 'Y'
+        normalized.append((symbol, name, exchange, is_etf))
         broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange.strip().upper()
         if broker_exchange in ('ND', 'NY', 'NA'):
             _symbol_exchange[symbol] = broker_exchange
@@ -186,15 +195,36 @@ def _records_from_kiwoom_symbol_list():
 
 def _symbol_row(entry):
     """검색이 돌려줄 행 하나를 만든다. 목록 전체를 이 모양으로 들고 있지는 않는다."""
-    symbol, name, exchange = entry
+    symbol, name, exchange, is_etf = entry
     return {
         'market': 'us',
         'symbol': symbol,
         'code': 'US:' + symbol,
         'name': name,
         'exchange': exchange,
-        'quote_type': 'EQUITY',
+        'quote_type': 'ETF' if is_etf else 'EQUITY',
     }
+
+
+def _search_rank(entry, needle):
+    """찾는 말에 가까운 순서. 앞자리일수록 세게 당긴다.
+
+    ETF 여부가 세 번째로 들어가는 게 핵심이다. "엔비디아"를 치면 원종목 NVDA와 그것을 2배·인버스로
+    따라가는 ETF 12개가 똑같이 이름에 "엔비디아"를 달고 나온다. 이 자리가 없으면 알파벳순에 밀려
+    NVC(코기 엔비디아 2X)가 NVDA보다 먼저 뜬다.
+    """
+    symbol, name, _exchange, is_etf = entry
+    lowered_symbol = symbol.casefold()
+    lowered_name = name.casefold()
+    return (
+        0 if lowered_symbol == needle else 1,
+        0 if lowered_name == needle else 1,
+        1 if is_etf else 0,
+        0 if lowered_symbol.startswith(needle) else 1,
+        0 if lowered_name.startswith(needle) else 1,
+        len(name),
+        symbol,
+    )
 
 
 def search(query, limit=8):
@@ -211,12 +241,7 @@ def search(query, limit=8):
         needle = US_SEARCH_ALIASES.get(text.casefold(), text.casefold())
         matched = [entry for entry in rows
                    if needle in entry[0].casefold() or needle in entry[1].casefold()]
-        matched.sort(key=lambda entry: (
-            0 if entry[0].casefold() == needle else 1,
-            0 if entry[0].casefold().startswith(needle) else 1,
-            0 if needle in entry[1].casefold() else 1,
-            entry[0],
-        ))
+        matched.sort(key=lambda entry: _search_rank(entry, needle))
         result = [_symbol_row(entry) for entry in matched[:limit]]
     except Exception as exc:
         logger.warning('Kiwoom 미국주식 검색 실패: %s', exc)

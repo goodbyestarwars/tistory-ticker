@@ -36,6 +36,17 @@ REAL_ROWS = [
     {'stex_tp': 'ND', 'stk_cd': 'NVDA', 'stk_nm': '엔비디아',
      'stk_enm': 'NVIDIA CORP', 'mkgb': 'NASDAQ', 'upgb': 'IT', 'isEtf': 'N'},
 ]
+
+# "엔비디아"로 찾으면 실제로 같이 나오는 행들. 전부 이름에 "엔비디아"가 들어간다.
+# NVC가 두 번 들어 있는 것도 실제 응답 그대로다.
+NVDA_FAMILY = [
+    {'stex_tp': 'NA', 'stk_cd': 'NVC', 'stk_nm': '코기 엔비디아(NVDA) 2X', 'isEtf': 'Y'},
+    {'stex_tp': 'NA', 'stk_cd': 'NVC', 'stk_nm': '코기 엔비디아(NVDA) 2X', 'isEtf': 'Y'},
+    {'stex_tp': 'ND', 'stk_cd': 'NVD', 'stk_nm': '엔비디아 인버스 2배 그래닛셰어즈 ETF', 'isEtf': 'Y'},
+    {'stex_tp': 'ND', 'stk_cd': 'NVDL', 'stk_nm': '엔비디아 2배 그래닛셰어즈 ETF', 'isEtf': 'Y'},
+    {'stex_tp': 'ND', 'stk_cd': 'NVDA', 'stk_nm': '엔비디아', 'isEtf': 'N'},
+    {'stex_tp': 'NY', 'stk_cd': 'NVDY', 'stk_nm': '엔비디아 옵션배당 일드맥스 ETF', 'isEtf': 'Y'},
+]
 REAL_RESPONSE = {'return_code': 0, 'return_msg': '정상적으로 처리되었습니다', 'list': REAL_ROWS}
 
 
@@ -80,15 +91,15 @@ class SymbolListTest(unittest.TestCase):
     def test_rows_are_compact_tuples(self):
         """e2-micro(1GB)라 19,222행을 dict로 들면 7.1MB, 튜플이면 1.4MB다(VM 실측)."""
         rows, _ = self._call()
-        self.assertEqual(rows[0], ('A', '애질런트 테크놀로지스', 'NY'))
+        self.assertEqual(rows[0], ('A', '애질런트 테크놀로지스', 'NY', False))
         for entry in rows:
             self.assertIsInstance(entry, tuple)
-            self.assertEqual(len(entry), 3)
+            self.assertEqual(len(entry), 4)
 
     def test_korean_names_survive(self):
         """야후 폴백으로는 못 얻던 것. 이게 이 호출을 살리는 이유다."""
         rows, _ = self._call()
-        self.assertIn(('NVDA', '엔비디아', 'ND'), rows)
+        self.assertIn(('NVDA', '엔비디아', 'ND', False), rows)
 
     def test_exchange_hints_are_recorded(self):
         self._call()
@@ -107,6 +118,58 @@ class SymbolListTest(unittest.TestCase):
 
     def test_symbol_list_ttl_is_longer_than_the_search_result_ttl(self):
         self.assertGreater(us_stocks.SYMBOL_LIST_TTL_SEC, us_stocks.SEARCH_TTL_SEC)
+
+
+class RankingTest(unittest.TestCase):
+    """원종목이 자기를 따라가는 레버리지 ETF에 밀리지 않아야 한다.
+
+    라이브에서 처음 확인했을 때 "엔비디아"를 치면 이렇게 나왔다:
+        NVC 코기 엔비디아(NVDA) 2X | NVC (중복) | NVD 엔비디아 인버스 2배 ...
+    정작 NVDA가 없었다. 이름에 "엔비디아"가 들어가는 건 다 똑같아서 심볼 알파벳순으로
+    밀렸기 때문이다. 목록에는 이런 파생 ETF가 원종목 하나당 열 개 넘게 있다.
+    """
+
+    def setUp(self):
+        us_stocks._symbol_cache.update(saved_at=0, rows=[])
+        us_stocks._symbol_exchange.clear()
+        us_stocks._search_cache.clear()
+
+    def _search(self, query, limit=8):
+        response = {'return_code': 0, 'list': NVDA_FAMILY}
+        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
+                mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=response):
+            return us_stocks.search(query, limit=limit)
+
+    def test_the_real_stock_comes_first(self):
+        rows = self._search('엔비디아')
+        self.assertEqual(rows[0]['symbol'], 'NVDA')
+        self.assertEqual(rows[0]['name'], '엔비디아')
+
+    def test_duplicate_rows_are_dropped(self):
+        """응답에 같은 종목이 두 번 들어 있다(실측). 결과에 두 번 나오면 안 된다."""
+        rows = self._search('엔비디아', limit=20)
+        symbols = [row['symbol'] for row in rows]
+        self.assertEqual(len(symbols), len(set(symbols)), symbols)
+        self.assertEqual(symbols.count('NVC'), 1)
+
+    def test_derivatives_still_show_up_below(self):
+        """ETF를 숨기는 게 아니라 뒤로 보내는 것이다."""
+        symbols = [row['symbol'] for row in self._search('엔비디아', limit=20)]
+        self.assertIn('NVDL', symbols)
+        self.assertGreater(symbols.index('NVDL'), symbols.index('NVDA'))
+
+    def test_ticker_query_still_wins_on_exact_symbol(self):
+        self.assertEqual(self._search('NVDA')[0]['symbol'], 'NVDA')
+
+    def test_etf_is_labelled(self):
+        rows = self._search('엔비디아', limit=20)
+        kinds = {row['symbol']: row['quote_type'] for row in rows}
+        self.assertEqual(kinds['NVDA'], 'EQUITY')
+        self.assertEqual(kinds['NVDL'], 'ETF')
+
+    def test_an_etf_query_is_not_penalised_into_uselessness(self):
+        """ETF만 걸리는 검색이면 ETF가 1등이어야 한다 - 감점은 동점일 때만 작동한다."""
+        self.assertEqual(self._search('일드맥스')[0]['symbol'], 'NVDY')
 
 
 class SearchThroughRealResponseTest(unittest.TestCase):
