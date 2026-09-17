@@ -29,6 +29,9 @@ US_SEARCH_ALIASES = {
     '릴리': 'lilly',
 }
 SEARCH_TTL_SEC = 600
+# 종목 목록은 19,222행(원시 응답 11.2MB)이라 10분마다 다시 받을 이유가 없다 - 상장·폐지는
+# 하루 단위다. 검색 결과 캐시(SEARCH_TTL_SEC)와 수명을 따로 둔다.
+SYMBOL_LIST_TTL_SEC = 6 * 3600
 QUOTE_TTL_SEC = 10
 CHART_TTL_SEC = {'minute': 30, 'daily': 5 * 60}
 MAX_CACHE_ENTRIES = 100
@@ -102,7 +105,7 @@ def _records(payload):
         return [item for item in payload if isinstance(item, dict)]
     if not isinstance(payload, dict):
         return []
-    for key in ('output', 'output1', 'result_list', 'data', 'items', 'rows', 'result'):
+    for key in ('output', 'output1', 'result_list', 'data', 'items', 'rows', 'result', 'list'):
         if key in payload:
             rows = _records(payload[key])
             if rows:
@@ -120,6 +123,24 @@ def _has_kis():
     return bool(os.environ.get('KIS_APPKEY') and os.environ.get('KIS_APPSECRET'))
 
 
+# 거래소 코드는 증권사마다 다르다(키움 ND/NY/NA, KIS NAS/NYS/AMS). `_symbol_exchange`에는
+# 먼저 알아낸 쪽의 코드가 들어가므로, 꺼내 쓸 때 각자의 코드로 옮겨야 한다. 안 그러면
+# 키움 종목목록이 채운 'ND'를 KIS에 그대로 넘겨 종목마다 한 번씩 헛물을 켠다.
+_EXCHANGE_ALIASES = {
+    'ND': ('ND', 'NAS'), 'NAS': ('ND', 'NAS'), 'NMS': ('ND', 'NAS'), 'NASDAQ': ('ND', 'NAS'),
+    'NY': ('NY', 'NYS'), 'NYS': ('NY', 'NYS'), 'NYQ': ('NY', 'NYS'), 'NYSE': ('NY', 'NYS'),
+    'NA': ('NA', 'AMS'), 'AMS': ('NA', 'AMS'), 'ASE': ('NA', 'AMS'), 'AMEX': ('NA', 'AMS'),
+}
+
+
+def _exchange_hint(symbol, broker):
+    """저장된 거래소 힌트를 해당 증권사의 코드로 옮긴다. 힌트가 없거나 모르는 값이면 None."""
+    pair = _EXCHANGE_ALIASES.get(str(_symbol_exchange.get(symbol) or '').strip().upper())
+    if not pair:
+        return None
+    return pair[0] if broker == 'kiwoom' else pair[1]
+
+
 def _exchange_code(exchange, broker):
     text = str(exchange or '').upper()
     if broker == 'kiwoom':
@@ -128,13 +149,23 @@ def _exchange_code(exchange, broker):
 
 
 def _records_from_kiwoom_symbol_list():
+    """키움 미국주식 종목 목록을 (symbol, name, exchange) 튜플로 돌려준다.
+
+    2026-09-18: 이 호출은 그동안 한 번도 성공한 적이 없다. `usa10099`를 `/api/us/mrkcond`로
+    보내고 있었는데 그 URI는 이 API ID를 받지 않는다(`1504: 해당 URI에서는 지원하는 API ID가
+    아닙니다`). 그래서 미국 검색은 늘 야후로 폴백했고 한글 종목명과 거래소 코드가 없었다.
+    올바른 경로는 `/api/us/stkinfo`이고 응답은 `list`에 담겨 온다(실측 19,222행).
+
+    dict 대신 튜플로 들고 있는 이유: VM이 e2-micro(1GB)다. 같은 목록을 dict로 쌓으면 7.1MB,
+    튜플이면 1.4MB다(VM 실측). 검색이 실제로 돌려주는 건 최대 20행이라 그때만 dict로 만든다.
+    """
     now = time.time()
-    if _symbol_cache['rows'] and now - _symbol_cache['saved_at'] < SEARCH_TTL_SEC:
+    if _symbol_cache['rows'] and now - _symbol_cache['saved_at'] < SYMBOL_LIST_TTL_SEC:
         return _symbol_cache['rows']
     if not _has_kiwoom():
         raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
     token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
-    response = kiwoom_client.call_tr(token, 'usa10099', '/api/us/mrkcond', {'stex_tp': '%'})
+    response = kiwoom_client.call_tr(token, 'usa10099', '/api/us/stkinfo', {'stex_tp': '%'})
     rows = _records(response)
     if not rows:
         raise UsStockUnavailable('키움 미국주식 종목 목록이 비어 있습니다.')
@@ -144,20 +175,26 @@ def _records_from_kiwoom_symbol_list():
         if not SYMBOL_RE.fullmatch(symbol):
             continue
         name = _first(row, 'stk_nm', 'stk_enm', 'name', 'short_name') or symbol
-        exchange = _first(row, 'stex_tp', 'exchange') or ''
-        normalized.append({
-            'market': 'us',
-            'symbol': symbol,
-            'code': 'US:' + symbol,
-            'name': name,
-            'exchange': exchange,
-            'quote_type': 'EQUITY',
-        })
-        broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange
+        exchange = str(_first(row, 'stex_tp', 'exchange') or '')
+        normalized.append((symbol, name, exchange))
+        broker_exchange = _exchange_code(exchange, 'kiwoom') or exchange.strip().upper()
         if broker_exchange in ('ND', 'NY', 'NA'):
             _symbol_exchange[symbol] = broker_exchange
     _symbol_cache.update(saved_at=now, rows=normalized)
     return normalized
+
+
+def _symbol_row(entry):
+    """검색이 돌려줄 행 하나를 만든다. 목록 전체를 이 모양으로 들고 있지는 않는다."""
+    symbol, name, exchange = entry
+    return {
+        'market': 'us',
+        'symbol': symbol,
+        'code': 'US:' + symbol,
+        'name': name,
+        'exchange': exchange,
+        'quote_type': 'EQUITY',
+    }
 
 
 def search(query, limit=8):
@@ -172,16 +209,15 @@ def search(query, limit=8):
     try:
         rows = _records_from_kiwoom_symbol_list()
         needle = US_SEARCH_ALIASES.get(text.casefold(), text.casefold())
-        ranked = sorted(
-            rows,
-            key=lambda row: (
-                0 if row['symbol'].casefold() == needle else 1,
-                0 if row['symbol'].casefold().startswith(needle) else 1,
-                0 if needle in row['name'].casefold() else 1,
-                row['symbol'],
-            ),
-        )
-        result = [row for row in ranked if needle in row['symbol'].casefold() or needle in row['name'].casefold()][:limit]
+        matched = [entry for entry in rows
+                   if needle in entry[0].casefold() or needle in entry[1].casefold()]
+        matched.sort(key=lambda entry: (
+            0 if entry[0].casefold() == needle else 1,
+            0 if entry[0].casefold().startswith(needle) else 1,
+            0 if needle in entry[1].casefold() else 1,
+            entry[0],
+        ))
+        result = [_symbol_row(entry) for entry in matched[:limit]]
     except Exception as exc:
         logger.warning('Kiwoom 미국주식 검색 실패: %s', exc)
         # 인증 전에도 티커 직접 입력은 페이지에서 조회할 수 있도록 최소 행을 만든다.
@@ -321,7 +357,8 @@ def _kiwoom_quote(symbol):
     if not _has_kiwoom():
         raise UsStockUnavailable('키움증권 인증정보가 없습니다.')
     token = kiwoom_client.get_token(os.environ['KIWOOM_APPKEY'], os.environ['KIWOOM_SECRETKEY'])
-    candidates = [_symbol_exchange.get(symbol)] if _symbol_exchange.get(symbol) else []
+    hint = _exchange_hint(symbol, 'kiwoom')
+    candidates = [hint] if hint else []
     candidates.extend(code for code in ('ND', 'NY', 'NA') if code not in candidates)
     last_error = None
     for exchange in candidates:
@@ -339,7 +376,7 @@ def _kiwoom_quote(symbol):
 
 
 def _kiwoom_exchange_candidates(symbol):
-    known = _symbol_exchange.get(symbol)
+    known = _exchange_hint(symbol, 'kiwoom')
     candidates = [known] if known else []
     candidates.extend(code for code in ('ND', 'NY', 'NA') if code not in candidates)
     return candidates
@@ -626,7 +663,8 @@ def _kis_quote(symbol):
     if not _has_kis():
         raise UsStockUnavailable('한국투자증권 인증정보가 없습니다.')
     token = kis_client.get_token(os.environ['KIS_APPKEY'], os.environ['KIS_APPSECRET'])
-    candidates = [_symbol_exchange.get(symbol)] if _symbol_exchange.get(symbol) else []
+    hint = _exchange_hint(symbol, 'kis')
+    candidates = [hint] if hint else []
     candidates.extend(code for code in ('NAS', 'NYS', 'AMS') if code not in candidates)
     last_error = None
     for exchange in candidates:
