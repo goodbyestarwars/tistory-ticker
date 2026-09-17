@@ -698,6 +698,13 @@ html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rg
   width: 6px; height: 6px; border-radius: 50%; background: #d24f45; display: inline-block;
 }
 .home-card-heading .home-cb-sidecar.is-pulse i { animation: homeCbPulse 1.6s ease-out 1; }
+/* 2026-09-17 사용자 지적("빨간색은 뭐야"): 글자 없는 빈 빨간 알약이 헤더에 계속 떠 있었다.
+   JS는 el.hidden = true로 숨기는데, [hidden]의 display:none은 **브라우저 기본 스타일**이라
+   위에서 건 display:inline-flex(작성자 규칙)에 진다. 사이드카는 검증된 증권사 필드가 없어
+   available=false로 늘 숨김 상태인데(CLAUDE.md), 그 숨김이 9/15부터 먹지 않고 있었다.
+   display를 직접 거는 배지에는 [hidden]을 같이 적어 둔다. */
+.home-card-heading .home-cb-sidecar[hidden],
+.home-card-heading .home-cb-vi[hidden] { display: none; }
 .home-card-heading .home-cb-sidecar.is-released { border-color: #d7dbe0; background: #f3f4f6; color: #6b7280; }
 @keyframes homeCbPulse {
   0% { box-shadow: 0 0 0 0 rgba(210, 79, 69, .55); }
