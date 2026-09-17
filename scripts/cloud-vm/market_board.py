@@ -34,6 +34,20 @@ _WICS_MAP_TTL_SEC = 6 * 60 * 60
 _WEEK52_ENRICH_WORKERS = 8
 _wics_map_cache = {'t': 0, 'data': {}}
 
+
+def _is_kr_nxt_session():
+    """NXT 초반에는 순위와 실시간 호가를 먼저 반환한다.
+
+    08:00~09:00에는 52주 보강 TR이 종목별로 추가되어 첫 보드 응답을
+    불필요하게 늦춘다. 해당 값은 화면의 핵심 순위·실시간 WebSocket 흐름과
+    독립적이므로 정규장 이후 캐시 워밍에서 보강한다.
+    """
+    try:
+        now = datetime.now(ZoneInfo('Asia/Seoul')) if ZoneInfo else datetime.now()
+        return now.weekday() < 5 and 8 <= now.hour < 9
+    except Exception:
+        return False
+
 # 순위 TR이 일시적으로 비어도 홈 보드를 비우지 않기 위한 유동성 높은 대표 종목 목록.
 DOMESTIC_FALLBACK_CODES = (
     '005930', '000660', '373220', '207940', '005380', '000270', '035420',
@@ -549,9 +563,14 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
                 quote_codes.append(code)
                 seen_quote_codes.add(code)
     quote_codes = quote_codes[:query_limit]
-    rows_with_week52 = _enrich_domestic_kis_week52(
-        kis_token, appkey, appsecret, list(merged.values()), quote_codes,
-    )
+    if _is_kr_nxt_session():
+        # NXT 초반에는 종목판의 순위·가격을 먼저 보여준다. 52주 값은
+        # 캐시에 이미 있으면 유지하고, 비어 있는 값은 다음 정규장 갱신 때 채운다.
+        rows_with_week52 = list(merged.values())
+    else:
+        rows_with_week52 = _enrich_domestic_kis_week52(
+            kis_token, appkey, appsecret, list(merged.values()), quote_codes,
+        )
     merged = {row['code']: row for row in rows_with_week52 if row.get('code')}
     sections = _sections(list(merged.values()))
 
