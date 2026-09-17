@@ -12,6 +12,7 @@
   var WS_RECONNECT_MS = 10 * 1000;
   var WS_FALLBACK_MS = 6 * 1000;
   var WS_KEEPALIVE_MS = 25 * 1000;
+  var REQUEST_TIMEOUT_MS = 12000;
   var CLIENT_TRANSLATION_URL = 'https://api.mymemory.translated.net/get';
   var CLIENT_TRANSLATION_CACHE_KEY = 'hen_translation_cache_v1';
   var CLIENT_TRANSLATION_CACHE_LIMIT = 200;
@@ -245,9 +246,17 @@
   }
 
   function fetchJson(url) {
-    return fetch(url).then(function (response) {
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timeout = controller ? global.setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+    return fetch(url, controller ? { signal: controller.signal } : undefined).then(function (response) {
       if (!response.ok) throw new Error('economic-news ' + response.status);
       return response.json();
+    }).then(function (json) {
+      if (timeout) global.clearTimeout(timeout);
+      return json;
+    }, function (error) {
+      if (timeout) global.clearTimeout(timeout);
+      throw error;
     });
   }
 
@@ -504,17 +513,17 @@
       state.flash = Array.isArray(payload.flash) ? payload.flash : state.flash;
       render(state.items, market, state.flash);
       ensureClientTranslations(market);
+    }).catch(function () {
+      if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
+      var list = state.mount && state.mount.querySelector('[data-hen-list]');
+      if (list && !list.querySelector('.hen-row')) list.innerHTML = '<p class="home-card-state">경제 뉴스를 잠시 불러오지 못했습니다.</p>';
     });
     var marketRequest = fetchJson(marketUrl).then(function (json) {
       if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
       state.quoteMap = quoteMapFrom(json);
       render(state.items, market, state.flash);
     }).catch(function () { return null; });
-    return Promise.all([newsRequest, marketRequest]).catch(function () {
-      if (generation !== state.loadGeneration || state.market !== market || currentMarket() !== market) return;
-      var list = state.mount && state.mount.querySelector('[data-hen-list]');
-      if (list && !list.querySelector('.hen-row')) list.innerHTML = '<p class="home-card-state">경제 뉴스를 잠시 불러오지 못했습니다.</p>';
-    }).then(function () {
+    return Promise.all([newsRequest, marketRequest]).then(function () {
       if (generation === state.loadGeneration) state.loading = false;
     });
   }

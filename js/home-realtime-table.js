@@ -11,6 +11,7 @@
   var LIMIT = 40;
   var HOME_ROW_LIMIT = 20;
   var REFRESH_MS = 30 * 1000;
+  var REQUEST_TIMEOUT_MS = 12000;
   // 한국시간 기준으로 국내·미국 시장을 자동 전환한다.
   var FORCED_MARKET = null;
   // Quote ticks stay on WebSocket; this only re-syncs the ranking snapshot.
@@ -790,6 +791,8 @@
     }).catch(function () {
       var body = state.mount.querySelector('[data-hrt-body]');
       if (body && !state.data) body.innerHTML = '<tr><td colspan="' + tableColspan() + '" class="hrt-state">종목 데이터를 잠시 불러오지 못했습니다.</td></tr>';
+      var updated = state.mount.querySelector('[data-hrt-updated]');
+      if (updated && state.data) updated.textContent = '최근 데이터 · 갱신 지연';
     }).then(function () {
       state.loading = false;
       if (state.pendingMarket && state.pendingMarket !== state.market) {
@@ -811,13 +814,21 @@
     // 별도 요청을 만들지 않고 같은 Promise를 기다린다.
     if (entry.promise) return entry.promise;
     var url = API_URL + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
-    entry.promise = fetch(url).then(function (response) {
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timeout = controller ? global.setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+    entry.promise = fetch(url, controller ? { signal: controller.signal } : undefined).then(function (response) {
       if (!response.ok) throw new Error('market-board ' + response.status);
       return response.json();
     }).then(function (json) {
       entry.data = json;
       entry.updatedAt = Date.now();
       return json;
+    }).then(function (json) {
+      if (timeout) global.clearTimeout(timeout);
+      return json;
+    }, function (error) {
+      if (timeout) global.clearTimeout(timeout);
+      throw error;
     });
     entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });
     return entry.promise;

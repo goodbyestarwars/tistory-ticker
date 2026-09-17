@@ -76,15 +76,19 @@ document.documentElement.classList.add('skin-ready');
     var BASE = 'https://goodbyestar.cloud/market-board';
     var LIMIT = 40;
     var REFRESH_MS = 30 * 1000;
+    var REQUEST_TIMEOUT_MS = 12000;
     var pool = window.__homeMarketBoardRequests || (window.__homeMarketBoardRequests = {});
     function fetchBoard(market, force) {
       var key = market === 'us' ? 'us' : 'domestic';
       var entry = pool[key] || (pool[key] = {});
       if (!force && entry.data && Date.now() - entry.updatedAt < REFRESH_MS) return Promise.resolve(entry.data);
       if (entry.promise) return entry.promise;
-      entry.promise = fetch(BASE + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : ''))
+      var controller = typeof AbortController === 'function' ? new AbortController() : null;
+      var timeout = controller ? setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
+      entry.promise = fetch(BASE + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : ''), controller ? { signal: controller.signal } : undefined)
         .then(function (response) { if (!response.ok) throw new Error('market-board ' + response.status); return response.json(); })
-        .then(function (json) { entry.data = json; entry.updatedAt = Date.now(); return json; });
+        .then(function (json) { entry.data = json; entry.updatedAt = Date.now(); return json; })
+        .then(function (json) { if (timeout) clearTimeout(timeout); return json; }, function (error) { if (timeout) clearTimeout(timeout); throw error; });
       entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });
       return entry.promise;
     }
@@ -1065,15 +1069,24 @@ document.documentElement.classList.add('skin-ready');
         statusLabel: usSession.statusLabel,
         keys: usSession.keys,
         labels: usSession.labels
-      } : {
-        market: 'domestic',
-        title: '국내 시장',
-        live: '실시간',
-        subtitle: '오늘의 시장판 · 시세 확인 중',
-        statusLabel: '장중',
-        keys: ['KOSPI', 'KOSDAQ'],
-        labels: ['KOSPI', 'KOSDAQ']
-      };
+      } : (function () {
+        var hours = window.MarketHours;
+        var kr = hours && typeof hours.krCash === 'function' ? hours.krCash() : null;
+        var label = kr && kr.label ? kr.label : '장 마감';
+        var live = kr && (kr.open || kr.nxtOpen) ? label : '장 마감';
+        var subtitle = kr && (kr.open || kr.nxtOpen)
+          ? '국내 현물 · ' + label
+          : '국내 현물 · ' + label;
+        return {
+          market: 'domestic',
+          title: '국내 시장',
+          live: live,
+          subtitle: subtitle,
+          statusLabel: label,
+          keys: ['KOSPI', 'KOSDAQ'],
+          labels: ['KOSPI', 'KOSDAQ']
+        };
+      }());
     }
 
     function applyHomeMarketSession(session) {
