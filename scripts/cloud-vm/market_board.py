@@ -563,7 +563,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
                 quote_codes.append(code)
                 seen_quote_codes.add(code)
     quote_codes = quote_codes[:query_limit]
-    if _is_kr_nxt_session() and len(quote_codes) > 1:
+    if _is_kr_nxt_session() and query_limit >= 40:
         # NXT 초반에는 종목판의 순위·가격을 먼저 보여준다. 52주 값은
         # 캐시에 이미 있으면 유지하고, 비어 있는 값은 다음 정규장 갱신 때 채운다.
         rows_with_week52 = list(merged.values())
