@@ -2272,6 +2272,19 @@ def _warm_daily_scan_responses():
 
 
 @app.on_event('startup')
+def _warm_us_symbol_list():
+    """미국 종목 목록(19,222행, 11.2MB)을 백그라운드로 미리 받아 둔다.
+
+    사용자 요청 안에서 받으면 13초가 걸린다(VM 실측). 여기서 미리 받아 두면 첫 검색부터
+    바로 나온다. 실패해도 검색은 야후·티커 폴백으로 동작하므로 서버 기동을 막지 않는다.
+    """
+    try:
+        us_stocks.warm_symbol_list()
+    except Exception:
+        logging.getLogger('main').exception('미국 종목 목록 예열 시작 실패')
+
+
+@app.on_event('startup')
 def _start_daily_scan_warmer():
     def run():
         while True:
