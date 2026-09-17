@@ -22,6 +22,7 @@
     거래증가율(vol_inrt)은 무엇 대비 증가율인지 이 저장소에서 확인된 바가 없어
     판정에 쓰지 않는다(CLAUDE.md: 미검증 API 필드를 확정값처럼 쓰지 않는다).
 """
+import json
 import os
 import re
 import sys
@@ -53,6 +54,18 @@ MAX_MATCHES = 40
 # 두 값 모두 첫 실사 뒤 조정할 수 있는 출발점이다.
 MIN_PREV_VOLUME = 50000
 MIN_TODAY_VOLUME = 50000
+
+# 2026-09-17 사용자 지적("10분에 잡으니까 너무 떠서 가는데"). 그날 09:10 실측 16종목의
+# 등락률은 최소 +0.57 / 중앙 +9.34 / 최대 +17.14%였고, 절반 이상이 +5%를 넘은 상태였다.
+# 같은 표본에서 거래량 배수와 등락률은 관계가 없었다(26.6배가 +4.7%, 2.0배가 +17.1%).
+# 그래서 "배수 큰 것만 남기면 덜 뜬 걸 잡는다"는 성립하지 않는다. 목록에서 빼지는 않고
+# (단타에서는 그것도 정보다) 배수 정렬 안에서 뒤로 보낸다. 기준선은 그날 중앙값이다.
+OVERHEATED_CHANGE_PCT = 10.0
+
+# 09:05 관측 패스가 남기는 파일. "5분 시점에 전일 대비 몇 배였나"를 종목별로 적어 두면,
+# 09:10 본 스캔이 자기 결과와 맞춰 보고 "5분 시점 X배면 10분에 1.0배가 되더라"의 X를
+# 로그로 남긴다. 그 숫자가 나오면 본 스캔을 09:05로 앞당길 수 있다.
+PROBE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'volume_breakout_probe.json')
 
 # 종목 목록 원본. daily_scan.load_full_universe와 같은 파일·같은 정규식을 쓴다.
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
@@ -133,8 +146,16 @@ def previous_volume(conn, code, today):
     return None, None
 
 
+def is_overheated(change_rate):
+    """이미 크게 올라 있어 추격이 위험한 자리인지."""
+    return isinstance(change_rate, (int, float)) and change_rate >= OVERHEATED_CHANGE_PCT
+
+
 def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
     ratio = today_volume / prev_volume
+    change_rate = row.get('change_rate')
+    overheated = is_overheated(change_rate)
+    rate_text = ('%+.2f%%' % change_rate) if isinstance(change_rate, (int, float)) else '알 수 없음'
     return {
         'code': code,
         'name': row.get('name') or code,
@@ -150,10 +171,14 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
             '개장 10분 시점 누적 거래량 %s주' % format(int(today_volume), ','),
             '전일(%s) 거래량 %s주' % (prev_date, format(int(prev_volume), ',')),
             '전일 대비 %.2f배' % ratio,
+            '스캔 시점 등락률 %s%s' % (rate_text, ' - 이미 크게 오른 자리' if overheated else ''),
         ],
         'interpretation': (
-            '개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 거래가 갑자기 몰린 '
-            '자리라는 뜻이며, 방향(상승·하락)은 이 조건만으로 판단하지 않습니다.' % ratio
+            ('개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 다만 그 시점에 이미 '
+             '%s 올라 있어, 여기서 따라 사면 비싼 값에 들어가는 자리입니다.' % (ratio, rate_text))
+            if overheated else
+            ('개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 거래가 갑자기 몰린 '
+             '자리라는 뜻이며, 방향(상승·하락)은 이 조건만으로 판단하지 않습니다.' % ratio)
         ),
         'patternDetail': {
             'score': min(100, int(round(ratio * 50))),
@@ -161,6 +186,8 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
             'prevVolume': int(prev_volume),
             'prevDate': prev_date,
             'volumeRatio': round(ratio, 4),
+            'changeRate': change_rate,
+            'overheated': overheated,
             'scanned_at': scanned_at,
         },
     }
@@ -184,8 +211,89 @@ def scan(board, conn, scanned_at, etf_codes=None):
         if float(today_volume) < prev_volume:
             continue
         matches.append(build_match(code, row, float(today_volume), prev_volume, prev_date, scanned_at))
-    matches.sort(key=lambda item: item['patternDetail']['volumeRatio'], reverse=True)
+    # 2026-09-17: 이미 크게 오른 종목을 목록에서 빼지는 않는다(단타에서는 그것도 정보다).
+    # 대신 같은 배수 정렬 안에서 뒤로 보내, 위쪽이 "아직 덜 간 자리"가 되게 한다.
+    matches.sort(key=lambda item: (item['patternDetail']['overheated'],
+                                   -item['patternDetail']['volumeRatio']))
     return matches[:MAX_MATCHES], len(candidates)
+
+
+def probe_ratios(board, conn, etf_codes=None):
+    """09:05 관측용. 후보 전체의 "지금까지 누적 / 전일 하루치" 배수를 그대로 돌려준다.
+
+    본 스캔과 달리 1.0배 문턱을 걸지 않는다 - 5분 시점에 몇 배까지 차 있었는지가 알고 싶은
+    값이기 때문이다(문턱을 걸면 통과한 것만 남아 분포를 못 본다).
+    """
+    etf_codes = etf_codes or set()
+    candidates = collect_candidates(board)
+    today = today_kst()
+    out = {}
+    for code, row in candidates.items():
+        if code in etf_codes:
+            continue
+        today_volume = row.get('trade_volume')
+        if not today_volume:
+            continue
+        prev_volume, prev_date = previous_volume(conn, code, today)
+        if not prev_volume or prev_volume < MIN_PREV_VOLUME:
+            continue
+        out[code] = {
+            'name': row.get('name') or code,
+            'ratio': round(float(today_volume) / prev_volume, 4),
+            'changeRate': row.get('change_rate'),
+            'todayVolume': int(float(today_volume)),
+            'prevVolume': int(prev_volume),
+            'prevDate': prev_date,
+        }
+    return out, len(candidates)
+
+
+def save_probe(rows):
+    payload = {'date': today_kst(), 'at': datetime.now(timezone.utc).isoformat(), 'rows': rows}
+    tmp = PROBE_FILE + '.tmp'
+    with open(tmp, 'w', encoding='utf-8') as handle:
+        json.dump(payload, handle, ensure_ascii=False)
+    os.replace(tmp, PROBE_FILE)
+
+
+def load_probe():
+    """오늘 날짜의 관측 결과만 돌려준다(어제 파일이 남아 있어도 섞이지 않게)."""
+    try:
+        with open(PROBE_FILE, 'r', encoding='utf-8') as handle:
+            payload = json.load(handle)
+    except Exception:
+        return None
+    if payload.get('date') != today_kst():
+        return None
+    return payload
+
+
+def log_probe_comparison(matches):
+    """09:10에 걸린 종목들이 09:05에는 몇 배였는지 남긴다.
+
+    목표: "5분 시점 X배 이상이면 10분에 1.0배가 되더라"의 X. 그 값이 나오면 본 스캔을
+    09:05로 앞당길 수 있다(사용자 요청 - 단타라 잡히는 시각이 곧 상품이다).
+    """
+    payload = load_probe()
+    if not payload:
+        log('09:05 관측 기록 없음 - 비교 생략')
+        return
+    rows = payload.get('rows') or {}
+    seen = []
+    for item in matches:
+        probe = rows.get(item['code'])
+        seen.append((item['name'], probe['ratio'] if probe else None,
+                     item['patternDetail']['volumeRatio']))
+    for name, five, ten in seen:
+        log('  [5분비교] %-18s 09:05 %s배 -> 09:10 %.2f배'
+            % (name, ('%.2f' % five) if five is not None else '없음', ten))
+    known = [five for _, five, _ in seen if five is not None]
+    if known:
+        for threshold in (0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
+            hit = sum(1 for value in known if value >= threshold)
+            log('  [5분문턱] %.1f배 이상이었던 종목 %d/%d (%.0f%%)'
+                % (threshold, hit, len(known), 100.0 * hit / len(known)))
+    log('  [5분비교] 09:10 %d종목 중 09:05 관측에 있던 종목 %d개' % (len(matches), len(known)))
 
 
 def load_board():
@@ -207,12 +315,35 @@ def load_board():
     return market_board.fetch_domestic(token, limit=RANK_LIMIT, wics_map=wics_map)
 
 
+def run_probe():
+    """09:05 관측 패스. 화면에 쓰는 결과는 건드리지 않고 기록만 남긴다."""
+    load_dotenv()
+    board = load_board()
+    etf_codes = load_etf_codes()
+    conn = db_schema.get_conn()
+    try:
+        rows, candidate_count = probe_ratios(board, conn, etf_codes)
+    finally:
+        conn.close()
+    save_probe(rows)
+    ratios = sorted((row['ratio'] for row in rows.values()), reverse=True)
+    top = ' / '.join('%.2f' % value for value in ratios[:5])
+    log('09:05 관측 완료: 후보 %d종목 중 %d종목 기록 (상위 배수 %s)'
+        % (candidate_count, len(rows), top or '없음'))
+    for threshold in (0.5, 1.0):
+        hit = sum(1 for value in ratios if value >= threshold)
+        log('  [09:05 분포] %.1f배 이상 %d종목' % (threshold, hit))
+
+
 def main():
     # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
     # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
     skip_today, scan_day = market_clock.skip_scan_today()
     if skip_today:
         log('휴장일(%s) - 스캔을 건너뜁니다(직전 거래일 결과 유지).' % scan_day)
+        return
+    if '--probe' in sys.argv:
+        run_probe()
         return
     load_dotenv()
     scanned_at = datetime.now(timezone.utc).isoformat()
@@ -231,10 +362,12 @@ def main():
         existing['volumeBreakoutScannedAt'] = scanned_at
 
     daily_scan_cache.update(_apply)
-    log('저장 완료: 후보 %d종목 중 %d종목 돌파 (ETF 제외 %d, 전일/당일 거래량 하한 %s/%s주, '
-        '다른 패턴 섹션은 기존 값 유지)'
-        % (candidate_count, len(matches), len(etf_codes),
+    overheated = sum(1 for item in matches if item['patternDetail']['overheated'])
+    log('저장 완료: 후보 %d종목 중 %d종목 돌파 (이미 +%.0f%% 이상 오른 종목 %d개는 뒤로, '
+        'ETF 제외 %d, 전일/당일 거래량 하한 %s/%s주, 다른 패턴 섹션은 기존 값 유지)'
+        % (candidate_count, len(matches), OVERHEATED_CHANGE_PCT, overheated, len(etf_codes),
            format(MIN_PREV_VOLUME, ','), format(MIN_TODAY_VOLUME, ',')))
+    log_probe_comparison(matches)
 
 
 if __name__ == '__main__':
