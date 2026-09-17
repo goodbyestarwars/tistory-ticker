@@ -518,7 +518,7 @@
       + '<span class="ss-summary-price" data-us-price-wrap><span data-us-price></span></span>'
       + '<span class="ss-summary-change" data-us-change></span>'
       + '</div>'
-      + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span> · 15초 자동 갱신</span></div>'
+      + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span><span data-us-basis></span></span></div>'
       + '<details class="us-stocks-metrics-more"><summary>세부 시세</summary><div class="us-stocks-metrics">'
       + metric('시가', '', 'open')
       + metric('전일 종가', '', 'previous')
@@ -554,6 +554,8 @@
     card.querySelector('[data-us-name]').textContent = localizedUsName(quote.symbol, quote.name);
     card.querySelector('[data-us-symbol]').textContent = quote.symbol + ' · ' + exchangeLabel(quote.exchange);
     card.querySelector('[data-us-state]').textContent = marketStateLabel(quote.market_state);
+    var basisNode = card.querySelector('[data-us-basis]');
+    if (basisNode) basisNode.textContent = basisLabel(quote);
     card.querySelector('[data-us-price]').textContent = formatPrice(quote.price);
     var changeNode = card.querySelector('[data-us-change]');
     changeNode.textContent = formatPercent(quote.change_rate);
@@ -573,7 +575,7 @@
       if (node) node.textContent = values[key];
     });
     var updatedNode = card.querySelector('[data-us-updated]');
-    if (updatedNode) updatedNode.textContent = formatUpdated(quote.updated_at);
+    if (updatedNode) updatedNode.textContent = updatedLabel(quote);
   }
 
   function loadOrderbook() {
@@ -843,6 +845,35 @@
     if (value == null) return '업데이트 시각 확인 중';
     var date = new Date(Number(value) * 1000);
     return isNaN(date.getTime()) ? '업데이트 시각 확인 중' : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
+  }
+  // 2026-09-17 사용자 지적: "미국장 인텔 기준으로 아직도 4%대 상승인데? 이거 어제 기준 같은데?"
+  // 맞는 지적이었다. 한국 낮 12:40은 뉴욕 수요일 밤 23:40이라 정규장이 7시간 전에 끝나 있다.
+  // 그런데 화면은 조회 시각(updated_at)을 한국시간으로 찍고 "15초 자동 갱신"이라고 적어서,
+  // 수요일 종가를 방금 시세처럼 읽게 만들었다. 장이 닫혀 있으면 조회 시각 대신 기준 장을 쓴다.
+  function sessionDateLabel(value) {
+    var raw = String(value || '');
+    var m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!m) return '';
+    var days = ['일', '월', '화', '수', '목', '금', '토'];
+    var date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+    return Number(m[2]) + '/' + Number(m[3]) + '(' + days[date.getDay()] + ')';
+  }
+  function basisLabel(quote) {
+    if (!quote || quote.market_state === 'regular' || quote.market_state === 'pre'
+        || quote.market_state === 'post') {
+      return ' · 15초 자동 갱신';
+    }
+    var when = sessionDateLabel(quote && quote.session_date);
+    // 날짜를 못 만들면 없는 말을 지어내지 않는다.
+    return when ? ' · ' + when + ' 미국장 마지막 체결가 기준' : ' · 마지막 체결가 기준';
+  }
+  function updatedLabel(quote) {
+    if (quote && quote.market_state && quote.market_state !== 'regular'
+        && quote.market_state !== 'pre' && quote.market_state !== 'post') {
+      var when = sessionDateLabel(quote.session_date);
+      return when ? when + ' 장 마감' : '장 마감';
+    }
+    return formatUpdated(quote && quote.updated_at);
   }
   function marketStateLabel(value) {
     return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[value] || '시장 상태 확인 중';
