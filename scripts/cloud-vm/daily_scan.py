@@ -264,6 +264,36 @@ def save_investor_flow(conn, code, flow_rows):
     db_schema.upsert_investor_flow_daily(conn, code, flow_rows)
 
 
+TIMING_KEYS = ('ohlcApi', 'flowApi', 'ohlcSave', 'flowSave', 'dbRead', 'patternScan', 'throttle')
+
+
+def new_timings():
+    """daily_scan 한 회차의 구간별 소요시간 그릇(2026-09-17)."""
+    result = {'loop': 0.0}
+    for key in TIMING_KEYS:
+        result[key] = 0.0
+    return result
+
+
+def format_timings(timings, done):
+    """구간별 소요시간을 한 줄로 만든다.
+
+    'loop'은 종목당 전체 시간이고 나머지는 그 안의 구간이다. 둘의 차이를 '나머지'로 보여
+    측정하지 않은 구간(시그널 계산·랭킹 갱신 등)이 얼마나 되는지 함께 드러낸다.
+    """
+    total = timings.get('loop') or 0.0
+    measured = sum(timings.get(key) or 0.0 for key in TIMING_KEYS)
+    rest = total - measured
+
+    def pct(value):
+        return 100.0 * value / total if total > 0 else 0.0
+
+    parts = ' / '.join('%s %.0fs(%.0f%%)' % (key, timings.get(key) or 0.0, pct(timings.get(key) or 0.0))
+                       for key in TIMING_KEYS)
+    return ('[소요 %d종목] 합계 %.0fs (종목당 %.2fs) | %s / 나머지 %.0fs(%.0f%%)'
+            % (done, total, total / done if done else 0.0, parts, rest, pct(rest)))
+
+
 def main():
     # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
     # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
@@ -320,27 +350,49 @@ def main():
     flow_skipped = 0
     signal_state = fresh_signal_state()
 
+    # 2026-09-17: 이 스캔이 3시간 50분 걸려 뒤따르는 스캔들을 새벽까지 밀어냈다(스왑 고갈 장애).
+    # 종목당 5.75초 중 throttle 0.5초를 뺀 나머지가 어디로 가는지 몰라서 구간별로 누적한다.
+    # perf_counter 덧셈뿐이라 비용은 무시할 수준이다.
+    timings = new_timings()
+
+
     for i, stock in enumerate(universe):
         code, name = stock['code'], stock['name']
+        loop_started = time.perf_counter()
         try:
-            if db_schema.latest_date(conn, 'daily_prices', code) == today_str:
+            _t = time.perf_counter()
+            _latest = db_schema.latest_date(conn, 'daily_prices', code)
+            timings['dbRead'] += time.perf_counter() - _t
+            if _latest == today_str:
+                _t = time.perf_counter()
                 daily = db_schema.load_daily_prices(conn, code)
+                timings['dbRead'] += time.perf_counter() - _t
                 ohlc_skipped += 1
             else:
+                _t = time.perf_counter()
                 daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=kiwoom_market.OHLC_SNAPSHOT_DAYS)
+                timings['ohlcApi'] += time.perf_counter() - _t
+                _t = time.perf_counter()
                 save_ohlc_snapshot(conn, code, daily)
                 conn.commit()
+                timings['ohlcSave'] += time.perf_counter() - _t
+                _t = time.perf_counter()
                 time.sleep(THROTTLE_SEC)
+                timings['throttle'] += time.perf_counter() - _t
 
+            _t = time.perf_counter()
             scanned_p, scanned_pb = pd.scan_stock(
                 stock, daily, pattern_results, pullback_matches, market_cap_getter=get_market_cap,
                 require_common_market_cap=True)
+            timings['patternScan'] += time.perf_counter() - _t
             if scanned_p:
                 pattern_scanned += 1
             if scanned_pb:
                 pullback_scanned += 1
 
+            _t = time.perf_counter()
             flow_rows = db_schema.load_investor_flow_daily(conn, code)
+            timings['dbRead'] += time.perf_counter() - _t
             has_confirmed_individual = bool(flow_rows and flow_rows[0].get('ind_net') is not None)
             if flow_rows and flow_rows[0].get('date') == today_str and has_confirmed_individual:
                 flow_skipped += 1
@@ -348,10 +400,16 @@ def main():
                 # target_days=25: rolling 20일 합산에 여유분만 더한 최소치(fetch_institution_trend가
                 # 정확도가 떨어져 KIS 기반으로 교체됨, 위 main() 주석 참고) - KIS는 한 번에 약
                 # 30영업일을 주므로 이 정도면 추가 페이지네이션 호출 없이 1콜로 끝난다.
+                _t = time.perf_counter()
                 flow_rows = kiwoom_market.fetch_foreign_inst_daily(token, code, kis_appkey, kis_appsecret, target_days=25)
+                timings['flowApi'] += time.perf_counter() - _t
+                _t = time.perf_counter()
                 save_investor_flow(conn, code, flow_rows)
                 conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
+                timings['flowSave'] += time.perf_counter() - _t
+                _t = time.perf_counter()
                 time.sleep(THROTTLE_SEC)
+                timings['throttle'] += time.perf_counter() - _t
             flow = invest_signal.build_flow(flow_rows)
             if flow:
                 tech = pd.compute_tech_score(daily)
@@ -473,6 +531,11 @@ def main():
         except Exception as e:
             log('[%d/%d] %s(%s) 실패: %s' % (i + 1, len(universe), name, code, e))
             continue
+        finally:
+            # 실패해서 continue로 빠지는 종목도 시간은 센다 - 안 그러면 합계가 어긋난다.
+            timings['loop'] += time.perf_counter() - loop_started
+            if (i + 1) % 500 == 0 or (i + 1) == len(universe):
+                log(format_timings(timings, i + 1))
 
     conn.commit()
     conn.close()

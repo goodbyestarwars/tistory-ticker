@@ -5,6 +5,35 @@
 > 이 파일도 통독하지 말고 위에서부터 필요한 만큼만 읽거나 `grep`으로 찾는다.
 
 
+**2026-09-17(7차) daily_scan 구간별 소요시간 계측 추가 - 3시간 50분의 정체를 오늘 밤 한 번에 잰다**
+
+`daily_scan`은 저녁 스캔 직렬 큐의 맨 앞이다. 이게 3시간 50분을 끌면 뒤따르는
+strategyscan·anglemomentum·gongpasan·week52·batch가 전부 새벽으로 밀린다(09-17 장애의 1번 원인).
+
+알고 있던 것: 13,800초 / 약 2,400종목 = **종목당 5.75초**, 그중 `THROTTLE_SEC`(0.25초 x 2)가 0.5초.
+**나머지 5.2초의 정체는 몰랐다.**
+
+구조상 종목마다 이만큼을 한다(단일 루프, 병렬 없음):
+API 2회(키움 일봉 + KIS 수급) · SQLite 커밋 2회 · 패턴/스윙 계산 · DB 읽기 2회.
+커밋이 종목당 2회라 308MB DB에 **fsync가 4,800회**인 점이 의심 후보였지만 재보지 않은 추정이었다.
+
+계측(`daily_scan.py`): `ohlcApi / flowApi / ohlcSave / flowSave / dbRead / patternScan / throttle`을
+`perf_counter`로 누적하고, 500종목마다와 마지막에 한 줄로 찍는다. 종목당 전체 시간(`loop`)과
+구간 합의 차이를 **나머지**로 같이 보여 측정 안 한 구간(시그널 계산·랭킹 갱신)의 몫도 드러낸다.
+실패해서 `continue`로 빠지는 종목도 `finally`에서 시간을 세므로 합계가 어긋나지 않는다.
+
+```
+[소요 2400종목] 합계 13800s (종목당 5.75s) | ohlcApi 3000s(22%) / flowApi 3600s(26%) /
+ohlcSave 1500s(11%) / flowSave 1800s(13%) / dbRead 900s(7%) / patternScan 1400s(10%) /
+throttle 1200s(9%) / 나머지 400s(3%)
+```
+(위는 형식 예시다. 실제 값은 오늘 밤 20:10 KST 회차에서 나온다.)
+
+검증: `test/test_daily_scan_timings.py` 신설 8건 - 집계 산식, 0으로 나누기 방지, 모든 구간이
+로그에 빠짐없이 나오는지, 실패한 종목도 `finally`로 세는지. 전체 1,062 passed.
+
+읽는 법: `sudo journalctl -u kiwoom-dailyscan --no-pager | grep 소요`
+
 **2026-09-17(6차) VM 백업 정리 - prune이 닿지 않는 고아 백업 1.1GB 삭제**
 
 `backups/`가 1.8GB였다. 내역을 보니 두 종류가 섞여 있었다.
