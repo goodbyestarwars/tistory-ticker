@@ -1925,6 +1925,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rollingMidpointValues(bars, 9)", source)
         self.assertIn("rollingMidpointValues(bars, 26)", source)
         self.assertIn("rollingMidpointValues(bars, 52)", source)
+        self.assertIn("sourceTime: bars[i].date", source)
+        self.assertIn("if (!Number.isFinite(x) && point.sourceTime)", source)
         self.assertIn("installIchimokuCloudCanvas", source)
         self.assertIn("spanASeries.setData", source)
         self.assertIn("spanBSeries.setData", source)

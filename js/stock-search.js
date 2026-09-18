@@ -1320,6 +1320,10 @@
       if (conversion[i] == null || base[i] == null || spanBValues[i] == null) return;
       points.push({
         time: times[i + 26],
+        // 일부 Lightweight Charts 버전은 캔들 데이터에 없는 미래 날짜를
+        // timeToCoordinate()로 변환하지 않는다. 그 경우 현재 봉을 기준으로
+        // 구름을 그릴 수 있도록 원본 시각도 함께 보관한다.
+        sourceTime: bars[i].date,
         spanA: (conversion[i] + base[i]) / 2,
         spanB: spanBValues[i]
       });
@@ -1353,8 +1357,12 @@
       ctx.clearRect(0, 0, width, height);
 
       var coordinates = points.map(function (point) {
+        var x = chart.timeScale().timeToCoordinate(point.time);
+        if (!Number.isFinite(x) && point.sourceTime) {
+          x = chart.timeScale().timeToCoordinate(point.sourceTime);
+        }
         return {
-          x: chart.timeScale().timeToCoordinate(point.time),
+          x: x,
           yA: candleSeries.priceToCoordinate(point.spanA),
           yB: candleSeries.priceToCoordinate(point.spanB)
         };
