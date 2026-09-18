@@ -127,7 +127,6 @@
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
-      + '<div class="ps-backtest-box" id="psBacktestBox" hidden></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
@@ -152,61 +151,10 @@
         btn.classList.add('active');
         activeTab = btn.getAttribute('data-tab');
         renderTabDesc(container);
-        renderBacktestBox(container);
         renderList(container);
         closeDetail(container);
       });
     });
-  }
-
-  // "각도기 테스트"/"공파산 타점" 탭 전용 - entry_signal이 과거에 뜬 전체 종목·전체 시점을
-  // 백테스트한 승률/평균수익률 요약(angle_momentum_scan.py/gongpasan_scan.py가 미리 계산해
-  // 캐시에 저장, GAS getPatternScanResult()가 scanData.XxxBacktest로 그대로 전달). 다른
-  // 탭에는 없는 정보라 탭이 바뀔 때마다 보이기/숨기기를 다시 결정한다. 2026-08-22부터 두
-  // 전략 다 손절/익절/타임컷 방식 동적 청산이라(각도기=진입봉 저가이탈 손절·각도꺾임
-  // 익절·40일 타임컷, 공파산=20일선 이탈 손절·파란점선 익절·20일 타임컷) 각주 문구만
-  // 탭별로 따로 둔다.
-  var BACKTEST_CONFIGS = {
-    angleMomentum: {
-      field: 'angleMomentumBacktest',
-      footnote: function () {
-        return '과거 신호를 다음날 시가 매수 후 진입 기준 봉 저가 이탈 손절·단기 각도 하락 전환 익절·'
-          + '40일 타임컷 중 먼저 오는 조건으로 청산했다고 가정한 결과이며, '
-          + '실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.';
-      }
-    },
-    gongpasan: {
-      field: 'gongpasanBacktest',
-      footnote: function (stats) {
-        return '과거 신호를 다음날 시가 매수 후 20일선 대비 3% 이상 이탈 손절·파란점선 도달 익절·'
-          + (stats.timecutDays || 20) + '일 타임컷 중 먼저 오는 조건으로 청산했다고 가정한 결과이며, '
-          + '실제 체결·세금·슬리피지와 다를 수 있습니다. 과거 성과가 미래 수익을 보장하지 않습니다.';
-      }
-    }
-  };
-
-  function renderBacktestBox(container) {
-    var box = container.querySelector('#psBacktestBox');
-    if (!box) return;
-    var config = BACKTEST_CONFIGS[activeTab];
-    if (!config) { box.hidden = true; box.innerHTML = ''; return; }
-    var stats = scanData && scanData[config.field];
-    if (!stats || !stats.totalTrades) {
-      box.hidden = false;
-      box.innerHTML = '<div class="ps-backtest-empty">아직 백테스트 결과가 없어요(스캔이 처음 실행된 뒤부터 누적됩니다).</div>';
-      return;
-    }
-    var winRate = Number(stats.winRatePct);
-    var avgReturn = Number(stats.avgReturnPct);
-    box.hidden = false;
-    box.innerHTML = ''
-      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 백테스트</div>'
-      + '<div class="ps-backtest-stats">'
-      + '<span><b>승률</b> ' + (isFinite(winRate) ? winRate.toFixed(1) : '-') + '%</span>'
-      + '<span class="' + chgClass(avgReturn) + '"><b>평균 수익률</b> ' + chgSign(avgReturn) + '</span>'
-      + (stats.profitFactor != null ? '<span><b>손익비</b> ' + Number(stats.profitFactor).toFixed(2) + '</span>' : '')
-      + '</div>'
-      + '<div class="ps-backtest-footnote">' + config.footnote(stats) + '</div>';
   }
 
   function loadScan(container) {
