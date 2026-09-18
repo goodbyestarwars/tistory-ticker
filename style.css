@@ -3896,6 +3896,83 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-lear
   }
 }
 
+/* 2026-09-19: 최종 푸터 단순 배치. 버전 / 링크 / 전체 구분선 / 두 링크. */
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  display: grid !important;
+  grid-template-columns: max-content max-content;
+  grid-template-areas:
+    "footer-version footer-version"
+    "footer-links footer-links"
+    "footer-divider footer-divider"
+    "footer-copyright footer-learn";
+  justify-content: center;
+  column-gap: 20px;
+  row-gap: 14px;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
+  content: '';
+  grid-area: footer-divider;
+  width: 100%;
+  border-top: 1px solid rgba(255,255,255,.2);
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+  grid-area: footer-version;
+  justify-self: center;
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small { font-size: 16px; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version span { font-size: 13px; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  grid-area: footer-links;
+  display: flex;
+  justify-self: center;
+  gap: 24px;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) a,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) .site-footer-viewmode {
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  grid-area: footer-copyright;
+  width: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 0;
+  text-align: right;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  content: '사이트 이용방법';
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  grid-area: footer-learn;
+  justify-self: start;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before { content: none; }
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: 1fr;
+    grid-template-areas: "footer-version" "footer-links" "footer-divider" "footer-copyright" "footer-learn";
+    row-gap: 12px;
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: center; text-align: center; }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
