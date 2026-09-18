@@ -4025,6 +4025,64 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
   border-top-color: #d8d8d8;
 }
 
+/* 사용자 스케치 기준: 위에는 링크 6개, 아래에는 NEW·버전 정보 한 줄. */
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  grid-template-columns: max-content max-content max-content;
+  grid-template-areas:
+    "footer-links footer-copyright footer-learn"
+    "footer-version footer-version footer-version";
+  column-gap: 0;
+  row-gap: 22px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  justify-self: end;
+  gap: 0;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:not(:last-child)::after {
+  content: '|';
+  margin: 0 16px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  justify-self: center;
+  width: auto;
+  padding: 0;
+  border: 0;
+  text-align: center;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before {
+  content: '|';
+  display: inline-block;
+  margin: 0 16px 0 4px;
+  color: #94a3b8;
+  font-size: 18px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  justify-self: start;
+  padding: 0;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
+  content: '|';
+  margin: 0 16px 0 4px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+  justify-self: start;
+  margin-top: 0;
+}
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: 1fr;
+    grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
+    row-gap: 12px;
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: center; text-align: center; }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
