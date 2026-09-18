@@ -18,7 +18,7 @@ import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SETUP = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_scanreaper_timer.sh')
-UNITS = ['dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch']
+UNITS = ['dailyscan', 'strategyscan', 'etfstrategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch']
 
 
 def find_bash():

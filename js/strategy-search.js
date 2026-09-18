@@ -350,7 +350,10 @@
       meta.textContent = '아직 스캔 결과가 없어요.';
       return;
     }
-    var text = '스캔 기준시각 ' + scanData.scannedAt + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
+    var scanAt = activeKey === 'etfReturn' && scanData.etfScannedAt
+      ? scanData.etfScannedAt : scanData.scannedAt;
+    var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신' : '전략 주 1회 갱신';
+    var text = '스캔 기준시각 ' + scanAt + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
     if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
     meta.textContent = text;
   }

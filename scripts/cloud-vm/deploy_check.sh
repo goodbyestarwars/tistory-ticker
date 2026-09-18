@@ -156,7 +156,7 @@ ensure_scan_timers_current() {
   # 해시 비교로 다시 설치하는 이 목록에 넣어 둔다.
   # swingmonitor: 2026-09-18 신설 - dailyscan의 ExecStartPost에서 떼어낸 후속 작업
   # (setup_swingmonitor_timer.sh 주석 참고).
-  for name in dailyscan strategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout swingmonitor; do
+  for name in dailyscan strategyscan etfstrategyscan anglemomentumscan gongpasanscan week52 batch scanreaper volumebreakout swingmonitor; do
     setup_script="$APP_DIR/scripts/cloud-vm/setup_${name}_timer.sh"
     if [ ! -f "$setup_script" ]; then
       continue  # 아직 배포가 안 닿았으면 다음 회차에 다시 본다
@@ -249,7 +249,7 @@ run_search_scan_refresh_after_deploy() {
   # 2026-09-15 실측(/health/load): 배포마다 도는 재스캔 rescan_patterns.py가 코어 약 50%를 3분 넘게 썼고,
   # 같은 창에서 FastAPI 수집기 전체는 약 1%였다. 검색 규칙 코드가 바뀐 배포에서만 다시 돈다.
   # 직전 배포 SHA를 모르거나 이 체크아웃에 없으면 예전처럼 돈다.
-  local scan_rule_paths="scripts/cloud-vm/pattern_detect.py scripts/cloud-vm/rescan_patterns.py scripts/cloud-vm/strategy_scan.py scripts/cloud-vm/invest_signal.py scripts/cloud-vm/invest_opinion.py scripts/cloud-vm/daily_scan_cache.py scripts/cloud-vm/scan_forward.py data/"
+  local scan_rule_paths="scripts/cloud-vm/pattern_detect.py scripts/cloud-vm/rescan_patterns.py scripts/cloud-vm/strategy_scan.py scripts/cloud-vm/etf_strategy_scan.py scripts/cloud-vm/invest_signal.py scripts/cloud-vm/invest_opinion.py scripts/cloud-vm/daily_scan_cache.py scripts/cloud-vm/scan_forward.py data/"
   # shellcheck disable=SC2086  # 공백으로 나눈 경로 목록이라 일부러 따옴표를 뺀다
   if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null \
       && git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $scan_rule_paths; then
@@ -263,8 +263,10 @@ run_search_scan_refresh_after_deploy() {
     # 1코어 VM 응답이 전부 멈췄던 장애). flock은 기다렸다가 차례가 오면 실행한다.
     flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/rescan_patterns.py" \
       || echo "pattern cache refresh failed; daily timer will retry" >&2
-    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py" \
+    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py" --non-etf \
       || echo "strategy cache refresh failed; strategy timer will retry" >&2
+    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/etf_strategy_scan.py" \
+      || echo "ETF strategy cache refresh failed; ETF strategy timer will retry" >&2
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh finished"
   ) 200>&- 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
   disown

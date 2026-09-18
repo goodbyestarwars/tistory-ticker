@@ -16,7 +16,8 @@ CLOUD_VM = os.path.join(ROOT, 'scripts', 'cloud-vm')
 # 이름: (UTC 시각, 설명). 타이머는 VM 시계(UTC) 기준이다. KST = UTC + 9시간.
 EXPECTED = {
     'dailyscan': '11:10',          # 20:10 KST - 마감 10분 뒤, 그날 일봉을 채운다
-    'strategyscan': '11:30',       # 20:30 KST - daily_scan이 채운 DB만 읽는다
+    'strategyscan': '12:10',       # 월요일 21:10 KST - ETF 제외 전략 주 1회
+    'etfstrategyscan': '11:30',    # 20:30 KST - ETF 수익률은 매일
     'anglemomentumscan': '11:35',  # 20:35 KST
     'gongpasanscan': '11:40',      # 20:40 KST
     'week52': '11:50',             # 20:50 KST - daily_scan의 daily_prices를 재사용
@@ -38,7 +39,8 @@ def kst_minutes(utc_hm):
 class ScanTimerScheduleTest(unittest.TestCase):
     def test_after_close_scans_use_the_new_slots(self):
         for name, utc_hm in EXPECTED.items():
-            self.assertEqual(on_calendar(name), '*-*-* %s:00' % utc_hm, name)
+            expected = 'Mon *-*-* 12:10:00' if name == 'strategyscan' else '*-*-* %s:00' % utc_hm
+            self.assertEqual(on_calendar(name), expected, name)
 
     def test_no_after_close_scan_runs_before_2000_kst(self):
         for name, utc_hm in EXPECTED.items():
@@ -46,10 +48,10 @@ class ScanTimerScheduleTest(unittest.TestCase):
 
     def test_daily_scan_runs_before_the_scans_that_read_its_prices(self):
         daily = kst_minutes(EXPECTED['dailyscan'])
-        for name in ('strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch'):
+        for name in ('strategyscan', 'etfstrategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch'):
             self.assertGreater(kst_minutes(EXPECTED[name]), daily, name)
         # 원래 간격(daily 뒤 20분, 이후 5분씩)을 유지한다 - daily_scan 소요시간 실측이 없어 검증된 간격을 쓴다.
-        self.assertEqual(kst_minutes(EXPECTED['strategyscan']) - daily, 20)
+        self.assertGreater(kst_minutes(EXPECTED['strategyscan']), daily)
 
     def test_scans_run_one_at_a_time_below_fastapi_priority(self):
         """2026-09-14 23:08 KST 장애: 스캔이 한꺼번에 떠 1코어 VM의 응답이 전부 멈췄다."""

@@ -1,8 +1,8 @@
 #!/bin/bash
 # kiwoom-strategyscan.service/.timer를 등록해서 strategy_scan.py(저평가 종목 전종목 스캔
 # - 2026-08 전엔 kisyaml 프리셋 전략 스캔이었음)가 하루 1회(20:30 KST=11:30 UTC, 예전 16:20 KST) 자동
-# 실행되게 한다. daily_scan.py(20:10 KST)가 그날의 daily_prices를 다 채운 뒤에 돌아야
-# 하므로 20분 뒤로 잡았다.
+# 실행되게 한다. ETF 수익률은 별도 etfstrategyscan이 매일 갱신하고, 이 유닛은 ETF를
+# 제외한 저평가·배당·국민연금·목표주가 결과만 월요일 주 1회 갱신한다.
 # 2026-09-14 사용자 지시("20:00시까지는 스캔 돌리지마. 장 끝나고 돌려")로 KRX 애프터마켓·NXT
 # 마감(20:00) 뒤로 옮겼다. 이 파일이 바뀌면 deploy_check.sh(ensure_scan_timers_current)가
 # VM에 다시 설치하고 타이머를 재시작한다 - 사람이 VM에서 다시 돌릴 필요는 없다.
@@ -21,7 +21,7 @@ Description=Kiwoom undervalued-stock scan (full universe, DB-only, no external A
 Type=oneshot
 User=$USER
 WorkingDirectory=$HOME_DIR
-ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/strategy_scan.py
+ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/strategy_scan.py --non-etf
 Nice=10
 CPUWeight=20
 IOSchedulingClass=idle
@@ -29,10 +29,10 @@ SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-strategyscan.timer > /dev/null << TIMEREOF
 [Unit]
-Description=Run kiwoom-strategyscan daily at 20:30 KST (11:30 UTC, daily_scan 이후)
+Description=Run non-ETF strategy scan weekly on Monday at 21:10 KST (12:10 UTC)
 
 [Timer]
-OnCalendar=*-*-* 11:30:00
+OnCalendar=Mon *-*-* 12:10:00
 Persistent=true
 
 [Install]

@@ -110,7 +110,7 @@ class DeployRestartScopeTest(unittest.TestCase):
         # 이름을 한 줄로 못 박으면 타이머가 늘 때마다 여기서 걸린다. 목록에 무엇이 들어
         # 있는지만 본다 - 빠진 타이머는 이미 깔린 VM에 영영 안 닿는 게 문제다.
         listed = re.search(r'^  for name in (.+); do$', body, re.M).group(1).split()
-        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan',
+        for name in ('dailyscan', 'strategyscan', 'etfstrategyscan', 'anglemomentumscan', 'gongpasanscan',
                      'week52', 'batch', 'scanreaper', 'volumebreakout', 'swingmonitor'):
             self.assertIn(name, listed)
         self.assertIn('sha256sum "$setup_script"', body)
@@ -123,7 +123,7 @@ class DeployRestartScopeTest(unittest.TestCase):
         self.assertIn('ensure_scan_timers_current || true', self.script)
         # volumebreakout: 2026-09-17 추가. ensure_volume_breakout_timer는 유닛이 없을 때만 설치해서
         # 이미 깔린 VM에는 설치 스크립트 변경(09:05 관측 타이머)이 닿지 않았다.
-        for name in ('dailyscan', 'strategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch',
+        for name in ('dailyscan', 'strategyscan', 'etfstrategyscan', 'anglemomentumscan', 'gongpasanscan', 'week52', 'batch',
                      'scanreaper', 'volumebreakout'):
             setup = os.path.join(ROOT, 'scripts', 'cloud-vm', 'setup_%s_timer.sh' % name)
             with open(setup, encoding='utf-8') as handle:
@@ -146,7 +146,8 @@ class DeployRestartScopeTest(unittest.TestCase):
         self.assertLess(gate, body.index('"$APP_DIR/rescan_patterns.py"'))
         self.assertLess(gate, body.index('"$APP_DIR/strategy_scan.py"'))
         for path in ('scripts/cloud-vm/pattern_detect.py', 'scripts/cloud-vm/rescan_patterns.py',
-                     'scripts/cloud-vm/strategy_scan.py', 'scripts/cloud-vm/invest_signal.py', 'data/'):
+                     'scripts/cloud-vm/strategy_scan.py', 'scripts/cloud-vm/etf_strategy_scan.py',
+                     'scripts/cloud-vm/invest_signal.py', 'data/'):
             self.assertIn(path, body)
         # 직전 SHA를 모르면 건너뛰지 않고 예전처럼 돈다.
         self.assertIn('if [ -n "${LAST_DEPLOYED:-}" ] && git cat-file -e "${LAST_DEPLOYED}^{commit}" 2>/dev/null', body)

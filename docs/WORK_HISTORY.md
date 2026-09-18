@@ -1,5 +1,13 @@
 # 9Pay 주요 작업이력
 
+**2026-09-18(13차) 사이트 이용 방법 보강·전략검색 주기 분리·백테스트 표기 정리**
+
+푸터의 `사이트 이용 방법` 페이지를 검색 중심으로 갱신했다. 검색어 입력·국내/미국 종목 우선순위·ETF 구분·검색 결과와 실시간 시세의 차이·차트검색 스캔 시각·전략검색 갱신 주기를 자세히 적었다. 각도기·공파산 백테스트 제목의 `참고용` 표기는 제거하고, 실제 체결·세금·슬리피지 차이와 미래 수익 비보장 설명은 유지했다.
+
+전략검색은 `strategy_scan.py --non-etf`를 월요일 21:10 KST 주 1회 실행하고, ETF 수익률은 `etf_strategy_scan.py`를 매일 20:30 KST 실행하도록 분리했다. 두 작업은 같은 캐시를 원자적으로 합쳐 쓰며 공용 잠금·낮은 우선순위를 그대로 사용한다. 배포 후 새 타이머도 자동 설치되고 07:30 리퍼가 ETF 유닛까지 정리한다.
+
+검증: `python -m pytest test/test_scan_timer_schedule.py test/test_scan_reaper_behavior.py test/test_deploy_check_contract.py test/test_strategy_scan.py test/test_ui_ia.py -q --disable-warnings --maxfail=1` (244 passed, 1 skipped, 23 subtests).
+
 **2026-09-18(12차) 전략검색 스캔 대비 필터 형태 보정**
 
 `스캔 대비`·`정렬` 셀렉트를 둥근 시스템 입력칸처럼 보이던 형태에서 전략 탭과 같은 각진 필터 컨트롤로 바꿨다. 36px 높이, 3px 모서리, 굵은 글자와 명확한 포커스 테두리를 적용했다.

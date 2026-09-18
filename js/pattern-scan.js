@@ -200,7 +200,7 @@
     var avgReturn = Number(stats.avgReturnPct);
     box.hidden = false;
     box.innerHTML = ''
-      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 백테스트(참고용)</div>'
+      + '<div class="ps-backtest-title">과거 신호 ' + stats.totalTrades + '건 백테스트</div>'
       + '<div class="ps-backtest-stats">'
       + '<span><b>승률</b> ' + (isFinite(winRate) ? winRate.toFixed(1) : '-') + '%</span>'
       + '<span class="' + chgClass(avgReturn) + '"><b>평균 수익률</b> ' + chgSign(avgReturn) + '</span>'

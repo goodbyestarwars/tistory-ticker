@@ -1331,10 +1331,14 @@ def main():
         return
     load_dotenv()
 
+    non_etf_weekly = '--non-etf' in sys.argv
     universe = load_full_universe()
     if not universe:
         log('전종목 유니버스를 못 불러왔습니다.')
         sys.exit(1)
+    if non_etf_weekly:
+        universe = [stock for stock in universe if not stock.get('is_etf')]
+        log('--non-etf 모드: ETF를 제외한 주 1회 전략만 갱신합니다.')
     if '--test' in sys.argv:
         universe = universe[:50]
         log('--test 모드: %d종목만 스모크 테스트' % len(universe))
@@ -1381,7 +1385,8 @@ def main():
     dividend_sectors, dividend_scanned = scan_dividend(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
         daily_cache=daily_cache)
-    etf_return_sectors, etf_scanned = scan_etf_returns(universe, conn, daily_cache=daily_cache)
+    etf_return_sectors, etf_scanned = ({}, 0) if non_etf_weekly else scan_etf_returns(
+        universe, conn, daily_cache=daily_cache)
     nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes, daily_cache=daily_cache)
     target_price_sectors, target_price_scanned = scan_target_price_gap(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
@@ -1427,7 +1432,20 @@ def main():
         },
     }
 
-    output['categories']['etfReturn'] = {
+    if non_etf_weekly:
+        # ETF는 별도 매일 타이머가 갱신한다. 주 1회 본체가 기존 ETF 결과를 덮어쓰지 않는다.
+        try:
+            with open(OUTPUT_FILE, encoding='utf-8') as handle:
+                previous = json.load(handle)
+            previous_categories = previous.get('categories', {})
+            if isinstance(previous_categories, dict) and isinstance(previous_categories.get('etfReturn'), dict):
+                output['categories']['etfReturn'] = previous_categories['etfReturn']
+                output['etfScanned'] = previous.get('etfScanned', 0)
+                output['etfScannedAt'] = previous.get('etfScannedAt')
+        except (OSError, ValueError):
+            log('기존 ETF 캐시가 없어 이번 주 결과에는 ETF 탭이 아직 없습니다.')
+    else:
+        output['categories']['etfReturn'] = {
         'name': ETF_RETURN_CATEGORY_NAME,
         'methodology': methodology(
             ('계산', '유효한 가격 데이터가 있는 국내 ETF 전체'),
@@ -1441,8 +1459,9 @@ def main():
             for sector, matches in etf_return_sectors.items()
             if matches
         },
-    }
-    output['etfScanned'] = etf_scanned
+        }
+        output['etfScanned'] = etf_scanned
+        output['etfScannedAt'] = output['scannedAt']
 
     output['categories']['nationalPension'] = {
         'name': '국민연금 보유종목',
