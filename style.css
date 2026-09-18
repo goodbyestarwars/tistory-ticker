@@ -3699,7 +3699,7 @@ body#tt-body-index .site-footer > .site-footer-version {
   justify-self: start;
   align-self: center;
 }
-body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-links:not(.site-footer-learn) {
+body#tt-body-index .site-footer > .site-footer-links:not(.site-footer-learn) {
   grid-area: footer-links;
   display: grid;
   grid-template-columns: repeat(2, max-content);
@@ -3707,7 +3707,7 @@ body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-links:not(.s
   gap: 12px 30px;
   font-size: 15px;
 }
-body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-learn {
+body#tt-body-index .site-footer > .site-footer-learn {
   grid-area: footer-learn;
   align-self: center;
   justify-self: end;
@@ -3742,7 +3742,7 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
     justify-items: start;
     row-gap: 20px;
   }
-  body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-learn { justify-self: start; }
+  body#tt-body-index .site-footer > .site-footer-learn { justify-self: start; }
   body#tt-body-index .site-footer > .copyright { justify-self: stretch; text-align: left; }
 }
 
