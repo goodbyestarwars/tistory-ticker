@@ -667,13 +667,9 @@
     connectRealtime(state.realtimeGeneration);
   }
 
-  /* 2026-09-15 사용자 요청("숫자 변하는 값이 부자연스러워 변하는 숫자만 스코어링처럼 넘어가게",
-     "반절만 움직이는 그런거"): 칸 전체를 뒤집던 플랩 대신 바뀐 글자만 점수판(스플릿 플랩)처럼
-     이전 숫자의 윗반쪽이 접혀 내려오고 새 숫자의 아랫반쪽이 펼쳐진다(style.css의 .hrt-flap).
-     오른쪽 끝(원·%)부터 맞춰 비교해 자릿수가 늘거나 줄어도 같은 자리끼리 비교된다.
-     같은 값이 다시 오면 움직이지 않는다. 애니메이션이 끝나면 원래 HTML로 되돌려
-     다음 비교·복사가 평문 기준이 되게 한다. */
-  var FLAP_MS = 450;
+  /* WebSocket 숫자는 체결마다 즉시 바뀌므로 플립/롤 애니메이션을 적용하지 않는다.
+     값만 교체해 자릿수가 바뀌어도 화면이 튀지 않고 자연스럽게 따라오게 한다.
+     splitFlapCell 이름과 호출부는 기존 DOM 계약을 유지하기 위해 남겨 둔다. */
 
   function flapHalf(position, age, text) {
     return '<span class="hrt-flap-half hrt-flap-' + position + ' hrt-flap-' + age + '"><span>'
@@ -706,34 +702,9 @@
   }
 
   function splitFlapCell(cell, html) {
-    var previousHtml = cell._hrtPlainHtml != null ? cell._hrtPlainHtml : cell.innerHTML;
-    if (previousHtml === html) return;
+    if (cell._hrtPlainHtml === html) return;
     cell._hrtPlainHtml = html;
-    var before = document.createElement('div');
-    var after = document.createElement('div');
-    before.innerHTML = previousHtml;
-    after.innerHTML = html;
-    var oldNodes = textNodesOf(before);
-    var newNodes = textNodesOf(after);
-    var changed = false;
-    if (oldNodes.length === newNodes.length) {
-      newNodes.forEach(function (node, index) {
-        var oldText = oldNodes[index].nodeValue;
-        if (oldText === node.nodeValue) return;
-        changed = true;
-        var span = document.createElement('span');
-        span.className = 'hrt-flap-text';
-        span.innerHTML = splitFlapText(oldText, node.nodeValue);
-        node.parentNode.replaceChild(span, node);
-      });
-    }
-    // 글자 칸 구조가 달라지면(값 없음 → 값 생김 등) 넘기지 않고 바로 바꾼다.
-    cell.innerHTML = changed ? after.innerHTML : html;
-    clearTimeout(cell._hrtFlapTimer);
-    if (!changed) return;
-    cell._hrtFlapTimer = setTimeout(function () {
-      if (cell._hrtPlainHtml === html) cell.innerHTML = html;
-    }, FLAP_MS);
+    cell.innerHTML = html;
   }
 
   function updateRow(code, quote) {
