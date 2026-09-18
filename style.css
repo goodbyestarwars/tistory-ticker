@@ -3984,6 +3984,47 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-lear
   body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: center; text-align: center; }
 }
 
+/* 2026-09-19: 푸터를 현재 페이지 배경과 같은 밝은 표면으로 맞춘다. */
+body#tt-body-index .site-footer {
+  background: rgb(255, 254, 252);
+  color: #171717;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)),
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links .site-footer-viewmode,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  font-size: 18px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+  column-gap: 0;
+  color: #334155;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small {
+  margin-left: 0;
+  color: #334155;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version span {
+  font-size: 14px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) a,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) .site-footer-viewmode,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  color: #334155;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:not(:last-child)::after,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
+  color: #94a3b8;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { font-size: 18px; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
+  border-top-color: #d8d8d8;
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
