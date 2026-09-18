@@ -15,7 +15,7 @@ HOME_DIR="$HOME/kiwoom-api"
 
 sudo tee /etc/systemd/system/kiwoom-strategyscan.service > /dev/null << SERVICEEOF
 [Unit]
-Description=Kiwoom undervalued-stock scan (full universe, DB-only, no external API calls)
+Description=Kiwoom non-ETF strategy scan (weekly, DB-only)
 
 [Service]
 Type=oneshot
