@@ -3849,6 +3849,53 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-lear
   body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: start; }
 }
 
+/* 최종 푸터 순서: 버전 / 안내 링크 / 구분선 / 이용 방법·주식 이야기. */
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  grid-template-columns: max-content max-content;
+  grid-template-areas:
+    "footer-version footer-version"
+    "footer-links footer-links"
+    "footer-copyright footer-learn";
+  justify-content: center;
+  row-gap: 12px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+  justify-self: center;
+  margin-bottom: 4px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  justify-self: center;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  margin: 8px 0 0;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,.14);
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  justify-self: end;
+  width: auto;
+  min-width: 0;
+  padding-right: 0;
+  text-align: right;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  justify-self: start;
+  padding-left: 0;
+}
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: 1fr;
+    grid-template-areas: "footer-version" "footer-links" "footer-copyright" "footer-learn";
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+    justify-self: start;
+    width: 100%;
+    text-align: left;
+  }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
