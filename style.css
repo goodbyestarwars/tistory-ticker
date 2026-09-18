@@ -3746,6 +3746,109 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
   body#tt-body-index .site-footer > .copyright { justify-self: stretch; text-align: left; }
 }
 
+/* 2026-09-19: 메인 푸터 최종 2행 배치.
+   1행은 버전과 안내 링크, 2행은 이용 방법·주식 이야기만 남긴다. */
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  column-gap: 28px;
+  row-gap: 0;
+  padding: 34px 32px 24px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+  order: 1;
+  flex: 0 0 auto;
+  justify-self: auto;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  order: 2;
+  display: flex;
+  flex: 0 0 auto;
+  grid-area: auto;
+  gap: 0;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) a,
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) .site-footer-viewmode {
+  padding: 0 12px;
+  border-right: 1px solid rgba(255,255,255,.2);
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > :last-child { border-right: 0; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  order: 3;
+  flex: 1 0 100%;
+  width: auto;
+  margin-top: 24px;
+  padding: 16px 0 0;
+  border-top: 1px solid rgba(255,255,255,.14);
+  font-size: 13px;
+  text-align: center;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  font-size: 0;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  content: '@gOOdbyestar (사이트 이용 방법)';
+  font-size: 13px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  order: 4;
+  flex: 0 0 auto;
+  grid-area: auto;
+  margin: -29px 0 0 250px;
+  padding: 0;
+  border: 0;
+  font-size: 13px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
+  content: '|';
+  margin-right: 18px;
+  color: rgba(255,255,255,.35);
+}
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) { padding: 30px 20px 22px; row-gap: 14px; }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version,
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) { flex-basis: 100%; justify-content: center; }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { margin-top: 12px; }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { margin: 0; }
+}
+
+/* 구형 티스토리 푸터의 두 번째 줄은 flex 줄바꿈에 맡기지 않고 영역으로 고정한다. */
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  display: grid !important;
+  grid-template-columns: auto 1fr auto;
+  grid-template-areas:
+    "footer-version footer-links footer-links"
+    "footer-copyright footer-copyright footer-learn";
+  column-gap: 28px;
+  row-gap: 22px;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { grid-area: footer-version; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  grid-area: footer-links;
+  justify-self: end;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  grid-area: footer-copyright;
+  margin: 0;
+  text-align: left;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+  grid-area: footer-learn;
+  margin: 0;
+  justify-self: end;
+}
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: 1fr;
+    grid-template-areas: "footer-version" "footer-links" "footer-copyright" "footer-learn";
+    row-gap: 14px;
+  }
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn),
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: start; }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
