@@ -702,7 +702,8 @@
   }
 
   function splitFlapCell(cell, html) {
-    if (cell._hrtPlainHtml === html) return;
+    var previousHtml = cell._hrtPlainHtml != null ? cell._hrtPlainHtml : cell.innerHTML;
+    if (previousHtml === html) return;
     cell._hrtPlainHtml = html;
     cell.innerHTML = html;
   }
