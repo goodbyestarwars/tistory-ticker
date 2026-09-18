@@ -2021,8 +2021,15 @@
           priceLineVisible: false,
           crosshairMarkerVisible: false
         });
-        spanASeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
-        spanBSeries.setData(cloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
+        // 구름 데이터가 일부 브라우저/차트 버전에서 미래 시각·중복 시각을
+        // 거부해 전체 차트 렌더링이 중단되지 않도록 유한값과 단조 증가 시각만 전달한다.
+        var safeCloudPoints = cloudPoints.filter(function (point, index, all) {
+          return point && point.time && Number.isFinite(Number(point.spanA)) && Number.isFinite(Number(point.spanB))
+            && (index === 0 || String(point.time) > String(all[index - 1].time));
+        });
+        spanASeries.setData(safeCloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
+        spanBSeries.setData(safeCloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
+        cloudPoints = safeCloudPoints;
         priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
       }
 
