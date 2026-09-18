@@ -1294,9 +1294,12 @@ document.documentElement.classList.add('skin-ready');
       });
     })();
 
-    var marketTempCacheKey = 'home_market_temp_v1';
+    // 환율을 포함한 시장 온도는 현재값이 핵심이다. 예전 캐시를 먼저 그리면
+    // 제공처가 바뀌거나 서버가 복구된 뒤에도 오래된 환율이 화면에 남을 수 있다.
+    // 키를 올려 기존 값을 폐기하고, 최신 응답을 받은 뒤에만 정상값을 그린다.
+    var marketTempCacheKey = 'home_market_temp_v2';
     var marketSectorCacheKey = 'home_market_sectors_v1';
-    var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 10 * 60 * 1000);
+    var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 2 * 60 * 1000);
     var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 5 * 60 * 1000);
     var summarySessionKey = '';
     var loadHomeUsSummary;
@@ -1325,14 +1328,21 @@ document.documentElement.classList.add('skin-ready');
     // 9개 지표를 순차로 외부 조회해 8~12초를 넘기기 일쑤였다(js/market-temp.js 상단 주석 참고,
     // 그 파일은 이미 20000으로 올려둔 상태였는데 이 홈 대시보드 쪽만 12000으로 남아있었다) -
     // 홈에 "일시 지연"/"데이터 확인 중"이 가끔 뜨던 원인이라 여기도 같은 값으로 맞춘다.
-    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1', 20000)
+    // 쿼리 문자열을 매번 바꿔 WebView·중간 캐시가 이전 marketTemp 응답을
+    // 재사용하지 못하게 한다. 환율 카드는 요청 전까지 이전 숫자를 표시하지 않는다.
+    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1&_ts=' + Date.now(), 20000)
       .then(function (market) {
         writeHomeDataCache(marketTempCacheKey, market);
         if (homeMarketSession().market === 'us') renderMarketExchange(market);
         else renderMarketTemperature(market);
       })
       .catch(function () {
-        if (!cachedMarketTemp && homeMarketSession().market !== 'us') {
+        // 네트워크가 실패한 경우에만 2분 이내의 캐시를 비상 표시로 사용한다.
+        // 정상 경로에서는 반드시 이번 요청의 최신 응답을 먼저 그린다.
+        if (cachedMarketTemp) {
+          if (homeMarketSession().market === 'us') renderMarketExchange(cachedMarketTemp);
+          else renderMarketTemperature(cachedMarketTemp);
+        } else if (homeMarketSession().market !== 'us') {
           setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
@@ -1372,7 +1382,6 @@ document.documentElement.classList.add('skin-ready');
     };
 
     loadHomeDomesticSummary = function () {
-      if (cachedMarketTemp) renderMarketTemperature(cachedMarketTemp);
       if (cachedMarketSectors) renderMarketSectors(cachedMarketSectors);
       // 지연 콜백에만 의존하면 모바일 WebView가 계속 미루면서 주도/주의 업종이
       // 비어 보일 수 있다. fetch 자체는 비동기이므로 즉시 시작해 첫 화면을 막지 않는다.

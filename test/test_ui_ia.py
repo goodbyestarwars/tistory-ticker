@@ -2530,7 +2530,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         widgets = self.read("js/home-widgets.js")
         ranking = self.read("js/sidebar-rank.js")
         self.assertNotIn("GAS_TICKER_URL + '?market=1'", home)
-        self.assertIn("home_market_temp_v1", home)
+        self.assertIn("home_market_temp_v2", home)
         self.assertIn("home_market_sectors_v1", home)
         self.assertNotIn("home_pattern_scan_v1", home)
         self.assertIn("readHomeDataCache", home)
