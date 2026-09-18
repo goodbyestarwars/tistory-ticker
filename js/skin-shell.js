@@ -361,10 +361,7 @@
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
         ' aria-pressed="false">PC 화면</button>' +
       '</nav>' +
-      /* 2026-09-17 요청: 주식 이야기는 법적 고지·문의와 성격이 다른 읽을거리라 둘째 줄로
-         내린다. 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면과 카피라이트(사이트 이용
-         방법)가 함께 선다. 줄 나눔은 style.css의 .site-footer order/flex-basis가 만든다 -
-         카피라이트는 티스토리 태그 때문에 skin.html에 있어 DOM 순서를 못 바꾼다. */
+      /* 주식 이야기는 법적 고지와 분리된 읽을거리 입구로 표시한다. */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
       '</nav>'
