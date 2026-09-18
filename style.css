@@ -3995,9 +3995,8 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-vers
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links,
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links .site-footer-viewmode,
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
-  font-size: 18px;
+  font-size: 16px;
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
   column-gap: 0;
@@ -4008,7 +4007,7 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-vers
   color: #334155;
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version span {
-  font-size: 14px;
+  font-size: 16px;
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) a,
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) .site-footer-viewmode,
@@ -4020,7 +4019,7 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-link
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
   color: #94a3b8;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { font-size: 18px; }
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { font-size: 16px; }
 body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
   border-top-color: #d8d8d8;
 }
@@ -4032,7 +4031,9 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
     "footer-links footer-copyright footer-learn"
     "footer-version footer-version footer-version";
   column-gap: 0;
-  row-gap: 22px;
+  row-gap: 32px;
+  border-top: 1px solid #e5e7eb;
+  justify-content: start;
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
@@ -4049,13 +4050,14 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
   padding: 0;
   border: 0;
   text-align: center;
+  font-size: 0; /* 기존 원문은 숨기고 위 ::after의 이용방법만 표시한다. */
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before {
-  content: '|';
-  display: inline-block;
-  margin: 0 16px 0 4px;
+  content: none;
+  display: none;
+  margin: 0;
   color: #94a3b8;
-  font-size: 18px;
+  font-size: 16px;
 }
 body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
   justify-self: start;
