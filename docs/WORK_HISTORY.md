@@ -1,5 +1,11 @@
 # 9Pay 주요 작업이력
 
+**2026-09-18(6차) 국내 시장 헤더의 VI·세션 정렬 보정**
+
+편집형 홈의 공통 `flex: 1` 규칙이 VI 이력과 정규장 표시 묶음에도 적용되어 헤더 중앙에 남던 문제를 고쳤다. 해당 묶음만 제목 영역과 분리해 카드 오른쪽 끝에 정렬했다.
+
+검증: `python -m pytest test/test_home_badge_hidden.py test/test_ui_ia.py -q --continue-on-collection-errors` (164 passed, 23 subtests).
+
 **2026-09-18(5차) WebSocket 숫자 플립 효과 제거**
 
 실시간 현재가·등락률 갱신 때 자릿수별 플립 애니메이션이 체결마다 반복되어 숫자가 튀어 보이던 문제를 수정했다. 기존 WebSocket 수신·재연결·값 변경 감지는 유지하고, 변경된 HTML만 즉시 교체해 자연스럽게 표시한다.

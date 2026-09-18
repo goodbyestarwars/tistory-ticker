@@ -6409,6 +6409,16 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
 body#tt-body-index .home-editorial-page .home-section-heading strong {
   font-size: 28px !important;
 }
+/* 제목 옆 정보 영역을 flex:1 규칙에서 분리한다. VI 이력·현재 세션은 카드 오른쪽 끝에
+   한 묶음으로 붙어야 제목과 중간에 어중간하게 벌어지지 않는다. */
+body#tt-body-index .home-editorial-page .home-card-heading > .home-cb-wrap {
+  display: flex;
+  flex: 0 0 auto;
+  justify-content: flex-end;
+  align-items: baseline;
+  gap: 10px;
+  margin-left: auto;
+}
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
   justify-content: flex-start;
 }
