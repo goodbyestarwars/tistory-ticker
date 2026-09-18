@@ -3611,6 +3611,9 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
 .site-footer-learn { order: 2; flex: 0 0 100%; }
 /* 혼자 서는 줄이라 구분선이 필요 없다 - 위 :last-child 규칙이 넣는 오른쪽 선을 되돌린다. */
 .site-footer-learn a:last-child { border-right: none; }
+/* 주식 이야기는 보조 법적 링크가 아니라 읽을거리의 입구라 한 단계 진한 글자로 구분한다. */
+.site-footer-learn a { color: #334155; font-weight: 600; }
+.site-footer-learn a:hover { color: #b45309; }
 /* 폰 폭에서는 링크만으로 두 줄이 차서 카피라이트가 항상 줄 맨앞으로 내려간다.
    그 자리에선 왼쪽 구분선이 앞에 아무것도 없이 혼자 뜨므로 지운다(PC에서는 "문의하기 |
    PC 화면 | ©"로 이어져 구분선이 제 역할을 한다). */
@@ -3622,6 +3625,8 @@ html.dark .site-footer-version { color: rgba(245, 239, 224, .55); }
 html.dark .site-footer-version span { border-color: #ff8a80; color: #ff8a80; }
 html.dark .site-footer-links a { color: rgba(245, 239, 224, 0.55); border-right-color: rgba(245, 239, 224, 0.14); }
 html.dark .site-footer-links a:hover { color: #F5EFE0; }
+html.dark .site-footer-learn a { color: #d3dbe8; }
+html.dark .site-footer-learn a:hover { color: #fbbf24; }
 html.dark .copyright { color: rgba(245, 239, 224, 0.55); border-left-color: rgba(245, 239, 224, 0.14); }
 html.dark .copyright:hover { color: #F5EFE0; }
 body.iframe-mode .site-footer { display: none !important; }
