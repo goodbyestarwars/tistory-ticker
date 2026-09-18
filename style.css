@@ -3689,6 +3689,63 @@ body#tt-body-index .site-footer-note { font-size: 14px; }
 body#tt-body-index .site-footer-note strong { font-size: 16px; }
 body#tt-body-index .site-footer-bottom { font-size: 13px; }
 
+/* 티스토리에 이미 저장된 구형 푸터 마크업도 같은 배치로 정렬한다.
+   새 마크업은 .site-footer-main을 사용하지만, 기존 페이지는 version·링크·저작권이
+   footer 바로 아래에 남아 있을 수 있다. 두 구조가 배포 시점에 섞여도 화면이 달라지지 않게
+   구형 구조만 직접 3열로 재배치한다. */
+body#tt-body-index .site-footer > #shell-footerLinks { display: contents; }
+body#tt-body-index .site-footer > .site-footer-version {
+  grid-area: footer-version;
+  justify-self: start;
+  align-self: center;
+}
+body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-links:not(.site-footer-learn) {
+  grid-area: footer-links;
+  display: grid;
+  grid-template-columns: repeat(2, max-content);
+  justify-content: center;
+  gap: 12px 30px;
+  font-size: 15px;
+}
+body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-learn {
+  grid-area: footer-learn;
+  align-self: center;
+  justify-self: end;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 16px;
+}
+body#tt-body-index .site-footer > .copyright {
+  grid-area: footer-copyright;
+  justify-self: center;
+  width: 100%;
+  padding: 14px 0 0;
+  border: 0;
+  border-top: 1px solid rgba(255,255,255,.14);
+  font-size: 13px;
+  text-align: center;
+}
+body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  display: grid !important;
+  grid-template-columns: minmax(230px, 1fr) minmax(300px, 1.3fr) minmax(180px, 1fr);
+  grid-template-areas:
+    "footer-version footer-links footer-learn"
+    "footer-copyright footer-copyright footer-copyright";
+  align-items: center;
+  row-gap: 22px;
+}
+@media (max-width: 720px) {
+  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: 1fr;
+    grid-template-areas: "footer-version" "footer-links" "footer-learn" "footer-copyright";
+    justify-items: start;
+    row-gap: 20px;
+  }
+  body#tt-body-index .site-footer > #shell-footerLinks > .site-footer-learn { justify-self: start; }
+  body#tt-body-index .site-footer > .copyright { justify-self: stretch; text-align: left; }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
