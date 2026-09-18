@@ -3676,6 +3676,19 @@ body.iframe-mode .site-footer { display: none !important; }
   .site-footer-bottom { align-items: flex-start; flex-direction: column; gap: 6px; }
 }
 
+/* 2026-09-19: 푸터는 메인 화면에서만 보여준다. 개별 메뉴·글 화면에서는
+   콘텐츠 끝에 같은 안내가 반복되어 화면이 길어지지 않게 숨긴다. */
+.site-footer { display: none !important; }
+body#tt-body-index .site-footer { display: flex !important; }
+
+/* 메인 푸터 안내 문구는 작은 각주가 아니라 실제 이동 메뉴이므로 읽기 크기로 맞춘다. */
+body#tt-body-index .site-footer-links { font-size: 15px; }
+body#tt-body-index .site-footer-version { font-size: 13px; }
+body#tt-body-index .site-footer-version small { font-size: 13px; }
+body#tt-body-index .site-footer-note { font-size: 14px; }
+body#tt-body-index .site-footer-note strong { font-size: 16px; }
+body#tt-body-index .site-footer-bottom { font-size: 13px; }
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */
