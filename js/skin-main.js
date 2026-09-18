@@ -1273,7 +1273,7 @@ document.documentElement.classList.add('skin-ready');
           el.hidden = false;
           el.classList.toggle('hsc-to-us', toUs);
           el.classList.toggle('hsc-to-kr', !toUs);
-          labelEl.textContent = toUs ? '미국장 화면 전환까지' : '국내장(NXT) 개장까지';
+          labelEl.textContent = toUs ? '미국장 화면 전환까지' : '국내 프리마켓 개장까지';
           wasVisible = true;
         }
         var minutes = Math.floor(next.secondsLeft / 60);

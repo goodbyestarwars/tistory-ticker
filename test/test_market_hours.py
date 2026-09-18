@@ -14,17 +14,17 @@ SHELL = os.path.join(ROOT, "js", "skin-shell.js")
 
 # KST 문자열을 넣고 (기대 phase, 기대 open)을 받는다.
 KR_CASH = [
-    ("2026-09-07T07:59", "closed", False),       # NXT 개장 전
-    ("2026-09-07T08:00", "nxt", False),          # 대체거래소 08:00~20:00
+    ("2026-09-07T07:59", "closed", False),       # 프리마켓 개장 전
+    ("2026-09-07T08:00", "pre", False),          # 프리마켓 08:00~08:30
     ("2026-09-07T08:30", "preAuction", False),   # 장 시작 동시호가 08:30~09:00
     ("2026-09-07T08:59", "preAuction", False),
     ("2026-09-07T09:00", "regular", True),       # 정규장 09:00~15:30
     ("2026-09-07T15:29", "regular", True),
-    ("2026-09-07T15:30", "nxt", False),          # 정규장 종료
-    ("2026-09-07T15:40", "afterClose", False),   # 시간외 종가 15:40~16:00
-    ("2026-09-07T15:59", "afterClose", False),
-    # 2026-09-14 개편: 시간외 단일가(16:00~18:00) 폐지, 애프터마켓 16:00~20:00 신설.
-    ("2026-09-07T16:00", "after", False),        # 애프터마켓 16:00~20:00
+    ("2026-09-07T15:30", "afterClose", False),   # 시간외 종가 15:30~15:40
+    ("2026-09-07T15:40", "after", False),        # 애프터마켓 15:40~20:00
+    ("2026-09-07T15:59", "after", False),
+    # 2026-09-14 개편: KRX 애프터마켓 16:00~20:00 신설, NXT는 15:40에 먼저 시작.
+    ("2026-09-07T16:00", "after", False),
     ("2026-09-07T17:59", "after", False),
     ("2026-09-07T18:00", "after", False),        # 예전엔 NXT만 열려 'nxt'였던 구간
     ("2026-09-07T19:59", "after", False),
@@ -109,6 +109,8 @@ console.log(JSON.stringify({
   preClose: [MH.krCash(at('2026-09-07T08:30')).preClosePrice, MH.krCash(at('2026-09-07T08:40')).preClosePrice],
   nxt: [MH.krCash(at('2026-09-07T08:00')).nxtOpen, MH.krCash(at('2026-09-07T07:59')).nxtOpen,
         MH.krCash(at('2026-09-07T19:59')).nxtOpen, MH.krCash(at('2026-09-07T20:00')).nxtOpen],
+  labels: [MH.krCash(at('2026-09-07T08:00')).label, MH.krCash(at('2026-09-07T09:00')).label,
+           MH.krCash(at('2026-09-07T15:30')).label, MH.krCash(at('2026-09-07T15:40')).label],
   weekend: [MH.isWeekendClosed(at('2026-09-05T07:30')), MH.isWeekendClosed(at('2026-09-05T09:00'))],
   // 추석 연휴 09-25(금) 밤에 시작한 세션은 09-26(토) 새벽까지 같은 휴장일로 본다.
   nightHoliday: [MH.isNightSessionHoliday(at('2026-09-26T04:59')),
@@ -124,7 +126,7 @@ console.log(JSON.stringify({
     })
     env = dict(os.environ, MH_CASES=payload)
     out = subprocess.run(["node", "-e", script],
-                         capture_output=True, text=True, timeout=60, env=env)
+                         capture_output=True, text=True, encoding="utf-8", timeout=60, env=env)
     if out.returncode != 0:
         raise AssertionError(out.stderr)
     return json.loads(out.stdout)
@@ -162,6 +164,7 @@ class MarketHoursTest(unittest.TestCase):
         self.assertEqual([True, False], self.result["auction"])    # 마감 동시호가 15:20~15:30
         self.assertEqual([True, False], self.result["preClose"])   # 시간외 종가(전일) 08:30~08:40
         self.assertEqual([True, False, True, False], self.result["nxt"])  # NXT 08:00~20:00
+        self.assertEqual(["프리마켓", "정규장", "시간외 종가", "애프터마켓"], self.result["labels"])
         self.assertEqual([False, True], self.result["weekend"])
         # 야간 세션은 00:00~05:00 동안 전날 기준으로 휴장을 따진다.
         self.assertEqual([True, False], self.result["nightHoliday"])

@@ -861,8 +861,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function isUsRegularSessionOpen()", source)
         self.assertIn("function isMarketLive(market)", source)
         self.assertIn("최근 장마감 · ", source)
-        # 2026-09-14 사용자 지적("지금도 구분이 안되어 있잖아?"): 고정 문구 대신 지금 세션
-        # (정규장·애프터마켓·NXT 거래 등)을 MarketHours.krCash()에서 받아 쓴다.
+        # 고정 문구 대신 지금 세션(프리마켓·정규장·애프터마켓 등)을 MarketHours.krCash()에서 받아 쓴다.
         self.assertNotIn("return market === 'us' ? usSessionLabel() : '국내시장 · 오전 08:00~오후 08:00';", source)
         self.assertIn("return '국내시장 · ' + (session ? session.label : '오전 08:00~오후 08:00');", source)
         self.assertIn("return session ? !!(session.open || session.nxtOpen) : !isWeekendInKst();", source)
