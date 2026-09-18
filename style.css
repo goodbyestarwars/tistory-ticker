@@ -4024,65 +4024,97 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
   border-top-color: #d8d8d8;
 }
 
-/* 사용자 스케치 기준: 위에는 링크 6개, 아래에는 NEW·버전 정보 한 줄. */
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+/* Footer: centered links, quiet MaruBuri type and hairline separators. */
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
   grid-template-columns: max-content max-content max-content;
   grid-template-areas:
     "footer-links footer-copyright footer-learn"
     "footer-version footer-version footer-version";
+  justify-content: center;
   column-gap: 0;
-  row-gap: 32px;
+  row-gap: 28px;
+  padding: 30px 20px 26px;
   border-top: 1px solid #e5e7eb;
-  justify-content: start;
+  color: #737b87;
+  text-align: center;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
-  justify-self: end;
-  gap: 0;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
+html body#tt-body-index .site-footer,
+html body#tt-body-index .site-footer * {
+  font-family: var(--font-title) !important;
+  font-size: 16px;
+  font-weight: 400;
+  letter-spacing: 0;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:not(:last-child)::after {
-  content: '|';
-  margin: 0 16px;
-}
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
-  justify-self: center;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
   width: auto;
+  min-width: 0;
+  justify-self: center;
+  justify-content: center;
+  margin: 0;
   padding: 0;
   border: 0;
-  text-align: center;
-  font-size: 0; /* 기존 원문은 숨기고 위 ::after의 이용방법만 표시한다. */
+  gap: 0;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before {
-  content: none;
-  display: none;
-  margin: 0;
-  color: #94a3b8;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  color: #737b87;
   font-size: 16px;
+  font-weight: 400;
+  line-height: 1.7;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
-  justify-self: start;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button { padding: 0; border: 0; white-space: nowrap; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:not(:last-child)::after,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
+  content: '';
+  display: inline-block;
+  width: 1px;
+  height: .8em;
+  margin: 0 16px;
+  background: #cbd0d6;
+  vertical-align: -.02em;
+}
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
+  justify-self: center;
+  width: auto;
+  margin: 0;
   padding: 0;
+  border: 0;
+  font-size: 0;
+  text-align: center;
 }
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a::before {
-  content: '|';
-  margin: 0 16px 0 4px;
-}
-body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
-  justify-self: start;
-  margin-top: 0;
-}
-@media (max-width: 720px) {
-  body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    grid-template-columns: 1fr;
-    grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
-    row-gap: 12px;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before { content: none; display: none; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a { font-weight: 700; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { gap: .5em; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version span { flex-shrink: 0; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small { margin: 0; }
+body#tt-body-index .home-editorial-page .home-briefing-more { color: #2563eb; }
+html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #93b4ff !important; }
+@media (max-width: 1000px) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    grid-template-columns: max-content max-content;
+    grid-template-areas: "footer-links footer-links" "footer-copyright footer-learn" "footer-version footer-version";
+    row-gap: 18px;
   }
-  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { justify-self: end; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: start; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+    display: grid;
+    grid-template-columns: repeat(2, max-content);
+    gap: 10px 24px;
+    text-align: center;
+  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *::after { display: none; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) .site-footer-viewmode { grid-column: 1 / -1; text-align: center; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
     flex-wrap: wrap;
-    justify-content: center;
+    max-width: calc(100vw - 40px);
+    row-gap: 6px;
   }
-  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
-  body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { justify-self: center; text-align: center; }
 }
 
 /* 2026-08-25 New newspaper type system.
