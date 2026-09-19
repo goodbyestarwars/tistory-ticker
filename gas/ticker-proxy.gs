@@ -301,7 +301,7 @@ function applyNxtOverride_(d, price, change, changeRate) {
 function getMarketRibbon() {
   var cache = CacheService.getScriptCache();
   // market_ribbon3: BTC 소스 교체(빗썸 1순위 + 코인게코 폴백) 배포와 함께 옛 null 캐시 무효화
-  var cacheKey = CACHE_PREFIX + 'market_ribbon3';
+  var cacheKey = CACHE_PREFIX + 'market_ribbon4';
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
@@ -328,7 +328,8 @@ function getMarketRibbon() {
   // 2026-08-21 코드 감사: 09:00 개장 경계를 capTtlToSessionBoundary_로 캡핑하지 않으면
   // 08:59에 쓰인 캐시가 09:29까지 장전 값으로 고정될 수 있었다(시세 캐시/시총버블은
   // 이미 캡핑돼 있었는데 리본만 빠져 있었음).
-  var ttl = capTtlToSessionBoundary_(result.btc ? (isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED) : 120);
+  // 환율은 장외에도 해외 환율 API가 갱신될 수 있어 주말/장외 30분 캐시를 쓰지 않는다.
+  var ttl = capTtlToSessionBoundary_(result.btc ? CACHE_TTL_OPEN : 120);
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -1537,7 +1538,12 @@ function getMarketTemp() {
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
-    if (parsedCache_ !== null) return parsedCache_;
+    if (parsedCache_ !== null) {
+      // 시장 온도 전체는 캐시하되 화면에 표시하는 환율만 최신 네이버 값으로 보강한다.
+      var freshFx_ = safeCall(function () { return fetchExchange('FX_USDKRW'); });
+      if (freshFx_ && parsedCache_.components) parsedCache_.components.exchange = freshFx_;
+      return parsedCache_;
+    }
   }
 
   // 2026-08-03: fetchSectorUniverse_()(이름·코드·시장만)와 fetchSectorUniverseWithSectors_()

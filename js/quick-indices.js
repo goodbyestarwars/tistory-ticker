@@ -283,7 +283,10 @@
   // 소스, scripts/cloud-vm/btc_futures.py)으로 옮기면서 다른 해외지수와 완전히 같은
   // 경로를 타게 됐다 - 더 이상 BTC 전용 분기가 필요 없다.
   function fetchSelectedData(selected) {
-    var needMarket = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'market'; });
+    // 원/달러는 VM DB의 마지막 고시값보다 GAS가 매번 네이버 최신값을 보강한 값을 우선한다.
+    var needMarket = selected.some(function (k) {
+      return OPTION_BY_KEY[k].source === 'market' || k === 'usdkrw';
+    });
     var needFutures = selected.some(function (k) { return OPTION_BY_KEY[k].source === 'futures'; });
 
     return Promise.all([
@@ -302,7 +305,12 @@
           if (m) out[key] = { price: m.price, change: m.change, changeRate: m.changeRate, chart: null };
         } else {
           var f = futuresBySymbol[opt.sourceKey];
-          if (f && typeof f.price === 'number') out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
+          var fx = key === 'usdkrw' && marketData.usdkrw ? marketData.usdkrw : null;
+          if (fx && typeof fx.price === 'number') {
+            out[key] = { price: fx.price, change: fx.change, changeRate: fx.changeRate, chart: f && f.chart ? f.chart : null };
+          } else if (f && typeof f.price === 'number') {
+            out[key] = { price: f.price, change: f.change, changeRate: f.change_rate, chart: f.chart || null };
+          }
         }
       });
       return out;
