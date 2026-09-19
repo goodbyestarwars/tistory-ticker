@@ -184,7 +184,6 @@
             ? ('스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
             : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
         }
-        renderBacktestBox(container);
         renderList(container);
       })
       .catch(function (err) {

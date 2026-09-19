@@ -2352,6 +2352,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("miniChart: daily.slice(-20)", fixture)
         self.assertIn("patternDetail:", fixture)
 
+    def test_chart_search_does_not_call_removed_backtest_renderer(self):
+        source = self.read("js/pattern-scan.js")
+        self.assertNotIn("renderBacktestBox", source)
+
     def test_chart_search_scan_snapshot_bypasses_stale_empty_cache(self):
         source = self.read("js/pattern-scan.js")
         # 2026-09-03: 목록이 VM 직접 호출 → GAS 폴백 2단계가 되면서 캐시버스터를 변수로
