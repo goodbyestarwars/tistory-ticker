@@ -4087,6 +4087,9 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
   font-size: 0;
   text-align: center;
 }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  font-family: var(--font-ui) !important;
+}
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before { content: none; display: none; }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a { font-weight: 700; }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { gap: .5em; }
@@ -4114,6 +4117,16 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #
     flex-wrap: wrap;
     max-width: calc(100vw - 40px);
     row-gap: 6px;
+  }
+  html body#tt-body-index .site-footer,
+  html body#tt-body-index .site-footer * {
+    font-size: 12px;
+  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+    font-size: 12px;
   }
 }
 
