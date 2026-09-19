@@ -365,6 +365,7 @@
       + '<div class="ss-panel-right">'
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -1162,11 +1163,18 @@
       };
     }
     var drawButton = container.querySelector('.ss-draw-toggle');
+    var pencilButton = container.querySelector('.ss-pencil-toggle');
     var drawClear = container.querySelector('.ss-draw-clear');
     if (drawButton && drawButton.getAttribute('data-stock-draw-wired') !== '1') {
       drawButton.setAttribute('data-stock-draw-wired', '1');
       drawButton.onclick = function () {
-        setStockDrawingMode(!(stockDrawingState && stockDrawingState.enabled));
+        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'line' ? null : 'line');
+      };
+    }
+    if (pencilButton && pencilButton.getAttribute('data-stock-draw-wired') !== '1') {
+      pencilButton.setAttribute('data-stock-draw-wired', '1');
+      pencilButton.onclick = function () {
+        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'pencil' ? null : 'pencil');
       };
     }
     if (drawClear && drawClear.getAttribute('data-stock-draw-wired') !== '1') {
@@ -1174,9 +1182,11 @@
       drawClear.onclick = function () {
         if (!stockDrawingState) return;
         stockDrawingState.lines = [];
+        stockDrawingState.paths = [];
         stockDrawingState.pending = null;
         stockDrawingState.preview = null;
-        saveStockDrawingLines(stockDrawingState);
+        stockDrawingState.activePath = null;
+        saveStockDrawings(stockDrawingState);
         redrawStockDrawing(stockDrawingState);
       };
     }
@@ -1584,6 +1594,7 @@
     container.innerHTML = ''
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -1743,19 +1754,27 @@
     return 'tistory-ticker:stock-drawings:' + String(key || '') + ':' + String(timeframe || 'day');
   }
 
-  function loadStockDrawingLines(key, timeframe) {
+  function loadStockDrawings(key, timeframe) {
     try {
       var raw = global.localStorage.getItem(stockDrawingStorageKey(key, timeframe));
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
+      // 기존 추세선 배열 저장값도 그대로 복원한다.
+      if (Array.isArray(parsed)) return { lines: parsed, paths: [] };
+      return {
+        lines: Array.isArray(parsed && parsed.lines) ? parsed.lines : [],
+        paths: Array.isArray(parsed && parsed.paths) ? parsed.paths : []
+      };
     } catch (e) {
-      return [];
+      return { lines: [], paths: [] };
     }
   }
 
-  function saveStockDrawingLines(drawing) {
+  function saveStockDrawings(drawing) {
     try {
-      global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify(drawing.lines));
+      global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify({
+        lines: drawing.lines,
+        paths: drawing.paths
+      }));
     } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
   }
 
@@ -1782,6 +1801,25 @@
     ctx.clearRect(0, 0, width, height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    drawing.paths.forEach(function (path) {
+      if (!Array.isArray(path) || path.length < 2) return;
+      var started = false;
+      ctx.beginPath();
+      path.forEach(function (point) {
+        var coordinate = stockDrawingCoordinate(drawing, point);
+        if (!coordinate) return;
+        if (!started) {
+          ctx.moveTo(coordinate.x, coordinate.y);
+          started = true;
+        } else {
+          ctx.lineTo(coordinate.x, coordinate.y);
+        }
+      });
+      if (!started) return;
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
     drawing.lines.forEach(function (line) {
       var start = stockDrawingCoordinate(drawing, line.start);
       var end = stockDrawingCoordinate(drawing, line.end);
@@ -1826,6 +1864,24 @@
         ctx.setLineDash([]);
       }
     }
+    if (drawing.activePath && drawing.activePath.length > 1) {
+      var activeStarted = false;
+      ctx.beginPath();
+      drawing.activePath.forEach(function (point) {
+        var coordinate = stockDrawingCoordinate(drawing, point);
+        if (!coordinate) return;
+        if (!activeStarted) {
+          ctx.moveTo(coordinate.x, coordinate.y);
+          activeStarted = true;
+        } else {
+          ctx.lineTo(coordinate.x, coordinate.y);
+        }
+      });
+      if (!activeStarted) return;
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    }
   }
 
   function resizeStockDrawing(drawing) {
@@ -1848,44 +1904,58 @@
     if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
       drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
     }
-    if (drawing.button) {
-      drawing.button.classList.remove('is-active');
-      drawing.button.setAttribute('aria-pressed', 'false');
-      drawing.button.textContent = '선 그리기';
-    }
+    [drawing.lineButton, drawing.pencilButton].forEach(function (button) {
+      if (!button) return;
+      button.classList.remove('is-active');
+      button.setAttribute('aria-pressed', 'false');
+    });
     if (drawing.overlay) drawing.overlay.remove();
     stockDrawingState = null;
   }
 
-  function setStockDrawingMode(enabled) {
+  function setStockDrawingMode(mode) {
     var drawing = stockDrawingState;
     if (!drawing) return;
-    drawing.enabled = enabled;
+    mode = mode === 'line' || mode === 'pencil' ? mode : null;
+    drawing.mode = mode;
+    drawing.enabled = !!mode;
     drawing.pending = null;
     drawing.preview = null;
-    drawing.overlay.classList.toggle('is-active', enabled);
-    if (drawing.button) {
-      drawing.button.classList.toggle('is-active', enabled);
-      drawing.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-      drawing.button.textContent = enabled ? '그리기 종료' : '선 그리기';
+    drawing.activePath = null;
+    drawing.overlay.classList.toggle('is-active', !!mode);
+    drawing.overlay.classList.toggle('is-pencil', mode === 'pencil');
+    if (drawing.lineButton) {
+      drawing.lineButton.classList.toggle('is-active', mode === 'line');
+      drawing.lineButton.setAttribute('aria-pressed', mode === 'line' ? 'true' : 'false');
     }
-    drawing.overlay.title = enabled ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.' : '';
+    if (drawing.pencilButton) {
+      drawing.pencilButton.classList.toggle('is-active', mode === 'pencil');
+      drawing.pencilButton.setAttribute('aria-pressed', mode === 'pencil' ? 'true' : 'false');
+    }
+    drawing.overlay.title = mode === 'line'
+      ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.'
+      : mode === 'pencil' ? '누른 채로 움직여 자유롭게 그립니다.' : '';
     redrawStockDrawing(drawing);
   }
 
   function setupStockDrawing(element, chart, series, timeframe) {
     destroyStockDrawing();
     var scope = element.parentElement || element;
+    var saved = loadStockDrawings(state.selectedCode, timeframe);
     var drawing = {
       key: state.selectedCode,
       timeframe: timeframe,
       chart: chart,
       series: series,
-      lines: loadStockDrawingLines(state.selectedCode, timeframe),
+      lines: saved.lines,
+      paths: saved.paths,
       pending: null,
       preview: null,
+      activePath: null,
       enabled: false,
-      button: scope.querySelector('.ss-draw-toggle')
+      mode: null,
+      lineButton: scope.querySelector('.ss-draw-toggle'),
+      pencilButton: scope.querySelector('.ss-pencil-toggle')
     };
     var overlay = document.createElement('canvas');
     overlay.className = 'ss-drawing-layer';
@@ -1893,7 +1963,7 @@
     element.appendChild(overlay);
     drawing.overlay = overlay;
     overlay.addEventListener('click', function (event) {
-      if (!drawing.enabled) return;
+      if (!drawing.enabled || drawing.mode !== 'line') return;
       var rect = overlay.getBoundingClientRect();
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
@@ -1904,20 +1974,51 @@
         drawing.lines.push({ start: drawing.pending, end: point });
         drawing.pending = null;
         overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveStockDrawingLines(drawing);
+        saveStockDrawings(drawing);
       }
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('mousemove', function (event) {
-      if (!drawing.enabled || !drawing.pending) return;
+      if (!drawing.enabled || drawing.mode !== 'line' || !drawing.pending) return;
       var rect = overlay.getBoundingClientRect();
       drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('mouseleave', function () {
+      if (drawing.mode === 'pencil' && drawing.activePath) return;
       drawing.preview = null;
       redrawStockDrawing(drawing);
     });
+    overlay.addEventListener('pointerdown', function (event) {
+      if (!drawing.enabled || drawing.mode !== 'pencil') return;
+      var rect = overlay.getBoundingClientRect();
+      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
+      if (!point) return;
+      event.preventDefault();
+      drawing.activePath = [point];
+      if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
+      redrawStockDrawing(drawing);
+    });
+    overlay.addEventListener('pointermove', function (event) {
+      if (drawing.mode !== 'pencil' || !drawing.activePath) return;
+      var rect = overlay.getBoundingClientRect();
+      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
+      if (!point) return;
+      var last = drawing.activePath[drawing.activePath.length - 1];
+      if (last && last.time === point.time && Math.abs(last.price - point.price) < 0.000001) return;
+      drawing.activePath.push(point);
+      redrawStockDrawing(drawing);
+    });
+    function finishStockPencil(event) {
+      if (!drawing.activePath) return;
+      if (drawing.activePath.length > 1) drawing.paths.push(drawing.activePath);
+      drawing.activePath = null;
+      if (event && overlay.hasPointerCapture && overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
+      saveStockDrawings(drawing);
+      redrawStockDrawing(drawing);
+    }
+    overlay.addEventListener('pointerup', finishStockPencil);
+    overlay.addEventListener('pointercancel', finishStockPencil);
     drawing.timeRangeHandler = function () { redrawStockDrawing(drawing); };
     if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
     if (global.ResizeObserver) {
