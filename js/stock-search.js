@@ -1545,6 +1545,14 @@
     return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
   }
 
+  // 전체화면에서는 .ss-panel-right가 모달로 옮겨진다. 기존 #stock-search 참조는
+  // 더 이상 #ssChart를 포함하지 않으므로, 토글이 null을 렌더러로 넘기지 않게 한다.
+  function activeStockChartElement(container) {
+    var fullscreenChart = document.querySelector('.de-chart-overlay #ssChart');
+    if (fullscreenChart) return fullscreenChart;
+    return container && container.querySelector ? container.querySelector('#ssChart') : null;
+  }
+
   function renderChartForCode(container, code) {
     if (state.timeframe === 'minute') {
       renderMinuteChart(container, code);
@@ -1555,7 +1563,8 @@
     var cached = state.chartCache[code];
     if (!cached) return;
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
-    renderLwChart(container.querySelector('#ssChart'), bars, state.timeframe);
+    var chartEl = activeStockChartElement(container);
+    if (chartEl) renderLwChart(chartEl, bars, state.timeframe);
   }
 
   // 미국 주식도 국내 종목 화면과 같은 차트 UI/렌더러를 사용한다.
@@ -1638,7 +1647,8 @@
   }
 
   function renderMinuteChart(container, code) {
-    var chartEl = container.querySelector('#ssChart');
+    var chartEl = activeStockChartElement(container);
+    if (!chartEl) return;
     var scope = state.minuteScope;
     var cacheKey = minuteCacheKey(code, scope);
     var cached = state.minuteCache[cacheKey];
@@ -1655,7 +1665,8 @@
         var bars = Array.isArray(payload) ? payload : minuteRowsToBars((payload && payload.data) || []);
         state.minuteCache[cacheKey] = { t: Date.now(), bars: bars };
         if (state.selectedCode === code && state.timeframe === 'minute') {
-          renderLwChart(container.querySelector('#ssChart'), bars, 'minute');
+          var currentChartEl = activeStockChartElement(container);
+          if (currentChartEl) renderLwChart(currentChartEl, bars, 'minute');
         }
       })
       .catch(function () {
