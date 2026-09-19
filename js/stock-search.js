@@ -1183,7 +1183,8 @@
   }
 
   function loadChart(container, code) {
-    var chartEl = container.querySelector('#ssChart');
+    var chartEl = activeStockChartElement(container);
+    if (!chartEl) return;
     var cached = state.chartCache[code];
     if (cached && Date.now() - cached.t < 5 * 60 * 1000) {
       renderChartForCode(container, code);
@@ -1931,6 +1932,9 @@
   }
 
   function renderLwChart(container, bars, timeframe) {
+    // 전체화면 모달을 여닫는 순간에도 이전 DOM 참조가 남을 수 있다.
+    // 렌더 대상을 찾지 못한 경우 기존 차트를 먼저 지워 빈 화면을 만들지 않는다.
+    if (!container || !container.querySelectorAll) return;
     var renderId = ++lwcRenderId;
     lwcCandleSeries = null;
     lwcLiveBars = [];

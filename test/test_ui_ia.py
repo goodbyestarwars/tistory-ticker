@@ -1930,6 +1930,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("installIchimokuCloudCanvas", source)
         self.assertIn("function activeStockChartElement(container)", source)
         self.assertIn("document.querySelector('.de-chart-overlay #ssChart')", source)
+        self.assertIn("if (!container || !container.querySelectorAll) return;", source)
         self.assertIn("spanASeries.setData", source)
         self.assertIn("spanBSeries.setData", source)
         self.assertIn("ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)'", source)
