@@ -832,7 +832,7 @@ def fetch_us_trade_volume_rank(token, appkey, appsecret, exchange, limit=20):
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/trade-vol', 'HHDFS76310010',
-        {'NDAY': '0', 'PRC1': '', 'PRC2': '', 'VOL_RANG': ''}, limit,
+        {'NDAY': '0', 'PRC1': '', 'PRC2': '', 'VOL_RANG': '', 'AUTH': ''}, limit,
     )
 
 
@@ -841,7 +841,7 @@ def fetch_us_market_cap_rank(token, appkey, appsecret, exchange, limit=20):
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/market-cap', 'HHDFS76350100',
-        {'VOL_RANG': ''}, limit,
+        {'VOL_RANG': '', 'AUTH': ''}, limit,
     )
 
 
@@ -850,7 +850,7 @@ def fetch_us_updown_rank(token, appkey, appsecret, exchange, gubn='1', limit=20)
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/updown-rate', 'HHDFS76290000',
-        {'GUBN': gubn, 'NDAY': '0', 'VOL_RANG': ''}, limit,
+        {'GUBN': gubn, 'NDAY': '0', 'VOL_RANG': '', 'AUTH': ''}, limit,
     )
 
 
@@ -859,7 +859,7 @@ def fetch_us_volume_surge_rank(token, appkey, appsecret, exchange, limit=20):
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/volume-surge', 'HHDFS76270000',
-        {'MIXN': '0', 'VOL_RANG': ''}, limit,
+        {'MIXN': '0', 'VOL_RANG': '', 'AUTH': ''}, limit,
     )
 
 
@@ -868,7 +868,7 @@ def fetch_us_volume_power_rank(token, appkey, appsecret, exchange, limit=20):
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/volume-power', 'HHDFS76280000',
-        {'NDAY': '0', 'VOL_RANG': ''}, limit,
+        {'NDAY': '0', 'VOL_RANG': '', 'AUTH': ''}, limit,
     )
 
 
@@ -877,5 +877,5 @@ def fetch_us_new_highlow_rank(token, appkey, appsecret, exchange, gubn='1', limi
     return _fetch_us_rank_rows(
         token, appkey, appsecret, exchange,
         '/uapi/overseas-stock/v1/ranking/new-highlow', 'HHDFS76300000',
-        {'GUBN': gubn, 'GUBN2': '1', 'NDAY': '6', 'VOL_RANG': ''}, limit,
+        {'GUBN': gubn, 'GUBN2': '1', 'NDAY': '6', 'VOL_RANG': '', 'AUTH': ''}, limit,
     )

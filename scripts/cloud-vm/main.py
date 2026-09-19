@@ -3290,6 +3290,15 @@ def _note_market_board_real_hit(request):
         _market_board_last_real_hit = time.time()
 
 
+def _market_board_closed_today():
+    """주말·한국 휴장일에는 외부 순위 API를 호출하지 않는다."""
+    try:
+        return market_clock.skip_scan_today()[0]
+    except Exception:
+        # 휴장 판정 자체가 실패하면 서비스 응답을 막지 않고 기존 경로를 유지한다.
+        return False
+
+
 def _market_board_warm_loop():
     port = (os.environ.get('PORT', '') or os.environ.get('APP_PORT', '') or '8080').strip()
     log = logging.getLogger('main')
@@ -3303,7 +3312,8 @@ def _market_board_warm_loop():
     while True:
         started = time.time()
         try:
-            if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:
+            if (not _market_board_closed_today()
+                    and time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC):
                 # 2026-09-12: 예전에는 _economic_news_market()이 고른 "그 시간대의 기본
                 # 시장" 한쪽만 데웠다. 그래서 홈에서 시장 탭을 반대쪽으로 바꾼 방문자는
                 # 캐시 미스를 그대로 맞았다(실측: 미스 7.6~8.4초 / 히트 0.36~1.0초).
@@ -3387,6 +3397,19 @@ def market_board_endpoint(request: Request,
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()
+    if _market_board_closed_today():
+        # 휴장일에는 직전 캐시만 반환하고 KIS/키움 네트워크 호출은 하지 않는다.
+        cached = _market_board_cache.get(key)
+        if cached is not None:
+            return envelope(cached['data'])
+        return envelope({
+            'market': market,
+            'session': '휴장',
+            'rows': [],
+            'sections': {},
+            'updated_at': int(now),
+            'source': '휴장일 - 외부 조회 생략',
+        })
     cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL
     cached = _market_board_cache.get(key)
     if cached is not None and now - cached['t'] < cache_ttl:
