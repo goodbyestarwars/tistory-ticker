@@ -44,7 +44,7 @@
   function moveDrawingControlsBelowFullscreen(controlRow) {
     if (!controlRow || controlRow.getAttribute('data-de-draw-layout') === '1') return;
     var buttonSelectors = [
-      '.ss-draw-toggle', '.ss-draw-clear',
+      '.ss-draw-toggle', '.ss-pencil-toggle', '.ss-draw-clear',
       '.dmi-draw-toggle', '.dmi-draw-clear',
       '.kf-draw-toggle', '.kf-draw-clear'
     ];
