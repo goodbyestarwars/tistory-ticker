@@ -7447,3 +7447,27 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
   .home-realtime-board .hrt-flap-half { animation: none; }
   .home-realtime-board .hrt-flap-old { visibility: hidden; }
 }
+
+/* Footer final normalization: '사이트 이용방법'을 기준으로 글꼴·크기·색상을 통일한다. */
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  color: #737b87 !important;
+  font-family: var(--font-ui) !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  line-height: 1.7 !important;
+  text-decoration: none !important;
+}
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a {
+  font-weight: 700 !important;
+}
+@media (max-width: 1000px) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+    font-size: 12px !important;
+  }
+}
