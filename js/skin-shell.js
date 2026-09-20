@@ -38,14 +38,18 @@
      시간외 종가 장전  08:30 ~ 08:40   (전일 종가로 거래)
      시간외 종가 장후  15:40 ~ 16:00   (당일 종가로 거래)
      애프터마켓        16:00 ~ 20:00   (접속매매. 2026-09-14 신설)
-     프리마켓          08:00 ~ 08:50   (NXT)
+     대체거래소(NXT)   08:00 ~ 20:00   (08:00~08:30 구간은 화면에 '프리마켓'으로 쓴다)
 
    2026-09-14 거래소 제도 개편(토스증권 최선집행기준 개정 공지 2026-09-07):
      - KRX 애프터마켓 16:00~20:00 신설(접속매매)
      - 기존 시간외 단일가(16:00~18:00) 폐지
      - 시장경보·관리종목 등 일부 종목은 애프터마켓에서 제외된다. 여기는 시장
        전체의 세션만 다루고 종목을 구분하지 않으므로 그 예외는 반영하지 않는다.
-     - NXT는 프리·메인·애프터를 운영하지만, 화면에는 거래소 이름 대신 시간대 이름을 쓴다.
+     - NXT는 거래시간 변경이 없다(VI·거래정지 규칙만 바뀜) - 08:00~20:00 유지.
+     화면 표기는 거래소 이름 대신 시간대 이름(프리마켓·정규장·시간외 종가·애프터마켓)을
+     쓴다. 단 위 표의 어느 시간대에도 안 들어가는 15:30~15:40은 대체거래소만 열려 있어
+     그때만 거래소 이름으로 적는다. **구간 경계는 이 표가 기준이다** - 2026-09-21 검토에서
+     코드가 표와 어긋난 채(시간외 종가를 15:30~15:40, 애프터마켓을 15:40~) 배포돼 있었다.
      지수선물 정규장   09:00 ~ 15:45   (현물보다 15분 늦게 끝난다)
      지수선물 야간     18:00 ~ 익일 05:00
 
@@ -118,14 +122,18 @@
       out.label = out.closeAuction ? '마감 동시호가' : '정규장';
     } else if (m >= M(8, 30) && m < M(9)) {
       out.phase = 'preAuction'; out.label = '장 시작 동시호가';
-    } else if (m >= M(15, 30) && m < M(15, 40)) {
+    } else if (m >= M(15, 40) && m < M(16)) {
       out.phase = 'afterClose'; out.label = '시간외 종가';
-    } else if (m >= M(15, 40) && m < M(20)) {
-      // 2026-09-14 개편: KRX도 16:00~20:00 애프터마켓을 연다. NXT의 애프터마켓은
-      // 15:40에 먼저 시작하므로, 화면은 15:40부터 한 이름으로 묶어 보여 준다.
+    } else if (m >= M(16) && m < M(20)) {
+      // 2026-09-14 개편: 시간외 단일가(16:00~18:00, phase 'singlePrice')가 폐지되고
+      // 애프터마켓 접속매매 16:00~20:00이 들어섰다.
       out.phase = 'after'; out.label = '애프터마켓';
     } else if (m >= M(8) && m < M(8, 30)) {
       out.phase = 'pre'; out.label = '프리마켓';
+    } else if (nxtOpen) {
+      // 15:30~15:40은 정규장이 끝나고 시간외 종가(15:40~)가 아직 안 열린 틈이라
+      // 대체거래소만 거래된다. 시간대 이름이 없는 구간이라 여기만 거래소 이름을 쓴다.
+      out.phase = 'nxt'; out.label = '대체거래소 거래';
     } else {
       out.label = '장 마감';
     }
@@ -357,10 +365,19 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
-        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
-        '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
+        // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
         ' aria-pressed="false">PC 화면</button>' +
+      '</nav>' +
+      /* 2026-09-17 요청: 주식 이야기는 법적 고지·문의와 성격이 다른 읽을거리라 둘째 줄로
+         내린다. 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면과 카피라이트(사이트 이용
+         방법)가 함께 선다. 줄 나눔은 style.css의 .site-footer order/flex-basis가 만든다 -
+         카피라이트는 티스토리 태그 때문에 skin.html에 있어 DOM 순서를 못 바꾼다.
+         2026-09-21: 09-20에 한 줄로 합쳐졌던 걸 되돌리면서, 같은 성격인 릴리스 노트도
+         둘째 줄에 함께 둔다(사용자 선택: "읽을거리만 2열로"). */
+      '<nav class="site-footer-links site-footer-learn">' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
       '</nav>'
   };
 

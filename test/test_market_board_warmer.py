@@ -21,6 +21,11 @@ class MarketBoardWarmerTest(unittest.TestCase):
             "if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:",
             src,
         )
+        # 2026-09-21: 휴장 판정은 시장별로 한다. 예전에는 시장을 안 가리고 한국 달력
+        # 하나만 봐서, 개천절·한글날처럼 한국만 쉬는 날 미국 종목판까지 막혔다.
+        self.assertIn("def _market_board_closed_today(market='domestic'):", src)
+        self.assertIn("if market == 'us':", src)
+        self.assertIn("return datetime.now(us_stocks.NY_TZ).weekday() >= 5", src)
         # 워머 자신의 루프백 호출은 "실제 방문"으로 세지 않는다.
         self.assertIn("if ip not in ('127.0.0.1', '::1', 'localhost'):", src)
         self.assertIn("_note_market_board_real_hit(request)", src)
@@ -36,7 +41,11 @@ class MarketBoardWarmerTest(unittest.TestCase):
         맞았다. 두 시장을 동시에 데워야 한다 - 순차로 돌리면 두 조회 시간이 더해져
         주기가 _MARKET_BOARD_TTL을 넘긴다."""
         src = self.read()
-        self.assertIn("futures = {m: pool.submit(warm, m) for m in ('domestic', 'us')}", src)
+        # 2026-09-21: 대상은 "열려 있는 시장"으로 좁혔다. 한쪽이 쉰다고 반대쪽까지 안
+        # 데우면 열려 있는 장의 방문자가 캐시 미스를 그대로 맞는다.
+        self.assertIn("open_markets = tuple(m for m in ('domestic', 'us')", src)
+        self.assertIn("if not _market_board_closed_today(m))", src)
+        self.assertIn("futures = {m: pool.submit(warm, m) for m in open_markets}", src)
         self.assertIn('with ThreadPoolExecutor(max_workers=2) as pool:', src)
         # 한쪽 시장만 고르던 옛 경로가 워머에 남아 있으면 안 된다.
         self.assertNotIn('market = _economic_news_market()', src)

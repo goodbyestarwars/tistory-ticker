@@ -20,10 +20,12 @@ KR_CASH = [
     ("2026-09-07T08:59", "preAuction", False),
     ("2026-09-07T09:00", "regular", True),       # 정규장 09:00~15:30
     ("2026-09-07T15:29", "regular", True),
-    ("2026-09-07T15:30", "afterClose", False),   # 시간외 종가 15:30~15:40
-    ("2026-09-07T15:40", "after", False),        # 애프터마켓 15:40~20:00
-    ("2026-09-07T15:59", "after", False),
-    # 2026-09-14 개편: KRX 애프터마켓 16:00~20:00 신설, NXT는 15:40에 먼저 시작.
+    # 2026-09-21 검토: 코드가 파일 헤더의 시간표와 어긋나 있었다(시간외 종가를
+    # 15:30~15:40, 애프터마켓을 15:40~으로). 헤더 표(출처: 토스증권 공지)가 기준이다.
+    ("2026-09-07T15:30", "nxt", False),          # 정규장 끝~시간외 종가 전: 대체거래소만
+    ("2026-09-07T15:40", "afterClose", False),   # 시간외 종가 15:40~16:00
+    ("2026-09-07T15:59", "afterClose", False),
+    # 2026-09-14 개편: 시간외 단일가(16:00~18:00) 폐지, 애프터마켓 16:00~20:00 신설.
     ("2026-09-07T16:00", "after", False),
     ("2026-09-07T17:59", "after", False),
     ("2026-09-07T18:00", "after", False),        # 예전엔 NXT만 열려 'nxt'였던 구간
@@ -164,7 +166,9 @@ class MarketHoursTest(unittest.TestCase):
         self.assertEqual([True, False], self.result["auction"])    # 마감 동시호가 15:20~15:30
         self.assertEqual([True, False], self.result["preClose"])   # 시간외 종가(전일) 08:30~08:40
         self.assertEqual([True, False, True, False], self.result["nxt"])  # NXT 08:00~20:00
-        self.assertEqual(["프리마켓", "정규장", "시간외 종가", "애프터마켓"], self.result["labels"])
+        # 08:00 / 09:00 / 15:30 / 15:40 순.
+        self.assertEqual(["프리마켓", "정규장", "대체거래소 거래", "시간외 종가"],
+                         self.result["labels"])
         self.assertEqual([False, True], self.result["weekend"])
         # 야간 세션은 00:00~05:00 동안 전날 기준으로 휴장을 따진다.
         self.assertEqual([True, False], self.result["nightHoliday"])

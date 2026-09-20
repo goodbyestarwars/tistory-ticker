@@ -3290,9 +3290,20 @@ def _note_market_board_real_hit(request):
         _market_board_last_real_hit = time.time()
 
 
-def _market_board_closed_today():
-    """주말·한국 휴장일에는 외부 순위 API를 호출하지 않는다."""
+def _market_board_closed_today(market='domestic'):
+    """그 시장이 오늘 하루 통째로 쉬는 날인가. 휴장일엔 외부 순위 API를 부르지 않는다.
+
+    2026-09-21: 예전에는 시장을 안 가리고 `market_clock.skip_scan_today()`(한국 기준
+    `is_kr_trading_day`) 하나만 봤다. 그래서 **개천절·한글날처럼 한국만 쉬는 날 미국
+    종목판까지 막혔다** - 미국장은 정상 개장인데 화면이 빈다. 시장별로 따로 판정한다.
+
+    미국은 공휴일 달력이 없어(us_stocks._session_date 주석 참고) 주말만 본다. 평일
+    공휴일에 한 번 헛호출하는 편이, 열려 있는 장을 닫힌 것으로 보는 것보다 낫다.
+    장중·장외 구분은 여기서 하지 않는다 - 이 함수는 "하루 통째로 쉬는가"만 답한다.
+    """
     try:
+        if market == 'us':
+            return datetime.now(us_stocks.NY_TZ).weekday() >= 5
         return market_clock.skip_scan_today()[0]
     except Exception:
         # 휴장 판정 자체가 실패하면 서비스 응답을 막지 않고 기존 경로를 유지한다.
@@ -3312,15 +3323,18 @@ def _market_board_warm_loop():
     while True:
         started = time.time()
         try:
-            if (not _market_board_closed_today()
-                    and time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC):
+            if time.time() - _market_board_last_real_hit <= _MARKET_BOARD_WARM_ACTIVE_WINDOW_SEC:
                 # 2026-09-12: 예전에는 _economic_news_market()이 고른 "그 시간대의 기본
                 # 시장" 한쪽만 데웠다. 그래서 홈에서 시장 탭을 반대쪽으로 바꾼 방문자는
                 # 캐시 미스를 그대로 맞았다(실측: 미스 7.6~8.4초 / 히트 0.36~1.0초).
                 # 국내·미국을 동시에 데운다 - 순차로 돌리면 두 번의 조회 시간이 더해져
                 # 주기가 _MARKET_BOARD_TTL(30초)을 넘겨 캐시에 구멍이 생긴다.
+                # 휴장 판정은 시장별로 한다 - 한쪽이 쉰다고 반대쪽까지 안 데우면
+                # 열려 있는 장의 방문자가 캐시 미스를 그대로 맞는다.
+                open_markets = tuple(m for m in ('domestic', 'us')
+                                     if not _market_board_closed_today(m))
                 with ThreadPoolExecutor(max_workers=2) as pool:
-                    futures = {m: pool.submit(warm, m) for m in ('domestic', 'us')}
+                    futures = {m: pool.submit(warm, m) for m in open_markets}
                     for market, future in futures.items():
                         try:
                             future.result()
@@ -3397,19 +3411,13 @@ def market_board_endpoint(request: Request,
     market = 'us' if str(market).lower() == 'us' else 'domestic'
     key = (market, limit)
     now = time.time()
-    if _market_board_closed_today():
-        # 휴장일에는 직전 캐시만 반환하고 KIS/키움 네트워크 호출은 하지 않는다.
-        cached = _market_board_cache.get(key)
-        if cached is not None:
-            return envelope(cached['data'])
-        return envelope({
-            'market': market,
-            'session': '휴장',
-            'rows': [],
-            'sections': {},
-            'updated_at': int(now),
-            'source': '휴장일 - 외부 조회 생략',
-        })
+    if _market_board_closed_today(market) and _market_board_cache.get(key) is not None:
+        # 휴장일에는 직전 캐시를 그대로 돌려주고 KIS/키움 네트워크 호출은 하지 않는다.
+        # 2026-09-21: 캐시가 없을 때 빈 rows를 내보내던 경로를 없앴다. 이 캐시는 프로세스
+        # 메모리라 배포(=재시작)마다 날아가는데, 그때 휴장일이면 화면이 통째로 비었다.
+        # 캐시가 없으면 평소 경로로 내려가 한 번만 조회하고 채운다 - 그 뒤로는 다시
+        # 캐시가 받아 주므로 "휴장일엔 안 부른다"는 원래 의도도 그대로다.
+        return envelope(_market_board_cache[key]['data'])
     cache_ttl = _MARKET_BOARD_LIVE_TTL if fresh else _MARKET_BOARD_TTL
     cached = _market_board_cache.get(key)
     if cached is not None and now - cached['t'] < cache_ttl:
