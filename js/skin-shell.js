@@ -365,19 +365,20 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
         // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
         ' aria-pressed="false">PC 화면</button>' +
       '</nav>' +
       /* 2026-09-17 요청: 주식 이야기는 법적 고지·문의와 성격이 다른 읽을거리라 둘째 줄로
-         내린다. 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면과 카피라이트(사이트 이용
-         방법)가 함께 선다. 줄 나눔은 style.css의 .site-footer order/flex-basis가 만든다 -
+         내린다. 첫 줄은 약관·개인정보·오픈소스·문의하기·릴리스 노트·PC 화면과
+         카피라이트(사이트 이용 방법)가 함께 선다. 줄 나눔은 style.css가 만든다 -
          카피라이트는 티스토리 태그 때문에 skin.html에 있어 DOM 순서를 못 바꾼다.
-         2026-09-21: 09-20에 한 줄로 합쳐졌던 걸 되돌리면서, 같은 성격인 릴리스 노트도
-         둘째 줄에 함께 둔다(사용자 선택: "읽을거리만 2열로"). */
+         2026-09-21 지시("릴리스 노트도 위로 올려, 주식 이야기 줄에는 매매에 도움되는 글을
+         올릴꺼야"): 릴리스 노트는 사이트 안내라 첫 줄로 올리고, 둘째 줄은 매매에 도움되는
+         읽을거리 전용으로 비워 둔다. 글이 늘면 여기에 추가한다(flex-wrap으로 줄바꿈된다). */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
-        '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
       '</nav>'
   };
 

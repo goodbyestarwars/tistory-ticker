@@ -1552,14 +1552,16 @@ class UiInformationArchitectureTest(unittest.TestCase):
         first_row = shell[first_row_start:shell.index("</nav>'", first_row_start) + len("</nav>'")]
         self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
         # 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자"):
-        # 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면 + 카피라이트, 읽을거리는 둘째 줄.
+        # 첫 줄은 약관·개인정보·오픈소스·문의하기·릴리스 노트·PC 화면 + 카피라이트.
         # 2026-09-20에 한 줄로 합쳐지면서 이 가드가 assertIn으로 뒤집혔었다 - 되돌린다.
-        # 같은 성격인 릴리스 노트도 둘째 줄이다(2026-09-21 사용자 선택: "읽을거리만 2열로").
+        # 2026-09-21 지시("릴리스 노트도 위로 올려, 주식 이야기 줄에는 매매에 도움되는 글을
+        # 올릴꺼야"): 릴리스 노트는 사이트 안내라 첫 줄, 둘째 줄은 매매 읽을거리 전용이다.
+        self.assertIn("릴리스 노트", first_row)
         self.assertNotIn("주식 이야기", first_row)
-        self.assertNotIn("릴리스 노트", first_row)
         learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
         self.assertIn("주식 이야기", learn_row[:600])
-        self.assertIn("릴리스 노트", learn_row[:600])
+        self.assertNotIn("릴리스 노트", learn_row[:600],
+                         '둘째 줄은 매매에 도움되는 글만 둔다 - 사이트 안내는 첫 줄이다')
         # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
         # 2026-09-21: 풋터가 flex에서 grid로 바뀌면서 옛 .site-footer-learn{order;flex-basis}는
         # 죽은 규칙이 됐다(실측: 라이브에서 셋이 같은 줄, top 790으로 나란히 섰다).

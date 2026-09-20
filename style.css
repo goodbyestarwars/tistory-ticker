@@ -4079,10 +4079,13 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   content: '';
   display: inline-block;
   width: 1px;
-  height: .8em;
+  /* 2026-09-21 지시("구분자도 너무 작다. 얇고 좀 더 긴 구분자를 써줘"):
+     두께는 1px 그대로 두고 길이만 늘린다. middle 정렬이라 글자 높이가 바뀌어도
+     가운데를 유지한다(고정 offset은 폰트 크기 바뀔 때마다 어긋났다). */
+  height: 1.25em;
   margin: 0 16px;
   background: #cbd0d6;
-  vertical-align: -.02em;
+  vertical-align: middle;
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
   justify-self: center;
@@ -4164,7 +4167,7 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #
     position: relative; width: 100%; text-align: center;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *::after {
-    display: block; content: ""; position: absolute; top: 50%; right: 0; width: 1px; height: .8em;
+    display: block; content: ""; position: absolute; top: 50%; right: 0; width: 1px; height: 1.25em;
     transform: translateY(-50%); background: #cbd0d6;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:nth-child(2n)::after,
@@ -4243,7 +4246,7 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #
     top: 50%;
     right: 0;
     width: 1px;
-    height: .8em;
+    height: 1.25em;
     transform: translateY(-50%);
     background: #cbd0d6;
   }
@@ -7641,7 +7644,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
     position: relative; width: 100%; text-align: center;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *::after {
-    display: block; content: ""; position: absolute; top: 50%; right: 0; width: 1px; height: .8em;
+    display: block; content: ""; position: absolute; top: 50%; right: 0; width: 1px; height: 1.25em;
     transform: translateY(-50%); background: #cbd0d6;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:nth-child(2n)::after,
