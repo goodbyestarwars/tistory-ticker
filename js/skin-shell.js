@@ -358,6 +358,7 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
         ' aria-pressed="false">PC 화면</button>' +
       '</nav>'

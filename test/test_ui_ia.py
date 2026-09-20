@@ -1546,6 +1546,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         """
         shell = self.read("js/skin-shell.js")
         self.assertIn("learn/index.html\">주식 이야기</a>", shell)
+        self.assertIn("release-notes.html\">릴리스 노트</a>", shell)
         # 순서 비교는 footerLinks 블록 안에서만 한다 - 위쪽 주석에도 같은 낱말이 나온다.
         first_row_start = shell.index("'<nav class=\"site-footer-links\">'")
         first_row = shell[first_row_start:shell.index("</nav>'", first_row_start) + len("</nav>'")]
