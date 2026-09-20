@@ -4225,6 +4225,33 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #
   }
 }
 
+/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */
+@media (max-width: 720px) {
+  html body .site-footer {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  html body .site-footer-main {
+    width: 100%;
+    box-sizing: border-box;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 22px;
+  }
+  html body .site-footer-links,
+  html body .site-footer-note,
+  html body .site-footer-bottom,
+  html body .site-footer-version {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+  html body .site-footer-note p {
+    overflow-wrap: anywhere;
+  }
+}
+
 /* 2026-08-25 New newspaper type system.
    Font switching is removed from the header: body/UI/content use Pretendard,
    while editorial titles, banners and Tistory content titles use MaruBuri. */

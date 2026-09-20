@@ -1,5 +1,11 @@
 # 9Pay 주요 작업이력
 
+**2026-09-20(18차) 모바일 풋터 폭 보정**
+
+모바일에서 구형·신형 풋터 마크업 모두 화면 폭을 넘지 않게 폭과 최소 너비를 고정하고, 긴 안내 문구와 버전 문구가 줄바꿈되도록 보정했다. PC 풋터 배치는 유지한다.
+
+검증: `python -m pytest test/test_ui_ia.py -q --disable-warnings --maxfail=1`.
+
 **2026-09-19(17차) 차트검색 오류 수정**
 
 각도기·공파산 백테스트 영역 제거 뒤 남아 있던 `renderBacktestBox()` 호출을 삭제했다. 정의되지 않은 함수를 호출해 차트검색 결과가 `renderBacktestBox is not defined`로 멈추던 문제를 해결했다.
