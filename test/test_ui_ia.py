@@ -1554,6 +1554,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
+        self.assertIn("grid-template-areas: none !important", style)
 
         chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
                     "money.html", "macro.html"]
