@@ -305,7 +305,13 @@ function getMarketRibbon() {
   var cached = cache.get(cacheKey);
   if (cached) {
     var parsedCache_ = parseCachedJson_(cached);
-    if (parsedCache_ !== null) return parsedCache_;
+    if (parsedCache_ !== null) {
+      // 리본 전체는 장외 30분 캐시를 그대로 두고, 환율만 60초 캐시에서 덧씌운다.
+      // 그래야 "장외에도 환율은 움직인다"를 리본 TTL을 통째로 줄이지 않고 해결한다.
+      var ribbonFx_ = fetchExchangeCached_();
+      if (ribbonFx_) parsedCache_.usdkrw = ribbonFx_;
+      return parsedCache_;
+    }
   }
 
   // 코스피/코스닥/환율은 서로 독립적인 요청이라 fetchAll로 동시에 쏴서 지연시간을 줄인다.
@@ -328,8 +334,11 @@ function getMarketRibbon() {
   // 2026-08-21 코드 감사: 09:00 개장 경계를 capTtlToSessionBoundary_로 캡핑하지 않으면
   // 08:59에 쓰인 캐시가 09:29까지 장전 값으로 고정될 수 있었다(시세 캐시/시총버블은
   // 이미 캡핑돼 있었는데 리본만 빠져 있었음).
-  // 환율은 장외에도 해외 환율 API가 갱신될 수 있어 주말/장외 30분 캐시를 쓰지 않는다.
-  var ttl = capTtlToSessionBoundary_(result.btc ? CACHE_TTL_OPEN : 120);
+  // 환율이 장외에도 갱신되는 건 위 캐시 히트 경로에서 fetchExchangeCached_()가 따로
+  // 덧씌워 해결한다. 그래서 리본 본체는 예전처럼 장외 30분 캐시를 쓴다 - 2026-09-20에
+  // 이걸 CACHE_TTL_OPEN으로 바꿔 두면 장외·주말에도 60초마다 지수·코인까지 다시 받아
+  // GAS 호출량이 30배가 된다(환율 하나 때문에).
+  var ttl = capTtlToSessionBoundary_(result.btc ? (isMarketOpenNow() ? CACHE_TTL_OPEN : CACHE_TTL_CLOSED) : 120);
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -340,6 +349,27 @@ function safeCall(fn) {
   } catch (err) {
     return null;
   }
+}
+
+// 원/달러 환율만 따로 짧게 캐시한다.
+// 2026-09-21: 시장 온도·리본은 캐시가 적중해도 환율만은 최신값을 보여 주려고
+// fetchExchange()를 다시 불렀는데, 그 함수는 캐시 없는 UrlFetchApp 호출이라
+// **캐시 히트마다 네트워크를 한 번씩 탔다.** 캐시의 이점(0ms)이 사라지고 GAS의
+// URL Fetch 할당량을 방문 수만큼 썼다. 환율만 60초 캐시로 묶어 그 왕복을 없앤다 -
+// 화면에 보이는 신선도는 장중 시세 캐시(CACHE_TTL_OPEN=60초)와 같은 수준이다.
+var FX_CACHE_TTL_SEC = 60;
+
+function fetchExchangeCached_() {
+  var cache = CacheService.getScriptCache();
+  var key = CACHE_PREFIX + 'fx_usdkrw_v1';
+  var cached = cache.get(key);
+  if (cached) {
+    var parsed = parseCachedJson_(cached);
+    if (parsed !== null) return parsed;
+  }
+  var fresh = safeCall(function () { return fetchExchange('FX_USDKRW'); });
+  if (fresh) cache.put(key, JSON.stringify(fresh), FX_CACHE_TTL_SEC);
+  return fresh;
 }
 
 // 코스피/코스닥 지수 - 종목과 동일한 네이버 polling API, prefix만 SERVICE_INDEX
@@ -1540,7 +1570,8 @@ function getMarketTemp() {
     var parsedCache_ = parseCachedJson_(cached);
     if (parsedCache_ !== null) {
       // 시장 온도 전체는 캐시하되 화면에 표시하는 환율만 최신 네이버 값으로 보강한다.
-      var freshFx_ = safeCall(function () { return fetchExchange('FX_USDKRW'); });
+      // 60초 캐시를 거치므로(fetchExchangeCached_) 방문이 몰려도 왕복은 분당 한 번이다.
+      var freshFx_ = fetchExchangeCached_();
       if (freshFx_ && parsedCache_.components) parsedCache_.components.exchange = freshFx_;
       return parsedCache_;
     }

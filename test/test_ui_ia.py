@@ -1551,8 +1551,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         first_row_start = shell.index("'<nav class=\"site-footer-links\">'")
         first_row = shell[first_row_start:shell.index("</nav>'", first_row_start) + len("</nav>'")]
         self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
-        self.assertIn("주식 이야기", shell[first_row_start:])
+        # 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자"):
+        # 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면 + 카피라이트, 읽을거리는 둘째 줄.
+        # 2026-09-20에 한 줄로 합쳐지면서 이 가드가 assertIn으로 뒤집혔었다 - 되돌린다.
+        # 같은 성격인 릴리스 노트도 둘째 줄이다(2026-09-21 사용자 선택: "읽을거리만 2열로").
+        self.assertNotIn("주식 이야기", first_row)
+        self.assertNotIn("릴리스 노트", first_row)
+        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
+        self.assertIn("주식 이야기", learn_row[:600])
+        self.assertIn("릴리스 노트", learn_row[:600])
+        # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
         style = self.read("style.css")
+        self.assertIn(".copyright { order: 1; }", style)
+        self.assertIn(".site-footer-learn { order: 2; flex: 0 0 100%; }", style)
         self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)
@@ -2224,7 +2235,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("mobile: 'width=device-width, initial-scale=1.0'", shell)
         # 문의하기 바로 뒤에 온다.
         self.assertLess(shell.index("문의하기"), shell.index("site-footer-viewmode"))
-        self.assertLess(shell.index("주식 이야기"), shell.index("site-footer-viewmode"))
+        # 2026-09-21: 예전에는 "주식 이야기가 이 버튼보다 앞" 이었는데, 그건 풋터가 한 줄이던
+        # 2026-09-20 배치를 굳힌 것이다. 읽을거리는 둘째 줄이라 버튼보다 뒤에 온다
+        # (test_footer_links_the_beginner_study_pages가 줄 배치를 따로 지킨다).
+        self.assertLess(shell.index("site-footer-viewmode"), shell.index("주식 이야기"))
 
         style = self.read("style.css")
         # PC 폭에서는 숨기되, PC 모드로 켜 둔 동안에는 남긴다 - 폰에서 켜면 뷰포트가

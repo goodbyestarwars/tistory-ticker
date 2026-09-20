@@ -22,7 +22,10 @@ def main():
         strategy_scan.log('휴장일(%s) - ETF 전략 스캔을 건너뜁니다(직전 결과 유지).' % scan_day)
         return
     strategy_scan.load_dotenv()
-    universe = [stock for stock in strategy_scan.load_full_universe() if stock.get('is_etf')]
+    # 전종목 목록은 네트워크에서 받는다(GitHub Pages). 한 번만 받아 ETF 필터와
+    # universe 개수 양쪽에 쓴다 - 아래 setdefault에 다시 넘기면 매 실행 한 번씩 더 받는다.
+    full_universe = strategy_scan.load_full_universe()
+    universe = [stock for stock in full_universe if stock.get('is_etf')]
     if not universe:
         strategy_scan.log('ETF 유니버스를 못 불러왔습니다.')
         sys.exit(1)
@@ -57,7 +60,9 @@ def main():
     existing['categories'] = categories
     existing['etfScanned'] = scanned
     existing['etfScannedAt'] = now
-    existing.setdefault('universe', len(strategy_scan.load_full_universe()))
+    # setdefault는 기본값을 **먼저 계산한다** - 여기에 load_full_universe()를 그대로
+    # 넘기면 키가 이미 있어도 매번 전종목을 다시 받는다(2026-09-21 수정).
+    existing.setdefault('universe', len(full_universe))
     existing.setdefault('scannedAt', now)
     tmp_path = path + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as handle:
