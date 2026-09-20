@@ -1561,9 +1561,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("주식 이야기", learn_row[:600])
         self.assertIn("릴리스 노트", learn_row[:600])
         # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
+        # 2026-09-21: 풋터가 flex에서 grid로 바뀌면서 옛 .site-footer-learn{order;flex-basis}는
+        # 죽은 규칙이 됐다(실측: 라이브에서 셋이 같은 줄, top 790으로 나란히 섰다).
+        # 줄은 이제 grid-template-areas가 정하므로 그걸 검사한다.
         style = self.read("style.css")
-        self.assertIn(".copyright { order: 1; }", style)
-        self.assertIn(".site-footer-learn { order: 2; flex: 0 0 100%; }", style)
+        block = style[style.index('/* Footer: centered links, quiet MaruBuri type'):]
+        # 주석 본문에도 중괄호가 나오므로 선언부(grid-template-areas: ... ;)만 잘라 본다.
+        start = block.index('grid-template-areas:')
+        areas = block[start:block.index(';', start)]
+        self.assertIn('"footer-links footer-copyright"', areas)
+        self.assertIn('"footer-learn footer-learn"', areas)
+        # 읽을거리가 첫 줄에 같이 끼면 2열 배치가 아니다.
+        self.assertNotIn('footer-links footer-copyright footer-learn', areas)
         self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)

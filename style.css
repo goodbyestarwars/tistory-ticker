@@ -4025,12 +4025,17 @@ body#tt-body-index .site-footer:not(:has(.site-footer-main))::before {
   border-top-color: #d8d8d8;
 }
 
-/* Footer: centered links, quiet MaruBuri type and hairline separators. */
+/* Footer: centered links, quiet MaruBuri type and hairline separators.
+   2026-09-21: 읽을거리(주식 이야기·릴리스 노트)는 자기 줄로 내린다. 2026-09-17 지시
+   ("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로")와 2026-09-21 선택("읽을거리만
+   2열로")을 여기서 만든다. 예전 .site-footer-learn{order:2;flex:0 0 100%}는 풋터가
+   flex에서 grid로 바뀌면서 죽은 규칙이라 줄 나눔을 못 만들었다 - 줄은 이 영역표가 정한다. */
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-  grid-template-columns: max-content max-content max-content;
+  grid-template-columns: max-content max-content;
   grid-template-areas:
-    "footer-links footer-copyright footer-learn"
-    "footer-version footer-version footer-version";
+    "footer-links footer-copyright"
+    "footer-learn footer-learn"
+    "footer-version footer-version";
   justify-content: center;
   column-gap: 0;
   row-gap: 28px;
