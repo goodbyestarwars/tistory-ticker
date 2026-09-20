@@ -357,13 +357,13 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
-        // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
-        '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
-        ' aria-pressed="false">PC 화면</button>' +
       '</nav>' +
       /* 주식 이야기는 법적 고지와 분리된 읽을거리 입구로 표시한다. */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
+        // 모바일 풋터의 마지막 항목으로 PC 화면 모드 전환을 둔다.
+        '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
+        ' aria-pressed="false">PC 화면</button>' +
       '</nav>'
   };
 

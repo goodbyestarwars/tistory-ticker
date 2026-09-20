@@ -1547,7 +1547,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         shell = self.read("js/skin-shell.js")
         self.assertIn("learn/index.html\">주식 이야기</a>", shell)
         # 순서 비교는 footerLinks 블록 안에서만 한다 - 위쪽 주석에도 같은 낱말이 나온다.
-        first_row = shell[shell.index("'<nav class=\"site-footer-links\">'"):shell.index("site-footer-viewmode")]
+        first_row_start = shell.index("'<nav class=\"site-footer-links\">'")
+        first_row = shell[first_row_start:shell.index("</nav>'", first_row_start) + len("</nav>'")]
         self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
         # 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자"):
         # 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면 + 카피라이트, 주식 이야기는 둘째 줄.
@@ -2224,6 +2225,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("mobile: 'width=device-width, initial-scale=1.0'", shell)
         # 문의하기 바로 뒤에 온다.
         self.assertLess(shell.index("문의하기"), shell.index("site-footer-viewmode"))
+        self.assertLess(shell.index("주식 이야기"), shell.index("site-footer-viewmode"))
 
         style = self.read("style.css")
         # PC 폭에서는 숨기되, PC 모드로 켜 둔 동안에는 남긴다 - 폰에서 켜면 뷰포트가
