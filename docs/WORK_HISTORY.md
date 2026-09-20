@@ -190,6 +190,24 @@
 `existing.setdefault('universe', len(load_full_universe()))`가 키 존재 여부와 무관하게 매 실행
 네트워크 호출을 한 번 더 했다. → 한 번 받아 재사용.
 
+**5번 후속(마크업만으로는 안 됐다).** 마크업을 2열로 되돌린 뒤 라이브에서 재 보니 PC에서
+링크·카피라이트·읽을거리가 **여전히 한 줄**(top 790)에 나란히 섰다. 풋터가 flex에서 grid로
+바뀌면서 `.site-footer-learn{order:2;flex:0 0 100%}`가 죽은 규칙이 됐고(같은 풋터에
+`grid-template-areas` 선언이 11개 쌓여 있다), 실제 줄은 그중 PC에서 이기는 선언이 정하고
+있었다. 영역표를 `"footer-links footer-copyright" / "footer-learn footer-learn" /
+"footer-version footer-version"`으로 고쳤다.
+
+그다음 모바일을 재 보니 **이번엔 내가 깨뜨렸다.** 되살아난 읽을거리 nav가 보통 그리드
+항목으로 떨어지면서 `repeat(auto-fit, minmax(112px,1fr))`가 열을 2개에서 4개로 쪼갰고
+(162.7/162.7 → 112/112/86/41) 첫 링크가 left −15로 화면 밖에 나갔다. DOM에서 읽을거리 nav만
+빼고 다시 재서 내 변경이 원인임을 확인했다. `grid-column: 1 / -1`로 한 줄을 주고,
+`grid-area: auto`도 같이 풀었다 - 위쪽 `grid-area: footer-learn`이 `grid-template-areas: none`
+아래에서 없는 이름이라 **행까지 묶어**, 열만 고치면 읽을거리가 링크 줄 사이에 낀다.
+order로 링크(0)→읽을거리(1)→버전(2)을 고정했다.
+
+라이브 실측 최종: PC 1,280px = 링크+카피라이트 / 읽을거리 / 버전 3줄, 모바일 375px = 2열
+162.7px 복귀·화면 밖 요소 0·가로 스크롤 없음.
+
 검증: `test_market_board_holiday_gate.py` 11건, `test_gas_fx_cache.py` 5건,
 `test_etf_strategy_scan.py` 4건 신설. `test_market_board_warmer.py`·`test_market_hours.py`·
 `test_ui_ia.py` 갱신. 전체 **1,182 passed**(검토 시점 1,164 passed + 1 failed).
