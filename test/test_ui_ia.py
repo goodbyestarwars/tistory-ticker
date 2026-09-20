@@ -447,6 +447,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("style.css?v=20260919-footer-mobile-v1", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
+        self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
         self.assertIn("ui-system.css?v=20260827-ui-system-v1", skin)
         self.assertIn(".ui-btn-a", self.read("css/ui-system.css"))
         self.assertIn(".ui-btn-tab", self.read("css/ui-system.css"))

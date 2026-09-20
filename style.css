@@ -14,6 +14,7 @@
   overflow: visible;
   color: #d24f45;
 }
+
 .hb-spinner polyline {
   fill: none;
   stroke: currentColor;
@@ -4170,6 +4171,39 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { max-width: 100%; justify-content: center; flex-wrap: wrap; }
 }
 
+/* 2026-09-20: 모바일 풋터는 링크·안내·버전을 한 화면에 압축한다. */
+@media (max-width: 720px) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas: "footer-links footer-links" "footer-copyright footer-learn" "footer-version footer-version" !important;
+    gap: 10px 18px !important;
+    padding: 18px 16px 16px !important;
+  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
+    grid-area: footer-links !important;
+    width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 7px 0 !important;
+  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+    width: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    text-align: center !important;
+    justify-self: stretch !important;
+  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { grid-area: footer-copyright !important; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { grid-area: footer-learn !important; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
+    grid-area: footer-version !important;
+    margin: 2px 0 0 !important;
+    justify-self: center !important;
+  }
+}
+
 /* 모바일 footer: 폭을 화면 안에 고정하고 각 행을 가운데 정렬한다.
    2열 링크는 같은 폭으로 배치해 줄바꿈 때 좌우가 흔들리지 않게 하며,
    구분선은 1px 세로선으로 유지한다. */
@@ -7585,12 +7619,13 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
 @media (max-width: 720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
     width: 100%; box-sizing: border-box;
-    grid-template-columns: 1fr;
-    grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
-    justify-items: center; row-gap: 14px; padding: 24px 16px 22px; text-align: center;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+    grid-template-areas: "footer-links footer-links" "footer-copyright footer-learn" "footer-version footer-version" !important;
+    gap: 10px 18px !important; padding: 18px 16px 16px !important; text-align: center;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
-    width: min(100%, 360px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; justify-items: center;
+    grid-area: footer-links !important; width: 100% !important; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 0; justify-items: center;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > * {
     position: relative; width: 100%; text-align: center;
@@ -7605,5 +7640,8 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn,
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { justify-self: center; text-align: center; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { grid-area: footer-copyright !important; width: auto; margin: 0; padding: 0; border: 0; justify-self: stretch; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { grid-area: footer-learn !important; margin: 0; padding: 0; border: 0; justify-self: stretch; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { grid-area: footer-version !important; margin: 2px 0 0; }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { max-width: 100%; justify-content: center; flex-wrap: wrap; }
 }
