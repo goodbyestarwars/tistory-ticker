@@ -1555,7 +1555,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)
-        self.assertIn("flex-wrap: nowrap !important", style)
+        self.assertIn("flex-wrap: wrap !important", style)
         self.assertIn("grid-column: 1 / -1 !important", style)
 
         chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
