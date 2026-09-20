@@ -1552,7 +1552,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
         self.assertIn("주식 이야기", shell[first_row_start:])
         style = self.read("style.css")
-        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr)) !important", style)
+        self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)
         self.assertIn("flex-wrap: nowrap !important", style)
