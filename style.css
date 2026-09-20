@@ -7652,10 +7652,24 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { justify-self: center; text-align: center; }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { grid-area: footer-copyright !important; width: auto; margin: 0; padding: 0; border: 0; justify-self: stretch; }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { grid-area: footer-learn !important; margin: 0; padding: 0; border: 0; justify-self: stretch; }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { display: flex; flex-direction: column; align-items: center; gap: 7px; }
+  /* 2026-09-21: 위 grid-area는 grid-template-areas:none 때문에 안 먹는다 - 읽을거리 nav가
+     보통 그리드 항목으로 떨어지면서 auto-fit이 열을 2개에서 4개로 쪼갰고(112/112/86/41),
+     첫 링크가 left -15로 화면 밖에 나갔다(실측). 버전 줄처럼 한 줄을 통째로 쓰게 한다. */
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {
+    /* grid-area를 먼저 풀어야 한다 - 위 `grid-area: footer-learn`이 없는 이름이라
+       행까지 묶어 버려서, 열만 1/-1로 줘도 읽을거리가 링크 줄 사이에 끼었다(실측:
+       약관·개인정보 / 읽을거리 / 오픈소스·문의하기 순). 버전 줄과 같은 방식이다. */
+    grid-area: auto !important;
+    grid-column: 1 / -1 !important;
+    /* 링크(0) -> 읽을거리(1) -> 버전(2). 버전의 order는 아래에서 2로 올린다. */
+    order: 1 !important;
+    display: flex; flex-direction: row; flex-wrap: wrap;
+    justify-content: center; align-items: center; gap: 7px 18px;
+  }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
     grid-area: auto !important;
     grid-column: 1 / -1 !important;
+    order: 2 !important;   /* 읽을거리(1) 아래로 */
     width: fit-content !important;
     max-width: 100% !important;
     display: flex !important;

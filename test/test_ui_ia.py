@@ -1573,6 +1573,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('"footer-learn footer-learn"', areas)
         # 읽을거리가 첫 줄에 같이 끼면 2열 배치가 아니다.
         self.assertNotIn('footer-links footer-copyright footer-learn', areas)
+
+        # 모바일(≤720px): 읽을거리 nav가 보통 그리드 항목으로 떨어지면 auto-fit이 열을
+        # 2개에서 4개로 쪼개 첫 링크가 화면 밖(left -15)으로 나간다. 실측으로 확인한
+        # 회귀라 한 줄 전체를 쓰게 못 박는다. grid-area를 auto로 푸는 것도 같이 필요하다 -
+        # 위쪽 `grid-area: footer-learn`이 없는 이름이라 행까지 묶어서, 열만 고치면
+        # 읽을거리가 링크 줄 사이에 낀다.
+        mobile = style[style.index('/* Mobile footer final layout override'):]
+        # 이 미디어 블록 안에 .site-footer-learn 규칙이 여러 번 나온다 - 마지막(이기는) 것을 본다.
+        learn_rule = mobile[mobile.rindex('> .site-footer-learn {'):]
+        learn_rule = learn_rule[:learn_rule.index('}')]
+        self.assertIn('grid-area: auto !important', learn_rule)
+        self.assertIn('grid-column: 1 / -1 !important', learn_rule)
+        # 링크(0) -> 읽을거리(1) -> 버전(2) 순.
+        self.assertIn('order: 1 !important', learn_rule)
+        version_rules = re.findall(r'> \.site-footer-version \{([^}]*)\}', mobile)
+        self.assertTrue(any('order: 2 !important' in rule for rule in version_rules),
+                        '버전 줄이 읽을거리보다 뒤에 와야 한다')
         self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
         self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)
