@@ -1550,15 +1550,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         first_row_start = shell.index("'<nav class=\"site-footer-links\">'")
         first_row = shell[first_row_start:shell.index("</nav>'", first_row_start) + len("</nav>'")]
         self.assertLess(first_row.index("오픈소스 라이선스"), first_row.index("문의하기"))
-        # 2026-09-17 요청("주식이야기를 맨밑으로 빼고, 사이트 이용방법을 위로 올리자"):
-        # 첫 줄은 약관·개인정보·오픈소스·문의하기·PC 화면 + 카피라이트, 주식 이야기는 둘째 줄.
-        self.assertNotIn("주식 이야기", first_row)
-        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
-        self.assertIn("주식 이야기", learn_row[:500])
-        # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
+        self.assertIn("주식 이야기", shell[first_row_start:])
         style = self.read("style.css")
-        self.assertIn(".copyright { order: 1; }", style)
-        self.assertIn(".site-footer-learn { order: 2; flex: 0 0 100%; }", style)
+        self.assertIn("grid-template-columns: repeat(3, minmax(0, 1fr)) !important", style)
+        self.assertIn("display: contents !important", style)
 
         chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
                     "money.html", "macro.html"]
