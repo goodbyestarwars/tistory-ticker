@@ -279,3 +279,66 @@ class VolumeBreakoutKeyLoadingTests(unittest.TestCase):
         with self.assertRaises(RuntimeError) as ctx:
             vbs.load_board()
         self.assertIn('.env', str(ctx.exception))
+
+
+class VolumeBreakoutGapFilterTests(unittest.TestCase):
+    """2026-09-21 사용자 요청: "갭상승으로 시작되는거" - 거래량 돌파 + 갭상승(시가 >
+    전일종가)을 둘 다 만족하는 종목만 남긴다. KIS 시세로 시가·전일종가를 확인한다."""
+
+    KEYS = ('KIS_APPKEY', 'KIS_APPSECRET')
+
+    def setUp(self):
+        self._env = {k: os.environ.get(k) for k in self.KEYS}
+        self._orig_loader = vbs.db_schema.load_daily_prices
+        self._orig_today = vbs.today_kst
+        self._orig_get_token = vbs.kis_client.get_token
+        self._orig_fetch_quote = vbs.kis_client.fetch_domestic_quote
+        vbs.today_kst = lambda: '2026-09-04'
+        self.daily = {'000001': [{'date': '2026-09-03', 'volume': 100000}]}
+        vbs.db_schema.load_daily_prices = lambda conn, code: self.daily.get(code, [])
+        vbs.kis_client.get_token = lambda appkey, appsecret: 'tok'
+        os.environ['KIS_APPKEY'] = 'k'
+        os.environ['KIS_APPSECRET'] = 's'
+
+    def tearDown(self):
+        for k, v in self._env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        vbs.db_schema.load_daily_prices = self._orig_loader
+        vbs.today_kst = self._orig_today
+        vbs.kis_client.get_token = self._orig_get_token
+        vbs.kis_client.fetch_domestic_quote = self._orig_fetch_quote
+
+    def board(self):
+        return board_with([{'code': '000001', 'name': '테스트', 'trade_volume': 120000,
+                             'price': 5000, 'change_rate': 7.5}])
+
+    def test_gap_up_stock_is_kept_with_gap_pct_recorded(self):
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_prdy_clpr': '5000'})
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual([m['code'] for m in matches], ['000001'])
+        self.assertAlmostEqual(matches[0]['patternDetail']['gapPct'], 2.0, places=4)
+
+    def test_gap_down_stock_is_excluded_even_with_volume_breakout(self):
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '4900', 'stck_prdy_clpr': '5000'})
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual(matches, [])
+
+    def test_flat_open_equal_to_previous_close_is_not_a_gap_up(self):
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5000', 'stck_prdy_clpr': '5000'})
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual(matches, [])
+
+    def test_without_kis_credentials_gap_filter_is_skipped(self):
+        os.environ.pop('KIS_APPKEY', None)
+        os.environ.pop('KIS_APPSECRET', None)
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: self.fail('KIS 인증정보가 없으면 호출되면 안 된다'))
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual([m['code'] for m in matches], ['000001'])
+        self.assertIsNone(matches[0]['patternDetail']['gapPct'])
