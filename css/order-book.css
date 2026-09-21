@@ -197,6 +197,8 @@
 }
 #order-book .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: #1261c4; }
 #order-book .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: #d24f45; }
+/* 현재가에서 크게 떨어진 벽(허수호가 의심, 2026-09-21(2차)) - 색을 강하게 채워 일반 벽 배지와 구분 */
+#order-book .ob-abnormal-badge-suspect { background: #b5720f; color: #fff; }
 
 /* ---- 매도벽 돌파 토스트("게임처럼", 2026-07-27) - absolute 오버레이 대신 HUD와 호가창
    사이 자연스러운 흐름에서 슬라이드다운으로 보여준다(3D 패널 제거로 기준 좌표가 없어짐) ---- */
