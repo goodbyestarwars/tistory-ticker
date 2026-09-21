@@ -21,6 +21,14 @@
     가장 최근 영업일 volume이다. 둘 다 의미가 분명한 값만 쓴다 - KIS 순위 API의
     거래증가율(vol_inrt)은 무엇 대비 증가율인지 이 저장소에서 확인된 바가 없어
     판정에 쓰지 않는다(CLAUDE.md: 미검증 API 필드를 확정값처럼 쓰지 않는다).
+
+2026-09-21 사용자 요청("갭상승으로 시작되는거"): 거래량 돌파 + 갭상승(시가 > 전일종가)을
+같이 만족하는 종목만 남긴다. 시가는 순위 응답에 없어 후보별로 KIS 현재가 시세
+(FHKST01010100)를 한 번 더 불러 stck_oprc(시가)·stck_prdy_clpr(전일종가)를 쓴다 - 두
+필드 다 이 저장소에서 이미 쓰인 값이다(stck_oprc: domestic_market_indicators.py,
+stck_prdy_clpr: invest_opinion.py). 이미 거래량 조건을 통과한 소수(보통 수십 종목
+이하)에만 호출하므로 전 종목 조회와 달리 비용이 크지 않다. KIS 인증정보가 없으면(키움만
+설정된 환경) 갭 여부를 확인할 수 없으므로 필터를 걸지 않고 경고만 남긴다.
 """
 import json
 import os
@@ -33,6 +41,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import daily_scan_cache
 import db_schema
+import kis_client
 import market_board
 import market_clock
 
@@ -151,7 +160,26 @@ def is_overheated(change_rate):
     return isinstance(change_rate, (int, float)) and change_rate >= OVERHEATED_CHANGE_PCT
 
 
-def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
+def fetch_gap(token, appkey, appsecret, code):
+    """오늘 시가(stck_oprc)와 전일종가(stck_prdy_clpr)로 갭상승 여부를 계산한다.
+
+    두 필드 모두 이 저장소에서 이미 확정값으로 쓰인 KIS 현재가 시세(FHKST01010100)
+    필드다(stck_oprc: domestic_market_indicators.py, stck_prdy_clpr: invest_opinion.py).
+    실패하면(휴장·일시 오류 등) None을 돌려주고 호출부가 그 종목을 건너뛴다.
+    """
+    output = kis_client.fetch_domestic_quote(token, appkey, appsecret, code)
+    open_price = output.get('stck_oprc')
+    prev_close = output.get('stck_prdy_clpr')
+    if not open_price or not prev_close:
+        return None
+    open_price = float(open_price)
+    prev_close = float(prev_close)
+    if prev_close <= 0:
+        return None
+    return open_price, prev_close, (open_price - prev_close) / prev_close * 100
+
+
+def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at, gap_pct):
     ratio = today_volume / prev_volume
     change_rate = row.get('change_rate')
     overheated = is_overheated(change_rate)
@@ -172,7 +200,7 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
             '전일(%s) 거래량 %s주' % (prev_date, format(int(prev_volume), ',')),
             '전일 대비 %.2f배' % ratio,
             '스캔 시점 등락률 %s%s' % (rate_text, ' - 이미 크게 오른 자리' if overheated else ''),
-        ],
+        ] + (['갭상승 시작 +%.2f%%' % gap_pct] if gap_pct is not None else []),
         'interpretation': (
             ('개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 다만 그 시점에 이미 '
              '%s 올라 있어, 여기서 따라 사면 비싼 값에 들어가는 자리입니다.' % (ratio, rate_text))
@@ -188,16 +216,40 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at):
             'volumeRatio': round(ratio, 4),
             'changeRate': change_rate,
             'overheated': overheated,
+            'gapPct': round(gap_pct, 4) if gap_pct is not None else None,
             'scanned_at': scanned_at,
         },
     }
 
 
+def _kis_token_for_gap():
+    """갭상승 확인용 KIS 토큰. 인증정보가 없으면(키움만 설정된 환경) None."""
+    appkey = os.environ.get('KIS_APPKEY', '').strip()
+    appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not appkey or not appsecret:
+        return None, None, None
+    try:
+        return kis_client.get_token(appkey, appsecret), appkey, appsecret
+    except Exception as exc:
+        log('KIS 토큰 발급 실패(%s) - 갭상승 필터 생략' % type(exc).__name__)
+        return None, None, None
+
+
 def scan(board, conn, scanned_at, etf_codes=None):
-    """후보 중 오늘 누적 거래량 >= 전일 거래량인 종목을 배수 내림차순으로 돌려준다."""
+    """후보 중 ①오늘 누적 거래량 >= 전일 거래량 ②갭상승(시가 > 전일종가)을
+    둘 다 만족하는 종목을 배수 내림차순으로 돌려준다.
+
+    2026-09-21 사용자 요청: 거래량 돌파만으로는 하락 갭에서도 거래가 몰린 종목까지
+    섞여 나왔다. "갭상승으로 시작되는거"만 남기기로 확인받아 ②를 추가했다.
+    KIS 인증정보가 없어 시가를 확인할 수 없으면(②를 판정 불가) 필터를 걸지 않는다 -
+    확인 못 했다고 목록을 비우기보다는 기존(①만) 동작을 유지한다.
+    """
     etf_codes = etf_codes or set()
     candidates = collect_candidates(board)
     today = today_kst()
+    token, appkey, appsecret = _kis_token_for_gap()
+    gap_checked = 0
+    gap_skipped = 0
     matches = []
     for code, row in candidates.items():
         if code in etf_codes:
@@ -210,7 +262,23 @@ def scan(board, conn, scanned_at, etf_codes=None):
             continue
         if float(today_volume) < prev_volume:
             continue
-        matches.append(build_match(code, row, float(today_volume), prev_volume, prev_date, scanned_at))
+        gap_pct = None
+        if token:
+            try:
+                gap = fetch_gap(token, appkey, appsecret, code)
+            except Exception as exc:
+                log('갭 조회 실패 %s(%s) - 이 종목은 갭 미확인으로 건너뜀' % (code, type(exc).__name__))
+                continue
+            gap_checked += 1
+            if not gap or gap[2] <= 0:
+                gap_skipped += 1
+                continue
+            gap_pct = gap[2]
+        matches.append(build_match(code, row, float(today_volume), prev_volume, prev_date, scanned_at, gap_pct))
+    if token:
+        log('갭상승 확인 %d종목 중 %d종목 갭상승 아님으로 제외' % (gap_checked, gap_skipped))
+    else:
+        log('KIS 인증정보 없음 - 갭상승 필터 생략(거래량 돌파만 적용)')
     # 2026-09-17: 이미 크게 오른 종목을 목록에서 빼지는 않는다(단타에서는 그것도 정보다).
     # 대신 같은 배수 정렬 안에서 뒤로 보내, 위쪽이 "아직 덜 간 자리"가 되게 한다.
     matches.sort(key=lambda item: (item['patternDetail']['overheated'],
