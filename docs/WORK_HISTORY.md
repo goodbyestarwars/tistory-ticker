@@ -1,5 +1,17 @@
 # 9Pay 주요 작업이력
 
+**2026-09-21 미국주식 Yahoo 폴백이 프리장·애프터장에도 정규장 마감가를 보여주던 문제**
+
+사용자 지적: "미국장은 정규장만 적용되어 있는거 같아. 프리장, 애프터장도 가격은 움직이니 등락률,
+현재가는 보여줘야지." KIS·키움이 모두 실패했을 때만 쓰는 최종 폴백 `_yahoo_quote()`가
+`includePrePost=true`로 요청만 해놓고 `regularMarketPrice`만 읽어서, 프리장(04:00~09:30 ET)·
+애프터장(16:00~20:00 ET)에는 정규장 마감가가 그대로 굳어 있었다. `_market_state()` 결과에 따라
+Yahoo 응답의 `preMarketPrice`/`postMarketPrice`(및 각 change/changePercent)를 우선 쓰도록 고쳤다.
+정규장·장마감 시간대는 기존과 동일하게 `regularMarketPrice`를 쓴다. KIS·키움 1차 조회 경로는
+필드를 실측하지 못해 손대지 않았다(장 상태별 값 차이를 확인 못한 채 확정값처럼 바꾸지 않는다).
+
+검증: `python3 test/test_us_session_basis.py -v`(13건 전체 통과, 신규 `YahooExtendedHoursQuoteTest` 3건 포함).
+
 **2026-09-20(25차) 모바일 풋터 버전 간격·줄바꿈 보정**
 
 버전 배지와 설명을 전체 폭으로 벌려 놓던 고정 폭·강제 한 줄 규칙을 제거했다. 두 항목은 자연스러운 간격으로 붙고, 좁은 화면에서만 설명이 다음 줄로 내려간다.
