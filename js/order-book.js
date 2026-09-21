@@ -44,6 +44,12 @@
   // 바꿔도 별도 리셋이 필요 없다.
   var IMBALANCE_RATIO = 3; // 매수/매도 총잔량 비율이 이 배수 이상이면 "쏠림"으로 표시
   var ABNORMAL_WALL_RATIO = 1.8; // 특정 호가 잔량이 같은 편 나머지 평균의 이 배수 이상이면 "벽"
+  // 2026-09-21(2차) 사용자 질문: "말도 안되는 가격에 잔량이 엄청 많은 경우는?" - 벽이 현재가에서
+  // 이 비율(%) 이상 떨어져 있으면 상한가·하한가(±30%) 근처에 쌓인 허수호가로 의심해 문구를
+  // 강하게 바꾼다. 실제 상한가/하한가는 호가단위 반올림 규칙까지 알아야 정확히 맞힐 수 있어
+  // (미검증 필드를 확정값처럼 쓰지 않는다는 규칙) 정확한 한도가를 계산하지 않고, 대신 "많이
+  // 떨어진 거리" 자체를 신호로 쓴다 - 상한가/하한가 근처 물량은 자연히 이 거리를 넘는다.
+  var DISTANT_WALL_PCT = 20;
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
   var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(KIS FHKST01010300 또는 키움 폴백 스냅샷 누적)
@@ -433,7 +439,7 @@
           // 근사치(strength)로 폴백한다 - updateHud 참고.
           updateHud(container, book, strength, quote, book.strength);
           updateBreakoutNote(container, book, quote);
-          renderAbnormalBadges(container, book);
+          renderAbnormalBadges(container, book, quote);
         }
         renderBoard(container, book, quote);
         // 새 이벤트가 없어도 상대시간(예: 10초 전)이 폴링 주기마다 계속 갱신되도록 한다.
@@ -492,9 +498,10 @@
   // findWallCandidate와 같은 "나머지 평균 대비 배수" 판정을 매도/매수 양쪽에 재사용하고,
   // 총잔량 쏠림까지 더해 매 틱 스냅샷만으로 배지 문구를 만든다. 상태를 갖지 않는 순수 계산이라
   // trackedWall(단일 매도벽 돌파 상태머신)과 달리 종목을 바꿔도 별도 리셋이 필요 없다.
-  function computeAbnormalSignals(book) {
+  function computeAbnormalSignals(book, quote) {
     var asks = book.asks || [], bids = book.bids || [];
     var badges = [];
+    var currentPrice = (quote && typeof quote.price === 'number') ? quote.price : null;
     var totalAsk = asks.reduce(function (s, r) { return s + r.qty; }, 0);
     var totalBid = bids.reduce(function (s, r) { return s + r.qty; }, 0);
     if (totalBid > 0 && totalAsk > 0) {
@@ -514,21 +521,33 @@
       var others = group.rows.filter(function (o) { return o !== candidate; });
       var avgOthers = others.reduce(function (s, o) { return s + o.qty; }, 0) / others.length;
       var priceLabel = Math.round(candidate.price).toLocaleString('ko-KR');
-      badges.push({
-        cls: group.side,
-        text: '🧱 ' + priceLabel + '원 ' + group.label + '벽 · 평균 대비 ' + (candidate.qty / avgOthers).toFixed(1) + '배',
-      });
+      var ratioText = (candidate.qty / avgOthers).toFixed(1) + '배';
+      var distPct = currentPrice ? Math.abs(candidate.price - currentPrice) / currentPrice * 100 : null;
+      if (distPct !== null && distPct >= DISTANT_WALL_PCT) {
+        badges.push({
+          cls: group.side + ' suspect',
+          text: '🚨 ' + priceLabel + '원 ' + group.label + '벽 · 현재가 대비 ' + distPct.toFixed(0)
+            + '% 거리 · 평균 대비 ' + ratioText + ' · 허수호가 의심',
+        });
+      } else {
+        badges.push({
+          cls: group.side,
+          text: '🧱 ' + priceLabel + '원 ' + group.label + '벽 · 평균 대비 ' + ratioText
+            + (distPct !== null ? ' · 현재가 대비 ' + distPct.toFixed(1) + '%' : ''),
+        });
+      }
     });
     return badges;
   }
 
-  function renderAbnormalBadges(container, book) {
+  function renderAbnormalBadges(container, book, quote) {
     var box = container.querySelector('#obAbnormalBadges');
     if (!box) return;
-    var badges = computeAbnormalSignals(book);
+    var badges = computeAbnormalSignals(book, quote);
     if (!badges.length) { box.innerHTML = ''; return; }
     box.innerHTML = badges.map(function (b) {
-      return '<span class="ob-abnormal-badge ob-abnormal-badge-' + b.cls + '">' + escapeHtml(b.text) + '</span>';
+      var extraCls = b.cls.split(' ').map(function (c) { return 'ob-abnormal-badge-' + c; }).join(' ');
+      return '<span class="ob-abnormal-badge ' + extraCls + '">' + escapeHtml(b.text) + '</span>';
     }).join('');
   }
 
