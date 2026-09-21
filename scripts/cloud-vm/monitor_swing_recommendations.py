@@ -26,7 +26,23 @@ def _returns(prices, entry_close, benchmark=None):
     return round(ret, 4), round(excess, 4) if excess is not None else None
 
 
-def outcome_for_snapshot(conn, row, daily_cache=None):
+def load_benchmark_by_date(conn):
+    """KOSPI 일봉을 {YYYYMMDD: close}로 한 번만 읽는다.
+
+    2026-09-21: 예전에는 스냅샷 한 줄마다 `load_future_chart_since(conn, 'KOSPI', ...)`를
+    불렀다. 그 함수는 future_chart에서 **KOSPI 전체를 매번 다시 읽고 정규화한 뒤** 날짜로
+    거르는 구조라, 47,690행을 처리하던 실행에서 같은 전체 스캔이 47,690번 돌았다(실측 21분).
+
+    조회는 전부 `benchmark_by_date.get(정확한 날짜)`뿐이라, 더 이른 날짜까지 포함한
+    상위집합을 써도 결과가 같다. 그래서 한 번 읽어 공유한다.
+    """
+    return {
+        str(item.get('date', '')).replace('-', ''): item.get('close')
+        for item in db_schema.load_future_chart_since(conn, 'KOSPI', '')
+    }
+
+
+def outcome_for_snapshot(conn, row, daily_cache=None, benchmark_by_date=None):
     # row[4](current_regime, 신호 당시 국면)는 T+20 국면 재판정(t20_regime_changed)에만
     # 쓰였는데 2주 모델 전환으로 그 계산 자체가 없어져 더 이상 안 읽는다 - SELECT 컬럼은
     # 하위호환을 위해 그대로 둠(row 인덱스가 바뀌지 않게).
@@ -35,8 +51,9 @@ def outcome_for_snapshot(conn, row, daily_cache=None):
     if daily is None:
         daily = db_schema.load_daily_prices(conn, code)
     after = [item for item in daily if item.get('date', '') > as_of_date]
-    benchmark_rows = db_schema.load_future_chart_since(conn, 'KOSPI', as_of_date.replace('-', ''))
-    benchmark_by_date = {str(item.get('date', '')).replace('-', ''): item.get('close') for item in benchmark_rows}
+    if benchmark_by_date is None:
+        benchmark_rows = db_schema.load_future_chart_since(conn, 'KOSPI', as_of_date.replace('-', ''))
+        benchmark_by_date = {str(item.get('date', '')).replace('-', ''): item.get('close') for item in benchmark_rows}
     prices = [float(item['close']) for item in after if item.get('close') not in (None, 0)]
     # 2026-08-22: 2주 모델(T+10 완결 기준)에 맞춰 mfe/mae 창을 20거래일에서 10거래일로 축소.
     highs = [float(item['high']) for item in after[:10] if item.get('high') not in (None, 0)]
@@ -80,11 +97,19 @@ def run(db_file=None):
     ).fetchall()
     # 같은 code가 여러 as_of_date에 걸쳐 반복 등장하므로(위 ORDER BY로 같은 code끼리
     # 모여 있음) 한 번의 실행 안에서 code별 가격 이력을 한 번만 로드해 재사용한다.
-    codes = {row[1] for row in rows}
-    daily_cache = {code: db_schema.load_daily_prices(conn, code) for code in codes}
+    #
+    # 2026-09-21: 예전에는 여기서 **대상 종목 전부의 일봉을 한꺼번에** 올렸다
+    # (`{code: load_daily_prices(conn, code) for code in codes}`). 953MB짜리 e2-micro에서
+    # 실측 최대 512.9MB, 스왑 885.9MB를 썼다. 정렬이 code 기준이라 같은 code가 붙어 있으니
+    # **지금 보는 종목 하나만** 들고 있으면 된다 - 정렬해 둔 이유를 그제야 살린 셈이다.
+    benchmark_by_date = load_benchmark_by_date(conn)
     updated = 0
+    cached_code, cached_daily = None, []
     for row in rows:
-        outcomes = outcome_for_snapshot(conn, row, daily_cache)
+        code = row[1]
+        if code != cached_code:
+            cached_code, cached_daily = code, db_schema.load_daily_prices(conn, code)
+        outcomes = outcome_for_snapshot(conn, row, {code: cached_daily}, benchmark_by_date)
         if any(outcomes.get(key) is not None for key in ('t5_return', 't10_return')):
             db_schema.update_swing_snapshot_outcome(
                 conn, row[0], row[1], row[2], outcomes)
