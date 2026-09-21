@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260919-footer-mobile-v1", skin)
+        self.assertIn("style.css?v=20260921-footer-learn-divider", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -1562,6 +1562,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("주식 이야기", learn_row[:600])
         self.assertNotIn("릴리스 노트", learn_row[:600],
                          '둘째 줄은 매매에 도움되는 글만 둔다 - 사이트 안내는 첫 줄이다')
+        # 2026-09-21(2차) 사용자 지적: 읽을거리 줄에 "주식 이야기" 하나뿐인데 그 앞에도
+        # 구분자(| 또는 세로선)가 붙어 있었다. .site-footer-learn a::before(첫 항목도 포함)
+        # 형태가 하나라도 남아 있으면 회귀다 - 전부 :not(:first-child)로 걸려 있어야 한다.
+        style_for_divider_check = self.read("style.css")
+        self.assertNotIn(".site-footer-learn a::before", style_for_divider_check)
+        self.assertIn(".site-footer-learn a:not(:first-child)::before", style_for_divider_check)
         # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
         # 2026-09-21: 풋터가 flex에서 grid로 바뀌면서 옛 .site-footer-learn{order;flex-basis}는
         # 죽은 규칙이 됐다(실측: 라이브에서 셋이 같은 줄, top 790으로 나란히 섰다).
