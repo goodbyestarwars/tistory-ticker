@@ -733,6 +733,12 @@ def _yahoo_quote(symbol):
     직전 종가가 함께 있어, 증권사 API 장애 시에도 화면을 채울 수 있다.
     지연될 수 있는 보조 경로이므로 실시간 스트림의 대체가 아니라 REST
     조회 실패 시에만 사용한다.
+
+    2026-09-21: `includePrePost=true`로 요청만 해놓고 정작 `regularMarketPrice`만
+    읽어서, 프리장(04:00~09:30 ET)·애프터장(16:00~20:00 ET)에는 정규장 마감가가
+    그대로 굳어 있었다(정규장 시간 외에는 `regularMarketPrice`가 갱신되지 않는 필드다).
+    Yahoo 응답의 `preMarketPrice`/`postMarketPrice`(및 각각의 change/changePercent)는
+    수년째 안정적으로 쓰이는 공개 필드라 장 상태에 맞춰 그쪽을 우선한다.
     """
     query = urllib.parse.urlencode({
         'range': '1d',
@@ -745,7 +751,22 @@ def _yahoo_quote(symbol):
     if not result:
         raise UsStockUnavailable('Yahoo 현재가 응답이 비어 있습니다.')
     meta = result.get('meta') or {}
-    price = _number(meta.get('regularMarketPrice'))
+    state = _market_state()
+    price = None
+    change = None
+    change_rate = None
+    if state == 'pre':
+        price = _number(meta.get('preMarketPrice'))
+        change = _number(meta.get('preMarketChange'))
+        change_rate = _number(meta.get('preMarketChangePercent'))
+    elif state == 'post':
+        price = _number(meta.get('postMarketPrice'))
+        change = _number(meta.get('postMarketChange'))
+        change_rate = _number(meta.get('postMarketChangePercent'))
+    if price is None:
+        price = _number(meta.get('regularMarketPrice'))
+        change = None
+        change_rate = None
     if price is None:
         timestamps = result.get('timestamp') or []
         quotes = (((result.get('indicators') or {}).get('quote') or [{}])[0])
@@ -757,8 +778,10 @@ def _yahoo_quote(symbol):
     previous_close = _number(meta.get('previousClose') or meta.get('chartPreviousClose'))
     if price is None:
         raise UsStockUnavailable('Yahoo 현재가가 비어 있습니다.')
-    change = price - previous_close if previous_close is not None else None
-    change_rate = change / previous_close * 100 if previous_close else None
+    if change is None:
+        change = price - previous_close if previous_close is not None else None
+    if change_rate is None:
+        change_rate = change / previous_close * 100 if change is not None and previous_close else None
     return _normalize_quote({
         'price': price,
         'previous_close': previous_close,

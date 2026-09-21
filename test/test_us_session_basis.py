@@ -88,6 +88,63 @@ class ResponseContractTest(unittest.TestCase):
         self.assertIn("'session_date': _session_date(),", read(SOURCE))
 
 
+@unittest.skipUnless(NY_TZ, 'tzdata가 있어야 뉴욕 시각을 계산할 수 있다')
+class YahooExtendedHoursQuoteTest(unittest.TestCase):
+    """2026-09-21: includePrePost=true로 요청만 하고 regularMarketPrice만 읽어서
+    프리장·애프터장에 정규장 마감가가 굳어 있던 문제(_yahoo_quote)."""
+
+    def setUp(self):
+        text = read(SOURCE)
+        number_src = text[text.index('def _number('):text.index('def _first(')]
+        quote_src = text[text.index('def _yahoo_quote('):text.index('def _get_yahoo_json(')]
+
+        import urllib.parse
+        import types
+        namespace = {'urllib': types.SimpleNamespace(parse=urllib.parse)}
+
+        def fake_normalize_quote(row, symbol, provider, exchange):
+            return dict(row, symbol=symbol, provider=provider, exchange=exchange)
+
+        namespace['_normalize_quote'] = fake_normalize_quote
+
+        class Unavailable(Exception):
+            pass
+        namespace['UsStockUnavailable'] = Unavailable
+        namespace['YAHOO_CHART_URL'] = 'https://query1.finance.yahoo.com/v8/finance/chart/'
+        exec(compile(number_src, SOURCE, 'exec'), namespace)  # noqa: S102
+        exec(compile(quote_src, SOURCE, 'exec'), namespace)  # noqa: S102
+        self.namespace = namespace
+
+    def run_quote(self, meta, state):
+        self.namespace['_market_state'] = lambda: state
+        self.namespace['_get_yahoo_json'] = lambda url: {'chart': {'result': [{'meta': meta}]}}
+        return self.namespace['_yahoo_quote']('AAPL')
+
+    def test_pre_market_uses_pre_market_price_not_regular_close(self):
+        meta = {
+            'regularMarketPrice': 100.0, 'previousClose': 98.0,
+            'preMarketPrice': 101.5, 'preMarketChange': 3.5, 'preMarketChangePercent': 3.57,
+        }
+        quote = self.run_quote(meta, 'pre')
+        self.assertEqual(quote['price'], 101.5)
+        self.assertEqual(quote['change'], 3.5)
+
+    def test_post_market_uses_post_market_price(self):
+        meta = {
+            'regularMarketPrice': 100.0, 'previousClose': 98.0,
+            'postMarketPrice': 97.0, 'postMarketChange': -1.0, 'postMarketChangePercent': -1.02,
+        }
+        quote = self.run_quote(meta, 'post')
+        self.assertEqual(quote['price'], 97.0)
+        self.assertEqual(quote['change'], -1.0)
+
+    def test_regular_session_still_uses_regular_price(self):
+        meta = {'regularMarketPrice': 100.0, 'previousClose': 98.0}
+        quote = self.run_quote(meta, 'regular')
+        self.assertEqual(quote['price'], 100.0)
+        self.assertEqual(quote['change'], 2.0)
+
+
 class FrontendContractTest(unittest.TestCase):
     """장이 닫혀 있으면 조회 시각 대신 기준 장을 보여준다."""
 
