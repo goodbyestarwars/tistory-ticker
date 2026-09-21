@@ -179,6 +179,25 @@
   border-top: 1px dashed #eee;
 }
 
+/* 비정상 매물대 배지(2026-09-21) - 매수/매도 잔량 쏠림·특정 호가 벽을 한눈에 보이게 표시 */
+#order-book .ob-abnormal-badges:not(:empty) {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-top: 6px;
+  margin-top: 4px;
+  border-top: 1px dashed #eee;
+}
+#order-book .ob-abnormal-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+#order-book .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: #1261c4; }
+#order-book .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: #d24f45; }
+
 /* ---- 매도벽 돌파 토스트("게임처럼", 2026-07-27) - absolute 오버레이 대신 HUD와 호가창
    사이 자연스러운 흐름에서 슬라이드다운으로 보여준다(3D 패널 제거로 기준 좌표가 없어짐) ---- */
 #order-book .ob-toast {
@@ -433,6 +452,7 @@ html.dark #order-book .ob-hud-bar { background: rgba(245, 239, 224, 0.12) !impor
 html.dark #order-book .ob-hud-val { color: rgba(245, 239, 224, 0.7) !important; }
 html.dark #order-book .ob-hud-note { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #order-book .ob-abnormal-badges:not(:empty) { border-top-color: rgba(245, 239, 224, 0.14) !important; }
 html.dark #order-book .ob-milestones-title { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #order-book .ob-milestones-list { color: #F5EFE0 !important; }
 html.dark #order-book .ob-milestone-time { color: rgba(245, 239, 224, 0.45) !important; }

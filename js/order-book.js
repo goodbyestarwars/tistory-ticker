@@ -38,6 +38,12 @@
   // 매도호가 평균보다 이 배수 이상 많이 쌓인 호가만 "벽"으로 인정(사소한 잔량 튐 배제).
   var WALL_RATIO = 1.8;
   var WALL_BREAK_RATIO = 0.15; // 최초로 확인한 벽 잔량의 이 비율 이하로 줄면 "소진"으로 판정
+  // 2026-09-21 사용자 요청: "급등 종목은 호가창이 비정상적이지? 비정상적인 매물대 표시해줘".
+  // 기존 trackedWall(매도벽 하나만 추적하는 돌파 판정 상태머신)과는 별개로, 매 틱마다
+  // 스냅샷만 보고 판정하는 가벼운 배지 두 종류를 추가한다 - 상태를 들고 있지 않아 종목을
+  // 바꿔도 별도 리셋이 필요 없다.
+  var IMBALANCE_RATIO = 3; // 매수/매도 총잔량 비율이 이 배수 이상이면 "쏠림"으로 표시
+  var ABNORMAL_WALL_RATIO = 1.8; // 특정 호가 잔량이 같은 편 나머지 평균의 이 배수 이상이면 "벽"
   var MILESTONE_MAX = 8;
   var TOAST_MS = 3500;
   var TRADE_LIST_MAX = 20; // 최근 체결 리스트 표시 개수(KIS FHKST01010300 또는 키움 폴백 스냅샷 누적)
@@ -121,6 +127,7 @@
       + '<div class="ob-hud-row"><span class="ob-hud-label">체결강도</span><div class="ob-hud-bar"><span id="obStrengthBar" class="ob-hud-fill ob-hud-fill-strength"></span></div><span id="obStrengthVal" class="ob-hud-val">-</span></div>'
       + '<div id="obHudNote" class="ob-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
       + '<div id="obBreakoutNote" class="ob-breakout-note"></div>'
+      + '<div id="obAbnormalBadges" class="ob-abnormal-badges"></div>'
       + '</div>'
       + '<div id="obToast" class="ob-toast"></div>'
       + '<div id="obBoard" class="ob-board"><div class="ob-hint">종목을 검색해서 호가창을 확인해보세요.</div></div>'
@@ -426,6 +433,7 @@
           // 근사치(strength)로 폴백한다 - updateHud 참고.
           updateHud(container, book, strength, quote, book.strength);
           updateBreakoutNote(container, book, quote);
+          renderAbnormalBadges(container, book);
         }
         renderBoard(container, book, quote);
         // 새 이벤트가 없어도 상대시간(예: 10초 전)이 폴링 주기마다 계속 갱신되도록 한다.
@@ -477,6 +485,51 @@
       }
     });
     return best;
+  }
+
+  // ---- 비정상 매물대 배지(2026-09-21 사용자 요청: "급등 종목은 호가창이 비정상적이지?
+  // 비정상적인 매물대 표시해줘") ----
+  // findWallCandidate와 같은 "나머지 평균 대비 배수" 판정을 매도/매수 양쪽에 재사용하고,
+  // 총잔량 쏠림까지 더해 매 틱 스냅샷만으로 배지 문구를 만든다. 상태를 갖지 않는 순수 계산이라
+  // trackedWall(단일 매도벽 돌파 상태머신)과 달리 종목을 바꿔도 별도 리셋이 필요 없다.
+  function computeAbnormalSignals(book) {
+    var asks = book.asks || [], bids = book.bids || [];
+    var badges = [];
+    var totalAsk = asks.reduce(function (s, r) { return s + r.qty; }, 0);
+    var totalBid = bids.reduce(function (s, r) { return s + r.qty; }, 0);
+    if (totalBid > 0 && totalAsk > 0) {
+      if (totalBid >= totalAsk * IMBALANCE_RATIO) {
+        badges.push({ cls: 'bid', text: '⚠️ 매수잔량 쏠림 · 매도 대비 ' + (totalBid / totalAsk).toFixed(1) + '배' });
+      } else if (totalAsk >= totalBid * IMBALANCE_RATIO) {
+        badges.push({ cls: 'ask', text: '⚠️ 매도잔량 쏠림 · 매수 대비 ' + (totalAsk / totalBid).toFixed(1) + '배' });
+      }
+    } else if (totalBid > 0 && totalAsk === 0) {
+      badges.push({ cls: 'bid', text: '⚠️ 매도호가 전멸 · 매수잔량만 존재' });
+    } else if (totalAsk > 0 && totalBid === 0) {
+      badges.push({ cls: 'ask', text: '⚠️ 매수호가 전멸 · 매도잔량만 존재' });
+    }
+    [{ side: 'ask', rows: asks, label: '매도' }, { side: 'bid', rows: bids, label: '매수' }].forEach(function (group) {
+      var candidate = findWallCandidate(group.rows);
+      if (!candidate) return;
+      var others = group.rows.filter(function (o) { return o !== candidate; });
+      var avgOthers = others.reduce(function (s, o) { return s + o.qty; }, 0) / others.length;
+      var priceLabel = Math.round(candidate.price).toLocaleString('ko-KR');
+      badges.push({
+        cls: group.side,
+        text: '🧱 ' + priceLabel + '원 ' + group.label + '벽 · 평균 대비 ' + (candidate.qty / avgOthers).toFixed(1) + '배',
+      });
+    });
+    return badges;
+  }
+
+  function renderAbnormalBadges(container, book) {
+    var box = container.querySelector('#obAbnormalBadges');
+    if (!box) return;
+    var badges = computeAbnormalSignals(book);
+    if (!badges.length) { box.innerHTML = ''; return; }
+    box.innerHTML = badges.map(function (b) {
+      return '<span class="ob-abnormal-badge ob-abnormal-badge-' + b.cls + '">' + escapeHtml(b.text) + '</span>';
+    }).join('');
   }
 
   // 2026-07-28 사용자 리포트: SK하이닉스가 -10%로 급락 중인데도 "매도벽 돌파!"가 떴음 -
@@ -583,6 +636,8 @@
     if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
     var breakoutNote = container.querySelector('#obBreakoutNote');
     if (breakoutNote) breakoutNote.textContent = '';
+    var abnormalBox = container.querySelector('#obAbnormalBadges');
+    if (abnormalBox) abnormalBox.innerHTML = '';
   }
 
   // 2026-07-28: "체결량이 얼마 정도면 뚫을 수 있는지"(사용자 요청) - 추적 중인 매도벽이
