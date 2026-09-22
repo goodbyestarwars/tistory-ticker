@@ -384,13 +384,16 @@
          2026-09-22(2차) 요청("채권 이야기를 하나 추가하자"): 같은 방식으로 독립 페이지를
          하나 더 추가한다.
          2026-09-22(3차) 요청("코인이야기... 정리해서 하나 더 만들자"): 같은 방식으로
-         한 번 더 추가한다. */
+         한 번 더 추가한다.
+         2026-09-22(4차) 요청(한국은행 「알기 쉬운 경제이야기」를 이 사이트 톤으로 재구성):
+         같은 방식으로 한 번 더 추가한다. */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">미국 주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">코인 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">경제 이야기</a>' +
       '</nav>'
   };
 
