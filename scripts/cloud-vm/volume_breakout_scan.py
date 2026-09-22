@@ -1,18 +1,25 @@
 # -*- coding: utf-8 -*-
-"""전일 거래량을 개장 10분 만에 넘어선 종목을 찾는 장중 1회 스냅샷 스캔.
+"""갭상승으로 출발해 개장 5분 만에 전일 거래량의 절반을 넘어선 종목을 찾는 장중 1회
+스냅샷 스캔.
 
 2026-09-04 요청: "차트검색에 전일 거래량이 오늘 10분 만에 돌파한거 추가".
+2026-09-21 요청("갭상승으로 시작되는거"): 갭상승 조건을 추가.
+2026-09-22 요청("일단 시초가 갭상승 + 거래량 50%는 09:05분에 검출 가능하겠지?" ->
+"거래량 돌파 탭을 내가 말한거로 수정해"): 09:10·"전일 하루치 이상"이던 조건을
+09:05·"전일의 50% 이상"으로 앞당기고 낮췄다. 근거는 2026-09-17에 남겨 둔 09:05 관측
+로그(log_probe_comparison의 0.5배 문턱) - 그 관측·비교 역할은 이제 이 스캔 자체가
+대신하므로 별도 --probe 패스는 걷어냈다.
 
 판정 방식이 다른 스캐너와 다르다. 차트검색의 기존 탭은 전부 daily_scan.py가 장 마감 뒤
-하루 1회 돌리는 일봉 패턴이지만, 이 조건은 "개장 후 10분"이라는 시각이 조건의 일부라
-그 순간에 한 번 찍어야만 알 수 있다. 그래서 09:10 KST에 한 번 실행하는 별도 타이머로 둔다
-(setup_volumebreakout_timer.sh). 장중 계속 감시할 이유는 없다 - "10분 안에 넘었는가"는
-09:10에 확정되고 그 뒤로는 바뀌지 않는다.
+하루 1회 돌리는 일봉 패턴이지만, 이 조건은 "개장 후 5분"이라는 시각이 조건의 일부라
+그 순간에 한 번 찍어야만 알 수 있다. 그래서 09:05 KST에 한 번 실행하는 별도 타이머로 둔다
+(setup_volumebreakout_timer.sh). 장중 계속 감시할 이유는 없다 - "5분 안에 넘었는가"는
+09:05에 확정되고 그 뒤로는 바뀌지 않는다.
 
 대상 종목:
-    전 종목의 장중 누적 거래량을 09:10에 훑으려면 종목당 API 호출이 필요해 현실적이지
+    전 종목의 장중 누적 거래량을 09:05에 훑으려면 종목당 API 호출이 필요해 현실적이지
     않다. 대신 KIS 순위 API가 주는 당일 거래량·거래대금·거래증가율 상위 목록을 후보로
-    쓴다. 전일 하루치 거래량을 10분 만에 넘긴 종목은 그 시각 당일 거래량 최상위권에
+    쓴다. 전일 거래량의 절반을 5분 만에 넘긴 종목은 그 시각 당일 거래량 최상위권에
     있을 수밖에 없으므로 이 후보군으로 대부분 잡힌다. 다만 순위 API가 돌려주는 개수
     상한(섹션당 40) 밖으로 밀린 종목은 놓칠 수 있다 - 완전 탐색이 아니라는 뜻이다.
 
@@ -22,15 +29,15 @@
     거래증가율(vol_inrt)은 무엇 대비 증가율인지 이 저장소에서 확인된 바가 없어
     판정에 쓰지 않는다(CLAUDE.md: 미검증 API 필드를 확정값처럼 쓰지 않는다).
 
-2026-09-21 사용자 요청("갭상승으로 시작되는거"): 거래량 돌파 + 갭상승(시가 > 전일종가)을
-같이 만족하는 종목만 남긴다. 시가는 순위 응답에 없어 후보별로 KIS 현재가 시세
-(FHKST01010100)를 한 번 더 불러 stck_oprc(시가)·stck_prdy_clpr(전일종가)를 쓴다 - 두
-필드 다 이 저장소에서 이미 쓰인 값이다(stck_oprc: domestic_market_indicators.py,
-stck_prdy_clpr: invest_opinion.py). 이미 거래량 조건을 통과한 소수(보통 수십 종목
-이하)에만 호출하므로 전 종목 조회와 달리 비용이 크지 않다. KIS 인증정보가 없으면(키움만
-설정된 환경) 갭 여부를 확인할 수 없으므로 필터를 걸지 않고 경고만 남긴다.
+갭상승 판정:
+    시가는 순위 응답에 없어 후보별로 KIS 현재가 시세(FHKST01010100)를 한 번 더 불러
+    stck_oprc(시가)·stck_prdy_clpr(전일종가)를 쓴다. 이 값은 daily_prices의 일봉으로는
+    대신할 수 없다 - daily_prices의 "오늘" 행은 장 마감 뒤(daily_scan.py, 20:10 KST)에야
+    채워지므로 09:05 시점엔 존재하지 않는다(detect_opening_gap이 쓰는 값은 "어제"
+    기준이라 이 조건과 다르다). 이미 거래량 조건을 통과한 소수(보통 수십 종목 이하)에만
+    호출하므로 전 종목 조회와 달리 비용이 크지 않다. KIS 인증정보가 없으면(키움만 설정된
+    환경) 갭 여부를 확인할 수 없으므로 필터를 걸지 않고 경고만 남긴다.
 """
-import json
 import os
 import re
 import sys
@@ -59,10 +66,17 @@ MAX_MATCHES = 40
 # 상위가 전부 껍데기였다: 티와이홀딩스우 4,755주, "하나 인버스 2X 콩 선물 ETN(H)" 402주,
 # "KB 코스닥 150 TR ETN" 5,021주 - 전일 거래량이 거의 0이라 증가율이 상한값(9999.99)에
 # 박힌 종목들이다. 이런 건 "전일 거래량 돌파"를 항상 통과해서 목록을 덮어버린다.
-# 전일에 어느 정도 거래가 있었어야 "하루치를 10분 만에 넘었다"가 의미를 갖는다.
+# 전일에 어느 정도 거래가 있었어야 "많이 넘었다"가 의미를 갖는다.
 # 두 값 모두 첫 실사 뒤 조정할 수 있는 출발점이다.
 MIN_PREV_VOLUME = 50000
 MIN_TODAY_VOLUME = 50000
+
+# 2026-09-22 사용자 지시("시초가 갭상승 + 거래량 50%는 09:05분에 검출 가능하겠지?" ->
+# "그걸로 수정해"): 09:10·"전일 하루치(1.0배) 이상"이던 문턱을 09:05·"전일의 50%(0.5배)
+# 이상"으로 낮췄다. 시각을 5분 앞당기면 문턱도 같이 낮춰야 한다는 건 2026-09-17에 이미
+# 확인했고(아래 OVERHEATED_CHANGE_PCT 주석), 그 확인 근거였던 09:05 관측 로그의 0.5배
+# 문턱을 그대로 실제 스캔 조건으로 승격한 것이다.
+VOLUME_RATIO_THRESHOLD = 0.5
 
 # 2026-09-17 사용자 지적("10분에 잡으니까 너무 떠서 가는데"). 그날 09:10 실측 16종목의
 # 등락률은 최소 +0.57 / 중앙 +9.34 / 최대 +17.14%였고, 절반 이상이 +5%를 넘은 상태였다.
@@ -70,11 +84,6 @@ MIN_TODAY_VOLUME = 50000
 # 그래서 "배수 큰 것만 남기면 덜 뜬 걸 잡는다"는 성립하지 않는다. 목록에서 빼지는 않고
 # (단타에서는 그것도 정보다) 배수 정렬 안에서 뒤로 보낸다. 기준선은 그날 중앙값이다.
 OVERHEATED_CHANGE_PCT = 10.0
-
-# 09:05 관측 패스가 남기는 파일. "5분 시점에 전일 대비 몇 배였나"를 종목별로 적어 두면,
-# 09:10 본 스캔이 자기 결과와 맞춰 보고 "5분 시점 X배면 10분에 1.0배가 되더라"의 X를
-# 로그로 남긴다. 그 숫자가 나오면 본 스캔을 09:05로 앞당길 수 있다.
-PROBE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'volume_breakout_probe.json')
 
 # 종목 목록 원본. daily_scan.load_full_universe와 같은 파일·같은 정규식을 쓴다.
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
@@ -163,9 +172,13 @@ def is_overheated(change_rate):
 def fetch_gap(token, appkey, appsecret, code):
     """오늘 시가(stck_oprc)와 전일종가(stck_prdy_clpr)로 갭상승 여부를 계산한다.
 
-    두 필드 모두 이 저장소에서 이미 확정값으로 쓰인 KIS 현재가 시세(FHKST01010100)
-    필드다(stck_oprc: domestic_market_indicators.py, stck_prdy_clpr: invest_opinion.py).
-    실패하면(휴장·일시 오류 등) None을 돌려주고 호출부가 그 종목을 건너뛴다.
+    KIS 현재가 시세(FHKST01010100)의 필드다. 2026-09-22 재확인: 이전 주석은 두 필드가
+    "이 저장소에서 이미 확정값으로 쓰였다"고 했지만 실제로는 stck_oprc는
+    domestic_market_indicators.py의 다른 TR(지수·분봉) 응답에서, stck_prdy_clpr는
+    invest_opinion.py의 다른 TR(FHKST663300C0)에서 온 값이었다 - 이 TR 자체에서 검증된
+    적은 없다. 다만 KIS 문서에서 이 두 필드명은 "주식현재가 시세" 계열 TR 전반에 걸쳐
+    일관되게 쓰이는 표준 필드라 그대로 둔다. 값이 비어 있으면(필드가 실제로 다르거나
+    휴장·오류) None을 돌려주고 호출부가 그 종목을 건너뛴다.
     """
     output = kis_client.fetch_domestic_quote(token, appkey, appsecret, code)
     open_price = output.get('stck_oprc')
@@ -181,6 +194,7 @@ def fetch_gap(token, appkey, appsecret, code):
 
 def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at, gap_pct):
     ratio = today_volume / prev_volume
+    score = min(100, int(round(ratio / VOLUME_RATIO_THRESHOLD * 50)))
     change_rate = row.get('change_rate')
     overheated = is_overheated(change_rate)
     rate_text = ('%+.2f%%' % change_rate) if isinstance(change_rate, (int, float)) else '알 수 없음'
@@ -194,22 +208,25 @@ def build_match(code, row, today_volume, prev_volume, prev_date, scanned_at, gap
         # 이 스캔은 일봉 20개를 들고 있지 않으므로 miniChart는 비운다 - 프론트가
         # "상세 가격 흐름 데이터 없음"으로 처리한다.
         'miniChart': [],
-        'score': min(100, int(round(ratio * 50))),
+        'score': score,
         'reasons': [
-            '개장 10분 시점 누적 거래량 %s주' % format(int(today_volume), ','),
+            '개장 5분 시점 누적 거래량 %s주' % format(int(today_volume), ','),
             '전일(%s) 거래량 %s주' % (prev_date, format(int(prev_volume), ',')),
             '전일 대비 %.2f배' % ratio,
             '스캔 시점 등락률 %s%s' % (rate_text, ' - 이미 크게 오른 자리' if overheated else ''),
-        ] + (['갭상승 시작 +%.2f%%' % gap_pct] if gap_pct is not None else []),
+            '갭상승 시작 +%.2f%%' % gap_pct,
+        ],
         'interpretation': (
-            ('개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 다만 그 시점에 이미 '
-             '%s 올라 있어, 여기서 따라 사면 비싼 값에 들어가는 자리입니다.' % (ratio, rate_text))
+            ('갭상승으로 출발해 개장 5분 만에 전일 거래량의 %.0f%%를 넘어섰습니다(%.2f배). 다만 '
+             '그 시점에 이미 %s 올라 있어, 여기서 따라 사면 비싼 값에 들어가는 자리입니다.'
+             % (VOLUME_RATIO_THRESHOLD * 100, ratio, rate_text))
             if overheated else
-            ('개장 10분 만에 전일 하루치 거래량을 넘어섰습니다(%.2f배). 거래가 갑자기 몰린 '
-             '자리라는 뜻이며, 방향(상승·하락)은 이 조건만으로 판단하지 않습니다.' % ratio)
+            ('갭상승으로 출발해 개장 5분 만에 전일 거래량의 %.0f%%를 넘어섰습니다(%.2f배). 거래가 '
+             '갑자기 몰린 자리라는 뜻이며, 방향(상승·하락)은 이 조건만으로 판단하지 않습니다.'
+             % (VOLUME_RATIO_THRESHOLD * 100, ratio))
         ),
         'patternDetail': {
-            'score': min(100, int(round(ratio * 50))),
+            'score': score,
             'todayVolume': int(today_volume),
             'prevVolume': int(prev_volume),
             'prevDate': prev_date,
@@ -236,13 +253,15 @@ def _kis_token_for_gap():
 
 
 def scan(board, conn, scanned_at, etf_codes=None):
-    """후보 중 ①오늘 누적 거래량 >= 전일 거래량 ②갭상승(시가 > 전일종가)을
-    둘 다 만족하는 종목을 배수 내림차순으로 돌려준다.
+    """후보 중 ①오늘 누적 거래량 >= 전일 거래량의 VOLUME_RATIO_THRESHOLD(0.5)배
+    ②갭상승(시가 > 전일종가)을 둘 다 만족하는 종목을 배수 내림차순으로 돌려준다.
 
-    2026-09-21 사용자 요청: 거래량 돌파만으로는 하락 갭에서도 거래가 몰린 종목까지
-    섞여 나왔다. "갭상승으로 시작되는거"만 남기기로 확인받아 ②를 추가했다.
-    KIS 인증정보가 없어 시가를 확인할 수 없으면(②를 판정 불가) 필터를 걸지 않는다 -
-    확인 못 했다고 목록을 비우기보다는 기존(①만) 동작을 유지한다.
+    2026-09-21 사용자 요청("갭상승으로 시작되는거"): 거래량 돌파만으로는 하락 갭에서도
+    거래가 몰린 종목까지 섞여 나와 ②를 추가했다.
+    2026-09-22 사용자 지시("거래량 돌파 탭을 내가 말한거로 수정해" - 시초 갭상승 + 거래량
+    50%를 09:05에): 이제 갭상승은 이 탭의 이름값 자체라 KIS 인증정보가 없어 확인 못 하면
+    (예전처럼 ①만으로 완화하지 않고) 그 종목은 그냥 뺀다 - "갭상승"이라는 탭 설명과 실제
+    동작이 어긋나면 안 되기 때문이다.
     """
     etf_codes = etf_codes or set()
     candidates = collect_candidates(board)
@@ -251,6 +270,9 @@ def scan(board, conn, scanned_at, etf_codes=None):
     gap_checked = 0
     gap_skipped = 0
     matches = []
+    if not token:
+        log('KIS 인증정보 없음 - 갭상승을 확인할 수 없어 이번 스캔은 빈 목록으로 저장')
+        return matches, len(candidates)
     for code, row in candidates.items():
         if code in etf_codes:
             continue
@@ -260,108 +282,25 @@ def scan(board, conn, scanned_at, etf_codes=None):
         prev_volume, prev_date = previous_volume(conn, code, today)
         if not prev_volume or prev_volume < MIN_PREV_VOLUME:
             continue
-        if float(today_volume) < prev_volume:
+        if float(today_volume) < prev_volume * VOLUME_RATIO_THRESHOLD:
             continue
-        gap_pct = None
-        if token:
-            try:
-                gap = fetch_gap(token, appkey, appsecret, code)
-            except Exception as exc:
-                log('갭 조회 실패 %s(%s) - 이 종목은 갭 미확인으로 건너뜀' % (code, type(exc).__name__))
-                continue
-            gap_checked += 1
-            if not gap or gap[2] <= 0:
-                gap_skipped += 1
-                continue
-            gap_pct = gap[2]
-        matches.append(build_match(code, row, float(today_volume), prev_volume, prev_date, scanned_at, gap_pct))
+        try:
+            gap = fetch_gap(token, appkey, appsecret, code)
+        except Exception as exc:
+            log('갭 조회 실패 %s(%s) - 이 종목은 갭 미확인으로 건너뜀' % (code, type(exc).__name__))
+            continue
+        gap_checked += 1
+        if not gap or gap[2] <= 0:
+            gap_skipped += 1
+            continue
+        matches.append(build_match(code, row, float(today_volume), prev_volume, prev_date, scanned_at, gap[2]))
     if token:
         log('갭상승 확인 %d종목 중 %d종목 갭상승 아님으로 제외' % (gap_checked, gap_skipped))
-    else:
-        log('KIS 인증정보 없음 - 갭상승 필터 생략(거래량 돌파만 적용)')
     # 2026-09-17: 이미 크게 오른 종목을 목록에서 빼지는 않는다(단타에서는 그것도 정보다).
     # 대신 같은 배수 정렬 안에서 뒤로 보내, 위쪽이 "아직 덜 간 자리"가 되게 한다.
     matches.sort(key=lambda item: (item['patternDetail']['overheated'],
                                    -item['patternDetail']['volumeRatio']))
     return matches[:MAX_MATCHES], len(candidates)
-
-
-def probe_ratios(board, conn, etf_codes=None):
-    """09:05 관측용. 후보 전체의 "지금까지 누적 / 전일 하루치" 배수를 그대로 돌려준다.
-
-    본 스캔과 달리 1.0배 문턱을 걸지 않는다 - 5분 시점에 몇 배까지 차 있었는지가 알고 싶은
-    값이기 때문이다(문턱을 걸면 통과한 것만 남아 분포를 못 본다).
-    """
-    etf_codes = etf_codes or set()
-    candidates = collect_candidates(board)
-    today = today_kst()
-    out = {}
-    for code, row in candidates.items():
-        if code in etf_codes:
-            continue
-        today_volume = row.get('trade_volume')
-        if not today_volume:
-            continue
-        prev_volume, prev_date = previous_volume(conn, code, today)
-        if not prev_volume or prev_volume < MIN_PREV_VOLUME:
-            continue
-        out[code] = {
-            'name': row.get('name') or code,
-            'ratio': round(float(today_volume) / prev_volume, 4),
-            'changeRate': row.get('change_rate'),
-            'todayVolume': int(float(today_volume)),
-            'prevVolume': int(prev_volume),
-            'prevDate': prev_date,
-        }
-    return out, len(candidates)
-
-
-def save_probe(rows):
-    payload = {'date': today_kst(), 'at': datetime.now(timezone.utc).isoformat(), 'rows': rows}
-    tmp = PROBE_FILE + '.tmp'
-    with open(tmp, 'w', encoding='utf-8') as handle:
-        json.dump(payload, handle, ensure_ascii=False)
-    os.replace(tmp, PROBE_FILE)
-
-
-def load_probe():
-    """오늘 날짜의 관측 결과만 돌려준다(어제 파일이 남아 있어도 섞이지 않게)."""
-    try:
-        with open(PROBE_FILE, 'r', encoding='utf-8') as handle:
-            payload = json.load(handle)
-    except Exception:
-        return None
-    if payload.get('date') != today_kst():
-        return None
-    return payload
-
-
-def log_probe_comparison(matches):
-    """09:10에 걸린 종목들이 09:05에는 몇 배였는지 남긴다.
-
-    목표: "5분 시점 X배 이상이면 10분에 1.0배가 되더라"의 X. 그 값이 나오면 본 스캔을
-    09:05로 앞당길 수 있다(사용자 요청 - 단타라 잡히는 시각이 곧 상품이다).
-    """
-    payload = load_probe()
-    if not payload:
-        log('09:05 관측 기록 없음 - 비교 생략')
-        return
-    rows = payload.get('rows') or {}
-    seen = []
-    for item in matches:
-        probe = rows.get(item['code'])
-        seen.append((item['name'], probe['ratio'] if probe else None,
-                     item['patternDetail']['volumeRatio']))
-    for name, five, ten in seen:
-        log('  [5분비교] %-18s 09:05 %s배 -> 09:10 %.2f배'
-            % (name, ('%.2f' % five) if five is not None else '없음', ten))
-    known = [five for _, five, _ in seen if five is not None]
-    if known:
-        for threshold in (0.3, 0.4, 0.5, 0.6, 0.7, 0.8):
-            hit = sum(1 for value in known if value >= threshold)
-            log('  [5분문턱] %.1f배 이상이었던 종목 %d/%d (%.0f%%)'
-                % (threshold, hit, len(known), 100.0 * hit / len(known)))
-    log('  [5분비교] 09:10 %d종목 중 09:05 관측에 있던 종목 %d개' % (len(matches), len(known)))
 
 
 def load_board():
@@ -383,35 +322,12 @@ def load_board():
     return market_board.fetch_domestic(token, limit=RANK_LIMIT, wics_map=wics_map)
 
 
-def run_probe():
-    """09:05 관측 패스. 화면에 쓰는 결과는 건드리지 않고 기록만 남긴다."""
-    load_dotenv()
-    board = load_board()
-    etf_codes = load_etf_codes()
-    conn = db_schema.get_conn()
-    try:
-        rows, candidate_count = probe_ratios(board, conn, etf_codes)
-    finally:
-        conn.close()
-    save_probe(rows)
-    ratios = sorted((row['ratio'] for row in rows.values()), reverse=True)
-    top = ' / '.join('%.2f' % value for value in ratios[:5])
-    log('09:05 관측 완료: 후보 %d종목 중 %d종목 기록 (상위 배수 %s)'
-        % (candidate_count, len(rows), top or '없음'))
-    for threshold in (0.5, 1.0):
-        hit = sum(1 for value in ratios if value >= threshold)
-        log('  [09:05 분포] %.1f배 이상 %d종목' % (threshold, hit))
-
-
 def main():
     # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
     # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
     skip_today, scan_day = market_clock.skip_scan_today()
     if skip_today:
         log('휴장일(%s) - 스캔을 건너뜁니다(직전 거래일 결과 유지).' % scan_day)
-        return
-    if '--probe' in sys.argv:
-        run_probe()
         return
     load_dotenv()
     scanned_at = datetime.now(timezone.utc).isoformat()
@@ -431,11 +347,10 @@ def main():
 
     daily_scan_cache.update(_apply)
     overheated = sum(1 for item in matches if item['patternDetail']['overheated'])
-    log('저장 완료: 후보 %d종목 중 %d종목 돌파 (이미 +%.0f%% 이상 오른 종목 %d개는 뒤로, '
-        'ETF 제외 %d, 전일/당일 거래량 하한 %s/%s주, 다른 패턴 섹션은 기존 값 유지)'
-        % (candidate_count, len(matches), OVERHEATED_CHANGE_PCT, overheated, len(etf_codes),
-           format(MIN_PREV_VOLUME, ','), format(MIN_TODAY_VOLUME, ',')))
-    log_probe_comparison(matches)
+    log('저장 완료: 후보 %d종목 중 %d종목 돌파(갭상승 + 전일 %.0f%% 이상, 이미 +%.0f%% 이상 오른 '
+        '종목 %d개는 뒤로, ETF 제외 %d, 전일/당일 거래량 하한 %s/%s주, 다른 패턴 섹션은 기존 값 유지)'
+        % (candidate_count, len(matches), VOLUME_RATIO_THRESHOLD * 100, OVERHEATED_CHANGE_PCT,
+           overheated, len(etf_codes), format(MIN_PREV_VOLUME, ','), format(MIN_TODAY_VOLUME, ',')))
 
 
 if __name__ == '__main__':

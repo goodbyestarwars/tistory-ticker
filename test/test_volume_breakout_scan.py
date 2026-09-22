@@ -1,10 +1,15 @@
 # -*- coding: utf-8 -*-
-"""전일 거래량을 개장 10분 만에 넘어선 종목 스캔.
+"""갭상승 + 전일 거래량의 절반을 개장 5분 만에 넘어선 종목 스캔.
 
 2026-09-04 요청: "차트검색에 전일 거래량이 오늘 10분 만에 돌파한거 추가".
+2026-09-21 요청: 갭상승(시가 > 전일종가) 조건 추가.
+2026-09-22 요청("일단 시초가 갭상승 + 거래량 50%는 09:05분에 검출 가능하겠지?" ->
+"거래량 돌파 탭을 내가 말한거로 수정해"): 09:10·전일 하루치(1.0배) 이상이던 조건을
+09:05·전일의 50%(0.5배) 이상으로 앞당기고 낮췄다. 갭상승은 이제 탭 이름값 자체라 KIS
+인증정보가 없으면(확인 불가) 결과를 완화하지 않고 빈 목록으로 저장한다.
 
 이 스캔은 차트검색의 다른 탭과 성격이 다르다 - 나머지는 장 마감 뒤 일봉 배치인데
-이건 09:10 KST 한 번 찍는 장중 스냅샷이다. 판정 자체는 순수 함수라 여기서 고정한다.
+이건 09:05 KST 한 번 찍는 장중 스냅샷이다. 판정 자체는 순수 함수라 여기서 고정한다.
 """
 import os
 import sys
@@ -26,17 +31,36 @@ def board_with(rows, section='tradeVolume'):
 
 
 class VolumeBreakoutScanTests(unittest.TestCase):
+    """거래량·갭 판정 로직. KIS 인증정보와 시세는 항상 "갭상승 +2%"로 고정해 둔다 -
+    갭상승은 별도 클래스(VolumeBreakoutGapFilterTests)에서 다룬다."""
+
+    KEYS = ('KIS_APPKEY', 'KIS_APPSECRET')
 
     def setUp(self):
+        self._env = {k: os.environ.get(k) for k in self.KEYS}
+        os.environ['KIS_APPKEY'] = 'k'
+        os.environ['KIS_APPSECRET'] = 's'
         self._orig_loader = vbs.db_schema.load_daily_prices
         self._orig_today = vbs.today_kst
+        self._orig_get_token = vbs.kis_client.get_token
+        self._orig_fetch_quote = vbs.kis_client.fetch_domestic_quote
         vbs.today_kst = lambda: '2026-09-04'
+        vbs.kis_client.get_token = lambda appkey, appsecret: 'tok'
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_prdy_clpr': '5000'})
         self.daily = {}
         vbs.db_schema.load_daily_prices = lambda conn, code: self.daily.get(code, [])
 
     def tearDown(self):
+        for k, v in self._env.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
         vbs.db_schema.load_daily_prices = self._orig_loader
         vbs.today_kst = self._orig_today
+        vbs.kis_client.get_token = self._orig_get_token
+        vbs.kis_client.fetch_domestic_quote = self._orig_fetch_quote
 
     def test_includes_when_today_volume_reaches_yesterday(self):
         self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
@@ -48,15 +72,16 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 1.2, places=4)
         self.assertEqual(matches[0]['patternDetail']['prevDate'], '2026-09-03')
 
-    def test_equal_volume_counts_as_a_breakout(self):
-        # "돌파"는 전일 하루치에 도달한 시점으로 본다. 같은 값을 빼면 딱 맞은 종목이 사라진다.
+    def test_reaching_half_of_previous_day_counts_as_a_breakout(self):
+        # 2026-09-22: 문턱이 1.0배(하루치)에서 0.5배(절반)로 낮아졌다 - 딱 절반이면 포함.
         self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 100000}]), FakeConn(), 'now')
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 50000}]), FakeConn(), 'now')
         self.assertEqual(len(matches), 1)
+        self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 0.5, places=4)
 
-    def test_excludes_when_today_volume_is_short(self):
+    def test_excludes_when_today_volume_is_just_short_of_half(self):
         self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 99999}]), FakeConn(), 'now')
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 49999}]), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
     def test_today_row_in_daily_prices_is_not_used_as_the_previous_day(self):
@@ -175,7 +200,7 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
 
     def test_frontend_tab_exists(self):
         source = self.read('js/pattern-scan.js')
-        self.assertIn("{ key: 'volumeBreakout', label: '거래량 돌파(10분)'", source)
+        self.assertIn("{ key: 'volumeBreakout', label: '거래량 돌파(5분)'", source)
         self.assertIn("if (patternKey === 'volumeBreakout') {", source)
         # 이 탭은 일봉 재판정 대상이 아니다 - 상세는 스냅샷을 그대로 쓴다.
         self.assertNotIn('volumeBreakout: true', source)
@@ -196,11 +221,17 @@ class VolumeBreakoutWiringTests(unittest.TestCase):
 
     def test_timer_runs_on_weekday_mornings_only(self):
         setup = self.read('scripts/cloud-vm/setup_volumebreakout_timer.sh')
-        # 09:10 KST = 00:10 UTC, 평일만.
-        self.assertIn('OnCalendar=Mon..Fri *-*-* 00:10:00', setup)
+        # 2026-09-22: 09:10 -> 09:05 KST(00:05 UTC)로 앞당겼다. 평일만.
+        self.assertIn('OnCalendar=Mon..Fri *-*-* 00:05:00', setup)
         # Persistent=true면 VM이 꺼져 있다 켜질 때 지난 회차를 몰아서 실행한다 -
         # 장중 스냅샷은 그 시각에 찍어야 의미가 있으므로 뒤늦게 돌면 안 된다.
         self.assertIn('Persistent=false', setup)
+        # 관측 전용 --probe 타이머는 본 스캔이 그 역할을 흡수하며 걷어냈다 - 더 이상
+        # 새로 만들지 않고(옛 --probe 인자를 모르는 실행이 안 생기게), VM에 이미 설치돼
+        # 있었을 유닛은 정리한다.
+        self.assertNotIn('volume_breakout_scan.py --probe', setup)
+        self.assertNotIn('kiwoom-volumebreakout-probe.service > /dev/null', setup)
+        self.assertIn('systemctl disable --now kiwoom-volumebreakout-probe.timer', setup)
 
 
 class VolumeBreakoutKeyLoadingTests(unittest.TestCase):
@@ -283,7 +314,10 @@ class VolumeBreakoutKeyLoadingTests(unittest.TestCase):
 
 class VolumeBreakoutGapFilterTests(unittest.TestCase):
     """2026-09-21 사용자 요청: "갭상승으로 시작되는거" - 거래량 돌파 + 갭상승(시가 >
-    전일종가)을 둘 다 만족하는 종목만 남긴다. KIS 시세로 시가·전일종가를 확인한다."""
+    전일종가)을 둘 다 만족하는 종목만 남긴다. KIS 시세로 시가·전일종가를 확인한다.
+
+    2026-09-22: 갭상승은 이제 이 탭의 이름값 자체라, KIS 인증정보가 없어 확인할 수
+    없으면 예전처럼 거래량 조건만으로 완화하지 않고 빈 목록으로 저장한다."""
 
     KEYS = ('KIS_APPKEY', 'KIS_APPSECRET')
 
@@ -334,11 +368,13 @@ class VolumeBreakoutGapFilterTests(unittest.TestCase):
         matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
-    def test_without_kis_credentials_gap_filter_is_skipped(self):
+    def test_without_kis_credentials_the_whole_scan_is_skipped(self):
+        # 2026-09-22 변경: 갭상승 확인 없이는 "갭상승" 탭이라는 이름과 실제 동작이
+        # 어긋나므로, 예전처럼 거래량 조건만으로 완화하지 않고 빈 목록으로 저장한다.
         os.environ.pop('KIS_APPKEY', None)
         os.environ.pop('KIS_APPSECRET', None)
         vbs.kis_client.fetch_domestic_quote = (
             lambda token, appkey, appsecret, code: self.fail('KIS 인증정보가 없으면 호출되면 안 된다'))
-        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
-        self.assertEqual([m['code'] for m in matches], ['000001'])
-        self.assertIsNone(matches[0]['patternDetail']['gapPct'])
+        matches, candidates = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual(matches, [])
+        self.assertEqual(candidates, 1)
