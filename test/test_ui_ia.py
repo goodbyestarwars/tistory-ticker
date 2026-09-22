@@ -1708,6 +1708,36 @@ class UiInformationArchitectureTest(unittest.TestCase):
                       "한국은행"):
             self.assertIn(token, economy_story)
 
+    def test_econ_chapter_pages_are_independent_sub_pages_of_economy_story(self):
+        """2026-09-22 사용자 요청: "1페이지에 6개 장을 넣으면 공부를 하라는거야?" - economy-story.html을
+        차례 페이지로 바꾸고, 6개 장을 주식 이야기(learn/index.html + market.html 등)와 같은 구조로
+        각각 독립 페이지로 뗐다. 이 장들은 풋터가 아니라 economy-story.html 차례에서만 연결된다.
+        """
+        index = self.read("learn/index.html")
+        economy_story = self.read("learn/economy-story.html")
+        chapter_terms = {
+            "econ-choice.html": ("기회비용", "한계적"),
+            "econ-invisible-hand.html": ("보이지 않는 손", "수요", "공급", "독점"),
+            "econ-inflation.html": ("인플레이션", "재분배"),
+            "econ-business-cycle.html": ("완전고용", "경기순환", "실질임금"),
+            "econ-money.html": ("신용창조", "지급준비금"),
+            "econ-exchange-rate.html": ("비교우위", "국제수지", "경상수지"),
+        }
+        for chapter, terms in chapter_terms.items():
+            with self.subTest(chapter=chapter):
+                page = self.read("learn/" + chapter)
+                self.assertNotIn("learn/" + chapter, index)
+                self.assertIn("learn/" + chapter, economy_story)
+                self.assertIn("css/legal.css", page)
+                self.assertIn('<div class="learn-nav">', page)
+                self.assertIn('<figure class="learn-fig">', page)
+                self.assertIn('<svg viewBox=', page)
+                self.assertIn('<figcaption>', page)
+                for svg in re.findall(r"<svg.*?</svg>", page, re.S):
+                    self.assertNotIn("<b>", svg)
+                for token in terms:
+                    self.assertIn(token, page)
+
     def test_stock_search_volume_legend_never_covers_the_rsi_pane(self):
         """2026-09-16 민원("차트 안 글자가 겹쳐 보임").
 
