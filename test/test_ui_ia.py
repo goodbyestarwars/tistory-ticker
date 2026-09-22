@@ -1669,7 +1669,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         커리큘럼(learn/index.html 차례) 안에 끼워 넣지 않고 독립 페이지로 둔다. 풋터
         읽을거리 줄에 "주식 이야기"와 나란히 이어 붙인다(끼워 넣기가 아니라 옆에 추가).
         """
-        standalone_pages = ["us-market.html", "chart-patterns.html", "bond-market.html"]
+        standalone_pages = ["us-market.html", "chart-patterns.html", "bond-market.html", "crypto-market.html"]
         index = self.read("learn/index.html")
         shell = self.read("js/skin-shell.js")
         for chapter in standalone_pages:
@@ -1688,7 +1688,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 풋터 읽을거리 줄에 "주식 이야기"와 나란히(같은 nav 안에) 붙는다.
         learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
         learn_row = learn_row[:learn_row.index('</nav>')]
-        for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기"):
+        for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기"):
             self.assertIn(token, learn_row)
         us_market = self.read("learn/us-market.html")
         for token in ("제로데이 옵션", "0DTE", "다우존스", "S&P500", "가격제한폭"):
@@ -1699,6 +1699,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         bond_market = self.read("learn/bond-market.html")
         for token in ("듀레이션", "신용등급", "신용스프레드", "국고채", "장단기 금리차"):
             self.assertIn(token, bond_market)
+        crypto_market = self.read("learn/crypto-market.html")
+        for token in ("중앙화 거래소", "탈중앙화 거래소", "반감기", "알트코인", "스테이블코인", "디페깅"):
+            self.assertIn(token, crypto_market)
 
     def test_stock_search_volume_legend_never_covers_the_rsi_pane(self):
         """2026-09-16 민원("차트 안 글자가 겹쳐 보임").

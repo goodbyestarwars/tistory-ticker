@@ -382,12 +382,15 @@
          차례에 끼워 넣지 않고 별도 독립 페이지로 만들어, 이 줄에 "주식 이야기"와 나란히
          이어 붙인다(끼워 넣기가 아니라 옆에 추가).
          2026-09-22(2차) 요청("채권 이야기를 하나 추가하자"): 같은 방식으로 독립 페이지를
-         하나 더 추가한다. */
+         하나 더 추가한다.
+         2026-09-22(3차) 요청("코인이야기... 정리해서 하나 더 만들자"): 같은 방식으로
+         한 번 더 추가한다. */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">미국 주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">코인 이야기</a>' +
       '</nav>'
   };
 
