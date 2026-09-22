@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>번외 · 차트 이야기(심화) · 그림으로 배우는 주식 이야기</title>
+<meta name="description" content="이동평균선 정배열·역배열부터 헤드앤숄더·삼각수렴 같은 전문가용 차트 패턴, 거래량과 가격의 상관관계, 호가창 매수·매도 불균형이 생기는 이유, 세력의 매집·분산 사이클을 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">← 그림으로 배우는 주식 이야기</a>
+
+  <h1>번외 · 차트 이야기, 조금 더 깊게</h1>
+  <p class="legal-effective-date">이동평균선 정배열·역배열, 전문가용 차트 패턴, 거래량 상관관계, 호가창 불균형, 세력의 움직임</p>
+
+  <p>3장(차트 읽기)이 캔들 한 개, 이동평균선의 기본 개념을 다뤘다면 이 장은 <b>실전에서 쓰는 형태</b>를 더
+  자세히 본다. 전문가들이 보는 패턴 모양, 거래량이 가격과 어떻게 맞물리는지, 호가창의 불균형이 왜 생기는지,
+  그리고 흔히 "세력"이라 부르는 큰손의 매매가 남기는 흔적까지 다룬다.</p>
+
+  <h2>이동평균선, 정배열과 역배열</h2>
+  <p>이동평균선은 3장에서 "최근 산 사람들의 평균 매수가"라고 배웠다. 여러 기간(5일·20일·60일·120일)의
+  선을 같이 놓고 보면 <b>줄 선 순서</b>가 지금이 상승 추세인지 하락 추세인지를 말해 준다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>이평선</th><th>보통 부르는 이름</th><th>무엇을 보는가</th></tr></thead>
+    <tbody>
+      <tr><td>5일선</td><td>단기·초단타 기준선</td><td>최근 일주일 심리. 가장 먼저 꺾인다.</td></tr>
+      <tr><td>20일선</td><td>생명선 · 세력선</td><td>한 달 추세. 주가가 이 선 위냐 아래냐로 단기 방향을 가른다.</td></tr>
+      <tr><td>60일선</td><td>수급선</td><td>분기 흐름. 기관·큰손의 평균 매수가로 자주 언급된다.</td></tr>
+      <tr><td>120일선</td><td>경기선</td><td>반년 흐름. 이 선이 뚫리면 추세 자체가 바뀐 것으로 본다.</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="정배열과 역배열: 이동평균선이 위에서부터 5일선, 20일선, 60일선, 120일선 순서로 늘어선 정배열과 그 반대인 역배열">
+      <text class="fig-sub" x="0" y="14">정배열 - 상승 추세</text>
+      <path class="fig-up-line" d="M0 60 L200 30" />
+      <path class="fig-ink-line" d="M0 70 L200 46" />
+      <path class="fig-line" d="M0 80 L200 62" />
+      <path class="fig-dash" d="M0 90 L200 78" />
+      <text class="fig-sub" x="0" y="102">위에서부터 5일 · 20일 · 60일 · 120일선</text>
+      <text class="fig-sub" x="0" y="118">짧은 선이 위, 긴 선이 아래 - 최근 산 사람이 더 비싸게 샀다</text>
+
+      <text class="fig-sub" x="220" y="14">역배열 - 하락 추세</text>
+      <path class="fig-down-line" d="M220 30 L420 60" />
+      <path class="fig-ink-line" d="M220 46 L420 70" />
+      <path class="fig-line" d="M220 62 L420 80" />
+      <path class="fig-dash" d="M220 78 L420 90" />
+      <text class="fig-sub" x="220" y="102">위에서부터 120일 · 60일 · 20일 · 5일선</text>
+      <text class="fig-sub" x="220" y="118">짧은 선이 아래 - 최근 산 사람이 더 싸게 샀다(계속 밀림)</text>
+
+      <text class="fig-sub" x="0" y="150">골든크로스: 짧은 선이 긴 선을 아래에서 위로 뚫는 순간</text>
+      <text class="fig-sub" x="0" y="168">데드크로스: 짧은 선이 긴 선을 위에서 아래로 뚫는 순간</text>
+      <text class="fig-sub" x="0" y="198">역배열에서 정배열로 바뀌는 초입을 노리는 게 "역매공파" 같은</text>
+      <text class="fig-sub" x="0" y="216">바닥권 반등 스캔의 기본 아이디어다.</text>
+    </svg>
+    <figcaption>정배열일수록 최근 매수가가 더 높다는 뜻이라 추세가 강하다. 역배열은 그 반대다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>주의</b> 골든크로스가 뜬 순간에는 이미 며칠 전 저가를 놓친 뒤인 경우가 많다. 이동평균선은 지난 가격의
+    평균이라 <b>항상 늦게 반응</b>한다(3장의 "지난 실적을 읽는 도구"라는 원칙과 같다). 크로스 자체보다
+    "지금 몇 번째 이평선을 딛고 있는가"를 같이 본다.
+  </div>
+
+  <h2>전문가들이 보는 차트 패턴</h2>
+  <p>3장에서 다룬 저점상승형·쌍바닥·눌림목·박스권 돌파보다 좀 더 정교하게 이름 붙은 모양들이다. 모양은
+  달라도 원리는 같다 - <b>사람들이 몰려서 사고파는 자리가 눈에 보이는 형태로 남는다</b>는 것.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 250" role="img" aria-label="헤드앤숄더, 삼각수렴, 컵앤핸들, 깃발형 네 가지 차트 패턴 모양">
+      <rect class="fig-soft" x="0" y="0" width="200" height="112" />
+      <text class="fig-ink" x="10" y="18" font-size="12">헤드앤숄더(역H&amp;S는 상하 반전)</text>
+      <path class="fig-ink-line" d="M14 90 L44 58 L74 78 L104 34 L134 78 L164 58 L190 90" />
+      <path class="fig-dash" d="M14 90 L190 90" />
+      <text class="fig-sub" x="10" y="106">목선(넥라인) 이탈이 확인 신호</text>
+
+      <rect class="fig-soft2" x="220" y="0" width="200" height="112" />
+      <text class="fig-ink" x="230" y="18" font-size="12">삼각수렴(대칭)</text>
+      <path class="fig-dash" d="M234 30 L400 68" />
+      <path class="fig-dash" d="M234 96 L400 68" />
+      <path class="fig-ink-line" d="M240 50 L268 72 L296 58 L324 74 L352 64 L400 68" />
+      <text class="fig-sub" x="230" y="106">폭이 좁아지며 에너지가 응축, 위·아래 어느 쪽으로 터질지는 이탈 방향으로 확인</text>
+
+      <rect class="fig-soft" x="0" y="126" width="200" height="112" />
+      <text class="fig-ink" x="10" y="144" font-size="12">컵앤핸들</text>
+      <path class="fig-ink-line" d="M14 168 C 40 210, 100 210, 130 168 L 150 176 L 160 166 L 172 172" />
+      <text class="fig-sub" x="10" y="232">둥근 바닥(컵) 뒤 짧은 눌림(손잡이) - 손잡이 고점 돌파가 매수 신호로 쓰인다</text>
+
+      <rect class="fig-soft2" x="220" y="126" width="200" height="112" />
+      <text class="fig-ink" x="230" y="144" font-size="12">깃발형(플래그)</text>
+      <path class="fig-up-line" d="M234 232 L266 156" />
+      <path class="fig-dash" d="M266 156 L310 172 L266 188 Z" />
+      <path class="fig-up-line" d="M310 172 L400 140" />
+      <text class="fig-sub" x="230" y="232">급등(깃대) 후 짧게 눌리며 쉬는 구간(깃발) - 다시 이전 방향으로 튀어 나가는 경우가 많다</text>
+    </svg>
+    <figcaption>네 모양 다 "많은 사람이 같은 자리에서 판단을 내렸다"는 흔적이다. 모양이 완성되기 전엔 확신할 수 없다.</figcaption>
+  </figure>
+
+  <ul>
+    <li><b>헤드앤숄더</b>는 고점을 세 번 찍되 가운데(머리)가 가장 높고 양옆(어깨)이 비슷한 높이인 모양이다.
+    상승 추세 끝에 나오면 하락 반전 신호로, 뒤집힌 모양(역헤드앤숄더)이 하락 끝에 나오면 상승 반전 신호로 읽는다.
+    <b>목선(넥라인)을 거래량을 동반해 이탈해야</b> 신호로 인정한다 - 목선 근처에서 머뭇거리면 아직 미완성이다.</li>
+    <li><b>삼각수렴</b>은 고점은 낮아지고 저점은 높아지며 폭이 좁아지는 모양이다. "곧 크게 움직인다"는 신호이지
+    방향까지 알려 주진 않는다 - 위아래 어느 쪽 선을 먼저 이탈하는지로 방향을 확인한다.</li>
+    <li><b>컵앤핸들</b>은 둥글게 파였다가 서서히 회복하는 컵 모양 뒤에, 짧게 한 번 더 눌리는 손잡이가 붙는다.
+    손잡이는 컵 전체 눌림 폭보다 얕아야 하고, 이 손잡이 구간에서 개미들이 지쳐 던지는 물량을 큰손이
+    받아 가는 경우가 많다.</li>
+    <li><b>깃발형</b>은 급등(깃대) 직후 나오는 짧고 얕은 눌림(깃발)이다. 급등 뒤라 거래량이 줄어들며 쉬는
+    구간인데, 이 조정폭이 깊지 않고 짧을수록 상승 추세가 아직 살아있다는 뜻으로 본다.</li>
+  </ul>
+
+  <h2>거래량은 왜 가격보다 먼저 말해 주는가</h2>
+  <p>가격은 "결과"고 거래량은 "그 결과에 얼마나 많은 사람이 동의했는가"다. 같은 모양의 캔들이라도 거래량에
+  따라 신뢰도가 완전히 달라진다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>상황</th><th>거래량</th><th>해석</th></tr></thead>
+    <tbody>
+      <tr><td>박스권 상단을 돌파하며 상승</td><td>평소보다 크게 증가</td><td>많은 사람이 동의한 진짜 돌파일 가능성이 높다</td></tr>
+      <tr><td>박스권 상단을 돌파하며 상승</td><td>평소와 비슷하거나 적음</td><td>동의한 사람이 적은 "가짜 돌파" - 곧 되돌아오는 경우가 흔하다(3장에서 다룬 내용과 같다)</td></tr>
+      <tr><td>주가는 그대로인데 거래량만 급증</td><td>평소 대비 몇 배</td><td>누군가 조용히 사거나 팔고 있다는 신호 - 방향은 아직 안 정해졌지만 "곧 움직인다"는 예고로 본다</td></tr>
+      <tr><td>상승은 계속되는데 거래량은 계속 줄어듦</td><td>고점에서 감소 추세</td><td>사는 사람이 말라 가는 중 - 상승 동력이 소진되고 있다는 경고 신호</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>거래량은 거짓말을 못 한다</b> 캔들 모양은 종가·시가를 어떻게 찍느냐에 따라 그럴듯하게 만들어질 여지가
+    있지만, 거래량(실제로 오간 주식 수)은 조작이 훨씬 어렵다. 그래서 "이 상승, 믿어도 되나"를 판단할 때
+    캔들 모양 하나보다 거래량을 먼저 보는 게 안전하다.
+  </div>
+
+  <h2>호가창의 매수·매도가 불균형한 이유</h2>
+  <p>호가창(2장)은 매 순간의 대기 주문 스냅샷이다. 평소엔 매수·매도 잔량이 어느 정도 균형을 이루는데, 특정
+  순간에 크게 한쪽으로 쏠리는 이유는 크게 세 가지다.</p>
+
+  <ul>
+    <li><b>실제 수급 쏠림</b> 좋은 뉴스가 나오면 매수 대기 주문이 실제로 몰린다. 매수잔량이 매도잔량보다
+    몇 배씩 많으면 "지금 이 순간 사려는 사람이 파려는 사람보다 훨씬 많다"는 뜻 그대로다.</li>
+    <li><b>매물벽(대기 물량)</b> 특정 호가 하나에 유독 큰 물량이 쌓여 있으면 그 가격이 저항(매도벽) 또는
+    지지(매수벽) 역할을 한다. 이 사이트의 호가창 페이지도 "평균보다 몇 배 쌓였는가"로 이 벽을 자동으로
+    찾아 배지로 보여 준다.</li>
+    <li><b>허수호가(스푸핑)</b> 실제로 체결할 생각 없이 큰 물량을 걸어 뒀다가, 가격이 그 근처에 오면 바로
+    취소하는 수법이다. 현재가에서 아주 멀리 떨어진 호가(상한가·하한가 근처)에 갑자기 대량 물량이 걸리면
+    이런 허수호가를 의심해 볼 수 있다 - 실제로 그 가격까지 갈 생각이 있다기보다 "이 방향으로 갈 것 같다"는
+    착시를 주려는 의도일 수 있다.</li>
+  </ul>
+  <p>그래서 호가창 불균형을 볼 때는 "몇 배 쏠렸는가"뿐 아니라 <b>그 물량이 현재가에서 얼마나 가까운가</b>를
+  같이 본다. 현재가 바로 위·아래에 쌓인 물량은 실제 저항·지지로 작동할 가능성이 크고, 현재가에서 크게 떨어진
+  자리에 쌓인 물량은 허수호가일 가능성을 의심해야 한다.</p>
+
+  <h2>세력은 어떻게 움직이나 - 매집에서 분산까지</h2>
+  <p>"세력"이라는 말은 막연하게 쓰이지만, 큰 자금이 눈에 띄지 않게 사고팔려면 물리적으로 시간이 걸린다.
+  그 과정이 남기는 흔적을 4단계로 정리하면 이렇다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 254" role="img" aria-label="세력의 매집, 테스트(개미털기), 상승, 분산 4단계 사이클과 각 단계의 거래량·가격 모양">
+      <path class="fig-ink-line" d="M0 190 L60 188 L80 182 L100 190 L120 178 L160 178 L180 168 L220 168 L240 150 L280 100 L300 70 L330 60 L360 70 L390 90 L420 130" />
+      <path class="fig-dash" d="M0 178 L240 178" />
+
+      <text class="fig-sub" x="0" y="14">① 매집(축적)</text>
+      <text class="fig-sub" x="0" y="30">오랜 박스권. 거래량은 적당히, 큰손이 조용히 사 모은다</text>
+      <rect class="fig-soft" x="0" y="200" width="120" height="16" opacity="0.6" />
+
+      <text class="fig-sub" x="130" y="14">② 테스트(개미털기)</text>
+      <text class="fig-sub" x="130" y="30">한 번 아래로 흔들어 겁먹은 개인 물량을 턴다</text>
+      <rect class="fig-soft2" x="120" y="200" width="120" height="10" opacity="0.6" />
+
+      <text class="fig-sub" x="250" y="14">③ 상승(주도)</text>
+      <text class="fig-sub" x="250" y="30">거래량 동반 급등. 뉴스·모멘텀이 따라붙어 개인이 몰린다</text>
+      <rect class="fig-up" x="240" y="180" width="140" height="36" opacity="0.85" />
+
+      <text class="fig-sub" x="0" y="228">④ 분산(차익실현) - 상승 후반, 거래량은 여전히 크지만</text>
+      <text class="fig-sub" x="0" y="240">가격은 지지부진 - 큰손이 개인에게 물량을 슬슬 넘기는 구간</text>
+    </svg>
+    <figcaption>이 사이클은 이론적 틀일 뿐 모든 종목이 이대로 움직이는 건 아니다. 확인이 아니라 "이런 그림이 잦다"는 참고로 쓴다.</figcaption>
+  </figure>
+
+  <table class="learn-table">
+    <thead><tr><th>단계</th><th>가격</th><th>거래량</th><th>흔한 착각</th></tr></thead>
+    <tbody>
+      <tr><td>매집</td><td>좁은 박스권, 지루하게 횡보</td><td>평소 수준, 가끔 튐</td><td>"안 움직이니 관심종목에서 뺀다" - 오히려 이 구간이 나중에 중요해진다</td></tr>
+      <tr><td>테스트(개미털기)</td><td>박스 하단 아래로 잠깐 이탈</td><td>급증(투매성)</td><td>"드디어 무너졌다"며 손절 - 다시 박스 안으로 복귀하면 이게 그 흔들기였던 것</td></tr>
+      <tr><td>상승(주도)</td><td>거래량 동반 급등, 이평선 정배열 전환</td><td>꾸준히 큰 수준 유지</td><td>"이미 많이 올랐다"며 진입을 피함 - 추세 중반까지는 계속 갈 수 있다</td></tr>
+      <tr><td>분산</td><td>고점권에서 오르내림만 반복, 위꼬리 잦음</td><td>여전히 크지만 가격이 안 따라감</td><td>"거래량 많으니 더 간다"고 오해 - 거래량은 큰데 가격이 전진을 못 하면 오히려 경고 신호</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>이 사이클을 매매 신호로 쓰지 않는다</b> "지금이 몇 단계다"를 사후에는 그럴듯하게 설명할 수 있지만,
+    한창 진행 중일 땐 매집인지 그냥 관심 없는 종목인지, 개미털기인지 진짜 추세 붕괴인지 미리 알 방법이 없다.
+    이 틀은 <b>지나간 차트를 복기하며 다음에 무엇을 조심할지 배우는 도구</b>지, "지금 사도 되는 신호"를
+    찾는 도구가 아니다. 5장(위험 관리)의 손절 기준은 이 틀을 믿더라도 그대로 지킨다.
+  </div>
+
+  <h2>이 사이트에서 확인하기</h2>
+  <ul>
+    <li><a href="https://ghlee.tistory.com/page/pattern-scan">종목 &gt; 차트검색</a>에 헤드앤숄더·쌍바닥 같은 패턴을 자동으로 찾아 주는 탭이 있다. 결과는 후보일 뿐 정답이 아니다.</li>
+    <li><a href="https://ghlee.tistory.com/page/order-book">호가창</a>에서 매수·매도 잔량 쏠림과 특정 호가에 쌓인 벽(현재가로부터의 거리 포함)을 실시간 배지로 확인한다.</li>
+    <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>에서 이동평균선·거래량·매물대를 한 종목 기준으로 겹쳐 본다.</li>
+  </ul>
+
+  <h2>한 줄 정리</h2>
+  <p>이평선의 줄 선 순서(정배열·역배열)가 추세를, 패턴 모양이 사람들이 몰린 자리를, 거래량이 그 자리의
+  신뢰도를 말해 준다. 호가창 불균형은 실제 수급일 수도 허수호가일 수도 있으니 거리로 구분하고, 세력의
+  매집·분산 사이클은 예측이 아니라 복기용 지도로만 쓴다.</p>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">← 번외 · 미국 주식 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">차례로 돌아가기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+</body>
+</html>

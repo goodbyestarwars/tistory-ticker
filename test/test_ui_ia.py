@@ -1654,6 +1654,33 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (".learn-toc", ".learn-note", ".learn-table", ".learn-nav"):
             self.assertIn(token, style)
 
+    def test_learn_extra_chapters_follow_the_same_conventions(self):
+        """2026-09-22 사용자 요청: 주식 이야기 옆에 번외 장 2개(미국 주식, 차트 심화) 추가.
+
+        기초 7장(위 test_global_newspaper_design_system_contract의 chapters)과 별개 목록이다 -
+        차례 번호가 있는 순서형 커리큘럼이 아니라 "더 알아보기" 참고 자료라서 별도로 고정한다.
+        """
+        extra_chapters = ["us-market.html", "chart-patterns.html"]
+        index = self.read("learn/index.html")
+        for chapter in extra_chapters:
+            with self.subTest(chapter=chapter):
+                page = self.read("learn/" + chapter)
+                self.assertIn("learn/" + chapter, index)
+                self.assertIn("css/legal.css", page)
+                self.assertIn("learn/index.html", page)
+                self.assertIn('<div class="learn-nav">', page)
+                self.assertIn('<figure class="learn-fig">', page)
+                self.assertIn('<svg viewBox=', page)
+                self.assertIn('<figcaption>', page)
+                for svg in re.findall(r"<svg.*?</svg>", page, re.S):
+                    self.assertNotIn("<b>", svg)
+        us_market = self.read("learn/us-market.html")
+        for token in ("제로데이 옵션", "0DTE", "다우존스", "S&P500", "가격제한폭"):
+            self.assertIn(token, us_market)
+        chart_patterns = self.read("learn/chart-patterns.html")
+        for token in ("정배열", "역배열", "헤드앤숄더", "허수호가", "매집"):
+            self.assertIn(token, chart_patterns)
+
     def test_stock_search_volume_legend_never_covers_the_rsi_pane(self):
         """2026-09-16 민원("차트 안 글자가 겹쳐 보임").
 
