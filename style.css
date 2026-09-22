@@ -1,6 +1,23 @@
 /* ============ RESET & BASE ============ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* 2026-09-22 사용자 요청("화면 전환시 최대한 부드럽게 해줘"): 메뉴 클릭으로 다른
+   티스토리 페이지(전체 새로고침)로 넘어갈 때 화면이 툭 끊기지 않고 부드럽게 겹쳐
+   넘어가게 크로스도큐먼트 View Transitions를 켠다. 이 사이트 모든 페이지가 같은
+   style.css를 로드하므로 별도 JS 연동 없이 같은 origin(ghlee.tistory.com) 안에서의
+   이동에 자동 적용된다. 미지원 브라우저는 그냥 기존처럼 즉시 전환된다(점진적 개선,
+   기능 저하 없음). */
+@view-transition {
+  navigation: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*) {
+    animation-duration: 0.01ms !important;
+  }
+}
+
 /* 2026-08-22 요청: "'불러오는 중' 나오면 전부 심장박동 표시 위에 넣어, 공통으로" -
    foreign-flow/order-book/pattern-scan/stock-search 4개 페이지가 각자 만든 XX-spinner
    (원형 회전 -> 심장박동 ECG 파형)와 같은 패턴을 사이트 전체가 재사용할 수 있게 여기
