@@ -50,6 +50,14 @@
 #market-temp .mt-stocks-only-heading h1 { margin: 0; color: #1f2937; font-size: 24px; line-height: 1.25; }
 #market-temp .mt-stocks-only-heading p { margin: 5px 0 0; color: #7b8490; font-size: 12px; }
 
+/* 섹터 자금흐름과 개별 종목 목록은 서로 다른 데이터(테마 랭킹 vs 종목 리스트)라
+   같은 카드처럼 붙어 보이지 않도록 섹션 제목·설명으로 구분한다(2026-09-23 사용자 지적:
+   "국내주요종목이랑 밑에 카드랑 사실 관계가 없잖아 - 구분 지을 수 있는 게 더 필요해 보인다"). */
+#market-temp .mt-section-block + .mt-section-block { margin-top: 20px; padding-top: 18px; border-top: 1px solid #eef2f7; }
+#market-temp .mt-section-head { margin: 0 0 10px; }
+#market-temp .mt-section-head h2 { margin: 0; color: #1f2937; font-size: 15px; font-weight: 700; }
+#market-temp .mt-section-head p { margin: 4px 0 0; color: #7b8490; font-size: 11.5px; line-height: 1.5; }
+
 /* 2026-07-18(2차): 관련 섹션을 좌우로 묶되, 구성 요소 그래프에 조금 더 폭을 준다.
    모바일(640px 이하)에서는 1열로 자동 스택한다. */
 #market-temp .mt-row-2col {
@@ -770,6 +778,9 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
 html.dark #market-temp { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-hint,
 html.dark #market-temp .mt-error { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #market-temp .mt-section-block + .mt-section-block { border-top-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark #market-temp .mt-section-head h2 { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-section-head p { color: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-card,
 html.dark #market-temp .mt-hero-card {
   background: #1A1A1A !important;
@@ -1048,13 +1059,7 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: rgba(245,239,22
  * 업종 TOP 표(mt-industry-flow-*)와 열 구성이 달라 클래스를 따로 둔다 - 저기는
  * 거래대금 크기 비교가 목적이고 여기는 배수 순위 + 펼침이 목적이다. */
 #market-temp .mt-sf-card { margin-bottom: 14px; padding: 14px 16px; }
-/* 제목이 부제에 밀려 두 줄로 접혔다(모바일 375px). 제목은 줄이지 않고 부제를 줄인다. */
-#market-temp .mt-sf-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-#market-temp .mt-sf-head strong { flex: 0 0 auto; white-space: nowrap; }
-#market-temp .mt-sf-head span { min-width: 0; text-align: right; }
-#market-temp .mt-sf-head strong { color: #111827; font-size: 15px; }
-#market-temp .mt-sf-head span, #market-temp .mt-sf-note { color: #94a3b8; font-size: 10.5px; }
-#market-temp .mt-sf-note { margin: 8px 0 0; line-height: 1.5; }
+#market-temp .mt-sf-note { color: #94a3b8; font-size: 10.5px; margin: 8px 0 0; line-height: 1.5; }
 
 #market-temp .mt-sf-item { border-bottom: 1px solid #eef2f7; }
 #market-temp .mt-sf-item:last-of-type { border-bottom: 0; }
@@ -1097,7 +1102,6 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: rgba(245,239,22
 #market-temp .mt-sf-derived b { padding: 3px 8px; border: 1px solid #e5edf6; border-radius: 999px; background: #f8fbff; color: #334155; font-size: 11px; font-weight: 600; }
 #market-temp .mt-sf-derived b small { color: #94a3b8; font-size: 10px; font-weight: 500; }
 
-html.dark #market-temp .mt-sf-head strong { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-sf-row b, html.dark #market-temp .mt-sf-mult { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-sf-item { border-bottom-color: rgba(245,239,224,.12) !important; }
 html.dark #market-temp .mt-sf-row:hover, html.dark #market-temp .mt-sf-row.is-open { background: #242424 !important; }

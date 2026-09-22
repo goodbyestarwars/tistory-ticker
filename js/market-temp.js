@@ -594,9 +594,8 @@
     if (!mount) return;
     var shown = (rows || []).slice(0, SECTOR_FLOW_TOP);
     if (!shown.length) { mount.innerHTML = ''; return; }
-    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다.';
+    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
-      + '<div class="mt-sf-head"><strong>오늘 돈이 몰린 섹터</strong><span>누르면 종목과 함께 볼 섹터가 열립니다</span></div>'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows); }).join('')
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
       + '</div>';
@@ -627,9 +626,15 @@
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
     var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>업종별 주요 종목의 현재가와 등락률을 한눈에 확인합니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 자금이 몰린 섹터와, 업종별 개별 종목을 나눠서 봅니다.</p></div>'
+      + '<section class="mt-section-block">'
+      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>테마(섹터) 단위 랭킹입니다. 아래 종목 목록과는 별개로, 오늘 어느 섹터에 자금이 몰렸는지만 보여줍니다.</p></div>'
       + '<div data-sector-flow></div>'
+      + '</section>'
+      + '<section class="mt-section-block">'
+      + '<div class="mt-section-head"><h2>업종별 주요 종목</h2><p>관심 업종의 개별 종목을 카드·히트맵·시가총액 순으로 살펴봅니다.</p></div>'
       + buildExploreCard(initialView)
+      + '</section>'
       + '</div>';
   }
 
