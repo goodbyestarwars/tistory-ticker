@@ -40,7 +40,7 @@
   <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260922-footer-gridarea-fix" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260922-search-icon-click" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
@@ -133,7 +133,7 @@
      (stock-search-panel은 skin-menu.js가 안 그렸으면 재시도 루프로 대기) 파싱 중
      실행될 이유가 없다 - non-defer라 HTML 파싱을 막던 것을 해제. -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-icon.js?v=20260811-auto-fallback"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=my-batch-quotes-20260829"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/stock-search-panel.js?v=20260922-search-icon-click"></script>
 <!-- ============ PAGE ============ -->
 <div class="page-wrap">
   <div class="main-layout">
@@ -395,7 +395,7 @@
      skin-shell.js는 shell-* mount에 태그 없는 UI를 주입하므로 반드시 먼저 로드
      (종목·업종 맵은 각 소비 모듈이 필요할 때 지연 로드한다) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260922-fx-market-link"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260905-main-news-v4"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260922-search-icon-click"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260919-fx-cache-v1"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260830-idle-krx-map-v1"></script>

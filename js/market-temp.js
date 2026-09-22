@@ -149,12 +149,14 @@
 
   // 사용자 지정 온도(℃) 구간 - tone은 css/market-temp.css의 카드 배경색 클래스와 매칭.
   // color: 2026-07-18 스펙 지정 5색(등급 필/게이지/기준표/레이더 강조색에 일괄 적용).
+  // 2026-09-22: season/seasonEmoji(계절 표현)는 쓰던 곳(buildGuide, 미사용 죽은 코드)마저
+  // 걷어냈다 - "날씨코너냐?" 피드백에 맞춰 이 위젯 전체에서 날씨 은유를 없앤다.
   var GRADE_BANDS = [
-    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', season: '한겨울', seasonEmoji: '❄️', tone: 'extreme-fear', color: '#1565C0' },
-    { range: '10~20℃', emoji: '🔵', label: '공포', season: '초봄', seasonEmoji: '🌱', tone: 'fear', color: '#42A5F5' },
-    { range: '20~28℃', emoji: '🟡', label: '중립', season: '포근한 봄', seasonEmoji: '🌼', tone: 'neutral', color: '#FFD54F' },
-    { range: '28~35℃', emoji: '🟠', label: '탐욕', season: '한여름', seasonEmoji: '☀️', tone: 'greed', color: '#FB8C00' },
-    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', season: '폭염', seasonEmoji: '🔥', tone: 'extreme-greed', color: '#E53935' }
+    { range: '0~10℃', emoji: '🧊', label: '극단적 공포', tone: 'extreme-fear', color: '#1565C0' },
+    { range: '10~20℃', emoji: '🔵', label: '공포', tone: 'fear', color: '#42A5F5' },
+    { range: '20~28℃', emoji: '🟡', label: '중립', tone: 'neutral', color: '#FFD54F' },
+    { range: '28~35℃', emoji: '🟠', label: '탐욕', tone: 'greed', color: '#FB8C00' },
+    { range: '35~40℃', emoji: '🔥', label: '극단적 탐욕', tone: 'extreme-greed', color: '#E53935' }
   ];
   var GRADE_BY_TONE = {};
   GRADE_BANDS.forEach(function (b) { GRADE_BY_TONE[b.tone] = b; });
@@ -1149,28 +1151,25 @@
       + p2.x.toFixed(1) + ',' + p2.y.toFixed(1);
   }
 
-  /* ---- 최근 단기흐름: 증시 날씨 리본(2026-09-16) ----
+  /* ---- 최근 단기흐름 리본 ----
 
-     사용자 요청("그래프 모양을 좀 신박한 걸로 바꾸고 싶어. 우와 신기한데? 이런거").
-     예전 그래프는 30일 평균에서 벗어난 편차를 위아래로 그려 "가운데 위 = 좋음"인지 "점수가 높음"인지
-     헷갈렸다. 이제 0~100 점수를 그대로 올리고 배경에 공포·보통·과열 구간을 깐다. 선 색은 높이에 따라
-     파랑(공포)→노랑(보통)→빨강(과열)으로 변하고, 마지막 점은 맥박처럼 뛰며, 그래프를 훑으면 그날
-     점수가 뜬다. 아래에는 날짜별 '증시 날씨' 아이콘 줄을 붙여 숫자를 안 읽어도 흐름이 보이게 했다. */
-  var MARKET_WEATHER = [
-    { max: 25, icon: '🥶', word: '꽁꽁' },
-    { max: 50, icon: '🌧️', word: '흐림' },
-    { max: 62.5, icon: '⛅', word: '구름 조금' },
-    { max: 75, icon: '🌤️', word: '맑음' },
-    { max: 88, icon: '☀️', word: '더움' },
-    { max: Infinity, icon: '🔥', word: '폭염' }
-  ];
+     2026-09-16: 30일 평균 대비 편차를 위아래로 그리던 그래프를 0~100 점수 그대로 올리고
+     배경에 공포·보통·과열 구간을 까는 방식으로 바꿨다. 선 색은 높이에 따라 파랑(공포)→
+     노랑(보통)→빨강(과열)으로 변하고, 마지막 점은 맥박처럼 뛰며, 그래프를 훑으면 그날
+     점수가 뜬다.
+     2026-09-22: 날짜별 아이콘 줄을 기상 캐스터식 6단계 표현으로 달았던 걸 사용자 피드백
+     ("날씨코너냐?")에 따라 걷어낸다. 화면 다른 곳(점수 게이지)이
+     이미 쓰는 공포·보통·과열 3단계 용어로 통일해, 같은 화면 안에서 서로 다른 두 개의
+     분류 체계(날씨 6단계 vs 공포/보통/과열 3단계)를 동시에 안 쓰게 한다. */
+  var MARKET_MOOD = {
+    fear: { icon: '🔵', word: '공포' },
+    neutral: { icon: '🟡', word: '보통' },
+    greed: { icon: '🟠', word: '과열' }
+  };
   var sparkSeq_ = 0;
 
-  function marketWeather_(score) {
-    for (var i = 0; i < MARKET_WEATHER.length; i++) {
-      if (score < MARKET_WEATHER[i].max) return MARKET_WEATHER[i];
-    }
-    return MARKET_WEATHER[MARKET_WEATHER.length - 1];
+  function marketMood_(score) {
+    return MARKET_MOOD[scoreTone_(score)];
   }
 
   function scoreTone_(score) {
@@ -1192,7 +1191,7 @@
     if (!days.length) return '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>';
     var shown = days.slice(-period);
     if (shown.length === 1) {
-      var only = marketWeather_(shown[0].score);
+      var only = marketMood_(shown[0].score);
       return '<div class="mt-spark-single"><strong>' + only.icon + ' ' + shown[0].score.toFixed(0) + '점</strong>'
         + '<span>' + escapeHtml(shown[0].date) + '</span><small>단기흐름 데이터가 더 쌓이면 기간을 비교할 수 있습니다.</small></div>';
     }
@@ -1239,7 +1238,7 @@
       return square('mt-rib-dot mt-rib-tone-' + scoreTone_(point.score), point, 5);
     }).join('');
     var nowTone = scoreTone_(now.score);
-    var nowWeather = marketWeather_(now.score);
+    var nowMood = marketMood_(now.score);
     var svg = '<svg class="mt-rib-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="최근 ' + shown.length + '거래일 종합점수 흐름">'
       + '<defs>' + gradient + '</defs>'
       + zones + borders
@@ -1256,22 +1255,22 @@
     }).join('')
       + '<span class="mt-rib-avg-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균 ' + baseline.toFixed(0) + '</span>'
       + '<span class="mt-rib-now-label mt-rib-tone-' + nowTone + (now.y < H * 0.3 ? ' is-below' : '') + '" style="left:' + pctX(now.x)
-      + '%;top:' + pctY(now.y) + '%">' + nowWeather.icon + ' ' + now.score.toFixed(0) + '점</span>'
+      + '%;top:' + pctY(now.y) + '%">' + nowMood.icon + ' ' + now.score.toFixed(0) + '점</span>'
       + '<i class="mt-rib-cursor" hidden></i><div class="mt-rib-tip" hidden></div>';
     var pointData = points.map(function (point) {
       return pctX(point.x) + ',' + pctY(point.y) + ',' + point.score.toFixed(0) + ',' + point.date;
     }).join(';');
 
-    // 날씨 줄: 기간이 길어도 10칸까지만 고르게 뽑는다(폰 폭에서 한 줄 유지).
+    // 날짜별 요약 줄: 기간이 길어도 10칸까지만 고르게 뽑는다(폰 폭에서 한 줄 유지).
     var stripCount = Math.min(shown.length, 10);
     var strip = '';
     for (var s = 0; s < stripCount; s++) {
       var index = Math.round(s * (shown.length - 1) / (stripCount - 1));
       var day = shown[index];
-      var weather = marketWeather_(day.score);
+      var mood = marketMood_(day.score);
       strip += '<li class="mt-weather-day mt-rib-tone-' + scoreTone_(day.score) + (index === shown.length - 1 ? ' is-today' : '')
-        + '" style="--mt-i:' + s + '" title="' + escapeHtml(day.date + ' ' + day.score.toFixed(0) + '점 · ' + weather.word) + '">'
-        + '<span class="mt-weather-icon" aria-hidden="true">' + weather.icon + '</span>'
+        + '" style="--mt-i:' + s + '" title="' + escapeHtml(day.date + ' ' + day.score.toFixed(0) + '점 · ' + mood.word) + '">'
+        + '<span class="mt-weather-icon" aria-hidden="true">' + mood.icon + '</span>'
         + '<b>' + day.score.toFixed(0) + '</b><small>' + escapeHtml(shortDate_(day.date)) + '</small></li>';
     }
 
@@ -1281,12 +1280,12 @@
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
     var metrics = '<div class="mt-history-metrics">'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
-      + '<span><small>가장 낮았던 날</small><b>' + marketWeather_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
-      + '<span><small>가장 높았던 날</small><b>' + marketWeather_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
+      + '<span><small>가장 낮았던 날</small><b>' + marketMood_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
+      + '<span><small>가장 높았던 날</small><b>' + marketMood_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
       + '<span><small>기간 변화</small><b class="' + periodTone + '">' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></span>'
       + '</div>';
     return '<div class="mt-history-chart-meta"><span>위로 갈수록 들뜬 시장 · 아래로 갈수록 겁먹은 시장</span>'
-      + '<b class="mt-rib-tone-' + nowTone + '">지금 ' + nowWeather.icon + ' ' + escapeHtml(nowWeather.word) + '</b></div>'
+      + '<b class="mt-rib-tone-' + nowTone + '">지금 ' + nowMood.icon + ' ' + escapeHtml(nowMood.word) + '</b></div>'
       + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
       + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
       + metrics;
@@ -1333,7 +1332,7 @@
         + ' aria-label="최근 ' + period + '일 흐름" aria-selected="' + (selected === period ? 'true' : 'false') + '">' + period + '일</button>';
     }).join('');
     return '<div class="' + frameClass + '" data-mt-history-panel>'
-      + '<div class="mt-history-tail-head"><div class="mt-card-title">🌦️ 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
       + '<div data-mt-history-content>' + buildSparklineContent(data, selected) + '</div>'
       + '</div>';
   }
@@ -1373,7 +1372,7 @@
       if (!best) return;
       var cursor = stage.querySelector('.mt-rib-cursor');
       var tip = stage.querySelector('.mt-rib-tip');
-      var weather = marketWeather_(best.score);
+      var mood = marketMood_(best.score);
       if (cursor) {
         cursor.hidden = false;
         cursor.style.left = best.x + '%';
@@ -1383,8 +1382,8 @@
         tip.className = 'mt-rib-tip mt-rib-tone-' + scoreTone_(best.score) + (best.y < 34 ? ' is-below' : '');
         tip.style.left = Math.max(14, Math.min(86, best.x)) + '%';
         tip.style.top = best.y + '%';
-        tip.innerHTML = '<span aria-hidden="true">' + weather.icon + '</span> <b>' + best.score.toFixed(0) + '점</b> <small>'
-          + escapeHtml(shortDate_(best.date)) + ' · ' + escapeHtml(weather.word) + '</small>';
+        tip.innerHTML = '<span aria-hidden="true">' + mood.icon + '</span> <b>' + best.score.toFixed(0) + '점</b> <small>'
+          + escapeHtml(shortDate_(best.date)) + ' · ' + escapeHtml(mood.word) + '</small>';
       }
       stage.classList.add('is-scrubbing');
     }
@@ -1436,7 +1435,6 @@
     var cards = GRADE_BANDS.map(function (b, i) {
       var stars = '★'.repeat(5 - i) + '<span class="mt-guide-stars-empty">' + '★'.repeat(i) + '</span>';
       return '<div class="mt-guide-card mt-guide-card-' + escapeHtml(b.tone) + '" style="--mt-guide-color:' + b.color + ';border-color:' + b.color + '55">'
-        + '<div class="mt-guide-season"><span class="mt-guide-season-emoji">' + escapeHtml(b.seasonEmoji) + '</span><span>' + escapeHtml(b.season) + '</span></div>'
         + '<div class="mt-guide-card-label">' + escapeHtml(b.emoji) + ' ' + escapeHtml(b.label) + '</div>'
         + '<div class="mt-guide-card-meta">'
         + '<span class="mt-guide-card-range" style="color:' + b.color + '">' + b.range + '</span>'

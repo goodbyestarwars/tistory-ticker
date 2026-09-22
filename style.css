@@ -205,24 +205,27 @@ a { text-decoration: none; color: inherit; }
 .navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
 .navbar .nav-search-input-wrap {
   /* 2026-08-20: 네이버 검색창처럼 알약형 테두리 스타일로 변경(사용자 요청 - "이거 Naver
-     처럼 해줘 색만 붉은색으로"). 사이트 상승색(--up, 종목 상승 표시와 동일한 빨강)을
-     그대로 재사용해 새 색을 도입하지 않았다. 이전엔 밑줄(border-bottom)만 있던
-     스타일이라 min-height를 navbar 높이(56px)보다 작게 맞춰야 했는데, 이제 사방
-     테두리라 그 제약이 없다. */
+     처럼 해줘 색만 붉은색으로"). 이전엔 밑줄(border-bottom)만 있던 스타일이라
+     min-height를 navbar 높이(56px)보다 작게 맞춰야 했는데, 이제 사방 테두리라 그
+     제약이 없다.
+     2026-09-22: 상승색(--up, 빨강)을 그대로 썼더니 "검색창과 안 어울린다"는 의견이
+     들어왔다 - --up/--down은 이 사이트에서 등락(상승·하락) 의미색으로 고정돼 있어서,
+     매매와 무관한 검색창에 쓰면 오해를 살 수 있었다. 등락과 무관한 이 사이트의
+     브랜드 강조색(--accent-dark, 네비 hover 등에서 이미 쓰는 네이비)으로 바꿨다. */
   min-height: 44px;
   padding: 8px 20px;
   gap: 14px;
-  border: 1px solid var(--up);
+  border: 1px solid var(--accent-dark);
   border-radius: 999px;
   background: var(--surface);
   box-shadow: none;
   transition: border-color .18s ease, box-shadow .18s ease;
 }
 .navbar .nav-search-input-wrap:focus-within {
-  border-color: var(--up);
-  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.14);
+  border-color: var(--accent-dark);
+  box-shadow: 0 0 0 3px rgba(38, 54, 74, 0.14);
 }
-.navbar .nav-search-icon { display: inline-flex; order: 2; width: 31px; height: 31px; color: #111; }
+.navbar .nav-search-icon { display: inline-flex; order: 2; width: 31px; height: 31px; color: #111; align-items: center; justify-content: center; }
 .navbar .nav-search-icon svg { display: block; width: 100%; height: 100%; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .navbar .nav-search-input { order: 1; font-size: 13px; line-height: 1.3; color: #111; }
 .navbar .nav-search-input::placeholder { color: #7c7c7c; opacity: 1; }
@@ -418,7 +421,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   border: 1px solid #dde1e7;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.08), inset 0 -1px 0 rgba(255, 255, 255, 0.6);
 }
-.nav-search-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
+.nav-search-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; background: none; border: none; padding: 0; margin: 0; cursor: pointer; color: inherit; }
 .nav-search-input {
   flex: 1;
   min-width: 0;
@@ -5257,11 +5260,11 @@ html.dark .home-market-switch button.is-active { border-color: #60a5fa; backgrou
   .home-market-switch button { padding: 4px 8px; font-size: 9.5px; }
 }
 html.dark .navbar .nav-search-icon { color: #F5EFE0; }
-/* 2026-08-20: 다크모드는 --up(#B42318)이 어두운 배경에서 흐릿해 보여, 이 사이트가
-   다크모드 상승색으로 이미 쓰는 더 밝은 빨강(#ff6b5b, .nav-search-rate-badge.rate-up
-   참고)을 그대로 재사용했다. */
-html.dark .navbar .nav-search-input-wrap { background: #1A1A1A; border-color: #ff6b5b; }
-html.dark .navbar .nav-search-input-wrap:focus-within { border-color: #ff6b5b; box-shadow: 0 0 0 3px rgba(255, 107, 91, 0.18); }
+/* 2026-09-22: 등락 의미색(빨강/파랑)을 검색창에 쓰지 않기로 하면서(위 라이트 모드 주석
+   참고) 다크모드도 같은 이유로 중립색으로 바꿨다 - 어두운 배경에서 흐릿해지지 않게
+   이 사이트가 다크모드 텍스트·아이콘에 이미 쓰는 크림색(#F5EFE0)을 옅게 썼다. */
+html.dark .navbar .nav-search-input-wrap { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.35); }
+html.dark .navbar .nav-search-input-wrap:focus-within { border-color: #F5EFE0; box-shadow: 0 0 0 3px rgba(245, 239, 224, 0.14); }
 
 /* Shared news timeline: home, stock search, US stocks, and stock analysis. */
 .app-news-timeline { display: grid; grid-template-columns: minmax(0, 1fr); }
