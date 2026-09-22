@@ -516,7 +516,7 @@
   // 섹터잖아, 증권사 섹터로 해")으로 섹터 출처를 손으로 만든 섹터 지도(data/sectors-v3.js)에서 키움 테마로
   // 바꿨다. 서버(/theme-flow)가 등락률 상위 테마 20개를 구성종목 거래대금 순으로 준다.
   var SECTOR_FLOW_URL = 'https://goodbyestar.cloud/theme-flow';
-  var SECTOR_FLOW_TOP = 6;
+  var SECTOR_FLOW_TOP = 10;
 
   function tradeAmountText_(amount) {
     var won = Number(amount);
