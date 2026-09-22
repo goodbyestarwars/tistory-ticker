@@ -366,6 +366,7 @@
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
+      + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -1164,6 +1165,7 @@
     }
     var drawButton = container.querySelector('.ss-draw-toggle');
     var pencilButton = container.querySelector('.ss-pencil-toggle');
+    var circleButton = container.querySelector('.ss-circle-toggle');
     var drawClear = container.querySelector('.ss-draw-clear');
     if (drawButton && drawButton.getAttribute('data-stock-draw-wired') !== '1') {
       drawButton.setAttribute('data-stock-draw-wired', '1');
@@ -1177,12 +1179,19 @@
         setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'pencil' ? null : 'pencil');
       };
     }
+    if (circleButton && circleButton.getAttribute('data-stock-draw-wired') !== '1') {
+      circleButton.setAttribute('data-stock-draw-wired', '1');
+      circleButton.onclick = function () {
+        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'circle' ? null : 'circle');
+      };
+    }
     if (drawClear && drawClear.getAttribute('data-stock-draw-wired') !== '1') {
       drawClear.setAttribute('data-stock-draw-wired', '1');
       drawClear.onclick = function () {
         if (!stockDrawingState) return;
         stockDrawingState.lines = [];
         stockDrawingState.paths = [];
+        stockDrawingState.circles = [];
         stockDrawingState.pending = null;
         stockDrawingState.preview = null;
         stockDrawingState.activePath = null;
@@ -1595,6 +1604,7 @@
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
+      + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -1759,13 +1769,14 @@
       var raw = global.localStorage.getItem(stockDrawingStorageKey(key, timeframe));
       var parsed = raw ? JSON.parse(raw) : [];
       // 기존 추세선 배열 저장값도 그대로 복원한다.
-      if (Array.isArray(parsed)) return { lines: parsed, paths: [] };
+      if (Array.isArray(parsed)) return { lines: parsed, paths: [], circles: [] };
       return {
         lines: Array.isArray(parsed && parsed.lines) ? parsed.lines : [],
-        paths: Array.isArray(parsed && parsed.paths) ? parsed.paths : []
+        paths: Array.isArray(parsed && parsed.paths) ? parsed.paths : [],
+        circles: Array.isArray(parsed && parsed.circles) ? parsed.circles : []
       };
     } catch (e) {
-      return { lines: [], paths: [] };
+      return { lines: [], paths: [], circles: [] };
     }
   }
 
@@ -1773,7 +1784,8 @@
     try {
       global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify({
         lines: drawing.lines,
-        paths: drawing.paths
+        paths: drawing.paths,
+        circles: drawing.circles
       }));
     } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
   }
@@ -1842,6 +1854,24 @@
         ctx.stroke();
       });
     });
+    // 동그라미는 두 클릭으로 정한 사각 영역(bounding box)에 내접하는 타원을 화면 좌표
+    // 기준으로 그린다 - 시간축·가격축의 축척이 서로 달라도(가격 스케일에 맞춰
+    // "동그라미"를 그리면 실제로는 찌그러져 보임) 화면에는 항상 매끈한 원/타원으로 보인다.
+    (drawing.circles || []).forEach(function (circle) {
+      var start = stockDrawingCoordinate(drawing, circle.start);
+      var end = stockDrawingCoordinate(drawing, circle.end);
+      if (!start || !end) return;
+      var centerX = (start.x + end.x) / 2;
+      var centerY = (start.y + end.y) / 2;
+      var radiusX = Math.abs(end.x - start.x) / 2;
+      var radiusY = Math.abs(end.y - start.y) / 2;
+      if (radiusX < 0.5 || radiusY < 0.5) return;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
     if (drawing.pending) {
       var pending = stockDrawingCoordinate(drawing, drawing.pending);
       if (pending) {
@@ -1858,8 +1888,17 @@
         ctx.setLineDash([5, 4]);
         ctx.strokeStyle = 'rgba(225,29,72,.72)';
         ctx.lineWidth = 1.5;
-        ctx.moveTo(previewStart.x, previewStart.y);
-        ctx.lineTo(drawing.preview.x, drawing.preview.y);
+        if (drawing.mode === 'circle') {
+          var previewRadiusX = Math.abs(drawing.preview.x - previewStart.x) / 2;
+          var previewRadiusY = Math.abs(drawing.preview.y - previewStart.y) / 2;
+          if (previewRadiusX >= 0.5 && previewRadiusY >= 0.5) {
+            ctx.ellipse((previewStart.x + drawing.preview.x) / 2, (previewStart.y + drawing.preview.y) / 2,
+              previewRadiusX, previewRadiusY, 0, 0, Math.PI * 2);
+          }
+        } else {
+          ctx.moveTo(previewStart.x, previewStart.y);
+          ctx.lineTo(drawing.preview.x, drawing.preview.y);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -1904,7 +1943,7 @@
     if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
       drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
     }
-    [drawing.lineButton, drawing.pencilButton].forEach(function (button) {
+    [drawing.lineButton, drawing.pencilButton, drawing.circleButton].forEach(function (button) {
       if (!button) return;
       button.classList.remove('is-active');
       button.setAttribute('aria-pressed', 'false');
@@ -1916,7 +1955,7 @@
   function setStockDrawingMode(mode) {
     var drawing = stockDrawingState;
     if (!drawing) return;
-    mode = mode === 'line' || mode === 'pencil' ? mode : null;
+    mode = mode === 'line' || mode === 'pencil' || mode === 'circle' ? mode : null;
     drawing.mode = mode;
     drawing.enabled = !!mode;
     drawing.pending = null;
@@ -1932,8 +1971,13 @@
       drawing.pencilButton.classList.toggle('is-active', mode === 'pencil');
       drawing.pencilButton.setAttribute('aria-pressed', mode === 'pencil' ? 'true' : 'false');
     }
+    if (drawing.circleButton) {
+      drawing.circleButton.classList.toggle('is-active', mode === 'circle');
+      drawing.circleButton.setAttribute('aria-pressed', mode === 'circle' ? 'true' : 'false');
+    }
     drawing.overlay.title = mode === 'line'
       ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.'
+      : mode === 'circle' ? '한 번 클릭해 영역을 시작하고, 다시 클릭하면 동그라미가 완성됩니다.'
       : mode === 'pencil' ? '누른 채로 움직여 자유롭게 그립니다.' : '';
     redrawStockDrawing(drawing);
   }
@@ -1949,13 +1993,15 @@
       series: series,
       lines: saved.lines,
       paths: saved.paths,
+      circles: saved.circles,
       pending: null,
       preview: null,
       activePath: null,
       enabled: false,
       mode: null,
       lineButton: scope.querySelector('.ss-draw-toggle'),
-      pencilButton: scope.querySelector('.ss-pencil-toggle')
+      pencilButton: scope.querySelector('.ss-pencil-toggle'),
+      circleButton: scope.querySelector('.ss-circle-toggle')
     };
     var overlay = document.createElement('canvas');
     overlay.className = 'ss-drawing-layer';
@@ -1963,13 +2009,20 @@
     element.appendChild(overlay);
     drawing.overlay = overlay;
     overlay.addEventListener('click', function (event) {
-      if (!drawing.enabled || drawing.mode !== 'line') return;
+      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle')) return;
       var rect = overlay.getBoundingClientRect();
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
       if (!drawing.pending) {
         drawing.pending = point;
-        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
+        overlay.setAttribute('aria-label', drawing.mode === 'circle'
+          ? '동그라미 시작점이 지정되었습니다. 다시 클릭하면 완성됩니다.'
+          : '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
+      } else if (drawing.mode === 'circle') {
+        drawing.circles.push({ start: drawing.pending, end: point });
+        drawing.pending = null;
+        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
+        saveStockDrawings(drawing);
       } else {
         drawing.lines.push({ start: drawing.pending, end: point });
         drawing.pending = null;
@@ -1979,7 +2032,7 @@
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('mousemove', function (event) {
-      if (!drawing.enabled || drawing.mode !== 'line' || !drawing.pending) return;
+      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle') || !drawing.pending) return;
       var rect = overlay.getBoundingClientRect();
       drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       redrawStockDrawing(drawing);
