@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-footer-learn-no-divider", skin)
+        self.assertIn("style.css?v=20260922-footer-learn-divider-v2", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -1563,17 +1563,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("릴리스 노트", learn_row[:600],
                          '둘째 줄은 매매에 도움되는 글만 둔다 - 사이트 안내는 첫 줄이다')
         # 2026-09-21(2차) 사용자 지적: 읽을거리 줄에 "주식 이야기" 하나뿐인데 그 앞에도
-        # 구분자(| 또는 세로선)가 붙어 있었다. :not(:first-child) 가드로 첫 항목만
-        # 빼봤는데, 2026-09-22 사용자가 스크린샷으로 리포트한 대로 항목이 늘어(3개) 줄이
-        # 두 줄로 접히자 줄 맨 앞에 구분자가 혼자 떠서 부러진 것처럼 보였다 - 가드로는
-        # 줄바꿈까지 못 막는다. 그래서 이 줄의 구분자는 아예 없앴다(content: none).
+        # 구분자가 붙어 있었다 - :not(:first-child) 가드로 첫 항목만 뺐다.
+        # 2026-09-22 사용자가 스크린샷으로 "구분자가 줄 맨 앞에 혼자 떠서 부러져 보인다"고
+        # 지적해 한 번은 구분자 자체를 없앴는데, 뒤이어 "주식이야기 | 미국 주식 이야기 |
+        # 차트 이야기"처럼 구분자가 있는 게 맞다고 재차 정정했다 - 줄바꿈되면 구분자가
+        # 그 줄로 넘어간 링크와 함께 내려가는 게(쉼표 목록이 줄바꿈될 때와 같은) 정상
+        # 동작이라는 뜻. 구분자를 되살리고 간격만 좁혔다 - :not(:first-child) 가드는
+        # 그대로 유지(첫 항목 앞엔 여전히 구분자가 없어야 한다).
         style_for_divider_check = self.read("style.css")
-        self.assertNotIn(".site-footer-learn a:not(:first-child)::before", style_for_divider_check)
         divider_rules = re.findall(
-            r"\.site-footer-learn a::before\s*\{([^}]*)\}", style_for_divider_check)
+            r"\.site-footer-learn a:not\(:first-child\)::before\s*\{([^}]*)\}",
+            style_for_divider_check)
         self.assertTrue(divider_rules, "읽을거리 줄 구분자 규칙 자체가 사라지면 안 된다")
         for body in divider_rules:
-            self.assertIn("content: none", body)
+            self.assertNotIn("content: none", body)
         # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
         # 2026-09-21: 풋터가 flex에서 grid로 바뀌면서 옛 .site-footer-learn{order;flex-basis}는
         # 죽은 규칙이 됐다(실측: 라이브에서 셋이 같은 줄, top 790으로 나란히 섰다).
