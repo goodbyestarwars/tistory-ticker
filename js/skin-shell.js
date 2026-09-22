@@ -376,9 +376,15 @@
          카피라이트는 티스토리 태그 때문에 skin.html에 있어 DOM 순서를 못 바꾼다.
          2026-09-21 지시("릴리스 노트도 위로 올려, 주식 이야기 줄에는 매매에 도움되는 글을
          올릴꺼야"): 릴리스 노트는 사이트 안내라 첫 줄로 올리고, 둘째 줄은 매매에 도움되는
-         읽을거리 전용으로 비워 둔다. 글이 늘면 여기에 추가한다(flex-wrap으로 줄바꿈된다). */
+         읽을거리 전용으로 비워 둔다. 글이 늘면 여기에 추가한다(flex-wrap으로 줄바꿈된다).
+         2026-09-22 지시("주식이야기에 더 하면 컨텐츠가 너무 커져서 보고 싶지 않아. 주식
+         이야기 옆에 새롭게 만들어서"): 미국 주식 이야기·차트 이야기는 learn/index.html
+         차례에 끼워 넣지 않고 별도 독립 페이지로 만들어, 이 줄에 "주식 이야기"와 나란히
+         이어 붙인다(끼워 넣기가 아니라 옆에 추가). */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">미국 주식 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a>' +
       '</nav>'
   };
 
