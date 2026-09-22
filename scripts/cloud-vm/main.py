@@ -2370,7 +2370,7 @@ def _build_pattern_scan():
             'pullback': pullback_scan.get('matches') or [],
             'angleMomentum': patterns.get('angleMomentum') or [],
             'gongpasan': patterns.get('gongpasan') or [],
-            # 2026-09-04: 장중 09:10 스냅샷(volume_breakout_scan.py). 다른 탭은 전부
+            # 2026-09-04: 장중 스냅샷(volume_breakout_scan.py, 2026-09-22부터 09:05). 다른 탭은 전부
             # 장 마감 뒤 일봉 배치라 스캔 시각이 다르다 - 화면이 자체 시각을 쓰도록
             # volumeBreakoutScannedAt을 따로 내려준다.
             'volumeBreakout': patterns.get('volumeBreakout') or [],
