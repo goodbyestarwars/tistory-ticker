@@ -495,9 +495,17 @@
 
   // ---- 사이드바 검색창에 이벤트 바인딩 ----
 
+  function submitSearch(input, q) {
+    var rows = currentRowList(q);
+    var row = activeIndex > -1 && rows[activeIndex] ? rows[activeIndex] : (q ? resolveStock(q) : null);
+    if (!row && /^[A-Za-z][A-Za-z0-9.\-^=]{0,11}$/.test(q)) row = { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), market: 'us' };
+    if (row) goToStock(row.code, row.name);
+  }
+
   function wireSidebarSearch() {
     var input = document.getElementById('navSearchInput');
     var box = document.getElementById('navSearchSuggest');
+    var icon = document.querySelector('.nav-search-icon');
     if (!input || !box) return; // 아직 skin-menu.js가 안 그렸으면 init()의 재시도가 다시 호출함
     if (wired) return;
     wired = true;
@@ -518,14 +526,16 @@
       else if (e.key === 'ArrowUp') { e.preventDefault(); moveActive(box, -1, q); }
       else if (e.key === 'Enter') {
         e.preventDefault();
-        var rows = currentRowList(q);
-        var row = activeIndex > -1 && rows[activeIndex] ? rows[activeIndex] : (q ? resolveStock(q) : null);
-        if (!row && /^[A-Za-z][A-Za-z0-9.\-^=]{0,11}$/.test(q)) row = { code: 'US:' + q.toUpperCase(), name: q.toUpperCase(), market: 'us' };
-        if (row) goToStock(row.code, row.name);
+        submitSearch(input, q);
       } else if (e.key === 'Escape') {
         hideSuggest(box);
         input.blur();
       }
+    });
+    if (icon) icon.addEventListener('click', function () {
+      var q = input.value.trim();
+      if (q) submitSearch(input, q);
+      else input.focus();
     });
     document.addEventListener('click', function (e) {
       var wrap = document.querySelector('.nav-search-wrap');

@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-footer-gridarea-fix", skin)
+        self.assertIn("style.css?v=20260922-search-icon-click", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -455,7 +455,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
-        self.assertIn("border: 1px solid var(--up)", style)
+        self.assertIn("border: 1px solid var(--accent-dark)", style)
         self.assertIn("border-radius: 999px", style)
         # 시장지표 섹션 제목(글로벌 .om-title / 국내 .dmi-subheading h3)은 데이터·UI
         # 문맥이라 명조 제목 체계에서 뺀다. 2026-09-12: 국내만 명조 목록에 남아 한
@@ -1495,8 +1495,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
         self.assertIn("slice(-40)", gas)
         # 2026-09-16 사용자 요청("그래프 모양을 좀 신박한 걸로, 우와 신기한데? 이런거"): 30일 평균 편차
-        # 물결 대신 0~100 점수를 공포·보통·과열 배경 위에 그리는 '증시 날씨 리본'과 날씨 아이콘 줄.
-        self.assertIn("function marketWeather_(score)", source)
+        # 물결 대신 0~100 점수를 공포·보통·과열 배경 위에 그리는 리본과 날짜별 요약 줄.
+        # 2026-09-22 사용자 피드백("날씨코너냐?")으로 날씨 6단계(꽁꽁·흐림 등) 라벨을 걷어내고
+        # 화면 다른 곳과 같은 공포/보통/과열 3단계 용어로 통일했다(marketWeather_ -> marketMood_).
+        self.assertIn("function marketMood_(score)", source)
+        self.assertNotIn("꽁꽁", source)
+        self.assertNotIn("구름 조금", source)
+        self.assertNotIn("폭염", source)
         self.assertIn('gradientUnits="userSpaceOnUse"', source)
         self.assertIn("data-rib-stage", source)
         self.assertIn("mt-weather-strip", source)
