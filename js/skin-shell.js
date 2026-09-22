@@ -380,11 +380,14 @@
          2026-09-22 지시("주식이야기에 더 하면 컨텐츠가 너무 커져서 보고 싶지 않아. 주식
          이야기 옆에 새롭게 만들어서"): 미국 주식 이야기·차트 이야기는 learn/index.html
          차례에 끼워 넣지 않고 별도 독립 페이지로 만들어, 이 줄에 "주식 이야기"와 나란히
-         이어 붙인다(끼워 넣기가 아니라 옆에 추가). */
+         이어 붙인다(끼워 넣기가 아니라 옆에 추가).
+         2026-09-22(2차) 요청("채권 이야기를 하나 추가하자"): 같은 방식으로 독립 페이지를
+         하나 더 추가한다. */
       '<nav class="site-footer-links site-footer-learn">' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">미국 주식 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>' +
       '</nav>'
   };
 
