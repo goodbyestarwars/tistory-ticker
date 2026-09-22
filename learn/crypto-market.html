@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>코인 이야기</title>
+<meta name="description" content="가상자산 거래소 종류(중앙화·탈중앙화)부터 비트코인의 발행량 상한과 반감기, 알트코인과 이더리움, 스테이블코인의 페깅 원리와 디페깅 위험까지 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>코인 이야기</h1>
+  <p class="legal-effective-date">거래소 종류, 비트코인의 발행량과 반감기, 알트코인, 스테이블코인과 페깅</p>
+
+  <p>가상자산(코인)은 주식과 거래 방식부터 다르다. 어디서 사는지(거래소), 무엇을 사는지(비트코인·알트코인·
+  스테이블코인)가 저마다 성격이 달라서, 뉴스에 나오는 말을 그대로 따라가면 헷갈리기 쉽다. 이 글은 코인시장에
+  들어가기 전에 알아야 할 기본 구조를 정리한다.</p>
+
+  <h2>거래소부터 알아야 한다 - 어디서, 누구를 거쳐 사는가</h2>
+  <p>주식은 증권사를 거쳐 거래소(KRX)에서 체결되지만, 코인은 <b>거래소 자체의 성격이 크게 둘로 나뉜다</b>.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="중앙화 거래소(CEX)와 탈중앙화 거래소(DEX) 비교">
+      <rect class="fig-soft" x="0" y="0" width="200" height="180" />
+      <text class="fig-ink" x="10" y="20" font-size="13">중앙화 거래소(CEX)</text>
+      <text class="fig-sub" x="10" y="42">업비트·빗썸 등</text>
+      <text class="fig-sub" x="10" y="62">회사가 운영·중개</text>
+      <text class="fig-sub" x="10" y="80">실명계좌·회원가입 필요</text>
+      <text class="fig-sub" x="10" y="98">국내는 원화마켓 인가제</text>
+      <text class="fig-sub" x="10" y="116">회사가 해킹·파산하면</text>
+      <text class="fig-sub" x="10" y="132">예치 자산 위험 발생 가능</text>
+
+      <rect class="fig-soft2" x="220" y="0" width="200" height="180" />
+      <text class="fig-ink" x="230" y="20" font-size="13">탈중앙화 거래소(DEX)</text>
+      <text class="fig-sub" x="230" y="42">유니스왑 등</text>
+      <text class="fig-sub" x="230" y="62">스마트컨트랙트가 자동 처리</text>
+      <text class="fig-sub" x="230" y="80">회원가입 없이 지갑만 연결</text>
+      <text class="fig-sub" x="230" y="98">회사가 자산을 보관하지 않음</text>
+      <text class="fig-sub" x="230" y="116">대신 코드 오류·해킹은</text>
+      <text class="fig-sub" x="230" y="132">본인이 직접 감수해야 함</text>
+    </svg>
+    <figcaption>초보자는 대부분 CEX(중앙화 거래소)로 시작한다. DEX는 지갑 관리·수수료(가스비) 이해가 먼저 필요하다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>국내 거래소 인가제</b> 한국은 실명확인 입출금계좌를 발급해 주는 은행과 제휴한 거래소만 원화로 코인을
+    사고팔 수 있게(원화마켓) 허가한다. 제휴가 없는 곳은 코인-코인 거래(코인마켓)만 가능하다 - 어떤 거래소가
+    원화마켓 인가를 받았는지 먼저 확인하는 게 첫걸음이다.
+  </div>
+
+  <h2>비트코인 - 발행량이 정해진 첫 코인</h2>
+  <p>비트코인의 가장 큰 특징은 <b>총발행량이 2,100만 개로 고정</b>돼 있다는 것이다. 새 비트코인은
+  "채굴"(연산 문제를 풀어 거래를 검증하는 대가)로만 생기는데, 그 보상은 <b>약 4년마다 절반으로
+  줄어든다("반감기")</b>.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 180" role="img" aria-label="비트코인 채굴 보상이 반감기마다 절반으로 줄어드는 계단형 그래프: 50개에서 25개, 12.5개, 6.25개로 감소">
+      <path class="fig-dash" d="M0 150 L420 150" />
+      <rect class="fig-soft" x="10" y="20" width="90" height="130" />
+      <text class="fig-ink" x="18" y="14" font-size="12">2009~</text>
+      <text class="fig-on-accent" x="30" y="90" font-size="13">50개</text>
+      <rect class="fig-soft2" x="110" y="85" width="90" height="65" />
+      <text class="fig-ink" x="118" y="79" font-size="12">2012~</text>
+      <text class="fig-ink" x="130" y="122" font-size="12">25개</text>
+      <rect class="fig-soft" x="210" y="117" width="90" height="33" />
+      <text class="fig-ink" x="218" y="111" font-size="12">2016~</text>
+      <text class="fig-ink" x="222" y="138" font-size="11">12.5개</text>
+      <rect class="fig-soft2" x="310" y="133" width="90" height="17" />
+      <text class="fig-ink" x="318" y="127" font-size="12">2020~</text>
+      <text class="fig-ink" x="322" y="147" font-size="10">6.25개</text>
+      <text class="fig-sub" x="0" y="170">한 블록(약 10분)당 채굴 보상 - 대략 4년마다 절반으로 줄어든다</text>
+    </svg>
+    <figcaption>보상이 줄어도 채굴은 계속되므로, 공급 증가 속도가 시간이 갈수록 느려지는 구조다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>왜 반감기가 중요하게 다뤄지나</b> 공급(새로 풀리는 물량)이 정해진 일정대로 줄어드는 자산이라는 점이
+    "희소성"의 근거로 자주 언급된다. 다만 반감기 자체가 가격 상승을 보장하지는 않는다 - 수요가 그만큼
+    따라와야 가격에 반영된다.
+  </div>
+
+  <h2>알트코인 - 비트코인이 아닌 나머지 전부</h2>
+  <p>"알트코인(alt-coin)"은 비트코인을 뺀 모든 코인을 뭉뚱그려 부르는 말이다. 성격이 저마다 다르다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>종류</th><th>예시</th><th>특징</th></tr></thead>
+    <tbody>
+      <tr><td>플랫폼형</td><td>이더리움(ETH)</td><td>코인 자체보다 그 위에서 다른 서비스(디앱)를 만들 수 있는 "스마트컨트랙트" 기능이 핵심.</td></tr>
+      <tr><td>결제·송금형</td><td>리플(XRP) 등</td><td>특정 용도(은행 간 송금 등)에 특화하려는 목적으로 설계.</td></tr>
+      <tr><td>테마·밈형</td><td>도지코인 등</td><td>기술적 차별점보다 화제성·커뮤니티로 가격이 움직이는 경우가 많아 변동성이 특히 크다.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>"알트코인 시즌"이란</b> 비트코인 도미넌스(전체 코인 시가총액에서 비트코인이 차지하는 비중)가
+    낮아지면서 알트코인들의 상승률이 비트코인을 앞서는 국면을 부르는 말이다. 반대로 도미넌스가 높아지는
+    시기엔 자금이 비트코인으로 다시 쏠린다고 해석한다 - 다만 이것도 사후 해석용 표현이지 매매 신호는 아니다.
+  </div>
+
+  <h2>스테이블코인 - 가격이 고정되도록 설계한 코인</h2>
+  <p>비트코인·알트코인이 하루에도 몇 %씩 흔들리는 것과 반대로, <b>스테이블코인은 특정 자산(대부분 미국
+  달러) 가격에 묶이도록("페깅") 설계된 코인</b>이다. 대표적으로 테더(USDT), USDC 같은 코인이 1개당
+  1달러 근처를 유지하도록 운영된다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>방식</th><th>원리</th><th>위험</th></tr></thead>
+    <tbody>
+      <tr><td>담보형(법정화폐)</td><td>발행사가 코인 개수만큼 실제 달러·단기 국채를 보유</td><td>발행사가 정말 그만큼 담보를 갖고 있는지(준비금 투명성)가 핵심 신뢰 근거</td></tr>
+      <tr><td>담보형(암호자산)</td><td>다른 코인을 초과 담보로 잡아 가치를 뒷받침</td><td>담보로 잡은 코인 가격이 급락하면 페깅이 흔들릴 수 있음</td></tr>
+      <tr><td>알고리즘형</td><td>수요·공급을 코드로 자동 조절해 가격을 맞춤</td><td>담보 없이 시장 신뢰만으로 유지돼 신뢰가 흔들리면 급격히 무너질 수 있음</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>디페깅(depegging)</b> 어떤 이유로든 "1개 = 1달러"라는 약속이 깨져 가격이 그 밑으로 떨어지는 현상이다.
+    안전자산처럼 보이는 스테이블코인도 발행사의 담보 부실, 대규모 인출 쇄도(뱅크런과 비슷한 구조), 알고리즘형의
+    설계 결함 등으로 디페깅이 일어난 적이 있다 - "스테이블"이라는 이름이 위험이 0이라는 뜻은 아니다.
+  </div>
+
+  <h2>코인시장은 왜 24시간 도는가</h2>
+  <p>7장(환율·금리·비트코인)에서 다룬 것처럼, 코인시장은 주식과 달리 개장·마감 시간이 없다. 정해진 거래소나
+  결제 시스템의 영업시간에 묶이지 않고 전 세계 참여자가 언제든 사고팔 수 있게 설계됐기 때문이다. 그래서
+  주말·새벽에도 가격이 움직이며, 위험 선호 심리를 실시간으로 보여주는 "위험 온도계"로 자주 언급된다.</p>
+
+  <h2>이 사이트에서 확인하기</h2>
+  <ul>
+    <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 비트코인(BTC)·이더리움(ETH) 시세와 52주·6개월 평균선을 확인한다.</li>
+  </ul>
+
+  <h2>한 줄 정리</h2>
+  <p>거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
+  정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 스테이블코인은 가격이 고정되도록 설계됐을
+  뿐 위험이 없는 것은 아니다.</p>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">← 채권 이야기</a>
+    <a href="https://ghlee.tistory.com">블로그로 돌아가기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+</body>
+</html>
