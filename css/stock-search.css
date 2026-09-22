@@ -377,6 +377,7 @@
 #stock-search .ss-minute-scope select { min-width: 76px; padding: 5px 24px 5px 9px; border: 1px solid #ddd; border-radius: 7px; background: rgb(255, 254, 252); color: #333; font: inherit; cursor: pointer; }
 #stock-search .ss-draw-toggle,
 #stock-search .ss-pencil-toggle,
+#stock-search .ss-circle-toggle,
 #stock-search .ss-draw-clear {
   padding: 6px 14px;
   font-size: 12.5px;
@@ -388,7 +389,8 @@
   cursor: pointer;
 }
 #stock-search .ss-draw-toggle.is-active,
-#stock-search .ss-pencil-toggle.is-active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
+#stock-search .ss-pencil-toggle.is-active,
+#stock-search .ss-circle-toggle.is-active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
 #stock-search .ss-drawing-layer {
   position: absolute;
   z-index: 6;

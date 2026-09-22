@@ -2134,6 +2134,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("최근 24시간", search)
         self.assertIn('class="ss-draw-toggle"', search)
         self.assertIn('class="ss-pencil-toggle"', search)
+        self.assertIn('class="ss-circle-toggle"', search)
         self.assertIn('class="ss-draw-clear"', search)
         self.assertIn("function setupStockDrawing", search)
         self.assertIn("function loadStockDrawings", search)
@@ -2143,6 +2144,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("overlay.addEventListener('pointermove'", search)
         self.assertIn("if (!drawing.pending)", search)
         self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
+        # 2026-09-22 사용자 요청("차트에 선그리기, 연필 옆에 동그라미 추가해줘") - 두 번
+        # 클릭으로 사각 영역을 잡아 그 안에 내접하는 동그라미(타원)를 그리는 세 번째 도구.
+        self.assertIn("drawing.circles.push({ start: drawing.pending, end: point })", search)
+        self.assertIn("ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2)", search)
+        self.assertIn("#stock-search .ss-circle-toggle", self.read("css/stock-search.css"))
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-stocks-market-grid > .us-stocks-panel { padding: 0; border: 0;", style)
         self.assertIn("us-stocks-level-summary", source)
