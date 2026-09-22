@@ -1670,7 +1670,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         읽을거리 줄에 "주식 이야기"와 나란히 이어 붙인다(끼워 넣기가 아니라 옆에 추가).
         """
         standalone_pages = ["us-market.html", "chart-patterns.html", "bond-market.html", "crypto-market.html",
-                             "economy-story.html"]
+                             "fx-market.html", "economy-story.html"]
         index = self.read("learn/index.html")
         shell = self.read("js/skin-shell.js")
         for chapter in standalone_pages:
@@ -1689,7 +1689,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 풋터 읽을거리 줄에 "주식 이야기"와 나란히(같은 nav 안에) 붙는다.
         learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
         learn_row = learn_row[:learn_row.index('</nav>')]
-        for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기", "경제 이야기"):
+        for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기",
+                      "환율 이야기", "경제 이야기"):
             self.assertIn(token, learn_row)
         us_market = self.read("learn/us-market.html")
         for token in ("제로데이 옵션", "0DTE", "다우존스", "S&P500", "가격제한폭"):
@@ -1703,6 +1704,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         crypto_market = self.read("learn/crypto-market.html")
         for token in ("중앙화 거래소", "탈중앙화 거래소", "반감기", "알트코인", "스테이블코인", "디페깅"):
             self.assertIn(token, crypto_market)
+        fx_market = self.read("learn/fx-market.html")
+        for token in ("매매기준율", "환전 우대율", "FX마진거래", "달러인덱스", "스왑포인트", "레버리지"):
+            self.assertIn(token, fx_market)
         economy_story = self.read("learn/economy-story.html")
         for token in ("기회비용", "보이지 않는 손", "인플레이션", "완전고용", "신용창조", "비교우위",
                       "한국은행"):
