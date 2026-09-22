@@ -1596,17 +1596,23 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 구분자가 붙어 있었다 - :not(:first-child) 가드로 첫 항목만 뺐다.
         # 2026-09-22 사용자가 스크린샷으로 "구분자가 줄 맨 앞에 혼자 떠서 부러져 보인다"고
         # 지적해 한 번은 구분자 자체를 없앴는데, 뒤이어 "주식이야기 | 미국 주식 이야기 |
-        # 차트 이야기"처럼 구분자가 있는 게 맞다고 재차 정정했다 - 줄바꿈되면 구분자가
-        # 그 줄로 넘어간 링크와 함께 내려가는 게(쉼표 목록이 줄바꿈될 때와 같은) 정상
-        # 동작이라는 뜻. 구분자를 되살리고 간격만 좁혔다 - :not(:first-child) 가드는
-        # 그대로 유지(첫 항목 앞엔 여전히 구분자가 없어야 한다).
+        # 차트 이야기"처럼 구분자가 있는 게 맞다고 재차 정정했다. 그래서 다음 항목의
+        # ::before로 구분자를 붙였는데, 2026-09-23 사용자가 다시 "서비스 이용약관이랑
+        # 구분자랑 개인정보처리방침 열이 너무 비규칙적이지 않아?"라고 지적 - 실제로는
+        # ::before가 줄바꿈 시 다음 줄 맨 앞에 "|" 혼자 떨어져 나오는 문제였다(::before가
+        # 붙은 그 링크 자체가 다음 줄로 넘어가니 구분자도 같이 넘어간다). 바로 위
+        # `.site-footer-links`가 이미 쓰던 방식 - 이전 항목의 ::after - 로 바꿔서 줄바꿈돼도
+        # 구분자가 항상 그 줄 끝에 붙게 했다(다음 줄 맨 앞에 혼자 남지 않음).
         style_for_divider_check = self.read("style.css")
         divider_rules = re.findall(
-            r"\.site-footer-learn a:not\(:first-child\)::before\s*\{([^}]*)\}",
+            r"\.site-footer-learn a:not\(:last-child\)::after\s*\{([^}]*)\}",
             style_for_divider_check)
         self.assertTrue(divider_rules, "읽을거리 줄 구분자 규칙 자체가 사라지면 안 된다")
         for body in divider_rules:
             self.assertNotIn("content: none", body)
+        self.assertNotIn(
+            ".site-footer-learn a:not(:first-child)::before", style_for_divider_check,
+            '구분자를 다음 항목의 ::before로 붙이면 줄바꿈 시 "|"가 다음 줄 맨 앞에 혼자 남는다')
         # 카피라이트는 skin.html에 있어 DOM 순서를 못 바꾼다 - 줄 나눔은 style.css가 만든다.
         # 2026-09-21: 풋터가 flex에서 grid로 바뀌면서 옛 .site-footer-learn{order;flex-basis}는
         # 죽은 규칙이 됐다(실측: 라이브에서 셋이 같은 줄, top 790으로 나란히 섰다).
