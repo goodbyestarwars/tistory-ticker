@@ -851,7 +851,7 @@
       + '<span class="wl-drag-handle" aria-hidden="true">⋮⋮</span>'
       + '<button type="button" class="wl-remove" data-code="' + escapeAttr(code) + '" aria-label="관심종목 삭제">★</button>'
       + '<div class="wl-name">' + stockIconHtml(code) + '<span class="wl-name-text">' + escapeHtml(name) + '</span></div>'
-      + '<div class="wl-quote"><div class="wl-change" data-field="change">-</div><div class="wl-price" data-field="price">-</div></div>'
+      + '<div class="wl-quote"><div class="wl-session" data-field="session" hidden></div><div class="wl-change" data-field="change">-</div><div class="wl-price" data-field="price">-</div></div>'
       + '</div>';
   }
 
@@ -872,18 +872,28 @@
     if (!card) return;
     var priceEl = card.querySelector('[data-field="price"]');
     var changeEl = card.querySelector('[data-field="change"]');
+    var sessionEl = card.querySelector('[data-field="session"]');
 
     if (!quote) {
       priceEl.textContent = '조회 실패';
       changeEl.textContent = '';
+      if (sessionEl) sessionEl.hidden = true;
       return;
     }
 
     var signature = [quote.price, quote.change, quote.changeRate].join('|');
-    if (card.getAttribute('data-quote-signature') === signature) return;
+    var sameSignature = card.getAttribute('data-quote-signature') === signature;
     card.setAttribute('data-quote-signature', signature);
 
     var isUs = /^US:/i.test(code);
+    // 실시간 WebSocket 시세(quote.type==='quote')는 marketState를 안 실어 보낸다 - REST가
+    // 채워둔 배지를 여기서 지우지 않고 그대로 둔다(marketState가 있을 때만 갱신).
+    if (sessionEl && isUs && quote.marketState != null) {
+      var sessionLabel = usSessionLabel(quote.marketState);
+      sessionEl.textContent = sessionLabel;
+      sessionEl.hidden = !sessionLabel;
+    }
+    if (sameSignature) return;
     var price = Number(quote.price);
     priceEl.textContent = isUs && !isNaN(price)
       ? '$' + price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -1361,7 +1371,11 @@
       low: data && (data.low != null ? data.low : data.day_low),
       volume: data && (data.volume != null ? data.volume : data.acc_trde_qty),
       marketCap: data && (data.market_cap != null ? data.market_cap : data.marketCap),
-      open: data && (data.open != null ? data.open : data.open_price)
+      open: data && (data.open != null ? data.open : data.open_price),
+      // 2026-09-23 사용자 지적("미국은 본장만 보여?? 프리마켓이나 애프터장은 안보여") -
+      // 시세 자체는 세션과 무관하게 항상 최신이었지만(us_stocks.py market_state 참고)
+      // 카드에는 장전/장후 구분을 표시할 자리가 없어 본장처럼 보였다.
+      marketState: data && data.market_state
     };
   }
 
@@ -1391,6 +1405,11 @@
     if (change > 0) return '▲';
     if (change < 0) return '▼';
     return '';
+  }
+
+  // js/us-stocks.js의 marketStateLabel()과 같은 문구(장전/정규장/장후/장 마감).
+  function usSessionLabel(state) {
+    return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[state] || '';
   }
 
   function formatNumber(n) {

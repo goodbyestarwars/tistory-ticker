@@ -1,5 +1,30 @@
 # 9Pay 주요 작업이력
 
+**2026-09-23(23차) MY 관심종목의 미국 종목에 장전/장후 배지 추가**
+
+사용자 지적: "미국은 본장만 보여?? 프리마켓이나 애프터장은 안보여". 라이브에서
+`goodbyestar.cloud/us-quote/AAPL`을 직접 두 번 호출해 확인해보니(그 시점 뉴욕 17:44
+애프터마켓) 가격 자체는 이미 `market_state: "post"`로 실시간 갱신되고 있었다 -
+문제는 표시가 아니라 **어디서** 안 보였는지였다. `AskUserQuestion`으로 확인한 결과
+개별 종목 상세 페이지(`/page/stock-search`, `js/us-stocks.js`)에는 이미 "장전/정규장/
+장후/장마감" 배지가 있었지만, **MY 관심종목 목록**(`js/watchlist.js`)의
+`normalizeUsQuote()`가 백엔드가 주는 `market_state` 필드를 아예 버리고 있었고
+카드 마크업(`.wl-quote`)에도 표시할 자리가 없었다.
+
+`normalizeUsQuote()`에 `marketState` 필드를 추가하고, `.wl-card`에 `.wl-session`
+배지(국내 종목은 빈 문자열로 자동 숨김)를 넣었다. WebSocket 실시간 시세
+(`quote.type==='quote'`)는 `marketState`를 안 실어 보내므로, REST가 채워둔 배지를
+실시간 갱신이 지우지 않도록 `quote.marketState != null`일 때만 배지를 갱신하게
+분리했다(가격/등락은 기존처럼 매 메시지 갱신). `css/watchlist.css`에 `.wl-session`
+스타일(다크모드 포함) 추가.
+
+검증: `test/watchlist.html` 로컬 하네스가 실제로는 최근 추가된 Google 로그인 게이트
+때문에 mock 시세로도 렌더가 막혀 있던 걸 발견 - `/auth/google/me`·`/watchlist`
+fetch를 하네스에서 가로채도록 보강하고, 미국 종목 시드(AAPL/TSLA)와 세션별 mock
+`marketState`를 추가해 라이트/다크 모드에서 "장 마감"·"장전" 배지가 실제로 뜨는 것을
+스크린샷으로 확인. `python -m pytest test/ -k "watchlist or us_stocks or ui_ia"`
+186 passed. `js/`, `css/` 변경이라 GitHub Pages 자동 배포.
+
 **2026-09-23(22차) "국내 주요종목" 페이지에서 섹터 자금흐름과 종목 목록을 블록으로 분리**
 
 사용자 지적: "국내주요종목이랑 밑에 카드랑 사실 관계가 없잖아 - 구분 지을 수 있는 게

@@ -44,20 +44,34 @@
           return Promise.resolve({ data: { rolling: { '5d': { foreign: buy ? 50000 : -30000, inst: buy ? -10000 : 20000 } } } });
         } });
       }
+      if (String(url).indexOf('/auth/google/me') > -1) {
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ data: { configured: true, authenticated: true, isAdmin: false, email: 'local-test@example.com' } });
+        } });
+      }
+      if (String(url).indexOf('/watchlist') > -1) {
+        // 빈 items를 주면 watchlist.js가 로컬(wl_codes_v1) 시드로 대체한다.
+        return Promise.resolve({ ok: true, json: function () {
+          return Promise.resolve({ data: { items: [], groups: [], revision: 0 } });
+        } });
+      }
       return originalFetch ? originalFetch.apply(window, arguments) : Promise.reject(new Error('no fetch'));
     };
 
     Watchlist.fetchQuotes = function (codes) {
       console.log('[mock] fetchQuotes', codes);
       var byCode = {};
+      var usStates = ['pre', 'regular', 'post', 'closed'];
       codes.forEach(function (code, i) {
         var price = 10000 + (code.charCodeAt(0) * 137 + i * 911) % 490000;
         var changeRate = ((code.charCodeAt(1) || 65) % 13 - 6) + (Math.random() * 2 - 1);
+        var isUs = /^US:/i.test(code);
         byCode[code] = {
           code: code,
-          price: price,
+          price: isUs ? price / 100 : price,
           change: changeRate >= 0 ? 1 : -1,
-          changeRate: changeRate
+          changeRate: changeRate,
+          marketState: isUs ? usStates[i % usStates.length] : undefined
         };
       });
       return Promise.resolve(byCode);
@@ -67,7 +81,9 @@
       localStorage.setItem('wl_codes_v1', JSON.stringify([
         { code: '005930', name: '삼성전자' },
         { code: '000660', name: 'SK하이닉스' },
-        { code: '035420', name: 'NAVER' }
+        { code: '035420', name: 'NAVER' },
+        { code: 'US:AAPL', name: '애플' },
+        { code: 'US:TSLA', name: '테슬라' }
       ]));
     }
   }
