@@ -408,7 +408,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260919-fx-cache-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260922-index-breadth", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-view-transitions", skin)
+        self.assertIn("style.css?v=20260922-index-breadth", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -474,7 +474,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260919-fx-cache-v1", skin)
+        self.assertIn("skin-main.js?v=20260922-index-breadth", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -752,10 +752,35 @@ class UiInformationArchitectureTest(unittest.TestCase):
 
     def test_home_market_switch_refreshes_index_cards_with_selected_market(self):
         main = self.read("js/skin-main.js")
-        self.assertIn("loadHomeIndices();\n      loadSummaryForSession(homeMarketSession());", main)
+        self.assertIn("loadHomeIndices();\n      loadHomeIndexBreadth();\n      loadSummaryForSession(homeMarketSession());", main)
         self.assertIn("applyHomeMarketSession(session);", main)
         self.assertIn("keys: ['KOSPI', 'KOSDAQ']", main)
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
+
+    def test_home_index_cards_show_kospi_kosdaq_advance_decline_counts(self):
+        """2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
+        대시보드에"). 기존 ?marketTemp=1(GAS 레거시 경로)은 시장별 세부값이 없어서,
+        js/market-temp.js와 같은 VM /market-temp 엔드포인트를 따로 불러 KOSPI/KOSDAQ
+        카드에 상승·하락 건수를 채운다(KIS 전종목 기준을 우선하고, 없으면 섹터 풀
+        기준으로 물러난다). 미국 시장 탭으로 전환하면 숨긴다."""
+        main = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        self.assertIn("data-index-field=\"breadth\" hidden></div>'", main)
+        self.assertIn("var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';", main)
+        self.assertIn("function renderHomeIndexBreadth(byMarket)", main)
+        self.assertIn("function loadHomeIndexBreadth()", main)
+        self.assertIn("if (session.market !== 'domestic') return;", main)
+        self.assertIn("(data && data.marketBreadth && data.marketBreadth.byMarket)", main)
+        self.assertIn("(data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)", main)
+        self.assertIn("loadHomeIndexBreadth();", main)
+        # 시장 탭이 바뀌면(코스피/코스닥 -> 나스닥/S&P500) 이전 값이 남지 않게 숨긴다.
+        self.assertIn("if (breadth) { breadth.hidden = true; breadth.innerHTML = ''; }", main)
+        for token in (
+            ".home-index-breadth {",
+            ".home-index-breadth-up { color: var(--up); font-weight: 700; }",
+            ".home-index-breadth-down { color: var(--down); font-weight: 700; }",
+        ):
+            self.assertIn(token, style)
 
     def test_us_home_cards_use_spot_index_products_explicitly(self):
         main = self.read("js/skin-main.js")
@@ -3650,7 +3675,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("@media (prefers-reduced-motion: reduce) {", style)
         self.assertIn("::view-transition-group(*),", style)
         self.assertIn("animation-duration: 0.01ms !important;", style)
-        self.assertIn("style.css?v=20260922-view-transitions", self.read("skin.html"))
+        self.assertIn("style.css?v=20260922-index-breadth", self.read("skin.html"))
 
 
 if __name__ == "__main__":

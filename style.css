@@ -806,6 +806,19 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   font-weight: 700;
   white-space: nowrap;
 }
+/* 2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
+   대시보드에") - 가격 줄 바로 아래 한 줄로 상승·하락 종목 수를 보여준다. 상승은
+   빨강(--up), 하락은 파랑(--down) - 이 사이트 등락 의미색 그대로 재사용. */
+.home-index-breadth {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  margin-top: 3px;
+  font-size: 10px;
+}
+.home-index-breadth-up { color: var(--up); font-weight: 700; }
+.home-index-breadth-down { color: var(--down); font-weight: 700; }
+.home-index-breadth-sep { color: #a0a7b0; }
 .home-index-chart {
   height: 39px;
   margin-top: 7px;

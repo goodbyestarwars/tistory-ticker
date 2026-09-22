@@ -531,11 +531,13 @@ document.documentElement.classList.add('skin-ready');
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-breadth" data-index-field="breadth" hidden></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '<article class="home-index-card" data-home-index-slot="secondary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSDAQ</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
+        + '<div class="home-index-breadth" data-index-field="breadth" hidden></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
@@ -794,6 +796,46 @@ document.documentElement.classList.add('skin-ready');
         var updated = document.getElementById('hmbUpdated');
         if (updated && market.updatedAt) updated.textContent = formatHomeTimestamp(market.updatedAt) + ' 기준';
       }
+    }
+
+    // 2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
+    // 대시보드에") - 위 ?marketTemp=1(GAS 레거시 경로)은 byMarket 세부값이 없어서,
+    // js/market-temp.js와 같은 VM 엔드포인트를 따로 불러 KOSPI/KOSDAQ 카드에 채운다.
+    // KIS 키가 있으면 marketBreadth.byMarket(전종목), 없으면 components.riseRatio.byMarket
+    // (섹터 풀 기준)으로 물러난다 - 둘 다 없으면 그냥 그 줄을 숨긴다(부가 정보라 실패해도
+    // 가격 카드 자체엔 영향 없음).
+    var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
+
+    function renderHomeIndexBreadth(byMarket) {
+      var session = homeMarketSession();
+      if (session.market !== 'domestic') return;
+      session.keys.forEach(function (key, index) {
+        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
+        if (!card) return;
+        var breadthEl = card.querySelector('[data-index-field="breadth"]');
+        if (!breadthEl) return;
+        var entry = byMarket && byMarket[key];
+        if (!entry || typeof entry.up !== 'number' || typeof entry.down !== 'number') {
+          breadthEl.hidden = true;
+          breadthEl.innerHTML = '';
+          return;
+        }
+        breadthEl.hidden = false;
+        breadthEl.innerHTML = '<span class="home-index-breadth-up">상승 ' + entry.up + '</span>'
+          + '<span class="home-index-breadth-sep">·</span>'
+          + '<span class="home-index-breadth-down">하락 ' + entry.down + '</span>';
+      });
+    }
+
+    function loadHomeIndexBreadth() {
+      if (homeMarketSession().market !== 'domestic') return;
+      fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
+        var data = body && body.data ? body.data : body;
+        var byMarket = (data && data.marketBreadth && data.marketBreadth.byMarket)
+          || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
+          || null;
+        renderHomeIndexBreadth(byMarket);
+      }).catch(function () { /* 부가 정보라 실패해도 조용히 넘어간다 */ });
     }
 
     function nyClockParts(now) {
@@ -1132,12 +1174,16 @@ document.documentElement.classList.add('skin-ready');
         var change = card.querySelector('[data-index-field="change"]');
         var status = card.querySelector('[data-index-field="status"]');
         var chart = card.querySelector('[data-index-field="chart"]');
+        var breadth = card.querySelector('[data-index-field="breadth"]');
         if (label) label.textContent = session.labels[index];
         if (previousKey && previousKey !== key) {
           if (price) price.textContent = '-';
           if (change) change.textContent = '-';
           if (status) status.textContent = '· 확인 중';
           if (chart) chart.innerHTML = '<span class="home-index-chart-empty">시세 전환 중</span>';
+          // 코스피·코스닥 상승·하락 건수는 국내 시장 탭에서만 의미가 있다(미국 시장
+          // 탭으로 바뀌면 NASDAQ100/S&P500 선물이 들어와 이 필드 자체가 안 맞음).
+          if (breadth) { breadth.hidden = true; breadth.innerHTML = ''; }
         }
       });
     }
@@ -1213,7 +1259,12 @@ document.documentElement.classList.add('skin-ready');
     }
 
     loadHomeIndices();
-    setInterval(function () { if (!document.hidden) loadHomeIndices(); }, 60 * 1000);
+    loadHomeIndexBreadth();
+    setInterval(function () {
+      if (document.hidden) return;
+      loadHomeIndices();
+      loadHomeIndexBreadth();
+    }, 60 * 1000);
 
     // ---- 코스피↔나스닥 전환 카운트다운 (2026-08-13 요청) ----
     // homeMarketSession()이 국내/미국 장을 나누는 기준(09:00·17:00 KST)과 정확히 같은
@@ -1462,6 +1513,7 @@ document.documentElement.classList.add('skin-ready');
       // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
       // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.
       loadHomeIndices();
+      loadHomeIndexBreadth();
       loadSummaryForSession(homeMarketSession());
     });
     setInterval(function () {
@@ -1474,6 +1526,7 @@ document.documentElement.classList.add('skin-ready');
         if (session.closed !== wasClosed) {
           syncMarketSwitch();
           loadHomeIndices();
+          loadHomeIndexBreadth();
           loadSummaryForSession(session);
         }
         return;
