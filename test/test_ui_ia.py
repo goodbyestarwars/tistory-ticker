@@ -1654,26 +1654,33 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (".learn-toc", ".learn-note", ".learn-table", ".learn-nav"):
             self.assertIn(token, style)
 
-    def test_learn_extra_chapters_follow_the_same_conventions(self):
-        """2026-09-22 사용자 요청: 주식 이야기 옆에 번외 장 2개(미국 주식, 차트 심화) 추가.
-
-        기초 7장(위 test_global_newspaper_design_system_contract의 chapters)과 별개 목록이다 -
-        차례 번호가 있는 순서형 커리큘럼이 아니라 "더 알아보기" 참고 자료라서 별도로 고정한다.
+    def test_learn_standalone_pages_are_independent_of_the_core_curriculum(self):
+        """2026-09-22 사용자 요청: "주식이야기에 더 하면 컨텐츠가 너무 커져서 보고 싶지 않아.
+        주식 이야기 옆에 새롭게 만들어서" - 미국 주식 이야기·차트 이야기는 기초 7장
+        커리큘럼(learn/index.html 차례) 안에 끼워 넣지 않고 독립 페이지로 둔다. 풋터
+        읽을거리 줄에 "주식 이야기"와 나란히 이어 붙인다(끼워 넣기가 아니라 옆에 추가).
         """
-        extra_chapters = ["us-market.html", "chart-patterns.html"]
+        standalone_pages = ["us-market.html", "chart-patterns.html"]
         index = self.read("learn/index.html")
-        for chapter in extra_chapters:
+        shell = self.read("js/skin-shell.js")
+        for chapter in standalone_pages:
             with self.subTest(chapter=chapter):
                 page = self.read("learn/" + chapter)
-                self.assertIn("learn/" + chapter, index)
+                # 기초 7장 차례에는 끼워 넣지 않는다 - 대신 풋터에서 나란히 노출한다.
+                self.assertNotIn("learn/" + chapter, index)
+                self.assertIn("learn/" + chapter, shell)
                 self.assertIn("css/legal.css", page)
-                self.assertIn("learn/index.html", page)
                 self.assertIn('<div class="learn-nav">', page)
                 self.assertIn('<figure class="learn-fig">', page)
                 self.assertIn('<svg viewBox=', page)
                 self.assertIn('<figcaption>', page)
                 for svg in re.findall(r"<svg.*?</svg>", page, re.S):
                     self.assertNotIn("<b>", svg)
+        # 풋터 읽을거리 줄에 "주식 이야기"와 나란히(같은 nav 안에) 붙는다.
+        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
+        learn_row = learn_row[:learn_row.index('</nav>')]
+        for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기"):
+            self.assertIn(token, learn_row)
         us_market = self.read("learn/us-market.html")
         for token in ("제로데이 옵션", "0DTE", "다우존스", "S&P500", "가격제한폭"):
             self.assertIn(token, us_market)
