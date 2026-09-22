@@ -3683,6 +3683,14 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
   text-align: center;
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
+/* 2026-09-22(6차): 죽은 코드 정리(#512)로 지웠던 블록에 이 4줄(각 줄을 grid-template-areas
+   이름에 배치하는 grid-area)이 유일하게 살아 있었다 - PC 폭에서는 어느 자식도 이름표를
+   못 받아 auto-placement로 DOM 순서(버전 → 링크 → 읽을거리 → 카피라이트)대로 앞칸부터
+   채워져 버전 배지가 링크 줄에 끼어드는 회귀가 났다(실측). 되살린다. */
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { grid-area: footer-version; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) { grid-area: footer-links; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { grid-area: footer-learn; }
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { grid-area: footer-copyright; }
 html body#tt-body-index .site-footer,
 html body#tt-body-index .site-footer * {
   font-family: var(--font-ui) !important;
@@ -3749,7 +3757,9 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {
   text-align: center;
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  content: '사이트 이용방법';
   font-family: var(--font-ui) !important;
+  font-size: 16px;
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before { content: none; display: none; }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a { font-weight: 700; }
