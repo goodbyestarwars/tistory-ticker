@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-search-icon-click", skin)
+        self.assertIn("style.css?v=20260922-view-transitions", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -3632,6 +3632,19 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 로컬 렌더 검증 하니스가 갈아끼우는 지점(js/overnight-market.js와 같은 규약).
         self.assertIn("MainNews.fetchJson(url)", source)
         self.assertTrue((ROOT / "test" / "main-news.html").exists())
+
+    def test_page_navigation_uses_view_transitions(self):
+        """2026-09-22 사용자 요청("화면 전환시 최대한 부드럽게 해줘") - 메뉴 클릭으로 다른
+        티스토리 페이지(전체 새로고침)로 넘어갈 때 화면이 끊기지 않게 크로스도큐먼트 View
+        Transitions를 켠다. 모든 페이지가 이 style.css 한 벌을 공유하므로 별도 JS 없이
+        적용된다. 모션을 줄이고 싶은 사용자를 위한 prefers-reduced-motion 가드도 확인한다."""
+        style = self.read("style.css")
+        self.assertIn("@view-transition {", style)
+        self.assertIn("navigation: auto;", style)
+        self.assertIn("@media (prefers-reduced-motion: reduce) {", style)
+        self.assertIn("::view-transition-group(*),", style)
+        self.assertIn("animation-duration: 0.01ms !important;", style)
+        self.assertIn("style.css?v=20260922-view-transitions", self.read("skin.html"))
 
 
 if __name__ == "__main__":
