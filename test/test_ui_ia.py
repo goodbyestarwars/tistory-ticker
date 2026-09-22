@@ -444,7 +444,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-footer-learn-divider-v2", skin)
+        self.assertIn("style.css?v=20260922-footer-dead-css-cleanup", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
