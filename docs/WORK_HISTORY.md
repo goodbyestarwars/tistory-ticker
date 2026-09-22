@@ -1,5 +1,21 @@
 # 9Pay 주요 작업이력
 
+**2026-09-22(6차) 풋터 죽은 CSS 정리(#512)가 만든 회귀 수정 - grid-area 누락**
+
+사용자 스크린샷: "NEW gOOdbyestar · 데이터 서비스 v2026.08.25" 버전 배지가 링크 줄에
+붙어버리고 "사이트 이용방법" 문구가 아예 안 보였다. 원인: 직전 죽은 CSS 정리에서
+"구형 마크업 호환" 블록을 지우며, PC 폭(미디어쿼리 없는 기본 규칙)에서 각 자식을
+`grid-template-areas` 이름표에 배치하던 `grid-area: footer-version/footer-links/
+footer-learn/footer-copyright` 4줄과 `.copyright::after { content: '사이트 이용방법' }`
+가 실은 유일하게 살아 있던 규칙이었는데 "죽은 중복"으로 오판해 같이 지웠다(1000px·
+720px 미디어쿼리 안에는 각자의 grid-area가 있어 그쪽만 보고는 문제를 못 봤다).
+PC 폭에서 이름표를 못 받은 자식들이 DOM 순서(버전→링크→읽을거리→카피라이트)대로
+auto-placement돼 버전이 링크 줄에 끼고, 카피라이트는 `font-size:0`에 `content`가
+없어 사라졌다. `style.css`에 5줄을 되살렸다(그리드 배치 4줄 + copyright::after
+content/font-size).
+
+검증: `test_ui_ia.py` 159건 전체 통과, style.css 중괄호 짝 확인(1807/1807).
+
 **2026-09-22(5차) 풋터 죽은 CSS 정리 - "main에만 풋터, 나머지는 다 삭제"**
 
 사용자 지시: "풋터 규칙은 단순해 main에만 풋터가 있고, 나머지 페이지는 다 삭제야."
