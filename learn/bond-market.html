@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>채권 이야기</title>
+<meta name="description" content="채권이 무엇인지부터 채권가격과 금리가 왜 반대로 움직이는지, 듀레이션·신용등급·신용스프레드, 국고채와 미국 국채, 금리가 주식시장에 미치는 영향까지 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>채권 이야기</h1>
+  <p class="legal-effective-date">채권가격과 금리의 관계, 듀레이션, 신용등급과 스프레드, 국고채·미국 국채, 금리가 주식에 미치는 영향</p>
+
+  <p>뉴스에서 "국채금리가 올랐다"는 말이 나오면 주식시장이 같이 흔들리는 걸 자주 본다. 그런데 채권이 정확히
+  뭘 사고파는 건지, 금리가 오르면 왜 채권 가격은 내려가는지는 막상 설명하기 어렵다. 이 글은 채권의 기본
+  개념부터 시작해, 금리와 주식시장이 왜 그렇게 자주 같이 언급되는지까지 정리한다.</p>
+
+  <h2>채권은 무엇인가 - 나라·회사에 돈을 빌려주는 증서</h2>
+  <p>주식이 회사의 지분(소유권)이라면, 채권은 <b>빌려준 돈에 대한 차용증</b>이다. 정해진 기간(만기) 뒤
+  원금(액면가)을 돌려받고, 그 사이 정해진 이자(표면금리·쿠폰)를 주기적으로 받는다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>용어</th><th>뜻</th><th>예시</th></tr></thead>
+    <tbody>
+      <tr><td>액면가</td><td>만기에 돌려받는 원금</td><td>10,000원</td></tr>
+      <tr><td>표면금리(쿠폰)</td><td>액면가 기준으로 매년 받는 이자율</td><td>연 3% -> 매년 300원</td></tr>
+      <tr><td>만기</td><td>원금을 돌려받는 시점까지 남은 기간</td><td>3년, 10년 등</td></tr>
+      <tr><td>만기수익률(YTM)</td><td>지금 가격에 사서 만기까지 들고 있을 때의 연 환산 수익률</td><td>가격이 액면가보다 싸면 YTM은 표면금리보다 높아진다</td></tr>
+    </tbody>
+  </table>
+
+  <h2>채권가격과 금리는 왜 반대로 움직이나</h2>
+  <p>이게 채권을 이해하는 데 가장 중요한 한 가지다. <b>시장금리가 오르면 이미 발행된 채권의 가격은
+  내려가고, 시장금리가 내리면 그 채권의 가격은 올라간다</b> - 방향이 정확히 반대다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 200" role="img" aria-label="금리가 오르면 기존 채권 가격은 내려가고, 금리가 내리면 기존 채권 가격은 올라간다">
+      <text class="fig-ink" x="0" y="20" font-size="13">시장금리가 오르면</text>
+      <text class="fig-sub" x="0" y="38">새로 발행되는 채권 금리가</text>
+      <text class="fig-sub" x="0" y="54">더 높아진다</text>
+      <path class="fig-ink-line" d="M175 34 L235 34" />
+      <path class="fig-ink-line" d="M228 28 L235 34 L228 40" />
+      <text x="250" y="20" font-size="13" font-weight="700" fill="#1261c4">기존 채권 가격은</text>
+      <text x="250" y="38" font-size="13" font-weight="700" fill="#1261c4">내린다(할인)</text>
+      <text class="fig-sub" x="250" y="56">표면금리 매력이 떨어져서</text>
+
+      <path class="fig-dash" d="M0 76 L420 76" />
+
+      <text class="fig-ink" x="0" y="106" font-size="13">시장금리가 내리면</text>
+      <text class="fig-sub" x="0" y="124">새로 발행되는 채권 금리가</text>
+      <text class="fig-sub" x="0" y="140">더 낮아진다</text>
+      <path class="fig-ink-line" d="M175 120 L235 120" />
+      <path class="fig-ink-line" d="M228 114 L235 120 L228 126" />
+      <text x="250" y="106" font-size="13" font-weight="700" fill="#d24f45">기존 채권 가격은</text>
+      <text x="250" y="124" font-size="13" font-weight="700" fill="#d24f45">오른다(프리미엄)</text>
+      <text class="fig-sub" x="250" y="142">상대적으로 유리해져서</text>
+
+      <text class="fig-sub" x="0" y="176">예시: 표면금리 3%짜리 채권을 갖고 있는데 시장금리가 5%로 오르면,</text>
+      <text class="fig-sub" x="0" y="192">새 채권(5%)이 더 매력적이라 내 채권은 가격을 깎아야 팔린다(가상값).</text>
+    </svg>
+    <figcaption>표면금리는 발행 당시 고정된다. 시장금리가 움직이면 "그 채권을 얼마에 사고 싶은가"만 바뀐다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>왜 반대로 움직이는가</b> 표면금리 3%인 채권을 10,000원에 샀다고 하자. 시장금리가 5%로 오르면, 이제
+    같은 10,000원으로 5%짜리 새 채권을 살 수 있다. 내 채권(3%)을 그대로 10,000원에 팔려고 하면 아무도 안
+    산다 - <b>가격을 깎아 실질 수익률(YTM)을 5% 수준까지 맞춰 줘야</b> 팔린다. 반대로 시장금리가 2%로
+    내리면, 내 채권(3%)이 새 채권보다 유리해져 웃돈을 주고서라도 사려는 사람이 생긴다.
+  </div>
+
+  <h2>듀레이션 - 만기가 길수록 금리에 더 민감하다</h2>
+  <p>같은 크기의 금리 변화라도 <b>만기가 긴 채권일수록 가격이 더 크게 움직인다</b>. 남은 이자를 받을 기간이
+  길수록, 그 사이 금리 변화가 누적으로 영향을 주기 때문이다. 이 민감도를 "듀레이션"이라 부른다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="금리가 1%p 오를 때 단기채(1년)는 가격이 약 1% 빠지고 장기채(10년)는 약 8% 빠지는 비교 막대그래프">
+      <text class="fig-sub" x="0" y="14">금리가 1%p 오를 때, 가격이 얼마나 빠지나(예시)</text>
+      <path class="fig-dash" d="M0 158 L420 158" />
+      <rect class="fig-down" x="70" y="146" width="80" height="12" opacity="0.85" />
+      <text class="fig-ink" x="60" y="132" font-size="12">단기채(1년)</text>
+      <text class="fig-sub" x="70" y="176">약 -1%</text>
+      <rect class="fig-down" x="270" y="58" width="80" height="100" opacity="0.85" />
+      <text class="fig-ink" x="260" y="44" font-size="12">장기채(10년)</text>
+      <text class="fig-sub" x="270" y="176">약 -8%</text>
+    </svg>
+    <figcaption>예시 수치다. 실제 민감도는 표면금리·잔존만기에 따라 채권마다 다르다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>그래서 왜 중요한가</b> "금리가 오를 것 같다"고 예상될 때는 만기가 짧은 채권일수록 가격이 덜 흔들려
+    상대적으로 안전하다. 반대로 "금리가 내릴 것 같다"는 전망에서는 만기가 긴 채권일수록 가격이 더 크게
+    오를 여지가 있다 - 같은 방향을 예상해도 만기에 따라 베팅의 크기가 달라진다.
+  </div>
+
+  <h2>신용등급과 신용스프레드 - 이 채권, 정말 떼일 일 없나</h2>
+  <p>국채(나라가 발행)는 원금을 못 갚을 위험이 거의 없다고 본다. 하지만 회사채(기업이 발행)는 그 회사가
+  망하면 이자도, 원금도 못 받을 수 있다 - 이 위험을 등급으로 매긴 것이 신용등급이다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>등급대</th><th>흔히 부르는 이름</th><th>의미</th></tr></thead>
+    <tbody>
+      <tr><td>AAA ~ AA</td><td>최우량</td><td>부도 위험이 매우 낮다. 이자율이 국채에 가깝게 낮다.</td></tr>
+      <tr><td>A ~ BBB</td><td>투자적격</td><td>대부분의 기관이 담을 수 있는 최소 기준선. BBB 아래로 떨어지면("정크 등급") 팔아야 하는 기관도 있다.</td></tr>
+      <tr><td>BB 이하</td><td>투기등급(하이일드)</td><td>부도 위험이 있는 만큼 이자율(수익률)이 높다 - "고위험 고수익" 채권.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>신용스프레드</b> 같은 만기라도 회사채 금리는 국채금리보다 높다 - 그 차이(스프레드)가 "이 회사를
+    믿고 돈을 빌려주는 대가로 얼마를 더 받아야 하는가"다. 경기가 나빠질 것 같다는 우려가 커지면 이 스프레드가
+    벌어진다(회사채만 더 많이 팔려서 가격이 떨어지고 금리는 오른다) - 그래서 신용스프레드 확대는 주식시장의
+    경기 둔화 경고 신호로도 자주 언급된다.
+  </div>
+
+  <h2>국채 종류 - 한국 국고채와 미국 국채</h2>
+  <p>같은 국채라도 만기별로 성격이 다르고, 나라마다 가리키는 이름도 다르다. 이 사이트의 "글로벌 시장지표"가
+  보여주는 채권 네 종류를 정리하면 이렇다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>이름</th><th>만기</th><th>흔히 보는 용도</th></tr></thead>
+    <tbody>
+      <tr><td>한국 국고채 3년물</td><td>3년</td><td>한국 시중금리의 기준선. 예·적금, 대출금리와 연동되는 경우가 많다.</td></tr>
+      <tr><td>미국 국채 2년물(US2Y)</td><td>2년</td><td>연준(Fed) 기준금리 전망을 가장 민감하게 반영한다.</td></tr>
+      <tr><td>미국 국채 10년물(US10Y)</td><td>10년</td><td>전 세계 주가 밸류에이션에 가장 큰 영향을 주는 벤치마크로 꼽힌다.</td></tr>
+      <tr><td>미국 국채 30년물(US30Y)</td><td>30년</td><td>장기 경기 전망, 초장기 대출(주택담보대출 등) 금리와 연동된다.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="learn-note">
+    <b>장단기 금리차(10Y-2Y)</b> 평소엔 만기가 길수록(10년) 금리가 더 높다 - 오래 빌려주는 위험을 더 얹어
+    받는 게 정상이다. 그런데 가끔 이 순서가 뒤집혀 2년물 금리가 10년물보다 높아지는 경우("장단기 금리
+    역전")가 있는데, 과거 여러 차례 경기침체보다 먼저 나타난 신호로 자주 언급된다. 다만 이것도 <b>확정적인
+    예측 도구가 아니라 참고 신호</b>다 - 역전이 나온 뒤에도 침체까지 시간이 꽤 걸리거나, 역전 없이 침체가
+    오기도 한다.
+  </div>
+
+  <h2>금리와 주식시장 - 왜 항상 같이 언급되나</h2>
+  <p>6장(돈이 들어오는 구조)에서 "금리는 돈의 임대료"라고 배웠다. 금리가 오르면 이 임대료가 비싸지는
+  셈이라, 주식시장에는 크게 두 방향으로 영향을 준다.</p>
+
+  <ul>
+    <li><b>안전한 대안이 생긴다</b> 국채금리가 오르면 "위험 부담 없이도 이 정도는 번다"는 기준선이 올라간다.
+    주식(위험자산)이 그보다 훨씬 더 벌어 줘야 매력적으로 보이므로, 상대적으로 주식의 매력이 떨어진다.</li>
+    <li><b>미래 이익의 가치가 깎인다</b> 주식, 특히 성장주는 "먼 미래에 벌 돈"에 대한 기대가 주가에 많이
+    반영돼 있다. 금리가 오르면 그 먼 미래의 돈을 지금 가치로 환산할 때 더 많이 깎아야 한다("할인율"이
+    커진다) - 그래서 금리가 오를 때 성장주가 가치주보다 더 크게 흔들리는 경우가 많다.</li>
+  </ul>
+
+  <div class="learn-note">
+    <b>정리</b> "금리 인상"이 주식시장 뉴스에서 항상 나쁜 소식처럼 다뤄지는 이유가 이거다 - 채권(안전한
+    대안)의 매력이 올라가는 동시에, 주식(위험자산)의 계산상 가치는 내려가는 두 가지 효과가 겹친다.
+  </div>
+
+  <h2>이 사이트에서 확인하기</h2>
+  <ul>
+    <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 한국 국고채 3년물과 미국 국채 10·2·30년물 금리를 실시간으로 확인한다.</li>
+  </ul>
+
+  <h2>한 줄 정리</h2>
+  <p>채권가격과 금리는 반대로 움직이고, 만기가 길수록 그 움직임이 더 크며(듀레이션), 신용등급이 낮을수록
+  더 높은 금리(신용스프레드)를 요구한다. 금리가 오르면 안전한 대안의 매력이 커지는 동시에 주식의 계산상
+  가치는 내려가서, 채권시장 뉴스가 주식시장에도 늘 함께 영향을 준다.</p>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">← 차트 이야기</a>
+    <a href="https://ghlee.tistory.com">블로그로 돌아가기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+</body>
+</html>
