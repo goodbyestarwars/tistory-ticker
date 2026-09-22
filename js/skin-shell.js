@@ -393,6 +393,7 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">코인 이야기</a>' +
+        '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fx-market.html">환율 이야기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">경제 이야기</a>' +
       '</nav>'
   };
