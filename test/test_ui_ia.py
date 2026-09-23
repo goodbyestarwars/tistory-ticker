@@ -455,7 +455,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".home-briefing-featured .post-excerpt", style)
         self.assertIn("min-height: 6.4em", style)
         self.assertIn(".home-briefing-small .post-title", style)
-        self.assertIn("border: 1px solid var(--accent-dark)", style)
+        # 2026-09-23 사용자 요청("테두리가 평범하다 - 스페셜하게")으로 단색 테두리 대신
+        # 같은 브랜드색(--accent-dark) 계열 그라디언트 링으로 바꿨다 - 색 자체는 유지.
+        self.assertIn("border: 1.5px solid transparent", style)
+        self.assertIn("linear-gradient(120deg, var(--accent-dark),", style)
         self.assertIn("border-radius: 999px", style)
         # 시장지표 섹션 제목(글로벌 .om-title / 국내 .dmi-subheading h3)은 데이터·UI
         # 문맥이라 명조 제목 체계에서 뺀다. 2026-09-12: 국내만 명조 목록에 남아 한

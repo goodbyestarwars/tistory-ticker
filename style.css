@@ -228,18 +228,21 @@ a { text-decoration: none; color: inherit; }
      2026-09-22: 상승색(--up, 빨강)을 그대로 썼더니 "검색창과 안 어울린다"는 의견이
      들어왔다 - --up/--down은 이 사이트에서 등락(상승·하락) 의미색으로 고정돼 있어서,
      매매와 무관한 검색창에 쓰면 오해를 살 수 있었다. 등락과 무관한 이 사이트의
-     브랜드 강조색(--accent-dark, 네비 hover 등에서 이미 쓰는 네이비)으로 바꿨다. */
+     브랜드 강조색(--accent-dark, 네비 hover 등에서 이미 쓰는 네이비)으로 바꿨다.
+     2026-09-23: "테두리가 평범하다 - 색은 좋은데 스페셜하게" 요청으로 단색 1px 테두리
+     대신 같은 네이비 계열 그라디언트 링으로 바꿨다(padding-box/border-box 이중 배경
+     트릭 - 안쪽은 그대로 --surface, 테두리 자리만 그라디언트). 브랜드색은 그대로 유지. */
   min-height: 44px;
   padding: 8px 20px;
   gap: 14px;
-  border: 1px solid var(--accent-dark);
+  border: 1.5px solid transparent;
   border-radius: 999px;
-  background: var(--surface);
+  background: linear-gradient(var(--surface), var(--surface)) padding-box,
+              linear-gradient(120deg, var(--accent-dark), #4d6d8f 55%, var(--accent-dark)) border-box;
   box-shadow: none;
-  transition: border-color .18s ease, box-shadow .18s ease;
+  transition: box-shadow .18s ease;
 }
 .navbar .nav-search-input-wrap:focus-within {
-  border-color: var(--accent-dark);
   box-shadow: 0 0 0 3px rgba(38, 54, 74, 0.14);
 }
 .navbar .nav-search-icon { display: inline-flex; order: 2; width: 31px; height: 31px; color: #111; align-items: center; justify-content: center; }
@@ -5294,8 +5297,14 @@ html.dark .navbar .nav-search-icon { color: #F5EFE0; }
 /* 2026-09-22: 등락 의미색(빨강/파랑)을 검색창에 쓰지 않기로 하면서(위 라이트 모드 주석
    참고) 다크모드도 같은 이유로 중립색으로 바꿨다 - 어두운 배경에서 흐릿해지지 않게
    이 사이트가 다크모드 텍스트·아이콘에 이미 쓰는 크림색(#F5EFE0)을 옅게 썼다. */
-html.dark .navbar .nav-search-input-wrap { background: #1A1A1A; border-color: rgba(245, 239, 224, 0.35); }
-html.dark .navbar .nav-search-input-wrap:focus-within { border-color: #F5EFE0; box-shadow: 0 0 0 3px rgba(245, 239, 224, 0.14); }
+/* 2026-09-23: 라이트 모드와 같은 그라디언트 링 - 다크모드는 이 사이트가 이미 강조색으로
+   쓰는 크림·골드(#F5EFE0/#e0b040, MY 관심종목 즐겨찾기 별 등)를 링에 섞었다. */
+html.dark .navbar .nav-search-input-wrap {
+  background: linear-gradient(#1A1A1A, #1A1A1A) padding-box,
+              linear-gradient(120deg, rgba(245, 239, 224, 0.5), #e0b040 55%, rgba(245, 239, 224, 0.5)) border-box;
+  border-color: transparent;
+}
+html.dark .navbar .nav-search-input-wrap:focus-within { box-shadow: 0 0 0 3px rgba(245, 239, 224, 0.14); }
 
 /* Shared news timeline: home, stock search, US stocks, and stock analysis. */
 .app-news-timeline { display: grid; grid-template-columns: minmax(0, 1fr); }
