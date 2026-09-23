@@ -257,62 +257,87 @@
     });
   }
 
-  // 2026-09-23 사용자 요청("화면에서 자유롭게 움직이고") - 패널 헤드를 드래그해 어디든
-  // 옮길 수 있게 한다. 옮긴 위치는 localStorage에 남겨 이 브라우저에서는 다음에 열 때도
-  // 같은 자리에서 시작한다(개인 편의용 - 기기마다 달라도 문제 없음).
-  var DRAG_POS_KEY = 'memo_widget_pos_v1';
+  // 2026-09-23 사용자 요청("화면에서 자유롭게 움직이고") - 패널 헤드뿐 아니라
+  // 최소화 상태의 연필 버튼(FAB)도 드래그로 옮길 수 있어야 한다는 재지적("연필모양이
+  // 안움직이는데??") - 최소화됐을 때 보이는 건 FAB 하나뿐이니 그것부터 움직여야
+  // "자유롭게 움직인다"는 요청이 성립한다. 옮긴 위치는 각각 localStorage에 남겨
+  // 이 브라우저에서는 다음에 열 때도 같은 자리에서 시작한다(개인 편의용).
+  var PANEL_POS_KEY = 'memo_widget_pos_v1';
+  var FAB_POS_KEY = 'memo_fab_pos_v1';
+  var DRAG_THRESHOLD_PX = 6;
 
-  function readSavedPos() {
+  function readSavedPos(key) {
     try {
-      var raw = JSON.parse(localStorage.getItem(DRAG_POS_KEY) || 'null');
+      var raw = JSON.parse(localStorage.getItem(key) || 'null');
       if (raw && isFinite(raw.left) && isFinite(raw.top)) return raw;
     } catch (err) { /* no-op */ }
     return null;
   }
 
-  function applyPos(left, top) {
-    var maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth - 4);
-    var maxTop = Math.max(0, window.innerHeight - panel.offsetHeight - 4);
-    left = Math.min(Math.max(0, left), maxLeft);
-    top = Math.min(Math.max(0, top), maxTop);
-    panel.style.left = left + 'px';
-    panel.style.top = top + 'px';
-    panel.style.right = 'auto';
-    panel.style.bottom = 'auto';
+  function applyPos(el, left, top) {
+    // 뷰포트 크기가 아직 0으로 보고되는 아주 드문 타이밍(예: 초기 렌더 전)에는 클램프를
+    // 건너뛴다 - 그대로 진행하면 위치가 (4,4)로 뭉개지고 그 값이 localStorage에 그대로
+    // 저장돼 다음 방문에도 계속 구석에 박히는 문제가 생긴다.
+    var vw = window.innerWidth || document.documentElement.clientWidth || 0;
+    var vh = window.innerHeight || document.documentElement.clientHeight || 0;
+    left = Math.max(4, left);
+    top = Math.max(4, top);
+    if (vw > 0) left = Math.min(left, Math.max(4, vw - el.offsetWidth - 4));
+    if (vh > 0) top = Math.min(top, Math.max(4, vh - el.offsetHeight - 4));
+    el.style.left = left + 'px';
+    el.style.top = top + 'px';
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
     return { left: left, top: top };
   }
 
-  function wireDrag(head) {
+  // handle: 드래그를 시작하는 요소(패널의 헤드, FAB 자신). target: 실제로 움직일 요소
+  // (패널 헤드는 패널 전체를, FAB는 자기 자신을 움직인다). 실제로 옮겨진 드래그였으면
+  // handle에 잠깐 justDragged 표시를 남긴다 - FAB처럼 같은 요소가 "탭하면 열기"도 같이
+  // 해야 하는 경우, 뒤이어 브라우저가 자동으로 발생시키는 click을 그 표시로 걸러낸다
+  // (그래야 드래그 직후에 패널이 같이 열려버리지 않는다). 키보드 Enter/Space 활성화는
+  // pointerdown 없이 곧장 click만 오므로 justDragged가 없어 정상적으로 열린다.
+  function wireDrag(handle, target, storageKey) {
     var dragging = false;
+    var moved = false;
     var startX = 0;
     var startY = 0;
     var startLeft = 0;
     var startTop = 0;
-    head.addEventListener('pointerdown', function (event) {
+    handle.addEventListener('pointerdown', function (event) {
       if (event.target.closest('.memo-panel-close')) return;
       dragging = true;
-      var rect = panel.getBoundingClientRect();
+      moved = false;
+      var rect = target.getBoundingClientRect();
       startLeft = rect.left;
       startTop = rect.top;
       startX = event.clientX;
       startY = event.clientY;
-      head.setPointerCapture(event.pointerId);
-      head.classList.add('is-dragging');
+      handle.setPointerCapture(event.pointerId);
+      handle.classList.add('is-dragging');
     });
-    head.addEventListener('pointermove', function (event) {
+    handle.addEventListener('pointermove', function (event) {
       if (!dragging) return;
-      applyPos(startLeft + (event.clientX - startX), startTop + (event.clientY - startY));
+      var dx = event.clientX - startX;
+      var dy = event.clientY - startY;
+      if (!moved && Math.abs(dx) < DRAG_THRESHOLD_PX && Math.abs(dy) < DRAG_THRESHOLD_PX) return;
+      moved = true;
+      applyPos(target, startLeft + dx, startTop + dy);
     });
     function stopDrag(event) {
       if (!dragging) return;
       dragging = false;
-      head.classList.remove('is-dragging');
-      try { head.releasePointerCapture(event.pointerId); } catch (err) { /* no-op */ }
-      var pos = { left: parseFloat(panel.style.left) || 0, top: parseFloat(panel.style.top) || 0 };
-      try { localStorage.setItem(DRAG_POS_KEY, JSON.stringify(pos)); } catch (err) { /* no-op */ }
+      handle.classList.remove('is-dragging');
+      try { handle.releasePointerCapture(event.pointerId); } catch (err) { /* no-op */ }
+      if (moved) {
+        var pos = { left: parseFloat(target.style.left) || 0, top: parseFloat(target.style.top) || 0 };
+        try { localStorage.setItem(storageKey, JSON.stringify(pos)); } catch (err) { /* no-op */ }
+        handle.dataset.justDragged = '1';
+        setTimeout(function () { delete handle.dataset.justDragged; }, 0);
+      }
     }
-    head.addEventListener('pointerup', stopDrag);
-    head.addEventListener('pointercancel', stopDrag);
+    handle.addEventListener('pointerup', stopDrag);
+    handle.addEventListener('pointercancel', stopDrag);
   }
 
   function init() {
@@ -321,19 +346,30 @@
     panel = buildPanel();
     document.body.appendChild(panel);
     document.body.appendChild(fab);
-    fab.addEventListener('click', function () { togglePanel(); });
-    panel.querySelector('#memoPanelClose').addEventListener('click', function () { togglePanel(false); });
-    wireDrag(panel.querySelector('#memoPanelHead'));
-    wireOutsideClose();
-    var saved = readSavedPos();
-    if (saved) {
+
+    var panelPositioned = false;
+    function openPanel() {
+      togglePanel();
       // 패널이 hidden인 동안은 offsetWidth/Height가 0이라 클램프 계산이 틀린다 -
-      // 처음 펼쳐질 때(hidden이 풀린 뒤) 한 번만 적용한다.
-      fab.addEventListener('click', function onceOpen() {
-        if (!panel.hidden) applyPos(saved.left, saved.top);
-        fab.removeEventListener('click', onceOpen);
-      });
+      // 처음 펼쳐질 때(hidden이 풀린 뒤) 저장된 위치가 있으면 한 번만 적용한다.
+      if (!panelPositioned && !panel.hidden) {
+        panelPositioned = true;
+        var savedPanel = readSavedPos(PANEL_POS_KEY);
+        if (savedPanel) applyPos(panel, savedPanel.left, savedPanel.top);
+      }
     }
+
+    panel.querySelector('#memoPanelClose').addEventListener('click', function () { togglePanel(false); });
+    wireDrag(panel.querySelector('#memoPanelHead'), panel, PANEL_POS_KEY);
+    wireDrag(fab, fab, FAB_POS_KEY);
+    fab.addEventListener('click', function () {
+      if (fab.dataset.justDragged) return;
+      openPanel();
+    });
+    wireOutsideClose();
+
+    var savedFab = readSavedPos(FAB_POS_KEY);
+    if (savedFab) applyPos(fab, savedFab.left, savedFab.top);
   }
 
   if (document.readyState === 'loading') {
