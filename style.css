@@ -3666,6 +3666,23 @@ html.dark .site-footer-learn a { color: #d3dbe8; }
 html.dark .site-footer-learn a:hover { color: #fbbf24; }
 html.dark .copyright { color: rgba(245, 239, 224, 0.55); border-left-color: rgba(245, 239, 224, 0.14); }
 html.dark .copyright:hover { color: #F5EFE0; }
+/* 2026-09-24: 위 규칙들은 배경 박스 하나만 고쳐서는 안 먹힌다 - 실제로 화면에 쓰이는
+   "Footer: centered links"(아래, body#tt-body-index #tt-body-index ID 포함) 블록이
+   훨씬 구체적이라 항상 이긴다(라이트 모드 #737b87로 고정). 같은 우선순위로 덮어써야
+   실제로 적용된다. */
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after {
+  color: rgba(245, 239, 224, 0.65);
+}
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a {
+  color: #F5EFE0;
+}
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a:not(:last-child)::after,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:not(:last-child)::after {
+  background: rgba(245, 239, 224, 0.25);
+}
 body.iframe-mode .site-footer { display: none !important; }
 
 /* 2026-09-19: 푸터는 메인 화면에서만 보여준다. 개별 메뉴·글 화면에서는
@@ -3688,6 +3705,11 @@ body#tt-body-index .site-footer-bottom { font-size: 13px; }
    살아 있던 배경색만 남기고 지웠다. */
 body#tt-body-index .site-footer {
   background: rgb(255, 254, 252);
+}
+/* 2026-09-24 사용자 리포트("다크모드 왜 이래 풋터") - 위 배경색에 다크모드 대응이
+   빠져 있어서 페이지 전체가 어두워도 풋터만 계속 밝은 배경으로 남아 있었다. */
+html.dark body#tt-body-index .site-footer {
+  background: #1A1A1A;
 }
 
 /* Footer: centered links, quiet MaruBuri type and hairline separators.
@@ -3717,6 +3739,10 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
   border-top: 1px solid #e5e7eb;
   color: #737b87;
   text-align: center;
+}
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
+  border-top-color: rgba(245, 239, 224, 0.14);
+  color: rgba(245, 239, 224, 0.55);
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main))::before { display: none; }
 /* 2026-09-22(6차): 죽은 코드 정리(#512)로 지웠던 블록에 이 4줄(각 줄을 grid-template-areas
