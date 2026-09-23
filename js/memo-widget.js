@@ -77,7 +77,7 @@
     wrap.className = 'memo-panel';
     wrap.id = 'memoPanel';
     wrap.hidden = true;
-    wrap.innerHTML = '<div class="memo-panel-head"><strong>메모</strong>'
+    wrap.innerHTML = '<div class="memo-panel-head" id="memoPanelHead"><strong>메모</strong><span class="memo-drag-hint" aria-hidden="true">이동</span>'
       + '<button type="button" class="memo-panel-close" id="memoPanelClose" aria-label="닫기">×</button></div>'
       + '<div class="memo-panel-body" id="memoPanelBody"><div class="memo-loading">불러오는 중...</div></div>';
     return wrap;
@@ -241,6 +241,80 @@
     if (willOpen) loadMemos(false);
   }
 
+  // 2026-09-23 사용자 리포트("X 누르면 최소화가 안되고 반응이 없어") - 실제 결함은
+  // 로직이 아니라 닫기 버튼의 실제 터치 영역이 너무 작아(19x22px, iOS 권장 44px에 한참
+  // 못 미침) 손가락으로 정확히 못 눌렀을 가능성이 컸다(elementFromPoint로 직접 확인해보니
+  // .click() 자체는 정상 동작). 버튼 히트 영역을 키우는 것과 별개로, 패널 바깥을
+  // 눌러도 닫히게 하고 Esc로도 닫히게 해서 좁은 버튼 하나에만 의존하지 않게 한다.
+  function wireOutsideClose() {
+    document.addEventListener('pointerdown', function (event) {
+      if (panel.hidden) return;
+      if (panel.contains(event.target) || fab.contains(event.target)) return;
+      togglePanel(false);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape' && !panel.hidden) togglePanel(false);
+    });
+  }
+
+  // 2026-09-23 사용자 요청("화면에서 자유롭게 움직이고") - 패널 헤드를 드래그해 어디든
+  // 옮길 수 있게 한다. 옮긴 위치는 localStorage에 남겨 이 브라우저에서는 다음에 열 때도
+  // 같은 자리에서 시작한다(개인 편의용 - 기기마다 달라도 문제 없음).
+  var DRAG_POS_KEY = 'memo_widget_pos_v1';
+
+  function readSavedPos() {
+    try {
+      var raw = JSON.parse(localStorage.getItem(DRAG_POS_KEY) || 'null');
+      if (raw && isFinite(raw.left) && isFinite(raw.top)) return raw;
+    } catch (err) { /* no-op */ }
+    return null;
+  }
+
+  function applyPos(left, top) {
+    var maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth - 4);
+    var maxTop = Math.max(0, window.innerHeight - panel.offsetHeight - 4);
+    left = Math.min(Math.max(0, left), maxLeft);
+    top = Math.min(Math.max(0, top), maxTop);
+    panel.style.left = left + 'px';
+    panel.style.top = top + 'px';
+    panel.style.right = 'auto';
+    panel.style.bottom = 'auto';
+    return { left: left, top: top };
+  }
+
+  function wireDrag(head) {
+    var dragging = false;
+    var startX = 0;
+    var startY = 0;
+    var startLeft = 0;
+    var startTop = 0;
+    head.addEventListener('pointerdown', function (event) {
+      if (event.target.closest('.memo-panel-close')) return;
+      dragging = true;
+      var rect = panel.getBoundingClientRect();
+      startLeft = rect.left;
+      startTop = rect.top;
+      startX = event.clientX;
+      startY = event.clientY;
+      head.setPointerCapture(event.pointerId);
+      head.classList.add('is-dragging');
+    });
+    head.addEventListener('pointermove', function (event) {
+      if (!dragging) return;
+      applyPos(startLeft + (event.clientX - startX), startTop + (event.clientY - startY));
+    });
+    function stopDrag(event) {
+      if (!dragging) return;
+      dragging = false;
+      head.classList.remove('is-dragging');
+      try { head.releasePointerCapture(event.pointerId); } catch (err) { /* no-op */ }
+      var pos = { left: parseFloat(panel.style.left) || 0, top: parseFloat(panel.style.top) || 0 };
+      try { localStorage.setItem(DRAG_POS_KEY, JSON.stringify(pos)); } catch (err) { /* no-op */ }
+    }
+    head.addEventListener('pointerup', stopDrag);
+    head.addEventListener('pointercancel', stopDrag);
+  }
+
   function init() {
     if (document.getElementById('memoFab')) return;
     fab = buildFab();
@@ -249,6 +323,17 @@
     document.body.appendChild(fab);
     fab.addEventListener('click', function () { togglePanel(); });
     panel.querySelector('#memoPanelClose').addEventListener('click', function () { togglePanel(false); });
+    wireDrag(panel.querySelector('#memoPanelHead'));
+    wireOutsideClose();
+    var saved = readSavedPos();
+    if (saved) {
+      // 패널이 hidden인 동안은 offsetWidth/Height가 0이라 클램프 계산이 틀린다 -
+      // 처음 펼쳐질 때(hidden이 풀린 뒤) 한 번만 적용한다.
+      fab.addEventListener('click', function onceOpen() {
+        if (!panel.hidden) applyPos(saved.left, saved.top);
+        fab.removeEventListener('click', onceOpen);
+      });
+    }
   }
 
   if (document.readyState === 'loading') {

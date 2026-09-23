@@ -56,21 +56,39 @@
 .memo-panel-head {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 12px 14px;
+  gap: 8px;
+  padding: 10px 8px 10px 14px;
   border-bottom: 1px solid #e5e7eb;
   font-size: 14px;
+  cursor: grab;
+  /* 드래그 중 모바일 브라우저가 화면을 같이 스크롤하지 않게 한다. */
+  touch-action: none;
+  user-select: none;
 }
+.memo-panel-head.is-dragging { cursor: grabbing; }
+.memo-drag-hint {
+  margin-left: auto;
+  font-size: 10.5px;
+  color: #b6bcc4;
+}
+/* 2026-09-23 사용자 리포트("X 눌러도 반응 없어") - 아이콘은 그대로 두고 실제 히트
+   영역을 iOS 권장 최소 터치 크기(44px)에 가깝게 키운다. */
 .memo-panel-close {
   border: none;
   background: none;
-  font-size: 18px;
+  font-size: 20px;
   line-height: 1;
   color: #7c7c7c;
   cursor: pointer;
-  padding: 2px 4px;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
 }
-.memo-panel-close:hover { color: #111; }
+.memo-panel-close:hover { color: #111; background: #f1f5f9; }
 .memo-panel-body { padding: 12px 14px; overflow-y: auto; }
 .memo-loading, .memo-empty { color: #94a3b8; font-size: 12.5px; text-align: center; padding: 16px 0; }
 .memo-error { color: #b42318; font-size: 12px; margin-bottom: 8px; }
@@ -143,8 +161,9 @@ html.dark .memo-fab { background: #F5EFE0; color: #1A1A1A; }
 html.dark .memo-fab-badge { background: #ff6b5b; }
 html.dark .memo-panel { background: #1A1A1A; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
 html.dark .memo-panel-head { border-bottom-color: rgba(245, 239, 224, 0.14); color: #F5EFE0; }
+html.dark .memo-drag-hint { color: rgba(245, 239, 224, 0.3); }
 html.dark .memo-panel-close { color: rgba(245, 239, 224, 0.55); }
-html.dark .memo-panel-close:hover { color: #F5EFE0; }
+html.dark .memo-panel-close:hover { color: #F5EFE0; background: rgba(245, 239, 224, 0.1); }
 html.dark .memo-loading, html.dark .memo-empty { color: rgba(245, 239, 224, 0.45); }
 html.dark .memo-login-gate p { color: rgba(245, 239, 224, 0.55); }
 html.dark .memo-login-btn { background: #242424; border-color: rgba(245, 239, 224, 0.16); color: #F5EFE0; }
