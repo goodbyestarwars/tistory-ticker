@@ -47,12 +47,17 @@
   max-height: min(520px, 70vh);
   display: flex;
   flex-direction: column;
+  /* 2026-09-23 실제 버그 발견: .memo-panel { display: flex }가 브라우저 기본 [hidden]{
+     display:none } 규칙보다 우선순위가 높아서, panel.hidden = true를 줘도(JS 로직은
+     정상) 화면에서 실제로는 안 사라지고 있었다(모바일에서 "X 눌러도 반응 없어"의
+     진짜 원인 - 닫기 버튼 크기 문제가 아니었다). 명시적으로 되살린다. */
   background: var(--surface, #FFFEFC);
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   z-index: 950;
   overflow: hidden;
 }
+.memo-panel[hidden] { display: none; }
 .memo-panel-head {
   display: flex;
   align-items: center;
