@@ -147,6 +147,23 @@ class EarningsCalendarTests(unittest.TestCase):
         self.assertEqual(events[0]['company'], 'Apple Inc.')
         self.assertEqual(cached, events)
 
+    def test_us_month_drops_symbols_outside_sp500(self):
+        # 2026-09-23 사용자 요청: "가비지 데이터가 너무 많다 - 미국은 S&P만 필터".
+        rows = [
+            {'date': '2026-08-15', 'symbol': 'AAPL', 'company': 'Apple Inc.', 'hour': 'amc'},
+            {'date': '2026-08-15', 'symbol': 'ZZZZ', 'company': 'Not In S&P500', 'hour': 'amc'},
+            # Finnhub가 대시 표기(BRK-B)로 줄 수도 있다 - SP500_SYMBOLS는 점 표기(BRK.B).
+            {'date': '2026-08-16', 'symbol': 'BRK-B', 'company': 'Berkshire Hathaway', 'hour': 'bmo'},
+        ]
+        with mock.patch.dict(os.environ, {'FINNHUB_API_KEY': 'test-key'}):
+            with mock.patch.object(earnings_calendar, '_fetch_finnhub', return_value=rows):
+                events = earnings_calendar.fetch_us_month(2026, 8)
+
+        symbols = [event.get('symbol') for event in events]
+        self.assertIn('AAPL', symbols)
+        self.assertIn('BRK-B', symbols)
+        self.assertNotIn('ZZZZ', symbols)
+
     def test_us_earnings_kst_date_uses_session_boundary(self):
         self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'bmo'), '2026-08-15')
         self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'amc'), '2026-08-16')

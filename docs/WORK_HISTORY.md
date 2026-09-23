@@ -1,5 +1,30 @@
 # 9Pay 주요 작업이력
 
+**2026-09-23(25차) 캘린더 미국 일정을 S&P500 구성종목으로 필터**
+
+사용자 요청: "캘린더에 가비지 데이터가 너무 많은거 같아. 국장은 무조건 있어야 하는데,
+미국은 S&P만 필터할 수 있겠어?".
+
+조사 결과 국내(DART)는 시가총액 필터가 없어도 보고서명 필터(`실적`/`사업보고서`
+등)가 있어 그나마 의미 있는 공시만 걸러지는데, 미국(Finnhub `calendar/earnings`)은
+`international=false`로 미국 상장 전체 종목의 예정 실적을 그대로 받아 시가총액·지수
+소속 필터가 전혀 없었다 - 소형주까지 다 섞여 나오는 게 "가비지"의 주 원인이었다.
+"국장은 무조건 있어야 한다"는 요청이 명시적이라 DART 쪽은 건드리지 않았다.
+
+신규 `scripts/cloud-vm/sp500_constituents.py`: S&P500 구성종목 티커 503개
+(`SP500_SYMBOLS` frozenset). en.wikipedia.org의 구성종목 표 원문 HTML을 직접 받아
+파싱했고, GitHub 커뮤니티 데이터셋(`datasets/s-and-p-500-companies`)과 대조해 503개
+전부 일치를 확인했다(정적 스냅샷이라 분기별 지수 변경은 못 따라감 - `data/krx_map.js`와
+같은 한계, 갱신 필요 시 파일 통째로 교체). `scripts/cloud-vm/earnings_calendar.py`의
+`fetch_us_month()`에서 이 목록에 없는 심볼은 건너뛴다. BRK.B/BF.B처럼 클래스 표기가
+있는 종목은 공급자마다 `.`/`-` 표기가 갈려서 둘 다 확인하도록 정규화했다. `/earnings-calendar`
+API 하나에서 걸러지므로 홈 위젯(`js/skin-main.js` EarningsCalendarFeed)·독립 캘린더
+페이지(`js/stock-calendar.js`)·주간 리포트가 전부 자동으로 같이 적용받는다.
+
+검증: `python -m pytest test/test_earnings_calendar.py` 20 passed(신규 S&P500 필터
+테스트 포함 - AAPL/BRK-B는 통과, 가상의 비 S&P500 심볼은 걸러짐 확인).
+`scripts/cloud-vm/` 변경이라 `master` 반영 후 VM 자동 배포.
+
 **2026-09-23(24차) 와이즈플래닛컴퍼니(신규상장) 종목코드 누락 보완 + 차트 동그라미 위치 이동**
 
 사용자 리포트: "와이즈플래닛컴퍼니 0010S0에 해당하는 종목을 찾을 수 없어요" +

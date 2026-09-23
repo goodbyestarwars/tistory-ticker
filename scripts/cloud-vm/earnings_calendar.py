@@ -18,6 +18,8 @@ from datetime import date, timedelta
 from html.parser import HTMLParser
 from threading import Lock
 
+from sp500_constituents import SP500_SYMBOLS
+
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
 DART_DISCLOSURE_URL = 'https://dart.fss.or.kr/dsaf001/main.do'
@@ -709,6 +711,13 @@ def fetch_us_month(year, month):
         symbol = str(row.get('symbol') or '').strip().upper()
         event_date = str(row.get('date') or '').strip()
         if not symbol or not event_date:
+            continue
+        # 2026-09-23 사용자 요청("가비지 데이터가 너무 많다 - 미국은 S&P만 필터")
+        # - Finnhub는 미국 상장 전체 종목의 예정 실적을 주는데 시가총액 필터가
+        # 없어 소형주까지 다 섞여 나온다. DART(국내) 쪽은 그대로 둔다.
+        # BRK.B/BF.B처럼 클래스 표기가 있는 종목은 공급자마다 '.'/'-' 표기가
+        # 갈려서(BRK.B vs BRK-B) 둘 다 확인한다.
+        if symbol not in SP500_SYMBOLS and symbol.replace('-', '.') not in SP500_SYMBOLS:
             continue
         try:
             kst_date = _finnhub_kst_date(event_date, row.get('hour'))
