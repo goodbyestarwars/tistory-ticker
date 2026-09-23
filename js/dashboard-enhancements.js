@@ -44,7 +44,12 @@
   function moveDrawingControlsBelowFullscreen(controlRow) {
     if (!controlRow || controlRow.getAttribute('data-de-draw-layout') === '1') return;
     var buttonSelectors = [
-      '.ss-draw-toggle', '.ss-pencil-toggle', '.ss-draw-clear',
+      // 2026-09-23 사용자 요청: 동그라미를 봉 위치(.ss-chart-tabs 안, tf 버튼 옆)가 아니라
+      // 선 그리기·연필 사이 - 이 배열의 순서가 아래로 옮겨지는 "차트 그리기 도구" 줄의
+      // 실제 노출 순서를 정한다(구성 요소를 appendChild로 이 순서대로 다시 붙임).
+      // .ss-circle-toggle이 동그라미 추가(#528) 당시 이 목록에 빠져 있어서 다른 세 버튼만
+      // 아래 줄로 옮겨지고 동그라미만 tf 버튼 옆에 혼자 남아 있었다.
+      '.ss-draw-toggle', '.ss-circle-toggle', '.ss-pencil-toggle', '.ss-draw-clear',
       '.dmi-draw-toggle', '.dmi-draw-clear',
       '.kf-draw-toggle', '.kf-draw-clear'
     ];
