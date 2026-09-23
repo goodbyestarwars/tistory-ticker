@@ -5368,6 +5368,10 @@ html.dark .app-news-market--미국 { color: #93c5fd; background: rgba(29, 78, 21
 .app-news-quote .is-up { color: #d24f45; }
 .app-news-quote .is-down { color: #1261c4; }
 .app-news-event:hover { background: #fafbff; }
+/* 2026-09-24 사용자 스크린샷: 다크모드에서 뉴스 행 하나가 밝은 흰 배경으로 남아 있었다
+   - 모바일은 탭한 요소의 :hover가 다음 탭 전까지 그대로 유지되는 경우가 많아, 이 hover
+   배경에 다크모드 대응이 없으면 딱 그 모양(마지막으로 누른 행만 하얗게 박힘)이 난다. */
+html.dark .app-news-event:hover { background: rgba(245, 239, 224, 0.06); }
 /* 경제뉴스 타임라인: 점과 시장 배지의 시작선을 맞추고 속보 제목이 하단 경계에 닿지 않게 한다. */
 .home-economic-news .app-news-body { transform: translateY(-8px); }
 .home-economic-news .hen-breaking-row--active { animation: hen-breaking-scoreboard .34s ease-out; }
