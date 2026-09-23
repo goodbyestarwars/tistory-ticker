@@ -1647,10 +1647,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertTrue(any('order: 2 !important' in rule for rule in version_rules),
                         '버전 줄이 읽을거리보다 뒤에 와야 한다')
         self.assertIn("grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important", style)
-        self.assertIn("display: contents !important", style)
         self.assertIn("grid-template-areas: none !important", style)
         self.assertIn("flex-wrap: wrap !important", style)
         self.assertIn("grid-column: 1 / -1 !important", style)
+        # 2026-09-24 사용자 지적("1·2·3열 좌우 밸런스가 안맞아") - display: contents로
+        # 6개 링크를 바깥 auto-fit 그리드에 직접 맡기면, 그 auto-fit 트랙 너비가 항목
+        # 글자 수에 따라 행마다 다르게 잡혀 가운데 정렬 글자의 좌우 시작 위치가 행마다
+        # 들쭉날쭉해졌다(실측). display: contents를 버리고 이 블록을 바깥 그리드의
+        # 독립된 한 칸(전체 폭)으로 두면 안쪽 2열 서브그리드가 모든 행에서 같은 열
+        # 경계를 공유한다 - 되돌아오면 안 된다.
+        self.assertNotIn("display: contents !important", style)
+        # 이 블록 안에 .site-footer-links:not(.site-footer-learn) 규칙이 여러 번 나온다
+        # (3880행 부근 옛 블록 포함) - learn_rule과 같은 이유로 마지막(이기는) 것을 본다.
+        links_rule = mobile[mobile.rindex('> .site-footer-links:not(.site-footer-learn) {'):]
+        links_rule = links_rule[:links_rule.index('}')]
+        self.assertIn('grid-column: 1 / -1 !important', links_rule)
+        self.assertIn('grid-template-columns: repeat(2, minmax(0, 1fr))', links_rule)
 
         chapters = ["market.html", "order.html", "chart.html", "company.html", "risk.html",
                     "money.html", "macro.html"]

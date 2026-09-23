@@ -7368,12 +7368,23 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
     grid-template-columns: repeat(auto-fit, minmax(112px, 1fr)) !important;
     grid-template-areas: none !important;
     grid-auto-flow: row;
-    gap: 10px 18px !important; padding: 18px 16px 16px !important; text-align: center;
+    /* 2026-09-24 사용자 요청("풋터 간격 조정") - 10px는 6개 법적 링크·7개 읽을거리 링크·
+       버전 줄이 촘촘하게 붙어 보였다. 14px로 살짝 넓혀 숨 쉴 공간을 준다. */
+    gap: 14px 18px !important; padding: 18px 16px 16px !important; text-align: center;
   }
+  /* 2026-09-24 사용자 지적("1·2·3열 좌우 밸런스가 안맞아") - 예전엔 이 6개 링크를
+     `display: contents`로 풀어서 바깥 auto-fit 그리드(열 너비가 6개 항목 전체를 보고
+     자동 계산됨)에 직접 맡겼다. 그 auto-fit 트랙 너비가 행마다 실제로 다르게 잡혀서
+     ("서비스 이용약관"/"오픈소스 라이선스"/"릴리스 노트"처럼 글자 수가 다른 항목들이
+     한 그리드에 섞이며) 가운데 정렬된 글자의 좌우 시작 위치가 행마다 들쭉날쭉했다.
+     display: contents를 버리고 이 블록을 바깥 그리드의 독립된 한 칸(전체 폭)으로
+     두면, 아래 2열 서브그리드가 자기 열 너비를 스스로 고정해서 모든 행이 같은
+     열 경계를 공유한다. */
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
-    grid-area: footer-links !important; width: 100% !important; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 0; justify-items: center;
+    grid-area: auto !important;
+    grid-column: 1 / -1 !important;
+    width: 100% !important; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px 0; justify-items: center;
   }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) { display: contents !important; }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { display: none !important; }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > * {
     position: relative; width: 100%; text-align: center;
@@ -7402,7 +7413,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
     /* 링크(0) -> 읽을거리(1) -> 버전(2). 버전의 order는 아래에서 2로 올린다. */
     order: 1 !important;
     display: flex; flex-direction: row; flex-wrap: wrap;
-    justify-content: center; align-items: center; gap: 7px 18px;
+    justify-content: center; align-items: center; gap: 9px 18px;
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
     grid-area: auto !important;
