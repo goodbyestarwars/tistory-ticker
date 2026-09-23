@@ -124,6 +124,23 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
+  /* 2026-09-23 사용자 요청("메모 기능") - 전체 페이지에서 뜨는 플로팅 메모 버튼.
+     dashboard-enhancements와 달리 경로 제한 없이 항상 로드한다(어느 페이지에서든
+     메모를 남길 수 있어야 하는 기능이라). */
+  (function loadMemoWidget() {
+    if (document.querySelector('link[data-memo-widget-css]')) return;
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/memo-widget.css?v=20260923-memo-widget-v1';
+    link.setAttribute('data-memo-widget-css', '1');
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/memo-widget.js?v=20260923-memo-widget-v1';
+    script.defer = true;
+    script.setAttribute('data-memo-widget', '1');
+    document.body.appendChild(script);
+  })();
+
   /* Dedicated MY screen: reuse the existing /page/watchlist Tistory page and
      append portfolio/holding analysis without changing other pages. */
   (function loadMyDashboard() {

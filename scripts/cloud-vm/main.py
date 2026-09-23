@@ -52,6 +52,7 @@ import kiwoom_client
 import kiwoom_market
 import market_rank
 import market_board
+import memo
 import option_flow
 import order_book
 import public_data
@@ -825,6 +826,54 @@ async def update_watchlist(request: Request):
         except RuntimeError as exc:
             if str(exc) == 'WATCHLIST_REVISION_CONFLICT':
                 raise HTTPException(status_code=409, detail='watchlist changed; reload and try again') from exc
+            raise
+    finally:
+        conn.close()
+    return envelope(saved)
+
+
+@app.get('/memo')
+def memo_endpoint(request: Request):
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        config = db_schema.load_user_memos(conn, user_id)
+        if config is None:
+            config = {'items': [], 'revision': 0, 'updatedAt': None}
+        return envelope(config)
+    finally:
+        conn.close()
+
+
+@app.put('/memo')
+async def update_memo(request: Request):
+    session = require_google_user(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    try:
+        items = memo.normalize_items(body.get('items', []))
+    except memo.MemoConfigError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        try:
+            saved = db_schema.save_user_memos(
+                conn, user_id, items, now, expected_revision=body.get('revision'),
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'MEMO_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='memo changed; reload and try again') from exc
             raise
     finally:
         conn.close()

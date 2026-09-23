@@ -194,6 +194,18 @@ CREATE TABLE IF NOT EXISTS watchlist_configs (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
+-- 2026-09-23 사용자 요청(메모 기능 - "DB는 직접 쓰지말고" -> 새 저장소를 새로 만들지
+-- 말고 이미 있는 Google 로그인·watchlist_configs와 같은 패턴을 재사용하라는 뜻으로
+-- 확인함). 종목별/자유 메모 둘 다 하나의 JSON 배열로 저장 - watchlist_configs와 동일한
+-- 사용자당 1행 + revision 낙관적 동시성 패턴.
+CREATE TABLE IF NOT EXISTS user_memos (
+    user_id INTEGER PRIMARY KEY,
+    memos_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
+
 -- 증시온도 카드의 사용자별 편집본. sector_cards_config는 운영자가 만든 공용 기본값이고,
 -- 이 테이블에 행이 생긴 사용자만 기본값에서 분기한다.
 CREATE TABLE IF NOT EXISTS user_sector_cards_config (
@@ -594,6 +606,49 @@ def save_watchlist_config(conn, user_id, config, updated_at, expected_revision=N
             'revision': next_revision,
             'updatedAt': updated_at,
         }
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def load_user_memos(conn, user_id):
+    row = conn.execute(
+        'SELECT memos_json, revision, updated_at FROM user_memos WHERE user_id=?',
+        (user_id,),
+    ).fetchone()
+    if not row:
+        return None
+    try:
+        items = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('user_memos contains invalid JSON') from exc
+    return {
+        'items': items if isinstance(items, list) else [],
+        'revision': row[1],
+        'updatedAt': row[2],
+    }
+
+
+def save_user_memos(conn, user_id, items, updated_at, expected_revision=None):
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM user_memos WHERE user_id=?',
+            (user_id,),
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('MEMO_REVISION_CONFLICT')
+        next_revision = current_revision + 1 if current else 1
+        payload = json.dumps(items, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO user_memos (user_id, memos_json, revision, updated_at) VALUES (?, ?, ?, ?) '
+            'ON CONFLICT(user_id) DO UPDATE SET memos_json=excluded.memos_json, '
+            'revision=excluded.revision, updated_at=excluded.updated_at',
+            (user_id, payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {'items': items, 'revision': next_revision, 'updatedAt': updated_at}
     except Exception:
         conn.rollback()
         raise

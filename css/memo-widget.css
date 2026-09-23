@@ -1,0 +1,165 @@
+/* 메모 위젯 - 사이트 전역 플로팅 버튼/패널. style.css의 .scroll-top-btn(bottom:24px
+   right:18px, 40x40)과 안 겹치게 한 단 위(bottom:78px)에 둔다. */
+.memo-fab {
+  position: fixed;
+  bottom: 78px;
+  right: 18px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: none;
+  background: var(--accent-dark, #26364A);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 950;
+  box-shadow: 0 3px 14px rgba(38, 54, 74, 0.35);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.memo-fab:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(38, 54, 74, 0.4); }
+.memo-fab svg { width: 20px; height: 20px; stroke: currentColor; stroke-linecap: round; stroke-linejoin: round; }
+.memo-fab-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #d24f45;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.memo-panel {
+  position: fixed;
+  bottom: 130px;
+  right: 18px;
+  width: 320px;
+  max-width: calc(100vw - 32px);
+  max-height: min(520px, 70vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--surface, #FFFEFC);
+  border-radius: 14px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  z-index: 950;
+  overflow: hidden;
+}
+.memo-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 14px;
+}
+.memo-panel-close {
+  border: none;
+  background: none;
+  font-size: 18px;
+  line-height: 1;
+  color: #7c7c7c;
+  cursor: pointer;
+  padding: 2px 4px;
+}
+.memo-panel-close:hover { color: #111; }
+.memo-panel-body { padding: 12px 14px; overflow-y: auto; }
+.memo-loading, .memo-empty { color: #94a3b8; font-size: 12.5px; text-align: center; padding: 16px 0; }
+.memo-error { color: #b42318; font-size: 12px; margin-bottom: 8px; }
+
+.memo-login-gate { text-align: center; padding: 14px 4px; }
+.memo-login-gate p { font-size: 12.5px; color: #7c7c7c; margin-bottom: 10px; }
+.memo-login-btn {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+.memo-login-btn:hover { background: #f3f6f4; }
+
+.memo-composer { margin-bottom: 12px; }
+.memo-context-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  color: #26364A;
+  margin-bottom: 6px;
+  cursor: pointer;
+}
+.memo-input {
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  font-family: inherit;
+}
+.memo-input:focus { outline: none; border-color: var(--accent-dark, #26364A); }
+.memo-add-btn {
+  margin-top: 6px;
+  width: 100%;
+  border: none;
+  border-radius: 8px;
+  background: var(--accent-dark, #26364A);
+  color: #fff;
+  padding: 8px 0;
+  font-size: 13px;
+  cursor: pointer;
+}
+.memo-add-btn:hover { opacity: .9; }
+.memo-add-btn:disabled { opacity: .6; cursor: default; }
+
+.memo-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.memo-item { border-top: 1px solid #eef2f7; padding-top: 10px; }
+.memo-item:first-child { border-top: none; padding-top: 0; }
+.memo-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.memo-item-tag {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: #26364A;
+  background: #eef2f7;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.memo-item-head time { font-size: 10.5px; color: #94a3b8; margin-left: auto; }
+.memo-item-delete { border: none; background: none; color: #94a3b8; font-size: 14px; cursor: pointer; padding: 0 2px; }
+.memo-item-delete:hover { color: #b42318; }
+.memo-item-body { font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+
+html.dark .memo-fab { background: #F5EFE0; color: #1A1A1A; }
+html.dark .memo-fab-badge { background: #ff6b5b; }
+html.dark .memo-panel { background: #1A1A1A; box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5); }
+html.dark .memo-panel-head { border-bottom-color: rgba(245, 239, 224, 0.14); color: #F5EFE0; }
+html.dark .memo-panel-close { color: rgba(245, 239, 224, 0.55); }
+html.dark .memo-panel-close:hover { color: #F5EFE0; }
+html.dark .memo-loading, html.dark .memo-empty { color: rgba(245, 239, 224, 0.45); }
+html.dark .memo-login-gate p { color: rgba(245, 239, 224, 0.55); }
+html.dark .memo-login-btn { background: #242424; border-color: rgba(245, 239, 224, 0.16); color: #F5EFE0; }
+html.dark .memo-context-chip { color: #e0b040; }
+html.dark .memo-input { background: #242424; border-color: rgba(245, 239, 224, 0.16); color: #F5EFE0; }
+html.dark .memo-input:focus { border-color: #e0b040; }
+html.dark .memo-add-btn { background: #e0b040; color: #1A1A1A; }
+html.dark .memo-item { border-top-color: rgba(245, 239, 224, 0.14); }
+html.dark .memo-item-tag { color: #e0b040; background: rgba(245, 239, 224, 0.08); }
+html.dark .memo-item-head time { color: rgba(245, 239, 224, 0.4); }
+html.dark .memo-item-delete { color: rgba(245, 239, 224, 0.4); }
+html.dark .memo-item-delete:hover { color: #ff6b5b; }
+html.dark .memo-item-body { color: rgba(245, 239, 224, 0.85); }
+
+@media (max-width: 480px) {
+  .memo-panel { right: 12px; bottom: 122px; width: calc(100vw - 24px); }
+  .memo-fab { right: 12px; }
+}

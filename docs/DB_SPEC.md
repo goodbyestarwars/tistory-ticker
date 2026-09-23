@@ -367,6 +367,20 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 `market_temp_data.industry_rank_baseline()`이 화면 값이 가리키는 거래일의 **직전 거래일**
 순위를 돌려준다.
 
+### 2.20 `user_memos` — 사용자별 메모(종목별/자유)
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| user_id | INTEGER | PK, FK | `app_users.id`, 삭제 CASCADE |
+| memos_json | TEXT | NOT NULL | 메모 배열(JSON) - 각 항목 `{id, code, name, body, createdAt, updatedAt}`, `code`가 없으면 자유 메모 |
+| revision | INTEGER | NOT NULL | 충돌 감지 버전 |
+| updated_at | TEXT | NOT NULL | 저장 시각 |
+
+`watchlist_configs`와 같은 패턴(사용자당 1행, 전체 배열을 통째로 교체) - 2026-09-23
+메모 기능 신설(사용자 요청: "DB는 직접 쓰지말고, 티스토리꺼 쓰고" -> 새 저장소를 새로
+만들지 말고 이미 있는 Google 로그인·watchlist_configs 패턴을 재사용하라는 뜻으로 확인).
+`/memo`의 GET/PUT이 Google 로그인 사용자별로 읽고 저장한다.
+
 ## 3. `news_momentum.db`
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.

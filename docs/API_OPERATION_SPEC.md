@@ -82,6 +82,7 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/auth/google/logout` | 없음 | 세션 쿠키 삭제 |
 | GET/PUT | `/watchlist` | Google 세션 | 사용자 관심종목 조회·저장, revision 충돌 시 409 |
 | GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 국내 DART 공시 |
+| GET/PUT | `/memo` | Google 세션 | 메모 조회·저장(종목별/자유), revision 충돌 시 409 |
 | GET | `/sector-cards` | 없음 | 공용 증시온도 카드 설정 |
 | PUT | `/sector-cards` | 관리자 + API 키 | 공용 카드 설정 전체 교체 |
 | GET/PUT/DELETE | `/sector-cards/me` | Google 세션 | 개인 카드 설정 조회·저장·공용 기본값 복귀 |

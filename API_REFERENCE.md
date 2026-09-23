@@ -309,6 +309,7 @@ dict 구성을 함께 대조한다.
 | GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |
 | GET/PUT | `/watchlist` | Google 세션 | 관심종목 조회·저장 |
 | GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 DART 공시 |
+| GET/PUT | `/memo` | Google 세션 | 메모 목록 조회·저장(종목별/자유 메모, `user_memos` 1행 JSON 배열 - watchlist_configs와 같은 패턴) |
 | GET/PUT | `/sector-cards` | GET 공개 / PUT 관리자 | 공용 증시온도 카드 |
 | GET/PUT/DELETE | `/sector-cards/me` | Google 세션 | 개인 카드 설정 |
 | GET | `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout` | OAuth | Google 로그인 흐름 |

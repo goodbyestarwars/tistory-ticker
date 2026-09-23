@@ -1,5 +1,31 @@
 # 9Pay 주요 작업이력
 
+**2026-09-23(26차) 사이트 전역 메모 위젯 신설**
+
+사용자 요청: "메모 기능? 있으면 좋겠는데, DB는 직접 쓰지말고, 티스토리꺼 쓰고, 메모는
+브라우저에 최소화 시킬 수 있고, 필요할 때 펼쳐 보이게 가능한가?" - `AskUserQuestion`으로
+확인한 결과 "티스토리꺼"는 새 저장소를 새로 만들지 말고 이미 있는 Google 로그인
+(watchlist와 같은 `/auth/google/*` + VM DB)을 재사용하라는 뜻이었다. 메모 단위는
+"종목별 + 자유 메모 둘 다".
+
+신규 `scripts/cloud-vm/memo.py`(payload 검증) + `db_schema.py`의 `user_memos` 테이블
+(사용자당 1행, JSON 배열 통째 교체 + revision 낙관적 동시성 - `watchlist_configs`와
+완전히 같은 패턴). `main.py`에 `GET/PUT /memo` 추가(Google 세션 필수, `require_google_user`
+재사용). 새 스키마·엔드포인트를 만들었지만 **기존 앱 사용자 인증·DB 인프라를 그대로
+재사용**했을 뿐 새 저장 시스템은 아니다.
+
+프론트는 신규 `js/memo-widget.js` + `css/memo-widget.css` - 화면 우하단 플로팅 버튼
+(기본 최소화), 클릭하면 패널이 펼쳐진다. 종목 상세 페이지 URL의 `?code=&name=`을 읽어
+"이 종목에 연결" 토글을 보여주고(체크 해제하면 자유 메모), 목록은 최신순 + 태그 +
+상대 시각. `js/skin-main.js`에서 페이지 경로 제한 없이 모든 페이지에 로드한다
+(dashboard-enhancements.js와 달리 - 메모는 어느 페이지에서든 남길 수 있어야 함).
+
+검증: `python -m pytest test/test_memo_config.py test/test_ui_ia.py test/test_watchlist_config.py`
+185 passed. 로컬 mock(auth/저장 fetch 가로채기) 하네스로 종목별·자유 메모 추가/삭제·
+뱃지 카운트 동작 확인. `scripts/cloud-vm/`, `js/`, `css/` 전부 변경이라 VM은 자동
+배포, `js/css`는 GitHub Pages 자동 배포. `API_REFERENCE.md`, `docs/API_OPERATION_SPEC.md`,
+`docs/DB_SPEC.md`에 `/memo`·`user_memos` 반영.
+
 **2026-09-23(25차) 캘린더 미국 일정을 S&P500 구성종목으로 필터**
 
 사용자 요청: "캘린더에 가비지 데이터가 너무 많은거 같아. 국장은 무조건 있어야 하는데,
