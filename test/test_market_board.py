@@ -96,6 +96,31 @@ class MarketBoardTests(unittest.TestCase):
         self.assertEqual(row['industry'], 'Technology')
         self.assertEqual(row['currency'], 'USD')
 
+    def test_us_row_passes_through_week52_from_quote(self):
+        # 2026-09-24 사용자 요청("미국주식도 52주 최고가 최저가 넣을까?") - us_stocks.quote()가
+        # 이미 계산해 두던 값을 이 함수가 반환 dict에서 빠뜨리고 있었다.
+        quote = {
+            'price': 100, 'change': 2, 'change_rate': 2, 'volume': 500,
+            'week52_high': 145.3, 'week52_low': 88.1,
+        }
+        with mock.patch.object(market_board.us_stocks, 'quote', return_value=quote), \
+                mock.patch.object(market_board.us_analysis, 'get_profile', return_value={}):
+            row = market_board._us_row('AAPL', 'finnhub-key')
+
+        self.assertEqual(row['week52_high'], 145.3)
+        self.assertEqual(row['week52_low'], 88.1)
+
+    def test_us_row_week52_is_none_when_quote_lacks_it(self):
+        # Yahoo 일봉 폴백(_yahoo_quote)처럼 52주 데이터가 없는 소스를 쓸 때도
+        # KeyError 없이 조용히 None으로 빠져야 한다.
+        quote = {'price': 100, 'change': 2, 'change_rate': 2, 'volume': 500}
+        with mock.patch.object(market_board.us_stocks, 'quote', return_value=quote), \
+                mock.patch.object(market_board.us_analysis, 'get_profile', return_value={}):
+            row = market_board._us_row('AAPL', 'finnhub-key')
+
+        self.assertIsNone(row['week52_high'])
+        self.assertIsNone(row['week52_low'])
+
     def test_us_row_converts_foreign_profile_market_cap_to_usd(self):
         quote = {'price': 422, 'change': 2, 'change_rate': 0.5, 'volume': 500}
         profile = {

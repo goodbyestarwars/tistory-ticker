@@ -1,5 +1,27 @@
 # 9Pay 주요 작업이력
 
+**2026-09-24(30차) 홈 실시간 종목판 미국 탭에 52주 최고가·최저가 추가**
+
+사용자 질문: "미국주식도 52주 최고가 최저가 넣을까?". 조사해보니 국내 탭에는 이미
+있는 컬럼인데 미국 탭에서만 빠져 있었다 - 프론트(`js/home-realtime-table.js`)가
+`US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 7)`로 앞 7개만 잘라 쓰면서 `week52High`/
+`week52Low`(8·9번째)와 `industry`(10번째)가 통째로 빠졌다. 업종은 미국에 분류 API가
+없어 원래도 의미 없는 값('미분류')이라 그대로 빼고, 52주 최고/최저만 되살렸다
+(`.filter(col => col[0] !== 'industry')`로 교체).
+
+백엔드(`scripts/cloud-vm/market_board.py`)의 `_us_row()`(Finnhub 프로필 기반 폴백
+경로)는 `us_stocks.quote()`가 이미 계산해 둔 `week52_high`/`week52_low`(KIS 현재가상세
+h52p/l52p)를 갖고 있었는데 반환 dict에서 빠뜨리고 있었다 - 그대로 넘기게 고쳤다.
+**대량 순위 경로**(`_kis_us_row`, KIS 해외주식 순위분석 API)는 이 필드가 실제로
+있는지 키움/KIS 문서로 확인이 안 돼 손대지 않았다 - 미검증 필드를 확정값처럼 넣지
+않는다는 원칙에 따름. 즉 미국 탭 행 중 Finnhub 폴백을 탄 종목만 52주 값이 보이고,
+대량 순위로 채워진 행은 '-'로 남을 수 있다(짐작이 아니라 확인된 한계).
+
+검증: `python -m pytest test/test_market_board.py test/test_ui_ia.py` 184 passed
+(신규 테스트로 `_us_row`가 quote의 week52를 그대로 넘기는지, 없을 때 조용히 None으로
+빠지는지 확인). `js/skin-main.js`의 `home-realtime-table.js` `?v=`를 올려 GitHub
+Pages 캐시 만료(최대 10분)를 기다리지 않고 반영되게 함.
+
 **2026-09-23(29차) 메모 위젯: 최소화된 연필 버튼(FAB)도 드래그로 이동**
 
 28차까지 패널 헤드만 드래그 가능했는데, 사용자 재지적: "연필모양이 안움직이는데??" -

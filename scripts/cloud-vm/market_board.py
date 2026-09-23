@@ -701,6 +701,11 @@ def _us_row(symbol, finnhub_api_key):
         'currency': 'USD',
         'volume': volume,
         'trading_value': price * volume,
+        # 2026-09-24: us_stocks.quote()가 이미 계산해 두던 값인데(KIS 현재가상세
+        # h52p/l52p) 이 함수가 반환 dict에서 빠뜨리고 있었다 - 홈 실시간 종목판
+        # 미국 탭에 52주 최고/최저가 안 나온 이유.
+        'week52_high': quote.get('week52_high'),
+        'week52_low': quote.get('week52_low'),
     }
 
 

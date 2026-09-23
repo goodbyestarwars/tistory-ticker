@@ -55,7 +55,14 @@
     ['week52Low', '52주 최저가'],
     ['industry', '업종']
   ];
-  var US_TABLE_COLUMNS = TABLE_COLUMNS.slice(0, 7);
+  // 2026-09-24 사용자 요청("미국주식도 52주 최고가 최저가 넣을까?") - 예전엔 앞 7개만
+  // 잘라 써서 52주 칼럼이 통째로 빠져 있었다. 업종(국내 전용, 미국은 분류 API가 없어
+  // '미분류'만 찍힘)만 빼고 52주 최고/최저는 넣는다 - 데이터는 `_us_row`
+  // (scripts/cloud-vm/market_board.py, us_stocks.quote()의 week52_high/low를 그대로
+  // 넘김)가 이미 채우고 있었는데 화면에서만 잘리고 있었다. 다만 대량 순위 API
+  // (`_kis_us_row`, KIS 해외주식 순위분석)로 채워진 행은 이 필드가 없을 수 있어 그 경우
+  // '-'로 표시된다(fmtPrice가 null을 '-'로 처리) - 값이 있는 종목만 보인다는 뜻.
+  var US_TABLE_COLUMNS = TABLE_COLUMNS.filter(function (col) { return col[0] !== 'industry'; });
   var INDUSTRY_COLUMNS = [
     ['industry', '업종'],
     ['avgChangeRate', '평균등락률'],
