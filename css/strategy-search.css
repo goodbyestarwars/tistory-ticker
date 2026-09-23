@@ -826,14 +826,21 @@ html:not(.font-gothic) body #strategy-search .ss-product-tab.active {
   background: #111827 !important;
   color: #ffffff !important;
 }
-html.dark #strategy-search .ss-tab,
-html.dark #strategy-search .ss-product-tab {
+/* 2026-09-24 다크모드 전수 점검(사용자 요청) - 위 라이트 규칙(807행)이
+   `html:not(.font-gothic) body ...`로 타입 셀렉터가 하나 더 붙어 있어서, 이 dark
+   규칙(`html.dark ...`, 타입 셀렉터 1개)보다 특이도가 더 높았다. !important끼리
+   맞붙으면 특이도가 이기므로 라이트 배경이 다크모드에서도 계속 떠 있었다 - "배당주"
+   탭이 하얗게 남은 원인. 라이브에서 실측 확인: `html.dark body ...`(특이도를 맞춘
+   버전)로는 여전히 안 이기고, 라이트 규칙의 `:not(.font-gothic)`까지 그대로 포함한
+   뒤 `.dark`를 더해 확실히 더 높은 특이도를 줘야 이긴다. */
+html.dark:not(.font-gothic) body #strategy-search .ss-tab,
+html.dark:not(.font-gothic) body #strategy-search .ss-product-tab {
   border-color: rgba(245,239,224,.24) !important;
   background: #1A1A1A !important;
   color: rgba(245,239,224,.78) !important;
 }
-html.dark #strategy-search .ss-tab.active,
-html.dark #strategy-search .ss-product-tab.active {
+html.dark:not(.font-gothic) body #strategy-search .ss-tab.active,
+html.dark:not(.font-gothic) body #strategy-search .ss-product-tab.active {
   border-color: #F5EFE0 !important;
   background: #F5EFE0 !important;
   color: #1A1A1A !important;

@@ -878,6 +878,12 @@ html.dark #market-temp .mt-radar-grid { color: rgba(245, 239, 224, 0.2) !importa
 html.dark #market-temp .mt-radar-label { fill: rgba(245, 239, 224, 0.55) !important; }
 html.dark #market-temp .mt-radar-score { fill: #F5EFE0 !important; }
 
+/* 2026-09-24 다크모드 전수 점검(사용자 요청) - dashboard-enhancements.css의
+   .mt-strategy-action 기본 배경(rgba(255,255,255,.75), 흰 배경 75%)에 다크모드 대응이
+   없어 "오늘 투자전략" 문구 박스가 다크모드에서도 계속 밝게 떠 있었다. .mt-val-zero
+   변형은 이미 아래에서 배경을 transparent로 따로 처리하므로(그쪽이 더 구체적이라
+   이 규칙을 그대로 이긴다) 그대로 둔다. */
+html.dark #market-temp .mt-strategy-action { background: rgba(245, 239, 224, 0.08) !important; }
 html.dark #market-temp .mt-ant-guide .mt-strategy-action { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-ant-list li { color: rgba(245, 239, 224, 0.82) !important; }
 html.dark #market-temp .mt-ant-mood { color: rgba(245, 239, 224, 0.5) !important; }

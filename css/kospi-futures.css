@@ -405,6 +405,24 @@ html.dark #kospi-futures .kf-interval-btn.active {
   color: #1A1A1A !important;
   border-color: #F5EFE0 !important;
 }
+/* 2026-09-24 다크모드 전수 점검(사용자 요청) - 선 그리기/지우기 버튼이 다크모드
+   대응 없이 밝은 회색(#f8fafc)으로 계속 떠 있었다. */
+html.dark #kospi-futures .kf-draw-toggle,
+html.dark #kospi-futures .kf-draw-clear {
+  background: rgba(245, 239, 224, 0.08) !important;
+  color: rgba(245, 239, 224, 0.55) !important;
+  border-color: rgba(245, 239, 224, 0.2) !important;
+}
+html.dark #kospi-futures .kf-draw-toggle:hover,
+html.dark #kospi-futures .kf-draw-clear:hover {
+  border-color: #F5EFE0 !important;
+  color: #F5EFE0 !important;
+}
+html.dark #kospi-futures .kf-draw-toggle.is-active {
+  background: #F5EFE0 !important;
+  color: #1A1A1A !important;
+  border-color: #F5EFE0 !important;
+}
 html.dark #kospi-futures .kf-collapse-btn {
   background: transparent !important;
   color: #F5EFE0 !important;
