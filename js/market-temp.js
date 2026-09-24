@@ -922,58 +922,47 @@
     var rad = (angleDeg * Math.PI) / 180;
     return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
   }
-  function angleForScore_(v) { return 180 - (Math.max(0, Math.min(100, v)) / 100) * 180; }
-  function scoreArcPath_(cx, cy, r, fromValue, toValue) {
-    var start = polarPoint_(cx, cy, r, angleForScore_(fromValue));
-    var end = polarPoint_(cx, cy, r, angleForScore_(toValue));
-    return 'M ' + start.x.toFixed(2) + ' ' + start.y.toFixed(2)
-      + ' A ' + r + ' ' + r + ' 0 0 1 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
-  }
 
-  var scoreGaugeSeq_ = 0;
+  // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
+  function zoneColor_(v) { return v < 50 ? '#1565C0' : v < 75 ? '#C98F00' : '#E53935'; }
 
-  // 0~100 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
-  // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
+  // 오늘 점수를 디지털 계기판처럼 막대 눈금(segment) 링 + 중앙 숫자로 보여준다.
   // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
   // 그라디언트 매끈한 반원(3차) → 자동차 속도계 240˚(4차) → 무채색+빨간 바늘(5차) →
-  // 실물 사진 기준 "너무 만화 같아"로 가는 바늘 다듬기(6차) → "실사 같은 화면"
-  // 요청에 유리·금속 질감 강화(7차)까지 갔지만 "별로다, 니가 검색해서 정말 기발한거
-  // 몇개 샘플 좀 줘"(8차)로 사용자가 직접 레퍼런스를 요구했다. CNN/alternative.me/
-  // CFGI 같은 실제 금융 서비스의 공포탐욕지수 위젯을 찾아보니 셋 다 베젤·크롬·그림자
-  // 같은 "물성" 표현이 전혀 없고, 오히려 다 걷어내고 얇은 그라디언트 반원 호 + 가는
-  // 바늘 + 값 배지 + 타이포그래피만으로 전문적으로 보이게 만드는 방식이었다(사용자가
-  // 이어 보낸 이미지 2장은 게이지가 아니라 무관한 기후위기 AI 일러스트였음 - 확인 후
-  // 배제). 그래서 이번엔 아우디식 계기판 은유를 버리고 alternative.me/CFGI 패턴을
-  // 그대로 따라 반원(180˚)+블루→호박색→빨강 그라디언트 트랙+가는 바늘+값 배지로
-  // 다시 그렸다. 0~100을 한 번에 그리면 large-arc-flag가 정확히 지름 반대편(180˚
-  // 차이)에서 깨지는 경계 케이스가 있어(3차 때 발견) 50점 기준 두 개의 90˚ 호로
-  // 나눈다.
+  // "너무 만화 같아"로 가는 바늘 다듬기(6차) → 유리·금속 질감 강화(7차) → "니가
+  // 검색해서 정말 기발한거 몇개 샘플 좀 줘"로 CFGI/alternative.me식 얇은 바늘+배지
+  // (8차)까지 갔지만 "디지털 게이지로 바꾸자 이건 아닌거 같아"(9차, 현재)로 바늘·
+  // 그라디언트 트랙 자체를 버렸다. 자동차 계기판·아날로그 시계 은유를 완전히 떠나
+  // 이퀄라이저/디지털 계기판처럼 반원을 촘촘한 막대 눈금(segment) 30개로 나누고,
+  // 점수 이하 구간만 구간색(공포·보통·과열)으로 켜고 나머지는 꺼진 회색으로 둔다.
+  // 중앙엔 큰 숫자를 모노스페이스로 둬서 디지털 계기판 느낌을 낸다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 100, cy = 98, trackR = 80, needleR = 64;
-    var needleAngle = angleForScore_(pct);
-    var needleTip = polarPoint_(cx, cy, needleR, needleAngle);
-    var badgePt = polarPoint_(cx, cy, trackR, needleAngle);
-    var uid = 'mtGauge' + (scoreGaugeSeq_++);
-    var gradId = uid + 'Grad';
-    var start0 = polarPoint_(cx, cy, trackR, angleForScore_(0));
-    var end100 = polarPoint_(cx, cy, trackR, angleForScore_(100));
-    var badgeFill = tone === 'fear' ? '#1565C0' : tone === 'greed' ? '#E53935' : '#C98F00';
+    var cx = 100, cy = 100, segR = 78;
+    var segCount = 30, gapDeg = 1.4;
+    var segAngle = 180 / segCount;
+    var segs = '';
+    for (var i = 0; i < segCount; i++) {
+      var segStart = 180 - i * segAngle;
+      var segEnd = 180 - (i + 1) * segAngle;
+      var segVal = ((i + 0.5) / segCount) * 100;
+      var from = polarPoint_(cx, cy, segR, segStart - gapDeg / 2);
+      var to = polarPoint_(cx, cy, segR, segEnd + gapDeg / 2);
+      var lit = segVal <= pct;
+      // CSS에 stroke 색을 두면 스타일시트 선언이 이 인라인 색보다 항상 이겨서 켜진
+      // 조각도 회색으로 덮인다 - 그래서 CSS(mt-gauge-seg)엔 색을 두지 않고 매 조각마다
+      // 인라인 stroke를 직접 준다(켜짐은 구간색, 꺼짐은 회색).
+      segs += '<line class="mt-gauge-seg' + (lit ? ' is-lit' : '') + '" stroke="'
+        + (lit ? zoneColor_(segVal) : '#e3e5e9') + '"'
+        + ' x1="' + from.x.toFixed(2) + '" y1="' + from.y.toFixed(2)
+        + '" x2="' + to.x.toFixed(2) + '" y2="' + to.y.toFixed(2) + '"></line>';
+    }
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
-      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 120" aria-hidden="true">'
-      + '<defs><linearGradient id="' + gradId + '" gradientUnits="userSpaceOnUse" '
-      + 'x1="' + start0.x.toFixed(2) + '" y1="' + start0.y.toFixed(2) + '" x2="' + end100.x.toFixed(2) + '" y2="' + end100.y.toFixed(2) + '">'
-      + '<stop offset="0%" stop-color="#1565C0"></stop>'
-      + '<stop offset="50%" stop-color="#F4B400"></stop>'
-      + '<stop offset="100%" stop-color="#E53935"></stop>'
-      + '</linearGradient></defs>'
-      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
-      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
-      + '<line class="mt-score-gauge-marker" x1="' + cx + '" y1="' + cy + '" x2="' + needleTip.x.toFixed(2) + '" y2="' + needleTip.y.toFixed(2) + '"></line>'
-      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="4"></circle>'
-      + '<circle class="mt-gauge-badge" cx="' + badgePt.x.toFixed(2) + '" cy="' + badgePt.y.toFixed(2) + '" r="14" fill="' + badgeFill + '"></circle>'
-      + '<text class="mt-gauge-badge-text" x="' + badgePt.x.toFixed(2) + '" y="' + badgePt.y.toFixed(2) + '">' + pct.toFixed(0) + '</text>'
+      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 122" aria-hidden="true">'
+      + segs
+      + '<text class="mt-gauge-digital-num" x="' + cx + '" y="' + (cy - 6) + '">' + pct.toFixed(0) + '</text>'
+      + '<text class="mt-gauge-digital-unit" x="' + cx + '" y="' + (cy + 14) + '">/ 100</text>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'

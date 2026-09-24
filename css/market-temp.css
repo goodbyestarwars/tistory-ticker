@@ -1155,21 +1155,21 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 #market-temp .mt-summary-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 13px; text-align: right; }
 #market-temp .mt-summary-mood { margin-top: 6px; color: #444; font-size: 14px; font-weight: 700; }
 
-/* 0~100 반원 다이얼(2026-09-24 개편, 8차 - 여러 차례 방향이 바뀌다("자동차 게이지",
-   "아우디 게이지", "유리·금속 질감") 사용자가 "니가 검색해서 정말 기발한거 몇개
-   샘플 좀 줘"라고 직접 레퍼런스를 요구. CNN/alternative.me/CFGI 같은 실제 공포탐욕
-   지수 위젯을 찾아보니 셋 다 베젤·그림자 같은 "물성" 표현이 없고 얇은 그라디언트
-   반원 호 + 가는 바늘 + 값 배지 + 타이포그래피만으로 전문적으로 보이게 만드는
-   방식이었다. 이번 개편은 그 패턴을 그대로 따른 것 - 자동차 계기판 은유를 버리고
-   alternative.me/CFGI처럼 얇은 트랙 + 가는 바늘 + 색칠된 값 배지로 되돌아갔다.
-   경계 50·75는 서버 GRADE3와 같다. 트랙 색은 JS가 <linearGradient>로 그려 넣는다. */
+/* 0~100 디지털 계기판(2026-09-24 개편, 9차 - "자동차 게이지"→"아우디 게이지"→
+   "유리·금속 질감"→CFGI/alternative.me식 바늘+배지(8차)까지 갔지만 "디지털 게이지로
+   바꾸자 이건 아닌거 같아"로 방향 자체를 바꿨다. 바늘·아날로그 다이얼을 버리고
+   이퀄라이저처럼 촘촘한 막대 눈금(segment) 30개 + 중앙 큰 숫자로 그린다. 눈금 끝을
+   `stroke-linecap: round`가 아니라 `butt`(각짐)로 둔 건 2026-09-16 사용자 지시
+   ("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지" - `.mt-rib-tip`
+   등 이 파일의 다른 규칙들과 같은 원칙) 때문이다. 경계 50·75는 서버 GRADE3와 같다. */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
 #market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 280px; height: auto; overflow: visible; }
-#market-temp .mt-score-zone { fill: none; stroke-width: 12; stroke-linecap: round; }
-#market-temp .mt-score-gauge-marker { stroke: #55596b; stroke-width: 3; stroke-linecap: round; }
-#market-temp .mt-score-gauge-pivot { fill: #55596b; }
-#market-temp .mt-gauge-badge { stroke: #fff; stroke-width: 2.5; }
-#market-temp .mt-gauge-badge-text { fill: #fff; font-size: 13px; font-weight: 800; text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; }
+/* stroke 색은 JS가 조각마다 인라인으로 넣는다(켜짐=구간색, 꺼짐=회색) - 여기서
+   stroke를 선언하면 스타일시트가 인라인보다 항상 이겨서 색이 다 덮인다. */
+#market-temp .mt-gauge-seg { stroke-width: 6; stroke-linecap: butt; }
+#market-temp .mt-gauge-seg.is-lit { stroke-width: 7; }
+#market-temp .mt-gauge-digital-num { fill: #1a1a1a; font: 800 30px/1 var(--font-ui); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+#market-temp .mt-gauge-digital-unit { fill: #9aa1ab; font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
 #market-temp .mt-score-gauge-legend { display: flex; gap: 14px; margin-top: 6px; color: #9aa1ab; font-size: 11px; font-weight: 700; }
 #market-temp .mt-score-zone-label.is-active { color: #222; font-weight: 800; }
 #market-temp .mt-summary-sowhat {
@@ -1252,9 +1252,9 @@ html.dark #market-temp .mt-score-gauge-legend,
 html.dark #market-temp .mt-axis-name small { color: rgba(245, 239, 224, .5) !important; }
 html.dark #market-temp .mt-summary-mood { color: rgba(245, 239, 224, .82) !important; }
 html.dark #market-temp .mt-score-zone-label.is-active { color: #F5EFE0 !important; }
-html.dark #market-temp .mt-score-gauge-marker { stroke: #F5EFE0 !important; }
-html.dark #market-temp .mt-score-gauge-pivot { fill: #F5EFE0 !important; }
-html.dark #market-temp .mt-gauge-badge { stroke: #1A1A1A !important; }
+html.dark #market-temp .mt-gauge-seg:not(.is-lit) { stroke: rgba(245, 239, 224, .16) !important; }
+html.dark #market-temp .mt-gauge-digital-num { fill: #F5EFE0 !important; }
+html.dark #market-temp .mt-gauge-digital-unit { fill: rgba(245, 239, 224, .5) !important; }
 html.dark #market-temp .mt-summary-sowhat { background: rgba(245, 239, 224, .07) !important; color: #F5EFE0 !important; }
 html.dark #market-temp .mt-summary-sowhat a { color: #8ab4f8 !important; }
 html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18) !important; }

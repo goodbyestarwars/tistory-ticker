@@ -1568,7 +1568,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("50점 미만 공포 · 50~75점 보통 · 75점 이상 과열", source)
         self.assertIn("코스피 시장 전체 최근 5일 수급", source)
         self.assertNotIn("KODEX 200 최근 5일", source)
-        for token in (".mt-score-gauge-marker", ".mt-summary-sowhat", ".mt-ant-list li"):
+        for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
             self.assertIn(token, style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
@@ -1839,7 +1839,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("stroke-width: 2;", rule("#market-temp .mt-rib-line"))
         for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
             self.assertIn("border-radius: 0", rule(selector))
-        self.assertNotIn("border-radius: 50%", rule("#market-temp .mt-score-gauge-marker"))
+        self.assertEqual(rule("#market-temp .mt-gauge-seg").count("stroke-linecap: round"), 0)
         self.assertIn("square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)", source)
         self.assertNotIn('<circle class="mt-rib-dot', source)
 
