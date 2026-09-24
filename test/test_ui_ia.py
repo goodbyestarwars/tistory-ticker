@@ -1522,21 +1522,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("30일 평균", source)
         self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
         self.assertIn("slice(-40)", gas)
-        # 2026-09-16 사용자 요청("그래프 모양을 좀 신박한 걸로, 우와 신기한데? 이런거"): 30일 평균 편차
-        # 물결 대신 0~100 점수를 공포·보통·과열 배경 위에 그리는 리본과 날짜별 요약 줄.
-        # 2026-09-22 사용자 피드백("날씨코너냐?")으로 날씨 6단계(꽁꽁·흐림 등) 라벨을 걷어내고
-        # 화면 다른 곳과 같은 공포/보통/과열 3단계 용어로 통일했다(marketWeather_ -> marketMood_).
+        # 단기흐름은 점수의 방향, 30일 평균선, 날짜별 상태를 보여주고
+        # 정확한 일별 점수는 차트 툴팁에 남긴다.
         self.assertIn("function marketMood_(score)", source)
         self.assertNotIn("꽁꽁", source)
         self.assertNotIn("구름 조금", source)
         self.assertNotIn("폭염", source)
-        self.assertIn('gradientUnits="userSpaceOnUse"', source)
+        self.assertIn('class="mt-rib-avg"', source)
+        self.assertNotIn('gradientUnits="userSpaceOnUse"', source)
         self.assertIn("data-rib-stage", source)
         self.assertIn("mt-weather-strip", source)
         self.assertIn("function animateHistory(root)", source)
         self.assertIn("animateHistory(content);", source)
         self.assertIn("panel.addEventListener('pointermove', scrub);", source)
-        for token in (".mt-rib-zone-fear", ".mt-rib-pulse", ".mt-weather-day", "@keyframes mtRibPulse",
+        for token in (".mt-rib-border", ".mt-rib-line", ".mt-weather-mark",
                       "#market-temp .mt-rib-tip[hidden]"):
             self.assertIn(token, style)
         self.assertNotIn("mt-wave-segment-", source)
@@ -1549,8 +1548,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         """
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("<small>/100점</small>", source)
+        self.assertIn("<small>/100</small>", source)
         self.assertIn("function buildScoreGauge(value, tone)", source)
+        self.assertNotIn('<text class="mt-gauge-digital-num"', source)
+        self.assertNotIn('<span class="mt-rib-now-label', source)
         self.assertIn("그래서?", source)
         self.assertIn('<a href="#mt-ant-guide">', source)
         self.assertIn('id="mt-ant-guide"', source)

@@ -926,15 +926,7 @@
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
   function zoneColor_(v) { return v < 50 ? '#4aa9d9' : v < 75 ? '#d4a548' : '#d66a6a'; }
 
-  // 오늘 점수를 밝은 자동차 계기판처럼 얇은 눈금·빨간 바늘·중앙 숫자로 보여준다.
-  // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
-  // 그라디언트 매끈한 반원(3차) → 자동차 속도계 240˚(4차) → 무채색+빨간 바늘(5차) →
-  // "너무 만화 같아"로 가는 바늘 다듬기(6차) → 유리·금속 질감 강화(7차) → "니가
-  // 검색해서 정말 기발한거 몇개 샘플 좀 줘"로 CFGI/alternative.me식 얇은 바늘+배지
-  // (8차)까지 갔지만 "디지털 게이지로 바꾸자 이건 아닌거 같아"(9차, 현재)로 바늘·
-  // 그라디언트 트랙 자체를 버렸다. 자동차 계기판·아날로그 시계 은유를 완전히 떠나
-  // 이퀄라이저/디지털 온도계처럼 직사각형 막대 24개로 나누고, 점수 이하 구간만
-  // 공포·보통·과열 구간색으로 켜고 나머지는 꺼진 회색으로 둔다.
+  // 점수 숫자는 왼쪽 요약에 한 번만 표기하고, 계기판은 바늘·눈금으로 위치를 보여준다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
     var cx = 160, cy = 116, radius = 86, tickCount = 41;
@@ -958,8 +950,8 @@
       + ticks
       + '<line class="mt-gauge-needle" x1="' + cx + '" y1="' + cy + '" x2="' + needle.x.toFixed(2) + '" y2="' + needle.y.toFixed(2) + '"></line>'
       + '<circle class="mt-gauge-hub" cx="' + cx + '" cy="' + cy + '" r="7"></circle>'
-      + '<text class="mt-gauge-digital-num" x="' + cx + '" y="' + (cy - 28) + '">' + pct.toFixed(0) + '</text>'
-      + '<text class="mt-gauge-digital-unit" x="' + cx + '" y="' + (cy - 9) + '">/ 100</text>'
+      + '<text class="mt-gauge-scale-text" x="70" y="137">0</text>'
+      + '<text class="mt-gauge-scale-text" x="250" y="137">100</text>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
@@ -1198,8 +1190,6 @@
     neutral: { icon: '🟡', word: '보통' },
     greed: { icon: '🟠', word: '과열' }
   };
-  var sparkSeq_ = 0;
-
   function marketMood_(score) {
     return MARKET_MOOD[scoreTone_(score)];
   }
@@ -1233,7 +1223,7 @@
     var baselineRows = (priorDays.length ? priorDays : days).slice(-30);
     var baseline = baselineRows.reduce(function (sum, item) { return sum + item.score; }, 0) / baselineRows.length;
 
-    var W = 640, H = 210, PX = 18, PT = 18, PB = 12;
+    var W = 640, H = 190, PX = 56, PT = 15, PB = 12;
     var plotH = H - PT - PB;
     function yOf(value) { return PT + (1 - Math.max(0, Math.min(100, value)) / 100) * plotH; }
     function pctX(x) { return (x / W * 100).toFixed(2); }
@@ -1242,24 +1232,15 @@
     var points = shown.map(function (item, i) {
       return { x: PX + i * stepX, y: yOf(item.score), score: item.score, date: item.date };
     });
-    var uid = 'mtRib' + (++sparkSeq_);
     var line = 'M' + points[0].x.toFixed(1) + ',' + points[0].y.toFixed(1) + points.slice(1).map(function (point, i) {
       return smoothSegment_(points, i).replace(/^M\S+\s/, ' ');
     }).join('');
     var floor = yOf(0).toFixed(1);
     var now = points[points.length - 1];
     var area = line + ' L' + now.x.toFixed(1) + ',' + floor + ' L' + points[0].x.toFixed(1) + ',' + floor + ' Z';
-    // 높이별 색. offset 0 = 100점(위), 1 = 0점(아래). userSpaceOnUse라 거의 수평인 선에도 색이 먹는다.
-    var stops = [[0, '#E53935'], [0.25, '#FB8C00'], [0.4, '#F4B400'], [0.5, '#8EC1EC'], [0.62, '#42A5F5'], [1, '#1565C0']]
-      .map(function (stop) { return '<stop offset="' + stop[0] + '" stop-color="' + stop[1] + '"></stop>'; }).join('');
-    var gradient = '<linearGradient id="' + uid + 'Heat" gradientUnits="userSpaceOnUse" x1="0" y1="' + yOf(100).toFixed(1)
-      + '" x2="0" y2="' + yOf(0).toFixed(1) + '">' + stops + '</linearGradient>';
-    var zones = [['greed', 100, 75], ['neutral', 75, 50], ['fear', 50, 0]].map(function (zone) {
-      return '<rect class="mt-rib-zone mt-rib-zone-' + zone[0] + '" x="0" y="' + yOf(zone[1]).toFixed(1) + '" width="' + W
-        + '" height="' + (yOf(zone[2]) - yOf(zone[1])).toFixed(1) + '"></rect>';
-    }).join('');
-    var borders = [75, 50].map(function (value) {
-      return '<line class="mt-rib-border" x1="0" y1="' + yOf(value).toFixed(1) + '" x2="' + W + '" y2="' + yOf(value).toFixed(1) + '"></line>';
+    var guides = [75, 50, 25].map(function (value) {
+      return '<line class="mt-rib-border" x1="' + PX + '" y1="' + yOf(value).toFixed(1) + '" x2="' + (W - PX)
+        + '" y2="' + yOf(value).toFixed(1) + '"></line>';
     }).join('');
     // 2026-09-16 사용자 요청("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지"): 점은 작은 사각형.
     function square(className, point, size) {
@@ -1270,40 +1251,35 @@
       return square('mt-rib-dot mt-rib-tone-' + scoreTone_(point.score), point, 5);
     }).join('');
     var nowTone = scoreTone_(now.score);
-    var nowMood = marketMood_(now.score);
     var svg = '<svg class="mt-rib-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="최근 ' + shown.length + '거래일 종합점수 흐름">'
-      + '<defs>' + gradient + '</defs>'
-      + zones + borders
+      + guides
       + '<line class="mt-rib-avg" x1="' + PX + '" y1="' + yOf(baseline).toFixed(1) + '" x2="' + (W - PX) + '" y2="' + yOf(baseline).toFixed(1) + '"></line>'
-      + '<path class="mt-rib-area" d="' + area + '" fill="url(#' + uid + 'Heat)"></path>'
-      + '<path class="mt-rib-line mt-spark-draw" d="' + line + '" stroke="url(#' + uid + 'Heat)"></path>'
+      + '<path class="mt-rib-area" d="' + area + '"></path>'
+      + '<path class="mt-rib-line mt-spark-draw" d="' + line + '"></path>'
       + dots
-      + square('mt-rib-pulse mt-rib-tone-' + nowTone, now, 9)
       + square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)
       + '</svg>';
-    // 글자는 SVG 밖 HTML로 얹는다 - viewBox가 폭에 맞춰 줄면 SVG 글자도 같이 작아져 폰에서 안 읽힌다.
+    // 구간 이름과 평균선은 SVG 밖에 둬 모바일에서도 읽을 수 있게 한다.
     var overlay = [['greed', '과열', 87.5], ['neutral', '보통', 62.5], ['fear', '공포', 25]].map(function (zone) {
       return '<span class="mt-rib-zone-label mt-rib-tone-' + zone[0] + '" style="top:' + pctY(yOf(zone[2])) + '%">' + zone[1] + '</span>';
     }).join('')
-      + '<span class="mt-rib-avg-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균 ' + baseline.toFixed(0) + '</span>'
-      + '<span class="mt-rib-now-label mt-rib-tone-' + nowTone + (now.y < H * 0.3 ? ' is-below' : '') + '" style="left:' + pctX(now.x)
-      + '%;top:' + pctY(now.y) + '%">' + nowMood.icon + ' ' + now.score.toFixed(0) + '점</span>'
+      + '<span class="mt-rib-avg-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균</span>'
       + '<i class="mt-rib-cursor" hidden></i><div class="mt-rib-tip" hidden></div>';
     var pointData = points.map(function (point) {
       return pctX(point.x) + ',' + pctY(point.y) + ',' + point.score.toFixed(0) + ',' + point.date;
     }).join(';');
 
-    // 날짜별 요약 줄: 기간이 길어도 10칸까지만 고르게 뽑는다(폰 폭에서 한 줄 유지).
+    // 날짜별 상태는 가는 색 막대로 남긴다. 정확한 점수는 차트 툴팁과 접근성 이름에서 확인한다.
     var stripCount = Math.min(shown.length, 10);
     var strip = '';
     for (var s = 0; s < stripCount; s++) {
       var index = Math.round(s * (shown.length - 1) / (stripCount - 1));
       var day = shown[index];
       var mood = marketMood_(day.score);
+      var dayDescription = escapeHtml(day.date + ' ' + day.score.toFixed(0) + '점 · ' + mood.word);
       strip += '<li class="mt-weather-day mt-rib-tone-' + scoreTone_(day.score) + (index === shown.length - 1 ? ' is-today' : '')
-        + '" style="--mt-i:' + s + '" title="' + escapeHtml(day.date + ' ' + day.score.toFixed(0) + '점 · ' + mood.word) + '">'
-        + '<span class="mt-weather-icon" aria-hidden="true">' + mood.icon + '</span>'
-        + '<b>' + day.score.toFixed(0) + '</b><small>' + escapeHtml(shortDate_(day.date)) + '</small></li>';
+        + '" style="--mt-i:' + s + '" title="' + dayDescription + '" aria-label="' + dayDescription + '">'
+        + '<span class="mt-weather-mark" aria-hidden="true"></span><small>' + escapeHtml(shortDate_(day.date)) + '</small></li>';
     }
 
     var low = shown.reduce(function (a, b) { return b.score < a.score ? b : a; });
@@ -1314,10 +1290,9 @@
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
       + '<span><small>가장 낮았던 날</small><b>' + marketMood_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
       + '<span><small>가장 높았던 날</small><b>' + marketMood_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
-      + '<span><small>기간 변화</small><b class="' + periodTone + '">' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></span>'
       + '</div>';
-    return '<div class="mt-history-chart-meta"><span>위로 갈수록 들뜬 시장 · 아래로 갈수록 겁먹은 시장</span>'
-      + '<b class="mt-rib-tone-' + nowTone + '">지금 ' + nowMood.icon + ' ' + escapeHtml(nowMood.word) + '</b></div>'
+    return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일</span>'
+      + '<b class="' + periodTone + '">기간 변화 ' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></div>'
       + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
       + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
       + metrics;
@@ -1364,7 +1339,7 @@
         + ' aria-label="최근 ' + period + '일 흐름" aria-selected="' + (selected === period ? 'true' : 'false') + '">' + period + '일</button>';
     }).join('');
     return '<div class="' + frameClass + '" data-mt-history-panel>'
-      + '<div class="mt-history-tail-head"><div class="mt-card-title">📈 최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
       + '<div data-mt-history-content>' + buildSparklineContent(data, selected) + '</div>'
       + '</div>';
   }
