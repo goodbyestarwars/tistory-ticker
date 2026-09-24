@@ -937,8 +937,8 @@
   // 공포·보통·과열 구간색으로 켜고 나머지는 꺼진 회색으로 둔다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 160, cy = 142, radius = 100, tickCount = 41;
-    var startAngle = 160, sweep = 220, ticks = '';
+    var cx = 160, cy = 116, radius = 86, tickCount = 41;
+    var startAngle = 180, sweep = 180, ticks = '';
     for (var i = 0; i < tickCount; i++) {
       var tickValue = (i / (tickCount - 1)) * 100;
       var angle = startAngle - (sweep * i / (tickCount - 1));
@@ -955,7 +955,6 @@
     return ''
       + '<div class="mt-score-gauge mt-score-gauge-audi" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 320 174" aria-hidden="true">'
-      + '<circle class="mt-gauge-face" cx="' + cx + '" cy="' + cy + '" r="' + (radius + 9) + '"></circle>'
       + ticks
       + '<line class="mt-gauge-needle" x1="' + cx + '" y1="' + cy + '" x2="' + needle.x.toFixed(2) + '" y2="' + needle.y.toFixed(2) + '"></line>'
       + '<circle class="mt-gauge-hub" cx="' + cx + '" cy="' + cy + '" r="7"></circle>'

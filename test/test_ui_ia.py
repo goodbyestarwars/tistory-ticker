@@ -1573,6 +1573,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<line class=\"mt-gauge-seg", source)
         self.assertIn("mt-score-gauge-audi", source)
         self.assertIn(".mt-gauge-needle", style)
+        self.assertIn("height: 160px", style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
     def test_footer_links_the_beginner_study_pages(self):

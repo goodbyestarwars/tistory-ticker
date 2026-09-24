@@ -1163,8 +1163,8 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
    ("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지" - `.mt-rib-tip`
    등 이 파일의 다른 규칙들과 같은 원칙) 때문이다. 경계 50·75는 서버 GRADE3와 같다. */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
-#market-temp .mt-score-gauge-audi { position: relative; margin: 8px 0 2px; padding: 8px 10px 0; border: 1px solid #d9dde2; background: linear-gradient(180deg, #ffffff 0%, #f2f4f6 100%); box-shadow: inset 0 1px 0 #fff, 0 5px 15px rgba(45, 55, 65, .08); }
-#market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 360px; height: auto; overflow: visible; }
+#market-temp .mt-score-gauge-audi { position: relative; width: 100%; box-sizing: border-box; margin: 8px 0 2px; padding: 8px 10px 0; border: 1px solid #d9dde2; background: linear-gradient(180deg, #ffffff 0%, #f2f4f6 100%); box-shadow: inset 0 1px 0 #fff, 0 5px 15px rgba(45, 55, 65, .08); }
+#market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 360px; height: 160px; margin: 0 auto; overflow: hidden; }
 /* stroke 색은 JS가 조각마다 인라인으로 넣는다(켜짐=구간색, 꺼짐=회색) - 여기서
    stroke를 선언하면 스타일시트가 인라인보다 항상 이겨서 색이 다 덮인다. */
 #market-temp .mt-gauge-face { fill: #f8f9fa; stroke: #cbd0d6; stroke-width: 1; }
