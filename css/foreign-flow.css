@@ -2535,6 +2535,10 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   border-radius: 11px;
   background: #f8fafc;
 }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div:nth-child(2) {
+  border-color: #f0ddca;
+  background: #fff8f2;
+}
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary span {
   display: block;
   margin-bottom: 3px;
@@ -2629,14 +2633,14 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   align-items: baseline;
   justify-content: space-between;
   gap: 8px;
-  margin: 5px 7px 1px;
-  padding-top: 5px;
+  margin: 9px 7px 3px;
+  padding-top: 8px;
   border-top: 1px solid #e7ecf1;
   color: #82909e;
   font-size: 9px;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading strong {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 800;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading span {
@@ -2650,8 +2654,8 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   grid-template-columns: 112px minmax(100px, 1fr) 64px 94px;
   align-items: center;
   gap: 9px;
-  min-height: 25px;
-  padding: 2px 7px;
+  min-height: 30px;
+  padding: 3px 7px;
   border-radius: 0;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current { background: #eefbf8; }
@@ -2660,7 +2664,7 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price,
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume {
   color: #627080;
-  font-size: 10px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
 }
@@ -2671,23 +2675,23 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
    거래가 없는 가격대(is-empty)도 막대 폭이 0이라 같은 빗금만 보인다 - 따로 규칙을 두지 않는다. */
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track {
   display: block;
-  height: 10px;
+  height: 12px;
   overflow: hidden;
   border-radius: 0;
-  background: repeating-linear-gradient(135deg, #d6dde5 0 1px, #f4f6f9 1px 5px);
+  background: repeating-linear-gradient(135deg, #e4eaf0 0 1px, #f7f9fb 1px 5px);
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track i {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #b9c8d8;
+  background: #9db6ce;
   transition: width .35s ease;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current .ff-apt-simple-track { box-shadow: 0 0 0 1px #3aa68c; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current .ff-apt-simple-track i { background: #69bfa9; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-poc .ff-apt-simple-track i { background: #f19a59; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current .ff-apt-simple-track i { background: #48aa94; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-poc .ff-apt-simple-track i { background: #e88a43; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row.is-current.is-poc .ff-apt-simple-track i {
-  background: linear-gradient(90deg, #69bfa9 0 48%, #f19a59 48% 100%);
+  background: linear-gradient(90deg, #48aa94 0 48%, #e88a43 48% 100%);
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers {
   display: flex;
@@ -2729,15 +2733,12 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend .average::before { background: #4d86c5; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend .poc::before { background: #f08c46; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
   margin-top: 10px;
   padding: 10px 12px;
   border-radius: 10px;
   background: #f7f9fb;
   color: #6d7986;
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.5;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong { flex: 0 0 auto; padding: 4px 7px; border-radius: 999px; color: #33475b; font-size: 11px; }
@@ -2777,21 +2778,36 @@ html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.neutral,
 html.dark :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.neutral { color: #c2cad1 !important; background: #333a40; }
 
 @media (max-width: 640px) {
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary { gap: 5px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div:nth-child(2) { grid-column: 1 / -1; grid-row: 2; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div:nth-child(3) { grid-column: 2; grid-row: 1; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary > div { padding: 9px 8px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong { font-size: 12px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary strong { font-size: 13px; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple { padding: 13px 9px 11px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row { grid-template-columns: 78px minmax(64px, 1fr) 48px 62px; gap: 5px; padding-inline: 3px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head { flex-direction: column; gap: 6px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-head-right { align-items: flex-start; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas: "price volume" "track track" "markers markers";
+    gap: 3px 7px;
+    min-height: 0;
+    padding: 6px 3px;
+    border-bottom: 1px solid #f0f2f5;
+  }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price { grid-area: price; text-align: left; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume { grid-area: volume; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-track { grid-area: track; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers { grid-area: markers; min-height: 0; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers:empty { display: none; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits { justify-content: flex-start; margin-top: -2px; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-price,
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume { font-size: 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-volume { font-size: 11px; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers { gap: 2px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers span { padding: 2px 3px; font-size: 8px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-markers span { padding: 2px 4px; font-size: 9px; }
   :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading { margin-inline: 3px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading strong { font-size: 9px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading span { font-size: 8px; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note { display: block; }
-  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong { display: block; margin-bottom: 2px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading strong { font-size: 10px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading span { font-size: 9px; }
+  :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-legend { justify-content: flex-start; flex-wrap: wrap; }
 }
 
 html.dark #foreign-flow .ff-opinion-summary-card {

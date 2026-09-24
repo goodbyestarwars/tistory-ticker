@@ -4530,7 +4530,7 @@
       + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
       + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
-      + '<div class="ff-apt-simple-note" role="note"><strong class="' + relationTone + '">' + relation + '</strong><span>' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</span></div>';
+      + '<div class="ff-apt-simple-note" role="note">' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</div>';
   }
 
   // 2026-09-15 사용자 결정: MY 매물대와 같은 최근 120거래일 일봉 추정치 하나로 통일했다
