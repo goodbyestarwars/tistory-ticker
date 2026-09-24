@@ -1571,6 +1571,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
             self.assertIn(token, style)
         self.assertIn("<rect class=\"mt-gauge-seg", source)
+        self.assertIn("mt-score-gauge-future", source)
+        self.assertIn(".mt-gauge-scale", style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
     def test_footer_links_the_beginner_study_pages(self):

@@ -924,7 +924,7 @@
   }
 
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
-  function zoneColor_(v) { return v < 50 ? '#1565C0' : v < 75 ? '#C98F00' : '#E53935'; }
+  function zoneColor_(v) { return v < 50 ? '#55d6ff' : v < 75 ? '#c9f36b' : '#ff6b9d'; }
 
   // 오늘 점수를 디지털 온도계처럼 직사각형 막대와 중앙 숫자로 보여준다.
   // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
@@ -948,12 +948,13 @@
         + '" width="' + barW + '" height="' + barH + '"></rect>';
     }
     return ''
-      + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
+      + '<div class="mt-score-gauge mt-score-gauge-future" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 320 104" aria-hidden="true">'
       + segs
       + '<text class="mt-gauge-digital-num" x="160" y="31">' + pct.toFixed(0) + '</text>'
       + '<text class="mt-gauge-digital-unit" x="160" y="47">/ 100</text>'
       + '</svg>'
+      + '<div class="mt-gauge-scale"><span>0</span><span>50</span><span>75</span><span>100</span></div>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
       + '<span class="mt-score-zone-label' + (tone === 'neutral' ? ' is-active' : '') + '">보통</span>'
