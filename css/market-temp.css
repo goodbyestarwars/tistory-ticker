@@ -1299,7 +1299,7 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-tip small { color: #8b929d; font-size: 11px; }
 #market-temp .mt-rib-cursor[hidden],
 #market-temp .mt-rib-tip[hidden] { display: none; }
-#market-temp .mt-weather-strip { display: grid; grid-auto-columns: minmax(42px, 1fr); grid-auto-flow: column; gap: 4px; margin: 9px 0 0; padding: 0; overflow-x: auto; scrollbar-width: thin; list-style: none; }
+#market-temp .mt-weather-strip { display: grid; grid-auto-columns: minmax(0, 1fr); grid-auto-flow: column; gap: 4px; margin: 9px 0 0; padding: 0; list-style: none; }
 #market-temp .mt-weather-day { display: flex; flex-direction: column; align-items: center; gap: 5px; min-width: 0; padding: 7px 0 6px; border: 1px solid transparent; border-radius: 0; background: transparent; }
 #market-temp .mt-weather-day.is-today { border-color: #dce8f1; background: #f5f9fc; }
 #market-temp .mt-weather-mark { width: 20px; height: 3px; background: var(--mt-tone); }
@@ -1310,8 +1310,8 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 @keyframes mtWeatherPop { from { transform: translateY(8px) scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
 #market-temp .mt-history-metrics em { color: #9aa1ab; font-size: 11px; font-style: normal; font-weight: 600; }
 @media (max-width: 640px) {
-  #market-temp .mt-weather-strip { gap: 3px; }
-  #market-temp .mt-weather-day small { font-size: 10px; }
+  #market-temp .mt-weather-strip { gap: 1px; }
+  #market-temp .mt-weather-day small { font-size: 9px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #market-temp .mt-rib-pulse,
