@@ -917,21 +917,40 @@
       + '</div>';
   }
 
-  // 0~100 눈금 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 보이게 한다.
+  // 반원형 다이얼 좌표 계산 - 0점은 정왼쪽(180˚), 100점은 정오른쪽(0˚), 위쪽 반원을 훑는다.
+  function polarPoint_(cx, cy, r, angleDeg) {
+    var rad = (angleDeg * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
+  }
+  function angleForScore_(v) { return 180 - (Math.max(0, Math.min(100, v)) / 100) * 180; }
+  function scoreArcPath_(cx, cy, r, fromValue, toValue) {
+    var start = polarPoint_(cx, cy, r, angleForScore_(fromValue));
+    var end = polarPoint_(cx, cy, r, angleForScore_(toValue));
+    return 'M ' + start.x.toFixed(2) + ' ' + start.y.toFixed(2)
+      + ' A ' + r + ' ' + r + ' 0 0 0 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
+  }
+
+  // 0~100 반원 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
   // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
+  // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
+  // 대신 증권사 리서치 리포트에 흔한 반원 다이얼 + 바늘로 바꿨다.
   function buildScoreGauge(value, tone) {
-    var pct = Math.max(0, Math.min(100, value)).toFixed(1);
+    var pct = Math.max(0, Math.min(100, value));
+    var cx = 100, cy = 98, trackR = 84, needleR = 70;
+    var needleTip = polarPoint_(cx, cy, needleR, angleForScore_(pct));
     function zoneLabel(key, text, left) {
       return '<span class="mt-score-zone-label' + (tone === key ? ' is-active' : '') + '" style="left:' + left + '%">' + text + '</span>';
     }
     return ''
-      + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + Number(pct).toFixed(0) + '점">'
-      + '<div class="mt-score-gauge-track">'
-      + '<span class="mt-score-zone mt-score-zone-fear"></span>'
-      + '<span class="mt-score-zone mt-score-zone-neutral"></span>'
-      + '<span class="mt-score-zone mt-score-zone-greed"></span>'
-      + '<i class="mt-score-gauge-marker mt-anim-left" style="left:' + pct + '%;--mt-target-left:' + pct + '%"></i>'
-      + '</div>'
+      + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
+      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 108" aria-hidden="true">'
+      + '<path class="mt-score-zone mt-score-zone-fear" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
+      + '<path class="mt-score-zone mt-score-zone-neutral" d="' + scoreArcPath_(cx, cy, trackR, 50, 75) + '"></path>'
+      + '<path class="mt-score-zone mt-score-zone-greed" d="' + scoreArcPath_(cx, cy, trackR, 75, 100) + '"></path>'
+      + '<circle class="mt-score-gauge-pivot-halo" cx="' + cx + '" cy="' + cy + '" r="15"></circle>'
+      + '<line class="mt-score-gauge-marker" x1="' + cx + '" y1="' + cy + '" x2="' + needleTip.x.toFixed(2) + '" y2="' + needleTip.y.toFixed(2) + '"></line>'
+      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="5.5"></circle>'
+      + '</svg>'
       + '<div class="mt-score-gauge-scale">'
       + '<span style="left:0%">0</span>' + zoneLabel('fear', '공포', 25)
       + '<span style="left:50%">50</span>' + zoneLabel('neutral', '보통', 62.5)

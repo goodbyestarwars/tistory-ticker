@@ -1155,24 +1155,23 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 #market-temp .mt-summary-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 13px; text-align: right; }
 #market-temp .mt-summary-mood { margin-top: 6px; color: #444; font-size: 14px; font-weight: 700; }
 
-/* 0~100 구간 게이지(2026-09-16). 경계 50·75는 서버 GRADE3와 같다. */
-#market-temp .mt-score-gauge { margin: 14px 0 4px; }
-#market-temp .mt-score-gauge-track { position: relative; display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 2px; height: 12px; }
-#market-temp .mt-score-zone { display: block; border-radius: 0; }
-#market-temp .mt-score-zone-fear { background: linear-gradient(90deg, #1565C0, #8EC1EC); }
-#market-temp .mt-score-zone-neutral { background: linear-gradient(90deg, #F7D774, #F4B400); }
-#market-temp .mt-score-zone-greed { background: linear-gradient(90deg, #FB8C00, #E53935); }
-/* 오늘 위치: 굵은 동그라미 대신 가는 세로 막대(2026-09-16 "bold 없애, 그냥 사각형"). */
-#market-temp .mt-score-gauge-marker {
-  position: absolute;
-  top: 50%;
-  width: 3px;
-  height: 22px;
-  margin: -11px 0 0 -1.5px;
-  border-radius: 0;
-  background: #222;
-}
-#market-temp .mt-score-gauge-scale { position: relative; height: 16px; margin-top: 6px; color: #9aa1ab; font-size: 10px; }
+/* 0~100 반원 다이얼(2026-09-24 개편 - 사용자 요청 "과열도 게이지를 더 화려하게/
+   전문적으로". 가로 막대를 증권사 리서치에 흔한 반원 다이얼+바늘로 바꿨다.
+   경계 50·75는 서버 GRADE3와 같다. */
+#market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
+#market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 300px; height: auto; overflow: visible; }
+#market-temp .mt-score-zone { fill: none; stroke-width: 15; stroke-linecap: butt; }
+#market-temp .mt-score-zone-fear { stroke: #1565C0; }
+#market-temp .mt-score-zone-neutral { stroke: #F4B400; }
+#market-temp .mt-score-zone-greed { stroke: #E53935; }
+#market-temp .mt-score-gauge-pivot-halo { fill: rgba(34, 34, 34, .07); }
+/* 바늘: 굵은 동그라미 대신 가는 직선(2026-09-16 "bold 없애, 그냥 사각형" 방향 유지). */
+#market-temp .mt-score-gauge-marker { stroke: #222; stroke-width: 3; stroke-linecap: round; }
+#market-temp .mt-score-gauge-pivot { fill: #222; }
+/* .mt-score-gauge가 flex(align-items:center)라 너비 지정이 없으면 이 줄이 글자
+   내용만큼만 쪼그라들어 0%/50%/100% 위치 계산이 다 같은 자리로 뭉친다(실측) -
+   다이얼과 같은 폭을 명시해야 좌우로 퍼진다. */
+#market-temp .mt-score-gauge-scale { position: relative; width: 100%; max-width: 300px; height: 16px; margin-top: -6px; color: #9aa1ab; font-size: 10px; }
 #market-temp .mt-score-gauge-scale span { position: absolute; transform: translateX(-50%); white-space: nowrap; font-variant-numeric: tabular-nums; }
 #market-temp .mt-score-gauge-scale span:first-child { transform: none; }
 #market-temp .mt-score-gauge-scale span:last-child { transform: translateX(-100%); }
@@ -1258,7 +1257,9 @@ html.dark #market-temp .mt-score-gauge-scale,
 html.dark #market-temp .mt-axis-name small { color: rgba(245, 239, 224, .5) !important; }
 html.dark #market-temp .mt-summary-mood { color: rgba(245, 239, 224, .82) !important; }
 html.dark #market-temp .mt-score-zone-label.is-active { color: #F5EFE0 !important; }
-html.dark #market-temp .mt-score-gauge-marker { background: #F5EFE0 !important; }
+html.dark #market-temp .mt-score-gauge-marker { stroke: #F5EFE0 !important; }
+html.dark #market-temp .mt-score-gauge-pivot { fill: #F5EFE0 !important; }
+html.dark #market-temp .mt-score-gauge-pivot-halo { fill: rgba(245, 239, 224, .1) !important; }
 html.dark #market-temp .mt-summary-sowhat { background: rgba(245, 239, 224, .07) !important; color: #F5EFE0 !important; }
 html.dark #market-temp .mt-summary-sowhat a { color: #8ab4f8 !important; }
 html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18) !important; }
