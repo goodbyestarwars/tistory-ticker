@@ -917,107 +917,63 @@
       + '</div>';
   }
 
-  // 원형 다이얼 좌표 계산 - 0점은 좌하단(210˚), 100점은 우하단(-30˚), 240˚를 시계방향으로 훑는다.
-  // 자동차 계기판(속도계) 관례 그대로 - 바닥 쪽에 120˚ 틈을 남긴다.
+  // 반원 다이얼 좌표 계산 - 0점은 정왼쪽(180˚), 100점은 정오른쪽(0˚), 위쪽 반원을 훑는다.
   function polarPoint_(cx, cy, r, angleDeg) {
     var rad = (angleDeg * Math.PI) / 180;
     return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
   }
-  var GAUGE_START_ANGLE_ = 210, GAUGE_SWEEP_ = 240;
-  function angleForScore_(v) { return GAUGE_START_ANGLE_ - (Math.max(0, Math.min(100, v)) / 100) * GAUGE_SWEEP_; }
+  function angleForScore_(v) { return 180 - (Math.max(0, Math.min(100, v)) / 100) * 180; }
+  function scoreArcPath_(cx, cy, r, fromValue, toValue) {
+    var start = polarPoint_(cx, cy, r, angleForScore_(fromValue));
+    var end = polarPoint_(cx, cy, r, angleForScore_(toValue));
+    return 'M ' + start.x.toFixed(2) + ' ' + start.y.toFixed(2)
+      + ' A ' + r + ' ' + r + ' 0 0 1 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
+  }
 
   var scoreGaugeSeq_ = 0;
 
   // 0~100 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
   // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
-  // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
-  // 대신 반원 다이얼 + 바늘로 바꿨다가, 비대칭 3조각(2차)·매끄러운 그라디언트 반원(3차)을
-  // 거쳐 "저것보단 자동차 게이지로 하자"(4차)로 베젤+눈금+쐐기형 바늘 240˚ 스윕으로,
-  // "색 필요없고 아우디 게이지로 바꿔"(5차)로 무채색 판+빨간 굵은 바늘로, 실제 계기판
-  // 사진 기준 "너무 만화 같아"(6차)로 가는 바늘·촘촘한 눈금·방사형 그라디언트로
-  // 다듬었다. 7차("그냥 난 실사 같은 화면이 필요해, 이런 만화같고 아마추어 같은거
-  // 말고") - AskUserQuestion으로 방향을 좁혀 "코드로 유리·금속 질감 최대한 강화"를
-  // 선택받았다: 판에 광택(유리 하이라이트 타원)을 얹고, 베젤을 단색 대신 빛이 도는
-  // 밴드형 크롬 그라디언트로, 중심 허브도 크롬 그라디언트로 바꾸고, 바늘에
-  // feDropShadow로 판 위에 그림자가 지게 해서 입체감을 냈다. 이미지 파일을 새로
-  // 받아오는 방식(원본 계기판 사진 합성)은 저작권·에셋 파이프라인 문제가 있어
-  // 제외했다(사용자 선택).
-  // 0~100을 한 번에 그리면(2차 때처럼) 시작·끝이 정확히 지름 반대편일 때만 large-arc-flag가
-  // 깨지는데, 240˚ 스윕에서 50점 기준으로 나눈 두 구간(120˚씩)은 그 경계에 걸리지 않아
-  // 안전하다.
+  // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
+  // 그라디언트 매끈한 반원(3차) → 자동차 속도계 240˚(4차) → 무채색+빨간 바늘(5차) →
+  // 실물 사진 기준 "너무 만화 같아"로 가는 바늘 다듬기(6차) → "실사 같은 화면"
+  // 요청에 유리·금속 질감 강화(7차)까지 갔지만 "별로다, 니가 검색해서 정말 기발한거
+  // 몇개 샘플 좀 줘"(8차)로 사용자가 직접 레퍼런스를 요구했다. CNN/alternative.me/
+  // CFGI 같은 실제 금융 서비스의 공포탐욕지수 위젯을 찾아보니 셋 다 베젤·크롬·그림자
+  // 같은 "물성" 표현이 전혀 없고, 오히려 다 걷어내고 얇은 그라디언트 반원 호 + 가는
+  // 바늘 + 값 배지 + 타이포그래피만으로 전문적으로 보이게 만드는 방식이었다(사용자가
+  // 이어 보낸 이미지 2장은 게이지가 아니라 무관한 기후위기 AI 일러스트였음 - 확인 후
+  // 배제). 그래서 이번엔 아우디식 계기판 은유를 버리고 alternative.me/CFGI 패턴을
+  // 그대로 따라 반원(180˚)+블루→호박색→빨강 그라디언트 트랙+가는 바늘+값 배지로
+  // 다시 그렸다. 0~100을 한 번에 그리면 large-arc-flag가 정확히 지름 반대편(180˚
+  // 차이)에서 깨지는 경계 케이스가 있어(3차 때 발견) 50점 기준 두 개의 90˚ 호로
+  // 나눈다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 100, cy = 96, bezelR = 88, faceR = 80, trackR = 78, needleR = 62, tailR = 14;
+    var cx = 100, cy = 98, trackR = 80, needleR = 64;
     var needleAngle = angleForScore_(pct);
     var needleTip = polarPoint_(cx, cy, needleR, needleAngle);
-    var needleTail = polarPoint_(cx, cy, tailR, needleAngle + 180);
-    var needleBaseL = polarPoint_(cx, cy, 2.2, needleAngle + 90);
-    var needleBaseR = polarPoint_(cx, cy, 2.2, needleAngle - 90);
+    var badgePt = polarPoint_(cx, cy, trackR, needleAngle);
     var uid = 'mtGauge' + (scoreGaugeSeq_++);
-    var faceId = uid + 'Face', rimId = uid + 'Rim', hubId = uid + 'Hub';
-    var glassId = uid + 'Glass', shadowId = uid + 'Shadow', clipId = uid + 'Clip';
-    var ticks = '';
-    for (var v = 0; v <= 100; v += 5) {
-      var major = v % 20 === 0;
-      var a = angleForScore_(v);
-      var from = polarPoint_(cx, cy, trackR - 1, a);
-      var to = polarPoint_(cx, cy, major ? trackR - 11 : trackR - 5, a);
-      ticks += '<line class="mt-gauge-tick' + (major ? ' is-major' : '') + '" x1="' + from.x.toFixed(2) + '" y1="' + from.y.toFixed(2)
-        + '" x2="' + to.x.toFixed(2) + '" y2="' + to.y.toFixed(2) + '"></line>';
-      if (major) {
-        var numPt = polarPoint_(cx, cy, trackR - 22, a);
-        ticks += '<text class="mt-gauge-number" x="' + numPt.x.toFixed(2) + '" y="' + numPt.y.toFixed(2) + '">' + v + '</text>';
-      }
-    }
+    var gradId = uid + 'Grad';
+    var start0 = polarPoint_(cx, cy, trackR, angleForScore_(0));
+    var end100 = polarPoint_(cx, cy, trackR, angleForScore_(100));
+    var badgeFill = tone === 'fear' ? '#1565C0' : tone === 'greed' ? '#E53935' : '#C98F00';
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
-      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 158" aria-hidden="true">'
-      + '<defs>'
-      + '<radialGradient id="' + faceId + '" cx="42%" cy="32%" r="85%">'
-      + '<stop offset="0%" stop-color="#3c3d42"></stop>'
-      + '<stop offset="45%" stop-color="#1a1b1e"></stop>'
-      + '<stop offset="100%" stop-color="#040405"></stop>'
-      + '</radialGradient>'
-      // 베젤: 단색 대신 밝기 띠를 번갈아 둬서 둥근 금속에 빛이 도는 것처럼 보이게 한다.
-      + '<linearGradient id="' + rimId + '" x1="15%" y1="0%" x2="85%" y2="100%">'
-      + '<stop offset="0%" stop-color="#7d7e84"></stop>'
-      + '<stop offset="18%" stop-color="#c7c8cc"></stop>'
-      + '<stop offset="32%" stop-color="#3d3e42"></stop>'
-      + '<stop offset="55%" stop-color="#6e6f75"></stop>'
-      + '<stop offset="70%" stop-color="#2a2b2e"></stop>'
-      + '<stop offset="88%" stop-color="#8f9096"></stop>'
-      + '<stop offset="100%" stop-color="#4a4b50"></stop>'
-      + '</linearGradient>'
-      + '<radialGradient id="' + hubId + '" cx="32%" cy="28%" r="75%">'
-      + '<stop offset="0%" stop-color="#fdfdfd"></stop>'
-      + '<stop offset="45%" stop-color="#c6c7cb"></stop>'
-      + '<stop offset="100%" stop-color="#3a3b3f"></stop>'
-      + '</radialGradient>'
-      + '<linearGradient id="' + glassId + '" x1="0%" y1="0%" x2="0%" y2="100%">'
-      + '<stop offset="0%" stop-color="#fff" stop-opacity=".16"></stop>'
-      + '<stop offset="100%" stop-color="#fff" stop-opacity="0"></stop>'
-      + '</linearGradient>'
-      + '<clipPath id="' + clipId + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + faceR + '"></circle></clipPath>'
-      + '<filter id="' + shadowId + '" x="-50%" y="-50%" width="200%" height="200%">'
-      + '<feDropShadow dx="0" dy="1.4" stdDeviation="1.3" flood-color="#000" flood-opacity=".55"></feDropShadow>'
-      + '</filter>'
-      + '</defs>'
-      + '<circle class="mt-gauge-bezel" cx="' + cx + '" cy="' + cy + '" r="' + bezelR + '" stroke="url(#' + rimId + ')"></circle>'
-      + '<circle class="mt-gauge-face" cx="' + cx + '" cy="' + cy + '" r="' + faceR + '" fill="url(#' + faceId + ')"></circle>'
-      // 유리 하이라이트: 판 위쪽에 흰색이 옅게 번지는 타원을 얹어 유리를 씌운 계기판처럼 보이게 한다.
-      + '<ellipse class="mt-gauge-glass" cx="' + cx + '" cy="' + (cy - faceR * 0.55) + '" rx="' + (faceR * 0.92) + '" ry="' + (faceR * 0.62)
-      + '" fill="url(#' + glassId + ')" clip-path="url(#' + clipId + ')"></ellipse>'
-      + ticks
-      + '<g filter="url(#' + shadowId + ')">'
-      + '<polygon class="mt-score-gauge-marker" points="'
-      + needleTail.x.toFixed(2) + ',' + needleTail.y.toFixed(2) + ' '
-      + needleBaseL.x.toFixed(2) + ',' + needleBaseL.y.toFixed(2) + ' '
-      + needleTip.x.toFixed(2) + ',' + needleTip.y.toFixed(2) + ' '
-      + needleBaseR.x.toFixed(2) + ',' + needleBaseR.y.toFixed(2)
-      + '"></polygon>'
-      + '<circle class="mt-score-gauge-pivot-outer" cx="' + cx + '" cy="' + cy + '" r="8" fill="url(#' + hubId + ')"></circle>'
-      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="3.4"></circle>'
-      + '</g>'
+      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 120" aria-hidden="true">'
+      + '<defs><linearGradient id="' + gradId + '" gradientUnits="userSpaceOnUse" '
+      + 'x1="' + start0.x.toFixed(2) + '" y1="' + start0.y.toFixed(2) + '" x2="' + end100.x.toFixed(2) + '" y2="' + end100.y.toFixed(2) + '">'
+      + '<stop offset="0%" stop-color="#1565C0"></stop>'
+      + '<stop offset="50%" stop-color="#F4B400"></stop>'
+      + '<stop offset="100%" stop-color="#E53935"></stop>'
+      + '</linearGradient></defs>'
+      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
+      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
+      + '<line class="mt-score-gauge-marker" x1="' + cx + '" y1="' + cy + '" x2="' + needleTip.x.toFixed(2) + '" y2="' + needleTip.y.toFixed(2) + '"></line>'
+      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="4"></circle>'
+      + '<circle class="mt-gauge-badge" cx="' + badgePt.x.toFixed(2) + '" cy="' + badgePt.y.toFixed(2) + '" r="14" fill="' + badgeFill + '"></circle>'
+      + '<text class="mt-gauge-badge-text" x="' + badgePt.x.toFixed(2) + '" y="' + badgePt.y.toFixed(2) + '">' + pct.toFixed(0) + '</text>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
