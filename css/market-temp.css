@@ -1332,3 +1332,208 @@ html.dark #market-temp .mt-weather-day { background: rgba(245, 239, 224, .06) !i
 html.dark #market-temp .mt-weather-day b { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-weather-day small,
 html.dark #market-temp .mt-history-metrics em { color: rgba(245, 239, 224, .5) !important; }
+
+/* 2026-09-24: 증시온도를 '한 장으로 읽는 시장 계기판'으로 재배치.
+   점수·상태·다이얼을 위에 묶고, 행동 힌트와 점수 근거를 순서대로 읽게 한다.
+   요청에 따라 이 위젯은 사이트 다크모드에서도 밝은 계기판을 유지한다. */
+#market-temp .mt-summary-card {
+  padding: 18px 18px 16px;
+  border: 1px solid #e2e6ea;
+  border-radius: 18px;
+  background: #fff;
+  color: #20262d;
+  box-shadow: 0 6px 22px rgba(34, 47, 62, .055);
+}
+#market-temp .mt-summary-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #edf0f3;
+  color: #7d8792;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .02em;
+}
+#market-temp .mt-summary-topline .mt-summary-kicker {
+  margin: 0;
+  color: #77828d;
+  font-size: 10px;
+  letter-spacing: .13em;
+}
+#market-temp .mt-summary-main {
+  display: grid;
+  grid-template-columns: minmax(108px, .72fr) minmax(0, 1.28fr);
+  align-items: center;
+  gap: 8px;
+  min-height: 142px;
+  padding: 9px 0 6px;
+}
+#market-temp .mt-summary-copy { min-width: 0; }
+#market-temp .mt-summary-score {
+  display: block;
+  color: #20262d;
+  font-size: clamp(42px, 5vw, 54px);
+  line-height: .98;
+  letter-spacing: -.055em;
+}
+#market-temp .mt-summary-score small {
+  margin-left: 5px;
+  color: #929ba5;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+#market-temp .mt-summary-status {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 8px;
+  margin-top: 9px;
+  font-size: 11px;
+}
+#market-temp .mt-summary-grade {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 9px;
+  border: 1px solid #e6e9ed;
+  border-radius: 999px;
+  background: #f7f8fa;
+  color: #37414b;
+  font-size: 11px;
+}
+#market-temp .mt-summary-change { color: #7e8791; font-variant-numeric: tabular-nums; }
+#market-temp .mt-summary-mood { margin-top: 8px; color: #4f5964; font-size: 12px; line-height: 1.45; }
+#market-temp .mt-summary-dial { min-width: 0; }
+#market-temp .mt-summary-dial .mt-score-gauge { margin: 0; }
+#market-temp .mt-summary-dial .mt-score-gauge-audi {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+#market-temp .mt-summary-dial .mt-score-gauge-dial {
+  width: 100%;
+  max-width: 340px;
+  height: auto;
+  aspect-ratio: 320 / 174;
+}
+#market-temp .mt-gauge-seg:not(.is-lit) { stroke: #d5dae0 !important; }
+#market-temp .mt-gauge-digital-num { fill: #20262d !important; }
+#market-temp .mt-gauge-digital-unit { fill: #7d8792 !important; }
+#market-temp .mt-score-gauge-legend { gap: 16px; margin-top: -1px; color: #89929c !important; font-size: 10px; }
+#market-temp .mt-score-zone-label.is-active { color: #26313b !important; }
+#market-temp .mt-summary-sowhat {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 6px 10px;
+  margin-top: 7px;
+  padding: 11px 12px;
+  border: 1px solid #e4ebf1;
+  border-radius: 10px;
+  background: #f5f8fb !important;
+  color: #34404c !important;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#market-temp .mt-summary-sowhat b { color: #586574; font-size: 10px; letter-spacing: .06em; }
+#market-temp .mt-summary-sowhat span { min-width: 0; }
+#market-temp .mt-summary-sowhat a { color: #326fae !important; white-space: nowrap; }
+#market-temp .mt-summary-section-title {
+  margin-top: 13px;
+  color: #65717d;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .04em;
+}
+#market-temp .mt-axis-list { margin-top: 4px; padding: 8px 0 2px; border-top-color: #edf0f3 !important; }
+#market-temp .mt-axis-row { padding: 6px 0; }
+#market-temp .mt-axis-name { color: #38434e; }
+#market-temp .mt-axis-name small { color: #929ba5 !important; }
+#market-temp .mt-axis-bar { height: 7px; border-radius: 99px; background: #edf0f2 !important; }
+#market-temp .mt-axis-bar i { border-radius: 99px; }
+#market-temp .mt-axis-good { background: #65a885 !important; }
+#market-temp .mt-axis-mid { background: #d4a548 !important; }
+#market-temp .mt-axis-bad { background: #9da6af !important; }
+#market-temp .mt-axis-value { color: #303a44; }
+#market-temp .mt-axis-word { color: #858f99 !important; }
+#market-temp .mt-summary-note { color: #929ba5 !important; font-size: 10px; }
+#market-temp .mt-hero-breadth,
+#market-temp .mt-hero-breadth-markets { color: #68737e !important; }
+#market-temp .mt-breadth-market em { color: #68737e !important; }
+#market-temp .mt-breadth-note { color: #929ba5 !important; }
+#market-temp .mt-history-tail.mt-card {
+  padding: 18px;
+  border-color: #e2e6ea;
+  border-radius: 18px;
+  background: #fff;
+  color: #20262d;
+  box-shadow: 0 6px 22px rgba(34, 47, 62, .055);
+}
+#market-temp .mt-history-tail-head .mt-card-title { color: #26313b; font-size: 15px; }
+#market-temp .mt-history-chart-meta { color: #818b96; }
+#market-temp .mt-history-metrics { border-color: #edf0f3; }
+#market-temp .mt-history-metrics small,
+#market-temp .mt-history-metrics em { color: #89939d !important; }
+@media (max-width: 430px) {
+  #market-temp .mt-summary-card { padding: 15px 13px 13px; border-radius: 15px; }
+  #market-temp .mt-summary-main { grid-template-columns: minmax(94px, .68fr) minmax(0, 1.32fr); gap: 3px; min-height: 120px; }
+  #market-temp .mt-summary-score { font-size: 40px; }
+  #market-temp .mt-summary-score small { font-size: 11px; }
+  #market-temp .mt-summary-mood { font-size: 11px; }
+  #market-temp .mt-summary-dial .mt-score-gauge-legend { gap: 10px; font-size: 9px; }
+  #market-temp .mt-summary-sowhat { grid-template-columns: auto minmax(0, 1fr); gap: 4px 8px; font-size: 11px; }
+  #market-temp .mt-summary-sowhat a { grid-column: 2; justify-self: start; }
+  #market-temp .mt-axis-row { grid-template-columns: 70px minmax(0, 1fr) 24px 56px; gap: 0 6px; }
+}
+html.dark #market-temp .mt-summary-card,
+html.dark #market-temp .mt-history-tail.mt-card {
+  border-color: #e2e6ea !important;
+  background: #fff !important;
+  color: #20262d !important;
+  box-shadow: 0 6px 22px rgba(34, 47, 62, .055) !important;
+}
+html.dark #market-temp .mt-summary-topline,
+html.dark #market-temp .mt-summary-topline .mt-summary-kicker,
+html.dark #market-temp .mt-summary-section-title,
+html.dark #market-temp .mt-history-chart-meta,
+html.dark #market-temp .mt-history-tail-head .mt-card-title { color: #77828d !important; }
+html.dark #market-temp .mt-summary-score,
+html.dark #market-temp .mt-summary-score small,
+html.dark #market-temp .mt-summary-mood,
+html.dark #market-temp .mt-summary-grade,
+html.dark #market-temp .mt-axis-name,
+html.dark #market-temp .mt-axis-value { color: #20262d !important; }
+html.dark #market-temp .mt-summary-grade { border-color: #e6e9ed !important; background: #f7f8fa !important; }
+html.dark #market-temp .mt-summary-change,
+html.dark #market-temp .mt-summary-sowhat,
+html.dark #market-temp .mt-summary-sowhat b,
+html.dark #market-temp .mt-summary-sowhat span { color: #34404c !important; }
+html.dark #market-temp .mt-summary-sowhat { border-color: #e4ebf1 !important; background: #f5f8fb !important; }
+html.dark #market-temp .mt-summary-sowhat a { color: #326fae !important; }
+html.dark #market-temp .mt-score-gauge-legend { color: #89929c !important; }
+html.dark #market-temp .mt-score-zone-label.is-active { color: #26313b !important; }
+html.dark #market-temp .mt-gauge-digital-num { fill: #20262d !important; }
+html.dark #market-temp .mt-gauge-digital-unit { fill: #7d8792 !important; }
+html.dark #market-temp .mt-axis-bar { background: #edf0f2 !important; }
+html.dark #market-temp .mt-axis-good { background: #65a885 !important; }
+html.dark #market-temp .mt-axis-mid { background: #d4a548 !important; }
+html.dark #market-temp .mt-axis-bad { background: #9da6af !important; }
+html.dark #market-temp .mt-axis-word,
+html.dark #market-temp .mt-axis-name small,
+html.dark #market-temp .mt-summary-note,
+html.dark #market-temp .mt-breadth-note,
+html.dark #market-temp .mt-history-metrics small,
+html.dark #market-temp .mt-history-metrics em { color: #89939d !important; }
+html.dark #market-temp .mt-axis-list,
+html.dark #market-temp .mt-history-metrics { border-color: #edf0f3 !important; }
+html.dark #market-temp .mt-hero-breadth,
+html.dark #market-temp .mt-hero-breadth-markets,
+html.dark #market-temp .mt-breadth-market em { color: #68737e !important; }
+html.dark #market-temp .mt-val-pos { color: #d24f45 !important; }
+html.dark #market-temp .mt-val-neg { color: #1261c4 !important; }
+html.dark #market-temp .mt-val-zero { color: #8b929d !important; }

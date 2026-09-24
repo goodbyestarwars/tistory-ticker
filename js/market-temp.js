@@ -924,7 +924,7 @@
   }
 
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
-  function zoneColor_(v) { return v < 50 ? '#55d6ff' : v < 75 ? '#c9f36b' : '#ff6b9d'; }
+  function zoneColor_(v) { return v < 50 ? '#4aa9d9' : v < 75 ? '#d4a548' : '#d66a6a'; }
 
   // 오늘 점수를 밝은 자동차 계기판처럼 얇은 눈금·빨간 바늘·중앙 숫자로 보여준다.
   // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
@@ -996,19 +996,18 @@
     }).join('');
     return ''
       + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
-      + '<div class="mt-summary-kicker">오늘 시장 분위기 점수</div>'
-      + '<div class="mt-summary-head">'
-      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/100점</small></strong>'
-      + '<div class="mt-summary-side">'
-      + '<b class="mt-summary-grade">' + escapeHtml(grade.emoji || '') + ' ' + escapeHtml(grade.label || '') + '</b>'
-      + deltaHtml
-      + '</div></div>'
+      + '<div class="mt-summary-topline"><span class="mt-summary-kicker">MARKET TEMPERATURE</span><span>오늘의 시장 체감</span></div>'
+      + '<div class="mt-summary-main">'
+      + '<div class="mt-summary-copy">'
+      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/100</small></strong>'
+      + '<div class="mt-summary-status"><b class="mt-summary-grade">' + escapeHtml(grade.emoji || '') + ' ' + escapeHtml(grade.label || '') + '</b>'
+      + '<span class="mt-summary-change">' + deltaHtml + '</span></div>'
       + '<div class="mt-summary-mood">' + escapeHtml(guide.mood) + '</div>'
-      + buildScoreGauge(value, guide.tone)
+      + '</div><div class="mt-summary-dial">' + buildScoreGauge(value, guide.tone) + '</div></div>'
       // "그래서 뭐 어쩌라는거지?"에 대한 답을 점수 바로 밑에 한 줄로 둔다. 자세한 점검표는 아래 카드.
       + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short) + '</span>'
       + '<a href="#mt-ant-guide">체크리스트 ↓</a></div>'
-      + (rows ? '<div class="mt-axis-list">' + rows + '</div>' : '')
+      + (rows ? '<div class="mt-summary-section-title">점수를 만든 세 가지</div><div class="mt-axis-list">' + rows + '</div>' : '')
       // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 단순화하면서도
       // 버리지 않는다 - 옛 Hero 카드에 있던 것을 여기로 옮겼다.
       + buildBreadth(data)
