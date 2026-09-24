@@ -1157,13 +1157,14 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 
 /* 0~100 반원 다이얼(2026-09-24 개편 - 사용자 요청 "과열도 게이지를 더 화려하게/
    전문적으로". 가로 막대를 증권사 리서치에 흔한 반원 다이얼+바늘로 바꿨다.
-   경계 50·75는 서버 GRADE3와 같다. */
+   경계 50·75는 서버 GRADE3와 같다.
+   2026-09-24(2차) "그래프들이 너무 이상한데?? 저게 뭐야" - 공포(90˚)·보통·과열(각 45˚)을
+   점수 폭 그대로 세 조각으로 나눴더니 공포 조각만 커서 비대칭으로 보였다. 조각 경계를
+   없애고 파랑→호박색→빨강 그라디언트 하나로 매끄럽게 이었다(색은 JS가 <linearGradient>로
+   그려 넣는다 - 여기는 굵기·캡만 담당). */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
 #market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 300px; height: auto; overflow: visible; }
-#market-temp .mt-score-zone { fill: none; stroke-width: 15; stroke-linecap: butt; }
-#market-temp .mt-score-zone-fear { stroke: #1565C0; }
-#market-temp .mt-score-zone-neutral { stroke: #F4B400; }
-#market-temp .mt-score-zone-greed { stroke: #E53935; }
+#market-temp .mt-score-zone { fill: none; stroke-width: 15; stroke-linecap: round; }
 #market-temp .mt-score-gauge-pivot-halo { fill: rgba(34, 34, 34, .07); }
 /* 바늘: 굵은 동그라미 대신 가는 직선(2026-09-16 "bold 없애, 그냥 사각형" 방향 유지). */
 #market-temp .mt-score-gauge-marker { stroke: #222; stroke-width: 3; stroke-linecap: round; }

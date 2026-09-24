@@ -930,23 +930,44 @@
       + ' A ' + r + ' ' + r + ' 0 0 0 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
   }
 
+  var scoreGaugeSeq_ = 0;
+
   // 0~100 반원 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
   // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
   // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
   // 대신 증권사 리서치 리포트에 흔한 반원 다이얼 + 바늘로 바꿨다.
+  // 2026-09-24(2차) 사용자 지적("그래프들이 너무 이상한데?? 저게 뭐야") - 처음엔 공포
+  // (0~50점, 90˚)·보통(50~75점, 45˚)·과열(75~100점, 45˚) 구간을 점수 폭 그대로 세
+  // 조각으로 나눠 그렸더니 공포 조각만 유독 커서 비대칭으로 보였다("반원 게이지 모양
+  // 자체"가 이상하다고 확인). 세 조각 대신 파랑→호박색→빨강으로 매끄럽게 이어지는
+  // 단일 그라디언트 호로 바꿔 조각 경계 자체를 없앴다 - CNN 공포탐욕지수 등 실제
+  // 지수 게이지들이 쓰는 방식과 같다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
     var cx = 100, cy = 98, trackR = 84, needleR = 70;
     var needleTip = polarPoint_(cx, cy, needleR, angleForScore_(pct));
+    var gradId = 'mtGaugeGrad' + (scoreGaugeSeq_++);
+    var start0 = polarPoint_(cx, cy, trackR, angleForScore_(0));
+    var end100 = polarPoint_(cx, cy, trackR, angleForScore_(100));
     function zoneLabel(key, text, left) {
       return '<span class="mt-score-zone-label' + (tone === key ? ' is-active' : '') + '" style="left:' + left + '%">' + text + '</span>';
     }
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 108" aria-hidden="true">'
-      + '<path class="mt-score-zone mt-score-zone-fear" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
-      + '<path class="mt-score-zone mt-score-zone-neutral" d="' + scoreArcPath_(cx, cy, trackR, 50, 75) + '"></path>'
-      + '<path class="mt-score-zone mt-score-zone-greed" d="' + scoreArcPath_(cx, cy, trackR, 75, 100) + '"></path>'
+      + '<defs><linearGradient id="' + gradId + '" gradientUnits="userSpaceOnUse" '
+      + 'x1="' + start0.x.toFixed(2) + '" y1="' + start0.y.toFixed(2) + '" x2="' + end100.x.toFixed(2) + '" y2="' + end100.y.toFixed(2) + '">'
+      + '<stop offset="0%" stop-color="#1565C0"></stop>'
+      + '<stop offset="50%" stop-color="#F4B400"></stop>'
+      + '<stop offset="100%" stop-color="#E53935"></stop>'
+      + '</linearGradient></defs>'
+      // 0~100을 한 번에 그리면 시작점·끝점이 정확히 지름 반대편(180˚ 차이)이라
+      // large-arc-flag가 어느 쪽 반원인지 정하지 못하는 경계 케이스라 원 전체처럼
+      // 깨져 그려졌다(실측 - "그래프들이 너무 이상한데" 재지적의 원인). 50점에서
+      // 반으로 나눠 각각 90˚만 그리면 이 문제가 없다 - 그라디언트는 같은 정의를
+      // 공유해서 여전히 하나로 이어져 보인다.
+      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
+      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
       + '<circle class="mt-score-gauge-pivot-halo" cx="' + cx + '" cy="' + cy + '" r="15"></circle>'
       + '<line class="mt-score-gauge-marker" x1="' + cx + '" y1="' + cy + '" x2="' + needleTip.x.toFixed(2) + '" y2="' + needleTip.y.toFixed(2) + '"></line>'
       + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="5.5"></circle>'
