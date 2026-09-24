@@ -925,60 +925,64 @@
   }
   var GAUGE_START_ANGLE_ = 210, GAUGE_SWEEP_ = 240;
   function angleForScore_(v) { return GAUGE_START_ANGLE_ - (Math.max(0, Math.min(100, v)) / 100) * GAUGE_SWEEP_; }
-  function scoreArcPath_(cx, cy, r, fromValue, toValue) {
-    var start = polarPoint_(cx, cy, r, angleForScore_(fromValue));
-    var end = polarPoint_(cx, cy, r, angleForScore_(toValue));
-    return 'M ' + start.x.toFixed(2) + ' ' + start.y.toFixed(2)
-      + ' A ' + r + ' ' + r + ' 0 0 1 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
-  }
+
+  var scoreGaugeSeq_ = 0;
 
   // 0~100 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
   // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
   // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
   // 대신 반원 다이얼 + 바늘로 바꿨다가, 비대칭 3조각(2차)·매끄러운 그라디언트 반원(3차)을
-  // 거쳐 "저것보단 자동차 게이지로 하자"(4차)로 베젤+눈금+쐐기형 바늘 240˚ 스윕으로
-  // 바꿨다. 5차("색 필요없고 아우디 게이지로 바꿔")에서 파랑→호박색→빨강 트랙 그라디언트를
-  // 빼고 실제 아우디 클러스터처럼 항상 어두운 판(다크모드 여부와 무관) + 흰 눈금·숫자 +
-  // 빨간 바늘의 무채색 계기판으로 바꿨다.
+  // 거쳐 "저것보단 자동차 게이지로 하자"(4차)로 베젤+눈금+쐐기형 바늘 240˚ 스윕으로,
+  // "색 필요없고 아우디 게이지로 바꿔"(5차)로 무채색 판+빨간 굵은 바늘로 바꿨다.
+  // 6차: 실제 아우디 계기판 사진을 주며 "너무 만화 같아" - 굵은 빨간 쐐기 바늘·두꺼운
+  // 눈금이 원인이라 보고, 가는 바늘(흰색 블레이드+어두운 외곽선)·촘촘한 가는 눈금
+  // (5점 간격)·얇은 숫자·판에 은은한 방사형 그라디언트+얇은 크롬 테두리·2단 금속 허브로
+  // 바꿔 실물 계기판에 가깝게 다듬었다.
   // 0~100을 한 번에 그리면(2차 때처럼) 시작·끝이 정확히 지름 반대편일 때만 large-arc-flag가
   // 깨지는데, 240˚ 스윕에서 50점 기준으로 나눈 두 구간(120˚씩)은 그 경계에 걸리지 않아
   // 안전하다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 100, cy = 96, bezelR = 88, trackR = 78, needleR = 60, tailR = 16;
+    var cx = 100, cy = 96, bezelR = 88, faceR = 82, trackR = 78, needleR = 62, tailR = 14;
     var needleAngle = angleForScore_(pct);
     var needleTip = polarPoint_(cx, cy, needleR, needleAngle);
     var needleTail = polarPoint_(cx, cy, tailR, needleAngle + 180);
+    var needleBaseL = polarPoint_(cx, cy, 2.2, needleAngle + 90);
+    var needleBaseR = polarPoint_(cx, cy, 2.2, needleAngle - 90);
+    var faceId = 'mtGaugeFace' + (scoreGaugeSeq_++);
     var ticks = '';
-    for (var v = 0; v <= 100; v += 10) {
+    for (var v = 0; v <= 100; v += 5) {
       var major = v % 20 === 0;
       var a = angleForScore_(v);
       var from = polarPoint_(cx, cy, trackR - 1, a);
-      var to = polarPoint_(cx, cy, major ? trackR - 12 : trackR - 7, a);
+      var to = polarPoint_(cx, cy, major ? trackR - 11 : trackR - 5, a);
       ticks += '<line class="mt-gauge-tick' + (major ? ' is-major' : '') + '" x1="' + from.x.toFixed(2) + '" y1="' + from.y.toFixed(2)
         + '" x2="' + to.x.toFixed(2) + '" y2="' + to.y.toFixed(2) + '"></line>';
       if (major) {
-        var numPt = polarPoint_(cx, cy, trackR - 24, a);
+        var numPt = polarPoint_(cx, cy, trackR - 22, a);
         ticks += '<text class="mt-gauge-number" x="' + numPt.x.toFixed(2) + '" y="' + numPt.y.toFixed(2) + '">' + v + '</text>';
       }
     }
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 158" aria-hidden="true">'
+      + '<defs><radialGradient id="' + faceId + '" cx="50%" cy="38%" r="75%">'
+      + '<stop offset="0%" stop-color="#2b2c30"></stop>'
+      + '<stop offset="70%" stop-color="#151517"></stop>'
+      + '<stop offset="100%" stop-color="#050506"></stop>'
+      + '</radialGradient></defs>'
       + '<circle class="mt-gauge-bezel" cx="' + cx + '" cy="' + cy + '" r="' + bezelR + '"></circle>'
-      // 240˚ 트랙을 0~100 하나의 호로 그리면 large-arc-flag가 항상 0(단호)이라
-      // 240˚(장호)를 잘못 그린다 - 50점 기준 120˚씩 두 개로 나눠 안전한 범위로 둔다.
-      + '<path class="mt-score-zone" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
-      + '<path class="mt-score-zone" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
+      + '<circle class="mt-gauge-face" cx="' + cx + '" cy="' + cy + '" r="' + faceR + '" fill="url(#' + faceId + ')"></circle>'
+      + '<circle class="mt-gauge-rim" cx="' + cx + '" cy="' + cy + '" r="' + (bezelR - 2) + '"></circle>'
       + ticks
       + '<polygon class="mt-score-gauge-marker" points="'
       + needleTail.x.toFixed(2) + ',' + needleTail.y.toFixed(2) + ' '
-      + polarPoint_(cx, cy, 6, needleAngle + 90).x.toFixed(2) + ',' + polarPoint_(cx, cy, 6, needleAngle + 90).y.toFixed(2) + ' '
+      + needleBaseL.x.toFixed(2) + ',' + needleBaseL.y.toFixed(2) + ' '
       + needleTip.x.toFixed(2) + ',' + needleTip.y.toFixed(2) + ' '
-      + polarPoint_(cx, cy, 6, needleAngle - 90).x.toFixed(2) + ',' + polarPoint_(cx, cy, 6, needleAngle - 90).y.toFixed(2)
+      + needleBaseR.x.toFixed(2) + ',' + needleBaseR.y.toFixed(2)
       + '"></polygon>'
-      + '<circle class="mt-score-gauge-pivot-halo" cx="' + cx + '" cy="' + cy + '" r="15"></circle>'
-      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="7"></circle>'
+      + '<circle class="mt-score-gauge-pivot-outer" cx="' + cx + '" cy="' + cy + '" r="8"></circle>'
+      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="4"></circle>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'

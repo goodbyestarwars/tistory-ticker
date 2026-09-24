@@ -1158,24 +1158,24 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 /* 0~100 아우디 클러스터풍 계기판(2026-09-24 개편 - 사용자 요청 "과열도 게이지를
    더 화려하게/전문적으로". 가로 막대 → 반원 다이얼+바늘(1차) → 비대칭 3조각 지적
    "그래프들이 너무 이상한데??"(2차) → 그라디언트 매끈한 반원(3차) → "자동차 게이지로
-   하자"(4차) → "색 필요없고 아우디 게이지로 바꿔"(5차, 현재)로 색 구간을 없애고
-   실제 계기판처럼 판은 항상 어둡게, 눈금·숫자는 흰색, 바늘만 빨간색인 무채색
-   구성으로 바꿨다. 판이 사이트 다크모드와 무관하게 항상 어두운 건 의도다 - 실물
-   계기판이 카드에 박혀 있는 느낌을 내려는 것이라 라이트/다크 모드에서 같은 색으로
-   둔다. 경계 50·75는 서버 GRADE3와 같다(눈금·숫자 자체는 색으로 구간을 표시하지
-   않는다). */
+   하자"(4차) → 무채색+빨간 쐐기 바늘(5차) → 실제 계기판 사진 주며 "너무 만화 같아"
+   (6차, 현재)로 굵은 빨간 쐐기 바늘·두꺼운 눈금을 버리고 가는 흰색 블레이드 바늘 +
+   촘촘한 가는 눈금(5점 간격) + 방사형 그라디언트 판 + 얇은 크롬 테두리로 다듬었다.
+   판이 사이트 다크모드와 무관하게 항상 어두운 건 의도다 - 실물 계기판이 카드에 박혀
+   있는 느낌을 내려는 것. 경계 50·75는 서버 GRADE3와 같다(눈금·숫자 자체는 색으로
+   구간을 표시하지 않는다). */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
 #market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 280px; height: auto; overflow: visible; }
-#market-temp .mt-gauge-bezel { fill: #16171a; stroke: #000; stroke-width: 6; }
-#market-temp .mt-score-zone { fill: none; stroke: rgba(255, 255, 255, .18); stroke-width: 10; stroke-linecap: round; }
-#market-temp .mt-gauge-tick { stroke: rgba(255, 255, 255, .55); stroke-width: 1.4; }
-#market-temp .mt-gauge-tick.is-major { stroke: #fff; stroke-width: 2; }
-#market-temp .mt-gauge-number { fill: #fff; font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; font-variant-numeric: tabular-nums; }
-#market-temp .mt-score-gauge-pivot-halo { fill: rgba(255, 255, 255, .1); }
-/* 바늘: 축에서 바깥으로 갈수록 좁아지는 쐐기(polygon), 뒤로 짧은 꼬리, 아우디
-   계기판처럼 빨간색 하나로 통일(2026-09-24(5차)). */
-#market-temp .mt-score-gauge-marker { fill: #e0102a; }
-#market-temp .mt-score-gauge-pivot { fill: #ddd; }
+#market-temp .mt-gauge-bezel { fill: #050506; stroke: #3a3b3f; stroke-width: 3; }
+#market-temp .mt-gauge-rim { fill: none; stroke: rgba(255, 255, 255, .35); stroke-width: 1; }
+#market-temp .mt-gauge-tick { stroke: rgba(255, 255, 255, .4); stroke-width: .9; }
+#market-temp .mt-gauge-tick.is-major { stroke: #e7e7e7; stroke-width: 1.3; }
+#market-temp .mt-gauge-number { fill: #d8d8d8; font-size: 11px; font-weight: 600; text-anchor: middle; dominant-baseline: middle; font-variant-numeric: tabular-nums; }
+/* 바늘: 축 쪽만 살짝 넓고 끝은 가늘게 좁아지는 얇은 블레이드(실물 계기판 참고,
+   2026-09-24(6차) "너무 만화 같아" 이후 폭을 크게 줄였다). */
+#market-temp .mt-score-gauge-marker { fill: #f2f2f2; stroke: #0a0a0a; stroke-width: .6; }
+#market-temp .mt-score-gauge-pivot-outer { fill: #3a3b3f; }
+#market-temp .mt-score-gauge-pivot { fill: #d8d8d8; }
 #market-temp .mt-score-gauge-legend { display: flex; gap: 14px; margin-top: 6px; color: #9aa1ab; font-size: 11px; font-weight: 700; }
 #market-temp .mt-score-zone-label.is-active { color: #222; font-weight: 800; }
 #market-temp .mt-summary-sowhat {
