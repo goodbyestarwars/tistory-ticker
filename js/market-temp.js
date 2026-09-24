@@ -933,23 +933,29 @@
   // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
   // 대신 반원 다이얼 + 바늘로 바꿨다가, 비대칭 3조각(2차)·매끄러운 그라디언트 반원(3차)을
   // 거쳐 "저것보단 자동차 게이지로 하자"(4차)로 베젤+눈금+쐐기형 바늘 240˚ 스윕으로,
-  // "색 필요없고 아우디 게이지로 바꿔"(5차)로 무채색 판+빨간 굵은 바늘로 바꿨다.
-  // 6차: 실제 아우디 계기판 사진을 주며 "너무 만화 같아" - 굵은 빨간 쐐기 바늘·두꺼운
-  // 눈금이 원인이라 보고, 가는 바늘(흰색 블레이드+어두운 외곽선)·촘촘한 가는 눈금
-  // (5점 간격)·얇은 숫자·판에 은은한 방사형 그라디언트+얇은 크롬 테두리·2단 금속 허브로
-  // 바꿔 실물 계기판에 가깝게 다듬었다.
+  // "색 필요없고 아우디 게이지로 바꿔"(5차)로 무채색 판+빨간 굵은 바늘로, 실제 계기판
+  // 사진 기준 "너무 만화 같아"(6차)로 가는 바늘·촘촘한 눈금·방사형 그라디언트로
+  // 다듬었다. 7차("그냥 난 실사 같은 화면이 필요해, 이런 만화같고 아마추어 같은거
+  // 말고") - AskUserQuestion으로 방향을 좁혀 "코드로 유리·금속 질감 최대한 강화"를
+  // 선택받았다: 판에 광택(유리 하이라이트 타원)을 얹고, 베젤을 단색 대신 빛이 도는
+  // 밴드형 크롬 그라디언트로, 중심 허브도 크롬 그라디언트로 바꾸고, 바늘에
+  // feDropShadow로 판 위에 그림자가 지게 해서 입체감을 냈다. 이미지 파일을 새로
+  // 받아오는 방식(원본 계기판 사진 합성)은 저작권·에셋 파이프라인 문제가 있어
+  // 제외했다(사용자 선택).
   // 0~100을 한 번에 그리면(2차 때처럼) 시작·끝이 정확히 지름 반대편일 때만 large-arc-flag가
   // 깨지는데, 240˚ 스윕에서 50점 기준으로 나눈 두 구간(120˚씩)은 그 경계에 걸리지 않아
   // 안전하다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 100, cy = 96, bezelR = 88, faceR = 82, trackR = 78, needleR = 62, tailR = 14;
+    var cx = 100, cy = 96, bezelR = 88, faceR = 80, trackR = 78, needleR = 62, tailR = 14;
     var needleAngle = angleForScore_(pct);
     var needleTip = polarPoint_(cx, cy, needleR, needleAngle);
     var needleTail = polarPoint_(cx, cy, tailR, needleAngle + 180);
     var needleBaseL = polarPoint_(cx, cy, 2.2, needleAngle + 90);
     var needleBaseR = polarPoint_(cx, cy, 2.2, needleAngle - 90);
-    var faceId = 'mtGaugeFace' + (scoreGaugeSeq_++);
+    var uid = 'mtGauge' + (scoreGaugeSeq_++);
+    var faceId = uid + 'Face', rimId = uid + 'Rim', hubId = uid + 'Hub';
+    var glassId = uid + 'Glass', shadowId = uid + 'Shadow', clipId = uid + 'Clip';
     var ticks = '';
     for (var v = 0; v <= 100; v += 5) {
       var major = v % 20 === 0;
@@ -966,23 +972,52 @@
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 158" aria-hidden="true">'
-      + '<defs><radialGradient id="' + faceId + '" cx="50%" cy="38%" r="75%">'
-      + '<stop offset="0%" stop-color="#2b2c30"></stop>'
-      + '<stop offset="70%" stop-color="#151517"></stop>'
-      + '<stop offset="100%" stop-color="#050506"></stop>'
-      + '</radialGradient></defs>'
-      + '<circle class="mt-gauge-bezel" cx="' + cx + '" cy="' + cy + '" r="' + bezelR + '"></circle>'
+      + '<defs>'
+      + '<radialGradient id="' + faceId + '" cx="42%" cy="32%" r="85%">'
+      + '<stop offset="0%" stop-color="#3c3d42"></stop>'
+      + '<stop offset="45%" stop-color="#1a1b1e"></stop>'
+      + '<stop offset="100%" stop-color="#040405"></stop>'
+      + '</radialGradient>'
+      // 베젤: 단색 대신 밝기 띠를 번갈아 둬서 둥근 금속에 빛이 도는 것처럼 보이게 한다.
+      + '<linearGradient id="' + rimId + '" x1="15%" y1="0%" x2="85%" y2="100%">'
+      + '<stop offset="0%" stop-color="#7d7e84"></stop>'
+      + '<stop offset="18%" stop-color="#c7c8cc"></stop>'
+      + '<stop offset="32%" stop-color="#3d3e42"></stop>'
+      + '<stop offset="55%" stop-color="#6e6f75"></stop>'
+      + '<stop offset="70%" stop-color="#2a2b2e"></stop>'
+      + '<stop offset="88%" stop-color="#8f9096"></stop>'
+      + '<stop offset="100%" stop-color="#4a4b50"></stop>'
+      + '</linearGradient>'
+      + '<radialGradient id="' + hubId + '" cx="32%" cy="28%" r="75%">'
+      + '<stop offset="0%" stop-color="#fdfdfd"></stop>'
+      + '<stop offset="45%" stop-color="#c6c7cb"></stop>'
+      + '<stop offset="100%" stop-color="#3a3b3f"></stop>'
+      + '</radialGradient>'
+      + '<linearGradient id="' + glassId + '" x1="0%" y1="0%" x2="0%" y2="100%">'
+      + '<stop offset="0%" stop-color="#fff" stop-opacity=".16"></stop>'
+      + '<stop offset="100%" stop-color="#fff" stop-opacity="0"></stop>'
+      + '</linearGradient>'
+      + '<clipPath id="' + clipId + '"><circle cx="' + cx + '" cy="' + cy + '" r="' + faceR + '"></circle></clipPath>'
+      + '<filter id="' + shadowId + '" x="-50%" y="-50%" width="200%" height="200%">'
+      + '<feDropShadow dx="0" dy="1.4" stdDeviation="1.3" flood-color="#000" flood-opacity=".55"></feDropShadow>'
+      + '</filter>'
+      + '</defs>'
+      + '<circle class="mt-gauge-bezel" cx="' + cx + '" cy="' + cy + '" r="' + bezelR + '" stroke="url(#' + rimId + ')"></circle>'
       + '<circle class="mt-gauge-face" cx="' + cx + '" cy="' + cy + '" r="' + faceR + '" fill="url(#' + faceId + ')"></circle>'
-      + '<circle class="mt-gauge-rim" cx="' + cx + '" cy="' + cy + '" r="' + (bezelR - 2) + '"></circle>'
+      // 유리 하이라이트: 판 위쪽에 흰색이 옅게 번지는 타원을 얹어 유리를 씌운 계기판처럼 보이게 한다.
+      + '<ellipse class="mt-gauge-glass" cx="' + cx + '" cy="' + (cy - faceR * 0.55) + '" rx="' + (faceR * 0.92) + '" ry="' + (faceR * 0.62)
+      + '" fill="url(#' + glassId + ')" clip-path="url(#' + clipId + ')"></ellipse>'
       + ticks
+      + '<g filter="url(#' + shadowId + ')">'
       + '<polygon class="mt-score-gauge-marker" points="'
       + needleTail.x.toFixed(2) + ',' + needleTail.y.toFixed(2) + ' '
       + needleBaseL.x.toFixed(2) + ',' + needleBaseL.y.toFixed(2) + ' '
       + needleTip.x.toFixed(2) + ',' + needleTip.y.toFixed(2) + ' '
       + needleBaseR.x.toFixed(2) + ',' + needleBaseR.y.toFixed(2)
       + '"></polygon>'
-      + '<circle class="mt-score-gauge-pivot-outer" cx="' + cx + '" cy="' + cy + '" r="8"></circle>'
-      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="4"></circle>'
+      + '<circle class="mt-score-gauge-pivot-outer" cx="' + cx + '" cy="' + cy + '" r="8" fill="url(#' + hubId + ')"></circle>'
+      + '<circle class="mt-score-gauge-pivot" cx="' + cx + '" cy="' + cy + '" r="3.4"></circle>'
+      + '</g>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
