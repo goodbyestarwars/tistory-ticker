@@ -1163,11 +1163,11 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
    ("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지" - `.mt-rib-tip`
    등 이 파일의 다른 규칙들과 같은 원칙) 때문이다. 경계 50·75는 서버 GRADE3와 같다. */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
-#market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 280px; height: auto; overflow: visible; }
+#market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 360px; height: auto; overflow: visible; }
 /* stroke 색은 JS가 조각마다 인라인으로 넣는다(켜짐=구간색, 꺼짐=회색) - 여기서
    stroke를 선언하면 스타일시트가 인라인보다 항상 이겨서 색이 다 덮인다. */
-#market-temp .mt-gauge-seg { stroke-width: 6; stroke-linecap: butt; }
-#market-temp .mt-gauge-seg.is-lit { stroke-width: 7; }
+#market-temp .mt-gauge-seg { stroke: none; stroke-linecap: butt; }
+#market-temp .mt-gauge-seg.is-lit { opacity: 1; }
 #market-temp .mt-gauge-digital-num { fill: #1a1a1a; font: 800 30px/1 var(--font-ui); text-anchor: middle; dominant-baseline: central; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
 #market-temp .mt-gauge-digital-unit { fill: #9aa1ab; font-size: 11px; font-weight: 700; text-anchor: middle; dominant-baseline: central; }
 #market-temp .mt-score-gauge-legend { display: flex; gap: 14px; margin-top: 6px; color: #9aa1ab; font-size: 11px; font-weight: 700; }

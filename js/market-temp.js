@@ -926,43 +926,33 @@
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
   function zoneColor_(v) { return v < 50 ? '#1565C0' : v < 75 ? '#C98F00' : '#E53935'; }
 
-  // 오늘 점수를 디지털 계기판처럼 막대 눈금(segment) 링 + 중앙 숫자로 보여준다.
+  // 오늘 점수를 디지털 온도계처럼 직사각형 막대와 중앙 숫자로 보여준다.
   // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
   // 그라디언트 매끈한 반원(3차) → 자동차 속도계 240˚(4차) → 무채색+빨간 바늘(5차) →
   // "너무 만화 같아"로 가는 바늘 다듬기(6차) → 유리·금속 질감 강화(7차) → "니가
   // 검색해서 정말 기발한거 몇개 샘플 좀 줘"로 CFGI/alternative.me식 얇은 바늘+배지
   // (8차)까지 갔지만 "디지털 게이지로 바꾸자 이건 아닌거 같아"(9차, 현재)로 바늘·
   // 그라디언트 트랙 자체를 버렸다. 자동차 계기판·아날로그 시계 은유를 완전히 떠나
-  // 이퀄라이저/디지털 계기판처럼 반원을 촘촘한 막대 눈금(segment) 30개로 나누고,
-  // 점수 이하 구간만 구간색(공포·보통·과열)으로 켜고 나머지는 꺼진 회색으로 둔다.
-  // 중앙엔 큰 숫자를 모노스페이스로 둬서 디지털 계기판 느낌을 낸다.
+  // 이퀄라이저/디지털 온도계처럼 직사각형 막대 24개로 나누고, 점수 이하 구간만
+  // 공포·보통·과열 구간색으로 켜고 나머지는 꺼진 회색으로 둔다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var cx = 100, cy = 100, segR = 78;
-    var segCount = 30, gapDeg = 1.4;
-    var segAngle = 180 / segCount;
+    var segCount = 24, barW = 11, gap = 2, startX = 18, barY = 66, barH = 14;
     var segs = '';
     for (var i = 0; i < segCount; i++) {
-      var segStart = 180 - i * segAngle;
-      var segEnd = 180 - (i + 1) * segAngle;
       var segVal = ((i + 0.5) / segCount) * 100;
-      var from = polarPoint_(cx, cy, segR, segStart - gapDeg / 2);
-      var to = polarPoint_(cx, cy, segR, segEnd + gapDeg / 2);
       var lit = segVal <= pct;
-      // CSS에 stroke 색을 두면 스타일시트 선언이 이 인라인 색보다 항상 이겨서 켜진
-      // 조각도 회색으로 덮인다 - 그래서 CSS(mt-gauge-seg)엔 색을 두지 않고 매 조각마다
-      // 인라인 stroke를 직접 준다(켜짐은 구간색, 꺼짐은 회색).
-      segs += '<line class="mt-gauge-seg' + (lit ? ' is-lit' : '') + '" stroke="'
+      segs += '<rect class="mt-gauge-seg' + (lit ? ' is-lit' : '') + '" fill="'
         + (lit ? zoneColor_(segVal) : '#e3e5e9') + '"'
-        + ' x1="' + from.x.toFixed(2) + '" y1="' + from.y.toFixed(2)
-        + '" x2="' + to.x.toFixed(2) + '" y2="' + to.y.toFixed(2) + '"></line>';
+        + ' x="' + (startX + i * (barW + gap)) + '" y="' + barY
+        + '" width="' + barW + '" height="' + barH + '"></rect>';
     }
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
-      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 122" aria-hidden="true">'
+      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 320 104" aria-hidden="true">'
       + segs
-      + '<text class="mt-gauge-digital-num" x="' + cx + '" y="' + (cy - 6) + '">' + pct.toFixed(0) + '</text>'
-      + '<text class="mt-gauge-digital-unit" x="' + cx + '" y="' + (cy + 14) + '">/ 100</text>'
+      + '<text class="mt-gauge-digital-num" x="160" y="31">' + pct.toFixed(0) + '</text>'
+      + '<text class="mt-gauge-digital-unit" x="160" y="47">/ 100</text>'
       + '</svg>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
