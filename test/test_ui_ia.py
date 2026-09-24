@@ -1570,9 +1570,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("KODEX 200 최근 5일", source)
         for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
             self.assertIn(token, style)
-        self.assertIn("<rect class=\"mt-gauge-seg", source)
-        self.assertIn("mt-score-gauge-future", source)
-        self.assertIn(".mt-gauge-scale", style)
+        self.assertIn("<line class=\"mt-gauge-seg", source)
+        self.assertIn("mt-score-gauge-audi", source)
+        self.assertIn(".mt-gauge-needle", style)
         self.assertNotIn(".mt-strategy-bar-fill", style)
 
     def test_footer_links_the_beginner_study_pages(self):

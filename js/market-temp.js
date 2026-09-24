@@ -926,7 +926,7 @@
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
   function zoneColor_(v) { return v < 50 ? '#55d6ff' : v < 75 ? '#c9f36b' : '#ff6b9d'; }
 
-  // 오늘 점수를 디지털 온도계처럼 직사각형 막대와 중앙 숫자로 보여준다.
+  // 오늘 점수를 밝은 자동차 계기판처럼 얇은 눈금·빨간 바늘·중앙 숫자로 보여준다.
   // 여러 차례 방향이 바뀌었다: 가로 막대 → 반원+바늘(1차) → 비대칭 3조각 지적(2차) →
   // 그라디언트 매끈한 반원(3차) → 자동차 속도계 240˚(4차) → 무채색+빨간 바늘(5차) →
   // "너무 만화 같아"로 가는 바늘 다듬기(6차) → 유리·금속 질감 강화(7차) → "니가
@@ -937,24 +937,31 @@
   // 공포·보통·과열 구간색으로 켜고 나머지는 꺼진 회색으로 둔다.
   function buildScoreGauge(value, tone) {
     var pct = Math.max(0, Math.min(100, value));
-    var segCount = 24, barW = 11, gap = 2, startX = 18, barY = 66, barH = 14;
-    var segs = '';
-    for (var i = 0; i < segCount; i++) {
-      var segVal = ((i + 0.5) / segCount) * 100;
-      var lit = segVal <= pct;
-      segs += '<rect class="mt-gauge-seg' + (lit ? ' is-lit' : '') + '" fill="'
-        + (lit ? zoneColor_(segVal) : '#e3e5e9') + '"'
-        + ' x="' + (startX + i * (barW + gap)) + '" y="' + barY
-        + '" width="' + barW + '" height="' + barH + '"></rect>';
+    var cx = 160, cy = 142, radius = 100, tickCount = 41;
+    var startAngle = 160, sweep = 220, ticks = '';
+    for (var i = 0; i < tickCount; i++) {
+      var tickValue = (i / (tickCount - 1)) * 100;
+      var angle = startAngle - (sweep * i / (tickCount - 1));
+      var outer = polarPoint_(cx, cy, radius, angle);
+      var innerRadius = i % 5 === 0 ? radius - 13 : radius - 8;
+      var inner = polarPoint_(cx, cy, innerRadius, angle);
+      ticks += '<line class="mt-gauge-seg' + (tickValue <= pct ? ' is-lit' : '') + '" stroke="'
+        + (tickValue <= pct ? zoneColor_(tickValue) : '#c6cbd1') + '"'
+        + ' x1="' + inner.x.toFixed(2) + '" y1="' + inner.y.toFixed(2)
+        + '" x2="' + outer.x.toFixed(2) + '" y2="' + outer.y.toFixed(2) + '"></line>';
     }
+    var needleAngle = startAngle - sweep * pct / 100;
+    var needle = polarPoint_(cx, cy, radius - 22, needleAngle);
     return ''
-      + '<div class="mt-score-gauge mt-score-gauge-future" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
-      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 320 104" aria-hidden="true">'
-      + segs
-      + '<text class="mt-gauge-digital-num" x="160" y="31">' + pct.toFixed(0) + '</text>'
-      + '<text class="mt-gauge-digital-unit" x="160" y="47">/ 100</text>'
+      + '<div class="mt-score-gauge mt-score-gauge-audi" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
+      + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 320 174" aria-hidden="true">'
+      + '<circle class="mt-gauge-face" cx="' + cx + '" cy="' + cy + '" r="' + (radius + 9) + '"></circle>'
+      + ticks
+      + '<line class="mt-gauge-needle" x1="' + cx + '" y1="' + cy + '" x2="' + needle.x.toFixed(2) + '" y2="' + needle.y.toFixed(2) + '"></line>'
+      + '<circle class="mt-gauge-hub" cx="' + cx + '" cy="' + cy + '" r="7"></circle>'
+      + '<text class="mt-gauge-digital-num" x="' + cx + '" y="' + (cy - 28) + '">' + pct.toFixed(0) + '</text>'
+      + '<text class="mt-gauge-digital-unit" x="' + cx + '" y="' + (cy - 9) + '">/ 100</text>'
       + '</svg>'
-      + '<div class="mt-gauge-scale"><span>0</span><span>50</span><span>75</span><span>100</span></div>'
       + '<div class="mt-score-gauge-legend">'
       + '<span class="mt-score-zone-label' + (tone === 'fear' ? ' is-active' : '') + '">공포</span>'
       + '<span class="mt-score-zone-label' + (tone === 'neutral' ? ' is-active' : '') + '">보통</span>'
