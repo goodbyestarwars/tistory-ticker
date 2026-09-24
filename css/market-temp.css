@@ -1155,24 +1155,27 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 #market-temp .mt-summary-side { display: flex; flex-direction: column; align-items: flex-end; gap: 3px; font-size: 13px; text-align: right; }
 #market-temp .mt-summary-mood { margin-top: 6px; color: #444; font-size: 14px; font-weight: 700; }
 
-/* 0~100 자동차 속도계 스타일 다이얼(2026-09-24 개편 - 사용자 요청 "과열도 게이지를
+/* 0~100 아우디 클러스터풍 계기판(2026-09-24 개편 - 사용자 요청 "과열도 게이지를
    더 화려하게/전문적으로". 가로 막대 → 반원 다이얼+바늘(1차) → 비대칭 3조각 지적
-   "그래프들이 너무 이상한데??"(2차) → 그라디언트 매끈한 반원(3차) → "저것보단 자동차
-   게이지로 하자"(4차, 현재)로 베젤+눈금+숫자+쐐기형 바늘 240˚ 스윕으로 바꿨다.
-   경계 50·75는 서버 GRADE3와 같다. 트랙 색은 JS가 <linearGradient>로 그려 넣는다 -
-   여기는 굵기·베젤·눈금·바늘 모양만 담당. */
+   "그래프들이 너무 이상한데??"(2차) → 그라디언트 매끈한 반원(3차) → "자동차 게이지로
+   하자"(4차) → "색 필요없고 아우디 게이지로 바꿔"(5차, 현재)로 색 구간을 없애고
+   실제 계기판처럼 판은 항상 어둡게, 눈금·숫자는 흰색, 바늘만 빨간색인 무채색
+   구성으로 바꿨다. 판이 사이트 다크모드와 무관하게 항상 어두운 건 의도다 - 실물
+   계기판이 카드에 박혀 있는 느낌을 내려는 것이라 라이트/다크 모드에서 같은 색으로
+   둔다. 경계 50·75는 서버 GRADE3와 같다(눈금·숫자 자체는 색으로 구간을 표시하지
+   않는다). */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
 #market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 280px; height: auto; overflow: visible; }
-#market-temp .mt-gauge-bezel { fill: #fff; stroke: #dfe2e7; stroke-width: 6; }
-#market-temp .mt-score-zone { fill: none; stroke-width: 10; stroke-linecap: round; }
-#market-temp .mt-gauge-tick { stroke: #c7cbd3; stroke-width: 1.4; }
-#market-temp .mt-gauge-tick.is-major { stroke: #9aa1ab; stroke-width: 2; }
-#market-temp .mt-gauge-number { fill: #9aa1ab; font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; font-variant-numeric: tabular-nums; }
-#market-temp .mt-score-gauge-pivot-halo { fill: rgba(34, 34, 34, .07); }
-/* 바늘: 자동차 속도계처럼 축에서 바깥으로 갈수록 좁아지는 쐐기(polygon), 뒤로 짧은
-   꼬리(2026-09-24(4차) "자동차 게이지로 하자"). */
-#market-temp .mt-score-gauge-marker { fill: #222; }
-#market-temp .mt-score-gauge-pivot { fill: #222; }
+#market-temp .mt-gauge-bezel { fill: #16171a; stroke: #000; stroke-width: 6; }
+#market-temp .mt-score-zone { fill: none; stroke: rgba(255, 255, 255, .18); stroke-width: 10; stroke-linecap: round; }
+#market-temp .mt-gauge-tick { stroke: rgba(255, 255, 255, .55); stroke-width: 1.4; }
+#market-temp .mt-gauge-tick.is-major { stroke: #fff; stroke-width: 2; }
+#market-temp .mt-gauge-number { fill: #fff; font-size: 12px; font-weight: 700; text-anchor: middle; dominant-baseline: middle; font-variant-numeric: tabular-nums; }
+#market-temp .mt-score-gauge-pivot-halo { fill: rgba(255, 255, 255, .1); }
+/* 바늘: 축에서 바깥으로 갈수록 좁아지는 쐐기(polygon), 뒤로 짧은 꼬리, 아우디
+   계기판처럼 빨간색 하나로 통일(2026-09-24(5차)). */
+#market-temp .mt-score-gauge-marker { fill: #e0102a; }
+#market-temp .mt-score-gauge-pivot { fill: #ddd; }
 #market-temp .mt-score-gauge-legend { display: flex; gap: 14px; margin-top: 6px; color: #9aa1ab; font-size: 11px; font-weight: 700; }
 #market-temp .mt-score-zone-label.is-active { color: #222; font-weight: 800; }
 #market-temp .mt-summary-sowhat {
@@ -1252,16 +1255,11 @@ html.dark #market-temp .mt-axis-word,
 html.dark #market-temp .mt-summary-note { color: rgba(245, 239, 224, .55) !important; }
 html.dark #market-temp .mt-summary-kicker,
 html.dark #market-temp .mt-score-gauge-legend,
-html.dark #market-temp .mt-gauge-number,
 html.dark #market-temp .mt-axis-name small { color: rgba(245, 239, 224, .5) !important; }
 html.dark #market-temp .mt-summary-mood { color: rgba(245, 239, 224, .82) !important; }
 html.dark #market-temp .mt-score-zone-label.is-active { color: #F5EFE0 !important; }
-html.dark #market-temp .mt-gauge-bezel { fill: #232323 !important; stroke: rgba(245, 239, 224, .18) !important; }
-html.dark #market-temp .mt-gauge-tick { stroke: rgba(245, 239, 224, .25) !important; }
-html.dark #market-temp .mt-gauge-tick.is-major { stroke: rgba(245, 239, 224, .45) !important; }
-html.dark #market-temp .mt-score-gauge-marker { fill: #F5EFE0 !important; }
-html.dark #market-temp .mt-score-gauge-pivot { fill: #F5EFE0 !important; }
-html.dark #market-temp .mt-score-gauge-pivot-halo { fill: rgba(245, 239, 224, .1) !important; }
+/* 계기판 자체(베젤·눈금·숫자·바늘)는 아우디 클러스터 컨셉이라 라이트/다크모드
+   구분 없이 항상 같은 색이다(2026-09-24(5차)) - 여기 오버라이드하지 않는다. */
 html.dark #market-temp .mt-summary-sowhat { background: rgba(245, 239, 224, .07) !important; color: #F5EFE0 !important; }
 html.dark #market-temp .mt-summary-sowhat a { color: #8ab4f8 !important; }
 html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18) !important; }

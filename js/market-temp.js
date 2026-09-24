@@ -932,14 +932,14 @@
       + ' A ' + r + ' ' + r + ' 0 0 1 ' + end.x.toFixed(2) + ' ' + end.y.toFixed(2);
   }
 
-  var scoreGaugeSeq_ = 0;
-
   // 0~100 다이얼 위에서 오늘 점수가 어느 구간(공포·보통·과열)인지 바늘로 보여준다.
   // 구간 경계 50·75는 서버 market_temp_score.GRADE3와 같다.
   // 2026-09-24 사용자 요청("맨 위 과열도 게이지를 더 화려하게/전문적으로") - 가로 막대
   // 대신 반원 다이얼 + 바늘로 바꿨다가, 비대칭 3조각(2차)·매끄러운 그라디언트 반원(3차)을
-  // 거쳐 사용자가 "저것보단 자동차 게이지로 하자"(4차)라고 다시 방향을 바꿔 자동차
-  // 속도계 스타일(베젤+눈금+숫자+쐐기형 바늘, 240˚ 스윕)로 다시 그렸다.
+  // 거쳐 "저것보단 자동차 게이지로 하자"(4차)로 베젤+눈금+쐐기형 바늘 240˚ 스윕으로
+  // 바꿨다. 5차("색 필요없고 아우디 게이지로 바꿔")에서 파랑→호박색→빨강 트랙 그라디언트를
+  // 빼고 실제 아우디 클러스터처럼 항상 어두운 판(다크모드 여부와 무관) + 흰 눈금·숫자 +
+  // 빨간 바늘의 무채색 계기판으로 바꿨다.
   // 0~100을 한 번에 그리면(2차 때처럼) 시작·끝이 정확히 지름 반대편일 때만 large-arc-flag가
   // 깨지는데, 240˚ 스윕에서 50점 기준으로 나눈 두 구간(120˚씩)은 그 경계에 걸리지 않아
   // 안전하다.
@@ -949,9 +949,6 @@
     var needleAngle = angleForScore_(pct);
     var needleTip = polarPoint_(cx, cy, needleR, needleAngle);
     var needleTail = polarPoint_(cx, cy, tailR, needleAngle + 180);
-    var gradId = 'mtGaugeGrad' + (scoreGaugeSeq_++);
-    var start0 = polarPoint_(cx, cy, trackR, angleForScore_(0));
-    var end100 = polarPoint_(cx, cy, trackR, angleForScore_(100));
     var ticks = '';
     for (var v = 0; v <= 100; v += 10) {
       var major = v % 20 === 0;
@@ -968,15 +965,11 @@
     return ''
       + '<div class="mt-score-gauge" role="img" aria-label="100점 만점에 ' + pct.toFixed(0) + '점">'
       + '<svg class="mt-score-gauge-dial mt-fade-in" viewBox="0 0 200 158" aria-hidden="true">'
-      + '<defs><linearGradient id="' + gradId + '" gradientUnits="userSpaceOnUse" '
-      + 'x1="' + start0.x.toFixed(2) + '" y1="' + start0.y.toFixed(2) + '" x2="' + end100.x.toFixed(2) + '" y2="' + end100.y.toFixed(2) + '">'
-      + '<stop offset="0%" stop-color="#1565C0"></stop>'
-      + '<stop offset="50%" stop-color="#F4B400"></stop>'
-      + '<stop offset="100%" stop-color="#E53935"></stop>'
-      + '</linearGradient></defs>'
       + '<circle class="mt-gauge-bezel" cx="' + cx + '" cy="' + cy + '" r="' + bezelR + '"></circle>'
-      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
-      + '<path class="mt-score-zone" stroke="url(#' + gradId + ')" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
+      // 240˚ 트랙을 0~100 하나의 호로 그리면 large-arc-flag가 항상 0(단호)이라
+      // 240˚(장호)를 잘못 그린다 - 50점 기준 120˚씩 두 개로 나눠 안전한 범위로 둔다.
+      + '<path class="mt-score-zone" d="' + scoreArcPath_(cx, cy, trackR, 0, 50) + '"></path>'
+      + '<path class="mt-score-zone" d="' + scoreArcPath_(cx, cy, trackR, 50, 100) + '"></path>'
       + ticks
       + '<polygon class="mt-score-gauge-marker" points="'
       + needleTail.x.toFixed(2) + ',' + needleTail.y.toFixed(2) + ' '
