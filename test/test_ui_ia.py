@@ -2298,7 +2298,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")
         dynamic = re.search(
-            r"function buildAptDynamicHtml\(profile, currentPrice, stepIndex, daysIncluded, avgPrice\) \{(?P<body>.*?)\n  \}",
+            r"function buildAptDynamicHtml\(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code\) \{(?P<body>.*?)\n  \}",
             source,
             re.DOTALL,
         )

@@ -116,11 +116,39 @@ console.log(JSON.stringify(cases.map(function (daily) {
 
 
 class MyUsesStockAnalysisVolumeProfileTests(unittest.TestCase):
+    @unittest.skipUnless(shutil.which('node'), 'node 필요')
+    def test_my_average_and_visible_maximum_match_the_rendered_rows(self):
+        flow = _read('js/foreign-flow.js')
+        parts = [_function(flow, name) for name in (
+            'compactAptProfileBins', 'buildAptOrderBookRows', 'buildSimpleVolumeProfileHtml')]
+        parts.append('''
+function compactChartVolume(value) { return String(value); }
+const bins = Array.from({ length: 24 }, (_, i) => ({
+  low: 100 + i * 10, high: 110 + i * 10,
+  volume: i === 0 ? 90 : (i === 2 || i === 3 ? 60 : 1)
+}));
+const profile = { bins, integerPrices: false, trendUp: true, pocIndex: 0 };
+console.log(JSON.stringify({
+  withHolding: buildSimpleVolumeProfileHtml(profile, 125, 155, '120일', 125),
+  withoutHolding: buildSimpleVolumeProfileHtml(profile, 125, 155, '120일'),
+  usHolding: buildSimpleVolumeProfileHtml(profile, 125, 155, '120일', 125, 'US:TEST')
+}));''')
+        out = subprocess.run(['node', '-e', '\n'.join(parts)], capture_output=True, text=True,
+                             encoding='utf-8', timeout=30)
+        self.assertEqual(out.returncode, 0, out.stderr)
+        html = json.loads(out.stdout)
+        self.assertIn('최대 매물대</span><strong>120~140원', html['withHolding'])
+        self.assertRegex(html['withHolding'], r'ff-apt-simple-row[^\"]*is-poc[^\"]*is-mine[^>]*>.*?width:100%')
+        self.assertIn('<span class="mine">내 평단</span>', html['withHolding'])
+        self.assertNotIn('has-personal', html['withoutHolding'])
+        self.assertIn('최대 매물대</span><strong>$120.00~$140.00', html['usHolding'])
+        self.assertIn('내 평단</span><strong>$125.00', html['usHolding'])
+
     def test_my_delegates_calculation_and_chart_to_foreign_flow(self):
         my = _read('js/my-dashboard.js')
         flow = _read('js/foreign-flow.js')
         self.assertIn('api.buildVolumeProfileSummary(chart.daily)', my)
-        self.assertIn('api.renderVolumeProfileHtml(daily, number(livePrice, lastClose))', my)
+        self.assertIn('api.renderVolumeProfileHtml(daily, number(livePrice, lastClose), holdingAveragePrice, code)', my)
         self.assertIn('<div class="ff-vp-host">', my)
         self.assertNotIn('MY_VOLUME_BIN_COUNT', my)
         self.assertNotIn('my-volume-row', my)
@@ -142,7 +170,7 @@ class MyUsesStockAnalysisVolumeProfileTests(unittest.TestCase):
 
     def test_stock_analysis_summary_shows_tick_values(self):
         flow = _read('js/foreign-flow.js')
-        self.assertIn("(pocBin ? rangeText(pocBin) + '원' : '-')", flow)
+        self.assertIn("(pocBin ? rangeText(pocBin) + (isUs ? '' : '원') : '-')", flow)
         self.assertIn('won(displayAvg)', flow)
         self.assertNotIn("'/pbar-tratio/'", flow)
 

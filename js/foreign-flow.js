@@ -4411,25 +4411,31 @@
     };
   }
 
-  function buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel) {
+  function buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel, holdingAveragePrice, code) {
     if (!profile || !profile.bins || !profile.bins.length) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
     }
     var compactRows = compactAptProfileBins(profile, 12);
     var orderBook = buildAptOrderBookRows(compactRows, currentPrice);
     var rows = orderBook.rows;
-    var pocBin = profile.bins[profile.pocIndex];
     // 2026-09-15: 평균단가는 가중평균이라 호가단위에 맞지 않는 값이 나온다 - 화면에는 가장 가까운 호가로 보인다.
     var avgNumber = Number(avgPrice);
     var displayAvg = avgPrice != null && isFinite(avgNumber) && profile.integerPrices
       ? Math.round(avgNumber / krxTickSize(avgNumber)) * krxTickSize(avgNumber) : avgPrice;
     var maxVolume = rows.reduce(function (max, row) { return Math.max(max, row.volume); }, 0);
-    var pocRow = rows.findIndex(function (row) {
-      return profile.pocIndex >= row.start && profile.pocIndex <= row.end;
-    });
+    // 눈에 보이는 막대는 세부 구간을 합친 행이다. 강조 가격대도 그 행 중 거래량
+    // 최댓값으로 골라 가장 긴 막대와 '최대 매물대'가 어긋나지 않게 한다.
+    var pocRow = rows.findIndex(function (row) { return row.volume > 0 && row.volume === maxVolume; });
+    var pocBin = pocRow >= 0 ? rows[pocRow] : null;
+    var showHolding = holdingAveragePrice !== undefined;
+    var myAverage = Number(holdingAveragePrice);
+    var hasMyAverage = showHolding && isFinite(myAverage) && myAverage > 0;
+    var isUs = /^US:/i.test(String(code || ''));
 
     function won(value) {
-      return value == null || !isFinite(Number(value)) ? '-' : Math.round(Number(value)).toLocaleString('ko-KR') + '원';
+      if (value == null || !isFinite(Number(value))) return '-';
+      return isUs ? '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+        : Math.round(Number(value)).toLocaleString('ko-KR') + '원';
     }
     var referenceOpen = Number(profile.openPrice);
     var lowerLimit = Number(profile.lowerLimit);
@@ -4446,7 +4452,9 @@
     function rowHasPrice(row, price) {
       return price != null && isFinite(Number(price)) && Number(price) >= row.low && Number(price) <= row.high;
     }
+    var myRow = hasMyAverage ? rows.findIndex(function (row) { return rowHasPrice(row, myAverage); }) : -1;
     function rangeText(row) {
+      if (isUs) return won(row.low) + '~' + won(row.high);
       if (Math.round(row.low) === Math.round(row.high)) return won(row.low);
       return Math.round(row.low).toLocaleString('ko-KR') + '~' + Math.round(row.high).toLocaleString('ko-KR');
     }
@@ -4470,9 +4478,10 @@
       var isCurrent = row.isCurrent || rowHasPrice(row, currentPrice);
       var isAverage = rowHasPrice(row, avgPrice);
       var isPoc = originalIndex === pocRow;
+      var isMine = originalIndex === myRow;
       var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
-      var classes = 'ff-apt-simple-row' + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '');
-      var markers = (isCurrent ? '<span class="current">현재</span>' : '')
+      var classes = 'ff-apt-simple-row' + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '') + (isMine ? ' is-mine' : '');
+      var markers = (isMine ? '<span class="mine">내 평단</span>' : '') + (isCurrent ? '<span class="current">현재</span>' : '')
         + (isAverage ? '<span class="average">평균</span>' : '')
         + (isPoc ? '<span class="poc">최대</span>' : '');
       var sideHeading = '';
@@ -4519,16 +4528,25 @@
       relationNote = '현재가는 매물대 아래지만 최근 종가 방향이 올라 회복을 시도하는 흐름입니다.';
     }
 
-    return '<div class="ff-apt-simple-summary">'
-      + '<div><span>현재가</span><strong data-apt-simple-current>' + won(currentPrice) + '</strong></div>'
-      + '<div><span>최대 매물대</span><strong>' + (pocBin ? rangeText(pocBin) + '원' : '-') + '</strong></div>'
-      + '<div><span>평균단가</span><strong>' + won(displayAvg) + '</strong></div>'
+    var myChange = hasMyAverage && isFinite(Number(currentPrice)) && Number(currentPrice) > 0
+      ? (Number(currentPrice) / myAverage - 1) * 100 : null;
+    var myChangeText = myChange == null ? '현재가 비교 대기' : '현재가가 평단보다 ' + (myChange > 0 ? '+' : '') + myChange.toFixed(1) + '%';
+    var myChangeTone = myChange > 0 ? 'up' : myChange < 0 ? 'down' : 'flat';
+    var myPosition = hasMyAverage && myRow < 0
+      ? '<div class="ff-apt-personal-position">내 평단 ' + won(myAverage) + '은 표시된 가격대보다 ' + (myAverage > rows[rows.length - 1].high ? '위' : '아래') + '에 있습니다.</div>'
+      : '';
+    return '<div class="ff-apt-simple-summary' + (showHolding ? ' has-personal' : '') + '">'
+      + '<div class="ff-apt-current-summary"><span>현재가</span><strong data-apt-simple-current>' + won(currentPrice) + '</strong></div>'
+      + (showHolding ? '<div class="ff-apt-personal-summary"><span>내 평단</span><strong>' + (hasMyAverage ? won(myAverage) : '입력 필요') + '</strong><small class="' + myChangeTone + '">' + (hasMyAverage ? myChangeText : '위 보유정보에 평단 입력') + '</small></div>' : '')
+      + '<div class="ff-apt-poc-summary"><span>최대 매물대</span><strong>' + (pocBin ? rangeText(pocBin) + (isUs ? '' : '원') : '-') + '</strong></div>'
+      + '<div class="ff-apt-market-summary"><span>시장 평균단가</span><strong>' + won(displayAvg) + '</strong></div>'
       + '</div>'
       + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
-      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>막대가 길수록 거래가 많이 쌓인 구간</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
+      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>한 칸은 한 가격 구간 · 가장 긴 막대가 이 화면의 최대 거래량</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
       + limitHtml
+      + myPosition
       + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
-      + '<div class="ff-apt-simple-legend"><span class="current">현재가</span><span class="average">평균단가</span><span class="poc">최대 매물대</span></div>'
+      + '<div class="ff-apt-simple-legend"><span class="current">현재가</span>' + (showHolding ? '<span class="mine">내 평단</span>' : '') + '<span class="average">시장 평균</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
       + '<div class="ff-apt-simple-note" role="note">' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</div>';
   }
@@ -4536,11 +4554,11 @@
   // 2026-09-15 사용자 결정: MY 매물대와 같은 최근 120거래일 일봉 추정치 하나로 통일했다
   // (buildApproxVolumeProfile 참고). 2026-08-05에 실제 체결가(/pbar-tratio) 뷰로 바꿨었지만
   // 조회된 날만 누적돼 종목마다 기간이 달랐고 MY 매물대와 값이 어긋났다.
-  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice) {
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code) {
     var days = daysIncluded || 1;
     var footnote = '<div class="ff-footnote ff-apt-simple-source">일봉 고가·저가·거래량을 가격 구간에 비례 배분한 추정치 · 최근 <b>'
       + days + '거래일</b> 반영</div>';
-    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉')
+    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉', holdingAveragePrice, code)
       + footnote;
   }
 
@@ -4635,14 +4653,14 @@
     };
   }
 
-  function renderVolumeProfileHtml(daily, currentPrice) {
+  function renderVolumeProfileHtml(daily, currentPrice, holdingAveragePrice, code) {
     var estimate = buildApproxVolumeProfile(daily, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
     if (!estimate) return '';
     var last = Array.isArray(daily) && daily.length ? daily[daily.length - 1] : null;
     var profile = attachAptPriceLimits(estimate.profile, last && Number(last.open));
     profile.source = estimate.source;
     // 종목분석은 탭을 열 때 playAptEntrance로 ff-apt-in을 붙이지만 MY는 바로 보여야 해서 처음부터 붙인다.
-    return buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX, estimate.daysIncluded, estimate.avgPrice)
+    return buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX, estimate.daysIncluded, estimate.avgPrice, holdingAveragePrice, code)
       .replace('class="ff-apt-chart-wrap ff-apt-simple"', 'class="ff-apt-chart-wrap ff-apt-simple ff-apt-in"');
   }
 

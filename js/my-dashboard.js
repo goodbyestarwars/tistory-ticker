@@ -499,15 +499,25 @@
     summary.code = code;
     return summary;
   }
-  function buildVolumeCard(volume, chart, code, livePrice) {
+  function buildVolumeCard(volume, chart, code, livePrice, holdingAveragePrice) {
     var api = global.ForeignFlow;
     var daily = chart && Array.isArray(chart.daily) ? chart.daily : null;
     var lastClose = daily && daily.length ? number(daily[daily.length - 1].close, null) : null;
     var html = daily && api && api.renderVolumeProfileHtml
-      ? api.renderVolumeProfileHtml(daily, number(livePrice, lastClose)) : '';
+      ? api.renderVolumeProfileHtml(daily, number(livePrice, lastClose), holdingAveragePrice, code) : '';
     if (!html) return '<section class="my-analysis-card"><div class="my-card-title"><strong>매물대</strong></div><p class="my-muted">가격·거래량 데이터가 부족해 그래프를 표시할 수 없습니다.</p></section>';
     return '<section class="my-analysis-card my-volume-card"><div class="my-card-title"><strong>매물대</strong></div>'
       + '<div class="ff-vp-host">' + html + '</div></section>';
+  }
+  function refreshPersonalVolumeProfile(root, item) {
+    var host = root && root.querySelector('.my-volume-card .ff-vp-host');
+    var chart = item && state.analyses[item.code] && state.analyses[item.code].chart;
+    var api = global.ForeignFlow;
+    if (!host || !chart || !Array.isArray(chart.daily) || !api || !api.renderVolumeProfileHtml) return;
+    var daily = chart.daily;
+    var lastClose = daily.length ? number(daily[daily.length - 1].close, null) : null;
+    var metrics = itemMetrics(item, state.quotes[item.code] || {});
+    host.innerHTML = api.renderVolumeProfileHtml(daily, number(metrics.price, lastClose), metrics.holding.averagePrice, item.code);
   }
   function buildChartShapeCard(chart, summary) {
     var notes = summaryNotes(summary);
@@ -807,7 +817,7 @@
     detail.innerHTML = '<div class="my-detail-head"><div><span class="my-dashboard-eyebrow">SELECTED STOCK</span><h3 class="my-selected-title ' + dailyChangeClass + '"><span class="my-selected-name">' + escapeHtml(name) + '</span> <small>' + escapeHtml(item.code) + '</small></h3></div><div class="my-detail-actions"><a href="' + frameUrl + '" target="_blank" rel="noopener">상세 종목분석</a><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '" target="_blank" rel="noopener">호가·실시간</a></div></div>'
       + '<div class="my-metric-grid"><div><span>현재가</span><strong data-my-live-price>' + formatPrice(metrics.price, item.code) + '</strong><small data-my-live-rate class="' + dailyChangeClass + '">' + (dailyChangeRate == null ? '-' : formatSigned(dailyChangeRate, 2) + '%') + '</small></div><div><span>평가금액</span><strong data-my-live-value>' + (metrics.value == null ? '-' : formatPrice(metrics.value, item.code)) + '</strong></div><div><span>평가손익</span><strong data-my-live-pnl class="' + signClass(metrics.pnl) + '">' + (metrics.pnl == null ? '-' : formatPrice(metrics.pnl, item.code)) + '</strong><small data-my-live-pnl-rate>' + (metrics.rate == null ? '평단 입력 필요' : formatSigned(metrics.rate, 2) + '%') + '</small></div></div>'
       + buildHoldingForm(item, metrics)
-      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price) + '</div>'
+      + '<div class="my-analysis-grid">' + buildFlowCard(analysis && analysis.flow) + buildVolumeCard(analysis && analysis.volume, analysis && analysis.chart, item.code, metrics.price, metrics.holding.averagePrice) + '</div>'
       + buildChartShapeCard(analysis && analysis.chart, analysis && analysis.summary)
       + buildCompositeOpinionCard(metrics, analysis && analysis.chart, analysis && analysis.summary, analysis && analysis.volume, analysis && analysis.ai || '')
       + buildAveragingCalculatorWithRecovery(metrics, item.code, analysis && analysis.chart)
@@ -950,6 +960,7 @@
         if (selected) {
           selected.holding = { quantity: number(mount.querySelector('[data-my-field="quantity"]').value), averagePrice: number(mount.querySelector('[data-my-field="averagePrice"]').value), horizon: mount.querySelector('[data-my-field="horizon"]').value };
           updateHoldingPreview(mount, selected);
+          if (event.target.matches('[data-my-field="averagePrice"]')) refreshPersonalVolumeProfile(mount, selected);
           buildWatchlistTable(global.Watchlist.getList());
         }
       }
