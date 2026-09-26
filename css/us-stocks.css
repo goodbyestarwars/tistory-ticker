@@ -103,10 +103,17 @@
 .us-book-bid-text, .us-book-bid-price { color: #d24f45; }
 .us-stocks-level-summary p { margin: 4px 0 0; color: #8b95a1; font-size: 10px; line-height: 1.45; }
 .us-stocks-level-summary p strong { color: #64748b; }
-.us-stocks-book-head, .us-stocks-book-row { display: grid; grid-template-columns: 1fr 82px 1fr; align-items: center; gap: 8px; text-align: right; }
+.us-stocks-book-head, .us-stocks-book-current, .us-stocks-book-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 82px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  padding-inline: 5px;
+}
 .us-stocks-orderbook { display: flex; flex: 1 1 auto; min-height: 0; flex-direction: column; overflow-y: auto; }
-.us-stocks-book-head { padding: 10px 5px 5px; color: #9ca3af; font-size: 10px; }
-.us-stocks-book-row { min-height: 30px; padding: 3px 5px; border-top: 1px solid #f1f5f9; font-size: 11px; }
+.us-stocks-book-head { padding-block: 10px 5px; color: #9ca3af; font-size: 10px; }
+.us-stocks-book-head span { text-align: center; white-space: nowrap; }
+.us-stocks-book-row { min-height: 30px; padding-block: 3px; border-top: 1px solid #f1f5f9; font-size: 11px; text-align: right; }
 .us-stocks-book-price { text-align: center; font-size: 12px; }
 .us-book-side { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .us-book-side b { min-width: 34px; font-size: 11px; }
@@ -117,7 +124,7 @@
 .us-book-ask em { margin-left: auto; background: #e7a09b; }
 .us-book-bid { color: #1261c4; }
 .us-book-bid em { background: #91b5e4; }
-.us-stocks-book-current { display: flex; align-items: baseline; justify-content: center; gap: 8px; margin: 5px 0 2px; padding: 8px 5px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background: #fafafa; color: #8b95a1; font-size: 11px; }
+.us-stocks-book-current { margin: 5px 0 2px; padding-block: 8px; border-top: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb; background: #fafafa; color: #8b95a1; font-size: 11px; text-align: center; }
 .us-stocks-book-current strong { color: #222; font-size: 15px; }
 .us-stocks-book-current span:last-child { color: #64748b; }
 .us-native-chart-mount { width: 100%; max-width: 100%; min-width: 0; min-height: 420px; overflow: hidden; }
