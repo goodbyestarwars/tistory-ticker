@@ -4136,6 +4136,9 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + (chartData.flow && chartData.flow.length
+          ? '<div class="ff-chart-flow-caption">아래 보라·초록 선은 외국인·기관의 하루 순매매량(주). 0 위는 순매수, 아래는 순매도.</div>'
+          : '')
         + (chartData.source === 'flow-fallback'
           ? '<div class="ff-hint">일봉 원천 응답이 지연되어 수급 응답의 종가·거래량으로 임시 표시 중입니다. 실제 OHLC가 도착하면 자동으로 교체됩니다.</div>'
           : '')
@@ -5513,8 +5516,11 @@
       // 서로 덮였다. 이름은 패널 라벨의 범례(색 네모)로 옮기고 축에는 숫자만 남긴다.
       var FOREIGN_COLOR = '#8b5cf6';
       var INSTITUTION_COLOR = '#0ca678';
-      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: FOREIGN_COLOR, lineWidth: 2, lastValueVisible: true, priceLineVisible: false }, 2);
-      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: INSTITUTION_COLOR, lineWidth: 2, lastValueVisible: true, priceLineVisible: false }, 2);
+      // 순매매량은 정수 주식 수다. 기본 가격 포맷(소수 두 자리)이 모바일의
+      // 오른쪽 축을 과하게 넓히므로 두 선 모두 같은 간결한 주 단위 포맷을 쓴다.
+      var flowPriceFormat = { type: 'custom', minMove: 1, formatter: formatNetSharesAxis };
+      var foreignSeries = chart.addSeries(LWC.LineSeries, { color: FOREIGN_COLOR, lineWidth: 2, priceFormat: flowPriceFormat, lastValueVisible: true, priceLineVisible: false }, 2);
+      var institutionSeries = chart.addSeries(LWC.LineSeries, { color: INSTITUTION_COLOR, lineWidth: 2, priceFormat: flowPriceFormat, lastValueVisible: true, priceLineVisible: false }, 2);
       foreignSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.foreign_net != null ? { time: d.date, value: Number(r.foreign_net) } : null; }).filter(Boolean));
       institutionSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.inst_net != null ? { time: d.date, value: Number(r.inst_net) } : null; }).filter(Boolean));
 
@@ -5525,8 +5531,8 @@
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ff-lwc-pane-labels';
-      paneLabels.innerHTML = '<span>거래량</span>'
-        + '<span>순매수 <i class="ff-pane-legend" style="background:' + FOREIGN_COLOR + '"></i>외국인'
+      paneLabels.innerHTML = '<span>거래량(주)</span>'
+        + '<span>순매매(주) <i class="ff-pane-legend" style="background:' + FOREIGN_COLOR + '"></i>외국인'
         + '<i class="ff-pane-legend" style="background:' + INSTITUTION_COLOR + '"></i>기관</span>';
       container.appendChild(paneLabels);
 
@@ -5599,6 +5605,16 @@
   }
   // 캔들차트 축·지지/저항선·크로스헤어에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
   function chartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
+  function formatNetSharesAxis(value) {
+    var number = Number(value);
+    if (!isFinite(number)) return '';
+    var absolute = Math.abs(number);
+    if (absolute < 10000) return Math.round(number).toLocaleString('ko-KR');
+    var divisor = absolute >= 1e8 ? 1e8 : 1e4;
+    var unit = absolute >= 1e8 ? '억' : '만';
+    var rounded = Math.round(absolute / divisor * 10) / 10;
+    return (number < 0 ? '-' : '') + rounded.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + unit;
+  }
 
   // 지지/저항선 그리기. 서버(computeSupportResistance_)가 현재가 기준 위아래로 각각 최대
   // 2개씩(slice(0, 2)) 주므로 선은 최대 4개다 - 이 개수 자체는 의도된 설계다.

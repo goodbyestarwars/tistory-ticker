@@ -2294,6 +2294,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn(".ff-chart-news-detail", style)
         self.assertIn('.ff-chart-row .ff-chart-title { font-family: "Pretendard", "Malgun Gothic", sans-serif; }', style)
 
+    @unittest.skipUnless(shutil.which('node'), 'node 필요')
+    def test_stock_analysis_flow_axis_formats_signed_share_counts_compactly(self):
+        source = self.read('js/foreign-flow.js')
+        match = re.search(r'  function formatNetSharesAxis\(value\) \{.*?\n  \}', source, re.DOTALL)
+        self.assertIsNotNone(match)
+        script = match.group(0) + '''
+console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map(formatNetSharesAxis)));
+'''
+        result = subprocess.run(['node', '-e', script], capture_output=True, text=True, encoding='utf-8', timeout=10)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), ['0', '-9,000', '-16.7만', '-36.3만', '-100만', '1.2억'])
+        self.assertIn("var flowPriceFormat = { type: 'custom', minMove: 1, formatter: formatNetSharesAxis }", source)
+        self.assertEqual(source.count('priceFormat: flowPriceFormat'), 2)
+        self.assertIn('순매매(주)', source)
+        self.assertIn('0 위는 순매수, 아래는 순매도.', source)
+
     def test_stock_analysis_volume_profile_uses_compact_price_bars(self):
         source = self.read("js/foreign-flow.js")
         style = self.read("css/foreign-flow.css")

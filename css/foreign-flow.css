@@ -818,6 +818,12 @@
   vertical-align: -1px;
 }
 #foreign-flow .ff-chart-candle { height: 760px !important; }
+#foreign-flow .ff-chart-flow-caption {
+  margin: 6px 2px 9px;
+  color: #667587;
+  font-size: 11px;
+  line-height: 1.5;
+}
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
 #foreign-flow .ff-lwc-pane-labels + .ff-volume-study-label { display: none; }
@@ -1534,6 +1540,7 @@ html.dark #foreign-flow .ff-chart-candle::after { border-top-color: rgba(245, 23
 html.dark #foreign-flow .ff-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #foreign-flow .ff-lwc-pane-labels { color: rgba(245,239,224,.6); }
 html.dark #foreign-flow .ff-lwc-pane-labels span { background: rgba(26,26,26,.72); }
+html.dark #foreign-flow .ff-chart-flow-caption { color: rgba(245,239,224,.65); }
 html.dark #foreign-flow .ff-extra-card { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #foreign-flow .ff-extra-card-title { color: #F5EFE0 !important; }
 html.dark #foreign-flow .ff-extra-grade { color: rgba(245, 239, 224, 0.6) !important; }
