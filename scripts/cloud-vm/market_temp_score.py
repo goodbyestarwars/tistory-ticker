@@ -232,11 +232,10 @@ AXES = (
     ('risk', '위험', '무리하고 있나', ('vix', 'exchange', 'creditRisk')),
 )
 
-# 3등급. 5등급은 경계에서 흔들리기만 하고 뜻이 안 갈렸다.
-# 경계는 옛 40℃ 밴드를 비율로 옮긴 값이다(옛 중립 구간 50~70%가 새 '보통'의 가운데).
+# 3등급. 사용자 체감 기준: 0~39 공포, 40~60 보통, 61~100 과열.
 GRADE3 = (
-    (50, {'emoji': '🔵', 'label': '공포', 'tone': 'fear'}),
-    (75, {'emoji': '🟡', 'label': '보통', 'tone': 'neutral'}),
+    (40, {'emoji': '🔵', 'label': '공포', 'tone': 'fear'}),
+    (61, {'emoji': '🟡', 'label': '보통', 'tone': 'neutral'}),
     (None, {'emoji': '🔥', 'label': '과열', 'tone': 'greed'}),
 )
 

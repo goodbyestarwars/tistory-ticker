@@ -1522,6 +1522,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("최근 단기흐름", source)
         self.assertIn("smoothSegment_", source)
         self.assertIn("30일 평균", source)
+        self.assertIn("5일 평균", source)
         self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
         self.assertIn("slice(-40)", gas)
         # 단기흐름은 점수의 방향, 30일 평균선, 날짜별 상태를 보여주고
@@ -1533,6 +1534,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("구름 조금", source)
         self.assertNotIn("폭염", source)
         self.assertIn('class="mt-rib-avg"', source)
+        self.assertIn('class="mt-rib-avg5"', source)
+        self.assertIn('mt-rib-band-fear', source)
         self.assertNotIn('gradientUnits="userSpaceOnUse"', source)
         self.assertIn("data-rib-stage", source)
         self.assertIn("mt-weather-strip", source)
@@ -1573,7 +1576,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertNotIn(gone, source)
         # 설명문도 실제 계산(3축 평균, 50/75 경계)과 맞춘다.
         self.assertNotIn("원점수 120점을 100점으로 환산", source)
-        self.assertIn("50점 미만 공포 · 50~75점 보통 · 75점 이상 과열", source)
+        self.assertIn("0~39점 공포 · 40~60점 보통 · 61점 이상 과열", source)
         self.assertIn("코스피 시장 전체 최근 5일 수급", source)
         self.assertNotIn("KODEX 200 최근 5일", source)
         for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
@@ -1858,7 +1861,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         start = gas.index("function getMarketTempBriefing()")
         briefing = gas[start:gas.index("\n}\n", start)]
         self.assertIn("safeCall(fetchMarketTempFromVm_)", briefing)
-        self.assertIn("market_temp_briefing_v3", briefing)
+        self.assertIn("market_temp_briefing_v4", briefing)
+        self.assertIn("점수와 등급을 그대로 다시 읽는 설명은 하지 마", briefing)
         self.assertIn("100점 만점에", briefing)
         self.assertNotIn("safeCall(getMarketTemp)", briefing)
         self.assertNotIn("data.temp.toFixed", briefing)

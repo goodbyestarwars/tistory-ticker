@@ -789,7 +789,7 @@ class ThreeAxisSummaryTest(unittest.TestCase):
     def test_total_is_the_average_of_three_axes_with_risk_flipped_back(self):
         got = mts.build_axes(self.LIVE)
         self.assertEqual(got['score100'], 66)   # (48.3 + 73.3 + 77.3)/3
-        self.assertEqual(got['grade3']['label'], '보통')
+        self.assertEqual(got['grade3']['label'], '과열')
 
     def test_dropped_components_do_not_move_the_total(self):
         """섹터강도·미국선물은 축에서 뺐다 - 값이 바뀌어도 종합점수는 그대로여야 한다."""
@@ -807,7 +807,7 @@ class ThreeAxisSummaryTest(unittest.TestCase):
         self.assertEqual(got['axes']['risk']['value'], 24)
 
     def test_three_grades_replace_the_old_five(self):
-        self.assertEqual(mts.grade_for_score100(49)['label'], '공포')
-        self.assertEqual(mts.grade_for_score100(50)['label'], '보통')
-        self.assertEqual(mts.grade_for_score100(74)['label'], '보통')
-        self.assertEqual(mts.grade_for_score100(75)['label'], '과열')
+        self.assertEqual(mts.grade_for_score100(39)['label'], '공포')
+        self.assertEqual(mts.grade_for_score100(40)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(60)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(61)['label'], '과열')

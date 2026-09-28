@@ -1169,7 +1169,7 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
    이퀄라이저처럼 촘촘한 막대 눈금(segment) 30개 + 중앙 큰 숫자로 그린다. 눈금 끝을
    `stroke-linecap: round`가 아니라 `butt`(각짐)로 둔 건 2026-09-16 사용자 지시
    ("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지" - `.mt-rib-tip`
-   등 이 파일의 다른 규칙들과 같은 원칙) 때문이다. 경계 50·75는 서버 GRADE3와 같다. */
+   등 이 파일의 다른 규칙들과 같은 원칙) 때문이다. 경계 40·61은 서버 GRADE3와 같다. */
 #market-temp .mt-score-gauge { margin: 10px 0 4px; display: flex; flex-direction: column; align-items: center; }
 #market-temp .mt-score-gauge-audi { position: relative; width: 100%; box-sizing: border-box; margin: 8px 0 2px; padding: 8px 10px 0; border: 1px solid #d9dde2; background: linear-gradient(180deg, #ffffff 0%, #f2f4f6 100%); box-shadow: inset 0 1px 0 #fff, 0 5px 15px rgba(45, 55, 65, .08); }
 #market-temp .mt-score-gauge-dial { display: block; width: 100%; max-width: 360px; height: 160px; margin: 0 auto; overflow: hidden; }
@@ -1286,7 +1286,12 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-stage { position: relative; margin-top: 10px; border: 1px solid #e8edf2; border-radius: 10px; background: #fbfcfe; cursor: crosshair; touch-action: pan-y; user-select: none; -webkit-user-select: none; }
 #market-temp .mt-rib-svg { display: block; width: 100%; height: auto; overflow: visible; }
 #market-temp .mt-rib-border { stroke: #e5eaf0; stroke-width: 1; stroke-dasharray: 3 7; }
+#market-temp .mt-rib-band { pointer-events:none; }
+#market-temp .mt-rib-band-fear { fill:#4a90d9; fill-opacity:.055; }
+#market-temp .mt-rib-band-neutral { fill:#d4a548; fill-opacity:.07; }
+#market-temp .mt-rib-band-greed { fill:#d65f5f; fill-opacity:.055; }
 #market-temp .mt-rib-avg { stroke: #9daab6; stroke-width: 1.3; stroke-dasharray: 5 5; }
+#market-temp .mt-rib-avg5 { stroke:#7559a8; stroke-width:1.5; stroke-dasharray:2 3; }
 #market-temp .mt-rib-area { fill: #dce9f3; fill-opacity: .38; }
 /* 2026-09-16 사용자 요청("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지"):
    굵은 선·둥근 끝·알약 모양 라벨·둥근 카드 모서리를 걷어내고 가는 선·사각형으로 통일한다. */
@@ -1300,6 +1305,8 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-zone-label { position: absolute; left: 7px; transform: translateY(-50%); color: var(--mt-tone); font-size: 10px; font-weight: 700; opacity: .78; pointer-events: none; }
 /* 왼쪽 끝 구간 이름(과열·보통·공포)과 겹치지 않게 가운데쯤에 둔다. */
 #market-temp .mt-rib-avg-label { position: absolute; left: 48%; transform: translateY(-115%); padding: 0 4px; border-radius: 0; background: #fbfcfe; color: #7b8792; font-size: 10px; font-weight: 700; white-space: nowrap; pointer-events: none; }
+#market-temp .mt-rib-avg30-label { left:58%; }
+#market-temp .mt-rib-avg5-label { left:30%; color:#7559a8; transform:translateY(12%); }
 #market-temp .mt-rib-now-label { position: absolute; transform: translate(-100%, calc(-100% - 10px)); padding: 2px 7px; border-radius: 0; background: var(--mt-tone); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; pointer-events: none; transition: opacity .15s ease; }
 #market-temp .mt-rib-now-label.is-below { transform: translate(-100%, 10px); }
 #market-temp .mt-rib-stage.is-scrubbing .mt-rib-now-label { opacity: 0; }
@@ -1345,6 +1352,7 @@ html.dark #market-temp .mt-rib-border { stroke: #e5eaf0 !important; }
 html.dark #market-temp .mt-rib-dot { fill: var(--mt-tone) !important; }
 html.dark #market-temp .mt-rib-now { stroke: #fff !important; }
 html.dark #market-temp .mt-rib-avg-label { background: #fbfcfe !important; color: #7b8792 !important; }
+html.dark #market-temp .mt-rib-avg5-label { color:#7559a8 !important; }
 html.dark #market-temp .mt-rib-tip { background: #fff !important; color: #222 !important; }
 html.dark #market-temp .mt-weather-day { background: transparent !important; }
 html.dark #market-temp .mt-weather-day.is-today { background: #f5f9fc !important; }

@@ -924,8 +924,8 @@
     return { x: cx + r * Math.cos(rad), y: cy - r * Math.sin(rad) };
   }
 
-  // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(50·75)와 같다.
-  function zoneColor_(v) { return v < 50 ? '#4aa9d9' : v < 75 ? '#d4a548' : '#d66a6a'; }
+  // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(40·61)와 같다.
+  function zoneColor_(v) { return v < 40 ? '#4a90d9' : v < 61 ? '#d4a548' : '#d65f5f'; }
 
   // 점수 숫자는 왼쪽 요약에 한 번만 표기하고, 계기판은 바늘·눈금으로 위치를 보여준다.
   function buildScoreGauge(value, tone) {
@@ -1140,7 +1140,7 @@
       + buildDriverGroup('▼ 점수를 내린 요인', 'down', falling)
       + '</div>'
       + '<div class="mt-driver-legend"><span>막대가 길수록 오늘 점수에 미친 영향이 큽니다.</span><span>빨강: 과열 방향 · 파랑: 공포 방향</span></div>'
-      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>100점 만점입니다. 지표를 돈(거래대금·수급)·가격(평균등락률·상승비율·52주 신고가/신저가)·위험(VIX·환율·빚투) 세 묶음으로 나눠 각 묶음은 점수÷만점의 평균, 종합점수는 세 묶음의 평균입니다(위험은 뒤집어 안전도로 넣음). 50점 미만 공포 · 50~75점 보통 · 75점 이상 과열. 섹터 강도·미국 선물지수는 참고로만 보여주고 종합점수에는 넣지 않습니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
+      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>100점 만점입니다. 지표를 돈(거래대금·수급)·가격(평균등락률·상승비율·52주 신고가/신저가)·위험(VIX·환율·빚투) 세 묶음으로 나눠 각 묶음은 점수÷만점의 평균, 종합점수는 세 묶음의 평균입니다(위험은 뒤집어 안전도로 넣음). 0~39점 공포 · 40~60점 보통 · 61점 이상 과열. 섹터 강도·미국 선물지수는 참고로만 보여주고 종합점수에는 넣지 않습니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
       + '</div>';
   }
 
@@ -1196,7 +1196,7 @@
   }
 
   function scoreTone_(score) {
-    return score < 50 ? 'fear' : score < 75 ? 'neutral' : 'greed';
+    return score < 40 ? 'fear' : score < 61 ? 'neutral' : 'greed';
   }
 
   function shortDate_(date) {
@@ -1240,6 +1240,8 @@
     var priorDays = days.slice(0, -1);
     var baselineRows = (priorDays.length ? priorDays : days).slice(-30);
     var baseline = baselineRows.reduce(function (sum, item) { return sum + item.score; }, 0) / baselineRows.length;
+    var fiveRows = shown.slice(-5);
+    var fiveAverage = fiveRows.reduce(function (sum, item) { return sum + item.score; }, 0) / fiveRows.length;
 
     var W = 640, H = 190, PX = 56, PT = 15, PB = 12;
     var plotH = H - PT - PB;
@@ -1256,7 +1258,10 @@
     var floor = yOf(0).toFixed(1);
     var now = points[points.length - 1];
     var area = line + ' L' + now.x.toFixed(1) + ',' + floor + ' L' + points[0].x.toFixed(1) + ',' + floor + ' Z';
-    var guides = [75, 50, 25].map(function (value) {
+    var bands = '<rect class="mt-rib-band mt-rib-band-greed" x="' + PX + '" y="' + yOf(100).toFixed(1) + '" width="' + (W - PX * 2) + '" height="' + (yOf(61) - yOf(100)).toFixed(1) + '"></rect>'
+      + '<rect class="mt-rib-band mt-rib-band-neutral" x="' + PX + '" y="' + yOf(61).toFixed(1) + '" width="' + (W - PX * 2) + '" height="' + (yOf(40) - yOf(61)).toFixed(1) + '"></rect>'
+      + '<rect class="mt-rib-band mt-rib-band-fear" x="' + PX + '" y="' + yOf(40).toFixed(1) + '" width="' + (W - PX * 2) + '" height="' + (yOf(0) - yOf(40)).toFixed(1) + '"></rect>';
+    var guides = [61, 40].map(function (value) {
       return '<line class="mt-rib-border" x1="' + PX + '" y1="' + yOf(value).toFixed(1) + '" x2="' + (W - PX)
         + '" y2="' + yOf(value).toFixed(1) + '"></line>';
     }).join('');
@@ -1270,18 +1275,21 @@
     }).join('');
     var nowTone = scoreTone_(now.score);
     var svg = '<svg class="mt-rib-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="최근 ' + shown.length + '거래일 종합점수 흐름">'
+      + bands
       + guides
       + '<line class="mt-rib-avg" x1="' + PX + '" y1="' + yOf(baseline).toFixed(1) + '" x2="' + (W - PX) + '" y2="' + yOf(baseline).toFixed(1) + '"></line>'
+      + '<line class="mt-rib-avg5" x1="' + PX + '" y1="' + yOf(fiveAverage).toFixed(1) + '" x2="' + (W - PX) + '" y2="' + yOf(fiveAverage).toFixed(1) + '"></line>'
       + '<path class="mt-rib-area" d="' + area + '"></path>'
       + '<path class="mt-rib-line mt-spark-draw" d="' + line + '"></path>'
       + dots
       + square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)
       + '</svg>';
     // 구간 이름과 평균선은 SVG 밖에 둬 모바일에서도 읽을 수 있게 한다.
-    var overlay = [['greed', '과열', 87.5], ['neutral', '보통', 62.5], ['fear', '공포', 25]].map(function (zone) {
+    var overlay = [['greed', '과열', 80.5], ['neutral', '보통', 50.5], ['fear', '공포', 20]].map(function (zone) {
       return '<span class="mt-rib-zone-label mt-rib-tone-' + zone[0] + '" style="top:' + pctY(yOf(zone[2])) + '%">' + zone[1] + '</span>';
     }).join('')
-      + '<span class="mt-rib-avg-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균</span>'
+      + '<span class="mt-rib-avg-label mt-rib-avg30-label" style="top:' + pctY(yOf(baseline)) + '%">30일 평균</span>'
+      + '<span class="mt-rib-avg-label mt-rib-avg5-label" style="top:' + pctY(yOf(fiveAverage)) + '%">5일 평균</span>'
       + '<i class="mt-rib-cursor" hidden></i><div class="mt-rib-tip" hidden></div>';
     var pointData = points.map(function (point) {
       return pctX(point.x) + ',' + pctY(point.y) + ',' + point.score.toFixed(0) + ',' + point.date;
@@ -1310,6 +1318,7 @@
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
     var tomorrow = tomorrowFlow_(shown, baseline) || '';
     var metrics = '<div class="mt-history-metrics">'
+      + '<span><small>5일 평균</small><b>' + fiveAverage.toFixed(0) + '점</b></span>'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
       + '<span><small>가장 낮았던 날</small><b>' + marketMood_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
       + '<span><small>가장 높았던 날</small><b>' + marketMood_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'

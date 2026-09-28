@@ -1758,7 +1758,7 @@ function fetchMarketTempFromVm_() {
 
 function getMarketTempBriefing() {
   var cache = CacheService.getScriptCache();
-  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v3';
+  var cacheKey = CACHE_PREFIX + 'market_temp_briefing_v4';
   // 2026-08-03: 실패-캐시(''): null 여부로 정확히 구분(다른 AI 해설 엔드포인트와 동일 수정).
   var cached = cache.get(cacheKey);
   if (cached !== null) return { analysis: cached || null };
@@ -1796,12 +1796,13 @@ function getMarketTempBriefing() {
   var gradeLabel = (data.grade3 && data.grade3.label) || '';
 
   var prompt = '오늘 국내 증시 분위기 점수는 100점 만점에 ' + data.score100.toFixed(0) + '점(' + gradeLabel + ') 입니다' +
-    '(50점 미만 공포 · 50~75점 보통 · 75점 이상 과열). ' +
+    '(0~39점 공포 · 40~60점 보통 · 61점 이상 과열). ' +
     (axisLines.length ? '세 묶음 점수(각 0~100)는 ' + axisLines.join(', ') + '입니다. ' : '') +
     '가장 크게 영향을 준 지표 TOP5(중립 대비 기여도, 양수=과열 방향/음수=공포 방향)는 다음과 같습니다: ' + lines.join(', ') + '. ' +
-    '이 수치만 근거로, 왜 오늘 시장이 이런 상태인지 개인 투자자가 알아듣기 쉬운 말로 설명해줘. 마지막 한 문장은 ' +
-    '이런 분위기에서 개인 투자자가 주의할 점을 알려줘. 온도(℃)라는 표현은 쓰지 말고 점수로 말해줘. ' +
-    '한국어 평문 4~6문장으로 쓰고(제공되지 않은 다른 수치나 종목명을 지어내지 말고, 위 수치만 언급), ' +
+    '개인 투자자의 눈으로 해석하되 점수와 등급을 그대로 다시 읽는 설명은 하지 마. 돈·가격·위험이 서로 엇갈리는 지점이 있으면 그것을 먼저 찾아 ' +
+    '겉으로 보이는 분위기와 실제 수급 사이의 함정 또는 기회를 설명하고, 다음 거래일에 무엇을 확인해야 판단이 틀렸는지 알 수 있는지도 짚어줘. ' +
+    '마지막 한 문장은 조급한 추격·공포 매도처럼 개인이 빠지기 쉬운 실수를 구체적으로 경고해줘. 온도(℃)라는 표현은 쓰지 마. ' +
+    '한국어 평문 4~6문장으로 쓰고(제공되지 않은 다른 수치나 종목명을 지어내지 말고, 위 수치만 근거로 삼아), ' +
     GROQ_NO_ADVICE_GUARD_ + ' 문장 외 다른 말은 붙이지 마.';
 
   var analysis = safeCall(function () { return callGroq(prompt); });
