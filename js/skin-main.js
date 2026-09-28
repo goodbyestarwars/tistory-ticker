@@ -1694,7 +1694,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-briefing-grid"><div class="home-briefing-left-column">'
         + '<div class="home-briefing-featured-slot"></div><div class="home-briefing-left-more"></div></div>'
         + '<div class="home-briefing-small-stack"></div></div>'
-        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>전체 기사 보기</strong><i aria-hidden="true">→</i></a>';
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>마켓 브리핑</strong><i aria-hidden="true">→</i></a>';
       feed.appendChild(briefing);
       selectedCards[0].classList.add('home-briefing-featured');
       briefing.querySelector('.home-briefing-featured-slot').appendChild(selectedCards[0]);
@@ -1712,7 +1712,7 @@ document.documentElement.classList.add('skin-ready');
       briefing.innerHTML = '<div class="home-section-heading"><div><strong>마켓브리핑</strong>'
         + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
         + '<div class="home-card-state">최신 마켓브리핑을 확인하는 중입니다.</div>'
-        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>전체 기사 보기</strong><i aria-hidden="true">→</i></a>';
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>마켓 브리핑</strong><i aria-hidden="true">→</i></a>';
       feed.appendChild(briefing);
     }
 

@@ -614,7 +614,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("home-card-grid", main)
         self.assertIn("slice(0, 8)", main)
         self.assertIn("브리핑 아카이브", main)
-        self.assertIn("전체 기사 보기", main)
+        self.assertNotIn("전체 기사 보기", main)
+        self.assertIn("<strong>마켓 브리핑</strong>", main)
         self.assertIn("home-briefing-left-more", main)
         self.assertIn("selectedCards.slice(4, 8)", main)
         self.assertNotIn("homePatternList", main)
@@ -1563,7 +1564,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var ANT_GUIDE_BY_TONE = {", source)
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
         self.assertIn("buildBriefingStrategy(data)", source)
-        self.assertIn("buildTemperatureActions(data)", source)
+        self.assertIn("buildTemperatureActions()", source)
         self.assertIn("오늘 돈이 몰리는 차트", source)
         self.assertIn("<h2>오늘 업종 TOP 10</h2>", source)
         # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.

@@ -1452,13 +1452,15 @@
 
   function buildBriefingStrategy(data) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
+      + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
+      + buildStrategy(data)
+      + '</div>'
       + '</div>';
   }
 
-  function buildTemperatureActions(data) {
+  function buildTemperatureActions() {
     return '<div class="mt-temperature-actions">'
-      + buildStrategy(data)
       + '<section class="mt-section-block mt-temperature-money-flow">'
       + '<div class="mt-section-head"><h2>오늘 돈이 몰리는 차트</h2><p>오늘 강한 테마에서 종목과 연결 테마까지 이어서 봅니다.</p></div>'
       + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
@@ -2108,7 +2110,7 @@
       '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
       buildBriefingStrategy(data),                  // ④ 시장 브리핑
-      buildTemperatureActions(data),                // ⑤ 체크리스트 → 돈이 몰리는 차트
+      buildTemperatureActions(),                    // ⑤ 돈이 몰리는 차트
     ];
 
     return ''

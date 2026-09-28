@@ -663,25 +663,30 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 .home-section-heading strong { font-size: 17px; color: #1a202c; }
 .home-section-heading span { font-size: 12px; color: #8a94a3; }
 .home-briefing-more {
+  position: relative;
   min-height: 58px;
-  display: grid;
-  grid-template-columns: minmax(0,1fr) auto;
-  grid-template-areas: "eyebrow arrow" "title arrow";
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 0 14px;
-  padding: 10px 16px;
+  justify-content: center;
+  gap: 2px;
+  padding: 10px 58px;
   border: 1px solid #d9e0dc;
   border-radius: 3px;
   background: linear-gradient(90deg,#f6f8f7,#fffefc);
   color: #26364a;
+  text-align: center;
+  text-decoration: none;
 }
-.home-briefing-more span { grid-area:eyebrow; color:#7b8794; font-size:10px; letter-spacing:.08em; }
-.home-briefing-more strong { grid-area:title; font-size:14px; }
-.home-briefing-more i { grid-area:arrow; width:32px; height:32px; display:grid; place-items:center; background:#26364a; color:#fff; font-style:normal; }
+.home-briefing-more span { color:#7b8794; font-size:10px; letter-spacing:.08em; }
+.home-briefing-more strong { color:#26364a; font-size:14px; }
+.home-briefing-more i { position:absolute; right:16px; top:50%; transform:translateY(-50%); width:32px; height:32px; display:grid; place-items:center; background:#26364a; color:#fff; font-style:normal; }
 .home-briefing-more:hover { background: #f3f6f4; }
 html.dark .home-section-heading strong { color: #F5EFE0 !important; }
 html.dark .home-section-heading span { color: rgba(245,239,224,.55) !important; }
 html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rgba(245,239,224,.16) !important; color: #F5EFE0 !important; }
+html.dark .home-briefing-more strong { color: #F5EFE0 !important; }
+html.dark .home-briefing-more span { color: rgba(245,239,224,.58) !important; }
 
 /* ============ 홈 시장 상황판 ============ */
 .home-dashboard {
@@ -3847,8 +3852,8 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a {
   font-weight: 700;
 }
-body#tt-body-index .home-editorial-page .home-briefing-more { color: #2563eb; }
-html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #93b4ff !important; }
+body#tt-body-index .home-editorial-page .home-briefing-more { color: var(--text-main); }
+html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: #F5EFE0 !important; }
 @media (max-width: 1000px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
     grid-template-columns: max-content max-content;
