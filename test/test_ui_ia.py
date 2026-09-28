@@ -613,7 +613,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, main)
         self.assertNotIn("home-card-grid", main)
         self.assertIn("slice(0, 8)", main)
-        self.assertIn("마켓브리핑 전체보기", main)
+        self.assertIn("브리핑 아카이브", main)
+        self.assertIn("전체 기사 보기", main)
         self.assertIn("home-briefing-left-more", main)
         self.assertIn("selectedCards.slice(4, 8)", main)
         self.assertNotIn("homePatternList", main)
@@ -2193,11 +2194,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("drawing.paths.push(drawing.activePath)", search)
         self.assertIn("overlay.addEventListener('pointerdown'", search)
         self.assertIn("overlay.addEventListener('pointermove'", search)
-        self.assertIn("if (!drawing.pending)", search)
-        self.assertIn("drawing.lines.push({ start: drawing.pending, end: point })", search)
-        # 2026-09-22 사용자 요청("차트에 선그리기, 연필 옆에 동그라미 추가해줘") - 두 번
-        # 클릭으로 사각 영역을 잡아 그 안에 내접하는 동그라미(타원)를 그리는 세 번째 도구.
-        self.assertIn("drawing.circles.push({ start: drawing.pending, end: point })", search)
+        self.assertIn("else if (drawing.mode === 'line' || drawing.mode === 'circle') drawing.pending = point", search)
+        self.assertIn("else drawing.lines.push(shape)", search)
+        # 선과 동그라미는 왼쪽에서 오른쪽으로 끌어 완성하는 동일한 포인터 제스처를 쓴다.
+        self.assertIn("if (drawing.mode === 'circle') drawing.circles.push(shape)", search)
+        self.assertIn("왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선", search)
         self.assertIn("ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2)", search)
         self.assertIn("#stock-search .ss-circle-toggle", self.read("css/stock-search.css"))
         self.assertIn(".us-stocks-market-grid > *", style)

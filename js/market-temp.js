@@ -626,10 +626,10 @@
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
     var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 자금이 몰린 섹터와, 업종별 개별 종목을 나눠서 봅니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 시장 체크리스트와 업종별 개별 종목을 함께 봅니다.</p></div>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>테마(섹터) 단위 랭킹입니다. 아래 종목 목록과는 별개로, 오늘 어느 섹터에 자금이 몰렸는지만 보여줍니다.</p></div>'
-      + '<div data-sector-flow></div>'
+      + '<div class="mt-section-head"><h2>오늘의 개미 체크리스트</h2><p>시장 분위기에 휩쓸리지 않고 종목을 고르기 전에 확인할 항목입니다.</p></div>'
+      + '<div data-ant-guide><div class="mt-hint">오늘 시장 기준 체크리스트를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>업종별 주요 종목</h2><p>관심 업종의 개별 종목을 카드·히트맵·시가총액 순으로 살펴봅니다.</p></div>'
@@ -645,7 +645,13 @@
     if (stocksOnly) {
       container.innerHTML = buildStocksOnlyPage();
       wireViewTabs(container);
-      loadSectorFlow_(container);
+      MarketTemp.fetchMarketTemp().then(function (data) {
+        var mount = container.querySelector('[data-ant-guide]');
+        if (mount) mount.innerHTML = buildStrategy(data);
+      }).catch(function () {
+        var mount = container.querySelector('[data-ant-guide]');
+        if (mount) mount.innerHTML = '<div class="mt-hint">체크리스트를 불러오지 못했습니다.</div>';
+      });
       return;
     }
     container.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>증시온도 불러오는 중...</div>';
@@ -1284,6 +1290,10 @@
 
     var low = shown.reduce(function (a, b) { return b.score < a.score ? b : a; });
     var high = shown.reduce(function (a, b) { return b.score > a.score ? b : a; });
+    var moodCounts = shown.reduce(function (counts, day) {
+      counts[scoreTone_(day.score)] += 1;
+      return counts;
+    }, { fear: 0, neutral: 0, greed: 0 });
     var periodDelta = now.score - points[0].score;
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
     var metrics = '<div class="mt-history-metrics">'
@@ -1295,6 +1305,7 @@
       + '<b class="' + periodTone + '">기간 변화 ' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></div>'
       + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
       + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
+      + '<div class="mt-history-balance"><span class="fear">공포 <b>' + moodCounts.fear + '일</b></span><span class="neutral">보통 <b>' + moodCounts.neutral + '일</b></span><span class="greed">과열 <b>' + moodCounts.greed + '일</b></span></div>'
       + metrics;
   }
 
@@ -1429,7 +1440,7 @@
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
-      + buildStrategy(data)
+      + '<div data-industry-flow></div>'
       + '</div>'
       + '</div>';
   }
@@ -2076,8 +2087,7 @@
         + '</div>',
       '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
-      buildBriefingStrategy(data),                  // ④ 시장 브리핑 + 오늘의 개미 체크리스트
-      '<div data-industry-flow></div>',             // ⑤ 업종 TOP 당일·전일 흐름
+      buildBriefingStrategy(data),                  // ④ 시장 브리핑 + 오늘 업종 TOP
     ];
 
     return ''

@@ -16,6 +16,7 @@
   var GOOGLE_AUTH_START_URL = API_BASE_URL + '/auth/google/start';
   var MEMO_URL = API_BASE_URL + '/memo';
   var MAX_BODY_LENGTH = 2000;
+  var DRAFT_KEY = 'memo_widget_draft_v1';
 
   var state = {
     loaded: false,
@@ -101,9 +102,20 @@
       : '';
     return '<div class="memo-composer">'
       + chip
-      + '<textarea id="memoInput" class="memo-input" maxlength="' + MAX_BODY_LENGTH + '" placeholder="메모를 입력하세요"></textarea>'
+      + '<textarea id="memoInput" class="memo-input" maxlength="' + MAX_BODY_LENGTH + '" placeholder="메모를 입력하세요">' + escapeHtml(readDraft()) + '</textarea>'
       + '<button type="button" class="memo-add-btn" id="memoAddBtn">추가</button>'
       + '</div>';
+  }
+
+  function readDraft() {
+    try { return global.localStorage.getItem(DRAFT_KEY) || ''; } catch (err) { return ''; }
+  }
+
+  function writeDraft(value) {
+    try {
+      if (value) global.localStorage.setItem(DRAFT_KEY, value);
+      else global.localStorage.removeItem(DRAFT_KEY);
+    } catch (err) { /* 저장 공간이 막혀도 서버 메모 기능은 계속 사용 */ }
   }
 
   function itemRowHtml(item) {
@@ -167,6 +179,8 @@
   }
 
   function wirePanelEvents(body) {
+    var draftInput = body.querySelector('#memoInput');
+    if (draftInput) draftInput.addEventListener('input', function () { writeDraft(draftInput.value); });
     var addBtn = body.querySelector('#memoAddBtn');
     if (addBtn) {
       addBtn.addEventListener('click', function () {
@@ -187,6 +201,7 @@
         };
         addBtn.disabled = true;
         saveItems(state.items.concat([item]))
+          .then(function () { writeDraft(''); })
           .catch(function (err) { handleSaveError(err); })
           .then(function () { addBtn.disabled = false; });
       });

@@ -942,7 +942,7 @@
     var matches = sortedDividendMatches();
     var columns = dividendTableColumns(matches);
     var table = '<div class="ss-table-wrap"><table class="ss-comparison-table ss-dividend-table"><thead><tr>'
-      + columns.map(function (column) { return '<th>' + column.label + '</th>'; }).join('')
+      + columns.map(function (column) { return '<th' + (column.cls ? ' class="' + column.cls + '"' : '') + '>' + column.label + '</th>'; }).join('')
       + '</tr></thead><tbody>' + matches.map(function (item, index) { return dividendTableRow(item, index, columns); }).join('') + '</tbody></table></div>';
     var reportYears = matches.map(function (item) { return Number(item.reportYear); }).filter(function (year) { return isFinite(year) && year > 0; });
     var reportYear = reportYears.length ? Math.max.apply(Math, reportYears) : null;

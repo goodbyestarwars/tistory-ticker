@@ -31,6 +31,17 @@
   var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v3';
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   var monthFetchInflight = {};
+  // 미국 실적 일정은 전 종목을 그대로 펼치지 않고 대형 대표주인 S&P 100 구성종목만
+  // 남긴다. 복수 클래스(BRK.B/GOOGL 등)를 포함하며 API 심볼의 '-'와 '.' 표기를 함께 받는다.
+  var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM').split(' '));
+
+  function isSp100Earnings(event) {
+    var market = String(event && event.market || '').toLowerCase();
+    var source = String(event && (event.source || event.provider) || '').toLowerCase();
+    if (market !== 'us' && market !== 'usa' && market !== 'foreign' && source !== 'finnhub') return true;
+    var symbol = String(event && (event.symbol || event.ticker) || '').toUpperCase().replace('-', '.');
+    return SP100_SYMBOLS.has(symbol);
+  }
 
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
   // 예: DART corp_name "현대자동차" vs KRX_MAP 키 "현대차"(005380).
@@ -84,9 +95,11 @@
     // skin-main.js가 제공하는 월별 공유 로더(60초 단일 요청)로 중복 호출을 없앤다.
     // 홈에서 일정 카드·미국 실적·주간 리포트가 같은 월을 각자 fetch 하던 것을 합친다.
     // 전역이 없으면(로드 실패 등) 기존 직접 호출로 폴백한다.
-    if (global.EarningsCalendarFeed) return global.EarningsCalendarFeed.month(year, month + 1);
+    if (global.EarningsCalendarFeed) return global.EarningsCalendarFeed.month(year, month + 1).then(function (events) {
+      return (events || []).filter(isSp100Earnings);
+    });
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
-      .then(function (data) { return Array.isArray(data) ? data : (data && data.data) || []; })
+      .then(function (data) { return (Array.isArray(data) ? data : (data && data.data) || []).filter(isSp100Earnings); })
       .catch(function () { return []; });
   }
 

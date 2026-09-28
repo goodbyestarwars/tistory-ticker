@@ -73,11 +73,11 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         self.assertEqual(matches[0]['patternDetail']['prevDate'], '2026-09-03')
 
     def test_reaching_half_of_previous_day_counts_as_a_breakout(self):
-        # 2026-09-22: 문턱이 1.0배(하루치)에서 0.5배(절반)로 낮아졌다 - 딱 절반이면 포함.
+        # 2026-09-28: 검색 결과가 너무 적어 문턱을 0.3배로 낮췄다 - 딱 30%면 포함.
         self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 50000}]), FakeConn(), 'now')
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 30000}]), FakeConn(), 'now')
         self.assertEqual(len(matches), 1)
-        self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 0.5, places=4)
+        self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 0.3, places=4)
 
     def test_excludes_when_today_volume_is_just_short_of_half(self):
         self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]

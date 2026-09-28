@@ -241,6 +241,10 @@ def hot_stocks(board_data, limit=10):
                 break
     for item in rows:
         item['reason'] = _stock_reason(item)
+    # 휴장 화면은 '뜨거웠던' 이름값에 맞게 실제 등락 진폭을 먼저 보여준다. 여러 순위
+    # 바구니를 섞는 다양성은 후보 수집에만 쓰고, 최종 노출은 상승률 우선이다.
+    rows.sort(key=lambda item: (item.get('changeRate') or 0,
+                                log1p(max(item.get('tradeAmount') or 0, 0))), reverse=True)
     return rows
 
 
@@ -269,9 +273,8 @@ def cold_stocks(board_data, limit=5):
     # Market-cap/trade-amount visibility keeps the list focused on liquid names.
     # The rank APIs already limit the candidate universe; this only changes order.
     rows.sort(key=lambda item: (
-        log1p(max(item.get('marketCap') or 0, 0))
-        + log1p(max(item.get('tradeAmount') or 0, 0)),
         abs(item.get('changeRate') or 0),
+        log1p(max(item.get('marketCap') or 0, 0)) + log1p(max(item.get('tradeAmount') or 0, 0)),
     ), reverse=True)
     rows = rows[:limit]
     for item in rows:

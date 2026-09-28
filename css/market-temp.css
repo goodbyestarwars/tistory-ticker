@@ -387,6 +387,14 @@
 #market-temp .mt-pill.mt-val-zero { background: #eee; color: #888; }
 
 /* ================= ④ 최근 단기흐름 그래프 ================= */
+.mt-history-balance { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin:8px 0 10px; }
+.mt-history-balance span { padding:7px 8px; background:#f6f8fa; color:#64748b; font-size:11px; text-align:center; }
+.mt-history-balance b { display:block; margin-top:2px; color:#27364b; font-size:13px; }
+.mt-history-balance .fear { border-top:3px solid #1261c4; }
+.mt-history-balance .neutral { border-top:3px solid #d5a928; }
+.mt-history-balance .greed { border-top:3px solid #d24f45; }
+html.dark #market-temp .mt-history-balance span { background:#242424; color:rgba(245,239,224,.55); }
+html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-spark { width: 100%; height: 104px; display: block; overflow: visible; }
 #market-temp .mt-spark-grid-line { stroke: rgba(107, 114, 128, .12); stroke-width: 1; stroke-dasharray: 3 5; }
 #market-temp .mt-spark-area { pointer-events: none; }

@@ -61,6 +61,9 @@
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   z-index: 950;
   overflow: hidden;
+  resize: both;
+  min-width: 280px;
+  min-height: 240px;
 }
 .memo-panel[hidden] { display: none; }
 .memo-panel-head {
@@ -99,7 +102,7 @@
   border-radius: 50%;
 }
 .memo-panel-close:hover { color: #111; background: #f1f5f9; }
-.memo-panel-body { padding: 12px 14px; overflow-y: auto; }
+.memo-panel-body { padding: 12px 14px; overflow: auto; min-height: 0; }
 .memo-loading, .memo-empty { color: #94a3b8; font-size: 12.5px; text-align: center; padding: 16px 0; }
 .memo-error { color: #b42318; font-size: 12px; margin-bottom: 8px; }
 
@@ -189,6 +192,6 @@ html.dark .memo-item-delete:hover { color: #ff6b5b; }
 html.dark .memo-item-body { color: rgba(245, 239, 224, 0.85); }
 
 @media (max-width: 480px) {
-  .memo-panel { right: 12px; bottom: 122px; width: calc(100vw - 24px); }
+  .memo-panel { right: 12px; bottom: 122px; width: calc(100vw - 24px); min-width: 0; resize: vertical; }
   .memo-fab { right: 12px; }
 }

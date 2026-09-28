@@ -1976,8 +1976,8 @@
       drawing.circleButton.setAttribute('aria-pressed', mode === 'circle' ? 'true' : 'false');
     }
     drawing.overlay.title = mode === 'line'
-      ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 추세선이 완성됩니다.'
-      : mode === 'circle' ? '한 번 클릭해 영역을 시작하고, 다시 클릭하면 동그라미가 완성됩니다.'
+      ? '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.'
+      : mode === 'circle' ? '왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.'
       : mode === 'pencil' ? '누른 채로 움직여 자유롭게 그립니다.' : '';
     redrawStockDrawing(drawing);
   }
@@ -2008,29 +2008,6 @@
     overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
     element.appendChild(overlay);
     drawing.overlay = overlay;
-    overlay.addEventListener('click', function (event) {
-      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle')) return;
-      var rect = overlay.getBoundingClientRect();
-      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
-      if (!point) return;
-      if (!drawing.pending) {
-        drawing.pending = point;
-        overlay.setAttribute('aria-label', drawing.mode === 'circle'
-          ? '동그라미 시작점이 지정되었습니다. 다시 클릭하면 완성됩니다.'
-          : '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
-      } else if (drawing.mode === 'circle') {
-        drawing.circles.push({ start: drawing.pending, end: point });
-        drawing.pending = null;
-        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveStockDrawings(drawing);
-      } else {
-        drawing.lines.push({ start: drawing.pending, end: point });
-        drawing.pending = null;
-        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveStockDrawings(drawing);
-      }
-      redrawStockDrawing(drawing);
-    });
     overlay.addEventListener('mousemove', function (event) {
       if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle') || !drawing.pending) return;
       var rect = overlay.getBoundingClientRect();
@@ -2043,18 +2020,24 @@
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('pointerdown', function (event) {
-      if (!drawing.enabled || drawing.mode !== 'pencil') return;
+      if (!drawing.enabled) return;
       var rect = overlay.getBoundingClientRect();
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
       event.preventDefault();
-      drawing.activePath = [point];
+      if (drawing.mode === 'pencil') drawing.activePath = [point];
+      else if (drawing.mode === 'line' || drawing.mode === 'circle') drawing.pending = point;
       if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('pointermove', function (event) {
-      if (drawing.mode !== 'pencil' || !drawing.activePath) return;
       var rect = overlay.getBoundingClientRect();
+      if ((drawing.mode === 'line' || drawing.mode === 'circle') && drawing.pending) {
+        drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        redrawStockDrawing(drawing);
+        return;
+      }
+      if (drawing.mode !== 'pencil' || !drawing.activePath) return;
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
       var last = drawing.activePath[drawing.activePath.length - 1];
@@ -2063,6 +2046,20 @@
       redrawStockDrawing(drawing);
     });
     function finishStockPencil(event) {
+      if (drawing.pending && (drawing.mode === 'line' || drawing.mode === 'circle')) {
+        var rect = overlay.getBoundingClientRect();
+        var endPoint = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
+        var startPoint = drawing.pending;
+        if (endPoint) {
+          var shape = { start: startPoint, end: endPoint };
+          if (drawing.mode === 'circle') drawing.circles.push(shape);
+          else drawing.lines.push(shape);
+        }
+        drawing.pending = null;
+        drawing.preview = null;
+        saveStockDrawings(drawing);
+        redrawStockDrawing(drawing);
+      }
       if (!drawing.activePath) return;
       if (drawing.activePath.length > 1) drawing.paths.push(drawing.activePath);
       drawing.activePath = null;
