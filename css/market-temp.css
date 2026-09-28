@@ -1233,6 +1233,9 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 #market-temp .mt-axis-good { background: #2f9e6b; }
 #market-temp .mt-axis-mid { background: #e0a03c; }
 #market-temp .mt-axis-bad { background: #8b929d; }
+#market-temp .mt-axis-risk-low { background: #3b82c4; }
+#market-temp .mt-axis-risk-mid { background: #e0a03c; }
+#market-temp .mt-axis-risk-high { background: #d9534f; }
 #market-temp .mt-axis-value { font: 800 14px/1 var(--font-ui); text-align: right; font-variant-numeric: tabular-nums; }
 #market-temp .mt-axis-word { min-width: 34px; color: #8b929d; font-size: 11px; text-align: right; white-space: nowrap; }
 #market-temp .mt-summary-note { padding-top: 10px; color: #8b929d; font-size: 11px; line-height: 1.5; }
@@ -1317,9 +1320,20 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-anim .mt-weather-day { animation: mtWeatherPop .45s cubic-bezier(.34, 1.56, .64, 1) both; animation-delay: calc(var(--mt-i, 0) * 60ms + .35s); }
 @keyframes mtWeatherPop { from { transform: translateY(8px) scale(.85); opacity: 0; } to { transform: none; opacity: 1; } }
 #market-temp .mt-history-metrics em { color: #9aa1ab; font-size: 11px; font-style: normal; font-weight: 600; }
+#market-temp .mt-tomorrow-flow { display:grid; grid-template-columns:minmax(118px,.7fr) minmax(0,1.3fr); gap:12px; align-items:center; margin-top:10px; padding:10px 12px; border-left:3px solid #9099a3; background:#f6f8fa; }
+#market-temp .mt-tomorrow-flow span small { display:block; color:#7b8792; font-size:10px; }
+#market-temp .mt-tomorrow-flow span b { display:block; margin-top:2px; color:#37424d; font-size:13px; }
+#market-temp .mt-tomorrow-flow p { margin:0; color:#56616d; font-size:11px; line-height:1.45; }
+#market-temp .mt-tomorrow-flow p small { display:block; margin-top:2px; color:#939ca6; font-size:9px; }
+#market-temp .mt-tomorrow-up { border-left-color:#d66a6a; }
+#market-temp .mt-tomorrow-down { border-left-color:#4aa9d9; }
+#market-temp .mt-tomorrow-flat { border-left-color:#d4a548; }
+#market-temp .mt-temperature-actions { display:grid; gap:16px; }
+#market-temp .mt-temperature-money-flow { margin:0; }
 @media (max-width: 640px) {
   #market-temp .mt-weather-strip { gap: 1px; }
   #market-temp .mt-weather-day small { font-size: 9px; }
+  #market-temp .mt-tomorrow-flow { grid-template-columns:1fr; gap:5px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #market-temp .mt-rib-pulse,
@@ -1336,6 +1350,9 @@ html.dark #market-temp .mt-weather-day { background: transparent !important; }
 html.dark #market-temp .mt-weather-day.is-today { background: #f5f9fc !important; }
 html.dark #market-temp .mt-weather-day small { color: #8a949f !important; }
 html.dark #market-temp .mt-weather-day.is-today small { color: #37424d !important; }
+html.dark #market-temp .mt-axis-risk-low { background: #66a9e8 !important; }
+html.dark #market-temp .mt-axis-risk-mid { background: #e6b768 !important; }
+html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
 
 /* 2026-09-24: 증시온도를 '한 장으로 읽는 시장 계기판'으로 재배치.
    점수·상태·다이얼을 위에 묶고, 행동 힌트와 점수 근거를 순서대로 읽게 한다.

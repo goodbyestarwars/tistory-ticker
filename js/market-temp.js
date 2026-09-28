@@ -509,7 +509,7 @@
   }
 
 
-  // ---- 오늘 돈이 몰린 섹터 (국내 주요종목 상단) ----
+  // ---- 오늘 돈이 몰린 섹터 (증시온도 체크리스트 아래) ----
   //
   // 2026-09-02 사용자 요청으로 추천을 섹터 단위로 바꿨다(흐름: 오늘의 섹터 → 그 종목 →
   // 파생 섹터). 2026-09-14 사용자 지적("광통신이 상한가 갔는데 하나도 없네, 내가 만든
@@ -626,10 +626,10 @@
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
     var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 시장 체크리스트와 업종별 개별 종목을 함께 봅니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 거래대금이 몰린 업종과 업종별 개별 종목을 함께 봅니다.</p></div>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>오늘의 개미 체크리스트</h2><p>시장 분위기에 휩쓸리지 않고 종목을 고르기 전에 확인할 항목입니다.</p></div>'
-      + '<div data-ant-guide><div class="mt-hint">오늘 시장 기준 체크리스트를 불러오는 중입니다.</div></div>'
+      + '<div class="mt-section-head"><h2>오늘 업종 TOP 10</h2><p>대표 종목 거래대금을 합산한 업종 순위입니다. 행을 누르면 구성 종목을 확인할 수 있습니다.</p></div>'
+      + '<div data-industry-flow><div class="mt-hint">오늘 업종 순위를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>업종별 주요 종목</h2><p>관심 업종의 개별 종목을 카드·히트맵·시가총액 순으로 살펴봅니다.</p></div>'
@@ -645,13 +645,7 @@
     if (stocksOnly) {
       container.innerHTML = buildStocksOnlyPage();
       wireViewTabs(container);
-      MarketTemp.fetchMarketTemp().then(function (data) {
-        var mount = container.querySelector('[data-ant-guide]');
-        if (mount) mount.innerHTML = buildStrategy(data);
-      }).catch(function () {
-        var mount = container.querySelector('[data-ant-guide]');
-        if (mount) mount.innerHTML = '<div class="mt-hint">체크리스트를 불러오지 못했습니다.</div>';
-      });
+      loadIndustryFlow_(container);
       return;
     }
     container.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>증시온도 불러오는 중...</div>';
@@ -665,7 +659,7 @@
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
         loadAiBriefing(container);
-        loadIndustryFlow_(container);
+        loadSectorFlow_(container);
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
@@ -909,9 +903,10 @@
   function buildAxisRow(axis, icon) {
     var value = Number(axis && axis.value);
     var pct = isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
-    // 위험 축만 "높을수록 나쁨"이라 색을 반대로 준다.
-    var tone = axis && axis.inverted
-      ? (pct >= 65 ? 'mt-axis-bad' : pct >= 35 ? 'mt-axis-mid' : 'mt-axis-good')
+    // 위험은 안전/위험을 초록으로 표현하지 않는다. 낮음=파랑, 보통=노랑, 높음=빨강의
+    // 경고 팔레트로 읽히게 하고 돈·가격 축만 기존 좋음/보통/나쁨 의미색을 유지한다.
+    var tone = axis && axis.key === 'risk'
+      ? (pct >= 65 ? 'mt-axis-risk-high' : pct >= 35 ? 'mt-axis-risk-mid' : 'mt-axis-risk-low')
       : (pct >= 65 ? 'mt-axis-good' : pct >= 35 ? 'mt-axis-mid' : 'mt-axis-bad');
     return ''
       + '<div class="mt-axis-row">'
@@ -1214,6 +1209,23 @@
     return (rounded > 0 ? '+' : '') + rounded + '점';
   }
 
+  function tomorrowFlow_(shown, baseline) {
+    var recent = shown.slice(-4);
+    var latest = recent[recent.length - 1];
+    if (!latest || recent.length < 3) return null;
+    var first = recent[0];
+    var momentum = latest.score - first.score;
+    var lastMove = latest.score - recent[recent.length - 2].score;
+    var distance = latest.score - baseline;
+    var signal = momentum * 0.55 + lastMove * 0.3 + distance * 0.15;
+    var label = signal >= 4 ? '상승 흐름 우세' : signal <= -4 ? '하락 흐름 경계' : '횡보 가능성';
+    var tone = signal >= 4 ? 'up' : signal <= -4 ? 'down' : 'flat';
+    var reason = '최근 4거래일 ' + signedPoints_(momentum) + ' · 30일 평균 대비 ' + signedPoints_(distance);
+    return '<div class="mt-tomorrow-flow mt-tomorrow-' + tone + '">'
+      + '<span><small>내일 흐름</small><b>' + label + '</b></span><p>' + escapeHtml(reason)
+      + '<small>시장 온도 추세를 단순 연장한 참고 신호이며, 개별 종목 종가 베팅 신호는 아닙니다.</small></p></div>';
+  }
+
   function buildSparklineContent(data, period) {
     var days = historyDays_(data);
     if (!days.length) return '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>';
@@ -1296,6 +1308,7 @@
     }, { fear: 0, neutral: 0, greed: 0 });
     var periodDelta = now.score - points[0].score;
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
+    var tomorrow = tomorrowFlow_(shown, baseline) || '';
     var metrics = '<div class="mt-history-metrics">'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
       + '<span><small>가장 낮았던 날</small><b>' + marketMood_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
@@ -1306,6 +1319,7 @@
       + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
       + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
       + '<div class="mt-history-balance"><span class="fear">공포 <b>' + moodCounts.fear + '일</b></span><span class="neutral">보통 <b>' + moodCounts.neutral + '일</b></span><span class="greed">과열 <b>' + moodCounts.greed + '일</b></span></div>'
+      + tomorrow
       + metrics;
   }
 
@@ -1438,11 +1452,17 @@
 
   function buildBriefingStrategy(data) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
-      + '<div class="mt-briefing-strategy-grid">'
       + buildAiBriefingShell()
-      + '<div data-industry-flow></div>'
-      + '</div>'
       + '</div>';
+  }
+
+  function buildTemperatureActions(data) {
+    return '<div class="mt-temperature-actions">'
+      + buildStrategy(data)
+      + '<section class="mt-section-block mt-temperature-money-flow">'
+      + '<div class="mt-section-head"><h2>오늘 돈이 몰리는 차트</h2><p>오늘 강한 테마에서 종목과 연결 테마까지 이어서 봅니다.</p></div>'
+      + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
+      + '</section></div>';
   }
 
   // ---- ⑨ 온도 기준표(카드형) ----
@@ -2087,7 +2107,8 @@
         + '</div>',
       '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
-      buildBriefingStrategy(data),                  // ④ 시장 브리핑 + 오늘 업종 TOP
+      buildBriefingStrategy(data),                  // ④ 시장 브리핑
+      buildTemperatureActions(data),                // ⑤ 체크리스트 → 돈이 몰리는 차트
     ];
 
     return ''
@@ -2210,7 +2231,7 @@
     // 로컬 하네스가 표본 데이터를 직접 넣어 레이아웃을 확인할 수 있게 열어둔다
     // (js/foreign-flow.js의 fetchJson 몽키패치와 같은 취지).
     renderIndustryFlow: renderIndustryFlow_,
-    // 섹터 흐름도 같은 이유로 열어둔다 - /industry-flow 응답이 있어야 그려져서
+    // 돈이 몰리는 테마 흐름도 같은 이유로 열어둔다 - /theme-flow 응답이 있어야 그려져서
     // mock만으로는 레이아웃을 볼 수 없다.
     renderSectorFlow: renderSectorFlow_
   };

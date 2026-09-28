@@ -1526,6 +1526,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 단기흐름은 점수의 방향, 30일 평균선, 날짜별 상태를 보여주고
         # 정확한 일별 점수는 차트 툴팁에 남긴다.
         self.assertIn("function marketMood_(score)", source)
+        self.assertIn("function tomorrowFlow_(shown, baseline)", source)
+        self.assertIn("내일 흐름", source)
         self.assertNotIn("꽁꽁", source)
         self.assertNotIn("구름 조금", source)
         self.assertNotIn("폭염", source)
@@ -1561,6 +1563,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var ANT_GUIDE_BY_TONE = {", source)
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
         self.assertIn("buildBriefingStrategy(data)", source)
+        self.assertIn("buildTemperatureActions(data)", source)
+        self.assertIn("오늘 돈이 몰리는 차트", source)
+        self.assertIn("<h2>오늘 업종 TOP 10</h2>", source)
         # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.
         for gone in ("action: '적극 분할매수'", "summary: '공포 우세 구간 · 분할 매수 후보를 확인'",
                      "stock: 70, cash: 30", "<span>주식비중</span>", "var STRATEGY_BY_TONE", "var SIGNAL_BY_TONE"):

@@ -205,51 +205,20 @@ def hot_stocks(board_data, limit=10):
         else:
             merged[item['code']] = item
 
-    buckets = []
-    for section, _tag in specs:
-        codes = []
-        for raw in (sections.get(section) or [])[:limit]:
-            item = _hot_row(raw, _tag)
-            if not item or (item.get('changeRate') is not None and item['changeRate'] < 0):
-                continue
-            if item['code'] not in codes and item['code'] in merged:
-                codes.append(item['code'])
-        if codes:
-            buckets.append(codes)
-    row_codes = [item['code'] for item in ((board_data or {}).get('rows') or [])
-                 if _hot_row(item, '거래대금 상위')
-                 and (_hot_row(item, '거래대금 상위').get('changeRate') is None
-                      or _hot_row(item, '거래대금 상위').get('changeRate') >= 0)
-                 and _hot_row(item, '거래대금 상위')['code'] in merged]
-    if row_codes:
-        buckets.append(list(dict.fromkeys(row_codes)))
-
-    rows = []
-    selected = set()
-    cursor = [0] * len(buckets)
-    while len(rows) < limit and any(cursor[index] < len(bucket) for index, bucket in enumerate(buckets)):
-        for index, bucket in enumerate(buckets):
-            while cursor[index] < len(bucket) and bucket[cursor[index]] in selected:
-                cursor[index] += 1
-            if cursor[index] >= len(bucket):
-                continue
-            code = bucket[cursor[index]]
-            cursor[index] += 1
-            selected.add(code)
-            rows.append(merged[code])
-            if len(rows) >= limit:
-                break
-    for item in rows:
-        item['reason'] = _stock_reason(item)
-    # 휴장 화면은 '뜨거웠던' 이름값에 맞게 실제 등락 진폭을 먼저 보여준다. 여러 순위
-    # 바구니를 섞는 다양성은 후보 수집에만 쓰고, 최종 노출은 상승률 우선이다.
+    # 1%도 움직이지 않은 유동성 상위 종목은 사용자가 '뜨거웠다'고 인식하지 않는다.
+    # 순위 바구니는 후보 수집에만 쓰고, 최종 후보는 +1% 이상만 등락률 우선으로 고른다.
+    rows = [item for item in merged.values()
+            if item.get('changeRate') is not None and item['changeRate'] >= 1.0]
     rows.sort(key=lambda item: (item.get('changeRate') or 0,
                                 log1p(max(item.get('tradeAmount') or 0, 0))), reverse=True)
+    rows = rows[:limit]
+    for item in rows:
+        item['reason'] = _stock_reason(item)
     return rows
 
 
 def cold_stocks(board_data, limit=5):
-    """Select liquid, negative performers instead of obscure decliners only."""
+    """Select visible decliners by actual move, with liquidity only as a tiebreaker."""
     sections = (board_data or {}).get('sections') or {}
     specs = (
         ('falling', '하락 상위'), ('tradeAmount', '거래대금 상위'),
@@ -259,7 +228,7 @@ def cold_stocks(board_data, limit=5):
     for section, tag in specs:
         for raw in (sections.get(section) or [])[:max(limit * 3, 15)]:
             item = _hot_row(raw, tag)
-            if not item or item.get('changeRate') is None or item['changeRate'] >= 0:
+            if not item or item.get('changeRate') is None or item['changeRate'] > -1.0:
                 continue
             current = merged.get(item['code'])
             if current:
@@ -270,8 +239,7 @@ def cold_stocks(board_data, limit=5):
             else:
                 merged[item['code']] = item
     rows = list(merged.values())
-    # Market-cap/trade-amount visibility keeps the list focused on liquid names.
-    # The rank APIs already limit the candidate universe; this only changes order.
+    # -1% 이하 하락폭을 먼저 보고, 같은 하락폭에서만 시총·거래대금으로 보정한다.
     rows.sort(key=lambda item: (
         abs(item.get('changeRate') or 0),
         log1p(max(item.get('marketCap') or 0, 0)) + log1p(max(item.get('tradeAmount') or 0, 0)),

@@ -56,15 +56,29 @@ class WeeklyReportTests(unittest.TestCase):
         }}, limit=3)
         self.assertEqual([item['code'] for item in result], ['A', 'C'])
 
-    def test_cold_stocks_prefers_liquid_negative_names_and_adds_reason(self):
+    def test_cold_stocks_prefers_actual_decline_over_liquidity_and_adds_reason(self):
         result = weekly_report.cold_stocks({'sections': {
             'falling': [
                 {'code': 'SMALL', 'name': '소형주', 'change_rate': -9, 'market_cap': 1, 'trade_amount': 2},
                 {'code': 'LARGE', 'name': '대형주', 'change_rate': -3, 'market_cap': 100000, 'trade_amount': 50000},
             ],
         }}, limit=1)
-        self.assertEqual(result[0]['code'], 'LARGE')
+        self.assertEqual(result[0]['code'], 'SMALL')
         self.assertIn('하락률 상위', result[0]['reason'])
+
+    def test_hot_and_cold_stocks_require_a_visible_one_percent_move(self):
+        board = {'sections': {
+            'rising': [
+                {'code': 'FLAT_UP', 'name': '미미상승', 'change_rate': 0.41, 'trade_amount': 999999},
+                {'code': 'HOT', 'name': '상승', 'change_rate': 2.1, 'trade_amount': 100},
+            ],
+            'falling': [
+                {'code': 'FLAT_DOWN', 'name': '미미하락', 'change_rate': -0.3, 'trade_amount': 999999},
+                {'code': 'COLD', 'name': '하락', 'change_rate': -1.8, 'trade_amount': 100},
+            ],
+        }}
+        self.assertEqual([row['code'] for row in weekly_report.hot_stocks(board)], ['HOT'])
+        self.assertEqual([row['code'] for row in weekly_report.cold_stocks(board)], ['COLD'])
 
     def test_candidate_stocks_require_direction_and_independent_signal(self):
         board = {'sections': {
