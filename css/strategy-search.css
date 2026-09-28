@@ -1080,6 +1080,54 @@ html.dark:not(.font-gothic) body #strategy-search .ss-product-tab.active {
   white-space: nowrap;
 }
 
+/* 2026-09-28 ETF·배당주 필터 정렬: 라벨과 큰 입력칸을 한 줄에 연달아 놓으면
+   `대분류 [전체] 중분류 [전체]`가 한 문장처럼 붙어 보인다. 라벨을 입력칸 위로 올리고
+   각 필터를 독립된 열로 만들어 스캔 순서를 분명하게 한다. */
+#strategy-search .ss-product-toolbar {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(150px, 1fr)) minmax(240px, 1.35fr);
+  align-items: end;
+  gap: 18px;
+  padding: 18px 0 20px;
+}
+#strategy-search .ss-dividend-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 220px));
+  align-items: end;
+  gap: 18px;
+  padding: 18px 0 16px;
+}
+#strategy-search .ss-product-toolbar label,
+#strategy-search .ss-dividend-toolbar label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 7px;
+  min-width: 0;
+  font-size: 12px;
+}
+#strategy-search .ss-product-toolbar select,
+#strategy-search .ss-dividend-toolbar select,
+#strategy-search .ss-product-toolbar .ss-etf-search-input {
+  width: 100%;
+  min-width: 0;
+}
+#strategy-search .ss-product-toolbar .ss-etf-search-input {
+  align-self: end;
+  margin-left: 0;
+}
+#strategy-search .ss-dividend-basis { margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px solid #e5e7eb; }
+
+@media (max-width: 1100px) {
+  #strategy-search .ss-product-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #strategy-search .ss-product-toolbar .ss-etf-search-input { grid-column: 1 / -1; }
+}
+@media (max-width: 640px) {
+  #strategy-search .ss-product-toolbar,
+  #strategy-search .ss-dividend-toolbar { grid-template-columns: 1fr; gap: 12px; padding-block: 15px; }
+  #strategy-search .ss-product-toolbar .ss-etf-search-input { grid-column: auto; }
+}
+
 /* ============ 배당 정보 모달 ============ */
 .ss-dividend-modal-overlay {
   position: fixed;
