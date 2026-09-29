@@ -516,8 +516,9 @@
     var title = shown.length ? '오늘 업종 TOP ' + shown.length : '오늘 업종 흐름';
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
       + '<div class="mt-industry-flow-head"><strong>오늘 돈이 몰리는 차트</strong><span>거래대금이 많이 몰린 순서 · TOP ' + shown.length + '</span></div>'
-      + '<div class="mt-money-flow-grid">' + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>') + '</div>'
-      + '<p class="mt-industry-flow-note">테마별 대표 종목 거래대금을 합산한 흐름입니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 길이는 1위 대비 자금 집중도이며, 평균등락률은 보조지표입니다. ' + rankBasisText + ' 카드를 누르면 대표 종목이 열립니다.</p>'
+      + '<div class="mt-money-flow-table"><div class="mt-industry-flow-columns mt-money-flow-columns" aria-hidden="true"><span>순위</span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>흐름</span></div>'
+      + '<div class="mt-money-flow-grid">' + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>') + '</div></div>'
+      + '<p class="mt-industry-flow-note">테마별 대표 종목 거래대금을 합산한 표입니다(약 240종목·37개 테마, 3분마다 갱신). 노란 막대 길이는 1위 대비 자금 집중도이며, 평균등락률은 보조지표입니다. ' + rankBasisText + ' 행을 누르면 대표 종목이 열립니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
@@ -636,7 +637,7 @@
       + '</a>';
   }
 
-  function sectorFlowRowHtml_(row, index, rows) {
+  function sectorFlowRowHtml_(row, index, rows, maxAmount) {
     var rate = Number(row.avg_change_rate);
     var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
     var derived = derivedSectors_(row, rows);
@@ -647,8 +648,13 @@
             return '<b>' + escapeHtml(d.sector) + '<small>' + escapeHtml(r) + '</small></b>';
           }).join('') + '</div>'
       : '';
+    var amount = Number(row.trade_amount);
+    // 1위 대비 자금 집중도를 막대로도 보여 준다. 가격·등락률의 방향색과 혼동되지
+    // 않도록 돈 자체는 항상 노랑으로 고정한다.
+    var fill = isFinite(amount) && maxAmount > 0 ? Math.max(4, amount / maxAmount * 100) : 0;
     return '<div class="mt-sf-item">'
       + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
+      + '<i class="mt-sf-fill" style="width:' + fill.toFixed(1) + '%" aria-hidden="true"></i>'
       + '<i class="mt-sf-rank">' + (index + 1) + '</i>'
       + '<b>' + escapeHtml(row.industry || '-') + '</b>'
       + '<span class="mt-sf-mult">' + escapeHtml(sectorFlowAmountText_(row) || '-') + '</span>'
@@ -665,9 +671,14 @@
     if (!mount) return;
     var shown = (rows || []).slice(0, SECTOR_FLOW_TOP);
     if (!shown.length) { mount.innerHTML = ''; return; }
+    var maxAmount = shown.reduce(function (max, row) {
+      var amount = Number(row && row.trade_amount);
+      return isFinite(amount) && amount > max ? amount : max;
+    }, 0);
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
-      + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows); }).join('')
+      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰리는 차트</span><small>노란 막대 = 1위 대비 자금 집중도</small></div>'
+      + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount); }).join('')
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
       + '</div>';
     mount.onclick = function (event) {

@@ -31,5 +31,19 @@ class FetchHistoryThrottleTests(unittest.TestCase):
         sleep.assert_called_with(bond_yield._PAGE_THROTTLE_SEC)
 
 
+class FredMacroSymbolTests(unittest.TestCase):
+    def test_news_economic_indicator_symbols_are_collected_from_fred(self):
+        expected = {
+            'US_CONSUMER_SENTIMENT': 'UMCSENT',
+            'US_CPI': 'CPIAUCSL',
+            'US_UNEMPLOYMENT': 'UNRATE',
+            'US_POLICY_RATE': 'FEDFUNDS',
+        }
+        self.assertEqual(
+            {symbol: bond_yield.FRED_SYMBOLS[symbol]['series'] for symbol in expected},
+            expected,
+        )
+
+
 if __name__ == '__main__':
     unittest.main()

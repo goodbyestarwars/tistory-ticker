@@ -22,6 +22,24 @@
   line-height: 1.6;
   color: var(--text-sub);
 }
+#main-news .mn-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+#main-news .mn-tab {
+  min-height: 32px;
+  padding: 6px 13px;
+  border: 1px solid #d8e0ea;
+  border-radius: 5px;
+  background: #fff;
+  color: var(--text-sub);
+  font: 700 12px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+#main-news .mn-tab:hover { border-color: #1d4ed8; color: #1d4ed8; }
+#main-news .mn-tab.is-active { border-color: #173b66; background: #173b66; color: #fff; }
 #main-news .mn-head small {
   display: block;
   font-size: 11px;
@@ -109,8 +127,48 @@ html.dark #main-news .mn-market--us { color: #93c5fd; background: rgba(29, 78, 2
 }
 #main-news .mn-state--error { color: var(--up); }
 
+#main-news .mn-indicator-intro {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--rule);
+}
+#main-news .mn-indicator-intro strong { font-size: 15px; }
+#main-news .mn-indicator-intro span { color: var(--text-sub); font-size: 12px; line-height: 1.55; }
+#main-news .mn-indicator-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  padding-top: 12px;
+}
+#main-news .mn-indicator-card {
+  min-width: 0;
+  min-height: 116px;
+  padding: 13px;
+  border: 1px solid #dde5ed;
+  border-radius: 8px;
+  background: #fff;
+}
+#main-news .mn-indicator-card > div { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+#main-news .mn-indicator-card strong { font-size: 13px; }
+#main-news .mn-indicator-card small { color: var(--text-sub); font-size: 10px; white-space: nowrap; }
+#main-news .mn-indicator-value { display: block; margin-top: 14px; color: var(--text-main); font: 800 22px/1 var(--font-ui); font-variant-numeric: tabular-nums; }
+#main-news .mn-indicator-change { display: block; margin-top: 7px; color: var(--text-sub); font-size: 11px; font-variant-numeric: tabular-nums; }
+#main-news .mn-indicator-card time { display: block; margin-top: 5px; color: var(--text-sub); font-size: 10px; }
+
+html.dark #main-news .mn-tab { border-color: rgba(245,239,224,.24); background: rgba(245,239,224,.04); color: rgba(245,239,224,.68); }
+html.dark #main-news .mn-tab.is-active { border-color: #80b8ff; background: #235d9f; color: #fff; }
+html.dark #main-news .mn-indicator-card { border-color: rgba(245,239,224,.16); background: rgba(245,239,224,.04); }
+
 @media (max-width: 720px) {
   #main-news .mn-row { padding: 10px 0; gap: 0 8px; }
   #main-news .mn-row-title { font-size: 14px; }
   #main-news .mn-refresh-row { align-items: flex-start; }
+  #main-news .mn-indicator-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 7px; }
+  #main-news .mn-indicator-card { min-height: 108px; padding: 11px; }
+  #main-news .mn-indicator-card > div { display: block; }
+  #main-news .mn-indicator-card small { display: block; margin-top: 3px; white-space: normal; }
+  #main-news .mn-indicator-value { font-size: 19px; }
 }

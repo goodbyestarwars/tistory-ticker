@@ -49,6 +49,10 @@ FRED_SYMBOLS = {
     'US10Y': {'series': 'DGS10', 'name': '미국 국채 10년물 금리(%)'},
     'US2Y': {'series': 'DGS2', 'name': '미국 국채 2년물 금리(%)'},
     'US30Y': {'series': 'DGS30', 'name': '미국 국채 30년물 금리(%)'},
+    'US_CONSUMER_SENTIMENT': {'series': 'UMCSENT', 'name': '미국 소비자심리지수(미시간대, pt)'},
+    'US_CPI': {'series': 'CPIAUCSL', 'name': '미국 소비자물가지수(CPI, 지수)'},
+    'US_UNEMPLOYMENT': {'series': 'UNRATE', 'name': '미국 실업률(%)'},
+    'US_POLICY_RATE': {'series': 'FEDFUNDS', 'name': '미국 기준금리(%)'},
 }
 _FRED_URL = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s&coed=%s'
 _FRED_HISTORY_DAYS = 400

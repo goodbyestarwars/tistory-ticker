@@ -3689,8 +3689,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
-        self.assertIn("main-news.css?v=20260929-refresh-v1", main)
-        self.assertIn("main-news.js?v=20260929-refresh-v1", main)
+        self.assertIn("main-news.css?v=20260929-news-tabs-v1", main)
+        self.assertIn("main-news.js?v=20260929-news-tabs-v1", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3723,7 +3723,21 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 미국 기사가 시간순으로 밀려 통째로 사라졌다. 시장별로 먼저 자른 뒤 섞는다.
         self.assertIn("var MARKET_LIMIT = 25;", source)
         self.assertIn("collected = collected.concat(limitMarketRows(items));", source)
-        self.assertIn("render(container, collected.slice(0, RENDER_LIMIT), failed);", source)
+        self.assertIn("state.items = collected.slice(0, RENDER_LIMIT);", source)
+        self.assertIn("state.failed = failed;", source)
+        self.assertIn("renderCurrent_(container);", source)
+
+        # 기본값은 전체이며, 한국·미국을 걸러 읽을 수 있다. 기사와 다른 성격의 수치는
+        # 별도 경제지표 탭으로 분리한다.
+        self.assertIn("{ key: 'all', label: '전체' }", source)
+        self.assertIn("{ key: 'domestic', label: '한국' }", source)
+        self.assertIn("{ key: 'us', label: '미국' }", source)
+        self.assertIn("{ key: 'indicators', label: '경제지표' }", source)
+        self.assertIn("data-mn-view", source)
+        self.assertIn("US_CONSUMER_SENTIMENT", source)
+        self.assertIn("US_POLICY_RATE", source)
+        self.assertIn("goodbyestar.cloud/futures?interval=day", source)
+        self.assertIn(".mn-indicator-grid", style)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)
