@@ -667,6 +667,22 @@
         else seriesData.push({ time: today, value: price });
       }
       series.setData(seriesData);
+      // 시장지표 미니차트의 현재 위치 표시는 모두 같은 원형 마커로 통일한다. 특히 코스피
+      // 현물/선물 카드가 다른 카드보다 끝점이 덜 보여 "동그라미가 빠진" 것처럼 보이던 문제를 막는다.
+      if (seriesData.length) {
+        var marker = {
+          time: seriesData[seriesData.length - 1].time,
+          position: 'inBar',
+          color: color,
+          shape: 'circle',
+          text: ''
+        };
+        if (typeof LWC.createSeriesMarkers === 'function') {
+          LWC.createSeriesMarkers(series, [marker]);
+        } else if (typeof series.setMarkers === 'function') {
+          series.setMarkers([marker]);
+        }
+      }
       chart.timeScale().fitContent();
 
       // 기준선(전일 종가) - priceLine을 chartInstances에 같이 들고 있어야 다크모드 토글 때

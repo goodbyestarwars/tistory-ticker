@@ -244,21 +244,26 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'avgChange': quote_parts['avgChange'],
         'riseRatio': quote_parts['riseRatio'],
         'sectorStrength': quote_parts['sectorStrength'],
-        'week52': week52,
         'exchange': market_parts['exchange'],
+        'rates': market_parts['rates'],
         'usFutures': market_parts['usFutures'],
         'creditRisk': credit,
+        # 52주 신고/신저가는 2026-09-29부터 10개 공식 점수식에서는 제외한다. 과거 캐시·
+        # 디버깅 호환을 위해 응답에는 남기되, total_and_temperature/build_axes에는 넣지 않는다.
+        'week52': week52,
     }
 
     credit_available = bool(credit.get('available'))
     totals = score.total_and_temperature(
-        [c['score'] for k, c in components.items()
-         if not (k == 'creditRisk' and not credit_available)],
+        [components[k]['score'] for k in score.COMPONENT_MAX
+         if k in components and not (k == 'creditRisk' and not credit_available)],
         credit_available)
 
     # 2026-09-07: 10개 컴포넌트를 돈·가격·위험 3축(각 0~100)과 종합점수(0~100)로 접는다.
     # "지표가 10개라 아무도 안 본다"는 판단으로 화면의 주인공을 이쪽으로 옮겼다 -
     # 컴포넌트 원본은 응답에 그대로 남아 '자세히'에서 계속 보인다.
+    # 2026-09-29: 금리 부담도(rates)를 위험 축에 넣고, 중복성이 큰 52주 신고/신저가는
+    # 공식 10개 지표에서 뺐다.
     summary = score.build_axes(components)
     history_rows = upsert_daily_temp(conn, totals['temp'], today, trading_day=trading_day,
                                      score100=summary['score100'])

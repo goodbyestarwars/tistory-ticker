@@ -1535,6 +1535,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("폭염", source)
         self.assertIn('class="mt-rib-avg"', source)
         self.assertIn('class="mt-rib-avg5"', source)
+        self.assertIn("function markerCircle(className, point, radius)", source)
         self.assertIn('mt-rib-band-fear', source)
         self.assertNotIn('gradientUnits="userSpaceOnUse"', source)
         self.assertIn("data-rib-stage", source)
@@ -1546,6 +1547,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
                       "#market-temp .mt-rib-tip[hidden]"):
             self.assertIn(token, style)
         self.assertNotIn("mt-wave-segment-", source)
+        self.assertIn("#market-temp .mt-rib-avg5 { stroke: var(--mt-yellow); stroke-width: 2.4; stroke-dasharray: none;", style)
 
     def test_market_temperature_score_says_scale_meaning_and_retail_action(self):
         """2026-09-16 사용자 지적.
@@ -1563,6 +1565,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('<a href="#mt-ant-guide">', source)
         self.assertIn('id="mt-ant-guide"', source)
         self.assertIn("오늘의 개미 체크리스트", source)
+        self.assertIn("지금 할 일", source)
+        self.assertIn("오늘 금지", source)
+        self.assertIn("손절가 깼으면 정리", source)
+        self.assertIn("1개월 버틸 종목", source)
+        self.assertNotIn("✅ 해볼 것", source)
+        self.assertNotIn("🚫 참을 것", source)
         # 행동 문구는 종합점수 3등급(grade3)을 따른다 - 옛 40℃ 5단계와 어긋나지 않게.
         self.assertIn("var ANT_GUIDE_BY_TONE = {", source)
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
@@ -1851,12 +1859,12 @@ class UiInformationArchitectureTest(unittest.TestCase):
         weather = rule("#market-temp .mt-weather-day")
         self.assertNotIn("border-bottom: 3px", weather)
         self.assertIn("border-radius: 0", weather)
-        self.assertIn("stroke-width: 2;", rule("#market-temp .mt-rib-line"))
+        self.assertIn("stroke-width: 2.4;", rule("#market-temp .mt-rib-line"))
         for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
             self.assertIn("border-radius: 0", rule(selector))
         self.assertEqual(rule("#market-temp .mt-gauge-seg").count("stroke-linecap: round"), 0)
-        self.assertIn("square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)", source)
-        self.assertNotIn('<circle class="mt-rib-dot', source)
+        self.assertIn("markerCircle('mt-rib-now mt-rib-tone-' + nowTone, now, 5)", source)
+        self.assertIn('<circle class="', source)
 
         start = gas.index("function getMarketTempBriefing()")
         briefing = gas[start:gas.index("\n}\n", start)]
@@ -1932,6 +1940,28 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("unitFactor", gas)
         self.assertIn("market_temp_v8", gas)
         self.assertIn("normalizedLoan / normalizedDeposits * 100", gas)
+
+    def test_market_temperature_palette_and_rates_are_unified(self):
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        backend = self.read("scripts/cloud-vm/market_temp_score.py")
+        data_layer = self.read("scripts/cloud-vm/market_temp_data.py")
+        gas = self.read("gas/ticker-proxy.gs")
+        self.assertIn("var MARKET_TEMP_PALETTE = {", source)
+        self.assertIn("key: 'rates'", source)
+        self.assertIn("label: '금리 부담도'", source)
+        self.assertNotIn("key: 'week52', label: '52주 신고가/신저가'", source)
+        self.assertIn("def score_interest_rates", backend)
+        self.assertIn("'rates': 10", backend)
+        self.assertIn("score.score_interest_rates", data_layer)
+        self.assertIn("rates: '금리 부담도'", gas)
+        self.assertIn("가격(평균등락률·상승비율·섹터강도", gas)
+        self.assertIn("위험(VIX·환율·금리·빚투", gas)
+        self.assertIn("--mt-blue: #1261c4", style)
+        self.assertIn("--mt-yellow: #f2b632", style)
+        self.assertIn("--mt-red: #d24f45", style)
+        self.assertIn("#market-temp .mt-bar-risk", style)
+        self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)
 
     def test_stock_search_minute_chart_shows_time_of_day(self):
         # 2026-08-05(3차) 사용자 리포트: 분봉 X축이 날짜만 반복 표시됨 - 분봉일 때만
@@ -3284,6 +3314,8 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 입혔으면 좋겠어").
         self.assertIn("mt-if-fill", source)
         self.assertIn("maxAmount", source)
+        self.assertIn("function buildIndustryRankFlow_()", source)
+        self.assertIn("mt-if-bump", source)
         # 데이터원: 예전 경로(market-board 상위 30종목)는 절반 이상이 ETF라 테마가
         # 8개뿐이었다. VM이 238종목으로 집계한 값을 먼저 쓰고 실패 시에만 폴백한다.
         self.assertIn("https://goodbyestar.cloud/industry-flow", source)
@@ -3303,6 +3335,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertNotIn(".mt-industry-flow-row.is-up > span:first-of-type", css)
         self.assertIn(".mt-industry-flow-row.is-up .mt-if-rate", css)
         self.assertIn(".mt-if-amount", css)
+        self.assertIn(".mt-if-bump-line", css)
         # 2026-09-13: 펼친 대표 종목명이 테마명(12px)보다 크게(본문 15px 상속) 보였다.
         self.assertIn("#market-temp .mt-industry-flow-stock b { font-size:12px;", css)
         # 종목명도 등락 방향색(상승 빨강·하락 파랑)을 따른다.
@@ -3527,6 +3560,9 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("scheduleMissingDataDemotion(indicatorsContainer);", source)
         # 옛 버그 형태 - WebSocket 수신이 유예 없이 SYMBOL_ORDER 전체를 덮던 코드.
         self.assertNotIn("renderAll(indicatorsContainer, SYMBOL_ORDER.map(", source)
+        self.assertIn("createSeriesMarkers(series, [marker])", source)
+        self.assertIn("shape: 'circle'", source)
+        self.assertIn("position: 'inBar'", source)
 
 
     def test_strategy_search_renders_methodology_as_labelled_rows(self):

@@ -1771,13 +1771,19 @@ function getMarketTempBriefing() {
 
   var LABELS = {
     vix: 'VIX', flow: '수급(외국인+기관)', tradingValue: '거래대금', avgChange: '평균등락률',
-    riseRatio: '상승비율', sectorStrength: '섹터강도', week52: '52주 신고가/신저가',
-    exchange: '환율', usFutures: '미국 선물지수', creditRisk: '빚투 위험도'
+    riseRatio: '상승비율', sectorStrength: '섹터강도', exchange: '환율',
+    rates: '금리 부담도', usFutures: '미국 선물지수', creditRisk: '빚투 위험도'
   };
-  var contributions = Object.keys(MT_COMPONENT_MAX).map(function (key) {
+  // VM /market-temp의 최신 공식 10개 지표. GAS 자체 marketTemp 폴백의 MT_COMPONENT_MAX는
+  // 과거 호환 때문에 week52를 유지하지만, 브리핑은 화면과 같은 금리 포함식으로 읽는다.
+  var briefingComponentMax = {
+    vix: 20, flow: 20, tradingValue: 15, avgChange: 15, riseRatio: 10,
+    sectorStrength: 10, exchange: 5, rates: 10, usFutures: 5, creditRisk: 10
+  };
+  var contributions = Object.keys(briefingComponentMax).map(function (key) {
     var comp = data.components[key];
-    var score = comp && typeof comp.score === 'number' ? comp.score : MT_COMPONENT_MAX[key] / 2;
-    return { label: LABELS[key], contribution: score - MT_COMPONENT_MAX[key] / 2 };
+    var score = comp && typeof comp.score === 'number' ? comp.score : briefingComponentMax[key] / 2;
+    return { label: LABELS[key], contribution: score - briefingComponentMax[key] / 2 };
   }).sort(function (a, b) { return Math.abs(b.contribution) - Math.abs(a.contribution); }).slice(0, 5);
 
   var lines = contributions.map(function (c) {
@@ -1787,8 +1793,8 @@ function getMarketTempBriefing() {
   var axes = data.axes || {};
   var axisLines = [
     ['money', '돈(거래대금·수급, 높을수록 활발)'],
-    ['price', '가격(평균등락률·상승비율·52주 신고가, 높을수록 오름세)'],
-    ['risk', '위험(VIX·환율·빚투, 높을수록 위험)']
+    ['price', '가격(평균등락률·상승비율·섹터강도, 높을수록 오름세)'],
+    ['risk', '위험(VIX·환율·금리·빚투, 높을수록 위험)']
   ].map(function (item) {
     var axis = axes[item[0]];
     return axis && typeof axis.value === 'number' ? item[1] + ' ' + axis.value.toFixed(0) + '점' : null;

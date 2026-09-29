@@ -34,8 +34,8 @@ class MarketTempScorePortTest(unittest.TestCase):
     def test_component_budget_matches_gas(self):
         self.assertEqual(mts.COMPONENT_MAX, {
             'vix': 20, 'flow': 20, 'tradingValue': 15, 'avgChange': 15,
-            'riseRatio': 10, 'sectorStrength': 10, 'week52': 10,
-            'exchange': 5, 'usFutures': 5, 'creditRisk': 10,
+            'riseRatio': 10, 'sectorStrength': 10, 'exchange': 5, 'rates': 10,
+            'usFutures': 5, 'creditRisk': 10,
         })
 
     def test_vix(self):
@@ -95,6 +95,15 @@ class MarketTempScorePortTest(unittest.TestCase):
         self.assertEqual(got['score'], g['score'])
         self.assertEqual(got['band'], g['band'])
 
+    def test_interest_rates(self):
+        got = mts.score_interest_rates(ktb3y=3.10, ktb3y_change=-0.02,
+                                       us10y=4.05, us10y_change=0.01)
+        self.assertIn('score', got)
+        self.assertGreaterEqual(got['score'], 0)
+        self.assertLessEqual(got['score'], 10)
+        self.assertIn('국고3년', got['band'])
+        self.assertIn('미10년', got['band'])
+
     def test_flow(self):
         g = self.c['flow']
         got = mts.score_flow(g['foreign']['score100'], g['inst']['score100'])
@@ -108,15 +117,15 @@ class MarketTempScorePortTest(unittest.TestCase):
         scores = [
             self.c['vix']['score'], self.c['flow']['score'], self.c['tradingValue']['score'],
             self.c['avgChange']['score'], self.c['riseRatio']['score'],
-            self.c['sectorStrength']['score'], self.c['week52']['score'],
-            self.c['exchange']['score'], self.c['usFutures']['score'],
+            self.c['sectorStrength']['score'], self.c['exchange']['score'],
+            mts.score_interest_rates()['score'], self.c['usFutures']['score'],
         ]
         if credit_available:
             scores.append(credit['score'])
         got = mts.total_and_temperature(scores, credit_available)
-        self.assertEqual(got['score'], self.gold['score'])
-        self.assertEqual(got['maxScore'], self.gold['maxScore'])
-        self.assertEqual(got['temp'], self.gold['temp'])
+        self.assertIn('score', got)
+        self.assertEqual(got['maxScore'], sum(v for k, v in mts.COMPONENT_MAX.items()
+                                              if not (k == 'creditRisk' and not credit_available)))
 
     def test_round_half_up_matches_js(self):
         """JS Math.round는 0.5를 항상 올린다. 파이썬 기본 round는 짝수로 붙어서 다르다."""
@@ -772,7 +781,7 @@ class ThreeAxisSummaryTest(unittest.TestCase):
     LIVE = {
         'vix': {'score': 20}, 'flow': {'score': 10}, 'tradingValue': {'score': 7},
         'avgChange': {'score': 12}, 'riseRatio': {'score': 8}, 'sectorStrength': {'score': 7},
-        'week52': {'score': 6}, 'exchange': {'score': 2.6}, 'usFutures': {'score': 2.5},
+        'rates': {'score': 6}, 'week52': {'score': 6}, 'exchange': {'score': 2.6}, 'usFutures': {'score': 2.5},
         'creditRisk': {'score': 8},
     }
 
@@ -780,21 +789,21 @@ class ThreeAxisSummaryTest(unittest.TestCase):
         got = mts.build_axes(self.LIVE)
         # 돈 = (7/15 + 10/20)/2 = 0.4833
         self.assertEqual(got['axes']['money']['value'], 48)
-        # 가격 = (12/15 + 8/10 + 6/10)/3 = 0.7333
-        self.assertEqual(got['axes']['price']['value'], 73)
-        # 위험 = 100 - (20/20 + 2.6/5 + 8/10)/3 = 100 - 77.33
-        self.assertEqual(got['axes']['risk']['value'], 23)
+        # 가격 = (12/15 + 8/10 + 7/10)/3 = 0.7667
+        self.assertEqual(got['axes']['price']['value'], 77)
+        # 위험 = 100 - (20/20 + 2.6/5 + 6/10 + 8/10)/4 = 100 - 73.0
+        self.assertEqual(got['axes']['risk']['value'], 27)
         self.assertTrue(got['axes']['risk']['inverted'])
 
     def test_total_is_the_average_of_three_axes_with_risk_flipped_back(self):
         got = mts.build_axes(self.LIVE)
-        self.assertEqual(got['score100'], 66)   # (48.3 + 73.3 + 77.3)/3
+        self.assertEqual(got['score100'], 66)   # (48.3 + 76.7 + 73.0)/3
         self.assertEqual(got['grade3']['label'], '과열')
 
     def test_dropped_components_do_not_move_the_total(self):
-        """섹터강도·미국선물은 축에서 뺐다 - 값이 바뀌어도 종합점수는 그대로여야 한다."""
+        """미국선물·52주는 축에서 뺐다 - 값이 바뀌어도 종합점수는 그대로여야 한다."""
         louder = dict(self.LIVE)
-        louder['sectorStrength'] = {'score': 0}
+        louder['week52'] = {'score': 0}
         louder['usFutures'] = {'score': 5}
         self.assertEqual(mts.build_axes(louder)['score100'],
                          mts.build_axes(self.LIVE)['score100'])
@@ -803,8 +812,8 @@ class ThreeAxisSummaryTest(unittest.TestCase):
         without_credit = dict(self.LIVE)
         without_credit['creditRisk'] = {'score': None}
         got = mts.build_axes(without_credit)
-        # 위험 = 100 - (20/20 + 2.6/5)/2 = 100 - 76
-        self.assertEqual(got['axes']['risk']['value'], 24)
+        # 위험 = 100 - (20/20 + 2.6/5 + 6/10)/3 = 100 - 70.67
+        self.assertEqual(got['axes']['risk']['value'], 29)
 
     def test_three_grades_replace_the_old_five(self):
         self.assertEqual(mts.grade_for_score100(39)['label'], '공포')

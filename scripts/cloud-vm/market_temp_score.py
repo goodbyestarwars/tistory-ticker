@@ -21,8 +21,8 @@ from decimal import Decimal, ROUND_HALF_UP
 # 지표별 배점(GAS MT_COMPONENT_MAX 그대로). 합계가 온도 환산의 만점 기준이 된다.
 COMPONENT_MAX = {
     'vix': 20, 'flow': 20, 'tradingValue': 15, 'avgChange': 15,
-    'riseRatio': 10, 'sectorStrength': 10, 'week52': 10,
-    'exchange': 5, 'usFutures': 5, 'creditRisk': 10,
+    'riseRatio': 10, 'sectorStrength': 10, 'exchange': 5, 'rates': 10,
+    'usFutures': 5, 'creditRisk': 10,
 }
 
 
@@ -194,6 +194,58 @@ def score_us_futures(change_pct, price=None, time_weight=None):
                                               int(_round_half_up(time_weight * 100)))}
 
 
+def _score_yield_level(value, friendly, danger, maximum):
+    if value is None:
+        return None
+    if value <= friendly:
+        return maximum
+    if value >= danger:
+        return 0.0
+    return maximum * (danger - value) / float(danger - friendly)
+
+
+def score_interest_rates(ktb3y=None, ktb3y_change=None, us10y=None, us10y_change=None):
+    """금리 부담도(10점). 낮거나 내려가는 금리일수록 시장 부담이 작아 고점수다.
+
+    절대 레벨만 보면 하루 방향을 놓치고, 하루 등락만 보면 4%대 고금리의 부담을 놓친다.
+    그래서 레벨 8점(KTB3Y 4점 + US10Y 4점)과 당일 변화 2점을 합친다.
+    """
+    level_parts = []
+    ktb_level = _score_yield_level(ktb3y, 2.5, 4.2, 4.0)
+    us_level = _score_yield_level(us10y, 3.4, 5.0, 4.0)
+    if ktb_level is not None:
+        level_parts.append(('KTB3Y', ktb_level, 4.0))
+    if us_level is not None:
+        level_parts.append(('US10Y', us_level, 4.0))
+    if not level_parts:
+        return {'score': 5, 'ktb3y': ktb3y, 'us10y': us10y,
+                'note': '금리 데이터 조회 실패 - 중립 처리', 'band': '조회 실패'}
+
+    level_score = sum(v for _name, v, _max in level_parts)
+    level_max = sum(m for _name, _v, m in level_parts)
+    level_score = level_score / level_max * 8.0
+
+    changes = [v for v in (ktb3y_change, us10y_change) if isinstance(v, (int, float))]
+    if changes:
+        avg_change = sum(changes) / len(changes)
+        change_score = _clamp(1.0 - avg_change * 10.0, 0.0, 2.0)
+    else:
+        avg_change = None
+        change_score = 1.0
+
+    total = _clamp(_round_half_up(level_score + change_score, 1), 0, 10)
+    labels = []
+    if ktb3y is not None:
+        labels.append('국고3년 %.2f%%' % ktb3y)
+    if us10y is not None:
+        labels.append('미10년 %.2f%%' % us10y)
+    if avg_change is not None:
+        labels.append('변화 %s%.2f%%p' % ('+' if avg_change >= 0 else '', avg_change))
+    return {'score': total, 'ktb3y': ktb3y, 'ktb3yChange': ktb3y_change,
+            'us10y': us10y, 'us10yChange': us10y_change, 'changeAvg': avg_change,
+            'band': ' · '.join(labels)}
+
+
 def score_flow(foreign_score100, inst_score100):
     """수급. 외국인 75% + 기관 25% 가중합산(KODEX 200 5일 합산 기준)."""
     combined100 = foreign_score100 * 0.75 + inst_score100 * 0.25
@@ -222,14 +274,15 @@ def total_and_temperature(component_scores, credit_available):
 # 축 안에서는 **단순 평균**이다. 예전 총점은 VIX 20 대 환율 5처럼 4배 차이 나는 가중치를
 # 갖고 있었는데 왜 4배인지 설명할 수 없었다. 설명 못 하는 가중치는 신뢰를 못 얻는다.
 #
-# 섹터강도·미국선물은 축에서 뺐다 - 앞의 것은 상승비율과, 뒤의 것은 15:30 이후 중립으로
-# 굳어 정보가 겹친다. 화면 '자세히'에는 그대로 남는다.
+# 2026-09-29: "지표 10개에 금리가 빠져있다"는 피드백 반영. 52주 신고/신저가는 가격
+# 강도와 겹쳐 제외하고, 금리 부담도를 위험 축에 넣는다. 미국선물은 15:30 이후 중립으로
+# 굳는 시간이 길어 참고 지표로만 보여준다.
 AXES = (
     ('money', '돈', '돈이 들어오나', ('tradingValue', 'flow')),
-    ('price', '가격', '실제로 오르나', ('avgChange', 'riseRatio', 'week52')),
+    ('price', '가격', '실제로 오르나', ('avgChange', 'riseRatio', 'sectorStrength')),
     # 이 셋은 점수가 높을수록 "안전"이다(VIX가 낮으면 20점). 축 값은 뒤집어서
     # "위험도"로 내보낸다 - 화면에서 '위험 23 = 낮음'으로 읽혀야 하기 때문이다.
-    ('risk', '위험', '무리하고 있나', ('vix', 'exchange', 'creditRisk')),
+    ('risk', '위험', '무리하고 있나', ('vix', 'exchange', 'rates', 'creditRisk')),
 )
 
 # 3등급. 사용자 체감 기준: 0~39 공포, 40~60 보통, 61~100 과열.

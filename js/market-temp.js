@@ -44,6 +44,13 @@
   var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/industry-flow';
   var INDUSTRY_FLOW_FALLBACK_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
   var INDUSTRY_TOP_LIMIT_ = 10;
+  // 증시온도 탭 전용 팔레트. 회색은 로딩·비활성·데이터 대기 상태에만 쓴다.
+  var MARKET_TEMP_PALETTE = {
+    fear: '#1261c4',
+    neutral: '#f2b632',
+    greed: '#d24f45',
+    standby: '#9ca3af'
+  };
   // 2026-09-01 사용자 요청("대표 종목이 너무 적어"). VM이 테마별로 최대 8종목을
   // 내려주므로 그대로 다 보여준다 - 매수 후보를 여기서 바로 훑을 수 있게.
   var REPRESENTATIVE_STOCK_LIMIT_ = 8;
@@ -101,7 +108,7 @@
 
   // unit: 'index'(그대로 표기) / 'pct'(부호 있는 % - 붉은/파란색) / 'pctDirect'(comp에 이미 %
   // 단위로 들어있는 값) / 'ratio'(상승·하락 종목수) / 'sectorCount'(섹터 강도) /
-  // 'week52Count'(52주 신고가/신저가 개수) / 'flow'(외국인+기관 통합 수급 전용 포맷)
+  // 'rates'(국고3년·미국10년 금리 부담도) / 'flow'(외국인+기관 통합 수급 전용 포맷)
   // barClass: css/market-temp.css의 카테고리별 바 색상 클래스
   // icon: 2026-07-18 스펙 지정 아이콘으로 통일(vix/수급/거래대금/신고가/섹터강도/상승비율/
   // 환율/미국선물 8개는 스펙 명시 그대로, avgChange만 스펙에 없어 겹치지 않는 신규 아이콘 배정)
@@ -128,12 +135,12 @@
     { key: 'sectorStrength', label: '섹터 강도', max: 10, unit: 'sectorCount', icon: '🏭', barClass: 'mt-bar-vol', source: '섹터 분류 + 실시간 시세',
       guide: '각 섹터의 평균등락률>0, 상승비율≥50%를 각각 1점으로 계산해 전체 강세 포인트 비율을 10점으로 환산',
       desc: '각 섹터의 평균등락률·상승비율을 종합 - 강세 섹터가 많을수록 가점' },
-    { key: 'week52', label: '52주 신고가/신저가', max: 10, unit: 'week52Count', icon: '📈', barClass: 'mt-bar-vix', source: 'VM 일 1회 배치',
-      guide: '기본 5점에서 (신고가 수 − 신저가 수)×0.3을 더하거나 빼며, 0~10점 범위로 제한',
-      desc: '섹터 풀 종목 중 52주 신고가·신저가 종목 수(VM이 하루 1회 미리 계산)' },
     { key: 'exchange', label: '환율', max: 5, unit: 'pct', icon: '💵', barClass: 'mt-bar-fx', source: '원/달러 전일 대비',
       guide: '기본 2.5점에서 원/달러 전일 등락률을 뺀 값(원화 강세일수록 가점), 0~5점 범위',
       desc: '원/달러 환율 전일 대비 등락률(원화 강세=환율 하락일수록 가점)' },
+    { key: 'rates', label: '금리 부담도', max: 10, unit: 'rates', icon: '🏦', barClass: 'mt-bar-risk', source: '국고3년·미국10년 금리',
+      guide: '국고3년·미국10년 절대 금리 8점 + 당일 금리 변화 2점. 낮거나 내려가면 가점, 높거나 오르면 감점',
+      desc: '금리가 높거나 빠르게 오르면 주식시장 할인율 부담이 커지므로 위험 축에 반영' },
     { key: 'usFutures', label: '미국 선물지수', max: 5, unit: 'pct', icon: '🌎', barClass: 'mt-bar-fx', source: 'Yahoo Finance S&P500 E-mini',
       guide: '기본 2.5점 + 전일 대비 등락률×시간대 가중치. 장 마감 후에는 중립 2.5점, 0~5점 범위',
       desc: 'S&P500 E-mini 선물(ES=F) 등락률, 시간대별 가중치 적용 - 미국장 마감~한국장 개장 사이 선행지표' },
@@ -164,29 +171,29 @@
   // 2026-09-16 사용자 지적("분할매수가 많은데, 보통 개미들은 분할매수 안 해", "현금이 30%? 나중에
   // 뭐하라고?"). 예전엔 역발상 5단계로 '적극 분할매수 · 주식 80%/현금 20%' 같은 기관식 비중표를 줬는데,
   // 이 사이트의 독자(개인 투자자)는 비중을 나눠 들고 있지 않아 행동으로 옮길 수가 없었다.
-  // 종합점수 3등급(서버 grade3)에 맞춰 "해볼 것 / 참을 것"을 개인이 실제로 하는 행동으로 적는다.
+  // 종합점수 3등급(서버 grade3)에 맞춰 "지금 할 일 / 오늘 금지"를 개인이 실제로 하는 행동으로 적는다.
   // 매수·매도 지시가 아니라 그런 분위기의 날 흔히 하는 실수를 막는 점검표다.
   var ANT_GUIDE_BY_TONE = {
     fear: {
       mood: '팔려는 사람이 더 많은 날',
-      title: '겁날 때 서두르지 않기',
-      short: '급하게 팔기 전에 이유부터 확인하고, 사고 싶던 종목이 얼마나 싸졌는지 보기',
-      todo: ['내 종목이 왜 빠졌는지 뉴스·공시부터 확인', '평소 사고 싶던 종목이 얼마나 싸졌는지 보기', '미리 정해둔 손절 기준이 있다면 그 기준대로만'],
-      avoid: ['무섭다고 한꺼번에 던지기', '빚(신용·미수)으로 물타기']
+      title: '도망칠 종목과 버틸 종목을 오늘 나눠라',
+      short: '손절가를 깬 종목은 정리 기준을 먼저 보고, 못 끊겠으면 1개월 버틸 종목만 남기기',
+      todo: ['손절가 깼으면 정리. 못 하겠으면 1개월 버틸 종목인지 먼저 판단', '뉴스·공시 없이 같이 빠진 우량 후보만 관심종목에 남김', '신규 진입은 업종 TOP에서 돈이 남아 있는 종목만 확인'],
+      avoid: ['손절도 못 하면서 물타기', '신용·미수로 평단 낮추기', '오늘 떨어진 이유도 모르고 장중에 급히 팔기']
     },
     neutral: {
       mood: '뚜렷한 방향이 없는 날',
-      title: '시장보다 종목 보기',
-      short: '시장 전체 방향보다 돈이 몰리는 업종·종목을 확인',
-      todo: ['아래 업종 TOP에서 돈 몰리는 업종 확인', '관심종목 차트·수급을 차분히 점검'],
-      avoid: ['뉴스 하나에 급등주 따라 사기', '심심해서 하는 잦은 단타']
+      title: '매매 안 해도 되는 날이다',
+      short: '시장이 애매하면 억지로 사지 말고, 돈이 몰리는 업종에서 후보 3개만 추리기',
+      todo: ['업종 TOP 10에서 후보 3개만 고르고 차트에서 자리 확인', '보유 종목은 손절가·익절가를 숫자로 다시 적음', '확신 없는 종목은 다음 장까지 기다림'],
+      avoid: ['심심해서 하는 단타', '뉴스 제목 하나 보고 급등주 따라가기', '손절 기준 없는 신규 진입']
     },
     greed: {
       mood: '사려는 사람이 몰려 들뜬 날',
-      title: '들뜰 때 한 발 물러서기',
-      short: '급등주 추격은 참고, 수익 난 종목의 익절 기준 점검',
-      todo: ['수익 난 종목의 목표가·익절 기준 다시 보기', '이미 많이 오른 종목은 쉬어갈 때까지 기다리기'],
-      avoid: ['"나만 못 벌까" 조급한 추격 매수', '빚투·미수로 크게 베팅']
+      title: '추격매수보다 빠져나갈 가격을 먼저 정해라',
+      short: '많이 오른 날은 신규 매수보다 익절선·손절선을 올려 적어두는 게 우선',
+      todo: ['수익권 종목은 익절선과 이탈가를 오늘 가격으로 올려 적음', '급등주는 눌림 없이 따라가지 않음', '손절 못할 종목은 신규 진입 금지'],
+      avoid: ['나만 못 벌까 봐 시장가 추격', '빚투·미수로 크게 베팅', '상한가 뉴스만 보고 늦게 올라타기']
     }
   };
 
@@ -208,8 +215,8 @@
     var risk = Number(axes.risk && axes.risk.value);
     var money = Number(axes.money && axes.money.value);
     // 등급만 보면 매일 같은 문구다 - 축 값이 한쪽으로 치우친 날만 한 줄씩 덧붙인다.
-    if (isFinite(risk) && risk >= 65) avoid.unshift('위험 신호(변동성·환율·빚투)가 높은 날 - 빚투·레버리지는 특히 금물');
-    if (isFinite(money) && money < 35 && tone !== 'greed') todo.push('거래가 한산한 날이라 급한 결정은 하루 미뤄도 늦지 않음');
+    if (isFinite(risk) && risk >= 65) avoid.unshift('위험 신호가 높은 날이다. 손절 못할 종목은 새로 사지 마라');
+    if (isFinite(money) && money < 35 && tone !== 'greed') todo.push('거래가 빈 날이다. 오늘 꼭 살 이유가 없으면 내일 다시 봐도 된다');
     return { tone: tone, mood: base.mood, title: base.title, short: base.short, todo: todo, avoid: avoid };
   }
 
@@ -405,6 +412,44 @@
       var v = Number(row.trade_amount != null ? row.trade_amount : row.tradeAmount);
       return isFinite(v) && v > max ? v : max;
     }, 0);
+    function buildIndustryRankFlow_() {
+      if (!shown.length) return '';
+      var W = 640, H = 34 + shown.length * 34, leftX = 126, rightX = 514;
+      function yOf(rank) { return 24 + (rank - 1) * 34; }
+      function clampRank(rank) {
+        rank = Number(rank);
+        return isFinite(rank) && rank > 0 ? Math.min(shown.length, rank) : shown.length;
+      }
+      var paths = shown.map(function (row, index) {
+        var rank = index + 1;
+        var old = previousByName[row.industry];
+        var fromRank = old ? clampRank(old.rank) : rank;
+        var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
+        var tone = rate > 0 ? 'up' : rate < 0 ? 'down' : 'flat';
+        var y1 = yOf(fromRank), y2 = yOf(rank);
+        var c1 = leftX + 130, c2 = rightX - 130;
+        return '<path class="mt-if-bump-line mt-if-bump-' + tone + '" d="M' + leftX + ',' + y1
+          + ' C' + c1 + ',' + y1 + ' ' + c2 + ',' + y2 + ' ' + rightX + ',' + y2 + '"></path>';
+      }).join('');
+      var left = shown.map(function (row, index) {
+        var old = previousByName[row.industry];
+        var rank = old ? clampRank(old.rank) : index + 1;
+        return '<span style="top:' + (yOf(rank) - 10) + 'px"><em>' + rank + '</em>' + escapeHtml(row.industry || '-') + '</span>';
+      }).join('');
+      var right = shown.map(function (row, index) {
+        var rate = Number(row.avg_change_rate != null ? row.avg_change_rate : row.avgChangeRate);
+        var tone = rate > 0 ? 'up' : rate < 0 ? 'down' : 'flat';
+        return '<span class="mt-if-bump-label-' + tone + '" style="top:' + (yOf(index + 1) - 10) + 'px"><em>'
+          + (index + 1) + '</em>' + escapeHtml(row.industry || '-') + '</span>';
+      }).join('');
+      return '<div class="mt-if-bump" role="img" aria-label="직전 거래일과 오늘의 업종 순위 흐름">'
+        + '<div class="mt-if-bump-title"><span>직전 순위</span><b>순위 흐름</b><span>오늘 순위</span></div>'
+        + '<div class="mt-if-bump-stage" style="height:' + H + 'px">'
+        + '<div class="mt-if-bump-labels mt-if-bump-left">' + left + '</div>'
+        + '<svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" aria-hidden="true">' + paths + '</svg>'
+        + '<div class="mt-if-bump-labels mt-if-bump-right">' + right + '</div>'
+        + '</div></div>';
+    }
 
     var html = shown.map(function (row, index) {
       var old = previousByName[row.industry];
@@ -444,6 +489,7 @@
     var title = shown.length ? '오늘 업종 TOP ' + shown.length : '오늘 업종 흐름';
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
       + '<div class="mt-industry-flow-head"><strong>' + title + '</strong><span>거래대금이 많이 몰린 순서</span></div>'
+      + buildIndustryRankFlow_()
       + '<div class="mt-industry-flow-columns"><span></span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>순위</span></div>'
       + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
       + '<p class="mt-industry-flow-note">테마별 대표 종목들의 거래대금을 합산합니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 색의 길이는 1위 테마 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 한 종목이 여러 테마에 속할 수 있어 테마 합계는 시장 전체와 다릅니다. ' + rankBasisText + ' 누르면 대표 종목이 열립니다.</p>'
@@ -770,6 +816,16 @@
       return { text: '신고가 ' + comp.newHigh + ' · 신저가 ' + comp.newLow, tone: wTone };
     }
 
+    if (meta.unit === 'rates') {
+      if (!comp || typeof comp.score !== 'number') return { text: '데이터 준비 중', tone: 'mt-val-zero' };
+      var rateParts = [];
+      if (typeof comp.ktb3y === 'number') rateParts.push('국고3년 ' + comp.ktb3y.toFixed(2) + '%');
+      if (typeof comp.us10y === 'number') rateParts.push('미10년 ' + comp.us10y.toFixed(2) + '%');
+      if (typeof comp.changeAvg === 'number') rateParts.push('변화 ' + (comp.changeAvg > 0 ? '+' : '') + comp.changeAvg.toFixed(2) + '%p');
+      var rateTone = comp.score >= 6.5 ? 'mt-val-pos' : comp.score <= 3.5 ? 'mt-val-neg' : 'mt-val-zero';
+      return { text: rateParts.join(' · ') || (comp.band || '금리 중립'), tone: rateTone };
+    }
+
     if (meta.unit === 'flow') {
       if (!comp.foreign) return null;
       var fPct = typeof comp.foreign.ratio === 'number' ? comp.foreign.ratio * 100 : null;
@@ -848,6 +904,12 @@
         if (chg > 0.05) return { word: '상승', tone: 'mt-val-pos' };
         if (chg < -0.05) return { word: '하락', tone: 'mt-val-neg' };
         return { word: '보합', tone: 'mt-val-zero' };
+      }
+      case 'rates': {
+        if (typeof comp.score !== 'number') return null;
+        if (comp.score >= 6.5) return { word: '완화', tone: 'mt-val-pos' };
+        if (comp.score <= 3.5) return { word: '부담', tone: 'mt-val-neg' };
+        return { word: '보통', tone: 'mt-val-zero' };
       }
       default:
         return null;
@@ -1140,7 +1202,7 @@
       + buildDriverGroup('▼ 점수를 내린 요인', 'down', falling)
       + '</div>'
       + '<div class="mt-driver-legend"><span>막대가 길수록 오늘 점수에 미친 영향이 큽니다.</span><span>빨강: 과열 방향 · 파랑: 공포 방향</span></div>'
-      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>100점 만점입니다. 지표를 돈(거래대금·수급)·가격(평균등락률·상승비율·52주 신고가/신저가)·위험(VIX·환율·빚투) 세 묶음으로 나눠 각 묶음은 점수÷만점의 평균, 종합점수는 세 묶음의 평균입니다(위험은 뒤집어 안전도로 넣음). 0~39점 공포 · 40~60점 보통 · 61점 이상 과열. 섹터 강도·미국 선물지수는 참고로만 보여주고 종합점수에는 넣지 않습니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
+      + '<details class="mt-score-method"><summary>점수·계산 기준·데이터 출처 보기</summary><p>100점 만점입니다. 지표를 돈(거래대금·수급)·가격(평균등락률·상승비율·섹터강도)·위험(VIX·환율·금리·빚투) 세 묶음으로 나눠 각 묶음은 점수÷만점의 평균, 종합점수는 세 묶음의 평균입니다(위험은 뒤집어 안전도로 넣음). 0~39점 공포 · 40~60점 보통 · 61점 이상 과열. 미국 선물지수는 참고로만 보여주고 종합점수에는 넣지 않습니다. 투자 권유가 아닙니다.</p><ul>' + methodRows + '</ul></details>'
       + '</div>';
   }
 
@@ -1265,13 +1327,11 @@
       return '<line class="mt-rib-border" x1="' + PX + '" y1="' + yOf(value).toFixed(1) + '" x2="' + (W - PX)
         + '" y2="' + yOf(value).toFixed(1) + '"></line>';
     }).join('');
-    // 2026-09-16 사용자 요청("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지"): 점은 작은 사각형.
-    function square(className, point, size) {
-      return '<rect class="' + className + '" x="' + (point.x - size / 2).toFixed(1) + '" y="' + (point.y - size / 2).toFixed(1)
-        + '" width="' + size + '" height="' + size + '"></rect>';
+    function markerCircle(className, point, radius) {
+      return '<circle class="' + className + '" cx="' + point.x.toFixed(1) + '" cy="' + point.y.toFixed(1) + '" r="' + radius + '"></circle>';
     }
     var dots = points.slice(0, -1).map(function (point) {
-      return square('mt-rib-dot mt-rib-tone-' + scoreTone_(point.score), point, 5);
+      return markerCircle('mt-rib-dot mt-rib-tone-' + scoreTone_(point.score), point, 3);
     }).join('');
     var nowTone = scoreTone_(now.score);
     var svg = '<svg class="mt-rib-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="최근 ' + shown.length + '거래일 종합점수 흐름">'
@@ -1282,7 +1342,7 @@
       + '<path class="mt-rib-area" d="' + area + '"></path>'
       + '<path class="mt-rib-line mt-spark-draw" d="' + line + '"></path>'
       + dots
-      + square('mt-rib-now mt-rib-tone-' + nowTone, now, 9)
+      + markerCircle('mt-rib-now mt-rib-tone-' + nowTone, now, 5)
       + '</svg>';
     // 구간 이름과 평균선은 SVG 밖에 둬 모바일에서도 읽을 수 있게 한다.
     var overlay = [['greed', '과열', 80.5], ['neutral', '보통', 50.5], ['fear', '공포', 20]].map(function (zone) {
@@ -1453,8 +1513,8 @@
       + '<div class="mt-strategy-panel-title">🐜 오늘의 개미 체크리스트</div>'
       + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
       + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
-      + '<div class="mt-ant-list mt-ant-todo"><b>✅ 해볼 것</b><ul>' + list(guide.todo) + '</ul></div>'
-      + '<div class="mt-ant-list mt-ant-avoid"><b>🚫 참을 것</b><ul>' + list(guide.avoid) + '</ul></div>'
+      + '<div class="mt-ant-list mt-ant-todo"><b>✅ 지금 할 일</b><ul>' + list(guide.todo) + '</ul></div>'
+      + '<div class="mt-ant-list mt-ant-avoid"><b>🚫 오늘 금지</b><ul>' + list(guide.avoid) + '</ul></div>'
       + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
       + '</div>';
   }

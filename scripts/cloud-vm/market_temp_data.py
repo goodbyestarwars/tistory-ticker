@@ -478,7 +478,14 @@ def market_components_from_db(conn, now_kst=None):
     weight = us_futures_time_weight(now_kst)
     us_futures = score.score_us_futures(sp_row.get('change_rate'), sp_row.get('price'), weight)
 
-    return {'vix': vix, 'exchange': exchange, 'usFutures': us_futures}
+    ktb_row = prices.get('KTB3Y') or {}
+    us10_row = prices.get('US10Y') or {}
+    rates = score.score_interest_rates(
+        ktb3y=ktb_row.get('price'), ktb3y_change=ktb_row.get('change'),
+        us10y=us10_row.get('price'), us10y_change=us10_row.get('change'),
+    )
+
+    return {'vix': vix, 'exchange': exchange, 'usFutures': us_futures, 'rates': rates}
 
 
 def week52_component(cache_file):
