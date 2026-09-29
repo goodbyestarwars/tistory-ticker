@@ -24,10 +24,28 @@
 }
 #main-news .mn-head small {
   display: block;
-  margin-top: 6px;
   font-size: 11px;
   color: var(--text-sub);
 }
+#main-news .mn-refresh-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 8px;
+}
+#main-news .mn-refresh-btn {
+  min-height: 30px;
+  padding: 5px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #1f2937;
+  font: 700 12px/1.2 var(--font-ui);
+  cursor: pointer;
+}
+#main-news .mn-refresh-btn:hover { border-color: #1d4ed8; color: #1d4ed8; }
+#main-news .mn-refresh-btn:disabled { cursor: wait; opacity: .62; }
 
 #main-news .mn-row {
   /* 시장 배지 폭을 고정해야 제목 왼쪽이 한 줄로 정렬된다. 한국/미국(2글자) 알약 기준이다. */
@@ -94,4 +112,5 @@ html.dark #main-news .mn-market--us { color: #93c5fd; background: rgba(29, 78, 2
 @media (max-width: 720px) {
   #main-news .mn-row { padding: 10px 0; gap: 0 8px; }
   #main-news .mn-row-title { font-size: 14px; }
+  #main-news .mn-refresh-row { align-items: flex-start; }
 }

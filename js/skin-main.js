@@ -188,7 +188,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-main-news-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260906-main-news-v9';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260929-refresh-v1';
       link.setAttribute('data-main-news-css', '1');
       document.head.appendChild(link);
     }
@@ -207,9 +207,43 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260906-main-news-v9';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260929-refresh-v1';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
+    document.body.appendChild(script);
+  })();
+
+  /* 증시온도(/page/market-temp): 티스토리 본문에 오래된 <script>/<link>가 남아 있어도
+     최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
+  (function loadMarketTempPage() {
+    if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
+    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var version = '20260929-flow-refresh-v1';
+    if (!document.querySelector('link[data-market-temp-css]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = ASSET_BASE + 'css/market-temp.css?v=' + version;
+      link.setAttribute('data-market-temp-css', '1');
+      document.head.appendChild(link);
+    }
+    if (!document.querySelector('#market-temp')) {
+      var mount = document.createElement('div');
+      mount.id = 'market-temp';
+      var hostSelectors = ['.contents_style', '.post-single-body', '.entry-content', '.article-view', '.feed'];
+      var host = null;
+      for (var i = 0; i < hostSelectors.length && !host; i++) {
+        host = document.querySelector(hostSelectors[i]);
+      }
+      (host || document.body).appendChild(mount);
+    }
+    if (document.querySelector('script[data-market-temp-dynamic]')) return;
+    var script = document.createElement('script');
+    script.src = ASSET_BASE + 'js/market-temp.js?v=' + version;
+    script.defer = true;
+    script.setAttribute('data-market-temp-dynamic', '1');
+    script.addEventListener('load', function () {
+      if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();
+    });
     document.body.appendChild(script);
   })();
 
@@ -276,23 +310,26 @@ document.documentElement.classList.add('skin-ready');
        불러오는 중일 수 있는데, 여기서 같은 파일을 또 넣으면 모듈 IIFE가 두 번 돈다. */
     function ensureScript(tab) {
       if (document.querySelector('script[data-mi-script="' + tab.key + '"]')) return;
-      if (document.querySelector('script[src*="/js/' + tab.slug + '.js"]')) return;
+      var expectedSrc = tab.script;
+      var existing = Array.prototype.slice.call(document.querySelectorAll('script[src*="/js/' + tab.slug + '.js"]'));
+      var sameVersion = existing.some(function (node) { return node.src === expectedSrc; });
+      if (sameVersion) return;
       var script = document.createElement('script');
       script.src = tab.script;
       script.defer = true;
       script.setAttribute('data-mi-script', tab.key);
       document.body.appendChild(script);
+      return true;
     }
 
     function activate(key) {
       var tab = tabByKey(key);
       if (!tab) return;
+      if (ensureScript(tab)) return; // 최신 스크립트가 붙으면 모듈이 스스로 init한다.
       var module = window[tab.globalName];
       if (module && typeof module.init === 'function') {
         module.init();
-        return;
       }
-      ensureScript(tab); // 스크립트가 붙으면 모듈이 스스로 init한다
     }
 
     function select(key) {
@@ -406,7 +443,7 @@ document.documentElement.classList.add('skin-ready');
     })();
 
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
-    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260828-home-cache-v1';
+    var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260929-ko-us-names-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20260825-ws-fallback-v1')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20260825-ws-fallback-v1';

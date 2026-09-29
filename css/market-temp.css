@@ -1324,9 +1324,9 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-avg { stroke: var(--mt-blue); stroke-width: 1.4; stroke-dasharray: 6 5; }
 #market-temp .mt-rib-avg5 { stroke: var(--mt-yellow); stroke-width: 2.4; stroke-dasharray: none; }
 #market-temp .mt-rib-area { fill: #1261c4; fill-opacity: .08; }
-/* 2026-09-16 사용자 요청("bold 되어 있는거 없애, 그냥 사각형이 좋아, 그래프도 마찬가지"):
-   굵은 선·둥근 끝·알약 모양 라벨·둥근 카드 모서리를 걷어내고 가는 선·사각형으로 통일한다. */
-#market-temp .mt-rib-line { fill: none; stroke: var(--mt-red); stroke-width: 2.4; stroke-linecap: square; stroke-linejoin: round; transition: stroke-dashoffset 1.2s cubic-bezier(.22, 1, .36, 1); }
+/* 흐름선은 값의 방향을 읽는 선이라 끝을 둥글게 처리한다. 이전 사각 끝은 모바일에서
+   꺾임이 더 도드라져 "그래프가 매끄럽지 않다"는 인상을 줬다. */
+#market-temp .mt-rib-line { fill: none; stroke: var(--mt-red); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; transition: stroke-dashoffset 1.2s cubic-bezier(.22, 1, .36, 1); }
 #market-temp .mt-rib-dot { fill: var(--mt-tone); }
 #market-temp .mt-rib-now { fill: var(--mt-tone); }
 #market-temp .mt-rib-pulse { fill: var(--mt-tone); opacity: .5; pointer-events: none; transform-box: fill-box; transform-origin: center; animation: mtRibPulse 1.8s ease-out infinite; }
@@ -1334,8 +1334,8 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-rib-anim .mt-rib-area { transform-box: fill-box; transform-origin: 50% 100%; animation: mtRibRise .9s cubic-bezier(.22, 1, .36, 1) .15s both; }
 @keyframes mtRibRise { from { transform: scaleY(0); opacity: 0; } to { transform: scaleY(1); opacity: 1; } }
 #market-temp .mt-rib-zone-label { position: absolute; left: 7px; transform: translateY(-50%); color: var(--mt-tone); font-size: 10px; font-weight: 700; opacity: .78; pointer-events: none; }
-/* 왼쪽 끝 구간 이름(과열·보통·공포)과 겹치지 않게 가운데쯤에 둔다. */
-#market-temp .mt-rib-avg-label { position: absolute; left: 48%; transform: translateY(-115%); padding: 0 4px; border-radius: 0; background: #fbfcfe; color: var(--mt-blue); font-size: 10px; font-weight: 700; white-space: nowrap; pointer-events: none; }
+/* 평균선 라벨이 흰 박스로 차트를 가리지 않게 배경을 빼고, 얇은 그림자로만 읽힘을 보정한다. */
+#market-temp .mt-rib-avg-label { position: absolute; left: 48%; transform: translateY(-115%); padding: 0 4px; border-radius: 0; background: transparent; color: var(--mt-blue); font-size: 10px; font-weight: 700; white-space: nowrap; pointer-events: none; text-shadow: 0 1px 0 #fbfcfe, 0 -1px 0 #fbfcfe, 1px 0 0 #fbfcfe, -1px 0 0 #fbfcfe; }
 #market-temp .mt-rib-avg30-label { left:58%; }
 #market-temp .mt-rib-avg5-label { left:30%; color:var(--mt-yellow); transform:translateY(12%); }
 #market-temp .mt-rib-now-label { position: absolute; transform: translate(-100%, calc(-100% - 10px)); padding: 2px 7px; border-radius: 0; background: var(--mt-tone); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; pointer-events: none; transition: opacity .15s ease; }
@@ -1363,15 +1363,17 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 #market-temp .mt-tomorrow-flow span b { display:block; margin-top:2px; color:#37424d; font-size:13px; }
 #market-temp .mt-tomorrow-flow p { margin:0; color:#56616d; font-size:11px; line-height:1.45; }
 #market-temp .mt-tomorrow-flow p small { display:block; margin-top:2px; color:#939ca6; font-size:9px; }
-#market-temp .mt-tomorrow-up { border-left-color:#d66a6a; }
-#market-temp .mt-tomorrow-down { border-left-color:#4aa9d9; }
-#market-temp .mt-tomorrow-flat { border-left-color:#d4a548; }
+#market-temp .mt-tomorrow-up { border-left-color:var(--mt-red); }
+#market-temp .mt-tomorrow-down { border-left-color:var(--mt-blue); }
+#market-temp .mt-tomorrow-flat { border-left-color:var(--mt-yellow); }
 #market-temp .mt-temperature-actions { display:grid; gap:16px; }
 #market-temp .mt-temperature-money-flow { margin:0; }
 @media (max-width: 640px) {
   #market-temp .mt-weather-strip { gap: 1px; }
   #market-temp .mt-weather-day small { font-size: 9px; }
   #market-temp .mt-tomorrow-flow { grid-template-columns:1fr; gap:5px; }
+  #market-temp .mt-history-tail.mt-card .mt-history-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  #market-temp .mt-history-tail.mt-card .mt-history-metrics b { line-height: 1.25; white-space: normal; word-break: keep-all; }
 }
 @media (prefers-reduced-motion: reduce) {
   #market-temp .mt-rib-pulse,
@@ -1382,7 +1384,7 @@ html.dark #market-temp .mt-axis-list { border-top-color: rgba(245, 239, 224, .18
 html.dark #market-temp .mt-rib-border { stroke: #e5eaf0 !important; }
 html.dark #market-temp .mt-rib-dot { fill: var(--mt-tone) !important; }
 html.dark #market-temp .mt-rib-now { stroke: #fff !important; }
-html.dark #market-temp .mt-rib-avg-label { background: #fbfcfe !important; color: #7b8792 !important; }
+html.dark #market-temp .mt-rib-avg-label { background: transparent !important; color: #7b8792 !important; text-shadow: 0 1px 0 #fbfcfe, 0 -1px 0 #fbfcfe, 1px 0 0 #fbfcfe, -1px 0 0 #fbfcfe !important; }
 html.dark #market-temp .mt-rib-avg5-label { color:#f2c35d !important; }
 html.dark #market-temp .mt-rib-tip { background: #fff !important; color: #222 !important; }
 html.dark #market-temp .mt-weather-day { background: transparent !important; }

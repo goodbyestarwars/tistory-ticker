@@ -61,7 +61,7 @@
     { key: 'us', code: '미국', label: '미국' }
   ];
 
-  var state = { container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null };
+  var state = { container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null, loading: false };
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -191,7 +191,8 @@
       + '<h2>주요 뉴스</h2>'
       + '<p>' + MARKETS[0].code + '·' + MARKETS[1].code + ' 시장 뉴스를 최근 12시간 기준 최신순으로 함께 봅니다.'
       + ' 제목을 누르면 원문으로 이동합니다.</p>'
-      + '<small data-mn-updated></small>'
+      + '<div class="mn-refresh-row"><small data-mn-updated>자동 갱신 대기 중</small>'
+      + '<button type="button" class="mn-refresh-btn" data-mn-refresh aria-label="주요 뉴스 새로고침">갱신</button></div>'
       + '</div>'
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
@@ -208,11 +209,18 @@
   function render(container, items, failed) {
     var list = container.querySelector('[data-mn-list]');
     var updated = container.querySelector('[data-mn-updated]');
+    var button = container.querySelector('[data-mn-refresh]');
     if (!list) return;
+    state.loading = false;
+    if (button) {
+      button.disabled = false;
+      button.textContent = '갱신';
+    }
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
         : '<p class="mn-state">표시할 뉴스가 없습니다.</p>';
+      if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }
     // 한쪽만 실패하면 나머지는 그대로 보여주되, 무엇이 빠졌는지는 숨기지 않는다.
@@ -224,6 +232,15 @@
   }
 
   function refresh(container) {
+    if (state.loading) return;
+    state.loading = true;
+    var button = container.querySelector('[data-mn-refresh]');
+    var updated = container.querySelector('[data-mn-updated]');
+    if (button) {
+      button.disabled = true;
+      button.textContent = '갱신 중';
+    }
+    if (updated && !state.loadedAt) updated.textContent = '뉴스를 불러오는 중';
     var generation = ++state.generation;
     var collected = [];
     var failed = [];
@@ -259,6 +276,10 @@
     if (!container) return;
     state.container = container;
     container.innerHTML = buildShell();
+    var refreshButton = container.querySelector('[data-mn-refresh]');
+    if (refreshButton) {
+      refreshButton.addEventListener('click', function () { refresh(container); });
+    }
     refresh(container);
     if (state.timer) clearInterval(state.timer);
     state.timer = setInterval(function () { refresh(container); }, REFRESH_MS);

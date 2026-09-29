@@ -158,6 +158,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         menu = self.read("js/skin-menu.js")
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
+        main = self.read("js/skin-main.js")
         self.assertIn("{ href: '/page/market-temp?view=stocks', label: '국내 주요종목' }", menu)
         self.assertIn("query.get('view') === 'stocks'", menu)
         self.assertIn("if (!parts[1]) return query.get('view') !== 'stocks';", menu)
@@ -174,6 +175,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("mt-stocks-only-heading", style)
         self.assertIn("#market-temp .mt-view-btn", style)
         self.assertIn("border-radius: 4px;", style)
+        self.assertIn("function loadMarketTempPage()", main)
+        self.assertIn("market-temp.css?v=' + version", main)
+        self.assertIn("market-temp.js?v=' + version", main)
+        self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
@@ -1537,6 +1542,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('class="mt-rib-avg5"', source)
         self.assertIn("function markerCircle(className, point, radius)", source)
         self.assertIn('mt-rib-band-fear', source)
+        self.assertIn("stroke-linecap: round;", style)
+        self.assertIn("background: transparent; color: var(--mt-blue)", style)
+        self.assertIn("#market-temp .mt-tomorrow-down { border-left-color:var(--mt-blue); }", style)
+        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
         self.assertNotIn('gradientUnits="userSpaceOnUse"', source)
         self.assertIn("data-rib-stage", source)
         self.assertIn("mt-weather-strip", source)
@@ -1859,7 +1868,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         weather = rule("#market-temp .mt-weather-day")
         self.assertNotIn("border-bottom: 3px", weather)
         self.assertIn("border-radius: 0", weather)
-        self.assertIn("stroke-width: 2.4;", rule("#market-temp .mt-rib-line"))
+        rib_line = rule("#market-temp .mt-rib-line")
+        self.assertIn("stroke-width: 2.4;", rib_line)
+        self.assertIn("stroke-linecap: round", rib_line)
         for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
             self.assertIn("border-radius: 0", rule(selector))
         self.assertEqual(rule("#market-temp .mt-gauge-seg").count("stroke-linecap: round"), 0)
@@ -2439,8 +2450,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # skin-main.js는 global 별칭이 없는 파일이다 - window로 읽어야 ReferenceError가 안 난다.
         self.assertIn("var module = window[tab.globalName];", main)
         self.assertNotIn("var module = global[tab.globalName];", main)
-        # 같은 파일이 두 번 실행되지 않도록 티스토리 페이지 본문의 <script>도 센다.
+        # 같은 버전은 두 번 실행하지 않되, 티스토리 본문에 오래된 파일이 있으면 최신 버전을 붙인다.
         self.assertIn("""script[src*="/js/' + tab.slug + '.js"]""", main)
+        self.assertIn("var sameVersion = existing.some(function (node) { return node.src === expectedSrc; });", main)
+        self.assertIn("js/overnight-market.js?v=20260929-circle-marker-v1", main)
 
         # 글로벌 탭에서 코스피·코스닥 카드를 뺐다 - 국내 탭이 같은 지수를 차트까지 갖고 있다.
         overnight = self.read("js/overnight-market.js")
@@ -3173,7 +3186,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
             self.assertNotIn(old_indigo, style)
         self.assertIn(".sc-ev-stock-link", style)
         self.assertIn(".sc-today-head", style)
-        self.assertIn("stock-calendar.js?v=20260828-home-cache-v1", home)
+        self.assertIn("stock-calendar.js?v=20260929-ko-us-names-v1", home)
         self.assertIn("function homeKstDayStart(value)", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
@@ -3674,6 +3687,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
+        self.assertIn("main-news.css?v=20260929-refresh-v1", main)
+        self.assertIn("main-news.js?v=20260929-refresh-v1", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3683,6 +3698,9 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 탭에 돌아올 때마다 다시 부르면 /domestic-news의 IP당 60초 20회 제한에 걸린다.
         self.assertIn("var STALE_MS = 60 * 1000;", source)
         self.assertIn("if (Date.now() - state.loadedAt < STALE_MS) return;", source)
+        self.assertIn("data-mn-refresh", source)
+        self.assertIn("refreshButton.addEventListener('click'", source)
+        self.assertIn(".mn-refresh-btn", style)
         # 전부 실패하면 5분을 기다리지 않고 한 번 더 시도한다.
         self.assertIn("var RETRY_MS = 6000;", source)
         self.assertIn("if (!collected.length && failed.length && !state.retryTimer)", source)
@@ -3807,8 +3825,12 @@ console.log(JSON.stringify(cases.map(function (iso) {
     def test_calendar_shows_us_company_name_and_alnum_domestic_codes(self):
         source = self.read("js/stock-calendar.js")
         self.assertIn("var US_COMPANY_NAME_MAP = {", source)
-        self.assertIn("AAPL: 'Apple'", source)
+        self.assertIn("AAPL: '애플'", source)
+        self.assertIn("TSLA: '테슬라'", source)
+        self.assertIn("ANEB: '애네벡스'", source)
         self.assertIn("US_COMPANY_NAME_MAP[symbol]", source)
+        self.assertLess(source.index("US_COMPANY_NAME_MAP[symbol]"), source.index("if (explicit && explicit.toUpperCase()"))
+        self.assertIn("event && event.start && isSp100Earnings(event)", source)
         self.assertIn("/^[0-9A-Za-z]{6}$/.test(symbol)", source)
         self.assertIn("companyName) + ' <span class=\"sc-ev-symbol\">('", source)
 

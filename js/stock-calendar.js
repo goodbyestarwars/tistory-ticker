@@ -35,26 +35,27 @@
   // 남긴다. 복수 클래스(BRK.B/GOOGL 등)를 포함하며 API 심볼의 '-'와 '.' 표기를 함께 받는다.
   var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM').split(' '));
   var US_COMPANY_NAME_MAP = {
-    AAPL: 'Apple', ABBV: 'AbbVie', ABT: 'Abbott Laboratories', ACN: 'Accenture', ADBE: 'Adobe', AIG: 'AIG',
-    AMD: 'AMD', AMGN: 'Amgen', AMT: 'American Tower', AMZN: 'Amazon', AVGO: 'Broadcom', AXP: 'American Express',
-    BA: 'Boeing', BAC: 'Bank of America', BK: 'BNY Mellon', BKNG: 'Booking Holdings', BLK: 'BlackRock',
-    BMY: 'Bristol Myers Squibb', 'BRK.B': 'Berkshire Hathaway', C: 'Citigroup', CAT: 'Caterpillar',
-    CHTR: 'Charter Communications', CL: 'Colgate-Palmolive', CMCSA: 'Comcast', COF: 'Capital One',
-    COP: 'ConocoPhillips', COST: 'Costco', CRM: 'Salesforce', CSCO: 'Cisco', CVS: 'CVS Health',
-    CVX: 'Chevron', DE: 'Deere', DHR: 'Danaher', DIS: 'Disney', DOW: 'Dow', DUK: 'Duke Energy',
-    EMR: 'Emerson Electric', EXC: 'Exelon', F: 'Ford', FDX: 'FedEx', GD: 'General Dynamics',
-    GE: 'GE Aerospace', GILD: 'Gilead Sciences', GM: 'General Motors', GOOG: 'Alphabet', GOOGL: 'Alphabet',
-    GS: 'Goldman Sachs', HD: 'Home Depot', HON: 'Honeywell', IBM: 'IBM', INTC: 'Intel', JNJ: 'Johnson & Johnson',
-    JPM: 'JPMorgan Chase', KHC: 'Kraft Heinz', KO: 'Coca-Cola', LIN: 'Linde', LLY: 'Eli Lilly',
-    LMT: 'Lockheed Martin', LOW: "Lowe's", MA: 'Mastercard', MCD: "McDonald's", MDLZ: 'Mondelez',
-    MDT: 'Medtronic', MET: 'MetLife', META: 'Meta Platforms', MMM: '3M', MO: 'Altria', MRK: 'Merck',
-    MS: 'Morgan Stanley', MSFT: 'Microsoft', NEE: 'NextEra Energy', NFLX: 'Netflix', NKE: 'Nike',
-    NOW: 'ServiceNow', NVDA: 'NVIDIA', ORCL: 'Oracle', PEP: 'PepsiCo', PFE: 'Pfizer', PG: 'Procter & Gamble',
-    PM: 'Philip Morris', PYPL: 'PayPal', QCOM: 'Qualcomm', RTX: 'RTX', SBUX: 'Starbucks',
-    SCHW: 'Charles Schwab', SO: 'Southern Company', SPG: 'Simon Property Group', T: 'AT&T',
-    TGT: 'Target', TMO: 'Thermo Fisher Scientific', TMUS: 'T-Mobile US', TSLA: 'Tesla', TXN: 'Texas Instruments',
-    UNH: 'UnitedHealth Group', UNP: 'Union Pacific', UPS: 'UPS', USB: 'U.S. Bancorp', V: 'Visa',
-    VZ: 'Verizon', WBA: 'Walgreens Boots Alliance', WFC: 'Wells Fargo', WMT: 'Walmart', XOM: 'Exxon Mobil'
+    AAPL: '애플', ABBV: '애브비', ABT: '애보트', ACN: '액센츄어', ADBE: '어도비', AIG: 'AIG',
+    AMD: 'AMD', AMGN: '암젠', AMT: '아메리칸타워', AMZN: '아마존', AVGO: '브로드컴', AXP: '아메리칸익스프레스',
+    BA: '보잉', BAC: '뱅크오브아메리카', BK: 'BNY멜론', BKNG: '부킹홀딩스', BLK: '블랙록',
+    BMY: '브리스톨마이어스스큅', 'BRK.B': '버크셔해서웨이', C: '씨티그룹', CAT: '캐터필러',
+    CHTR: '차터커뮤니케이션스', CL: '콜게이트', CMCSA: '컴캐스트', COF: '캐피털원',
+    COP: '코노코필립스', COST: '코스트코', CRM: '세일즈포스', CSCO: '시스코', CVS: 'CVS헬스',
+    CVX: '셰브론', DE: '디어', DHR: '다나허', DIS: '디즈니', DOW: '다우', DUK: '듀크에너지',
+    EMR: '에머슨일렉트릭', EXC: '엑셀론', F: '포드', FDX: '페덱스', GD: '제너럴다이내믹스',
+    GE: 'GE에어로스페이스', GILD: '길리어드', GM: '제너럴모터스', GOOG: '알파벳', GOOGL: '알파벳',
+    GS: '골드만삭스', HD: '홈디포', HON: '허니웰', IBM: 'IBM', INTC: '인텔', JNJ: '존슨앤드존슨',
+    JPM: 'JP모건체이스', KHC: '크래프트하인즈', KO: '코카콜라', LIN: '린데', LLY: '일라이릴리',
+    LMT: '록히드마틴', LOW: '로우스', MA: '마스터카드', MCD: '맥도날드', MDLZ: '몬델리즈',
+    MDT: '메드트로닉', MET: '메트라이프', META: '메타', MMM: '3M', MO: '알트리아', MRK: '머크',
+    MS: '모건스탠리', MSFT: '마이크로소프트', NEE: '넥스트에라에너지', NFLX: '넷플릭스', NKE: '나이키',
+    NOW: '서비스나우', NVDA: '엔비디아', ORCL: '오라클', PEP: '펩시코', PFE: '화이자', PG: '프록터앤드갬블',
+    PM: '필립모리스', PYPL: '페이팔', QCOM: '퀄컴', RTX: 'RTX', SBUX: '스타벅스',
+    SCHW: '찰스슈왑', SO: '서던컴퍼니', SPG: '사이먼프로퍼티', T: 'AT&T',
+    TGT: '타깃', TMO: '써모피셔', TMUS: 'T모바일', TSLA: '테슬라', TXN: '텍사스인스트루먼트',
+    UNH: '유나이티드헬스', UNP: '유니언퍼시픽', UPS: 'UPS', USB: 'US뱅코프', V: '비자',
+    VZ: '버라이즌', WBA: '월그린스부츠', WFC: '웰스파고', WMT: '월마트', XOM: '엑슨모빌',
+    ANEB: '애네벡스'
   };
 
   function isSp100Earnings(event) {
@@ -176,7 +177,7 @@
     try {
       var raw = global.localStorage.getItem(CALENDAR_STORAGE_KEY);
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.filter(function (event) { return event && event.start; }) : [];
+      return Array.isArray(parsed) ? parsed.filter(function (event) { return event && event.start && isSp100Earnings(event); }) : [];
     } catch (e) {
       return [];
     }
@@ -190,7 +191,7 @@
     var byKey = {};
     loadStoredCalendarEvents().forEach(function (event) { byKey[calendarEventKey(event)] = event; });
     (incoming || []).forEach(function (event) {
-      if (event && event.start) byKey[calendarEventKey(event)] = event;
+      if (event && event.start && isSp100Earnings(event)) byKey[calendarEventKey(event)] = event;
     });
     var stored = Object.keys(byKey).map(function (key) { return byKey[key]; });
     saveStoredCalendarEvents(stored);
@@ -199,7 +200,9 @@
 
   function storedMonthEvents(year, month) {
     var prefix = String(year) + '-' + String(month + 1).padStart(2, '0');
-    return loadStoredCalendarEvents().filter(function (event) { return String(event.start || '').slice(0, 7) === prefix; });
+    return loadStoredCalendarEvents().filter(function (event) {
+      return String(event.start || '').slice(0, 7) === prefix && isSp100Earnings(event);
+    });
   }
 
   function fetchGoogleEvents(year, month) {
@@ -344,8 +347,8 @@
   function usCompanyNameFor(ev, meta) {
     var symbol = String(meta && meta.stockName || ev && (ev.symbol || ev.ticker) || '').toUpperCase().replace('-', '.');
     var explicit = String(ev && (ev.company || ev.companyName || ev.name || ev.securityName || ev.displayName) || '').trim();
-    if (explicit && explicit.toUpperCase() !== String(meta.stockName || '').toUpperCase()) return explicit;
     if (US_COMPANY_NAME_MAP[symbol]) return US_COMPANY_NAME_MAP[symbol];
+    if (explicit && explicit.toUpperCase() !== String(meta.stockName || '').toUpperCase()) return explicit;
     var text = String(meta && meta.text || '');
     var marker = text.lastIndexOf(' · ');
     if (marker !== -1) {

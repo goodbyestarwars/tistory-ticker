@@ -2954,3 +2954,24 @@ KIS 원본 응답을 그대로 돌려준다(`picked`에 last/base/tvol 등 주�
 고정되어 있었기 때문이다. KRX 애프터마켓·NXT 종료에 맞춰 `MarketHours.homeMarket()`과 VM 경제뉴스
 기본 시장, 홈 전환 카운트다운을 모두 20:00으로 통일했다. 경계 테스트도 19:59 국내 / 20:00 미국으로
 갱신했다.
+
+**2026-09-29 주요뉴스 갱신 버튼·증시온도 그래프·캘린더 한글명 정리**
+
+주요뉴스 전용 화면에 수동 `갱신` 버튼과 로딩/실패/기준시각 상태를 추가했다. 기존 5분 자동 갱신은
+유지하되 사용자가 갱신 가능 여부를 화면에서 바로 알 수 있게 했다.
+
+증시온도 최근 단기흐름은 평균선 라벨의 흰 배경을 제거하고, 흐름선 끝을 둥글게 처리해 모바일에서
+덜 꺾여 보이게 했다. 내일 흐름의 하락색은 하늘색이 아니라 정책색 `var(--mt-blue)`로 맞췄고,
+모바일에서 `가장 높았던 날` 지표가 잘리지 않도록 지표 그리드를 2열로 바꿨다.
+
+티스토리 본문에 오래된 스크립트가 남아 있어 최신 증시온도/시장지표 변경이 안 보이는 문제를 줄이기
+위해 스킨 로더가 최신 버전 JS/CSS를 보장하도록 했다. 글로벌 시장지표도 기존 모듈이 이미 떠 있어도
+버전이 다르면 최신 `overnight-market.js`를 다시 붙인다.
+
+캘린더 미국 실적은 S&P100 필터를 저장 캐시에도 적용해 ANEB 같은 비대상 이벤트가 예전 캐시에서
+되살아나지 않게 했고, 미국 종목명은 애플·테슬라처럼 한글 표시를 우선한다.
+
+검증: `node --check js/main-news.js js/skin-main.js js/market-temp.js js/stock-calendar.js js/overnight-market.js`,
+`pytest test/test_ui_ia.py -q` 168 passed(+35 subtests),
+`pytest test/test_earnings_calendar.py test/test_market_temp_score.py test/test_binance_flow.py -q`
+96 passed(+11 subtests).
