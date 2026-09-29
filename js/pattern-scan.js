@@ -247,12 +247,27 @@
     var d1 = summary.d1 || {};
     var d5 = summary.d5 || {};
     var d20 = summary.d20 || {};
-    box.innerHTML = '<strong>사후 추적</strong>'
+    var hits = performanceHitsForActiveTab().slice().sort(function (a, b) {
+      return String(b.scanDate || '').localeCompare(String(a.scanDate || ''));
+    });
+    if (hits.length > 12) hits.length = 12;
+    var rows = hits.map(function (hit) {
+      var current = Number(hit.currentReturnPct);
+      var tone = current > 0 ? 'is-up' : current < 0 ? 'is-down' : 'is-flat';
+      var elapsed = Number(hit.elapsedTradingDays);
+      var state = isFinite(current) ? '현재 ' + signedPct(current) : '관찰 중';
+      return '<li><time>' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + '</time>'
+        + '<b>' + escapeHtml(hit.name || hit.code || '-') + '</b>'
+        + '<span class="' + tone + '">' + escapeHtml(state) + '</span>'
+        + '<em>' + (isFinite(elapsed) ? '+' + elapsed + '거래일' : '') + '</em></li>';
+    }).join('');
+    box.innerHTML = '<strong>추천 성과 기록</strong>'
       + '<span>추천 기록 ' + escapeHtml(summary.hits || 0) + '건</span>'
       + '<span>D+1 평균 ' + escapeHtml(signedPct(d1.avgPct)) + ' · 승률 ' + escapeHtml(d1.winRatePct == null ? '-' : d1.winRatePct.toFixed(1) + '%') + '</span>'
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
       + '<span>D+20 평균 ' + escapeHtml(signedPct(d20.avgPct)) + '</span>'
-      + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>';
+      + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>'
+      + '<details class="ps-track-history"><summary>최근 추천 이력 ' + hits.length + '건 보기</summary><ul>' + rows + '</ul></details>';
   }
 
   function latestPerformanceForItem(item) {

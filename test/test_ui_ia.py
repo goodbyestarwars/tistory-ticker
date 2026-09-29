@@ -3327,8 +3327,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 입혔으면 좋겠어").
         self.assertIn("mt-if-fill", source)
         self.assertIn("maxAmount", source)
-        self.assertIn("function buildIndustryRankFlow_()", source)
-        self.assertIn("mt-if-bump", source)
+        # 순위의 선 연결 그래프는 없애고, 거래대금 자체가 보이는 카드 흐름으로 바꿨다.
+        self.assertIn("오늘 돈이 몰리는 차트", source)
+        self.assertIn("mt-money-flow-grid", source)
+        self.assertNotIn("+ buildIndustryRankFlow_()", source)
         # 데이터원: 예전 경로(market-board 상위 30종목)는 절반 이상이 ETF라 테마가
         # 8개뿐이었다. VM이 238종목으로 집계한 값을 먼저 쓰고 실패 시에만 폴백한다.
         self.assertIn("https://goodbyestar.cloud/industry-flow", source)
@@ -3821,6 +3823,9 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("elapsedTradingDays", scan_forward)
         self.assertIn("#pattern-scan .ps-track-summary", style)
         self.assertIn("#pattern-scan .ps-track-chip.is-up", style)
+        self.assertIn("추천 성과 기록", source)
+        self.assertIn("최근 추천 이력", source)
+        self.assertIn("ps-track-history", style)
 
     def test_calendar_shows_us_company_name_and_alnum_domestic_codes(self):
         source = self.read("js/stock-calendar.js")

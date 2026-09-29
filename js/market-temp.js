@@ -214,10 +214,37 @@
     var avoid = base.avoid.slice();
     var risk = Number(axes.risk && axes.risk.value);
     var money = Number(axes.money && axes.money.value);
-    // 등급만 보면 매일 같은 문구다 - 축 값이 한쪽으로 치우친 날만 한 줄씩 덧붙인다.
-    if (isFinite(risk) && risk >= 65) avoid.unshift('위험 신호가 높은 날이다. 손절 못할 종목은 새로 사지 마라');
-    if (isFinite(money) && money < 35 && tone !== 'greed') todo.push('거래가 빈 날이다. 오늘 꼭 살 이유가 없으면 내일 다시 봐도 된다');
-    return { tone: tone, mood: base.mood, title: base.title, short: base.short, todo: todo, avoid: avoid };
+    var score = Number(data && (data.score != null ? data.score : data.temp));
+    var context = [];
+    if (isFinite(score)) context.push('시장 점수 ' + Math.round(score) + '점');
+    if (isFinite(risk)) context.push('위험 ' + Math.round(risk) + '점');
+    if (isFinite(money)) context.push('자금 유입 ' + Math.round(money) + '점');
+
+    // 등급 하나로 같은 문구를 반복하지 않는다. 오늘의 위험·자금 축이 어느 쪽으로
+    // 기울었는지에 따라 "정리", "관망", "수익 보호" 중 우선 행동을 바꾼다.
+    if (isFinite(risk) && risk >= 65) {
+      todo[0] = '손절가를 깼으면 오늘 정리한다. 못 하겠으면 1개월 버틸 근거를 먼저 적는다';
+      avoid.unshift('손실 종목의 평단만 낮추는 물타기');
+      base = { tone: tone, mood: '위험 신호가 높아진 날', title: '오늘은 수익보다 계좌 방어가 먼저다', short: '' };
+    } else if (isFinite(money) && money < 40) {
+      todo[0] = '거래대금이 붙은 종목만 남기고, 나머지는 장 마감 뒤 다시 본다';
+      avoid.unshift('돈이 없는 종목을 혼자만의 기대감으로 매수');
+      base = { tone: tone, mood: '시장 안에 새 돈이 약한 날', title: '지금은 매수보다 후보 선별이 먼저다', short: '' };
+    } else if (tone === 'greed' && isFinite(money) && money >= 60) {
+      todo[0] = '수익권 종목은 익절선과 이탈가를 오늘 가격으로 올려 적는다';
+      avoid.unshift('오른 종목을 놓칠까 봐 시장가로 추격 매수');
+      base = { tone: tone, mood: '자금이 강하게 몰리는 날', title: '오늘은 진입보다 수익 보호 가격을 정한다', short: '' };
+    }
+    return { tone: tone, mood: base.mood, title: base.title, short: base.short, todo: todo, avoid: avoid, context: context.join(' · ') };
+  }
+
+  function emphasizeChecklist_(text) {
+    var safe = escapeHtml(text);
+    // 행동의 핵심 단어만 굵게 남겨, 긴 문장을 읽지 않아도 판단이 보이게 한다.
+    ['손절가', '오늘 정리', '1개월 버틸', '물타기', '신규 진입', '익절선', '이탈가', '추격 매수', '거래대금', '장 마감 뒤'].forEach(function (word) {
+      safe = safe.replace(new RegExp(word, 'g'), '<strong>' + word + '</strong>');
+    });
+    return safe;
   }
 
   // 증시온도 화면은 온도 게이지(buildCard)만 렌더링하고, 카드/히트맵 탐색은
@@ -488,11 +515,9 @@
     // 실제로 보여주는 개수를 쓴다.
     var title = shown.length ? '오늘 업종 TOP ' + shown.length : '오늘 업종 흐름';
     mount.innerHTML = '<div class="mt-section mt-card mt-industry-flow-card">'
-      + '<div class="mt-industry-flow-head"><strong>' + title + '</strong><span>거래대금이 많이 몰린 순서</span></div>'
-      + buildIndustryRankFlow_()
-      + '<div class="mt-industry-flow-columns"><span></span><span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>순위</span></div>'
-      + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>')
-      + '<p class="mt-industry-flow-note">테마별 대표 종목들의 거래대금을 합산합니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 색의 길이는 1위 테마 대비 거래대금 비율이고, 평균등락률은 보조지표입니다. 한 종목이 여러 테마에 속할 수 있어 테마 합계는 시장 전체와 다릅니다. ' + rankBasisText + ' 누르면 대표 종목이 열립니다.</p>'
+      + '<div class="mt-industry-flow-head"><strong>오늘 돈이 몰리는 차트</strong><span>거래대금이 많이 몰린 순서 · TOP ' + shown.length + '</span></div>'
+      + '<div class="mt-money-flow-grid">' + (html || '<div class="mt-hint">업종 흐름 데이터가 없습니다.</div>') + '</div>'
+      + '<p class="mt-industry-flow-note">테마별 대표 종목 거래대금을 합산한 흐름입니다(약 240종목·37개 테마, 3분마다 갱신). 칸을 채운 길이는 1위 대비 자금 집중도이며, 평균등락률은 보조지표입니다. ' + rankBasisText + ' 카드를 누르면 대표 종목이 열립니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var rowButton = event.target.closest && event.target.closest('.mt-industry-flow-row');
@@ -1305,7 +1330,7 @@
     var fiveRows = shown.slice(-5);
     var fiveAverage = fiveRows.reduce(function (sum, item) { return sum + item.score; }, 0) / fiveRows.length;
 
-    var W = 640, H = 190, PX = 56, PT = 15, PB = 12;
+    var W = 640, H = 238, PX = 56, PT = 17, PB = 16;
     var plotH = H - PT - PB;
     function yOf(value) { return PT + (1 - Math.max(0, Math.min(100, value)) / 100) * plotH; }
     function pctX(x) { return (x / W * 100).toFixed(2); }
@@ -1380,8 +1405,8 @@
     var metrics = '<div class="mt-history-metrics">'
       + '<span><small>5일 평균</small><b>' + fiveAverage.toFixed(0) + '점</b></span>'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
-      + '<span><small>가장 낮았던 날</small><b>' + marketMood_(low.score).icon + ' ' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
-      + '<span><small>가장 높았던 날</small><b>' + marketMood_(high.score).icon + ' ' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
+      + '<span><small>가장 낮았던 날</small><b><i class="mt-history-mood-dot mt-rib-tone-' + scoreTone_(low.score) + '"></i>' + low.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(low.date)) + '</em></b></span>'
+      + '<span><small>가장 높았던 날</small><b><i class="mt-history-mood-dot mt-rib-tone-' + scoreTone_(high.score) + '"></i>' + high.score.toFixed(0) + '점 <em>' + escapeHtml(shortDate_(high.date)) + '</em></b></span>'
       + '</div>';
     return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일</span>'
       + '<b class="' + periodTone + '">기간 변화 ' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></div>'
@@ -1506,13 +1531,14 @@
   function buildStrategy(data) {
     var guide = antGuide(data);
     function list(items) {
-      return items.map(function (text) { return '<li>' + escapeHtml(text) + '</li>'; }).join('');
+      return items.map(function (text) { return '<li>' + emphasizeChecklist_(text) + '</li>'; }).join('');
     }
     return ''
       + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
       + '<div class="mt-strategy-panel-title">🐜 오늘의 개미 체크리스트</div>'
       + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
       + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
+      + '<div class="mt-ant-context">' + escapeHtml(guide.context) + '</div>'
       + '<div class="mt-ant-list mt-ant-todo"><b>✅ 지금 할 일</b><ul>' + list(guide.todo) + '</ul></div>'
       + '<div class="mt-ant-list mt-ant-avoid"><b>🚫 오늘 금지</b><ul>' + list(guide.avoid) + '</ul></div>'
       + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
