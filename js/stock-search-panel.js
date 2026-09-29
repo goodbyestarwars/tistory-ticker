@@ -57,6 +57,11 @@
     { symbol: 'SPY', name: 'S&P 500 ETF', aliases: 'spy s&p500 spdr' },
     { symbol: 'QQQ', name: '인베스코 QQQ ETF', aliases: 'qqq 나스닥 invesco' }
   ];
+  // data/krx_map.js 갱신 전 신규상장·특수코드도 상단/사이드바 검색에서 바로 진입되게 한다.
+  var DOMESTIC_LISTING_FALLBACKS = [
+    { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+  ];
   var RATE_FETCH_TIMEOUT_MS = 8000;
 
   function localizedUsName(symbol, fallback) {
@@ -108,16 +113,24 @@
   // ---- KRX_MAP 지연 로드 ----
 
   function ensureKrxMap() {
-    if (global.KRX_MAP) return Promise.resolve();
+    if (global.KRX_MAP) { applyDomesticListingFallbacks(); return Promise.resolve(); }
     if (krxMapPromise) return krxMapPromise;
     krxMapPromise = new Promise(function (resolve, reject) {
       var s = document.createElement('script');
       s.src = KRX_MAP_JS;
-      s.onload = function () { resolve(); };
+      s.onload = function () { applyDomesticListingFallbacks(); resolve(); };
       s.onerror = function () { krxMapPromise = null; reject(new Error('krx_map.js 로드 실패')); };
       document.head.appendChild(s);
     });
     return krxMapPromise;
+  }
+
+  function applyDomesticListingFallbacks() {
+    global.KRX_MAP = global.KRX_MAP || {};
+    DOMESTIC_LISTING_FALLBACKS.forEach(function (row) {
+      if (!global.KRX_MAP[row.name]) global.KRX_MAP[row.name] = row.code;
+    });
+    return global.KRX_MAP;
   }
 
   // ---- localStorage ----
@@ -213,7 +226,7 @@
 
   function resolveStock(query) {
     if (!query) return null;
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
     if (/^[0-9A-Z]{6}$/i.test(query)) {
       for (var nm in map) {
         if (map.hasOwnProperty(nm) && map[nm].toUpperCase() === query.toUpperCase()) return { code: map[nm], name: nm };
@@ -249,7 +262,7 @@
   }
 
   function suggestNames(query) {
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
     var q = query.toLowerCase();
     // ETF 병합 이후 "삼성전자"를 검색하면 진짜 삼성전자보다 이름에 검색어가 포함된 ETF
     // (예: "KODEX 삼성전자SK하이닉스채권혼합50")가 먼저 뜨는 문제가 있었음 - 시작/포함

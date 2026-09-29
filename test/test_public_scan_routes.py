@@ -15,6 +15,7 @@ import os
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 CLOUD_VM_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'scripts', 'cloud-vm'))
 if CLOUD_VM_DIR not in sys.path:
@@ -188,6 +189,26 @@ class PublicScanRouteTests(unittest.TestCase):
         self.assertNotIn('require_api_key', head)
         self.assertIn("_check_rate_limit('invest_signal', request", head)
         self.assertIn("_check_rate_limit('pattern_scan', request", head)
+
+    def test_scan_performance_public_exposes_limited_forward_returns_without_api_key(self):
+        fake_conn = mock.Mock()
+        expected = {
+            'horizons': [1, 3, 5, 20],
+            'hits': [{'scanner': 'pattern:risingLows', 'code': '000001', 'currentReturnPct': 2.5}],
+            'summary': {'pattern:risingLows': {'hits': 1}},
+        }
+        db = mock.Mock()
+        db.get_conn.return_value = fake_conn
+        with mock.patch.object(main, 'db_schema', db), \
+                mock.patch.object(main.scan_forward, 'forward_returns', return_value=expected) as forward:
+            payload = main.scan_performance_public(
+                FakeRequest(), scanner='pattern:risingLows', since='2026-09-01',
+                horizons='1,3,5,20', limit=9999)
+        self.assertEqual(payload['data'], expected)
+        forward.assert_called_once_with(
+            fake_conn, scanner='pattern:risingLows', since='2026-09-01',
+            horizons=[1, 3, 5, 20], limit=500)
+        db.get_conn.return_value.close.assert_called_once()
 
 
 if __name__ == '__main__':

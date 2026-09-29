@@ -3733,6 +3733,49 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("animation-duration: 0.01ms !important;", style)
         self.assertIn("style.css?v=20260922-index-breadth", self.read("skin.html"))
 
+    def test_new_domestic_listings_are_searchable_before_krx_map_refresh(self):
+        stock_search = self.read("js/stock-search.js")
+        panel = self.read("js/stock-search-panel.js")
+        flow = self.read("js/foreign-flow.js")
+        for source in (stock_search, panel, flow):
+            self.assertIn("DOMESTIC_LISTING_FALLBACKS", source)
+            self.assertIn("486510", source)
+            self.assertIn("글로벌테크놀로지", source)
+            self.assertIn("0035S0", source)
+            self.assertIn("빅웨이브로보틱스", source)
+            self.assertIn("applyDomesticListingFallbacks", source)
+        self.assertIn("!/^[0-9A-Za-z]{6}$/.test(query)", stock_search)
+        self.assertIn("if (/^[0-9A-Za-z]{6}$/.test(query))", flow)
+
+    def test_stock_chart_mouse_wheel_zoom_enlarges_candles(self):
+        source = self.read("js/stock-search.js")
+        self.assertIn("handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }", source)
+        self.assertIn("handleScroll: { mouseWheel: true, pressedMouseMove: true", source)
+        self.assertIn("barSpacing: timeframe === 'minute' ? 9 : 7", source)
+        self.assertIn("minBarSpacing: 3", source)
+
+    def test_pattern_scan_exposes_post_recommendation_tracking(self):
+        source = self.read("js/pattern-scan.js")
+        style = self.read("css/pattern-scan.css")
+        main = self.read("scripts/cloud-vm/main.py")
+        scan_forward = self.read("scripts/cloud-vm/scan_forward.py")
+        self.assertIn("/scan-performance-public", main)
+        self.assertIn("SCAN_PERFORMANCE_PUBLIC_URL", source)
+        self.assertIn("추천 ' + escapeHtml(date || hit.scanDate || '-')", source)
+        self.assertIn("현재까지 ' + escapeHtml(signedPct(pct))", source)
+        self.assertIn("currentReturnPct", scan_forward)
+        self.assertIn("elapsedTradingDays", scan_forward)
+        self.assertIn("#pattern-scan .ps-track-summary", style)
+        self.assertIn("#pattern-scan .ps-track-chip.is-up", style)
+
+    def test_calendar_shows_us_company_name_and_alnum_domestic_codes(self):
+        source = self.read("js/stock-calendar.js")
+        self.assertIn("var US_COMPANY_NAME_MAP = {", source)
+        self.assertIn("AAPL: 'Apple'", source)
+        self.assertIn("US_COMPANY_NAME_MAP[symbol]", source)
+        self.assertIn("/^[0-9A-Za-z]{6}$/.test(symbol)", source)
+        self.assertIn("companyName) + ' <span class=\"sc-ev-symbol\">('", source)
+
 
 if __name__ == "__main__":
     unittest.main()

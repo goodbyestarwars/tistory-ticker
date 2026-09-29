@@ -107,14 +107,19 @@ def flatten_category_matches(categories):
     return flat
 
 
-def _forward_prices(conn, code, scan_date, max_horizon):
-    """스캔일 다음 거래일부터 종가를 오름차순으로 최대 max_horizon개 반환."""
+def _forward_price_rows(conn, code, scan_date, max_horizon):
+    """스캔일 다음 거래일부터 (date, close)를 오름차순으로 최대 max_horizon개 반환."""
     cur = conn.execute(
-        'SELECT close FROM daily_prices WHERE code=? AND date>? AND close IS NOT NULL '
+        'SELECT date, close FROM daily_prices WHERE code=? AND date>? AND close IS NOT NULL '
         'ORDER BY date LIMIT ?',
         (code, scan_date, max_horizon),
     )
-    return [float(r[0]) for r in cur.fetchall() if r[0]]
+    return [(str(r[0]), float(r[1])) for r in cur.fetchall() if r[1]]
+
+
+def _forward_prices(conn, code, scan_date, max_horizon):
+    """스캔일 다음 거래일부터 종가를 오름차순으로 최대 max_horizon개 반환."""
+    return [close for _, close in _forward_price_rows(conn, code, scan_date, max_horizon)]
 
 
 def forward_returns(conn, scanner=None, since=None, horizons=DEFAULT_HORIZONS, limit=2000):
@@ -144,13 +149,19 @@ def forward_returns(conn, scanner=None, since=None, horizons=DEFAULT_HORIZONS, l
     hits = []
     buckets = {}
     for scan_date, name_scanner, code, name, base_price, score in conn.execute(sql, params).fetchall():
-        closes = _forward_prices(conn, code, scan_date, max_h)
+        price_rows = _forward_price_rows(conn, code, scan_date, max_h)
+        closes = [close for _, close in price_rows]
         returns = {}
         for h in horizons:
             if len(closes) >= h and base_price:
                 returns['d%d' % h] = round((closes[h - 1] - base_price) / base_price * 100, 2)
             else:
                 returns['d%d' % h] = None
+        current_return = None
+        current_date = None
+        if closes and base_price:
+            current_date = price_rows[-1][0]
+            current_return = round((closes[-1] - base_price) / base_price * 100, 2)
         hits.append({
             'scanDate': scan_date,
             'scanner': name_scanner,
@@ -159,6 +170,9 @@ def forward_returns(conn, scanner=None, since=None, horizons=DEFAULT_HORIZONS, l
             'basePrice': base_price,
             'score': score,
             'returns': returns,
+            'currentReturnPct': current_return,
+            'currentDate': current_date,
+            'elapsedTradingDays': len(closes),
         })
         bucket = buckets.setdefault(name_scanner, {h: [] for h in horizons})
         for h in horizons:

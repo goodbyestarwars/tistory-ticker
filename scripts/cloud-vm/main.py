@@ -2481,6 +2481,35 @@ def scan_performance(scanner: str = '', since: str = '', horizons: str = '1,3,5'
     return envelope(result)
 
 
+@app.get('/scan-performance-public')
+def scan_performance_public(request: Request, scanner: str = '', since: str = '',
+                            horizons: str = '1,3,5,20', limit: int = 300):
+    """브라우저용 스캔 사후 추적 요약.
+
+    /scan-performance는 운영·진단용이라 API 키가 필요하다. 화면의 차트검색/전략검색은
+    "언제 추천했고 지금까지 몇 %"를 보여주기 위해 민감정보가 아닌 scan_hits·daily_prices
+    계산 결과만 제한된 건수로 공개한다.
+    """
+    _check_rate_limit('scan_performance_public', request, max_per_window=30)
+    try:
+        parsed = [int(h) for h in horizons.split(',') if h.strip()]
+    except ValueError:
+        raise HTTPException(status_code=400, detail='horizons는 쉼표로 구분한 정수여야 합니다.')
+    if not parsed:
+        raise HTTPException(status_code=400, detail='horizons가 비어 있습니다.')
+    parsed = sorted({h for h in parsed if 1 <= h <= 60})
+    if not parsed:
+        raise HTTPException(status_code=400, detail='horizons는 1~60 거래일 범위여야 합니다.')
+    conn = db_schema.get_conn()
+    try:
+        result = scan_forward.forward_returns(
+            conn, scanner=scanner or None, since=since or None,
+            horizons=parsed, limit=max(1, min(int(limit), 500)))
+    finally:
+        conn.close()
+    return envelope(result)
+
+
 # 분봉을 "읽을 수 있는" 심볼 집합 - domestic_futures.MINUTE_SYMBOLS(주간선물만, 도메스틱
 # 수집기 자신이 갱신하는 범위)와 night_futures_ws.py가 별도 소스(KIS 웹소켓)로 채우는
 # KOSPI200_NIGHT을 합친 것. 아래 futures() 독스트링 2026-08-05 항목 참고.

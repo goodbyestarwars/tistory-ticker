@@ -19,6 +19,7 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
+  var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
   var PATTERN_SCAN_VM_TIMEOUT_MS = 8000;
@@ -94,6 +95,7 @@
   ];
 
   var scanData = null;
+  var scanPerformanceData = null;
   var activeTab = 'risingLows';
 
   function stockIconHtml(code, cls) {
@@ -127,6 +129,7 @@
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
+      + '<div class="ps-track-summary" id="psTrackSummary"></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
@@ -185,6 +188,7 @@
             : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
         }
         renderList(container);
+        loadScanPerformance(container);
       })
       .catch(function (err) {
         var list = container.querySelector('#psList');
@@ -198,6 +202,81 @@
           loadScan(container);
         });
       });
+  }
+
+  function scannerKey(patternKey) {
+    return 'pattern:' + String(patternKey || activeTab || '');
+  }
+
+  function loadScanPerformance(container) {
+    var summaryBox = container.querySelector('#psTrackSummary');
+    if (summaryBox) summaryBox.innerHTML = '<span>사후 추적 불러오는 중...</span>';
+    PatternScan.fetchJson(SCAN_PERFORMANCE_PUBLIC_URL + '?horizons=1,3,5,20&limit=500')
+      .then(function (envelope) {
+        scanPerformanceData = envelope && envelope.data ? envelope.data : envelope;
+        renderTrackSummary(container);
+        renderList(container);
+      })
+      .catch(function () {
+        scanPerformanceData = null;
+        if (summaryBox) summaryBox.innerHTML = '<span class="is-muted">사후 추적 데이터가 아직 없어요. 다음 스캔 저장분부터 표시됩니다.</span>';
+      });
+  }
+
+  function signedPct(value) {
+    var n = Number(value);
+    if (!isFinite(n)) return '-';
+    return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+
+  function performanceHitsForActiveTab() {
+    var hits = scanPerformanceData && Array.isArray(scanPerformanceData.hits) ? scanPerformanceData.hits : [];
+    var key = scannerKey(activeTab);
+    return hits.filter(function (hit) { return hit && hit.scanner === key; });
+  }
+
+  function renderTrackSummary(container) {
+    var box = container.querySelector('#psTrackSummary');
+    if (!box) return;
+    var key = scannerKey(activeTab);
+    var summary = scanPerformanceData && scanPerformanceData.summary && scanPerformanceData.summary[key];
+    if (!summary) {
+      box.innerHTML = '<span class="is-muted">이 검색기의 누적 사후 추적 표본이 아직 없어요.</span>';
+      return;
+    }
+    var d1 = summary.d1 || {};
+    var d5 = summary.d5 || {};
+    var d20 = summary.d20 || {};
+    box.innerHTML = '<strong>사후 추적</strong>'
+      + '<span>추천 기록 ' + escapeHtml(summary.hits || 0) + '건</span>'
+      + '<span>D+1 평균 ' + escapeHtml(signedPct(d1.avgPct)) + ' · 승률 ' + escapeHtml(d1.winRatePct == null ? '-' : d1.winRatePct.toFixed(1) + '%') + '</span>'
+      + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
+      + '<span>D+20 평균 ' + escapeHtml(signedPct(d20.avgPct)) + '</span>'
+      + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>';
+  }
+
+  function latestPerformanceForItem(item) {
+    if (!item || !scanPerformanceData || !Array.isArray(scanPerformanceData.hits)) return null;
+    var key = scannerKey(activeTab);
+    var code = String(item.code || '').toUpperCase();
+    var hit = null;
+    scanPerformanceData.hits.forEach(function (row) {
+      if (!row || row.scanner !== key || String(row.code || '').toUpperCase() !== code) return;
+      if (!hit || String(row.scanDate || '') > String(hit.scanDate || '')) hit = row;
+    });
+    return hit;
+  }
+
+  function performanceTrackingHtml(item) {
+    var hit = latestPerformanceForItem(item);
+    if (!hit) return '';
+    var pct = Number(hit.currentReturnPct);
+    var tone = pct > 0 ? 'is-up' : (pct < 0 ? 'is-down' : 'is-flat');
+    var date = scanDateLabel(hit.scanDate);
+    var elapsed = Number(hit.elapsedTradingDays);
+    return '<span class="ps-track-chip ' + tone + '">추천 ' + escapeHtml(date || hit.scanDate || '-')
+      + (isFinite(elapsed) && elapsed > 0 ? ' · +' + elapsed + '거래일' : '')
+      + ' · 현재까지 ' + escapeHtml(signedPct(pct)) + '</span>';
   }
 
   // GAS는 간헐적으로 302 뒤 HTML 오류 페이지나 빈 캐시 응답을 반환할 수 있다.
@@ -431,7 +510,7 @@
         + '><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
         + '<span class="ps-price-basis">스캔 시점</span></span>'
-        + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + '</span>'
+        + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + performanceTrackingHtml(it) + '</span>'
         + '</div>';
     }).join('');
 
@@ -447,6 +526,7 @@
       });
     });
     patchLivePrices(container);
+    renderTrackSummary(container);
   }
 
   // ---- 가격 시점 구분: 스캔 시점 스냅샷 vs 지금 ----

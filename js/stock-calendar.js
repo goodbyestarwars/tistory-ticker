@@ -34,6 +34,28 @@
   // 미국 실적 일정은 전 종목을 그대로 펼치지 않고 대형 대표주인 S&P 100 구성종목만
   // 남긴다. 복수 클래스(BRK.B/GOOGL 등)를 포함하며 API 심볼의 '-'와 '.' 표기를 함께 받는다.
   var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM').split(' '));
+  var US_COMPANY_NAME_MAP = {
+    AAPL: 'Apple', ABBV: 'AbbVie', ABT: 'Abbott Laboratories', ACN: 'Accenture', ADBE: 'Adobe', AIG: 'AIG',
+    AMD: 'AMD', AMGN: 'Amgen', AMT: 'American Tower', AMZN: 'Amazon', AVGO: 'Broadcom', AXP: 'American Express',
+    BA: 'Boeing', BAC: 'Bank of America', BK: 'BNY Mellon', BKNG: 'Booking Holdings', BLK: 'BlackRock',
+    BMY: 'Bristol Myers Squibb', 'BRK.B': 'Berkshire Hathaway', C: 'Citigroup', CAT: 'Caterpillar',
+    CHTR: 'Charter Communications', CL: 'Colgate-Palmolive', CMCSA: 'Comcast', COF: 'Capital One',
+    COP: 'ConocoPhillips', COST: 'Costco', CRM: 'Salesforce', CSCO: 'Cisco', CVS: 'CVS Health',
+    CVX: 'Chevron', DE: 'Deere', DHR: 'Danaher', DIS: 'Disney', DOW: 'Dow', DUK: 'Duke Energy',
+    EMR: 'Emerson Electric', EXC: 'Exelon', F: 'Ford', FDX: 'FedEx', GD: 'General Dynamics',
+    GE: 'GE Aerospace', GILD: 'Gilead Sciences', GM: 'General Motors', GOOG: 'Alphabet', GOOGL: 'Alphabet',
+    GS: 'Goldman Sachs', HD: 'Home Depot', HON: 'Honeywell', IBM: 'IBM', INTC: 'Intel', JNJ: 'Johnson & Johnson',
+    JPM: 'JPMorgan Chase', KHC: 'Kraft Heinz', KO: 'Coca-Cola', LIN: 'Linde', LLY: 'Eli Lilly',
+    LMT: 'Lockheed Martin', LOW: "Lowe's", MA: 'Mastercard', MCD: "McDonald's", MDLZ: 'Mondelez',
+    MDT: 'Medtronic', MET: 'MetLife', META: 'Meta Platforms', MMM: '3M', MO: 'Altria', MRK: 'Merck',
+    MS: 'Morgan Stanley', MSFT: 'Microsoft', NEE: 'NextEra Energy', NFLX: 'Netflix', NKE: 'Nike',
+    NOW: 'ServiceNow', NVDA: 'NVIDIA', ORCL: 'Oracle', PEP: 'PepsiCo', PFE: 'Pfizer', PG: 'Procter & Gamble',
+    PM: 'Philip Morris', PYPL: 'PayPal', QCOM: 'Qualcomm', RTX: 'RTX', SBUX: 'Starbucks',
+    SCHW: 'Charles Schwab', SO: 'Southern Company', SPG: 'Simon Property Group', T: 'AT&T',
+    TGT: 'Target', TMO: 'Thermo Fisher Scientific', TMUS: 'T-Mobile US', TSLA: 'Tesla', TXN: 'Texas Instruments',
+    UNH: 'UnitedHealth Group', UNP: 'Union Pacific', UPS: 'UPS', USB: 'U.S. Bancorp', V: 'Visa',
+    VZ: 'Verizon', WBA: 'Walgreens Boots Alliance', WFC: 'Wells Fargo', WMT: 'Walmart', XOM: 'Exxon Mobil'
+  };
 
   function isSp100Earnings(event) {
     var market = String(event && event.market || '').toLowerCase();
@@ -66,7 +88,7 @@
     // DART가 내려주는 stock_code가 가장 정확하다. 회사명은 DART 정식명칭과
     // KRX_MAP 약칭이 다를 수 있어 이름만으로 찾으면 국내 공시 아이콘이 빠진다.
     var symbol = String(event && event.symbol || '').trim();
-    if (/^\d{6}$/.test(symbol)) return symbol;
+    if (/^[0-9A-Za-z]{6}$/.test(symbol)) return symbol;
     return krxCodeFor(stockName) || usTickerFor(stockName);
   }
 
@@ -320,8 +342,10 @@
   // Finnhub 실적 이벤트는 회사명을 별도 필드로 내려준다. 예전 localStorage에 저장된
   // 이벤트는 그 필드가 없을 수 있어, 당시 제목에 이미 들어간 "· 회사명"도 한 번 복구한다.
   function usCompanyNameFor(ev, meta) {
-    var explicit = String(ev && (ev.company || ev.companyName) || '').trim();
+    var symbol = String(meta && meta.stockName || ev && (ev.symbol || ev.ticker) || '').toUpperCase().replace('-', '.');
+    var explicit = String(ev && (ev.company || ev.companyName || ev.name || ev.securityName || ev.displayName) || '').trim();
     if (explicit && explicit.toUpperCase() !== String(meta.stockName || '').toUpperCase()) return explicit;
+    if (US_COMPANY_NAME_MAP[symbol]) return US_COMPANY_NAME_MAP[symbol];
     var text = String(meta && meta.text || '');
     var marker = text.lastIndexOf(' · ');
     if (marker !== -1) {

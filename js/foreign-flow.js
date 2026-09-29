@@ -55,6 +55,20 @@
   var WICS_MAP_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
   var krxMapPromise = null;
   var wicsMapPromise = null;
+  // 신규상장·특수코드는 정적 data/krx_map.js 갱신보다 사용자가 먼저 검색한다.
+  // 코드/이름 보정만 추가하고, 시세·차트 데이터는 기존 VM/GAS 경로를 그대로 탄다.
+  var DOMESTIC_LISTING_FALLBACKS = [
+    { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+  ];
+
+  function applyDomesticListingFallbacks() {
+    global.KRX_MAP = global.KRX_MAP || {};
+    DOMESTIC_LISTING_FALLBACKS.forEach(function (row) {
+      if (!global.KRX_MAP[row.name]) global.KRX_MAP[row.name] = row.code;
+    });
+    return global.KRX_MAP;
+  }
 
   // 종목코드.svg -> 실패 시 .png -> 그마저 없으면 숨김(3단 폴백, img/stock-icons/README.md 규칙)
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
@@ -1079,13 +1093,13 @@
   // 먼저 실행될 수 있다. 이때 첫 입력 순간 KRX_MAP이 아직 없으면 기존 코드는
   // 자동완성을 숨긴 뒤 다시 시도하지 않아 "미리보기 없음"처럼 보였다.
   function ensureKrxMap() {
-    if (global.KRX_MAP) return Promise.resolve(global.KRX_MAP);
+    if (global.KRX_MAP) return Promise.resolve(applyDomesticListingFallbacks());
     if (krxMapPromise) return krxMapPromise;
     krxMapPromise = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
       script.src = KRX_MAP_JS + '?v=20260810-preview';
       script.onload = function () {
-        if (global.KRX_MAP) resolve(global.KRX_MAP);
+        if (global.KRX_MAP) resolve(applyDomesticListingFallbacks());
         else reject(new Error('KRX_MAP 없음'));
       };
       script.onerror = function () {
@@ -1139,7 +1153,7 @@
   }
 
   function renderSuggestions(container, box, query) {
-    var map = global.KRX_MAP;
+    var map = applyDomesticListingFallbacks();
     if (!query || !map) { hideSuggestions(box); return; }
 
     var q = query.toLowerCase();
@@ -1186,14 +1200,14 @@
   // 종목명/코드 -> { code, name }. 정확일치 우선, 부분일치는 1개일 때만.
   function resolveStock(query) {
     if (!query) return null;
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
 
     // 2026-07-16 버그 수정: 6자리 코드로 검색하면 이름을 못 찾고 name에 코드를 그대로
     // 넣어서 "005930 (005930)"처럼 이름 자리에 코드가 중복 표시됐음(다른 종목 이동 링크가
     // ?code=&name=을 안 쓰고 code만 넘기는 경로에서 노출됨). KRX_MAP에서 코드로 역조회한다.
-    if (/^\d{6}$/.test(query)) {
+    if (/^[0-9A-Za-z]{6}$/.test(query)) {
       for (var nm2 in map) {
-        if (map.hasOwnProperty(nm2) && map[nm2] === query) return { code: query, name: nm2 };
+        if (map.hasOwnProperty(nm2) && String(map[nm2]).toUpperCase() === query.toUpperCase()) return { code: map[nm2], name: nm2 };
       }
       return { code: query, name: query }; // KRX_MAP에 없는 코드(신규상장 등) - 코드라도 보여줌
     }

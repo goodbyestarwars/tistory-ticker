@@ -73,6 +73,12 @@
     { symbol: 'LLY', name: '일라이 릴리', aliases: '일라이릴리 일라이 릴리 eli lilly lilly' },
     { symbol: 'ASTS', name: 'AST 스페이스모바일', aliases: 'ast asts 스페이스모바일 spacemobile ast spacemobile' }
   ];
+  // 신규상장·특수코드는 data/krx_map.js 갱신 전 며칠 동안 검색/차트 진입이 막히기 쉽다.
+  // 사용자가 제보한 종목은 런타임에서 KRX_MAP에 보강해, 현재가·차트 API까지 먼저 열어둔다.
+  var DOMESTIC_LISTING_FALLBACKS = [
+    { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+  ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
 
@@ -81,6 +87,14 @@
     var local = LOCAL_US_SYMBOLS.find(function (row) { return row.symbol === code; });
     var safeFallback = String(fallback || '').trim();
     return local ? local.name : (/[가-힣]/.test(safeFallback) ? safeFallback : '미국 종목');
+  }
+
+  function applyDomesticListingFallbacks() {
+    global.KRX_MAP = global.KRX_MAP || {};
+    DOMESTIC_LISTING_FALLBACKS.forEach(function (row) {
+      if (!global.KRX_MAP[row.name]) global.KRX_MAP[row.name] = row.code;
+    });
+    return global.KRX_MAP;
   }
 
   var state = {
@@ -567,7 +581,7 @@
   }
 
   function matchNames(query, limit) {
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
     var q = query.toLowerCase();
     var starts = [], contains = [];
     for (var name in map) {
@@ -581,7 +595,8 @@
   }
 
   function renderSuggestions(container, box, query) {
-    if (!query || !global.KRX_MAP) { hideSuggestions(box); return; }
+    if (!query) { hideSuggestions(box); return; }
+    applyDomesticListingFallbacks();
     var requestId = ++suggestionRequestId;
     var domesticRows = matchNames(query, 6).map(function (name) {
       return { name: name, code: global.KRX_MAP[name], market: 'kr' };
@@ -616,7 +631,7 @@
   // ---- 검색 결과 리스트 ----
 
   function resolveDomesticName(query) {
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
     var needle = String(query || '').trim().toLowerCase();
     if (!needle) return null;
     for (var name in map) {
@@ -635,11 +650,11 @@
       runDomesticSearch(container, domesticMatch.name);
       return;
     }
-    if (/^US:/i.test(query) || (/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(query) && !/^\d{6}$/.test(query))) {
+    if (/^US:/i.test(query) || (/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(query) && !/^[0-9A-Za-z]{6}$/.test(query))) {
       openUsSymbol(container, query);
       return;
     }
-    if (!/^\d{6}$/.test(query)) {
+    if (!/^[0-9A-Za-z]{6}$/.test(query)) {
       resultsBox.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>한국·미국 종목을 찾는 중...</div>';
       fetchUsSearch(query).then(function (rows) {
         if (rows.length) {
@@ -656,7 +671,7 @@
   function runDomesticSearch(container, query) {
     var resultsBox = container.querySelector('#ssResults');
 
-    var map = global.KRX_MAP || {};
+    var map = applyDomesticListingFallbacks();
     var names;
     // 6자리 코드로 직접 입력한 경우 코드로도 매칭(watchlist.js 등과 동일한 관례)
     if (/^[0-9A-Za-z]{6}$/.test(query)) {
@@ -1740,7 +1755,16 @@
       // time은 UNIX 타임스탬프(minuteRowsToBars 참고)인데 timeVisible이 꺼져 있으면
       // 라이브러리가 날짜만 찍는다. 분봉일 때만 시:분(HH:mm)을 보여주고, 일/주/월봉은
       // (time이 날짜 문자열이라 시간 개념이 없어) 그대로 둔다.
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', timeVisible: timeframe === 'minute', secondsVisible: false, rightOffset: 6, minBarSpacing: 2 },
+      timeScale: {
+        borderColor: dark ? '#3a3a3a' : '#ddd',
+        timeVisible: timeframe === 'minute',
+        secondsVisible: false,
+        rightOffset: 6,
+        minBarSpacing: 3,
+        barSpacing: timeframe === 'minute' ? 9 : 7
+      },
+      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
+      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
       // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
       // 가격/시각 라벨의 기본 배경색, 라이브러리 기본값이라 다크 팔레트와 무관하게 고정)가
       // 떴음 - 라벨 배경색을 테마에 맞게 명시(js/foreign-flow.js와 동일 수정).
