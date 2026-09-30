@@ -9,15 +9,20 @@
 #us-macro-indicators .umi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-column: 1 / -1; }
 #us-macro-indicators .umi-card { min-width: 0; padding: 15px; border: 1px solid #dbe4ef; border-radius: 8px; background: #fff; }
+#us-macro-indicators .umi-card--primary { border: 2px solid #1261c4; box-shadow: 0 8px 20px rgba(18,97,196,.10); }
 #us-macro-indicators .umi-card--fomc { background: #f5f9ff; border-color: #c9d9ef; }
-#us-macro-indicators .umi-card small, #us-macro-indicators .umi-card span { display: block; color: #64748b; font-size: 12px; line-height: 1.5; }
+#us-macro-indicators .umi-card small, #us-macro-indicators .umi-card span, #us-macro-indicators .umi-card i { display: block; color: #64748b; font-size: 12px; line-height: 1.5; }
 #us-macro-indicators .umi-card strong { display: block; margin-top: 5px; font-size: 14px; }
-#us-macro-indicators .umi-card b { display: block; margin: 12px 0 5px; color: #173b66; font-size: 22px; font-variant-numeric: tabular-nums; }
+#us-macro-indicators .umi-card b { display: block; margin: 12px 0 5px; color: #173b66; font-size: 20px; font-variant-numeric: tabular-nums; }
+#us-macro-indicators .umi-card--primary b { color: #1261c4; }
+#us-macro-indicators .umi-card i { margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; }
 #us-macro-indicators .umi-state { grid-column: 1 / -1; padding: 20px 0; text-align: center; }
 html.dark #us-macro-indicators { color: #F5EFE0; }
 html.dark #us-macro-indicators .umi-card { border-color: rgba(245,239,224,.18); background: rgba(245,239,224,.04); }
+html.dark #us-macro-indicators .umi-card--primary { border-color: #4c9aff; box-shadow: 0 8px 20px rgba(76,154,255,.12); }
 html.dark #us-macro-indicators .umi-card--fomc { background: rgba(35,93,159,.16); border-color: rgba(128,184,255,.28); }
 html.dark #us-macro-indicators .umi-card b { color: #b9d7ff; }
-html.dark #us-macro-indicators .umi-card small, html.dark #us-macro-indicators .umi-card span, html.dark #us-macro-indicators p { color: rgba(245,239,224,.64); }
+html.dark #us-macro-indicators .umi-card--primary b { color: #80b8ff; }
+html.dark #us-macro-indicators .umi-card small, html.dark #us-macro-indicators .umi-card span, html.dark #us-macro-indicators .umi-card i, html.dark #us-macro-indicators p { color: rgba(245,239,224,.64); }
 html.dark #us-macro-indicators .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
 @media (max-width: 720px) { #us-macro-indicators .umi-head { display: block; } #us-macro-indicators .umi-refresh { margin-top: 10px; } #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

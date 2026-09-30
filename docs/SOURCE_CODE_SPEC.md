@@ -60,7 +60,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `pattern-scan.js` | 961 | 차트 패턴 스캐너(8종 - 2026-08-20 "각도기 테스트"(정규화 세력매집각도)·"공파산 타점"(역매공파, 각각 자체 백테스트 배너 포함) 추가, 캔들+일목균형표) | `window.PatternScan`, `#pattern-scan` | GAS `?patternScan=1`,`?patternChart=1`, unpkg LWC CDN |
 | `order-book.js` | 738 | 실시간 호가창(2초 폴링) + 매물벽 돌파 감지 | `window.OrderBook`, `#order-book` | VM `/order-book/{code}`, GAS `?codes=`, WS |
 | `overnight-market.js` | 752 | 글로벌 시장지표(미국지수/VIX/원자재/채권/코인) | `window.OvernightMarket`, `#overnight-market` | VM `/futures`,`/futures/avg`, GAS `?action=subIndexAnalysis`, LWC CDN |
-| `us-macro-indicators.js` | 119 | 주요 미국 발표(FOMC·CPI·PPI·실질 GDP·실업률·소매판매) | `window.UsMacroIndicators`, `#us-macro-indicators` | VM `/futures` |
+| `us-macro-indicators.js` | 170 | 주요 미국 발표(FOMC·CPI/근원 CPI·근원 PCE·PPI·비농업고용·실업률·소매판매·GDP·소비심리) | `window.UsMacroIndicators`, `#us-macro-indicators` | VM `/futures` |
 | `kospi-futures.js` | 763 | 코스피200 주/야간선물 캔들차트 + 옵션 수급 + AI해설 | `window.KospiFutures`, `#kospi-futures` | VM `/futures`,`/option-flow`, GAS `?action=kospiFuturesAnalysis`, LWC CDN |
 | `market-temp.js` | 2201 | 증시온도 100점 종합점수·구간 게이지·3축, 증시 날씨 리본 추이, 개미 체크리스트, AI브리핑, 업종 TOP | `window.MarketTemp`, `#market-temp` | VM `/market-temp`,`/industry-flow`, GAS `?marketTempBriefing=1` |
 | `quick-indices.js` | 885 | 홈 전용 관심지수 카드 바(11종) + 긴급속보 패널 | `window.QuickIndices`, `#quick-indices`(동적 생성) | GAS `?market=1`,`?rankNews=1`, VM `/futures` |
@@ -171,7 +171,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `domestic_futures.py` | 278 | 코스피/코스닥/코스피200주간선물/환율(네이버) | `refresh_realtime_all`, `refresh_minute_all` |
 | `foreign_futures.py` | 155 | 나스닥100/S&P500/다우/SOX/VIX/WTI/GOLD(네이버) | `refresh_realtime_all` |
 | `btc_futures.py` | 156 | BTC/ETH(업비트) | `fetch_ticker`, `refresh_realtime` |
-| `bond_yield.py` | 197 | 국고채3년(네이버)+미국채(FRED) | `fetch_fred_series`, `refresh_fred_all` |
+| `bond_yield.py` | 200 | 국고채3년(네이버)+미국채·미국 거시지표(FRED) | `fetch_fred_series`, `refresh_fred_all` |
 | `option_flow.py` | 88 | 코스피200 옵션 콜/풋 수급 집계 | `refresh_option_flow` |
 | `realtime_quotes.py` | 122 | KIS(공용 허브 구독)/키움 0B 실시간→브라우저 중계 | `relay_quotes` |
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |

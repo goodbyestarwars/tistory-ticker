@@ -364,7 +364,8 @@ _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'raw':..
 _MARKET_INDICATOR_SYMBOLS = {
     'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX',
     'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD',
-    'US_CPI', 'US_PPI', 'US_REAL_GDP_GROWTH', 'US_UNEMPLOYMENT', 'US_RETAIL_SALES',
+    'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE', 'US_PPI', 'US_REAL_GDP_GROWTH',
+    'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT', 'US_RETAIL_SALES', 'US_CONSUMER_SENTIMENT',
 }
 _WEEKLY_REPORT_TTL = 15 * 60
 _weekly_report_cache = {}
@@ -2595,8 +2596,9 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
         # 넣어야 응답에 실린다(2026-07-17 GOLD 추가 때 빠뜨려서 한 번 헛배포함).
         order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
                  'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW',
-                 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'US_CPI', 'US_PPI', 'US_REAL_GDP_GROWTH',
-                 'US_UNEMPLOYMENT', 'US_RETAIL_SALES', 'BTC', 'ETH']
+                 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE',
+                 'US_PPI', 'US_REAL_GDP_GROWTH', 'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT',
+                 'US_RETAIL_SALES', 'US_CONSUMER_SENTIMENT', 'BTC', 'ETH']
         # 화이트리스트 교집합만 사용한다 - 모르는 심볼명으로 임의 조회가 되지 않게, 그리고
         # 매칭이 하나도 없으면(오타 등) 빈 응답 대신 기존 전체 동작으로 폴백한다.
         if symbols:

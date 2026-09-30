@@ -43,17 +43,24 @@ _POLL_INTERVAL_SEC = 6 * 3600
 _HISTORY_DAYS = 400
 _ROWS_PER_PAGE = 7
 
-# 미국 국채 - FRED 시리즈 ID. 값 자체가 %(예: 4.57)라 db_schema.upsert_future_price에
-# price로 그대로 넣으면 된다(원/포인트 단위 변환 불필요).
+# 미국 국채·주요 미국 발표 - FRED 시리즈 ID. 값 자체가 %(예: 4.57)라
+# db_schema.upsert_future_price에 price로 그대로 넣으면 된다(원/포인트 단위 변환 불필요).
+# 거시 발표는 BLS·BEA·미시간대가 공표한 원자료를 FRED 공식 CSV로 받아 6시간마다
+# 갱신한다. 화면에서 단순 "지수"만 나열하지 않고 물가·고용·경기를 함께 판단할 수
+# 있도록 헤드라인 CPI, 근원 물가, 고용, 소비심리를 모두 같은 수집 경로에 둔다.
 FRED_SYMBOLS = {
     'US10Y': {'series': 'DGS10', 'name': '미국 국채 10년물 금리(%)'},
     'US2Y': {'series': 'DGS2', 'name': '미국 국채 2년물 금리(%)'},
     'US30Y': {'series': 'DGS30', 'name': '미국 국채 30년물 금리(%)'},
     'US_CPI': {'series': 'CPIAUCSL', 'name': '미국 소비자물가지수(CPI, 지수)'},
+    'US_CORE_CPI': {'series': 'CPILFESL', 'name': '미국 근원 소비자물가지수(Core CPI, 지수)'},
+    'US_CORE_PCE': {'series': 'PCEPILFE', 'name': '미국 근원 개인소비지출물가지수(Core PCE, 지수)'},
     'US_PPI': {'series': 'PPIACO', 'name': '미국 생산자물가지수(PPI, 지수)'},
     'US_REAL_GDP_GROWTH': {'series': 'A191RL1Q225SBEA', 'name': '미국 실질 GDP 성장률(연율, %)'},
+    'US_NONFARM_PAYROLLS': {'series': 'PAYEMS', 'name': '미국 비농업고용(천 명)'},
     'US_UNEMPLOYMENT': {'series': 'UNRATE', 'name': '미국 실업률(%)'},
     'US_RETAIL_SALES': {'series': 'RSAFS', 'name': '미국 소매판매(백만 달러)'},
+    'US_CONSUMER_SENTIMENT': {'series': 'UMCSENT', 'name': '미국 소비자심리지수(미시간대, pt)'},
 }
 _FRED_URL = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s&coed=%s'
 _FRED_HISTORY_DAYS = 400
