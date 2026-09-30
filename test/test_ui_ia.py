@@ -2025,6 +2025,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("timeVisible: timeframe === 'minute'", source)
         self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
 
+    def test_stock_search_candle_hover_shows_complete_ohlc(self):
+        """봉을 가리킬 때 종가만 축에서 추측하지 않도록 OHLC를 함께 보여 준다."""
+        source = self.read("js/stock-search.js")
+        style = self.read("css/stock-search.css")
+        self.assertIn("function installStockOhlcTooltip", source)
+        self.assertIn("chart.subscribeCrosshairMove(onCrosshairMove)", source)
+        self.assertIn("시 <em>", source)
+        self.assertIn("고 <em>", source)
+        self.assertIn("저 <em>", source)
+        self.assertIn("종 <em>", source)
+        self.assertIn("lwcOhlcTooltipCleanup = installStockOhlcTooltip", source)
+        self.assertIn(".ss-ohlc-tooltip", style)
+
     def test_stock_search_minute_chart_supports_scopes_and_live_candle_sync(self):
         source = self.read("js/stock-search.js")
         us_source = self.read("js/us-stocks.js")

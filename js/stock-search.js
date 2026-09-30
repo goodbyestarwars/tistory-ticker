@@ -122,6 +122,7 @@
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcRsiZonesCleanup = null;
+  var lwcOhlcTooltipCleanup = null;
   var lwcRenderId = 0;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
@@ -1785,6 +1786,56 @@
       : Math.round(parsed).toLocaleString('ko-KR');
   }
 
+  function chartOhlcDateText(time) {
+    if (typeof time === 'string') return time;
+    if (typeof time === 'number' && Number.isFinite(time)) {
+      // 분봉은 KST 시각을 UTC 초로 담아 Lightweight Charts의 축이 그대로 KST처럼
+      // 읽히게 한다. 따라서 여기서도 UTC getter를 써야 툴팁이 축과 9시간 어긋나지 않는다.
+      var date = new Date(time * 1000);
+      function two(value) { return String(value).padStart(2, '0'); }
+      return date.getUTCFullYear() + '-' + two(date.getUTCMonth() + 1) + '-' + two(date.getUTCDate())
+        + ' ' + two(date.getUTCHours()) + ':' + two(date.getUTCMinutes());
+    }
+    if (time && typeof time === 'object' && time.year != null) {
+      return time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0');
+    }
+    return '';
+  }
+
+  // Lightweight Charts 기본 십자선에는 현재 가로선 값만 있어 어떤 봉의 종가인지
+  // 바로 알기 어렵다. 캔들 시리즈에서 실제 OHLC를 받아 네 값 모두를 고정 형식으로 표시한다.
+  function installStockOhlcTooltip(container, chart, candleSeries, isUsChart) {
+    if (!container || !chart || !candleSeries || !chart.subscribeCrosshairMove) return function () {};
+    var tooltip = document.createElement('div');
+    tooltip.className = 'ss-ohlc-tooltip';
+    tooltip.hidden = true;
+    tooltip.setAttribute('aria-live', 'polite');
+    container.appendChild(tooltip);
+    var onCrosshairMove = function (param) {
+      var point = param && param.point;
+      var bar = param && param.seriesData && param.seriesData.get ? param.seriesData.get(candleSeries) : null;
+      if (!point || !bar || !Number.isFinite(Number(bar.close))) {
+        tooltip.hidden = true;
+        return;
+      }
+      var width = container.clientWidth || 0;
+      var left = Math.max(8, Math.min(Math.max(8, width - 282), Number(point.x || 0) + 14));
+      if (Number(point.x || 0) > width * 0.58) left = Math.max(8, Number(point.x || 0) - 282);
+      tooltip.style.left = left + 'px';
+      tooltip.innerHTML = '<b>' + escapeHtml(chartOhlcDateText(param.time)) + '</b>'
+        + '<span>시 <em>' + chartPriceText(bar.open, isUsChart) + '</em></span>'
+        + '<span>고 <em>' + chartPriceText(bar.high, isUsChart) + '</em></span>'
+        + '<span>저 <em>' + chartPriceText(bar.low, isUsChart) + '</em></span>'
+        + '<span class="ss-ohlc-close">종 <em>' + chartPriceText(bar.close, isUsChart) + '</em></span>';
+      tooltip.hidden = false;
+    };
+    chart.subscribeCrosshairMove(onCrosshairMove);
+    return function () {
+      if (chart.unsubscribeCrosshairMove) chart.unsubscribeCrosshairMove(onCrosshairMove);
+      tooltip.remove();
+    };
+  }
+
   function stockDrawingStorageKey(key, timeframe) {
     return 'tistory-ticker:stock-drawings:' + String(key || '') + ':' + String(timeframe || 'day');
   }
@@ -2118,6 +2169,7 @@
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
+    if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
@@ -2156,6 +2208,7 @@
       candleSeries.setData(bars.map(function (d) {
         return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
       }));
+      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
       lwcCandleSeries = candleSeries;
       lwcLiveBars = bars.map(function (bar) {
         return { date: bar.date, open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close), volume: Number(bar.volume) || 0 };
