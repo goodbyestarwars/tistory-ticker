@@ -1624,9 +1624,11 @@
   // 전종목은 한 번에 수천 건을 그리거나 구독하지 않는다. 책 한 쪽만(48종목) 조회해
   // 서버·브라우저 부담을 일정하게 제한하고, 이전/다음 장으로 넘긴다.
   var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var WICS_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
   var ALL_STOCKS_PAGE_SIZE = 48;
   var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
+  var wicsMapLoadPromise_ = null;
 
   function ensureKrxMap_() {
     if (global.KRX_MAP && typeof global.KRX_MAP === 'object') return Promise.resolve(global.KRX_MAP);
@@ -1645,7 +1647,26 @@
     return krxMapLoadPromise_;
   }
 
-  function allListedStocks_(krxMap) {
+  // 전종목을 거래소만으로 나누면 한 카드에 수십 종목이 쌓여 사진처럼 읽기 어렵다.
+  // WICS의 대분류(에너지·소재·금융 등)를 가져와 같은 큰 업종 카드 안에 배치한다.
+  function ensureWicsMap_() {
+    if (global.WICS_MAP && typeof global.WICS_MAP === 'object') return Promise.resolve(global.WICS_MAP);
+    if (wicsMapLoadPromise_) return wicsMapLoadPromise_;
+    wicsMapLoadPromise_ = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = WICS_MAP_JS_URL;
+      script.async = true;
+      script.onload = function () { resolve(global.WICS_MAP || {}); };
+      script.onerror = function () {
+        wicsMapLoadPromise_ = null;
+        reject(new Error('업종 분류를 불러오지 못했습니다.'));
+      };
+      document.head.appendChild(script);
+    });
+    return wicsMapLoadPromise_;
+  }
+
+  function allListedStocks_(krxMap, wicsMap) {
     // krx_map에는 ETF도 함께 들어 있다. 같은 파일이 제공하는 정확한 ETF 이름 목록으로
     // 제외하고, ETN은 이름에 명시된 상품만 뺀다. 종목명·현재가·등락률만 보는 이 탭의
     // 모집단을 KOSPI/KOSDAQ 상장주로 한정하기 위함이다.
@@ -1659,7 +1680,9 @@
       return result >>> 0;
     }
     return Object.keys(krxMap || {}).map(function (name) {
-      return { name: name, code: String(krxMap[name] || '').toUpperCase() };
+      var code = String(krxMap[name] || '').toUpperCase();
+      var classification = (wicsMap || {})[code] || {};
+      return { name: name, code: code, sector: String(classification.sector || '기타') };
     }).filter(function (item) {
       if (!/^[0-9A-Z]{6}$/.test(item.code) || etfNames[item.name]) return false;
       if (/(?:^|\s)ETN(?:\s|$)/i.test(item.name) || seenCodes[item.code]) return false;
@@ -1675,35 +1698,46 @@
   function fetchAllStockQuotes_(codes) {
     var batches = [];
     for (var i = 0; i < codes.length; i += ALL_STOCKS_BATCH_SIZE) batches.push(codes.slice(i, i + ALL_STOCKS_BATCH_SIZE));
+    function fetchBatch_(batch, retried) {
+      return fetchJson_(GAS_TICKER_URL + '?codes=' + batch.join(',') + '&_=' + Date.now()).then(function (rows) {
+        if (rows && rows.length) return rows;
+        if (retried) throw new Error('empty quote response');
+        return fetchBatch_(batch, true);
+      }).catch(function (error) {
+        if (retried) throw error;
+        return fetchBatch_(batch, true);
+      });
+    }
     return Promise.all(batches.map(function (batch) {
-      return fetchJson_(GAS_TICKER_URL + '?codes=' + batch.join(',')).catch(function () { return []; });
+      return fetchBatch_(batch, false);
     })).then(function (results) {
       return results.reduce(function (all, rows) { return all.concat(rows || []); }, []);
     });
   }
 
-  // 기존 관심섹터와 같은 행·카드 구조로 전종목을 그린다. 한 페이지 안에서도
-  // 코스피/코스닥을 바로 구분할 수 있고, 별도 "관심섹터" 화면이 필요 없다.
+  // 기존 관심섹터와 같은 행·카드 구조를 유지하되, 카드는 WICS 대분류로 나눈다.
+  // 따라서 한 카드 안에서 같은 업종의 여러 종목을 현재가·등락률과 함께 바로 비교한다.
   function allStockCardsHtml_(items, byCode) {
-    var groups = { KOSPI: [], KOSDAQ: [], OTHER: [] };
+    var groups = {};
     (items || []).forEach(function (item) {
       var quote = byCode[item.code] || {};
-      var market = quote.market === 'KOSDAQ' ? 'KOSDAQ' : quote.market === 'KOSPI' ? 'KOSPI' : 'OTHER';
-      groups[market].push({ item: item, quote: quote });
+      var sector = item.sector || '기타';
+      if (!groups[sector]) groups[sector] = [];
+      groups[sector].push({ item: item, quote: quote });
     });
-    var labels = { KOSPI: '코스피', KOSDAQ: '코스닥', OTHER: '시장 확인 중' };
-    return Object.keys(groups).filter(function (market) { return groups[market].length; }).map(function (market) {
-      var rows = groups[market].map(function (entry) {
+    return Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length || a.localeCompare(b, 'ko'); }).map(function (sector) {
+      var rows = groups[sector].map(function (entry) {
         var quote = entry.quote;
         var rate = Number(quote.changeRate);
         var direction = isFinite(rate) && rate > 0 ? 'sector-up' : isFinite(rate) && rate < 0 ? 'sector-down' : 'sector-flat';
         var rateText = isFinite(rate) ? (rate > 0 ? '▲' : rate < 0 ? '▼' : '—') + Math.abs(rate).toFixed(2) + '%' : '-';
-        return '<button type="button" class="sector-row mt-all-stock-row" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
-          + '<span class="sector-row-name">' + escapeHtml(entry.item.name) + '</span>'
-          + '<span><span class="sector-row-price">' + (quote.price != null ? formatNumber(quote.price) : '-') + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
+        var priceText = quote.price != null ? formatNumber(quote.price) + '원' : '시세 확인 중';
+        return '<button type="button" class="sector-row mt-all-stock-row ' + direction + '" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
+          + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i>' + escapeHtml(entry.item.name) + '</span>'
+          + '<span><span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
           + '</button>';
       }).join('');
-      return '<section class="sector-card"><div class="sector-card-title">' + labels[market] + ' <small>' + groups[market].length + '종목</small></div>' + rows + '</section>';
+      return '<section class="sector-card"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[sector].length + '종목</small></div>' + rows + '</section>';
     }).join('');
   }
 
@@ -1712,8 +1746,8 @@
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
 
-    ensureKrxMap_().then(function (krxMap) {
-      var allStocks = allListedStocks_(krxMap);
+    Promise.all([ensureKrxMap_(), ensureWicsMap_().catch(function () { return {}; })]).then(function (maps) {
+      var allStocks = allListedStocks_(maps[0], maps[1]);
       var state = { query: '', page: 0, requestId: 0 };
       if (!allStocks.length) throw new Error('empty KRX map');
 
@@ -1736,9 +1770,9 @@
         var start = state.page * ALL_STOCKS_PAGE_SIZE;
         var visible = rows.slice(start, start + ALL_STOCKS_PAGE_SIZE);
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>코스피·코스닥을 기존 관심섹터 카드와 같은 형식으로 표시</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>대분류 업종 카드 안에서 현재가와 등락률을 함께 비교</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="sr-only">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드 검색" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>시세 새로고침</button></div>'
-          + '<p class="mt-all-stock-legend">붉을수록 상승 폭이 크고, 파랄수록 하락 폭이 크다. 이름을 누르면 상세 시세를 연다.</p>'
+          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 이름을 누르면 상세 시세를 엽니다.</p>'
           + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid></div>'
           + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 장</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · ' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 장 ›</button></div>'
           + '</section>';

@@ -546,9 +546,17 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-toolbar button { flex:0 0 auto; padding:0 11px; }
 #market-temp .mt-all-stock-toolbar button:hover, #market-temp .mt-all-stock-pagination button:hover:not(:disabled) { border-color:#1f2937; color:#1f2937; }
 #market-temp .mt-all-stock-legend { margin:0 0 10px; color:#94a3b8; font-size:11px; line-height:1.45; }
+#market-temp .mt-legend-up { color:#d24f45; }
+#market-temp .mt-legend-down { color:#1261c4; }
 #market-temp .mt-all-stock-sector-grid { min-height:222px; }
 #market-temp .mt-all-stock-sector-grid > .mt-hint { min-height:222px; display:grid; place-items:center; }
 #market-temp .mt-all-stock-row { min-height:37px; }
+#market-temp .mt-all-stock-row .sector-row-name { display:flex; align-items:center; gap:6px; }
+#market-temp .mt-all-stock-dot { flex:0 0 auto; width:6px; height:6px; border-radius:50%; background:#9ca3af; }
+#market-temp .mt-all-stock-dot.sector-up { background:#d24f45; }
+#market-temp .mt-all-stock-dot.sector-down { background:#1261c4; }
+#market-temp .mt-all-stock-row .sector-row-price { color:#334155; font-size:12px; font-variant-numeric:tabular-nums; }
+#market-temp .mt-all-stock-row .sector-row-rate { display:inline-block; min-width:55px; text-align:right; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; color:#64748b; font-size:12px; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-pagination button { min-width:76px; min-height:31px; padding:0 9px; }
 #market-temp .mt-all-stock-pagination button:disabled { cursor:default; opacity:.42; }

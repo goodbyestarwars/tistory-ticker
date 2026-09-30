@@ -218,7 +218,7 @@ document.documentElement.classList.add('skin-ready');
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20260930-all-stock-card-ui-v5';
+    var version = '20260930-all-stock-sector-cards-v6';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
