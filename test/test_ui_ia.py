@@ -107,7 +107,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("feed-block-briefing-cards", category_source)
         self.assertNotIn("Math.random()", category_source)
         self.assertIn(".category-masthead", style)
-        self.assertIn("font: 700 30px/1.15 var(--font-title)", style)
+        self.assertIn("font: 700 24px/1.15 var(--font-title)", style)
         self.assertIn(".feed-block-briefing-hero .post-card.feed-headline-item .post-title", style)
         self.assertIn("-webkit-line-clamp: 3;", style)
 
@@ -192,16 +192,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function allStockCardsHtml_", source)
         self.assertIn("WICS_MAP", source)
         self.assertIn("ensureWicsMap_", source)
-        self.assertIn("대분류 업종 카드 안에서 현재가와 등락률", source)
+        self.assertIn("거래대금 10억원 이상이면서 가격이 움직인", source)
         self.assertNotIn("data-card-library-mode=\"all\"", source)
         self.assertIn("전종목 카드", source)
         self.assertIn("var sector = item.sector || '기타'", source)
         self.assertIn("'sector-up'", source)
         self.assertIn("현재가", source)
-        self.assertIn("‹ 이전 장", source)
-        self.assertIn("다음 장 ›", source)
+        self.assertIn("‹ 이전 업종", source)
+        self.assertIn("다음 업종 ›", source)
         self.assertIn("WICS_MAP_JS_URL", source)
-        self.assertIn("fetchBatch_(batch, false)", source)
+        self.assertIn("activeStockGroups_", source)
+        self.assertIn("INVEST_SIGNAL_URL", source)
         self.assertIn("/page/stock-search?code=", source)
         self.assertIn(".mt-all-stock-sector-grid", style)
         self.assertIn(".mt-all-stock-row", style)
@@ -455,7 +456,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260923-memo-widget-v3", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260930-market-polish-v4", self.read("skin.html"))
 
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
@@ -491,7 +492,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260922-index-breadth", skin)
+        self.assertIn("style.css?v=20260930-briefing-polish", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -524,7 +525,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260923-memo-widget-v3", skin)
+        self.assertIn("skin-main.js?v=20260930-market-polish-v4", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -1618,8 +1619,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("오늘의 개미 체크리스트", source)
         self.assertIn("지금 할 일", source)
         self.assertIn("오늘 금지", source)
-        self.assertIn("손절가 깼으면 정리", source)
-        self.assertIn("1개월 버틸 종목", source)
+        self.assertIn("5일선을 종가로 깨면 정리한다", source)
+        self.assertIn("1개월 버틸 근거", source)
         self.assertNotIn("✅ 해볼 것", source)
         self.assertNotIn("🚫 참을 것", source)
         # 행동 문구는 종합점수 3등급(grade3)을 따른다 - 옛 40℃ 5단계와 어긋나지 않게.
@@ -1627,7 +1628,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
         self.assertIn("buildBriefingStrategy(data)", source)
         self.assertIn("buildTemperatureActions()", source)
-        self.assertIn("오늘 돈이 몰리는 차트", source)
+        self.assertIn("오늘 돈이 몰린 섹터", source)
         self.assertIn("<h2>오늘 업종 TOP 10</h2>", source)
         # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.
         for gone in ("action: '적극 분할매수'", "summary: '공포 우세 구간 · 분할 매수 후보를 확인'",
@@ -1635,7 +1636,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertNotIn(gone, source)
         # 설명문도 실제 계산(3축 평균, 50/75 경계)과 맞춘다.
         self.assertNotIn("원점수 120점을 100점으로 환산", source)
-        self.assertIn("0~39점 공포 · 40~60점 보통 · 61점 이상 과열", source)
+        self.assertIn("0~39점은 공포, 40~60점은 보통, 61점부터 과열", source)
         self.assertIn("코스피 시장 전체 최근 5일 수급", source)
         self.assertNotIn("KODEX 200 최근 5일", source)
         for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
@@ -3371,7 +3372,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("mt-if-fill", source)
         self.assertIn("maxAmount", source)
         # 순위의 선 연결 그래프는 없애고, 거래대금 자체가 보이는 카드 흐름으로 바꿨다.
-        self.assertIn("오늘 돈이 몰리는 차트", source)
+        self.assertIn("오늘 돈이 몰린 섹터", source)
         self.assertIn("mt-money-flow-grid", source)
         self.assertNotIn("+ buildIndustryRankFlow_()", source)
         # 데이터원: 예전 경로(market-board 상위 30종목)는 절반 이상이 ETF라 테마가
@@ -3732,8 +3733,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
-        self.assertIn("main-news.css?v=20260930-news-refresh-v1", main)
-        self.assertIn("main-news.js?v=20260930-news-refresh-v1", main)
+        self.assertIn("main-news.css?v=20260930-news-toolbar-v2", main)
+        self.assertIn("main-news.js?v=20260930-news-toolbar-v2", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3749,7 +3750,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("data-mn-refresh-label", source)
         self.assertIn("class=\"mn-tab mn-refresh-btn\"", source)
         self.assertIn("mn-refresh-spin", style)
-        self.assertIn("justify-content: flex-start;", style)
+        self.assertIn("justify-content: flex-end;", style)
         # 전부 실패하면 5분을 기다리지 않고 한 번 더 시도한다.
         self.assertIn("var RETRY_MS = 6000;", source)
         self.assertIn("if (!collected.length && failed.length && !state.retryTimer)", source)
@@ -3791,7 +3792,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("US_CORE_PCE", macro)
         self.assertIn("US_NONFARM_PAYROLLS", macro)
         self.assertIn("US_CONSUMER_SENTIMENT", macro)
-        self.assertIn("FRED 자동 수집", macro)
+        self.assertIn("최근 12회 평균", macro)
         self.assertIn("US_REAL_GDP_GROWTH", macro)
         self.assertIn("US_RETAIL_SALES", macro)
         self.assertNotIn("US_POLICY_RATE", macro)
@@ -3858,7 +3859,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("@media (prefers-reduced-motion: reduce) {", style)
         self.assertIn("::view-transition-group(*),", style)
         self.assertIn("animation-duration: 0.01ms !important;", style)
-        self.assertIn("style.css?v=20260922-index-breadth", self.read("skin.html"))
+        self.assertIn("style.css?v=20260930-briefing-polish", self.read("skin.html"))
 
     def test_new_domestic_listings_are_searchable_before_krx_map_refresh(self):
         stock_search = self.read("js/stock-search.js")

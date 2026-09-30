@@ -111,18 +111,53 @@
     return parts.join(' · ');
   }
 
+  function recentValues_(item) {
+    return ((item && item.chart) || []).map(function (point) { return Number(point && point.close); })
+      .filter(function (value) { return isFinite(value); }).slice(-12);
+  }
+
+  function average_(symbol, item) {
+    var values = recentValues_(item);
+    if (!values.length) return '-';
+    var value = values.reduce(function (sum, item) { return sum + item; }, 0) / values.length;
+    var digits = (symbol === 'US_RETAIL_SALES' || symbol === 'US_NONFARM_PAYROLLS') ? 0 : 1;
+    return number_(value, digits) + ' ' + META[symbol].unit;
+  }
+
+  function miniChart_(item) {
+    var values = recentValues_(item);
+    if (values.length < 2) return '';
+    var low = Math.min.apply(Math, values);
+    var high = Math.max.apply(Math, values);
+    var span = high - low || 1;
+    var points = values.map(function (value, index) {
+      return (index / (values.length - 1) * 116 + 2).toFixed(1) + ',' + (28 - (value - low) / span * 22).toFixed(1);
+    }).join(' ');
+    return '<svg class="umi-mini-chart" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="최근 12회 발표 흐름"><polyline points="' + points + '"></polyline><circle cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="2.4"></circle></svg>';
+  }
+
+  function readGuide_(symbol) {
+    var guides = {
+      US_CPI: '물가 목표는 연 2% 부근', US_CORE_CPI: '추세 물가는 완만한 둔화가 중요', US_CORE_PCE: '연준이 주로 보는 물가 지표', US_PPI: '소비자물가보다 앞서 움직일 수 있음',
+      US_NONFARM_PAYROLLS: '고용 증감보다 추세 둔화를 함께 확인', US_UNEMPLOYMENT: '4% 안팎은 통상 안정 범위', US_RETAIL_SALES: '전월 대비와 3개월 흐름을 같이 확인',
+      US_REAL_GDP_GROWTH: '연율 2% 안팎이면 완만한 성장', US_CONSUMER_SENTIMENT: '장기 평균과의 차이를 확인'
+    };
+    return guides[symbol] || '';
+  }
+
   function card_(symbol, item) {
     var meta = META[symbol];
     var primary = symbol === 'US_CPI' ? ' umi-card--primary' : '';
     return '<article class="umi-card' + primary + '"><small>' + escapeHtml(meta.category + ' · ' + meta.cadence) + '</small><strong>' + escapeHtml(meta.label) + '</strong>'
-      + '<b>' + escapeHtml(keyValue_(symbol, item)) + '</b><span>' + escapeHtml(detail_(symbol, item))
-      + '</span><i>출처 ' + escapeHtml(meta.source) + ' · FRED 자동 수집</i></article>';
+      + '<b>' + escapeHtml(keyValue_(symbol, item)) + '</b><span>' + escapeHtml(detail_(symbol, item)) + '</span>'
+      + '<div class="umi-reading"><span>최근 12회 평균 <b>' + escapeHtml(average_(symbol, item)) + '</b></span>' + miniChart_(item) + '</div>'
+      + '<i><b>읽는 기준</b> · ' + escapeHtml(readGuide_(symbol)) + ' · 출처 ' + escapeHtml(meta.source) + '</i></article>';
   }
 
   function shell_() {
     var next = nextFomc_();
-    return '<section class="umi" aria-label="주요 미국 발표">'
-      + '<div class="umi-head"><div><h2>주요 미국 발표</h2><p><b>CPI를 맨 앞</b>에 고정했습니다. 물가·고용·경기 발표는 공표 원자료를 FRED에서 자동 수집하며, 금리는 글로벌 시장지표의 채권 카드에서 확인하세요.</p></div>'
+    return '<section class="umi" aria-label="미국 경제 발표">'
+      + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 숫자만 보지 않도록 최근 평균과 12회 흐름, 읽는 기준을 같이 표시합니다. 금리는 글로벌 시장지표에서 확인하세요.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
       + '<div class="umi-grid"><article class="umi-card umi-card--fomc"><small>통화정책 일정</small><strong>다음 FOMC 회의</strong><b>' + escapeHtml(dateLabel_(next)) + '</b><span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></article>'
       + '<div data-umi-cards class="umi-grid umi-grid--data"><p class="umi-state">발표값을 불러오는 중입니다.</p></div></div></section>';

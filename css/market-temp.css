@@ -541,6 +541,7 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-head > span { white-space:nowrap; }
 #market-temp .mt-all-stock-toolbar { display:flex; gap:8px; margin-bottom:12px; }
 #market-temp .mt-all-stock-toolbar label { flex:1; min-width:0; }
+#market-temp .mt-all-stock-search-label { display:block; margin:0 0 5px; color:#64748b; font-size:11px; font-weight:700; }
 #market-temp .mt-all-stock-toolbar input { width:100%; min-height:35px; box-sizing:border-box; border:1px solid #dbe4ef; border-radius:4px; padding:0 10px; background:#fff; color:#172033; font:inherit; font-size:12px; }
 #market-temp .mt-all-stock-toolbar button, #market-temp .mt-all-stock-pagination button { border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#475569; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
 #market-temp .mt-all-stock-toolbar button { flex:0 0 auto; padding:0 11px; }
@@ -552,6 +553,9 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-sector-grid > .mt-hint { min-height:222px; display:grid; place-items:center; }
 #market-temp .mt-all-stock-row { min-height:37px; }
 #market-temp .mt-all-stock-row .sector-row-name { display:flex; align-items:center; gap:6px; }
+#market-temp .mt-all-stock-market { padding:2px 4px; border-radius:3px; font-size:9px; font-weight:800; letter-spacing:.02em; }
+#market-temp .mt-all-stock-market.kospi { color:#9f3b32; background:#fff0ee; }
+#market-temp .mt-all-stock-market.kosdaq { color:#1761a8; background:#edf6ff; }
 #market-temp .mt-all-stock-dot { flex:0 0 auto; width:6px; height:6px; border-radius:50%; background:#9ca3af; }
 #market-temp .mt-all-stock-dot.sector-up { background:#d24f45; }
 #market-temp .mt-all-stock-dot.sector-down { background:#1261c4; }
@@ -601,11 +605,11 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-industry-flow-head strong { font-size:15px; color:#111827; }
 #market-temp .mt-industry-flow-head span, #market-temp .mt-industry-flow-note { color:#94a3b8; font-size:10px; }
 /* 2026-09-01 직관성 개선. 열 구성: 순위 · 업종 · 거래대금 · 평균등락 · 순위변화 · 펼침. */
-#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:26px minmax(0,1.6fr) minmax(68px,.9fr) .7fr .66fr; align-items:center; gap:8px; }
-#market-temp .mt-industry-flow-columns { padding:0 5px 6px; border-bottom:1px solid #111827; color:#94a3b8; font-size:10px; }
+#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:38px minmax(150px,2fr) minmax(100px,1.05fr) minmax(82px,.82fr) minmax(72px,.7fr); align-items:center; gap:10px; }
+#market-temp .mt-industry-flow-columns { padding:0 8px 8px; border-bottom:1px solid #111827; color:#718096; font-size:11px; font-weight:700; }
 #market-temp .mt-industry-flow-columns span:nth-child(n+3), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > em { text-align:right; }
 #market-temp .mt-industry-flow-item { border-bottom:1px solid #eef2f7; }
-#market-temp .mt-industry-flow-row { position:relative; width:100%; min-height:34px; padding:6px 5px; border:0; background:transparent; color:inherit; font:inherit; font-size:12px; text-align:left; cursor:pointer; }
+#market-temp .mt-industry-flow-row { position:relative; width:100%; min-height:40px; padding:8px; border:0; background:transparent; color:inherit; font:inherit; font-size:13px; text-align:left; cursor:pointer; }
 #market-temp .mt-industry-flow-row:hover, #market-temp .mt-industry-flow-row.is-open { background:#f8fafc; }
 #market-temp .mt-industry-flow-row b { position:relative; overflow:hidden; color:#1f2937; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
 
@@ -1157,7 +1161,10 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: rgba(245,239,22
   text-align: left; cursor: pointer;
 }
 #market-temp .mt-sf-row > *:not(.mt-sf-fill) { position:relative; z-index:1; }
-#market-temp .mt-sf-fill { position:absolute; z-index:0; left:25px; top:5px; bottom:5px; border-radius:2px; background:linear-gradient(90deg, rgba(242,182,50,.28) 0%, rgba(242,182,50,.10) 86%, rgba(242,182,50,.02) 100%); pointer-events:none; }
+#market-temp .mt-sf-fill { position:absolute; z-index:0; left:25px; top:5px; bottom:5px; border-radius:2px; pointer-events:none; }
+#market-temp .mt-sf-fill.is-up { background:linear-gradient(90deg, rgba(210,79,69,.28) 0%, rgba(210,79,69,.10) 86%, rgba(210,79,69,.02) 100%); }
+#market-temp .mt-sf-fill.is-down { background:linear-gradient(90deg, rgba(18,97,196,.28) 0%, rgba(18,97,196,.10) 86%, rgba(18,97,196,.02) 100%); }
+#market-temp .mt-sf-fill.is-flat { background:linear-gradient(90deg, rgba(148,163,184,.22) 0%, rgba(148,163,184,.07) 86%, rgba(148,163,184,.02) 100%); }
 #market-temp .mt-sf-row:hover, #market-temp .mt-sf-row.is-open { background: #f8fafc; }
 #market-temp .mt-sf-rank { color: #8a6500; font-size: 10px; font-style: normal; font-weight: 800; text-align: center; }
 #market-temp .mt-sf-row b { overflow: hidden; color: #1f2937; font-weight: 700; text-overflow: ellipsis; white-space: nowrap; }
@@ -1192,7 +1199,9 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: rgba(245,239,22
 
 html.dark #market-temp .mt-sf-row b, html.dark #market-temp .mt-sf-mult { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-sf-visual-head span { color: #F5EFE0 !important; }
-html.dark #market-temp .mt-sf-fill { background:linear-gradient(90deg, rgba(242,195,93,.24) 0%, rgba(242,195,93,.08) 86%, rgba(242,195,93,.02) 100%) !important; }
+html.dark #market-temp .mt-sf-fill.is-up { background:linear-gradient(90deg, rgba(255,107,107,.28) 0%, rgba(255,107,107,.09) 86%, rgba(255,107,107,.02) 100%) !important; }
+html.dark #market-temp .mt-sf-fill.is-down { background:linear-gradient(90deg, rgba(128,184,255,.28) 0%, rgba(128,184,255,.09) 86%, rgba(128,184,255,.02) 100%) !important; }
+html.dark #market-temp .mt-sf-fill.is-flat { background:linear-gradient(90deg, rgba(148,163,184,.2) 0%, rgba(148,163,184,.07) 86%, rgba(148,163,184,.02) 100%) !important; }
 html.dark #market-temp .mt-sf-item { border-bottom-color: rgba(245,239,224,.12) !important; }
 html.dark #market-temp .mt-sf-row:hover, html.dark #market-temp .mt-sf-row.is-open { background: #242424 !important; }
 html.dark #market-temp .mt-sf-row.is-up .mt-sf-rate, html.dark #market-temp .mt-sf-stock-val .is-up { color: #ff8a83 !important; }

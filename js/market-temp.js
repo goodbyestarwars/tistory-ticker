@@ -176,23 +176,23 @@
   var ANT_GUIDE_BY_TONE = {
     fear: {
       mood: '팔려는 사람이 더 많은 날',
-      title: '도망칠 종목과 버틸 종목을 오늘 나눠라',
-      short: '손절가를 깬 종목은 정리 기준을 먼저 보고, 못 끊겠으면 1개월 버틸 종목만 남기기',
-      todo: ['손절가 깼으면 정리. 못 하겠으면 1개월 버틸 종목인지 먼저 판단', '뉴스·공시 없이 같이 빠진 우량 후보만 관심종목에 남김', '신규 진입은 업종 TOP에서 돈이 남아 있는 종목만 확인'],
+      title: '공포일수록 아무 종목이나 팔지 말고, 기준을 지켜라',
+      short: '공포 구간은 역발상 후보를 고르는 날입니다. 다만 보유 종목이 5일선을 종가로 깨면 미련 없이 정리합니다.',
+      todo: ['보유 종목이 5일선을 종가로 깨면 정리한다. 못 하겠으면 1개월 버틸 근거를 먼저 적는다', '뉴스·공시 없이 같이 빠진 우량 후보만 관심종목에 남김', '신규 진입은 업종 TOP에서 돈이 남아 있는 종목만 확인'],
       avoid: ['손절도 못 하면서 물타기', '신용·미수로 평단 낮추기', '오늘 떨어진 이유도 모르고 장중에 급히 팔기']
     },
     neutral: {
       mood: '뚜렷한 방향이 없는 날',
-      title: '매매 안 해도 되는 날이다',
-      short: '시장이 애매하면 억지로 사지 말고, 돈이 몰리는 업종에서 후보 3개만 추리기',
-      todo: ['업종 TOP 10에서 후보 3개만 고르고 차트에서 자리 확인', '보유 종목은 손절가·익절가를 숫자로 다시 적음', '확신 없는 종목은 다음 장까지 기다림'],
+      title: '중립일수록 추격하지 말고, 5일선을 기준으로 정리한다',
+      short: '방향이 없는 날에는 억지로 매수하지 않습니다. 보유 종목은 5일선을 이틀 연속 깨면 정리할 가격을 미리 정합니다.',
+      todo: ['업종 TOP 10에서 후보 3개만 고르고 차트에서 자리 확인', '보유 종목이 5일선을 이틀 연속 종가로 깨면 정리한다', '확신 없는 종목은 다음 장까지 기다림'],
       avoid: ['심심해서 하는 단타', '뉴스 제목 하나 보고 급등주 따라가기', '손절 기준 없는 신규 진입']
     },
     greed: {
       mood: '사려는 사람이 몰려 들뜬 날',
-      title: '추격매수보다 빠져나갈 가격을 먼저 정해라',
-      short: '많이 오른 날은 신규 매수보다 익절선·손절선을 올려 적어두는 게 우선',
-      todo: ['수익권 종목은 익절선과 이탈가를 오늘 가격으로 올려 적음', '급등주는 눌림 없이 따라가지 않음', '손절 못할 종목은 신규 진입 금지'],
+      title: '환희에는 사는 날이 아니라, 수익을 지키는 날이다',
+      short: '과열 구간에서는 추격보다 매도가 우선입니다. 수익권 종목은 5일선 이탈을 남은 물량의 정리 기준으로 둡니다.',
+      todo: ['수익권 종목은 익절선을 올리고 5일선 이탈 때 남은 물량을 정리한다', '급등주는 눌림 없이 따라가지 않음', '손절 못할 종목은 신규 진입 금지'],
       avoid: ['나만 못 벌까 봐 시장가 추격', '빚투·미수로 크게 베팅', '상한가 뉴스만 보고 늦게 올라타기']
     }
   };
@@ -241,7 +241,7 @@
   function emphasizeChecklist_(text) {
     var safe = escapeHtml(text);
     // 행동의 핵심 단어만 굵게 남겨, 긴 문장을 읽지 않아도 판단이 보이게 한다.
-    ['손절가', '오늘 정리', '1개월 버틸', '물타기', '신규 진입', '익절선', '이탈가', '추격 매수', '거래대금', '장 마감 뒤'].forEach(function (word) {
+    ['손절가', '오늘 정리', '정리한다', '1개월 버틸', '5일선', '이틀 연속', '물타기', '신규 진입', '익절선', '이탈가', '추격 매수', '거래대금', '장 마감 뒤'].forEach(function (word) {
       safe = safe.replace(new RegExp(word, 'g'), '<strong>' + word + '</strong>');
     });
     return safe;
@@ -649,12 +649,11 @@
           }).join('') + '</div>'
       : '';
     var amount = Number(row.trade_amount);
-    // 1위 대비 자금 집중도를 막대로도 보여 준다. 가격·등락률의 방향색과 혼동되지
-    // 않도록 돈 자체는 항상 노랑으로 고정한다.
+    // 자금의 크기는 음영으로, 그 섹터의 방향은 붉은색(상승)·파란색(하락)으로 함께 읽는다.
     var fill = isFinite(amount) && maxAmount > 0 ? Math.max(4, amount / maxAmount * 100) : 0;
     return '<div class="mt-sf-item">'
       + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
-      + '<i class="mt-sf-fill" style="width:' + fill.toFixed(1) + '%" aria-hidden="true"></i>'
+      + '<i class="mt-sf-fill ' + tone + '" style="width:' + fill.toFixed(1) + '%" aria-hidden="true"></i>'
       + '<i class="mt-sf-rank">' + (index + 1) + '</i>'
       + '<b>' + escapeHtml(row.industry || '-') + '</b>'
       + '<span class="mt-sf-mult">' + escapeHtml(sectorFlowAmountText_(row) || '-') + '</span>'
@@ -675,9 +674,9 @@
       var amount = Number(row && row.trade_amount);
       return isFinite(amount) && amount > max ? amount : max;
     }, 0);
-    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
+    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 붉은 음영은 상승, 파란 음영은 하락이며 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
-      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰리는 차트</span><small>노란 음영 = 1위 대비 자금 집중도</small></div>'
+      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>음영 길이 = 거래대금 집중도 · 빨강 상승 · 파랑 하락</small></div>'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount); }).join('')
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
       + '</div>';
@@ -1007,10 +1006,11 @@
     var tone = axis && axis.key === 'risk'
       ? (pct >= 65 ? 'mt-axis-risk-high' : pct >= 35 ? 'mt-axis-risk-mid' : 'mt-axis-risk-low')
       : (pct >= 65 ? 'mt-axis-good' : pct >= 35 ? 'mt-axis-mid' : 'mt-axis-bad');
+    var question = axis && axis.question ? axis.question : ((axis && axis.key === 'money') ? '오늘 돈이 얼마나 들어왔나?' : (axis && axis.key === 'price') ? '가격이 얼마나 움직이나?' : '위험지표가 어느 수준인가?');
     return ''
       + '<div class="mt-axis-row">'
       + '<span class="mt-axis-name">' + icon + ' ' + escapeHtml((axis && axis.label) || '')
-      + (axis && axis.question ? '<small>' + escapeHtml(axis.question) + '</small>' : '') + '</span>'
+      + '<small>' + escapeHtml(question) + '</small></span>'
       + '<span class="mt-axis-bar"><i class="' + tone + '" style="width:' + pct.toFixed(0) + '%"></i></span>'
       + '<b class="mt-axis-value">' + (isFinite(value) ? value.toFixed(0) : '-') + '</b>'
       + '<small class="mt-axis-word">' + escapeHtml(axisWord(axis && axis.key, value)) + '</small>'
@@ -1103,7 +1103,7 @@
       // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 단순화하면서도
       // 버리지 않는다 - 옛 Hero 카드에 있던 것을 여기로 옮겼다.
       + buildBreadth(data)
-      + '<div class="mt-summary-note">0점에 가까울수록 시장이 겁먹은 상태, 100점에 가까울수록 들뜬 상태입니다. 돈·가격·위험 세 가지를 평균냈고, 위험만 높을수록 나쁩니다. 투자 권유가 아닙니다.</div>'
+      + '<div class="mt-summary-note">0~39점은 공포, 40~60점은 보통, 61점부터 과열입니다. <b>돈이 얼마나 들어왔는지 · 가격이 얼마나 움직이는지 · 위험지표가 어느 수준인지</b>를 같은 비중으로 읽고, 위험은 높을수록 감점합니다. 공포에는 후보를 고르고 환희에는 수익을 지키는 역발상 기준입니다.</div>'
       + '</div>';
   }
 
@@ -1180,7 +1180,7 @@
   function buildAiBriefingShell() {
     return ''
       + '<div class="mt-briefing-panel">'
-      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견</div>'
+      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견 <small>Groq 시장 해석</small></div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
       + '</div>';
   }
@@ -1588,7 +1588,7 @@
   function buildTemperatureActions() {
     return '<div class="mt-temperature-actions">'
       + '<section class="mt-section-block mt-temperature-money-flow">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰리는 차트</h2><p>오늘 강한 테마에서 종목과 연결 테마까지 이어서 봅니다.</p></div>'
+      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금과 평균 등락률을 함께 보고, 강한 테마의 종목과 연결 섹터를 확인합니다.</p></div>'
       + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
       + '</section></div>';
   }
@@ -1715,6 +1715,28 @@
     });
   }
 
+  // 전종목을 모두 나열하지 않는다. 스캔 시점 거래대금 10억원 이상이면서 가격이 움직인
+  // 종목만 대분류별 상위 18개로 압축해, 실제로 거래되는 섹터를 한 화면에서 읽게 한다.
+  function activeStockGroups_(scan, wicsMap) {
+    var rows = universeRows_(scan, {}).filter(function (row) {
+      return isFinite(row.price) && row.price > 0 && isFinite(row.tradingValue) && row.tradingValue >= 1000000000
+        && isFinite(row.changeRate) && Math.abs(row.changeRate) >= 0.1;
+    }).map(function (row) {
+      var classification = (wicsMap || {})[row.code] || {};
+      row.sector = String(classification.sector || '기타');
+      return row;
+    });
+    var bySector = {};
+    rows.forEach(function (row) {
+      if (!bySector[row.sector]) bySector[row.sector] = [];
+      bySector[row.sector].push(row);
+    });
+    return Object.keys(bySector).map(function (sector) {
+      var members = bySector[sector].sort(function (a, b) { return b.tradingValue - a.tradingValue; }).slice(0, 18);
+      return { sector: sector, rows: members, total: members.reduce(function (sum, row) { return sum + row.tradingValue; }, 0) };
+    }).filter(function (group) { return group.rows.length; }).sort(function (a, b) { return b.total - a.total || a.sector.localeCompare(b.sector, 'ko'); });
+  }
+
   // 기존 관심섹터와 같은 행·카드 구조를 유지하되, 카드는 WICS 대분류로 나눈다.
   // 따라서 한 카드 안에서 같은 업종의 여러 종목을 현재가·등락률과 함께 바로 비교한다.
   function allStockCardsHtml_(items, byCode) {
@@ -1727,13 +1749,14 @@
     });
     return Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length || a.localeCompare(b, 'ko'); }).map(function (sector) {
       var rows = groups[sector].map(function (entry) {
-        var quote = entry.quote;
+        var quote = entry.quote && Object.keys(entry.quote).length ? entry.quote : entry.item;
         var rate = Number(quote.changeRate);
         var direction = isFinite(rate) && rate > 0 ? 'sector-up' : isFinite(rate) && rate < 0 ? 'sector-down' : 'sector-flat';
         var rateText = isFinite(rate) ? (rate > 0 ? '▲' : rate < 0 ? '▼' : '—') + Math.abs(rate).toFixed(2) + '%' : '-';
         var priceText = quote.price != null ? formatNumber(quote.price) + '원' : '시세 확인 중';
+        var market = quote.market === 'KOSPI' || quote.market === 'KOSDAQ' ? quote.market : '';
         return '<button type="button" class="sector-row mt-all-stock-row ' + direction + '" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
-          + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i>' + escapeHtml(entry.item.name) + '</span>'
+          + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i>' + escapeHtml(entry.item.name) + (market ? '<small class="mt-all-stock-market ' + market.toLowerCase() + '">' + market + '</small>' : '') + '</span>'
           + '<span><span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
           + '</button>';
       }).join('');
@@ -1746,71 +1769,61 @@
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
 
-    Promise.all([ensureKrxMap_(), ensureWicsMap_().catch(function () { return {}; })]).then(function (maps) {
-      var allStocks = allListedStocks_(maps[0], maps[1]);
-      var state = { query: '', page: 0, requestId: 0 };
-      if (!allStocks.length) throw new Error('empty KRX map');
+    Promise.all([fetchJson_(INVEST_SIGNAL_URL), ensureWicsMap_().catch(function () { return {}; })]).then(function (results) {
+      var allGroups = activeStockGroups_(results[0], results[1]);
+      var scannedAt = results[0] && results[0].data && results[0].data.scannedAt ? String(results[0].data.scannedAt).replace('T', ' ').slice(0, 16) : '최근 장 마감';
+      var state = { query: '', page: 0 };
+      if (!allGroups.length) throw new Error('empty active stocks');
 
-      function filteredStocks() {
+      function filteredGroups() {
         var query = state.query.toLowerCase();
-        if (!query) return allStocks;
-        return allStocks.filter(function (item) {
-          return item.name.toLowerCase().indexOf(query) !== -1 || item.code.toLowerCase().indexOf(query) !== -1;
-        });
+        if (!query) return allGroups;
+        return allGroups.map(function (group) {
+          return { sector: group.sector, total: group.total, rows: group.rows.filter(function (item) {
+            return item.name.toLowerCase().indexOf(query) !== -1 || item.code.toLowerCase().indexOf(query) !== -1;
+          }) };
+        }).filter(function (group) { return group.rows.length; });
       }
 
       function openStock(item) {
         global.location.href = '/page/stock-search?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
       }
 
+      function visibleItems_(groups) {
+        return groups.reduce(function (out, group) {
+          return out.concat(group.rows.map(function (item) {
+            return { code: item.code, name: item.name, sector: group.sector, price: item.price, changeRate: item.changeRate, market: item.market };
+          }));
+        }, []);
+      }
+
       function render() {
-        var rows = filteredStocks();
-        var pageCount = Math.max(1, Math.ceil(rows.length / ALL_STOCKS_PAGE_SIZE));
+        var groups = filteredGroups();
+        var pageCount = Math.max(1, Math.ceil(groups.length / 4));
         state.page = Math.min(Math.max(0, state.page), pageCount - 1);
-        var start = state.page * ALL_STOCKS_PAGE_SIZE;
-        var visible = rows.slice(start, start + ALL_STOCKS_PAGE_SIZE);
+        var shownGroups = groups.slice(state.page * 4, state.page * 4 + 4);
+        var visible = visibleItems_(shownGroups);
+        var total = groups.reduce(function (sum, group) { return sum + group.rows.length; }, 0);
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>대분류 업종 카드 안에서 현재가와 등락률을 함께 비교</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
-          + '<div class="mt-all-stock-toolbar"><label><span class="sr-only">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드 검색" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>시세 새로고침</button></div>'
-          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 이름을 누르면 상세 시세를 엽니다.</p>'
-          + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid></div>'
-          + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 장</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · ' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 장 ›</button></div>'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>거래대금 10억원 이상 · 등락이 있는 종목만 업종별로 표시</span></div><span data-all-stock-count>활성 ' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준</span></div>'
+          + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button></div>'
+          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 거래대금 상위 종목부터 표시하며, 이름을 누르면 상세 시세를 엽니다.</p>'
+          + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}) : '<div class="mt-hint">찾는 종목이 없습니다.</div>') + '</div>'
+          + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 업종</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · 업종 ' + groups.length + '개</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 업종 ›</button></div>'
           + '</section>';
         var input = panel.querySelector('[data-all-stock-search]');
         var grid = panel.querySelector('[data-all-stock-grid]');
-        var requestId = ++state.requestId;
-        grid.innerHTML = visible.length ? '<div class="mt-hint">현재가를 불러오는 중...</div>' : '<div class="mt-hint">찾는 종목이 없습니다.</div>';
-
-        function wireControls() {
-          input.addEventListener('input', function () { state.query = input.value.trim(); state.page = 0; render(); });
-          var previous = panel.querySelector('[data-all-stock-prev]');
-          var next = panel.querySelector('[data-all-stock-next]');
-          var refresh = panel.querySelector('[data-all-stock-refresh]');
-          if (previous) previous.addEventListener('click', function () { state.page -= 1; render(); });
-          if (next) next.addEventListener('click', function () { state.page += 1; render(); });
-          if (refresh) refresh.addEventListener('click', render);
-        }
-        function wireCards() {
-          grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
-            card.addEventListener('click', function () {
-              openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
-            });
+        input.addEventListener('input', function () { state.query = input.value.trim(); state.page = 0; render(); });
+        var previous = panel.querySelector('[data-all-stock-prev]');
+        var next = panel.querySelector('[data-all-stock-next]');
+        var refresh = panel.querySelector('[data-all-stock-refresh]');
+        if (previous) previous.addEventListener('click', function () { state.page -= 1; render(); });
+        if (next) next.addEventListener('click', function () { state.page += 1; render(); });
+        if (refresh) refresh.addEventListener('click', function () { panel.__allStockBrowser = false; loadAllStocksPanel(panel); });
+        grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
+          card.addEventListener('click', function () {
+            openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
           });
-        }
-        wireControls();
-        if (!visible.length) return;
-        fetchAllStockQuotes_(visible.map(function (item) { return item.code; })).then(function (quotes) {
-          if (requestId !== state.requestId) return;
-          var byCode = {};
-          (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
-          grid.innerHTML = allStockCardsHtml_(visible, byCode);
-          wireCards();
-        }).catch(function () {
-          if (requestId !== state.requestId) return;
-          // 시세 응답이 잠시 막혀도 카드 목록 자체는 숨기지 않는다. 값은 대기로 두고,
-          // 각 행을 누르면 기존 실시간 시세 화면에서 다시 확인할 수 있다.
-          grid.innerHTML = allStockCardsHtml_(visible, {});
-          wireCards();
         });
       }
       render();
@@ -1871,6 +1884,7 @@
           price: Number(item[2]),
           changeRate: Number(item[3]),
           tradingValue: Number(item[6]),
+          market: item[7] === 'KOSPI' || item[7] === 'KOSDAQ' ? item[7] : '',
           cap: caps[code] || null
         });
       });

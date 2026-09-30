@@ -28,6 +28,8 @@
   gap: 6px;
   margin-top: 14px;
 }
+#main-news .mn-tabbar { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-top:14px; }
+#main-news .mn-tabbar .mn-tabs { margin-top:0; }
 #main-news .mn-tab {
   min-height: 32px;
   padding: 6px 13px;
@@ -48,9 +50,9 @@
 #main-news .mn-refresh-row {
   display: flex;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: flex-end;
   gap: 8px;
-  margin-top: 8px;
+  margin-top: 0;
 }
 #main-news .mn-refresh-btn {
   display: inline-flex;
@@ -131,5 +133,6 @@ html.dark #main-news .mn-tab.is-active { border-color: #80b8ff; background: #235
 @media (max-width: 720px) {
   #main-news .mn-row { padding: 10px 0; gap: 0 8px; }
   #main-news .mn-row-title { font-size: 14px; }
+  #main-news .mn-tabbar { align-items:flex-start; flex-wrap:wrap; }
   #main-news .mn-refresh-row { align-items: flex-start; }
 }

@@ -188,7 +188,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-main-news-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260930-news-refresh-v1';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260930-news-toolbar-v2';
       link.setAttribute('data-main-news-css', '1');
       document.head.appendChild(link);
     }
@@ -207,7 +207,7 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260930-news-refresh-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260930-news-toolbar-v2';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
@@ -218,7 +218,7 @@ document.documentElement.classList.add('skin-ready');
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20260930-all-stock-sector-cards-v6';
+    var version = '20260930-active-sector-cards-v7';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -287,8 +287,8 @@ document.documentElement.classList.add('skin-ready');
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-us-macro-core-v2',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-us-macro-core-v2']
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-us-macro-reading-v3',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-us-macro-reading-v3']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);

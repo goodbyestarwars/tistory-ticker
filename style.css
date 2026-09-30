@@ -671,17 +671,17 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   justify-content: center;
   gap: 2px;
   padding: 10px 58px;
-  border: 1px solid #d9e0dc;
+  border: 1px solid #dbe4ef;
   border-radius: 3px;
-  background: linear-gradient(90deg,#f6f8f7,#fffefc);
-  color: #26364a;
+  background: #fff;
+  color: var(--text-main);
   text-align: center;
   text-decoration: none;
 }
 .home-briefing-more span { color:#7b8794; font-size:10px; letter-spacing:.08em; }
-.home-briefing-more strong { color:#26364a; font-size:14px; }
-.home-briefing-more i { position:absolute; right:16px; top:50%; transform:translateY(-50%); width:32px; height:32px; display:grid; place-items:center; background:#26364a; color:#fff; font-style:normal; }
-.home-briefing-more:hover { background: #f3f6f4; }
+.home-briefing-more strong { color:var(--text-main); font-size:14px; }
+.home-briefing-more i { position:absolute; right:16px; top:50%; transform:translateY(-50%); width:30px; height:30px; display:grid; place-items:center; border:1px solid #dbe4ef; border-radius:50%; background:#fff; color:#334155; font-style:normal; }
+.home-briefing-more:hover { border-color:#94a3b8; background:#f8fafc; }
 html.dark .home-section-heading strong { color: #F5EFE0 !important; }
 html.dark .home-section-heading span { color: rgba(245,239,224,.55) !important; }
 html.dark .home-briefing-more { background: #1A1A1A !important; border-color: rgba(245,239,224,.16) !important; color: #F5EFE0 !important; }
@@ -2238,14 +2238,14 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 .category-masthead h1 {
   margin: 0;
   color: var(--text-main);
-  font: 700 30px/1.15 var(--font-title);
+  font: 700 24px/1.15 var(--font-title);
   letter-spacing: -.04em;
 }
 .category-masthead span {
   display: block;
   margin-top: 7px;
   color: var(--text-sub);
-  font: 14px/1.5 var(--font-body);
+  font: 12px/1.5 var(--font-body);
 }
 .category-masthead small {
   padding-bottom: 3px;
