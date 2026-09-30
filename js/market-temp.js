@@ -1870,6 +1870,19 @@
     Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), snapshotRequest]).then(function (results) {
       var snapshot = results[2];
       var allGroups = snapshot ? activeStockGroups_(snapshot, results[1]) : [];
+      // 개장 전 순위 API는 HTTP 200이어도 거래량·거래대금이 0으로 초기화된다.
+      // 통신 성공과 표시 가능한 데이터는 다르므로, 필터 결과가 비면 최근 거래일
+      // 스캔에도 같은 거래대금·섹터 기준을 적용해 카드를 유지한다.
+      if (!allGroups.length && snapshot && snapshot.data && Array.isArray(snapshot.data.rows)) {
+        return fetchJson_(INVEST_SIGNAL_URL).then(function (scan) {
+          return { snapshot: scan, groups: activeStockGroups_(scan, results[1]) };
+        });
+      }
+      return { snapshot: snapshot, groups: allGroups };
+    }).then(function (selection) {
+      var snapshot = selection.snapshot;
+      var allGroups = selection.groups;
+      if (allGroups.length) allStockSnapshotCache_ = snapshot;
       var isBoard = snapshot && snapshot.data && Array.isArray(snapshot.data.rows);
       var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ') : '시각 확인 중';
       var state = { query: '', page: 0 };
@@ -1910,9 +1923,9 @@
         var summaries = {};
         shownGroups.forEach(function (group) { summaries[group.sector] = group; });
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>거래가 활발한 섹터만 · 최대 10개</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>' + (isBoard ? '거래가 활발한 섹터만' : '최근 거래일에 활발했던 주요 섹터') + ' · 최대 10개</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button></div>'
-          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 50억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>조회된 종목의 섹터 합계 500억원 이상 · 2종목 이상 · 섹터당 거래대금 상위 12종목 · ETF·ETN·스팩 제외</p>'
+          + '<p class="mt-all-stock-legend"><b>' + (isBoard ? '현재가' : '최근 거래일 가격·등락률') + '</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 50억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>조회된 종목의 섹터 합계 500억원 이상 · 2종목 이상 · 섹터당 거래대금 상위 12종목 · ETF·ETN·스팩 제외</p>'
           + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}, summaries) : '<div class="mt-hint">주요 섹터 내에 찾는 종목이 없습니다.</div>') + '</div>'
           + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 업종</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · 업종 ' + groups.length + '개</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 업종 ›</button></div>'
           + '</section>';
