@@ -181,22 +181,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
-    def test_domestic_major_stocks_all_stock_view_is_a_single_universe(self):
-        """전종목은 페이지형 카드가 아니라 한 화면의 별 지도에서 탐색한다."""
+    def test_domestic_major_stocks_all_stock_view_is_a_paged_card_book(self):
+        """전종목은 48개씩 카드 책장을 넘기며, 현 페이지 시세만 요청한다."""
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("{ key: 'all', label: '전종목 우주' }", source)
-        self.assertIn("var INVEST_SIGNAL_URL = 'https://goodbyestar.cloud/invest-signal';", source)
-        self.assertIn("function universeRows_", source)
-        self.assertIn("function universeStar_", source)
-        self.assertIn("붉은 은하", source)
-        self.assertIn("푸른 은하", source)
-        self.assertIn("data-universe-search", source)
-        self.assertIn("data-universe-code", source)
+        self.assertIn("{ key: 'all', label: '전종목 카드' }", source)
+        self.assertIn("var ALL_STOCKS_PAGE_SIZE = 48;", source)
+        self.assertIn("function loadAllStocksPanel(panel)", source)
+        self.assertIn("코스피·코스닥 표기", source)
+        self.assertIn("‹ 이전 장", source)
+        self.assertIn("다음 장 ›", source)
+        self.assertIn("quote.market === 'KOSDAQ'", source)
         self.assertIn("/page/stock-search?code=", source)
-        self.assertIn(".mt-stock-universe", style)
-        self.assertIn(".mt-universe-star", style)
-        self.assertIn("radial-gradient(ellipse", style)
+        self.assertIn(".mt-all-stock-cloud-meta", style)
+        self.assertIn("minmax(126px, 1fr)", style)
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")

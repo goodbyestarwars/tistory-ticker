@@ -551,38 +551,15 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-toolbar button { flex:0 0 auto; padding:0 11px; }
 #market-temp .mt-all-stock-toolbar button:hover, #market-temp .mt-all-stock-pagination button:hover:not(:disabled) { border-color:#1f2937; color:#1f2937; }
 #market-temp .mt-all-stock-legend { margin:0 0 10px; color:#94a3b8; font-size:11px; line-height:1.45; }
-#market-temp .mt-all-stock-cloud-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(94px, 1fr)); gap:7px; min-height:222px; padding:4px; overflow:hidden; }
+#market-temp .mt-all-stock-cloud-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(126px, 1fr)); gap:8px; min-height:222px; padding:4px; overflow:hidden; }
 #market-temp .mt-all-stock-cloud-grid > .mt-hint { grid-column:1 / -1; align-self:center; }
-#market-temp .mt-all-stock-cloud { min-width:0; min-height:34px; padding:7px 8px; border:1px solid color-mix(in srgb, var(--mt-stock-glow) 72%, #dbe4ef); border-radius:4px; background:linear-gradient(135deg, var(--mt-stock-glow), rgba(255,255,255,.12)); box-shadow:0 0 16px var(--mt-stock-glow); color:#273449; font:700 11px/1.15 var(--font-ui); cursor:pointer; overflow:hidden; text-align:center; }
+#market-temp .mt-all-stock-cloud { min-width:0; min-height:42px; padding:7px 8px; border:1px solid color-mix(in srgb, var(--mt-stock-glow) 72%, #dbe4ef); border-radius:5px; background:linear-gradient(135deg, var(--mt-stock-glow), rgba(255,255,255,.12)); box-shadow:0 0 16px var(--mt-stock-glow); color:#273449; font:700 11px/1.15 var(--font-ui); cursor:pointer; overflow:hidden; text-align:left; }
 #market-temp .mt-all-stock-cloud:hover { border-color:#334155; color:#111827; transform:translateY(-1px); }
-#market-temp .mt-all-stock-cloud span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-all-stock-cloud-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-all-stock-cloud-meta { display:block; margin-top:3px; color:#64748b; font-size:10px; font-weight:600; }
 #market-temp .mt-all-stock-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; color:#64748b; font-size:12px; font-variant-numeric:tabular-nums; }
-#market-temp .mt-all-stock-pagination button { min-width:52px; min-height:31px; padding:0 9px; }
+#market-temp .mt-all-stock-pagination button { min-width:76px; min-height:31px; padding:0 9px; }
 #market-temp .mt-all-stock-pagination button:disabled { cursor:default; opacity:.42; }
-
-/* 전종목 우주: 페이지를 넘기는 카드 대신, 국내 종목을 한 장의 별 지도에 놓는다. */
-#market-temp .mt-stock-universe-browser { min-width:0; }
-#market-temp .mt-universe-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
-#market-temp .mt-universe-toolbar label { flex:1; min-width:0; }
-#market-temp .mt-universe-toolbar input { width:100%; min-height:35px; box-sizing:border-box; border:1px solid #dbe4ef; border-radius:5px; padding:0 10px; background:#fff; color:#172033; font:inherit; font-size:12px; }
-#market-temp .mt-universe-toolbar > span { flex:0 0 auto; color:#64748b; font-size:11px; white-space:nowrap; }
-#market-temp .mt-universe-legend { margin:0 0 11px; color:#64748b; font-size:11px; line-height:1.55; }
-#market-temp .mt-universe-legend b:first-child { color:#d24f45; }
-#market-temp .mt-universe-legend b:nth-child(2) { color:#1261c4; }
-#market-temp .mt-stock-universe { position:relative; height:clamp(400px, 58vw, 650px); overflow:hidden; border:1px solid #16263d; border-radius:10px; background:radial-gradient(ellipse at 77% 36%, rgba(210,79,69,.28) 0, rgba(210,79,69,.11) 18%, transparent 43%), radial-gradient(ellipse at 22% 66%, rgba(18,97,196,.32) 0, rgba(18,97,196,.10) 20%, transparent 45%), linear-gradient(135deg, #071221 0%, #0b1b31 47%, #17142b 100%); }
-#market-temp .mt-stock-universe::after { position:absolute; inset:0; content:""; pointer-events:none; opacity:.45; background-image:radial-gradient(circle at 13% 16%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 67% 19%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 44% 83%, #fff 0 1px, transparent 1.5px), radial-gradient(circle at 90% 69%, #fff 0 1px, transparent 1.5px); background-size:83px 97px, 121px 113px, 139px 127px, 101px 89px; }
-#market-temp .mt-stock-universe svg { position:relative; z-index:1; display:block; width:100%; height:100%; overflow:visible; }
-#market-temp .mt-universe-star { cursor:pointer; outline:none; }
-#market-temp .mt-universe-star circle { fill:var(--uc); fill-opacity:var(--uo); stroke:color-mix(in srgb, var(--uc) 80%, white); stroke-width:.55; filter:drop-shadow(0 0 3px var(--uc)); transform-box:fill-box; transform-origin:center; transition:transform .16s ease, fill-opacity .16s ease, filter .16s ease; }
-#market-temp .mt-universe-star text { fill:#fff; font:700 12px/1 var(--font-ui, sans-serif); opacity:0; pointer-events:none; paint-order:stroke; stroke:#071221; stroke-width:3px; stroke-linejoin:round; text-anchor:middle; transition:opacity .14s ease; }
-#market-temp .mt-universe-star:hover circle, #market-temp .mt-universe-star:focus circle, #market-temp .mt-universe-star.is-universe-match circle { transform:scale(2.15); fill-opacity:1; filter:drop-shadow(0 0 9px var(--uc)); }
-#market-temp .mt-universe-star:hover text, #market-temp .mt-universe-star:focus text, #market-temp .mt-universe-star.is-universe-match text { opacity:1; }
-#market-temp .mt-universe-star.is-universe-muted { opacity:.09; }
-#market-temp .mt-universe-tooltip { position:absolute; z-index:3; width:158px; padding:9px 10px; border:1px solid rgba(255,255,255,.32); border-radius:7px; background:rgba(4,12,25,.92); box-shadow:0 10px 24px rgba(0,0,0,.3); color:#eaf2ff; pointer-events:none; font-size:11px; line-height:1.45; }
-#market-temp .mt-universe-tooltip strong, #market-temp .mt-universe-tooltip span, #market-temp .mt-universe-tooltip small { display:block; }
-#market-temp .mt-universe-tooltip strong { margin-bottom:2px; font-size:12px; }
-#market-temp .mt-universe-tooltip span b { color:#dbeafe; }
-#market-temp .mt-universe-tooltip small { margin-top:3px; color:#a9bad0; }
 
 #market-temp .heatmap-grid {
   display: grid;
@@ -998,9 +975,6 @@ html.dark #market-temp .mt-all-stock-toolbar input,
 html.dark #market-temp .mt-all-stock-toolbar button,
 html.dark #market-temp .mt-all-stock-pagination button { border-color:rgba(245,239,224,.18); background:#1a1a1a; color:#f5efe0; }
 html.dark #market-temp .mt-all-stock-cloud { border-color:rgba(245,239,224,.18); }
-html.dark #market-temp .mt-universe-toolbar input { border-color:rgba(245,239,224,.18); background:#1a1a1a; color:#f5efe0; }
-html.dark #market-temp .mt-universe-toolbar > span,
-html.dark #market-temp .mt-universe-legend { color:rgba(245,239,224,.62); }
 
 /* DB-backed sector card editor */
 #market-temp .mt-sector-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; font-size:12px; color:#6b7280; }
@@ -1642,14 +1616,11 @@ html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
 
 @media (max-width: 760px) {
   #market-temp .mt-all-stock-cloud-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; min-height:0; }
-  #market-temp .mt-stock-universe { height:440px; }
-  #market-temp .mt-universe-star text { font-size:15px; }
 }
 @media (max-width: 430px) {
   #market-temp .mt-all-stock-head { align-items:flex-start; flex-direction:column; gap:4px; }
   #market-temp .mt-all-stock-toolbar { flex-direction:column; }
   #market-temp .mt-all-stock-toolbar button { min-height:36px; }
-  #market-temp .mt-universe-toolbar { align-items:stretch; flex-direction:column; gap:5px; }
 }
 html.dark #market-temp .mt-summary-card,
 html.dark #market-temp .mt-history-tail.mt-card {

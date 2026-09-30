@@ -200,6 +200,7 @@ function fetchFromNaver(codes) {
       out.push({
         code: d.cd,
         name: d.nm,
+        market: d.mt === '2' ? 'KOSDAQ' : d.mt === '1' ? 'KOSPI' : '',
         price: q.price,
         change: q.change,
         changeRate: q.changeRate,
@@ -261,6 +262,7 @@ function fetchFromNaverParallel_(codes) {
           out.push({
             code: d.cd,
             name: d.nm,
+            market: d.mt === '2' ? 'KOSDAQ' : d.mt === '1' ? 'KOSPI' : '',
             price: q.price,
             change: q.change,
             changeRate: q.changeRate,
@@ -3778,7 +3780,8 @@ function parseCachedJson_(raw) {
 // 캐시 키 공간을 절대 침범하지 못하게 분리한다.
 function cacheKeyFor(codes) {
   var joined = codes.slice().sort().join(',');
-  if (joined.length <= 200) return CACHE_PREFIX + 'quotes_' + joined;
+  // quote 객체에 market(KOSPI/KOSDAQ) 필드를 추가했으므로, 이전 스키마 캐시를 재사용하지 않는다.
+  if (joined.length <= 200) return CACHE_PREFIX + 'quotes_v2_' + joined;
   var digestBytes = Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, joined);
   var hex = digestBytes.map(function (b) {
     return ((b < 0 ? b + 256 : b).toString(16)).padStart(2, '0');

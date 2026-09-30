@@ -1602,10 +1602,10 @@
   // marketcap-codes.js/marketcap-bubble.js가 이 페이지에 함께 로드돼 있어야 동작한다.
   // 탭은 최초 활성화 시에만 로드한다(foreign-flow.js의 wireViewTabs와 동일 패턴 - hidden
   // 상태에서 차트를 그리면 크기가 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
-  // 전종목은 큰 카드가 아니라 이름만 촘촘히 놓은 종목 지도로 본다. 한 번에 수천 종목을
-  // 조회·실시간 구독하지 않고, 화면에 펼친 120개만 두 배치로 가져온다.
+  // 전종목은 한 번에 수천 건을 그리거나 구독하지 않는다. 책 한 쪽만(48종목) 조회해
+  // 서버·브라우저 부담을 일정하게 제한하고, 이전/다음 장으로 넘긴다.
   var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
-  var ALL_STOCKS_PAGE_SIZE = 120;
+  var ALL_STOCKS_PAGE_SIZE = 48;
   var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
 
@@ -1672,14 +1672,14 @@
       : rate < 0 ? 'rgba(18,97,196,' + (0.12 + intensity * 0.42).toFixed(2) + ')'
         : 'rgba(148,163,184,.12)';
     var title = item.name + ' · 현재가 ' + price + ' · 등락률 ' + rateText;
+    var market = quote && quote.market === 'KOSDAQ' ? '코스닥' : quote && quote.market === 'KOSPI' ? '코스피' : '';
     return '<button type="button" class="mt-all-stock-cloud" style="--mt-stock-glow:' + glow + '" title="' + escapeHtml(title) + '" data-all-stock-code="' + escapeHtml(item.code) + '" data-all-stock-name="' + escapeHtml(item.name) + '" aria-label="' + escapeHtml(title) + '">'
-      + '<span>' + escapeHtml(item.name) + '</span>'
+      + '<span class="mt-all-stock-cloud-name">' + escapeHtml(item.name) + '</span>'
+      + '<small class="mt-all-stock-cloud-meta">' + escapeHtml(market) + (market ? ' · ' : '') + escapeHtml(price) + ' · ' + escapeHtml(rateText) + '</small>'
       + '</button>';
   }
 
-  // 2026-09-30까지의 페이지형 전종목 목록. 새 "전종목 우주"가 실패할 때의 구조 참고용으로
-  // 남겨 두되, 현재 탭에서는 아래 loadAllStocksPanel()이 단일 화면 우주 지도를 사용한다.
-  function loadAllStockCardsPanel_(panel) {
+  function loadAllStocksPanel(panel) {
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
@@ -1708,11 +1708,11 @@
         var start = state.page * ALL_STOCKS_PAGE_SIZE;
         var visible = rows.slice(start, start + ALL_STOCKS_PAGE_SIZE);
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 지도</strong><span>종목명만 표시 · 등락률은 색 농도</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>코스피·코스닥 표기 · 등락률은 색 농도</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="sr-only">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드 검색" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>시세 새로고침</button></div>'
           + '<p class="mt-all-stock-legend">붉을수록 상승 폭이 크고, 파랄수록 하락 폭이 크다. 이름을 누르면 상세 시세를 연다.</p>'
           + '<div class="mt-all-stock-cloud-grid" data-all-stock-grid></div>'
-          + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>이전</button><span>' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음</button></div>'
+          + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 장</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · ' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 장 ›</button></div>'
           + '</section>';
         var input = panel.querySelector('[data-all-stock-search]');
         var grid = panel.querySelector('[data-all-stock-grid]');
@@ -1836,7 +1836,7 @@
     return '<g class="mt-universe-star" transform="translate(' + (x * 10).toFixed(1) + ' ' + (y * 6.2).toFixed(1) + ')" style="--uc:' + color + ';--uo:' + (0.48 + intensity * 0.5).toFixed(2) + '" data-universe-code="' + escapeHtml(item.code) + '" data-universe-name="' + escapeHtml(item.name) + '" data-universe-price="' + escapeHtml(price) + '" data-universe-rate="' + escapeHtml(rateText) + '" data-universe-cap="' + escapeHtml(universeCapText_(item.cap)) + '" tabindex="0" role="button" aria-label="' + escapeHtml(label) + '"><circle cx="0" cy="0" r="' + radius.toFixed(2) + '"></circle><text x="0" y="-10">' + escapeHtml(item.name) + '</text></g>';
   }
 
-  function loadAllStocksPanel(panel) {
+  function loadAllStocksUniversePanel_(panel) {
     if (!panel || panel.__allStockUniverse) return;
     panel.__allStockUniverse = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 우주를 만드는 중...</div>';
@@ -1897,7 +1897,7 @@
 
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
-    { key: 'all', label: '전종목 우주' },
+    { key: 'all', label: '전종목 카드' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];
