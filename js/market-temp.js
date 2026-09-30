@@ -1661,6 +1661,10 @@
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
 
     ensureKrxMap_().then(function (krxMap) {
+      // 기존 카드/히트맵 로더는 함수 안에서 SectorDashboard를 지역 변수(SD)로 잡는다.
+      // 전종목 탭은 별도 함수라 그 변수를 공유하지 못하므로 전역 모듈을 명시적으로 읽는다.
+      var dashboard = global.SectorDashboard;
+      if (!dashboard || typeof dashboard.fetchTickerData !== 'function') throw new Error('sector dashboard unavailable');
       var allStocks = allListedStocks_(krxMap);
       var state = { query: '', page: 0, requestId: 0 };
       if (!allStocks.length) throw new Error('empty KRX map');
@@ -1712,7 +1716,7 @@
         }
         wireControls();
         if (!visible.length) return;
-        SD.fetchTickerData(visible.map(function (item) { return item.code; })).then(function (quotes) {
+        dashboard.fetchTickerData(visible.map(function (item) { return item.code; })).then(function (quotes) {
           if (requestId !== state.requestId) return;
           var byCode = {};
           (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
