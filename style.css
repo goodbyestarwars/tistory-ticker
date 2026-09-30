@@ -82,18 +82,20 @@ html.dark .hb-spinner { color: #ff8a80; }
      검색창을 두 번째 줄로 내렸다(@media max-width:720px에서만 0이 아닌 값으로 바뀜) -
      그만큼 늘어난 navbar 높이를 page-wrap/sidebar-left 등 아래 오프셋 계산에 더한다. */
   --navbar-mobile-extra-height: 0px;
-  --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
-  --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
-  --font-data: "Pretendard", "Malgun Gothic", sans-serif;
-  --page-bg: rgb(255, 254, 252);
-  --surface: #FFFEFC;
-  --text-main: #171717;
-  --text-sub: #6F7480;
-  --rule: #D8D8D8;
+  --font-title: "Arial", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-ui: "Arial", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --font-data: "Arial", "Apple SD Gothic Neo", "Malgun Gothic", sans-serif;
+  --page-bg: #f5f6f7;
+  --surface: #ffffff;
+  --text-main: #202124;
+  --text-sub: #606770;
+  --rule: #e3e5e8;
   --up: #B42318;
   --down: #245B9E;
   --neutral: #777777;
-  --accent-dark: #26364A;
+  --accent-dark: #03c75a;
+  --brand: #03c75a;
+  --brand-strong: #00a341;
 }
 
 html.nav-secondary-open { --topbar-height: 92px; }
@@ -138,7 +140,7 @@ html {
    #initial-paint-guard 주석). 무스타일 페인트는 위젯별로 막는다 - 예: 주간 리포트는
    js/home-weekly-report.js가 자기 CSS 도착 뒤에 그리고 SVG에 프레젠테이션 속성을 같이
    박는다. 배경색만 첫 페인트 색 튐 방지용으로 남긴다. */
-html:not(.skin-ready) { background: rgb(255, 254, 252) !important; }
+html:not(.skin-ready) { background: #f5f6f7 !important; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #bdc8e0; border-radius: 4px; }
 button, input, textarea { font-family: inherit; }
