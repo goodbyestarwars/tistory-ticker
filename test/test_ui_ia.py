@@ -187,6 +187,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("css/market-temp.css")
         self.assertNotIn("{ key: 'all', label: '전종목 카드' }", source)
         self.assertIn("var ALL_STOCKS_PAGE_SIZE = 48;", source)
+        # 대용량 스냅샷이 늦어도 오류 문구로 끝내지 않고, 늦은 응답을 다시 그려야 한다.
+        self.assertIn("requestAllStockSnapshot_", source)
+        self.assertIn("renderAllStockRetry_", source)
+        self.assertNotIn("전종목 목록을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.", source)
         self.assertIn("function loadAllStocksPanel(panel)", source)
         self.assertIn("function loadCardsPanel(panel)", source)
         self.assertIn("function allStockCardsHtml_", source)
@@ -206,6 +210,15 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("/page/stock-search?code=", source)
         self.assertIn(".mt-all-stock-sector-grid", style)
         self.assertIn(".mt-all-stock-row", style)
+        self.assertIn(".mt-all-stock-retry", style)
+
+    def test_major_stock_table_keeps_shared_wide_column_proportions(self):
+        """주요 종목 표는 제목·행이 같은 5열을 쓰고, 종목명이 가장 넓어야 한다."""
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        self.assertIn("<span>테마 업종</span><span>거래대금</span><span>평균등락</span><span>흐름</span>", source)
+        self.assertIn("grid-template-columns:56px minmax(260px,2.35fr) minmax(154px,1.05fr) minmax(118px,.8fr) minmax(108px,.7fr)", style)
+        self.assertIn("grid-template-columns:26px minmax(0,1.6fr) minmax(68px,.9fr) minmax(60px,.7fr) minmax(62px,.65fr)", style)
 
     def test_next_trading_day_hypothesis_is_backchecked_against_history(self):
         source = self.read("js/market-temp.js")

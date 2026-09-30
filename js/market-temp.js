@@ -1629,6 +1629,12 @@
   var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
   var wicsMapLoadPromise_ = null;
+  // 전종목 스냅샷은 1.6MB 안팎이라 휴대폰 회선에서는 첫 2.5초 안에 도착하지 않을 수
+  // 있다. 예전에는 그때 정적 맵까지 늦으면 곧바로 오류 화면을 그렸고, 뒤늦게 도착한
+  // 정상 스냅샷도 버렸다. 요청 하나를 공유·보관해 늦게 온 응답으로 카드 보기를 다시
+  // 열 수 있게 한다.
+  var allStockSnapshotCache_ = null;
+  var allStockSnapshotPromise_ = null;
 
   function ensureKrxMap_() {
     if (global.KRX_MAP && typeof global.KRX_MAP === 'object') return Promise.resolve(global.KRX_MAP);
@@ -1637,7 +1643,13 @@
       var script = document.createElement('script');
       script.src = KRX_MAP_JS_URL;
       script.async = true;
-      script.onload = function () { resolve(global.KRX_MAP || {}); };
+      script.onload = function () {
+        if (global.KRX_MAP && Object.keys(global.KRX_MAP).length) resolve(global.KRX_MAP);
+        else {
+          krxMapLoadPromise_ = null;
+          reject(new Error('KRX 종목 목록이 비어 있습니다.'));
+        }
+      };
       script.onerror = function () {
         krxMapLoadPromise_ = null;
         reject(new Error('KRX 종목 목록을 불러오지 못했습니다.'));
@@ -1656,7 +1668,13 @@
       var script = document.createElement('script');
       script.src = WICS_MAP_JS_URL;
       script.async = true;
-      script.onload = function () { resolve(global.WICS_MAP || {}); };
+      script.onload = function () {
+        if (global.WICS_MAP && Object.keys(global.WICS_MAP).length) resolve(global.WICS_MAP);
+        else {
+          wicsMapLoadPromise_ = null;
+          reject(new Error('업종 분류가 비어 있습니다.'));
+        }
+      };
       script.onerror = function () {
         wicsMapLoadPromise_ = null;
         reject(new Error('업종 분류를 불러오지 못했습니다.'));
@@ -1782,7 +1800,22 @@
   // 스캔 파일은 전종목 가격과 거래대금을 함께 담아 크기가 크다. 그 파일이 한 번
   // 지연됐다고 종목 목록까지 사라지면 안 되므로, 카드 첫 화면에서는 짧은 시간만
   // 기다린 뒤 정적 상장 목록으로 전환한다. 뒤의 GAS 시세 요청은 화면을 막지 않는다.
-  function fetchSnapshotWithinBudget_() {
+  function requestAllStockSnapshot_() {
+    if (allStockSnapshotCache_) return Promise.resolve(allStockSnapshotCache_);
+    if (allStockSnapshotPromise_) return allStockSnapshotPromise_;
+    allStockSnapshotPromise_ = fetchJson_(INVEST_SIGNAL_URL).then(function (snapshot) {
+      allStockSnapshotCache_ = snapshot;
+      allStockSnapshotPromise_ = null;
+      return snapshot;
+    }, function (error) {
+      allStockSnapshotPromise_ = null;
+      throw error;
+    });
+    return allStockSnapshotPromise_;
+  }
+
+  function fetchSnapshotWithinBudget_(request) {
+    if (allStockSnapshotCache_) return Promise.resolve(allStockSnapshotCache_);
     return new Promise(function (resolve) {
       var settled = false;
       var timer = setTimeout(function () { finish(null); }, 2500);
@@ -1792,7 +1825,17 @@
         clearTimeout(timer);
         resolve(value);
       }
-      fetchJson_(INVEST_SIGNAL_URL).then(finish).catch(function () { finish(null); });
+      (request || requestAllStockSnapshot_()).then(finish).catch(function () { finish(null); });
+    });
+  }
+
+  function renderAllStockRetry_(panel) {
+    panel.innerHTML = '<div class="mt-hint mt-all-stock-retry"><strong>전종목 시세를 연결하는 중입니다.</strong><span>목록·업종 데이터가 늦어도 자동으로 다시 채웁니다.</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
+    var retry = panel.querySelector('[data-all-stock-retry]');
+    if (retry) retry.addEventListener('click', function () {
+      allStockSnapshotCache_ = null;
+      panel.__allStockBrowser = false;
+      loadAllStocksPanel(panel);
     });
   }
 
@@ -1801,14 +1844,26 @@
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
 
-    Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), fetchSnapshotWithinBudget_()]).then(function (results) {
+    var snapshotRequest = requestAllStockSnapshot_();
+    Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), fetchSnapshotWithinBudget_(snapshotRequest)]).then(function (results) {
       var snapshot = results[2];
       var allGroups = snapshot ? activeStockGroups_(snapshot, results[1]) : [];
       var hasSnapshot = allGroups.length > 0;
       if (!hasSnapshot) allGroups = listedStockGroups_(results[0], results[1]);
       var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ').slice(0, 16) : '시세 연결 중';
       var state = { query: '', page: 0 };
-      if (!allGroups.length) throw new Error('empty listed stocks');
+      if (!allGroups.length) {
+        // 정적 목록이 막힌 경우에도 뒤늦게 도착한 스냅샷에는 종목명·현재가·등락률이 모두
+        // 있다. 실패 문구로 끝내지 않고 그 응답을 받는 즉시 같은 카드 보기를 재렌더한다.
+        renderAllStockRetry_(panel);
+        snapshotRequest.then(function (lateSnapshot) {
+          if (!lateSnapshot || !panel.isConnected) return;
+          allStockSnapshotCache_ = lateSnapshot;
+          panel.__allStockBrowser = false;
+          loadAllStocksPanel(panel);
+        }).catch(function () { /* 재시도 버튼을 유지한다. */ });
+        return;
+      }
 
       function filteredGroups() {
         var query = state.query.toLowerCase();
@@ -1854,7 +1909,13 @@
         var refresh = panel.querySelector('[data-all-stock-refresh]');
         if (previous) previous.addEventListener('click', function () { state.page -= 1; render(); });
         if (next) next.addEventListener('click', function () { state.page += 1; render(); });
-        if (refresh) refresh.addEventListener('click', function () { panel.__allStockBrowser = false; loadAllStocksPanel(panel); });
+        if (refresh) refresh.addEventListener('click', function () {
+          // 사용자가 명시적으로 새로고침을 누를 때만 보관한 스냅샷을 비운다.
+          // 초기 진입·페이지 이동은 같은 응답을 써서 대용량 요청을 중복하지 않는다.
+          allStockSnapshotCache_ = null;
+          panel.__allStockBrowser = false;
+          loadAllStocksPanel(panel);
+        });
         function wireCards() {
           grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
             card.addEventListener('click', function () {
@@ -1875,9 +1936,7 @@
         }
       }
       render();
-    }).catch(function () {
-      panel.innerHTML = '<div class="mt-error">전종목 목록을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.</div>';
-    });
+    }).catch(function () { renderAllStockRetry_(panel); });
   }
 
   var INVEST_SIGNAL_URL = 'https://goodbyestar.cloud/invest-signal';

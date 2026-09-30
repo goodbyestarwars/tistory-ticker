@@ -564,6 +564,11 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; color:#64748b; font-size:12px; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-pagination button { min-width:76px; min-height:31px; padding:0 9px; }
 #market-temp .mt-all-stock-pagination button:disabled { cursor:default; opacity:.42; }
+#market-temp .mt-all-stock-retry { display:flex; min-height:132px; flex-direction:column; align-items:center; justify-content:center; gap:8px; text-align:center; }
+#market-temp .mt-all-stock-retry strong { color:#1e293b; font-size:15px; }
+#market-temp .mt-all-stock-retry span { color:#64748b; font-size:13px; }
+#market-temp .mt-all-stock-retry button { min-width:94px; min-height:34px; margin-top:4px; border:1px solid #cbd5e1; border-radius:5px; background:#fff; color:#1e3a5f; font-weight:700; }
+#market-temp .mt-all-stock-retry button:hover { border-color:#2563eb; color:#1d4ed8; }
 
 #market-temp .heatmap-grid {
   display: grid;
@@ -605,13 +610,13 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-industry-flow-head strong { font-size:19px; color:#111827; letter-spacing:-.035em; }
 #market-temp .mt-industry-flow-head span, #market-temp .mt-industry-flow-note { color:#94a3b8; font-size:12px; }
 /* 2026-09-01 직관성 개선. 열 구성: 순위 · 업종 · 거래대금 · 평균등락 · 순위변화 · 펼침. */
-#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:38px minmax(150px,2fr) minmax(100px,1.05fr) minmax(82px,.82fr) minmax(72px,.7fr); align-items:center; gap:10px; }
-#market-temp .mt-industry-flow-columns { padding:0 10px 11px; border-bottom:1px solid #111827; color:#718096; font-size:12px; font-weight:700; }
+#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:56px minmax(260px,2.35fr) minmax(154px,1.05fr) minmax(118px,.8fr) minmax(108px,.7fr); align-items:center; column-gap:16px; }
+#market-temp .mt-industry-flow-columns { min-height:44px; padding:0 16px; border-bottom:1px solid #111827; color:#64748b; font-size:13px; font-weight:800; }
 #market-temp .mt-industry-flow-columns span:nth-child(n+3), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > em { text-align:right; }
 #market-temp .mt-industry-flow-item { border-bottom:1px solid #eef2f7; }
-#market-temp .mt-industry-flow-row { position:relative; width:100%; min-height:46px; padding:10px; border:0; background:transparent; color:inherit; font:inherit; font-size:14px; text-align:left; cursor:pointer; }
+#market-temp .mt-industry-flow-row { position:relative; width:100%; min-height:52px; padding:9px 16px; border:0; background:transparent; color:inherit; font:inherit; font-size:14px; text-align:left; cursor:pointer; }
 #market-temp .mt-industry-flow-row:hover, #market-temp .mt-industry-flow-row.is-open { background:#f8fafc; }
-#market-temp .mt-industry-flow-row b { position:relative; overflow:hidden; color:#1f2937; font-weight:700; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-industry-flow-row b { position:relative; overflow:hidden; color:#1f2937; font-size:15px; font-weight:800; text-overflow:ellipsis; white-space:nowrap; }
 
 /* 거래대금 비중 막대. 돈이 얼마나 몰렸는지를 길이로 보여준다 - 조/억 단위가 섞여
    숫자만으로는 크기 차이가 안 잡힌다는 지적에 따른 것. 방향이 없는 양이라 중립색을
@@ -624,14 +629,14 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-if-fill { position:absolute; left:0; top:2px; bottom:2px; z-index:0; border-radius:0 6px 6px 0; background:linear-gradient(90deg, rgba(242,182,50,.34) 0%, rgba(242,182,50,.18) 78%, rgba(242,182,50,0) 100%); pointer-events:none; }
 #market-temp .mt-industry-flow-row > *:not(.mt-if-fill) { position:relative; z-index:1; }
 
-#market-temp .mt-if-rank { color:#94a3b8; font-size:12px; font-style:normal; font-weight:700; text-align:center; }
+#market-temp .mt-if-rank { color:#718096; font-size:13px; font-style:normal; font-weight:800; text-align:center; }
 #market-temp .mt-industry-flow-row > span { font-weight:700; }
 
 /* 거래대금은 방향이 없는 양이다. 예전에는 행의 등락 방향(is-up/is-down)이 거래대금
    숫자에 칠해져서 "파란 거래대금 = 나쁨"으로 읽혔다(2026-09-01 사용자 지적).
    색은 등락률에만 남긴다. */
 #market-temp .mt-if-amount { color:#334155; }
-#market-temp .mt-if-rate { font-size:15px; font-weight:800; }
+#market-temp .mt-if-rate { font-size:15px; font-weight:800; white-space:nowrap; }
 #market-temp .mt-industry-flow-row.is-up .mt-if-rate { color:#d24f45; }
 #market-temp .mt-industry-flow-row.is-down .mt-if-rate { color:#1261c4; }
 #market-temp .mt-industry-flow-row.is-flat .mt-if-rate { color:#64748b; }
@@ -802,8 +807,10 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
   #market-temp .mt-industry-flow-head span { font-size:10px; }
   /* 2026-09-01: 순위 열이 생겨 5열이다. 여기를 같이 안 고치면 항목이 넘쳐 행이
      두 줄로 접힌다(실제로 그렇게 깨졌다). */
-  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:20px minmax(0,1.45fr) minmax(57px,.82fr) .64fr .58fr; gap:5px; }
-  #market-temp .mt-industry-flow-row { min-height:40px; padding-inline:3px; font-size:13px; }
+  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:26px minmax(0,1.6fr) minmax(68px,.9fr) minmax(60px,.7fr) minmax(62px,.65fr); column-gap:6px; }
+  #market-temp .mt-industry-flow-columns { min-height:38px; padding-inline:6px; font-size:10px; }
+  #market-temp .mt-industry-flow-row { min-height:44px; padding-inline:6px; font-size:12px; }
+  #market-temp .mt-industry-flow-row b { font-size:13px; }
   #market-temp .mt-if-rate { font-size:13px; }
   #market-temp .mt-industry-flow-row small { font-size:9px; }
   #market-temp .mt-industry-flow-detail { margin-inline:3px; }
