@@ -123,12 +123,12 @@ class MarketTempCardsTest(unittest.TestCase):
     def test_premarket_success_with_zero_trades_uses_previous_active_sectors(self):
         rows = [self.row('000001', '정상주', amount=0, volume=0, rate=0),
                 self.row('000002', '하락주', amount=0, volume=0, rate=0)]
-        scan = {'data': {'scannedAt': '2026-09-30T23:58:47+09:00', 'buckets': {'hold': [
+        scan = {'data': {'scannedAt': '2026-09-30T14:58:47+00:00', 'buckets': {'hold': [
             ['000001', '정상주', 15000, 1, 3, 50, 30000000000],
             ['000002', '하락주', 22000, -2, 3, 50, 30000000000]]}}}
         result = self.run_cards(rows, scan=scan, refresh=True)
         self.assertIn('최근 거래일에 활발했던 주요 섹터', result['initial'])
-        self.assertIn('2026-09-30', result['html'])
+        self.assertIn('2026-09-30 23:58 KST', result['html'])
         self.assertIn('22,000원', result['html'])
         self.assertIn('▼2.00%', result['html'])
         self.assertNotIn('data-all-stock-retry', result['html'])

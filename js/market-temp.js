@@ -1885,6 +1885,10 @@
       if (allGroups.length) allStockSnapshotCache_ = snapshot;
       var isBoard = snapshot && snapshot.data && Array.isArray(snapshot.data.rows);
       var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ') : '시각 확인 중';
+      if (!isBoard && snapshot && snapshot.data && snapshot.data.scannedAt) {
+        var scanTime = Date.parse(snapshot.data.scannedAt);
+        if (isFinite(scanTime)) scannedAt = new Date(scanTime + 9 * 60 * 60 * 1000).toISOString().slice(0, 16).replace('T', ' ') + ' KST';
+      }
       var state = { query: '', page: 0 };
       if (!allGroups.length) {
         renderAllStockRetry_(panel, true);
