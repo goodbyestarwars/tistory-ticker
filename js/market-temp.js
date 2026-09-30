@@ -1677,7 +1677,9 @@
       + '</button>';
   }
 
-  function loadAllStocksPanel(panel) {
+  // 2026-09-30까지의 페이지형 전종목 목록. 새 "전종목 우주"가 실패할 때의 구조 참고용으로
+  // 남겨 두되, 현재 탭에서는 아래 loadAllStocksPanel()이 단일 화면 우주 지도를 사용한다.
+  function loadAllStockCardsPanel_(panel) {
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
@@ -1755,9 +1757,147 @@
     });
   }
 
+  var INVEST_SIGNAL_URL = 'https://goodbyestar.cloud/invest-signal';
+
+  function universeNumber_(value, digits) {
+    var number = Number(value);
+    return Number.isFinite(number) ? number.toLocaleString('ko-KR', { maximumFractionDigits: digits == null ? 0 : digits }) : '-';
+  }
+
+  function universeCapText_(cap) {
+    var number = Number(cap);
+    if (!Number.isFinite(number) || number <= 0) return '시가총액 집계 대기';
+    var jo = number / 1000000000000;
+    return jo >= 1 ? '시가총액 ' + jo.toFixed(jo >= 100 ? 0 : 1) + '조' : '시가총액 ' + (number / 100000000).toFixed(0) + '억';
+  }
+
+  function universeHash_(text) {
+    var hash = 2166136261;
+    for (var i = 0; i < text.length; i++) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    return hash >>> 0;
+  }
+
+  function universeRandom_(seed, offset) {
+    var value = Math.sin((seed + offset * 1013) * 12.9898) * 43758.5453;
+    return value - Math.floor(value);
+  }
+
+  function universeCapByCode_(payload) {
+    var caps = {};
+    Object.keys(payload || {}).forEach(function (market) {
+      (payload[market] || []).forEach(function (item) {
+        if (item && item.code && Number(item.cap) > 0) caps[String(item.code)] = Number(item.cap);
+      });
+    });
+    return caps;
+  }
+
+  function universeRows_(payload, caps) {
+    var seen = {};
+    var buckets = (payload && payload.data && payload.data.buckets) || {};
+    return Object.keys(buckets).reduce(function (rows, key) {
+      (buckets[key] || []).forEach(function (item) {
+        var code = String(item && item[0] || '');
+        if (!/^[0-9A-Z]{6}$/.test(code) || seen[code]) return;
+        seen[code] = true;
+        rows.push({
+          code: code,
+          name: String(item[1] || code),
+          price: Number(item[2]),
+          changeRate: Number(item[3]),
+          tradingValue: Number(item[6]),
+          cap: caps[code] || null
+        });
+      });
+      return rows;
+    }, []);
+  }
+
+  function universeStar_(item) {
+    var rate = Number.isFinite(item.changeRate) ? item.changeRate : 0;
+    var seed = universeHash_(item.code);
+    // 상승·하락은 서로 다른 은하 팔로 배치한다. 같은 종목은 새로고침해도 같은 위치를 유지한다.
+    var right = rate > 0;
+    var x = (right ? 52 : 4) + universeRandom_(seed, 1) * 44;
+    var yCenter = right ? 38 : 62;
+    var y = Math.max(5, Math.min(95, yCenter + (universeRandom_(seed, 2) - 0.5) * 60 - Math.min(Math.abs(rate), 15) * (right ? 0.55 : -0.55)));
+    var capRadius = item.cap ? Math.min(8.8, 1.6 + Math.log10(Math.max(item.cap, 100000000)) * 0.43) : 0;
+    var energyRadius = Number.isFinite(item.tradingValue) && item.tradingValue > 0
+      ? Math.min(3.4, 1.15 + Math.log10(item.tradingValue / 100000000 + 1) * 0.38) : 1.3;
+    var radius = Math.max(capRadius, energyRadius);
+    var intensity = Math.min(Math.abs(rate) / 8, 1);
+    var color = rate > 0 ? '#e0524d' : rate < 0 ? '#2878cc' : '#a7b3c1';
+    var price = universeNumber_(item.price, 0) + '원';
+    var rateText = (rate > 0 ? '+' : '') + universeNumber_(rate, 2) + '%';
+    var label = item.name + ' · ' + price + ' · ' + rateText + ' · ' + universeCapText_(item.cap);
+    return '<g class="mt-universe-star" transform="translate(' + (x * 10).toFixed(1) + ' ' + (y * 6.2).toFixed(1) + ')" style="--uc:' + color + ';--uo:' + (0.48 + intensity * 0.5).toFixed(2) + '" data-universe-code="' + escapeHtml(item.code) + '" data-universe-name="' + escapeHtml(item.name) + '" data-universe-price="' + escapeHtml(price) + '" data-universe-rate="' + escapeHtml(rateText) + '" data-universe-cap="' + escapeHtml(universeCapText_(item.cap)) + '" tabindex="0" role="button" aria-label="' + escapeHtml(label) + '"><circle cx="0" cy="0" r="' + radius.toFixed(2) + '"></circle><text x="0" y="-10">' + escapeHtml(item.name) + '</text></g>';
+  }
+
+  function loadAllStocksPanel(panel) {
+    if (!panel || panel.__allStockUniverse) return;
+    panel.__allStockUniverse = true;
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 우주를 만드는 중...</div>';
+
+    Promise.all([
+      fetchJson_(INVEST_SIGNAL_URL),
+      fetchJson_(GAS_TICKER_URL + '?bubble=1').catch(function () { return {}; })
+    ]).then(function (results) {
+      var scan = results[0] || {};
+      var rows = universeRows_(scan, universeCapByCode_((results[1] || {}).data || {}));
+      if (!rows.length) throw new Error('empty stock universe');
+      var scannedAt = scan && scan.data && scan.data.scannedAt ? String(scan.data.scannedAt).replace('T', ' ').slice(0, 16) : '최근 장 마감';
+      panel.innerHTML = '<section class="mt-stock-universe-browser">'
+        + '<div class="mt-all-stock-head"><div><strong>전종목 우주</strong><span>한 화면에 ' + rows.length.toLocaleString('ko-KR') + '개 별 · 클릭하면 종목 상세</span></div><span>' + escapeHtml(scannedAt) + ' 기준</span></div>'
+        + '<div class="mt-universe-toolbar"><label><span class="sr-only">별 찾기</span><input type="search" data-universe-search placeholder="종목명 또는 코드로 별 찾기" autocomplete="off"></label><span data-universe-result>전체 별 표시</span></div>'
+        + '<p class="mt-universe-legend"><b>붉은 은하</b>는 상승, <b>푸른 은하</b>는 하락입니다. 별 크기는 시가총액을 우선하고 미집계 종목은 거래대금으로 보정합니다. 별에 마우스를 올리면 이름·현재가·등락률·시가총액을 확인합니다.</p>'
+        + '<div class="mt-stock-universe"><svg viewBox="0 0 1000 620" preserveAspectRatio="none" aria-label="국내 전종목 우주 지도" data-universe-map>' + rows.map(universeStar_).join('') + '</svg><div class="mt-universe-tooltip" data-universe-tooltip hidden></div></div></section>';
+
+      var map = panel.querySelector('[data-universe-map]');
+      var tooltip = panel.querySelector('[data-universe-tooltip]');
+      var input = panel.querySelector('[data-universe-search]');
+      var result = panel.querySelector('[data-universe-result]');
+      function starFrom(target) { return target && target.closest ? target.closest('[data-universe-code]') : null; }
+      function show(star, event) {
+        if (!star) return;
+        tooltip.innerHTML = '<strong>' + escapeHtml(star.getAttribute('data-universe-name')) + '</strong><span>' + escapeHtml(star.getAttribute('data-universe-price')) + ' · <b>' + escapeHtml(star.getAttribute('data-universe-rate')) + '</b></span><small>' + escapeHtml(star.getAttribute('data-universe-cap')) + '</small>';
+        tooltip.hidden = false;
+        var box = panel.querySelector('.mt-stock-universe').getBoundingClientRect();
+        tooltip.style.left = Math.max(8, Math.min(box.width - 170, event.clientX - box.left + 12)) + 'px';
+        tooltip.style.top = Math.max(8, Math.min(box.height - 74, event.clientY - box.top + 12)) + 'px';
+      }
+      map.addEventListener('pointerover', function (event) { show(starFrom(event.target), event); });
+      map.addEventListener('pointermove', function (event) { var star = starFrom(event.target); if (star) show(star, event); });
+      map.addEventListener('pointerout', function (event) { if (!starFrom(event.relatedTarget)) tooltip.hidden = true; });
+      map.addEventListener('click', function (event) {
+        var star = starFrom(event.target);
+        if (star) global.location.href = '/page/stock-search?code=' + encodeURIComponent(star.getAttribute('data-universe-code')) + '&name=' + encodeURIComponent(star.getAttribute('data-universe-name'));
+      });
+      map.addEventListener('keydown', function (event) {
+        var star = starFrom(event.target);
+        if (star && (event.key === 'Enter' || event.key === ' ')) { event.preventDefault(); star.click(); }
+      });
+      input.addEventListener('input', function () {
+        var query = input.value.trim().toLowerCase();
+        var matches = 0;
+        map.querySelectorAll('[data-universe-code]').forEach(function (star) {
+          var matched = !query || star.getAttribute('data-universe-name').toLowerCase().indexOf(query) !== -1 || star.getAttribute('data-universe-code').toLowerCase().indexOf(query) !== -1;
+          star.classList.toggle('is-universe-match', !!query && matched);
+          star.classList.toggle('is-universe-muted', !!query && !matched);
+          if (matched) matches += 1;
+        });
+        result.textContent = query ? matches.toLocaleString('ko-KR') + '개 별 찾음' : '전체 별 표시';
+      });
+    }).catch(function () {
+      panel.innerHTML = '<div class="mt-error">전종목 우주를 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.</div>';
+    });
+  }
+
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
-    { key: 'all', label: '전종목 카드' },
+    { key: 'all', label: '전종목 우주' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];

@@ -181,22 +181,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
-    def test_domestic_major_stocks_all_stock_cards_are_paginated_and_minimal(self):
-        """전종목은 카드를 전부 DOM에 쌓거나 실시간 구독하지 않고, 보이는 한 페이지만 조회한다."""
+    def test_domestic_major_stocks_all_stock_view_is_a_single_universe(self):
+        """전종목은 페이지형 카드가 아니라 한 화면의 별 지도에서 탐색한다."""
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("{ key: 'all', label: '전종목 카드' }", source)
-        self.assertIn("var ALL_STOCKS_PAGE_SIZE = 120;", source)
-        self.assertIn("function fetchAllStockQuotes_(codes)", source)
-        self.assertIn("fetchJson_(GAS_TICKER_URL + '?codes='", source)
-        self.assertIn("global.KRX_ETF_NAMES", source)
-        self.assertIn("종목명만 표시 · 등락률은 색 농도", source)
-        self.assertIn("data-all-stock-search", source)
-        self.assertIn("data-all-stock-prev", source)
-        self.assertIn("data-all-stock-next", source)
+        self.assertIn("{ key: 'all', label: '전종목 우주' }", source)
+        self.assertIn("var INVEST_SIGNAL_URL = 'https://goodbyestar.cloud/invest-signal';", source)
+        self.assertIn("function universeRows_", source)
+        self.assertIn("function universeStar_", source)
+        self.assertIn("붉은 은하", source)
+        self.assertIn("푸른 은하", source)
+        self.assertIn("data-universe-search", source)
+        self.assertIn("data-universe-code", source)
         self.assertIn("/page/stock-search?code=", source)
-        self.assertIn(".mt-all-stock-cloud-grid", style)
-        self.assertIn("var(--mt-stock-glow)", style)
+        self.assertIn(".mt-stock-universe", style)
+        self.assertIn(".mt-universe-star", style)
+        self.assertIn("radial-gradient(ellipse", style)
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")
