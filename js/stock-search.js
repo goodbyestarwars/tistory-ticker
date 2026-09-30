@@ -77,7 +77,8 @@
   // 사용자가 제보한 종목은 런타임에서 KRX_MAP에 보강해, 현재가·차트 API까지 먼저 열어둔다.
   var DOMESTIC_LISTING_FALLBACKS = [
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
-    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
+    { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
@@ -378,7 +379,7 @@
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-chart-tabs">'
-      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
@@ -1617,7 +1618,7 @@
     state.externalMinuteLoader = function (scope) { return options.load('minute', scope); };
     container.innerHTML = ''
       + '<div class="ss-chart-tabs">'
-      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">선 그리기</button>'
+      + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'

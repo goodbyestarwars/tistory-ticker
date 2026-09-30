@@ -59,7 +59,8 @@
   // 코드/이름 보정만 추가하고, 시세·차트 데이터는 기존 VM/GAS 경로를 그대로 탄다.
   var DOMESTIC_LISTING_FALLBACKS = [
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
-    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
+    { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' }
   ];
 
   function applyDomesticListingFallbacks() {

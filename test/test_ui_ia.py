@@ -212,7 +212,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
         self.assertIn("domestic-market-indicators.css?v=20260827-dmi-chart-controls-v6", frontend)
-        self.assertIn("domestic-market-indicators.js?v=20260827-dmi-funds-live-v5", loader)
+        self.assertIn("domestic-market-indicators.js?v=20260930-chart-shapes-v1", loader)
         self.assertIn("kospi-futures.css?v=20260912-remove-ai-section-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
         self.assertIn("installKospiFuturesStyle();", loader)
@@ -249,6 +249,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("1년 평균", frontend)
         self.assertIn("투자자가 증권사에서 돈을 빌려 주식을 산 금액이에요.", frontend)
         self.assertIn("dmi-draw-toggle", frontend)
+        self.assertIn("dmi-circle-toggle", frontend)
+        self.assertIn("function loadDrawingShapes", frontend)
         self.assertIn(".dmi-tabs .dmi-draw-toggle", style)
         self.assertIn("dmi-collapse-btn", frontend)
         self.assertIn("dmi-collapsed", frontend)
@@ -489,10 +491,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # /futures 기본값은 90일이지만 BTC/ETH 평균선은 365일·180일로 계산된다.
         # 차트도 365일을 요청해야 52주 평균선이 현재 차트 범위 밖으로 밀리지 않는다.
         self.assertIn("var FUTURES_HISTORY_DAYS = 365;", source)
-        self.assertIn("var FUTURES_CACHE_KEY = 'overnight_market_futures_v2_365d';", source)
+        self.assertIn("var FUTURES_CACHE_KEY = 'overnight_market_futures_v3_macro_365d';", source)
         self.assertIn("function futuresRequestUrl()", source)
         self.assertIn("'?days=' + FUTURES_HISTORY_DAYS", source)
-        self.assertIn("encodeURIComponent(SYMBOL_ORDER.join(','))", source)
+        self.assertIn("encodeURIComponent(DATA_SYMBOL_ORDER.join(','))", source)
         self.assertIn("var BENCHMARK_52W_COLOR = '#c9701f';", source)
         self.assertIn("color: BENCHMARK_52W_COLOR", source)
         self.assertIn("color: BENCHMARK_6M_COLOR", source)
@@ -2453,7 +2455,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 같은 버전은 두 번 실행하지 않되, 티스토리 본문에 오래된 파일이 있으면 최신 버전을 붙인다.
         self.assertIn("""script[src*="/js/' + tab.slug + '.js"]""", main)
         self.assertIn("var sameVersion = existing.some(function (node) { return node.src === expectedSrc; });", main)
-        self.assertIn("js/overnight-market.js?v=20260929-circle-marker-v1", main)
+        self.assertIn("js/overnight-market.js?v=20260930-us-macro-v1", main)
 
         # 글로벌 탭에서 코스피·코스닥 카드를 뺐다 - 국내 탭이 같은 지수를 차트까지 갖고 있다.
         overnight = self.read("js/overnight-market.js")
@@ -3689,8 +3691,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
-        self.assertIn("main-news.css?v=20260929-news-tabs-v1", main)
-        self.assertIn("main-news.js?v=20260929-news-tabs-v1", main)
+        self.assertIn("main-news.css?v=20260930-news-only-v1", main)
+        self.assertIn("main-news.js?v=20260930-news-only-v1", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3727,17 +3729,19 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("state.failed = failed;", source)
         self.assertIn("renderCurrent_(container);", source)
 
-        # 기본값은 전체이며, 한국·미국을 걸러 읽을 수 있다. 기사와 다른 성격의 수치는
-        # 별도 경제지표 탭으로 분리한다.
+        # 기본값은 전체이며, 한국·미국 기사만 따로 걸러 읽을 수 있다. 발표 지표는
+        # 뉴스 탭에 섞지 않고 글로벌 시장지표로 옮겼다.
         self.assertIn("{ key: 'all', label: '전체' }", source)
         self.assertIn("{ key: 'domestic', label: '한국' }", source)
         self.assertIn("{ key: 'us', label: '미국' }", source)
-        self.assertIn("{ key: 'indicators', label: '경제지표' }", source)
         self.assertIn("data-mn-view", source)
-        self.assertIn("US_CONSUMER_SENTIMENT", source)
-        self.assertIn("US_POLICY_RATE", source)
-        self.assertIn("goodbyestar.cloud/futures?interval=day", source)
-        self.assertIn(".mn-indicator-grid", style)
+        self.assertNotIn("경제지표", source)
+        self.assertNotIn("mn-indicator", style)
+        overnight = self.read("js/overnight-market.js")
+        self.assertIn("var MACRO_SYMBOLS = ['US_CPI', 'US_UNEMPLOYMENT'];", overnight)
+        self.assertIn("다음 FOMC 회의", overnight)
+        self.assertIn("주요 미국 발표", overnight)
+        self.assertNotIn("US_POLICY_RATE", overnight)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)

@@ -132,7 +132,7 @@
   var FETCH_TIMEOUT_MS = 10000;
   var FUTURES_HISTORY_DAYS = 365;
   // 기존 v1에는 90일 차트가 들어 있으므로, 365일 차트가 섞이지 않도록 캐시 키를 분리한다.
-  var FUTURES_CACHE_KEY = 'overnight_market_futures_v2_365d';
+  var FUTURES_CACHE_KEY = 'overnight_market_futures_v3_macro_365d';
   var FUTURES_CACHE_MAX_AGE_MS = 10 * 60 * 1000;
   var lastFuturesUsedCache = false;
   var latestFuturesRequest = null;
@@ -189,6 +189,13 @@
     { key: 'crypto', label: '가상자산', direction: 1, listIndividually: true, symbols: ['BTC', 'ETH'] }
   ];
   var SYMBOL_ORDER = CATEGORIES.reduce(function (acc, cat) { return acc.concat(cat.symbols); }, []);
+  // 금리 카드와 중복하지 않는 발표 지표다. CPI·실업률은 FRED의 최신 발표값을 쓰고,
+  // FOMC는 가격 지표가 아니라 다음 회의 일정을 따로 보여준다.
+  var MACRO_SYMBOLS = ['US_CPI', 'US_UNEMPLOYMENT'];
+  var DATA_SYMBOL_ORDER = SYMBOL_ORDER.concat(MACRO_SYMBOLS);
+  var FOMC_DATES = [
+    '2026-10-27', '2026-12-08', '2027-01-26'
+  ];
   var CRYPTO_SYMBOLS = ['BTC', 'ETH']; // benchmarkCaption의 원화 단위/52주 표기 분기에 재사용
 
   // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로). 채권 카테고리는
@@ -261,7 +268,7 @@
   function futuresRequestUrl() {
     // 화면에 쓰지 않는 KOSPI200 선물까지 내려받지 않아 365일로 늘어난 응답량을 최소화한다.
     return FUTURES_API + '?days=' + FUTURES_HISTORY_DAYS
-      + '&symbols=' + encodeURIComponent(SYMBOL_ORDER.join(','));
+      + '&symbols=' + encodeURIComponent(DATA_SYMBOL_ORDER.join(','));
   }
 
   function fetchFutures(forceFresh) {
@@ -371,7 +378,57 @@
       + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
       + groups
+      + buildMacroShell()
       + buildBinanceShell();
+  }
+
+  function nextFomcDate_() {
+    var today = new Date();
+    for (var i = 0; i < FOMC_DATES.length; i++) {
+      var date = new Date(FOMC_DATES[i] + 'T00:00:00+09:00');
+      if (date >= today) return FOMC_DATES[i];
+    }
+    return '';
+  }
+
+  function macroDateLabel_(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(String(value || ''))) return '일정 확인 중';
+    return value.slice(5, 7) + '/' + value.slice(8, 10);
+  }
+
+  function buildMacroShell() {
+    var fomc = nextFomcDate_();
+    return '<section class="om-category om-macro" aria-label="주요 미국 경제 발표">'
+      + '<div class="om-cat-head"><span class="om-cat-label">주요 미국 발표</span>'
+      + '<div class="om-cat-hint">금리 카드는 채권 영역에서 별도로 확인</div></div>'
+      + '<div class="om-grid">'
+      + '<article class="om-macro-card om-macro-card--fomc"><small>다음 FOMC 회의</small><strong>' + macroDateLabel_(fomc) + '</strong>'
+      + '<span>' + (fomc ? '회의 ' + fomc.slice(5).replace('-', '/') + ' 시작' : '연준 공식 일정 확인 필요') + '</span></article>'
+      + '<article class="om-macro-card" data-om-macro="US_CPI"><small>미국 소비자물가지수</small><div class="om-macro-loading">발표값을 불러오는 중입니다.</div></article>'
+      + '<article class="om-macro-card" data-om-macro="US_UNEMPLOYMENT"><small>미국 실업률</small><div class="om-macro-loading">발표값을 불러오는 중입니다.</div></article>'
+      + '</div></section>';
+  }
+
+  function macroValue_(symbol, item) {
+    var value = Number(item && item.price);
+    if (!isFinite(value)) return '-';
+    var digits = symbol === 'US_UNEMPLOYMENT' ? 1 : 1;
+    return value.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits })
+      + (symbol === 'US_UNEMPLOYMENT' ? '%' : 'pt');
+  }
+
+  function renderMacroIndicators_(container, bySymbol) {
+    MACRO_SYMBOLS.forEach(function (symbol) {
+      var card = container.querySelector('[data-om-macro="' + symbol + '"]');
+      if (!card) return;
+      var item = bySymbol[symbol] || {};
+      var change = Number(item.change);
+      var last = item.chart && item.chart.length ? item.chart[item.chart.length - 1].date : '';
+      card.innerHTML = '<small>' + (symbol === 'US_CPI' ? '미국 소비자물가지수' : '미국 실업률') + '</small>'
+        + '<strong>' + macroValue_(symbol, item) + '</strong>'
+        + '<span>' + (isFinite(change) ? '전회 대비 ' + (change > 0 ? '+' : '') + change.toFixed(1) : '전회 비교 데이터 없음')
+        + (last ? ' · ' + String(last).replace(/-/g, '.').slice(2) + ' 발표값' : '') + '</span>';
+    });
   }
 
   // ---- 바이낸스 국내주식 토큰(참고 지표) ----
@@ -898,7 +955,7 @@
      경로만 빠져 있었다). /futures는 큰 요청이라(days=365, 비압축 1.36MB) 응답이
      WebSocket 첫 패킷보다 늦게 오는 게 정상이다. */
   function withLoadingPlaceholders(bySymbol) {
-    return SYMBOL_ORDER.map(function (symbol) {
+    return DATA_SYMBOL_ORDER.map(function (symbol) {
       return bySymbol[symbol] || { symbol: symbol, _loading: true };
     });
   }
@@ -920,6 +977,7 @@
     items.forEach(function (item) { bySymbol[item.symbol] = item; });
 
     renderSummary(container, items);
+    renderMacroIndicators_(container, bySymbol);
 
     SYMBOL_ORDER.forEach(function (symbol) {
       var card = container.querySelector('.om-card[data-symbol="' + symbol + '"]');
@@ -1002,7 +1060,7 @@
     var generation = indicatorsGeneration;
     setIndicatorStatus('연결 재시도');
     try {
-      indicatorsSocket = new WebSocket(INDICATORS_WS_URL + '?symbols=' + encodeURIComponent(SYMBOL_ORDER.join(',')));
+      indicatorsSocket = new WebSocket(INDICATORS_WS_URL + '?symbols=' + encodeURIComponent(DATA_SYMBOL_ORDER.join(',')));
     } catch (error) {
       indicatorsSocket = null;
       scheduleIndicatorReconnect();

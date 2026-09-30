@@ -201,9 +201,9 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 필수 파라미터 | 없음 |
 | 선택 파라미터 | `interval`, `days` (둘 다 쿼리) |
 | 파라미터 형식·허용값 | `interval`: `"day"`(기본) \| `"minute"`(코스피200 주/야간선물처럼 `domestic_futures.MINUTE_SYMBOLS`에 있는 심볼만 실제 분봉 적용, 나머지는 그대로 일봉) · `days`: 정수, 1~500로 clamp(기본 90) |
-| 응답 JSON 구조 | `data = [{"symbol","name","price","change","change_rate","high","low","updated_at","oi","oi_change","chart":[...]}, ...]` — 25개 지원 심볼을 고정 순서로 반환(데이터 없으면 해당 필드 `null`): `KOSPI, KOSDAQ, NASDAQ_INDEX, SP500_INDEX, DOW_INDEX, NASDAQ100, SP500, DOW, KOSPI200_DAY, KOSPI200_NIGHT, SOX, VIX, WTI, GOLD, USDKRW, KTB3Y, US10Y, US2Y, US30Y, US_CONSUMER_SENTIMENT, US_CPI, US_UNEMPLOYMENT, US_POLICY_RATE, BTC, ETH` |
-| 데이터 단위 | 지수류는 포인트, 환율은 원, 채권금리·실업률·기준금리는 %, 소비심리·CPI는 지수, 원자재/코인은 해당 통화 그대로. `oi`(미결제약정)는 코스피200 야간선물(`KOSPI200_NIGHT`)만 값이 있고 나머지는 `null` |
-| 시장 범위 | 국내(코스피/코스닥/코스피200 주간·야간선물) + 해외(미국 지수 3종 현물·선물, SOX, VIX, WTI, 금) + 환율 + 국채금리(한국 3년/미국 2·10·30년) + FRED 거시지표(미국 소비심리·CPI·실업률·기준금리) + 가상자산(BTC/ETH) — 심볼별 데이터 출처가 다름(네이버/KIS/FRED/업비트) |
+| 응답 JSON 구조 | `data = [{"symbol","name","price","change","change_rate","high","low","updated_at","oi","oi_change","chart":[...]}, ...]` — 23개 지원 심볼을 고정 순서로 반환(데이터 없으면 해당 필드 `null`): `KOSPI, KOSDAQ, NASDAQ_INDEX, SP500_INDEX, DOW_INDEX, NASDAQ100, SP500, DOW, KOSPI200_DAY, KOSPI200_NIGHT, SOX, VIX, WTI, GOLD, USDKRW, KTB3Y, US10Y, US2Y, US30Y, US_CPI, US_UNEMPLOYMENT, BTC, ETH` |
+| 데이터 단위 | 지수류는 포인트, 환율은 원, 채권금리·실업률은 %, CPI는 지수, 원자재/코인은 해당 통화 그대로. `oi`(미결제약정)는 코스피200 야간선물(`KOSPI200_NIGHT`)만 값이 있고 나머지는 `null` |
+| 시장 범위 | 국내(코스피/코스닥/코스피200 주간·야간선물) + 해외(미국 지수 3종 현물·선물, SOX, VIX, WTI, 금) + 환율 + 국채금리(한국 3년/미국 2·10·30년) + FRED 거시지표(미국 CPI·실업률) + 가상자산(BTC/ETH) — 심볼별 데이터 출처가 다름(네이버/KIS/FRED/업비트) |
 | 데이터 갱신 주기 | 백그라운드 수집기가 심볼별로 상시 수집(수집 주기는 심볼마다 다름 — `foreign_futures.py`/`domestic_futures.py`/`btc_futures.py`/`bond_yield.py` 각각 확인 필요) |
 | 캐시 시간 | 엔드포인트 자체 캐시 없음(SQLite 즉시 읽기) — 사실상 수집 주기가 갱신 주기 |
 | 호출 예시 | `curl "https://goodbyestar.cloud/futures?interval=day&days=180"` |

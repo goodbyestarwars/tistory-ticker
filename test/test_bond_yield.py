@@ -32,12 +32,10 @@ class FetchHistoryThrottleTests(unittest.TestCase):
 
 
 class FredMacroSymbolTests(unittest.TestCase):
-    def test_news_economic_indicator_symbols_are_collected_from_fred(self):
+    def test_market_macro_symbols_are_collected_from_fred(self):
         expected = {
-            'US_CONSUMER_SENTIMENT': 'UMCSENT',
             'US_CPI': 'CPIAUCSL',
             'US_UNEMPLOYMENT': 'UNRATE',
-            'US_POLICY_RATE': 'FEDFUNDS',
         }
         self.assertEqual(
             {symbol: bond_yield.FRED_SYMBOLS[symbol]['series'] for symbol in expected},

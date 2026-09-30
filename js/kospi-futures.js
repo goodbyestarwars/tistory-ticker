@@ -267,7 +267,8 @@
         + '><div class="kf-interval-tabs">' + c.intervals.map(function (iv) {
           return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
         }).join('') + '</div>'
-        + '<div class="kf-draw-buttons"><button type="button" class="kf-draw-toggle" aria-pressed="false">선 그리기</button>'
+        + '<div class="kf-draw-buttons"><button type="button" class="kf-draw-toggle" aria-pressed="false">직선</button>'
+        + '<button type="button" class="kf-draw-toggle kf-circle-toggle" aria-pressed="false">동그라미</button>'
         + '<button type="button" class="kf-draw-clear">지우기</button></div>'
         + '</div>';
       var collapsed = loadCollapsed(c.key);
@@ -519,16 +520,17 @@
     return 'tistory-ticker:kf-drawings:' + key + ':' + interval;
   }
 
-  function loadKfDrawingLines(key, interval) {
+  function loadKfDrawingShapes(key, interval) {
     try {
       var raw = global.localStorage.getItem(kfDrawingStorageKey(key, interval));
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed : [];
-    } catch (e) { return []; }
+      if (Array.isArray(parsed)) return { lines: parsed, circles: [] };
+      return { lines: Array.isArray(parsed.lines) ? parsed.lines : [], circles: Array.isArray(parsed.circles) ? parsed.circles : [] };
+    } catch (e) { return { lines: [], circles: [] }; }
   }
 
-  function saveKfDrawingLines(state) {
-    try { global.localStorage.setItem(kfDrawingStorageKey(state.key, state.interval), JSON.stringify(state.lines)); } catch (e) { /* 무시 */ }
+  function saveKfDrawingShapes(state) {
+    try { global.localStorage.setItem(kfDrawingStorageKey(state.key, state.interval), JSON.stringify({ lines: state.lines, circles: state.circles })); } catch (e) { /* 무시 */ }
   }
 
   function kfDrawingCoordinate(state, point) {
@@ -567,6 +569,17 @@
         ctx.stroke();
       });
     });
+    state.circles.forEach(function (circle) {
+      var start = kfDrawingCoordinate(state, circle.start);
+      var end = kfDrawingCoordinate(state, circle.end);
+      if (!start || !end) return;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 2;
+      ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2,
+        Math.max(2, Math.abs(end.x - start.x) / 2), Math.max(2, Math.abs(end.y - start.y) / 2), 0, 0, Math.PI * 2);
+      ctx.stroke();
+    });
     if (state.pending) {
       var pending = kfDrawingCoordinate(state, state.pending);
       if (pending) {
@@ -583,8 +596,13 @@
         ctx.setLineDash([5, 4]);
         ctx.strokeStyle = 'rgba(225,29,72,.72)';
         ctx.lineWidth = 1.5;
-        ctx.moveTo(previewStart.x, previewStart.y);
-        ctx.lineTo(state.preview.x, state.preview.y);
+        if (state.mode === 'circle') {
+          ctx.ellipse((previewStart.x + state.preview.x) / 2, (previewStart.y + state.preview.y) / 2,
+            Math.max(2, Math.abs(state.preview.x - previewStart.x) / 2), Math.max(2, Math.abs(state.preview.y - previewStart.y) / 2), 0, 0, Math.PI * 2);
+        } else {
+          ctx.moveTo(previewStart.x, previewStart.y);
+          ctx.lineTo(state.preview.x, state.preview.y);
+        }
         ctx.stroke();
         ctx.setLineDash([]);
       }
@@ -611,43 +629,51 @@
     if (state.timeRangeHandler && state.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
       state.chart.timeScale().unsubscribeVisibleTimeRangeChange(state.timeRangeHandler);
     }
-    if (state.button) {
-      state.button.classList.remove('is-active');
-      state.button.setAttribute('aria-pressed', 'false');
-      state.button.textContent = '선 그리기';
-    }
+    [state.lineButton, state.circleButton].forEach(function (button) {
+      if (!button) return;
+      button.classList.remove('is-active');
+      button.setAttribute('aria-pressed', 'false');
+    });
     if (state.overlay) state.overlay.remove();
     drawingStates[key] = null;
   }
 
-  function setKfDrawingMode(key, enabled) {
+  function setKfDrawingMode(key, mode) {
     var state = drawingStates[key];
     if (!state) return;
-    state.enabled = enabled;
+    state.enabled = !!mode;
+    state.mode = mode || null;
     state.pending = null;
     state.preview = null;
-    state.overlay.classList.toggle('is-active', enabled);
-    state.button.classList.toggle('is-active', enabled);
-    state.button.setAttribute('aria-pressed', enabled ? 'true' : 'false');
-    state.button.textContent = enabled ? '그리기 종료' : '선 그리기';
+    state.overlay.classList.toggle('is-active', state.enabled);
+    [state.lineButton, state.circleButton].forEach(function (button) {
+      if (!button) return;
+      var active = state.enabled && ((state.mode === 'line' && button === state.lineButton) || (state.mode === 'circle' && button === state.circleButton));
+      button.classList.toggle('is-active', active);
+      button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
     redrawKfDrawing(state);
   }
 
   function setupKfDrawing(key, element, chart, series, interval) {
     destroyKfDrawing(key);
     var section = element.closest('.kf-section');
+    var savedShapes = loadKfDrawingShapes(key, interval);
     var state = {
       key: key,
       interval: interval,
       chart: chart,
       series: series,
-      lines: loadKfDrawingLines(key, interval),
+      lines: savedShapes.lines,
+      circles: savedShapes.circles,
       pending: null,
       preview: null,
       enabled: false,
-      button: section && section.querySelector('.kf-draw-toggle')
+      mode: null,
+      lineButton: section && section.querySelector('.kf-draw-toggle'),
+      circleButton: section && section.querySelector('.kf-circle-toggle')
     };
-    if (!state.button) return;
+    if (!state.lineButton) return;
     var overlay = document.createElement('canvas');
     overlay.className = 'kf-drawing-layer';
     overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
@@ -664,10 +690,10 @@
         state.pending = point;
         overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
       } else {
-        state.lines.push({ start: state.pending, end: point });
+        state[state.mode === 'circle' ? 'circles' : 'lines'].push({ start: state.pending, end: point });
         state.pending = null;
         overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveKfDrawingLines(state);
+        saveKfDrawingShapes(state);
       }
       redrawKfDrawing(state);
     });
@@ -958,7 +984,8 @@
         var section = button.closest('.kf-section');
         var key = section && section.getAttribute('data-section-key');
         var state = drawingStates[key];
-        setKfDrawingMode(key, !(state && state.enabled));
+        var mode = button.classList.contains('kf-circle-toggle') ? 'circle' : 'line';
+        setKfDrawingMode(key, state && state.enabled && state.mode === mode ? null : mode);
       });
     });
     container.querySelectorAll('.kf-draw-clear').forEach(function (button) {
@@ -968,9 +995,10 @@
         var state = drawingStates[key];
         if (!state) return;
         state.lines = [];
+        state.circles = [];
         state.pending = null;
         state.preview = null;
-        saveKfDrawingLines(state);
+        saveKfDrawingShapes(state);
         redrawKfDrawing(state);
       });
     });
@@ -1054,7 +1082,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260827-dmi-funds-live-v5';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260930-chart-shapes-v1';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();

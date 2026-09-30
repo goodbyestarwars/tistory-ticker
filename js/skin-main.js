@@ -188,7 +188,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-main-news-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260929-news-tabs-v1';
+      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/main-news.css?v=20260930-news-only-v1';
       link.setAttribute('data-main-news-css', '1');
       document.head.appendChild(link);
     }
@@ -207,7 +207,7 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-main-news]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260929-news-tabs-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/main-news.js?v=20260930-news-only-v1';
     script.defer = true;
     script.setAttribute('data-main-news', '1');
     document.body.appendChild(script);
@@ -218,7 +218,7 @@ document.documentElement.classList.add('skin-ready');
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20260929-money-visual-v1';
+    var version = '20260930-table-shading-v1';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -269,7 +269,7 @@ document.documentElement.classList.add('skin-ready');
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20260912-remove-ai-section-v1',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20260930-chart-shapes-v1',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다.
         styles: []
       },
@@ -277,11 +277,11 @@ document.documentElement.classList.add('skin-ready');
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20260929-circle-marker-v1',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20260930-us-macro-v1',
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20260906-market-indicators-v2']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20260930-us-macro-v1']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);

@@ -60,7 +60,8 @@
   // data/krx_map.js 갱신 전 신규상장·특수코드도 상단/사이드바 검색에서 바로 진입되게 한다.
   var DOMESTIC_LISTING_FALLBACKS = [
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
-    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' }
+    { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
+    { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' }
   ];
   var RATE_FETCH_TIMEOUT_MS = 8000;
 

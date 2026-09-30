@@ -27,9 +27,6 @@
   // 두 배로 굴리기만 했다(2026-09-06 시장별 상한을 넣으면서 받는 수를 같이 안 내린 실수).
   var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
-  // 뉴스와 거시 수치를 같은 목록에 섞으면 기사인지 지표인지 구분이 무너진다. 지표는
-  // /futures에서 따로 받아 네 번째 탭에만 보여준다.
-  var ECONOMIC_INDICATOR_URL = 'https://goodbyestar.cloud/futures?interval=day&days=400&symbols=US_CONSUMER_SENTIMENT,US_CPI,US_UNEMPLOYMENT,US_POLICY_RATE,US10Y,KTB3Y';
   var REFRESH_MS = 5 * 60 * 1000;
   // 2026-09-08 실측: /foreign-news가 5건에 13.5초 걸리는 상태였다(캐시 미스 시 외부
   // 소스를 요청 경로에서 부르는 구조). 15초는 여유가 없어 서버가 조금만 느려도 양쪽이
@@ -67,21 +64,12 @@
   var VIEWS = [
     { key: 'all', label: '전체' },
     { key: 'domestic', label: '한국' },
-    { key: 'us', label: '미국' },
-    { key: 'indicators', label: '경제지표' }
+    { key: 'us', label: '미국' }
   ];
-  var INDICATORS = {
-    US_CONSUMER_SENTIMENT: { label: '미국 소비자심리지수', unit: 'pt', note: '미시간대 · 월간' },
-    US_CPI: { label: '미국 소비자물가지수', unit: '', note: 'CPI · 월간' },
-    US_UNEMPLOYMENT: { label: '미국 실업률', unit: '%', note: '월간' },
-    US_POLICY_RATE: { label: '미국 기준금리', unit: '%', note: '연방기금금리 · 월간' },
-    US10Y: { label: '미국 국채 10년물', unit: '%', note: 'FRED · 일간' },
-    KTB3Y: { label: '국고채 3년물', unit: '%', note: '종가 · 일간' }
-  };
 
   var state = {
     container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null,
-    loading: false, view: 'all', items: [], failed: [], indicators: null, indicatorsLoading: false
+    loading: false, view: 'all', items: [], failed: []
   };
 
   function escapeHtml(value) {
@@ -210,7 +198,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국·미국 시장 뉴스를 최근 12시간 기준 최신순으로 봅니다. 경제지표는 기사와 분리해 모았습니다.</p>'
+      + '<p>한국·미국 시장 뉴스를 최근 12시간 기준 최신순으로 봅니다. 제목을 누르면 원문으로 이동합니다.</p>'
       + '<div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
@@ -261,86 +249,11 @@
     if (updated) updated.textContent = timeLabel(new Date().toISOString()) + ' 기준';
   }
 
-  function formatIndicatorValue_(item, meta) {
-    var value = Number(item && item.price);
-    if (!isFinite(value)) return '-';
-    var digits = meta.unit === '%' ? 2 : (meta.unit === 'pt' ? 1 : 1);
-    return value.toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits }) + meta.unit;
-  }
-
-  function formatIndicatorChange_(item) {
-    var change = Number(item && item.change);
-    if (!isFinite(change)) return '전회 비교 데이터 없음';
-    return '전회 대비 ' + (change > 0 ? '+' : '') + change.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
-  }
-
-  function indicatorHtml_(item, meta) {
-    var updated = timeLabel(item && item.updated_at);
-    return '<article class="mn-indicator-card">'
-      + '<div><strong>' + escapeHtml(meta.label) + '</strong><small>' + escapeHtml(meta.note) + '</small></div>'
-      + '<b class="mn-indicator-value">' + escapeHtml(formatIndicatorValue_(item, meta)) + '</b>'
-      + '<span class="mn-indicator-change">' + escapeHtml(formatIndicatorChange_(item)) + '</span>'
-      + (updated ? '<time>' + escapeHtml(updated) + ' 기준</time>' : '')
-      + '</article>';
-  }
-
-  function renderIndicators_(container) {
-    var list = container.querySelector('[data-mn-list]');
-    var updated = container.querySelector('[data-mn-updated]');
-    if (!list) return;
-    if (state.indicatorsLoading) {
-      list.innerHTML = '<p class="mn-state">경제지표를 불러오는 중입니다.</p>';
-      return;
-    }
-    if (!state.indicators) {
-      list.innerHTML = '<p class="mn-state mn-state--error">경제지표를 불러오지 못했습니다. 갱신 버튼으로 다시 시도해 주세요.</p>';
-      if (updated) updated.textContent = '경제지표 갱신 실패';
-      return;
-    }
-    var bySymbol = {};
-    state.indicators.forEach(function (item) { bySymbol[item.symbol] = item; });
-    var cards = Object.keys(INDICATORS).map(function (symbol) {
-      return indicatorHtml_(bySymbol[symbol] || {}, INDICATORS[symbol]);
-    }).join('');
-    list.innerHTML = '<div class="mn-indicator-intro"><strong>주요 경제지표</strong><span>기사와 별개로 최근 발표값을 한곳에 모았습니다. 수치는 매수·매도 신호가 아닙니다.</span></div>'
-      + '<div class="mn-indicator-grid">' + cards + '</div>';
-    if (updated) updated.textContent = 'FRED·네이버 수집값 · ' + timeLabel(new Date().toISOString()) + ' 조회';
-  }
-
   function renderCurrent_(container) {
-    if (state.view === 'indicators') renderIndicators_(container);
-    else renderNews_(container);
-  }
-
-  function loadIndicators_(container, force) {
-    if (state.indicatorsLoading) return;
-    if (state.indicators && !force) { renderIndicators_(container); return; }
-    state.indicatorsLoading = true;
-    setRefreshState_(container, true);
-    var updated = container.querySelector('[data-mn-updated]');
-    if (updated) updated.textContent = '경제지표를 불러오는 중';
-    fetch(ECONOMIC_INDICATOR_URL)
-      .then(function (response) {
-        if (!response.ok) throw new Error('경제지표 응답 오류: ' + response.status);
-        return response.json();
-      })
-      .then(function (payload) {
-        var data = payload && payload.data ? payload.data : payload;
-        state.indicators = Array.isArray(data) ? data : [];
-      })
-      .catch(function () { state.indicators = null; })
-      .then(function () {
-        state.indicatorsLoading = false;
-        setRefreshState_(container, false);
-        if (state.view === 'indicators') renderIndicators_(container);
-      });
+    renderNews_(container);
   }
 
   function refresh(container) {
-    if (state.view === 'indicators') {
-      loadIndicators_(container, true);
-      return;
-    }
     if (state.loading) return;
     state.loading = true;
     var updated = container.querySelector('[data-mn-updated]');
@@ -397,8 +310,7 @@
           item.classList.toggle('is-active', active);
           item.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        if (view === 'indicators') loadIndicators_(container, false);
-        else renderNews_(container);
+        renderNews_(container);
       });
     });
     refresh(container);
