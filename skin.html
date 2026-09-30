@@ -23,7 +23,7 @@
        즉 보호 효과는 0이고 흰 화면만 최대 800ms 늘리던 코드였다. 배경색 지정은 첫
        페인트 색 튐을 막아주므로 그대로 둔다. -->
   <style id="initial-paint-guard">
-    html, html body { background: #f5f6f7; }
+    html, html body { background: rgb(255, 254, 252); }
     html.dark, html.dark body { background: #1A1A1A; }
   </style>
   <script>
@@ -40,9 +40,8 @@
   <link rel="preconnect" href="https://hangeul.pstatic.net" crossorigin />
   <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
-    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260930-naver-system-v1" />
+    <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20260930-briefing-polish" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
-  <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/naver-ui.css?v=20260930-naver-system-v1" data-naver-ui="1" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
        쓰였는데 js/skin-main.js buildHomeDashboard가 그 mount(#sidebar-rank /
@@ -52,7 +51,9 @@
   <!-- 기본(명조) 폰트 마루 부리 - 2026-08부터 'Noto Serif KR'을 대체. 이전엔 이 이름의
        웹폰트를 실제로 로드하는 <link>가 없어서(이 파일에 없었음) 방문자 OS에 그 폰트가
        깔려있지 않으면 그냥 Georgia/serif 폴백으로 보이던 상태였다 - 이걸로 실제 로드됨. -->
-  <!-- 본문·UI는 운영체제 기본 산세리프(Apple SD Gothic Neo/맑은 고딕)로 표시한다. -->
+  <link href="https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css" rel="stylesheet">
+  <!-- 본문·UI 공통 프리텐다드 -->
+  <link href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css" rel="stylesheet" />
   <script>
     /* 오른쪽 사이드바(인기글/해시태그)는 전체글(홈, "/") 화면에서만 보이고,
        마켓 브리핑 등 카테고리·커스텀 페이지·개별 글 등 그 외 모든 화면에서는 숨긴다.
@@ -395,7 +396,7 @@
      (종목·업종 맵은 각 소비 모듈이 필요할 때 지연 로드한다) -->
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-shell.js?v=20260922-fx-market-link"></script>
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-menu.js?v=20260922-search-icon-click"></script>
-<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260930-naver-system-v1"></script>
+<script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/skin-main.js?v=20260930-market-polish-v5"></script>
 
 <script defer src="https://goodbyestarwars.github.io/tistory-ticker/js/ticker-tooltip-v5.js?v=20260830-idle-krx-map-v1"></script>
 <!-- 2026-08-29: sidebar-rank.js / investor-trend-widget.js 제거(죽은 코드 - 위 mount 주석 참고). -->

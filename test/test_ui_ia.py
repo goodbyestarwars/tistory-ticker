@@ -456,26 +456,25 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function homeChartRows(rows, key)", main)
         self.assertIn("return HOME_SAMPLE_CHARTS[key].map", main)
         self.assertIn("homeChartRows(rows, key)", main)
-        self.assertIn("skin-main.js?v=20260930-naver-system-v1", self.read("skin.html"))
+        self.assertIn("skin-main.js?v=20260930-market-polish-v5", self.read("skin.html"))
 
-    def test_global_naver_design_system_contract(self):
+    def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")
-        naver = self.read("css/naver-ui.css")
 
         for token in (
-            '--font-title: "Arial", "Apple SD Gothic Neo"',
-            '--font-ui: "Arial", "Apple SD Gothic Neo"',
-            '--font-data: "Arial", "Apple SD Gothic Neo"',
-            "--page-bg: #f5f6f7",
-            "--surface: #ffffff",
-            "--text-main: #202124",
-            "--text-sub: #606770",
-            "--rule: #e3e5e8",
+            '--font-title: "MaruBuri"',
+            '--font-ui: "Pretendard"',
+            '--font-data: "Pretendard"',
+            "--page-bg: rgb(255, 254, 252)",
+            "--surface: #FFFEFC",
+            "--text-main: #171717",
+            "--text-sub: #6F7480",
+            "--rule: #D8D8D8",
             "--up: #B42318",
             "--down: #245B9E",
             "--neutral: #777777",
-            "--accent-dark: #03c75a",
+            "--accent-dark: #26364A",
             "font-variant-numeric: tabular-nums",
             "box-shadow: none !important",
             "background: transparent !important",
@@ -483,18 +482,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, style)
 
-        # 네이버식 공통 레이어는 기본 산세리프·초록 탐색색·흰 모듈을 마지막에 적용한다.
-        for token in (
-            "--naver-green: #03c75a",
-            "--naver-page: #f5f6f7",
-            "--naver-font: Arial",
-            "html body .navbar",
-            "border: 2px solid var(--naver-green)",
-            "html body .post-card",
-            "#market-temp, #main-news, #stock-search",
-        ):
-            self.assertIn(token, naver)
-        self.assertIn("html body,\nhtml body * { font-family: var(--naver-font) !important; }", naver)
+        # The New newspaper system has one fixed UI font and no header toggle.
+        self.assertIn("html body,\nhtml body * { font-family: var(--font-ui) !important; }", style)
         self.assertIn("html body .site-footer-version", style)
         self.assertIn("color: #d24f45", style)
         # (2026-08-30: 여기 있던 skin.html의 DOMContentLoaded 리스너 검사는 초기 페인트
@@ -503,9 +492,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("<span>NEW</span>", skin)
         self.assertNotIn("fontModeBtn", skin)
         self.assertNotIn("bolt-font", skin)
-        self.assertIn("style.css?v=20260930-naver-system-v1", skin)
-        self.assertIn("naver-ui.css?v=20260930-naver-system-v1", skin)
-        self.assertNotIn("maru-buri.css", skin)
+        self.assertIn("style.css?v=20260930-briefing-polish", skin)
         self.assertIn("/* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */", style)
         self.assertIn("overflow-wrap: anywhere", style)
         self.assertIn("모바일 풋터는 링크·안내·버전을 한 화면에 압축한다", style)
@@ -538,8 +525,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 자동 확대한다(되돌아가지 않음). 모바일에서 .nav-search-btn이 숨겨져 이 입력창이
         # 유일한 검색 진입점이라 16px 아래로 다시 내려가지 않게 고정한다.
         self.assertIn(".navbar .nav-search-input { font-size: 16px; }", style)
-        self.assertIn("skin-main.js?v=20260930-naver-system-v1", skin)
-        self.assertIn("function loadNaverUiSystem()", self.read("js/skin-main.js"))
+        self.assertIn("skin-main.js?v=20260930-market-polish-v5", skin)
 
     def test_crypto_benchmark_lines_share_the_visible_one_year_chart_range(self):
         source = self.read("js/overnight-market.js")
@@ -3129,7 +3115,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
         # 배경색 지정은 첫 페인트 색 튐 방지용으로 남긴다.
-        self.assertIn('html, html body { background: #f5f6f7; }', source)
+        self.assertIn('html, html body { background: rgb(255, 254, 252); }', source)
         # 주석에 옛 규칙을 인용해 두었으므로 실제 선언 형태로만 검사한다.
         self.assertNotIn('visibility: hidden !important; opacity: 0;', source)
         self.assertNotIn('window.setTimeout(reveal, 800)', source)
@@ -3886,7 +3872,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("@media (prefers-reduced-motion: reduce) {", style)
         self.assertIn("::view-transition-group(*),", style)
         self.assertIn("animation-duration: 0.01ms !important;", style)
-        self.assertIn("style.css?v=20260930-naver-system-v1", self.read("skin.html"))
+        self.assertIn("style.css?v=20260930-briefing-polish", self.read("skin.html"))
 
     def test_new_domestic_listings_are_searchable_before_krx_map_refresh(self):
         stock_search = self.read("js/stock-search.js")

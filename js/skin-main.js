@@ -25,25 +25,6 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
-/* 공통 네이버식 UI 레이어는 기존 티스토리 본문/각 위젯 CSS가 붙은 뒤 마지막에 더한다.
-   그래서 오래된 스킨 HTML(이 링크가 아직 없는 경우)에서도 동일한 폰트·여백·테두리
-   시스템을 바로 받는다. 상승/하락 의미색은 이 레이어가 건드리지 않는다. */
-(function loadNaverUiSystem() {
-  function mount() {
-    var link = document.querySelector('link[data-naver-ui]');
-    if (!link) {
-      link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/naver-ui.css?v=20260930-naver-system-v1';
-      link.setAttribute('data-naver-ui', '1');
-    }
-    // skin.html에 미리 들어 있던 링크도 head 마지막으로 다시 옮긴다. 개별 위젯이
-    // 동기로 추가한 CSS 뒤에 와야 공통 토큰이 실제 화면에도 마지막에 적용된다.
-    document.head.appendChild(link);
-  }
-  setTimeout(mount, 80);
-})();
-
   /* ── 월별 /earnings-calendar 공유 로더 ──
      홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트
      (home-weekly-report.js)가 같은 year-month 조회를 제각각 fetch 하던 것을 한 번으로

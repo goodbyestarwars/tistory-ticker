@@ -10,11 +10,11 @@
   --ui-rule: var(--rule);
   --ui-surface: var(--surface);
   --ui-page: var(--page-bg);
-  --ui-accent-soft: #e7f9ef;
-  --ui-accent-ink: #008f45;
-  --ui-focus: #03c75a;
-  --ui-radius-control: 4px;
-  --ui-radius-module: 8px;
+  --ui-accent-soft: #eef2ff;
+  --ui-accent-ink: #4338ca;
+  --ui-focus: #1261c4;
+  --ui-radius-control: 999px;
+  --ui-radius-module: 4px;
   --ui-control-height: 38px;
   --ui-control-gap: 8px;
 }
@@ -68,7 +68,7 @@
   color: var(--ui-accent-ink);
 }
 .ui-btn-c:hover,
-.ui-btn-soft:hover { background: #d8f5e5; }
+.ui-btn-soft:hover { background: #e0e7ff; }
 
 /* D: 가벼운 링크형 */
 .ui-btn-d,
