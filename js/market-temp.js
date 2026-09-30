@@ -1308,21 +1308,40 @@
     return (rounded > 0 ? '+' : '') + rounded + '점';
   }
 
-  function tomorrowFlow_(shown, baseline) {
-    var recent = shown.slice(-4);
-    var latest = recent[recent.length - 1];
-    if (!latest || recent.length < 3) return null;
-    var first = recent[0];
-    var momentum = latest.score - first.score;
-    var lastMove = latest.score - recent[recent.length - 2].score;
-    var distance = latest.score - baseline;
-    var signal = momentum * 0.55 + lastMove * 0.3 + distance * 0.15;
-    var label = signal >= 4 ? '상승 흐름 우세' : signal <= -4 ? '하락 흐름 경계' : '횡보 가능성';
-    var tone = signal >= 4 ? 'up' : signal <= -4 ? 'down' : 'flat';
-    var reason = '최근 4거래일 ' + signedPoints_(momentum) + ' · 30일 평균 대비 ' + signedPoints_(distance);
+  function tomorrowFlow_(days, shown, baseline) {
+    // 오늘 수치를 "내일"로 잘못 읽는 것을 막기 위해, 오늘까지 확정된 변화만으로
+    // 다음 거래일 방향을 가설화한다. 같은 식을 과거 구간에도 적용해 일치율을 함께 낸다.
+    function signalAt_(series, index) {
+      if (index < 3) return null;
+      var recent = series.slice(index - 3, index + 1);
+      var latest = recent[3];
+      var shortAverage = recent.reduce(function (sum, day) { return sum + day.score; }, 0) / recent.length;
+      return (latest.score - recent[0].score) * 0.45
+        + (latest.score - recent[2].score) * 0.35
+        + (latest.score - shortAverage) * 0.2;
+    }
+    var latest = shown[shown.length - 1];
+    if (!latest || shown.length < 4) return null;
+    var signal = signalAt_(shown, shown.length - 1);
+    if (signal == null) return null;
+    var sample = 0;
+    var hit = 0;
+    for (var i = 3; i < days.length - 1; i += 1) {
+      var historicSignal = signalAt_(days, i);
+      var actualMove = days[i + 1].score - days[i].score;
+      if (historicSignal == null || Math.abs(historicSignal) < 2 || Math.abs(actualMove) < 1) continue;
+      sample += 1;
+      if ((historicSignal > 0 && actualMove > 0) || (historicSignal < 0 && actualMove < 0)) hit += 1;
+    }
+    var hitRate = sample ? hit / sample : null;
+    var reliable = sample >= 4 && hitRate >= 0.55;
+    var label = !reliable ? '방향 확인 필요' : signal >= 4 ? '상승 흐름 우세' : signal <= -4 ? '하락 흐름 경계' : '횡보 가능성';
+    var tone = !reliable ? 'flat' : signal >= 4 ? 'up' : signal <= -4 ? 'down' : 'flat';
+    var reason = '오늘까지 최근 4거래일 신호 ' + signedPoints_(signal)
+      + (hitRate == null ? ' · 과거 비교 표본 부족' : ' · 과거 ' + sample + '회 중 ' + hit + '회 방향 일치(' + Math.round(hitRate * 100) + '%)');
     return '<div class="mt-tomorrow-flow mt-tomorrow-' + tone + '">'
-      + '<span><small>내일 흐름</small><b>' + label + '</b></span><p>' + escapeHtml(reason)
-      + '<small>시장 온도 추세를 단순 연장한 참고 신호이며, 개별 종목 종가 베팅 신호는 아닙니다.</small></p></div>';
+      + '<span><small>다음 거래일 가설</small><b>' + label + '</b></span><p>' + escapeHtml(reason)
+      + '<small>오늘 종가까지의 온도 변화만 사용한 과거 비교입니다. 표본이 적거나 일치율이 낮으면 방향을 단정하지 않습니다.</small></p></div>';
   }
 
   function buildSparklineContent(data, period) {
@@ -1413,7 +1432,7 @@
     }, { fear: 0, neutral: 0, greed: 0 });
     var periodDelta = now.score - points[0].score;
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
-    var tomorrow = tomorrowFlow_(shown, baseline) || '';
+    var tomorrow = tomorrowFlow_(days, shown, baseline) || '';
     var metrics = '<div class="mt-history-metrics">'
       + '<span><small>5일 평균</small><b>' + fiveAverage.toFixed(0) + '점</b></span>'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
@@ -1596,7 +1615,7 @@
   }
 
   // "오늘의 증시온도" 박스(9개 지표 바 포함)와는 별개의 아래쪽 박스 - 종목을 살펴보는
-  // 3가지 방법(카드 보기: 관심 섹터 + 전종목 카드, 히트맵 보기: 섹터 풀 등락률 히트맵, 시총비례 히트맵:
+  // 3가지 방법(카드 보기: 전종목 카드, 히트맵 보기: 섹터 풀 등락률 히트맵, 시총비례 히트맵:
   // 트리맵)을 탭으로 전환한다. 셋 다 js/sector-dashboard-v4.js·js/marketcap-bubble.js를
   // 그대로 재사용(로직 복붙 없음) - sectors-v3.js/krx_map.js/sector-dashboard-v4.js/
   // marketcap-codes.js/marketcap-bubble.js가 이 페이지에 함께 로드돼 있어야 동작한다.
@@ -1663,20 +1682,29 @@
     });
   }
 
-  function allStockCloudHtml_(item, quote) {
-    var price = quote && quote.price != null ? formatNumber(quote.price) : '-';
-    var rate = quote && quote.changeRate != null && Number.isFinite(Number(quote.changeRate)) ? Number(quote.changeRate) : null;
-    var rateText = rate == null ? '-' : (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
-    var intensity = rate == null ? 0 : Math.min(Math.abs(rate) / 12, 1);
-    var glow = rate > 0 ? 'rgba(210,79,69,' + (0.12 + intensity * 0.42).toFixed(2) + ')'
-      : rate < 0 ? 'rgba(18,97,196,' + (0.12 + intensity * 0.42).toFixed(2) + ')'
-        : 'rgba(148,163,184,.12)';
-    var title = item.name + ' · 현재가 ' + price + ' · 등락률 ' + rateText;
-    var market = quote && quote.market === 'KOSDAQ' ? '코스닥' : quote && quote.market === 'KOSPI' ? '코스피' : '';
-    return '<button type="button" class="mt-all-stock-cloud" style="--mt-stock-glow:' + glow + '" title="' + escapeHtml(title) + '" data-all-stock-code="' + escapeHtml(item.code) + '" data-all-stock-name="' + escapeHtml(item.name) + '" aria-label="' + escapeHtml(title) + '">'
-      + '<span class="mt-all-stock-cloud-name">' + escapeHtml(item.name) + '</span>'
-      + '<small class="mt-all-stock-cloud-meta">' + escapeHtml(market) + (market ? ' · ' : '') + escapeHtml(price) + ' · ' + escapeHtml(rateText) + '</small>'
-      + '</button>';
+  // 기존 관심섹터와 같은 행·카드 구조로 전종목을 그린다. 한 페이지 안에서도
+  // 코스피/코스닥을 바로 구분할 수 있고, 별도 "관심섹터" 화면이 필요 없다.
+  function allStockCardsHtml_(items, byCode) {
+    var groups = { KOSPI: [], KOSDAQ: [], OTHER: [] };
+    (items || []).forEach(function (item) {
+      var quote = byCode[item.code] || {};
+      var market = quote.market === 'KOSDAQ' ? 'KOSDAQ' : quote.market === 'KOSPI' ? 'KOSPI' : 'OTHER';
+      groups[market].push({ item: item, quote: quote });
+    });
+    var labels = { KOSPI: '코스피', KOSDAQ: '코스닥', OTHER: '시장 확인 중' };
+    return Object.keys(groups).filter(function (market) { return groups[market].length; }).map(function (market) {
+      var rows = groups[market].map(function (entry) {
+        var quote = entry.quote;
+        var rate = Number(quote.changeRate);
+        var direction = isFinite(rate) && rate > 0 ? 'sector-up' : isFinite(rate) && rate < 0 ? 'sector-down' : 'sector-flat';
+        var rateText = isFinite(rate) ? (rate > 0 ? '▲' : rate < 0 ? '▼' : '—') + Math.abs(rate).toFixed(2) + '%' : '-';
+        return '<button type="button" class="sector-row mt-all-stock-row" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
+          + '<span class="sector-row-name">' + escapeHtml(entry.item.name) + '</span>'
+          + '<span><span class="sector-row-price">' + (quote.price != null ? formatNumber(quote.price) : '-') + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
+          + '</button>';
+      }).join('');
+      return '<section class="sector-card"><div class="sector-card-title">' + labels[market] + ' <small>' + groups[market].length + '종목</small></div>' + rows + '</section>';
+    }).join('');
   }
 
   function loadAllStocksPanel(panel) {
@@ -1708,10 +1736,10 @@
         var start = state.page * ALL_STOCKS_PAGE_SIZE;
         var visible = rows.slice(start, start + ALL_STOCKS_PAGE_SIZE);
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>코스피·코스닥 표기 · 등락률은 색 농도</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>코스피·코스닥을 기존 관심섹터 카드와 같은 형식으로 표시</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="sr-only">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드 검색" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>시세 새로고침</button></div>'
           + '<p class="mt-all-stock-legend">붉을수록 상승 폭이 크고, 파랄수록 하락 폭이 크다. 이름을 누르면 상세 시세를 연다.</p>'
-          + '<div class="mt-all-stock-cloud-grid" data-all-stock-grid></div>'
+          + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid></div>'
           + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 장</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · ' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 장 ›</button></div>'
           + '</section>';
         var input = panel.querySelector('[data-all-stock-search]');
@@ -1741,13 +1769,13 @@
           if (requestId !== state.requestId) return;
           var byCode = {};
           (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
-          grid.innerHTML = visible.map(function (item) { return allStockCloudHtml_(item, byCode[item.code]); }).join('');
+          grid.innerHTML = allStockCardsHtml_(visible, byCode);
           wireCards();
         }).catch(function () {
           if (requestId !== state.requestId) return;
-          // 시세 응답이 잠시 막혀도 목록 자체는 숨기지 않는다. 중립색 이름 지도는 열고,
-          // 각 이름을 누르면 기존 실시간 시세 화면에서 다시 확인할 수 있다.
-          grid.innerHTML = visible.map(function (item) { return allStockCloudHtml_(item, null); }).join('');
+          // 시세 응답이 잠시 막혀도 카드 목록 자체는 숨기지 않는다. 값은 대기로 두고,
+          // 각 행을 누르면 기존 실시간 시세 화면에서 다시 확인할 수 있다.
+          grid.innerHTML = allStockCardsHtml_(visible, {});
           wireCards();
         });
       }
@@ -2410,35 +2438,10 @@
     });
   }
 
-  // 카드 보기는 별도 전종목 탭을 두지 않는다. 관심 섹터와 전종목 책장을 이 안에서
-  // 전환하므로 검색·페이지 넘김의 맥락이 유지된다.
+  // 카드 보기는 전종목만 제공한다. 기존 관심섹터의 카드 행 UI를 그대로 확장했으므로
+  // 일부 카드만 따로 보던 화면은 필요 없다.
   function loadCardsPanel(panel) {
-    if (!panel || panel.__cardLibraryLoaded) return;
-    panel.__cardLibraryLoaded = true;
-    panel.innerHTML = '<div class="mt-card-library-nav" role="tablist" aria-label="카드 범위">'
-      + '<button type="button" class="is-active" data-card-library-mode="all" role="tab" aria-selected="true">전종목 카드</button>'
-      + '<button type="button" data-card-library-mode="sector" role="tab" aria-selected="false">관심 섹터</button>'
-      + '</div><div data-card-library-panel></div>';
-    var host = panel.querySelector('[data-card-library-panel]');
-    function activate(mode) {
-      panel.querySelectorAll('[data-card-library-mode]').forEach(function (button) {
-        var active = button.getAttribute('data-card-library-mode') === mode;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-      host.innerHTML = '';
-      if (mode === 'all') {
-        host.__allStockBrowser = false;
-        loadAllStocksPanel(host);
-      } else {
-        host.__mtLoaded = false;
-        loadSectorCardsPanel_(host);
-      }
-    }
-    panel.querySelectorAll('[data-card-library-mode]').forEach(function (button) {
-      button.addEventListener('click', function () { activate(button.getAttribute('data-card-library-mode')); });
-    });
-    activate('all');
+    loadAllStocksPanel(panel);
   }
 
   function loadHeatmapPanel(panel) {

@@ -62,7 +62,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `overnight-market.js` | 752 | 글로벌 시장지표(미국지수/VIX/원자재/채권/코인) | `window.OvernightMarket`, `#overnight-market` | VM `/futures`,`/futures/avg`, GAS `?action=subIndexAnalysis`, LWC CDN |
 | `us-macro-indicators.js` | 170 | 주요 미국 발표(FOMC·CPI/근원 CPI·근원 PCE·PPI·비농업고용·실업률·소매판매·GDP·소비심리) | `window.UsMacroIndicators`, `#us-macro-indicators` | VM `/futures` |
 | `kospi-futures.js` | 763 | 코스피200 주/야간선물 캔들차트 + 옵션 수급 + AI해설 | `window.KospiFutures`, `#kospi-futures` | VM `/futures`,`/option-flow`, GAS `?action=kospiFuturesAnalysis`, LWC CDN |
-| `market-temp.js` | 2300 | 증시온도 100점 종합점수·구간 게이지·3축, 증시 날씨 리본 추이, 개미 체크리스트, AI브리핑, 업종 TOP, 카드 보기 안의 전종목 책장·관심 섹터 | `window.MarketTemp`, `#market-temp` | VM `/market-temp`,`/industry-flow`, GAS `?codes=`,`?marketTempBriefing=1`,`?bubble=1` |
+| `market-temp.js` | 2300 | 증시온도 100점 종합점수·구간 게이지·3축, 증시 날씨 리본 추이, 개미 체크리스트, AI브리핑, 업종 TOP, 기존 관심섹터 행 UI로 확장한 전종목 카드 책장 | `window.MarketTemp`, `#market-temp` | VM `/market-temp`,`/industry-flow`, GAS `?codes=`,`?marketTempBriefing=1`,`?bubble=1` |
 | `quick-indices.js` | 885 | 홈 전용 관심지수 카드 바(11종) + 긴급속보 패널 | `window.QuickIndices`, `#quick-indices`(동적 생성) | GAS `?market=1`,`?rankNews=1`, VM `/futures` |
 | `stock-news.js` | 888 | 종목별 뉴스(리스트+AI요약+공시+랭킹뉴스) | `window.StockNews`, `#stock-news` | GAS `?codes=`,`?news=1`,`?rankNews=1` |
 | `stock-search.js` | 910 | 독립 "실시간 시세" 페이지(검색+호가창+캔들차트) | `window.StockSearch`, `#stock-search` | GAS `?codes=`,`?action=priceReason/flowChart`, LWC CDN |

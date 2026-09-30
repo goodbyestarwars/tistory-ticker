@@ -181,24 +181,33 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
-    def test_domestic_major_stocks_card_view_contains_paged_all_stock_book(self):
-        """전종목은 별도 탭이 아니라 카드 보기 안에서 48개씩 탐색한다."""
+    def test_domestic_major_stocks_card_view_is_the_paged_all_stock_book(self):
+        """카드 보기는 관심섹터 분리 없이 전종목을 같은 카드 행으로 탐색한다."""
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         self.assertNotIn("{ key: 'all', label: '전종목 카드' }", source)
         self.assertIn("var ALL_STOCKS_PAGE_SIZE = 48;", source)
         self.assertIn("function loadAllStocksPanel(panel)", source)
         self.assertIn("function loadCardsPanel(panel)", source)
-        self.assertIn("data-card-library-mode=\"all\"", source)
+        self.assertIn("function allStockCardsHtml_", source)
+        self.assertIn("코스피·코스닥을 기존 관심섹터 카드와 같은 형식", source)
+        self.assertNotIn("data-card-library-mode=\"all\"", source)
         self.assertIn("전종목 카드", source)
-        self.assertIn("관심 섹터", source)
-        self.assertIn("코스피·코스닥 표기", source)
+        self.assertIn("labels = { KOSPI: '코스피', KOSDAQ: '코스닥'", source)
+        self.assertIn("'sector-up'", source)
         self.assertIn("‹ 이전 장", source)
         self.assertIn("다음 장 ›", source)
         self.assertIn("quote.market === 'KOSDAQ'", source)
         self.assertIn("/page/stock-search?code=", source)
-        self.assertIn(".mt-all-stock-cloud-meta", style)
-        self.assertIn("minmax(126px, 1fr)", style)
+        self.assertIn(".mt-all-stock-sector-grid", style)
+        self.assertIn(".mt-all-stock-row", style)
+
+    def test_next_trading_day_hypothesis_is_backchecked_against_history(self):
+        source = self.read("js/market-temp.js")
+        self.assertIn("다음 거래일 가설", source)
+        self.assertIn("방향 일치(", source)
+        self.assertIn("방향 확인 필요", source)
+        self.assertIn("function signalAt_", source)
 
     def test_market_briefing_category_has_client_side_search(self):
         source = self.read("js/skin-main.js")
@@ -1562,8 +1571,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 단기흐름은 점수의 방향, 30일 평균선, 날짜별 상태를 보여주고
         # 정확한 일별 점수는 차트 툴팁에 남긴다.
         self.assertIn("function marketMood_(score)", source)
-        self.assertIn("function tomorrowFlow_(shown, baseline)", source)
-        self.assertIn("내일 흐름", source)
+        self.assertIn("function tomorrowFlow_(days, shown, baseline)", source)
+        self.assertIn("다음 거래일 가설", source)
         self.assertNotIn("꽁꽁", source)
         self.assertNotIn("구름 조금", source)
         self.assertNotIn("폭염", source)

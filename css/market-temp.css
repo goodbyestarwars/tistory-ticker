@@ -254,11 +254,7 @@
   align-items: stretch;
 }
 #market-temp .mt-briefing-panel,
-#market-temp .mt-strategy-panel { min-width: 0; }
-#market-temp .mt-strategy-panel {
-  border-left: 1px solid rgba(107, 114, 128, .16);
-  padding-left: 26px;
-}
+#market-temp .mt-strategy-panel { min-width:0; padding:15px 16px; border:1px solid #e1e7ee; border-radius:8px; background:#fff; }
 #market-temp .mt-briefing-panel-title,
 #market-temp .mt-strategy-panel-title {
   margin-bottom: 10px;
@@ -535,13 +531,8 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-explore-card.is-sector-detail .mt-view-btn[data-view="heatmap"],
 #market-temp .mt-explore-card.is-sector-detail .mt-view-btn[data-view="marketcap"] { display: none; }
 
-#market-temp .mt-card-library-nav { display:flex; gap:6px; margin:0 0 12px; }
-#market-temp .mt-card-library-nav button { min-height:32px; padding:0 12px; border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#64748b; font:700 12px var(--font-ui); cursor:pointer; }
-#market-temp .mt-card-library-nav button.is-active { border-color:#172033; background:#172033; color:#fff; }
-#market-temp .mt-explore-card.is-sector-detail .mt-card-library-nav { display:none; }
-
-/* 전종목 지도는 이름만 촘촘히 배치한다. 카드 여백 대신 등락률에 따른 배경·번짐으로
-   시장 온도를 읽고, 실제 가격·등락률은 이름을 누른 뒤 상세 시세에서 확인한다. */
+/* 카드 보기는 기존 관심섹터의 행·카드 형식을 전종목으로 확장한다. 한 쪽씩만
+   조회해 상장종목 전체를 탐색하면서도 첫 화면과 서버 요청을 가볍게 유지한다. */
 #market-temp .mt-all-stock-browser { min-width: 0; }
 #market-temp .mt-all-stock-head { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 #market-temp .mt-all-stock-head > div { display:flex; align-items:baseline; gap:8px; min-width:0; }
@@ -555,12 +546,9 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-toolbar button { flex:0 0 auto; padding:0 11px; }
 #market-temp .mt-all-stock-toolbar button:hover, #market-temp .mt-all-stock-pagination button:hover:not(:disabled) { border-color:#1f2937; color:#1f2937; }
 #market-temp .mt-all-stock-legend { margin:0 0 10px; color:#94a3b8; font-size:11px; line-height:1.45; }
-#market-temp .mt-all-stock-cloud-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(126px, 1fr)); gap:8px; min-height:222px; padding:4px; overflow:hidden; }
-#market-temp .mt-all-stock-cloud-grid > .mt-hint { grid-column:1 / -1; align-self:center; }
-#market-temp .mt-all-stock-cloud { min-width:0; min-height:42px; padding:7px 8px; border:1px solid color-mix(in srgb, var(--mt-stock-glow) 72%, #dbe4ef); border-radius:5px; background:linear-gradient(135deg, var(--mt-stock-glow), rgba(255,255,255,.12)); box-shadow:0 0 16px var(--mt-stock-glow); color:#273449; font:700 11px/1.15 var(--font-ui); cursor:pointer; overflow:hidden; text-align:left; }
-#market-temp .mt-all-stock-cloud:hover { border-color:#334155; color:#111827; transform:translateY(-1px); }
-#market-temp .mt-all-stock-cloud-name { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#market-temp .mt-all-stock-cloud-meta { display:block; margin-top:3px; color:#64748b; font-size:10px; font-weight:600; }
+#market-temp .mt-all-stock-sector-grid { min-height:222px; }
+#market-temp .mt-all-stock-sector-grid > .mt-hint { min-height:222px; display:grid; place-items:center; }
+#market-temp .mt-all-stock-row { min-height:37px; }
 #market-temp .mt-all-stock-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; color:#64748b; font-size:12px; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-pagination button { min-width:76px; min-height:31px; padding:0 9px; }
 #market-temp .mt-all-stock-pagination button:disabled { cursor:default; opacity:.42; }
@@ -605,7 +593,7 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-industry-flow-head strong { font-size:15px; color:#111827; }
 #market-temp .mt-industry-flow-head span, #market-temp .mt-industry-flow-note { color:#94a3b8; font-size:10px; }
 /* 2026-09-01 직관성 개선. 열 구성: 순위 · 업종 · 거래대금 · 평균등락 · 순위변화 · 펼침. */
-#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:15px minmax(0,1.3fr) .78fr .7fr .66fr; align-items:center; gap:7px; }
+#market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { display:grid; grid-template-columns:26px minmax(0,1.6fr) minmax(68px,.9fr) .7fr .66fr; align-items:center; gap:8px; }
 #market-temp .mt-industry-flow-columns { padding:0 5px 6px; border-bottom:1px solid #111827; color:#94a3b8; font-size:10px; }
 #market-temp .mt-industry-flow-columns span:nth-child(n+3), #market-temp .mt-industry-flow-row > span, #market-temp .mt-industry-flow-row > em { text-align:right; }
 #market-temp .mt-industry-flow-item { border-bottom:1px solid #eef2f7; }
@@ -790,7 +778,7 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
   #market-temp .mt-hero-history { padding-top: 14px; }
   #market-temp .mt-hero-history::before { left: 0; right: 0; top: 0; bottom: auto; border-left: none; border-top: 1px solid rgba(107, 114, 128, .16); }
   #market-temp .mt-briefing-strategy-grid { grid-template-columns: 1fr; gap: 16px; }
-  #market-temp .mt-strategy-panel { border-top: 1px solid rgba(107, 114, 128, .16); border-left: none; padding-top: 16px; padding-left: 0; }
+  #market-temp .mt-strategy-panel { border:1px solid #e1e7ee; padding:15px 16px; }
 }
 
 @media (max-width: 640px) {
@@ -798,7 +786,7 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
   #market-temp .mt-industry-flow-card { padding: 12px; }
   /* 2026-09-01: 순위 열이 생겨 5열이다. 여기를 같이 안 고치면 항목이 넘쳐 행이
      두 줄로 접힌다(실제로 그렇게 깨졌다). */
-  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:14px minmax(0,1.25fr) .72fr .66fr .6fr; gap:5px; }
+  #market-temp .mt-industry-flow-columns, #market-temp .mt-industry-flow-row { grid-template-columns:20px minmax(0,1.45fr) minmax(57px,.82fr) .64fr .58fr; gap:5px; }
   #market-temp .mt-industry-flow-row { min-height:38px; padding-inline:3px; }
   #market-temp .mt-industry-flow-row small { font-size:9px; }
   #market-temp .mt-industry-flow-detail { margin-inline:3px; }
@@ -872,6 +860,8 @@ html.dark #market-temp .mt-hero-history::before { border-color: rgba(245, 239, 2
 html.dark #market-temp .mt-history-tail-direction { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #market-temp .mt-history-tail-summary { color: #e6b74a !important; }
 html.dark #market-temp .mt-briefing-strategy-card { background: #1A1A1A !important; }
+html.dark #market-temp .mt-briefing-panel,
+html.dark #market-temp .mt-strategy-panel { border-color:rgba(245,239,224,.18); background:#242424; }
 html.dark #market-temp .mt-briefing-panel-title,
 html.dark #market-temp .mt-strategy-panel-title { color: rgba(245, 239, 224, 0.65) !important; }
 html.dark #market-temp .mt-strategy-panel { border-color: rgba(245, 239, 224, 0.16) !important; }
@@ -971,14 +961,12 @@ html.dark #market-temp .mt-updated { color: rgba(245, 239, 224, 0.45) !important
 html.dark #market-temp .mt-view-btn { background: rgba(245, 239, 224, 0.08) !important; color: rgba(245, 239, 224, 0.55) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
 html.dark #market-temp .mt-view-btn.active { background: #F5EFE0 !important; color: #1A1A1A !important; border-color: #F5EFE0 !important; }
 html.dark #market-temp .mt-all-stock-head strong,
-html.dark #market-temp .mt-all-stock-cloud { color:#f5efe0 !important; }
 html.dark #market-temp .mt-all-stock-head span,
 html.dark #market-temp .mt-all-stock-legend,
 html.dark #market-temp .mt-all-stock-pagination { color:rgba(245,239,224,.55) !important; }
 html.dark #market-temp .mt-all-stock-toolbar input,
 html.dark #market-temp .mt-all-stock-toolbar button,
 html.dark #market-temp .mt-all-stock-pagination button { border-color:rgba(245,239,224,.18); background:#1a1a1a; color:#f5efe0; }
-html.dark #market-temp .mt-all-stock-cloud { border-color:rgba(245,239,224,.18); }
 
 /* DB-backed sector card editor */
 #market-temp .mt-sector-toolbar { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; font-size:12px; color:#6b7280; }
@@ -1619,7 +1607,7 @@ html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
 }
 
 @media (max-width: 760px) {
-  #market-temp .mt-all-stock-cloud-grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; min-height:0; }
+  #market-temp .mt-all-stock-sector-grid { min-height:0; }
 }
 @media (max-width: 430px) {
   #market-temp .mt-all-stock-head { align-items:flex-start; flex-direction:column; gap:4px; }
