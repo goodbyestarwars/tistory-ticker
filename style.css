@@ -2253,6 +2253,12 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
   font: 11px/1.2 var(--font-data);
   white-space: nowrap;
 }
+.briefing-search { display:flex; align-items:center; gap:10px; margin:0 0 22px; padding:10px 0; border-bottom:1px solid #e5e7eb; }
+.briefing-search input { flex:1; min-width:0; height:38px; padding:0 12px; border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#172033; font:inherit; font-size:13px; }
+.briefing-search input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
+.briefing-search small { flex:0 0 auto; color:#64748b; font-size:11px; white-space:nowrap; }
+html.dark .briefing-search { border-bottom-color:rgba(245,239,224,.16); }
+html.dark .briefing-search input { border-color:rgba(245,239,224,.22); background:#1a1a1a; color:#f5efe0; }
 html.dark .category-masthead { border-bottom-color: rgba(245,239,224,.55); }
 html.dark .category-masthead h1 { color: #F5EFE0; }
 html.dark .category-masthead p,

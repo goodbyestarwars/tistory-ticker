@@ -1596,7 +1596,7 @@
   }
 
   // "오늘의 증시온도" 박스(9개 지표 바 포함)와는 별개의 아래쪽 박스 - 종목을 살펴보는
-  // 3가지 방법(카드 보기: 섹터별 카드, 히트맵 보기: 섹터 풀 등락률 히트맵, 시총비례 히트맵:
+  // 3가지 방법(카드 보기: 관심 섹터 + 전종목 카드, 히트맵 보기: 섹터 풀 등락률 히트맵, 시총비례 히트맵:
   // 트리맵)을 탭으로 전환한다. 셋 다 js/sector-dashboard-v4.js·js/marketcap-bubble.js를
   // 그대로 재사용(로직 복붙 없음) - sectors-v3.js/krx_map.js/sector-dashboard-v4.js/
   // marketcap-codes.js/marketcap-bubble.js가 이 페이지에 함께 로드돼 있어야 동작한다.
@@ -1897,7 +1897,6 @@
 
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
-    { key: 'all', label: '전종목 카드' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];
@@ -1912,7 +1911,6 @@
       + toggleHtml
       + '<div class="mt-view-panels">'
       + '<div class="mt-view-panel" data-view-panel="cards"' + (initialView === 'cards' ? '' : ' hidden') + '></div>'
-      + '<div class="mt-view-panel" data-view-panel="all"' + (initialView === 'all' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
       + '</div>'
@@ -2344,8 +2342,8 @@
         var editButton = panel.querySelector('[data-sector-editor-open]');
         if (editButton) editButton.addEventListener('click', function () {
           renderSectorEditor_(panel, sectorMap, config.revision, {
-            cancel: function () { panel.__mtLoaded = false; loadCardsPanel(panel); },
-            saved: function () { invalidatePersonalHeatmap_(panel); panel.__mtLoaded = false; loadCardsPanel(panel); }
+            cancel: function () { panel.__mtLoaded = false; loadSectorCardsPanel_(panel); },
+            saved: function () { invalidatePersonalHeatmap_(panel); panel.__mtLoaded = false; loadSectorCardsPanel_(panel); }
           });
         });
       }
@@ -2378,7 +2376,7 @@
     heatmapPanel.innerHTML = '';
   }
 
-  function loadCardsPanel(panel) {
+  function loadSectorCardsPanel_(panel) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
@@ -2410,6 +2408,37 @@
     }).catch(function () {
       panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
     });
+  }
+
+  // 카드 보기는 별도 전종목 탭을 두지 않는다. 관심 섹터와 전종목 책장을 이 안에서
+  // 전환하므로 검색·페이지 넘김의 맥락이 유지된다.
+  function loadCardsPanel(panel) {
+    if (!panel || panel.__cardLibraryLoaded) return;
+    panel.__cardLibraryLoaded = true;
+    panel.innerHTML = '<div class="mt-card-library-nav" role="tablist" aria-label="카드 범위">'
+      + '<button type="button" class="is-active" data-card-library-mode="all" role="tab" aria-selected="true">전종목 카드</button>'
+      + '<button type="button" data-card-library-mode="sector" role="tab" aria-selected="false">관심 섹터</button>'
+      + '</div><div data-card-library-panel></div>';
+    var host = panel.querySelector('[data-card-library-panel]');
+    function activate(mode) {
+      panel.querySelectorAll('[data-card-library-mode]').forEach(function (button) {
+        var active = button.getAttribute('data-card-library-mode') === mode;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+      host.innerHTML = '';
+      if (mode === 'all') {
+        host.__allStockBrowser = false;
+        loadAllStocksPanel(host);
+      } else {
+        host.__mtLoaded = false;
+        loadSectorCardsPanel_(host);
+      }
+    }
+    panel.querySelectorAll('[data-card-library-mode]').forEach(function (button) {
+      button.addEventListener('click', function () { activate(button.getAttribute('data-card-library-mode')); });
+    });
+    activate('all');
   }
 
   function loadHeatmapPanel(panel) {
@@ -2463,7 +2492,6 @@
 
   function loadPanel(view, panel) {
     if (view === 'cards') loadCardsPanel(panel);
-    else if (view === 'all') loadAllStocksPanel(panel);
     else if (view === 'heatmap') loadHeatmapPanel(panel);
     else if (view === 'marketcap') loadMarketcapPanel(panel);
   }

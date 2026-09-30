@@ -181,13 +181,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
-    def test_domestic_major_stocks_all_stock_view_is_a_paged_card_book(self):
-        """전종목은 48개씩 카드 책장을 넘기며, 현 페이지 시세만 요청한다."""
+    def test_domestic_major_stocks_card_view_contains_paged_all_stock_book(self):
+        """전종목은 별도 탭이 아니라 카드 보기 안에서 48개씩 탐색한다."""
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("{ key: 'all', label: '전종목 카드' }", source)
+        self.assertNotIn("{ key: 'all', label: '전종목 카드' }", source)
         self.assertIn("var ALL_STOCKS_PAGE_SIZE = 48;", source)
         self.assertIn("function loadAllStocksPanel(panel)", source)
+        self.assertIn("function loadCardsPanel(panel)", source)
+        self.assertIn("data-card-library-mode=\"all\"", source)
+        self.assertIn("전종목 카드", source)
+        self.assertIn("관심 섹터", source)
         self.assertIn("코스피·코스닥 표기", source)
         self.assertIn("‹ 이전 장", source)
         self.assertIn("다음 장 ›", source)
@@ -195,6 +199,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("/page/stock-search?code=", source)
         self.assertIn(".mt-all-stock-cloud-meta", style)
         self.assertIn("minmax(126px, 1fr)", style)
+
+    def test_market_briefing_category_has_client_side_search(self):
+        source = self.read("js/skin-main.js")
+        style = self.read("style.css")
+        self.assertIn("briefing-search", source)
+        self.assertIn("마켓브리핑 제목·내용 검색", source)
+        self.assertIn("data-briefing-search-result", source)
+        self.assertIn(".briefing-search", style)
 
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")

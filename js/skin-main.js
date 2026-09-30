@@ -218,7 +218,7 @@ document.documentElement.classList.add('skin-ready');
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20260930-all-stock-cards-book-v3';
+    var version = '20260930-card-library-briefing-search-v4';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -1864,6 +1864,25 @@ document.documentElement.classList.add('skin-ready');
           ? cards[briefingIndex + briefingSlice.length] : tailAnchor;
         renderBlock('briefingCards', briefingSlice, briefingBefore);
       }
+      var search = document.createElement('label');
+      search.className = 'briefing-search';
+      search.innerHTML = '<span class="sr-only">마켓브리핑 검색</span><input type="search" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
+      feed.insertBefore(search, feed.querySelector('.feed-block') || tailAnchor);
+      var input = search.querySelector('input');
+      var result = search.querySelector('[data-briefing-search-result]');
+      input.addEventListener('input', function () {
+        var query = input.value.trim().toLowerCase();
+        var shown = 0;
+        cards.forEach(function (card) {
+          var match = !query || card.textContent.toLowerCase().indexOf(query) !== -1;
+          card.hidden = !match;
+          if (match) shown += 1;
+        });
+        Array.prototype.slice.call(feed.querySelectorAll('.feed-block')).forEach(function (block) {
+          block.hidden = !Array.prototype.some.call(block.querySelectorAll('.post-card'), function (card) { return !card.hidden; });
+        });
+        result.textContent = query ? shown + '건 검색됨' : '전체 ' + cards.length + '건';
+      });
       return;
     }
 
