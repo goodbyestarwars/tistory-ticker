@@ -59,6 +59,9 @@ FRED_SYMBOLS = {
     'US_REAL_GDP_GROWTH': {'series': 'A191RL1Q225SBEA', 'name': '미국 실질 GDP 성장률(연율, %)'},
     'US_NONFARM_PAYROLLS': {'series': 'PAYEMS', 'name': '미국 비농업고용(천 명)'},
     'US_UNEMPLOYMENT': {'series': 'UNRATE', 'name': '미국 실업률(%)'},
+    # JOLTS의 구인건수는 고용보고서와 다른 조사다. 채용 수요가 꺾이는지를 가장 빨리
+    # 확인할 수 있어, 월초 고용지표와 함께 화면에 제공한다. FRED 값의 단위는 천 건이다.
+    'US_JOB_OPENINGS': {'series': 'JTSJOL', 'name': '미국 JOLTS 구인건수(천 건)'},
     'US_RETAIL_SALES': {'series': 'RSAFS', 'name': '미국 소매판매(백만 달러)'},
     'US_CONSUMER_SENTIMENT': {'series': 'UMCSENT', 'name': '미국 소비자심리지수(미시간대, pt)'},
 }

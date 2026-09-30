@@ -287,8 +287,8 @@ document.documentElement.classList.add('skin-ready');
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-us-macro-reading-v3',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-us-macro-reading-v3']
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-jolts-v4',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-jolts-v4']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);

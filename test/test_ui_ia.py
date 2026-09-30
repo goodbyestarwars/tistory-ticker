@@ -3804,6 +3804,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("US_CORE_CPI", macro)
         self.assertIn("US_CORE_PCE", macro)
         self.assertIn("US_NONFARM_PAYROLLS", macro)
+        self.assertIn("US_JOB_OPENINGS", macro)
+        self.assertIn("JOLTS 구인건수", macro)
         self.assertIn("US_CONSUMER_SENTIMENT", macro)
         self.assertIn("최근 12회 평균", macro)
         self.assertIn("US_REAL_GDP_GROWTH", macro)

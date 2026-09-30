@@ -41,6 +41,7 @@ class FredMacroSymbolTests(unittest.TestCase):
             'US_REAL_GDP_GROWTH': 'A191RL1Q225SBEA',
             'US_NONFARM_PAYROLLS': 'PAYEMS',
             'US_UNEMPLOYMENT': 'UNRATE',
+            'US_JOB_OPENINGS': 'JTSJOL',
             'US_RETAIL_SALES': 'RSAFS',
             'US_CONSUMER_SENTIMENT': 'UMCSENT',
         }

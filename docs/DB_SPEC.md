@@ -174,7 +174,7 @@ ka10045 기반. 인덱스 `idx_investor_flow_daily_code`. `daily_scan.py`가 투
 
 | 컬럼 | 타입 | 설명 |
 |---|---|---|
-| symbol | TEXT PK | 선물·지수·환율·원자재·코인·FRED 거시지표 심볼(현재 30개: KOSPI, KOSDAQ, NASDAQ_INDEX 등, `API_REFERENCE.md` `/futures` 참고) |
+| symbol | TEXT PK | 선물·지수·환율·원자재·코인·FRED 거시지표 심볼(현재 31개: KOSPI, KOSDAQ, NASDAQ_INDEX 등, `API_REFERENCE.md` `/futures` 참고) |
 | name, price, change, change_rate, high, low | | 지수는 포인트, 환율은 원, 채권은 %, 코인은 해당 통화 |
 | updated_at | TEXT | |
 | oi, oi_change | INTEGER | 미결제약정 — `KOSPI200_NIGHT`만 값 존재(마이그레이션으로 추가된 컬럼, §7) |

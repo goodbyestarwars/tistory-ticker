@@ -7,7 +7,7 @@
   // 물가·고용·경기를 한쪽으로 치우치지 않게 읽는 최소 세트. 금리는 글로벌 시장지표에만 둔다.
   var SYMBOLS = [
     'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE', 'US_PPI',
-    'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT',
+    'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT', 'US_JOB_OPENINGS',
     'US_RETAIL_SALES', 'US_REAL_GDP_GROWTH', 'US_CONSUMER_SENTIMENT'
   ];
   var REFRESH_MS = 30 * 60 * 1000;
@@ -22,6 +22,7 @@
     US_PPI: { label: '생산자물가지수 (PPI)', unit: 'pt', cadence: '월간 · 생산단 물가', category: '물가', source: 'BLS' },
     US_NONFARM_PAYROLLS: { label: '비농업고용', unit: '천 명', cadence: '월간 · 고용보고서', category: '고용', source: 'BLS' },
     US_UNEMPLOYMENT: { label: '실업률', unit: '%', cadence: '월간 · 가계조사', category: '고용', source: 'BLS' },
+    US_JOB_OPENINGS: { label: 'JOLTS 구인건수', unit: '천 건', cadence: '월간 · 구인 수요', category: '고용', source: 'BLS' },
     US_RETAIL_SALES: { label: '소매판매', unit: '백만 달러', cadence: '월간 · 소비', category: '경기', source: 'Census' },
     US_REAL_GDP_GROWTH: { label: '실질 GDP 성장률', unit: '%', cadence: '분기 · 연율', category: '경기', source: 'BEA' },
     US_CONSUMER_SENTIMENT: { label: '소비자심리지수', unit: 'pt', cadence: '월간 · 미시간대', category: '경기', source: 'UMich' }
@@ -61,6 +62,7 @@
   function value_(symbol, item) {
     var value = Number(item && item.price);
     if (!isFinite(value)) return '-';
+    if (symbol === 'US_JOB_OPENINGS') return number_(value / 10, 0) + '만 건';
     var digits = (symbol === 'US_RETAIL_SALES' || symbol === 'US_NONFARM_PAYROLLS') ? 0 : 1;
     return number_(value, digits) + ' ' + META[symbol].unit;
   }
@@ -94,6 +96,7 @@
     var yoy = yearChange_(item);
     if (INFLATION_SYMBOLS[symbol] && isFinite(yoy)) return '전년 동월 ' + (yoy > 0 ? '+' : '') + number_(yoy, 2) + '%';
     if (symbol === 'US_NONFARM_PAYROLLS' && isFinite(change)) return '전월 ' + (change > 0 ? '+' : '') + number_(change, 0) + '천 명';
+    if (symbol === 'US_JOB_OPENINGS' && isFinite(change)) return '전월 ' + (change > 0 ? '+' : '') + number_(change / 10, 0) + '만 건';
     if (symbol === 'US_RETAIL_SALES' && isFinite(change)) {
       var rate = Number(item && item.change_rate);
       return isFinite(rate) ? '전월 ' + (rate > 0 ? '+' : '') + number_(rate, 2) + '%' : change_(item);
@@ -104,7 +107,7 @@
   function detail_(symbol, item) {
     var parts = [];
     if (INFLATION_SYMBOLS[symbol] || symbol === 'US_NONFARM_PAYROLLS' || symbol === 'US_RETAIL_SALES') parts.push('발표값 ' + value_(symbol, item));
-    var suffix = symbol === 'US_NONFARM_PAYROLLS' ? '천 명' : '';
+    var suffix = symbol === 'US_NONFARM_PAYROLLS' ? '천 명' : (symbol === 'US_JOB_OPENINGS' ? '천 건' : '');
     parts.push(change_(item, suffix));
     var date = itemDate_(item);
     if (date) parts.push(dateLabel_(date) + ' 기준');
@@ -120,6 +123,7 @@
     var values = recentValues_(item);
     if (!values.length) return '-';
     var value = values.reduce(function (sum, item) { return sum + item; }, 0) / values.length;
+    if (symbol === 'US_JOB_OPENINGS') return number_(value / 10, 0) + '만 건';
     var digits = (symbol === 'US_RETAIL_SALES' || symbol === 'US_NONFARM_PAYROLLS') ? 0 : 1;
     return number_(value, digits) + ' ' + META[symbol].unit;
   }
@@ -139,7 +143,7 @@
   function readGuide_(symbol) {
     var guides = {
       US_CPI: '물가 목표는 연 2% 부근', US_CORE_CPI: '추세 물가는 완만한 둔화가 중요', US_CORE_PCE: '연준이 주로 보는 물가 지표', US_PPI: '소비자물가보다 앞서 움직일 수 있음',
-      US_NONFARM_PAYROLLS: '고용 증감보다 추세 둔화를 함께 확인', US_UNEMPLOYMENT: '4% 안팎은 통상 안정 범위', US_RETAIL_SALES: '전월 대비와 3개월 흐름을 같이 확인',
+      US_NONFARM_PAYROLLS: '고용 증감보다 추세 둔화를 함께 확인', US_UNEMPLOYMENT: '4% 안팎은 통상 안정 범위', US_JOB_OPENINGS: '700만 건 안팎이면 구인 수요 유지, 급감은 고용 냉각 신호', US_RETAIL_SALES: '전월 대비와 3개월 흐름을 같이 확인',
       US_REAL_GDP_GROWTH: '연율 2% 안팎이면 완만한 성장', US_CONSUMER_SENTIMENT: '장기 평균과의 차이를 확인'
     };
     return guides[symbol] || '';
