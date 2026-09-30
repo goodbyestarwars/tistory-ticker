@@ -561,6 +561,12 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-dot.sector-down { background:#1261c4; }
 #market-temp .mt-all-stock-row .sector-row-price { color:#334155; font-size:12px; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-row .sector-row-rate { display:inline-block; min-width:55px; text-align:right; font-variant-numeric:tabular-nums; }
+#market-temp .mt-all-stock-row > span:last-child { display:flex; flex-direction:column; align-items:flex-end; gap:3px; flex:0 0 auto; }
+#market-temp .mt-all-stock-row .sector-row-price { margin-right:0; }
+#market-temp .mt-all-stock-row.sector-up .sector-row-name { color:#d24f45; }
+#market-temp .mt-all-stock-row.sector-down .sector-row-name { color:#1261c4; }
+#market-temp .mt-all-stock-sector-grid .sector-card-title::before { display:none; }
+#market-temp .mt-all-stock-sector-total { margin-left:auto; color:#334155; font-size:12px; font-weight:700; white-space:nowrap; }
 #market-temp .mt-all-stock-pagination { display:flex; align-items:center; justify-content:center; gap:10px; margin-top:14px; color:#64748b; font-size:12px; font-variant-numeric:tabular-nums; }
 #market-temp .mt-all-stock-pagination button { min-width:76px; min-height:31px; padding:0 9px; }
 #market-temp .mt-all-stock-pagination button:disabled { cursor:default; opacity:.42; }
@@ -988,6 +994,11 @@ html.dark #market-temp .mt-all-stock-head strong,
 html.dark #market-temp .mt-all-stock-head span,
 html.dark #market-temp .mt-all-stock-legend,
 html.dark #market-temp .mt-all-stock-pagination { color:rgba(245,239,224,.55) !important; }
+html.dark #market-temp .mt-all-stock-sector-total,
+html.dark #market-temp .mt-all-stock-retry strong { color:#F5EFE0; }
+html.dark #market-temp .mt-all-stock-retry span { color:rgba(245,239,224,.65); }
+html.dark #market-temp .mt-all-stock-row.sector-up .sector-row-name { color:#ff6b6b; }
+html.dark #market-temp .mt-all-stock-row.sector-down .sector-row-name { color:#5b9cff; }
 html.dark #market-temp .mt-all-stock-toolbar input,
 html.dark #market-temp .mt-all-stock-toolbar button,
 html.dark #market-temp .mt-all-stock-pagination button { border-color:rgba(245,239,224,.18); background:#1a1a1a; color:#f5efe0; }

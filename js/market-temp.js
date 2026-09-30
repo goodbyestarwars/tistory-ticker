@@ -1629,10 +1629,12 @@
   var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
   var wicsMapLoadPromise_ = null;
-  // 전종목 스냅샷은 1.6MB 안팎이라 휴대폰 회선에서는 첫 2.5초 안에 도착하지 않을 수
-  // 있다. 예전에는 그때 정적 맵까지 늦으면 곧바로 오류 화면을 그렸고, 뒤늦게 도착한
-  // 정상 스냅샷도 버렸다. 요청 하나를 공유·보관해 늦게 온 응답으로 카드 보기를 다시
-  // 열 수 있게 한다.
+  // 카드에는 실거래가 있는 주요 종목만 필요하다. 공유 시장판의 거래대금·거래량 등
+  // 순위 목록을 재사용하고, 이 요청이 실패할 때만 일일 스캔으로 대체한다.
+  var ACTIVE_STOCK_BOARD_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  var ACTIVE_STOCK_MIN_AMOUNT = 5000000000;
+  var ACTIVE_STOCK_MIN_VOLUME = 10000;
+  var ACTIVE_SECTOR_MIN_AMOUNT = 50000000000;
   var allStockSnapshotCache_ = null;
   var allStockSnapshotPromise_ = null;
 
@@ -1733,26 +1735,57 @@
     });
   }
 
-  // 전종목을 모두 나열하지 않는다. 스캔 시점 거래대금 10억원 이상이면서 가격이 움직인
-  // 종목만 대분류별 상위 18개로 압축해, 실제로 거래되는 섹터를 한 화면에서 읽게 한다.
+  // 보합이라는 이유만으로 활발한 대형주를 버리지 않는다. 종목은 거래대금·실제
+  // 거래량, 섹터는 합계 거래대금과 구성 종목 수로 판단한다. 스캔 폴백에는 거래량
+  // 필드가 없으므로 거래대금만 적용하며, 없는 거래량을 가격으로 역산하지 않는다.
   function activeStockGroups_(scan, wicsMap) {
-    var rows = universeRows_(scan, {}).filter(function (row) {
-      return isFinite(row.price) && row.price > 0 && isFinite(row.tradingValue) && row.tradingValue >= 1000000000
-        && isFinite(row.changeRate) && Math.abs(row.changeRate) >= 0.1;
+    var board = scan && scan.data && Array.isArray(scan.data.rows);
+    var etfNames = {};
+    (global.KRX_ETF_NAMES || []).forEach(function (name) { etfNames[name] = true; });
+    var rows = (board ? scan.data.rows : universeRows_(scan, {})).filter(function (row) {
+      return isFinite(row.price) && row.price > 0 && isFinite(row.changeRate)
+        && isFinite(row.tradingValue) && row.tradingValue >= ACTIVE_STOCK_MIN_AMOUNT
+        && (!board || (isFinite(row.volume) && row.volume >= ACTIVE_STOCK_MIN_VOLUME))
+        && !etfNames[row.name] && !/(?:ETF|ETN|스팩|SPAC)/i.test(row.name);
     }).map(function (row) {
       var classification = (wicsMap || {})[row.code] || {};
-      row.sector = String(classification.sector || '기타');
+      row.sector = String(classification.sector || industryThemeName_(row) || '');
       return row;
-    });
+    }).filter(function (row) { return row.sector && row.sector !== '기타' && row.sector !== '미분류'; });
     var bySector = {};
     rows.forEach(function (row) {
       if (!bySector[row.sector]) bySector[row.sector] = [];
       bySector[row.sector].push(row);
     });
     return Object.keys(bySector).map(function (sector) {
-      var members = bySector[sector].sort(function (a, b) { return b.tradingValue - a.tradingValue; }).slice(0, 18);
-      return { sector: sector, rows: members, total: members.reduce(function (sum, row) { return sum + row.tradingValue; }, 0) };
-    }).filter(function (group) { return group.rows.length; }).sort(function (a, b) { return b.total - a.total || a.sector.localeCompare(b.sector, 'ko'); });
+      var members = bySector[sector].sort(function (a, b) { return b.tradingValue - a.tradingValue; });
+      return { sector: sector, rows: members.slice(0, 12), total: members.reduce(function (sum, row) { return sum + row.tradingValue; }, 0) };
+    }).filter(function (group) { return group.rows.length >= 2 && group.total >= ACTIVE_SECTOR_MIN_AMOUNT; })
+      .sort(function (a, b) { return b.total - a.total || a.sector.localeCompare(b.sector, 'ko'); }).slice(0, 10);
+  }
+
+  function activeStockBoardSnapshot_(payload) {
+    var data = payload && payload.data || {};
+    var sections = data.sections || {};
+    var rows = (data.rows || []).slice();
+    Object.keys(sections).forEach(function (key) {
+      if (key !== 'industry' && Array.isArray(sections[key])) rows = rows.concat(sections[key]);
+    });
+    var seen = {};
+    rows = rows.filter(function (row) {
+      var code = String(row && row.code || '');
+      if (!/^[0-9A-Z]{6}$/.test(code) || seen[code]) return false;
+      seen[code] = true;
+      return true;
+    }).map(function (row) {
+      return { code: String(row.code), name: String(row.name || row.code), price: Number(row.price),
+        changeRate: Number(row.change_rate), tradingValue: Number(row.trade_amount), volume: Number(row.trade_volume),
+        industry: row.industry || '', market: row.market === 'KOSPI' || row.market === 'KOSDAQ' ? row.market : '' };
+    });
+    if (!rows.length) throw new Error('empty active stock board');
+    var timestamp = Number(data.updated_at);
+    return { data: { rows: rows, scannedAt: isFinite(timestamp) && timestamp > 0
+      ? new Date(timestamp * 1000).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) : '' } };
   }
 
   // 대용량 스캔 스냅샷이 늦어져도 카드 전체를 오류로 바꾸지 않는다. 정적 상장 목록을
@@ -1772,7 +1805,7 @@
 
   // 기존 관심섹터와 같은 행·카드 구조를 유지하되, 카드는 WICS 대분류로 나눈다.
   // 따라서 한 카드 안에서 같은 업종의 여러 종목을 현재가·등락률과 함께 바로 비교한다.
-  function allStockCardsHtml_(items, byCode) {
+  function allStockCardsHtml_(items, byCode, summaries) {
     var groups = {};
     (items || []).forEach(function (item) {
       var quote = byCode[item.code] || {};
@@ -1780,30 +1813,33 @@
       if (!groups[sector]) groups[sector] = [];
       groups[sector].push({ item: item, quote: quote });
     });
-    return Object.keys(groups).sort(function (a, b) { return groups[b].length - groups[a].length || a.localeCompare(b, 'ko'); }).map(function (sector) {
+    return Object.keys(groups).sort(function (a, b) {
+      var totals = summaries || {};
+      return ((totals[b] || {}).total || 0) - ((totals[a] || {}).total || 0) || a.localeCompare(b, 'ko');
+    }).map(function (sector) {
       var rows = groups[sector].map(function (entry) {
         var quote = entry.quote && Object.keys(entry.quote).length ? entry.quote : entry.item;
         var rate = Number(quote.changeRate);
         var direction = isFinite(rate) && rate > 0 ? 'sector-up' : isFinite(rate) && rate < 0 ? 'sector-down' : 'sector-flat';
         var rateText = isFinite(rate) ? (rate > 0 ? '▲' : rate < 0 ? '▼' : '—') + Math.abs(rate).toFixed(2) + '%' : '-';
-        var priceText = quote.price != null ? formatNumber(quote.price) + '원' : '시세 확인 중';
+        var priceText = isFinite(Number(quote.price)) && Number(quote.price) > 0 ? universeNumber_(quote.price) + '원' : '시세 확인 중';
         var market = quote.market === 'KOSPI' || quote.market === 'KOSDAQ' ? quote.market : '';
         return '<button type="button" class="sector-row mt-all-stock-row ' + direction + '" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
           + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i>' + escapeHtml(entry.item.name) + (market ? '<small class="mt-all-stock-market ' + market.toLowerCase() + '">' + market + '</small>' : '') + '</span>'
           + '<span><span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
           + '</button>';
       }).join('');
-      return '<section class="sector-card"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[sector].length + '종목</small></div>' + rows + '</section>';
+      var summary = (summaries || {})[sector];
+      return '<section class="sector-card"><div class="sector-card-title">' + escapeHtml(sector) + ' <small>' + groups[sector].length + '종목</small>'
+        + (summary ? '<span class="mt-all-stock-sector-total">' + formatFlowAmount_(summary.total) + '</span>' : '') + '</div>' + rows + '</section>';
     }).join('');
   }
 
-  // 스캔 파일은 전종목 가격과 거래대금을 함께 담아 크기가 크다. 그 파일이 한 번
-  // 지연됐다고 종목 목록까지 사라지면 안 되므로, 카드 첫 화면에서는 짧은 시간만
-  // 기다린 뒤 정적 상장 목록으로 전환한다. 뒤의 GAS 시세 요청은 화면을 막지 않는다.
   function requestAllStockSnapshot_() {
     if (allStockSnapshotCache_) return Promise.resolve(allStockSnapshotCache_);
     if (allStockSnapshotPromise_) return allStockSnapshotPromise_;
-    allStockSnapshotPromise_ = fetchJson_(INVEST_SIGNAL_URL).then(function (snapshot) {
+    allStockSnapshotPromise_ = fetchJson_(ACTIVE_STOCK_BOARD_URL).then(activeStockBoardSnapshot_)
+      .catch(function () { return fetchJson_(INVEST_SIGNAL_URL); }).then(function (snapshot) {
       allStockSnapshotCache_ = snapshot;
       allStockSnapshotPromise_ = null;
       return snapshot;
@@ -1814,23 +1850,9 @@
     return allStockSnapshotPromise_;
   }
 
-  function fetchSnapshotWithinBudget_(request) {
-    if (allStockSnapshotCache_) return Promise.resolve(allStockSnapshotCache_);
-    return new Promise(function (resolve) {
-      var settled = false;
-      var timer = setTimeout(function () { finish(null); }, 2500);
-      function finish(value) {
-        if (settled) return;
-        settled = true;
-        clearTimeout(timer);
-        resolve(value);
-      }
-      (request || requestAllStockSnapshot_()).then(finish).catch(function () { finish(null); });
-    });
-  }
-
-  function renderAllStockRetry_(panel) {
-    panel.innerHTML = '<div class="mt-hint mt-all-stock-retry"><strong>전종목 시세를 연결하는 중입니다.</strong><span>목록·업종 데이터가 늦어도 자동으로 다시 채웁니다.</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
+  function renderAllStockRetry_(panel, empty) {
+    panel.innerHTML = '<div class="mt-hint mt-all-stock-retry"><strong>' + (empty ? '현재 기준에 맞는 주요 섹터가 없습니다.' : '주요 섹터 시세를 불러오지 못했습니다.')
+      + '</strong><span>거래대금 50억원 이상인 종목이 2개 이상 · 섹터 합계 500억원 이상</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
     var retry = panel.querySelector('[data-all-stock-retry]');
     if (retry) retry.addEventListener('click', function () {
       allStockSnapshotCache_ = null;
@@ -1842,26 +1864,17 @@
   function loadAllStocksPanel(panel) {
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>거래가 활발한 주요 섹터를 불러오는 중...</div>';
 
     var snapshotRequest = requestAllStockSnapshot_();
-    Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), fetchSnapshotWithinBudget_(snapshotRequest)]).then(function (results) {
+    Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), snapshotRequest]).then(function (results) {
       var snapshot = results[2];
       var allGroups = snapshot ? activeStockGroups_(snapshot, results[1]) : [];
-      var hasSnapshot = allGroups.length > 0;
-      if (!hasSnapshot) allGroups = listedStockGroups_(results[0], results[1]);
-      var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ').slice(0, 16) : '시세 연결 중';
+      var isBoard = snapshot && snapshot.data && Array.isArray(snapshot.data.rows);
+      var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ') : '시각 확인 중';
       var state = { query: '', page: 0 };
       if (!allGroups.length) {
-        // 정적 목록이 막힌 경우에도 뒤늦게 도착한 스냅샷에는 종목명·현재가·등락률이 모두
-        // 있다. 실패 문구로 끝내지 않고 그 응답을 받는 즉시 같은 카드 보기를 재렌더한다.
-        renderAllStockRetry_(panel);
-        snapshotRequest.then(function (lateSnapshot) {
-          if (!lateSnapshot || !panel.isConnected) return;
-          allStockSnapshotCache_ = lateSnapshot;
-          panel.__allStockBrowser = false;
-          loadAllStocksPanel(panel);
-        }).catch(function () { /* 재시도 버튼을 유지한다. */ });
+        renderAllStockRetry_(panel, true);
         return;
       }
 
@@ -1894,16 +1907,27 @@
         var shownGroups = groups.slice(state.page * 4, state.page * 4 + 4);
         var visible = visibleItems_(shownGroups);
         var total = groups.reduce(function (sum, group) { return sum + group.rows.length; }, 0);
+        var summaries = {};
+        shownGroups.forEach(function (group) { summaries[group.sector] = group; });
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>' + (hasSnapshot ? '거래대금 10억원 이상 · 등락이 있는 종목만 업종별로 표시' : '상장 종목 목록을 먼저 표시하고 현재가를 연결합니다') + '</span></div><span data-all-stock-count>' + (hasSnapshot ? '활성 ' : '표시 ') + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>거래가 활발한 섹터만 · 최대 10개</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button></div>'
-          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 거래대금 상위 종목부터 표시하며, 이름을 누르면 상세 시세를 엽니다.</p>'
-          + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}) : '<div class="mt-hint">찾는 종목이 없습니다.</div>') + '</div>'
+          + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 50억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>조회된 종목의 섹터 합계 500억원 이상 · 2종목 이상 · 섹터당 거래대금 상위 12종목 · ETF·ETN·스팩 제외</p>'
+          + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}, summaries) : '<div class="mt-hint">주요 섹터 내에 찾는 종목이 없습니다.</div>') + '</div>'
           + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>‹ 이전 업종</button><span>' + (state.page + 1) + ' / ' + pageCount + '쪽 · 업종 ' + groups.length + '개</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음 업종 ›</button></div>'
           + '</section>';
         var input = panel.querySelector('[data-all-stock-search]');
         var grid = panel.querySelector('[data-all-stock-grid]');
-        input.addEventListener('input', function () { state.query = input.value.trim(); state.page = 0; render(); });
+        input.addEventListener('input', function () {
+          var cursor = input.selectionStart;
+          state.query = input.value;
+          state.page = 0;
+          render();
+          var replacement = panel.querySelector('[data-all-stock-search]');
+          replacement.focus();
+          // search 타입은 일부 브라우저에서 setSelectionRange를 지원하지 않는다.
+          try { replacement.setSelectionRange(cursor, cursor); } catch (ignore) {}
+        });
         var previous = panel.querySelector('[data-all-stock-prev]');
         var next = panel.querySelector('[data-all-stock-next]');
         var refresh = panel.querySelector('[data-all-stock-refresh]');
@@ -1924,16 +1948,6 @@
           });
         }
         wireCards();
-        if (!hasSnapshot && visible.length) {
-          fetchAllStockQuotes_(visible.map(function (item) { return item.code; })).then(function (quotes) {
-            var byCode = {};
-            (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
-            if (Object.keys(byCode).length) {
-              grid.innerHTML = allStockCardsHtml_(visible, byCode);
-              wireCards();
-            }
-          }).catch(function () { /* 목록은 유지하고 다음 새로고침 때 다시 시도한다. */ });
-        }
       }
       render();
     }).catch(function () { renderAllStockRetry_(panel); });
@@ -2593,8 +2607,7 @@
     });
   }
 
-  // 카드 보기는 전종목만 제공한다. 기존 관심섹터의 카드 행 UI를 그대로 확장했으므로
-  // 일부 카드만 따로 보던 화면은 필요 없다.
+  // 기존 카드 UI에 거래대금·거래량 기준을 통과한 주요 섹터만 표시한다.
   function loadCardsPanel(panel) {
     loadAllStocksPanel(panel);
   }
