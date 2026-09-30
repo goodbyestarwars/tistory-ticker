@@ -204,8 +204,10 @@
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
           + '" role="tab" aria-selected="' + (view.key === 'all' ? 'true' : 'false') + '">' + view.label + '</button>';
       }).join('') + '</div>'
-      + '<div class="mn-refresh-row"><small data-mn-updated>자동 갱신 대기 중</small>'
-      + '<button type="button" class="mn-refresh-btn" data-mn-refresh aria-label="주요 뉴스 새로고침">갱신</button></div>'
+      + '<div class="mn-refresh-row">'
+      + '<button type="button" class="mn-tab mn-refresh-btn" data-mn-refresh aria-label="주요 뉴스 새로고침">'
+      + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.5M20 4v7h-7"/></svg><span data-mn-refresh-label>갱신</span></button>'
+      + '<small data-mn-updated>자동 갱신 대기 중</small></div>'
       + '</div>'
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
@@ -223,7 +225,9 @@
     var button = container.querySelector('[data-mn-refresh]');
     if (!button) return;
     button.disabled = !!loading;
-    button.textContent = loading ? '갱신 중' : '갱신';
+    button.classList.toggle('is-loading', !!loading);
+    var label = button.querySelector('[data-mn-refresh-label]');
+    if (label) label.textContent = loading ? '갱신 중' : '갱신';
   }
 
   function renderNews_(container) {

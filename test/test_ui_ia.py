@@ -3708,8 +3708,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 티스토리 페이지 본문 없이도 뜨도록 mount까지 skin-main이 만든다.
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
-        self.assertIn("main-news.css?v=20260930-news-only-v1", main)
-        self.assertIn("main-news.js?v=20260930-news-only-v1", main)
+        self.assertIn("main-news.css?v=20260930-news-refresh-v1", main)
+        self.assertIn("main-news.js?v=20260930-news-refresh-v1", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3722,6 +3722,10 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("data-mn-refresh", source)
         self.assertIn("refreshButton.addEventListener('click'", source)
         self.assertIn(".mn-refresh-btn", style)
+        self.assertIn("data-mn-refresh-label", source)
+        self.assertIn("class=\"mn-tab mn-refresh-btn\"", source)
+        self.assertIn("mn-refresh-spin", style)
+        self.assertIn("justify-content: flex-start;", style)
         # 전부 실패하면 5분을 기다리지 않고 한 번 더 시도한다.
         self.assertIn("var RETRY_MS = 6000;", source)
         self.assertIn("if (!collected.length && failed.length && !state.retryTimer)", source)
