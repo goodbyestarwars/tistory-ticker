@@ -1737,6 +1737,21 @@
     }).filter(function (group) { return group.rows.length; }).sort(function (a, b) { return b.total - a.total || a.sector.localeCompare(b.sector, 'ko'); });
   }
 
+  // 대용량 스캔 스냅샷이 늦어져도 카드 전체를 오류로 바꾸지 않는다. 정적 상장 목록을
+  // 먼저 업종별로 열고, 보이는 행의 시세만 GAS에서 뒤늦게 채우는 안전망이다.
+  function listedStockGroups_(krxMap, wicsMap) {
+    var grouped = {};
+    allListedStocks_(krxMap, wicsMap).forEach(function (item) {
+      var sector = item.sector || '기타';
+      if (!grouped[sector]) grouped[sector] = [];
+      grouped[sector].push(item);
+    });
+    return Object.keys(grouped).map(function (sector) {
+      var rows = grouped[sector].sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); }).slice(0, 18);
+      return { sector: sector, rows: rows, total: rows.length };
+    }).filter(function (group) { return group.rows.length; }).sort(function (a, b) { return b.rows.length - a.rows.length || a.sector.localeCompare(b.sector, 'ko'); });
+  }
+
   // 기존 관심섹터와 같은 행·카드 구조를 유지하되, 카드는 WICS 대분류로 나눈다.
   // 따라서 한 카드 안에서 같은 업종의 여러 종목을 현재가·등락률과 함께 바로 비교한다.
   function allStockCardsHtml_(items, byCode) {
@@ -1764,16 +1779,36 @@
     }).join('');
   }
 
+  // 스캔 파일은 전종목 가격과 거래대금을 함께 담아 크기가 크다. 그 파일이 한 번
+  // 지연됐다고 종목 목록까지 사라지면 안 되므로, 카드 첫 화면에서는 짧은 시간만
+  // 기다린 뒤 정적 상장 목록으로 전환한다. 뒤의 GAS 시세 요청은 화면을 막지 않는다.
+  function fetchSnapshotWithinBudget_() {
+    return new Promise(function (resolve) {
+      var settled = false;
+      var timer = setTimeout(function () { finish(null); }, 2500);
+      function finish(value) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      }
+      fetchJson_(INVEST_SIGNAL_URL).then(finish).catch(function () { finish(null); });
+    });
+  }
+
   function loadAllStocksPanel(panel) {
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
 
-    Promise.all([fetchJson_(INVEST_SIGNAL_URL), ensureWicsMap_().catch(function () { return {}; })]).then(function (results) {
-      var allGroups = activeStockGroups_(results[0], results[1]);
-      var scannedAt = results[0] && results[0].data && results[0].data.scannedAt ? String(results[0].data.scannedAt).replace('T', ' ').slice(0, 16) : '최근 장 마감';
+    Promise.all([ensureKrxMap_().catch(function () { return {}; }), ensureWicsMap_().catch(function () { return {}; }), fetchSnapshotWithinBudget_()]).then(function (results) {
+      var snapshot = results[2];
+      var allGroups = snapshot ? activeStockGroups_(snapshot, results[1]) : [];
+      var hasSnapshot = allGroups.length > 0;
+      if (!hasSnapshot) allGroups = listedStockGroups_(results[0], results[1]);
+      var scannedAt = snapshot && snapshot.data && snapshot.data.scannedAt ? String(snapshot.data.scannedAt).replace('T', ' ').slice(0, 16) : '시세 연결 중';
       var state = { query: '', page: 0 };
-      if (!allGroups.length) throw new Error('empty active stocks');
+      if (!allGroups.length) throw new Error('empty listed stocks');
 
       function filteredGroups() {
         var query = state.query.toLowerCase();
@@ -1805,7 +1840,7 @@
         var visible = visibleItems_(shownGroups);
         var total = groups.reduce(function (sum, group) { return sum + group.rows.length; }, 0);
         panel.innerHTML = '<section class="mt-all-stock-browser">'
-          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>거래대금 10억원 이상 · 등락이 있는 종목만 업종별로 표시</span></div><span data-all-stock-count>활성 ' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준</span></div>'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>' + (hasSnapshot ? '거래대금 10억원 이상 · 등락이 있는 종목만 업종별로 표시' : '상장 종목 목록을 먼저 표시하고 현재가를 연결합니다') + '</span></div><span data-all-stock-count>' + (hasSnapshot ? '활성 ' : '표시 ') + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button></div>'
           + '<p class="mt-all-stock-legend"><b>현재가</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 거래대금 상위 종목부터 표시하며, 이름을 누르면 상세 시세를 엽니다.</p>'
           + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}) : '<div class="mt-hint">찾는 종목이 없습니다.</div>') + '</div>'
@@ -1820,11 +1855,24 @@
         if (previous) previous.addEventListener('click', function () { state.page -= 1; render(); });
         if (next) next.addEventListener('click', function () { state.page += 1; render(); });
         if (refresh) refresh.addEventListener('click', function () { panel.__allStockBrowser = false; loadAllStocksPanel(panel); });
-        grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
-          card.addEventListener('click', function () {
-            openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
+        function wireCards() {
+          grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
+            card.addEventListener('click', function () {
+              openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
+            });
           });
-        });
+        }
+        wireCards();
+        if (!hasSnapshot && visible.length) {
+          fetchAllStockQuotes_(visible.map(function (item) { return item.code; })).then(function (quotes) {
+            var byCode = {};
+            (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
+            if (Object.keys(byCode).length) {
+              grid.innerHTML = allStockCardsHtml_(visible, byCode);
+              wireCards();
+            }
+          }).catch(function () { /* 목록은 유지하고 다음 새로고침 때 다시 시도한다. */ });
+        }
       }
       render();
     }).catch(function () {
