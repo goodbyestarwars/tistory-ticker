@@ -50,7 +50,10 @@ FRED_SYMBOLS = {
     'US2Y': {'series': 'DGS2', 'name': '미국 국채 2년물 금리(%)'},
     'US30Y': {'series': 'DGS30', 'name': '미국 국채 30년물 금리(%)'},
     'US_CPI': {'series': 'CPIAUCSL', 'name': '미국 소비자물가지수(CPI, 지수)'},
+    'US_PPI': {'series': 'PPIACO', 'name': '미국 생산자물가지수(PPI, 지수)'},
+    'US_REAL_GDP_GROWTH': {'series': 'A191RL1Q225SBEA', 'name': '미국 실질 GDP 성장률(연율, %)'},
     'US_UNEMPLOYMENT': {'series': 'UNRATE', 'name': '미국 실업률(%)'},
+    'US_RETAIL_SALES': {'series': 'RSAFS', 'name': '미국 소매판매(백만 달러)'},
 }
 _FRED_URL = 'https://fred.stlouisfed.org/graph/fredgraph.csv?id=%s&cosd=%s&coed=%s'
 _FRED_HISTORY_DAYS = 400

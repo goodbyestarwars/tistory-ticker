@@ -35,7 +35,10 @@ class FredMacroSymbolTests(unittest.TestCase):
     def test_market_macro_symbols_are_collected_from_fred(self):
         expected = {
             'US_CPI': 'CPIAUCSL',
+            'US_PPI': 'PPIACO',
+            'US_REAL_GDP_GROWTH': 'A191RL1Q225SBEA',
             'US_UNEMPLOYMENT': 'UNRATE',
+            'US_RETAIL_SALES': 'RSAFS',
         }
         self.assertEqual(
             {symbol: bond_yield.FRED_SYMBOLS[symbol]['series'] for symbol in expected},

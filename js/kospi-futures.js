@@ -537,7 +537,15 @@
     if (!point) return null;
     var x = state.chart.timeScale().timeToCoordinate(point.time);
     var y = state.series.priceToCoordinate(point.price);
-    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+    if (x != null && y != null) return { x: Number(x), y: Number(y) };
+    if (isFinite(Number(point.xRatio)) && isFinite(Number(point.yRatio))) {
+      return { x: Number(point.xRatio) * state.overlay.clientWidth, y: Number(point.yRatio) * state.overlay.clientHeight };
+    }
+    return null;
+  }
+
+  function orderedKfDrawingShape_(first, second) {
+    return Number(first.xRatio) <= Number(second.xRatio) ? { start: first, end: second } : { start: second, end: first };
   }
 
   function redrawKfDrawing(state) {
@@ -685,12 +693,12 @@
       var time = chart.timeScale().coordinateToTime(event.clientX - rect.left);
       var price = series.coordinateToPrice(event.clientY - rect.top);
       if (time == null || price == null || !isFinite(Number(price))) return;
-      var point = { time: time, price: Number(price) };
+      var point = { time: time, price: Number(price), xRatio: (event.clientX - rect.left) / Math.max(1, overlay.clientWidth), yRatio: (event.clientY - rect.top) / Math.max(1, overlay.clientHeight) };
       if (!state.pending) {
         state.pending = point;
         overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
       } else {
-        state[state.mode === 'circle' ? 'circles' : 'lines'].push({ start: state.pending, end: point });
+        state[state.mode === 'circle' ? 'circles' : 'lines'].push(orderedKfDrawingShape_(state.pending, point));
         state.pending = null;
         overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
         saveKfDrawingShapes(state);

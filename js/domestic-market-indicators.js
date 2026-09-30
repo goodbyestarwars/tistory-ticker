@@ -305,14 +305,24 @@
     var time = state.chart.timeScale().coordinateToTime(x);
     var price = state.series.coordinateToPrice(y);
     if (time == null || price == null || !isFinite(Number(price))) return null;
-    return { time: time, price: Number(price) };
+    // 시간축 좌표만 저장하면 이동·확대 직후 visible range 밖의 점은 LWC가 좌표를 돌려주지
+    // 않아 선이 사라질 수 있다. 화면 비율도 함께 남겨 어느 방향으로 찍어도 즉시 보이게 한다.
+    return { time: time, price: Number(price), xRatio: x / Math.max(1, state.overlay.clientWidth), yRatio: y / Math.max(1, state.overlay.clientHeight) };
   }
 
   function drawingCoordinate(state, point) {
     if (!point) return null;
     var x = state.chart.timeScale().timeToCoordinate(point.time);
     var y = state.series.priceToCoordinate(point.price);
-    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
+    if (x != null && y != null) return { x: Number(x), y: Number(y) };
+    if (isFinite(Number(point.xRatio)) && isFinite(Number(point.yRatio))) {
+      return { x: Number(point.xRatio) * state.overlay.clientWidth, y: Number(point.yRatio) * state.overlay.clientHeight };
+    }
+    return null;
+  }
+
+  function orderedDrawingShape_(first, second) {
+    return Number(first.xRatio) <= Number(second.xRatio) ? { start: first, end: second } : { start: second, end: first };
   }
 
   function redrawDrawing(state) {
@@ -489,7 +499,7 @@
         state.pending = point;
         overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
       } else {
-        state[state.mode === 'circle' ? 'circles' : 'lines'].push({ start: state.pending, end: point });
+        state[state.mode === 'circle' ? 'circles' : 'lines'].push(orderedDrawingShape_(state.pending, point));
         state.pending = null;
         overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
         saveDrawingShapes(state);

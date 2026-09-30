@@ -2455,7 +2455,8 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 같은 버전은 두 번 실행하지 않되, 티스토리 본문에 오래된 파일이 있으면 최신 버전을 붙인다.
         self.assertIn("""script[src*="/js/' + tab.slug + '.js"]""", main)
         self.assertIn("var sameVersion = existing.some(function (node) { return node.src === expectedSrc; });", main)
-        self.assertIn("js/overnight-market.js?v=20260930-us-macro-v1", main)
+        self.assertIn("js/overnight-market.js?v=20260930-global-only-v1", main)
+        self.assertIn("key: 'us-macro', label: '주요 미국 발표'", main)
 
         # 글로벌 탭에서 코스피·코스닥 카드를 뺐다 - 국내 탭이 같은 지수를 차트까지 갖고 있다.
         overnight = self.read("js/overnight-market.js")
@@ -3738,10 +3739,12 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertNotIn("경제지표", source)
         self.assertNotIn("mn-indicator", style)
         overnight = self.read("js/overnight-market.js")
-        self.assertIn("var MACRO_SYMBOLS = ['US_CPI', 'US_UNEMPLOYMENT'];", overnight)
-        self.assertIn("다음 FOMC 회의", overnight)
-        self.assertIn("주요 미국 발표", overnight)
-        self.assertNotIn("US_POLICY_RATE", overnight)
+        self.assertNotIn("US_CPI", overnight)
+        macro = self.read("js/us-macro-indicators.js")
+        self.assertIn("다음 FOMC 회의", macro)
+        self.assertIn("US_REAL_GDP_GROWTH", macro)
+        self.assertIn("US_RETAIL_SALES", macro)
+        self.assertNotIn("US_POLICY_RATE", macro)
 
         # 한 목록으로 합치므로 칼럼 구조가 남아 있으면 안 된다.
         self.assertNotIn("mn-column", source)

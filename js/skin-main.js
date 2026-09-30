@@ -277,11 +277,18 @@ document.documentElement.classList.add('skin-ready');
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20260930-us-macro-v1',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20260930-global-only-v1',
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20260930-us-macro-v1']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20260930-global-only-v1']
+      },
+      {
+        key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
+        mountIds: ['us-macro-indicators'],
+        globalName: 'UsMacroIndicators',
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-us-macro-tab-v1',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-us-macro-tab-v1']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
