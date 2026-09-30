@@ -181,6 +181,22 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
+    def test_domestic_major_stocks_all_stock_cards_are_paginated_and_minimal(self):
+        """전종목은 카드를 전부 DOM에 쌓거나 실시간 구독하지 않고, 보이는 한 페이지만 조회한다."""
+        source = self.read("js/market-temp.js")
+        style = self.read("css/market-temp.css")
+        self.assertIn("{ key: 'all', label: '전종목 카드' }", source)
+        self.assertIn("var ALL_STOCKS_PAGE_SIZE = 48;", source)
+        self.assertIn("SD.fetchTickerData(visible.map", source)
+        self.assertIn("global.KRX_ETF_NAMES", source)
+        self.assertIn("이름 · 현재가 · 등락률만 표시", source)
+        self.assertIn("data-all-stock-search", source)
+        self.assertIn("data-all-stock-prev", source)
+        self.assertIn("data-all-stock-next", source)
+        self.assertIn("/page/stock-search?code=", source)
+        self.assertIn(".mt-all-stock-grid", style)
+        self.assertIn("grid-template-columns:repeat(4, minmax(0, 1fr))", style)
+
     def test_domestic_market_indicators_labels_and_provider_contract(self):
         frontend = self.read("js/domestic-market-indicators.js")
         loader = self.read("js/kospi-futures.js")

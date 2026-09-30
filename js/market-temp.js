@@ -706,7 +706,8 @@
 
   function buildStocksOnlyPage() {
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
-    var initialView = params.get('panel') === 'heatmap' ? 'heatmap' : params.get('panel') === 'marketcap' ? 'marketcap' : 'cards';
+    var requestedPanel = params.get('panel');
+    var initialView = ['cards', 'all', 'heatmap', 'marketcap'].indexOf(requestedPanel) !== -1 ? requestedPanel : 'cards';
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 거래대금이 몰린 업종과 업종별 개별 종목을 함께 봅니다.</p></div>'
       + '<section class="mt-section-block">'
@@ -1601,8 +1602,137 @@
   // marketcap-codes.js/marketcap-bubble.js가 이 페이지에 함께 로드돼 있어야 동작한다.
   // 탭은 최초 활성화 시에만 로드한다(foreign-flow.js의 wireViewTabs와 동일 패턴 - hidden
   // 상태에서 차트를 그리면 크기가 0이 되는 문제를 피하기 위해 보여진 뒤에 그린다).
+  // 전종목 카드는 기존의 "관심 업종 카드"와 목적이 다르다. 섹터 카드에 전종목을
+  // 억지로 넣으면 최초 진입에서 수천 종목을 조회·실시간 구독하게 된다. 따라서 실제로
+  // 보이는 한 페이지(48종목)만 시세를 조회하는 독립 탭으로 둔다.
+  var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+  var ALL_STOCKS_PAGE_SIZE = 48;
+  var krxMapLoadPromise_ = null;
+
+  function ensureKrxMap_() {
+    if (global.KRX_MAP && typeof global.KRX_MAP === 'object') return Promise.resolve(global.KRX_MAP);
+    if (krxMapLoadPromise_) return krxMapLoadPromise_;
+    krxMapLoadPromise_ = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = KRX_MAP_JS_URL;
+      script.async = true;
+      script.onload = function () { resolve(global.KRX_MAP || {}); };
+      script.onerror = function () {
+        krxMapLoadPromise_ = null;
+        reject(new Error('KRX 종목 목록을 불러오지 못했습니다.'));
+      };
+      document.head.appendChild(script);
+    });
+    return krxMapLoadPromise_;
+  }
+
+  function allListedStocks_(krxMap) {
+    // krx_map에는 ETF도 함께 들어 있다. 같은 파일이 제공하는 정확한 ETF 이름 목록으로
+    // 제외하고, ETN은 이름에 명시된 상품만 뺀다. 종목명·현재가·등락률만 보는 이 탭의
+    // 모집단을 KOSPI/KOSDAQ 상장주로 한정하기 위함이다.
+    var etfNames = {};
+    (global.KRX_ETF_NAMES || []).forEach(function (name) { etfNames[name] = true; });
+    var seenCodes = {};
+    return Object.keys(krxMap || {}).map(function (name) {
+      return { name: name, code: String(krxMap[name] || '').toUpperCase() };
+    }).filter(function (item) {
+      if (!/^[0-9A-Z]{6}$/.test(item.code) || etfNames[item.name]) return false;
+      if (/(?:^|\s)ETN(?:\s|$)/i.test(item.name) || seenCodes[item.code]) return false;
+      seenCodes[item.code] = true;
+      return true;
+    }).sort(function (a, b) { return a.name.localeCompare(b.name, 'ko'); });
+  }
+
+  function allStockCardHtml_(item, quote) {
+    var price = quote && quote.price != null ? formatNumber(quote.price) : '-';
+    var rate = quote && quote.changeRate != null && Number.isFinite(Number(quote.changeRate)) ? Number(quote.changeRate) : null;
+    var rateClass = rate == null ? 'is-flat' : rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
+    var rateText = rate == null ? '-' : (rate > 0 ? '+' : '') + rate.toFixed(2) + '%';
+    return '<button type="button" class="mt-all-stock-card" data-all-stock-code="' + escapeHtml(item.code) + '" data-all-stock-name="' + escapeHtml(item.name) + '" aria-label="' + escapeHtml(item.name) + ' 실시간 시세 보기">'
+      + '<strong>' + escapeHtml(item.name) + '</strong>'
+      + '<span class="mt-all-stock-price"><small>현재가</small><b>' + escapeHtml(price) + '</b></span>'
+      + '<span class="mt-all-stock-rate ' + rateClass + '"><small>등락률</small><b>' + escapeHtml(rateText) + '</b></span>'
+      + '</button>';
+  }
+
+  function loadAllStocksPanel(panel) {
+    if (!panel || panel.__allStockBrowser) return;
+    panel.__allStockBrowser = true;
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 목록을 준비하는 중...</div>';
+
+    ensureKrxMap_().then(function (krxMap) {
+      var allStocks = allListedStocks_(krxMap);
+      var state = { query: '', page: 0, requestId: 0 };
+      if (!allStocks.length) throw new Error('empty KRX map');
+
+      function filteredStocks() {
+        var query = state.query.toLowerCase();
+        if (!query) return allStocks;
+        return allStocks.filter(function (item) {
+          return item.name.toLowerCase().indexOf(query) !== -1 || item.code.toLowerCase().indexOf(query) !== -1;
+        });
+      }
+
+      function openStock(item) {
+        global.location.href = '/page/stock-search?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name);
+      }
+
+      function render() {
+        var rows = filteredStocks();
+        var pageCount = Math.max(1, Math.ceil(rows.length / ALL_STOCKS_PAGE_SIZE));
+        state.page = Math.min(Math.max(0, state.page), pageCount - 1);
+        var start = state.page * ALL_STOCKS_PAGE_SIZE;
+        var visible = rows.slice(start, start + ALL_STOCKS_PAGE_SIZE);
+        panel.innerHTML = '<section class="mt-all-stock-browser">'
+          + '<div class="mt-all-stock-head"><div><strong>전종목 카드</strong><span>이름 · 현재가 · 등락률만 표시</span></div><span data-all-stock-count>상장주 ' + rows.length.toLocaleString('ko-KR') + '종목</span></div>'
+          + '<div class="mt-all-stock-toolbar"><label><span class="sr-only">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드 검색" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>시세 새로고침</button></div>'
+          + '<div class="mt-all-stock-grid" data-all-stock-grid></div>'
+          + '<div class="mt-all-stock-pagination"><button type="button" data-all-stock-prev' + (state.page === 0 ? ' disabled' : '') + '>이전</button><span>' + (rows.length ? (start + 1).toLocaleString('ko-KR') + '–' + Math.min(start + visible.length, rows.length).toLocaleString('ko-KR') : '0') + ' / ' + rows.length.toLocaleString('ko-KR') + '</span><button type="button" data-all-stock-next' + (state.page >= pageCount - 1 ? ' disabled' : '') + '>다음</button></div>'
+          + '</section>';
+        var input = panel.querySelector('[data-all-stock-search]');
+        var grid = panel.querySelector('[data-all-stock-grid]');
+        var requestId = ++state.requestId;
+        grid.innerHTML = visible.length ? '<div class="mt-hint">현재가를 불러오는 중...</div>' : '<div class="mt-hint">찾는 종목이 없습니다.</div>';
+
+        function wireControls() {
+          input.addEventListener('input', function () { state.query = input.value.trim(); state.page = 0; render(); });
+          var previous = panel.querySelector('[data-all-stock-prev]');
+          var next = panel.querySelector('[data-all-stock-next]');
+          var refresh = panel.querySelector('[data-all-stock-refresh]');
+          if (previous) previous.addEventListener('click', function () { state.page -= 1; render(); });
+          if (next) next.addEventListener('click', function () { state.page += 1; render(); });
+          if (refresh) refresh.addEventListener('click', render);
+        }
+        function wireCards() {
+          grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
+            card.addEventListener('click', function () {
+              openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
+            });
+          });
+        }
+        wireControls();
+        if (!visible.length) return;
+        SD.fetchTickerData(visible.map(function (item) { return item.code; })).then(function (quotes) {
+          if (requestId !== state.requestId) return;
+          var byCode = {};
+          (quotes || []).forEach(function (quote) { if (quote && quote.code) byCode[quote.code] = quote; });
+          grid.innerHTML = visible.map(function (item) { return allStockCardHtml_(item, byCode[item.code]); }).join('');
+          wireCards();
+        }).catch(function () {
+          if (requestId !== state.requestId) return;
+          grid.innerHTML = visible.map(function (item) { return allStockCardHtml_(item, null); }).join('');
+          wireCards();
+        });
+      }
+      render();
+    }).catch(function () {
+      panel.innerHTML = '<div class="mt-error">전종목 목록을 불러오지 못했습니다. 잠시 뒤 다시 시도해 주세요.</div>';
+    });
+  }
+
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
+    { key: 'all', label: '전종목 카드' },
     { key: 'heatmap', label: '히트맵 보기' },
     { key: 'marketcap', label: '시총비례 히트맵' }
   ];
@@ -1617,6 +1747,7 @@
       + toggleHtml
       + '<div class="mt-view-panels">'
       + '<div class="mt-view-panel" data-view-panel="cards"' + (initialView === 'cards' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="all"' + (initialView === 'all' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
       + '</div>'
@@ -2167,6 +2298,7 @@
 
   function loadPanel(view, panel) {
     if (view === 'cards') loadCardsPanel(panel);
+    else if (view === 'all') loadAllStocksPanel(panel);
     else if (view === 'heatmap') loadHeatmapPanel(panel);
     else if (view === 'marketcap') loadMarketcapPanel(panel);
   }
