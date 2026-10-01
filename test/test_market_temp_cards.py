@@ -29,15 +29,29 @@ const context = {window, console, setTimeout, clearTimeout,
 vm.runInNewContext(source, context);
 let html = '';
 let focusCount = 0;
+let panelWrites = 0;
+let gridWrites = 0;
 const listeners = {};
-const input = {value: '', selectionStart: 0, addEventListener(type, cb) {listeners.search = cb;},
+const input = {value: '', selectionStart: 0, addEventListener(type, cb) {listeners[type] = cb;},
   focus() {focusCount++;}, setSelectionRange() {}};
-const grid = {querySelectorAll() {return [];}};
+const grid = {
+  set innerHTML(value) {
+    gridWrites++;
+    html = html.replace(/(data-all-stock-grid>)[\s\S]*?(<\/div><div class="mt-all-stock-summary">)/,
+      (_, before, after) => before + value + after);
+  },
+  querySelectorAll() {return [];}
+};
+function textNode(pattern) {
+  return {set textContent(value) {html = html.replace(pattern, (_, before, after) => before + value + after);}};
+}
 const panel = {isConnected: true,
-  set innerHTML(value) {html = value;}, get innerHTML() {return html;},
+  set innerHTML(value) {html = value; panelWrites++;}, get innerHTML() {return html;},
   querySelector(selector) {
     if (selector === '[data-all-stock-grid]') return grid;
     if (selector === '[data-all-stock-search]') return input;
+    if (selector === '[data-all-stock-count]') return textNode(/(data-all-stock-count>)[\s\S]*?(<\/span>)/);
+    if (selector === '.mt-all-stock-summary') return textNode(/(class="mt-all-stock-summary">)[\s\S]*?(<\/div>)/);
     return {addEventListener(type, cb) {listeners[selector] = cb;}};
   }};
 async function flush() {for (let i = 0; i < 5; i++) await new Promise(setImmediate);}
@@ -45,16 +59,23 @@ async function flush() {for (let i = 0; i < 5; i++) await new Promise(setImmedia
   window.loadCards(panel);
   await flush();
   const initial = html;
-  if (fixture.query && listeners.search) {
+  const initialPanelWrites = panelWrites;
+  const stages = [];
+  for (const event of fixture.events || []) {
+    if (event.value != null) input.value = event.value;
+    if (listeners[event.type]) listeners[event.type](event);
+    stages.push({html, panelWrites, gridWrites, value: input.value});
+  }
+  if (fixture.query && listeners.input) {
     input.value = fixture.query;
     input.selectionStart = fixture.query.length;
-    listeners.search();
+    listeners.input({isComposing: false});
   }
   if (fixture.refresh && listeners['[data-all-stock-refresh]']) {
     listeners['[data-all-stock-refresh]']();
     await flush();
   }
-  console.log(JSON.stringify({initial, html, focusCount, requests}));
+  console.log(JSON.stringify({initial, html, focusCount, requests, stages, panelWrites, initialPanelWrites}));
 })().catch(error => {console.error(error); process.exit(1);});
 """
 
@@ -103,11 +124,50 @@ class MarketTempCardsTest(unittest.TestCase):
 
     def test_search_keeps_focus_and_refresh_requests_new_quotes(self):
         result = self.run_cards(query='정상')
-        self.assertEqual(result['focusCount'], 1)
+        self.assertEqual(result['focusCount'], 0)  # 원래 입력칸의 포커스를 유지한다.
+        self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
         self.assertIn('정상주', result['html'])
         self.assertNotIn('보합주', result['html'])
         refreshed = self.run_cards(refresh=True)
         self.assertEqual(len(refreshed['requests']), 4)
+
+    def test_korean_composition_preserves_input_and_filters_only_after_commit(self):
+        result = self.run_cards(events=[
+            {'type': 'compositionstart'},
+            {'type': 'input', 'value': 'ㅈ', 'isComposing': True},
+            {'type': 'input', 'value': '저', 'isComposing': True},
+            {'type': 'input', 'value': '정', 'isComposing': False},
+            {'type': 'compositionend', 'value': '정'},
+            {'type': 'input', 'value': '정', 'isComposing': False},
+        ])
+        for stage in result['stages'][:4]:
+            self.assertEqual(stage['html'], result['initial'])
+            self.assertEqual(stage['gridWrites'], 0)
+        self.assertIn('정상주', result['html'])
+        self.assertNotIn('보합주', result['html'])
+        self.assertIn('1개 섹터 · 1종목 표시', result['html'])
+        self.assertEqual(result['stages'][-1]['gridWrites'], 1)
+        self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
+        self.assertEqual(result['focusCount'], 0)
+        self.assertEqual(len(result['requests']), 2)
+
+    def test_input_composing_flag_delete_paste_code_and_clear(self):
+        result = self.run_cards(events=[
+            {'type': 'input', 'value': 'ㅂ', 'isComposing': True},
+            {'type': 'input', 'value': '보합주', 'isComposing': False},
+            {'type': 'input', 'value': '보합', 'isComposing': False},
+            {'type': 'input', 'value': '000001', 'isComposing': False},
+            {'type': 'input', 'value': '없는종목', 'isComposing': False},
+            {'type': 'input', 'value': '', 'isComposing': False},
+        ])
+        self.assertEqual(result['stages'][0]['gridWrites'], 0)
+        self.assertNotIn('정상주', result['stages'][1]['html'])
+        self.assertIn('보합주', result['stages'][2]['html'])
+        self.assertNotIn('보합주', result['stages'][3]['html'])
+        self.assertIn('주요 섹터 내에 찾는 종목이 없습니다', result['stages'][4]['html'])
+        self.assertEqual(result['html'], result['initial'])
+        self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
+        self.assertEqual(len(result['requests']), 2)
 
     def test_all_qualified_stocks_and_sectors_are_shown_without_arbitrary_caps(self):
         rows = [self.row(f'{i:06d}', f'활성종목{i}') for i in range(1, 39)]

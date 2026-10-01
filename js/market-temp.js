@@ -1986,14 +1986,28 @@
           + '</section>';
         var input = panel.querySelector('[data-all-stock-search]');
         var grid = panel.querySelector('[data-all-stock-grid]');
-        input.addEventListener('input', function () {
-          var cursor = input.selectionStart;
+        var composing = false;
+        function updateSearchResults() {
+          // 입력칸을 다시 만들면 IME 조합·커서·모바일 키보드가 끊긴다. 결과만 갱신한다.
+          if (state.query === input.value) return;
           state.query = input.value;
-          render();
-          var replacement = panel.querySelector('[data-all-stock-search]');
-          replacement.focus();
-          // search 타입은 일부 브라우저에서 setSelectionRange를 지원하지 않는다.
-          try { replacement.setSelectionRange(cursor, cursor); } catch (ignore) {}
+          var nextGroups = filteredGroups();
+          var nextItems = visibleItems_(nextGroups);
+          var nextSummaries = {};
+          nextGroups.forEach(function (group) { nextSummaries[group.sector] = group; });
+          grid.innerHTML = nextItems.length ? allStockCardsHtml_(nextItems, {}, nextSummaries) : '<div class="mt-hint">주요 섹터 내에 찾는 종목이 없습니다.</div>';
+          panel.querySelector('[data-all-stock-count]').textContent = nextItems.length.toLocaleString('ko-KR') + '종목 · ' + scannedAt + ' 기준' + (isBoard ? '' : ' · 일일 스캔');
+          panel.querySelector('.mt-all-stock-summary').textContent = nextGroups.length + '개 섹터 · ' + nextItems.length.toLocaleString('ko-KR') + '종목 표시';
+          wireCards();
+        }
+        input.addEventListener('compositionstart', function () { composing = true; });
+        input.addEventListener('compositionend', function () {
+          composing = false;
+          updateSearchResults();
+        });
+        input.addEventListener('input', function (event) {
+          if (composing || event.isComposing) return;
+          updateSearchResults();
         });
         var refresh = panel.querySelector('[data-all-stock-refresh]');
         if (refresh) refresh.addEventListener('click', function () {
