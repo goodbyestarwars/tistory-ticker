@@ -181,8 +181,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (window.MarketTemp && typeof window.MarketTemp.init === 'function') window.MarketTemp.init();", main)
         self.assertIn(".sector-view-btn", self.read("css/sector-dashboard-v3.css"))
 
-    def test_domestic_major_stocks_card_view_is_the_paged_all_stock_book(self):
-        """카드 보기는 관심섹터 분리 없이 전종목을 같은 카드 행으로 탐색한다."""
+    def test_domestic_major_stocks_card_view_is_a_dense_sector_list(self):
+        """카드 보기는 관심섹터 분리 없이 주요 종목을 섹터별로 탐색한다."""
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         self.assertNotIn("{ key: 'all', label: '전종목 카드' }", source)
@@ -202,8 +202,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var sector = item.sector || '기타'", source)
         self.assertIn("'sector-up'", source)
         self.assertIn("현재가", source)
-        self.assertIn("‹ 이전 업종", source)
-        self.assertIn("다음 업종 ›", source)
+        self.assertNotIn("data-all-stock-prev", source)
+        self.assertNotIn("data-all-stock-next", source)
         self.assertIn("WICS_MAP_JS_URL", source)
         self.assertIn("activeStockGroups_", source)
         self.assertIn("INVEST_SIGNAL_URL", source)

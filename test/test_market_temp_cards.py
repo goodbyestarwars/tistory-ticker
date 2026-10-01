@@ -67,9 +67,10 @@ class MarketTempCardsTest(unittest.TestCase):
 
     def run_cards(self, rows=None, **options):
         rows = rows if rows is not None else [self.row('000001', '정상주'), self.row('000002', '보합주', rate=0)]
+        wics = options.pop('wics', {row['code']: {'sector': 'IT'} for row in rows})
         fixture = dict(board={'data': {'rows': rows, 'updated_at': 1790774899,
                                       'sections': {'tradeVolume': rows}}},
-                       wics={row['code']: {'sector': 'IT'} for row in rows}, **options)
+                       wics=wics, **options)
         result = subprocess.run(['node', '-e', HARNESS, json.dumps(fixture)],
                                 cwd=ROOT, check=True, capture_output=True, text=True, encoding='utf-8')
         return json.loads(result.stdout)
@@ -107,6 +108,19 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertNotIn('보합주', result['html'])
         refreshed = self.run_cards(refresh=True)
         self.assertEqual(len(refreshed['requests']), 2)
+
+    def test_all_qualified_stocks_and_sectors_are_shown_without_arbitrary_caps(self):
+        rows = [self.row(f'{i:06d}', f'활성종목{i}') for i in range(1, 39)]
+        wics = {row['code']: {'sector': 'IT' if i < 16 else f'업종{(i - 16) // 2}'}
+                for i, row in enumerate(rows)}
+        result = self.run_cards(rows, wics=wics)
+        self.assertEqual(result['html'].count('data-all-stock-code='), 38)
+        self.assertIn('12개 섹터 · 38종목 표시', result['html'])
+        self.assertNotIn('data-all-stock-next', result['html'])
+        self.assertEqual(len(result['requests']), 1)
+        searched = self.run_cards(rows, wics=wics, query='활성종목38')
+        self.assertEqual(searched['html'].count('data-all-stock-code='), 1)
+        self.assertIn('활성종목38', searched['html'])
 
     def test_board_failure_uses_scan_quotes_and_total_failure_has_retry(self):
         scan = {'data': {'scannedAt': '2026-09-30T00:00:00Z', 'buckets': {'hold': [
