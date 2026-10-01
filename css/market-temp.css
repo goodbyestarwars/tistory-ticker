@@ -557,6 +557,7 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .mt-all-stock-sector-grid .mt-all-stock-row:last-child { padding-bottom:5px; border-bottom:1px solid #f1f5f9; }
 #market-temp .mt-all-stock-row .sector-row-name { display:flex; align-items:center; gap:4px; margin-right:6px; }
 #market-temp .mt-all-stock-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#market-temp .mt-all-stock-quote-basis { color:#64748b; font-size:8px; font-weight:400; }
 #market-temp .mt-all-stock-market { flex:0 0 auto; padding:1px 3px; border-radius:3px; font-size:8px; font-weight:800; letter-spacing:.02em; }
 #market-temp .mt-all-stock-market.kospi { color:#9f3b32; background:#fff0ee; }
 #market-temp .mt-all-stock-market.kosdaq { color:#1761a8; background:#edf6ff; }
@@ -998,6 +999,7 @@ html.dark #market-temp .mt-all-stock-legend,
 html.dark #market-temp .mt-all-stock-summary { color:rgba(245,239,224,.55) !important; }
 html.dark #market-temp .mt-all-stock-sector-total,
 html.dark #market-temp .mt-all-stock-retry strong { color:#F5EFE0; }
+html.dark #market-temp .mt-all-stock-quote-basis { color:rgba(245,239,224,.55); }
 html.dark #market-temp .mt-all-stock-retry span { color:rgba(245,239,224,.65); }
 html.dark #market-temp .mt-all-stock-row.sector-up .sector-row-name { color:#ff6b6b; }
 html.dark #market-temp .mt-all-stock-row.sector-down .sector-row-name { color:#5b9cff; }

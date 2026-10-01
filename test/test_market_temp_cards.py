@@ -82,7 +82,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('보합주', result['html'])
         self.assertEqual(result['html'].count('data-all-stock-code='), 2)
         self.assertNotIn('data-all-stock-retry', result['html'])
-        self.assertEqual(len(result['requests']), 1)
+        self.assertEqual(len(result['requests']), 2)
 
     def test_low_activity_funds_and_invalid_prices_are_excluded_and_deduplicated(self):
         rows = [self.row('000001', '정상주'), self.row('000002', '하락주', rate=-2),
@@ -107,7 +107,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('정상주', result['html'])
         self.assertNotIn('보합주', result['html'])
         refreshed = self.run_cards(refresh=True)
-        self.assertEqual(len(refreshed['requests']), 2)
+        self.assertEqual(len(refreshed['requests']), 4)
 
     def test_all_qualified_stocks_and_sectors_are_shown_without_arbitrary_caps(self):
         rows = [self.row(f'{i:06d}', f'활성종목{i}') for i in range(1, 39)]
@@ -117,10 +117,29 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertEqual(result['html'].count('data-all-stock-code='), 38)
         self.assertIn('12개 섹터 · 38종목 표시', result['html'])
         self.assertNotIn('data-all-stock-next', result['html'])
-        self.assertEqual(len(result['requests']), 1)
+        self.assertEqual(len(result['requests']), 2)
         searched = self.run_cards(rows, wics=wics, query='활성종목38')
         self.assertEqual(searched['html'].count('data-all-stock-code='), 1)
         self.assertIn('활성종목38', searched['html'])
+
+    def test_full_scan_universe_is_not_replaced_by_short_live_ranking(self):
+        rows = [self.row('000001', '정상주', price=16000, rate=2),
+                self.row('000002', '보합주', amount=0, volume=0, rate=0)]
+        scan = {'data': {'scannedAt': '2026-09-30T14:58:47Z', 'buckets': {'hold': [
+            ['000001', '정상주', 15000, 1, 3, 50, 30000000000],
+            ['000002', '보합주', 22000, -2, 3, 50, 30000000000],
+            ['000003', '순위밖종목', 18000, 3, 3, 50, 30000000000]]}}}
+        wics = {f'{i:06d}': {'sector': 'IT'} for i in range(1, 4)}
+        result = self.run_cards(rows, scan=scan, wics=wics)
+        self.assertEqual(result['html'].count('data-all-stock-code='), 3)
+        self.assertIn('순위밖종목', result['html'])
+        self.assertIn('16,000원', result['html'])
+        self.assertIn('▲2.00%', result['html'])
+        self.assertIn('22,000원', result['html'])
+        self.assertIn('▼2.00%', result['html'])
+        self.assertIn('시세: 시장판 조회값', result['html'])
+        self.assertIn('스캔', result['html'])
+        self.assertEqual(len(result['requests']), 2)
 
     def test_board_failure_uses_scan_quotes_and_total_failure_has_retry(self):
         scan = {'data': {'scannedAt': '2026-09-30T00:00:00Z', 'buckets': {'hold': [
