@@ -486,6 +486,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("homeChartRows(rows, key)", main)
         self.assertIn("skin-main.js?v=20260930-market-polish-v5", self.read("skin.html"))
 
+    def test_home_briefing_more_has_warm_soft_relief_and_circle_arrow(self):
+        style = self.read("style.css")
+        button = re.search(r"\.home-briefing-more \{([^}]+)\}", style).group(1)
+        arrow = re.search(r"\.home-briefing-more i \{([^}]+)\}", style).group(1)
+        self.assertIn("background: rgb(255, 254, 252)", button)
+        self.assertIn("border-radius: 14px", button)
+        self.assertIn("box-shadow:", button)
+        self.assertIn("border-radius:50%", arrow)
+        self.assertIn("background:rgb(255, 254, 252)", arrow)
+        self.assertIn(".home-briefing-more:focus-visible", style)
+        self.assertIn(".home-briefing-more { transition:none; }", style)
+        self.assertIn('href="/category/마켓 브리핑"', self.read("js/skin-main.js"))
+
     def test_global_newspaper_design_system_contract(self):
         style = self.read("style.css")
         skin = self.read("skin.html")
