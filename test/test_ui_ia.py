@@ -3899,6 +3899,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
             self.assertIn("글로벌테크놀로지", source)
             self.assertIn("0035S0", source)
             self.assertIn("빅웨이브로보틱스", source)
+            self.assertIn("468670", source)
+            self.assertIn("브릴스", source)
             self.assertIn("applyDomesticListingFallbacks", source)
         self.assertIn("!/^[0-9A-Za-z]{6}$/.test(query)", stock_search)
         self.assertIn("if (/^[0-9A-Za-z]{6}$/.test(query))", flow)

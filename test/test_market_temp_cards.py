@@ -141,6 +141,25 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('스캔', result['html'])
         self.assertEqual(len(result['requests']), 2)
 
+    def test_new_active_listing_is_added_without_waiting_for_tonights_scan(self):
+        rows = [self.row('468670', '브릴스', amount=290000000000, price=43750, rate=124.36),
+                self.row('000004', '저거래신규', amount=4000000000)]
+        scan = {'data': {'scannedAt': '2026-09-30T14:58:47Z', 'buckets': {'hold': [
+            ['000001', '기존종목1', 15000, 1, 3, 50, 30000000000],
+            ['000002', '기존종목2', 22000, -2, 3, 50, 30000000000]]}}}
+        wics = {code: {'sector': '산업재'} for code in ['000001', '000002', '000004']}
+        result = self.run_cards(rows, scan=scan, wics=wics)
+        self.assertEqual(result['html'].count('data-all-stock-code='), 3)
+        self.assertEqual(result['html'].count('data-all-stock-code="468670"'), 1)
+        self.assertIn('브릴스', result['html'])
+        self.assertIn('43,750원', result['html'])
+        self.assertIn('▲124.36%', result['html'])
+        self.assertIn('KOSDAQ', result['html'])
+        self.assertIn('장중 조건을 충족한 1종목 추가', result['html'])
+        self.assertIn('600억', result['html'])  # 전일 합계에 당일 거래대금을 섞지 않는다.
+        self.assertNotIn('저거래신규', result['html'])
+        self.assertEqual(len(result['requests']), 2)
+
     def test_board_failure_uses_scan_quotes_and_total_failure_has_retry(self):
         scan = {'data': {'scannedAt': '2026-09-30T00:00:00Z', 'buckets': {'hold': [
             ['000001', '정상주', 15000, 1, 3, 50, 30000000000],

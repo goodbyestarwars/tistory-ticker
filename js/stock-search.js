@@ -78,7 +78,8 @@
   var DOMESTIC_LISTING_FALLBACKS = [
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
-    { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' }
+    { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
+    { code: '468670', name: '브릴스', aliases: '브릴스 brils' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
@@ -394,6 +395,7 @@
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '</div>'
+      + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
       + '</div>'
@@ -875,6 +877,8 @@
     state.selectedName = item.name;
     state.minuteScope = '1';
     state.externalMinuteLoader = null;
+    var chartNotice = container.querySelector('#ssChartNotice');
+    if (chartNotice) chartNotice.hidden = true;
 
     var detail = container.querySelector('#ssDetail');
     detail.hidden = false;
@@ -1218,17 +1222,41 @@
     }
   }
 
+  // 신규상장 종목은 일봉 분석에 필요한 기록이 없어도 실제 분봉은 조회할 수 있다.
+  // NO_DATA만 분봉으로 전환하고, 통신 장애를 일봉 부족으로 오인하지 않는다.
+  function showMinuteForMissingDaily(container, code) {
+    if (state.selectedCode !== code) return;
+    state.timeframe = 'minute';
+    state.minuteScope = '1';
+    var notice = container.querySelector('#ssChartNotice');
+    if (notice) {
+      notice.textContent = '일봉 자료가 부족해 1분봉으로 표시합니다.';
+      notice.hidden = false;
+    }
+    container.querySelectorAll('.ss-tf-btn').forEach(function (button) {
+      button.classList.toggle('active', button.getAttribute('data-tf') === 'minute');
+    });
+    wireChartTabs(container);
+    renderChartForCode(container, code);
+  }
+
   function loadChart(container, code) {
     var chartEl = activeStockChartElement(container);
     if (!chartEl) return;
     var cached = state.chartCache[code];
     if (cached && Date.now() - cached.t < 5 * 60 * 1000) {
+      if (cached.noDaily) { showMinuteForMissingDaily(container, code); return; }
       renderChartForCode(container, code);
       return;
     }
     chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div>';
     fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code))
       .then(function (data) {
+        if (data && (data.error === 'NO_DATA' || (!data.error && Array.isArray(data.daily) && !data.daily.length))) {
+          state.chartCache[code] = { t: Date.now(), noDaily: true };
+          showMinuteForMissingDaily(container, code);
+          return;
+        }
         if (!data || data.error || !data.daily || !data.daily.length) throw new Error('NO_DATA');
         state.chartCache[code] = { t: Date.now(), data: data };
         if (state.selectedCode === code) renderChartForCode(container, code);
@@ -1599,6 +1627,7 @@
     stopMinuteRefresh();
     var cached = state.chartCache[code];
     if (!cached) return;
+    if (cached.noDaily) { showMinuteForMissingDaily(container, code); return; }
     var bars = barsForTimeframe(cached.data.daily, state.timeframe);
     var chartEl = activeStockChartElement(container);
     if (chartEl) renderLwChart(chartEl, bars, state.timeframe);
