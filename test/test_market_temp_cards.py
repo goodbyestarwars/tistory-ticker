@@ -122,6 +122,18 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('현재 기준에 맞는 주요 섹터가 없습니다', result['html'])
         self.assertNotIn('data-all-stock-code=', result['html'])
 
+    def test_stock_rows_use_name_color_and_direction_arrows_without_duplicate_dots(self):
+        html = self.run_cards([self.row('000001', '상승주', rate=1),
+                               self.row('000002', '하락주', rate=-2),
+                               self.row('000003', '보합주', rate=0)])['html']
+        self.assertNotIn('mt-all-stock-dot', html)
+        for direction, marker in [('sector-up', '▲1.00%'), ('sector-down', '▼2.00%'),
+                                  ('sector-flat', '—0.00%')]:
+            self.assertIn('mt-all-stock-row ' + direction, html)
+            self.assertIn('sector-row-rate ' + direction, html)
+            self.assertIn(marker, html)
+        self.assertEqual(html.count('15,000원'), 3)
+
     def test_search_keeps_focus_and_refresh_requests_new_quotes(self):
         result = self.run_cards(query='정상')
         self.assertEqual(result['focusCount'], 0)  # 원래 입력칸의 포커스를 유지한다.
