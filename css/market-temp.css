@@ -551,7 +551,7 @@ html.dark #market-temp .mt-history-balance b { color:#F5EFE0; }
 #market-temp .sector-cards-grid.mt-all-stock-sector-grid { columns:auto; display:flex; flex-direction:column; gap:8px; min-height:0; }
 #market-temp .mt-all-stock-sector-grid > .sector-card { margin:0; padding:8px 10px; border-radius:4px; box-shadow:none; break-inside:auto; }
 #market-temp .mt-all-stock-sector-grid .sector-card-title { margin:0 0 6px; font-size:13px; }
-#market-temp .mt-all-stock-rows { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,290px),1fr)); column-gap:18px; }
+#market-temp .mt-all-stock-rows { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,260px),1fr)); column-gap:12px; }
 #market-temp .mt-all-stock-sector-grid > .mt-hint { min-height:222px; display:grid; place-items:center; }
 #market-temp .mt-all-stock-sector-grid .mt-all-stock-row { min-width:0; min-height:29px; padding:5px 0; font-size:12px; box-sizing:border-box; align-items:center; }
 #market-temp .mt-all-stock-sector-grid .mt-all-stock-row:last-child { padding-bottom:5px; border-bottom:1px solid #f1f5f9; }
