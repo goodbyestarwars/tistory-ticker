@@ -1241,6 +1241,29 @@ html.dark #market-temp .mt-sf-derived b { border-color: rgba(245,239,224,.16) !i
 #market-temp .mt-money-flow-grid .mt-industry-flow-row:hover,
 #market-temp .mt-money-flow-grid .mt-industry-flow-row.is-open { background:#f8fafc; }
 #market-temp .mt-money-flow-grid .mt-industry-flow-detail { margin:0 8px 8px; }
+/* 국내 주요종목 표 안의 글자만 1pt 축소한다. 제목·설명·카드보기는 유지. */
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-columns,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-if-rank { font-size:calc(13px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row { font-size:calc(14px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row b,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-if-rate { font-size:calc(15px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-if-move,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row small,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-detail-head,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-stock em,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-detail-empty { font-size:calc(10px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-if-caret,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-stock small { font-size:calc(9px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-detail-head strong,
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-stock strong { font-size:calc(11px - 1pt); }
+#market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-stock b { font-size:calc(12px - 1pt); }
+@media (max-width: 640px) {
+  #market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-columns { font-size:calc(10px - 1pt); }
+  #market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row { font-size:calc(12px - 1pt); }
+  #market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row b,
+  #market-temp .mt-stocks-only .mt-money-flow-table .mt-if-rate { font-size:calc(13px - 1pt); }
+  #market-temp .mt-stocks-only .mt-money-flow-table .mt-industry-flow-row small { font-size:calc(9px - 1pt); }
+}
 html.dark #market-temp .mt-money-flow-table { border-color:rgba(245,239,224,.16); background:#1A1A1A; }
 html.dark #market-temp .mt-money-flow-columns { background:rgba(245,239,224,.06); }
 html.dark #market-temp .mt-money-flow-grid .mt-industry-flow-row:hover,

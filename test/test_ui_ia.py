@@ -220,6 +220,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("grid-template-columns:56px minmax(260px,2.35fr) minmax(154px,1.05fr) minmax(118px,.8fr) minmax(108px,.7fr)", style)
         self.assertIn("grid-template-columns:26px minmax(0,1.6fr) minmax(68px,.9fr) minmax(60px,.7fr) minmax(62px,.65fr)", style)
 
+    def test_domestic_stock_table_fonts_shrink_one_point_only_inside_table(self):
+        style = self.read("css/market-temp.css")
+        scope = "#market-temp .mt-stocks-only .mt-money-flow-table "
+        for selector, size in ((".mt-industry-flow-row", 14),
+                               (".mt-if-rate", 15),
+                               (".mt-industry-flow-stock b", 12)):
+            self.assertIn(scope + selector + " { font-size:calc(" + str(size) + "px - 1pt); }", style)
+        # 모바일 기존 크기에서도 동일하게 1pt만 줄인다.
+        self.assertIn(scope + ".mt-industry-flow-columns { font-size:calc(10px - 1pt); }", style)
+        self.assertIn(scope + ".mt-industry-flow-row { font-size:calc(12px - 1pt); }", style)
+        self.assertIn(".mt-industry-flow-head strong { font-size:19px;", style)
+        self.assertNotIn(".sector-row-name { font-size:calc(", style)
+
     def test_next_trading_day_hypothesis_is_backchecked_against_history(self):
         source = self.read("js/market-temp.js")
         self.assertIn("다음 거래일 가설", source)
