@@ -122,7 +122,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('현재 기준에 맞는 주요 섹터가 없습니다', result['html'])
         self.assertNotIn('data-all-stock-code=', result['html'])
 
-    def test_stock_rows_use_name_color_and_direction_arrows_without_duplicate_dots(self):
+    def test_stock_rows_use_neutral_names_and_direction_arrows_without_duplicate_dots(self):
         html = self.run_cards([self.row('000001', '상승주', rate=1),
                                self.row('000002', '하락주', rate=-2),
                                self.row('000003', '보합주', rate=0)])['html']
@@ -133,6 +133,10 @@ class MarketTempCardsTest(unittest.TestCase):
             self.assertIn('sector-row-rate ' + direction, html)
             self.assertIn(marker, html)
         self.assertEqual(html.count('15,000원'), 3)
+        style = (ROOT / 'css/market-temp.css').read_text(encoding='utf-8')
+        self.assertRegex(style, r'\.mt-all-stock-row \.sector-row-name\s*\{[^}]*color:#000;')
+        self.assertNotIn('.mt-all-stock-row.sector-up .sector-row-name', style)
+        self.assertNotIn('.mt-all-stock-row.sector-down .sector-row-name', style)
 
     def test_search_keeps_focus_and_refresh_requests_new_quotes(self):
         result = self.run_cards(query='정상')
