@@ -115,6 +115,7 @@
   var lwcChartContainer = null;
   var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
   var lwcMarkers = null;       // v5 Series Markers 플러그인
+  var flowDrawingState = null;
 
   function resizeForeignFlowChart() {
     if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
@@ -1764,7 +1765,7 @@
         if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
           chartBox.dataset.rendered = '1';
           var lwContainer = chartBox.querySelector('#ffLwChart');
-          if (lwContainer) renderLwChart(lwContainer, chartData);
+          if (lwContainer) renderLwChart(lwContainer, chartData, code);
         }
         // 과거 시뮬레이션 탭도 처음 열릴 때만 만든다(수급/펀더멘탈처럼 항상 켜둘 필요는 없음).
         if (view === 'sim' && simBox && !simBox.dataset.loaded) {
@@ -4151,6 +4152,12 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
+        + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구">'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="circle" aria-pressed="false" disabled>동그라미</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
+        + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
         + (chartData.flow && chartData.flow.length
           ? '<div class="ff-chart-flow-caption">아래 보라·초록 선은 외국인·기관의 하루 순매매량(주). 0 위는 순매수, 아래는 순매도.</div>'
@@ -5336,6 +5343,7 @@
 
   // 재검색/언마운트 시 이전 차트 인스턴스와 다크모드 감시자를 정리(리스너 누수 방지)
   function destroyLwChart() {
+    destroyFlowDrawing();
     if (lwcThemeObserver) { lwcThemeObserver.disconnect(); lwcThemeObserver = null; }
     if (lwcChart) {
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
@@ -5427,7 +5435,7 @@
 
   // TradingView Lightweight Charts v5 멀티 패널 차트.
   // 0=가격, 1=거래량, 2=외국인·기관 순매수. RSI는 아래 별도 섹션에서 표시한다.
-  function renderLwChart(container, chartData) {
+  function renderLwChart(container, chartData, code) {
     destroyLwChart();
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
     loadLightweightCharts().then(function (LWC) {
@@ -5591,6 +5599,8 @@
         chart.timeScale().fitContent();
       }
 
+      setupFlowDrawing(container, chart, candleSeries, code);
+
       lwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(lwcThemeOptions(LWC));
       });
@@ -5598,6 +5608,198 @@
     }).catch(function () {
       container.innerHTML = '<div class="ff-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
+  }
+
+  // 실시간 시세 차트와 같은 날짜·가격 좌표 저장 방식. 수급/거래량 패널은 덮지 않는다.
+  function flowDrawingStorageKey(code) {
+    return 'tistory-ticker:flow-drawings:' + String(code || '') + ':day';
+  }
+
+  function loadFlowDrawings(code) {
+    try {
+      var saved = JSON.parse(global.localStorage.getItem(flowDrawingStorageKey(code)) || '{}');
+      return { lines: Array.isArray(saved.lines) ? saved.lines : [],
+        circles: Array.isArray(saved.circles) ? saved.circles : [],
+        paths: Array.isArray(saved.paths) ? saved.paths : [] };
+    } catch (ignore) { return { lines: [], circles: [], paths: [] }; }
+  }
+
+  function saveFlowDrawings(drawing) {
+    try { global.localStorage.setItem(flowDrawingStorageKey(drawing.code), JSON.stringify(drawing.saved)); }
+    catch (ignore) { /* 저장이 막혀도 현재 차트의 그리기는 유지한다. */ }
+  }
+
+  function flowDrawingCoordinate(drawing, point) {
+    if (!point) return null;
+    var x = drawing.chart.timeScale().timeToCoordinate(point.time);
+    var y = drawing.series.priceToCoordinate(point.price);
+    return x == null || y == null || !isFinite(x) || !isFinite(y) ? null : { x: x, y: y };
+  }
+
+  function redrawFlowDrawing(drawing) {
+    if (!drawing || !drawing.overlay.isConnected) return;
+    var panes = drawing.chart.panes();
+    var width = drawing.chart.timeScale().width();
+    var height = panes[0] ? panes[0].getHeight() : 0;
+    if (!(width > 0 && height > 0)) return;
+    var ratio = global.devicePixelRatio || 1;
+    var canvas = drawing.overlay;
+    canvas.style.width = width + 'px';
+    canvas.style.height = height + 'px';
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+    }
+    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = '#d24f45';
+    ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    function shape(item, circle) {
+      var start = flowDrawingCoordinate(drawing, item.start);
+      var end = flowDrawingCoordinate(drawing, item.end);
+      if (!start || !end) return;
+      ctx.beginPath();
+      if (circle) {
+        var rx = Math.abs(end.x - start.x) / 2, ry = Math.abs(end.y - start.y) / 2;
+        if (rx < 0.5 || ry < 0.5) return;
+        ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2, rx, ry, 0, 0, Math.PI * 2);
+      } else { ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); }
+      ctx.stroke();
+    }
+    function path(points) {
+      if (!Array.isArray(points)) return;
+      var started = false;
+      ctx.beginPath();
+      points.forEach(function (point) {
+        var p = flowDrawingCoordinate(drawing, point);
+        if (!p) return;
+        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
+        else ctx.lineTo(p.x, p.y);
+      });
+      if (started) ctx.stroke();
+    }
+    drawing.saved.lines.forEach(function (item) { shape(item, false); });
+    drawing.saved.circles.forEach(function (item) { shape(item, true); });
+    drawing.saved.paths.forEach(path);
+    if (drawing.path) path(drawing.path);
+    if (drawing.start && drawing.end) shape({ start: drawing.start, end: drawing.end }, drawing.mode === 'circle');
+  }
+
+  function scheduleFlowDrawing(drawing) {
+    if (!drawing || drawing.frame != null) return;
+    drawing.frame = global.requestAnimationFrame(function () {
+      drawing.frame = null;
+      if (flowDrawingState === drawing) redrawFlowDrawing(drawing);
+    });
+  }
+
+  function setFlowDrawingMode(drawing, mode) {
+    drawing.mode = mode;
+    drawing.start = drawing.end = drawing.path = null;
+    drawing.pointerId = null;
+    drawing.overlay.classList.toggle('is-active', !!mode);
+    drawing.buttons.forEach(function (button) {
+      var active = !!mode && button.getAttribute('data-ff-draw') === mode;
+      if (button.getAttribute('data-ff-draw') !== 'clear') button.setAttribute('aria-pressed', String(active));
+      button.classList.toggle('is-active', active);
+    });
+    redrawFlowDrawing(drawing);
+  }
+
+  function destroyFlowDrawing() {
+    var drawing = flowDrawingState;
+    if (!drawing) return;
+    flowDrawingState = null;
+    if (drawing.frame != null) global.cancelAnimationFrame(drawing.frame);
+    if (drawing.observer) drawing.observer.disconnect();
+    if (drawing.primitive) drawing.series.detachPrimitive(drawing.primitive);
+    drawing.buttons.forEach(function (button) {
+      button.onclick = null;
+      button.disabled = true;
+      button.classList.remove('is-active');
+      if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', 'false');
+    });
+    drawing.overlay.remove();
+  }
+
+  function setupFlowDrawing(container, chart, series, code) {
+    destroyFlowDrawing();
+    var overlay = document.createElement('canvas');
+    overlay.className = 'ff-drawing-layer';
+    overlay.setAttribute('aria-label', '가격 차트 그리기 영역');
+    overlay.title = '도구 선택 후 왼쪽에서 오른쪽으로 드래그하세요.';
+    container.appendChild(overlay);
+    var drawing = { code: code, chart: chart, series: series, overlay: overlay, saved: loadFlowDrawings(code),
+      mode: null, start: null, end: null, path: null, pointerId: null, frame: null,
+      buttons: container.parentElement.querySelectorAll('[data-ff-draw]') };
+    flowDrawingState = drawing;
+    drawing.buttons.forEach(function (button) {
+      button.disabled = false;
+      button.onclick = function () {
+        var mode = button.getAttribute('data-ff-draw');
+        if (mode === 'clear') {
+          drawing.saved = { lines: [], circles: [], paths: [] };
+          saveFlowDrawings(drawing);
+          setFlowDrawingMode(drawing, null);
+        } else setFlowDrawingMode(drawing, drawing.mode === mode ? null : mode);
+      };
+    });
+    function point(event) {
+      var rect = overlay.getBoundingClientRect();
+      var x = event.clientX - rect.left, y = event.clientY - rect.top;
+      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+      var time = chart.timeScale().coordinateToTime(x), price = series.coordinateToPrice(y);
+      return time == null || price == null || !isFinite(price) ? null : { time: time, price: Number(price) };
+    }
+    overlay.addEventListener('pointerdown', function (event) {
+      if (!drawing.mode || drawing.pointerId != null || (event.button != null && event.button !== 0)) return;
+      var start = point(event);
+      if (!start) return;
+      event.preventDefault();
+      drawing.pointerId = event.pointerId;
+      drawing.start = drawing.end = start;
+      drawing.path = drawing.mode === 'pencil' ? [start] : null;
+      overlay.setPointerCapture(event.pointerId);
+    });
+    overlay.addEventListener('pointermove', function (event) {
+      if (drawing.pointerId !== event.pointerId) return;
+      var next = point(event);
+      if (!next) return;
+      drawing.end = next;
+      if (drawing.path) drawing.path.push(next);
+      redrawFlowDrawing(drawing);
+    });
+    function finish(event, cancelled) {
+      if (drawing.pointerId !== event.pointerId) return;
+      var end = point(event);
+      if (!cancelled && end && drawing.start) {
+        var a = flowDrawingCoordinate(drawing, drawing.start), b = flowDrawingCoordinate(drawing, end);
+        if (drawing.mode === 'pencil') {
+          if (drawing.path.length > 1) { drawing.path.push(end); drawing.saved.paths.push(drawing.path); }
+        } else if (a && b && Math.hypot(b.x - a.x, b.y - a.y) >= 3) {
+          drawing.saved[drawing.mode === 'circle' ? 'circles' : 'lines'].push({ start: drawing.start, end: end });
+        }
+        saveFlowDrawings(drawing);
+      }
+      drawing.start = drawing.end = drawing.path = null;
+      drawing.pointerId = null;
+      if (overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
+      redrawFlowDrawing(drawing);
+    }
+    overlay.addEventListener('pointerup', function (event) { finish(event, false); });
+    overlay.addEventListener('pointercancel', function (event) { finish(event, true); });
+    // 차트의 가격축 확대·시간축 이동·패널 크기 변경에도 날짜/가격 좌표를 다시 투영한다.
+    drawing.primitive = { updateAllViews: function () { scheduleFlowDrawing(drawing); }, paneViews: function () { return []; } };
+    series.attachPrimitive(drawing.primitive);
+    if (global.ResizeObserver) {
+      drawing.observer = new global.ResizeObserver(function () { scheduleFlowDrawing(drawing); });
+      drawing.observer.observe(container);
+    }
+    redrawFlowDrawing(drawing);
   }
 
   function mergeOptions(a, b) {
