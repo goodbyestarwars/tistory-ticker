@@ -212,9 +212,10 @@
     // Stock charts keep their toolbar (drawing/timeframe/studies) beside #ssChart.
     // Move that whole panel into the modal so returning from fullscreen cannot
     // strand the drawing controls outside the fullscreen chart.
-    var modalTarget = target && target.id === 'ssChart' ? target.parentElement : target;
+    var flowChartPanel = target && target.id === 'ffLwChart' && target.parentElement.classList.contains('ff-price-chart-panel');
+    var modalTarget = target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target;
     if (!modalTarget) return;
-    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart') : null;
+    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart') : null;
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
     modalTarget.parentNode.insertBefore(placeholder, modalTarget);
@@ -229,7 +230,7 @@
     var oldChartStyle = chartTarget ? chartTarget.getAttribute('style') : null;
     var flowRoot = modalTarget.closest ? modalTarget.closest('#foreign-flow') : null;
     var flowScope = null;
-    var stockRoot = chartTarget && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
+    var stockRoot = chartTarget && chartTarget.id === 'ssChart' && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
     var stockScope = null;
     modalTarget.classList.add('de-modal-target');
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
@@ -252,7 +253,7 @@
       stockScope.style.minWidth = '0';
       modalTarget.style.width = '100%';
       modalTarget.style.boxSizing = 'border-box';
-    } else if (flowRoot && modalTarget.classList.contains('ff-apt-chart-wrap')) {
+    } else if (flowRoot && (modalTarget.classList.contains('ff-apt-chart-wrap') || flowChartPanel)) {
       flowScope = document.createElement('div');
       flowScope.className = 'de-foreign-flow-scope';
       flowScope.id = 'foreign-flow';

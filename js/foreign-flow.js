@@ -4148,7 +4148,7 @@
     if (!chartData || chartData.error || !chartData.daily || chartData.daily.length < 2) {
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
-      body = '<div class="ff-chart-toggles">'
+      body = '<div class="ff-price-chart-panel"><div class="ff-chart-toggles">'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '</div>'
@@ -4158,7 +4158,7 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
-        + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div></div>'
         + (chartData.flow && chartData.flow.length
           ? '<div class="ff-chart-flow-caption">아래 보라·초록 선은 외국인·기관의 하루 순매매량(주). 0 위는 순매수, 아래는 순매도.</div>'
           : '')

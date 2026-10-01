@@ -772,6 +772,7 @@
 }
 #foreign-flow .ff-chart-toggles .ff-ichimoku-toggle { margin-bottom: 0; }
 #foreign-flow .ff-draw-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
+#foreign-flow .ff-price-chart-panel { width:100%; min-width:0; }
 #foreign-flow .ff-draw-tools span { font-size:12px; color:#64748b; }
 #foreign-flow .ff-draw-tools .is-active { background:#333; border-color:#333; color:#fff; }
 #foreign-flow .ff-drawing-layer { position:absolute; top:0; left:0; z-index:6; pointer-events:none; touch-action:none; }
