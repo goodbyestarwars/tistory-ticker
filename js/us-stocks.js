@@ -10,11 +10,19 @@
   var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260828-domestic-layout-parity-v2';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
+  // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
+  var ORDERBOOK_REFRESH_MS = 3000;
+  var ORDERBOOK_TIMEOUT_MS = 10000;
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
   var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, detailLoadedSymbol: null, quoteRetryTimer: null, nativeChartPromise: null, lastQuote: null };
+  state.orderbookTimer = null;
+  state.orderbookRequest = null;
+  state.orderbookGeneration = 0;
+  state.lastOrderbook = null;
+  state.paused = false;
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
     { symbol: 'MSFT', name: '마이크로소프트', aliases: '마이크로소프트 microsoft microsoft corporation' },
@@ -80,7 +88,7 @@
     autoSelect();
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) { stopRefresh(); stopRealtime(); }
-      else if (state.symbol) { startRefresh(); startRealtime(); }
+      else if (canRefresh()) { refreshQuote(); startRefresh(); startRealtime(); }
     });
   }
 
@@ -336,6 +344,8 @@
     state.detailLoadedSymbol = null;
     state.nativeChartPromise = null;
     state.lastQuote = null;
+    state.lastOrderbook = null;
+    state.paused = false;
     try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
@@ -353,13 +363,37 @@
 
   function startRefresh() {
     stopRefresh();
-    if (!state.symbol || document.hidden) return;
+    if (!canRefresh()) return;
     state.refreshTimer = setInterval(refreshQuote, REFRESH_MS);
+    // 처음에는 시세가 상세 DOM을 만든 뒤 loadDetailData가 시작한다. 복귀 시에는 즉시 조회.
+    if (document.querySelector('#usStocksOrderbook')) loadOrderbook();
   }
 
   function stopRefresh() {
     if (state.refreshTimer) clearInterval(state.refreshTimer);
     state.refreshTimer = null;
+    state.orderbookGeneration += 1;
+    if (state.orderbookTimer) clearTimeout(state.orderbookTimer);
+    state.orderbookTimer = null;
+    var request = state.orderbookRequest;
+    state.orderbookRequest = null;
+    if (request) {
+      clearTimeout(request.timeout);
+      if (request.controller) request.controller.abort();
+    }
+  }
+
+  function canRefresh() {
+    return !!state.symbol && !state.paused && !document.hidden
+      && (!state.embedded || (state.container && !state.container.hidden));
+  }
+
+  function pause() {
+    state.paused = true;
+    stopRefresh();
+    stopRealtime();
+    if (state.quoteRetryTimer) clearTimeout(state.quoteRetryTimer);
+    state.quoteRetryTimer = null;
   }
 
   function stopRealtime() {
@@ -375,7 +409,7 @@
 
   function startRealtime() {
     stopRealtime();
-    if (!state.symbol || document.hidden || !global.WebSocket) return;
+    if (!canRefresh() || !global.WebSocket) return;
     var generation = state.realtimeGeneration;
     function connect() {
       if (generation !== state.realtimeGeneration || document.hidden || !state.symbol) return;
@@ -421,11 +455,11 @@
   }
 
   function refreshQuote() {
-    if (!state.symbol) return;
+    if (!canRefresh()) return;
     var symbol = state.symbol;
     fetchQuoteWithRetry(symbol, 0)
       .then(function (quote) {
-        if (state.symbol !== symbol) return;
+        if (state.symbol !== symbol || !canRefresh()) return;
         renderQuote(quote);
         state.renderedSymbol = symbol;
         loadDetailData(quote, symbol);
@@ -500,7 +534,7 @@
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>10단계 호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
         + '</div>'
@@ -538,7 +572,7 @@
       + '</div>'
       + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
-      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span>10단계 호가</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
@@ -576,16 +610,64 @@
     });
     var updatedNode = card.querySelector('[data-us-updated]');
     if (updatedNode) updatedNode.textContent = updatedLabel(quote);
+    updateOrderbookCurrent();
   }
 
   function loadOrderbook() {
-    if (!state.symbol) return;
-    fetchJson(API_BASE + '/us-orderbook/' + encodeURIComponent(state.symbol))
-      .then(renderOrderbook)
-      .catch(function () {
+    if (!canRefresh() || !document.querySelector('#usStocksOrderbook')) return Promise.resolve();
+    if (state.orderbookRequest) return state.orderbookRequest.promise;
+    if (state.orderbookTimer) clearTimeout(state.orderbookTimer);
+    state.orderbookTimer = null;
+    var symbol = state.symbol;
+    var generation = state.orderbookGeneration;
+    var request = { controller: global.AbortController ? new global.AbortController() : null, timeout: null, delay: null };
+    state.orderbookRequest = request;
+    function isCurrent() { return state.symbol === symbol && state.orderbookGeneration === generation && canRefresh(); }
+    request.promise = new Promise(function (resolve, reject) {
+      request.timeout = setTimeout(function () {
+        if (request.controller) request.controller.abort();
+        reject(new Error('ORDERBOOK_TIMEOUT'));
+      }, ORDERBOOK_TIMEOUT_MS);
+      fetchJson(API_BASE + '/us-orderbook/' + encodeURIComponent(symbol), request.controller ? { signal: request.controller.signal } : undefined)
+        .then(resolve, reject);
+    }).then(function (book) {
+      if (!isCurrent() || (book.symbol && book.symbol !== symbol)) return;
+      state.lastOrderbook = book;
+      renderOrderbook(book);
+      var closed = state.lastQuote && state.lastQuote.market_state === 'closed';
+      var stamp = new Date((Number(book.updated_at) || Date.now() / 1000) * 1000)
+        .toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
+      setOrderbookStatus('조회 ' + stamp + (closed ? ' · 장 마감 · 15초 조회' : ' · 3초 갱신'));
+    }).catch(function () {
+      if (!isCurrent()) return;
+      request.delay = REFRESH_MS;
+      setOrderbookStatus(state.lastOrderbook ? '갱신 지연 · 직전 호가 · 재시도 중' : '호가 연결 재시도 중');
+      if (!state.lastOrderbook) {
         var mount = document.querySelector('#usStocksOrderbook');
-        if (mount) mount.innerHTML = '<div class="us-stocks-empty">호가 데이터를 확인할 수 없습니다.</div>';
-      });
+        if (mount) mount.innerHTML = '<div class="us-stocks-empty">호가를 불러오지 못했습니다. 자동으로 다시 조회합니다.</div>';
+      }
+    }).then(function () {
+      clearTimeout(request.timeout);
+      if (state.orderbookRequest !== request) return;
+      state.orderbookRequest = null;
+      if (!isCurrent()) return;
+      var closed = state.lastQuote && state.lastQuote.market_state === 'closed';
+      state.orderbookTimer = setTimeout(loadOrderbook, request.delay || (closed ? REFRESH_MS : ORDERBOOK_REFRESH_MS));
+    });
+    return request.promise;
+  }
+
+  function setOrderbookStatus(text) {
+    var node = document.querySelector('[data-us-book-status]');
+    if (node) node.textContent = text;
+  }
+
+  function updateOrderbookCurrent() {
+    var mount = document.querySelector('#usStocksOrderbook');
+    var row = mount && mount.querySelector('.us-stocks-book-current');
+    if (!row || !state.lastQuote) return;
+    row.querySelector('strong').textContent = formatPrice(state.lastQuote.price);
+    row.querySelector('span:last-child').textContent = formatPercent(state.lastQuote.change_rate);
   }
 
   function renderOrderbook(book) {
@@ -818,8 +900,8 @@
     return '$' + (number / divisor).toFixed(divisor === 1 ? 0 : 1) + suffix;
   }
 
-  function fetchJson(url) {
-    return fetch(url).then(function (response) {
+  function fetchJson(url, options) {
+    return fetch(url, options).then(function (response) {
       if (!response.ok) {
         var error = new Error('HTTP ' + response.status);
         error.status = response.status;
@@ -894,5 +976,5 @@
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function escapeAttr(value) { return escapeHtml(value); }
 
-  global.UsStocks = { init: init, select: select };
+  global.UsStocks = { init: init, select: select, pause: pause };
 })(window);

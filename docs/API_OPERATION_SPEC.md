@@ -143,7 +143,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/us-search?q=...` | 없음 | 공급자/메모리 캐시 | 미국 종목 검색 |
 | `/us-quote/{symbol}` | 없음 | 공급자별 단기 캐시 | 미국 현재가 |
 | `/us-quotes?symbols=AAPL,MSFT` | 없음 | 공급자별 단기 캐시 | 관심종목용 미국 현재가 최대 50종목 일괄 조회 |
-| `/us-orderbook/{symbol}` | 없음 | 공급자별 단기 캐시 | 미국 호가 가능 범위 |
+| `/us-orderbook/{symbol}` | 없음 | 요청 시 키움 REST 조회 | 미국 10단계 호가. 상세 화면에서 응답 완료 후 장중 3초·장 마감 15초 재조회, 실패 시 15초 재시도. 숨긴 화면·국내 종목 전환 시 중지 |
 | `/us-chart/{symbol}` | 없음 | 공급자 캐시 | 미국 차트 |
 | `/us-news/{symbol}` | 없음 | `us_news_cache.db`, 기본 30분 | Alpha Vantage/Finnhub/Google RSS/Naver fallback |
 | `/us-analysis/{symbol}` | 없음 | `us_analysis_cache.db`, 기본 6시간 | Finnhub 분석·프로필 |

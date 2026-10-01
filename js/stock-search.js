@@ -267,6 +267,7 @@
     var results = container.querySelector('#ssResults');
     var detail = container.querySelector('#ssDetail');
     if (usModule) usModule.hidden = !isUs;
+    if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
   }
