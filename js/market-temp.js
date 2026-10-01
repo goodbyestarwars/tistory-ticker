@@ -1831,8 +1831,8 @@
         var priceText = isFinite(Number(quote.price)) && Number(quote.price) > 0 ? universeNumber_(quote.price) + '원' : '시세 확인 중';
         var market = quote.market === 'KOSPI' || quote.market === 'KOSDAQ' ? quote.market : '';
         return '<button type="button" class="sector-row mt-all-stock-row ' + direction + '" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
-          + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i><span class="mt-all-stock-name" title="' + escapeHtml(entry.item.name) + '">' + escapeHtml(entry.item.name) + '</span>' + (market ? '<small class="mt-all-stock-market ' + market.toLowerCase() + '">' + market + '</small>' : '') + '</span>'
-          + '<span>' + (quote.quoteBasis ? '<small class="mt-all-stock-quote-basis">' + escapeHtml(quote.quoteBasis) + '</small>' : '') + '<span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span></span>'
+          + '<span class="sector-row-name"><i class="mt-all-stock-dot ' + direction + '" aria-hidden="true"></i><span class="mt-all-stock-name" title="' + escapeHtml(entry.item.name) + '">' + escapeHtml(entry.item.name) + '</span></span>'
+          + '<span><span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span>' + (market ? '<small class="mt-all-stock-market ' + market.toLowerCase() + '">' + market + '</small>' : '') + (quote.quoteBasis ? '<small class="mt-all-stock-quote-basis">' + escapeHtml(quote.quoteBasis) + '</small>' : '') + '</span>'
           + '</button>';
       }).join('');
       var summary = (summaries || {})[sector];
