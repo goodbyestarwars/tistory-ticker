@@ -7460,3 +7460,226 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { max-width: 100%; justify-content: center; flex-wrap: wrap; }
 }
+
+/* ============================================================================
+   NEWSPAPER THEME  (2026-10-02 사용자 요청: "신문 스타일, 선과 면, AI 스럽지 않게")
+   - 이 블록만 지우면 이전 디자인으로 돌아간다(원복 지점: git tag design-restore-2026-10-02).
+   - 선: 가운데는 진하고 모서리로 갈수록 옅어지는 그라데이션(border-image / background-image).
+   - 면: 종이색(--np-paper)과 한 톤 짙은 면(--np-tint)으로 영역을 나눈다. 그림자·큰 둥근 모서리 없음.
+   - 한 경계에는 선 하나만 둔다(이웃 행의 위/아래 테두리가 겹쳐 이중선이 되던 곳을 정리).
+   - 버튼: 검은 면 + 흰 글씨, 모서리 0, 높이·글꼴 통일. 탭은 밑줄형, 칩은 가는 선 상자.
+   - 글꼴: 제목·헤드라인·뉴스 = 마루부리(--font-title), 나머지(메뉴 포함) = 프리텐다드(--font-ui). 기존 규칙을 그대로 둔다.
+   ========================================================================== */
+:root {
+  --np-ink: 17, 17, 17;
+  --np-paper: rgb(255, 254, 252);
+  --np-tint: #f4f1e9;
+  --np-line-h: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .86) 50%, rgba(var(--np-ink), 0) 100%);
+  --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .3) 50%, rgba(var(--np-ink), 0) 100%);
+  --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .34) 50%, rgba(var(--np-ink), 0) 100%);
+  --np-btn-h: 32px;
+  --rule: rgba(17, 17, 17, .16);
+}
+html.dark {
+  --np-ink: 245, 239, 224;
+  --np-paper: #1A1A1A;
+  --np-tint: #242424;
+  --rule: rgba(245, 239, 224, .18);
+}
+
+@layer np {
+/* ── 1. 면(패널) : 테두리 상자 대신 위 굵은 선 하나(아래 선을 두면 다음 패널 위 선과 겹쳐 이중선이 된다) ── */
+html body :where(.sector-card, .mt-card, .mt-section, .post-single, .post-card, .card:not(.nav-menu), .home-widget,
+  .home-realtime-board, .home-economic-news, .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card,
+  #stock-search .ss-panel-left, #stock-search .ss-panel-right, #stock-search .ss-summary, #strategy-search .ss-card,
+  #pattern-scan .ps-detail, #overnight-market .om-card, #stock-calendar .sc-cal-col, .market-discussion) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--np-paper) !important;
+  background-image: var(--np-line-h) !important;
+  background-repeat: no-repeat !important;
+  background-size: 100% 2px !important;
+  background-position: top left !important;
+}
+/* 홈 위젯은 같은 줄에 나란히 놓이므로 위 굵은 선만 둔다(아래 선은 다음 단 위 선과 겹친다) */
+html body .home-widget, html body .home-realtime-board, html body .home-economic-news {
+  background-image: var(--np-line-h) !important;
+  background-size: 100% 2px !important;
+  background-position: top left !important;
+}
+
+/* ── 1-1. 헤더 : 선은 한 줄씩만 (예전엔 메뉴바 위·아래, 하위메뉴 위·아래, 네비 그림자가 3~4겹으로 쌓였다) ── */
+html body .navbar { box-shadow: none !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h-soft) 1 !important; }
+html body .sidebar-left { border-top: 0 !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h) 1 !important; box-shadow: none !important; }
+html body #nav-secondary-row { border-bottom: 0 !important; border-top: 1px solid transparent !important; border-image: var(--np-line-h-soft) 1 !important; }
+
+/* ── 2. 선 : 가로는 중앙 진하게, 세로는 위아래 옅게 ── */
+html body :where(.sector-row, .mt-money-row, .post-single-header, .mt-track-row, .mt-track-day,
+  .mt-section-block, .mt-all-stock-divider, .home-market-switch, .home-widget-grid, .home-index-strip, .hmb-summary-head,
+  .hen-breaking, .hen-breaking-head, .hrt-head, .hrt-tabs, .hrt-stock, .home-section-heading, .home-briefing-section,
+  .site-footer, .app-news-event, .post-footer) {
+  border-image: var(--np-line-h-soft) 1 !important;
+}
+html body :where(.home-section-heading, .hen-breaking-head) { border-image: var(--np-line-h) 1 !important; }
+html body :where(.home-market-board, .home-index-card, .global-watchlist-panel) { border-image: var(--np-line-v) 1 !important; }
+html body .home-market-board { border-style: solid !important; border-width: 0 1px 0 0 !important; border-radius: 0 !important; box-shadow: none !important; background-image: var(--np-line-h) !important; background-size: 100% 2px !important; background-repeat: no-repeat !important; background-position: top left !important; }
+
+/* 이웃한 행은 경계선을 하나만 : 위 테두리만 남기고 마지막 행은 아래 선으로 닫는다 */
+html body .app-news-event { border-top-width: 1px !important; border-bottom-width: 0 !important; }
+html body .app-news-event:last-of-type, html body .app-news-event:last-child { border-bottom-width: 1px !important; }
+html body .hen-breaking { border-bottom-width: 0 !important; }
+html body .hen-breaking + * { border-top-width: 0 !important; }
+
+/* ── 3. 면 : 표 머리·요약 띠는 한 톤 짙은 종이색 ── */
+html body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) {
+  background-color: var(--np-tint) !important;
+}
+
+/* ── 4. 제목 : 굵은 위선 + 마루부리 ── */
+html body :where(.home-section-heading, .mt-section-head, .ff-section-head, .dmi-heading) {
+  position: relative !important;
+  padding-top: 10px !important;
+}
+html body :where(.home-section-heading, .mt-section-head, .ff-section-head, .dmi-heading)::before {
+  content: "" !important;
+  position: absolute !important;
+  left: 0; right: 0; top: 0 !important;
+  height: 3px !important;
+  background: var(--np-line-h) !important;
+  pointer-events: none !important;
+}
+
+/* ── 5. 버튼 : 검은 면 + 흰 글씨, 모서리 0 ── */
+html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-btn-c, .ui-btn-soft,
+  .ss-go-btn, .ss-change-stock-btn, .ss-fav-btn, .ff-search-btn, .ff-sim-btn, .ff-sim-btn-play, .ob-go-btn, .pf-search-btn,
+  .sn-search-btn, .sp-search-btn, .kf-retry-btn, .mn-refresh-btn, .memo-add-btn, .memo-login-btn, .wl-add-btn, .wl-login-btn,
+  .qi-add-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, .home-reset-button, .home-settings-button,
+  .page-btn, .us-stocks-fav-btn, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input, .discussion-write-actions button, .discussion-current button,
+  .dmi-spot-collapse, .dmi-section-collapse, .dmi-collapse-btn, .kf-collapse-btn, .qi-collapse-btn, .dmi-draw-clear, .kf-draw-clear, .sc-nav,
+  .ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle, .ss-draw-clear, .kf-draw-toggle, .dmi-draw-toggle, .mt-sector-editor-add-stock-button, [data-theme-picker-open], [data-sector-editor-open],
+  [data-all-stock-refresh], .mt-adopt-controls button, .mt-theme-picker-head button) {
+  min-height: var(--np-btn-h) !important;
+  padding: 0 14px !important;
+  border: 1px solid #111 !important;
+  border-radius: 0 !important;
+  background: #111 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+  font: 600 12.5px/1 var(--font-ui) !important;
+  letter-spacing: 0 !important;
+  text-decoration: none !important;
+  cursor: pointer !important;
+}
+html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-btn-c, .ui-btn-soft, .ss-go-btn, .ss-change-stock-btn,
+  .ss-fav-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, [data-theme-picker-open], [data-sector-editor-open],
+  [data-all-stock-refresh], .mt-adopt-controls button):hover {
+  background: #3c3c3c !important;
+  border-color: #3c3c3c !important;
+  color: #fff !important;
+}
+html.dark body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-btn-c, .ui-btn-soft, .ss-go-btn, .ss-change-stock-btn,
+  .ss-fav-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, [data-theme-picker-open], [data-sector-editor-open],
+  [data-all-stock-refresh], .mt-adopt-controls button, .page-btn) {
+  background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #111 !important;
+}
+
+/* ── 6. 탭 : 상자 대신 글자 + 밑줄 ── */
+html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
+  .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
+  .ui-btn-tab, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border: 0 !important;
+  border-bottom: 2px solid transparent !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  color: rgba(var(--np-ink), .55) !important;
+  box-shadow: none !important;
+  font: 600 12.5px/1 var(--font-ui) !important;
+}
+html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
+  .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
+  .ui-btn-tab, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  background: transparent !important;
+  color: rgb(var(--np-ink)) !important;
+  border-bottom-color: rgb(var(--np-ink)) !important;
+}
+
+/* ── 7. 칩 : 가는 선 상자, 모서리 0 ── */
+html body :where(.discussion-stock-btn, .mt-top-chip, .mt-money-chip, .ssp-chip, .tag-pill, .mt-pill, .is-chip, .ps-track-chip, .memo-context-chip) {
+  border-radius: 0 !important;
+  border: 1px solid rgba(var(--np-ink), .38) !important;
+  background: transparent !important;
+  color: rgb(var(--np-ink)) !important;
+  box-shadow: none !important;
+}
+html body :where(.mt-top-chip, .mt-money-chip).is-mapped {
+  background: var(--np-tint) !important;
+  border-color: rgb(var(--np-ink)) !important;
+  color: rgb(var(--np-ink)) !important;
+}
+html body :where(.mt-top-chip, .discussion-stock-btn):where(.is-active, .active) {
+  background: rgb(var(--np-ink)) !important;
+  border-color: rgb(var(--np-ink)) !important;
+  color: var(--np-paper) !important;
+}
+html body :where(.mt-top-chip, .mt-money-chip).is-add { border-style: dashed !important; }
+
+/* ── 8. 입력칸 : 모서리 0, 가는 선 ── */
+html body :where(input[type="search"], input[type="text"], input[type="email"], input[type="password"], select, textarea):not(.nav-search-input) {
+  border-radius: 0 !important;
+  border: 1px solid rgba(var(--np-ink), .38) !important;
+  background-color: var(--np-paper) !important;
+  box-shadow: none !important;
+}
+html body .nav-search-input-wrap { border-radius: 0 !important; border-color: rgba(var(--np-ink), .5) !important; }
+
+/* ── 9. 푸터 : 짙은 종이색 면 + 위 굵은 선 ── */
+html body .site-footer {
+  background-color: var(--np-tint) !important;
+  border-top: 0 !important;
+  background-image: var(--np-line-h) !important;
+  background-size: 100% 2px !important;
+  background-repeat: no-repeat !important;
+  background-position: top left !important;
+}
+
+/* ── 10. 제목 글꼴 : 마루부리 '진짜 굵은 글자'(MaruBuriBold). 일반 글자를 억지로 굵게(가짜 볼드) 만들지 않는다 ──
+      제목·헤드라인·뉴스 제목만 마루부리, 나머지(메뉴 포함)는 기존 프리텐다드. '가' 버튼으로 고딕을 고르면 적용하지 않는다. */
+html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section-heading strong, .mt-card-title, .mt-briefing-panel-title,
+  .mt-strategy-panel-title, .mt-sf-visual-head > span:first-child, .mt-history-tail-head > strong, .hen-main strong, .hen-head strong,
+  .app-news-body > strong, .app-news-body > b, .mn-row-title, .guest-title, .discussion-heading h1, .dmi-flow-title, .kf-section-title, .dmi-subheading h3, .om-title, .sn-news-featured-title, .sn-news-grid-title,
+  .sn-news-headline-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title, .mt-stocks-only-heading h1, .mt-section-head h2, .mt-section-head > strong) {
+  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.01em !important;
+}
+
+/* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */
+html body .global-watchlist-toggle {
+  border: 1px solid #111 !important;
+  border-radius: 0 !important;
+  background: #111 !important;
+  color: #fff !important;
+  box-shadow: none !important;
+}
+
+/* ── 11. 겹침 정리(점검에서 찾은 곳) : 바깥 상자와 안쪽 표가 같은 테두리를 그리던 곳은 한 쪽만 둔다 ── */
+html body .dmi-spot-quotes { border: 0 !important; }
+html body .ps-track-summary { border-bottom: 0 !important; }
+html body :where(.sc-day.sc-day-clickable) { border-radius: 0 !important; }
+html body .sc-nav { min-width: 32px !important; padding: 0 !important; }
+html body .home-market-switch { border-bottom: 0 !important; }
+html body .home-widget-grid { border-bottom: 0 !important; }
+html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 0 !important; }
+/* 탭 글자는 줄바꿈하지 않는다(좁은 화면에서 두 줄로 깨지던 것). 넘치면 가로로 민다. */
+html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab,
+  .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .home-market-switch button, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
+html body .mt-view-toggle { overflow-x: auto !important; scrollbar-width: none !important; }
+html body .mt-section-block { border-top: 0 !important; }
+
+/* ── 12. 정렬 : 테두리를 없앤 패널은 좌우 안쪽 여백도 없앤다(제목·표·카드 글자가 같은 왼쪽 선에서 시작하게) ── */
+html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card, .sector-card) { padding-left: 0 !important; padding-right: 0 !important; }
+html body .card.nav-menu { border-top: 0 !important; }
+}
