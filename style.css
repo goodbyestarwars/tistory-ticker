@@ -7555,7 +7555,7 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
   .ss-go-btn, .ss-change-stock-btn, .ss-fav-btn, .ff-search-btn, .ff-sim-btn, .ff-sim-btn-play, .ob-go-btn, .pf-search-btn,
   .sn-search-btn, .sp-search-btn, .kf-retry-btn, .mn-refresh-btn, .memo-add-btn, .memo-login-btn, .wl-add-btn, .wl-login-btn,
   .qi-add-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, .home-reset-button, .home-settings-button,
-  .page-btn, .us-stocks-fav-btn, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input, .discussion-write-actions button, .discussion-current button,
+  .page-btn, .us-stocks-fav-btn, .ss-analysis-link, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input, .discussion-write-actions button, .discussion-current button,
   .dmi-spot-collapse, .dmi-section-collapse, .dmi-collapse-btn, .kf-collapse-btn, .qi-collapse-btn, .dmi-draw-clear, .kf-draw-clear, .sc-nav,
   .ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle, .ss-draw-clear, .kf-draw-toggle, .dmi-draw-toggle, .mt-sector-editor-add-stock-button, [data-theme-picker-open], [data-sector-editor-open],
   [data-all-stock-refresh], .mt-adopt-controls button, .mt-theme-picker-head button) {
@@ -7699,7 +7699,7 @@ html body :where(.sc-day.sc-day-clickable) { border-radius: 10px !important; }
 html body .sc-nav { min-width: 32px !important; padding: 0 !important; border-radius: 50% !important; }
 html body .home-market-switch { border-bottom: 0 !important; }
 html body .home-widget-grid { border-bottom: 0 !important; }
-html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 8px !important; }
+html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 8px !important; background: rgba(var(--np-ink), .07) !important; color: rgb(var(--np-ink)) !important; }
 /* 탭 글자는 줄바꿈하지 않는다(좁은 화면에서 두 줄로 깨지던 것). 넘치면 가로로 민다. */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab,
   .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .home-market-switch button, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
