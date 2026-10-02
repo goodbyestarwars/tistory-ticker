@@ -13,6 +13,7 @@ import hmac
 import json
 import logging
 import os
+import re
 import secrets
 import threading
 import time
@@ -950,6 +951,69 @@ def _load_user_sector_cards(request: Request):
         }
     finally:
         conn.close()
+
+
+TOP_PICKS_MAX = 100
+
+
+def _normalize_top_picks(raw):
+    """추가 종목 목록 검증: 6자리 코드, 중복 제거, 이름·가격·등락률만 보존."""
+    if not isinstance(raw, list):
+        raise HTTPException(status_code=400, detail='picks must be a list')
+    out = []
+    seen = set()
+    for item in raw:
+        if not isinstance(item, dict):
+            continue
+        code = str(item.get('code') or '').strip().upper()
+        if not re.fullmatch(r'[0-9A-Z]{6}', code) or code in seen:
+            continue
+        seen.add(code)
+        entry = {'code': code, 'name': str(item.get('name') or code).strip()[:40]}
+        for key in ('price', 'change_rate'):
+            try:
+                value = float(item.get(key))
+            except (TypeError, ValueError):
+                continue
+            if value == value and abs(value) < 1e12:
+                entry[key] = value
+        out.append(entry)
+        if len(out) >= TOP_PICKS_MAX:
+            break
+    return out
+
+
+@app.get('/top-picks/me')
+def get_top_picks(request: Request):
+    """국내 주요종목 '추가 종목'을 계정에 맞춘다. picks가 null이면 아직 동기화 전이다."""
+    session = require_google_user(request)
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        return envelope({'picks': db_schema.load_user_top_picks(conn, user_id)})
+    finally:
+        conn.close()
+
+
+@app.put('/top-picks/me')
+async def put_top_picks(request: Request):
+    session = require_google_user(request)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    picks = _normalize_top_picks(body.get('picks'))
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        db_schema.save_user_top_picks(conn, user_id, picks, now)
+    finally:
+        conn.close()
+    return envelope({'picks': picks})
 
 
 @app.get('/sector-cards/me')

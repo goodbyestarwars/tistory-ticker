@@ -216,6 +216,15 @@ CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
+-- 2026-10-02: 국내 주요종목 '추가 종목' 카드(활성 섹터 카드의 ＋로 담은 종목)를 기기 간에 맞추는
+-- 사용자별 목록. 행이 없으면 아직 동기화한 적 없는 계정이다(빈 목록과 구분).
+CREATE TABLE IF NOT EXISTS user_top_picks (
+    user_id INTEGER PRIMARY KEY,
+    picks_json TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
+
 -- 2026-08: 국내 2주 스윙 추천의 재현 가능한 판정 스냅샷(2026-08-22: 4주에서 2주로
 -- 운영 기간 축소, T+20 추적 제거 - monitor_swing_recommendations.py 참고). legacy_*는
 -- 구 별점 모델과의 회귀 비교용일 뿐 최종 행동을 결정하지 않는다. 결과값은
@@ -539,6 +548,30 @@ def save_user_sector_cards_config(conn, user_id, sectors, updated_at, expected_r
     except Exception:
         conn.rollback()
         raise
+
+
+def load_user_top_picks(conn, user_id):
+    """저장된 추가 종목 목록. 행이 없으면 None(미동기화), 있으면 list."""
+    row = conn.execute('SELECT picks_json FROM user_top_picks WHERE user_id=?', (user_id,)).fetchone()
+    if not row:
+        return None
+    try:
+        picks = json.loads(row[0])
+    except (TypeError, ValueError):
+        return []
+    return picks if isinstance(picks, list) else []
+
+
+def save_user_top_picks(conn, user_id, picks, updated_at):
+    """마지막 저장이 이긴다(목록이 작고 한 사람이 쓰므로 revision 충돌 처리는 두지 않는다)."""
+    payload = json.dumps(picks, ensure_ascii=False, separators=(',', ':'))
+    conn.execute(
+        'INSERT INTO user_top_picks (user_id, picks_json, updated_at) VALUES (?, ?, ?) '
+        'ON CONFLICT(user_id) DO UPDATE SET picks_json=excluded.picks_json, updated_at=excluded.updated_at',
+        (user_id, payload, updated_at),
+    )
+    conn.commit()
+    return picks
 
 
 def delete_user_sector_cards_config(conn, user_id):

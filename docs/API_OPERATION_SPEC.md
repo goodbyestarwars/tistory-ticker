@@ -60,7 +60,7 @@ X-API-Key: <VM_API_TOKEN>
 ### 2.3 Google 사용자 세션
 
 관심종목과 개인 카드 설정은 Google OAuth 로그인 후 HttpOnly·Secure 세션 쿠키로 인증한다.
-`/watchlist`, `/watchlist/disclosures`, `/sector-cards/me`는 로그인 세션이 필요하다.
+`/watchlist`, `/watchlist/disclosures`, `/sector-cards/me`, `/top-picks/me`는 로그인 세션이 필요하다.
 공용 카드 설정의 PUT은 Google 관리자 허용목록과 `X-API-Key`를 함께 확인한다.
 
 ## 3. 엔드포인트 운영표
@@ -86,6 +86,7 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/sector-cards` | 없음 | 공용 증시온도 카드 설정 |
 | PUT | `/sector-cards` | 관리자 + API 키 | 공용 카드 설정 전체 교체 |
 | GET/PUT/DELETE | `/sector-cards/me` | Google 세션 | 개인 카드 설정 조회·저장·공용 기본값 복귀 |
+| GET/PUT | `/top-picks/me` | Google 세션 | 국내 주요종목 '추가 종목' 계정 동기화(마지막 저장 우선) |
 
 PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임의 덮어쓰지 않고 409를
 반환한다. 사용자는 다시 GET한 뒤 최신 revision으로 재저장해야 한다.

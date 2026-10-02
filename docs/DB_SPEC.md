@@ -293,6 +293,16 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 행이 없으면 `sector_cards_config` 공용 기본값을 사용하고, DELETE 시 개인 편집본을 지워 기본값으로 돌아간다.
 
+### 2.14a `user_top_picks` — 국내 주요종목 '추가 종목' 동기화
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| user_id | INTEGER | PK, FK | `app_users.id`, 삭제 CASCADE |
+| picks_json | TEXT | NOT NULL | `[{code, name, price?, change_rate?}]` 최대 100개 |
+| updated_at | TEXT | NOT NULL | 저장 시각 |
+
+행이 없으면 아직 동기화한 적 없는 계정이고(`picks: null`), 빈 배열과 구분한다. 마지막 저장이 이긴다(revision 없음).
+
 ### 2.15 `swing_recommendation_snapshots` — 국내 2주 스윙 판정 스냅샷
 
 복합 PK는 `(as_of_date, code, model_version)`이다. 차트 국면·대/중/소 파동·모멘텀·펀더멘털·위험·보유자 행동·신규 진입 의견을 판정 당시 값으로 보존한다. `wave_events_json`·`risk_reasons_json`·`auxiliary_states_json`은 상세 근거 배열을 JSON으로 저장한다.

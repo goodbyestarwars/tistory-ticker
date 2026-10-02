@@ -600,8 +600,50 @@
     } catch (error) { return []; }
   })();
 
+  var TOP_PICKS_API_URL = 'https://goodbyestar.cloud/top-picks/me';
+  var topPicksAuth_ = false;       // 로그인했을 때만 계정 동기화
+  var topPicksSyncPromise_ = null;
+
   function saveTopPicks_() {
     try { localStorage.setItem(TOP_PICKS_KEY_, JSON.stringify(topPicks_)); } catch (error) { /* 저장소가 막혀도 현재 화면은 동작 */ }
+  }
+
+  function topPicksPayload_() {
+    return JSON.stringify({ picks: topPicks_.map(function (p) {
+      var out = { code: p.code, name: p.name };
+      if (isFinite(Number(p.price))) out.price = Number(p.price);
+      if (isFinite(Number(p.change_rate))) out.change_rate = Number(p.change_rate);
+      return out;
+    }) });
+  }
+
+  function pushTopPicks_() {
+    if (!topPicksAuth_) return Promise.resolve();
+    return fetch(TOP_PICKS_API_URL, {
+      method: 'PUT', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: topPicksPayload_()
+    }).catch(function () { /* 다음 변경 때 다시 맞춘다 */ });
+  }
+
+  // 로그인 상태면 서버 목록이 기준이다(다른 기기에서 뺀 종목이 되살아나지 않게). 서버에 아직 기록이
+  // 없는 계정(picks가 null)만 이 브라우저 목록을 올려 첫 동기화를 한다. 페이지당 한 번만 한다.
+  function syncTopPicks_() {
+    if (topPicksSyncPromise_) return topPicksSyncPromise_;
+    topPicksSyncPromise_ = fetchGoogleAuth_().then(function (auth) {
+      if (!auth || !auth.configured || !auth.authenticated) return;
+      topPicksAuth_ = true;
+      return fetch(TOP_PICKS_API_URL, { credentials: 'include', cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('top picks HTTP ' + r.status); return r.json(); })
+        .then(function (body) {
+          var remote = body && body.data ? body.data.picks : null;
+          if (Array.isArray(remote)) {
+            topPicks_ = remote.filter(function (p) { return p && /^[0-9A-Z]{6}$/.test(String(p.code)); });
+            saveTopPicks_();
+          } else if (topPicks_.length) {
+            return pushTopPicks_();
+          }
+        });
+    }).catch(function () { topPicksAuth_ = false; });
+    return topPicksSyncPromise_;
   }
 
   function rankLabel_(item) {
@@ -636,10 +678,14 @@
   function addTopPick_(stock, fromPanel) {
     var code = String(stock.code || '');
     if (!/^[0-9A-Z]{6}$/.test(code)) return;
-    if (!topPicks_.some(function (p) { return p.code === code; })) {
+    // 아직 서버 목록을 받는 중이면 끝난 뒤에 담아야 서버 목록에 덮여 사라지지 않는다. 아래에서 카드 보기를
+    // 새로 그리는 쪽도 같은 sync 약속 뒤에 붙으므로 담긴 뒤의 목록으로 그려진다.
+    (topPicksSyncPromise_ || syncTopPicks_()).then(function () {
+      if (topPicks_.some(function (p) { return p.code === code; })) return;
       topPicks_.push({ code: code, name: stock.name || code, price: Number(stock.price), change_rate: Number(stock.change_rate) });
       saveTopPicks_();
-    }
+      return pushTopPicks_();
+    });
     var root = fromPanel && fromPanel.closest('.mt-explore-card');
     if (!root) return;
     ['cards', 'heatmap', 'marketcap'].forEach(function (key) {
@@ -653,6 +699,7 @@
   function removeTopPick_(code, fromPanel) {
     topPicks_ = topPicks_.filter(function (p) { return p.code !== code; });
     saveTopPicks_();
+    pushTopPicks_();
     invalidateTopPanels_(fromPanel);
   }
 
@@ -750,6 +797,7 @@
       + '<span class="mt-top-rate ' + dirClass_(rate) + '">' + rateText_(rate) + '</span></div>'
       + (amount ? '<div class="mt-top-sub">거래대금 ' + escapeHtml(amount) + '</div>' : '')
       + (stocks || '<div class="mt-hint">구성종목 데이터가 없습니다.</div>')
+      + (row.picks ? '<div class="mt-top-sub">' + (topPicksAuth_ ? '로그인 계정에 저장되어 다른 기기와 동기화됩니다.' : '이 브라우저에만 저장됩니다. Google 로그인하면 다른 기기와 동기화됩니다.') + '</div>' : '')
       + (derived ? '<div class="mt-top-derived"><span>함께 볼 섹터</span>' + derived + '</div>' : '')
       + '</div>';
   }
@@ -884,7 +932,7 @@
     panel.__mtLoaded = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + label + ' 불러오는 중...</div>';
     loadTopRows_()
-      .then(function (ctx) { return refreshTopPicks_().then(function () { return ctx; }); })
+      .then(function (ctx) { return syncTopPicks_().then(refreshTopPicks_).then(function () { return ctx; }); })
       .then(function (ctx) { renderer(panel, ctx); })
       .catch(function () {
         panel.__mtLoaded = false;
@@ -1038,6 +1086,7 @@
     if (!container) return;
     if (stocksOnly) {
       container.innerHTML = buildStocksOnlyPage();
+      syncTopPicks_();
       wireViewTabs(container);
       loadIndustryFlow_(container);
       return;
@@ -1944,9 +1993,16 @@
   // 시장판은 순위별 최대 40종목뿐이다. 전종목 스캔으로 주요 종목을 선별하고,
   // 공유 시장판에 포함된 종목의 시세만 보충한다. 종목별 추가 요청은 하지 않는다.
   var ACTIVE_STOCK_BOARD_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
-  var ACTIVE_STOCK_MIN_AMOUNT = 5000000000;
+  // 2026-10-02 사용자 요청("죽은 종목을 제외한 모든 종목은 다 표기, 움직임이 거의 없거나 시가총액이
+  // 낮은 애들 빼고"): 예전엔 거래대금 50억 이상·섹터 합계 500억 이상만 보여 대부분이 빠졌다. 이제는
+  // 거래가 거의 없거나(10억 미만), 가격도 거래도 잠잠하거나(등락 0.5% 미만 + 50억 미만), 시총이 알려진 종목 중
+  // 1,000억 미만인 종목만 뺀다. 시총은 시총 풀에 있는 종목만 알 수 있어 나머지는 거래대금으로만 판단한다.
+  var ACTIVE_STOCK_MIN_AMOUNT = 1000000000;
+  var ACTIVE_STOCK_QUIET_RATE = 0.5;
+  var ACTIVE_STOCK_QUIET_AMOUNT = 5000000000;
+  var ACTIVE_STOCK_MIN_CAP = 100000000000;
   var ACTIVE_STOCK_MIN_VOLUME = 10000;
-  var ACTIVE_SECTOR_MIN_AMOUNT = 50000000000;
+  var activeCaps_ = {};
   // WICS 편입 전 신규상장은 확인된 주사업으로만 대분류를 보강한다(WICS 공식 분류 아님).
   var DOMESTIC_SECTOR_FALLBACKS = { '468670': { sector: '산업재', market: 'KOSDAQ' } };
   var allStockSnapshotCache_ = null;
@@ -2059,6 +2115,8 @@
     return (board ? scan.data.rows : universeRows_(scan, {})).filter(function (row) {
       return isFinite(row.price) && row.price > 0 && isFinite(row.changeRate)
         && isFinite(row.tradingValue) && row.tradingValue >= ACTIVE_STOCK_MIN_AMOUNT
+        && !(Math.abs(row.changeRate) < ACTIVE_STOCK_QUIET_RATE && row.tradingValue < ACTIVE_STOCK_QUIET_AMOUNT)
+        && !(activeCaps_[row.code] > 0 && activeCaps_[row.code] < ACTIVE_STOCK_MIN_CAP)
         && (!board || (isFinite(row.volume) && row.volume >= ACTIVE_STOCK_MIN_VOLUME))
         && !etfNames[row.name] && !/(?:ETF|ETN|스팩|SPAC)/i.test(row.name);
     }).map(function (row) {
@@ -2079,7 +2137,7 @@
     return Object.keys(bySector).map(function (sector) {
       var members = bySector[sector].sort(function (a, b) { return b.tradingValue - a.tradingValue; });
       return { sector: sector, rows: members, total: members.reduce(function (sum, row) { return sum + row.tradingValue; }, 0) };
-    }).filter(function (group) { return group.rows.length >= 2 && group.total >= ACTIVE_SECTOR_MIN_AMOUNT; })
+    }).filter(function (group) { return group.rows.length >= 1; })
       .sort(function (a, b) { return b.total - a.total || a.sector.localeCompare(b.sector, 'ko'); });
   }
 
@@ -2160,9 +2218,11 @@
     if (allStockSnapshotPromise_) return allStockSnapshotPromise_;
     allStockSnapshotPromise_ = Promise.all([
       fetchJson_(INVEST_SIGNAL_URL).catch(function () { return null; }),
-      fetchJson_(ACTIVE_STOCK_BOARD_URL).then(activeStockBoardSnapshot_).catch(function () { return null; })
+      fetchJson_(ACTIVE_STOCK_BOARD_URL).then(activeStockBoardSnapshot_).catch(function () { return null; }),
+      fetchJson_(GAS_TICKER_URL + '?bubble=1').then(function (body) { return universeCapByCode_((body || {}).data || {}); }).catch(function () { return {}; })
     ]).then(function (sources) {
       if (!sources[0] && !sources[1]) throw new Error('active stock sources unavailable');
+      activeCaps_ = sources[2] || {};
       var snapshot = { scan: sources[0], board: sources[1] };
       allStockSnapshotCache_ = snapshot;
       allStockSnapshotPromise_ = null;
@@ -2176,7 +2236,7 @@
 
   function renderAllStockRetry_(panel, empty) {
     panel.innerHTML = '<div class="mt-hint mt-all-stock-retry"><strong>' + (empty ? '현재 기준에 맞는 주요 섹터가 없습니다.' : '주요 섹터 시세를 불러오지 못했습니다.')
-      + '</strong><span>거래대금 50억원 이상인 종목이 2개 이상 · 섹터 합계 500억원 이상</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
+      + '</strong><span>거래대금 10억원 이상 · 움직임 없는 종목·시총 1,000억원 미만 제외</span><button type="button" data-all-stock-retry>다시 연결</button></div>';
     var retry = panel.querySelector('[data-all-stock-retry]');
     if (retry) retry.addEventListener('click', function () {
       allStockSnapshotCache_ = null;
@@ -2292,7 +2352,7 @@
         panel.innerHTML = '<section class="mt-all-stock-browser">'
           + '<div class="mt-all-stock-head"><div><strong>주요 섹터 카드</strong><span>' + (isBoard ? '거래가 활발한 섹터' : '최근 거래일에 활발했던 주요 섹터') + '</span></div><span data-all-stock-count>' + total.toLocaleString('ko-KR') + '종목 · ' + escapeHtml(scannedAt) + ' 기준' + (isBoard ? '' : ' · 일일 스캔') + '</span></div>'
           + '<div class="mt-all-stock-toolbar"><label><span class="mt-all-stock-search-label">종목 검색</span><input type="search" data-all-stock-search placeholder="종목명 또는 코드" value="' + escapeHtml(state.query) + '" autocomplete="off"></label><button type="button" data-all-stock-refresh>목록 새로고침</button></div>'
-          + '<p class="mt-all-stock-legend"><b>' + (isBoard ? '현재가' : '최근 거래일 가격·등락률') + '</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 50억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>조회된 종목의 섹터 합계 500억원 이상 · 2종목 이상 · 기준 충족 종목 모두 표시 · ETF·ETN·스팩 제외'
+          + '<p class="mt-all-stock-legend"><b>' + (isBoard ? '현재가' : '최근 거래일 가격·등락률') + '</b> · <b class="mt-legend-up">▲ 상승</b> · <b class="mt-legend-down">▼ 하락</b> · 종목 거래대금 10억원 이상' + (isBoard ? ' · 거래량 1만 주 이상' : ' · 스캔값은 거래량 미제공') + '<br>움직임 없는 종목(등락 0.5% 미만·거래대금 50억원 미만)과 알려진 시총 1,000억원 미만 종목 제외 · 나머지 모두 표시 · ETF·ETN·스팩 제외'
           + (!isBoard ? '<br>스캔: 선별 기준시각의 가격 · 시세: 시장판 조회값' + (selection.quoteCount ? ' (' + escapeHtml(selection.quoteAt) + ' 기준 · ' + selection.quoteCount + '종목)' : '') : '')
           + (selection.addedCount ? '<br>장중 조건을 충족한 ' + selection.addedCount + '종목 추가 · 기존 섹터 금액은 스캔 선별 종목 합계(추가 종목 제외)' : '') + '</p>'
           + '<div class="sector-cards-grid mt-all-stock-sector-grid" data-all-stock-grid>' + (visible.length ? allStockCardsHtml_(visible, {}, summaries) : '<div class="mt-hint">주요 섹터 내에 찾는 종목이 없습니다.</div>') + '</div>'

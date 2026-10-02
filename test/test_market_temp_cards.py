@@ -24,7 +24,9 @@ const context = {window, console, setTimeout, clearTimeout,
     requests.push(url);
     if (fixture.failBoard && url.includes('/market-board')) return Promise.reject(new Error('offline'));
     if (fixture.failAll) return Promise.reject(new Error('offline'));
-    return Promise.resolve({ok: true, json: () => Promise.resolve(url.includes('/market-board') ? fixture.board : fixture.scan)});
+    const body = url.includes('/market-board') ? fixture.board
+      : url.includes('bubble=1') ? (fixture.bubble || {}) : fixture.scan;
+    return Promise.resolve({ok: true, json: () => Promise.resolve(body)});
   }};
 vm.runInNewContext(source, context);
 let html = '';
@@ -103,11 +105,11 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('보합주', result['html'])
         self.assertEqual(result['html'].count('data-all-stock-code='), 2)
         self.assertNotIn('data-all-stock-retry', result['html'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
 
     def test_low_activity_funds_and_invalid_prices_are_excluded_and_deduplicated(self):
         rows = [self.row('000001', '정상주'), self.row('000002', '하락주', rate=-2),
-                self.row('000003', '저거래대금', amount=4000000000),
+                self.row('000003', '저거래대금', amount=900000000),
                 self.row('000004', '저거래량', volume=9999),
                 self.row('000005', '테스트상품'), self.row('000006', '가나다스팩'),
                 self.row('000007', '시세없음', price=0), self.row('000008', '테스트 ETN')]
@@ -117,10 +119,30 @@ class MarketTempCardsTest(unittest.TestCase):
         for name in ['저거래대금', '저거래량', '테스트상품', '가나다스팩', '시세없음', '테스트 ETN']:
             self.assertNotIn(name, html)
 
-    def test_small_sector_shows_empty_state_without_unfiltered_static_list(self):
-        result = self.run_cards([self.row('000001', '거래적은섹터', amount=6000000000)])
+    def test_sector_without_alive_stocks_shows_empty_state_without_unfiltered_static_list(self):
+        result = self.run_cards([self.row('000001', '거래없는섹터', amount=900000000)])
         self.assertIn('현재 기준에 맞는 주요 섹터가 없습니다', result['html'])
         self.assertNotIn('data-all-stock-code=', result['html'])
+
+    def test_small_but_alive_sector_and_single_stock_sector_are_shown(self):
+        # 2026-10-02: 섹터 합계 500억·2종목 기준을 없앴다 - 살아 있는 종목은 한 개여도 보인다.
+        html = self.run_cards([self.row('000001', '작은섹터종목', amount=1500000000, rate=3)])['html']
+        self.assertIn('작은섹터종목', html)
+        self.assertIn('1개 섹터 · 1종목 표시', html)
+
+    def test_quiet_stocks_and_known_small_caps_are_excluded(self):
+        rows = [self.row('000001', '살아있는종목', amount=30000000000, rate=1),
+                self.row('000002', '잠잠한종목', amount=3000000000, rate=0.2),
+                self.row('000003', '잠잠하지만거래많음', amount=6000000000, rate=0.2),
+                self.row('000004', '소형주', amount=30000000000, rate=2),
+                self.row('000005', '대형주', amount=30000000000, rate=2)]
+        bubble = {'data': {'KOSPI': [{'code': '000004', 'cap': 50000000000},
+                                     {'code': '000005', 'cap': 500000000000}]}}
+        html = self.run_cards(rows, bubble=bubble)['html']
+        for name in ['살아있는종목', '잠잠하지만거래많음', '대형주']:
+            self.assertIn(name, html)
+        for name in ['잠잠한종목', '소형주']:
+            self.assertNotIn(name, html)
 
     def test_stock_rows_use_neutral_names_and_direction_arrows_without_duplicate_dots(self):
         html = self.run_cards([self.row('000001', '상승주', rate=1),
@@ -145,7 +167,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('정상주', result['html'])
         self.assertNotIn('보합주', result['html'])
         refreshed = self.run_cards(refresh=True)
-        self.assertEqual(len(refreshed['requests']), 4)
+        self.assertEqual(len(refreshed['requests']), 6)
 
     def test_korean_composition_preserves_input_and_filters_only_after_commit(self):
         result = self.run_cards(events=[
@@ -165,7 +187,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertEqual(result['stages'][-1]['gridWrites'], 1)
         self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
         self.assertEqual(result['focusCount'], 0)
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
 
     def test_input_composing_flag_delete_paste_code_and_clear(self):
         result = self.run_cards(events=[
@@ -183,7 +205,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('주요 섹터 내에 찾는 종목이 없습니다', result['stages'][4]['html'])
         self.assertEqual(result['html'], result['initial'])
         self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
 
     def test_all_qualified_stocks_and_sectors_are_shown_without_arbitrary_caps(self):
         rows = [self.row(f'{i:06d}', f'활성종목{i}') for i in range(1, 39)]
@@ -193,7 +215,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertEqual(result['html'].count('data-all-stock-code='), 38)
         self.assertIn('12개 섹터 · 38종목 표시', result['html'])
         self.assertNotIn('data-all-stock-next', result['html'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
         searched = self.run_cards(rows, wics=wics, query='활성종목38')
         self.assertEqual(searched['html'].count('data-all-stock-code='), 1)
         self.assertIn('활성종목38', searched['html'])
@@ -215,11 +237,11 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('▼2.00%', result['html'])
         self.assertIn('시세: 시장판 조회값', result['html'])
         self.assertIn('스캔', result['html'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
 
     def test_new_active_listing_is_added_without_waiting_for_tonights_scan(self):
         rows = [self.row('468670', '브릴스', amount=290000000000, price=43750, rate=124.36),
-                self.row('000004', '저거래신규', amount=4000000000)]
+                self.row('000004', '저거래신규', amount=900000000)]
         scan = {'data': {'scannedAt': '2026-09-30T14:58:47Z', 'buckets': {'hold': [
             ['000001', '기존종목1', 15000, 1, 3, 50, 30000000000],
             ['000002', '기존종목2', 22000, -2, 3, 50, 30000000000]]}}}
@@ -234,7 +256,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('장중 조건을 충족한 1종목 추가', result['html'])
         self.assertIn('600억', result['html'])  # 전일 합계에 당일 거래대금을 섞지 않는다.
         self.assertNotIn('저거래신규', result['html'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
 
     def test_board_failure_uses_scan_quotes_and_total_failure_has_retry(self):
         scan = {'data': {'scannedAt': '2026-09-30T00:00:00Z', 'buckets': {'hold': [
@@ -243,7 +265,7 @@ class MarketTempCardsTest(unittest.TestCase):
         result = self.run_cards(failBoard=True, scan=scan)
         self.assertIn('15,000원', result['html'])
         self.assertIn('일일 스캔', result['html'])
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
         failure = self.run_cards(failAll=True)
         self.assertIn('주요 섹터 시세를 불러오지 못했습니다', failure['html'])
         self.assertIn('data-all-stock-retry', failure['html'])
@@ -261,15 +283,15 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('▼2.00%', result['html'])
         self.assertNotIn('data-all-stock-retry', result['html'])
         # 명시적 새로고침은 시장판을 다시 확인한 뒤 스캔으로 대체한다.
-        self.assertEqual(len(result['requests']), 4)
+        self.assertEqual(len(result['requests']), 6)
 
     def test_empty_filtered_board_uses_scan_but_does_not_loosen_activity_thresholds(self):
-        rows = [self.row('000001', '저거래대금', amount=4000000000),
+        rows = [self.row('000001', '저거래대금', amount=900000000),
                 self.row('000002', '저거래량', volume=9999)]
         scan = {'data': {'scannedAt': '2026-09-30T23:58:47+09:00', 'buckets': {'hold': [
-            ['000001', '스캔저거래대금', 15000, 1, 3, 50, 4000000000],
-            ['000002', '스캔저거래대금2', 22000, -2, 3, 50, 4000000000]]}}}
+            ['000001', '스캔저거래대금', 15000, 1, 3, 50, 900000000],
+            ['000002', '스캔저거래대금2', 22000, -2, 3, 50, 900000000]]}}}
         result = self.run_cards(rows, scan=scan)
-        self.assertEqual(len(result['requests']), 2)
+        self.assertEqual(len(result['requests']), 3)
         self.assertIn('현재 기준에 맞는 주요 섹터가 없습니다', result['html'])
         self.assertNotIn('data-all-stock-code=', result['html'])

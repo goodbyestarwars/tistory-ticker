@@ -102,4 +102,42 @@ class GoogleUserSessionTests(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main()
+
+
+class TopPicksSyncTests(unittest.TestCase):
+    """국내 주요종목 '추가 종목' 계정 동기화(2026-10-02)."""
+
+    def setUp(self):
+        self.conn = sqlite3.connect(':memory:')
+        db_schema.create_schema(self.conn)
+        self.user = db_schema.upsert_google_user(
+            self.conn, {'sub': 'user-1', 'email': 'first@example.com', 'name': 'First'}, '2026-10-02T00:00:00Z',
+        )
+
+    def tearDown(self):
+        self.conn.close()
+
+    def test_no_row_means_not_synced_and_empty_list_is_distinct(self):
+        self.assertIsNone(db_schema.load_user_top_picks(self.conn, self.user))
+        db_schema.save_user_top_picks(self.conn, self.user, [], '2026-10-02T01:00:00Z')
+        self.assertEqual(db_schema.load_user_top_picks(self.conn, self.user), [])
+
+    def test_save_replaces_list_per_user(self):
+        other = db_schema.upsert_google_user(
+            self.conn, {'sub': 'user-2', 'email': 'second@example.com', 'name': 'Second'}, '2026-10-02T00:00:00Z',
+        )
+        db_schema.save_user_top_picks(self.conn, self.user, [{'code': '005930', 'name': '삼성전자'}], '2026-10-02T01:00:00Z')
+        db_schema.save_user_top_picks(self.conn, self.user, [{'code': '000660', 'name': 'SK하이닉스'}], '2026-10-02T02:00:00Z')
+        self.assertEqual(db_schema.load_user_top_picks(self.conn, self.user), [{'code': '000660', 'name': 'SK하이닉스'}])
+        self.assertIsNone(db_schema.load_user_top_picks(self.conn, other))
+
+    def test_endpoints_and_frontend_are_wired(self):
+        main = (ROOT / 'scripts' / 'cloud-vm' / 'main.py').read_text(encoding='utf-8')
+        self.assertIn("@app.get('/top-picks/me')", main)
+        self.assertIn("@app.put('/top-picks/me')", main)
+        self.assertIn('def _normalize_top_picks', main)
+        self.assertRegex(main, r'(?m)^import re$')
+        js = (ROOT / 'js' / 'market-temp.js').read_text(encoding='utf-8')
+        self.assertIn("var TOP_PICKS_API_URL = 'https://goodbyestar.cloud/top-picks/me';", js)
+        self.assertIn('function syncTopPicks_()', js)
