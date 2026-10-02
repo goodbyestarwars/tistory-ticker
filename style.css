@@ -7817,4 +7817,9 @@ html body .hrt-tabs { align-items: center !important; padding: 6px 0 10px !impor
 /* ── 16. 그룹형 토글(애플 세그먼트): 트랙 위에서 선택된 탭만 바탕색 면 ── */
 html body .mt-view-toggle { display: inline-flex !important; padding: 4px !important; gap: 2px !important; background: rgba(var(--np-ink), .05) !important; border-radius: 14px !important; max-width: 100% !important; }
 html body .mt-view-toggle .mt-view-btn.active { background: var(--np-paper) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important; }
+
+/* ── 17. 홈 두 열 정렬 : 국내/미국 시장 카드와 경제 종합뉴스 카드의 제목 줄 높이·첫 블록 시작 간격이 달라
+      (제목 34/35px, 첫 블록 위 간격 10/14/20px) 가로선이 서로 어긋나던 것을 같은 값으로 맞춘다 ── */
+html body :where(.home-card-heading, .hen-head) { min-height: 36px !important; }
+html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { margin-top: 18px !important; }
 }
