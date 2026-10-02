@@ -7467,7 +7467,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
    - 선: 1px 아주 옅은 중립색, 양 끝만 서서히 사라지는 그라데이션(보이는 듯 안 보이는 선)(border-image / background-image).
    - 면: 종이색 위에 거의 투명한 회색 한 겹(--np-tint)만 얹는다(색이 섞이지 않게). 그림자·큰 둥근 모서리 없음.
    - 한 경계에는 선 하나만 둔다(이웃 행의 위/아래 테두리가 겹쳐 이중선이 되던 곳을 정리).
-   - 버튼: 검은 알약 + 흰 글씨(애플 스타일), 높이·글꼴 통일. 탭은 세그먼트(선택된 것만 연한 면), 칩은 알약+가는 선, 입력칸은 둥근 모서리.
+   - 버튼: 연한 회색 면 + 둥근 사각형(아이콘은 원형), 핵심 동작만 애플 블루, 높이·글꼴 통일. 탭은 세그먼트(선택된 것만 연한 면), 칩은 알약+가는 선, 입력칸은 둥근 모서리.
    - 글꼴: 제목·헤드라인·뉴스 = 마루부리(--font-title), 나머지(메뉴 포함) = 프리텐다드(--font-ui). 기존 규칙을 그대로 둔다.
    ========================================================================== */
 :root {
@@ -7477,7 +7477,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --np-line-h: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .15) 16%, rgba(var(--np-ink), .15) 84%, rgba(var(--np-ink), 0) 100%);
   --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .09) 16%, rgba(var(--np-ink), .09) 84%, rgba(var(--np-ink), 0) 100%);
   --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .1) 20%, rgba(var(--np-ink), .1) 80%, rgba(var(--np-ink), 0) 100%);
-  --np-btn-h: 32px;
+  --np-btn-h: 34px;
   --rule: rgba(17, 17, 17, .1);
 }
 html.dark {
@@ -7562,9 +7562,9 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
   min-height: var(--np-btn-h) !important;
   padding: 0 16px !important;
   border: 0 !important;
-  border-radius: 980px !important;
-  background: #111 !important;
-  color: #fff !important;
+  border-radius: 10px !important;
+  background: rgba(var(--np-ink), .07) !important;
+  color: rgb(var(--np-ink)) !important;
   box-shadow: none !important;
   font: 500 13px/1 var(--font-ui) !important;
   letter-spacing: -0.01em !important;
@@ -7575,23 +7575,34 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
 html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-btn-c, .ui-btn-soft, .ss-go-btn, .ss-change-stock-btn,
   .ss-fav-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, [data-theme-picker-open], [data-sector-editor-open],
   [data-all-stock-refresh], .mt-adopt-controls button):hover {
-  background: #3a3a3c !important;
+  background: rgba(var(--np-ink), .12) !important;
+  color: rgb(var(--np-ink)) !important;
+}
+/* 핵심 동작 몇 곳에만 애플 블루(검색 등). 나머지 버튼은 연한 회색 면이라 색이 튀지 않는다. */
+html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]) {
+  background: #0071e3 !important;
   color: #fff !important;
 }
-html.dark body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-btn-c, .ui-btn-soft, .ss-go-btn, .ss-change-stock-btn,
-  .ss-fav-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, [data-theme-picker-open], [data-sector-editor-open],
-  [data-all-stock-refresh], .mt-adopt-controls button, .page-btn) {
-  background: #F5EFE0 !important; border-color: #F5EFE0 !important; color: #111 !important;
+html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]):hover {
+  background: #0077ed !important;
+  color: #fff !important;
+}
+/* 아이콘만 있는 버튼은 원형 */
+html body :where(.ss-fav-btn, .us-stocks-fav-btn, .ss-watch-toggle, .sc-nav) {
+  width: var(--np-btn-h) !important;
+  min-width: var(--np-btn-h) !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
 }
 
 /* ── 6. 탭 : 애플 세그먼트 스타일 — 알약형, 선택된 탭만 연한 면 ── */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
   .ui-btn-tab, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
-  min-height: 30px !important;
+  min-height: 34px !important;
   padding: 0 14px !important;
   border: 0 !important;
-  border-radius: 980px !important;
+  border-radius: 10px !important;
   background: transparent !important;
   color: rgba(var(--np-ink), .56) !important;
   box-shadow: none !important;
@@ -7608,8 +7619,9 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 
 /* ── 7. 칩 : 알약형, 가는 선 ── */
 html body :where(.discussion-stock-btn, .mt-top-chip, .mt-money-chip, .ssp-chip, .tag-pill, .mt-pill, .is-chip, .ps-track-chip, .memo-context-chip) {
-  border-radius: 980px !important;
-  border: 1px solid rgba(var(--np-ink), .16) !important;
+  border-radius: 8px !important;
+  min-height: 28px !important;
+  border: 1px solid rgba(var(--np-ink), .14) !important;
   background: transparent !important;
   color: rgb(var(--np-ink)) !important;
   box-shadow: none !important;
@@ -7620,9 +7632,10 @@ html body :where(.mt-top-chip, .mt-money-chip).is-mapped {
   color: rgb(var(--np-ink)) !important;
 }
 html body :where(.mt-top-chip, .discussion-stock-btn):where(.is-active, .active) {
-  background: rgb(var(--np-ink)) !important;
+  background: rgba(var(--np-ink), .1) !important;
   border-color: transparent !important;
-  color: var(--np-paper) !important;
+  color: rgb(var(--np-ink)) !important;
+  font-weight: 600 !important;
 }
 html body :where(.mt-top-chip, .mt-money-chip).is-add { border-style: dashed !important; }
 
@@ -7633,7 +7646,8 @@ html body :where(input[type="search"], input[type="text"], input[type="email"], 
   background-color: var(--np-paper) !important;
   box-shadow: none !important;
 }
-html body .nav-search-input-wrap { border-radius: 999px !important; border-color: rgba(var(--np-ink), .16) !important; }
+html body .nav-search-input-wrap { border-radius: 999px !important; border-color: rgba(var(--np-ink), .12) !important; box-shadow: none !important; background: var(--np-paper) !important; }
+html body .nav-search-input-wrap:focus-within { border-color: rgba(var(--np-ink), .3) !important; box-shadow: 0 0 0 4px rgba(var(--np-ink), .05) !important; }
 
 /* ── 9. 푸터 : 바탕색 그대로 + 위 가는 선 ── */
 html body .site-footer {
@@ -7658,11 +7672,24 @@ html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section
 
 /* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */
 html body .global-watchlist-toggle {
-  border: 0 !important;
+  border: 1px solid rgba(var(--np-ink), .12) !important;
+  border-right: 0 !important;
   border-radius: 12px 0 0 12px !important;
-  background: #111 !important;
-  color: #fff !important;
+  background: var(--np-paper) !important;
+  color: rgb(var(--np-ink)) !important;
   box-shadow: none !important;
+}
+
+/* 검색 아래 뉴스 패널: 네모 상자를 없애고 위 가는 선만 둔다 */
+html body :where(.ss-news-panel, .us-stocks-news-panel) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background-color: var(--np-paper) !important;
+  background-image: var(--np-line-h) !important;
+  background-size: 100% 1px !important;
+  background-repeat: no-repeat !important;
+  background-position: top left !important;
 }
 
 /* ── 11. 겹침 정리(점검에서 찾은 곳) : 바깥 상자와 안쪽 표가 같은 테두리를 그리던 곳은 한 쪽만 둔다 ── */
