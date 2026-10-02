@@ -590,6 +590,71 @@
   var topRowsCache_ = { at: 0, promise: null };
   var topExtra_ = [];
   var topExtraRows_ = {};
+  // '활성 섹터 카드'에서 ＋로 담은 종목. 카드 보기의 '추가 종목' 카드가 되고 히트맵·시총 탭에도
+  // 같은 목록으로 반영된다. 이 브라우저에만 저장한다.
+  var TOP_PICKS_KEY_ = 'mt_top_picks_v1';
+  var topPicks_ = (function () {
+    try {
+      var saved = JSON.parse(localStorage.getItem(TOP_PICKS_KEY_) || '[]');
+      return Array.isArray(saved) ? saved.filter(function (p) { return p && /^[0-9A-Z]{6}$/.test(String(p.code)); }) : [];
+    } catch (error) { return []; }
+  })();
+
+  function saveTopPicks_() {
+    try { localStorage.setItem(TOP_PICKS_KEY_, JSON.stringify(topPicks_)); } catch (error) { /* 저장소가 막혀도 현재 화면은 동작 */ }
+  }
+
+  function rankLabel_(item) {
+    return item.pick ? '추가' : item.extra ? '추천' : item.rank;
+  }
+
+  function topPicksRow_() {
+    var stocks = topPicks_.map(function (p) {
+      return { code: p.code, name: p.name || p.code, price: p.price, change_rate: Number(p.change_rate) };
+    });
+    var rates = stocks.map(function (s) { return s.change_rate; }).filter(isFinite);
+    var avg = rates.length ? rates.reduce(function (a, b) { return a + b; }, 0) / rates.length : NaN;
+    return { industry: '추가 종목', avg_change_rate: avg, trade_amount: 0, stocks: stocks, picks: true };
+  }
+
+  // 저장해 둔 가격은 담은 시점 값이라, 카드를 그릴 때 GAS 배치 조회로 한 번 갱신한다(실패하면 저장값 유지).
+  function refreshTopPicks_() {
+    var SD = global.SectorDashboard;
+    if (!topPicks_.length || !SD) return Promise.resolve();
+    return SD.fetchTickerData(topPicks_.map(function (p) { return p.code; })).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (q) { if (q && q.code) byCode[q.code] = q; });
+      topPicks_.forEach(function (p) {
+        var q = byCode[p.code];
+        if (q && Number(q.price) > 0) { p.price = Number(q.price); p.change_rate = Number(q.changeRate); }
+      });
+      saveTopPicks_();
+    }).catch(function () { /* 저장값으로 표시 */ });
+  }
+
+  // 활성 섹터 카드의 ＋에서 호출: 담고, 세 탭을 새로 그리게 한 뒤 카드 보기로 옮긴다.
+  function addTopPick_(stock, fromPanel) {
+    var code = String(stock.code || '');
+    if (!/^[0-9A-Z]{6}$/.test(code)) return;
+    if (!topPicks_.some(function (p) { return p.code === code; })) {
+      topPicks_.push({ code: code, name: stock.name || code, price: Number(stock.price), change_rate: Number(stock.change_rate) });
+      saveTopPicks_();
+    }
+    var root = fromPanel && fromPanel.closest('.mt-explore-card');
+    if (!root) return;
+    ['cards', 'heatmap', 'marketcap'].forEach(function (key) {
+      var other = root.querySelector('[data-view-panel="' + key + '"]');
+      if (other) { other.__mtLoaded = false; other.innerHTML = ''; }
+    });
+    var tab = root.querySelector('.mt-view-btn[data-view="cards"]');
+    if (tab) tab.click();
+  }
+
+  function removeTopPick_(code, fromPanel) {
+    topPicks_ = topPicks_.filter(function (p) { return p.code !== code; });
+    saveTopPicks_();
+    invalidateTopPanels_(fromPanel);
+  }
 
   function loadTopRows_() {
     var now = Date.now();
@@ -637,6 +702,7 @@
     topExtra_.forEach(function (name) {
       if (topExtraRows_[name]) list.push({ row: topExtraRows_[name], rank: 0, extra: true });
     });
+    if (topPicks_.length) list.push({ row: topPicksRow_(), rank: 0, extra: true, pick: true });
     return list;
   }
 
@@ -664,10 +730,13 @@
     var amount = tradeAmountText_(row.trade_amount);
     var stocks = (row.stocks || []).map(function (stock) {
       var r = Number(stock.change_rate);
-      return '<a class="sector-row mt-top-stock" href="' + stockLinkHref_(stock) + '">'
+      var link = '<a class="sector-row mt-top-stock" href="' + stockLinkHref_(stock) + '">'
         + '<span class="sector-row-name">' + escapeHtml(stock.name || stock.code) + '</span>'
         + '<span><span class="sector-row-price">' + priceText_(stock.price) + '</span>'
         + '<span class="sector-row-rate ' + dirClass_(r) + '">' + rateText_(r) + '</span></span></a>';
+      return row.picks
+        ? '<div class="mt-top-pick-row">' + link + '<button type="button" class="mt-top-pick-x" data-top-pick-remove="' + escapeHtml(stock.code) + '" aria-label="' + escapeHtml(stock.name || stock.code) + ' 빼기">×</button></div>'
+        : link;
     }).join('');
     var shown = {};
     topThemeList_(ctx.rows).forEach(function (t) { shown[t.row.industry] = true; });
@@ -676,7 +745,7 @@
         + escapeHtml(d.sector) + '<small>겹침 ' + d.shared + '</small></button>';
     }).join('');
     return '<div class="sector-card mt-top-card' + (item.extra ? ' is-extra' : '') + '" data-top-card="' + escapeHtml(row.industry) + '">'
-      + '<div class="sector-card-title"><span class="mt-top-rank">' + (item.extra ? '추천' : item.rank) + '</span>'
+      + '<div class="sector-card-title"><span class="mt-top-rank">' + rankLabel_(item) + '</span>'
       + '<span class="mt-top-name">' + escapeHtml(row.industry) + '</span>'
       + '<span class="mt-top-rate ' + dirClass_(rate) + '">' + rateText_(rate) + '</span></div>'
       + (amount ? '<div class="mt-top-sub">거래대금 ' + escapeHtml(amount) + '</div>' : '')
@@ -710,6 +779,12 @@
     panel.innerHTML = '<p class="mt-top-note">위 TOP10 순서 그대로 구성종목을 보여줍니다. 카드 아래 "함께 볼 섹터"를 누르면 그 섹터 카드가 추가되고, 히트맵·시총비례 히트맵에도 같이 반영됩니다.</p>'
       + '<div class="sector-cards-grid">' + list.map(function (item) { return topCardHtml_(item, ctx); }).join('') + '</div>';
     panel.onclick = function (event) {
+      var remove = event.target.closest && event.target.closest('[data-top-pick-remove]');
+      if (remove && panel.contains(remove)) {
+        removeTopPick_(remove.getAttribute('data-top-pick-remove'), panel);
+        renderTopCardsPanel_(panel, ctx);
+        return;
+      }
       var chip = event.target.closest && event.target.closest('[data-top-theme]');
       if (!chip || !panel.contains(chip)) return;
       var name = chip.getAttribute('data-top-theme');
@@ -756,7 +831,7 @@
           + '<span class="heatmap-tile-rate">' + rateText_(r) + '</span></a>';
       }).join('');
       var rate = Number(item.row.avg_change_rate);
-      return '<div class="mt-top-hm-group"><div class="mt-top-hm-title"><span class="mt-top-rank">' + (item.extra ? '추천' : item.rank) + '</span>'
+      return '<div class="mt-top-hm-group"><div class="mt-top-hm-title"><span class="mt-top-rank">' + rankLabel_(item) + '</span>'
         + escapeHtml(item.row.industry) + '<em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em></div>'
         + '<div class="heatmap-grid">' + tiles + '</div></div>';
     }).join('');
@@ -772,12 +847,13 @@
       var codes = {};
       var total = 0;
       items.forEach(function (item) {
-        sectorCodes_(ctx.sectorMap, item.row.industry).forEach(function (code) { if (!codes[code]) { codes[code] = true; total += 1; } });
+        var itemCodes = item.row.picks ? item.row.stocks.map(function (s) { return s.code; }) : sectorCodes_(ctx.sectorMap, item.row.industry);
+        itemCodes.forEach(function (code) { if (!codes[code]) { codes[code] = true; total += 1; } });
       });
       return { label: label, codes: codes, total: total };
     }
     var chips = ['<button type="button" class="mt-top-chip is-active" data-mc-theme="">TOP10 전체</button>'].concat(list.map(function (item, i) {
-      return '<button type="button" class="mt-top-chip" data-mc-theme="' + i + '">' + (item.extra ? '추천 ' : item.rank + ' ') + escapeHtml(item.row.industry) + '</button>';
+      return '<button type="button" class="mt-top-chip" data-mc-theme="' + i + '">' + (item.pick ? '추가 ' : item.extra ? '추천 ' : item.rank + ' ') + escapeHtml(item.row.industry) + '</button>';
     })).join('');
     panel.innerHTML = '<div class="mt-top-chips">' + chips + '</div>'
       + '<p class="mt-top-note" data-mc-note></p>'
@@ -808,6 +884,7 @@
     panel.__mtLoaded = true;
     panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + label + ' 불러오는 중...</div>';
     loadTopRows_()
+      .then(function (ctx) { return refreshTopPicks_().then(function () { return ctx; }); })
       .then(function (ctx) { renderer(panel, ctx); })
       .catch(function () {
         panel.__mtLoaded = false;
@@ -2065,7 +2142,9 @@
         var rateText = isFinite(rate) ? (rate > 0 ? '▲' : rate < 0 ? '▼' : '—') + Math.abs(rate).toFixed(2) + '%' : '-';
         var priceText = isFinite(Number(quote.price)) && Number(quote.price) > 0 ? universeNumber_(quote.price) + '원' : '시세 확인 중';
         var market = quote.market === 'KOSPI' || quote.market === 'KOSDAQ' ? quote.market : '';
+        var picked = topPicks_.some(function (p) { return p.code === entry.item.code; });
         return '<button type="button" class="sector-row mt-all-stock-row ' + direction + '" data-all-stock-code="' + escapeHtml(entry.item.code) + '" data-all-stock-name="' + escapeHtml(entry.item.name) + '" aria-label="' + escapeHtml(entry.item.name) + ' 실시간 시세 보기">'
+          + '<span class="mt-pick-add' + (picked ? ' is-picked' : '') + '" role="button" tabindex="0" title="카드 보기에 추가" data-pick-code="' + escapeHtml(entry.item.code) + '" data-pick-name="' + escapeHtml(entry.item.name) + '" data-pick-price="' + escapeHtml(isFinite(Number(quote.price)) ? quote.price : '') + '" data-pick-rate="' + escapeHtml(isFinite(rate) ? rate : '') + '">' + (picked ? '✓' : '＋') + '</span>'
           + '<span class="sector-row-name"><span class="mt-all-stock-name" title="' + escapeHtml(entry.item.name) + '">' + escapeHtml(entry.item.name) + '</span></span>'
           + '<span><span class="sector-row-price">' + priceText + '</span><span class="sector-row-rate ' + direction + '">' + rateText + '</span>' + (market ? '<small class="mt-all-stock-market ' + market.toLowerCase() + '">' + market + '</small>' : '') + (quote.quoteBasis ? '<small class="mt-all-stock-quote-basis">' + escapeHtml(quote.quoteBasis) + '</small>' : '') + '</span>'
           + '</button>';
@@ -2254,7 +2333,17 @@
         });
         function wireCards() {
           grid.querySelectorAll('[data-all-stock-code]').forEach(function (card) {
-            card.addEventListener('click', function () {
+            card.addEventListener('click', function (event) {
+              var add = event.target.closest && event.target.closest('.mt-pick-add');
+              if (add) {
+                event.preventDefault();
+                event.stopPropagation();
+                add.textContent = '✓';
+                add.classList.add('is-picked');
+                addTopPick_({ code: add.getAttribute('data-pick-code'), name: add.getAttribute('data-pick-name'),
+                  price: add.getAttribute('data-pick-price'), change_rate: add.getAttribute('data-pick-rate') }, panel);
+                return;
+              }
               openStock({ code: card.getAttribute('data-all-stock-code'), name: card.getAttribute('data-all-stock-name') });
             });
           });

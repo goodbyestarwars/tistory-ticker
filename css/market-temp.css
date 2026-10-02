@@ -1782,3 +1782,14 @@ html.dark #market-temp .mt-top-chip { border-color: rgba(245,239,224,.16) !impor
 html.dark #market-temp .mt-top-chip.is-active { background: #F5EFE0 !important; color: #1A1A1A !important; }
 html.dark #market-temp .mt-top-rate.sector-up { color: #ff8a83 !important; }
 html.dark #market-temp .mt-top-rate.sector-down { color: #80b8ff !important; }
+
+/* ---- 활성 섹터 카드 ＋ 담기 / 추가 종목 카드 ---- */
+#market-temp .mt-pick-add { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 18px; height: 18px; border: 1px solid #cbd5e1; border-radius: 50%; color: #64748b; font-size: 12px; font-weight: 700; line-height: 1; cursor: pointer; }
+#market-temp .mt-pick-add:hover { border-color: #2563eb; color: #2563eb; }
+#market-temp .mt-pick-add.is-picked { border-color: #2563eb; background: #2563eb; color: #fff; }
+#market-temp .mt-top-pick-row { display: flex; align-items: center; gap: 4px; }
+#market-temp .mt-top-pick-row .mt-top-stock { flex: 1; min-width: 0; }
+#market-temp .mt-top-pick-x { flex: 0 0 auto; width: 22px; height: 22px; border: 0; background: transparent; color: #94a3b8; font-size: 15px; cursor: pointer; }
+#market-temp .mt-top-pick-x:hover { color: #d24f45; }
+html.dark #market-temp .mt-pick-add { border-color: rgba(245,239,224,.3) !important; color: rgba(245,239,224,.7) !important; }
+html.dark #market-temp .mt-pick-add.is-picked { background: #F5EFE0 !important; color: #1A1A1A !important; }
