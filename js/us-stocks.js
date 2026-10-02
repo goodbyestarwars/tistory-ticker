@@ -1,6 +1,6 @@
 /**
  * 미국주식 페이지 - 공통 검색에서 연결되는 미국 개별주식 1차 화면.
- * 현재는 시세·등락·거래량·고저가·장 상태를 15초마다 갱신한다.
+ * 시세·등락·거래량·고저가·장 상태는 KIS WebSocket 실시간 체결로 갱신하고(연결 중), 연결이 없을 때만 15초마다 다시 조회한다.
  * 차트·재무·실적 데이터는 다음 단계에서 같은 ticker API에 붙인다.
  */
 (function (global) {
@@ -17,7 +17,7 @@
   var REALTIME_RECONNECT_MS = 5000;
   var LAST_SYMBOL_KEY = 'us:lastSelected';
   var DEFAULT_SYMBOL = 'AAPL';
-  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, detailLoadedSymbol: null, quoteRetryTimer: null, nativeChartPromise: null, lastQuote: null };
+  var state = { container: null, symbol: null, refreshTimer: null, realtimeSocket: null, realtimeTimer: null, realtimeGeneration: 0, initialized: false, embedded: false, renderedSymbol: null, detailLoadedSymbol: null, quoteRetryTimer: null, nativeChartPromise: null, lastQuote: null, realtimeLive: false };
   state.orderbookTimer = null;
   state.orderbookRequest = null;
   state.orderbookGeneration = 0;
@@ -398,6 +398,7 @@
 
   function stopRealtime() {
     state.realtimeGeneration += 1;
+    state.realtimeLive = false;
     if (state.realtimeTimer) clearTimeout(state.realtimeTimer);
     state.realtimeTimer = null;
     if (state.realtimeSocket) {
@@ -430,11 +431,15 @@
       };
       socket.onopen = function () {
         if (generation !== state.realtimeGeneration) return;
+        state.realtimeLive = true;
+        updateRefreshLabels();
         if (socket.readyState === WebSocket.OPEN) socket.send('ping');
       };
       socket.onerror = function () { try { socket.close(); } catch (err) {} };
       socket.onclose = function () {
         if (generation !== state.realtimeGeneration || document.hidden) return;
+        state.realtimeLive = false;
+        updateRefreshLabels();
         state.realtimeSocket = null;
         state.realtimeTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
       };
@@ -523,7 +528,7 @@
         + metric('52주 범위', '', 'week52')
         + metric('상장주식 수', '', 'shares')
         + '</div>'
-        + '<div class="us-stocks-live-footer"><span>15초 자동 갱신</span><span data-us-updated></span></div>'
+        + '<div class="us-stocks-live-footer"><span data-us-refresh-note>15초 자동 갱신</span><span data-us-updated></span></div>'
         + '</div>'
         + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
         + analysisCard('기본 재무', '재무지표를 불러오는 중...', 'financials')
@@ -940,10 +945,24 @@
     var date = new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
     return Number(m[2]) + '/' + Number(m[3]) + '(' + days[date.getDay()] + ')';
   }
+  function refreshNote() {
+    return state.realtimeLive ? ' · 실시간' : ' · 15초 자동 갱신';
+  }
+  function updateRefreshLabels() {
+    var detail = document.querySelector('#usStocksDetail');
+    if (!detail) return;
+    var footer = detail.querySelector('[data-us-refresh-note]');
+    if (footer) footer.textContent = state.realtimeLive ? '실시간 체결 수신' : '15초 자동 갱신';
+    var quote = state.lastQuote;
+    var basisNode = detail.querySelector('[data-us-basis]');
+    if (basisNode && quote) basisNode.textContent = basisLabel(quote);
+  }
   function basisLabel(quote) {
     if (!quote || quote.market_state === 'regular' || quote.market_state === 'pre'
         || quote.market_state === 'post') {
-      return ' · 15초 자동 갱신';
+      // 2026-10-02 사용자 지적: 실제로는 KIS WebSocket 체결이 0.1~0.3초 간격으로 들어오는데 화면은 옛 REST
+      // 조회 주기("15초")만 적고 있었다. 소켓이 열려 있을 때만 실시간이라고 말하고, 아니면 조회 주기를 적는다.
+      return refreshNote();
     }
     var when = sessionDateLabel(quote && quote.session_date);
     // 날짜를 못 만들면 없는 말을 지어내지 않는다.

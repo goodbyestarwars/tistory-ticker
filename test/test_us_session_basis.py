@@ -156,6 +156,16 @@ class FrontendContractTest(unittest.TestCase):
         self.assertNotIn('<span data-us-state></span> · 15초 자동 갱신', self.js)
         self.assertIn('data-us-basis', self.js)
 
+    def test_label_says_realtime_only_while_the_socket_is_open(self):
+        """2026-10-02: KIS WebSocket 체결이 실시간으로 들어오는데 화면은 '15초 자동 갱신'만 적고 있었다."""
+        start = self.js.index('function refreshNote(')
+        body = self.js[start:self.js.index('function updateRefreshLabels(', start)]
+        self.assertIn('state.realtimeLive', body)
+        self.assertIn('실시간', body)
+        self.assertIn('15초 자동 갱신', body)  # 소켓이 없을 때의 실제 조회 주기
+        self.assertIn('state.realtimeLive = true;', self.js)
+        self.assertIn('state.realtimeLive = false;', self.js)
+
     def test_closed_market_shows_the_session_instead_of_query_time(self):
         start = self.js.index('function updatedLabel(')
         body = self.js[start:self.js.index('function marketStateLabel(', start)]
