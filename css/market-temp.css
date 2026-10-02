@@ -1748,3 +1748,37 @@ html.dark #market-temp .mt-history-tail.mt-card .mt-history-metrics b { color: #
   #market-temp .mt-history-tail.mt-card .mt-history-metrics { gap: 5px; }
   #market-temp .mt-history-tail.mt-card .mt-history-metrics b { font-size: 11px; }
 }
+
+/* ---- 국내 주요종목: TOP10 기준 카드·히트맵·시총 칩 (2026-10-02) ---- */
+#market-temp .mt-top-note { margin: 0 0 12px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+#market-temp .mt-top-card .sector-card-title { gap: 6px; margin-bottom: 4px; }
+#market-temp .mt-top-card .sector-card-title::before { display: none; }
+#market-temp .mt-top-rank { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px; background: #111827; color: #fff; font-size: 11px; font-weight: 700; }
+#market-temp .mt-top-card.is-extra .mt-top-rank { background: #2563eb; }
+#market-temp .mt-top-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#market-temp .mt-top-rate { font-size: 13px; font-weight: 700; }
+#market-temp .mt-top-rate.sector-up, #market-temp .mt-top-hm-title em.sector-up { color: #d24f45; }
+#market-temp .mt-top-rate.sector-down, #market-temp .mt-top-hm-title em.sector-down { color: #1261c4; }
+#market-temp .mt-top-rate.sector-flat, #market-temp .mt-top-hm-title em.sector-flat { color: #9ca3af; }
+#market-temp .mt-top-sub { margin: 0 0 8px; color: #94a3b8; font-size: 11px; }
+#market-temp a.mt-top-stock, #market-temp a.mt-top-tile { color: inherit; text-decoration: none; }
+#market-temp .mt-top-derived, #market-temp .mt-top-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+#market-temp .mt-top-derived { margin-top: 10px; padding-top: 9px; border-top: 1px dashed #e2e8f0; }
+#market-temp .mt-top-chips { margin-bottom: 8px; }
+#market-temp .mt-top-derived > span { color: #94a3b8; font-size: 10.5px; }
+#market-temp .mt-top-chip { padding: 3px 9px; border: 1px solid #e5edf6; border-radius: 999px; background: #f8fbff; color: #334155; font: inherit; font-size: 11px; font-weight: 600; cursor: pointer; }
+#market-temp .mt-top-chip small { margin-left: 4px; color: #94a3b8; font-size: 10px; font-weight: 500; }
+#market-temp .mt-top-chip.is-shown { border-style: dashed; color: #94a3b8; }
+#market-temp .mt-top-chip.is-active { border-color: #222; background: #222; color: #fff; }
+#market-temp .mt-top-hm-group { margin-bottom: 16px; }
+#market-temp .mt-top-hm-title { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; color: #111827; font-size: 13px; font-weight: 700; }
+#market-temp .mt-top-hm-title em { font-style: normal; font-size: 12px; }
+#market-temp #marketcap-bubble[data-theme-filter] .mcb-filter-bar { display: none; }
+html.dark #market-temp .mt-top-note, html.dark #market-temp .mt-top-sub { color: rgba(245,239,224,.55) !important; }
+html.dark #market-temp .mt-top-rank { background: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #market-temp .mt-top-hm-title { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-top-derived { border-top-color: rgba(245,239,224,.14) !important; }
+html.dark #market-temp .mt-top-chip { border-color: rgba(245,239,224,.16) !important; background: rgba(245,239,224,.06) !important; color: rgba(245,239,224,.85) !important; }
+html.dark #market-temp .mt-top-chip.is-active { background: #F5EFE0 !important; color: #1A1A1A !important; }
+html.dark #market-temp .mt-top-rate.sector-up { color: #ff8a83 !important; }
+html.dark #market-temp .mt-top-rate.sector-down { color: #80b8ff !important; }

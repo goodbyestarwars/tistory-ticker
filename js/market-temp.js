@@ -581,6 +581,240 @@
   }
 
 
+  // ---- TOP10 기준 카드·히트맵·시총비례 히트맵 (2026-10-02 사용자 요청) ----
+  // "TOP10 기준으로 아래 카드를 다시 나열, 연관 섹터는 카드 하단 추천으로." 위 "오늘 업종 TOP 10"
+  // (/industry-flow)과 같은 순서·같은 테마로 카드·히트맵·시총 히트맵을 그린다. 섹터 구성은
+  // data/sectors-v3.js(SECTOR_MAP) 전체 종목을 쓰므로 TOP10이 보여주는 상위 8종목 밖의 종목으로
+  // '함께 볼 섹터'(구성종목이 겹치는 다른 테마)도 계산한다. 추천 섹터를 누르면 카드가 덧붙고
+  // 히트맵·시총 탭에도 같은 목록으로 반영된다.
+  var topRowsCache_ = { at: 0, promise: null };
+  var topExtra_ = [];
+  var topExtraRows_ = {};
+
+  function loadTopRows_() {
+    var now = Date.now();
+    if (topRowsCache_.promise && now - topRowsCache_.at < 60000) return topRowsCache_.promise;
+    topRowsCache_.at = now;
+    topRowsCache_.promise = Promise.all([
+      fetchJson_(INDUSTRY_FLOW_URL),
+      fetchDefaultSectorConfig_().then(function (config) { return config.sectors || {}; }).catch(function () { return global.SECTOR_MAP || {}; })
+    ]).then(function (results) {
+      var body = results[0];
+      var payload = body && body.data ? body.data : body;
+      var rows = ((payload && payload.rows) || []).slice(0, INDUSTRY_TOP_LIMIT_);
+      if (!rows.length) throw new Error('industry flow empty');
+      return { rows: rows, sectorMap: results[1] || {} };
+    }).catch(function (error) {
+      topRowsCache_.promise = null;
+      throw error;
+    });
+    return topRowsCache_.promise;
+  }
+
+  function sectorCodes_(sectorMap, name) {
+    var krxMap = global.KRX_MAP || {};
+    return (sectorMap[name] || []).map(function (item) {
+      return item && typeof item === 'object' ? item.code : krxMap[item];
+    }).filter(Boolean);
+  }
+
+  // 선택 테마와 구성종목을 공유하는 다른 테마(SECTOR_MAP 전체 기준), 많이 겹치는 순.
+  function topRelatedSectors_(name, sectorMap) {
+    var mine = {};
+    sectorCodes_(sectorMap, name).forEach(function (code) { mine[code] = true; });
+    var out = [];
+    Object.keys(sectorMap).forEach(function (other) {
+      if (other === name) return;
+      var shared = sectorCodes_(sectorMap, other).filter(function (code) { return mine[code]; }).length;
+      if (shared) out.push({ sector: other, shared: shared });
+    });
+    out.sort(function (a, b) { return b.shared - a.shared || a.sector.localeCompare(b.sector, 'ko'); });
+    return out.slice(0, 4);
+  }
+
+  function topThemeList_(rows) {
+    var list = (rows || []).map(function (row, i) { return { row: row, rank: i + 1, extra: false }; });
+    topExtra_.forEach(function (name) {
+      if (topExtraRows_[name]) list.push({ row: topExtraRows_[name], rank: 0, extra: true });
+    });
+    return list;
+  }
+
+  function rateText_(rate) {
+    return isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-';
+  }
+
+  function dirClass_(rate) {
+    return rate > 0 ? 'sector-up' : rate < 0 ? 'sector-down' : 'sector-flat';
+  }
+
+  function priceText_(value) {
+    var n = Number(value);
+    return isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') : '-';
+  }
+
+  function stockLinkHref_(stock) {
+    return '/page/stock-search?code=' + encodeURIComponent(stock.code || '')
+      + '&amp;name=' + encodeURIComponent(stock.name || stock.code || '');
+  }
+
+  function topCardHtml_(item, ctx) {
+    var row = item.row;
+    var rate = Number(row.avg_change_rate);
+    var amount = tradeAmountText_(row.trade_amount);
+    var stocks = (row.stocks || []).map(function (stock) {
+      var r = Number(stock.change_rate);
+      return '<a class="sector-row mt-top-stock" href="' + stockLinkHref_(stock) + '">'
+        + '<span class="sector-row-name">' + escapeHtml(stock.name || stock.code) + '</span>'
+        + '<span><span class="sector-row-price">' + priceText_(stock.price) + '</span>'
+        + '<span class="sector-row-rate ' + dirClass_(r) + '">' + rateText_(r) + '</span></span></a>';
+    }).join('');
+    var shown = {};
+    topThemeList_(ctx.rows).forEach(function (t) { shown[t.row.industry] = true; });
+    var derived = topRelatedSectors_(row.industry, ctx.sectorMap).map(function (d) {
+      return '<button type="button" class="mt-top-chip' + (shown[d.sector] ? ' is-shown' : '') + '" data-top-theme="' + escapeHtml(d.sector) + '">'
+        + escapeHtml(d.sector) + '<small>겹침 ' + d.shared + '</small></button>';
+    }).join('');
+    return '<div class="sector-card mt-top-card' + (item.extra ? ' is-extra' : '') + '" data-top-card="' + escapeHtml(row.industry) + '">'
+      + '<div class="sector-card-title"><span class="mt-top-rank">' + (item.extra ? '추천' : item.rank) + '</span>'
+      + '<span class="mt-top-name">' + escapeHtml(row.industry) + '</span>'
+      + '<span class="mt-top-rate ' + dirClass_(rate) + '">' + rateText_(rate) + '</span></div>'
+      + (amount ? '<div class="mt-top-sub">거래대금 ' + escapeHtml(amount) + '</div>' : '')
+      + (stocks || '<div class="mt-hint">구성종목 데이터가 없습니다.</div>')
+      + (derived ? '<div class="mt-top-derived"><span>함께 볼 섹터</span>' + derived + '</div>' : '')
+      + '</div>';
+  }
+
+  // 추천 섹터 카드는 SECTOR_MAP 구성종목의 시세를 GAS 배치 조회로 채운다.
+  function loadExtraTheme_(name, sectorMap) {
+    var SD = global.SectorDashboard;
+    var codes = sectorCodes_(sectorMap, name);
+    if (!SD || !codes.length) return Promise.reject(new Error('no codes'));
+    return SD.fetchTickerData(codes).then(function (list) {
+      var byCode = {};
+      (list || []).forEach(function (q) { if (q && q.code) byCode[q.code] = q; });
+      var krxMap = global.KRX_MAP || {};
+      var stocks = (sectorMap[name] || []).map(function (item) {
+        var code = item && typeof item === 'object' ? item.code : krxMap[item];
+        var q = byCode[code];
+        return q ? { code: code, name: (item && item.name) || item, price: q.price, change_rate: Number(q.changeRate) } : null;
+      }).filter(Boolean).sort(function (a, b) { return b.change_rate - a.change_rate; });
+      if (!stocks.length) throw new Error('no quotes');
+      var avg = stocks.reduce(function (s, x) { return s + x.change_rate; }, 0) / stocks.length;
+      return { industry: name, avg_change_rate: avg, trade_amount: 0, stocks: stocks.slice(0, 8) };
+    });
+  }
+
+  function renderTopCardsPanel_(panel, ctx) {
+    var list = topThemeList_(ctx.rows);
+    panel.innerHTML = '<p class="mt-top-note">위 TOP10 순서 그대로 구성종목을 보여줍니다. 카드 아래 "함께 볼 섹터"를 누르면 그 섹터 카드가 추가되고, 히트맵·시총비례 히트맵에도 같이 반영됩니다.</p>'
+      + '<div class="sector-cards-grid">' + list.map(function (item) { return topCardHtml_(item, ctx); }).join('') + '</div>';
+    panel.onclick = function (event) {
+      var chip = event.target.closest && event.target.closest('[data-top-theme]');
+      if (!chip || !panel.contains(chip)) return;
+      var name = chip.getAttribute('data-top-theme');
+      function focusCard() {
+        var target = Array.prototype.filter.call(panel.querySelectorAll('[data-top-card]'), function (el) {
+          return el.getAttribute('data-top-card') === name;
+        })[0];
+        if (target && target.scrollIntoView) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
+      var known = topThemeList_(ctx.rows).some(function (t) { return t.row.industry === name; });
+      if (known) { focusCard(); return; }
+      chip.disabled = true;
+      loadExtraTheme_(name, ctx.sectorMap).then(function (row) {
+        topExtra_.push(name);
+        topExtraRows_[name] = row;
+        invalidateTopPanels_(panel);
+        renderTopCardsPanel_(panel, ctx);
+        focusCard();
+      }).catch(function () { chip.disabled = false; chip.title = '시세를 불러오지 못했습니다.'; });
+    };
+  }
+
+  // 카드에서 추천 섹터를 더하면 히트맵·시총 탭은 다음에 열 때 새 목록으로 다시 그린다.
+  function invalidateTopPanels_(fromPanel) {
+    var root = fromPanel && fromPanel.closest('.mt-explore-card');
+    if (!root) return;
+    ['heatmap', 'marketcap'].forEach(function (key) {
+      var other = root.querySelector('[data-view-panel="' + key + '"]');
+      if (other) { other.__mtLoaded = false; other.innerHTML = ''; }
+    });
+  }
+
+  function renderTopHeatmapPanel_(panel, ctx) {
+    panel.innerHTML = topThemeList_(ctx.rows).map(function (item) {
+      var tiles = (item.row.stocks || []).map(function (stock) {
+        var r = Number(stock.change_rate);
+        var intensity = Math.min(Math.abs(r) / 5, 1);
+        var bg = r > 0 ? 'rgba(210, 79, 69, ' + (0.12 + intensity * 0.7).toFixed(2) + ')'
+          : r < 0 ? 'rgba(18, 97, 196, ' + (0.12 + intensity * 0.7).toFixed(2) + ')'
+            : 'rgba(156, 163, 175, 0.2)';
+        return '<a class="heatmap-tile mt-top-tile" style="background:' + bg + '" href="' + stockLinkHref_(stock) + '" title="' + escapeHtml(item.row.industry) + '">'
+          + '<span class="heatmap-tile-name">' + escapeHtml(stock.name || stock.code) + '</span>'
+          + '<span class="heatmap-tile-price">' + priceText_(stock.price) + '</span>'
+          + '<span class="heatmap-tile-rate">' + rateText_(r) + '</span></a>';
+      }).join('');
+      var rate = Number(item.row.avg_change_rate);
+      return '<div class="mt-top-hm-group"><div class="mt-top-hm-title"><span class="mt-top-rank">' + (item.extra ? '추천' : item.rank) + '</span>'
+        + escapeHtml(item.row.industry) + '<em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em></div>'
+        + '<div class="heatmap-grid">' + tiles + '</div></div>';
+    }).join('');
+  }
+
+  // 시총비례 히트맵: 칩으로 TOP10(+추천 추가분) 전체 또는 한 섹터를 고른다. 시총은 시총 풀에
+  // 있는 종목만 알 수 있어 일부 종목이 빠질 수 있다 - 몇 개가 보이는지 아래에 밝힌다.
+  function renderTopMarketcapPanel_(panel, ctx) {
+    var list = topThemeList_(ctx.rows);
+    var MB = global.MarketcapBubble;
+    if (!MB) { panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>'; return; }
+    function filterFor(items, label) {
+      var codes = {};
+      var total = 0;
+      items.forEach(function (item) {
+        sectorCodes_(ctx.sectorMap, item.row.industry).forEach(function (code) { if (!codes[code]) { codes[code] = true; total += 1; } });
+      });
+      return { label: label, codes: codes, total: total };
+    }
+    var chips = ['<button type="button" class="mt-top-chip is-active" data-mc-theme="">TOP10 전체</button>'].concat(list.map(function (item, i) {
+      return '<button type="button" class="mt-top-chip" data-mc-theme="' + i + '">' + (item.extra ? '추천 ' : item.rank + ' ') + escapeHtml(item.row.industry) + '</button>';
+    })).join('');
+    panel.innerHTML = '<div class="mt-top-chips">' + chips + '</div>'
+      + '<p class="mt-top-note" data-mc-note></p>'
+      + '<div id="marketcap-bubble" data-theme-filter="1"></div>';
+    var box = panel.querySelector('#marketcap-bubble');
+    var note = panel.querySelector('[data-mc-note]');
+    var current = filterFor(list, 'TOP10 전체');
+    box.addEventListener('mcb:rendered', function (event) {
+      var matched = event.detail && event.detail.matched;
+      note.textContent = current.label + ' 구성 ' + current.total + '종목 중 시총 집계 대상 ' + matched + '종목을 표시합니다.'
+        + (matched ? '' : ' 이 섹터는 시총 집계 풀에 없어 비어 있습니다.');
+    });
+    box.__mcbCodeFilter = current;
+    try { MB.init(); } catch (error) { panel.innerHTML = '<div class="mt-error">시총비례 히트맵을 불러오지 못했습니다.</div>'; return; }
+    panel.querySelector('.mt-top-chips').onclick = function (event) {
+      var chip = event.target.closest && event.target.closest('[data-mc-theme]');
+      if (!chip) return;
+      var key = chip.getAttribute('data-mc-theme');
+      panel.querySelectorAll('[data-mc-theme]').forEach(function (el) { el.classList.toggle('is-active', el === chip); });
+      current = key === '' ? filterFor(list, 'TOP10 전체')
+        : filterFor([list[Number(key)]], list[Number(key)].row.industry);
+      MB.setCodeFilter(box, current);
+    };
+  }
+
+  function loadTopPanel_(panel, renderer, label) {
+    if (panel.__mtLoaded) return;
+    panel.__mtLoaded = true;
+    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + label + ' 불러오는 중...</div>';
+    loadTopRows_()
+      .then(function (ctx) { renderer(panel, ctx); })
+      .catch(function () {
+        panel.__mtLoaded = false;
+        panel.innerHTML = '<div class="mt-error">' + label + '을(를) 불러오지 못했습니다.</div>';
+      });
+  }
+
   // ---- 오늘 돈이 몰린 섹터 (증시온도 체크리스트 아래) ----
   //
   // 2026-09-02 사용자 요청으로 추천을 섹터 단위로 바꿨다(흐름: 오늘의 섹터 → 그 종목 →
@@ -706,15 +940,16 @@
   function buildStocksOnlyPage() {
     var params = new URLSearchParams(String(global.location && global.location.search || ''));
     var requestedPanel = params.get('panel');
-    var initialView = ['cards', 'all', 'heatmap', 'marketcap'].indexOf(requestedPanel) !== -1 ? requestedPanel : 'cards';
+    var initialView = requestedPanel === 'all' ? 'active'
+      : ['cards', 'active', 'heatmap', 'marketcap'].indexOf(requestedPanel) !== -1 ? requestedPanel : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 거래대금이 몰린 업종과 업종별 개별 종목을 함께 봅니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>오늘 거래대금이 몰린 업종 TOP 10과, 그 업종의 종목을 카드·히트맵으로 이어서 봅니다.</p></div>'
       + '<section class="mt-section-block">'
       + '<div class="mt-section-head"><h2>오늘 업종 TOP 10</h2><p>대표 종목 거래대금을 합산한 업종 순위입니다. 행을 누르면 구성 종목을 확인할 수 있습니다.</p></div>'
       + '<div data-industry-flow><div class="mt-hint">오늘 업종 순위를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>업종별 주요 종목</h2><p>관심 업종의 개별 종목을 카드·히트맵·시가총액 순으로 살펴봅니다.</p></div>'
+      + '<div class="mt-section-head"><h2>TOP 10 업종별 종목</h2><p>위 순위 순서대로 종목을 카드·히트맵·시가총액 크기로 봅니다. 카드 아래 추천 섹터로 범위를 넓힐 수 있습니다.</p></div>'
       + buildExploreCard(initialView)
       + '</section>'
       + '</div>';
@@ -2172,7 +2407,8 @@
   var VIEW_TABS = [
     { key: 'cards', label: '카드 보기' },
     { key: 'heatmap', label: '히트맵 보기' },
-    { key: 'marketcap', label: '시총비례 히트맵' }
+    { key: 'marketcap', label: '시총비례 히트맵' },
+    { key: 'active', label: '활성 섹터 카드' }
   ];
 
   function buildExploreCard(initialView) {
@@ -2187,6 +2423,7 @@
       + '<div class="mt-view-panel" data-view-panel="cards"' + (initialView === 'cards' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="heatmap"' + (initialView === 'heatmap' ? '' : ' hidden') + '></div>'
       + '<div class="mt-view-panel" data-view-panel="marketcap"' + (initialView === 'marketcap' ? '' : ' hidden') + '></div>'
+      + '<div class="mt-view-panel" data-view-panel="active"' + (initialView === 'active' ? '' : ' hidden') + '></div>'
       + '</div>'
       + '</div>';
   }
@@ -2739,9 +2976,12 @@
   }
 
   function loadPanel(view, panel) {
-    if (view === 'cards') loadCardsPanel(panel);
-    else if (view === 'heatmap') loadHeatmapPanel(panel);
-    else if (view === 'marketcap') loadMarketcapPanel(panel);
+    // 카드·히트맵·시총비례는 위 업종 TOP 10(/industry-flow) 기준으로 그린다. 거래대금 기준
+    // 활성 섹터 카드는 '활성 섹터 카드' 탭으로 그대로 둔다.
+    if (view === 'cards') loadTopPanel_(panel, renderTopCardsPanel_, '섹터 카드');
+    else if (view === 'heatmap') loadTopPanel_(panel, renderTopHeatmapPanel_, '히트맵');
+    else if (view === 'marketcap') loadTopPanel_(panel, renderTopMarketcapPanel_, '시총비례 히트맵');
+    else if (view === 'active') loadCardsPanel(panel);
   }
 
   function wireViewTabs(container) {

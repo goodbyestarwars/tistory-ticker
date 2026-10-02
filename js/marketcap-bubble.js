@@ -253,9 +253,24 @@
 
   // sectorFilter가 있으면 코스피+코스닥을 합쳐 그 업종에 속한 종목만 단일 구역으로,
   // 없으면(전체) 기존처럼 카테고리별 구역으로 나눈다.
-  function buildLayout(data, sectorFilter) {
+  // codeFilter({label, codes:{code:true}})는 증시온도 "국내 주요종목"이 TOP10 테마를 골랐을 때
+  // 그 테마 구성종목만 한 구역으로 그린다. 시총은 이 풀(sectors-v3 기반)에 있는 종목만 알 수 있어
+  // 테마 종목 일부는 빠질 수 있다 - 몇 개가 매칭됐는지는 layout.matched로 돌려준다.
+  function buildLayout(data, sectorFilter, codeFilter) {
     var zones;
-    if (sectorFilter) {
+    var matched = 0;
+    if (codeFilter && codeFilter.codes) {
+      var picked = []
+        .concat(data.KOSPI || [], data.KOSDAQ || [])
+        .filter(function (it) { return codeFilter.codes[it.code]; })
+        .map(function (it) {
+          return { name: it.name, cap: it.cap || 0, changeRate: it.changeRate, category: 'SECTOR' };
+        })
+        .filter(function (it) { return it.cap > 0; });
+      matched = picked.length;
+      var pickedCap = picked.reduce(function (s, it) { return s + it.cap; }, 0);
+      zones = picked.length ? [{ key: 'SECTOR', label: codeFilter.label || '선택 테마', items: picked, cap: pickedCap }] : [];
+    } else if (sectorFilter) {
       var items = []
         .concat(data.KOSPI || [], data.KOSDAQ || [])
         .filter(function (it) { return (it.sectors || []).indexOf(sectorFilter) > -1; })
@@ -283,7 +298,7 @@
       }).filter(function (z) { return z.items.length && z.cap > 0; });
     }
 
-    if (!zones.length) return { nodes: [], viewH: VIEW_H, clusterLabels: [] };
+    if (!zones.length) return { nodes: [], viewH: VIEW_H, clusterLabels: [], matched: matched };
 
     zones.sort(function (a, b) { return b.cap - a.cap; });
 
@@ -349,7 +364,7 @@
       });
     });
 
-    return { nodes: nodes, viewH: VIEW_H, clusterLabels: clusterLabels };
+    return { nodes: nodes, viewH: VIEW_H, clusterLabels: clusterLabels, matched: matched };
   }
 
   // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락률 색상 구간(-3%~+3%)만 안내.
@@ -599,10 +614,21 @@
 
   function renderFromData(container, data, updatedAt) {
     var sectorFilter = container.__mcbSectorFilter || '';
-    var layout = buildLayout(data, sectorFilter);
+    var codeFilter = container.__mcbCodeFilter || null;
+    var layout = buildLayout(data, sectorFilter, codeFilter);
     var legendHtml = buildLegendHtml();
     render(container, layout.nodes, layout.viewH, updatedAt, legendHtml, layout.clusterLabels);
     updateSectorOptions(container, data);
+    if (codeFilter && typeof global.CustomEvent === 'function') {
+      container.dispatchEvent(new global.CustomEvent('mcb:rendered', { detail: { matched: layout.matched } }));
+    }
+  }
+
+  // 외부(국내 주요종목)가 종목코드 필터를 바꾸면 마지막 데이터로 즉시 다시 그린다.
+  function setCodeFilter(container, codeFilter) {
+    if (!container) return;
+    container.__mcbCodeFilter = codeFilter || null;
+    if (container.__mcbLastData) renderFromData(container, container.__mcbLastData, container.__mcbLastUpdatedAt);
   }
 
   function tick(container) {
@@ -634,6 +660,7 @@
     init: init,
     fetchBubbleData: fetchBubbleData,
     buildLayout: buildLayout,
+    setCodeFilter: setCodeFilter,
     render: render
   };
   global.MarketcapBubble = MarketcapBubble;
