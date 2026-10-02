@@ -227,7 +227,24 @@ def refresh_once(appkey, secretkey):
         _state['fetchedAt'] = time.time()
     if result['rows']:
         _save_cache_file(result)
+        _record_money_picks(result['rows'])
     return result
+
+
+def _record_money_picks(rows):
+    """15:35 이후 첫 갱신에서 오늘의 대표 종목을 기록한다. 기록 실패가 화면 갱신을 막지 않게 삼킨다."""
+    try:
+        import db_schema
+        import market_temp
+        import money_picks
+        now_kst = datetime.now(KST)
+        conn = db_schema.get_conn()
+        try:
+            money_picks.record_today(conn, rows, now_kst, market_temp.is_kr_trading_day(now_kst))
+        finally:
+            conn.close()
+    except Exception:
+        logger.warning('대표 종목 기록 실패', exc_info=True)
 
 
 def _loop(appkey, secretkey):

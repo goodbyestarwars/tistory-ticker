@@ -800,27 +800,22 @@
   }
 
   // ---- 위: 오늘 돈이 몰린 섹터 → 내 카테고리 매핑 ----
+  // 거래대금 막대 표는 증시온도가 기준이라 여기서는 링크로 보내고(2026-10-02 사용자 요청), 같은 TOP10을 칩으로만
+  // 보여 준다. 연결된 내 카테고리가 있으면 눌러서 이동하고, 없으면 ＋로 한 번에 카테고리를 만든다.
   function renderMoneyStrip_(mount, rows, sectors) {
     var mapping = mapThemesToCategories_(rows, sectors);
-    var html = (rows || []).map(function (row, index) {
+    var chips = (rows || []).map(function (row, index) {
       var rate = Number(row.avg_change_rate);
       var cats = mapping.byTheme[index];
-      var chips = cats.length
-        ? cats.map(function (name) {
-          return '<button type="button" class="mt-top-chip" data-focus-category="' + escapeHtml(name) + '">' + escapeHtml(name) + '</button>';
-        }).join('')
-        : '<button type="button" class="mt-top-chip is-add" data-add-theme="' + escapeHtml(row.theme_code || '') + '" data-theme-name="' + escapeHtml(row.industry) + '">＋ 내 카테고리로 추가</button>';
-      var names = (row.stocks || []).slice(0, 3).map(function (s) { return escapeHtml(s.name || s.code); }).join(' · ');
-      return '<div class="mt-money-row">'
-        + '<div class="mt-money-main"><i class="mt-money-rank">' + (index + 1) + '</i><b>' + escapeHtml(row.industry) + '</b>'
-        + '<span class="mt-money-amount">' + escapeHtml(tradeAmountText_(row.trade_amount) || '-') + '</span>'
-        + '<span class="mt-money-rate ' + dirClass_(rate) + '">' + rateText_(rate) + '</span></div>'
-        + '<div class="mt-money-sub"><small>' + names + '</small><div class="mt-money-cats"><span>' + (cats.length ? '내 카테고리' : '내 카테고리에 없음') + '</span>' + chips + '</div></div>'
-        + '</div>';
+      var label = '<i>' + (index + 1) + '</i><span>' + escapeHtml(row.industry) + '</span><em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em>';
+      return cats.length
+        ? '<button type="button" class="mt-money-chip is-mapped" data-focus-category="' + escapeHtml(cats[0]) + '" title="내 카테고리: ' + escapeHtml(cats.join(', ')) + '">' + label + '<small>' + escapeHtml(cats[0]) + (cats.length > 1 ? ' 외 ' + (cats.length - 1) : '') + '</small></button>'
+        : '<button type="button" class="mt-money-chip is-add" data-add-theme="' + escapeHtml(row.theme_code || '') + '" data-theme-name="' + escapeHtml(row.industry) + '" title="내 카테고리에 없는 테마 - 눌러서 카테고리로 추가">' + label + '<small>＋ 추가</small></button>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
-      + (html || '<div class="mt-hint">돈이 몰린 섹터를 불러오지 못했습니다.</div>')
-      + '<p class="mt-top-note">키움증권 테마 기준, 구성종목 거래대금(현재가×거래량 추정) 순입니다. 내 카테고리 이름을 누르면 해당 카드로 이동하고, 없는 테마는 한 번에 카테고리로 추가해 모니터링할 수 있습니다.</p>'
+      + '<div class="mt-money-head"><strong>오늘 돈이 몰린 섹터 TOP10</strong><a href="/page/market-temp">증시온도에서 거래대금 막대로 보기 →</a></div>'
+      + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">돈이 몰린 섹터를 불러오지 못했습니다.</div>')
+      + '<p class="mt-top-note">초록 테두리 칩은 내 카테고리와 연결된 테마(누르면 해당 카드로 이동), 점선 칩은 내 카테고리에 없는 테마(누르면 카테고리로 추가)입니다. 키움증권 테마·거래대금 순입니다.</p>'
       + '</div>';
     mount.onclick = function (event) {
       var focus = event.target.closest && event.target.closest('[data-focus-category]');
@@ -828,10 +823,10 @@
       var add = event.target.closest && event.target.closest('[data-add-theme]');
       if (!add || !add.getAttribute('data-add-theme')) return;
       add.disabled = true;
-      add.textContent = '추가 중...';
+      add.querySelector('small').textContent = '추가 중...';
       addCategoryFromTheme_(add.getAttribute('data-add-theme'), add.getAttribute('data-theme-name'))
         .then(function () { refreshAfterCategoryChange_(); })
-        .catch(function () { add.disabled = false; add.textContent = '추가 실패 · 다시 시도'; });
+        .catch(function () { add.disabled = false; add.querySelector('small').textContent = '실패 · 다시'; });
     };
   }
 
@@ -1116,7 +1111,105 @@
       + '</a>';
   }
 
-  function sectorFlowRowHtml_(row, index, rows, maxAmount) {
+  // ---- 대표 종목(참고용) + 2주 추적 (2026-10-02 사용자 요청) ----
+  // 테마 거래대금 TOP10 각각에서 구성종목 거래대금이 큰 종목 2~3개를 보여 주고, 서버(money_picks.py)가
+  // 거래일 15:35 이후 남긴 기준가로 최근 2주 수익률을 확인한다. 선정 규칙은 서버와 같다(중복 종목은 순위 높은 테마에만).
+  var MONEY_PICKS_URL = 'https://goodbyestar.cloud/money-picks';
+  var MONEY_PICKS_PER_THEME = 3;
+
+  function selectMoneyPicks_(rows) {
+    var seen = {};
+    return (rows || []).map(function (row) {
+      var stocks = (row.stocks || []).slice().sort(function (a, b) { return (Number(b.trade_amount) || 0) - (Number(a.trade_amount) || 0); });
+      var picked = [];
+      stocks.forEach(function (stock) {
+        var code = String(stock.code || '');
+        if (picked.length >= MONEY_PICKS_PER_THEME || !code || seen[code] || !(Number(stock.price) > 0)) return;
+        seen[code] = true;
+        picked.push(stock);
+      });
+      return picked;
+    });
+  }
+
+  function moneyPicksLineHtml_(picks) {
+    if (!picks || !picks.length) return '';
+    return '<div class="mt-sf-picks"><span>대표</span>' + picks.map(function (stock) {
+      var r = Number(stock.change_rate);
+      return '<a href="' + stockLinkHref_(stock) + '">' + escapeHtml(stock.name || stock.code)
+        + '<em class="' + (r > 0 ? 'is-up' : r < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(r) + '</em></a>';
+    }).join('') + '</div>';
+  }
+
+  var MONEY_PICKS_DISCLAIMER = '※ 대표 종목은 각 테마에서 오늘 거래대금이 가장 큰 종목을 규칙으로 고른 것이며, 매수·매도 추천이나 투자 권유가 아닙니다. 투자 판단과 그 결과의 책임은 본인에게 있으니 참고용으로만 활용하세요.';
+
+  function trackDateText_(date) {
+    return String(date || '').slice(5).replace('-', '/');
+  }
+
+  function renderPickTracking_(body, summaryEl, history, quotes) {
+    var byCode = {};
+    (quotes || []).forEach(function (q) { if (q && q.code) byCode[q.code] = q; });
+    var items = (history || []).map(function (h) {
+      var q = byCode[h.code];
+      var now = q ? Number(q.price) : NaN;
+      var base = Number(h.rec_price);
+      var ret = isFinite(now) && now > 0 && base > 0 ? (now / base - 1) * 100 : NaN;
+      return { h: h, now: now, ret: ret };
+    });
+    var valid = items.filter(function (i) { return isFinite(i.ret); });
+    if (!items.length) {
+      summaryEl.textContent = '아직 기록 없음';
+      body.innerHTML = '<p class="mt-sf-note">대표 종목은 거래일 오후 3시 35분 이후 첫 기록부터 쌓입니다. 기록이 생기면 2주 동안 수익률을 이어서 확인할 수 있습니다.</p>';
+      return;
+    }
+    var avg = valid.length ? valid.reduce(function (s, i) { return s + i.ret; }, 0) / valid.length : NaN;
+    var up = valid.filter(function (i) { return i.ret > 0; }).length;
+    summaryEl.innerHTML = items.length + '종목 · 평균 <b class="' + (avg > 0 ? 'is-up' : avg < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(avg) + '</b> · 상승 ' + up + '/' + valid.length;
+    var days = {};
+    var order = [];
+    items.forEach(function (i) {
+      if (!days[i.h.date]) { days[i.h.date] = []; order.push(i.h.date); }
+      days[i.h.date].push(i);
+    });
+    body.innerHTML = order.map(function (date) {
+      var list = days[date];
+      var ok = list.filter(function (i) { return isFinite(i.ret); });
+      var dayAvg = ok.length ? ok.reduce(function (s, i) { return s + i.ret; }, 0) / ok.length : NaN;
+      return '<div class="mt-track-day"><b>' + escapeHtml(trackDateText_(date)) + ' 기록</b><small>' + list.length + '종목 · 평균 '
+        + escapeHtml(rateText_(dayAvg)) + '</small></div>'
+        + list.map(function (i) {
+          var r = i.ret;
+          return '<a class="mt-track-row" href="' + stockLinkHref_({ code: i.h.code, name: i.h.name }) + '">'
+            + '<span class="mt-track-name">' + escapeHtml(i.h.name) + '<small>' + escapeHtml(i.h.theme) + '</small></span>'
+            + '<span class="mt-track-price">' + priceText_(i.h.rec_price) + ' → ' + priceText_(i.now) + '</span>'
+            + '<em class="' + (r > 0 ? 'is-up' : r < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(r) + '</em></a>';
+        }).join('');
+    }).join('')
+      + '<p class="mt-sf-note">기준가는 기록 시점(거래일 15:35 이후 첫 갱신)의 현재가이고, 수익률은 지금 현재가 기준입니다. 과거 기록일 뿐 앞으로를 보장하지 않으며 수수료·세금은 반영하지 않았습니다.</p>';
+  }
+
+  function loadPickTracking_(mount) {
+    var box = mount.querySelector('[data-pick-track]');
+    if (!box) return;
+    var body = box.querySelector('[data-track-body]');
+    var summaryEl = box.querySelector('[data-track-summary]');
+    fetchJson_(MONEY_PICKS_URL).then(function (res) {
+      var payload = res && res.data ? res.data : res;
+      var history = (payload && payload.history) || [];
+      var codes = [];
+      history.forEach(function (h) { if (codes.indexOf(h.code) === -1) codes.push(h.code); });
+      if (!codes.length) return renderPickTracking_(body, summaryEl, history, []);
+      return fetchAllStockQuotes_(codes).catch(function () { return []; }).then(function (quotes) {
+        renderPickTracking_(body, summaryEl, history, quotes);
+      });
+    }).catch(function () {
+      summaryEl.textContent = '불러오지 못함';
+      body.innerHTML = '<p class="mt-sf-note">추적 기록을 불러오지 못했습니다. 잠시 뒤 다시 확인해 주세요.</p>';
+    });
+  }
+
+  function sectorFlowRowHtml_(row, index, rows, maxAmount, picks) {
     var rate = Number(row.avg_change_rate);
     var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
     var derived = derivedSectors_(row, rows);
@@ -1139,6 +1232,7 @@
       + '<span class="mt-sf-rate">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
       + '<i class="mt-sf-caret" aria-hidden="true">▾</i>'
       + '</button>'
+      + moneyPicksLineHtml_(picks)
       + '<div class="mt-sf-detail" hidden>'
       + (row.stocks || []).map(sectorFlowStockHtml_).join('')
       + derivedHtml
@@ -1153,12 +1247,17 @@
       var amount = Number(row && row.trade_amount);
       return isFinite(amount) && amount > max ? amount : max;
     }, 0);
+    var picksByRow = selectMoneyPicks_(shown);
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 붉은 음영은 상승, 파란 음영은 하락이며 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
       + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>음영 길이 = 거래대금 집중도 · 빨강 상승 · 파랑 하락</small></div>'
-      + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount); }).join('')
+      + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount, picksByRow[i]); }).join('')
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
+      + '<p class="mt-sf-disclaimer">' + escapeHtml(MONEY_PICKS_DISCLAIMER) + '</p>'
+      + '<details class="mt-sf-track" data-pick-track><summary>대표 종목 2주 추적 <span data-track-summary>불러오는 중...</span></summary>'
+      + '<div data-track-body><div class="mt-hint">기록을 불러오는 중입니다.</div></div></details>'
       + '</div>';
+    loadPickTracking_(mount);
     mount.onclick = function (event) {
       var button = event.target.closest && event.target.closest('.mt-sf-row');
       if (!button || !mount.contains(button)) return;
@@ -1190,7 +1289,7 @@
     return '<div class="mt-stocks-only">'
       + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>내 카테고리를 기준으로 종목을 모니터링하고, 오늘 돈이 몰린 섹터와 연결해서 봅니다.</p></div>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>증시온도와 같은 키움 테마 순위입니다. 오른쪽 칩이 내 카테고리와 연결된 곳입니다.</p></div>'
+      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금 막대 표는 증시온도에서 봅니다. 여기서는 같은 순위를 내 카테고리와 연결해서 모니터링합니다.</p></div>'
       + '<div data-money-strip><div class="mt-hint">돈이 몰린 섹터를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'

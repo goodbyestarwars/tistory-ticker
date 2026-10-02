@@ -65,6 +65,7 @@ import load_probe
 import market_clock
 import realtime_quotes
 import theme_flow
+import money_picks
 import volume_profile_collector
 import scan_forward
 import sector_cards
@@ -3208,6 +3209,24 @@ def industry_flow_endpoint(request: Request):
         # None이 가고, 프론트는 그때만 예전 브라우저 저장분으로 물러난다.
         'previousDate': result.get('industryFlowPreviousDate'),
         'previousRanks': result.get('industryFlowPreviousRanks'),
+    })
+
+
+@app.get('/money-picks')
+def money_picks_endpoint(request: Request):
+    """증시온도 '돈이 몰린 섹터' 대표 종목의 최근 2주 기록(기준가). 수익률은 화면이 현재가로 계산한다."""
+    _check_rate_limit('money_picks', request, max_per_window=30)
+    now_kst = datetime.now(timezone(timedelta(hours=9)))
+    conn = db_schema.get_conn()
+    try:
+        history = money_picks.load_history(conn, now_kst)
+    finally:
+        conn.close()
+    return envelope({
+        'history': history,
+        'windowDays': money_picks.HISTORY_DAYS,
+        'recordAfter': '15:35',
+        'perTheme': money_picks.PICKS_PER_THEME,
     })
 
 

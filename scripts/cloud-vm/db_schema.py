@@ -216,6 +216,19 @@ CREATE TABLE IF NOT EXISTS user_sector_cards_config (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
+-- 2026-10-02: 증시온도 '돈이 몰린 섹터' 대표 종목의 2주 추적 기록(money_picks.py). 하루 한 번 15:35 이후
+-- 첫 갱신 때 TOP10 테마별 대표 종목 2~3개와 그 시점 현재가(rec_price)를 남긴다.
+CREATE TABLE IF NOT EXISTS money_sector_picks (
+    rec_date TEXT NOT NULL,
+    code TEXT NOT NULL,
+    name TEXT NOT NULL,
+    theme TEXT NOT NULL,
+    theme_rank INTEGER NOT NULL,
+    rec_price REAL NOT NULL,
+    created_at TEXT NOT NULL,
+    PRIMARY KEY (rec_date, code)
+);
+
 -- 2026-10-02: 국내 주요종목 '추가 종목' 카드(활성 섹터 카드의 ＋로 담은 종목)를 기기 간에 맞추는
 -- 사용자별 목록. 행이 없으면 아직 동기화한 적 없는 계정이다(빈 목록과 구분).
 CREATE TABLE IF NOT EXISTS user_top_picks (

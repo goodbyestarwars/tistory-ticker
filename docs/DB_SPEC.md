@@ -293,6 +293,20 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 행이 없으면 `sector_cards_config` 공용 기본값을 사용하고, DELETE 시 개인 편집본을 지워 기본값으로 돌아간다.
 
+### 2.14b `money_sector_picks` — 돈이 몰린 섹터 대표 종목 2주 추적
+
+| 컬럼 | 타입 | 제약 | 설명 |
+|---|---|---|---|
+| rec_date | TEXT | PK(1) | 기록일(KST, YYYY-MM-DD) |
+| code | TEXT | PK(2) | 종목코드(같은 날 한 종목은 순위 높은 테마에만) |
+| name | TEXT | NOT NULL | 종목명 |
+| theme | TEXT | NOT NULL | 키움 테마명 |
+| theme_rank | INTEGER | NOT NULL | 그날 거래대금 순위(1~10) |
+| rec_price | REAL | NOT NULL | 기록 시점 현재가(기준가) |
+| created_at | TEXT | NOT NULL | 기록 시각 |
+
+`theme_flow` 갱신이 거래일 15:35(KST) 이후 첫 성공 때 하루 한 번 TOP10 테마별 2~3종목을 넣고(`money_picks.record_today`), 60일이 지난 행은 지운다. 수익률은 저장하지 않고 화면이 현재가로 계산한다.
+
 ### 2.14a `user_top_picks` — 국내 주요종목 '추가 종목' 동기화
 
 | 컬럼 | 타입 | 제약 | 설명 |
