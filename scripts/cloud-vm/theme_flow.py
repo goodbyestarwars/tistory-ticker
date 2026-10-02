@@ -42,6 +42,9 @@ CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'theme_flo
 _lock = threading.Lock()
 _state = {'result': None, 'error': None, 'fetchedAt': 0.0}
 _thread = None
+_creds = {'appkey': '', 'secretkey': ''}
+THEME_STOCKS_TTL_SEC = 180
+_stocks_cache = {}   # theme_code -> (fetched_at, stocks)
 
 
 def _number(value):
@@ -113,14 +116,53 @@ def build_theme_rows(groups, constituents_by_code, top_n=CANDIDATE_THEMES, stock
     return rows
 
 
+def build_theme_list(groups):
+    """ka90001 전체 테마를 선택 목록용으로 줄인다(순수 함수). 이름·코드가 없는 행은 버린다."""
+    out = []
+    seen = set()
+    for group in groups or []:
+        code = str(group.get('thema_grp_cd') or '').strip()
+        name = str(group.get('thema_nm') or '').strip()
+        if not code or not name or code in seen:
+            continue
+        seen.add(code)
+        count = _number(group.get('stk_num'))
+        out.append({
+            'code': code,
+            'name': name,
+            'stock_count': int(count) if count is not None else None,
+            'change_rate': _number(group.get('flu_rt')),
+        })
+    return out
+
+
+def normalize_theme_stocks(items):
+    """ka90002 구성종목을 화면용으로 정리한다(순수 함수)."""
+    out = []
+    seen = set()
+    for item in items or []:
+        code = _stock_code(item.get('stk_cd'))
+        if not code or code in seen:
+            continue
+        seen.add(code)
+        price = abs(_number(item.get('cur_prc')) or 0)
+        out.append({
+            'code': code,
+            'name': str(item.get('stk_nm') or code).strip(),
+            'price': price or None,
+            'change_rate': _number(item.get('flu_rt')),
+        })
+    return out
+
+
 def fetch_theme_flow(token, call_tr=None, sleep=time.sleep):
     call_tr = call_tr or kiwoom_client.call_tr
     listing = call_tr(token, 'ka90001', THEME_PATH, {
         'qry_tp': '0', 'stk_cd': '', 'date_tp': '1', 'thema_nm': '',
         'flu_pl_amt_tp': '3', 'stex_tp': '3',
     })
-    groups = [g for g in (listing.get('thema_grp') or []) if isinstance(g, dict)]
-    groups = groups[:CANDIDATE_THEMES]
+    all_groups = [g for g in (listing.get('thema_grp') or []) if isinstance(g, dict)]
+    groups = all_groups[:CANDIDATE_THEMES]
     constituents = {}
     for group in groups:
         theme_code = str(group.get('thema_grp_cd') or '').strip()
@@ -137,6 +179,9 @@ def fetch_theme_flow(token, call_tr=None, sleep=time.sleep):
         constituents[theme_code] = [s for s in (res.get('thema_comp_stk') or []) if isinstance(s, dict)]
     return {
         'rows': build_theme_rows(groups, constituents),
+        # 2026-10-02: 카테고리를 직접 만들 때 고르는 전체 테마 목록(ka90001이 준 전부). 필드는 문서
+        # 기준 thema_grp_cd/thema_nm/stk_num/flu_rt뿐이다.
+        'themes': build_theme_list(all_groups),
         'candidateCount': len(groups),
         'updatedAt': datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S'),
         'source': 'kiwoom-theme',
@@ -203,8 +248,39 @@ def _loop(appkey, secretkey):
         time.sleep(20)
 
 
+def get_theme_list():
+    """전체 테마 목록(백그라운드가 받아 둔 값). 아직 없으면 None."""
+    with _lock:
+        result = _state['result']
+    themes = result.get('themes') if isinstance(result, dict) else None
+    return themes if isinstance(themes, list) and themes else None
+
+
+def get_theme_stocks(theme_code, call_tr=None, now=time.time):
+    """한 테마의 구성종목(방문자가 카테고리로 만들 때만 부른다). 알려진 테마코드만 받고 3분 캐시한다.
+    알 수 없는 코드면 None, 키움 호출 실패면 예외를 그대로 올린다."""
+    code = str(theme_code or '').strip()
+    themes = get_theme_list() or []
+    if not any(t['code'] == code for t in themes):
+        return None
+    with _lock:
+        hit = _stocks_cache.get(code)
+    if hit and now() - hit[0] < THEME_STOCKS_TTL_SEC:
+        return hit[1]
+    call_tr = call_tr or kiwoom_client.call_tr
+    token = kiwoom_client.get_token(_creds['appkey'], _creds['secretkey'])
+    res = call_tr(token, 'ka90002', THEME_PATH, {'date_tp': '1', 'thema_grp_cd': code, 'stex_tp': '3'})
+    stocks = normalize_theme_stocks([s for s in (res.get('thema_comp_stk') or []) if isinstance(s, dict)])
+    with _lock:
+        _stocks_cache[code] = (now(), stocks)
+        if len(_stocks_cache) > 200:
+            _stocks_cache.pop(next(iter(_stocks_cache)))
+    return stocks
+
+
 def start_background(appkey, secretkey):
     global _thread
+    _creds['appkey'], _creds['secretkey'] = appkey or '', secretkey or ''
     if not appkey or not secretkey:
         logger.warning('KIWOOM_APPKEY/KIWOOM_SECRETKEY 미설정 - 테마 흐름 수집 건너뜀')
         return None

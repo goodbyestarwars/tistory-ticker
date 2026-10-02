@@ -1670,7 +1670,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("buildBriefingStrategy(data)", source)
         self.assertIn("buildTemperatureActions()", source)
         self.assertIn("오늘 돈이 몰린 섹터", source)
-        self.assertIn("<h2>오늘 업종 TOP 10</h2>", source)
+        # 2026-10-02: 주요종목 상단은 키움 테마 '돈이 몰린 섹터'와 내 카테고리 매핑으로 바뀌었다.
+        self.assertIn("<h2>오늘 돈이 몰린 섹터</h2>", source)
+        self.assertIn("data-money-strip", source)
         # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.
         for gone in ("action: '적극 분할매수'", "summary: '공포 우세 구간 · 분할 매수 후보를 확인'",
                      "stock: 70, cash: 30", "<span>주식비중</span>", "var STRATEGY_BY_TONE", "var SIGNAL_BY_TONE"):

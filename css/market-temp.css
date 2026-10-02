@@ -1793,3 +1793,52 @@ html.dark #market-temp .mt-top-rate.sector-down { color: #80b8ff !important; }
 #market-temp .mt-top-pick-x:hover { color: #d24f45; }
 html.dark #market-temp .mt-pick-add { border-color: rgba(245,239,224,.3) !important; color: rgba(245,239,224,.7) !important; }
 html.dark #market-temp .mt-pick-add.is-picked { background: #F5EFE0 !important; color: #1A1A1A !important; }
+
+/* ---- 내 카테고리 중심 모니터링 (2026-10-02) ---- */
+#market-temp .mt-money-card { padding: 6px 16px 12px; }
+#market-temp .mt-money-row { padding: 9px 0; border-bottom: 1px solid #eef2f7; }
+#market-temp .mt-money-row:last-of-type { border-bottom: 0; }
+#market-temp .mt-money-main { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto auto; align-items: center; gap: 10px; font-size: 13px; }
+#market-temp .mt-money-rank { color: #94a3b8; font-size: 11px; font-style: normal; font-weight: 700; text-align: center; }
+#market-temp .mt-money-main b { overflow: hidden; color: #111827; text-overflow: ellipsis; white-space: nowrap; }
+#market-temp .mt-money-amount { color: #111827; font-weight: 700; white-space: nowrap; }
+#market-temp .mt-money-rate { font-weight: 700; white-space: nowrap; }
+#market-temp .mt-money-rate.sector-up { color: #d24f45; }
+#market-temp .mt-money-rate.sector-down { color: #1261c4; }
+#market-temp .mt-money-rate.sector-flat { color: #94a3b8; }
+#market-temp .mt-money-sub { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 5px 0 0 32px; }
+#market-temp .mt-money-sub > small { color: #94a3b8; font-size: 11px; }
+#market-temp .mt-money-cats { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+#market-temp .mt-money-cats > span { color: #94a3b8; font-size: 10.5px; }
+#market-temp .mt-top-chip.is-add { border-style: dashed; color: #2563eb; }
+#market-temp .mt-money-badge { margin-left: auto; padding: 2px 7px; border-radius: 999px; background: #fff1f0; color: #d24f45; font-size: 10.5px; font-weight: 700; white-space: nowrap; }
+#market-temp .sector-card.is-flash { box-shadow: 0 0 0 2px #2563eb; transition: box-shadow .3s ease; }
+#market-temp .mt-all-stock-divider { column-span: all; margin: 4px 0 12px; padding: 10px 12px; border-radius: 8px; background: #f8fafc; color: #64748b; font-size: 12px; }
+#market-temp .mt-all-stock-divider b { color: #111827; margin-right: 6px; }
+#market-temp .sector-card.is-mine .sector-card-title::before { background: #2563eb; }
+#market-temp .mt-theme-picker, #market-temp .mt-adopt-pop { margin-bottom: 12px; padding: 12px 14px; border: 1px solid #dbe5f1; border-radius: 10px; background: #f8fbff; font-size: 12.5px; }
+#market-temp .mt-theme-picker-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+#market-temp .mt-theme-picker-head button { border: 0; background: transparent; font-size: 18px; color: #64748b; cursor: pointer; }
+#market-temp .mt-theme-picker > input { width: 100%; box-sizing: border-box; padding: 7px 10px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+#market-temp .mt-theme-picker-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 6px; max-height: 240px; margin-top: 8px; overflow-y: auto; }
+#market-temp .mt-theme-picker-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 7px 10px; border: 1px solid #e2e8f0; border-radius: 6px; background: #fff; font: inherit; text-align: left; cursor: pointer; }
+#market-temp .mt-theme-picker-item:disabled { opacity: .55; cursor: default; }
+#market-temp .mt-theme-picker-item small { color: #94a3b8; font-size: 10.5px; white-space: nowrap; }
+#market-temp .mt-theme-picker-item b.sector-up { color: #d24f45; }
+#market-temp .mt-theme-picker-item b.sector-down { color: #1261c4; }
+#market-temp .mt-adopt-controls { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+#market-temp .mt-adopt-controls select, #market-temp .mt-adopt-controls input { padding: 6px 8px; border: 1px solid #cbd5e1; border-radius: 6px; font: inherit; }
+#market-temp .mt-adopt-controls button { padding: 6px 12px; border: 1px solid #cbd5e1; border-radius: 6px; background: #fff; font: inherit; cursor: pointer; }
+#market-temp .mt-adopt-controls [data-adopt-ok] { border-color: #2563eb; background: #2563eb; color: #fff; }
+#market-temp .mt-adopt-pop small { display: block; margin-top: 6px; color: #94a3b8; }
+html.dark #market-temp .mt-money-row { border-bottom-color: rgba(245,239,224,.12) !important; }
+html.dark #market-temp .mt-money-main b, html.dark #market-temp .mt-money-amount { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-money-badge { background: rgba(255,138,131,.16) !important; color: #ff8a83 !important; }
+html.dark #market-temp .mt-all-stock-divider, html.dark #market-temp .mt-theme-picker, html.dark #market-temp .mt-adopt-pop { background: rgba(245,239,224,.06) !important; border-color: rgba(245,239,224,.16) !important; color: rgba(245,239,224,.8) !important; }
+html.dark #market-temp .mt-all-stock-divider b { color: #F5EFE0 !important; }
+html.dark #market-temp .mt-theme-picker-item { background: #1A1A1A !important; border-color: rgba(245,239,224,.16) !important; color: #F5EFE0 !important; }
+@media (max-width: 640px) {
+  #market-temp .mt-money-sub { margin-left: 0; }
+  #market-temp .mt-money-main { grid-template-columns: 20px minmax(0, 1fr) auto; }
+  #market-temp .mt-money-amount { display: none; }
+}

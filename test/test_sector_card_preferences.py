@@ -132,12 +132,19 @@ class TopPicksSyncTests(unittest.TestCase):
         self.assertEqual(db_schema.load_user_top_picks(self.conn, self.user), [{'code': '000660', 'name': 'SK하이닉스'}])
         self.assertIsNone(db_schema.load_user_top_picks(self.conn, other))
 
-    def test_endpoints_and_frontend_are_wired(self):
+    def test_endpoints_are_wired(self):
         main = (ROOT / 'scripts' / 'cloud-vm' / 'main.py').read_text(encoding='utf-8')
         self.assertIn("@app.get('/top-picks/me')", main)
         self.assertIn("@app.put('/top-picks/me')", main)
         self.assertIn('def _normalize_top_picks', main)
         self.assertRegex(main, r'(?m)^import re$')
-        js = (ROOT / 'js' / 'market-temp.js').read_text(encoding='utf-8')
-        self.assertIn("var TOP_PICKS_API_URL = 'https://goodbyestar.cloud/top-picks/me';", js)
-        self.assertIn('function syncTopPicks_()', js)
+        # 2026-10-02: 추가 종목 UI는 '내 카테고리 편입'으로 대체돼 프론트는 더 이상 이 API를 부르지 않는다.
+
+
+class SectorMarketOptionalTests(unittest.TestCase):
+    def test_theme_stocks_without_market_are_accepted(self):
+        import sector_cards
+        result = sector_cards.normalize_sector_map({'화장품': [{'name': 'A', 'code': '000001', 'market': ''}]})
+        self.assertEqual(result['화장품'][0]['market'], '')
+        with self.assertRaises(sector_cards.SectorConfigError):
+            sector_cards.normalize_sector_map({'화장품': [{'name': 'A', 'code': '000001', 'market': 'NYSE'}]})

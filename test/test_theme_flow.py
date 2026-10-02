@@ -10,6 +10,7 @@ import os
 import re
 import sys
 import unittest
+import unittest.mock
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(ROOT, 'scripts', 'cloud-vm'))
@@ -125,5 +126,44 @@ class ThemeFlowWiringContractTests(unittest.TestCase):
         self.assertIsNone(re.search(r'industry-flow', block))
 
 
+class ThemeCatalogTests(unittest.TestCase):
+    """2026-10-02: 카테고리를 직접 만들 때 쓰는 전체 테마 목록·구성종목."""
+
+    def setUp(self):
+        theme_flow._stocks_cache.clear()
+        fake = FakeKiwoom()
+        result = theme_flow.fetch_theme_flow('tok', call_tr=fake, sleep=lambda s: None)
+        with theme_flow._lock:
+            theme_flow._state['result'] = result
+
+    def test_full_listing_is_kept_as_theme_catalog(self):
+        themes = theme_flow.get_theme_list()
+        self.assertEqual([t['name'] for t in themes], ['광통신', '2차전지', '1종목테마'])
+        self.assertEqual(themes[0], {'code': '101', 'name': '광통신', 'stock_count': 3, 'change_rate': 12.4})
+
+    def test_theme_stocks_are_normalized_cached_and_limited_to_known_themes(self):
+        calls = []
+
+        def fake_call(token, api_id, path, body):
+            calls.append(body['thema_grp_cd'])
+            return {'thema_comp_stk': STOCKS[body['thema_grp_cd']]}
+
+        theme_flow._creds.update({'appkey': 'a', 'secretkey': 'b'})
+        with unittest.mock.patch.object(theme_flow.kiwoom_client, 'get_token', return_value='tok'):
+            stocks = theme_flow.get_theme_stocks('101', call_tr=fake_call, now=lambda: 1000.0)
+            again = theme_flow.get_theme_stocks('101', call_tr=fake_call, now=lambda: 1010.0)
+            unknown = theme_flow.get_theme_stocks('999', call_tr=fake_call)
+        self.assertEqual([s['code'] for s in stocks], ['000001', '000002', '000003'])
+        self.assertEqual(stocks[0]['price'], 13000)
+        self.assertEqual(again, stocks)
+        self.assertEqual(calls, ['101'])
+        self.assertIsNone(unknown)
+
+    def test_endpoints_are_wired(self):
+        main = open(os.path.join(ROOT, 'scripts', 'cloud-vm', 'main.py'), encoding='utf-8').read()
+        self.assertIn("@app.get('/theme-list')", main)
+        self.assertIn("@app.get('/theme-stocks')", main)
+
+
 if __name__ == '__main__':
-    unittest.main()
+    unittest.main()

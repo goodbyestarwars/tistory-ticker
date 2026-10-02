@@ -52,8 +52,9 @@ def normalize_sector_map(value):
                 raise SectorConfigError('stock name must be 1-100 characters')
             if not CODE_RE.fullmatch(code):
                 raise SectorConfigError('stock code must be 6 alphanumeric characters')
-            if market not in ('KOSPI', 'KOSDAQ'):
-                raise SectorConfigError('market must be KOSPI or KOSDAQ')
+            # 2026-10-02: 테마에서 가져온 종목은 시장 구분을 모를 수 있어 빈 값을 허용한다.
+            if market not in ('KOSPI', 'KOSDAQ', ''):
+                raise SectorConfigError('market must be KOSPI, KOSDAQ or empty')
             if code in seen_codes:
                 raise SectorConfigError('duplicate stock code in category: ' + code)
             seen_codes.add(code)

@@ -3211,6 +3211,30 @@ def industry_flow_endpoint(request: Request):
     })
 
 
+@app.get('/theme-list')
+def theme_list_endpoint(request: Request):
+    """카테고리를 직접 만들 때 고르는 키움 전체 테마 목록(3분 백그라운드가 받아 둔 값)."""
+    _check_rate_limit('theme_list', request, max_per_window=30)
+    themes = theme_flow.get_theme_list()
+    if not themes:
+        raise HTTPException(status_code=503, detail='테마 목록을 준비하는 중입니다. 잠시 후 다시 시도해주세요.')
+    return envelope({'themes': themes, 'count': len(themes)})
+
+
+@app.get('/theme-stocks')
+def theme_stocks_endpoint(request: Request, code: str = ''):
+    """한 키움 테마의 구성종목. 목록에 있는 테마코드만 받고 3분 캐시한다."""
+    _check_rate_limit('theme_stocks', request, max_per_window=20)
+    try:
+        stocks = theme_flow.get_theme_stocks(code)
+    except Exception as exc:
+        logging.getLogger('main').warning('테마 구성종목 조회 실패: %s', exc)
+        raise HTTPException(status_code=502, detail='테마 구성종목을 가져오지 못했습니다.') from exc
+    if stocks is None:
+        raise HTTPException(status_code=404, detail='알 수 없는 테마입니다.')
+    return envelope({'code': code, 'stocks': stocks})
+
+
 @app.get('/theme-flow')
 def theme_flow_endpoint(request: Request):
     """국내 주요종목 "오늘 돈이 몰린 섹터" - 증권사(키움) 테마 기준.

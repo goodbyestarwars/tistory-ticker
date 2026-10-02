@@ -74,6 +74,8 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
 | GET | `/health/realtime` | 없음 | KIS 실시간 공유 허브 상태(연결·마지막 체결·누락 구독·KIS 오류) |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
+| GET | `/theme-list` | 없음 | 키움 전체 테마 목록 `{themes:[{code,name,stock_count,change_rate}],count}`(카테고리 추가 후보, 3분 백그라운드 값) |
+| GET | `/theme-stocks?code=` | 없음 | 한 테마의 구성종목 `{code,stocks:[{code,name,price,change_rate}]}`. 목록에 있는 테마코드만, 3분 캐시, 시장(KOSPI/KOSDAQ) 구분 없음 |
 | GET | `/binance-kr-equity` | 없음 | 바이낸스 국내주식 토큰(SAMSUNGUSDT·SKHYNIXUSDT) 참고 시세: 가격(USDT)·24시간 등락·마크가격·펀딩비·1시간 종가 48개. 국내 장 닫힘 5분/장중 30분 백그라운드, 451이면 `restricted`. 2026-09-15부터 화면은 방문자 브라우저가 `fapi.binance.com`을 직접 조회하고(CORS 허용) 이 엔드포인트는 폴백 |
 | GET | `/api/circuit-breaker` | 없음 | 메인페이지 VI·사이드카 배지 캐시. `sidecar{available,active,market,triggered_at,note}`, `vi_active_count`, `vi_list[{code,name,status(active|released),triggered_at,released_at}]`(최근 발동 순 최대 10, 해제 후 5분까지), `fetchedAt`, `error`. 서버가 KIS 변동성완화장치(VI) 현황(FHPST01390000)을 거래일 08:55~15:35·15:55~20:05에 20초마다 1회 조회. 사이드카는 확인된 출처가 없어 `available=false` |
 | GET | `/auth/google/start` | 없음 | OAuth 시작, `return_to` 선택 |

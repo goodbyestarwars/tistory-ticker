@@ -105,7 +105,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('보합주', result['html'])
         self.assertEqual(result['html'].count('data-all-stock-code='), 2)
         self.assertNotIn('data-all-stock-retry', result['html'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
 
     def test_low_activity_funds_and_invalid_prices_are_excluded_and_deduplicated(self):
         rows = [self.row('000001', '정상주'), self.row('000002', '하락주', rate=-2),
@@ -179,7 +179,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('정상주', result['html'])
         self.assertNotIn('보합주', result['html'])
         refreshed = self.run_cards(refresh=True)
-        self.assertEqual(len(refreshed['requests']), 6)
+        self.assertEqual(len(refreshed['requests']), 10)
 
     def test_korean_composition_preserves_input_and_filters_only_after_commit(self):
         result = self.run_cards(events=[
@@ -199,7 +199,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertEqual(result['stages'][-1]['gridWrites'], 1)
         self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
         self.assertEqual(result['focusCount'], 0)
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
 
     def test_input_composing_flag_delete_paste_code_and_clear(self):
         result = self.run_cards(events=[
@@ -217,7 +217,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('주요 섹터 내에 찾는 종목이 없습니다', result['stages'][4]['html'])
         self.assertEqual(result['html'], result['initial'])
         self.assertEqual(result['panelWrites'], result['initialPanelWrites'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
 
     def test_all_qualified_stocks_and_sectors_are_shown_without_arbitrary_caps(self):
         rows = [self.row(f'{i:06d}', f'활성종목{i}') for i in range(1, 39)]
@@ -227,7 +227,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertEqual(result['html'].count('data-all-stock-code='), 38)
         self.assertIn('12개 섹터 · 38종목 표시', result['html'])
         self.assertNotIn('data-all-stock-next', result['html'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
         searched = self.run_cards(rows, wics=wics, query='활성종목38')
         self.assertEqual(searched['html'].count('data-all-stock-code='), 1)
         self.assertIn('활성종목38', searched['html'])
@@ -249,7 +249,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('▼2.00%', result['html'])
         self.assertIn('시세: 시장판 조회값', result['html'])
         self.assertIn('스캔', result['html'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
 
     def test_new_active_listing_is_added_without_waiting_for_tonights_scan(self):
         rows = [self.row('468670', '브릴스', amount=290000000000, price=43750, rate=124.36),
@@ -268,7 +268,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('장중 조건을 충족한 1종목 추가', result['html'])
         self.assertIn('600억', result['html'])  # 전일 합계에 당일 거래대금을 섞지 않는다.
         self.assertNotIn('저거래신규', result['html'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
 
     def test_board_failure_uses_scan_quotes_and_total_failure_has_retry(self):
         scan = {'data': {'scannedAt': '2026-09-30T00:00:00Z', 'buckets': {'hold': [
@@ -277,7 +277,7 @@ class MarketTempCardsTest(unittest.TestCase):
         result = self.run_cards(failBoard=True, scan=scan)
         self.assertIn('15,000원', result['html'])
         self.assertIn('일일 스캔', result['html'])
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
         failure = self.run_cards(failAll=True)
         self.assertIn('주요 섹터 시세를 불러오지 못했습니다', failure['html'])
         self.assertIn('data-all-stock-retry', failure['html'])
@@ -295,7 +295,7 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('▼2.00%', result['html'])
         self.assertNotIn('data-all-stock-retry', result['html'])
         # 명시적 새로고침은 시장판을 다시 확인한 뒤 스캔으로 대체한다.
-        self.assertEqual(len(result['requests']), 6)
+        self.assertEqual(len(result['requests']), 10)
 
     def test_empty_filtered_board_uses_scan_but_does_not_loosen_activity_thresholds(self):
         rows = [self.row('000001', '저거래대금', amount=900000000),
@@ -304,6 +304,6 @@ class MarketTempCardsTest(unittest.TestCase):
             ['000001', '스캔저거래대금', 15000, 1, 3, 50, 900000000],
             ['000002', '스캔저거래대금2', 22000, -2, 3, 50, 900000000]]}}}
         result = self.run_cards(rows, scan=scan)
-        self.assertEqual(len(result['requests']), 3)
+        self.assertEqual(len(result['requests']), 5)
         self.assertIn('현재 기준에 맞는 주요 섹터가 없습니다', result['html'])
         self.assertNotIn('data-all-stock-code=', result['html'])
