@@ -2121,7 +2121,9 @@
         && !etfNames[row.name] && !/(?:ETF|ETN|스팩|SPAC)/i.test(row.name);
     }).map(function (row) {
       var classification = (wicsMap || {})[row.code] || DOMESTIC_SECTOR_FALLBACKS[row.code] || {};
-      row.sector = String(classification.sector || industryThemeName_(row) || '');
+      // 2026-10-02 사용자 요청("대분류가 너무 크다, 쪼개"): IT·산업재 같은 10개 대분류 대신 WICS 중분류
+      // (반도체와반도체장비·소프트웨어 등)로 카드를 나눈다. 중분류가 없는 보강 값(신규상장 등)은 대분류를 쓴다.
+      row.sector = String(classification.industry || classification.sector || industryThemeName_(row) || '');
       row.market = row.market || classification.market || '';
       return row;
     }).filter(function (row) { return row.sector && row.sector !== '기타' && row.sector !== '미분류'; });

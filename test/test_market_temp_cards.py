@@ -130,6 +130,18 @@ class MarketTempCardsTest(unittest.TestCase):
         self.assertIn('작은섹터종목', html)
         self.assertIn('1개 섹터 · 1종목 표시', html)
 
+    def test_cards_are_split_by_wics_industry_not_broad_sector(self):
+        # 2026-10-02: 대분류(IT)가 아니라 중분류로 카드를 나눈다. 중분류가 없으면 대분류로 물러난다.
+        rows = [self.row('000001', '반도체주'), self.row('000002', '소프트웨어주'), self.row('000003', '보강주')]
+        wics = {'000001': {'sector': 'IT', 'industry': '반도체와반도체장비'},
+                '000002': {'sector': 'IT', 'industry': '소프트웨어'},
+                '000003': {'sector': '산업재'}}
+        html = self.run_cards(rows, wics=wics)['html']
+        self.assertIn('3개 섹터 · 3종목 표시', html)
+        for title in ['반도체와반도체장비', '소프트웨어', '산업재']:
+            self.assertIn('<div class="sector-card-title">' + title, html)
+        self.assertNotIn('<div class="sector-card-title">IT', html)
+
     def test_quiet_stocks_and_known_small_caps_are_excluded(self):
         rows = [self.row('000001', '살아있는종목', amount=30000000000, rate=1),
                 self.row('000002', '잠잠한종목', amount=3000000000, rate=0.2),
