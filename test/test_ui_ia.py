@@ -434,7 +434,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/skin-menu.js")
         for token in ("aria-expanded", "aria-current", "nav-secondary-row", "nav-secondary-separator"):
             self.assertIn(token, source)
-        self.assertNotIn("nav-dropdown", source)
+        # 2026-10-03: PC는 호버로 펼쳐지는 하위 메뉴 카드(.nav-dropdown), 모바일은 2차 메뉴 줄을 쓴다.
+        self.assertIn("nav-dropdown", source)
+        self.assertIn("aria-haspopup", source)
+        self.assertIn("(min-width: 721px)", source)
         self.assertNotIn("nav-chevron", source)
 
     def test_home_market_switch_includes_weekend_closed_tab(self):

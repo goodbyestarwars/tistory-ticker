@@ -54,6 +54,45 @@
   // 사용하는 페이지 주소를 바꾸지 않아 기존 진입 경로가 끊기지 않게 한다.
   var LEGACY_PAGE_URLS = ['/page/foreign-flow', '/page/stock-search'];
 
+  // 2026-10-03 사용자 요청(참고 이미지: 호버하면 아래로 둥근 카드가 펼쳐지고 항목마다 둥근 아이콘 타일):
+  // PC(721px 이상)에서는 2차 메뉴 줄 대신 1차 메뉴 아래에 하위 메뉴 카드(.nav-dropdown)를 띄운다.
+  // 모바일은 예전처럼 2차 메뉴 줄을 쓴다(카드는 CSS로 숨긴다).
+  var NAV_ICON_PATHS = {
+    briefing: '<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>',
+    news: '<path d="M5 5h11v14H7a2 2 0 0 1-2-2z"/><path d="M16 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/>',
+    temp: '<path d="M12 4a2 2 0 0 0-2 2v7.5a4 4 0 1 0 4 0V6a2 2 0 0 0-2-2z"/><path d="M12 9v6"/>',
+    indicators: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
+    stocks: '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
+    analysis: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M8.5 12.5l2-2 1.5 1.5 2-2.5"/>',
+    pattern: '<path d="M8 4v16M16 6v14"/><rect x="6" y="8" width="4" height="7" rx="1"/><rect x="14" y="10" width="4" height="6" rx="1"/>',
+    strategy: '<circle cx="12" cy="12" r="8"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+    dot: '<circle cx="12" cy="12" r="3"/>'
+  };
+
+  function navIconKey(item) {
+    var href = String(item.href || '');
+    if (href.indexOf('main-news') !== -1) return 'news';
+    if (href.indexOf('view=stocks') !== -1) return 'stocks';
+    if (href.indexOf('market-temp') !== -1) return 'temp';
+    if (href.indexOf('kospi-futures') !== -1) return 'indicators';
+    if (href.indexOf('foreign-flow') !== -1) return 'analysis';
+    if (href.indexOf('pattern-scan') !== -1) return 'pattern';
+    if (href.indexOf('strategy-search') !== -1) return 'strategy';
+    if (item.label === '마켓브리핑') return 'briefing';
+    return 'dot';
+  }
+
+  function dropdownHtml(item) {
+    var links = item.children.map(function (child) {
+      var active = isActive(child);
+      return '<a class="nav-dd-item' + (active ? ' active' : '') + '" href="' + child.href + '" role="menuitem"'
+        + (active ? ' aria-current="page"' : '') + '>'
+        + '<span class="nav-dd-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+        + NAV_ICON_PATHS[navIconKey(child)] + '</svg></span><span class="nav-dd-label">' + child.label + '</span></a>';
+    }).join('');
+    return '<div class="nav-dropdown"><div class="nav-dd-card" role="menu" aria-label="' + item.label + ' 하위 메뉴">' + links + '</div></div>';
+  }
+
   var SEARCH_HTML = ''
     + '<div class="nav-search-wrap">'
     + '<div class="nav-search-input-wrap">'
@@ -103,9 +142,9 @@
         + (current ? ' aria-current="page"' : '') + '>'
         + '<span class="nav-item-label">' + item.label + '</span></a>';
     }
-    return '<button type="button" class="' + cls + ' nav-group-trigger" data-group-index="' + index + '"'
-      + ' aria-expanded="' + String(selected) + '" aria-controls="nav-secondary-row">'
-      + '<span class="nav-item-label">' + item.label + '</span></button>';
+    return '<div class="nav-group"><button type="button" class="' + cls + ' nav-group-trigger" data-group-index="' + index + '"'
+      + ' aria-expanded="' + String(selected) + '" aria-controls="nav-secondary-row" aria-haspopup="true">'
+      + '<span class="nav-item-label">' + item.label + '</span></button>' + dropdownHtml(item) + '</div>';
   }
 
   function secondaryHtml() {
@@ -140,10 +179,33 @@
      탭바와 함께 있던 "현재 탭 다시 탭 = 맨 위로"도 사라졌다 - 되살리려면 본문을
      가리지 않는 형태로 따로 설계한다(style.css .scroll-top-btn 주석 참고). */
 
+  function closeDropdowns(mount) {
+    mount.querySelectorAll('.nav-group.is-open').forEach(function (group) {
+      group.classList.remove('is-open');
+      var button = group.querySelector('.nav-group-trigger');
+      if (button) button.setAttribute('aria-expanded', 'false');
+    });
+  }
+
   function wireNavigation(mount) {
+    document.addEventListener('click', function (event) {
+      if (!event.target.closest || !event.target.closest('.nav-group')) closeDropdowns(mount);
+    });
+    document.addEventListener('keydown', function (event) {
+      if (event.key === 'Escape') closeDropdowns(mount);
+    });
     mount.addEventListener('click', function (event) {
       var trigger = event.target.closest ? event.target.closest('.nav-group-trigger') : null;
       if (!trigger) return;
+      // PC: 하위 메뉴는 호버·포커스로 열리는 카드다. 터치·클릭은 카드를 여닫기만 하고 줄을 다시 그리지 않는다.
+      if (window.matchMedia && window.matchMedia('(min-width: 721px)').matches) {
+        var group = trigger.closest('.nav-group');
+        var willOpen = !group.classList.contains('is-open');
+        closeDropdowns(mount);
+        if (willOpen) group.classList.add('is-open');
+        trigger.setAttribute('aria-expanded', String(willOpen));
+        return;
+      }
       var nextIndex = Number(trigger.getAttribute('data-group-index'));
       selectedGroupIndex = selectedGroupIndex === nextIndex && !groupIsActive(NAV_ITEMS[nextIndex])
         ? -1
