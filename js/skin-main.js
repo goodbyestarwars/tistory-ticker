@@ -841,10 +841,23 @@ document.documentElement.classList.add('skin-ready');
         exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
     }
 
+    // 2026-10-02 사용자 지적("대시보드는 21.2도 중립인데 증시온도 페이지에는 온도가 없어"): 페이지는
+    // 2026-09-07 개편부터 3축 종합점수(score100)를 보여 주는데 대시보드만 GAS 레거시 온도(℃)를 읽고 있었다.
+    // VM /market-temp의 종합점수·3단계 등급을 받으면 그 값을 쓰고, 못 받을 때만 예전 ℃ 표기로 물러난다.
+    var homeVmScoreText = '';
+
+    function setHomeVmScore(data) {
+      var score = Number(data && data.score100);
+      if (!isFinite(score)) return;
+      var label = data.grade3 && data.grade3.label ? ' ' + data.grade3.label : '';
+      homeVmScoreText = Math.round(score) + '점' + label;
+      setField('temperature', homeVmScoreText, 'home-neutral');
+    }
+
     function renderMarketTemperature(market) {
       if (market && typeof market.temp === 'number') {
         var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
-        setField('temperature', market.temp.toFixed(market.temp % 1 ? 1 : 0) + '℃' + grade, 'home-neutral');
+        setField('temperature', homeVmScoreText || (market.temp.toFixed(market.temp % 1 ? 1 : 0) + '℃' + grade), 'home-neutral');
         var direction = resolveMarketDirection(market);
         setField('direction', direction.label, direction.tone);
         var exchange = market.components && market.components.exchange;
@@ -892,6 +905,7 @@ document.documentElement.classList.add('skin-ready');
       if (homeMarketSession().market !== 'domestic') return;
       fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
         var data = body && body.data ? body.data : body;
+        setHomeVmScore(data);
         var byMarket = (data && data.marketBreadth && data.marketBreadth.byMarket)
           || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
           || null;
@@ -1455,7 +1469,7 @@ document.documentElement.classList.add('skin-ready');
           if (homeMarketSession().market === 'us') renderMarketExchange(cachedMarketTemp);
           else renderMarketTemperature(cachedMarketTemp);
         } else if (homeMarketSession().market !== 'us') {
-          setField('temperature', '일시 지연', 'home-neutral');
+          if (!homeVmScoreText) setField('temperature', '일시 지연', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('exchange', '일시 지연', 'home-neutral');
         }
