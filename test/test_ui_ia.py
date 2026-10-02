@@ -2162,7 +2162,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("20일평균 ' + compactVolume(latestVolumeMa)", source)
         self.assertIn("function ratioPercent(value, basis)", source)
         self.assertIn("function compactTradingValue(value, isUsChart)", source)
-        self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud')", source)
+        self.assertIn("querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones')", source)
         self.assertIn("paneLabels.style.visibility = 'hidden'", source)
         self.assertIn("paneLabels.style.visibility = 'visible'", source)
         self.assertIn("var renderId = ++lwcRenderId", source)

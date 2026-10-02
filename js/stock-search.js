@@ -107,6 +107,7 @@
     minuteScope: '1',
     movingAverageEnabled: true,
     ichimokuEnabled: false,
+    supportResistanceEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
@@ -122,6 +123,7 @@
   var lwcLiveBars = [];
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
+  var lwcSrCleanup = null;
   var lwcRsiZonesCleanup = null;
   var lwcOhlcTooltipCleanup = null;
   var lwcRenderId = 0;
@@ -395,6 +397,7 @@
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
+      + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -1185,6 +1188,14 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var srToggle = container.querySelector('#ssSupportResistanceToggle, [data-chart-sr-toggle]');
+    if (srToggle) {
+      srToggle.checked = state.supportResistanceEnabled;
+      srToggle.onchange = function () {
+        state.supportResistanceEnabled = srToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
     var drawButton = container.querySelector('.ss-draw-toggle');
     var pencilButton = container.querySelector('.ss-pencil-toggle');
     var circleButton = container.querySelector('.ss-circle-toggle');
@@ -1470,6 +1481,166 @@
     };
   }
 
+  // ---- 지지·저항 (2026-10-03 사용자 요청: "일목균형표 옆에 지지와 저항 옵션, 가로줄(지지 붉은색/저항 파란색)
+  // 또는 음영, 목적은 타점") ----
+  // 현재 차트의 봉(일/주/월/분)에서 스윙 고점·저점(좌우 4봉보다 높거나 낮은 봉)을 찾고, 가까운 가격끼리
+  // 묶어(현재가의 1.2% 이내) 가격대로 만든다. 많이 닿을수록(터치 수)·최근일수록·거래량이 컸을수록 강하다.
+  // 현재가 아래는 지지(붉은색), 위는 저항(파란색)이며 현재가에서 가까운 3개씩만 보여 준다.
+  // 매수·매도 추천이 아니라 과거 가격이 반응했던 자리를 보여 주는 참고선이다.
+  var SR_PIVOT_WINDOW = 4;
+  var SR_CLUSTER_PCT = 0.012;
+  var SR_MAX_BARS = 260;
+  var SR_MAX_PER_SIDE = 3;
+  var SR_SUPPORT_COLOR = '210,79,69';
+  var SR_RESISTANCE_COLOR = '18,97,196';
+
+  function supportResistanceLevels(bars) {
+    var empty = { support: [], resistance: [], price: null };
+    if (!bars || bars.length < SR_PIVOT_WINDOW * 2 + 6) return empty;
+    var arr = bars.slice(-SR_MAX_BARS);
+    var len = arr.length;
+    var price = Number(arr[len - 1].close);
+    if (!Number.isFinite(price) || price <= 0) return empty;
+    var volSum = 0;
+    arr.forEach(function (bar) { volSum += Number(bar.volume) || 0; });
+    var volAvg = volSum / len;
+    var k = SR_PIVOT_WINDOW;
+    var pivots = [];
+    for (var i = k; i < len - k; i++) {
+      var hi = Number(arr[i].high);
+      var lo = Number(arr[i].low);
+      var isHigh = Number.isFinite(hi);
+      var isLow = Number.isFinite(lo);
+      var strictHigh = false;
+      var strictLow = false;
+      for (var j = i - k; j <= i + k; j++) {
+        if (j === i) continue;
+        if (Number(arr[j].high) > hi) isHigh = false;
+        else if (Number(arr[j].high) < hi) strictHigh = true;
+        if (Number(arr[j].low) < lo) isLow = false;
+        else if (Number(arr[j].low) > lo) strictLow = true;
+      }
+      var recency = 0.6 + 0.4 * (i / len);
+      var volume = volAvg > 0 ? Math.min(3, (Number(arr[i].volume) || 0) / volAvg) : 1;
+      var weight = recency * (1 + 0.35 * volume);
+      if (isHigh && strictHigh) pivots.push({ price: hi, weight: weight });
+      if (isLow && strictLow) pivots.push({ price: lo, weight: weight });
+    }
+    pivots.sort(function (a, b) { return a.price - b.price; });
+    var tol = price * SR_CLUSTER_PCT;
+    var clusters = [];
+    pivots.forEach(function (p) {
+      var c = clusters[clusters.length - 1];
+      if (c && p.price - c.mean <= tol) {
+        c.sum += p.price * p.weight;
+        c.weight += p.weight;
+        c.mean = c.sum / c.weight;
+        c.low = Math.min(c.low, p.price);
+        c.high = Math.max(c.high, p.price);
+        c.touches += 1;
+      } else {
+        clusters.push({ sum: p.price * p.weight, weight: p.weight, mean: p.price, low: p.price, high: p.price, touches: 1 });
+      }
+    });
+    var minHalf = price * 0.002;
+    var levels = clusters.filter(function (c) {
+      return c.touches >= 2 && Math.abs(c.mean - price) / price <= 0.25;
+    }).map(function (c) {
+      return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
+    });
+    function nearest(list) {
+      return list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); }).slice(0, SR_MAX_PER_SIDE);
+    }
+    return {
+      price: price,
+      support: nearest(levels.filter(function (l) { return l.price < price * 0.998; })),
+      resistance: nearest(levels.filter(function (l) { return l.price > price * 1.002; }))
+    };
+  }
+
+  function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice) {
+    var all = result ? result.support.map(function (l) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지' }; })
+      .concat(result.resistance.map(function (l) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항' }; })) : [];
+    if (!all.length) return function () {};
+    var chartRoot = container.firstElementChild;
+    if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
+    var canvas = document.createElement('canvas');
+    canvas.className = 'ss-sr-zones';
+    canvas.setAttribute('aria-hidden', 'true');
+    container.insertBefore(canvas, chartRoot || container.firstChild);
+
+    var frameId = 0;
+    var resizeObserver = null;
+    function axisWidth() {
+      try { var w = chart.priceScale('right').width(); if (Number.isFinite(w) && w > 0) return w; } catch (e) { /* 버전에 따라 없다 */ }
+      return 58;
+    }
+    function draw() {
+      frameId = 0;
+      if (!document.body.contains(container)) return;
+      var width = container.clientWidth;
+      var height = container.clientHeight;
+      if (!width || !height) return;
+      var ratio = Math.max(1, global.devicePixelRatio || 1);
+      canvas.width = Math.round(width * ratio);
+      canvas.height = Math.round(height * ratio);
+      var ctx = canvas.getContext('2d');
+      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      var right = width - axisWidth();
+      ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
+      ctx.textBaseline = 'middle';
+      all.forEach(function (item) {
+        var y = candleSeries.priceToCoordinate(item.l.price);
+        var yTop = candleSeries.priceToCoordinate(item.l.high);
+        var yBottom = candleSeries.priceToCoordinate(item.l.low);
+        if (![y, yTop, yBottom].every(Number.isFinite)) return;
+        // 음영: 스윙 고·저점이 모인 가격 폭
+        ctx.fillStyle = 'rgba(' + item.c + ',' + (0.07 + Math.min(item.l.touches, 6) * 0.012) + ')';
+        ctx.fillRect(0, Math.min(yTop, yBottom), right, Math.max(2, Math.abs(yBottom - yTop)));
+        // 가로줄: 점선
+        ctx.strokeStyle = 'rgba(' + item.c + ',.85)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, Math.round(y) + 0.5);
+        ctx.lineTo(right, Math.round(y) + 0.5);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // 라벨: 오른쪽 끝(가격축 바로 안쪽)에 이름·가격·터치 수
+        var text = item.name + ' ' + formatPrice(item.l.price) + ' ·' + item.l.touches + '회';
+        var tw = ctx.measureText(text).width + 12;
+        var ly = Math.min(Math.max(y, 9), height - 9);
+        ctx.fillStyle = 'rgba(' + item.c + ',.92)';
+        ctx.fillRect(right - tw - 4, ly - 9, tw, 18);
+        ctx.fillStyle = '#fff';
+        ctx.fillText(text, right - tw + 2, ly + 0.5);
+      });
+    }
+    function scheduleDraw() {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      frameId = global.requestAnimationFrame(draw);
+    }
+    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
+    if ('ResizeObserver' in global) {
+      resizeObserver = new ResizeObserver(scheduleDraw);
+      resizeObserver.observe(container);
+    } else {
+      global.addEventListener('resize', scheduleDraw);
+    }
+    scheduleDraw();
+    // 가격축 범위는 시간축 이동 없이도(확대·세로 드래그) 바뀌므로 짧게 한 번 더 그린다.
+    var settle = global.setTimeout(scheduleDraw, 250);
+    return function () {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      global.clearTimeout(settle);
+      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
+      if (resizeObserver) resizeObserver.disconnect();
+      else global.removeEventListener('resize', scheduleDraw);
+      canvas.remove();
+    };
+  }
+
   // RSI 패널은 첨부 화면처럼 검정 단일선으로 표시하고, 70 이상/30 이하에서만
   // 선과 기준선 사이를 색칠한다. Lightweight Charts v5에는 개별 pane의 영역 채우기
   // 옵션이 없으므로, RSI 시리즈 좌표를 읽어 차트 아래에 캔버스를 깐다.
@@ -1662,6 +1833,7 @@
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
+      + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
@@ -2198,11 +2370,12 @@
     lwcLiveTimeframe = null;
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
+    if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
-    container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud').forEach(function (el) { el.remove(); });
+    container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
 
     loadLightweightCharts().then(function (LWC) {
       if (renderId !== lwcRenderId || !document.body.contains(container)) return;
@@ -2305,6 +2478,18 @@
         spanBSeries.setData(safeCloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
         cloudPoints = safeCloudPoints;
         priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
+      }
+
+      var srResult = state.supportResistanceEnabled ? supportResistanceLevels(bars) : null;
+      if (state.supportResistanceEnabled) {
+        var srPart = function (list, cls) {
+          return list.map(function (l) { return '<b class="' + cls + '">' + chartPriceText(l.price, isUsChart) + '</b>'; }).join(' · ');
+        };
+        priceLegendHtml.push('<span class="ss-sr-label">'
+          + (srResult && (srResult.support.length || srResult.resistance.length)
+            ? '지지 ' + (srResult.support.length ? srPart(srResult.support, 'ss-sr-support') : '없음')
+              + ' / 저항 ' + (srResult.resistance.length ? srPart(srResult.resistance, 'ss-sr-resistance') : '없음')
+            : '지지·저항 <b>데이터 부족</b>') + '</span>');
       }
 
       if (priceLegendHtml.length) {
@@ -2435,6 +2620,7 @@
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
+      lwcSrCleanup = installSupportResistanceCanvas(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); });
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe);
     }).catch(function () {
