@@ -237,6 +237,15 @@ def _loop(appkey, secretkey):
             age = time.time() - _state['fetchedAt']
             has_result = _state['result'] is not None
         due = REFRESH_SEC if _is_active_window(now_kst) else OFF_HOURS_REFRESH_SEC
+        with _lock:
+            catalog_age = time.time() - _catalog['fetchedAt']
+        if catalog_age >= CATALOG_REFRESH_SEC:
+            try:
+                refresh_catalog(appkey, secretkey)
+            except Exception as exc:
+                logger.warning('키움 테마 카탈로그 갱신 실패: %s', exc)
+                with _lock:
+                    _catalog['fetchedAt'] = time.time() - CATALOG_REFRESH_SEC + 300  # 5분 뒤 재시도
         if not has_result or age >= due:
             try:
                 refresh_once(appkey, secretkey)
@@ -248,12 +257,62 @@ def _loop(appkey, secretkey):
         time.sleep(20)
 
 
+CATALOG_REFRESH_SEC = 3600
+CATALOG_MAX_PAGES = 8
+CATALOG_CACHE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'theme_catalog_cache.json')
+_catalog = {'themes': None, 'fetchedAt': 0.0}
+
+
+def fetch_theme_catalog(token, call_pages=None, sleep=time.sleep):
+    """ka90001을 연속조회로 끝까지 받아 전체 테마 목록을 만든다. 한 번의 응답은 100개까지라(2026-10-02
+    라이브 확인: 정확히 100개) 그날 등락률 상위만 보였다 - 화장품·호텔처럼 안 오른 테마도 고를 수 있어야 한다."""
+    call_pages = call_pages or kiwoom_client.call_tr_pages
+    pages = call_pages(token, 'ka90001', THEME_PATH, {
+        'qry_tp': '0', 'stk_cd': '', 'date_tp': '1', 'thema_nm': '',
+        'flu_pl_amt_tp': '3', 'stex_tp': '3',
+    }, max_pages=CATALOG_MAX_PAGES)
+    groups = []
+    for page in pages or []:
+        groups.extend(g for g in (page.get('thema_grp') or []) if isinstance(g, dict))
+    return build_theme_list(groups)
+
+
+def refresh_catalog(appkey, secretkey):
+    token = kiwoom_client.get_token(appkey, secretkey)
+    themes = fetch_theme_catalog(token)
+    if themes:
+        with _lock:
+            _catalog['themes'] = themes
+            _catalog['fetchedAt'] = time.time()
+        tmp = CATALOG_CACHE_FILE + '.tmp'
+        try:
+            with open(tmp, 'w', encoding='utf-8') as handle:
+                json.dump({'themes': themes}, handle, ensure_ascii=False)
+            os.replace(tmp, CATALOG_CACHE_FILE)
+        except OSError:
+            logger.warning('테마 카탈로그 캐시 파일 저장 실패', exc_info=True)
+    return themes
+
+
+def _load_catalog_file():
+    try:
+        with open(CATALOG_CACHE_FILE, encoding='utf-8') as handle:
+            data = json.load(handle)
+        themes = data.get('themes') if isinstance(data, dict) else None
+        return themes if isinstance(themes, list) and themes else None
+    except (OSError, ValueError):
+        return None
+
+
 def get_theme_list():
-    """전체 테마 목록(백그라운드가 받아 둔 값). 아직 없으면 None."""
+    """전체 테마 목록. 연속조회로 받은 카탈로그를 우선하고, 아직 없으면 3분 흐름 응답의 목록으로 물러난다."""
     with _lock:
+        themes = _catalog['themes']
         result = _state['result']
-    themes = result.get('themes') if isinstance(result, dict) else None
-    return themes if isinstance(themes, list) and themes else None
+    if themes:
+        return themes
+    fallback = result.get('themes') if isinstance(result, dict) else None
+    return fallback if isinstance(fallback, list) and fallback else None
 
 
 def get_theme_stocks(theme_code, call_tr=None, now=time.time):
@@ -285,6 +344,8 @@ def start_background(appkey, secretkey):
         logger.warning('KIWOOM_APPKEY/KIWOOM_SECRETKEY 미설정 - 테마 흐름 수집 건너뜀')
         return None
     with _lock:
+        if _catalog['themes'] is None:
+            _catalog['themes'] = _load_catalog_file()
         if _state['result'] is None:
             _state['result'] = _load_cache_file()
         if _thread is not None and _thread.is_alive():

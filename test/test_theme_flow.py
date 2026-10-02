@@ -165,5 +165,58 @@ class ThemeCatalogTests(unittest.TestCase):
         self.assertIn("@app.get('/theme-stocks')", main)
 
 
+class ThemeCatalogPagingTests(unittest.TestCase):
+    """2026-10-02: ka90001은 한 번에 100개까지만 준다 - 연속조회로 끝까지 받는다."""
+
+    def test_catalog_merges_all_pages_and_dedupes(self):
+        def fake_pages(token, api_id, path, body, max_pages=1, **kw):
+            self.assertEqual(api_id, 'ka90001')
+            return [
+                {'thema_grp': [{'thema_grp_cd': '1', 'thema_nm': 'A', 'stk_num': '3', 'flu_rt': '+1.0'}]},
+                {'thema_grp': [{'thema_grp_cd': '2', 'thema_nm': '화장품', 'stk_num': '9', 'flu_rt': '-0.5'},
+                               {'thema_grp_cd': '1', 'thema_nm': 'A'}]},
+            ]
+        themes = theme_flow.fetch_theme_catalog('tok', call_pages=fake_pages)
+        self.assertEqual([t['name'] for t in themes], ['A', '화장품'])
+
+    def test_call_tr_pages_follows_cont_yn_and_next_key_headers(self):
+        import io
+        import json
+        import unittest.mock
+        import kiwoom_client
+
+        seen = []
+
+        class FakeResponse:
+            def __init__(self, body, headers):
+                self._body = body
+                self.headers = headers
+
+            def read(self):
+                return json.dumps(self._body).encode('utf-8')
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *args):
+                return False
+
+        replies = [
+            FakeResponse({'thema_grp': [{'a': 1}]}, {'cont-yn': 'Y', 'next-key': 'K1'}),
+            FakeResponse({'thema_grp': [{'a': 2}]}, {'cont-yn': 'N', 'next-key': ''}),
+        ]
+
+        def fake_urlopen(req, timeout=0):
+            seen.append({k.lower(): v for k, v in req.header_items()})
+            return replies[len(seen) - 1]
+
+        with unittest.mock.patch.object(kiwoom_client.urllib.request, 'urlopen', fake_urlopen):
+            pages = kiwoom_client.call_tr_pages('tok', 'ka90001', '/api/dostk/thme', {}, sleep=lambda s: None)
+        self.assertEqual(len(pages), 2)
+        self.assertNotIn('cont-yn', seen[0])
+        self.assertEqual(seen[1].get('cont-yn'), 'Y')
+        self.assertEqual(seen[1].get('next-key'), 'K1')
+
+
 if __name__ == '__main__':
     unittest.main()

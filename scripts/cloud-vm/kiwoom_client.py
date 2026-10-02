@@ -145,3 +145,39 @@ def call_tr(token, api_id, path, body):
     if is_token_invalid(payload):
         invalidate_token(token)
     return payload
+
+
+def call_tr_pages(token, api_id, path, body, max_pages=8, sleep=time.sleep, gap_sec=0.3):
+    """연속조회가 있는 TR을 이어서 받는다(키움 REST 공통 규격: 응답 헤더 cont-yn='Y' + next-key를
+    다음 요청 헤더로 되돌려 보낸다). 헤더가 없으면 첫 페이지만 돌려준다. 페이지별 응답 dict 목록."""
+    pages = []
+    cont_yn, next_key = '', ''
+    for _ in range(max(1, int(max_pages))):
+        headers = {
+            **COMMON_HEADERS,
+            'Content-Type': 'application/json;charset=UTF-8',
+            'authorization': 'Bearer ' + token,
+            'api-id': api_id,
+        }
+        if cont_yn == 'Y' and next_key:
+            headers['cont-yn'] = 'Y'
+            headers['next-key'] = next_key
+        req = urllib.request.Request(BASE_URL + path, data=json.dumps(body).encode('utf-8'),
+                                     headers=headers, method='POST')
+        try:
+            with urllib.request.urlopen(req, timeout=15) as res:
+                payload = json.loads(res.read().decode('utf-8'))
+                cont_yn = str(res.headers.get('cont-yn') or '').strip().upper()
+                next_key = str(res.headers.get('next-key') or '').strip()
+        except urllib.error.HTTPError as e:
+            detail = e.read().decode('utf-8', 'ignore')
+            if e.code in (401, 403):
+                invalidate_token(token)
+            raise RuntimeError('%s HTTP %s: %s' % (api_id, e.code, detail))
+        if is_token_invalid(payload):
+            invalidate_token(token)
+        pages.append(payload)
+        if cont_yn != 'Y' or not next_key:
+            break
+        sleep(gap_sec)
+    return pages
