@@ -7822,4 +7822,53 @@ html body .mt-view-toggle .mt-view-btn.active { background: var(--np-paper) !imp
       (제목 34/35px, 첫 블록 위 간격 10/14/20px) 가로선이 서로 어긋나던 것을 같은 값으로 맞춘다 ── */
 html body :where(.home-card-heading, .hen-head) { min-height: 36px !important; }
 html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { margin-top: 18px !important; }
+
+/* ── 18. 기본 버튼 묶음 = 애플 세그먼트 ── 2026-10-03 사용자 지시("이거 좋다, 기본 버튼은 다 이런 식으로"):
+      시장지표·차트검색·전략검색 탭, 그 밖의 탭 묶음, 상단 메뉴(PC)를 연한 트랙 + 선택된 것만 바탕색 면으로 통일.
+      상단 메뉴의 하위 드롭다운 카드는 건드리지 않는다. ── */
+html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods) {
+  display: inline-flex !important;
+  align-items: center !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  height: auto !important;
+  min-height: 0 !important;
+  padding: 4px !important;
+  gap: 2px !important;
+  background: rgba(var(--np-ink), .05) !important;
+  border: 0 !important;
+  border-radius: 14px !important;
+  overflow-x: auto !important;
+  scrollbar-width: none !important;
+}
+html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods)::-webkit-scrollbar { display: none; }
+html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods)
+  > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  background: var(--np-paper) !important;
+  color: rgb(var(--np-ink)) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important;
+}
+@media (min-width: 721px) {
+  html body .sidebar-left .nav-primary-row {
+    width: fit-content !important;
+    height: 44px !important;
+    margin: 2px 0 !important;
+    padding: 4px !important;
+    gap: 2px !important;
+    background: rgba(var(--np-ink), .05) !important;
+    border-radius: 14px !important;
+    align-self: center !important;
+  }
+  html body .sidebar-left .nav-primary-item { height: 36px !important; border-radius: 10px !important; }
+  html body .sidebar-left :where(.nav-primary-item:hover, .nav-group:hover > .nav-primary-item, .nav-group.is-open > .nav-primary-item, .nav-group:focus-within > .nav-primary-item) {
+    background: rgba(var(--np-ink), .06) !important;
+  }
+  html body .sidebar-left .nav-primary-item.nav-item-active {
+    background: var(--np-paper) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important;
+  }
+}
 }
