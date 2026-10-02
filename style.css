@@ -7488,23 +7488,27 @@ html.dark {
 }
 
 @layer np {
-/* ── 1. 면(패널) : 테두리 상자 대신 위 굵은 선 하나(아래 선을 두면 다음 패널 위 선과 겹쳐 이중선이 된다) ── */
-html body :where(.sector-card, .mt-card, .mt-section, .post-single, .post-card, .card:not(.nav-menu), .home-widget,
-  .home-realtime-board, .home-economic-news, .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card,
-  #stock-search .ss-panel-left, #stock-search .ss-panel-right, #stock-search .ss-summary, #strategy-search .ss-card,
-  #pattern-scan .ps-detail, #overnight-market .om-card, #stock-calendar .sc-cal-col, .market-discussion) {
+/* ── 1. 카드 : 애플 + KB자산운용 스타일 — 큰 모서리(20px)와 아주 옅은 1px 선, 그림자 없음 ── */
+html body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
+  .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
+  #stock-search .ss-summary, #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
+  border: 1px solid rgba(var(--np-ink), .09) !important;
+  border-radius: 20px !important;
+  box-shadow: none !important;
+  background-color: var(--np-paper) !important;
+  background-image: none !important;
+}
+html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 24px !important; padding-right: 24px !important; }
+html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 20px 24px 16px !important; }
+html body .home-widget-grid { gap: 16px !important; }
+/* 페이지 바탕 상자·블로그 글은 카드가 아니라 위 가는 선만 둔다 */
+html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar .sc-cal-col) {
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
   background-color: var(--np-paper) !important;
   background-image: var(--np-line-h) !important;
   background-repeat: no-repeat !important;
-  background-size: 100% 1px !important;
-  background-position: top left !important;
-}
-/* 홈 위젯은 같은 줄에 나란히 놓이므로 위 굵은 선만 둔다(아래 선은 다음 단 위 선과 겹친다) */
-html body .home-widget, html body .home-realtime-board, html body .home-economic-news {
-  background-image: var(--np-line-h) !important;
   background-size: 100% 1px !important;
   background-position: top left !important;
 }
@@ -7522,8 +7526,7 @@ html body :where(.sector-row, .mt-money-row, .post-single-header, .mt-track-row,
   border-image: var(--np-line-h-soft) 1 !important;
 }
 html body :where(.home-section-heading, .hen-breaking-head) { border-image: var(--np-line-h) 1 !important; }
-html body :where(.home-market-board, .home-index-card, .global-watchlist-panel) { border-image: var(--np-line-v) 1 !important; }
-html body .home-market-board { border-style: solid !important; border-width: 0 1px 0 0 !important; border-radius: 0 !important; box-shadow: none !important; background-image: var(--np-line-h) !important; background-size: 100% 1px !important; background-repeat: no-repeat !important; background-position: top left !important; }
+html body :where(.home-index-card, .global-watchlist-panel) { border-image: var(--np-line-v) 1 !important; }
 
 /* 이웃한 행은 경계선을 하나만 : 위 테두리만 남기고 마지막 행은 아래 선으로 닫는다 */
 html body .app-news-event { border-top-width: 1px !important; border-bottom-width: 0 !important; }
@@ -7706,8 +7709,7 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 html body .mt-view-toggle { overflow-x: auto !important; scrollbar-width: none !important; }
 html body .mt-section-block { border-top: 0 !important; }
 
-/* ── 12. 정렬 : 테두리를 없앤 패널은 좌우 안쪽 여백도 없앤다(제목·표·카드 글자가 같은 왼쪽 선에서 시작하게) ── */
-html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card, .sector-card) { padding-left: 0 !important; padding-right: 0 !important; }
+/* ── 12. 정렬 : 카드 안쪽 여백은 카드 규칙에서 맞춘다 ── */
 html body .card.nav-menu { border-top: 0 !important; }
 
 /* ── 13. 둥근 상자 통일 : 증시온도 안쪽 상자들은 푸른 회색 면 대신 바탕색 + 옅은 선 + 모서리 12px ── */
@@ -7718,10 +7720,10 @@ html body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-fl
   border-radius: 12px !important;
   box-shadow: none !important;
 }
-/* 공포·보통·과열 박스는 윗부분 색(파랑·노랑·빨강)이 의미라 그 색만 남긴다 */
-html body #market-temp .mt-history-balance > .fear { border-top: 3px solid #1261c4 !important; }
-html body #market-temp .mt-history-balance > .neutral { border-top: 3px solid #d4a548 !important; }
-html body #market-temp .mt-history-balance > .greed { border-top: 3px solid #d65f5f !important; }
+/* 공포·보통·과열 박스: 윗줄 굵은 색띠 대신 톤 색의 옅은 음영 + 같은 색 옅은 테두리 */
+html body #market-temp .mt-history-balance > .fear { background-color: rgba(18, 97, 196, .06) !important; border-color: rgba(18, 97, 196, .28) !important; }
+html body #market-temp .mt-history-balance > .neutral { background-color: rgba(212, 165, 72, .1) !important; border-color: rgba(212, 165, 72, .42) !important; }
+html body #market-temp .mt-history-balance > .greed { background-color: rgba(214, 95, 95, .07) !important; border-color: rgba(214, 95, 95, .32) !important; }
 html body #market-temp .mt-weather-day { border-radius: 10px !important; }
 html body #market-temp .mt-weather-day.is-today { background-color: rgba(var(--np-ink), .06) !important; border-color: transparent !important; }
 
@@ -7811,4 +7813,8 @@ html body .hrt-tabs { align-items: center !important; padding: 6px 0 10px !impor
 @media (max-width: 720px) {
   html body .sidebar-left .nav-dropdown { display: none !important; }
 }
+
+/* ── 16. 그룹형 토글(애플 세그먼트): 트랙 위에서 선택된 탭만 바탕색 면 ── */
+html body .mt-view-toggle { display: inline-flex !important; padding: 4px !important; gap: 2px !important; background: rgba(var(--np-ink), .05) !important; border-radius: 14px !important; max-width: 100% !important; }
+html body .mt-view-toggle .mt-view-btn.active { background: var(--np-paper) !important; box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important; }
 }
