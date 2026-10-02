@@ -1488,7 +1488,8 @@
   // 현재가 아래는 지지(붉은색), 위는 저항(파란색)이며 현재가에서 가까운 3개씩만 보여 준다.
   // 매수·매도 추천이 아니라 과거 가격이 반응했던 자리를 보여 주는 참고선이다.
   var SR_PIVOT_WINDOW = 4;
-  var SR_CLUSTER_PCT = 0.012;
+  var SR_CLUSTER_PCT = 0.015;
+  var SR_MIN_GAP_PCT = 0.02;   // 같은 쪽에서 고른 선끼리 최소 간격(라벨·선이 붙어 읽기 어려운 것 방지)
   var SR_MAX_BARS = 260;
   var SR_MAX_PER_SIDE = 3;
   var SR_SUPPORT_COLOR = '210,79,69';
@@ -1549,7 +1550,14 @@
       return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
     });
     function nearest(list) {
-      return list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); }).slice(0, SR_MAX_PER_SIDE);
+      var sorted = list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
+      var picked = [];
+      sorted.forEach(function (level) {
+        if (picked.length >= SR_MAX_PER_SIDE) return;
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
+        if (!tooClose) picked.push(level);
+      });
+      return picked;
     }
     return {
       price: price,
@@ -1590,6 +1598,17 @@
       var right = width - axisWidth();
       ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
       ctx.textBaseline = 'middle';
+      // 라벨이 겹치면 위에서부터 18px 이상 벌린다(선 위치는 그대로, 라벨만 이동)
+      var labelY = {};
+      var placed = all.map(function (item) { return { item: item, y: candleSeries.priceToCoordinate(item.l.price) }; })
+        .filter(function (p) { return Number.isFinite(p.y); })
+        .sort(function (a, b) { return a.y - b.y; });
+      var lastY = -Infinity;
+      placed.forEach(function (p, idx) {
+        var ly = Math.max(Math.min(Math.max(p.y, 10), height - 10), lastY + 19);
+        labelY[p.item.name + p.item.l.price] = ly;
+        lastY = ly;
+      });
       all.forEach(function (item) {
         var y = candleSeries.priceToCoordinate(item.l.price);
         var yTop = candleSeries.priceToCoordinate(item.l.high);
@@ -1610,7 +1629,7 @@
         // 라벨: 오른쪽 끝(가격축 바로 안쪽)에 이름·가격·터치 수
         var text = item.name + ' ' + formatPrice(item.l.price) + ' ·' + item.l.touches + '회';
         var tw = ctx.measureText(text).width + 12;
-        var ly = Math.min(Math.max(y, 9), height - 9);
+        var ly = labelY[item.name + item.l.price] != null ? labelY[item.name + item.l.price] : Math.min(Math.max(y, 9), height - 9);
         ctx.fillStyle = 'rgba(' + item.c + ',.92)';
         ctx.fillRect(right - tw - 4, ly - 9, tw, 18);
         ctx.fillStyle = '#fff';
