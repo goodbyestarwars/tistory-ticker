@@ -7464,8 +7464,8 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
 /* ============================================================================
    NEWSPAPER THEME  (2026-10-02 사용자 요청: "신문 스타일, 선과 면, AI 스럽지 않게")
    - 이 블록만 지우면 이전 디자인으로 돌아간다(원복 지점: git tag design-restore-2026-10-02).
-   - 선: 가운데는 진하고 모서리로 갈수록 옅어지는 그라데이션(border-image / background-image).
-   - 면: 종이색(--np-paper)과 한 톤 짙은 면(--np-tint)으로 영역을 나눈다. 그림자·큰 둥근 모서리 없음.
+   - 선: 1px 아주 옅은 중립색, 양 끝만 서서히 사라지는 그라데이션(보이는 듯 안 보이는 선)(border-image / background-image).
+   - 면: 종이색 위에 거의 투명한 회색 한 겹(--np-tint)만 얹는다(색이 섞이지 않게). 그림자·큰 둥근 모서리 없음.
    - 한 경계에는 선 하나만 둔다(이웃 행의 위/아래 테두리가 겹쳐 이중선이 되던 곳을 정리).
    - 버튼: 검은 면 + 흰 글씨, 모서리 0, 높이·글꼴 통일. 탭은 밑줄형, 칩은 가는 선 상자.
    - 글꼴: 제목·헤드라인·뉴스 = 마루부리(--font-title), 나머지(메뉴 포함) = 프리텐다드(--font-ui). 기존 규칙을 그대로 둔다.
@@ -7473,18 +7473,18 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
 :root {
   --np-ink: 17, 17, 17;
   --np-paper: rgb(255, 254, 252);
-  --np-tint: #f4f1e9;
-  --np-line-h: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .86) 50%, rgba(var(--np-ink), 0) 100%);
-  --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .3) 50%, rgba(var(--np-ink), 0) 100%);
-  --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .34) 50%, rgba(var(--np-ink), 0) 100%);
+  --np-tint: rgba(17, 17, 17, .03);
+  --np-line-h: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .15) 16%, rgba(var(--np-ink), .15) 84%, rgba(var(--np-ink), 0) 100%);
+  --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .09) 16%, rgba(var(--np-ink), .09) 84%, rgba(var(--np-ink), 0) 100%);
+  --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .1) 20%, rgba(var(--np-ink), .1) 80%, rgba(var(--np-ink), 0) 100%);
   --np-btn-h: 32px;
-  --rule: rgba(17, 17, 17, .16);
+  --rule: rgba(17, 17, 17, .1);
 }
 html.dark {
   --np-ink: 245, 239, 224;
   --np-paper: #1A1A1A;
-  --np-tint: #242424;
-  --rule: rgba(245, 239, 224, .18);
+  --np-tint: rgba(245, 239, 224, .045);
+  --rule: rgba(245, 239, 224, .14);
 }
 
 @layer np {
@@ -7499,13 +7499,13 @@ html body :where(.sector-card, .mt-card, .mt-section, .post-single, .post-card, 
   background-color: var(--np-paper) !important;
   background-image: var(--np-line-h) !important;
   background-repeat: no-repeat !important;
-  background-size: 100% 2px !important;
+  background-size: 100% 1px !important;
   background-position: top left !important;
 }
 /* 홈 위젯은 같은 줄에 나란히 놓이므로 위 굵은 선만 둔다(아래 선은 다음 단 위 선과 겹친다) */
 html body .home-widget, html body .home-realtime-board, html body .home-economic-news {
   background-image: var(--np-line-h) !important;
-  background-size: 100% 2px !important;
+  background-size: 100% 1px !important;
   background-position: top left !important;
 }
 
@@ -7523,7 +7523,7 @@ html body :where(.sector-row, .mt-money-row, .post-single-header, .mt-track-row,
 }
 html body :where(.home-section-heading, .hen-breaking-head) { border-image: var(--np-line-h) 1 !important; }
 html body :where(.home-market-board, .home-index-card, .global-watchlist-panel) { border-image: var(--np-line-v) 1 !important; }
-html body .home-market-board { border-style: solid !important; border-width: 0 1px 0 0 !important; border-radius: 0 !important; box-shadow: none !important; background-image: var(--np-line-h) !important; background-size: 100% 2px !important; background-repeat: no-repeat !important; background-position: top left !important; }
+html body .home-market-board { border-style: solid !important; border-width: 0 1px 0 0 !important; border-radius: 0 !important; box-shadow: none !important; background-image: var(--np-line-h) !important; background-size: 100% 1px !important; background-repeat: no-repeat !important; background-position: top left !important; }
 
 /* 이웃한 행은 경계선을 하나만 : 위 테두리만 남기고 마지막 행은 아래 선으로 닫는다 */
 html body .app-news-event { border-top-width: 1px !important; border-bottom-width: 0 !important; }
@@ -7545,7 +7545,7 @@ html body :where(.home-section-heading, .mt-section-head, .ff-section-head, .dmi
   content: "" !important;
   position: absolute !important;
   left: 0; right: 0; top: 0 !important;
-  height: 3px !important;
+  height: 1px !important;
   background: var(--np-line-h) !important;
   pointer-events: none !important;
 }
@@ -7640,7 +7640,7 @@ html body .site-footer {
   background-color: var(--np-tint) !important;
   border-top: 0 !important;
   background-image: var(--np-line-h) !important;
-  background-size: 100% 2px !important;
+  background-size: 100% 1px !important;
   background-repeat: no-repeat !important;
   background-position: top left !important;
 }
