@@ -1172,20 +1172,36 @@
       if (!days[i.h.date]) { days[i.h.date] = []; order.push(i.h.date); }
       days[i.h.date].push(i);
     });
-    body.innerHTML = order.map(function (date) {
+    // 2026-10-04 사용자 지적("나열만 한 것 같다, 흐름이 쭉쭉 이어졌으면"): 종목을 전부 늘어놓지 않고, 기록한 날마다
+    // 한 줄(날짜 · 평균 수익률 막대 · 오른 종목 수)로 이어 보여 준다. 누르면 그날 종목이 펼쳐진다.
+    var maxAbs = 1;
+    order.forEach(function (date) {
+      var ok = days[date].filter(function (i) { return isFinite(i.ret); });
+      if (!ok.length) return;
+      var a = Math.abs(ok.reduce(function (s0, i) { return s0 + i.ret; }, 0) / ok.length);
+      if (a > maxAbs) maxAbs = a;
+    });
+    body.innerHTML = '<div class="mt-track-flow">' + order.map(function (date) {
       var list = days[date];
       var ok = list.filter(function (i) { return isFinite(i.ret); });
-      var dayAvg = ok.length ? ok.reduce(function (s, i) { return s + i.ret; }, 0) / ok.length : NaN;
-      return '<div class="mt-track-day"><b>' + escapeHtml(trackDateText_(date)) + ' 기록</b><small>' + list.length + '종목 · 평균 '
-        + escapeHtml(rateText_(dayAvg)) + '</small></div>'
+      var dayAvg = ok.length ? ok.reduce(function (s0, i) { return s0 + i.ret; }, 0) / ok.length : NaN;
+      var wins = ok.filter(function (i) { return i.ret > 0; }).length;
+      var tone = dayAvg > 0 ? 'is-up' : dayAvg < 0 ? 'is-down' : 'is-flat';
+      var width = isFinite(dayAvg) ? Math.max(3, Math.min(100, Math.abs(dayAvg) / maxAbs * 100)) : 0;
+      return '<details class="mt-track-daybox"><summary>'
+        + '<time>' + escapeHtml(trackDateText_(date)) + '</time>'
+        + '<span class="mt-track-bar"><i class="' + tone + '" style="width:' + width.toFixed(0) + '%"></i></span>'
+        + '<b class="' + tone + '">' + escapeHtml(rateText_(dayAvg)) + '</b>'
+        + '<small>' + wins + '/' + ok.length + ' 상승</small></summary>'
         + list.map(function (i) {
           var r = i.ret;
           return '<a class="mt-track-row" href="' + stockLinkHref_({ code: i.h.code, name: i.h.name }) + '">'
             + '<span class="mt-track-name">' + escapeHtml(i.h.name) + '<small>' + escapeHtml(i.h.theme) + '</small></span>'
             + '<span class="mt-track-price">' + priceText_(i.h.rec_price) + ' → ' + priceText_(i.now) + '</span>'
             + '<em class="' + (r > 0 ? 'is-up' : r < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(r) + '</em></a>';
-        }).join('');
-    }).join('')
+        }).join('')
+        + '</details>';
+    }).join('') + '</div>'
       + '<p class="mt-sf-note">기준가는 기록 시점(거래일 15:35 이후 첫 갱신)의 현재가이고, 수익률은 지금 현재가 기준입니다. 과거 기록일 뿐 앞으로를 보장하지 않으며 수수료·세금은 반영하지 않았습니다.</p>';
   }
 
@@ -1256,7 +1272,7 @@
       + '</div>'
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
       + '<p class="mt-sf-disclaimer">' + escapeHtml(MONEY_PICKS_DISCLAIMER) + '</p>'
-      + '<details class="mt-sf-track" data-pick-track><summary>대표 종목 2주 추적 <span data-track-summary>불러오는 중...</span></summary>'
+      + '<details class="mt-sf-track" data-pick-track open><summary>대표 종목 2주 추적 <span data-track-summary>불러오는 중...</span></summary>'
       + '<div data-track-body><div class="mt-hint">기록을 불러오는 중입니다.</div></div></details>'
       + '</div>';
     loadPickTracking_(mount);
