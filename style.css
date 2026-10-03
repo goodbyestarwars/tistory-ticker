@@ -7881,7 +7881,10 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
         제목 줄(전체 폭)과 카드 폭이 어긋났다 → 카드 1개면 전체 폭으로.
       · 전 화면 점검에서 찾은 소형 상자(모서리 8~10px, 푸른 회색 면)는 한 규칙으로: 모서리 14px·옅은 선·바탕색. ── */
 @media (min-width: 721px) {
-  html body .sidebar-left .nav-primary-row { align-self: flex-start !important; }
+  /* 2026-10-03 사용자 지적: 메뉴 트랙이 짧아 어색 → 트랙을 한 줄 전체 폭으로 늘리고 메뉴를 균등 분할 */
+  html body .sidebar-left .nav-primary-row { align-self: stretch !important; width: auto !important; flex: 1 1 auto !important; }
+  html body .sidebar-left .nav-primary-row .nav-group { flex: 1 1 0 !important; justify-content: center !important; }
+  html body .sidebar-left .nav-primary-row .nav-primary-item { width: 100% !important; justify-content: center !important; }
 }
 html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
 html body :where(.hwr-schedule, .hwr-index-summary, .hwr-index-card, .hwr-fx-card, .hwr-news-card, .hwr-columns > article,
