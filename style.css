@@ -7861,7 +7861,7 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
     margin: 2px 0 !important;
     padding: 4px !important;
     gap: 2px !important;
-    background: rgba(var(--np-ink), .05) !important;
+    background: transparent !important;
     border-radius: 14px !important;
     align-self: center !important;
   }
@@ -7870,8 +7870,8 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
     background: rgba(var(--np-ink), .06) !important;
   }
   html body .sidebar-left .nav-primary-item.nav-item-active {
-    background: var(--np-paper) !important;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important;
+    background: rgba(var(--np-ink), .07) !important;
+    box-shadow: none !important;
   }
 }
 
@@ -7971,14 +7971,14 @@ html.search-open body .nav-search-suggest {
   html body .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
 html body .site-footer-learn {
-  display: flex !important; flex-wrap: nowrap !important; justify-content: flex-start !important; align-items: stretch !important;
+  display: flex !important; flex-wrap: nowrap !important; justify-content: safe center !important; align-items: stretch !important;
   gap: 12px !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; justify-self: stretch !important;
   margin: 6px 0 4px !important; padding: 4px 2px 12px !important;
   overflow-x: auto !important; scrollbar-width: none !important; -webkit-overflow-scrolling: touch;
 }
 html body .site-footer-learn::-webkit-scrollbar { display: none; }
 html body .site-footer-learn a.learn-card {
-  position: relative !important; flex: 1 0 128px !important; width: auto !important; max-width: 190px !important; height: 128px !important; box-sizing: border-box !important;
+  position: relative !important; flex: 0 0 124px !important; width: 124px !important; height: 128px !important; box-sizing: border-box !important;
   display: flex !important; flex-direction: column !important; justify-content: flex-end !important; gap: 2px !important;
   padding: 14px !important; border: 1px solid rgba(17, 17, 17, .08) !important; border-radius: 22px !important; overflow: hidden !important;
   background: rgba(255, 255, 255, .62) !important;
@@ -7996,7 +7996,7 @@ html body .site-footer-learn a.learn-card b { font: 600 14px/1.3 inherit !import
 html body .site-footer-learn a.learn-card small { font: 400 11px/1.35 var(--font-ui) !important; color: rgba(var(--np-ink), .55) !important; text-decoration: none !important; }
 html body .site-footer-learn a.learn-card:hover { transform: translateY(-3px) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 14px 30px rgba(17, 17, 17, .1) !important; }
 @media (max-width: 720px) {
-  html body .site-footer-learn a.learn-card { flex: 0 0 132px !important; max-width: none !important; height: 124px !important; }
+  html body .site-footer-learn a.learn-card { flex: 0 0 132px !important; width: 132px !important; height: 124px !important; }
 }
 
 /* ── 22. 빛 규칙 점(2026-10-03): 홈 지수 카드 마지막 값 ── */
