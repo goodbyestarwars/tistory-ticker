@@ -47,7 +47,7 @@
   // 증시온도 탭 전용 팔레트. 회색은 로딩·비활성·데이터 대기 상태에만 쓴다.
   var MARKET_TEMP_PALETTE = {
     fear: '#1261c4',
-    neutral: '#f2b632',
+    neutral: '#8b95a5',
     greed: '#d24f45',
     standby: '#9ca3af'
   };
@@ -1251,7 +1251,9 @@
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 붉은 음영은 상승, 파란 음영은 하락이며 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
       + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>음영 길이 = 거래대금 집중도 · 빨강 상승 · 파랑 하락</small></div>'
+      + '<div class="mt-sf-grid">'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount, picksByRow[i]); }).join('')
+      + '</div>'
       + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
       + '<p class="mt-sf-disclaimer">' + escapeHtml(MONEY_PICKS_DISCLAIMER) + '</p>'
       + '<details class="mt-sf-track" data-pick-track><summary>대표 종목 2주 추적 <span data-track-summary>불러오는 중...</span></summary>'
@@ -1603,7 +1605,7 @@
   }
 
   // 0~100 점수 구간(공포·보통·과열)별 색 - 서버 market_temp_score.GRADE3 경계(40·61)와 같다.
-  function zoneColor_(v) { return v < 40 ? '#4a90d9' : v < 61 ? '#d4a548' : '#d65f5f'; }
+  function zoneColor_(v) { return v < 40 ? '#4a90d9' : v < 61 ? '#8b95a5' : '#d65f5f'; }
 
   // 점수 숫자는 왼쪽 요약에 한 번만 표기하고, 계기판은 바늘·눈금으로 위치를 보여준다.
   function buildScoreGauge(value, tone) {
