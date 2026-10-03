@@ -785,3 +785,11 @@ html.dark #pattern-scan .ps-footnote b {
 #pattern-scan .ps-perf-table b.is-down { color: #1261c4; }
 #pattern-scan .ps-perf-table b.is-flat { color: #94a3b8; }
 #pattern-scan .ps-perf > em { display: block; margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; line-height: 1.5; }
+
+/* 추천 성과 기록은 보고 싶을 때만 펼친다(2026-10-04) */
+#pattern-scan .ps-perf-fold { margin: 8px 0; }
+#pattern-scan .ps-perf-fold > summary { display: inline-flex; align-items: center; gap: 8px; min-height: 34px; padding: 0 14px; border-radius: 10px; background: rgba(17, 17, 17, .06); font-size: 13px; font-weight: 600; cursor: pointer; list-style: none; }
+#pattern-scan .ps-perf-fold > summary::-webkit-details-marker { display: none; }
+#pattern-scan .ps-perf-fold > summary small { color: #94a3b8; font-weight: 400; }
+#pattern-scan .ps-perf-fold[open] > summary { margin-bottom: 8px; }
+#pattern-scan .ps-perf-fold > span, #pattern-scan .ps-perf-fold > em { display: inline-block; margin: 2px 12px 2px 0; font-size: 12px; }

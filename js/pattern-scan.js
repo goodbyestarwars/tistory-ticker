@@ -379,43 +379,16 @@
       return String(b.scanDate || '').localeCompare(String(a.scanDate || '')) || String(a.name || '').localeCompare(String(b.name || ''));
     });
     var totalRecent = hits.length;
-    // 2026-10-04 사용자 선택("추천일별로 묶어서 한 줄씩"): 종목 수십 건을 늘어놓지 않고 추천일마다 한 줄 요약
-    // (건수·평균 수익률·오른 종목 비율)을 먼저 보여 주고, 누르면 그날 종목이 펼쳐진다. 2주면 열 줄 안팎이다.
-    var groups = [];
-    var byDate = {};
-    hits.forEach(function (hit) {
-      var d = String(hit.scanDate || '');
-      if (!byDate[d]) { byDate[d] = { date: d, hits: [] }; groups.push(byDate[d]); }
-      byDate[d].hits.push(hit);
-    });
-    var rows = groups.map(function (g) {
-      var measured = g.hits.filter(function (h) { return h.currentReturnPct != null && isFinite(Number(h.currentReturnPct)); });
-      var avg = measured.length ? measured.reduce(function (sum, h) { return sum + Number(h.currentReturnPct); }, 0) / measured.length : null;
-      var wins = measured.filter(function (h) { return Number(h.currentReturnPct) > 0; }).length;
-      var elapsed = g.hits.reduce(function (max, h) { var e = Number(h.elapsedTradingDays); return isFinite(e) && e > max ? e : max; }, 0);
-      var tone = avg == null ? 'is-flat' : avg > 0 ? 'is-up' : avg < 0 ? 'is-down' : 'is-flat';
-      var head = '<summary><time>' + escapeHtml(scanDateLabel(g.date) || g.date || '-') + '</time>'
-        + '<b>추천 ' + g.hits.length + '건</b>'
-        + '<span class="' + tone + '">' + (avg == null ? '집계 전 · 다음 거래일부터' : '평균 ' + escapeHtml(signedPct(avg)) + ' · 오른 종목 ' + wins + '/' + measured.length) + '</span>'
-        + '<em>' + (elapsed ? '+' + elapsed + '거래일' : '') + '</em></summary>';
-      var items = g.hits.map(function (hit) {
-        var cur = hit.currentReturnPct == null ? NaN : Number(hit.currentReturnPct);
-        var t = cur > 0 ? 'is-up' : cur < 0 ? 'is-down' : 'is-flat';
-        var st = isFinite(cur) ? '현재 ' + signedPct(cur) : '집계 전';
-        if (hit.returns && hit.returns.d5 != null) st += ' · D+5 ' + signedPct(hit.returns.d5);
-        if (hit.returns && hit.returns.d10 != null) st += ' · D+10 ' + signedPct(hit.returns.d10);
-        return '<li><b>' + escapeHtml(hit.name || hit.code || '-') + '</b><span class="' + t + '">' + escapeHtml(st) + '</span></li>';
-      }).join('');
-      return '<li><details class="ps-track-day">' + head + '<ul>' + items + '</ul></details></li>';
-    }).join('');
-    box.innerHTML = '<strong>추천 성과 기록</strong>'
+    // 2026-10-04 사용자 요청("추천 성과 기록은 보고 싶을 때만 보기"): 접어 둔다. 펼쳐 둔 상태는 다시 그릴 때 유지한다.
+    var wasOpen = !!box.querySelector('.ps-perf-fold[open]');
+    box.innerHTML = '<details class="ps-perf-fold"' + (wasOpen ? ' open' : '') + '><summary>추천 성과 기록 보기 <small>최근 2주 추천 ' + escapeHtml(totalRecent) + '건</small></summary>'
       + '<span>최근 2주 추천 ' + escapeHtml(totalRecent) + '건 (최근 ' + SCAN_PERF_WINDOW_DAYS + '일 누적 ' + escapeHtml(summary.hits || 0) + '건)</span>'
       + '<span>D+1 평균 ' + escapeHtml(signedPct(d1.avgPct)) + ' · 승률 ' + escapeHtml(d1.winRatePct == null ? '-' : d1.winRatePct.toFixed(1) + '%') + '</span>'
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
       + '<span>D+10 평균 ' + escapeHtml(signedPct(d10.avgPct)) + '</span>'
       + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>'
       + '<div class="ps-perf" data-ps-perf><span class="is-muted">시장 비교 불러오는 중...</span></div>'
-      + '<details class="ps-track-history" open><summary>최근 2주 추천 종목과 그 뒤 변화 ' + groups.length + '일</summary><ul class="ps-track-days">' + rows + '</ul></details>';
+      + '</details>';
     renderPerformanceChart(box, key);
   }
 
@@ -1023,7 +996,33 @@
     if (b) { b.onclick = null; b.disabled = true; b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); }
   }
 
+  // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색·종목분석 차트와 같은 계산·그림(2026-10-04 사용자 지적:
+  // 차트검색에는 지지/저항이 적용돼 있지 않았다). 지지=붉은색, 저항=파란색.
+  var psSrPromise = null;
+  var psSrCleanup = null;
+  function loadPsSrModule() {
+    if (window.NineChartSR) return Promise.resolve(window.NineChartSR);
+    if (psSrPromise) return psSrPromise;
+    psSrPromise = new Promise(function (resolve, reject) {
+      var sc = document.createElement('script');
+      sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-sr.js';
+      sc.onload = function () { resolve(window.NineChartSR); };
+      sc.onerror = function () { psSrPromise = null; reject(new Error('chart-sr load failed')); };
+      document.head.appendChild(sc);
+    });
+    return psSrPromise;
+  }
+  function setupPsSupportResistance(container, chart, series, daily) {
+    loadPsSrModule().then(function (api) {
+      if (!document.body.contains(container) || psLwcChart !== chart) return;
+      var result = api.levels(daily);
+      if (!result.support.length && !result.resistance.length) return;
+      psSrCleanup = api.install(container, chart, series, result, function (p) { return psChartPriceFormatter(p); });
+    }).catch(function () { /* 지지·저항을 못 받아도 차트는 그대로 */ });
+  }
+
   function destroyPsChart() {
+    if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
     destroyPsMemo();
     if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
     if (psLwcChart) {
@@ -1274,6 +1273,7 @@
       });
 
       setupPsMemo(container, chart, candleSeries, daily);
+      setupPsSupportResistance(container, chart, candleSeries, daily);
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());
