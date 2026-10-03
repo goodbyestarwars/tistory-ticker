@@ -397,3 +397,27 @@ html.dark .hwr-outcome-stat > span { color: #7d8593; }
   .hwr-news-filters button,
   .hwr-news-quote { font-size: 12px; }
 }
+
+/* 빛 규칙 시범(2026-10-03): 선 아래 방향색 면 + 선 뒤 후광 + 마지막 점. 상승 빨강·하락 파랑, 보합은 회색. */
+.hwr-spark, .hwr-fx-chart { position: relative; }
+.hwr-glow-top { stop-color: #64748b; stop-opacity: .16; }
+.hwr-glow-bottom { stop-color: #64748b; stop-opacity: 0; }
+.hwr-glow-halo { stroke: #64748b; stroke-opacity: .16; }
+.is-up .hwr-glow-top, .hwr-fx-spark.is-up .hwr-glow-top { stop-color: #d24f45; stop-opacity: .22; }
+.is-up .hwr-glow-bottom, .hwr-fx-spark.is-up .hwr-glow-bottom { stop-color: #d24f45; }
+.is-up .hwr-glow-halo, .hwr-fx-spark.is-up .hwr-glow-halo { stroke: #d24f45; stroke-opacity: .2; }
+.is-down .hwr-glow-top, .hwr-fx-spark.is-down .hwr-glow-top { stop-color: #1261c4; stop-opacity: .22; }
+.is-down .hwr-glow-bottom, .hwr-fx-spark.is-down .hwr-glow-bottom { stop-color: #1261c4; }
+.is-down .hwr-glow-halo, .hwr-fx-spark.is-down .hwr-glow-halo { stroke: #1261c4; stroke-opacity: .2; }
+.hwr-glow-dot {
+  position: absolute;
+  width: 8px; height: 8px;
+  margin: -4px 0 0 -4px;
+  border-radius: 50%;
+  background: rgb(255, 254, 252);
+  border: 2px solid #64748b;
+  box-shadow: 0 0 0 4px rgba(100, 116, 139, .14), 0 0 12px rgba(100, 116, 139, .4);
+  pointer-events: none;
+}
+.hwr-glow-dot.is-up { border-color: #d24f45; box-shadow: 0 0 0 4px rgba(210, 79, 69, .16), 0 0 12px rgba(210, 79, 69, .5); }
+.hwr-glow-dot.is-down { border-color: #1261c4; box-shadow: 0 0 0 4px rgba(18, 97, 196, .16), 0 0 12px rgba(18, 97, 196, .5); }

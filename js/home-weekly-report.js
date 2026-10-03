@@ -116,6 +116,23 @@
     if (name.indexOf('is-down') !== -1) return '#1261c4';
     return flatColor;
   }
+  // 2026-10-03 빛 규칙 시범(사용자: "그래프 주위로 색감이 퍼지는 효과"): 선 아래 방향색 면(위에서 아래로 옅어짐)
+  // + 선 뒤 후광 + 마지막 점. 빛은 정보다 - 마지막 값 하나만 점으로 빛나고, 색은 상승 빨강·하락 파랑을 따른다.
+  // 후광은 두꺼운 반투명 선이라 filter(blur)를 쓰지 않는다(카드가 많아도 가볍다).
+  var glowSeq = 0;
+  function glowParts(poly, viewH, className) {
+    var pts = String(poly).split(' ').map(function (pair) { var xy = pair.split(','); return [Number(xy[0]), Number(xy[1])]; });
+    if (pts.length < 2 || pts.some(function (xy) { return !isFinite(xy[0]) || !isFinite(xy[1]); })) return { svg: '', dot: '' };
+    var id = 'hwrGlow' + (++glowSeq);
+    var last = pts[pts.length - 1];
+    var area = poly + ' ' + last[0].toFixed(1) + ',' + viewH + ' ' + pts[0][0].toFixed(1) + ',' + viewH;
+    return {
+      svg: '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="hwr-glow-top"/><stop offset="1" class="hwr-glow-bottom"/></linearGradient></defs>'
+        + '<polygon class="hwr-glow-area" points="' + area + '" fill="url(#' + id + ')" stroke="none"></polygon>'
+        + '<polyline class="hwr-glow-halo" points="' + poly + '" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>',
+      dot: '<span class="hwr-glow-dot ' + escapeHtml(className || '') + '" style="left:' + last[0].toFixed(1) + '%;top:' + (last[1] / viewH * 100).toFixed(1) + '%" aria-hidden="true"></span>'
+    };
+  }
   function sparkline(points, className) {
     if (!points || points.length < 2) return '<span class="hwr-no-chart">추이 데이터 없음</span>';
     var values = points.map(function (point) { return num(point.close); }).filter(function (value) { return value != null; });
@@ -126,8 +143,10 @@
       var y = 30 - (value - min) / range * 26;
       return x.toFixed(1) + ',' + y.toFixed(1);
     }).join(' ');
+    var glow = glowParts(poly, 32, className);
     return '<svg class="' + escapeHtml(className || '') + '" viewBox="0 0 100 32" width="100%" height="38" preserveAspectRatio="none" aria-hidden="true">'
-      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>';
+      + glow.svg
+      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>' + glow.dot;
   }
   function dateLabel(value) {
     var text = String(value || '');
@@ -346,11 +365,12 @@
     // CSS와 같은 최종 색을 fill 하나로 넣어 곱해지지 않게 한다.
     var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(37, 99, 235, 0.1)"></rect>';
     var spark = signClass(fx.change_rate);
+    var fxGlow = glowParts(poly, 44, spark);
     return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'
       + '<line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"' + guideAttrs + '></line>'
       + '<line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"' + guideAttrs + '></line>'
-      + interestBand + averageLine
-      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(spark, '#64748b') + '" stroke-width="1.7" vector-effect="non-scaling-stroke"></polyline></svg></div>';
+      + fxGlow.svg + interestBand + averageLine
+      + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(spark, '#64748b') + '" stroke-width="1.7" vector-effect="non-scaling-stroke"></polyline></svg>' + fxGlow.dot + '</div>';
   }
   function rangeCard(fx, options) {
     fx = fx || {};
