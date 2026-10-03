@@ -279,19 +279,34 @@
       return String(b.scanDate || '').localeCompare(String(a.scanDate || '')) || String(a.name || '').localeCompare(String(b.name || ''));
     });
     var totalRecent = hits.length;
-    if (hits.length > 60) hits.length = 60;
-    var rows = hits.map(function (hit) {
-      var current = hit.currentReturnPct == null ? NaN : Number(hit.currentReturnPct);
-      var tone = current > 0 ? 'is-up' : current < 0 ? 'is-down' : 'is-flat';
-      var elapsed = Number(hit.elapsedTradingDays);
-      var state = isFinite(current) ? '현재 ' + signedPct(current) : '추천일 종가 기준 · 다음 거래일부터 집계';
-      var r5 = hit.returns && hit.returns.d5 != null ? ' · D+5 ' + signedPct(hit.returns.d5) : '';
-      var r10 = hit.returns && hit.returns.d10 != null ? ' · D+10 ' + signedPct(hit.returns.d10) : '';
-      state += r5 + r10;
-      return '<li><time>' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + '</time>'
-        + '<b>' + escapeHtml(hit.name || hit.code || '-') + '</b>'
-        + '<span class="' + tone + '">' + escapeHtml(state) + '</span>'
-        + '<em>' + (isFinite(elapsed) ? '+' + elapsed + '거래일' : '') + '</em></li>';
+    // 2026-10-04 사용자 선택("추천일별로 묶어서 한 줄씩"): 종목 수십 건을 늘어놓지 않고 추천일마다 한 줄 요약
+    // (건수·평균 수익률·오른 종목 비율)을 먼저 보여 주고, 누르면 그날 종목이 펼쳐진다. 2주면 열 줄 안팎이다.
+    var groups = [];
+    var byDate = {};
+    hits.forEach(function (hit) {
+      var d = String(hit.scanDate || '');
+      if (!byDate[d]) { byDate[d] = { date: d, hits: [] }; groups.push(byDate[d]); }
+      byDate[d].hits.push(hit);
+    });
+    var rows = groups.map(function (g) {
+      var measured = g.hits.filter(function (h) { return h.currentReturnPct != null && isFinite(Number(h.currentReturnPct)); });
+      var avg = measured.length ? measured.reduce(function (sum, h) { return sum + Number(h.currentReturnPct); }, 0) / measured.length : null;
+      var wins = measured.filter(function (h) { return Number(h.currentReturnPct) > 0; }).length;
+      var elapsed = g.hits.reduce(function (max, h) { var e = Number(h.elapsedTradingDays); return isFinite(e) && e > max ? e : max; }, 0);
+      var tone = avg == null ? 'is-flat' : avg > 0 ? 'is-up' : avg < 0 ? 'is-down' : 'is-flat';
+      var head = '<summary><time>' + escapeHtml(scanDateLabel(g.date) || g.date || '-') + '</time>'
+        + '<b>추천 ' + g.hits.length + '건</b>'
+        + '<span class="' + tone + '">' + (avg == null ? '집계 전 · 다음 거래일부터' : '평균 ' + escapeHtml(signedPct(avg)) + ' · 오른 종목 ' + wins + '/' + measured.length) + '</span>'
+        + '<em>' + (elapsed ? '+' + elapsed + '거래일' : '') + '</em></summary>';
+      var items = g.hits.map(function (hit) {
+        var cur = hit.currentReturnPct == null ? NaN : Number(hit.currentReturnPct);
+        var t = cur > 0 ? 'is-up' : cur < 0 ? 'is-down' : 'is-flat';
+        var st = isFinite(cur) ? '현재 ' + signedPct(cur) : '집계 전';
+        if (hit.returns && hit.returns.d5 != null) st += ' · D+5 ' + signedPct(hit.returns.d5);
+        if (hit.returns && hit.returns.d10 != null) st += ' · D+10 ' + signedPct(hit.returns.d10);
+        return '<li><b>' + escapeHtml(hit.name || hit.code || '-') + '</b><span class="' + t + '">' + escapeHtml(st) + '</span></li>';
+      }).join('');
+      return '<li><details class="ps-track-day">' + head + '<ul>' + items + '</ul></details></li>';
     }).join('');
     box.innerHTML = '<strong>추천 성과 기록</strong>'
       + '<span>최근 2주 추천 ' + escapeHtml(totalRecent) + '건 (최근 ' + SCAN_PERF_WINDOW_DAYS + '일 누적 ' + escapeHtml(summary.hits || 0) + '건)</span>'
@@ -299,7 +314,7 @@
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
       + '<span>D+10 평균 ' + escapeHtml(signedPct(d10.avgPct)) + '</span>'
       + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>'
-      + '<details class="ps-track-history" open><summary>최근 2주 추천 종목과 그 뒤 변화 ' + hits.length + '건</summary><ul>' + rows + '</ul></details>';
+      + '<details class="ps-track-history" open><summary>최근 2주 추천 종목과 그 뒤 변화 ' + groups.length + '일</summary><ul class="ps-track-days">' + rows + '</ul></details>';
   }
 
   function latestPerformanceForItem(item) {

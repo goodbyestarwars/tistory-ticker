@@ -758,3 +758,15 @@ html.dark #pattern-scan .ps-footnote b {
 #pattern-scan .ps-memo-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
 #pattern-scan .ps-memo-bar span { color: #94a3b8; font-size: 11px; }
 #pattern-scan .ps-chart { position: relative; }
+
+/* 추천일별 묶음(2026-10-04): 하루 한 줄 요약, 누르면 종목이 펼쳐진다 */
+#pattern-scan .ps-track-days { list-style: none; margin: 8px 0 0; padding: 0; }
+#pattern-scan .ps-track-day { border-top: 1px solid rgba(17, 17, 17, .08); }
+#pattern-scan .ps-track-day > summary { display: grid; grid-template-columns: 52px 78px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 9px 2px; cursor: pointer; list-style: none; font-size: 12.5px; }
+#pattern-scan .ps-track-day > summary::-webkit-details-marker { display: none; }
+#pattern-scan .ps-track-day > summary em { color: #94a3b8; font-style: normal; font-size: 11px; }
+#pattern-scan .ps-track-day ul { list-style: none; margin: 0 0 8px; padding: 0 0 0 60px; }
+#pattern-scan .ps-track-day ul li { display: flex; justify-content: space-between; gap: 10px; padding: 4px 0; font-size: 12px; }
+#pattern-scan .ps-track-day .is-up { color: #d24f45; }
+#pattern-scan .ps-track-day .is-down { color: #1261c4; }
+#pattern-scan .ps-track-day .is-flat { color: #94a3b8; }
