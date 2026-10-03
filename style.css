@@ -8053,4 +8053,6 @@ html body :where(.ff-opinion-summary-card) { border-bottom: 1px solid rgba(var(-
 
 /* ── 25. 페이지 바탕은 신문지색, 큰 껍데기는 투명 (2026-10-03 사용자: "페이지 전체가 약간 누런 오래된 신문") ── */
 html body :where(.site-footer, .post-single, .post-card, .sidebar-right, .content, .main-content, .container) { background-color: transparent !important; }
+html body .site-footer, html body#tt-body-index .site-footer:not(:has(.site-footer-main)), html body .site-footer:has(.site-footer-learn a.learn-card) { background: transparent !important; background-color: transparent !important; }
+html body .home-closed-page { background: transparent !important; }
 }
