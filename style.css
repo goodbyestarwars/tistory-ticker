@@ -7509,7 +7509,7 @@ html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar
   border: 0 !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  background-color: var(--np-paper) !important;
+  background-color: transparent !important;
   background-image: var(--np-line-h) !important;
   background-repeat: no-repeat !important;
   background-size: 100% 1px !important;
@@ -8050,4 +8050,7 @@ html body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-s
   margin: 0 0 16px !important;
 }
 html body :where(.ff-opinion-summary-card) { border-bottom: 1px solid rgba(var(--np-ink), .09) !important; }
+
+/* ── 25. 페이지 바탕은 신문지색, 큰 껍데기는 투명 (2026-10-03 사용자: "페이지 전체가 약간 누런 오래된 신문") ── */
+html body :where(.site-footer, .post-single, .post-card, .sidebar-right, .content, .main-content, .container) { background-color: transparent !important; }
 }
