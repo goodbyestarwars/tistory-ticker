@@ -7666,7 +7666,7 @@ html body .site-footer {
       제목·헤드라인·뉴스 제목만 마루부리, 나머지(메뉴 포함)는 기존 프리텐다드. '가' 버튼으로 고딕을 고르면 적용하지 않는다. */
 html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section-heading strong, .mt-card-title, .mt-briefing-panel-title,
   .mt-strategy-panel-title, .mt-sf-visual-head > span:first-child, .mt-history-tail-head > strong, .hen-main strong, .hen-head strong,
-  .app-news-body > strong, .app-news-body > b, .mn-row-title, .guest-title, .discussion-heading h1, .dmi-flow-title, .kf-section-title, .dmi-subheading h3, .om-title, .sn-news-featured-title, .sn-news-grid-title,
+  .app-news-body > strong, .app-news-body > b, .mn-row-title, .hwr-section-heading strong, .hwr-card-title strong, .guest-title, .discussion-heading h1, .dmi-flow-title, .kf-section-title, .dmi-subheading h3, .om-title, .sn-news-featured-title, .sn-news-grid-title,
   .sn-news-headline-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title, .mt-stocks-only-heading h1, .mt-section-head h2, .mt-section-head > strong) {
   font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
   font-weight: 400 !important;
@@ -7871,4 +7871,23 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
     box-shadow: 0 1px 3px rgba(0, 0, 0, .12) !important;
   }
 }
+
+/* ── 19. 전체 다듬기 (2026-10-03) ──
+      · 상단 메뉴 묶음은 왼쪽 정렬(검색창 아래 가운데로 떠 있던 것).
+      · 홈 주간 리포트: 카드가 1개뿐인 섹션(스윙 후보·추천 결과)은 2열 그리드의 왼쪽 반만 쓰고 오른쪽이 비어 있어
+        제목 줄(전체 폭)과 카드 폭이 어긋났다 → 카드 1개면 전체 폭으로.
+      · 전 화면 점검에서 찾은 소형 상자(모서리 8~10px, 푸른 회색 면)는 한 규칙으로: 모서리 14px·옅은 선·바탕색. ── */
+@media (min-width: 721px) {
+  html body .sidebar-left .nav-primary-row { align-self: flex-start !important; }
+}
+html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
+html body :where(.hwr-schedule, .hwr-index-summary, .hwr-index-card, .hwr-fx-card, .hwr-news-card, .hwr-columns > article,
+  .hwr-outcome-stat, .mt-strategy-action, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
+  border: 1px solid rgba(var(--np-ink), .09) !important;
+  border-radius: 16px !important;
+  background-color: var(--np-paper) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+}
+html body .hwr-outcome-stat { border-radius: 14px !important; }
 }
