@@ -1890,14 +1890,28 @@
       if (frameId) global.cancelAnimationFrame(frameId);
       frameId = global.requestAnimationFrame(draw);
     }
-    function onClick(param) {
-      if (!mode || !param || !param.point || param.time == null) return;
-      if (stockDrawingState && stockDrawingState.mode) return;
-      var price = candleSeries.coordinateToPrice(param.point.y);
-      if (!Number.isFinite(price) || price <= 0) return;
-      openEditor(chartMemoTimeKey(param.time), Math.round(price * 100) / 100, param.point.x, param.point.y);
+    // 모바일 터치에서는 차트 라이브러리의 click 이벤트가 안정적이지 않아, 컨테이너의 포인터 탭(이동 8px 미만)으로 직접 받는다.
+    var downAt = null;
+    function onDown(event) {
+      downAt = mode ? { x: event.clientX, y: event.clientY, t: Date.now() } : null;
     }
-    chart.subscribeClick(onClick);
+    function onUp(event) {
+      var start = downAt;
+      downAt = null;
+      if (!mode || !start) return;
+      if (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8 || Date.now() - start.t > 700) return;
+      if (event.target.closest && event.target.closest('.ss-memo-pin, .ss-memo-pop')) return;
+      if (stockDrawingState && stockDrawingState.mode) return;
+      var box = container.getBoundingClientRect();
+      var px = event.clientX - box.left;
+      var py = event.clientY - box.top;
+      var time = chart.timeScale().coordinateToTime(px);
+      var price = candleSeries.coordinateToPrice(py);
+      if (time == null || !Number.isFinite(price) || price <= 0) return;
+      openEditor(chartMemoTimeKey(time), Math.round(price * 100) / 100, px, py);
+    }
+    container.addEventListener('pointerdown', onDown);
+    container.addEventListener('pointerup', onUp);
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
     if ('ResizeObserver' in global) {
       resizeObserver = new ResizeObserver(scheduleDraw);
@@ -1920,7 +1934,8 @@
       disposed = true;
       if (frameId) global.cancelAnimationFrame(frameId);
       global.clearTimeout(settle);
-      try { chart.unsubscribeClick(onClick); } catch (e) { /* 이미 제거 */ }
+      container.removeEventListener('pointerdown', onDown);
+      container.removeEventListener('pointerup', onUp);
       try { chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw); } catch (e) { /* 이미 제거 */ }
       if (resizeObserver) resizeObserver.disconnect();
       else global.removeEventListener('resize', scheduleDraw);
