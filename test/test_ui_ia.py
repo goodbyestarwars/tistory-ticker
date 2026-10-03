@@ -2058,7 +2058,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("가격(평균등락률·상승비율·섹터강도", gas)
         self.assertIn("위험(VIX·환율·금리·빚투", gas)
         self.assertIn("--mt-blue: #1261c4", style)
-        self.assertIn("--mt-yellow: #f2b632", style)
+        self.assertIn("--mt-yellow: #8b95a5", style)  # 2026-10-03 보통 = 회색(노랑 폐기)
         self.assertIn("--mt-red: #d24f45", style)
         self.assertIn("#market-temp .mt-bar-risk", style)
         self.assertIn("grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);", style)
