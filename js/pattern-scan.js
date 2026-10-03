@@ -434,6 +434,9 @@
   function performanceTrackingHtml(item) {
     var hit = latestPerformanceForItem(item);
     if (!hit) return '';
+    if (hit.currentReturnPct == null) {
+      return '<span class="ps-track-chip is-flat">추천 ' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + ' · 다음 거래일부터 집계</span>';
+    }
     var pct = Number(hit.currentReturnPct);
     var tone = pct > 0 ? 'is-up' : (pct < 0 ? 'is-down' : 'is-flat');
     var date = scanDateLabel(hit.scanDate);
