@@ -207,7 +207,7 @@ class PublicScanRouteTests(unittest.TestCase):
         self.assertEqual(payload['data'], expected)
         forward.assert_called_once_with(
             fake_conn, scanner='pattern:risingLows', since='2026-09-01',
-            horizons=[1, 3, 5, 20], limit=500)
+            horizons=[1, 3, 5, 20], limit=1500)
         db.get_conn.return_value.close.assert_called_once()
 
 

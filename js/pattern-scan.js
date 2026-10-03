@@ -208,16 +208,39 @@
     return 'pattern:' + String(patternKey || activeTab || '');
   }
 
+  // 2026-10-04 사용자 지적("성과기록이 계속 초기화되는 것 같다"): 기록은 DB(scan_hits)에 계속 쌓이는데, 화면이
+  // 모든 검색기를 섞어 최신 500건만 받아서(한 검색기가 하루 수십~수백 건) 며칠치만 보이고 매일 밀려났다.
+  // 이제 보고 있는 검색기 하나씩, 최근 35일치를 따로 받아 둔다. 화면은 그중 최근 2주 추천을 보여 준다.
+  var scanPerformanceByKey = {};
+  var SCAN_PERF_WINDOW_DAYS = 35;
+  var SCAN_PERF_VIEW_DAYS = 14;
+
+  function dateKstOffset(days) {
+    var d = new Date(Date.now() + 9 * 3600000 - days * 86400000);
+    return d.toISOString().slice(0, 10);
+  }
+
   function loadScanPerformance(container) {
+    var key = scannerKey(activeTab);
     var summaryBox = container.querySelector('#psTrackSummary');
+    if (scanPerformanceByKey[key]) {
+      scanPerformanceData = scanPerformanceByKey[key];
+      renderTrackSummary(container);
+      return;
+    }
     if (summaryBox) summaryBox.innerHTML = '<span>사후 추적 불러오는 중...</span>';
-    PatternScan.fetchJson(SCAN_PERFORMANCE_PUBLIC_URL + '?horizons=1,3,5,20&limit=500')
+    PatternScan.fetchJson(SCAN_PERFORMANCE_PUBLIC_URL + '?horizons=1,3,5,10,20&limit=1500&scanner=' + encodeURIComponent(key)
+        + '&since=' + dateKstOffset(SCAN_PERF_WINDOW_DAYS))
       .then(function (envelope) {
-        scanPerformanceData = envelope && envelope.data ? envelope.data : envelope;
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        scanPerformanceByKey[key] = data;
+        if (scannerKey(activeTab) !== key) return;   // 그 사이 다른 탭으로 옮겼으면 그쪽이 다시 부른다
+        scanPerformanceData = data;
         renderTrackSummary(container);
         renderList(container);
       })
       .catch(function () {
+        if (scannerKey(activeTab) !== key) return;
         scanPerformanceData = null;
         if (summaryBox) summaryBox.innerHTML = '<span class="is-muted">사후 추적 데이터가 아직 없어요. 다음 스캔 저장분부터 표시됩니다.</span>';
       });
@@ -239,6 +262,8 @@
     var box = container.querySelector('#psTrackSummary');
     if (!box) return;
     var key = scannerKey(activeTab);
+    if (!scanPerformanceByKey[key]) { loadScanPerformance(container); return; }
+    scanPerformanceData = scanPerformanceByKey[key];
     var summary = scanPerformanceData && scanPerformanceData.summary && scanPerformanceData.summary[key];
     if (!summary) {
       box.innerHTML = '<span class="is-muted">이 검색기의 누적 사후 추적 표본이 아직 없어요.</span>';
@@ -246,28 +271,35 @@
     }
     var d1 = summary.d1 || {};
     var d5 = summary.d5 || {};
-    var d20 = summary.d20 || {};
-    var hits = performanceHitsForActiveTab().slice().sort(function (a, b) {
-      return String(b.scanDate || '').localeCompare(String(a.scanDate || ''));
+    var d10 = summary.d10 || {};
+    var since14 = dateKstOffset(SCAN_PERF_VIEW_DAYS);
+    var hits = performanceHitsForActiveTab().filter(function (hit) {
+      return String(hit.scanDate || '') >= since14;
+    }).sort(function (a, b) {
+      return String(b.scanDate || '').localeCompare(String(a.scanDate || '')) || String(a.name || '').localeCompare(String(b.name || ''));
     });
-    if (hits.length > 12) hits.length = 12;
+    var totalRecent = hits.length;
+    if (hits.length > 30) hits.length = 30;
     var rows = hits.map(function (hit) {
       var current = Number(hit.currentReturnPct);
       var tone = current > 0 ? 'is-up' : current < 0 ? 'is-down' : 'is-flat';
       var elapsed = Number(hit.elapsedTradingDays);
       var state = isFinite(current) ? '현재 ' + signedPct(current) : '관찰 중';
+      var r5 = hit.returns && hit.returns.d5 != null ? ' · D+5 ' + signedPct(hit.returns.d5) : '';
+      var r10 = hit.returns && hit.returns.d10 != null ? ' · D+10 ' + signedPct(hit.returns.d10) : '';
+      state += r5 + r10;
       return '<li><time>' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + '</time>'
         + '<b>' + escapeHtml(hit.name || hit.code || '-') + '</b>'
         + '<span class="' + tone + '">' + escapeHtml(state) + '</span>'
         + '<em>' + (isFinite(elapsed) ? '+' + elapsed + '거래일' : '') + '</em></li>';
     }).join('');
     box.innerHTML = '<strong>추천 성과 기록</strong>'
-      + '<span>추천 기록 ' + escapeHtml(summary.hits || 0) + '건</span>'
+      + '<span>최근 2주 추천 ' + escapeHtml(totalRecent) + '건 (최근 ' + SCAN_PERF_WINDOW_DAYS + '일 누적 ' + escapeHtml(summary.hits || 0) + '건)</span>'
       + '<span>D+1 평균 ' + escapeHtml(signedPct(d1.avgPct)) + ' · 승률 ' + escapeHtml(d1.winRatePct == null ? '-' : d1.winRatePct.toFixed(1) + '%') + '</span>'
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
-      + '<span>D+20 평균 ' + escapeHtml(signedPct(d20.avgPct)) + '</span>'
+      + '<span>D+10 평균 ' + escapeHtml(signedPct(d10.avgPct)) + '</span>'
       + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>'
-      + '<details class="ps-track-history"><summary>최근 추천 이력 ' + hits.length + '건 보기</summary><ul>' + rows + '</ul></details>';
+      + '<details class="ps-track-history" open><summary>최근 2주 추천 종목과 그 뒤 변화 ' + hits.length + '건</summary><ul>' + rows + '</ul></details>';
   }
 
   function latestPerformanceForItem(item) {

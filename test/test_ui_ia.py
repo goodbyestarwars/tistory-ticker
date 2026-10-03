@@ -3960,7 +3960,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("#pattern-scan .ps-track-summary", style)
         self.assertIn("#pattern-scan .ps-track-chip.is-up", style)
         self.assertIn("추천 성과 기록", source)
-        self.assertIn("최근 추천 이력", source)
+        self.assertIn("최근 2주 추천 종목과 그 뒤 변화", source)
         self.assertIn("ps-track-history", style)
 
     def test_calendar_shows_us_company_name_and_alnum_domestic_codes(self):

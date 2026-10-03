@@ -2572,7 +2572,7 @@ def scan_performance_public(request: Request, scanner: str = '', since: str = ''
     try:
         result = scan_forward.forward_returns(
             conn, scanner=scanner or None, since=since or None,
-            horizons=parsed, limit=max(1, min(int(limit), 500)))
+            horizons=parsed, limit=max(1, min(int(limit), 1500)))
     finally:
         conn.close()
     return envelope(result)
