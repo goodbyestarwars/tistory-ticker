@@ -510,7 +510,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Pretendard"',
-            "--page-bg: rgb(250, 245, 230)",
+            "--page-bg: rgb(230, 226, 215)",
             "--surface: #FFFEFC",
             "--text-main: #171717",
             "--text-sub: #6F7480",
@@ -3162,7 +3162,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
         # 배경색 지정은 첫 페인트 색 튐 방지용으로 남긴다.
-        self.assertIn('html, html body { background: rgb(250, 245, 230); }', source)
+        self.assertIn('html, html body { background: rgb(230, 226, 215); }', source)
         # 주석에 옛 규칙을 인용해 두었으므로 실제 선언 형태로만 검사한다.
         self.assertNotIn('visibility: hidden !important; opacity: 0;', source)
         self.assertNotIn('window.setTimeout(reveal, 800)', source)
