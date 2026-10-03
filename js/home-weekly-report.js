@@ -307,10 +307,23 @@
     // 기본 색(검정)으로 황소·곰 그림이 먼저 그려졌다가 CSS 도착 후 빨강/파랑으로 바뀌는
     // "검은 무늬가 한 번 깜박이는" 현상이 있었다(사용자 리포트). 래퍼에 같은 색을 인라인
     // style로도 넣어 외부 CSS 도착 전에도 첫 페인트부터 올바른 색이 나오게 한다.
-    if (bullish) {
-      return '<div class="hwr-sentiment hwr-sentiment--up" style="color:#d24f45" aria-label="황소장 상승"><svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true"><path d="M51 31C39 32 29 26 24 16 20 8 12 4 4 8c11 1 19 7 23 17 3 7 10 11 20 11ZM109 31c12 1 22-5 27-15 4-8 12-12 20-8-11 1-19 7-23 17-3 7-10 11-20 11Z"/><path d="M47 31c7-13 19-19 33-19s26 6 33 19l-7 31c-7 10-16 15-26 15s-19-5-26-15Z"/><path d="M49 34 35 32l5 12 10 2M111 34l14-2-5 12-10 2M59 40l10-3M101 40l-10-3M62 58c3-7 10-10 18-10s15 3 18 10c-4 7-10 10-18 10s-14-3-18-10ZM71 61c0 9 4 14 9 14s9-5 9-14"/><circle cx="64" cy="43" r="2"/><circle cx="96" cy="43" r="2"/><circle cx="71" cy="58" r="2"/><circle cx="89" cy="58" r="2"/></svg><strong>황소장 · 상승</strong></div>';
-    }
-    return '<div class="hwr-sentiment hwr-sentiment--down" style="color:#1261c4" aria-label="곰장 하락"><svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true"><path d="M54 24c-3-10-15-14-23-7-7 6-4 18 5 21M106 24c3-10 15-14 23-7 7 6 4 18-5 21"/><path d="M43 34c5-14 19-23 37-23s32 9 37 23l5 20c-5 16-20 25-42 25s-37-9-42-25Z"/><path d="M59 38l10-3M101 38l-10-3M61 59c3-8 10-12 19-12s16 4 19 12c-4 8-10 12-19 12S65 67 61 59ZM80 58v8M72 64c2 2 5 3 8 2 3 1 6 0 8-2"/><circle cx="64" cy="41" r="2"/><circle cx="96" cy="41" r="2"/><circle cx="80" cy="56" r="2.4"/></svg><strong>곰장 · 하락</strong></div>';
+    // 2026-10-03 사용자 요청: 황소·곰 그림 대신 다른 이미지로 - 한 주의 방향을 계단식 캔들 세 개와 끝점의 빛으로 그린다
+    // (상승=붉은 오름 계단, 하락=푸른 내림 계단). 선만 쓰므로 CSS 도착 전에도 래퍼 인라인 색을 그대로 상속한다.
+    var up = bullish;
+    var color = up ? '#d24f45' : '#1261c4';
+    var bodies = up
+      ? 'M24 56h14v14H24zM62 42h14v18H62zM100 24h14v24h-14z'
+      : 'M24 22h14v24H24zM62 34h14v18H62zM100 50h14v16h-14z';
+    var wicks = up
+      ? 'M31 50v26M69 34v32M107 14v42'
+      : 'M31 12v44M69 26v34M107 42v30';
+    var trend = up ? 'M18 62L56 48L94 32L134 12' : 'M18 14L56 30L94 44L134 64';
+    var endY = up ? 12 : 64;
+    return '<div class="hwr-sentiment hwr-sentiment--' + (up ? 'up' : 'down') + '" style="color:' + color + '" aria-label="' + (up ? '상승 마감 주간' : '하락 마감 주간') + '">'
+      + '<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" role="img" aria-hidden="true">'
+      + '<path d="' + wicks + '"/><path d="' + bodies + '"/><path d="' + trend + '" stroke-dasharray="3 5" opacity=".55"/>'
+      + '<circle cx="134" cy="' + endY + '" r="9" opacity=".18" stroke="none"/><circle cx="134" cy="' + endY + '" r="4"/></svg>'
+      + '<strong>' + (up ? '상승 마감 주간' : '하락 마감 주간') + '</strong></div>';
   }
   function fxStatus(fx, fallbackLabel, fallbackMessage) {
     var analysis = fx && fx.analysis || {};
@@ -363,7 +376,7 @@
     // CSS에 없어서 프레젠테이션 속성이 그대로 살아남는다 -> 0.10 x 0.10 = 불투명도 1%로
     // 매수 관심 구간이 사실상 안 보였다(2026-08-30 FOUC 수정에서 들어간 값).
     // CSS와 같은 최종 색을 fill 하나로 넣어 곱해지지 않게 한다.
-    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(37, 99, 235, 0.1)"></rect>';
+    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(201, 150, 40, 0.3)"></rect>';
     var spark = signClass(fx.change_rate);
     var fxGlow = glowParts(poly, 44, spark);
     return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'

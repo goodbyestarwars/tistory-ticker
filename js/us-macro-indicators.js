@@ -128,16 +128,31 @@
     return number_(value, digits) + ' ' + META[symbol].unit;
   }
 
+  // 2026-10-03 사용자 요청: 기준선(최근 12회 평균)을 가로줄로 그리고, 그 위 구간은 붉은색·아래 구간은 파란색으로 칠한다.
+  // 같은 선을 두 번 그려 위/아래 영역으로 잘라(clipPath) 색을 나눈다.
+  var miniSeq = 0;
   function miniChart_(item) {
     var values = recentValues_(item);
     if (values.length < 2) return '';
     var low = Math.min.apply(Math, values);
     var high = Math.max.apply(Math, values);
     var span = high - low || 1;
+    var avg = values.reduce(function (sum, v) { return sum + v; }, 0) / values.length;
+    function yOf(v) { return 28 - (v - low) / span * 22; }
     var points = values.map(function (value, index) {
-      return (index / (values.length - 1) * 116 + 2).toFixed(1) + ',' + (28 - (value - low) / span * 22).toFixed(1);
+      return (index / (values.length - 1) * 116 + 2).toFixed(1) + ',' + yOf(value).toFixed(1);
     }).join(' ');
-    return '<svg class="umi-mini-chart" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="최근 12회 발표 흐름"><polyline class="umi-glow-halo" points="' + points + '"></polyline><polyline points="' + points + '"></polyline><circle class="umi-glow-ring" cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="6"></circle><circle cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="2.4"></circle></svg>';
+    var yAvg = yOf(avg);
+    var id = 'umiClip' + (++miniSeq);
+    var lastY = yOf(values[values.length - 1]);
+    var lastUp = values[values.length - 1] >= avg;
+    return '<svg class="umi-mini-chart" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="최근 12회 발표 흐름과 평균 기준선">'
+      + '<defs><clipPath id="' + id + 'a"><rect x="0" y="0" width="120" height="' + yAvg.toFixed(1) + '"/></clipPath>'
+      + '<clipPath id="' + id + 'b"><rect x="0" y="' + yAvg.toFixed(1) + '" width="120" height="' + (32 - yAvg).toFixed(1) + '"/></clipPath></defs>'
+      + '<line class="umi-base" x1="0" y1="' + yAvg.toFixed(1) + '" x2="120" y2="' + yAvg.toFixed(1) + '"></line>'
+      + '<g clip-path="url(#' + id + 'a)" class="umi-up"><polyline class="umi-glow-halo" points="' + points + '"></polyline><polyline points="' + points + '"></polyline></g>'
+      + '<g clip-path="url(#' + id + 'b)" class="umi-down"><polyline class="umi-glow-halo" points="' + points + '"></polyline><polyline points="' + points + '"></polyline></g>'
+      + '<g class="' + (lastUp ? 'umi-up' : 'umi-down') + '"><circle class="umi-glow-ring" cx="118" cy="' + lastY.toFixed(1) + '" r="6"></circle><circle cx="118" cy="' + lastY.toFixed(1) + '" r="2.4"></circle></g></svg>';
   }
 
   function readGuide_(symbol) {

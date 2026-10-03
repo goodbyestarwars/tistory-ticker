@@ -493,11 +493,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         button = re.search(r"\.home-briefing-more \{([^}]+)\}", style).group(1)
         arrow = re.search(r"\.home-briefing-more i \{([^}]+)\}", style).group(1)
-        self.assertIn("background: rgb(255, 254, 252)", button)
+        self.assertIn("background: rgb(243, 234, 211)", button)
         self.assertIn("border-radius: 14px", button)
         self.assertIn("box-shadow:", button)
         self.assertIn("border-radius:50%", arrow)
-        self.assertIn("background:rgb(255, 254, 252)", arrow)
+        self.assertIn("background:rgb(243, 234, 211)", arrow)
         self.assertIn(".home-briefing-more:focus-visible", style)
         self.assertIn(".home-briefing-more { transition:none; }", style)
         self.assertIn('href="/category/마켓 브리핑"', self.read("js/skin-main.js"))
@@ -510,8 +510,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Pretendard"',
-            "--page-bg: rgb(255, 254, 252)",
-            "--surface: #FFFEFC",
+            "--page-bg: rgb(243, 234, 211)",
+            "--surface: #F3EAD3",
             "--text-main: #171717",
             "--text-sub: #6F7480",
             "--rule: #D8D8D8",
@@ -774,7 +774,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
                      and not ln.strip().startswith('//')]
         self.assertTrue(band_line, "interest band 렌더 코드를 찾지 못했다")
         self.assertNotIn('fill-opacity', band_line[0])
-        self.assertIn('fill="rgba(37, 99, 235, 0.1)"', band_line[0])
+        self.assertIn('fill="rgba(201, 150, 40, 0.3)"', band_line[0])  # 2026-10-03 금색
 
     def test_usd_range_card_does_not_print_the_dollar_sign_twice(self):
         """formatPrice()가 US 심볼이면 '$'를 앞에 붙이는데 단위를 또 붙여서
@@ -3031,12 +3031,12 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("js/home-weekly-report.js")
         self.assertNotIn("FORCE_BEAR_PREVIEW", source)
         self.assertIn("return values.length ? values.reduce(function (sum, value) { return sum + value; }, 0) >= 0 : true;", source)
-        self.assertIn('aria-label="황소장 상승"', source)
-        self.assertIn('<strong>황소장 · 상승</strong>', source)
-        self.assertIn('aria-label="곰장 하락"', source)
-        self.assertIn('<strong>곰장 · 하락</strong>', source)
-        self.assertIn('M71 61c0 9 4 14 9 14s9-5 9-14', source)
-        self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 2)
+        # 2026-10-03 사용자 요청으로 황소·곰 그림을 계단 캔들 그림으로 바꿨다.
+        self.assertIn("'상승 마감 주간'", source)
+        self.assertIn("'하락 마감 주간'", source)
+        self.assertNotIn('황소장', source)
+        self.assertNotIn('곰장', source)
+        self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 1)
 
     def test_weekly_sentiment_svg_inlines_color_to_avoid_black_flash(self):
         # 2026-08-20: 휴장 탭을 열 때 css/home-weekly-report.css가 늦게 도착하면
@@ -3044,8 +3044,8 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 도착 후 빨강/파랑으로 바뀌는 깜박임이 있었다(사용자 리포트). 래퍼에 인라인
         # color를 넣어 외부 CSS 도착 전에도 첫 페인트부터 올바른 색이 나오게 한다.
         source = self.read("js/home-weekly-report.js")
-        self.assertIn('class="hwr-sentiment hwr-sentiment--up" style="color:#d24f45"', source)
-        self.assertIn('class="hwr-sentiment hwr-sentiment--down" style="color:#1261c4"', source)
+        self.assertIn("hwr-sentiment--' + (up ? 'up' : 'down') + '\" style=\"color:' + color", source)
+        self.assertIn("var color = up ? '#d24f45' : '#1261c4';", source)
 
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")
@@ -3162,7 +3162,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
         # 배경색 지정은 첫 페인트 색 튐 방지용으로 남긴다.
-        self.assertIn('html, html body { background: rgb(255, 254, 252); }', source)
+        self.assertIn('html, html body { background: rgb(243, 234, 211); }', source)
         # 주석에 옛 규칙을 인용해 두었으므로 실제 선언 형태로만 검사한다.
         self.assertNotIn('visibility: hidden !important; opacity: 0;', source)
         self.assertNotIn('window.setTimeout(reveal, 800)', source)

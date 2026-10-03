@@ -37,3 +37,9 @@ html.dark #us-macro-indicators .umi-refresh { background: rgba(245,239,224,.08);
 @media (max-width: 720px) { #us-macro-indicators .umi-head { display: block; } #us-macro-indicators .umi-refresh { margin-top: 10px; } #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } #us-macro-indicators .umi-reading { align-items:flex-start; flex-direction:column; } }
 #us-macro-indicators .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
 #us-macro-indicators .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }
+#us-macro-indicators .umi-mini-chart .umi-base { stroke:#64748b; stroke-width:1; stroke-dasharray:3 3; stroke-opacity:.7; vector-effect:non-scaling-stroke; }
+#us-macro-indicators .umi-mini-chart .umi-up polyline { stroke:#d24f45; }
+#us-macro-indicators .umi-mini-chart .umi-down polyline { stroke:#1261c4; }
+#us-macro-indicators .umi-mini-chart .umi-up circle { fill:#d24f45; }
+#us-macro-indicators .umi-mini-chart .umi-down circle { fill:#1261c4; }
+#us-macro-indicators .umi-mini-chart .umi-glow-ring { fill-opacity:.2; stroke:none; }
