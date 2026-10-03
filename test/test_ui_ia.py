@@ -510,7 +510,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Pretendard"',
-            "--page-bg: rgb(245, 245, 245)",
+            "--page-bg: rgb(254, 253, 250)",
             "--surface: #FFFEFC",
             "--text-main: #171717",
             "--text-sub: #6F7480",
