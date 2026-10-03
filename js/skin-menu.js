@@ -99,7 +99,45 @@
     + '<button type="button" class="nav-search-icon" aria-label="검색"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="m16 16 5 5"></path></svg></button>'
     + '<input type="text" id="navSearchInput" class="nav-search-input" placeholder="삼성전자 · NVDA 검색"'
     + ' aria-label="전체 종목 검색" autocomplete="off" />'
-    + '</div><div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
+    + '</div>'
+    // 2026-10-03 사용자 요청("검색창을 이렇게 혁신적으로 키워버리자"): 검색창을 누르면 화면 위쪽에 큰 검색 패널이
+    // 펼쳐지고(입력 크게, 닫기 버튼, 바로가기 칩) 자동완성·즐겨찾기·최근 검색이 그 안에 나온다. 평소에는 칩·닫기가 숨는다.
+    + '<button type="button" class="nav-search-close" aria-label="검색 닫기"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>'
+    + '<div class="nav-search-chips" aria-label="바로가기">'
+    + '<a href="/page/market-temp">증시온도</a><a href="/page/market-temp?view=stocks">국내 주요종목</a>'
+    + '<a href="/page/foreign-flow">종목분석</a><a href="/page/pattern-scan">차트검색</a>'
+    + '<a href="/page/strategy-search">전략검색</a><a href="/page/stock-calendar">캘린더</a>'
+    + '<a href="/pages/main-news">주요 뉴스</a><a href="/page/watchlist">MY</a></div>'
+    + '<div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
+
+  function wireBigSearch() {
+    var input = document.getElementById('navSearchInput');
+    var wrap = document.querySelector('.nav-search-wrap');
+    if (!input || !wrap || wrap.getAttribute('data-big-wired') === '1') return;
+    wrap.setAttribute('data-big-wired', '1');
+    var root = document.documentElement;
+    var backdrop = null;
+    function open() {
+      if (root.classList.contains('search-open')) return;
+      root.classList.add('search-open');
+      if (!backdrop) {
+        backdrop = document.createElement('div');
+        backdrop.className = 'nav-search-backdrop';
+        backdrop.addEventListener('click', close);
+        document.body.appendChild(backdrop);
+      }
+    }
+    function close() {
+      root.classList.remove('search-open');
+      if (backdrop) { backdrop.remove(); backdrop = null; }
+      input.blur();
+    }
+    input.addEventListener('focus', open);
+    input.addEventListener('click', open);
+    var closeButton = wrap.querySelector('.nav-search-close');
+    if (closeButton) closeButton.addEventListener('click', close);
+    document.addEventListener('keydown', function (event) { if (event.key === 'Escape') close(); });
+  }
 
   var selectedGroupIndex = -1;
 
@@ -234,6 +272,7 @@
       wireNavigation(mount);
     }
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
+    wireBigSearch();
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);

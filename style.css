@@ -7907,4 +7907,54 @@ html body .ss-fav-btn { width: 30px !important; min-width: 30px !important; heig
 @media (max-width: 720px) {
   html body .global-watchlist-toggle { width: 26px !important; min-width: 26px !important; padding: 0 !important; opacity: .72 !important; }
 }
+
+/* ── 20. 큰 검색 패널 (2026-10-03 사용자 요청) ──
+      검색창을 누르면(html.search-open) 화면 위에 크게 펼쳐진다: 큰 입력, 닫기, 바로가기 칩, 그 아래 자동완성. ── */
+html body .nav-search-close, html body .nav-search-chips { display: none !important; }
+html body .nav-search-backdrop { position: fixed !important; inset: 0 !important; z-index: 998 !important; background: rgba(17, 17, 17, .28) !important; }
+html.search-open body .nav-search-wrap {
+  position: fixed !important;
+  top: 14px !important;
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  z-index: 999 !important;
+  width: min(1080px, calc(100vw - 28px)) !important;
+  max-height: calc(100vh - 28px) !important;
+  overflow: auto !important;
+  box-sizing: border-box !important;
+  padding: 30px 40px 26px !important;
+  background: rgb(255, 254, 252) !important;
+  border: 2px solid #2563eb !important;
+  border-radius: 28px !important;
+  box-shadow: 0 24px 70px rgba(17, 17, 17, .28) !important;
+}
+html.search-open body .nav-search-input-wrap {
+  min-height: 0 !important; height: auto !important; padding: 6px 4px 12px !important;
+  border: 0 !important; border-bottom: 1px solid rgba(var(--np-ink), .18) !important; border-radius: 0 !important;
+  background: transparent !important; box-shadow: none !important;
+}
+html.search-open body .nav-search-input { font-size: 30px !important; line-height: 1.3 !important; letter-spacing: -0.02em !important; }
+html.search-open body .nav-search-icon { width: 34px !important; height: 34px !important; }
+html.search-open body .nav-search-close {
+  display: inline-flex !important; position: absolute !important; top: 16px !important; right: 18px !important;
+  width: 34px !important; height: 34px !important; padding: 0 !important; align-items: center !important; justify-content: center !important;
+  border: 0 !important; border-radius: 50% !important; background: rgba(var(--np-ink), .06) !important; color: rgb(var(--np-ink)) !important; cursor: pointer !important;
+}
+html.search-open body .nav-search-close svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+html.search-open body .nav-search-chips { display: flex !important; flex-wrap: wrap !important; gap: 8px !important; margin: 18px 0 6px !important; }
+html.search-open body .nav-search-chips a {
+  display: inline-flex !important; align-items: center !important; min-height: 38px !important; padding: 0 16px !important;
+  border-radius: 999px !important; background: rgba(var(--np-ink), .06) !important; color: rgb(var(--np-ink)) !important;
+  font: 500 14px/1 var(--font-ui) !important; text-decoration: none !important;
+}
+html.search-open body .nav-search-chips a:hover { background: rgba(var(--np-ink), .11) !important; }
+html.search-open body .nav-search-suggest {
+  position: static !important; width: auto !important; max-height: 46vh !important; margin-top: 10px !important; overflow-y: auto !important;
+  border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important;
+}
+@media (max-width: 720px) {
+  html.search-open body .nav-search-wrap { top: 8px !important; width: calc(100vw - 16px) !important; padding: 22px 16px 18px !important; border-radius: 22px !important; }
+  html.search-open body .nav-search-input { font-size: 20px !important; }
+  html.search-open body .nav-search-close { top: 10px !important; right: 10px !important; }
+}
 }
