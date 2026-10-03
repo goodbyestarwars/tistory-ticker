@@ -514,3 +514,20 @@ html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !i
   /* 실측 35px. 종목 입력은 키보드를 띄우는 첫 조작이라 특히 크게 잡는다. */
   #order-book .ob-input { min-height: 44px; }
 }
+
+/* ── 좌우 나란히 호가창 (2026-10-04 사용자 요청) ──
+   왼쪽 매수(빨강)·오른쪽 매도(파랑). 잔량 막대는 가운데에서 바깥쪽으로 뻗는다. */
+#order-book .ob-table-pairs { display: block; padding: 4px 10px 8px; }
+#order-book .ob-pair-head { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
+#order-book .ob-pair-head span:last-child { text-align: right; }
+#order-book .ob-pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
+#order-book .ob-pair .ob-row {
+  position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px;
+  padding: 4px 8px; isolation: isolate; font-size: 12.5px; min-height: 26px; box-sizing: border-box;
+}
+#order-book .ob-pair .ob-row-ask { flex-direction: row-reverse; }
+#order-book .ob-pair .ob-qty { text-align: inherit; color: #475569; font-weight: 500; }
+#order-book .ob-pair .ob-price { text-align: inherit; font-weight: 700; }
+#order-book .ob-pair .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; border-radius: 0; z-index: -1; overflow: hidden; }
+#order-book .ob-pair .ob-bar-bid { left: auto; right: 0; background: rgba(210, 79, 69, .16); border-radius: 4px 0 0 4px; }
+#order-book .ob-pair .ob-bar-ask { left: 0; right: auto; background: rgba(18, 97, 196, .16); border-radius: 0 4px 4px 0; }

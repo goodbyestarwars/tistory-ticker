@@ -845,8 +845,20 @@
 
     var summaryHtml = buildSummaryHtml(buildSummaryView(quote));
 
-    var askRows = book.asks.map(function (r, i) { return rowHtml(r, maxQty, 'ask', i + 1); }).join('');
-    var bidRows = book.bids.map(function (r, i) { return rowHtml(r, maxQty, 'bid', i + 1); }).join('');
+    // 2026-10-04 사용자 요청: 호가창을 좌우로 나란히(왼쪽 매수·오른쪽 매도, 막대는 가운데에서 바깥으로) 바꿨다.
+    // 줄 수가 20에서 10으로 줄어 모바일에서 차트 아래로 내려가는 거리가 짧아진다. 색은 사이트 규칙대로
+    // 매수=빨강·매도=파랑. data-level은 원래 배열 순서(index+1)를 그대로 써서 실시간 갱신(applyRealtimeOrderbook)이 같다.
+    var pairRows = '';
+    var pairCount = Math.max(book.asks.length, book.bids.length);
+    for (var j = 0; j < pairCount; j++) {
+      var bidRow = book.bids[j];
+      var askIndex = book.asks.length - 1 - j;          // asks는 높은 값부터라 가장 싼 매도호가가 맨 끝에 있다
+      var askRow = askIndex >= 0 ? book.asks[askIndex] : null;
+      pairRows += '<div class="ob-pair">'
+        + (bidRow ? rowHtml(bidRow, maxQty, 'bid', j + 1) : '<div class="ob-row ob-row-empty"></div>')
+        + (askRow ? rowHtml(askRow, maxQty, 'ask', askIndex + 1) : '<div class="ob-row ob-row-empty"></div>')
+        + '</div>';
+    }
 
     var totalAsk = book.totalAskQty || 0;
     var totalBid = book.totalBidQty || 0;
@@ -861,11 +873,13 @@
 
     board.innerHTML = headerHtml
       + summaryHtml
-      + '<div class="ob-table">' + askRows
       + '<div class="ob-current-row ' + priceCls + '" data-field="current-row">'
       + '<span data-field="current-price">' + priceNum + '</span>'
       + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
-      + '</div>' + bidRows + '</div>'
+      + '</div>'
+      + '<div class="ob-table ob-table-pairs">'
+      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량 · 가격</span><span class="ob-ask-text">가격 · 매도 잔량</span></div>'
+      + pairRows + '</div>'
       + footerHtml
       + buildTradesHtml();
   }
