@@ -7499,7 +7499,10 @@ html body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realti
   background-image: none !important;
 }
 html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 24px !important; padding-right: 24px !important; }
-html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 20px 24px 16px !important; }
+/* 위젯 오른쪽 위의 이동(⋮⋮)·메뉴 버튼 묶음은 카드 안에 떠 있다(absolute). 카드 위 여백이 20px이면 첫 줄의
+   '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
+html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 46px 24px 16px !important; }
+html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: 16px !important; }
 /* 페이지 바탕 상자·블로그 글은 카드가 아니라 위 가는 선만 둔다 */
 html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar .sc-cal-col) {
@@ -7890,4 +7893,9 @@ html body :where(.hwr-schedule, .hwr-index-summary, .hwr-index-card, .hwr-fx-car
   box-shadow: none !important;
 }
 html body .hwr-outcome-stat { border-radius: 14px !important; }
+
+@media (max-width: 720px) {
+  html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 56px 16px 14px !important; }
+  html body .home-widget-actions { top: 8px !important; right: 10px !important; }
+}
 }
