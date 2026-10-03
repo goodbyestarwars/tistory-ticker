@@ -4156,6 +4156,7 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="circle" aria-pressed="false" disabled>동그라미</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div></div>'
@@ -5341,8 +5342,55 @@
     return lwcLoadPromise;
   }
 
+  // 차트 메모(공용 모듈 js/chart-memo.js). 이 스크립트와 같은 폴더에서 한 번만 지연 로드한다.
+  var chartMemoPromise = null;
+  var flowMemo = null;
+  function loadChartMemoModule() {
+    if (global.NineChartMemo) return Promise.resolve(global.NineChartMemo);
+    if (chartMemoPromise) return chartMemoPromise;
+    chartMemoPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = KRX_MAP_JS.replace('/data/krx_map.js', '/js/chart-memo.js');
+      s.onload = function () { resolve(global.NineChartMemo); };
+      s.onerror = function () { chartMemoPromise = null; reject(new Error('chart-memo load failed')); };
+      document.head.appendChild(s);
+    });
+    return chartMemoPromise;
+  }
+
+  function setupFlowMemo(container, chart, series, daily, code) {
+    var button = container.parentElement.querySelector('[data-ff-memo]');
+    if (!button) return;
+    button.disabled = true;
+    loadChartMemoModule().then(function (api) {
+      if (!document.body.contains(container) || lwcChart !== chart) return;
+      var name = '';
+      var head = document.querySelector('#foreign-flow .ff-header'); if (head) name = Array.prototype.filter.call(head.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent; }).join('');
+      flowMemo = api.install({
+        container: container, chart: chart, series: series, bars: daily, code: code, name: name.trim() || code,
+        formatPrice: function (p) { return Number(p).toLocaleString() + '원'; },
+        isDrawing: function () { return !!(flowDrawingState && flowDrawingState.mode); }
+      });
+      button.disabled = false;
+      button.onclick = function () {
+        var on = !flowMemo.isMode();
+        if (on && flowDrawingState) setFlowDrawingMode(flowDrawingState, null);
+        flowMemo.setMode(on);
+        button.classList.toggle('is-active', on);
+        button.setAttribute('aria-pressed', String(on));
+      };
+    }).catch(function () { /* 메모 모듈을 못 받아도 차트는 그대로 */ });
+  }
+
+  function destroyFlowMemo() {
+    if (flowMemo) { flowMemo.dispose(); flowMemo = null; }
+    var b = document.querySelector('[data-ff-memo]');
+    if (b) { b.onclick = null; b.disabled = true; b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); }
+  }
+
   // 재검색/언마운트 시 이전 차트 인스턴스와 다크모드 감시자를 정리(리스너 누수 방지)
   function destroyLwChart() {
+    destroyFlowMemo();
     destroyFlowDrawing();
     if (lwcThemeObserver) { lwcThemeObserver.disconnect(); lwcThemeObserver = null; }
     if (lwcChart) {
@@ -5600,6 +5648,7 @@
       }
 
       setupFlowDrawing(container, chart, candleSeries, code);
+      setupFlowMemo(container, chart, candleSeries, daily, code);
 
       lwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(lwcThemeOptions(LWC));
