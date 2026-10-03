@@ -28,7 +28,7 @@
 /* ── 좌측: 월 달력 ── */
 #stock-calendar .sc-cal-col {
   flex: 0 0 320px; max-width: 100%;
-  background: rgb(243, 234, 211); border: 1px solid #e2e8f0; border-radius: 14px;
+  background: rgb(255, 254, 252); border: 1px solid #e2e8f0; border-radius: 14px;
   padding: 18px;
 }
 #stock-calendar .sc-cal-header {
@@ -38,7 +38,7 @@
 #stock-calendar .sc-cal-title { font-size: 16px; font-weight: 700; color: #0d1b40; }
 #stock-calendar .sc-nav {
   width: 30px; height: 30px; border-radius: 50%;
-  border: 1px solid #e2e8f0; background: rgb(243, 234, 211);
+  border: 1px solid #e2e8f0; background: rgb(255, 254, 252);
   font-size: 16px; color: #64748b; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.15s;
@@ -75,7 +75,7 @@
 #stock-calendar .sc-day.sc-today {
   background: var(--sc-accent); color: #fff !important; font-weight: 700;
 }
-#stock-calendar .sc-day.sc-today .sc-dot { background: rgb(243, 234, 211) !important; }
+#stock-calendar .sc-day.sc-today .sc-dot { background: rgb(255, 254, 252) !important; }
 /* 2026-09-01 색감 정리: 점이 주황(#d97706)이라 이 화면에서 유일한 난색이었고,
    금융 화면에서는 '경고'로 읽힌다. 헤더 주석대로 이 화면의 포인트는 차분한 네이비이므로
    점도 같은 계열로 맞춘다. 크기도 4px는 모바일에서 잘 안 보여 5px로 키운다. */
@@ -106,7 +106,7 @@
 #stock-calendar .sc-search {
   display: flex; align-items: center; gap: 8px; margin: 0 0 12px;
   padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 9px;
-  background: rgb(243, 234, 211);
+  background: rgb(255, 254, 252);
 }
 #stock-calendar .sc-search span {
   flex-shrink: 0; color: #64748b; font-size: 12px; font-weight: 700;

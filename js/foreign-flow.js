@@ -5388,8 +5388,34 @@
     if (b) { b.onclick = null; b.disabled = true; b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); }
   }
 
+  // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색 차트와 같은 계산·그림으로 맞춘다(2026-10-03 사용자 지적:
+  // 같은 삼성전자 차트인데 지지/저항이 서로 달랐다 - 여기는 서버 levels + 파랑=지지였고 저기는 붉은색=지지).
+  var chartSrPromise = null;
+  var flowSrCleanup = null;
+  function loadChartSrModule() {
+    if (global.NineChartSR) return Promise.resolve(global.NineChartSR);
+    if (chartSrPromise) return chartSrPromise;
+    chartSrPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = KRX_MAP_JS.replace('/data/krx_map.js', '/js/chart-sr.js');
+      s.onload = function () { resolve(global.NineChartSR); };
+      s.onerror = function () { chartSrPromise = null; reject(new Error('chart-sr load failed')); };
+      document.head.appendChild(s);
+    });
+    return chartSrPromise;
+  }
+  function setupFlowSupportResistance(container, chart, series, daily, fallbackLevels, LWC) {
+    loadChartSrModule().then(function (api) {
+      if (!document.body.contains(container) || lwcChart !== chart) return;
+      var result = api.levels(daily);
+      if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
+      flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); });
+    }).catch(function () { addLevelLines(series, LWC, fallbackLevels || {}, daily); });
+  }
+
   // 재검색/언마운트 시 이전 차트 인스턴스와 다크모드 감시자를 정리(리스너 누수 방지)
   function destroyLwChart() {
+    if (flowSrCleanup) { flowSrCleanup(); flowSrCleanup = null; }
     destroyFlowMemo();
     destroyFlowDrawing();
     if (lwcThemeObserver) { lwcThemeObserver.disconnect(); lwcThemeObserver = null; }
@@ -5528,7 +5554,7 @@
       lwcCandleSeries = candleSeries;
 
       var levels = chartData.levels || {};
-      addLevelLines(candleSeries, LWC, levels, daily);
+      setupFlowSupportResistance(container, chart, candleSeries, daily, levels, LWC);
 
       ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
         var series = (chartData.ma && chartData.ma[key]) || [];

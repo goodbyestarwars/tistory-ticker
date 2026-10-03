@@ -1906,8 +1906,19 @@
       var px = event.clientX - box.left;
       var py = event.clientY - box.top;
       var time = chart.timeScale().coordinateToTime(px);
+      if (time == null) {
+        // 마지막 봉 오른쪽 빈 공간·왼쪽 끝을 눌러도 가장 가까운 봉에 붙인다(예전엔 아무 반응이 없어 "안 된다"로 보였다).
+        var logical = chart.timeScale().coordinateToLogical(px);
+        if (logical != null && bars.length) time = bars[Math.max(0, Math.min(bars.length - 1, Math.round(logical)))].date;
+      }
+      if (time == null) return;
       var price = candleSeries.coordinateToPrice(py);
-      if (time == null || !Number.isFinite(price) || price <= 0) return;
+      if (!Number.isFinite(price) || price <= 0) {
+        // 거래량·RSI 패널을 눌렀거나 가격축 밖이면 그 봉의 종가에 붙인다.
+        var hit = barFor(chartMemoTimeKey(time));
+        price = hit ? Number(hit.close) : NaN;
+      }
+      if (!Number.isFinite(price) || price <= 0) return;
       openEditor(chartMemoTimeKey(time), Math.round(price * 100) / 100, px, py);
     }
     container.addEventListener('pointerdown', onDown);
@@ -1927,6 +1938,13 @@
         mode = !!on;
         container.classList.toggle('is-memo-mode', mode);
         if (!mode) closePopup();
+        var hint = layer.querySelector('.ss-memo-hint');
+        if (mode && !hint) {
+          hint = document.createElement('div');
+          hint.className = 'ss-memo-hint';
+          hint.textContent = '메모할 자리를 눌러 주세요 · 다시 "메모" 버튼을 누르면 끝납니다';
+          layer.appendChild(hint);
+        } else if (!mode && hint) hint.remove();
       },
       isMode: function () { return mode; }
     };

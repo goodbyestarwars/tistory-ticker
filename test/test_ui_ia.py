@@ -493,11 +493,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         button = re.search(r"\.home-briefing-more \{([^}]+)\}", style).group(1)
         arrow = re.search(r"\.home-briefing-more i \{([^}]+)\}", style).group(1)
-        self.assertIn("background: rgb(243, 234, 211)", button)
+        self.assertIn("background: rgb(255, 254, 252)", button)
         self.assertIn("border-radius: 14px", button)
         self.assertIn("box-shadow:", button)
         self.assertIn("border-radius:50%", arrow)
-        self.assertIn("background:rgb(243, 234, 211)", arrow)
+        self.assertIn("background:rgb(255, 254, 252)", arrow)
         self.assertIn(".home-briefing-more:focus-visible", style)
         self.assertIn(".home-briefing-more { transition:none; }", style)
         self.assertIn('href="/category/마켓 브리핑"', self.read("js/skin-main.js"))
@@ -510,8 +510,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             '--font-title: "MaruBuri"',
             '--font-ui: "Pretendard"',
             '--font-data: "Pretendard"',
-            "--page-bg: rgb(243, 234, 211)",
-            "--surface: #F3EAD3",
+            "--page-bg: rgb(244, 235, 214)",
+            "--surface: #FFFEFC",
             "--text-main: #171717",
             "--text-sub: #6F7480",
             "--rule: #D8D8D8",
@@ -774,7 +774,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
                      and not ln.strip().startswith('//')]
         self.assertTrue(band_line, "interest band 렌더 코드를 찾지 못했다")
         self.assertNotIn('fill-opacity', band_line[0])
-        self.assertIn('fill="rgba(201, 150, 40, 0.3)"', band_line[0])  # 2026-10-03 금색
+        self.assertIn('fill="rgba(255, 179, 0, 0.45)"', band_line[0])  # 2026-10-03 금색
 
     def test_usd_range_card_does_not_print_the_dollar_sign_twice(self):
         """formatPrice()가 US 심볼이면 '$'를 앞에 붙이는데 단위를 또 붙여서
@@ -3162,7 +3162,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("skin.html")
         self.assertIn('id="initial-paint-guard"', source)
         # 배경색 지정은 첫 페인트 색 튐 방지용으로 남긴다.
-        self.assertIn('html, html body { background: rgb(243, 234, 211); }', source)
+        self.assertIn('html, html body { background: rgb(244, 235, 214); }', source)
         # 주석에 옛 규칙을 인용해 두었으므로 실제 선언 형태로만 검사한다.
         self.assertNotIn('visibility: hidden !important; opacity: 0;', source)
         self.assertNotIn('window.setTimeout(reveal, 800)', source)

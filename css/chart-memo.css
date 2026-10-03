@@ -10,7 +10,7 @@
   padding: 0;
   border: 1px solid rgba(17, 17, 17, .35);
   border-radius: 11px 11px 11px 2px;
-  background: rgb(243, 234, 211);
+  background: rgb(255, 254, 252);
   color: #111;
   font-size: 12px;
   line-height: 20px;
@@ -26,7 +26,7 @@
   padding: 12px;
   border: 1px solid rgba(17, 17, 17, .1);
   border-radius: 16px;
-  background: rgba(243, 234, 211, .96);
+  background: rgba(255, 254, 252, .96);
   box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
   pointer-events: auto;
   font-size: 12px;
@@ -46,3 +46,5 @@ html.dark .ss-memo-pop-head strong, html.dark .ss-memo-pop-body { color: #F5EFE0
 html.dark .ss-memo-pop textarea { background: #1A1A1A; color: #F5EFE0; border-color: rgba(245, 239, 224, .2); }
 html.dark .ss-memo-pop-actions button { background: rgba(245, 239, 224, .12); color: #F5EFE0; }
 html.dark .ss-memo-pop-actions [data-memo-save] { background: #0a84ff; color: #fff; }
+
+.ss-memo-hint { position: absolute; left: 10px; top: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(17, 17, 17, .78); color: #fff; font-size: 12px; line-height: 1; pointer-events: none; z-index: 5; }

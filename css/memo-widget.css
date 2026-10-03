@@ -56,7 +56,7 @@
      display:none } 규칙보다 우선순위가 높아서, panel.hidden = true를 줘도(JS 로직은
      정상) 화면에서 실제로는 안 사라지고 있었다(모바일에서 "X 눌러도 반응 없어"의
      진짜 원인 - 닫기 버튼 크기 문제가 아니었다). 명시적으로 되살린다. */
-  background: var(--surface, #F3EAD3);
+  background: var(--surface, #FFFEFC);
   border-radius: 14px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
   z-index: 950;
