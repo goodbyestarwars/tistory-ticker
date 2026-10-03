@@ -7883,6 +7883,9 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
 @media (min-width: 721px) {
   html body .sidebar-left .nav-primary-row { align-self: flex-start !important; }
 }
+/* 2026-10-03 사용자 지적: 홈 한국증시·미국증시·휴장 트랙 안쪽 여백(좌우 0)이 세그먼트 규칙(4px)을 이겨
+   '휴장' 선택 면이 트랙 끝에 붙었다 → 트랙 안쪽 여백 4px, 위아래 간격은 바깥 여백으로. */
+html body .home-market-switch { padding: 4px !important; margin: 10px 0 12px !important; }
 html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
 html body :where(.hwr-schedule, .hwr-index-summary, .hwr-index-card, .hwr-fx-card, .hwr-news-card, .hwr-columns > article,
   .hwr-outcome-stat, .mt-strategy-action, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
