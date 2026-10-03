@@ -137,7 +137,7 @@
     var points = values.map(function (value, index) {
       return (index / (values.length - 1) * 116 + 2).toFixed(1) + ',' + (28 - (value - low) / span * 22).toFixed(1);
     }).join(' ');
-    return '<svg class="umi-mini-chart" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="최근 12회 발표 흐름"><polyline points="' + points + '"></polyline><circle cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="2.4"></circle></svg>';
+    return '<svg class="umi-mini-chart" viewBox="0 0 120 32" preserveAspectRatio="none" aria-label="최근 12회 발표 흐름"><polyline class="umi-glow-halo" points="' + points + '"></polyline><polyline points="' + points + '"></polyline><circle class="umi-glow-ring" cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="6"></circle><circle cx="118" cy="' + (28 - (values[values.length - 1] - low) / span * 22).toFixed(1) + '" r="2.4"></circle></svg>';
   }
 
   function readGuide_(symbol) {

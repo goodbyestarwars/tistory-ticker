@@ -443,3 +443,5 @@ html.dark .hwr-outcome-stat > span { color: #7d8593; }
 .hwr-stock-list--four .hwr-stock-name strong { font-size: 13px; }
 .hwr-stock-list--four .hwr-stock-values { align-items: baseline; margin-top: 10px; }
 .hwr-stock-list--four .hwr-stock-values b:last-child { font-size: 16px; letter-spacing: -0.01em; }
+
+.hwr-stock-list--four .hwr-stock-values b:first-child { font-size: 11px; white-space: nowrap; color: #64748b; font-weight: 500; }

@@ -7992,4 +7992,10 @@ html body .site-footer-learn a.learn-card:hover { transform: translateY(-3px) !i
 @media (max-width: 720px) {
   html body .site-footer-learn a.learn-card { flex: 0 0 132px !important; max-width: none !important; height: 168px !important; }
 }
+
+/* ── 22. 빛 규칙 점(2026-10-03): 홈 지수 카드 마지막 값 ── */
+.home-index-chart { position: relative; }
+.home-glow-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: rgb(255, 254, 252); border: 2px solid #64748b; pointer-events: none; }
+.home-glow-dot.is-up { border-color: #d24f45; box-shadow: 0 0 0 4px rgba(210, 79, 69, .16), 0 0 12px rgba(210, 79, 69, .5); }
+.home-glow-dot.is-down { border-color: #1261c4; box-shadow: 0 0 0 4px rgba(18, 97, 196, .16), 0 0 12px rgba(18, 97, 196, .5); }
 }

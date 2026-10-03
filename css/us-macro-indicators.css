@@ -35,3 +35,5 @@ html.dark #us-macro-indicators .umi-card--primary b { color: #80b8ff; }
 html.dark #us-macro-indicators .umi-card small, html.dark #us-macro-indicators .umi-card span, html.dark #us-macro-indicators .umi-card i, html.dark #us-macro-indicators p { color: rgba(245,239,224,.64); }
 html.dark #us-macro-indicators .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
 @media (max-width: 720px) { #us-macro-indicators .umi-head { display: block; } #us-macro-indicators .umi-refresh { margin-top: 10px; } #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } #us-macro-indicators .umi-reading { align-items:flex-start; flex-direction:column; } }
+#us-macro-indicators .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
+#us-macro-indicators .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }

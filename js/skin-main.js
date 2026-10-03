@@ -1138,14 +1138,18 @@ document.documentElement.classList.add('skin-ready');
         return x.toFixed(2) + ',' + y.toFixed(2);
       }).join(' ');
       var color = positive ? '#d24f45' : '#1261c4';
+      var lastY = height - pad - ((values[values.length - 1] - min) / range) * (height - pad * 2);
       var gradientId = 'homeIndexFill' + String(key || 'index').replace(/[^A-Za-z0-9_-]/g, '') + (positive ? 'Up' : 'Down');
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
         + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
         + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
         + '<stop offset="1" stop-color="' + color + '" stop-opacity=".01"></stop></linearGradient></defs>'
         + '<polygon points="' + pad + ',' + height + ' ' + points + ' ' + (width - pad) + ',' + height + '" fill="url(#' + gradientId + ')"></polygon>'
+        // 빛 규칙(2026-10-03): 선 뒤 후광 + 마지막 값에만 빛나는 점(점은 HTML이라 늘어나는 SVG에서도 동그랗다).
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-opacity=".22" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
-        + '</svg>';
+        + '</svg>'
+        + '<span class="home-glow-dot ' + (positive ? 'is-up' : 'is-down') + '" style="left:' + ((width - pad) / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%" aria-hidden="true"></span>';
     }
 
     function formatHomeTimestamp(value) {
@@ -1543,6 +1547,7 @@ document.documentElement.classList.add('skin-ready');
       var color = positive ? '#d24f45' : '#1261c4';
       return '<svg class="hmb-investor-spark" viewBox="0 0 100 28" role="img" aria-label="외국인 순매수 추이">'
         + '<line x1="2" y1="' + zeroY + '" x2="98" y2="' + zeroY + '" class="hmb-investor-zero"></line>'
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-opacity=".2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
         + '</svg>';
     }
