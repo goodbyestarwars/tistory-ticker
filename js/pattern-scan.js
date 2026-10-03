@@ -258,6 +258,106 @@
     return hits.filter(function (hit) { return hit && hit.scanner === key; });
   }
 
+  // ---- 추천 후 평균 변화 선 + 시장(코스피·코스닥) 비교 (2026-10-04 사용자 요청 2·3번) ----
+  // 시장 비교는 KODEX 200(069500)·KODEX 코스닥150(229200) 일봉으로 계산한다. 추천 종목마다 같은 날 기준가·같은 D+N일
+  // 종가로 ETF 수익률을 구해, "그 종목이 추천된 날 시장을 샀다면"과 나란히 비교한다(시장이 오른 기간의 착시를 걷어낸다).
+  var PERF_BENCHMARKS = [
+    { code: '069500', label: '코스피(KODEX 200)', color: '#64748b' },
+    { code: '229200', label: '코스닥(KODEX 코스닥150)', color: '#0ea5a4' }
+  ];
+  var PERF_HORIZONS = [1, 3, 5, 10];
+  var benchDailyCache = {};
+
+  function loadBenchDaily(code) {
+    if (!benchDailyCache[code]) {
+      benchDailyCache[code] = PatternScan.fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(code))
+        .then(function (env) {
+          var data = env && env.data ? env.data : env;
+          return (data && Array.isArray(data.daily) ? data.daily : []).filter(function (row) { return row && row.close; });
+        })
+        .catch(function () { delete benchDailyCache[code]; return []; });
+    }
+    return benchDailyCache[code];
+  }
+
+  // scanDate 당일(또는 그 이전 마지막 거래일) 종가 대비 scanDate 다음 거래일부터 h번째 거래일 종가의 수익률(%)
+  function benchReturn(daily, scanDate, h) {
+    var next = -1;
+    for (var k = 0; k < daily.length; k++) { if (String(daily[k].date) > scanDate) { next = k; break; } }
+    if (next < 1) return null;
+    var target = next + h - 1;
+    if (target >= daily.length) return null;
+    var base = Number(daily[next - 1].close), close = Number(daily[target].close);
+    return base > 0 ? (close - base) / base * 100 : null;
+  }
+
+  function renderPerformanceChart(box, key) {
+    var mount = box.querySelector('[data-ps-perf]');
+    if (!mount) return;
+    var hits = performanceHitsForActiveTab();
+    Promise.all(PERF_BENCHMARKS.map(function (b) { return loadBenchDaily(b.code); })).then(function (dailies) {
+      if (scannerKey(activeTab) !== key || !document.body.contains(mount)) return;
+      var rows = PERF_HORIZONS.map(function (h) {
+        var own = [];
+        var bench = PERF_BENCHMARKS.map(function () { return []; });
+        hits.forEach(function (hit) {
+          var v = hit.returns && hit.returns['d' + h];
+          if (v == null) return;
+          var vals = dailies.map(function (daily) { return benchReturn(daily, String(hit.scanDate), h); });
+          if (vals.some(function (x) { return x == null; })) return;   // 시장 값을 못 구한 표본은 양쪽에서 같이 뺀다
+          own.push(Number(v));
+          vals.forEach(function (x, idx) { bench[idx].push(x); });
+        });
+        function avg(a) { return a.length ? a.reduce(function (sum, x) { return sum + x; }, 0) / a.length : null; }
+        return { h: h, n: own.length, own: avg(own), bench: bench.map(avg) };
+      });
+      var ready = rows.filter(function (r) { return r.n > 0; });
+      if (!ready.length) { mount.innerHTML = '<span class="is-muted">시장 비교는 추천 후 거래일이 지난 표본이 쌓이면 표시됩니다.</span>'; return; }
+      var series = [{ label: '이 검색기 추천 평균', color: '#1f2937', values: rows.map(function (r) { return r.own; }), width: 2.4 }]
+        .concat(PERF_BENCHMARKS.map(function (b, idx) {
+          return { label: b.label, color: b.color, values: rows.map(function (r) { return r.bench[idx]; }), width: 1.6, dash: '4 3' };
+        }));
+      var all = [0];
+      series.forEach(function (sr) { sr.values.forEach(function (v) { if (v != null) all.push(v); }); });
+      var lo = Math.min.apply(null, all), hi = Math.max.apply(null, all);
+      if (hi - lo < 1) { hi += 0.5; lo -= 0.5; }
+      var pad = (hi - lo) * 0.12;
+      lo -= pad; hi += pad;
+      var W = 420, H = 190, x0 = 40, x1 = 392, top = 16, bottom = 150;
+      function X(h) { return x0 + (x1 - x0) * h / 10; }
+      function Y(v) { return bottom - (v - lo) / (hi - lo) * (bottom - top); }
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ps-perf-svg" role="img" aria-label="추천 후 거래일별 평균 수익률과 코스피·코스닥 비교">';
+      svg += '<line x1="' + x0 + '" y1="' + Y(0).toFixed(1) + '" x2="' + x1 + '" y2="' + Y(0).toFixed(1) + '" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3" />'
+        + '<text x="0" y="' + (Y(0) + 4).toFixed(1) + '" font-size="10.5" fill="#94a3b8">0%</text>';
+      series.forEach(function (sr) {
+        var pts = [[0, 0]];
+        PERF_HORIZONS.forEach(function (h, idx) { if (sr.values[idx] != null) pts.push([h, sr.values[idx]]); });
+        svg += '<polyline fill="none" stroke="' + sr.color + '" stroke-width="' + sr.width + '"' + (sr.dash ? ' stroke-dasharray="' + sr.dash + '"' : '')
+          + ' stroke-linecap="round" stroke-linejoin="round" points="' + pts.map(function (pt) { return X(pt[0]).toFixed(1) + ',' + Y(pt[1]).toFixed(1); }).join(' ') + '" />';
+        pts.slice(1).forEach(function (pt) {
+          svg += '<circle cx="' + X(pt[0]).toFixed(1) + '" cy="' + Y(pt[1]).toFixed(1) + '" r="' + (sr.width > 2 ? 3.4 : 2.4) + '" fill="' + sr.color + '" />';
+        });
+      });
+      [0].concat(PERF_HORIZONS).forEach(function (h) {
+        svg += '<text x="' + X(h).toFixed(1) + '" y="170" text-anchor="middle" font-size="11" fill="#64748b">' + (h === 0 ? '추천일' : 'D+' + h) + '</text>';
+      });
+      svg += '</svg>';
+      var legend = series.map(function (sr) {
+        return '<span><i style="background:' + sr.color + '"></i>' + escapeHtml(sr.label) + '</span>';
+      }).join('');
+      function cell(v) { return v == null ? '-' : '<b class="' + (v > 0 ? 'is-up' : v < 0 ? 'is-down' : 'is-flat') + '">' + signedPct(v) + '</b>'; }
+      var table = ready.map(function (r) {
+        var m = r.bench[0] != null ? r.own - r.bench[0] : null;
+        var k = r.bench[1] != null ? r.own - r.bench[1] : null;
+        return '<tr><td>D+' + r.h + '</td><td>' + r.n + '건</td><td>' + cell(r.own) + '</td><td>' + cell(r.bench[0]) + '</td><td>' + cell(r.bench[1]) + '</td><td>' + cell(m) + '</td><td>' + cell(k) + '</td></tr>';
+      }).join('');
+      mount.innerHTML = '<div class="ps-perf-title">추천 후 평균 변화와 시장 비교</div>' + svg
+        + '<div class="ps-perf-legend">' + legend + '</div>'
+        + '<table class="ps-perf-table"><thead><tr><th>시점</th><th>표본</th><th>추천 평균</th><th>코스피</th><th>코스닥</th><th>코스피 대비</th><th>코스닥 대비</th></tr></thead><tbody>' + table + '</tbody></table>'
+        + '<em>같은 종목·같은 기간에 시장 ETF를 샀다면의 수익률과 나란히 둔 값입니다. "대비"가 플러스면 시장보다 나았다는 뜻이고, 표본이 적은 구간은 참고만 하세요.</em>';
+    });
+  }
+
   function renderTrackSummary(container) {
     var box = container.querySelector('#psTrackSummary');
     if (!box) return;
@@ -314,7 +414,9 @@
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
       + '<span>D+10 평균 ' + escapeHtml(signedPct(d10.avgPct)) + '</span>'
       + '<em>스캔 시점 종가 기준. 실제 매수 성과가 아니라 조건의 사후 분포입니다.</em>'
+      + '<div class="ps-perf" data-ps-perf><span class="is-muted">시장 비교 불러오는 중...</span></div>'
       + '<details class="ps-track-history" open><summary>최근 2주 추천 종목과 그 뒤 변화 ' + groups.length + '일</summary><ul class="ps-track-days">' + rows + '</ul></details>';
+    renderPerformanceChart(box, key);
   }
 
   function latestPerformanceForItem(item) {
