@@ -85,7 +85,7 @@ html.dark .hb-spinner { color: #ff8a80; }
   --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
   --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
   --font-data: "Pretendard", "Malgun Gothic", sans-serif;
-  --page-bg: rgb(244, 235, 214); /* 2026-10-03 오래된 신문지 톤 - 페이지 바탕만. 카드·상자는 --surface/흰색 계열 */
+  --page-bg: rgb(234, 222, 192); /* 2026-10-03 오래된 신문지 톤 - 페이지 바탕만. 카드·상자는 --surface/흰색 계열 */
   --surface: #FFFEFC;
   --text-main: #171717;
   --text-sub: #6F7480;
