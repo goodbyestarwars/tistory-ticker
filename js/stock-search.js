@@ -124,6 +124,7 @@
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcSrCleanup = null;
+  var lwcMemoCleanup = null;
   var lwcRsiZonesCleanup = null;
   var lwcOhlcTooltipCleanup = null;
   var lwcRenderId = 0;
@@ -387,6 +388,7 @@
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
+      + '<button type="button" class="ss-memo-toggle" aria-pressed="false" title="차트의 봉을 눌러 메모를 남깁니다(일·주·월봉)">메모</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -1196,6 +1198,19 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var memoButton = container.querySelector('.ss-memo-toggle');
+    if (memoButton && memoButton.getAttribute('data-memo-wired') !== '1') {
+      memoButton.setAttribute('data-memo-wired', '1');
+      memoButton.onclick = function () {
+        if (state.timeframe === 'minute') { memoButton.title = '분봉에서는 일·주·월봉에서 메모해 주세요.'; return; }
+        if (!chartMemoCtl) return;
+        var on = !chartMemoCtl.isMode();
+        if (on) setStockDrawingMode(null);
+        chartMemoCtl.setMode(on);
+        memoButton.classList.toggle('is-active', on);
+        memoButton.setAttribute('aria-pressed', on ? 'true' : 'false');
+      };
+    }
     var drawButton = container.querySelector('.ss-draw-toggle');
     var pencilButton = container.querySelector('.ss-pencil-toggle');
     var circleButton = container.querySelector('.ss-circle-toggle');
@@ -1660,6 +1675,261 @@
     };
   }
 
+  // ---- 차트 메모 (2026-10-03 사용자 요청: "로그인 안 하면 브라우저에, 로그인하면 DB에") ----
+  // 차트의 봉을 눌러 그 날짜·가격에 메모를 단다. 핀으로 표시되고 누르면 내용·삭제가 보인다.
+  // 저장: 로그인(Google)하면 계정의 메모 배열(`GET/PUT /memo`, 사이트 전역 메모와 같은 데이터)에,
+  // 아니면 이 브라우저(localStorage)에 둔다. 로그인하면 브라우저에 있던 차트 메모를 계정으로 한 번 옮긴다.
+  // 메모는 텍스트라 용량이 작다(종목당 30개 상한, 메모당 500자).
+  var CHART_MEMO_URL = 'https://goodbyestar.cloud/memo';
+  var CHART_MEMO_AUTH_URL = 'https://goodbyestar.cloud/auth/google/me';
+  var CHART_MEMO_LOCAL_KEY = 'ss_chart_memos_v1';
+  var CHART_MEMO_MAX_PER_CODE = 30;
+  var CHART_MEMO_MAX_BODY = 500;
+  var CHART_MEMO_MAX_TOTAL = 200;
+  var chartMemoStore = { auth: null, items: [], revision: 0, loadPromise: null };
+  var chartMemoCtl = null;
+
+  function chartMemoReadLocal() {
+    try {
+      var saved = JSON.parse(global.localStorage.getItem(CHART_MEMO_LOCAL_KEY) || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch (e) { return []; }
+  }
+
+  function chartMemoWriteLocal(items) {
+    try {
+      if (items.length) global.localStorage.setItem(CHART_MEMO_LOCAL_KEY, JSON.stringify(items));
+      else global.localStorage.removeItem(CHART_MEMO_LOCAL_KEY);
+    } catch (e) { /* 저장소가 막혀도 화면은 동작 */ }
+  }
+
+  function chartMemoPut(items) {
+    return fetch(CHART_MEMO_URL, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: items, revision: chartMemoStore.revision })
+    }).then(function (response) {
+      if (response.status === 409) throw new Error('CONFLICT');
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    }).then(function (body) {
+      var data = body && body.data ? body.data : body;
+      chartMemoStore.items = data.items || items;
+      chartMemoStore.revision = data.revision || chartMemoStore.revision;
+      return chartMemoStore;
+    });
+  }
+
+  function chartMemoLoad(force) {
+    if (chartMemoStore.loadPromise && !force) return chartMemoStore.loadPromise;
+    chartMemoStore.loadPromise = fetch(CHART_MEMO_AUTH_URL, { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json(); })
+      .then(function (body) {
+        var auth = body && body.data ? body.data : {};
+        chartMemoStore.auth = !!(auth.configured && auth.authenticated);
+        if (!chartMemoStore.auth) {
+          chartMemoStore.items = chartMemoReadLocal();
+          chartMemoStore.revision = 0;
+          return chartMemoStore;
+        }
+        return fetch(CHART_MEMO_URL, { credentials: 'include', cache: 'no-store' })
+          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+          .then(function (res) {
+            var data = res && res.data ? res.data : res;
+            chartMemoStore.items = data.items || [];
+            chartMemoStore.revision = data.revision || 0;
+            // 로그인 전에 이 브라우저에 달아 둔 차트 메모를 계정으로 한 번 옮긴다.
+            var local = chartMemoReadLocal();
+            if (!local.length) return chartMemoStore;
+            var have = {};
+            chartMemoStore.items.forEach(function (item) { have[item.id] = true; });
+            var merged = chartMemoStore.items.concat(local.filter(function (item) { return !have[item.id]; })).slice(0, CHART_MEMO_MAX_TOTAL);
+            return chartMemoPut(merged).then(function () { chartMemoWriteLocal([]); return chartMemoStore; })
+              .catch(function () { return chartMemoStore; });
+          });
+      })
+      .catch(function () {
+        chartMemoStore.auth = false;
+        chartMemoStore.items = chartMemoReadLocal();
+        return chartMemoStore;
+      });
+    return chartMemoStore.loadPromise;
+  }
+
+  // fn(items) -> 새 배열. 로그인 상태에서 다른 기기가 먼저 바꿨으면(409) 다시 받아 한 번 더 적용한다.
+  function chartMemoMutate(fn) {
+    return chartMemoLoad().then(function (store) {
+      var next = fn(store.items.slice());
+      if (!store.auth) {
+        store.items = next;
+        chartMemoWriteLocal(next);
+        return store;
+      }
+      return chartMemoPut(next).catch(function (err) {
+        if (err.message !== 'CONFLICT') throw err;
+        return chartMemoLoad(true).then(function (fresh) { return chartMemoPut(fn(fresh.items.slice())); });
+      });
+    });
+  }
+
+  function chartMemoTimeKey(time) {
+    if (time && typeof time === 'object' && time.year) {
+      return time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0');
+    }
+    return time == null ? '' : String(time);
+  }
+
+  function chartMemoCodeKey(code) { return String(code || '').toUpperCase(); }
+
+  function installChartMemoLayer(container, chart, candleSeries, bars, timeframe, code, name, formatPrice) {
+    var key = chartMemoCodeKey(code);
+    if (!key) return function () {};
+    var layer = document.createElement('div');
+    layer.className = 'ss-memo-layer';
+    container.appendChild(layer);
+    var mode = false;
+    var popup = null;
+    var frameId = 0;
+    var resizeObserver = null;
+    var disposed = false;
+
+    function closePopup() { if (popup) { popup.remove(); popup = null; } }
+    function barFor(dateKey) {
+      var found = null;
+      for (var i = 0; i < bars.length; i++) {
+        if (String(bars[i].date) <= dateKey) found = bars[i]; else break;
+      }
+      return found;
+    }
+    function itemsHere() {
+      return chartMemoStore.items.filter(function (it) { return chartMemoCodeKey(it.code) === key && it.date && isFinite(Number(it.price)); });
+    }
+    function placePopup(x, y) {
+      if (!popup) return;
+      var w = container.clientWidth;
+      var h = container.clientHeight;
+      var pw = popup.offsetWidth || 260;
+      var ph = popup.offsetHeight || 170;
+      popup.style.left = Math.max(6, Math.min(x - pw / 2, w - pw - 6)) + 'px';
+      popup.style.top = Math.max(6, Math.min(y + 14, h - ph - 6)) + 'px';
+    }
+    function storageNote() {
+      return chartMemoStore.auth ? '로그인 계정에 저장되어 다른 기기에서도 보입니다.' : '이 브라우저에만 저장됩니다. 로그인하면 계정에 저장됩니다.';
+    }
+    function openEditor(dateKey, price, x, y) {
+      closePopup();
+      var count = itemsHere().length;
+      popup = document.createElement('div');
+      popup.className = 'ss-memo-pop';
+      popup.innerHTML = '<div class="ss-memo-pop-head"><strong>' + escapeHtml(dateKey) + '</strong><span>' + escapeHtml(formatPrice(price)) + '</span></div>'
+        + '<textarea maxlength="' + CHART_MEMO_MAX_BODY + '" placeholder="이 자리에 남길 메모 (예: 지지 확인 후 분할 진입)" aria-label="차트 메모"></textarea>'
+        + '<small class="ss-memo-pop-note">' + storageNote() + '</small>'
+        + '<div class="ss-memo-pop-actions"><button type="button" data-memo-cancel>취소</button><button type="button" data-memo-save>저장</button></div>';
+      layer.appendChild(popup);
+      placePopup(x, y);
+      var text = popup.querySelector('textarea');
+      var note = popup.querySelector('.ss-memo-pop-note');
+      text.focus();
+      popup.querySelector('[data-memo-cancel]').addEventListener('click', closePopup);
+      popup.querySelector('[data-memo-save]').addEventListener('click', function () {
+        var body = text.value.trim();
+        if (!body) { note.textContent = '메모 내용을 입력하세요.'; return; }
+        if (count >= CHART_MEMO_MAX_PER_CODE) { note.textContent = '한 종목에는 메모를 ' + CHART_MEMO_MAX_PER_CODE + '개까지 달 수 있어요.'; return; }
+        var nowIso = new Date().toISOString();
+        var item = { id: 'cm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), code: key, name: name || key, body: body,
+          date: dateKey, price: price, createdAt: nowIso, updatedAt: nowIso };
+        note.textContent = '저장 중...';
+        chartMemoMutate(function (items) { return items.concat([item]); }).then(function () {
+          closePopup();
+          scheduleDraw();
+        }).catch(function () { note.textContent = '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.'; });
+      });
+    }
+    function openViewer(item, x, y) {
+      closePopup();
+      popup = document.createElement('div');
+      popup.className = 'ss-memo-pop';
+      popup.innerHTML = '<div class="ss-memo-pop-head"><strong>' + escapeHtml(item.date) + '</strong><span>' + escapeHtml(formatPrice(item.price)) + '</span></div>'
+        + '<p class="ss-memo-pop-body">' + escapeHtml(item.body) + '</p>'
+        + '<div class="ss-memo-pop-actions"><button type="button" data-memo-close>닫기</button><button type="button" data-memo-delete>삭제</button></div>';
+      layer.appendChild(popup);
+      placePopup(x, y);
+      popup.querySelector('[data-memo-close]').addEventListener('click', closePopup);
+      popup.querySelector('[data-memo-delete]').addEventListener('click', function () {
+        chartMemoMutate(function (items) { return items.filter(function (it) { return it.id !== item.id; }); }).then(function () {
+          closePopup();
+          scheduleDraw();
+        }).catch(function () { /* 다음 시도 때 다시 */ });
+      });
+    }
+    function draw() {
+      frameId = 0;
+      if (disposed || !document.body.contains(container)) return;
+      layer.querySelectorAll('.ss-memo-pin').forEach(function (pin) { pin.remove(); });
+      itemsHere().forEach(function (item) {
+        var bar = barFor(String(item.date));
+        if (!bar) return;
+        var x = chart.timeScale().timeToCoordinate(bar.date);
+        var y = candleSeries.priceToCoordinate(Number(item.price));
+        if (![x, y].every(Number.isFinite)) return;
+        if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) return;
+        var pin = document.createElement('button');
+        pin.type = 'button';
+        pin.className = 'ss-memo-pin';
+        pin.style.left = x + 'px';
+        pin.style.top = y + 'px';
+        pin.title = item.date + ' · ' + item.body;
+        pin.setAttribute('aria-label', '차트 메모 보기');
+        pin.textContent = '✎';
+        pin.addEventListener('click', function (event) { event.stopPropagation(); openViewer(item, x, y); });
+        layer.appendChild(pin);
+      });
+    }
+    function scheduleDraw() {
+      if (frameId) global.cancelAnimationFrame(frameId);
+      frameId = global.requestAnimationFrame(draw);
+    }
+    function onClick(param) {
+      if (!mode || !param || !param.point || param.time == null) return;
+      if (stockDrawingState && stockDrawingState.mode) return;
+      var price = candleSeries.coordinateToPrice(param.point.y);
+      if (!Number.isFinite(price) || price <= 0) return;
+      openEditor(chartMemoTimeKey(param.time), Math.round(price * 100) / 100, param.point.x, param.point.y);
+    }
+    chart.subscribeClick(onClick);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
+    if ('ResizeObserver' in global) {
+      resizeObserver = new ResizeObserver(scheduleDraw);
+      resizeObserver.observe(container);
+    } else {
+      global.addEventListener('resize', scheduleDraw);
+    }
+    chartMemoLoad().then(scheduleDraw);
+    var settle = global.setTimeout(scheduleDraw, 300);
+
+    chartMemoCtl = {
+      setMode: function (on) {
+        mode = !!on;
+        container.classList.toggle('is-memo-mode', mode);
+        if (!mode) closePopup();
+      },
+      isMode: function () { return mode; }
+    };
+    return function () {
+      disposed = true;
+      if (frameId) global.cancelAnimationFrame(frameId);
+      global.clearTimeout(settle);
+      try { chart.unsubscribeClick(onClick); } catch (e) { /* 이미 제거 */ }
+      try { chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw); } catch (e) { /* 이미 제거 */ }
+      if (resizeObserver) resizeObserver.disconnect();
+      else global.removeEventListener('resize', scheduleDraw);
+      container.classList.remove('is-memo-mode');
+      layer.remove();
+      chartMemoCtl = null;
+    };
+  }
+
   // RSI 패널은 첨부 화면처럼 검정 단일선으로 표시하고, 70 이상/30 이하에서만
   // 선과 기준선 사이를 색칠한다. Lightweight Charts v5에는 개별 pane의 영역 채우기
   // 옵션이 없으므로, RSI 시리즈 좌표를 읽어 차트 아래에 캔버스를 깐다.
@@ -1842,6 +2112,7 @@
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
+      + '<button type="button" class="ss-memo-toggle" aria-pressed="false" title="차트의 봉을 눌러 메모를 남깁니다(일·주·월봉)">메모</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
       + '<button type="button" class="ss-tf-btn" data-tf="week">주봉</button>'
@@ -2390,6 +2661,7 @@
     destroyStockDrawing();
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
+    if (lwcMemoCleanup) { lwcMemoCleanup(); lwcMemoCleanup = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
@@ -2639,6 +2911,7 @@
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
+      lwcMemoCleanup = timeframe === 'minute' ? null : installChartMemoLayer(container, chart, candleSeries, bars, timeframe, state.selectedCode, state.selectedName, function (p) { return chartPriceText(p, isUsChart); });
       lwcSrCleanup = installSupportResistanceCanvas(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); });
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe);

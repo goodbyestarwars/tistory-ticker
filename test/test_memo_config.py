@@ -27,6 +27,24 @@ class MemoConfigTests(unittest.TestCase):
         self.assertEqual(result[0]['code'], '005930')
         self.assertEqual(result[0]['name'], '삼성전자')
 
+    def test_chart_memo_keeps_date_and_price(self):
+        result = memo.normalize_items([{
+            'id': 'c1', 'code': '005930', 'name': '삼성전자', 'body': '지지 확인',
+            'date': '2026-10-02', 'price': 71200, 'createdAt': '2026-10-03T00:00:00Z',
+        }])
+        self.assertEqual(result[0]['date'], '2026-10-02')
+        self.assertEqual(result[0]['price'], 71200.0)
+
+    def test_chart_memo_needs_numeric_price(self):
+        with self.assertRaises(memo.MemoConfigError):
+            memo.normalize_items([{'id': 'c2', 'code': '005930', 'body': 'x', 'date': '2026-10-02', 'price': 'abc'}])
+
+    def test_chart_memo_per_code_cap(self):
+        rows = [{'id': 'c%d' % i, 'code': '005930', 'body': 'x', 'date': '2026-10-02', 'price': 1}
+                for i in range(memo.MAX_CHART_MEMOS_PER_CODE + 1)]
+        with self.assertRaises(memo.MemoConfigError):
+            memo.normalize_items(rows)
+
     def test_drops_name_when_code_missing(self):
         # code 없는 메모에 name만 남아있으면 혼란스러우니 비운다.
         result = memo.normalize_items([{

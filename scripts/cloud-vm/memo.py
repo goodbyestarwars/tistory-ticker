@@ -10,6 +10,9 @@
 MAX_ITEMS = 200
 MAX_BODY_LENGTH = 2000
 MAX_NAME_LENGTH = 100
+# 2026-10-03 차트 메모: 봉(date)·가격(price)에 붙는 메모. 종목당 상한을 따로 둔다.
+MAX_CHART_MEMOS_PER_CODE = 30
+MAX_DATE_LENGTH = 24
 
 
 class MemoConfigError(ValueError):
@@ -53,12 +56,33 @@ def normalize_items(value):
         if not created_at:
             raise MemoConfigError('memo createdAt is required')
 
-        items.append({
+        item = {
             'id': memo_id,
             'code': code,
             'name': name if code else None,
             'body': body,
             'createdAt': created_at,
             'updatedAt': updated_at or created_at,
-        })
+        }
+        # 차트 메모(선택 필드): 어느 봉(date, YYYY-MM-DD)·어느 가격(price)에 단 메모인지.
+        date = raw.get('date')
+        if date:
+            date = str(date).strip()
+            if len(date) > MAX_DATE_LENGTH:
+                raise MemoConfigError('memo date is too long')
+            item['date'] = date
+            try:
+                price = float(raw.get('price'))
+            except (TypeError, ValueError):
+                raise MemoConfigError('chart memo needs a numeric price')
+            if price != price or price <= 0 or price > 1e12:
+                raise MemoConfigError('chart memo price is out of range')
+            item['price'] = price
+        items.append(item)
+    per_code = {}
+    for item in items:
+        if item.get('date') and item['code']:
+            per_code[item['code']] = per_code.get(item['code'], 0) + 1
+            if per_code[item['code']] > MAX_CHART_MEMOS_PER_CODE:
+                raise MemoConfigError('at most %d chart memos per stock' % MAX_CHART_MEMOS_PER_CODE)
     return items

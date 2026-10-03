@@ -409,6 +409,8 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.
 
+- 2026-10-03: 차트 메모는 같은 배열에 `date`(YYYY-MM-DD)·`price` 선택 필드가 붙은 항목으로 저장한다. 종목당 30개까지.
+
 ### ERD
 
 ```mermaid
