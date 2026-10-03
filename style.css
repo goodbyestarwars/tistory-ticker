@@ -7898,4 +7898,10 @@ html body .hwr-outcome-stat { border-radius: 14px !important; }
   html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 56px 16px 14px !important; }
   html body .home-widget-actions { top: 8px !important; right: 10px !important; }
 }
+
+/* 모바일 다듬기(2026-10-03): ★ 관심 버튼이 좁은 표 칸에서 잘리지 않게 30px로, 우측 서랍 손잡이는 얇게 */
+html body .ss-fav-btn { width: 30px !important; min-width: 30px !important; height: 30px !important; min-height: 30px !important; }
+@media (max-width: 720px) {
+  html body .global-watchlist-toggle { width: 26px !important; min-width: 26px !important; padding: 0 !important; opacity: .72 !important; }
+}
 }
