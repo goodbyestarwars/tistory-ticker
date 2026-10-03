@@ -279,12 +279,12 @@
       return String(b.scanDate || '').localeCompare(String(a.scanDate || '')) || String(a.name || '').localeCompare(String(b.name || ''));
     });
     var totalRecent = hits.length;
-    if (hits.length > 30) hits.length = 30;
+    if (hits.length > 60) hits.length = 60;
     var rows = hits.map(function (hit) {
-      var current = Number(hit.currentReturnPct);
+      var current = hit.currentReturnPct == null ? NaN : Number(hit.currentReturnPct);
       var tone = current > 0 ? 'is-up' : current < 0 ? 'is-down' : 'is-flat';
       var elapsed = Number(hit.elapsedTradingDays);
-      var state = isFinite(current) ? '현재 ' + signedPct(current) : '관찰 중';
+      var state = isFinite(current) ? '현재 ' + signedPct(current) : '추천일 종가 기준 · 다음 거래일부터 집계';
       var r5 = hit.returns && hit.returns.d5 != null ? ' · D+5 ' + signedPct(hit.returns.d5) : '';
       var r10 = hit.returns && hit.returns.d10 != null ? ' · D+10 ' + signedPct(hit.returns.d10) : '';
       state += r5 + r10;
