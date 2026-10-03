@@ -1474,8 +1474,8 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.clearTimeout(frameId);
-      frameId = global.setTimeout(draw, 16);
+      if (frameId) global.cancelAnimationFrame(frameId);
+      frameId = global.requestAnimationFrame(draw);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
@@ -1666,7 +1666,7 @@
     // 가격축 범위는 시간축 이동 없이도(확대·세로 드래그) 바뀌므로 짧게 한 번 더 그린다.
     var settle = global.setTimeout(scheduleDraw, 250);
     return function () {
-      if (frameId) global.clearTimeout(frameId);
+      if (frameId) global.cancelAnimationFrame(frameId);
       global.clearTimeout(settle);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
       if (resizeObserver) resizeObserver.disconnect();
@@ -1867,13 +1867,11 @@
       frameId = 0;
       if (disposed || !document.body.contains(container)) return;
       layer.querySelectorAll('.ss-memo-pin').forEach(function (pin) { pin.remove(); });
-      layer.dataset.dbg0 = JSON.stringify([key, chartMemoStore.auth, chartMemoStore.items.length, itemsHere().length, bars.length, bars[bars.length-1] && bars[bars.length-1].date]);
       itemsHere().forEach(function (item) {
         var bar = barFor(String(item.date));
         if (!bar) return;
         var x = chart.timeScale().timeToCoordinate(bar.date);
         var y = candleSeries.priceToCoordinate(Number(item.price));
-        layer.dataset.dbg = JSON.stringify([item.date, bar.date, x, y, container.clientWidth, container.clientHeight]);
         if (![x, y].every(Number.isFinite)) return;
         if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) return;
         var pin = document.createElement('button');
@@ -1889,8 +1887,8 @@
       });
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (frameId) global.clearTimeout(frameId);
+      frameId = global.setTimeout(draw, 16);
     }
     // 모바일 터치에서는 차트 라이브러리의 click 이벤트가 안정적이지 않아, 컨테이너의 포인터 탭(이동 8px 미만)으로 직접 받는다.
     var downAt = null;
