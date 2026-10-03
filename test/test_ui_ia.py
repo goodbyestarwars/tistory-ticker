@@ -1699,7 +1699,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         legal/처럼 GitHub Pages 정적 페이지(learn/*.html)로 두고 푸터에서 연결한다.
         """
         shell = self.read("js/skin-shell.js")
-        self.assertIn("learn/index.html\">주식 이야기</a>", shell)
+        self.assertIn("learn/index.html\"><svg", shell)  # 2026-10-03 이야기 시리즈는 카드(아이콘+제목)
+        self.assertIn("<b>주식 이야기</b>", shell)
         self.assertIn("release-notes.html\">릴리스 노트</a>", shell)
         # 순서 비교는 footerLinks 블록 안에서만 한다 - 위쪽 주석에도 같은 낱말이 나온다.
         first_row_start = shell.index("'<nav class=\"site-footer-links\">'")
@@ -1842,7 +1843,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         읽을거리 줄에 "주식 이야기"와 나란히 이어 붙인다(끼워 넣기가 아니라 옆에 추가).
         """
         standalone_pages = ["us-market.html", "chart-patterns.html", "bond-market.html", "crypto-market.html",
-                             "fx-market.html", "economy-story.html", "etf-market.html"]
+                             "fx-market.html", "economy-story.html", "etf-market.html", "company-analysis.html"]
         index = self.read("learn/index.html")
         shell = self.read("js/skin-shell.js")
         for chapter in standalone_pages:
@@ -1862,7 +1863,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
         learn_row = learn_row[:learn_row.index('</nav>')]
         for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기",
-                      "환율 이야기", "경제 이야기"):
+                      "환율 이야기", "ETF 이야기", "기업분석 이야기", "경제 이야기"):
             self.assertIn(token, learn_row)
         us_market = self.read("learn/us-market.html")
         for token in ("제로데이 옵션", "0DTE", "다우존스", "S&P500", "가격제한폭"):

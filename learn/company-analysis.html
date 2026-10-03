@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>기업분석 이야기</title>
+<meta name="description" content="재무제표 세 장을 어떤 순서로 읽는지, 매출·영업이익·현금흐름·PER·유상증자가 개인 투자자의 판단에 어떻게 닿는지, 실적이 좋은데 주가가 빠지는 이유를 가상의 회사 사례와 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+<style>
+.fig-bar { fill: #8fa0b8; }
+.fig-ink-fill { fill: #1f2937; }
+.learn-fig text.fig-sub { font-size: 12.5px; }
+@media (prefers-color-scheme: dark) { .fig-bar { fill: #5d708c; } .fig-ink-fill { fill: #d3dbe8; } }
+</style>
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>기업분석 이야기</h1>
+  <p class="legal-effective-date">재무제표 세 장을 읽는 순서, 이익과 현금, 밸류에이션, 주식 수의 함정</p>
+
+  <p>차트를 보면 가격이 보이고, 재무제표를 보면 회사가 보인다. 주가는 하루에도 몇 %씩 움직이지만 회사의 매출과
+  이익, 현금, 빚은 그렇게 빨리 변하지 않는다.</p>
+  <p>기업분석은 질문 하나에서 시작한다. <b>이 회사는 실제로 돈을 벌고 있고, 앞으로도 벌 가능성이 있는가.</b>
+  PER·PBR·ROE 같은 낱말부터 외우면 거꾸로 가는 것이다. 먼저 어떻게 돈을 버는지 알고, 재무제표로 확인하고,
+  마지막에 지금 주가가 그 실적에 비해 비싼지 따진다. 이 글의 회사와 숫자는 설명용 가상 사례다.</p>
+
+  <h2>재무제표는 회사의 건강검진표다</h2>
+  <p>건강검진에서 체중 하나만 보고 건강하다고 하지 않는다. 혈압·혈당·간 수치를 같이 본다. 회사도 세 장을 같이 본다.</p>
+  <table class="learn-table">
+    <thead><tr><th>재무제표</th><th>무엇을 보나</th><th>쉽게 말하면</th></tr></thead>
+    <tbody>
+      <tr><td>손익계산서</td><td>매출과 이익</td><td>얼마나 벌었나</td></tr>
+      <tr><td>재무상태표</td><td>자산·부채·자본</td><td>뭘 가졌고 빚은 얼마인가</td></tr>
+      <tr><td>현금흐름표</td><td>실제 현금의 이동</td><td>통장에 현금이 들어왔나</td></tr>
+    </tbody>
+  </table>
+  <p>이익이 크게 찍혔는데 현금이 계속 빠지는 회사가 있고, 매출은 빨리 느는데 빚이 더 빨리 느는 회사가 있다.
+  한 장만 보면 속는다. 개미가 가장 많이 보는 것이 손익계산서의 순이익 한 줄인데, 그 한 줄이 가장 쉽게 포장된다.</p>
+
+  <h2>매출부터 본다 - 그런데 매출만 보면 안 된다</h2>
+  <p>가상의 회사 <b>A테크</b>의 4년 실적이다.</p>
+  <table class="learn-table">
+    <thead><tr><th>연도</th><th>매출</th><th>영업이익</th><th>순이익</th></tr></thead>
+    <tbody>
+      <tr><td>2023</td><td>1,000억</td><td>80억</td><td>55억</td></tr>
+      <tr><td>2024</td><td>1,200억</td><td>110억</td><td>75억</td></tr>
+      <tr><td>2025</td><td>1,500억</td><td>150억</td><td>100억</td></tr>
+      <tr><td>2026</td><td>1,800억</td><td>210억</td><td>145억</td></tr>
+    </tbody>
+  </table>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="A테크 2023~2026 매출 1,000·1,200·1,500·1,800억, 영업이익 80·110·150·210억, 순이익 55·75·100·145억">
+      <path class="fig-dash" d="M40 168 L408 168" />
+      <text class="fig-sub" x="0" y="172" font-size="11">0</text>
+      <path class="fig-dash" d="M40 95 L408 95" />
+      <text class="fig-sub" x="0" y="99" font-size="11">1,000</text>
+      <path class="fig-dash" d="M40 22 L408 22" />
+      <text class="fig-sub" x="0" y="26" font-size="11">2,000</text>
+      <rect class="fig-bar" x="46" y="95" width="24.7" height="73" rx="3" />
+      <rect class="fig-acc" x="73.7" y="162.2" width="24.7" height="5.8" rx="3" />
+      <rect class="fig-ink-fill" x="101.3" y="164" width="24.7" height="4" rx="3" />
+      <text class="fig-sub" x="86" y="188" text-anchor="middle" font-size="12.5">2023</text>
+      <rect class="fig-bar" x="138" y="80.4" width="24.7" height="87.6" rx="3" />
+      <rect class="fig-acc" x="165.7" y="160" width="24.7" height="8" rx="3" />
+      <rect class="fig-ink-fill" x="193.3" y="162.5" width="24.7" height="5.5" rx="3" />
+      <text class="fig-sub" x="178" y="188" text-anchor="middle" font-size="12.5">2024</text>
+      <rect class="fig-bar" x="230" y="58.5" width="24.7" height="109.5" rx="3" />
+      <rect class="fig-acc" x="257.7" y="157.1" width="24.7" height="10.9" rx="3" />
+      <rect class="fig-ink-fill" x="285.3" y="160.7" width="24.7" height="7.3" rx="3" />
+      <text class="fig-sub" x="270" y="188" text-anchor="middle" font-size="12.5">2025</text>
+      <rect class="fig-bar" x="322" y="36.6" width="24.7" height="131.4" rx="3" />
+      <rect class="fig-acc" x="349.7" y="152.7" width="24.7" height="15.3" rx="3" />
+      <rect class="fig-ink-fill" x="377.3" y="157.4" width="24.7" height="10.6" rx="3" />
+      <text class="fig-sub" x="362" y="188" text-anchor="middle" font-size="12.5">2026</text>
+      <rect class="fig-bar" x="12" y="208" width="12" height="9" rx="2" />
+      <text class="fig-sub" x="30" y="216" font-size="12">매출</text>
+      <rect class="fig-acc" x="70" y="208" width="12" height="9" rx="2" />
+      <text class="fig-sub" x="88" y="216" font-size="12">영업이익</text>
+      <rect class="fig-ink-fill" x="154" y="208" width="12" height="9" rx="2" />
+      <text class="fig-sub" x="172" y="216" font-size="12">순이익</text>
+    </svg>
+    <figcaption>매출은 4년 새 80% 늘었는데 영업이익은 162% 늘었다. 매출보다 이익이 더 빨리 크는 회사다. 단위는 억원이고 실제 기업이 아니다.</figcaption>
+  </figure>
+
+  <p>팔리지 않는 회사는 크지 못하니 매출을 먼저 본다. 하지만 매출 1조라는 말은 그 자체로 아무것도 알려 주지
+  않는다. <b>100원을 팔아 얼마를 남기느냐</b>가 다음 질문이다.</p>
+
+  <h2>영업이익 - 본업으로 번 돈</h2>
+  <p>매출에서 만드는 비용, 인건비, 광고비 같은 운영비를 빼고 남은 돈이 영업이익이다. 본업으로 번 돈이라 이 회사의 체력을
+  가장 정직하게 보여 준다. 영업이익을 매출로 나눈 것이 <b>영업이익률</b>이다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="A테크 영업이익률 2023년 8.0%, 2024년 9.2%, 2025년 10.0%, 2026년 11.7%로 상승">
+      <path class="fig-dash" d="M44 160 L400 160" />
+      <text class="fig-sub" x="0" y="164" font-size="11">0%</text>
+      <path class="fig-dash" d="M44 122.9 L400 122.9" />
+      <text class="fig-sub" x="0" y="126.9" font-size="11">4%</text>
+      <path class="fig-dash" d="M44 85.7 L400 85.7" />
+      <text class="fig-sub" x="0" y="89.7" font-size="11">8%</text>
+      <path class="fig-dash" d="M44 48.6 L400 48.6" />
+      <text class="fig-sub" x="0" y="52.6" font-size="11">12%</text>
+      <path class="fig-acc-line" d="M60 85.7 L166.7 74.6 L273.3 67.1 L380 51.4" />
+      <circle class="fig-acc" cx="60" cy="85.7" r="5" />
+      <text class="fig-ink" x="60" y="73.7" text-anchor="middle" font-size="14">8%</text>
+      <text class="fig-sub" x="60" y="184" text-anchor="middle" font-size="12.5">2023</text>
+      <circle class="fig-acc" cx="166.7" cy="74.6" r="5" />
+      <text class="fig-ink" x="166.7" y="62.6" text-anchor="middle" font-size="14">9.2%</text>
+      <text class="fig-sub" x="166.7" y="184" text-anchor="middle" font-size="12.5">2024</text>
+      <circle class="fig-acc" cx="273.3" cy="67.1" r="5" />
+      <text class="fig-ink" x="273.3" y="55.1" text-anchor="middle" font-size="14">10%</text>
+      <text class="fig-sub" x="273.3" y="184" text-anchor="middle" font-size="12.5">2025</text>
+      <circle class="fig-acc" cx="380" cy="51.4" r="5" />
+      <text class="fig-ink" x="380" y="39.4" text-anchor="middle" font-size="14">11.7%</text>
+      <text class="fig-sub" x="380" y="184" text-anchor="middle" font-size="12.5">2026</text>
+      <text class="fig-sub" x="12" y="212" font-size="12">영업이익률 = 영업이익 ÷ 매출 × 100</text>
+    </svg>
+    <figcaption>A테크의 영업이익률은 8.0%에서 11.7%로 올랐다. 팔수록 남는 몫이 커지는 중이다. 매출도 크고 마진도 오르는 조합이 가장 보기 좋은 성장이다.</figcaption>
+  </figure>
+
+  <h2>순이익 - 주주에게 남는 돈, 단 일회성은 걸러낸다</h2>
+  <p>영업이익에서 이자와 세금, 기타 손익을 반영하면 순이익이다. 개미가 가장 자주 낚이는 자리가 여기다. 어떤 회사가 본업으로
+  50억을 벌었는데 보유 건물을 팔아 500억의 일회성 이익이 생겼다면 순이익은 550억이다. 숫자만 보면 폭발적인 증가인데
+  내년에 건물을 또 팔 수는 없다. 볼 것은 <b>반복해서 벌 수 있는 이익</b>이다.</p>
+
+  <h2>이익보다 현금이 먼저일 때가 있다</h2>
+  <p><b>순이익과 현금은 같은 것이 아니다.</b> 물건을 팔았지만 아직 돈을 못 받았거나(매출채권), 만든 물건이 창고에 쌓여
+  있으면(재고) 장부에는 이익이 잡혀도 통장에는 현금이 없다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="순이익과 영업활동현금흐름: 2023 55·70억, 2024 75·90억, 2025 100·55억, 2026 145·180억. 2025년만 현금이 이익보다 적다">
+      <path class="fig-dash" d="M40 168 L408 168" />
+      <text class="fig-sub" x="0" y="172" font-size="11">0</text>
+      <path class="fig-dash" d="M40 95 L408 95" />
+      <text class="fig-sub" x="0" y="99" font-size="11">100</text>
+      <path class="fig-dash" d="M40 22 L408 22" />
+      <text class="fig-sub" x="0" y="26" font-size="11">200</text>
+      <rect class="fig-bar" x="54.5" y="127.8" width="30" height="40.2" rx="3" />
+      <text class="fig-sub" x="69.5" y="123.8" text-anchor="middle" font-size="10.5">55</text>
+      <rect class="fig-acc" x="87.5" y="116.9" width="30" height="51.1" rx="3" />
+      <text class="fig-sub" x="102.5" y="112.9" text-anchor="middle" font-size="10.5">70</text>
+      <text class="fig-sub" x="86" y="188" text-anchor="middle" font-size="12.5">2023</text>
+      <rect class="fig-bar" x="146.5" y="113.2" width="30" height="54.8" rx="3" />
+      <text class="fig-sub" x="161.5" y="109.2" text-anchor="middle" font-size="10.5">75</text>
+      <rect class="fig-acc" x="179.5" y="102.3" width="30" height="65.7" rx="3" />
+      <text class="fig-sub" x="194.5" y="98.3" text-anchor="middle" font-size="10.5">90</text>
+      <text class="fig-sub" x="178" y="188" text-anchor="middle" font-size="12.5">2024</text>
+      <rect class="fig-bar" x="238.5" y="95" width="30" height="73" rx="3" />
+      <text class="fig-sub" x="253.5" y="91" text-anchor="middle" font-size="10.5">100</text>
+      <rect class="fig-acc" x="271.5" y="127.8" width="30" height="40.2" rx="3" />
+      <text class="fig-sub" x="286.5" y="123.8" text-anchor="middle" font-size="10.5">55</text>
+      <text class="fig-sub" x="270" y="188" text-anchor="middle" font-size="12.5">2025</text>
+      <rect class="fig-bar" x="330.5" y="62.2" width="30" height="105.8" rx="3" />
+      <text class="fig-sub" x="345.5" y="58.2" text-anchor="middle" font-size="10.5">145</text>
+      <rect class="fig-acc" x="363.5" y="36.6" width="30" height="131.4" rx="3" />
+      <text class="fig-sub" x="378.5" y="32.6" text-anchor="middle" font-size="10.5">180</text>
+      <text class="fig-sub" x="362" y="188" text-anchor="middle" font-size="12.5">2026</text>
+      <rect class="fig-bar" x="12" y="208" width="12" height="9" rx="2" />
+      <text class="fig-sub" x="30" y="216" font-size="12">순이익</text>
+      <rect class="fig-acc" x="83" y="208" width="12" height="9" rx="2" />
+      <text class="fig-sub" x="101" y="216" font-size="12">영업현금흐름</text>
+      <rect x="206" y="14" width="96" height="164" rx="10" fill="none" stroke="#d24f45" stroke-width="1.5" stroke-dasharray="5 4" />
+      <text class="fig-up" x="254" y="10" text-anchor="middle" font-size="12" font-weight="700">이익은 늘었는데 현금은 줄었다</text>
+    </svg>
+    <figcaption>2025년에 순이익은 100억으로 늘었는데 영업현금흐름은 55억으로 줄었다. 외상이 늘었거나 재고가 쌓였을 가능성이 있다. 원인은 사업보고서의 주석에서 확인해야 한다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>이익의 질을 보는 습관</b> 순이익은 계속 느는데 영업현금흐름이 몇 해째 줄거나 이익보다 한참 작다면 이유를 찾는다.
+    재무제표 하나만 믿고 사면 이런 회사를 놓친다. 증권사 앱의 재무 탭에서 순이익과 영업활동현금흐름을 나란히 놓는 것부터 시작한다.
+  </div>
+
+  <h2>현금흐름표는 세 갈래다</h2>
+  <table class="learn-table">
+    <thead><tr><th>구분</th><th>뜻</th><th>읽는 법</th></tr></thead>
+    <tbody>
+      <tr><td>영업활동</td><td>본업으로 번 현금</td><td>꾸준히 플러스면 좋다. 가장 중요하다.</td></tr>
+      <tr><td>투자활동</td><td>공장·장비·인수에 쓴 돈</td><td>성장 회사는 큰 마이너스가 흔하다. 마이너스가 곧 나쁨은 아니다.</td></tr>
+      <tr><td>재무활동</td><td>빌리고 갚고 배당하고 증자한 돈</td><td>플러스·마이너스보다 왜 들어오고 나갔는지를 본다.</td></tr>
+    </tbody>
+  </table>
+
+  <h2>잉여현금흐름 - 회사가 진짜 마음대로 쓰는 돈</h2>
+  <p>현금을 벌어도 공장과 장비를 유지하려면 계속 써야 한다. 영업현금흐름에서 설비투자를 뺀 것이 <b>잉여현금흐름(FCF)</b>이다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 210" role="img" aria-label="영업활동현금흐름 180억에서 설비투자 80억을 빼면 잉여현금흐름 100억">
+      <rect class="fig-acc" x="30" y="42" width="80" height="108" rx="4" />
+      <text class="fig-ink" x="70" y="34" text-anchor="middle" font-size="14">180억</text>
+      <text class="fig-sub" x="70" y="174" text-anchor="middle" font-size="13">영업현금흐름</text>
+      <rect class="fig-down" x="156" y="42" width="80" height="48" rx="4" />
+      <text class="fig-ink" x="196" y="34" text-anchor="middle" font-size="14">-80억</text>
+      <text class="fig-sub" x="196" y="174" text-anchor="middle" font-size="13">설비투자</text>
+      <rect class="fig-bar" x="282" y="90" width="80" height="60" rx="4" />
+      <text class="fig-ink" x="322" y="82" text-anchor="middle" font-size="14">100억</text>
+      <text class="fig-sub" x="322" y="174" text-anchor="middle" font-size="13">잉여현금흐름</text>
+      <text class="fig-sub" x="12" y="200" font-size="12">남은 100억으로 배당·자사주·빚 상환·인수를 고른다.</text>
+    </svg>
+    <figcaption>A테크가 영업으로 180억을 벌고 설비에 80억을 쓰면 100억이 남는다. 이 돈으로 배당·자사주 매입·빚 상환·인수 중 무엇을 고르는지가 회사의 성격이다.</figcaption>
+  </figure>
+
+  <h2>재무상태표 - 자산의 크기보다 질</h2>
+  <p>기본 공식은 <b>자산 = 부채 + 자본</b>이다. 자산 1,500억 중 부채 750억, 자본 750억이면 1,500 = 750 + 750이다. 같은 500억이라도
+  현금 500억과 안 팔리는 재고 500억은 다르다. 그래서 크기가 아니라 <b>변하는 속도</b>를 본다.</p>
+  <ul>
+    <li><b>재고</b>: 매출이 10% 늘었는데 재고가 50% 늘었다면 주문을 미리 대비한 것일 수도, 안 팔려 쌓이는 것일 수도 있다.</li>
+    <li><b>매출채권</b>: 매출이 20% 늘었는데 외상값이 80% 늘었다면 결제 조건을 느슨하게 줘서 매출을 만든 것일 수 있다.</li>
+    <li><b>부채</b>: 빚으로 지은 공장이 이자보다 많이 벌면 좋은 빚이다. 부채비율은 업종마다 기준이 달라서 같은 업종 경쟁사와 비교한다. 이자를 감당하는지가 더 중요하다.</li>
+  </ul>
+
+  <h2>ROE - 내 돈(주주 돈)으로 얼마나 벌었나</h2>
+  <p>평균 자기자본 700억에 순이익 145억이면 ROE는 약 20.7%다. 자본 100원으로 20.7원을 벌었다는 뜻이다. ROE가 오래 높은 회사는
+  경쟁력이 있을 가능성이 높다. 다만 빚을 늘려 자본을 줄이면 ROE가 인위적으로 올라가니 부채를 같이 본다. 한 단계 더 가면 사업에 투입된 전체 자본을
+  얼마나 잘 굴리는지 보는 ROIC가 있다. 적은 돈으로 큰 현금을 만드는 회사가 오래간다.</p>
+
+  <h2>PER - 이익 몇 년치를 주고 사는가</h2>
+  <p>PER은 주가를 주당순이익(EPS)으로 나눈 값이다. 주가 30,000원에 EPS 2,000원이면 15배다. 지금 이익 수준으로 15년치를
+  주고 회사를 사는 셈이다. 이익이 빠르게 크는 회사는 30배도 받아들여지고, 이익이 줄 회사는 5배도 비쌀 수 있다.</p>
+
+  <div class="learn-note">
+    <b>PER이 낮다고 싼 게 아니다(가치 함정)</b> PER 4배로 싸 보이는 회사가 호황 덕에 올해 역대 최대 이익을 냈고 내년 이익이 절반으로 줄 것이라면,
+    내년 이익 기준 PER은 8배다. 사기 전에 물을 것은 하나다. <b>지금의 이익이 평소 이익인가.</b>
+  </div>
+
+  <h2>PBR과 EV/EBITDA</h2>
+  <p><b>PBR</b>은 주가를 주당순자산으로 나눈 값이다. 1배면 시장이 회사 장부와 비슷하게 본다는 뜻이다. 1배 미만이라고 무조건 싸지는 않다. 장부에
+  1,000억으로 적힌 공장이 팔면 500억도 못 받을 수 있다. 반대로 브랜드와 기술력은 장부에 안 잡힌다. 그래서 PBR은 은행·보험처럼 자산이 큰 업종에서 많이 쓴다.</p>
+  <p><b>EV/EBITDA</b>는 주주 돈뿐 아니라 빚까지 포함한 회사 전체의 값을 영업이익에 가까운 숫자로 나눈 값이다. 기업가치 1,200억에 EBITDA 150억이면 8배다. 빚이
+  많은 회사끼리 비교할 때 쓴다. 지표 하나가 절대적으로 낫지 않고 업종에 맞는 것을 고른다.</p>
+
+  <h2>실적이 좋은데 주가가 빠지는 이유</h2>
+  <p>개미가 처음 당황하는 장면이다. 매출도 늘고 영업이익도 늘었는데 주가가 폭락한다. 주가는 실적 그 자체가 아니라 <b>기대와 실제의 차이</b>에 반응한다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 230" role="img" aria-label="전년 영업이익 150억, 시장 기대 250억, 실제 210억. 실제는 전년보다 40% 늘었지만 기대보다 16% 모자람">
+      <rect class="fig-bar" x="24" y="90" width="64" height="70" rx="5" />
+      <text class="fig-ink" x="56" y="82" text-anchor="middle" font-size="14">150억</text>
+      <text class="fig-sub" x="56" y="182" text-anchor="middle" font-size="13">전년 실적</text>
+      <rect class="fig-acc" x="116" y="43.3" width="64" height="116.7" rx="5" />
+      <text class="fig-ink" x="148" y="35.3" text-anchor="middle" font-size="14">250억</text>
+      <text class="fig-sub" x="148" y="182" text-anchor="middle" font-size="13">시장 기대</text>
+      <rect class="fig-up" x="208" y="62" width="64" height="98" rx="5" />
+      <text class="fig-ink" x="240" y="54" text-anchor="middle" font-size="14">210억</text>
+      <text class="fig-sub" x="240" y="182" text-anchor="middle" font-size="13">실제 실적</text>
+      <text class="fig-up" x="304" y="76" font-size="20" font-weight="700">+40%</text>
+      <text class="fig-sub" x="304" y="96" font-size="12.5">전년보다 성장</text>
+      <text class="fig-down" x="304" y="130" font-size="20" font-weight="700">-16%</text>
+      <text class="fig-sub" x="304" y="150" font-size="12.5">기대보다 모자람</text>
+      <text class="fig-sub" x="12" y="214" font-size="12">주가는 "좋다"가 아니라 "기대보다 좋다"에 오른다.</text>
+    </svg>
+    <figcaption>전년 150억, 시장 기대 250억, 실제 210억. 실제는 전년보다 40% 성장했지만 기대보다 16% 모자랐다. 기대가 이미 주가에 들어가 있으면 좋은 실적도 실망 매물로 바뀐다.</figcaption>
+  </figure>
+
+  <p>그래서 실적 발표 전후에는 "얼마 벌었나"보다 <b>컨센서스(증권사 예상 평균)와 비교해 어땠나</b>를 본다. 실적 발표 직전에 오른 주식을 발표 당일에 사면
+  기대가 최고조일 때 사는 것이다.</p>
+
+  <h2>주가는 과거가 아니라 미래를 본다</h2>
+  <p>재무제표는 과거 기록이고 주가는 미래를 반영한다. 매출이 앞으로도 늘 이유가 있는지, 새 공장이 언제 돌아가는지, 신제품이 언제 나오는지, 경쟁사 공급이 늘지,
+  원재료 값이 어떻게 변할지를 같이 본다. 결국 기업가치는 앞으로 만들어 낼 현금이 정한다.</p>
+
+  <h2>유상증자 - 회사는 돈이 생기고 내 몫은 줄어든다</h2>
+  <p>주식 수가 늘면 같은 이익을 더 많은 주식이 나눠 갖는다. 순이익 100억에 주식이 1,000만 주면 EPS는 1,000원이다. 유상증자로 200만 주를 새로 찍으면
+  1,200만 주가 되어 EPS가 약 833원으로 떨어진다. 회사 전체 이익은 그대로인데 한 주가 가져가는 몫이 줄었다. 이것이 주식가치 희석이다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="순이익 100억은 그대로인데 주식이 1,000만주에서 1,200만주로 늘면 주당순이익이 1,000원에서 833원으로 감소">
+      <rect class="fig-soft" x="0" y="0" width="420" height="220" />
+      <text class="fig-ink" x="28" y="28" font-size="15">증자 전</text>
+      <text class="fig-sub" x="28" y="48" font-size="12.5">주식 1,000만 주 · 순이익 100억</text>
+      <rect class="fig-bar" x="28" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="54" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="80" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="106" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="132" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="158" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="28" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="54" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="80" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="106" y="88" width="22" height="22" rx="4" />
+      <text class="fig-ink" x="28" y="150" font-size="13">한 주당 이익</text>
+      <text class="fig-ink" x="28" y="182" font-size="26" font-weight="700">1,000원</text>
+      <text class="fig-ink" x="228" y="28" font-size="15">증자 후</text>
+      <text class="fig-sub" x="228" y="48" font-size="12.5">주식 1,200만 주 · 순이익 100억</text>
+      <rect class="fig-bar" x="228" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="254" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="280" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="306" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="332" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="358" y="62" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="228" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="254" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="280" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-bar" x="306" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-up" x="332" y="88" width="22" height="22" rx="4" />
+      <rect class="fig-up" x="358" y="88" width="22" height="22" rx="4" />
+      <text class="fig-ink" x="228" y="150" font-size="13">한 주당 이익</text>
+      <text class="fig-down" x="228" y="182" font-size="26" font-weight="700">833원</text>
+      <text class="fig-sub" x="12" y="212" font-size="11.5">한 칸 = 100만 주. 빨간 칸이 새로 찍은 주식이다.</text>
+    </svg>
+    <figcaption>순이익 100억은 그대로인데 주식이 1,200만 주가 되면 EPS는 1,000원에서 833원이 된다. 유상증자 공시가 뜬 날 주가가 먼저 빠지는 이유다.</figcaption>
+  </figure>
+
+  <p>유상증자가 무조건 나쁘진 않다. 그 돈으로 지은 공장이 큰 이익을 내면 장기적으로 주주에게 이득이다. 볼 것은 <b>왜 돈이 필요하고 어디에 쓰는가</b>다. 빚을 갚으려고
+  하는 증자와 새 공장을 위한 증자는 다르다.</p>
+  <p><b>CB(전환사채)와 BW(신주인수권부사채)</b>도 같은 줄에서 본다. 지금은 채권이지만 나중에 주식으로 바뀌거나 새 주식을 살 권리가 붙어 있어서, 전환되면
+  유통 주식 수가 늘어난다. 발행주식 수만 보지 말고 앞으로 주식이 될 수 있는 물량도 확인한다. 반대로 <b>자사주 소각</b>은 주식 수를 줄여서 EPS를 올린다.
+  1,000만 주에서 100만 주를 소각하면 EPS가 1,000원에서 약 1,111원이 된다.</p>
+
+  <h2>회사가 번 돈을 어디에 쓰는가</h2>
+  <p>회사는 돈을 벌면 공장을 짓고, 다른 회사를 사고, 빚을 갚고, 배당하고, 자사주를 산다. 어디에 쓰느냐가 경영진의 실력이다. 좋은 사업에 계속 다시 넣어
+  높은 수익을 내는 회사는 시간이 지날수록 복리로 커진다.</p>
+
+  <h2>업종마다 봐야 하는 숫자가 다르다</h2>
+  <table class="learn-table">
+    <thead><tr><th>업종</th><th>먼저 볼 것</th></tr></thead>
+    <tbody>
+      <tr><td>반도체</td><td>재고, 메모리 가격, 가동률, 설비투자</td></tr>
+      <tr><td>은행</td><td>순이자마진, 대손비용, 연체율</td></tr>
+      <tr><td>바이오</td><td>임상 단계, 파이프라인, 보유 현금(현재 매출보다 중요할 때가 있다)</td></tr>
+      <tr><td>조선</td><td>수주잔고, 신규수주, 선가</td></tr>
+      <tr><td>플랫폼</td><td>사용자 수, 거래액, 사용자당 매출</td></tr>
+    </tbody>
+  </table>
+  <p>PER 하나로 모든 회사를 볼 수는 없다. 그 업종이 돈을 버는 구조까지 알아야 숫자가 읽힌다.</p>
+
+  <h2>처음 하는 사람의 확인 순서</h2>
+  <p>숫자를 전부 볼 필요는 없다. 아래 순서만 지켜도 많은 회사가 걸러진다.</p>
+  <table class="learn-table">
+    <thead><tr><th>순서</th><th>확인할 것</th><th>질문</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>사업구조</td><td>무엇으로 돈을 버는가</td></tr>
+      <tr><td>2</td><td>매출</td><td>오래 성장하는가</td></tr>
+      <tr><td>3</td><td>영업이익·이익률</td><td>많이 팔수록 더 남는가</td></tr>
+      <tr><td>4</td><td>순이익</td><td>일회성 이익은 없는가</td></tr>
+      <tr><td>5</td><td>영업현금흐름</td><td>현금도 같이 들어오는가</td></tr>
+      <tr><td>6</td><td>재고·매출채권</td><td>매출보다 빨리 늘지 않는가</td></tr>
+      <tr><td>7</td><td>부채</td><td>이자를 감당하는가</td></tr>
+      <tr><td>8</td><td>ROE</td><td>자본을 잘 굴리는가</td></tr>
+      <tr><td>9</td><td>주식 수</td><td>유상증자·CB 위험은 없는가</td></tr>
+      <tr><td>10</td><td>PER·PBR</td><td>지금 주가는 실적에 비해 어느 수준인가</td></tr>
+      <tr><td>11</td><td>미래</td><td>이익이 더 커질 이유가 있는가</td></tr>
+    </tbody>
+  </table>
+  <p>숫자는 혼자 보지 않는다. 매출 1조는 7,000억에서 왔는지 1조 2,000억에서 내려왔는지에 따라 반대 뜻이다. 영업이익률 10%도 5%에서 올라왔는지 20%에서 떨어졌는지가 다르다.
+  <b>절대값보다 추세, 혼자보다 같은 업종 경쟁사와 비교</b>가 기본이다.</p>
+
+  <h2>개미가 자주 하는 실수</h2>
+  <ul>
+    <li><b>PER 낮은 것만 사기</b>: 사상 최대 이익 직후의 낮은 PER은 함정일 수 있다.</li>
+    <li><b>순이익 한 줄만 보기</b>: 일회성 이익과 현금 없는 이익을 걸러내지 못한다.</li>
+    <li><b>적자 회사를 이야기만 믿고 사기</b>: 현금이 바닥나면 유상증자나 CB가 오고, 주가가 먼저 빠진다.</li>
+    <li><b>좋은 실적 발표 뒤 오를 거라 믿기</b>: 기대가 이미 반영돼 있으면 반대로 간다.</li>
+    <li><b>증자·CB 공시 무시하기</b>: 전자공시(DART)에서 회사 이름으로 검색하면 최근 공시가 날짜순으로 나온다. 증권신고서·주요사항보고서는 반드시 본다.</li>
+  </ul>
+
+  <h2>이 사이트에서 확인하기</h2>
+  <ul>
+    <li><a href="https://goodbyestarwars.github.io/tistory-ticker/learn/company.html">4장 누가 사고 있나, 회사는 괜찮나</a>에서 PER·PBR·ROE와 컨센서스 이야기를 더 짧게 다룬다.</li>
+    <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목분석</a>의 펀더멘털 탭에서 종목별 재무 요약을 본다.</li>
+  </ul>
+
+  <h2>한 줄 정리</h2>
+  <p>기업분석은 PER 하나를 계산하는 일이 아니다. <b>매출 → 영업이익 → 순이익 → 현금흐름 → 재무상태 → 자본효율 → 주식 수 → 밸류에이션 → 미래 실적</b>을 이어서 보는 일이다.
+  재무제표는 과거의 기록이지만 투자자가 할 일은 그 숫자로 회사의 미래 현금이 어떻게 변할지 가늠하는 것이다. 차트가 주가의 흔적이라면 재무제표는 회사가 걸어온 흔적이다.</p>
+
+  <div class="learn-note">
+    이 글은 공부용 설명이고 투자 권유가 아니다. 글의 회사와 숫자는 모두 가상이며 특정 종목을 사라거나 팔라고 말하지 않는다. 지표의 정의와 공시 방식은 바뀔 수 있으니
+    중요한 결정 전에는 전자공시와 증권사 자료로 확인한다.
+  </div>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">← ETF 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">경제 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+</body>
+</html>
