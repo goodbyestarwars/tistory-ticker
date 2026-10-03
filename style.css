@@ -7966,6 +7966,8 @@ html body .site-footer-learn {
   overflow-x: auto !important; scrollbar-width: none !important; -webkit-overflow-scrolling: touch;
 }
 html body .site-footer-learn::-webkit-scrollbar { display: none; }
+html body .site-footer:has(.site-footer-learn a.learn-card) { grid-template-columns: minmax(0, 1fr) !important; }
+html body .site-footer-learn { justify-self: stretch !important; min-width: 0 !important; max-width: 100% !important; }
 html body .site-footer-learn a.learn-card {
   position: relative !important; flex: 0 0 148px !important; width: 148px !important; height: 188px !important; box-sizing: border-box !important;
   display: flex !important; flex-direction: column !important; justify-content: flex-end !important; gap: 2px !important;
