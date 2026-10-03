@@ -1872,6 +1872,7 @@
         if (!bar) return;
         var x = chart.timeScale().timeToCoordinate(bar.date);
         var y = candleSeries.priceToCoordinate(Number(item.price));
+        layer.dataset.dbg = JSON.stringify([item.date, bar.date, x, y, container.clientWidth, container.clientHeight]);
         if (![x, y].every(Number.isFinite)) return;
         if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) return;
         var pin = document.createElement('button');
