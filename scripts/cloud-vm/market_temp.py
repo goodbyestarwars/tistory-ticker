@@ -106,6 +106,16 @@ def ensure_schema(conn):
     columns = {row[1] for row in conn.execute('PRAGMA table_info(market_temp_daily)')}
     if 'score100' not in columns:
         conn.execute('ALTER TABLE market_temp_daily ADD COLUMN score100 REAL')
+    # 2026-10-04: 지표 10개 검증용 일별 구성값 스냅샷. 총점만 저장해서 지표별 예측력을 과거로 검증할 수 없었다
+    # (사용자 요청 "검증해 봐"). 하루 1행(약 4KB)이라 DB 부담이 거의 없고, 장중에는 같은 날짜 행을 덮어써서 마지막 값이 남는다.
+    conn.execute('CREATE TABLE IF NOT EXISTS market_temp_snapshot ('
+                 ' date TEXT PRIMARY KEY, score100 REAL, axes_json TEXT, components_json TEXT,'
+                 ' breadth_json TEXT, updated_at TEXT)')
+    # 야간선물 마감값(오전 6시경). 일봉 날짜 기준이 불확실해 코스피와의 관계를 검증하지 못했으므로, 마감 직후의
+    # 마지막 분봉과 직전 주간선물 종가를 같이 남긴다. date = 그 야간장이 끝난 아침의 한국 날짜.
+    conn.execute('CREATE TABLE IF NOT EXISTS night_futures_close ('
+                 ' date TEXT PRIMARY KEY, night_close REAL, night_ts INTEGER, bars INTEGER,'
+                 ' day_close REAL, day_ts INTEGER, updated_at TEXT)')
     conn.commit()
 
 
@@ -153,6 +163,64 @@ def upsert_daily_temp(conn, temp, today, trading_day=True, score100=None):
                  (DAILY_HISTORY_MAX,))
     conn.commit()
     return read_daily_history(conn)
+
+
+SNAPSHOT_KEEP_DAYS = 800
+
+
+def record_component_snapshot(conn, today, trading_day, summary, components, market_breadth):
+    """거래일의 10개 구성값·3축·시장 전체 등락 종목 수를 하루 1행으로 남긴다(실패해도 점수 계산은 계속)."""
+    if not trading_day or not summary or summary.get('score100') is None:
+        return False
+    ensure_schema(conn)
+    conn.execute(
+        'INSERT INTO market_temp_snapshot(date, score100, axes_json, components_json, breadth_json, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(date) DO UPDATE SET score100=excluded.score100, '
+        'axes_json=excluded.axes_json, components_json=excluded.components_json, '
+        'breadth_json=excluded.breadth_json, updated_at=excluded.updated_at',
+        (today, summary['score100'],
+         json.dumps(summary.get('axes'), ensure_ascii=False),
+         json.dumps(components, ensure_ascii=False, default=str),
+         json.dumps(market_breadth, ensure_ascii=False, default=str) if market_breadth else None,
+         datetime.now(KST).strftime('%Y-%m-%d %H:%M:%S')))
+    conn.execute('DELETE FROM market_temp_snapshot WHERE date NOT IN '
+                 '(SELECT date FROM market_temp_snapshot ORDER BY date DESC LIMIT ?)',
+                 (SNAPSHOT_KEEP_DAYS,))
+    conn.commit()
+    return True
+
+
+def record_night_futures_close(conn, now_kst):
+    """화~토 오전 6~9시에 야간선물 마지막 분봉과 직전 주간선물 종가를 그날 날짜로 남긴다.
+
+    future_chart_minute는 1500봉만 읽혀서 며칠만 지나면 마감값이 밀려난다 - 하루 1행으로 따로 보관해
+    나중에 "야간선물이 다음날 코스피 시초·종가를 얼마나 예고했나"를 검증할 수 있게 한다.
+    """
+    if now_kst.weekday() not in (1, 2, 3, 4, 5) or not (6 <= now_kst.hour < 9):
+        return False
+    boundary = int(now_kst.replace(hour=6, minute=0, second=0, microsecond=0).timestamp())
+    ensure_schema(conn)
+    night = conn.execute(
+        'SELECT close, ts FROM future_chart_minute WHERE symbol=? AND ts<=? AND ts>? ORDER BY ts DESC LIMIT 1',
+        ('KOSPI200_NIGHT', boundary, boundary - 14 * 3600)).fetchone()
+    if not night or night[0] is None:
+        return False
+    bars = conn.execute(
+        'SELECT COUNT(*) FROM future_chart_minute WHERE symbol=? AND ts<=? AND ts>?',
+        ('KOSPI200_NIGHT', boundary, boundary - 14 * 3600)).fetchone()[0]
+    day = conn.execute(
+        'SELECT close, ts FROM future_chart_minute WHERE symbol=? AND ts<=? ORDER BY ts DESC LIMIT 1',
+        ('KOSPI200_DAY', boundary - 14 * 3600 + 3600)).fetchone()
+    conn.execute(
+        'INSERT INTO night_futures_close(date, night_close, night_ts, bars, day_close, day_ts, updated_at) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(date) DO UPDATE SET night_close=excluded.night_close, '
+        'night_ts=excluded.night_ts, bars=excluded.bars, day_close=COALESCE(excluded.day_close, night_futures_close.day_close), '
+        'day_ts=COALESCE(excluded.day_ts, night_futures_close.day_ts), updated_at=excluded.updated_at '
+        'WHERE excluded.night_ts >= COALESCE(night_futures_close.night_ts, 0)',
+        (now_kst.strftime('%Y-%m-%d'), night[0], night[1], bars,
+         day[0] if day else None, day[1] if day else None, now_kst.strftime('%Y-%m-%d %H:%M:%S')))
+    conn.commit()
+    return True
 
 
 def grade_for_temp(temp):
@@ -271,6 +339,12 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)
     market_breadth = data.fetch_market_breadth()
+    # 검증용 보관(2026-10-04) - 실패해도 화면 계산은 그대로 낸다.
+    try:
+        record_component_snapshot(conn, today, trading_day, summary, components, market_breadth)
+        record_night_futures_close(conn, now_kst)
+    except Exception:
+        LOGGER.exception('증시온도 구성값/야간선물 마감 보관 실패 - 점수 계산에는 영향 없음')
     try:
         baselines = data.baseline_trade_amounts(conn, codes, today)
         data.attach_flow_multiple(industry_flow, baselines)

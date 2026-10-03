@@ -405,6 +405,14 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 만들지 말고 이미 있는 Google 로그인·watchlist_configs 패턴을 재사용하라는 뜻으로 확인).
 `/memo`의 GET/PUT이 Google 로그인 사용자별로 읽고 저장한다.
 
+### 2.21 `market_temp_snapshot` — 증시온도 일별 구성값(검증용, 2026-10-04)
+
+하루 1행(약 4KB). `date`(PK), `score100`, `axes_json`, `components_json`(10개 지표 원값·점수), `breadth_json`(전종목 등락 종목 수), `updated_at`. 거래일에 3~15분 주기 계산이 같은 날짜 행을 덮어써서 장 마감 뒤 마지막 값이 남는다. 800일 보관. 지표별 예측력을 과거로 검증하려고 만들었다(`scripts/analysis/`).
+
+### 2.22 `night_futures_close` — 야간선물 마감값(검증용, 2026-10-04)
+
+`date`(PK, 야간장이 끝난 아침의 한국 날짜), `night_close`·`night_ts`(오전 6시 이전 마지막 분봉), `bars`(그 구간 분봉 수 - 자료 완전성 확인용), `day_close`·`day_ts`(직전 주간선물 마지막 분봉), `updated_at`. 화~토 오전 6~9시 계산 주기에 기록한다. `future_chart_minute`는 1500봉만 읽혀 며칠 뒤 마감값이 사라지므로 따로 보관한다.
+
 ## 3. `news_momentum.db`
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.
