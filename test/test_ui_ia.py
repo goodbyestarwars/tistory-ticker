@@ -2014,8 +2014,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_market_temperature_components_prioritize_action_and_driver_graphs(self):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("오늘 시장 판단", source)
-        self.assertIn("오늘 행동", source)
+        # 2026-10-04 점수·행동 중복(52점 / 오늘 시장 판단 / 개미 체크리스트)을 걷었다 - 한 번만 보여 준다.
+        self.assertNotIn("오늘 시장 판단", source)
+        self.assertIn("그래서 내일은?", source)
         self.assertIn("점수를 올린 요인", source)
         self.assertIn("점수를 내린 요인", source)
         self.assertIn("function buildDriverRow", source)

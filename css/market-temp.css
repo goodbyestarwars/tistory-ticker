@@ -1916,3 +1916,38 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
 #market-temp .mt-sf-fill.is-flat { background: linear-gradient(90deg, rgba(100, 116, 139, .7), rgba(100, 116, 139, .2)); box-shadow: none; }
 #market-temp .mt-sf-picks { margin: 0 14px 10px; }
 #market-temp .mt-sf-detail { padding: 0 14px 12px; }
+
+/* ── 2026-10-04 증시온도 정리: 내일 방향 카드·축 설명·접힌 AI 의견·단기흐름 색 ── */
+#market-temp .mt-tomorrow-card { padding: 22px 24px; }
+#market-temp .mt-tm-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+#market-temp .mt-tm-head strong { font: 700 20px/1.2 var(--font-title, inherit); letter-spacing: -.02em; }
+#market-temp .mt-tm-head small { color: #94a3b8; font-size: 11.5px; }
+#market-temp .mt-tm-verdict { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; padding: 14px 18px; border-radius: 16px; background: rgba(100, 116, 139, .07); }
+#market-temp .mt-tm-verdict b { font: 700 26px/1.1 var(--font-title, inherit); letter-spacing: -.02em; }
+#market-temp .mt-tm-verdict span { color: #475569; font-size: 14px; }
+#market-temp .mt-tm-up { background: rgba(210, 79, 69, .08); }
+#market-temp .mt-tm-up b { color: #d24f45; }
+#market-temp .mt-tm-down { background: rgba(18, 97, 196, .08); }
+#market-temp .mt-tm-down b { color: #1261c4; }
+#market-temp .mt-tm-why { list-style: none; margin: 14px 0 4px; padding: 0; }
+#market-temp .mt-tm-why li { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding: 8px 2px; border-top: 1px solid rgba(17, 17, 17, .07); font-size: 13.5px; }
+#market-temp .mt-tm-why li small { display: block; color: #94a3b8; font-size: 11px; margin-top: 2px; }
+#market-temp .mt-tm-why li b { font-variant-numeric: tabular-nums; font-size: 15px; white-space: nowrap; }
+#market-temp .mt-tm-proof { margin: 10px 0 6px; padding: 12px 14px; border-radius: 12px; background: rgba(100, 116, 139, .06); color: #334155; font-size: 12.5px; line-height: 1.6; }
+#market-temp .mt-tm-night { margin: 6px 0; color: #475569; font-size: 12.5px; }
+#market-temp .mt-tm-night small, #market-temp .mt-tm-note { color: #94a3b8; font-size: 11px; line-height: 1.55; }
+#market-temp .mt-tm-note { margin-top: 8px; }
+#market-temp .mt-axis-row { flex-wrap: wrap; }
+#market-temp .mt-axis-reason { flex: 0 0 100%; margin: 3px 0 8px; color: #64748b; font-size: 11.8px; line-height: 1.55; }
+#market-temp .mt-axis-reason .mt-axis-warn { color: #b42318; font-weight: 600; }
+#market-temp .mt-card-title small { margin-left: 8px; color: #94a3b8; font-size: 11px; font-weight: 400; }
+#market-temp .mt-briefing-single { display: block !important; }
+#market-temp .mt-ai-fold { margin-top: 12px; padding: 10px 16px; border: 1px solid rgba(17, 17, 17, .08); border-radius: 14px; }
+#market-temp .mt-ai-fold > summary { cursor: pointer; font-size: 12.5px; color: #475569; }
+#market-temp .mt-ai-fold > summary small { color: #94a3b8; margin-left: 6px; }
+/* 최근 단기흐름: 30일/5일 평균선이 파랑·회색이라 구분이 안 되던 것을 보라·청록으로 */
+#market-temp .mt-rib-avg { stroke: #7c3aed !important; stroke-width: 1.6 !important; stroke-dasharray: 6 4 !important; opacity: .95 !important; }
+#market-temp .mt-rib-avg5 { stroke: #0d9488 !important; stroke-width: 2 !important; stroke-dasharray: none !important; }
+#market-temp .mt-rib-avg-label { color: #7c3aed !important; font-weight: 700 !important; }
+#market-temp .mt-rib-avg5-label { color: #0d9488 !important; }
+#market-temp .mt-rib-band-neutral { fill: #8b95a5 !important; fill-opacity: .05 !important; }

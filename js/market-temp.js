@@ -1322,6 +1322,7 @@
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
         loadAiBriefing(container);
+        loadTomorrow_(container);
         loadSectorFlow_(container);
       })
       .catch(function () {
@@ -1579,7 +1580,57 @@
     return value >= 65 ? words[2] : value >= 35 ? words[1] : words[0];
   }
 
-  function buildAxisRow(axis, icon) {
+  // 2026-10-04 사용자 지적("돈/가격/위험 기준을 개미는 몰라, 모르는 상태에서 보여주는 건 가비지"):
+  // 축마다 "그래서 지금 무엇이 어떤가"를 한 문장으로 붙인다. 숫자는 서버가 이미 내려준 값만 쓴다.
+  function axisReason_(key, data) {
+    var c = (data && data.components) || {};
+    function pct(v, digits) { return (Number(v) * 100).toFixed(digits == null ? 0 : digits) + '%'; }
+    if (key === 'money') {
+      var parts = [];
+      if (c.tradingValue && isFinite(c.tradingValue.relative)) {
+        var r = c.tradingValue.relative;
+        parts.push('거래대금은 최근 5일 평균의 ' + pct(r) + (r >= 1.1 ? ' (평소보다 활발)' : r >= 0.9 ? ' (평소 수준)' : ' (평소보다 한산)'));
+      }
+      if (c.flow && c.flow.foreign && c.flow.inst) {
+        var f = c.flow.foreign.ratio, i = c.flow.inst.ratio;
+        function dir(v) { return v > 0.05 ? '순매수' : v < -0.05 ? '순매도' : '관망'; }
+        if (isFinite(f) && isFinite(i)) parts.push('최근 5일 외국인 ' + dir(f) + ' · 기관 ' + dir(i));
+      }
+      return parts.join(' / ');
+    }
+    if (key === 'price') {
+      var p = [];
+      var b = data && data.marketBreadth && data.marketBreadth.total;
+      if (b && b.total) p.push('상승 ' + b.up + ' · 하락 ' + b.down + ' (오른 종목 ' + Math.round(b.up / (b.up + b.down) * 100) + '%)');
+      if (c.avgChange && isFinite(c.avgChange.avgChangeRate)) {
+        var a = c.avgChange.avgChangeRate;
+        p.push('대형주 평균 ' + (a > 0 ? '+' : '') + a.toFixed(2) + '%');
+      }
+      return p.join(' / ');
+    }
+    if (key === 'risk') {
+      var w = [];
+      function tag(name, comp, text) {
+        if (!comp) return;
+        var max = (COMPONENT_BY_KEY[name] && COMPONENT_BY_KEY[name].max) || 0;
+        var ratio = max && isFinite(comp.score) ? comp.score / max : null;
+        w.push({ text: text, ratio: ratio });
+      }
+      tag('vix', c.vix, c.vix && isFinite(c.vix.value) ? '미국 공포지수(VIX) ' + c.vix.value.toFixed(1) : '');
+      tag('exchange', c.exchange, c.exchange && isFinite(c.exchange.price) ? '원/달러 ' + Math.round(c.exchange.price).toLocaleString('ko-KR') + '원(' + (c.exchange.changeRate > 0 ? '+' : '') + c.exchange.changeRate + '%)' : '');
+      tag('rates', c.rates, c.rates && c.rates.band ? '금리 ' + c.rates.band.replace(/ · /g, ', ') : '');
+      if (c.creditRisk && c.creditRisk.available) w.push({ text: '빚투 ' + (c.creditRisk.stateLabel || ''), ratio: c.creditRisk.score / (c.creditRisk.max || 10) });
+      var cautious = w.filter(function (x) { return x.text && x.ratio != null && x.ratio < 0.5; });
+      var calm = w.filter(function (x) { return x.text && !(x.ratio != null && x.ratio < 0.5); });
+      var out = '';
+      if (cautious.length) out += '<b class="mt-axis-warn">조심: ' + escapeHtml(cautious.map(function (x) { return x.text; }).join(' · ')) + '</b> ';
+      if (calm.length) out += '<span>안정: ' + escapeHtml(calm.map(function (x) { return x.text; }).join(' · ')) + '</span>';
+      return out || '';
+    }
+    return '';
+  }
+
+  function buildAxisRow(axis, icon, data) {
     var value = Number(axis && axis.value);
     var pct = isFinite(value) ? Math.max(0, Math.min(100, value)) : 0;
     // 위험은 안전/위험을 초록으로 표현하지 않는다. 낮음=파랑, 보통=노랑, 높음=빨강의
@@ -1595,6 +1646,7 @@
       + '<span class="mt-axis-bar"><i class="' + tone + '" style="width:' + pct.toFixed(0) + '%"></i></span>'
       + '<b class="mt-axis-value">' + (isFinite(value) ? value.toFixed(0) : '-') + '</b>'
       + '<small class="mt-axis-word">' + escapeHtml(axisWord(axis && axis.key, value)) + '</small>'
+      + '<p class="mt-axis-reason">' + (axis && axis.key === 'risk' ? axisReason_('risk', data) : escapeHtml(axisReason_(axis && axis.key, data))) + '</p>'
       + '</div>';
   }
 
@@ -1665,7 +1717,7 @@
       var axis = axes[item.key];
       if (!axis) return '';
       axis.key = item.key;
-      return buildAxisRow(axis, item.icon);
+      return buildAxisRow(axis, item.icon, data);
     }).join('');
     return ''
       + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
@@ -1680,11 +1732,11 @@
       // "그래서 뭐 어쩌라는거지?"에 대한 답을 점수 바로 밑에 한 줄로 둔다. 자세한 점검표는 아래 카드.
       + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short) + '</span>'
       + '<a href="#mt-ant-guide">체크리스트 ↓</a></div>'
-      + (rows ? '<div class="mt-summary-section-title">점수를 만든 세 가지</div><div class="mt-axis-list">' + rows + '</div>' : '')
+      + (rows ? '<div class="mt-summary-section-title">오늘 시장 분위기 점수는 이 세 가지로 만든다</div><div class="mt-axis-list">' + rows + '</div>' : '')
       // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 단순화하면서도
       // 버리지 않는다 - 옛 Hero 카드에 있던 것을 여기로 옮겼다.
       + buildBreadth(data)
-      + '<div class="mt-summary-note">0~39점은 공포, 40~60점은 보통, 61점부터 과열입니다. <b>돈이 얼마나 들어왔는지 · 가격이 얼마나 움직이는지 · 위험지표가 어느 수준인지</b>를 같은 비중으로 읽고, 위험은 높을수록 감점합니다. 공포에는 후보를 고르고 환희에는 수익을 지키는 역발상 기준입니다.</div>'
+      + '<div class="mt-summary-note"><b>이 점수는 오늘 시장의 분위기를 읽는 값이고, 내일 방향을 맞히는 값이 아닙니다.</b> 내일은 위 "그래서 내일은?"을 보세요. 0~39점은 공포, 40~60점은 보통, 61점부터 과열입니다. <b>돈이 얼마나 들어왔는지 · 가격이 얼마나 움직이는지 · 위험지표가 어느 수준인지</b>를 같은 비중으로 읽고, 위험은 높을수록 감점합니다. 공포에는 후보를 고르고 환희에는 수익을 지키는 역발상 기준입니다.</div>'
       + '</div>';
   }
 
@@ -1810,11 +1862,7 @@
     var guide = antGuide(data);
     return ''
       + '<div class="mt-card mt-decision-card">'
-      + '<div class="mt-card-title">📊 오늘 시장 판단</div>'
-      + '<div class="mt-market-decision">'
-      + '<div><span class="mt-market-decision-label">오늘 점수</span><strong>' + normalizedScore.toFixed(0) + '<small>/100</small></strong></div>'
-      + '<div class="mt-market-decision-action"><span>오늘 행동</span><b>' + escapeHtml(guide.title) + '</b><small>' + escapeHtml(guide.short) + '</small></div>'
-      + '</div>'
+      + '<div class="mt-card-title">📊 점수를 올리고 내린 요인 <small>위 점수·체크리스트와 같은 내용은 반복하지 않습니다</small></div>'
       + '<div class="mt-driver-grid">'
       + buildDriverGroup('▲ 점수를 올린 요인', 'up', rising)
       + buildDriverGroup('▼ 점수를 내린 요인', 'down', falling)
@@ -1925,6 +1973,104 @@
       + '<small>오늘 종가까지의 온도 변화만 사용한 과거 비교입니다. 표본이 적거나 일치율이 낮으면 방향을 단정하지 않습니다.</small></p></div>';
   }
 
+
+  // ---- 그래서 내일은? (2026-10-04 사용자 요청) ----
+  // 근거: 2025-11~2026-10 코스피 220거래일을 직접 대조했다(나스닥100 선물·SOX·VIX 변화·원/달러 변화의 z점수 합).
+  //  - 미국 신호가 뚜렷한 날(합 |z|>=1.5, 전체의 약 45%)은 시초 방향이 90% 안팎으로 맞았고, 종가 방향도 74~90%였다.
+  //  - 신호가 약한 날(약 40%)은 상승 62%로 평소 상승 비율(약 61%)과 같다 = 맞히기 어렵다.
+  //  - 전체 "종가 방향" 적중 65%는 아무것도 안 보고 "오른다"만 찍은 63%와 비슷하므로 종가 방향을 크게 내세우지 않는다.
+  // 야간선물은 점수에 넣지 않는다: 일봉 자료의 날짜 기준이 확인되지 않아 코스피와의 관계를 검증하지 못했다(참고 표시만).
+  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=12&symbols=NASDAQ100,SOX,VIX,USDKRW,KOSPI200_NIGHT,KOSPI200_DAY';
+  var TOMORROW_STATS_ = {
+    nq: [0.1028, 1.3180], sox: [0.3535, 2.9394], vix: [-0.1265, 7.5421], fx: [0.0290, 0.6312]
+  };
+  var TOMORROW_BUCKETS_ = [
+    { max: -3, key: 'strongDown', label: '강한 하락 신호', gap: '시초 하락 출발 89%', close: '하락 마감 74%', n: 38, avgGap: -1.97 },
+    { max: -1.5, key: 'down', label: '하락 우세', gap: '시초 하락 출발 70%', close: '하락 마감 41% · 장중 반등도 잦음', n: 27, avgGap: -0.77 },
+    { max: 1.5, key: 'flat', label: '방향 모름', gap: '시초 상승 62%', close: '상승 마감 61%', n: 88, avgGap: 0.46 },
+    { max: 3, key: 'up', label: '상승 우세', gap: '시초 상승 출발 95%', close: '상승 마감 84%', n: 38, avgGap: 1.69 },
+    { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 93%', close: '상승 마감 90%', n: 29, avgGap: 2.27 }
+  ];
+
+  function nextKospiDay_() {
+    var now = new Date(Date.now() + 9 * 3600000);
+    var d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    var dow = d.getUTCDay();
+    var before9 = now.getUTCHours() < 9;
+    if (!(before9 && dow >= 1 && dow <= 5)) d = new Date(d.getTime() + 86400000);
+    while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d = new Date(d.getTime() + 86400000);
+    var ymd = d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0');
+    return { ymd: ymd, label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()] + ')' };
+  }
+
+  // target 날짜 이전에 끝난 가장 최근 일봉의 전일 대비 등락률(%)
+  function lastReturnBefore_(row, ymd) {
+    var chart = (row && row.chart) || [];
+    var idx = -1;
+    for (var i = 0; i < chart.length; i++) { if (String(chart[i].date) < ymd) idx = i; }
+    if (idx < 1) return null;
+    var a = Number(chart[idx].close), b = Number(chart[idx - 1].close);
+    return a && b ? { pct: (a / b - 1) * 100, date: String(chart[idx].date) } : null;
+  }
+
+  function buildTomorrowCard_() {
+    return '<section class="mt-section mt-card mt-tomorrow-card" data-mt-tomorrow>'
+      + '<div class="mt-tm-head"><strong>그래서 내일은?</strong><small>미국 장 마감 기준으로 본 다음 거래일 출발</small></div>'
+      + '<div class="mt-hint">미국 시장 움직임을 확인하는 중입니다.</div></section>';
+  }
+
+  function loadTomorrow_(container) {
+    var mount = container.querySelector('[data-mt-tomorrow]');
+    if (!mount) return;
+    fetchJson_(FUTURES_URL_).then(function (res) {
+      var rows = (res && res.data) || [];
+      var by = {};
+      rows.forEach(function (r) { by[r.symbol] = r; });
+      var target = nextKospiDay_();
+      var nq = lastReturnBefore_(by.NASDAQ100, target.ymd);
+      var sox = lastReturnBefore_(by.SOX, target.ymd);
+      var vix = lastReturnBefore_(by.VIX, target.ymd);
+      var fx = lastReturnBefore_(by.USDKRW, target.ymd);
+      if (!nq || !sox || !vix || !fx) { mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 오늘은 판단하지 않습니다.</div>'; return; }
+      function z(v, k) { return (v - TOMORROW_STATS_[k][0]) / TOMORROW_STATS_[k][1]; }
+      var zsum = z(nq.pct, 'nq') + z(sox.pct, 'sox') + z(-vix.pct, 'vix') + z(-fx.pct, 'fx');
+      var bucket = TOMORROW_BUCKETS_.filter(function (b) { return zsum < b.max; })[0] || TOMORROW_BUCKETS_[2];
+      var tone = /up/i.test(bucket.key) ? 'up' : /down/i.test(bucket.key) ? 'down' : 'flat';
+      function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
+      function cls(v) { return v > 0 ? 'mt-val-pos' : v < 0 ? 'mt-val-neg' : 'mt-val-zero'; }
+      var why = [
+        { name: '나스닥100 선물', val: nq.pct, note: '가장 강한 단서(코스피 시초와 상관 0.63)', good: nq.pct > 0 },
+        { name: '필라델피아 반도체지수', val: sox.pct, note: '코스피에 반도체 비중이 커서', good: sox.pct > 0 },
+        { name: 'VIX(미국 공포지수) 변화', val: vix.pct, note: '오르면 위험회피 — 내려야 우호적', good: vix.pct < 0 },
+        { name: '원/달러 변화', val: fx.pct, note: '오르면(원화 약세) 외국인 매도 압력', good: fx.pct < 0 }
+      ].map(function (w) {
+        return '<li><span>' + w.name + ' <small>' + w.note + '</small></span><b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b></li>';
+      }).join('');
+      var nightHtml = '';
+      var night = by.KOSPI200_NIGHT, day = by.KOSPI200_DAY;
+      if (night && day && (night.chart || []).length && (day.chart || []).length) {
+        var nc = Number(night.chart[night.chart.length - 1].close), dc = Number(day.chart[day.chart.length - 1].close);
+        if (nc && dc) {
+          var gap = (nc / dc - 1) * 100;
+          nightHtml = '<div class="mt-tm-night">참고 · 야간선물은 주간선물 마지막 종가보다 <b class="' + cls(gap) + '">' + sgn(gap) + '</b>'
+            + ' <small>(점수에는 반영하지 않습니다: 일봉 날짜 기준을 아직 검증하지 못했습니다)</small></div>';
+        }
+      }
+      var verdictText = tone === 'up' ? '내일 시초는 올라서 시작할 가능성이 높습니다'
+        : tone === 'down' ? '내일 시초는 내려서 시작할 가능성이 높습니다'
+        : '미국 신호가 약해서 내일 방향은 알 수 없습니다';
+      mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 내일은?</strong><small>' + target.label + ' 코스피 출발 · 미국 장 마감 기준</small></div>'
+        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
+        + '<ul class="mt-tm-why">' + why + '</ul>'
+        + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b> 같은 강도의 신호가 나온 과거 ' + bucket.n + '거래일(최근 220거래일 중)에서 <b>' + bucket.gap + '</b>, ' + bucket.close + '이었습니다.'
+        + (tone === 'flat' ? ' 이런 날은 평소 확률과 같아 어느 쪽도 단정할 수 없습니다.' : ' 종가까지 이어질 가능성은 시초보다 낮으니 시초 방향이 장중에 뒤집히는 날도 있다고 봐야 합니다.') + '</div>'
+        + nightHtml
+        + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(코스피 220거래일). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
+    }).catch(function () {
+      mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 내일은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
+    });
+  }
+
   function buildSparklineContent(data, period) {
     var days = historyDays_(data);
     if (!days.length) return '<div class="mt-stats-empty">증시온도 기록을 확인할 수 없습니다.</div>';
@@ -2013,7 +2159,7 @@
     }, { fear: 0, neutral: 0, greed: 0 });
     var periodDelta = now.score - points[0].score;
     var periodTone = periodDelta > 0 ? 'mt-val-pos' : periodDelta < 0 ? 'mt-val-neg' : 'mt-val-zero';
-    var tomorrow = tomorrowFlow_(days, shown, baseline) || '';
+    var tomorrow = '';   // 2026-10-04: 온도 변화만 쓰던 "다음 거래일 가설"은 근거가 약해 걷고, 위 "그래서 내일은?"으로 대체
     var metrics = '<div class="mt-history-metrics">'
       + '<span><small>5일 평균</small><b>' + fiveAverage.toFixed(0) + '점</b></span>'
       + '<span><small>30일 평균</small><b>' + baseline.toFixed(0) + '점</b></span>'
@@ -2159,9 +2305,11 @@
 
   function buildBriefingStrategy(data) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
-      + '<div class="mt-briefing-strategy-grid">'
-      + buildAiBriefingShell()
+      + '<div class="mt-briefing-strategy-grid mt-briefing-single">'
       + buildStrategy(data)
+      + '<details class="mt-ai-fold"><summary>AI 참고의견 보기 <small>Groq 시장 해석</small></summary>'
+      + buildAiBriefingShell()
+      + '</details>'
       + '</div>'
       + '</div>';
   }
@@ -3413,6 +3561,7 @@
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
+      buildTomorrowCard_(),                         // 0. 그래서 내일은? (2026-10-04 - 첫 화면의 답)
       // 2026-09-13 사용자 요청("정보가 너무 가로로 길게 되어 있어, PC에선 가독성이 떨어져.
       // 밑에 최근 단기흐름이랑 1:1 비율로 합쳐도 좋을꺼 같아"): ①②를 PC에서 한 줄에 1:1로
       // 둔다. 760px 이하에서는 예전처럼 위아래로 쌓는다(css .mt-summary-trend-row).
