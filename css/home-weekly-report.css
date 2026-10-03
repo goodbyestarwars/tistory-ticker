@@ -433,12 +433,6 @@ html.dark .hwr-outcome-stat > span { color: #7d8593; }
   background: rgb(255, 254, 252);
 }
 .hwr-stock-list--four li:nth-child(-n+4) { border-top: 1px solid rgba(17, 17, 17, .09) !important; }
-.hwr-stock-list--four > li::before {
-  content: ""; position: absolute; right: -28px; top: -34px; width: 120px; height: 120px; border-radius: 50%; pointer-events: none;
-  background: radial-gradient(circle, rgba(100, 116, 139, .14), rgba(100, 116, 139, 0) 68%);
-}
-.hwr-stock-list--four > li:has(.hwr-stock-values .is-up)::before { background: radial-gradient(circle, rgba(210, 79, 69, .2), rgba(210, 79, 69, 0) 68%); }
-.hwr-stock-list--four > li:has(.hwr-stock-values .is-down)::before { background: radial-gradient(circle, rgba(18, 97, 196, .2), rgba(18, 97, 196, 0) 68%); }
 .hwr-stock-list--four > li > * { position: relative; }
 .hwr-stock-list--four .hwr-stock-name strong { font-size: 13px; }
 .hwr-stock-list--four .hwr-stock-values { align-items: baseline; margin-top: 10px; }

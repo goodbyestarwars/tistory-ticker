@@ -1897,16 +1897,6 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
   background: rgb(255, 254, 252);
 }
 #market-temp .mt-sf-item:last-of-type { border: 1px solid rgba(17, 17, 17, .09); }
-#market-temp .mt-sf-item:has(.mt-sf-row.is-up)::before,
-#market-temp .mt-sf-item:has(.mt-sf-row.is-down)::before,
-#market-temp .mt-sf-item:has(.mt-sf-row.is-flat)::before {
-  content: ""; position: absolute; right: -30px; top: -40px; width: 150px; height: 150px; border-radius: 50%;
-  pointer-events: none; opacity: .5;
-}
-#market-temp .mt-sf-item:has(.mt-sf-row.is-up)::before { background: radial-gradient(circle, rgba(210, 79, 69, .18), rgba(210, 79, 69, 0) 68%); }
-#market-temp .mt-sf-item:has(.mt-sf-row.is-down)::before { background: radial-gradient(circle, rgba(18, 97, 196, .18), rgba(18, 97, 196, 0) 68%); }
-#market-temp .mt-sf-item:has(.mt-sf-row.is-flat)::before { background: radial-gradient(circle, rgba(100, 116, 139, .16), rgba(100, 116, 139, 0) 68%); }
-#market-temp .mt-sf-grid > .mt-sf-item:first-child::before { opacity: 1; width: 190px; height: 190px; }
 #market-temp .mt-sf-row {
   display: grid; grid-template-columns: 22px minmax(0, 1fr) 14px; grid-template-rows: auto auto auto;
   column-gap: 8px; row-gap: 4px; align-items: center;
@@ -1921,8 +1911,8 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
 #market-temp .mt-sf-fill {
   position: static; grid-column: 1 / 4; grid-row: 4; height: 5px; margin-top: 10px; border-radius: 3px; left: auto; top: auto; bottom: auto;
 }
-#market-temp .mt-sf-fill.is-up { background: linear-gradient(90deg, rgba(210, 79, 69, .9), rgba(210, 79, 69, .25)); box-shadow: 0 0 10px rgba(210, 79, 69, .45); }
-#market-temp .mt-sf-fill.is-down { background: linear-gradient(90deg, rgba(18, 97, 196, .9), rgba(18, 97, 196, .25)); box-shadow: 0 0 10px rgba(18, 97, 196, .45); }
-#market-temp .mt-sf-fill.is-flat { background: linear-gradient(90deg, rgba(100, 116, 139, .7), rgba(100, 116, 139, .2)); box-shadow: 0 0 8px rgba(100, 116, 139, .3); }
+#market-temp .mt-sf-fill.is-up { background: linear-gradient(90deg, rgba(210, 79, 69, .9), rgba(210, 79, 69, .25)); box-shadow: none; }
+#market-temp .mt-sf-fill.is-down { background: linear-gradient(90deg, rgba(18, 97, 196, .9), rgba(18, 97, 196, .25)); box-shadow: none; }
+#market-temp .mt-sf-fill.is-flat { background: linear-gradient(90deg, rgba(100, 116, 139, .7), rgba(100, 116, 139, .2)); box-shadow: none; }
 #market-temp .mt-sf-picks { margin: 0 14px 10px; }
 #market-temp .mt-sf-detail { padding: 0 14px 12px; }
