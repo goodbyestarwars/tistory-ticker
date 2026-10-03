@@ -31,7 +31,20 @@ OPENING_GAP_MAX_OPEN = 500_000
 OPENING_GAP_MIN_TURNOVER_MILLION = 3_000
 OPENING_GAP_MAX_TURNOVER_MILLION = 999_999
 
-RISING_LOWS_WINDOW = 20
+# 2026-10-04 저점상승형 정교화(사용자 지적: 로보티즈는 하락 추세 속 3봉짜리 반등일 뿐이고, 다른 종목은 이미 오른 뒤였다.
+# "하방이 막혀 있고 저점이 계단식으로 오르는 바닥 다지기"만 남긴다). 예전엔 최근 20거래일 안의 스윙 저점 2개만 비교해서
+# 하락 파동 속 흔한 반등도 전부 걸렸다.
+RISING_LOWS_WINDOW = 60              # 구조(저점 계단)를 보는 창
+RISING_LOWS_DECLINE_LOOKBACK = 60    # 계단 시작 전, "하락이 있었는가"를 보는 구간
+RISING_LOWS_MIN_LOWS = 3             # 계단식으로 오른 스윙 저점 최소 개수
+RISING_LOWS_MIN_SPAN_BARS = 15       # 첫 저점~마지막 저점 최소 간격(너무 짧은 반등 제외)
+RISING_LOWS_MIN_STEP = 0.01          # 저점끼리 최소 1% 이상 올라야 계단으로 인정
+RISING_LOWS_MIN_TOTAL_RISE = 0.04    # 첫 저점 -> 마지막 저점 최소 상승폭
+RISING_LOWS_MAX_TOTAL_RISE = 0.20    # 이보다 많이 올랐으면 이미 상승이 진행된 것
+RISING_LOWS_MIN_PRIOR_DECLINE = 0.12 # 계단 시작 전 고점이 첫 저점보다 이만큼은 높아야 "하락 뒤 바닥"
+RISING_LOWS_MAX_FROM_LAST_LOW = 0.10 # 현재가가 마지막 스윙 저점보다 10% 넘게 올라 있으면 이미 오른 뒤
+RISING_LOWS_MAX_RET_20D = 0.15       # 최근 20거래일 수익률 상한(급등 직후 제외)
+RISING_LOWS_MAX_DAY_GAIN_10D = 0.10  # 최근 10거래일 중 하루 상승 상한(급등봉 제외)
 # 2026-08-23 신설: "단기이평 돌파형" - 하락 추세선(최근 스윙 고점 2개를 잇는 저항선)을
 # 종가와 5일선이 함께 뚫고 올라오는 순간을 잡는다(사용자 요청, 참고 그림: "추세선+5일이평선").
 # 창(window)은 20일 - swing_model.classify_wave_structure()의 소파동(20일) 스케일과
@@ -733,98 +746,98 @@ def _quality_gate_matches(matches, pattern_key):
 # ---------------------------------------------------------------------------
 
 def detect_rising_lows(daily):
-    win = daily[max(0, len(daily) - RISING_LOWS_WINDOW):]
-    if len(win) < RISING_LOWS_WINDOW:
+    """하락 뒤 바닥을 다지며 저점이 계단식으로 오르는 구간(저점상승형).
+
+    통과 조건(모두):
+    1) 최근 60거래일에서 스윙 저점이 3개 이상 이어서 오른다(저점마다 +1% 이상, 첫 저점 대비 +4%~+20%).
+    2) 첫 저점과 마지막 저점 사이가 15거래일 이상(짧은 반등 제외).
+    3) 하방이 막혀 있다 - 계단 시작 이후 첫 저점 아래로 내려간 봉(저가·종가)이 없다.
+    4) 계단 시작 전 60거래일 안에 첫 저점보다 12% 이상 높은 고점이 있다(하락 뒤의 바닥).
+    5) 아직 안 올랐다 - 현재가가 마지막 저점의 +10% 이내, 최근 20거래일 수익률 +15% 이하, 최근 10거래일에 +10% 넘는 하루 급등이 없다.
+    """
+    need = RISING_LOWS_WINDOW + RISING_LOWS_DECLINE_LOOKBACK
+    if len(daily) < need:
         return None
+    full = daily[-need:]
+    win = full[RISING_LOWS_DECLINE_LOOKBACK:]
+    offset = RISING_LOWS_DECLINE_LOOKBACK
 
     low_idxs = find_swing_indices(win, 'low', True)
     high_idxs = find_swing_indices(win, 'high', False)
-    if len(low_idxs) < WEDGE_MIN_SWINGS:
+    if len(low_idxs) < RISING_LOWS_MIN_LOWS:
         return None
 
-    prev_low_idx = low_idxs[-2]
-    last_low_idx = low_idxs[-1]
-    prev_low = win[prev_low_idx]['low']
-    last_low = win[last_low_idx]['low']
-    if last_low <= prev_low:
-        return None
-    # 2026-08-22: 저점이 오르긴 했어도 그 폭이 WEDGE_MIN_LOW_RISE 미만이면 박스권 안 노이즈로
-    # 보고 제외(미원에쓰씨처럼 뚜렷한 V자 반등만 남기기 위함).
-    rise_ratio = (last_low - prev_low) / prev_low
-    if rise_ratio < WEDGE_MIN_LOW_RISE:
-        return None
-
-    last_close = win[-1]['close']
-    if last_close < last_low:
-        return None
-    # 2026-08-22: low_idxs(20봉 창 안의 모든 스윙 저점, 3개 이상일 수 있음)를 전부 선으로
-    # 이으면 실제 판정에 쓰이지 않은, 계단을 끊는 더 이전 저점까지 같이 그려져 "저점
-    # 상승형"인데 중간에 더 낮은 저점이 끼어 저-저-고로 보이는 문제가 있었다(사용자 리포트).
-    # 2026-08-22(2차): 그렇다고 마지막 두 점으로 무조건 자르면, 스윙 저점 3개 이상이 전부
-    # 계단식으로 오르는 진짜 저점상승형까지 정보가 뭉개진다(사용자 지적: "2봉 이상 쭉
-    # 올라가는 건 다 검출해야지"). 그래서 마지막 저점에서 거꾸로 훑어 직전 저점이 그보다
-    # 낮은 동안(=계단이 끊기지 않는 동안)만 포함시키고, 계단이 끊기는 지점에서 멈춘다 -
-    # 원래 버그(판정에 안 쓰인, 계단을 끊는 더 이전 저점)는 그 지점에서 걸러지고, 진짜
-    # 계단식 다단 상승은 전부 남는다.
+    # 마지막 저점에서 거꾸로 훑어 "직전 저점이 더 낮은 동안"만 계단으로 묶는다.
     run_start = len(low_idxs) - 1
     while run_start > 0 and win[low_idxs[run_start - 1]]['low'] < win[low_idxs[run_start]]['low']:
         run_start -= 1
-    low_swing_points = [
-        {'date': win[i]['date'], 'price': win[i]['low']} for i in low_idxs[run_start:]
-    ]
+    run = low_idxs[run_start:]
+    if len(run) < RISING_LOWS_MIN_LOWS:
+        return None
+    lows = [win[i]['low'] for i in run]
+    if any(b < a * (1 + RISING_LOWS_MIN_STEP) for a, b in zip(lows, lows[1:])):
+        return None
+    first_low, last_low = lows[0], lows[-1]
+    total_rise = (last_low - first_low) / first_low if first_low else 0
+    if not (RISING_LOWS_MIN_TOTAL_RISE <= total_rise <= RISING_LOWS_MAX_TOTAL_RISE):
+        return None
+    if run[-1] - run[0] < RISING_LOWS_MIN_SPAN_BARS:
+        return None
+
+    # 3) 하방이 막혀 있는가
+    for row in win[run[0]:]:
+        if row['low'] < first_low * 0.995 or row['close'] < first_low:
+            return None
+
+    # 4) 하락 뒤의 바닥인가: 계단 시작 전(앞선 60봉 + 창 안 첫 저점 이전)에 충분히 높은 고점이 있었다
+    before_high = max([row['high'] for row in full[:offset + run[0] + 1]] or [0])
+    if before_high < first_low * (1 + RISING_LOWS_MIN_PRIOR_DECLINE):
+        return None
+
+    # 5) 아직 안 올랐는가
+    last_close = win[-1]['close']
+    if last_close < last_low:
+        return None
+    if last_close > last_low * (1 + RISING_LOWS_MAX_FROM_LAST_LOW):
+        return None
+    if len(win) > 20 and win[-21]['close'] and last_close / win[-21]['close'] - 1 > RISING_LOWS_MAX_RET_20D:
+        return None
+    for k in range(len(win) - 10, len(win)):
+        if k > 0 and win[k - 1]['close'] and win[k]['close'] / win[k - 1]['close'] - 1 > RISING_LOWS_MAX_DAY_GAIN_10D:
+            return None
+
+    low_swing_points = [{'date': win[i]['date'], 'price': win[i]['low']} for i in run]
     current = {'date': win[-1]['date'], 'price': last_close}
+    highs_in_run = [i for i in high_idxs if i >= run[0]]
+    resistance = max(win[i]['high'] for i in range(run[0], len(win)))
 
-    # 2026-08-22(3차): "저점상승형은 Higher Low만 보고, 고점이 뭘 하든 신호는 뜬다"던
-    # 예전 설계(가온칩스처럼 고점/20일선이 아직 안 따라온 초기 반등도 포착하려는 의도)를
-    # 사용자 확인 하에 뒤집는다 - ascending_triangle.py(고점 막힘/수렴 전용 분석 모듈)의
-    # "저점-고점 간격이 갈수록 좁혀져야 한다"는 필수 조건을 여기에도 그대로 요구한다.
-    # 이제 고점이 아직 안 좁혀진 가온칩스류 초기 반등은 저점상승형에서 제외된다.
-    # 고점 쪽 비교 구간은 화면에도 쓰는 저점 계단(run_start~끝)과 같은 날짜 범위로 맞춘다.
-    run_start_idx = low_idxs[run_start]
-    highs_in_run = [i for i in high_idxs if i >= run_start_idx]
-    if len(highs_in_run) < WEDGE_MIN_SWINGS:
-        return None
-    high_first = win[highs_in_run[0]]['high']
-    high_last = win[highs_in_run[-1]]['high']
-    low_first = win[low_idxs[run_start]]['low']
-    decline_ok = high_first > 0 and (high_first - high_last) / high_first <= RESISTANCE_MAX_DECLINE_PCT
-    converging = (high_last - last_low) < (high_first - low_first)
-    if not (decline_ok and converging):
-        return None
-
-    # 점수는 참고용이다. 검색 포함 여부는 위의 Higher Low + 고점 수렴 조건으로 결정한다.
-    higher_low_score = 40
-    recent_low_score = 20
-
-    ma5 = moving_average(win, 'close', 5)
-    resistance = max((win[i]['high'] for i in high_idxs), default=None)
-    resistance_idx = high_idxs[-1] if high_idxs else None
-    ma5_at_resistance = ma5[resistance_idx] if resistance_idx is not None else None
-    ma5_diff = abs(win[resistance_idx]['high'] - ma5_at_resistance) / ma5_at_resistance if ma5_at_resistance else 1
-    ma5_score = 20 if ma5_diff <= 0.02 else 10 if ma5_diff <= 0.05 else 0
-
-    vol_score = 10 if is_volume_declining(win, last_low_idx, len(win)) else 0
-    bull_score = 10 if is_last_candle_bullish(win) else 0
-
-    score = clamp_score(higher_low_score + recent_low_score + ma5_score + vol_score + bull_score)
+    # 점수(참고용): 저점 개수·간격 규칙성·기간·거래량·현재 캔들
+    count_score = 40 if len(run) >= 4 else 35
+    gaps = [b - a for a, b in zip(run, run[1:])]
+    regular = (max(gaps) <= min(gaps) * 3) if gaps and min(gaps) > 0 else False
+    regular_score = 15 if regular else 5
+    span_score = 15 if (run[-1] - run[0]) >= 30 else 10
+    vol_score = 15 if is_volume_declining(win, run[0], len(win)) else 5
+    bull_score = 15 if is_last_candle_bullish(win) else 5
+    score = clamp_score(count_score + regular_score + span_score + vol_score + bull_score)
     reasons = [
-        '스윙 저점 순차 상승 %.1f%%(%d/40점)' % (rise_ratio * 100, higher_low_score),
-        '최근 저점 상승 확인(%d/20점)' % recent_low_score,
-        '5일선 저항 근접도(%d/20점)' % ma5_score,
-        '거래량 %s(%d/10점)' % ('감소' if vol_score else '유지/증가', vol_score),
-        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '하락 뒤 바닥: 계단 시작 전 고점이 첫 저점보다 %.0f%% 높았음' % ((before_high / first_low - 1) * 100),
+        '스윙 저점 %d개가 계단식 상승(첫 저점 대비 +%.1f%%, %d거래일)' % (len(run), total_rise * 100, run[-1] - run[0]),
+        '하방 막힘: 계단 시작 뒤 첫 저점 아래로 내려간 봉 없음',
+        '아직 안 오름: 현재가가 마지막 저점 대비 +%.1f%%' % ((last_close / last_low - 1) * 100),
+        '거래량 %s · 최근 캔들 %s' % ('감소' if vol_score >= 15 else '유지/증가', '양봉' if bull_score >= 15 else '음봉'),
     ]
-
     return {
         'low_swings': low_swing_points,
         'low_swings_display': low_swing_points + [current],
-        'high_swings': [{'date': win[i]['date'], 'price': win[i]['high']} for i in high_idxs],
+        'high_swings': [{'date': win[i]['date'], 'price': win[i]['high']} for i in highs_in_run],
         'resistance': resistance,
         'signal': current,
         'breakout': resistance is not None and last_close > resistance * BREAKOUT_TOL,
         'score': score,
         'reasons': reasons,
-        'interpretation': '최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다(%d점).' % score,
+        'interpretation': '하락 뒤 바닥을 다지며 스윙 저점이 %d번 연속 높아졌고, 현재가는 마지막 저점 근처(+%.1f%%)에 있어 아직 크게 오르지 않은 구간입니다(%d점).'
+                          % (len(run), (last_close / last_low - 1) * 100, score),
     }
 
 
@@ -1668,7 +1681,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
         if opening_gap and common_search_ok():
             pattern_results['openingGap'].append(build_pattern_match(stock, daily, opening_gap))
 
-    if len(daily) >= RISING_LOWS_WINDOW:
+    if len(daily) >= RISING_LOWS_WINDOW + RISING_LOWS_DECLINE_LOOKBACK:
         pattern_scanned = True
         rl = detect_rising_lows(daily)
         if rl and not rl['breakout'] and common_search_ok():

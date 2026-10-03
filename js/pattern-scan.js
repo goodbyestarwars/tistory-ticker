@@ -32,7 +32,8 @@
   // GAS는 운영 실측에서 28~30초씩 걸리므로(2026-09-03 API Probe) 그 탭들은 VM에서
   // 캔들만 직접 받는다.
   var GAS_REDETECTED_PATTERNS = {
-    risingLows: true, doubleBottom: true, invHeadShoulders: true,
+    // 2026-10-04: risingLows는 60거래일 구조 판정으로 바꿔 VM 스냅샷(patternDetail)을 그대로 쓴다(GAS 20거래일 판정과 달라진다).
+    doubleBottom: true, invHeadShoulders: true,
     boxRangeLow: true, pullback: true
   };
   var FETCH_RETRY_COUNT = 2;
@@ -75,7 +76,7 @@
   // 항목을 채운 것, 새 필터를 만든 건 아님).
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·관리종목·우선주·거래정지·정리매매·동전주(1,000원 미만) 제외';
   var TABS = [
-    { key: 'risingLows', label: '저점상승형', desc: '최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고, 최근 저점이 직전 저점보다 5% 이상 높으며 현재 종가가 최근 저점 위에 있는 종목입니다. 저점-고점 간격이 갈수록 좁혀지는(고점이 막혀있거나 완만히 하락) 종목만 남기고, 최근 저항을 2% 이상 돌파한 종목은 제외합니다.' },
+    { key: 'risingLows', label: '저점상승형', desc: '하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다. 최근 60거래일에서 저점이 3개 이상 이어서 1% 이상씩 높아지고(첫 저점 대비 +4%~+20%), 첫 저점과 마지막 저점이 15거래일 이상 떨어져 있어야 합니다. 계단 시작 뒤 첫 저점 아래로 내려간 적이 없고(하방이 막힘), 계단 시작 전에 첫 저점보다 12% 이상 높았던 구간이 있어야 하며(하락 뒤의 바닥), 현재가가 마지막 저점의 +10% 이내이고 최근 20거래일 +15% 이하(이미 오른 종목 제외)여야 합니다. 로보티즈처럼 하락 파동 속 3~4봉 반등은 제외합니다.' },
     { key: 'shortTermMaBreakout', label: '단기이평 돌파형', desc: '최근 20봉 스윙 고점 2개를 이은 하락 추세선을 오늘 종가와 5일선이 함께 뚫고 올라온 종목입니다. 어제까지는 종가가 추세선 아래(또는 거의 붙어) 있었어야 "막 돌파하는 순간"으로 보고 포함하며, 이미 한참 위로 올라간 종목은 제외합니다.' },
     { key: 'maCloudBreakout', label: '장기이평 응축기', desc: '최소 250봉 데이터에서 종가가 224일선 ±3% 이내이고, 종가가 일목 구름 상단을 아직 넘지 않았으며 구름 하단 -2% 안에서는 지지받고 있고, 고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근한 종목입니다(둘 중 하나만 만족해도 포함, 상단 시도가 하단 시도보다 고득점).' },
     { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격의 스윙 저점 2개가 3% 이내로 비슷하고, 두 저점 사이에 그보다 2% 넘게 더 낮은 저가가 없으며, 두 번째 저점 거래량이 첫 번째 이하이며 중간 넥라인까지 8% 이상 반등한 구조입니다. 두 번째 저점은 최근 5봉 안이고 현재 종가는 넥라인 2% 아래보다 높아야 합니다.' },
@@ -824,7 +825,7 @@
         }
         // Box-range scans include market cap in the VM snapshot; GAS cannot
         // reproduce that E condition during an on-demand chart request.
-        if ((activeTab === 'boxRangeLow' || activeTab === 'openingGap') && item.patternDetail) {
+        if ((activeTab === 'boxRangeLow' || activeTab === 'openingGap' || activeTab === 'risingLows') && item.patternDetail) {
           data.detail = item.patternDetail;
         }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상

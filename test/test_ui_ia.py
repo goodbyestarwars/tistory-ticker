@@ -2748,7 +2748,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn(".ps-retry", self.read("css/pattern-scan.css"))
         self.assertIn("VM 일일 스캔이 한 번 완료되면 표시됩니다.", source)
         self.assertNotIn("GAS에서 scanChartPatterns를 한 번 실행해야 함", source)
-        self.assertIn("최근 20봉에서 좌우 2봉보다 낮은 스윙 저점이 2개 이상이고", source)
+        self.assertIn("하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다", source)  # 2026-10-04 정교화
         self.assertNotIn("최근 20거래일 안에서 최근 두 스윙 저점이 높아지고 현재가가 마지막 저점 위에 있는 상승 구간으로 추정됩니다", source)
 
     def test_strategy_search_renders_weekly_envelope_metric(self):
@@ -3205,7 +3205,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         backend = self.read("scripts/cloud-vm/pattern_detect.py")
         self.assertIn("var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상", source)
         for text in (
-            "최근 20봉에서 좌우 2봉",
+            "최근 60거래일에서 저점이 3개 이상",
             "224일선 ±3%",
             "10~45봉 간격",
             "어깨-머리-어깨",
