@@ -1474,8 +1474,8 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (frameId) global.clearTimeout(frameId);
+      frameId = global.setTimeout(draw, 16);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
@@ -1666,7 +1666,7 @@
     // 가격축 범위는 시간축 이동 없이도(확대·세로 드래그) 바뀌므로 짧게 한 번 더 그린다.
     var settle = global.setTimeout(scheduleDraw, 250);
     return function () {
-      if (frameId) global.cancelAnimationFrame(frameId);
+      if (frameId) global.clearTimeout(frameId);
       global.clearTimeout(settle);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
       if (resizeObserver) resizeObserver.disconnect();
