@@ -7911,7 +7911,7 @@ html body .ss-fav-btn { width: 30px !important; min-width: 30px !important; heig
 /* ── 20. 큰 검색 패널 (2026-10-03 사용자 요청) ──
       검색창을 누르면(html.search-open) 화면 위에 크게 펼쳐진다: 큰 입력, 닫기, 바로가기 칩, 그 아래 자동완성. ── */
 html body .nav-search-close, html body .nav-search-chips { display: none !important; }
-html body .nav-search-backdrop { position: fixed !important; inset: 0 !important; z-index: 998 !important; background: rgba(255, 254, 252, .55) !important; -webkit-backdrop-filter: blur(10px) !important; backdrop-filter: blur(10px) !important; }
+html body .nav-search-backdrop { position: fixed !important; inset: 0 !important; z-index: 200 !important; background: rgba(255, 254, 252, .55) !important; -webkit-backdrop-filter: blur(10px) !important; backdrop-filter: blur(10px) !important; }
 html.search-open body .nav-search-wrap {
   position: fixed !important;
   top: 14px !important;
@@ -7960,14 +7960,16 @@ html.search-open body .nav-search-suggest {
 
 /* ── 21. 이야기 시리즈 카드 = 애플 글래스 카드 (2026-10-03 사용자 요청: 어둡지 않게, 양옆 색감과 어울리게) ──
       종이색 위에 반투명 유리(블러 + 옅은 선), 색은 아이콘 타일에만. 풋터는 한 줄(링크 · 사이트 이용방법) 아래에 카드 줄. ── */
-html body .site-footer:has(.site-footer-learn a.learn-card) {
-  display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
-  gap: 14px 34px !important; grid-template-columns: none !important; grid-template-areas: none !important;
+@media (min-width: 721px) {
+  html body .site-footer:has(.site-footer-learn a.learn-card) {
+    display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
+    gap: 14px 34px !important; grid-template-columns: none !important; grid-template-areas: none !important;
+  }
+  html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 1 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
+  html body .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 2 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
+  html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 3 !important; flex: 0 0 100% !important; }
+  html body .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
-html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 1 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
-html body .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 2 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
-html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 3 !important; flex: 0 0 100% !important; }
-html body .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 html body .site-footer-learn {
   display: flex !important; flex-wrap: nowrap !important; justify-content: flex-start !important; align-items: stretch !important;
   gap: 12px !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; justify-self: stretch !important;
