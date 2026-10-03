@@ -1867,6 +1867,7 @@
       frameId = 0;
       if (disposed || !document.body.contains(container)) return;
       layer.querySelectorAll('.ss-memo-pin').forEach(function (pin) { pin.remove(); });
+      layer.dataset.dbg0 = JSON.stringify([key, chartMemoStore.auth, chartMemoStore.items.length, itemsHere().length, bars.length, bars[bars.length-1] && bars[bars.length-1].date]);
       itemsHere().forEach(function (item) {
         var bar = barFor(String(item.date));
         if (!bar) return;
