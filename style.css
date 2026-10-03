@@ -7732,7 +7732,7 @@ html body #market-temp .mt-weather-day.is-today { background-color: rgba(var(--n
 
 /* ── 14. 홈 시장 전환 탭(한국증시/미국증시/휴장) : 선택된 면이 아래 선에 붙어 잘려 보이던 것 → 위아래 여백 ── */
 html body .home-market-switch { height: auto !important; min-height: 0 !important; align-items: center !important; padding: 10px 0 12px !important; }
-html body .hrt-tabs { align-items: center !important; padding: 6px 0 10px !important; height: auto !important; }
+html body .hrt-tabs { align-items: center !important; padding: 6px !important; margin-bottom: 8px !important; height: auto !important; }
 
 /* ── 15. 메뉴 : 호버하면 아래로 둥근 유리 카드가 펼쳐지고, 항목마다 둥근 아이콘 타일(PC 721px 이상) ── */
 @media (min-width: 721px) {
@@ -8055,4 +8055,33 @@ html body :where(.ff-opinion-summary-card) { border-bottom: 1px solid rgba(var(-
 html body :where(.site-footer, .post-single, .post-card, .sidebar-right, .content, .main-content, .container) { background-color: transparent !important; }
 html body .site-footer, html body#tt-body-index .site-footer:not(:has(.site-footer-main)), html body .site-footer:has(.site-footer-learn a.learn-card) { background: transparent !important; background-color: transparent !important; }
 html body .home-closed-page { background: transparent !important; }
+
+/* ── 26. 정리 묶음 (2026-10-04 사용자 요청) ──
+      ①마켓 브리핑: 제목과 설명을 옆으로, 글을 같은 카드(rgb(255,254,252))로 정렬
+      ②풋터는 대시보드(홈)에서만, 버전 줄(NEW gOOdbyestar)은 뺀다
+      ③휴장 히어로 바탕을 더 연하게 ── */
+html body .category-masthead { align-items: center !important; padding: 6px 4px 14px !important; border-bottom: 1px solid rgba(var(--np-ink), .14) !important; }
+html body .category-masthead > div { display: grid !important; grid-template-columns: auto minmax(0, 1fr) !important; column-gap: 18px !important; align-items: baseline !important; }
+html body .category-masthead > div > p { grid-column: 1 / -1 !important; }
+html body .category-masthead > div > h1 { grid-column: 1 !important; grid-row: 2 !important; white-space: nowrap !important; }
+html body .category-masthead > div > span { grid-column: 2 !important; grid-row: 2 !important; margin: 0 !important; }
+html body .feed-block { gap: 16px !important; }
+html body :where(.feed-hero-featured-slot > .post-card, .feed-block-headline, .feed-block-cards > .post-card, .feed-block-duo > .post-card, .feed > .post-card:not(.notice-card)) {
+  box-sizing: border-box !important;
+  border: 1px solid rgba(var(--np-ink), .09) !important;
+  border-radius: 20px !important;
+  background-color: rgb(255, 254, 252) !important;
+  background-image: none !important;
+  box-shadow: none !important;
+  padding: 20px 22px !important;
+}
+html body .feed-block-headline { padding: 6px 22px !important; }
+html body .feed-block-headline > .post-card.feed-headline-item { border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: 14px 0 !important; border-top: 1px solid rgba(var(--np-ink), .08) !important; }
+html body .feed-block-headline > .post-card.feed-headline-item:first-child { border-top: 0 !important; }
+html body:not(#tt-body-index) .site-footer { display: none !important; }
+html body .site-footer-version { display: none !important; }
+html body#tt-body-index .home-editorial-page .home-closed-lead {
+  background: rgb(254, 253, 250) !important;
+  -webkit-backdrop-filter: none !important; backdrop-filter: none !important;
+}
 }
