@@ -741,6 +741,7 @@
       + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
       + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
       + '</div>';
+    html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += '<div class="ps-footnote">※ 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
@@ -759,6 +760,7 @@
       });
     }
 
+    psMemoItem = item;
     var chartContainer = box.querySelector('#psChart');
     if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
   }
@@ -827,7 +829,50 @@
     return lwcLoadPromise;
   }
 
+  // 차트 메모(2026-10-03): 종목분석과 같은 공용 모듈(js/chart-memo.js)을 지연 로드한다.
+  var psMemoItem = null;
+  var psMemo = null;
+  var psMemoPromise = null;
+  function loadPsMemoModule() {
+    if (window.NineChartMemo) return Promise.resolve(window.NineChartMemo);
+    if (psMemoPromise) return psMemoPromise;
+    psMemoPromise = new Promise(function (resolve, reject) {
+      var s = document.createElement('script');
+      s.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-memo.js';
+      s.onload = function () { resolve(window.NineChartMemo); };
+      s.onerror = function () { psMemoPromise = null; reject(new Error('chart-memo load failed')); };
+      document.head.appendChild(s);
+    });
+    return psMemoPromise;
+  }
+  function setupPsMemo(container, chart, series, daily) {
+    var button = document.querySelector('[data-ps-memo]');
+    var item = psMemoItem;
+    if (!button || !item) return;
+    button.disabled = true;
+    loadPsMemoModule().then(function (api) {
+      if (!document.body.contains(container) || psLwcChart !== chart) return;
+      psMemo = api.install({
+        container: container, chart: chart, series: series, bars: daily, code: item.code, name: item.name,
+        formatPrice: function (p) { return Number(p).toLocaleString() + '원'; }
+      });
+      button.disabled = false;
+      button.onclick = function () {
+        var on = !psMemo.isMode();
+        psMemo.setMode(on);
+        button.classList.toggle('is-active', on);
+        button.setAttribute('aria-pressed', String(on));
+      };
+    }).catch(function () { /* 메모 모듈을 못 받아도 차트는 그대로 */ });
+  }
+  function destroyPsMemo() {
+    if (psMemo) { psMemo.dispose(); psMemo = null; }
+    var b = document.querySelector('[data-ps-memo]');
+    if (b) { b.onclick = null; b.disabled = true; b.classList.remove('is-active'); b.setAttribute('aria-pressed', 'false'); }
+  }
+
   function destroyPsChart() {
+    destroyPsMemo();
     if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
     if (psLwcChart) {
       try { psLwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
@@ -1075,6 +1120,8 @@
         from: Math.max(0, daily.length - visibleBars),
         to: daily.length - 1 + 3
       });
+
+      setupPsMemo(container, chart, candleSeries, daily);
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());

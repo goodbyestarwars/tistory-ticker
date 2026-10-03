@@ -753,3 +753,8 @@ html.dark #pattern-scan .ps-footnote b {
   /* 실측 33px. 가로 스크롤 탭이라 높이만 키우면 레이아웃이 밀리지 않는다. */
   #pattern-scan .ps-tab { min-height: 44px; }
 }
+
+/* 차트 메모 줄(2026-10-03) */
+#pattern-scan .ps-memo-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+#pattern-scan .ps-memo-bar span { color: #94a3b8; font-size: 11px; }
+#pattern-scan .ps-chart { position: relative; }

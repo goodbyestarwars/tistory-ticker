@@ -285,8 +285,19 @@
     };
   }
 
+  function ensureStyles() {
+    if (document.getElementById('chartMemoCss')) return;
+    var link = document.createElement('link');
+    link.id = 'chartMemoCss';
+    link.rel = 'stylesheet';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/chart-memo.css';
+    document.head.appendChild(link);
+  }
+
   global.NineChartMemo = {
     install: function (o) {
+      ensureStyles();
+      try { if (global.getComputedStyle(o.container).position === 'static') o.container.style.position = 'relative'; } catch (e) { /* 무시 */ }
       memoDrawingProbe = o.isDrawing || null;
       var dispose = installChartMemoLayer(o.container, o.chart, o.series, o.bars, 'day', o.code, o.name, o.formatPrice);
       var ctl = chartMemoCtl;

@@ -1,0 +1,48 @@
+/* 차트 메모 공용 스타일(js/chart-memo.js가 설치할 때 한 번 붙인다) */
+/* 차트 메모(2026-10-03): 봉에 다는 핀과 입력·보기 창 */
+.ss-memo-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+.is-memo-mode { cursor: crosshair; }
+.ss-memo-pin {
+  position: absolute;
+  width: 22px;
+  height: 22px;
+  margin: -26px 0 0 -11px;
+  padding: 0;
+  border: 1px solid rgba(17, 17, 17, .35);
+  border-radius: 11px 11px 11px 2px;
+  background: rgb(255, 254, 252);
+  color: #111;
+  font-size: 12px;
+  line-height: 20px;
+  text-align: center;
+  cursor: pointer;
+  pointer-events: auto;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
+}
+.ss-memo-pop {
+  position: absolute;
+  width: 260px;
+  box-sizing: border-box;
+  padding: 12px;
+  border: 1px solid rgba(17, 17, 17, .1);
+  border-radius: 16px;
+  background: rgba(255, 254, 252, .96);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .16);
+  pointer-events: auto;
+  font-size: 12px;
+}
+.ss-memo-pop-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.ss-memo-pop-head strong { font-size: 12px; color: #111; }
+.ss-memo-pop-head span { color: #64748b; font-variant-numeric: tabular-nums; }
+.ss-memo-pop textarea { width: 100%; box-sizing: border-box; min-height: 74px; padding: 8px; resize: vertical; border: 1px solid rgba(17, 17, 17, .14); border-radius: 10px; font: inherit; font-size: 12.5px; }
+.ss-memo-pop-body { margin: 0 0 8px; max-height: 120px; overflow-y: auto; color: #111; font-size: 12.5px; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.ss-memo-pop-note { display: block; margin: 6px 0 8px; color: #94a3b8; font-size: 10.5px; line-height: 1.4; }
+.ss-memo-pop-actions { display: flex; justify-content: flex-end; gap: 6px; }
+.ss-memo-pop-actions button { min-height: 30px; padding: 0 14px; border: 0; border-radius: 10px; background: rgba(17, 17, 17, .07); color: #111; font: 500 12.5px/1 inherit; cursor: pointer; }
+.ss-memo-pop-actions [data-memo-save] { background: #0071e3; color: #fff; }
+html.dark .ss-memo-pin { background: #1A1A1A; color: #F5EFE0; border-color: rgba(245, 239, 224, .4); }
+html.dark .ss-memo-pop { background: rgba(32, 32, 32, .96); border-color: rgba(245, 239, 224, .16); }
+html.dark .ss-memo-pop-head strong, html.dark .ss-memo-pop-body { color: #F5EFE0; }
+html.dark .ss-memo-pop textarea { background: #1A1A1A; color: #F5EFE0; border-color: rgba(245, 239, 224, .2); }
+html.dark .ss-memo-pop-actions button { background: rgba(245, 239, 224, .12); color: #F5EFE0; }
+html.dark .ss-memo-pop-actions [data-memo-save] { background: #0a84ff; color: #fff; }
