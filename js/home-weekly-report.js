@@ -129,7 +129,7 @@
     return {
       svg: '<defs><linearGradient id="' + id + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="hwr-glow-top"/><stop offset="1" class="hwr-glow-bottom"/></linearGradient></defs>'
         + '<polygon class="hwr-glow-area" points="' + area + '" fill="url(#' + id + ')" stroke="none"></polygon>'
-        + '<polyline class="hwr-glow-halo" points="' + poly + '" fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>',
+        + '<polyline class="hwr-glow-halo" points="' + poly + '" fill="none" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>',
       dot: '<span class="hwr-glow-dot ' + escapeHtml(className || '') + '" style="left:' + last[0].toFixed(1) + '%;top:' + (last[1] / viewH * 100).toFixed(1) + '%" aria-hidden="true"></span>'
     };
   }
