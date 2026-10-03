@@ -7969,7 +7969,7 @@ html body .site-footer-learn::-webkit-scrollbar { display: none; }
 html body .site-footer:has(.site-footer-learn a.learn-card) { grid-template-columns: minmax(0, 1fr) !important; }
 html body .site-footer-learn { justify-self: stretch !important; min-width: 0 !important; max-width: 100% !important; }
 html body .site-footer-learn a.learn-card {
-  position: relative !important; flex: 0 0 148px !important; width: 148px !important; height: 188px !important; box-sizing: border-box !important;
+  position: relative !important; flex: 1 0 132px !important; width: auto !important; max-width: 200px !important; height: 188px !important; box-sizing: border-box !important;
   display: flex !important; flex-direction: column !important; justify-content: flex-end !important; gap: 2px !important;
   padding: 12px 13px 13px !important; border: 0 !important; border-radius: 20px !important; overflow: hidden !important;
   background: linear-gradient(160deg, var(--lc-a), var(--lc-b)) !important;
@@ -7990,6 +7990,6 @@ html body .site-footer-learn a.learn-card b { font: 600 14.5px/1.3 var(--font-ti
 html body .site-footer-learn a.learn-card small { font: 400 11px/1.35 var(--font-ui) !important; color: rgba(255, 255, 255, .78) !important; text-decoration: none !important; }
 html body .site-footer-learn a.learn-card:hover { transform: translateY(-3px) !important; box-shadow: 0 10px 24px rgba(17, 17, 17, .18) !important; }
 @media (max-width: 720px) {
-  html body .site-footer-learn a.learn-card { flex-basis: 132px !important; width: 132px !important; height: 168px !important; }
+  html body .site-footer-learn a.learn-card { flex: 0 0 132px !important; max-width: none !important; height: 168px !important; }
 }
 }
