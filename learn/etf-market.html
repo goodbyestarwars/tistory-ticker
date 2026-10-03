@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ETF 이야기</title>
+<meta name="description" content="ETF가 무엇인지, NAV·괴리율·추적오차·보수·호가 스프레드는 개인 투자자 주머니에 어떻게 닿는지, 레버리지·인버스 ETF를 오래 들고 있으면 왜 깎이는지 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>ETF 이야기</h1>
+  <p class="legal-effective-date">바구니·NAV와 괴리율·추적오차·보수·스프레드, 레버리지와 인버스, 배당 ETF</p>
+
+  <p>삼성전자도 사고 싶고 SK하이닉스도 사고 싶고 현대차도 사고 싶다. 그런데 돈은 300만원이다. 한 종목에 몰아넣자니
+  불안하고, 세 종목에 나누자니 한 주 값도 모자란다. 종목을 100개 사려면 아예 불가능하다.</p>
+  <p>이 여러 종목을 미리 한 바구니에 담아 놓고, 바구니 자체를 주식처럼 사고팔게 만든 것이
+  <b>ETF(Exchange Traded Fund, 상장지수펀드)</b>다. 이 글은 개인 투자자가 ETF를 살 때 실제로 돈이 새는 자리와
+  함정을 중심으로 정리한다. 그림 속 숫자는 이해를 돕는 예시이고 실제 시세가 아니다.</p>
+
+  <h2>ETF는 무엇인가 - 여러 종목이 든 바구니를 한 종목처럼 산다</h2>
+  <p>과일 가게에서 사과·배·귤을 따로 사는 대신, 가게가 정해진 비율로 담아 둔 <b>과일 바구니</b> 하나를 사는 것과
+  같다. 바구니 안 내용은 정해져 있고, 우리는 바구니를 산다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 262" role="img" aria-label="ETF 한 주 안의 구성: A전자 30%, B반도체 25%, C자동차 20%, D은행 15%, E바이오 10%. 100만원이면 각각 30만·25만·20만·15만·10만원어치">
+      <rect class="fig-soft" x="0" y="0" width="420" height="262" />
+      <text class="fig-ink" x="12" y="24">가상의 ETF 한 바구니</text>
+      <text class="fig-sub" x="12" y="42">100만원어치를 사면 속으로 이렇게 나뉜다</text>
+      <text class="fig-ink" x="12" y="75">A전자</text>
+      <rect class="fig-marker" x="92" y="58" width="190" height="24" />
+      <text class="fig-sub" x="290" y="75">30% · 30만원</text>
+      <text class="fig-ink" x="12" y="111">B반도체</text>
+      <rect class="fig-marker" x="92" y="94" width="158.3" height="24" />
+      <text class="fig-sub" x="258.3" y="111">25% · 25만원</text>
+      <text class="fig-ink" x="12" y="147">C자동차</text>
+      <rect class="fig-marker" x="92" y="130" width="126.7" height="24" />
+      <text class="fig-sub" x="226.7" y="147">20% · 20만원</text>
+      <text class="fig-ink" x="12" y="183">D은행</text>
+      <rect class="fig-marker" x="92" y="166" width="95" height="24" />
+      <text class="fig-sub" x="195" y="183">15% · 15만원</text>
+      <text class="fig-ink" x="12" y="219">E바이오</text>
+      <rect class="fig-marker" x="92" y="202" width="63.3" height="24" />
+      <text class="fig-sub" x="163.3" y="219">10% · 10만원</text>
+      <text class="fig-sub" x="12" y="250">막대 길이가 비중이다. 실제 ETF 구성이 아니다.</text>
+    </svg>
+    <figcaption>100만원어치를 사면 경제적으로는 A전자 30만원, B반도체 25만원 식으로 나눠 산 효과가 난다. 한 종목이 흔들려도 나머지가 충격을 받아 준다. 이것이 분산투자다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>ETF는 안전한 상품이 아니다</b> 반도체 종목만 담은 ETF는 반도체가 흔들리면 통째로 떨어진다. ETF는 위험을
+    없애는 도구가 아니라 <b>한 종목에 걸었던 위험을 여러 곳으로 나누는 도구</b>다. 무엇을 담았는지가 위험을 정한다.
+  </div>
+
+  <h2>일반 펀드와 뭐가 다른가</h2>
+  <p>ETF도 본질은 펀드다. 차이는 <b>사고파는 방법</b>이다.</p>
+  <table class="learn-table">
+    <thead><tr><th></th><th>일반 펀드</th><th>ETF</th></tr></thead>
+    <tbody>
+      <tr><td>사는 곳</td><td>은행·증권사 펀드 가입</td><td>주식 계좌에서 주식처럼 매수</td></tr>
+      <tr><td>가격</td><td>하루 한 번 정해지는 기준가</td><td>장중에 호가가 실시간으로 움직임</td></tr>
+      <tr><td>체결</td><td>신청하고 기다린다</td><td>주문하면 바로 체결</td></tr>
+    </tbody>
+  </table>
+  <p>주식처럼 거래한다는 말은 편하다는 뜻이면서, <b>주식처럼 잘못 사고 잘못 팔 수도 있다</b>는 뜻이다. 아래 괴리율과
+  스프레드가 그 이야기다.</p>
+
+  <h2>지수를 산다는 말 - 종목을 고르는 대신 시장을 산다</h2>
+  <p>코스피200, S&amp;P 500, 나스닥100 같은 <b>지수</b>는 여러 주식의 움직임을 숫자 하나로 줄인 것이다. 지수를
+  따라가는 ETF는 그 지수와 비슷하게 움직이도록 실제 주식을 담는다.</p>
+  <p>어느 반도체 회사가 승자가 될지 모르겠다면 반도체 전체를 사면 된다. 미국에서 어느 대형주가 오를지 모르겠다면
+  시장 전체를 사면 된다. 종목 하나를 맞히는 게임에서, 방향 하나를 고르는 게임으로 바뀐다. 개인이 테마주 한 종목에서
+  하루에 -20%를 맞는 일은 흔하지만, 지수 ETF가 하루에 그렇게 빠지는 일은 시장 전체가 무너질 때뿐이다.</p>
+
+  <h2>ETF 가격은 누가 정하나 - NAV와 시장가격</h2>
+  <p>ETF 한 주 안에 든 주식들의 값을 다 합친 <b>진짜 가치</b>를 <b>NAV(순자산가치)</b>라고 한다. 한편 ETF는 호가창에서
+  거래되니 <b>내가 실제로 내는 값(시장가격)</b>은 사려는 사람과 팔려는 사람이 정한다. 둘은 대체로 붙어 다니지만 항상
+  같지는 않다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="ETF 시장가격이 NAV 주변에서 위아래로 움직이는 8일간 가상 그래프. 6일차에 시장가격이 NAV보다 80원 높아 괴리율 플러스">
+      <path class="fig-dash" d="M44 170 L404 170" />
+      <text class="fig-sub" x="0" y="174" font-size="10">9,960</text>
+      <path class="fig-dash" d="M44 100 L404 100" />
+      <text class="fig-sub" x="0" y="104" font-size="10">10,080</text>
+      <path class="fig-dash" d="M44 30 L404 30" />
+      <text class="fig-sub" x="0" y="34" font-size="10">10,200</text>
+      <path class="fig-ink-line" d="M44 146.7 L95.4 135 L146.9 117.5 L198.3 123.3 L249.7 94.2 L301.1 82.5 L352.6 88.3 L404 65" />
+      <path class="fig-acc-line" d="M44 140.8 L95.4 117.5 L146.9 123.3 L198.3 91.2 L249.7 100 L301.1 35.8 L352.6 91.2 L404 59.2" />
+      <text class="fig-sub" x="44" y="190" text-anchor="middle" font-size="11">1일</text>
+      <text class="fig-sub" x="95.4" y="190" text-anchor="middle" font-size="11">2일</text>
+      <text class="fig-sub" x="146.9" y="190" text-anchor="middle" font-size="11">3일</text>
+      <text class="fig-sub" x="198.3" y="190" text-anchor="middle" font-size="11">4일</text>
+      <text class="fig-sub" x="249.7" y="190" text-anchor="middle" font-size="11">5일</text>
+      <text class="fig-sub" x="301.1" y="190" text-anchor="middle" font-size="11">6일</text>
+      <text class="fig-sub" x="352.6" y="190" text-anchor="middle" font-size="11">7일</text>
+      <text class="fig-sub" x="404" y="190" text-anchor="middle" font-size="11">8일</text>
+      <path class="fig-up-line" d="M301.1 35.8 L301.1 82.5" />
+      <text class="fig-up" x="295.1" y="33.8" font-size="12" text-anchor="end">+80원 비쌈</text>
+      <path class="fig-ink-line" d="M12 212 L36 212" />
+      <text class="fig-sub" x="42" y="216">NAV(진짜 가치)</text>
+      <path class="fig-acc-line" d="M170 212 L194 212" />
+      <text class="fig-sub" x="200" y="216">시장가격(내가 사는 값)</text>
+    </svg>
+    <figcaption>시장가격이 NAV보다 높으면 비싸게 사는 것이고(괴리율 플러스), 낮으면 싸게 사는 것이다(괴리율 마이너스). 정상적인 ETF는 둘이 다시 가까워지는 힘이 작동한다.</figcaption>
+  </figure>
+
+  <h2>괴리율 - 10,000원짜리를 10,500원에 사고 있지 않은가</h2>
+  <p>평소엔 시장가격과 NAV 차이가 거의 없다. 문제는 개미가 몰릴 때다. 한 테마가 뜨거워져 매수세가 쏟아지거나, 해외
+  시장이 닫혀 있어 진짜 가치를 가늠하기 어려운 시간대에 가격이 NAV에서 멀리 벗어날 수 있다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 200" role="img" aria-label="NAV 10,000원짜리 ETF를 매수세가 몰려 10,500원에 샀다가 가격이 NAV로 돌아오면 약 4.8% 손실">
+      <rect class="fig-soft" x="0" y="0" width="420" height="200" />
+      <rect class="fig-marker" x="30" y="83.3" width="80" height="66.7" />
+      <text class="fig-ink" x="70" y="75.3" text-anchor="middle">10,000원</text>
+      <text class="fig-sub" x="70" y="170" text-anchor="middle">NAV</text>
+      <rect class="fig-up" x="160" y="50" width="80" height="100" />
+      <text class="fig-ink" x="200" y="42" text-anchor="middle">10,500원</text>
+      <text class="fig-sub" x="200" y="170" text-anchor="middle">내가 산 값</text>
+      <rect class="fig-marker" x="290" y="83.3" width="80" height="66.7" />
+      <text class="fig-ink" x="330" y="75.3" text-anchor="middle">10,000원</text>
+      <text class="fig-sub" x="330" y="170" text-anchor="middle">정상화 뒤</text>
+      <text class="fig-down" x="398" y="108" text-anchor="end" font-size="15" font-weight="700">-4.8%</text>
+      <text class="fig-sub" x="398" y="126" text-anchor="end">종목이 안 움직여도</text>
+      <text class="fig-sub" x="398" y="142" text-anchor="end">이만큼 잃는다</text>
+      <text class="fig-sub" x="12" y="192" font-size="11">막대 높이는 9,000원부터 잘라서 그렸다(차이를 보이려는 것).</text>
+    </svg>
+    <figcaption>진짜 가치 10,000원짜리를 10,500원에 샀다. 그 뒤 가격이 NAV로 돌아오기만 해도 -4.8%다. 담긴 종목이 한 푼도 안 빠졌는데도 그렇다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>사기 전에 하는 두 가지</b> 증권사 앱 ETF 상세 화면에서 <b>괴리율</b>(또는 NAV)을 본다. 그리고 <b>지정가</b>로
+    주문한다. 장 시작 직후와 마감 직전에는 가격이 거칠어서 시장가로 던지면 NAV보다 비싼 값에 체결될 수 있다.
+  </div>
+
+  <h2>추적오차 - 같은 지수를 따라가는데 왜 내 수익률이 모자랄까</h2>
+  <p>지수가 12% 올랐으면 ETF도 12% 올라야 할 것 같지만 조금 모자란다. 운용 비용이 들고, 모든 종목을 매 순간 정확한
+  비율로 맞추기 어렵고, 배당이 들어오는 시점도 다르기 때문이다. 이 차이를 <b>추적오차</b>라고 한다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 224" role="img" aria-label="기초지수가 12개월 뒤 112가 되었을 때 ETF는 111.5로 방향은 같지만 0.5 모자란 가상 그래프">
+      <path class="fig-dash" d="M44 150 L404 150" />
+      <text class="fig-sub" x="0" y="154" font-size="10">100</text>
+      <path class="fig-dash" d="M44 96 L404 96" />
+      <text class="fig-sub" x="0" y="100" font-size="10">106</text>
+      <path class="fig-dash" d="M44 42 L404 42" />
+      <text class="fig-sub" x="0" y="46" font-size="10">112</text>
+      <path class="fig-ink-line" d="M44 150 L76.7 133.8 L109.5 141.9 L142.2 112.2 L174.9 91.5 L207.6 104.1 L240.4 74.4 L273.1 58.2 L305.8 69 L338.5 50.1 L371.3 56.4 L404 42" />
+      <path class="fig-acc-line" d="M44 150 L76.7 134.7 L109.5 143.7 L142.2 114.9 L174.9 95.1 L207.6 107.7 L240.4 78.9 L273.1 63.6 L305.8 74.4 L338.5 55.5 L371.3 61.8 L404 46.5" />
+      <text class="fig-ink" x="404" y="34" text-anchor="end" font-size="12">지수 112</text>
+      <text class="fig-sub" x="404" y="64.5" text-anchor="end" font-size="12">ETF 111.5</text>
+      <text class="fig-sub" x="44" y="190" font-size="11">시작</text>
+      <text class="fig-sub" x="404" y="190" text-anchor="end" font-size="11">12개월</text>
+      <path class="fig-ink-line" d="M12 212 L36 212" />
+      <text class="fig-sub" x="42" y="216">기초지수</text>
+      <path class="fig-acc-line" d="M130 212 L154 212" />
+      <text class="fig-sub" x="160" y="216">ETF (보수·운용 때문에 조금 처진다)</text>
+    </svg>
+    <figcaption>방향은 같은데 끝에 가서 0.5가 모자라다. 같은 지수를 따라가는 ETF가 여러 개라면, 최근 수익률보다 이 차이가 작은 쪽이 지수에 충실하다.</figcaption>
+  </figure>
+
+  <h2>보수 - 작아 보이는 숫자가 20년 뒤엔 크다</h2>
+  <p>ETF는 공짜로 굴러가지 않는다. 운용사가 가져가는 비용이 <b>총보수</b>인데, 가격에서 매일 조금씩 빠지기 때문에
+  통장에 찍히는 돈은 없고 수익률만 조용히 낮아진다. 연 0.1%와 1%는 100만원 기준으로 1년에 1,000원과 10,000원이다.
+  별것 아니다. 문제는 복리로 20년을 가면서 쌓이는 격차다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="연 7% 수익에서 연 보수 0.1%와 1%를 뗀 20년 가상 비교: 100만원이 약 381만원과 약 321만원">
+      <path class="fig-dash" d="M44 168 L404 168" />
+      <text class="fig-sub" x="0" y="172" font-size="10">100</text>
+      <path class="fig-dash" d="M44 120 L404 120" />
+      <text class="fig-sub" x="0" y="124" font-size="10">200</text>
+      <path class="fig-dash" d="M44 72 L404 72" />
+      <text class="fig-sub" x="0" y="76" font-size="10">300</text>
+      <path class="fig-dash" d="M44 24 L404 24" />
+      <text class="fig-sub" x="0" y="28" font-size="10">400</text>
+      <path class="fig-ink-line" d="M44 168 L62 164.7 L80 161.1 L98 157.4 L116 153.3 L134 149 L152 144.4 L170 139.4 L188 134.1 L206 128.5 L224 122.5 L242 116 L260 109.1 L278 101.7 L296 93.8 L314 85.4 L332 76.4 L350 66.8 L368 56.5 L386 45.5 L404 33.7" />
+      <path class="fig-acc-line" d="M44 168 L62 165.1 L80 162.1 L98 158.8 L116 155.4 L134 151.8 L152 147.9 L170 143.8 L188 139.5 L206 134.9 L224 130 L242 124.9 L260 119.4 L278 113.6 L296 107.5 L314 101 L332 94.1 L350 86.7 L368 79 L386 70.8 L404 62.1" />
+      <text class="fig-ink" x="402" y="25.7" text-anchor="end" font-size="12">381</text>
+      <text class="fig-sub" x="402" y="80.1" text-anchor="end" font-size="12">321</text>
+      <text class="fig-sub" x="44" y="188" text-anchor="middle" font-size="11">시작</text>
+      <text class="fig-sub" x="134" y="188" text-anchor="middle" font-size="11">5년</text>
+      <text class="fig-sub" x="224" y="188" text-anchor="middle" font-size="11">10년</text>
+      <text class="fig-sub" x="314" y="188" text-anchor="middle" font-size="11">15년</text>
+      <text class="fig-sub" x="404" y="188" text-anchor="middle" font-size="11">20년</text>
+      <path class="fig-ink-line" d="M12 212 L36 212" />
+      <text class="fig-sub" x="42" y="216">보수 연 0.1%</text>
+      <path class="fig-acc-line" d="M150 212 L174 212" />
+      <text class="fig-sub" x="180" y="216">보수 연 1.0%</text>
+    </svg>
+    <figcaption>비용을 떼기 전 연 7%를 번다고 가정하면, 100만원이 20년 뒤 연 0.1%에서는 약 381만원, 연 1%에서는 약 321만원이다. 격차 약 60만원. 세금과 매매비용은 뺀 단순 계산이다.</figcaption>
+  </figure>
+
+  <p>그렇다고 보수가 낮은 ETF가 늘 정답은 아니다. 보수가 낮아도 거래가 거의 없으면 다음 장의 스프레드에서 다 까먹는다.
+  오래 들고 갈 ETF는 보수를, 자주 사고팔 ETF는 보수와 스프레드를 같이 본다.</p>
+
+  <h2>거래가 적은 ETF는 사자마자 손해다 - 스프레드</h2>
+  <p>ETF도 호가창에서 거래된다. 사려는 가격과 팔려는 가격 사이의 간격이 <b>스프레드</b>다. 거래가 활발한 ETF는 간격이
+  촘촘하고, 거래가 한산한 ETF는 벌어져 있다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 210" role="img" aria-label="거래가 활발한 ETF는 매수 9,995원 매도 10,000원으로 호가 차이가 5원, 한산한 ETF는 매수 9,900원 매도 10,100원으로 200원 차이">
+      <rect class="fig-soft" x="0" y="0" width="200" height="210" />
+      <rect class="fig-soft2" x="220" y="0" width="200" height="210" />
+      <text class="fig-ink" x="10" y="24">거래 많은 ETF</text>
+      <rect class="fig-down" x="10" y="40" width="180" height="30" opacity="0.18" />
+      <text class="fig-ink" x="20" y="60" font-size="13">10,000원 팔자</text>
+      <rect class="fig-white" x="10" y="84" width="180" height="34" />
+      <text class="fig-sub" x="100" y="106" text-anchor="middle">차이 5원</text>
+      <rect class="fig-up" x="10" y="132" width="180" height="30" opacity="0.18" />
+      <text class="fig-ink" x="20" y="152" font-size="13">9,995원 사자</text>
+      <text class="fig-sub" x="10" y="188">사자마자 팔아도 5원</text>
+      <text class="fig-ink" x="230" y="24">거래 한산한 ETF</text>
+      <rect class="fig-down" x="230" y="40" width="180" height="30" opacity="0.18" />
+      <text class="fig-ink" x="240" y="60" font-size="13">10,100원 팔자</text>
+      <rect class="fig-white" x="230" y="84" width="180" height="34" />
+      <text class="fig-sub" x="320" y="106" text-anchor="middle">차이 200원</text>
+      <rect class="fig-up" x="230" y="132" width="180" height="30" opacity="0.18" />
+      <text class="fig-ink" x="240" y="152" font-size="13">9,900원 사자</text>
+      <text class="fig-sub" x="230" y="188">사자마자 팔면 200원</text>
+    </svg>
+    <figcaption>왼쪽은 사자마자 팔아도 5원 손해, 오른쪽은 200원 손해다. 가격이 한 칸도 움직이지 않았는데 -2%가 찍힌다. 거래대금이 작은 테마 ETF에서 자주 겪는다.</figcaption>
+  </figure>
+
+  <p>그래서 ETF를 볼 때는 거래량보다 <b>거래대금</b>과 <b>호가 간격</b>을 같이 본다. 호가에 올라 있는 물량이 얇으면 시장가로
+  많이 사는 순간 값이 밀려 올라간다. 주식의 호가창 읽는 법은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/order.html">2장 주문과 체결</a>과 같다.</p>
+
+  <h2>ETF는 주식만 담지 않는다</h2>
+  <p>주식을 담은 ETF 말고도 미국 국채, 회사채, 금, 원유, 환율, 특정 산업만 모은 ETF가 있다. 주식 ETF에서는 지수와 기업을,
+  채권 ETF에서는 금리를, 금 ETF에서는 달러와 실질금리를 배운다. ETF는 자산 하나가 아니라 <b>여러 시장으로 들어가는
+  문</b>에 가깝다. 채권 ETF의 움직임이 궁금하면 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/bond-market.html">채권 이야기</a>를 먼저 본다.</p>
+
+  <h2>레버리지 ETF - 두 배 오른다는 말의 함정</h2>
+  <p>개미가 가장 많이 다치는 곳이 여기다. 2배 레버리지 ETF는 <b>하루</b> 지수 등락의 두 배를 따라가도록 설계됐다. 여기서
+  중요한 단어는 하루다. 오늘 1% 오르면 약 2%, 내일 1% 내리면 약 2% 내린다. 매일 새로 계산한다.</p>
+  <p>그래서 지수가 제자리로 돌아와도 레버리지는 제자리로 오지 않는다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="지수는 100에서 110으로 올랐다 다시 100으로 돌아오는데 2배 레버리지 ETF는 100에서 120으로 올랐다가 98.2로 내려옴">
+      <rect class="fig-soft" x="0" y="0" width="420" height="220" />
+      <rect class="fig-marker" x="40" y="137.5" width="38" height="32.5" />
+      <rect class="fig-acc" x="84" y="137.5" width="38" height="32.5" />
+      <text class="fig-ink" x="59" y="131.5" text-anchor="middle" font-size="12">100</text>
+      <text class="fig-ink" x="103" y="131.5" text-anchor="middle" font-size="12">100</text>
+      <text class="fig-sub" x="81" y="190" text-anchor="middle">시작</text>
+      <rect class="fig-marker" x="165" y="105" width="38" height="65" />
+      <rect class="fig-acc" x="209" y="72.5" width="38" height="97.5" />
+      <text class="fig-ink" x="184" y="99" text-anchor="middle" font-size="12">110</text>
+      <text class="fig-ink" x="228" y="66.5" text-anchor="middle" font-size="12">120</text>
+      <text class="fig-sub" x="206" y="190" text-anchor="middle">1일차</text>
+      <rect class="fig-marker" x="290" y="137.5" width="38" height="32.5" />
+      <rect class="fig-acc" x="334" y="143.3" width="38" height="26.7" />
+      <text class="fig-ink" x="309" y="131.5" text-anchor="middle" font-size="12">100</text>
+      <text class="fig-ink" x="353" y="137.3" text-anchor="middle" font-size="12">98.2</text>
+      <text class="fig-sub" x="331" y="190" text-anchor="middle">2일차</text>
+      <rect class="fig-marker" x="12" y="204" width="12" height="9" />
+      <text class="fig-sub" x="30" y="212" font-size="11">지수</text>
+      <rect class="fig-acc" x="80" y="204" width="12" height="9" />
+      <text class="fig-sub" x="98" y="212" font-size="11">2배 레버리지 (막대는 90부터 잘라 그림)</text>
+    </svg>
+    <figcaption>지수는 100에서 110이 됐다가 다시 100이 된다(+10%, 다음 날 -9.09%). 2배 레버리지는 120이 됐다가 -18.18%를 맞아 98.2가 된다. 지수는 본전인데 레버리지는 약 -1.8%다.</figcaption>
+  </figure>
+
+  <p>이틀로는 작아 보인다. 박스권에서 위아래로 흔들리는 장이 길어지면 이야기가 달라진다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="지수가 하루 +10%, 하루 -10%를 5번 반복하면 지수는 약 95.1, 2배 레버리지는 약 81.5" >
+      <path class="fig-dash" d="M44 141.8 L404 141.8" />
+      <text class="fig-sub" x="0" y="145.8" font-size="10">80</text>
+      <path class="fig-dash" d="M44 89.5 L404 89.5" />
+      <text class="fig-sub" x="0" y="93.5" font-size="10">100</text>
+      <path class="fig-dash" d="M44 37.1 L404 37.1" />
+      <text class="fig-sub" x="0" y="41.1" font-size="10">120</text>
+      <path class="fig-ink-line" d="M44 89.5 L80 63.3 L116 92.1 L152 66.2 L188 94.7 L224 69 L260 97.2 L296 71.8 L332 99.8 L368 74.6 L404 102.3" />
+      <path class="fig-acc-line" d="M44 89.5 L80 37.1 L116 99.9 L152 49.7 L188 110 L224 61.7 L260 119.6 L296 73.3 L332 128.9 L368 84.4 L404 137.8" />
+      <text class="fig-ink" x="404" y="94.3" text-anchor="end" font-size="12">지수 95.1</text>
+      <text class="fig-down" x="404" y="154.8" text-anchor="end" font-size="12">레버리지 81.5</text>
+      <text class="fig-sub" x="44" y="190" font-size="11">시작</text>
+      <text class="fig-sub" x="404" y="190" text-anchor="end" font-size="11">10일 뒤</text>
+      <path class="fig-ink-line" d="M12 212 L36 212" />
+      <text class="fig-sub" x="42" y="216">지수 (+10%, -10% 번갈아)</text>
+      <path class="fig-acc-line" d="M210 212 L234 212" />
+      <text class="fig-sub" x="240" y="216">2배 레버리지</text>
+    </svg>
+    <figcaption>지수가 하루 +10%, 하루 -10%를 5번씩 반복하면 지수는 95.1까지 내려가고 2배 레버리지는 81.5까지 내려간다. 위아래로 흔들릴수록 레버리지가 지수보다 훨씬 더 깎인다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>개미가 자주 하는 실수</b> "지수가 연말까지 오를 것 같으니 레버리지로 두 배를 먹겠다"고 사서 몇 달 들고 있는 것.
+    그 사이 지수가 위아래로 흔들리면 지수는 본전인데 내 ETF만 깎여 있다. 레버리지는 <b>며칠 안에 방향을 보고 들어갔다
+    나오는 도구</b>로 설계됐고, 오래 들고 가는 도구가 아니다. 이 흔들림 때문에 깎이는 현상을 변동성 손실(변동성 끌림)이라고 한다.
+  </div>
+
+  <h2>인버스 ETF - 시장이 떨어지면 오르는 상품</h2>
+  <p>기초지수가 하루 1% 내리면 약 1% 오르도록 설계된 ETF다. 시장이 무너질 때 손실을 줄이는 방어용으로 쓰이기도 한다.
+  다만 인버스도 <b>하루 단위</b>로 계산하기 때문에 오래 들고 있으면 지수의 정확한 반대가 되지 않는다. 지수가 한 달 동안
+  -5%였다고 인버스가 +5%인 것이 아니다. 하락한 뒤 반등하는 시장에서 인버스를 오래 들고 있던 사람이 지수가 본전이 됐는데도
+  손해를 보는 이유가 이것이다.</p>
+
+  <h2>배당 ETF - 분배금이 많다고 이득이 아니다</h2>
+  <p>ETF가 보유 종목의 배당 등으로 번 돈을 나눠 주는 것이 <b>분배금</b>이다. 분배금이 나가면 그만큼 ETF 안의 돈이 줄어
+  <b>ETF 가격도 그만큼 내려간다</b>. 내 돈이 다른 주머니에서 같은 주머니로 옮겨 간 셈이다. 분배금만 높은 것을 쫓다가
+  가격이 더 크게 빠지면 손해다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 190" role="img" aria-label="분배금 4%를 받았지만 ETF 가격이 6% 떨어지면 총수익은 마이너스 2%, 분배금이 적어도 가격이 2% 오른 ETF는 플러스 3%">
+      <rect class="fig-soft" x="0" y="0" width="420" height="190" />
+      <text class="fig-ink" x="12" y="24">분배금 많은 ETF</text>
+      <path class="fig-ink-line" d="M150 30 L150 72" />
+      <rect class="fig-up" x="150" y="34" width="72" height="16" />
+      <text class="fig-sub" x="228" y="46" font-size="11">분배금 +4%</text>
+      <rect class="fig-down" x="42" y="56" width="108" height="16" />
+      <text class="fig-sub" x="36" y="68" font-size="11" text-anchor="end">가격 -6%</text>
+      <text class="fig-ink" x="408" y="54" text-anchor="end" font-size="13">총수익 -2%</text>
+      <text class="fig-ink" x="12" y="96">분배금 적은 ETF</text>
+      <path class="fig-ink-line" d="M150 102 L150 144" />
+      <rect class="fig-up" x="150" y="106" width="18" height="16" />
+      <text class="fig-sub" x="174" y="118" font-size="11">분배금 +1%</text>
+      <rect class="fig-up" x="150" y="128" width="36" height="16" />
+      <text class="fig-sub" x="192" y="140" font-size="11">가격 +2%</text>
+      <text class="fig-ink" x="408" y="126" text-anchor="end" font-size="13">총수익 +3%</text>
+    </svg>
+    <figcaption>분배금 4%를 받았어도 가격이 -6%면 총수익은 -2%. 분배금이 1%여도 가격이 2% 오르면 +3%다. 분배금과 가격 변화를 합친 총수익으로 비교한다.</figcaption>
+  </figure>
+
+  <h2>ETF 이름부터 읽는다</h2>
+  <p>이름에 많은 정보가 들어 있다. 한국 상장 ETF 이름에는 보통 운용사 브랜드, 추종 지수, 구조를 알려 주는 말이 붙는다.</p>
+  <table class="learn-table">
+    <thead><tr><th>이름에 붙는 말</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td>운용사 브랜드(KODEX·TIGER 등)</td><td>어느 운용사 상품인지. 같은 지수라도 보수가 다를 수 있다.</td></tr>
+      <tr><td>지수 이름(코스피200·S&amp;P500 등)</td><td>무엇을 따라가는지. 같은 나라 주식이어도 지수가 다르면 다른 상품이다.</td></tr>
+      <tr><td>(H)</td><td>환율 변동을 막는 환헤지. 없으면 환율이 수익률에 그대로 영향을 준다.</td></tr>
+      <tr><td>레버리지 / 인버스</td><td>하루 등락을 2배로 따라가거나 반대로 따라간다. 오래 들고 가는 상품이 아니다.</td></tr>
+      <tr><td>TR</td><td>분배금을 나눠 주지 않고 재투자하는 구조라는 뜻으로 쓰인다.</td></tr>
+    </tbody>
+  </table>
+  <p>표기 방식은 운용사마다 조금씩 다르다. 이름만 믿지 말고 증권사 앱의 ETF 상세 화면이나 운용사 설명서에서
+  구조를 확인한다.</p>
+
+  <h2>ETF를 사기 전에 확인할 것</h2>
+  <table class="learn-table">
+    <thead><tr><th>확인 항목</th><th>왜 보나</th></tr></thead>
+    <tbody>
+      <tr><td>추종 지수·구성 종목</td><td>무엇을 샀는지. 이름이 비슷해도 속은 다르다.</td></tr>
+      <tr><td>비중 쏠림</td><td>상위 몇 종목이 대부분이면 분산 효과가 작다.</td></tr>
+      <tr><td>괴리율</td><td>NAV보다 비싸게 사고 있지 않은지.</td></tr>
+      <tr><td>총보수</td><td>오래 들고 갈수록 커지는 비용.</td></tr>
+      <tr><td>거래대금·호가 간격</td><td>사자마자 몇 %를 잃는지.</td></tr>
+      <tr><td>환헤지 여부</td><td>해외 ETF라면 환율이 수익률에 끼는지.</td></tr>
+      <tr><td>레버리지·인버스 여부</td><td>하루 단위 구조인지.</td></tr>
+    </tbody>
+  </table>
+  <p>차트는 이 표를 다 본 뒤에 본다. 차트에서 모양이 좋아 보이는 ETF가 괴리율이 크게 벌어져 있거나 거래가 없는 ETF인 경우가 있다.</p>
+
+  <h2>이 사이트에서 확인하기</h2>
+  <ul>
+    <li>ETF로 돈이 얼마나 들어오고 나가는지는 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/money.html">6장 돈이 들어오는 구조</a>의 다섯 수도꼭지 가운데 하나로 다룬다.</li>
+    <li>NAV·괴리율·총보수는 증권사 앱의 ETF 상세 화면과 운용사 홈페이지에서 확인한다.</li>
+  </ul>
+
+  <h2>한 줄 정리</h2>
+  <p>ETF는 여러 자산을 한 바구니에 담아 주식처럼 거래하는 구조일 뿐이고, 위험은 안에 든 자산과 상품 구조가 정한다.
+  살 때는 <b>무엇을 따라가는지 → 괴리율 → 보수 → 거래대금과 호가 간격</b> 순으로 본다. 레버리지와 인버스는 장기 수익률의
+  두 배·반대가 아니라 <b>하루 등락</b>을 따라가는 별개 구조라서, 오래 들고 있으면 지수가 본전이어도 내 돈은 깎인다.</p>
+
+  <div class="learn-note">
+    이 글은 공부용 설명이고 투자 권유가 아니다. 특정 ETF를 사라거나 팔라고 말하지 않는다. 제도·세금·수수료는 상품과
+    시기에 따라 다르므로 중요한 결정 전에는 증권사와 운용사 공지를 확인한다.
+  </div>
+
+  <div class="learn-nav">
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fx-market.html">← 환율 이야기</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">경제 이야기 →</a>
+  </div>
+
+  <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+</body>
+</html>

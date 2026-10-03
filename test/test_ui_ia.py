@@ -1842,7 +1842,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         읽을거리 줄에 "주식 이야기"와 나란히 이어 붙인다(끼워 넣기가 아니라 옆에 추가).
         """
         standalone_pages = ["us-market.html", "chart-patterns.html", "bond-market.html", "crypto-market.html",
-                             "fx-market.html", "economy-story.html"]
+                             "fx-market.html", "economy-story.html", "etf-market.html"]
         index = self.read("learn/index.html")
         shell = self.read("js/skin-shell.js")
         for chapter in standalone_pages:

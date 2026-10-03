@@ -135,6 +135,8 @@ a { color: #d24f45; }
 .fig-ink-line { fill: none; stroke: #1f2937; stroke-width: 1.5; }
 .fig-white { fill: #fdfdf7; }
 .fig-marker { fill: #1f2937; }
+.fig-acc { fill: #c08a2b; }
+.fig-acc-line { fill: none; stroke: #c08a2b; stroke-width: 2; }
 /* 색 채운 막대 위에 얹는 글자 - 라이트/다크 모두 대비를 유지한다. */
 .fig-on-accent { fill: #fdfdf7; font-size: 14px; font-weight: 700; }
 
@@ -162,6 +164,8 @@ a { color: #d24f45; }
   .fig-ink-line { stroke: #d3dbe8; }
   .fig-white { fill: #0f1420; }
   .fig-marker { fill: #d3dbe8; }
+  .fig-acc { fill: #e0b25a; }
+  .fig-acc-line { stroke: #e0b25a; }
   .fig-on-accent { fill: #16202f; }
 }
 
