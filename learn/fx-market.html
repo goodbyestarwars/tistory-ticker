@@ -16,8 +16,8 @@
   <p class="legal-effective-date">환전 스프레드, 외화예금·달러ETF·FX마진거래, 환율을 움직이는 요인, 레버리지 리스크 관리</p>
 
   <p>환율은 24시간 거래되고 상한가·하한가도 없어서, 주식과는 결이 다른 시장이다. 최근 원/달러 환율이
-  크게 출렁이면서 직접 환전하거나 FX마진거래로 환율에 베팅하는 사람도 늘었다. 이 글은 "환전은 어떻게
-  하는 게 싼지"부터 "환율이 왜 이렇게 움직이는지", "레버리지가 왜 위험한지"까지 실전 위주로 정리한다.</p>
+  크게 출렁이면서 직접 환전하거나 FX마진거래로 환율에 베팅하는 사람도 늘었다. 여기서는 세 가지를 본다.
+  환전은 어떻게 해야 덜 새는지, 환율은 무엇을 보고 움직이는지, 레버리지는 왜 위험한지.</p>
 
   <h2>환전할 때 실제로 무슨 일이 벌어지나</h2>
   <p>은행 창구나 앱에서 "환율"이라고 뜨는 숫자는 하나가 아니다. 기준이 되는 매매기준율에, 사고팔 때마다
@@ -38,7 +38,7 @@
       <path class="fig-dash" d="M0 100 L420 100" />
       <text class="fig-sub" x="150" y="94">매매기준율 1,300원</text>
       <rect class="fig-down" x="40" y="20" width="120" height="70" opacity="0.85" />
-      <text class="fig-ink" x="48" y="12" font-size="12">살 때(달러 매입)</text>
+      <text class="fig-ink" x="48" y="15" font-size="12">살 때(달러 매입)</text>
       <text class="fig-on-accent" x="70" y="60" font-size="14">1,317원</text>
       <rect class="fig-up" x="260" y="110" width="120" height="40" opacity="0.85" />
       <text class="fig-ink" x="268" y="102" font-size="12">팔 때(달러 매도)</text>
@@ -48,10 +48,21 @@
   </figure>
 
   <div class="learn-note">
-    <b>실전 팁 - 환전 우대율을 반드시 확인한다</b> 창구보다 은행 앱, 앱보다 환전 특화 앱·증권사 서비스가
+    <b>환전 우대율부터 본다</b> 창구보다 은행 앱, 앱보다 환전 특화 앱·증권사 서비스가
     우대율이 높은 경우가 많다(수시로 바뀌므로 그때그때 비교가 필요하다). 같은 100만 원을 환전해도
     우대율 차이만으로 수만 원이 갈릴 수 있다 - 큰 금액을 바꿀수록 이 차이가 커진다.
   </div>
+
+  <p>우대율이 실제로 얼마나 차이 나는지 숫자로 보자. 기준율 1,300원에서 살 때 17원이 붙는 은행에서 5,000달러(약 650만원)를 바꾼다.</p>
+  <table class="learn-table">
+    <thead><tr><th>우대율</th><th>1달러당 붙는 돈</th><th>5,000달러 환전 비용</th></tr></thead>
+    <tbody>
+      <tr><td>0%(창구 그대로)</td><td>17원</td><td>85,000원</td></tr>
+      <tr><td>50%</td><td>8.5원</td><td>42,500원</td></tr>
+      <tr><td>90%</td><td>1.7원</td><td>8,500원</td></tr>
+    </tbody>
+  </table>
+  <p>살 때 한 번, 팔 때 한 번 붙는다. 미국 주식을 사려고 바꿨다가 다시 원화로 돌리면 이 비용을 두 번 낸다. 환율이 1% 올라 벌었다고 생각했는데 왕복 스프레드가 2%면 손해다.</p>
 
   <h2>달러를 들고 있는 방법도 여러 가지다</h2>
   <p>"환율에 투자한다"고 해도 방법이 하나가 아니다. 각각 수수료·세금·유동성이 다르다.</p>
@@ -72,12 +83,34 @@
   손실도 그만큼 커진다.</p>
 
   <div class="learn-note">
-    <b>반드시 알아야 할 위험</b> 레버리지 거래는 예상과 반대로 환율이 움직이면 증거금이 빠르게 줄어들고,
+    <b>레버리지는 손실도 키운다</b> 레버리지 거래는 예상과 반대로 환율이 움직이면 증거금이 빠르게 줄어들고,
     일정 수준 아래로 떨어지면 강제로 청산(로스컷)될 수 있다. 여기에 하루를 넘겨 포지션을 들고 가면
     금리차만큼 붙는 스왑포인트(롤오버 비용)까지 감안해야 한다. "환율은 주식보다 덜 움직인다"는 말은
     레버리지를 걸지 않았을 때 얘기다 - 레버리지를 걸면 작은 환율 움직임도 증거금 기준으로는 크게
     증폭된다.
   </div>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 220" role="img" aria-label="증거금 100만원으로 레버리지 10배를 쓰면 환율 1% 상승에 10만원 이익, 1% 하락에 10만원 손실, 5% 하락이면 50만원 손실로 증거금이 반으로 줄어든다">
+      <text class="fig-sub" x="0" y="14">증거금 100만원 · 레버리지 10배(거래 규모 1,000만원, 가상값)</text>
+      <path class="fig-line" d="M210 26 L210 170" />
+      <text class="fig-ink" x="0" y="48" font-size="12.5">환율 +1%</text>
+      <rect class="fig-up" x="210" y="34" width="28" height="22" opacity="0.85" />
+      <text class="fig-sub" x="244" y="50">+10만원(+10%)</text>
+      <text class="fig-ink" x="0" y="84" font-size="12.5">환율 -1%</text>
+      <rect class="fig-down" x="182" y="70" width="28" height="22" opacity="0.85" />
+      <text class="fig-sub" x="218" y="86">-10만원(-10%)</text>
+      <text class="fig-ink" x="0" y="120" font-size="12.5">환율 -3%</text>
+      <rect class="fig-down" x="126" y="106" width="84" height="22" opacity="0.85" />
+      <text class="fig-sub" x="218" y="122">-30만원(-30%)</text>
+      <text class="fig-ink" x="0" y="156" font-size="12.5">환율 -5%</text>
+      <rect class="fig-down" x="70" y="142" width="140" height="22" opacity="0.85" />
+      <text class="fig-sub" x="218" y="158">-50만원(증거금 반 토막)</text>
+      <text class="fig-sub" x="0" y="192">환율 5%는 몇 주 사이에도 움직일 수 있는 폭이다.</text>
+      <text class="fig-sub" x="0" y="212">그 전에 로스컷 기준에 닿으면 강제로 정리된다.</text>
+    </svg>
+    <figcaption>레버리지 10배면 환율 1%가 내 돈 10%다.</figcaption>
+  </figure>
 
   <h2>환율은 무엇을 보고 움직이나</h2>
   <p>원/달러 환율에 영향을 주는 요인은 여러 개가 동시에 작용하지만, 자주 언급되는 것들은 이렇다.</p>
@@ -106,18 +139,18 @@
   <ul>
     <li>손절선을 매매 전에 미리 정해 둔다 - 레버리지가 걸린 만큼 손실 속도도 빠르다.</li>
     <li>레버리지를 최대치로 쓰지 않는다 - 증거금에 여유가 있어야 일시적인 변동을 버틸 수 있다.</li>
-    <li>포지션을 한 번에 몰아넣지 않고 나눠서 진입·청산한다.</li>
-    <li>하루를 넘길 때 붙는 스왑포인트(롤오버 비용)를 수익 계산에 반드시 포함한다.</li>
+    <li>증거금을 한 번에 다 걸지 않는다. 남은 증거금이 버티는 힘이다.</li>
+    <li>하루를 넘길 때 붙는 스왑포인트(롤오버 비용)를 수익 계산에 넣는다.</li>
   </ul>
 
   <h2>한 줄 정리</h2>
   <p>환전은 매매기준율이 아니라 스프레드·우대율까지 봐야 실제 비용을 알 수 있고, 달러 노출 방법은
   외화예금·ETF·FX마진거래마다 수수료·세금·위험이 다르다. 특히 레버리지가 걸린 FX마진거래는 작은 환율
-  움직임도 증거금 기준으로 크게 증폭되므로, 손절선과 레버리지 크기를 매매 전에 반드시 정해야 한다.</p>
+  움직임도 증거금 기준으로 크게 증폭되므로, 손절선과 레버리지 크기를 매매 전에 정한다.</p>
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/crypto-market.html">← 코인 이야기</a>
-    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html">경제 이야기 →</a>
+    <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">ETF 이야기 →</a>
   </div>
 
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>

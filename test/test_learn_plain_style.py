@@ -22,7 +22,13 @@ ALLOWED = {
     '아니다',      # 평서체 부정
     '팝니다',      # 중고거래 비유의 게시글 제목("팝니다 글")
     '삽니다',      # 같은 비유("삽니다 글")
+    '주세요',      # 경제 이야기 2장 시장 상인과의 대화 인용("배추 한 포기 더 주세요")
 }
+
+# 주식 이야기 본편(차례 + 7장). 이야기 시리즈 독립 페이지(미국·차트·채권·코인·환율·ETF·
+# 기업분석·경제·절세·절세 특집)는 이 밖에 따로 늘어난다(2026-09-22부터).
+CORE_CHAPTERS = ['index.html', 'market.html', 'order.html', 'chart.html', 'company.html',
+                 'risk.html', 'money.html', 'macro.html']
 
 
 def learn_pages():
@@ -48,8 +54,11 @@ class PlainStyleTest(unittest.TestCase):
     def test_every_chapter_is_checked(self):
         """장이 늘거나 파일명이 바뀌어도 검사에서 빠지지 않게 개수를 확인한다."""
         pages = learn_pages()
-        self.assertIn('index.html', pages)
-        self.assertEqual(len(pages), 8, pages)  # 차례 + 7장(사용자 지시: 장 수를 늘리지 않는다)
+        for name in CORE_CHAPTERS:
+            self.assertIn(name, pages)
+        # 본편은 차례 + 7장(사용자 지시: 장 수를 늘리지 않는다). 새 주제는 독립 페이지로 둔다.
+        self.assertEqual(len(CORE_CHAPTERS), 8)
+        self.assertIn('tax-newlyweds.html', pages)
 
 
 if __name__ == '__main__':
