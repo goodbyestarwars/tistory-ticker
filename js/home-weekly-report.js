@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v3';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v4';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -293,18 +293,17 @@
     return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 차트 국면·모멘텀·펀더멘털·위험 필터를 통과한 종목만 표시합니다</p></div>'
       + '<div class="hwr2-cols' + (hasPast ? '' : ' is-single') + '">' + left + right + '</div></section>';
   }
+  // 2026-10-04: 위 지수 4개(KOSPI·KOSDAQ·나스닥·S&P500)는 바로 아래 지수 블록에 이미 있어서 여기서는 빼고,
+  // 거기 없는 자산(원유·금·미국 10년 국채·비트코인)만 크게 보여준다.
   function indexSummary(indices) {
-    var displayOrder = {
-      KOSPI: 0, KOSDAQ: 1, NASDAQ_INDEX: 2, SP500_INDEX: 3,
-      WTI: 4, GOLD: 5, US10Y: 6, BTC: 7
-    };
+    var displayOrder = { WTI: 4, GOLD: 5, US10Y: 6, BTC: 7 };
     var rows = (indices || []).filter(function (item) {
       return item && Object.prototype.hasOwnProperty.call(displayOrder, item.symbol) && num(item.changeRate) != null;
     }).sort(function (a, b) {
       return displayOrder[a.symbol] - displayOrder[b.symbol];
     });
-    if (!rows.length) return '<div class="hwr-index-summary"><span>지수·자산 흐름</span><b>데이터 확인 중</b></div>';
-    return '<div class="hwr-index-summary" aria-label="주간 지수·자산 요약"><span>주간 지수·자산 요약</span>' + rows.map(function (item) {
+    if (!rows.length) return '';
+    return '<div class="hwr-index-summary" aria-label="주간 자산 요약"><span>주간 자산 요약</span>' + rows.map(function (item) {
       return '<b><small>' + escapeHtml(item.name) + '</small><strong class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</strong></b>';
     }).join('') + '</div>';
   }
@@ -547,8 +546,8 @@
     }).join('');
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<section class="hwr2-section hwr2-prep">'
-      + indexSummary(indices)
       + '<div class="hwr-index-grid">' + indexCards + '</div>'
+      + indexSummary(indices)
       + '<h4 class="hwr2-sub">시장 흐름</h4>'
       + '<div class="hwr-summary-row hwr-asset-row"><div>' + rangeCard(fx, { title: '원/달러 환율', unit: 'krw', fallbackLabel: '환율 데이터 확인 중', fallbackMessage: '1년 환율 데이터가 부족합니다.' }) + '</div><div>' + rangeCard(gold, { title: '금 선물', unit: 'usd', fallbackLabel: '금 시세 데이터 확인 중', fallbackMessage: '1년 금 시세 데이터가 부족합니다.' }) + '</div></div>'
       + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'

@@ -594,3 +594,42 @@ html.dark .home-weekly-report { --hw-text: #f5efe0; --hw-sub: rgba(245, 239, 224
 .home-weekly-report .hwr-fx-card .hwr-fx-num, .home-weekly-report .hwr-fx-card .hwr-fx-legend > span, .home-weekly-report .hwr-fx-card .hwr-fx-range > span { font-size: inherit; }
 .home-weekly-report .hwr-fx-card .hwr-fx-main .hwr-fx-num { color: var(--hw-text); }
 .hwr2-val--pair > b.hwr-outcome-pending { font-size: 13px; font-weight: 500; }
+
+/* ── v4 보정 (2026-10-04, 사용자 지적) ──
+   style.css 13번 공통 규칙(html body :where(.hwr-*) { border/radius/background !important })이 v3의 카드 제거를 덮고 있었다 -
+   같은 !important로 이긴다. 구역 사이 가로줄은 양끝으로 갈수록 옅어지는 1px 선. */
+html body .home-weekly-report :where(.hwr-index-card, .hwr-fx-card, .hwr-index-summary) {
+  border-radius: 0 !important; border-width: 0 !important; background-color: transparent !important;
+}
+html body .home-weekly-report .hwr-index-card { border-left: 1px solid var(--hw-line) !important; }
+html body .home-weekly-report .hwr-index-card:first-child { border-left: 0 !important; }
+html body .home-weekly-report .hwr-asset-row > div + div .hwr-fx-card { border-left: 1px solid var(--hw-line) !important; }
+html body .home-weekly-report .hwr-schedule {
+  margin-top: 36px; padding: 28px 32px 24px !important;
+  border: 1px solid var(--hw-border) !important; border-radius: 18px !important; background-color: var(--hw-surface) !important;
+}
+html body .home-weekly-report .hwr-schedule .hwr-card-title { margin-bottom: 14px; }
+html body .home-weekly-report .hwr-my-schedule { margin-top: 16px; background-color: var(--hw-surface) !important; }
+
+/* 주간 자산 요약: 4개 값을 읽히는 크기로 */
+.home-weekly-report .hwr-index-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 18px 0 0; padding: 20px 4px 0 !important; }
+.home-weekly-report .hwr-index-summary > span { grid-column: 1 / -1; margin-bottom: 12px; font-size: 14px; font-weight: 650; color: var(--hw-text); }
+.home-weekly-report .hwr-index-summary > b { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 22px; border-left: 1px solid var(--hw-line); }
+.home-weekly-report .hwr-index-summary > b:nth-of-type(1) { padding-left: 0; border-left: 0; }
+.home-weekly-report .hwr-index-summary small { font-size: 13.5px; font-weight: 500; color: var(--hw-sub); }
+.home-weekly-report .hwr-index-summary strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+
+/* 구역 사이 가로줄: 양끝으로 갈수록 옅어짐 */
+.hwr2-section + .hwr2-section::before {
+  content: ""; display: block; height: 1px; margin-bottom: 48px;
+  background: linear-gradient(90deg, transparent 0, var(--hw-border) 24%, var(--hw-border) 76%, transparent 100%);
+}
+@media (max-width: 720px) {
+  .home-weekly-report .hwr-index-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
+  .home-weekly-report .hwr-index-summary > b { padding: 0 14px; }
+  .home-weekly-report .hwr-index-summary > b:nth-of-type(odd) { padding-left: 0; border-left: 0; }
+  .home-weekly-report .hwr-index-summary strong { font-size: 19px; }
+  html body .home-weekly-report .hwr-schedule { padding: 20px 18px 16px !important; }
+  html body .home-weekly-report .hwr-index-card:nth-child(odd) { border-left: 0 !important; }
+  html body .home-weekly-report .hwr-asset-row > div + div .hwr-fx-card { border-left: 0 !important; }
+}
