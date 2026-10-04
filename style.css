@@ -7715,9 +7715,9 @@ html body .mt-section-block { border-top: 0 !important; }
 /* ── 12. 정렬 : 카드 안쪽 여백은 카드 규칙에서 맞춘다 ── */
 html body .card.nav-menu { border-top: 0 !important; }
 
-/* ── 13. 둥근 상자 통일 : 증시온도 안쪽 상자들은 푸른 회색 면 대신 바탕색 + 옅은 선 + 모서리 12px ── */
+/* ── 13. 둥근 상자 통일 (2026-10-04: 체크포인트 패널·헤드라인·주말 리포트 지수/환율 카드는 @layer np의 !important가 unlayered 규칙을 이겨서 여기 목록에서 뺐다) : 증시온도 안쪽 상자들은 푸른 회색 면 대신 바탕색 + 옅은 선 + 모서리 12px ── */
 html body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel,
-  .mt-strategy-panel, .mt-sf-disclaimer) {
+  .mt-sf-disclaimer) {
   background-color: var(--np-paper) !important;
   border: 1px solid rgba(var(--np-ink), .1) !important;
   border-radius: 12px !important;
@@ -7884,8 +7884,8 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
    '휴장' 선택 면이 트랙 끝에 붙었다 → 트랙 안쪽 여백 4px, 위아래 간격은 바깥 여백으로. */
 html body .home-market-switch { padding: 6px !important; margin: 10px 0 12px !important; }
 html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
-html body :where(.hwr-schedule, .hwr-index-summary, .hwr-index-card, .hwr-fx-card, .hwr-news-card, .hwr-columns > article,
-  .hwr-outcome-stat, .mt-strategy-action, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
+html body :where(.hwr-schedule, .hwr-news-card, .hwr-columns > article,
+  .hwr-outcome-stat, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
   border: 1px solid rgba(var(--np-ink), .09) !important;
   border-radius: 16px !important;
   background-color: var(--np-paper) !important;
@@ -8088,6 +8088,12 @@ html body #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827 !
 
 /* ── 28. 휴장 안내를 말풍선으로 (2026-10-04 사용자 요청) ── */
 html body#tt-body-index .home-editorial-page .home-closed-lead { column-gap: 34px !important; }
+/* 말풍선 안 "다음 주 일정 보기 →" 링크: 상자 안 다른 글자와 같은 서체(var(--font-ui))로 */
+html body#tt-body-index .home-editorial-page .home-closed-link {
+  display: inline-block !important; margin-top: 4px !important; font: 600 12px/1.4 var(--font-ui) !important; letter-spacing: -.01em !important;
+  color: rgb(var(--np-ink)) !important; text-decoration: none !important;
+}
+html body#tt-body-index .home-editorial-page .home-closed-link:hover { text-decoration: underline !important; }
 html body#tt-body-index .home-editorial-page .home-closed-status {
   position: relative !important;
   background: rgb(255, 254, 252) !important;

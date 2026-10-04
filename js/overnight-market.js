@@ -549,6 +549,16 @@
     var meta = symbolMeta(item.symbol);
     var rangeLabel = item.high_low_scope === 'chart_range' ? '기간 고가' : '고가';
     var lowLabel = item.high_low_scope === 'chart_range' ? '기간 저가' : '저가';
+    // 금리 카드(FRED 일별 종가)는 장중 고가·저가가 없어 '-'로 비었다. 카드에 실린 차트 종가의 최고·최저로 대신하고 '기간'을 붙인다.
+    var high = item.high, low = item.low;
+    if ((high == null || low == null) && item.chart && item.chart.length > 1) {
+      var closes = item.chart.map(function (row) { return Number(row && row.close); }).filter(function (v) { return isFinite(v); });
+      if (closes.length > 1) {
+        if (high == null) high = Math.max.apply(null, closes);
+        if (low == null) low = Math.min.apply(null, closes);
+        rangeLabel = '기간 고가'; lowLabel = '기간 저가';
+      }
+    }
 
     return ''
       + '<div class="om-body' + (isLoading ? ' om-loading' : '') + '">'
@@ -558,8 +568,8 @@
         : '')
       + '<div class="om-chart" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
       + '<div class="om-hl">'
-      + '<span>' + rangeLabel + ' ' + (item.high != null ? fmtPrice(item.high, meta.digits) + meta.unit : '-') + '</span>'
-      + '<span>' + lowLabel + ' ' + (item.low != null ? fmtPrice(item.low, meta.digits) + meta.unit : '-') + '</span>'
+      + '<span>' + rangeLabel + ' ' + (high != null ? fmtPrice(high, meta.digits) + meta.unit : '-') + '</span>'
+      + '<span>' + lowLabel + ' ' + (low != null ? fmtPrice(low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
       + benchmarkCaption(item.symbol)
       + '</div>';

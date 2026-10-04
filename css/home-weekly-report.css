@@ -633,3 +633,16 @@ html body .home-weekly-report .hwr-my-schedule { margin-top: 16px; background-co
   html body .home-weekly-report .hwr-index-card:nth-child(odd) { border-left: 0 !important; }
   html body .home-weekly-report .hwr-asset-row > div + div .hwr-fx-card { border-left: 0 !important; }
 }
+
+/* ── v5 (2026-10-04) ── 주간 자산 요약 아래 여백, 캘린더 연동 일정(전체 보기) */
+html body .home-weekly-report .hwr-index-summary { padding: 22px 4px 24px !important; margin-bottom: 8px; }
+.home-weekly-report .hwr-schedule-list li.is-extra { display: none; }
+.home-weekly-report .hwr-schedule.is-expanded .hwr-schedule-list li.is-extra { display: grid; }
+.home-weekly-report .hwr-schedule-list li > span a { color: inherit; text-decoration: none; }
+.home-weekly-report .hwr-schedule-list li > span a:hover { text-decoration: underline; }
+.home-weekly-report .hwr-schedule-list li > time { white-space: nowrap; }
+.home-weekly-report .hwr-schedule-list li { grid-template-columns: 68px 38px minmax(0, 1fr); }
+.home-weekly-report .hwr-schedule .hwr2-more-wrap { margin-top: 16px; }
+.hwr2-cal-link { margin: 16px 0 0; text-align: right; font-size: 13px; }
+.hwr2-cal-link a { color: var(--hw-text); font-weight: 650; text-decoration: none; }
+.hwr2-cal-link a:hover { text-decoration: underline; }

@@ -76,3 +76,6 @@ html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { back
 html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: #ff8a83; }
 html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: #80b8ff; }
 @media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: rgba(245, 239, 224, .1); } }
+
+/* 홈 위젯 그리드 안에서는 전체 폭 한 줄을 차지한다(뉴스 줄 아래, 실시간 종목판 위) */
+.home-widget-grid > .home-sector-rotation { grid-column: 1 / -1; }

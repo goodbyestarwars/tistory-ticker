@@ -2451,3 +2451,50 @@ html body #market-temp .mt-sf-disclaimer { margin-top: 22px; padding: 16px 20px 
   #market-temp .mt-sf-picks-col { gap: 4px 16px; }
   #market-temp .mt-cp-body { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ── 30-c. 보정 2 (2026-10-04) ──
+   style.css 의 @layer np 안 !important 는 unlayered !important 를 이긴다 - 박스는 style.css 목록에서 직접 뺐다.
+   자세히(지표 10개)는 박스 대신 양끝으로 옅어지는 가로줄, 안내문은 한 줄, 시장지표 링크 강조, 돈이 몰린 섹터는 조밀한 표. */
+#market-temp .mt-detail-fold {
+  margin: 8px 0; padding: 4px 8px;
+  border: 0; border-top: 1px solid transparent; border-bottom: 1px solid transparent; border-radius: 0; background: transparent;
+  border-image: linear-gradient(90deg, transparent 0, var(--mt2-line) 24%, var(--mt2-line) 76%, transparent 100%) 1;
+}
+#market-temp .mt-detail-fold > summary { padding: 14px 0; font-size: 14px; color: var(--mt2-text); }
+#market-temp .mt-detail-fold[open] > summary { margin-bottom: 10px; }
+#market-temp .mt-index-flow a { font-weight: 700; font-size: 1.08em; color: var(--mt2-text); text-decoration: underline; text-underline-offset: 3px; }
+
+/* ※ 대표 종목 안내: 한 줄 */
+html body #market-temp .mt-sf-disclaimer { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: clamp(9.5px, 0.8vw, 12.5px); letter-spacing: -.02em; }
+@media (max-width: 900px) {
+  html body #market-temp .mt-sf-disclaimer { white-space: normal; font-size: 11.5px; }
+}
+
+/* 돈이 몰린 섹터: 조밀한 표(제목 한 줄, 행 52px, 굵은 집중도 막대, 대표 종목 | 구분) */
+#market-temp .mt-temperature-money-flow .mt-section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; margin-bottom: 14px; }
+#market-temp .mt-temperature-money-flow .mt-section-head h2 { margin: 0; }
+#market-temp .mt-temperature-money-flow .mt-section-head p { margin: 0; }
+html body #market-temp .mt-sf-card { padding: 18px 28px 20px !important; }
+#market-temp .mt-sf-visual-head { margin: 0 0 6px; }
+#market-temp .mt-sf-visual-head small { font-size: 12px; }
+#market-temp .mt-sf-thead, #market-temp .mt-sf-row { grid-template-columns: 52px minmax(150px, 1.5fr) 96px 116px minmax(150px, 1.15fr) minmax(250px, 1.7fr) 16px; column-gap: 14px; }
+#market-temp .mt-sf-thead { padding: 10px 0; }
+#market-temp .mt-sf-row { min-height: 52px; padding: 6px 0 !important; }
+#market-temp .mt-sf-rank { font-size: 15px; font-weight: 600; color: var(--mt2-text) !important; text-align: center; }
+#market-temp .mt-sf-row b { font-size: 15px; font-weight: 600; }
+#market-temp .mt-sf-mult { font-size: 14px; color: var(--mt2-sub) !important; }
+#market-temp .mt-sf-rate { font-size: 16px; }
+#market-temp .mt-sf-bar { height: 8px; border-radius: 4px; background: #e6e9ef; }
+#market-temp .mt-sf-bar i { border-radius: 4px; background: #566078; }
+html.dark #market-temp .mt-sf-bar { background: rgba(245, 239, 224, .14); }
+html.dark #market-temp .mt-sf-bar i { background: #8f9bb3; }
+#market-temp .mt-sf-pct { flex: 0 0 40px; text-align: left; font-size: 13px; }
+#market-temp .mt-sf-picks-col { flex-wrap: nowrap; gap: 0; }
+#market-temp .mt-sf-pick { gap: 6px; font-size: 13.5px; color: var(--mt2-text); }
+#market-temp .mt-sf-pick + .mt-sf-pick::before { content: "|"; margin: 0 12px; color: var(--mt2-line); font-weight: 400; }
+#market-temp .mt-sf-pick > span { max-width: 110px; }
+@media (max-width: 720px) {
+  html body #market-temp .mt-sf-card { padding: 14px 16px !important; }
+  #market-temp .mt-sf-row { grid-template-columns: 30px minmax(0, 1fr) 16px; }
+  #market-temp .mt-sf-picks-col { flex-wrap: wrap; }
+}

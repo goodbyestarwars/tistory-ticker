@@ -162,9 +162,13 @@
     var closedPage = dashboard.querySelector('.home-closed-page');
     if (!market || !options.briefing) return false;
 
+    // 2026-10-04: 업종 로테이션은 국내 시장 카드 밖(뉴스 줄 아래, 실시간 종목판 위) 전체 폭 구역이다.
+    // 이 함수가 dashboard.innerHTML을 비우므로 여기서 그리드에 옮겨 두지 않으면 사라진다(2026-10-04 "로테이션은 어디로 감?" 지적).
+    // 위젯(숨기기·드래그) 목록에는 넣지 않고, 위치만 실시간 종목판 바로 앞에 묶어 둔다(placeRotation).
+    var rotation = dashboard.querySelector('[data-home-sector-rotation]');
     grid = document.createElement('div');
     grid.className = 'home-widget-grid';
-    [market, economic, realtime, options.briefing].forEach(function (node) {
+    [market, economic, rotation, realtime, options.briefing].forEach(function (node) {
       if (node) grid.appendChild(node);
     });
 
@@ -199,6 +203,14 @@
     economic.style.height = Math.ceil(marketRect.height) + 'px';
   }
 
+  // 업종 로테이션 구역은 위젯 목록 밖이라 순서 변경 때 혼자 남는다 - 항상 실시간 종목판 바로 앞에 둔다.
+  function placeRotation() {
+    if (!grid) return;
+    var rotation = grid.querySelector(':scope > [data-home-sector-rotation]');
+    var realtime = registry['realtime-board'];
+    if (rotation && realtime && realtime.parentNode === grid) grid.insertBefore(rotation, realtime);
+  }
+
   function applyState(state) {
     state.order.forEach(function (id) {
       if (registry[id]) grid.appendChild(registry[id]);
@@ -206,6 +218,7 @@
     DEFAULT_ORDER.forEach(function (id) {
       if (registry[id]) registry[id].hidden = state.hidden.indexOf(id) !== -1;
     });
+    placeRotation();
     refreshSettings();
   }
 
@@ -253,6 +266,7 @@
     if (!node || !target || node === target) return;
     var rects = captureRects();
     grid.insertBefore(node, beforeTarget ? target : target.nextSibling);
+    placeRotation();
     animateFrom(rects);
   }
 
@@ -260,6 +274,7 @@
     var rects = captureRects();
     if (edge === 'top') grid.insertBefore(node, grid.firstElementChild);
     else grid.appendChild(node);
+    placeRotation();
     animateFrom(rects);
     saveState();
   }

@@ -54,27 +54,19 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
         self.assertIn('html.dark .hwr-stock-list > li', line[0])
 
     def test_component_reset_survives_being_moved_into_a_card(self):
-        """2026-09-12(2차)에 pastOutcomeList를 .hwr-columns > article 안으로 옮겼다.
-        위 리셋 규칙들의 원래 근거("이 목록만 .hwr-columns 밖에 있다")는 사라졌지만,
-        리셋을 조상이 아니라 컴포넌트 자신에 걸어둔 덕에 옮겨도 안 깨졌다 - 그게 #422의
-        의도였으므로 규칙은 그대로 둔다. 다시 조상 의존으로 되돌리지 않기 위한 가드."""
-        js = self.js()
-        block = js[js.index('function pastOutcomeList'):]
-        block = block[:block.index('function indexSummary')]
-        self.assertIn('hwr-columns', block)
-        self.assertIn('hwr-outcome-list', block)
+        """리셋을 조상이 아니라 컴포넌트 자신에 걸어 둔 규칙은 그대로 둔다(다시 조상 의존으로 되돌리지 않기 위한 가드).
+        2026-10-04 리디자인으로 종목 목록은 hwr2-rows(한 줄 행)가 됐고, 이 리셋은 옛 목록 변형용으로 남는다."""
         css = self.css()
         self.assertIn('.hwr-stock-list { list-style: none; margin: 0; padding: 0; }', css)
+        self.assertIn('.hwr2-rows { margin: 0; padding: 0; list-style: none; }', css)
 
-    def test_outcome_list_matches_its_sibling_sections(self):
-        """2026-09-12(2차) "일관성이 부족해": 이 섹션만 <article> 카드 없이 맨 <ul>이었고
-        값도 혼자 오른쪽 끝으로 밀려 다음 칸 종목명에 붙어 읽혔다. 바로 위 형제인
-        "2주 스윙 상승 후보"와 같은 성격이라 구조를 동일하게 맞췄다."""
+    def test_outcome_list_is_a_row_list_not_a_card_grid(self):
+        """2026-10-04: 종목 하나 = 카드 하나를 금지했다. 지난 신호 성과도 한 줄 행(hwr2-rows--outcome)이다."""
         js = self.js()
-        block = js[js.index('function pastOutcomeList'):]
-        block = block[:block.index('function indexSummary')]
-        self.assertIn('<div class="hwr-columns"><article>', block)
-        self.assertIn('hwr-stock-list hwr-stock-list--four hwr-outcome-list', block)
+        block = js[js.index('function pastOutcomeRows'):]
+        block = block[:block.index('function checkSection')]
+        self.assertIn('hwr2-rows hwr2-rows--outcome', block)
+        self.assertNotIn('hwr-stock-list--four', block)
 
     def test_outcome_values_are_not_restacked_against_the_four_column_layout(self):
         """--four는 값을 이름 아래 가로로 놓는다(.hwr-stock-list--four .hwr-stock-values).
@@ -90,14 +82,13 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
         self.assertNotIn('.hwr-outcome-list { display: grid;', css)
         self.assertNotIn('.hwr-outcome-list { grid-template-columns:', css)
 
-    def test_outcome_stats_sit_inside_the_card(self):
-        """요약카드가 카드 밖에 있으면 폭이 전체(1452px)로 벌어져 목록 카드(723px)와
-        어긋난다 - 로컬 실측으로 확인하고 카드 안으로 옮겼다."""
+    def test_outcome_stats_sit_above_the_rows_in_the_same_column(self):
+        """승률 요약은 같은 열 안에서 종목 행 위에 놓인다(열 밖으로 벌어지지 않게)."""
         js = self.js()
-        block = js[js.index('function pastOutcomeList'):]
+        block = js[js.index('function checkSection'):]
         block = block[:block.index('function indexSummary')]
-        self.assertLess(block.index('<div class="hwr-columns"><article>'),
-                        block.index('pastOutcomeStatsCard(stats)'))
+        self.assertLess(block.index('pastOutcomeStatsCard(outcomes.stats)'),
+                        block.index('pastOutcomeRows(past)'))
 
 
 if __name__ == '__main__':

@@ -1241,7 +1241,7 @@
       : '';
     var amount = Number(row.trade_amount);
     var share = isFinite(amount) && maxAmount > 0 ? amount / maxAmount * 100 : 0;
-    var pickHtml = (picks || []).map(function (stock) {
+    var pickHtml = (picks || []).slice(0, 2).map(function (stock) {
       var r = Number(stock.change_rate);
       return '<span class="mt-sf-pick"><span>' + escapeHtml(stock.name || stock.code) + '</span>'
         + '<em class="' + (r > 0 ? 'is-up' : r < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(r) + '</em></span>';
@@ -1249,7 +1249,7 @@
     var rank = index + 1;
     return '<div class="mt-sf-item">'
       + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
-      + '<i class="mt-sf-rank">' + (rank < 10 ? '0' : '') + rank + '</i>'
+      + '<i class="mt-sf-rank">' + rank + '</i>'
       + '<b>' + escapeHtml(row.industry || '-') + '</b>'
       + '<span class="mt-sf-meta">'
       + '<span class="mt-sf-mult">' + escapeHtml(sectorFlowAmountText_(row) || '-') + '</span>'
@@ -3714,7 +3714,7 @@
         + buildSummaryCard(data)                    // ① 종합점수 · 어제 대비 · 돈/가격/위험
         + buildSparkline(data, false)               // ② 최근 추이
         + '</div>',
-      '<details class="mt-section mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
+      '<details class="mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
         + buildBars(data) + '</details>',           // ③ 접힌 상세
       buildBriefingStrategy(data),                  // ④ 시장 브리핑
       buildTemperatureActions(),                    // ⑤ 돈이 몰리는 차트

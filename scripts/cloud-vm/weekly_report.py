@@ -97,7 +97,18 @@ def index_summary(futures_rows, start, end):
             points = fallback[-5:]
         first = points[0]['close'] if points else None
         last = points[-1]['close'] if points else None
-        change_rate = ((last - first) / first * 100) if first and last is not None else None
+        # 주간 등락의 기준은 직전 주 마지막 종가다(월요일 종가를 기준으로 삼으면 월요일 하루 움직임이 빠지고,
+        # 월·수 종가가 같은 날엔 0.00%로 나온다 - 2026-10-04 미국 10년물 지적). 직전 주 값이 없으면 주 첫 값으로 물러난다.
+        base = first
+        if len(points) >= 1 and points[0]['date'] >= start.isoformat():
+            before = [d for d in (
+                (_date_value(point.get('date')), _number(point.get('close')))
+                for point in (row.get('chart') or []) if isinstance(point, dict))
+                if d[0] and d[1] is not None and d[0] < start]
+            if before:
+                base = max(before, key=lambda d: d[0])[1]
+        change_rate = ((last - base) / base * 100) if base and last is not None else None
+        change_abs = (last - base) if base is not None and last is not None else None
         result.append({
             'symbol': symbol,
             'name': wanted[symbol][0],
@@ -106,6 +117,8 @@ def index_summary(futures_rows, start, end):
             'start': first,
             'end': last,
             'changeRate': change_rate,
+            'changeAbs': change_abs,
+            'base': base,
             'series': points,
             'available': bool(points),
         })

@@ -1,5 +1,9 @@
 # 9Pay 주요 작업이력
 
+**2026-10-04 로테이션 복구·미국 10년물 주간 등락 기준 수정·캘린더 연동·상자 규칙 정리**
+
+① 업종 로테이션이 사라진 원인: 국내 시장 카드 밖으로 옮긴 뒤 `js/home-widgets.js` `buildRegistry`가 `dashboard.innerHTML`을 비우면서 위젯 목록에 없는 로테이션 구역을 버렸다. 그리드에 옮겨 담고 순서 변경 때마다 실시간 종목판 바로 앞에 두는 `placeRotation` 추가. ② `style.css`의 `@layer np` 안 `!important`는 layer 밖 `!important`를 이긴다 - 앞선 상자 제거가 안 먹은 원인. 13번 공통 규칙 목록에서 `.mt-strategy-panel`·`.mt-strategy-action`·`.hwr-index-card`·`.hwr-fx-card`·`.hwr-index-summary`를 직접 뺐다(체크포인트 안 상자 제거). ③ 미국 10년물 `0.00%`: 주간 등락 기준을 월요일 종가가 아니라 직전 주 마지막 종가로 바꾸고(`weekly_report.index_summary`, 테스트 추가) 금리는 `%p` 차이(`changeAbs`)로 표시. 값 5.24%는 FRED DGS10(10/01 종가)이며 FRED는 하루 늦게 발표돼 10/02 값은 아직 없다. 채권 카드의 고가·저가 `-`는 차트 종가의 최고·최저(기간 고가/저가)로 대체(`overnight-market.js`). ④ 주말 리포트 "다음 주 핵심 스케줄"을 `StockCalendar.fetchEvents`(캘린더 페이지와 같은 모듈)로 다음 주 월~일 전체 일정에 연동, 12건 이후 더보기·캘린더 링크. ⑤ 증시온도: 자세히(지표 10개) 박스를 양끝이 옅어지는 가로줄로, ※ 안내문 한 줄, 시장지표 링크 강조, 돈이 몰린 섹터를 조밀한 표(행 52px, 순위 숫자, 굵은 막대, 대표 종목 `|` 구분 2개). 휴장 말풍선 링크는 `style.css`에서 같은 서체로. 테스트 3건은 리디자인 구조에 맞춰 수정. 배포: GitHub Pages 자동, VM(`weekly_report.py`)은 master 반영 시 자동 배포.
+
 **2026-10-04 증시온도·주말 리포트 보정(공통 상자 규칙 덮어쓰기)**
 
 사용자 지적: `style.css` 13번 공통 규칙(`html body :where(.mt-strategy-panel, .mt-strategy-action, .mt-sf-disclaimer, .hwr-schedule, .hwr-index-card, .hwr-fx-card …)` 테두리·둥근 모서리 `!important`)이 앞선 카드 제거를 덮어, 체크포인트 안에 상자가 또 생기고 주말 리포트 카드가 그대로 남아 있었다. 같은 `!important`로 상자를 걷고, 체크포인트 3열 비율·`word-break: keep-all`로 문구를 한 줄에 유지, 대표 종목은 가로 나열, 안내문·섹터 카드 안쪽 여백 확대. 주말 리포트: 다음 주 핵심 스케줄은 안쪽 여백 있는 한 구역 상자, 주간 자산 요약은 지수 4개와 겹치는 항목을 빼고(원유·금·국채·비트코인) 크게, 구역 사이 가로줄은 양끝으로 옅어지는 1px 선. Markets Closed 얇은 배너는 되돌려 기존 WEEKEND MARKET NOTE·말풍선 유지("다음 주 일정 보기" 링크만 유지). 배포: master 반영 시 GitHub Pages 자동.

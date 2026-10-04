@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v4';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v5';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -304,6 +304,11 @@
     });
     if (!rows.length) return '';
     return '<div class="hwr-index-summary" aria-label="주간 자산 요약"><span>주간 자산 요약</span>' + rows.map(function (item) {
+      // 금리는 수준(%) 자체가 단위라 등락을 %p 차이로 보여준다(예: 5.17% → 5.24% = +0.07%p). 기준은 직전 주 마지막 종가.
+      if (item.valueType === 'yield' && num(item.changeAbs) != null) {
+        var abs = num(item.changeAbs);
+        return '<b><small>' + escapeHtml(item.name) + ' ' + formatMarketValue(item) + '</small><strong class="' + signClass(abs) + '">' + (abs > 0 ? '+' : '') + abs.toFixed(2) + '%p</strong></b>';
+      }
       return '<b><small>' + escapeHtml(item.name) + '</small><strong class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</strong></b>';
     }).join('') + '</div>';
   }
@@ -505,6 +510,85 @@
       mount.innerHTML = '<div class="hwr-card-title"><strong>내 종목 다음 주 일정</strong><span>관심종목 실적·공시 일정만 표시</span></div>' + myScheduleList(filtered, nameMap);
     }).catch(function () { mount.hidden = true; });
   }
+  // 2026-10-04 요청: "다음 주 핵심 스케줄은 캘린더랑 연동돼서 다 볼 수 있게". 서버 schedule(주요 일정 일부)만 쓰지 않고
+  // /page/stock-calendar가 쓰는 같은 모듈(StockCalendar.fetchEvents: 구글 캘린더+DART+미국 실적)에서 다음 주 월~일 일정을 모두 가져와 보여준다.
+  // 모듈이 없거나 일정이 하나도 없으면 서버 일정 목록을 그대로 둔다.
+  var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20260929-ko-us-names-v1';
+  var SCHEDULE_VISIBLE = 12;
+  var WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
+  function loadCalendarModule() {
+    if (window.StockCalendar && window.StockCalendar.fetchEvents) return Promise.resolve(window.StockCalendar);
+    return new Promise(function (resolve) {
+      var existing = document.querySelector('script[data-hwr-calendar]');
+      var script = existing || document.createElement('script');
+      function done() { resolve(window.StockCalendar && window.StockCalendar.fetchEvents ? window.StockCalendar : null); }
+      script.addEventListener('load', done);
+      script.addEventListener('error', function () { resolve(null); });
+      if (!existing) {
+        script.src = CALENDAR_SCRIPT_URL;
+        script.async = true;
+        script.setAttribute('data-hwr-calendar', '1');
+        document.head.appendChild(script);
+      }
+      setTimeout(done, 8000);
+    });
+  }
+  function calendarMarket(event) {
+    var source = String(event && (event.source || event.provider) || '').toLowerCase();
+    var title = String(event && event.title || '');
+    if (/finnhub/.test(source) || /^\$[A-Z]/.test(title)) return '미국';
+    if (/dart/.test(source)) return '한국';
+    return '일정';
+  }
+  function calendarRow(event, index) {
+    var day = String(event.start || '').slice(0, 10);
+    var parsed = new Date(day + 'T00:00:00+09:00');
+    var label = day.slice(5).replace('-', '/') + (isNaN(parsed.getTime()) ? '' : ' ' + WEEKDAY_KO[parsed.getDay()]);
+    var title = String(event.title || '').replace(/^\$[A-Z]{1,6}\s+/, '');
+    var inner = event.link ? '<a href="' + escapeHtml(event.link) + '" target="_blank" rel="noopener">' + escapeHtml(title) + '</a>' : escapeHtml(title);
+    return '<li class="' + (index >= SCHEDULE_VISIBLE ? 'is-extra' : '') + '"><time>' + escapeHtml(label) + '</time><b class="hwr-schedule-market">' + calendarMarket(event) + '</b><span>' + inner + '</span></li>';
+  }
+  function loadNextWeekCalendar(root, weekEndIso) {
+    var box = root.querySelector('[data-hwr-schedule]');
+    if (!box) return;
+    var end = weekEndIso ? new Date(weekEndIso + 'T00:00:00+09:00') : new Date();
+    if (isNaN(end.getTime())) return;
+    var nextStart = new Date(end.getTime() + 3 * 86400000);
+    var nextEnd = new Date(nextStart.getTime() + 6 * 86400000);
+    var startIso = fmtIsoDate(nextStart), endIso = fmtIsoDate(nextEnd);
+    loadCalendarModule().then(function (calendar) {
+      if (!calendar) return null;
+      var months = [];
+      [nextStart, nextEnd].forEach(function (date) {
+        var key = date.getFullYear() + '-' + date.getMonth();
+        if (!months.some(function (m) { return m.key === key; })) months.push({ key: key, year: date.getFullYear(), month: date.getMonth() });
+      });
+      return Promise.all(months.map(function (m) { return calendar.fetchEvents(m.year, m.month).catch(function () { return []; }); }));
+    }).then(function (groups) {
+      if (!groups) return;
+      var merged = [];
+      groups.forEach(function (group) { merged = merged.concat(group || []); });
+      var events = merged.filter(function (event) {
+        var day = String(event && event.start || '').slice(0, 10);
+        return day >= startIso && day <= endIso;
+      });
+      if (!events.length) return;
+      var title = box.querySelector('.hwr-card-title span');
+      if (title) title.textContent = '캘린더 연동 · ' + startIso.slice(5).replace('-', '/') + ' ~ ' + endIso.slice(5).replace('-', '/') + ' 전체 ' + events.length + '건';
+      var list = box.querySelector('.hwr-schedule-list') || box.querySelector('.hwr-empty');
+      var html = '<ul class="hwr-schedule-list">' + events.map(calendarRow).join('') + '</ul>'
+        + (events.length > SCHEDULE_VISIBLE ? '<div class="hwr2-more-wrap"><button type="button" class="hwr2-more" data-hwr-schedule-more aria-expanded="false">나머지 ' + (events.length - SCHEDULE_VISIBLE) + '건 더보기</button></div>' : '')
+        + '<p class="hwr2-cal-link"><a href="/page/stock-calendar">캘린더에서 전체 보기 →</a></p>';
+      if (list) list.outerHTML = html; else box.insertAdjacentHTML('beforeend', html);
+      var more = box.querySelector('[data-hwr-schedule-more]');
+      if (more) more.addEventListener('click', function () {
+        var open = !box.classList.contains('is-expanded');
+        box.classList.toggle('is-expanded', open);
+        more.setAttribute('aria-expanded', open ? 'true' : 'false');
+        more.textContent = open ? '접기' : '나머지 ' + (events.length - SCHEDULE_VISIBLE) + '건 더보기';
+      });
+    }).catch(function () { /* 캘린더 연동은 보조 - 실패하면 서버 일정 목록을 그대로 둔다 */ });
+  }
   function scheduleList(items) {
     if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
     return '<ul class="hwr-schedule-list">' + items.slice(0, 16).map(function (item) {
@@ -550,7 +634,7 @@
       + indexSummary(indices)
       + '<h4 class="hwr2-sub">시장 흐름</h4>'
       + '<div class="hwr-summary-row hwr-asset-row"><div>' + rangeCard(fx, { title: '원/달러 환율', unit: 'krw', fallbackLabel: '환율 데이터 확인 중', fallbackMessage: '1년 환율 데이터가 부족합니다.' }) + '</div><div>' + rangeCard(gold, { title: '금 선물', unit: 'usd', fallbackLabel: '금 시세 데이터 확인 중', fallbackMessage: '1년 금 시세 데이터가 부족합니다.' }) + '</div></div>'
-      + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
+      + '<article class="hwr-schedule" data-hwr-schedule><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<article class="hwr-schedule hwr-my-schedule" data-hwr-my-schedule hidden></article>'
       + '</section>'
       + moversSection(data)
@@ -562,6 +646,7 @@
     bindNewsFilters(root);
     bindNewsMore(root);
     loadMyWatchlistSchedule(root, data.week && data.week.end);
+    loadNextWeekCalendar(root, data.week && data.week.end);
   }
   // 2026-08-30: css/home-weekly-report.css는 휴장 탭을 열 때에야 <link>로 붙는데,
   // localStorage 캐시가 있으면 바로 다음 줄에서 마크업까지 그려져 스타일이 도착하기 전

@@ -5,7 +5,7 @@
   'use strict';
 
   var API = 'https://goodbyestar.cloud/sector-rotation';
-  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v3';
+  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v4';
   var COLUMNS = [
     { key: 'emerging', label: '유입', desc: '새롭게 강해지는 업종', cls: 'is-emerging' },
     { key: 'leading', label: '주도', desc: '시장을 이끄는 업종', cls: 'is-leading' },

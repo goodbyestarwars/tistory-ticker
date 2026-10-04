@@ -34,6 +34,16 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual([item['name'] for item in result], ['미국 10년 국채', 'WTI 원유', '금 선물', '비트코인'])
         self.assertEqual([item['valueType'] for item in result], ['yield', 'usd', 'usd', 'krw'])
 
+    def test_index_summary_uses_previous_week_close_as_base(self):
+        rows = [{'symbol': 'US10Y', 'chart': [
+            {'date': '2026-08-07', 'close': 5.17},
+            {'date': '2026-08-10', 'close': 5.24},
+            {'date': '2026-08-12', 'close': 5.24},
+        ]}]
+        result = weekly_report.index_summary(rows, datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+        self.assertAlmostEqual(result[0]['changeAbs'], 0.07, places=6)
+        self.assertGreater(result[0]['changeRate'], 1.3)
+
     def test_hot_stocks_merges_multiple_rank_tags(self):
         board = {'sections': {
             'rising': [{'code': '005930', 'name': '삼성전자', 'change_rate': 8}],
