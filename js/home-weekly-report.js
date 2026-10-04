@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-brief-v12';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pulse-line-v13';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -470,58 +470,101 @@
     lock.classList.toggle('is-bull', bullish);
     lock.classList.toggle('is-bear', !bullish);
   }
-  // 2026-10-05 사용자 지적: 머리말의 상승·하락 주간 판정 문구와 주간 맥박 막대는 국내·미국 흐름이 갈리는 주에
-  // 한쪽 투자자에게는 틀린 말이 된다("미국주식 하는 사람은 상승일 수도, 한국주식 하는 사람은 하락일 수도").
-  // 판정·막대를 빼고 "주말 뉴스로 본 다음 주" 텍스트를 둔다. LLM 요약 없이 규칙으로만 만든다:
-  // ① 주말 국내 뉴스 중 다음 주 전망 기사("[이번주 증시] …", "다음 주 증시 …") 제목 1건(말머리 제거, 원문 링크)
-  // ② 주말 뉴스 제목에 2건 이상 나온 키워드 상위 3개와 건수. 둘 다 없으면 블록을 숨긴다.
-  var BRIEF_PREVIEW_RE = /(이번\s*주|다음\s*주|주간)\s*(증시|전망|시장|투자)|증시\s*(전망|캘린더)|주간\s*증시/;
-  var BRIEF_KEYWORDS = [
-    { label: '삼성전자', re: /삼성전자|삼전/ },
-    { label: 'SK하이닉스', re: /하이닉스|닉스/ },
-    { label: '반도체', re: /반도체|소부장|semiconductor|chip/i },
-    { label: '금리', re: /금리|국채|treasury|yield/i },
-    { label: '연준', re: /연준|FOMC|파월|\bFed\b|Powell/i },
-    { label: '환율', re: /환율|달러|원화/ },
-    { label: '유가', re: /유가|원유|OPEC|\boil\b|crude oil/i },
-    { label: '실적', re: /실적|earnings/i },
-    { label: '관세', re: /관세|tariff/i },
-    { label: 'AI', re: /\bAI\b|인공지능/ },
-    { label: '2차전지', re: /2차전지|이차전지|배터리/ },
-    { label: '가계대출', re: /가계대출|대출/ },
-    { label: '물가', re: /물가|CPI|PCE|inflation/i },
-    { label: '고용', re: /고용|일자리|payroll|jobs report/i }
+  // 2026-10-04 사용자 요청("캔들 말고 다른 걸로"): 장식 대신 정보를 그린다 - "주간 맥박".
+  // 2026-10-05 사용자 지적("미국장이랑 구분을 할 수가 없잖아"): 4개 지수를 한 줄로 평균하면 국내·미국이 섞인다
+  // (예: 9/28 주 KOSPI -1.09%·KOSDAQ +5.78% / 나스닥 +0.45%·S&P500 -0.27%). 국내(KOSPI·KOSDAQ)·미국(나스닥·S&P500) 두 줄로 나눈다.
+  // 2026-10-05 사용자 요청("막대보다는 금요일 종가를 기준으로 선으로, 미니멀하게"): 줄마다 직전 주 금요일 종가(지수 base)를
+  // 기준선(0%)으로, 월~금 종가의 누적 등락률(그 시장 지수들의 단순 평균)을 선으로 잇는다. 기준선 위 구간은 빨강, 아래는 파랑
+  // (같은 선을 위·아래 clipPath로 나눠 칠함). 세로 눈금은 두 줄 공통이라 시장끼리 크기를 비교할 수 있다. 끝에 그 시장 주간 평균.
+  // 휴장일은 점을 건너뛰고 잇는다. 첫 페인트용 색은 인라인 속성으로 박는다.
+  var WEEK_DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
+  var PULSE_MARKETS = [
+    { key: 'kr', label: '국내', symbols: ['KOSPI', 'KOSDAQ'] },
+    { key: 'us', label: '미국', symbols: ['NASDAQ_INDEX', 'SP500_INDEX'] }
   ];
-  function newsBrief(news) {
-    news = news || {};
-    var seen = {};
-    var items = [].concat(news.domestic || [], news.timeline || [], news.us || []).filter(function (item) {
-      var title = String(item && item.title || '').trim();
-      if (!title || seen[title]) return false;
-      seen[title] = true;
-      return true;
+  var PULSE_W = 116, PULSE_H = 30, PULSE_PAD = 4;
+  var pulseSeq = 0;
+  // 지수별 base(직전 주 금요일 종가) 대비 날짜별 누적 등락률 목록
+  function weeklyPulse(indices) {
+    var byDate = {};
+    (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index'); }).forEach(function (item) {
+      var base = num(item.base);
+      if (base == null || base === 0) return;
+      (item.series || []).forEach(function (point) {
+        var close = num(point && point.close);
+        var day = String(point && point.date || '').slice(0, 10);
+        if (close == null || !day) return;
+        (byDate[day] = byDate[day] || []).push((close - base) / base * 100);
+      });
     });
-    var preview = null;
-    (news.domestic || []).concat(news.timeline || []).some(function (item) {
-      var title = String(item && item.title || '');
-      if (!BRIEF_PREVIEW_RE.test(title)) return false;
-      preview = { title: title.replace(/^\s*\[[^\]]*\]\s*/, '').trim() || title, link: item.link, source: item.source };
-      return true;
+    return byDate;
+  }
+  function average(list) {
+    return list.length ? list.reduce(function (a, b) { return a + b; }, 0) / list.length : null;
+  }
+  function pulseX(i) { return PULSE_PAD + i * (PULSE_W - PULSE_PAD * 2) / 5; }
+  function sentimentArt(indices) {
+    var up = isBullishWeek(indices);
+    var weekly = (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index'); })
+      .map(function (item) { return num(item.changeRate); }).filter(function (v) { return v != null; });
+    var avg = average(weekly);
+    var markets = PULSE_MARKETS.map(function (market) {
+      var items = (indices || []).filter(function (item) { return item && market.symbols.indexOf(item.symbol) !== -1; });
+      return { market: market, byDate: weeklyPulse(items), weekly: average(items.map(function (item) { return num(item.changeRate); }).filter(function (v) { return v != null; })) };
+    }).filter(function (row) { return Object.keys(row.byDate).length; });
+    var dayKeys = {};
+    markets.forEach(function (row) { Object.keys(row.byDate).forEach(function (day) { dayKeys[day] = true; }); });
+    var days = Object.keys(dayKeys).sort().slice(-5).map(function (day) {
+      var parsed = new Date(day + 'T00:00:00+09:00');
+      return { day: day, label: isNaN(parsed.getTime()) ? day.slice(8) : WEEK_DAYS_KO[parsed.getDay()] };
     });
-    var keywords = BRIEF_KEYWORDS.map(function (kw) {
-      return { label: kw.label, count: items.filter(function (item) { return kw.re.test(String(item.title || '')); }).length };
-    }).filter(function (kw) { return kw.count >= 2; })
-      .sort(function (a, b) { return b.count - a.count; }).slice(0, 3);
-    if (!preview && !keywords.length) return '';
-    var headline = preview
-      ? '<a class="hwr-brief-headline" href="' + escapeHtml(preview.link || '#') + '" target="_blank" rel="noopener">' + escapeHtml(preview.title) + '</a>'
-        + (preview.source ? '<small class="hwr-brief-source">' + escapeHtml(preview.source) + '</small>' : '')
-      : '';
-    var tags = keywords.length
-      ? '<span class="hwr-brief-tags">' + keywords.map(function (kw) { return '<span>' + escapeHtml(kw.label) + '<b>' + kw.count + '건</b></span>'; }).join('') + '</span>'
-      : '';
-    return '<div class="hwr-brief"><span class="hwr-brief-label">주말 뉴스로 본 다음 주</span>'
-      + (headline ? '<span class="hwr-brief-main">' + headline + '</span>' : '') + tags + '</div>';
+    var peak = 0;
+    markets.forEach(function (row) {
+      row.changes = days.map(function (d) { return row.byDate[d.day] ? average(row.byDate[d.day]) : null; });
+      row.changes.forEach(function (v) { if (v != null) peak = Math.max(peak, Math.abs(v)); });
+    });
+    peak = peak || 1;
+    var UP = '#d24f45', DOWN = '#1261c4';
+    var mid = PULSE_H / 2;
+    var y = function (v) { return mid - v / peak * (mid - 3); };
+    var rows = markets.map(function (row) {
+      var id = 'hwrPulse' + (++pulseSeq);
+      // 시작점은 직전 주 금요일 종가(0%), 이어서 월~금(i+1번째 칸)
+      var pts = [[pulseX(0), mid]];
+      var last = null;
+      row.changes.forEach(function (v, i) {
+        if (v == null) return;
+        pts.push([pulseX(i + 1), y(v)]);
+        last = { v: v, x: pulseX(i + 1), y: y(v) };
+      });
+      var line = pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+      var tip = row.market.label + ' 직전 금요일 종가 대비 ' + row.changes.map(function (v, i) {
+        return days[i].label + ' ' + (v == null ? '휴장' : (v > 0 ? '+' : '') + v.toFixed(2) + '%');
+      }).join(' · ');
+      var svg = '<svg class="hwr-pulse-line" viewBox="0 0 ' + PULSE_W + ' ' + PULSE_H + '" width="' + PULSE_W + '" height="' + PULSE_H + '">'
+        + '<title>' + escapeHtml(tip) + '</title>'
+        + '<defs><clipPath id="' + id + 'u"><rect x="0" y="-4" width="' + PULSE_W + '" height="' + (mid + 4) + '"/></clipPath>'
+        + '<clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + PULSE_W + '" height="' + (mid + 4) + '"/></clipPath></defs>'
+        + '<line class="hwr-pulse-base" x1="0" x2="' + PULSE_W + '" y1="' + mid + '" y2="' + mid + '" stroke="#d0d5dd" stroke-width="1" stroke-dasharray="2 3"/>'
+        + '<polyline class="is-up" clip-path="url(#' + id + 'u)" points="' + line + '" fill="none" stroke="' + UP + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+        + '<polyline class="is-down" clip-path="url(#' + id + 'd)" points="' + line + '" fill="none" stroke="' + DOWN + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+        + (last ? '<circle class="' + (last.v >= 0 ? 'is-up' : 'is-down') + '" cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="2.2" fill="' + (last.v >= 0 ? UP : DOWN) + '"/>' : '')
+        + '</svg>';
+      var weeklyText = row.weekly == null ? '-' : signed(row.weekly);
+      var weeklyColor = row.weekly == null ? '' : ' style="color:' + (row.weekly >= 0 ? UP : DOWN) + '"';
+      return '<span class="hwr-pulse-name">' + row.market.label + '</span>'
+        + svg
+        + '<b class="hwr-pulse-week ' + signClass(row.weekly) + '"' + weeklyColor + '>' + weeklyText + '</b>';
+    }).join('');
+    var dayLabels = '<svg class="hwr-pulse-days" viewBox="0 0 ' + PULSE_W + ' 12" width="' + PULSE_W + '" height="12">'
+      + days.map(function (d, i) { return '<text x="' + pulseX(i + 1).toFixed(1) + '" y="10" text-anchor="middle">' + escapeHtml(d.label) + '</text>'; }).join('')
+      + '</svg>';
+    var color = up ? UP : DOWN;
+    var label = up ? '상승 마감 주간' : '하락 마감 주간';
+    var aria = label + markets.map(function (row) { return ', ' + row.market.label + ' 주간 평균 ' + (row.weekly == null ? '확인 불가' : signed(row.weekly)); }).join('');
+    return '<div class="hwr-sentiment hwr-pulse hwr-sentiment--' + (up ? 'up' : 'down') + '" style="color:' + color + '" aria-label="' + escapeHtml(aria) + '">'
+      + (markets.length ? '<span class="hwr-pulse-chart" aria-hidden="true">' + rows + '<span></span>' + dayLabels + '<span></span></span>' : '')
+      + '<span class="hwr-pulse-text"><strong>' + label + '</strong>' + (avg != null ? '<em>4개 지수 평균<b>' + signed(avg) + '</b></em>' : '') + '</span></div>';
   }
   function fxStatus(fx, fallbackLabel, fallbackMessage) {
     var analysis = fx && fx.analysis || {};
@@ -812,7 +855,7 @@
         + '<span class="hwr2-idx-chg ' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span>'
         + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
     }).join('');
-    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + newsBrief(data.news) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
+    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<section class="hwr2-section hwr2-prep">'
       + '<div class="hwr-index-grid">' + indexCards + '</div>'
       + indexSummary(indices)

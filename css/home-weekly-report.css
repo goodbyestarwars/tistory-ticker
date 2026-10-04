@@ -794,21 +794,37 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
   .hwr2-theme-news li:nth-child(n+3) { display: none; }
 }
 
-/* ── 주말 뉴스로 본 다음 주 (2026-10-05) ── 상승/하락 판정·주간 맥박 막대를 대체. 국내·미국 흐름이 갈리는 주에도
-   틀린 말이 되지 않도록 판정 없이 주말 전망 기사 제목과 반복 키워드만 둔다. 기간과는 세로 구분선으로 나눈다 */
+/* ── 주간 맥박 (2026-10-04 도입, 2026-10-05 선으로) ── 국내·미국 두 줄. 직전 주 금요일 종가를 점선 기준선으로, 월~금 누적 등락을
+   선으로 잇고 기준선 위는 빨강·아래는 파랑. 문구와 기간 사이는 세로 구분선 */
 .home-weekly-report .hwr-head { align-items: center; }
-.hwr-brief { display: flex; flex-direction: column; gap: 6px; max-width: 420px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, #eaecf0); }
-.hwr-brief-label { font-size: 12px; font-weight: 600; color: var(--hw-muted, #8b95a5); }
-.hwr-brief-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
-.hwr-brief-headline { overflow: hidden; font-size: 16px; font-weight: 700; letter-spacing: -.02em; line-height: 1.35; color: var(--hw-text, #171a21); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-brief-headline:hover { text-decoration: underline; text-underline-offset: 3px; }
-.hwr-brief-source { flex: none; font-size: 11px; color: var(--hw-muted, #8b95a5); }
-.hwr-brief-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-.hwr-brief-tags span { display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--hw-chip, rgba(17, 17, 17, .05)); font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
-.hwr-brief-tags b { font-size: 11px; font-weight: 500; color: var(--hw-muted, #8b95a5); }
-html.dark .hwr-brief-tags span { background: rgba(245, 239, 224, .08); }
+.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 20px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
+.hwr-pulse-chart { display: grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 10px; row-gap: 4px; }
+.hwr-pulse-name { font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
+.hwr-pulse-line, .hwr-pulse-days { display: block; overflow: visible; }
+/* 옛 .hwr-sentiment svg 규칙(104x52·circle fill:currentColor)을 이긴다 */
+.home-weekly-report .hwr-pulse svg.hwr-pulse-line { width: 116px; height: 30px; }
+.home-weekly-report .hwr-pulse svg.hwr-pulse-days { width: 116px; height: 12px; }
+.hwr-pulse-line circle { stroke: none; }
+.hwr-pulse-line circle.is-up { fill: #d24f45; }
+.hwr-pulse-line circle.is-down { fill: #1261c4; }
+.hwr-pulse-days text { font-size: 10px; font-weight: 500; fill: var(--hw-muted, #8b95a5); }
+.hwr-pulse-week { min-width: 50px; font-size: 12px; font-weight: 700; text-align: right; }
+.hwr-pulse-text { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
+.hwr-pulse-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
+.hwr-pulse-text em { font-size: 12px; font-style: normal; font-weight: 500; color: var(--hw-sub, #667085); }
+.hwr-pulse-text em b { margin-left: 4px; font-weight: 700; }
+.hwr-pulse.hwr-sentiment--up .hwr-pulse-text em b { color: var(--hw-up, #d24f45); }
+.hwr-pulse.hwr-sentiment--down .hwr-pulse-text em b { color: var(--hw-down, #1261c4); }
 .home-weekly-report .hwr-period { display: flex; flex-direction: column; justify-content: center; align-self: center; }
+html.dark .hwr-pulse-line polyline.is-up { stroke: #ff8a83 !important; }
+html.dark .hwr-pulse-line polyline.is-down { stroke: #80b8ff !important; }
+html.dark .hwr-pulse-line circle.is-up { fill: #ff8a83 !important; }
+html.dark .hwr-pulse-line circle.is-down { fill: #80b8ff !important; }
+html.dark .hwr-pulse-base { stroke: rgba(245, 239, 224, .25) !important; }
+html.dark .hwr-pulse-week.is-up { color: #ff8a83 !important; }
+html.dark .hwr-pulse-week.is-down { color: #80b8ff !important; }
+html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: #ff8a83 !important; }
+html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !important; }
 @media (max-width: 720px) {
-  .hwr-brief { max-width: none; margin: 14px 0 12px; padding-right: 0; border-right: 0; }
-  .hwr-brief-headline { white-space: normal; }
+  .home-weekly-report .hwr-pulse { margin: 12px 0 14px; padding-right: 0; border-right: 0; justify-content: flex-start; }
 }
