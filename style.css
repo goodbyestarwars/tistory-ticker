@@ -8127,6 +8127,16 @@ html body#tt-body-index .home-editorial-page .home-closed-status::before {
     border-radius: 4px 0 0 0 !important;
   }
 }
+/* 28-b. 다크 모드 (2026-10-04): 26·28번이 휴장 히어로·말풍선 바탕을 밝은 종이색으로 박아 다크 모드에서 흰 상자 위 흰 글자가 됐다.
+   다크에서만 바탕을 --np-paper(다크 #1A1A1A)로 되돌린다. 같은 layer 안이라 선택자(html.dark)가 한 단계 높아 이긴다. */
+html.dark body#tt-body-index .home-editorial-page .home-closed-lead { background: var(--np-paper) !important; box-shadow: none !important; }
+html.dark body#tt-body-index .home-editorial-page .home-closed-status,
+html.dark body#tt-body-index .home-editorial-page .home-closed-status::before { background: rgb(36, 36, 36) !important; }
+html.dark body#tt-body-index .home-editorial-page .home-closed-status { box-shadow: none !important; }
+/* 휴장 안내 아래 가로줄도 주말 리포트 구역선처럼 양끝으로 옅어지게 (2026-10-04 사용자 요청) */
+html body#tt-body-index .home-editorial-page .home-closed-page {
+  border-image: linear-gradient(90deg, transparent 0, rgba(var(--np-ink), .16) 20%, rgba(var(--np-ink), .16) 80%, transparent 100%) 1 !important;
+}
 }
 
 /* 29. 홈 2열 리드(국내 시장 | 경제 종합뉴스) 상단 기준선 통일(카드 높이는 stretch 유지: 가운데 구분선 때문) (2026-10-04, 사용자 지적: 오른쪽 카드 헤더가 아래로 처져 보임)

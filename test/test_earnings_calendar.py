@@ -203,6 +203,22 @@ class EarningsCalendarTests(unittest.TestCase):
 
         self.assertEqual([event['start'] for event in events], ['2026-08-15', '2026-08-20'])
 
+    def test_stored_us_events_outside_sp100_are_hidden(self):
+        # 2026-10-04: 필터 이전에 저장소에 쌓인 미국 소형주 일정도 읽을 때 걸러진다(국내는 그대로).
+        us = [
+            {'title': '$PEP 실적발표', 'start': '2026-10-08', 'source': 'finnhub', 'market': 'us', 'symbol': 'PEP', 'us_date': '2026-10-08'},
+            {'title': '$BKSC 실적발표', 'start': '2026-10-07', 'source': 'finnhub', 'market': 'us', 'symbol': 'BKSC', 'us_date': '2026-10-07'},
+        ]
+        domestic = [{'title': '$기아 실적공시', 'start': '2026-10-01', 'source': 'dart', 'market': 'domestic', 'receipt_no': 'x1'}]
+        with mock.patch.object(earnings_calendar, 'safe_fetch_month', return_value=domestic):
+            with mock.patch.object(earnings_calendar, 'safe_fetch_us_month', return_value=us):
+                events = earnings_calendar.merge_month(2026, 10)
+
+        titles = [event['title'] for event in events]
+        self.assertIn('$PEP 실적발표', titles)
+        self.assertIn('$기아 실적공시', titles)
+        self.assertNotIn('$BKSC 실적발표', titles)
+
 
     def test_merges_domestic_before_us_on_same_date(self):
         domestic = [{'title': 'Domestic earnings', 'start': '2026-08-15', 'source': 'dart', 'market': 'domestic'}]

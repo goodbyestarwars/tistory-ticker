@@ -9,6 +9,7 @@
 from datetime import date, datetime, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from math import log1p
+import re
 
 import swing_model
 
@@ -554,6 +555,91 @@ def news_timeline(domestic, us, start, end, limit=20):
             rows.append(item)
     rows.sort(key=lambda item: str(item.get('pubDate') or ''), reverse=True)
     return rows[:limit]
+
+
+# 2026-10-04 사용자 요청("미국 주말 뉴스를 보고 주목할 만한 테마나 종목 추천"):
+# 금~일 미국 뉴스 제목에서 테마 키워드가 몇 개의 기사에 나왔는지 센다. 감성(호재·악재)은 판단하지 않고,
+# 화면에는 근거 기사 제목을 같이 보여준다. 국내 관련 종목은 운영 섹터 분류(sectors-v3)에서 꺼낸다.
+# risk=True 테마는 "살 후보"가 아니라 "조심할 재료"로 표시한다.
+US_NEWS_THEMES = (
+    {'key': 'ai_semi', 'name': 'AI·반도체', 'kr': ('반도체', '반도체부품소재/공정'), 'us': ('NVDA', 'AMD', 'AVGO', 'MU'),
+     'kw': (r'\bnvidia\b', r'\bchips?\b', r'\bchipmakers?\b', r'semiconductor', r'\bai\b', r'artificial intelligence', r'\btsmc\b',
+            r'\bmicron\b', r'\bhbm\b', r'\bmemory\b', r'data ?cent(?:er|re)s?', r'\bopenai\b', r'\bbroadcom\b', r'\bamd\b')},
+    {'key': 'energy', 'name': '에너지·원유', 'kr': ('석유/정유',), 'us': ('XOM', 'CVX', 'COP'),
+     'kw': (r'\boil\b', r'\bopec\b', r'\bcrude (?:oil|prices?|futures|inventor(?:y|ies)|output)\b', r'\bbrent\b', r'\bwti\b', r'natural gas', r'\blng\b', r'\brefiner(?:y|ies|s)?\b')},
+    {'key': 'defense', 'name': '방산·지정학', 'kr': ('방위산업',), 'us': ('LMT', 'RTX', 'GD'),
+     'kw': (r'\bdefen[cs]e\b', r'\bmilitary\b', r'\bmissiles?\b', r'\bwar\b', r'\btroops\b', r'\bnato\b', r'\bpentagon\b',
+            r'\bairstrikes?\b', r'\bceasefire\b', r'\bdrones?\b')},
+    {'key': 'rates', 'name': '금리·연준', 'kr': ('금융', '증권'), 'us': ('JPM', 'GS', 'BAC'),
+     'kw': (r'\bfed\b', r'federal reserve', r'\bpowell\b', r'rate cuts?', r'rate hikes?', r'interest rates?', r'\btreasur(?:y|ies)\b',
+            r'\byields?\b', r'\binflation\b', r'\bcpi\b', r'jobs report', r'\bpayrolls?\b')},
+    {'key': 'ev_battery', 'name': '전기차·2차전지', 'kr': ('2차전지', '자동차'), 'us': ('TSLA', 'GM', 'F'),
+     'kw': (r'\btesla\b', r'\bevs?\b', r'electric vehicles?', r'\bbatter(?:y|ies)\b', r'\blithium\b', r'\bautomakers?\b')},
+    {'key': 'bio', 'name': '바이오·헬스케어', 'kr': ('제약/바이오',), 'us': ('LLY', 'MRK', 'PFE'),
+     'kw': (r'\bfda\b', r'\bdrugs?\b', r'\bbiotech', r'\bpharma', r'\bvaccines?\b', r'\blilly\b', r'\bnovo\b', r'\bobesity\b',
+            r'\bglp-1\b', r'\bclinical trials?\b')},
+    {'key': 'power', 'name': '원전·전력', 'kr': ('신재생/원자력', '전력/에너지'), 'us': ('CEG', 'VST', 'GEV'),
+     'kw': (r'\bnuclear\b', r'\buranium\b', r'power grid', r'\belectricity\b', r'\butilit(?:y|ies)\b', r'\bsmrs?\b', r'power demand')},
+    {'key': 'ship', 'name': '조선·해운', 'kr': ('조선사', '해운물류'), 'us': (),
+     'kw': (r'shipbuild', r'\bshipping\b', r'\bnavy\b', r'\bnaval\b', r'\bvessels?\b', r'\btankers?\b', r'\bshipyards?\b')},
+    {'key': 'crypto', 'name': '가상자산', 'kr': ('IT/스테이블코인',), 'us': ('COIN', 'MSTR'),
+     'kw': (r'\bbitcoin\b', r'\bcrypto', r'\bethereum\b', r'\bstablecoins?\b', r'\bcoinbase\b')},
+    {'key': 'robot_space', 'name': '로봇·우주', 'kr': ('로봇', '우주항공'), 'us': ('TSLA', 'RKLB'),
+     'kw': (r'\brobot', r'\bhumanoids?\b', r'\bspacex\b', r'\brockets?\b', r'\bsatellites?\b')},
+    {'key': 'trade', 'name': '무역·관세', 'kr': (), 'us': (), 'risk': True,
+     'kw': (r'\btariffs?\b', r'trade (?:war|deal|talks)', r'export controls?', r'\bsanctions?\b')},
+)
+_THEME_PATTERNS = {theme['key']: re.compile('|'.join(theme['kw']), re.I) for theme in US_NEWS_THEMES}
+
+
+def us_news_themes(items, start, end, sector_map=None, limit=4, headline_limit=3):
+    """금~일 미국 뉴스 제목을 테마별로 세어 상위 테마와 근거 기사·관련 종목을 돌려준다."""
+    sector_map = sector_map or {}
+    seen = set()
+    articles = []
+    for item in items or []:
+        if not isinstance(item, dict) or not item.get('title') or not _within_week(item, start, end):
+            continue
+        key = str(item.get('title')).strip().lower()
+        if key in seen:
+            continue
+        seen.add(key)
+        articles.append(item)
+    result = []
+    for theme in US_NEWS_THEMES:
+        pattern = _THEME_PATTERNS[theme['key']]
+        hits = [item for item in articles if pattern.search(str(item.get('title') or ''))]
+        if not hits:
+            continue
+        hits.sort(key=lambda item: str(item.get('pubDate') or item.get('publishedAt') or ''), reverse=True)
+        kr_stocks = []
+        for sector in theme['kr']:
+            for stock in (sector_map.get(sector) or [])[:3]:
+                code = stock.get('code') if isinstance(stock, dict) else None
+                if code and all(row['code'] != code for row in kr_stocks):
+                    kr_stocks.append({'name': stock.get('name'), 'code': code, 'sector': sector})
+        result.append({
+            'key': theme['key'],
+            'name': theme['name'],
+            'risk': bool(theme.get('risk')),
+            'count': len(hits),
+            'headlines': [{
+                'title': item.get('title'), 'link': item.get('link'),
+                'source': item.get('source') or item.get('provider'),
+                'pubDate': item.get('pubDate') or item.get('publishedAt') or item.get('date'),
+            } for item in hits[:headline_limit]],
+            'usTickers': list(theme['us']),
+            'krSectors': [sector for sector in theme['kr'] if sector in sector_map],
+            'krStocks': kr_stocks[:4],
+        })
+    result.sort(key=lambda row: (-row['count'], row['risk']))
+    return {
+        'window': {'start': start.isoformat(), 'end': end.isoformat()},
+        'articleCount': len(articles),
+        'themes': result[:limit],
+        'basis': '%s~%s 미국 뉴스 제목 %d건의 테마 키워드 언급 수 기준(호재·악재 판단 없음)' % (
+            start.isoformat(), end.isoformat(), len(articles)),
+    }
 
 
 def past_candidate_outcomes(rows, limit=8):

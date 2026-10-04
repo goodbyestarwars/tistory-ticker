@@ -5,7 +5,8 @@
  * 오늘 날짜의 일정만 보여주되, 월 달력에서 날짜를 선택하면 해당 날짜를 조회한다.
  *
  * 데이터 소스는 구글 캘린더 이벤트(제목+날짜/시간)와 DART 국내 실적공시, Finnhub
- * 미국 예정 실적일정이다. 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
+ * 미국 예정 실적일정(S&P 100만), 미국 주요 경제지표 발표일(data/us-econ-calendar.js, FRED·연준 공식 일정)이다.
+ * 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
  *
  * 이벤트 제목 규칙(사람이 구글 캘린더에 입력할 때 지켜야 함):
  *   "$종목명 텍스트 | 태그"
@@ -25,6 +26,9 @@
   var API_KEY = 'AIzaSyB9zgyudgEblbLoP-fW231dwf6VjOFK00o';
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
+  // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 100 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
+  var ECON_DATA_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/us-econ-calendar.js?v=20261004-econ-v1';
+  var ECON_LINKS = { FOMC: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm' };
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 미국 장후 실적의 KST 날짜가 달라졌으므로 이전 현지일 캐시와 섞지 않는다.
@@ -61,6 +65,7 @@
   function isSp100Earnings(event) {
     var market = String(event && event.market || '').toLowerCase();
     var source = String(event && (event.source || event.provider) || '').toLowerCase();
+    if (source === 'econ') return true;
     if (market !== 'us' && market !== 'usa' && market !== 'foreign' && source !== 'finnhub') return true;
     var symbol = String(event && (event.symbol || event.ticker) || '').toUpperCase().replace('-', '.');
     return SP100_SYMBOLS.has(symbol);
@@ -124,6 +129,42 @@
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
       .then(function (data) { return (Array.isArray(data) ? data : (data && data.data) || []).filter(isSp100Earnings); })
       .catch(function () { return []; });
+  }
+
+  var econLoad = null;
+  function loadEconCalendar() {
+    if (global.US_ECON_CALENDAR) return Promise.resolve(global.US_ECON_CALENDAR);
+    if (econLoad) return econLoad;
+    econLoad = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = ECON_DATA_URL;
+      script.async = true;
+      script.onload = function () { resolve(global.US_ECON_CALENDAR || null); };
+      script.onerror = function () { econLoad = null; resolve(null); };
+      document.head.appendChild(script);
+    });
+    return econLoad;
+  }
+
+  function fetchEconEvents(year, month) {
+    var prefix = month == null ? String(year) : String(year) + '-' + String(month + 1).padStart(2, '0');
+    return loadEconCalendar().then(function (data) {
+      return ((data && data.events) || []).filter(function (item) {
+        return String(item.start || '').slice(0, prefix.length) === prefix;
+      }).map(function (item) {
+        // 국기로 시작하는 제목은 parseEvent()가 해외 지표로 읽는다. 시각은 KST(start)로 보여주려고 us_date는 넣지 않는다.
+        return {
+          id: 'econ-' + item.code + '-' + item.us_date,
+          title: '🇺🇸 ' + item.title + (item.importance >= 3 ? ' | 주요' : ''),
+          start: item.start,
+          link: ECON_LINKS[item.code] || 'https://fred.stlouisfed.org/releases/calendar',
+          source: 'econ',
+          market: 'us',
+          code: item.code,
+          importance: item.importance
+        };
+      });
+    }).catch(function () { return []; });
   }
 
   function marketPriority(event) {
@@ -243,7 +284,7 @@
   function fetchEvents(year, month, onProgress) {
     var key = String(year) + '-' + String(month == null ? 'year' : month);
     if (monthFetchInflight[key]) return monthFetchInflight[key];
-    var sources = [fetchGoogleEvents(year, month), fetchEarnings(year, month)];
+    var sources = [fetchGoogleEvents(year, month), fetchEarnings(year, month), fetchEconEvents(year, month)];
     if (typeof onProgress === 'function' && month != null) {
       sources.forEach(function (source) {
         source.then(function (events) {
@@ -254,7 +295,7 @@
     }
     var request = Promise.all(sources)
       .then(function (results) {
-        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || []));
+        upsertStoredCalendarEvents((results[0] || []).concat(results[1] || [], results[2] || []));
         return mergeEvents(storedMonthEvents(year, month), []);
       });
     monthFetchInflight[key] = request;
@@ -589,7 +630,28 @@
     }, 15 * 60 * 1000);
   }
 
-  var StockCalendar = { fetchEvents: fetchEvents, init: init };
+  // 다른 화면(주말 리포트 "다음 주 핵심 스케줄")이 이 캘린더와 같은 표기로 한 줄 요약을 만들 때 쓴다.
+  // kind: 한국 | 미국 | 지표 | 일정, text: 종목명(미국은 한글 회사명) + 내용, important: 주요 지표 여부
+  function describeEvent(ev) {
+    var meta = parseEvent(ev && ev.title);
+    var source = String(ev && (ev.source || ev.provider) || '').toLowerCase();
+    if (source === 'econ' || meta.isForeign) {
+      return { kind: '지표', text: meta.text, important: Number(ev && ev.importance) >= 3 || meta.tag === '주요' };
+    }
+    if (meta.isStock) {
+      var us = isUsStockEvent(ev, meta);
+      var name = us ? (usCompanyNameFor(ev, meta) || meta.stockName) : meta.stockName;
+      var text = String(meta.text || '');
+      if (us) {
+        var marker = text.lastIndexOf(' · ');
+        if (marker !== -1 && !/^(EPS|매출)/.test(text.slice(marker + 3))) text = text.slice(0, marker);
+      }
+      return { kind: us ? '미국' : '한국', text: name + ' ' + text, important: false };
+    }
+    return { kind: '일정', text: meta.text, important: meta.tag === '주요' };
+  }
+
+  var StockCalendar = { fetchEvents: fetchEvents, describe: describeEvent, init: init };
   global.StockCalendar = StockCalendar;
   document.addEventListener('DOMContentLoaded', init);
 })(window);

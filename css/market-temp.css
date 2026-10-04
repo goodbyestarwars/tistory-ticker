@@ -2506,3 +2506,16 @@ html body #market-temp .mt-sf-disclaimer { white-space: nowrap; overflow: visibl
 @media (max-width: 900px) {
   html body #market-temp .mt-sf-disclaimer { white-space: normal; font-size: 11.5px; }
 }
+
+/* ── 30-e (2026-10-04, 사용자: "오늘 돈이 몰린 섹터 그래프 색 변경") ──
+   회색 막대 → 그 섹터의 평균 등락 방향색(상승 빨강·하락 파랑, 보합 회색). 왼쪽이 옅고 끝이 진한 그라데이션으로
+   거래대금 집중도(길이)와 방향(색)을 한 번에 읽게 한다. 색은 사이트 의미색 그대로. */
+#market-temp .mt-sf-row.is-up .mt-sf-bar i { background: linear-gradient(90deg, rgba(210, 79, 69, .35), #d24f45); }
+#market-temp .mt-sf-row.is-down .mt-sf-bar i { background: linear-gradient(90deg, rgba(18, 97, 196, .35), #1261c4); }
+#market-temp .mt-sf-row.is-flat .mt-sf-bar i { background: #9aa3b2; }
+#market-temp .mt-sf-row.is-up .mt-sf-pct { color: #d24f45; }
+#market-temp .mt-sf-row.is-down .mt-sf-pct { color: #1261c4; }
+html.dark #market-temp .mt-sf-row.is-up .mt-sf-bar i { background: linear-gradient(90deg, rgba(255, 138, 131, .3), #ff8a83); }
+html.dark #market-temp .mt-sf-row.is-down .mt-sf-bar i { background: linear-gradient(90deg, rgba(128, 184, 255, .3), #80b8ff); }
+html.dark #market-temp .mt-sf-row.is-up .mt-sf-pct { color: #ff8a83; }
+html.dark #market-temp .mt-sf-row.is-down .mt-sf-pct { color: #80b8ff; }

@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from html.parser import HTMLParser
 from threading import Lock
 
-from sp500_constituents import SP500_SYMBOLS
+from sp500_constituents import SP100_SYMBOLS
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
@@ -119,9 +119,29 @@ def _upsert_persistent_events(events):
             _write_persistent_events(_persistent_events)
 
 
+def _is_sp100(symbol):
+    symbol = str(symbol or '').strip().upper()
+    return symbol in SP100_SYMBOLS or symbol.replace('-', '.') in SP100_SYMBOLS
+
+
+def _in_scope(event):
+    """국내(DART)는 전부, 미국은 S&P 100 실적만 남긴다.
+
+    저장소(earnings_calendar_store.json)에는 필터를 넣기 전에 받아 둔 미국 소형주 일정이
+    그대로 남아 있어(2026-10 실측: 10월 미국 1,573건) 읽을 때도 같은 범위로 거른다.
+    심볼을 알 수 없는 미국 항목은 판단할 수 없어 그대로 둔다.
+    """
+    source = str(event.get('source') or event.get('provider') or '').strip().lower()
+    market = str(event.get('market') or '').strip().lower()
+    if source != 'finnhub' and market not in ('us', 'usa', 'foreign'):
+        return True
+    symbol = event.get('symbol') or event.get('ticker')
+    return not symbol or _is_sp100(symbol)
+
+
 def _stored_events(predicate):
     with _persistent_events_lock:
-        events = [dict(event) for event in _persistent_events.values() if predicate(event)]
+        events = [dict(event) for event in _persistent_events.values() if predicate(event) and _in_scope(event)]
     return _merge_events(events)
 
 
@@ -717,7 +737,8 @@ def fetch_us_month(year, month):
         # 없어 소형주까지 다 섞여 나온다. DART(국내) 쪽은 그대로 둔다.
         # BRK.B/BF.B처럼 클래스 표기가 있는 종목은 공급자마다 '.'/'-' 표기가
         # 갈려서(BRK.B vs BRK-B) 둘 다 확인한다.
-        if symbol not in SP500_SYMBOLS and symbol.replace('-', '.') not in SP500_SYMBOLS:
+        # 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 100 정도만"): S&P500 → S&P100으로 더 좁힌다.
+        if not _is_sp100(symbol):
             continue
         try:
             kst_date = _finnhub_kst_date(event_date, row.get('hour'))

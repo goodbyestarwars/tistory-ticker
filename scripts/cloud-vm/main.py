@@ -3017,6 +3017,47 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     return envelope(data)
 
 
+_WEEKEND_US_THEMES_TTL = 30 * 60
+_weekend_us_themes_cache = {}
+
+
+@app.get('/weekend-us-themes')
+def weekend_us_themes_endpoint(request: Request):
+    """주말 리포트 "미국 주말 뉴스로 본 관심 테마"(2026-10-04 신설).
+
+    /weekly-report는 주 단위 디스크 스냅샷이라 토요일에 만들어지면 일요일 뉴스가 안 들어간다.
+    테마는 주말 동안 계속 바뀌므로 따로 30분 메모리 캐시로 둔다. 뉴스는 이미 수집 중인
+    미국 일반 뉴스(보관분 + 현재분)를 그대로 쓰고 새 외부 공급자를 부르지 않는다.
+    """
+    _check_rate_limit('weekend_us_themes', request, max_per_window=20)
+    start, end = weekly_report.completed_week()
+    news_start, news_end = weekly_report.news_window(start, end)
+    cache_key = news_end.isoformat()
+    cached = _weekend_us_themes_cache.get(cache_key)
+    if cached and time.time() - cached['t'] < _WEEKEND_US_THEMES_TTL:
+        return envelope(cached['data'])
+    alpha_key = os.environ.get('ALPHA_VANTAGE_API_KEY', '').strip()
+    items = []
+    try:
+        items.extend(news_aggregator.get_general_news_history(news_start, news_end, limit=200, alpha_api_key=alpha_key))
+    except Exception as exc:
+        logging.getLogger('main').warning('weekend themes news history failed: %s', type(exc).__name__)
+    try:
+        items.extend(news_aggregator.get_general_news(
+            alpha_api_key=alpha_key, finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(), limit=80))
+    except Exception as exc:
+        logging.getLogger('main').warning('weekend themes current news failed: %s', type(exc).__name__)
+    try:
+        sector_map = (_load_sector_cards_cached() or {}).get('sectors') or {}
+    except Exception as exc:
+        logging.getLogger('main').warning('weekend themes sector map failed: %s', type(exc).__name__)
+        sector_map = {}
+    data = weekly_report.us_news_themes(items, news_start, news_end, sector_map)
+    _weekend_us_themes_cache.clear()
+    _weekend_us_themes_cache[cache_key] = {'t': time.time(), 'data': data}
+    return envelope(data)
+
+
 @app.get('/futures/avg')
 def futures_avg(symbol: str, days: int = 365):
     """지정 심볼의 최근 N일 종가 평균/최저/최고 - "적정 유가가 있을 텐데 전쟁 나면 오르지

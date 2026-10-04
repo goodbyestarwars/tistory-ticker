@@ -802,7 +802,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         # 2026-09-12: 스윙 추천 결과 목록 리셋 수정으로 캐시 문자열을 올렸다.
         self.assertIn("home-weekly-report.css?v=20260912-outcome-card-v2", script)
-        self.assertIn("home-weekly-report.js?v=20260904-closed-order-v1", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20261004-weekend-live-v1", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
@@ -3293,7 +3293,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
             self.assertNotIn(old_indigo, style)
         self.assertIn(".sc-ev-stock-link", style)
         self.assertIn(".sc-today-head", style)
-        self.assertIn("stock-calendar.js?v=20260929-ko-us-names-v1", home)
+        self.assertIn("stock-calendar.js?v=20261004-econ-sp100-v1", home)
         self.assertIn("function homeKstDayStart(value)", home)
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):

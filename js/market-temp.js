@@ -235,11 +235,97 @@
       avoid.unshift('오른 종목을 놓칠까 봐 시장가로 추격 매수');
       base = { tone: tone, mood: '자금이 강하게 몰리는 날', title: '오늘은 진입보다 수익 보호 가격을 정한다', short: '' };
     }
+    // 2026-10-04 사용자 지적("지금 할 것/주의할 것을 앵무새처럼 같은 메시지만 적지 말고 dynamic 하게"):
+    // 등급 템플릿은 빈자리 채우기용으로만 두고, 오늘 응답의 실제 값(돈이 몰린 섹터·순위 변화·수급·거래대금·
+    // 상승 비율·신고가/신저가·VIX·환율·금리·빚투 위험도)에서 눈에 띄는 것부터 문장을 만든다.
+    var live = dynamicChecklist_(data);
+    todo = mergeChecklist_(live.todo, todo);
+    avoid = mergeChecklist_(live.avoid, avoid);
     return { tone: tone, mood: base.mood, title: base.title, short: base.short, todo: todo, avoid: avoid, context: context.join(' · ') };
+  }
+
+  function mergeChecklist_(dynamic, template) {
+    var out = dynamic.slice(0, 3);
+    template.forEach(function (text) { if (out.length < 3 && out.indexOf(text) < 0) out.push(text); });
+    return out;
+  }
+
+  // 각 후보는 { p: 우선순위, text } - 값이 조건을 넘을 때만 만들어지고, 우선순위가 높은 것부터 3개까지 쓴다.
+  // **굵게**는 emphasizeChecklist_가 <strong>으로 바꾼다. 수급 금액은 단위 검증 전이라 방향(순매수/순매도)만 쓴다.
+  function dynamicChecklist_(data) {
+    var comps = (data && data.components) || {};
+    var todo = [], avoid = [];
+    function pct(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
+    // 받침 유무로 조사를 고른다(반도체가 / 반도체부품소재/공정이).
+    function josa(word, withFinal, withoutFinal) {
+      var code = String(word || '').charCodeAt(String(word || '').length - 1) - 0xAC00;
+      return code >= 0 && code <= 11171 && code % 28 ? withFinal : withoutFinal;
+    }
+    var flows = Array.isArray(data && data.industryFlow) ? data.industryFlow.filter(function (row) { return row && row.industry; }) : [];
+    var prevRanks = (data && data.industryFlowPreviousRanks) || {};
+    var top = flows[0];
+    if (top) {
+      var topRate = Number(top.avg_change_rate);
+      var leader = (top.stocks || []).filter(function (s) { return isFinite(Number(s.change_rate)); })
+        .sort(function (a, b) { return Number(b.change_rate) - Number(a.change_rate); })[0];
+      var prevTop = Number(prevRanks[top.industry]);
+      var amount = tradeAmountText_(top.trade_amount);
+      if (isFinite(topRate) && topRate > 0) {
+        todo.push({ p: 90, text: '**' + top.industry + '**에 거래대금이 가장 많이 몰렸다(' + (amount ? amount + ', ' : '') + '평균 ' + pct(topRate) + (prevTop > 1 ? ', 어제 ' + prevTop + '위' : '') + ').'
+          + (leader ? ' **' + leader.name + '**(' + pct(Number(leader.change_rate)) + ')부터 차트 자리를 본다' : ' 대표 종목 차트 자리부터 본다') });
+      } else if (isFinite(topRate) && topRate < 0) {
+        avoid.push({ p: 78, text: '거래대금 1위 **' + top.industry + '**' + josa(top.industry, '이', '가') + ' 평균 ' + pct(topRate) + ' - 돈이 몰린 게 아니라 **매도 물량**일 수 있다' });
+      }
+    }
+    flows.slice(1, 5).forEach(function (row, i) {
+      var rank = i + 2, prev = Number(prevRanks[row.industry]), rate = Number(row.avg_change_rate);
+      if (!isFinite(rate)) return;
+      if (rate > 0 && (!prev || prev - rank >= 3)) {
+        todo.push({ p: 80 - i, text: '**' + row.industry + '**' + josa(row.industry, '이', '가') + ' ' + (prev ? '어제 ' + prev + '위 → 오늘 ' + rank + '위' : '오늘 처음 ' + rank + '위') + '로 올라왔다. 하루짜리인지 **내일 거래대금**으로 확인' });
+      } else if (rate <= -1) {
+        avoid.push({ p: 72 - i, text: '**' + row.industry + '**' + josa(row.industry, '은', '는') + ' 거래대금 ' + rank + '위인데 평균 ' + pct(rate) + ' - 많이 거래된 하락이라 **저가 매수**는 서두르지 않는다' });
+      }
+    });
+    var foreign = comps.flow && comps.flow.foreign;
+    var foreignScore = Number(foreign && foreign.score100);
+    if (isFinite(foreignScore) && foreignScore <= 20) avoid.push({ p: 85, text: '외국인이 최근 5일 코스피를 **순매도** 중 - 외국인 비중 큰 대형주는 **추격 매수**를 미룬다' });
+    else if (isFinite(foreignScore) && foreignScore >= 65) todo.push({ p: 72, text: '외국인이 최근 5일 코스피를 **순매수** 중 - 외국인이 산 업종부터 확인한다' });
+    var tv = Number(comps.tradingValue && comps.tradingValue.relative);
+    if (isFinite(tv) && tv < 0.9) avoid.push({ p: 75, text: '거래대금이 5일 평균의 ' + Math.round(tv * 100) + '%로 줄었다 - 거래 없는 반등에 **큰 비중**을 싣지 않는다' });
+    else if (isFinite(tv) && tv >= 1.2) todo.push({ p: 66, text: '거래대금이 5일 평균의 ' + Math.round(tv * 100) + '% - **돈이 붙은 섹터** 안에서만 후보를 고른다' });
+    var rr = comps.riseRatio || {};
+    var ratio = Number(rr.ratio);
+    if (isFinite(ratio) && ratio >= 0.6) todo.push({ p: 60, text: '상승 종목이 ' + Math.round(ratio * 100) + '%(' + rr.up + '/' + rr.total + ') - 이런 날 **내 종목이 못 올랐다면** 이유부터 확인' });
+    else if (isFinite(ratio) && ratio < 0.4) avoid.push({ p: 70, text: '하락 종목이 ' + Math.round((1 - ratio) * 100) + '%(' + rr.down + '/' + rr.total + ') - **반등 첫날** 따라 사지 않는다' });
+    var w52 = comps.week52 || {};
+    var hi = Number(w52.newHigh), lo = Number(w52.newLow);
+    if (isFinite(hi) && isFinite(lo)) {
+      if (lo >= hi + 5) avoid.push({ p: 68, text: '52주 신저가 ' + lo + '개, 신고가 ' + hi + '개 - 신저가 종목 **바닥 잡기**는 하지 않는다' });
+      else if (hi >= lo + 5) todo.push({ p: 58, text: '52주 신고가 ' + hi + '개(신저가 ' + lo + '개) - 신고가 종목 중 **거래대금**이 붙은 것만 관심' });
+    }
+    var vix = Number(comps.vix && comps.vix.value);
+    if (isFinite(vix) && vix >= 20) avoid.push({ p: vix >= 25 ? 95 : 82, text: 'VIX ' + vix.toFixed(1) + ' - 변동성이 큰 장, **미수·신용**으로 크기를 키우지 않는다' });
+    var fx = comps.exchange || {};
+    var fxChg = Number(fx.changeRate), fxPrice = Number(fx.price);
+    var fxText = isFinite(fxPrice) ? ' ' + Math.round(fxPrice).toLocaleString('ko-KR') + '원' : '';
+    if (isFinite(fxChg) && fxChg >= 0.5) avoid.push({ p: 80, text: '원/달러' + fxText + '(' + pct(fxChg) + ') - 환율이 오르는 날은 외국인 매도가 커질 수 있어 **대형주 추격** 자제' });
+    else if (isFinite(fxChg) && fxChg <= -0.5) todo.push({ p: 55, text: '원/달러' + fxText + '(' + pct(fxChg) + ')·원화 강세 - **외국인 수급**이 돌아오는지 확인' });
+    var rates = comps.rates || {};
+    var us10 = Number(rates.us10y), us10Chg = Number(rates.us10yChange);
+    if (isFinite(us10Chg) && us10Chg >= 0.05) avoid.push({ p: 64, text: '미국 10년물 ' + us10.toFixed(2) + '%(+' + us10Chg.toFixed(2) + '%p) - 금리 부담이 큰 **성장주 추격** 주의' });
+    var credit = comps.creditRisk || {};
+    if (credit.available && (credit.state === 'caution' || credit.state === 'overheat')) {
+      avoid.push({ p: credit.state === 'overheat' ? 88 : 74, text: '빚투 위험도 \'' + (credit.stateLabel || credit.state) + '\' - 신용 비중 높은 급등주는 **반대매매** 물량 주의' });
+    }
+    function pick(list) { return list.sort(function (a, b) { return b.p - a.p; }).map(function (item) { return item.text; }); }
+    return { todo: pick(todo), avoid: pick(avoid) };
   }
 
   function emphasizeChecklist_(text) {
     var safe = escapeHtml(text);
+    var marked = /\*\*/.test(safe);
+    safe = safe.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    if (marked) return safe;
     // 행동의 핵심 단어만 굵게 남겨, 긴 문장을 읽지 않아도 판단이 보이게 한다.
     ['손절가', '오늘 정리', '정리한다', '1개월 버틸', '5일선', '이틀 연속', '물타기', '신규 진입', '익절선', '이탈가', '추격 매수', '거래대금', '장 마감 뒤'].forEach(function (word) {
       safe = safe.replace(new RegExp(word, 'g'), '<strong>' + word + '</strong>');

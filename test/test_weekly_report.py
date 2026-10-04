@@ -305,6 +305,34 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertIsNone(weekly_report.past_candidate_outcome_stats(None))
         self.assertIsNone(weekly_report.past_candidate_outcome_stats([]))
 
+    def test_us_news_themes_counts_weekend_headlines_and_maps_kr_stocks(self):
+        from datetime import date
+        items = [
+            {'title': 'Nvidia chips demand surges', 'pubDate': '2026-10-03T10:00:00', 'link': 'a'},
+            {'title': 'Trump taps Jay Clayton as AI czar', 'pubDate': '2026-10-04 09:25'},
+            {'title': 'Trump taps Jay Clayton as AI czar', 'pubDate': '2026-10-04 09:30'},  # 같은 제목은 한 번만
+            {'title': 'OPEC+ Set to Keep Quotas Steady', 'pubDate': '2026-10-04T07:49:00'},
+            {'title': 'Oil slumps on old news', 'pubDate': '2026-09-20'},  # 주말 밖
+            {'title': 'Pope visits Africa', 'pubDate': '2026-10-04'},  # 테마 없음
+        ]
+        sector_map = {'반도체': [{'name': '삼성전자', 'code': '005930', 'market': 'KOSPI'}],
+                      '석유/정유': [{'name': 'S-Oil', 'code': '010950', 'market': 'KOSPI'}]}
+        result = weekly_report.us_news_themes(items, date(2026, 10, 2), date(2026, 10, 4), sector_map)
+        self.assertEqual(result['articleCount'], 4)
+        self.assertEqual([t['key'] for t in result['themes']], ['ai_semi', 'energy'])
+        self.assertEqual(result['themes'][0]['count'], 2)
+        self.assertEqual(result['themes'][0]['krStocks'][0]['code'], '005930')
+        self.assertEqual(result['themes'][1]['count'], 1)
+
+    def test_us_news_themes_does_not_match_inside_words(self):
+        from datetime import date
+        # "said"/"maid"의 ai, "boil"의 oil 같은 단어 일부는 테마로 세지 않는다.
+        # "crude"는 형용사(거친)로도 쓰여 원유 문맥(crude oil 등)일 때만 센다 - 2026-10-04 실제 오탐 제목.
+        items = [{'title': 'Officials said the maid would boil water', 'pubDate': '2026-10-03'},
+                 {'title': 'In crude Ohio rally speech, Trump says he may not help', 'pubDate': '2026-10-04'}]
+        result = weekly_report.us_news_themes(items, date(2026, 10, 2), date(2026, 10, 4))
+        self.assertEqual(result['themes'], [])
+
 
 if __name__ == '__main__':
     unittest.main()
