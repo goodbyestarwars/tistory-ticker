@@ -26,28 +26,63 @@
 .hb-spinner {
   display: block;
   width: 108px;
-  height: 42px;
+  height: 64px;
   margin: 0 auto 8px;
   overflow: visible;
   color: #d24f45;
 }
 
-.hb-spinner polyline {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: hb-heartbeat 1.6s linear infinite;
+/* 2026-10-05 사용자 요청("심장박동 대신 송골매가 쑥~ 날아오면서 한 바퀴 싹 도는 모습, 특수효과"):
+   마크업(<svg class="hb-spinner"><polyline/></svg>)은 15개 파일에 그대로 두고, 여기 한 곳에서 그림만 바꾼다.
+   svg 바탕에 송골매(img/falcon-loader.webp, 투명 배경)를 깔고 파형 선은 숨긴다.
+   2.6초 한 바퀴: 왼쪽에서 흐릿하게 쑥 날아듦(빨간 속도선) → 잠깐 멈춤 → 머리 위 점을 축으로 360° 공중회전(빨간 빛)
+   → 오른쪽으로 작아지며 사라짐(속도선) → 잠깐 쉼. 회전축은 translateY(-20px) rotate() translateY(26px)로 잡는다
+   (키프레임마다 같은 변환 목록을 써야 부드럽게 이어진다). filter도 blur()+drop-shadow() 목록을 맞춘다. */
+.hb-spinner polyline { display: none; }
+.hb-spinner {
+  background-image: url('img/falcon-loader.webp'), linear-gradient(90deg, rgba(210, 79, 69, 0), rgba(210, 79, 69, .65));
+  background-repeat: no-repeat, no-repeat;
+  background-position: 70% 50%, 0 58%;
+  background-size: 76px auto, 0 2px;
+  will-change: transform, filter, opacity;
+  animation: hb-falcon-swoop 2.6s cubic-bezier(.45, .05, .25, 1) infinite;
 }
-@keyframes hb-heartbeat {
-  0% { stroke-dashoffset: 100; }
-  70% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -20; }
+@keyframes hb-falcon-swoop {
+  0%   { opacity: 0; transform: translate(-150px, 14px) translateY(-20px) rotate(0deg) translateY(20px) scale(.5);  filter: blur(6px) drop-shadow(0 0 0 rgba(210, 79, 69, 0));     background-size: 76px auto, 0 2px; }
+  12%  { opacity: 1;                                                                                                filter: blur(2px) drop-shadow(0 4px 6px rgba(0, 0, 0, .12));    background-size: 76px auto, 64px 2px; }
+  22%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(0deg) translateY(20px) scale(.95);        filter: blur(0) drop-shadow(0 6px 10px rgba(0, 0, 0, .16));     background-size: 76px auto, 0 2px; }
+  30%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(0deg) translateY(20px) scale(.95);        filter: blur(0) drop-shadow(0 6px 10px rgba(0, 0, 0, .16));     background-size: 76px auto, 0 2px; }
+  46%  {                                                                                                            filter: blur(.6px) drop-shadow(0 0 14px rgba(210, 79, 69, .55)); }
+  62%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(-360deg) translateY(20px) scale(.95);     filter: blur(0) drop-shadow(0 6px 10px rgba(0, 0, 0, .16));     background-size: 76px auto, 0 2px; }
+  70%  { opacity: 1; transform: translate(6px, -2px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.95); filter: blur(0) drop-shadow(0 6px 10px rgba(0, 0, 0, .16));     background-size: 76px auto, 0 2px; }
+  80%  {                                                                                                            filter: blur(2px) drop-shadow(0 4px 6px rgba(0, 0, 0, .1));     background-size: 76px auto, 72px 2px; }
+  88%  { opacity: 0; transform: translate(170px, -12px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.55); filter: blur(6px) drop-shadow(0 0 0 rgba(210, 79, 69, 0));  background-size: 76px auto, 0 2px; }
+  100% { opacity: 0; transform: translate(170px, -12px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.55); filter: blur(6px) drop-shadow(0 0 0 rgba(210, 79, 69, 0));  background-size: 76px auto, 0 2px; }
 }
-html.dark .hb-spinner { color: #ff8a80; }
+/* 다크 모드: 연필 그림이 어두운 바탕에 묻혀 밝은 스케치로 뒤집는다(invert를 같은 filter 목록 맨 앞에) */
+html.dark .hb-spinner {
+  color: #ff8a80; animation-name: hb-falcon-swoop-dark;
+  /* invert가 속도선까지 뒤집으므로 보색(청록)으로 그려 두면 화면에선 빨강으로 보인다 */
+  background-image: url('img/falcon-loader.webp'), linear-gradient(90deg, rgba(45, 176, 186, 0), rgba(45, 176, 186, .65));
+}
+@keyframes hb-falcon-swoop-dark {
+  0%   { opacity: 0; transform: translate(-150px, 14px) translateY(-20px) rotate(0deg) translateY(20px) scale(.5);  filter: invert(.9) blur(6px) drop-shadow(0 0 0 rgba(255, 138, 128, 0));    background-size: 76px auto, 0 2px; }
+  12%  { opacity: 1;                                                                                                filter: invert(.9) blur(2px) drop-shadow(0 0 6px rgba(255, 255, 255, .15)); background-size: 76px auto, 64px 2px; }
+  22%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(0deg) translateY(20px) scale(.95);        filter: invert(.9) blur(0) drop-shadow(0 0 8px rgba(255, 255, 255, .18));  background-size: 76px auto, 0 2px; }
+  30%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(0deg) translateY(20px) scale(.95);        filter: invert(.9) blur(0) drop-shadow(0 0 8px rgba(255, 255, 255, .18));  background-size: 76px auto, 0 2px; }
+  46%  {                                                                                                            filter: invert(.9) blur(.6px) drop-shadow(0 0 14px rgba(255, 138, 128, .6)); }
+  62%  { opacity: 1; transform: translate(0, 0) translateY(-20px) rotate(-360deg) translateY(20px) scale(.95);     filter: invert(.9) blur(0) drop-shadow(0 0 8px rgba(255, 255, 255, .18));  background-size: 76px auto, 0 2px; }
+  70%  { opacity: 1; transform: translate(6px, -2px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.95); filter: invert(.9) blur(0) drop-shadow(0 0 8px rgba(255, 255, 255, .18));  background-size: 76px auto, 0 2px; }
+  80%  {                                                                                                            filter: invert(.9) blur(2px) drop-shadow(0 0 6px rgba(255, 255, 255, .12)); background-size: 76px auto, 72px 2px; }
+  88%  { opacity: 0; transform: translate(170px, -12px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.55); filter: invert(.9) blur(6px) drop-shadow(0 0 0 rgba(255, 138, 128, 0)); background-size: 76px auto, 0 2px; }
+  100% { opacity: 0; transform: translate(170px, -12px) translateY(-20px) rotate(-360deg) translateY(20px) scale(.55); filter: invert(.9) blur(6px) drop-shadow(0 0 0 rgba(255, 138, 128, 0)); background-size: 76px auto, 0 2px; }
+}
+/* 움직임 줄이기 설정: 날지 않고 제자리에서 천천히 숨쉬듯 */
+@media (prefers-reduced-motion: reduce) {
+  .hb-spinner, html.dark .hb-spinner { animation: hb-falcon-calm 2s ease-in-out infinite alternate; background-size: 76px auto, 0 2px; }
+  html.dark .hb-spinner { filter: invert(.9); }
+}
+@keyframes hb-falcon-calm { from { opacity: .55; } to { opacity: 1; } }
 
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
