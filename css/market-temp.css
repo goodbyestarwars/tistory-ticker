@@ -2302,3 +2302,5 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(128
 #market-temp .mt-history-balance > span, #market-temp .mt-history-balance > span.fear, #market-temp .mt-history-balance > span.neutral, #market-temp .mt-history-balance > span.greed { border: 0 !important; border-left: 1px solid var(--mt2-line) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; text-align: left; }
 #market-temp .mt-history-balance > span:first-child { border-left: 0 !important; }
 html.dark #market-temp .mt-history-balance > span { background: transparent !important; }
+#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; outline: 0 !important; text-align: left !important; }
+#market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::before, #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::after { content: none !important; }
