@@ -577,7 +577,7 @@ document.documentElement.classList.add('skin-ready');
         + '<path d="M45 90a6 6 0 1 1 10 4l3 13h-16l3-13a6 6 0 0 1 0-4z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>'
         + '<path d="M61 83a7 7 0 0 1-10 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
         + '</svg>'
-        + '<h1>Markets Closed</h1></div><p>토요일·일요일은 국내·미국 증시가 쉽니다.</p></div><div class="home-closed-status"><strong>다음 주 시장을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small></div></div>'
+        + '<h1>Markets Closed</h1></div><p>토요일·일요일은 국내·미국 증시가 쉽니다.</p></div><div class="home-closed-status"><strong>다음 주 시장을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><a class="home-closed-link" href="#homeWeeklyReport">다음 주 일정 보기 →</a></div></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'

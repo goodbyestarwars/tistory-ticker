@@ -8135,3 +8135,37 @@ body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) > div
 body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) strong { margin: 0; }
 /* 29-b. 속보 영역이 숨겨진 상태에서 뉴스 목록이 왼쪽 지수 띠(위 margin 18px)보다 18px 높게 시작하던 것을 같은 시작선으로 맞춘다 */
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking[hidden] + .hen-list { margin-top: 18px; }
+
+/* ── 29. Markets Closed 얇은 상태 배너 (2026-10-04 사용자 지시서) ──
+   큰 히어로·유리 카드·말풍선을 걷고, 한 줄 배너(자물쇠 + 제목 | 안내 + 다음 주 일정 링크)로 높이를 절반 이하로 줄인다. 마크업은 그대로(링크 하나만 추가). */
+html body#tt-body-index .home-editorial-page .home-closed-page { min-height: 0 !important; border-bottom: 0 !important; }
+html body#tt-body-index .home-editorial-page .home-closed-lead {
+  display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 24px !important;
+  padding: 18px 26px !important; margin: 4px 0 40px !important;
+  border: 1px solid rgba(var(--np-ink), .1) !important; border-radius: 18px !important;
+  background: rgb(254, 253, 250) !important; box-shadow: none !important;
+}
+html body#tt-body-index .home-editorial-page .home-closed-kicker { display: flex !important; align-items: center !important; gap: 20px !important; min-width: 0 !important; }
+html body#tt-body-index .home-editorial-page .home-closed-kicker > span { display: none !important; }
+html body#tt-body-index .home-editorial-page .home-closed-title-row { gap: 12px !important; }
+html body#tt-body-index .home-editorial-page .home-closed-lock { width: 38px !important; height: 38px !important; padding: 8px !important; border-radius: 12px !important; }
+html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: 24px !important; line-height: 1.2 !important; }
+html body#tt-body-index .home-editorial-page .home-closed-kicker p { margin: 0 !important; font-size: 13px !important; }
+html body#tt-body-index .home-editorial-page .home-closed-status {
+  display: flex !important; flex-direction: column !important; align-items: flex-end !important; gap: 4px !important; min-height: 0 !important;
+  padding: 0 !important; border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; text-align: right !important;
+}
+html body#tt-body-index .home-editorial-page .home-closed-status::before { content: none !important; display: none !important; }
+html body#tt-body-index .home-editorial-page .home-closed-status strong { font-size: 14px !important; }
+html body#tt-body-index .home-editorial-page .home-closed-status span { font-size: 12px !important; }
+html body#tt-body-index .home-editorial-page .home-closed-status small { display: none !important; }
+html body#tt-body-index .home-editorial-page .home-closed-link { margin-top: 2px; font: 600 13px/1.3 var(--font-ui); color: inherit; text-decoration: none; }
+html body#tt-body-index .home-editorial-page .home-closed-link:hover { text-decoration: underline; }
+@media (max-width: 720px) {
+  html body#tt-body-index .home-editorial-page .home-closed-lead { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; padding: 14px 16px !important; margin-bottom: 28px !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-kicker { flex-direction: column !important; align-items: flex-start !important; gap: 6px !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: 22px !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-status { align-items: flex-start !important; text-align: left !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-status span { display: none !important; }
+}
+html.dark body#tt-body-index .home-editorial-page .home-closed-lead { background: #1a1a1a !important; border-color: rgba(245, 239, 224, .16) !important; }

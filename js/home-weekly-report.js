@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20260912-outcome-card-v2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v3';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -170,25 +170,41 @@
     if (!summary || summary === title) return '';
     return summary.length > 150 ? summary.slice(0, 147) + '…' : summary;
   }
+  // 2026-10-04 주말 리포트 재디자인: 뉴스를 국내/해외 두 열의 한 줄 행(시간·매체·제목)으로 줄이고 기본 6건만 보여준다.
+  // 나머지는 섹션 하단 "더보기" 하나로 연다. 요약문·원문 버튼·시장 배지는 걷고 제목 자체를 원문 링크로 쓴다.
+  var NEWS_VISIBLE = 6;
+  function newsRow(item, index) {
+    var type = newsType(item);
+    var quote = item.price != null ? '<span class="hwr2-news-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
+    return '<li class="hwr2-news-row' + (index >= NEWS_VISIBLE ? ' is-extra' : '') + '" data-news-type="' + type + '">'
+      + '<time>' + escapeHtml(dateLabel(item.pubDate)) + ' ' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
+      + '<span class="hwr2-news-main"><a href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">' + escapeHtml(item.title || '제목 없음') + '</a>'
+      + '<small>' + escapeHtml(item.source || '') + (type === '공시' ? ' · 공시' : '') + '</small></span>' + quote + '</li>';
+  }
+  function newsColumn(title, items) {
+    return '<div class="hwr2-col"><h4 class="hwr2-col-title">' + title + '</h4>'
+      + (items.length ? '<ul class="hwr2-news-list">' + items.map(newsRow).join('') + '</ul>' : '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>') + '</div>';
+  }
   function newsTimeline(items) {
     if (!items || !items.length) return '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>';
-    var rows = items.slice(0, 20).map(function (item, index) {
-      var market = item.market === '미국' ? '미국' : '한국';
-      var type = newsType(item);
-      var summary = newsSummary(item);
-      var quote = item.price != null ? '<span class="hwr-news-quote"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
-      return '<article class="hwr-news-event" data-news-type="' + type + '">'
-        + '<div class="hwr-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
-        + '<div class="hwr-news-rail"><i class="' + (index === 0 ? 'is-latest' : '') + '"></i></div>'
-        + '<div class="hwr-news-event-body"><div class="hwr-news-event-meta">'
-        + '<b class="hwr-news-market hwr-news-market--' + market + '">' + market + '</b>'
-        + '<b class="hwr-news-type hwr-news-type--' + type + '">' + type + '</b>'
-        + '<small>' + escapeHtml(item.source || '') + '</small></div>'
-        + '<h4>' + escapeHtml(item.title || '제목 없음') + '</h4>'
-        + (summary ? '<p>' + escapeHtml(summary) + '</p>' : '')
-        + '<div class="hwr-news-event-footer">' + quote + '<a href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">원문 보기 ↗</a></div></div></article>';
-    }).join('');
-    return '<div class="hwr-news-timeline" data-hwr-news-timeline>' + rows + '</div><p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>';
+    var rows = items.slice(0, 20);
+    var domestic = rows.filter(function (item) { return item.market !== '미국'; });
+    var overseas = rows.filter(function (item) { return item.market === '미국'; });
+    var hasExtra = domestic.length > NEWS_VISIBLE || overseas.length > NEWS_VISIBLE;
+    return '<div class="hwr2-cols" data-hwr-news-timeline>' + newsColumn('국내 뉴스', domestic) + newsColumn('해외 뉴스', overseas) + '</div>'
+      + '<p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>'
+      + (hasExtra ? '<div class="hwr2-more-wrap"><button type="button" class="hwr2-more" data-hwr-news-more aria-expanded="false">뉴스 더보기</button></div>' : '');
+  }
+  function bindNewsMore(root) {
+    var more = root.querySelector('[data-hwr-news-more]');
+    var box = root.querySelector('.hwr2-news');
+    if (!more || !box) return;
+    more.addEventListener('click', function () {
+      var open = !box.classList.contains('is-expanded');
+      box.classList.toggle('is-expanded', open);
+      more.setAttribute('aria-expanded', open ? 'true' : 'false');
+      more.textContent = open ? '뉴스 접기' : '뉴스 더보기';
+    });
   }
   function bindNewsFilters(root) {
     var buttons = root.querySelectorAll('[data-hwr-news-filter]');
@@ -212,21 +228,30 @@
       });
     });
   }
-  function stockList(items, market) {
-    if (!items || !items.length) return '<p class="hwr-empty">마지막 거래일 순위를 받지 못했습니다.</p>';
-    return '<ul class="hwr-stock-list">' + items.slice(0, 10).map(function (item) {
-      var tags = (item.tags || []).slice(0, 2).join(' · ');
-      var meta = market === 'us' ? item.code : item.code + (tags ? ' · ' + tags : '');
-      return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small></span><span class="hwr-stock-values"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span></li>';
-    }).join('') + '</ul>';
-  }
-  function stockListWithReasons(items, market, emptyText) {
+  // 2026-10-04 주말 리포트 재디자인: 종목 하나 = 카드 하나를 걷고 한 줄 행(순위·종목·등락률/가격)으로 바꾼다.
+  function moverRows(items, market, emptyText) {
     if (!items || !items.length) return '<p class="hwr-empty">' + escapeHtml(emptyText || '해당 조건의 종목을 찾지 못했습니다.') + '</p>';
-    return '<ul class="hwr-stock-list hwr-stock-list--four">' + items.slice(0, 4).map(function (item) {
+    return '<ol class="hwr2-rows">' + items.slice(0, 4).map(function (item, index) {
       var tags = (item.tags || []).slice(0, 2).join(' · ');
       var meta = market === 'us' ? item.code : item.code + (tags ? ' · ' + tags : '');
-      return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small><em class="hwr-stock-reason">' + escapeHtml(item.reason || '순위·등락 데이터 기준') + '</em></span><span class="hwr-stock-values"><b>' + escapeHtml(formatStockPrice(item)) + '</b><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span></li>';
-    }).join('') + '</ul>';
+      var reason = item.reason || '순위·등락 데이터 기준';
+      return '<li><i class="hwr2-rank">' + (index < 9 ? '0' : '') + (index + 1) + '</i>'
+        + '<span class="hwr2-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small><em>' + escapeHtml(reason) + '</em></span>'
+        + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
+    }).join('') + '</ol>';
+  }
+  function moversSection(data) {
+    var hot = data.hotStocks || {}, cold = data.coldStocks || {};
+    function block(label, market, hotItems, coldItems) {
+      return '<div class="hwr2-market"><h4 class="hwr2-market-title">' + label + '</h4><div class="hwr2-cols">'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">많이 오른 종목</h5>' + moverRows(hotItems, market) + '</div>'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-down">많이 내린 종목</h5>' + moverRows(coldItems, market) + '</div>'
+        + '</div></div>';
+    }
+    return '<section class="hwr2-section"><div class="hwr2-h"><h3>이번 주 움직인 종목</h3><p>마지막 거래일 기준 · 상승은 +1% 이상, 하락은 -1% 이하만 표시</p></div>'
+      + block('한국', 'domestic', hot.domestic, cold.domestic)
+      + block('미국', 'us', hot.us, cold.us)
+      + '</section>';
   }
   // 2026-08-22 신설: "기록 공유" - 지난 2주 스윙 후보가 그 후 T+5/T+10 동안 실제로 어떻게
   // 움직였는지 보여준다(이번 주 신규 후보와 별개 섹션). 데이터가 없으면(아직 확정된 결과가
@@ -235,36 +260,38 @@
   // 표본이 작다는 지적으로, 백엔드가 더 넉넉한 표본(최대 200건)으로 미리 계산해 내려주는
   // stats(t5/t10 각각 count/winRatePct/avgReturnPct)를 목록 위에 요약카드로 얹는다.
   // 표본이 하나도 없으면(t5/t10 둘 다 null) 카드 자체를 숨긴다.
+  // 2026-10-04 재디자인: 위쪽에 T+5/T+10 승률을 큰 숫자로, 아래에 종목별 한 줄(T+5·T+10)로 정리한다.
   function pastOutcomeStatsCard(stats) {
     if (!stats) return '';
     var cells = ['t5', 't10'].map(function (key) {
-      var s = stats[key];
-      if (!s) return '';
-      var label = key === 't5' ? '단타 5거래일(T+5)' : '2주(T+10)';
-      return '<div class="hwr-outcome-stat"><b>' + label + '</b>'
-        + '<strong class="' + signClass(s.avgReturnPct) + '">' + s.winRatePct + '% 승률</strong>'
-        + '<span>평균 ' + signed(s.avgReturnPct) + ' · ' + s.count + '건</span></div>';
+      var st = stats[key];
+      if (!st) return '';
+      return '<div class="hwr2-stat"><span>' + (key === 't5' ? 'T+5 승률' : 'T+10 승률') + '</span>'
+        + '<strong>' + st.winRatePct + '%</strong>'
+        + '<small class="' + signClass(st.avgReturnPct) + '">평균 ' + signed(st.avgReturnPct) + ' · ' + st.count + '건</small></div>';
     }).join('');
-    if (!cells) return '';
-    return '<div class="hwr-outcome-stats">' + cells + '</div>';
+    return cells ? '<div class="hwr2-stats">' + cells + '</div>' : '';
   }
-  function pastOutcomeList(items, stats) {
-    if (!items || !items.length) return '';
-    // 2026-09-12(2차) 사용자 지적("일관성이 부족해"): 이 섹션만 <article> 카드 없이
-    // 맨 <ul>이었고(형제 섹션은 전부 .hwr-columns > article 카드), 목록도 혼자
-    // 값을 오른쪽 끝으로 미는 flex라 값이 다음 칸 종목명에 붙어 읽혔다.
-    // 바로 위 형제인 "2주 스윙 상승 후보"와 같은 내용 성격이므로 구조를 동일하게 맞춘다
-    // - .hwr-columns > article 카드 + .hwr-stock-list--four(값이 이름 아래).
-    // 신호일과 진입의견도 형제처럼 <small>(메타)/<em class="hwr-stock-reason">(사유)로 나눈다.
-    return '<section class="hwr-stock-section hwr-outcome-section"><div class="hwr-section-heading"><strong>지난 2주 스윙 추천 결과</strong><span>신호일 대비 T+5·T+10 실제 수익률(확정된 건만 표시)</span></div>'
-      + '<div class="hwr-columns"><article><div class="hwr-card-title"><strong>국내 결과</strong><span>신호일 대비 확정 수익률</span></div>'
-      + pastOutcomeStatsCard(stats)
-      + '<ul class="hwr-stock-list hwr-stock-list--four hwr-outcome-list">' + items.map(function (item) {
-        var t5 = item.t5ReturnPct != null ? '<b class="' + signClass(item.t5ReturnPct) + '">T+5 ' + signed(item.t5ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+5 집계 중</b>';
-        var t10 = item.t10ReturnPct != null ? '<b class="' + signClass(item.t10ReturnPct) + '">T+10 ' + signed(item.t10ReturnPct) + '</b>' : '<b class="hwr-outcome-pending">T+10 집계 중</b>';
-        var opinion = item.entryOpinion ? '<em class="hwr-stock-reason">' + escapeHtml(item.entryOpinion) + '</em>' : '';
-        return '<li><span class="hwr-stock-name"><strong>' + escapeHtml(item.name || item.code || '') + '</strong><small>' + escapeHtml(dateLabel(item.asOfDate)) + ' 신호</small>' + opinion + '</span><span class="hwr-stock-values hwr-outcome-values">' + t5 + t10 + '</span></li>';
-      }).join('') + '</ul></article></div></section>';
+  function pastOutcomeRows(items) {
+    return '<ol class="hwr2-rows hwr2-rows--outcome">' + items.map(function (item) {
+      var t5 = item.t5ReturnPct != null ? '<b class="' + signClass(item.t5ReturnPct) + '"><small>T+5</small>' + signed(item.t5ReturnPct) + '</b>' : '<b class="hwr-outcome-pending"><small>T+5</small>집계 중</b>';
+      var t10 = item.t10ReturnPct != null ? '<b class="' + signClass(item.t10ReturnPct) + '"><small>T+10</small>' + signed(item.t10ReturnPct) + '</b>' : '<b class="hwr-outcome-pending"><small>T+10</small>집계 중</b>';
+      var opinion = item.entryOpinion ? ' · ' + escapeHtml(item.entryOpinion) : '';
+      return '<li><span class="hwr2-name"><strong>' + escapeHtml(item.name || item.code || '') + '</strong><small>' + escapeHtml(dateLabel(item.asOfDate)) + ' 신호' + opinion + '</small></span>'
+        + '<span class="hwr2-val hwr2-val--pair">' + t5 + t10 + '</span></li>';
+    }).join('') + '</ol>';
+  }
+  function checkSection(data) {
+    var outcomes = data.pastCandidateOutcomes || {};
+    var past = outcomes.domestic;
+    var hasPast = past && past.length;
+    var left = '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">매매 신호 <small>2주 스윙 상승 후보</small></h5>'
+      + moverRows(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</div>';
+    var right = hasPast
+      ? '<div class="hwr2-col"><h5 class="hwr2-col-sub">지난 신호 성과 <small>신호일 대비 확정 수익률</small></h5>' + pastOutcomeStatsCard(outcomes.stats) + pastOutcomeRows(past) + '</div>'
+      : '';
+    return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 차트 국면·모멘텀·펀더멘털·위험 필터를 통과한 종목만 표시합니다</p></div>'
+      + '<div class="hwr2-cols' + (hasPast ? '' : ' is-single') + '">' + left + right + '</div></section>';
   }
   function indexSummary(indices) {
     var displayOrder = {
@@ -505,28 +532,36 @@
     var data = payload && payload.data ? payload.data : payload || {};
     var weekendDay = new Date().getDay();
     var title = weekendDay === 0 || weekendDay === 1 ? '다음 주 준비 리포트' : '한 주 마감 리포트';
-    var subtitle = weekendDay === 0 || weekendDay === 1 ? '한국·미국 증시 흐름과 다음 주 핵심 일정·뉴스를 한 화면에 통합합니다.' : '이번 주 시장 흐름과 주요 이슈를 한 화면에 정리합니다.';
     var indices = data.indices || [];
     var fx = data.fx || {};
     var gold = data.gold || {};
     applyLockSentiment(isBullishWeek(indices));
-    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><span class="hwr-eyebrow">WEEKEND BRIEF</span><h2>' + title + '</h2><p>' + subtitle + '</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
-      + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
+    // 2026-10-04 재디자인: ①휴장 안내(배너, 대시보드 쪽) → ②다음 주 준비(지수·환율·금·일정) → ③움직인 종목 → ④다음 주 체크 종목 → ⑤뉴스.
+    // 데이터·계산은 그대로, 카드를 큰 구역 단위로 줄이고 종목·뉴스는 한 줄 행으로 보여준다.
+    var indexCards = indices.filter(function (item) {
+      return item && ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1;
+    }).map(function (item) {
+      return '<article class="hwr-index-card"><strong class="hwr2-idx-name">' + escapeHtml(item.name) + '</strong><b>' + formatMarketValue(item) + '</b>'
+        + '<span class="hwr2-idx-chg ' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span>'
+        + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
+    }).join('');
+    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
+      + '<section class="hwr2-section hwr2-prep">'
       + indexSummary(indices)
-      + '<div class="hwr-index-grid">' + indices.filter(function (item) {
-        return item && ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1;
-      }).map(function (item) {
-        return '<article class="hwr-index-card"><div><strong>' + escapeHtml(item.name) + '</strong><span class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span></div><b>' + formatMarketValue(item) + '</b><div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div><small>' + (item.available ? '주간 추이' : '데이터 없음') + '</small></article>';
-      }).join('') + '</div>'
+      + '<div class="hwr-index-grid">' + indexCards + '</div>'
+      + '<h4 class="hwr2-sub">시장 흐름</h4>'
       + '<div class="hwr-summary-row hwr-asset-row"><div>' + rangeCard(fx, { title: '원/달러 환율', unit: 'krw', fallbackLabel: '환율 데이터 확인 중', fallbackMessage: '1년 환율 데이터가 부족합니다.' }) + '</div><div>' + rangeCard(gold, { title: '금 선물', unit: 'usd', fallbackLabel: '금 시세 데이터 확인 중', fallbackMessage: '1년 금 시세 데이터가 부족합니다.' }) + '</div></div>'
-      + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>뜨거웠던 종목</strong><span>마지막 거래일 +1% 이상 · 상승률 우선 · 거래대금은 동률 보정</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>왜 움직였나</span></div>' + stockListWithReasons(data.hotStocks && data.hotStocks.us, 'us') + '</article></div></section>'
-      + '<section class="hwr-stock-section"><div class="hwr-section-heading"><strong>차가웠던 종목</strong><span>마지막 거래일 -1% 이하 · 하락폭 우선 · 유동성은 동률 보정</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong>한국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.domestic, 'domestic') + '</article><article><div class="hwr-card-title"><strong>미국</strong><span>약세 이유</span></div>' + stockListWithReasons(data.coldStocks && data.coldStocks.us, 'us') + '</article></div></section>'
-      + '<section class="hwr-stock-section hwr-candidate-section"><div class="hwr-section-heading"><strong>2주 스윙 상승 후보</strong><span>국내 차트 국면·모멘텀·펀더멘털·위험 필터 통과 종목만 표시</span></div><div class="hwr-columns"><article><div class="hwr-card-title"><strong class="is-up">국내 후보</strong><span>보유자 행동과 신규 진입을 분리</span></div>' + stockListWithReasons(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</article></div></section>'
-      + pastOutcomeList(data.pastCandidateOutcomes && data.pastCandidateOutcomes.domestic, data.pastCandidateOutcomes && data.pastCandidateOutcomes.stats)
-      + '<article class="hwr-news-card"><div class="hwr-news-toolbar"><div class="hwr-card-title"><strong>주간 경제 뉴스·이슈</strong><span>' + escapeHtml(data.news && data.news.basis || '금~일 날짜별 주요 뉴스 · 한국·미국 통합') + '</span></div><div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>' + newsTimeline(data.news && data.news.timeline) + '</article>'
+      + '<article class="hwr-schedule"><div class="hwr-card-title"><strong>다음 주 핵심 스케줄</strong><span>' + escapeHtml(data.scheduleBasis || '확인된 주요 일정만 표시') + '</span></div>' + scheduleList(data.schedule) + '</article>'
       + '<article class="hwr-schedule hwr-my-schedule" data-hwr-my-schedule hidden></article>'
+      + '</section>'
+      + moversSection(data)
+      + checkSection(data)
+      + '<section class="hwr2-section hwr2-news"><div class="hwr2-h hwr2-h--tools"><div><h3>시장 뉴스</h3><p>' + escapeHtml(data.news && data.news.basis || '금~일 날짜별 주요 뉴스 · 한국·미국 통합') + '</p></div>'
+      + '<div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>'
+      + newsTimeline(data.news && data.news.timeline) + '</section>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     bindNewsFilters(root);
+    bindNewsMore(root);
     loadMyWatchlistSchedule(root, data.week && data.week.end);
   }
   // 2026-08-30: css/home-weekly-report.css는 휴장 탭을 열 때에야 <link>로 붙는데,

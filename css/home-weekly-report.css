@@ -439,3 +439,158 @@ html.dark .hwr-outcome-stat > span { color: #7d8593; }
 .hwr-stock-list--four .hwr-stock-values b:last-child { font-size: 16px; letter-spacing: -0.01em; }
 
 .hwr-stock-list--four .hwr-stock-values b:first-child { font-size: 11px; white-space: nowrap; color: #64748b; font-weight: 500; }
+
+/* ── 주말/휴장 리포트 리디자인 v3 (2026-10-04, 사용자 지시서) ──
+   카드 수를 줄이고(큰 구역 단위만) 종목·뉴스는 한 줄 행으로, 여백을 늘리고 정보 위계를 글자 크기로 만든다.
+   위의 옛 규칙(작은 카드·8~10px 글자)을 같은 선택자 앞에 .home-weekly-report를 붙여 이긴다. 데이터·계산은 그대로. */
+.home-weekly-report {
+  --hw-text: #171a21; --hw-sub: #667085; --hw-muted: #8b95a5; --hw-line: #eaecf0; --hw-border: #e5e7eb; --hw-surface: #ffffff;
+  --hw-up: #d24f45; --hw-down: #1261c4;
+  max-width: 1200px; margin: 0 auto 72px; padding: 0 4px; color: var(--hw-text);
+  font-variant-numeric: tabular-nums;
+}
+html.dark .home-weekly-report { --hw-text: #f5efe0; --hw-sub: rgba(245, 239, 224, .66); --hw-muted: rgba(245, 239, 224, .5); --hw-line: rgba(245, 239, 224, .12); --hw-border: rgba(245, 239, 224, .16); --hw-surface: #1a1a1a; --hw-up: #ff8a83; --hw-down: #80b8ff; }
+.home-weekly-report .is-up { color: var(--hw-up); }
+.home-weekly-report .is-down { color: var(--hw-down); }
+.home-weekly-report .is-flat { color: var(--hw-sub); }
+
+/* 머리말 */
+.home-weekly-report .hwr-head { align-items: flex-end; min-height: 0; padding: 12px 0 28px; border: 0; }
+.home-weekly-report .hwr-head h2 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
+.home-weekly-report .hwr-head p { margin: 6px 0 0; font-size: 14px; color: var(--hw-sub); }
+.home-weekly-report .hwr-period { font-size: 13px; font-weight: 600; color: var(--hw-sub); }
+.home-weekly-report .hwr-period small { margin-top: 4px; font-size: 12px; color: var(--hw-muted); }
+
+/* 큰 구역(섹션) */
+.hwr2-section { margin-top: 64px; }
+.hwr2-section.hwr2-prep { margin-top: 0; }
+.hwr2-h { margin-bottom: 22px; }
+.hwr2-h h3 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
+.hwr2-h p { margin: 6px 0 0; font-size: 13px; color: var(--hw-sub); }
+.hwr2-h--tools { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
+.hwr2-sub { margin: 36px 0 14px; font-size: 17px; font-weight: 650; }
+.hwr2-market + .hwr2-market { margin-top: 36px; }
+.hwr2-market-title { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--hw-text); font-size: 17px; font-weight: 650; }
+.hwr2-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 28px; }
+.hwr2-cols.is-single { grid-template-columns: minmax(0, 1fr); }
+.hwr2-col { min-width: 0; }
+.hwr2-col-title, .hwr2-col-sub { margin: 0 0 6px; font-size: 15px; font-weight: 650; }
+.hwr2-col-sub small { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--hw-muted); }
+.hwr2-col-sub.is-up { color: var(--hw-up); }
+.hwr2-col-sub.is-down { color: var(--hw-down); }
+
+/* 지수: 한 구역 안의 4개 지표 블록(구분선만) */
+.home-weekly-report .hwr-index-summary { margin: 0 0 14px; padding: 0; border: 0; background: transparent; gap: 4px 18px; }
+.home-weekly-report .hwr-index-summary > span { font-size: 12px; font-weight: 600; color: var(--hw-sub); }
+.home-weekly-report .hwr-index-summary > b { font-size: 12px; }
+.home-weekly-report .hwr-index-grid { gap: 0; margin: 0; border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
+.home-weekly-report .hwr-index-card { display: block; padding: 24px 26px 18px; border: 0; border-left: 1px solid var(--hw-line); border-radius: 0; background: transparent; }
+.home-weekly-report .hwr-index-card:first-child { border-left: 0; }
+.home-weekly-report .hwr2-idx-name { display: block; font-size: 13px; font-weight: 600; color: var(--hw-sub); }
+.home-weekly-report .hwr-index-card > b { display: block; margin-top: 8px; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
+.home-weekly-report .hwr2-idx-chg { display: block; margin-top: 2px; font-size: 15px; font-weight: 650; }
+.home-weekly-report .hwr-spark { height: 40px; margin: 14px 0 0; }
+
+/* 환율·금: 한 구역 2열, 카드 장식 없이 구분선만 */
+.home-weekly-report .hwr-summary-row.hwr-asset-row { gap: 0; margin: 0; border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
+.home-weekly-report .hwr-asset-row > div + div { border-left: 1px solid var(--hw-line); }
+.home-weekly-report .hwr-fx-card, .home-weekly-report .hwr-fx-card--interest, .home-weekly-report .hwr-fx-card--caution { padding: 24px 26px 20px; border: 0; border-radius: 0; background: transparent; }
+.home-weekly-report .hwr-fx-card .hwr-card-title strong { font-size: 15px; font-weight: 650; }
+.home-weekly-report .hwr-fx-card .hwr-card-title span { font-size: 12px; color: var(--hw-muted); }
+.home-weekly-report .hwr-fx-main > strong { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
+.home-weekly-report .hwr-fx-main > b { font-size: 15px; }
+.home-weekly-report .hwr-fx-legend, .home-weekly-report .hwr-fx-range, .home-weekly-report .hwr-fx-advice small { font-size: 12px; }
+.home-weekly-report .hwr-fx-status { font-size: 12px; }
+
+/* 다음 주 핵심 스케줄: 카드가 아니라 구역 하위 목록 */
+.home-weekly-report .hwr-schedule { margin-top: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+.home-weekly-report .hwr-schedule .hwr-card-title { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--hw-text); }
+.home-weekly-report .hwr-schedule .hwr-card-title strong { font-size: 17px; font-weight: 650; }
+.home-weekly-report .hwr-schedule .hwr-card-title span { font-size: 12px; color: var(--hw-muted); }
+.home-weekly-report .hwr-schedule-list { column-gap: 40px; }
+.home-weekly-report .hwr-schedule-list li { grid-template-columns: 52px 38px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--hw-line); font-size: 14px; }
+.home-weekly-report .hwr-schedule-list li:nth-child(-n+2) { border-top: 0; }
+.home-weekly-report .hwr-schedule-list time { font-size: 13px; color: var(--hw-sub); }
+.home-weekly-report .hwr-schedule-market { font-size: 12px; color: var(--hw-muted); }
+.home-weekly-report .hwr-my-schedule { background: transparent; }
+
+/* 종목: 한 줄 행 */
+.hwr2-rows { margin: 0; padding: 0; list-style: none; }
+.hwr2-rows > li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; min-height: 58px; padding: 10px 0; border-top: 1px solid var(--hw-line); }
+.hwr2-rows > li:first-child { border-top: 0; }
+.hwr2-rows--outcome > li { grid-template-columns: minmax(0, 1fr) auto; }
+.hwr2-rank { font-size: 13px; font-style: normal; font-weight: 700; color: var(--hw-muted); }
+.hwr2-name { min-width: 0; }
+.hwr2-name strong { display: block; overflow: hidden; font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
+.hwr2-name small { display: block; overflow: hidden; margin-top: 2px; font-size: 12px; color: var(--hw-muted); text-overflow: ellipsis; white-space: nowrap; }
+.hwr2-name em { display: block; overflow: hidden; margin-top: 2px; font-size: 12px; font-style: normal; color: var(--hw-sub); text-overflow: ellipsis; white-space: nowrap; }
+.hwr2-val { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
+.hwr2-val > b { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
+.hwr2-val > small { font-size: 12px; color: var(--hw-muted); }
+.hwr2-val--pair { flex-direction: row; align-items: baseline; gap: 22px; }
+.hwr2-val--pair > b { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 15px; }
+.hwr2-val--pair > b small { font-size: 11px; font-weight: 500; color: var(--hw-muted); }
+.home-weekly-report .hwr-outcome-pending { color: var(--hw-muted); font-weight: 500; }
+.hwr2-stats { display: flex; margin: 4px 0 8px; padding: 10px 0 18px; border-bottom: 1px solid var(--hw-line); }
+.hwr2-stat { flex: 1 1 0; padding: 0 20px; border-left: 1px solid var(--hw-line); }
+.hwr2-stat:first-child { padding-left: 0; border-left: 0; }
+.hwr2-stat > span { display: block; font-size: 13px; color: var(--hw-sub); }
+.hwr2-stat > strong { display: block; margin-top: 4px; font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
+.hwr2-stat > small { display: block; margin-top: 4px; font-size: 12px; }
+
+/* 뉴스: 시간·제목·매체만 */
+.home-weekly-report .hwr-news-filters { gap: 18px; }
+.home-weekly-report .hwr-news-filters button { padding: 4px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; font-size: 13px; color: var(--hw-muted); }
+.home-weekly-report .hwr-news-filters button.is-active { border-bottom-color: var(--hw-text); background: transparent; color: var(--hw-text); font-weight: 650; }
+.hwr2-news-list { margin: 0; padding: 0; list-style: none; }
+.hwr2-news-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; column-gap: 14px; align-items: baseline; min-height: 56px; padding: 12px 0; border-top: 1px solid var(--hw-line); }
+.hwr2-news-row:first-child { border-top: 0; }
+.hwr2-news-row[hidden] { display: none; }
+.hwr2-news-row time { font-size: 12px; color: var(--hw-muted); white-space: nowrap; }
+.hwr2-news-main { min-width: 0; }
+.hwr2-news-main a { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14.5px; font-weight: 500; line-height: 1.45; color: var(--hw-text); text-decoration: none; }
+.hwr2-news-main a:hover { text-decoration: underline; }
+.hwr2-news-main small { display: block; margin-top: 3px; font-size: 12px; color: var(--hw-muted); }
+.hwr2-news-quote { font-size: 13px; font-weight: 650; }
+.hwr2-news:not(.is-expanded) .hwr2-news-row.is-extra { display: none; }
+.hwr2-more-wrap { margin-top: 24px; text-align: center; }
+.hwr2-more { padding: 10px 28px; border: 1px solid var(--hw-border); border-radius: 999px; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--hw-text); cursor: pointer; }
+.hwr2-more:hover { background: var(--hw-line); }
+.home-weekly-report .hwr-news-filter-empty { margin: 16px 0 0; text-align: center; }
+.home-weekly-report .hwr-empty { padding: 18px 0 6px; font-size: 13px; color: var(--hw-muted); }
+.home-weekly-report .hwr-disclaimer { margin: 48px 0 0; font-size: 12px; color: var(--hw-muted); }
+
+/* 태블릿: 지수 2열, 목록 2열 유지 */
+@media (max-width: 960px) {
+  .hwr2-section { margin-top: 56px; }
+  .home-weekly-report .hwr-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-weekly-report .hwr-index-card:nth-child(odd) { border-left: 0; }
+  .home-weekly-report .hwr-index-card:nth-child(n+3) { border-top: 1px solid var(--hw-line); }
+  .hwr2-cols { column-gap: 28px; }
+}
+/* 모바일: 카드를 줄이지 않고 구조를 쌓는다(상승 → 하락, 국내 → 해외) */
+@media (max-width: 720px) {
+  .home-weekly-report { margin-bottom: 56px; padding: 0; }
+  .home-weekly-report .hwr-head { display: block; padding-bottom: 20px; }
+  .home-weekly-report .hwr-head h2 { font-size: 24px; }
+  .home-weekly-report .hwr-period { margin-top: 10px; text-align: left; }
+  .hwr2-section { margin-top: 48px; }
+  .hwr2-h h3 { font-size: 21px; }
+  .hwr2-h--tools { display: block; }
+  .home-weekly-report .hwr-news-filters { margin-top: 12px; }
+  .home-weekly-report .hwr-news-filters button { flex: 0 0 auto; }
+  .hwr2-cols { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
+  .home-weekly-report .hwr-index-card { padding: 18px 16px 14px; }
+  .home-weekly-report .hwr-index-card > b { font-size: 22px; }
+  .home-weekly-report .hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }
+  .home-weekly-report .hwr-asset-row > div + div { border-left: 0; border-top: 1px solid var(--hw-line); }
+  .home-weekly-report .hwr-fx-card { padding: 20px 18px 16px; }
+  .home-weekly-report .hwr-schedule-list { grid-template-columns: minmax(0, 1fr); }
+  .home-weekly-report .hwr-schedule-list li:nth-child(2) { border-top: 1px solid var(--hw-line); }
+  .hwr2-news-row { grid-template-columns: 64px minmax(0, 1fr) auto; column-gap: 10px; }
+  .hwr2-stat { padding: 0 14px; }
+  .hwr2-stat > strong { font-size: 28px; }
+}
+.home-weekly-report .hwr-fx-card .hwr-fx-num, .home-weekly-report .hwr-fx-card .hwr-fx-legend > span, .home-weekly-report .hwr-fx-card .hwr-fx-range > span { font-size: inherit; }
+.home-weekly-report .hwr-fx-card .hwr-fx-main .hwr-fx-num { color: var(--hw-text); }
+.hwr2-val--pair > b.hwr-outcome-pending { font-size: 13px; font-weight: 500; }
