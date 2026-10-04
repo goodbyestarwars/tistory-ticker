@@ -350,11 +350,16 @@
     }, function (error) { clearTimeout(timer); throw error; });
   }
   // 금요일 국내 장 마감(15:30 KST) 시점 가격 = 그 시각에 시작한 15분봉의 시가.
+  var sincePriceMemo = {};
   function priceAt(base, symbol, ms) {
     if (!ms || ms > Date.now()) return Promise.resolve(null);
-    return fetchJsonTimeout(base + 'klines?symbol=' + symbol + '&interval=15m&startTime=' + ms + '&limit=1')
+    var key = symbol + '@' + ms;
+    if (sincePriceMemo[key]) return sincePriceMemo[key];
+    var promise = fetchJsonTimeout(base + 'klines?symbol=' + symbol + '&interval=15m&startTime=' + ms + '&limit=1')
       .then(function (rows) { return rows && rows[0] ? num(rows[0][1]) : null; })
-      .catch(function () { return null; });
+      .catch(function () { delete sincePriceMemo[key]; return null; });
+    sincePriceMemo[key] = promise;
+    return promise;
   }
   function liveQuote(base, item, sinceMs, withChart) {
     var ticker = fetchJsonTimeout(base + 'ticker/24hr?symbol=' + item.symbol);
@@ -392,28 +397,59 @@
   }
   var liveMemo = null;
   var themesMemo = null;
-  function loadWeekendLive(root, weekEndIso) {
+  // 2026-10-05 사용자 확인("새로고침 주기가? 실시간인가?" → 1번 자동 갱신): 전에는 페이지를 열 때 한 번만 받아 "실시간"
+  // 문구와 달랐다. 30초마다 다시 받고, 탭이 가려져 있으면 쉬었다가 다시 보일 때 바로 한 번 받는다. 바이낸스를 브라우저가
+  // 직접 부르므로 VM 부담은 없다. 리포트가 화면에서 사라지면(평일 전환 등) 타이머를 멈춘다.
+  var LIVE_REFRESH_MS = 30000;
+  var liveTimer = null;
+  var liveCtx = null;
+  function clockText(ms) {
+    var d = new Date(ms);
+    function pad(n) { return (n < 10 ? '0' : '') + n; }
+    return pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  }
+  function stopWeekendLive() {
+    if (liveTimer) clearInterval(liveTimer);
+    liveTimer = null;
+    liveCtx = null;
+    document.removeEventListener('visibilitychange', onLiveVisibility);
+  }
+  function onLiveVisibility() {
+    if (!document.hidden && liveCtx) loadWeekendLive(liveCtx.root, liveCtx.weekEndIso, true);
+  }
+  function loadWeekendLive(root, weekEndIso, force) {
     var mount = root.querySelector('[data-hwr-live]');
     if (!mount) return;
     var sinceMs = weekEndIso ? Date.parse(weekEndIso + 'T15:30:00+09:00') : null;
     if (!isFinite(sinceMs)) sinceMs = null;
-    // render()는 캐시본·새 응답으로 두 번 불린다 - 1분 안에는 같은 요청 결과를 다시 쓴다.
-    if (!liveMemo || Date.now() - liveMemo.t > 60000 || liveMemo.since !== sinceMs) {
+    // render()는 캐시본·새 응답으로 두 번 불린다 - 1분 안에는 같은 요청 결과를 다시 쓴다(주기 갱신은 force).
+    if (force || !liveMemo || Date.now() - liveMemo.t > 60000 || liveMemo.since !== sinceMs) {
       var coins = Promise.all(LIVE_COINS.map(function (item) { return liveQuote(BINANCE_SPOT, item, sinceMs, false); }));
       var tokens = Promise.all(LIVE_KR_TOKENS.map(function (item) { return liveQuote(BINANCE_FUTURES, item, sinceMs, false); }));
       liveMemo = { t: Date.now(), since: sinceMs, promise: Promise.all([coins, tokens]) };
     }
-    liveMemo.promise.then(function (parts) {
+    if (!liveTimer) {
+      liveTimer = setInterval(function () {
+        if (!liveCtx || !document.body.contains(liveCtx.root)) { stopWeekendLive(); return; }
+        if (document.hidden) return;
+        loadWeekendLive(liveCtx.root, liveCtx.weekEndIso, true);
+      }, LIVE_REFRESH_MS);
+      document.addEventListener('visibilitychange', onLiveVisibility);
+    }
+    liveCtx = { root: root, weekEndIso: weekEndIso };
+    var memo = liveMemo;
+    memo.promise.then(function (parts) {
+      if (memo !== liveMemo) return;   // 더 새 요청이 있으면 그 결과를 쓴다
       var coinRows = parts[0].filter(Boolean), tokenRows = parts[1].filter(Boolean);
-      if (!coinRows.length && !tokenRows.length) return;
+      if (!coinRows.length && !tokenRows.length) return;   // 갱신 실패 시 직전 표를 그대로 둔다
       var fri = weekEndIso ? weekEndIso.slice(5).replace('-', '/') : '';
       var rows = coinRows.concat(tokenRows);
       var half = Math.ceil(rows.length / 2);
-      mount.innerHTML = '<h4 class="hwr2-sub">주말에도 움직이는 시장 <small>바이낸스 실시간 · 금요일(' + escapeHtml(fri) + ') 국내 장 마감 15:30 이후 등락</small></h4>'
+      mount.innerHTML = '<h4 class="hwr2-sub">주말에도 움직이는 시장 <small>바이낸스 · 30초마다 갱신(' + clockText(memo.t) + ' 기준) · 금요일(' + escapeHtml(fri) + ') 국내 장 마감 15:30 이후 등락</small></h4>'
         + '<div class="hwr2-live">' + liveColumn(rows.slice(0, half), '종목') + (rows.length > half ? liveColumn(rows.slice(half), '종목') : '') + '</div>'
         + '<p class="hwr2-live-note">국내주식 토큰은 바이낸스 무기한선물(파생상품) 가격입니다. 실제 주식 수급이 아닌 월요일 개장 전 참고 지표입니다.</p>';
       mount.hidden = false;
-    }).catch(function () { /* 보조 정보 - 실패하면 구역을 숨긴 채 둔다 */ });
+    }).catch(function () { /* 보조 정보 - 실패하면 구역을 숨긴 채(또는 직전 표 그대로) 둔다 */ });
   }
 
   // 2026-10-04 사용자 요청("미국 주말 뉴스를 보고 주목할 만한 테마나 종목 추천"): /weekend-us-themes(30분 캐시).
