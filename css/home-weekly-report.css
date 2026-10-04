@@ -794,40 +794,21 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
   .hwr2-theme-news li:nth-child(n+3) { display: none; }
 }
 
-/* ── 주간 맥박 (2026-10-04 도입, 2026-10-05 정리) ── 월~금 평균 등락을 이어진 기준선 위(상승)·아래(하락) 막대로.
-   예전 알약 막대·글로우·칸마다 끊긴 기준선이 작은 움직임을 점·대시로 보이게 해 지저분했다. 막대는 각진 모서리, 최소 2px,
-   기준선은 묶음 전체에 한 줄. 문구와 기간 사이는 세로 구분선으로 한 덩어리로 묶는다 */
+/* ── 주말 뉴스로 본 다음 주 (2026-10-05) ── 상승/하락 판정·주간 맥박 막대를 대체. 국내·미국 흐름이 갈리는 주에도
+   틀린 말이 되지 않도록 판정 없이 주말 전망 기사 제목과 반복 키워드만 둔다. 기간과는 세로 구분선으로 나눈다 */
 .home-weekly-report .hwr-head { align-items: center; }
-.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 18px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
-.hwr-pulse-chart { display: grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 10px; row-gap: 6px; }
-.hwr-pulse-name { font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
-.hwr-pulse-week { min-width: 50px; font-size: 12px; font-weight: 700; text-align: right; }
-.hwr-pulse-col.is-closed { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--hw-line, rgba(17, 17, 17, .08)) 3px 4px); }
-.hwr-pulse-bars { position: relative; display: flex; gap: 6px; height: 32px; }
-.hwr-pulse-bars::before { content: ""; position: absolute; z-index: 1; left: -4px; right: -4px; top: 50%; height: 1px; background: var(--hw-baseline, rgba(17, 17, 17, .18)); }
-.hwr-pulse-col { position: relative; width: 18px; border-radius: 3px; background: var(--hw-track, rgba(17, 17, 17, .035)); }
-.hwr-pulse-col i { position: absolute; left: 0; right: 0; width: 12px; min-height: 2px; margin: 0 auto; border-radius: 2px; animation: hwrPulseGrow .45s cubic-bezier(.2, .8, .2, 1) both; }
-.hwr-pulse-col i.is-up { bottom: 50%; transform-origin: bottom; }
-.hwr-pulse-col i.is-down { top: calc(50% + 1px); transform-origin: top; }
-.hwr-pulse-days { display: flex; gap: 6px; margin-top: -2px; }
-.hwr-pulse-days small { width: 18px; font-size: 11px; font-weight: 500; line-height: 1; text-align: center; color: var(--hw-muted, #8b95a5); }
-.hwr-pulse-text { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
-.hwr-pulse-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
-.hwr-pulse-text em { font-size: 12px; font-style: normal; font-weight: 500; color: var(--hw-sub, #667085); }
-.hwr-pulse-text em b { margin-left: 4px; font-weight: 700; color: inherit; }
-.hwr-pulse.hwr-sentiment--up .hwr-pulse-text em b { color: var(--hw-up, #d24f45); }
-.hwr-pulse.hwr-sentiment--down .hwr-pulse-text em b { color: var(--hw-down, #1261c4); }
+.hwr-brief { display: flex; flex-direction: column; gap: 6px; max-width: 420px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, #eaecf0); }
+.hwr-brief-label { font-size: 12px; font-weight: 600; color: var(--hw-muted, #8b95a5); }
+.hwr-brief-main { display: flex; align-items: baseline; gap: 8px; min-width: 0; }
+.hwr-brief-headline { overflow: hidden; font-size: 16px; font-weight: 700; letter-spacing: -.02em; line-height: 1.35; color: var(--hw-text, #171a21); text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
+.hwr-brief-headline:hover { text-decoration: underline; text-underline-offset: 3px; }
+.hwr-brief-source { flex: none; font-size: 11px; color: var(--hw-muted, #8b95a5); }
+.hwr-brief-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.hwr-brief-tags span { display: inline-flex; align-items: baseline; gap: 4px; padding: 3px 9px; border-radius: 999px; background: var(--hw-chip, rgba(17, 17, 17, .05)); font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
+.hwr-brief-tags b { font-size: 11px; font-weight: 500; color: var(--hw-muted, #8b95a5); }
+html.dark .hwr-brief-tags span { background: rgba(245, 239, 224, .08); }
 .home-weekly-report .hwr-period { display: flex; flex-direction: column; justify-content: center; align-self: center; }
-html.dark .hwr-pulse-col { background: rgba(245, 239, 224, .05); }
-html.dark .hwr-pulse-bars::before { background: rgba(245, 239, 224, .22); }
-html.dark .hwr-pulse-col i.is-up { background: #ff8a83 !important; }
-html.dark .hwr-pulse-week.is-up { color: #ff8a83 !important; }
-html.dark .hwr-pulse-week.is-down { color: #80b8ff !important; }
-html.dark .hwr-pulse-col i.is-down { background: #80b8ff !important; }
-html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: #ff8a83 !important; }
-html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !important; }
-@keyframes hwrPulseGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@media (prefers-reduced-motion: reduce) { .hwr-pulse-col i { animation: none !important; } }
 @media (max-width: 720px) {
-  .home-weekly-report .hwr-pulse { margin: 12px 0 14px; padding-right: 0; border-right: 0; justify-content: flex-start; }
+  .hwr-brief { max-width: none; margin: 14px 0 12px; padding-right: 0; border-right: 0; }
+  .hwr-brief-headline { white-space: normal; }
 }

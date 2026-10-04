@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pulse-v11';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-brief-v12';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -470,79 +470,58 @@
     lock.classList.toggle('is-bull', bullish);
     lock.classList.toggle('is-bear', !bullish);
   }
-  // 2026-10-04 사용자 요청("캔들 말고 다른 걸로"): 장식 대신 정보를 그린다 - "주간 맥박".
-  // 2026-10-05 사용자 지적("미국장이랑 구분을 할 수가 없잖아"): 4개 지수를 한 줄로 평균하면 국내·미국이 섞인다
-  // (예: 9/28 주 KOSPI -1.09%·KOSDAQ +5.78% / 나스닥 +0.45%·S&P500 -0.27%). 국내(KOSPI·KOSDAQ)·미국(나스닥·S&P500)
-  // 두 줄로 나누고, 줄마다 월~금 일간 평균 등락을 기준선 위(상승, 빨강)·아래(하락, 파랑) 막대로, 끝에 그 시장 주간 평균을 둔다.
-  // 막대 높이는 두 줄 통틀어 가장 큰 하루 움직임 대비라 시장끼리 크기를 비교할 수 있다. 한쪽만 휴장인 날은 그 칸이 빈다.
-  // 일간 등락은 지수별 series(그 주 종가)와 base(직전 주 마지막 종가)로 계산한다. 첫 페인트용 색은 인라인으로 박는다.
-  var WEEK_DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
-  var PULSE_MARKETS = [
-    { key: 'kr', label: '국내', symbols: ['KOSPI', 'KOSDAQ'] },
-    { key: 'us', label: '미국', symbols: ['NASDAQ_INDEX', 'SP500_INDEX'] }
+  // 2026-10-05 사용자 지적: 머리말의 상승·하락 주간 판정 문구와 주간 맥박 막대는 국내·미국 흐름이 갈리는 주에
+  // 한쪽 투자자에게는 틀린 말이 된다("미국주식 하는 사람은 상승일 수도, 한국주식 하는 사람은 하락일 수도").
+  // 판정·막대를 빼고 "주말 뉴스로 본 다음 주" 텍스트를 둔다. LLM 요약 없이 규칙으로만 만든다:
+  // ① 주말 국내 뉴스 중 다음 주 전망 기사("[이번주 증시] …", "다음 주 증시 …") 제목 1건(말머리 제거, 원문 링크)
+  // ② 주말 뉴스 제목에 2건 이상 나온 키워드 상위 3개와 건수. 둘 다 없으면 블록을 숨긴다.
+  var BRIEF_PREVIEW_RE = /(이번\s*주|다음\s*주|주간)\s*(증시|전망|시장|투자)|증시\s*(전망|캘린더)|주간\s*증시/;
+  var BRIEF_KEYWORDS = [
+    { label: '삼성전자', re: /삼성전자|삼전/ },
+    { label: 'SK하이닉스', re: /하이닉스|닉스/ },
+    { label: '반도체', re: /반도체|소부장|semiconductor|chip/i },
+    { label: '금리', re: /금리|국채|treasury|yield/i },
+    { label: '연준', re: /연준|FOMC|파월|\bFed\b|Powell/i },
+    { label: '환율', re: /환율|달러|원화/ },
+    { label: '유가', re: /유가|원유|OPEC|\boil\b|crude oil/i },
+    { label: '실적', re: /실적|earnings/i },
+    { label: '관세', re: /관세|tariff/i },
+    { label: 'AI', re: /\bAI\b|인공지능/ },
+    { label: '2차전지', re: /2차전지|이차전지|배터리/ },
+    { label: '가계대출', re: /가계대출|대출/ },
+    { label: '물가', re: /물가|CPI|PCE|inflation/i },
+    { label: '고용', re: /고용|일자리|payroll|jobs report/i }
   ];
-  function weeklyPulse(indices) {
-    var byDate = {};
-    (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index'); }).forEach(function (item) {
-      var prev = num(item.base);
-      (item.series || []).forEach(function (point) {
-        var close = num(point && point.close);
-        var day = String(point && point.date || '').slice(0, 10);
-        if (close == null || !day) return;
-        if (prev != null && prev !== 0) (byDate[day] = byDate[day] || []).push((close - prev) / prev * 100);
-        prev = close;
-      });
+  function newsBrief(news) {
+    news = news || {};
+    var seen = {};
+    var items = [].concat(news.domestic || [], news.timeline || [], news.us || []).filter(function (item) {
+      var title = String(item && item.title || '').trim();
+      if (!title || seen[title]) return false;
+      seen[title] = true;
+      return true;
     });
-    return byDate;
-  }
-  function average(list) {
-    return list.length ? list.reduce(function (a, b) { return a + b; }, 0) / list.length : null;
-  }
-  function sentimentArt(indices) {
-    var up = isBullishWeek(indices);
-    var weekly = (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index'); })
-      .map(function (item) { return num(item.changeRate); }).filter(function (v) { return v != null; });
-    var avg = average(weekly);
-    var markets = PULSE_MARKETS.map(function (market) {
-      var items = (indices || []).filter(function (item) { return item && market.symbols.indexOf(item.symbol) !== -1; });
-      return { market: market, byDate: weeklyPulse(items), weekly: average(items.map(function (item) { return num(item.changeRate); }).filter(function (v) { return v != null; })) };
-    }).filter(function (row) { return Object.keys(row.byDate).length; });
-    var dayKeys = {};
-    markets.forEach(function (row) { Object.keys(row.byDate).forEach(function (day) { dayKeys[day] = true; }); });
-    var days = Object.keys(dayKeys).sort().slice(-5).map(function (day) {
-      var parsed = new Date(day + 'T00:00:00+09:00');
-      return { day: day, label: isNaN(parsed.getTime()) ? day.slice(8) : WEEK_DAYS_KO[parsed.getDay()] };
+    var preview = null;
+    (news.domestic || []).concat(news.timeline || []).some(function (item) {
+      var title = String(item && item.title || '');
+      if (!BRIEF_PREVIEW_RE.test(title)) return false;
+      preview = { title: title.replace(/^\s*\[[^\]]*\]\s*/, '').trim() || title, link: item.link, source: item.source };
+      return true;
     });
-    var peak = 0;
-    markets.forEach(function (row) {
-      row.changes = days.map(function (d) { return row.byDate[d.day] ? average(row.byDate[d.day]) : null; });
-      row.changes.forEach(function (v) { if (v != null) peak = Math.max(peak, Math.abs(v)); });
-    });
-    peak = peak || 1;
-    var UP = '#d24f45', DOWN = '#1261c4';
-    var rows = markets.map(function (row, r) {
-      var bars = row.changes.map(function (change, i) {
-        var d = days[i];
-        var tip = row.market.label + ' ' + d.day.slice(5).replace('-', '/') + ' ' + d.label + ' ' + (change == null ? '휴장' : (change > 0 ? '+' : '') + change.toFixed(2) + '%');
-        if (change == null) return '<span class="hwr-pulse-col is-closed" title="' + escapeHtml(tip) + '"></span>';
-        var rising = change >= 0;
-        var h = Math.abs(change) / peak * 50;
-        return '<span class="hwr-pulse-col" title="' + escapeHtml(tip) + '">'
-          + '<i class="' + (rising ? 'is-up' : 'is-down') + '" style="height:' + h.toFixed(1) + '%;background:' + (rising ? UP : DOWN) + ';animation-delay:' + ((r * 5 + i) * 50) + 'ms"></i></span>';
-      }).join('');
-      var weeklyText = row.weekly == null ? '-' : signed(row.weekly);
-      var weeklyColor = row.weekly == null ? '' : ' style="color:' + (row.weekly >= 0 ? UP : DOWN) + '"';
-      return '<span class="hwr-pulse-name">' + row.market.label + '</span>'
-        + '<span class="hwr-pulse-bars">' + bars + '</span>'
-        + '<b class="hwr-pulse-week ' + signClass(row.weekly) + '"' + weeklyColor + '>' + weeklyText + '</b>';
-    }).join('');
-    var dayLabels = days.map(function (d) { return '<small>' + escapeHtml(d.label) + '</small>'; }).join('');
-    var color = up ? UP : DOWN;
-    var label = up ? '상승 마감 주간' : '하락 마감 주간';
-    var aria = label + markets.map(function (row) { return ', ' + row.market.label + ' 주간 평균 ' + (row.weekly == null ? '확인 불가' : signed(row.weekly)); }).join('');
-    return '<div class="hwr-sentiment hwr-pulse hwr-sentiment--' + (up ? 'up' : 'down') + '" style="color:' + color + '" aria-label="' + escapeHtml(aria) + '">'
-      + (markets.length ? '<span class="hwr-pulse-chart" aria-hidden="true">' + rows + '<span></span><span class="hwr-pulse-days">' + dayLabels + '</span><span></span></span>' : '')
-      + '<span class="hwr-pulse-text"><strong>' + label + '</strong>' + (avg != null ? '<em>4개 지수 평균<b>' + signed(avg) + '</b></em>' : '') + '</span></div>';
+    var keywords = BRIEF_KEYWORDS.map(function (kw) {
+      return { label: kw.label, count: items.filter(function (item) { return kw.re.test(String(item.title || '')); }).length };
+    }).filter(function (kw) { return kw.count >= 2; })
+      .sort(function (a, b) { return b.count - a.count; }).slice(0, 3);
+    if (!preview && !keywords.length) return '';
+    var headline = preview
+      ? '<a class="hwr-brief-headline" href="' + escapeHtml(preview.link || '#') + '" target="_blank" rel="noopener">' + escapeHtml(preview.title) + '</a>'
+        + (preview.source ? '<small class="hwr-brief-source">' + escapeHtml(preview.source) + '</small>' : '')
+      : '';
+    var tags = keywords.length
+      ? '<span class="hwr-brief-tags">' + keywords.map(function (kw) { return '<span>' + escapeHtml(kw.label) + '<b>' + kw.count + '건</b></span>'; }).join('') + '</span>'
+      : '';
+    return '<div class="hwr-brief"><span class="hwr-brief-label">주말 뉴스로 본 다음 주</span>'
+      + (headline ? '<span class="hwr-brief-main">' + headline + '</span>' : '') + tags + '</div>';
   }
   function fxStatus(fx, fallbackLabel, fallbackMessage) {
     var analysis = fx && fx.analysis || {};
@@ -833,7 +812,7 @@
         + '<span class="hwr2-idx-chg ' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span>'
         + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
     }).join('');
-    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
+    root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + newsBrief(data.news) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<section class="hwr2-section hwr2-prep">'
       + '<div class="hwr-index-grid">' + indexCards + '</div>'
       + indexSummary(indices)
