@@ -452,8 +452,8 @@ document.documentElement.classList.add('skin-ready');
     var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
     var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
-      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261004-rotation-slot')
-      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261004-rotation-slot';
+      ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
+      : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261004-etn-v1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-free-translation-fallback-v3';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261004-weekend-live-v3';
@@ -633,8 +633,6 @@ document.documentElement.classList.add('skin-ready');
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</section></div>'
-        // 2026-10-04 업종 로테이션: 국내 시장·경제 뉴스 2열 아래 전체 폭 영역. js/home-sector-rotation.js가 채운다(서버 계산 결과만 읽음).
-        + '<section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
@@ -731,8 +729,6 @@ document.documentElement.classList.add('skin-ready');
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
-      var rotation = dashboardSection.querySelector('[data-home-sector-rotation]');
-      if (rotation) { if (isUs) rotation.setAttribute('data-us', '1'); else rotation.removeAttribute('data-us'); }
       if (nightFutures) nightFutures.hidden = !isUs;
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
@@ -2490,18 +2486,4 @@ document.documentElement.classList.add('skin-ready');
     setInterval(tick, CB_POLL_MS);
   })();
 
-/* 2026-10-04 홈 업종 로테이션: 모듈은 처음 필요할 때 한 번만 불러온다. */
-(function homeSectorRotationLoader() {
-  function start() {
-    var host = document.querySelector('[data-home-sector-rotation]');
-    if (!host || host.getAttribute('data-rotation-mounted')) return !!host;
-    host.setAttribute('data-rotation-mounted', '1');
-    var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261005-us-v1';
-    script.onload = function () { if (window.HomeSectorRotation) window.HomeSectorRotation.mount(host); };
-    document.head.appendChild(script);
-    return true;
-  }
-  var tries = 0;
-  var timer = setInterval(function () { if (start() || ++tries > 40) clearInterval(timer); }, 500);
-})();
+/* 2026-10-05: 업종 로테이션은 홈에서 시장 > 증시온도 페이지(js/market-temp.js)로 옮겼다. */
