@@ -8198,3 +8198,65 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page .hmb-etf-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* ── 31. 모바일 가독성 (2026-10-05 사용자 요청: "한글 단어 잘림, 정렬 문제 - 모바일 앱 수준의 가독성")
+   1) 한글은 낱말 단위로만 줄을 바꾼다. 지금까지 keep-all은 css/ui-system.css의 위젯 id 목록에만
+      걸려 있어서, 목록에 없는 화면(주요 뉴스·홈·마켓브리핑 등)은 티스토리 본문 래퍼의
+      word-break: break-word에 밀려 "3/가지", "금리/도"처럼 글자 단위로 끊겼다.
+      글 본문의 맨 링크(클래스 없는 a)만 긴 URL이 넘치지 않게 끊어준다. 본문 래퍼 전체에
+      overflow-wrap을 걸면 그 안의 위젯 표 칸에서 숫자가 "1,097.3/5"로 갈라진다(실측).
+   2) 좌우 여백 16px로 통일: 홈은 10px, 나머지 페이지는 10 + 본문 16 = 26px이었고 카드 안 카드로
+      최대 75px까지 들어가 글 폭이 좁았다. 바깥 래퍼를 16px로, 본문 래퍼 여백은 0으로,
+      안쪽 카드 여백은 16px 이하로 줄인다.
+   3) 9~10px 글씨를 11px 이상으로, 말줄임(…)으로 잘리던 설명은 줄바꿈으로 보여준다.
+   @layer np 안에 둔다 - 같은 층의 공통 규칙(!important)을 이겨야 하기 때문이다. */
+@media (max-width: 720px) {
+  html body .main-layout, html body .main-layout *:not(pre, code, kbd) { word-break: keep-all; }
+  html body .main-layout .contents_style a[href^="http"]:not([class]) { overflow-wrap: anywhere; }
+}
+@layer np {
+  @media (max-width: 720px) {
+    html body .main-layout { padding-left: 16px !important; padding-right: 16px !important; }
+    html body .main-layout > .sidebar-left { margin-left: -16px !important; margin-right: -16px !important; }
+    html body .post-single { padding-left: 0 !important; padding-right: 0 !important; }
+
+    /* 안쪽 카드 여백 */
+    html body #market-temp :is(.mt-card, .mt-money-card, .mt-explore-card, .mt-sf-card) { padding-left: 16px !important; padding-right: 16px !important; }
+    html body #market-temp :is(.mt-sf-track, .sector-card) { padding-left: 14px !important; padding-right: 14px !important; }
+    html body #market-temp .mt-sf-disclaimer { padding-left: 14px !important; padding-right: 14px !important; }
+    html body #market-temp .mt-track-daybox .mt-track-row { padding-left: 0 !important; }
+    html body #strategy-search .ss-top-card { padding-left: 16px !important; padding-right: 16px !important; }
+    html body #stock-search .ss-news-panel { padding-left: 0 !important; padding-right: 0 !important; }
+    html body#tt-body-index .home-editorial-page .home-closed-status { padding-left: 16px !important; padding-right: 16px !important; }
+
+    /* 작은 글씨 하한 11px */
+    html body #market-temp :is(.mt-summary-kicker, .mt-score-zone-label, .mt-summary-sowhat b, .mt-weather-day small,
+      .mt-driver-label small, .mt-driver-legend span, li > small, summary > small, .mt-track-name small, .mt-money-chip i, .mt-money-chip small),
+    html body #foreign-flow .ff-flow-card-copy small,
+    html body :is(.app-news-date small, .app-news-meta b, .app-news-meta small),
+    html body .my-dashboard-eyebrow,
+    html body#tt-body-index .home-editorial-page .home-closed-kicker span { font-size: 11px !important; }
+
+    /* 말줄임 대신 줄바꿈 */
+    html body #market-temp .mt-driver-label small { overflow: visible !important; white-space: normal !important; text-overflow: clip !important; line-height: 1.35 !important; }
+    html body #market-temp .mt-track-name { overflow: visible !important; white-space: normal !important; text-overflow: clip !important; }
+    html body #market-temp .mt-track-name small { display: block !important; margin-left: 0 !important; }
+    html body #market-temp .mt-axis-reason { display: block !important; -webkit-line-clamp: unset !important; overflow: visible !important; }
+    html body #market-temp .mt-sf-disclaimer { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 11.5px !important; }
+
+    /* 전략검색 모바일 카드: 표 칸 배경(다크 표 줄무늬)이 카드 안에서 검은 사각형으로 남던 것 제거 */
+    html body #strategy-search .ss-comparison-table tr.ss-table-row td { background: transparent !important; }
+    html body #strategy-search .ss-comparison-table td::before { font-size: 11px !important; }
+    html body #strategy-search .ss-comparison-table :is(td.ss-col-rank, td.ss-col-code)::before { content: none !important; }
+    html body #strategy-search .ss-comparison-table tr.ss-table-row td.ss-col-watch { align-self: flex-start !important; margin-top: 0 !important; }
+    html body #strategy-search .ss-comparison-table tr.ss-table-row td.ss-col-rank { align-self: flex-start !important; color: rgba(var(--np-ink), .55) !important; font-size: 13px !important; line-height: 24px !important; }
+    html body #strategy-search .ss-comparison-table :is(td.ss-col-code, td.ss-col-signal small, td.ss-col-fundamentals, .ss-scan-ref) { font-size: 11px !important; }
+
+    /* 증시온도 "그래서?" 줄: 문구가 빈 날 빈 칸이 180px를 차지해 링크가 엉뚱하게 들여써지던 것 */
+    html body #market-temp .mt-summary-sowhat span:empty { display: none !important; }
+
+    /* 우측 관심종목 서랍 손잡이: 본문 글자를 덮지 않게 더 얇게 */
+    html body .global-watchlist-toggle { width: 16px !important; min-width: 16px !important; min-height: 52px !important; opacity: .6 !important; }
+    html body .global-watchlist-toggle-icon { font-size: 11px !important; letter-spacing: -3px !important; margin: 0 !important; }
+  }
+}
