@@ -98,6 +98,21 @@
   var scanData = null;
   var scanPerformanceData = null;
   var activeTab = 'risingLows';
+  // 2026-10-04 패턴 포착 생애주기: 현재 포착(오늘 검색 결과) / 추적 중 / 추적 종료. 추적 기록은 서버(pattern_tracks)에
+  // 쌓이고 오늘 검색 결과에서 빠져도 지워지지 않는다. 화면은 읽기만 한다.
+  var trackView = 'current';
+  var trackedCache = {};
+  var psTrackCtx = null;
+  var PATTERN_TRACKS_URL = 'https://goodbyestar.cloud/pattern-tracks';
+  var TRACK_STATUS = {
+    NEW: { label: '신규 포착', tone: 'is-flat' },
+    TRACKING: { label: '추적 중', tone: 'is-flat' },
+    BREAKOUT: { label: '저항 돌파', tone: 'is-up' },
+    BREAKOUT_CONFIRMED: { label: '돌파 유지', tone: 'is-up' },
+    FAILED: { label: '실패', tone: 'is-down' },
+    EXPIRED: { label: '기간 만료', tone: 'is-flat' }
+  };
+  var TRACK_FAIL_REASON = { SUPPORT_BREAK: '지지선 이탈', BREAKOUT_FAILED: '돌파 실패' };
 
   function stockIconHtml(code, cls) {
     if (!code) return '';
@@ -130,6 +145,11 @@
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
+      + '<div class="ps-view-tabs" id="psViewTabs" role="tablist">'
+      + '<button type="button" class="ps-view-tab active" data-view="current">현재 포착</button>'
+      + '<button type="button" class="ps-view-tab" data-view="active">추적 중</button>'
+      + '<button type="button" class="ps-view-tab" data-view="closed">추적 종료</button>'
+      + '</div>'
       + '<div class="ps-track-summary" id="psTrackSummary"></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
@@ -149,6 +169,15 @@
   }
 
   function wireTabs(container) {
+    container.querySelectorAll('.ps-view-tab').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.remove('active'); });
+        btn.classList.add('active');
+        trackView = btn.getAttribute('data-view');
+        renderList(container);
+        closeDetail(container);
+      });
+    });
     container.querySelectorAll('.ps-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
         container.querySelectorAll('.ps-tab').forEach(function (b) { b.classList.remove('active'); });
@@ -313,8 +342,8 @@
         return { h: h, n: own.length, own: avg(own), bench: bench.map(avg) };
       });
       var ready = rows.filter(function (r) { return r.n > 0; });
-      if (!ready.length) { mount.innerHTML = '<span class="is-muted">시장 비교는 추천 후 거래일이 지난 표본이 쌓이면 표시됩니다.</span>'; return; }
-      var series = [{ label: '이 검색기 추천 평균', color: '#1f2937', values: rows.map(function (r) { return r.own; }), width: 2.4 }]
+      if (!ready.length) { mount.innerHTML = '<span class="is-muted">시장 비교는 포착 후 거래일이 지난 표본이 쌓이면 표시됩니다.</span>'; return; }
+      var series = [{ label: '이 검색기 포착 평균', color: '#1f2937', values: rows.map(function (r) { return r.own; }), width: 2.4 }]
         .concat(PERF_BENCHMARKS.map(function (b, idx) {
           return { label: b.label, color: b.color, values: rows.map(function (r) { return r.bench[idx]; }), width: 1.6, dash: '4 3' };
         }));
@@ -327,7 +356,7 @@
       var W = 420, H = 190, x0 = 40, x1 = 392, top = 16, bottom = 150;
       function X(h) { return x0 + (x1 - x0) * h / 10; }
       function Y(v) { return bottom - (v - lo) / (hi - lo) * (bottom - top); }
-      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ps-perf-svg" role="img" aria-label="추천 후 거래일별 평균 수익률과 코스피·코스닥 비교">';
+      var svg = '<svg viewBox="0 0 ' + W + ' ' + H + '" class="ps-perf-svg" role="img" aria-label="포착 후 거래일별 평균 수익률과 코스피·코스닥 비교">';
       svg += '<line x1="' + x0 + '" y1="' + Y(0).toFixed(1) + '" x2="' + x1 + '" y2="' + Y(0).toFixed(1) + '" stroke="#94a3b8" stroke-width="1" stroke-dasharray="3 3" />'
         + '<text x="0" y="' + (Y(0) + 4).toFixed(1) + '" font-size="10.5" fill="#94a3b8">0%</text>';
       series.forEach(function (sr) {
@@ -340,7 +369,7 @@
         });
       });
       [0].concat(PERF_HORIZONS).forEach(function (h) {
-        svg += '<text x="' + X(h).toFixed(1) + '" y="170" text-anchor="middle" font-size="11" fill="#64748b">' + (h === 0 ? '추천일' : 'D+' + h) + '</text>';
+        svg += '<text x="' + X(h).toFixed(1) + '" y="170" text-anchor="middle" font-size="11" fill="#64748b">' + (h === 0 ? '포착일' : 'D+' + h) + '</text>';
       });
       svg += '</svg>';
       var legend = series.map(function (sr) {
@@ -352,9 +381,9 @@
         var k = r.bench[1] != null ? r.own - r.bench[1] : null;
         return '<tr><td>D+' + r.h + '</td><td>' + r.n + '건</td><td>' + cell(r.own) + '</td><td>' + cell(r.bench[0]) + '</td><td>' + cell(r.bench[1]) + '</td><td>' + cell(m) + '</td><td>' + cell(k) + '</td></tr>';
       }).join('');
-      mount.innerHTML = '<div class="ps-perf-title">추천 후 평균 변화와 시장 비교</div>' + svg
+      mount.innerHTML = '<div class="ps-perf-title">포착 후 평균 변화와 시장 비교</div>' + svg
         + '<div class="ps-perf-legend">' + legend + '</div>'
-        + '<table class="ps-perf-table"><thead><tr><th>시점</th><th>표본</th><th>추천 평균</th><th>코스피</th><th>코스닥</th><th>코스피 대비</th><th>코스닥 대비</th></tr></thead><tbody>' + table + '</tbody></table>'
+        + '<table class="ps-perf-table"><thead><tr><th>시점</th><th>표본</th><th>포착 평균</th><th>코스피</th><th>코스닥</th><th>코스피 대비</th><th>코스닥 대비</th></tr></thead><tbody>' + table + '</tbody></table>'
         + '<em>같은 종목·같은 기간에 시장 ETF를 샀다면의 수익률과 나란히 둔 값입니다. "대비"가 플러스면 시장보다 나았다는 뜻이고, 표본이 적은 구간은 참고만 하세요.</em>';
     });
   }
@@ -382,8 +411,8 @@
     var totalRecent = hits.length;
     // 2026-10-04 사용자 요청("추천 성과 기록은 보고 싶을 때만 보기"): 접어 둔다. 펼쳐 둔 상태는 다시 그릴 때 유지한다.
     var wasOpen = !!box.querySelector('.ps-perf-fold[open]');
-    box.innerHTML = '<details class="ps-perf-fold"' + (wasOpen ? ' open' : '') + '><summary>추천 성과 기록 보기 <small>최근 2주 추천 ' + escapeHtml(totalRecent) + '건</small></summary>'
-      + '<span>최근 2주 추천 ' + escapeHtml(totalRecent) + '건 (최근 ' + SCAN_PERF_WINDOW_DAYS + '일 누적 ' + escapeHtml(summary.hits || 0) + '건)</span>'
+    box.innerHTML = '<details class="ps-perf-fold"' + (wasOpen ? ' open' : '') + '><summary>포착 성과 기록 보기 <small>최근 2주 포착 ' + escapeHtml(totalRecent) + '건</small></summary>'
+      + '<span>최근 2주 포착 ' + escapeHtml(totalRecent) + '건 (최근 ' + SCAN_PERF_WINDOW_DAYS + '일 누적 ' + escapeHtml(summary.hits || 0) + '건)</span>'
       + '<span>D+1 평균 ' + escapeHtml(signedPct(d1.avgPct)) + ' · 승률 ' + escapeHtml(d1.winRatePct == null ? '-' : d1.winRatePct.toFixed(1) + '%') + '</span>'
       + '<span>D+5 평균 ' + escapeHtml(signedPct(d5.avgPct)) + '</span>'
       + '<span>D+10 평균 ' + escapeHtml(signedPct(d10.avgPct)) + '</span>'
@@ -409,13 +438,13 @@
     var hit = latestPerformanceForItem(item);
     if (!hit) return '';
     if (hit.currentReturnPct == null) {
-      return '<span class="ps-track-chip is-flat">추천 ' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + ' · 다음 거래일부터 집계</span>';
+      return '<span class="ps-track-chip is-flat">포착 ' + escapeHtml(scanDateLabel(hit.scanDate) || hit.scanDate || '-') + ' · 다음 거래일부터 집계</span>';
     }
     var pct = Number(hit.currentReturnPct);
     var tone = pct > 0 ? 'is-up' : (pct < 0 ? 'is-down' : 'is-flat');
     var date = scanDateLabel(hit.scanDate);
     var elapsed = Number(hit.elapsedTradingDays);
-    return '<span class="ps-track-chip ' + tone + '">추천 ' + escapeHtml(date || hit.scanDate || '-')
+    return '<span class="ps-track-chip ' + tone + '">포착 ' + escapeHtml(date || hit.scanDate || '-')
       + (isFinite(elapsed) && elapsed > 0 ? ' · +' + elapsed + '거래일' : '')
       + ' · 현재까지 ' + escapeHtml(signedPct(pct)) + '</span>';
   }
@@ -618,6 +647,7 @@
     if (!list) return;
     if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
 
+    if (trackView !== 'current') { renderTrackedList(container); return; }
     var items = (scanData.patterns && scanData.patterns[activeTab]) || [];
     if (!items.length) {
       list.innerHTML = '<div class="ps-hint">지금 이 패턴에 해당하는 종목이 없어요.</div>';
@@ -668,6 +698,133 @@
     });
     patchLivePrices(container);
     renderTrackSummary(container);
+  }
+
+  function trackPct(value) {
+    var n = Number(value);
+    if (value == null || !isFinite(n)) return '-';
+    return (n > 0 ? '+' : '') + n.toFixed(1) + '%';
+  }
+
+  function trackTone(value) {
+    var n = Number(value);
+    return value == null || !isFinite(n) || n === 0 ? 'is-flat' : (n > 0 ? 'is-up' : 'is-down');
+  }
+
+  function trackStatusHtml(t) {
+    var st = TRACK_STATUS[t.status] || TRACK_STATUS.TRACKING;
+    var reason = t.status === 'FAILED' && t.fail_reason ? ' · ' + (TRACK_FAIL_REASON[t.fail_reason] || t.fail_reason) : '';
+    return '<span class="ps-track-status ' + st.tone + '">' + escapeHtml(st.label + reason) + '</span>';
+  }
+
+  function trackStatsHtml(stats) {
+    if (!stats || !stats.total) return '<div class="ps-track-stats is-empty">이 검색기의 추적 기록이 아직 없어요. 다음 스캔부터 포착 종목이 쌓입니다.</div>';
+    function cell(label, value) { return '<span><small>' + escapeHtml(label) + '</small><b>' + escapeHtml(value) + '</b></span>'; }
+    return '<div class="ps-track-stats">'
+      + cell('최근 ' + stats.days + '일 포착', stats.total + '건')
+      + cell('추적 중', stats.active + '건')
+      + cell('돌파', stats.breakout + '건' + (stats.breakoutRatePct == null ? '' : ' (' + stats.breakoutRatePct + '%)'))
+      + cell('돌파 유지', (stats.breakoutConfirmed || 0) + '건')
+      + cell('실패', (stats.failed || 0) + '건')
+      + cell('평균 5일', trackPct(stats.avgRet5Pct))
+      + cell('평균 10일', trackPct(stats.avgRet10Pct))
+      + cell('평균 최대 상승', trackPct(stats.avgMaxReturnPct))
+      + cell('평균 최대 하락', trackPct(stats.avgMaxDrawdownPct))
+      + '</div>';
+  }
+
+  function trackToItem(t) {
+    var snap = t.snapshot || {};
+    return { code: t.code, name: t.name, date: t.detected_date, price: t.detected_close, score: t.initial_score,
+      patternDetail: snap, reasons: snap.reasons || [], interpretation: snap.interpretation || '', track: t };
+  }
+
+  function renderTrackedList(container) {
+    var list = container.querySelector('#psList');
+    if (!list) return;
+    var key = scannerKey(activeTab);
+    var cacheKey = key + '|' + trackView;
+    var cached = trackedCache[cacheKey];
+    function paint(data) {
+      if (scannerKey(activeTab) !== key || trackView === 'current') return;
+      var tracks = (data && data.tracks) || [];
+      var head = trackStatsHtml(data && data.stats);
+      if (!tracks.length) {
+        list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'active' ? '지금 추적 중인 종목이 없어요.' : '추적이 끝난 종목이 아직 없어요.') + '</div>';
+        return;
+      }
+      var byCode = {};
+      list.innerHTML = head + '<div class="ps-track-head" aria-hidden="true"><span>종목</span><span>포착일</span><span>상태</span><span>포착가 → 현재가</span><span>경과</span><span>최대 상승/하락</span></div>'
+        + tracks.map(function (t) {
+          byCode[t.id] = t;
+          var ret = t.detected_close && t.current_close != null ? (t.current_close / t.detected_close - 1) * 100 : null;
+          return '<div class="ps-track-row" data-track-id="' + t.id + '" tabindex="0" role="button">'
+            + '<span class="ps-name">' + stockIconHtml(t.code) + '<span>' + escapeHtml(t.name) + '</span></span>'
+            + '<span>' + escapeHtml(scanDateLabel(t.detected_date) || t.detected_date) + '</span>'
+            + trackStatusHtml(t)
+            + '<span>' + fmt(t.detected_close) + ' → ' + (t.current_close == null ? '-' : fmt(t.current_close)) + ' <em class="' + trackTone(ret) + '">' + escapeHtml(trackPct(ret)) + '</em></span>'
+            + '<span>' + escapeHtml(String(t.tracking_days || 0)) + '거래일</span>'
+            + '<span><em class="is-up">' + escapeHtml(trackPct(t.max_return_pct)) + '</em> / <em class="is-down">' + escapeHtml(trackPct(t.max_drawdown_pct)) + '</em></span>'
+            + '</div>';
+        }).join('');
+      list.querySelectorAll('.ps-track-row').forEach(function (el) {
+        var open = function () { openDetail(container, trackToItem(byCode[el.getAttribute('data-track-id')])); };
+        el.addEventListener('click', open);
+        el.addEventListener('keydown', function (event) {
+          if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
+        });
+      });
+    }
+    if (cached && Date.now() - cached.at < 120000) { paint(cached.data); return; }
+    list.innerHTML = '<div class="ps-hint">추적 기록 불러오는 중...</div>';
+    fetchJson(PATTERN_TRACKS_URL + '?scanner=' + encodeURIComponent(key) + '&view=' + trackView + '&days=90&limit=150')
+      .then(function (envelope) {
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        trackedCache[cacheKey] = { at: Date.now(), data: data };
+        paint(data);
+      })
+      .catch(function () {
+        if (scannerKey(activeTab) !== key) return;
+        list.innerHTML = '<div class="ps-error">추적 기록을 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+      });
+  }
+
+  function buildTrackBox(t) {
+    var scoreChange = t.initial_score != null && t.current_score != null ? (t.current_score - t.initial_score).toFixed(0) : null;
+    function row(label, value) { return '<div><small>' + escapeHtml(label) + '</small><b>' + value + '</b></div>'; }
+    var ret = t.detected_close && t.current_close != null ? (t.current_close / t.detected_close - 1) * 100 : null;
+    return '<div class="ps-track-box">'
+      + '<div class="ps-track-box-head">' + trackStatusHtml(t) + '<span>패턴 포착일 ' + escapeHtml(t.detected_date) + ' · 추적 ' + escapeHtml(String(t.tracking_days || 0)) + '거래일째</span></div>'
+      + '<div class="ps-track-box-grid">'
+      + row('포착가', fmt(t.detected_close))
+      + row('현재가', (t.current_close == null ? '-' : fmt(t.current_close)) + ' <em class="' + trackTone(ret) + '">' + escapeHtml(trackPct(ret)) + '</em>')
+      + row('포착 당시 지지 / 저항', (t.initial_support == null ? '-' : fmt(t.initial_support)) + ' / ' + (t.initial_resistance == null ? '-' : fmt(t.initial_resistance)))
+      + row('최대 상승 / 하락', '<em class="is-up">' + escapeHtml(trackPct(t.max_return_pct)) + '</em> / <em class="is-down">' + escapeHtml(trackPct(t.max_drawdown_pct)) + '</em>')
+      + row('점수 (포착 → 현재)', escapeHtml((t.initial_score == null ? '-' : t.initial_score) + ' → ' + (t.current_score == null ? '조건 이탈' : t.current_score) + (scoreChange == null ? '' : ' (' + (scoreChange > 0 ? '+' : '') + scoreChange + ')')))
+      + (t.breakout_date ? row('돌파일', escapeHtml(t.breakout_date) + (t.breakout_quality != null ? ' · 신뢰도 ' + t.breakout_quality : '')) : '')
+      + '</div>'
+      + '<div class="ps-track-box-note">종가 기준 사후 추적입니다. 포착 당시 값은 바뀌지 않으며, 매수 추천이나 수익 보장이 아닙니다.</div>'
+      + '</div>';
+  }
+
+  function addTrackMarkers(LWC, series, daily, t) {
+    if (!t) return;
+    var has = {};
+    daily.forEach(function (d) { has[d.date] = true; });
+    var markers = [];
+    if (has[t.detected_date]) markers.push({ time: t.detected_date, position: 'belowBar', color: '#111827', shape: 'arrowUp', text: '포착' });
+    if (t.breakout_date && has[t.breakout_date]) markers.push({ time: t.breakout_date, position: 'aboveBar', color: '#d24f45', shape: 'arrowUp', text: '돌파' });
+    if (t.status === 'FAILED' && t.closed_date && has[t.closed_date]) markers.push({ time: t.closed_date, position: 'aboveBar', color: '#1261c4', shape: 'arrowDown', text: '실패' });
+    if (t.status === 'BREAKOUT_CONFIRMED' && t.closed_date && has[t.closed_date]) markers.push({ time: t.closed_date, position: 'aboveBar', color: '#d24f45', shape: 'circle', text: '유지' });
+    if (t.status === 'EXPIRED' && t.closed_date && has[t.closed_date]) markers.push({ time: t.closed_date, position: 'aboveBar', color: '#64748b', shape: 'square', text: '만료' });
+    markers.sort(function (a, b) { return a.time < b.time ? -1 : (a.time > b.time ? 1 : 0); });
+    if (markers.length) LWC.createSeriesMarkers(series, markers);
+    function line(price, color, title) {
+      if (price == null || !isFinite(Number(price))) return;
+      series.createPriceLine({ price: Number(price), color: color, lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: true, title: title });
+    }
+    line(t.initial_support, '#1261c4', '포착 지지');
+    line(t.initial_resistance, '#d24f45', '포착 저항');
   }
 
   // ---- 가격 시점 구분: 스캔 시점 스냅샷 vs 지금 ----
@@ -825,7 +982,7 @@
         }
         // Box-range scans include market cap in the VM snapshot; GAS cannot
         // reproduce that E condition during an on-demand chart request.
-        if ((activeTab === 'boxRangeLow' || activeTab === 'openingGap' || activeTab === 'risingLows') && item.patternDetail) {
+        if ((item.track || activeTab === 'boxRangeLow' || activeTab === 'openingGap' || activeTab === 'risingLows') && item.patternDetail) {
           data.detail = item.patternDetail;
         }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
@@ -859,6 +1016,7 @@
       + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
+    if (item.track) html += buildTrackBox(item.track);
     html += buildScoreBox(data.detail);
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
@@ -899,6 +1057,7 @@
     }
 
     psMemoItem = item;
+    psTrackCtx = item.track || null;
     var chartContainer = box.querySelector('#psChart');
     if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
   }
@@ -1279,6 +1438,7 @@
       }
 
       addPatternOverlay(LWC, chart, candleSeries, daily, pattern, detail);
+      addTrackMarkers(LWC, candleSeries, daily, psTrackCtx);
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
 

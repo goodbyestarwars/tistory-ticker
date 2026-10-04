@@ -3954,15 +3954,15 @@ console.log(JSON.stringify(cases.map(function (iso) {
         scan_forward = self.read("scripts/cloud-vm/scan_forward.py")
         self.assertIn("/scan-performance-public", main)
         self.assertIn("SCAN_PERFORMANCE_PUBLIC_URL", source)
-        self.assertIn("추천 ' + escapeHtml(date || hit.scanDate || '-')", source)
+        self.assertIn("포착 ' + escapeHtml(date || hit.scanDate || '-')", source)
         self.assertIn("현재까지 ' + escapeHtml(signedPct(pct))", source)
         self.assertIn("currentReturnPct", scan_forward)
         self.assertIn("elapsedTradingDays", scan_forward)
         self.assertIn("#pattern-scan .ps-track-summary", style)
         self.assertIn("#pattern-scan .ps-track-chip.is-up", style)
-        self.assertIn("추천 성과 기록", source)
+        self.assertIn("포착 성과 기록", source)
         # 2026-10-04 날짜별 목록은 삭제하고 성과 기록 전체를 접었다(보고 싶을 때만 펼침).
-        self.assertIn("추천 성과 기록 보기", source)
+        self.assertIn("포착 성과 기록 보기", source)
         self.assertIn("ps-perf-fold", style)
 
     def test_calendar_shows_us_company_name_and_alnum_domestic_codes(self):

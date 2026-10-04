@@ -586,6 +586,26 @@ def main():
     except Exception as e:
         log('포워드 추적 기록 실패(무시하고 계속): %s' % e)
 
+    # 2026-10-04 패턴 포착 생애주기: 포착 당시 스냅샷을 불변으로 남기고, 열린 추적을 일봉으로
+    # 다시 판정한다(돌파/실패/만료). 스캔 결과에서 빠져도 기록은 지우지 않는다. 실패는 무시.
+    try:
+        import pattern_tracker
+        track_conn = db_schema.get_conn()
+        try:
+            created = 0
+            for key, items in dict(pattern_results or {}).items():
+                created += pattern_tracker.record_new(
+                    track_conn, scan_forward.today_kst(), 'pattern:%s' % key, items)
+            if pullback_matches:
+                created += pattern_tracker.record_new(
+                    track_conn, scan_forward.today_kst(), 'pattern:pullback', pullback_matches)
+            updated = pattern_tracker.update_tracks(track_conn, rescore=pattern_tracker.rescore_for)
+            log('패턴 추적: 신규 %d건, 갱신 %d건' % (created, updated))
+        finally:
+            track_conn.close()
+    except Exception as e:
+        log('패턴 추적 갱신 실패(무시하고 계속): %s' % e)
+
     # 2026-08-21 코드 감사: 예전엔 파일 전체를 이 스크립트의 payload로 덮어써서,
     # angle_momentum_scan.py/gongpasan_scan.py가 patternScan.patterns 밑에 미리 써둔
     # angleMomentum/gongpasan 섹션이 (이 스크립트가 더 늦게 끝나면) 사라질 수 있었다.
