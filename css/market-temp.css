@@ -2304,3 +2304,20 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(128
 html.dark #market-temp .mt-history-balance > span { background: transparent !important; }
 #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; outline: 0 !important; text-align: left !important; }
 #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::before, #market-temp .mt-ant-guide .mt-strategy-message .mt-strategy-action::after { content: none !important; }
+
+/* 오늘의 HOT 테마 한 줄 (2026-10-04): 데이터가 바뀌면 문구도 바뀐다 */
+#market-temp .mt-hot-strip { display: flex; align-items: center; gap: 12px; margin: 0 0 -8px; padding: 6px 4px; cursor: pointer; min-width: 0; }
+#market-temp .mt-hot-strip[hidden] { display: none; }
+#market-temp .mt-hot-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--mt2-soft); font-size: 20px; }
+#market-temp .mt-hot-label { font-size: 20px; font-weight: 700; white-space: nowrap; }
+#market-temp .mt-hot-hot { color: var(--mt2-up); font-family: Georgia, "Times New Roman", serif; letter-spacing: .02em; }
+#market-temp .mt-hot-name { color: var(--mt2-down); font-size: 22px; }
+#market-temp .mt-hot-sep { width: 2px; height: 18px; flex-shrink: 0; background: var(--mt2-line); }
+#market-temp .mt-hot-headline { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }
+#market-temp .mt-hot-go { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; flex-shrink: 0; border-radius: 50%; background: var(--mt2-down); color: #fff; font-size: 16px; line-height: 1; }
+@media (max-width: 720px) {
+  #market-temp .mt-hot-strip { flex-wrap: wrap; gap: 6px 10px; }
+  #market-temp .mt-hot-label { font-size: 17px; }
+  #market-temp .mt-hot-sep { display: none; }
+  #market-temp .mt-hot-headline { flex-basis: 100%; order: 3; white-space: normal; font-size: 14px; }
+}

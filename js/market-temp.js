@@ -1255,10 +1255,40 @@
       + '</div></div>';
   }
 
+  // 오늘의 HOT 테마: 서버가 내려준 섹터 자금 흐름 1위 테마를 그대로 읽어 문구를 만든다(뉴스·추측 문구 없음, 값이 바뀌면 문구도 바뀜).
+  function renderHotTheme_(row) {
+    var strip = document.querySelector('[data-hot-theme]');
+    if (!strip) return;
+    if (!row || !row.industry) { strip.hidden = true; return; }
+    var rate = Number(row.avg_change_rate);
+    var stocks = (row.stocks || []).slice().sort(function (a, b) { return (Number(b.change_rate) || -999) - (Number(a.change_rate) || -999); });
+    var lead = stocks[0];
+    var parts = [];
+    if (isFinite(rate)) parts.push('평균 ' + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%');
+    var amount = sectorFlowAmountText_(row);
+    if (amount) parts.push('거래대금 ' + amount);
+    var leadRate = lead ? Number(lead.change_rate) : NaN;
+    var headline = '거래대금이 가장 몰린 테마 · ' + parts.join(' · ')
+      + (lead && isFinite(leadRate) ? ' · ' + lead.name + ' ' + (leadRate > 0 ? '+' : '') + leadRate.toFixed(1) + '% 선두' : '');
+    strip.innerHTML = '<span class="mt-hot-icon" aria-hidden="true">🔥</span>'
+      + '<span class="mt-hot-label">오늘의 <b class="mt-hot-hot">HOT</b> 테마 <b class="mt-hot-name">' + escapeHtml(industryDisplayName_(row.industry)) + '</b></span>'
+      + '<i class="mt-hot-sep" aria-hidden="true"></i><span class="mt-hot-headline">' + escapeHtml(headline) + '</span>'
+      + '<span class="mt-hot-go" aria-hidden="true">›</span>';
+    strip.setAttribute('role', 'button');
+    strip.tabIndex = 0;
+    strip.onclick = strip.onkeydown = function (event) {
+      if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+      var card = document.querySelector('.mt-sf-card');
+      if (card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    };
+    strip.hidden = false;
+  }
+
   function renderSectorFlow_(mount, rows) {
     if (!mount) return;
     var shown = (rows || []).slice(0, SECTOR_FLOW_TOP);
     if (!shown.length) { mount.innerHTML = ''; return; }
+    renderHotTheme_(shown[0]);
     var maxAmount = shown.reduce(function (max, row) {
       var amount = Number(row && row.trade_amount);
       return isFinite(amount) && amount > max ? amount : max;
@@ -3624,6 +3654,7 @@
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
       buildPageHead_(data),                         // 0-a. 기준일·업데이트 시각
+      '<div class="mt-hot-strip" data-hot-theme hidden></div>',   // 0-a2. 오늘의 HOT 테마(섹터 자금 흐름 응답으로 채움)
       buildTomorrowCard_(),                         // 0. 그래서 내일은? (2026-10-04 - 첫 화면의 답)
       buildKpiStrip_(data),                         // 0-b. 핵심 숫자 한 줄 요약
       // 2026-09-13 사용자 요청("정보가 너무 가로로 길게 되어 있어, PC에선 가독성이 떨어져.
