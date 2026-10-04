@@ -799,14 +799,17 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
    기준선은 묶음 전체에 한 줄. 문구와 기간 사이는 세로 구분선으로 한 덩어리로 묶는다 */
 .home-weekly-report .hwr-head { align-items: center; }
 .home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 18px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
-.hwr-pulse-chart { display: flex; flex-direction: column; gap: 6px; }
-.hwr-pulse-bars { position: relative; display: flex; gap: 6px; height: 48px; }
+.hwr-pulse-chart { display: grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 10px; row-gap: 6px; }
+.hwr-pulse-name { font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
+.hwr-pulse-week { min-width: 50px; font-size: 12px; font-weight: 700; text-align: right; }
+.hwr-pulse-col.is-closed { background: repeating-linear-gradient(135deg, transparent 0 3px, var(--hw-line, rgba(17, 17, 17, .08)) 3px 4px); }
+.hwr-pulse-bars { position: relative; display: flex; gap: 6px; height: 32px; }
 .hwr-pulse-bars::before { content: ""; position: absolute; z-index: 1; left: -4px; right: -4px; top: 50%; height: 1px; background: var(--hw-baseline, rgba(17, 17, 17, .18)); }
 .hwr-pulse-col { position: relative; width: 18px; border-radius: 3px; background: var(--hw-track, rgba(17, 17, 17, .035)); }
 .hwr-pulse-col i { position: absolute; left: 0; right: 0; width: 12px; min-height: 2px; margin: 0 auto; border-radius: 2px; animation: hwrPulseGrow .45s cubic-bezier(.2, .8, .2, 1) both; }
 .hwr-pulse-col i.is-up { bottom: 50%; transform-origin: bottom; }
 .hwr-pulse-col i.is-down { top: calc(50% + 1px); transform-origin: top; }
-.hwr-pulse-days { display: flex; gap: 6px; }
+.hwr-pulse-days { display: flex; gap: 6px; margin-top: -2px; }
 .hwr-pulse-days small { width: 18px; font-size: 11px; font-weight: 500; line-height: 1; text-align: center; color: var(--hw-muted, #8b95a5); }
 .hwr-pulse-text { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
 .hwr-pulse-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
@@ -818,6 +821,8 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
 html.dark .hwr-pulse-col { background: rgba(245, 239, 224, .05); }
 html.dark .hwr-pulse-bars::before { background: rgba(245, 239, 224, .22); }
 html.dark .hwr-pulse-col i.is-up { background: #ff8a83 !important; }
+html.dark .hwr-pulse-week.is-up { color: #ff8a83 !important; }
+html.dark .hwr-pulse-week.is-down { color: #80b8ff !important; }
 html.dark .hwr-pulse-col i.is-down { background: #80b8ff !important; }
 html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: #ff8a83 !important; }
 html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !important; }
