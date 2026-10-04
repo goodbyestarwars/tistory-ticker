@@ -306,6 +306,7 @@ dict 구성을 함께 대조한다.
 | GET | `/scan-performance` | API 키 | 스캔 히트 종목의 D+N 사후 수익률 |
 | GET | `/flow-chart/{code}` | 없음 | 종목분석 가격차트(일봉+MA+지지/저항) |
 | GET | `/invest-signal` | 없음 | 종목분석 차트 흐름별 탐색(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
+| GET | `/sector-rotation`, `/sector-rotation/{업종}` | 없음 | 업종 로테이션(유입 `emerging`·주도 `leading`·둔화 `weakening`·이탈 `lagging`·중립 `neutral`, 각 항목 `rank`·`rank5DaysAgo`·`rankChange5d`(양수=순위 상승)·`rs5`·`rs20`·퍼센타일·Breadth·`tradingValueRatio`·`rotationScore`). 일봉 확정값 서버 계산, 5분 캐시. `map`은 Rotation Map용 `{sector,x=rs20,y=rs5,phase}`. 상세는 대표 강세 종목 `leaders` 포함 |
 | GET | `/pattern-scan` | 없음 | 차트검색 패턴별 목록(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |

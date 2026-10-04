@@ -1,0 +1,42 @@
+/* 홈 업종 로테이션 정보 스트립 (2026-10-04): 카드를 늘리지 않고 국내 시장 카드 안의 얇은 띠로 둔다. */
+.home-sector-rotation { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(17, 24, 39, .08); }
+.home-sector-rotation[hidden], .home-sector-rotation[data-us="1"] { display: none; }
+.hsr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.hsr-head strong { font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
+.hsr-help { display: inline-flex; width: 15px; height: 15px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid #94a3b8; color: #64748b; font-size: 10px; font-weight: 600; cursor: help; }
+.hsr-meta { font-size: 12px; color: #64748b; }
+.hsr-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; }
+.hsr-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hsr-col-head { font-size: 12px; font-weight: 700; color: #475569; padding-bottom: 3px; }
+.hsr-col.is-emerging .hsr-col-head::before { content: '●'; color: #2e9e6b; margin-right: 4px; }
+.hsr-col.is-leading .hsr-col-head::before { content: '●'; color: #3b6fd6; margin-right: 4px; }
+.hsr-col.is-weakening .hsr-col-head::before { content: '●'; color: #e08a2e; margin-right: 4px; }
+.hsr-col.is-lagging .hsr-col-head::before { content: '●'; color: #a3acb9; margin-right: 4px; }
+.hsr-item { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 3px 0; border: 0; background: transparent; font: inherit; font-size: 13px; color: inherit; cursor: pointer; text-align: left; }
+.hsr-item:hover .hsr-name { text-decoration: underline; }
+.hsr-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.hsr-chg { font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hsr-chg.is-up, .hsr-detail em.is-up { color: #d24f45; }
+.hsr-chg.is-down, .hsr-detail em.is-down { color: #1261c4; }
+.hsr-chg.is-flat { color: #94a3b8; }
+.hsr-none { font-size: 12px; color: #94a3b8; padding: 3px 0; }
+.hsr-detail { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(17, 24, 39, .04); }
+.hsr-detail-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.hsr-detail-head span { font-size: 12px; color: #64748b; }
+.hsr-close { margin-left: auto; border: 0; background: transparent; color: #94a3b8; cursor: pointer; }
+.hsr-detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 14px; }
+.hsr-detail-grid small, .hsr-leaders small { display: block; font-size: 11px; color: #64748b; }
+.hsr-detail-grid b { font-size: 13px; }
+.hsr-detail em { font-style: normal; }
+.hsr-leaders { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 12.5px; }
+.hsr-leaders small { flex-basis: 100%; }
+.hsr-note { margin-top: 8px; font-size: 11px; color: #94a3b8; }
+@media (max-width: 720px) {
+  .hsr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hsr-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (prefers-color-scheme: dark) {
+  .home-sector-rotation { border-top-color: rgba(255, 255, 255, .1); }
+  .hsr-col-head { color: #cbd5e1; }
+  .hsr-detail { background: rgba(255, 255, 255, .06); }
+}

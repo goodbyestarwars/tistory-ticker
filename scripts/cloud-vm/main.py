@@ -2549,6 +2549,42 @@ def scan_performance(scanner: str = '', since: str = '', horizons: str = '1,3,5'
     return envelope(result)
 
 
+@app.get('/sector-rotation')
+def sector_rotation_endpoint(request: Request):
+    """업종 로테이션(유입·주도·둔화·이탈). 일봉 확정값으로 서버에서 계산하고 5분 캐시한다. 공개 읽기 전용."""
+    _check_rate_limit('sector_rotation', request, max_per_window=60)
+    import sector_rotation
+    now = time.time()
+    cached = _sector_rotation_cache.get('payload')
+    if cached and now - _sector_rotation_cache.get('at', 0) < 300:
+        return envelope(cached)
+    conn = db_schema.get_conn()
+    try:
+        payload = sector_rotation.build_payload(conn, _load_sector_cards_cached()['sectors'])
+    finally:
+        conn.close()
+    _sector_rotation_cache.update(at=now, payload=payload)
+    return envelope(payload)
+
+
+@app.get('/sector-rotation/{sector}')
+def sector_rotation_detail_endpoint(sector: str, request: Request):
+    """한 업종의 로테이션 상세와 대표 강세 종목."""
+    _check_rate_limit('sector_rotation', request, max_per_window=60)
+    import sector_rotation
+    conn = db_schema.get_conn()
+    try:
+        detail = sector_rotation.sector_detail(conn, _load_sector_cards_cached()['sectors'], sector)
+    finally:
+        conn.close()
+    if not detail:
+        raise HTTPException(status_code=404, detail='업종 로테이션 데이터가 없습니다.')
+    return envelope(detail)
+
+
+_sector_rotation_cache = {}
+
+
 @app.get('/pattern-tracks')
 def pattern_tracks_public(request: Request, scanner: str, view: str = 'all',
                           days: int = 90, limit: int = 100):

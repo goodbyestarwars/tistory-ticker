@@ -405,6 +405,10 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 만들지 말고 이미 있는 Google 로그인·watchlist_configs 패턴을 재사용하라는 뜻으로 확인).
 `/memo`의 GET/PUT이 Google 로그인 사용자별로 읽고 저장한다.
 
+### 2.23 `sector_rotation_daily` — 업종 로테이션 일별 스냅샷(2026-10-04)
+
+PK `(date, sector)`. 업종(운영 `sector_cards` 설정의 테마, "코스피 3대장" 제외)별 1/5/20일 수익률(구성종목 median), 시장 대비 상대수익(`rs5`·`rs20`), 순위(`rank5d`=화면 순위, `rank20d`), 5일 전 순위·변화, 퍼센타일, Breadth(상승 비율·20MA 위 비율), 거래대금 강도(5일/20일 평균 비), 점수, `phase`(EMERGING/LEADING/WEAKENING/LAGGING/NEUTRAL), `final`(1=확정). `daily_prices` 일봉 확정값만으로 계산하며 확정 스냅샷은 덮어쓰지 않는다. 히스테리시스는 직전 스냅샷의 phase를 읽는다. `sector_rotation.py`가 `/sector-rotation` 호출 시 생성(5분 캐시, 하루 1행 세트).
+
 ### 2.21 `market_temp_snapshot` — 증시온도 일별 구성값(검증용, 2026-10-04)
 
 하루 1행(약 4KB). `date`(PK), `score100`, `axes_json`, `components_json`(10개 지표 원값·점수), `breadth_json`(전종목 등락 종목 수), `updated_at`. 거래일에 3~15분 주기 계산이 같은 날짜 행을 덮어써서 장 마감 뒤 마지막 값이 남는다. 800일 보관. 지표별 예측력을 과거로 검증하려고 만들었다(`scripts/analysis/`).

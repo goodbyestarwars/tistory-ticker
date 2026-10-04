@@ -616,6 +616,8 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
+        // 2026-10-04 업종 로테이션: 국내 시장 요약 아래 빈 영역. js/home-sector-rotation.js가 채운다(서버 계산 결과만 읽음).
+        + '<section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section>'
         + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
@@ -723,6 +725,8 @@ document.documentElement.classList.add('skin-ready');
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
+      var rotation = dashboardSection.querySelector('[data-home-sector-rotation]');
+      if (rotation) { if (isUs) rotation.setAttribute('data-us', '1'); else rotation.removeAttribute('data-us'); }
       if (nightFutures) nightFutures.hidden = !isUs;
     }
 
@@ -2450,3 +2454,18 @@ document.documentElement.classList.add('skin-ready');
     setInterval(tick, CB_POLL_MS);
   })();
 
+/* 2026-10-04 홈 업종 로테이션: 모듈은 처음 필요할 때 한 번만 불러온다. */
+(function homeSectorRotationLoader() {
+  function start() {
+    var host = document.querySelector('[data-home-sector-rotation]');
+    if (!host || host.getAttribute('data-rotation-mounted')) return !!host;
+    host.setAttribute('data-rotation-mounted', '1');
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v1';
+    script.onload = function () { if (window.HomeSectorRotation) window.HomeSectorRotation.mount(host); };
+    document.head.appendChild(script);
+    return true;
+  }
+  var tries = 0;
+  var timer = setInterval(function () { if (start() || ++tries > 40) clearInterval(timer); }, 500);
+})();
