@@ -1225,6 +1225,9 @@
     });
   }
 
+  // 2026-10-04 /page/market-temp 재디자인: 1~5 / 6~10 두 열을 걷고 1~10위를 위에서 아래로 읽는 한 줄 표로 바꿨다.
+  // 거래대금 집중도 = 1위 거래대금 대비 비율(1위 100%). 막대는 중립색, 빨강·파랑은 등락률 숫자에만 쓴다.
+  // 대표 종목은 표 오른쪽 열에 이름+등락률만 두고(행 전체가 버튼이라 링크는 펼친 구성종목 목록에 있다).
   function sectorFlowRowHtml_(row, index, rows, maxAmount, picks) {
     var rate = Number(row.avg_change_rate);
     var tone = rate > 0 ? 'is-up' : rate < 0 ? 'is-down' : 'is-flat';
@@ -1237,18 +1240,26 @@
           }).join('') + '</div>'
       : '';
     var amount = Number(row.trade_amount);
-    // 자금의 크기는 음영으로, 그 섹터의 방향은 붉은색(상승)·파란색(하락)으로 함께 읽는다.
-    var fill = isFinite(amount) && maxAmount > 0 ? Math.max(4, amount / maxAmount * 100) : 0;
+    var share = isFinite(amount) && maxAmount > 0 ? amount / maxAmount * 100 : 0;
+    var pickHtml = (picks || []).map(function (stock) {
+      var r = Number(stock.change_rate);
+      return '<span class="mt-sf-pick"><span>' + escapeHtml(stock.name || stock.code) + '</span>'
+        + '<em class="' + (r > 0 ? 'is-up' : r < 0 ? 'is-down' : 'is-flat') + '">' + rateText_(r) + '</em></span>';
+    }).join('');
+    var rank = index + 1;
     return '<div class="mt-sf-item">'
       + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
-      + '<i class="mt-sf-fill ' + tone + '" style="width:' + fill.toFixed(1) + '%" aria-hidden="true"></i>'
-      + '<i class="mt-sf-rank">' + (index + 1) + '</i>'
+      + '<i class="mt-sf-rank">' + (rank < 10 ? '0' : '') + rank + '</i>'
       + '<b>' + escapeHtml(row.industry || '-') + '</b>'
+      + '<span class="mt-sf-meta">'
       + '<span class="mt-sf-mult">' + escapeHtml(sectorFlowAmountText_(row) || '-') + '</span>'
       + '<span class="mt-sf-rate">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
+      + '</span>'
+      + '<span class="mt-sf-conc"><span class="mt-sf-bar" aria-hidden="true"><i style="width:' + Math.max(2, Math.min(100, share)).toFixed(1) + '%"></i></span>'
+      + '<em class="mt-sf-pct">' + Math.round(share) + '%</em></span>'
+      + '<span class="mt-sf-picks-col">' + pickHtml + '</span>'
       + '<i class="mt-sf-caret" aria-hidden="true">▾</i>'
       + '</button>'
-      + moneyPicksLineHtml_(picks)
       + '<div class="mt-sf-detail" hidden>'
       + (row.stocks || []).map(sectorFlowStockHtml_).join('')
       + derivedHtml
@@ -1294,9 +1305,10 @@
       return isFinite(amount) && amount > max ? amount : max;
     }, 0);
     var picksByRow = selectMoneyPicks_(shown);
-    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 붉은 음영은 상승, 파란 음영은 하락이며 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
+    var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
-      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>음영 길이 = 거래대금 집중도 · 빨강 상승 · 파랑 하락</small></div>'
+      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>막대 = 1위 대비 거래대금 · 빨강 상승 · 파랑 하락</small></div>'
+      + '<div class="mt-sf-thead" aria-hidden="true"><span>순위</span><span>섹터명</span><span class="mt-sf-th-meta"><span>거래대금</span><span>등락률(평균)</span></span><span>거래대금 집중도</span><span>대표 종목 (등락률)</span></div>'
       + '<div class="mt-sf-grid">'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount, picksByRow[i]); }).join('')
       + '</div>'
@@ -1367,6 +1379,17 @@
         }
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
+        // AI 시장 해석은 보조 콘텐츠라 기본 접힘, 버튼으로 펼친다(내용은 위 loadAiBriefing이 미리 채운다).
+        container.addEventListener('click', function (event) {
+          var toggle = event.target.closest && event.target.closest('[data-ai-toggle]');
+          if (!toggle) return;
+          var panel = container.querySelector('#mtAiPanel');
+          if (!panel) return;
+          var open = panel.hasAttribute('hidden');
+          if (open) panel.removeAttribute('hidden'); else panel.setAttribute('hidden', '');
+          toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+          toggle.firstChild.nodeValue = open ? 'AI 시장 해석 접기 ' : 'AI 시장 해석 보기 ';
+        });
         loadAiBriefing(container);
         loadTomorrow_(container);
         loadSectorFlow_(container);
@@ -1861,8 +1884,9 @@
   function buildAiBriefingShell() {
     return ''
       + '<div class="mt-briefing-panel">'
-      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견 <small>Groq 시장 해석</small></div>'
+      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견</div>'
       + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
+      + '<small class="mt-ai-model">Groq 모델 생성 · 보조 해석이며 투자 권유가 아닙니다.</small>'
       + '</div>';
   }
 
@@ -2334,22 +2358,50 @@
   // ---- ⑦ 시장 레이더 차트 ----
 
   // 2026-09-16: 주식/현금 비중 막대를 개인 투자자용 점검표로 바꿨다(ANT_GUIDE_BY_TONE 주석 참고).
+  // 2026-10-04 /page/market-temp 재디자인: 판단 문구 + 점수 3개(시장 체력·위험도·자금 유입) | 지금 할 것 | 주의할 것 한 줄 배치.
+  // 문구·점수는 antGuide/score100/axes가 이미 계산한 값을 그대로 읽는다(계산식·문구 로직 변경 없음).
+  function checkpointDate_(data) {
+    var m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(data && data.updatedAt || ''));
+    return m ? m[1] + '.' + m[2] + ' 기준' : '';
+  }
+
   function buildStrategy(data) {
     var guide = antGuide(data);
+    var axes = (data && data.axes) || {};
     function list(items) {
       return items.map(function (text) { return '<li>' + emphasizeChecklist_(text) + '</li>'; }).join('');
     }
+    function metric(label, value, word, tone) {
+      var v = Number(value);
+      return '<div class="mt-cp-metric"><span class="mt-cp-metric-label">' + escapeHtml(label) + '</span>'
+        + '<div class="mt-cp-metric-row"><b>' + (isFinite(v) ? Math.round(v) : '-') + '</b>'
+        + (word ? '<em class="mt-cp-state mt-cp-' + tone + '">' + escapeHtml(word) + '</em>' : '') + '</div>'
+        + '<small>' + escapeHtml(label) + ' ' + (isFinite(v) ? Math.round(v) + '점' : '-') + '</small></div>';
+    }
+    var health = score100(data);
+    var risk = Number(axes.risk && axes.risk.value);
+    var money = Number(axes.money && axes.money.value);
+    function level(v, words) { return !isFinite(v) ? '' : v >= 65 ? words[2] : v >= 35 ? words[1] : words[0]; }
+    function toneOf(v) { return !isFinite(v) ? 'mid' : v >= 65 ? 'hi' : v >= 35 ? 'mid' : 'lo'; }
+    var dateText = checkpointDate_(data);
     return ''
       + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
-      + '<div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>오늘 시장을 어떻게 해석하고 대응할지 정리한 가이드입니다. 지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
-      + '<div class="mt-strategy-message">'
+      + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>오늘 시장을 어떻게 해석하고 대응할지 정리한 가이드입니다. 지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
+      + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
+      + '<div class="mt-cp-body">'
+      + '<div class="mt-strategy-message mt-cp-call">'
       + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
       + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
-      + '<div class="mt-ant-context">' + escapeHtml(guide.context) + '</div>'
-      + '</div>'
+      + '<div class="mt-cp-metrics">'
+      + metric('시장 체력', health, level(health, ['약함', '보통', '강함']), toneOf(health))
+      + metric('위험도', risk, level(risk, ['낮음', '보통', '높음']), toneOf(risk))
+      + metric('자금 유입', money, level(money, ['약함', '보통', '강함']), toneOf(money))
+      + '</div></div>'
       + '<div class="mt-ant-list mt-ant-todo"><b>지금 할 것</b><ul>' + list(guide.todo) + '</ul></div>'
       + '<div class="mt-ant-list mt-ant-avoid"><b>주의할 것</b><ul>' + list(guide.avoid) + '</ul></div>'
-      + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
+      + '</div>'
+      + '<div class="mt-cp-foot"><div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
+      + '<button type="button" class="mt-ai-toggle" data-ai-toggle aria-expanded="false" aria-controls="mtAiPanel">AI 시장 해석 보기 <span aria-hidden="true">→</span></button></div>'
       + '</div>';
   }
 
@@ -2357,9 +2409,7 @@
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid mt-briefing-single">'
       + buildStrategy(data)
-      + '<details class="mt-ai-fold"><summary>AI 참고의견 보기 <small>Groq 시장 해석</small></summary>'
-      + buildAiBriefingShell()
-      + '</details>'
+      + '<div class="mt-ai-panel" id="mtAiPanel" hidden>' + buildAiBriefingShell() + '</div>'
       + '</div>'
       + '</div>';
   }
@@ -2367,7 +2417,7 @@
   function buildTemperatureActions() {
     return '<div class="mt-temperature-actions">'
       + '<section class="mt-section-block mt-temperature-money-flow">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금과 평균 등락률을 함께 보고, 강한 테마의 종목과 연결 섹터를 확인합니다.</p></div>'
+      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금과 평균 등락률을 함께 보고 실제 자금이 몰리는 테마를 확인합니다.</p></div>'
       + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
       + '</section></div>';
   }
