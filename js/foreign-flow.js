@@ -3263,6 +3263,18 @@
     return { modelVersion: 'swing-4w-v5', chartRegime: chart, currentRegime: chart.currentRegime, recentEvent: chart.recentEvent, shortSignal: waves.shortSignal, transitions: waves.transitions || {}, auxiliaryStates: chart.auxiliaryStates || [], waves: waves, diagnosis: waves.diagnosis, momentum: { state: momentum, score: momentumScore }, fundamental: { state: fundamental, score: fundamentalScore }, risk: { state: risk, flags: flags, blocksEntry: blocks }, holderAction: holder, entryOpinion: entryOpinion, internalPriorityScore: Math.max(0, Math.min(100, base + (momentumScore - 50) * .25)), legacy: {} };
   }
 
+  // 2026-10-04 사용자 요청("하락 추세는 파란색 글씨, 상승은 붉은색 글씨"): 판정 문구에 방향 색을 붙인다.
+  // 하락·약세·금지 쪽 단어가 있으면 파랑, 상승·강세·우위 쪽이면 빨강, 둘 다 아니면 색을 입히지 않는다.
+  function swingTone_(text) {
+    var t = String(text == null ? '' : text);
+    if (/하락|약세|이탈|금지|경계|위험 관리|조정|하방/.test(t)) return 'ff-tone-down';
+    if (/상승|강세|돌파|회복|우위|우세|매수|반등|양호|지지/.test(t)) return 'ff-tone-up';
+    return 'ff-tone-flat';
+  }
+  function toneStrong_(text) {
+    return '<strong class="' + swingTone_(text) + '">' + escapeHtml(text) + '</strong>';
+  }
+
   function buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData) {
     var assessment = buildSwingAssessment(data, entry, chartData, computeFundamentalScore(fundamentals));
     var chart = assessment.chartRegime, risk = assessment.risk;
@@ -3280,18 +3292,18 @@
       : transition.mid && transition.mid.active ? transition.mid.label
       : transition.short && transition.short.active ? transition.short.label : '전환 신호 없음';
     return '<div class="ff-summary ff-swing-summary">'
-      + '<div class="ff-swing-regime"><span class="ff-panel-title">2주 스윙 판정</span><strong>' + escapeHtml(currentRegime.label) + '</strong><small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
+      + '<div class="ff-swing-regime"><span class="ff-panel-title">2주 스윙 판정</span>' + toneStrong_(currentRegime.label) + '<small>최근 이벤트 · ' + escapeHtml(recentEvent.label) + '</small></div>'
       + '<div class="ff-swing-flow" aria-label="장기·중기·단기 추세 국면">'
       + '<div class="ff-swing-flow-track">'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">장기 국면</span><span class="ff-swing-step-context">맥락</span></span><strong>' + escapeHtml(bigWave.label) + '</strong></div>'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">중기 국면</span><span class="ff-swing-step-context">방향</span></span><strong>' + escapeHtml(midWave.label) + '</strong></div>'
-      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">단기 국면</span><span class="ff-swing-step-context">진입 시점</span></span><strong>' + escapeHtml(smallWave.label) + '</strong></div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">장기 국면</span><span class="ff-swing-step-context">맥락</span></span>' + toneStrong_(bigWave.label) + '</div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">중기 국면</span><span class="ff-swing-step-context">방향</span></span>' + toneStrong_(midWave.label) + '</div>'
+      + '<div class="ff-swing-step"><span class="ff-swing-step-label"><span class="ff-swing-step-name">단기 국면</span><span class="ff-swing-step-context">진입 시점</span></span>' + toneStrong_(smallWave.label) + '</div>'
       + '</div>'
       + '</div>'
-      + '<div class="ff-swing-diagnosis"><span>진단</span><strong>' + escapeHtml(assessment.diagnosis || waves.diagnosis || '-') + '</strong></div>'
+      + '<div class="ff-swing-diagnosis"><span>진단</span>' + toneStrong_(assessment.diagnosis || waves.diagnosis || '-') + '</div>'
       + '<div class="ff-swing-actions">'
-      + '<div class="ff-swing-action"><span>보유자 행동</span><strong>' + escapeHtml(assessment.holderAction) + '</strong></div>'
-      + '<div class="ff-swing-action"><span>신규 진입</span><strong>' + escapeHtml(assessment.entryOpinion) + '</strong></div>'
+      + '<div class="ff-swing-action"><span>보유자 행동</span>' + toneStrong_(assessment.holderAction) + '</div>'
+      + '<div class="ff-swing-action"><span>신규 진입</span>' + toneStrong_(assessment.entryOpinion) + '</div>'
       + '</div>'
       + '<div class="ff-swing-facts">'
       + '<span class="ff-swing-fact"><small>5일선 신호</small><b>' + escapeHtml(shortSignal.label || '없음') + '</b></span>'
@@ -3665,7 +3677,7 @@
   // 순서대로 그려준다. 실제 매매수수료·세금·배당(분배락)은 반영하지 않은 단순 종가 계산이다.
   var SIM_H = 220;
 
-  function simGeometry(daily) {
+  function simGeometry(daily, benchRatios) {
     var n = daily.length;
     var base = daily[0].close;
     var ratios = daily.map(function (d) { return d.close / base; });
@@ -3673,11 +3685,15 @@
     var min = Math.min.apply(null, ratios);
     var peakIdx = ratios.indexOf(max);
     var troughIdx = ratios.indexOf(min);
-    var span = (max - min) || 0.1;
-    var domMax = max + span * 0.12;
+    // 2026-10-04: 비교 지수 선도 같은 축에 그리므로 축 범위는 둘을 함께 덮는다(최고/최저 표시는 종목 기준 그대로).
+    var domSrc = benchRatios && benchRatios.length ? ratios.concat(benchRatios) : ratios;
+    var dmax = Math.max.apply(null, domSrc);
+    var dmin = Math.min.apply(null, domSrc);
+    var span = (dmax - dmin) || 0.1;
+    var domMax = dmax + span * 0.12;
     // 평가금액은 원금을 다 잃어도 0원 아래로는 안 내려가므로 축 바닥을 0 밑으로 두지 않는다
     // (패딩만 적용하면 음수가 나올 수 있었음 - 축 라벨에 음수 표기가 남던 문제 수정).
-    var domMin = Math.max(0, min - span * 0.12);
+    var domMin = Math.max(0, dmin - span * 0.12);
     var iw = CHART_W - PAD.l - PAD.r;
     var ih = SIM_H - PAD.t - PAD.b;
     function x(i) { return PAD.l + (n <= 1 ? 0 : (i / (n - 1)) * iw); }
@@ -3700,8 +3716,8 @@
       + '<text class="ff-axis ff-sim-mark-label ' + cls + '" x="' + labelX.toFixed(1) + '" y="' + labelY.toFixed(1) + '" text-anchor="middle">' + label + '</text>';
   }
 
-  function buildSimChartSvg(daily) {
-    var geo = simGeometry(daily);
+  function buildSimChartSvg(daily, bench) {
+    var geo = simGeometry(daily, bench && bench.ratios);
     var baseline = geo.y(1);
     var baselineLabelY = baseline + 4;
     var maxLabelY = geo.y(geo.domMax) + 4;
@@ -3721,6 +3737,7 @@
     svg += '<text class="ff-axis ff-sim-axis-label" x="' + (PAD.l - 6) + '" y="' + baselineLabelY.toFixed(1) + '" text-anchor="end">원금</text>';
     svg += '<text class="ff-axis ff-sim-axis-label" id="ffSimAxisMin" x="' + (PAD.l - 6) + '" y="' + minLabelY.toFixed(1) + '" text-anchor="end"></text>';
     svg += rsiAxisLabels(daily, geo.x, SIM_H - 8);
+    if (bench) svg += '<polyline class="ff-sim-bench" id="ffSimBench" points=""/>';
     svg += '<polyline class="ff-sim-line" id="ffSimLine" points=""/>';
     svg += simExtremeMark(geo, 'peak', geo.peakIdx);
     svg += simExtremeMark(geo, 'trough', geo.troughIdx);
@@ -3848,6 +3865,7 @@
       + '<div class="ff-sim-stat"><span>수익률</span><b id="ffSimRate" class="ff-flat">0.0%</b></div>'
       + '</div>'
       + '<div class="ff-chart ff-chart-sim">' + buildSimChartSvg(daily) + '</div>'
+      + '<div class="ff-sim-legend" id="ffSimLegend" hidden></div>'
       + '<div class="ff-sim-extremes" id="ffSimExtremes">' + simExtremesText(daily, geo, defaultAmount) + '</div>'
       + '<div class="ff-sim-patience">' + simPatienceHtml(daily, geo.ratios) + '</div>'
       + '<div class="ff-sim-result" id="ffSimResult">' + simResultText(daily, defaultAmount) + '</div>'
@@ -3855,10 +3873,44 @@
       + '</div>';
   }
 
+  // 2026-10-04 사용자 요청("코스피 종목은 코스피와, 코스닥 종목은 코스닥과 추이를 비교해줘"): 종목의 시장(GAS 시세의 market)을
+  // 보고 KODEX 200(코스피) 또는 KODEX 코스닥150(코스닥) 일봉을 같은 날짜에 맞춰 시작일 = 1로 환산한다.
+  function loadSimBenchmark(code, daily) {
+    var c = String(code || '');
+    if (!/^[0-9A-Za-z]{6}$/.test(c) || /^US:/i.test(c)) return Promise.resolve(null);
+    return fetch(GAS_TICKER_URL + '?codes=' + encodeURIComponent(c))
+      .then(function (r) { return r.json(); })
+      .then(function (rows) {
+        var market = rows && rows[0] && rows[0].market;
+        var etf = market === 'KOSDAQ' ? { code: '229200', label: '코스닥(KODEX 코스닥150)' } : { code: '069500', label: '코스피(KODEX 200)' };
+        if (market !== 'KOSDAQ' && market !== 'KOSPI') return null;      // 시장을 모르면 엉뚱한 지수와 비교하지 않는다
+        return fetch(KIWOOM_VM_URL + '/flow-chart/' + etf.code).then(function (r) { return r.json(); }).then(function (env) {
+          var data = env && env.data ? env.data : env;
+          var etfDaily = (data && Array.isArray(data.daily) ? data.daily : []).filter(function (row) { return row && row.close; });
+          if (etfDaily.length < 20) return null;
+          var j = 0, ratios = [], base = null, covered = 0;
+          for (var i = 0; i < daily.length; i++) {
+            var d = String(daily[i].date);
+            if (String(etfDaily[0].date) > d) { ratios.push(null); continue; }
+            while (j + 1 < etfDaily.length && String(etfDaily[j + 1].date) <= d) j++;
+            var close = Number(etfDaily[j].close);
+            if (base == null) base = close;
+            ratios.push(close / base);
+            covered++;
+          }
+          // 앞부분이 비어 있으면(ETF 상장 전) 첫 값으로 채우지 않고 비교하지 않는다
+          if (ratios[0] == null || covered < daily.length * 0.9) return null;
+          return { label: etf.label, ratios: ratios };
+        });
+      })
+      .catch(function () { return null; });
+  }
+
   function wireSimulation(box, chartData) {
     var daily = chartData && chartData.daily;
     if (!daily || daily.length < 2) return;
     var geo = simGeometry(daily);
+    var simBench = null;
     var amountInput = box.querySelector('#ffSimAmount');
     var averagePriceInput = box.querySelector('#ffSimAveragePrice');
     var playBtn = box.querySelector('#ffSimPlay');
@@ -3869,10 +3921,15 @@
     var rateEl = box.querySelector('#ffSimRate');
     var resultEl = box.querySelector('#ffSimResult');
     var extremesEl = box.querySelector('#ffSimExtremes');
-    var lineEl = box.querySelector('#ffSimLine');
-    var dotEl = box.querySelector('#ffSimDot');
-    var axisMaxEl = box.querySelector('#ffSimAxisMax');
-    var axisMinEl = box.querySelector('#ffSimAxisMin');
+    var lineEl, dotEl, axisMaxEl, axisMinEl, benchEl;
+    function bindSvg() {
+      lineEl = box.querySelector('#ffSimLine');
+      dotEl = box.querySelector('#ffSimDot');
+      axisMaxEl = box.querySelector('#ffSimAxisMax');
+      axisMinEl = box.querySelector('#ffSimAxisMin');
+      benchEl = box.querySelector('#ffSimBench');
+    }
+    bindSvg();
     var personalStatusEl = box.querySelector('#ffSimPersonalStatus');
     if (!amountInput || !playBtn || !resetBtn || !lineEl) return;
 
@@ -3901,12 +3958,22 @@
       return pts.join(' ');
     }
 
+    function benchPointsUpTo(i) {
+      var pts = [];
+      for (var k = 0; k <= i; k++) {
+        var r = simBench.ratios[k];
+        if (r != null) pts.push(geo.x(k).toFixed(1) + ',' + geo.y(r).toFixed(1));
+      }
+      return pts.join(' ');
+    }
+
     function renderFrame(i) {
       var amount = currentAmount();
       var d = daily[i];
       var value = amount * geo.ratios[i];
       var rate = (geo.ratios[i] - 1) * 100;
       lineEl.setAttribute('points', pointsUpTo(i));
+      if (benchEl && simBench) benchEl.setAttribute('points', benchPointsUpTo(i));
       lineEl.setAttribute('class', 'ff-sim-line ' + (geo.ratios[i] >= 1 ? 'ff-buy' : 'ff-sell'));
       if (dotEl) {
         dotEl.setAttribute('cx', geo.x(i).toFixed(1));
@@ -3927,6 +3994,7 @@
       idx = 0;
       updateAxis();
       lineEl.setAttribute('points', '');
+      if (benchEl) benchEl.setAttribute('points', '');
       lineEl.setAttribute('class', 'ff-sim-line');
       if (dotEl) dotEl.setAttribute('visibility', 'hidden');
       var amount = currentAmount();
@@ -3989,6 +4057,24 @@
     if (averagePriceInput) averagePriceInput.addEventListener('input', updatePersonalStatus);
 
     reset();
+
+    // 비교 지수는 늦게 도착해도 되므로 화면을 먼저 쓰게 두고, 도착하면 차트를 다시 그려 끼워 넣는다.
+    loadSimBenchmark(chartData.code, daily).then(function (bench) {
+      var chartBox = box.querySelector('.ff-chart-sim');
+      if (!bench || !chartBox || !document.body.contains(box)) return;
+      if (timer) { clearInterval(timer); timer = null; }
+      simBench = bench;
+      geo = simGeometry(daily, bench.ratios);
+      chartBox.innerHTML = buildSimChartSvg(daily, bench);
+      bindSvg();
+      var legend = box.querySelector('#ffSimLegend');
+      if (legend) {
+        legend.hidden = false;
+        legend.innerHTML = '<span><i class="ff-sim-legend-stock"></i>이 종목 (원금 위 빨강 · 아래 파랑)</span>'
+          + '<span><i class="ff-sim-legend-bench"></i>' + escapeHtml(bench.label) + ' 같은 날 같은 금액으로 샀다면</span>';
+      }
+      reset();
+    });
   }
 
   function extraMetric(label, valueHtml) {
@@ -4507,7 +4593,7 @@
       var isPoc = originalIndex === pocRow;
       var isMine = originalIndex === myRow;
       var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
-      var classes = 'ff-apt-simple-row' + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '') + (isMine ? ' is-mine' : '');
+      var classes = 'ff-apt-simple-row side-' + side + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '') + (isMine ? ' is-mine' : '');
       var markers = (isMine ? '<span class="mine">내 평단</span>' : '') + (isCurrent ? '<span class="current">현재</span>' : '')
         + (isAverage ? '<span class="average">평균</span>' : '')
         + (isPoc ? '<span class="poc">최대</span>' : '');
