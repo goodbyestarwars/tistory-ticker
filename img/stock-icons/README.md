@@ -34,3 +34,5 @@ https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/{종목코드}.
 
 - 원본 아이콘: https://github.com/simple-icons/simple-icons
 - 다운로드 API: https://api.iconify.design/simple-icons/{slug}.svg
+
+2026-10-04: 캘린더 미국 실적 대상인 S&P 100 중 아이콘이 없던 86종목을 Parqet 로고 서비스(`https://assets.parqet.com/logos/symbol/{티커}?format=svg`, 복수 클래스는 `BRK-B`)에서 받아 채웠다. SVG는 배경 사각형을 원으로 바꿔 기존 아이콘 모양에 맞췄고, SVG가 없는 10종목(CHTR·COF·EMR·EXC·NOW·SO·SPG·TMUS·USB·WBA)은 받은 PNG(100px)를 그대로 `.png`로 둔다. 파일명은 `BRK.B`처럼 캘린더 심볼 표기를 따른다.

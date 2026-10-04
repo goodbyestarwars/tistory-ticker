@@ -1,5 +1,9 @@
 # 9Pay 주요 작업이력
 
+**2026-10-04 캘린더 미국 실적 기업 아이콘 86종 추가**
+
+사용자 요청(아이콘 없는 기업 확인 후 채움). 9~11월 `/earnings-calendar` 실측: 국내 DART 일정은 전부 아이콘 있음, 미국 S&P 100은 73종목이 빈 원(약칭만)이었다. S&P 100 중 없던 86종목을 Parqet 로고(SVG 76·PNG 10)로 `img/stock-icons/`에 추가, 출처는 `img/stock-icons/README.md`. 코드 변경 없음(기존 svg→png 폴백 그대로). 검증: 헤드리스 렌더로 86개 육안 확인. 배포: master 반영 시 GitHub Pages 자동.
+
 **2026-10-04 일반 사용자 네이버 로그인 추가**
 
 사용자 요청(구글 외 네이버 로그인, 일반 사용자용). 신규 `scripts/cloud-vm/naver_auth.py`(네아로 code→token→`/v1/nid/me`, 토큰은 프로필 조회 후 버림), `GET /auth/naver/start`·`/auth/naver/callback`. 세션은 기존 Google 서명 쿠키를 공용으로 써서 관심종목·메모·대시보드 등 `require_google_user` 경로는 그대로 동작(`sub='naver:<id>'`로 Google과 분리, `app_users.google_sub`에 저장, 스키마 변경 없음). 네이버 email은 동의 선택·소유 미검증이라 비어도 세션 성립, 관리자 판정은 Google 세션만(`GoogleAuthService.is_admin`). `/auth/google/me`에 `provider`·`naverConfigured` 추가. 프론트: 계정 선택창(`js/skin-shell.js`)에 네이버 버튼(키 미설정이면 숨김), 관심종목·메모·내 대시보드의 로그인 버튼은 선택창을 열도록(`window.NinePayAccountLogin`), 문구 "Google 로그인"→"로그인". 설정은 `docs/NAVER_AUTH_SETUP.md`. 검증: `test/test_naver_auth.py` 5건, `main` import 확인, `test_ui_ia.py`는 변경 전과 같은 6건 실패(주말 리포트 쪽). 배포: master 반영 시 VM·GitHub Pages 자동. **VM `.env`에 네이버 키 2개를 넣기 전까지 버튼은 안 보인다.** 앞선 a5af4c6f 커밋에 이 작업의 `main.py` 부분이 섞여 먼저 올라갔다(동시 세션).
