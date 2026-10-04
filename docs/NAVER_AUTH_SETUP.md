@@ -8,7 +8,8 @@
 https://developers.naver.com → Application → 애플리케이션 등록
 
 - 사용 API: `네이버 로그인`
-- 제공 정보: 회원이름(또는 별명) 선택, 이메일 주소 선택(필수로 두지 않는다 - 동의를 꺼도 로그인된다)
+- 제공 정보: 회원이름 필수, 연락처 이메일은 "추가"(선택)로 두거나 뺀다. 이메일이 없어도 로그인된다(서버는 회원 id만 필수)
+- 개인정보처리방침: `https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html`(3-2 네이버 로그인 정보, 2026-10-05)
 - 환경: PC 웹 / 모바일 웹
 - 서비스 URL: `https://ghlee.tistory.com`
 - Callback URL: `https://goodbyestar.cloud/auth/naver/callback`
