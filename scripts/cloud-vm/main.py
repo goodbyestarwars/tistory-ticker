@@ -375,7 +375,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 8  # 2026-08-22(2차): pastCandidateOutcomes.stats 추가 +
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 9  # 2026-10-04: 지수·금리 주간 등락 기준을 직전 주 마지막 종가로 변경(changeAbs 추가) - 옛 스냅샷 폐기. 이전: # 2026-08-22(2차): pastCandidateOutcomes.stats 추가 +
 # swing_candidates() reason 문구 축약 - 둘 다 이 버전을 안 올리면 디스크 스냅샷이
 # (week_end가 같은 주말 내내) 옛 내용을 계속 서빙해서 "반영이 안 됐다"고 보임(사용자 리포트).
 _sector_cards_cache = None

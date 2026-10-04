@@ -79,3 +79,18 @@ html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: #80b8ff; }
 
 /* 홈 위젯 그리드 안에서는 전체 폭 한 줄을 차지한다(뉴스 줄 아래, 실시간 종목판 위) */
 .home-widget-grid > .home-sector-rotation { grid-column: 1 / -1; }
+
+/* ── 2026-10-04: 큰 네모박스 + 국내 시장·경제 종합뉴스와 같은 제목 서체(마루부리 = var(--font-title)) ── */
+.home-sector-rotation {
+  margin: 24px 0 8px; padding: 30px 36px 26px;
+  border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: rgb(254, 253, 250);
+}
+html.dark .home-sector-rotation { border-color: rgba(245, 239, 224, .16); background: #1a1a1a; }
+html body .home-sector-rotation, html body .home-sector-rotation button, html body .home-sector-rotation .hsr-title-row strong { font-family: var(--font-title) !important; }
+html body .home-sector-rotation .hsr-title-row strong { font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
+html body .home-sector-rotation .hsr-phase { font-size: 17px; }
+html body .home-sector-rotation .hsr-name { font-size: 15px; }
+@media (max-width: 720px) {
+  .home-sector-rotation { padding: 22px 18px 16px; border-radius: 18px; }
+  html body .home-sector-rotation .hsr-title-row strong { font-size: 24px; }
+}

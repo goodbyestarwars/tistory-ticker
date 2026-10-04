@@ -2498,3 +2498,11 @@ html.dark #market-temp .mt-sf-bar i { background: #8f9bb3; }
   #market-temp .mt-sf-row { grid-template-columns: 30px minmax(0, 1fr) 16px; }
   #market-temp .mt-sf-picks-col { flex-wrap: wrap; }
 }
+
+/* ── 30-d (2026-10-04) 판단 문구 1pt 축소, ※ 안내문 한 줄(카드 폭에 맞춰 글자 크기 계산) ── */
+#market-temp .mt-cp-call .mt-strategy-action { font-size: 30px; }
+html body #market-temp .mt-sf-card { container-type: inline-size; }
+html body #market-temp .mt-sf-disclaimer { white-space: nowrap; overflow: visible; text-overflow: clip; font-size: clamp(8px, calc((100cqw - 48px) / 98), 12.5px); }
+@media (max-width: 900px) {
+  html body #market-temp .mt-sf-disclaimer { white-space: normal; font-size: 11.5px; }
+}
