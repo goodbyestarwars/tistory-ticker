@@ -45,6 +45,12 @@ RISING_LOWS_MIN_PRIOR_DECLINE = 0.12 # 계단 시작 전 고점이 첫 저점보
 RISING_LOWS_MAX_FROM_LAST_LOW = 0.10 # 현재가가 마지막 스윙 저점보다 10% 넘게 올라 있으면 이미 오른 뒤
 RISING_LOWS_MAX_RET_20D = 0.15       # 최근 20거래일 수익률 상한(급등 직후 제외)
 RISING_LOWS_MAX_DAY_GAIN_10D = 0.10  # 최근 10거래일 중 하루 상승 상한(급등봉 제외)
+# 2026-10-04 거래대금(유동성) 필터. 수렴 중 거래량 감소는 정상이라 "거래량이 많아야 한다"는 걸지 않고,
+# 매매가 어려울 정도로 거래가 죽은 종목만 뺀다. 값은 상수라 20억/30억/50억원으로 쉽게 조정한다.
+MIN_AVG_TRADING_VALUE_20D = 3_000_000_000      # 20일 평균 거래대금(종가x거래량) 하한 - 하드 필터
+MIN_MEDIAN_TRADING_VALUE_20D = 1_500_000_000   # 20일 거래대금 중앙값 기준 - 미달 시 감점(하루 대량거래로 평균만 높은 종목)
+MIN_RECENT_LIQUIDITY_RATIO = 0.60              # 최근 5일 평균 거래대금 / 20일 평균 하한 - 하드 필터(최근 거래가 죽은 종목)
+MAX_ZERO_VOLUME_DAYS_20D = 1                   # 최근 20일 중 거래량 0인 날 허용 개수
 # 2026-08-23 신설: "단기이평 돌파형" - 하락 추세선(최근 스윙 고점 2개를 잇는 저항선)을
 # 종가와 5일선이 함께 뚫고 올라오는 순간을 잡는다(사용자 요청, 참고 그림: "추세선+5일이평선").
 # 창(window)은 20일 - swing_model.classify_wave_structure()의 소파동(20일) 스케일과
@@ -794,6 +800,19 @@ def detect_rising_lows(daily):
     if before_high < first_low * (1 + RISING_LOWS_MIN_PRIOR_DECLINE):
         return None
 
+    # 6) 유동성: 거래가 죽어 있지 않은가(거래량 증가가 아니라 거래대금 수준을 본다)
+    tv20 = [(row['close'] or 0) * (row.get('volume') or 0) for row in win[-20:]]
+    tv5 = tv20[-5:]
+    avg20 = sum(tv20) / len(tv20)
+    avg5 = sum(tv5) / len(tv5)
+    median20 = sorted(tv20)[len(tv20) // 2]
+    if avg20 < MIN_AVG_TRADING_VALUE_20D:
+        return None
+    if avg5 < avg20 * MIN_RECENT_LIQUIDITY_RATIO:
+        return None
+    if sum(1 for row in win[-20:] if not (row.get('volume') or 0)) > MAX_ZERO_VOLUME_DAYS_20D:
+        return None
+
     # 5) 아직 안 올랐는가
     last_close = win[-1]['close']
     if last_close < last_low:
@@ -811,21 +830,51 @@ def detect_rising_lows(daily):
     highs_in_run = [i for i in high_idxs if i >= run[0]]
     resistance = max(win[i]['high'] for i in range(run[0], len(win)))
 
-    # 점수(참고용): 저점 개수·간격 규칙성·기간·거래량·현재 캔들
+    # 점수(참고용): 저점 개수·간격 규칙성·기간·저점 회귀선 적합도·거래대금·수급·저점 반응·현재 캔들
     count_score = 40 if len(run) >= 4 else 35
     gaps = [b - a for a, b in zip(run, run[1:])]
     regular = (max(gaps) <= min(gaps) * 3) if gaps and min(gaps) > 0 else False
-    regular_score = 15 if regular else 5
+    regular_score = 10 if regular else 5
     span_score = 15 if (run[-1] - run[0]) >= 30 else 10
-    vol_score = 15 if is_volume_declining(win, run[0], len(win)) else 5
-    bull_score = 15 if is_last_candle_bullish(win) else 5
-    score = clamp_score(count_score + regular_score + span_score + vol_score + bull_score)
+    bull_score = 10 if is_last_candle_bullish(win) else 5
+
+    # 저점 상승 회귀선 R^2 (저점들이 한 줄 위에 가지런히 놓일수록 높다)
+    n_lows = len(run)
+    mx = sum(run) / n_lows
+    my = sum(lows) / n_lows
+    sxx = sum((x - mx) ** 2 for x in run)
+    sxy = sum((x - mx) * (y - my) for x, y in zip(run, lows))
+    syy = sum((y - my) ** 2 for y in lows)
+    r2 = (sxy * sxy) / (sxx * syy) if sxx and syy else 0.0
+    r2_score = 5 if r2 >= 0.85 else 0
+
+    # 거래대금·수급 가산점(필수 조건 아님)
+    liquid_score = 5                                   # 20일 평균 거래대금 기준 통과(위에서 이미 확인)
+    recent_score = 3 if avg5 >= avg20 else 0           # 최근 거래대금이 20일 평균 이상으로 유지
+    up_vol = sum((row.get('volume') or 0) for row in win[-20:] if row['close'] >= row['open'])
+    down_vol = sum((row.get('volume') or 0) for row in win[-20:] if row['close'] < row['open'])
+    flow_score = 2 if down_vol == 0 or up_vol / down_vol > 1.0 else 0
+    median_penalty = -5 if median20 < MIN_MEDIAN_TRADING_VALUE_20D else 0
+
+    # 각 스윙 저점 뒤 1~3봉의 평균 거래량이 20일 평균 이상이면 "저점에서 매수세 반응"으로 본다
+    avg_vol20 = sum((row.get('volume') or 0) for row in win[-20:]) / 20
+    reacted = 0
+    for i in run:
+        after = [(row.get('volume') or 0) for row in win[i + 1:i + 4]]
+        if after and avg_vol20 and sum(after) / len(after) >= avg_vol20:
+            reacted += 1
+    reaction_score = 5 if reacted >= max(2, (len(run) + 1) // 2) else 0
+
+    score = clamp_score(count_score + regular_score + span_score + bull_score + r2_score
+                        + liquid_score + recent_score + flow_score + reaction_score + median_penalty)
     reasons = [
         '하락 뒤 바닥: 계단 시작 전 고점이 첫 저점보다 %.0f%% 높았음' % ((before_high / first_low - 1) * 100),
         '스윙 저점 %d개가 계단식 상승(첫 저점 대비 +%.1f%%, %d거래일)' % (len(run), total_rise * 100, run[-1] - run[0]),
         '하방 막힘: 계단 시작 뒤 첫 저점 아래로 내려간 봉 없음',
         '아직 안 오름: 현재가가 마지막 저점 대비 +%.1f%%' % ((last_close / last_low - 1) * 100),
-        '거래량 %s · 최근 캔들 %s' % ('감소' if vol_score >= 15 else '유지/증가', '양봉' if bull_score >= 15 else '음봉'),
+        '유동성: 20일 평균 거래대금 %.0f억 · 최근 5일은 평균의 %.0f%%%s' % (avg20 / 1e8, avg5 / avg20 * 100, ' · 중앙값 부족(-5점)' if median_penalty else ''),
+        '저점 회귀선 적합도 R² %.2f · 상승봉/하락봉 거래량 %s · 저점 반응 %d/%d회 · 최근 캔들 %s'
+        % (r2, '우세' if flow_score else '열세', reacted, len(run), '양봉' if bull_score >= 10 else '음봉'),
     ]
     return {
         'low_swings': low_swing_points,

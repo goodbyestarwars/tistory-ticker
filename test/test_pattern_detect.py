@@ -10,7 +10,8 @@ sys.path.insert(0, str(ROOT / "scripts" / "cloud-vm"))
 import pattern_detect as detector
 
 
-def base_building_daily(lows=(100.0, 104.0, 108.0, 112.0, 114.0), end_close=117.0, decline=True, spacing=15):
+def base_building_daily(lows=(100.0, 104.0, 108.0, 112.0, 114.0), end_close=117.0, decline=True, spacing=15,
+                        volume_base=500_000):
     """하락(앞 120봉) 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 일봉 200개.
 
     2026-10-04 저점상승형 정교화용 픽스처 - lows는 계단 저점(종가 기준), spacing은 저점 간 간격(봉),
@@ -41,7 +42,7 @@ def base_building_daily(lows=(100.0, 104.0, 108.0, 112.0, 114.0), end_close=117.
         daily.append({
             "date": (start + timedelta(days=i)).isoformat(),
             "open": c * 100, "high": (c + 0.5) * 100, "low": (c - 0.5) * 100, "close": c * 100,
-            "volume": 1000 if i < 150 else 600,
+            "volume": volume_base * (1.0 if i < 150 else 0.8),
         })
     return daily
 
@@ -261,6 +262,41 @@ class RisingLowsDetectionTest(unittest.TestCase):
         # 마지막 즈음 첫 저점(100) 아래로 내려간 봉이 있으면 하방이 막힌 게 아니다(마지막 저점이 계단을 끊는다)
         daily[-3].update(low=9800.0, close=9900.0)
         self.assertIsNone(detector.detect_rising_lows(daily))
+
+    # 2026-10-04 유동성 필터(거래대금): 거래가 죽은 종목만 뺀다. 거래량이 "많아야" 한다는 조건은 쓰지 않는다.
+    def test_low_average_trading_value_is_excluded(self):
+        # 종가(약 1만 원대) x 거래량 5천 주 = 약 5천만 원 - 20일 평균 30억원 미달
+        self.assertIsNone(detector.detect_rising_lows(base_building_daily(volume_base=5_000)))
+
+    def test_recent_liquidity_collapse_is_excluded(self):
+        daily = base_building_daily()
+        for row in daily[-5:]:
+            row["volume"] = 20_000        # 최근 5일 거래대금이 20일 평균의 60% 아래로 급감
+        self.assertIsNone(detector.detect_rising_lows(daily))
+
+    def test_repeated_zero_volume_days_are_excluded(self):
+        daily = base_building_daily()
+        for k in (-18, -12, -6):
+            daily[k]["volume"] = 0
+        self.assertIsNone(detector.detect_rising_lows(daily))
+
+    def test_shrinking_volume_during_convergence_is_still_allowed(self):
+        # 수렴 중 거래량 감소는 정상 - 마지막 구간 거래량이 줄어도(평균의 60% 이상) 통과한다.
+        daily = base_building_daily()
+        for row in daily[-5:]:
+            row["volume"] = 330_000
+        self.assertIsNotNone(detector.detect_rising_lows(daily))
+
+    def test_median_shortfall_only_lowers_the_score(self):
+        normal = detector.detect_rising_lows(base_building_daily())
+        daily = base_building_daily()
+        # 하루 대량거래로 평균은 충분하지만 중앙값은 15억원에 못 미치는 모양
+        for k, row in enumerate(daily[-20:]):
+            row["volume"] = 40_000 if k != 17 else 6_000_000
+        spiky = detector.detect_rising_lows(daily)
+        self.assertIsNotNone(spiky)       # hard filter가 아니라 감점
+        self.assertLess(spiky["score"], normal["score"])
+        self.assertTrue(any("중앙값 부족" in reason for reason in spiky["reasons"]))
 
     def test_not_enough_history_returns_none(self):
         self.assertIsNone(detector.detect_rising_lows(base_building_daily()[-100:]))
