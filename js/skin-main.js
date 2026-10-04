@@ -757,7 +757,7 @@ document.documentElement.classList.add('skin-ready');
           var title = it.symbol + ' ' + it.name + ' · 1주 ' + pct(it.return1w) + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);
           return '<div title="' + title.replace(/"/g, '&quot;') + '"><dt><b>' + it.symbol + '</b> ' + it.name + '</dt>'
             + '<dd class="' + tone(it.return1d) + '">' + pct(it.return1d)
-            + '<small><span class="' + tone(it.return1m) + '">1M ' + pct(it.return1m) + '</span> · <span class="' + tone(it.returnYtd) + '">YTD ' + pct(it.returnYtd) + '</span></small></dd></div>';
+            + '<small><span class="' + tone(it.return1m) + '">1M ' + pct(it.return1m) + '</span><i class="hmb-etf-sep"> · </i><span class="' + tone(it.returnYtd) + '">YTD ' + pct(it.returnYtd) + '</span></small></dd></div>';
         }).join('');
         var meta = box.querySelector('[data-home-us-etfs-meta]');
         if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' 미국 종가' + (d.final === false ? '(잠정)' : '') + ' · 1일 · 1개월 · 연초 이후';

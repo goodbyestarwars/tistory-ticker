@@ -8189,3 +8189,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-n
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page .hmb-list.hmb-etf-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* 30-b. 1개월·연초 이후가 4열 칸에서 잘려(말줄임) 두 줄로 나눈다 */
+body#tt-body-index .home-editorial-page .hmb-etf-list dd { overflow: visible; white-space: normal; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dd small { display: grid; gap: 1px; white-space: nowrap; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dd small .hmb-etf-sep { display: none; }
