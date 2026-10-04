@@ -1,42 +1,68 @@
-/* 홈 업종 로테이션 정보 스트립 (2026-10-04): 카드를 늘리지 않고 국내 시장 카드 안의 얇은 띠로 둔다. */
-.home-sector-rotation { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(17, 24, 39, .08); }
+/* 홈 업종 로테이션 (2026-10-04, 2차): 카드 4개가 아니라 하나의 영역 안에 정렬된 4열 시장 요약표.
+   배경·그림자·radius 없음. 업종명은 왼쪽, 순위 변화는 오른쪽 끝(tabular-nums)에 맞춘다. */
+.home-sector-rotation { margin-top: 14px; padding: 22px 0 20px; border-top: 1px solid #eef0f3; }
 .home-sector-rotation[hidden], .home-sector-rotation[data-us="1"] { display: none; }
-.hsr-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-.hsr-head strong { font-size: 14px; display: inline-flex; align-items: center; gap: 6px; }
-.hsr-help { display: inline-flex; width: 15px; height: 15px; align-items: center; justify-content: center; border-radius: 50%; border: 1px solid #94a3b8; color: #64748b; font-size: 10px; font-weight: 600; cursor: help; }
-.hsr-meta { font-size: 12px; color: #64748b; }
-.hsr-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 14px; }
-.hsr-col { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.hsr-col-head { font-size: 12px; font-weight: 700; color: #475569; padding-bottom: 3px; }
-.hsr-col.is-emerging .hsr-col-head::before { content: '●'; color: #2e9e6b; margin-right: 4px; }
-.hsr-col.is-leading .hsr-col-head::before { content: '●'; color: #3b6fd6; margin-right: 4px; }
-.hsr-col.is-weakening .hsr-col-head::before { content: '●'; color: #e08a2e; margin-right: 4px; }
-.hsr-col.is-lagging .hsr-col-head::before { content: '●'; color: #a3acb9; margin-right: 4px; }
-.hsr-item { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; padding: 3px 0; border: 0; background: transparent; font: inherit; font-size: 13px; color: inherit; cursor: pointer; text-align: left; }
-.hsr-item:hover .hsr-name { text-decoration: underline; }
-.hsr-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hsr-chg { font-style: normal; font-size: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.hsr-chg.is-up, .hsr-detail em.is-up { color: #d24f45; }
-.hsr-chg.is-down, .hsr-detail em.is-down { color: #1261c4; }
-.hsr-chg.is-flat { color: #94a3b8; }
-.hsr-none { font-size: 12px; color: #94a3b8; padding: 3px 0; }
-.hsr-detail { margin-top: 10px; padding: 12px 14px; border-radius: 12px; background: rgba(17, 24, 39, .04); }
-.hsr-detail-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 8px; }
-.hsr-detail-head span { font-size: 12px; color: #64748b; }
-.hsr-close { margin-left: auto; border: 0; background: transparent; color: #94a3b8; cursor: pointer; }
-.hsr-detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px 14px; }
-.hsr-detail-grid small, .hsr-leaders small { display: block; font-size: 11px; color: #64748b; }
-.hsr-detail-grid b { font-size: 13px; }
+.hsr-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.hsr-title-row { display: flex; align-items: center; gap: 6px; }
+.hsr-title-row strong { font-size: 18px; font-weight: 700; color: #20242c; line-height: 1.3; }
+.hsr-help { border: 0; background: transparent; padding: 0; font-size: 16px; line-height: 1; color: #98a1ad; cursor: pointer; }
+.hsr-help:hover { color: #526071; }
+.hsr-desc { margin: 4px 0 0; font-size: 12px; color: #8a94a3; }
+.hsr-meta { font-size: 12px; font-weight: 500; color: #7b8798; white-space: nowrap; padding-top: 4px; }
+.hsr-help-pop { margin: -8px 0 16px; padding: 10px 12px; border-radius: 6px; background: #f7f8fa; font-size: 12px; line-height: 1.55; color: #5b6573; }
+.hsr-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.hsr-col { min-width: 0; padding: 0 24px; }
+.hsr-col:first-child { padding-left: 0; }
+.hsr-col:last-child { padding-right: 0; }
+.hsr-col + .hsr-col { border-left: 1px solid #eef0f3; }
+.hsr-phase { display: flex; align-items: center; gap: 7px; font-size: 14px; font-weight: 700; color: #20242c; }
+.hsr-dot { width: 10px; height: 10px; border-radius: 50%; background: #a3acb9; flex-shrink: 0; }
+.hsr-col.is-emerging .hsr-dot { background: #2e9e6b; }
+.hsr-col.is-leading .hsr-dot { background: #3b6fd6; }
+.hsr-col.is-weakening .hsr-dot { background: #e08a2e; }
+.hsr-col.is-lagging .hsr-dot { background: #a3acb9; }
+.hsr-col-head p { margin: 3px 0 12px 17px; font-size: 11.5px; color: #98a1ad; }
+.hsr-list { min-height: 96px; }
+.hsr-item { width: calc(100% + 12px); min-height: 31px; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 6px; margin: 0 -6px; border: 0; border-radius: 5px; background: transparent; font: inherit; color: inherit; cursor: pointer; transition: background .15s ease; text-align: left; }
+.hsr-item:hover { background: #f7f8fa; }
+.hsr-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 14px; font-weight: 500; color: #272b32; }
+.hsr-item.is-first .hsr-name { font-weight: 600; }
+.hsr-chg { min-width: 42px; flex-shrink: 0; text-align: right; font-size: 14px; font-weight: 600; font-style: normal; font-variant-numeric: tabular-nums; }
+.hsr-chg.is-up { color: #d24f45; }
+.hsr-chg.is-down { color: #1261c4; }
+.hsr-chg.is-flat { color: #98a1ad; }
+.hsr-empty { padding-top: 6px; font-size: 12px; color: #a1a8b3; }
+.hsr-empty span { margin-right: 4px; }
+.hsr-detail { margin-top: 16px; padding: 14px 16px; border-radius: 8px; background: #f7f8fa; }
+.hsr-detail-head { display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+.hsr-detail-head span { font-size: 12px; color: #7b8798; }
+.hsr-close { margin-left: auto; border: 0; background: transparent; color: #98a1ad; cursor: pointer; }
+.hsr-detail-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px 16px; }
+.hsr-detail-grid small, .hsr-leaders small { display: block; font-size: 11.5px; color: #7b8798; }
+.hsr-detail-grid b { font-size: 14px; font-variant-numeric: tabular-nums; }
 .hsr-detail em { font-style: normal; }
-.hsr-leaders { display: flex; flex-wrap: wrap; gap: 4px 12px; margin-top: 10px; font-size: 12.5px; }
+.hsr-detail em.is-up { color: #d24f45; }
+.hsr-detail em.is-down { color: #1261c4; }
+.hsr-leaders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px; font-size: 13px; }
 .hsr-leaders small { flex-basis: 100%; }
-.hsr-note { margin-top: 8px; font-size: 11px; color: #94a3b8; }
-@media (max-width: 720px) {
-  .hsr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.hsr-note { margin-top: 10px; font-size: 11.5px; color: #98a1ad; }
+@media (max-width: 960px) {
+  .hsr-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 20px; }
+  .hsr-col:nth-child(odd) { padding-left: 0; padding-right: 24px; border-left: 0; }
+  .hsr-col:nth-child(even) { padding-left: 24px; padding-right: 0; }
+}
+@media (max-width: 560px) {
+  .hsr-head { flex-direction: column; gap: 4px; }
+  .hsr-grid { grid-template-columns: minmax(0, 1fr); row-gap: 0; }
+  .hsr-col, .hsr-col:nth-child(odd), .hsr-col:nth-child(even) { padding: 16px 0; border-left: 0; border-bottom: 1px solid #eef0f3; }
+  .hsr-col:last-child { border-bottom: 0; }
+  .hsr-list { min-height: 0; }
   .hsr-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-@media (prefers-color-scheme: dark) {
-  .home-sector-rotation { border-top-color: rgba(255, 255, 255, .1); }
-  .hsr-col-head { color: #cbd5e1; }
-  .hsr-detail { background: rgba(255, 255, 255, .06); }
-}
+html.dark .home-sector-rotation, html.dark .hsr-col + .hsr-col { border-color: rgba(245, 239, 224, .12); }
+html.dark .hsr-title-row strong, html.dark .hsr-phase, html.dark .hsr-name { color: #F5EFE0; }
+html.dark .hsr-desc, html.dark .hsr-meta, html.dark .hsr-col-head p { color: rgba(245, 239, 224, .6); }
+html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { background: rgba(245, 239, 224, .07); }
+html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: #ff8a83; }
+html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: #80b8ff; }
+@media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: rgba(245, 239, 224, .12); } }

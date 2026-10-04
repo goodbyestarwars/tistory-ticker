@@ -2461,7 +2461,7 @@ document.documentElement.classList.add('skin-ready');
     if (!host || host.getAttribute('data-rotation-mounted')) return !!host;
     host.setAttribute('data-rotation-mounted', '1');
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v2';
     script.onload = function () { if (window.HomeSectorRotation) window.HomeSectorRotation.mount(host); };
     document.head.appendChild(script);
     return true;

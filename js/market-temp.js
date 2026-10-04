@@ -1661,7 +1661,7 @@
       + '<span class="mt-axis-name">' + icon + ' ' + escapeHtml((axis && axis.label) || '')
       + '<small>' + escapeHtml(question) + '</small></span>'
       + '<span class="mt-axis-bar"><i class="' + tone + '" style="width:' + pct.toFixed(0) + '%"></i></span>'
-      + '<b class="mt-axis-value">' + (isFinite(value) ? value.toFixed(0) : '-') + '</b>'
+      + '<b class="mt-axis-value">' + (isFinite(value) ? value.toFixed(0) + '<small>점</small>' : '-') + '</b>'
       + '<small class="mt-axis-word">' + escapeHtml(axisWord(axis && axis.key, value)) + '</small>'
       + '<p class="mt-axis-reason">' + (axis && axis.key === 'risk' ? axisReason_('risk', data) : escapeHtml(axisReason_(axis && axis.key, data))) + '</p>'
       + '</div>';
@@ -1738,10 +1738,10 @@
     }).join('');
     return ''
       + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
-      + '<div class="mt-summary-topline"><span class="mt-summary-kicker">MARKET TEMPERATURE</span><span>오늘의 시장 체감</span></div>'
+      + '<div class="mt-summary-topline"><span class="mt-summary-kicker">시장온도 분석</span><span>현재 시장의 종합 투자심리 지표</span></div>'
       + '<div class="mt-summary-main">'
       + '<div class="mt-summary-copy">'
-      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/100</small></strong>'
+      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/ 100점</small></strong>'
       + '<div class="mt-summary-status"><b class="mt-summary-grade">' + escapeHtml(grade.emoji || '') + ' ' + escapeHtml(grade.label || '') + '</b>'
       + '<span class="mt-summary-change">' + deltaHtml + '</span></div>'
       + '<div class="mt-summary-mood">' + escapeHtml(guide.mood) + '</div>'
@@ -1811,11 +1811,12 @@
       ? '전종목 기준(코스피+코스닥) · 온도 점수는 섹터 풀 ' + scanned + '종목 기준'
       : '섹터 풀 ' + scanned + '종목 기준(전체 시장 아님)';
 
-    return '<div class="mt-hero-breadth">'
-      + '<span class="mt-breadth-up">상승 <strong>' + (head.up || 0) + '</strong></span>'
-      + '<span class="mt-breadth-sep">·</span>'
-      + '<span class="mt-breadth-down">하락 <strong>' + (head.down || 0) + '</strong></span>'
-      + flatHtml
+    function num(n) { return (n || 0).toLocaleString('ko-KR'); }
+    var flatCell = (wholeMarket && typeof head.flat === 'number') ? head.flat : null;
+    return '<div class="mt-hero-breadth mt-breadth-stats">'
+      + '<span class="mt-breadth-up"><small>상승 종목</small><b>' + num(head.up) + '<em>개</em></b></span>'
+      + '<span class="mt-breadth-down"><small>하락 종목</small><b>' + num(head.down) + '<em>개</em></b></span>'
+      + '<span class="mt-breadth-flat"><small>보합 종목</small><b>' + (flatCell == null ? '-' : num(flatCell) + '<em>개</em>') + '</b></span>'
       + '</div>'
       + marketsHtml
       + '<div class="mt-breadth-note">' + note + '</div>';
@@ -2187,7 +2188,7 @@
       + '<b class="' + periodTone + '">기간 변화 ' + (periodDelta > 0 ? '▲ ' : periodDelta < 0 ? '▼ ' : '— ') + signedPoints_(periodDelta) + '</b></div>'
       + '<div class="mt-rib-stage mt-rib-anim" data-rib-stage data-rib-points="' + escapeHtml(pointData) + '">' + svg + overlay + '</div>'
       + '<ol class="mt-weather-strip mt-rib-anim">' + strip + '</ol>'
-      + '<div class="mt-history-balance"><span class="fear">공포 <b>' + moodCounts.fear + '일</b></span><span class="neutral">보통 <b>' + moodCounts.neutral + '일</b></span><span class="greed">과열 <b>' + moodCounts.greed + '일</b></span></div>'
+      + '<div class="mt-history-balance" aria-label="구간별 일수"><span class="fear"><small>공포 구간</small><b>' + moodCounts.fear + '<em>일</em></b></span><span class="neutral"><small>보통 구간</small><b>' + moodCounts.neutral + '<em>일</em></b></span><span class="greed"><small>과열 구간</small><b>' + moodCounts.greed + '<em>일</em></b></span></div>'
       + tomorrow
       + metrics;
   }
@@ -2310,10 +2311,12 @@
     }
     return ''
       + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
-      + '<div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
+      + '<div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>오늘 시장을 어떻게 해석하고 대응할지 정리한 가이드입니다. 지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
+      + '<div class="mt-strategy-message">'
       + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
       + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
       + '<div class="mt-ant-context">' + escapeHtml(guide.context) + '</div>'
+      + '</div>'
       + '<div class="mt-ant-list mt-ant-todo"><b>지금 할 것</b><ul>' + list(guide.todo) + '</ul></div>'
       + '<div class="mt-ant-list mt-ant-avoid"><b>주의할 것</b><ul>' + list(guide.avoid) + '</ul></div>'
       + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
@@ -3569,24 +3572,24 @@
     var grade = data.grade3 || data.grade || { emoji: '', label: '' };
     var axes = data.axes || {};
     var delta = Number(data.scoreDelta);
-    function cell(label, num, sub, cls) {
+    function cell(label, num, sub, cls, unit) {
       return '<div class="mt-kpi"><span class="mt-kpi-label">' + escapeHtml(label) + '</span>'
-        + '<b class="mt-kpi-num">' + escapeHtml(num) + '</b>'
+        + '<b class="mt-kpi-num">' + escapeHtml(num) + (unit ? '<small>' + escapeHtml(unit) + '</small>' : '') + '</b>'
         + '<em class="mt-kpi-sub ' + (cls || '') + '">' + escapeHtml(sub || '') + '</em></div>';
     }
     function axisCell(key, label) {
       var axis = axes[key];
       var v = Number(axis && axis.value);
-      return isFinite(v) ? cell(label, v.toFixed(0), axisWord(key, v)) : '';
+      return isFinite(v) ? cell(label, v.toFixed(0), axisWord(key, v), '', '점') : '';
     }
     var deltaText = !isFinite(delta) ? '기록 시작' : delta === 0 ? '변화 없음' : (delta > 0 ? '▲ +' : '▼ ') + delta.toFixed(0) + '점';
     var deltaCls = !isFinite(delta) || delta === 0 ? '' : delta > 0 ? 'mt-val-pos' : 'mt-val-neg';
     return '<div class="mt-kpi-strip" role="group" aria-label="시장 핵심 요약">'
-      + cell('시장온도', value.toFixed(0), (grade.label || '') , 'mt-kpi-tone-' + escapeHtml((grade.tone || crowdTone(data) || 'neutral')))
+      + cell('시장온도', value.toFixed(0), (grade.label || '') + ' · 100점 만점', 'mt-kpi-tone-' + escapeHtml((grade.tone || crowdTone(data) || 'neutral')), '점')
       + axisCell('money', '돈(자금 유입)')
       + axisCell('price', '가격')
       + axisCell('risk', '위험')
-      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls)
+      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls, isFinite(delta) ? '점' : '')
       + '</div>';
   }
 

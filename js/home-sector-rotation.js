@@ -5,15 +5,15 @@
   'use strict';
 
   var API = 'https://goodbyestar.cloud/sector-rotation';
-  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v1';
+  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v2';
   var COLUMNS = [
-    { key: 'emerging', label: '유입', cls: 'is-emerging' },
-    { key: 'leading', label: '주도', cls: 'is-leading' },
-    { key: 'weakening', label: '둔화', cls: 'is-weakening' },
-    { key: 'lagging', label: '이탈', cls: 'is-lagging' }
+    { key: 'emerging', label: '유입', desc: '새롭게 강해지는 업종', cls: 'is-emerging' },
+    { key: 'leading', label: '주도', desc: '시장을 이끄는 업종', cls: 'is-leading' },
+    { key: 'weakening', label: '둔화', desc: '강도가 약해지는 업종', cls: 'is-weakening' },
+    { key: 'lagging', label: '이탈', desc: '관심에서 멀어지는 업종', cls: 'is-lagging' }
   ];
   var PER_COLUMN = 3;
-  var HELP = '시장 대비 상대강도, 업종 내부 상승 확산도, 거래대금 변화를 분석해 유입·주도·둔화·이탈 단계로 분류합니다. 일봉 종가 확정 기준이며 장중에는 바뀌지 않습니다.';
+  var HELP = '시장 대비 상대강도, 최근 5일 순위 변화, 업종 내부 확산도와 거래대금을 종합해 유입 · 주도 · 둔화 · 이탈 단계로 구분합니다. 일봉 종가 확정 기준이며 장중에는 바뀌지 않습니다.';
   var PHASE_LABEL = { EMERGING: '유입', LEADING: '주도', WEAKENING: '둔화', LAGGING: '이탈', NEUTRAL: '중립' };
   var data = null;
   var host = null;
@@ -27,9 +27,9 @@
   // 순위는 숫자가 작을수록 좋다. 서버가 (과거 순위 - 현재 순위)로 줘서 양수 = 순위 상승(↑)이다.
   function changeText(n) {
     if (n == null) return '·';
-    if (n > 0) return '↑' + n;
-    if (n < 0) return '↓' + Math.abs(n);
-    return '→0';
+    if (n > 0) return '↑ ' + n;
+    if (n < 0) return '↓ ' + Math.abs(n);
+    return '– 0';
   }
   function changeCls(n) { return n > 0 ? 'is-up' : (n < 0 ? 'is-down' : 'is-flat'); }
   function pct(v, d) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(d == null ? 1 : d) + '%'; }
@@ -49,21 +49,25 @@
     return m ? (m[2] + '.' + m[3]) : '';
   }
 
+  function groupHtml(col) {
+    var items = (data[col.key] || []).slice(0, PER_COLUMN);
+    var rows = items.length ? items.map(function (it, i) {
+      return '<button type="button" class="hsr-item' + (i === 0 ? ' is-first' : '') + '" data-sector="' + esc(it.sector) + '">'
+        + '<span class="hsr-name">' + esc(it.sector.replace(/\//g, '·')) + '</span>'
+        + '<span class="hsr-chg ' + changeCls(it.rankChange5d) + '">' + changeText(it.rankChange5d) + '</span></button>';
+    }).join('') : '<div class="hsr-empty"><span>—</span> 현재 조건을 충족한 업종이 없습니다</div>';
+    return '<div class="hsr-col ' + col.cls + '"><div class="hsr-col-head"><div class="hsr-phase"><i class="hsr-dot"></i>' + col.label + '</div>'
+      + '<p>' + col.desc + '</p></div><div class="hsr-list">' + rows + '</div></div>';
+  }
+
   function render() {
     if (!host || !data || !data.available) { if (host) host.hidden = true; return; }
-    var cols = COLUMNS.map(function (col) {
-      var items = (data[col.key] || []).slice(0, PER_COLUMN);
-      var body = items.length ? items.map(function (it) {
-        return '<button type="button" class="hsr-item" data-sector="' + esc(it.sector) + '">'
-          + '<span class="hsr-name">' + esc(it.sector) + '</span>'
-          + '<em class="hsr-chg ' + changeCls(it.rankChange5d) + '">' + changeText(it.rankChange5d) + '</em></button>';
-      }).join('') : '<span class="hsr-none">해당 업종 없음</span>';
-      return '<div class="hsr-col ' + col.cls + '"><div class="hsr-col-head">' + col.label + '</div>' + body + '</div>';
-    }).join('');
-    host.innerHTML = '<div class="hsr-head"><strong>업종 로테이션'
-      + '<span class="hsr-help" tabindex="0" role="img" aria-label="' + esc(HELP) + '" title="' + esc(HELP) + '">?</span></strong>'
+    host.innerHTML = '<div class="hsr-head"><div><div class="hsr-title-row"><strong>업종 로테이션</strong>'
+      + '<button type="button" class="hsr-help" aria-label="업종 로테이션 설명" title="' + esc(HELP) + '" data-hsr-help>ⓘ</button></div>'
+      + '<p class="hsr-desc">시장 대비 상대강도와 최근 순위 변화를 기준으로 업종 흐름을 분류합니다.</p></div>'
       + '<span class="hsr-meta">5일 기준 · ' + esc(dateLabel(data.date)) + ' 종가' + (data.final ? '' : ' (잠정)') + '</span></div>'
-      + '<div class="hsr-grid">' + cols + '</div>'
+      + '<div class="hsr-help-pop" data-hsr-pop hidden>' + esc(HELP) + '</div>'
+      + '<div class="hsr-grid">' + COLUMNS.map(groupHtml).join('') + '</div>'
       + '<div class="hsr-detail" data-hsr-detail hidden></div>';
     host.hidden = false;
   }
@@ -118,6 +122,8 @@
     host = el;
     ensureCss();
     host.addEventListener('click', function (event) {
+      var helpBtn = event.target.closest && event.target.closest('[data-hsr-help]');
+      if (helpBtn) { var pop = host.querySelector('[data-hsr-pop]'); if (pop) pop.hidden = !pop.hidden; return; }
       var item = event.target.closest && event.target.closest('.hsr-item');
       if (item) { showDetail(item.getAttribute('data-sector')); return; }
       if (event.target.closest && event.target.closest('.hsr-close')) host.querySelector('[data-hsr-detail]').hidden = true;

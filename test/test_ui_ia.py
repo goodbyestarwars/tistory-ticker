@@ -1653,7 +1653,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         """
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        self.assertIn("<small>/100</small>", source)
+        self.assertIn("<small>/ 100점</small>", source)
         self.assertIn("function buildScoreGauge(value, tone)", source)
         self.assertNotIn('<text class="mt-gauge-digital-num"', source)
         self.assertNotIn('<span class="mt-rib-now-label', source)
