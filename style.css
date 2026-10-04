@@ -8125,3 +8125,14 @@ html body#tt-body-index .home-editorial-page .home-closed-status::before {
   }
 }
 }
+
+/* 29. 홈 2열 리드(국내 시장 | 경제 종합뉴스) 상단 기준선 통일(카드 높이는 stretch 유지: 가운데 구분선 때문) (2026-10-04, 사용자 지적: 오른쪽 카드 헤더가 아래로 처져 보임)
+   두 카드가 같은 grid row에서 같은 위쪽 padding·같은 헤더 체계를 쓰도록 공통 규칙으로 묶는다(개별 margin 보정 없음).
+   - 두 카드 모두 row 상단에서 시작(align-self: start), padding-top은 하나의 변수
+   - 헤더: 같은 flex·같은 baseline·같은 최소 높이, 제목 기본 margin 제거 */
+body#tt-body-index .home-editorial-page { --home-lead-pt: 46px; --home-lead-head-h: 36px; }
+body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
+body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news { padding-top: var(--home-lead-pt) !important; margin-top: 0 !important; }
+body#tt-body-index .home-editorial-page :is(.home-market-board > .home-card-heading, .home-economic-news > .hen-head) { display: flex; align-items: baseline; justify-content: space-between; min-height: var(--home-lead-head-h); margin-top: 0; padding-top: 0; }
+body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) > div { align-items: baseline; margin-top: 0; padding-top: 0; }
+body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) strong { margin: 0; }
