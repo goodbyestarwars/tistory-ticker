@@ -3014,7 +3014,7 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
    국면·진단·행동은 둥근 타일로, 상승 문구는 빨강·하락 문구는 파랑. 줄 구분선은 걷는다. */
 #foreign-flow .ff-swing-summary { display: grid; gap: 14px; }
 #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45; }
-#foreign-flow .ff-swing-summary strong.ff-tone-down { color: #1261c4; }
+#foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
 #foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 0 !important; padding: 0 0 2px !important; }
 #foreign-flow .ff-swing-regime > strong { font-size: 30px; line-height: 1.1; letter-spacing: -.02em; }

@@ -8087,5 +8087,5 @@ html body#tt-body-index .home-editorial-page .home-closed-lead {
 
 /* ── 27. 종목분석 판정 글자색 (2026-10-04): 공통 제목 색 규칙(!important)을 이기려고 같은 레이어에서 지정 ── */
 html body #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45 !important; }
-html body #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #1261c4 !important; }
+html body #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827 !important; }  /* 2026-10-04 사용자 요청: 파랑 대신 검정 */
 }
