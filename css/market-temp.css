@@ -2297,3 +2297,8 @@ html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(128
   #market-temp .mt-history-balance > span, #market-temp .mt-history-metrics > span { padding: 12px 10px; }
   #market-temp .mt-sf-item { min-height: 0; }
 }
+
+/* 30-b. 구간별 일수 요약: 예전 색 박스(.fear/.neutral/.greed)를 걷고 구분선 행으로 */
+#market-temp .mt-history-balance > span, #market-temp .mt-history-balance > span.fear, #market-temp .mt-history-balance > span.neutral, #market-temp .mt-history-balance > span.greed { border: 0 !important; border-left: 1px solid var(--mt2-line) !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; text-align: left; }
+#market-temp .mt-history-balance > span:first-child { border-left: 0 !important; }
+html.dark #market-temp .mt-history-balance > span { background: transparent !important; }
