@@ -893,15 +893,15 @@
     var chips = (rows || []).map(function (row, index) {
       var rate = Number(row.avg_change_rate);
       var cats = mapping.byTheme[index];
-      var label = '<i>' + (index + 1) + '</i><span>' + escapeHtml(row.industry) + '</span><em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em>';
+      var label = '<i>' + (index + 1) + '</i><span class="mt-money-name">' + escapeHtml(row.industry) + '</span><em class="' + dirClass_(rate) + '">' + rateText_(rate) + '</em>';
       return cats.length
         ? '<button type="button" class="mt-money-chip is-mapped" data-focus-category="' + escapeHtml(cats[0]) + '" title="내 카테고리: ' + escapeHtml(cats.join(', ')) + '">' + label + '<small>' + escapeHtml(cats[0]) + (cats.length > 1 ? ' 외 ' + (cats.length - 1) : '') + '</small></button>'
         : '<button type="button" class="mt-money-chip is-add" data-add-theme="' + escapeHtml(row.theme_code || '') + '" data-theme-name="' + escapeHtml(row.industry) + '" title="내 카테고리에 없는 테마 - 눌러서 카테고리로 추가">' + label + '<small>＋ 추가</small></button>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
-      + '<div class="mt-money-head"><strong>오늘 돈이 몰린 섹터 TOP10</strong><a href="/page/market-temp">증시온도에서 거래대금 막대로 보기 →</a></div>'
+      + '<div class="mt-money-head"><strong>오늘 돈이 몰린 섹터 TOP10</strong><a href="/page/market-temp#mt-money-flow">거래대금 막대로 보기 →</a></div>'
       + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">돈이 몰린 섹터를 불러오지 못했습니다.</div>')
-      + '<p class="mt-top-note">초록 테두리 칩은 내 카테고리와 연결된 테마(누르면 해당 카드로 이동), 점선 칩은 내 카테고리에 없는 테마(누르면 카테고리로 추가)입니다. 키움증권 테마·거래대금 순입니다.</p>'
+      + '<p class="mt-top-note"><span class="mt-money-key is-mapped"></span>내 카테고리와 연결(누르면 카드로 이동) <span class="mt-money-key is-add"></span>내 카테고리에 없음(누르면 추가) · 키움증권 테마, 거래대금 순</p>'
       + '</div>';
     mount.onclick = function (event) {
       var focus = event.target.closest && event.target.closest('[data-focus-category]');
@@ -1479,12 +1479,26 @@
         loadAiBriefing(container);
         loadTomorrow_(container);
         loadSectorFlow_(container);
+        scrollToHash_(container);
         mountRotation_(container);
         container.querySelectorAll('.mt-axis-reason').forEach(function (el) { el.title = el.textContent; });
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
       });
+  }
+
+  // 2026-10-05 사용자 리포트("거래대금 막대로 보기 링크 깨짐"): 본문이 비동기로 그려져 브라우저 기본 #앵커 이동이
+  // 맨 위에서 멈췄다. 렌더 뒤 위쪽 카드(내일 카드·HOT 테마)가 채워지며 밀리므로 몇 번 다시 맞춘다.
+  function scrollToHash_(container) {
+    var hash = String(global.location && global.location.hash || '').replace(/^#/, '');
+    if (!/^mt-[a-z-]+$/.test(hash)) return;
+    [80, 900, 2200].forEach(function (ms) {
+      setTimeout(function () {
+        var target = container.querySelector('#' + hash);
+        if (target && target.scrollIntoView) target.scrollIntoView({ block: 'start' });
+      }, ms);
+    });
   }
 
   function fetchJson_(url) {
@@ -1851,47 +1865,27 @@
   }
 
   function buildSummaryCard(data) {
-    var value = score100(data);
-    var grade = data.grade3 || data.grade || { emoji: '', label: '' };
     var guide = antGuide(data);
-    var delta = Number(data.scoreDelta);
-    // delta가 아예 없는 건 "어제와 같다"가 아니라 "비교할 어제가 없다"는 뜻이다
-    // (기록 시작 직후·기준 전환 직후). 둘을 같은 문구로 뭉뚱그리면 거짓말이 된다.
-    // 2026-09-16: 비교 기준을 날짜로 밝힌다(서버 scoreDeltaFrom). 새벽·주말엔 "어제"가 직전 거래일이라
-    // "어제보다"라고 쓰면 틀린 말이 된다. 구버전 응답(날짜 없음)만 예전 문구를 쓴다.
-    var fromText = data.scoreDeltaFrom ? shortDate_(data.scoreDeltaFrom) + ' 대비 ' : '';
-    var deltaHtml;
-    if (!isFinite(delta)) {
-      deltaHtml = '<span class="mt-val-flat">오늘부터 일별 기록을 시작했습니다.</span>';
-    } else if (delta === 0) {
-      deltaHtml = '<span class="mt-val-flat">' + (fromText ? fromText + '변화 없음' : '어제와 같음') + '</span>';
-    } else {
-      deltaHtml = '<span class="' + (delta > 0 ? 'mt-val-pos' : 'mt-val-neg') + '">' + (fromText || '어제보다 ')
-        + (delta > 0 ? '+' : '') + delta.toFixed(0) + '점</span>';
-    }
     var axes = data.axes || {};
-    var rows = AXIS_ORDER.map(function (item) {
+    // 2026-10-05: 점수·등급·전일 대비·계기판·돈/가격/위험 막대는 위 KPI 줄과 겹쳐 뺐다. 여기엔 KPI 줄에 없는 것만 둔다 -
+    // 오늘 분위기 한 줄, "그래서?", 축마다 무엇이 어떤지(근거 문장), 상승·하락 종목 수, 점수 설명.
+    var reasons = AXIS_ORDER.map(function (item) {
       var axis = axes[item.key];
       if (!axis) return '';
-      axis.key = item.key;
-      return buildAxisRow(axis, item.icon, data);
+      var text = item.key === 'risk' ? axisReason_('risk', data) : escapeHtml(axisReason_(item.key, data));
+      if (!text) return '';
+      return '<li><span class="mt-reason-name">' + item.icon + ' ' + escapeHtml(axis.label || '') + '</span>'
+        + '<p class="mt-axis-reason">' + text + '</p></li>';
     }).join('');
     return ''
       + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
       + '<div class="mt-summary-topline"><span class="mt-summary-kicker">시장온도 분석</span><span>현재 시장의 종합 투자심리 지표</span></div>'
-      + '<div class="mt-summary-main">'
-      + '<div class="mt-summary-copy">'
-      + '<strong class="mt-summary-score">' + value.toFixed(0) + '<small>/ 100점</small></strong>'
-      + '<div class="mt-summary-status"><b class="mt-summary-grade">' + escapeHtml(grade.emoji || '') + ' ' + escapeHtml(grade.label || '') + '</b>'
-      + '<span class="mt-summary-change">' + deltaHtml + '</span></div>'
       + '<div class="mt-summary-mood">' + escapeHtml(guide.mood) + '</div>'
-      + '</div><div class="mt-summary-dial">' + buildScoreGauge(value, guide.tone) + '</div></div>'
-      // "그래서 뭐 어쩌라는거지?"에 대한 답을 점수 바로 밑에 한 줄로 둔다. 자세한 점검표는 아래 카드.
-      + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short) + '</span>'
+      // "그래서 뭐 어쩌라는거지?"에 대한 답을 한 줄로 둔다. 자세한 점검표는 아래 카드.
+      + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short || guide.title || '') + '</span>'
       + '<a href="#mt-ant-guide">체크리스트 ↓</a></div>'
-      + (rows ? '<div class="mt-summary-section-title">오늘 시장 분위기 점수는 이 세 가지로 만든다</div><div class="mt-axis-list">' + rows + '</div>' : '')
-      // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 단순화하면서도
-      // 버리지 않는다 - 옛 Hero 카드에 있던 것을 여기로 옮겼다.
+      + (reasons ? '<div class="mt-summary-section-title">점수 근거</div><ul class="mt-reason-list">' + reasons + '</ul>' : '')
+      // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 버리지 않는다.
       + buildBreadth(data)
       + '<div class="mt-summary-note"><b>이 점수는 오늘 시장의 분위기를 읽는 값이고, 내일 방향을 맞히는 값이 아닙니다.</b> 내일은 위 "그래서 내일은?"을 보세요. 0~39점은 공포, 40~60점은 보통, 61점부터 과열입니다. <b>돈이 얼마나 들어왔는지 · 가격이 얼마나 움직이는지 · 위험지표가 어느 수준인지</b>를 같은 비중으로 읽고, 위험은 높을수록 감점합니다. 공포에는 후보를 고르고 환희에는 수익을 지키는 역발상 기준입니다.</div>'
       + '</div>';
@@ -2521,7 +2515,7 @@
 
   function buildTemperatureActions() {
     return '<div class="mt-temperature-actions">'
-      + '<section class="mt-section-block mt-temperature-money-flow">'
+      + '<section class="mt-section-block mt-temperature-money-flow" id="mt-money-flow">'
       + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금과 평균 등락률을 함께 보고 실제 자금이 몰리는 테마를 확인합니다.</p></div>'
       + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
       + '</section></div>';
@@ -3752,29 +3746,65 @@
   }
 
   // 2026-10-04 리서치 브리핑 레이아웃: 숫자를 한 줄로 먼저 보여 주는 요약 스트립. 값은 서버가 이미 내려준 data만 읽고 새로 계산하지 않는다.
+  // 2026-10-05 사용자 요청("시장온도 옆에 계기판 조그맣게, 돈도 밑에 막대 바로 넣고, 그 밑에 중복된 내용은 다 삭제"):
+  // 시장온도 칸에 작은 반원 계기판, 돈·가격·위험 칸에 0~100 막대를 넣고, 아래 요약 카드의 점수·계기판·축 막대는 뺐다.
+  function axisTone_(key, pct) {
+    if (key === 'risk') return pct >= 65 ? 'mt-axis-risk-high' : pct >= 35 ? 'mt-axis-risk-mid' : 'mt-axis-risk-low';
+    return pct >= 65 ? 'mt-axis-good' : pct >= 35 ? 'mt-axis-mid' : 'mt-axis-bad';
+  }
+
+  // 큰 계기판(buildScoreGauge)과 같은 눈금·구간색을 작게 그린다. 숫자는 옆 KPI 숫자가 맡는다.
+  function buildMiniGauge_(value) {
+    var pct = Math.max(0, Math.min(100, value));
+    var cx = 54, cy = 52, radius = 46, tickCount = 21, ticks = '';
+    for (var i = 0; i < tickCount; i++) {
+      var tickValue = (i / (tickCount - 1)) * 100;
+      var angle = 180 - (180 * i / (tickCount - 1));
+      var outer = polarPoint_(cx, cy, radius, angle);
+      var inner = polarPoint_(cx, cy, radius - (i % 5 === 0 ? 11 : 7), angle);
+      ticks += '<line class="mt-gauge-seg' + (tickValue <= pct ? ' is-lit' : '') + '" stroke="' + (tickValue <= pct ? zoneColor_(tickValue) : '#d0d5dd') + '"'
+        + ' x1="' + inner.x.toFixed(2) + '" y1="' + inner.y.toFixed(2) + '" x2="' + outer.x.toFixed(2) + '" y2="' + outer.y.toFixed(2) + '"></line>';
+    }
+    var needle = polarPoint_(cx, cy, radius - 16, 180 - 180 * pct / 100);
+    return '<svg class="mt-kpi-gauge" viewBox="0 0 108 58" width="108" height="58" aria-hidden="true">' + ticks
+      + '<line class="mt-gauge-needle" x1="' + cx + '" y1="' + cy + '" x2="' + needle.x.toFixed(2) + '" y2="' + needle.y.toFixed(2) + '"></line>'
+      + '<circle class="mt-gauge-hub" cx="' + cx + '" cy="' + cy + '" r="4"></circle></svg>';
+  }
+
   function buildKpiStrip_(data) {
     var value = score100(data);
     var grade = data.grade3 || data.grade || { emoji: '', label: '' };
     var axes = data.axes || {};
     var delta = Number(data.scoreDelta);
-    function cell(label, num, sub, cls, unit) {
-      return '<div class="mt-kpi"><span class="mt-kpi-label">' + escapeHtml(label) + '</span>'
+    function cell(label, num, sub, cls, unit, extra, attrs) {
+      return '<div class="mt-kpi' + (attrs && attrs.cls ? ' ' + attrs.cls : '') + '"' + (attrs && attrs.title ? ' title="' + escapeHtml(attrs.title) + '"' : '') + '>'
+        + '<span class="mt-kpi-label">' + escapeHtml(label) + '</span>'
         + '<b class="mt-kpi-num">' + escapeHtml(num) + (unit ? '<small>' + escapeHtml(unit) + '</small>' : '') + '</b>'
-        + '<em class="mt-kpi-sub ' + (cls || '') + '">' + escapeHtml(sub || '') + '</em></div>';
+        + '<em class="mt-kpi-sub ' + (cls || '') + '">' + escapeHtml(sub || '') + '</em>' + (extra || '') + '</div>';
     }
     function axisCell(key, label) {
       var axis = axes[key];
       var v = Number(axis && axis.value);
-      return isFinite(v) ? cell(label, v.toFixed(0), axisWord(key, v), '', '점') : '';
+      if (!isFinite(v)) return '';
+      var pct = Math.max(0, Math.min(100, v));
+      var reason = String(axisReason_(key, data) || '').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim();
+      var bar = '<span class="mt-kpi-bar" aria-hidden="true"><i class="' + axisTone_(key, pct) + '" style="width:' + pct.toFixed(0) + '%"></i></span>';
+      return cell(label, v.toFixed(0), axisWord(key, v), '', '점', bar, { cls: 'mt-kpi--axis', title: reason });
     }
     var deltaText = !isFinite(delta) ? '기록 시작' : delta === 0 ? '변화 없음' : (delta > 0 ? '▲ +' : '▼ ') + delta.toFixed(0) + '점';
     var deltaCls = !isFinite(delta) || delta === 0 ? '' : delta > 0 ? 'mt-val-pos' : 'mt-val-neg';
+    var tempCell = '<div class="mt-kpi mt-kpi--temp"><div class="mt-kpi-temp-copy">'
+      + '<span class="mt-kpi-label">시장온도</span>'
+      + '<b class="mt-kpi-num">' + escapeHtml(value.toFixed(0)) + '<small>/ 100점</small></b>'
+      + '<em class="mt-kpi-sub mt-kpi-tone-' + escapeHtml((grade.tone || crowdTone(data) || 'neutral')) + '">' + escapeHtml(grade.label || '') + ' · 100점 만점</em>'
+      + '</div>' + buildMiniGauge_(value) + '</div>';
     return '<div class="mt-kpi-strip" role="group" aria-label="시장 핵심 요약">'
-      + cell('시장온도', value.toFixed(0), (grade.label || '') + ' · 100점 만점', 'mt-kpi-tone-' + escapeHtml((grade.tone || crowdTone(data) || 'neutral')), '점')
+      + tempCell
       + axisCell('money', '돈(자금 유입)')
       + axisCell('price', '가격')
       + axisCell('risk', '위험')
-      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls, isFinite(delta) ? '점' : '')
+      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls, isFinite(delta) ? '점' : '', '',
+        !isFinite(delta) ? { title: '오늘부터 일별 기록을 시작했습니다.' } : null)
       + '</div>';
   }
 

@@ -1978,7 +1978,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';", gas)
 
         self.assertIn("'scoreDeltaFrom': prior_score_rows[-1]['date'] if has_delta else None,", vm)
-        self.assertIn("shortDate_(data.scoreDeltaFrom) + ' 대비 '", source)
+        # 2026-10-05: 전일 대비는 요약 카드에서 빠지고 KPI 줄 한 곳에만 남았다(비교 기준일 표기는 유지).
+        self.assertIn("' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준'", source)
 
     def test_market_temperature_industry_flow_uses_reader_friendly_parent_labels(self):
         source = self.read("js/market-temp.js")
