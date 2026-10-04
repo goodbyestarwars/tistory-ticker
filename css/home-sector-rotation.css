@@ -66,3 +66,9 @@ html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { back
 html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: #ff8a83; }
 html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: #80b8ff; }
 @media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: rgba(245, 239, 224, .12); } }
+
+/* 정렬 보정: 상태 보조 설명이 좁은 열에서 2줄로 접히면 업종 행이 열마다 다른 높이에서 시작한다 - 헤더 영역 높이를 고정하고 업종명은 한 줄로 */
+.hsr-col-head { min-height: 64px; }
+.hsr-col-head p { min-height: 2.9em; line-height: 1.45; }
+.hsr-list { min-height: 100px; }
+.hsr-item { height: 34px; }

@@ -8136,3 +8136,5 @@ body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news
 body#tt-body-index .home-editorial-page :is(.home-market-board > .home-card-heading, .home-economic-news > .hen-head) { display: flex; align-items: baseline; justify-content: space-between; min-height: var(--home-lead-head-h); margin-top: 0; padding-top: 0; }
 body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) > div { align-items: baseline; margin-top: 0; padding-top: 0; }
 body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) strong { margin: 0; }
+/* 29-b. 속보 영역이 숨겨진 상태에서 뉴스 목록이 왼쪽 지수 띠(위 margin 18px)보다 18px 높게 시작하던 것을 같은 시작선으로 맞춘다 */
+body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking[hidden] + .hen-list { margin-top: 18px; }
