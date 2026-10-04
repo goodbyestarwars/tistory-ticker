@@ -170,7 +170,7 @@ def is_overheated(change_rate):
 
 
 def fetch_gap(token, appkey, appsecret, code):
-    """오늘 시가(stck_oprc)와 전일종가(stck_prdy_clpr)로 갭상승 여부를 계산한다.
+    """오늘 시가(stck_oprc)와 기준가(stck_sdpr, 전일종가)로 갭상승 여부를 계산한다.
 
     KIS 현재가 시세(FHKST01010100)의 필드다. 2026-09-22 재확인: 이전 주석은 두 필드가
     "이 저장소에서 이미 확정값으로 쓰였다"고 했지만 실제로는 stck_oprc는
@@ -182,7 +182,13 @@ def fetch_gap(token, appkey, appsecret, code):
     """
     output = kis_client.fetch_domestic_quote(token, appkey, appsecret, code)
     open_price = output.get('stck_oprc')
-    prev_close = output.get('stck_prdy_clpr')
+    # 2026-10-05 실측: 이 TR 응답에는 stck_prdy_clpr가 없다(항상 None). 그래서 9/22부터 모든
+    # 후보가 "갭상승 아님"으로 빠져 탭이 2주 내내 비어 있었다. 공식 필드 목록의 stck_sdpr(기준가)를
+    # 쓴다 - 실측에서 stck_prpr - prdy_vrss와 일치했다(SK 578,000 - (-9,000) = 587,000).
+    # 권리락·배당락일에는 전일 종가가 아니라 조정된 기준가지만, 등락률의 기준과 같아 갭 판정에 맞다.
+    prev_close = output.get('stck_sdpr')
+    if not prev_close and output.get('stck_prpr') and output.get('prdy_vrss') not in (None, ''):
+        prev_close = float(output['stck_prpr']) - float(output['prdy_vrss'])
     if not open_price or not prev_close:
         return None
     open_price = float(open_price)

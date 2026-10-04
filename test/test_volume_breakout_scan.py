@@ -47,7 +47,7 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         vbs.today_kst = lambda: '2026-09-04'
         vbs.kis_client.get_token = lambda appkey, appsecret: 'tok'
         vbs.kis_client.fetch_domestic_quote = (
-            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_prdy_clpr': '5000'})
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_sdpr': '5000'})
         self.daily = {}
         vbs.db_schema.load_daily_prices = lambda conn, code: self.daily.get(code, [])
 
@@ -79,9 +79,9 @@ class VolumeBreakoutScanTests(unittest.TestCase):
         self.assertEqual(len(matches), 1)
         self.assertAlmostEqual(matches[0]['patternDetail']['volumeRatio'], 0.3, places=4)
 
-    def test_excludes_when_today_volume_is_just_short_of_half(self):
-        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 100000}]
-        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 49999}]), FakeConn(), 'now')
+    def test_excludes_when_today_volume_is_just_short_of_threshold(self):
+        self.daily['000001'] = [{'date': '2026-09-03', 'volume': 200000}]
+        matches, _ = vbs.scan(board_with([{'code': '000001', 'trade_volume': 59999}]), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
     def test_today_row_in_daily_prices_is_not_used_as_the_previous_day(self):
@@ -351,22 +351,38 @@ class VolumeBreakoutGapFilterTests(unittest.TestCase):
 
     def test_gap_up_stock_is_kept_with_gap_pct_recorded(self):
         vbs.kis_client.fetch_domestic_quote = (
-            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_prdy_clpr': '5000'})
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_sdpr': '5000'})
         matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
         self.assertEqual([m['code'] for m in matches], ['000001'])
         self.assertAlmostEqual(matches[0]['patternDetail']['gapPct'], 2.0, places=4)
 
     def test_gap_down_stock_is_excluded_even_with_volume_breakout(self):
         vbs.kis_client.fetch_domestic_quote = (
-            lambda token, appkey, appsecret, code: {'stck_oprc': '4900', 'stck_prdy_clpr': '5000'})
+            lambda token, appkey, appsecret, code: {'stck_oprc': '4900', 'stck_sdpr': '5000'})
         matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
         self.assertEqual(matches, [])
 
     def test_flat_open_equal_to_previous_close_is_not_a_gap_up(self):
         vbs.kis_client.fetch_domestic_quote = (
-            lambda token, appkey, appsecret, code: {'stck_oprc': '5000', 'stck_prdy_clpr': '5000'})
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5000', 'stck_sdpr': '5000'})
         matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
         self.assertEqual(matches, [])
+
+    def test_real_quote_shape_without_prdy_clpr_still_detects_gap(self):
+        # 2026-10-05 회귀: FHKST01010100 실측 응답에는 stck_prdy_clpr가 없다. 그 필드를 읽던
+        # 동안 9/22부터 모든 후보가 "갭상승 아님"으로 빠졌다. 실측 응답 모양 그대로 둔다.
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_sdpr': '5000',
+                                                    'stck_prpr': '5350', 'prdy_vrss': '350'})
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertEqual([m['code'] for m in matches], ['000001'])
+
+    def test_falls_back_to_price_minus_change_when_base_price_missing(self):
+        vbs.kis_client.fetch_domestic_quote = (
+            lambda token, appkey, appsecret, code: {'stck_oprc': '5100', 'stck_prpr': '5350',
+                                                    'prdy_vrss': '350'})
+        matches, _ = vbs.scan(self.board(), FakeConn(), 'now')
+        self.assertAlmostEqual(matches[0]['patternDetail']['gapPct'], 2.0, places=4)
 
     def test_without_kis_credentials_the_whole_scan_is_skipped(self):
         # 2026-09-22 변경: 갭상승 확인 없이는 "갭상승" 탭이라는 이름과 실제 동작이

@@ -1,5 +1,9 @@
 # 9Pay 주요 작업이력
 
+**2026-10-05 차트검색 "거래량 돌파" 2주째 0종목 - 갭 판정 필드 오류 수정**
+
+사용자가 승률 확인을 요청해 보니 9/22부터 매 거래일 "N종목 중 N종목 갭상승 아님", 저장 0종목이었다(VM journal). 원인: `volume_breakout_scan.fetch_gap`이 KIS 현재가 시세(`FHKST01010100`) 응답의 `stck_prdy_clpr`를 전일종가로 읽었는데, 이 TR에는 그 필드가 없다(공식 예제 필드 목록·VM 실측 모두 None). 테스트도 없는 필드로 목을 만들어 통과했다. `stck_sdpr`(기준가)로 바꾸고, 비면 `stck_prpr - prdy_vrss`로 계산(실측에서 둘이 일치). 테스트 목을 실측 응답 모양으로 바꾸고 회귀 2건 추가, 30% 문턱 변경 때 안 고친 테스트 1건 수정. 검증: `test_volume_breakout_scan.py` 27건 통과(Windows는 fcntl 대체 실행). 배포: master 반영 시 VM 자동, 다음 거래일 09:05 스캔부터 적용.
+
 **2026-10-04 캘린더 미국 실적 기업 아이콘 86종 추가**
 
 사용자 요청(아이콘 없는 기업 확인 후 채움). 9~11월 `/earnings-calendar` 실측: 국내 DART 일정은 전부 아이콘 있음, 미국 S&P 100은 73종목이 빈 원(약칭만)이었다. S&P 100 중 없던 86종목을 Parqet 로고(SVG 76·PNG 10)로 `img/stock-icons/`에 추가, 출처는 `img/stock-icons/README.md`. 코드 변경 없음(기존 svg→png 폴백 그대로). 검증: 헤드리스 렌더로 86개 육안 확인. 배포: master 반영 시 GitHub Pages 자동.
