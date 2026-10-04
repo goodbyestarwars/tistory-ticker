@@ -218,7 +218,7 @@ document.documentElement.classList.add('skin-ready');
   (function loadMarketTempPage() {
     if (!/^\/(?:page|pages)\/market-temp\/?$/.test(location.pathname)) return;
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var version = '20261004-dynamic-checkpoint-v10';
+    var version = '20261005-no-us-rotation-v2';
     if (!document.querySelector('link[data-market-temp-css]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
@@ -454,7 +454,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
-    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261004-etn-v1';
+    var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261005-us-industry-v1';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20260828-free-translation-fallback-v3';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261004-weekend-live-v3';
 
@@ -619,7 +619,7 @@ document.documentElement.classList.add('skin-ready');
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 시장 요약과 같은 머리말·칸(.hmb-summary-head/.hmb-list)을 그대로 써서 칸 모양을 맞춘다. 값은 /us-etf-returns.
         + '<div class="hmb-etf" data-home-us-etfs hidden><div class="hmb-summary-head"><strong>주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
-        + '<dl class="hmb-list hmb-etf-list" data-home-us-etfs-list></dl></div>'
+        + '<div class="hmb-etf-cards" data-home-us-etfs-list></div></div>'
         + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
@@ -751,9 +751,12 @@ document.documentElement.classList.add('skin-ready');
         function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
         list.innerHTML = items.map(function (it) {
           var title = it.symbol + ' ' + it.name + ' · 1주 ' + pct(it.return1w) + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);
-          return '<div title="' + title.replace(/"/g, '&quot;') + '"><dt><b>' + it.symbol + '</b> ' + it.name + '</dt>'
-            + '<dd class="' + tone(it.return1d) + '">' + pct(it.return1d)
-            + '<small><span class="' + tone(it.return1m) + '">1M ' + pct(it.return1m) + '</span><i class="hmb-etf-sep"> · </i><span class="' + tone(it.returnYtd) + '">YTD ' + pct(it.returnYtd) + '</span></small></dd></div>';
+          // 2026-10-05 사용자 요청("미니멀한 카드형으로"): 칸 목록 대신 작은 카드. 티커·이름 / 1일 / 1M·YTD 세 줄.
+          return '<article class="hmb-etf-card" title="' + title.replace(/"/g, '&quot;') + '">'
+            + '<div class="hmb-etf-name"><b>' + it.symbol + '</b><span>' + it.name + '</span></div>'
+            + '<strong class="' + tone(it.return1d) + '">' + pct(it.return1d) + '</strong>'
+            + '<p><span>1M <em class="' + tone(it.return1m) + '">' + pct(it.return1m) + '</em></span>'
+            + '<span>YTD <em class="' + tone(it.returnYtd) + '">' + pct(it.returnYtd) + '</em></span></p></article>';
         }).join('');
         var meta = box.querySelector('[data-home-us-etfs-meta]');
         if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' 미국 종가' + (d.final === false ? '(잠정)' : '') + ' · 1일 · 1개월 · 연초 이후';

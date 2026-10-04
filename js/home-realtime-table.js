@@ -41,8 +41,42 @@
     ['tradeVolume', '거래량'],
     ['rising', '상승률'],
     ['falling', '하락률'],
-    ['marketCap', '시가총액']
+    ['marketCap', '시가총액'],
+    ['industry', '업종 TOP']
   ];
+  // 2026-10-05 사용자 요청("실시간 종목판에 한국처럼 업종 TOP 없나?"): 미국 업종 TOP.
+  // 운영 응답의 미국 업종 필드는 Finnhub 보강이 비면 전부 '미분류'로 내려온다(2026-10-05 실측 20종목 모두).
+  // 그래서 거래대금 상위에 자주 오르는 종목만 자체 분류로 묶는다. 여기 없는 종목은 Finnhub 업종이 있으면
+  // 그것을 우리말로 옮기고, 그것도 없으면 집계에서 뺀다(지어낸 업종을 붙이지 않는다). 새 종목은 여기에 추가한다.
+  var US_SECTOR_GROUPS = {
+    '반도체': 'NVDA AMD INTC AVGO TSM QCOM ARM MRVL TXN ADI ON MCHP NXPI AMAT LRCX KLAC ASML CBRS',
+    '메모리·스토리지': 'MU SNDK STX WDC SKHY',
+    '인터넷·플랫폼': 'GOOGL GOOG META AMZN NFLX UBER SHOP BABA PDD',
+    '소프트웨어': 'MSFT ORCL CRM PLTR ADBE NOW CRWD SNOW PANW APP INTU IBM',
+    '하드웨어·네트워크': 'AAPL DELL SMCI CSCO LITE ANET HPE COHR CIEN',
+    '자동차': 'TSLA RIVN LCID F GM',
+    '우주항공·방산': 'SPCX RKLB ASTS BA LMT RTX GE LUNR',
+    '양자컴퓨팅': 'IONQ RGTI QBTS QUBT',
+    '헬스케어': 'LLY UNH NVO JNJ MRNA PFE ABBV MRK HIMS AZN',
+    '금융': 'JPM BAC WFC GS MS C V MA HOOD SOFI',
+    '크립토': 'COIN MSTR MARA RIOT CRCL',
+    '소비재·유통': 'NKE WMT COST MCD KO PEP SBUX TGT HD LULU CCL',
+    '에너지·전력': 'XOM CVX OXY VST CEG OKLO SMR NEE GEV',
+    '산업재': 'CAT DE HWM NSC UNP',
+    '통신': 'T VZ TMUS'
+  };
+  var US_SECTOR_BY_SYMBOL = {};
+  Object.keys(US_SECTOR_GROUPS).forEach(function (sector) {
+    US_SECTOR_GROUPS[sector].split(' ').forEach(function (symbol) { US_SECTOR_BY_SYMBOL[symbol] = sector; });
+  });
+  // Finnhub finnhubIndustry 영문값 -> 위 분류. 목록에 없는 영문값은 그대로 보인다.
+  var US_FINNHUB_SECTOR = {
+    'Semiconductors': '반도체', 'Technology': '소프트웨어', 'Media': '인터넷·플랫폼', 'Retail': '소비재·유통',
+    'Automobiles': '자동차', 'Pharmaceuticals': '헬스케어', 'Biotechnology': '헬스케어', 'Health Care': '헬스케어',
+    'Banking': '금융', 'Financial Services': '금융', 'Insurance': '금융', 'Energy': '에너지·전력', 'Utilities': '에너지·전력',
+    'Aerospace & Defense': '우주항공·방산', 'Telecommunication': '통신', 'Communications': '통신',
+    'Machinery': '산업재', 'Road & Rail': '산업재', 'Industrial Conglomerates': '산업재'
+  };
   var TABLE_COLUMNS = [
     ['stock', '종목'],
     ['price', '현재가'],
@@ -236,7 +270,7 @@
   }
 
   function columnsForActive() {
-    return state.market !== 'us' && state.active === 'industry'
+    return state.active === 'industry'
       ? INDUSTRY_COLUMNS
       : columnsForMarket();
   }
@@ -493,7 +527,7 @@
       industry: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span><strong>'
         + escapeHtml(item.industry || '업종 미분류') + '</strong><small>' + Number(item.stock_count || 0) + '종목 집계</small></td>',
       avgChangeRate: '<td class="hrt-price" data-field="avgChangeRate">' + signedRate(item.avg_change_rate) + '</td>',
-      tradeAmount: '<td data-field="tradeAmount">' + fmtAmount(item.trade_amount, 'KRW') + '</td>',
+      tradeAmount: '<td data-field="tradeAmount">' + fmtAmount(item.trade_amount, item.currency || 'KRW') + '</td>',
       stockCount: '<td data-field="stockCount">' + Number(item.stock_count || 0).toLocaleString('ko-KR') + '개</td>',
       riseRatio: '<td data-field="riseRatio">' + ratioPct(item.rise_ratio) + ' <small>(' + Number(item.rising_count || 0) + ' 상승)</small></td>',
       leader: '<td class="hrt-industry" data-field="leader">' + escapeHtml(leader) + '<small> ' + leaderRate + '</small></td>'
@@ -545,8 +579,63 @@
     updateEtfToggle();
   }
 
+  function usSectorFor(item) {
+    var symbol = String(item.symbol || item.code || '').replace(/^US:/i, '').toUpperCase();
+    if (US_SECTOR_BY_SYMBOL[symbol]) return US_SECTOR_BY_SYMBOL[symbol];
+    var industry = String(item.industry || '').trim();
+    if (!industry || industry === '미분류') return '';
+    return US_FINNHUB_SECTOR[industry] || industry;
+  }
+
+  // 미국 업종 TOP: 응답에 온 모든 순위의 종목을 티커로 한 번씩만 모아 업종별로 묶는다.
+  // 정렬은 국내 서버 집계(market_board._industry_top)와 같이 거래대금 합계 → 평균등락률 → 상승비율.
+  function usIndustryTop() {
+    var sections = (state.data && state.data.sections) || {};
+    var seen = {};
+    var groups = {};
+    var pool = [];
+    Object.keys(sections).forEach(function (key) {
+      if (key !== 'industry' && Array.isArray(sections[key])) pool = pool.concat(sections[key]);
+    });
+    pool = pool.concat((state.data && state.data.rows) || []);
+    visibleRows(pool).forEach(function (row) {
+      var symbol = String(row.symbol || row.code || '').replace(/^US:/i, '').toUpperCase();
+      if (!symbol || seen[symbol]) return;
+      seen[symbol] = true;
+      var sector = usSectorFor(row);
+      if (!sector) return;
+      var group = groups[sector] || (groups[sector] = { rows: [], change: 0, rising: 0, amount: 0 });
+      var rate = number(row.change_rate) || 0;
+      group.rows.push(row);
+      group.change += rate;
+      group.rising += rate > 0 ? 1 : 0;
+      group.amount += number(row.trade_amount) || 0;
+    });
+    return Object.keys(groups).map(function (sector) {
+      var group = groups[sector];
+      var count = group.rows.length;
+      var leader = group.rows.reduce(function (best, row) {
+        return (number(row.trade_amount) || 0) > (number(best.trade_amount) || 0) ? row : best;
+      }, group.rows[0]);
+      return {
+        industry: sector,
+        stock_count: count,
+        rising_count: group.rising,
+        avg_change_rate: group.change / count,
+        rise_ratio: group.rising / count,
+        trade_amount: group.amount,
+        leader_name: localizedUsName(leader),
+        leader_change_rate: leader.change_rate,
+        currency: 'USD'
+      };
+    }).sort(function (a, b) {
+      return (b.trade_amount - a.trade_amount) || (b.avg_change_rate - a.avg_change_rate) || (b.rise_ratio - a.rise_ratio);
+    });
+  }
+
   function rowsForActive() {
     var sections = state.data && state.data.sections;
+    if (state.active === 'industry' && state.market === 'us') return usIndustryTop();
     if (state.active === 'industry') return (sections && sections.industry) || [];
     if (sections && Array.isArray(sections[state.active])) return visibleRows(sections[state.active]);
     return visibleRows((state.data && state.data.rows) || []);
@@ -566,7 +655,7 @@
     renderTableHead();
     var foot = state.mount.querySelector('[data-hrt-foot]');
     if (foot) foot.textContent = state.active === 'industry'
-      ? '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준'
+      ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')
       : '체결 발생 행만 갱신';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;

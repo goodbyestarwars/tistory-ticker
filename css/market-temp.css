@@ -2525,9 +2525,14 @@ html.dark #market-temp .mt-sf-row.is-down .mt-sf-pct { color: #80b8ff; }
   #market-temp .mt-sf-pick + .mt-sf-pick::before { content: none; margin: 0; }
 }
 
-/* ── 30-e (2026-10-05) 업종 로테이션: 홈에서 증시온도로 이동. 돈이 몰린 섹터 아래, 국내|미국 글자 탭 ── */
+/* ── 30-e (2026-10-05) 업종 로테이션: 홈에서 증시온도로 이동. 돈이 몰린 섹터 아래. 미국 탭은 같은 날 삭제 ── */
 #market-temp .mt-rot-wrap { margin: 0; }
-#market-temp .mt-rot-tabs { display: flex; justify-content: flex-end; gap: 18px; margin: 0 4px 8px; }
-#market-temp .mt-rot-tabs button { padding: 4px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; font: inherit; font-size: 13px; color: var(--mt2-sub); cursor: pointer; }
-#market-temp .mt-rot-tabs button.is-active { border-bottom-color: var(--mt2-text); color: var(--mt2-text); font-weight: 650; }
 #market-temp .mt-rot-wrap > .home-sector-rotation { margin: 0; }
+
+/* ── 30-f (2026-10-05) 체크포인트 판단 문구·점수 숫자 2pt 축소("폰트가 너무 커, 2pt 줄여") ── */
+#market-temp .mt-cp-call .mt-strategy-action { font-size: 26px; }
+#market-temp .mt-cp-metric-row b { font-size: 35px; }
+@media (max-width: 720px) {
+  #market-temp .mt-cp-call .mt-strategy-action { font-size: 23px; }
+  #market-temp .mt-cp-metric-row b { font-size: 29px; }
+}

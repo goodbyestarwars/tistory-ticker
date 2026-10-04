@@ -1,5 +1,9 @@
 # 9Pay 주요 작업이력
 
+**2026-10-05 미국 업종 로테이션 삭제·주요 ETF 카드형·미국 실시간 종목판 업종 TOP**
+
+사용자 요청("미국 업종 로테이션은 의미가 없어 삭제하자, 시총 1~10위가 다 해먹는 시장"). 증시온도 업종 로테이션의 국내|미국 탭을 지우고 국내만 남김(`js/market-temp.js`, `css/market-temp.css` 30-e). `/us-sector-rotation` 백엔드는 온디맨드 캐시라 손대지 않음. 홈 미국 모드 "주요 ETF 수익률"을 칸 목록에서 작은 카드 4열(모바일 2열)로 교체(`skin-main.js`, `style.css` 30). 실시간 종목판 미국 탭에 "업종 TOP" 추가(`js/home-realtime-table.js`): 운영 미국 응답의 업종이 Finnhub 보강 실패로 전부 '미분류'(실측 20/20)라 거래대금 상위 단골 티커만 자체 분류(`US_SECTOR_GROUPS`)로 묶고, 없으면 Finnhub 영문 업종을 옮기고, 그것도 없으면 집계에서 뺀다. 브라우저에서 응답의 모든 순위 종목을 티커 기준 중복 제거 후 거래대금 합계 순. 같은 날 증시온도 체크포인트 판단 문구·점수 숫자 2pt 축소(30-f). 검증: 실데이터 저장본으로 로컬 렌더, 전체 pytest 변경 전과 같은 17건 실패. 배포: GitHub Pages 자동, skin.html 변경 없음.
+
 **2026-10-05 사이트 로고를 송골매로 교체**
 
 사용자 요청. 제세동기 그림 대신 송골매 그림(원본 `img/falcon-logo-source.webp`)의 머리 부분 정사각 크롭으로 `img/brand-banner.png`(네비 128px)·`favicon.png`(64px)·`apple-touch-icon.png`(180px, 여백 포함)을 다시 구웠다. 전신은 34px에서 가는 사선으로 뭉개져 머리만 쓴다. 파일명이 같아 경로 변경 없음, `?v=`만 `20261005-falcon`(style.css·skin-shell.js·skin.html). 로고 옆 문구는 그대로. 검증: 34px 축소 미리보기, `test_ui_ia.py` 변경 전과 같은 실패만. 배포: GitHub Pages 자동, skin.html은 `?v=`·alt만 바뀌어 수동 반영 불필요.

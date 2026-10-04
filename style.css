@@ -8176,22 +8176,25 @@ body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) stron
 /* 29-b. 속보 영역이 숨겨진 상태에서 뉴스 목록이 왼쪽 지수 띠(위 margin 18px)보다 18px 높게 시작하던 것을 같은 시작선으로 맞춘다 */
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking[hidden] + .hen-list { margin-top: 18px; }
 
-/* 30. 미국 모드 주요 ETF 수익률 (2026-10-05 사용자 요청: "칸에 맞춰서 미니멀하게")
-   시장 요약과 같은 .hmb-summary-head/.hmb-list 칸을 쓰고 4열로만 바꾼다. 큰 숫자는 1일, 아래 작은 줄은 1개월·연초 이후. */
+/* 30. 미국 모드 주요 ETF 수익률 (2026-10-05 사용자 요청: "미니멀한 카드형으로")
+   시장 요약 머리말(.hmb-summary-head) 아래 작은 카드 4열(모바일 2열). 큰 숫자는 1일, 아래 줄은 1개월·연초 이후. */
 body#tt-body-index .home-editorial-page .hmb-etf[hidden] { display: none; }
-body#tt-body-index .home-editorial-page .hmb-list.hmb-etf-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-body#tt-body-index .home-editorial-page .hmb-etf-list dt { overflow: hidden; text-overflow: ellipsis; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dt b { font-weight: 700; color: inherit; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dd small { display: block; margin-top: 3px; font-size: 11px; font-weight: 500; color: #8b95a5; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-positive { color: #d24f45; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-negative { color: #1261c4; }
-html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small { color: rgba(245, 239, 224, .5); }
-html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-positive { color: #ff8a83; }
-html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-negative { color: #80b8ff; }
+body#tt-body-index .home-editorial-page .hmb-etf-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 10px; }
+body#tt-body-index .home-editorial-page .hmb-etf-card { min-width: 0; padding: 10px 12px; border: 1px solid #e6e8ec; border-radius: 10px; background: #fff; }
+body#tt-body-index .home-editorial-page .hmb-etf-name { display: flex; align-items: baseline; gap: 5px; min-width: 0; font-size: 12px; line-height: 1.3; }
+body#tt-body-index .home-editorial-page .hmb-etf-name b { flex: none; font-weight: 700; color: #1f2733; }
+body#tt-body-index .home-editorial-page .hmb-etf-name span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: #8b95a5; }
+body#tt-body-index .home-editorial-page .hmb-etf-card > strong { display: block; margin-top: 4px; font-size: 17px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .hmb-etf-card > p { display: flex; justify-content: space-between; gap: 6px; margin: 4px 0 0; font-size: 11px; line-height: 1.3; color: #8b95a5; white-space: nowrap; font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page .hmb-etf-card em { font-style: normal; font-weight: 600; }
+body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: #d24f45; }
+body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: #1261c4; }
+body#tt-body-index .home-editorial-page .hmb-etf-card .home-neutral { color: #6b7684; }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-card { border-color: rgba(245, 239, 224, .12); background: rgba(245, 239, 224, .03); }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-name b { color: rgba(245, 239, 224, .92); }
+html.dark body#tt-body-index .home-editorial-page :is(.hmb-etf-name span, .hmb-etf-card > p) { color: rgba(245, 239, 224, .5); }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: #ff8a83; }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: #80b8ff; }
 @media (max-width: 720px) {
-  body#tt-body-index .home-editorial-page .hmb-list.hmb-etf-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  body#tt-body-index .home-editorial-page .hmb-etf-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-/* 30-b. 1개월·연초 이후가 4열 칸에서 잘려(말줄임) 두 줄로 나눈다 */
-body#tt-body-index .home-editorial-page .hmb-etf-list dd { overflow: visible; white-space: normal; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dd small { display: grid; gap: 1px; white-space: nowrap; }
-body#tt-body-index .home-editorial-page .hmb-etf-list dd small .hmb-etf-sep { display: none; }

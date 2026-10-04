@@ -2502,29 +2502,15 @@
   }
 
   // 2026-10-05 요청("대시보드에 있는 업종 로테이션을 시장 > 증시온도로 옮겨줘"): 홈에서 옮겨 왔다. 돈이 몰린 섹터 바로 아래에 둔다.
-  // 홈에서는 한국/미국 탭에 따라 시장이 바뀌었으므로 여기서는 국내|미국 글자 탭으로 같은 기능을 남긴다(js/home-sector-rotation.js의 data-us).
+  // 같은 날 미국 탭은 뺐다("미국 업종 로테이션은 의미가 없어 삭제하자. 시총 1~10위가 다 해먹는 시장"). 국내만 남는다.
   function buildRotationSlot_() {
-    return '<div class="mt-rot-wrap"><div class="mt-rot-tabs" role="tablist" aria-label="업종 로테이션 시장">'
-      + '<button type="button" role="tab" aria-selected="true" class="is-active" data-rot-market="kr">국내</button>'
-      + '<button type="button" role="tab" aria-selected="false" data-rot-market="us">미국</button></div>'
-      + '<section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section></div>';
+    return '<div class="mt-rot-wrap"><section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section></div>';
   }
 
   function mountRotation_(container) {
     var host = container.querySelector('[data-home-sector-rotation]');
     if (!host || host.getAttribute('data-rotation-mounted')) return;
     host.setAttribute('data-rotation-mounted', '1');
-    container.querySelectorAll('[data-rot-market]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var us = button.getAttribute('data-rot-market') === 'us';
-        container.querySelectorAll('[data-rot-market]').forEach(function (b) {
-          var on = b === button;
-          b.classList.toggle('is-active', on);
-          b.setAttribute('aria-selected', on ? 'true' : 'false');
-        });
-        if (us) host.setAttribute('data-us', '1'); else host.removeAttribute('data-us');
-      });
-    });
     function mount() { if (global.HomeSectorRotation) global.HomeSectorRotation.mount(host); }
     if (global.HomeSectorRotation) { mount(); return; }
     var script = document.createElement('script');
