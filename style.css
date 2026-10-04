@@ -7776,12 +7776,13 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
     padding: 10px !important;
     border: 1px solid rgba(var(--np-ink), .08) !important;
     border-radius: 24px !important;
-    background: rgba(255, 254, 252, .8) !important;
-    -webkit-backdrop-filter: blur(28px) saturate(1.5) !important;
-    backdrop-filter: blur(28px) saturate(1.5) !important;
+    /* 2026-10-04 사용자 요청("2차메뉴 창을 살짝 투명도 있게"): 불투명도 .8→.66, 흐림 28→12px - 뒤 화면이 옅게 비친다 */
+    background: rgba(255, 254, 252, .66) !important;
+    -webkit-backdrop-filter: blur(12px) saturate(1.4) !important;
+    backdrop-filter: blur(12px) saturate(1.4) !important;
     box-shadow: 0 18px 48px rgba(0, 0, 0, .13), 0 2px 8px rgba(0, 0, 0, .05) !important;
   }
-  html.dark body .sidebar-left .nav-dd-card { background: rgba(32, 32, 32, .8) !important; box-shadow: 0 18px 48px rgba(0, 0, 0, .5) !important; }
+  html.dark body .sidebar-left .nav-dd-card { background: rgba(32, 32, 32, .64) !important; box-shadow: 0 18px 48px rgba(0, 0, 0, .5) !important; }
   html body .sidebar-left .nav-dd-item {
     display: flex !important;
     align-items: center !important;

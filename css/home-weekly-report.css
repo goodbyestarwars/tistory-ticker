@@ -751,3 +751,45 @@ html body .home-weekly-report .hwr-index-summary { padding: 22px 4px 24px !impor
 /* 뉴스 필터: 다크 모드의 옛 알약 규칙(html.dark … button.is-active, 크림색 채움)이 v3 텍스트 탭을 이기고 있었다 */
 html.dark .home-weekly-report .hwr-news-filters button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--hw-muted); }
 html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom-color: var(--hw-text); background: transparent; color: var(--hw-text); }
+
+/* ── v7 (2026-10-04, 사용자 요청) ──
+   ①주간 자산 요약은 "크게 말고 미니멀하게": 이름 · 값 · 주간 등락 한 줄 띠(위아래 옅어지는 선만)
+   ②코인도 국내주식 토큰과 같은 한 줄 행으로, 10개 행을 두 열로
+   ③모바일 점검: 2열 칸의 둘째 줄 세로 구분선(border-image가 왼쪽 선까지 지우던 것), 소제목 보조 문구 줄바꿈,
+     일정 제목 두 줄 꺾임, 테마 기사 2건만 */
+.hwr2-asset-strip {
+  display: flex; flex-wrap: wrap; align-items: center; row-gap: 10px;
+  margin: 22px 0 0; padding: 14px 2px;
+  border-top: 1px solid transparent; border-bottom: 1px solid transparent; border-image: var(--hw-fade) 1;
+}
+.hwr2-strip-label { display: flex; flex-direction: column; gap: 2px; padding-right: 22px; font-size: 13px; font-weight: 650; color: var(--hw-text); }
+.hwr2-strip-label small { font-size: 11px; font-weight: 400; color: var(--hw-muted); }
+.hwr2-strip-item { display: inline-flex; align-items: baseline; gap: 8px; padding: 2px 22px; border-left: 1px solid var(--hw-line); white-space: nowrap; }
+.hwr2-strip-item small { font-size: 12px; color: var(--hw-sub); }
+.hwr2-strip-item b { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
+.hwr2-strip-item em { font-size: 13px; font-style: normal; font-weight: 600; }
+
+.hwr2-live { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; padding: 12px 24px 8px; }
+.hwr2-live-col { min-width: 0; }
+
+@media (max-width: 960px) {
+  .home-weekly-report .hwr-index-card:nth-child(n+3) { position: relative; border-image: none; }
+  .home-weekly-report .hwr-index-card:nth-child(n+3)::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; }
+  .home-weekly-report .hwr-index-card:nth-child(3)::before { background: linear-gradient(90deg, transparent 0, var(--hw-line) 40%); }
+  .home-weekly-report .hwr-index-card:nth-child(4)::before { background: linear-gradient(90deg, var(--hw-line) 60%, transparent 100%); }
+  .hwr2-live { grid-template-columns: minmax(0, 1fr); }
+  .hwr2-live-col + .hwr2-live-col .hwr2-token-head { display: none; }
+  .hwr2-live-col + .hwr2-live-col .hwr2-token-rows > li:first-child { border-top: 1px solid transparent; }
+}
+@media (max-width: 720px) {
+  .hwr2-asset-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; }
+  .hwr2-strip-label { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; padding: 0; }
+  .hwr2-strip-item { flex-wrap: wrap; gap: 2px 6px; padding: 0 12px; }
+  .hwr2-strip-item:nth-of-type(even) { padding-left: 0; border-left: 0; }  /* 라벨도 span이라 짝수 번째 span이 각 줄 첫 칸 */
+  .hwr2-strip-item small { flex-basis: 100%; }
+  .hwr2-live { padding: 8px 16px 4px; }
+  .hwr2-sub small { display: block; margin: 4px 0 0; }
+  html body .home-weekly-report .hwr-schedule .hwr-card-title { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .home-weekly-report .hwr-schedule .hwr-card-title strong { white-space: nowrap; }
+  .hwr2-theme-news li:nth-child(n+3) { display: none; }
+}

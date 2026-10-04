@@ -2519,3 +2519,8 @@ html.dark #market-temp .mt-sf-row.is-up .mt-sf-bar i { background: linear-gradie
 html.dark #market-temp .mt-sf-row.is-down .mt-sf-bar i { background: linear-gradient(90deg, rgba(128, 184, 255, .3), #80b8ff); }
 html.dark #market-temp .mt-sf-row.is-up .mt-sf-pct { color: #ff8a83; }
 html.dark #market-temp .mt-sf-row.is-down .mt-sf-pct { color: #80b8ff; }
+/* 모바일: 대표 종목 두 개가 줄바꿈되면 "|" 구분자 여백 때문에 둘째 줄이 들여쓰기됐다 - 구분자를 빼고 간격으로 나눈다 */
+@media (max-width: 720px) {
+  #market-temp .mt-sf-picks-col { gap: 2px 14px; }
+  #market-temp .mt-sf-pick + .mt-sf-pick::before { content: none; margin: 0; }
+}

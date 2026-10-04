@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v6';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v7';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -303,16 +303,14 @@
       return displayOrder[a.symbol] - displayOrder[b.symbol];
     });
     if (!rows.length) return '';
-    // 2026-10-04 사용자 지적("주간 자산 요약 손봐야"): 이름·등락만 있던 한 줄을 위 지수 블록과 같은 구역(값·주간 등락·추이선)으로 바꾼다.
-    return '<h4 class="hwr2-sub">주간 자산 요약 <small>직전 주 마지막 종가 대비</small></h4>'
-      + '<div class="hwr2-asset-grid" aria-label="주간 자산 요약">' + rows.map(function (item) {
-        // 금리는 수준(%) 자체가 단위라 등락을 %p 차이로 보여준다(예: 5.17% → 5.24% = +0.07%p). 기준은 직전 주 마지막 종가.
+    // 2026-10-04 사용자 지적("주간 자산 요약 손봐야" → "크게 말고 미니멀하게"): 이름 · 값 · 주간 등락을 한 줄 띠로.
+    // 금리는 수준(%) 자체가 단위라 등락을 %p 차이로 보여준다(예: 5.17% → 5.24% = +0.07%p). 기준은 직전 주 마지막 종가.
+    return '<div class="hwr2-asset-strip" aria-label="주간 자산 요약"><span class="hwr2-strip-label">주간 자산<small>직전 주 종가 대비</small></span>'
+      + rows.map(function (item) {
         var isYield = item.valueType === 'yield' && num(item.changeAbs) != null;
         var tone = signClass(isYield ? item.changeAbs : item.changeRate);
         var change = isYield ? (num(item.changeAbs) > 0 ? '+' : '') + num(item.changeAbs).toFixed(2) + '%p' : signed(item.changeRate);
-        return '<article class="hwr2-asset"><strong class="hwr2-idx-name">' + escapeHtml(item.name) + '</strong>'
-          + '<b>' + assetValue(item) + '</b><span class="hwr2-idx-chg ' + tone + '">' + change + '</span>'
-          + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + tone) + '</div></article>';
+        return '<span class="hwr2-strip-item"><small>' + escapeHtml(item.name) + '</small><b>' + assetValue(item) + '</b><em class="' + tone + '">' + change + '</em></span>';
       }).join('') + '</div>';
   }
   function assetValue(item) {
@@ -379,19 +377,17 @@
     if (parsed == null) return '-';
     return '$' + parsed.toLocaleString('en-US', { maximumFractionDigits: parsed >= 1000 ? 0 : 2, minimumFractionDigits: parsed >= 1000 ? 0 : 2 });
   }
-  function liveCoinHtml(row) {
-    var tone = signClass(row.sinceFriday != null ? row.sinceFriday : row.change24h);
-    return '<article class="hwr2-asset hwr2-coin"><strong class="hwr2-idx-name">' + escapeHtml(row.item.name) + ' <small>' + row.item.short + '</small></strong>'
-      + '<b>' + usd(row.price) + '</b>'
-      + '<span class="hwr2-live-chg"><em class="' + signClass(row.sinceFriday) + '">' + (row.sinceFriday != null ? signed(row.sinceFriday) : '-') + '</em><small>금요일 마감 이후</small>'
-      + '<em class="' + signClass(row.change24h) + '">' + signed(row.change24h) + '</em><small>24시간</small></span>'
-      + '<div class="hwr-spark">' + sparkline(row.series, 'hwr-index-spark ' + tone) + '</div></article>';
-  }
-  function liveTokenRow(row) {
-    return '<li><span class="hwr2-name"><strong>' + escapeHtml(row.item.name) + '</strong><small>' + row.item.code + ' · ' + escapeHtml(row.item.symbol) + '</small></span>'
+  // 2026-10-04 사용자 요청("비트코인이랑 이더리움도 크기를 국내주식 토큰이랑 맞게"): 코인도 토큰과 같은 한 줄 행으로.
+  function liveRow(row) {
+    var meta = row.item.code ? row.item.code + ' · ' + row.item.symbol : '코인 · ' + row.item.symbol;
+    return '<li><span class="hwr2-name"><strong>' + escapeHtml(row.item.name) + '</strong><small>' + escapeHtml(meta) + '</small></span>'
       + '<span class="hwr2-token-price">' + usd(row.price) + '</span>'
       + '<b class="' + signClass(row.sinceFriday) + '">' + (row.sinceFriday != null ? signed(row.sinceFriday) : '-') + '</b>'
       + '<b class="hwr2-token-24h ' + signClass(row.change24h) + '">' + signed(row.change24h) + '</b></li>';
+  }
+  function liveColumn(rows, label) {
+    return '<div class="hwr2-live-col"><div class="hwr2-token-head"><span>' + label + '</span><span>가격</span><span>금요일 이후</span><span class="hwr2-token-24h">24시간</span></div>'
+      + '<ol class="hwr2-rows hwr2-token-rows">' + rows.map(liveRow).join('') + '</ol></div>';
   }
   var liveMemo = null;
   var themesMemo = null;
@@ -402,7 +398,7 @@
     if (!isFinite(sinceMs)) sinceMs = null;
     // render()는 캐시본·새 응답으로 두 번 불린다 - 1분 안에는 같은 요청 결과를 다시 쓴다.
     if (!liveMemo || Date.now() - liveMemo.t > 60000 || liveMemo.since !== sinceMs) {
-      var coins = Promise.all(LIVE_COINS.map(function (item) { return liveQuote(BINANCE_SPOT, item, sinceMs, true); }));
+      var coins = Promise.all(LIVE_COINS.map(function (item) { return liveQuote(BINANCE_SPOT, item, sinceMs, false); }));
       var tokens = Promise.all(LIVE_KR_TOKENS.map(function (item) { return liveQuote(BINANCE_FUTURES, item, sinceMs, false); }));
       liveMemo = { t: Date.now(), since: sinceMs, promise: Promise.all([coins, tokens]) };
     }
@@ -410,12 +406,10 @@
       var coinRows = parts[0].filter(Boolean), tokenRows = parts[1].filter(Boolean);
       if (!coinRows.length && !tokenRows.length) return;
       var fri = weekEndIso ? weekEndIso.slice(5).replace('-', '/') : '';
+      var rows = coinRows.concat(tokenRows);
+      var half = Math.ceil(rows.length / 2);
       mount.innerHTML = '<h4 class="hwr2-sub">주말에도 움직이는 시장 <small>바이낸스 실시간 · 금요일(' + escapeHtml(fri) + ') 국내 장 마감 15:30 이후 등락</small></h4>'
-        + '<div class="hwr2-live">'
-        + (coinRows.length ? '<div class="hwr2-live-coins">' + coinRows.map(liveCoinHtml).join('') + '</div>' : '')
-        + (tokenRows.length ? '<div class="hwr2-live-tokens"><div class="hwr2-token-head"><span>국내주식 토큰</span><span>가격(1주)</span><span>금요일 이후</span><span class="hwr2-token-24h">24시간</span></div>'
-          + '<ol class="hwr2-rows hwr2-token-rows">' + tokenRows.map(liveTokenRow).join('') + '</ol></div>' : '')
-        + '</div>'
+        + '<div class="hwr2-live">' + liveColumn(rows.slice(0, half), '종목') + (rows.length > half ? liveColumn(rows.slice(half), '종목') : '') + '</div>'
         + '<p class="hwr2-live-note">국내주식 토큰은 바이낸스 무기한선물(파생상품) 가격입니다. 실제 주식 수급이 아닌 월요일 개장 전 참고 지표입니다.</p>';
       mount.hidden = false;
     }).catch(function () { /* 보조 정보 - 실패하면 구역을 숨긴 채 둔다 */ });
