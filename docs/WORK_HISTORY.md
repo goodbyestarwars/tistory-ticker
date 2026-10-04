@@ -1,5 +1,9 @@
 # 9Pay 주요 작업이력
 
+**2026-10-05 사이트 로고를 송골매로 교체**
+
+사용자 요청. 제세동기 그림 대신 송골매 그림(원본 `img/falcon-logo-source.webp`)의 머리 부분 정사각 크롭으로 `img/brand-banner.png`(네비 128px)·`favicon.png`(64px)·`apple-touch-icon.png`(180px, 여백 포함)을 다시 구웠다. 전신은 34px에서 가는 사선으로 뭉개져 머리만 쓴다. 파일명이 같아 경로 변경 없음, `?v=`만 `20261005-falcon`(style.css·skin-shell.js·skin.html). 로고 옆 문구는 그대로. 검증: 34px 축소 미리보기, `test_ui_ia.py` 변경 전과 같은 실패만. 배포: GitHub Pages 자동, skin.html은 `?v=`·alt만 바뀌어 수동 반영 불필요.
+
 **2026-10-05 업종 로테이션을 홈에서 시장 > 증시온도로 이동**
 
 사용자 요청. 홈 대시보드(`skin-main.js` 마크업·US 탭 토글·로더, `home-widgets.js` 배치)에서 제거하고 `js/market-temp.js`에 `buildRotationSlot_`/`mountRotation_`로 "오늘 돈이 몰린 섹터" 바로 아래·대표 지수 흐름 위에 배치. 홈의 한국/미국 탭이 없어져 기존 미국 업종 로테이션(`data-us`)은 구역 위 국내|미국 글자 탭으로 유지(`css/market-temp.css` 30-e). API·계산 변경 없음. 배포: GitHub Pages 자동.

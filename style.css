@@ -5147,10 +5147,12 @@ html.dark .sidebar-left .nav-secondary-separator { color: rgba(245, 239, 224, .1
    그려졌다가 바뀌며 깜빡였다(사용자: "깜박임 있어"). style.css는 GitHub Pages에서
    <head>로 오므로 첫 페인트부터 맞는 그림이 나오고, 교체 자체가 없으니 깜빡일 구간이
    아예 없다. 이미지는 배너 원본(account-cpr-logo.png, 1.6MB)을 지금 화면과 같은 크롭
-   (object-fit: cover + center)으로 256x256, 65KB로 구운 것이다. */
+   (object-fit: cover + center)으로 256x256, 65KB로 구운 것이다.
+   2026-10-05: 송골매 그림(img/falcon-logo-source.webp)의 머리 부분 정사각 크롭으로 교체.
+   전신은 34px에서 가는 사선 하나로 뭉개져서 머리만 쓴다. */
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
-  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20260905-banner-v2");
+  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20261005-falcon");
   background-size: cover;
   background-position: center;
   border-radius: 8px;
