@@ -69,11 +69,14 @@
       }
     });
     var minHalf = price * 0.002;
-    var levels = clusters.filter(function (c) {
-      return c.touches >= 2 && Math.abs(c.mean - price) / price <= 0.25;
-    }).map(function (c) {
+    function toLevel(c) {
       return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
-    });
+    }
+    var near = clusters.filter(function (c) { return Math.abs(c.mean - price) / price <= 0.25; });
+    var levels = near.filter(function (c) { return c.touches >= 2; }).map(toLevel);
+    // 2026-10-04: 52주 저점 부근처럼 한쪽에 2회 이상 닿은 가격대가 없으면 "지지/저항이 없다"로 보였다(사용자 지적).
+    // 그런 쪽에는 한 번만 닿은 스윙 고·저점(1회)을 가까운 순서로 보충해 최소 2개까지 보여 준다.
+    var weakLevels = near.filter(function (c) { return c.touches < 2; }).map(toLevel);
     function nearest(list) {
       var sorted = list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
       var picked = [];
@@ -84,10 +87,22 @@
       });
       return picked;
     }
+    function fillWeak(picked, side) {
+      if (picked.length >= 2) return picked;
+      var pool = weakLevels.filter(side).sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
+      pool.forEach(function (level) {
+        if (picked.length >= 2) return;
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
+        if (!tooClose) picked.push(level);
+      });
+      return picked;
+    }
+    var isSupport = function (l) { return l.price < price * 0.998; };
+    var isResistance = function (l) { return l.price > price * 1.002; };
     return {
       price: price,
-      support: nearest(levels.filter(function (l) { return l.price < price * 0.998; })),
-      resistance: nearest(levels.filter(function (l) { return l.price > price * 1.002; }))
+      support: fillWeak(nearest(levels.filter(isSupport)), isSupport),
+      resistance: fillWeak(nearest(levels.filter(isResistance)), isResistance)
     };
   }
 
