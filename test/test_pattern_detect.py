@@ -47,59 +47,22 @@ def base_building_daily(lows=(100.0, 104.0, 108.0, 112.0, 114.0), end_close=117.
     return daily
 
 
-def ma_cloud_breakout_daily():
-    """224일선 근처에서 구름 상단을 고가로 시도하며 5일선이 20일선을 넘는 예시."""
+def ma_cloud_breakout_daily(tail=None, volume=120_000, last_volume=None):
+    """300봉 평탄(종가 10,000원, 고가 10,100·저가 9,900) - 224일선=10,000, 일목 구름도 상단=하단≈10,000으로 모두 한곳에 응축.
+    tail={마지막에서 몇 번째(음수): (종가, 고가, 저가)}로 마지막 봉들을 바꿔 상태별 케이스를 만든다.
+    기본 마지막 봉은 고가 10,250으로 구름 상단(10,000)을 2.5% 위까지 시도(종가 10,000)해 COMPRESSION_READY가 된다."""
     daily = []
     start = date(2025, 1, 1)
     for i in range(300):
-        close = 100.0
         daily.append({
             "date": (start + timedelta(days=i)).isoformat(),
-            "open": close,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": 1000,
+            "open": 10000.0, "high": 10100.0, "low": 9900.0, "close": 10000.0, "volume": volume,
         })
-    # 최근 52봉의 구름을 100~102 근처로 만들어 현재가가 구름 안에서 상단을 시도하게 한다.
-    for i in range(222, 248):
-        daily[i].update(high=106.0, low=98.0)
-    for i in range(248, 274):
-        daily[i].update(high=101.0, low=99.0)
-    for i, close in enumerate((100.1, 100.2, 100.4, 100.6, 100.8), start=295):
-        daily[i].update(open=close - 0.2, high=102.0 if i == 299 else close + 0.5,
-                        low=close - 0.5, close=close)
-    for row in daily:
-        for field in ("open", "high", "low", "close"):
-            row[field] *= 100
-    return daily
-
-
-def ma_cloud_breakout_daily():
-    """224일선 근처에서 구름 상단을 고가로 시도하며 5일선이 20일선을 넘는 예시."""
-    daily = []
-    start = date(2025, 1, 1)
-    for i in range(300):
-        close = 100.0
-        daily.append({
-            "date": (start + timedelta(days=i)).isoformat(),
-            "open": close,
-            "high": close + 1,
-            "low": close - 1,
-            "close": close,
-            "volume": 1000,
-        })
-    # 최근 52봉의 구름을 100~102 근처로 만들어 현재가가 구름 안에서 상단을 시도하게 한다.
-    for i in range(222, 248):
-        daily[i].update(high=106.0, low=98.0)
-    for i in range(248, 274):
-        daily[i].update(high=101.0, low=99.0)
-    for i, close in enumerate((100.1, 100.2, 100.4, 100.6, 100.8), start=295):
-        daily[i].update(open=close - 0.2, high=102.0 if i == 299 else close + 0.5,
-                        low=close - 0.5, close=close)
-    for row in daily:
-        for field in ("open", "high", "low", "close"):
-            row[field] *= 100
+    tail = tail if tail is not None else {-1: (10000.0, 10250.0, 9950.0)}
+    for k, (close, high, low) in tail.items():
+        daily[k].update(open=close, close=close, high=high, low=low)
+    if last_volume is not None:
+        daily[-1]["volume"] = last_volume
     return daily
 
 
@@ -368,58 +331,98 @@ class RisingLowsDetectionTest(unittest.TestCase):
         self.assertEqual(pullback[0]["code"], "999999")
 
 
-def short_ma_breakout_daily(prev_close=90, final_close=95):
-    """20봉 - 하락 스윙고점 2개(110@day2, 100@day10, PATTERN_SWING=2라 각각의 좌우
-    2봉보다 높아야 스윙으로 잡힌다)로 그은 추세선을 마지막 날 종가+5일선이 함께
-    돌파하는 케이스. trend_at(18)=90.0, trend_at(19)=88.75(직접 계산 - 아래 테스트에서
-    재확인). prev_close=90(<=90*1.01, "아직 안 뚫은 상태")이고 final_close=95(>88.75)면
-    "막 돌파" 케이스, prev_close를 더 올리면 "이미 돌파 완료"(breakout=True) 케이스가 된다."""
-    # 2026-08-23: 원래 95~110 스케일이 동전주 제외 기준(PENNY_STOCK_MAX_PRICE=1,000원)에
-    # 걸려 scan_stock() 통합 테스트가 조용히 빈 결과를 냈다 - x100 스케일(9,500~11,000원대)로
-    # 올려서 비율(추세선 기울기·돌파폭 %)은 그대로 두고 절대가만 정상 범위로 맞춘다.
+def short_ma_breakout_daily(prev_close=91, final_close=96, final_volume=200_000, h2_idx=16, h1_idx=8,
+                            h2_high=110, bounce=None):
+    """30봉 - 하락 스윙 고점 H1(120@8)·H2(110@16)로 그은 추세선(기울기 -1.25/봉, x100 스케일)을 마지막 날 종가가
+    처음 돌파하는 케이스. trend(28)=95.0, trend(29)=93.75. 기본: 어제 91(추세선 아래), 오늘 96(+2.4%), 5일선 상승.
+    bounce={idx: close}로 중간 봉 종가를 덮어써 "이미 한 번 돌파한 이력" 같은 변형을 만든다."""
     scale = 100
-    highs = [95, 105, 110, 95, 90, 85, 88, 92, 97, 99, 100, 98, 96, 90, 85, 80, 82, 84, 89, 95]
-    closes = [90, 100, 105, 90, 85, 80, 83, 87, 92, 94, 95, 93, 91, 88, 84, 85, 87, 89,
-              prev_close, final_close]
+    closes = [90, 94, 98, 102, 106, 110, 113, 116, 118,          # 0..8 상승(H1=120 고점)
+              114, 112, 110, 108, 107, 106, 106, 108,            # 9..16 (H2=110 고점 @16)
+              104, 100, 96, 92, 89, 87, 86, 87, 88, 89, 90,      # 17..27 하락 후 바닥
+              prev_close, final_close]                           # 28, 29
+    closes = closes[:30]
+    for k, v in (bounce or {}).items():
+        closes[k] = v
     daily = []
-    for i in range(20):
-        c = closes[i] * scale
-        h = max(highs[i] * scale, c + 1)
+    for i, c in enumerate(closes):
+        c *= scale
+        high = c + 100
+        if i == h1_idx:
+            high = 120 * scale
+        if i == h2_idx:
+            high = h2_high * scale
         daily.append({
-            'date': '2026-01-%02d' % (i + 1),
-            'open': c - 1,
-            'high': h,
-            'low': c - 500,
-            'close': c,
-            'volume': 1000,
+            'date': '2026-02-%02d' % (i + 1) if i < 28 else '2026-03-%02d' % (i - 27),
+            'open': c - 100, 'high': high, 'low': c - 100, 'close': c,
+            'volume': final_volume if i == 29 else 200_000,
         })
     return daily
 
 
 class ShortMaBreakoutDetectionTest(unittest.TestCase):
-    def test_detects_fresh_breakout_above_declining_trendline(self):
+    def test_detects_first_breakout_above_declining_trendline(self):  # CASE 1
         detail = detector.detect_short_ma_breakout(short_ma_breakout_daily())
         self.assertIsNotNone(detail)
         self.assertFalse(detail['breakout'])
-        # trend_at(19) = 11000 + slope*(19-2), slope = (10000-11000)/(10-2) = -125 (x100 스케일)
-        self.assertAlmostEqual(detail['resistance'], 8875.0, places=2)
-        self.assertEqual(detail['signal']['price'], 9500)
+        self.assertEqual(detail['status'], 'BREAKOUT_NEW')
+        self.assertAlmostEqual(detail['resistance'], 9375.0, places=2)
+        self.assertEqual(detail['signal']['price'], 9600)
         self.assertEqual(len(detail['trendline']), 2)
+        self.assertEqual([p['price'] for p in detail['high_swings']], [12000, 11000])
+        self.assertLessEqual(detail['breakoutPct'], 5.0)
+        self.assertTrue(detail['ma5Rising'])
 
-    def test_already_broken_out_is_flagged_and_excluded_by_caller(self):
-        # 어제(prev_close=95)도 이미 추세선(90.0) 위였으면 "막 돌파"가 아니라 완료된
-        # 돌파 - breakout=True로 표시돼 scan_stock에서 제외된다(다른 돌파형 패턴과 동일).
-        detail = detector.detect_short_ma_breakout(short_ma_breakout_daily(prev_close=95, final_close=97))
-        self.assertIsNotNone(detail)
-        self.assertTrue(detail['breakout'])
-
-    def test_returns_none_when_highs_are_not_declining(self):
-        daily = short_ma_breakout_daily()
-        daily[10]['high'] = 12000  # 두 번째 스윙 고점(원래 10000)을 첫 번째(11000)보다 높여 우상향으로 만든다
+    def test_close_below_ma5_is_excluded(self):  # CASE 2
+        daily = short_ma_breakout_daily(prev_close=104, final_close=94)  # 종가는 추세선 돌파(93.75)지만 5일선 아래
+        for row in daily[-6:-2]:
+            row['close'] = row['open'] = row['low'] = 9800
+            row['high'] = 9900
         self.assertIsNone(detector.detect_short_ma_breakout(daily))
 
+    def test_falling_ma5_is_excluded(self):  # CASE 3
+        daily = short_ma_breakout_daily(prev_close=94, final_close=95)
+        # 5일선이 어제보다 낮아지도록 4일 전 종가를 크게 올려 둔다(오늘 종가는 5일선 위, 추세선 위)
+        for row in daily[-6:-1]:
+            row['close'] = 9200
+            row['open'] = row['low'] = 9100
+            row['high'] = 9300
+        daily[-6]['close'] = 9900
+        daily[-6]['high'] = 10000
+        self.assertIsNone(detector.detect_short_ma_breakout(daily))
+
+    def test_close_swing_highs_are_excluded(self):  # CASE 4: 두 고점 간격 2봉
+        daily = short_ma_breakout_daily(h1_idx=14)
+        self.assertIsNone(detector.detect_short_ma_breakout(daily))
+
+    def test_previous_breakout_is_not_first_breakout(self):  # CASE 5
+        daily = short_ma_breakout_daily(bounce={22: 100, 23: 100})  # H2 이후 추세선(~100.6 @22) 허용오차 이상 위로 마감 - 아래에서 보강
+        for i in (22, 23):
+            daily[i]['close'] = 11500
+            daily[i]['high'] = 11600
+        self.assertIsNone(detector.detect_short_ma_breakout(daily))
+
+    def test_already_too_far_above_trendline_is_excluded(self):  # CASE 6: 추세선 +8%
+        self.assertIsNone(detector.detect_short_ma_breakout(short_ma_breakout_daily(final_close=101)))
+
+    def test_strong_volume_scores_higher_and_low_volume_still_passes(self):  # CASE 7·8
+        strong = detector.detect_short_ma_breakout(short_ma_breakout_daily(final_volume=320_000))  # 1.6배
+        weak = detector.detect_short_ma_breakout(short_ma_breakout_daily(final_volume=160_000))    # 0.8배
+        self.assertIsNotNone(strong)
+        self.assertIsNotNone(weak)
+        self.assertGreater(strong['score'], weak['score'])
+        self.assertAlmostEqual(strong['volumeRatio'], 1.6, places=1)
+
+    def test_returns_none_when_highs_are_not_declining_enough(self):
+        self.assertIsNone(detector.detect_short_ma_breakout(short_ma_breakout_daily(h2_high=119)))  # 1% 하락뿐
+
     def test_returns_none_when_close_has_not_cleared_the_trendline(self):
-        daily = short_ma_breakout_daily(prev_close=80, final_close=82)  # 여전히 추세선 아래
+        self.assertIsNone(detector.detect_short_ma_breakout(short_ma_breakout_daily(prev_close=80, final_close=82)))
+
+    def test_illiquid_stock_is_excluded(self):
+        daily = short_ma_breakout_daily()
+        for row in daily:
+            row['volume'] = 1_000
         self.assertIsNone(detector.detect_short_ma_breakout(daily))
 
     def test_scan_exposes_short_term_ma_breakout_bucket(self):
@@ -492,7 +495,8 @@ class BoxRangeLowerFilterTest(unittest.TestCase):
 
         self.assertIsNotNone(detail)
         self.assertEqual(detail["criteria"]["closeMaNearCount"], 20)
-        self.assertEqual(detail["criteria"]["openMaAboveCount"], 20)
+        self.assertGreaterEqual(detail["criteria"]["ma20Slope10Pct"], -3.0)
+        self.assertLessEqual(detail["criteria"]["lowerPositionPct"], 35.0)
         self.assertGreaterEqual(detail["criteria"]["rsi14"], 35)
         self.assertLessEqual(detail["criteria"]["rsi14"], 65)
         self.assertLessEqual(detail["criteria"]["closeRangePct"], 10)
@@ -537,6 +541,47 @@ class BoxRangeLowerFilterTest(unittest.TestCase):
 
         self.assertEqual(calls, ["000001"])
         self.assertEqual([row["code"] for row in results["boxRangeLow"]], ["000001"])
+
+
+class BoxRangeLowRedesignTest(unittest.TestCase):
+    """2026-10-04 박스권 하단 개선: 거래량은 최근 5봉/20봉 평균, 20일선 급락 제외, 투매봉 제외, 하단 접근/반등 두 상태."""
+
+    def detect(self, daily):
+        return detector.detect_box_range_low(daily, market_cap_eok=3000, require_market_cap=True)
+
+    def test_default_fixture_is_bottom_approach_or_rebound(self):
+        detail = self.detect(box_range_daily())
+        self.assertIn(detail["status"], ("APPROACH", "REBOUND"))
+        self.assertEqual(detail["support"], 98000.0)      # 박스 하단 = 최근 20봉 최저 종가
+        self.assertEqual(detail["resistance"], 102000.0)
+
+    def test_rebound_when_low_tests_box_bottom_and_close_recovers(self):
+        daily = box_range_daily()
+        daily[-1].update(open=98500.0, high=100500.0, low=97800.0, close=99000.0)  # 하단 테스트 + 양봉 회복
+        self.assertEqual(self.detect(daily)["status"], "REBOUND")
+
+    def test_volume_explosion_down_candle_is_excluded(self):
+        daily = box_range_daily()
+        daily[-1].update(volume=100 * 8)                  # 음봉(시가 101000 > 종가 98000) + 평균의 2배 이상
+        self.assertIsNone(self.detect(daily))
+
+    def test_dead_volume_is_excluded(self):
+        daily = box_range_daily()
+        for row in daily[-5:]:
+            row["volume"] = 20                             # 최근 5봉 평균이 20일 평균의 50% 아래
+        self.assertIsNone(self.detect(daily))
+
+    def test_staircase_down_ma20_is_excluded(self):
+        daily = box_range_daily()
+        for i in range(len(daily) - 10, len(daily)):
+            for f in ("open", "high", "low", "close"):
+                daily[i][f] *= 0.93                        # 10봉 동안 20일선이 3% 넘게 내려가는 하락 계단
+        self.assertIsNone(self.detect(daily))
+
+    def test_not_in_bottom_zone_is_excluded(self):
+        daily = box_range_daily()
+        daily[-1].update(open=101000.0, high=102500.0, low=100500.0, close=102000.0)   # 박스 상단
+        self.assertIsNone(self.detect(daily))
 
 
 def _entry_trigger_daily(last_open, last_close, last_low, last_high, last_volume):
@@ -599,48 +644,72 @@ class BoxRangeLowEntryTriggerTest(unittest.TestCase):
 
 
 class MaCloudBreakoutDetectionTest(unittest.TestCase):
-    def test_detects_early_ma_cloud_breakout(self):
-        detail = detector.detect_ma_cloud_breakout(ma_cloud_breakout_daily())
+    def detect(self, **kw):
+        return detector.detect_ma_cloud_breakout(ma_cloud_breakout_daily(**kw))
 
+    def test_compression_ready_near_cloud_top(self):  # CASE 1
+        detail = self.detect()
         self.assertIsNotNone(detail)
-        self.assertLessEqual(abs(detail["ma224"] - 10000.0) / 10000.0, detector.MA_CLOUD_NEAR_TOL)
-        # 2026-08-22: 골든크로스 요건이 완전히 제거돼 이제 조건이 224일선 근접 + 구름
-        # 상단 시도 2개뿐이다(reasons도 2개).
-        self.assertEqual(len(detail["reasons"]), 2)
+        self.assertEqual(detail["status"], "COMPRESSION_READY")
+        self.assertLessEqual(abs(detail["ma224Distance"]), 3.0)
+        self.assertLessEqual(detail["maCloudDistance"], 5.0)
+        self.assertEqual(len(detail["reasons"]), 3)
 
-    def test_below_cloud_bottom_is_still_included(self):
-        """2026-08-22: 구름 하단을 뚫고 내려간 경우도 포함하라는 요청 - 상단만 안 넘었으면
-        통과해야 한다(구름 아래에서 다시 올라오는 중인 케이스). 구름[bottom=10000, top=10200]
-        기준으로 마지막 봉 종가만 하단 아래(9900, -2% 안)로 내리고 고가는 그대로 둔다
-        (224일선과는 여전히 3% 이내)."""
+    def test_new_breakout_today_above_cloud_top(self):  # CASE 2: 어제 구름 안, 오늘 +2% 돌파
+        detail = self.detect(tail={-1: (10200.0, 10250.0, 10000.0)})
+        self.assertEqual(detail["status"], "BREAKOUT_NEW")
+        self.assertAlmostEqual(detail["cloudTopDistance"], 2.0, places=1)
+        self.assertEqual(detail["breakoutDate"], detail["signal"]["date"])
+
+    def test_breakout_two_days_ago_is_kept_while_within_five_percent(self):  # CASE 3
+        detail = self.detect(tail={-3: (10250.0, 10300.0, 10000.0), -2: (10300.0, 10350.0, 10200.0),
+                                   -1: (10400.0, 10450.0, 10300.0)})
+        self.assertEqual(detail["status"], "BREAKOUT_NEW")
+        self.assertNotEqual(detail["breakoutDate"], detail["signal"]["date"])
+
+    def test_old_breakout_is_excluded(self):  # CASE 4: 5거래일 전 돌파, 현재 +12%
+        self.assertIsNone(self.detect(tail={-5: (10250.0, 10300.0, 10000.0), -4: (10500.0, 10550.0, 10300.0),
+                                            -3: (10800.0, 10850.0, 10500.0), -2: (11000.0, 11050.0, 10800.0),
+                                            -1: (11200.0, 11250.0, 11000.0)}))
+
+    def test_old_breakout_still_close_to_top_is_excluded(self):
+        # 구름 상단 위에 오래 머문 종목(최초 돌파 4거래일 전)은 "응축 후 출발"이 아니다
+        self.assertIsNone(self.detect(tail={-4: (10250.0, 10300.0, 10000.0), -3: (10250.0, 10300.0, 10200.0),
+                                            -2: (10300.0, 10350.0, 10200.0), -1: (10300.0, 10350.0, 10250.0)}))
+
+    def test_far_cloud_from_ma224_is_excluded(self):  # CASE 5: 구름이 224일선보다 12% 위
         daily = ma_cloud_breakout_daily()
-        daily[-1].update(high=10200.0, low=9850.0, close=9900.0)
+        last = len(daily) - 1
+        for i in range(last - 26 - 51, last - 26 + 1):
+            daily[i].update(high=11300.0, low=11100.0)
+        self.assertIsNone(detector.detect_ma_cloud_breakout(daily))
 
-        detail = detector.detect_ma_cloud_breakout(daily)
-        self.assertIsNotNone(detail)
-        self.assertLess(detail["signal"]["price"], 10000.0)  # 종가가 구름 하단 아래
+    def test_close_far_below_cloud_bottom_is_excluded(self):  # CASE 6
+        self.assertIsNone(self.detect(tail={-1: (9400.0, 9500.0, 9350.0)}))
 
-    def test_far_below_cloud_bottom_is_excluded(self):
-        """2026-08-22(4차) 추가: 종가가 구름 하단보다 2% 넘게 처진 역배열 약세 종목은
-        저가만 하단에 닿았어도 이제 제외된다(최소 위치 조건)."""
+    def test_steep_ma224_decline_is_excluded(self):  # CASE 7: 224일선이 20일 동안 -8% 이상
         daily = ma_cloud_breakout_daily()
-        # close=9750은 224일선(~10000.9)과는 여전히 2.5%로 근접 조건(3%)을 통과하지만,
-        # 구름 하단(10000)의 -2.5%라 최소 위치 조건(-2% 이내)엔 못 미친다.
-        daily[-1].update(high=9900.0, low=9500.0, close=9750.0)
+        last = len(daily) - 1
+        for i in range(last - 243, last - 223):
+            daily[i].update(open=20000.0, close=20000.0, high=20100.0, low=19900.0)
+        self.assertIsNone(detector.detect_ma_cloud_breakout(daily))
 
-        detail = detector.detect_ma_cloud_breakout(daily)
-        self.assertIsNone(detail)
+    def test_breakout_with_strong_volume_scores_higher(self):  # CASE 9
+        tail = {-1: (10200.0, 10250.0, 10000.0)}
+        strong = self.detect(tail=tail, last_volume=216_000)  # 1.8배
+        weak = self.detect(tail=tail, last_volume=96_000)     # 0.8배
+        self.assertIsNotNone(strong)
+        self.assertIsNotNone(weak)                            # 거래량이 적다고 제외하지 않는다
+        self.assertGreater(strong["score"], weak["score"])
 
-    # 2026-08-22(5차) 신설(사용자 요청: "구름대를 뚫고 하락하면서 상단선 터치하는 건
-    # 제외") - 어제 종가가 이미 구름 하단 아래(뚫고 하락한 상태)였다가 오늘 하루 만에
-    # 구름 상단까지 튀어오른 경우는 급락 후 되돌림(휩쏘)으로 보고 제외해야 한다.
-    def test_bounce_from_below_cloud_to_top_touch_is_excluded(self):
-        daily = ma_cloud_breakout_daily()
-        # 어제(마지막에서 두 번째 봉) 종가를 구름 하단(10000)보다 뚜렷이 낮게(9700, -3%)
-        # 만들고, 오늘(마지막 봉)은 기존처럼 구름 상단(10200)을 고가로 시도하게 둔다.
-        daily[-2].update(open=9750.0, high=9800.0, low=9650.0, close=9700.0)
-        detail = detector.detect_ma_cloud_breakout(daily)
-        self.assertIsNone(detail)
+    def test_illiquid_stock_is_excluded(self):
+        self.assertIsNone(self.detect(volume=1_000))
+
+    def test_cloud_uses_no_future_data(self):
+        # 마지막 봉을 바꿔도 같은 날짜의 구름(26봉 전 값으로 계산)은 변하지 않는다
+        base = ma_cloud_breakout_daily()
+        changed = ma_cloud_breakout_daily(tail={-1: (12000.0, 12500.0, 11500.0)})
+        self.assertEqual(detector.ichimoku_cloud_at(base, len(base) - 1), detector.ichimoku_cloud_at(changed, len(changed) - 1))
 
     def test_scan_exposes_ma_cloud_breakout_bucket(self):
         results = {"risingLows": [], "doubleBottom": [], "invHeadShoulders": [], "boxRangeLow": []}
@@ -703,6 +772,52 @@ class DoubleBottomDetectionTest(unittest.TestCase):
         self.assertIsNone(detail)
 
 
+class DoubleBottomStatusTest(unittest.TestCase):
+    """2026-10-04 쌍바닥 개선: RECOVERY / NECKLINE_READY 두 상태, 넥라인 5% 초과 제외, L2 이후 바닥 훼손 제외, 3봉 평균 거래량."""
+
+    def test_default_fixture_is_neckline_ready(self):
+        detail = detector.detect_double_bottom(double_bottom_daily())
+        self.assertEqual(detail["status"], "NECKLINE_READY")
+        self.assertFalse(detail["breakout"])
+        self.assertLessEqual(detail["bottomDiffPct"], 3.0)
+        self.assertGreaterEqual(detail["reboundPct"], 8.0)
+
+    def test_recovery_state_when_still_far_below_neckline(self):
+        daily = double_bottom_daily()
+        neck = max(r["high"] for r in daily[66:96])
+        low2 = daily[96]["low"]
+        c = low2 + 0.62 * (neck - low2)
+        daily[-1].update(open=c * 0.99, close=c, high=c * 1.01, low=c * 0.985)
+        detail = detector.detect_double_bottom(daily)
+        self.assertIsNotNone(detail)
+        self.assertEqual(detail["status"], "RECOVERY")
+
+    def test_far_below_neckline_without_recovery_is_excluded(self):
+        daily = double_bottom_daily()
+        low2 = daily[96]["low"]
+        daily[-1].update(open=low2 * 1.01, close=low2 * 1.002, high=low2 * 1.02, low=low2 * 1.001)
+        self.assertIsNone(detector.detect_double_bottom(daily))
+
+    def test_already_broken_far_above_neckline_is_excluded(self):
+        daily = double_bottom_daily()
+        neck = max(r["high"] for r in daily[66:96])
+        daily[-1].update(open=neck * 1.07, close=neck * 1.08, high=neck * 1.09, low=neck * 1.06)
+        self.assertIsNone(detector.detect_double_bottom(daily))
+
+    def test_breaking_the_bottom_after_l2_is_excluded(self):
+        daily = double_bottom_daily()
+        low2 = daily[96]["low"]
+        daily[-2].update(low=low2 * 0.95)
+        self.assertIsNone(detector.detect_double_bottom(daily))
+
+    def test_l2_volume_uses_three_bar_average(self):
+        daily = double_bottom_daily()
+        daily[96]["volume"] = 1000 * 1.2    # 하루 거래량은 L1(2,500)보다 낮고, 3봉 평균도 허용 범위
+        self.assertIsNotNone(detector.detect_double_bottom(daily))
+        daily[96]["volume"] = 4000          # L2 주변 거래량이 L1의 110% 초과
+        self.assertIsNone(detector.detect_double_bottom(daily))
+
+
 class InvHeadShouldersDetectionTest(unittest.TestCase):
     def test_detects_symmetric_shoulders_and_neckline(self):
         detail = detector.detect_inv_head_shoulders(inv_head_shoulders_daily())
@@ -712,15 +827,61 @@ class InvHeadShouldersDetectionTest(unittest.TestCase):
         self.assertLess(detail["head"]["price"], detail["right_shoulder"]["price"])
         self.assertGreaterEqual(detail["score"], detector.IHS_MIN_SCORE)
 
-    def test_neckline_uses_the_higher_of_the_two_peaks(self):
-        """2026-08-22 추가: 넥라인 = max(좌어깨~헤드 고가, 헤드~우어깨 고가)로 변경(사용자
-        요청) - inv_head_shoulders_daily()는 peak1(1.07*base) > peak2(1.06*base)이므로
-        더 높은 peak1이 넥라인이어야 한다."""
+    def test_neckline_is_sloped_line_through_both_peaks(self):
+        """2026-10-04: 넥라인 = N1(좌어깨~헤드 최고점)과 N2(헤드~우어깨 최고점)를 잇는 기울어진 선. 수평 max(N1,N2)는 neckline 필드(호환)."""
         detail = detector.detect_inv_head_shoulders(inv_head_shoulders_daily())
-
         self.assertIsNotNone(detail)
+        line = detail["neckline_line"]
+        self.assertEqual(line[0]["price"], detail["left_peak"]["price"])
+        self.assertLess(detail["neckline_today"], detail["left_peak"]["price"])   # peak1 > peak2라 오른쪽 아래로 기운 선
         self.assertAlmostEqual(detail["neckline"]["price"], detail["left_peak"]["price"], delta=1)
-        self.assertGreater(detail["neckline"]["price"], detail["right_peak"]["price"])
+        self.assertEqual(detail["status"], "BREAKOUT_NEW")
+        self.assertFalse(detail["breakout"])
+
+    def test_neckline_ready_when_within_one_percent_below(self):
+        daily = inv_head_shoulders_daily()
+        detail = detector.detect_inv_head_shoulders(daily)
+        neck = detail["neckline_today"]
+        daily[-1].update(open=neck * 0.985, close=neck * 0.995, high=neck * 1.0, low=neck * 0.98)
+        ready = detector.detect_inv_head_shoulders(daily)
+        self.assertIsNotNone(ready)
+        self.assertEqual(ready["status"], "NECKLINE_READY")
+
+    def test_far_above_neckline_is_excluded(self):
+        daily = inv_head_shoulders_daily()
+        neck = detector.detect_inv_head_shoulders(daily)["neckline_today"]
+        daily[-1].update(open=neck * 1.06, close=neck * 1.08, high=neck * 1.09, low=neck * 1.05)
+        detail = detector.detect_inv_head_shoulders(daily)
+        # 원래 조합은 넥라인 +8%라 제외된다(다른 저점 조합이 잡혀도 반드시 넥라인 +5% 이내여야 한다)
+        self.assertTrue(detail is None or detail["necklineDistancePct"] <= 5.0)
+        self.assertTrue(detail is None or detail["left_shoulder"]["date"] != detector.detect_inv_head_shoulders(inv_head_shoulders_daily())["left_shoulder"]["date"])
+
+    def test_old_breakout_is_not_new(self):
+        daily = inv_head_shoulders_daily()
+        neck = detector.detect_inv_head_shoulders(daily)["neckline_today"]
+        for k in (-4, -3, -2):                      # 4거래일 전부터 이미 넥라인 위에 머문 종목
+            daily[k].update(open=neck * 1.01, close=neck * 1.02, high=neck * 1.03, low=neck * 1.0)
+        daily[-1].update(open=neck * 1.01, close=neck * 1.03, high=neck * 1.04, low=neck * 1.0)
+        self.assertIsNone(detector.detect_inv_head_shoulders(daily))
+
+    def test_low_volume_is_not_a_hard_filter(self):
+        daily = inv_head_shoulders_daily()
+        for row in daily[-5:]:
+            row["volume"] = 100
+        strong = detector.detect_inv_head_shoulders(inv_head_shoulders_daily())
+        weak = detector.detect_inv_head_shoulders(daily)
+        self.assertIsNotNone(weak)
+        self.assertLess(weak["score"], strong["score"])
+
+    def test_right_shoulder_must_be_recent(self):
+        daily = inv_head_shoulders_daily()
+        for k in range(len(daily) - 14, len(daily)):      # 우어깨(마지막-4)를 15봉 전으로 밀어낸 효과: 뒤에 평탄 봉을 붙인다
+            pass
+        extra = []
+        last = daily[-1]
+        for i in range(8):
+            extra.append(dict(last, date="2026-06-%02d" % (i + 1)))
+        self.assertIsNone(detector.detect_inv_head_shoulders(daily + extra))
 
     def test_new_low_after_right_shoulder_is_excluded(self):
         """2026-08-22 추가: 우어깨 이후 최저가가 헤드 저점보다 1% 넘게 더 빠지면(새로운
@@ -772,14 +933,28 @@ class PullbackDetectionTest(unittest.TestCase):
         self.assertIn("entrySignal", detail)
         self.assertIsInstance(detail["entrySignal"], bool)
 
-    def test_correction_volume_spike_near_rise_max_is_excluded(self):
-        """2026-08-22 추가: 조정구간 최대거래량이 상승구간 최대거래량의 70%를 넘으면
-        (거래량 감소 방향 자체는 맞아도) 이제 제외된다."""
+    def test_correction_volume_spike_only_lowers_score(self):
+        """2026-10-04 개편: 조정구간 최고 거래량이 상승구간 최고의 70%를 넘는 것은 더 이상 제외 조건이 아니다(평균 비교가 주 조건).
+        가산 5점만 빠진다."""
         daily = pullback_daily()
-        # 조정구간 첫날 거래량을 상승구간 최고치(2100)의 70%(1470)보다 높게 올린다
-        # (그 뒤로는 원래처럼 감소해 is_volume_declining 자체는 여전히 참이 되도록 유지).
+        base = detector.detect_pullback(daily)
         daily[250]["volume"] = 2000
+        spiky = detector.detect_pullback(daily)
+        self.assertIsNotNone(spiky)
+        self.assertLess(spiky["score"], base["score"])
+
+    def test_pullback_volume_average_must_be_below_rise_average(self):
+        daily = pullback_daily()
+        for row in daily[251:]:
+            row["volume"] = 5000        # 조정구간 평균 거래량이 상승구간보다 큼
         self.assertIsNone(detector.detect_pullback(daily))
+
+    def test_pullback_result_reports_status_and_support_kind(self):
+        detail = detector.detect_pullback(pullback_daily())
+        self.assertIn(detail["status"], ("PULLING_BACK", "SUPPORT_CONFIRMED"))
+        self.assertIn(detail["supportKind"], ("MA20", "MA240", "MA20+MA240"))
+        self.assertGreaterEqual(detail["risePct"], 15.0)
+        self.assertTrue(5.0 <= detail["pullbackPct"] <= 15.0)
 
     def test_trend_filter_version_b_tolerates_mild_ma20_decline(self):
         """PULLBACK_TREND_FILTER_VERSION='ma20_slope_tol'(기본값)은 20일선이 완만하게

@@ -18,6 +18,7 @@ import urllib.request
 from datetime import datetime, timezone
 
 import accumulation_angle as aa
+import angle_momentum_detect as amd
 import daily_scan_cache
 import db_schema
 import market_clock
@@ -168,8 +169,11 @@ def main():
 
         net_returns.extend(aa.backtest_angle_entry_with_dynamic_exit(df))
 
-        if bool(df.iloc[-1]['entry_signal']):
-            matches.append(_build_match(stock, df))
+        # 2026-10-04 재설계: 후보 판정은 전형가 SMA5/10/20 정규화 기울기·곡률·분출 비율(angle_momentum_detect.py,
+        # 거래량 증가는 필수가 아님)로 한다. 위 aa 백테스트는 예전 신호 기준의 참고 요약으로 그대로 둔다.
+        detail = amd.detect_angle_momentum(rows)
+        if detail:
+            matches.append(pd.build_pattern_match(stock, rows, detail))
 
         if (i + 1) % 300 == 0 or (i + 1) == len(codes):
             log('[%d/%d] 진행 중 (스캔 %d / 후보 %d)' % (i + 1, len(codes), scanned, len(matches)))

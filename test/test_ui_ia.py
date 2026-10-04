@@ -2683,7 +2683,9 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
         self.assertIn("label: '장기이평 응축기'", source)
-        self.assertIn("고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근", source)
+        # 2026-10-04 재설계: 돌파 준비 + 신규 돌파 두 상태
+        self.assertIn("224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목", source)
+        self.assertIn("최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파", source)
         self.assertIn("{ key: 'ma224', period: 224, label: '224일선', color: ma224Color() }", source)
         self.assertIn("standardMovingAverageStudies().forEach(function (study)", source)
         self.assertIn("psIchimokuEnabled = activeTab === 'maCloudBreakout'", source)
@@ -2693,9 +2695,9 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
 
     def test_box_range_detail_prefers_vm_snapshot_with_market_cap_filter(self):
         source = self.read("js/pattern-scan.js")
-        self.assertIn("최근 20봉 종가 변동폭 10% 이하", source)
+        self.assertIn("최근 20봉 동안 가격 변동폭이 10% 이내로 제한", source)
         self.assertIn("시가총액 3,000억원 이상", source)
-        self.assertIn("activeTab === 'boxRangeLow' || activeTab === 'openingGap'", source)
+        self.assertIn("박스 하단 35% 영역", source)
         self.assertNotIn("slice(0, 12)", source)
         self.assertIn("data.detail = item.patternDetail", source)
 
@@ -3206,11 +3208,11 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상", source)
         for text in (
             "최근 60거래일에서 저점이 3개 이상",
-            "224일선 ±3%",
+            "224일 장기 이동평균선",
             "10~45봉 간격",
-            "어깨-머리-어깨",
-            "RSI(14) 35~65",
-            "고점 직전 25봉 안 저점 대비 종가가 15% 이상",
+            "왼쪽 어깨-머리-오른쪽 어깨",
+            "박스 하단 35% 영역",
+            "고점 대비 5~15% 조정",
         ):
             self.assertIn(text, source)
         self.assertIn("COMMON_MARKET_CAP_MIN_EOK = 3000.0", backend)

@@ -33,8 +33,8 @@
   // 캔들만 직접 받는다.
   var GAS_REDETECTED_PATTERNS = {
     // 2026-10-04: risingLows는 60거래일 구조 판정으로 바꿔 VM 스냅샷(patternDetail)을 그대로 쓴다(GAS 20거래일 판정과 달라진다).
-    doubleBottom: true, invHeadShoulders: true,
-    boxRangeLow: true, pullback: true
+    // 2026-10-04: 쌍바닥·역헤드앤숄더·박스권 하단·눌림목도 VM 스냅샷(patternDetail)을 그대로 쓴다. 판정 기준을 개선하면서
+    // GAS가 예전 기준으로 다시 판정해 차트 근거가 목록과 어긋나는 일이 없도록 GAS 재판정 경로를 쓰지 않는다.
   };
   var FETCH_RETRY_COUNT = 2;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -77,19 +77,19 @@
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·관리종목·우선주·거래정지·정리매매·동전주(1,000원 미만) 제외';
   var TABS = [
     { key: 'risingLows', label: '저점상승형', desc: '하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다. 최근 60거래일에서 저점이 3개 이상 이어서 1% 이상씩 높아지고(첫 저점 대비 +4%~+20%), 첫 저점과 마지막 저점이 15거래일 이상 떨어져 있어야 합니다. 계단 시작 뒤 첫 저점 아래로 내려간 적이 없고(하방이 막힘), 계단 시작 전에 첫 저점보다 12% 이상 높았던 구간이 있어야 하며(하락 뒤의 바닥), 현재가가 마지막 저점의 +10% 이내이고 최근 20거래일 +15% 이하(이미 오른 종목 제외)여야 합니다. 로보티즈처럼 하락 파동 속 3~4봉 반등은 제외합니다.' },
-    { key: 'shortTermMaBreakout', label: '단기이평 돌파형', desc: '최근 20봉 스윙 고점 2개를 이은 하락 추세선을 오늘 종가와 5일선이 함께 뚫고 올라온 종목입니다. 어제까지는 종가가 추세선 아래(또는 거의 붙어) 있었어야 "막 돌파하는 순간"으로 보고 포함하며, 이미 한참 위로 올라간 종목은 제외합니다.' },
-    { key: 'maCloudBreakout', label: '장기이평 응축기', desc: '최소 250봉 데이터에서 종가가 224일선 ±3% 이내이고, 종가가 일목 구름 상단을 아직 넘지 않았으며 구름 하단 -2% 안에서는 지지받고 있고, 고가가 구름 상단 3% 이내로 접근했거나 저가가 구름 하단 3% 이내로 접근한 종목입니다(둘 중 하나만 만족해도 포함, 상단 시도가 하단 시도보다 고득점).' },
-    { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격의 스윙 저점 2개가 3% 이내로 비슷하고, 두 저점 사이에 그보다 2% 넘게 더 낮은 저가가 없으며, 두 번째 저점 거래량이 첫 번째 이하이며 중간 넥라인까지 8% 이상 반등한 구조입니다. 두 번째 저점은 최근 5봉 안이고 현재 종가는 넥라인 2% 아래보다 높아야 합니다.' },
-    { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 4~40봉 간격의 저점 3개가 어깨-머리-어깨를 이루고, 머리가 양 어깨보다 각각 2% 이상 낮으며 양 어깨 가격차는 4% 이내입니다. 우어깨 이후 저가가 머리 저점보다 1% 넘게 더 빠지면 제외합니다. 넥라인(두 구간 고가 중 더 높은 쪽) 1% 이내, 최근 양봉, 우어깨 이후 거래량은 최근 20봉 평균의 1.2배 이상이어야 합니다.' },
-    { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 종가 변동폭 10% 이하, 종가 5·20일선 3% 이내 근접 3회 이상, RSI(14) 35~65, 20봉 전 거래량/직전 5봉 평균 50~120%, 시가 5·20일선 관계 3회 이상, 20봉 수익률 ±10% 이내를 모두 만족하면서 현재가가 박스 하단 35% 구간에 있는 후보입니다.' },
-    { key: 'pullback', label: '눌림목', desc: '최소 240봉 데이터에서 고점 직전 25봉 안 저점 대비 종가가 15% 이상 상승한 뒤 고점에서 5~15% 조정받고, 현재 종가가 20일선 또는 240일선 3% 이내이며 20일선이 완만한 하락(-0.5%) 이내입니다. 상승구간 거래량 증가, 조정구간(고점 다음날부터) 거래량 감소 및 상승구간 최고치의 70% 이하를 모두 확인합니다.' },
+    { key: 'shortTermMaBreakout', label: '단기이평 돌파형', desc: '최근 30봉 내 의미 있는 두 스윙 고점을 연결한 하락 추세선을 오늘 종가가 처음 돌파한 종목입니다. 전일까지 가격은 추세선 아래 또는 인접한 위치에 머물러 있어야 하며, 현재 종가는 상승 중인 5일 이동평균선 위에 있어야 합니다. 이미 추세선을 크게 벗어난 종목은 제외해 막 돌파가 시작되는 구간을 포착합니다.' },
+    { key: 'maCloudBreakout', label: '장기이평 응축기', desc: '224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목을 찾습니다. 종가가 224일선 주변에서 지지받으면서 구름 상단 돌파를 준비하거나, 최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파한 종목도 포함합니다. 이미 구름대와 장기이평선에서 크게 벗어나 상승이 진행된 종목은 제외합니다.' },
+    { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격으로 형성된 두 스윙 저점의 가격 차이가 3% 이내인 쌍바닥 후보를 찾습니다. 두 바닥 사이에는 더 낮은 저점이 없어야 하며, 첫 바닥 이후 넥라인까지 최소 8% 이상의 반등이 있어야 합니다. 두 번째 바닥에서 매도 거래량이 감소하고 저점이 유지된 뒤, 넥라인 방향으로 회복하거나 재돌파를 준비하는 종목을 선별합니다.' },
+    { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 왼쪽 어깨-머리-오른쪽 어깨가 형성된 역헤드앤숄더 후보를 찾습니다. 머리는 양 어깨보다 최소 2% 낮고, 양 어깨 가격 차이는 4% 이내여야 합니다. 오른쪽 어깨 이후 머리 저점이 훼손되지 않은 상태에서 넥라인에 접근하거나 최근 종가 기준으로 새롭게 돌파한 종목을 선별하며, 넥라인 접근·돌파 시 거래량 증가를 높게 평가합니다.' },
+    { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 동안 가격 변동폭이 10% 이내로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
+    { key: 'pullback', label: '눌림목', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
     // 2026-08-22: "시초 갭상승" 탭 삭제 요청 - 백엔드 detect_opening_gap/GAS는 그대로 두고
     // (다른 데서 재사용 가능성 대비, 되돌리기 쉽게) 화면 탭 목록에서만 제외했다.
-    { key: 'angleMomentum', label: '각도기 타점', desc: '전형가(고가+저가+종가)/3 기준 단기(5일)·장기(20일) 이동평균선의 기울기(각도)를 주가 단위와 무관하게 정규화(%변동률)해 계산합니다. 단기 각도가 양수이면서 중기·장기 각도가 함께 상승 전환되고, 단기 각도가 최근 20일 변화폭 대비 1.5배 이상 튀는(분출) 순간을 포착합니다. 거래량이 터지기 전 이동평균선 곡률이 먼저 꺾이는 구간을 찾는 실험적 지표입니다.' },
+    { key: 'angleMomentum', label: '각도기 타점', desc: '전형가 기준 5·10·20일 이동평균선의 기울기를 주가 수준과 무관한 퍼센트 변화율로 정규화해 계산합니다. 단기 이동평균이 상승 전환하고 중·장기 이동평균의 하락 기울기가 함께 개선되는 구간 중, 단기 기울기 변화가 최근 20일 평소 수준보다 강하게 확대되는 순간을 포착합니다. 거래량 급증 이후가 아니라 이동평균 곡률이 먼저 꺾이는 초기 변화를 찾는 실험적 검색기입니다.' },
     // 2026-08-20: "역매공파·공구리·오돌이" 같은 용어를 지워달라는 요청 - 특정 단타 기법의
     // 고유 용어라 출처가 드러나는 걸 원하지 않는다고 함. 조건 로직(숫자·판정 기준)은 그대로
     // 두고 설명 문구만 용어 없이 풀어썼다(공구리->횡보, 오돌이 표현 삭제).
-    { key: 'gongpasan', label: '공파산 타점', desc: '최근 160일 고점 대비 25% 이상 빠진 종목 중, 최근 40일간 좁게 횡보하고 최근 60일 내 대량거래 매집봉이 나온 뒤, 직전 5봉 고가와 5일선을 동시에 돌파하는 장대양봉이 확인된 종목입니다. 돌파 자체가 아니라 그 후 20일선까지 눌림받아 지지가 확인된 첫 캔들만 매수 타점으로 표시합니다.' },
+    { key: 'gongpasan', label: '공파산 타점', desc: '최근 160일 고점 대비 25% 이상 하락한 뒤 40일 안팎의 바닥 횡보와 대량거래 매집 흔적이 나타난 종목을 추적합니다. 이후 직전 5봉 고가와 5일선을 강한 양봉으로 돌파한 뒤, 가격이 처음으로 20일선까지 눌렸을 때 거래량이 감소하고 종가 기준 지지가 확인되는 첫 눌림 구간을 매매 후보로 선별합니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심입니다.' },
     // 2026-09-04: 이 탭만 장중 스냅샷이다. 나머지는 전부 장 마감 뒤 일봉 배치라
     // 스캔 시각이 다르고, 그래서 목록 위 안내도 이 탭에서는 따로 표시한다.
     { key: 'volumeBreakout', label: '거래량 돌파(5분)', desc: '시가가 전일종가보다 높게(갭상승) 출발하고, 개장 5분 시점(09:05)의 당일 누적 거래량이 전일 하루치의 30% 이상인 종목입니다. 최소 거래량 기준도 3만 주로 낮춰 이전보다 초기 거래 집중 종목을 더 많이 찾습니다.' }
@@ -190,6 +190,16 @@
     });
   }
 
+  // 2026-10-04: 이 검색은 실시간이 아니라 장 마감 후 하루 1회 확정 일봉으로 계산한 결과다 - 기준일을 밝힌다.
+  function baseDateLabel(data) {
+    var latest = '';
+    Object.keys((data && data.patterns) || {}).forEach(function (key) {
+      ((data.patterns[key]) || []).forEach(function (row) { if (row && row.date && String(row.date) > latest) latest = String(row.date); });
+    });
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(latest);
+    return m ? m[1] + '.' + m[2] + '.' + m[3] + ' 종가 기준(장 마감 후 1회 스캔) · ' : '';
+  }
+
   function loadScan(container) {
     // GAS/VM의 빈 응답이 브라우저·중간 캐시에 남으면, 다음 일일 스캔이 끝난 뒤에도
     // "스캔 결과 없음" 화면이 계속 보일 수 있다. 목록 요청은 매번 최신 스냅샷을 확인한다.
@@ -214,7 +224,7 @@
         var meta = container.querySelector('#psMeta');
         if (meta) {
           meta.textContent = data.scannedAt
-            ? ('스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
+            ? (baseDateLabel(data) + '스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
             : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
         }
         renderList(container);
@@ -544,32 +554,69 @@
       var lows = Array.isArray(detail.pivot_lows || detail.low_swings) ? (detail.pivot_lows || detail.low_swings).length : 0;
       return lows ? '저점 상승 ' + lows + '회' : '저점 상승 확인';
     }
-    if (patternKey === 'maCloudBreakout') return '224일선 근접·구름 상/하단 시도';
+    if (patternKey === 'maCloudBreakout') {
+      var mcReady = detail.status !== 'BREAKOUT_NEW';
+      var mcTop = Number(detail.cloudTopDistance);
+      var mcMa = Number(detail.ma224Distance);
+      return (mcReady ? '🟡 돌파 준비' : '🟢 신규 돌파')
+        + (isFinite(mcTop) ? ' · 구름 상단 ' + (mcTop > 0 ? '+' : '') + mcTop.toFixed(1) + '%' : '')
+        + (isFinite(mcMa) ? ' · 224일선 ' + (mcMa > 0 ? '+' : '') + mcMa.toFixed(1) + '%' : '')
+        + (!mcReady && detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '');
+    }
     if (patternKey === 'shortTermMaBreakout') {
       var trendPrice = Number(detail.resistance);
       var signalPrice = Number(detail.signal && detail.signal.price);
       var breakGap = trendPrice > 0 && signalPrice > 0 ? (signalPrice - trendPrice) / trendPrice * 100 : null;
-      return '추세선+5일선 동시 돌파' + (breakGap != null ? ' · 돌파폭 +' + breakGap.toFixed(1) + '%' : '');
+      var volText = detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '';
+      return '하락 추세선 돌파' + (breakGap != null ? ' · 돌파폭 +' + breakGap.toFixed(1) + '%' : '') + ' · 5일선 상승' + volText;
     }
-    if (patternKey === 'doubleBottom') return detail.low1 && detail.low2 ? '쌍바닥 저점 확인' : '쌍바닥 구조';
-    if (patternKey === 'invHeadShoulders') return detail.head && detail.neckline ? '헤드·어깨 구조 확인' : '역헤드앤숄더 구조';
+    if (patternKey === 'doubleBottom') {
+      if (!(detail.low1 && detail.low2)) return '쌍바닥 구조';
+      var dbReady = detail.status === 'NECKLINE_READY';
+      var dbDist = Number(detail.necklineDistancePct);
+      return (dbReady ? '🟢 넥라인 접근' : '🟡 바닥 확인')
+        + (isFinite(dbDist) ? ' · 넥라인 ' + (dbDist > 0 ? '+' : '') + dbDist.toFixed(1) + '%' : '')
+        + (detail.bottomDiffPct != null ? ' · 저점차 ' + Number(detail.bottomDiffPct).toFixed(1) + '%' : '');
+    }
+    if (patternKey === 'invHeadShoulders') {
+      if (!(detail.head && detail.neckline)) return '역헤드앤숄더 구조';
+      var ihsDist = Number(detail.necklineDistancePct);
+      return (detail.status === 'BREAKOUT_NEW' ? '🟢 신규 돌파' : '🟡 넥라인 접근')
+        + (isFinite(ihsDist) ? ' · 넥라인 ' + (ihsDist > 0 ? '+' : '') + ihsDist.toFixed(1) + '%' : '')
+        + (detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '');
+    }
     if (patternKey === 'boxRangeLow') {
       var criteria = detail.criteria || {};
       var position = Number(criteria.lowerPositionPct);
-      return isFinite(position) ? '박스 하단 ' + position.toFixed(1) + '%' : '박스 하단 반등';
+      var boxLabel = detail.status === 'REBOUND' ? '🟢 하단 반등' : '🟡 하단 접근';
+      return isFinite(position) ? boxLabel + ' · 박스 하단 ' + position.toFixed(0) + '%' + (criteria.rsi14 != null ? ' · RSI ' + Number(criteria.rsi14).toFixed(0) : '') : boxLabel;
     }
     if (patternKey === 'openingGap') {
       var gap = Number(detail.gapRatePct);
       return isFinite(gap) ? '시초 갭 +' + gap.toFixed(1) + '%' : '시초 갭상승';
     }
-    if (patternKey === 'pullback') return detail.ma20 || detail.ma240 ? '이평선 눌림 확인' : '눌림목 구조';
+    if (patternKey === 'pullback') {
+      if (!(detail.ma20 || detail.ma240)) return '눌림목 구조';
+      var pbKind = { MA20: 'MA20 눌림', MA240: 'MA240 눌림', 'MA20+MA240': 'MA20+MA240 응축 눌림' }[detail.supportKind] || '이평선 눌림';
+      return (detail.status === 'SUPPORT_CONFIRMED' ? '🟢 지지 확인' : '🟡 눌림 진행') + ' · ' + pbKind
+        + (detail.pullbackPct != null ? ' · 고점 대비 -' + Number(detail.pullbackPct).toFixed(1) + '%' : '');
+    }
     if (patternKey === 'angleMomentum') {
-      var angleShort = Number(detail.angleShort);
-      return isFinite(angleShort) ? '단기 각도 +' + angleShort.toFixed(1) + '도' : '각도 상승 전환';
+      var amShort = Number(detail.shortSlopePct);
+      var amBurst = Number(detail.burstRatio);
+      if (!isFinite(amShort)) return '각도 상승 전환';
+      return (detail.status === 'BURST' ? '🟢 각도 분출' : '🟡 각도 전환')
+        + ' · MA5 ' + (amShort > 0 ? '+' : '') + amShort.toFixed(2) + '%/일'
+        + (isFinite(amBurst) ? ' · 분출 ' + amBurst.toFixed(1) + '배' : '')
+        + (detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '');
     }
     if (patternKey === 'gongpasan') {
-      var retreatPct = Number(detail.retreatPct);
-      return isFinite(retreatPct) ? '고점 대비 ' + retreatPct.toFixed(1) + '% · 눌림목 지지' : '눌림목 지지 확인';
+      var gpDays = Number(detail.daysSinceBreakout);
+      var gpGap = Number(detail.ma20Distance);
+      return (detail.status === 'SUPPORT_CONFIRMED' ? '✅ MA20 지지 확인' : '🟢 첫 눌림')
+        + (isFinite(gpDays) ? ' · 돌파 ' + gpDays + '거래일 후' : '')
+        + (isFinite(gpGap) ? ' · 저가-MA20 ' + gpGap.toFixed(1) + '%' : '')
+        + (detail.pullbackVolumeRatio != null ? ' · 눌림 거래량 ' + Math.round(Number(detail.pullbackVolumeRatio) * 100) + '%' : '');
     }
     if (patternKey === 'volumeBreakout') {
       var volumeRatio = Number(detail.volumeRatio);
@@ -616,15 +663,15 @@
     if (text) return text;
     return {
       risingLows: '최근 저점이 높아지는 구조',
-      shortTermMaBreakout: '하락 추세선을 종가·5일선이 함께 뚫는 초입',
-      maCloudBreakout: '이평선과 구름대 상단을 확인하는 구간',
-      doubleBottom: '두 저점이 비슷한 쌍바닥 구조',
-      invHeadShoulders: '어깨·머리·어깨 구조',
-      boxRangeLow: '박스 하단 구간',
-      pullback: '상승 후 이평선 부근 눌림목',
+      shortTermMaBreakout: '하락 추세선을 종가가 처음 돌파하고 5일선이 상승 중인 초입',
+      maCloudBreakout: '224일선·구름대가 응축된 구간에서 상단 돌파를 준비하거나 막 돌파한 구간',
+      doubleBottom: '두 번째 바닥을 확인하고 넥라인으로 회복하는 쌍바닥 구조',
+      invHeadShoulders: '어깨·머리·어깨 바닥 구조가 완성돼 넥라인에 접근하거나 막 돌파한 구간',
+      boxRangeLow: '횡보 박스의 하단에서 지지를 받거나 반등을 시도하는 구간',
+      pullback: '강한 상승 뒤 거래량이 줄며 이평선 부근에서 지지받는 눌림목',
       openingGap: '전일 종가보다 높게 시작한 갭상승',
-      angleMomentum: '이동평균선 각도가 위로 꺾이며 가속되는 구간',
-      gongpasan: '역배열 바닥권 매집 후 돌파·눌림목 지지 구간',
+      angleMomentum: '전형가 이동평균의 기울기가 먼저 위로 꺾이는 초기 전환 구간',
+      gongpasan: '바닥 횡보·매집 뒤 돌파한 종목의 첫 20일선 눌림 지지 구간',
       volumeBreakout: '갭상승 출발 + 개장 5분 누적 거래량이 전일의 30% 이상'
     }[patternKey] || '검색 조건을 충족한 차트 패턴';
   }
@@ -982,7 +1029,7 @@
         }
         // Box-range scans include market cap in the VM snapshot; GAS cannot
         // reproduce that E condition during an on-demand chart request.
-        if ((item.track || activeTab === 'boxRangeLow' || activeTab === 'openingGap' || activeTab === 'risingLows') && item.patternDetail) {
+        if (item.patternDetail) {
           data.detail = item.patternDetail;
         }
         // 리스트는 하루 1회 스캔 캐시라서, 클릭 시 실시간 재검증에서 패턴이 더 이상
@@ -1577,9 +1624,14 @@
       if (seq.every(function (p) { return !!p; })) {
         if (detail.current) seq.push(detail.current);
         addLine(seq, SUPPORT_COLOR, { bold: true });
-        addHLine(detail.neckline.price, detail.left_shoulder.date, RESIST_COLOR);
-        ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { addDot(detail[k], SUPPORT_COLOR, 'belowBar'); });
-        addDot(detail.neckline, RESIST_COLOR, 'aboveBar');
+        // 2026-10-04: 넥라인은 N1(좌어깨~머리 고점)과 N2(머리~우어깨 고점)를 잇는 기울어진 실제 계산선을 오늘까지 연장해 그린다
+        if (Array.isArray(detail.neckline_line) && detail.neckline_line.length === 2) {
+          addLine(detail.neckline_line, RESIST_COLOR, { bold: true });
+        } else {
+          addHLine(detail.neckline.price, detail.left_shoulder.date, RESIST_COLOR);
+        }
+        ['left_shoulder', 'head', 'right_shoulder'].forEach(function (k) { addDot(detail[k], SUPPORT_COLOR, 'belowBar', 1.8); });
+        ['left_peak', 'right_peak'].forEach(function (k) { addDot(detail[k], RESIST_COLOR, 'aboveBar', 1.4); });
         if (detail.signal) addSignal(detail.signal);
       }
     } else if (pattern === 'boxRangeLow') {
@@ -1596,8 +1648,16 @@
       if (Array.isArray(detail.trendline) && detail.trendline.length === 2) {
         addLine(detail.trendline, RESIST_COLOR, { bold: true });
       }
-      if (detail.signal) addSignal(detail.signal);
+      (detail.high_swings || []).forEach(function (p) { addDot(p, RESIST_COLOR, 'aboveBar', 1.8); }); // H1·H2 스윙 고점
+      if (detail.signal) addSignal(detail.signal);   // 오늘 종가 돌파 위치
     } else if (pattern === 'maCloudBreakout') {
+      // 구름 자체는 일목 오버레이(기본 켜짐)로, 224일선은 공통 이평선으로 그린다. 여기서는 오늘 구름 상·하단 기준선과 돌파일을 표시한다.
+      if (detail.cloud) {
+        var mcFrom = daily[Math.max(0, daily.length - 60)] && daily[Math.max(0, daily.length - 60)].date;
+        addHLine(detail.cloud.top, mcFrom, RESIST_COLOR);
+        addHLine(detail.cloud.bottom, mcFrom, SUPPORT_COLOR);
+      }
+      if (detail.breakoutDate) addDot({ date: detail.breakoutDate, price: (daily.filter(function (d) { return d.date === detail.breakoutDate; })[0] || {}).high }, RESIST_COLOR, 'aboveBar', 1.8);
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'pullback') {
       // 상승 시작(저점) -> 고점 -> 현재가(조정 중) 순서로 이어 "얼마나 올랐다가 얼마나
@@ -1611,8 +1671,27 @@
     } else if (pattern === 'openingGap') {
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'angleMomentum') {
+      // 전형가(고+저+종)/3의 5·10·20일 단순이동평균 - 이 검색기가 기울기를 보는 선 그대로 그린다
+      var tpVals = daily.map(function (d) { return (d.high + d.low + d.close) / 3; });
+      [[5, '#d24f45'], [10, '#e08a2e'], [20, '#3b6fd6']].forEach(function (cfg) {
+        var pts = [];
+        var sum = 0;
+        for (var ti = 0; ti < tpVals.length; ti++) {
+          sum += tpVals[ti];
+          if (ti >= cfg[0]) sum -= tpVals[ti - cfg[0]];
+          if (ti >= cfg[0] - 1) pts.push({ time: daily[ti].date, value: sum / cfg[0] });
+        }
+        chart.addSeries(LWC.LineSeries, { color: cfg[1], lineWidth: 2, priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }).setData(pts);
+      });
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'gongpasan') {
+      // 진행 순서가 보이도록: 바닥 박스(고·저) -> 매집봉 -> 돌파봉·돌파 레벨 -> 첫 눌림(오늘). 20일선·5일선은 공통 이평선으로 이미 그린다.
+      if (detail.baseHigh != null) addHLine(detail.baseHigh, detail.accumulationDate || detail.breakoutDate, RESIST_COLOR);
+      if (detail.baseLow != null) addHLine(detail.baseLow, detail.accumulationDate || detail.breakoutDate, SUPPORT_COLOR);
+      if (detail.breakoutLevel != null && detail.breakoutDate) addHLine(detail.breakoutLevel, detail.breakoutDate, RESIST_COLOR);
+      function gpBar(date) { return daily.filter(function (d) { return d.date === date; })[0]; }
+      if (detail.accumulationDate && gpBar(detail.accumulationDate)) addDot({ date: detail.accumulationDate, price: gpBar(detail.accumulationDate).low }, SUPPORT_COLOR, 'belowBar', 1.6);
+      if (detail.breakoutDate && gpBar(detail.breakoutDate)) addDot({ date: detail.breakoutDate, price: gpBar(detail.breakoutDate).high }, RESIST_COLOR, 'aboveBar', 1.8);
       if (detail.signal) addSignal(detail.signal); // 눌림목 매수 타점(오돌이 돌파 자체가 아님)
     }
 

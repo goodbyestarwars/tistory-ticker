@@ -101,15 +101,16 @@ class GongpasanStrategyTests(unittest.TestCase):
         self.assertEqual(list(df.columns), gp.DAILY_PRICES_COLUMNS)
         self.assertEqual(len(df), 0)
 
-    def test_breakout_signal_fires_once_at_the_odori_candle(self):
+    def test_breakout_signal_fires_at_odori_candles(self):
+        """2026-10-04 돌파봉 재정의(직전 5봉 고가 돌파 + 종가>5일선 + 양봉 + 장대) 후에는 매집봉 자체가 장대 양봉이면 그
+        봉도 돌파봉이 될 수 있다 - 합성 데이터에서 돌파 신호는 최소 1회, 모두 오돌이 조건과 같이 떠야 한다."""
         rows, _, _ = _decline_gongguri_breakout_pullback_rows()
         with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
             df = gp.calculate_gongpasan_signal('005930', conn=object())
         fired = df.index[df['breakout_signal']].tolist()
-        self.assertEqual(len(fired), 1, '역배열+공구리+매집봉+오돌이가 전부 겹치는 합성 데이터라 '
-                          '정확히 한 번만 떠야 한다')
-        # 그 시점엔 반드시 오돌이 조건(직전 5봉 고가 돌파 + 5일선 상향 돌파)이 같이 True여야 한다.
-        self.assertTrue(bool(df.loc[fired[0], 'is_odori']))
+        self.assertGreaterEqual(len(fired), 1)
+        for idx in fired:
+            self.assertTrue(bool(df.loc[idx, 'is_odori']))
 
     def test_entry_signal_fires_after_breakout_not_before(self):
         rows, _, _ = _decline_gongguri_breakout_pullback_rows()
@@ -201,7 +202,7 @@ class GongpasanStrategyTests(unittest.TestCase):
             df = gp.calculate_gongpasan_signal('005930', conn=object())
         self.assertFalse(df['is_odori'].any())
 
-    def test_gongguri_requires_ma_converge_even_within_range_tolerance(self):
+    def test_ma_converge_is_a_score_factor_not_a_hard_condition(self):
         """40일 종가 변동폭이 25% 이내라도, 그 구간 안에서 20일선-60일선 이격도가 한 번도
         5% 이내로 수렴하지 않으면(계단식 하락 중 일시 횡보) is_gongguri가 False여야 한다."""
         rows = []
@@ -225,7 +226,40 @@ class GongpasanStrategyTests(unittest.TestCase):
             df = gp.calculate_gongpasan_signal('005930', rows=rows)
         # 마지막 40일 구간 자체의 변동폭은 좁지만, 60일선에는 그 이전의 가파른 하락 구간이
         # 섞여 들어가 있어 20일선과 계속 5% 넘게 벌어져 있어야 한다.
-        self.assertFalse(bool(df['is_gongguri'].iloc[-1]))
+        # 2026-10-04: 20일선-60일선 수렴은 필수가 아니라 점수 가산 요소 - 횡보폭만 좁으면 공구리, 수렴 여부는 별도 컬럼
+        self.assertTrue(bool(df['is_gongguri'].iloc[-1]))
+        self.assertFalse(bool(df['ma_converge'].iloc[-1]))
+
+    def test_first_pullback_only(self):
+        """돌파 후 20일선에 처음 접근한 봉에서 감시가 끝난다 - 같은 돌파로 두 번째 접근은 타점이 아니다."""
+        rows, _, _ = _decline_gongguri_breakout_pullback_rows()
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        pairs = {}
+        for idx in df.index[df['entry_signal']].tolist():
+            pairs.setdefault(int(df.loc[idx, 'entry_breakout_idx']), []).append(idx)
+        for b, idxs in pairs.items():
+            self.assertEqual(len(idxs), 1, '돌파 %d에서 첫 눌림 타점은 한 번만 나와야 한다' % b)
+
+    def test_entry_status_and_score(self):
+        rows, _, _ = _decline_gongguri_breakout_pullback_rows()
+        with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
+            df = gp.calculate_gongpasan_signal('005930', conn=object())
+        idx = df.index[df['entry_signal']].tolist()[-1]
+        self.assertIn(df.loc[idx, 'entry_status'], ('FIRST_PULLBACK', 'SUPPORT_CONFIRMED'))
+        score, reasons, detail = gp.score_entry(df, idx)
+        self.assertTrue(0 < score <= 100)
+        self.assertEqual(len(reasons), 4)
+        self.assertGreaterEqual(detail['daysSinceBreakout'], 1)
+        self.assertLessEqual(detail['daysSinceBreakout'], gp.PULLBACK_MAX_LOOKAHEAD)
+
+    def test_pullback_after_ma20_break_close_is_not_an_entry(self):
+        close = np.array([10.0, 10.0, 10.0, 8.0, 10.0])
+        low = np.array([10.0, 10.0, 9.9, 7.9, 9.9])
+        sma20 = np.array([9.0, 9.0, 9.0, 9.0, 9.0])
+        breakout = np.array([True, False, False, False, False])
+        entry, _ = gp._first_pullback_entry_flags(breakout, low, close, sma20)
+        self.assertFalse(entry.any())   # 첫 접근(idx3)이 종가 8로 20일선(9)을 -3% 넘게 이탈 - 지지가 아니고 감시도 끝난다
 
     def test_entry_quality_marks_bullish_close_as_high(self):
         rows, breakout_idx, _ = _decline_gongguri_breakout_pullback_rows()

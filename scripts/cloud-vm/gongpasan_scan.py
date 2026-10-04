@@ -70,18 +70,23 @@ def _build_match(stock, df):
     ]
 
     retreat_pct = float(last['retreat_pct']) if last['retreat_pct'] == last['retreat_pct'] else None
-    score = _score_from_retreat(retreat_pct)
-
-    reasons = [
-        '최근 160일 고점 대비 %.1f%% 낙폭' % (retreat_pct if retreat_pct is not None else 0.0),
-        '최근 40일 좁은 횡보(공구리)',
-        '최근 60일 내 대량거래 매집봉 확인',
-        '5봉 고가·5일선 동시 돌파(오돌이) 후 20일선 눌림목 지지',
-    ]
+    # 2026-10-04: 점수·근거는 gongpasan_strategy.score_entry(160일 낙폭·40일 횡보·매집봉·돌파봉·돌파 거래량·첫 20일선 눌림·
+    # 지지 확인·눌림 거래량 감소, 100점)가 계산한다. 산출 못 하면(돌파 인덱스 없음) 예전처럼 낙폭 기반 참고 점수로 대체.
+    scored = gp.score_entry(df, len(df) - 1)
+    if scored:
+        score, reasons, entry_detail = scored
+        status = entry_detail.get('status')
+    else:
+        score, entry_detail, status = _score_from_retreat(retreat_pct), {}, None
+        reasons = [
+            '최근 160일 고점 대비 %.1f%% 낙폭' % (retreat_pct if retreat_pct is not None else 0.0),
+            '최근 40일 좁은 횡보(공구리)',
+            '최근 60일 내 대량거래 매집 흔적',
+            '5봉 고가 돌파 후 첫 20일선 눌림 지지',
+        ]
     interpretation = (
-        '역배열 바닥권에서 매집봉이 나온 뒤 좁게 다져지다가(공구리), 5봉 고가를 뚫는 장대양봉으로 '
-        '5일선을 돌파(오돌이)한 뒤 20일선까지 눌림받아 지지가 확인된 자리입니다. 역매공파 스킬 '
-        '기준 매수 타점이며, 확정된 매수 신호는 아닙니다.'
+        '장기 낙폭 뒤 바닥 횡보와 매집 흔적이 나온 종목이 5봉 고가를 강한 양봉으로 돌파한 뒤, 처음으로 20일선까지 눌려 '
+        '지지가 확인된 첫 눌림 자리입니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심이며, 확정된 매수 신호는 아닙니다.'
     )
     date_str = last['date'].strftime('%Y-%m-%d')
 
@@ -102,6 +107,16 @@ def _build_match(stock, df):
             'signal': {'date': date_str, 'price': float(last['close'])},
             'retreatPct': retreat_pct,
             'blueLine': float(last['blue_line']) if last['blue_line'] == last['blue_line'] else None,
+            'ma20': float(last['sma20']) if last['sma20'] == last['sma20'] else None,
+            'status': status,
+            'breakoutDate': entry_detail.get('breakoutDate'),
+            'breakoutLevel': entry_detail.get('breakoutLevel'),
+            'baseHigh': entry_detail.get('baseHigh'),
+            'baseLow': entry_detail.get('baseLow'),
+            'accumulationDate': entry_detail.get('accumulationDate'),
+            'daysSinceBreakout': entry_detail.get('daysSinceBreakout'),
+            'ma20Distance': entry_detail.get('ma20Distance'),
+            'pullbackVolumeRatio': entry_detail.get('pullbackVolumeRatio'),
             'scanned_at': datetime.now(timezone.utc).isoformat(),
         },
     }

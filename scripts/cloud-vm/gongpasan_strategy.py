@@ -33,28 +33,42 @@ DECLINE_LOOKBACK = 160    # 낙폭 기준 고점 조회 기간(영업일)
 DECLINE_MIN_PCT = 25.0    # 최근 160일 고점 대비 낙폭 최소치(%)
 
 GONGGURI_LOOKBACK = 40    # 공구리(바닥 다지기) 조회 기간(영업일)
-GONGGURI_MAX_RANGE_PCT = 25.0  # 그 기간 종가 변동폭 (max-min)/min 상한(%)
+# 2026-10-04: 바닥 횡보 폭을 꼬리 포함 (최고 고가 - 최저 저가)/최저 저가 <= 20%로 명확히 정의(예전: 종가 변동폭 25%).
+GONGGURI_MAX_RANGE_PCT = 20.0
 # 2026-08-22 신설(작업지시서 1단계): 공구리 구간 안에 20일선-60일선 이격도가 이 비율
 # 이내로 수렴하는 시점이 하루라도 있어야 함 - "진짜 바닥 다지기"와 "계단식 하락 중
 # 일시 횡보"를 구분하기 위함. 임시값, 추후 백테스트로 조정.
 GONGGURI_MA_CONVERGE_TOL = 0.05
 
 DAEJIP_LOOKBACK = 60      # 매집봉 존재 확인 기간(영업일)
-DAEJIP_VOL_MULT = 2.5     # 매집봉 거래량 기준 - 20일 평균 대비 배수
-DAEJIP_BODY_MIN_PCT = 4.0  # 매집봉 몸통 최소 크기((종가-시가)/시가, %)
+# 2026-10-04 매집봉 재정의: 양봉 몸통 4%를 필수로 두지 않고 "대량거래 + 종가가 봉 상단 + 장대음봉 아님 + 이후 저점 유지"로 본다.
+DAEJIP_VOL_MULT = 2.0     # 매집봉 거래량 기준 - 20일 평균 대비 배수(예전 2.5)
+DAEJIP_MIN_CLOSE_POSITION = 0.5   # (종가-저가)/(고가-저가) 하한 - 종가가 봉의 상단
+DAEJIP_BEARISH_BODY_MAX_PCT = 4.0 # 이 이상 큰 음봉(몸통)은 매집이 아니라 투매로 보고 제외
+DAEJIP_LOW_HOLD = 0.95            # 매집봉 이후 저가가 매집봉 저가의 이 비율 아래로 내려가면 매집 실패
 # 2026-08-22 신설(작업지시서 2단계): 매집봉 당일 거래대금(종가x거래량)이 최소 이 금액
 # (억원) 이상이어야 함 - 소형주/저유동성 종목에서 상대적 배수만으로 통과되는 착시 방지.
 # 임시값, 추후 백테스트로 조정.
 DAEJIP_MIN_TRADING_VALUE_EOK = 100
 
 ODORI_LOOKBACK = 5        # "5봉 이기는 봉" - 직전 N봉 고가를 넘는지
+# 2026-10-04 돌파봉: 직전 5봉 고가 돌파 + 종가 > 5일선 + 양봉 + 장대(몸통 3% 이상 또는 ATR14 x 0.8 이상).
+# 예전엔 "전일 종가는 5일선 아래, 오늘 위"의 5일선 상향 교차를 요구했다.
+ODORI_MIN_BODY_PCT = 3.0
+ODORI_MIN_BODY_ATR = 0.8
+ATR_PERIOD = 14
 # 2026-08-22 신설(작업지시서 3단계): 돌파(오돌이) 당일 거래대금이 최소 이 금액(억원)
 # 이상이어야 함 - 거래대금 없는 가짜 돌파(개미 털기) 필터링. 임시값, 추후 백테스트로 조정.
 ODORI_MIN_TRADING_VALUE_EOK = 300
 
 # 스킬에 명시적 숫자가 없어 임의로 정한 값 - 필요시 조정.
-PULLBACK_MAX_LOOKAHEAD = 40  # 돌파(오돌이) 후 이 기간 안의 눌림목만 유효한 타점으로 인정
-SUPPORT_TOUCH_TOL_PCT = 2.0   # 저가가 지지선(20일선) ±이 % 이내로 닿았다고 볼 허용오차
+# 2026-10-04 첫 눌림만: 돌파 뒤 20거래일 안에 20일선에 "처음" 접근한 봉만 판정한다(접근한 봉이 지지가 아니면 그 돌파는 소진).
+PULLBACK_MAX_LOOKAHEAD = 20  # BREAKOUT_TO_PULLBACK_MAX_DAYS: 돌파(오돌이) 후 이 기간 안의 첫 눌림만 유효
+SUPPORT_TOUCH_TOL_PCT = 3.0   # MA20_TOUCH: 저가가 20일선 +3% 이내로 내려오면 "접근"
+SUPPORT_CLOSE_FLOOR_PCT = 1.0 # 지지 확인: 종가 >= 20일선 x (1 - 1%)
+LEGACY_PULLBACK_MAX_LOOKAHEAD = 40  # 호환용(변형 스캐너가 쓰는 예전 규칙)
+LEGACY_SUPPORT_TOUCH_TOL_PCT = 2.0
+MA20_BREAK_PCT = 3.0          # 종가가 20일선 아래 3% 넘게 마감하면 20일선 이탈(제외)
 
 DEFAULT_TIMECUT_DAYS = 20     # 사용자 원 지시서에 명시된 값 그대로 유지
 DEFAULT_SLIPPAGE_PCT = 0.0015
@@ -72,8 +86,13 @@ DAILY_PRICES_COLUMNS = [
     'date', 'open', 'high', 'low', 'close', 'volume',
     'sma5', 'sma20', 'sma46', 'sma60', 'sma112', 'sma224', 'blue_line',
     'retreat_pct', 'is_gongguri', 'has_daejip_bong', 'is_odori',
-    'breakout_signal', 'entry_signal', 'entry_quality',
+    'breakout_signal', 'entry_signal', 'entry_quality', 'entry_status', 'entry_breakout_idx',
+    'daejip_bar', 'daejip_vol_ratio', 'ma_converge', 'atr14',
 ]
+
+
+def trading_value_series(df):
+    return df['close'] * df['volume']
 
 
 def _pct_range(series, window):
@@ -83,16 +102,47 @@ def _pct_range(series, window):
 
 
 def _pullback_entry_flags(breakout, low, close, sma20):
-    """돌파(오돌이) 이후 처음으로 20일선에 닿아 지지받는 캔들만 True로 표시한다(스킬 §3:
+    """[호환용 - angle_momentum_pullback_variant_scan.py가 그대로 재사용하므로 2026-10-04 이전 규칙(20일선 +-2%, 40봉, 지지 실패 시 재감시) 유지]
+    돌파(오돌이) 이후 처음으로 20일선에 닿아 지지받는 캔들만 True로 표시한다(스킬 §3:
     "그 눌림이 뚫었던 20일선에 닿아 지지받는 첫 캔들 = 매수 타점"). 벡터화가 아니라
     한 번의 순차 스캔으로 처리한다(종목 1개분 - 수백 개 행이라 성능에 영향 없음, 상태를
     들고 다녀야 하는 로직이라 오히려 이쪽이 더 명확함).
-    - 돌파 이후 PULLBACK_MAX_LOOKAHEAD봉 안에서만 유효하고, 그 안에 지지 캔들이 없으면
+    - 돌파 이후 LEGACY_PULLBACK_MAX_LOOKAHEAD봉 안에서만 유효하고, 그 안에 지지 캔들이 없으면
       해당 돌파는 소멸(다음 새 돌파를 다시 기다림).
     - 지지 캔들 하나를 찾으면 그 돌파는 소진되고(같은 돌파로 두 번 타점 안 남), 다음 새
       돌파가 나와야 다시 감시를 시작한다."""
     n = len(breakout)
     entry = np.zeros(n, dtype=bool)
+    watching_since = None
+    for i in range(n):
+        if breakout[i]:
+            watching_since = i
+            continue
+        if watching_since is None:
+            continue
+        bars_since = i - watching_since
+        if bars_since > LEGACY_PULLBACK_MAX_LOOKAHEAD:
+            watching_since = None
+            continue
+        ma = sma20[i]
+        if bars_since >= 1 and np.isfinite(ma) and ma > 0:
+            touched = low[i] <= ma * (1 + LEGACY_SUPPORT_TOUCH_TOL_PCT / 100.0)
+            held = close[i] >= ma * (1 - LEGACY_SUPPORT_TOUCH_TOL_PCT / 100.0)
+            if touched and held:
+                entry[i] = True
+                watching_since = None
+    return entry
+
+
+def _first_pullback_entry_flags(breakout, low, close, sma20):
+    """돌파(오돌이) 이후 "처음으로" 20일선에 접근한 캔들만 평가한다(스킬 §3 + 2026-10-04 첫 눌림만).
+    - 돌파 후 1봉째부터 PULLBACK_MAX_LOOKAHEAD(20)봉 안에서만 유효, 그 안에 접근이 없으면 돌파는 소멸.
+    - 접근(저가 <= 20일선 x 1.03)한 첫 봉에서 감시를 끝낸다. 그 봉의 종가가 20일선 x 0.99 이상이면 entry(지지 확인),
+      아니면(20일선 이탈 또는 불안한 마감) 그 돌파는 소진돼 이후 두 번째 눌림은 타점이 아니다.
+    반환: (entry 불리언 배열, 각 entry의 돌파 봉 인덱스 배열(없으면 -1))."""
+    n = len(breakout)
+    entry = np.zeros(n, dtype=bool)
+    breakout_idx = np.full(n, -1, dtype=int)
     watching_since = None
     for i in range(n):
         if breakout[i]:
@@ -107,11 +157,38 @@ def _pullback_entry_flags(breakout, low, close, sma20):
         ma = sma20[i]
         if bars_since >= 1 and np.isfinite(ma) and ma > 0:
             touched = low[i] <= ma * (1 + SUPPORT_TOUCH_TOL_PCT / 100.0)
-            held = close[i] >= ma * (1 - SUPPORT_TOUCH_TOL_PCT / 100.0)
-            if touched and held:
-                entry[i] = True
-                watching_since = None
-    return entry
+            if touched:
+                if close[i] >= ma * (1 - SUPPORT_CLOSE_FLOOR_PCT / 100.0):
+                    entry[i] = True
+                    breakout_idx[i] = watching_since
+                watching_since = None      # 첫 접근에서 소진(지지든 이탈이든)
+    return entry, breakout_idx
+
+
+def _accumulation_bars(df):
+    """매집봉 후보(대량거래 + 종가가 봉 상단 + 장대음봉 아님 + 거래대금 하한) 중, 이후 저점을 크게 깨지 않고 유지되는
+    구간을 각 날짜에서 볼 수 있게 (candidate 불리언, 유지 만료 인덱스) 배열로 돌려준다."""
+    vol_ma20 = df['volume'].rolling(MA_MID).mean()
+    vol_ratio = df['volume'] / vol_ma20
+    span = (df['high'] - df['low']).replace(0, np.nan)
+    close_position = (df['close'] - df['low']) / span
+    body_pct = (df['close'] - df['open']) / df['open'] * 100
+    trading_value = df['close'] * df['volume']
+    candidate = (
+        (vol_ratio >= DAEJIP_VOL_MULT)
+        & (close_position >= DAEJIP_MIN_CLOSE_POSITION)
+        & (body_pct > -DAEJIP_BEARISH_BODY_MAX_PCT)
+        & (trading_value >= DAEJIP_MIN_TRADING_VALUE_EOK * 1e8)
+    ).fillna(False).to_numpy(dtype=bool)
+    low = df['low'].to_numpy(dtype=float)
+    n = len(df)
+    expires = np.full(n, n + 1, dtype=int)        # 매집이 깨지는 첫 인덱스(깨지지 않으면 n+1)
+    for j in np.where(candidate)[0]:
+        floor = low[j] * DAEJIP_LOW_HOLD
+        broken = np.where(low[j + 1:] < floor)[0]
+        if len(broken):
+            expires[j] = j + 1 + int(broken[0])
+    return candidate, expires, vol_ratio.to_numpy(dtype=float)
 
 
 def calculate_gongpasan_signal(code, conn=None, rows=None):
@@ -160,44 +237,53 @@ def calculate_gongpasan_signal(code, conn=None, rows=None):
     df['retreat_pct'] = (df['close'] - high160) / high160 * 100
     is_deep_decline = df['retreat_pct'] <= -DECLINE_MIN_PCT
 
-    # (2) 공구리 - 최근 40일 종가 변동폭
-    range_ok = _pct_range(df['close'], GONGGURI_LOOKBACK) <= GONGGURI_MAX_RANGE_PCT
-    # 2026-08-22 신설: 그 40일 구간 안에 20일선-60일선 이격도가 GONGGURI_MA_CONVERGE_TOL
-    # (5%) 이내로 수렴하는 날이 하루라도 있어야 "진짜 바닥 다지기"로 인정 - 계단식
-    # 하락 중 일시 횡보(이평선끼리 계속 벌어져 있음)와 구분.
+    # (2) 공구리 - 최근 40일 꼬리 포함 변동폭 (최고 고가 - 최저 저가)/최저 저가 <= 20%.
+    # 20일선-60일선 수렴(ma_converge)은 2026-10-04부터 필수가 아니라 점수 가산 요소다.
+    box_high = df['high'].rolling(GONGGURI_LOOKBACK).max()
+    box_low = df['low'].rolling(GONGGURI_LOOKBACK).min()
+    range_ok = ((box_high - box_low) / box_low * 100) <= GONGGURI_MAX_RANGE_PCT
     ma_gap_pct = (df['sma20'] - df['sma60']).abs() / df['sma60']
     ma_converge_point = ma_gap_pct <= GONGGURI_MA_CONVERGE_TOL
-    has_ma_converge = ma_converge_point.rolling(GONGGURI_LOOKBACK).max().fillna(0).astype(bool)
-    df['is_gongguri'] = range_ok & has_ma_converge
+    df['ma_converge'] = ma_converge_point.rolling(GONGGURI_LOOKBACK).max().fillna(0).astype(bool)
+    df['is_gongguri'] = range_ok.fillna(False)
 
-    # (3) 매집봉 - 최근 60일 내 (거래량 20일평균 2.5배+ & 양봉 몸통 4%+ & 거래대금 100억+)
-    # 가 한 번이라도 있었는지. 2026-08-22: 거래대금 조건 신설(소형주 상대배수 착시 방지).
-    vol_ma20 = df['volume'].rolling(MA_MID).mean()
-    body_pct = (df['close'] - df['open']) / df['open'] * 100
-    trading_value = df['close'] * df['volume']
-    daejip_bar = (
-        (df['volume'] >= vol_ma20 * DAEJIP_VOL_MULT)
-        & (body_pct >= DAEJIP_BODY_MIN_PCT)
-        & (trading_value >= DAEJIP_MIN_TRADING_VALUE_EOK * 1e8)
-    )
-    df['has_daejip_bong'] = daejip_bar.rolling(DAEJIP_LOOKBACK).max().fillna(0).astype(bool)
+    # (3) 매집봉 - 최근 60일 내 (거래량 20일평균 2배+, 종가가 봉 상단, 장대음봉 아님, 거래대금 100억+)이면서
+    # 그 뒤 저점이 매집봉 저가의 95% 아래로 무너지지 않은 봉이 있는지.
+    candidate, expires, vol_ratio_arr = _accumulation_bars(df)
+    df['daejip_bar'] = candidate
+    df['daejip_vol_ratio'] = vol_ratio_arr
+    n_rows = len(df)
+    has_daejip = np.zeros(n_rows, dtype=bool)
+    for j in np.where(candidate)[0]:
+        end = min(n_rows, j + DAEJIP_LOOKBACK + 1, expires[j])
+        has_daejip[j:end] = True
+    df['has_daejip_bong'] = has_daejip
 
-    # (4) 오돌이 - 직전 5봉 고가를 넘는 장대양봉 + 5일선 상향 돌파 + 돌파 당일 거래대금
-    # 300억 이상(2026-08-22 신설 - 거래대금 없는 가짜 돌파/개미 털기 필터링).
+    # (4) 돌파봉 - 직전 5봉 고가 돌파 + 종가 > 5일선 + 양봉 + 장대(몸통 3% 이상 또는 ATR14 x 0.8 이상) + 거래대금 300억+
+    prev_close = df['close'].shift(1)
+    true_range = pd.concat([df['high'] - df['low'], (df['high'] - prev_close).abs(), (df['low'] - prev_close).abs()], axis=1).max(axis=1)
+    df['atr14'] = true_range.rolling(ATR_PERIOD).mean()
     prior_high5 = df['high'].rolling(ODORI_LOOKBACK).max().shift(1)
-    ma5_cross_up = (df['close'] > df['sma5']) & (df['close'].shift(1) <= df['sma5'].shift(1))
-    odori_trading_value_ok = trading_value >= ODORI_MIN_TRADING_VALUE_EOK * 1e8
-    df['is_odori'] = (df['close'] > prior_high5) & ma5_cross_up & odori_trading_value_ok
+    body = df['close'] - df['open']
+    body_pct_o = body / df['open'] * 100
+    big_body = (body_pct_o >= ODORI_MIN_BODY_PCT) | (body >= df['atr14'] * ODORI_MIN_BODY_ATR)
+    odori_trading_value_ok = trading_value_series(df) >= ODORI_MIN_TRADING_VALUE_EOK * 1e8
+    df['is_odori'] = ((df['close'] > prior_high5) & (df['close'] > df['sma5']) & (df['close'] > df['open'])
+                      & big_body & odori_trading_value_ok)
 
     df['breakout_signal'] = is_deep_decline & df['is_gongguri'] & df['has_daejip_bong'] & df['is_odori']
 
-    entry_signal = _pullback_entry_flags(
+    entry_signal, entry_breakout_idx = _first_pullback_entry_flags(
         df['breakout_signal'].to_numpy(),
         df['low'].to_numpy(dtype=float),
         df['close'].to_numpy(dtype=float),
         df['sma20'].to_numpy(dtype=float),
     )
     df['entry_signal'] = entry_signal
+    df['entry_breakout_idx'] = entry_breakout_idx
+    # 상태: 지지 확인(양봉 마감 또는 전일 종가 상회) / 첫 눌림(접근은 했지만 뚜렷한 반등 전)
+    confirmed = (df['close'] > df['open']) | (df['close'] > df['close'].shift(1))
+    df['entry_status'] = np.where(entry_signal, np.where(confirmed, 'SUPPORT_CONFIRMED', 'FIRST_PULLBACK'), None)
 
     # 2026-08-22 신설(작업지시서 4단계): 지지 캔들(⑤) 자체는 여전히 필수조건 그대로 두고
     # (AND로 추가 안 함), 대신 캔들 품질을 별도 필드로 표기한다 - "신호는 넓게, 품질은
@@ -210,6 +296,66 @@ def calculate_gongpasan_signal(code, conn=None, rows=None):
     df['entry_quality'] = np.where(entry_signal, np.where(high_quality_candle, 'high', 'low'), None)
 
     return df[DAILY_PRICES_COLUMNS]
+
+
+def score_entry(df, i):
+    """entry_signal이 뜬 행 i의 점수(100)와 근거. 160일 낙폭 10 · 40일 바닥 횡보 15 · 매집봉 품질 15 · 돌파봉 품질 15 ·
+    돌파 거래량 10 · 첫 20일선 눌림 정확도 15 · 20일선 지지 확인 15 · 눌림 거래량 감소 5. 핵심은 첫 눌림 + MA20 지지 + 눌림 거래량 감소."""
+    row = df.iloc[i]
+    b = int(row['entry_breakout_idx'])
+    if b < 0:
+        return None
+    brk = df.iloc[b]
+    retreat = abs(float(brk['retreat_pct'])) if brk['retreat_pct'] == brk['retreat_pct'] else 0.0
+    dd_score = 10 if retreat >= 40 else 8 if retreat >= 30 else 6
+
+    base = df.iloc[max(0, b - GONGGURI_LOOKBACK):b]
+    base_range = (base['high'].max() - base['low'].min()) / base['low'].min() * 100 if len(base) else GONGGURI_MAX_RANGE_PCT
+    base_score = 15 if base_range <= 10 else 12 if base_range <= 15 else 9
+    if bool(brk['ma_converge']):
+        base_score = min(15, base_score + 2)
+
+    acc_window = df.iloc[max(0, b - DAEJIP_LOOKBACK):b + 1]
+    acc_ratio = float(acc_window.loc[acc_window['daejip_bar'], 'daejip_vol_ratio'].max()) if acc_window['daejip_bar'].any() else 0.0
+    acc_score = 15 if acc_ratio >= 3.0 else 12 if acc_ratio >= 2.5 else 9
+
+    body = float(brk['close'] - brk['open'])
+    atr = float(brk['atr14']) if brk['atr14'] == brk['atr14'] else 0.0
+    body_atr = body / atr if atr else 0.0
+    brk_score = 15 if body_atr >= 1.2 else 11
+    prior_vol = df['volume'].iloc[max(0, b - 20):b].mean()
+    brk_vol_ratio = float(brk['volume'] / prior_vol) if prior_vol else 0.0
+    brk_vol_score = 10 if brk_vol_ratio >= 2.0 else 7 if brk_vol_ratio >= 1.5 else 3
+
+    ma20 = float(row['sma20'])
+    touch_gap = abs(float(row['low']) - ma20) / ma20 * 100
+    touch_score = 15 if touch_gap <= 1.0 else 12 if touch_gap <= 2.0 else 9
+    support_score = 15 if (row['close'] > row['open'] and row['close'] >= ma20) else 10 if row['close'] >= ma20 else 7
+    pull_vols = df['volume'].iloc[b + 1:i + 1]
+    pull_ratio = float(pull_vols.mean() / brk['volume']) if len(pull_vols) and brk['volume'] else 1.0
+    pull_score = 5 if pull_ratio <= 0.70 else 2
+    score = dd_score + base_score + acc_score + brk_score + brk_vol_score + touch_score + support_score + pull_score
+    reasons = [
+        '160일 고점 대비 -%.1f%%(%d/10점) · 40일 바닥 횡보폭 %.1f%%(%d/15점)' % (retreat, dd_score, base_range, base_score),
+        '매집봉 거래량 %.1f배(%d/15점) · 돌파봉 몸통 ATR의 %.1f배(%d/15점) · 돌파 거래량 %.1f배(%d/10점)' % (
+            acc_ratio, acc_score, body_atr, brk_score, brk_vol_ratio, brk_vol_score),
+        '돌파 후 %d거래일째 첫 20일선 눌림: 저가-MA20 %.1f%%(%d/15점) · 지지 확인(%d/15점)' % (i - b, touch_gap, touch_score, support_score),
+        '눌림 구간 평균 거래량 돌파봉의 %.0f%%(%d/5점)' % (pull_ratio * 100, pull_score),
+    ]
+    detail = {
+        'status': row['entry_status'],
+        'breakoutIdx': b,
+        'breakoutDate': brk['date'].strftime('%Y-%m-%d'),
+        'breakoutLevel': float(df['high'].iloc[max(0, b - ODORI_LOOKBACK):b].max()),
+        'baseHigh': float(base['high'].max()) if len(base) else None,
+        'baseLow': float(base['low'].min()) if len(base) else None,
+        'accumulationDate': (acc_window.index[acc_window['daejip_bar']].tolist() and
+                             df.loc[acc_window.index[acc_window['daejip_bar']][-1], 'date'].strftime('%Y-%m-%d')) or None,
+        'daysSinceBreakout': i - b,
+        'ma20Distance': round(touch_gap, 2),
+        'pullbackVolumeRatio': round(pull_ratio, 2),
+    }
+    return min(100, score), reasons, detail
 
 
 def backtest_gongpasan(df, timecut_days=DEFAULT_TIMECUT_DAYS, slippage_pct=DEFAULT_SLIPPAGE_PCT):

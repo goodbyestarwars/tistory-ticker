@@ -56,11 +56,37 @@ MAX_ZERO_VOLUME_DAYS_20D = 1                   # 최근 20일 중 거래량 0인
 # 창(window)은 20일 - swing_model.classify_wave_structure()의 소파동(20일) 스케일과
 # 맞추기로 사용자 확인(소파동이 5일선을 뚫는 그림과 개념이 일치). 60일(중파동)은 신호가
 # 늦고 뜸해져서 채택 안 함.
-SHORT_MA_BREAKOUT_WINDOW = 20
-SHORT_MA_BREAKOUT_FRESH_TOL = 1.01  # 어제 종가가 추세선의 이 배율 이하였어야 "막 돌파"로 봄
+# 2026-10-04 단기이평 돌파형 재설계: 5일선은 후행 지표라 "종가와 5일선이 같은 날 함께 추세선 돌파"는 거의 안 걸렸다.
+# 이제 종가가 하락 추세선을 처음 돌파 + 종가가 상승 중인 5일선 위. 값은 상수라 결과 수를 보고 쉽게 조절한다.
+SHORT_MA_BREAKOUT_WINDOW = 30         # LOOKBACK(스윙 고점을 찾는 최근 봉 수)
+SHORT_MA_MIN_HIGH_DECLINE = 0.02      # H2 <= H1 x (1 - 이 값). 너무 적게 걸리면 0.015
+SHORT_MA_MIN_SWING_HIGH_GAP = 4       # H1~H2 최소 간격(봉). 3~5 조절
+SHORT_MA_TRENDLINE_TOL_PCT = 0.01     # 추세선 허용오차(추세선 대비 비율)
+SHORT_MA_TRENDLINE_ATR_MULT = 0.3     # 허용오차 = max(추세선 x 위 비율, ATR14 x 이 값)
+SHORT_MA_MAX_BREAKOUT_PCT = 0.05      # 오늘 종가가 추세선 위로 이 이상이면 이미 늦음
+SHORT_MA_MIN_TRADING_VALUE_20D = 1_000_000_000   # 20일 평균 거래대금 하한(거래가 거의 없는 종목 제외)
+SHORT_MA_VOLUME_BONUS_1 = 1.2
+SHORT_MA_VOLUME_BONUS_2 = 1.5
+ATR_PERIOD = 14
+# 2026-10-04 장기이평 응축기 재설계: 224일선 + 일목 구름 + 가격이 한곳에 응축된 종목을 "돌파 준비"와 "신규 돌파" 두 상태로 잡는다.
+# 예전엔 "종가가 구름 상단을 아직 넘지 않았다"가 필수라 구름 상단을 막 돌파한 종목이 오히려 제외됐다.
 MA_CLOUD_MIN_DAYS = 250
-MA_CLOUD_NEAR_TOL = 0.03       # 현재가와 224일선 사이 최대 3%
-MA_CLOUD_TOP_TOL = 0.03        # 구름 상단을 향한 현재 봉의 고가 근접도 최대 3%
+MA_CLOUD_NEAR_TOL = 0.03                # 돌파 준비: 종가가 224일선 +-3% 이내(MAX_READY_MA_DISTANCE)
+MA_CLOUD_TOP_TOL = 0.03                 # 구름 상단 접근: 고가가 구름 상단 3% 이내(CLOUD_TOP_APPROACH)
+MA_CLOUD_BREAKOUT_MA_MIN = -0.01        # 신규 돌파: 종가/224일선-1 하한(-1%)
+MA_CLOUD_BREAKOUT_MA_MAX = 0.05         # 신규 돌파: 종가/224일선-1 상한(+5%, MAX_BREAKOUT_MA_DISTANCE)
+MA_CLOUD_MAX_MA_CLOUD_DISTANCE = 0.05   # 224일선과 구름 중심 거리 상한(응축 조건, MAX_MA_CLOUD_DISTANCE)
+MA_CLOUD_BOTTOM_SUPPORT = 0.02          # 종가가 구름 하단 -2%보다 아래면 제외
+MA_CLOUD_READY_OVER_TOP = 0.01          # 돌파 준비: 종가가 구름 상단 +1% 이내까지는 아직 준비로 인정
+MA_CLOUD_MAX_BREAKOUT = 0.05            # 구름 상단 돌파폭 상한(MAX_CLOUD_BREAKOUT)
+MA_CLOUD_MAX_MA224_EXTENSION = 0.07     # 종가가 224일선보다 이 이상 위면 이미 늦음
+MA_CLOUD_BREAKOUT_MAX_AGE = 3           # 최초 돌파가 최근 3거래일(오늘 포함) 이내여야 신규 돌파
+MA_CLOUD_MAX_MA224_DECLINE_20D = 0.03   # 20일 동안 224일선이 이 이상 내려가면 제외
+MA_CLOUD_THIN_CLOUD = 0.05              # 구름 두께(/중심) 5% 이하면 응축도 가산
+MA_CLOUD_VOLUME_BONUS_1 = 1.2
+MA_CLOUD_VOLUME_BONUS_2 = 1.5
+MA_CLOUD_MIN_TRADING_VALUE_20D = 1_000_000_000   # 20일 평균 거래대금 하한(거래가 거의 없는 종목 제외)
+MA_CLOUD_BELOW_BOTTOM_DAYS = 5          # 최근 10봉 중 구름 하단 아래 종가가 이 횟수 이상이면 제외
 DOUBLE_BOTTOM_WINDOW = 120
 IHS_WINDOW = 90
 BOX_WINDOW = 21  # 20 bars for the range plus the 20-bars-ago reference bar
@@ -93,8 +119,22 @@ IHS_NECK_PROXIMITY_MIN = -0.01
 IHS_NECK_MIN_RISE = 0.03
 IHS_MIN_SHOULDER_GAP = 4
 IHS_MAX_SHOULDER_GAP = 40
-DB_RECENCY_MAX_GAP = 5
-IHS_RECENCY_MAX_GAP = 5
+DB_RECENCY_MAX_GAP = 5            # SECOND_BOTTOM_MAX_AGE: 두 번째 저점은 최근 5봉 안
+# 2026-10-04 쌍바닥 개선(RECOVERY / NECKLINE_READY 두 상태, L2 이후 바닥 훼손 제외, 3봉 평균 거래량 비교)
+DB_MAX_MIDDLE_BREAK = 0.02        # 두 저점 사이 더 낮은 저가 허용(2%)
+DB_NECK_READY_DISTANCE = 0.02     # 넥라인 접근: 종가 >= 넥라인 x (1 - 이 값)
+DB_MAX_NECK_EXTENSION = 0.05      # 넥라인을 이 이상 넘었으면 "준비"가 아니라 이미 돌파 - 제외
+DB_L2_VOLUME_TOLERANCE = 1.10     # L2 주변 3봉 평균 거래량 <= L1 주변 3봉 평균 x 이 값
+DB_BREAK_AFTER_L2 = 0.02          # L2 이후 저가가 min(L1,L2)보다 이 이상 내려가면 쌍바닥 실패
+IHS_RECENCY_MAX_GAP = 10          # RS_MAX_AGE: 오른쪽 어깨는 최근 10봉 안(2026-10-04, 예전 5봉)
+# 2026-10-04 역헤드앤숄더 개선: 기울어진 넥라인(N1-N2), READY/BREAKOUT_NEW 두 상태, 거래량은 넥라인 접근·돌파 때 가산(필수 아님)
+IHS_NECK_READY_TOLERANCE = 0.01   # 넥라인 접근: 종가가 넥라인 +-1%
+IHS_MAX_BREAKOUT_EXTENSION = 0.05 # 신규 돌파: 넥라인 위 5% 이내
+IHS_BREAKOUT_MAX_AGE = 3          # 최초 돌파가 최근 3거래일(오늘 포함) 이내
+IHS_HEAD_BREAK_TOLERANCE = 0.01   # RS 이후 저가가 머리보다 1% 넘게 내려가면 실패
+IHS_VOLUME_BONUS_1 = 1.20
+IHS_VOLUME_BONUS_2 = 1.50
+IHS_MAX_DURATION_RATIO = 2.0      # 좌/우 형성 기간 비율이 이 이하면 시간 대칭 정상
 
 BOX_CLOSE_RANGE_MAX = 0.10
 BOX_MA_NEAR_TOL = 0.03
@@ -104,8 +144,11 @@ BOX_RSI_MIN = 35.0
 BOX_RSI_MAX = 65.0
 BOX_VOLUME_AVG_PERIOD = 5
 BOX_VOLUME_REFERENCE_OFFSET = 20
-BOX_VOLUME_RATIO_MIN = 0.50
-BOX_VOLUME_RATIO_MAX = 1.20
+BOX_VOLUME_RATIO_MIN = 0.50       # 2026-10-04: 최근 5봉 평균 거래량 / 최근 20봉 평균 거래량 하한(죽은 거래량 제외)
+BOX_VOLUME_RATIO_MAX = 1.20       #   상한(박스 하단에서 거래량이 폭증한 구간 제외)
+BOX_MAX_MA20_DECLINE_10D = 0.03   # 20일선이 10거래일 동안 이만큼 이상 내려가면 계단식 하락으로 보고 제외
+BOX_SUPPORT_TEST_TOL = 0.02       # 하단 반등: 최근 3봉 저가가 박스 하단(최저 종가) +2% 이내를 테스트
+BOX_PANIC_VOLUME_MULT = 2.0       # 음봉 + 20일 평균 2배 이상 거래량 = 하단 투매봉으로 제외
 BOX_MARKET_CAP_MIN_EOK = 3000.0
 BOX_OPEN_MA_ABOVE_COUNT = 3
 BOX_RETURN_MAX = 0.10
@@ -147,6 +190,13 @@ PULLBACK_MIN_DAYS = 240  # 1년선(240거래일) 계산에 필요한 최소 보�
 PULLBACK_LOW_SEARCH_WINDOW = 25
 # ② 조정구간 최대거래량이 상승구간 최대거래량의 이 비율 이하여야 함(신설, 임시값).
 PULLBACK_MAX_VOL_RATIO = 0.70
+# 2026-10-04 눌림목 개선: 조정 거래량은 "평균 비교"가 주 조건, 최고 거래량 70%는 보조(가산) 조건. 선행 상승 구간 최소 3봉,
+# 저점 L 이탈 제외, 고점 98% 이상 회복(너무 늦음) 제외, 어느 이평에 눌렸는지·반등 확인을 상태로 표시한다.
+PULLBACK_MIN_RISE_BARS = 3          # L -> H 상승 기간(봉) 최소
+PULLBACK_RISE_VOLUME_GAIN = 1.10    # 상승구간 평균 거래량 >= 상승 직전 평균 x 이 값이면 가산
+PULLBACK_MA_CLUSTER = 0.03          # |MA20-MA240|/MA240 이하면 두 이평 응축 눌림(가산)
+PULLBACK_LATE_RECOVERY = 0.98       # 종가가 고점의 이 비율 이상이면 눌림이 끝난 상태 - 제외
+PULLBACK_SUPPORT_TEST_TOL = 0.01    # 지지 확인: 최근 3봉 저가가 지지 이평 +1% 이내를 테스트
 # ③ 20일선 방향 조건 두 버전 - 'ma5_above_ma20'(정배열 초입) / 'ma20_slope_tol'(완만한
 # 하락까지 허용). 기본값은 B(ma20_slope_tol)로 둔다 - 조정구간엔 5일선이 20일선 아래로
 # 잠깐 처지는 게 흔해서(단기가 장기보다 먼저 반응) A는 정상적인 눌림목까지 과도하게
@@ -252,6 +302,34 @@ def moving_average(win, field, period):
         if i >= period - 1:
             ma[i] = s / period
     return ma
+
+
+def compute_atr(win, period=ATR_PERIOD):
+    """마지막 period개 진폭(TR)의 단순 평균. 봉이 모자라면 None. 여러 검색기가 같이 쓰는 공통 헬퍼."""
+    if len(win) < 2:
+        return None
+    trs = []
+    for i in range(1, len(win)):
+        prev_close = win[i - 1]['close']
+        trs.append(max(win[i]['high'] - win[i]['low'], abs(win[i]['high'] - prev_close), abs(win[i]['low'] - prev_close)))
+    trs = trs[-period:]
+    return sum(trs) / len(trs) if trs else None
+
+
+def volume_ratio_last(win, period=20):
+    """오늘 거래량 / 직전 period봉 평균 거래량(오늘 제외). 기준이 없으면 None."""
+    if len(win) < period + 1:
+        return None
+    base = sum(row['volume'] for row in win[-period - 1:-1]) / period
+    return (win[-1]['volume'] / base) if base else None
+
+
+def trading_value_stats(win, period=20):
+    """(20일 평균 거래대금(오늘 제외), 오늘 거래대금). 거래대금 = 종가 x 거래량."""
+    if len(win) < period + 1:
+        return None, None
+    base = sum(row['close'] * row['volume'] for row in win[-period - 1:-1]) / period
+    return base, win[-1]['close'] * win[-1]['volume']
 
 
 def rsi_last(win, period=14, field='close'):
@@ -896,74 +974,147 @@ def detect_rising_lows(daily):
 # ---------------------------------------------------------------------------
 
 def detect_short_ma_breakout(daily):
-    """최근 20봉 스윙 고점 2개로 하락 추세선을 긋고, 오늘 종가와 5일선이 모두 그 선
-    위로 올라온 종목을 찾는다. 어제까지는 종가가 추세선 아래(또는 거의 붙어)였어야
-    "막 돌파하는 순간"으로 보고 포함한다 - 이미 한참 위로 올라간 종목은 breakout=True로
-    표시해 호출부가 제외한다(다른 돌파형 패턴과 동일한 관례)."""
+    """최근 30봉의 의미 있는 두 스윙 고점(H1>H2)을 이은 하락 추세선을 오늘 종가가 "처음" 돌파한 종목.
+
+    장 마감 후 확정 일봉 기준(장중 고가만 넘은 경우는 제외). 5일선의 역할은 후행 확인이다 - 종가가 5일선 위에
+    있고 5일선이 어제보다 올랐으면 된다(5일선 자체가 추세선을 넘을 필요는 없다).
+    H2 이후 어제까지 종가가 추세선 + 허용오차를 명확히 넘은 적이 있으면 첫 돌파가 아니라서 제외한다.
+    허용오차 = max(추세선 x 1%, ATR14 x 0.3). 어제 종가도 같은 허용오차까지는 "거의 붙어 있었다"로 인정한다.
+    """
     win = daily[max(0, len(daily) - SHORT_MA_BREAKOUT_WINDOW):]
     if len(win) < SHORT_MA_BREAKOUT_WINDOW:
         return None
+    last_index = len(win) - 1
 
     high_idxs = find_swing_indices(win, 'high', False)
-    if len(high_idxs) < WEDGE_MIN_SWINGS:
+    if len(high_idxs) < 2:
         return None
-    first_idx, last_swing_idx = high_idxs[0], high_idxs[-1]
-    if first_idx == last_swing_idx:
+    # H2 = 가장 최근 스윙 고점, H1 = 그 앞쪽에서 간격·하락폭 조건을 만족하는 가장 가까운 스윙 고점
+    h2_idx = high_idxs[-1]
+    if last_index <= h2_idx:
+        return None   # 스윙 고점 자체가 오늘이면 돌파를 판정할 여지가 없다
+    h2 = win[h2_idx]['high']
+    h1_idx = None
+    for idx in reversed(high_idxs[:-1]):
+        if h2_idx - idx < SHORT_MA_MIN_SWING_HIGH_GAP:
+            continue
+        if h2 <= win[idx]['high'] * (1 - SHORT_MA_MIN_HIGH_DECLINE):
+            h1_idx = idx
+            break
+    if h1_idx is None:
         return None
-    high_first, high_last = win[first_idx]['high'], win[last_swing_idx]['high']
-    if high_last >= high_first:
-        return None  # 우하향 추세선이 아니면(고점이 안 낮아지면) 이 패턴이 아니다
-
-    slope = (high_last - high_first) / (last_swing_idx - first_idx)
+    h1 = win[h1_idx]['high']
+    slope = (h2 - h1) / (h2_idx - h1_idx)
+    if slope >= 0:
+        return None
 
     def trend_at(i):
-        return high_first + slope * (i - first_idx)
+        return h1 + slope * (i - h1_idx)
 
-    last_index = len(win) - 1
-    if last_index <= last_swing_idx:
-        return None  # 스윙 고점 자체가 오늘/어제면 추세선 돌파를 판정할 여지가 없다
+    atr = compute_atr(win)
+    if atr is None:
+        return None
 
-    ma5 = moving_average(win, 'close', 5)
-    close_today = win[last_index]['close']
-    ma5_today = ma5[last_index]
+    def tolerance(i):
+        return max(trend_at(i) * SHORT_MA_TRENDLINE_TOL_PCT, atr * SHORT_MA_TRENDLINE_ATR_MULT)
+
     trend_today = trend_at(last_index)
-    if not trend_today or ma5_today is None:
-        return None
-    if not (close_today > trend_today and ma5_today > trend_today):
+    close_today = win[last_index]['close']
+    if trend_today <= 0:
         return None
 
+    # H2 이후 어제까지 이미 추세선을 허용오차 이상 돌파한 적이 있으면 첫 돌파가 아니다
+    for i in range(h2_idx + 1, last_index):
+        if win[i]['close'] > trend_at(i) + tolerance(i):
+            return None
+    # 어제 종가는 추세선 아래 또는 허용오차 이내에서 붙어 있어야 한다
     prev_index = last_index - 1
-    trend_prev = trend_at(prev_index)
-    close_prev = win[prev_index]['close']
-    already_broken = bool(trend_prev) and close_prev > trend_prev * SHORT_MA_BREAKOUT_FRESH_TOL
+    if win[prev_index]['close'] > trend_at(prev_index) + tolerance(prev_index):
+        return None
 
-    close_gap = (close_today - trend_today) / trend_today
-    ma5_gap = (ma5_today - trend_today) / trend_today
-    # 갓 돌파한 순간일수록(간격이 작을수록) 더 신뢰도가 높다고 보고 고득점.
-    close_score = 40 if close_gap <= 0.02 else 25 if close_gap <= 0.05 else 10
-    ma5_score = 20 if ma5_gap <= 0.02 else 10
-    vol_score = 20 if is_volume_increasing(win, last_swing_idx, len(win)) else 0
-    bull_score = 20 if is_last_candle_bullish(win) else 0
-    score = clamp_score(close_score + ma5_score + vol_score + bull_score)
+    # 오늘 종가 기준 돌파 + 돌파폭 상한(이미 많이 오른 종목 제외)
+    if close_today <= trend_today:
+        return None
+    breakout_pct = (close_today - trend_today) / trend_today
+    if breakout_pct > SHORT_MA_MAX_BREAKOUT_PCT:
+        return None
 
-    trendline_start = {'date': win[first_idx]['date'], 'price': high_first}
+    # 5일선: 종가가 5일선 위, 5일선은 어제보다 상승
+    ma5 = moving_average(win, 'close', 5)
+    ma5_today, ma5_prev = ma5[last_index], ma5[prev_index]
+    if ma5_today is None or ma5_prev is None:
+        return None
+    if not (close_today > ma5_today and ma5_today > ma5_prev):
+        return None
+
+    # 유동성: 20일 평균 거래대금(필수), 거래량·거래대금 증가(점수)
+    avg_tv, today_tv = trading_value_stats(win)
+    if avg_tv is None or avg_tv < SHORT_MA_MIN_TRADING_VALUE_20D:
+        return None
+    vol_ratio = volume_ratio_last(win)
+    tv_ratio = (today_tv / avg_tv) if avg_tv else None
+
+    # ---- 점수(100): 추세선 품질 20 · 첫 돌파 신선도 20 · 돌파폭 15 · 5일선 15 · 거래량 15 · 거래대금 10 · 종가 위치 5
+    gap_bars = h2_idx - h1_idx
+    decline = (h1 - h2) / h1
+    quality_score = (10 if gap_bars >= 8 else 6) + (10 if decline >= 0.04 else 6)
+    fresh_score = 20 if win[prev_index]['close'] <= trend_at(prev_index) else 12
+    if breakout_pct <= 0.005:
+        margin_score = 8
+    elif breakout_pct <= 0.03:
+        margin_score = 15
+    else:
+        margin_score = 10
+    ma5_3ago = ma5[last_index - 3]
+    ma5_slope_pct = ((ma5_today - ma5_3ago) / ma5_3ago) if ma5_3ago else 0.0
+    ma5_score = 15 if ma5_slope_pct > 0 else 10
+    if vol_ratio is None:
+        vol_score = 2
+    elif vol_ratio >= 2.0:
+        vol_score = 15
+    elif vol_ratio >= SHORT_MA_VOLUME_BONUS_2:
+        vol_score = 12
+    elif vol_ratio >= SHORT_MA_VOLUME_BONUS_1:
+        vol_score = 9
+    elif vol_ratio >= 1.0:
+        vol_score = 5
+    else:
+        vol_score = 2     # 거래량이 적다고 제외하지 않는다(점수만 낮게)
+    tv_score = 10 if (tv_ratio or 0) >= 1.5 else 7 if (tv_ratio or 0) >= 1.2 else 4 if (tv_ratio or 0) >= 1.0 else 0
+    day = win[last_index]
+    close_position = ((day['close'] - day['low']) / (day['high'] - day['low'])) if day['high'] > day['low'] else 0.0
+    pos_score = 5 if close_position >= 0.7 else 0
+    score = clamp_score(quality_score + fresh_score + margin_score + ma5_score + vol_score + tv_score + pos_score)
+
+    first = {'date': win[h1_idx]['date'], 'price': h1}
+    second = {'date': win[h2_idx]['date'], 'price': h2}
     trendline_end = {'date': win[last_index]['date'], 'price': trend_today}
     signal = {'date': win[last_index]['date'], 'price': close_today}
+    vol_text = '%.1f배' % vol_ratio if vol_ratio is not None else '-'
     reasons = [
-        '추세선 돌파 간격 %.1f%%(%d/40점)' % (close_gap * 100, close_score),
-        '5일선-추세선 간격 %.1f%%(%d/20점)' % (ma5_gap * 100, ma5_score),
-        '거래량 %s(%d/20점)' % ('증가' if vol_score else '유지/감소', vol_score),
-        '최근 캔들 %s(%d/20점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '하락 추세선 돌파폭 +%.1f%%(%d/15점) · 추세선 품질 %d/20점' % (breakout_pct * 100, margin_score, quality_score),
+        '첫 돌파 신선도 %d/20점(전일 종가 %s)' % (fresh_score, '추세선 아래' if fresh_score == 20 else '추세선 근접'),
+        '5일선 상승 %+.1f%%/3일(%d/15점)' % (ma5_slope_pct * 100, ma5_score),
+        '거래량 20일 평균 대비 %s(%d/15점) · 거래대금 %s(%d/10점)' % (
+            vol_text, vol_score, ('%.1f배' % tv_ratio) if tv_ratio is not None else '-', tv_score),
     ]
     return {
-        'trendline': [trendline_start, trendline_end],
+        'status': 'BREAKOUT_NEW',
+        'trendline': [first, trendline_end],
+        'high_swings': [first, second],
         'ma5': ma5_today,
         'resistance': trend_today,
         'signal': signal,
-        'breakout': already_broken,
+        'breakout': False,
+        'breakoutPct': round(breakout_pct * 100, 2),
+        'ma5Rising': True,
+        'ma5SlopePct3d': round(ma5_slope_pct * 100, 2),
+        'volumeRatio': round(vol_ratio, 2) if vol_ratio is not None else None,
+        'tradingValueRatio': round(tv_ratio, 2) if tv_ratio is not None else None,
+        'closePosition': round(close_position, 2),
         'score': score,
         'reasons': reasons,
-        'interpretation': '최근 20거래일 하락 추세선을 종가와 5일선이 함께 돌파하는 초입으로 추정됩니다(%d점).' % score,
+        'interpretation': '최근 30봉 하락 추세선을 오늘 종가가 처음 돌파했고 상승 중인 5일선 위에 있습니다(%d점).' % score,
     }
 
 
@@ -972,10 +1123,15 @@ def detect_short_ma_breakout(daily):
 # ---------------------------------------------------------------------------
 
 def detect_ma_cloud_breakout(daily):
-    """장기 추세선 근처에서 구름 상단을 시도하는 초기 골든크로스를 찾는다.
+    """224일선 + 일목 구름 + 가격이 한곳에 응축된 종목을 COMPRESSION_READY(돌파 준비) / BREAKOUT_NEW(신규 돌파)로 잡는다.
 
-    모든 조건은 최신 봉을 기준으로 한다. 현재 종가가 이미 구름 상단을 넘은
-    종목은 '뚫으려고 하는 중'이 아니라 돌파가 끝난 것으로 보고 제외한다.
+    장 마감 후 확정 일봉 기준. 일목 구름은 ichimoku_cloud_at이 (index-26) 시점 값으로 계산하므로 미래 참조가 없다.
+    - 공통: 224일선 20일 기울기 >= -3%, 224일선과 구름 중심 거리 <= 5%, 종가 >= 구름 하단 -2%,
+      최근 10봉 중 구름 하단 아래 종가 5회 미만, 20일 평균 거래대금 하한, 종가가 구름 상단 +5%/224일선 +7% 이내.
+    - 신규 돌파: 최초 돌파(전일 종가 <= 전일 구름 상단 x 1.01, 당일 종가 > 당일 구름 상단)가 최근 3거래일(오늘 포함) 안이고
+      지금도 구름 상단 위 0~5%, 종가가 224일선 -1%~+5%.
+    - 돌파 준비: 아직 구름 상단 +1% 이내, 종가가 224일선 +-3%, 최근 3봉 고가가 구름 상단 3% 이내(상단 접근)
+      또는 최근 3봉 저가가 구름 하단 3% 이내(하단 지지 확인). 상단 접근을 더 높게 평가한다.
     """
     if len(daily) < MA_CLOUD_MIN_DAYS:
         return None
@@ -983,82 +1139,154 @@ def detect_ma_cloud_breakout(daily):
     ma5 = moving_average(daily, 'close', 5)
     ma20 = moving_average(daily, 'close', 20)
     ma224 = moving_average(daily, 'close', 224)
-    last_index = len(daily) - 1
-    close = daily[last_index]['close']
-    ma224_now = ma224[last_index]
-    if ma224_now is None or not ma224_now:
+    last = len(daily) - 1
+    today = daily[last]
+    close = today['close']
+    ma224_now = ma224[last]
+    if not ma224_now:
         return None
 
-    ma224_gap = abs(close - ma224_now) / ma224_now
-    if ma224_gap > MA_CLOUD_NEAR_TOL:
+    # 224일선 방향: 20거래일 동안 급락 중이면 제외, 평탄/상승이면 가산
+    ma224_prev = ma224[last - 20]
+    if not ma224_prev:
+        return None
+    ma224_slope20 = (ma224_now - ma224_prev) / ma224_prev
+    if ma224_slope20 < -MA_CLOUD_MAX_MA224_DECLINE_20D:
         return None
 
-    cloud = ichimoku_cloud_at(daily, last_index)
-    if not cloud or cloud['top'] <= 0:
+    cloud = ichimoku_cloud_at(daily, last)
+    if not cloud or cloud['top'] <= 0 or cloud['bottom'] <= 0:
         return None
-    # 2026-08-22: 구름 하단을 뚫고 내려간 것도 통과시켜 달라는 요청 - 상단만 아직 안
-    # 뚫었으면(=돌파 완료가 아니면) 포함한다. 구름 아래에서 다시 올라오는 중인 케이스도
-    # "상승 초입"으로 볼 수 있다는 판단.
+    cloud_mid = (cloud['top'] + cloud['bottom']) / 2
+    ma_cloud_distance = abs(ma224_now - cloud_mid) / ma224_now
+    if ma_cloud_distance > MA_CLOUD_MAX_MA_CLOUD_DISTANCE:
+        return None   # 224일선과 구름대가 너무 멀면 "응축"이 아니다
+
+    ma224_distance = (close - ma224_now) / ma224_now
+    if ma224_distance > MA_CLOUD_MAX_MA224_EXTENSION:
+        return None
+    if close < cloud['bottom'] * (1 - MA_CLOUD_BOTTOM_SUPPORT):
+        return None
+    below_days = 0
+    for k in range(max(0, last - 9), last + 1):
+        ck = ichimoku_cloud_at(daily, k)
+        if ck and daily[k]['close'] < ck['bottom']:
+            below_days += 1
+    if below_days >= MA_CLOUD_BELOW_BOTTOM_DAYS:
+        return None   # 구름 하단 아래에서 계속 마감 - 지지 실패
+
+    avg_tv, _today_tv = trading_value_stats(daily)
+    if avg_tv is None or avg_tv < MA_CLOUD_MIN_TRADING_VALUE_20D:
+        return None
+    vol_ratio = volume_ratio_last(daily)
+    cloud_thickness = (cloud['top'] - cloud['bottom']) / cloud_mid
+    cloud_breakout_pct = (close - cloud['top']) / cloud['top']
+
+    # 최근 20봉 가격 범위가 직전 20봉보다 줄었는지(가격 응축)
+    def price_range(lo, hi):
+        rows = daily[max(0, lo):hi + 1]
+        return (max(r['high'] for r in rows) - min(r['low'] for r in rows)) / close if rows else None
+    range_now, range_before = price_range(last - 19, last), price_range(last - 39, last - 20)
+    price_compressed = range_now is not None and range_before is not None and range_now < range_before
+
+    # ---- 상태 판정 ----
+    status = None
+    breakout_idx = None
     if close > cloud['top']:
-        return None
-    # 2026-08-22(4차): 위 완화로 구름 하단을 한참 벗어난 역배열 약세 종목까지 잡히던 문제를
-    # 막기 위해 최소 위치 조건을 다시 넣었다 - 종가는 구름 하단 -2% 안에서는 지지받고
-    # 마감해야 한다(장중 밀렸어도 종가 기준 최소 지지력 확인).
-    if close < cloud['bottom'] * 0.98:
-        return None
-    # 2026-08-22(2차): "하단 시도도 or로 넣어달라" - 고가가 구름 상단에 근접하거나(위에서
-    # 저항 테스트), 저가가 구름 하단에 근접(아래에서 지지 테스트)하면 둘 중 하나만
-    # 만족해도 통과한다(원래는 상단 시도만 필수였음). 위 -2% 지지 조건을 통과한 구간
-    # 안에서의 시도만 인정되므로 역배열 약세 종목의 하단 터치는 여기 도달하지 못한다.
-    top_attempt = daily[last_index]['high'] >= cloud['top'] * (1 - MA_CLOUD_TOP_TOL)
-    bottom_attempt = daily[last_index]['low'] <= cloud['bottom'] * (1 + MA_CLOUD_TOP_TOL)
-    if not (top_attempt or bottom_attempt):
-        return None
-    # 2026-08-22(5차): 어제 이미 구름 하단 아래로 뚫고 내려가 있던 종목이 오늘 하루 만에
-    # 구름 상단까지 튀어오른 경우는 "완만한 응축 후 돌파 시도"가 아니라 급락 후 되돌림
-    # (휩쏘)일 가능성이 커서 제외한다(사용자 요청: "구름대를 뚫고 하락하면서 상단선
-    # 터치하는 건 제외"). 하단 시도(bottom_attempt)는 원래 구름 아래 지지력 확인이
-    # 목적이라 이 제외 대상이 아니다.
-    if top_attempt and last_index > 0:
-        prev_cloud = ichimoku_cloud_at(daily, last_index - 1)
-        prev_close = daily[last_index - 1]['close']
-        if prev_cloud and prev_cloud['bottom'] > 0 and prev_close < prev_cloud['bottom'] * 0.98:
+        # 신규 돌파: 최근 3거래일(오늘 포함) 안에 "최초 돌파"가 있고 그 뒤로 구름 상단 위(-1% 허용)를 유지
+        if cloud_breakout_pct > MA_CLOUD_MAX_BREAKOUT:
             return None
-
-    # 2026-08-22: 5일선-20일선 골든크로스 요건 완전 제거(사용자 요청) - 이제 224일선 근접+
-    # 구름 상단/하단 시도 2가지만 필수 조건이다.
-    ma5_now, ma20_now = ma5[last_index], ma20[last_index]
-
-    # 2026-08-22(4차): 상단 시도(저항 돌파 임박)를 하단 시도(지지 테스트)보다 우대한다 -
-    # 상단 시도는 근접도에 따라 35~50점 차등, 하단 시도는 근접도와 무관하게 25점 고정.
-    # 둘 다 만족하면 더 가치 높은 상단 기준으로 채점한다.
-    top_gap = abs(cloud['top'] - daily[last_index]['high']) / cloud['top'] if top_attempt else None
-    if top_attempt:
-        cloud_side = '상단'
-        cloud_score = 50 if top_gap <= 0.01 else 35
+        if not (MA_CLOUD_BREAKOUT_MA_MIN <= ma224_distance <= MA_CLOUD_BREAKOUT_MA_MAX):
+            return None
+        for age in range(0, MA_CLOUD_BREAKOUT_MAX_AGE):
+            j = last - age
+            cj, cprev = ichimoku_cloud_at(daily, j), ichimoku_cloud_at(daily, j - 1)
+            if not cj or not cprev:
+                continue
+            if daily[j]['close'] > cj['top'] and daily[j - 1]['close'] <= cprev['top'] * (1 + MA_CLOUD_READY_OVER_TOP):
+                held = all(daily[k]['close'] > ichimoku_cloud_at(daily, k)['top'] * 0.99 for k in range(j, last + 1)
+                           if ichimoku_cloud_at(daily, k))
+                if held:
+                    breakout_idx = j
+                    break
+        if breakout_idx is None:
+            return None   # 구름 상단 위에 이미 오래 머문 종목 - 응축 후 출발이 아니다
+        status = 'BREAKOUT_NEW'
     else:
-        cloud_side = '하단'
-        cloud_score = 25
+        if close > cloud['top'] * (1 + MA_CLOUD_READY_OVER_TOP) or abs(ma224_distance) > MA_CLOUD_NEAR_TOL:
+            return None
+        recent = daily[max(0, last - 2):last + 1]
+        recent_high = max(r['high'] for r in recent)
+        recent_low = min(r['low'] for r in recent)
+        top_attempt = recent_high >= cloud['top'] * (1 - MA_CLOUD_TOP_TOL)
+        bottom_attempt = recent_low <= cloud['bottom'] * (1 + MA_CLOUD_TOP_TOL)
+        if not (top_attempt or bottom_attempt):
+            return None
+        # 어제 이미 구름 하단 아래로 뚫고 내려가 있다가 오늘 상단까지 튀어오른 급락 후 되돌림(휩쏘)은 제외
+        if top_attempt and last > 0:
+            prev_cloud = ichimoku_cloud_at(daily, last - 1)
+            if prev_cloud and prev_cloud['bottom'] > 0 and daily[last - 1]['close'] < prev_cloud['bottom'] * (1 - MA_CLOUD_BOTTOM_SUPPORT):
+                return None
+        status = 'COMPRESSION_READY'
 
-    score = clamp_score(
-        (50 if ma224_gap <= 0.015 else 35)
-        + cloud_score
-    )
-    signal = {'date': daily[last_index]['date'], 'price': close}
+    # ---- 점수(100): 224일선 근접 20 · 224-구름 응축 20 · 구름 상단 접근/돌파 20 · 하단 지지/224 돌파 10 · 224 방향 10 · 두께/가격 응축 10 · 거래 10
+    near_score = 20 if abs(ma224_distance) <= 0.015 else 14 if abs(ma224_distance) <= 0.03 else 8
+    compress_score = 20 if ma_cloud_distance <= 0.03 else 14
+    if status == 'COMPRESSION_READY':
+        gap_top = (cloud['top'] - recent_high) / cloud['top'] if top_attempt else None
+        if top_attempt:
+            event_score = 20 if gap_top <= 0.01 else 16 if gap_top <= 0.02 else 10
+        else:
+            event_score = 0
+        support_score = 10 if (bottom_attempt and close >= cloud['bottom']) else 4
+        event_label = '구름 상단 접근 %.1f%%' % (gap_top * 100) if top_attempt else '구름 하단 지지 확인'
+    else:
+        event_score = 16 if cloud_breakout_pct < 0.01 else 20 if cloud_breakout_pct <= 0.03 else 12
+        both = close > ma224_now
+        support_score = 10 if both else 6
+        # 224일선도 최근 3거래일 안에 종가로 처음 넘었으면 가산
+        if both and breakout_idx is not None and daily[max(0, breakout_idx - 1)]['close'] < ma224[max(0, breakout_idx - 1)]:
+            support_score = 10
+            event_score = min(20, event_score + 4)
+        event_label = '구름 상단 +%.1f%% 돌파(%d일차)' % (cloud_breakout_pct * 100, last - breakout_idx + 1)
+    dir_score = 10 if ma224_slope20 >= 0 else 6 if ma224_slope20 >= -0.015 else 3
+    shape_score = (5 if cloud_thickness <= MA_CLOUD_THIN_CLOUD else 2) + (5 if price_compressed else 2)
+    if status == 'BREAKOUT_NEW':
+        vr = vol_ratio or 0
+        trade_score = 10 if vr >= 2.0 else 8 if vr >= MA_CLOUD_VOLUME_BONUS_2 else 6 if vr >= MA_CLOUD_VOLUME_BONUS_1 else 3
+    else:
+        # 응축 구간의 거래량 감소는 정상 - 거래량이 평균 이상이면 소폭 가산만 한다
+        trade_score = 7 if (vol_ratio or 0) >= MA_CLOUD_VOLUME_BONUS_1 else 5
+    score = clamp_score(near_score + compress_score + event_score + support_score + dir_score + shape_score + trade_score)
+
+    signal = {'date': today['date'], 'price': close}
     reasons = [
-        '224일선 근접도 %.1f%%(%d/50점)' % (ma224_gap * 100, 50 if ma224_gap <= 0.015 else 35),
-        '현재가 구름 %s 시도(%d/%d점)' % (cloud_side, cloud_score, 50 if top_attempt else 25),
+        '224일선 거리 %+.1f%%(%d/20점) · 224일선-구름 중심 거리 %.1f%%(%d/20점)' % (
+            ma224_distance * 100, near_score, ma_cloud_distance * 100, compress_score),
+        '%s(%d/20점) · 224일선 20일 기울기 %+.1f%%(%d/10점)' % (event_label, event_score, ma224_slope20 * 100, dir_score),
+        '구름 두께 %.1f%%·가격 응축 %s(%d/10점) · 거래량 %s(%d/10점)' % (
+            cloud_thickness * 100, '진행' if price_compressed else '미확인', shape_score,
+            ('%.1f배' % vol_ratio) if vol_ratio is not None else '-', trade_score),
     ]
+    label = '돌파 준비' if status == 'COMPRESSION_READY' else '신규 돌파'
     return {
-        'ma5': ma5_now,
-        'ma20': ma20_now,
+        'status': status,
+        'ma5': ma5[last],
+        'ma20': ma20[last],
         'ma224': ma224_now,
         'cloud': cloud,
         'signal': signal,
         'breakout': False,
+        'breakoutDate': daily[breakout_idx]['date'] if breakout_idx is not None else None,
+        'ma224Distance': round(ma224_distance * 100, 2),
+        'cloudTopDistance': round(cloud_breakout_pct * 100, 2),     # 구름 상단 대비 종가(+면 돌파)
+        'maCloudDistance': round(ma_cloud_distance * 100, 2),
+        'cloudThickness': round(cloud_thickness * 100, 2),
+        'ma224Slope20': round(ma224_slope20 * 100, 2),
+        'volumeRatio': round(vol_ratio, 2) if vol_ratio is not None else None,
         'score': score,
         'reasons': reasons,
-        'interpretation': '주가가 224일선 근처에서 일목 구름 %s 돌파를 시도하는 상승 초입으로 추정됩니다(%d점).' % (cloud_side, score),
+        'interpretation': '224일선과 일목 구름대가 가까이 응축된 구간에서 %s 상태입니다(%d점).' % (label, score),
     }
 
 
@@ -1066,11 +1294,26 @@ def detect_ma_cloud_breakout(daily):
 # ③ 쌍바닥(Double Bottom)
 # ---------------------------------------------------------------------------
 
+def _avg_volume_around(win, idx, half=1):
+    """idx 주변(앞뒤 half봉 포함) 평균 거래량. 하루 거래량 노이즈를 줄이려고 3봉 평균을 쓴다."""
+    lo, hi = max(0, idx - half), min(len(win), idx + half + 1)
+    rows = win[lo:hi]
+    return sum(r['volume'] for r in rows) / len(rows) if rows else 0
+
+
 def detect_double_bottom(daily):
+    """완성도 높은 쌍바닥: L1 -> 의미 있는 반등(넥라인) -> L2에서 지지 확인 -> 넥라인 방향 회복/접근.
+
+    장 마감 후 확정 일봉 기준. 상태는 두 가지다 - RECOVERY(L2 이후 상승 회복 중), NECKLINE_READY(넥라인 2% 이내 ~ +5%).
+    넥라인은 L1~L2 사이 최고 고가(max high). 이미 넥라인을 5% 넘게 돌파한 종목은 제외한다.
+    """
     win = daily[max(0, len(daily) - DOUBLE_BOTTOM_WINDOW):]
     low_idxs = find_swing_indices(win, 'low', True)
     if len(low_idxs) < 2:
         return None
+    last_index = len(win) - 1
+    last_close = win[last_index]['close']
+    ma5 = moving_average(win, 'close', 5)
 
     # 가장 최근 저점부터 여러 조합을 확인해 중간 잡음 저점 때문에 패턴을 놓치지 않는다.
     for b in range(len(low_idxs) - 1, 0, -1):
@@ -1079,7 +1322,7 @@ def detect_double_bottom(daily):
             gap_days = i2 - i1
             if gap_days < DB_MIN_GAP_DAYS or gap_days > DB_MAX_GAP_DAYS:
                 continue
-            if (len(win) - 1) - i2 > DB_RECENCY_MAX_GAP:
+            if last_index - i2 > DB_RECENCY_MAX_GAP:
                 continue
 
             low1, low2 = win[i1]['low'], win[i2]['low']
@@ -1087,65 +1330,83 @@ def detect_double_bottom(daily):
             if diff > DB_LOW_TOL:
                 continue
 
-            # 2026-08-22 추가: 두 저점 사이에 그보다 더 낮은 저가가 있으면(허용오차 2%
-            # 넘게) 진짜 W자 바닥이 아니라 그 중간 저점이 더 낮은 삼중바닥/하락 추세로
-            # 봐야 하므로 이 조합은 무효 처리한다.
+            # 두 저점 사이에 그보다 2% 넘게 더 낮은 저가가 있으면 진짜 W자가 아니다
             between_min = min_low_between(win, i1, i2)
-            if between_min is not None and between_min < min(low1, low2) * 0.98:
+            if between_min is not None and between_min < min(low1, low2) * (1 - DB_MAX_MIDDLE_BREAK):
+                continue
+            # L2 이후 저점을 다시 의미 있게 깨면 쌍바닥 실패
+            post_min = min_low_between(win, i2, last_index)
+            if post_min is not None and post_min < min(low1, low2) * (1 - DB_BREAK_AFTER_L2):
                 continue
 
-            # 2026-07-22 개편: 두 번째 저점 거래량이 첫 번째 저점 이하
-            if win[i2]['volume'] > win[i1]['volume'] * DB_SECOND_VOLUME_MAX_RATIO:
+            # 거래량: L2 주변 3봉 평균이 L1 주변 3봉 평균의 110% 이하(하루 노이즈로 탈락시키지 않는다)
+            vol1, vol2 = _avg_volume_around(win, i1), _avg_volume_around(win, i2)
+            if vol1 <= 0 or vol2 > vol1 * DB_L2_VOLUME_TOLERANCE:
                 continue
 
             neck = max_high_between(win, i1, i2)
             if not neck:
                 continue
-            rise_from_low1 = (neck['high'] - low1) / low1
-            if rise_from_low1 < DB_PEAK_MIN_RISE:
+            rebound = (neck['high'] - low1) / low1
+            if rebound < DB_PEAK_MIN_RISE:
                 continue
 
-            if not has_bullish_after(win, i2) or not is_last_candle_bullish(win):
-                continue
-
-            last_close = win[-1]['close']
             proximity = (last_close - neck['high']) / neck['high']
-            if proximity < DB_NECK_PROXIMITY_MIN:
+            if proximity > DB_MAX_NECK_EXTENSION:
+                continue   # 이미 넥라인을 크게 넘었다 - 쌍바닥 "준비"가 아니다
+            ma5_now, ma5_prev = ma5[last_index], ma5[last_index - 1]
+            if proximity >= -DB_NECK_READY_DISTANCE:
+                status = 'NECKLINE_READY'
+            elif (last_close > low2 and ma5_now is not None and last_close > ma5_now
+                  and last_index >= 2 and last_close > win[last_index - 2]['close']):
+                status = 'RECOVERY'   # L2 위, 5일선 위, 최근 2~3봉 회복
+            else:
                 continue
 
-            current = {'date': win[-1]['date'], 'price': last_close}
+            current = {'date': win[last_index]['date'], 'price': last_close}
             left_peak = max_high_between(win, max(-1, i1 - 31), i1)
 
-            # ---- 점수(100점, 2026-07-22 개편): 저점유사도35 + 넥라인형성20(고정)
-            # + 거래량감소15 + 반등강도15 + 넥라인근접10 + 최근양봉5 ----
-            sim_score = 35 if diff <= 0.01 else 22
-            neck_form_score = 20
-            vol_score = 15 if is_volume_declining(win, i1, i2) else 0
-            bounce_score = 15 if rise_from_low1 >= 0.08 else 9
-            neck_score = 10 if proximity >= -0.02 else 5
-            bull_score = 5 if is_last_candle_bullish(win) else 0
-
-            score = clamp_score(sim_score + neck_form_score + vol_score + bounce_score + neck_score + bull_score)
+            # ---- 점수(100): 두 저점 유사도 20 · 저점 간격/구조 10 · 중간 반등폭 15 · L2 거래량 15 · L2 이후 저점 유지 15 · 넥라인 접근 15 · MA5/거래량 10
+            sim_score = 20 if diff <= 0.01 else 15 if diff <= 0.02 else 10
+            struct_score = 10 if 15 <= gap_days <= 35 else 7
+            bounce_score = 15 if rebound >= 0.15 else 12 if rebound >= 0.10 else 9
+            vol_score = 15 if vol2 <= vol1 else 10
+            hold_score = 15 if (post_min is None or post_min >= min(low1, low2)) else 8
+            if status == 'NECKLINE_READY':
+                approach_score = 15 if proximity >= -0.01 else 12
+            else:
+                progress = max(0.0, min(1.0, (last_close - low2) / (neck['high'] - low2))) if neck['high'] > low2 else 0.0
+                approach_score = int(round(4 + progress * 8))
+            vol_ratio = volume_ratio_last(win)
+            ma_vol_score = ((4 if (ma5_now is not None and last_close > ma5_now) else 0)
+                            + (3 if (ma5_now is not None and ma5_prev is not None and ma5_now > ma5_prev) else 0)
+                            + (3 if (vol_ratio is not None and vol_ratio >= 1.2) else 0))
+            score = clamp_score(sim_score + struct_score + bounce_score + vol_score + hold_score + approach_score + ma_vol_score)
             reasons = [
-                '저점 가격차 %.1f%%(%d/35점)' % (diff * 100, sim_score),
-                '넥라인(중간 반등 고점) 형성 확인(%d/20점)' % neck_form_score,
-                '거래량 감소(2번째 저점 거래량도 1번째 이하)(%d/15점)' % vol_score,
-                '넥라인 반등폭 %.1f%%(%d/15점)' % (rise_from_low1 * 100, bounce_score),
-                '현재가-넥라인 근접도(%d/10점)' % neck_score,
-                '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+                '두 저점 가격차 %.1f%%(%d/20점) · 저점 간격 %d봉(%d/10점)' % (diff * 100, sim_score, gap_days, struct_score),
+                '넥라인 반등폭 %.1f%%(%d/15점)' % (rebound * 100, bounce_score),
+                'L2 주변 거래량 L1의 %.0f%%(%d/15점) · L2 이후 저점 %s(%d/15점)' % (
+                    vol2 / vol1 * 100, vol_score, '유지' if hold_score == 15 else '소폭 이탈', hold_score),
+                '%s: 넥라인 대비 %+.1f%%(%d/15점) · MA5/거래량 확인(%d/10점)' % (
+                    '넥라인 접근' if status == 'NECKLINE_READY' else '바닥 확인 후 회복', proximity * 100, approach_score, ma_vol_score),
             ]
-
             return {
+                'status': status,
                 'leftPeak': {'date': left_peak['date'], 'price': left_peak['high']} if left_peak else None,
                 'low1': {'date': win[i1]['date'], 'price': low1},
                 'low2': {'date': win[i2]['date'], 'price': low2},
                 'neckline': {'date': neck['date'], 'price': neck['high']},
                 'current': current,
                 'signal': current,
-                'breakout': last_close > neck['high'] * BREAKOUT_TOL,
+                'breakout': False,
+                'bottomDiffPct': round(diff * 100, 2),
+                'reboundPct': round(rebound * 100, 2),
+                'necklineDistancePct': round(proximity * 100, 2),
+                'volumeRatioL2L1': round(vol2 / vol1, 2),
                 'score': score,
                 'reasons': reasons,
-                'interpretation': '두 저점이 %.1f%% 차이로 비슷하고 2번째 저점 거래량도 줄어든 쌍바닥 구조로 추정됩니다(%d점).' % (diff * 100, score),
+                'interpretation': '두 저점이 %.1f%% 차이의 쌍바닥이며 %s 상태입니다(%d점).' % (
+                    diff * 100, '넥라인에 접근한' if status == 'NECKLINE_READY' else '두 번째 바닥 확인 뒤 회복 중인', score),
             }
     return None
 
@@ -1155,20 +1416,27 @@ def detect_double_bottom(daily):
 # ---------------------------------------------------------------------------
 
 def detect_inv_head_shoulders(daily):
+    """역헤드앤숄더: 왼쪽 어깨 -> 더 깊은 머리 -> 비슷한 높이의 오른쪽 어깨 -> 넥라인 접근/신규 돌파.
+
+    장 마감 후 확정 일봉 기준. 넥라인은 N1(LS~HEAD 사이 최고점)과 N2(HEAD~RS 사이 최고점)를 잇는 기울어진 선을
+    오늘까지 연장한 값이다(수평 max(N1,N2)는 neckline 필드에 호환용으로 남긴다).
+    상태: BREAKOUT_NEW(최근 3거래일 내 첫 종가 돌파, 넥라인 +5% 이내) / NECKLINE_READY(종가가 넥라인 +-1%).
+    """
     win = daily[max(0, len(daily) - IHS_WINDOW):]
     low_idxs = find_swing_indices(win, 'low', True)
     if len(low_idxs) < 3:
         return None
-
-    # 2026-07-22 개편: 우어깨 형성 이후 거래량 급증(20일 평균 대비 1.2배 이상) 조건 기준선
-    avg_vol20 = avg_volume(win, max(0, len(win) - 20), len(win))
+    last_index = len(win) - 1
+    last_close = win[last_index]['close']
+    avg_vol20 = avg_volume(win, max(0, len(win) - 21), len(win) - 1)   # 오늘 제외 직전 20봉 평균
+    ma5 = moving_average(win, 'close', 5)
 
     # 가장 최근 저점부터 여러 조합을 확인해 중간 잡음 저점 때문에 패턴을 놓치지 않는다.
     for c in range(len(low_idxs) - 1, 1, -1):
         for b in range(c - 1, 0, -1):
             for a in range(b - 1, -1, -1):
                 i_l, i_h, i_r = low_idxs[a], low_idxs[b], low_idxs[c]
-                if (len(win) - 1) - i_r > IHS_RECENCY_MAX_GAP:
+                if last_index - i_r > IHS_RECENCY_MAX_GAP:
                     continue
                 left_gap = i_h - i_l
                 right_gap = i_r - i_h
@@ -1177,82 +1445,124 @@ def detect_inv_head_shoulders(daily):
                 if left_gap > IHS_MAX_SHOULDER_GAP or right_gap > IHS_MAX_SHOULDER_GAP:
                     continue
                 left, head, right = win[i_l]['low'], win[i_h]['low'], win[i_r]['low']
-
                 if not (head < left and head < right):
                     continue
-                if (left - head) / left < IHS_HEAD_MIN_DROP:
+                if (left - head) / left < IHS_HEAD_MIN_DROP or (right - head) / right < IHS_HEAD_MIN_DROP:
                     continue
-                if (right - head) / right < IHS_HEAD_MIN_DROP:
-                    continue
-
                 shoulder_diff = abs(left - right) / min(left, right)
                 if shoulder_diff > IHS_SHOULDER_TOL:
                     continue
 
-                # 2026-08-22 추가: 우어깨 이후 저가가 헤드 저점보다 1% 넘게 더 빠지면
-                # (새로운 저점을 다시 만든 셈이라) 진짜 역헤드앤숄더가 아니므로 무효 처리.
-                post_right_min = min_low_between(win, i_r, len(win) - 1)
-                if post_right_min is not None and post_right_min < head * 0.99:
+                # RS 이후 저가가 머리보다 1% 넘게 내려가면 실패(새 저점 재형성)
+                post_right_min = min_low_between(win, i_r, last_index)
+                if post_right_min is not None and post_right_min < head * (1 - IHS_HEAD_BREAK_TOLERANCE):
                     continue
 
-                peak1 = max_high_between(win, i_l, i_h)
-                peak2 = max_high_between(win, i_h, i_r)
-                if not peak1 or not peak2:
+                n1 = max_high_between(win, i_l, i_h)
+                n2 = max_high_between(win, i_h, i_r)
+                if not n1 or not n2:
                     continue
-                if (peak1['high'] - head) / head < IHS_NECK_MIN_RISE:
+                if (n1['high'] - head) / head < IHS_NECK_MIN_RISE or (n2['high'] - head) / head < IHS_NECK_MIN_RISE:
                     continue
-                if (peak2['high'] - head) / head < IHS_NECK_MIN_RISE:
-                    continue
-                # 2026-08-22: 넥라인을 두 구간(좌어깨~헤드/헤드~우어깨) 고가 중 낮은 쪽이
-                # 아니라 높은 쪽으로 변경(사용자 요청).
-                neckline_price = max(peak1['high'], peak2['high'])
-                neckline_point = peak1 if peak1['high'] >= peak2['high'] else peak2
+                n1_idx = next(k for k in range(i_l + 1, i_h) if win[k]['date'] == n1['date'])
+                n2_idx = next(k for k in range(i_h + 1, i_r) if win[k]['date'] == n2['date'])
+                neck_slope = (n2['high'] - n1['high']) / (n2_idx - n1_idx)
 
-                last_close = win[-1]['close']
-                proximity = (last_close - neckline_price) / neckline_price
-                if proximity < IHS_NECK_PROXIMITY_MIN:
+                def neck_at(i):
+                    return n1['high'] + neck_slope * (i - n1_idx)
+
+                neck_today = neck_at(last_index)
+                if neck_today <= 0:
                     continue
-                if not is_last_candle_bullish(win):
+                proximity = (last_close - neck_today) / neck_today
+
+                # 최근 회복 확인: 최근 2봉 중 양봉이 하나라도 있거나 오늘 종가가 어제보다 높다
+                recent_ok = (any(win[k]['close'] > win[k]['open'] for k in (last_index - 1, last_index))
+                             or last_close > win[last_index - 1]['close'])
+                if not recent_ok:
                     continue
 
-                # 2026-07-22 개편: 우어깨 형성 이후 거래량이 20일 평균 대비 1.2배 이상
-                right_vol = avg_volume(win, i_r, len(win))
-                if avg_vol20 <= 0 or right_vol < avg_vol20 * IHS_VOL_SURGE_RATIO:
-                    continue
+                # 상태 판정
+                status = None
+                breakout_idx = None
+                if last_close > neck_today:
+                    if proximity > IHS_MAX_BREAKOUT_EXTENSION:
+                        continue   # 이미 넥라인 위로 크게 올라간 종목
+                    for age in range(0, IHS_BREAKOUT_MAX_AGE):
+                        j = last_index - age
+                        if j - 1 < 0:
+                            break
+                        if win[j]['close'] > neck_at(j) and win[j - 1]['close'] <= neck_at(j - 1) and \
+                                all(win[k]['close'] > neck_at(k) * 0.99 for k in range(j, last_index + 1)):
+                            breakout_idx = j
+                            break
+                    if breakout_idx is not None:
+                        status = 'BREAKOUT_NEW'
+                if status is None:
+                    if abs(proximity) <= IHS_NECK_READY_TOLERANCE:
+                        status = 'NECKLINE_READY'
+                    else:
+                        continue
 
-                current = {'date': win[-1]['date'], 'price': last_close}
+                vol_ratio = volume_ratio_last(win)
+                current = {'date': win[last_index]['date'], 'price': last_close}
+                neck_hi = n1 if n1['high'] >= n2['high'] else n2
 
-                # ---- 점수(100점, 2026-07-22 개편): 형태유사도45 + 넥라인근접15 + 대칭성20
-                # + 거래량15(고정) + 최근양봉5 ----
+                # ---- 점수(100): 머리 깊이 15 · 양 어깨 가격 대칭 20 · 시간 대칭 10 · 머리 저점 유지 15 · 넥라인 접근/돌파 20 · 가격 회복 10 · 거래량 10
                 head_drop_avg = ((left - head) / left + (right - head) / right) / 2
-                shape_score = 45 if head_drop_avg >= 0.05 else 32 if head_drop_avg >= 0.03 else 18
-                neck_score_ihs = 15 if proximity >= -0.01 else 8
+                depth_score = 15 if head_drop_avg >= 0.05 else 11 if head_drop_avg >= 0.03 else 7   # 더 깊다고 계속 가산하지 않는다
                 sym_score = 20 if shoulder_diff <= 0.02 else 12
-                vol_score_ihs = 15
-                bull_score = 5 if is_last_candle_bullish(win) else 0
-
-                score = clamp_score(shape_score + neck_score_ihs + sym_score + vol_score_ihs + bull_score)
+                duration_ratio = max(left_gap, right_gap) / min(left_gap, right_gap)
+                time_score = 10 if duration_ratio <= IHS_MAX_DURATION_RATIO else 5 if duration_ratio <= 3 else 2
+                hold_score = 15 if (post_right_min is None or post_right_min >= head) else 8
+                if status == 'BREAKOUT_NEW':
+                    neck_score = 20 if proximity <= 0.03 else 14
+                else:
+                    neck_score = 20 if abs(proximity) <= 0.005 else 16
+                ma5_now, ma5_prev = ma5[last_index], ma5[last_index - 1]
+                recover_score = (5 if (ma5_now is not None and last_close > ma5_now) else 0) + \
+                                (5 if (ma5_now is not None and ma5_prev is not None and ma5_now > ma5_prev) else 0)
+                if vol_ratio is None:
+                    vol_score = 2
+                elif vol_ratio >= IHS_VOLUME_BONUS_2:
+                    vol_score = 10
+                elif vol_ratio >= IHS_VOLUME_BONUS_1:
+                    vol_score = 7
+                elif vol_ratio >= 1.0:
+                    vol_score = 4
+                else:
+                    vol_score = 2
+                score = clamp_score(depth_score + sym_score + time_score + hold_score + neck_score + recover_score + vol_score)
                 reasons = [
-                    '헤드 하락폭 평균 %.1f%%(%d/45점)' % (head_drop_avg * 100, shape_score),
-                    '현재가-넥라인 근접도(%d/15점)' % neck_score_ihs,
-                    '양 어깨 가격차 %.1f%%(%d/20점)' % (shoulder_diff * 100, sym_score),
-                    '우어깨 이후 거래량 20일 평균 대비 급증(%d/15점)' % vol_score_ihs,
-                    '최근 캔들 %s(%d/5점)' % ('양봉' if bull_score else '음봉', bull_score),
+                    '머리 하락폭 평균 %.1f%%(%d/15점) · 양 어깨 가격차 %.1f%%(%d/20점)' % (head_drop_avg * 100, depth_score, shoulder_diff * 100, sym_score),
+                    '좌 %d봉·우 %d봉 시간 대칭(%d/10점) · RS 이후 머리 저점 %s(%d/15점)' % (
+                        left_gap, right_gap, time_score, '유지' if hold_score == 15 else '소폭 이탈', hold_score),
+                    '%s: 넥라인 대비 %+.1f%%(%d/20점) · 가격 회복 MA5(%d/10점)' % (
+                        '신규 돌파' if status == 'BREAKOUT_NEW' else '넥라인 접근', proximity * 100, neck_score, recover_score),
+                    '넥라인 접근·돌파 거래량 20일 평균 대비 %s(%d/10점)' % (('%.1f배' % vol_ratio) if vol_ratio is not None else '-', vol_score),
                 ]
-
                 return {
+                    'status': status,
                     'left_shoulder': {'date': win[i_l]['date'], 'price': left},
-                    'left_peak': {'date': peak1['date'], 'price': peak1['high']},
+                    'left_peak': {'date': n1['date'], 'price': n1['high']},
                     'head': {'date': win[i_h]['date'], 'price': head},
-                    'right_peak': {'date': peak2['date'], 'price': peak2['high']},
+                    'right_peak': {'date': n2['date'], 'price': n2['high']},
                     'right_shoulder': {'date': win[i_r]['date'], 'price': right},
-                    'neckline': {'date': neckline_point['date'], 'price': neckline_price},
+                    'neckline': {'date': neck_hi['date'], 'price': neck_hi['high']},       # 수평 fallback = max(N1, N2)
+                    'neckline_line': [{'date': n1['date'], 'price': n1['high']},
+                                      {'date': win[last_index]['date'], 'price': neck_today}],   # 기울어진 실제 넥라인(N1 -> 오늘)
+                    'neckline_today': neck_today,
                     'current': current,
                     'signal': current,
-                    'breakout': last_close > neckline_price * BREAKOUT_TOL,
+                    'breakout': False,
+                    'breakoutDate': win[breakout_idx]['date'] if breakout_idx is not None else None,
+                    'necklineDistancePct': round(proximity * 100, 2),
+                    'shoulderDiffPct': round(shoulder_diff * 100, 2),
+                    'volumeRatio': round(vol_ratio, 2) if vol_ratio is not None else None,
                     'score': score,
                     'reasons': reasons,
-                    'interpretation': '좌우 어깨가 비슷한 높이(차이 %.1f%%)이고 거래량도 급증한 역헤드앤숄더 구조로 추정됩니다(%d점).' % (shoulder_diff * 100, score),
+                    'interpretation': '양 어깨 차이 %.1f%%의 역헤드앤숄더가 %s 상태입니다(%d점).' % (
+                        shoulder_diff * 100, '넥라인을 새로 돌파한' if status == 'BREAKOUT_NEW' else '넥라인에 접근한', score),
                 }
     return None
 
@@ -1306,10 +1616,13 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     close_range = (close_max - close_min) / close_min if close_min else math.inf
     if close_range > BOX_CLOSE_RANGE_MAX:
         return None
+    wick_low, wick_high = float(lows.min()), float(highs.max())
+    wick_range = (wick_high - wick_low) / wick_low if wick_low else math.inf   # 윗·아랫꼬리가 지나치게 크면 감점
 
-    close_ma5 = moving_average(daily, 'close', 5)[-20:]
-    close_ma20 = moving_average(daily, 'close', 20)[-20:]
-    close_near_count = _ma_near_count(close_ma5, close_ma20, BOX_MA_NEAR_TOL)
+    # 이평 응축: 5일선과 20일선이 서로 3% 이내인 봉이 3회 이상(횡보하며 이평이 얽힌 "압축된 박스")
+    ma5_all = moving_average(daily, 'close', 5)
+    ma20_all = moving_average(daily, 'close', 20)
+    close_near_count = _ma_near_count(ma5_all[-20:], ma20_all[-20:], BOX_MA_NEAR_TOL)
     if close_near_count < BOX_MA_NEAR_COUNT:
         return None
 
@@ -1317,24 +1630,31 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     if rsi is None or not (BOX_RSI_MIN <= rsi <= BOX_RSI_MAX):
         return None
 
-    avg_volume_before = avg_volume(win, len(win) - 6, len(win) - 1)
-    volume_20_ago = win[0]['volume']
-    volume_ratio = volume_20_ago / avg_volume_before if avg_volume_before else math.inf
+    # 거래량: 최근 5봉 평균이 최근 20봉 평균의 50~120%(죽지도 폭증하지도 않은 횡보 거래량).
+    # 예전 조건은 "20봉 전 하루 거래량 / 직전 5봉 평균"이라 박스 안의 거래량 흐름과 무관한 하루 값을 비교했다.
+    vol20 = sum(r['volume'] for r in range_win) / 20
+    vol5 = sum(r['volume'] for r in range_win[-5:]) / 5
+    volume_ratio = (vol5 / vol20) if vol20 else math.inf
     if not (BOX_VOLUME_RATIO_MIN <= volume_ratio <= BOX_VOLUME_RATIO_MAX):
         return None
+    last_bar = win[-1]
+    if last_bar['close'] < last_bar['open'] and vol20 and last_bar['volume'] >= vol20 * BOX_PANIC_VOLUME_MULT:
+        return None   # 박스 하단에서 거래량이 터진 하락봉은 지지가 아니라 투매
 
-    open_ma5 = moving_average(daily, 'open', 5)[-20:]
-    open_ma20 = moving_average(daily, 'open', 20)[-20:]
-    open_ma_above_count = _ma_above_count(open_ma5, open_ma20)
-    if open_ma_above_count < BOX_OPEN_MA_ABOVE_COUNT:
+    # 계단식 하락 제외: 20일선이 10거래일 동안 3% 넘게 내려가는 종목
+    ma20_now, ma20_prev = ma20_all[-1], ma20_all[-11]
+    if not ma20_now or not ma20_prev:
+        return None
+    ma20_slope10 = (ma20_now - ma20_prev) / ma20_prev
+    if ma20_slope10 < -BOX_MAX_MA20_DECLINE_10D:
         return None
 
     return_20 = last_close / win[0]['close'] - 1
     if abs(return_20) > BOX_RETURN_MAX:
         return None
 
-    support = float(lows.min())
-    resistance = float(highs.max())
+    # 박스 = 최근 20봉 종가 범위. 위치 = (종가 - 최저 종가) / (최고 종가 - 최저 종가), 하단 35% 이내.
+    support, resistance = close_min, close_max
     box_range = resistance - support
     if box_range <= 0:
         return None
@@ -1348,44 +1668,55 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     elif market_cap_eok < BOX_MARKET_CAP_MIN_EOK:
         return None
 
-    # A~F gates are always-hard filters; G(시가총액)은 require_market_cap=False일 때만
-    # 선택적(조회 전 프리필터 통과 여부만 확인, 실서비스 결과는 항상 G까지 통과해야 함).
-    # The score only ranks survivors.
-    range_score = max(0, 20 - round(close_range / BOX_CLOSE_RANGE_MAX * 20))
-    ma_score = min(20, close_near_count * 4)
-    rsi_score = 15 - round(abs(rsi - 50) / 15 * 15)
-    volume_score = 15 - round(abs(volume_ratio - 0.85) / 0.35 * 15)
-    cap_score = 10 if market_cap_eok is not None else 0
-    open_ma_score = min(10, open_ma_above_count * 2)
-    return_score = max(0, 10 - round(abs(return_20) / BOX_RETURN_MAX * 10))
-    score = clamp_score(range_score + ma_score + rsi_score + volume_score + cap_score + open_ma_score + return_score)
-    # 2026-08-22: 라벨(A~G)과 배열 순서를 실제 코드 실행 순서(변동폭->이평근접->RSI->
-    # 거래량->시가이평->수익률->시가총액)에 맞춰 재정렬(예전엔 E/G/J가 섞여 있었고
-    # 배열 순서도 실행 순서와 달랐음). 기준값·통과 조건은 전혀 안 바꿈.
+    # ---- 하단 반등 판정: 최근 3봉 저가가 박스 하단(+2%)을 테스트한 뒤 종가가 회복(저가 +1% 이상) + 양봉 또는 전일 종가 상회
+    prev_close = win[-2]['close']
+    bullish = last_bar['close'] > last_bar['open']
+    up_vs_prev = last_close > prev_close
+    tested = any(win[k]['low'] <= close_min * (1 + BOX_SUPPORT_TEST_TOL) and win[k]['close'] > win[k]['low'] * 1.01
+                 for k in range(len(win) - 3, len(win)))
+    status = 'REBOUND' if (tested and (bullish or up_vs_prev)) else 'APPROACH'
+    ma5_now, ma5_prev = ma5_all[-1], ma5_all[-2]
+
+    # ---- 점수(100): 박스폭 안정성 20 · 박스 하단 위치 20 · 이평 응축 15 · RSI 10 · 거래량 안정 10 · MA20 추세 10 · 하단 지지/반등 15
+    range_score = (14 - round(close_range / BOX_CLOSE_RANGE_MAX * 14)) + (6 if wick_range <= 0.15 else 3 if wick_range <= 0.20 else 0)
+    position_score = 20 if lower_position <= 0.20 else 14
+    ma_score = round(close_near_count / 20 * 15)
+    rsi_score = 10 if rsi <= 50 else 7          # 35~50 하단 성격이 강함, 50~65 정상
+    volume_score = 10 if 0.7 <= volume_ratio <= 1.0 else 7
+    ma20_score = 10 if ma20_slope10 >= 0 else 7 if ma20_slope10 >= -0.015 else 4
+    rebound_score = min(15, (5 if tested else 0) + (4 if bullish else 0) + (2 if up_vs_prev else 0)
+                        + (2 if (ma5_now is not None and last_close > ma5_now) else 0)
+                        + (2 if (ma5_now is not None and ma5_prev is not None and ma5_now >= ma5_prev) else 0))
+    score = clamp_score(range_score + position_score + ma_score + rsi_score + volume_score + ma20_score + rebound_score)
     reasons = [
-        'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)' % (close_range * 100),
-        'B 종가 5·20일선 3%% 이내 근접 %d회' % close_near_count,
-        'C RSI(14) %.1f (35~65)' % rsi,
-        'D 20봉전 거래량/직전 5봉 평균 %.1f%% (50~120%%)' % (volume_ratio * 100),
-        'E 시가 5·20일선 관계 충족 %d회' % open_ma_above_count,
-        'F 20봉 수익률 %.1f%% (±10%% 이내)' % (return_20 * 100),
+        'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)·꼬리 포함 %.1f%%(%d/20점)' % (close_range * 100, wick_range * 100, range_score),
+        'B 5·20일선 3%% 이내 응축 %d회(%d/15점) · 박스 하단 %.0f%%(%d/20점)' % (close_near_count, ma_score, lower_position * 100, position_score),
+        'C RSI(14) %.1f (35~65)(%d/10점)' % (rsi, rsi_score),
+        'D 최근 5봉/20봉 평균 거래량 %.0f%% (50~120%%)(%d/10점)' % (volume_ratio * 100, volume_score),
+        'E 20일선 10일 기울기 %+.1f%% (-3%% 이상)(%d/10점)' % (ma20_slope10 * 100, ma20_score),
+        'F 20봉 수익률 %.1f%% (±10%% 이내) · 하단 %s(%d/15점)' % (return_20 * 100, '반등 확인' if status == 'REBOUND' else '접근', rebound_score),
         'G 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'G 시가총액 확인 대기',
     ]
     result = {
+        'status': status,
         'support': support,
         'resistance': resistance,
+        'wickLow': wick_low,
+        'wickHigh': wick_high,
         'signal': {'date': win[-1]['date'], 'price': last_close},
         'breakout': False,
         'score': score,
         'reasons': reasons,
-        'interpretation': '최근 20봉 변동폭·이평선 근접·RSI·거래량·시가 관계·수익률 조건을 모두 만족하고 박스 하단 %.1f%% 구간에 있는 후보입니다(%d점).' % (lower_position * 100, score),
+        'interpretation': '최근 20봉 횡보 박스의 하단 %.1f%% 구간에서 %s 상태입니다(%d점).' % (
+            lower_position * 100, '하단을 테스트한 뒤 반등하는' if status == 'REBOUND' else '하단에 접근한', score),
         'criteria': {
             'closeRangePct': close_range * 100,
+            'wickRangePct': wick_range * 100,
             'closeMaNearCount': close_near_count,
             'rsi14': rsi,
             'volumeRatioPct': volume_ratio * 100,
             'marketCapEok': market_cap_eok,
-            'openMaAboveCount': open_ma_above_count,
+            'ma20Slope10Pct': ma20_slope10 * 100,
             'return20Pct': return_20 * 100,
             'lowerPositionPct': lower_position * 100,
         },
@@ -1547,25 +1878,31 @@ def detect_pullback(daily):
         if ma20_slope < PULLBACK_MA20_SLOPE_TOL:
             return None
 
-    # 2026-07-22 개편: 상승구간 거래량 증가 + 조정구간 거래량 감소
-    rise_vol_up = is_volume_increasing(win, low_idx, peak_idx)
-    drop_vol_down = is_volume_declining(win, peak_idx, n)
-    if not rise_vol_up or not drop_vol_down:
+    # ---- 2026-10-04 개편 ----
+    # 선행 상승이 하루이틀 급등만으로 만들어졌다면(3봉 미만) 신뢰도가 낮아 제외한다.
+    if peak_idx - low_idx < PULLBACK_MIN_RISE_BARS:
+        return None
+    # 눌림 과정에서 선행 저점 L을 종가로 깨면 눌림이 아니라 상승 추세 훼손
+    if min(row['close'] for row in win[peak_idx + 1:n]) < low_close:
+        return None
+    # 이미 고점 근처(98%)까지 되올라온 종목은 눌림 타점이 아니다(조정폭 5% 하한과 같은 의미지만 명시적으로 확인)
+    if last_close >= peak_close * PULLBACK_LATE_RECOVERY:
         return None
 
-    # 2026-08-22 신설: 조정구간 최대거래량이 상승구간 최대거래량의 PULLBACK_MAX_VOL_RATIO
-    # (0.70) 이하여야 함 - "거래량 감소" 방향만 보던 것보다 더 엄격하게, 조정구간에서
-    # 거래량이 튀는(분산/투매) 순간이 상승구간 최고치에 근접하지 않는지 확인. 고점 당일은
-    # 상승 클라이맥스(보통 상승구간 전체에서 거래량이 가장 큰 날)라 조정구간에 포함시키면
-    # 이 조건이 사실상 항상 실패해버린다(고점 거래량이 그 자체로 상승구간 최고치이거나
-    # 그에 준하므로) - 그래서 조정구간은 고점 다음 날부터로 본다(is_volume_declining의
-    # 평균 비교 방식과는 달리 max 하나로 판정해서 특히 민감함).
-    rise_vols = [row['volume'] for row in win[low_idx:peak_idx]]
+    # 거래량: 상승구간 평균과 조정구간 평균을 비교(조정 평균 < 상승 평균이 주 조건). 상승구간 거래량 증가·조정구간 최고
+    # 거래량 70% 이하는 가산 요소로만 쓴다.
+    rise_vols = [row['volume'] for row in win[low_idx:peak_idx + 1]]
     drop_vols = [row['volume'] for row in win[peak_idx + 1:n]]
+    before_vols = [row['volume'] for row in win[max(0, low_idx - (peak_idx - low_idx)):low_idx]]
+    avg_rise_vol = sum(rise_vols) / len(rise_vols) if rise_vols else 0
+    avg_drop_vol = sum(drop_vols) / len(drop_vols) if drop_vols else 0
+    avg_before_vol = sum(before_vols) / len(before_vols) if before_vols else 0
+    if not avg_rise_vol or avg_drop_vol >= avg_rise_vol:
+        return None
+    rise_vol_gain = (avg_rise_vol / avg_before_vol) if avg_before_vol else None
     max_rise_vol = max(rise_vols) if rise_vols else 0
     max_drop_vol = max(drop_vols) if drop_vols else 0
-    if max_rise_vol > 0 and max_drop_vol > max_rise_vol * PULLBACK_MAX_VOL_RATIO:
-        return None
+    max_vol_ok = (max_rise_vol <= 0) or (max_drop_vol <= max_rise_vol * PULLBACK_MAX_VOL_RATIO)
 
     # 2026-08-22 신설(현재 비활성, PULLBACK_MIN_TRADING_VALUE=0): 거래대금 필터 - 근거
     # 부족으로 지금은 값을 안 넣었다. 나중에 상수를 채우면 자동으로 활성화된다.
@@ -1574,25 +1911,50 @@ def detect_pullback(daily):
         if last_trading_value_eok < PULLBACK_MIN_TRADING_VALUE:
             return None
 
-    # ---- 점수(100점, 2026-07-22 개편): 상승추세30 + 조정폭25 + 이평선위치20
-    # + 거래량패턴15(고정) + 최근양봉10 ----
-    rise_score = 30 if rise_ratio >= 0.25 else 22 if rise_ratio >= 0.20 else 15
-    drop_score = 25 if (0.07 <= drop_ratio <= 0.12) else 15
-    ma_score = 20 if (diff20 <= PULLBACK_MA_TOL and diff240 <= PULLBACK_MA_TOL) \
-        else 12 if min(diff20, diff240) <= PULLBACK_MA_TOL else 0
-    vol_score = 15
-    bull_score = 10 if is_last_candle_bullish(win) else 0
+    # 어느 이평에 눌렸는가: 20일선 / 240일선 / 두 이평이 서로 가까운 응축 눌림
+    near20, near240 = diff20 <= PULLBACK_MA_TOL, diff240 <= PULLBACK_MA_TOL
+    ma_cluster = bool(ma20_now and ma240_now and abs(ma20_now - ma240_now) / ma240_now <= PULLBACK_MA_CLUSTER)
+    if near20 and near240 and ma_cluster:
+        support_kind = 'MA20+MA240'
+    elif near20 and (not near240 or diff20 <= diff240):
+        support_kind = 'MA20'
+    else:
+        support_kind = 'MA240'
+    support_price = ma20_now if support_kind != 'MA240' else ma240_now
 
-    score = clamp_score(rise_score + drop_score + ma_score + vol_score + bull_score)
-    ma_label = '20일선' if diff20 <= diff240 else '1년선(240일선)'
-    trend_label = '5일선 20일선 위(정배열)' if PULLBACK_TREND_FILTER_VERSION == 'ma5_above_ma20' \
-        else '20일선 완만한 하락 이내'
+    # 상태: 지지 확인(최근 3봉 저가가 지지 이평 +1% 이내를 테스트한 뒤 종가가 이평 위/근처로 회복 + 양봉 또는 전일 대비 상승) / 눌림 진행
+    prev_close = win[n - 2]['close']
+    last_bar = win[n - 1]
+    bullish = last_bar['close'] > last_bar['open']
+    tested = any(win[k]['low'] <= support_price * (1 + PULLBACK_SUPPORT_TEST_TOL) for k in range(n - 3, n))
+    confirmed = bool(tested and last_close >= support_price * 0.99 and (bullish or last_close > prev_close))
+    status = 'SUPPORT_CONFIRMED' if confirmed else 'PULLING_BACK'
+    ma5_prev = ma5[n - 2]
+
+    # ---- 점수(100): 선행 상승 강도 20 · 조정폭 적정 15 · MA20/MA240 근접 20 · MA 방향 10 · 상승구간 거래량 증가 10 · 조정구간 거래량 감소 15 · 지지/반등 확인 10
+    rise_score = 20 if rise_ratio >= 0.25 else 15 if rise_ratio >= 0.20 else 10
+    drop_score = 15 if (0.07 <= drop_ratio <= 0.12) else 10
+    ma_score = 20 if (near20 and near240) else 14
+    if ma_cluster and ma_score < 20:
+        ma_score += 3
+    ma20_slope_pct = ((ma20_now - ma20_slope_from) / ma20_slope_from) if ma20_slope_from else 0.0
+    dir_score = 10 if ma20_slope_pct >= 0 else 6
+    rise_vol_score = 10 if (rise_vol_gain is not None and rise_vol_gain >= PULLBACK_RISE_VOLUME_GAIN) else 5
+    drop_vol_score = (10 if avg_drop_vol <= avg_rise_vol * 0.7 else 7) + (5 if max_vol_ok else 0)
+    rebound_score = min(10, (4 if bullish else 0) + (2 if last_close > prev_close else 0) + (2 if tested else 0)
+                        + (2 if (ma5_now is not None and ma5_prev is not None and ma5_now > ma5_prev) else 0))
+    score = clamp_score(rise_score + drop_score + ma_score + dir_score + rise_vol_score + drop_vol_score + rebound_score)
+    ma_label = '20일선' if support_kind == 'MA20' else '1년선(240일선)' if support_kind == 'MA240' else '20일선·240일선 응축'
     reasons = [
-        '상승폭 %.1f%%(%d/30점)' % (rise_ratio * 100, rise_score),
-        '조정폭 %.1f%%(%d/25점)' % (drop_ratio * 100, drop_score),
-        '%s 근접도, %s(%d/20점)' % (ma_label, trend_label, ma_score),
-        '상승구간 거래량 증가 + 조정구간 거래량 감소(%d/15점)' % vol_score,
-        '최근 캔들 %s(%d/10점)' % ('양봉' if bull_score else '음봉', bull_score),
+        '선행 상승 %.1f%%(%d봉, %d/20점) · 고점 대비 조정 %.1f%%(%d/15점)' % (
+            rise_ratio * 100, peak_idx - low_idx, rise_score, drop_ratio * 100, drop_score),
+        '%s 근접(MA20 %.1f%%·MA240 %.1f%%, %d/20점) · 20일선 5일 기울기 %+.1f%%(%d/10점)' % (
+            ma_label, (diff20 if diff20 != math.inf else 0) * 100, (diff240 if diff240 != math.inf else 0) * 100,
+            ma_score, ma20_slope_pct * 100, dir_score),
+        '상승구간 거래량 %s(%d/10점) · 조정구간 평균 거래량 상승구간의 %.0f%%(%d/15점)' % (
+            ('직전의 %.1f배' % rise_vol_gain) if rise_vol_gain is not None else '비교 불가', rise_vol_score,
+            avg_drop_vol / avg_rise_vol * 100, drop_vol_score),
+        '%s(%d/10점)' % ('지지 확인(이평 테스트 후 회복)' if confirmed else '눌림 진행 중(뚜렷한 반등 전)', rebound_score),
     ]
 
     result = {
@@ -1602,11 +1964,16 @@ def detect_pullback(daily):
         'signal': {'date': win[n - 1]['date'], 'price': last_close},
         'ma20': ma20_now,
         'ma240': ma240_now,
+        'status': status,
+        'supportKind': support_kind,
+        'risePct': round(rise_ratio * 100, 2),
+        'pullbackPct': round(drop_ratio * 100, 2),
+        'ma20Slope5Pct': round(ma20_slope_pct * 100, 2),
         'breakout': False,
         'score': score,
         'reasons': reasons,
-        'interpretation': '%.1f%% 상승 후 %.1f%% 눌림목 조정을 받아 %s 부근에서 지지를 시도하는 구간으로 추정됩니다(%d점).'
-                           % (rise_ratio * 100, drop_ratio * 100, ma_label, score),
+        'interpretation': '%.1f%% 상승 후 %.1f%% 눌림목 조정을 받아 %s 부근에서 %s 구간입니다(%d점).'
+                           % (rise_ratio * 100, drop_ratio * 100, ma_label, '지지가 확인된' if confirmed else '지지를 시도하는', score),
     }
     # 2026-08-22 신설(작업지시서 4단계): 눌림목 지지선 근접 상태에서도 지금이 실제 진입
     # 타점인지는 별개 판단이라 check_pullback_entry_trigger()로 분리(박스권의

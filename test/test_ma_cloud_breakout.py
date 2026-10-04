@@ -51,8 +51,11 @@ def _ma_cloud_breakout_rows():
 class ComputeMaCloudBreakoutSignalTests(unittest.TestCase):
     def test_matches_the_original_snapshot_detector(self):
         rows = _ma_cloud_breakout_rows()
-        old_result = detector.detect_ma_cloud_breakout(rows)
-        self.assertIsNotNone(old_result, '원본 스냅샷 판정 자체가 신호를 내야 대조가 의미 있음')
+        # 2026-10-04: 스냅샷 판정(detect_ma_cloud_breakout)은 돌파 준비/신규 돌파로 재설계돼 이 백테스트 모듈의 옛 4조건과
+        # 더 이상 같은 신호를 내지 않는다. 지표 값(224일선·구름)은 같은 공통 함수에서 나오므로 그 값만 대조한다.
+        last_index = len(rows) - 1
+        old_result = {'ma224': detector.moving_average(rows, 'close', 224)[last_index],
+                      'cloud': detector.ichimoku_cloud_at(rows, last_index)}
 
         with mock.patch.object(db_schema, 'load_daily_prices', return_value=rows):
             df = mcb.compute_ma_cloud_breakout_signal('005930', conn=object())
