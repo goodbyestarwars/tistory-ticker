@@ -7946,6 +7946,18 @@ html.search-open body .nav-search-chips a {
   font: 500 14px/1 var(--font-ui) !important; text-decoration: none !important;
 }
 html.search-open body .nav-search-chips a:hover { background: rgba(var(--np-ink), .11) !important; }
+/* 최근 조회 5개 (2026-10-04 사용자 요청): 입력창 바로 아래 한 줄. 종목 칩은 바로가기 칩과 구분되게 테두리만 */
+html body .nav-search-recent { display: none !important; }
+html.search-open body .nav-search-recent:not([hidden]) {
+  display: flex !important; flex-wrap: wrap !important; align-items: center !important; gap: 8px !important; margin: 16px 0 0 !important;
+}
+html.search-open body .nav-search-recent-title { margin-right: 6px !important; font: 600 13px/1 var(--font-ui) !important; color: rgba(var(--np-ink), .55) !important; }
+html.search-open body .nav-search-recent a {
+  display: inline-flex !important; align-items: center !important; min-height: 34px !important; padding: 0 14px !important;
+  border: 1px solid rgba(var(--np-ink), .16) !important; border-radius: 999px !important; background: transparent !important;
+  color: rgb(var(--np-ink)) !important; font: 600 14px/1 var(--font-ui) !important; text-decoration: none !important; white-space: nowrap !important;
+}
+html.search-open body .nav-search-recent a:hover { background: rgba(var(--np-ink), .06) !important; }
 html.search-open body .nav-search-suggest {
   position: static !important; width: auto !important; max-height: 46vh !important; margin-top: 10px !important; overflow-y: auto !important;
   border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important;

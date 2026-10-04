@@ -508,6 +508,42 @@
     global.location.href = TARGET_PAGE + '?code=' + encodeURIComponent(code) + '&name=' + encodeURIComponent(name || code) + market;
   }
 
+  // 2026-10-04 사용자 요청("검색창 최근 조회한 5개 밑에 띄워줘"): 검색 패널 입력창 바로 아래에 최근 조회 5개를 칩으로.
+  // 예전엔 검색창에서 고른 종목만 최근 목록에 쌓였다 - 캘린더·테마·종목판 링크로 종목 화면에 들어온 것도
+  // "조회"이므로 종목 화면(/page/stock-search, /page/foreign-flow)에 code가 있으면 그때 기록한다.
+  var RECENT_VIEW_LIMIT = 5;
+  function recordPageView() {
+    var path = String(global.location.pathname || '').replace(/\/$/, '');
+    if (path !== TARGET_PAGE && path !== '/page/foreign-flow') return;
+    var params;
+    try { params = new URLSearchParams(global.location.search); } catch (e) { return; }
+    var code = String(params.get('code') || '').trim();
+    if (!code) return;
+    if (params.get('market') === 'us' && code.indexOf('US:') !== 0) code = 'US:' + code.toUpperCase();
+    if (!/^(?:[0-9A-Z]{6}|US:[A-Z][A-Z0-9.\-]{0,9})$/i.test(code)) return;
+    var name = String(params.get('name') || '').trim() || code.replace(/^US:/, '');
+    addRecent(code, name);
+  }
+  function renderRecentViewed() {
+    var wrap = document.querySelector('.nav-search-wrap');
+    var inputWrap = wrap && wrap.querySelector('.nav-search-input-wrap');
+    if (!inputWrap) return;
+    var row = wrap.querySelector('.nav-search-recent');
+    if (!row) {
+      row = document.createElement('div');
+      row.className = 'nav-search-recent';
+      row.setAttribute('aria-label', '최근 조회 종목');
+      inputWrap.insertAdjacentElement('afterend', row);
+    }
+    var items = getRecent().slice(0, RECENT_VIEW_LIMIT);
+    row.hidden = !items.length;
+    row.innerHTML = items.length ? '<span class="nav-search-recent-title">최근 조회</span>' + items.map(function (it) {
+      var us = String(it.code).indexOf('US:') === 0;
+      var href = TARGET_PAGE + '?code=' + encodeURIComponent(it.code) + '&name=' + encodeURIComponent(it.name || it.code) + (us ? '&market=us' : '');
+      return '<a href="' + escapeAttr(href) + '" data-recent-code="' + escapeAttr(it.code) + '">' + escapeHtml(it.name || it.code) + '</a>';
+    }).join('') : '';
+  }
+
   // ---- 사이드바 검색창에 이벤트 바인딩 ----
 
   function submitSearch(input, q) {
@@ -525,7 +561,9 @@
     if (wired) return;
     wired = true;
 
+    renderRecentViewed();
     input.addEventListener('focus', function () {
+      renderRecentViewed();
       if (input.value.trim()) ensureKrxMap().then(function () { renderMatches(box, input.value.trim()); });
       else renderIdle(box);
     });
@@ -661,6 +699,7 @@
   // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
 
   function init() {
+    try { recordPageView(); } catch (e) { /* 기록 실패는 검색 동작과 무관 */ }
     bootGlobalWatchlist();
     var tries = 0;
     (function attempt() {
