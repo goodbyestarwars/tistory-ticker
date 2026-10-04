@@ -126,6 +126,8 @@ DB_NECK_READY_DISTANCE = 0.02     # 넥라인 접근: 종가 >= 넥라인 x (1 -
 DB_MAX_NECK_EXTENSION = 0.05      # 넥라인을 이 이상 넘었으면 "준비"가 아니라 이미 돌파 - 제외
 DB_L2_VOLUME_TOLERANCE = 1.10     # L2 주변 3봉 평균 거래량 <= L1 주변 3봉 평균 x 이 값
 DB_BREAK_AFTER_L2 = 0.02          # L2 이후 저가가 min(L1,L2)보다 이 이상 내려가면 쌍바닥 실패
+# 2026-10-04 수익률 백테스트(D+1 시가 진입, 전반/후반 기간 모두 개선): 회복(RECOVERY) 상태에서 넥라인이 11% 넘게 멀면 성과가 나빴다
+DB_MAX_NECK_GAP = 0.11
 IHS_RECENCY_MAX_GAP = 10          # RS_MAX_AGE: 오른쪽 어깨는 최근 10봉 안(2026-10-04, 예전 5봉)
 # 2026-10-04 역헤드앤숄더 개선: 기울어진 넥라인(N1-N2), READY/BREAKOUT_NEW 두 상태, 거래량은 넥라인 접근·돌파 때 가산(필수 아님)
 IHS_NECK_READY_TOLERANCE = 0.01   # 넥라인 접근: 종가가 넥라인 +-1%
@@ -192,6 +194,8 @@ PULLBACK_LOW_SEARCH_WINDOW = 25
 PULLBACK_MAX_VOL_RATIO = 0.70
 # 2026-10-04 눌림목 개선: 조정 거래량은 "평균 비교"가 주 조건, 최고 거래량 70%는 보조(가산) 조건. 선행 상승 구간 최소 3봉,
 # 저점 L 이탈 제외, 고점 98% 이상 회복(너무 늦음) 제외, 어느 이평에 눌렸는지·반등 확인을 상태로 표시한다.
+# 2026-10-04 수익률 백테스트: 선행 상승이 30%를 넘은 뒤의 눌림목은 전/후반 기간 모두 성과가 나빴다(15~30%가 양호)
+PULLBACK_MAX_RISE = 0.30
 PULLBACK_MIN_RISE_BARS = 3          # L -> H 상승 기간(봉) 최소
 PULLBACK_RISE_VOLUME_GAIN = 1.10    # 상승구간 평균 거래량 >= 상승 직전 평균 x 이 값이면 가산
 PULLBACK_MA_CLUSTER = 0.03          # |MA20-MA240|/MA240 이하면 두 이평 응축 눌림(가산)
@@ -1357,7 +1361,7 @@ def detect_double_bottom(daily):
             ma5_now, ma5_prev = ma5[last_index], ma5[last_index - 1]
             if proximity >= -DB_NECK_READY_DISTANCE:
                 status = 'NECKLINE_READY'
-            elif (last_close > low2 and ma5_now is not None and last_close > ma5_now
+            elif (proximity >= -DB_MAX_NECK_GAP and last_close > low2 and ma5_now is not None and last_close > ma5_now
                   and last_index >= 2 and last_close > win[last_index - 2]['close']):
                 status = 'RECOVERY'   # L2 위, 5일선 위, 최근 2~3봉 회복
             else:
@@ -1881,6 +1885,8 @@ def detect_pullback(daily):
     # ---- 2026-10-04 개편 ----
     # 선행 상승이 하루이틀 급등만으로 만들어졌다면(3봉 미만) 신뢰도가 낮아 제외한다.
     if peak_idx - low_idx < PULLBACK_MIN_RISE_BARS:
+        return None
+    if rise_ratio > PULLBACK_MAX_RISE:
         return None
     # 눌림 과정에서 선행 저점 L을 종가로 깨면 눌림이 아니라 상승 추세 훼손
     if min(row['close'] for row in win[peak_idx + 1:n]) < low_close:

@@ -34,6 +34,18 @@ def turning_closes(scale=1.0, start_up=1.012):
 
 
 class AngleMomentumDetectTest(unittest.TestCase):
+    def setUp(self):
+        # 수익률 백테스트로 정한 점수 하한(MIN_SCORE=90)은 아래 별도 테스트에서만 켠다 - 나머지는 모양 판정 자체를 검증한다
+        self._min = amd.MIN_SCORE
+        amd.MIN_SCORE = 0
+
+    def tearDown(self):
+        amd.MIN_SCORE = self._min
+
+    def test_score_floor_filters_low_scores(self):
+        amd.MIN_SCORE = 101
+        self.assertIsNone(amd.detect_angle_momentum(make_rows(turning_closes())))
+
     def test_turning_or_burst_when_slopes_bend_up(self):
         detail = amd.detect_angle_momentum(make_rows(turning_closes()))
         self.assertIsNotNone(detail)

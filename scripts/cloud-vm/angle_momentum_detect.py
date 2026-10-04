@@ -18,6 +18,8 @@ MIN_BURST_RATIO = 1.5
 MIN_ABSOLUTE_ACCEL = 0.0003   # 평소 변화가 거의 0일 때 burstRatio가 비정상적으로 커지지 않게 하는 최소 가속도(일평균 0.03%p)
 MAX_DAILY_RETURN = 0.10       # 당일 +10% 넘는 급등 이후의 곡률은 "선행"이 아니라 후행(EXPLOSION_LATE) - 제외
 VOLUME_PREHEAT_RATIO = 1.5    # 거래량이 평균의 이 배수 미만이면 "거래량 과열 전" 가산
+# 2026-10-04 수익률 백테스트(D+1 시가 진입): 점수 90 미만 신호는 시장 평균(BASELINE)과 차이가 없었고 90 이상만 전/후반 기간 모두 초과수익이 있었다
+MIN_SCORE = 90
 RECENT_TURN_DAYS = 3          # TURNING: 최근 3일 안에 MA5 기울기가 0 이하였던 적이 있어야 "양전환"
 MIN_BARS = LONG_PERIOD + SLOPE_COMPARE_DAYS + BURST_LOOKBACK + 2
 
@@ -113,6 +115,8 @@ def detect_angle_momentum(rows):
     if ma5[i] > ma10[i] > ma20[i] and ma20[i] and c > ma20[i] * 1.10:
         score -= 10
     score = max(0, min(100, int(round(score))))
+    if score < MIN_SCORE:
+        return None
 
     pct = lambda v: round(v * 100, 3)   # 일평균 %
     reasons = [
