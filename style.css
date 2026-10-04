@@ -4239,6 +4239,11 @@ body.account-login-open { overflow: hidden; }
 .account-login-option-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; font-family: Arial, sans-serif; font-size: 20px; font-weight: 800; }
 .account-login-kakao-icon { background: #fee500; color: #191919; font-size: 13px; }
 .account-login-google-icon { border: 1px solid #d6e2f2; background: rgb(255, 254, 252); color: #4285f4; box-shadow: 0 3px 10px rgba(66, 133, 244, .12); }
+.account-login-naver[hidden] { display: none; }
+.account-login-naver:hover { border-color: #8fd9a8; background: #f6fdf8; }
+.account-login-naver-icon { background: #03c75a; color: #fff; }
+/* 네이버 버튼이 보이면 블로그 관리는 윗줄 전체, Google·네이버는 아랫줄에 나란히 */
+.account-login-options:has(.account-login-naver:not([hidden])) .account-login-tistory { grid-column: 1 / -1; min-height: 72px; }
 .account-login-option-copy { min-width: 0; }
 .account-login-option-copy strong { display: block; font-size: 13px; line-height: 1.35; }
 .account-login-option-copy small { display: block; margin-top: 4px; color: #7b8798; font-size: 11px; line-height: 1.35; white-space: nowrap; }
@@ -4255,6 +4260,7 @@ html.dark .account-login-option { border-color: rgba(245, 239, 224, .18); backgr
 html.dark .account-login-tistory:hover { border-color: #a3843f; background: #2e291d; }
 html.dark .account-login-google:hover { border-color: #4678bd; background: #202b3a; }
 html.dark .account-login-google-icon { border-color: rgba(245, 239, 224, .2); background: #242424; color: #8ab4f8; }
+html.dark .account-login-naver:hover { border-color: #2f8f55; background: #1d2b22; }
 html.dark .account-login-option-copy small, html.dark .account-login-footer { color: rgba(245, 239, 224, .5); }
 html.dark .account-login-footer { border-color: rgba(245, 239, 224, .15); }
 @media (max-width: 560px) {

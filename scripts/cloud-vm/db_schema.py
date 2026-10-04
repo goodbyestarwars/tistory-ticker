@@ -596,7 +596,8 @@ def upsert_google_user(conn, user, updated_at):
     google_sub = str(user.get('sub', '')).strip()
     email = str(user.get('email', '')).strip().lower()
     name = str(user.get('name', '')).strip()
-    if not google_sub or not email:
+    # 네이버 계정(google_sub='naver:<id>')은 이메일 동의를 끌 수 있어 email이 비어도 된다.
+    if not google_sub or (not email and not google_sub.startswith('naver:')):
         raise ValueError('Google user identity is incomplete')
     conn.execute(
         'INSERT INTO app_users (google_sub, email, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?) '

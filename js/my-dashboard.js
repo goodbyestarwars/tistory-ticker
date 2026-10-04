@@ -987,7 +987,13 @@
     wire();
     waitForWatchlist().then(function () { render(); }).catch(function () {
       var status = document.getElementById('myDashboardStatus');
-      if (status) status.innerHTML = 'Google 로그인 후 내 종목 분석을 사용할 수 있습니다. <a href="' + API_BASE + '/auth/google/start?return_to=' + encodeURIComponent(global.location.href) + '">Google로 로그인</a>';
+      if (!status) return;
+      status.innerHTML = '로그인 후 내 종목 분석을 사용할 수 있습니다. <a href="' + API_BASE + '/auth/google/start?return_to=' + encodeURIComponent(global.location.href) + '">로그인</a>';
+      var link = status.querySelector('a');
+      if (link && global.NinePayAccountLogin) link.addEventListener('click', function (event) {
+        event.preventDefault();
+        global.NinePayAccountLogin.open();
+      });
     });
     setInterval(function () {
       var codes = state.selectedCode ? [state.selectedCode] : [];

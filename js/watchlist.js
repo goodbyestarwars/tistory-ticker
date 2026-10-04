@@ -303,11 +303,13 @@
     if (groupAdd) groupAdd.disabled = true;
     var grid = container.querySelector('#wlGrid');
     if (grid) {
-      grid.innerHTML = '<div class="wl-login-gate"><strong>Google 로그인이 필요합니다.</strong><p>' +
-        escapeHtml(message || '관심종목은 Google 계정별로 안전하게 저장됩니다.') +
-        '</p><button type="button" class="wl-login-btn">Google로 로그인</button></div>';
+      grid.innerHTML = '<div class="wl-login-gate"><strong>로그인이 필요합니다.</strong><p>' +
+        escapeHtml(message || '관심종목은 계정별로 안전하게 저장됩니다.') +
+        '</p><button type="button" class="wl-login-btn">로그인</button></div>';
       var button = grid.querySelector('.wl-login-btn');
       if (button) button.addEventListener('click', function () {
+        // 2026-10-04: Google·네이버 선택창(js/skin-shell.js)이 있으면 그것을 연다.
+        if (global.NinePayAccountLogin) return global.NinePayAccountLogin.open();
         var returnTo = encodeURIComponent(global.location.href);
         global.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + returnTo;
       });
@@ -436,7 +438,7 @@
       authState = nextAuth;
       renderAuthStatus(container);
       if (!authState.configured || !authState.authenticated) {
-        renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 Google 계정으로 로그인하세요.' : 'Google 로그인 서버 설정을 확인 중입니다.');
+        renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.');
         return null;
       }
       return remoteDataPromise.then(function (data) {
@@ -737,7 +739,7 @@
 
     var result = addStock(stock.code, stock.name);
     if (!result.ok) {
-      if (result.reason === 'login') showMsg(container, 'Google 로그인 후 관심종목을 저장할 수 있습니다.');
+      if (result.reason === 'login') showMsg(container, '로그인 후 관심종목을 저장할 수 있습니다.');
       if (result.reason === 'exists') showMsg(container, stock.name + '은(는) 이미 관심종목에 있습니다.');
       else if (result.reason === 'full') showMsg(container, '관심종목은 최대 ' + MAX_ITEMS + '개까지 담을 수 있습니다.');
       input.value = '';

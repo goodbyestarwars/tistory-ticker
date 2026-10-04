@@ -86,9 +86,10 @@
 
   function renderLoginGate() {
     var body = panel.querySelector('#memoPanelBody');
-    body.innerHTML = '<div class="memo-login-gate"><p>메모는 Google 계정에 저장됩니다.</p>'
-      + '<button type="button" class="memo-login-btn">Google로 로그인</button></div>';
+    body.innerHTML = '<div class="memo-login-gate"><p>메모는 로그인한 계정에 저장됩니다.</p>'
+      + '<button type="button" class="memo-login-btn">로그인</button></div>';
     body.querySelector('.memo-login-btn').addEventListener('click', function () {
+      if (global.NinePayAccountLogin) return global.NinePayAccountLogin.open();
       var returnTo = encodeURIComponent(global.location.href);
       global.location.href = GOOGLE_AUTH_START_URL + '?return_to=' + returnTo;
     });

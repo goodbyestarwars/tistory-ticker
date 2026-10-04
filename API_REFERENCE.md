@@ -319,7 +319,8 @@ dict 구성을 함께 대조한다.
 | GET/PUT | `/sector-cards` | GET 공개 / PUT 관리자 | 공용 증시온도 카드 |
 | GET/PUT/DELETE | `/sector-cards/me` | Google 세션 | 개인 카드 설정 |
 | GET/PUT | `/top-picks/me` | Google 세션 | 국내 주요종목 '추가 종목' 목록 동기화. GET `{picks: [...]|null}`(null=미동기화), PUT `{picks:[{code,name,price?,change_rate?}]}`(6자리 코드·최대 100개·마지막 저장 우선) |
-| GET | `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout` | OAuth | Google 로그인 흐름 |
+| GET | `/auth/google/start`, `/auth/google/callback`, `/auth/google/me`, `/auth/google/logout` | OAuth | Google 로그인 흐름. `me`는 `provider`(`google`/`naver`)·`naverConfigured`도 반환 |
+| GET | `/auth/naver/start`, `/auth/naver/callback` | OAuth | 네이버 로그인(2026-10-04). 세션 쿠키·`me`·`logout`은 Google과 공용, `sub=naver:<id>`, 관리자 권한 없음 |
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
 

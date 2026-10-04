@@ -1063,7 +1063,7 @@
       .catch(function (error) {
         if (timer) clearTimeout(timer);
         if (error && error.loginRequired) {
-          setDisclosureHeader('domestic', 'Google 로그인 필요');
+          setDisclosureHeader('domestic', '로그인 필요');
           renderDisclosureLogin();
           return;
         }

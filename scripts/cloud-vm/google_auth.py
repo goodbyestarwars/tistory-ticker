@@ -29,6 +29,15 @@ def _b64url_encode(value):
     return base64.urlsafe_b64encode(value).rstrip(b'=').decode('ascii')
 
 
+def session_provider(session):
+    # 2026-10-04 이전 세션에는 provider가 없다 - 모두 Google이었다.
+    provider = str((session or {}).get('provider') or 'google')
+    sub = str((session or {}).get('sub') or '')
+    if provider == 'naver' or sub.startswith('naver:'):
+        return 'naver'
+    return 'google'
+
+
 class GoogleAuthService:
     AUTH_ENDPOINT = 'https://accounts.google.com/o/oauth2/v2/auth'
     TOKEN_ENDPOINT = 'https://oauth2.googleapis.com/token'
@@ -83,10 +92,15 @@ class GoogleAuthService:
         return {
             'configured': self.configured,
             'authenticated': bool(user),
-            'isAdmin': bool(user and user.get('email') == self.admin_email),
+            'isAdmin': self.is_admin(user),
             'email': user.get('email') if user else None,
             'name': user.get('name') if user else None,
+            'provider': session_provider(user) if user else None,
         }
+
+    def is_admin(self, user):
+        # 네이버 email은 소유 검증이 보장되지 않으므로 관리자 판정은 Google 세션만 한다.
+        return bool(user and session_provider(user) == 'google' and user.get('email') == self.admin_email)
 
     def authorization_url(self, state, nonce):
         if not self.configured:
@@ -121,6 +135,7 @@ class GoogleAuthService:
             'sub': user['sub'],
             'email': user['email'],
             'name': user.get('name', ''),
+            'provider': user.get('provider', 'google'),
             'iat': now,
             'exp': now + 7 * 24 * 60 * 60,
         }
@@ -147,7 +162,10 @@ class GoogleAuthService:
             payload = json.loads(_b64url_decode(encoded).decode('utf-8'))
             if int(payload.get('exp', 0)) <= int(time.time()):
                 return None
-            if not payload.get('sub') or not payload.get('email'):
+            if not payload.get('sub'):
+                return None
+            # 네이버는 이메일 동의를 끌 수 있어 email 없이도 세션이 성립한다.
+            if not payload.get('email') and session_provider(payload) != 'naver':
                 return None
             return payload
         except (ValueError, TypeError, KeyError, json.JSONDecodeError, UnicodeError):
