@@ -826,3 +826,11 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 .hwr-pulse-col small { font-size: 11px; }
 .hwr-pulse-text strong { font-size: 14px; }
 @media (max-width: 720px) { .hwr-pulse-bars { height: 54px; gap: 7px; } .hwr-pulse-col { width: 16px; } .hwr-pulse-half i { width: 10px; } }
+/* 머리말 한 줄 정렬(2026-10-04 사용자 요청 "일렬로"): 요일 글자를 흐름 밖(막대 아래)으로 빼서 막대 기준선이
+   막대 묶음의 세로 중앙이 되게 하고, 제목·맥박·문구·기간을 같은 세로 중앙선에 맞춘다 */
+.home-weekly-report .hwr-head { align-items: center; }
+.hwr-pulse-col { grid-template-rows: 1fr 1fr; }
+.hwr-pulse-col small { position: absolute; top: 100%; left: 50%; margin-top: 3px; transform: translateX(-50%); line-height: 1; }
+.home-weekly-report .hwr-pulse { align-items: center; gap: 16px; padding-bottom: 0; }
+.home-weekly-report .hwr-period { display: flex; flex-direction: column; justify-content: center; align-self: center; }
+@media (max-width: 720px) { .home-weekly-report .hwr-pulse { margin-bottom: 14px; } }
