@@ -7958,6 +7958,9 @@ html.search-open body .nav-search-recent a {
   color: rgb(var(--np-ink)) !important; font: 600 14px/1 var(--font-ui) !important; text-decoration: none !important; white-space: nowrap !important;
 }
 html.search-open body .nav-search-recent a:hover { background: rgba(var(--np-ink), .06) !important; }
+/* 다크 모드: 큰 검색 패널·뒤 가림막이 밝은 종이색으로 박혀 흰 상자 위 흰 글자가 됐다(2026-10-04 확인) */
+html.dark.search-open body .nav-search-wrap { background: var(--np-paper) !important; box-shadow: 0 18px 60px rgba(0, 0, 0, .5) !important; }
+html.dark body .nav-search-backdrop { background: rgba(10, 10, 10, .55) !important; }
 html.search-open body .nav-search-suggest {
   position: static !important; width: auto !important; max-height: 46vh !important; margin-top: 10px !important; overflow-y: auto !important;
   border: 0 !important; border-radius: 0 !important; box-shadow: none !important; background: transparent !important;
