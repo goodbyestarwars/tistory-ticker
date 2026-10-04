@@ -616,8 +616,6 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
-        // 2026-10-04 업종 로테이션: 국내 시장 요약 아래 빈 영역. js/home-sector-rotation.js가 채운다(서버 계산 결과만 읽음).
-        + '<section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section>'
         + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
@@ -631,6 +629,8 @@ document.documentElement.classList.add('skin-ready');
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
         + '</section></div>'
+        // 2026-10-04 업종 로테이션: 국내 시장·경제 뉴스 2열 아래 전체 폭 영역. js/home-sector-rotation.js가 채운다(서버 계산 결과만 읽음).
+        + '<section class="home-sector-rotation" data-home-sector-rotation hidden aria-label="업종 로테이션"></section>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
@@ -2461,7 +2461,7 @@ document.documentElement.classList.add('skin-ready');
     if (!host || host.getAttribute('data-rotation-mounted')) return !!host;
     host.setAttribute('data-rotation-mounted', '1');
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v2';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v3';
     script.onload = function () { if (window.HomeSectorRotation) window.HomeSectorRotation.mount(host); };
     document.head.appendChild(script);
     return true;

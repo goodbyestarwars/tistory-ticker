@@ -5,7 +5,7 @@
   'use strict';
 
   var API = 'https://goodbyestar.cloud/sector-rotation';
-  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v2';
+  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v3';
   var COLUMNS = [
     { key: 'emerging', label: '유입', desc: '새롭게 강해지는 업종', cls: 'is-emerging' },
     { key: 'leading', label: '주도', desc: '시장을 이끄는 업종', cls: 'is-leading' },
@@ -27,9 +27,9 @@
   // 순위는 숫자가 작을수록 좋다. 서버가 (과거 순위 - 현재 순위)로 줘서 양수 = 순위 상승(↑)이다.
   function changeText(n) {
     if (n == null) return '·';
-    if (n > 0) return '↑ ' + n;
-    if (n < 0) return '↓ ' + Math.abs(n);
-    return '– 0';
+    if (n > 0) return '↑' + n;
+    if (n < 0) return '↓' + Math.abs(n);
+    return '–';
   }
   function changeCls(n) { return n > 0 ? 'is-up' : (n < 0 ? 'is-down' : 'is-flat'); }
   function pct(v, d) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(d == null ? 1 : d) + '%'; }
@@ -55,7 +55,7 @@
       return '<button type="button" class="hsr-item' + (i === 0 ? ' is-first' : '') + '" data-sector="' + esc(it.sector) + '">'
         + '<span class="hsr-name">' + esc(it.sector.replace(/\//g, '·')) + '</span>'
         + '<span class="hsr-chg ' + changeCls(it.rankChange5d) + '">' + changeText(it.rankChange5d) + '</span></button>';
-    }).join('') : '<div class="hsr-empty"><span>—</span> 현재 조건을 충족한 업종이 없습니다</div>';
+    }).join('') : '<div class="hsr-empty"><b>—</b><span>해당 업종 없음</span></div>';
     return '<div class="hsr-col ' + col.cls + '"><div class="hsr-col-head"><div class="hsr-phase"><i class="hsr-dot"></i>' + col.label + '</div>'
       + '<p>' + col.desc + '</p></div><div class="hsr-list">' + rows + '</div></div>';
   }
