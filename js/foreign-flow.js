@@ -4524,6 +4524,40 @@
     };
   }
 
+  // 2026-10-04 사용자 요청("가격대별 거래량 옆에 전체적으로 미니 매물대 모습을, 현재 위치는 가로줄로"): 전체 가격대를 세로 한 장에
+  // 압축해 그린다(가로 막대가 거래량, 위가 높은 가격). 현재가는 가로 점선, 평균단가는 얇은 회색선. 위(저항 후보)는 파랑·아래(지지 후보)는 붉은색.
+  function buildMiniProfileSvg_(profile, currentPrice, avgPrice) {
+    var bins = compactAptProfileBins(profile, 36);
+    if (!bins.length) return '';
+    var lo = Number(bins[0].low), hi = Number(bins[bins.length - 1].high);
+    var cur = Number(currentPrice);
+    if (isFinite(cur)) { lo = Math.min(lo, cur); hi = Math.max(hi, cur); }
+    if (!(hi > lo)) return '';
+    var W = 132, H = 300, padT = 8, padB = 8, left = 6, right = 6;
+    var maxVol = bins.reduce(function (m, b) { return Math.max(m, b.volume); }, 0) || 1;
+    function Y(price) { return padT + (1 - (price - lo) / (hi - lo)) * (H - padT - padB); }
+    var rows = '';
+    bins.forEach(function (b) {
+      var yTop = Y(b.high), yBot = Y(b.low);
+      var h = Math.max(1.5, yBot - yTop - 0.8);
+      var w = Math.max(b.volume > 0 ? 1.5 : 0, b.volume / maxVol * (W - left - right));
+      var mid = (Number(b.low) + Number(b.high)) / 2;
+      var cls = !isFinite(cur) ? 'flat' : mid > cur ? 'above' : 'below';
+      rows += '<rect class="ff-mini-bar ' + cls + '" x="' + left + '" y="' + yTop.toFixed(1) + '" width="' + w.toFixed(1) + '" height="' + h.toFixed(1) + '" rx="1.5"/>';
+    });
+    var lines = '';
+    var avg = Number(avgPrice);
+    if (isFinite(avg) && avg >= lo && avg <= hi) {
+      lines += '<line class="ff-mini-avg" x1="0" x2="' + W + '" y1="' + Y(avg).toFixed(1) + '" y2="' + Y(avg).toFixed(1) + '"/>';
+    }
+    if (isFinite(cur)) {
+      var cy = Y(cur);
+      lines += '<line class="ff-mini-cur" x1="0" x2="' + W + '" y1="' + cy.toFixed(1) + '" y2="' + cy.toFixed(1) + '"/>'
+        + '<text class="ff-mini-cur-label" x="' + (W - 4) + '" y="' + Math.max(12, cy - 4).toFixed(1) + '" text-anchor="end">현재</text>';
+    }
+    return '<svg class="ff-apt-mini-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="전체 매물대 미니 그래프(가로 점선이 현재가)">' + rows + lines + '</svg>';
+  }
+
   function buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, periodLabel, holdingAveragePrice, code) {
     if (!profile || !profile.bins || !profile.bins.length) {
       return '<div class="ff-apt-empty">이 구간엔 매물대를 계산할 데이터가 부족해요.</div>';
@@ -4658,7 +4692,9 @@
       + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>한 칸은 한 가격 구간 · 가장 긴 막대가 이 화면의 최대 거래량</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
       + limitHtml
       + myPosition
-      + '<div class="ff-apt-simple-chart">' + rowHtml + '</div>'
+      + '<div class="ff-apt-split"><div class="ff-apt-simple-chart">' + rowHtml + '</div>'
+      + '<aside class="ff-apt-mini" aria-label="미니 매물대"><div class="ff-apt-mini-title">전체 매물대</div>' + buildMiniProfileSvg_(profile, currentPrice, avgPrice)
+      + '<div class="ff-apt-mini-note">위 높은 가격 · 가로줄 = 현재가</div></aside></div>'
       + '<div class="ff-apt-simple-legend"><span class="current">현재가</span>' + (showHolding ? '<span class="mine">내 평단</span>' : '') + '<span class="average">시장 평균</span><span class="poc">최대 매물대</span></div>'
       + '</div>'
       + '<div class="ff-apt-simple-note" role="note">' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</div>';

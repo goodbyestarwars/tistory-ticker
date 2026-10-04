@@ -3068,3 +3068,21 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
   #foreign-flow .ff-apt-simple-row { grid-template-columns: 92px minmax(0, 1fr) 64px; row-gap: 4px; }
   #foreign-flow .ff-apt-simple-markers { grid-column: 1 / -1; }
 }
+
+/* 미니 매물대(2026-10-04): 가격대별 거래량 목록 옆에 전체 가격대를 한 장으로 */
+#foreign-flow .ff-apt-split { display: grid; grid-template-columns: minmax(0, 1fr) 150px; gap: 18px; align-items: start; }
+#foreign-flow .ff-apt-mini { position: sticky; top: 90px; padding: 12px 10px; border-radius: 16px; background: rgba(17, 17, 17, .04); }
+#foreign-flow .ff-apt-mini-title { margin-bottom: 8px; font-size: 12px; font-weight: 700; color: #475569; }
+#foreign-flow .ff-apt-mini-svg { display: block; width: 100%; height: auto; }
+#foreign-flow .ff-mini-bar.above { fill: rgba(18, 97, 196, .55); }
+#foreign-flow .ff-mini-bar.below { fill: rgba(210, 79, 69, .55); }
+#foreign-flow .ff-mini-bar.flat { fill: rgba(100, 116, 139, .5); }
+#foreign-flow .ff-mini-cur { stroke: #111827; stroke-width: 1.4; stroke-dasharray: 4 3; }
+#foreign-flow .ff-mini-avg { stroke: #94a3b8; stroke-width: 1; }
+#foreign-flow .ff-mini-cur-label { font-size: 10.5px; font-weight: 700; fill: #111827; }
+#foreign-flow .ff-apt-mini-note { margin-top: 8px; font-size: 10.5px; color: #94a3b8; line-height: 1.4; }
+@media (max-width: 720px) {
+  #foreign-flow .ff-apt-split { grid-template-columns: minmax(0, 1fr); }
+  #foreign-flow .ff-apt-mini { position: static; }
+  #foreign-flow .ff-apt-mini-svg { max-height: 220px; }
+}
