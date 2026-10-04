@@ -4237,6 +4237,7 @@
       body = '<div class="ff-price-chart-panel"><div class="ff-chart-toggles">'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '</div>'
         + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구">'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
@@ -4291,6 +4292,8 @@
 
   // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
+  var supportResistanceEnabled = true;   // 2026-10-04 "지지·저항 체크 기능" - 종목분석은 기본 켜짐, 체크로 끌 수 있다
+  var flowSrCtx = null;
   var ichimokuOverlaySeries = [];
   var ichimokuCloudPrimitive = null; // { series, primitive }
 
@@ -4400,6 +4403,17 @@
   }
 
   function wireIchimokuToggle(box, chartData) {
+    var srToggle = box.querySelector('#ffSupportResistanceToggle');
+    if (srToggle) {
+      srToggle.addEventListener('change', function () {
+        supportResistanceEnabled = srToggle.checked;
+        if (!supportResistanceEnabled) {
+          if (flowSrCleanup) { flowSrCleanup(); flowSrCleanup = null; }
+        } else if (flowSrCtx && lwcChart === flowSrCtx.chart) {
+          setupFlowSupportResistance(flowSrCtx.container, flowSrCtx.chart, flowSrCtx.series, flowSrCtx.daily, flowSrCtx.levels, flowSrCtx.LWC);
+        }
+      });
+    }
     var toggle = box.querySelector('#ffIchimokuToggle');
     if (!toggle) return;
     toggle.addEventListener('change', function () {
@@ -5527,8 +5541,10 @@
     return chartSrPromise;
   }
   function setupFlowSupportResistance(container, chart, series, daily, fallbackLevels, LWC) {
+    flowSrCtx = { container: container, chart: chart, series: series, daily: daily, levels: fallbackLevels, LWC: LWC };
+    if (!supportResistanceEnabled) return;
     loadChartSrModule().then(function (api) {
-      if (!document.body.contains(container) || lwcChart !== chart) return;
+      if (!document.body.contains(container) || lwcChart !== chart || !supportResistanceEnabled || flowSrCleanup) return;
       var result = api.levels(daily);
       if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
       flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); });

@@ -862,6 +862,7 @@
     html += buildScoreBox(data.detail);
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
     html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
       + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
@@ -875,6 +876,17 @@
     var closeBtn = box.querySelector('#psClose');
     if (closeBtn) closeBtn.addEventListener('click', function () { destroyPsChart(); box.hidden = true; box.innerHTML = ''; });
 
+    var srToggle = box.querySelector('#psSupportResistanceToggle');
+    if (srToggle) {
+      srToggle.addEventListener('change', function () {
+        psSrEnabled = srToggle.checked;
+        if (!psSrEnabled) {
+          if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
+        } else if (psSrCtx && psLwcChart === psSrCtx.chart) {
+          setupPsSupportResistance(psSrCtx.container, psSrCtx.chart, psSrCtx.series, psSrCtx.daily);
+        }
+      });
+    }
     var ichiToggle = box.querySelector('#psIchimokuToggle');
     var ichiLegend = box.querySelector('.ps-ichimoku-legend');
     if (ichiLegend) ichiLegend.hidden = !psIchimokuEnabled;
@@ -1000,6 +1012,8 @@
   // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색·종목분석 차트와 같은 계산·그림(2026-10-04 사용자 지적:
   // 차트검색에는 지지/저항이 적용돼 있지 않았다). 지지=붉은색, 저항=파란색.
   var psSrPromise = null;
+  var psSrEnabled = true;   // 2026-10-04 지지·저항 체크 기능(기본 켜짐)
+  var psSrCtx = null;
   var psSrCleanup = null;
   function loadPsSrModule() {
     if (window.NineChartSR) return Promise.resolve(window.NineChartSR);
@@ -1014,8 +1028,10 @@
     return psSrPromise;
   }
   function setupPsSupportResistance(container, chart, series, daily) {
+    psSrCtx = { container: container, chart: chart, series: series, daily: daily };
+    if (!psSrEnabled) return;
     loadPsSrModule().then(function (api) {
-      if (!document.body.contains(container) || psLwcChart !== chart) return;
+      if (!document.body.contains(container) || psLwcChart !== chart || !psSrEnabled || psSrCleanup) return;
       var result = api.levels(daily);
       if (!result.support.length && !result.resistance.length) return;
       psSrCleanup = api.install(container, chart, series, result, function (p) { return psChartPriceFormatter(p); });

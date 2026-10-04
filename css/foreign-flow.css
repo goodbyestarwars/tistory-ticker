@@ -3017,25 +3017,25 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
 #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
 #foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 0 !important; padding: 0 0 2px !important; }
-#foreign-flow .ff-swing-regime > strong { font-size: 30px; line-height: 1.1; letter-spacing: -.02em; }
+#foreign-flow .ff-swing-regime > strong { font-size: 28.7px; line-height: 1.1; letter-spacing: -.02em; }
 #foreign-flow .ff-swing-flow-track { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
 #foreign-flow .ff-swing-step { display: flex !important; flex-direction: column; gap: 6px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-step-label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-step > strong { font-size: 19px; letter-spacing: -.01em; }
+#foreign-flow .ff-swing-step > strong { font-size: 17.7px; letter-spacing: -.01em; }
 #foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .05); }
 #foreign-flow .ff-swing-diagnosis > span { font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-diagnosis > strong { font-size: 20px; letter-spacing: -.01em; }
+#foreign-flow .ff-swing-diagnosis > strong { font-size: 18.7px; letter-spacing: -.01em; }
 #foreign-flow .ff-swing-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
 #foreign-flow .ff-swing-action { display: flex !important; flex-direction: column; gap: 4px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-action > span { font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-action > strong { font-size: 17px; }
+#foreign-flow .ff-swing-action > strong { font-size: 15.7px; }
 #foreign-flow .ff-swing-facts { display: flex !important; flex-wrap: wrap; gap: 8px; border: 0 !important; padding: 0 !important; }
 #foreign-flow .ff-swing-fact { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(17, 17, 17, .05); font-size: 12.5px; }
 #foreign-flow .ff-swing-fact small { color: #64748b; font-size: 11px; }
 #foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { color: #64748b; font-size: 12.5px; line-height: 1.6; border: 0 !important; padding: 0 !important; }
 @media (max-width: 720px) {
   #foreign-flow .ff-swing-flow-track, #foreign-flow .ff-swing-actions { grid-template-columns: minmax(0, 1fr); }
-  #foreign-flow .ff-swing-regime > strong { font-size: 24px; }
+  #foreign-flow .ff-swing-regime > strong { font-size: 22.7px; }
 }
 
 /* ── 매물대 가격대별 거래량: 애플 스타일 재디자인 (2026-10-04) ──
@@ -3086,3 +3086,4 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
   #foreign-flow .ff-apt-mini { position: static; }
   #foreign-flow .ff-apt-mini-svg { max-height: 220px; }
 }
+#foreign-flow .ff-swing-fact b, #foreign-flow .ff-swing-reasons b, #foreign-flow .ff-swing-invalidation b, #foreign-flow .ff-swing-risk-detail b { font-size: 11.7px; }
