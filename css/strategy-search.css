@@ -1322,3 +1322,45 @@ html.dark #strategy-search .ss-nearmiss-name,
 html.dark #strategy-search .ss-nearmiss-price { color: #F5EFE0 !important; }
 html.dark #strategy-search .ss-nearmiss-row:hover,
 html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245, 239, 224, 0.07) !important; }
+
+/* ── 대표 후보 TOP 3 (2026-10-04): 표 위의 하이라이트. 카드 전체 색칠·그림자·그라데이션 없이 순위 chip만 은은하게 ── */
+#strategy-search .ss-top3 { margin: 0 0 28px; }
+#strategy-search .ss-top3-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+#strategy-search .ss-top3-head strong { font-size: 18px; font-weight: 700; }
+#strategy-search .ss-top3-head span { font-size: 13px; color: #64748b; }
+#strategy-search .ss-top3-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+#strategy-search .ss-top-card { display: grid; grid-template-rows: auto auto auto auto 1fr auto; gap: 10px; min-width: 0; padding: 18px 20px; border: 1px solid #e5e7eb; border-radius: 12px; background: #fff; cursor: pointer; }
+#strategy-search .ss-top-card:hover { border-color: #cbd5e1; }
+#strategy-search .ss-top-head { display: flex; align-items: center; justify-content: space-between; }
+#strategy-search .ss-top-rank { padding: 2px 10px; border-radius: 6px; font-size: 12px; font-weight: 700; background: #f1f5f9; color: #475569; }
+#strategy-search .ss-top-rank.is-gold { background: #f3ead2; color: #8a6a1c; }
+#strategy-search .ss-top-rank.is-silver { background: #e8ebf0; color: #5b6573; }
+#strategy-search .ss-top-rank.is-bronze { background: #efe0d4; color: #8a5a3a; }
+#strategy-search .ss-top-name { min-width: 0; }
+#strategy-search .ss-top-name strong { display: flex; align-items: center; gap: 8px; font-size: 17px; font-weight: 700; min-width: 0; }
+#strategy-search .ss-top-name strong span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#strategy-search .ss-top-name small { display: block; margin-top: 2px; font-size: 12.5px; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#strategy-search .ss-top-quote { display: flex; align-items: baseline; gap: 10px; }
+#strategy-search .ss-top-price { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-top-rate { font-size: 14px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-top-rate.is-up, #strategy-search .ss-top-gap.is-up, #strategy-search .ss-top-kpis dd.is-up { color: #d24f45; }
+#strategy-search .ss-top-rate.is-down, #strategy-search .ss-top-gap.is-down, #strategy-search .ss-top-kpis dd.is-down { color: #1261c4; }
+#strategy-search .ss-top-rate.is-flat, #strategy-search .ss-top-gap.is-flat { color: #94a3b8; }
+#strategy-search .ss-top-gap { font-size: 13px; font-weight: 600; }
+#strategy-search .ss-top-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; padding: 12px 0; border-top: 1px solid #eef0f3; border-bottom: 1px solid #eef0f3; }
+#strategy-search .ss-top-kpis > div { padding: 0 12px; border-left: 1px solid #eef0f3; min-width: 0; }
+#strategy-search .ss-top-kpis > div:first-child { padding-left: 0; border-left: 0; }
+#strategy-search .ss-top-kpis dt { font-size: 12px; color: #64748b; }
+#strategy-search .ss-top-kpis dd { margin: 4px 0 0; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
+#strategy-search .ss-top-sub { align-self: end; margin: 0; font-size: 12.5px; line-height: 1.5; color: #64748b; }
+#strategy-search .ss-top3-note { margin: 10px 0 0; font-size: 12px; color: #94a3b8; }
+html.dark #strategy-search .ss-top-card { background: #1b1b1b; border-color: rgba(245, 239, 224, .14); }
+html.dark #strategy-search .ss-top3-head span, html.dark #strategy-search .ss-top-name small, html.dark #strategy-search .ss-top-kpis dt, html.dark #strategy-search .ss-top-sub { color: rgba(245, 239, 224, .6); }
+html.dark #strategy-search .ss-top-kpis, html.dark #strategy-search .ss-top-kpis > div { border-color: rgba(245, 239, 224, .12); }
+html.dark #strategy-search .ss-top-rate.is-up, html.dark #strategy-search .ss-top-gap.is-up, html.dark #strategy-search .ss-top-kpis dd.is-up { color: #ff8a83; }
+html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-top-gap.is-down, html.dark #strategy-search .ss-top-kpis dd.is-down { color: #80b8ff; }
+@media (max-width: 720px) {
+  /* 모바일: 가로 스와이프 3장 */
+  #strategy-search .ss-top3-grid { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
+  #strategy-search .ss-top-card { flex: 0 0 82%; scroll-snap-align: start; }
+}

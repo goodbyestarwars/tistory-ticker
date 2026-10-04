@@ -292,7 +292,7 @@
           + '&name=' + encodeURIComponent(nearRow.getAttribute('data-name') || nearCode);
         return;
       }
-      var row = event.target.closest ? event.target.closest('.ss-row') : null;
+      var row = event.target.closest ? (event.target.closest('.ss-row') || event.target.closest('.ss-top-card')) : null;
       if (!row) return;
       var code = row.getAttribute('data-code');
       if (!code) return;
@@ -312,7 +312,7 @@
     });
       container.addEventListener('keydown', function (event) {
       var row = event.target.closest
-        ? (event.target.closest('.ss-row') || event.target.closest('.ss-nearmiss-row'))
+        ? (event.target.closest('.ss-row') || event.target.closest('.ss-top-card') || event.target.closest('.ss-nearmiss-row'))
         : null;
       if (!row || (event.key !== 'Enter' && event.key !== ' ')) return;
       event.preventDefault();
@@ -401,9 +401,127 @@
   // 실시간 갱신을 빠뜨리지 않는다.
   function renderCards(container) {
     renderCardsInner(container);
+    insertTopCards(container);
     appendNearMisses(container);
     wireGapTools(container);
     patchLivePrices(container);
+  }
+
+  // ---- 대표 후보 TOP 3 (2026-10-04) ----
+  // 표를 카드로 바꾸는 것이 아니라, 표 위에 "가장 먼저 볼 종목 3개"만 하이라이트로 얹는다. 표(전체 후보·정렬·필터·관심등록·
+  // 클릭)는 그대로고, 카드는 표가 쓰는 같은 데이터·같은 순서의 앞 3개를 재사용한다(새 데이터 소스·순위 로직 없음).
+  // 현재가·등락률은 표와 같은 실시간 갱신(patchLivePrices)을 받고, 순위·전략 KPI는 스캔 시점 값이다.
+  function topCandidates(key) {
+    if (key === 'undervalued' || key === 'targetPriceGap') return allMatches(key);
+    if (key === 'etfReturn') return sortEtfMatches(etfFilteredMatches(key));
+    if (key === 'dividend') return sortedDividendMatches();
+    if (key === 'nationalPension') {
+      var range = NPS_RANGE_OPTIONS[activeNpsRangeIndex];
+      return allMatches('nationalPension').sort(function (a, b) { return (b.holdingPct || 0) - (a.holdingPct || 0); })
+        .filter(function (item) {
+          var pct = item.holdingPct || 0;
+          return pct >= range.min && (range.max == null || pct < range.max);
+        });
+    }
+    return [];
+  }
+
+  // 전략별 핵심 KPI 2개 + 보조 1줄. 데이터에 없는 값(국민연금 지분 변화, ETF 총보수 등)은 만들지 않고 있는 값으로 대신한다.
+  function topKpis(key, item) {
+    function kpi(label, value, cls) { return { label: label, value: value, cls: cls || '' }; }
+    function pctSigned(v) { return v == null || isNaN(Number(v)) ? '—' : (Number(v) > 0 ? '+' : '') + Number(v).toFixed(1) + '%'; }
+    var sub = [];
+    if (key === 'undervalued') {
+      var dis = item.disparity != null ? Number(item.disparity) - 100 : null;
+      if (item.debtRatio != null) sub.push('부채비율 ' + fmtPct(item.debtRatio));
+      if (item.fundamentalScore != null) sub.push('재무점수 ' + fmt(item.fundamentalScore));
+      if (analystTargetPriceText(item)) sub.push(analystTargetPriceText(item));
+      return { kpis: [kpi('120일선 대비', pctSigned(dis), dis == null ? '' : chgClass(dis)), kpi('ROE', fmtPct(item.roe))], sub: sub.join(' · ') };
+    }
+    if (key === 'targetPriceGap') {
+      var analyst = item.analystTargetGapPct;
+      if (item.targetPrice != null) sub.push('참고 목표가 ' + fmtWon(item.targetPrice));
+      if (item.roe != null) sub.push('ROE ' + fmtPct(item.roe));
+      if (item.debtRatio != null) sub.push('부채비율 ' + fmtPct(item.debtRatio));
+      return { kpis: [kpi('목표가 여력', pctSigned(item.targetGapPct), item.targetGapPct == null ? '' : chgClass(item.targetGapPct)),
+        analyst != null ? kpi('애널 목표가 여력', pctSigned(analyst), chgClass(analyst)) : kpi('재무점수', item.fundamentalScore == null ? '—' : fmt(item.fundamentalScore))], sub: sub.join(' · ') };
+    }
+    if (key === 'dividend') {
+      if (item.roe != null) sub.push('ROE ' + fmtPct(item.roe));
+      if (item.cashDividendPerShare != null) sub.push('주당 배당금 ' + fmtWon(item.cashDividendPerShare));
+      if (item.reportYear) sub.push(item.reportYear + '년 결산');
+      return { kpis: [kpi('배당수익률', fmtPctExact(item.dividendYieldPct)),
+        item.dividendStreak != null ? kpi('연속 배당', item.dividendStreak + '년') : kpi('배당성향', fmtPct(item.payoutRatioPct))], sub: sub.join(' · ') };
+    }
+    if (key === 'etfReturn') {
+      if (item.returnRate1mPct != null) sub.push('1개월 ' + pctSigned(item.returnRate1mPct));
+      if (item.returnRate6mPct != null) sub.push('6개월 ' + pctSigned(item.returnRate6mPct));
+      sub.push(etfType(item));
+      return { kpis: [kpi('3개월 수익률', pctSigned(item.returnRate3mPct), item.returnRate3mPct == null ? '' : chgClass(item.returnRate3mPct)),
+        kpi('1년 수익률', pctSigned(item.returnRate12mPct), item.returnRate12mPct == null ? '' : chgClass(item.returnRate12mPct))], sub: sub.join(' · ') };
+    }
+    if (key === 'nationalPension') {
+      if (item.asOf) sub.push(item.asOf + ' 기준');
+      if (item.weightPct != null) sub.push('펀드 내 비중 ' + fmtPctExact(item.weightPct));
+      if (analystTargetPriceText(item)) sub.push(analystTargetPriceText(item));
+      return { kpis: [kpi('보유 지분율', fmtPctExact(item.holdingPct)), kpi('평가액', item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원')], sub: sub.join(' · ') };
+    }
+    return { kpis: [], sub: '' };
+  }
+
+  function topCardHtml(key, item, index) {
+    var rate = item.changeRate != null ? item.changeRate : item.changeRatePct;
+    var model = topKpis(key, item);
+    var scan = (item.price == null || isNaN(Number(item.price))) ? '' : String(Number(item.price));
+    var tag = ['gold', 'silver', 'bronze'][index];
+    return '<article class="ss-top-card" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" tabindex="0" role="button">'
+      + '<header class="ss-top-head"><span class="ss-top-rank is-' + tag + '">' + (index + 1) + '위</span>' + watchButtonHtml(item) + '</header>'
+      + '<div class="ss-top-name"><strong>' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name || '—') + '</span></strong>'
+      + '<small>' + escapeHtml(item.code || '—') + ' · ' + escapeHtml(cleanIndustryLabel(item.sector || item.industry)) + '</small></div>'
+      + '<div class="ss-top-quote is-scan"' + (scan ? ' data-scan-price="' + escapeAttr(scan) + '"' : '') + (item.date ? ' data-scan-date="' + escapeAttr(String(item.date)) + '"' : '') + '>'
+      + '<b class="ss-top-price">' + fmtWon(item.price) + '</b>'
+      + '<em class="ss-top-rate ' + chgClass(rate) + '">' + (rate == null || isNaN(Number(rate)) ? '—' : (Number(rate) > 0 ? '▲' : Number(rate) < 0 ? '▼' : '') + Math.abs(Number(rate)).toFixed(2) + '%') + '</em></div>'
+      + '<div class="ss-top-gap is-flat">스캔 이후 —</div>'
+      + '<dl class="ss-top-kpis">' + model.kpis.map(function (k) {
+          return '<div><dt>' + escapeHtml(k.label) + '</dt><dd class="' + k.cls + '">' + escapeHtml(k.value) + '</dd></div>';
+        }).join('') + '</dl>'
+      + '<p class="ss-top-sub">' + escapeHtml(model.sub || '—') + '</p>'
+      + '</article>';
+  }
+
+  function insertTopCards(container) {
+    var wrap = container.querySelector('#ssCards');
+    if (!wrap) return;
+    var old = wrap.querySelector('.ss-top3');
+    if (old) old.remove();
+    var items = topCandidates(activeKey).slice(0, 3);
+    if (!items.length) return;
+    wrap.insertAdjacentHTML('afterbegin', '<section class="ss-top3" aria-label="대표 후보 TOP 3">'
+      + '<div class="ss-top3-head"><strong>대표 후보 TOP 3</strong><span>이 전략에서 가장 먼저 볼 종목 · 전체 후보는 아래 표</span></div>'
+      + '<div class="ss-top3-grid">' + items.map(function (item, i) { return topCardHtml(activeKey, item, i); }).join('') + '</div>'
+      + '<p class="ss-top3-note">현재가·등락률은 실시간, 순위·전략 지표는 스캔 시점 기준입니다.</p></section>');
+  }
+
+  function updateTopCard(card, live) {
+    var quote = card.querySelector('.ss-top-quote');
+    if (!quote || live.price == null || isNaN(live.price)) return;
+    var scan = Number(quote.getAttribute('data-scan-price'));
+    var priceEl = quote.querySelector('.ss-top-price');
+    if (priceEl) priceEl.textContent = fmtWon(live.price);
+    var rateEl = quote.querySelector('.ss-top-rate');
+    if (rateEl && live.changeRate != null && !isNaN(live.changeRate)) {
+      var r = Number(live.changeRate);
+      rateEl.textContent = (r > 0 ? '▲' : r < 0 ? '▼' : '') + Math.abs(r).toFixed(2) + '%';
+      rateEl.className = 'ss-top-rate ' + chgClass(r);
+    }
+    quote.className = quote.className.replace('is-scan', 'is-live');
+    var gapEl = card.querySelector('.ss-top-gap');
+    var gap = gapPercent(Number(live.price), scan);
+    if (gapEl && gap != null) {
+      var rounded = Math.round(gap * 10) / 10;
+      gapEl.className = 'ss-top-gap ' + (rounded > 0 ? 'is-up' : rounded < 0 ? 'is-down' : 'is-flat');
+      gapEl.textContent = '스캔 이후 ' + (rounded > 0 ? '+' : rounded < 0 ? '-' : '') + Math.abs(rounded).toFixed(1) + '%';
+    }
   }
 
   // 조건 근접 블록은 분기 안이 아니라 여기서 한 번만 덧붙인다 - 카테고리마다 렌더
@@ -1169,7 +1287,7 @@
   }
 
   function patchLivePrices(container) {
-    var rows = container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]');
+    var rows = container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code], .ss-top-card[data-code]');
     var fresh = {};
     var missing = [];
     Array.prototype.forEach.call(rows, function (row) {
@@ -1201,7 +1319,7 @@
             liveQuoteCache[String(d.code)] = { data: d, at: Date.now() };
           });
           if (seq !== liveQuoteSeq) return;   // 그사이 다시 그려졌다 - 늦은 응답은 버린다
-          applyLiveQuotes(container, container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code]'), byCode);
+          applyLiveQuotes(container, container.querySelectorAll('.ss-row[data-code], .ss-table-row[data-code], .ss-top-card[data-code]'), byCode);
           markPriceBasis(container, true);
         })
         .catch(function () {
@@ -1217,6 +1335,7 @@
     Array.prototype.forEach.call(rows, function (row) {
       var live = byCode[row.getAttribute('data-code')];
       if (!live) return;   // 응답에 없는 종목은 '스캔 시점' 표시를 그대로 둔다
+      if (row.classList.contains('ss-top-card')) { updateTopCard(row, live); return; }   // TOP 3 카드 - 갭 정렬·필터 대상이 아니다
 
       // 정렬·필터가 쓸 수 있게 행에 갭을 남긴다. 표 뷰든 카드 뷰든 한 곳에서만 기록한다.
       var rowScan = Number((row.querySelector('[data-scan-price]') || {getAttribute: function () { return null; }})
