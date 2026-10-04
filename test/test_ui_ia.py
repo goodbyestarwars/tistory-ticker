@@ -3054,7 +3054,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("var UP = '#d24f45', DOWN = '#1261c4';", source)
         self.assertIn("var color = up ? UP : DOWN;", source)
         # 막대도 CSS 도착 전에 칠해지도록 배경색을 인라인으로 넣는다.
-        self.assertIn(";background:' + UP + '", source)
+        self.assertIn(";background:' + (rising ? UP : DOWN) + '", source)
 
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")

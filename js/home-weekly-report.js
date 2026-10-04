@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261004-report-v9';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pulse-v10';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -502,19 +502,18 @@
     var peak = days.reduce(function (m, d) { return Math.max(m, Math.abs(d.change)); }, 0) || 1;
     var UP = '#d24f45', DOWN = '#1261c4';
     var bars = days.map(function (d, i) {
-      var h = Math.max(8, Math.abs(d.change) / peak * 100);
+      var h = Math.abs(d.change) / peak * 50;
       var rising = d.change >= 0;
       var tip = d.day.slice(5).replace('-', '/') + ' ' + d.label + ' ' + (d.change > 0 ? '+' : '') + d.change.toFixed(2) + '%';
       return '<span class="hwr-pulse-col" title="' + escapeHtml(tip) + '">'
-        + '<span class="hwr-pulse-half is-top">' + (rising ? '<i class="is-up" style="height:' + h.toFixed(0) + '%;background:' + UP + ';animation-delay:' + (i * 70) + 'ms"></i>' : '') + '</span>'
-        + '<span class="hwr-pulse-half is-bottom">' + (!rising ? '<i class="is-down" style="height:' + h.toFixed(0) + '%;background:' + DOWN + ';animation-delay:' + (i * 70) + 'ms"></i>' : '') + '</span>'
-        + '<small>' + escapeHtml(d.label) + '</small></span>';
+        + '<i class="' + (rising ? 'is-up' : 'is-down') + '" style="height:' + h.toFixed(1) + '%;background:' + (rising ? UP : DOWN) + ';animation-delay:' + (i * 60) + 'ms"></i></span>';
     }).join('');
+    var dayLabels = days.map(function (d) { return '<small>' + escapeHtml(d.label) + '</small>'; }).join('');
     var color = up ? UP : DOWN;
     var label = up ? '상승 마감 주간' : '하락 마감 주간';
     return '<div class="hwr-sentiment hwr-pulse hwr-sentiment--' + (up ? 'up' : 'down') + '" style="color:' + color + '" aria-label="' + label + (avg != null ? ', 4개 지수 주간 평균 ' + signed(avg) : '') + '">'
-      + (days.length ? '<span class="hwr-pulse-bars" aria-hidden="true">' + bars + '</span>' : '')
-      + '<span class="hwr-pulse-text"><strong>' + label + '</strong>' + (avg != null ? '<em>4개 지수 평균 ' + signed(avg) + '</em>' : '') + '</span></div>';
+      + (days.length ? '<span class="hwr-pulse-chart" aria-hidden="true"><span class="hwr-pulse-bars">' + bars + '</span><span class="hwr-pulse-days">' + dayLabels + '</span></span>' : '')
+      + '<span class="hwr-pulse-text"><strong>' + label + '</strong>' + (avg != null ? '<em>4개 지수 평균<b>' + signed(avg) + '</b></em>' : '') + '</span></div>';
   }
   function fxStatus(fx, fallbackLabel, fallbackMessage) {
     var analysis = fx && fx.analysis || {};
