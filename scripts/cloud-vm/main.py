@@ -75,6 +75,7 @@ import us_stocks
 import weekly_report
 import watchlist
 from google_auth import GoogleAuthError, GoogleAuthService
+from naver_auth import NaverAuthError, NaverAuthService
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s %(name)s %(levelname)s %(message)s')
 
@@ -541,6 +542,7 @@ def load_dotenv():
 load_dotenv()
 
 GOOGLE_AUTH = GoogleAuthService()
+NAVER_AUTH = NaverAuthService()
 
 
 def envelope(data):
@@ -566,7 +568,7 @@ def require_google_admin(request: Request):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
-    if not session or session.get('email') != GOOGLE_AUTH.admin_email:
+    if not GOOGLE_AUTH.is_admin(session):
         raise HTTPException(status_code=401, detail='Google admin login is required')
     return session
 
@@ -575,7 +577,8 @@ def require_google_user(request: Request):
     if not GOOGLE_AUTH.configured:
         raise HTTPException(status_code=503, detail='Google login is not configured on the server')
     session = GOOGLE_AUTH.read_session(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
-    if not session or not session.get('sub') or not session.get('email'):
+    # 2026-10-04: 네이버 세션도 같은 쿠키를 쓴다(sub='naver:...', email은 없을 수 있음).
+    if not session or not session.get('sub'):
         raise HTTPException(status_code=401, detail='Google login is required')
     return session
 
@@ -748,9 +751,56 @@ def google_auth_callback(request: Request, code: str = None, state: str = None, 
     return response
 
 
+@app.get('/auth/naver/start')
+def naver_auth_start(return_to: str = None):
+    if not NAVER_AUTH.configured or not GOOGLE_AUTH.session_secret:
+        raise HTTPException(status_code=503, detail='Naver login is not configured on the server')
+    state = secrets.token_urlsafe(32)
+    response = RedirectResponse(NAVER_AUTH.authorization_url(state), status_code=302)
+    response.set_cookie(
+        NAVER_AUTH.STATE_COOKIE, state, max_age=600, httponly=True,
+        secure=True, samesite='lax', path='/',
+    )
+    response.set_cookie(
+        NAVER_AUTH.RETURN_COOKIE, _safe_google_return_url(return_to), max_age=600,
+        httponly=True, secure=True, samesite='lax', path='/',
+    )
+    return response
+
+
+@app.get('/auth/naver/callback')
+def naver_auth_callback(request: Request, code: str = None, state: str = None, error: str = None):
+    # 네이버는 사용자가 동의를 취소하면 error=access_denied로 돌아온다.
+    if error:
+        return _google_auth_error_redirect('naver_' + error)
+    saved_state = request.cookies.get(NAVER_AUTH.STATE_COOKIE)
+    if not state or not saved_state or not hmac.compare_digest(state, saved_state):
+        return _google_auth_error_redirect('naver_invalid_state')
+    if not code:
+        return _google_auth_error_redirect('naver_missing_code')
+    try:
+        user = NAVER_AUTH.authenticate_code(code, state)
+    except NaverAuthError:
+        logging.getLogger('main').warning('Naver OAuth callback verification failed')
+        return _google_auth_error_redirect('naver_login_failed')
+    return_to = _safe_google_return_url(request.cookies.get(NAVER_AUTH.RETURN_COOKIE))
+    response = RedirectResponse(return_to, status_code=303)
+    response.set_cookie(
+        GOOGLE_AUTH.SESSION_COOKIE, GOOGLE_AUTH.make_session(user),
+        max_age=7 * 24 * 60 * 60, httponly=True, secure=True,
+        samesite='none', path='/',
+    )
+    response.delete_cookie(NAVER_AUTH.STATE_COOKIE, path='/')
+    response.delete_cookie(NAVER_AUTH.RETURN_COOKIE, path='/')
+    return response
+
+
 @app.get('/auth/google/me')
 def google_auth_me(request: Request):
-    return envelope(GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE)))
+    data = GOOGLE_AUTH.status(request.cookies.get(GOOGLE_AUTH.SESSION_COOKIE))
+    # 로그인 선택창이 네이버 버튼을 보일지 정한다(키 미설정이면 숨김).
+    data['naverConfigured'] = bool(NAVER_AUTH.configured and GOOGLE_AUTH.session_secret)
+    return envelope(data)
 
 
 @app.get('/auth/google/logout')
@@ -3915,13 +3965,23 @@ def stock_members_endpoint(request: Request, code: str = Path(..., min_length=6,
     except Exception as e:
         raise _upstream_http_exception('거래원 정보를 불러오지 못했습니다.', e) from e
     ranking = kis_client.member_ranking(output)
+    source = '한국투자증권 Open API(KRX 회원사)'
+    if not ranking['buy'] and not ranking['sell'] and os.environ.get('KIWOOM_APPKEY') and os.environ.get('KIWOOM_SECRETKEY'):
+        # KIS가 비면(장외·주말 실측) 키움 ka10002(주식거래원요청)로 한 번 더 본다.
+        try:
+            res = kiwoom_client.call_tr(get_kiwoom_token(), 'ka10002', '/api/dostk/stkinfo', {'stk_cd': code})
+            fallback = kis_client.member_ranking_kiwoom(res)
+            if fallback['buy'] or fallback['sell']:
+                ranking, source = fallback, '키움증권 REST(ka10002)'
+        except Exception as exc:
+            logging.getLogger('main').warning('stock members kiwoom fallback failed: %s', type(exc).__name__)
     data = {
         'code': code,
         'buy': ranking['buy'],
         'sell': ranking['sell'],
         'foreign': ranking['foreign'],
         'asOf': datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M'),
-        'source': '한국투자증권 Open API(KRX 회원사)',
+        'source': source,
     }
     if not data['buy'] and not data['sell']:
         # 실측용: 비었을 때 KIS가 어떤 키를 줬는지(값 없이 키 이름·채워진 개수만) 같이 내려 필드명 불일치인지 장외 공백인지 가른다.

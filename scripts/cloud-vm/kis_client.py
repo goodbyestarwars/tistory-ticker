@@ -691,7 +691,32 @@ def fetch_domestic_member(token, appkey, appsecret, code, market='J'):
         },
     )
     output = data.get('output') or {}
+    # 공식 예제는 output을 한 객체로 다루지만, 목록으로 오면 첫 행을 쓴다(2026-10-04 장외 실측에서 빈 응답 - 모양 확인용).
+    if isinstance(output, list):
+        output = output[0] if output and isinstance(output[0], dict) else {}
     return output if isinstance(output, dict) else {}
+
+
+def member_ranking_kiwoom(res):
+    """키움 ka10002(주식거래원요청) 응답 → member_ranking과 같은 모양.
+
+    필드(키움 REST 문서): 매수 buy_trde_ori_nm_{n}/buy_trde_ori_{n}(거래원 코드)/buy_trde_qty_{n},
+    매도 sel_ 접두어. 키움은 수량에 +/- 부호를 붙여 보내는 경우가 있어 절댓값을 쓴다. 비중·외국계 여부는 없다.
+    """
+    res = res if isinstance(res, dict) else {}
+
+    def side(prefix):
+        rows = []
+        for n in range(1, 6):
+            name = str(res.get('%s_trde_ori_nm_%d' % (prefix, n)) or '').strip()
+            if not name:
+                continue
+            qty = _member_int(res.get('%s_trde_qty_%d' % (prefix, n)))
+            rows.append({'rank': n, 'name': name, 'code': str(res.get('%s_trde_ori_%d' % (prefix, n)) or '').strip(),
+                         'qty': abs(qty) if qty is not None else None, 'share': None, 'change': None, 'foreign': False})
+        return rows
+
+    return {'buy': side('buy'), 'sell': side('sel'), 'foreign': {'buyQty': None, 'sellQty': None, 'netQty': None}}
 
 
 def _member_int(value):

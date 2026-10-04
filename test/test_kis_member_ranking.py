@@ -33,6 +33,14 @@ class MemberRankingTests(unittest.TestCase):
         self.assertEqual(result['buy'], [])
         self.assertEqual(result['sell'], [])
 
+    def test_kiwoom_fallback_uses_absolute_quantities(self):
+        res = {'buy_trde_ori_nm_1': '키움증권', 'buy_trde_ori_1': '050', 'buy_trde_qty_1': '+47469',
+               'sel_trde_ori_nm_1': 'UBS', 'sel_trde_qty_1': '-83250', 'sel_trde_ori_nm_2': ''}
+        result = kis_client.member_ranking_kiwoom(res)
+        self.assertEqual(result['buy'][0]['qty'], 47469)
+        self.assertEqual(result['sell'][0]['qty'], 83250)
+        self.assertEqual(len(result['sell']), 1)
+
 
 if __name__ == '__main__':
     unittest.main()
