@@ -2500,7 +2500,7 @@ html.dark #market-temp .mt-sf-bar i { background: #8f9bb3; }
 }
 
 /* ── 30-d (2026-10-04) 판단 문구 1pt 축소, ※ 안내문 한 줄(카드 폭에 맞춰 글자 크기 계산) ── */
-#market-temp .mt-cp-call .mt-strategy-action { font-size: 30px; }
+#market-temp .mt-cp-call .mt-strategy-action { font-size: 28.5px; }
 html body #market-temp .mt-sf-card { container-type: inline-size; }
 html body #market-temp .mt-sf-disclaimer { white-space: nowrap; overflow: visible; text-overflow: clip; font-size: clamp(8px, calc((100cqw - 48px) / 98), 12.5px); }
 @media (max-width: 900px) {
