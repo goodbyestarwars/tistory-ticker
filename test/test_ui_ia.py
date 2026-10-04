@@ -802,7 +802,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".hwr-stock-list--four { grid-template-columns: repeat(2", style)
         # 2026-09-12: 스윙 추천 결과 목록 리셋 수정으로 캐시 문자열을 올렸다.
         self.assertIn("home-weekly-report.css?v=20260912-outcome-card-v2", script)
-        self.assertIn("home-weekly-report.js?v=20261004-weekend-live-v2", self.read("js/skin-main.js"))
+        self.assertIn("home-weekly-report.js?v=20261004-weekend-live-v3", self.read("js/skin-main.js"))
         self.assertIn("var closedSelected = window.HomeMarketSelection", script)
         self.assertIn("&& !closedSelected", script)
 
@@ -913,7 +913,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20260924-week52-us-v1", main)
+        self.assertIn("home-realtime-table.js?v=20261004-etn-v1", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",
@@ -929,8 +929,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for token in (
             "ETF_FILTER_KEY = 'home_hrt_etf_v1'",
             "data-hrt-etf-toggle",
-            "ETF 제외",
-            "ETF 포함",
+            "ETF·ETN 제외",
+            "ETF·ETN 포함",
             "function isEtf(item)",
             "function visibleRows(rows)",
             "state.includeEtf || !isEtf(item)",

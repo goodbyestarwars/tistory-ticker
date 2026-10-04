@@ -316,6 +316,7 @@
       industry = mapped.industry || mapped.sector || '';
     }
     if (!industry || industry === '미분류') {
+      if (/ETN/i.test(name)) return 'ETN';
       if (isEtfName(name)) {
         return 'ETF';
       }
@@ -324,8 +325,9 @@
     return industry;
   }
 
+  // 2026-10-04 사용자 요청("ETF 제외 있는데 ETN도 추가"): 같은 토글이 ETN도 거른다. 국내 ETN은 종목명에 항상 "ETN"이 들어간다.
   function isEtfName(name) {
-    return /ETF|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(String(name || ''));
+    return /ETF|ETN|레버리지|인버스|KODEX|TIGER|ACE|SOL|RISE|KOSEF|HANARO|KBSTAR|ARIRANG|PLUS|TIMEFOLIO|FOCUS|1Q/i.test(String(name || ''));
   }
 
   // 미국 ETF 판별용 티커 목록. KIS 해외 순위 응답에도, Finnhub profile2에도 "이게 ETF다"를
@@ -338,7 +340,8 @@
     if (!item) return false;
     if (item.is_etf === true || item.isETF === true || item.asset_type === 'ETF'
         || item.assetType === 'ETF' || item.product_type === 'ETF') return true;
-    if (String(item.industry || '').trim().toUpperCase() === 'ETF') return true;
+    var industryText = String(item.industry || '').trim().toUpperCase();
+    if (industryText === 'ETF' || industryText === 'ETN') return true;
     var names = [item.display_name, item.name_ko, item.name, item.name_en, item.symbol, item.code];
     var etfNames = global.KRX_ETF_NAMES || [];
     return names.some(function (value) {
@@ -366,9 +369,9 @@
   function updateEtfToggle() {
     var button = state.mount && state.mount.querySelector('[data-hrt-etf-toggle]');
     if (!button) return;
-    button.textContent = state.includeEtf ? 'ETF 포함' : 'ETF 제외';
+    button.textContent = state.includeEtf ? 'ETF·ETN 포함' : 'ETF·ETN 제외';
     button.setAttribute('aria-pressed', String(state.includeEtf));
-    button.setAttribute('title', state.includeEtf ? 'ETF를 숨기려면 누르세요.' : 'ETF를 포함하려면 누르세요.');
+    button.setAttribute('title', state.includeEtf ? 'ETF·ETN을 숨기려면 누르세요.' : 'ETF·ETN을 포함하려면 누르세요.');
   }
 
   function visibleRows(rows) {
@@ -527,7 +530,7 @@
     if (widgetActions) widgetActions.remove();
     mount.setAttribute('data-hrt-active', state.active);
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
-      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false" title="ETF를 포함하려면 누르세요.">ETF 제외</button>'
+      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false" title="ETF·ETN을 포함하려면 누르세요.">ETF·ETN 제외</button>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
       + tabs.map(function (tab) {

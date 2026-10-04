@@ -793,3 +793,36 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
   .home-weekly-report .hwr-schedule .hwr-card-title strong { white-space: nowrap; }
   .hwr2-theme-news li:nth-child(n+3) { display: none; }
 }
+
+/* ── 주간 맥박 (2026-10-04, 캔들 그림 대체) ── 월~금 평균 등락을 기준선 위·아래 막대로. 막대는 아래에서 솟듯 그려진다 */
+.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 14px; margin-left: auto; font-size: 12px; }
+.hwr-pulse-bars { display: flex; align-items: stretch; gap: 6px; height: 58px; }
+.hwr-pulse-col { position: relative; display: grid; grid-template-rows: 1fr 1fr auto; width: 14px; }
+.hwr-pulse-half { position: relative; display: flex; justify-content: center; }
+.hwr-pulse-half.is-top { align-items: flex-end; border-bottom: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); }
+.hwr-pulse-half.is-bottom { align-items: flex-start; }
+.hwr-pulse-half i { display: block; width: 8px; border-radius: 4px; opacity: .92; }
+.hwr-pulse-half.is-top i { transform-origin: bottom; animation: hwrPulseGrow .5s cubic-bezier(.2, .8, .2, 1) both; }
+.hwr-pulse-half.is-bottom i { transform-origin: top; animation: hwrPulseGrow .5s cubic-bezier(.2, .8, .2, 1) both; }
+.hwr-pulse-half i.is-up { box-shadow: 0 0 10px rgba(210, 79, 69, .35); }
+.hwr-pulse-half i.is-down { box-shadow: 0 0 10px rgba(18, 97, 196, .35); }
+.hwr-pulse-col small { margin-top: 4px; font-size: 10px; font-weight: 600; text-align: center; color: var(--hw-muted, #8b95a5); }
+.hwr-pulse-text { display: flex; flex-direction: column; gap: 3px; white-space: nowrap; }
+.hwr-pulse-text strong { font-size: 13px; font-weight: 700; }
+.hwr-pulse-text em { font-size: 12px; font-style: normal; font-weight: 600; color: var(--hw-sub, #667085); }
+html.dark .hwr-pulse-half i.is-up { background: #ff8a83 !important; }
+html.dark .hwr-pulse-half i.is-down { background: #80b8ff !important; }
+html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: #ff8a83 !important; }
+html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !important; }
+@keyframes hwrPulseGrow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@media (prefers-reduced-motion: reduce) { .hwr-pulse-half i { animation: none !important; } }
+@media (max-width: 720px) {
+  .home-weekly-report .hwr-pulse { margin: 10px 0 0; justify-content: flex-start; }
+  .hwr-pulse-bars { height: 48px; }
+}
+.hwr-pulse-bars { height: 68px; gap: 9px; }
+.hwr-pulse-col { width: 20px; }
+.hwr-pulse-half i { width: 12px; border-radius: 6px; }
+.hwr-pulse-col small { font-size: 11px; }
+.hwr-pulse-text strong { font-size: 14px; }
+@media (max-width: 720px) { .hwr-pulse-bars { height: 54px; gap: 7px; } .hwr-pulse-col { width: 16px; } .hwr-pulse-half i { width: 10px; } }

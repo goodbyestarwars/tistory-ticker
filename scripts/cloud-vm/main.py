@@ -3053,8 +3053,19 @@ def weekend_us_themes_endpoint(request: Request):
         logging.getLogger('main').warning('weekend themes sector map failed: %s', type(exc).__name__)
         sector_map = {}
     data = weekly_report.us_news_themes(items, news_start, news_end, sector_map)
+    # 2026-10-04 사용자 요청("번역해서 게시"): 근거 기사 제목에 한국어(title_ko)를 붙인다. 번역 캐시만 보고
+    # (방문자를 기다리게 하지 않음) 빠진 제목은 백그라운드로 채운 뒤, 그동안은 캐시를 2분만 둬서 곧 다시 붙게 한다.
+    headlines = [h for theme in data.get('themes') or [] for h in theme.get('headlines') or []]
+    ttl = _WEEKEND_US_THEMES_TTL
+    try:
+        news_aggregator.translate_news_titles(headlines, max_items=len(headlines), allow_fetch=False)
+        if any(not h.get('title_ko') for h in headlines):
+            ttl = 120
+    except Exception as exc:
+        logging.getLogger('main').warning('weekend themes translation failed: %s', type(exc).__name__)
+        ttl = 120
     _weekend_us_themes_cache.clear()
-    _weekend_us_themes_cache[cache_key] = {'t': time.time(), 'data': data}
+    _weekend_us_themes_cache[cache_key] = {'t': time.time() - (_WEEKEND_US_THEMES_TTL - ttl), 'data': data}
     return envelope(data)
 
 
@@ -3912,6 +3923,10 @@ def stock_members_endpoint(request: Request, code: str = Path(..., min_length=6,
         'asOf': datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M'),
         'source': '한국투자증권 Open API(KRX 회원사)',
     }
+    if not data['buy'] and not data['sell']:
+        # 실측용: 비었을 때 KIS가 어떤 키를 줬는지(값 없이 키 이름·채워진 개수만) 같이 내려 필드명 불일치인지 장외 공백인지 가른다.
+        keys = sorted(output.keys()) if isinstance(output, dict) else []
+        data['diag'] = {'keys': keys[:80], 'filled': sum(1 for k in keys if str(output.get(k) or '').strip() not in ('', '0'))}
     active = market_clock.kr_market_active()
     _stock_members_cache[code] = {'t': now, 'ttl': _STOCK_MEMBERS_ACTIVE_TTL if active else _STOCK_MEMBERS_IDLE_TTL, 'data': data}
     _stock_members_cache.move_to_end(code)
