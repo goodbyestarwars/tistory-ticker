@@ -1653,6 +1653,7 @@
 
     html += '<div class="ff-view" id="ffViewFlow">';
     html += buildFlowCard(data);
+    html += '<div class="ff-extra ff-members" data-ff-members hidden></div>';
     html += buildFlowExtraSections(entry, latest && latest.close);
     html += '</div>';
     html += '<div class="ff-view" id="ffViewApt" hidden>';
@@ -1666,6 +1667,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
+    loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)
     // 컨테이너에 바로 그리면 TradingView Lightweight Charts가 크기를 0으로 잡아 빈 화면이 됨.
@@ -3648,6 +3650,46 @@
   }
 
   // ---- 공매도/대차거래/연기금 (GAS ?action=investorFlow 경유 VM 온디맨드) - 수급 탭 ----
+
+  // ---- 거래원 매매 상위(2026-10-04 사용자 요청: 토스 "거래원 매매 상위"처럼) ----
+  // VM /stock-members/{code} = KIS 주식현재가 회원사(FHKST01010600) 매수·매도 상위 5 거래원.
+  // 막대 길이는 각 쪽 1위 대비 비율, 매수 빨강·매도 파랑. 조회 실패면 구역을 숨긴다(수급 탭의 보조 정보).
+  var STOCK_MEMBERS_URL = KIWOOM_VM_URL + '/stock-members/';
+  function membersSideHtml_(title, rows, tone) {
+    if (!rows || !rows.length) return '<div class="ff-members-col"><div class="ff-members-sub">' + title + '</div><p class="ff-members-empty">데이터 없음</p></div>';
+    var max = rows.reduce(function (m, r) { return Math.max(m, Number(r.qty) || 0); }, 0) || 1;
+    return '<div class="ff-members-col"><div class="ff-members-sub">' + title + '</div><ol class="ff-members-list">'
+      + rows.map(function (r, i) {
+        var qty = Number(r.qty);
+        var width = isFinite(qty) && qty > 0 ? Math.max(18, qty / max * 100) : 18;
+        return '<li><i>' + (i + 1) + '</i><span class="ff-members-name">' + escapeHtml(r.name)
+          + (r.foreign ? '<small>외국계</small>' : '') + '</span>'
+          + '<span class="ff-members-bar ff-members-' + tone + '"><b style="width:' + width.toFixed(1) + '%">'
+          + (isFinite(qty) ? qty.toLocaleString('ko-KR') + '주' : '-') + '</b></span></li>';
+      }).join('') + '</ol></div>';
+  }
+  function loadStockMembers_(box, code) {
+    var mount = box.querySelector('[data-ff-members]');
+    if (!mount || !/^[0-9A-Z]{6}$/i.test(String(code || ''))) return;
+    fetch(STOCK_MEMBERS_URL + encodeURIComponent(code))
+      .then(function (res) { if (!res.ok) throw new Error('members ' + res.status); return res.json(); })
+      .then(function (payload) {
+        var d = payload && payload.data;
+        if (!d || (!(d.buy || []).length && !(d.sell || []).length)) return;
+        if (!box.contains(mount)) return; // 그 사이 다른 종목으로 바뀐 경우
+        var f = d.foreign || {};
+        var net = Number(f.netQty);
+        var foreignLine = isFinite(net) && (f.buyQty != null || f.sellQty != null)
+          ? '<div class="ff-members-foreign">외국계 합계 순매수 <b class="' + signClass(net) + '">' + (net > 0 ? '+' : '') + net.toLocaleString('ko-KR') + '주</b></div>' : '';
+        mount.innerHTML = '<div class="ff-extra-card ff-members-card">'
+          + '<div class="ff-members-head"><div class="ff-extra-card-title">거래원 매매 상위</div><span class="ff-members-asof">' + escapeHtml(String(d.asOf || '').slice(5).replace('-', '.')) + ' 기준</span></div>'
+          + '<p class="ff-members-desc">거래소 회원사(증권사)별 누적 매수·매도 수량 상위 5곳입니다.</p>'
+          + '<div class="ff-members-grid">' + membersSideHtml_('매수 상위 5', d.buy, 'buy') + membersSideHtml_('매도 상위 5', d.sell, 'sell') + '</div>'
+          + foreignLine + '</div>';
+        mount.hidden = false;
+      })
+      .catch(function () { /* 보조 정보 - 실패하면 숨긴 채 둔다 */ });
+  }
 
   function buildFlowExtraSections(entry, currentClose) {
     if (!entry) {

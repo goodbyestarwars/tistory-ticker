@@ -674,6 +674,78 @@ def fetch_domestic_quote(token, appkey, appsecret, code, market='UN'):
     return data.get('output') or {}
 
 
+def fetch_domestic_member(token, appkey, appsecret, code, market='J'):
+    """국내주식 현재가 회원사(v1_국내주식-013), TR FHKST01010600 - 거래원 매수·매도 상위 5.
+
+    KIS 공식 예제(examples_llm/domestic_stock/inquire_member)의 계약 그대로다. 시장 구분은
+    J(KRX)·NX(NXT)만 문서에 있어 KRX(J)를 쓴다. 응답 output은 한 객체이며 화면용 정리는
+    member_ranking()이 한다.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-member',
+        'FHKST01010600',
+        {
+            'FID_COND_MRKT_DIV_CODE': market,
+            'FID_INPUT_ISCD': code,
+        },
+    )
+    output = data.get('output') or {}
+    return output if isinstance(output, dict) else {}
+
+
+def _member_int(value):
+    try:
+        return int(float(str(value).replace(',', '').strip()))
+    except (TypeError, ValueError):
+        return None
+
+
+def _member_float(value):
+    try:
+        return float(str(value).replace(',', '').strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def member_ranking(output):
+    """FHKST01010600 output → {'buy': [...], 'sell': [...], 'foreign': {...}}.
+
+    필드는 공식 예제의 COLUMN_MAPPING 기준: 매도 seln_mbcr_name{n}/total_seln_qty{n}/seln_mbcr_rlim{n}
+    (비중)/seln_qty_icdc{n}(증감)/seln_mbcr_glob_yn_{n}(외국계 여부), 매수는 shnu_ 접두어.
+    수량 단위는 주(株), 비중은 % 값으로 내려오는지 실측 전이라 받은 숫자를 그대로 넘긴다.
+    이름이 빈 칸은 버린다.
+    """
+    output = output if isinstance(output, dict) else {}
+
+    def side(prefix, qty_key):
+        rows = []
+        for n in range(1, 6):
+            name = str(output.get('%s_mbcr_name%d' % (prefix, n)) or '').strip()
+            if not name:
+                continue
+            rows.append({
+                'rank': n,
+                'name': name,
+                'code': str(output.get('%s_mbcr_no%d' % (prefix, n)) or '').strip(),
+                'qty': _member_int(output.get('%s%d' % (qty_key, n))),
+                'share': _member_float(output.get('%s_mbcr_rlim%d' % (prefix, n))),
+                'change': _member_int(output.get('%s_qty_icdc%d' % (prefix, n))),
+                'foreign': str(output.get('%s_mbcr_glob_yn_%d' % (prefix, n)) or '').strip().upper() == 'Y',
+            })
+        return rows
+
+    return {
+        'buy': side('shnu', 'total_shnu_qty'),
+        'sell': side('seln', 'total_seln_qty'),
+        'foreign': {
+            'buyQty': _member_int(output.get('glob_total_shnu_qty')),
+            'sellQty': _member_int(output.get('glob_total_seln_qty')),
+            'netQty': _member_int(output.get('glob_ntby_qty')),
+        },
+    }
+
+
 def fetch_domestic_order_book(token, appkey, appsecret, code, market='UN'):
     """국내주식 호가/예상체결(v1_국내주식-011), TR FHKST01010200.
 

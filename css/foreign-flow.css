@@ -3087,3 +3087,35 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
   #foreign-flow .ff-apt-mini-svg { max-height: 220px; }
 }
 #foreign-flow .ff-swing-fact b, #foreign-flow .ff-swing-reasons b, #foreign-flow .ff-swing-invalidation b, #foreign-flow .ff-swing-risk-detail b { font-size: 11.7px; }
+
+/* ── 거래원 매매 상위 (2026-10-04, 토스 "거래원 매매 상위" 형태) ──
+   매수 상위 5 | 매도 상위 5 두 열, 막대는 각 쪽 1위 대비 길이, 매수 빨강·매도 파랑 옅은 면 + 같은 색 숫자 */
+#foreign-flow .ff-members[hidden] { display: none !important; }
+#foreign-flow .ff-members-head { display: flex; align-items: baseline; gap: 10px; }
+#foreign-flow .ff-members-asof { font-size: 12px; color: #8b95a5; }
+#foreign-flow .ff-members-desc { margin: 4px 0 14px; font-size: 12.5px; color: #667085; }
+#foreign-flow .ff-members-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; }
+#foreign-flow .ff-members-col + .ff-members-col { padding-left: 36px; margin-left: -36px; border-left: 1px solid rgba(17, 17, 17, .08); }
+#foreign-flow .ff-members-sub { margin-bottom: 8px; font-size: 14px; font-weight: 700; }
+#foreign-flow .ff-members-list { margin: 0; padding: 0; list-style: none; }
+#foreign-flow .ff-members-list li { display: grid; grid-template-columns: 22px minmax(84px, 120px) minmax(0, 1fr); align-items: center; column-gap: 10px; min-height: 40px; }
+#foreign-flow .ff-members-list i { font-style: normal; font-size: 14px; color: #667085; text-align: center; }
+#foreign-flow .ff-members-name { overflow: hidden; font-size: 14px; font-weight: 500; text-overflow: ellipsis; white-space: nowrap; }
+#foreign-flow .ff-members-name small { margin-left: 5px; font-size: 10.5px; font-weight: 600; color: #8b95a5; }
+#foreign-flow .ff-members-bar { display: block; min-width: 0; }
+#foreign-flow .ff-members-bar b { display: block; box-sizing: border-box; min-width: 86px; max-width: 100%; padding: 7px 10px; border-radius: 6px; font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
+#foreign-flow .ff-members-buy b { background: #fdecea; color: #d24f45; }
+#foreign-flow .ff-members-sell b { background: #e8f0fc; color: #1261c4; }
+#foreign-flow .ff-members-empty { font-size: 13px; color: #8b95a5; }
+#foreign-flow .ff-members-foreign { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(17, 17, 17, .06); font-size: 12.5px; color: #667085; }
+#foreign-flow .ff-members-foreign b { font-weight: 700; }
+html.dark #foreign-flow .ff-members-desc, html.dark #foreign-flow .ff-members-foreign, html.dark #foreign-flow .ff-members-list i { color: rgba(245, 239, 224, .6); }
+html.dark #foreign-flow .ff-members-col + .ff-members-col { border-left-color: rgba(245, 239, 224, .12); }
+html.dark #foreign-flow .ff-members-foreign { border-top-color: rgba(245, 239, 224, .1); }
+html.dark #foreign-flow .ff-members-buy b { background: rgba(255, 138, 131, .14); color: #ff8a83; }
+html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14); color: #80b8ff; }
+@media (max-width: 720px) {
+  #foreign-flow .ff-members-grid { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
+  #foreign-flow .ff-members-col + .ff-members-col { padding-left: 0; margin-left: 0; border-left: 0; }
+  #foreign-flow .ff-members-list li { grid-template-columns: 20px 92px minmax(0, 1fr); }
+}

@@ -3872,6 +3872,53 @@ def order_book_endpoint(request: Request, code: str = Path(..., min_length=6, ma
     return envelope(data)
 
 
+_STOCK_MEMBERS_ACTIVE_TTL = 30
+_STOCK_MEMBERS_IDLE_TTL = 10 * 60
+_stock_members_cache = OrderedDict()  # code -> {'t':.., 'ttl':.., 'data':..}
+
+
+@app.get('/stock-members/{code}')
+def stock_members_endpoint(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+    """종목분석 "거래원 매매 상위"(2026-10-04 신설) - KIS 주식현재가 회원사(FHKST01010600).
+
+    매수·매도 상위 5개 거래원(회원사)과 외국계 합계. 종목 화면을 열 때 한 번 부르므로 장중 30초,
+    장 밖 10분 메모리 캐시(e2-micro 부하 고려). 인증 없음(CORS로 블로그 도메인만), /order-book과 같은 패턴.
+    """
+    _check_rate_limit('stock_members', request, max_per_window=30)
+    if not re.fullmatch(r'[0-9A-Z]{6}', code.upper()):
+        raise HTTPException(status_code=400, detail='종목코드 형식이 올바르지 않습니다.')
+    code = code.upper()
+    now = time.time()
+    cached = _stock_members_cache.get(code)
+    if cached is not None and now - cached['t'] < cached['ttl']:
+        return envelope(cached['data'])
+    kis_appkey = os.environ.get('KIS_APPKEY', '').strip()
+    kis_appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not kis_appkey or not kis_appsecret:
+        raise HTTPException(status_code=503, detail='거래원 조회 공급자가 설정되지 않았습니다.')
+    try:
+        token = kis_client.get_token(kis_appkey, kis_appsecret)
+        output = kis_client.fetch_domestic_member(token, kis_appkey, kis_appsecret, code, market='J')
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise _upstream_http_exception('거래원 정보를 불러오지 못했습니다.', e) from e
+    ranking = kis_client.member_ranking(output)
+    data = {
+        'code': code,
+        'buy': ranking['buy'],
+        'sell': ranking['sell'],
+        'foreign': ranking['foreign'],
+        'asOf': datetime.now(timezone(timedelta(hours=9))).strftime('%Y-%m-%d %H:%M'),
+        'source': '한국투자증권 Open API(KRX 회원사)',
+    }
+    active = market_clock.kr_market_active()
+    _stock_members_cache[code] = {'t': now, 'ttl': _STOCK_MEMBERS_ACTIVE_TTL if active else _STOCK_MEMBERS_IDLE_TTL, 'data': data}
+    _stock_members_cache.move_to_end(code)
+    _evict_lru(_stock_members_cache, 300)
+    return envelope(data)
+
+
 @app.get('/investor-trend')
 def investor_trend_endpoint(period: str = Query('week'), market: str = Query('kospi')):
     """메인 페이지 "투자자별 매매 동향" 위젯(작업지시서 #4 + UI개선 지시서 2026-07-21) - 시장별
