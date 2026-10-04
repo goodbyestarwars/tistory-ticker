@@ -3039,7 +3039,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("'하락 마감 주간'", source)
         self.assertNotIn('황소장', source)
         self.assertNotIn('곰장', source)
-        self.assertEqual(source.count('<svg width="104" height="52" viewBox="0 0 160 82" fill="none" stroke="currentColor"'), 1)
+        # 2026-10-04 사용자 요청("캔들 말고 다른 걸로")으로 월~금 평균 일간 등락 막대(주간 맥박)로 바꿨다.
+        self.assertIn("function weeklyPulse(indices)", source)
+        self.assertIn('hwr-pulse-bars', source)
+        self.assertNotIn('viewBox="0 0 160 82"', source)
 
     def test_weekly_sentiment_svg_inlines_color_to_avoid_black_flash(self):
         # 2026-08-20: 휴장 탭을 열 때 css/home-weekly-report.css가 늦게 도착하면
@@ -3048,7 +3051,10 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # color를 넣어 외부 CSS 도착 전에도 첫 페인트부터 올바른 색이 나오게 한다.
         source = self.read("js/home-weekly-report.js")
         self.assertIn("hwr-sentiment--' + (up ? 'up' : 'down') + '\" style=\"color:' + color", source)
-        self.assertIn("var color = up ? '#d24f45' : '#1261c4';", source)
+        self.assertIn("var UP = '#d24f45', DOWN = '#1261c4';", source)
+        self.assertIn("var color = up ? UP : DOWN;", source)
+        # 막대도 CSS 도착 전에 칠해지도록 배경색을 인라인으로 넣는다.
+        self.assertIn(";background:' + UP + '", source)
 
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")
