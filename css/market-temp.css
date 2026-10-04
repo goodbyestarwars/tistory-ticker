@@ -2162,3 +2162,54 @@ html.dark #market-temp { --mt2-text: #F5EFE0; --mt2-sub: rgba(245, 239, 224, .62
   #market-temp .mt-index-grid { grid-template-columns: minmax(0, 1fr); }
   #market-temp .mt-index-card { padding: 16px; }
 }
+
+/* 29-b. 다크모드: 예전 규칙이 종합점수 카드를 흰 카드(어두운 글씨)로 고정해 둔 것을, 이 레이아웃의 어두운 카드에 맞게 다시 덮는다. */
+html.dark #market-temp .mt-summary-topline,
+html.dark #market-temp .mt-summary-topline .mt-summary-kicker,
+html.dark #market-temp .mt-summary-section-title,
+html.dark #market-temp .mt-history-chart-meta,
+html.dark #market-temp .mt-history-tail-head .mt-card-title { color: var(--mt2-sub) !important; }
+html.dark #market-temp .mt-summary-section-title, html.dark #market-temp .mt-history-tail-head .mt-card-title { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-summary-score,
+html.dark #market-temp .mt-summary-mood,
+html.dark #market-temp .mt-summary-grade,
+html.dark #market-temp .mt-axis-name,
+html.dark #market-temp .mt-axis-value { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-summary-score small,
+html.dark #market-temp .mt-axis-name small,
+html.dark #market-temp .mt-axis-word,
+html.dark #market-temp .mt-axis-reason,
+html.dark #market-temp .mt-summary-note,
+html.dark #market-temp .mt-breadth-note,
+html.dark #market-temp .mt-history-metrics small,
+html.dark #market-temp .mt-history-metrics em,
+html.dark #market-temp .mt-hero-breadth-markets,
+html.dark #market-temp .mt-breadth-market em { color: var(--mt2-sub) !important; }
+html.dark #market-temp .mt-hero-breadth { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-summary-grade { border-color: var(--mt2-line) !important; background: var(--mt2-soft) !important; }
+html.dark #market-temp .mt-summary-change,
+html.dark #market-temp .mt-summary-sowhat,
+html.dark #market-temp .mt-summary-sowhat b,
+html.dark #market-temp .mt-summary-sowhat span { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-summary-sowhat { border-color: var(--mt2-line) !important; background: transparent !important; }
+html.dark #market-temp .mt-summary-sowhat a { color: var(--mt2-down) !important; }
+html.dark #market-temp .mt-score-gauge-legend { color: var(--mt2-sub) !important; }
+html.dark #market-temp .mt-score-zone-label { color: var(--mt2-sub) !important; }
+html.dark #market-temp .mt-score-zone-label.is-active { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-axis-bar { background: rgba(245, 239, 224, .12) !important; }
+html.dark #market-temp .mt-axis-list, html.dark #market-temp .mt-history-metrics { border-color: var(--mt2-line) !important; }
+html.dark #market-temp .mt-val-pos { color: var(--mt2-up) !important; }
+html.dark #market-temp .mt-val-neg { color: var(--mt2-down) !important; }
+html.dark #market-temp .mt-strategy-action, html.dark #market-temp .mt-ant-guide .mt-strategy-action { background: transparent !important; border: 0 !important; color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-ant-list li { color: var(--mt2-text) !important; }
+html.dark #market-temp .mt-tomorrow-card { background: rgba(245, 239, 224, .04) !important; }
+html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-up) { background: rgba(255, 138, 131, .08) !important; }
+html.dark #market-temp .mt-tomorrow-card:has(.mt-tm-down) { background: rgba(128, 184, 255, .08) !important; }
+
+/* 체크포인트 헤드라인: 가운데 정렬 박스가 아니라 왼쪽 정렬 문장 */
+#market-temp .mt-ant-guide .mt-strategy-action { text-align: left; margin: 16px 0 4px; color: var(--mt2-text); }
+
+/* 섹터 순위표 압축: 행 높이를 줄이고 대표 종목은 한 줄 */
+#market-temp .mt-sf-row { padding: 12px 0 4px !important; }
+#market-temp .mt-sf-picks { flex-wrap: nowrap; overflow: hidden; margin: 0 0 8px 40px !important; white-space: nowrap; }
+#market-temp .mt-sf-picks a { overflow: hidden; text-overflow: ellipsis; }
