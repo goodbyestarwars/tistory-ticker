@@ -8173,3 +8173,19 @@ body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) > div
 body#tt-body-index .home-editorial-page :is(.home-card-heading, .hen-head) strong { margin: 0; }
 /* 29-b. 속보 영역이 숨겨진 상태에서 뉴스 목록이 왼쪽 지수 띠(위 margin 18px)보다 18px 높게 시작하던 것을 같은 시작선으로 맞춘다 */
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking[hidden] + .hen-list { margin-top: 18px; }
+
+/* 30. 미국 모드 주요 ETF 수익률 (2026-10-05 사용자 요청: "칸에 맞춰서 미니멀하게")
+   시장 요약과 같은 .hmb-summary-head/.hmb-list 칸을 쓰고 4열로만 바꾼다. 큰 숫자는 1일, 아래 작은 줄은 1개월·연초 이후. */
+body#tt-body-index .home-editorial-page .hmb-etf[hidden] { display: none; }
+body#tt-body-index .home-editorial-page .hmb-list.hmb-etf-list { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+body#tt-body-index .home-editorial-page .hmb-etf-list dt { overflow: hidden; text-overflow: ellipsis; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dt b { font-weight: 700; color: inherit; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dd small { display: block; margin-top: 3px; font-size: 11px; font-weight: 500; color: #8b95a5; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-positive { color: #d24f45; }
+body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-negative { color: #1261c4; }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small { color: rgba(245, 239, 224, .5); }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-positive { color: #ff8a83; }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-list dd small .home-negative { color: #80b8ff; }
+@media (max-width: 720px) {
+  body#tt-body-index .home-editorial-page .hmb-list.hmb-etf-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

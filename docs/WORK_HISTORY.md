@@ -4,6 +4,10 @@
 
 사용자가 승률 확인을 요청해 보니 9/22부터 매 거래일 "N종목 중 N종목 갭상승 아님", 저장 0종목이었다(VM journal). 원인: `volume_breakout_scan.fetch_gap`이 KIS 현재가 시세(`FHKST01010100`) 응답의 `stck_prdy_clpr`를 전일종가로 읽었는데, 이 TR에는 그 필드가 없다(공식 예제 필드 목록·VM 실측 모두 None). 테스트도 없는 필드로 목을 만들어 통과했다. `stck_sdpr`(기준가)로 바꾸고, 비면 `stck_prpr - prdy_vrss`로 계산(실측에서 둘이 일치). 테스트 목을 실측 응답 모양으로 바꾸고 회귀 2건 추가, 30% 문턱 변경 때 안 고친 테스트 1건 수정. 검증: `test_volume_breakout_scan.py` 27건 통과(Windows는 fcntl 대체 실행). 배포: master 반영 시 VM 자동, 다음 거래일 09:05 스캔부터 적용.
 
+**2026-10-05 미국장 업종 로테이션·주요 ETF 수익률**
+
+사용자 요청. `scripts/cloud-vm/us_market_etf.py`(순수 함수): 섹터 ETF 11개를 SPY 대비로 국내판과 같은 분류기(`sector_rotation.classify_phase`)에 넣는다. ETF 하나가 업종이라 구성종목 Breadth가 없어 "ETF 종가가 자기 20일 평균 위"를 1/0으로 대신 넣고 화면에는 Breadth로 보여주지 않음. 히스테리시스는 저장 없이 하루 전 계산 상태로 적용. `GET /us-sector-rotation`·`GET /us-etf-returns`(15분 캐시, 일봉은 `us_stocks.chart` daily). 홈 로테이션 위젯은 미국 탭(`data-us`)이면 미국 데이터를 읽고 탭 전환 때 다시 그림(MutationObserver), 미국 시장 요약 아래 "주요 ETF 수익률" 4열 칸(1일 / 1개월·연초 이후). 검증: `test_us_market_etf.py` 3건. 배포: master 반영 시 VM·GitHub Pages 자동.
+
 **2026-10-04 캘린더 미국 실적 기업 아이콘 86종 추가**
 
 사용자 요청(아이콘 없는 기업 확인 후 채움). 9~11월 `/earnings-calendar` 실측: 국내 DART 일정은 전부 아이콘 있음, 미국 S&P 100은 73종목이 빈 원(약칭만)이었다. S&P 100 중 없던 86종목을 Parqet 로고(SVG 76·PNG 10)로 `img/stock-icons/`에 추가, 출처는 `img/stock-icons/README.md`. 코드 변경 없음(기존 svg→png 폴백 그대로). 검증: 헤드리스 렌더로 86개 육안 확인. 배포: master 반영 시 GitHub Pages 자동.

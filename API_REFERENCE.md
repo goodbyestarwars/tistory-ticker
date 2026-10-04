@@ -273,6 +273,8 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | GET | `/weekly-report` | 불필요 | 15분 메모리 캐시 | 완료된 월~금의 KOSPI·KOSDAQ·나스닥·S&P500·환율 추이, 국내·미국 뉴스, 마지막 거래일 KIS 순위 기반 주목 종목·다음 주 후보(`hotCandidates`/`coldCandidates`), 다음 주 실적 일정을 반환. 후보는 상승·하락 방향과 거래량·체결강도·거래대금·회전율 등 독립 신호가 겹친 종목을 선별하며 가격 예측값이 아니다. KIS 실패 시 키움 순위로 폴백 |
 | GET | `/weekend-us-themes` | 불필요 | 30분 메모리 캐시 | 2026-10-04 신설. 금~일 미국 일반 뉴스 제목에서 테마 키워드(AI·반도체, 에너지·원유, 방산·지정학, 금리·연준 등 11개) 언급 기사 수를 세어 상위 4개를 반환: `themes[{key,name,risk,count,headlines[{title,link,source,pubDate}],usTickers,krSectors,krStocks[{name,code,sector}]}]`·`articleCount`·`basis`. 호재·악재 판단은 하지 않으며 국내 종목은 운영 섹터 분류(`sector_cards`)의 앞 종목. `/weekly-report` 주 단위 스냅샷과 분리해 주말 동안 갱신 |
 | GET | `/stock-members/{code}` | 불필요 | 장중 30초·장 밖 10분 메모리 캐시 | 2026-10-04 신설. 종목분석 "거래원 매매 상위". KIS 주식현재가 회원사(`FHKST01010600`, KRX) 매수·매도 상위 5 거래원: `buy`/`sell[{rank,name,code,qty(주),share,change,foreign}]`·`foreign{buyQty,sellQty,netQty}`(외국계 합계)·`asOf`(조회 시각 KST). `share`·`change` 단위는 실측 전 |
+| GET | `/us-sector-rotation` | 불필요 | 15분 메모리 캐시 | 2026-10-05 신설. 미국장 업종 로테이션: SPDR 섹터 ETF 11개(XLK·XLC·XLY·XLF·XLV·XLI·XLE·XLP·XLB·XLU·XLRE)를 SPY 대비 5·20일 상대수익, 5일 순위 변화, 거래대금 강도, ETF 20일 평균 위 여부로 `sector_rotation.classify_phase` 분류. 응답 모양은 `/sector-rotation`과 같고 `market:'us'`, 항목에 `ticker`·`aboveMa20`(Breadth 칸은 null). 일봉은 `us_stocks.chart` daily(Yahoo) |
+| GET | `/us-etf-returns` | 불필요 | 15분 메모리 캐시 | 2026-10-05 신설. 주요 ETF 8종(SPY·QQQ·DIA·IWM·SOXX·SCHD·TLT·GLD) `items[{symbol,name,close,date,return1d,return1w(5거래일),return1m(21거래일),returnYtd(직전 연도 마지막 종가 대비)}]` |
 | GET | `/daily-scan-batch` | **필요** | 하루 1회(`daily_scan.py`) | 차트패턴·눌림목·투자시그널 전종목 스캔 결과 |
 
 `/daily-scan-batch`의 `data.investSignal.buckets[등급]`은 전종목 검색·정렬용으로 최대

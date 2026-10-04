@@ -5,7 +5,11 @@
   'use strict';
 
   var API = 'https://goodbyestar.cloud/sector-rotation';
-  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261004-rotation-v4';
+  // 2026-10-04 사용자 요청("미국장에도 넣어줘"): 홈이 미국 시장일 때(host data-us="1")는 SPDR 섹터 ETF 11개를
+  // SPY 대비로 분류한 /us-sector-rotation을 읽는다. 응답 모양은 국내판과 같다.
+  var US_API = 'https://goodbyestar.cloud/us-sector-rotation';
+  var US_HELP = 'S&P500 섹터 ETF 11개(XLK·XLF 등)를 SPY 대비 상대강도, 최근 5일 순위 변화, 거래대금 강도, ETF가 자기 20일 평균 위에 있는지로 유입 · 주도 · 둔화 · 이탈 단계로 구분합니다. 미국 일봉 종가 기준입니다.';
+  var CSS = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-sector-rotation.css?v=20261005-us-v1';
   var COLUMNS = [
     { key: 'emerging', label: '유입', desc: '새롭게 강해지는 업종', cls: 'is-emerging' },
     { key: 'leading', label: '주도', desc: '시장을 이끄는 업종', cls: 'is-leading' },
@@ -17,6 +21,8 @@
   var PHASE_LABEL = { EMERGING: '유입', LEADING: '주도', WEAKENING: '둔화', LAGGING: '이탈', NEUTRAL: '중립' };
   var data = null;
   var host = null;
+  var cache = {};
+  function isUs() { return !!host && host.getAttribute('data-us') === '1'; }
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -53,7 +59,7 @@
     var items = (data[col.key] || []).slice(0, PER_COLUMN);
     var rows = items.length ? items.map(function (it, i) {
       return '<button type="button" class="hsr-item' + (i === 0 ? ' is-first' : '') + '" data-sector="' + esc(it.sector) + '">'
-        + '<span class="hsr-name">' + esc(it.sector.replace(/\//g, '·')) + '</span>'
+        + '<span class="hsr-name">' + esc(it.sector.replace(/\//g, '·')) + (it.ticker ? ' <small class="hsr-ticker">' + esc(it.ticker) + '</small>' : '') + '</span>'
         + '<span class="hsr-chg ' + changeCls(it.rankChange5d) + '">' + changeText(it.rankChange5d) + '</span></button>';
     }).join('') : '<div class="hsr-empty"><b>—</b><span>해당 업종 없음</span></div>';
     return '<div class="hsr-col ' + col.cls + '"><div class="hsr-col-head"><div class="hsr-phase"><i class="hsr-dot"></i>' + col.label + '</div>'
@@ -62,11 +68,13 @@
 
   function render() {
     if (!host || !data || !data.available) { if (host) host.hidden = true; return; }
-    host.innerHTML = '<div class="hsr-head"><div><div class="hsr-title-row"><strong>업종 로테이션</strong>'
-      + '<button type="button" class="hsr-help" aria-label="업종 로테이션 설명" title="' + esc(HELP) + '" data-hsr-help>ⓘ</button></div>'
-      + '<p class="hsr-desc">시장 대비 상대강도와 최근 순위 변화를 기준으로 업종 흐름을 분류합니다.</p></div>'
-      + '<span class="hsr-meta">5일 기준 · ' + esc(dateLabel(data.date)) + ' 종가' + (data.final ? '' : ' (잠정)') + '</span></div>'
-      + '<div class="hsr-help-pop" data-hsr-pop hidden>' + esc(HELP) + '</div>'
+    var us = data.market === 'us';
+    var help = us ? US_HELP : HELP;
+    host.innerHTML = '<div class="hsr-head"><div><div class="hsr-title-row"><strong>' + (us ? '미국 업종 로테이션' : '업종 로테이션') + '</strong>'
+      + '<button type="button" class="hsr-help" aria-label="업종 로테이션 설명" title="' + esc(help) + '" data-hsr-help>ⓘ</button></div>'
+      + '<p class="hsr-desc">' + (us ? 'S&P500 섹터 ETF를 SPY 대비 상대강도와 최근 순위 변화로 분류합니다.' : '시장 대비 상대강도와 최근 순위 변화를 기준으로 업종 흐름을 분류합니다.') + '</p></div>'
+      + '<span class="hsr-meta">5일 기준 · ' + esc(dateLabel(data.date)) + (us ? ' 미국' : '') + ' 종가' + (data.final ? '' : ' (잠정)') + '</span></div>'
+      + '<div class="hsr-help-pop" data-hsr-pop hidden>' + esc(help) + '</div>'
       + '<div class="hsr-grid">' + COLUMNS.map(groupHtml).join('') + '</div>'
       + '<div class="hsr-detail" data-hsr-detail hidden></div>';
     host.hidden = false;
@@ -87,6 +95,22 @@
     if (!box.hidden && box.getAttribute('data-sector') === sector) { box.hidden = true; return; }
     function row(label, value) { return '<div><small>' + label + '</small><b>' + value + '</b></div>'; }
     box.setAttribute('data-sector', sector);
+    if (data.market === 'us') {
+      box.innerHTML = '<div class="hsr-detail-head"><strong>' + esc(sector) + (it.ticker ? ' · ' + esc(it.ticker) : '') + '</strong><span>' + PHASE_LABEL[it.phase] + '</span>'
+        + '<button type="button" class="hsr-close" aria-label="닫기">✕</button></div>'
+        + '<div class="hsr-detail-grid">'
+        + row('현재 순위', it.rank + '위')
+        + row('5일 전', it.rank5DaysAgo == null ? '-' : it.rank5DaysAgo + '위')
+        + row('순위 변화', '<em class="' + changeCls(it.rankChange5d) + '">' + changeText(it.rankChange5d) + '</em>')
+        + row('5일 수익률', pct(it.return5d))
+        + row('5일 SPY 대비', pct(it.rs5))
+        + row('20일 SPY 대비', pct(it.rs20))
+        + row('20일 평균 위', it.aboveMa20 == null ? '-' : (it.aboveMa20 ? '예' : '아니오'))
+        + row('거래대금 강도', it.tradingValueRatio == null ? '-' : it.tradingValueRatio.toFixed(2) + '배')
+        + '</div><div class="hsr-note">섹터 ETF 종가 기준 SPY 대비 상대수익. 투자 권유가 아닙니다.</div>';
+      box.hidden = false;
+      return;
+    }
     box.innerHTML = '<div class="hsr-detail-head"><strong>' + esc(sector) + '</strong><span>' + PHASE_LABEL[it.phase] + '</span>'
       + '<button type="button" class="hsr-close" aria-label="닫기">✕</button></div>'
       + '<div class="hsr-detail-grid">'
@@ -112,8 +136,13 @@
   }
 
   function load() {
-    fetch(API).then(function (r) { return r.json(); }).then(function (env) {
-      data = env && env.data ? env.data : env;
+    var url = isUs() ? US_API : API;
+    if (cache[url] && Date.now() - cache[url].t < 600000) { data = cache[url].data; render(); return; }
+    fetch(url).then(function (r) { return r.json(); }).then(function (env) {
+      var next = env && env.data ? env.data : env;
+      cache[url] = { t: Date.now(), data: next };
+      if ((isUs() ? US_API : API) !== url) return; // 그 사이 시장 탭이 바뀐 경우
+      data = next;
       render();
     }).catch(function () { if (host) host.hidden = true; });
   }
@@ -129,7 +158,11 @@
       if (event.target.closest && event.target.closest('.hsr-close')) host.querySelector('[data-hsr-detail]').hidden = true;
     });
     load();
-    setInterval(function () { if (!document.hidden) load(); }, 600000);
+    // 홈의 한국/미국 탭이 바뀌면 skin-main.js가 data-us를 바꾼다 - 그때 맞는 시장 데이터로 다시 그린다.
+    if (typeof MutationObserver === 'function') {
+      new MutationObserver(function () { load(); }).observe(host, { attributes: true, attributeFilter: ['data-us'] });
+    }
+    setInterval(function () { if (!document.hidden) { cache = {}; load(); } }, 600000);
   }
 
   global.HomeSectorRotation = { mount: mount };

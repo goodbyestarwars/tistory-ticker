@@ -2,7 +2,7 @@
    외곽 카드·그림자·그라데이션·아이콘 박스 없음. 상태는 7px 점 + 이름, 업종명 왼쪽 / 순위 변화 오른쪽 끝(tabular-nums).
    상승 빨강·하락 파랑은 사이트 기존 색 유지, 유입 초록·둔화 주황은 채도를 낮춘다. */
 .home-sector-rotation { margin: 0; padding: 28px 0 24px; border-bottom: 1px solid var(--rule, #d8d8d8); }
-.home-sector-rotation[hidden], .home-sector-rotation[data-us="1"] { display: none; }
+.home-sector-rotation[hidden] { display: none; }  /* 2026-10-05: 미국 모드도 표시(/us-sector-rotation) */
 .home-editorial-page.is-market-closed .home-sector-rotation { display: none !important; }
 .hsr-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; margin-bottom: 22px; }
 .hsr-title-row { display: flex; align-items: center; gap: 8px; }
@@ -94,3 +94,5 @@ html body .home-sector-rotation .hsr-name { font-size: 15px; }
   .home-sector-rotation { padding: 22px 18px 16px; border-radius: 18px; }
   html body .home-sector-rotation .hsr-title-row strong { font-size: 24px; }
 }
+/* 미국 업종(섹터 ETF): 업종명 옆 티커는 작게 */
+.hsr-name .hsr-ticker { margin-left: 4px; font-size: 11px; font-weight: 500; color: var(--text-sub, #8a94a3); letter-spacing: 0; }

@@ -2599,6 +2599,53 @@ def scan_performance(scanner: str = '', since: str = '', horizons: str = '1,3,5'
     return envelope(result)
 
 
+_US_ETF_DAILY_TTL = 15 * 60
+_us_etf_cache = {}
+
+
+def _us_daily_series(symbols):
+    """미국 ETF 일봉(us_stocks.chart daily = Yahoo 2년, 심볼별 캐시)을 동시에 받는다. 실패한 심볼은 빈 목록."""
+    def one(symbol):
+        try:
+            return symbol, (us_stocks.chart(symbol, timeframe='daily') or {}).get('points') or []
+        except Exception as exc:
+            logging.getLogger('main').warning('us etf daily %s failed: %s', symbol, type(exc).__name__)
+            return symbol, []
+    with ThreadPoolExecutor(max_workers=4) as pool:
+        return dict(pool.map(one, symbols))
+
+
+def _us_etf_payload(kind):
+    import us_market_etf
+    cached = _us_etf_cache.get(kind)
+    if cached and time.time() - cached['t'] < _US_ETF_DAILY_TTL:
+        return cached['data']
+    if kind == 'rotation':
+        symbols = [us_market_etf.BENCHMARK] + [s for s, _ in us_market_etf.SECTOR_ETFS]
+        data = us_market_etf.compute_rotation(_us_daily_series(symbols))
+    else:
+        data = us_market_etf.etf_returns(_us_daily_series([s for s, _ in us_market_etf.MAJOR_ETFS]))
+    _us_etf_cache[kind] = {'t': time.time(), 'data': data}
+    return data
+
+
+@app.get('/us-sector-rotation')
+def us_sector_rotation_endpoint(request: Request):
+    """미국장 업종 로테이션(2026-10-04): SPDR 섹터 ETF 11개를 SPY 대비 상대강도로 유입·주도·둔화·이탈 분류.
+
+    국내판과 같은 분류기·응답 모양(us_market_etf.compute_rotation). 15분 캐시, 공개 읽기 전용.
+    """
+    _check_rate_limit('us_sector_rotation', request, max_per_window=60)
+    return envelope(_us_etf_payload('rotation'))
+
+
+@app.get('/us-etf-returns')
+def us_etf_returns_endpoint(request: Request):
+    """홈 미국 시장 카드 아래 주요 ETF 수익률(1일·1주·1개월·연초 이후, 2026-10-04). 15분 캐시."""
+    _check_rate_limit('us_etf_returns', request, max_per_window=60)
+    return envelope(_us_etf_payload('returns'))
+
+
 @app.get('/sector-rotation')
 def sector_rotation_endpoint(request: Request):
     """업종 로테이션(유입·주도·둔화·이탈). 일봉 확정값으로 서버에서 계산하고 5분 캐시한다. 공개 읽기 전용."""

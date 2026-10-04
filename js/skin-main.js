@@ -616,6 +616,10 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
+        // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
+        // 시장 요약과 같은 머리말·칸(.hmb-summary-head/.hmb-list)을 그대로 써서 칸 모양을 맞춘다. 값은 /us-etf-returns.
+        + '<div class="hmb-etf" data-home-us-etfs hidden><div class="hmb-summary-head"><strong>주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
+        + '<dl class="hmb-list hmb-etf-list" data-home-us-etfs-list></dl></div>'
         + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
         + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
@@ -710,6 +714,8 @@ document.documentElement.classList.add('skin-ready');
       if (tone) element.classList.add(tone);
     }
 
+    var homeUsEtfsAt = 0;
+    var homeShowsUs = false;
     function applyHomeSummarySession(session) {
       var isUs = !!session && session.market === 'us';
       var usSession = isUs ? usRegularSessionState() : null;
@@ -728,6 +734,36 @@ document.documentElement.classList.add('skin-ready');
       var rotation = dashboardSection.querySelector('[data-home-sector-rotation]');
       if (rotation) { if (isUs) rotation.setAttribute('data-us', '1'); else rotation.removeAttribute('data-us'); }
       if (nightFutures) nightFutures.hidden = !isUs;
+      homeShowsUs = isUs;
+      var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
+      if (usEtfs) {
+        if (!isUs) usEtfs.hidden = true;
+        else loadHomeUsEtfs(usEtfs);
+      }
+    }
+
+    // 주요 ETF 수익률(미국 모드). 일봉 기준이라 10분 안에는 다시 부르지 않는다. 실패하면 칸을 숨긴 채 둔다.
+    function loadHomeUsEtfs(box) {
+      if (Date.now() - homeUsEtfsAt < 600000 && box.getAttribute('data-loaded') === '1') { box.hidden = false; return; }
+      homeUsEtfsAt = Date.now();
+      fetch('https://goodbyestar.cloud/us-etf-returns').then(function (r) { return r.json(); }).then(function (env) {
+        var d = env && env.data ? env.data : env;
+        var items = d && d.items || [];
+        var list = box.querySelector('[data-home-us-etfs-list]');
+        if (!items.length || !list) return;
+        function pct(v) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%'; }
+        function tone(v) { return v > 0 ? 'home-positive' : v < 0 ? 'home-negative' : 'home-neutral'; }
+        list.innerHTML = items.map(function (it) {
+          var title = it.symbol + ' ' + it.name + ' · 1주 ' + pct(it.return1w) + ' · 1개월 ' + pct(it.return1m) + ' · 연초 이후 ' + pct(it.returnYtd);
+          return '<div title="' + title.replace(/"/g, '&quot;') + '"><dt><b>' + it.symbol + '</b> ' + it.name + '</dt>'
+            + '<dd class="' + tone(it.return1d) + '">' + pct(it.return1d)
+            + '<small><span class="' + tone(it.return1m) + '">1M ' + pct(it.return1m) + '</span> · <span class="' + tone(it.returnYtd) + '">YTD ' + pct(it.returnYtd) + '</span></small></dd></div>';
+        }).join('');
+        var meta = box.querySelector('[data-home-us-etfs-meta]');
+        if (meta && d.date) meta.textContent = d.date.slice(5).replace('-', '.') + ' 미국 종가' + (d.final === false ? '(잠정)' : '') + ' · 1일 · 1개월 · 연초 이후';
+        box.setAttribute('data-loaded', '1');
+        box.hidden = !homeShowsUs; // 응답이 오는 사이 국내 탭으로 바뀌었으면 숨긴 채 둔다
+      }).catch(function () { box.hidden = true; });
     }
 
     function sectorSummary(data) {
@@ -2461,7 +2497,7 @@ document.documentElement.classList.add('skin-ready');
     if (!host || host.getAttribute('data-rotation-mounted')) return !!host;
     host.setAttribute('data-rotation-mounted', '1');
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261004-rotation-v4';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-sector-rotation.js?v=20261005-us-v1';
     script.onload = function () { if (window.HomeSectorRotation) window.HomeSectorRotation.mount(host); };
     document.head.appendChild(script);
     return true;
