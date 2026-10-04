@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pulse-line-v13';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pill-v14';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -473,16 +473,22 @@
   // 2026-10-04 사용자 요청("캔들 말고 다른 걸로"): 장식 대신 정보를 그린다 - "주간 맥박".
   // 2026-10-05 사용자 지적("미국장이랑 구분을 할 수가 없잖아"): 4개 지수를 한 줄로 평균하면 국내·미국이 섞인다
   // (예: 9/28 주 KOSPI -1.09%·KOSDAQ +5.78% / 나스닥 +0.45%·S&P500 -0.27%). 국내(KOSPI·KOSDAQ)·미국(나스닥·S&P500) 두 줄로 나눈다.
-  // 2026-10-05 사용자 요청("막대보다는 금요일 종가를 기준으로 선으로, 미니멀하게"): 줄마다 직전 주 금요일 종가(지수 base)를
-  // 기준선(0%)으로, 월~금 종가의 누적 등락률(그 시장 지수들의 단순 평균)을 선으로 잇는다. 기준선 위 구간은 빨강, 아래는 파랑
-  // (같은 선을 위·아래 clipPath로 나눠 칠함). 세로 눈금은 두 줄 공통이라 시장끼리 크기를 비교할 수 있다. 끝에 그 시장 주간 평균.
-  // 휴장일은 점을 건너뛰고 잇는다. 첫 페인트용 색은 인라인 속성으로 박는다.
+  // 2026-10-05 사용자 요청: 잠시 선(직전 금요일 종가 기준 누적 등락)으로 그렸다가, 빨강·파랑 반반 캡슐 그림을 보고 "알약으로 표시"로 바꿨다.
+  // 캡슐 왼쪽 절반 = 국내(KOSPI·KOSDAQ 주간 평균), 오른쪽 절반 = 미국(나스닥·S&P500 주간 평균). 절반마다 그 시장이 직전 주 금요일
+  // 종가보다 위에서 끝났으면 빨강, 아래면 파랑, 데이터가 없으면 회색. 유리 광택·반짝이 입자는 장식이고 정보는 색과 아래 숫자뿐이다.
+  // 반쪽마다 <title>로 월~금 누적 등락을 보여준다. 첫 페인트용 색은 인라인 fill로 박는다.
   var WEEK_DAYS_KO = ['일', '월', '화', '수', '목', '금', '토'];
   var PULSE_MARKETS = [
     { key: 'kr', label: '국내', symbols: ['KOSPI', 'KOSDAQ'] },
     { key: 'us', label: '미국', symbols: ['NASDAQ_INDEX', 'SP500_INDEX'] }
   ];
-  var PULSE_W = 116, PULSE_H = 30, PULSE_PAD = 4;
+  var PILL_TONES = {
+    up: ['#ff8a80', '#e0443a', '#9c1f18'],
+    down: ['#6fa8ff', '#1f6fe0', '#0b3b86'],
+    flat: ['#d0d5dd', '#98a2b3', '#667085']
+  };
+  // 반짝이 입자 위치(반쪽 기준 0~1 좌표, 고정값이라 매번 같은 그림)
+  var PILL_SPARKS = [[.18, .35, 1.1], [.32, .62, .7], [.46, .3, .8], [.58, .72, 1], [.7, .45, .6], [.84, .6, .9], [.26, .8, .6], [.64, .22, .7], [.9, .32, .6], [.4, .5, .5], [.12, .58, .5], [.76, .82, .6]];
   var pulseSeq = 0;
   // 지수별 base(직전 주 금요일 종가) 대비 날짜별 누적 등락률 목록
   function weeklyPulse(indices) {
@@ -502,7 +508,6 @@
   function average(list) {
     return list.length ? list.reduce(function (a, b) { return a + b; }, 0) / list.length : null;
   }
-  function pulseX(i) { return PULSE_PAD + i * (PULSE_W - PULSE_PAD * 2) / 5; }
   function sentimentArt(indices) {
     var up = isBullishWeek(indices);
     var weekly = (indices || []).filter(function (item) { return item && (!item.group || item.group === 'index'); })
@@ -518,52 +523,48 @@
       var parsed = new Date(day + 'T00:00:00+09:00');
       return { day: day, label: isNaN(parsed.getTime()) ? day.slice(8) : WEEK_DAYS_KO[parsed.getDay()] };
     });
-    var peak = 0;
     markets.forEach(function (row) {
       row.changes = days.map(function (d) { return row.byDate[d.day] ? average(row.byDate[d.day]) : null; });
-      row.changes.forEach(function (v) { if (v != null) peak = Math.max(peak, Math.abs(v)); });
     });
-    peak = peak || 1;
     var UP = '#d24f45', DOWN = '#1261c4';
-    var mid = PULSE_H / 2;
-    var y = function (v) { return mid - v / peak * (mid - 3); };
-    var rows = markets.map(function (row) {
-      var id = 'hwrPulse' + (++pulseSeq);
-      // 시작점은 직전 주 금요일 종가(0%), 이어서 월~금(i+1번째 칸)
-      var pts = [[pulseX(0), mid]];
-      var last = null;
-      row.changes.forEach(function (v, i) {
-        if (v == null) return;
-        pts.push([pulseX(i + 1), y(v)]);
-        last = { v: v, x: pulseX(i + 1), y: y(v) };
-      });
-      var line = pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
-      var tip = row.market.label + ' 직전 금요일 종가 대비 ' + row.changes.map(function (v, i) {
-        return days[i].label + ' ' + (v == null ? '휴장' : (v > 0 ? '+' : '') + v.toFixed(2) + '%');
-      }).join(' · ');
-      var svg = '<svg class="hwr-pulse-line" viewBox="0 0 ' + PULSE_W + ' ' + PULSE_H + '" width="' + PULSE_W + '" height="' + PULSE_H + '">'
-        + '<title>' + escapeHtml(tip) + '</title>'
-        + '<defs><clipPath id="' + id + 'u"><rect x="0" y="-4" width="' + PULSE_W + '" height="' + (mid + 4) + '"/></clipPath>'
-        + '<clipPath id="' + id + 'd"><rect x="0" y="' + mid + '" width="' + PULSE_W + '" height="' + (mid + 4) + '"/></clipPath></defs>'
-        + '<line class="hwr-pulse-base" x1="0" x2="' + PULSE_W + '" y1="' + mid + '" y2="' + mid + '" stroke="#d0d5dd" stroke-width="1" stroke-dasharray="2 3"/>'
-        + '<polyline class="is-up" clip-path="url(#' + id + 'u)" points="' + line + '" fill="none" stroke="' + UP + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
-        + '<polyline class="is-down" clip-path="url(#' + id + 'd)" points="' + line + '" fill="none" stroke="' + DOWN + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
-        + (last ? '<circle class="' + (last.v >= 0 ? 'is-up' : 'is-down') + '" cx="' + last.x.toFixed(1) + '" cy="' + last.y.toFixed(1) + '" r="2.2" fill="' + (last.v >= 0 ? UP : DOWN) + '"/>' : '')
-        + '</svg>';
-      var weeklyText = row.weekly == null ? '-' : signed(row.weekly);
-      var weeklyColor = row.weekly == null ? '' : ' style="color:' + (row.weekly >= 0 ? UP : DOWN) + '"';
-      return '<span class="hwr-pulse-name">' + row.market.label + '</span>'
-        + svg
-        + '<b class="hwr-pulse-week ' + signClass(row.weekly) + '"' + weeklyColor + '>' + weeklyText + '</b>';
-    }).join('');
-    var dayLabels = '<svg class="hwr-pulse-days" viewBox="0 0 ' + PULSE_W + ' 12" width="' + PULSE_W + '" height="12">'
-      + days.map(function (d, i) { return '<text x="' + pulseX(i + 1).toFixed(1) + '" y="10" text-anchor="middle">' + escapeHtml(d.label) + '</text>'; }).join('')
+    var id = 'hwrPill' + (++pulseSeq);
+    var W = 168, H = 64, X = 6, Y = 8, PW = 156, PH = 46, R = 23, half = PW / 2;
+    var byKey = {};
+    markets.forEach(function (row) { byKey[row.market.key] = row; });
+    var halves = PULSE_MARKETS.map(function (market, i) {
+      var row = byKey[market.key];
+      var weekly = row ? row.weekly : null;
+      var tone = weekly == null ? 'flat' : weekly >= 0 ? 'up' : 'down';
+      var c = PILL_TONES[tone];
+      var x0 = X + i * half;
+      var tip = market.label + (weekly == null ? ' 데이터 없음' : ' 주간 ' + signed(weekly) + ' (직전 금요일 종가 대비 '
+        + row.changes.map(function (v, k) { return days[k].label + ' ' + (v == null ? '휴장' : (v > 0 ? '+' : '') + v.toFixed(2) + '%'); }).join(' · ') + ')');
+      var sparks = PILL_SPARKS.map(function (p) {
+        return '<circle cx="' + (x0 + p[0] * half).toFixed(1) + '" cy="' + (Y + p[1] * PH).toFixed(1) + '" r="' + p[2] + '" fill="#fff" fill-opacity=".55"/>';
+      }).join('');
+      return { market: market, row: row, weekly: weekly, tone: tone,
+        defs: '<linearGradient id="' + id + market.key + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="' + c[0] + '"/><stop offset=".55" stop-color="' + c[1] + '"/><stop offset="1" stop-color="' + c[2] + '"/></linearGradient>',
+        body: '<g class="hwr-pill-half is-' + tone + '"><title>' + escapeHtml(tip) + '</title><rect x="' + x0 + '" y="' + Y + '" width="' + half + '" height="' + PH + '" fill="url(#' + id + market.key + ')"/>' + sparks + '</g>' };
+    });
+    var pill = '<svg class="hwr-pill" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '">'
+      + '<defs><clipPath id="' + id + 'c"><rect x="' + X + '" y="' + Y + '" width="' + PW + '" height="' + PH + '" rx="' + R + '"/></clipPath>'
+      + halves.map(function (h) { return h.defs; }).join('')
+      + '<radialGradient id="' + id + 'sh" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#000" stop-opacity=".22"/><stop offset="1" stop-color="#000" stop-opacity="0"/></radialGradient></defs>'
+      + '<ellipse class="hwr-pill-shadow" cx="' + (W / 2) + '" cy="' + (Y + PH + 5) + '" rx="' + (PW / 2 - 6) + '" ry="4" fill="url(#' + id + 'sh)"/>'
+      + '<g clip-path="url(#' + id + 'c)">' + halves.map(function (h) { return h.body; }).join('')
+      + '<rect x="' + (X + 14) + '" y="' + (Y + 5) + '" width="' + (PW - 28) + '" height="9" rx="4.5" fill="#fff" fill-opacity=".38"/>'
+      + '<rect x="' + (X + half - 1) + '" y="' + Y + '" width="2" height="' + PH + '" fill="#fff" fill-opacity=".55"/></g>'
+      + '<rect x="' + X + '" y="' + Y + '" width="' + PW + '" height="' + PH + '" rx="' + R + '" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="1"/>'
       + '</svg>';
+    var labels = '<span class="hwr-pill-labels">' + halves.map(function (h) {
+      var color = h.weekly == null ? '' : ' style="color:' + (h.weekly >= 0 ? UP : DOWN) + '"';
+      return '<span><small>' + h.market.label + '</small><b class="' + signClass(h.weekly) + '"' + color + '>' + (h.weekly == null ? '-' : signed(h.weekly)) + '</b></span>';
+    }).join('') + '</span>';
     var color = up ? UP : DOWN;
     var label = up ? '상승 마감 주간' : '하락 마감 주간';
     var aria = label + markets.map(function (row) { return ', ' + row.market.label + ' 주간 평균 ' + (row.weekly == null ? '확인 불가' : signed(row.weekly)); }).join('');
     return '<div class="hwr-sentiment hwr-pulse hwr-sentiment--' + (up ? 'up' : 'down') + '" style="color:' + color + '" aria-label="' + escapeHtml(aria) + '">'
-      + (markets.length ? '<span class="hwr-pulse-chart" aria-hidden="true">' + rows + '<span></span>' + dayLabels + '<span></span></span>' : '')
+      + (markets.length ? '<span class="hwr-pill-wrap">' + pill + labels + '</span>' : '')
       + '<span class="hwr-pulse-text"><strong>' + label + '</strong>' + (avg != null ? '<em>4개 지수 평균<b>' + signed(avg) + '</b></em>' : '') + '</span></div>';
   }
   function fxStatus(fx, fallbackLabel, fallbackMessage) {

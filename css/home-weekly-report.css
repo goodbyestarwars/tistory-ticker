@@ -794,21 +794,18 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
   .hwr2-theme-news li:nth-child(n+3) { display: none; }
 }
 
-/* ── 주간 맥박 (2026-10-04 도입, 2026-10-05 선으로) ── 국내·미국 두 줄. 직전 주 금요일 종가를 점선 기준선으로, 월~금 누적 등락을
-   선으로 잇고 기준선 위는 빨강·아래는 파랑. 문구와 기간 사이는 세로 구분선 */
+/* ── 주간 알약 (2026-10-05) ── 캡슐 왼쪽 절반 국내·오른쪽 절반 미국, 직전 주 금요일 종가 위에서 끝나면 빨강·아래면 파랑.
+   아래에 시장별 주간 평균 숫자. 문구와 기간 사이는 세로 구분선 */
 .home-weekly-report .hwr-head { align-items: center; }
-.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 20px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
-.hwr-pulse-chart { display: grid; grid-template-columns: auto auto auto; align-items: center; column-gap: 10px; row-gap: 4px; }
-.hwr-pulse-name { font-size: 12px; font-weight: 600; color: var(--hw-sub, #667085); }
-.hwr-pulse-line, .hwr-pulse-days { display: block; overflow: visible; }
+.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 22px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
+.hwr-pill-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 /* 옛 .hwr-sentiment svg 규칙(104x52·circle fill:currentColor)을 이긴다 */
-.home-weekly-report .hwr-pulse svg.hwr-pulse-line { width: 116px; height: 30px; }
-.home-weekly-report .hwr-pulse svg.hwr-pulse-days { width: 116px; height: 12px; }
-.hwr-pulse-line circle { stroke: none; }
-.hwr-pulse-line circle.is-up { fill: #d24f45; }
-.hwr-pulse-line circle.is-down { fill: #1261c4; }
-.hwr-pulse-days text { font-size: 10px; font-weight: 500; fill: var(--hw-muted, #8b95a5); }
-.hwr-pulse-week { min-width: 50px; font-size: 12px; font-weight: 700; text-align: right; }
+.home-weekly-report .hwr-pulse svg.hwr-pill { display: block; width: 168px; height: 64px; overflow: visible; filter: drop-shadow(0 6px 14px rgba(17, 17, 17, .12)); }
+.hwr-pill circle { stroke: none !important; fill: #fff !important; }
+.hwr-pill-labels { display: grid; grid-template-columns: 1fr 1fr; width: 156px; }
+.hwr-pill-labels span { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
+.hwr-pill-labels small { font-size: 11px; font-weight: 600; color: var(--hw-muted, #8b95a5); }
+.hwr-pill-labels b { font-size: 13px; font-weight: 700; }
 .hwr-pulse-text { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
 .hwr-pulse-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
 .hwr-pulse-text em { font-size: 12px; font-style: normal; font-weight: 500; color: var(--hw-sub, #667085); }
@@ -816,13 +813,9 @@ html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom
 .hwr-pulse.hwr-sentiment--up .hwr-pulse-text em b { color: var(--hw-up, #d24f45); }
 .hwr-pulse.hwr-sentiment--down .hwr-pulse-text em b { color: var(--hw-down, #1261c4); }
 .home-weekly-report .hwr-period { display: flex; flex-direction: column; justify-content: center; align-self: center; }
-html.dark .hwr-pulse-line polyline.is-up { stroke: #ff8a83 !important; }
-html.dark .hwr-pulse-line polyline.is-down { stroke: #80b8ff !important; }
-html.dark .hwr-pulse-line circle.is-up { fill: #ff8a83 !important; }
-html.dark .hwr-pulse-line circle.is-down { fill: #80b8ff !important; }
-html.dark .hwr-pulse-base { stroke: rgba(245, 239, 224, .25) !important; }
-html.dark .hwr-pulse-week.is-up { color: #ff8a83 !important; }
-html.dark .hwr-pulse-week.is-down { color: #80b8ff !important; }
+html.dark .home-weekly-report .hwr-pulse svg.hwr-pill { filter: drop-shadow(0 0 16px rgba(255, 255, 255, .08)); }
+html.dark .hwr-pill-labels b.is-up { color: #ff8a83 !important; }
+html.dark .hwr-pill-labels b.is-down { color: #80b8ff !important; }
 html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: #ff8a83 !important; }
 html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !important; }
 @media (max-width: 720px) {

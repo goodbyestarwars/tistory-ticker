@@ -3042,7 +3042,9 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 2026-10-04 사용자 요청("캔들 말고 다른 걸로")으로 월~금 평균 일간 등락 막대(주간 맥박)로 바꿨다.
         self.assertIn("function weeklyPulse(indices)", source)
         # 2026-10-05 사용자 요청으로 막대를 국내·미국 두 줄의 선(직전 금요일 종가 기준 누적 등락)으로 바꿨다.
-        self.assertIn('hwr-pulse-line', source)
+        # 같은 날 사용자 요청으로 선 대신 국내·미국 반반 알약(캡슐)으로 바꿨다.
+        self.assertIn('class="hwr-pill"', source)
+        self.assertIn("var tone = weekly == null ? 'flat' : weekly >= 0 ? 'up' : 'down';", source)
         self.assertIn("{ key: 'kr', label: '국내', symbols: ['KOSPI', 'KOSDAQ'] }", source)
         self.assertIn("(byDate[day] = byDate[day] || []).push((close - base) / base * 100);", source)
         self.assertNotIn('viewBox="0 0 160 82"', source)
@@ -3057,8 +3059,8 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("var UP = '#d24f45', DOWN = '#1261c4';", source)
         self.assertIn("var color = up ? UP : DOWN;", source)
         # 선도 CSS 도착 전에 칠해지도록 stroke를 인라인 속성으로 넣는다.
-        self.assertIn("fill=\"none\" stroke=\"' + UP + '\"", source)
-        self.assertIn("fill=\"none\" stroke=\"' + DOWN + '\"", source)
+        self.assertIn("<stop offset=\".55\" stop-color=\"' + c[1] + '\"/>", source)
+        self.assertIn("' style=\"color:' + (h.weekly >= 0 ? UP : DOWN) + '\"'", source)
 
     def test_weekly_hot_and_cold_stock_reasons_are_bold(self):
         source = self.read("js/home-weekly-report.js")
