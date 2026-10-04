@@ -1340,6 +1340,7 @@
         loadAiBriefing(container);
         loadTomorrow_(container);
         loadSectorFlow_(container);
+        container.querySelectorAll('.mt-axis-reason').forEach(function (el) { el.title = el.textContent; });
       })
       .catch(function () {
         container.innerHTML = '<div class="mt-error">증시온도를 불러오지 못했습니다.</div>';
@@ -2309,12 +2310,12 @@
     }
     return ''
       + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
-      + '<div class="mt-strategy-panel-title">🐜 오늘의 개미 체크리스트</div>'
+      + '<div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
       + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
       + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
       + '<div class="mt-ant-context">' + escapeHtml(guide.context) + '</div>'
-      + '<div class="mt-ant-list mt-ant-todo"><b>✅ 지금 할 일</b><ul>' + list(guide.todo) + '</ul></div>'
-      + '<div class="mt-ant-list mt-ant-avoid"><b>🚫 오늘 금지</b><ul>' + list(guide.avoid) + '</ul></div>'
+      + '<div class="mt-ant-list mt-ant-todo"><b>지금 할 것</b><ul>' + list(guide.todo) + '</ul></div>'
+      + '<div class="mt-ant-list mt-ant-avoid"><b>주의할 것</b><ul>' + list(guide.avoid) + '</ul></div>'
       + '<div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
       + '</div>';
   }
@@ -3562,6 +3563,48 @@
     if (panels[initialView]) loadPanel(initialView, panels[initialView]);
   }
 
+  // 2026-10-04 리서치 브리핑 레이아웃: 숫자를 한 줄로 먼저 보여 주는 요약 스트립. 값은 서버가 이미 내려준 data만 읽고 새로 계산하지 않는다.
+  function buildKpiStrip_(data) {
+    var value = score100(data);
+    var grade = data.grade3 || data.grade || { emoji: '', label: '' };
+    var axes = data.axes || {};
+    var delta = Number(data.scoreDelta);
+    function cell(label, num, sub, cls) {
+      return '<div class="mt-kpi"><span class="mt-kpi-label">' + escapeHtml(label) + '</span>'
+        + '<b class="mt-kpi-num">' + escapeHtml(num) + '</b>'
+        + '<em class="mt-kpi-sub ' + (cls || '') + '">' + escapeHtml(sub || '') + '</em></div>';
+    }
+    function axisCell(key, label) {
+      var axis = axes[key];
+      var v = Number(axis && axis.value);
+      return isFinite(v) ? cell(label, v.toFixed(0), axisWord(key, v)) : '';
+    }
+    var deltaText = !isFinite(delta) ? '기록 시작' : delta === 0 ? '변화 없음' : (delta > 0 ? '▲ +' : '▼ ') + delta.toFixed(0) + '점';
+    var deltaCls = !isFinite(delta) || delta === 0 ? '' : delta > 0 ? 'mt-val-pos' : 'mt-val-neg';
+    return '<div class="mt-kpi-strip" role="group" aria-label="시장 핵심 요약">'
+      + cell('시장온도', value.toFixed(0), (grade.label || '') , 'mt-kpi-tone-' + escapeHtml((grade.tone || crowdTone(data) || 'neutral')))
+      + axisCell('money', '돈(자금 유입)')
+      + axisCell('price', '가격')
+      + axisCell('risk', '위험')
+      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls)
+      + '</div>';
+  }
+
+  function buildPageHead_(data) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}:\d{2}))?/.exec(String(data.updatedAt || ''));
+    var dateText = m ? m[1] + '.' + m[2] + '.' + m[3] : '';
+    return '<div class="mt-page-head"><span>' + escapeHtml(dateText) + (dateText ? ' · ' : '') + '실시간 시세 기준</span>'
+      + (m && m[4] ? '<span>마지막 업데이트 ' + escapeHtml(m[4]) + '</span>' : '') + '</div>';
+  }
+
+  // 대표 지수(코스피·코스닥) 흐름은 시장지표 페이지가 따로 갖고 있다(증시온도와 데이터·무게를 섞지 않는다는 2026-09-06 결정).
+  // 이 페이지 맨 아래에는 그리로 가는 안내만 둔다.
+  function buildIndexFlow_() {
+    return '<section class="mt-section-block mt-index-flow">'
+      + '<div class="mt-section-head"><h2>대표 지수 흐름</h2><p>코스피·코스닥의 현재 지수와 일봉 흐름은 <a href="/pages/kospi-futures">시장지표</a>에서 확인합니다.</p></div>'
+      + '</section>';
+  }
+
   function buildCard(data) {
     // 서버(GAS gradeForTemp_)가 내려주는 grade에는 color가 없다(색상 스펙은 클라이언트
     // GRADE_BANDS/GRADE_BY_TONE에만 있음) - data.grade 자체에 색을 주입해서 buildHero(data)/
@@ -3577,7 +3620,9 @@
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
+      buildPageHead_(data),                         // 0-a. 기준일·업데이트 시각
       buildTomorrowCard_(),                         // 0. 그래서 내일은? (2026-10-04 - 첫 화면의 답)
+      buildKpiStrip_(data),                         // 0-b. 핵심 숫자 한 줄 요약
       // 2026-09-13 사용자 요청("정보가 너무 가로로 길게 되어 있어, PC에선 가독성이 떨어져.
       // 밑에 최근 단기흐름이랑 1:1 비율로 합쳐도 좋을꺼 같아"): ①②를 PC에서 한 줄에 1:1로
       // 둔다. 760px 이하에서는 예전처럼 위아래로 쌓는다(css .mt-summary-trend-row).
@@ -3589,6 +3634,7 @@
         + buildBars(data) + '</details>',           // ③ 접힌 상세
       buildBriefingStrategy(data),                  // ④ 시장 브리핑
       buildTemperatureActions(),                    // ⑤ 돈이 몰리는 차트
+      buildIndexFlow_(),                            // ⑥ 대표 지수 흐름
     ];
 
     return ''
