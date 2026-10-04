@@ -1364,3 +1364,7 @@ html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-
   #strategy-search .ss-top3-grid { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
   #strategy-search .ss-top-card { flex: 0 0 82%; scroll-snap-align: start; }
 }
+html.dark #strategy-search .ss-top-rank { background: rgba(245, 239, 224, .1) !important; color: rgba(245, 239, 224, .8) !important; }
+html.dark #strategy-search .ss-top-rank.is-gold { background: rgba(214, 177, 92, .22) !important; color: #e8c987 !important; }
+html.dark #strategy-search .ss-top-rank.is-silver { background: rgba(190, 198, 210, .2) !important; color: #cfd6e0 !important; }
+html.dark #strategy-search .ss-top-rank.is-bronze { background: rgba(196, 140, 100, .22) !important; color: #e0b08c !important; }
