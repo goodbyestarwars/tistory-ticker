@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>금융용어사전</title>
+<meta name="description" content="골든크로스·지지선·체결강도·PER·ATR처럼 차트와 수급, 재무, 보조지표에서 자주 만나는 용어를 한 줄 정의와 예시로 찾아본다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+<style>
+.gl-search { width: 100%; box-sizing: border-box; padding: 12px 16px; border: 1px solid rgba(17,17,17,.14); border-radius: 14px; font-size: 16px; background: transparent; color: inherit; }
+.gl-chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 18px; }
+.gl-chip { border: 0; padding: 6px 14px; border-radius: 999px; background: rgba(17,17,17,.06); color: inherit; font-size: 13.5px; cursor: pointer; }
+.gl-chip.on { background: #111827; color: #fff; }
+.gl-count { color: #6b7280; font-size: 13px; margin-bottom: 10px; }
+.gl-card { padding: 16px 18px; margin: 0 0 12px; border-radius: 16px; background: rgba(17,17,17,.04); scroll-margin-top: 16px; }
+.gl-card.flash { box-shadow: 0 0 0 2px #d24f45 inset; }
+.gl-card h3 { margin: 0 0 4px; font-size: 18px; }
+.gl-card h3 small { margin-left: 8px; font-size: 12.5px; font-weight: 400; color: #6b7280; }
+.gl-cat { display: inline-block; margin-bottom: 8px; padding: 1px 9px; border-radius: 999px; font-size: 11.5px; background: rgba(17,17,17,.08); color: #475569; }
+.gl-card p { margin: 6px 0; line-height: 1.7; }
+.gl-ex { color: #374151; }
+.gl-meta { color: #6b7280; font-size: 13.5px; }
+.gl-rel a { margin-right: 8px; color: #1261c4; text-decoration: none; }
+.gl-empty { padding: 30px 0; text-align: center; color: #6b7280; }
+@media (prefers-color-scheme: dark) {
+  .gl-search { border-color: rgba(255,255,255,.18); }
+  .gl-chip { background: rgba(255,255,255,.1); }
+  .gl-chip.on { background: #e5e7eb; color: #111827; }
+  .gl-card { background: rgba(255,255,255,.06); }
+  .gl-cat { background: rgba(255,255,255,.12); color: #cbd5e1; }
+  .gl-ex { color: #d1d5db; }
+  .gl-rel a { color: #7db4f5; }
+}
+</style>
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>금융용어사전</h1>
+  <p class="legal-effective-date">차트 · 수급 · 재무 · 보조지표</p>
+  <p>차트와 종목 화면에서 자주 만나는 용어를 한 줄 정의, 예시, 쓰임새로 정리했다. 예시 숫자는 이해를 돕기 위한 가상의 값이며,
+  투자 판단의 근거가 아니라 용어를 이해하기 위한 참고 자료다. 관련용어를 누르면 해당 용어로 이동한다.</p>
+
+  <input class="gl-search" id="glSearch" type="search" placeholder="용어 검색 (예: ATR, 지지선, 순매수)" autocomplete="off" />
+  <div class="gl-chips" id="glChips"></div>
+  <div class="gl-count" id="glCount"></div>
+  <div id="glList"></div>
+</div>
+<script src="https://goodbyestarwars.github.io/tistory-ticker/data/glossary.js"></script>
+<script>
+(function () {
+  var data = window.NINE_GLOSSARY || { categories: [], terms: [] };
+  var cat = '전체', query = '';
+  var list = document.getElementById('glList');
+  var chips = document.getElementById('glChips');
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+  function idOf(t) { return 'gl-' + encodeURIComponent(t); }
+  function matches(x) {
+    if (cat !== '전체' && x.cat !== cat) return false;
+    if (!query) return true;
+    return (x.t + ' ' + x.en + ' ' + x.d + ' ' + x.use).toLowerCase().indexOf(query) >= 0;
+  }
+  function render() {
+    var rows = data.terms.filter(matches).sort(function (a, b) { return a.t.localeCompare(b.t, 'ko'); });
+    document.getElementById('glCount').textContent = rows.length + '개 용어';
+    if (!rows.length) { list.innerHTML = '<div class="gl-empty">찾는 용어가 아직 없어요.</div>'; return; }
+    var known = {};
+    data.terms.forEach(function (x) { known[x.t] = true; });
+    list.innerHTML = rows.map(function (x) {
+      var rel = (x.rel || []).map(function (r) {
+        return known[r] ? '<a href="#' + idOf(r) + '" data-go="' + esc(r) + '">' + esc(r) + '</a>' : '<span>' + esc(r) + '</span> ';
+      }).join('');
+      return '<article class="gl-card" id="' + idOf(x.t) + '"><h3>' + esc(x.t) + (x.en ? '<small>' + esc(x.en) + '</small>' : '') + '</h3>'
+        + '<span class="gl-cat">' + esc(x.cat) + '</span>'
+        + '<p>' + esc(x.d) + '</p>'
+        + '<p class="gl-ex">💡 예를 들어 ' + esc(x.ex) + '</p>'
+        + '<p class="gl-meta">주로 어디에 쓰나? ' + esc(x.use) + '</p>'
+        + (rel ? '<p class="gl-meta gl-rel">관련용어 ' + rel + '</p>' : '') + '</article>';
+    }).join('');
+  }
+  chips.innerHTML = ['전체'].concat(data.categories).map(function (c) {
+    return '<button type="button" class="gl-chip' + (c === '전체' ? ' on' : '') + '" data-cat="' + esc(c) + '">' + esc(c) + '</button>';
+  }).join('');
+  chips.addEventListener('click', function (e) {
+    var b = e.target.closest('.gl-chip'); if (!b) return;
+    cat = b.getAttribute('data-cat');
+    Array.prototype.forEach.call(chips.children, function (n) { n.classList.toggle('on', n === b); });
+    render();
+  });
+  document.getElementById('glSearch').addEventListener('input', function (e) { query = e.target.value.trim().toLowerCase(); render(); });
+  function go(term) {
+    cat = '전체'; query = '';
+    document.getElementById('glSearch').value = '';
+    Array.prototype.forEach.call(chips.children, function (n, i) { n.classList.toggle('on', i === 0); });
+    render();
+    var el = document.getElementById(idOf(term));
+    if (el) { el.scrollIntoView({ block: 'start' }); el.classList.add('flash'); setTimeout(function () { el.classList.remove('flash'); }, 1600); }
+  }
+  list.addEventListener('click', function (e) {
+    var a = e.target.closest('a[data-go]'); if (!a) return;
+    e.preventDefault(); go(a.getAttribute('data-go'));
+  });
+  render();
+  if (location.hash.length > 4) go(decodeURIComponent(location.hash.slice(4)));
+})();
+</script>
+</body>
+</html>
