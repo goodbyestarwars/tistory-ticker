@@ -270,3 +270,12 @@ html.dark .us-stocks-metrics-core .us-stocks-metric b.us-up { color: #e8776d; }
 html.dark .us-stocks-metrics-core .us-stocks-metric b.us-down { color: #6ea8e8; }
 :root { --us-tone-up: #d24f45; --us-tone-down: #1261c4; }
 html.dark { --us-tone-up: #e8776d; --us-tone-down: #6ea8e8; }
+/* 호가·차트 사이 구분 막대: 미국 패널 공통 스타일(테두리·배경·여백)을 받아 흰 알약으로 보이던 것을 국내와 같게(2026-10-05) */
+#stock-search .ss-panels.us-stocks-market-grid > .ss-resize-handle { width: 16px; padding: 0; border: 0; border-radius: 0; background: transparent; }
+/* 세부 시세 한 줄 */
+.us-stocks-quote-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 12px 0; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 11px; background: rgb(255, 254, 252); font-size: 12.5px; color: #69717c; }
+.us-stocks-quote-line > span:first-child { font-weight: 700; color: #374151; }
+.us-stocks-quote-line b { margin-left: 4px; color: #222; font-variant-numeric: tabular-nums; }
+html.dark .us-stocks-quote-line { border-color: rgba(245, 239, 224, .2); background: rgba(245, 239, 224, .05); color: rgba(245, 239, 224, .6); }
+html.dark .us-stocks-quote-line > span:first-child { color: #F5EFE0; }
+html.dark .us-stocks-quote-line b { color: #F5EFE0; }

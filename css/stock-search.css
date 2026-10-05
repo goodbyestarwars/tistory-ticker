@@ -863,3 +863,7 @@ html.dark #stock-search .ss-memo-pop-actions button { background: rgba(245, 239,
 html.dark #stock-search .ss-memo-pop-actions [data-memo-save] { background: #0a84ff; color: #fff; }
 
 #stock-search .ss-memo-hint { position: absolute; left: 10px; top: 8px; padding: 6px 12px; border-radius: 999px; background: rgba(17, 17, 17, .78); color: #fff; font-size: 12px; line-height: 1; pointer-events: none; z-index: 5; }
+
+/* 호가·차트 패널 제목(2026-10-05, 미국 화면과 같은 구성) */
+#stock-search .ss-panel-head { margin-bottom: 10px; }
+#stock-search .ss-panel-head h4 { margin: 0; font-size: 16px; }

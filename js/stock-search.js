@@ -382,9 +382,10 @@
       // ID로 마운트하면 스타일이 하나도 안 먹음 - 실측으로 발견) 마운트 id를 그대로
       // "order-book"으로 맞춰 기존 CSS를 손대지 않고 재사용한다. 이 페이지엔 이 위젯이
       // 하나뿐이라 중복 id 걱정은 없다.
-      + '<div class="ss-panel-left"><div id="order-book"></div></div>'
+      + '<div class="ss-panel-left"><div class="ss-panel-head"><h4>호가</h4></div><div id="order-book"></div></div>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
+      + '<div class="ss-panel-head"><h4>차트</h4></div>'
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
