@@ -149,6 +149,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/us-quote/{symbol}` | 없음 | 공급자별 단기 캐시 | 미국 현재가 |
 | `/us-quotes?symbols=AAPL,MSFT` | 없음 | 공급자별 단기 캐시 | 관심종목용 미국 현재가 최대 50종목 일괄 조회 |
 | `/us-orderbook/{symbol}` | 없음 | 요청 시 키움 REST 조회 | 미국 10단계 호가. 상세 화면에서 응답 완료 후 장중 3초·장 마감 15초 재조회, 실패 시 15초 재시도. 숨긴 화면·국내 종목 전환 시 중지 |
+| `/us-options/{symbol}` | 없음 | `us_options.py`가 Cboe 지연 시세(`cdn-api.cboe.com/api/global/delayed_quotes/options/{심볼}.json`, 1.5~6MB)를 받아 요약만 캐시 | 서버 부담 최소화: 같은 종목 동시 요청 1회·전체 동시 다운로드 1건·4MB 초과 응답은 받다가 중단하고 1시간 '지원 안 함'·캐시 40종목 상한. 화면은 종목당 1회+5분 간격(숨은 탭 제외) |
 | `/us-chart/{symbol}` | 없음 | 공급자 캐시 | 미국 차트 |
 | `/us-news/{symbol}` | 없음 | `us_news_cache.db`, 기본 30분 | Alpha Vantage/Finnhub/Google RSS/Naver fallback |
 | `/us-analysis/{symbol}` | 없음 | `us_analysis_cache.db`, 기본 6시간 | Finnhub 분석·프로필 |

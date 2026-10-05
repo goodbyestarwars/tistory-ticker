@@ -375,6 +375,8 @@
     state.orderbookGeneration += 1;
     if (state.orderbookTimer) clearTimeout(state.orderbookTimer);
     state.orderbookTimer = null;
+    if (state.optionsTimer) clearTimeout(state.optionsTimer);
+    state.optionsTimer = null;
     var request = state.orderbookRequest;
     state.orderbookRequest = null;
     if (request) {
@@ -497,6 +499,7 @@
     state.detailLoadedSymbol = symbol;
     loadOrderbook();
     loadNativeChart();
+    loadOptionsCard(symbol);
     // 시세·호가·현재 보이는 일봉이 먼저 연결되게 하고, 화면 아래의 분석·뉴스는
     // 잠시 뒤 시작한다. 외부 뉴스와 차트가 동시에 느릴 때 VM 스레드풀이 포화되어
     // 현재가까지 늦어지던 경쟁을 피한다.
@@ -539,7 +542,7 @@
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
         + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
         + '</div>'
@@ -577,7 +580,7 @@
       + '</div>'
       + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
-      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div></section>'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
       + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
@@ -818,6 +821,72 @@
     var last = state.lastSil;
     if (last && last.mount && document.body.contains(last.mount)) drawUsSilhouette(last.mount, last.asks, last.bids);
   });
+
+  // ---- 당일 만기(0DTE) 옵션 감마 카드(2026-10-05 사용자 요청) ----
+  // 서버(/us-options)가 결과만 캐시해 주므로 종목당 한 번 받고, 이후는 5분마다 보이는 탭에서만 다시 받는다.
+  var OPTIONS_REFRESH_MS = 300000;
+
+  function loadOptionsCard(symbol) {
+    var mount = document.querySelector('#usStocksOptions');
+    if (!mount || state.symbol !== symbol) return;
+    if (state.optionsTimer) clearTimeout(state.optionsTimer);
+    state.optionsTimer = null;
+    // 시세·호가·차트가 먼저 뜨도록 약간 늦게 시작한다.
+    state.optionsTimer = setTimeout(function () {
+      if (state.symbol !== symbol) return;
+      fetchJson(API_BASE + '/us-options/' + encodeURIComponent(symbol)).then(function (data) {
+        if (state.symbol !== symbol) return;
+        renderOptionsCard(mount, data);
+        if (data && data.available && data.is_0dte) {
+          // 숨은 탭이면 이번 회차는 건너뛰고 다음 주기에 다시 본다.
+          state.optionsTimer = setTimeout(function tickOptions() {
+            if (state.symbol !== symbol) return;
+            if (document.hidden) { state.optionsTimer = setTimeout(tickOptions, OPTIONS_REFRESH_MS); return; }
+            loadOptionsCard(symbol);
+          }, OPTIONS_REFRESH_MS);
+        }
+      }).catch(function () { mount.hidden = true; });
+    }, 2500);
+  }
+
+  function renderOptionsCard(mount, data) {
+    if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
+    if (!data.is_0dte) {
+      mount.hidden = false;
+      mount.innerHTML = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 옵션 없음 · 가장 가까운 만기 ' + escapeOptHtml(data.expiry) + '</span></div>';
+      return;
+    }
+    var rows = (data.strikes || []).slice().sort(function (a, b) { return b.strike - a.strike; });
+    var maxValue = 0;
+    rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
+    maxValue = maxValue || 1;
+    var price = Number(data.price);
+    var html = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 · 추정 · 지연</span></div>'
+      + '<div class="us-opt-tiles">'
+      + '<div><span>콜 월(최대 콜 감마)</span><b class="us-opt-call">$' + Number(data.call_wall).toFixed(2) + '</b></div>'
+      + '<div><span>풋 월(최대 풋 감마)</span><b class="us-opt-put">$' + Number(data.put_wall).toFixed(2) + '</b></div>'
+      + '<div><span>콜−풋 합계(백만$)</span><b>' + (data.net > 0 ? '+' : '') + Number(data.net).toFixed(1) + '</b></div>'
+      + '</div>'
+      + '<div class="us-opt-cols"><span class="us-opt-put">풋 감마</span><span></span><span class="us-opt-call">콜 감마</span></div>';
+    var inserted = false;
+    rows.forEach(function (r) {
+      if (!inserted && r.strike < price) {
+        html += '<div class="us-opt-cur">현재가 $' + price.toFixed(2) + '</div>';
+        inserted = true;
+      }
+      var wall = r.strike === data.call_wall || r.strike === data.put_wall;
+      html += '<div class="us-opt-row' + (wall ? ' is-wall' : '') + '">'
+        + '<span class="us-opt-l"><i class="us-opt-bar-put" style="width:' + Math.round(r.put / maxValue * 100) + '%"></i></span>'
+        + '<b>' + r.strike.toFixed(2) + '</b>'
+        + '<span class="us-opt-r"><i class="us-opt-bar-call" style="width:' + Math.round(r.call / maxValue * 100) + '%"></i></span>'
+        + '</div>';
+    });
+    html += '<p class="us-opt-note">행사가별 감마 노출 추정(주가 1% 움직일 때, 백만 달러). 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다. 미결제약정은 전일 기준입니다.</p>';
+    mount.hidden = false;
+    mount.innerHTML = html;
+  }
+
+  function escapeOptHtml(v) { return String(v == null ? '' : v).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
 
   function loadNativeChart() {
     if (!state.symbol) return;

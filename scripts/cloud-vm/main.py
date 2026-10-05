@@ -71,6 +71,7 @@ import scan_forward
 import sector_cards
 import swing_model
 import us_analysis
+import us_options
 import us_stocks
 import weekly_report
 import watchlist
@@ -1751,6 +1752,18 @@ def us_orderbook(request: Request, symbol: str = Path(..., min_length=1, max_len
         raise HTTPException(status_code=400, detail=str(exc))
     except us_stocks.UsStockUnavailable as exc:
         raise _upstream_http_exception('미국주식 호가를 불러오지 못했습니다.', exc) from exc
+
+
+@app.get('/us-options/{symbol}')
+def us_options_summary(request: Request, symbol: str = Path(..., min_length=1, max_length=12)):
+    """미국주식 당일 만기(0DTE) 옵션 감마 요약(Cboe 지연 시세, 결과만 캐시)."""
+    _check_rate_limit('us_options', request, max_per_window=20)
+    try:
+        return envelope(us_options.get_summary(symbol))
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+    except us_stocks.UsStockUnavailable as exc:
+        raise _upstream_http_exception('미국주식 옵션 정보를 불러오지 못했습니다.', exc) from exc
 
 
 @app.get('/us-chart/{symbol}')
