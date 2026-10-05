@@ -414,48 +414,68 @@
   // 기존 막대는 그대로 두고, 각 막대 끝점을 직선으로 이은 빛나는 선(매수 빨강·매도 파랑)을 얹는다.
   // 매물대(벽)로 잡힌 호가(findWallCandidate 기준)는 막대·가격을 주황으로 바꾸고 선 위에 점을 찍는다.
   // 막대 DOM 위치를 그대로 읽어 그리므로 실시간 갱신 뒤에도 같은 함수를 부르면 된다.
-  function drawSilhouette(board, asks, bids) {
-    var table = board && board.querySelector('.ob-table-pairs');
-    if (!table) return;
-    var NS = 'http://www.w3.org/2000/svg';
-    var svg = table.querySelector('.ob-sil');
+  // 벽 호가 판정: 단일 벽(findWallCandidate) + 큰 잔량이 여러 칸 몰린 구간(최대치의 80% 이상이고
+  // 평균의 1.25배 이상). 두껍게 몰린 매물대는 평균이 같이 올라가 단일 벽 판정에 안 걸리기 때문.
+  function findWallLevels(rows) {
+    var set = {};
+    if (!rows || rows.length < 3) return set;
+    var cand = findWallCandidate(rows);
+    if (cand) set[rows.indexOf(cand) + 1] = true;
+    var max = 0, sum = 0;
+    rows.forEach(function (r) { sum += r.qty; if (r.qty > max) max = r.qty; });
+    var avg = sum / rows.length;
+    rows.forEach(function (r, i) {
+      if (max > 0 && r.qty >= max * 0.8 && r.qty >= avg * 1.25) set[i + 1] = true;
+    });
+    return set;
+  }
+
+  function silLayer(table, cls) {
+    var svg = table.querySelector('.' + cls);
     if (!svg) {
-      svg = document.createElementNS(NS, 'svg');
-      svg.setAttribute('class', 'ob-sil');
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'ob-sil ' + cls);
       svg.setAttribute('aria-hidden', 'true');
       table.appendChild(svg);
     }
+    return svg;
+  }
+
+  function drawSilhouette(board, asks, bids) {
+    var table = board && board.querySelector('.ob-table-pairs');
+    if (!table) return;
+    var lineSvg = silLayer(table, 'ob-sil-under');
+    var dotSvg = silLayer(table, 'ob-sil-over');
     var tr = table.getBoundingClientRect();
-    svg.setAttribute('width', tr.width);
-    svg.setAttribute('height', tr.height);
-    var wallAsk = asks && findWallCandidate(asks);
-    var wallBid = bids && findWallCandidate(bids);
-    var wallLevel = {
-      ask: wallAsk ? asks.indexOf(wallAsk) + 1 : 0,
-      bid: wallBid ? bids.indexOf(wallBid) + 1 : 0
-    };
-    var html = '';
+    [lineSvg, dotSvg].forEach(function (el) {
+      el.setAttribute('width', tr.width);
+      el.setAttribute('height', tr.height);
+    });
+    var walls = { ask: findWallLevels(asks), bid: findWallLevels(bids) };
+    var lines = '', dots = '';
     ['bid', 'ask'].forEach(function (side) {
-      var pts = [], dots = '';
+      var pts = [];
       table.querySelectorAll('.ob-row-' + side).forEach(function (row) {
         var level = Number(row.getAttribute('data-level'));
-        var odd = wallLevel[side] === level;
+        var odd = !!walls[side][level];
         row.classList.toggle('ob-row-odd', odd);
         var bar = row.querySelector('.ob-bar-wrap > span');
         if (!bar) return;
         var br = bar.getBoundingClientRect();
         var rr = row.getBoundingClientRect();
-        var x = (side === 'bid' ? br.left : br.right) - tr.left;
+        // 선이 막대 바로 바깥에 놓이도록 2px 밀어 막대·글자 뒤로 숨지 않게 한다
+        var x = (side === 'bid' ? br.left - 2 : br.right + 2) - tr.left;
         var y = rr.top + rr.height / 2 - tr.top;
         pts.push([x, y]);
         if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
       });
       if (pts.length > 1) {
-        html += '<polyline class="ob-sil-line ob-sil-' + side + '" points="'
-          + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>' + dots;
+        lines += '<polyline class="ob-sil-line ob-sil-' + side + '" points="'
+          + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>';
       }
     });
-    svg.innerHTML = html;
+    lineSvg.innerHTML = lines;
+    dotSvg.innerHTML = dots;
   }
 
   function tick(container) {
@@ -929,7 +949,7 @@
       + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
       + '</div>'
       + '<div class="ob-table ob-table-pairs">'
-      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량 · 가격</span><span class="ob-ask-text">가격 · 매도 잔량</span></div>'
+      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 가격 · 잔량</span><span class="ob-ask-text">잔량 · 매도 가격</span></div>'
       + pairRows + '</div>'
       + footerHtml
       + buildTradesHtml();

@@ -545,3 +545,10 @@ html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !i
 #order-book .ob-pair .ob-row-odd .ob-price { color: #d97000; }
 html.dark #order-book .ob-pair .ob-row-odd .ob-price { color: #ffa032 !important; }
 html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
+
+/* 가격은 바깥쪽, 잔량은 가운데 쪽(2026-10-05 사용자 요청). 선은 행(막대·글자) 아래, 주황 점은 위. */
+#order-book .ob-pair .ob-row { z-index: 1; }
+#order-book .ob-pair .ob-row-bid { flex-direction: row-reverse; }
+#order-book .ob-pair .ob-row-ask { flex-direction: row; }
+#order-book .ob-sil-under { z-index: 0; }
+#order-book .ob-sil-over { z-index: 2; }
