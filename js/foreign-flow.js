@@ -1678,6 +1678,7 @@
     wireViewTabs(box, data.code, data.name, chartData);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
+    wireVolumeProfileToggle(box, chartData);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code, aptOpeningPrice);
     wireOpinionEvidence(box, data.code);
     startQuotePolling(box, data.code);
@@ -4280,7 +4281,9 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '</div>'
+        + buildVpLegend()
         + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구">'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="circle" aria-pressed="false" disabled>동그라미</button>'
@@ -5806,6 +5809,7 @@
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
+      if (vpEnabled) addVolumeProfileOverlay(daily);
 
       // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
