@@ -518,7 +518,7 @@
 #stock-search .ss-volume-study-label.is-minimal .ss-volume-ma5-value,
 #stock-search .ss-volume-study-label.is-minimal .ss-volume-ma-value { display: none; }
 #stock-search .ss-volume-study-label b { color: #4f8df7; font-weight: 600; }
-#stock-search .ss-volume-study-label em { color: #8a9099; font-size: 9.5px; font-style: normal; font-weight: 400; }
+#stock-search .ss-volume-study-label em { color: #8a9099; font-size: 10px; font-style: normal; font-weight: 400; }
 #stock-search .ss-volume-study-label .ss-volume-current-label b,
 #stock-search .ss-volume-study-label .ss-volume-amount-label b { color: #4f8df7; }
 #stock-search .ss-volume-study-label .ss-volume-amount-label { color: #64748b; }
@@ -701,7 +701,7 @@
   #stock-search .ss-price-study-label {
     right: 58px;
     gap: 3px 7px;
-    font-size: 9.5px;
+    font-size: 10.5px;   /* 9.5px에서 상향(2026-10-05 모바일 가독성) - 줄이 길면 flex-wrap으로 접힌다 */
   }
 }
 
