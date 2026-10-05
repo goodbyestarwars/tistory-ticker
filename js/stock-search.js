@@ -2715,6 +2715,7 @@
   // window.__ssVolumeProfile로 내보내고 'ss-volume-profile' 이벤트를 쏴서 호가창(order-book.js)이
   // 매물대 구간의 호가를 주황으로 표시한다.
   var VP_BAR_PX = 10;
+  var VP_HOT_RATIO = 0.7;   // order-book.js inHotVolumeZone과 같은 값
   var VP_MAX_WIDTH_RATIO = 0.16;
 
   function vpTickSize(price) {
@@ -2832,7 +2833,9 @@
                     var barPx = Math.max(2 * hR, cur * maxBarPx);
                     var top = yTop * vR, h = Math.max(1, (yBottom - yTop) * vR);
                     var gap = h > 4 * vR ? vR : 0;
-                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.34)' : 'rgba(130,130,130,0.17)';
+                    // 거래량 최대의 70% 이상 구간은 주황(호가창 주황 판정과 같은 기준), 최다 구간은 더 진하게
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.42)'
+                      : (t >= VP_HOT_RATIO ? 'rgba(232,89,12,0.26)' : 'rgba(130,130,130,0.17)');
                     ctx.beginPath();
                     if (ctx.roundRect) ctx.roundRect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2), [3 * hR, 0, 0, 3 * hR]);
                     else ctx.rect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2));
