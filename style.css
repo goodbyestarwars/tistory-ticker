@@ -83,6 +83,31 @@ html.dark .hb-spinner {
   html.dark .hb-spinner { filter: invert(.9); }
 }
 @keyframes hb-falcon-calm { from { opacity: .55; } to { opacity: 1; } }
+/* 2026-10-05 사용자 지적("차트 불러오기·호가창은 아직 송골매로 안 바뀜"): 그 페이지들은 공통 .hb-spinner가 아니라
+   각자 만든 파형(ss-·ob-·ff-·ps-spinner, css/*.css에서 #페이지 id 선택자로 크기·애니메이션 지정)을 쓴다.
+   마크업은 그대로 두고 여기서 같은 송골매로 덮는다. 페이지 규칙(#id .cls = 1,1,0)보다 한 단계 높게 html을 앞에 붙인다. */
+html :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow .ff-spinner, #pattern-scan .ps-spinner) {
+  display: block;
+  width: 108px;
+  height: 64px;
+  margin: 0 auto 8px;
+  overflow: visible;
+  background-image: url('img/falcon-loader.webp'), linear-gradient(90deg, rgba(210, 79, 69, 0), rgba(210, 79, 69, .65));
+  background-repeat: no-repeat, no-repeat;
+  background-position: 70% 50%, 0 58%;
+  background-size: 76px auto, 0 2px;
+  will-change: transform, filter, opacity;
+  animation: hb-falcon-swoop 2.6s cubic-bezier(.45, .05, .25, 1) infinite;
+}
+html :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow .ff-spinner, #pattern-scan .ps-spinner) polyline { display: none; }
+html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow .ff-spinner, #pattern-scan .ps-spinner) {
+  animation-name: hb-falcon-swoop-dark;
+  background-image: url('img/falcon-loader.webp'), linear-gradient(90deg, rgba(45, 176, 186, 0), rgba(45, 176, 186, .65));
+}
+@media (prefers-reduced-motion: reduce) {
+  html :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow .ff-spinner, #pattern-scan .ps-spinner) { animation: hb-falcon-calm 2s ease-in-out infinite alternate; }
+  html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow .ff-spinner, #pattern-scan .ps-spinner) { filter: invert(.9); }
+}
 
 /* 2026-07-16: 상단 market-ribbon(코스피/코스닥/원달러/BTC 고정바)을 완전히 걷어내고
    그 자리를 없앴다(js/market-ribbon.js가 #market-ribbon을 display:none 처리) - navbar가
