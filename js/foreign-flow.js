@@ -5203,7 +5203,7 @@
 
   function buildVpLegend() {
     return '<div class="ff-vp-legend"' + (vpEnabled ? '' : ' hidden') + '>'
-      + '<span>※ 매물대(근사): 최근 ' + VP_LOOKBACK_DAYS + '거래일 일봉 고가~저가 구간에 거래량을 분산해 합산한 근사치입니다(체결가 기준 아님).</span>'
+      + '<span>※ 매물대(근사): 화면에 보이는 기간의 일봉 고가~저가 구간에 거래량을 분산해 합산한 근사치입니다(체결가 기준 아님). 확대·축소하면 따라 바뀝니다.</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#e8590c"></i>거래량 최다 구간</span>'
       + '</div>';
   }
@@ -5212,12 +5212,45 @@
   // 먼저 그려 막대가 캔들 뒤에 깔리게 한다. 패널 오른쪽 끝에서 왼쪽으로 뻗는 가로 막대이고
   // 길이는 그 가격구간 거래량/최댓값 비율. 시간축과 무관해(항상 오른쪽 고정) time-based
   // 좌표변환은 필요 없고 series.priceToCoordinate()만 쓴다.
-  function createVolumeProfilePrimitive(profile) {
+  // 2026-10-05 사용자 요청(토스처럼 확대·축소를 따라가는 부드러운 매물대): 화면에 보이는 기간(시간축)의
+  // 일봉만 골라 다시 계산하고, 구간 높이는 가격축 확대에 맞춰 화면에서 약 VP_BAR_PX가 되게 정한다.
+  // 계산은 보이는 범위/구간 수가 바뀔 때만 다시 하고(캐시), 막대 길이는 프레임마다 목표값으로
+  // 조금씩 다가가게(easing) 해 갑자기 튀지 않게 한다. 계산식 자체는 computeVolumeProfile 그대로.
+  var VP_BAR_PX = 10;
+  function createVolumeProfilePrimitive(daily) {
     return {
-      _series: null,
-      attached: function (params) { this._series = params.series; },
-      detached: function () { this._series = null; },
+      _series: null, _chart: null, _requestUpdate: null,
+      _key: null, _profile: null, _shown: {}, _step: null,
+      attached: function (params) {
+        this._series = params.series;
+        this._chart = params.chart;
+        this._requestUpdate = params.requestUpdate;
+      },
+      detached: function () { this._series = null; this._chart = null; this._requestUpdate = null; },
       updateAllViews: function () {},
+      _profileFor: function (heightPx) {
+        var series = this._series, chart = this._chart;
+        var from = 0, to = daily.length - 1;
+        var range = chart && chart.timeScale().getVisibleLogicalRange();
+        if (range) {
+          from = Math.max(0, Math.floor(range.from));
+          to = Math.min(daily.length - 1, Math.ceil(range.to));
+        }
+        if (to - from < 1) return null;
+        var pTop = series.coordinateToPrice(0), pBottom = series.coordinateToPrice(heightPx);
+        if (pTop == null || pBottom == null) return null;
+        var win = daily.slice(from, to + 1);
+        var lo = Math.min.apply(null, win.map(function (d) { return d.low; }));
+        var hi = Math.max.apply(null, win.map(function (d) { return d.high; }));
+        var rawStep = Math.abs(pTop - pBottom) / Math.max(1, heightPx / VP_BAR_PX);
+        var binCount = rawStep > 0 ? Math.min(160, Math.max(6, Math.round((hi - lo) / rawStep))) : VP_BIN_COUNT;
+        var key = from + '|' + to + '|' + binCount;
+        if (key !== this._key) {
+          this._key = key;
+          this._profile = computeVolumeProfile(win, win.length, binCount);
+        }
+        return this._profile;
+      },
       paneViews: function () {
         var self = this;
         return [{
@@ -5228,22 +5261,38 @@
                 var series = self._series;
                 if (!series) return;
                 target.useBitmapCoordinateSpace(function (scope) {
+                  var profile = self._profileFor(scope.mediaSize.height);
+                  if (!profile) return;
                   var ctx = scope.context;
                   var hRatio = scope.horizontalPixelRatio, vRatio = scope.verticalPixelRatio;
                   var paneWidth = scope.bitmapSize.width;
                   var maxBarPx = paneWidth * VP_MAX_WIDTH_RATIO;
+                  if (self._step !== profile.binSize) { self._shown = {}; self._step = profile.binSize; }
+                  var next = {}, moving = false;
                   ctx.save();
                   profile.bins.forEach(function (b, i) {
-                    if (b.volume <= 0) return;
+                    var k = b.low;
+                    var target = b.volume / profile.maxVolume;
+                    var cur = self._shown[k] == null ? target : self._shown[k];
+                    cur += (target - cur) * 0.3;
+                    if (Math.abs(target - cur) > 0.004) moving = true; else cur = target;
+                    next[k] = cur;
+                    if (cur <= 0.002) return;
                     var yTop = series.priceToCoordinate(b.high);
                     var yBottom = series.priceToCoordinate(b.low);
                     if (yTop == null || yBottom == null) return;
-                    var barPx = Math.max(2 * hRatio, (b.volume / profile.maxVolume) * maxBarPx);
-                    var top = yTop * vRatio, bottom = yBottom * vRatio;
-                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.32)' : 'rgba(130,130,130,0.16)';
-                    ctx.fillRect(paneWidth - barPx, top, barPx, Math.max(1, bottom - top));
+                    var barPx = Math.max(2 * hRatio, cur * maxBarPx);
+                    var top = yTop * vRatio, h = Math.max(1, (yBottom - yTop) * vRatio);
+                    var gap = h > 4 * vRatio ? vRatio : 0;
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.34)' : 'rgba(130,130,130,0.17)';
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2), [3 * hRatio, 0, 0, 3 * hRatio]);
+                    else ctx.rect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2));
+                    ctx.fill();
                   });
                   ctx.restore();
+                  self._shown = next;
+                  if (moving && self._requestUpdate) self._requestUpdate();
                 });
               }
             };
@@ -5256,10 +5305,9 @@
   function addVolumeProfileOverlay(daily) {
     if (!lwcCandleSeries || vpPrimitive || !daily) return;
     if (typeof lwcCandleSeries.attachPrimitive !== 'function') return;
-    var profile = computeVolumeProfile(daily);
-    if (!profile) return;
+    if (daily.length < 2) return;
     try {
-      var primitive = createVolumeProfilePrimitive(profile);
+      var primitive = createVolumeProfilePrimitive(daily);
       lwcCandleSeries.attachPrimitive(primitive);
       vpPrimitive = { series: lwcCandleSeries, primitive: primitive };
     } catch (e) { /* primitive 렌더링 실패해도 캔들/이평선은 이미 그려져 있음 */ }
