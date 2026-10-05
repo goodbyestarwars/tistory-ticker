@@ -1192,7 +1192,7 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
-    var vpToggle = container.querySelector('#ssVolumeProfileToggle');
+    var vpToggle = container.querySelector('#ssVolumeProfileToggle, [data-chart-vp-toggle]');
     if (vpToggle) {
       vpToggle.checked = state.volumeProfileEnabled;
       vpToggle.onchange = function () {
@@ -2182,6 +2182,7 @@
       + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
+      + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';

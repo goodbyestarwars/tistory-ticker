@@ -201,3 +201,29 @@ html.dark .us-stocks-news-rail i.is-latest { border-color: #fb923c; background: 
 @media (min-width: 701px) and (max-width: 900px) {
   .us-stocks-market-grid { grid-template-columns: 210px minmax(0, 1fr); }
 }
+
+/* 국내와 같은 좌우 호가창(2026-10-05): 왼쪽 매수 빨강·오른쪽 매도 파랑, 막대는 가운데에서 바깥으로 */
+.us-ob-head { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; padding: 10px 8px 4px; font-size: 11px; font-weight: 700; }
+.us-ob-head span:last-child { text-align: right; }
+.us-ob-table { position: relative; padding: 2px 4px 8px; }
+.us-ob-pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
+.us-ob-row { position: relative; z-index: 1; display: flex; align-items: center; justify-content: space-between; gap: 6px; min-height: 26px; padding: 4px 8px; box-sizing: border-box; isolation: isolate; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.us-ob-row-bid { flex-direction: row-reverse; }
+.us-ob-qty { color: #475569; font-weight: 500; }
+.us-ob-price { font-weight: 700; }
+.us-ob-bar-wrap { position: absolute; inset: 2px 0; z-index: -1; overflow: hidden; }
+.us-ob-bar { position: absolute; top: 0; height: 100%; }
+.us-ob-row-bid .us-ob-bar { right: 0; background: rgba(210, 79, 69, .16); border-radius: 4px 0 0 4px; }
+.us-ob-row-ask .us-ob-bar { left: 0; background: rgba(18, 97, 196, .16); border-radius: 0 4px 4px 0; }
+.us-ob-row-odd .us-ob-bar { background: rgba(255, 138, 0, .26); }
+.us-ob-row-odd .us-ob-price { color: #d97000; }
+.us-ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+.us-ob-sil-under { z-index: 0; }
+.us-ob-sil-over { z-index: 2; }
+.us-ob-sil-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.us-ob-sil-bid { stroke: #ff2d2d; filter: drop-shadow(0 0 3px rgba(255, 45, 45, .75)); }
+.us-ob-sil-ask { stroke: #1e7bff; filter: drop-shadow(0 0 3px rgba(30, 123, 255, .75)); }
+.us-ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
+html.dark .us-ob-qty { color: rgba(245, 239, 224, .7); }
+html.dark .us-ob-row-odd .us-ob-price { color: #ffa032; }
+html.dark .us-ob-sil-dot { stroke: #1A1A1A; }

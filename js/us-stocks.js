@@ -702,23 +702,113 @@
       + '<div class="us-stocks-level-row"><span class="us-level-label">호가강도</span><i><em class="us-book-strength-fill" style="width:' + strengthWidth + '%"></em></i><b>' + (strength == null ? '-' : strength.toFixed(1) + '%') + '</b></div>'
       + '<p>미국 10단계 호가 잔량 기준 · 실제 체결강도와는 다를 수 있습니다. <strong>' + balanceLabel + '</strong></p>'
       + '</div>'
-      + '<div class="us-stocks-book-head"><span>매도 잔량</span><span>가격</span><span>매수 잔량</span></div>';
+      + '<div class="us-ob-head"><span class="us-book-bid-text">매수 가격 · 잔량</span><span class="us-book-ask-text">잔량 · 매도 가격</span></div>';
     if (Number.isFinite(current)) {
       html += '<div class="us-stocks-book-current"><span>현재가</span><strong>' + formatPrice(current) + '</strong><span>' + formatPercent(state.lastQuote.change_rate) + '</span></div>';
     }
+    // 국내 호가창과 같은 좌우 배치(2026-10-05 사용자 요청): 왼쪽 매수(빨강)·오른쪽 매도(파랑), 막대는 가운데에서
+    // 바깥으로, 가격은 바깥쪽·잔량은 가운데 쪽. 매도는 API가 낮은 호가부터 주므로 같은 줄에 가장 가까운 호가끼리 놓는다.
+    var askRows = (book.asks || []);
+    html += '<div class="us-ob-table">';
     for (var i = 0; i < rows; i++) {
-      var ask = asks[i] || {};
-      var bid = bids[i] || {};
-      var askWidth = Math.round(levelSize(ask) / maxLevel * 100);
-      var bidWidth = Math.round(levelSize(bid) / maxLevel * 100);
-      html += '<div class="us-stocks-book-row">'
-        + '<span class="us-book-side us-book-ask"><b>' + formatVolume(levelSize(ask)) + '</b><i><em style="width:' + askWidth + '%"></em></i></span>'
-        + '<b class="us-stocks-book-price ' + (ask.price ? 'us-book-ask-price' : 'us-book-bid-price') + '">' + formatPrice(ask.price || bid.price) + '</b>'
-        + '<span class="us-book-side us-book-bid"><i><em style="width:' + bidWidth + '%"></em></i><b>' + formatVolume(levelSize(bid)) + '</b></span>'
+      var ask = askRows[i];
+      var bid = bids[i];
+      html += '<div class="us-ob-pair">'
+        + usBookRow(bid, 'bid', maxLevel, i + 1, levelSize)
+        + usBookRow(ask, 'ask', maxLevel, i + 1, levelSize)
         + '</div>';
     }
+    html += '</div>';
     mount.innerHTML = html || '<div class="us-stocks-empty">호가 데이터가 없습니다.</div>';
+    drawUsSilhouette(mount, askRows.map(function (l) { return { price: Number(l.price), qty: levelSize(l) }; }),
+      bids.map(function (l) { return { price: Number(l.price), qty: levelSize(l) }; }));
   }
+
+  function usBookRow(level, side, maxLevel, levelNo, levelSize) {
+    if (!level) return '<div class="us-ob-row us-ob-row-empty"></div>';
+    var qty = levelSize(level);
+    var pct = Math.max(2, Math.round(qty / maxLevel * 100));
+    return '<div class="us-ob-row us-ob-row-' + side + '" data-level="' + levelNo + '">'
+      + '<span class="us-ob-qty">' + formatVolume(qty) + '</span>'
+      + '<span class="us-ob-bar-wrap"><span class="us-ob-bar" style="width:' + pct + '%"></span></span>'
+      + '<span class="us-ob-price us-book-' + side + '-text">' + formatPrice(level.price) + '</span>'
+      + '</div>';
+  }
+
+  // 핵심 매물대(stock-search.js가 내보내는 window.__ssVolumeProfile의 core 구간)에 놓인 호가를 주황으로.
+  // 매물대가 아직 없으면 같은 편 평균의 1.8배 이상인 잔량 벽을 주황으로 둔다.
+  function usWallLevels(rows) {
+    var set = {};
+    var vp = global.__ssVolumeProfile;
+    if (vp && vp.bins && vp.code === 'US:' + state.symbol) {
+      rows.forEach(function (r, i) {
+        for (var k = 0; k < vp.bins.length; k++) {
+          var b = vp.bins[k];
+          if (r.price >= b.low && r.price < b.high) { if (b.core) set[i + 1] = true; break; }
+        }
+      });
+      return set;
+    }
+    if (rows.length < 3) return set;
+    rows.forEach(function (r, i) {
+      var others = rows.filter(function (o, j) { return j !== i; });
+      var avg = others.reduce(function (sum, o) { return sum + o.qty; }, 0) / others.length;
+      if (avg > 0 && r.qty >= avg * 1.8) set[i + 1] = true;
+    });
+    return set;
+  }
+
+  // 막대 끝점을 직선으로 이은 빛나는 실루엣 선. 막대 DOM 위치를 읽어 그리고, 선은 막대·글자 뒤에 둔다.
+  function drawUsSilhouette(mount, asks, bids) {
+    var table = mount.querySelector('.us-ob-table');
+    if (!table) return;
+    state.lastSil = { mount: mount, asks: asks, bids: bids };
+    var NS = 'http://www.w3.org/2000/svg';
+    var layers = {};
+    ['under', 'over'].forEach(function (name) {
+      var svg = table.querySelector('.us-ob-sil-' + name);
+      if (!svg) {
+        svg = document.createElementNS(NS, 'svg');
+        svg.setAttribute('class', 'us-ob-sil us-ob-sil-' + name);
+        svg.setAttribute('aria-hidden', 'true');
+        table.appendChild(svg);
+      }
+      layers[name] = svg;
+    });
+    var tr = table.getBoundingClientRect();
+    ['under', 'over'].forEach(function (name) {
+      layers[name].setAttribute('width', tr.width);
+      layers[name].setAttribute('height', tr.height);
+    });
+    var walls = { ask: usWallLevels(asks), bid: usWallLevels(bids) };
+    var lines = '', dots = '';
+    ['bid', 'ask'].forEach(function (side) {
+      var pts = [];
+      table.querySelectorAll('.us-ob-row-' + side).forEach(function (row) {
+        var odd = !!walls[side][Number(row.getAttribute('data-level'))];
+        row.classList.toggle('us-ob-row-odd', odd);
+        var bar = row.querySelector('.us-ob-bar');
+        if (!bar) return;
+        var br = bar.getBoundingClientRect();
+        var rr = row.getBoundingClientRect();
+        var x = (side === 'bid' ? br.left - 2 : br.right + 2) - tr.left;
+        var y = rr.top + rr.height / 2 - tr.top;
+        pts.push([x, y]);
+        if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="us-ob-sil-dot"/>';
+      });
+      if (pts.length > 1) {
+        lines += '<polyline class="us-ob-sil-line us-ob-sil-' + side + '" points="'
+          + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>';
+      }
+    });
+    layers.under.innerHTML = lines;
+    layers.over.innerHTML = dots;
+  }
+
+  global.addEventListener('ss-volume-profile', function () {
+    var last = state.lastSil;
+    if (last && last.mount && document.body.contains(last.mount)) drawUsSilhouette(last.mount, last.asks, last.bids);
+  });
 
   function loadNativeChart() {
     if (!state.symbol) return;
