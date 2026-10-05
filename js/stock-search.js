@@ -107,6 +107,7 @@
     minuteScope: '1',
     movingAverageEnabled: true,
     ichimokuEnabled: false,
+    volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
     supportResistanceEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
@@ -400,6 +401,7 @@
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
+      + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -1187,6 +1189,14 @@
       ichimokuToggle.checked = state.ichimokuEnabled;
       ichimokuToggle.onchange = function () {
         state.ichimokuEnabled = ichimokuToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var vpToggle = container.querySelector('#ssVolumeProfileToggle');
+    if (vpToggle) {
+      vpToggle.checked = state.volumeProfileEnabled;
+      vpToggle.onchange = function () {
+        state.volumeProfileEnabled = vpToggle.checked;
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -2698,6 +2708,148 @@
     resizeStockDrawing(drawing);
   }
 
+  // ---- 매물대(2026-10-05 사용자 요청: 호가창·차트·매물대 연동, 토스처럼 확대·축소를 따라감) ----
+  // 화면에 보이는 기간의 봉으로 가격대별 거래량(봉 하나의 거래량을 고가~저가에 균등 분산한 근사치)을
+  // 다시 계산하고, 구간 높이는 가격축 확대에 맞춰 화면 약 10px로 정한다. 계산은 범위·구간 수가 바뀔 때만,
+  // 막대 길이는 프레임마다 목표값으로 조금씩(easing) 다가가 부드럽게 움직인다. 계산 결과는
+  // window.__ssVolumeProfile로 내보내고 'ss-volume-profile' 이벤트를 쏴서 호가창(order-book.js)이
+  // 매물대 구간의 호가를 주황으로 표시한다.
+  var VP_BAR_PX = 10;
+  var VP_MAX_WIDTH_RATIO = 0.16;
+
+  function vpTickSize(price) {
+    if (price < 2000) return 1;
+    if (price < 5000) return 5;
+    if (price < 20000) return 10;
+    if (price < 50000) return 50;
+    if (price < 200000) return 100;
+    if (price < 500000) return 500;
+    return 1000;
+  }
+
+  function vpRound(v) { return Math.round(v * 1e6) / 1e6; }
+
+  function computeVolumeProfile(bars, binCount, isUs) {
+    if (!bars || bars.length < 2) return null;
+    var lo = Infinity, hi = -Infinity;
+    bars.forEach(function (d) { if (d.low < lo) lo = d.low; if (d.high > hi) hi = d.high; });
+    if (!(hi > lo)) return null;
+    var unit = isUs ? 0.01 : Math.max(5, vpTickSize(hi));
+    var step = vpRound(Math.max(1, Math.ceil((hi - lo) / binCount / unit - 1e-9)) * unit);
+    var bottom = vpRound(Math.floor(lo / step + 1e-9) * step);
+    var top = vpRound(Math.ceil(hi / step - 1e-9) * step);
+    if (!(top > bottom)) top = vpRound(bottom + step);
+    var count = Math.max(1, Math.round((top - bottom) / step));
+    var bins = [];
+    for (var i = 0; i < count; i++) bins.push({ low: vpRound(bottom + i * step), high: vpRound(bottom + (i + 1) * step), volume: 0 });
+    bars.forEach(function (d) {
+      if (!(d.volume > 0)) return;
+      var range = d.high - d.low;
+      if (!(range > 0)) {
+        bins[Math.min(count - 1, Math.max(0, Math.floor((d.close - bottom) / step)))].volume += d.volume;
+        return;
+      }
+      var a = Math.max(0, Math.floor((d.low - bottom) / step));
+      var b = Math.min(count - 1, Math.floor((d.high - bottom) / step));
+      for (var k = a; k <= b; k++) {
+        var overlap = Math.min(bins[k].high, d.high) - Math.max(bins[k].low, d.low);
+        if (overlap > 0) bins[k].volume += d.volume * (overlap / range);
+      }
+    });
+    var maxVolume = 0, pocIndex = 0;
+    bins.forEach(function (b, idx) { if (b.volume > maxVolume) { maxVolume = b.volume; pocIndex = idx; } });
+    if (maxVolume <= 0) return null;
+    return { bins: bins, maxVolume: maxVolume, pocIndex: pocIndex, binSize: step };
+  }
+
+  function publishVolumeProfile(code, profile) {
+    global.__ssVolumeProfile = profile ? { code: code, bins: profile.bins, maxVolume: profile.maxVolume } : null;
+    try { global.dispatchEvent(new CustomEvent('ss-volume-profile', { detail: { code: code } })); } catch (e) { /* 구형 브라우저 */ }
+  }
+
+  function lwcBarsForProfile(bars) {
+    return bars.map(function (d) {
+      return { low: Number(d.low), high: Number(d.high), close: Number(d.close), volume: Number(d.volume) || 0 };
+    });
+  }
+
+  function createVolumeProfilePrimitive(bars, isUs, code) {
+    return {
+      _series: null, _chart: null, _requestUpdate: null,
+      _key: null, _profile: null, _shown: {}, _step: null,
+      attached: function (params) { this._series = params.series; this._chart = params.chart; this._requestUpdate = params.requestUpdate; },
+      detached: function () { this._series = null; this._chart = null; this._requestUpdate = null; },
+      updateAllViews: function () {},
+      _profileFor: function (heightPx) {
+        var series = this._series, chart = this._chart;
+        var from = 0, to = bars.length - 1;
+        var range = chart && chart.timeScale().getVisibleLogicalRange();
+        if (range) { from = Math.max(0, Math.floor(range.from)); to = Math.min(bars.length - 1, Math.ceil(range.to)); }
+        if (to - from < 1) return null;
+        var pTop = series.coordinateToPrice(0), pBottom = series.coordinateToPrice(heightPx);
+        if (pTop == null || pBottom == null) return null;
+        var win = bars.slice(from, to + 1);
+        var lo = Infinity, hi = -Infinity;
+        win.forEach(function (d) { if (d.low < lo) lo = d.low; if (d.high > hi) hi = d.high; });
+        var rawStep = Math.abs(pTop - pBottom) / Math.max(1, heightPx / VP_BAR_PX);
+        var binCount = rawStep > 0 ? Math.min(160, Math.max(6, Math.round((hi - lo) / rawStep))) : 24;
+        var key = from + '|' + to + '|' + binCount;
+        if (key !== this._key) {
+          this._key = key;
+          this._profile = computeVolumeProfile(win, binCount, isUs);
+          publishVolumeProfile(code, this._profile);
+        }
+        return this._profile;
+      },
+      paneViews: function () {
+        var self = this;
+        return [{
+          renderer: function () {
+            return {
+              draw: function () {},
+              drawBackground: function (target) {
+                if (!self._series) return;
+                target.useBitmapCoordinateSpace(function (scope) {
+                  var profile = self._profileFor(scope.mediaSize.height);
+                  if (!profile) return;
+                  var ctx = scope.context;
+                  var hR = scope.horizontalPixelRatio, vR = scope.verticalPixelRatio;
+                  var paneWidth = scope.bitmapSize.width;
+                  var maxBarPx = paneWidth * VP_MAX_WIDTH_RATIO;
+                  if (self._step !== profile.binSize) { self._shown = {}; self._step = profile.binSize; }
+                  var next = {}, moving = false;
+                  ctx.save();
+                  profile.bins.forEach(function (b, i) {
+                    var t = b.volume / profile.maxVolume;
+                    var cur = self._shown[b.low] == null ? t : self._shown[b.low];
+                    cur += (t - cur) * 0.3;
+                    if (Math.abs(t - cur) > 0.004) moving = true; else cur = t;
+                    next[b.low] = cur;
+                    if (cur <= 0.002) return;
+                    var yTop = self._series.priceToCoordinate(b.high);
+                    var yBottom = self._series.priceToCoordinate(b.low);
+                    if (yTop == null || yBottom == null) return;
+                    var barPx = Math.max(2 * hR, cur * maxBarPx);
+                    var top = yTop * vR, h = Math.max(1, (yBottom - yTop) * vR);
+                    var gap = h > 4 * vR ? vR : 0;
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(232,89,12,0.34)' : 'rgba(130,130,130,0.17)';
+                    ctx.beginPath();
+                    if (ctx.roundRect) ctx.roundRect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2), [3 * hR, 0, 0, 3 * hR]);
+                    else ctx.rect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2));
+                    ctx.fill();
+                  });
+                  ctx.restore();
+                  self._shown = next;
+                  if (moving && self._requestUpdate) self._requestUpdate();
+                });
+              }
+            };
+          }
+        }];
+      }
+    };
+  }
+
   function renderLwChart(container, bars, timeframe) {
     // 전체화면 모달을 여닫는 순간에도 이전 DOM 참조가 남을 수 있다.
     // 렌더 대상을 찾지 못한 경우 기존 차트를 먼저 지워 빈 화면을 만들지 않는다.
@@ -2752,6 +2904,11 @@
       }));
       lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
       lwcCandleSeries = candleSeries;
+      if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
+        try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode)); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
+      } else if (!state.volumeProfileEnabled) {
+        publishVolumeProfile(state.selectedCode, null);
+      }
       lwcLiveBars = bars.map(function (bar) {
         return { date: bar.date, open: Number(bar.open), high: Number(bar.high), low: Number(bar.low), close: Number(bar.close), volume: Number(bar.volume) || 0 };
       });

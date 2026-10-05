@@ -416,9 +416,25 @@
   // 막대 DOM 위치를 그대로 읽어 그리므로 실시간 갱신 뒤에도 같은 함수를 부르면 된다.
   // 벽 호가 판정: 단일 벽(findWallCandidate) + 큰 잔량이 여러 칸 몰린 구간(최대치의 80% 이상이고
   // 평균의 1.25배 이상). 두껍게 몰린 매물대는 평균이 같이 올라가 단일 벽 판정에 안 걸리기 때문.
+  // 증시검색 차트가 계산한 매물대(window.__ssVolumeProfile, stock-search.js)가 있으면, 거래량이 몰린 구간
+  // (최대의 70% 이상)에 놓인 호가 중 잔량이 평균보다 두꺼운 것도 주황으로 표시한다(호가창·차트·매물대 연동).
+  function inHotVolumeZone(price) {
+    var vp = global.__ssVolumeProfile;
+    if (!vp || !vp.bins || vp.code !== state.code || !(vp.maxVolume > 0) || price == null) return false;
+    for (var i = 0; i < vp.bins.length; i++) {
+      var b = vp.bins[i];
+      if (price >= b.low && price < b.high) return b.volume >= vp.maxVolume * 0.7;
+    }
+    return false;
+  }
+
   function findWallLevels(rows) {
     var set = {};
     if (!rows || rows.length < 3) return set;
+    var avgAll = rows.reduce(function (sum, r) { return sum + r.qty; }, 0) / rows.length;
+    rows.forEach(function (r, i) {
+      if (r.qty >= avgAll * 1.25 && inHotVolumeZone(r.price)) set[i + 1] = true;
+    });
     var cand = findWallCandidate(rows);
     if (cand) set[rows.indexOf(cand) + 1] = true;
     var max = 0, sum = 0;
@@ -446,6 +462,7 @@
     if (!table) return;
     var lineSvg = silLayer(table, 'ob-sil-under');
     var dotSvg = silLayer(table, 'ob-sil-over');
+    state.lastSil = { board: board, asks: asks, bids: bids };
     var tr = table.getBoundingClientRect();
     [lineSvg, dotSvg].forEach(function (el) {
       el.setAttribute('width', tr.width);
@@ -477,6 +494,11 @@
     lineSvg.innerHTML = lines;
     dotSvg.innerHTML = dots;
   }
+
+  global.addEventListener('ss-volume-profile', function () {
+    var last = state.lastSil;
+    if (last && last.board && document.body.contains(last.board)) drawSilhouette(last.board, last.asks, last.bids);
+  });
 
   function tick(container) {
     var code = state.code;
