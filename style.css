@@ -7220,11 +7220,11 @@ body#tt-body-index .home-editorial-page .home-briefing-small .post-excerpt {
     display: block;
     max-width: 100%;
     margin-top: 4px;
-    overflow: hidden;
     font-size: 11.5px !important;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    line-height: 1.3;
+    /* 좁은 폰에서 "미국시장 · 정규장 22:30~05:00"가 말줄임으로 잘려 줄바꿈으로 바꿈(2026-10-05) */
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
   body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head-actions {
     display: flex !important;

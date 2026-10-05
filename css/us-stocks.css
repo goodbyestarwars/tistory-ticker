@@ -279,3 +279,12 @@ html.dark { --us-tone-up: #e8776d; --us-tone-down: #6ea8e8; }
 html.dark .us-stocks-quote-line { border-color: rgba(245, 239, 224, .2); background: rgba(245, 239, 224, .05); color: rgba(245, 239, 224, .6); }
 html.dark .us-stocks-quote-line > span:first-child { color: #F5EFE0; }
 html.dark .us-stocks-quote-line b { color: #F5EFE0; }
+/* 위쪽 종목 카드 안 한 줄 요약 / 아래 세부 시세 칸(2026-10-05) */
+.us-stocks-live-card .us-stocks-quote-line { margin: 10px 0 0; padding: 10px 0 0; border: 0; border-top: 1px solid #eef0f2; border-radius: 0; background: transparent; }
+.us-stocks-detail-quotes .us-stocks-metrics-core { margin-top: 0; }
+html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(245, 239, 224, .16); background: transparent; }
+/* 세부 시세 칸: 좁은 폰에서는 2열(시가·고가 / 저가·거래량 / 전일 거래량 대비 전체 폭) */
+@media (max-width: 480px) {
+  .us-stocks-metrics-core { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 2; }
+}

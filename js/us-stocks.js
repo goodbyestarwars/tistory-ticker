@@ -562,13 +562,11 @@
       + '<span class="ss-summary-change" data-us-change></span>'
       + '</div>'
       + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span><span data-us-basis></span></span></div>'
-      // 국내 종목 카드와 같은 구성(시가·고가·저가·거래량·전일 거래량 대비)을 펼쳐 둔다(2026-10-05 사용자 요청).
-      + '<div class="us-stocks-metrics us-stocks-metrics-core">'
-      + metric('시가', '', 'open')
-      + metric('고가', '', 'high', 'us-up')
-      + metric('저가', '', 'low', 'us-down')
-      + metric('거래량', '', 'volume')
-      + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
+      // 위쪽 카드는 한 줄 요약(전일 종가·52주 범위·상장주식 수), 시가·고가·저가·거래량·전일 거래량 대비는 아래 "세부 시세" 칸에(2026-10-05 사용자 요청)
+      + '<div class="us-stocks-quote-line" aria-label="전일 종가·52주 범위·상장주식 수">'
+      + '<span>전일 종가 <b data-us-metric="previous">-</b></span>'
+      + '<span>52주 범위 <b data-us-metric="week52">-</b></span>'
+      + '<span>상장주식 수 <b data-us-metric="shares">-</b></span>'
       + '</div>'
       + '</div>'
       + '<div id="usStocksAnalysis" class="us-stocks-analysis-grid">'
@@ -579,13 +577,15 @@
       + analysisCard('내부자 거래', '내부자 거래를 불러오는 중...', 'insider')
       + '</div>'
       + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
-      // 세부 시세 한 줄(2026-10-05 사용자 요청: 기본 재무~의회 거래 공시 다음)
-      + '<div class="us-stocks-quote-line" aria-label="세부 시세">'
-      + '<span>세부 시세</span>'
-      + '<span>전일 종가 <b data-us-metric="previous">-</b></span>'
-      + '<span>52주 범위 <b data-us-metric="week52">-</b></span>'
-      + '<span>상장주식 수 <b data-us-metric="shares">-</b></span>'
-      + '</div>'
+      // 세부 시세: 국내 카드와 같은 둥근 칸 5개(기본 재무~의회 거래 공시 다음)
+      + '<section class="us-stocks-panel us-stocks-detail-quotes"><div class="us-stocks-panel-head"><h4>세부 시세</h4></div>'
+      + '<div class="us-stocks-metrics us-stocks-metrics-core">'
+      + metric('시가', '', 'open')
+      + metric('고가', '', 'high', 'us-up')
+      + metric('저가', '', 'low', 'us-down')
+      + metric('거래량', '', 'volume')
+      + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
+      + '</div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
       + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
@@ -623,7 +623,7 @@
       var node = card.querySelector('[data-us-metric="' + key + '"]') || detail.querySelector('[data-us-metric="' + key + '"]');
       if (node) node.textContent = values[key];
     });
-    updateVolumeChange(card, quote);
+    updateVolumeChange(detail, quote);
     var updatedNode = card.querySelector('[data-us-updated]');
     if (updatedNode) updatedNode.textContent = updatedLabel(quote);
     updateOrderbookCurrent();

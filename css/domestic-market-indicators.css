@@ -550,7 +550,12 @@ html.dark .dmi-section-collapse {
   .dmi-spot-table th,
   .dmi-spot-table td { padding: 9px 6px; font-size: 12px; }
   .dmi-spot-table th:first-child,
-  .dmi-spot-table td:first-child { width: 28%; }
+  .dmi-spot-table td:first-child { width: 22%; }
+  /* 지수(현재가)가 가장 긴 숫자인데 열 폭이 같아 좁은 폰(본문 약 320px)에서 `7,003.74`가 2px 잘렸다(2026-10-05).
+     현재가 열을 넓히고 숫자는 줄바꿈 없이 한 줄로 둔다. */
+  .dmi-spot-table th:nth-child(2),
+  .dmi-spot-table td:nth-child(2) { width: 34%; }
+  .dmi-spot-table td { white-space: nowrap; }
   .dmi-interval-tabs { gap: 10px; }
   .dmi-draw-buttons { margin-left: 0; }
   .dmi-tabs { justify-content: space-between; }
@@ -612,3 +617,7 @@ html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2
 #domestic-market-indicators .dmi-draw-clear:hover { border-color: #111; color: #111; }
 
 html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
+
+@media (max-width: 360px) {
+  .dmi-spot-table .dmi-spot-price { font-size: 15px; }
+}
