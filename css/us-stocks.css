@@ -261,3 +261,10 @@ html.dark .us-opt-cur { background: rgba(245, 239, 224, .08); border-color: rgba
 .us-opt-n em { font-style: normal; font-weight: 700; color: #b5720f; }
 html.dark .us-opt-sub, html.dark .us-opt-n em { color: #f0b429; }
 html.dark .us-opt-n { color: rgba(245, 239, 224, .55); }
+/* 증시검색 안 미국 카드: 국내와 같은 핵심 시세 5칸(2026-10-05) */
+.us-stocks-metrics-core { margin-top: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 2; }
+.us-stocks-metrics-core .us-stocks-metric b.us-up { color: #d24f45; }
+.us-stocks-metrics-core .us-stocks-metric b.us-down { color: #1261c4; }
+html.dark .us-stocks-metrics-core .us-stocks-metric b.us-up { color: #e8776d; }
+html.dark .us-stocks-metrics-core .us-stocks-metric b.us-down { color: #6ea8e8; }

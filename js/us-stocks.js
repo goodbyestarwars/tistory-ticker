@@ -344,6 +344,7 @@
     state.detailLoadedSymbol = null;
     state.nativeChartPromise = null;
     state.lastQuote = null;
+    state.prevDailyVolume = null;
     state.lastOrderbook = null;
     state.paused = false;
     try { localStorage.setItem(LAST_SYMBOL_KEY, state.symbol); } catch (err) { /* 저장소가 막힌 환경도 조회는 계속한다. */ }
@@ -561,12 +562,16 @@
       + '<span class="ss-summary-change" data-us-change></span>'
       + '</div>'
       + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span><span data-us-basis></span></span></div>'
-      + '<details class="us-stocks-metrics-more"><summary>세부 시세</summary><div class="us-stocks-metrics">'
+      // 국내 종목 카드와 같은 구성(시가·고가·저가·거래량·전일 거래량 대비)을 펼쳐 둔다(2026-10-05 사용자 요청).
+      + '<div class="us-stocks-metrics us-stocks-metrics-core">'
       + metric('시가', '', 'open')
-      + metric('전일 종가', '', 'previous')
-      + metric('오늘 고가', '', 'high')
-      + metric('오늘 저가', '', 'low')
+      + metric('고가', '', 'high', 'us-up')
+      + metric('저가', '', 'low', 'us-down')
       + metric('거래량', '', 'volume')
+      + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
+      + '</div>'
+      + '<details class="us-stocks-metrics-more"><summary>세부 시세</summary><div class="us-stocks-metrics">'
+      + metric('전일 종가', '', 'previous')
       + metric('52주 범위', '', 'week52')
       + metric('상장주식 수', '', 'shares')
       + '</div></details>'
@@ -616,9 +621,34 @@
       var node = card.querySelector('[data-us-metric="' + key + '"]');
       if (node) node.textContent = values[key];
     });
+    updateVolumeChange(card, quote);
     var updatedNode = card.querySelector('[data-us-updated]');
     if (updatedNode) updatedNode.textContent = updatedLabel(quote);
     updateOrderbookCurrent();
+  }
+
+  // 전일 거래량 대비: 오늘 누적 거래량 ÷ 직전 거래일 하루 거래량 - 1. 직전 거래일 거래량은 차트(일봉) 응답에서 얻고,
+  // 아직 없으면 '-'로 둔다(국내 카드와 같은 계산).
+  function updateVolumeChange(card, quote) {
+    var node = (card || document).querySelector('[data-us-metric="volchange"]');
+    if (!node) return;
+    var prev = state.prevDailyVolume;
+    var vol = Number(quote && quote.volume);
+    if (!(prev > 0) || !Number.isFinite(vol) || vol < 0) { node.textContent = '-'; return; }
+    var pct = (vol - prev) / prev * 100;
+    node.textContent = formatPercent(pct);
+    applyTone(node, pct);
+  }
+
+  function capturePrevDailyVolume(bars, symbol) {
+    if (state.symbol !== symbol || !bars || !bars.length) return;
+    var quote = state.lastQuote || {};
+    var last = bars[bars.length - 1];
+    // 마지막 일봉이 오늘(세션) 것이면 그 앞 봉이 직전 거래일, 아니면 마지막 봉이 직전 거래일
+    var useIndex = last && quote.session_date && last.date === quote.session_date ? bars.length - 2 : bars.length - 1;
+    var prev = bars[useIndex];
+    state.prevDailyVolume = prev && prev.volume > 0 ? prev.volume : null;
+    updateVolumeChange(null, state.lastQuote);
   }
 
   function loadOrderbook() {
@@ -922,7 +952,11 @@
         var query = '?timeframe=' + apiTimeframe;
         if (timeframe === 'minute') query += '&tic_scope=' + encodeURIComponent(minuteScope || '1');
         return fetchJson(API_BASE + '/us-chart/' + encodeURIComponent(symbol) + query)
-          .then(function (payload) { return normalizeChartBars(payload && payload.points, timeframe); });
+          .then(function (payload) {
+            var bars = normalizeChartBars(payload && payload.points, timeframe);
+            if (timeframe !== 'minute') capturePrevDailyVolume(bars, symbol);
+            return bars;
+          });
       }
     }).catch(function () {
       if (state.symbol !== symbol) return;
@@ -1067,7 +1101,8 @@
 
   function metric(label, value) {
     var key = arguments[2] || '';
-    return '<div class="us-stocks-metric"><span>' + escapeHtml(label) + '</span><b data-us-metric="' + escapeAttr(key) + '">' + escapeHtml(value) + '</b></div>';
+    var cls = arguments[3] ? ' class="' + escapeAttr(arguments[3]) + '"' : '';
+    return '<div class="us-stocks-metric"><span>' + escapeHtml(label) + '</span><b' + cls + ' data-us-metric="' + escapeAttr(key) + '">' + escapeHtml(value) + '</b></div>';
   }
 
   function analysisCard(label, value, key) {
