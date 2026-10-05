@@ -405,6 +405,57 @@
     }
     updateSide(asks, 'ask');
     updateSide(bids, 'bid');
+    var wsAsks = asks.map(function (r) { return { price: numericOrNull(r.price), qty: numericOrNull(r.qty) || 0 }; });
+    var wsBids = bids.map(function (r) { return { price: numericOrNull(r.price), qty: numericOrNull(r.qty) || 0 }; });
+    drawSilhouette(board, wsAsks, wsBids);
+  }
+
+  // ---- 잔량 실루엣(2026-10-05 사용자 요청) ----
+  // 기존 막대는 그대로 두고, 각 막대 끝점을 직선으로 이은 빛나는 선(매수 빨강·매도 파랑)을 얹는다.
+  // 매물대(벽)로 잡힌 호가(findWallCandidate 기준)는 막대·가격을 주황으로 바꾸고 선 위에 점을 찍는다.
+  // 막대 DOM 위치를 그대로 읽어 그리므로 실시간 갱신 뒤에도 같은 함수를 부르면 된다.
+  function drawSilhouette(board, asks, bids) {
+    var table = board && board.querySelector('.ob-table-pairs');
+    if (!table) return;
+    var NS = 'http://www.w3.org/2000/svg';
+    var svg = table.querySelector('.ob-sil');
+    if (!svg) {
+      svg = document.createElementNS(NS, 'svg');
+      svg.setAttribute('class', 'ob-sil');
+      svg.setAttribute('aria-hidden', 'true');
+      table.appendChild(svg);
+    }
+    var tr = table.getBoundingClientRect();
+    svg.setAttribute('width', tr.width);
+    svg.setAttribute('height', tr.height);
+    var wallAsk = asks && findWallCandidate(asks);
+    var wallBid = bids && findWallCandidate(bids);
+    var wallLevel = {
+      ask: wallAsk ? asks.indexOf(wallAsk) + 1 : 0,
+      bid: wallBid ? bids.indexOf(wallBid) + 1 : 0
+    };
+    var html = '';
+    ['bid', 'ask'].forEach(function (side) {
+      var pts = [], dots = '';
+      table.querySelectorAll('.ob-row-' + side).forEach(function (row) {
+        var level = Number(row.getAttribute('data-level'));
+        var odd = wallLevel[side] === level;
+        row.classList.toggle('ob-row-odd', odd);
+        var bar = row.querySelector('.ob-bar-wrap > span');
+        if (!bar) return;
+        var br = bar.getBoundingClientRect();
+        var rr = row.getBoundingClientRect();
+        var x = (side === 'bid' ? br.left : br.right) - tr.left;
+        var y = rr.top + rr.height / 2 - tr.top;
+        pts.push([x, y]);
+        if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
+      });
+      if (pts.length > 1) {
+        html += '<polyline class="ob-sil-line ob-sil-' + side + '" points="'
+          + pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ') + '"/>' + dots;
+      }
+    });
+    svg.innerHTML = html;
   }
 
   function tick(container) {
@@ -882,6 +933,7 @@
       + pairRows + '</div>'
       + footerHtml
       + buildTradesHtml();
+    drawSilhouette(board, book.asks, book.bids);
   }
 
   function buildSummaryView(quote) {

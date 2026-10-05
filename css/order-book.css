@@ -531,3 +531,17 @@ html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !i
 #order-book .ob-pair .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; border-radius: 0; z-index: -1; overflow: hidden; }
 #order-book .ob-pair .ob-bar-bid { left: auto; right: 0; background: rgba(210, 79, 69, .16); border-radius: 4px 0 0 4px; }
 #order-book .ob-pair .ob-bar-ask { left: 0; right: auto; background: rgba(18, 97, 196, .16); border-radius: 0 4px 4px 0; }
+
+/* ── 잔량 실루엣 (2026-10-05 사용자 요청) ──
+   막대 끝점을 이은 빛나는 선. 매물대(벽) 호가는 주황. 선은 클릭을 막지 않는다. */
+#order-book .ob-table-pairs { position: relative; }
+#order-book .ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
+#order-book .ob-sil-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+#order-book .ob-sil-bid { stroke: #ff2d2d; filter: drop-shadow(0 0 3px rgba(255, 45, 45, .75)); }
+#order-book .ob-sil-ask { stroke: #1e7bff; filter: drop-shadow(0 0 3px rgba(30, 123, 255, .75)); }
+#order-book .ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
+#order-book .ob-pair .ob-row-odd .ob-bar-bid,
+#order-book .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }
+#order-book .ob-pair .ob-row-odd .ob-price { color: #d97000; }
+html.dark #order-book .ob-pair .ob-row-odd .ob-price { color: #ffa032 !important; }
+html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
