@@ -289,3 +289,13 @@ html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(24
   .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 2; }
 }
 .us-stocks-detail-quotes { margin-top: 12px; }
+
+/* 세부 시세 5칸을 한 줄로(2026-10-06 사용자 요청) - 넓은 화면 5열, 좁은 폰은 위 규칙의 2열 유지 */
+@media (min-width: 641px) {
+  .us-stocks-metrics-core { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 1; }
+}
+@media (min-width: 481px) and (max-width: 640px) {
+  .us-stocks-metrics-core { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 1; }
+}
