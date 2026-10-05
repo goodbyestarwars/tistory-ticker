@@ -675,9 +675,18 @@
     row.querySelector('span:last-child').textContent = formatPercent(state.lastQuote.change_rate);
   }
 
+  // 키움 usa20101 호가 가격은 부호(+/-)가 붙어 오는 경우가 있어(실측: AAPL 호가가 -331.98로 옴) 절댓값을 가격으로 쓴다.
+  function absLevels(levels) {
+    return (levels || []).map(function (l) {
+      var price = Number(l && l.price);
+      return Object.assign({}, l, { price: Number.isFinite(price) ? Math.abs(price) : l && l.price });
+    });
+  }
+
   function renderOrderbook(book) {
     var mount = document.querySelector('#usStocksOrderbook');
     if (!mount) return;
+    book = Object.assign({}, book, { asks: absLevels(book.asks), bids: absLevels(book.bids) });
     var asks = (book.asks || []).slice().reverse();
     var bids = book.bids || [];
     var rows = Math.max(asks.length, bids.length);
