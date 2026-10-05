@@ -288,3 +288,4 @@ html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(24
   .us-stocks-metrics-core { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 2; }
 }
+.us-stocks-detail-quotes { margin-top: 12px; }
