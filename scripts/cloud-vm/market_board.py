@@ -510,6 +510,13 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
             kis_token, appkey, appsecret, sort_code='2', limit=query_limit),
         'amountTurnover': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='4', limit=query_limit),
+        # 2026-10-05: ETF·ETN을 KIS 쪽에서 뺀 순위(홈 "ETF·ETN 제외"용). ETF 비중이 큰 세 탭만 - 호출 수를 아낀다.
+        'amountStocks': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='3', limit=query_limit, exclude_etf=True),
+        'volumeStocks': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='0', limit=query_limit, exclude_etf=True),
+        'volumeGrowthStocks': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='1', limit=query_limit, exclude_etf=True),
         'rate': lambda: kis_client.fetch_domestic_fluctuation_rank(
             kis_token, appkey, appsecret, limit=query_limit),
         'cap': lambda: kis_client.fetch_domestic_market_cap_rank(
@@ -519,6 +526,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     errors = []
     # 순위 7종을 워커 4로 돌리면 2웨이브가 된다. 서로 다른 TR이라 순서 의존이 없고
     # 한 웨이브로 끝내면 가장 느린 1건의 시간만 남는다.
+    # 2026-10-05: ETF 제외 순위 3종이 더해져 10건이 한 웨이브로 나간다(KIS 초당 한도 약 20건 안쪽).
+    # 한도에 걸려 실패한 순위는 빈 목록이 되고, 화면은 ETF 포함 순위를 걸러 보여주는 예전 방식으로 물러난다.
     with ThreadPoolExecutor(max_workers=len(tasks)) as pool:
         futures = {name: pool.submit(fn) for name, fn in tasks.items()}
         for name, future in futures.items():
@@ -589,6 +598,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
 
     metric_keys = {
         'volumeGrowth': 'volume_growth_rate',
+        'volumeGrowthStocks': 'volume_growth_rate',
         'turnover': 'turnover_rate',
         'amountTurnover': 'amount_turnover_rate',
     }
@@ -599,6 +609,9 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         ('turnover', 'turnover'),
         ('amountTurnover', 'amountTurnover'),
         ('marketCap', 'cap'),
+        ('tradeAmountStocks', 'amountStocks'),
+        ('tradeVolumeStocks', 'volumeStocks'),
+        ('volumeGrowthStocks', 'volumeGrowthStocks'),
     ):
         ordered = ordered_section(rank_name)
         if section_name in metric_keys:

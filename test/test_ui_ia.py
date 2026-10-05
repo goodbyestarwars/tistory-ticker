@@ -909,11 +909,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
         self.assertIn("LIMIT = 40", source)
-        self.assertIn("HOME_ROW_LIMIT = 20", source)
+        self.assertIn("HOME_ROW_LIMIT = 30", source)  # 2026-10-05: ETF·ETN 제외 순위로 30위까지
         self.assertIn("rowsForActive().slice(0, HOME_ROW_LIMIT)", source)
         self.assertNotIn("전체 순위 보기 →", source)
         self.assertIn("object-fit: contain", self.read("style.css"))
-        self.assertIn("home-realtime-table.js?v=20261005-us-industry-v1", main)
+        self.assertIn("home-realtime-table.js?v=20261005-stocks30-v1", main)
         for token in (
             "function localizedUsName(item)",
             "item.display_name || item.name_en",

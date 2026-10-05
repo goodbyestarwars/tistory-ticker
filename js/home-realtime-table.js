@@ -9,7 +9,9 @@
   // ETF를 브라우저에서 제외한 뒤에도 비ETF 20개를 채우려면, 거래대금
   // 상위 20개만 받아서는 부족하다(현재 상위권에 ETF가 13개인 경우 7개만 남음).
   var LIMIT = 40;
-  var HOME_ROW_LIMIT = 20;
+  // 2026-10-05 사용자 요청("거래대금·거래량 12위까지만 나온다, 더 나오게"): 서버가 ETF·ETN을 뺀 순위를 따로 주므로
+  // 제외 모드에서도 30위까지 채워진다(KIS 순위 한 번 응답이 30개라 그 이상은 없다).
+  var HOME_ROW_LIMIT = 30;
   var REFRESH_MS = 30 * 1000;
   var REQUEST_TIMEOUT_MS = 12000;
   // 한국시간 기준으로 국내·미국 시장을 자동 전환한다.
@@ -637,6 +639,9 @@
     var sections = state.data && state.data.sections;
     if (state.active === 'industry' && state.market === 'us') return usIndustryTop();
     if (state.active === 'industry') return (sections && sections.industry) || [];
+    // ETF·ETN 제외 모드면 서버가 KIS에서 처음부터 일반 종목만 받은 순위(…Stocks)를 쓴다. 없거나 비면 기존 순위를 거른다.
+    var stocksOnly = !state.includeEtf && state.market === 'domestic' && sections && sections[state.active + 'Stocks'];
+    if (stocksOnly && stocksOnly.length) return visibleRows(stocksOnly);
     if (sections && Array.isArray(sections[state.active])) return visibleRows(sections[state.active]);
     return visibleRows((state.data && state.data.rows) || []);
   }

@@ -806,11 +806,15 @@ def fetch_domestic_trade(token, appkey, appsecret, code, market='UN'):
     return rows if isinstance(rows, list) else []
 
 
-def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20):
+def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20, exclude_etf=False):
     """국내주식 순위분석[v1_국내주식-047].
 
     sort_code: 0 평균거래량, 1 거래증가율, 2 평균거래회전율,
                3 거래금액순, 4 평균거래금액회전율.
+    exclude_etf: 2026-10-05 - KIS 순위는 한 번에 30개까지인데 거래대금·거래량 상위의 절반 이상이
+    ETF·ETN이라 홈 종목판 "ETF·ETN 제외"에서 12개만 남았다. 대상 제외 마스크(10자리, 공식 예제 순서:
+    투자위험·경고·주의/관리/정리매매/불성실공시/우선주/거래정지/ETF/ETN/신용주문불가/SPAC)의
+    7·8번째(ETF·ETN)를 1로 두면 서버가 처음부터 일반 종목만 30개를 준다.
     """
     data = _get_domestic_quote(
         token, appkey, appsecret,
@@ -827,7 +831,7 @@ def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20
             # 9자리 대상/10자리 제외 마스크를 명시한다. 0 하나만 넣으면
             # 거래대금순은 오더라도 거래증가율·회전율 순위가 빈 응답이 된다.
             'FID_TRGT_CLS_CODE': '111111111',
-            'FID_TRGT_EXLS_CLS_CODE': '0000000000',
+            'FID_TRGT_EXLS_CLS_CODE': '0000001100' if exclude_etf else '0000000000',
             'FID_INPUT_PRICE_1': '',
             'FID_INPUT_PRICE_2': '',
             'FID_VOL_CNT': '',
