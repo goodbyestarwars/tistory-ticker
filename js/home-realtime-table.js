@@ -640,9 +640,14 @@
     if (state.active === 'industry' && state.market === 'us') return usIndustryTop();
     if (state.active === 'industry') return (sections && sections.industry) || [];
     // ETF·ETN 제외 모드면 서버가 KIS에서 처음부터 일반 종목만 받은 순위(…Stocks)를 쓴다. 없거나 비면 기존 순위를 거른다.
+    // 상승률·하락률은 여러 순위를 합친 기본 목록이 더 길 때가 있어(실측 15 vs 40), 더 긴 쪽을 쓴다.
     var stocksOnly = !state.includeEtf && state.market === 'domestic' && sections && sections[state.active + 'Stocks'];
-    if (stocksOnly && stocksOnly.length) return visibleRows(stocksOnly);
-    if (sections && Array.isArray(sections[state.active])) return visibleRows(sections[state.active]);
+    var regular = sections && Array.isArray(sections[state.active]) ? visibleRows(sections[state.active]) : null;
+    if (stocksOnly && stocksOnly.length) {
+      var filteredStocks = visibleRows(stocksOnly);
+      if (!regular || filteredStocks.length >= regular.length) return filteredStocks;
+    }
+    if (regular) return regular;
     return visibleRows((state.data && state.data.rows) || []);
   }
 
