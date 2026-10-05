@@ -844,8 +844,12 @@ def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20
     return rows[:max(1, min(int(limit), 100))]
 
 
-def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20):
-    """국내주식 등락률 순위[v1_국내주식-088]."""
+def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20, sort_code='0', exclude_etf=False):
+    """국내주식 등락률 순위[v1_국내주식-088].
+
+    sort_code: 0 상승률순, 1 하락률순(공식 예제의 순위 정렬 구분). exclude_etf는 거래량순위와 같은
+    10자리 대상 제외 마스크(ETF·ETN 자리 = 7·8번째)를 쓴다(2026-10-05, 홈 종목판 "ETF·ETN 제외").
+    """
     data = _get_domestic_quote(
         token, appkey, appsecret,
         '/uapi/domestic-stock/v1/ranking/fluctuation',
@@ -855,14 +859,14 @@ def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20):
             'FID_COND_MRKT_DIV_CODE': 'J',
             'FID_COND_SCR_DIV_CODE': '20170',
             'FID_INPUT_ISCD': '0000',
-            'FID_RANK_SORT_CLS_CODE': '0',
+            'FID_RANK_SORT_CLS_CODE': str(sort_code),
             'FID_INPUT_CNT_1': str(max(1, min(int(limit), 100))),
             'FID_PRC_CLS_CODE': '0',
             'FID_INPUT_PRICE_1': '',
             'FID_INPUT_PRICE_2': '',
             'FID_VOL_CNT': '',
             'FID_TRGT_CLS_CODE': '0',
-            'FID_TRGT_EXLS_CLS_CODE': '0',
+            'FID_TRGT_EXLS_CLS_CODE': '0000001100' if exclude_etf else '0',
             'FID_DIV_CLS_CODE': '0',
             'FID_RSFL_RATE1': '',
         },

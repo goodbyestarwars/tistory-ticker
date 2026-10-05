@@ -517,6 +517,16 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
             kis_token, appkey, appsecret, sort_code='0', limit=query_limit, exclude_etf=True),
         'volumeGrowthStocks': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='1', limit=query_limit, exclude_etf=True),
+        # 사용자: "ETF·ETN 제외는 업종 TOP 빼고 전부" - 회전율 두 탭과 상승률·하락률도 ETF·ETN을 뺀 순위를 받는다.
+        # 시가총액 순위 TR은 제외 마스크를 받지 않아(공식 예제: '0'만 허용) 화면에서 거른다(ETF가 거의 없음).
+        'turnoverStocks': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='2', limit=query_limit, exclude_etf=True),
+        'amountTurnoverStocks': lambda: kis_client.fetch_domestic_volume_rank(
+            kis_token, appkey, appsecret, sort_code='4', limit=query_limit, exclude_etf=True),
+        'risingStocks': lambda: kis_client.fetch_domestic_fluctuation_rank(
+            kis_token, appkey, appsecret, limit=query_limit, sort_code='0', exclude_etf=True),
+        'fallingStocks': lambda: kis_client.fetch_domestic_fluctuation_rank(
+            kis_token, appkey, appsecret, limit=query_limit, sort_code='1', exclude_etf=True),
         'rate': lambda: kis_client.fetch_domestic_fluctuation_rank(
             kis_token, appkey, appsecret, limit=query_limit),
         'cap': lambda: kis_client.fetch_domestic_market_cap_rank(
@@ -599,6 +609,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     metric_keys = {
         'volumeGrowth': 'volume_growth_rate',
         'volumeGrowthStocks': 'volume_growth_rate',
+        'turnoverStocks': 'turnover_rate',
+        'amountTurnoverStocks': 'amount_turnover_rate',
         'turnover': 'turnover_rate',
         'amountTurnover': 'amount_turnover_rate',
     }
@@ -612,10 +624,18 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         ('tradeAmountStocks', 'amountStocks'),
         ('tradeVolumeStocks', 'volumeStocks'),
         ('volumeGrowthStocks', 'volumeGrowthStocks'),
+        ('turnoverStocks', 'turnoverStocks'),
+        ('amountTurnoverStocks', 'amountTurnoverStocks'),
+        ('risingStocks', 'risingStocks'),
+        ('fallingStocks', 'fallingStocks'),
     ):
         ordered = ordered_section(rank_name)
         if section_name in metric_keys:
             ordered = [row for row in ordered if row.get(metric_keys[section_name]) is not None]
+        if section_name == 'risingStocks':
+            ordered = [row for row in ordered if (row.get('change_rate') or 0) > 0]
+        elif section_name == 'fallingStocks':
+            ordered = [row for row in ordered if (row.get('change_rate') or 0) < 0]
         if ordered:
             sections[section_name] = ordered
 
