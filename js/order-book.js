@@ -439,6 +439,10 @@
     if (!rows || rows.length < 1) return set;
     if (hasVolumeProfile()) {
       rows.forEach(function (r, i) { if (inHotVolumeZone(r.price)) set[i + 1] = true; });
+      // 핵심 매물대가 현재 호가 범위 밖이면 주황이 하나도 안 남으므로(2026-10-06 "주황색이 안 나와"),
+      // 같은 편에서 가장 두꺼운 잔량 벽(평균 1.8배 이상) 하나는 항상 함께 표시한다.
+      var wall = rows.length >= 3 ? findWallCandidate(rows) : null;
+      if (wall) set[rows.indexOf(wall) + 1] = true;
       return set;
     }
     if (rows.length < 3) return set;

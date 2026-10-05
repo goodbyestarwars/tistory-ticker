@@ -784,21 +784,24 @@
   function usWallLevels(rows) {
     var set = {};
     var vp = global.__ssVolumeProfile;
-    if (vp && vp.bins && vp.code === 'US:' + state.symbol) {
+    var inProfile = !!(vp && vp.bins && vp.code === 'US:' + state.symbol);
+    if (inProfile) {
       rows.forEach(function (r, i) {
         for (var k = 0; k < vp.bins.length; k++) {
           var b = vp.bins[k];
           if (r.price >= b.low && r.price < b.high) { if (b.core) set[i + 1] = true; break; }
         }
       });
-      return set;
     }
+    // 핵심 매물대가 호가 범위 밖이어도 주황이 하나는 보이게, 같은 편 평균의 1.8배 이상인 가장 두꺼운 벽을 함께 표시
     if (rows.length < 3) return set;
+    var best = -1;
     rows.forEach(function (r, i) {
       var others = rows.filter(function (o, j) { return j !== i; });
       var avg = others.reduce(function (sum, o) { return sum + o.qty; }, 0) / others.length;
-      if (avg > 0 && r.qty >= avg * 1.8) set[i + 1] = true;
+      if (avg > 0 && r.qty >= avg * 1.8 && (best < 0 || r.qty > rows[best].qty)) best = i;
     });
+    if (best >= 0) set[best + 1] = true;
     return set;
   }
 
