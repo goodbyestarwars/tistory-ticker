@@ -491,6 +491,8 @@ html.dark .dmi-section-collapse {
 .dmi-spot-table td:first-child { width: 34%; text-align: left; }
 .dmi-spot-table tbody th { font-weight: 700; }
 .dmi-spot-table .dmi-spot-price { font-size: 16px; font-weight: 700; }
+/* 카드용 `.dmi-spot-price { display: block }`이 표 칸에도 걸려 현재가 칸이 좁아지고 숫자가 칸 밖으로 잘렸다(2026-10-05 모바일). */
+.dmi-spot-table td.dmi-spot-price { display: table-cell; margin-top: 0; }
 .dmi-spot-table .dmi-positive { color: #d24f45; font-weight: 700; }
 .dmi-spot-table .dmi-negative { color: #1261c4; font-weight: 700; }
 .dmi-spot-table .dmi-spot-price.dmi-positive { color: #d24f45; }
