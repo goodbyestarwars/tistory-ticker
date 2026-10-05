@@ -314,7 +314,7 @@ dict 구성을 함께 대조한다.
 | GET | `/pattern-scan` | 없음 | 차트검색 패턴별 목록(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |
-| GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/4MB 초과 1시간) |
+| GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/4MB 초과 1시간). 행사가별 `call/put`(감마 노출 백만$)·`*_oi`·`*_vol`과 `as_of`(Cboe 기준 시각 epoch초) 포함 |
 | GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |
 | GET/PUT | `/watchlist` | Google 세션 | 관심종목 조회·저장 |
 | GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 DART 공시 |

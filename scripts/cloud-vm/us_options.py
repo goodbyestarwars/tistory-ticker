@@ -16,7 +16,7 @@ import threading
 import time
 import urllib.error
 import urllib.request
-from datetime import datetime
+from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
 import us_stocks
@@ -83,6 +83,15 @@ def _fetch_chain(symbol):
         raise us_stocks.UsStockUnavailable('옵션 체인 형식이 올바르지 않습니다.')
 
 
+def _as_of(chain):
+    """Cboe 응답 timestamp(UTC, 실측: 마지막 체결 시각보다 약 15분 뒤)를 epoch초로. 형식이 다르면 None."""
+    try:
+        parsed = datetime.strptime(str((chain or {}).get('timestamp')), '%Y-%m-%d %H:%M:%S')
+        return int(parsed.replace(tzinfo=timezone.utc).timestamp())
+    except ValueError:
+        return None
+
+
 def summarize(chain, today):
     """체인에서 가장 가까운 만기의 행사가별 감마 노출(백만 달러/주가 1%)을 요약한다."""
     data = (chain or {}).get('data') or {}
@@ -109,8 +118,11 @@ def summarize(chain, today):
         gamma = item.get('gamma') or 0
         interest = item.get('open_interest') or 0
         exposure = gamma * interest * 100 * price * price * 0.01 / 1e6
-        row = rows.setdefault(strike, {'call': 0.0, 'put': 0.0})
-        row['call' if side == 'C' else 'put'] += exposure
+        row = rows.setdefault(strike, {'call': 0.0, 'put': 0.0, 'call_oi': 0, 'put_oi': 0, 'call_vol': 0, 'put_vol': 0})
+        key = 'call' if side == 'C' else 'put'
+        row[key] += exposure
+        row[key + '_oi'] += int(interest)
+        row[key + '_vol'] += int(item.get('volume') or 0)
     if not rows:
         return None
     expiry_date = '20%s-%s-%s' % (nearest[0:2], nearest[2:4], nearest[4:6])
@@ -121,7 +133,13 @@ def summarize(chain, today):
         'price': price,
         'expiry': expiry_date,
         'is_0dte': expiry_date == today.strftime('%Y-%m-%d'),
-        'strikes': [{'strike': k, 'call': round(rows[k]['call'], 2), 'put': round(rows[k]['put'], 2)} for k in near],
+        'strikes': [{
+            'strike': k,
+            'call': round(rows[k]['call'], 2), 'put': round(rows[k]['put'], 2),
+            'call_oi': rows[k]['call_oi'], 'put_oi': rows[k]['put_oi'],
+            'call_vol': rows[k]['call_vol'], 'put_vol': rows[k]['put_vol'],
+        } for k in near],
+        'as_of': _as_of(chain),
         'call_wall': call_wall,
         'put_wall': put_wall,
         'net': round(sum(r['call'] - r['put'] for r in rows.values()), 1),

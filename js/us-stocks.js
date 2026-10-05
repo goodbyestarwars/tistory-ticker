@@ -849,6 +849,20 @@
     }, 2500);
   }
 
+  function fmtOptCount(n) { return Number(n || 0).toLocaleString('en-US'); }
+
+  // 오늘 거래량이 미결제약정(전일 기준)보다 크고 300계약 이상이면 오늘 새로 쌓인 포지션으로 본다.
+  function optCountHtml(oi, vol) {
+    var fresh = vol > oi && vol >= 300;
+    return '<span class="us-opt-n">OI ' + fmtOptCount(oi) + ' · 거래 ' + fmtOptCount(vol) + (fresh ? ' <em>신규</em>' : '') + '</span>';
+  }
+
+  function optAsOfText(data) {
+    if (!data.as_of) return '약 15분 지연';
+    var t = new Date(data.as_of * 1000).toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false, hour: '2-digit', minute: '2-digit' });
+    return '기준 ' + t + ' KST · 약 15분 지연';
+  }
+
   function renderOptionsCard(mount, data) {
     if (!data || !data.available) { mount.hidden = true; mount.innerHTML = ''; return; }
     if (!data.is_0dte) {
@@ -861,13 +875,14 @@
     rows.forEach(function (r) { maxValue = Math.max(maxValue, r.call, r.put); });
     maxValue = maxValue || 1;
     var price = Number(data.price);
-    var html = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>당일 만기 · 추정 · 지연</span></div>'
+    var html = '<div class="us-opt-head"><b>0DTE 옵션 감마</b><span>' + optAsOfText(data) + '</span></div>'
+      + '<div class="us-opt-sub">오늘 거래량이 미결제약정보다 큰 행사가 = 신규 포지션 · 감마는 OI(전일) 기준</div>'
       + '<div class="us-opt-tiles">'
       + '<div><span>콜 월(최대 콜 감마)</span><b class="us-opt-call">$' + Number(data.call_wall).toFixed(2) + '</b></div>'
       + '<div><span>풋 월(최대 풋 감마)</span><b class="us-opt-put">$' + Number(data.put_wall).toFixed(2) + '</b></div>'
       + '<div><span>콜−풋 합계(백만$)</span><b>' + (data.net > 0 ? '+' : '') + Number(data.net).toFixed(1) + '</b></div>'
       + '</div>'
-      + '<div class="us-opt-cols"><span class="us-opt-put">풋 감마</span><span></span><span class="us-opt-call">콜 감마</span></div>';
+      + '<div class="us-opt-cols"><span class="us-opt-put">풋</span><span></span><span class="us-opt-call">콜</span></div>';
     var inserted = false;
     rows.forEach(function (r) {
       if (!inserted && r.strike < price) {
@@ -876,12 +891,12 @@
       }
       var wall = r.strike === data.call_wall || r.strike === data.put_wall;
       html += '<div class="us-opt-row' + (wall ? ' is-wall' : '') + '">'
-        + '<span class="us-opt-l"><i class="us-opt-bar-put" style="width:' + Math.round(r.put / maxValue * 100) + '%"></i></span>'
+        + '<span class="us-opt-l">' + optCountHtml(r.put_oi, r.put_vol) + '<i class="us-opt-bar-put" style="width:' + Math.max(2, Math.round(r.put / maxValue * 90)) + 'px"></i></span>'
         + '<b>' + r.strike.toFixed(2) + '</b>'
-        + '<span class="us-opt-r"><i class="us-opt-bar-call" style="width:' + Math.round(r.call / maxValue * 100) + '%"></i></span>'
+        + '<span class="us-opt-r"><i class="us-opt-bar-call" style="width:' + Math.max(2, Math.round(r.call / maxValue * 90)) + 'px"></i>' + optCountHtml(r.call_oi, r.call_vol) + '</span>'
         + '</div>';
     });
-    html += '<p class="us-opt-note">행사가별 감마 노출 추정(주가 1% 움직일 때, 백만 달러). 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다. 미결제약정은 전일 기준입니다.</p>';
+    html += '<p class="us-opt-note">막대: 행사가별 감마 노출 추정(주가 1% 움직일 때). 숫자: 미결제약정(OI) · 오늘 거래량. 시장조성자가 콜을 팔고 풋을 샀다는 가정의 추정이며 실제 포지션이 아닙니다.</p>';
     mount.hidden = false;
     mount.innerHTML = html;
   }
