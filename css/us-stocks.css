@@ -268,3 +268,5 @@ html.dark .us-opt-n { color: rgba(245, 239, 224, .55); }
 .us-stocks-metrics-core .us-stocks-metric b.us-down { color: #1261c4; }
 html.dark .us-stocks-metrics-core .us-stocks-metric b.us-up { color: #e8776d; }
 html.dark .us-stocks-metrics-core .us-stocks-metric b.us-down { color: #6ea8e8; }
+:root { --us-tone-up: #d24f45; --us-tone-down: #1261c4; }
+html.dark { --us-tone-up: #e8776d; --us-tone-down: #6ea8e8; }

@@ -1102,6 +1102,9 @@
   function metric(label, value) {
     var key = arguments[2] || '';
     var cls = arguments[3] ? ' class="' + escapeAttr(arguments[3]) + '"' : '';
+    // 사이트 다크 모드 규칙이 !important로 글자색을 덮으므로, 등락색은 CSS 변수를 인라인 !important로 건다.
+    if (arguments[3] === 'us-up') cls += ' style="color: var(--us-tone-up) !important"';
+    if (arguments[3] === 'us-down') cls += ' style="color: var(--us-tone-down) !important"';
     return '<div class="us-stocks-metric"><span>' + escapeHtml(label) + '</span><b' + cls + ' data-us-metric="' + escapeAttr(key) + '">' + escapeHtml(value) + '</b></div>';
   }
 
