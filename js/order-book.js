@@ -820,11 +820,20 @@
   // 밑으로 줄면 "돌파"로 잡으므로, 그 임계치까지 남은 잔량을 그대로 역산해서 보여준다.
   // 실제 체결량과의 대응은 근사치(체결강도와 동일한 한계 - 2초 폴링 스냅샷 비교라
   // 그 사이 체결은 누락될 수 있음).
+  // 2026-10-06 사용자 요청: 애프터마켓이 끝난 뒤~프리마켓 동안은 체결이 없어 성벽 문구가 몇 초 뒤에도 그대로라 보여주지 않는다.
+  // 평일 09:00~20:00(KST, 정규장+애프터)만 표시한다.
+  function isWallSession() {
+    var kst = new Date(Date.now() + 9 * 3600000);
+    var day = kst.getUTCDay();
+    var minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    return day >= 1 && day <= 5 && minutes >= 9 * 60 && minutes < 20 * 60;
+  }
+
   function updateBreakoutNote(container, book, quote) {
     var el = container.querySelector('#obBreakoutNote');
     if (!el) return;
     var wall = state.trackedWall;
-    if (!wall) { el.textContent = ''; return; }
+    if (!wall || !isWallSession()) { el.textContent = ''; return; }
     var level = (book.asks || []).filter(function (r) { return r.price === wall.price; })[0];
     var currQty = level ? level.qty : 0;
     var breakThreshold = Math.max(1, Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
