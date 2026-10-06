@@ -575,6 +575,7 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 | `week52_cache.json` | `week52_scan.py`(하루 1회) | `/week52-batch` |
 | `strategy_scan_cache.json` | `strategy_scan.py`(하루 1회) | `/strategy-scan-batch` |
 | `weekly_report_cache.json` | `main.py` 주간 리포트 생성 | `/weekly-report`의 주간 스냅샷 재사용 |
+| `hour_candidate_checks.jsonl` / `.1` | `hour_candidates.py` 수동 확인 때 입력·결과 기록 | 후속 전진 검증용. 각 파일 최대 약 5MB 회전(최대 두 파일), IP·인증·주문정보 없음, 저장 실패는 `recorded:false`. DB 테이블 추가 없음 |
 | `latency_monitor.log` | `latency_monitor.py`(5분 주기) | `/health/latency` |
 | `news_momentum_cursor.json` | `news_momentum_scan.py` | 배치 자체(전종목 이어달리기 커서 + API 호출 예산 누적) |
 

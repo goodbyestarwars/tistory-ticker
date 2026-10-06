@@ -414,7 +414,7 @@ def fetch_overseas_price(token, appkey, appsecret, excd, symb):
 
 
 def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
-                        tr_cont='', return_continuation=False):
+                        tr_cont='', return_continuation=False, timeout=15):
     """KIS 국내 시세 API를 호출한다.
 
     ``tr_cont``는 KIS의 연속조회 헤더다. 기본 반환값은 기존 호출부와 호환되도록
@@ -440,7 +440,7 @@ def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
             method='GET',
         )
         try:
-            with urllib.request.urlopen(req, timeout=15) as res:
+            with urllib.request.urlopen(req, timeout=timeout) as res:
                 data = json.loads(res.read().decode('utf-8'))
                 continuation = (res.headers.get('tr_cont') or '').strip()
         except urllib.error.HTTPError as e:

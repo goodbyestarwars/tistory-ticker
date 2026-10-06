@@ -59,6 +59,7 @@ import order_book
 import public_data
 import binance_flow
 import volume_surge_live
+import hour_candidates
 import circuit_breaker
 import kis_ws_hub
 import kiwoom_ws_hub
@@ -3505,6 +3506,32 @@ def theme_flow_endpoint(request: Request):
             status_code=503,
             detail=cached.get('error') or '테마 흐름을 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
     return envelope(result)
+
+
+@app.get('/hour-candidates')
+def hour_candidates_endpoint(request: Request,
+                             mode: str = Query('ranked', pattern='^(ranked|selected)$'),
+                             code: str = Query(''),
+                             name: str = Query('', max_length=80),
+                             max_open_rise_pct: float = Query(5.0, ge=1.0, le=10.0),
+                             max_minute_jump_pct: float = Query(1.5, ge=0.3, le=5.0)):
+    """Manual point-in-time morning checks; never return cached signal rows."""
+    _check_rate_limit('hour_candidates', request, max_per_window=3)
+    if mode == 'selected' and not re.fullmatch(r'[0-9A-Z]{6}', code):
+        raise HTTPException(status_code=400, detail='국내 종목코드 6자리가 필요하다.')
+    try:
+        data = hour_candidates.scan(
+            mode, code=code, name=name if mode == 'selected' else '',
+            settings={'maxOpenRisePct': max_open_rise_pct, 'maxMinuteJumpPct': max_minute_jump_pct},
+            key=os.environ.get('KIS_APPKEY', '').strip(),
+            secret=os.environ.get('KIS_APPSECRET', '').strip())
+    except hour_candidates.BusyError:
+        raise HTTPException(status_code=409, detail='다른 확인이 진행 중이다. 잠시 후 다시 누른다.') from None
+    except Exception:
+        logging.getLogger('main').warning('manual hour check unavailable')
+        raise HTTPException(status_code=503, detail='현재 자료를 받지 못했다. 잠시 후 다시 누른다.') from None
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
+                    media_type='application/json', headers={'Cache-Control': 'no-store'})
 
 
 @app.get('/volume-surge-live')

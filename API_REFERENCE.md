@@ -100,6 +100,23 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
+### `GET /hour-candidates`
+
+| 항목 | 값 |
+|---|---|
+| 목적 | 국내 오전 수동 확인: 매수 기준가 대비 +3%·손절 −3%·60분의 **미검증 실험 후보 필터** |
+| 인증 / 캐시 | 공개, 기존 CORS / `Cache-Control: no-store`, 이전 판정 재사용 없음 |
+| 입력 | `mode=ranked\|selected`(기본 ranked), selected는 `code` 필수·`name` 선택; `max_open_rise_pct=5`(1~10), `max_minute_jump_pct=1.5`(0.3~5) |
+| 확인 시간 | 국내 거래일 09:05 이상 09:15 미만. 그 밖에는 `state=outside_window`, 공급자 조회 안 함 |
+| 자료 | 전부 KIS `J`(KRX): 당일 원본 분봉·호가 접수시각·최근 체결·실제 당일 체결강도·전일 확정 거래량 |
+| 기준가 | 최우선 매도호가 1주의 스냅샷, 주문 체결가 아님. 종목별 `checkedAt`, `expiresAt` 고정 |
+| 응답 | `state, checkedAt, scanStartedAt, scanCompletedAt, modelVersion, criteria, coverage, items, rejected, unknown, probability:null, note, recorded`(장외는 일부 부가키 없음). 행은 `entryPrice,targetPrice,stopPrice,targetPct,stopPct,checkedAt,expiresAt,metrics,reasons,probability:null` |
+| 검사 범위 | KIS 3종 순위 중복 제거 후 거래대금순 최대 24개 또는 선택 종목 1개. `fullMarket:false`, 풀·평가·건너뜀·실패 순위 개수 표시 |
+| 보호 | IP당 분당 3회, 전체 동시 확인 1개, 상세 워커 3개. 30초 작업 예산·시세 HTTP 4초(토큰 발급·재시도 대기로 엄밀한 HTTP 상한 아님) |
+| 오류 | 입력 400/422, 다른 확인 진행 중 409, 공급자 확보 실패 503. 미수신 값을 가짜 0·확률로 채우지 않음 |
+
+버튼 클릭만 호출하며 자동 감지 목록과 독립이다. 현재 분·이후 봉은 계산하지 않고 누락 봉·수집 중 분 변경·10초 넘은 호가/체결은 자료 부족으로 처리한다. 규칙·검증 단계·기록 보존은 [기능 명세](docs/HOUR_CANDIDATES.md) 참고.
+
 ### `GET /health/volume-profile`
 
 | 항목 | 내용 |
