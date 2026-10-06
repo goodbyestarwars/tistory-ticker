@@ -65,6 +65,12 @@ def in_check_window(now):
             and (9, 5) <= (now.hour, now.minute) < (9, 15))
 
 
+def in_direction_window(now):
+    now = now.astimezone(KST)
+    return (market_clock.is_kr_trading_day(now)
+            and (9, 5) <= (now.hour, now.minute) < (14, 30))
+
+
 def _source_time(value, day):
     """Preserve upstream clock. A missing clock must never become receipt time."""
     text = str(value or '').strip()
@@ -189,8 +195,9 @@ def _collect(row, token, key, secret, deadline, clock):
     checked = clock().astimezone(KST)
     if now.replace(second=0, microsecond=0) != checked.replace(second=0, microsecond=0):
         raise MinuteBoundaryError('분봉을 받는 동안 분이 바뀌었다. 다시 눌러 완결 봉을 확인한다.')
-    if not in_check_window(checked):
-        raise MinuteBoundaryError('오전 확인 시간이 끝나 현재 자료를 판단할 수 없다.')
+    check_window = in_direction_window if row.get('_directionCheck') else in_check_window
+    if not check_window(checked):
+        raise MinuteBoundaryError('확인 가능 시간이 끝나 현재 자료를 판단할 수 없어.')
     quote, book = raw_quote.get('output') or {}, raw_book.get('output1') or {}
     trades = raw_trade.get('output') or []
     if isinstance(trades, dict):
@@ -270,8 +277,11 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                             'skippedCount': 0, 'fullMarket': False, 'failedRankSections': []}}
     if include_direction:
         payload['directionModelVersion'] = direction_engine.MODEL_VERSION
-    if not in_check_window(started):
-        payload.update(state='outside_window', note='국내 거래일 09:05~09:15에 직접 확인하는 오전 실험 필터다. 현재 호가로 과거 시각을 대체하지 않는다.')
+    check_window = in_direction_window if include_direction else in_check_window
+    if not check_window(started):
+        note = ((direction_engine.outside_reason(started) if market_clock.is_kr_trading_day(started) else '오늘은 국내장이 쉬는 날이야.') if include_direction else
+                '국내 거래일 09:05~09:15에 직접 확인하는 오전 실험 필터다. 현재 호가로 과거 시각을 대체하지 않는다.')
+        payload.update(state='outside_window', note=note)
         return payload
     if not key or not secret:
         raise RuntimeError('KIS manual check unavailable')
@@ -299,9 +309,11 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
             payload['note'] += ' 순위 %d개 항목을 받지 못해 확인 범위가 더 좁아졌다.' % len(rank_errors)
         if not rows and rank_errors:
             raise RuntimeError('KIS ranks unavailable')
-        pool = ThreadPoolExecutor(max_workers=WORKERS, thread_name_prefix='hour-check')
+        pool = ThreadPoolExecutor(max_workers=1 if include_direction else WORKERS, thread_name_prefix='hour-check')
         snapshots, results = {}, {}
         for row in rows[:MAX_DETAILS]:
+            if include_direction:
+                row['_directionCheck'] = True
             future = pool.submit(collector or _collect, row, token, key, secret, deadline, clock)
             futures[future] = row
         try:
@@ -309,7 +321,7 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                 row = futures[future]
                 try:
                     snapshot = future.result()
-                    result = engine.evaluate(snapshot, criteria)
+                    result = engine.evaluate(snapshot, criteria, lookback_minutes=direction_engine.LOOKBACK_MINUTES if include_direction else None)
                     if include_direction:
                         result['directionVerdict'] = direction_engine.evaluate_direction(snapshot, result)
                     snapshots[row['code']] = snapshot
@@ -338,8 +350,8 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                     ages = [(completed - datetime.fromisoformat(value)).total_seconds() for value in live_times]
                 except (ValueError, TypeError):
                     ages = [float('inf')]
-                if not in_check_window(completed) or any(age < 0 or age > engine.MAX_LIVE_AGE_SEC for age in ages):
-                    reason = ('오전 확인 시간이 끝났습니다. 다음 거래일 오전에 확인해줘.' if not in_check_window(completed) else
+                if not check_window(completed) or any(age < 0 or age > engine.MAX_LIVE_AGE_SEC for age in ages):
+                    reason = ('확인 가능 시간이 끝났어. 다음 거래일에 다시 확인해줘.' if not check_window(completed) else
                               '결과를 받는 동안 호가·체결 자료가 10초를 넘게 오래됐습니다. 다시 확인해줘.')
                     if result['status'] == 'candidate':
                         result['status'] = 'insufficient_data'
@@ -372,10 +384,11 @@ def check_direction(code, name='', **kwargs):
     verdict = row.get('directionVerdict') if row else None
     if verdict is None:
         reason = (row['reasons'][0] if row else
-                  '국내 장 오전 09:05부터 09:15 전까지 확인할 수 있습니다.')
+                  payload['note'])
         verdict = direction_engine.unclear(code, name, row['checkedAt'] if row else payload['checkedAt'], reason)
     # Internal evidence stays in the local record. The public selected-stock
     # view needs only one verdict and a short reason, never candidate buckets.
     result = {key: value for key, value in verdict.items() if key != 'metrics'}
+    result['reason'] = direction_engine.brief_reason(result['reason'])
     result.update(sourceStatus=payload['state'], recorded=payload.get('recorded', False))
     return result

@@ -92,8 +92,9 @@ class DirectionUiTests(unittest.TestCase):
             self.assertEqual(data['final']['requests'],1,kind)
             self.assertIn('/hour-direction?code=035420&name=NAVER',data['requestDetails'][0]['url'])
             self.assertEqual(data['requestDetails'][0]['cache'],'no-store')
-            self.assertIn('상승 우세',data['final']['html'])
-            self.assertNotIn('저점 상승',data['final']['html'])
+            self.assertIn('상승가능',data['final']['html'])
+            self.assertIn('저점 상승',data['final']['html'])
+            self.assertIn('<p class="ss-hour-reason">',data['final']['html'])
 
     def test_url_automatic_selection_and_no_selection_never_request(self):
         for kind in ['automatic','single_auto','search_auto','no_selection']:
@@ -103,20 +104,20 @@ class DirectionUiTests(unittest.TestCase):
         for kind in ['clear','switch_us','switch_domestic']:
             data=self.run_ui(kind)
             self.assertTrue(data['requestDetails'][0]['aborted'],kind)
-            self.assertNotIn('상승 우세',data['final']['html'])
+            self.assertNotIn('상승가능',data['final']['html'])
             self.assertEqual(data['final']['requests'],1)
 
     def test_late_old_response_cannot_overwrite_new_direction(self):
         data=self.run_ui('superseded')
         self.assertTrue(data['requestDetails'][0]['aborted'])
-        self.assertIn('하락 우세',data['final']['html'])
-        self.assertNotIn('상승 우세',data['final']['html'])
+        self.assertIn('하락가능',data['final']['html'])
+        self.assertNotIn('상승가능',data['final']['html'])
 
     def test_timeout_failure_busy_wrong_stock_do_not_infer_falling(self):
         for kind in ['timeout','busy','failure','wrong_code']:
             data=self.run_ui(kind)
             self.assertIn('판단 어려움',data['final']['html'],kind)
-            self.assertNotIn('하락 우세',data['final']['html'])
+            self.assertNotIn('하락가능',data['final']['html'])
             self.assertFalse(data['final']['disabled'])
 
     def test_unknown_reason_is_inline_and_escaped(self):
@@ -129,7 +130,7 @@ class DirectionUiTests(unittest.TestCase):
         for kind in ['expired','expiry']:
             data=self.run_ui(kind)
             self.assertIn('만료',data['final']['html'])
-            self.assertNotIn('상승 우세',data['final']['html'])
+            self.assertNotIn('상승가능',data['final']['html'])
             self.assertEqual(data['final']['requests'],1)
 
 
@@ -139,3 +140,14 @@ class DirectionUiTests(unittest.TestCase):
             self.assertEqual(data['final']['requests'],1,kind)
             self.assertIn('code=005930',data['requestDetails'][0]['url'])
             self.assertFalse(data['requestDetails'][0]['aborted'])
+
+
+    def test_direction_and_reason_are_separate_lines_and_retry_is_not_underlined_text(self):
+        data=self.run_ui()
+        html=data['final']['html']
+        self.assertIn('1시간 방향 :',html)
+        self.assertIn('상승가능',html)
+        self.assertIn('</div><p class="ss-hour-reason">저점 상승</p>',html)
+        self.assertIn('aria-label="다시 확인"',data['shell'])
+        self.assertIn('>↻</button>',data['shell'])
+        self.assertNotIn('>다시 확인</button>',data['shell'])

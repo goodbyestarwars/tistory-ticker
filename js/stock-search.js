@@ -426,11 +426,9 @@
   }
 
   function hourCandidatesShell() {
-    return '<div id="ssHourCandidates" class="ss-hour-direction" hidden>'
-      + '<span class="ss-hour-title">1시간 방향</span>'
-      + '<span id="ssHourResult" aria-live="polite">눌러서 확인</span>'
-      + '<small class="ss-hour-experimental" title="확인 시 매도 1호가 기준 +3% / −3%, 이후 60분. 규칙 판단이며 수익 우위는 검증 전입니다.">실험 판단</small>'
-      + '<button type="button" data-hour-check="selected">확인</button></div>';
+    return '<div id="ssHourCandidates" class="ss-hour-direction" hidden title="실험 판단 · 확인 후 60분, 매수 기준가 +3% / −3%. 수익 우위와 확률은 검증 전이다.">'
+      + '<div id="ssHourResult" aria-live="polite" aria-atomic="true">' + directionHtml('unclear', '아직 직접 확인하지 않았어.') + '</div>'
+      + '<button type="button" data-hour-check="selected" aria-label="다시 확인" title="다시 확인">↻</button></div>';
   }
 
   function wireHourCandidates(container) {
@@ -454,17 +452,18 @@
     hourCandidatesController = null;
     hourCandidatesTimer = null;
     var result = container.querySelector('#ssHourResult');
-    if (result) { result.innerHTML = '눌러서 확인'; result.hidden = false; }
+    if (result) { result.innerHTML = directionHtml('unclear', '아직 직접 확인하지 않았어.'); result.hidden = false; }
     var panel = container.querySelector('#ssHourCandidates');
     if (panel) panel.hidden = true;
     updateHourCandidatesControls(container, false);
   }
 
   function directionHtml(direction, reason) {
-    var labels = { up: '상승 우세', down: '하락 우세', unclear: '판단 어려움' };
+    var labels = { up: '상승가능', down: '하락가능', unclear: '판단 어려움' };
     var safeDirection = labels[direction] ? direction : 'unclear';
-    return '<strong class="ss-hour-' + safeDirection + '">' + labels[safeDirection] + '</strong>'
-      + (reason ? '<span class="ss-hour-reason"> · ' + escapeHtml(reason) + '</span>' : '');
+    return '<div class="ss-hour-line"><span class="ss-hour-title">1시간 방향 :</span><strong class="ss-hour-'
+      + safeDirection + '">' + labels[safeDirection] + '</strong></div>'
+      + '<p class="ss-hour-reason">' + escapeHtml(reason || '판단 근거가 부족해.') + '</p>';
   }
 
   function checkHourCandidates(container) {
@@ -488,9 +487,8 @@
       }
     }, HOUR_CANDIDATES_TIMEOUT_MS);
     hourCandidatesTimer = timer;
-    result.innerHTML = '판단 중…';
+    result.innerHTML = directionHtml('unclear', '현재 자료를 확인하고 있어…');
     updateHourCandidatesControls(container, true);
-    container.querySelectorAll('[data-hour-check]').forEach(function (button) { button.textContent = '다시 확인'; });
     var params = new URLSearchParams({ code: code, name: String(state.selectedName || '').slice(0, 80) });
     fetch(VM_HOUR_CANDIDATES_URL + '?' + params.toString(), controller
       ? { signal: controller.signal, cache: 'no-store' } : { cache: 'no-store' })
@@ -537,7 +535,7 @@
     }
     // The short reason stays in a tooltip for a directional result. Missing
     // evidence is explained inline so a grey label does not look like a sell.
-    result.innerHTML = directionHtml(data.direction, hasDirection ? '' : data.reason);
+    result.innerHTML = directionHtml(data.direction, data.reason);
     result.title = String(data.reason || '') + (data.checkedAt ? '\n확인: ' + data.checkedAt : '');
     if (hasDirection) {
       hourCandidatesTimer = setTimeout(function () {

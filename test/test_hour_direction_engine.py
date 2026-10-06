@@ -1,6 +1,7 @@
 """Direction hypotheses must not confuse absence of a buy setup with selling."""
 import copy
 import unittest
+from datetime import datetime, timedelta
 from test_hour_candidate_engine import snapshot
 import hour_candidate_engine as candidate
 import hour_direction_engine as engine
@@ -15,6 +16,24 @@ def bearish_snapshot():
     data['trade'].update(price=9950, strength=80)
     data['book']['asks'] = [{'price': 9950, 'qty': 100}, {'price': 9960, 'qty': 200}]
     data['book']['bids'] = [{'price': 9940, 'qty': 200}, {'price': 9930, 'qty': 100}]
+    return data
+
+
+def intraday_snapshot(at='2026-10-06T13:00:08+09:00', bearish=False):
+    data = bearish_snapshot() if bearish else snapshot()
+    checked = datetime.fromisoformat(at)
+    minute = checked.replace(second=0, microsecond=0)
+    pattern = copy.deepcopy(data['bars'])
+    bars = []
+    for index in range(30):
+        stamp = minute - timedelta(minutes=30-index)
+        bar = (dict(pattern[index-25]) if index >= 25 else
+               {'open': 10000, 'high': 10020, 'low': 9980, 'close': 10000, 'volume': 1000})
+        bar.update(date=stamp.date().isoformat(), time=stamp.strftime('%H:%M:%S'))
+        bars.append(bar)
+    data.update(checkedAt=at, dataAsOf=(checked-timedelta(seconds=2)).isoformat(), bars=bars)
+    data['book']['time']=(checked-timedelta(seconds=3)).isoformat()
+    data['trade']['time']=(checked-timedelta(seconds=2)).isoformat()
     return data
 
 
@@ -110,3 +129,31 @@ class DirectionTests(unittest.TestCase):
         result = engine.evaluate_direction(data)
         self.assertEqual(result['direction'], 'unclear')
         self.assertIn('함께', result['reason'])
+
+
+    def test_late_morning_and_afternoon_use_only_recent_thirty_minutes(self):
+        for hour in (10, 11, 13, 14):
+            for bearish in (False, True):
+                data = intraday_snapshot(at='2026-10-06T%02d:00:08+09:00' % hour, bearish=bearish)
+                result = engine.evaluate_direction(data)
+                self.assertEqual(result['direction'], 'down' if bearish else 'up')
+                self.assertEqual(result['metrics']['closedBarCount'], 30)
+                self.assertEqual(result['metrics']['barLookbackMinutes'], 30)
+                self.assertEqual(result['metrics']['directionPriceBasis'], '최근 분봉 구간 시작 가격')
+                old = copy.deepcopy(data['bars'][0])
+                old.update(time='09:00:00', close=None, volume=999999999)
+                data['bars'].append(old)
+                self.assertEqual(engine.evaluate_direction(data), result)
+
+    def test_missing_recent_bar_is_not_filled_from_old_bars(self):
+        data = intraday_snapshot()
+        del data['bars'][7]
+        self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
+
+    def test_last_hour_of_session_cannot_become_full_hour_forecast(self):
+        for clock in ['14:30:00', '14:45:08', '15:20:08', '15:30:00']:
+            data = intraday_snapshot('2026-10-06T'+clock+'+09:00')
+            result = engine.evaluate_direction(data)
+            self.assertEqual(result['direction'], 'unclear')
+            self.assertIsNone(result['entryPrice'])
+            if clock < '15:30:00':self.assertIn('1시간',result['reason'])
