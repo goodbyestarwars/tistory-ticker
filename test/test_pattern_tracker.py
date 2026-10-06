@@ -76,21 +76,27 @@ class PatternTrackerTest(unittest.TestCase):
         self.assertEqual(row['breakout_date'], day(32))
         self.assertGreaterEqual(row['breakout_quality'], 60)
 
-    def test_failure_on_close_minus_3pct(self):
-        _, _, row = run([100.0, 96.9])
-        self.assertEqual(row['status'], 'FAILED')
-        self.assertEqual(row['fail_reason'], 'LOSS_3PCT')
-
     def test_failure_on_ma5_break(self):
         _, _, row = run([101.0, 101.0, 99.0])
         self.assertEqual(row['status'], 'FAILED')
         self.assertEqual(row['fail_reason'], 'MA5_BREAK')
 
-    def test_failure_on_sideways_week(self):
-        _, _, row = run([100.5] * (pt.SIDEWAYS_DAYS + 2))
-        self.assertEqual(row['status'], 'FAILED')
-        self.assertEqual(row['fail_reason'], 'SIDEWAYS')
-        self.assertEqual(row['closed_date'], day(29 + pt.SIDEWAYS_DAYS))
+    def test_ma5_break_passes_when_market_fell(self):
+        conn = make_conn('000001', flat_history() + [101.0, 101.0, 99.0])
+        pt.record_new(conn, day(29), 'pattern:risingLows', [ITEM])
+        track = dict(zip([r[1] for r in conn.execute('PRAGMA table_info(pattern_tracks)')],
+                         conn.execute('SELECT * FROM pattern_tracks').fetchone()))
+        before = pt.load_bars(conn, '000001', upto=day(29))
+        after = pt.load_bars(conn, '000001', after=day(29))
+        crash = {'KOSPI': {day(32): -3.0}, 'KOSDAQ': {day(32): -3.5}}
+        self.assertEqual(pt.evaluate_track(track, before, after, crash)['status'], 'TRACKING')
+        calm = {'KOSPI': {day(32): -0.5}, 'KOSDAQ': {day(32): -0.4}}
+        self.assertEqual(pt.evaluate_track(track, before, after, calm)['status'], 'FAILED')
+
+    def test_expired_after_max_tracking_days(self):
+        _, _, row = run([100.5] * (pt.MAX_TRACKING_DAYS + 2))
+        self.assertEqual(row['status'], 'EXPIRED')
+        self.assertIsNone(row['fail_reason'])
 
     def test_returns_and_excursions_use_detected_close(self):
         _, _, row = run([100.0, 104.0, 102.0, 101.0, 105.0, 108.0])

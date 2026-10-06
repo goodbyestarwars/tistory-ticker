@@ -13,7 +13,9 @@
 - 사이트 문구는 "추천"이 아니라 "패턴 포착"을 쓴다.
 
 상태(2026-10-06 개편): NEW(신규 포착) -> TRACKING(추적 중) -> SUCCESS(돌파 성공) 또는 FAILED(돌파 실패).
-      SUCCESS = 포착가 대비 장중 고가가 +5%를 터치. FAILED = 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보(fail_reason 참고).
+      SUCCESS = 포착가 대비 장중 고가가 +5%를 터치. FAILED = 5일선 종가 이탈(MA5_BREAK) 하나뿐이다. 단 그날 해당 종목의 시장
+      (코스피/코스닥)이 크게 하락했으면(MARKET_DROP_PCT) 시장 전체가 같이 빠진 것이라 그날은 판정을 건너뛴다(PASS).
+      성공·실패 없이 MAX_TRACKING_DAYS가 지나면 EXPIRED(기간 만료)로 닫는다.
       예전 상태(BREAKOUT/BREAKOUT_CONFIRMED/EXPIRED)는 이전 기록으로만 남고, 열린 추적은 새 기준으로 다시 판정된다.
       "돌파 준비"는 저장하지 않는다 - 화면이 기준선까지 거리(3% 이내)로 현재 목록에서 계산한다.
 """
@@ -28,9 +30,9 @@ KST = timezone(timedelta(hours=9))
 
 # ---- 튜닝 상수 ----
 SUCCESS_PCT = 5.0               # 포착가 대비 장중 고가가 이만큼 오르면 돌파 성공
-FAIL_LOSS_PCT = 3.0             # 포착가 대비 종가가 이만큼 내려가면 돌파 실패
-SIDEWAYS_DAYS = 5               # 성공·실패 없이 이만큼(약 일주일) 지나면 횡보 실패
-MA5_PERIOD = 5                  # 5일선 종가 이탈 판정(포착일 종가가 5일선 위였을 때만)
+MA5_PERIOD = 5                  # 5일선 종가 이탈 = 돌파 실패(포착일 종가가 5일선 위였을 때만)
+MARKET_DROP_PCT = 2.0           # 그날 시장 지수가 이만큼 이상 내렸으면 5일선 이탈을 실패로 치지 않는다(PASS)
+MAX_TRACKING_DAYS = 20          # 성공·실패 없이 이만큼 지나면 기간 만료
 ATR_PERIOD = 14
 PERF_WINDOW_BARS = 20           # 최대 상승/하락·5/10/20일 수익률을 재는 구간(포착 다음 거래일부터)
 VOLUME_RATIO_STRONG = 1.5       # 돌파 신뢰도 점수의 강한 거래량 배수
@@ -156,6 +158,8 @@ def snapshot_from_item(item):
     snap = dict((item or {}).get('patternDetail') or {})
     snap.setdefault('reasons', (item or {}).get('reasons') or [])
     snap.setdefault('interpretation', (item or {}).get('interpretation') or '')
+    if (item or {}).get('market') in ('KOSPI', 'KOSDAQ'):
+        snap.setdefault('market', item['market'])   # 5일선 이탈 PASS 판정에 쓰는 소속 시장
     return snap
 
 
@@ -231,14 +235,52 @@ def _ma(bars, end, period=MA5_PERIOD):
     return sum(closes) / period if None not in closes else None
 
 
-def evaluate_track(track, before_bars, after_bars):
+def _market_dropped(market_returns, market, date):
+    """date에 해당 시장(없으면 코스피·코스닥 둘 다)이 MARKET_DROP_PCT 이상 하락했는지. 지수 자료가 없으면 False."""
+    if not market_returns:
+        return False
+    markets = [market] if market in market_returns else list(market_returns)
+    if not markets:
+        return False
+    for m in markets:
+        ret = (market_returns.get(m) or {}).get(date)
+        if ret is None or ret > -MARKET_DROP_PCT:
+            return False
+    return True
+
+
+def load_market_returns(conn, since):
+    """{'KOSPI': {YYYY-MM-DD: 전일 대비 %}, 'KOSDAQ': {...}}. future_chart 지수 종가 기준, 자료가 없으면 빈 dict."""
+    out = {}
+    try:
+        import db_schema
+        for symbol in ('KOSPI', 'KOSDAQ'):
+            rows = db_schema.load_future_chart_since(conn, symbol, since.replace('-', ''))
+            closes = [(str(r.get('date', '')), _num(r.get('close'))) for r in rows]
+            closes = [(d, c) for d, c in closes if d and c]
+            returns = {}
+            for (_, prev), (d, cur) in zip(closes, closes[1:]):
+                key = d if '-' in d else '%s-%s-%s' % (d[:4], d[4:6], d[6:8])
+                returns[key] = (cur / prev - 1) * 100
+            if returns:
+                out[symbol] = returns
+    except Exception:
+        LOGGER.debug('시장 지수 하락률 로드 실패', exc_info=True)
+    return out
+
+
+def evaluate_track(track, before_bars, after_bars, market_returns=None):
     """포착일 다음 거래일부터의 일봉으로 상태를 처음부터 다시 판정한다(결정적). track은 dict, 변경 필드를 dict로 돌려준다.
 
-    성공은 장중 고가 +3% 터치(같은 날 종가 실패보다 우선), 실패는 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보.
+    성공은 장중 고가 +SUCCESS_PCT% 터치, 실패는 5일선 종가 이탈(시장이 크게 빠진 날은 PASS), 오래 지나면 만료.
     """
     all_bars = list(before_bars) + list(after_bars)
     offset = len(before_bars)
     detected_close = _num(track.get('detected_close'))
+    try:
+        market = str(json.loads(track.get('snapshot_json') or '{}').get('market') or '')
+    except ValueError:
+        market = ''
 
     status, fail_reason, status_date = 'NEW', None, track['detected_date']
     breakout_date = None
@@ -252,20 +294,17 @@ def evaluate_track(track, before_bars, after_bars):
         if close is None:
             continue
         status, status_date = 'TRACKING', bar['date']
-        if detected_close:
-            if high is not None and high >= detected_close * (1 + SUCCESS_PCT / 100):
-                status, breakout_date, closed_date = 'SUCCESS', bar['date'], bar['date']
-                quality = _breakout_quality(bar, all_bars[:offset + k])
-                break
-            if close <= detected_close * (1 - FAIL_LOSS_PCT / 100):
-                status, fail_reason, closed_date = 'FAILED', 'LOSS_3PCT', bar['date']
-                break
+        if detected_close and high is not None and high >= detected_close * (1 + SUCCESS_PCT / 100):
+            status, breakout_date, closed_date = 'SUCCESS', bar['date'], bar['date']
+            quality = _breakout_quality(bar, all_bars[:offset + k])
+            break
         ma5 = _ma(all_bars, offset + k)
-        if guard_ma5 and ma5 is not None and close < ma5:
+        if guard_ma5 and ma5 is not None and close < ma5 \
+                and not _market_dropped(market_returns, market, bar['date']):
             status, fail_reason, closed_date = 'FAILED', 'MA5_BREAK', bar['date']
             break
-        if days >= SIDEWAYS_DAYS:
-            status, fail_reason, closed_date = 'FAILED', 'SIDEWAYS', bar['date']
+        if days >= MAX_TRACKING_DAYS:
+            status, closed_date = 'EXPIRED', bar['date']
             break
 
     window = after_bars[:PERF_WINDOW_BARS]
@@ -299,13 +338,14 @@ def update_tracks(conn, rescore=None):
         OPEN_STATUSES + ((datetime.now(KST) - timedelta(days=45)).strftime('%Y-%m-%d'),)).fetchall()
     updated = 0
     now = _now_iso()
+    market_returns = load_market_returns(conn, (datetime.now(KST) - timedelta(days=120)).strftime('%Y-%m-%d'))
     for row in rows:
         track = dict(zip(cols, row))
         before = load_bars(conn, track['code'], upto=track['detected_date'], limit=ATR_PERIOD + 40)
         after = load_bars(conn, track['code'], after=track['detected_date'])
         if not after:
             continue
-        changes = evaluate_track(track, before, after)
+        changes = evaluate_track(track, before, after, market_returns)
         if track['status'] in OPEN_STATUSES and rescore is not None:
             try:
                 result = rescore(track, before + after)
@@ -361,7 +401,7 @@ def list_tracks(conn, scanner, view='all', days=90, limit=100):
         params += list(SUCCESS_STATUSES)
     elif view == 'failed':
         sql += ' AND status IN (?,?)'
-        params += ['FAILED', 'EXPIRED']
+        params += ['FAILED', 'FAILED']
     sql += ' ORDER BY detected_date DESC, id DESC LIMIT ?'
     params.append(max(1, min(int(limit), 300)))
     out = []
@@ -398,7 +438,7 @@ def tracker_stats(conn, scanner, days=90):
         'breakout': len(broke),
         'breakoutConfirmed': counts.get('BREAKOUT_CONFIRMED', 0),
         'success': sum(counts.get(s, 0) for s in SUCCESS_STATUSES),
-        'failed': counts.get('FAILED', 0) + counts.get('EXPIRED', 0),
+        'failed': counts.get('FAILED', 0),
         'active': sum(counts.get(s, 0) for s in OPEN_STATUSES),
         'breakoutRatePct': round(len(broke) / total * 100, 1) if total else None,
         'confirmRatePct': round(counts.get('BREAKOUT_CONFIRMED', 0) / total * 100, 1) if total else None,
