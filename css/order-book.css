@@ -179,6 +179,14 @@
   border-top: 1px dashed #eee;
 }
 
+#order-book .ob-breakout-note .ob-breakout-sub {
+  margin-top: 3px;
+  font-size: 11px;
+  font-weight: 500;
+  color: #8a5a0c;
+}
+html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !important; }
+
 /* 비정상 매물대 배지(2026-09-21) - 매수/매도 잔량 쏠림·특정 호가 벽을 한눈에 보이게 표시 */
 #order-book .ob-abnormal-badges:not(:empty) {
   display: flex;
