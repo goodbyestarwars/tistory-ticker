@@ -45,6 +45,8 @@
   var FETCH_TIMEOUT_MS = 15000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
+  var VM_HOUR_CANDIDATES_URL = 'https://goodbyestar.cloud/hour-candidates';
+  var HOUR_CANDIDATES_TIMEOUT_MS = 45000;
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20260828-us-detail-request-budget-v6';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
@@ -131,6 +133,10 @@
   var lwcRenderId = 0;
   var stockDrawingState = null;
   var suggestionRequestId = 0;
+  // This analysis starts only on an explicit check. Never restore or poll a signal.
+  var hourCandidatesRequestId = 0;
+  var hourCandidatesController = null;
+  var hourCandidatesTimer = null;
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
@@ -243,9 +249,11 @@
     document.querySelectorAll('.post-single-title').forEach(function (title) {
       if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
     });
+    clearHourCandidates(container);
     container.innerHTML = buildShell();
     wirePanelResize(container);
     wireSearch(container);
+    wireHourCandidates(container);
     autoSearchFromUrl(container);
 
     // 실시간 체결가 소켓의 visibilitychange 처리는 order-book.js가 자기 자신의 init()에서
@@ -274,6 +282,9 @@
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
+    var hourPanel = container.querySelector('#ssHourCandidates');
+    if (hourPanel) hourPanel.hidden = !!isUs;
+    if (isUs) clearHourCandidates(container);
   }
 
   function loadUsStocksModule(container) {
@@ -373,6 +384,7 @@
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
       + '</div>'
       + '<button type="button" id="ssChangeStockBtn" class="ss-change-stock-btn" hidden>종목 변경</button>'
+      + hourCandidatesShell()
       + '<div id="ssResults" class="ss-results"></div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
@@ -410,6 +422,214 @@
       + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
+  }
+
+  function hourCandidatesShell() {
+    return '<section id="ssHourCandidates" class="ss-hour-panel ui-module" aria-labelledby="ssHourTitle">'
+      + '<div class="ss-hour-head ui-section-heading"><div><h3 id="ssHourTitle" class="ui-section-heading-title">1시간 +3% 후보</h3>'
+      + '<p class="ui-section-heading-description">KRX 매도 1호가 기준 · 목표 +3% · 손절 −3% · 직접 확인 후 60분</p></div>'
+      + '<span class="ss-hour-tag">실험 필터 · 승률 검증 전</span></div>'
+      + '<div class="ss-hour-actions"><button type="button" class="ui-btn ui-btn-primary" data-hour-check="ranked">순위 종목 확인</button>'
+      + '<button type="button" class="ui-btn ui-btn-secondary" data-hour-check="selected" disabled>선택 종목 확인</button>'
+      + '<span class="ss-hour-window">국내 장 09:05부터 09:15 전까지</span></div>'
+      + '<details class="ss-hour-settings"><summary>급등 제외 기준</summary><div class="ss-hour-inputs">'
+      + '<label>시가 대비 최대 상승률 <input type="number" data-hour-open-rise value="5" min="1" max="10" step="0.1" />% 이상 제외</label>'
+      + '<label>1분 고가 상승·봉 간 갭 <input type="number" data-hour-minute-jump value="1.5" min="0.3" max="5" step="0.1" />% 이상 제외</label>'
+      + '</div><p class="ss-hour-intro">기본 조건: 저점 상승 · 거래량 가속 1.3배 이상 · 최근 2분 거래량이 전일 전체의 1% 이상 · 체결강도 110% 이상 · 호가 간격 0.3% 이하 · 보이는 매도 잔량이 최근 2분 거래량 이하.</p></details>'
+      + '<p class="ss-hour-intro">저점 상승·거래량 가속·체결강도·호가 저항을 함께 확인한다. 순위 종목은 순위권 일부를 검사한다. 버튼을 누르기 전에는 조회하지 않는다.</p>'
+      + '<div id="ssHourResult" class="ss-hour-result" aria-live="polite" aria-atomic="false" hidden></div></section>';
+  }
+
+  function wireHourCandidates(container) {
+    container.querySelectorAll('[data-hour-check]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        checkHourCandidates(container, button.getAttribute('data-hour-check'));
+      });
+    });
+    container.querySelectorAll('[data-hour-open-rise], [data-hour-minute-jump]').forEach(function (input) {
+      input.addEventListener('change', function () { clearHourCandidates(container); });
+    });
+  }
+
+  function updateHourCandidatesControls(container, busy) {
+    container.querySelectorAll('[data-hour-check]').forEach(function (button) {
+      var selected = button.getAttribute('data-hour-check') === 'selected';
+      button.disabled = busy || (selected && !/^[0-9A-Z]{6}$/.test(String(state.selectedCode || '')));
+    });
+    var panel = container.querySelector('#ssHourCandidates');
+    if (panel) panel.setAttribute('aria-busy', busy ? 'true' : 'false');
+  }
+
+  function clearHourCandidates(container) {
+    hourCandidatesRequestId += 1;
+    if (hourCandidatesController) hourCandidatesController.abort();
+    if (hourCandidatesTimer) clearTimeout(hourCandidatesTimer);
+    hourCandidatesController = null;
+    hourCandidatesTimer = null;
+    var result = container.querySelector('#ssHourResult');
+    if (result) { result.innerHTML = ''; result.hidden = true; }
+    updateHourCandidatesControls(container, false);
+  }
+
+  function checkHourCandidates(container, mode) {
+    var result = container.querySelector('#ssHourResult');
+    var panel = container.querySelector('#ssHourCandidates');
+    if (!result || !panel || panel.hidden) return;
+    var code = String(state.selectedCode || '');
+    if (mode === 'selected' && !/^[0-9A-Z]{6}$/.test(code)) return;
+    var openInput = container.querySelector('[data-hour-open-rise]');
+    var jumpInput = container.querySelector('[data-hour-minute-jump]');
+    var openRise = Number(openInput.value);
+    var minuteJump = Number(jumpInput.value);
+    if (!openInput.value || !jumpInput.value || !Number.isFinite(openRise) || openRise < 1 || openRise > 10
+      || !Number.isFinite(minuteJump) || minuteJump < 0.3 || minuteJump > 5) {
+      result.hidden = false;
+      result.innerHTML = '<p class="ss-hour-message ss-error">급등 제외 기준을 확인해줘. 시가 대비 1~10%, 1분봉 0.3~5% 범위다.</p>';
+      return;
+    }
+    clearHourCandidates(container);
+    var requestId = hourCandidatesRequestId;
+    var controller = 'AbortController' in global ? new global.AbortController() : null;
+    hourCandidatesController = controller;
+    var timedOut = false;
+    var timer = setTimeout(function () {
+      timedOut = true;
+      if (controller) controller.abort();
+      if (requestId === hourCandidatesRequestId) {
+        result.innerHTML = '<p class="ss-hour-message ss-error">조회 시간이 길어져 중단했다. 다시 확인 버튼을 눌러줘.</p>';
+        updateHourCandidatesControls(container, false);
+        hourCandidatesRequestId += 1;
+      }
+    }, HOUR_CANDIDATES_TIMEOUT_MS);
+    hourCandidatesTimer = timer;
+    result.hidden = false;
+    result.innerHTML = '<p class="ss-hour-message">지금 시점의 분봉·체결·호가를 확인 중…</p>';
+    updateHourCandidatesControls(container, true);
+    var params = new URLSearchParams({ mode: mode, max_open_rise_pct: String(openRise), max_minute_jump_pct: String(minuteJump) });
+    if (mode === 'selected') {
+      params.set('code', code);
+      params.set('name', String(state.selectedName || '').slice(0, 80));
+    }
+    fetch(VM_HOUR_CANDIDATES_URL + '?' + params.toString(), controller
+      ? { signal: controller.signal, cache: 'no-store' } : { cache: 'no-store' })
+      .then(function (response) {
+        if (!response.ok) {
+          var error = new Error('hour-candidates');
+          error.status = response.status;
+          throw error;
+        }
+        return response.json();
+      })
+      .then(function (envelope) {
+        if (requestId !== hourCandidatesRequestId) return;
+        if (!envelope || !envelope.data || !['ready', 'outside_window'].includes(envelope.data.state)) {
+          throw new Error('invalid-hour-candidates');
+        }
+        renderHourCandidates(container, envelope.data);
+      })
+      .catch(function (error) {
+        if (requestId !== hourCandidatesRequestId || timedOut) return;
+        var text = error.status === 409 ? '다른 확인 작업이 진행 중이다. 잠시 후 확인 버튼을 다시 눌러줘.'
+          : error.status === 503 ? '현재 분봉·체결·호가 자료를 확보하지 못했다. 확인 버튼으로 다시 조회할 수 있다.'
+          : '후보 확인에 실패했다. 확인 버튼으로 다시 조회할 수 있다.';
+        result.innerHTML = '<p class="ss-hour-message ss-error">' + text + '</p>';
+      })
+      .then(function () {
+        clearTimeout(timer);
+        if (requestId !== hourCandidatesRequestId) return;
+        hourCandidatesController = null;
+        hourCandidatesTimer = null;
+        updateHourCandidatesControls(container, false);
+      });
+  }
+
+  function hourTime(value) {
+    if (!value) return '시각 미확인';
+    var date = new Date(value);
+    if (!Number.isFinite(date.getTime())) return String(value);
+    return date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  }
+
+  function hourNumber(value, digits, suffix) {
+    return typeof value === 'number' && Number.isFinite(value) ? value.toFixed(digits) + (suffix || '') : '자료 없음';
+  }
+
+  function hourWall(value) {
+    if (!value || typeof value.price !== 'number') return '자료 없음';
+    var qty = value.qty == null ? value.volume : value.qty;
+    return fmtPrice(value.price) + '원' + (typeof qty === 'number' ? ' · ' + fmtQty(qty) + '주' : '');
+  }
+
+  function hourReasons(row) {
+    return (Array.isArray(row.reasons) ? row.reasons : []).map(function (reason) { return escapeHtml(reason); }).join(' · ');
+  }
+
+  function hourCandidateHtml(row) {
+    var m = row.metrics || {};
+    var pattern = m.risingConfirmedPivotLows === true ? '확정 저점 상승'
+      : m.risingRecentLows === true ? '최근 저점 상승' : '저점 상승 미확인';
+    return '<article class="ss-hour-candidate ui-list-row"><div class="ss-hour-candidate-head"><div><strong>' + escapeHtml(row.name)
+      + '</strong><small>' + escapeHtml(row.code) + '</small></div><button type="button" class="ui-btn ui-btn-soft" data-hour-stock="'
+      + escapeAttr(row.code) + '" data-hour-name="' + escapeAttr(row.name) + '">차트 보기</button></div>'
+      + '<p class="ss-hour-row-time">확인 ' + escapeHtml(hourTime(row.checkedAt)) + ' · 종료 ' + escapeHtml(hourTime(row.expiresAt)) + '</p>'
+      + '<dl class="ss-hour-prices"><div><dt>확인 시 매도 1호가</dt><dd>' + escapeHtml(fmtPrice(row.entryPrice)) + '원</dd></div>'
+      + '<div><dt>목표가</dt><dd class="ss-up">' + escapeHtml(fmtPrice(row.targetPrice)) + '원 <small>' + escapeHtml(fmtSignedPct(row.targetPct)) + '</small></dd></div>'
+      + '<div><dt>손절 기준가</dt><dd class="ss-down">' + escapeHtml(fmtPrice(row.stopPrice)) + '원 <small>' + escapeHtml(fmtSignedPct(row.stopPct)) + '</small></dd></div></dl>'
+      + '<dl class="ss-hour-metrics"><div><dt>패턴</dt><dd>' + escapeHtml(pattern) + '</dd></div>'
+      + '<div><dt>거래량 가속</dt><dd>' + escapeHtml(hourNumber(m.volumeAcceleration, 2, '배')) + '</dd></div>'
+      + '<div><dt>최근 2분 거래량 / 전일 전체</dt><dd>' + escapeHtml(hourNumber(m.recentPrevVolumePct, 2, '%')) + '</dd></div>'
+      + '<div><dt>체결강도</dt><dd>' + escapeHtml(hourNumber(m.strength, 1, '%')) + '</dd></div>'
+      + '<div><dt>시가 대비 최대 상승</dt><dd>' + escapeHtml(fmtSignedPct(m.maxOpenRisePct)) + '</dd></div>'
+      + '<div><dt>최대 1분 상승</dt><dd>' + escapeHtml(hourNumber(m.maxMinuteJumpPct, 2, '%')) + '</dd></div>'
+      + '<div><dt>호가 간격</dt><dd>' + escapeHtml(hourNumber(m.spreadPct, 2, '%')) + '</dd></div>'
+      + '<div><dt>목표 아래 보이는 매도잔량 / 2분 거래량</dt><dd>' + escapeHtml(hourNumber(m.visibleResistanceToRecentVolume, 2, '배')) + '</dd></div>'
+      + '<div><dt>매수벽</dt><dd>' + escapeHtml(hourWall(m.strongestBidWall)) + '</dd></div>'
+      + '<div><dt>매도벽</dt><dd>' + escapeHtml(hourWall(m.strongestAskWall)) + '</dd></div>'
+      + '<div><dt>분봉 거래가 근사 평균</dt><dd>' + escapeHtml(typeof m.barTypicalPriceVwap === 'number'
+        ? fmtPrice(Math.round(m.barTypicalPriceVwap)) + '원' : '자료 없음') + '</dd></div>'
+      + '<div><dt>직전 고가 돌파</dt><dd>' + escapeHtml(m.breakoutConfirmed === true ? '완결봉 돌파 확인'
+        : m.breakoutConfirmed === false ? '돌파 전' : '자료 없음') + '</dd></div></dl>'
+      + '<p class="ss-hour-reasons">' + hourReasons(row) + '</p></article>';
+  }
+
+  function hourExcludedHtml(label, rows) {
+    if (!rows.length) return '';
+    return '<details class="ss-hour-excluded"><summary>' + label + ' ' + rows.length + '개</summary>'
+      + rows.map(function (row) { return '<div class="ss-hour-excluded-row"><strong>' + escapeHtml(row.name || row.code)
+        + '</strong><span>' + hourReasons(row) + '</span></div>'; }).join('') + '</details>';
+  }
+
+  function renderHourCandidates(container, data) {
+    var result = container.querySelector('#ssHourResult');
+    if (data.state === 'outside_window') {
+      result.innerHTML = '<p class="ss-hour-message">지금은 확인 시간이 아니다. 국내 장 09:05부터 09:15 전까지 버튼을 눌러 확인해줘.</p>'
+        + (data.note ? '<p class="ss-hour-note">' + escapeHtml(data.note) + '</p>' : '');
+      return;
+    }
+    var items = Array.isArray(data.items) ? data.items : [];
+    var unknown = Array.isArray(data.unknown) ? data.unknown : [];
+    var rejected = Array.isArray(data.rejected) ? data.rejected : [];
+    var coverage = data.coverage || {};
+    var counts = '조건 통과 ' + items.length + '개 · 자료 부족 ' + unknown.length + '개';
+    var evaluated = Number.isFinite(coverage.evaluatedCount) ? coverage.evaluatedCount : items.length + unknown.length + rejected.length;
+    var pool = Number.isFinite(coverage.poolCount) ? coverage.poolCount : evaluated;
+    result.innerHTML = '<div class="ss-hour-result-head"><strong>' + counts + '</strong><span>조회 완료 ' + escapeHtml(hourTime(data.checkedAt)) + '</span></div>'
+      + '<p class="ss-hour-coverage">' + escapeHtml(coverage.mode === 'selected' ? '선택 종목' : (coverage.scope || '순위권 일부'))
+      + ' · 평가 ' + evaluated + '개 / 모음 ' + pool + '개'
+      + (Number.isFinite(coverage.skippedCount) ? ' · 건너뜀 ' + coverage.skippedCount + '개' : '') + ' · 전체 시장 미검사</p>'
+      + '<p class="ss-hour-snapshot">조회 시작 ' + escapeHtml(hourTime(data.scanStartedAt)) + '. 종목별 확인 시각부터 60분을 계산한 기록이다. 실제 주문 체결가는 입력하지 않았다. 새 확인은 버튼으로 한다.</p>'
+      + (items.length ? items.map(hourCandidateHtml).join('') : '<p class="ss-hour-message">' + (unknown.length
+        ? '조건 통과 종목이 없다. 자료가 부족한 종목은 판정하지 않았다.' : '확인한 범위에서 조건을 통과한 종목이 없다.') + '</p>')
+      + hourExcludedHtml('조건 미충족', rejected) + hourExcludedHtml('자료 부족', unknown)
+      + (data.note ? '<p class="ss-hour-note">' + escapeHtml(data.note) + '</p>' : '');
+    result.querySelectorAll('[data-hour-stock]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var code = button.getAttribute('data-hour-stock');
+        if (!/^[0-9A-Z]{6}$/.test(String(code || ''))) return;
+        selectStock(container, { code: code, name: button.getAttribute('data-hour-name') || code });
+      });
+    });
   }
 
   // 호가창·차트는 기본 2분할을 유지하되, 데스크톱에서는 가운데 구분선을
@@ -872,6 +1092,7 @@
   // ---- 선택 종목: 요약 + 호가창(재사용) + 차트 ----
 
   function selectStock(container, item) {
+    clearHourCandidates(container);
     setMarketMode(container, false);
     if (isUsRoute()) {
       try {
@@ -884,6 +1105,7 @@
     }
     state.selectedCode = item.code;
     state.selectedName = item.name;
+    updateHourCandidatesControls(container, false);
     state.minuteScope = '1';
     state.externalMinuteLoader = null;
     var chartNotice = container.querySelector('#ssChartNotice');
