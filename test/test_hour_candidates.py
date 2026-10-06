@@ -136,6 +136,22 @@ class ManualCheckTests(unittest.TestCase):
                 self.run_scan(settings=settings)
         self.token.assert_not_called()
 
+    def test_feature_dispatches_are_spaced_and_work_deadline_is_respected(self):
+        ticks = [100.0]
+        def sleep(seconds):
+            ticks[0] += seconds
+        with mock.patch.object(checks, '_next_request_at', 0), \
+             mock.patch.object(checks.time, 'monotonic', side_effect=lambda: ticks[0]), \
+             mock.patch.object(checks.time, 'sleep', side_effect=sleep) as wait, \
+             mock.patch.object(checks.kis_client, '_get_domestic_quote', return_value={}) as api:
+            checks._request('t', 'k', 's', '/path', 'TR', {}, 110)
+            checks._request('t', 'k', 's', '/path', 'TR', {}, 110)
+            self.assertAlmostEqual(wait.call_args.args[0], checks.REQUEST_INTERVAL_SEC)
+            self.assertEqual(api.call_count, 2)
+            with self.assertRaises(checks.TimeoutError):
+                checks._request('t', 'k', 's', '/path', 'TR', {}, 100.15)
+            self.assertEqual(api.call_count, 2)
+
     def test_collect_retains_real_provider_clocks_and_krx_denominator(self):
         fixture = snapshot()
         minute = {'output2': [dict(stck_bsop_date='20261006',
