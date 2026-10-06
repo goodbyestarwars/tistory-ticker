@@ -381,8 +381,12 @@
   function applyRealtimeOrderbook(container, orderbook) {
     var board = container.querySelector('#obBoard');
     if (!board) return;
-    var asks = Array.isArray(orderbook.asks) ? orderbook.asks : [];
+    var asks = Array.isArray(orderbook.asks) ? orderbook.asks.slice() : [];
     var bids = Array.isArray(orderbook.bids) ? orderbook.bids : [];
+    // 2026-10-06: KIS WebSocket은 매도 1호가(가장 싼 값)부터 주지만 REST·renderBoard의 asks는
+    // 높은 값부터라 data-level이 반대다. 순서를 맞추지 않으면 실시간 호가가 오는 순간 매도 쪽이
+    // 거꾸로 뒤집혀 최우선 매도호가가 맨 위(매수 1호가와 100원 떨어진 줄)로 간다(셀바스AI).
+    asks.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
     var maxQty = 1;
     asks.concat(bids).forEach(function (row) {
       var qty = numericOrNull(row.qty);
