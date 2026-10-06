@@ -224,15 +224,24 @@ def evaluate(snapshot, settings=None):
         'probability': None,
     }
     issues, rejected = [], []
+    result['inputIssues'] = issues
+    result['commonBlockers'] = []
+
+    def block(reason):
+        rejected.append(reason)
+        result['commonBlockers'].append(reason)
     metrics = result['metrics']
     if checked is None:
-        result['reasons'] = ['확인 시각과 시간대를 확인할 수 없습니다.']
+        issues.append('확인 시각과 시간대를 확인할 수 없습니다.')
+        result['reasons'] = list(issues)
         return result
     if snapshot.get('market') != 'KRX' or snapshot.get('source') != 'KIS':
-        result['reasons'] = ['KRX의 같은 출처로 맞춘 자료가 필요합니다.']
+        issues.append('KRX의 같은 출처로 맞춘 자료가 필요합니다.')
+        result['reasons'] = list(issues)
         return result
     if checked.weekday() >= 5:
-        result['reasons'] = ['정규장 거래일의 자료가 필요합니다.']
+        issues.append('정규장 거래일의 자료가 필요합니다.')
+        result['reasons'] = list(issues)
         return result
 
     data_asof = _iso(snapshot.get('dataAsOf'))
@@ -251,7 +260,7 @@ def evaluate(snapshot, settings=None):
         issues.append('상한가를 확인할 수 없어 목표가 도달 가능 범위를 계산하지 못합니다.')
     temp_stop = quote.get('tempStop')
     if temp_stop is True or temp_stop == 'Y':
-        rejected.append('거래가 일시 정지된 종목입니다.')
+        block('거래가 일시 정지된 종목입니다.')
     elif temp_stop is not False and temp_stop != 'N':
         issues.append('거래 일시 정지 여부를 확인할 수 없습니다.')
 
@@ -281,7 +290,7 @@ def evaluate(snapshot, settings=None):
         result.update(targetPct=metrics['actualTargetPct'], stopPct=metrics['actualStopPct'])
         metrics['entryBasis'] = '확인 시점 매도 1호가의 1주 가격(체결 미보장)'
         if upper_limit is not None and target > upper_limit:
-            rejected.append('매수가 대비 +3% 목표가가 당일 상한가를 넘습니다.')
+            block('매수가 대비 +3% 목표가가 당일 상한가를 넘습니다.')
         if bid is not None:
             if bid >= entry:
                 issues.append('매수·매도 호가 순서가 맞지 않습니다.')
@@ -289,7 +298,7 @@ def evaluate(snapshot, settings=None):
                 spread = (entry - bid) / entry * 100
                 metrics['spreadPct'] = spread
                 if spread > settings['maxSpreadPct']:
-                    rejected.append('매수·매도 호가 간격이 설정한 한도보다 넓습니다.')
+                    block('매수·매도 호가 간격이 설정한 한도보다 넓습니다.')
         support = [row for row in (bids or []) if entry * 0.99 <= row['price'] < entry]
         resistance = [row for row in asks if entry <= row['price'] < target]
         metrics.update(
@@ -327,7 +336,7 @@ def evaluate(snapshot, settings=None):
         open_rise = (maximum / opening - 1) * 100
         metrics['maxOpenRisePct'] = open_rise
         if open_rise >= settings['maxOpenRisePct'] - 1e-9:
-            rejected.append('개장 후 이미 설정한 상승폭 이상 오른 종목입니다.')
+            block('개장 후 이미 설정한 상승폭 이상 오른 종목입니다.')
 
     previous = snapshot.get('previousVolume') if isinstance(snapshot.get('previousVolume'), dict) else {}
     prev_volume = _num(previous.get('value'), strict=True)
@@ -351,7 +360,7 @@ def evaluate(snapshot, settings=None):
                   for index in range(1, len(bars))]
         metrics['maxMinuteJumpPct'] = max(jumps)
         if metrics['maxMinuteJumpPct'] >= settings['maxMinuteJumpPct'] - 1e-9:
-            rejected.append('완결된 1분봉에서 한 번에 크게 오른 구간이 있습니다.')
+            block('완결된 1분봉에서 한 번에 크게 오른 구간이 있습니다.')
         rising, pivot_rise, pivots = _pattern(bars)
         metrics.update(risingRecentLows=rising, risingConfirmedPivotLows=pivot_rise,
                        confirmedPivotLows=pivots)
@@ -367,7 +376,7 @@ def evaluate(snapshot, settings=None):
             acceleration = recent_volume / baseline_volume
             metrics['volumeAcceleration'] = acceleration
             if acceleration < settings['minVolumeAcceleration']:
-                rejected.append('최근 2분 거래량이 앞선 2분보다 충분히 늘지 않았습니다.')
+                block('최근 2분 거래량이 앞선 2분보다 충분히 늘지 않았습니다.')
             vwap = sum((row['high'] + row['low'] + row['close']) / 3 * row['volume']
                        for row in bars) / total_volume
             metrics['barTypicalPriceVwap'] = vwap
@@ -379,7 +388,7 @@ def evaluate(snapshot, settings=None):
             ratio = recent_volume / prev_volume * 100
             metrics['recentPrevVolumePct'] = ratio
             if ratio < settings['minRecentPrevVolumePct']:
-                rejected.append('최근 2분 거래량이 전일 거래량 대비 기준에 못 미칩니다.')
+                block('최근 2분 거래량이 전일 거래량 대비 기준에 못 미칩니다.')
         if entry is not None:
             if recent_volume <= 0:
                 issues.append('최근 거래량이 없어 매도 잔량 부담을 비교하지 못합니다.')

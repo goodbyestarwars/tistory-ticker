@@ -3508,6 +3508,25 @@ def theme_flow_endpoint(request: Request):
     return envelope(result)
 
 
+@app.get('/hour-direction')
+def hour_direction_endpoint(request: Request,
+                            code: str = Query(..., pattern='^[0-9A-Z]{6}$'),
+                            name: str = Query('', max_length=80)):
+    """One manual selection, one unvalidated direction hypothesis for 60 min."""
+    _check_rate_limit('hour_candidates', request, max_per_window=3)
+    try:
+        data = hour_candidates.check_direction(
+            code, name=name, key=os.environ.get('KIS_APPKEY', '').strip(),
+            secret=os.environ.get('KIS_APPSECRET', '').strip())
+    except hour_candidates.BusyError:
+        raise HTTPException(status_code=409, detail='다른 확인이 진행 중입니다. 잠시 후 다시 확인해줘.') from None
+    except Exception:
+        logging.getLogger('main').warning('manual hour direction unavailable')
+        raise HTTPException(status_code=503, detail='현재 자료를 받지 못했습니다. 다시 확인해줘.') from None
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
+                    media_type='application/json', headers={'Cache-Control': 'no-store'})
+
+
 @app.get('/hour-candidates')
 def hour_candidates_endpoint(request: Request,
                              mode: str = Query('ranked', pattern='^(ranked|selected)$'),

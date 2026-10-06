@@ -100,6 +100,12 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/ohlc-minute/005930?tic_scope=1"` |
 | 오류 응답 예시 | `tic_scope` 오류 → 400 / 데이터 없음 → 404 / 키움 실패 → 502(원인 메시지 그대로 노출) |
 
+### `GET /hour-direction`
+
+선택 종목 한 개의 확인 후 60분 **미검증 규칙 방향 가설**. 공개 `code`(6자 국내 코드) 필수, `name`(80자 이하) 선택. 고정 내부 문턱이며 설정·순위 입력 없음. 응답 `data`: `code,name,direction(up|down|unclear),label,reason,checkedAt,expiresAt,horizonMinutes:60,targetPct:3,stopPct:-3,entryPrice,targetPrice,stopPrice,probability:null,validated:false,rulesVersion:hour-direction-rules-v1,sourceStatus,recorded`. 가격은 가설을 보류할 때 null이다. 상승/하락은 각각 별도로 계산하며 후보 탈락은 하락 예측이 아니다.
+
+`/hour-candidates`와 같은 수집 잠금·IP 분당 3회 버킷·KIS 요청 간격·09:05~09:15 확인 창을 공유한다. `no-store`; 장외는 공급자 조회 없이 `unclear`; 입력 오류 422, 동시 확인 409, 확보 실패 503. 상세 변수·입력은 로컬 5MB 회전 기록에만 보존한다. 화면은 종목 직접 선택 때 1회 조회, URL 자동진입/분봉 갱신 때 조회하지 않는다.
+
 ### `GET /hour-candidates`
 
 | 항목 | 값 |
@@ -115,7 +121,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 보호 | IP당 분당 3회, 전체 동시 확인 1개, 상세 워커 3개·시세 함수 호출 시작 최대 초당 10회. 30초 작업 예산·시세 HTTP 4초(토큰 발급·재시도 대기로 엄밀한 HTTP 상한 아님) |
 | 오류 | 입력 400/422, 다른 확인 진행 중 409, 공급자 확보 실패 503. 미수신 값을 가짜 0·확률로 채우지 않음 |
 
-버튼 클릭만 호출하며 자동 감지 목록과 독립이다. 현재 분·이후 봉은 계산하지 않고 누락 봉·수집 중 분 변경·10초 넘은 호가/체결은 자료 부족으로 처리한다. 규칙·검증 단계·기록 보존은 [기능 명세](docs/HOUR_CANDIDATES.md) 참고.
+기존 후보 API는 호환용이며 화면은 `/hour-direction`으로 단순화했다. 수동 확인만 호출하며 자동 감지 목록과 독립이다. 현재 분·이후 봉은 계산하지 않고 누락 봉·수집 중 분 변경·10초 넘은 호가/체결은 자료 부족으로 처리한다. 규칙·검증 단계·기록 보존은 [기능 명세](docs/HOUR_CANDIDATES.md) 참고.
 
 ### `GET /health/volume-profile`
 
