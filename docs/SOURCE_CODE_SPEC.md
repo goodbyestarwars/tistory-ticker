@@ -165,7 +165,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `db_schema.py` | 380 | `ohlc_snapshot.db` 스키마 + CRUD 헬퍼 | `get_conn`, `create_schema`, `load_daily_prices` 등 |
 | `order_book.py` | 100 | 실시간 호가(ka10004)+체결(ka10003) | `fetch_order_book`, `fetch_trade` |
 | `hour_candidate_engine.py` | - | 미래 누출·자료 품질 방어 + 오전 수동 저점/거래량/체결/호가 후보의 순수 계산 | `evaluate`, `validate_settings` |
-| `hour_candidates.py` | - | 같은 KIS KRX 자료의 수동 온디맨드 수집·부분 범위·신선도·작업 상한·확인 기록 | `scan`, `in_check_window` |
+| `hour_direction_engine.py` | - | 자료 검증·공통 제외를 공유하되 상승/하락을 독립 계산하는 60분 미검증 규칙 가설 | `evaluate_direction`, `unclear` |
+| `hour_candidates.py` | - | 같은 KIS KRX 자료의 수동 온디맨드 수집·부분 범위·신선도·작업 상한·확인 기록 | `scan`, `check_direction`, `in_check_window` |
 | `market_rank.py` | 140 | 거래량/상하한가 랭킹(ka10030/ka10017) | `fetch_sidebar_rank` |
 | `investor_trend.py` | 457 | 시장별 투자자매매 동향(KIS→네이버→키움 폴백) | `backfill_kis`, `bucket_daily/weekly/monthly`, `start_background` |
 | `investor_flow.py` | 389 | 공매도/대차/연기금+반대매매 압박 지표 | `fetch_stock`, `short_pressure_score`, `pension_streak` |

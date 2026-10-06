@@ -1,0 +1,98 @@
+# -*- coding: utf-8 -*-
+"""Unfitted, symmetric direction hypotheses from a manually captured snapshot.
+
+The labels describe a rule hypothesis for the following 60 minutes, not a fitted
+probability or a promise of a 3% move. Candidate rejection is never a down label.
+"""
+from datetime import timedelta
+import hour_candidate_engine as candidate
+
+MODEL_VERSION = 'hour-direction-rules-v1'
+LABELS = {'up': '상승 우세', 'down': '하락 우세', 'unclear': '판단 어려움'}
+
+
+def unclear(code, name, checked_at, reason):
+    checked = candidate._iso(checked_at)
+    return {
+        'code': code, 'name': name or code, 'direction': 'unclear',
+        'label': LABELS['unclear'], 'reason': reason,
+        'checkedAt': checked.isoformat() if checked else None,
+        'expiresAt': (checked + timedelta(minutes=60)).isoformat() if checked else None,
+        'horizonMinutes': 60, 'targetPct': 3, 'stopPct': -3,
+        'entryPrice': None, 'targetPrice': None, 'stopPrice': None,
+        'probability': None, 'validated': False, 'rulesVersion': MODEL_VERSION,
+        'metrics': {},
+    }
+
+
+def evaluate_direction(snapshot, candidate_result=None):
+    snapshot = snapshot if isinstance(snapshot, dict) else {}
+    base = candidate_result if candidate_result is not None else candidate.evaluate(snapshot)
+    result = unclear(snapshot.get('code'), snapshot.get('name'), snapshot.get('checkedAt'),
+                     '상승과 하락 근거가 충분히 일치하지 않습니다.')
+    checked = candidate._iso(snapshot.get('checkedAt'))
+    if checked is None or not (9, 5) <= (checked.hour, checked.minute) < (9, 15):
+        result['reason'] = '국내 장 오전 09:05부터 09:15 전까지 확인할 수 있습니다.'
+        return result
+    # Missing evidence may coexist with a known rejection. Never infer direction
+    # from status or hide a data issue behind the candidate's exclusion priority.
+    issues = base.get('inputIssues')
+    blockers = base.get('commonBlockers')
+    if issues is None or blockers is None:
+        result['reason'] = '방향 판단에 필요한 자료 검증 결과가 없습니다.'
+        return result
+    if issues or blockers:
+        result['reason'] = (issues or blockers)[0]
+        return result
+    bars, error = candidate._closed_bars(snapshot.get('bars'), checked)
+    if error:
+        result['reason'] = error
+        return result
+    metrics = base['metrics']
+    high_pivots = [i for i in range(1, len(bars) - 1)
+                   if bars[i]['high'] > bars[i - 1]['high']
+                   and bars[i]['high'] > bars[i + 1]['high']]
+    falling = bars[-3]['high'] > bars[-2]['high'] > bars[-1]['high']
+    falling_pivots = (len(high_pivots) >= 2
+                      and bars[high_pivots[-2]]['high'] > bars[high_pivots[-1]]['high'])
+    rising = metrics['risingRecentLows'] or metrics['risingConfirmedPivotLows']
+    bearish_pattern = falling or falling_pivots
+    # A large downward jump is also unsuitable for a conservative direction
+    # hypothesis; do not label an already completed crash as a new forecast.
+    drops = [(1 - row['low'] / row['open']) * 100 for row in bars]
+    drops += [(1 - bars[i]['open'] / bars[i - 1]['close']) * 100 for i in range(1, len(bars))]
+    result['metrics'] = dict(metrics, fallingRecentHighs=falling,
+                             fallingConfirmedPivotHighs=falling_pivots,
+                             maxMinuteDropPct=max(drops))
+    if max(drops) >= candidate.DEFAULT_SETTINGS['maxMinuteJumpPct'] - 1e-9:
+        result['reason'] = '한 번에 크게 하락한 구간이 있어 판단을 보류합니다.'
+        return result
+    if rising and bearish_pattern:
+        result['reason'] = '저점 상승과 고점 하락이 함께 나타나 방향을 보류합니다.'
+        return result
+    opening = candidate._num(snapshot['quote'].get('open'), strict=True)
+    trade_price = candidate._num(snapshot['trade'].get('price'), strict=True)
+    closing, vwap, strength = bars[-1]['close'], metrics['barTypicalPriceVwap'], metrics['strength']
+    bids = candidate._book_levels(snapshot['book']['bids'])
+    recent_volume = metrics['recent2MinuteVolume']
+    entry, stop = base['entryPrice'], base['stopPrice']
+    sell_burden = metrics['visibleResistanceToRecentVolume']
+    buy_burden = sum(row['qty'] for row in bids if stop <= row['price'] <= entry) / recent_volume
+    result['metrics']['visibleSupportToRecentVolume'] = buy_burden
+    # Wall ratios only veto a hypothesis. They never independently determine it,
+    # and ten visible levels are not the whole path to a +/-3% target.
+    up = (rising and not bearish_pattern and closing > opening and closing >= vwap
+          and trade_price >= closing * 0.998 and strength >= 110
+          and sell_burden <= 1)
+    down = (bearish_pattern and not rising and closing < opening and closing <= vwap
+            and trade_price <= closing * 1.002 and strength <= 10000 / 110
+            and buy_burden <= 1)
+    if up:
+        result.update(direction='up', label=LABELS['up'],
+                      reason='저점 상승·매수 체결·거래량이 상승 쪽으로 함께 움직입니다.')
+    elif down:
+        result.update(direction='down', label=LABELS['down'],
+                      reason='고점 하락·매도 체결·거래량이 하락 쪽으로 함께 움직입니다.')
+    if result['direction'] != 'unclear':
+        result.update(entryPrice=entry, targetPrice=base['targetPrice'], stopPrice=stop)
+    return result

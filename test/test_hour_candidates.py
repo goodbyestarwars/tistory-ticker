@@ -189,5 +189,41 @@ class ManualCheckTests(unittest.TestCase):
                                 'token', 'key', 'secret', 100, lambda: next(clocks))
 
 
+
+class DirectionServiceTests(unittest.TestCase):
+    def setUp(self):
+        mock.patch.object(checks.kis_client, 'get_token', return_value='token').start()
+        self.record = mock.patch.object(checks, '_record').start()
+        self.addCleanup(mock.patch.stopall)
+
+    def test_selected_result_is_one_direction_and_is_recorded_with_snapshot(self):
+        result = checks.check_direction('035420', name='NAVER', key='test', secret='test',
+                                        clock=lambda: NOW, collector=collect)
+        self.assertEqual(result['direction'], 'up')
+        self.assertNotIn('items', result)
+        self.assertNotIn('metrics', result)
+        self.assertFalse(result['validated'])
+        payload, inputs = self.record.call_args.args
+        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v1')
+        self.assertEqual(payload['items'][0]['directionVerdict']['direction'], 'up')
+        self.assertIn('035420', inputs)
+
+    def test_no_data_or_no_window_is_unclear_never_down(self):
+        for clock, collector in [(lambda: NOW.replace(hour=15), collect),
+                                  (lambda: NOW, mock.Mock(side_effect=RuntimeError('raw')) )]:
+            result = checks.check_direction('035420', key='test', secret='test', clock=clock, collector=collector)
+            self.assertEqual(result['direction'], 'unclear')
+            self.assertIsNone(result['entryPrice'])
+            self.assertNotIn('raw', result['reason'])
+
+    def test_down_direction_is_rechecked_for_staleness_at_delivery(self):
+        from test_hour_direction_engine import bearish_snapshot
+        clocks = iter([NOW, NOW.replace(second=20)])
+        result = checks.check_direction('035420', key='test', secret='test',
+                                        clock=lambda: next(clocks), collector=lambda *_: bearish_snapshot())
+        self.assertEqual(result['direction'], 'unclear')
+        self.assertIn('10초', result['reason'])
+        self.assertIsNone(result['entryPrice'])
+
 if __name__ == '__main__':
     unittest.main()

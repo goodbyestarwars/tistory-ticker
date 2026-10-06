@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import kis_client
 import market_clock
 import hour_candidate_engine as engine
+import hour_direction_engine as direction_engine
 
 KST = timezone(timedelta(hours=9))
 MAX_DETAILS = 24
@@ -238,7 +239,8 @@ def _record(payload, snapshots):
     record = {'checkedAt': payload['checkedAt'], 'modelVersion': MODEL_VERSION,
               'criteria': payload['criteria'], 'coverage': payload['coverage'],
               'rows': payload['items'] + payload['rejected'] + payload['unknown'],
-              'inputs': snapshots}
+              'inputs': snapshots,
+              'directionModelVersion': payload.get('directionModelVersion')}
     try:
         with _record_lock:
             if os.path.exists(RECORD_FILE) and os.path.getsize(RECORD_FILE) >= MAX_RECORD_BYTES:
@@ -251,7 +253,7 @@ def _record(payload, snapshots):
         logger.warning('manual hour check record unavailable')
 
 
-def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, pool_fetcher=None, collector=None):
+def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, pool_fetcher=None, collector=None, include_direction=False):
     clock = clock or (lambda: datetime.now(KST))
     started = clock().astimezone(KST)
     if mode not in ('ranked', 'selected'):
@@ -266,6 +268,8 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                'coverage': {'mode': mode, 'scope': 'KIS 거래량·거래증가율·거래대금 순위' if mode == 'ranked' else '선택 종목',
                             'universeCount': None, 'poolCount': 0, 'evaluatedCount': 0,
                             'skippedCount': 0, 'fullMarket': False, 'failedRankSections': []}}
+    if include_direction:
+        payload['directionModelVersion'] = direction_engine.MODEL_VERSION
     if not in_check_window(started):
         payload.update(state='outside_window', note='국내 거래일 09:05~09:15에 직접 확인하는 오전 실험 필터다. 현재 호가로 과거 시각을 대체하지 않는다.')
         return payload
@@ -306,6 +310,8 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                 try:
                     snapshot = future.result()
                     result = engine.evaluate(snapshot, criteria)
+                    if include_direction:
+                        result['directionVerdict'] = direction_engine.evaluate_direction(snapshot, result)
                     snapshots[row['code']] = snapshot
                 except MinuteBoundaryError as exc:
                     result = _unknown(row, clock().astimezone(KST), str(exc))
@@ -323,15 +329,23 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
         for row in rows[:MAX_DETAILS]:
             result = results[row['code']]
             snapshot = snapshots.get(row['code'])
-            if result['status'] == 'candidate' and snapshot:
+            if include_direction and 'directionVerdict' not in result:
+                result['directionVerdict'] = direction_engine.unclear(row['code'], row.get('name'), result['checkedAt'], result['reasons'][0])
+            verdict = result.get('directionVerdict')
+            if snapshot and (result['status'] == 'candidate' or (verdict and verdict['direction'] in ('up', 'down'))):
                 live_times = [snapshot.get(section, {}).get('time') for section in ('book', 'trade')]
                 try:
                     ages = [(completed - datetime.fromisoformat(value)).total_seconds() for value in live_times]
                 except (ValueError, TypeError):
                     ages = [float('inf')]
-                if any(age < 0 or age > engine.MAX_LIVE_AGE_SEC for age in ages):
-                    result['status'] = 'insufficient_data'
-                    result['reasons'] = ['결과를 받는 동안 호가·체결 자료가 10초 이상 오래됐다. 선택 종목 확인을 다시 누른다.']
+                if not in_check_window(completed) or any(age < 0 or age > engine.MAX_LIVE_AGE_SEC for age in ages):
+                    reason = ('오전 확인 시간이 끝났습니다. 다음 거래일 오전에 확인해줘.' if not in_check_window(completed) else
+                              '결과를 받는 동안 호가·체결 자료가 10초를 넘게 오래됐습니다. 다시 확인해줘.')
+                    if result['status'] == 'candidate':
+                        result['status'] = 'insufficient_data'
+                        result['reasons'] = [reason]
+                    if verdict:
+                        result['directionVerdict'] = direction_engine.unclear(row['code'], row.get('name'), result['checkedAt'], reason)
                 else:
                     result['metrics']['deliveryMaxAgeSec'] = max(ages)
             payload[{'candidate': 'items', 'rejected': 'rejected', 'insufficient_data': 'unknown'}[result['status']]].append(result)
@@ -348,3 +362,20 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
         for future in futures:
             future.add_done_callback(release_when_finished)
         release_when_finished()
+
+
+def check_direction(code, name='', **kwargs):
+    """One manually chosen stock, fixed criteria, no ranking or signal cache."""
+    payload = scan('selected', code=code, name=name, include_direction=True, **kwargs)
+    rows = payload['items'] + payload['rejected'] + payload['unknown']
+    row = rows[0] if rows else None
+    verdict = row.get('directionVerdict') if row else None
+    if verdict is None:
+        reason = (row['reasons'][0] if row else
+                  '국내 장 오전 09:05부터 09:15 전까지 확인할 수 있습니다.')
+        verdict = direction_engine.unclear(code, name, row['checkedAt'] if row else payload['checkedAt'], reason)
+    # Internal evidence stays in the local record. The public selected-stock
+    # view needs only one verdict and a short reason, never candidate buckets.
+    result = {key: value for key, value in verdict.items() if key != 'metrics'}
+    result.update(sourceStatus=payload['state'], recorded=payload.get('recorded', False))
+    return result

@@ -48,3 +48,31 @@ class ManualCheckRouteTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class DirectionRouteTests(unittest.TestCase):
+    setUp = ManualCheckRouteTests.setUp
+    def test_single_stock_direction_no_store_and_shared_rate_bucket(self):
+        with mock.patch.object(main.hour_candidates, 'check_direction', return_value={
+                'direction': 'unclear', 'probability': None, 'validated': False}) as check:
+            response = self.client.get('/hour-direction?code=035420&name=NAVER')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers['cache-control'], 'no-store')
+        self.assertEqual(response.json()['data']['direction'], 'unclear')
+        self.assertEqual(check.call_args.args, ('035420',))
+        self.assertEqual(check.call_args.kwargs['name'], 'NAVER')
+        self.assertEqual(self.rate.call_args.args[0], 'hour_candidates')
+
+    def test_direction_needs_stock_code_and_does_not_call_provider_on_invalid_input(self):
+        with mock.patch.object(main.hour_candidates, 'check_direction') as check:
+            for query in ['', 'code=../../x', 'code=US:AAPL', 'code=035420&name=' + 'a'*81]:
+                response = self.client.get('/hour-direction?' + query)
+                self.assertEqual(response.status_code, 422)
+            check.assert_not_called()
+
+    def test_direction_errors_do_not_expose_provider_details(self):
+        for error, status in [(main.hour_candidates.BusyError('secret'), 409), (RuntimeError('raw secret'), 503)]:
+            with mock.patch.object(main.hour_candidates, 'check_direction', side_effect=error):
+                response = self.client.get('/hour-direction?code=035420')
+            self.assertEqual(response.status_code, status)
+            self.assertNotIn('secret', response.text)
