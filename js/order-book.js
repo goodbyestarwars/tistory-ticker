@@ -884,7 +884,7 @@
     var spanSec = Math.round(spanMs / 1000);
     var delta = first.qty - currQty; // 양수 = 성벽이 깎임
     var noise = Math.max(1, wall.peakQty * 0.02);
-    if (Math.abs(delta) < noise) return '― 최근 ' + spanSec + '초 변화 거의 없음';
+    if (Math.abs(delta) < noise) return '⏸ 최근 ' + spanSec + '초간 성벽 그대로예요. 아직 안 깎였어요.';
     if (delta < 0) return '▲ 최근 ' + spanSec + '초간 ' + fmtQty(-delta) + '주 더 쌓였어요. 성벽이 두꺼워지는 중이에요.';
     var execQty = tr.execs.reduce(function (sum, e) { return sum + e.qty; }, 0);
     var execPct = Math.max(0, Math.min(100, Math.round(execQty / delta * 100)));
