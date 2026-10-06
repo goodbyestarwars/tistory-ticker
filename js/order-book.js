@@ -783,16 +783,17 @@
     var remaining = currQty - breakThreshold;
     var up = isUpCandle(quote);
     var priceLabel = Math.round(wall.price).toLocaleString('ko-KR');
+    // 2026-10-06 사용자 요청: 직설적으로, 성벽(위 매도벽)/방패(아래 지지) 비유로 쓴다.
     if (remaining <= 0) {
       el.textContent = up
-        ? '🎯 ' + priceLabel + '원 매도벽, 곧 돌파 판정 예정'
-        : '🛡️ ' + priceLabel + '원대 지지라인 방어중, 곧 재구축 신호 예정';
+        ? '🏰 ' + priceLabel + '원 성벽(매도벽)이 거의 무너졌어요. 곧 위로 뚫려요.'
+        : '🛡️ ' + priceLabel + '원 방패가 버텼어요. 곧 다시 올라설 수 있어요.';
     } else if (up) {
-      el.textContent = '🎯 ' + priceLabel + '원 매도벽 - 앞으로 약 '
-        + fmtQty(remaining) + '주 더 소진되면 돌파로 판정돼요(근사치).';
+      el.textContent = '🏰 ' + priceLabel + '원 성벽(매도벽)을 ' + fmtQty(remaining)
+        + '주만 더 깎으면 위로 뚫려요(근사치).';
     } else {
-      el.textContent = '🛡️ ' + priceLabel + '원대 지지라인 방어중 - 앞으로 약 '
-        + fmtQty(remaining) + '주 더 소진되면 재구축 신호로 바뀌어요(근사치).';
+      el.textContent = '🛡️ ' + priceLabel + '원 방패가 버티는 중이에요. ' + fmtQty(remaining)
+        + '주 더 받아내면 반등 신호예요(근사치).';
     }
   }
 
