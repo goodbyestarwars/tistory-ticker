@@ -92,12 +92,19 @@
     { key: 'gongpasan', label: '공파산 타점', desc: '최근 160일 고점 대비 25% 이상 하락한 뒤 40일 안팎의 바닥 횡보와 대량거래 매집 흔적이 나타난 종목을 추적합니다. 이후 직전 5봉 고가와 5일선을 강한 양봉으로 돌파한 뒤, 가격이 처음으로 20일선까지 눌렸을 때 거래량이 감소하고 종가 기준 지지가 확인되는 첫 눌림 구간을 매매 후보로 선별합니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심입니다.' },
     // 2026-09-04: 이 탭만 장중 스냅샷이다. 나머지는 전부 장 마감 뒤 일봉 배치라
     // 스캔 시각이 다르고, 그래서 목록 위 안내도 이 탭에서는 따로 표시한다.
-    { key: 'volumeBreakout', label: '거래량 돌파(5분)', desc: '시가가 전일종가보다 높게(갭상승) 출발하고, 개장 5분 시점(09:05)의 당일 누적 거래량이 전일 하루치의 30% 이상인 종목입니다. 최소 거래량 기준도 3만 주로 낮춰 이전보다 초기 거래 집중 종목을 더 많이 찾습니다.' }
+    { key: 'volumeBreakout', label: '거래량 돌파(5분)', desc: '장중 30초마다 거래량 순위를 읽어, 최근 3분 동안 늘어난 거래량이 전일 거래량의 3% 이상(3분 환산)인데 아직 많이 오르지 않은 종목을 잡습니다. 감지 시각·감지가를 기록하고, 감지 후 6% 이상 오르거나 45분이 지난 종목은 내립니다. 거래량 순위권에 못 든 아주 초기 종목은 놓칠 수 있습니다.' }
   ];
 
   var scanData = null;
   var scanPerformanceData = null;
   var activeTab = 'risingLows';
+  // 2026-10-06 사용자 지적("스캔 시점에는 스캐너가 의미가 없어, 사전포착이야"): 거래량 돌파 탭은 09:05 스냅샷 대신
+  // VM이 장중 30초마다 갱신하는 감지 목록(/volume-surge-live)을 쓴다. 실패하면 기존 스냅샷을 그대로 둔다.
+  var LIVE_SURGE_URL = 'https://goodbyestar.cloud/volume-surge-live';
+  var LIVE_SURGE_REFRESH_MS = 30000;
+  var liveSurgeTimer = null;
+  var liveSurgeInfo = null;
+  var scanMetaText = '';
   // 2026-10-04 패턴 포착 생애주기: 현재 포착(오늘 검색 결과) / 추적 중 / 추적 종료. 추적 기록은 서버(pattern_tracks)에
   // 쌓이고 오늘 검색 결과에서 빠져도 지워지지 않는다. 화면은 읽기만 한다.
   var trackView = 'current';
@@ -184,8 +191,10 @@
         btn.classList.add('active');
         activeTab = btn.getAttribute('data-tab');
         renderTabDesc(container);
+        updateMeta(container);
         renderList(container);
         closeDetail(container);
+        syncLiveSurge(container);
       });
     });
   }
@@ -221,14 +230,13 @@
       .catch(function () { return fetchWithRetry(scanUrl, hasPatterns); })
       .then(function (data) {
         scanData = data;
-        var meta = container.querySelector('#psMeta');
-        if (meta) {
-          meta.textContent = data.scannedAt
-            ? (baseDateLabel(data) + '스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
-            : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
-        }
+        scanMetaText = data.scannedAt
+          ? (baseDateLabel(data) + '스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
+          : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
+        updateMeta(container);
         renderList(container);
         loadScanPerformance(container);
+        syncLiveSurge(container);
       })
       .catch(function (err) {
         var list = container.querySelector('#psList');
@@ -242,6 +250,53 @@
           loadScan(container);
         });
       });
+  }
+
+  function updateMeta(container) {
+    var meta = container.querySelector('#psMeta');
+    if (!meta) return;
+    if (activeTab === 'volumeBreakout' && liveSurgeInfo) {
+      var t = liveSurgeInfo.updatedAt ? new Date(liveSurgeInfo.updatedAt) : null;
+      var hhmm = t && !isNaN(t.getTime())
+        ? new Date(t.getTime() + 9 * 3600000).toISOString().slice(11, 19)
+        : '';
+      meta.textContent = liveSurgeInfo.active
+        ? '실시간 사전포착 · 장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · 마지막 ' + hhmm : '')
+          + ' · 이미 많이 오른 ' + (liveSurgeInfo.ranCount || 0) + '종목은 제외'
+        : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 마지막 감지 기록을 보여줍니다.';
+      return;
+    }
+    meta.textContent = scanMetaText;
+  }
+
+  function loadLiveSurge(container) {
+    return PatternScan.fetchJson(LIVE_SURGE_URL + '?_=' + Date.now())
+      .then(function (envelope) {
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        if (!data || !Array.isArray(data.items)) throw new Error('live surge empty');
+        liveSurgeInfo = data;
+        if (scanData) {
+          scanData.patterns = scanData.patterns || {};
+          scanData.patterns.volumeBreakout = data.items;
+        }
+        if (activeTab === 'volumeBreakout') { updateMeta(container); renderList(container); }
+      })
+      .catch(function () {
+        // 실패하면 서버가 마지막으로 저장한 스냅샷을 그대로 둔다(탭이 비지 않게).
+        liveSurgeInfo = null;
+        if (activeTab === 'volumeBreakout') updateMeta(container);
+      });
+  }
+
+  function syncLiveSurge(container) {
+    clearInterval(liveSurgeTimer);
+    liveSurgeTimer = null;
+    if (activeTab !== 'volumeBreakout') { updateMeta(container); return; }
+    loadLiveSurge(container);
+    liveSurgeTimer = setInterval(function () {
+      if (activeTab !== 'volumeBreakout' || document.hidden || !document.body.contains(container)) return;
+      loadLiveSurge(container);
+    }, LIVE_SURGE_REFRESH_MS);
   }
 
   function scannerKey(patternKey) {
@@ -620,6 +675,10 @@
     }
     if (patternKey === 'volumeBreakout') {
       var volumeRatio = Number(detail.volumeRatio);
+      if (detail.live && isFinite(Number(detail.pace3))) {
+        return (detail.status === 'moving' ? '🟡 진행 중' : '🟢 초기') + ' · 3분 ' + (Number(detail.pace3) * 100).toFixed(1) + '%'
+          + (isFinite(volumeRatio) ? ' · 누적 ' + Math.round(volumeRatio * 100) + '%' : '');
+      }
       return isFinite(volumeRatio) ? '전일 대비 ' + volumeRatio.toFixed(2) + '배' : '전일 거래량 돌파';
     }
     return resistanceText || '패턴 조건 확인';
@@ -672,7 +731,7 @@
       openingGap: '전일 종가보다 높게 시작한 갭상승',
       angleMomentum: '전형가 이동평균의 기울기가 먼저 위로 꺾이는 초기 전환 구간',
       gongpasan: '바닥 횡보·매집 뒤 돌파한 종목의 첫 20일선 눌림 지지 구간',
-      volumeBreakout: '갭상승 출발 + 개장 5분 누적 거래량이 전일의 30% 이상'
+      volumeBreakout: '거래량이 붙기 시작했는데 아직 많이 오르지 않은 초기 구간'
     }[patternKey] || '검색 조건을 충족한 차트 패턴';
   }
 
@@ -702,7 +761,9 @@
     }
 
     // 20개를 넘는 후보에만 차트 품질 게이트를 적용한 뒤, 통과한 후보는 모두 표시한다.
-    var sorted = items.slice().sort(function (a, b) {
+    // 실시간 사전포착 목록은 서버가 정한 순서(초기 먼저, 거래량 속도 순)를 그대로 쓴다.
+    var serverOrdered = !!(items[0] && items[0].patternDetail && items[0].patternDetail.live);
+    var sorted = serverOrdered ? items.slice() : items.slice().sort(function (a, b) {
       var scoreDiff = (b.score || 0) - (a.score || 0);
       if (scoreDiff) return scoreDiff;
       return String(b.date || '').localeCompare(String(a.date || ''));
@@ -727,7 +788,7 @@
         + (it.date ? ' data-scan-date="' + escapeHtml(String(it.date)) + '"' : '')
         + '><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
-        + '<span class="ps-price-basis">스캔 시점</span></span>'
+        + '<span class="ps-price-basis">' + (activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지 시점' : '스캔 시점') + '</span></span>'
         + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + performanceTrackingHtml(it) + '</span>'
         + '</div>';
     }).join('');
@@ -918,14 +979,18 @@
     var tone = rounded > 0 ? 'is-up' : (rounded < 0 ? 'is-down' : 'is-flat');
     var sign = rounded > 0 ? '+' : (rounded < 0 ? '-' : '');
     var date = scanDateLabel(scanDate);
-    return '<b class="ps-scan-gap ' + tone + '">스캔 대비 ' + sign + Math.abs(rounded).toFixed(1) + '%</b>'
-      + '<span class="ps-scan-ref">' + (date ? escapeHtml(date) + ' ' : '') + '스캔가 ' + fmt(scanPrice) + '원</span>';
+    var word = activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지' : '스캔';
+    return '<b class="ps-scan-gap ' + tone + '">' + word + ' 대비 ' + sign + Math.abs(rounded).toFixed(1) + '%</b>'
+      + '<span class="ps-scan-ref">' + (date ? escapeHtml(date) + ' ' : '') + word + '가 ' + fmt(scanPrice) + '원</span>';
   }
 
   function markPriceBasis(container, live) {
     var meta = container.querySelector('#psPriceBasis');
     if (!meta) return;
-    meta.textContent = live
+    var isLiveSurge = activeTab === 'volumeBreakout' && liveSurgeInfo;
+    meta.textContent = live && isLiveSurge
+      ? '가격·등락률은 방금 조회한 실시간 값이고, 감지 신호는 감지 시점 기준입니다. "감지 대비"는 감지가에서 지금까지 움직인 폭입니다.'
+      : live
       ? '가격·등락률은 방금 조회한 실시간 값이고, 순위·감지 신호는 스캔 시점 기준입니다. "스캔 대비"는 스캔가에서 지금까지 움직인 폭입니다.'
       : '실시간 시세를 불러오지 못해 가격·등락률도 스캔 시점 값을 그대로 보여줍니다.';
     meta.className = 'ps-price-basis-note' + (live ? '' : ' is-stale');

@@ -58,6 +58,7 @@ import option_flow
 import order_book
 import public_data
 import binance_flow
+import volume_surge_live
 import circuit_breaker
 import kis_ws_hub
 import kiwoom_ws_hub
@@ -185,6 +186,13 @@ def _start_futures_collectors():
         binance_flow.start_background()
     except Exception:
         logging.getLogger('main').exception('바이낸스 참고 시세 수집 시작 실패')
+
+    # 2026-10-06 사용자 지적("스캔 시점에는 스캐너가 의미가 없어, 사전포착이야"): 거래량 돌파 탭을 09:05 1회
+    # 스냅샷에서 장중 30초 연속 감시로 바꾼다. 거래량 순위 4건/30초, FastAPI 안의 스레드 하나(volume_surge_live.py).
+    try:
+        volume_surge_live.start_background(kis_appkey, kis_appsecret)
+    except Exception:
+        logging.getLogger('main').exception('거래량 사전포착 시작 실패')
 
     # 2026-09-15 작업지시서: 메인페이지 VI·사이드카 배지. 서버 한 곳에서만 20초마다 조회(정규장·애프터마켓만),
     # 방문자 브라우저는 /api/circuit-breaker 캐시만 읽는다(circuit_breaker.py).
@@ -3497,6 +3505,17 @@ def theme_flow_endpoint(request: Request):
             status_code=503,
             detail=cached.get('error') or '테마 흐름을 불러오는 중입니다. 잠시 후 다시 시도해주세요.')
     return envelope(result)
+
+
+@app.get('/volume-surge-live')
+def volume_surge_live_endpoint(request: Request):
+    """차트검색 "거래량 돌파" 탭의 장중 사전포착 목록(서버 메모리만 읽는 가벼운 GET).
+
+    2026-10-06. items는 /pattern-scan의 패턴 행과 같은 모양(price=감지가). patternDetail.status는
+    early(감지가 대비 +3% 미만)·moving(+3~6%), 그 이상 오른 종목은 ranCount로만 센다.
+    """
+    _check_rate_limit('volume_surge_live', request, max_per_window=60)
+    return envelope(volume_surge_live.get_payload())
 
 
 @app.get('/api/circuit-breaker')
