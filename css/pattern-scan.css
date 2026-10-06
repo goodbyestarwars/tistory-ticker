@@ -830,3 +830,15 @@ html.dark #pattern-scan .ps-footnote b {
   .ps-track-head { display: none; }
   .ps-track-row { grid-template-columns: 1fr 1fr; row-gap: 6px; }
 }
+
+/* 2026-10-06 포착 개편: 상태 칩(전체·신규 포착·돌파 준비·돌파 성공·돌파 실패)과 목록 상태 배지 */
+.ps-view-tabs { flex-wrap: wrap; max-width: 100%; border-radius: 18px; }
+.ps-view-tab small { margin-left: 2px; font-size: 11px; font-weight: 700; color: #94a3b8; }
+.ps-view-tab.active small { color: #64748b; }
+#pattern-scan .ps-stage { display: inline-block; margin-right: 4px; padding: 1px 7px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1.5; white-space: nowrap; vertical-align: 1px; }
+#pattern-scan .ps-stage.is-new { background: #eef2ff; color: #4338ca; }
+#pattern-scan .ps-stage.is-ready { background: #fff4d6; color: #a15c07; }
+#pattern-scan .ps-stage.is-hold { background: #f1f5f9; color: #64748b; }
+html.dark #pattern-scan .ps-stage.is-new { background: rgba(99, 102, 241, .22); color: #c7d2fe; }
+html.dark #pattern-scan .ps-stage.is-ready { background: rgba(245, 158, 11, .22); color: #fde68a; }
+html.dark #pattern-scan .ps-stage.is-hold { background: rgba(148, 163, 184, .18); color: #cbd5e1; }

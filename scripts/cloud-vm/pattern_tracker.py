@@ -12,8 +12,10 @@
 - 판정은 종가 기준이다(장중 고가·저가로 돌파/실패를 확정하지 않는다).
 - 사이트 문구는 "추천"이 아니라 "패턴 포착"을 쓴다.
 
-상태: NEW(신규 포착) -> TRACKING(추적 중) -> BREAKOUT(저항 돌파) -> BREAKOUT_CONFIRMED(돌파 유지)
-      어느 단계에서든 FAILED(지지선 이탈/돌파 실패), 방향이 안 나오면 EXPIRED(추적 종료).
+상태(2026-10-06 개편): NEW(신규 포착) -> TRACKING(추적 중) -> SUCCESS(돌파 성공) 또는 FAILED(돌파 실패).
+      SUCCESS = 포착가 대비 장중 고가가 +3%를 터치. FAILED = 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보(fail_reason 참고).
+      예전 상태(BREAKOUT/BREAKOUT_CONFIRMED/EXPIRED)는 이전 기록으로만 남고, 열린 추적은 새 기준으로 다시 판정된다.
+      "돌파 준비"는 저장하지 않는다 - 화면이 기준선까지 거리(3% 이내)로 현재 목록에서 계산한다.
 """
 
 import json
@@ -24,20 +26,18 @@ from datetime import datetime, timedelta, timezone
 LOGGER = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
 
-# ---- 튜닝 상수(상수로 두어 10/15/20거래일 등으로 쉽게 조정) ----
-MAX_TRACKING_DAYS = 15          # 돌파·실패 없이 이만큼 지나면 EXPIRED
-BREAKOUT_MARGIN = 1.02          # 종가가 포착 당시 저항선의 이 배율 이상이면 BREAKOUT
-CONFIRM_DAYS = 3                # 돌파 뒤 이 거래일 동안 유지하면 BREAKOUT_CONFIRMED
-CONFIRM_FLOOR = 0.99            # 돌파 뒤 종가가 저항선의 이 배율 아래로 내려오면 돌파 실패
-FAIL_CONSECUTIVE_DAYS = 2       # 지지선 - 허용오차 아래로 종가가 이만큼 연속이면 FAILED
-FAIL_TOLERANCE_ATR = 0.5        # 허용오차 = ATR x 이 값
-FAIL_IMMEDIATE_ATR = 1.0        # 종가가 지지선 - ATR x 이 값 아래면 즉시 FAILED
+# ---- 튜닝 상수 ----
+SUCCESS_PCT = 3.0               # 포착가 대비 장중 고가가 이만큼 오르면 돌파 성공
+FAIL_LOSS_PCT = 3.0             # 포착가 대비 종가가 이만큼 내려가면 돌파 실패
+SIDEWAYS_DAYS = 5               # 성공·실패 없이 이만큼(약 일주일) 지나면 횡보 실패
+MA5_PERIOD = 5                  # 5일선 종가 이탈 판정(포착일 종가가 5일선 위였을 때만)
 ATR_PERIOD = 14
 PERF_WINDOW_BARS = 20           # 최대 상승/하락·5/10/20일 수익률을 재는 구간(포착 다음 거래일부터)
-VOLUME_RATIO_STRONG = 1.5       # 강한 돌파로 보는 거래량 배수(필수 조건 아님, 점수에만 반영)
+VOLUME_RATIO_STRONG = 1.5       # 돌파 신뢰도 점수의 강한 거래량 배수
 
 OPEN_STATUSES = ('NEW', 'TRACKING', 'BREAKOUT')
-CLOSED_STATUSES = ('BREAKOUT_CONFIRMED', 'FAILED', 'EXPIRED')
+CLOSED_STATUSES = ('SUCCESS', 'FAILED', 'BREAKOUT_CONFIRMED', 'EXPIRED')
+SUCCESS_STATUSES = ('SUCCESS', 'BREAKOUT_CONFIRMED')
 
 DDL = '''
 CREATE TABLE IF NOT EXISTS pattern_tracks (
@@ -223,63 +223,54 @@ def _breakout_quality(bar, history):
     return quality
 
 
+def _ma(bars, end, period=MA5_PERIOD):
+    """bars[end] 까지 period개 종가 평균. 부족하면 None."""
+    if end + 1 < period:
+        return None
+    closes = [_num(b['close']) for b in bars[end + 1 - period:end + 1]]
+    return sum(closes) / period if None not in closes else None
+
+
 def evaluate_track(track, before_bars, after_bars):
-    """포착일 다음 거래일부터의 일봉으로 상태를 처음부터 다시 판정한다(결정적). track은 dict, 변경 필드를 dict로 돌려준다."""
-    snapshot = {}
-    try:
-        snapshot = json.loads(track.get('snapshot_json') or '{}')
-    except ValueError:
-        snapshot = {}
-    line = _support_line(snapshot)
+    """포착일 다음 거래일부터의 일봉으로 상태를 처음부터 다시 판정한다(결정적). track은 dict, 변경 필드를 dict로 돌려준다.
+
+    성공은 장중 고가 +3% 터치(같은 날 종가 실패보다 우선), 실패는 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보.
+    """
     all_bars = list(before_bars) + list(after_bars)
-    dates_index = {b['date']: i for i, b in enumerate(all_bars)}
-    atr = _num(track.get('atr')) or 0.0
-    resistance = _num(track.get('initial_resistance'))
+    offset = len(before_bars)
     detected_close = _num(track.get('detected_close'))
 
     status, fail_reason, status_date = 'NEW', None, track['detected_date']
-    below = 0
-    breakout_idx = None
     breakout_date = None
     quality = None
     closed_date = None
+    ma_at_detect = _ma(all_bars, offset - 1) if offset else None
+    guard_ma5 = bool(detected_close and ma_at_detect and detected_close >= ma_at_detect)
     for k, bar in enumerate(after_bars):
         days = k + 1
-        close = _num(bar['close'])
+        close, high = _num(bar['close']), _num(bar['high'])
         if close is None:
             continue
-        if status == 'NEW':
-            status, status_date = 'TRACKING', bar['date']
-        if status == 'TRACKING':
-            support = _support_value_at(line, dates_index, bar['date'])
-            if support is not None:
-                if close < support - atr * FAIL_IMMEDIATE_ATR and atr > 0:
-                    status, fail_reason, status_date, closed_date = 'FAILED', 'SUPPORT_BREAK', bar['date'], bar['date']
-                    break
-                if close < support - atr * FAIL_TOLERANCE_ATR:
-                    below += 1
-                    if below >= FAIL_CONSECUTIVE_DAYS:
-                        status, fail_reason, status_date, closed_date = 'FAILED', 'SUPPORT_BREAK', bar['date'], bar['date']
-                        break
-                else:
-                    below = 0
-            if resistance and close >= resistance * BREAKOUT_MARGIN:
-                status, status_date = 'BREAKOUT', bar['date']
-                breakout_idx, breakout_date = k, bar['date']
-                quality = _breakout_quality(bar, all_bars[:len(before_bars) + k])
-                continue
-            if days >= MAX_TRACKING_DAYS:
-                status, status_date, closed_date = 'EXPIRED', bar['date'], bar['date']
+        status, status_date = 'TRACKING', bar['date']
+        if detected_close:
+            if high is not None and high >= detected_close * (1 + SUCCESS_PCT / 100):
+                status, breakout_date, closed_date = 'SUCCESS', bar['date'], bar['date']
+                quality = _breakout_quality(bar, all_bars[:offset + k])
                 break
-        elif status == 'BREAKOUT':
-            if resistance and close < resistance * CONFIRM_FLOOR:
-                status, fail_reason, status_date, closed_date = 'FAILED', 'BREAKOUT_FAILED', bar['date'], bar['date']
+            if close <= detected_close * (1 - FAIL_LOSS_PCT / 100):
+                status, fail_reason, closed_date = 'FAILED', 'LOSS_3PCT', bar['date']
                 break
-            if k - breakout_idx >= CONFIRM_DAYS:
-                status, status_date, closed_date = 'BREAKOUT_CONFIRMED', bar['date'], bar['date']
-                break
+        ma5 = _ma(all_bars, offset + k)
+        if guard_ma5 and ma5 is not None and close < ma5:
+            status, fail_reason, closed_date = 'FAILED', 'MA5_BREAK', bar['date']
+            break
+        if days >= SIDEWAYS_DAYS:
+            status, fail_reason, closed_date = 'FAILED', 'SIDEWAYS', bar['date']
+            break
 
     window = after_bars[:PERF_WINDOW_BARS]
+    if closed_date:
+        status_date = closed_date
     out = {
         'status': status, 'fail_reason': fail_reason, 'status_date': status_date,
         'tracking_days': len(after_bars), 'breakout_date': breakout_date, 'breakout_quality': quality,
@@ -353,7 +344,7 @@ def _row_to_dict(cols, row):
 
 
 def list_tracks(conn, scanner, view='all', days=90, limit=100):
-    """화면용 목록. view: active(NEW/TRACKING/BREAKOUT) / closed(BREAKOUT_CONFIRMED/FAILED/EXPIRED) / all."""
+    """화면용 목록. view: active / closed / success(돌파 성공) / failed(돌파 실패) / all."""
     ensure_schema(conn)
     cols = [r[1] for r in conn.execute('PRAGMA table_info(pattern_tracks)')]
     sql = 'SELECT * FROM pattern_tracks WHERE scanner=? AND detected_date>=?'
@@ -363,8 +354,14 @@ def list_tracks(conn, scanner, view='all', days=90, limit=100):
         sql += ' AND status IN (?,?,?)'
         params += list(OPEN_STATUSES)
     elif view == 'closed':
-        sql += ' AND status IN (?,?,?)'
+        sql += ' AND status IN (?,?,?,?)'
         params += list(CLOSED_STATUSES)
+    elif view == 'success':
+        sql += ' AND status IN (?,?)'
+        params += list(SUCCESS_STATUSES)
+    elif view == 'failed':
+        sql += ' AND status IN (?,?)'
+        params += ['FAILED', 'EXPIRED']
     sql += ' ORDER BY detected_date DESC, id DESC LIMIT ?'
     params.append(max(1, min(int(limit), 300)))
     out = []
@@ -394,13 +391,14 @@ def tracker_stats(conn, scanner, days=90):
     counts = {}
     for status, *_ in rows:
         counts[status] = counts.get(status, 0) + 1
-    broke = [r for r in rows if r[2]]
+    broke = [r for r in rows if r[2] or r[0] in SUCCESS_STATUSES]
     decided = [r for r in rows if r[0] in CLOSED_STATUSES or r[2]]
     return {
         'days': int(days), 'total': total, 'counts': counts,
         'breakout': len(broke),
         'breakoutConfirmed': counts.get('BREAKOUT_CONFIRMED', 0),
-        'failed': counts.get('FAILED', 0),
+        'success': sum(counts.get(s, 0) for s in SUCCESS_STATUSES),
+        'failed': counts.get('FAILED', 0) + counts.get('EXPIRED', 0),
         'active': sum(counts.get(s, 0) for s in OPEN_STATUSES),
         'breakoutRatePct': round(len(broke) / total * 100, 1) if total else None,
         'confirmRatePct': round(counts.get('BREAKOUT_CONFIRMED', 0) / total * 100, 1) if total else None,

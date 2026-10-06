@@ -2709,14 +2709,14 @@ def pattern_tracks_public(request: Request, scanner: str, view: str = 'all',
                           days: int = 90, limit: int = 100):
     """패턴 포착 종목의 사후 추적(포착 스냅샷 + 현재 상태)과 검색기 통계. 공개 읽기 전용.
 
-    view: active(추적 중) / closed(추적 종료) / all. 포착 기록은 삭제되지 않는다.
+    view: active(추적 중) / closed / success(돌파 성공) / failed(돌파 실패) / all. 포착 기록은 삭제되지 않는다.
     상태·수익률은 종가 기준 판정이며 매매 성과나 추천이 아니다.
     """
     _check_rate_limit('pattern_tracks', request, max_per_window=30)
     if not scanner.startswith('pattern:') or len(scanner) > 60:
         raise HTTPException(status_code=400, detail='scanner는 pattern:<키> 형식이어야 합니다.')
-    if view not in ('active', 'closed', 'all'):
-        raise HTTPException(status_code=400, detail='view는 active/closed/all 중 하나여야 합니다.')
+    if view not in ('active', 'closed', 'success', 'failed', 'all'):
+        raise HTTPException(status_code=400, detail='view는 active/closed/success/failed/all 중 하나여야 합니다.')
     import pattern_tracker
     days = max(1, min(int(days), 365))
     conn = db_schema.get_conn()

@@ -107,19 +107,24 @@
   var scanMetaText = '';
   // 2026-10-04 패턴 포착 생애주기: 현재 포착(오늘 검색 결과) / 추적 중 / 추적 종료. 추적 기록은 서버(pattern_tracks)에
   // 쌓이고 오늘 검색 결과에서 빠져도 지워지지 않는다. 화면은 읽기만 한다.
-  var trackView = 'current';
+  var trackView = 'all';   // all / new / ready (오늘 검색 결과) · success / failed (추적 기록)
   var trackedCache = {};
   var psTrackCtx = null;
   var PATTERN_TRACKS_URL = 'https://goodbyestar.cloud/pattern-tracks';
   var TRACK_STATUS = {
     NEW: { label: '신규 포착', tone: 'is-flat' },
     TRACKING: { label: '추적 중', tone: 'is-flat' },
+    SUCCESS: { label: '돌파 성공', tone: 'is-up' },
     BREAKOUT: { label: '저항 돌파', tone: 'is-up' },
     BREAKOUT_CONFIRMED: { label: '돌파 유지', tone: 'is-up' },
-    FAILED: { label: '실패', tone: 'is-down' },
+    FAILED: { label: '돌파 실패', tone: 'is-down' },
     EXPIRED: { label: '기간 만료', tone: 'is-flat' }
   };
-  var TRACK_FAIL_REASON = { SUPPORT_BREAK: '지지선 이탈', BREAKOUT_FAILED: '돌파 실패' };
+  var TRACK_FAIL_REASON = { SUPPORT_BREAK: '지지선 이탈', BREAKOUT_FAILED: '돌파 실패', LOSS_3PCT: '종가 -3%', MA5_BREAK: '5일선 이탈', SIDEWAYS: '5거래일 횡보' };
+  // 2026-10-06 포착 개편: 별도 추적 화면 대신 각 패턴 목록에 상태를 붙인다. 신규 포착 / 돌파 준비(기준선 3% 이내)는 오늘 검색 결과에서,
+  // 돌파 성공(장중 고가 +3%) / 돌파 실패(종가 -3%·5일선 이탈·5거래일 횡보)는 서버 추적 기록(pattern_tracks)에서 보여 준다.
+  var READY_GAP_PCT = 3;
+  var STAGE_VIEWS = [['all', '전체'], ['new', '신규 포착'], ['ready', '돌파 준비'], ['success', '돌파 성공'], ['failed', '돌파 실패']];
 
   function stockIconHtml(code, cls) {
     if (!code) return '';
@@ -153,9 +158,9 @@
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
       + '<div class="ps-view-tabs" id="psViewTabs" role="tablist">'
-      + '<button type="button" class="ps-view-tab active" data-view="current">현재 포착</button>'
-      + '<button type="button" class="ps-view-tab" data-view="active">추적 중</button>'
-      + '<button type="button" class="ps-view-tab" data-view="closed">추적 종료</button>'
+      + STAGE_VIEWS.map(function (v, i) {
+        return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
+      }).join('')
       + '</div>'
       + '<div class="ps-track-summary" id="psTrackSummary"></div>'
       + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
@@ -748,15 +753,95 @@
     return ' · 애널리스트 목표가 ' + fmt(target) + '원' + gapText;
   }
 
+  function trackMapFor(key) {
+    var cached = trackedCache[key + '|active'];
+    var map = {};
+    ((cached && cached.data && cached.data.tracks) || []).forEach(function (t) {
+      if (!map[t.code] || String(t.detected_date) > String(map[t.code].detected_date)) map[t.code] = t;
+    });
+    return map;
+  }
+
+  // 현재 목록 종목이 기준선(저항·넥라인·구름 상단)까지 3% 이내인지. 패턴별로 이미 계산돼 있는 값을 우선 쓴다.
+  function readyGapOk(item) {
+    var detail = detailFor(item);
+    var top = Number(detail.cloudTopDistance);
+    if (activeTab === 'maCloudBreakout' && isFinite(top)) return top <= 0 && top >= -READY_GAP_PCT;
+    var neck = Number(detail.necklineDistancePct);
+    if ((activeTab === 'doubleBottom' || activeTab === 'invHeadShoulders') && isFinite(neck)) return Math.abs(neck) <= READY_GAP_PCT;
+    var resistance = Number(detail.resistance);
+    var current = Number(item.price);
+    if (resistance > 0 && current > 0 && resistance >= current) return (resistance - current) / current * 100 <= READY_GAP_PCT;
+    return false;
+  }
+
+  function itemStage(item) {
+    var track = trackMapFor(scannerKey(activeTab))[item && item.code];
+    var scanDay = String((item && item.date) || '').slice(0, 10);
+    var isNew = !track || (scanDay && String(track.detected_date) >= scanDay);
+    if (isNew) return { key: 'new', label: '신규 포착', tone: 'is-new' };
+    if (readyGapOk(item)) return { key: 'ready', label: '돌파 준비', tone: 'is-ready' };
+    return { key: 'hold', label: '포착 유지', tone: 'is-hold' };
+  }
+
+  function stageBadgeHtml(item) {
+    var st = itemStage(item);
+    return '<b class="ps-stage ' + st.tone + '">' + st.label + '</b> ';
+  }
+
+  // 신규/유지 구분과 칩 숫자에 쓰는 서버 추적 기록(2분 캐시). 도착하면 목록과 칩을 다시 그린다.
+  function ensureTrackMap(container) {
+    var key = scannerKey(activeTab);
+    var cacheKey = key + '|active';
+    var cached = trackedCache[cacheKey];
+    if (cached && Date.now() - cached.at < 120000) { paintStageCounts(container); return; }
+    if (cached && cached.loading) return;
+    trackedCache[cacheKey] = { at: cached ? cached.at : 0, data: cached ? cached.data : null, loading: true };
+    fetchJson(PATTERN_TRACKS_URL + '?scanner=' + encodeURIComponent(key) + '&view=active&days=90&limit=300')
+      .then(function (envelope) {
+        var data = envelope && envelope.data ? envelope.data : envelope;
+        trackedCache[cacheKey] = { at: Date.now(), data: data };
+        if (scannerKey(activeTab) !== key) return;
+        if (trackView === 'all' || trackView === 'new' || trackView === 'ready') renderList(container);
+        else paintStageCounts(container);
+      })
+      .catch(function () {
+        trackedCache[cacheKey] = { at: Date.now(), data: cached ? cached.data : null };
+      });
+  }
+
+  function paintStageCounts(container) {
+    var key = scannerKey(activeTab);
+    var cached = trackedCache[key + '|active'];
+    var stats = cached && cached.data && cached.data.stats;
+    var counts = { all: 0, new: 0, ready: 0 };
+    ((scanData && scanData.patterns && scanData.patterns[activeTab]) || []).forEach(function (it) {
+      counts.all += 1;
+      var k = itemStage(it).key;
+      if (counts[k] != null) counts[k] += 1;
+    });
+    if (stats) { counts.success = stats.success || 0; counts.failed = stats.failed || 0; }
+    container.querySelectorAll('#psViewTabs [data-count]').forEach(function (el) {
+      var n = counts[el.getAttribute('data-count')];
+      el.textContent = n == null ? '' : ' ' + n;
+    });
+  }
+
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
     if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
 
-    if (trackView !== 'current') { renderTrackedList(container); return; }
-    var items = (scanData.patterns && scanData.patterns[activeTab]) || [];
+    if (trackView === 'success' || trackView === 'failed') { renderTrackedList(container); return; }
+    ensureTrackMap(container);
+    var allItems = (scanData.patterns && scanData.patterns[activeTab]) || [];
+    var items = allItems.filter(function (it) {
+      return trackView === 'all' || itemStage(it).key === trackView;
+    });
     if (!items.length) {
-      list.innerHTML = '<div class="ps-hint">지금 이 패턴에 해당하는 종목이 없어요.</div>';
+      list.innerHTML = '<div class="ps-hint">' + (allItems.length
+        ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
+        : '지금 이 패턴에 해당하는 종목이 없어요.') + '</div>';
       return;
     }
 
@@ -779,10 +864,10 @@
         + '<div class="ps-stock">'
         + '<span class="ps-name">' + stockIconHtml(it.code) + '<span>' + escapeHtml(it.name) + '</span></span>'
         + '<span class="ps-code">' + escapeHtml(it.code) + '</span>'
-        + '<span class="ps-mobile-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
+        + '<span class="ps-mobile-signal">' + stageBadgeHtml(it) + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '</div>'
         + '<div class="ps-mini-chart-wrap">' + miniChartHtml(it) + '</div>'
-        + '<span class="ps-signal">' + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
+        + '<span class="ps-signal">' + stageBadgeHtml(it) + escapeHtml(scannerSignal(it, activeTab)) + '</span>'
         + '<span class="ps-quote is-scan"'
         + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeHtml(String(Number(it.price))) + '"')
         + (it.date ? ' data-scan-date="' + escapeHtml(String(it.date)) + '"' : '')
@@ -806,6 +891,7 @@
     });
     patchLivePrices(container);
     renderTrackSummary(container);
+    paintStageCounts(container);
   }
 
   function trackPct(value) {
@@ -831,9 +917,8 @@
     return '<div class="ps-track-stats">'
       + cell('최근 ' + stats.days + '일 포착', stats.total + '건')
       + cell('추적 중', stats.active + '건')
-      + cell('돌파', stats.breakout + '건' + (stats.breakoutRatePct == null ? '' : ' (' + stats.breakoutRatePct + '%)'))
-      + cell('돌파 유지', (stats.breakoutConfirmed || 0) + '건')
-      + cell('실패', (stats.failed || 0) + '건')
+      + cell('돌파 성공', (stats.success || 0) + '건' + (stats.total ? ' (' + Math.round((stats.success || 0) / stats.total * 100) + '%)' : ''))
+      + cell('돌파 실패', (stats.failed || 0) + '건')
       + cell('평균 5일', trackPct(stats.avgRet5Pct))
       + cell('평균 10일', trackPct(stats.avgRet10Pct))
       + cell('평균 최대 상승', trackPct(stats.avgMaxReturnPct))
@@ -854,11 +939,11 @@
     var cacheKey = key + '|' + trackView;
     var cached = trackedCache[cacheKey];
     function paint(data) {
-      if (scannerKey(activeTab) !== key || trackView === 'current') return;
+      if (scannerKey(activeTab) !== key || (trackView !== 'success' && trackView !== 'failed')) return;
       var tracks = (data && data.tracks) || [];
       var head = trackStatsHtml(data && data.stats);
       if (!tracks.length) {
-        list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'active' ? '지금 추적 중인 종목이 없어요.' : '추적이 끝난 종목이 아직 없어요.') + '</div>';
+        list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'success' ? '아직 돌파 성공(포착가 대비 장중 +3%)한 종목이 없어요.' : '아직 돌파 실패로 정리된 종목이 없어요.') + '</div>';
         return;
       }
       var byCode = {};

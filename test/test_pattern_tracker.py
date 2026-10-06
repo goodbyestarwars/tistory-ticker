@@ -64,33 +64,33 @@ class PatternTrackerTest(unittest.TestCase):
         self.assertEqual(pt.record_new(conn, day(30), 'pattern:risingLows', [ITEM]), 0)
         self.assertEqual(conn.execute('SELECT COUNT(*) FROM pattern_tracks').fetchone()[0], 1)
 
-    def test_tracking_then_expired(self):
-        _, _, row = run([100.0] * (pt.MAX_TRACKING_DAYS + 2))
-        self.assertEqual(row['status'], 'EXPIRED')
-        self.assertIsNotNone(row['closed_date'])
+    def test_open_while_inside_band(self):
+        _, _, row = run([100.5, 100.5, 100.5])
+        self.assertEqual(row['status'], 'TRACKING')
+        self.assertIsNone(row['closed_date'])
 
-    def test_breakout_and_confirmed(self):
-        _, _, row = run([100.0, 113.0, 114.0, 115.0, 116.0, 117.0])
-        self.assertEqual(row['status'], 'BREAKOUT_CONFIRMED')
-        self.assertEqual(row['breakout_date'], day(31))
+    def test_success_on_intraday_high_touch(self):
+        # 고가 = 종가+1 이므로 종가 102.5 -> 고가 103.5 >= 포착가 x 1.03
+        _, _, row = run([100.0, 100.0, 102.5])
+        self.assertEqual(row['status'], 'SUCCESS')
+        self.assertEqual(row['breakout_date'], day(32))
         self.assertGreaterEqual(row['breakout_quality'], 60)
 
-    def test_breakout_state_before_confirm(self):
-        _, _, row = run([100.0, 113.0, 114.0])
-        self.assertEqual(row['status'], 'BREAKOUT')
-
-    def test_breakout_failure(self):
-        _, _, row = run([100.0, 113.0, 105.0])
+    def test_failure_on_close_minus_3pct(self):
+        _, _, row = run([100.0, 96.9])
         self.assertEqual(row['status'], 'FAILED')
-        self.assertEqual(row['fail_reason'], 'BREAKOUT_FAILED')
+        self.assertEqual(row['fail_reason'], 'LOSS_3PCT')
 
-    def test_support_break_requires_two_closes_or_big_gap(self):
-        # 지지선(약 95) - ATR*0.5 아래 한 번은 유지, 연속 두 번이면 실패
-        _, _, one = run([100.0, 94.0, 100.0, 100.0])
-        self.assertNotEqual(one['status'], 'FAILED')
-        _, _, two = run([100.0, 94.0, 94.0])
-        self.assertEqual(two['status'], 'FAILED')
-        self.assertEqual(two['fail_reason'], 'SUPPORT_BREAK')
+    def test_failure_on_ma5_break(self):
+        _, _, row = run([101.0, 101.0, 99.0])
+        self.assertEqual(row['status'], 'FAILED')
+        self.assertEqual(row['fail_reason'], 'MA5_BREAK')
+
+    def test_failure_on_sideways_week(self):
+        _, _, row = run([100.5] * (pt.SIDEWAYS_DAYS + 2))
+        self.assertEqual(row['status'], 'FAILED')
+        self.assertEqual(row['fail_reason'], 'SIDEWAYS')
+        self.assertEqual(row['closed_date'], day(29 + pt.SIDEWAYS_DAYS))
 
     def test_returns_and_excursions_use_detected_close(self):
         _, _, row = run([100.0, 104.0, 102.0, 101.0, 105.0, 108.0])
@@ -99,14 +99,14 @@ class PatternTrackerTest(unittest.TestCase):
         self.assertEqual(row['max_drawdown_pct'], -1.0)  # 저가 = 종가-1 기준 최소
 
     def test_snapshot_survives_update(self):
-        conn, _, before = run([100.0, 113.0, 116.0, 117.0, 118.0, 119.0])
+        conn, _, before = run([100.0, 104.0, 105.0, 106.0])
         pt.update_tracks(conn)
         row = conn.execute('SELECT initial_support, initial_resistance, detected_close, snapshot_json FROM pattern_tracks').fetchone()
         self.assertEqual(tuple(row), (before['initial_support'], before['initial_resistance'],
                                       before['detected_close'], before['snapshot_json']))
 
     def test_stats_and_listing_keep_failed_rows(self):
-        conn, _, _ = run([100.0, 94.0, 94.0])
+        conn, _, _ = run([100.0, 96.0])
         stats = pt.tracker_stats(conn, 'pattern:risingLows', days=36500)
         self.assertEqual(stats['total'], 1)
         self.assertEqual(stats['failed'], 1)
