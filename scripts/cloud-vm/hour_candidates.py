@@ -26,11 +26,14 @@ MAX_DETAILS = 24
 WORKERS = 3
 SCAN_BUDGET_SEC = 30
 CALL_TIMEOUT_SEC = 4
+REQUEST_INTERVAL_SEC = 0.1  # Bound this feature's dispatches to at most 10/s.
 MODEL_VERSION = 'hour-rules-v1'
 _scan_lock = threading.Lock()
 _previous_lock = threading.Lock()
 _previous_cache = OrderedDict()
 _record_lock = threading.Lock()
+_request_clock_lock = threading.Lock()
+_next_request_at = 0.0
 RECORD_FILE = os.path.join(os.path.dirname(__file__), 'hour_candidate_checks.jsonl')
 MAX_RECORD_BYTES = 5 * 1024 * 1024
 logger = logging.getLogger('hour_candidates')
@@ -73,6 +76,15 @@ def _source_time(value, day):
 
 
 def _request(token, key, secret, path, tr_id, params, deadline):
+    global _next_request_at
+    with _request_clock_lock:
+        now_t = time.monotonic()
+        dispatch_at = max(now_t, _next_request_at)
+        if dispatch_at >= deadline:
+            raise TimeoutError('check budget exhausted')
+        _next_request_at = dispatch_at + REQUEST_INTERVAL_SEC
+    if dispatch_at > now_t:
+        time.sleep(dispatch_at - now_t)
     remaining = deadline - time.monotonic()
     if remaining <= 0:
         raise TimeoutError('check budget exhausted')
