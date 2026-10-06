@@ -13,7 +13,7 @@
 - 사이트 문구는 "추천"이 아니라 "패턴 포착"을 쓴다.
 
 상태(2026-10-06 개편): NEW(신규 포착) -> TRACKING(추적 중) -> SUCCESS(돌파 성공) 또는 FAILED(돌파 실패).
-      SUCCESS = 포착가 대비 장중 고가가 +3%를 터치. FAILED = 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보(fail_reason 참고).
+      SUCCESS = 포착가 대비 장중 고가가 +5%를 터치. FAILED = 종가 -3% / 5일선 종가 이탈 / 5거래일 횡보(fail_reason 참고).
       예전 상태(BREAKOUT/BREAKOUT_CONFIRMED/EXPIRED)는 이전 기록으로만 남고, 열린 추적은 새 기준으로 다시 판정된다.
       "돌파 준비"는 저장하지 않는다 - 화면이 기준선까지 거리(3% 이내)로 현재 목록에서 계산한다.
 """
@@ -27,7 +27,7 @@ LOGGER = logging.getLogger(__name__)
 KST = timezone(timedelta(hours=9))
 
 # ---- 튜닝 상수 ----
-SUCCESS_PCT = 3.0               # 포착가 대비 장중 고가가 이만큼 오르면 돌파 성공
+SUCCESS_PCT = 5.0               # 포착가 대비 장중 고가가 이만큼 오르면 돌파 성공
 FAIL_LOSS_PCT = 3.0             # 포착가 대비 종가가 이만큼 내려가면 돌파 실패
 SIDEWAYS_DAYS = 5               # 성공·실패 없이 이만큼(약 일주일) 지나면 횡보 실패
 MA5_PERIOD = 5                  # 5일선 종가 이탈 판정(포착일 종가가 5일선 위였을 때만)

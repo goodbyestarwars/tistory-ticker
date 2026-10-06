@@ -122,7 +122,7 @@
   };
   var TRACK_FAIL_REASON = { SUPPORT_BREAK: '지지선 이탈', BREAKOUT_FAILED: '돌파 실패', LOSS_3PCT: '종가 -3%', MA5_BREAK: '5일선 이탈', SIDEWAYS: '5거래일 횡보' };
   // 2026-10-06 포착 개편: 별도 추적 화면 대신 각 패턴 목록에 상태를 붙인다. 신규 포착 / 돌파 준비(기준선 3% 이내)는 오늘 검색 결과에서,
-  // 돌파 성공(장중 고가 +3%) / 돌파 실패(종가 -3%·5일선 이탈·5거래일 횡보)는 서버 추적 기록(pattern_tracks)에서 보여 준다.
+  // 돌파 성공(장중 고가 +5%) / 돌파 실패(종가 -3%·5일선 이탈·5거래일 횡보)는 서버 추적 기록(pattern_tracks)에서 보여 준다.
   var READY_GAP_PCT = 3;
   var STAGE_VIEWS = [['all', '전체'], ['new', '신규 포착'], ['ready', '돌파 준비'], ['success', '돌파 성공'], ['failed', '돌파 실패']];
 
@@ -943,7 +943,7 @@
       var tracks = (data && data.tracks) || [];
       var head = trackStatsHtml(data && data.stats);
       if (!tracks.length) {
-        list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'success' ? '아직 돌파 성공(포착가 대비 장중 +3%)한 종목이 없어요.' : '아직 돌파 실패로 정리된 종목이 없어요.') + '</div>';
+        list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'success' ? '아직 돌파 성공(포착가 대비 장중 +5%)한 종목이 없어요.' : '아직 돌파 실패로 정리된 종목이 없어요.') + '</div>';
         return;
       }
       var byCode = {};

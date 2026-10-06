@@ -70,8 +70,8 @@ class PatternTrackerTest(unittest.TestCase):
         self.assertIsNone(row['closed_date'])
 
     def test_success_on_intraday_high_touch(self):
-        # 고가 = 종가+1 이므로 종가 102.5 -> 고가 103.5 >= 포착가 x 1.03
-        _, _, row = run([100.0, 100.0, 102.5])
+        # 고가 = 종가+1 이므로 종가 104.5 -> 고가 105.5 >= 포착가 x 1.05
+        _, _, row = run([100.0, 100.0, 104.5])
         self.assertEqual(row['status'], 'SUCCESS')
         self.assertEqual(row['breakout_date'], day(32))
         self.assertGreaterEqual(row['breakout_quality'], 60)
