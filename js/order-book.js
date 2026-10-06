@@ -88,6 +88,8 @@
     lastStrength: null,
     lastRealStrength: null,
     lastQuoteVolume: null, // 직전 WS 체결의 누적 거래량(체결 1건 수량 = 증가분)
+    volFlow: [],         // 최근 WS 체결 {t, qty, buy} - 매수 체결 속도(주/초) 계산용
+    volSince: 0,
     wallTrack: null,     // { price, samples:[{t,qty}], execs:[{t,qty}] } - 성벽 잔량 변화·체결량 창
     summary: null,
     summaryGeneration: 0,
@@ -266,6 +268,8 @@
     state.lastRealStrength = null;
     state.lastQuoteVolume = null;
     state.wallTrack = null;
+    state.volFlow = [];
+    state.volSince = 0;
     state.summary = null;
     state.summaryGeneration += 1;
     state.trackedWall = null;
@@ -848,6 +852,12 @@
       sub.textContent = trend;
       el.appendChild(sub);
     }
+    if (up && remaining > 0) {
+      var need = document.createElement('div');
+      need.className = 'ob-breakout-sub';
+      need.textContent = volumeNeedLine(book, wall, remaining);
+      el.appendChild(need);
+    }
   }
 
   // 성벽(추적 중인 매도벽) 잔량을 최근 WALL_WINDOW_MS 동안 기록하고, 줄었으면
@@ -865,11 +875,42 @@
     var vol = Number(quote.volume);
     var prev = state.lastQuoteVolume;
     if (Number.isFinite(vol) && vol > 0) state.lastQuoteVolume = vol;
+    if (prev == null || !Number.isFinite(vol) || vol <= prev) return;
+    var now = Date.now();
+    var qty = vol - prev;
+    var price = Number(quote.price);
+    // 체결 방향은 시세에 없어서, 직전 WS 호가의 최우선 매도호가 이상에서 찍힌 체결을 "매수 체결"로 근사한다.
+    var bestAsk = null;
+    if (state.lastWsBook) {
+      state.lastWsBook.asks.forEach(function (r) { if (bestAsk == null || r.price < bestAsk) bestAsk = r.price; });
+    }
+    if (!state.volSince) state.volSince = now;
+    state.volFlow.push({ t: now, qty: qty, buy: bestAsk != null && price >= bestAsk });
+    while (state.volFlow.length && now - state.volFlow[0].t > WALL_WINDOW_MS) state.volFlow.shift();
     var wall = state.trackedWall;
     if (!wall || !state.wallTrack || state.wallTrack.price !== wall.price) return;
-    if (prev == null || !Number.isFinite(vol) || vol <= prev) return;
-    if (Number(quote.price) !== wall.price) return;
-    state.wallTrack.execs.push({ t: Date.now(), qty: vol - prev });
+    if (price !== wall.price) return;
+    state.wallTrack.execs.push({ t: now, qty: qty });
+  }
+
+  // 위로 가는 데 필요한 체결량(현재가~성벽 사이 매도 잔량 + 성벽 소진 임계까지) ÷ 최근 매수 체결 속도.
+  function volumeNeedLine(book, wall, remaining) {
+    var need = remaining;
+    (book.asks || []).forEach(function (r) { if (r.price < wall.price) need += r.qty; });
+    var needText = fmtQty(Math.round(need)) + '주';
+    var now = Date.now();
+    var spanMs = Math.min(WALL_WINDOW_MS, state.volSince ? now - state.volSince : 0);
+    if (spanMs < WALL_MIN_SPAN_MS) return '📊 위로 가려면 약 ' + needText + ' 체결돼야 해요(체결 속도 집계 중).';
+    var cutoff = now - spanMs;
+    var buyQty = state.volFlow.reduce(function (sum, f) { return sum + (f.buy && f.t >= cutoff ? f.qty : 0); }, 0);
+    var rate = buyQty / (spanMs / 1000);
+    if (rate <= 0) return '📊 위로 가려면 약 ' + needText + ' 필요한데, 최근 ' + Math.round(spanMs / 1000) + '초 매수 체결이 없어요. 거래량 부족해요.';
+    var eta = need / rate;
+    var etaText = eta < 60 ? Math.max(1, Math.round(eta)) + '초' : Math.floor(eta / 60) + '분 ' + Math.round(eta % 60) + '초';
+    var head = '📊 위로 가려면 약 ' + needText + ' 필요 · 지금 속도(초당 ' + fmtQty(Math.round(rate)) + '주)면 약 ' + etaText;
+    if (eta <= 30) return head + ' → 이 속도면 이어갈 만해요.';
+    if (eta <= 300) return head + ' → 거래량이 좀 부족해요.';
+    return head + ' → 거래량 부족해요. 이 속도면 못 뚫어요.';
   }
 
   function wallTrend(wall, currQty, breakThreshold) {
