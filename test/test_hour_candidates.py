@@ -204,7 +204,7 @@ class DirectionServiceTests(unittest.TestCase):
         self.assertNotIn('metrics', result)
         self.assertFalse(result['validated'])
         payload, inputs = self.record.call_args.args
-        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v1')
+        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v2')
         self.assertEqual(payload['items'][0]['directionVerdict']['direction'], 'up')
         self.assertIn('035420', inputs)
 
@@ -222,8 +222,56 @@ class DirectionServiceTests(unittest.TestCase):
         result = checks.check_direction('035420', key='test', secret='test',
                                         clock=lambda: next(clocks), collector=lambda *_: bearish_snapshot())
         self.assertEqual(result['direction'], 'unclear')
-        self.assertIn('10초', result['reason'])
+        self.assertIn('최신', result['reason'])
         self.assertIsNone(result['entryPrice'])
+
+
+    def test_afternoon_selection_preserves_window_and_one_stock_work_bound(self):
+        from test_hour_direction_engine import intraday_snapshot
+        now=datetime.fromisoformat('2026-10-06T13:00:08+09:00')
+        collector=mock.Mock(return_value=intraday_snapshot())
+        result=checks.check_direction('035420', key='test', secret='test', clock=lambda: now, collector=collector)
+        self.assertEqual(result['direction'],'up')
+        collector.assert_called_once()
+        self.assertTrue(collector.call_args.args[0]['_directionCheck'])
+        payload,inputs=self.record.call_args.args
+        self.assertEqual(payload['coverage']['evaluatedCount'],1)
+        self.assertEqual(payload['items'][0]['directionVerdict']['metrics']['closedBarCount'],30)
+
+    def test_close_holiday_and_last_hour_never_call_upstream(self):
+        for now in [NOW.replace(hour=14,minute=30,second=0),NOW.replace(hour=15),NOW.replace(hour=22),
+                    datetime.fromisoformat('2026-10-09T13:00:08+09:00')]:
+            collector=mock.Mock()
+            with mock.patch.object(checks.kis_client,'get_token') as token:
+                result=checks.check_direction('035420', key='test', secret='test', clock=lambda: now, collector=collector)
+            self.assertEqual(result['direction'],'unclear')
+            self.assertIsNone(result['entryPrice'])
+            collector.assert_not_called()
+            token.assert_not_called()
+
+
+    def test_direction_checks_cannot_queue_a_second_stock_or_provider_request(self):
+        from test_hour_direction_engine import intraday_snapshot
+        now=datetime.fromisoformat('2026-10-06T13:00:08+09:00')
+        entered,released=threading.Event(),threading.Event()
+        def blocking(*_):
+            entered.set()
+            if not released.wait(3):raise RuntimeError('fixture timeout')
+            return intraday_snapshot()
+        collector=mock.Mock(side_effect=blocking)
+        result=[]
+        worker=threading.Thread(target=lambda: result.append(checks.check_direction('035420',key='test',secret='test',clock=lambda: now,collector=collector)))
+        worker.start()
+        try:
+            self.assertTrue(entered.wait(1))
+            with self.assertRaises(checks.BusyError):
+                checks.check_direction('005930',key='test',secret='test',clock=lambda: now,collector=collector)
+            self.assertEqual(collector.call_count,1)
+        finally:
+            released.set()
+            worker.join(3)
+        self.assertFalse(worker.is_alive())
+        self.assertEqual(result[0]['direction'],'up')
 
 if __name__ == '__main__':
     unittest.main()

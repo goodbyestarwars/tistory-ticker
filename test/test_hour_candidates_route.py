@@ -76,3 +76,12 @@ class DirectionRouteTests(unittest.TestCase):
                 response = self.client.get('/hour-direction?code=035420')
             self.assertEqual(response.status_code, status)
             self.assertNotIn('secret', response.text)
+
+
+    def test_client_cannot_expand_lookback_or_worker_count(self):
+        with mock.patch.object(main.hour_candidates,'check_direction',return_value={'direction':'unclear'}) as check:
+            response=self.client.get('/hour-direction?code=035420&lookback=390&workers=100&mode=ranked')
+        self.assertEqual(response.status_code,200)
+        self.assertNotIn('lookback',check.call_args.kwargs)
+        self.assertNotIn('workers',check.call_args.kwargs)
+        self.assertNotIn('mode',check.call_args.kwargs)

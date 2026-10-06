@@ -152,12 +152,18 @@ def _book_levels(raw):
     return levels or None
 
 
-def _closed_bars(raw, checked):
-    """같은 날 09:00부터 직전 분까지의 완결 봉만 반환한다."""
+def _closed_bars(raw, checked, lookback_minutes=None):
+    """같은 날 연속 완결 봉. 기본은 개장부터, 선택 방향은 최근 구간."""
     if not isinstance(raw, list):
         return None, '완결된 1분봉 자료가 없습니다.'
     minute = checked.replace(second=0, microsecond=0)
     start = minute.replace(hour=9, minute=0)
+    if lookback_minutes is not None:
+        if isinstance(lookback_minutes, bool) or not isinstance(lookback_minutes, int) or not 4 <= lookback_minutes <= 60:
+            return None, '분봉 확인 범위가 올바르지 않습니다.'
+        start = max(start, minute - timedelta(minutes=lookback_minutes))
+    missing_reason = ('최근 확인 구간의 1분봉이 빠져 있습니다.' if lookback_minutes is not None
+                      else '09:00부터 확인 직전 분까지의 1분봉이 빠져 있습니다.')
     mapped = {}
     for item in raw:
         if not isinstance(item, dict):
@@ -187,12 +193,12 @@ def _closed_bars(raw, checked):
         return None, '개장 후 완결된 1분봉이 4개 이상 필요합니다.'
     expected = int((minute - start).total_seconds() // 60)
     if expected < 4 or len(mapped) != expected:
-        return None, '09:00부터 확인 직전 분까지의 1분봉이 빠져 있습니다.'
+        return None, missing_reason
     bars = []
     for index in range(expected):
         stamp = start + timedelta(minutes=index)
         if stamp not in mapped:
-            return None, '09:00부터 확인 직전 분까지의 1분봉이 빠져 있습니다.'
+            return None, missing_reason
         bars.append(mapped[stamp])
     return bars, None
 
@@ -208,7 +214,7 @@ def _pattern(bars):
                                'price': bars[index]['low']} for index in pivots]
 
 
-def evaluate(snapshot, settings=None):
+def evaluate(snapshot, settings=None, lookback_minutes=None):
     """한 종목을 판정한다. 시간/출처 오류는 수익률 확률로 대체하지 않는다."""
     settings = validate_settings(settings)
     if not isinstance(snapshot, dict):
@@ -327,7 +333,7 @@ def evaluate(snapshot, settings=None):
         if metrics['tradeAskGapPct'] >= MAX_TRADE_ASK_GAP_PCT:
             issues.append('최근 체결가와 매도 1호가의 차이가 0.5% 이상입니다.')
 
-    bars, bar_error = _closed_bars(snapshot.get('bars'), checked)
+    bars, bar_error = _closed_bars(snapshot.get('bars'), checked, lookback_minutes)
     if bar_error:
         issues.append(bar_error)
     if opening is not None and observed_high is not None and observed_high >= opening:
@@ -351,6 +357,8 @@ def evaluate(snapshot, settings=None):
 
     if bars:
         metrics['closedBarCount'] = len(bars)
+        metrics['barStartAt'] = bars[0]['stamp'].isoformat()
+        metrics['barLookbackMinutes'] = lookback_minutes
         metrics['lastClosedBarAt'] = bars[-1]['stamp'].isoformat()
         # 직전 최대 5개 완결 봉 고점 돌파는 추가 관찰값이며 후보의 필수 조건은 아니다.
         metrics['priorHigh'] = max(row['high'] for row in bars[-6:-1])

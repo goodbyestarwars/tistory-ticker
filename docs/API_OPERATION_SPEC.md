@@ -102,7 +102,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/quote?code=000000` | API 키 | VM 단기 LRU | 키움 기본정보 원본 가공 응답 |
 | `/ohlc/{code}` | API 키 | VM 단기 LRU | 국내 일봉 |
 | `/ohlc-minute/{code}` | 없음 | VM 단기 LRU | 국내 분봉 |
-| `/hour-direction` | 없음 | no-store | 선택 1종목 직접 확인 때 양방향 규칙 가설, 후보 API와 확인 창·동시 1회·IP 분당 3회 버킷 공유. 확률 null·validated:false |
+| `/hour-direction` | 없음 | no-store | 09:05~14:30 전 선택 1종목·최근 30분 직접 확인의 양방향 규칙 가설, 후보 API와 동시 1회·IP 분당 3회 버킷 공유. 새 폴러·추가 분봉 조회 없음. 확률 null·validated:false |
 | `/hour-candidates` | 없음 | no-store(전일 확정 거래량만 메모리 캐시) | 오전 09:05~09:15 수동 60분 +3% 실험 필터, 최대 24개 상세·동시 1회·IP 분당 3회. 확률 미검증, 순위 일부만 검사 |
 | `/pbar-tratio/{code}?days=N` | 없음 | VM 5분 + SQLite(온디맨드 + 거래일 18:10 일별 수집) | 실제 체결가 매물대(화면은 2026-09-15부터 일봉 추정치 사용) |
 | `/health/volume-profile` | 없음 | 실시간 | 매물대 실제 체결가 일별 수집 상태 |
