@@ -904,13 +904,13 @@
     var cutoff = now - spanMs;
     var buyQty = state.volFlow.reduce(function (sum, f) { return sum + (f.buy && f.t >= cutoff ? f.qty : 0); }, 0);
     var rate = buyQty / (spanMs / 1000);
-    if (rate <= 0) return '📊 위로 가려면 약 ' + needText + ' 필요한데, 최근 ' + Math.round(spanMs / 1000) + '초 매수 체결이 없어요. 거래량 부족해요.';
+    if (rate <= 0) return '📊 위로 가려면 약 ' + needText + ' 필요한데, 최근 ' + Math.round(spanMs / 1000) + '초 매수 체결이 없어요. 못 뚫을 가능성이 높아요.';
     var eta = need / rate;
     var etaText = eta < 60 ? Math.max(1, Math.round(eta)) + '초' : Math.floor(eta / 60) + '분 ' + Math.round(eta % 60) + '초';
     var head = '📊 위로 가려면 약 ' + needText + ' 필요 · 지금 속도(초당 ' + fmtQty(Math.round(rate)) + '주)면 약 ' + etaText;
     if (eta <= 30) return head + ' → 이 속도면 이어갈 만해요.';
     if (eta <= 300) return head + ' → 거래량이 좀 부족해요.';
-    return head + ' → 거래량 부족해요. 이 속도면 못 뚫어요.';
+    return head + ' → 거래량 부족해요. 못 뚫을 가능성이 높아요.';
   }
 
   function wallTrend(wall, currQty, breakThreshold) {
