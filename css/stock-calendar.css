@@ -30,7 +30,8 @@ html.dark #stock-calendar .sc-disclosure-search small { color: #aaa !important; 
 #stock-calendar .sc-completed-head h2 span { margin-left: 6px; color: #64748b; font-size: 12px; font-weight: 500; }
 #stock-calendar .sc-completed-head p { margin: 5px 0 0; font-size: 12px; color: #64748b; }
 #stock-calendar .sc-completed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
-#stock-calendar .sc-completed-card { min-width: 0; padding: 14px; border-radius: 12px; background: rgba(127, 127, 127, .055); }
+#stock-calendar .sc-completed-card { min-width: 0; padding: 14px; border-radius: 12px; background: #fff; }
+html.dark #stock-calendar .sc-completed-card { background: rgba(127, 127, 127, .055); }
 #stock-calendar .sc-completed-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
 #stock-calendar .sc-completed-badge { padding: 3px 7px; border-radius: 6px; background: var(--sc-accent-soft); color: var(--sc-accent-strong); font-size: 10px; font-weight: 700; }
 #stock-calendar .sc-completed-card time { font-size: 11px; color: #64748b; }
