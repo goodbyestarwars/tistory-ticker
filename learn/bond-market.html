@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>채권 이야기</title>
-<meta name="description" content="채권이 무엇인지부터 채권가격과 금리가 왜 반대로 움직이는지, 듀레이션·신용등급·신용스프레드, 국고채와 미국 국채, 금리가 주식시장에 미치는 영향까지 그림으로 정리한다." />
+<meta name="description" content="단기채·장기채 차이, 채권가격과 금리, 듀레이션, 장단기 금리 역전과 경기·주식시장에 미치는 영향을 그림으로 정리한다." />
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
 <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
 </head>
@@ -13,7 +13,7 @@
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
 
   <h1>채권 이야기</h1>
-  <p class="legal-effective-date">채권가격과 금리의 관계, 듀레이션, 신용등급과 스프레드, 국고채·미국 국채, 금리가 주식에 미치는 영향</p>
+  <p class="legal-effective-date">단기채·장기채, 금리 역전, 듀레이션과 주식시장 · 설명 업데이트 2026-10-07</p>
 
   <p>뉴스에서 "국채금리가 올랐다"는 말이 나오면 주식시장이 같이 흔들리는 걸 자주 본다. 그런데 채권이 정확히
   뭘 사고파는 건지, 금리가 오르면 왜 채권 가격은 내려가는지는 막상 설명하기 어렵다. 이 글은 채권의 기본
@@ -114,6 +114,22 @@
     내리면, 내 채권(3%)이 새 채권보다 유리해져 웃돈을 주고서라도 사려는 사람이 생긴다.
   </div>
 
+  <h2>단기채와 장기채 - 돈을 얼마나 오래 빌려주나</h2>
+  <table class="learn-table">
+    <thead><tr><th>구분</th><th>단기채</th><th>장기채</th></tr></thead>
+    <tbody>
+      <tr><td>만기 예시</td><td>3개월·1년·2년</td><td>10년·30년</td></tr>
+      <tr><td>금리가 읽는 것</td><td>가까운 기준금리 전망</td><td>앞으로의 금리·물가·성장 전망과 오래 빌려주는 대가</td></tr>
+      <tr><td>가격 움직임</td><td>금리 변화에 비교적 덜 흔들린다</td><td>같은 금리 변화에 더 크게 흔들리는 편이다</td></tr>
+      <tr><td>주요 위험</td><td>만기 후 금리가 내려가면 다시 투자할 때 이자가 줄어든다</td><td>금리가 오르면 만기 전 팔 때 손실이 커질 수 있다</td></tr>
+    </tbody>
+  </table>
+  <p>기간 구분은 상품마다 다르다. 위 표는 <b>같은 나라·통화의 비슷한 신용도인 고정금리 채권</b>을 비교한 예시다.
+  단기 회사채도 부도 위험은 있고, 장기 국채도 가격은 크게 떨어질 수 있다.</p>
+  <div class="learn-note"><b>금리가 높다고 내 수익이 무조건 더 큰 건 아니다</b> 중간에 팔면 가격 손익이 붙는다.
+  개별 채권은 발행자가 약속대로 갚으면 만기에 액면가를 받지만, 만기가 정해지지 않은 일반 채권 ETF는
+  특정 날짜에 내 매수가를 돌려주는 상품이 아니다.</div>
+
   <h2>듀레이션 - 만기가 길수록 금리에 더 민감하다</h2>
   <p>같은 크기의 금리 변화라도 <b>만기가 긴 채권일수록 가격이 더 크게 움직인다</b>. 남은 이자를 받을 기간이
   길수록, 그 사이 금리 변화가 누적으로 영향을 주기 때문이다. 이 민감도를 "듀레이션"이라 부른다.</p>
@@ -172,13 +188,52 @@
     </tbody>
   </table>
 
-  <div class="learn-note">
-    <b>장단기 금리차(10Y-2Y)</b> 평소엔 만기가 길수록(10년) 금리가 더 높다 - 오래 빌려주는 위험을 더 얹어
-    받는 게 정상이다. 그런데 가끔 이 순서가 뒤집혀 2년물 금리가 10년물보다 높아지는 경우("장단기 금리
-    역전")가 있는데, 과거 여러 차례 경기침체보다 먼저 나타난 신호로 자주 언급된다. 다만 이것도 <b>확정적인
-    예측 도구가 아니라 참고 신호</b>다 - 역전이 나온 뒤에도 침체까지 시간이 꽤 걸리거나, 역전 없이 침체가
-    오기도 한다.
-  </div>
+  <h2 id="yield-curve">장단기 금리 역전 - 짧게 빌려주는 이자가 더 높다</h2>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 290" role="img" aria-label="가상 예시: 정상은 2년물 3%, 10년물 4%이고 역전은 2년물 5%, 10년물 4%다">
+      <text class="fig-ink" x="20" y="22">정상: 장기금리 &gt; 단기금리</text>
+      <path class="fig-line" d="M40 42 V115 H385" />
+      <path class="fig-acc-line" d="M80 95 L340 55" />
+      <circle class="fig-acc" cx="80" cy="95" r="4" /><circle class="fig-acc" cx="340" cy="55" r="4" />
+      <text class="fig-sub" x="55" y="80">3%</text><text class="fig-sub" x="345" y="49">4%</text>
+      <text class="fig-sub" x="55" y="135">2년물</text><text class="fig-sub" x="310" y="135">10년물</text>
+      <text class="fig-ink" x="20" y="170">역전: 단기금리 &gt; 장기금리</text>
+      <path class="fig-line" d="M40 187 V260 H385" />
+      <path class="fig-acc-line" d="M80 200 L340 240" />
+      <circle class="fig-acc" cx="80" cy="200" r="4" /><circle class="fig-acc" cx="340" cy="240" r="4" />
+      <text class="fig-sub" x="55" y="193">5%</text><text class="fig-sub" x="345" y="231">4%</text>
+      <text class="fig-sub" x="55" y="281">2년물</text><text class="fig-sub" x="310" y="281">10년물</text>
+    </svg>
+    <figcaption>숫자는 가상값이다. 위아래는 채권 가격이 아니라 만기별 금리(수익률)다.</figcaption>
+  </figure>
+  <p>당장은 기준금리가 높고 앞으로 경기 둔화와 금리 인하를 예상하면 <b>단기금리는 높은데 장기금리는 낮은</b>
+  역전이 생길 수 있다. 장기채 수요나 물가 전망도 영향을 주므로 원인을 하나로 단정하면 안 된다.</p>
+  <div class="learn-note"><b>계산은 간단하다</b> 미국 10년물 금리 − 미국 2년물 금리.
+  4% − 5% = <b>−1%p(−100bp)</b>면 역전이다. 같은 나라·통화·비슷한 기준시각의 값을 비교한다.
+  뉴욕 연준의 침체 확률 모델은 10년물 − <b>3개월물</b>을 쓰므로, 10년물 − 2년물과 같은 지표로 보면 안 된다.</div>
+
+  <h2>역전이 되면 어떤 문제가 있나</h2>
+  <ul>
+    <li><b>대출받는 사람과 회사가 힘들어진다</b> 높은 단기금리가 대출금리에 반영되면 이자 부담이 커져
+    소비·투자를 줄일 수 있다. 역전 자체보다 높은 금리와 경기 둔화가 핵심 부담이다.</li>
+    <li><b>은행이 돈을 빌려주는 데 더 신중해질 수 있다</b> 단기로 자금을 마련하고 장기로 빌려주는 은행은
+    조달 비용이 올라 이자 수익이 줄 수 있다. 실제 영향은 예금·대출 구성과 금리 위험 관리에 따라 다르다.</li>
+    <li><b>주식은 기업 이익을 다시 따져야 한다</b> 소비·투자가 약해지면 매출과 이익 전망이 낮아질 수 있다.
+    금리 인하 기대에 주가가 오르더라도, 실적 악화가 더 크면 하락할 수 있다.</li>
+  </ul>
+  <div class="learn-note"><b>침체 경고이지, 폭락 날짜표는 아니다</b> 역전은 미국에서 경기침체보다 먼저 나타난 사례가 많다.
+  그래도 침체를 확정하거나 다음 날 주가 방향을 알려주지는 않는다. 역전의 지속 기간과 함께
+  고용·소비·회사채 스프레드가 나빠지는지 확인한다. 미국의 경험을 한국에 그대로 적용할 수도 없다.</div>
+
+  <h2>역전이 풀리면 좋은 소식인가</h2>
+  <table class="learn-table">
+    <thead><tr><th>풀리는 이유</th><th>읽어야 할 점</th></tr></thead>
+    <tbody>
+      <tr><td>단기금리가 내려간다</td><td>물가 안정에 따른 인하 기대면 부담이 줄 수 있다. 경기 악화 때문에 급히 내리는 상황이면 침체 위험은 남는다.</td></tr>
+      <tr><td>장기금리가 올라간다</td><td>성장 기대가 좋아진 걸 수도 있다. 물가·국채 공급 부담이면 장기 대출금리와 기업 자금 조달에 부담이 될 수 있다.</td></tr>
+    </tbody>
+  </table>
+  <p><b>역전 해소 = 주식 매수 신호</b>로 외우지 말자. 어느 쪽 금리가 왜 움직였는지 함께 본다.</p>
 
   <h2>금리와 주식시장 - 왜 항상 같이 언급되나</h2>
   <p>6장(돈이 들어오는 구조)에서 "금리는 돈의 임대료"라고 배웠다. 금리가 오르면 이 임대료가 비싸지는
@@ -199,13 +254,21 @@
 
   <h2>이 사이트에서 확인하기</h2>
   <ul>
-    <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 한국 국고채 3년물과 미국 국채 10·2·30년물 금리를 실시간으로 확인한다.</li>
+    <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 한국 국고채 3년물과 미국 국채 10·2·30년물 금리를 확인한다. 지표별 갱신 시각도 함께 본다.</li>
   </ul>
 
   <h2>한 줄 정리</h2>
   <p>채권가격과 금리는 반대로 움직이고, 만기가 길수록 그 움직임이 더 크며(듀레이션), 신용등급이 낮을수록
   더 높은 금리(신용스프레드)를 요구한다. 금리가 오르면 안전한 대안의 매력이 커지는 동시에 주식의 계산상
   가치는 내려가서, 채권시장 뉴스가 주식시장에도 늘 함께 영향을 준다.</p>
+
+  <h2>설명 근거</h2>
+  <p>2026-10-07 확인. 현재 금리나 침체 확률을 제시하는 실시간 데이터가 아니라 개념 설명이다.</p>
+  <ul>
+    <li><a href="https://www.sec.gov/files/ib_interestraterisk.pdf" target="_blank" rel="noopener">SEC: 금리 변화와 채권의 만기 위험</a></li>
+    <li><a href="https://www.newyorkfed.org/research/capital_markets/ycfaq.html" target="_blank" rel="noopener">뉴욕 연준: 장단기 금리차와 침체 지표</a></li>
+    <li><a href="https://www.federalreserve.gov/econres/notes/feds-notes/predicting-recession-probabilities-using-the-slope-of-the-yield-curve-20180301.html" target="_blank" rel="noopener">연준: 금리차 해석과 예측의 한계</a></li>
+  </ul>
 
   <div class="learn-nav">
     <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">← 차트 이야기</a>
