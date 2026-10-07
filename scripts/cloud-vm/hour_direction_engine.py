@@ -5,11 +5,44 @@ The labels describe a rule hypothesis for the following 60 minutes, not a fitted
 probability or a promise of a 3% move. Candidate rejection is never a down label.
 """
 from datetime import timedelta
+import math
 import hour_candidate_engine as candidate
 
-MODEL_VERSION = 'hour-direction-rules-v3'
+MODEL_VERSION = 'hour-direction-rules-v4'
 LOOKBACK_MINUTES = 30
 LABELS = {'up': '상승가능', 'down': '하락가능', 'unclear': '판단 어려움'}
+
+
+def movement_budget(bars, entry, target, stop):
+    """Uncalibrated 60-minute sensitivity screen, NOT a forecast/probability.
+
+    Fit log-price slope to the last <=10 CLOSED minutes. Combine its signed
+    60-minute continuation with one sqrt-time-scaled return standard deviation.
+    This assumes local pace/volatility persists; it is only a rejection screen.
+    Targets include the gap from the last closed price to the executable basis.
+    """
+    window = bars[-10:]
+    prices = [math.log(row['close']) for row in window]
+    n = len(prices)
+    center = (n - 1) / 2
+    mean = sum(prices) / n
+    slope = sum((i-center)*(price-mean) for i, price in enumerate(prices)) / sum((i-center)**2 for i in range(n))
+    returns = [prices[i]-prices[i-1] for i in range(1, n)]
+    average = sum(returns) / len(returns)
+    variance = sum((r-average)**2 for r in returns) / (len(returns)-1)
+    noise = math.sqrt(variance * 60)
+    up_budget = max(0.0, slope * 60) + noise
+    down_budget = max(0.0, -slope * 60) + noise
+    up_need = math.log(target / window[-1]['close'])
+    down_need = math.log(window[-1]['close'] / stop)
+    return {'movementWindowBars': n, 'movementSlopeLogPerMinute': slope,
+            'movementNoise60Log': noise, 'upMovementBudgetPct': math.expm1(up_budget)*100,
+            'downMovementBudgetPct': (1-math.exp(-down_budget))*100,
+            'upRequiredMovePct': math.expm1(up_need)*100,
+            'downRequiredMovePct': (1-math.exp(-down_need))*100,
+            'upMovementSupported': up_budget >= up_need,
+            'downMovementSupported': down_budget >= down_need,
+            'movementBudgetValidated': False}
 
 
 def outside_reason(checked):
@@ -120,6 +153,14 @@ def evaluate_direction(snapshot, candidate_result=None):
           and (rising or strength >= 105))
     down = (closing < opening and closing <= vwap and trade_price <= closing * 1.002
             and (bearish_pattern or strength <= 95))
+    movement = movement_budget(bars, entry, base['targetPrice'], stop)
+    result['metrics'].update(movement)
+    if up and not movement['upMovementSupported']:
+        result['reason'] = '작은 반등은 있지만 1시간 +3% 움직임 근거가 부족해.'
+        return result
+    if down and not movement['downMovementSupported']:
+        result['reason'] = '약한 하락이지만 1시간 −3% 움직임 근거가 부족해.'
+        return result
     if up:
         result.update(direction='up', label=LABELS['up'])
     elif down:
