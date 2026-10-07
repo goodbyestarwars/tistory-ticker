@@ -7692,6 +7692,28 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 }
 
 /* ── 7. 칩 : 알약형, 가는 선 ── */
+/* Calendar disclosure search: a readable field, rather than a full-width nested box. */
+html body #stock-calendar .sc-disclosure-search {
+  width: 100% !important; max-width: 560px !important; margin-bottom: 24px !important;
+}
+html body #stock-calendar .sc-disclosure-search .sc-search {
+  display: flex !important; flex-direction: column !important; align-items: stretch !important; gap: 8px !important;
+  margin: 0 0 8px !important; padding: 0 !important; border: 0 !important; background: transparent !important;
+}
+html body #stock-calendar .sc-disclosure-search .sc-search span {
+  font: 600 14px/1.5 var(--font-ui) !important; color: rgb(var(--np-ink)) !important;
+}
+html body #stock-calendar .sc-disclosure-search input[type="search"] {
+  box-sizing: border-box !important; width: 100% !important; min-width: 0 !important; height: 52px !important;
+  padding: 0 16px !important; border: 1px solid rgba(var(--np-ink), .2) !important; border-radius: 12px !important;
+  background: var(--np-paper) !important; color: rgb(var(--np-ink)) !important; font: 400 16px/1.5 var(--font-ui) !important;
+}
+html body #stock-calendar .sc-disclosure-search input[type="search"]:focus {
+  border-color: rgba(var(--np-ink), .6) !important; box-shadow: 0 0 0 3px rgba(var(--np-ink), .06) !important;
+}
+html body #stock-calendar .sc-disclosure-search small {
+  font: 400 12px/1.5 var(--font-ui) !important; color: rgba(var(--np-ink), .6) !important;
+}
 html body #stock-search :where(.ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle)[aria-pressed="true"] {
   background: rgb(var(--np-ink)) !important;
   color: var(--np-paper) !important;
