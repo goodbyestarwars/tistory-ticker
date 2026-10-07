@@ -30,3 +30,11 @@
   .mi-tabs { gap: 0; }
   .mi-tab { flex: 1; padding: 9px 4px 10px; font-size: 13px; }
 }
+
+/* Fourth tab must fit the actual content width on narrow screens. */
+.mi-wrap .mi-tabs { max-width:100%; box-sizing:border-box; flex-wrap:wrap; }
+.mi-wrap .mi-tab { min-width:0; white-space:normal; }
+@media(max-width:720px){
+  .mi-wrap .mi-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
+  .mi-wrap .mi-tab { width:100%; padding:9px 8px; }
+}
