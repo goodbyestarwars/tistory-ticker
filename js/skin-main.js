@@ -308,7 +308,7 @@ document.documentElement.classList.add('skin-ready');
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
         script: ASSET_BASE + 'js/crypto-market.js?v=20261008-five-year-charts',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
-          ASSET_BASE + 'css/crypto-market.css?v=20261008-five-year-charts']
+          ASSET_BASE + 'css/crypto-market.css?v=20261008-title-color']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
