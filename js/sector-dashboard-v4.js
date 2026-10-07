@@ -17,7 +17,8 @@
   var SD_AI_ICON = '<svg class="sn-ai-badge-icon" width="12" height="12" viewBox="0 0 24 24"'
     + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
     + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-  var FETCH_TIMEOUT_MS = 8000;
+  // GAS 배치 조회는 실측 8.6~9.2초: 8초 제한은 정상 응답도 버렸다.
+  var FETCH_TIMEOUT_MS = 20000;
   // GAS쪽 cacheKeyFor가 200자 넘는 키를 MD5 해시하므로 키 길이 제약은 없어졌고,
   // 남은 제약은 URL 길이와 브라우저 동시연결(도메인당 6개)뿐이다.
   // 60개 × 4배치면 전 종목이 한 라운드에 병렬 조회된다 (25개 × 10배치 = 2라운드였음).
@@ -91,13 +92,30 @@
       batches.push(codes.slice(i, i + BATCH_SIZE));
     }
     return Promise.all(batches.map(function (batch) {
-      // 한 배치가 실패해도 나머지 섹터는 표시되도록 빈 배열로 흡수
+      // 실패 또는 부분 응답일 때 누락 코드만 한 번 복구한다. 전체 풀 재조회는 하지 않는다.
       return SectorDashboard.fetchBatch(batch).catch(function (err) {
         logError('[sector-dashboard] 배치 조회 실패', err);
         return [];
+      }).then(function (rows) {
+        rows = Array.isArray(rows) ? rows : [];
+        var received = {};
+        rows.forEach(function (row) { if (row && row.code) received[row.code] = row; });
+        var missing = batch.filter(function (code) { return !received[code]; });
+        if (!missing.length) return rows;
+        return SectorDashboard.fetchBatch(missing).then(function (recovered) {
+          (Array.isArray(recovered) ? recovered : []).forEach(function (row) {
+            if (row && row.code) received[row.code] = row;
+          });
+          return batch.map(function (code) { return received[code]; }).filter(Boolean);
+        }).catch(function (err) {
+          logError('[sector-dashboard] 누락 시세 재조회 실패', err);
+          return rows;
+        });
       });
     })).then(function (results) {
-      return results.reduce(function (acc, list) { return acc.concat(list || []); }, []);
+      var rows = results.reduce(function (acc, list) { return acc.concat(list || []); }, []);
+      if (codes.length && !rows.length) throw new Error('종목 시세를 불러오지 못했습니다.');
+      return rows;
     });
   }
 
@@ -154,8 +172,11 @@
           var e = resolveEntry(item, krxMap);
           return { name: e.name, code: e.code, market: e.market, data: e.code && dataByCode[e.code] };
         })
-        .filter(function (e) { return e.data; })
-        .sort(function (a, b) { return b.data.changeRate - a.data.changeRate; });
+        .sort(function (a, b) {
+          if (!a.data) return b.data ? 1 : 0;
+          if (!b.data) return -1;
+          return b.data.changeRate - a.data.changeRate;
+        });
 
       // data-code: 실시간 WebSocket 시세 갱신(startCardRealtimeQuotes)이 종목을 찾는 키.
       // 같은 종목이 여러 섹터 카드에 중복 등장할 수 있어 갱신 시 querySelectorAll로 전부 맞춘다.
@@ -167,9 +188,9 @@
         return (
           rowStart + ' class="sector-row" data-code="' + escapeHTML(e.code) + '" data-sector="' + escapeHTML(sector) + '" aria-label="' + escapeHTML(e.name) + (openRealtimeQuotes ? ' 실시간 시세 보기' : ' 섹터 상세 보기') + '">' +
             '<span class="sector-row-name">' + escapeHTML(e.name) + marketBadgeHtml(e.market) + '</span>' +
-            '<span><span class="sector-row-price">' + formatNumber(d.price) + '</span>' +
-            '<span class="sector-row-rate ' + directionClass(d.change) + '">' +
-              arrowSymbol(d.change) + Math.abs(d.changeRate).toFixed(2) + '%</span></span>' +
+            '<span><span class="sector-row-price">' + (d ? formatNumber(d.price) : '—') + '</span>' +
+            '<span class="sector-row-rate ' + directionClass(d ? d.change : 0) + '">' +
+              (d ? arrowSymbol(d.change) + Math.abs(d.changeRate).toFixed(2) + '%' : '시세 대기') + '</span></span>' +
           (openRealtimeQuotes ? '</a>' : '</button>')
         );
       }).join('');
