@@ -146,7 +146,7 @@
     document.head.appendChild(style);
   }
 
-  function renderCardsHtml(sectorMap, krxMap, dataByCode) {
+  function renderCardsHtml(sectorMap, krxMap, dataByCode, openRealtimeQuotes) {
     var html = Object.keys(sectorMap).map(function (sector) {
       // 등락률 높은 순(뜨거운 종목이 위) 정렬
       var entries = sectorMap[sector]
@@ -161,13 +161,16 @@
       // 같은 종목이 여러 섹터 카드에 중복 등장할 수 있어 갱신 시 querySelectorAll로 전부 맞춘다.
       var rows = entries.map(function (e) {
         var d = e.data;
+        var rowStart = openRealtimeQuotes
+          ? '<a href="/page/stock-search?code=' + encodeURIComponent(e.code) + '&amp;name=' + encodeURIComponent(e.name) + '"'
+          : '<button type="button"';
         return (
-          '<button type="button" class="sector-row" data-code="' + escapeHTML(e.code) + '" data-sector="' + escapeHTML(sector) + '" aria-label="' + escapeHTML(e.name) + ' 섹터 상세 보기">' +
+          rowStart + ' class="sector-row" data-code="' + escapeHTML(e.code) + '" data-sector="' + escapeHTML(sector) + '" aria-label="' + escapeHTML(e.name) + (openRealtimeQuotes ? ' 실시간 시세 보기' : ' 섹터 상세 보기') + '">' +
             '<span class="sector-row-name">' + escapeHTML(e.name) + marketBadgeHtml(e.market) + '</span>' +
             '<span><span class="sector-row-price">' + formatNumber(d.price) + '</span>' +
             '<span class="sector-row-rate ' + directionClass(d.change) + '">' +
               arrowSymbol(d.change) + Math.abs(d.changeRate).toFixed(2) + '%</span></span>' +
-          '</button>'
+          (openRealtimeQuotes ? '</a>' : '</button>')
         );
       }).join('');
       if (!rows) return '';
@@ -280,6 +283,7 @@
     var exploreCard = container.closest('.mt-explore-card');
     if (exploreCard) exploreCard.classList.remove('is-sector-detail');
     container.querySelectorAll('.sector-row[data-code]').forEach(function (row) {
+      if (row.getAttribute('href')) return;
       row.addEventListener('click', function () {
         var code = row.getAttribute('data-code');
         var sector = row.getAttribute('data-sector');

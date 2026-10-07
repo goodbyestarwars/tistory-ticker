@@ -104,6 +104,7 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
   cursor: pointer;
 }
 .sector-row:hover { background: #f8fafc; }
+a.sector-row { text-decoration: none; }
 
 .sector-row:last-child {
   border-bottom: none;
