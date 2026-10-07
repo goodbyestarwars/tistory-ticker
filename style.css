@@ -7692,6 +7692,12 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 }
 
 /* ── 7. 칩 : 알약형, 가는 선 ── */
+html body #stock-search :where(.ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle)[aria-pressed="true"] {
+  background: rgb(var(--np-ink)) !important;
+  color: var(--np-paper) !important;
+  font-weight: 700 !important;
+  box-shadow: inset 0 0 0 2px rgba(var(--np-ink), .3) !important;
+}
 html body :where(.discussion-stock-btn, .mt-top-chip, .mt-money-chip, .ssp-chip, .tag-pill, .mt-pill, .is-chip, .ps-track-chip, .memo-context-chip) {
   border-radius: 8px !important;
   min-height: 28px !important;
