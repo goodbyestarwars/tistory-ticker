@@ -498,7 +498,7 @@
     if (macroModuleLoad) return macroModuleLoad;
     macroModuleLoad = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-macro-indicators.js?v=20261008-calendar-results';
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-macro-indicators.js?v=20261008-stock-impact';
       script.async = true;
       script.onload = function () {
         if (global.UsMacroIndicators && global.UsMacroIndicators.fetchResults) resolve(global.UsMacroIndicators);
