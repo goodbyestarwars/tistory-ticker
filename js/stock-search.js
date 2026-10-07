@@ -204,20 +204,36 @@
     var subHeight = Math.min(preferredSubHeight, availableSubHeight);
     var mainHeight = Math.max(220, totalHeight - subHeight * subPaneCount);
     // 거래량과 RSI에 똑같은 값을 적용한다. 가격 패널은 남은 높이만 사용한다.
-    panes.slice(1).forEach(function (pane) { if (pane.setHeight) pane.setHeight(subHeight); });
-    if (panes[0].setHeight) panes[0].setHeight(mainHeight);
+    panes.forEach(function (pane, index) {
+      var target = index === 0 ? mainHeight : subHeight;
+      // 비율로 분배하면 시간축·구분선 높이를 라이브러리가 한 번에 제외한다.
+      // 각 패널의 픽셀 높이를 차례로 바꿔 다시 레이아웃을 만드는 것을 피한다.
+      if (pane.setStretchFactor) {
+        if (!pane.getStretchFactor || pane.getStretchFactor() !== target) pane.setStretchFactor(target);
+      } else if (pane.setHeight) pane.setHeight(target);
+    });
     return { mainHeight: mainHeight, subHeight: subHeight };
   }
 
+  var stockChartResizeFrame = 0;
+  var stockChartResizeObserver = null;
+  var stockChartMeasuredWidth = 0;
+  var stockChartMeasuredHeight = 0;
+
   function resizeStockChart() {
     if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
-    global.requestAnimationFrame(function () {
+    if (stockChartResizeFrame) return;
+    stockChartResizeFrame = global.requestAnimationFrame(function () {
+      stockChartResizeFrame = 0;
       if (!lwcChart || !lwcChartContainer) return;
-      var width = lwcChartContainer.clientWidth;
-      var height = lwcChartContainer.clientHeight;
-      if (width > 0 && height > 0) {
+      var width = Math.floor(lwcChartContainer.clientWidth);
+      var height = Math.floor(lwcChartContainer.clientHeight);
+      if (width > 0 && height > 0
+          && (width !== stockChartMeasuredWidth || height !== stockChartMeasuredHeight)) {
         try {
           lwcChart.resize(width, height);
+          stockChartMeasuredWidth = width;
+          stockChartMeasuredHeight = height;
           var panes = lwcChart.panes ? lwcChart.panes() : [];
           if (panes.length > 1) {
             var sizes = sizeStockChartPanes(panes, height);
@@ -229,6 +245,7 @@
     });
   }
   global.addEventListener('tistory-chart-resize', resizeStockChart);
+  global.addEventListener('resize', resizeStockChart);
 
   global.__stockIconFallback = global.__stockIconFallback || function (img) {
     if (img.getAttribute('data-fb') === '1') { img.style.display = 'none'; return; }
@@ -3020,6 +3037,10 @@
     lwcLiveBars = [];
     lwcLiveTimeframe = null;
     destroyStockDrawing();
+    if (stockChartResizeObserver) { stockChartResizeObserver.disconnect(); stockChartResizeObserver = null; }
+    if (stockChartResizeFrame) { global.cancelAnimationFrame(stockChartResizeFrame); stockChartResizeFrame = 0; }
+    stockChartMeasuredWidth = 0;
+    stockChartMeasuredHeight = 0;
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
     if (lwcMemoCleanup) { lwcMemoCleanup(); lwcMemoCleanup = null; }
@@ -3034,14 +3055,19 @@
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
       var chart = LWC.createChart(container, mergeOptions({
-        autoSize: true,
-        height: 420,
+        autoSize: false,
+        width: Math.max(1, Math.floor(container.clientWidth)),
+        height: Math.max(1, Math.floor(container.clientHeight || 420)),
         // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
         // 쓰면 뒤에 오는 쪽이 통째로 덮어씀).
         localization: { locale: 'ko-KR' }
       }, lwcThemeOptions(LWC, timeframe)));
       lwcChart = chart;
       lwcChartContainer = container;
+      if (global.ResizeObserver) {
+        stockChartResizeObserver = new global.ResizeObserver(resizeStockChart);
+        stockChartResizeObserver.observe(container);
+      }
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.08 },
         alignLabels: false
@@ -3281,6 +3307,7 @@
       lwcSrCleanup = installSupportResistanceCanvas(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); });
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockDrawing(container, chart, candleSeries, timeframe, bars);
+      resizeStockChart();
     }).catch(function () {
       if (renderId !== lwcRenderId) return;
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
