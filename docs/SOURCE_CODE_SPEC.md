@@ -276,3 +276,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 
 ### 가상자산 시장지표 (2026-10-08)
 `js/skin-main.js` 시장지표4탭 중 `CryptoMarket` → `js/crypto-market.js`. `OvernightMarket.cryptoTools`의 시세·차트·요청 함수를 재사용, 기존 글로벌 지면에 코인/토큰 중복 없음. `main.py` `/crypto-news` → `news_aggregator.get_crypto_news`: 전문 RSS2개,10분 캐시,기존 제목 번역 재사용.
+
+### 시장지표 5년 이력 (2026-10-08)
+
+`js/market-history.js`: 탭별 정적 이력 단일 로드, 날짜 중복/5년 경계/주봉/실제 범위 표시. `skin-main.js`가 이력 준비 후 기존 위젯을 활성화한다. `scripts/build_market_history.py` + `market-chart-history.yml`: PC/공개 Actions 러너 전용 갱신. `bond_yield._fetch_page`: 폐쇄된 HTML 대신 KFIA103000 60행 JSON, 최대7페이지. [상세](MARKET_CHART_HISTORY.md).

@@ -43,7 +43,7 @@
       .then(function (response) { if (!response.ok) throw new Error('macro response'); return response.json(); })
       .then(function (payload) {
         if (!payload || !Array.isArray(payload.data)) throw new Error('macro data');
-        resultsCache = payload.data;
+        resultsCache = payload.data.map(function(item) { return global.MarketChartHistory ? Object.assign({},item,{chart:global.MarketChartHistory.merge(item.symbol,item.chart)}) : item; });
         resultsCachedAt = Date.now();
         return resultsCache;
       }).finally(function () {
@@ -231,12 +231,13 @@
       }).join('') + '</div>';
   }
 
-  function card_(symbol, item) {
+  function card_(symbol, item, large) {
     var meta = META[symbol];
     var primary = symbol === 'US_CPI' ? ' umi-card--primary' : '';
     return '<article class="umi-card' + primary + '"><small>' + escapeHtml(meta.category + ' · ' + meta.cadence) + '</small><strong>' + escapeHtml(meta.label) + '</strong>'
       + '<b>' + escapeHtml(keyValue_(symbol, item)) + '</b><span>' + escapeHtml(detail_(symbol, item)) + '</span>'
-      + '<div class="umi-reading"><span>최근 12회 평균 <b>' + escapeHtml(average_(symbol, item)) + '</b></span>' + miniChart_(item) + '</div>'
+      + '<div class="umi-reading"><span>최근 12회 평균 <b>' + escapeHtml(average_(symbol, item)) + '</b></span>' + (large ? '' : miniChart_(item)) + '</div>'
+      + (large ? '<div class="umi-history-chart" data-history-symbol="'+symbol+'"></div>' : '')
       + impactGuide_(symbol)
       + '<i><b>읽는 기준</b> · ' + escapeHtml(readGuide_(symbol)) + ' · 출처 ' + escapeHtml(meta.source) + '</i></article>';
   }
@@ -244,7 +245,7 @@
   function shell_() {
     var next = nextFomc_();
     return '<section class="umi" aria-label="미국 경제 발표">'
-      + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 숫자만 보지 않도록 최근 평균과 12회 흐름, 읽는 기준을 같이 표시합니다. 금리는 글로벌 시장지표에서 확인하세요.</p></div>'
+      + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 숫자만 보지 않도록 최근 평균과 5년 흐름, 읽는 기준을 같이 표시합니다. 금리는 글로벌 시장지표에서 확인하세요.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
       + '<p class="umi-interpret-note">물가는 지수 숫자보다 상승률을 봐. 높고 낮다는 이유만으로 주가 방향이 정해지지는 않아. 발표 예상치와의 차이·이전 수치 수정도 함께 봐.</p>'
       + '<div class="umi-grid"><article class="umi-card umi-card--fomc"><small>통화정책 일정</small><strong>다음 FOMC 회의</strong><b>' + escapeHtml(dateLabel_(next)) + '</b><span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></article>'
@@ -259,8 +260,16 @@
     fetchResults_()
       .then(function (items) {
         var bySymbol = {};
-        items.forEach(function (item) { bySymbol[item.symbol] = item; });
-        target.innerHTML = SYMBOLS.map(function (symbol) { return card_(symbol, bySymbol[symbol] || {}); }).join('');
+        items.forEach(function (item) {
+          bySymbol[item.symbol] = global.MarketChartHistory ? Object.assign({},item,{chart:global.MarketChartHistory.merge(item.symbol,item.chart)}) : item;
+        });
+        target.innerHTML = SYMBOLS.map(function (symbol) { return card_(symbol, bySymbol[symbol] || {}, true); }).join('');
+        var tools = global.OvernightMarket && global.OvernightMarket.cryptoTools;
+        if (tools) target.querySelectorAll('[data-history-symbol]').forEach(function(el) {
+          var symbol=el.getAttribute('data-history-symbol'), item=bySymbol[symbol];
+          if (!item) return; tools.destroy(symbol);
+          tools.chart(el,symbol,item.chart,Number(item.change)>=0);
+        });
       })
       .catch(function () { target.innerHTML = '<p class="umi-state">발표값을 불러오지 못했습니다. 잠시 후 다시 갱신해 주세요.</p>'; })
       .finally(function () { if (button) { button.disabled = false; button.textContent = '갱신'; } });

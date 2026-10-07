@@ -627,3 +627,7 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 
 ### 가상자산 탭 캐시 (2026-10-08)
 새 DB 테이블 없음. `/crypto-news`는 최대100건 RSS 메타데이터를 프로세스 메모리에10분 보관하고 기존 뉴스 제목 번역 캐시를 재사용. 토큰 일봉 이력과 평균은 방문자 브라우저 메모리에1시간 캐시하며 VM에 저장하지 않음.
+
+### 시장지표 5년 정적 이력 (2026-10-08)
+
+`data/chart-history/*.js` / `window.MARKET_HISTORY_ARCHIVES[group]`: `{updatedAt,from,to,years,sources,series}`. 가격 선형 차트는 `[YYYYMMDD,close]`, 국내 캔들은 `[YYYYMMDD,open,high,low,close]`. SQLite 추가 없음. VM 재시작/재검색 감지 제외. [조회·갱신·용량](MARKET_CHART_HISTORY.md).

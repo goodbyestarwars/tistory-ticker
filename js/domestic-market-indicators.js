@@ -677,6 +677,17 @@
   }
 
   function makeChart(key, element, rows, interval) {
+    if (interval !== 'minute' && global.MarketChartHistory) {
+      var source = dmiRoot && dmiRoot._dmiData && dmiRoot._dmiData.indices[key];
+      var daily = source && source.intervals && source.intervals.day && source.intervals.day.rows || [];
+      var merged = global.MarketChartHistory.merge(key, daily);
+      rows = interval === 'week' ? global.MarketChartHistory.weekly(merged) : global.MarketChartHistory.isoRows(merged);
+    }
+    if (global.MarketChartHistory) {
+      var note = element.parentNode.querySelector('.market-history-caption');
+      if (!note) { note=document.createElement('small'); note.className='market-history-caption'; element.insertAdjacentElement('afterend',note); }
+      note.textContent=interval === 'minute' ? '최근 분봉' : global.MarketChartHistory.caption(rows);
+    }
     var points = (rows || []).map(function (row) {
       var point = pointFor(row, interval);
       return point ? point : null;
@@ -1022,7 +1033,7 @@
       if (!data) return;
       var existing = data.indices && data.indices[market] && data.indices[market].intervals
         && data.indices[market].intervals[interval];
-      if (existing) {
+      if (existing || (interval === 'week' && global.MarketChartHistory)) {
         renderCharts(root, data.indices || {});
         return;
       }

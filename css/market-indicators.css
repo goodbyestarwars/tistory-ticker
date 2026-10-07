@@ -41,3 +41,6 @@
   .mi-wrap .mi-tab { width:100%; padding:9px 8px; white-space:normal !important; }
 }
 }
+
+.mi-wrap .market-history-caption { display:block; margin:5px 0 8px; color:#64748b; font-size:11px; line-height:1.4; }
+#us-macro-indicators .umi-history-chart { width:100%; height:230px; margin-top:10px; }

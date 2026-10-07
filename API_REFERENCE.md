@@ -232,9 +232,12 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 데이터 단위 | 지수류는 포인트, 환율은 원, 채권금리·실업률·실질 GDP 성장률은 %, CPI·근원 CPI·근원 PCE·PPI·소비심리는 지수, 비농업고용·JOLTS 구인건수는 천 건, 소매판매는 백만 달러, 원자재/코인은 해당 통화 그대로. `oi`(미결제약정)는 코스피200 야간선물(`KOSPI200_NIGHT`)만 값이 있고 나머지는 `null` |
 | 시장 범위 | 국내(코스피/코스닥/코스피200 주간·야간선물) + 해외(미국 지수 3종 현물·선물, SOX, VIX, WTI, 금) + 환율 + 국채금리(한국 3년/미국 2·10·30년) + FRED 거시지표(미국 CPI·근원 CPI·근원 PCE·PPI·실질 GDP 성장률·비농업고용·실업률·JOLTS 구인건수·소매판매·소비심리) + 가상자산(BTC/ETH) — 심볼별 데이터 출처가 다름(네이버/KIS/FRED/업비트) |
 | 데이터 갱신 주기 | 백그라운드 수집기가 심볼별로 상시 수집(수집 주기는 심볼마다 다름 — `foreign_futures.py`/`domestic_futures.py`/`btc_futures.py`/`bond_yield.py` 각각 확인 필요) |
-| 캐시 시간 | 엔드포인트 자체 캐시 없음(SQLite 즉시 읽기) — 사실상 수집 주기가 갱신 주기 |
+| 캐시 시간 | 10초 메모리 캐시(조회 조건별) — 원본 최신 시각은 수집 주기를 따름 |
 | 호출 예시 | `curl "https://goodbyestar.cloud/futures?interval=day&days=180"` |
 | 오류 응답 예시 | 없음 — 데이터가 없는 심볼은 필드가 `null`일 뿐 요청 자체는 항상 200 |
+
+
+시장지표 5년 차트는 이 API의 행 수를 늘리지 않고 Pages 정적 이력과 브라우저에서 합친다. [자료·용량·갱신](docs/MARKET_CHART_HISTORY.md).
 
 ### `GET /order-book/{code}`
 
