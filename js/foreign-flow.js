@@ -744,8 +744,9 @@
   // 2026-07-20 4차: 텍스트 나열 -> 카드/그리드/구분선 테이블로 개편).
   function renderSignalSummaryPanel(box, data, entry, techScore, fundamentals, quote, chartData) {
     if (!box) return;
-    box.innerHTML = buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData)
+    box.innerHTML = buildCompanyProfilePlaceholder(data.code) + buildSwingSummaryBox(data, entry, techScore, fundamentals, chartData)
       + '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈·모멘텀 상세 보기 →</button>';
+    loadCompanyProfile(box, data.code);
     return;
     var latest = data.daily && data.daily[0];
     var shortEntry = entry && entry.short;
@@ -1596,6 +1597,73 @@
       });
   }
 
+  var companyProfilesPromise = null;
+  var COMPANY_PROFILES_JS = 'https://goodbyestarwars.github.io/tistory-ticker/data/company-profiles.js';
+
+  function ensureCompanyProfiles() {
+    if (global.COMPANY_PROFILES) return Promise.resolve(global.COMPANY_PROFILES);
+    if (companyProfilesPromise) return companyProfilesPromise;
+    companyProfilesPromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = COMPANY_PROFILES_JS;
+      script.onload = function () {
+        if (!global.COMPANY_PROFILES || !global.COMPANY_PROFILES.companies) {
+          companyProfilesPromise = null;
+          reject(new Error('회사 소개 자료 없음'));
+          return;
+        }
+        resolve(global.COMPANY_PROFILES);
+      };
+      script.onerror = function () {
+        companyProfilesPromise = null;
+        reject(new Error('회사 소개 자료 로드 실패'));
+      };
+      document.head.appendChild(script);
+    });
+    return companyProfilesPromise;
+  }
+
+  function fetchCompanyProfile(code) {
+    return ensureCompanyProfiles().then(function (dataset) {
+      var item = dataset.companies[code];
+      return { code: code, available: !!(item && item.summary), summary: item && item.summary,
+        sourceCode: item && item.sourceCode, industry: item && item.industry, asOf: dataset.asOf };
+    });
+  }
+
+  function buildCompanyProfilePlaceholder(code) {
+    if (!/^[0-9A-Z]{6}$/.test(String(code || ''))) return '';
+    var url = 'https://navercomp.wisereport.co.kr/v2/company/c1010001.aspx?cmp_cd=' + code;
+    return '<section class="ff-company-profile" aria-label="회사 소개">'
+      + '<div class="ff-company-profile-head"><span>회사 소개</span><a href="' + escapeAttr(url) + '" target="_blank" rel="noopener noreferrer" data-company-source>기업개요 보기 ↗</a></div>'
+      + '<p data-company-summary>사업 소개를 불러오는 중이에요.</p>'
+      + '<small data-company-meta>출처 · 네이버 증권 / WISEreport</small></section>';
+  }
+
+  function loadCompanyProfile(box, code) {
+    var mount = box.querySelector('[data-company-summary]');
+    if (!mount) return;
+    function show(text) {
+      if (!box.contains(mount)) return; // 종목을 바꾼 뒤 도착한 소개는 버린다.
+      mount.textContent = text;
+      var root = box.closest('#foreign-flow');
+      if (root) syncSignalPanelHeight(root);
+    }
+    fetchCompanyProfile(code).then(function (data) {
+      if (!box.contains(mount)) return;
+      var meta = box.querySelector('[data-company-meta]');
+      if (meta) meta.textContent = '출처 · 네이버 증권 / WISEreport' + (data.asOf ? ' · ' + data.asOf + ' 기준' : '');
+      var link = box.querySelector('[data-company-source]');
+      if (link && /^[0-9A-Z]{6}$/.test(String(data.sourceCode || ''))) {
+        link.href = 'https://navercomp.wisereport.co.kr/v2/company/c1010001.aspx?cmp_cd=' + data.sourceCode;
+      }
+      show(data.available && data.summary ? data.summary
+        : (data.industry ? '업종은 ' + data.industry + '입니다. ' : '') + '등록된 사업 소개가 없어요. 기업개요 보기에서 확인해주세요.');
+    }).catch(function () {
+      show('사업 소개를 불러오지 못했어요. 기업개요 보기에서 확인해주세요.');
+    });
+  }
+
   // ---- 렌더링 ----
 
   function renderResult(box, data, chartData, entry, quote, fundamentals, opinion, etfInfo, selectedIsEtf) {
@@ -1633,6 +1701,7 @@
 
     // 2주 스윙 판정은 탭 밖에 항상 노출한다. 별점/구 등급은 화면 최종의견에서 제거하고
     // 국면·보유자 행동·신규 진입을 분리해 보여준다.
+    if (!selectedIsEtf) html += buildCompanyProfilePlaceholder(data.code);
     html += buildSummaryBox(data, entry, techScore, fundamentals, chartData);
 
     // 2026-08-23: "펀더멘탈 탭에 있으면 안되겠어, 요약에 넣어" 요청으로 여기(탭 밖,
@@ -1667,6 +1736,7 @@
     html += '<div class="ff-view" id="ffViewSim" hidden></div>';
 
     box.innerHTML = html;
+    if (!selectedIsEtf) loadCompanyProfile(box, data.code);
     loadStockMembers_(box, data.code);
 
     // 캔들차트는 차트 탭이 처음 열릴 때 지연 렌더링한다(wireViewTabs) - hidden(display:none)

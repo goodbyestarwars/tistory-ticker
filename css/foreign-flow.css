@@ -1769,7 +1769,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-industry-card:hover,
 #foreign-flow .ff-industry-card.active { border-color: #7aa9d8; box-shadow: 0 5px 15px rgba(27, 82, 135, .10); transform: translateY(-1px); }
 #foreign-flow .ff-flow-card-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
-#foreign-flow .ff-flow-card-copy strong { color: #1e293b; font-size: 14px; }
+#foreign-flow .ff-flow-card-copy strong { color: #1e293b; font-family: 'MaruBuriBold', 'MaruBuri', serif; font-size: calc(14px - 1pt); }
 #foreign-flow .ff-flow-card-copy b { color: #0c447c; font-size: 13px; }
 #foreign-flow .ff-flow-card-copy small { color: #64748b; font-size: 11px; line-height: 1.45; }
 #foreign-flow .ff-flow-line { flex: 0 0 86px; width: 86px; height: 44px; }
@@ -1872,7 +1872,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   #foreign-flow .ff-flow-grid,
   #foreign-flow .ff-industry-grid { gap: 7px; }
   #foreign-flow .ff-flow-card { display: block; padding: 10px; }
-  #foreign-flow .ff-flow-card-copy strong { font-size: 12px; }
+  #foreign-flow .ff-flow-card-copy strong { font-size: calc(12px - 1pt); }
   #foreign-flow .ff-flow-card-copy b { font-size: 11.5px; }
   #foreign-flow .ff-flow-card-copy small { display: block; min-height: 30px; font-size: 10px; }
   #foreign-flow .ff-flow-line { display: block; width: 100%; height: 34px; margin-top: 4px; }
@@ -3013,30 +3013,42 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
 /* ── 종목분석 2주 스윙 판정 재디자인 + 방향 글자색 (2026-10-04) ──
    국면·진단·행동은 둥근 타일로, 상승 문구는 빨강·하락 문구는 파랑. 줄 구분선은 걷는다. */
 #foreign-flow .ff-swing-summary { display: grid; gap: 14px; }
+#foreign-flow .ff-swing-summary strong { font-family: 'MaruBuriBold', 'MaruBuri', serif; }
+#foreign-flow .ff-swing-fact b { font-family: 'MaruBuriBold', 'MaruBuri', serif; font-size: calc(12.5px - 1pt); }
 #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45; }
 #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
 #foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 0 !important; padding: 0 0 2px !important; }
-#foreign-flow .ff-swing-regime > strong { font-size: 28.7px; line-height: 1.1; letter-spacing: -.02em; }
+#foreign-flow .ff-swing-regime > strong { font-size: calc(28.7px - 1pt); line-height: 1.1; letter-spacing: -.02em; }
 #foreign-flow .ff-swing-flow-track { display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
 #foreign-flow .ff-swing-step { display: flex !important; flex-direction: column; gap: 6px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-step-label { display: flex; align-items: baseline; gap: 6px; font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-step > strong { font-size: 17.7px; letter-spacing: -.01em; }
+#foreign-flow .ff-swing-step > strong { font-size: calc(17.7px - 1pt); letter-spacing: -.01em; }
 #foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 18px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .05); }
 #foreign-flow .ff-swing-diagnosis > span { font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-diagnosis > strong { font-size: 18.7px; letter-spacing: -.01em; }
+#foreign-flow .ff-swing-diagnosis > strong { font-size: calc(18.7px - 1pt); letter-spacing: -.01em; }
 #foreign-flow .ff-swing-actions { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; border: 0 !important; }
 #foreign-flow .ff-swing-action { display: flex !important; flex-direction: column; gap: 4px; padding: 14px 16px !important; border: 0 !important; border-radius: 16px; background: rgba(17, 17, 17, .04); }
 #foreign-flow .ff-swing-action > span { font-size: 12px; color: #64748b; }
-#foreign-flow .ff-swing-action > strong { font-size: 15.7px; }
+#foreign-flow .ff-swing-action > strong { font-size: calc(15.7px - 1pt); }
 #foreign-flow .ff-swing-facts { display: flex !important; flex-wrap: wrap; gap: 8px; border: 0 !important; padding: 0 !important; }
 #foreign-flow .ff-swing-fact { display: inline-flex; align-items: baseline; gap: 6px; padding: 6px 12px; border-radius: 999px; background: rgba(17, 17, 17, .05); font-size: 12.5px; }
 #foreign-flow .ff-swing-fact small { color: #64748b; font-size: 11px; }
 #foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { color: #64748b; font-size: 12.5px; line-height: 1.6; border: 0 !important; padding: 0 !important; }
 @media (max-width: 720px) {
   #foreign-flow .ff-swing-flow-track, #foreign-flow .ff-swing-actions { grid-template-columns: minmax(0, 1fr); }
-  #foreign-flow .ff-swing-regime > strong { font-size: 22.7px; }
+  #foreign-flow .ff-swing-regime > strong { font-size: calc(22.7px - 1pt); }
 }
+
+#foreign-flow .ff-company-profile { margin-bottom: 16px; padding: 0 0 14px; border-bottom: 1px solid #e8ebef; }
+#foreign-flow .ff-company-profile-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #64748b; font-size: 12px; }
+#foreign-flow .ff-company-profile-head a { color: #64748b; font-size: 11px; white-space: nowrap; text-decoration: none; }
+#foreign-flow .ff-company-profile-head a:hover { text-decoration: underline; }
+#foreign-flow .ff-company-profile p { margin: 7px 0 5px; color: #334155; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
+#foreign-flow .ff-company-profile small { color: #94a3b8; font-size: 10px; }
+html.dark #foreign-flow .ff-company-profile { border-color: rgba(245, 239, 224, .16); }
+html.dark #foreign-flow .ff-company-profile p { color: #F5EFE0; }
+html.dark #foreign-flow .ff-company-profile-head, html.dark #foreign-flow .ff-company-profile-head a { color: #aaa; }
 
 /* ── 매물대 가격대별 거래량: 애플 스타일 재디자인 (2026-10-04) ──
    위(저항 후보)는 파랑, 아래(지지 후보)는 붉은 계열의 둥근 막대. 현재가 행은 유리 알약, 최대 매물대는 은은한 빛. */
