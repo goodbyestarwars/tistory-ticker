@@ -875,13 +875,13 @@
       destroyChart(key);
       container.innerHTML = '';
 
-      var chart = LWC.createChart(container, mergeOptions({
+      var chart = LWC.createChart(container, mergeOptions(chartThemeOptions(), {
         autoSize: true,
         height: CHART_HEIGHT,
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { timeVisible: interval === 'minute', secondsVisible: false },
+        timeScale: { timeVisible: interval === 'minute', secondsVisible: false, borderVisible: false },
         localization: { priceFormatter: chartPriceFormatter }
-      }, chartThemeOptions()));
+      }));
 
       var series = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4',
