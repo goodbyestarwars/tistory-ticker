@@ -46,8 +46,10 @@ class DirectionTests(unittest.TestCase):
             self.assertIsNone(result['probability'])
             self.assertEqual(result['horizonMinutes'], 60)
             self.assertEqual(result['expiresAt'], '2026-10-06T10:05:08+09:00')
-            self.assertGreater(result['targetPrice'], result['entryPrice'])
-            self.assertLess(result['stopPrice'], result['entryPrice'])
+            self.assertEqual(result['objective'], 'direction')
+            self.assertEqual(result['referencePrice'], data['trade']['price'])
+            for key in ('targetPct','stopPct','entryPrice','targetPrice','stopPrice'):
+                self.assertIsNone(result[key])
         self.assertEqual(candidate.evaluate(bearish_snapshot())['status'], 'rejected')
 
     def test_rejecting_up_setup_is_not_down_prediction(self):
@@ -63,6 +65,8 @@ class DirectionTests(unittest.TestCase):
             for bar in data['bars']:
                 bar['volume'] = 1000
             data['previousVolume']['value'] = 10000000
+            for bar in data['bars'][-2:]:
+                bar['volume'] = 500
             result = engine.evaluate_direction(data)
             self.assertEqual(result['direction'], expected)
             self.assertIn('거래량은 약해', result['reason'])
@@ -84,7 +88,7 @@ class DirectionTests(unittest.TestCase):
 
     def test_surge_halt_target_and_spread_are_not_bearish_signals(self):
         for factory in (snapshot, bearish_snapshot):
-            for change in ({'high': 10600}, {'tempStop': 'Y'}, {'upperLimit': 10100}):
+            for change in ({'high': 10600}, {'tempStop': 'Y'}):
                 data = factory()
                 data['quote'].update(change)
                 self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
@@ -98,7 +102,7 @@ class DirectionTests(unittest.TestCase):
             data['book'][side][0]['qty'] = 100000
             result = engine.evaluate_direction(data)
             self.assertEqual(result['direction'], expected)
-            self.assertIn('잔량은 부담', result['reason'])
+            self.assertNotIn('잔량', result['reason'])
             for bar in data['bars']:
                 bar.update(open=10000, high=10010, low=9990, close=10000)
             data['trade']['price'] = 10000
@@ -114,7 +118,7 @@ class DirectionTests(unittest.TestCase):
         data['trade']['strength'] = 100
         self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 
-    def test_small_directional_bounce_is_not_a_three_percent_setup(self):
+    def test_small_directional_move_no_longer_needs_three_percent(self):
         for factory, sign, delta in [(snapshot, '+3%', 1), (bearish_snapshot, '−3%', -1)]:
             data = factory()
             closes = [190000,190000,190000+100*delta,190000+100*delta,190000+200*delta]
@@ -128,39 +132,29 @@ class DirectionTests(unittest.TestCase):
             data['trade']['price'] = closes[-1]
             data['quote'].update(open=190000,high=190700,upperLimit=247000)
             result = engine.evaluate_direction(data)
-            self.assertEqual(result['direction'], 'unclear')
-            self.assertIn(sign, result['reason'])
+            self.assertEqual(result['direction'], 'up' if delta == 1 else 'down')
+            self.assertIsNone(result['targetPct'])
             self.assertIsNone(result['targetPrice'])
 
-    def test_recorded_naver_bounce_is_below_target_movement_screen(self):
+    def test_recorded_naver_is_direction_only_not_a_three_percent_claim(self):
         import json
         from pathlib import Path
         data = json.loads((Path(__file__).parent/'fixtures/hour_naver_20261007_0948.json').read_text(encoding='utf-8'))
         result = engine.evaluate_direction(data)
-        self.assertEqual(result['direction'], 'unclear')
-        self.assertIn('+3%', result['reason'])
-        self.assertLess(result['metrics']['upMovementBudgetPct'], 0.5)
-        self.assertGreater(result['metrics']['upRequiredMovePct'], 3)
+        self.assertEqual(result['direction'], 'up')
+        self.assertIsNone(result['targetPct'])
+        self.assertIsNone(result['targetPrice'])
+        self.assertNotIn('upMovementBudgetPct', result['metrics'])
         self.assertFalse(result['validated'])
 
-    def test_movement_screen_includes_entry_gap_and_actual_tick_target(self):
-        data = snapshot()
-        bars, error = candidate._closed_bars(data['bars'], candidate._iso(data['checkedAt']), 30)
-        self.assertIsNone(error)
-        metrics = engine.movement_budget(bars, 10060, 10370, 9760)
-        self.assertAlmostEqual(metrics['upRequiredMovePct'], (10370/10050-1)*100)
-        self.assertFalse(metrics['movementBudgetValidated'])
-        far = engine.movement_budget(bars, 11000, 11330, 10670)
-        self.assertFalse(far['upMovementSupported'])
-
-    def test_flat_choppy_prices_do_not_gain_drift_from_total_range(self):
-        data = snapshot()
-        bars, _ = candidate._closed_bars(data['bars'], candidate._iso(data['checkedAt']), 30)
-        for i, row in enumerate(bars):
-            row['close'] = 10000 + (10 if i % 2 else 0)
-        metrics = engine.movement_budget(bars,10020,10330,9720)
-        self.assertFalse(metrics['upMovementSupported'])
-        self.assertFalse(metrics['downMovementSupported'])
+    def test_previous_volume_and_three_percent_ceiling_are_not_direction_inputs(self):
+        for factory, expected in [(snapshot, 'up'), (bearish_snapshot, 'down')]:
+            data = factory()
+            data['previousVolume'] = None
+            data['quote']['upperLimit'] = None
+            self.assertEqual(engine.evaluate_direction(data)['direction'], expected)
+            data['quote']['upperLimit'] = data['book']['asks'][0]['price']
+            self.assertEqual(engine.evaluate_direction(data)['direction'], expected)
 
     def test_coarse_single_tick_rebound_does_not_hide_lg_downtrend(self):
         import json
@@ -169,7 +163,6 @@ class DirectionTests(unittest.TestCase):
         result = engine.evaluate_direction(data)
         self.assertEqual(result['direction'], 'down')
         self.assertEqual(result['metrics']['tradePriceTolerance'], 500)
-        self.assertGreater(result['metrics']['downMovementBudgetPct'],result['metrics']['downRequiredMovePct'])
         data['trade']['price'] += 500
         self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 

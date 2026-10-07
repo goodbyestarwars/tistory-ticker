@@ -5,44 +5,11 @@ The labels describe a rule hypothesis for the following 60 minutes, not a fitted
 probability or a promise of a 3% move. Candidate rejection is never a down label.
 """
 from datetime import timedelta
-import math
 import hour_candidate_engine as candidate
 
-MODEL_VERSION = 'hour-direction-rules-v5'
+MODEL_VERSION = 'hour-direction-rules-v6'
 LOOKBACK_MINUTES = 30
 LABELS = {'up': '상승가능', 'down': '하락가능', 'unclear': '판단 어려움'}
-
-
-def movement_budget(bars, entry, target, stop):
-    """Uncalibrated 60-minute sensitivity screen, NOT a forecast/probability.
-
-    Fit log-price slope to the last <=10 CLOSED minutes. Combine its signed
-    60-minute continuation with one sqrt-time-scaled return standard deviation.
-    This assumes local pace/volatility persists; it is only a rejection screen.
-    Targets include the gap from the last closed price to the executable basis.
-    """
-    window = bars[-10:]
-    prices = [math.log(row['close']) for row in window]
-    n = len(prices)
-    center = (n - 1) / 2
-    mean = sum(prices) / n
-    slope = sum((i-center)*(price-mean) for i, price in enumerate(prices)) / sum((i-center)**2 for i in range(n))
-    returns = [prices[i]-prices[i-1] for i in range(1, n)]
-    average = sum(returns) / len(returns)
-    variance = sum((r-average)**2 for r in returns) / (len(returns)-1)
-    noise = math.sqrt(variance * 60)
-    up_budget = max(0.0, slope * 60) + noise
-    down_budget = max(0.0, -slope * 60) + noise
-    up_need = math.log(target / window[-1]['close'])
-    down_need = math.log(window[-1]['close'] / stop)
-    return {'movementWindowBars': n, 'movementSlopeLogPerMinute': slope,
-            'movementNoise60Log': noise, 'upMovementBudgetPct': math.expm1(up_budget)*100,
-            'downMovementBudgetPct': (1-math.exp(-down_budget))*100,
-            'upRequiredMovePct': math.expm1(up_need)*100,
-            'downRequiredMovePct': (1-math.exp(-down_need))*100,
-            'upMovementSupported': up_budget >= up_need,
-            'downMovementSupported': down_budget >= down_need,
-            'movementBudgetValidated': False}
 
 
 def outside_reason(checked):
@@ -82,7 +49,8 @@ def unclear(code, name, checked_at, reason):
         'label': LABELS['unclear'], 'reason': reason,
         'checkedAt': checked.isoformat() if checked else None,
         'expiresAt': (checked + timedelta(minutes=60)).isoformat() if checked else None,
-        'horizonMinutes': 60, 'targetPct': 3, 'stopPct': -3,
+        'horizonMinutes': 60, 'objective': 'direction', 'targetPct': None, 'stopPct': None,
+        'referencePrice': None, 'referenceBasis': '확인 당시 최근 체결가',
         'entryPrice': None, 'targetPrice': None, 'stopPrice': None,
         'probability': None, 'validated': False, 'rulesVersion': MODEL_VERSION,
         'metrics': {},
@@ -105,9 +73,14 @@ def evaluate_direction(snapshot, candidate_result=None):
     if issues is None or blockers is None:
         result['reason'] = '방향 판단에 필요한 자료 검증 결과가 없습니다.'
         return result
+    # Previous-session volume and the +3% price ceiling belong to the legacy
+    # candidate filter, not this direction-only view.
+    issues = [reason for reason in issues if not reason.startswith((
+        '같은 출처·시장의 직전 거래일 거래량', '상한가를 확인할 수 없어'))]
     # Volume participation is context, not a prerequisite for either direction.
     # In particular, falling prices do not require increasing traded volume.
-    blockers = [reason for reason in blockers if '최근 2분 거래량' not in reason]
+    blockers = [reason for reason in blockers if '최근 2분 거래량' not in reason
+                and '매수가 대비 +3% 목표가' not in reason]
     if issues or blockers:
         result['reason'] = brief_reason((issues or blockers)[0])
         return result
@@ -116,6 +89,7 @@ def evaluate_direction(snapshot, candidate_result=None):
         result['reason'] = error
         return result
     metrics = base['metrics']
+    result['referencePrice'] = candidate._num(snapshot['trade'].get('price'), strict=True)
     high_pivots = [i for i in range(1, len(bars) - 1)
                    if bars[i]['high'] > bars[i - 1]['high']
                    and bars[i]['high'] > bars[i + 1]['high']]
@@ -141,14 +115,8 @@ def evaluate_direction(snapshot, candidate_result=None):
     result['metrics']['directionPriceBasis'] = '최근 5개 완결 분봉 시작 가격'
     trade_price = candidate._num(snapshot['trade'].get('price'), strict=True)
     closing, vwap, strength = bars[-1]['close'], metrics['barTypicalPriceVwap'], metrics['strength']
-    bids = candidate._book_levels(snapshot['book']['bids'])
-    recent_volume = metrics['recent2MinuteVolume']
-    entry, stop = base['entryPrice'], base['stopPrice']
-    sell_burden = metrics['visibleResistanceToRecentVolume']
-    buy_burden = sum(row['qty'] for row in bids if stop <= row['price'] <= entry) / recent_volume
-    result['metrics']['visibleSupportToRecentVolume'] = buy_burden
     # Price direction + VWAP agreement remain required. Pattern OR executed
-    # buying/selling pressure confirms it; visible walls only annotate context.
+    # buying/selling pressure confirms it; walls do not decide direction.
     # A normal single tick must not invalidate the trend on coarse-tick stocks.
     # E.g. one 500-won tick at 210,500 exceeds the old fixed 0.2% tolerance.
     price_tolerance = max(closing * 0.002, float(candidate.tick_size(closing)))
@@ -157,29 +125,17 @@ def evaluate_direction(snapshot, candidate_result=None):
           and (rising or strength >= 105))
     down = (closing < opening and closing <= vwap and trade_price <= closing + price_tolerance
             and (bearish_pattern or strength <= 95))
-    movement = movement_budget(bars, entry, base['targetPrice'], stop)
-    result['metrics'].update(movement)
-    if up and not movement['upMovementSupported']:
-        result['reason'] = '작은 반등은 있지만 1시간 +3% 움직임 근거가 부족해.'
-        return result
-    if down and not movement['downMovementSupported']:
-        result['reason'] = '약한 하락이지만 1시간 −3% 움직임 근거가 부족해.'
-        return result
     if up:
         result.update(direction='up', label=LABELS['up'])
     elif down:
         result.update(direction='down', label=LABELS['down'])
     if result['direction'] != 'unclear':
-        wall = sell_burden if up else buy_burden
-        weak_volume = metrics['volumeAcceleration'] < 1.3 or metrics['recentPrevVolumePct'] < 1
+        weak_volume = metrics.get('volumeAcceleration', 0) < 1
         pattern = rising if up else bearish_pattern
         result['reason'] = ('최근 가격 상승과 ' if up else '최근 가격 하락과 ') + (
             ('저점 상승' if up else '고점 하락') if pattern else ('매수 체결 우위' if up else '매도 체결 우위')) + ' 흐름이 맞아.'
         if weak_volume:
             result['reason'] += ' 거래량은 약해.'
-        elif wall > 1:
-            result['reason'] += ' 앞쪽 잔량은 부담돼.'
-        result.update(entryPrice=entry, targetPrice=base['targetPrice'], stopPrice=stop)
     elif strength <= 95:
         result['reason'] = '매도 체결 우위지만 최근 가격은 횡보·반등이 섞여 있어.'
     elif strength >= 105:
