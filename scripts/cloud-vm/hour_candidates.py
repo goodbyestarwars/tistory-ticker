@@ -179,7 +179,8 @@ def _ranking_pool(token, key, secret, deadline):
 def _collect(row, token, key, secret, deadline, clock):
     now = clock().astimezone(KST)
     code, day = row['code'], now.strftime('%Y%m%d')
-    previous = _previous_volume(token, key, secret, code, now, deadline, row.get('previousVolume'))
+    previous = (None if row.get('_directionCheck') else
+                _previous_volume(token, key, secret, code, now, deadline, row.get('previousVolume')))
     minute = _request(token, key, secret, '/uapi/domestic-stock/v1/quotations/inquire-time-dailychartprice',
                       'FHKST03010230', {
                           'FID_COND_MRKT_DIV_CODE': 'J', 'FID_INPUT_ISCD': code,
@@ -277,6 +278,7 @@ def scan(mode, code='', name='', settings=None, key='', secret='', clock=None, p
                             'skippedCount': 0, 'fullMarket': False, 'failedRankSections': []}}
     if include_direction:
         payload['directionModelVersion'] = direction_engine.MODEL_VERSION
+        payload['criteria'].update(objective='direction', targetPct=None, stopPct=None)
     check_window = in_direction_window if include_direction else in_check_window
     if not check_window(started):
         note = ((direction_engine.outside_reason(started) if market_clock.is_kr_trading_day(started) else '오늘은 국내장이 쉬는 날이야.') if include_direction else

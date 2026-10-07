@@ -102,9 +102,9 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 ### `GET /hour-direction`
 
-선택 종목 한 개의 확인 후 60분 **미검증 규칙 방향 가설**. 공개 `code`(6자 국내 코드) 필수, `name`(80자 이하) 선택. 고정 내부 문턱이며 설정·순위 입력 없음. 표시는 상승가능/하락가능/판단 어려움과 아래 짧은 근거다. 선택 방향 워커 1개, 최근 최대 30분, 추가 분봉 조회 없음. 응답 `data`: `code,name,direction(up|down|unclear),label,reason,checkedAt,expiresAt,horizonMinutes:60,targetPct:3,stopPct:-3,entryPrice,targetPrice,stopPrice,probability:null,validated:false,rulesVersion:hour-direction-rules-v5,sourceStatus,recorded`. 가격은 가설을 보류할 때 null이다. 상승/하락은 각각 별도로 계산하며 후보 탈락은 하락 예측이 아니다. v3는 5봉 가격 방향·30분 VWAP와 패턴 또는 체결 우위를 요구하고 거래량·벽 잔량은 보조 근거다. v4는 추가로 최근 최대10봉 속도·변동성의 미검증 60분 확대값과 실제 ±3% 목표까지 이동폭을 비교해 작은 움직임을 보류한다. 이는 목표 도달 확률이 아니다. v5는 현재가의 역방향 허용폭을 max(종가0.2%, KRX1호가단위)로 계산하며, 매수/매도 체결 우위와 횡보·반등·하락 혼합을 짧은 보류 이유로 구분한다.
+선택 종목 한 개의 **확인 당시 가격보다 1시간 뒤 높을지 낮을지** 판단하는 미검증 방향 가설. code(6자 국내코드)필수, name(80자이하)선택. 화면은 세 결과와 아래 짧은 근거다. 응답 data: code,name,direction(up|down|unclear),label,reason,checkedAt,expiresAt,horizonMinutes:60,objective:direction,referencePrice,referenceBasis:확인 당시 최근 체결가,probability:null,validated:false,rulesVersion:hour-direction-rules-v6,sourceStatus,recorded. 호환 가격/목표 필드 targetPct,stopPct,entryPrice,targetPrice,stopPrice는 항상null. 자료 검증 전 referencePrice도null. +3%/−3% 이동폭 검사와 확대계산 제거. 최근5봉 가격 방향과30분VWAP, 패턴 또는 체결강도로 확인하며 체결강도 단독 신호가 아니다. 상세 [방향명세](docs/HOUR_CANDIDATES.md).
 
-`/hour-candidates`와 같은 수집 잠금·IP 분당 3회 버킷·KIS 요청 간격·동시 작업 1건을 공유하며 방향 확인은 09:05 이상 14:30 미만이다. 최근 최대 30분만 계산하고 KRX 마감까지 다음 60분을 확보하지 못하면 보류한다. `no-store`; 장외는 공급자 조회 없이 `unclear`; 입력 오류 422, 동시 확인 409, 확보 실패 503. 상세 변수·입력은 로컬 5MB 회전 기록에만 보존한다. 화면은 종목 직접 선택 때 1회 조회, URL 자동진입/분봉 갱신 때 조회하지 않는다.
+`/hour-candidates`와 같은 전역동시1건·IP분당3회 버킷·KIS간격 공유. 국내거래일09:05~14:30전 직접1종목, 워커1개, 최근30분. 전일거래량조회 생략, 정상 공급자4회(분봉1회 포함; 토큰/재시도 별도). 추가폴링/분봉페이지 없음. no-store, 장외공급자0회, 입력422/동시409/확보실패503. 같은 KIS KRX의 최근체결가가 방향 비교 기준이며 매수주문가격이 아니다. 저장상세는 기존5MB회전기록, 수동 클릭/검색만 호출, URL자동진입/분봉갱신에는 조회하지 않는다.
 
 ### `GET /hour-candidates`
 

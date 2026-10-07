@@ -81,6 +81,9 @@ class DirectionUiTests(unittest.TestCase):
         data=self.run_ui()
         self.assertIn('1시간 방향',data['shell'])
         self.assertIn('실험 판단',data['shell'])
+        self.assertIn('1시간 뒤',data['shell'])
+        self.assertNotIn('+3%',data['shell'])
+        self.assertNotIn('−3%',data['shell'])
         for old in ['순위 종목','급등 제외','type="number"','후보']:
             self.assertNotIn(old,data['shell'])
         self.assertTrue(data['initial']['hidden'])

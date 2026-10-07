@@ -180,6 +180,16 @@ class ManualCheckTests(unittest.TestCase):
         for call in request.call_args_list:
             self.assertEqual(call.args[5]['FID_COND_MRKT_DIV_CODE'], 'J')
 
+    def test_direction_collect_skips_previous_day_lookup_and_uses_four_requests(self):
+        self.test_collect_retains_real_provider_clocks_and_krx_denominator()
+        with mock.patch.object(checks, '_previous_volume', side_effect=AssertionError('unused day-volume lookup')), \
+             mock.patch.object(checks, '_request', side_effect=copy.deepcopy(self.raw_responses)) as request:
+            value = checks._collect({'code': '111111', '_directionCheck': True},
+                                    'token','key','secret',100,lambda: NOW)
+        self.assertIsNone(value['previousVolume'])
+        self.assertEqual(request.call_count, 4)
+        self.assertEqual(checks.direction_engine.evaluate_direction(value)['direction'], 'up')
+
     def test_minute_change_during_collection_cannot_finalize_partial_bar(self):
         self.test_collect_retains_real_provider_clocks_and_krx_denominator()
         clocks = iter([NOW.replace(second=59), NOW.replace(minute=6, second=2)])
@@ -201,10 +211,14 @@ class DirectionServiceTests(unittest.TestCase):
                                         clock=lambda: NOW, collector=collect)
         self.assertEqual(result['direction'], 'up')
         self.assertNotIn('items', result)
+        self.assertEqual(result['objective'], 'direction')
+        self.assertEqual(result['referencePrice'], 10050)
+        self.assertIsNone(result['targetPct'])
+        self.assertIsNone(result['targetPrice'])
         self.assertNotIn('metrics', result)
         self.assertFalse(result['validated'])
         payload, inputs = self.record.call_args.args
-        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v5')
+        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v6')
         self.assertEqual(payload['items'][0]['directionVerdict']['direction'], 'up')
         self.assertIn('035420', inputs)
 

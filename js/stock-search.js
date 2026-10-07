@@ -426,7 +426,7 @@
   }
 
   function hourCandidatesShell() {
-    return '<div id="ssHourCandidates" class="ss-hour-direction" hidden title="실험 판단 · 확인 후 60분, 매수 기준가 +3% / −3%. 수익 우위와 확률은 검증 전이다.">'
+    return '<div id="ssHourCandidates" class="ss-hour-direction" hidden title="실험 판단 · 확인 당시 가격보다 1시간 뒤 높을지 낮을지 판단. 예측 정확도는 검증 전이다.">'
       + '<div id="ssHourResult" aria-live="polite" aria-atomic="true">' + directionHtml('unclear', '아직 직접 확인하지 않았어.') + '</div>'
       + '<button type="button" data-hour-check="selected" aria-label="다시 확인" title="다시 확인">↻</button></div>';
   }
