@@ -464,6 +464,7 @@
 
   function renderCompletedDisclosures(state, loading) {
     var monthKey = String(state.viewYear) + '-' + String(state.viewMonth + 1).padStart(2, '0');
+    var terms = String(state.disclosureQuery || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
     var seen = new Set();
     var completed = (state.events || []).filter(function (event) {
       if (!event || String(event.source || event.provider || '').toLowerCase() !== 'dart'
@@ -471,6 +472,9 @@
       var key = calendarEventKey(event);
       if (seen.has(key)) return false;
       seen.add(key);
+      var searchText = [event.title, event.corp_name, event.report_name, event.result, event.symbol, event.stock_code]
+        .map(function (value) { return String(value || ''); }).join(' ').toLowerCase();
+      if (!terms.every(function (term) { return searchText.indexOf(term) !== -1; })) return false;
       return true;
     }).sort(function (a, b) { return String(b.start).localeCompare(String(a.start)); });
     var cards = completed.map(function (event) {
@@ -479,16 +483,20 @@
         + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>' + renderEventRow(event) + '</article>';
     }).join('');
     return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
-      + '<h2>공시 완료 <span>' + completed.length + '건</span></h2><p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
+      + '<h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2><p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
       + '월 · 최근 공시부터 보여줘.</p></div>'
       + (cards ? '<div class="sc-completed-grid">' + cards + '</div>'
-        : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : '표시할 완료 공시가 없어.') + '</div>')
+        : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.' : '표시할 완료 공시가 없어.') + '</div>')
       + '</section>';
   }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    container.innerHTML = '<div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
+      + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 공시 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
+      + '<small id="scDisclosureScope"></small></div><div data-calendar-content></div>';
+    var calendarContent = container.querySelector('[data-calendar-content]');
 
     function dateKey(date) {
       return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0')
@@ -541,6 +549,8 @@
     }
 
     function renderSchedule(state, loading) {
+      state.loading = !!loading;
+      container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월의 완료 공시에서 검색해.';
       var selectedEvents = (state.events || []).filter(function (event) {
         return String(event && event.start || '').slice(0, 10) === state.selectedKey;
       }).sort(compareEvents);
@@ -551,7 +561,7 @@
           ? '<div class="sc-today-rows">' + selectedEvents.map(renderEventRow).join('') + '</div>'
           : '<div class="sc-empty">선택한 날짜에 예정된 일정이 없습니다.</div>';
 
-      container.innerHTML =
+      calendarContent.innerHTML =
         '<div class="sc-layout">'
         + '<aside class="sc-cal-col" aria-label="일정 달력">'
         + renderMonthCalendar(state)
@@ -571,9 +581,16 @@
       viewYear: Number(now.year),
       viewMonth: Number(now.month) - 1,
       selectedKey: now.year + '-' + now.month + '-' + now.day,
-      events: []
+      events: [],
+      disclosureQuery: '',
+      loading: false
     };
     var requestId = 0;
+    container.querySelector('[data-disclosure-search]').addEventListener('input', function (event) {
+      state.disclosureQuery = event.target.value;
+      var completedPanel = calendarContent.querySelector('.sc-completed');
+      if (completedPanel) completedPanel.outerHTML = renderCompletedDisclosures(state, state.loading);
+    });
 
     function loadMonth(year, month, selected) {
       var target = new Date(year, month, 1);
