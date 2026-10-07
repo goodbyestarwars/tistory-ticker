@@ -162,6 +162,27 @@ class DirectionTests(unittest.TestCase):
         self.assertFalse(metrics['upMovementSupported'])
         self.assertFalse(metrics['downMovementSupported'])
 
+    def test_coarse_single_tick_rebound_does_not_hide_lg_downtrend(self):
+        import json
+        from pathlib import Path
+        data = json.loads((Path(__file__).parent/'fixtures/hour_066570_20261007.json').read_text(encoding='utf-8'))
+        result = engine.evaluate_direction(data)
+        self.assertEqual(result['direction'], 'down')
+        self.assertEqual(result['metrics']['tradePriceTolerance'], 500)
+        self.assertGreater(result['metrics']['downMovementBudgetPct'],result['metrics']['downRequiredMovePct'])
+        data['trade']['price'] += 500
+        self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
+
+    def test_hyundai_day_loss_is_not_fabricated_into_forward_downtrend(self):
+        import json
+        from pathlib import Path
+        data = json.loads((Path(__file__).parent/'fixtures/hour_005380_20261007.json').read_text(encoding='utf-8'))
+        result = engine.evaluate_direction(data)
+        self.assertEqual(result['direction'], 'unclear')
+        self.assertIn('매도 체결 우위',result['reason'])
+        self.assertIn('횡보',result['reason'])
+        self.assertIsNone(result['entryPrice'])
+
     def test_current_and_future_prices_never_affect_hypothesis(self):
         for factory in (snapshot, bearish_snapshot):
             data = factory()

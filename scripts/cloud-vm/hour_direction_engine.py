@@ -8,7 +8,7 @@ from datetime import timedelta
 import math
 import hour_candidate_engine as candidate
 
-MODEL_VERSION = 'hour-direction-rules-v4'
+MODEL_VERSION = 'hour-direction-rules-v5'
 LOOKBACK_MINUTES = 30
 LABELS = {'up': '상승가능', 'down': '하락가능', 'unclear': '판단 어려움'}
 
@@ -149,9 +149,13 @@ def evaluate_direction(snapshot, candidate_result=None):
     result['metrics']['visibleSupportToRecentVolume'] = buy_burden
     # Price direction + VWAP agreement remain required. Pattern OR executed
     # buying/selling pressure confirms it; visible walls only annotate context.
-    up = (closing > opening and closing >= vwap and trade_price >= closing * 0.998
+    # A normal single tick must not invalidate the trend on coarse-tick stocks.
+    # E.g. one 500-won tick at 210,500 exceeds the old fixed 0.2% tolerance.
+    price_tolerance = max(closing * 0.002, float(candidate.tick_size(closing)))
+    result['metrics']['tradePriceTolerance'] = price_tolerance
+    up = (closing > opening and closing >= vwap and trade_price >= closing - price_tolerance
           and (rising or strength >= 105))
-    down = (closing < opening and closing <= vwap and trade_price <= closing * 1.002
+    down = (closing < opening and closing <= vwap and trade_price <= closing + price_tolerance
             and (bearish_pattern or strength <= 95))
     movement = movement_budget(bars, entry, base['targetPrice'], stop)
     result['metrics'].update(movement)
@@ -176,4 +180,8 @@ def evaluate_direction(snapshot, candidate_result=None):
         elif wall > 1:
             result['reason'] += ' 앞쪽 잔량은 부담돼.'
         result.update(entryPrice=entry, targetPrice=base['targetPrice'], stopPrice=stop)
+    elif strength <= 95:
+        result['reason'] = '매도 체결 우위지만 최근 가격은 횡보·반등이 섞여 있어.'
+    elif strength >= 105:
+        result['reason'] = '매수 체결 우위지만 최근 가격은 횡보·하락이 섞여 있어.'
     return result
