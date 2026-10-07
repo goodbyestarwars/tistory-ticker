@@ -64,7 +64,7 @@
       +group('가상자산',[['BTC','비트코인'],['ETH','이더리움']])
       +group('바이낸스 국내주식 토큰',tools.symbols)
       +'<p class="cm-note">코인은 원화, 토큰은 USDT 기준. 국내주식 토큰은 무기한선물 참고 가격이며 실제 주식 시세와 다릅니다.</p>'
-      +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div data-news-list></div></section>';
+      +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
   }
   function draw(item, stats, token) {
     var card=root.querySelector('[data-asset="'+item.symbol+'"]'); if(!card)return;
@@ -113,9 +113,15 @@
     return tools.get(api+'/crypto-news?limit=20',20000).then(function(json){
       var data=json.data||{},items=(data.items||[]).filter(function(item){return item.market==='crypto'&&/^https:\/\//.test(item.link);});
       if(!items.length)throw new Error('empty');
-      root.querySelector('[data-news-list]').innerHTML=items.map(function(item){
-        var date=new Date(item.pubDate),time=isNaN(date)?'':date.toLocaleString('ko-KR');
-        return '<a class="cm-news-item" href="'+esc(item.link)+'" target="_blank" rel="noopener noreferrer"><span class="cm-news-dot"></span><span><time>'+esc(time)+'</time><b>'+esc(item.title_ko||item.title)+'</b><small>'+esc(item.source)+'</small></span></a>';
+      root.querySelector('[data-news-list]').innerHTML=items.map(function(item,index){
+        var date=new Date(item.pubDate),parts={};
+        if(!isNaN(date))new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'}).formatToParts(date).forEach(function(part){parts[part.type]=part.value;});
+        var day=parts.month?parts.month+'/'+parts.day:'—',time=parts.hour?parts.hour+':'+parts.minute:'—';
+        return '<a class="app-news-event cm-news-item" href="'+esc(item.link)+'" target="_blank" rel="noopener noreferrer">'
+          +'<time class="app-news-date" datetime="'+esc(item.pubDate)+'"><strong>'+esc(day)+'</strong><small>'+esc(time)+'</small></time>'
+          +'<span class="app-news-rail"><i'+(index===0?' class="is-latest"':'')+'></i></span>'
+          +'<span class="app-news-body"><span class="app-news-meta"><b class="app-news-market cm-news-market">가상자산</b><b class="app-news-type app-news-type--뉴스">뉴스</b><small>'+esc(item.source)+'</small></span>'
+          +'<strong>'+esc(item.title_ko||item.title)+'</strong></span></a>';
       }).join('');
       root.querySelector('[data-news-status]').textContent=data.stale?'최근 저장 뉴스 · 공급자 응답 지연':'가상자산 전문 매체 · 최근 기사';newsAt=Date.now();
     }).catch(function(){root.querySelector('[data-news-status]').textContent='뉴스 조회 지연 · 새로고침으로 다시 확인';});
