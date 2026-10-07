@@ -13,14 +13,19 @@ html.dark #crypto-market .om-cat-label { color:#F5EFE0; }
 #crypto-market .cm-news-head { display:flex; align-items:center; justify-content:space-between; gap:12px; }
 #crypto-market .cm-news-head h3 { margin:0; font-size:18px; }
 #crypto-market button { border:0; border-radius:18px; background:#f1f5f9; padding:8px 14px; cursor:pointer; }
-#crypto-market .cm-news-item { display:grid; grid-template-columns:16px minmax(0,1fr); gap:12px; padding:14px 0; text-decoration:none!important; color:#222; border-bottom:1px solid #f1f5f9; }
-#crypto-market .cm-news-item>span:last-child { display:grid; gap:5px; }
-#crypto-market .cm-news-dot { width:6px; height:6px; border-radius:50%; background:#f26b38; margin-top:5px; }
-#crypto-market .cm-news-item time { color:#f26b38; font-size:12px; }
-#crypto-market .cm-news-item b { font-size:15px; overflow-wrap:anywhere; }
-#crypto-market .cm-news-item small { color:#94a3b8; font-size:11px; }
+#crypto-market .cm-news-item { grid-template-columns:56px 13px minmax(0,1fr); gap:10px; padding:18px 0; text-decoration:none!important; border-color:#eef0f2; }
+#crypto-market .cm-news-item .app-news-date strong { font-size:13px; }
+#crypto-market .cm-news-item .app-news-date small { font-size:11px; }
+#crypto-market .cm-news-item .app-news-body > strong { margin-top:4px; font-size:16px; line-height:1.5; overflow-wrap:anywhere; word-break:keep-all; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; }
+#crypto-market .cm-news-item .app-news-meta { flex-wrap:wrap; }
+#crypto-market .cm-news-item .app-news-meta > small { font-size:11px; }
+#crypto-market .cm-news-market { color:#b45309; background:#fff7ed; }
+#crypto-market .cm-news-item .app-news-rail { min-height:62px; }
+#crypto-market .cm-news-item:last-child .app-news-rail { border-left-color:transparent!important; }
+html.dark #crypto-market .cm-news-market { color:#fbbf24; background:rgba(180,83,9,.22); }
 html.dark #crypto-market .om-card,html.dark #crypto-market .cm-news { background:#151b24; border-color:#374151; }
 html.dark #crypto-market .cm-news-item { color:#e5e7eb; border-color:#374151; }
 @media(min-width:1600px){#crypto-market .om-grid{grid-template-columns:repeat(5,minmax(0,1fr));}}
 @media(max-width:1000px){#crypto-market .om-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:600px){#crypto-market .om-grid,#crypto-market .om-category:first-of-type .om-grid{grid-template-columns:1fr;}#crypto-market .cm-news{padding:18px;}}
+@media(max-width:720px){#crypto-market .cm-news-item{grid-template-columns:48px 11px minmax(0,1fr);gap:8px;padding:14px 0;}#crypto-market .cm-news-item .app-news-body > strong{font-size:15px;}}
