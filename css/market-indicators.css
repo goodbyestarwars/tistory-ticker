@@ -35,6 +35,6 @@
 .mi-wrap .mi-tabs { max-width:100%; box-sizing:border-box; flex-wrap:wrap; }
 .mi-wrap .mi-tab { min-width:0; white-space:normal; }
 @media(max-width:720px){
-  .mi-wrap .mi-tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); width:100%; }
-  .mi-wrap .mi-tab { width:100%; padding:9px 8px; }
+  .mi-wrap .mi-tabs { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)); width:100% !important; overflow:hidden !important; }
+  .mi-wrap .mi-tab { width:100%; padding:9px 8px; white-space:normal !important; }
 }
