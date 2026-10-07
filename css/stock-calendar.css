@@ -25,6 +25,19 @@
 #stock-calendar .sc-disclosure-search small { display: block; color: #64748b; font-size: 11px; }
 html.dark #stock-calendar .sc-disclosure-search small { color: #aaa !important; }
 #stock-calendar .sc-completed { margin-top: 28px; }
+#stock-calendar .sc-econ-results { margin-top: 30px; padding-top: 24px; border-top: 1px solid #e5e7eb; }
+#stock-calendar .sc-econ-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin-bottom: 14px; }
+#stock-calendar .sc-econ-head h2 { margin: 0 0 6px; font-size: 18px; }
+#stock-calendar .sc-econ-head p { max-width: 760px; }
+#stock-calendar .sc-econ-head button { flex-shrink: 0; }
+#stock-calendar .sc-econ-results .sc-empty { grid-column: 1 / -1; }
+#stock-calendar .sc-econ-results .umi-card { border: 1px solid #d1d5db; border-radius: 12px; box-shadow: none; }
+#stock-calendar .sc-econ-results .umi-card--primary { border-color: #d1d5db; }
+#stock-calendar .umi-result-period { margin-top: 12px; padding-top: 10px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #475569; }
+#stock-calendar .umi-result-period span { margin-top: 3px; font-size: 11px; }
+html.dark #stock-calendar .sc-econ-results { border-top-color: rgba(245,239,224,.18); }
+html.dark #stock-calendar .umi-result-period { color: #F5EFE0; border-color: rgba(245,239,224,.18); }
+@media (max-width: 480px) { #stock-calendar .sc-econ-head { flex-wrap: wrap; } }
 #stock-calendar .sc-completed-head { margin-bottom: 12px; }
 #stock-calendar .sc-completed-head h2 { margin: 0; font-size: 18px; color: #0d1b40; }
 #stock-calendar .sc-completed-head h2 span { margin-left: 6px; color: #64748b; font-size: 12px; font-weight: 500; }
