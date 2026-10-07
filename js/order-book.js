@@ -21,6 +21,10 @@
 
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var VM_ORDER_BOOK_URL = 'https://goodbyestar.cloud/order-book/';
+  var VM_FLOW_CHART_URL = 'https://goodbyestar.cloud/flow-chart/';
+  var chartRequests = {};
+  var chartResponses = {};
+  var quoteRequests = {};
   var REALTIME_QUOTES_URL = 'wss://goodbyestar.cloud/ws/quotes';
   var REALTIME_RECONNECT_MS = 5000;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -1025,17 +1029,68 @@
   }
 
   function fetchQuote(code) {
+    if (quoteRequests[code]) return quoteRequests[code];
     var hasAbort = 'AbortController' in global;
     var controller = hasAbort ? new AbortController() : null;
     var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(GAS_TICKER_URL + '?codes=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
+    var request = fetch('https://goodbyestar.cloud/domestic-quotes?codes=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
       .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
+        if (!r.ok) throw new Error('현재가 응답 오류: ' + r.status);
         return r.json();
       })
       .then(function (data) {
         if (timer) clearTimeout(timer);
-        return (data && data[0]) || null;
+        delete quoteRequests[code];
+        return (data && data.data && data.data[0]) || null;
+      })
+      .catch(function (err) {
+        if (timer) clearTimeout(timer);
+        delete quoteRequests[code];
+        throw err;
+      });
+    quoteRequests[code] = request;
+    return request;
+  }
+
+  function fetchChart(code) {
+    var cached = chartResponses[code];
+    if (cached && Date.now() - cached.t < 5 * 60 * 1000) return Promise.resolve(cached.data);
+    if (chartRequests[code]) return chartRequests[code];
+    var request = requestChart(VM_FLOW_CHART_URL + encodeURIComponent(code))
+      .then(function (json) {
+        var data = json && json.data ? json.data : json;
+        if (!data || !Array.isArray(data.daily) || !data.daily.length) throw new Error('chart unavailable');
+        return data;
+      })
+      .catch(function () {
+        return requestChart(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code));
+      })
+      .then(function (data) {
+        delete chartRequests[code];
+        if (data && !data.error && Array.isArray(data.daily) && data.daily.length) {
+          // 브라우저 캐시도 상한을 둔다. 차트와 호가 요약의 동시 요청은 한 번만 보낸다.
+          var keys = Object.keys(chartResponses);
+          if (keys.length >= 20) delete chartResponses[keys[0]];
+          chartResponses[code] = { t: Date.now(), data: data };
+        }
+        return data;
+      }, function (err) { delete chartRequests[code]; throw err; });
+    chartRequests[code] = request;
+    return request;
+  }
+
+  function requestChart(url) {
+    var hasAbort = 'AbortController' in global;
+    var controller = hasAbort ? new AbortController() : null;
+    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
+    return fetch(url, hasAbort ? { signal: controller.signal } : {})
+      .then(function (r) {
+        if (!r.ok) throw new Error('summary API error: ' + r.status);
+        return r.json();
+      })
+      .then(function (data) {
+        if (timer) clearTimeout(timer);
+        return data;
       })
       .catch(function (err) {
         if (timer) clearTimeout(timer);
@@ -1044,16 +1099,7 @@
   }
 
   function fetchSummary(code) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('summary API error: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
+    return fetchChart(code).then(function (data) {
         var daily = data && Array.isArray(data.daily) ? data.daily : [];
         var latest = daily.length ? daily[daily.length - 1] : null;
         var previous = daily.length > 1 ? daily[daily.length - 2] : null;
@@ -1066,10 +1112,6 @@
           previousVolume: previous ? numericOrNull(previous.volume) : null,
           liveVolume: null
         };
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
       });
   }
 
@@ -1277,7 +1319,7 @@
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
-  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, select: selectStock };
+  var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock };
   global.OrderBook = OrderBook;
 
   // init(selector)에 selector 인자가 추가된 뒤로 addEventListener가 콜백에 넘기는

@@ -36,6 +36,7 @@ import pattern_detect
 import domestic_futures
 import domestic_market_indicators
 import domestic_news
+import domestic_quotes
 import earnings_calendar
 import finnhub_realtime
 import foreign_flow_compute
@@ -1616,6 +1617,20 @@ async def market_indicators_socket(websocket: WebSocket):
             await websocket.close()
         except Exception:
             pass
+
+
+@app.get('/domestic-quotes')
+def domestic_quotes_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=209)):
+    """검색·호가용 공개 시세. 최대 30종목, 5초/300종목 캐시, 동시 다운로드 1건."""
+    _check_rate_limit('domestic_quotes', request, max_per_window=60)
+    try:
+        normalized = domestic_quotes.normalize_codes(codes)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        return envelope(domestic_quotes.fetch_quotes(normalized))
+    except Exception as exc:
+        raise _upstream_http_exception('현재가를 불러오지 못했습니다.', exc) from exc
 
 
 @app.get('/quote')
