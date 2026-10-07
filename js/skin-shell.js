@@ -386,7 +386,9 @@
          2026-09-22(4차) 요청(한국은행 「알기 쉬운 경제이야기」를 이 사이트 톤으로 재구성):
          같은 방식으로 한 번 더 추가한다.
          2026-10-04 요청("하단에 이야기 시리즈로 절세 이야기 넣자"): 같은 방식으로 맨 끝에 추가한다. */
-      '<nav class="site-footer-links site-footer-learn">' +
+      '<nav class="site-footer-links site-footer-learn" aria-label="이야기 시리즈">' +
+        '<div class="learn-intro"><span class="learn-eyebrow">배우고, 이해하고, 투자하기</span><h2>이야기 시리즈 <br>한눈에 보기</h2><p>주식부터 경제까지,<br>궁금한 이야기를 골라 읽어보세요.</p><span class="learn-intro-note">시장과 투자를 이해하는 11가지 이야기</span></div>' +
+        '<div class="learn-card-grid">' +
         '<a class="learn-card" style="--lc-a:#fde8cf;--lc-b:#f8c9a0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="3.2" height="8" rx="1"/><path d="M6.6 7v3M6.6 18v2"/><rect x="10.4" y="6" width="3.2" height="9" rx="1"/><path d="M12 3.5V6M12 15v3"/><rect x="15.8" y="9" width="3.2" height="7" rx="1"/><path d="M17.4 6v3M17.4 16v2.5"/></svg><b>주식 이야기</b><small>기초 7장</small></a>' +
         '<a class="learn-card" style="--lc-a:#e3ebff;--lc-b:#b9c9f7" href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8l1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8L8 10.9l2.8-.3z"/></svg><b>미국 주식 이야기</b><small>프리마켓·0DTE</small></a>' +
         '<a class="learn-card" style="--lc-a:#fff3c2;--lc-b:#f5d97a" href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 17l4.5-5 3.5 3 4-7 4 4"/><path d="M4 20h16"/></svg><b>차트 이야기</b><small>정배열·패턴</small></a>' +
@@ -398,7 +400,7 @@
         '<a class="learn-card" style="--lc-a:#e0f1d2;--lc-b:#b7dd96" href="https://goodbyestarwars.github.io/tistory-ticker/learn/economy-story.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 19V13M10 19V9M15 19v-6M20 19V6"/></svg><b>경제 이야기</b><small>한국은행 6장</small></a>' +
         '<a class="learn-card" style="--lc-a:#f5e6ef;--lc-b:#e3b9d0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M9 9h6M9 13h4"/></svg><b>금융용어사전</b><small>용어 찾아보기</small></a>' +
         '<a class="learn-card" style="--lc-a:#d8f1ee;--lc-b:#a6d8d2" href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v16l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20V4z"/><path d="M9.5 14.5l5-5M9.7 9.7h.01M14.3 14.3h.01"/></svg><b>절세 이야기</b><small>세후수익률</small></a>' +
-      '</nav>'
+      '</div></nav>'
   };
 
   Object.keys(SHELL).forEach(function (key) {

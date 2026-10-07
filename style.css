@@ -8069,45 +8069,62 @@ html.search-open body .nav-search-suggest {
   html.search-open body .nav-search-close { top: 10px !important; right: 10px !important; }
 }
 
-/* ── 21. 이야기 시리즈 카드 = 애플 글래스 카드 (2026-10-03 사용자 요청: 어둡지 않게, 양옆 색감과 어울리게) ──
-      종이색 위에 반투명 유리(블러 + 옅은 선), 색은 아이콘 타일에만. 풋터는 한 줄(링크 · 사이트 이용방법) 아래에 카드 줄. ── */
-@media (min-width: 721px) {
-  html body .site-footer:has(.site-footer-learn a.learn-card) {
+/* ── 21. 이야기 시리즈: 큰 소개와 흰색 카드 3열, 모바일 2열 (2026-10-08) ── */
+@media all {
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) {
     display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
   }
-  html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 1 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
-  html body .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 2 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
-  html body .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 3 !important; flex: 0 0 100% !important; }
-  html body .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 1 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 2 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 3 !important; flex: 0 0 100% !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
-html body .site-footer-learn {
-  display: flex !important; flex-wrap: nowrap !important; justify-content: safe center !important; align-items: stretch !important;
-  gap: 10px !important; width: 100% !important; min-width: 0 !important; max-width: 100% !important; justify-self: stretch !important;
-  margin: 6px 0 4px !important; padding: 4px 2px 12px !important;
-  overflow-x: auto !important; scrollbar-width: none !important; -webkit-overflow-scrolling: touch;
+html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
+  display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
+  gap: 48px !important; width: 100% !important; max-width: 1440px !important; min-width: 0 !important;
+  margin: 48px auto 16px !important; padding: 0 !important; overflow: visible !important; align-items: start !important; text-align: left !important;
 }
-html body .site-footer-learn::-webkit-scrollbar { display: none; }
+html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
+html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(var(--np-ink),.55)!important; }
+html body .learn-intro h2 { margin:32px 0 24px!important; font-size:clamp(32px,3.5vw,52px)!important; line-height:1.4!important; font-family:"MaruBuriBold","MaruBuri",serif!important; color:rgb(var(--np-ink))!important; }
+html body .learn-intro p { margin:0!important; font-size:17px!important; line-height:1.8!important; color:rgba(var(--np-ink),.65)!important; }
+html body .learn-intro-note { display:block; margin-top:48px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
+html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:18px!important; min-width:0; counter-reset:story; }
 html body .site-footer-learn a.learn-card {
-  position: relative !important; flex: 1 0 124px !important; width: auto !important; max-width: 152px !important; height: 128px !important; box-sizing: border-box !important;
-  display: flex !important; flex-direction: column !important; justify-content: flex-end !important; gap: 2px !important;
-  padding: 13px 12px !important; border: 1px solid rgba(17, 17, 17, .08) !important; border-radius: 22px !important; overflow: hidden !important;
-  background: rgba(255, 255, 255, .62) !important;
-  -webkit-backdrop-filter: blur(18px) saturate(1.5) !important; backdrop-filter: blur(18px) saturate(1.5) !important;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 8px 24px rgba(17, 17, 17, .05) !important;
-  color: rgb(var(--np-ink)) !important; text-decoration: none !important; text-align: left !important; white-space: normal !important;
-  transition: transform .2s ease, box-shadow .2s ease !important;
+  position:relative!important; display:flex!important; flex-direction:column!important; justify-content:flex-end!important;
+  min-width:0!important; width:100%!important; max-width:none!important; height:230px!important; box-sizing:border-box!important;
+  padding:28px 24px!important; gap:12px!important; border:1px solid rgba(var(--np-ink),.14)!important; border-radius:28px!important;
+  background:#fff!important; backdrop-filter:none!important; -webkit-backdrop-filter:none!important; box-shadow:none!important;
+  text-align:left!important; text-decoration:none!important; white-space:normal!important; color:rgb(var(--np-ink))!important;
+  transition:border-color .2s,transform .2s!important; counter-increment:story;
 }
-html body .site-footer-learn a.learn-card::before, html body .site-footer-learn a.learn-card::after { content: none !important; display: none !important; }
-html body .site-footer-learn a.learn-card svg {
-  position: absolute !important; top: 14px !important; left: 14px !important; width: 40px !important; height: 40px !important; padding: 8px !important; box-sizing: border-box !important;
-  border-radius: 13px !important; background: var(--lc-b) !important; color: rgba(var(--np-ink), .78) !important;
+html body .site-footer-learn a.learn-card::before { content:counter(story,decimal-leading-zero)!important; display:block!important; position:absolute; top:26px; right:24px; font:14px/1 var(--font-ui)!important; color:rgba(var(--np-ink),.4)!important; }
+html body .site-footer-learn a.learn-card::after { content:"↗"!important; display:block!important; width:auto!important; height:auto!important; background:none!important; border:0!important; position:absolute; bottom:28px; right:24px; margin:0!important; padding:0!important; font-size:18px!important; color:rgba(var(--np-ink),.45)!important; }
+html body .site-footer-learn a.learn-card svg { position:absolute!important; top:24px!important; left:24px!important; width:48px!important; height:48px!important; padding:10px!important; box-sizing:border-box!important; border-radius:50%!important; background:var(--lc-a)!important; color:#334155!important; }
+html body .site-footer-learn a.learn-card b { font-family:"MaruBuriBold","MaruBuri",serif!important; font-size:23px!important; font-weight:400!important; line-height:1.5!important; white-space:normal!important; word-break:keep-all!important; color:rgb(var(--np-ink))!important; text-decoration:none!important; }
+html body .site-footer-learn a.learn-card small { padding-right:24px; font:400 13px/1.5 var(--font-ui)!important; white-space:normal!important; color:rgba(var(--np-ink),.55)!important; text-decoration:none!important; }
+html body .site-footer-learn a.learn-card:hover { transform:translateY(-3px)!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:none!important; }
+html.dark body .site-footer-learn a.learn-card { background:var(--np-paper)!important; }
+html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(var(--np-ink)); outline-offset:4px; }
+@media(max-width:1100px) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; gap:24px!important; }
+  html body .learn-intro { padding:0!important; }
+  html body .learn-intro h2 { margin:16px 0!important; font-size:36px!important; }
+  html body .learn-intro h2 br,html body .learn-intro p br { display:none; }
+  html body .learn-intro-note { margin-top:16px; }
 }
-html body .site-footer-learn a.learn-card b { font: 600 12.5px/1.3 inherit !important; white-space: nowrap !important; word-break: keep-all !important; font-family: "MaruBuriBold", "MaruBuri", serif !important; color: rgb(var(--np-ink)) !important; text-decoration: none !important; }
-html body .site-footer-learn a.learn-card small { font: 400 10.5px/1.35 var(--font-ui) !important; word-break: keep-all !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: clip !important; color: rgba(var(--np-ink), .55) !important; text-decoration: none !important; }
-html body .site-footer-learn a.learn-card:hover { transform: translateY(-3px) !important; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .9), 0 14px 30px rgba(17, 17, 17, .1) !important; }
-@media (max-width: 720px) {
-  html body .site-footer-learn a.learn-card { flex: 0 0 132px !important; width: 132px !important; max-width: none !important; height: 124px !important; }
+@media(max-width:720px) {
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-area:auto!important; margin-top:32px!important; }
+  html body .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:12px!important; }
+  html body .learn-intro h2 { font-size:30px!important; }
+  html body .learn-intro p { font-size:15px!important; }
+  html body .site-footer-learn a.learn-card { height:210px!important; padding:22px 16px!important; border-radius:22px!important; gap:8px!important; }
+  html body .site-footer-learn a.learn-card svg { top:20px!important; left:16px!important; width:40px!important; height:40px!important; padding:8px!important; }
+  html body .site-footer-learn a.learn-card b { font-size:18px!important; }
+  html body .site-footer-learn a.learn-card small { font-size:11px!important; }
+  html body .site-footer-learn a.learn-card::before { top:23px; right:16px; font-size:12px!important; }
+  html body .site-footer-learn a.learn-card::after { bottom:22px; right:16px; }
 }
 
 /* ── 22. 빛 규칙 점(2026-10-03): 홈 지수 카드 마지막 값 ── */
