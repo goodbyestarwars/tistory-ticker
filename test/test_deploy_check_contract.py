@@ -11,9 +11,38 @@ import os
 import re
 import shutil
 import subprocess
+import tempfile
 import unittest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+
+
+class BrowserOnlyCompanyDataDeployTest(unittest.TestCase):
+    def test_real_git_pathspec_ignores_company_data_but_keeps_sector_data(self):
+        with open(os.path.join(ROOT, 'scripts/cloud-vm/deploy_check.sh'), encoding='utf-8') as handle:
+            script = handle.read()
+        watched = [re.search(r'VM_WATCH_PATHS="([^"]+)"', script).group(1),
+                   re.search(r'local scan_rule_paths="([^"]+)"', script).group(1)]
+        with tempfile.TemporaryDirectory() as directory:
+            def run(*args):
+                return subprocess.run(['git', *args], cwd=directory, capture_output=True).returncode
+            self.assertEqual(run('init', '-q'), 0)
+            data_dir = os.path.join(directory, 'data')
+            os.mkdir(data_dir)
+            company = os.path.join(data_dir, 'company-profiles.js')
+            sector = os.path.join(data_dir, 'sectors-v3.js')
+            for path in (company, sector):
+                with open(path, 'w') as handle:
+                    handle.write('old')
+            self.assertEqual(run('add', 'data/'), 0)
+            with open(company, 'w') as handle:
+                handle.write('new company snapshot')
+            for paths in watched:
+                self.assertEqual(run('diff', '--quiet', '--', *paths.split()), 0)
+            with open(sector, 'w') as handle:
+                handle.write('new server-used sector data')
+            for paths in watched:
+                self.assertEqual(run('diff', '--quiet', '--', *paths.split()), 1)
 SCRIPT = os.path.join(ROOT, 'scripts', 'cloud-vm', 'deploy_check.sh')
 
 
@@ -27,7 +56,7 @@ class DeployRestartScopeTest(unittest.TestCase):
 
     def test_watch_paths_cover_vm_code_and_locally_read_data(self):
         # sector_cards.py가 ../../data/sectors-v3.js를 로컬에서 읽는다.
-        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/"', self.script)
+        self.assertIn('VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js"', self.script)
         self.assertIn('git diff --quiet "$LAST_DEPLOYED" "$REMOTE" -- $VM_WATCH_PATHS', self.block)
 
     def test_restart_and_rescan_are_gated(self):
