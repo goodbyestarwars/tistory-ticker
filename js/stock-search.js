@@ -816,8 +816,9 @@
     var items = names.map(function (name) { return { name: name, code: map[name] }; });
     var codes = items.map(function (it) { return it.code; });
 
-    fetchJson(GAS_TICKER_URL + '?codes=' + codes.join(','))
-      .then(function (quotes) {
+    fetchJson('https://goodbyestar.cloud/domestic-quotes?codes=' + codes.join(','))
+      .then(function (response) {
+        var quotes = response && response.data ? response.data : response;
         if (searchId !== stockSearchRequestId) return;
         var byCode = {};
         (quotes || []).forEach(function (q) { byCode[q.code] = q; });
@@ -1409,7 +1410,12 @@
       return;
     }
     chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div>';
-    fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code))
+    var chartRequest = global.OrderBook && global.OrderBook.fetchChart
+      ? global.OrderBook.fetchChart(code)
+      : fetchJson('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(code))
+        .then(function (json) { return json && json.data ? json.data : json; })
+        .catch(function () { return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code)); });
+    chartRequest
       .then(function (data) {
         if (data && (data.error === 'NO_DATA' || (!data.error && Array.isArray(data.daily) && !data.daily.length))) {
           state.chartCache[code] = { t: Date.now(), noDaily: true };

@@ -100,6 +100,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | Endpoint | 인증 | 캐시/갱신 | 비고 |
 |---|---|---|---|
 | `/quote?code=000000` | API 키 | VM 단기 LRU | 키움 기본정보 원본 가공 응답 |
+| `/domestic-quotes?codes=083650,006800` | 없음 | 종목별 5초·최대 300개, 다운로드 동시 1건 | 검색·호가 현재가. 최대 30코드·분당 60회/IP, 네이버 직접 조회(장외 NXT 규칙 유지), 타이머 없음 |
 | `/ohlc/{code}` | API 키 | VM 단기 LRU | 국내 일봉 |
 | `/ohlc-minute/{code}` | 없음 | VM 단기 LRU | 국내 분봉 |
 | `/hour-direction` | 없음 | no-store | 09:05~14:30 전 선택 1종목·최근 30분 직접 확인의 양방향 규칙 가설, 후보 API와 동시 1회·IP 분당 3회 버킷 공유. 새 폴러·추가 분봉 조회 없음. v6 방향만 판단: ±3% 검사 없음, 기준체결가referencePrice·목표가격null, 전일거래량조회 제외·정상4회; 확률 null·validated:false |

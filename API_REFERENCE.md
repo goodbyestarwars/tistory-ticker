@@ -54,6 +54,10 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 ## 우선순위 엔드포인트 상세
 
+### `GET /domestic-quotes?codes=083650,006800`
+
+실시간 검색·호가의 현재가 조회용 공개 API. 기존 네이버 시세를 GAS 경유 없이 VM에서 직접 요청한다. 응답은 `envelope.data` 배열이며 `code,name,market,price,change,changeRate,volume,time` 필드는 기존 GAS와 같다. 장외 NXT 가격 우선 규칙도 유지한다. 최대 30종목, 종목별 5초 캐시(최대 300종목), 외부 다운로드 동시 1건·6초 제한·대기 1초 제한, IP당 분당 60회. 타이머·증권사 추가 조회·DB 저장 없음. `/quote`의 서버 간 인증은 유지한다.
+
 ### `GET /quote`
 
 | 항목 | 내용 |
