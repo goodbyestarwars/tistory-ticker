@@ -2572,6 +2572,7 @@ def _build_pattern_scan():
             'boxRangeLow': patterns.get('boxRangeLow') or [],
             'openingGap': patterns.get('openingGap') or [],
             'pullback': pullback_scan.get('matches') or [],
+            'firstPullbackBreakout': patterns.get('firstPullbackBreakout') or [],
             'angleMomentum': patterns.get('angleMomentum') or [],
             'gongpasan': patterns.get('gongpasan') or [],
             # 2026-09-04: 장중 스냅샷(volume_breakout_scan.py, 2026-09-22부터 09:05). 다른 탭은 전부

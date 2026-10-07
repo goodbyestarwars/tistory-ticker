@@ -340,6 +340,7 @@ dict 구성을 함께 대조한다.
 | GET | `/invest-signal` | 없음 | 종목분석 차트 흐름별 탐색(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
 | GET | `/sector-rotation`, `/sector-rotation/{업종}` | 없음 | 업종 로테이션(유입 `emerging`·주도 `leading`·둔화 `weakening`·이탈 `lagging`·중립 `neutral`, 각 항목 `rank`·`rank5DaysAgo`·`rankChange5d`(양수=순위 상승)·`rs5`·`rs20`·퍼센타일·Breadth·`tradingValueRatio`·`rotationScore`). 일봉 확정값 서버 계산, 5분 캐시. `map`은 Rotation Map용 `{sector,x=rs20,y=rs5,phase}`. 상세는 대표 강세 종목 `leaders` 포함 |
 | GET | `/pattern-scan` | 없음 | 차트검색 패턴별 목록(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
+
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |
 | GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/4MB 초과 1시간). 행사가별 `call/put`(감마 노출 백만$)·`*_oi`·`*_vol`과 `as_of`(Cboe 기준 시각 epoch초) 포함 |
@@ -354,6 +355,8 @@ dict 구성을 함께 대조한다.
 | GET | `/auth/naver/start`, `/auth/naver/callback` | OAuth | 네이버 로그인(2026-10-04). 세션 쿠키·`me`·`logout`은 Google과 공용, `sub=naver:<id>`, 관리자 권한 없음 |
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
+
+`patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
 
 `/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:10 KST 스냅샷**이다
 (`volume_breakout_scan.py`, 평일 전용 systemd 타이머). "전일 거래량을 개장 10분 만에

@@ -2837,7 +2837,7 @@ function getChunkedCache_(key) {
 // UrlFetchApp 할당량을 태우던 이어달리기 워커는 삭제되고, VM의 /daily-scan-batch 결과를
 // 그대로 읽어와 원래 응답 형태로 재포장한다 - 프론트(js/pattern-scan.js)는 변경 불필요.
 function getPatternScanResult() {
-  var cached = getChunkedCache_('patternScanResult_v1');
+  var cached = getChunkedCache_('patternScanResult_v2');
   if (cached) return cached;
 
   var data = kiwoomVmFetch_('/daily-scan-batch');
@@ -2863,6 +2863,7 @@ function getPatternScanResult() {
       boxRangeLow: (patternScan.patterns && patternScan.patterns.boxRangeLow) || [],
       openingGap: (patternScan.patterns && patternScan.patterns.openingGap) || [],
       pullback: pullbackScan.matches || [],
+      firstPullbackBreakout: (patternScan.patterns && patternScan.patterns.firstPullbackBreakout) || [],
       // 2026-08-20: "각도기 테스트"(정규화 세력매집각도, angle_momentum_scan.py) 탭 추가.
       angleMomentum: (patternScan.patterns && patternScan.patterns.angleMomentum) || [],
       // 2026-08-20: "공파산 타점"(역매공파, gongpasan_scan.py) 탭 추가 - 각도기 테스트와
@@ -2879,7 +2880,7 @@ function getPatternScanResult() {
     // 공파산 타점 탭 전용 - 같은 구조의 별도 백테스트 요약.
     gongpasanBacktest: data.gongpasanBacktest || null
   };
-  putChunkedCache_('patternScanResult_v1', result, SCAN_RESULT_CACHE_TTL);
+  putChunkedCache_('patternScanResult_v2', result, SCAN_RESULT_CACHE_TTL);
   return result;
 }
 

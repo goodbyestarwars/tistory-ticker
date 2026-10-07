@@ -1815,6 +1815,91 @@ def check_box_range_low_entry_trigger(daily, box_result):
 # ⑤ 눌림목(Pullback)
 # ---------------------------------------------------------------------------
 
+def detect_first_pullback_breakout(daily):
+    """Daily close confirmation of the first quiet pullback after a volume breakout.
+
+    Uses only the supplied bars. These are screening rules, not an estimated
+    win rate. Repeated breakouts after an earlier pullback are deliberately excluded.
+    """
+    if len(daily) < 65:
+        return None
+    # Only a small recent window is inspected; reuse the existing daily batch.
+    win = daily[-85:]
+    last = win[-1]
+    if any(not row.get(k) or row[k] <= 0 for row in win
+           for k in ('open', 'high', 'low', 'close')):
+        return None
+    ma20 = moving_average(win, 'close', 20)
+    ma60 = moving_average(win, 'close', 60)
+    if not (last['close'] > ma20[-1] > ma60[-1] and ma20[-1] > ma20[-6]):
+        return None
+    for anchor in range(max(20, len(win) - 16), len(win) - 3):
+        base = win[anchor - 20:anchor]
+        base_volume = sum(row.get('volume', 0) for row in base) / 20
+        if base_volume <= 0:
+            continue
+        impulse = win[anchor]
+        if not (impulse['close'] > max(row['high'] for row in base)
+                and impulse.get('volume', 0) >= base_volume * 1.5
+                and impulse['close'] > impulse['open']):
+            continue
+        peak_index = max(range(anchor, len(win) - 1), key=lambda i: win[i]['high'])
+        correction = win[peak_index + 1:-1]
+        if not (2 <= len(correction) <= 8 and peak_index - anchor <= 5):
+            continue
+        # The ascent must not already contain a meaningful correction.
+        running_high = impulse['high']
+        earlier_pullback = False
+        for row in win[anchor + 1:peak_index + 1]:
+            if row['close'] < running_high * 0.98:
+                earlier_pullback = True
+                break
+            running_high = max(running_high, row['high'])
+        if earlier_pullback:
+            continue
+        # A prior rebreak within the correction makes today's move a later entry.
+        if any(win[i]['close'] > max(row['high'] for row in win[i - 3:i])
+               for i in range(peak_index + 4, len(win) - 1)):
+            continue
+        low_row = min(correction, key=lambda row: row['low'])
+        support = low_row['low']
+        peak = win[peak_index]
+        drop_pct = (peak['high'] - support) / peak['high'] * 100
+        impulse_volume = sum(row.get('volume', 0) for row in win[anchor:peak_index + 1]) / (peak_index - anchor + 1)
+        quiet_volume = sum(row.get('volume', 0) for row in correction) / len(correction)
+        if not (2 <= drop_pct <= 12 and support > min(row['low'] for row in base)
+                and quiet_volume > 0 and quiet_volume <= impulse_volume * 0.8):
+            continue
+        resistance = max(row['high'] for row in correction[-3:])
+        volume_ratio = last.get('volume', 0) / base_volume
+        if not (last['close'] > resistance and last['close'] > last['open']
+                and last['low'] >= support and win[-2]['close'] <= resistance
+                and volume_ratio >= 1.2 and last.get('volume', 0) >= quiet_volume * 1.5
+                and (last['close'] / resistance - 1) <= 0.03):
+            continue
+        quiet_ratio = quiet_volume / impulse_volume
+        score = min(100, 75 + (10 if quiet_ratio <= 0.5 else 5)
+                    + (10 if volume_ratio >= 2 else 5)
+                    + (5 if last['close'] >= peak['high'] else 0))
+        point = lambda row, field: {'date': row['date'], 'price': row[field]}
+        return {
+            'score': score, 'status': 'BREAKOUT_CONFIRMED', 'breakout': True,
+            'rise_start': point(win[anchor - 1], 'close'),
+            'peak': point(peak, 'high'), 'pullback_low': point(low_row, 'low'),
+            'signal': point(last, 'close'), 'current': point(last, 'close'),
+            'resistance': resistance, 'support': support,
+            'pullbackDays': len(correction), 'pullbackPct': round(drop_pct, 2),
+            'pullbackVolumeRatio': round(quiet_ratio, 3),
+            'volumeRatio': round(volume_ratio, 3),
+            'supportDistancePct': round((last['close'] - support) / last['close'] * 100, 2),
+            'reasons': ['20일 고가 돌파와 거래량 1.5배 이상',
+                        '첫 조정 %d봉 · 상승 구간 대비 거래량 %.0f%%' % (len(correction), quiet_ratio * 100),
+                        '최근 3봉 고가를 종가로 재돌파 · 거래량 %.1f배' % volume_ratio],
+            'interpretation': '일봉 기준 첫 눌림 뒤 거래량을 동반한 재돌파가 확인됐습니다. 눌림 저점 %.0f원 이탈 여부를 확인하세요.' % support,
+        }
+    return None
+
+
 def detect_pullback(daily):
     win = daily[max(0, len(daily) - PULLBACK_WINDOW):]
     n = len(win)
@@ -2079,6 +2164,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
     pattern_results.setdefault('maCloudBreakout', [])
     pattern_results.setdefault('openingGap', [])
     pattern_results.setdefault('shortTermMaBreakout', [])
+    pattern_results.setdefault('firstPullbackBreakout', [])
     if is_excluded_stock(stock, daily):
         return pattern_scanned, pullback_scanned
 
@@ -2142,6 +2228,12 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
         if box and common_search_ok():
             pattern_results['boxRangeLow'].append(build_pattern_match(stock, daily, box))
 
+    if len(daily) >= 65:
+        pattern_scanned = True
+        first_pullback = detect_first_pullback_breakout(daily)
+        if first_pullback and common_search_ok():
+            pattern_results['firstPullbackBreakout'].append(build_pattern_match(stock, daily, first_pullback))
+
     if len(daily) >= PULLBACK_MIN_DAYS:
         pullback_scanned = True
         pullback = detect_pullback(daily)
@@ -2167,7 +2259,7 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
     tightened using pattern-specific chart evidence until they fit; no bucket
     is truncated by universe order.
     """
-    for key in ('risingLows', 'shortTermMaBreakout', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap'):
+    for key in ('risingLows', 'shortTermMaBreakout', 'maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'openingGap', 'firstPullbackBreakout'):
         if key in pattern_results:
             filtered = _quality_gate_matches(pattern_results.get(key), key)
             pattern_results[key] = _rank_matches(filtered)

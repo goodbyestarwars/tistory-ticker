@@ -38,6 +38,7 @@ CACHE = {
         'risingLows': [{'code': '000001'}],
         'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
         'boxRangeLow': [], 'openingGap': [], 'angleMomentum': [], 'gongpasan': [],
+        'firstPullbackBreakout': [{'code': '000004'}],
         'volumeBreakout': [{'code': '000003'}],
     }},
     'pullbackScan': {'scanned': 2700, 'matches': [{'code': '000002'}]},
@@ -107,7 +108,7 @@ class PublicScanRouteTests(unittest.TestCase):
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt',
                                         'universe', 'volumeBreakoutScannedAt'])
         self.assertEqual(sorted(data['patterns']),
-                         ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'gongpasan', 'invHeadShoulders',
+                         ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'firstPullbackBreakout', 'gongpasan', 'invHeadShoulders',
                           'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'volumeBreakout'])
         # 2026-09-04: volumeBreakout만 장중 09:10 스냅샷이라 스캔 시각이 따로 온다.
         self.assertEqual(data['volumeBreakoutScannedAt'], CACHE['volumeBreakoutScannedAt'])
