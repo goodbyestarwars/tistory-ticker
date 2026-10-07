@@ -1769,7 +1769,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-industry-card:hover,
 #foreign-flow .ff-industry-card.active { border-color: #7aa9d8; box-shadow: 0 5px 15px rgba(27, 82, 135, .10); transform: translateY(-1px); }
 #foreign-flow .ff-flow-card-copy { display: flex; flex: 1; min-width: 0; flex-direction: column; gap: 3px; }
-#foreign-flow .ff-flow-card-copy strong { color: #1e293b; font-family: 'MaruBuriBold', 'MaruBuri', serif; font-size: calc(14px - 1pt); }
+#foreign-flow .ff-flow-card-copy strong { color: #1e293b; font-family: 'MaruBuriBold', 'MaruBuri', serif !important; font-weight: 400 !important; font-size: calc(14px - 1pt); }
 #foreign-flow .ff-flow-card-copy b { color: #0c447c; font-size: 13px; }
 #foreign-flow .ff-flow-card-copy small { color: #64748b; font-size: 11px; line-height: 1.45; }
 #foreign-flow .ff-flow-line { flex: 0 0 86px; width: 86px; height: 44px; }
@@ -3013,8 +3013,12 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
 /* ── 종목분석 2주 스윙 판정 재디자인 + 방향 글자색 (2026-10-04) ──
    국면·진단·행동은 둥근 타일로, 상승 문구는 빨강·하락 문구는 파랑. 줄 구분선은 걷는다. */
 #foreign-flow .ff-swing-summary { display: grid; gap: 14px; }
-#foreign-flow .ff-swing-summary strong { font-family: 'MaruBuriBold', 'MaruBuri', serif; }
-#foreign-flow .ff-swing-fact b { font-family: 'MaruBuriBold', 'MaruBuri', serif; font-size: calc(12.5px - 1pt); }
+/* 스킨의 html body * { font-family: var(--font-ui) !important }보다 우선한다.
+   MaruBuriBold는 별도 굵은 글꼴 파일이므로 가짜 볼드 대신 기본 weight로 쓴다. */
+html body #foreign-flow .ff-swing-summary strong,
+html body #foreign-flow .ff-swing-summary b,
+html body #foreign-flow .ff-swing-summary .ff-swing-fact b,
+html body #foreign-flow .ff-swing-summary :is(.ff-swing-regime, .ff-swing-step, .ff-swing-diagnosis, .ff-swing-action) strong { font-family: 'MaruBuriBold', 'MaruBuri', serif !important; font-weight: 400 !important; }
 #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45; }
 #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
@@ -3098,7 +3102,7 @@ html.dark #foreign-flow .ff-company-profile-head, html.dark #foreign-flow .ff-co
   #foreign-flow .ff-apt-mini { position: static; }
   #foreign-flow .ff-apt-mini-svg { max-height: 220px; }
 }
-#foreign-flow .ff-swing-fact b, #foreign-flow .ff-swing-reasons b, #foreign-flow .ff-swing-invalidation b, #foreign-flow .ff-swing-risk-detail b { font-size: 11.7px; }
+#foreign-flow .ff-swing-fact b, #foreign-flow .ff-swing-reasons b, #foreign-flow .ff-swing-invalidation b, #foreign-flow .ff-swing-risk-detail b { font-size: calc(11.7px - 1pt); }
 
 /* ── 거래원 매매 상위 (2026-10-04, 토스 "거래원 매매 상위" 형태) ──
    매수 상위 5 | 매도 상위 5 두 열, 막대는 각 쪽 1위 대비 길이, 매수 빨강·매도 파랑 옅은 면 + 같은 색 숫자 */
