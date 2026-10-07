@@ -86,7 +86,7 @@ def main():
 
     pattern_results = {
         'risingLows': [], 'shortTermMaBreakout': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
-        'boxRangeLow': [], 'openingGap': [],
+        'boxRangeLow': [], 'openingGap': [], 'firstPullbackBreakout': [],
     }
     pattern_scanned = 0
     pullback_matches = []

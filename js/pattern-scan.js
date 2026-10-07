@@ -82,7 +82,8 @@
     { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격으로 형성된 두 스윙 저점의 가격 차이가 3% 이내인 쌍바닥 후보를 찾습니다. 두 바닥 사이에는 더 낮은 저점이 없어야 하며, 첫 바닥 이후 넥라인까지 최소 8% 이상의 반등이 있어야 합니다. 두 번째 바닥에서 매도 거래량이 감소하고 저점이 유지된 뒤, 넥라인 방향으로 회복하거나 재돌파를 준비하는 종목을 선별합니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 왼쪽 어깨-머리-오른쪽 어깨가 형성된 역헤드앤숄더 후보를 찾습니다. 머리는 양 어깨보다 최소 2% 낮고, 양 어깨 가격 차이는 4% 이내여야 합니다. 오른쪽 어깨 이후 머리 저점이 훼손되지 않은 상태에서 넥라인에 접근하거나 최근 종가 기준으로 새롭게 돌파한 종목을 선별하며, 넥라인 접근·돌파 시 거래량 증가를 높게 평가합니다.' },
     { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 동안 가격 변동폭이 10% 이내로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
-    { key: 'pullback', label: '눌림목', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
+    { key: 'pullback', label: '이평선 눌림', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
+    { key: 'firstPullbackBreakout', label: '첫 눌림 재돌파', desc: '일봉 기준. 상승 중인 20일선이 60일선 위에 있고, 거래량 1.5배 이상으로 20일 고가를 돌파한 뒤 첫 2~8봉 조정에서 거래량이 상승 구간의 80% 이하로 줄어든 종목을 찾습니다. 고점 대비 2~12% 조정 후 최근 3봉 고가를 양봉 종가로 재돌파하고, 거래량이 돌파 전 20봉 평균의 1.2배·조정 평균의 1.5배 이상이어야 합니다. 재돌파 가격보다 3% 넘게 오른 종목과 이미 재돌파한 뒤의 반복 신호는 제외합니다. 장 마감 배치 결과이며 눌림 저점 이탈 여부를 함께 확인하세요.' },
     // 2026-08-22: "시초 갭상승" 탭 삭제 요청 - 백엔드 detect_opening_gap/GAS는 그대로 두고
     // (다른 데서 재사용 가능성 대비, 되돌리기 쉽게) 화면 탭 목록에서만 제외했다.
     { key: 'angleMomentum', label: '각도기 타점', desc: '전형가 기준 5·10·20일 이동평균선의 기울기를 주가 수준과 무관한 퍼센트 변화율로 정규화해 계산합니다. 단기 이동평균이 상승 전환하고 중·장기 이동평균의 하락 기울기가 함께 개선되는 구간 중, 단기 기울기 변화가 최근 20일 평소 수준보다 강하게 확대되는 순간을 포착합니다. 거래량 급증 이후가 아니라 이동평균 곡률이 먼저 꺾이는 초기 변화를 찾는 실험적 검색기입니다.' },
@@ -656,10 +657,14 @@
       return isFinite(gap) ? '시초 갭 +' + gap.toFixed(1) + '%' : '시초 갭상승';
     }
     if (patternKey === 'pullback') {
-      if (!(detail.ma20 || detail.ma240)) return '눌림목 구조';
+      if (!(detail.ma20 || detail.ma240)) return '이평선 눌림 구조';
       var pbKind = { MA20: 'MA20 눌림', MA240: 'MA240 눌림', 'MA20+MA240': 'MA20+MA240 응축 눌림' }[detail.supportKind] || '이평선 눌림';
       return (detail.status === 'SUPPORT_CONFIRMED' ? '🟢 지지 확인' : '🟡 눌림 진행') + ' · ' + pbKind
         + (detail.pullbackPct != null ? ' · 고점 대비 -' + Number(detail.pullbackPct).toFixed(1) + '%' : '');
+    }
+    if (patternKey === 'firstPullbackBreakout') {
+      return '재돌파 확인 · 조정 ' + Number(detail.pullbackDays || 0) + '봉'
+        + (detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '');
     }
     if (patternKey === 'angleMomentum') {
       var amShort = Number(detail.shortSlopePct);
@@ -733,6 +738,7 @@
       invHeadShoulders: '어깨·머리·어깨 바닥 구조가 완성돼 넥라인에 접근하거나 막 돌파한 구간',
       boxRangeLow: '횡보 박스의 하단에서 지지를 받거나 반등을 시도하는 구간',
       pullback: '강한 상승 뒤 거래량이 줄며 이평선 부근에서 지지받는 눌림목',
+      firstPullbackBreakout: '거래량을 동반한 상승 뒤 첫 조정을 거쳐 다시 고가를 돌파한 흐름',
       openingGap: '전일 종가보다 높게 시작한 갭상승',
       angleMomentum: '전형가 이동평균의 기울기가 먼저 위로 꺾이는 초기 전환 구간',
       gongpasan: '바닥 횡보·매집 뒤 돌파한 종목의 첫 20일선 눌림 지지 구간',
@@ -1818,6 +1824,15 @@
         addDot(detail.peak, RESIST_COLOR, 'aboveBar');
         addSignal(detail.current);
       }
+    } else if (pattern === 'firstPullbackBreakout') {
+      addLine([detail.rise_start, detail.peak, detail.pullback_low, detail.signal], SUPPORT_COLOR, { bold: true });
+      if (detail.pullback_low) {
+        addHLine(detail.resistance, detail.pullback_low.date, RESIST_COLOR);
+        addHLine(detail.support, detail.pullback_low.date, SUPPORT_COLOR);
+        addDot(detail.pullback_low, SUPPORT_COLOR, 'belowBar');
+      }
+      if (detail.peak) addDot(detail.peak, RESIST_COLOR, 'aboveBar');
+      if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'openingGap') {
       if (detail.signal) addSignal(detail.signal);
     } else if (pattern === 'angleMomentum') {
