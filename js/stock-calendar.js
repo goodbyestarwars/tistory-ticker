@@ -462,6 +462,30 @@
       + rowEnd;
   }
 
+  function renderCompletedDisclosures(state, loading) {
+    var monthKey = String(state.viewYear) + '-' + String(state.viewMonth + 1).padStart(2, '0');
+    var seen = new Set();
+    var completed = (state.events || []).filter(function (event) {
+      if (!event || String(event.source || event.provider || '').toLowerCase() !== 'dart'
+        || event.status !== 'reported' || String(event.start || '').slice(0, 7) !== monthKey) return false;
+      var key = calendarEventKey(event);
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    }).sort(function (a, b) { return String(b.start).localeCompare(String(a.start)); });
+    var cards = completed.map(function (event) {
+      return '<article class="sc-completed-card"><div class="sc-completed-card-head">'
+        + '<span class="sc-completed-badge">공시 완료</span><time datetime="' + escapeHtml(String(event.start).slice(0, 10)) + '">'
+        + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>' + renderEventRow(event) + '</article>';
+    }).join('');
+    return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
+      + '<h2>공시 완료 <span>' + completed.length + '건</span></h2><p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
+      + '월 · 최근 공시부터 보여줘.</p></div>'
+      + (cards ? '<div class="sc-completed-grid">' + cards + '</div>'
+        : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : '표시할 완료 공시가 없어.') + '</div>')
+      + '</section>';
+  }
+
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -538,7 +562,8 @@
         + '</div>'
         + listHtml
         + '</section>'
-        + '</div>';
+        + '</div>'
+        + renderCompletedDisclosures(state, loading);
     }
 
     var now = kstParts(new Date());
