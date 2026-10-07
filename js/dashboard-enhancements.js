@@ -263,7 +263,7 @@
     } else {
       body.appendChild(modalTarget);
     }
-    if (chartTarget) {
+    if (chartTarget && !stockRoot) {
       chartTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     } else if (modalTarget.id === 'ffLwChart' || modalTarget.classList.contains('kf-chart') || modalTarget.classList.contains('dmi-chart')) {
       modalTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
