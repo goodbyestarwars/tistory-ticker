@@ -839,6 +839,10 @@
     if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
 
     if (trackView === 'success' || trackView === 'failed') { renderTrackedList(container); return; }
+    if (activeTab === 'firstPullbackBreakout' && !scanData.firstPullbackBreakoutReady) {
+      list.innerHTML = '<div class="ps-hint">첫 검색 결과를 준비 중이에요. 기존 일봉 수집이 끝난 뒤 자동으로 검색합니다.</div>';
+      return;
+    }
     ensureTrackMap(container);
     var allItems = (scanData.patterns && scanData.patterns[activeTab]) || [];
     var items = allItems.filter(function (it) {
@@ -1231,7 +1235,9 @@
       + '</div>';
     html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
-    html += '<div class="ps-footnote">※ 장 마감 후 확정 일봉 기준이라 실제 진입은 다음 거래일입니다. 다음 날 시가가 2% 이상 갭상승하면 과거 성과가 나빴습니다(백테스트). 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
+    html += activeTab === 'firstPullbackBreakout'
+      ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
+      : '<div class="ps-footnote">※ 장 마감 후 확정 일봉 기준이라 실제 진입은 다음 거래일입니다. 다음 날 시가가 2% 이상 갭상승하면 과거 성과가 나빴습니다(백테스트). 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
 
     var closeBtn = box.querySelector('#psClose');

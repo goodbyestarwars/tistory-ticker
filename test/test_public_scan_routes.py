@@ -104,7 +104,7 @@ class PublicScanRouteTests(unittest.TestCase):
 
     def test_pattern_scan_matches_the_gas_shape(self):
         data = self.route_data(main.pattern_scan_result)
-        self.assertEqual(sorted(data), ['angleMomentumBacktest', 'gongpasanBacktest', 'patterns',
+        self.assertEqual(sorted(data), ['angleMomentumBacktest', 'firstPullbackBreakoutReady', 'gongpasanBacktest', 'patterns',
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt',
                                         'universe', 'volumeBreakoutScannedAt'])
         self.assertEqual(sorted(data['patterns']),

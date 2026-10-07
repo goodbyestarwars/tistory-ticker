@@ -127,7 +127,7 @@ class FirstPullbackTests(unittest.TestCase):
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
 let source = fs.readFileSync('js/pattern-scan.js', 'utf8');
 source = source.replace('global.PatternScan =',
-  'global.__test = {tabs:TABS, overlay:addPatternOverlay}; global.PatternScan =');
+  'global.__test = {tabs:TABS, overlay:addPatternOverlay, pending(c){activeTab="firstPullbackBreakout";scanData={firstPullbackBreakoutReady:false};renderList(c);}}; global.PatternScan =');
 const context = {window:{}, document:{readyState:'loading', addEventListener(){}}, console};
 vm.runInNewContext(source, context);
 const api = context.window.__test;
@@ -144,10 +144,21 @@ assert.equal(lines[0][3].time, p.daily.at(-1).date);
 assert.equal(lines[1][0].value, p.detail.resistance);
 assert.equal(lines[2][0].value, p.detail.support);
 assert.equal(markers.length, 3);
+const list = {innerHTML:''};
+api.pending({querySelector(){return list;}});
+assert(list.innerHTML.includes('첫 검색 결과를 준비 중'));
+assert(!list.innerHTML.includes('해당하는 종목이 없어요'));
 '''
         result = subprocess.run(['node', '-e', script], input=payload, text=True,
                                 encoding='utf-8', cwd=ROOT, capture_output=True)
         self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_pending_snapshot_differs_from_completed_empty_scan(self):
+        import main
+        for patterns, ready in (({}, False), ({'firstPullbackBreakout': []}, True)):
+            with patch.object(main, 'load_daily_scan_cache_cached', return_value={
+                    'patternScan': {'patterns': patterns}}):
+                self.assertEqual(main._build_pattern_scan()['firstPullbackBreakoutReady'], ready)
 
 
 if __name__ == '__main__':
