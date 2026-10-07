@@ -30,41 +30,20 @@ html.dark #stock-calendar .sc-disclosure-search small { color: #aaa !important; 
 #stock-calendar .sc-completed-head h2 span { margin-left: 6px; color: #64748b; font-size: 12px; font-weight: 500; }
 #stock-calendar .sc-completed-head p { margin: 5px 0 0; font-size: 12px; color: #64748b; }
 #stock-calendar .sc-completed-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap: 12px; }
-#stock-calendar .sc-completed-card {
-  position: relative; min-width: 0; padding: 20px; border: 3px solid #8b7258; border-radius: 8px;
-  background-color: #203c33;
-  background-image: radial-gradient(ellipse at 18% 20%, rgba(245, 242, 222, .065), transparent 65%),
-    repeating-linear-gradient(173deg, transparent 0 9px, rgba(245, 242, 222, .018) 10px 11px);
-  box-shadow: inset 0 0 0 1px rgba(245, 242, 222, .12);
-}
-#stock-calendar .sc-completed-card::before {
-  content: ''; position: absolute; inset: 7px; border: 1px dashed rgba(234, 238, 219, .2);
-  border-radius: 3px; pointer-events: none;
-}
-html.dark #stock-calendar .sc-completed-card { background-color: #203c33 !important; }
+#stock-calendar .sc-completed-card { min-width: 0; padding: 14px; border: 1px solid #d1d5db; border-radius: 12px; background: #fff; }
+html.dark #stock-calendar .sc-completed-card { background: rgba(127, 127, 127, .055); border-color: #4b5563; }
 #stock-calendar .sc-completed-card-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 9px; }
-#stock-calendar .sc-completed-badge { padding: 3px 7px; border: 1px solid rgba(241, 225, 164, .45); border-radius: 3px; background: transparent; color: #f1e1a4; font-size: 10px; font-weight: 700; }
-#stock-calendar .sc-completed-card time { font-size: 11px; color: #c2d0c3; }
+#stock-calendar .sc-completed-badge { padding: 3px 7px; border-radius: 6px; background: var(--sc-accent-soft); color: var(--sc-accent-strong); font-size: 10px; font-weight: 700; }
+#stock-calendar .sc-completed-card time { font-size: 11px; color: #64748b; }
 #stock-calendar .sc-completed-card .sc-ev-item { padding: 0; border: 0; background: transparent; align-items: flex-start; }
 #stock-calendar .sc-completed-card .sc-ev-date,
 #stock-calendar .sc-completed-card .sc-ev-time { display: none; }
-#stock-calendar .sc-completed-card .sc-ev-title { overflow-wrap: anywhere; color: #eef0e2; line-height: 1.65; }
-#stock-calendar .sc-completed-card .sc-ev-title strong { font-family: 'MaruBuriBold', 'MaruBuri', serif; color: #faf7e8; }
-#stock-calendar .sc-completed-card .sc-ev-item:hover,
-#stock-calendar .sc-completed-card .sc-ev-item:focus-visible { background: transparent; }
-#stock-calendar .sc-completed-card .sc-ev-item:focus-visible { outline: 2px solid #f1e1a4; outline-offset: 4px; border-radius: 3px; }
-#stock-calendar .sc-completed-card .sc-ev-item:hover .sc-ev-title strong { text-decoration: underline; text-decoration-color: rgba(250, 247, 232, .6); text-underline-offset: 3px; }
-#stock-calendar .sc-completed-card .sc-ev-icon.stock { background: #f6f4e8; color: #203c33; }
-#stock-calendar .sc-completed-card .sc-ev-stock-link { color: #faf7e8; font-family: inherit; }
+#stock-calendar .sc-completed-card .sc-ev-title { overflow-wrap: anywhere; }
 html.dark #stock-calendar .sc-completed-head h2 { color: #F5EFE0 !important; }
 html.dark #stock-calendar .sc-completed-head p,
-html.dark #stock-calendar .sc-completed-head h2 span { color: #aaa !important; }
-html.dark #stock-calendar .sc-completed-card time { color: #c2d0c3 !important; }
-html.dark #stock-calendar .sc-completed-badge { background: transparent !important; color: #f1e1a4 !important; }
-html.dark #stock-calendar .sc-completed-card .sc-ev-item,
-html.dark #stock-calendar .sc-completed-card .sc-ev-item:hover { background: transparent !important; border: 0 !important; }
-html.dark #stock-calendar .sc-completed-card .sc-ev-title { color: #eef0e2 !important; }
-html.dark #stock-calendar .sc-completed-card .sc-ev-icon.stock { background: #f6f4e8 !important; color: #203c33 !important; }
+html.dark #stock-calendar .sc-completed-head h2 span,
+html.dark #stock-calendar .sc-completed-card time { color: #aaa !important; }
+html.dark #stock-calendar .sc-completed-badge { background: rgba(127, 176, 216, .14) !important; color: #7fb0d8 !important; }
 
 #stock-calendar .sc-layout {
   display: flex; gap: 24px; align-items: flex-start; flex-wrap: wrap;
