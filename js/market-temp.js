@@ -3571,7 +3571,7 @@
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
       if (SD.injectBadgeStyles) SD.injectBadgeStyles();
-      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
+      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode, isStocksView());
       var cardState = config.customized
         ? (config.localOnly ? '편집됨 · 이 브라우저에 저장됨' : '편집됨 · Google 계정에 저장됨')
         : '편집 대기 · 기본 카드';
@@ -3650,7 +3650,7 @@
     SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
-      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode);
+      var html = SD.renderCardsHtml(sectorMap, krxMap, byCode, isStocksView());
       panel.innerHTML = html ? '<div class="mt-sector-toolbar"><span>기본 카드</span><span class="mt-card-realtime-status" data-card-realtime-status>실시간 연결 중</span></div><div class="sector-cards-grid">' + html + '</div>' : '<div class="mt-error">표시할 시세가 없습니다.</div>';
       if (SD.startCardRealtimeQuotes) SD.startCardRealtimeQuotes(panel, codes);
       if (SD.wireSectorCardSelection) SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode);
