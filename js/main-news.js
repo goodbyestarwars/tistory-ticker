@@ -19,11 +19,11 @@
   'use strict';
 
   var CONTAINER_SELECTOR = '#main-news';
-  // 시장별로 FETCH_LIMIT만큼 받아 12시간 컷·시장별 상한을 적용한 뒤 섞는다.
+  // 시장별로 FETCH_LIMIT만큼 받아 24시간 컷·시장별 상한을 적용한 뒤 섞는다.
   //
   // 2026-09-08: 받는 수를 50 -> 25로 내렸다. 시장별 상한(MARKET_LIMIT)이 25인데 50을
   // 받고 있었다 - API가 최신순으로 주므로 뒤 25건은 어떤 경우에도 버려지는 몫이었고,
-  // 12시간 컷도 "오래된 것"만 걷어내니 더 받아봐야 최신 기사가 늘지 않는다. 서버를
+  // 24시간 컷도 "오래된 것"만 걷어내니 더 받아봐야 최신 기사가 늘지 않는다. 서버를
   // 두 배로 굴리기만 했다(2026-09-06 시장별 상한을 넣으면서 받는 수를 같이 안 내린 실수).
   var DOMESTIC_API_URL = 'https://goodbyestar.cloud/domestic-news?kind=news&limit=25';
   var US_API_URL = 'https://goodbyestar.cloud/foreign-news?limit=25';
@@ -47,11 +47,8 @@
   var MARKET_LIMIT = 25;
   // 섞은 뒤 화면에 그리는 최종 상한(= MARKET_LIMIT x 시장 수).
   var RENDER_LIMIT = 50;
-  // 최근 12시간 안의 기사만 보여준다(2026-09-06 사용자 요청). 다만 새벽·주말처럼 발행이
-  // 뜸한 시간대엔 12시간 안이 몇 건 안 될 수 있어, 그때는 그 시장만 컷을 풀고 최신순으로
-  // 채운다 - 미국은 주말에 발행이 뚝 끊기므로 시장별로 따져야 한쪽만 살아남지 않는다.
-  var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;
-  var RECENT_MIN_ROWS = 5;
+  // 실제 경과 24시간만 표시한다. 주말에도 오래된 기사로 채우지 않는다.
+  var RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;
   // 2026-09-05: 국기 이모지에서 글자 배지로 바꿨다(국기는 지역 표시 문자라 윈도우
   // 크롬에서 두 글자로 그려져 플랫폼마다 모양이 달랐다).
   // 2026-09-06: 홈·휴장 지면의 경제 종합뉴스가 쓰는 표기(.app-news-market)에 맞춰
@@ -92,18 +89,19 @@
     return isNaN(parsed.getTime()) ? 0 : parsed.getTime();
   }
 
-  /* 한국·미국 기사를 한 화면에서 비교하므로 시각은 둘 다 KST로 통일한다.
-     오늘 기사는 시:분만, 지난 기사는 날짜를 앞에 붙여 언제 것인지 바로 보이게 한다. */
-  function timeLabel(value) {
+  // 국내 KST, 미국 ET(서머타임 자동 적용). 시간순 정렬은 같은 UTC 시각으로 비교한다.
+  function timeLabel(value, market) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '';
+    var zone = market === 'us' ? 'America/New_York' : 'Asia/Seoul';
     var fmt = function (opts) {
-      return new Intl.DateTimeFormat('ko-KR', Object.assign({ timeZone: 'Asia/Seoul' }, opts)).format(parsed);
+      return new Intl.DateTimeFormat('ko-KR', Object.assign({ timeZone: zone }, opts)).format(parsed);
     };
-    var today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(new Date());
-    var day = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Seoul' }).format(parsed);
+    var today = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(new Date());
+    var day = new Intl.DateTimeFormat('en-CA', { timeZone: zone }).format(parsed);
     var clock = fmt({ hour: '2-digit', minute: '2-digit', hour12: false });
-    return day === today ? clock : fmt({ month: '2-digit', day: '2-digit' }) + ' ' + clock;
+    return (day === today ? clock : fmt({ month: '2-digit', day: '2-digit' }) + ' ' + clock)
+      + (market === 'us' ? ' ET' : ' KST');
   }
 
   /* 출처 표기.
@@ -179,7 +177,7 @@
     if (!title) return '';
     var market = marketOf(item);
     var href = String((item && item.link) || '').trim();
-    var time = timeLabel(item && item.pubDate);
+    var time = timeLabel(item && item.pubDate, market.key);
     var source = sourceLabel(item);
     var open = href ? '<a class="mn-row" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">' : '<div class="mn-row">';
     var close = href ? '</a>' : '</div>';
@@ -198,7 +196,7 @@
   function buildShell() {
     return '<div class="mn-head">'
       + '<h2>주요 뉴스</h2>'
-      + '<p>한국·미국 시장 뉴스를 최근 12시간 기준 최신순으로 봅니다. 제목을 누르면 원문으로 이동합니다.</p>'
+      + '<p>최근 24시간 뉴스를 최신순으로 봅니다. 국내는 한국시간(KST), 미국은 동부시간(ET·서머타임 반영)으로 표시합니다.</p>'
       + '<div class="mn-tabbar"><div class="mn-tabs" role="tablist" aria-label="주요 뉴스 구분">'
       + VIEWS.map(function (view) {
         return '<button type="button" class="mn-tab' + (view.key === 'all' ? ' is-active' : '') + '" data-mn-view="' + view.key
@@ -212,13 +210,13 @@
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
   }
 
-  /* 한 시장의 목록에 최근 12시간 컷 + 시장별 상한을 적용한다. 컷 결과가 너무 적으면
-     그 시장만 컷을 포기하고 최신순으로 채운다(주말 미국장처럼 발행이 끊기는 구간 대비).
-     pubDate를 못 읽는 항목(dateValue가 0)은 컷에서 떨어지므로, 폴백이 그 구제 경로도 된다. */
   function limitMarketRows(items) {
-    var cutoff = Date.now() - RECENT_WINDOW_MS;
-    var recent = items.filter(function (item) { return dateValue(item && item.pubDate) >= cutoff; });
-    return (recent.length >= RECENT_MIN_ROWS ? recent : items).slice(0, MARKET_LIMIT);
+    var now = Date.now();
+    var cutoff = now - RECENT_WINDOW_MS;
+    return items.filter(function (item) {
+      var stamp = dateValue(item && item.pubDate);
+      return stamp > 0 && stamp >= cutoff && stamp <= now;
+    }).slice(0, MARKET_LIMIT);
   }
 
   function setRefreshState_(container, loading) {
@@ -233,7 +231,12 @@
   function renderNews_(container) {
     var list = container.querySelector('[data-mn-list]');
     var updated = container.querySelector('[data-mn-updated]');
-    var items = state.view === 'all' ? state.items : state.items.filter(function (item) { return item._market === state.view; });
+    var currentItems = [];
+    MARKETS.forEach(function (market) {
+      currentItems = currentItems.concat(limitMarketRows(state.items.filter(function (item) { return item._market === market.key; })));
+    });
+    currentItems.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
+    var items = state.view === 'all' ? currentItems : currentItems.filter(function (item) { return item._market === state.view; });
     var failed = state.failed;
     if (!list) return;
     state.loading = false;
@@ -241,7 +244,7 @@
     if (!items.length) {
       list.innerHTML = failed.length
         ? '<p class="mn-state mn-state--error">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도합니다.</p>'
-        : '<p class="mn-state">표시할 뉴스가 없습니다.</p>';
+        : '<p class="mn-state">최근 24시간 뉴스가 없습니다.</p>';
       if (updated) updated.textContent = failed.length ? '갱신 실패 · 자동 재시도 예정' : '표시할 뉴스 없음';
       return;
     }

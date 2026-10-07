@@ -1116,7 +1116,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertNotIn("hen-zigzag", news)
         self.assertIn(".app-news-event", style)
         self.assertIn(".app-news-date", style)
-        self.assertIn("home-economic-news.js?v=20260828-free-translation-fallback-v3", main)
+        self.assertIn("home-economic-news.js?v=20261008-24h-et", main)
         self.assertIn(".hen-breaking { flex: 0 0 auto", style)
         self.assertIn(".home-economic-news .hen-breaking-list { height: 62px", style)
         self.assertNotIn("data-hen-breaking-form", main)
@@ -2298,7 +2298,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         search = self.read("js/stock-search.js")
         style = self.read("css/us-stocks.css")
         self.assertIn("us-stocks.css?v=20260828-domestic-layout-parity-v2", source)
-        self.assertIn("us-stocks.js?v=20260828-us-detail-request-budget-v6", search)
+        self.assertIn("us-stocks.js?v=20261008-news-et", search)
         for token in (
             'id="usStocksInput"',
             'id="usStocksSearchBtn"',
@@ -3810,7 +3810,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("function loadMainNews()", main)
         self.assertIn("mount.id = 'main-news';", main)
         self.assertIn("main-news.css?v=20260930-news-toolbar-v2", main)
-        self.assertIn("main-news.js?v=20260930-news-toolbar-v2", main)
+        self.assertIn("main-news.js?v=20261008-24h-et", main)
         # 2026-09-05: 붙이는 자리. querySelector에 셀렉터를 쉼표로 나열하면 "목록 순서"가
         # 아니라 "문서 순서"로 첫 요소를 돌려준다 - .post-single-body가 .contents_style의
         # 부모라 그게 먼저 잡혀 글 맨 뒤(공감·구독 버튼 아래)에 붙었다. 하나씩 찾아야 한다.
@@ -3842,7 +3842,7 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 실측 13.5초까지 걸리는 구간이 있어 15초로는 양쪽이 다 실패한다.
         self.assertIn("var FETCH_TIMEOUT_MS = 25000;", source)
         self.assertIn("var RENDER_LIMIT = 50;", source)
-        self.assertIn("var RECENT_WINDOW_MS = 12 * 60 * 60 * 1000;", source)
+        self.assertIn("var RECENT_WINDOW_MS = 24 * 60 * 60 * 1000;", source)
         # 2026-09-06 실측: 국내 50건이 2시간 16분에 몰려 있어, 합친 뒤 한 번만 자르면
         # 미국 기사가 시간순으로 밀려 통째로 사라졌다. 시장별로 먼저 자른 뒤 섞는다.
         self.assertIn("var MARKET_LIMIT = 25;", source)

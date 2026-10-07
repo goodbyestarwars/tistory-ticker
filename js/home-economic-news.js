@@ -53,26 +53,26 @@
     return hours ? hours.homeMarket() : 'domestic';
   }
 
-  function timeLabel(value) {
+  function timeLabel(value, market) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '--:--';
-    return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return parsed.toLocaleTimeString('ko-KR', { timeZone: market === 'us' ? 'America/New_York' : 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
-  function dateLabel(value) {
+  function dateLabel(value, market) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '';
-    var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' }).formatToParts(parsed);
+    var parts = new Intl.DateTimeFormat('en-US', { timeZone: market === 'us' ? 'America/New_York' : 'Asia/Seoul', month: '2-digit', day: '2-digit' }).formatToParts(parsed);
     var month = (parts.find(function (part) { return part.type === 'month'; }) || {}).value || '';
     var day = (parts.find(function (part) { return part.type === 'day'; }) || {}).value || '';
     return month + '/' + day;
   }
 
-  function periodKey(value) {
+  function periodKey(value, market) {
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return 'pm';
     var hour = Number(new Intl.DateTimeFormat('en-US', {
-      timeZone: 'Asia/Seoul', hour: '2-digit', hour12: false
+      timeZone: market === 'us' ? 'America/New_York' : 'Asia/Seoul', hour: '2-digit', hour12: false
     }).format(parsed));
     if (hour === 24) hour = 0;
     return hour < 12 ? 'am' : 'pm';
@@ -138,7 +138,7 @@
     if (/^\d{8}$/.test(text)) return text.slice(4, 6) + '/' + text.slice(6, 8);
     var parsed = parseDate(value);
     if (isNaN(parsed.getTime())) return '--:--';
-    return parsed.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+    return parsed.toLocaleTimeString('ko-KR', { timeZone: currentMarket() === 'us' ? 'America/New_York' : 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false });
   }
 
   function stopFlashTicker() {
@@ -153,7 +153,7 @@
     var href = item.link || '#';
     list.innerHTML = '<div class="app-news-timeline hen-breaking-timeline" aria-live="polite">'
       + '<a class="app-news-event hen-breaking-row hen-breaking-row--active" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">'
-      + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
+      + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate, currentMarket())) + '</strong><small>' + escapeHtml(flashTimeLabel(item.pubDate)) + '</small></div>'
       + '<div class="app-news-rail"><i class="is-latest"></i></div>'
       + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-type app-news-type--' + (label === '공시' ? '공시' : '뉴스') + '">' + escapeHtml(label) + '</b></div><strong>' + escapeHtml(item.title_ko || item.title) + '</strong></div>'
       + '</a></div>';
@@ -175,7 +175,10 @@
     if (!list) return;
     var rows = (items || []).filter(function (item) {
       if (!item || !item.title) return false;
-      if (item.kind !== 'disclosure') return true;
+      if (item.kind !== 'disclosure') {
+        var stamp = dateValue(item.pubDate);
+        return stamp > 0 && stamp >= Date.now() - 24 * 60 * 60 * 1000 && stamp <= Date.now();
+      }
       return state.market === 'us' ? item.provider === 'SEC EDGAR' : isWatchlistDisclosure(item);
     }).slice().sort(function (a, b) {
       var importance = Number(b.importance || 0) - Number(a.importance || 0);
@@ -210,13 +213,13 @@
     var list = state.mount.querySelector('[data-hen-list]');
     var updated = state.mount.querySelector('[data-hen-updated]');
     var session = state.mount.querySelector('[data-hen-session]');
-    if (session) session.textContent = market === 'us' ? '미국 · 실시간 타임라인' : '국내 · 실시간 타임라인';
+    if (session) session.textContent = market === 'us' ? '미국 · 최근 24시간 · 동부시간(ET)' : '국내 · 최근 24시간 · 한국시간(KST)';
     renderFlash(flash || state.flash);
     var cutoff = Date.now() - 24 * 60 * 60 * 1000;
     var rows = (items || []).filter(function (item) {
       if (!item || item.kind === 'disclosure') return false;
       var timestamp = dateValue(item.pubDate);
-      return timestamp > 0 && timestamp >= cutoff;
+      return timestamp > 0 && timestamp >= cutoff && timestamp <= Date.now();
     }).slice().sort(function (a, b) {
       return dateValue(b.pubDate) - dateValue(a.pubDate);
     }).slice(0, 10);
@@ -225,7 +228,7 @@
       return;
     }
     var groups = { am: [], pm: [] };
-    rows.forEach(function (item) { groups[periodKey(item.pubDate)].push(item); });
+    rows.forEach(function (item) { groups[periodKey(item.pubDate, market)].push(item); });
     var groupLabels = { am: '오전', pm: '오후' };
     list.innerHTML = '<div class="app-news-timeline hen-timeline">' + ['am', 'pm'].map(function (period) {
       if (!groups[period].length) return '';
@@ -234,7 +237,7 @@
         var tone = quote && quote.rate > 0 ? 'is-up' : quote && quote.rate < 0 ? 'is-down' : '';
         var type = kindLabel(item);
         return '<a class="app-news-event hen-row hen-regular ' + tone + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">'
-          + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate)) + '</small></div>'
+          + '<div class="app-news-date"><strong>' + escapeHtml(dateLabel(item.pubDate, market)) + '</strong><small>' + escapeHtml(timeLabel(item.pubDate, market)) + '</small></div>'
           + '<div class="app-news-rail"><i></i></div>'
           + '<div class="app-news-body"><div class="app-news-meta"><b class="app-news-market app-news-market--' + (market === 'us' ? '미국' : '한국') + '">' + (market === 'us' ? '미국' : '한국') + '</b><b class="app-news-type app-news-type--' + escapeHtml(type) + '">' + escapeHtml(type) + '</b><small>' + escapeHtml(item.source || item.publisher || '') + '</small></div>'
           + '<strong>' + escapeHtml(item.title_ko || item.title || '') + '</strong>'
@@ -242,7 +245,7 @@
           + '</div></a>';
       }).join('') + '</div>';
     }).join('') + '</div>';
-    if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: true });
+    if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { timeZone: market === 'us' ? 'America/New_York' : 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: true });
   }
 
   function fetchJson(url) {

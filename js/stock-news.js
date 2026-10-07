@@ -788,12 +788,18 @@
     // 신/구 형태를 둘 다 받아준다.
     var list = Array.isArray(data) ? data : ((data && data.items) || []);
 
-    // 2026-07-28 사용자 요청: 오늘 뉴스만 출력(예전 뉴스가 계속 섞여 나와 최신성이 떨어짐).
-    var today = todayYyyymmdd();
-    list = list.filter(function (item) { return item.datetime && item.datetime.slice(0, 8) === today; });
+    // 국내 발행시각(KST)을 실제 경과 24시간으로 비교한다. 전날 밤 기사도 포함한다.
+    var now = Date.now();
+    list = list.filter(function (item) {
+      var text = String(item.datetime || '');
+      if (!/^\d{12,14}$/.test(text)) return false;
+      var stamp = Date.parse(text.slice(0,4)+'-'+text.slice(4,6)+'-'+text.slice(6,8)
+        +'T'+text.slice(8,10)+':'+text.slice(10,12)+':00+09:00');
+      return isFinite(stamp) && stamp >= now - 24 * 60 * 60 * 1000 && stamp <= now;
+    });
 
     if (!list.length) {
-      box.innerHTML = '<div class="sn-error">' + escapeHtml(stock.name) + '에 대한 오늘 뉴스가 아직 없어요.</div>';
+      box.innerHTML = '<div class="sn-error">' + escapeHtml(stock.name) + '에 대한 최근 24시간 뉴스가 없어요.</div>';
       return;
     }
 
