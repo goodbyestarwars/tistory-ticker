@@ -540,7 +540,7 @@
     row.innerHTML = items.length ? '<span class="nav-search-recent-title">최근 조회</span>' + items.map(function (it) {
       var us = String(it.code).indexOf('US:') === 0;
       var href = TARGET_PAGE + '?code=' + encodeURIComponent(it.code) + '&name=' + encodeURIComponent(it.name || it.code) + (us ? '&market=us' : '');
-      return '<a href="' + escapeAttr(href) + '" data-recent-code="' + escapeAttr(it.code) + '">' + escapeHtml(it.name || it.code) + '</a>';
+      return '<a href="' + escapeAttr(href) + '" data-recent-code="' + escapeAttr(it.code) + '">' + stockIconHtml(it.code) + escapeHtml(it.name || it.code) + '</a>';
     }).join('') : '';
   }
 
