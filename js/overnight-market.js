@@ -661,7 +661,14 @@
   // 일치하게 만든다. 차트 마지막 점도 현재가로 맞춰(일봉 이력이 어제까지만 있으면 오늘 점을
   // 덧붙임) 선의 위/아래가 등락 배지와 어긋나지 않게 한다.
   function renderSparkline(container, symbol, chartRows, positive, price, change) {
+    var history = global.MarketChartHistory;
+    if (history) chartRows = history.merge(symbol, chartRows);
     var normalizedRows = normalizeChartRows(chartRows);
+    if (history) {
+      var note = container.parentNode.querySelector('.market-history-caption');
+      if (!note) { note = document.createElement('small'); note.className = 'market-history-caption'; container.insertAdjacentElement('afterend', note); }
+      note.textContent = history.caption(normalizedRows);
+    }
     if (normalizedRows.length < 2) return;
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return;

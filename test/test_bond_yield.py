@@ -31,6 +31,21 @@ class FetchHistoryThrottleTests(unittest.TestCase):
         sleep.assert_called_with(bond_yield._PAGE_THROTTLE_SEC)
 
 
+class KtbReplacementSourceTests(unittest.TestCase):
+    def test_json_source_preserves_yield_and_signed_changes(self):
+        import io, json
+        payload = [{'localTradedAt': '2026-10-06T00:00:00+09:00', 'closePrice': '3.93',
+                    'fluctuations': '-0.01', 'fluctuationsRatio': '-0.25'},
+                   {'localTradedAt': 'bad', 'closePrice': 'nan', 'fluctuations': '0', 'fluctuationsRatio': '0'}]
+        response = mock.MagicMock()
+        response.__enter__.return_value.read.return_value = json.dumps(payload).encode()
+        with mock.patch.object(bond_yield.urllib.request, 'urlopen', return_value=response) as opening:
+            rows = bond_yield._fetch_page(2)
+        self.assertEqual(rows, [{'date':'20261006','value':3.93,'change':-0.01,'change_rate':-0.25}])
+        url=opening.call_args.args[0].full_url
+        self.assertIn('KFIA103000/prices?page=2&pageSize=60',url)
+
+
 class FredMacroSymbolTests(unittest.TestCase):
     def test_market_macro_symbols_are_collected_from_fred(self):
         expected = {

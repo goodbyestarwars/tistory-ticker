@@ -1,12 +1,10 @@
 # -*- coding: utf-8 -*-
 """채권 금리(%) 수집 - 국고채 3년물(네이버) + 미국 국채 10/2/30년물(FRED).
 
-국고채 3년물: JSON API가 없어(realtime/worldstock, chart/foreign 둘 다 이 심볼을 모름 -
-2026-07-18 실측으로 확인) finance.naver.com/marketindex/interestDailyQuote.naver?
-marketindexCd=IRR_GOVT03Y 페이지를 그대로 파싱한다. 페이지당 7일치, page= 파라미터로
-과거로 페이징(실측: page=13이 약 4개월 전, page=30도 계속 다른 날짜를 주는 걸 확인 - 끝까지 감).
-같은 marketindexCd 방식으로 국고채10년물(IRR_GOVT10Y)도 찾아봤지만 해당 코드는 존재하지 않음
-(빈 테이블 반환, 2026-07-18 확인) - 네이버는 국내 채권 중 3년물까지만 이 페이지에서 제공.
+국고채 3년물: 2026-10-08 기존 네이버 HTML 주소가 410으로 폐쇄된 것을 확인.
+api.stock.naver.com/marketindex/domesticInterest/KFIA103000/prices의 60행 JSON으로
+교체했다. 같은 국고채3년 종가 금리(%)이며 기존 저장본 49일과 대조해 차이 최대
+0.01%p(소수 표시 차이)를 확인했다. 400관측치 수집 호출은 최대58회에서7회로 감소.
 
 미국 국채 10/2/30년물: FRED(세인트루이스 연준, fred.stlouisfed.org) 공식 CSV를 API 키 없이
 바로 받는다(graph/fredgraph.csv?id=DGS10 등) - 정부 공식 통계라 가장 신뢰도 높은 무료 소스.
@@ -19,6 +17,8 @@ marketindexCd=IRR_GOVT03Y 페이지를 그대로 파싱한다. 페이지당 7일
 금리는 오를수록(채권 가격 하락) 긴축/할인율 상승으로 보통 증시에 부담 - 프론트에서
 direction:-1(상승=악재)로 취급한다(js/overnight-market.js CATEGORIES 참고)."""
 
+import json
+import math
 import logging
 import re
 import threading
@@ -41,7 +41,7 @@ _POLL_INTERVAL_SEC = 6 * 3600
 # 심볼(foreign_futures.py의 WTI/VIX/USDKRW, FRED 미국 국채)도 전부 400일 안팎을 쓰므로
 # 맞춤. 실측: page=53(약 371일치)까지도 계속 다른 날짜가 나와 400일 확보 가능함을 확인.
 _HISTORY_DAYS = 400
-_ROWS_PER_PAGE = 7
+_ROWS_PER_PAGE = 60
 
 # 미국 국채·주요 미국 발표 - FRED 시리즈 ID. 값 자체가 %(예: 4.57)라
 # db_schema.upsert_future_price에 price로 그대로 넣으면 된다(원/포인트 단위 변환 불필요).
@@ -80,24 +80,25 @@ _ROW_RE = re.compile(
 
 
 def _fetch_page(page):
-    req = urllib.request.Request(_URL % (MARKET_INDEX_CD, page), headers={'User-Agent': UA})
+    # Legacy interestDailyQuote retired in September 2026 (HTTP 410).
+    # KFIA103000 is Naver's domestic 3-year government bond closing-yield series.
+    url = ('https://api.stock.naver.com/marketindex/domesticInterest/'
+           'KFIA103000/prices?page=%d&pageSize=%d' % (page, _ROWS_PER_PAGE))
+    req = urllib.request.Request(url, headers={'User-Agent': UA})
     with urllib.request.urlopen(req, timeout=15) as res:
-        html = res.read().decode('euc-kr', errors='replace')
+        data = json.loads(res.read().decode('utf-8'))
     rows = []
-    for m in _ROW_RE.finditer(html):
+    for item in data:
         try:
-            value = float(m.group('value'))
-            delta = float(m.group('delta'))
-            pct = float(m.group('pct'))
-        except (TypeError, ValueError):
+            value = float(str(item['closePrice']).replace(',', ''))
+            change = float(str(item['fluctuations']).replace(',', ''))
+            pct = float(str(item['fluctuationsRatio']).replace(',', ''))
+            date = item['localTradedAt'][:10].replace('-', '')
+            if not re.fullmatch(r'\d{8}', date) or not all(math.isfinite(v) for v in (value, change, pct)):
+                continue
+        except (KeyError, TypeError, ValueError):
             continue
-        sign = -1 if m.group('dir') == 'down' else (0 if m.group('dir') == 'same2' else 1)
-        rows.append({
-            'date': m.group('date').replace('.', ''),  # 'YYYY.MM.DD' -> 'YYYYMMDD'
-            'value': value,
-            'change': delta * sign,
-            'change_rate': pct * sign,
-        })
+        rows.append({'date': date, 'value': value, 'change': change, 'change_rate': pct})
     return rows
 
 

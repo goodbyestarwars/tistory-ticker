@@ -276,13 +276,13 @@ document.documentElement.classList.add('skin-ready');
       }
     };
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261008-crypto-tab-v2';
+    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261008-five-year-charts-v2';
     var TABS = [
       {
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261008-crypto-tab',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261008-five-year-charts',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다.
         styles: []
       },
@@ -290,25 +290,25 @@ document.documentElement.classList.add('skin-ready');
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
         mountIds: ['overnight-market'],
         globalName: 'OvernightMarket',
-        script: ASSET_BASE + 'js/overnight-market.js?v=20261008-crypto-tab',
+        script: ASSET_BASE + 'js/overnight-market.js?v=20261008-five-year-charts',
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-crypto-tab']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts']
       },
       {
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20260930-jolts-v4',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20260930-jolts-v4']
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261008-five-year-charts',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261008-five-year-charts']
       },
       {
         key: 'crypto', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
-        script: ASSET_BASE + 'js/crypto-market.js?v=20261008-crypto-tab',
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-crypto-tab',
-          ASSET_BASE + 'css/crypto-market.css?v=20261008-crypto-tab']
+        script: ASSET_BASE + 'js/crypto-market.js?v=20261008-five-year-charts',
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
+          ASSET_BASE + 'css/crypto-market.css?v=20261008-five-year-charts']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
@@ -349,7 +349,30 @@ document.documentElement.classList.add('skin-ready');
       return true;
     }
 
-    function activate(key) {
+    var historyModuleJob = null;
+    function historyReady(key) {
+      if (!historyModuleJob) historyModuleJob = new Promise(function (resolve) {
+        if (window.MarketChartHistory) { resolve(); return; }
+        var script = document.createElement('script');
+        script.src = ASSET_BASE + 'js/market-history.js?v=20261008-5y';
+        script.onload = script.onerror = resolve;
+        document.head.appendChild(script);
+      });
+      return historyModuleJob.then(function () {
+        var archive = window.MarketChartHistory ? window.MarketChartHistory.load(key === 'us-macro' ? 'macro' : key) : Promise.resolve(false);
+        if (key !== 'us-macro' || (window.OvernightMarket && window.OvernightMarket.cryptoTools)) return archive;
+        return Promise.all([archive, new Promise(function (resolve) {
+          var script = document.createElement('script');
+          script.src = ASSET_BASE + 'js/overnight-market.js?v=20261008-five-year-charts';
+          script.onload = script.onerror = resolve; document.head.appendChild(script);
+        })]);
+      });
+    }
+    function activate(key, ready) {
+      if (!ready) { historyReady(key).then(function () {
+        var panel = document.querySelector('.mi-panel[data-mi-panel="' + key + '"]');
+        if (panel && !panel.hidden) activate(key, true);
+      }); return; }
       var tab = tabByKey(key);
       if (!tab) return;
       if (ensureScript(tab)) return; // 최신 스크립트가 붙으면 모듈이 스스로 init한다.

@@ -1,0 +1,41 @@
+name: Market chart history
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '15 0 * * 6' # Saturday 09:15 KST, outside the Korean stock session.
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: market-chart-history
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Collect public histories outside VM
+        run: python scripts/build_market_history.py
+      - name: Publish changed archives
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git add data/chart-history/
+          if git diff --cached --quiet; then exit 0; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Refresh five-year market chart archives"
+          git pull --rebase origin master
+          git push origin HEAD:master
+          # GITHUB_TOKEN pushes do not automatically trigger the legacy Pages build.
+          gh api --method POST repos/${{ github.repository }}/pages/builds

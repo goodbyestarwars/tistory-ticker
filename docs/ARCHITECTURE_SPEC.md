@@ -191,3 +191,7 @@ GAS 캐시는 배포해도 자동으로 비워지지 않으므로, 응답 스키
 ## 8. 이 문서가 다루지 않는 것
 
 파일별 상세 함수 목록은 `SOURCE_CODE_SPEC.md`, DB 테이블 정의는 `DB_SPEC.md`, UI/색상 규칙은 `UI_GUIDE.md`, 파일별 변경 이력은 `WORK_HISTORY.md`를 본다.
+
+### 시장지표 장기 차트 (2026-10-08)
+
+5년 이력30종은 PC/Actions → GitHub Pages → 브라우저 경로이고 VM 수집/DB에 추가하지 않는다. 브라우저는 탭별 이력을 최근 VM 일봉과 합친다. 아카이브 갱신은 VM 재시작/재검색에서 제외한다. [범위와 용량](MARKET_CHART_HISTORY.md).

@@ -10,7 +10,7 @@
     if (global.OvernightMarket && global.OvernightMarket.cryptoTools) return Promise.resolve(global.OvernightMarket);
     return new Promise(function (resolve, reject) {
       var script = document.createElement('script');
-      script.src = base + 'js/overnight-market.js?v=20261008-crypto-tab';
+      script.src = base + 'js/overnight-market.js?v=20261008-five-year-charts';
       script.onload = function () { resolve(global.OvernightMarket); };
       script.onerror = reject; document.head.appendChild(script);
     });
@@ -36,7 +36,16 @@
   function tokenHistory(symbol) {
     var cached = history[symbol];
     if (cached && Date.now()-cached.at < 3600000) return Promise.resolve(cached.stats);
-    return tools.get('https://fapi.binance.com/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=1d&limit=366')
+    var all=[], cutoff=new Date(); cutoff.setUTCHours(0,0,0,0); cutoff.setUTCFullYear(cutoff.getUTCFullYear()-5);
+    function page(end, count) {
+      var url='https://fapi.binance.com/fapi/v1/klines?symbol='+encodeURIComponent(symbol)+'&interval=1d&limit=1000'+(end?'&endTime='+end:'');
+      return tools.get(url).then(function(rows) {
+        all=all.concat(rows);
+        if (rows.length===1000 && count<2 && Number(rows[0][0])>cutoff.getTime()) return page(Number(rows[0][0])-1,count+1);
+        return all.filter(function(r){return Number(r[0])>=cutoff.getTime();});
+      });
+    }
+    return page(null,0)
       .then(function (rows) { var stats=dailyStats(rows,Date.now()); history[symbol]={at:Date.now(),stats:stats}; return stats; })
       .catch(function () { history[symbol]={at:Date.now(),stats:cached ? cached.stats : null}; return history[symbol].stats; });
   }

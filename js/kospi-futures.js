@@ -743,7 +743,7 @@
   // 되돌아간다는 신고 대응. 섹션 접힘(collapseKey)과 동일하게 localStorage에 차트별·주기별로
   // 보이는 구간을 저장하고 다시 그릴 때 복원한다(주기마다 따로 저장해 분봉/일봉/주봉이 서로
   // 확대 상태를 덮어쓰지 않게 한다).
-  function rangeKey(chartKey, interval) { return 'kf_range_' + chartKey + '_' + interval + '_v1'; }
+  function rangeKey(chartKey, interval) { return 'kf_range_' + chartKey + '_' + interval + (interval === 'minute' ? '_v1' : '_5y_v1'); }
 
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
@@ -912,6 +912,11 @@
   // 이미 받아온 dayItem을, 분봉은 이미 받아온 minuteRows를 그대로 씀).
   function renderChartPanel(cfg) {
     var st = panelState[cfg.key];
+    if (global.MarketChartHistory) {
+      var element=document.getElementById(cfg.elId), note=element && element.parentNode.querySelector('.market-history-caption');
+      if (element && !note) { note=document.createElement('small'); note.className='market-history-caption'; element.insertAdjacentElement('afterend',note); }
+      if (note) note.textContent=st.interval === 'minute' ? '최근 분봉' : global.MarketChartHistory.caption(st.dayItem && st.dayItem.chart);
+    }
     if (st.interval === 'minute') {
       var rows = (st.minuteRows || []).filter(function (r) { return r.ts != null; });
       // KST_OFFSET_SEC: 위 상수 설명 참고 - X축에 실제 거래소(KST) 시:분이 나오도록 보정.
@@ -1048,7 +1053,9 @@
     updateMarketStatusBadges(container);
 
     CHARTS.forEach(function (cfg) {
-      panelState[cfg.key].dayItem = bySymbol[cfg.symbol];
+      var item = bySymbol[cfg.symbol];
+      if (item && global.MarketChartHistory) item = Object.assign({}, item, {chart:global.MarketChartHistory.merge(cfg.symbol,item.chart)});
+      panelState[cfg.key].dayItem = item;
       if (panelState[cfg.key].interval === 'minute') {
         loadMinuteAndRender(cfg);
       } else {
@@ -1091,7 +1098,7 @@
     // domestic-market-indicators.js를 다시 안 받아온다 - 그 파일을 고칠 때마다 같이 올려야
     // 한다(오늘 여러 번 고쳤는데 이 값을 안 올려서 캐시된 사용자가 최신 코드를 못 받는
     // 문제를 뒤늦게 발견함).
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20260930-chart-shapes-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/domestic-market-indicators.js?v=20261008-five-year-charts';
     script.setAttribute('data-domestic-market-indicators', '1');
     script.onload = function () {
       if (global.DomesticMarketIndicators) global.DomesticMarketIndicators.init();
