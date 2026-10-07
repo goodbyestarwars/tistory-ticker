@@ -157,11 +157,32 @@
 
   function readGuide_(symbol) {
     var guides = {
-      US_CPI: '물가 목표는 연 2% 부근', US_CORE_CPI: '추세 물가는 완만한 둔화가 중요', US_CORE_PCE: '연준이 주로 보는 물가 지표', US_PPI: '소비자물가보다 앞서 움직일 수 있음',
-      US_NONFARM_PAYROLLS: '고용 증감보다 추세 둔화를 함께 확인', US_UNEMPLOYMENT: '4% 안팎은 통상 안정 범위', US_JOB_OPENINGS: '700만 건 안팎이면 구인 수요 유지, 급감은 고용 냉각 신호', US_RETAIL_SALES: '전월 대비와 3개월 흐름을 같이 확인',
+      US_CPI: '지수의 크기보다 물가 상승률을 확인', US_CORE_CPI: '식품·에너지를 제외한 물가 추세', US_CORE_PCE: '연준 물가 목표 2%는 전체 PCE 기준', US_PPI: '생산자가 받는 가격의 변화',
+      US_NONFARM_PAYROLLS: '고용 증가폭과 이전 발표의 수정을 함께 확인', US_UNEMPLOYMENT: '실업률의 수준과 상승 속도를 함께 확인', US_JOB_OPENINGS: '기업의 구인 수요와 변화 속도를 확인', US_RETAIL_SALES: '물가가 반영된 판매액이므로 실질 소비와 구분',
       US_REAL_GDP_GROWTH: '연율 2% 안팎이면 완만한 성장', US_CONSUMER_SENTIMENT: '장기 평균과의 차이를 확인'
     };
     return guides[symbol] || '';
+  }
+
+  function impactGuide_(symbol) {
+    var guides = {
+      US_CPI: ['생활비 부담·고금리 유지 압력', '물가 부담 완화. 급락·음수는 수요 위축 주의', '경기가 버티면서 물가 상승률이 완만하게 둔화'],
+      US_CORE_CPI: ['끈질긴 물가 상승·금리 인하 지연 부담', '기조 물가 완화. 급격한 둔화는 경기 확인', '근원 물가가 꾸준히 둔화하고 고용은 유지'],
+      US_CORE_PCE: ['금리 인하가 늦어질 수 있음', '물가 부담 완화. 소비 급감 동반 여부 확인', '물가가 안정되고 소비·고용이 함께 유지'],
+      US_PPI: ['판매가격 상승·소비자물가로 전가될 우려', '가격 압력 완화. 수요 부진 때문인지 확인', '수요가 버티면서 생산단 물가 상승률이 둔화'],
+      US_NONFARM_PAYROLLS: ['경기 활력. 너무 강하면 고금리 유지 부담', '고용 냉각. 마이너스·급감은 경기 둔화 우려', '일자리가 완만히 늘고 임금·물가가 안정'],
+      US_UNEMPLOYMENT: ['실직 증가·소비 위축 우려', '고용 안정. 지나치게 낮으면 임금 압력', '큰 급등 없이 안정되고 물가도 진정'],
+      US_JOB_OPENINGS: ['구인 활발. 인력 부족이면 임금 압력', '노동시장 과열 완화. 급감하면 경기 주의', '구인 과열은 줄고 실업률 급등은 없는 흐름'],
+      US_RETAIL_SALES: ['소비 활력. 물가 상승 때문인지도 확인', '소비 둔화·기업 매출 부담', '물가를 감안해도 소비가 완만하게 증가'],
+      US_REAL_GDP_GROWTH: ['성장 활력. 과열이면 물가·금리 부담', '경기 둔화. 마이너스가 이어지면 침체 우려', '급격한 과열·위축 없이 꾸준히 성장'],
+      US_CONSUMER_SENTIMENT: ['소비 기대 개선. 실제 지출도 확인', '소비 위축·경기 불안 신호', '심리가 개선되고 실제 소비·고용도 뒷받침']
+    };
+    var guide = guides[symbol];
+    if (!guide) return '';
+    return '<div class="umi-impact" aria-label="지표 해석">'
+      + ['높으면', '낮으면', '좋은 흐름'].map(function (label, index) {
+        return '<p><em>' + label + '</em><span>' + escapeHtml(guide[index]) + '</span></p>';
+      }).join('') + '</div>';
   }
 
   function card_(symbol, item) {
@@ -170,6 +191,7 @@
     return '<article class="umi-card' + primary + '"><small>' + escapeHtml(meta.category + ' · ' + meta.cadence) + '</small><strong>' + escapeHtml(meta.label) + '</strong>'
       + '<b>' + escapeHtml(keyValue_(symbol, item)) + '</b><span>' + escapeHtml(detail_(symbol, item)) + '</span>'
       + '<div class="umi-reading"><span>최근 12회 평균 <b>' + escapeHtml(average_(symbol, item)) + '</b></span>' + miniChart_(item) + '</div>'
+      + impactGuide_(symbol)
       + '<i><b>읽는 기준</b> · ' + escapeHtml(readGuide_(symbol)) + ' · 출처 ' + escapeHtml(meta.source) + '</i></article>';
   }
 
@@ -178,6 +200,7 @@
     return '<section class="umi" aria-label="미국 경제 발표">'
       + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 숫자만 보지 않도록 최근 평균과 12회 흐름, 읽는 기준을 같이 표시합니다. 금리는 글로벌 시장지표에서 확인하세요.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
+      + '<p class="umi-interpret-note">물가는 지수 숫자보다 상승률을 봐. 높고 낮다는 이유만으로 주가 방향이 정해지지는 않아. 발표 예상치와의 차이·이전 수치 수정도 함께 봐.</p>'
       + '<div class="umi-grid"><article class="umi-card umi-card--fomc"><small>통화정책 일정</small><strong>다음 FOMC 회의</strong><b>' + escapeHtml(dateLabel_(next)) + '</b><span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></article>'
       + '<div data-umi-cards class="umi-grid umi-grid--data"><p class="umi-state">발표값을 불러오는 중입니다.</p></div></div></section>';
   }
