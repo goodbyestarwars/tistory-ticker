@@ -1,6 +1,6 @@
 /* ============ 글로벌 시장지표(코스피/코스닥, 미국현물3+선물3/반도체, VIX, WTI/금선물, 원달러 환율, 국채금리(한국3년/미국10·2·30년), BTC) ============ */
 
-#overnight-market {
+:is(#overnight-market, #crypto-market) {
   font-family: inherit;
 }
 
@@ -9,7 +9,7 @@
    margin-left:auto로 내용 폭만큼만 차지하는 박스를 오른쪽 정렬(js 구조 변경 없이 이
    div 하나에만 스타일 - dmi-live-status처럼 헤딩과 형제 span으로 만드는 구조 변경은
    불필요한 결합도라 피함). */
-#overnight-market .om-live-status {
+:is(#overnight-market, #crypto-market) .om-live-status {
   display: table;
   margin: 0 0 10px auto;
   padding: 3px 10px 3px 8px;
@@ -20,7 +20,7 @@
   font-weight: 600;
   white-space: nowrap;
 }
-#overnight-market .om-live-status::before {
+:is(#overnight-market, #crypto-market) .om-live-status::before {
   content: '';
   display: inline-block;
   width: 6px;
@@ -30,18 +30,18 @@
   background: currentColor;
   vertical-align: middle;
 }
-#overnight-market .om-live-status[data-state="live"] {
+:is(#overnight-market, #crypto-market) .om-live-status[data-state="live"] {
   background: rgba(22, 163, 74, .12);
   color: #16a34a;
 }
-#overnight-market .om-live-status[data-state="live"]::before {
+:is(#overnight-market, #crypto-market) .om-live-status[data-state="live"]::before {
   animation: om-live-pulse 1.6s ease-in-out infinite;
 }
-#overnight-market .om-live-status[data-state="stale"] {
+:is(#overnight-market, #crypto-market) .om-live-status[data-state="stale"] {
   background: rgba(217, 119, 6, .12);
   color: #d97706;
 }
-#overnight-market .om-live-status[data-state="retry"] {
+:is(#overnight-market, #crypto-market) .om-live-status[data-state="retry"] {
   background: rgba(100, 116, 139, .12);
   color: #64748b;
 }
@@ -50,7 +50,7 @@
   50% { opacity: .35; }
 }
 
-#overnight-market .om-summary {
+:is(#overnight-market, #crypto-market) .om-summary {
   padding: 12px 14px;
   margin-bottom: 14px;
   background: #f7f7f8;
@@ -58,31 +58,31 @@
   font-size: 13px;
 }
 
-#overnight-market .om-summary-head {
+:is(#overnight-market, #crypto-market) .om-summary-head {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
 }
 
-#overnight-market .om-summary-icon {
+:is(#overnight-market, #crypto-market) .om-summary-icon {
   flex: 0 0 auto;
   color: #666;
 }
 
-#overnight-market .om-summary-body {
+:is(#overnight-market, #crypto-market) .om-summary-body {
   color: #111;
 }
 
 /* 카테고리별 한 줄씩 분리(사용자 요청 - 예전엔 " · "로 이어붙인 한 줄이라 단락 구분이
    안 됐음). 라벨(<b>)만 굵게, 본문은 검은색 그대로. */
-#overnight-market .om-summary-line {
+:is(#overnight-market, #crypto-market) .om-summary-line {
   line-height: 1.6;
   margin-bottom: 5px;
 }
-#overnight-market .om-summary-line:last-child { margin-bottom: 0; }
+:is(#overnight-market, #crypto-market) .om-summary-line:last-child { margin-bottom: 0; }
 
-#overnight-market .om-summary-tone {
+:is(#overnight-market, #crypto-market) .om-summary-tone {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #e5e5e7;
@@ -90,7 +90,7 @@
   line-height: 1.6;
 }
 
-#overnight-market .om-ai {
+:is(#overnight-market, #crypto-market) .om-ai {
   padding: 12px 14px;
   margin-bottom: 14px;
   background: #f0f6ff;
@@ -98,61 +98,61 @@
   font-size: 13px;
 }
 
-#overnight-market .om-ai-head {
+:is(#overnight-market, #crypto-market) .om-ai-head {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
 }
 
-#overnight-market .om-ai-icon {
+:is(#overnight-market, #crypto-market) .om-ai-icon {
   flex: 0 0 auto;
   color: #4a7fd6;
 }
 
-#overnight-market .om-ai-body {
+:is(#overnight-market, #crypto-market) .om-ai-body {
   color: #111;
 }
 
 /* 문장 단위로 자기 줄에 그린다(글로벌 시장지표 요약 박스와 동일한 단락 구분 패턴). */
-#overnight-market .om-ai-line {
+:is(#overnight-market, #crypto-market) .om-ai-line {
   line-height: 1.6;
   margin-bottom: 5px;
 }
-#overnight-market .om-ai-line:last-child { margin-bottom: 0; }
+:is(#overnight-market, #crypto-market) .om-ai-line:last-child { margin-bottom: 0; }
 
-#overnight-market .om-category {
+:is(#overnight-market, #crypto-market) .om-category {
   margin-bottom: 22px;
 }
 
-#overnight-market .om-category:last-child {
+:is(#overnight-market, #crypto-market) .om-category:last-child {
   margin-bottom: 0;
 }
 
-#overnight-market .om-cat-head {
+:is(#overnight-market, #crypto-market) .om-cat-head {
   display: flex;
   align-items: baseline;
   gap: 8px;
   margin-bottom: 8px;
 }
 
-#overnight-market .om-cat-label {
+:is(#overnight-market, #crypto-market) .om-cat-label {
   font-size: 14px;
   font-weight: 700;
 }
 
-#overnight-market .om-cat-hint {
+:is(#overnight-market, #crypto-market) .om-cat-hint {
   font-size: 12px;
   color: #999;
 }
 
-#overnight-market .om-grid {
+:is(#overnight-market, #crypto-market) .om-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 16px;
 }
 
-#overnight-market .om-card {
+:is(#overnight-market, #crypto-market) .om-card {
   min-width: 0;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
@@ -160,7 +160,7 @@
   background: rgb(255, 254, 252);
 }
 
-#overnight-market .om-title {
+:is(#overnight-market, #crypto-market) .om-title {
   font-family: "Pretendard", "Malgun Gothic", sans-serif;
   font-size: 13px;
   font-weight: 700;
@@ -168,43 +168,43 @@
   margin-bottom: 6px;
 }
 
-#overnight-market .om-loading,
-#overnight-market .om-error {
+:is(#overnight-market, #crypto-market) .om-loading,
+:is(#overnight-market, #crypto-market) .om-error {
   font-size: 13px;
   color: #999;
   padding: 20px 0;
   text-align: center;
 }
 
-#overnight-market .om-price {
+:is(#overnight-market, #crypto-market) .om-price {
   font-size: 24px;
   font-weight: 700;
   line-height: 1.3;
 }
 
-#overnight-market .om-change {
+:is(#overnight-market, #crypto-market) .om-change {
   font-size: 13px;
   font-weight: 600;
   margin-top: 2px;
 }
 
-#overnight-market .om-pos { color: #d24f45; }
-#overnight-market .om-neg { color: #1261c4; }
-#overnight-market .om-zero { color: #666; }
+:is(#overnight-market, #crypto-market) .om-pos { color: #d24f45; }
+:is(#overnight-market, #crypto-market) .om-neg { color: #1261c4; }
+:is(#overnight-market, #crypto-market) .om-zero { color: #666; }
 
-#overnight-market .om-chart {
+:is(#overnight-market, #crypto-market) .om-chart {
   margin: 10px -2px;
-  height: 64px;
+  height: 230px;
 }
 
-#overnight-market .om-chart-error {
+:is(#overnight-market, #crypto-market) .om-chart-error {
   font-size: 12px;
   color: #999;
   text-align: center;
   padding: 20px 0;
 }
 
-#overnight-market .om-hl {
+:is(#overnight-market, #crypto-market) .om-hl {
   display: flex;
   justify-content: space-between;
   font-size: 12px;
@@ -214,7 +214,7 @@
 
 /* WTI 카드 전용 "최근 1년 평균" 참고선 캡션 - 차트에 그린 주황 실선(#c9701f)과 같은 색을
    글자에도 살짝 써서 둘이 같은 걸 가리킨다는 걸 알아보기 쉽게 함. */
-#overnight-market .om-benchmark {
+:is(#overnight-market, #crypto-market) .om-benchmark {
   font-size: 11px;
   color: #c9701f;
   margin-top: 6px;
@@ -225,7 +225,7 @@
 
 /* 2026-07-21: BTC/ETH 카드 전용 6개월 평균선 캡션 - 차트의 보라 실선(#8b5fbf)과 짝을
    맞춘다. 위 .om-benchmark(52주선, 주황) 바로 아래 붙으므로 자체 상단 구분선은 생략. */
-#overnight-market .om-benchmark-6m {
+:is(#overnight-market, #crypto-market) .om-benchmark-6m {
   color: #8b5fbf;
   margin-top: 2px;
   padding-top: 0;
@@ -236,71 +236,71 @@
    배경 + #F5EFE0 글자로 교체. 참고선 색(om-benchmark 주황/6m 보라)은 차트 실선 색과
    맞춰야 하는 의미색이라 유지. */
 /* 2026-09-15 바이낸스 국내주식 토큰(참고 지표) - 기존 카드 스타일을 그대로 쓰고 부가 요소만 둔다. */
-#overnight-market .om-binance .om-title small { color: #94a3b8; font-size: 10px; font-weight: 500; }
-#overnight-market .om-binance .om-change small { color: #94a3b8; font-size: 10px; }
-#overnight-market .om-bn-spark { display: block; width: 100%; height: 40px; margin: 6px 0 4px; }
-#overnight-market .om-bn-spark polyline { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
-#overnight-market .om-bn-spark.om-pos polyline { stroke: #d24f45; }
-#overnight-market .om-bn-spark.om-neg polyline { stroke: #1261c4; }
-#overnight-market .om-bn-meta { color: #64748b; font-size: 11px; }
-#overnight-market .om-binance-note { margin-top: 6px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
-#overnight-market .om-binance .om-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
-#overnight-market .om-binance .om-card { min-width: 0; }
-#overnight-market .om-binance .om-title small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
-#overnight-market .om-binance .om-price { font-size: 21px; }
-#overnight-market .om-chart.om-chart-crypto { height: 164px; }
-#overnight-market .om-crypto-averages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
-#overnight-market .om-crypto-averages > div { min-width: 0; padding: 10px 12px; border-radius: 10px; background: #f8fafc; }
-#overnight-market .om-crypto-averages span,
-#overnight-market .om-crypto-averages strong,
-#overnight-market .om-crypto-averages small { display: block; }
-#overnight-market .om-crypto-averages span { font-size: 12px; font-weight: 600; }
-#overnight-market .om-crypto-avg-52w span { color: #c9701f; }
-#overnight-market .om-crypto-avg-6m span { color: #8b5fbf; }
-#overnight-market .om-crypto-averages strong { margin: 4px 0; color: #334155; font-size: 14px; }
-#overnight-market .om-crypto-averages small { color: #64748b; font-size: 11px; line-height: 1.5; }
-html.dark #overnight-market .om-crypto-averages > div { background: rgba(245, 239, 224, .06); }
-html.dark #overnight-market .om-crypto-averages strong { color: #F5EFE0; }
-html.dark #overnight-market .om-crypto-averages small { color: rgba(245, 239, 224, .65); }
-@media (min-width: 1600px) { #overnight-market .om-binance .om-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
-@media (max-width: 1000px) { #overnight-market .om-binance .om-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+:is(#overnight-market, #crypto-market) .om-binance .om-title small { color: #94a3b8; font-size: 10px; font-weight: 500; }
+:is(#overnight-market, #crypto-market) .om-binance .om-change small { color: #94a3b8; font-size: 10px; }
+:is(#overnight-market, #crypto-market) .om-bn-spark { display: block; width: 100%; height: 40px; margin: 6px 0 4px; }
+:is(#overnight-market, #crypto-market) .om-bn-spark polyline { fill: none; stroke-width: 1.6; vector-effect: non-scaling-stroke; }
+:is(#overnight-market, #crypto-market) .om-bn-spark.om-pos polyline { stroke: #d24f45; }
+:is(#overnight-market, #crypto-market) .om-bn-spark.om-neg polyline { stroke: #1261c4; }
+:is(#overnight-market, #crypto-market) .om-bn-meta { color: #64748b; font-size: 11px; }
+:is(#overnight-market, #crypto-market) .om-binance-note { margin-top: 6px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+:is(#overnight-market, #crypto-market) .om-binance .om-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+:is(#overnight-market, #crypto-market) .om-binance .om-card { min-width: 0; }
+:is(#overnight-market, #crypto-market) .om-binance .om-title small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
+:is(#overnight-market, #crypto-market) .om-binance .om-price { font-size: 21px; }
+:is(#overnight-market, #crypto-market) .om-chart.om-chart-crypto { height: 230px; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages > div { min-width: 0; padding: 10px 12px; border-radius: 10px; background: #f8fafc; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages span,
+:is(#overnight-market, #crypto-market) .om-crypto-averages strong,
+:is(#overnight-market, #crypto-market) .om-crypto-averages small { display: block; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages span { font-size: 12px; font-weight: 600; }
+:is(#overnight-market, #crypto-market) .om-crypto-avg-52w span { color: #c9701f; }
+:is(#overnight-market, #crypto-market) .om-crypto-avg-6m span { color: #8b5fbf; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages strong { margin: 4px 0; color: #334155; font-size: 14px; }
+:is(#overnight-market, #crypto-market) .om-crypto-averages small { color: #64748b; font-size: 11px; line-height: 1.5; }
+html.dark :is(#overnight-market, #crypto-market) .om-crypto-averages > div { background: rgba(245, 239, 224, .06); }
+html.dark :is(#overnight-market, #crypto-market) .om-crypto-averages strong { color: #F5EFE0; }
+html.dark :is(#overnight-market, #crypto-market) .om-crypto-averages small { color: rgba(245, 239, 224, .65); }
+@media (min-width: 1600px) { :is(#overnight-market, #crypto-market) .om-binance .om-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { :is(#overnight-market, #crypto-market) .om-binance .om-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 480px) {
-  #overnight-market .om-binance .om-grid { grid-template-columns: minmax(0, 1fr); }
-  #overnight-market .om-crypto-averages { grid-template-columns: minmax(0, 1fr); }
+  :is(#overnight-market, #crypto-market) .om-binance .om-grid { grid-template-columns: minmax(0, 1fr); }
+  :is(#overnight-market, #crypto-market) .om-crypto-averages { grid-template-columns: minmax(0, 1fr); }
 }
-html.dark #overnight-market .om-bn-meta, html.dark #overnight-market .om-binance-note { color: rgba(245, 239, 224, 0.6); }
-html.dark #overnight-market .om-bn-spark.om-pos polyline { stroke: #ff8a83; }
-html.dark #overnight-market .om-bn-spark.om-neg polyline { stroke: #80b8ff; }
+html.dark :is(#overnight-market, #crypto-market) .om-bn-meta, html.dark :is(#overnight-market, #crypto-market) .om-binance-note { color: rgba(245, 239, 224, 0.6); }
+html.dark :is(#overnight-market, #crypto-market) .om-bn-spark.om-pos polyline { stroke: #ff8a83; }
+html.dark :is(#overnight-market, #crypto-market) .om-bn-spark.om-neg polyline { stroke: #80b8ff; }
 
-html.dark #overnight-market .om-card {
+html.dark :is(#overnight-market, #crypto-market) .om-card {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.2) !important;
 }
-html.dark #overnight-market .om-live-status {
+html.dark :is(#overnight-market, #crypto-market) .om-live-status {
   background: rgba(245, 239, 224, 0.1) !important;
   color: rgba(245, 239, 224, 0.6) !important;
 }
-html.dark #overnight-market .om-live-status[data-state="live"] {
+html.dark :is(#overnight-market, #crypto-market) .om-live-status[data-state="live"] {
   background: rgba(74, 222, 128, 0.16) !important;
   color: #4ade80 !important;
 }
-html.dark #overnight-market .om-live-status[data-state="stale"] {
+html.dark :is(#overnight-market, #crypto-market) .om-live-status[data-state="stale"] {
   background: rgba(251, 191, 36, 0.16) !important;
   color: #fbbf24 !important;
 }
-html.dark #overnight-market .om-title { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #overnight-market .om-loading,
-html.dark #overnight-market .om-error,
-html.dark #overnight-market .om-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
-html.dark #overnight-market .om-hl { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #overnight-market .om-zero { color: #F5EFE0 !important; }
-html.dark #overnight-market .om-summary { background: rgba(245, 239, 224, 0.08) !important; }
-html.dark #overnight-market .om-summary-icon { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #overnight-market .om-summary-body { color: #F5EFE0 !important; }
-html.dark #overnight-market .om-summary-tone { border-top-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #overnight-market .om-ai { background: rgba(245, 239, 224, 0.06) !important; }
-html.dark #overnight-market .om-ai-icon { color: #F5EFE0 !important; }
-html.dark #overnight-market .om-ai-body { color: #F5EFE0 !important; }
-html.dark #overnight-market .om-cat-hint { color: rgba(245, 239, 224, 0.5) !important; }
-html.dark #overnight-market .om-benchmark { color: #e0954a !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark #overnight-market .om-benchmark-6m { color: #b78ce0 !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-title { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-loading,
+html.dark :is(#overnight-market, #crypto-market) .om-error,
+html.dark :is(#overnight-market, #crypto-market) .om-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-hl { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-zero { color: #F5EFE0 !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-summary { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-summary-icon { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-summary-body { color: #F5EFE0 !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-summary-tone { border-top-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-ai { background: rgba(245, 239, 224, 0.06) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-ai-icon { color: #F5EFE0 !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-ai-body { color: #F5EFE0 !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-cat-hint { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-benchmark { color: #e0954a !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
+html.dark :is(#overnight-market, #crypto-market) .om-benchmark-6m { color: #b78ce0 !important; }

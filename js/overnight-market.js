@@ -138,7 +138,7 @@
   var latestFuturesRequest = null;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
-  var SPARKLINE_HEIGHT = 64;
+  var SPARKLINE_HEIGHT = 230;
 
   var LABELS = {
     KOSPI: 'KOSPI',
@@ -352,7 +352,7 @@
   }
 
   function buildShell() {
-    var groups = CATEGORIES.map(function (cat) {
+    var groups = CATEGORIES.filter(function (cat) { return cat.key !== 'crypto'; }).map(function (cat) {
       var hint = cat.direction === -1
         ? '<div class="om-cat-hint">상승 = 시장에 부담 요인</div>'
         : cat.direction === 0 ? '<div class="om-cat-hint">방향성 해석 없음(수치만 참고)</div>' : '';
@@ -371,8 +371,7 @@
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
       + '<div class="om-ai" id="omAi" hidden></div>'
-      + groups
-      + buildBinanceShell();
+      + groups;
   }
 
   // ---- 바이낸스 국내주식 토큰(참고 지표) ----
@@ -465,9 +464,9 @@
     box.hidden = false;
   }
 
-  function binanceGet(url) {
+  function binanceGet(url, timeoutMs) {
     var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 10000) : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 10000) : null;
     return fetch(url, controller ? { signal: controller.signal } : {})
       .then(function (res) {
         if (timer) clearTimeout(timer);
@@ -509,6 +508,8 @@
         label: pair[1],
         market: 'futures',
         price: price,
+        high: Number(ticker.highPrice),
+        low: Number(ticker.lowPrice),
         changeRate: Number(ticker.priceChangePercent),
         markPrice: res[1] ? Number(res[1].markPrice) : null,
         fundingRate: res[1] ? Number(res[1].lastFundingRate) : null,
@@ -536,6 +537,7 @@
   }
 
   function loadBinance(container, initial) {
+    if (!container.querySelector('#omBinance')) return;
     if (!('fetch' in global)) return;
     // 첫 표시는 탭이 가려져 있어도 한 번 채우고, 주기 갱신은 보이는 동안에만 한다.
     if ((document.hidden || container.closest('[hidden]')) && !initial) return;
@@ -633,6 +635,7 @@
   }
 
   function chartThemeOptions() {
+    if (global.MarketChartStyle) return global.MarketChartStyle.theme(isDark());
     var dark = isDark();
     return {
       // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
@@ -665,15 +668,16 @@
 
       destroyChart(symbol);
 
-      var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
+      var isToken = /USDT$/.test(symbol);
+      var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1 || isToken;
       var chart = LWC.createChart(container, Object.assign({
         autoSize: true,
-        height: isCrypto ? 164 : SPARKLINE_HEIGHT,
+        height: SPARKLINE_HEIGHT,
         handleScroll: false,
         handleScale: false,
-        rightPriceScale: { visible: isCrypto, scaleMargins: { top: .15, bottom: .15 } },
+        rightPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: .15, bottom: .15 } },
         leftPriceScale: { visible: false },
-        timeScale: { visible: false },
+        timeScale: { visible: true, borderVisible: false },
         crosshair: {
           vertLine: { visible: false, labelVisible: false },
           horzLine: { visible: false, labelVisible: false }
@@ -685,11 +689,11 @@
         lineColor: color,
         topColor: hexToRgba(color, 0.2),
         bottomColor: hexToRgba(color, 0.02),
-        lineWidth: 1,
+        lineWidth: 2,
         priceLineVisible: false,
         lastValueVisible: false,
         crosshairMarkerVisible: false,
-        priceFormat: isCrypto ? { type: 'custom', minMove: 1, formatter: function (value) {
+        priceFormat: isToken ? { type: 'price', precision: 2, minMove: .01 } : isCrypto ? { type: 'custom', minMove: 1, formatter: function (value) {
           return value >= 100000000 ? fmtPrice(value / 100000000, 2) + '억' : fmtPrice(value / 10000, 0) + '만';
         } } : { type: 'price', precision: 2, minMove: .01 },
         // PriceLine 자체는 자동 축 범위에 포함되지 않는다. 코인 평균도 범위에 넣어 잘림을 막는다.
@@ -708,7 +712,7 @@
       });
       var seriesData = normalizedRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
       if (typeof price === 'number') {
-        var kst = new Date(Date.now() + 9 * 60 * 60000);
+        var kst = new Date(Date.now() + (isToken ? 0 : 9 * 60 * 60000));
         var today = kst.toISOString().slice(0, 10);
         var last = seriesData[seriesData.length - 1];
         if (last.time >= today) last.value = price;
@@ -747,7 +751,7 @@
       // BENCHMARK_SYMBOLS 카드에는 "최근 N개월 평균" 참고선을 추가로 그린다(WTI에서 시작해
       // 사용자 요청으로 VIX/환율/채권까지 확장 - 각각 "이 선 위로 오르면 시장에 부담"이라는
       // 해석이 뚜렷한 지표들). 기준선(dashed, 회색)과 헷갈리지 않도록 실선+주황색으로 구분.
-      if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && benchmarks[symbol]) {
+      if ((isToken || BENCHMARK_SYMBOLS.indexOf(symbol) !== -1) && benchmarks[symbol]) {
         series.createPriceLine({
           price: benchmarks[symbol].avg,
           title: isCrypto ? '52주 평균' : '',
@@ -760,7 +764,7 @@
 
       // 2026-07-21: BTC/ETH 카드 전용 6개월 평균선 - 52주선(주황 실선)과 겹쳐도 구분되도록
       // 보라 실선으로 그린다.
-      if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && benchmarks6m[symbol]) {
+      if ((isToken || BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1) && benchmarks6m[symbol]) {
         series.createPriceLine({
           price: benchmarks6m[symbol].avg,
           title: '6개월 평균',
@@ -985,6 +989,7 @@
   // renderSummary가 VM 원본 응답의 심볼(코스피200 주간/야간선물 등 이 페이지에 안 쓰는
   // 것들까지)을 전부 세어버리는 문제가 생긴다 - 과거 실제 발생한 버그.
   function refresh(container) {
+    if (document.hidden || container.closest('[hidden]')) return;
     OvernightMarket.fetchFutures()
       .then(function (futuresItems) {
         var bySymbol = {};
@@ -1091,7 +1096,7 @@
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
-    if (!container) return;
+    if (!container || container.closest('[hidden]')) return;
 
     container.innerHTML = buildShell();
     indicatorsContainer = container;
@@ -1148,6 +1153,11 @@
     fetchBenchmark: fetchBenchmark
   };
   global.OvernightMarket = OvernightMarket;
+  OvernightMarket.cryptoTools = {
+    symbols: BINANCE_SYMBOLS, fetchTokens: loadBinanceDirect, get: binanceGet,
+    body: buildCardBody, chart: renderSparkline, destroy: destroyChart,
+    setAverages: function (symbol, year, half) { benchmarks[symbol] = year; benchmarks6m[symbol] = half; }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

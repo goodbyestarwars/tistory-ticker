@@ -30,7 +30,7 @@ assert.equal(api.symbols.length, 8);
   api.renderSparkline({}, 'BTC', [{ date: '20261005', close: 100 }, { date: '20261006', close: 110 }], false, 105, -5);
   await new Promise(setImmediate);
   const crypto = charts[0];
-  assert.equal(crypto.options.height, 164);
+  assert.equal(crypto.options.height, 230);
   assert.equal(crypto.options.rightPriceScale.visible, true);
   const range = crypto.seriesOptions.autoscaleInfoProvider(() => ({ priceRange: { minValue: 100, maxValue: 110 } }));
   assert.equal(range.priceRange.minValue, 80);
@@ -42,8 +42,8 @@ assert.equal(api.symbols.length, 8);
   assert.ok(api.benchmarkCaption('ETH', 100).includes('평균 자료 확인 중'));
   api.renderSparkline({}, 'VIX', [{ date: '20261005', close: 20 }, { date: '20261006', close: 21 }], true, 22, 1);
   await new Promise(setImmediate);
-  assert.equal(charts[1].options.height, 64);
-  assert.equal(charts[1].options.rightPriceScale.visible, false);
+  assert.equal(charts[1].options.height, 230);
+  assert.equal(charts[1].options.rightPriceScale.visible, true);
 
   const requests = [];
   context.fetch = async url => {
@@ -58,9 +58,9 @@ assert.equal(api.symbols.length, 8);
   assert.equal(requests.filter(x => x.includes('/klines')).length, candles, '48h candles must remain cached');
   const before = requests.length;
   document.hidden = true;
-  api.loadBinance({ closest: () => null }, false);
+  api.loadBinance({ querySelector: () => null, closest: () => null }, false);
   document.hidden = false;
-  api.loadBinance({ closest: () => ({ hidden: true }) }, false);
+  api.loadBinance({ querySelector: () => null, closest: () => ({ hidden: true }) }, false);
   assert.equal(requests.length, before, 'hidden page and hidden panel must not refresh');
 
   let macro = fs.readFileSync('js/us-macro-indicators.js', 'utf8');
@@ -70,5 +70,5 @@ assert.equal(api.symbols.length, 8);
     const html = window.testMacro.card_(symbol, {});
     ['높으면', '낮으면', '좋은 흐름'].forEach(label => assert.ok(html.includes(label), symbol + label));
   });
-  console.log('PASS: 8 shared tokens, cached candles, hidden refresh, crypto average visibility/gaps, other charts unchanged, 10 macro guides');
+  console.log('PASS: 8 shared tokens, cached candles, hidden refresh, crypto average visibility/gaps, consistent market charts, 10 macro guides');
 })().catch(err => { console.error(err); process.exitCode = 1; });

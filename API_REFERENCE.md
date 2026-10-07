@@ -387,3 +387,7 @@ API의 당일 거래량·거래대금·거래증가율 상위 목록(섹션당 �
 - **"미검증" 표시가 있는 필드(호가 필드명, `/quote`의 `mac` 단위 등)는 실제 응답을 한 번
   받아서 대조해보고 쓸 것** — 공식 문서가 필드 목록을 자르거나 단위를 명시하지 않는 경우가
   코드 곳곳에서 이미 발견된 바 있다(코드 주석 참고).
+
+## 가상자산 전문 뉴스 (2026-10-08)
+
+`GET /crypto-news?limit=20` (1~50, 기본20). 기존 public/CORS 정책, IP별 분당20회. 응답 `data{market:"crypto", source, items, updatedAt, stale}`. items는 title/title_ko(번역 성공 시)/link/pubDate/source/provider/market/category. CoinDesk·Cointelegraph RSS 제목·출처·링크만 수집하며 일반 미국주식 피드를 혼합하지 않는다. 본문 저장 없음. 10분 메모리 캐시, 온디맨드 동시조회 단일화. 실패 공급자의 이전 기사 유지, 전체 실패 때 stale=true.

@@ -1,0 +1,17 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const window={},document={readyState:'loading',addEventListener(){}};
+vm.runInNewContext(fs.readFileSync('js/crypto-market.js','utf8'),{window,document});
+const calc=window.CryptoMarket.dailyStats;
+const start=Date.UTC(2025,0,1),day=86400000;
+const rows=Array.from({length:366},(_,i)=>[start+i*day,0,0,0,i+1,0,start+(i+1)*day-1]);
+const result=calc(rows,start+365*day);
+assert.equal(result.count,365,'unfinished daily candle excluded');
+assert.equal(result.year.avg,183);
+assert.equal(result.half.avg,275.5);
+assert.equal(calc(rows.slice(0,179),start+365*day).half,null);
+assert.equal(calc(rows.slice(0,180),start+365*day).half.avg,90.5);
+assert.equal(calc(rows.slice(1,365),start+365*day).year,null);
+assert.equal(calc(rows.filter((r,i)=>i!==3),start+366*day).year,null,'gaps invalidate a full-period average');
+assert.equal(calc(rows.concat([rows[0]]),start+365*day).count,365,'duplicate dates do not inflate coverage');
+assert.equal(calc([[start,0,0,0,null,0,start+day-1]],start+day).count,0);
+console.log('PASS: full-period averages, incomplete candle, short listing, gaps, duplicate dates, invalid values');
