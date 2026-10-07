@@ -3046,13 +3046,17 @@ html body #foreign-flow .ff-swing-summary :is(.ff-swing-regime, .ff-swing-step, 
 
 #foreign-flow .ff-company-profile { margin-bottom: 16px; padding: 0 0 14px; border-bottom: 1px solid #e8ebef; }
 #foreign-flow .ff-company-profile-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; color: #64748b; font-size: 12px; }
-#foreign-flow .ff-company-profile-head a { color: #64748b; font-size: 11px; white-space: nowrap; text-decoration: none; }
-#foreign-flow .ff-company-profile-head a:hover { text-decoration: underline; }
+#foreign-flow .ff-company-profile-head a { display: inline-flex; align-items: center; padding: 5px 9px; border: 1px solid #e5e7eb; border-radius: 8px; color: #64748b; font-size: 11px; white-space: nowrap; text-decoration: none; transition: background-color .15s ease, border-color .15s ease; }
+#foreign-flow .ff-company-profile-head a:hover,
+#foreign-flow .ff-company-profile-head a:focus-visible { background: #f8fafc; border-color: #cbd5e1; text-decoration: none; }
 #foreign-flow .ff-company-profile p { margin: 7px 0 5px; color: #334155; font-size: 13px; line-height: 1.7; overflow-wrap: anywhere; }
 #foreign-flow .ff-company-profile small { color: #94a3b8; font-size: 10px; }
 html.dark #foreign-flow .ff-company-profile { border-color: rgba(245, 239, 224, .16); }
 html.dark #foreign-flow .ff-company-profile p { color: #F5EFE0; }
 html.dark #foreign-flow .ff-company-profile-head, html.dark #foreign-flow .ff-company-profile-head a { color: #aaa; }
+html.dark #foreign-flow .ff-company-profile-head a { border-color: rgba(245, 239, 224, .2); }
+html.dark #foreign-flow .ff-company-profile-head a:hover,
+html.dark #foreign-flow .ff-company-profile-head a:focus-visible { background: rgba(245, 239, 224, .08); border-color: rgba(245, 239, 224, .35); }
 
 /* ── 매물대 가격대별 거래량: 애플 스타일 재디자인 (2026-10-04) ──
    위(저항 후보)는 파랑, 아래(지지 후보)는 붉은 계열의 둥근 막대. 현재가 행은 유리 알약, 최대 매물대는 은은한 빛. */
