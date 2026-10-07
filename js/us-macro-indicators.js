@@ -28,6 +28,52 @@
     US_CONSUMER_SENTIMENT: { label: '소비자심리지수', unit: 'pt', cadence: '월간 · 미시간대', category: '경기', source: 'UMich' }
   };
   var timer = null;
+  var resultsCache = null;
+  var resultsCachedAt = 0;
+  var resultsInflight = null;
+
+  // 캘린더와 발표 탭이 같은 캐시를 공유한다. 달력 날짜 변경은 추가 요청을 만들지 않는다.
+  function fetchResults_(force) {
+    if (!force && resultsCache && Date.now() - resultsCachedAt < REFRESH_MS) return Promise.resolve(resultsCache);
+    if (resultsInflight) return resultsInflight;
+    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timeout = controller ? setTimeout(function () { controller.abort(); }, 20000) : null;
+    resultsInflight = fetch(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')),
+      controller ? { signal: controller.signal } : {})
+      .then(function (response) { if (!response.ok) throw new Error('macro response'); return response.json(); })
+      .then(function (payload) {
+        if (!payload || !Array.isArray(payload.data)) throw new Error('macro data');
+        resultsCache = payload.data;
+        resultsCachedAt = Date.now();
+        return resultsCache;
+      }).finally(function () {
+        if (timeout) clearTimeout(timeout);
+        resultsInflight = null;
+      });
+    return resultsInflight;
+  }
+
+  function resultCards_(items) {
+    var bySymbol = {};
+    (items || []).forEach(function (item) { bySymbol[item.symbol] = item; });
+    return SYMBOLS.map(function (symbol) {
+      var item = bySymbol[symbol];
+      if (!item || item.price == null || !isFinite(Number(item.price)) || !itemDate_(item)) {
+        return '<article class="umi-card"><small>' + escapeHtml(META[symbol].category)
+          + '</small><strong>' + escapeHtml(META[symbol].label) + '</strong><b>확인값 없음</b></article>';
+      }
+      var date = String(itemDate_(item));
+      var period = date.slice(0, 4) + '년 ' + (symbol === 'US_REAL_GDP_GROWTH'
+        ? Math.ceil(Number(date.slice(4, 6)) / 3) + '분기'
+        : Number(date.slice(4, 6)) + '월');
+      var updated = new Date(item.updated_at);
+      var stamp = isFinite(updated.getTime()) ? updated.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) : '확인 시각 없음';
+      return card_(symbol, item).replace(dateLabel_(date) + ' 기준', period + ' 통계').replace('발표값 ', '수치 ')
+        .replace('최근 12회 평균', '최근 ' + recentValues_(item).length + '회 평균')
+        .replace('</article>', '<div class="umi-result-period">통계 기준 ' + escapeHtml(period)
+        + '<span>자료 수집 ' + escapeHtml(stamp) + ' KST</span></div></article>');
+    }).join('');
+  }
 
   function escapeHtml(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
@@ -210,11 +256,10 @@
     var button = root.querySelector('[data-umi-refresh]');
     if (!target) return;
     if (button) { button.disabled = true; button.textContent = '갱신 중'; }
-    fetch(API + '?interval=day&days=400&symbols=' + encodeURIComponent(SYMBOLS.join(',')))
-      .then(function (response) { if (!response.ok) throw new Error('macro response'); return response.json(); })
-      .then(function (payload) {
+    fetchResults_()
+      .then(function (items) {
         var bySymbol = {};
-        ((payload && payload.data) || []).forEach(function (item) { bySymbol[item.symbol] = item; });
+        items.forEach(function (item) { bySymbol[item.symbol] = item; });
         target.innerHTML = SYMBOLS.map(function (symbol) { return card_(symbol, bySymbol[symbol] || {}); }).join('');
       })
       .catch(function () { target.innerHTML = '<p class="umi-state">발표값을 불러오지 못했습니다. 잠시 후 다시 갱신해 주세요.</p>'; })
@@ -232,7 +277,7 @@
     timer = setInterval(function () { if (!document.hidden) refresh_(root); }, REFRESH_MS);
   }
 
-  global.UsMacroIndicators = { init: init };
+  global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_ };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })(window);

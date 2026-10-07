@@ -64,7 +64,7 @@ assert.equal(api.symbols.length, 8);
   assert.equal(requests.length, before, 'hidden page and hidden panel must not refresh');
 
   let macro = fs.readFileSync('js/us-macro-indicators.js', 'utf8');
-  macro = macro.replace('global.UsMacroIndicators = { init: init };', 'global.UsMacroIndicators = { init: init }; global.testMacro = { card_, SYMBOLS };');
+  macro = macro.replace('global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_ };', 'global.UsMacroIndicators = { init: init }; global.testMacro = { card_, SYMBOLS };');
   vm.runInNewContext(macro, context);
   window.testMacro.SYMBOLS.forEach(symbol => {
     const html = window.testMacro.card_(symbol, {});

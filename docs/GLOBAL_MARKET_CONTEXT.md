@@ -10,6 +10,8 @@
 
 해설 참고 원문:
 
+2026-10-08 캘린더에도 공시 완료와 분리된 미국 경제 데이터 결과 영역을 추가했다. 주요 미국 발표의 10지표 렌더러와 단일 진행 요청·30분 브라우저 캐시를 공유하며, 수동 결과 갱신은 캐시를 우회한다. 기존 `/futures?interval=day&days=500&symbols=...` 자료만 재사용하고 새 VM 수집·DB·타이머는 없다. 달력 선택 날짜의 과거 속보값과 연결하지 않고 **최신 확인값**으로 표시한다. 통계 기준 월/분기와 자료 수집 시각(KST)을 구분하며 수정값 반영 가능·예상치 미제공을 안내한다. 날짜·월 선택과 공시 검색은 결과 카드를 유지한다. 기존 캘린더 15분 타이머에서 캐시 만료만 확인한다. 실패 시 기존 성공 결과를 유지하고 실패 표시·재시도를 제공한다. 누락값은 0으로 바꾸지 않는다.
+
 - [BLS CPI 정의·다른 물가지표와 차이](https://www.bls.gov/cpi/questions-and-answers.htm)
 - [BLS PPI 정의](https://www.bls.gov/ppi/overview.htm)
 - [연준 목표·물가와 고용](https://www.federalreserve.gov/monetarypolicy/monetary-policy-what-are-its-goals-how-does-it-work.htm)

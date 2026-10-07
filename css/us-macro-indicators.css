@@ -1,53 +1,53 @@
-#us-macro-indicators { font-family: var(--font-ui, "Pretendard", "Malgun Gothic", sans-serif); color: #111827; }
-#us-macro-indicators .umi { padding: 4px 0 18px; }
-#us-macro-indicators .umi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
-#us-macro-indicators h2 { margin: 0 0 5px; font-size: 20px; }
-#us-macro-indicators p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.55; }
-#us-macro-indicators .umi-refresh { min-height: 32px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; color: #334155; font: 700 12px/1 var(--font-ui, sans-serif); cursor: pointer; }
-#us-macro-indicators .umi-refresh:hover { border-color: #111; color: #111; }
-#us-macro-indicators .umi-refresh:disabled { opacity: .55; cursor: wait; }
-#us-macro-indicators .umi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-#us-macro-indicators .umi-grid--data { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-column: 1 / -1; }
-#us-macro-indicators .umi-card { min-width: 0; padding: 15px; border: 1px solid #dbe4ef; border-radius: 8px; background: #fff; }
-#us-macro-indicators .umi-card--primary { border: 2px solid #1261c4; box-shadow: 0 8px 20px rgba(18,97,196,.10); }
-#us-macro-indicators .umi-card--fomc { background: #f5f9ff; border-color: #c9d9ef; }
-#us-macro-indicators .umi-card small, #us-macro-indicators .umi-card span, #us-macro-indicators .umi-card i { display: block; color: #64748b; font-size: 12px; line-height: 1.5; }
-#us-macro-indicators .umi-card strong { display: block; margin-top: 5px; font-size: 14px; }
-#us-macro-indicators .umi-card b { display: block; margin: 12px 0 5px; color: #173b66; font-size: 20px; font-variant-numeric: tabular-nums; }
-#us-macro-indicators .umi-card--primary b { color: #1261c4; }
-#us-macro-indicators .umi-reading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding:8px; border:1px solid #e7edf5; border-radius:5px; background:#f8fafc; }
-#us-macro-indicators .umi-reading > span { min-width:0; font-size:10.5px; line-height:1.35; }
-#us-macro-indicators .umi-reading > span b { display:block; margin:2px 0 0; color:#334155; font-size:12px; }
-#us-macro-indicators .umi-mini-chart { flex:0 0 120px; width:120px; height:32px; overflow:visible; }
-#us-macro-indicators .umi-mini-chart polyline { fill:none; stroke:#2878cc; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
-#us-macro-indicators .umi-mini-chart circle { fill:#2878cc; stroke:#fff; stroke-width:1.4; }
-#us-macro-indicators .umi-card i { margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; }
-#us-macro-indicators .umi-card i b { display:inline; margin:0; color:#64748b; font-size:11px; }
-#us-macro-indicators .umi-interpret-note { margin: 0 0 14px; font-size: 12px; }
-#us-macro-indicators .umi-impact { display: grid; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: 7px; background: #f8fafc; }
-#us-macro-indicators .umi-impact p { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.55; }
-#us-macro-indicators .umi-impact em { color: #334155; font-size: 11px; font-style: normal; font-weight: 600; }
-#us-macro-indicators .umi-impact span { font-size: 12px; }
-html.dark #us-macro-indicators .umi-impact { background: rgba(245,239,224,.05); }
-html.dark #us-macro-indicators .umi-impact em { color: rgba(245,239,224,.85); }
-#us-macro-indicators .umi-state { grid-column: 1 / -1; padding: 20px 0; text-align: center; }
-html.dark #us-macro-indicators { color: #F5EFE0; }
-html.dark #us-macro-indicators .umi-card { border-color: rgba(245,239,224,.18); background: rgba(245,239,224,.04); }
-html.dark #us-macro-indicators .umi-card--primary { border-color: #4c9aff; box-shadow: 0 8px 20px rgba(76,154,255,.12); }
-html.dark #us-macro-indicators .umi-card--fomc { background: rgba(35,93,159,.16); border-color: rgba(128,184,255,.28); }
-html.dark #us-macro-indicators .umi-reading { border-color:rgba(245,239,224,.14); background:rgba(245,239,224,.05); }
-html.dark #us-macro-indicators .umi-reading > span b, html.dark #us-macro-indicators .umi-card i b { color:rgba(245,239,224,.82); }
-html.dark #us-macro-indicators .umi-card b { color: #b9d7ff; }
-html.dark #us-macro-indicators .umi-card--primary b { color: #80b8ff; }
-html.dark #us-macro-indicators .umi-card small, html.dark #us-macro-indicators .umi-card span, html.dark #us-macro-indicators .umi-card i, html.dark #us-macro-indicators p { color: rgba(245,239,224,.64); }
-html.dark #us-macro-indicators .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
-@media (max-width: 720px) { #us-macro-indicators .umi-head { display: block; } #us-macro-indicators .umi-refresh { margin-top: 10px; } #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } #us-macro-indicators .umi-reading { align-items:flex-start; flex-direction:column; } }
-@media (max-width: 480px) { #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: minmax(0, 1fr); } }
-#us-macro-indicators .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
-#us-macro-indicators .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }
-#us-macro-indicators .umi-mini-chart .umi-base { stroke:#64748b; stroke-width:1; stroke-dasharray:3 3; stroke-opacity:.7; vector-effect:non-scaling-stroke; }
-#us-macro-indicators .umi-mini-chart .umi-up polyline { stroke:#d24f45; }
-#us-macro-indicators .umi-mini-chart .umi-down polyline { stroke:#1261c4; }
-#us-macro-indicators .umi-mini-chart .umi-up circle { fill:#d24f45; }
-#us-macro-indicators .umi-mini-chart .umi-down circle { fill:#1261c4; }
-#us-macro-indicators .umi-mini-chart .umi-glow-ring { fill-opacity:.2; stroke:none; }
+:is(#us-macro-indicators, .sc-econ-results) { font-family: var(--font-ui, "Pretendard", "Malgun Gothic", sans-serif); color: #111827; }
+:is(#us-macro-indicators, .sc-econ-results) .umi { padding: 4px 0 18px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+:is(#us-macro-indicators, .sc-econ-results) h2 { margin: 0 0 5px; font-size: 20px; }
+:is(#us-macro-indicators, .sc-econ-results) p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.55; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-refresh { min-height: 32px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; color: #334155; font: 700 12px/1 var(--font-ui, sans-serif); cursor: pointer; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-refresh:hover { border-color: #111; color: #111; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-refresh:disabled { opacity: .55; cursor: wait; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-column: 1 / -1; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card { min-width: 0; padding: 15px; border: 1px solid #dbe4ef; border-radius: 8px; background: #fff; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card--primary { border: 2px solid #1261c4; box-shadow: 0 8px 20px rgba(18,97,196,.10); }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card--fomc { background: #f5f9ff; border-color: #c9d9ef; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card small, :is(#us-macro-indicators, .sc-econ-results) .umi-card span, :is(#us-macro-indicators, .sc-econ-results) .umi-card i { display: block; color: #64748b; font-size: 12px; line-height: 1.5; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card strong { display: block; margin-top: 5px; font-size: 14px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card b { display: block; margin: 12px 0 5px; color: #173b66; font-size: 20px; font-variant-numeric: tabular-nums; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card--primary b { color: #1261c4; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-reading { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:10px; padding:8px; border:1px solid #e7edf5; border-radius:5px; background:#f8fafc; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-reading > span { min-width:0; font-size:10.5px; line-height:1.35; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-reading > span b { display:block; margin:2px 0 0; color:#334155; font-size:12px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart { flex:0 0 120px; width:120px; height:32px; overflow:visible; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart polyline { fill:none; stroke:#2878cc; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart circle { fill:#2878cc; stroke:#fff; stroke-width:1.4; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card i { margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-card i b { display:inline; margin:0; color:#64748b; font-size:11px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-interpret-note { margin: 0 0 14px; font-size: 12px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-impact { display: grid; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: 7px; background: #f8fafc; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-impact p { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.55; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: #334155; font-size: 11px; font-style: normal; font-weight: 600; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-impact span { font-size: 12px; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact { background: rgba(245,239,224,.05); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: rgba(245,239,224,.85); }
+:is(#us-macro-indicators, .sc-econ-results) .umi-state { grid-column: 1 / -1; padding: 20px 0; text-align: center; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) { color: #F5EFE0; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card { border-color: rgba(245,239,224,.18); background: rgba(245,239,224,.04); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--primary { border-color: #4c9aff; box-shadow: 0 8px 20px rgba(76,154,255,.12); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--fomc { background: rgba(35,93,159,.16); border-color: rgba(128,184,255,.28); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading { border-color:rgba(245,239,224,.14); background:rgba(245,239,224,.05); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading > span b, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i b { color:rgba(245,239,224,.82); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card b { color: #b9d7ff; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--primary b { color: #80b8ff; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card small, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card span, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i, html.dark :is(#us-macro-indicators, .sc-econ-results) p { color: rgba(245,239,224,.64); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
+@media (max-width: 720px) { :is(#us-macro-indicators, .sc-econ-results) .umi-head { display: block; } :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { margin-top: 10px; } :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } :is(#us-macro-indicators, .sc-econ-results) .umi-reading { align-items:flex-start; flex-direction:column; } }
+@media (max-width: 480px) { :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: minmax(0, 1fr); } }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-base { stroke:#64748b; stroke-width:1; stroke-dasharray:3 3; stroke-opacity:.7; vector-effect:non-scaling-stroke; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-up polyline { stroke:#d24f45; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-down polyline { stroke:#1261c4; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-up circle { fill:#d24f45; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-down circle { fill:#1261c4; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-ring { fill-opacity:.2; stroke:none; }
