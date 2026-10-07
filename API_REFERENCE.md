@@ -102,7 +102,7 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 ### `GET /hour-direction`
 
-선택 종목 한 개의 확인 후 60분 **미검증 규칙 방향 가설**. 공개 `code`(6자 국내 코드) 필수, `name`(80자 이하) 선택. 고정 내부 문턱이며 설정·순위 입력 없음. 표시는 상승가능/하락가능/판단 어려움과 아래 짧은 근거다. 선택 방향 워커 1개, 최근 최대 30분, 추가 분봉 조회 없음. 응답 `data`: `code,name,direction(up|down|unclear),label,reason,checkedAt,expiresAt,horizonMinutes:60,targetPct:3,stopPct:-3,entryPrice,targetPrice,stopPrice,probability:null,validated:false,rulesVersion:hour-direction-rules-v2,sourceStatus,recorded`. 가격은 가설을 보류할 때 null이다. 상승/하락은 각각 별도로 계산하며 후보 탈락은 하락 예측이 아니다.
+선택 종목 한 개의 확인 후 60분 **미검증 규칙 방향 가설**. 공개 `code`(6자 국내 코드) 필수, `name`(80자 이하) 선택. 고정 내부 문턱이며 설정·순위 입력 없음. 표시는 상승가능/하락가능/판단 어려움과 아래 짧은 근거다. 선택 방향 워커 1개, 최근 최대 30분, 추가 분봉 조회 없음. 응답 `data`: `code,name,direction(up|down|unclear),label,reason,checkedAt,expiresAt,horizonMinutes:60,targetPct:3,stopPct:-3,entryPrice,targetPrice,stopPrice,probability:null,validated:false,rulesVersion:hour-direction-rules-v3,sourceStatus,recorded`. 가격은 가설을 보류할 때 null이다. 상승/하락은 각각 별도로 계산하며 후보 탈락은 하락 예측이 아니다. v3는 5봉 가격 방향·30분 VWAP와 패턴 또는 체결 우위를 요구하고 거래량·벽 잔량은 보조 근거다.
 
 `/hour-candidates`와 같은 수집 잠금·IP 분당 3회 버킷·KIS 요청 간격·동시 작업 1건을 공유하며 방향 확인은 09:05 이상 14:30 미만이다. 최근 최대 30분만 계산하고 KRX 마감까지 다음 60분을 확보하지 못하면 보류한다. `no-store`; 장외는 공급자 조회 없이 `unclear`; 입력 오류 422, 동시 확인 409, 확보 실패 503. 상세 변수·입력은 로컬 5MB 회전 기록에만 보존한다. 화면은 종목 직접 선택 때 1회 조회, URL 자동진입/분봉 갱신 때 조회하지 않는다.
 
