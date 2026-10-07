@@ -44,7 +44,7 @@
   var MINUTE_MIN_REFETCH_MS = 60000;
   var REFRESH_INTERVAL_MS = 30000;
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
-  var CHART_HEIGHT = 330;
+  var CHART_HEIGHT = 230;
   // Lightweight Charts는 UNIX 타임스탬프의 시:분을 표시할 때 항상 UTC 기준으로 읽는다(라이브러리
   // 문서화된 동작 - js/stock-search.js가 2026-08-05에 분봉 X축에서 먼저 확인·수정한 것과 동일
   // 원인). 서버(domestic_futures.py/night_futures_ws.py)의 분봉 ts는 정확히 변환된 진짜 UTC초라서
@@ -490,6 +490,7 @@
   // js/foreign-flow.js의 lwcThemeOptions와 동일 패턴 - 9bolt 스킨 다크모드(html.dark 토글)를
   // MutationObserver로 감지해 차트에도 반영한다.
   function chartThemeOptions() {
+    if (global.MarketChartStyle) return global.MarketChartStyle.theme(isDark());
     var dark = isDark();
     return {
       // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com

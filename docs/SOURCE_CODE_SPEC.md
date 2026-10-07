@@ -273,3 +273,6 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `js/` 25개 전체 | **발견 없음** | `eval`/`new Function` 0건, `postMessage` 사용 0건, localStorage에 저장되는 값은 종목코드/UI상태/시세캐시뿐(토큰·PII 없음) |
 
 전체 원문 근거는 이번 리뷰 세션에서 세 개의 서브 에이전트(백엔드/프론트엔드/GAS)가 각 파일을 Read로 직접 확인해 작성했으며, 파일:줄번호는 위 표에 인용된 그대로 재확인 가능하다.
+
+### 가상자산 시장지표 (2026-10-08)
+`js/skin-main.js` 시장지표4탭 중 `CryptoMarket` → `js/crypto-market.js`. `OvernightMarket.cryptoTools`의 시세·차트·요청 함수를 재사용, 기존 글로벌 지면에 코인/토큰 중복 없음. `main.py` `/crypto-news` → `news_aggregator.get_crypto_news`: 전문 RSS2개,10분 캐시,기존 제목 번역 재사용.

@@ -1213,6 +1213,53 @@ def _publisher_rss(feed_url, provider):
     return items[:50]
 
 
+CRYPTO_NEWS_FEEDS = (
+    ('CoinDesk', 'https://www.coindesk.com/arc/outboundfeeds/rss/'),
+    ('Cointelegraph', 'https://cointelegraph.com/rss'),
+)
+CRYPTO_NEWS_TTL = 600
+_crypto_news_lock = threading.Lock()
+_crypto_news_cache = {'items': [], 'updatedAt': None, 'stale': True}
+_crypto_news_checked_at = 0
+
+
+def get_crypto_news(limit=20):
+    """On-demand crypto-only RSS metadata. No new process, timer or database."""
+    global _crypto_news_cache, _crypto_news_checked_at
+    def snapshot():
+        return dict(_crypto_news_cache, items=[dict(row) for row in _crypto_news_cache['items'][:limit]])
+    if time.time() - _crypto_news_checked_at < CRYPTO_NEWS_TTL:
+        return snapshot()
+    # Parallel requests reuse stale data; only the first cold request waits.
+    acquired = _crypto_news_lock.acquire(blocking=not bool(_crypto_news_cache['items']))
+    if not acquired:
+        return dict(snapshot(), stale=True)
+    try:
+        if time.time() - _crypto_news_checked_at < CRYPTO_NEWS_TTL:
+            return snapshot()
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            feeds = list(executor.map(lambda pair: _publisher_rss(pair[1], pair[0]), CRYPTO_NEWS_FEEDS))
+        successful = {pair[0] for pair, rows in zip(CRYPTO_NEWS_FEEDS, feeds) if rows}
+        rows = [dict(row, market='crypto', category='가상자산') for feed in feeds for row in feed]
+        rows.extend(row for row in _crypto_news_cache['items'] if row['source'] not in successful)
+        unique = {}
+        for row in rows:
+            if row.get('link', '').startswith('https://'):
+                unique.setdefault(_dedupe_key(row), row)
+        items = sorted(unique.values(), key=lambda row: row.get('_published_ts', 0), reverse=True)[:100]
+        if items:
+            try:
+                translate_news_titles(items, max_items=min(20, len(items)))
+            except Exception:
+                logger.exception('Crypto title translation failed; original titles retained')
+        _crypto_news_cache = {'items': items, 'stale': len(successful) != len(CRYPTO_NEWS_FEEDS),
+                              'updatedAt': datetime.now(timezone.utc).isoformat() if successful else _crypto_news_cache['updatedAt']}
+        _crypto_news_checked_at = time.time()
+        return snapshot()
+    finally:
+        _crypto_news_lock.release()
+
+
 def _normalize_naver(item):
     item = item or {}
     pub_date = item.get('pubDate') or ''

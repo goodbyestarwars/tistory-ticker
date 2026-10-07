@@ -624,3 +624,6 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 - **동시 쓰기 스레드 다수 vs 단일 SQLite 파일**: `ohlc_snapshot.db`에 최대 7개 백그라운드 폴러 + 요청 핸들러가 동시에 쓴다. WAL/busy_timeout으로 파일 잠금 충돌은 해소되지만, `future_chart_minute`의 `KOSPI200_NIGHT` 심볼처럼 **서로 다른 두 폴러가 같은 키를 다른 값으로 upsert**하는 논리적 충돌은 스키마·동시성 설정만으로 막을 수 없다(`ARCHITECTURE_SPEC.md` §2.3.2, `SOURCE_CODE_SPEC.md` §6.2 참고).
 - **JSON 캐시와 SQLite의 이원화가 진행 중**: `fundamentals`/`investor_summary`는 SQLite로 이관됐지만 `daily_scan_cache.json`/`week52_cache.json`은 여전히 파일 기반이다 — 두 저장 방식이 당분간 공존한다.
 - **운영 장기 보존 정책**: `maintenance.py`가 장외 시간에 뉴스·매물대 보존 정리를 수행한다(§6). 운영 VM에서는 `deploy_check.sh`의 유지보수 로그와 날짜 마커로 실행 성공 여부를 확인한다.
+
+### 가상자산 탭 캐시 (2026-10-08)
+새 DB 테이블 없음. `/crypto-news`는 최대100건 RSS 메타데이터를 프로세스 메모리에10분 보관하고 기존 뉴스 제목 번역 캐시를 재사용. 토큰 일봉 이력과 평균은 방문자 브라우저 메모리에1시간 캐시하며 VM에 저장하지 않음.

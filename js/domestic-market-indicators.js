@@ -17,7 +17,7 @@
     + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var KST_OFFSET_SEC = 9 * 60 * 60;
-  var CHART_HEIGHT = 330;
+  var CHART_HEIGHT = 230;
   var chartInstances = {};
   var drawingStates = {};
   var lwcPromise = null;
@@ -199,6 +199,7 @@
   }
 
   function chartThemeOptions() {
+    if (global.MarketChartStyle) return global.MarketChartStyle.theme(isDark());
     var dark = isDark();
     return {
       // Keep the attribution/logo behavior identical to the KOSPI200 futures chart.

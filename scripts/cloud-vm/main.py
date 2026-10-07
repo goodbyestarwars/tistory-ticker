@@ -3310,6 +3310,14 @@ def domestic_disclosures_endpoint(request: Request, limit: int = Query(30, ge=1,
     })
 
 
+@app.get('/crypto-news')
+def crypto_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
+    """가상자산 전문 매체 뉴스만 전달한다. 10분 메모리 캐시, 온디맨드 조회."""
+    _check_rate_limit('crypto_news', request, max_per_window=20)
+    return envelope(dict(news_aggregator.get_crypto_news(limit=limit),
+                         market='crypto', source='CoinDesk RSS + Cointelegraph RSS'))
+
+
 @app.get('/foreign-news')
 def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70)):
     """미국 세션용 일반 시장·거시경제 뉴스를 Finnhub와 Alpha Vantage에서 합친다."""
