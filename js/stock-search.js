@@ -2562,15 +2562,36 @@
   }
 
   function stockDrawingPointFromCoordinate(drawing, x, y) {
-    var time = drawing.chart.timeScale().coordinateToTime(x);
+    var scale = drawing.chart.timeScale();
+    var time = scale.coordinateToTime(x);
+    var logical = scale.coordinateToLogical(x);
     var price = drawing.series.coordinateToPrice(y);
-    if (time == null || price == null || !isFinite(Number(price))) return null;
-    return { time: time, price: Number(price) };
+    if (price == null || !isFinite(Number(price)) || (time == null && logical == null)) return null;
+    var point = { time: time, price: Number(price) };
+    if (logical != null && isFinite(Number(logical))) {
+      point.logical = Number(logical);
+      var bars = drawing.bars || [];
+      var anchorTime = bars.length ? bars[bars.length - 1].date : time;
+      var anchorX = anchorTime == null ? null : scale.timeToCoordinate(anchorTime);
+      var anchorLogical = anchorX == null ? null : scale.coordinateToLogical(anchorX);
+      if (anchorLogical != null) {
+        point.anchorTime = anchorTime;
+        point.logicalOffset = point.logical - Number(anchorLogical);
+      }
+    }
+    return point;
   }
 
   function stockDrawingCoordinate(drawing, point) {
     if (!point) return null;
-    var x = drawing.chart.timeScale().timeToCoordinate(point.time);
+    var scale = drawing.chart.timeScale();
+    var logical = point.logical;
+    if (point.anchorTime != null && point.logicalOffset != null) {
+      var anchorX = scale.timeToCoordinate(point.anchorTime);
+      var anchorLogical = anchorX == null ? null : scale.coordinateToLogical(anchorX);
+      if (anchorLogical != null) logical = Number(anchorLogical) + Number(point.logicalOffset);
+    }
+    var x = logical != null ? scale.logicalToCoordinate(logical) : scale.timeToCoordinate(point.time);
     var y = drawing.series.priceToCoordinate(point.price);
     return x == null || y == null ? null : { x: Number(x), y: Number(y) };
   }
@@ -2714,6 +2735,9 @@
     if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
       drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
     }
+    if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange) {
+      drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange(drawing.timeRangeHandler);
+    }
     [drawing.lineButton, drawing.pencilButton, drawing.circleButton].forEach(function (button) {
       if (!button) return;
       button.classList.remove('is-active');
@@ -2753,7 +2777,7 @@
     redrawStockDrawing(drawing);
   }
 
-  function setupStockDrawing(element, chart, series, timeframe) {
+  function setupStockDrawing(element, chart, series, timeframe, bars) {
     destroyStockDrawing();
     var scope = element.parentElement || element;
     var saved = loadStockDrawings(state.selectedCode, timeframe);
@@ -2762,6 +2786,7 @@
       timeframe: timeframe,
       chart: chart,
       series: series,
+      bars: bars || [],
       lines: saved.lines,
       paths: saved.paths,
       circles: saved.circles,
@@ -2812,7 +2837,7 @@
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
       var last = drawing.activePath[drawing.activePath.length - 1];
-      if (last && last.time === point.time && Math.abs(last.price - point.price) < 0.000001) return;
+      if (last && last.time === point.time && last.logical === point.logical && Math.abs(last.price - point.price) < 0.000001) return;
       drawing.activePath.push(point);
       redrawStockDrawing(drawing);
     });
@@ -2842,6 +2867,7 @@
     overlay.addEventListener('pointercancel', finishStockPencil);
     drawing.timeRangeHandler = function () { redrawStockDrawing(drawing); };
     if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
+    if (chart.timeScale().subscribeVisibleLogicalRangeChange) chart.timeScale().subscribeVisibleLogicalRangeChange(drawing.timeRangeHandler);
     if (global.ResizeObserver) {
       drawing.resizeObserver = new global.ResizeObserver(function () { resizeStockDrawing(drawing); });
       drawing.resizeObserver.observe(element);
@@ -3270,7 +3296,7 @@
       lwcMemoCleanup = timeframe === 'minute' ? null : installChartMemoLayer(container, chart, candleSeries, bars, timeframe, state.selectedCode, state.selectedName, function (p) { return chartPriceText(p, isUsChart); });
       lwcSrCleanup = installSupportResistanceCanvas(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); });
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
-      setupStockDrawing(container, chart, candleSeries, timeframe);
+      setupStockDrawing(container, chart, candleSeries, timeframe, bars);
     }).catch(function () {
       if (renderId !== lwcRenderId) return;
       container.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
