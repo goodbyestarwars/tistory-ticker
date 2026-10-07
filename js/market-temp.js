@@ -3625,6 +3625,13 @@
     heatmapPanel.innerHTML = '';
   }
 
+  function showSectorCardsLoadError_(panel) {
+    panel.__mtLoaded = false;
+    panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다. <button type="button" class="ui-btn ui-btn-secondary" data-sector-cards-retry>다시 불러오기</button></div>';
+    var retry = panel.querySelector('[data-sector-cards-retry]');
+    if (retry) retry.addEventListener('click', function () { loadSectorCardsPanel_(panel); });
+  }
+
   function loadSectorCardsPanel_(panel) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
@@ -3633,12 +3640,12 @@
       panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>종목 카드 불러오는 중...</div>';
       fetchSectorConfig_()
         .then(function (config) { return renderCardsPanelFromConfig_(panel, SD, config); })
-        .catch(function () { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; });
+        .catch(function () { showSectorCardsLoadError_(panel); });
       return;
     }
     var sectorMap = global.SECTOR_MAP;
     if (!SD || !sectorMap) {
-      panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
+      showSectorCardsLoadError_(panel);
       return;
     }
     var krxMap = global.KRX_MAP || {};
@@ -3655,7 +3662,7 @@
       if (SD.startCardRealtimeQuotes) SD.startCardRealtimeQuotes(panel, codes);
       if (SD.wireSectorCardSelection) SD.wireSectorCardSelection(panel, sectorMap, krxMap, byCode);
     }).catch(function () {
-      panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>';
+      showSectorCardsLoadError_(panel);
     });
   }
 
