@@ -2564,6 +2564,7 @@ def _build_pattern_scan():
         'scanned': pattern_scan.get('scanned') or 0,
         'pullbackScannedAt': data.get('generatedAt'),
         'pullbackScanned': pullback_scan.get('scanned') or 0,
+        'firstPullbackBreakoutReady': 'firstPullbackBreakout' in patterns,
         'patterns': {
             'risingLows': patterns.get('risingLows') or [],
             'maCloudBreakout': patterns.get('maCloudBreakout') or [],

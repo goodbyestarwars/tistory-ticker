@@ -356,7 +356,7 @@ dict 구성을 함께 대조한다.
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
 
-`patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
+`patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. `firstPullbackBreakoutReady`는 최초 검색 완료 여부(미완료와 후보 없음 구분)다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
 
 `/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:10 KST 스냅샷**이다
 (`volume_breakout_scan.py`, 평일 전용 systemd 타이머). "전일 거래량을 개장 10분 만에
