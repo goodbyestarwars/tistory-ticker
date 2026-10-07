@@ -55,16 +55,20 @@ class DirectionTests(unittest.TestCase):
             data = snapshot()
             data['trade'][field] = value
             self.assertEqual(candidate.evaluate(data)['status'], 'rejected')
-            self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
+            self.assertNotEqual(engine.evaluate_direction(data)['direction'], 'down')
 
-    def test_both_directions_require_volume(self):
-        for factory in (snapshot, bearish_snapshot):
+    def test_weak_volume_is_context_not_a_direction_veto(self):
+        for factory, expected in [(snapshot, 'up'), (bearish_snapshot, 'down')]:
             data = factory()
             for bar in data['bars']:
                 bar['volume'] = 1000
-            self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
-            data = factory()
             data['previousVolume']['value'] = 10000000
+            result = engine.evaluate_direction(data)
+            self.assertEqual(result['direction'], expected)
+            self.assertIn('거래량은 약해', result['reason'])
+            self.assertEqual(candidate.evaluate(data)['status'], 'rejected')
+            for bar in data['bars']:
+                bar['volume'] = 0
             self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 
     def test_missing_or_stale_inputs_block_even_with_known_rejection(self):
@@ -88,12 +92,26 @@ class DirectionTests(unittest.TestCase):
             data['book']['bids'] = [{'price': 9890, 'qty': 100}]
             self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 
-    def test_large_walls_veto_but_cannot_create_a_direction(self):
+    def test_walls_annotate_but_cannot_create_a_direction(self):
+        for factory, expected, side in [(snapshot, 'up', 'asks'), (bearish_snapshot, 'down', 'bids')]:
+            data = factory()
+            data['book'][side][0]['qty'] = 100000
+            result = engine.evaluate_direction(data)
+            self.assertEqual(result['direction'], expected)
+            self.assertIn('잔량은 부담', result['reason'])
+            for bar in data['bars']:
+                bar.update(open=10000, high=10010, low=9990, close=10000)
+            data['trade']['price'] = 10000
+            self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
+
+    def test_execution_pressure_can_confirm_without_strict_three_bar_pattern(self):
         data = snapshot()
-        data['book']['asks'][0]['qty'] = 100000
-        self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
-        data = bearish_snapshot()
-        data['book']['bids'][0]['qty'] = 100000
+        for bar in data['bars'][-3:]:
+            bar['low'] = 9980
+            bar['high'] = 10070
+        self.assertFalse(candidate.evaluate(data)['metrics']['risingRecentLows'])
+        self.assertEqual(engine.evaluate_direction(data)['direction'], 'up')
+        data['trade']['strength'] = 100
         self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 
     def test_current_and_future_prices_never_affect_hypothesis(self):
@@ -139,7 +157,7 @@ class DirectionTests(unittest.TestCase):
                 self.assertEqual(result['direction'], 'down' if bearish else 'up')
                 self.assertEqual(result['metrics']['closedBarCount'], 30)
                 self.assertEqual(result['metrics']['barLookbackMinutes'], 30)
-                self.assertEqual(result['metrics']['directionPriceBasis'], '최근 분봉 구간 시작 가격')
+                self.assertEqual(result['metrics']['directionPriceBasis'], '최근 5개 완결 분봉 시작 가격')
                 old = copy.deepcopy(data['bars'][0])
                 old.update(time='09:00:00', close=None, volume=999999999)
                 data['bars'].append(old)

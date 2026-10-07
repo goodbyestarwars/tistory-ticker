@@ -7,7 +7,7 @@ probability or a promise of a 3% move. Candidate rejection is never a down label
 from datetime import timedelta
 import hour_candidate_engine as candidate
 
-MODEL_VERSION = 'hour-direction-rules-v2'
+MODEL_VERSION = 'hour-direction-rules-v3'
 LOOKBACK_MINUTES = 30
 LABELS = {'up': '상승가능', 'down': '하락가능', 'unclear': '판단 어려움'}
 
@@ -72,6 +72,9 @@ def evaluate_direction(snapshot, candidate_result=None):
     if issues is None or blockers is None:
         result['reason'] = '방향 판단에 필요한 자료 검증 결과가 없습니다.'
         return result
+    # Volume participation is context, not a prerequisite for either direction.
+    # In particular, falling prices do not require increasing traded volume.
+    blockers = [reason for reason in blockers if '최근 2분 거래량' not in reason]
     if issues or blockers:
         result['reason'] = brief_reason((issues or blockers)[0])
         return result
@@ -101,8 +104,8 @@ def evaluate_direction(snapshot, candidate_result=None):
     if rising and bearish_pattern:
         result['reason'] = '저점 상승과 고점 하락이 함께 나타나 방향이 불명확해.'
         return result
-    opening = bars[0]['open']
-    result['metrics']['directionPriceBasis'] = '최근 분봉 구간 시작 가격'
+    opening = bars[-5]['open']
+    result['metrics']['directionPriceBasis'] = '최근 5개 완결 분봉 시작 가격'
     trade_price = candidate._num(snapshot['trade'].get('price'), strict=True)
     closing, vwap, strength = bars[-1]['close'], metrics['barTypicalPriceVwap'], metrics['strength']
     bids = candidate._book_levels(snapshot['book']['bids'])
@@ -111,20 +114,25 @@ def evaluate_direction(snapshot, candidate_result=None):
     sell_burden = metrics['visibleResistanceToRecentVolume']
     buy_burden = sum(row['qty'] for row in bids if stop <= row['price'] <= entry) / recent_volume
     result['metrics']['visibleSupportToRecentVolume'] = buy_burden
-    # Wall ratios only veto a hypothesis. They never independently determine it,
-    # and ten visible levels are not the whole path to a +/-3% target.
-    up = (rising and not bearish_pattern and closing > opening and closing >= vwap
-          and trade_price >= closing * 0.998 and strength >= 110
-          and sell_burden <= 1)
-    down = (bearish_pattern and not rising and closing < opening and closing <= vwap
-            and trade_price <= closing * 1.002 and strength <= 10000 / 110
-            and buy_burden <= 1)
+    # Price direction + VWAP agreement remain required. Pattern OR executed
+    # buying/selling pressure confirms it; visible walls only annotate context.
+    up = (closing > opening and closing >= vwap and trade_price >= closing * 0.998
+          and (rising or strength >= 105))
+    down = (closing < opening and closing <= vwap and trade_price <= closing * 1.002
+            and (bearish_pattern or strength <= 95))
     if up:
-        result.update(direction='up', label=LABELS['up'],
-                      reason='저점이 높아지고 매수 체결·거래량이 뒷받침돼.')
+        result.update(direction='up', label=LABELS['up'])
     elif down:
-        result.update(direction='down', label=LABELS['down'],
-                      reason='고점이 낮아지고 매도 체결·거래량이 뒷받침돼.')
+        result.update(direction='down', label=LABELS['down'])
     if result['direction'] != 'unclear':
+        wall = sell_burden if up else buy_burden
+        weak_volume = metrics['volumeAcceleration'] < 1.3 or metrics['recentPrevVolumePct'] < 1
+        pattern = rising if up else bearish_pattern
+        result['reason'] = ('최근 가격 상승과 ' if up else '최근 가격 하락과 ') + (
+            ('저점 상승' if up else '고점 하락') if pattern else ('매수 체결 우위' if up else '매도 체결 우위')) + ' 흐름이 맞아.'
+        if weak_volume:
+            result['reason'] += ' 거래량은 약해.'
+        elif wall > 1:
+            result['reason'] += ' 앞쪽 잔량은 부담돼.'
         result.update(entryPrice=entry, targetPrice=base['targetPrice'], stopPrice=stop)
     return result
