@@ -14,7 +14,12 @@ const events=[base,{...base}, {...base,title:'$한화오션 잠정실적',symbol
  {...base,status:'scheduled',receipt_no:'pending'}, {...base,start:'2026-09-30',receipt_no:'previous'},
  {...base,source:'finnhub',receipt_no:'us'}, {...base,status:undefined,receipt_no:'unknown'}];
 console.log(JSON.stringify({html:window.completedCards({viewYear:2026,viewMonth:9,events},false),
- empty:window.completedCards({viewYear:2026,viewMonth:10,events},false),loading:window.completedCards({viewYear:2026,viewMonth:10,events:[]},true)}));
+ empty:window.completedCards({viewYear:2026,viewMonth:10,events},false),loading:window.completedCards({viewYear:2026,viewMonth:10,events:[]},true),
+ nameSearch:window.completedCards({viewYear:2026,viewMonth:9,events,disclosureQuery:'삼성전자'},false),
+ codeSearch:window.completedCards({viewYear:2026,viewMonth:9,events,disclosureQuery:'042660'},false),
+ combinedSearch:window.completedCards({viewYear:2026,viewMonth:9,events,disclosureQuery:'  한화오션   매출 '},false),
+ missingSearch:window.completedCards({viewYear:2026,viewMonth:9,events,disclosureQuery:'없는공시'},false),
+ clearedSearch:window.completedCards({viewYear:2026,viewMonth:9,events,disclosureQuery:'   '},false)}));
 """
 
 
@@ -45,3 +50,16 @@ class CompletedDisclosureCardsTests(unittest.TestCase):
         self.assertIn('표시할 완료 공시가 없어.', self.data['empty'])
         self.assertNotIn('<article', self.data['empty'])
         self.assertIn('공시를 불러오는 중이야.', self.data['loading'])
+
+    def test_search_matches_company_code_and_multiple_terms_in_result(self):
+        for key in ['nameSearch', 'codeSearch', 'combinedSearch']:
+            self.assertEqual(self.data[key].count('<article class="sc-completed-card">'), 1)
+            self.assertIn('검색결과 1건', self.data[key])
+        self.assertIn('삼성전자', self.data['nameSearch'])
+        self.assertNotIn('한화오션', self.data['nameSearch'])
+        self.assertIn('한화오션', self.data['codeSearch'])
+
+    def test_no_matches_and_clearing_query_restore_all_cards(self):
+        self.assertNotIn('<article', self.data['missingSearch'])
+        self.assertIn('검색한 공시가 없어.', self.data['missingSearch'])
+        self.assertEqual(self.data['clearedSearch'].count('<article class="sc-completed-card">'), 2)

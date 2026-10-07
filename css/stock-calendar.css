@@ -20,6 +20,10 @@
 #stock-calendar .sc-today-head span { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
 #stock-calendar .sc-today-head small { color: #94a3b8; font-size: 11px; white-space: nowrap; }
 #stock-calendar .sc-today-rows { display: flex; flex-direction: column; gap: 6px; }
+#stock-calendar .sc-disclosure-search { margin-bottom: 20px; }
+#stock-calendar .sc-disclosure-search .sc-search { margin-bottom: 6px; }
+#stock-calendar .sc-disclosure-search small { display: block; color: #64748b; font-size: 11px; }
+html.dark #stock-calendar .sc-disclosure-search small { color: #aaa !important; }
 #stock-calendar .sc-completed { margin-top: 28px; }
 #stock-calendar .sc-completed-head { margin-bottom: 12px; }
 #stock-calendar .sc-completed-head h2 { margin: 0; font-size: 18px; color: #0d1b40; }
