@@ -114,6 +114,54 @@ class DirectionTests(unittest.TestCase):
         data['trade']['strength'] = 100
         self.assertEqual(engine.evaluate_direction(data)['direction'], 'unclear')
 
+    def test_small_directional_bounce_is_not_a_three_percent_setup(self):
+        for factory, sign, delta in [(snapshot, '+3%', 1), (bearish_snapshot, '−3%', -1)]:
+            data = factory()
+            closes = [190000,190000,190000+100*delta,190000+100*delta,190000+200*delta]
+            for i, row in enumerate(data['bars']):
+                opening = closes[max(0,i-1)]
+                row.update(open=opening, close=closes[i],
+                           high=max(opening,closes[i])+100,low=min(opening,closes[i])-100)
+            for side in ('asks','bids'):
+                for level in data['book'][side]:
+                    level['price'] = 190000 + (level['price']-10000)*10
+            data['trade']['price'] = closes[-1]
+            data['quote'].update(open=190000,high=190700,upperLimit=247000)
+            result = engine.evaluate_direction(data)
+            self.assertEqual(result['direction'], 'unclear')
+            self.assertIn(sign, result['reason'])
+            self.assertIsNone(result['targetPrice'])
+
+    def test_recorded_naver_bounce_is_below_target_movement_screen(self):
+        import json
+        from pathlib import Path
+        data = json.loads((Path(__file__).parent/'fixtures/hour_naver_20261007_0948.json').read_text(encoding='utf-8'))
+        result = engine.evaluate_direction(data)
+        self.assertEqual(result['direction'], 'unclear')
+        self.assertIn('+3%', result['reason'])
+        self.assertLess(result['metrics']['upMovementBudgetPct'], 0.5)
+        self.assertGreater(result['metrics']['upRequiredMovePct'], 3)
+        self.assertFalse(result['validated'])
+
+    def test_movement_screen_includes_entry_gap_and_actual_tick_target(self):
+        data = snapshot()
+        bars, error = candidate._closed_bars(data['bars'], candidate._iso(data['checkedAt']), 30)
+        self.assertIsNone(error)
+        metrics = engine.movement_budget(bars, 10060, 10370, 9760)
+        self.assertAlmostEqual(metrics['upRequiredMovePct'], (10370/10050-1)*100)
+        self.assertFalse(metrics['movementBudgetValidated'])
+        far = engine.movement_budget(bars, 11000, 11330, 10670)
+        self.assertFalse(far['upMovementSupported'])
+
+    def test_flat_choppy_prices_do_not_gain_drift_from_total_range(self):
+        data = snapshot()
+        bars, _ = candidate._closed_bars(data['bars'], candidate._iso(data['checkedAt']), 30)
+        for i, row in enumerate(bars):
+            row['close'] = 10000 + (10 if i % 2 else 0)
+        metrics = engine.movement_budget(bars,10020,10330,9720)
+        self.assertFalse(metrics['upMovementSupported'])
+        self.assertFalse(metrics['downMovementSupported'])
+
     def test_current_and_future_prices_never_affect_hypothesis(self):
         for factory in (snapshot, bearish_snapshot):
             data = factory()

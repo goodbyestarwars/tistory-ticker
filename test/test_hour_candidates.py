@@ -204,7 +204,7 @@ class DirectionServiceTests(unittest.TestCase):
         self.assertNotIn('metrics', result)
         self.assertFalse(result['validated'])
         payload, inputs = self.record.call_args.args
-        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v3')
+        self.assertEqual(payload['directionModelVersion'], 'hour-direction-rules-v4')
         self.assertEqual(payload['items'][0]['directionVerdict']['direction'], 'up')
         self.assertIn('035420', inputs)
 
