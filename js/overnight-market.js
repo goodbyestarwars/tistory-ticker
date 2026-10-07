@@ -380,20 +380,26 @@
   // 월요일 개장 전 참고로 보여준다. 파생상품 가격이라 실제 주식 수급이 아니므로 "참고 지표"를 밝힌다.
   // 원화 환산은 하지 않는다 - 토큰 1개가 주식 몇 주에 해당하는지 확인하지 않은 단위라서다.
   var BINANCE_API = 'https://goodbyestar.cloud/binance-kr-equity';
-  var BINANCE_REFRESH_MS = 5 * 60 * 1000;
+  var BINANCE_REFRESH_MS = 30000;
   var binanceTimer = null;
   // 2026-09-15: 운영 VM(미국 리전)은 바이낸스가 HTTP 451로 막는다. 바이낸스 선물 공개 API는 CORS를
   // 허용한다(Access-Control-Allow-Origin: *, 실측) - 방문자 브라우저가 직접 조회해 서버 부하 없이 보여준다.
   // 브라우저에서도 막히면(방문자 지역 제한 등) 서버 수집 결과로 물러나고, 그것도 제한이면 섹션을 숨긴다.
   var BINANCE_FAPI = 'https://fapi.binance.com/fapi/v1';
-  var BINANCE_SYMBOLS = [['SAMSUNGUSDT', '삼성전자'], ['SKHYNIXUSDT', 'SK하이닉스']];
+  // 휴장 홈의 LIVE_KR_TOKENS와 같은 종목. 브라우저 직접 조회라 VM 수집은 늘리지 않는다.
+  var BINANCE_SYMBOLS = [
+    ['SAMSUNGUSDT', '삼성전자'], ['SKHYNIXUSDT', 'SK하이닉스'],
+    ['HYUNDAIUSDT', '현대차'], ['SAMSUNGEMUSDT', '삼성전기'],
+    ['HANMIUSDT', '한미반도체'], ['LGELECTRONICSUSDT', 'LG전자'],
+    ['NAVERUSDT', 'NAVER'], ['KODEX200USDT', 'KODEX 200']
+  ];
   var BINANCE_KLINES_TTL_MS = 30 * 60 * 1000;
   var binanceKlinesCache = {};
 
   function buildBinanceShell() {
     return '<div class="om-category om-binance" id="omBinance" hidden>'
       + '<div class="om-cat-head"><span class="om-cat-label">바이낸스 국내주식 토큰</span>'
-      + '<div class="om-cat-hint">참고 지표 · 무기한선물 가격(실제 주식 수급 아님)</div></div>'
+      + '<div class="om-cat-hint">휴장 홈과 같은 8종목 · 30초마다 갱신 · 무기한선물 참고 가격</div></div>'
       + '<div class="om-grid" data-binance-grid></div>'
       + '<div class="om-binance-note" data-binance-note></div>'
       + '</div>';
@@ -532,7 +538,7 @@
   function loadBinance(container, initial) {
     if (!('fetch' in global)) return;
     // 첫 표시는 탭이 가려져 있어도 한 번 채우고, 주기 갱신은 보이는 동안에만 한다.
-    if (document.hidden && !initial) return;
+    if ((document.hidden || container.closest('[hidden]')) && !initial) return;
     loadBinanceDirect()
       .then(function (payload) {
         if (payload) renderBinance(container, payload);
@@ -566,12 +572,12 @@
       + (hasPrice
         ? '<div class="om-change ' + tone + '">' + arrow + ' ' + fmtSigned(item.change, meta.digits) + meta.changeUnit + ' (' + fmtSigned(item.change_rate, 2) + '%)</div>'
         : '')
-      + '<div class="om-chart" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
+      + '<div class="om-chart' + (CRYPTO_SYMBOLS.indexOf(item.symbol) !== -1 ? ' om-chart-crypto' : '') + '" data-symbol="' + escapeHtml(item.symbol) + '"></div>'
       + '<div class="om-hl">'
       + '<span>' + rangeLabel + ' ' + (high != null ? fmtPrice(high, meta.digits) + meta.unit : '-') + '</span>'
       + '<span>' + lowLabel + ' ' + (low != null ? fmtPrice(low, meta.digits) + meta.unit : '-') + '</span>'
       + '</div>'
-      + benchmarkCaption(item.symbol)
+      + benchmarkCaption(item.symbol, item.price)
       + '</div>';
   }
 
@@ -586,9 +592,23 @@
     return Math.max(1, Math.round((t - f) / 86400000 / 30));
   }
 
-  function benchmarkCaption(symbol) {
+  function benchmarkCaption(symbol, price) {
     var b = benchmarks[symbol];
     var out = '';
+    if (CRYPTO_SYMBOLS.indexOf(symbol) !== -1) {
+      var lines = [
+        { label: '52주 평균', data: b, cls: 'om-crypto-avg-52w' },
+        { label: '6개월 평균', data: benchmarks6m[symbol], cls: 'om-crypto-avg-6m' }
+      ];
+      return '<div class="om-crypto-averages">' + lines.map(function (line) {
+        var avg = line.data && Number(line.data.avg);
+        var valid = isFinite(avg) && avg > 0;
+        var gap = valid && typeof price === 'number' ? (price / avg - 1) * 100 : null;
+        return '<div class="' + line.cls + '"><span>' + line.label + '</span><strong>'
+          + (valid ? fmtPrice(avg, 0) + '원' : '평균 자료 확인 중') + '</strong><small>'
+          + (gap != null ? '현재가 ' + fmtSigned(gap, 2) + '% · 평균 대비' : '기간 종가 평균 참고선') + '</small></div>';
+      }).join('') + '</div>';
+    }
     if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && b) {
       var meta = symbolMeta(symbol);
       var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
@@ -645,12 +665,13 @@
 
       destroyChart(symbol);
 
+      var isCrypto = CRYPTO_SYMBOLS.indexOf(symbol) !== -1;
       var chart = LWC.createChart(container, Object.assign({
         autoSize: true,
-        height: SPARKLINE_HEIGHT,
+        height: isCrypto ? 164 : SPARKLINE_HEIGHT,
         handleScroll: false,
         handleScale: false,
-        rightPriceScale: { visible: false },
+        rightPriceScale: { visible: isCrypto, scaleMargins: { top: .15, bottom: .15 } },
         leftPriceScale: { visible: false },
         timeScale: { visible: false },
         crosshair: {
@@ -667,7 +688,23 @@
         lineWidth: 1,
         priceLineVisible: false,
         lastValueVisible: false,
-        crosshairMarkerVisible: false
+        crosshairMarkerVisible: false,
+        priceFormat: isCrypto ? { type: 'custom', minMove: 1, formatter: function (value) {
+          return value >= 100000000 ? fmtPrice(value / 100000000, 2) + '억' : fmtPrice(value / 10000, 0) + '만';
+        } } : { type: 'price', precision: 2, minMove: .01 },
+        // PriceLine 자체는 자동 축 범위에 포함되지 않는다. 코인 평균도 범위에 넣어 잘림을 막는다.
+        autoscaleInfoProvider: isCrypto ? function (original) {
+          var info = original();
+          if (!info || !info.priceRange) return info;
+          [benchmarks[symbol], benchmarks6m[symbol]].forEach(function (benchmark) {
+            var avg = benchmark && Number(benchmark.avg);
+            if (isFinite(avg) && avg > 0) {
+              info.priceRange.minValue = Math.min(info.priceRange.minValue, avg);
+              info.priceRange.maxValue = Math.max(info.priceRange.maxValue, avg);
+            }
+          });
+          return info;
+        } : undefined
       });
       var seriesData = normalizedRows.map(function (r) { return { time: toLwcTime(r.date), value: r.close }; });
       if (typeof price === 'number') {
@@ -713,10 +750,11 @@
       if (BENCHMARK_SYMBOLS.indexOf(symbol) !== -1 && benchmarks[symbol]) {
         series.createPriceLine({
           price: benchmarks[symbol].avg,
+          title: isCrypto ? '52주 평균' : '',
           color: BENCHMARK_52W_COLOR,
           lineWidth: 2,
           lineStyle: LWC.LineStyle.Solid,
-          axisLabelVisible: false
+          axisLabelVisible: isCrypto
         });
       }
 
@@ -725,10 +763,11 @@
       if (BENCHMARK_6M_SYMBOLS.indexOf(symbol) !== -1 && benchmarks6m[symbol]) {
         series.createPriceLine({
           price: benchmarks6m[symbol].avg,
+          title: '6개월 평균',
           color: BENCHMARK_6M_COLOR,
           lineWidth: 2,
           lineStyle: LWC.LineStyle.Solid,
-          axisLabelVisible: false
+          axisLabelVisible: isCrypto
         });
       }
 

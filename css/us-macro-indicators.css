@@ -23,6 +23,13 @@
 #us-macro-indicators .umi-mini-chart circle { fill:#2878cc; stroke:#fff; stroke-width:1.4; }
 #us-macro-indicators .umi-card i { margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; }
 #us-macro-indicators .umi-card i b { display:inline; margin:0; color:#64748b; font-size:11px; }
+#us-macro-indicators .umi-interpret-note { margin: 0 0 14px; font-size: 12px; }
+#us-macro-indicators .umi-impact { display: grid; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: 7px; background: #f8fafc; }
+#us-macro-indicators .umi-impact p { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.55; }
+#us-macro-indicators .umi-impact em { color: #334155; font-size: 11px; font-style: normal; font-weight: 600; }
+#us-macro-indicators .umi-impact span { font-size: 12px; }
+html.dark #us-macro-indicators .umi-impact { background: rgba(245,239,224,.05); }
+html.dark #us-macro-indicators .umi-impact em { color: rgba(245,239,224,.85); }
 #us-macro-indicators .umi-state { grid-column: 1 / -1; padding: 20px 0; text-align: center; }
 html.dark #us-macro-indicators { color: #F5EFE0; }
 html.dark #us-macro-indicators .umi-card { border-color: rgba(245,239,224,.18); background: rgba(245,239,224,.04); }
@@ -35,6 +42,7 @@ html.dark #us-macro-indicators .umi-card--primary b { color: #80b8ff; }
 html.dark #us-macro-indicators .umi-card small, html.dark #us-macro-indicators .umi-card span, html.dark #us-macro-indicators .umi-card i, html.dark #us-macro-indicators p { color: rgba(245,239,224,.64); }
 html.dark #us-macro-indicators .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
 @media (max-width: 720px) { #us-macro-indicators .umi-head { display: block; } #us-macro-indicators .umi-refresh { margin-top: 10px; } #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } #us-macro-indicators .umi-reading { align-items:flex-start; flex-direction:column; } }
+@media (max-width: 480px) { #us-macro-indicators .umi-grid, #us-macro-indicators .umi-grid--data { grid-template-columns: minmax(0, 1fr); } }
 #us-macro-indicators .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
 #us-macro-indicators .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }
 #us-macro-indicators .umi-mini-chart .umi-base { stroke:#64748b; stroke-width:1; stroke-dasharray:3 3; stroke-opacity:.7; vector-effect:non-scaling-stroke; }

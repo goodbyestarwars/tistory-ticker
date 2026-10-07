@@ -153,6 +153,7 @@
 }
 
 #overnight-market .om-card {
+  min-width: 0;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   padding: 14px;
@@ -243,6 +244,30 @@
 #overnight-market .om-bn-spark.om-neg polyline { stroke: #1261c4; }
 #overnight-market .om-bn-meta { color: #64748b; font-size: 11px; }
 #overnight-market .om-binance-note { margin-top: 6px; color: #94a3b8; font-size: 11px; line-height: 1.5; }
+#overnight-market .om-binance .om-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
+#overnight-market .om-binance .om-card { min-width: 0; }
+#overnight-market .om-binance .om-title small { display: block; margin-top: 3px; overflow-wrap: anywhere; }
+#overnight-market .om-binance .om-price { font-size: 21px; }
+#overnight-market .om-chart.om-chart-crypto { height: 164px; }
+#overnight-market .om-crypto-averages { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-top: 10px; }
+#overnight-market .om-crypto-averages > div { min-width: 0; padding: 10px 12px; border-radius: 10px; background: #f8fafc; }
+#overnight-market .om-crypto-averages span,
+#overnight-market .om-crypto-averages strong,
+#overnight-market .om-crypto-averages small { display: block; }
+#overnight-market .om-crypto-averages span { font-size: 12px; font-weight: 600; }
+#overnight-market .om-crypto-avg-52w span { color: #c9701f; }
+#overnight-market .om-crypto-avg-6m span { color: #8b5fbf; }
+#overnight-market .om-crypto-averages strong { margin: 4px 0; color: #334155; font-size: 14px; }
+#overnight-market .om-crypto-averages small { color: #64748b; font-size: 11px; line-height: 1.5; }
+html.dark #overnight-market .om-crypto-averages > div { background: rgba(245, 239, 224, .06); }
+html.dark #overnight-market .om-crypto-averages strong { color: #F5EFE0; }
+html.dark #overnight-market .om-crypto-averages small { color: rgba(245, 239, 224, .65); }
+@media (min-width: 1600px) { #overnight-market .om-binance .om-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+@media (max-width: 1000px) { #overnight-market .om-binance .om-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px) {
+  #overnight-market .om-binance .om-grid { grid-template-columns: minmax(0, 1fr); }
+  #overnight-market .om-crypto-averages { grid-template-columns: minmax(0, 1fr); }
+}
 html.dark #overnight-market .om-bn-meta, html.dark #overnight-market .om-binance-note { color: rgba(245, 239, 224, 0.6); }
 html.dark #overnight-market .om-bn-spark.om-pos polyline { stroke: #ff8a83; }
 html.dark #overnight-market .om-bn-spark.om-neg polyline { stroke: #80b8ff; }
