@@ -1058,7 +1058,7 @@
     mount.innerHTML = '<div class="app-news-timeline ss-news-timeline us-stocks-news-timeline" role="list">' + sortedItems.map(function (item, index) {
       var pubDate = item.pubDate || '';
       var date = new Date(String(pubDate));
-      var dateText = isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit' });
+      var dateText = isNaN(date.getTime()) ? '' : date.toLocaleDateString('en-US', { timeZone: 'America/New_York', month: '2-digit', day: '2-digit' });
       return '<a class="app-news-event ss-news-item us-stocks-news-item" href="' + escapeAttr(item.link || '#') + '" target="_blank" rel="noopener" role="listitem">'
         + '<div class="app-news-date"><strong>' + escapeHtml(dateText) + '</strong><small>' + escapeHtml(formatNewsTime(pubDate)) + '</small></div>'
         // 2026-09-12: 레일에 us-stocks-news-rail을 빠뜨려 css/us-stocks.css의 레일 디자인이
@@ -1074,7 +1074,7 @@
   function newsBucket(value) {
     var date = new Date(String(value || ''));
     if (isNaN(date.getTime())) return 'night';
-    var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Seoul', hour: 'numeric', hour12: false }).formatToParts(date);
+    var parts = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', hour: 'numeric', hour12: false }).formatToParts(date);
     var hour = Number((parts.find(function (part) { return part.type === 'hour'; }) || {}).value || 0);
     if (hour >= 8 && hour < 12) return 'morning';
     if (hour >= 12 && hour < 18) return 'afternoon';
@@ -1089,7 +1089,7 @@
   function isRecentNews(item) {
     var timestamp = newsTimestamp(item);
     var now = Date.now();
-    return timestamp > 0 && timestamp <= now + 5 * 60 * 1000
+    return timestamp > 0 && timestamp <= now
       && now - timestamp <= 24 * 60 * 60 * 1000;
   }
 
@@ -1097,8 +1097,8 @@
     var date = new Date(String(value || ''));
     if (!isNaN(date.getTime())) {
       return date.toLocaleTimeString('en-GB', {
-        timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false
-      });
+        timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false
+      }) + ' ET';
     }
     var match = String(value || '').match(/(?:^|\s)(\d{1,2}):(\d{2})(?:\s|$)/);
     return match ? ('0' + match[1]).slice(-2) + ':' + match[2] : '--:--';

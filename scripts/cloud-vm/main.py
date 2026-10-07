@@ -44,6 +44,7 @@ import foreign_futures
 import market_temp
 import naver_news
 import news_aggregator
+import news_window
 import news_momentum
 import invest_opinion
 import research_reports
@@ -1289,6 +1290,7 @@ def _fetch_economic_news_snapshot(market):
     else:
         result = domestic_news.get_news(limit=_DOMESTIC_NEWS_LIMIT, item_kind='news')
         items = result.get('items', []) if isinstance(result, dict) else []
+    items = news_window.recent_items(items, market)
     flash_news = list(items or [])
     if market == 'domestic':
         # 국내 일반뉴스 50개에 미국·글로벌 거시뉴스 20개를 보강한다.
@@ -1302,7 +1304,8 @@ def _fetch_economic_news_snapshot(market):
         domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT)
         if market == 'domestic' else news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)
     )
-    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market)}
+    return {'market': market, 'items': items, 'flash': _build_flash_items(flash_news, disclosures, market),
+            'newsWindowHours': 24, 'newsTimeZone': news_window.MARKET_ZONES[market]}
 
 
 def _build_flash_items(news_items, disclosures, market='domestic'):
@@ -1316,7 +1319,7 @@ def _build_flash_items(news_items, disclosures, market='domestic'):
         category = '실적' if item.get('category') == '실적' or any(token in text for token in ('실적', '영업이익', '순이익', '매출액', '잠정')) else '공시'
         candidates.append(dict(item, flashType=category, importance=100 if category == '실적' else 80))
 
-    for item in news_items or []:
+    for item in news_window.recent_items(news_items, market):
         if not item or item.get('kind') == 'disclosure':
             continue
         title = str(item.get('title') or '').strip()
@@ -1829,9 +1832,12 @@ def us_news(request: Request, symbol: str = Path(..., min_length=1, max_length=1
         limit=10,
         search_terms=name,
     )
+    items = news_window.recent_items(items, 'us')
     providers = sorted(set(item.get('provider') for item in items if item.get('provider')))
     return envelope({
         'symbol': ticker,
+        'newsWindowHours': 24,
+        'newsTimeZone': 'America/New_York',
         'query': query,
         'items': items,
         'providers': providers,
@@ -3250,7 +3256,7 @@ def naver_news_endpoint(query: str = Query(..., min_length=1, max_length=100), x
     client_id = os.environ.get('NAVER_APIHUB_CLIENT_ID')
     client_secret = os.environ.get('NAVER_APIHUB_CLIENT_SECRET')
     items = naver_news.search_news(query, client_id, client_secret)
-    return envelope(items)
+    return envelope(news_window.recent_items(items, 'domestic'))
 
 
 @app.get('/domestic-news')
@@ -3275,6 +3281,9 @@ def domestic_news_endpoint(
         raise HTTPException(status_code=400, detail='domestic stock code must be 6 digits')
     item_kind = 'news' if kind.strip().lower() == 'news' else 'all'
     result = domestic_news.get_news(normalized_code, name.strip(), query.strip(), limit, item_kind)
+    result = dict(result or {})
+    result['items'] = news_window.recent_items(result.get('items', []), 'domestic', keep_disclosures=True)
+    result.update(newsWindowHours=24, newsTimeZone='Asia/Seoul')
     if not normalized_code and not name.strip() and not query.strip():
         domestic_items = result.get('items', []) if isinstance(result, dict) else []
         # 2026-08-30: 이 두 호출이 이 엔드포인트에서 실제로 초 단위를 먹는 구간이다
@@ -3292,6 +3301,7 @@ def domestic_news_endpoint(
         )
         result = dict(result or {})
         result['market'] = 'domestic'
+        global_items = news_window.recent_items(global_items, 'us')
         result['flash'] = _build_flash_items(
             list(domestic_items) + list(global_items),
             domestic_news.get_disclosures(limit=_DOMESTIC_DART_LIMIT, fresh=fresh),
@@ -3314,8 +3324,10 @@ def domestic_disclosures_endpoint(request: Request, limit: int = Query(30, ge=1,
 def crypto_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
     """가상자산 전문 매체 뉴스만 전달한다. 10분 메모리 캐시, 온디맨드 조회."""
     _check_rate_limit('crypto_news', request, max_per_window=20)
-    return envelope(dict(news_aggregator.get_crypto_news(limit=limit),
-                         market='crypto', source='CoinDesk RSS + Cointelegraph RSS'))
+    result = dict(news_aggregator.get_crypto_news(limit=limit))
+    result['items'] = news_window.recent_items(result.get('items', []), 'crypto')
+    return envelope(dict(result, market='crypto', newsWindowHours=24, newsTimeZone='UTC',
+                         source='CoinDesk RSS + Cointelegraph RSS'))
 
 
 @app.get('/foreign-news')
@@ -3327,9 +3339,12 @@ def foreign_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=70))
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
         limit=limit,
     )
+    items = news_window.recent_items(items, 'us')
     filings = news_aggregator.get_sec_filings(limit=_DOMESTIC_DART_LIMIT)
     return envelope({
         'market': 'us',
+        'newsWindowHours': 24,
+        'newsTimeZone': 'America/New_York',
         'items': items,
         'flash': _build_flash_items(items, filings, 'us'),
         'source': 'CNBC/Bloomberg RSS + Finnhub + Alpha Vantage + SEC EDGAR filings',

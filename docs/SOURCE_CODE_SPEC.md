@@ -280,3 +280,9 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 ### 시장지표 5년 이력 (2026-10-08)
 
 `js/market-history.js`: 탭별 정적 이력 단일 로드, 날짜 중복/5년 경계/주봉/실제 범위 표시. `skin-main.js`가 이력 준비 후 기존 위젯을 활성화한다. `scripts/build_market_history.py` + `market-chart-history.yml`: PC/공개 Actions 러너 전용 갱신. `bond_yield._fetch_page`: 폐쇄된 HTML 대신 KFIA103000 60행 JSON, 최대7페이지. [상세](MARKET_CHART_HISTORY.md).
+
+### 최신 뉴스 24시간·현지 시각 (2026-10-08)
+
+주요 뉴스·홈 경제뉴스·국내/미국 종목 뉴스·가상자산 뉴스는 현재부터 실제 경과 24시간만 표시한다. 날짜 자정 기준이 아니며, 기사가 적어도 오래된 기사로 채우지 않는다. 발행시각 미상·미래 시각은 제외한다. 국내는 KST, 미국은 America/New_York(ET, 서머타임 자동 적용), 가상자산 API는 UTC 오프셋으로 정규화한다. DST 전환일에도 실제 경과 86,400초를 유지한다. 시차만으로 뉴스에 13/14시간을 추가하지 않는다.
+
+API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴스 WebSocket·뉴스 속보에 동일하게 적용한다. `/domestic-news`, `/foreign-news`, `/us-news/{symbol}`, `/crypto-news`에 `newsWindowHours:24`, `newsTimeZone`을 추가한다. 인증된 `/naver-news`도 최근 기사만 반환한다. 공시·주간 보고서·과거 기사 저장은 기존 보존/조회 규칙을 유지한다. 외부 조회 횟수·캐시 TTL·DB 스키마·수집 주기 변경 없음.

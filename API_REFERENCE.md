@@ -394,3 +394,9 @@ API의 당일 거래량·거래대금·거래증가율 상위 목록(섹션당 �
 ## 가상자산 전문 뉴스 (2026-10-08)
 
 `GET /crypto-news?limit=20` (1~50, 기본20). 기존 public/CORS 정책, IP별 분당20회. 응답 `data{market:"crypto", source, items, updatedAt, stale}`. items는 title/title_ko(번역 성공 시)/link/pubDate/source/provider/market/category. CoinDesk·Cointelegraph RSS 제목·출처·링크만 수집하며 일반 미국주식 피드를 혼합하지 않는다. 본문 저장 없음. 10분 메모리 캐시, 온디맨드 동시조회 단일화. 실패 공급자의 이전 기사 유지, 전체 실패 때 stale=true.
+
+### 최신 뉴스 24시간·현지 시각 (2026-10-08)
+
+주요 뉴스·홈 경제뉴스·국내/미국 종목 뉴스·가상자산 뉴스는 현재부터 실제 경과 24시간만 표시한다. 날짜 자정 기준이 아니며, 기사가 적어도 오래된 기사로 채우지 않는다. 발행시각 미상·미래 시각은 제외한다. 국내는 KST, 미국은 America/New_York(ET, 서머타임 자동 적용), 가상자산 API는 UTC 오프셋으로 정규화한다. DST 전환일에도 실제 경과 86,400초를 유지한다. 시차만으로 뉴스에 13/14시간을 추가하지 않는다.
+
+API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴스 WebSocket·뉴스 속보에 동일하게 적용한다. `/domestic-news`, `/foreign-news`, `/us-news/{symbol}`, `/crypto-news`에 `newsWindowHours:24`, `newsTimeZone`을 추가한다. 인증된 `/naver-news`도 최근 기사만 반환한다. 공시·주간 보고서·과거 기사 저장은 기존 보존/조회 규칙을 유지한다. 외부 조회 횟수·캐시 TTL·DB 스키마·수집 주기 변경 없음.
