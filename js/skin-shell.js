@@ -364,6 +364,7 @@
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/legal/opensource-license.html">오픈소스 라이선스</a>' +
         '<a href="mailto:goodbyestarwars@gmail.com">문의하기</a>' +
         '<a href="https://goodbyestarwars.github.io/tistory-ticker/release-notes.html">릴리스 노트</a>' +
+        '<a class="site-footer-guide" href="https://goodbyestarwars.github.io/tistory-ticker/legal/guide.html">사이트 이용방법</a>' +
         // 2026-09-06 요청: 문의하기 옆 PC 화면 모드 전환(아래 wireViewMode 참고).
         '<button type="button" class="site-footer-viewmode" data-view-mode-toggle' +
         ' aria-pressed="false">PC 화면</button>' +
