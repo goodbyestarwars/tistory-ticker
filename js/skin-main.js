@@ -1857,7 +1857,7 @@ document.documentElement.classList.add('skin-ready');
       briefing.className = 'home-briefing-section';
       briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑</strong>'
         + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
-        + '<a class="home-briefing-more" href="/category/마켓 브리핑">브리핑 아카이브 <i aria-hidden="true">↗</i></a></div>'
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M9 12h6"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
         + '<div class="home-briefing-grid briefing-card-grid"></div>';
       feed.appendChild(briefing);
       selectedCards.forEach(function (card, index) {
