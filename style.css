@@ -8083,9 +8083,9 @@ html.search-open body .nav-search-suggest {
     display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
   }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 1 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 2 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 3 !important; flex: 0 0 100% !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 2 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 3 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 1 !important; flex: 0 0 100% !important; }
   html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
