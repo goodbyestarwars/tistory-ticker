@@ -640,9 +640,20 @@
     if (state.active === 'industry' && state.market === 'us') return usIndustryTop();
     if (state.active === 'industry') return (sections && sections.industry) || [];
     // ETF·ETN 제외 모드면 서버가 KIS에서 처음부터 일반 종목만 받은 순위(…Stocks)를 쓴다. 없거나 비면 기존 순위를 거른다.
-    // 상승률·하락률은 여러 순위를 합친 기본 목록이 더 길 때가 있어(실측 15 vs 40), 더 긴 쪽을 쓴다.
+    // 등락률은 목록 길이로 선택하면 전용 순위의 급등락 종목이 빠진다. 후보를 합쳐 현재 등락률로 정렬한다.
     var stocksOnly = !state.includeEtf && state.market === 'domestic' && sections && sections[state.active + 'Stocks'];
     var regular = sections && Array.isArray(sections[state.active]) ? visibleRows(sections[state.active]) : null;
+    if (state.active === 'rising' || state.active === 'falling') {
+      var seen = Object.create(null);
+      return (visibleRows(stocksOnly || []).concat(regular || [])).filter(function (row) {
+        var code = row.code || row.symbol;
+        if (seen[code]) return false;
+        seen[code] = true;
+        return state.active === 'rising' ? Number(row.change_rate) > 0 : Number(row.change_rate) < 0;
+      }).sort(function (a, b) {
+        return state.active === 'rising' ? Number(b.change_rate) - Number(a.change_rate) : Number(a.change_rate) - Number(b.change_rate);
+      });
+    }
     if (stocksOnly && stocksOnly.length) {
       var filteredStocks = visibleRows(stocksOnly);
       if (!regular || filteredStocks.length >= regular.length) return filteredStocks;

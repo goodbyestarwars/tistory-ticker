@@ -388,7 +388,7 @@
          같은 방식으로 한 번 더 추가한다.
          2026-10-04 요청("하단에 이야기 시리즈로 절세 이야기 넣자"): 같은 방식으로 맨 끝에 추가한다. */
       '<nav class="site-footer-links site-footer-learn" aria-label="이야기 시리즈">' +
-        '<div class="learn-intro"><span class="learn-eyebrow">배우고, 이해하고, 투자하기</span><h2><span class="learn-library-icon" aria-hidden="true">📚</span> 이야기 시리즈 <br>한눈에 보기</h2><p>주식부터 경제까지,<br>궁금한 이야기를 골라 읽어보세요.</p><span class="learn-intro-note">시장과 투자를 이해하는 11가지 이야기</span></div>' +
+        '<div class="learn-intro"><span class="learn-eyebrow">배우고, 이해하고, 투자하기</span><h2><span class="learn-library-icon" aria-hidden="true">🗝️</span> 이야기 시리즈 <br>한눈에 보기</h2><p>주식부터 경제까지,<br>궁금한 이야기를 골라 읽어보세요.</p><span class="learn-intro-note">시장과 투자를 이해하는 11가지 이야기</span></div>' +
         '<div class="learn-card-area"><div class="learn-card-grid" tabindex="0" role="region" aria-label="이야기 카드">' +
         '<a class="learn-card" style="--lc-a:#fde8cf;--lc-b:#f8c9a0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="10" width="3.2" height="8" rx="1"/><path d="M6.6 7v3M6.6 18v2"/><rect x="10.4" y="6" width="3.2" height="9" rx="1"/><path d="M12 3.5V6M12 15v3"/><rect x="15.8" y="9" width="3.2" height="7" rx="1"/><path d="M17.4 6v3M17.4 16v2.5"/></svg><b>주식 이야기</b><span class="learn-description">주문과 수급부터 시작해, 주식 투자의 기본을 차근차근 익혀요.</span><small>기초 7장</small></a>' +
         '<a class="learn-card" style="--lc-a:#e3ebff;--lc-b:#b9c9f7" href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M12 8l1.2 2.6 2.8.3-2.1 1.9.6 2.8-2.5-1.4-2.5 1.4.6-2.8L8 10.9l2.8-.3z"/></svg><b>미국 주식 이야기</b><span class="learn-description">거래시간과 미국 시장의 특징, 옵션이 주가에 미치는 영향을 살펴봐요.</span><small>프리마켓·0DTE</small></a>' +
@@ -413,7 +413,7 @@
     if (mount) mount.outerHTML = SHELL[key];
   });
 
-  // 모바일은 이야기 카드 두 개씩 한 화면에 표시한다. 기존 PC 격자는 유지한다.
+  // 두 줄을 유지하며 다음 카드 묶음을 좌우로 넘긴다(PC 3열, 좁은 화면 2열).
   (function initMobileStoryCarousel() {
     var track = document.querySelector('.site-footer-learn .learn-card-grid');
     if (!track) return;
@@ -421,10 +421,10 @@
     var previous = area.querySelector('[data-learn-prev]');
     var next = area.querySelector('[data-learn-next]');
     var count = area.querySelector('.learn-page-count');
-    var mobile = window.matchMedia('(max-width:720px)');
     function sync() {
       var max = Math.max(0, track.scrollWidth - track.clientWidth);
-      var pages = Math.ceil(track.querySelectorAll('.learn-card').length / 2);
+      var columns = parseInt(getComputedStyle(track).getPropertyValue('--learn-columns'), 10) || 3;
+      var pages = Math.ceil(track.querySelectorAll('.learn-card').length / (columns * 2));
       var page = max ? Math.round(track.scrollLeft / max * (pages - 1)) + 1 : 1;
       previous.disabled = track.scrollLeft <= 1;
       next.disabled = max <= 1 || track.scrollLeft >= max - 1;
@@ -432,14 +432,14 @@
       if (count.textContent !== label) count.textContent = label;
     }
     function move(direction) {
-      if (!mobile.matches) return;
-      track.scrollBy({ left: direction * (track.clientWidth + 12), behavior: window.matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
+      var gap = parseFloat(getComputedStyle(track).columnGap) || 0;
+      track.scrollBy({ left: direction * (track.clientWidth + gap), behavior: window.matchMedia('(prefers-reduced-motion:reduce)').matches ? 'auto' : 'smooth' });
     }
     previous.addEventListener('click', function () { move(-1); });
     next.addEventListener('click', function () { move(1); });
     track.addEventListener('scroll', sync, { passive:true });
     track.addEventListener('keydown', function (event) {
-      if (!mobile.matches || event.target !== track || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+      if (event.target !== track || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
       event.preventDefault();
       move(event.key === 'ArrowLeft' ? -1 : 1);
     });

@@ -633,9 +633,9 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         if section_name in metric_keys:
             ordered = [row for row in ordered if row.get(metric_keys[section_name]) is not None]
         if section_name == 'risingStocks':
-            ordered = [row for row in ordered if (row.get('change_rate') or 0) > 0]
+            ordered = sorted([row for row in ordered if (row.get('change_rate') or 0) > 0], key=lambda row: row['change_rate'], reverse=True)
         elif section_name == 'fallingStocks':
-            ordered = [row for row in ordered if (row.get('change_rate') or 0) < 0]
+            ordered = sorted([row for row in ordered if (row.get('change_rate') or 0) < 0], key=lambda row: row['change_rate'])
         if ordered:
             sections[section_name] = ordered
 
