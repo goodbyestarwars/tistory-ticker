@@ -8160,7 +8160,7 @@ html body#tt-body-index .briefing-intro .briefing-archive-icon { display:block; 
 html body#tt-body-index .briefing-intro .home-briefing-more > span { display:inline!important; margin:0!important; font:inherit!important; color:inherit!important; white-space:nowrap; }
 html body#tt-body-index .briefing-intro .home-briefing-more > i { position:static!important; flex:none; margin:0!important; transform:none!important; }
 @media(min-width:721px) {
-  html body#tt-body-index:has(.global-watchlist-drawer.is-open) .home-editorial-page .briefing-intro { margin-right:max(0px, calc(366px - (100vw - 100%) / 2))!important; flex-wrap:wrap; }
+  html body#tt-body-index:has(.global-watchlist-drawer.is-open) .home-editorial-page .briefing-intro { margin-right:max(0px, calc(400px - (100vw - 100%) / 2))!important; flex-wrap:wrap; }
   html body#tt-body-index .briefing-intro > div { min-width:0; }
 }
 html body#tt-body-index .home-editorial-page .briefing-card-grid { display:grid!important; grid-template-columns:minmax(0,1fr)!important; gap:18px!important; min-width:0; }
