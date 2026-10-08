@@ -1,0 +1,23 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+const source = fs.readFileSync(require('node:path').join(__dirname, '../js/home-realtime-table.js'), 'utf8');
+const start = source.indexOf('  function rowsForActive()');
+const end = source.indexOf('  function renderRows()', start);
+const stocks = [{code:'087010',change_rate:-29.94}];
+const regular = [{code:'A',change_rate:-2},{code:'B',change_rate:-10},{code:'C',change_rate:1}];
+const state = {market:'domestic',active:'falling',includeEtf:false,data:{sections:{fallingStocks:stocks,falling:regular}}};
+const context = {state,visibleRows:rows=>rows.filter(r=>!r.etf),usIndustryTop:()=>[]};
+vm.createContext(context);
+vm.runInContext(source.slice(start,end),context);
+assert.equal(context.rowsForActive().map(r=>r.code).join(','),'087010,B,A');
+// A current quote changing rank must also change the displayed order.
+regular[0].change_rate=-30;
+assert.equal(context.rowsForActive()[0].code,'A');
+state.data.sections.falling.push(stocks[0]);
+assert.equal(context.rowsForActive().filter(r=>r.code==='087010').length,1);
+state.active='rising';
+state.data.sections.risingStocks=[{code:'R',change_rate:29.9}];
+state.data.sections.rising=[{code:'S',change_rate:3},{code:'T',change_rate:9}];
+assert.equal(context.rowsForActive().map(r=>r.code).join(','),'R,T,S');
+console.log('Current-rate candidate union, ranking and deduplication passed');
