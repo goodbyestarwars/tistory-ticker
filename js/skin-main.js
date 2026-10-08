@@ -466,6 +466,105 @@ document.documentElement.classList.add('skin-ready');
      여기서는 카드 배치·요약 집계·수급 부호 기반 규칙문만 담당한다. */
   (function buildHomeDashboard() {
     if (location.pathname !== '/' && location.pathname !== '') return;
+    function initBriefingCarousel(section) {
+      var track = section.querySelector('.briefing-carousel-track');
+      var previous = section.querySelector('[data-briefing-prev]');
+      var next = section.querySelector('[data-briefing-next]');
+      var progress = section.querySelector('.briefing-carousel-progress');
+      var drag = null;
+      var suppressClick = false;
+      function sync() {
+        var max = Math.max(0, track.scrollWidth - track.clientWidth);
+        previous.disabled = track.scrollLeft <= 1;
+        next.disabled = track.scrollLeft >= max - 1;
+        progress.disabled = max <= 1;
+        progress.value = max ? Math.round(track.scrollLeft / max * 1000) : 0;
+      }
+      function move(direction) {
+        var card = track.querySelector('.home-briefing-card');
+        var step = card ? card.getBoundingClientRect().width + 24 : track.clientWidth;
+        track.scrollBy({ left: direction * step, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+      }
+      previous.addEventListener('click', function () { move(-1); });
+      next.addEventListener('click', function () { move(1); });
+      progress.addEventListener('input', function () {
+        track.scrollLeft = (track.scrollWidth - track.clientWidth) * Number(progress.value) / 1000;
+      });
+      track.addEventListener('scroll', sync, { passive: true });
+      window.addEventListener('resize', sync, { passive: true });
+      if (window.ResizeObserver) {
+        var sizeObserver = new ResizeObserver(sync);
+        sizeObserver.observe(track);
+      }
+      track.addEventListener('keydown', function (event) {
+        if (event.target !== track || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
+        event.preventDefault();
+        move(event.key === 'ArrowLeft' ? -1 : 1);
+      });
+      track.addEventListener('pointerdown', function (event) {
+        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button,input')) return;
+        drag = { id: event.pointerId, x: event.clientX, scroll: track.scrollLeft, moved: false };
+      });
+      track.addEventListener('pointermove', function (event) {
+        if (!drag || drag.id !== event.pointerId) return;
+        var delta = event.clientX - drag.x;
+        if (!drag.moved && Math.abs(delta) > 6) {
+          drag.moved = true;
+          track.setPointerCapture(event.pointerId);
+          track.classList.add('is-dragging');
+        }
+        if (!drag.moved) return;
+        event.preventDefault();
+        track.scrollLeft = drag.scroll - delta;
+      });
+      function finishDrag() {
+        if (!drag) return;
+        suppressClick = drag.moved;
+        if (track.hasPointerCapture(drag.id)) track.releasePointerCapture(drag.id);
+        drag = null;
+        track.classList.remove('is-dragging');
+        setTimeout(function () { suppressClick = false; }, 0);
+      }
+      window.addEventListener('pointerup', finishDrag);
+      window.addEventListener('pointercancel', finishDrag);
+      window.addEventListener('blur', finishDrag);
+      track.addEventListener('click', function (event) {
+        if (!suppressClick) return;
+        event.preventDefault();
+        event.stopPropagation();
+      }, true);
+      track.addEventListener('dragstart', function (event) { event.preventDefault(); });
+      requestAnimationFrame(sync);
+    }
+
+    function initHomePressPointer() {
+      var pointer = document.createElement('span');
+      pointer.className = 'home-press-pointer';
+      pointer.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(pointer);
+      var held = false;
+      var size = 40;
+      function position(event) { pointer.style.transform = 'translate3d(' + event.clientX + 'px,' + event.clientY + 'px,0)'; }
+      function hide() { held = false; pointer.classList.remove('is-visible'); }
+      document.addEventListener('pointerdown', function (event) {
+        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
+        held = true;
+        position(event);
+        pointer.classList.add('is-visible');
+      });
+      document.addEventListener('pointermove', function (event) { if (held) position(event); }, { passive: true });
+      window.addEventListener('pointerup', hide);
+      window.addEventListener('pointercancel', hide);
+      window.addEventListener('blur', hide);
+      document.addEventListener('visibilitychange', function () { if (document.hidden) hide(); });
+      document.addEventListener('wheel', function (event) {
+        if (!held || !event.deltaY) return;
+        event.preventDefault();
+        size = Math.max(20, Math.min(96, size + (event.deltaY < 0 ? 6 : -6)));
+        pointer.style.setProperty('--press-size', size + 'px');
+      }, { passive: false });
+    }
+
     var feed = document.querySelector('.feed');
     var investorMount = document.getElementById('investor-trend-widget');
     var rankMount = document.getElementById('sidebar-rank');
@@ -1842,7 +1941,7 @@ document.documentElement.classList.add('skin-ready');
         });
     }, 2000);
 
-    /* 최신 마켓브리핑 8건을 이야기 시리즈와 같은 소개 + 카드 격자로 표시한다. */
+    /* 최신 브리핑 8건: 제목 위, 큰 흰색 카드를 좌우로 넘기는 캐러셀. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
     var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 8);
@@ -1858,18 +1957,17 @@ document.documentElement.classList.add('skin-ready');
       briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑</strong>'
         + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
         + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M9 12h6"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
-        + '<div class="home-briefing-grid briefing-card-grid"></div>';
+        + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
+        + '<div class="briefing-carousel-controls"><input class="briefing-carousel-progress" type="range" min="0" max="1000" value="0" aria-label="브리핑 카드 이동 위치">'
+        + '<div><button type="button" data-briefing-prev aria-label="이전 브리핑">←</button><button type="button" data-briefing-next aria-label="다음 브리핑">→</button></div></div>';
       feed.appendChild(briefing);
       selectedCards.forEach(function (card, index) {
-        var grid = briefing.querySelector('.briefing-card-grid');
-        if (index % 4 === 0) {
-          var row = document.createElement('div');
-          row.className = 'briefing-card-row';
-          grid.appendChild(row);
-        }
         card.classList.add('home-briefing-card');
-        grid.lastElementChild.appendChild(card);
+        card.setAttribute('data-briefing-number', String(index + 1).padStart(2, '0'));
+        briefing.querySelector('.briefing-carousel-track').appendChild(card);
       });
+      initBriefingCarousel(briefing);
+      initHomePressPointer();
     } else {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
