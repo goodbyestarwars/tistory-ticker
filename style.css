@@ -8538,7 +8538,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   }
   html body .site-footer-learn .learn-card-grid::-webkit-scrollbar { display:none; }
   html body .site-footer-learn .learn-card-grid a.learn-card { width:100%!important; min-width:0!important; scroll-snap-align:start; }
-  html body .site-footer-learn .learn-mobile-controls { position:static!important; height:42px; display:flex!important; align-items:center!important; justify-content:space-between!important; gap:16px!important; margin:18px 0 0!important; }
+  html body .site-footer-learn .learn-mobile-controls { position:static!important; height:42px; display:flex!important; align-items:center!important; justify-content:center!important; gap:16px!important; margin:18px 0 0!important; }
   html body .site-footer-learn .learn-mobile-controls button { display:grid!important; place-items:center!important; color:rgba(var(--np-ink),.8); font:400 22px/1 var(--font-ui)!important; border:1px solid rgba(var(--np-ink),.18)!important; border-radius:50%!important; background:#fff!important; width:42px!important; height:42px!important; padding:0!important; cursor:pointer; }
   html body .site-footer-learn .learn-mobile-controls button:disabled { opacity:.3; cursor:default; }
   html body .site-footer-learn .learn-page-count { font:500 13px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.6)!important; }
