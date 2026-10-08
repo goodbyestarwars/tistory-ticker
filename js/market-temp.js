@@ -1450,6 +1450,9 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     if (stocksOnly) {
+      // 본문 스크립트·스킨 로더·DOMContentLoaded가 같은 화면을 다시 초기화하지 않는다.
+      if (container.__mtStocksInitialized) return;
+      container.__mtStocksInitialized = true;
       container.innerHTML = buildStocksOnlyPage();
       wireViewTabs(container);
       loadMoneyStrip_(container);
