@@ -7772,9 +7772,9 @@ html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section
   letter-spacing: -0.01em !important;
 }
 
-/* 작은 뉴스 제목은 획이 뭉쳐 보이지 않게 실제 세미볼드 글꼴을 사용한다. */
+/* 작은 뉴스 제목은 네이버 공식 Regular로 표시하고 합성 굵기를 사용하지 않는다. */
 html:not(.font-gothic) body :is(.hen-main strong, .app-news-body > strong, .app-news-body > b, .mn-row-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title) {
-  font-family:"MaruBuriSemiBold","MaruBuri","Maru Buri",Georgia,serif!important;
+  font-family:"MaruBuri","Maru Buri",Georgia,serif!important;
   font-weight:400!important;
   font-synthesis:none;
   letter-spacing:0!important;
