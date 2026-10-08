@@ -8218,6 +8218,31 @@ html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer
  html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) :is(a,button) { font-size:14px!important; padding-right:16px!important; }
  html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after { margin-left:16px!important; }
 }
+/* 종목 이름/인라인 표시만 톤을 낮춘다. 가격·등락 수치는 기존 의미색 유지. */
+html:not(.dark) body#tt-body-index .home-editorial-page .hrt-stock :is(a,strong) { color:#536174!important; }
+html:not(.dark) body .ticker-badge.ticker-up { color:#b45e58!important; }
+html:not(.dark) body .ticker-badge.ticker-down { color:#467ba5!important; }
+html:not(.dark) body .ticker-badge.ticker-flat { color:#717985!important; }
+html body .learn-card-area { min-width:0; }
+html body .learn-mobile-controls { display:none; }
+@media(max-width:720px) {
+  html body .site-footer-learn .learn-card-area { width:100%; min-width:0; }
+  html body .site-footer-learn .learn-card-grid { display:flex!important; gap:12px!important; overflow-x:auto!important; overflow-y:hidden!important; width:100%!important; min-width:0; padding:4px 0 10px!important; scroll-snap-type:x proximity; scrollbar-width:none; }
+  html body .site-footer-learn .learn-card-grid::-webkit-scrollbar { display:none; }
+  html body .site-footer-learn .learn-card-grid a.learn-card { flex:0 0 calc((100% - 12px) / 2)!important; width:calc((100% - 12px) / 2)!important; min-width:0!important; scroll-snap-align:start; box-sizing:border-box!important; }
+  html body .site-footer-learn .learn-mobile-controls { display:flex; justify-content:center; align-items:center; gap:22px; margin-top:12px; }
+  html body .site-footer-learn .learn-mobile-controls button { display:grid; place-items:center; width:42px; height:42px; padding:0; border:1px solid rgba(var(--np-ink),.18); border-radius:50%; background:#fff; color:rgba(var(--np-ink),.8); font:400 22px/1 var(--font-ui)!important; border:1px solid rgba(var(--np-ink),.18)!important; border-radius:50%!important; background:#fff!important; width:42px!important; height:42px!important; padding:0!important; }
+  html body .site-footer-learn .learn-mobile-controls button:disabled { opacity:.3; }
+  html body .site-footer-learn .learn-page-count { font:500 13px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.6)!important; }
+  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:0 16px!important; margin-top:20px!important; padding:18px 0!important; align-items:center!important; }
+  html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) :is(a,button) { display:flex!important; align-items:center; min-height:42px; padding:0!important; font-size:13px!important; text-align:left; white-space:nowrap; }
+  html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after { display:none!important; }
+  html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { gap:16px!important; margin-top:0!important; padding:24px 0 28px!important; align-items:flex-start!important; }
+  html body .site-footer-company .footer-falcon-logo { width:52px!important; height:52px!important; }
+  html body .site-footer-company .footer-company-copy { font-size:12px!important; }
+  html body .site-footer-company .footer-company-copy strong { font-size:14px!important; }
+}
+@media(max-width:360px) { html body .site-footer-learn .learn-card-grid a.learn-card { height:280px!important; } }
 html body .footer-falcon-logo { display:block; width:80px; height:80px; object-fit:cover; border-radius:12px; flex:none; }
 html body .footer-company-copy { min-width:0; font:400 14px/1.8 var(--font-ui)!important; color:rgba(var(--np-ink),.65)!important; }
 html body .footer-company-copy strong { display:block; font:600 16px/1.8 var(--font-ui)!important; color:rgb(var(--np-ink))!important; }
