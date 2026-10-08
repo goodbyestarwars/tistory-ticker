@@ -1,0 +1,23 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const now=Date.UTC(2026,9,8);
+class Clock extends Date { constructor(...args){super(...(args.length?args:[now]));} static now(){return now;} }
+const window={},document={createElement(){return {className:'',textContent:'',classList:{contains(){return true;}}};}};
+const context={window,document,Date:Clock,Promise,setTimeout,clearTimeout,isFinite};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('js/market-history.js','utf8'),context);
+vm.runInContext(fs.readFileSync('data/chart-history/domestic.js','utf8'),context);
+const source=fs.readFileSync('js/skin-main.js','utf8');
+vm.runInContext(source.slice(source.indexOf('    var HOME_USE_SAMPLE_CHARTS'),source.indexOf('    function formatHomeTimestamp')),context);
+const element={attrs:{},setAttribute(k,v){this.attrs[k]=v;},insertAdjacentElement(where,node){this.nextElementSibling=node;}};
+context.element=element;
+context.recent=[{date:'20261007',close:9999}];
+vm.runInContext("renderHomeIndexChart(element,recent,true,'KOSPI')",context);
+assert.ok(Number(element.attrs['data-history-count'])>1200,'home chart must retain five-year archive, not truncate to 48 bars');
+assert.match(element.attrs['data-history-range'],/최근 5년/);
+assert.equal(element.nextElementSibling.textContent,element.attrs['data-history-range']);
+const expected=window.MarketChartHistory.merge('KOSPI',context.recent);
+assert.equal(expected.at(-1).close,9999,'fresh quote history overrides archived date');
+assert.equal(Number(element.attrs['data-history-count']),expected.length);
+vm.runInContext("renderHomeIndexChart(element,recent,false,'KOSPI')",context);
+assert.equal(element.nextElementSibling.textContent,element.attrs['data-history-range']);
+console.log('PASS home five-year archive, no 48-bar truncation, fresh-date precedence, visible range caption');
