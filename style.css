@@ -8168,6 +8168,7 @@ html body#tt-body-index .briefing-card-grid .post-footer { display:flex!importan
 html body#tt-body-index .briefing-card-grid a { text-decoration:none!important; }
 @media(hover:hover) and (pointer:fine) and (min-width:1001px) {
   html body#tt-body-index .briefing-card-row:has(.home-briefing-card:hover) .home-briefing-card { flex:1 1 0; }
+  html body#tt-body-index .briefing-card-row:has(.home-briefing-card:hover) .home-briefing-card:not(:hover) { flex:1 1 0!important; }
   html body#tt-body-index .briefing-card-row .home-briefing-card:hover,
   html body#tt-body-index .briefing-card-row .home-briefing-card:focus-within { flex:2.2 1 0!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:0 12px 28px rgba(var(--np-ink),.08)!important; }
   html body#tt-body-index .briefing-card-row .home-briefing-card:is(:hover,:focus-within) .post-excerpt { -webkit-line-clamp:5; }
