@@ -1990,7 +1990,7 @@ document.documentElement.classList.add('skin-ready');
     if (selectedCards.length) {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong><span class="briefing-title-icon" aria-hidden="true">🪶</span> 마켓브리핑</strong>'
+      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M15 18h-5" /> <path d="M18 14h-8" /> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" /> <rect width="8" height="4" x="10" y="6" rx="1" /> </svg> 마켓브리핑</strong>'
         + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
         + '<a class="home-briefing-more" href="/category/마켓 브리핑"><svg class="briefing-archive-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="5" rx="1.5"/><path d="M5 8v11a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8M9 12h6"/></svg><span>브리핑 아카이브</span> <i aria-hidden="true">↗</i></a></div>'
         + '<div class="home-briefing-grid briefing-carousel-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
@@ -2007,7 +2007,7 @@ document.documentElement.classList.add('skin-ready');
     } else {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading"><div><strong><span class="briefing-title-icon" aria-hidden="true">🪶</span> 마켓브리핑</strong>'
+      briefing.innerHTML = '<div class="home-section-heading"><div><strong><svg class="briefing-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" > <path d="M15 18h-5" /> <path d="M18 14h-8" /> <path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2" /> <rect width="8" height="4" x="10" y="6" rx="1" /> </svg> 마켓브리핑</strong>'
         + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
         + '<div class="home-card-state">최신 마켓브리핑을 확인하는 중입니다.</div>'
         + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>마켓 브리핑</strong><i aria-hidden="true">→</i></a>';
