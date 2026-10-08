@@ -1855,14 +1855,20 @@ document.documentElement.classList.add('skin-ready');
     if (selectedCards.length) {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑<br>한눈에 보기</strong>'
-        + '<p>주가를 움직인 사건과 흐름,<br>핵심 해석을 짧게 살펴보세요.</p></div>'
+      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑</strong>'
+        + '<p>주가를 움직인 사건과 흐름, 핵심 해석을 살펴보세요.</p></div>'
         + '<a class="home-briefing-more" href="/category/마켓 브리핑">브리핑 아카이브 <i aria-hidden="true">↗</i></a></div>'
         + '<div class="home-briefing-grid briefing-card-grid"></div>';
       feed.appendChild(briefing);
-      selectedCards.forEach(function (card) {
+      selectedCards.forEach(function (card, index) {
+        var grid = briefing.querySelector('.briefing-card-grid');
+        if (index % 4 === 0) {
+          var row = document.createElement('div');
+          row.className = 'briefing-card-row';
+          grid.appendChild(row);
+        }
         card.classList.add('home-briefing-card');
-        briefing.querySelector('.briefing-card-grid').appendChild(card);
+        grid.lastElementChild.appendChild(card);
       });
     } else {
       briefing = document.createElement('section');
