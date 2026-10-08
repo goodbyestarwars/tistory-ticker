@@ -7772,12 +7772,18 @@ html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section
   letter-spacing: -0.01em !important;
 }
 
-/* 로고와 종목분석 판정은 같은 실제 Bold 파일을 사용한다. 로고 Regular+800 합성을 제거한다. */
-html:not(.font-gothic) body .nav-logo-name,
-html:not(.font-gothic) body #foreign-flow .ff-swing-summary strong,
-html:not(.font-gothic) body #foreign-flow .ff-swing-summary b {
+/* 로고는 실제 마루부리 Bold 파일을 사용한다. */
+html:not(.font-gothic) body .nav-logo-name {
   font-family:"MaruBuriBold","MaruBuri","Maru Buri",Georgia,serif!important;
   font-weight:400!important;
+  font-synthesis:none!important;
+  letter-spacing:-.01em!important;
+}
+
+/* 종목분석 판정 상자의 굵은 값은 기기 기본 고딕으로 표시한다. */
+html body #foreign-flow .ff-swing-summary :is(strong,b) {
+  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif!important;
+  font-weight:700!important;
   font-synthesis:none!important;
   letter-spacing:-.01em!important;
 }
