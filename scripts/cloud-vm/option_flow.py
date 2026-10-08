@@ -1,17 +1,7 @@
 # -*- coding: utf-8 -*-
-"""코스피200 옵션(콜/풋) 수급 요약 - KIS 옵션 시세판(display-board-callput, TR FHPIF05030100)을
-5분마다 폴링해서 콜/풋 전체 거래량·미결제약정(OI)·OI증감을 집계·저장한다.
-
-"신규 vs 청산" 을 투자자 유형별(외국인/기관/개인)로 쪼개서 보여달라는 원 요청은 KIS/키움
-어디에도 그런 API가 없어 포기했다(gas 쪽 종목 선물수급 조사 때와 동일 결론). 대신 원 지시서의
-대안 방침("API가 직접 안 주면 거래량+OI 변화로 추정")을 그대로 따라 콜 전체/풋 전체 단위로만
-'신규 우세/청산 우세'를 추정한다(개별 투자자 매수/매도 방향까지는 추정 불가 - 그런 정밀도의
-데이터 자체가 없음).
-
-콜/풋 구분은 응답에 명시적 필드가 없어 위치(output1=콜, output2=풋)로 판단한다 - 요청
-파라미터 순서(FID_MRKT_CLS_CODE=CO, FID_MRKT_CLS_CODE1=PO)와 실측 시 delta_val 부호
-(콜은 양수, 풋은 음수인 금융공식상 항상 성립하는 사실)가 둘 다 이 순서를 가리켜서 채택함
-(kis_client.fetch_option_board 참고)."""
+"""KIS 옵션 전광판의 최근월물 콜·풋 각 최대100행 거래량·OI·OI증감을 5분마다 저장한다.
+조회범위의 합계이며 전체 시장 합계가 아니다. OI 증감으로 매수·매도 방향을 추정하지 않는다.
+output1=콜/output2=풋은 요청 CO/PO와 kis_client의 델타 부호 교차검증을 따른다."""
 
 import logging
 import asyncio
@@ -24,6 +14,7 @@ from datetime import datetime, timedelta, timezone
 import db_schema
 import kis_client
 import kis_ws_hub
+import market_clock
 import polling
 
 logger = logging.getLogger('option_flow')
@@ -103,11 +94,15 @@ def _second_thursday(year, month):
     return first_thu + timedelta(days=7)
 
 
-def nearest_option_maturity_yyyymm():
-    """코스피200 옵션은 매월 둘째주 목요일 만기 - 이번 달 만기가 이미 지났으면 다음 달로."""
-    now = datetime.now()
+def nearest_option_maturity_yyyymm(now=None):
+    """둘째 목요일(휴장일이면 직전 거래일) 15:20 KST 이후 다음 월물로 전환."""
+    kst = timezone(timedelta(hours=9))
+    now = now or datetime.now(kst)
+    now = now.replace(tzinfo=kst) if now.tzinfo is None else now.astimezone(kst)
     maturity = _second_thursday(now.year, now.month)
-    if now.date() > maturity.date():
+    while not market_clock.is_kr_trading_day(maturity):
+        maturity -= timedelta(days=1)
+    if now.date() > maturity.date() or (now.date() == maturity.date() and (now.hour, now.minute) >= (15, 20)):
         year, month = (now.year + 1, 1) if now.month == 12 else (now.year, now.month + 1)
     else:
         year, month = now.year, now.month

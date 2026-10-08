@@ -662,6 +662,51 @@
     return visibleRows((state.data && state.data.rows) || []);
   }
 
+  var week52Cache = {};
+  var week52Pending = {};
+  function fillVisibleWeek52(rows) {
+    if (state.market !== 'us' || state.active === 'industry' || document.hidden) return;
+    function apply() {
+      if (!state.mount || state.market !== 'us') return;
+      state.mount.querySelectorAll('tr[data-code]').forEach(function (row) {
+        var symbol = row.getAttribute('data-code').replace(/^US:/, '');
+        var cached = week52Cache[symbol];
+        if (!cached) return;
+        [['week52High', 'week52_high'], ['week52Low', 'week52_low']].forEach(function (field) {
+          var cell = row.querySelector('[data-field="' + field[0] + '"]');
+          if (cell && cached[field[1]] != null) cell.textContent = fmtPrice(cached[field[1]], 'USD');
+        });
+      });
+    }
+    var symbols = [];
+    rows.forEach(function (row) {
+      var symbol = row.symbol || String(row.code || '').replace(/^US:/, '');
+      if (!symbol || (row.week52_high != null && row.week52_low != null)) return;
+      var cached = week52Cache[symbol];
+      if ((!cached || Date.now() - cached.at > cached.ttl) && !week52Pending[symbol]) symbols.push(symbol);
+    });
+    apply();
+    if (!symbols.length) return;
+    symbols.forEach(function (symbol) { week52Pending[symbol] = true; });
+    fetch('https://goodbyestar.cloud/us-quotes?symbols=' + encodeURIComponent(symbols.join(',')))
+      .then(function (response) { if (!response.ok) throw new Error('52주 시세 조회'); return response.json(); })
+      .then(function (response) {
+        var items = (response.data || response).items || [];
+        items.forEach(function (item) {
+          week52Cache[item.symbol] = { week52_high: item.week52_high, week52_low: item.week52_low,
+            at: Date.now(), ttl: item.week52_high != null && item.week52_low != null ? 15 * 60 * 1000 : 120000 };
+        });
+        apply();
+      }).catch(function () {})
+      .finally(function () {
+        symbols.forEach(function (symbol) {
+          delete week52Pending[symbol];
+          if (!week52Cache[symbol]) week52Cache[symbol] = { at: Date.now(), ttl: 120000 };
+          else if (Date.now() - week52Cache[symbol].at > week52Cache[symbol].ttl) { week52Cache[symbol].at = Date.now(); week52Cache[symbol].ttl = 120000; }
+        });
+      });
+  }
+
   function renderRows() {
     if (!state.mount) return;
     var body = state.mount.querySelector('[data-hrt-body]');
@@ -674,6 +719,7 @@
       }).join('')
       : '<tr><td colspan="' + tableColspan() + '" class="hrt-state">' + emptyStateText() + '</td></tr>';
     renderTableHead();
+    fillVisibleWeek52(rows);
     var foot = state.mount.querySelector('[data-hrt-foot]');
     if (foot) foot.textContent = state.active === 'industry'
       ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')

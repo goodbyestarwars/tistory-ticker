@@ -1,0 +1,16 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
+let source = fs.readFileSync('js/pattern-scan.js', 'utf8');
+source = source.replace("  'use strict';", "  'use strict'; global.review = scannerReviewHtml; global.statusHtml = trackStatusHtml;");
+const window = {};
+vm.runInNewContext(source, {window, document: {readyState: 'loading', addEventListener() {}}, setInterval() {}, location: {search: ''}, URLSearchParams});
+assert.ok(window.review({total:10, failed:4, days:90}).includes('검색기 수정 대상'));
+assert.ok(!window.review({total:10, failed:3, days:90}).includes('검색기 수정 대상'));
+assert.ok(window.review({total:11, failed:4, days:90}).includes('36.4%'));
+assert.ok(window.review({total:10, failed:4, days:90}).includes('최근 90일'));
+assert.equal(window.review({total:0}), '');
+assert.ok(window.statusHtml({status:'FAILED', fail_reason:'MA5_BREAK'}).includes('ps-track-fail-reason'));
+assert.ok(window.statusHtml({status:'FAILED', fail_reason:'MA5_BREAK'}).includes('5일선 이탈'));
+assert.ok(!fs.readFileSync('js/stock-calendar.js', 'utf8').includes('loadEconomicResults'));
+console.log('chart threshold, monitoring period, two-line status and calendar removal passed');

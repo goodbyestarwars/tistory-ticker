@@ -271,6 +271,13 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/market-rank?limit=10"` |
 | 오류 응답 예시 | 키움 호출 실패 → 502 |
 
+### `GET /sector-quotes?codes=005930,000660`
+
+카테고리 모니터링 공개 시세. 최대 300개 6자리 코드·중복 제거·IP 분당20회.
+`data` 배열의 `code,name,price,change,changeRate,volume,market,time`은 `/domestic-quotes`와 동일하다.
+기존 5초/300종목 캐시·전체 다운로드 잠금을 공유하고 누락 종목만 60개씩 최대4배치 병렬 조회한다.
+새 폴러·DB 없음. 기존 `/domestic-quotes`는 30코드·분당60회 제한을 유지한다.
+
 ### `GET /option-flow`
 
 | 항목 | 내용 |
@@ -279,8 +286,8 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 필수 파라미터 | 없음 |
 | 선택 파라미터 | 없음 |
 | 응답 JSON 구조 | `data = {"CALL":{"side":"CALL","volume","oi","oi_change","updated_at"},"PUT":{"side":"PUT","volume","oi","oi_change","updated_at"}}` |
-| 데이터 단위 | `volume`/`oi`/`oi_change`: 계약수(콜·풋 전체 합산) |
-| 시장 범위 | 코스피200 옵션, 최근월물 자동 판별(매월 둘째주 목요일 만기 기준) |
+| 데이터 단위 | `volume`/`oi`/`oi_change`: 계약수(KIS가 반환한 콜·풋 각 최대100행 합산, 전체시장 합계 아님) |
+| 시장 범위 | 코스피200 옵션, 최근월물 자동 판별(매월 둘째주 목요일(휴장일이면 직전 거래일) 15:20 KST 만기 기준) |
 | 데이터 갱신 주기 | 5분 주기 백그라운드 폴러(KIS `FHPIF05030100`) |
 | 캐시 시간 | 엔드포인트 자체 캐시 없음(SQLite 즉시 읽기) — 5분 수집 주기가 곧 갱신 주기 |
 | 호출 예시 | `curl "https://goodbyestar.cloud/option-flow"` |

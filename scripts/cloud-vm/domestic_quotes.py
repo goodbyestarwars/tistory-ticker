@@ -1,4 +1,5 @@
 """검색·호가의 네이버 시세를 GAS 경유 없이 조회한다. 타이머 없이 요청 시에만 실행."""
+from concurrent.futures import ThreadPoolExecutor
 from collections import OrderedDict
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -17,10 +18,10 @@ MAX_CACHE = 300
 KST = timezone(timedelta(hours=9))
 
 
-def normalize_codes(raw):
+def normalize_codes(raw, max_codes=MAX_CODES):
     codes = list(dict.fromkeys(str(raw).upper().split(',')))
-    if not codes or len(codes) > MAX_CODES or any(not re.fullmatch(r'[0-9A-Z]{6}', c) for c in codes):
-        raise ValueError('종목코드는 6자리, 최대 30개입니다.')
+    if not codes or len(codes) > max_codes or any(not re.fullmatch(r'[0-9A-Z]{6}', c) for c in codes):
+        raise ValueError('종목코드는 6자리, 최대 %d개입니다.' % max_codes)
     return codes
 
 
@@ -70,9 +71,19 @@ def fetch_quotes(codes):
     with _download_slot():
         now = time.monotonic()
         missing = [c for c in codes if c not in _cache or now - _cache[c]['t'] >= 5]
+        for code in codes:
+            if code in _cache and code not in missing:
+                _cache.move_to_end(code)
         if missing:
-            url = data.NAVER_POLLING_URL + urllib.parse.quote(','.join(missing), safe=',')
-            rows = parse(data._get_json(url, timeout=6, encoding='euc-kr'), datetime.now(KST))
+            def load_batch(batch):
+                url = data.NAVER_POLLING_URL + urllib.parse.quote(','.join(batch), safe=',')
+                return parse(data._get_json(url, timeout=6, encoding='euc-kr'), datetime.now(KST))
+            batches = [missing[i:i + 60] for i in range(0, len(missing), 60)]
+            if len(batches) == 1:
+                rows = load_batch(batches[0])
+            else:
+                with ThreadPoolExecutor(max_workers=4) as pool:
+                    rows = [row for batch in pool.map(load_batch, batches) for row in batch]
             if not rows:
                 raise RuntimeError('현재가 공급자 응답이 비어 있습니다.')
             requested = set(missing)

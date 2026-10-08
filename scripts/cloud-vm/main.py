@@ -1622,6 +1622,20 @@ async def market_indicators_socket(websocket: WebSocket):
             pass
 
 
+@app.get('/sector-quotes')
+def sector_quotes_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=2099)):
+    """카테고리 모니터링용 최대 300코드, 기존 시세 캐시·다운로드 잠금 공유."""
+    _check_rate_limit('sector_quotes', request, max_per_window=20)
+    try:
+        normalized = domestic_quotes.normalize_codes(codes, max_codes=300)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    try:
+        return envelope(domestic_quotes.fetch_quotes(normalized))
+    except Exception as exc:
+        raise _upstream_http_exception('카테고리 시세를 불러오지 못했습니다.', exc) from exc
+
+
 @app.get('/domestic-quotes')
 def domestic_quotes_endpoint(request: Request, codes: str = Query(..., min_length=6, max_length=209)):
     """검색·호가용 공개 시세. 최대 30종목, 5초/300종목 캐시, 동시 다운로드 1건."""

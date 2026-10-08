@@ -50,7 +50,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `short-pressure.js` | 279 | 공매도 압박 점수 위젯 | `window.ShortPressure`, `#short-pressure` | GAS `?action=shortPressure&code=` |
 | `sidebar-rank.js` | 285 | 우측 사이드바 실시간 랭킹(거래량/등락률 TOP) | `window.SidebarRank`, `#sidebar-rank` | VM `/market-rank` |
 | `stock-calendar.js` | 285 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | **Google Calendar API(키 하드코딩, 리퍼러 제한 적용됨)**, VM `/earnings-calendar` |
-| `sector-dashboard-v4.js` | 300 | 섹터별 카드/히트맵(증시온도 위젯이 재사용) | `window.SectorDashboard`, `#sector-dashboard` | GAS `?codes=`, `?marketAnalysis=1` |
+| `sector-dashboard-v4.js` | 300 | 섹터별 카드/히트맵(증시온도 위젯이 재사용) | `window.SectorDashboard`, `#sector-dashboard` | VM `/sector-quotes` 우선·GAS `?codes=` 폴백, `?marketAnalysis=1` |
 | `investor-trend-widget.js` | 320 | 홈 전용 투자자별(개인/외국인/기관) 매매동향 표 | `window.InvestorTrendWidget`, `#investor-trend-widget` | VM `/investor-trend` |
 | `stock-search-panel.js` | 446 | 사이드바 종목검색 드롭다운(즐겨찾기/최근검색) | `window.StockSearchPanel`, `#navSearchInput` | GAS `?codes=`, `data/krx_map.js` 지연로드 |
 | `ticker-tooltip-v5.js` | 492 | 본문 내 `$종목명` 자동 감지 → 뱃지/툴팁 | `window.TickerTooltip`, `.post-single-body` | GAS `?codes=`, 네이버 차트 이미지 |

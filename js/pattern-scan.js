@@ -158,7 +158,7 @@
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
-      + '<div class="ps-view-tabs" id="psViewTabs" role="tablist">'
+      + '<div data-scanner-review></div><div class="ps-view-tabs" id="psViewTabs" role="tablist">'
       + STAGE_VIEWS.map(function (v, i) {
         return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
@@ -827,6 +827,8 @@
       if (counts[k] != null) counts[k] += 1;
     });
     if (stats) { counts.success = stats.success || 0; counts.failed = stats.failed || 0; }
+    var review = container.querySelector('[data-scanner-review]');
+    if (review) review.innerHTML = scannerReviewHtml(stats);
     container.querySelectorAll('#psViewTabs [data-count]').forEach(function (el) {
       var n = counts[el.getAttribute('data-count')];
       el.textContent = n == null ? '' : ' ' + n;
@@ -917,8 +919,18 @@
 
   function trackStatusHtml(t) {
     var st = TRACK_STATUS[t.status] || TRACK_STATUS.TRACKING;
-    var reason = t.status === 'FAILED' && t.fail_reason ? ' · ' + (TRACK_FAIL_REASON[t.fail_reason] || t.fail_reason) : '';
-    return '<span class="ps-track-status ' + st.tone + '">' + escapeHtml(st.label + reason) + '</span>';
+    var reason = t.status === 'FAILED' && t.fail_reason ? (TRACK_FAIL_REASON[t.fail_reason] || t.fail_reason) : '';
+    return '<span class="ps-track-status ' + st.tone + '">' + escapeHtml(st.label) + (reason ? '<span class="ps-track-fail-reason">' + escapeHtml(reason) + '</span>' : '') + '</span>';
+  }
+
+  function scannerReviewHtml(stats) {
+    if (!stats || !stats.total) return '';
+    var failed = Number(stats.failed || 0), total = Number(stats.total);
+    var rate = failed / total * 100;
+    return '<div class="ps-scanner-review' + (failed * 10 >= total * 4 ? ' is-review' : '') + '">'
+      + (failed * 10 >= total * 4 ? '<b>검색기 수정 대상</b> · ' : '')
+      + '돌파실패 ' + failed + '/' + total + '건 (' + rate.toFixed(1) + '%)'
+      + ' · 최근 ' + escapeHtml(stats.days || 90) + '일 포착 기준 · 40% 이상이면 수정 대상</div>';
   }
 
   function trackStatsHtml(stats) {
@@ -928,7 +940,7 @@
       + cell('최근 ' + stats.days + '일 포착', stats.total + '건')
       + cell('추적 중', stats.active + '건')
       + cell('돌파 성공', (stats.success || 0) + '건' + (stats.total ? ' (' + Math.round((stats.success || 0) / stats.total * 100) + '%)' : ''))
-      + cell('돌파 실패', (stats.failed || 0) + '건')
+      + cell('돌파 실패', (stats.failed || 0) + '건 (' + ((stats.failed || 0) / stats.total * 100).toFixed(1) + '%)')
       + cell('평균 5일', trackPct(stats.avgRet5Pct))
       + cell('평균 10일', trackPct(stats.avgRet10Pct))
       + cell('평균 최대 상승', trackPct(stats.avgMaxReturnPct))
@@ -952,6 +964,8 @@
       if (scannerKey(activeTab) !== key || (trackView !== 'success' && trackView !== 'failed')) return;
       var tracks = (data && data.tracks) || [];
       var head = trackStatsHtml(data && data.stats);
+      var review = container.querySelector('[data-scanner-review]');
+      if (review) review.innerHTML = scannerReviewHtml(data && data.stats);
       if (!tracks.length) {
         list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'success' ? '아직 돌파 성공(포착가 대비 장중 +5%)한 종목이 없어요.' : '아직 5일선 이탈로 돌파 실패한 종목이 없어요.') + '</div>';
         return;
