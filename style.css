@@ -8533,12 +8533,12 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     display:grid!important; grid-template-columns:none!important;
     grid-template-rows:repeat(2,auto)!important; grid-auto-flow:column!important;
     grid-auto-columns:calc((100% - (var(--learn-columns) - 1) * 18px) / var(--learn-columns))!important;
-    column-gap:18px!important; row-gap:76px!important; width:100%!important; overflow-x:auto!important; overflow-y:hidden!important;
+    column-gap:18px!important; row-gap:18px!important; width:100%!important; overflow-x:auto!important; overflow-y:hidden!important;
     padding:4px 0 10px!important; scroll-snap-type:x proximity; scrollbar-width:none;
   }
   html body .site-footer-learn .learn-card-grid::-webkit-scrollbar { display:none; }
   html body .site-footer-learn .learn-card-grid a.learn-card { width:100%!important; min-width:0!important; scroll-snap-align:start; }
-  html body .site-footer-learn .learn-mobile-controls { position:absolute!important; top:calc(4px + var(--learn-row-height) + 17px)!important; left:0; right:0; height:42px; display:flex!important; align-items:center!important; justify-content:space-between!important; gap:16px!important; margin:0!important; }
+  html body .site-footer-learn .learn-mobile-controls { position:static!important; height:42px; display:flex!important; align-items:center!important; justify-content:space-between!important; gap:16px!important; margin:18px 0 0!important; }
   html body .site-footer-learn .learn-mobile-controls button { display:grid!important; place-items:center!important; color:rgba(var(--np-ink),.8); font:400 22px/1 var(--font-ui)!important; border:1px solid rgba(var(--np-ink),.18)!important; border-radius:50%!important; background:#fff!important; width:42px!important; height:42px!important; padding:0!important; cursor:pointer; }
   html body .site-footer-learn .learn-mobile-controls button:disabled { opacity:.3; cursor:default; }
   html body .site-footer-learn .learn-page-count { font:500 13px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.6)!important; }
