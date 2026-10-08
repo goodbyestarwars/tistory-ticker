@@ -1713,9 +1713,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 올릴꺼야"): 릴리스 노트는 사이트 안내라 첫 줄, 둘째 줄은 매매 읽을거리 전용이다.
         self.assertIn("릴리스 노트", first_row)
         self.assertNotIn("주식 이야기", first_row)
-        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
-        self.assertIn("주식 이야기", learn_row[:600])
-        self.assertNotIn("릴리스 노트", learn_row[:600],
+        learn_row = shell[shell.index('site-footer-links site-footer-learn'):].split('</nav>', 1)[0]
+        self.assertIn("주식 이야기", learn_row)
+        self.assertNotIn("릴리스 노트", learn_row,
                          '둘째 줄은 매매에 도움되는 글만 둔다 - 사이트 안내는 첫 줄이다')
         # 2026-09-21(2차) 사용자 지적: 읽을거리 줄에 "주식 이야기" 하나뿐인데 그 앞에도
         # 구분자가 붙어 있었다 - :not(:first-child) 가드로 첫 항목만 뺐다.
@@ -1860,7 +1860,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
                 for svg in re.findall(r"<svg.*?</svg>", page, re.S):
                     self.assertNotIn("<b>", svg)
         # 풋터 읽을거리 줄에 "주식 이야기"와 나란히(같은 nav 안에) 붙는다.
-        learn_row = shell[shell.index('site-footer-links site-footer-learn'):]
+        learn_row = shell[shell.index('site-footer-links site-footer-learn'):].split('</nav>', 1)[0]
         learn_row = learn_row[:learn_row.index('</nav>')]
         for token in ("주식 이야기", "미국 주식 이야기", "차트 이야기", "채권 이야기", "코인 이야기",
                       "환율 이야기", "ETF 이야기", "기업분석 이야기", "경제 이야기"):

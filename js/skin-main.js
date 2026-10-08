@@ -1197,13 +1197,24 @@ document.documentElement.classList.add('skin-ready');
           return { close: close, timestamp: index };
         });
       }
+      if (window.MarketChartHistory) return window.MarketChartHistory.merge(key === 'kospiNight' ? 'KOSPI200_NIGHT' : key, rows);
       return rows;
     }
 
     function renderHomeIndexChart(element, rows, positive, key) {
       if (!element) return;
-      var values = (homeChartRows(rows, key) || []).map(function (row) { return Number(row && row.close); })
-        .filter(function (value) { return isFinite(value); }).slice(-48);
+      var chartRows = homeChartRows(rows, key) || [];
+      var values = chartRows.map(function (row) { return Number(row && row.close); })
+        .filter(function (value) { return isFinite(value); });
+      var caption = window.MarketChartHistory ? window.MarketChartHistory.caption(chartRows) : '최근 이력';
+      element.setAttribute('data-history-count', String(values.length));
+      element.setAttribute('data-history-range', caption);
+      element.setAttribute('title', caption);
+      var note = element.nextElementSibling;
+      if (!note || !note.classList.contains('home-index-history-caption')) {
+        note = document.createElement('small'); note.className = 'home-index-history-caption'; element.insertAdjacentElement('afterend', note);
+      }
+      note.textContent = caption;
       if (values.length < 2) {
         element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
         return;
@@ -1401,8 +1412,18 @@ document.documentElement.classList.add('skin-ready');
       });
     }
 
+    var homeHistoryJobs = {};
+    function loadHomeHistory(session) {
+      var group = session.market === 'us' ? 'global' : 'domestic';
+      if (homeHistoryJobs[group]) return;
+      homeHistoryJobs[group] = loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/market-history.js?v=20261008-home-5y', 'MarketChartHistory')
+        .then(function (history) { return history.load(group); })
+        .then(function () { if (latestHomeIndices) renderHomeIndices(latestHomeIndices); })
+        .catch(function () { /* 이력 로딩 실패 시 기존 최근 자료로 시세 화면을 유지한다. */ });
+    }
     function loadHomeIndices() {
       var session = homeMarketSession();
+      loadHomeHistory(session);
       applyHomeMarketSession(session);
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'

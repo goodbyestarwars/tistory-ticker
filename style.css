@@ -7772,6 +7772,14 @@ html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section
   letter-spacing: -0.01em !important;
 }
 
+/* 작은 뉴스 제목은 획이 뭉쳐 보이지 않게 실제 세미볼드 글꼴을 사용한다. */
+html:not(.font-gothic) body :is(.hen-main strong, .app-news-body > strong, .app-news-body > b, .mn-row-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title) {
+  font-family:"MaruBuriSemiBold","MaruBuri","Maru Buri",Georgia,serif!important;
+  font-weight:400!important;
+  font-synthesis:none;
+  letter-spacing:0!important;
+}
+
 /* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */
 html body .global-watchlist-toggle {
   border: 1px solid rgba(var(--np-ink), .12) !important;
@@ -8092,9 +8100,9 @@ html body .learn-intro p { margin:0!important; font-size:17px!important; line-he
 html body .learn-intro-note { display:block; margin-top:48px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
 html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:18px!important; min-width:0; counter-reset:story; }
 html body .site-footer-learn a.learn-card {
-  position:relative!important; display:flex!important; flex-direction:column!important; justify-content:flex-end!important;
-  min-width:0!important; width:100%!important; max-width:none!important; height:230px!important; box-sizing:border-box!important;
-  padding:28px 24px!important; gap:12px!important; border:1px solid rgba(var(--np-ink),.14)!important; border-radius:28px!important;
+  position:relative!important; display:grid!important; grid-template-rows:56px auto minmax(0,1fr) auto!important;
+  min-width:0!important; width:100%!important; max-width:none!important; height:260px!important; box-sizing:border-box!important;
+  padding:24px!important; gap:10px!important; border:1px solid rgba(var(--np-ink),.14)!important; border-radius:28px!important;
   background:#fff!important; backdrop-filter:none!important; -webkit-backdrop-filter:none!important; box-shadow:none!important;
   text-align:left!important; text-decoration:none!important; white-space:normal!important; color:rgb(var(--np-ink))!important;
   transition:border-color .2s,transform .2s!important; counter-increment:story;
@@ -8102,8 +8110,9 @@ html body .site-footer-learn a.learn-card {
 html body .site-footer-learn a.learn-card::before { content:counter(story,decimal-leading-zero)!important; display:block!important; position:absolute; top:26px; right:24px; font:14px/1 var(--font-ui)!important; color:rgba(var(--np-ink),.4)!important; }
 html body .site-footer-learn a.learn-card::after { content:"↗"!important; display:block!important; width:auto!important; height:auto!important; background:none!important; border:0!important; position:absolute; bottom:28px; right:24px; margin:0!important; padding:0!important; font-size:18px!important; color:rgba(var(--np-ink),.45)!important; }
 html body .site-footer-learn a.learn-card svg { position:absolute!important; top:24px!important; left:24px!important; width:48px!important; height:48px!important; padding:10px!important; box-sizing:border-box!important; border-radius:50%!important; background:var(--lc-a)!important; color:#334155!important; }
-html body .site-footer-learn a.learn-card b { font-family:"MaruBuriBold","MaruBuri",serif!important; font-size:23px!important; font-weight:400!important; line-height:1.5!important; white-space:normal!important; word-break:keep-all!important; color:rgb(var(--np-ink))!important; text-decoration:none!important; }
-html body .site-footer-learn a.learn-card small { padding-right:24px; font:400 13px/1.5 var(--font-ui)!important; white-space:normal!important; color:rgba(var(--np-ink),.55)!important; text-decoration:none!important; }
+html body .site-footer-learn a.learn-card b { grid-row:2; font-family:"MaruBuriBold","MaruBuri",serif!important; font-size:23px!important; font-weight:400!important; line-height:1.5!important; white-space:normal!important; word-break:keep-all!important; color:rgb(var(--np-ink))!important; text-decoration:none!important; }
+html body .site-footer-learn a.learn-card small { grid-row:4; padding-right:24px; font:400 13px/1.5 var(--font-ui)!important; white-space:normal!important; color:rgba(var(--np-ink),.55)!important; text-decoration:none!important; }
+html body .site-footer-learn .learn-description { grid-row:3; font:400 13px/1.7 var(--font-ui)!important; white-space:normal!important; word-break:keep-all; overflow-wrap:anywhere; color:rgba(var(--np-ink),.7)!important; }
 html body .site-footer-learn a.learn-card:hover { transform:translateY(-3px)!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:none!important; }
 html.dark body .site-footer-learn a.learn-card { background:var(--np-paper)!important; }
 html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(var(--np-ink)); outline-offset:4px; }
@@ -8119,10 +8128,11 @@ html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(
   html body .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:12px!important; }
   html body .learn-intro h2 { font-size:30px!important; }
   html body .learn-intro p { font-size:15px!important; }
-  html body .site-footer-learn a.learn-card { height:210px!important; padding:22px 16px!important; border-radius:22px!important; gap:8px!important; }
+  html body .site-footer-learn a.learn-card { height:240px!important; grid-template-rows:40px auto minmax(0,1fr) auto!important; padding:22px 16px!important; border-radius:22px!important; gap:8px!important; }
   html body .site-footer-learn a.learn-card svg { top:20px!important; left:16px!important; width:40px!important; height:40px!important; padding:8px!important; }
   html body .site-footer-learn a.learn-card b { font-size:18px!important; }
   html body .site-footer-learn a.learn-card small { font-size:11px!important; }
+  html body .site-footer-learn .learn-description { font-size:12px!important; line-height:1.65!important; }
   html body .site-footer-learn a.learn-card::before { top:23px; right:16px; font-size:12px!important; }
   html body .site-footer-learn a.learn-card::after { bottom:22px; right:16px; }
 }
@@ -8366,4 +8376,9 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body .global-watchlist-toggle { width: 16px !important; min-width: 16px !important; min-height: 52px !important; opacity: .6 !important; }
     html body .global-watchlist-toggle-icon { font-size: 11px !important; letter-spacing: -3px !important; margin: 0 !important; }
   }
+}
+
+@layer np {
+  html body .home-night-futures-chart[hidden] + .home-index-history-caption { display:none!important; }
+  html body .home-index-history-caption { display:block; margin-top:5px; font:400 10px/1.4 var(--font-ui)!important; color:rgba(var(--np-ink),.55)!important; }
 }
