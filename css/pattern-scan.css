@@ -842,3 +842,9 @@ html.dark #pattern-scan .ps-footnote b {
 html.dark #pattern-scan .ps-stage.is-new { background: rgba(99, 102, 241, .22); color: #c7d2fe; }
 html.dark #pattern-scan .ps-stage.is-ready { background: rgba(245, 158, 11, .22); color: #fde68a; }
 html.dark #pattern-scan .ps-stage.is-hold { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+
+#pattern-scan .ps-track-chip { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; box-sizing: border-box; }
+#pattern-scan .ps-track-status { white-space: normal; max-width: 100%; box-sizing: border-box; text-align: center; line-height: 1.5; padding: 6px 10px; }
+#pattern-scan .ps-track-fail-reason { display: block; white-space: normal; }
+#pattern-scan .ps-scanner-review { margin: 8px 0; padding: 8px 12px; font-size: 13px; line-height: 1.6; }
+#pattern-scan .ps-scanner-review.is-review { background: rgba(210, 79, 69, .1); }

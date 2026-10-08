@@ -19,6 +19,12 @@ const realFetchBatch = SD.fetchBatch;
   await realFetchBatch(['005930']);
   assert.ok(timers[0] > 9200, 'normal 9.2s GAS response must fit the request deadline');
 
+  context.fetch = async url => {
+    assert.ok(url.includes('/sector-quotes?codes='));
+    return { ok: true, json: async () => ({ data: ['005930', '000660'].map(quote) }) };
+  };
+  assert.equal((await SD.fetchTickerData(['005930', '000660'])).length, 2);
+  context.fetch = async () => { throw new Error('VM offline'); };
   const calls = [];
   SD.fetchBatch = async codes => {
     calls.push([...codes]);

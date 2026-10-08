@@ -492,33 +492,6 @@
       + '</section>';
   }
 
-  var macroModuleLoad = null;
-  function loadMacroResultsModule() {
-    if (global.UsMacroIndicators && global.UsMacroIndicators.fetchResults) return Promise.resolve(global.UsMacroIndicators);
-    if (macroModuleLoad) return macroModuleLoad;
-    macroModuleLoad = new Promise(function (resolve, reject) {
-      var script = document.createElement('script');
-      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-macro-indicators.js?v=20261008-stock-impact';
-      script.async = true;
-      script.onload = function () {
-        if (global.UsMacroIndicators && global.UsMacroIndicators.fetchResults) resolve(global.UsMacroIndicators);
-        else { macroModuleLoad = null; reject(new Error('경제 데이터 모듈')); }
-      };
-      script.onerror = function () { macroModuleLoad = null; reject(new Error('경제 데이터 로드')); };
-      document.head.appendChild(script);
-    });
-    return macroModuleLoad;
-  }
-
-  function renderEconomicResults(state) {
-    var content = state.macroHtml || '<p class="sc-empty">' + (state.macroLoading
-      ? '미국 경제 데이터를 불러오는 중이야.' : '결과를 불러오지 못했어. 다시 확인해줘.') + '</p>';
-    return '<section class="sc-econ-results" aria-label="미국 경제 데이터 결과"><div class="sc-econ-head">'
-      + '<div><h2>미국 경제 데이터 결과</h2><p>달력의 선택 날짜와 별개로 최신 확인값을 보여줘. 수정된 값이 반영될 수 있고, 발표 당시 속보값·예상치는 제공하지 않아.</p></div>'
-      + '<button type="button" class="sc-cal-today" data-calendar-action="macro-refresh"' + (state.macroLoading ? ' disabled' : '')
-      + '>' + (state.macroLoading ? '확인 중' : '결과 갱신') + '</button></div><div class="umi-grid" data-calendar-macro-cards>' + content + '</div></section>';
-  }
-
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
@@ -526,14 +499,6 @@
       + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 공시 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
       + '<small id="scDisclosureScope"></small></div><div data-calendar-content></div>';
     var calendarContent = container.querySelector('[data-calendar-content]');
-    if (!document.querySelector('link[data-calendar-macro-style]')) {
-      var macroStyle = document.createElement('link');
-      macroStyle.rel = 'stylesheet';
-      macroStyle.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-macro-indicators.css?v=20261008-calendar-results';
-      macroStyle.setAttribute('data-calendar-macro-style', '1');
-      document.head.appendChild(macroStyle);
-    }
-
     function dateKey(date) {
       return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0')
         + '-' + String(date.getDate()).padStart(2, '0');
@@ -609,8 +574,7 @@
         + listHtml
         + '</section>'
         + '</div>'
-        + renderCompletedDisclosures(state, loading)
-        + renderEconomicResults(state);
+        + renderCompletedDisclosures(state, loading);
     }
 
     var now = kstParts(new Date());
@@ -620,28 +584,9 @@
       selectedKey: now.year + '-' + now.month + '-' + now.day,
       events: [],
       disclosureQuery: '',
-      loading: false,
-      macroHtml: '',
-      macroLoading: false
+      loading: false
     };
     var requestId = 0;
-    function updateEconomicPanel() {
-      var panel = calendarContent.querySelector('.sc-econ-results');
-      if (panel) panel.outerHTML = renderEconomicResults(state);
-    }
-    function loadEconomicResults(force) {
-      if (state.macroLoading) return;
-      state.macroLoading = true;
-      updateEconomicPanel();
-      loadMacroResultsModule().then(function (module) {
-        return module.fetchResults(force).then(function (items) { state.macroHtml = module.resultCards(items); });
-      }).catch(function () {
-        // 기존 성공 결과가 있다면 장애 때도 지우지 않는다.
-        if (state.macroHtml) state.macroHtml = '<p class="sc-empty">갱신 실패 · 이전 확인값을 보여줘.</p>'
-          + state.macroHtml.replace(/^<p class="sc-empty">갱신 실패 · 이전 확인값을 보여줘.<\/p>/, '');
-      }).finally(function () { state.macroLoading = false; updateEconomicPanel(); });
-    }
-    loadEconomicResults();
     container.querySelector('[data-disclosure-search]').addEventListener('input', function (event) {
       state.disclosureQuery = event.target.value;
       var completedPanel = calendarContent.querySelector('.sc-completed');
@@ -702,7 +647,6 @@
         return;
       }
       var action = target.getAttribute('data-calendar-action');
-      if (action === 'macro-refresh') { loadEconomicResults(true); return; }
       if (action === 'today') {
         var today = kstParts(new Date());
         loadMonth(Number(today.year), Number(today.month) - 1, today.year + '-' + today.month + '-' + today.day);
@@ -727,7 +671,6 @@
     setInterval(function () {
       if (!document.hidden) {
         loadMonth(state.viewYear, state.viewMonth, state.selectedKey);
-        loadEconomicResults();
       }
     }, 15 * 60 * 1000);
   }

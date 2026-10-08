@@ -87,6 +87,29 @@
   }
 
   function fetchTickerData(codes) {
+    codes = codes.filter(function (code, i) { return codes.indexOf(code) === i; });
+    if (!codes.length) return Promise.resolve([]);
+    var batches = [];
+    for (var i = 0; i < codes.length; i += 300) batches.push(codes.slice(i, i + 300));
+    var request = Promise.resolve([]);
+    batches.forEach(function (batch) {
+      request = request.then(function (all) {
+        var controller = 'AbortController' in global ? new AbortController() : null;
+        var timer = controller ? setTimeout(function () { controller.abort(); }, 8000) : null;
+        return fetch('https://goodbyestar.cloud/sector-quotes?codes=' + batch.join(','), controller ? { signal: controller.signal } : {})
+          .then(function (response) { if (!response.ok) throw new Error('시세 응답 오류'); return response.json(); })
+          .then(function (response) {
+            var rows = response.data || response;
+            if (!Array.isArray(rows) || !rows.length) throw new Error('시세 응답 없음');
+            // 시세가 없는 행은 카드에서 대기 상태로 보존하고 기존 실시간 연결이 채운다.
+            return all.concat(rows);
+          }).finally(function () { if (timer) clearTimeout(timer); });
+      });
+    });
+    return request.catch(function () { return fetchGasTickerData(codes); });
+  }
+
+  function fetchGasTickerData(codes) {
     var batches = [];
     for (var i = 0; i < codes.length; i += BATCH_SIZE) {
       batches.push(codes.slice(i, i + BATCH_SIZE));

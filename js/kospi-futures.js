@@ -316,13 +316,10 @@
       + '<div class="kf-option-profile-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>행사가별 데이터를 불러오는 중...</div>'
       + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
-      + '콜/풋 전체 미결제약정(OI) 증감으로 포지션 방향을 추정해서 보여드립니다. 콜옵션은 상승 포지션, 풋옵션은 '
-      + '하락 포지션으로 보고, OI가 늘면 신규 진입(포지션 확대), 줄면 청산(포지션 정리)으로 표시합니다 - '
-      + '단순 순매수/순매도 부호만으로 상승·하락을 단정하지 않고 신규/청산을 구분해서 보여드리는 방식입니다. '
-      + '행사가별 프로파일과 콜/풋 합계는 KIS가 제공한 콜·풋 각 최대 100건의 조회 범위를 기준으로 하며, '
-      + '포지션 방향은 원자료가 아닌 추정치입니다. '
-      + '옵션은 야간선물과 달리 야간 세션이 없어 정규장(09:00~15:45)에만 값이 바뀌고, '
-      + '장 마감 후에는 마지막 값이 그대로 표시됩니다.</div></div>'
+      + '조회된 콜·풋 미결제약정(OI) 증감을 보여드립니다. OI 증가는 미결제 계약 증가, 감소는 계약 감소이며, '
+      + '콜·풋 종류와 OI 증감만으로 투자자의 매수·매도 또는 시장 상승·하락 방향을 판단할 수 없습니다. '
+      + '합계와 행사가별 프로파일은 KIS가 반환한 콜·풋 각 최대 100건의 조회 범위이며 전체 시장 합계가 아닙니다. '
+      + '5분 주기 REST 스냅샷이고 업데이트 시각은 자료 수집 시각입니다. 야간 체결 반영을 보장하지 않습니다.</div></div>'
       + '</div>';
   }
 
@@ -341,21 +338,11 @@
   // 결과를 만들 수 있어 그 방식으로 구현 - 매수/매도 거래량을 따로 추정하지 않는다.
   function optTendency(row, side) {
     if (!row) return { label: '-', cls: 'kf-zero' };
-    if (!row.volume) return { label: '데이터 미제공', cls: 'kf-zero' };
     var oiChange = row.oi_change;
-    if (oiChange == null) return { label: '-', cls: 'kf-zero' };
-    var bullish = side === 'CALL';
-    if (oiChange > 0) {
-      return bullish
-        ? { label: '📈 상승 포지션 확대', cls: 'kf-pos' }
-        : { label: '📉 하락 포지션 확대', cls: 'kf-neg' };
-    }
-    if (oiChange < 0) {
-      return bullish
-        ? { label: '💰 상승 포지션 청산', cls: 'kf-pos kf-tendency-close' }
-        : { label: '💰 하락 포지션 청산', cls: 'kf-neg kf-tendency-close' };
-    }
-    return { label: '보합', cls: 'kf-zero' };
+    if (oiChange == null) return { label: 'OI 증감 미제공', cls: 'kf-zero' };
+    if (oiChange > 0) return { label: '미결제약정 증가', cls: 'kf-pos' };
+    if (oiChange < 0) return { label: '미결제약정 감소', cls: 'kf-neg' };
+    return { label: '미결제약정 변화 없음', cls: 'kf-zero' };
   }
 
   function buildOptCardBody(row, side) {
