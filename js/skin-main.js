@@ -1842,7 +1842,7 @@ document.documentElement.classList.add('skin-ready');
         });
     }, 2000);
 
-    /* 최신 마켓브리핑 8건: 대표 1건 + 오른쪽 3건 + 왼쪽 아래 4건으로 재구성한다. */
+    /* 최신 마켓브리핑 8건을 이야기 시리즈와 같은 소개 + 카드 격자로 표시한다. */
     var allCards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
     var marketCards = allCards.filter(function (card) { return card.getAttribute('data-cat') === '마켓 브리핑'; });
     var selectedCards = (marketCards.length ? marketCards : allCards).slice(0, 8);
@@ -1855,22 +1855,14 @@ document.documentElement.classList.add('skin-ready');
     if (selectedCards.length) {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
-      briefing.innerHTML = '<div class="home-section-heading"><div><strong>마켓브리핑</strong>'
-        + '<span>투자 판단에 필요한 핵심 해석</span></div></div>'
-        + '<div class="home-briefing-grid"><div class="home-briefing-left-column">'
-        + '<div class="home-briefing-featured-slot"></div><div class="home-briefing-left-more"></div></div>'
-        + '<div class="home-briefing-small-stack"></div></div>'
-        + '<a class="home-briefing-more" href="/category/마켓 브리핑"><span>브리핑 아카이브</span><strong>마켓 브리핑</strong><i aria-hidden="true">→</i></a>';
+      briefing.innerHTML = '<div class="home-section-heading briefing-intro"><div><span class="learn-eyebrow">시장을 읽는 투자 노트</span><strong>마켓브리핑<br>한눈에 보기</strong>'
+        + '<p>주가를 움직인 사건과 흐름,<br>핵심 해석을 짧게 살펴보세요.</p></div>'
+        + '<a class="home-briefing-more" href="/category/마켓 브리핑">브리핑 아카이브 <i aria-hidden="true">↗</i></a></div>'
+        + '<div class="home-briefing-grid briefing-card-grid"></div>';
       feed.appendChild(briefing);
-      selectedCards[0].classList.add('home-briefing-featured');
-      briefing.querySelector('.home-briefing-featured-slot').appendChild(selectedCards[0]);
-      selectedCards.slice(1, 4).forEach(function (card) {
-        card.classList.add('home-briefing-small');
-        briefing.querySelector('.home-briefing-small-stack').appendChild(card);
-      });
-      selectedCards.slice(4, 8).forEach(function (card) {
-        card.classList.add('home-briefing-small', 'home-briefing-left-small');
-        briefing.querySelector('.home-briefing-left-more').appendChild(card);
+      selectedCards.forEach(function (card) {
+        card.classList.add('home-briefing-card');
+        briefing.querySelector('.briefing-card-grid').appendChild(card);
       });
     } else {
       briefing = document.createElement('section');
