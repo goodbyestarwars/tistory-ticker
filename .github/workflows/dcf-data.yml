@@ -49,7 +49,7 @@ jobs:
         run: |
           flags=()
           if [ "$DCF_FORCE" = "true" ]; then flags+=(--force); fi
-          python scripts/build_dcf_data.py --codes "$DCF_CODES" --max-calls "$DCF_MAX_CALLS" --max-seconds 1500 --daily-calls 12000 --refresh-markets "${flags[@]}"
+          python scripts/build_dcf_data.py --codes "$DCF_CODES" --max-calls "$DCF_MAX_CALLS" --max-seconds 1500 --daily-calls 12000 --workers 4 --refresh-markets "${flags[@]}"
       - name: Validate generated archives
         run: python -m unittest discover -s test -p test_dcf_normalize.py
       - name: Publish static files

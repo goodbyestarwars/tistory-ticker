@@ -15,6 +15,8 @@ import urllib.parse
 import urllib.request
 import zipfile
 import io
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/cloud-vm'))
@@ -141,14 +143,24 @@ class Collector:
         self.key, self.max_calls, self.calls = key, max_calls, 0
         self.max_seconds = max_seconds
         self.started = time.monotonic()
+        self.call_lock = threading.Lock()
+        self.stopped = threading.Event()
 
     def call(self, fn, *args):
-        if self.calls >= self.max_calls or time.monotonic() - self.started > self.max_seconds:
-            raise BudgetExhausted('수집 예산 종료')
-        if self.calls:
-            time.sleep(0.35)
-        self.calls += 1
-        return fn(self.key, *args)
+        # One shared throttle/counter across bounded PC/Actions workers.
+        with self.call_lock:
+            if self.stopped.is_set() or self.calls >= self.max_calls or time.monotonic() - self.started > self.max_seconds:
+                raise BudgetExhausted('수집 예산 종료')
+            if self.calls:
+                time.sleep(0.35)
+            if self.stopped.is_set() or time.monotonic() - self.started > self.max_seconds:
+                raise BudgetExhausted('수집 예산 종료')
+            self.calls += 1
+        try:
+            return fn(self.key, *args)
+        except dart_client.DartRateLimitError:
+            self.stopped.set()
+            raise
 
     def reports(self, key, corp):
         params = {'crtfc_key': key, 'corp_code': corp, 'bgn_de': '20150101', 'last_reprt_at': 'Y',
@@ -223,6 +235,7 @@ def main():
     parser.add_argument('--max-calls', type=int, default=60)
     parser.add_argument('--max-seconds', type=int, default=420)
     parser.add_argument('--daily-calls', type=int, default=12000, help='Local archive daily cap, reserves provider quota for existing VM')
+    parser.add_argument('--workers', type=int, default=1, choices=range(1, 5), help='At most four PC/Actions workers, sharing one API throttle')
     parser.add_argument('--year', type=int, default=datetime.now(KST).year - 1)
     parser.add_argument('--index-only', action='store_true')
     parser.add_argument('--renormalize', action='store_true', help='Reapply rules to saved raw disclosure rows, no API calls')
@@ -303,44 +316,54 @@ def main():
             print('No eligible issuers: all fresh or retry cooldown; no archive rewrite.')
             return 0
         consecutive_failures = 0
-        for code in targets:
-            # Skip fresh archives; weekly refresh also incorporates corrections.
-            prior = available.get(code)
-            if prior and code not in failures and not args.force and datetime.now(KST) - datetime.fromisoformat(prior) < timedelta(days=30):
-                if not requested:
-                    cursor = (canonical.index(code) + 1) % len(canonical)
-                continue
-            if collector.max_calls - collector.calls < 15:
-                break  # Reserve enough budget to finish a complete issuer atomically.
-            attempts[code] = datetime.now(KST).isoformat()
-            corp = corp_map.get(code)
-            if not corp:
-                failures[code] = 'DART 기업코드 미확보'
-            else:
-                try:
-                    payload = collector.company(stocks[code], corp, args.year)
-                    write_js(OUT / 'companies' / (code + '.js'), 'DCF_FILES', {code: payload})
-                    available[code] = payload['generatedAt']
-                    failures.pop(code, None)
-                    consecutive_failures = 0
-                    print(code + ': annual archive written', flush=True)
-                except (BudgetExhausted, dart_client.DartRateLimitError):
+        targets = [code for code in targets if args.force or code in failures or code not in available or
+                   now - datetime.fromisoformat(available[code]) >= timedelta(days=30)]
+        stopped = False
+        with ThreadPoolExecutor(max_workers=args.workers) as pool:
+            for offset in range(0, len(targets), args.workers):
+                room = (collector.max_calls - collector.calls) // 15
+                batch = targets[offset:offset + min(args.workers, room)]
+                if not batch:
                     break
-                except Exception as error:
-                    # Only classify known safe reasons; never expose URLs/keys.
-                    message = str(error)
-                    match = re.search(r'(?:status|상태) (\d{3})', message)
-                    reason = 'DART 상태 ' + match[1] if match else '공시 수집 실패'
-                    if message == '최근 5년 연간 재무 API 자료 미제공':
-                        reason = message
-                    failures[code] = reason + ': 기존 자료 유지, 직접 입력 가능'
-                    consecutive_failures += 1
-                    print(code + ': collection failed; previous archive preserved', flush=True)
-            if not requested:
-                cursor = (canonical.index(code) + 1) % len(canonical)
-            if consecutive_failures >= 5:
-                print('Five consecutive issuer failures; stop this batch and retain progress.', flush=True)
-                break
+                futures = []
+                for code in batch:
+                    attempts[code] = datetime.now(KST).isoformat()
+                    corp = corp_map.get(code)
+                    futures.append((code, pool.submit(collector.company, stocks[code], corp, args.year) if corp else None))
+                # No unbounded queue: finish this group before submitting another.
+                # Publication/state mutation are serialized in the parent thread.
+                for code, future in futures:
+                    if future is None:
+                        failures[code] = 'DART 기업코드 미확보'
+                    else:
+                        try:
+                            payload = future.result()
+                            write_js(OUT / 'companies' / (code + '.js'), 'DCF_FILES', {code: payload})
+                            available[code] = payload['generatedAt']
+                            failures.pop(code, None)
+                            consecutive_failures = 0
+                            print(code + ': annual archive written', flush=True)
+                        except (BudgetExhausted, dart_client.DartRateLimitError):
+                            stopped = True
+                            collector.stopped.set()
+                        except Exception as error:
+                            # Only classify known safe reasons; never expose URLs/keys.
+                            message = str(error)
+                            match = re.search(r'(?:status|상태) (\d{3})', message)
+                            reason = 'DART 상태 ' + match[1] if match else '공시 수집 실패'
+                            if message in ('최근 5년 연간 재무 API 자료 미제공', '완료 사업연도 보고서 미확보'):
+                                reason = message
+                            failures[code] = reason + ': 기존 자료 유지, 직접 입력 가능'
+                            consecutive_failures += 1
+                            print(code + ': collection failed; previous archive preserved', flush=True)
+                    if not requested:
+                        cursor = (canonical.index(code) + 1) % len(canonical)
+                    if consecutive_failures >= 5:
+                        stopped = True
+                        collector.stopped.set()
+                if stopped or room < args.workers:
+                    print('Batch stopped at quota, deadline or consecutive failures; progress retained.', flush=True)
+                    break
         usage['calls'] += collector.calls
     public_cache = ROOT / 'work/dart_corp_code_map.json'
     public_corps = json.loads(public_cache.read_text(encoding='utf-8')) if public_cache.exists() else old.get('corpCodes', {})
