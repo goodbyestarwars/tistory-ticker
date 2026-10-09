@@ -17,6 +17,9 @@ dist/
 __pycache__/
 .env
 
+# Public offline DCF corp-code checkpoint, not a deliverable.
+/work/dart_corp_code_map.json
+
 # VM에서 배치가 생성하는 캐시(소스 아님, 매일 재생성됨)
 scripts/cloud-vm/*_cache.json
 scripts/cloud-vm/hour_candidate_checks.jsonl

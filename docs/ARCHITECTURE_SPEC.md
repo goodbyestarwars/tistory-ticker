@@ -1,5 +1,7 @@
 # 9Pay 증권 아키텍처 정의서
 
+2026-10-09 기업가치 분석(`/page/dcf`): PC/Actions에서 DART 원자료를 `dcf-data/`로 생성→Pages에서 선택기업 파일만 로드→브라우저 FCFF/DCF 계산. VM/GAS 요청·상시수집·SQLite 추가없음. `data/` 밖에 두어 기존 VM 재시작·검색재스캔 감시를 피한다. [상세 설계·검증](DCF.md).
+
 작성일: 2026-08-17 · 운영 기준 커밋: `0f18642` (`origin/master`)
 
 간단한 인프라 요약은 루트 `ARCHITECTURE.md`(다른 AI에게 붙여넣는 용도)를 본다. 이 문서는 컴포넌트 간 호출·인증·캐시·동시성 구조를 상세화한 것이다. 파일별 상세는 `SOURCE_CODE_SPEC.md`, DB 스키마는 `DB_SPEC.md`를 본다.

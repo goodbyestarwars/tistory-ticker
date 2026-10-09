@@ -1,5 +1,7 @@
 # 9Pay 증권 DB 정의서
 
+DCF 기업별 정적 자료는 SQLite가 아닌 `dcf-data/`에 저장한다. VM 재시작 감시 경로 `data/`를 피하고 공시 원자료·단위·출처·확인 상태를 보존한다. [규격·갱신·검증](DCF.md).
+
 작성일: 2026-08-17 · 운영 기준 커밋: `0f18642` (`origin/master`) · 근거: `scripts/cloud-vm/db_schema.py`, `scripts/cloud-vm/news_momentum.py`, `domestic_news.py`, `news_aggregator.py`, `us_analysis.py` 확인
 
 이 서비스는 전통적 DB 서버가 아니라 **VM 로컬 SQLite 파일 5개** + **VM 로컬 JSON 캐시 파일 다수** + **저장소 내 정적 `window.XXX` 데이터 파일**로 데이터를 관리한다. 이 문서는 세 계층을 모두 정의한다. SQLite 파일은 `ohlc_snapshot.db`(시세·수급·사용자 설정·스윙 스냅샷), `news_momentum.db`(종목 뉴스 이슈), `domestic_news.db`(국내 일반뉴스·DART 공시), `us_news_cache.db`(미국 종목·글로벌 뉴스 메타데이터), `us_analysis_cache.db`(미국 종목 프로필·분석 캐시)다.
