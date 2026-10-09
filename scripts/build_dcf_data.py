@@ -77,7 +77,7 @@ def refresh_markets():
         with urllib.request.urlopen(url, timeout=30) as response:
             raw = response.read()
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            for row in archive.read(name).decode('cp949').splitlines(keepends=True):
+            for row in archive.read(name).decode('cp949').replace('\r\n', '\n').splitlines(keepends=True):
                 code = row[:9].strip()
                 if re.fullmatch(r'[0-9A-Z]{6}', code):
                     markets[code] = market
@@ -127,13 +127,13 @@ def compact_record(record):
     return record
 
 
-def target_codes(canonical, available, attempts, now, cursor, force=False):
+def target_codes(canonical, available, attempts, now, cursor, force=False, failures=None):
     rotated = canonical[cursor:] + canonical[:cursor]
     eligible = [c for c in rotated if force or c not in attempts or
                 now - datetime.fromisoformat(attempts[c]) >= timedelta(hours=6)]
     # Finish missing issuers before cycling through already populated issuers.
     return [c for c in eligible if c not in available] + [c for c in eligible if c in available and
-            (force or now - datetime.fromisoformat(available[c]) >= timedelta(days=30))]
+            (force or c in (failures or {}) or now - datetime.fromisoformat(available[c]) >= timedelta(days=30))]
 
 
 class Collector:
@@ -234,7 +234,8 @@ def main():
     if args.refresh_markets:
         try:
             market_path = OUT / 'markets.js'
-            if not market_path.exists() or time.time() - market_path.stat().st_mtime >= 7 * 86400:
+            generated = read_js(market_path, 'DCF_MARKETS').get('generatedAt') if market_path.exists() else None
+            if not generated or datetime.now(KST) - datetime.fromisoformat(generated) >= timedelta(days=7):
                 refresh_markets()
         except Exception:
             print('Public market master unavailable; existing verified classifications preserved.')
@@ -297,7 +298,7 @@ def main():
         requested = [c.strip() for c in args.codes.split(',') if c.strip()]
         if any(c not in stocks for c in requested):
             raise ValueError('Unknown stock code')
-        targets = list(dict.fromkeys(stocks[c]['sourceCode'] for c in requested)) if requested else target_codes(canonical, available, attempts, now, cursor, args.force)
+        targets = list(dict.fromkeys(stocks[c]['sourceCode'] for c in requested)) if requested else target_codes(canonical, available, attempts, now, cursor, args.force, failures)
         if not targets and list(stocks.values()) == old.get('stocks'):
             print('No eligible issuers: all fresh or retry cooldown; no archive rewrite.')
             return 0
@@ -305,7 +306,7 @@ def main():
         for code in targets:
             # Skip fresh archives; weekly refresh also incorporates corrections.
             prior = available.get(code)
-            if prior and not args.force and datetime.now(KST) - datetime.fromisoformat(prior) < timedelta(days=30):
+            if prior and code not in failures and not args.force and datetime.now(KST) - datetime.fromisoformat(prior) < timedelta(days=30):
                 if not requested:
                     cursor = (canonical.index(code) + 1) % len(canonical)
                 continue
