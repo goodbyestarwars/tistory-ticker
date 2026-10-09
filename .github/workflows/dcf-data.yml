@@ -4,13 +4,16 @@ on:
     inputs:
       codes:
         description: 'Stock codes (comma-separated), blank continues bounded master cursor'
-        default: '005930,000660,035420,105560'
+        default: ''
       force:
         description: 'Refresh even if under 30 days old'
         type: boolean
-        default: true
+        default: false
+      max_calls:
+        description: 'Per-run API budget; daily archive cap remains 12000'
+        default: '1200'
   schedule:
-    - cron: '40 1 * * 6' # Saturday 10:40 KST. At most 60 calls, no VM.
+    - cron: '17,47 * * * *' # Resumable full-universe backfill, then 30-day refresh; no VM.
 permissions:
   contents: write
   pages: write
@@ -20,7 +23,7 @@ concurrency:
 jobs:
   collect:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 35
     steps:
       - uses: actions/checkout@v4
         with:
@@ -42,10 +45,11 @@ jobs:
           DART_API_KEY: ${{ secrets.DART_API_KEY }}
           DCF_CODES: ${{ inputs.codes }}
           DCF_FORCE: ${{ inputs.force }}
+          DCF_MAX_CALLS: ${{ inputs.max_calls || '1200' }}
         run: |
           flags=()
           if [ "$DCF_FORCE" = "true" ]; then flags+=(--force); fi
-          python scripts/build_dcf_data.py --codes "$DCF_CODES" --max-calls 60 --refresh-markets "${flags[@]}"
+          python scripts/build_dcf_data.py --codes "$DCF_CODES" --max-calls "$DCF_MAX_CALLS" --max-seconds 1500 --daily-calls 12000 --refresh-markets "${flags[@]}"
       - name: Validate generated archives
         run: python -m unittest discover -s test -p test_dcf_normalize.py
       - name: Publish static files

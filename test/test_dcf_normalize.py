@@ -26,6 +26,43 @@ def report(year=2025, receipt=RECEIPT):
 
 
 class NormalizationTests(unittest.TestCase):
+    def test_compaction_preserves_ambiguous_candidates_and_all_fields(self):
+        rows = [row('revenue'), row('revenue', '200'), row('ppeCapex', '-25'),
+                row('intangibleCapex', '-5'), row('revenue', account_detail='segment'),
+                row('revenue', account_id='unrelated', account_nm='other')]
+        original = N.annual(rows, 2025, 'CFS', report())
+        compact = B.compact_record(N.annual(rows, 2025, 'CFS', report()))
+        self.assertEqual(len(compact['rawRows']), 5)
+        self.assertEqual(compact['rawRowCount'], 6)
+        self.assertEqual(N.annual(compact['rawRows'], 2025, 'CFS', report())['fields'], original['fields'])
+        self.assertIsNone(compact['fields']['revenue']['value'])
+
+    def test_full_universe_queue_prioritizes_missing_and_retries_after_cooldown(self):
+        now = B.datetime.now(B.KST)
+        available = {'A': (now - B.timedelta(days=31)).isoformat(), 'B': now.isoformat()}
+        attempts = {'C': now.isoformat(), 'D': (now - B.timedelta(hours=7)).isoformat()}
+        self.assertEqual(B.target_codes(['A','B','C','D','E'], available, attempts, now, 0), ['D','E','A'])
+        self.assertEqual(B.target_codes(['A','B','C','D','E'], available, attempts, now, 3), ['D','E','A'])
+
+    def test_collector_enforces_time_and_api_call_limits(self):
+        c = B.Collector('not-a-real-key', 0, 1500)
+        with self.assertRaises(B.BudgetExhausted):
+            c.call(lambda key: None)
+        c = B.Collector('not-a-real-key', 100, 1)
+        c.started -= 2
+        with self.assertRaises(B.BudgetExhausted):
+            c.call(lambda key: None)
+
+    def test_current_master_includes_spacs_and_special_preferred_issuer_mapping(self):
+        stocks = B.universe()
+        self.assertTrue(any(s['kind'] == 'spac' for s in stocks.values()))
+        self.assertEqual(stocks['294090']['shareClass'], 'common')
+        self.assertEqual(stocks['458650']['shareClass'], 'common')
+        for code, issuer in [('00104K','001040'), ('007815','007810'), ('008355','008350'),
+                             ('097955','097950'), ('37550L','375500')]:
+            self.assertEqual(stocks[code]['sourceCode'], issuer)
+            self.assertEqual(stocks[code]['shareClass'], 'preferred')
+
     def test_real_zero_and_missing_are_distinct(self):
         self.assertEqual(N.account([row('revenue', '0')], 'revenue', RECEIPT)['value'], 0)
         for v in ('', '-', None, 'NaN', 'inf'):

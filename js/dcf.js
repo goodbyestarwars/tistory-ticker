@@ -20,6 +20,13 @@
     ['currentLongDebt', '유동성장기차입금'], ['bonds', '사채'], ['currentBonds', '유동성사채'], ['leaseDebt', '리스부채'], ['currentLeaseDebt', '유동리스부채']];
   function esc(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function num(value) { return value == null ? '미확보' : Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 4 }); }
+  function coverageText() {
+    if (!index) return '종목 목록과 공시 확보 현황을 준비하는 중…';
+    var total = new Set(index.stocks.map(function (s) { return s.sourceCode; })).size;
+    var available = Object.keys(index.available).length;
+    return '검색 ' + num(index.stocks.length) + '종목 · 실제 공시 확보 ' + num(available) + '/' + num(total)
+      + '기업' + (available < total ? ' · 전 종목 순차 수집 중' : '') + ' · 우선주는 해당 기업 자료를 공유합니다.';
+  }
   function unitLabel(draft, unit) { var u = unit || draft.unit; return draft.currency === 'KRW' ? u : ({ '원': '1', '천원': '천', '백만원': '백만', '억원': '억' }[u] + ' ' + draft.currency); }
   function factor(key, draft) { return ['taxRate', 'wacc', 'terminalGrowth', 'growth'].indexOf(key) >= 0 ? .01 : ['shares', 'price', 'modelReviewed', 'forecastMode'].indexOf(key) >= 0 ? 1 : C.scale[draft.unit]; }
   function display(value, key, draft) { return value == null ? '' : String(Number((value / factor(key, draft)).toPrecision(12))); }
@@ -128,6 +135,7 @@
     var draft = C.recalculate(state.current()), stock = draft.company;
     var isAuto = state.mode === 'auto';
     root.innerHTML = '<header><h1>기업가치 분석</h1><p>실제 공시 자료와 사용자 가정으로 계산하는 FCFF DCF 밸류에이션</p></header>'
+      + '<p data-coverage>' + esc(coverageText()) + '</p>'
       + '<div class="dcf-toolbar"><button type="button" class="ui-btn ' + (isAuto ? 'ui-btn-primary' : 'ui-btn-secondary') + '" data-mode="auto" aria-pressed="' + isAuto + '">종목 자동 분석</button><button type="button" class="ui-btn ' + (!isAuto ? 'ui-btn-primary' : 'ui-btn-secondary') + '" data-mode="manual" aria-pressed="' + !isAuto + '">직접 입력</button></div>'
       + (isAuto ? '<section class="dcf-section"><label for="dcf-search">종목명 또는 종목코드</label><input id="dcf-search" type="search" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="dcf-suggestions" aria-expanded="false" placeholder="예: 삼성전자 / 005930" value="' + esc(stock ? stock.name : '') + '"><ul id="dcf-suggestions" role="listbox" hidden></ul><p>' + (stock ? '<strong>' + esc(stock.name) + '</strong> · ' + esc(stock.code) + ' · ' + esc(stock.market) + ' · ' + (stock.shareClass === 'preferred' ? '우선주 (자동 가치평가 제한)' : '보통주 후보') + ' · ' + esc(stock.industry || '업종 확인 필요') : '기업을 선택하면 해당 기업의 자료만 조회합니다.') + '</p></section>'
         : '<section class="dcf-section"><label>기업명 (선택)<input data-company-name value="' + esc(draft.companyName || '') + '"></label><label>기준 연도<input data-base-year type="number" min="1900" max="2200" value="' + draft.baseYear + '"></label><label>통화<select data-currency><option' + (draft.currency === 'KRW' ? ' selected' : '') + '>KRW</option><option' + (draft.currency === 'USD' ? ' selected' : '') + '>USD</option><option' + (draft.currency === 'EUR' ? ' selected' : '') + '>EUR</option></select></label></section>')
@@ -167,7 +175,9 @@
     if (state.auto.generatedAt) { loading = false; render(); return; }
     if (!index.available[stock.sourceCode]) {
       loading = false;
-      message = '재무자료 부족: 이 기업의 정적 공시 파일이 없습니다. 직접 입력을 사용할 수 있습니다.';
+      message = index.failures && index.failures[stock.sourceCode]
+        ? index.failures[stock.sourceCode] + '. 정적 공시 파일이 없어 직접 입력을 사용할 수 있습니다.'
+        : '전 종목 순차 수집 대기: 이 기업의 정적 공시 파일은 아직 없습니다. 직접 입력을 사용할 수 있습니다.';
       render(); return;
     }
     controller = new AbortController();
@@ -179,6 +189,7 @@
       if (!files[stock.sourceCode]) throw new Error('선택 기업의 공시 파일 내용 미확보');
       if (state.resolve(token, stock, files[stock.sourceCode])) {
         message = '공시 자료를 반영했습니다. 확인 필요 항목은 검토 후 수정 또는 값 확인을 눌러주세요.';
+        if (index.failures && index.failures[stock.sourceCode]) message += ' 최근 갱신 실패로 이전에 확보한 공시 자료를 표시합니다.';
         loading = false; render();
       }
     } catch (error) {
@@ -255,6 +266,7 @@
   archive('dcf-data/index.js', 'DCF_INDEX', indexController.signal).then(function (data) {
     if (data.schemaVersion !== 1 || !Array.isArray(data.stocks) || !data.available) throw new Error('종목 마스터 규격 오류');
     index = data;
+    root.querySelector('[data-coverage]').textContent = coverageText();
     var inputElement = root.querySelector('#dcf-search');
     if (inputElement && inputElement.value) search(inputElement.value);
     var code = new URLSearchParams(location.search).get('code');

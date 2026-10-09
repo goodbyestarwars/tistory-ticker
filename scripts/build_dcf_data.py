@@ -19,7 +19,7 @@ import io
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts/cloud-vm'))
 import dart_client
-from dcf_normalize import annual, normalize_series, number, missing
+from dcf_normalize import annual, normalize_series, number, missing, RULES
 
 OUT = ROOT / 'dcf-data'
 KST = timezone(timedelta(hours=9))
@@ -36,19 +36,28 @@ def universe():
     etfs = set(read_js(ROOT / 'data/krx_map.js', 'KRX_ETF_NAMES'))
     sectors = (ROOT / 'data/sectors-v3.js').read_text(encoding='utf-8')
     markets = dict(re.findall(r'code:\s*"([\dA-Z]{6})",\s*market:\s*"(KOSPI|KOSDAQ)"', sectors))
+    preferred_flags, supplier_classes = {}, False
     market_archive = OUT / 'markets.js'
     if market_archive.exists():
-        markets.update(read_js(market_archive, 'DCF_MARKETS').get('markets', {}))
+        master = read_js(market_archive, 'DCF_MARKETS')
+        markets.update(master.get('markets', {}))
+        preferred_flags = master.get('preferredFlags', {})
+        # Reuse existing master, correcting names/new listings from supplier snapshot.
+        if master.get('stocks'):
+            supplier_classes = True
+            names = {name: code for code, name in master['stocks'].items()}
     wics = read_js(ROOT / 'data/wics-map.js', 'WICS_MAP')
     result = {}
     for name, code in names.items():
-        if name in etfs or re.search(r'ETN|스팩|SPAC|기업인수목적', name, re.I):
+        if name in etfs or re.search(r'ETN', name, re.I):
             continue
-        base = re.sub(r'(?:\d*우[A-Z]?)$', '', name)
-        canonical = names.get(base, code)
+        base = re.sub(r'(?:\d*우[A-Z]?)(?:\([^)]*\))?$', '', name).strip()
+        # Supplier display names abbreviate these issuers; keep their legal issuer.
+        base = {'코리아써': '코리아써키트', '남선알미': '남선알미늄'}.get(base, base)
+        preferred = code in preferred_flags if supplier_classes else base != name
+        canonical = names.get(base, code) if preferred else code
         industry = (wics.get(canonical) or {}).get('industry', '')
-        preferred = base != name
-        kind = 'financial' if re.search(r'은행|보험|증권|금융|카드|캐피탈', industry + ' ' + name) else 'holding' if re.search(r'홀딩스|지주', name) else 'unknown'
+        kind = 'spac' if re.search(r'스팩|SPAC|기업인수목적', name, re.I) else 'financial' if re.search(r'은행|보험|증권|금융|카드|캐피탈', industry + ' ' + name) else 'holding' if re.search(r'홀딩스|지주', name) else 'unknown'
         result[code] = {'code': code, 'name': name, 'sourceCode': canonical, 'market': markets.get(code, markets.get(canonical, '확인 필요')),
                         'shareClass': 'preferred' if preferred else 'common', 'industry': industry, 'kind': kind}
     return result
@@ -61,20 +70,32 @@ def refresh_markets():
     No financial ratios, prices or ambiguous thousand-share fields are imported.
     Source: koreainvestment/open-trading-api stocks_info/kis_*_code_mst.py.
     """
-    markets = {}
+    markets, stocks, preferred_flags = {}, {}, {}
     for market in ('KOSPI', 'KOSDAQ'):
         name = market.lower() + '_code.mst'
         url = 'https://new.real.download.dws.co.kr/common/master/' + name + '.zip'
         with urllib.request.urlopen(url, timeout=30) as response:
             raw = response.read()
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:
-            for row in archive.read(name).splitlines():
-                code = row[:9].decode('ascii').strip()
+            for row in archive.read(name).decode('cp949').splitlines(keepends=True):
+                code = row[:9].strip()
                 if re.fullmatch(r'[0-9A-Z]{6}', code):
                     markets[code] = market
+                    # Official supplier fixed-width layout includes newline.
+                    tail = 228 if market == 'KOSPI' else 222
+                    group = row[-tail:][:2]
+                    stock_name = row[21:-tail].strip()
+                    if group in ('ST', 'FS', 'DR', 'RT', 'IF', 'MF') and stock_name:
+                        stocks[code] = stock_name
+                        preferred_offset = 158 if market == 'KOSPI' else 153
+                        flag = row[-tail:][preferred_offset:preferred_offset + 1]
+                        if flag in ('1', '2', '9'):
+                            preferred_flags[code] = flag
     if markets.get('005930') != 'KOSPI' or markets.get('035900') != 'KOSDAQ':
         raise ValueError('Public master validation failed')
-    write_js(OUT / 'markets.js', 'DCF_MARKETS', {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets})
+    if stocks.get('005930') != '삼성전자' or len(stocks) < 2000:
+        raise ValueError('Public stock-name master validation failed')
+    write_js(OUT / 'markets.js', 'DCF_MARKETS', {'generatedAt': datetime.now(KST).isoformat(), 'source': '한국투자증권 공개 종목 마스터', 'markets': markets, 'stocks': stocks, 'preferredFlags': preferred_flags})
 
 
 def write_js(path, name, data):
@@ -90,13 +111,39 @@ class BudgetExhausted(RuntimeError):
     pass
 
 
+def compact_record(record):
+    """Keep every candidate (including ambiguous duplicates), never just winners.
+
+    The retained raw rows reproduce all current normalization decisions exactly.
+    Unrelated statement accounts are not shipped to every visitor.
+    """
+    rows = record['rawRows']
+    candidates = [r for r in rows if any(r.get('sj_div') in divs and
+                  (r.get('account_id') in ids or r.get('account_nm', '').strip() in names)
+                  for divs, ids, names in RULES.values())]
+    record['rawRowCount'] = record.get('rawRowCount', len(rows))
+    record['rawRowsScope'] = 'DCF account candidates; all matching duplicates retained'
+    record['rawRows'] = candidates
+    return record
+
+
+def target_codes(canonical, available, attempts, now, cursor, force=False):
+    rotated = canonical[cursor:] + canonical[:cursor]
+    eligible = [c for c in rotated if force or c not in attempts or
+                now - datetime.fromisoformat(attempts[c]) >= timedelta(hours=6)]
+    # Finish missing issuers before cycling through already populated issuers.
+    return [c for c in eligible if c not in available] + [c for c in eligible if c in available and
+            (force or now - datetime.fromisoformat(available[c]) >= timedelta(days=30))]
+
+
 class Collector:
-    def __init__(self, key, max_calls):
+    def __init__(self, key, max_calls, max_seconds=420):
         self.key, self.max_calls, self.calls = key, max_calls, 0
+        self.max_seconds = max_seconds
         self.started = time.monotonic()
 
     def call(self, fn, *args):
-        if self.calls >= self.max_calls or time.monotonic() - self.started > 420:
+        if self.calls >= self.max_calls or time.monotonic() - self.started > self.max_seconds:
             raise BudgetExhausted('수집 예산 종료')
         if self.calls:
             time.sleep(0.35)
@@ -113,7 +160,8 @@ class Collector:
             raise dart_client.DartRateLimitError('공시목록 요청 제한')
         if data.get('status') != '000':
             # Do not log raw URL/exception text containing keys.
-            raise RuntimeError('공시목록 요청 실패')
+            status = str(data.get('status', 'unknown'))
+            raise RuntimeError('공시목록 상태 ' + (status if re.fullmatch(r'\d{3}', status) else 'unknown'))
         if int(data.get('total_page', 1)) > 1:
             raise RuntimeError('공시목록 페이지 범위 초과: 별도 확인 필요')
         return data.get('list', [])
@@ -143,6 +191,9 @@ class Collector:
                     rows = self.call(dart_client.call_fnltt, corp, year, '11011', basis)
             records.append(annual(rows, year, basis, report))
         records = normalize_series(records)
+        if not any(r['rawRows'] for r in records[-5:]):
+            raise RuntimeError('최근 5년 연간 재무 API 자료 미제공')
+        records = [compact_record(r) for r in records]
         latest = records[-1]
         shares = self.call(dart_client.call_stock_totqy, corp, latest_year, '11011')
         common = [r for r in shares if r.get('se') in ('보통주', '보통주식')]
@@ -170,15 +221,21 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--codes', default='', help='Comma-separated stock codes; default bounded cursor over master')
     parser.add_argument('--max-calls', type=int, default=60)
+    parser.add_argument('--max-seconds', type=int, default=420)
+    parser.add_argument('--daily-calls', type=int, default=12000, help='Local archive daily cap, reserves provider quota for existing VM')
     parser.add_argument('--year', type=int, default=datetime.now(KST).year - 1)
     parser.add_argument('--index-only', action='store_true')
     parser.add_argument('--renormalize', action='store_true', help='Reapply rules to saved raw disclosure rows, no API calls')
     parser.add_argument('--force', action='store_true')
     parser.add_argument('--refresh-markets', action='store_true')
     args = parser.parse_args()
+    if args.max_calls < 0 or args.max_seconds <= 0 or not 0 <= args.daily_calls <= 12000:
+        parser.error('Budgets must be nonnegative; daily archive cap cannot exceed 12000')
     if args.refresh_markets:
         try:
-            refresh_markets()
+            market_path = OUT / 'markets.js'
+            if not market_path.exists() or time.time() - market_path.stat().st_mtime >= 7 * 86400:
+                refresh_markets()
         except Exception:
             print('Public market master unavailable; existing verified classifications preserved.')
     stocks = universe()
@@ -187,13 +244,18 @@ def main():
     old = read_js(manifest_path, 'DCF_INDEX') if manifest_path.exists() else {}
     available = old.get('available', {})
     failures = old.get('failures', {})
+    attempts = old.get('attempts', {})
+    now = datetime.now(KST)
+    usage = old.get('collectionUsage', {})
+    if usage.get('date') != now.date().isoformat():
+        usage = {'date': now.date().isoformat(), 'calls': 0}
     cursor = old.get('cursor', 0)
     key = os.environ.get('DART_API_KEY', '').strip()
     if args.renormalize:
         for code in available:
             path = OUT / 'companies' / (code + '.js')
             payload = read_js(path, 'DCF_FILES')[code]
-            records = [annual(r['rawRows'], r['year'], r['basis'], r['report']) for r in payload['years']]
+            records = [compact_record(annual(r['rawRows'], r['year'], r['basis'], r['report'])) for r in payload['years']]
             baseline = {'year': records[0]['year'] - 1, 'basis': payload['basis'], 'fields': {'nwc': payload['priorNwc']}}
             payload['years'] = normalize_series([baseline] + records)[-5:]
             write_js(path, 'DCF_FILES', {code: payload})
@@ -203,7 +265,10 @@ def main():
         print('DART_API_KEY environment variable is required; existing archives preserved.', file=sys.stderr)
         return 2
     if not args.index_only:
-        collector = Collector(key, args.max_calls)
+        if usage['calls'] >= args.daily_calls:
+            print('Daily archive quota reached; resume next KST day, existing files preserved.')
+            return 0
+        collector = Collector(key, min(args.max_calls, max(0, args.daily_calls - usage['calls'])), args.max_seconds)
         # Existing corp-code client cache is redirected to local work/ (never VM).
         cache = ROOT / 'work/dart_corp_code_map.json'
         cache.parent.mkdir(exist_ok=True)
@@ -214,7 +279,11 @@ def main():
             cache.write_text(json.dumps(old['corpCodes']), encoding='utf-8')
         dart_client.CORP_CODE_MAP_FILE = str(cache)
         try:
-            corp_map = collector.call(dart_client.get_corp_code_map)
+            # Fresh public identifier cache requires no authenticated request.
+            if cache.exists() and time.time() - cache.stat().st_mtime < dart_client.CORP_CODE_MAP_TTL_SEC:
+                corp_map = json.loads(cache.read_text(encoding='utf-8'))
+            else:
+                corp_map = collector.call(dart_client.get_corp_code_map)
         except Exception:
             # During corpCode endpoint maintenance an existing public map remains
             # usable. It is not financial data; receipt validation is independent.
@@ -228,9 +297,11 @@ def main():
         requested = [c.strip() for c in args.codes.split(',') if c.strip()]
         if any(c not in stocks for c in requested):
             raise ValueError('Unknown stock code')
-        refresh_due = sorted(c for c, date in available.items() if c in canonical and datetime.now(KST) - datetime.fromisoformat(date) >= timedelta(days=30))
-        rotated = canonical[cursor:] + canonical[:cursor]
-        targets = list(dict.fromkeys(stocks[c]['sourceCode'] for c in requested)) if requested else refresh_due + [c for c in rotated if c not in refresh_due]
+        targets = list(dict.fromkeys(stocks[c]['sourceCode'] for c in requested)) if requested else target_codes(canonical, available, attempts, now, cursor, args.force)
+        if not targets and list(stocks.values()) == old.get('stocks'):
+            print('No eligible issuers: all fresh or retry cooldown; no archive rewrite.')
+            return 0
+        consecutive_failures = 0
         for code in targets:
             # Skip fresh archives; weekly refresh also incorporates corrections.
             prior = available.get(code)
@@ -240,6 +311,7 @@ def main():
                 continue
             if collector.max_calls - collector.calls < 15:
                 break  # Reserve enough budget to finish a complete issuer atomically.
+            attempts[code] = datetime.now(KST).isoformat()
             corp = corp_map.get(code)
             if not corp:
                 failures[code] = 'DART 기업코드 미확보'
@@ -249,20 +321,37 @@ def main():
                     write_js(OUT / 'companies' / (code + '.js'), 'DCF_FILES', {code: payload})
                     available[code] = payload['generatedAt']
                     failures.pop(code, None)
+                    consecutive_failures = 0
                     print(code + ': annual archive written', flush=True)
                 except (BudgetExhausted, dart_client.DartRateLimitError):
                     break
-                except Exception:
-                    failures[code] = '공시 수집 실패: 기존 자료 유지, 직접 입력 가능'
+                except Exception as error:
+                    # Only classify known safe reasons; never expose URLs/keys.
+                    message = str(error)
+                    match = re.search(r'(?:status|상태) (\d{3})', message)
+                    reason = 'DART 상태 ' + match[1] if match else '공시 수집 실패'
+                    if message == '최근 5년 연간 재무 API 자료 미제공':
+                        reason = message
+                    failures[code] = reason + ': 기존 자료 유지, 직접 입력 가능'
+                    consecutive_failures += 1
                     print(code + ': collection failed; previous archive preserved', flush=True)
-            if not requested and code not in refresh_due:
+            if not requested:
                 cursor = (canonical.index(code) + 1) % len(canonical)
+            if consecutive_failures >= 5:
+                print('Five consecutive issuer failures; stop this batch and retain progress.', flush=True)
+                break
+        usage['calls'] += collector.calls
     public_cache = ROOT / 'work/dart_corp_code_map.json'
     public_corps = json.loads(public_cache.read_text(encoding='utf-8')) if public_cache.exists() else old.get('corpCodes', {})
     source_codes = {row['sourceCode'] for row in stocks.values()}
     manifest = {'schemaVersion': 1, 'generatedAt': datetime.now(KST).isoformat(), 'stocks': list(stocks.values()),
                 'corpCodes': {code: corp for code, corp in public_corps.items() if code in source_codes},
-                'available': available, 'failures': failures, 'cursor': cursor}
+                'available': available, 'failures': failures, 'attempts': attempts, 'cursor': cursor,
+                'collectionUsage': usage,
+                'coverage': {'stockCount': len(stocks), 'issuerCount': len(source_codes),
+                             'availableIssuers': len(source_codes.intersection(available)),
+                             'pendingIssuers': len(source_codes.difference(available)),
+                             'failedIssuers': len(source_codes.intersection(failures))}}
     write_js(manifest_path, 'DCF_INDEX', manifest)
     print('Search master: %d codes; real archives: %d; index: %d bytes' % (len(stocks), len(available), manifest_path.stat().st_size))
     return 0
