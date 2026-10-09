@@ -26,6 +26,55 @@ def report(year=2025, receipt=RECEIPT):
 
 
 class NormalizationTests(unittest.TestCase):
+    def test_shared_thread_quota_cannot_exceed_call_limit(self):
+        c = B.Collector('not-a-real-key', 5, 1500)
+        def invoke():
+            try:
+                return c.call(lambda key: 'ok')
+            except B.BudgetExhausted:
+                return 'stopped'
+        with patch.object(B.time, 'sleep'), B.ThreadPoolExecutor(max_workers=4) as pool:
+            result = list(pool.map(lambda _: invoke(), range(20)))
+        self.assertEqual(result.count('ok'), 5)
+        self.assertEqual(c.calls, 5)
+
+    def test_rate_limit_stops_other_workers_before_next_request(self):
+        c = B.Collector('not-a-real-key', 100, 1500)
+        def limited(key):
+            raise B.dart_client.DartRateLimitError('test quota')
+        with self.assertRaises(B.dart_client.DartRateLimitError):
+            c.call(limited)
+        with self.assertRaises(B.BudgetExhausted):
+            c.call(lambda key: self.fail('network should not run'))
+        self.assertEqual(c.calls, 1)
+
+    def test_parallel_batch_preserves_failed_archive_and_publishes_successes(self):
+        codes = ['005930','000660','005380','000270']
+        stocks = {c: B.universe()[c] for c in codes}
+        now = B.datetime.now(B.KST).isoformat()
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp);out = root / 'dcf-data'
+            prior = {'old': True}
+            B.write_js(out/'companies/005930.js', 'DCF_FILES', {'005930': prior})
+            B.write_js(out/'index.js', 'DCF_INDEX', {'available': {'005930':now}, 'corpCodes': dict.fromkeys(codes,'12345678')})
+            def fake_company(self, stock, corp, year):
+                self.call(lambda key: None)
+                if stock['sourceCode'] == '005930':
+                    raise RuntimeError('sensitive exception must never be copied')
+                return {'code':stock['sourceCode'], 'generatedAt':now}
+            with patch.object(B, 'ROOT', root), patch.object(B, 'OUT', out), patch.object(B, 'universe', return_value=stocks), \
+                    patch.object(B.Collector, 'company', fake_company), patch.object(B.time, 'sleep'), \
+                    patch.dict(B.os.environ, {'DART_API_KEY':'not-a-real-key'}), \
+                    patch.object(B.sys, 'argv', ['build_dcf_data.py','--codes',','.join(codes),'--force','--workers','4']):
+                self.assertEqual(B.main(), 0)
+            index = B.read_js(out/'index.js', 'DCF_INDEX')
+            self.assertEqual(B.read_js(out/'companies/005930.js', 'DCF_FILES')['005930'], prior)
+            self.assertEqual(index['collectionUsage']['calls'], 4)
+            self.assertEqual(index['available']['005930'], now)
+            self.assertIn('005930', index['failures'])
+            self.assertNotIn('sensitive exception', json.dumps(index))
+            self.assertEqual(len(index['available']), 4)
+
     def test_compaction_preserves_ambiguous_candidates_and_all_fields(self):
         rows = [row('revenue'), row('revenue', '200'), row('ppeCapex', '-25'),
                 row('intangibleCapex', '-5'), row('revenue', account_detail='segment'),
