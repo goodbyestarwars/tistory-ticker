@@ -21,6 +21,7 @@ import kis_client
 import market_clock
 import hour_candidate_engine as engine
 import hour_direction_engine as direction_engine
+import hour_validation
 
 KST = timezone(timedelta(hours=9))
 MAX_DETAILS = 24
@@ -244,6 +245,15 @@ def _unknown(row, now, reason):
 
 def _record(payload, snapshots):
     """Bounded local audit trail for later forward validation; no IP or credentials."""
+    if payload.get('directionModelVersion'):
+        payload['validationRecords'] = {}
+        for row in payload['items'] + payload['rejected'] + payload['unknown']:
+            verdict = row.get('directionVerdict')
+            if verdict:
+                try:
+                    payload['validationRecords'][row['code']] = hour_validation.record_prediction(verdict, snapshots.get(row['code']))
+                except Exception:
+                    logger.warning('hour validation prediction record unavailable')
     record = {'checkedAt': payload['checkedAt'], 'modelVersion': MODEL_VERSION,
               'criteria': payload['criteria'], 'coverage': payload['coverage'],
               'rows': payload['items'] + payload['rejected'] + payload['unknown'],
@@ -393,4 +403,11 @@ def check_direction(code, name='', **kwargs):
     result = {key: value for key, value in verdict.items() if key != 'metrics'}
     result['reason'] = direction_engine.brief_reason(result['reason'])
     result.update(sourceStatus=payload['state'], recorded=payload.get('recorded', False))
+    identity = payload.get('validationRecords', {}).get(code)
+    if payload['state'] == 'outside_window':
+        try:
+            identity = hour_validation.record_prediction(verdict, scope='outside-window')
+        except Exception:
+            logger.warning('hour validation outside-window record unavailable')
+    result.update(predictionId=identity, validationRecorded=bool(identity))
     return result

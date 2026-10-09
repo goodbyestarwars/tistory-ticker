@@ -166,6 +166,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `order_book.py` | 100 | 실시간 호가(ka10004)+체결(ka10003) | `fetch_order_book`, `fetch_trade` |
 | `hour_candidate_engine.py` | - | 미래 누출·자료 품질 방어 + 오전 수동 저점/거래량/체결/호가 후보의 순수 계산 | `evaluate`, `validate_settings` |
 | `hour_direction_engine.py` | - | v6 확인 당시 체결가 대비60분 방향 가설: 가격·VWAP+패턴 또는 체결, ±3% 목적/확대계산 제거·확률미검증 | `evaluate_direction`, `unclear` |
+| `hour_validation.py` | - | v6 계산불변·전진성과·불변SQLite·기존체결/VI루프재사용·60분고정정책·보존/export | `record_prediction`, `observe_trades`, `run_due`, `finalize_due`, `summary`, `records`, `prepare_store`, `backup_store` |
 | `hour_candidates.py` | - | 같은 KIS KRX 자료의 수동 온디맨드 수집·부분 범위·신선도·작업 상한·확인 기록 | `scan`, `check_direction`, `in_check_window`, `in_direction_window` |
 | `market_rank.py` | 140 | 거래량/상하한가 랭킹(ka10030/ka10017) | `fetch_sidebar_rank` |
 | `investor_trend.py` | 457 | 시장별 투자자매매 동향(KIS→네이버→키움 폴백) | `backfill_kis`, `bucket_daily/weekly/monthly`, `start_background` |

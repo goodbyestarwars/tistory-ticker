@@ -126,7 +126,8 @@ class RequestHelpersUseRetryTests(unittest.TestCase):
                             '..', 'scripts', 'cloud-vm', 'kis_client.py')
         with open(path, encoding='utf-8') as f:
             source = f.read()
-        self.assertEqual(source.count('return _with_token_retry(call, token, appkey, appsecret)'), 3)
+        self.assertEqual(source.count('return _with_token_retry(call, token, appkey, appsecret)'), 2)
+        self.assertEqual(source.count('result = _with_token_retry(call, token, appkey, appsecret)'), 1)
         for helper in ('def _get_overseas_rank(', 'def _get_domestic_quote(', 'def fetch_overseas_price('):
             with self.subTest(helper=helper):
                 body = source.split(helper, 1)[1].split('\ndef ', 1)[0]

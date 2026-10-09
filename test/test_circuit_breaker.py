@@ -119,7 +119,8 @@ class WiringTests(unittest.TestCase):
         main = self.read('scripts', 'cloud-vm', 'main.py')
         self.assertIn("@app.get('/api/circuit-breaker')", main)
         self.assertIn('circuit_breaker.get_payload()', main)
-        self.assertIn('circuit_breaker.start_background(kis_appkey, kis_appsecret)', main)
+        self.assertIn('circuit_breaker.start_background(kis_appkey, kis_appsecret,', main)
+        self.assertIn('on_tick=lambda: hour_validation.run_due(kis_appkey, kis_appsecret)', main)
         # 별도 프로세스·타이머를 두지 않는다.
         self.assertNotIn('circuit', self.read('scripts', 'cloud-vm', 'deploy_check.sh'))
 

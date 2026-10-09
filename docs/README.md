@@ -14,6 +14,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `history/WORK_HISTORY_*.md` | 옮겨 둔 지난 이력 | 과거 항목을 `grep`으로 찾을 때만 |
 | `GAS_AUTO_DEPLOY.md` | GAS 자동 배포(GitHub Actions+clasp) 설정·확인 절차 | GAS 배포 작업 |
 | `MARKET_CHART_HISTORY.md` | 시장지표 5년 이력·VM 부하·용량·갱신 | 장기 차트 수정 |
+| `HOUR_DIRECTION_VALIDATION.md` | 1시간 v6 전진 평가 정책·불변 보존·통계·부하·복구 | 방향 성과 검증 |
 | `COMPANY_PROFILES.md` | 종목분석 회사 소개 정적 자료·수집/갱신·누락 처리 | 회사 소개 수정 |
 | `SOURCE_CODE_SPEC.md` | 파일별 역할·함수·코드 품질 점검(속도/오류/보안) | 전체 구조 파악·리팩터링 전 |
 | `ARCHITECTURE_SPEC.md` | 컴포넌트 간 호출·인증·캐싱·동시성 상세 | 인프라 심화 작업 |

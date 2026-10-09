@@ -23,6 +23,7 @@ import db_schema
 import domestic_news
 import news_momentum
 import backup_sqlite
+import hour_validation
 
 
 KST = timezone(timedelta(hours=9))
@@ -291,6 +292,7 @@ def run(force=False):
         # 나머지 3개(domestic_news / us_news_cache / us_analysis_cache)를 편입한다.
         'domesticNews': _maintenance_domestic_news(),
         'usCaches': _maintenance_us_caches(),
+        'hourValidationBackup': hour_validation.backup_store(),
         'ohlcCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'ohlc_snapshot.db')),
         'newsCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'news_momentum.db')),
         'domesticNewsCheckpoint': _checkpoint_sqlite(os.path.join(app_dir, 'domestic_news.db')),
