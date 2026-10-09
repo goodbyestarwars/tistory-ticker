@@ -841,3 +841,16 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 .home-weekly-report .hwr-news-controls [data-news-page] { font-size:12px; color:var(--hw-muted); }
 @container (min-width:620px) { .home-weekly-report .hwr-news-card { flex-basis:calc((100% - 20px)/2); } }
 @container (min-width:960px) { .home-weekly-report .hwr-news-card { flex-basis:calc((100% - 40px)/3); } }
+
+/* 2026-10-10 사용자 요청: 휴장 지면 시장 뉴스 카드를 애플 홈페이지식 카드(연회색 면·큰 라운드·테두리 없음·굵은 제목)로.
+   제목은 마루부리 볼드(MaruBuriBold 단독 face, 가짜 볼드 방지로 weight 400). */
+.home-weekly-report .hwr-news-card { height:300px; padding:30px 28px; gap:14px; border:0 !important; border-radius:28px; background:#f5f5f7 !important; color:#1d1d1f; transition:transform .25s ease, box-shadow .25s ease; }
+.home-weekly-report .hwr-news-card:hover { transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,.12); }
+.home-weekly-report .hwr-news-card-market { font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#6e6e73; }
+.home-weekly-report .hwr-news-card h4 { font:400 22px/1.4 "MaruBuriBold","MaruBuri",Georgia,serif; letter-spacing:-.01em; color:#1d1d1f; -webkit-line-clamp:4; }
+.home-weekly-report .hwr-news-card p { color:#6e6e73; }
+.home-weekly-report .hwr-news-card-meta { color:#86868b; }
+html.dark .home-weekly-report .hwr-news-card { background:#1d1d1f !important; color:#f5f5f7; }
+html.dark .home-weekly-report .hwr-news-card h4 { color:#f5f5f7; }
+html.dark .home-weekly-report .hwr-news-card:hover { box-shadow:0 12px 28px rgba(0,0,0,.5); }
+@media (max-width:720px) { .home-weekly-report .hwr-news-card { height:270px; padding:24px 22px; border-radius:24px; } .home-weekly-report .hwr-news-card h4 { font-size:19px; } }

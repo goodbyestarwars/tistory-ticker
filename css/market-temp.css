@@ -2310,7 +2310,7 @@ html.dark #market-temp .mt-history-balance > span { background: transparent !imp
 #market-temp .mt-hot-strip[hidden] { display: none; }
 #market-temp .mt-hot-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--mt2-soft); font-size: 20px; }
 #market-temp .mt-hot-label { font-size: 20px; font-weight: 700; white-space: nowrap; }
-#market-temp .mt-hot-hot { color: var(--mt2-up); font-family: Georgia, "Times New Roman", serif; letter-spacing: .02em; }
+#market-temp .mt-hot-hot { color: var(--mt2-up); font-family: "MaruBuri", Georgia, serif; letter-spacing: .02em; }
 #market-temp .mt-hot-name { color: var(--mt2-down); font-size: 22px; }
 #market-temp .mt-hot-sep { width: 2px; height: 18px; flex-shrink: 0; background: var(--mt2-line); }
 #market-temp .mt-hot-headline { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }

@@ -1099,7 +1099,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   background: transparent;
 }
 #foreign-flow .ff-opinion-summary-card > .ff-panel-title {
-  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-family: "MaruBuriBold", "MaruBuri", Georgia, serif; font-weight: 400;
   font-size: 17px;
   line-height: 1.25;
   letter-spacing: -0.03em;
@@ -1149,7 +1149,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
 #foreign-flow .ff-opinion-target span { color: #7a848c; font-size: 11px; }
 #foreign-flow .ff-opinion-target strong {
   color: #202b34;
-  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-family: "MaruBuriBold", "MaruBuri", Georgia, serif; font-weight: 400;
   font-size: 21px;
   letter-spacing: -0.03em;
 }
@@ -1272,7 +1272,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   padding-bottom: 8px;
   border-bottom: 1px solid #d9dee3;
   color: #202b34;
-  font-family: Georgia, "Noto Serif KR", "Times New Roman", serif;
+  font-family: "MaruBuriBold", "MaruBuri", Georgia, serif; font-weight: 400;
   font-size: 17px;
 }
 #foreign-flow .ff-etf-kicker { color: #8a929a; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; }
