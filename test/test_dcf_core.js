@@ -109,3 +109,9 @@ test('failed quote does not block DCF or create fake comparison', () => {
   const d=manual(); assert.equal(C.evaluate(d,'manual').upside,null);
   C.setAssumption(d,'price',100);assert.ok(Number.isFinite(C.evaluate(d,'manual').upside));
 });
+test('invalid effective tax candidates and negative CAPEX never show automatic confirmation', () => {
+  const d=C.blank(2025); C.edit(d,2025,'taxExpense',-25); C.edit(d,2025,'pretax',100);
+  assert.equal(d.years[4].fields.taxRate.value,null); assert.equal(d.years[4].fields.taxRate.status,'missing');
+  C.edit(d,2025,'ocf',100); C.edit(d,2025,'capex',-10);
+  assert.equal(d.years[4].fields.simpleFcf.status,'missing');
+});

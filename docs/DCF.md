@@ -28,6 +28,8 @@
 
 초기 키는 기존 VM 환경설정에서 메모리로만 전달해 PC에서 수집했고, 정기 갱신용 키는 해당 저장소 Actions의 `DART_API_KEY` Secret으로 등록했다. 공개 코드·정적 자료·로그에 키 없음. corpCode API는 실제 `800` 점검중, 재무 API는 `000` 성공이었다. 기존 공개 기업코드 캐시를 재사용해 수집했다. 다운로드 실패 때 기존 공개 캐시가 있으면 유지하며 없으면 실패를 명시한다.
 
+콜드 Actions 러너도 동일 공개 매핑을 `index.js`의 `corpCodes`에서 부트스트랩한다. 공개 기업번호만이며 재무값을 만들어내지 않는다. 이 매핑 보강으로 인덱스 크기는 최초411KB에서 증가한다. `dcf/index.html`은 티스토리 관리자 로그인 전에도 사용할 수 있는 독립 Pages 화면이다.
+
 ## 정규화와 계산
 
 - 규격 `schemaVersion:1`, 자동 자료 통화 KRW·API 원금액 단위 원. 기본 표시 억원, 원/천원/백만원/억원 환산 시 원금액 유지. 직접 입력 USD/EUR은 해당 통화의1/천/백만/억 단위, 자동 환율 변환 없음. 주식 수 주, 주가 통화/주, 세율 비율 저장·% 표시.
@@ -66,13 +68,13 @@ FCFF=EBIT×(1−세율)+D&A−CAPEX−ΔNWC. OCF−CAPEX는 비교값으로 분�
 
 자동 확인 항목은 원자료에 있는 매출·영업/세전이익·법인세비용/납부·취득CAPEX·OCF·현금·일부D&A/채권/재고/채무다. 정상세율·NWC정의/증감·총차입금·조정순차입금·현재주가·최신희석주식수·WACC/성장률은 확인/직접입력 필요. 주석 원문 자동추출 없음.
 
-비압축 크기: 인덱스411,045B, 시장마스터68,960B, 기업파일 삼성547,556B/SK530,634B/NAVER600,049B/KB634,442B. 합계2,792,686B. 최초 인덱스 한 개, 선택후 기업 한 개; 전기업5년 일괄다운로드 없음.
+비압축 크기: 인덱스462,719B, 시장마스터68,960B, 기업파일 삼성547,556B/SK530,634B/NAVER600,049B/KB634,442B. 합계2,844,360B. 최초 인덱스 한 개, 선택후 기업 한 개; 전기업5년 일괄다운로드 없음.
 
 근거: [DART 재무 API](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS003&apiId=2019020), [공시목록](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS001&apiId=2019001), [주식총수](https://opendart.fss.or.kr/guide/detail.do?apiGrpCd=DS002&apiId=2020002), [KIS 코스피](https://github.com/koreainvestment/open-trading-api/blob/main/stocks_info/kis_kospi_code_mst.py), [KIS 코스닥](https://github.com/koreainvestment/open-trading-api/blob/main/stocks_info/kis_kosdaq_code_mst.py), [삼성 공식실적](https://news.samsungsemiconductor.com/global/samsung-electronics-announces-fourth-quarter-and-fy-2025-results/), [SK 공식실적](https://news.skhynix.com/en/sk-hynix-announces-fy25-financial-results/).
 
 ## 검증·배포
 
-정규화21건/계산·상태21건 통과. 기존 UI·종목분석·시세181건 중167통과·37 subtests 통과·14실패; 수정전HEAD도 같은14실패로 신규회귀 없음. 메뉴 기대값만 DCF를 포함하도록 수정.
+정규화22건/계산·상태22건 통과. 기존 UI·종목분석·시세181건 중167통과·37 subtests 통과·14실패; 수정전HEAD도 같은14실패로 신규회귀 없음. 메뉴 기대값만 DCF를 포함하도록 수정.
 
 Edge 실삼성 공시자동입력·수정/복원·이름/코드/우선주 구분·자동/수동 분리·수동DCF독립할인공식 일치·주가미확보·390 CSS px 표내부스크롤/본문넘침없음 확인. 전기업대조·비12월결산·복잡정정/철회원문·희석증권원문·장기VM부하 인과대조 미검증.
 

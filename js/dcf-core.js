@@ -17,6 +17,7 @@
   function combine(items, compute, reason) {
     if (items.some(function (item) { return item.value == null; })) return cell(null, 'missing', '구성 항목 미확보');
     var value = compute.apply(null, items.map(function (item) { return item.value; }));
+    if (value == null || !Number.isFinite(value)) return cell(null, 'missing', '계산 범위 확인 필요');
     var result = cell(value, items.every(accepted) ? 'auto' : 'review', reason);
     result.sources = items.reduce(function (list, item) { return list.concat(item.sources || []); }, []);
     result.inputs = items.map(function (item) { return item.value; });
