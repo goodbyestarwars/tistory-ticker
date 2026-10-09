@@ -741,3 +741,20 @@
     initShellAuthLinks();
   }
 })();
+
+/* Shared interaction dependency, loaded once by the existing global entry point. */
+(function () {
+  if (window.SiteInteractionsReady) return;
+  if (!document.currentScript || !document.currentScript.src) return;
+  var source = document.currentScript.src;
+  window.SiteInteractionsReady = new Promise(function (resolve, reject) {
+    if (window.SiteInteractions) { resolve(window.SiteInteractions); return; }
+    var script = document.createElement('script');
+    script.src = new URL('site-interactions.js', source).href;
+    script.setAttribute('data-site-interactions', '');
+    script.onload = function () { resolve(window.SiteInteractions); };
+    script.onerror = function () { reject(new Error('Interaction module unavailable')); };
+    document.head.appendChild(script);
+  });
+  window.SiteInteractionsReady.catch(function () {});
+})();

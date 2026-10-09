@@ -170,41 +170,21 @@
     if (!summary || summary === title) return '';
     return summary.length > 150 ? summary.slice(0, 147) + '…' : summary;
   }
-  // 2026-10-04 주말 리포트 재디자인: 뉴스를 국내/해외 두 열의 한 줄 행(시간·매체·제목)으로 줄이고 기본 6건만 보여준다.
-  // 나머지는 섹션 하단 "더보기" 하나로 연다. 요약문·원문 버튼·시장 배지는 걷고 제목 자체를 원문 링크로 쓴다.
-  var NEWS_VISIBLE = 6;
-  function newsRow(item, index) {
+  // Same report timeline and cap; navigation replaces the collapsed news rows.
+  function newsRow(item) {
     var type = newsType(item);
     var quote = item.price != null ? '<span class="hwr2-news-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
-    return '<li class="hwr2-news-row' + (index >= NEWS_VISIBLE ? ' is-extra' : '') + '" data-news-type="' + type + '">'
-      + '<time>' + escapeHtml(dateLabel(item.pubDate)) + ' ' + escapeHtml(timeLabel(item.pubDate)) + '</time>'
-      + '<span class="hwr2-news-main"><a href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener">' + escapeHtml(item.title || '제목 없음') + '</a>'
-      + '<small>' + escapeHtml(item.source || '') + (type === '공시' ? ' · 공시' : '') + '</small></span>' + quote + '</li>';
-  }
-  function newsColumn(title, items) {
-    return '<div class="hwr2-col"><h4 class="hwr2-col-title">' + title + '</h4>'
-      + (items.length ? '<ul class="hwr2-news-list">' + items.map(newsRow).join('') + '</ul>' : '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>') + '</div>';
+    return '<a class="hwr-news-card" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
+      + '<span class="hwr-news-card-market">' + escapeHtml(item.market || '국내') + ' · ' + type + '</span><h4>' + escapeHtml(item.title || '제목 없음') + '</h4>'
+      + '<p>' + escapeHtml(newsSummary(item)) + '</p><span class="hwr-news-card-meta">' + escapeHtml(item.source || '출처 미상')
+      + ' · <time>' + escapeHtml(dateLabel(item.pubDate)) + ' ' + escapeHtml(timeLabel(item.pubDate)) + '</time></span>' + quote + '</a>';
   }
   function newsTimeline(items) {
     if (!items || !items.length) return '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>';
-    var rows = items.slice(0, 20);
-    var domestic = rows.filter(function (item) { return item.market !== '미국'; });
-    var overseas = rows.filter(function (item) { return item.market === '미국'; });
-    var hasExtra = domestic.length > NEWS_VISIBLE || overseas.length > NEWS_VISIBLE;
-    return '<div class="hwr2-cols" data-hwr-news-timeline>' + newsColumn('국내 뉴스', domestic) + newsColumn('해외 뉴스', overseas) + '</div>'
-      + '<p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>'
-      + (hasExtra ? '<div class="hwr2-more-wrap"><button type="button" class="hwr2-more" data-hwr-news-more aria-expanded="false">뉴스 더보기</button></div>' : '');
-  }
-  function bindNewsMore(root) {
-    var more = root.querySelector('[data-hwr-news-more]');
-    var box = root.querySelector('.hwr2-news');
-    if (!more || !box) return;
-    more.addEventListener('click', function () {
-      var open = !box.classList.contains('is-expanded');
-      box.classList.toggle('is-expanded', open);
-      more.setAttribute('aria-expanded', open ? 'true' : 'false');
-      more.textContent = open ? '뉴스 접기' : '뉴스 더보기';
-    });
+    return '<div class="hwr-news-carousel" data-no-pointer-effect><div class="hwr-news-track" tabindex="0" role="region" aria-label="시장 뉴스 카드">'
+      + items.slice(0,20).map(newsRow).join('') + '</div><div class="hwr-news-controls"><button type="button" data-news-prev aria-label="이전 뉴스 페이지">←</button>'
+      + '<span data-news-page aria-live="polite">1 / 1</span><button type="button" data-news-next aria-label="다음 뉴스 페이지">→</button></div></div>'
+      + '<p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>';
   }
   function bindNewsFilters(root) {
     var buttons = root.querySelectorAll('[data-hwr-news-filter]');
@@ -876,6 +856,7 @@
     return hours ? hours.isWeekendClosed(date) : false;
   }
   function render(root, payload) {
+    if (root._newsCarousel) { root._newsCarousel.destroy(); root._newsCarousel = null; }
     var data = payload && payload.data ? payload.data : payload || {};
     var weekendDay = new Date().getDay();
     var title = weekendDay === 0 || weekendDay === 1 ? '다음 주 준비 리포트' : '한 주 마감 리포트';
@@ -910,7 +891,11 @@
       + newsTimeline(data.news && data.news.timeline) + '</section>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     bindNewsFilters(root);
-    bindNewsMore(root);
+    var carouselSection = root.querySelector('.hwr-news-carousel');
+    if (carouselSection) (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
+      if (!module || !carouselSection.isConnected) return;
+      root._newsCarousel = module.carousel(carouselSection, {track:'.hwr-news-track',previous:'[data-news-prev]',next:'[data-news-next]',page:'[data-news-page]',card:'.hwr-news-card'});
+    }).catch(function () {});
     loadMyWatchlistSchedule(root, data.week && data.week.end);
     loadNextWeekCalendar(root, data.week && data.week.end);
     loadWeekendLive(root, data.week && data.week.end);
@@ -953,7 +938,7 @@
       && window.HomeMarketSelection.get() === 'closed';
     var existing = document.getElementById('homeWeeklyReport');
     if (!isWeekendWindow(new Date()) && !closedSelected) {
-      if (existing) existing.remove();
+      if (existing) { if (existing._newsCarousel) existing._newsCarousel.destroy(); existing.remove(); }
       return null;
     }
     var feed = document.querySelector('.feed');
@@ -1010,5 +995,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init };
+  global.HomeWeeklyReport = { init: init, newsMarkup: newsTimeline };
 })(window);

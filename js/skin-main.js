@@ -491,138 +491,10 @@ document.documentElement.classList.add('skin-ready');
   (function buildHomeDashboard() {
     if (location.pathname !== '/' && location.pathname !== '') return;
     function initBriefingCarousel(section) {
-      var track = section.querySelector('.briefing-carousel-track');
-      var previous = section.querySelector('[data-briefing-prev]');
-      var next = section.querySelector('[data-briefing-next]');
-      var progress = section.querySelector('.briefing-carousel-progress');
-      var drag = null;
-      var suppressClick = false;
-      function sync() {
-        var max = Math.max(0, track.scrollWidth - track.clientWidth);
-        previous.disabled = track.scrollLeft <= 1;
-        next.disabled = track.scrollLeft >= max - 1;
-        progress.disabled = max <= 1;
-        progress.value = max ? Math.round(track.scrollLeft / max * 1000) : 0;
-      }
-      function move(direction) {
-        var card = track.querySelector('.home-briefing-card');
-        var step = card ? card.getBoundingClientRect().width + 24 : track.clientWidth;
-        track.scrollBy({ left: direction * step, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
-      }
-      previous.addEventListener('click', function () { move(-1); });
-      next.addEventListener('click', function () { move(1); });
-      progress.addEventListener('input', function () {
-        track.scrollLeft = (track.scrollWidth - track.clientWidth) * Number(progress.value) / 1000;
-      });
-      track.addEventListener('scroll', sync, { passive: true });
-      window.addEventListener('resize', sync, { passive: true });
-      if (window.ResizeObserver) {
-        var sizeObserver = new ResizeObserver(sync);
-        sizeObserver.observe(track);
-      }
-      track.addEventListener('keydown', function (event) {
-        if (event.target !== track || (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight')) return;
-        event.preventDefault();
-        move(event.key === 'ArrowLeft' ? -1 : 1);
-      });
-      track.addEventListener('pointerdown', function (event) {
-        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('button,input')) return;
-        drag = { id: event.pointerId, x: event.clientX, scroll: track.scrollLeft, moved: false };
-      });
-      track.addEventListener('pointermove', function (event) {
-        if (!drag || drag.id !== event.pointerId) return;
-        var delta = event.clientX - drag.x;
-        if (!drag.moved && Math.abs(delta) > 6) {
-          drag.moved = true;
-          track.setPointerCapture(event.pointerId);
-          track.classList.add('is-dragging');
-        }
-        if (!drag.moved) return;
-        event.preventDefault();
-        track.scrollLeft = drag.scroll - delta;
-      });
-      function finishDrag() {
-        if (!drag) return;
-        suppressClick = drag.moved;
-        if (track.hasPointerCapture(drag.id)) track.releasePointerCapture(drag.id);
-        drag = null;
-        track.classList.remove('is-dragging');
-        setTimeout(function () { suppressClick = false; }, 0);
-      }
-      window.addEventListener('pointerup', finishDrag);
-      window.addEventListener('pointercancel', finishDrag);
-      window.addEventListener('blur', finishDrag);
-      track.addEventListener('click', function (event) {
-        if (!suppressClick) return;
-        event.preventDefault();
-        event.stopPropagation();
-      }, true);
-      track.addEventListener('dragstart', function (event) { event.preventDefault(); });
-      requestAnimationFrame(sync);
-    }
-
-    function initHomePressPointer() {
-      var ns = 'http://www.w3.org/2000/svg';
-      var pointer = document.createElementNS(ns, 'svg');
-      pointer.setAttribute('class', 'home-press-pointer');
-      pointer.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(pointer);
-      var trail = document.createElementNS(ns, 'path');
-      pointer.appendChild(trail);
-      var held = false;
-      var size = 40;
-      var points = [];
-      var head = { x:0, y:0 };
-      var frame = 0;
-      var lastTime = 0;
-      function position(event) { head.x = event.clientX; head.y = event.clientY; }
-      function draw(time) {
-        if (!held) return;
-        var delta = lastTime ? Math.min(40, time - lastTime) : 16;
-        lastTime = time;
-        var follow = 1 - Math.exp(-delta / (size * .65));
-        points[0] = { x:head.x, y:head.y };
-        for (var i = 1; i < points.length; i++) {
-          points[i].x += (points[i - 1].x - points[i].x) * follow;
-          points[i].y += (points[i - 1].y - points[i].y) * follow;
-        }
-        var d = 'M ' + head.x + ' ' + head.y;
-        for (var j = 1; j < points.length - 1; j++) {
-          d += ' Q ' + points[j].x + ' ' + points[j].y + ' ' + ((points[j].x + points[j + 1].x) / 2) + ' ' + ((points[j].y + points[j + 1].y) / 2);
-        }
-        var tail = points[points.length - 1];
-        trail.setAttribute('d', d + ' L ' + tail.x + ' ' + tail.y);
-        trail.setAttribute('stroke-width', Math.max(2, size / 10));
-        frame = requestAnimationFrame(draw);
-      }
-      function hide() {
-        held = false;
-        cancelAnimationFrame(frame);
-        frame = 0;
-        lastTime = 0;
-        trail.removeAttribute('d');
-        pointer.classList.remove('is-visible');
-      }
-      document.addEventListener('pointerdown', function (event) {
-        if (event.pointerType !== 'mouse' || event.button !== 0 || event.target.closest('input,textarea,select,[contenteditable="true"]')) return;
-        held = true;
-        position(event);
-        cancelAnimationFrame(frame);
-        lastTime = 0;
-        points = Array.from({ length:16 }, function () { return { x:head.x, y:head.y }; });
-        pointer.classList.add('is-visible');
-        frame = requestAnimationFrame(draw);
-      });
-      document.addEventListener('pointermove', function (event) { if (held) position(event); }, { passive: true });
-      window.addEventListener('pointerup', hide);
-      window.addEventListener('pointercancel', hide);
-      window.addEventListener('blur', hide);
-      document.addEventListener('visibilitychange', function () { if (document.hidden) hide(); });
-      document.addEventListener('wheel', function (event) {
-        if (!held || !event.deltaY) return;
-        event.preventDefault();
-        size = Math.max(20, Math.min(96, size + (event.deltaY < 0 ? 6 : -6)));
-      }, { passive: false });
+      (window.SiteInteractionsReady || Promise.resolve(window.SiteInteractions)).then(function (module) {
+        if (!module) return;
+        module.carousel(section, {track:'.briefing-carousel-track',previous:'[data-briefing-prev]',next:'[data-briefing-next]',progress:'.briefing-carousel-progress',card:'.home-briefing-card'});
+      }).catch(function () {});
     }
 
     var feed = document.querySelector('.feed');
@@ -779,7 +651,7 @@ document.documentElement.classList.add('skin-ready');
         + '<path d="M45 90a6 6 0 1 1 10 4l3 13h-16l3-13a6 6 0 0 1 0-4z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/>'
         + '<path d="M61 83a7 7 0 0 1-10 3" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"/>'
         + '</svg>'
-        + '<h1>Markets Closed</h1></div><p>주말·한국 공휴일에는 국내 증시가 쉽니다. 미국 증시는 현지 거래일에 운영됩니다.</p></div><div class="home-closed-status"><strong>다음 거래일을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><a class="home-closed-link" href="#homeWeeklyReport">다음 주 일정 보기 →</a></div></div>'
+        + '<h1>Markets Closed</h1></div><p>주말·한국 공휴일에는 국내 증시가 쉽니다. 미국 증시는 현지 거래일에 운영됩니다.</p></div><a class="home-closed-status" href="/page/stock-calendar" aria-label="캘린더"><strong>다음 거래일을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><span class="home-closed-link">캘린더 →</span></a></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
@@ -2027,7 +1899,6 @@ document.documentElement.classList.add('skin-ready');
         briefing.querySelector('.briefing-carousel-track').appendChild(card);
       });
       initBriefingCarousel(briefing);
-      initHomePressPointer();
     } else {
       briefing = document.createElement('section');
       briefing.className = 'home-briefing-section';
