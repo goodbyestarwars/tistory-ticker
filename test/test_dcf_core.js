@@ -73,7 +73,7 @@ test('review candidate cannot feed valuation until explicitly accepted', () => {
   assert.equal(C.evaluate(d,'auto').ok,true);
 });
 test('financial industry and preferred block generic FCFF model', () => {
-  const p=payload(); for(const s of [{...stock,kind:'financial'},{...stock,shareClass:'preferred'}]) {
+  const p=payload(); for(const s of [{...stock,kind:'financial'},{...stock,kind:'spac'},{...stock,shareClass:'preferred'}]) {
     const d=C.autoDraft(s,p,2025); assert.match(C.evaluate(d,'auto').reason,/부적합/);
   }
 });

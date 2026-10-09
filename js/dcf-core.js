@@ -114,6 +114,7 @@
     if (mode === 'auto' && !company) return fail('종목을 선택하거나 직접 입력 모드를 사용하세요.');
     if (mode === 'auto' && company) {
       if (company.kind === 'financial') return fail('일반 FCFF DCF 적용 부적합: 금융업의 자본·차입금 구조는 별도 평가가 필요합니다.');
+      if (company.kind === 'spac') return fail('일반 FCFF DCF 적용 부적합: 스팩은 예치금·합병조건을 기준으로 별도 평가가 필요합니다.');
       if (company.shareClass === 'preferred') return fail('일반 FCFF DCF 적용 부적합: 우선주 권리와 보통주 가치 배분을 별도로 검토해야 합니다.');
       if (!draft.generatedAt) return fail('재무자료 부족: 정적 공시 자료가 없습니다. 직접 입력을 사용할 수 있습니다.');
       var age = (now || Date.now()) - Date.parse(draft.generatedAt);
