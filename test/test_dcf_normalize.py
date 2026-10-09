@@ -43,6 +43,20 @@ class NormalizationTests(unittest.TestCase):
         attempts = {'C': now.isoformat(), 'D': (now - B.timedelta(hours=7)).isoformat()}
         self.assertEqual(B.target_codes(['A','B','C','D','E'], available, attempts, now, 0), ['D','E','A'])
         self.assertEqual(B.target_codes(['A','B','C','D','E'], available, attempts, now, 3), ['D','E','A'])
+        self.assertEqual(B.target_codes(['A','B','C','D','E'], available, attempts, now, 0, failures={'B':'failed'}), ['D','E','A','B'])
+
+    def test_daily_quota_stops_before_any_authenticated_request(self):
+        stock = B.universe()['005930']
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp);out = root / 'dcf-data'
+            original = {'stocks': [stock], 'available': {}, 'collectionUsage': {'date': B.datetime.now(B.KST).date().isoformat(), 'calls': 12000}}
+            B.write_js(out / 'index.js', 'DCF_INDEX', original)
+            with patch.object(B, 'ROOT', root), patch.object(B, 'OUT', out), patch.object(B, 'universe', return_value={'005930':stock}), \
+                    patch.dict(B.os.environ, {'DART_API_KEY':'not-a-real-key'}), patch.object(B.sys, 'argv', ['build_dcf_data.py']), \
+                    patch.object(B.dart_client, 'get_corp_code_map') as network:
+                self.assertEqual(B.main(), 0)
+                network.assert_not_called()
+            self.assertEqual(B.read_js(out / 'index.js', 'DCF_INDEX'), original)
 
     def test_collector_enforces_time_and_api_call_limits(self):
         c = B.Collector('not-a-real-key', 0, 1500)
