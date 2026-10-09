@@ -67,6 +67,7 @@
     analysis: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M8.5 12.5l2-2 1.5 1.5 2-2.5"/>',
     pattern: '<path d="M8 4v16M16 6v14"/><rect x="6" y="8" width="4" height="7" rx="1"/><rect x="14" y="10" width="4" height="6" rx="1"/>',
     strategy: '<circle cx="12" cy="12" r="8"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+    valuation: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h2M14 18h2"/>',
     dot: '<circle cx="12" cy="12" r="3"/>'
   };
 
@@ -77,6 +78,7 @@
     if (href.indexOf('market-temp') !== -1) return 'temp';
     if (href.indexOf('kospi-futures') !== -1) return 'indicators';
     if (href.indexOf('foreign-flow') !== -1) return 'analysis';
+    if (href.indexOf('/dcf') !== -1) return 'valuation';
     if (href.indexOf('pattern-scan') !== -1) return 'pattern';
     if (href.indexOf('strategy-search') !== -1) return 'strategy';
     if (item.label === '마켓브리핑') return 'briefing';
