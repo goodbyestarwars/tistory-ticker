@@ -46,3 +46,11 @@ html.dark #dcf { color:#f5efe0; background:#1a1a1a; --np-paper:#1a1a1a; --np-tin
 html.dark #dcf .dcf-status-review { color:#e0c17a; }
 @media(max-width:720px) { #dcf h1 { font-size:25px; } #dcf .dcf-assumptions, #dcf .dcf-results { grid-template-columns:repeat(2,minmax(0,1fr)); } #dcf .dcf-table { min-width:1040px; } #dcf dd { font-size:18px; } }
 @media(max-width:420px) { #dcf .dcf-assumptions { grid-template-columns:1fr; } }
+
+/* The shared newspaper theme has layered !important rules. Keep the DCF
+   controls in that same layer so the global UI defaults cannot round/recolor them. */
+@layer np {
+  #dcf .ui-btn { border-radius:0 !important; background:#242424 !important; color:#fff !important; box-shadow:none !important; }
+  #dcf .ui-btn-secondary { background:transparent !important; color:inherit !important; }
+  #dcf input:not([type=checkbox]), #dcf select { border-radius:0 !important; box-shadow:none !important; border:1px solid #aaa !important; }
+}
