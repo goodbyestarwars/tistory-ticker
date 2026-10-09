@@ -25,6 +25,30 @@
    가릴 게 없으니 기다리지 않고 즉시 붙인다. */
 document.documentElement.classList.add('skin-ready');
 
+/* DCF uses the existing page-body mount pattern. Create /page/dcf in Tistory;
+   code, styles and per-company disclosures are maintained on GitHub Pages. */
+(function loadDcfPage() {
+  if (!/^\/(?:page|pages)\/dcf\/?$/.test(location.pathname)) return;
+  if (document.querySelector('script[data-dcf-page]')) return;
+  var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var mount = document.getElementById('dcf');
+  if (!mount) {
+    mount = document.createElement('div'); mount.id = 'dcf';
+    var host = document.querySelector('.contents_style') || document.querySelector('.post-single-body') || document.querySelector('.entry-content');
+    if (!host) return;
+    host.appendChild(mount);
+  }
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/dcf.css'; document.head.appendChild(css);
+  var core = document.createElement('script'); core.src = base + 'js/dcf-core.js'; core.setAttribute('data-dcf-page', '1');
+  core.onload = function () {
+    var script = document.createElement('script'); script.src = base + 'js/dcf.js';
+    script.onerror = function () { mount.textContent = 'DCF 화면 조회 실패. 페이지를 새로고침하세요.'; };
+    document.body.appendChild(script);
+  };
+  core.onerror = function () { mount.textContent = 'DCF 계산 모듈 조회 실패. 페이지를 새로고침하세요.'; };
+  document.body.appendChild(core);
+}());
+
   /* ── 월별 /earnings-calendar 공유 로더 ──
      홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트
      (home-weekly-report.js)가 같은 year-month 조회를 제각각 fetch 하던 것을 한 번으로

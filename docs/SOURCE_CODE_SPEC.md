@@ -1,5 +1,7 @@
 # 9Pay 증권 소스코드 정의서
 
+2026-10-09 DCF: `js/dcf-core.js`/`js/dcf.js`/`css/dcf.css`, 오프라인 `scripts/build_dcf_data.py`/`scripts/dcf_normalize.py`, `.github/workflows/dcf-data.yml` 추가. 기존 검색/DART클라이언트 재사용, VM 실행코드 변경없음. [호출·계산·자료·검증](DCF.md).
+
 작성일: 2026-08-03 · 기준 커밋: `3565730` (`master`) · 작성 방식: 전체 소스 직독(프론트 25개 JS, GAS 1개 파일 3,090줄, 백엔드 38개 Python 파일 8,664줄)을 근거로 작성. 코드는 수정하지 않았다.
 
 이 문서는 파일 단위로 "무엇이 있는가"를 정리한다. 인프라·배포 구조는 `ARCHITECTURE_SPEC.md`, DB 스키마는 `DB_SPEC.md`를 본다.

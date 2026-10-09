@@ -120,10 +120,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         )
         self.assertIsNotNone(group)
         body = group.group("body")
-        # 앞 둘은 종목을 '보는' 화면, 뒤 둘은 조건으로 '거르는' 화면이다. 4개가 한 줄에
-        # 있어도 안 헷갈리려면 이 순서가 유지돼야 한다(2026-09-04 요청 순서).
+        # 종목 확인·가치평가 다음에 조건 검색을 둔다.
         labels = re.findall(r"label: '([^']+)' \}", body)
-        self.assertEqual(labels, ['국내 주요종목', '종목분석', '차트검색', '전략검색'])
+        self.assertEqual(labels, ['국내 주요종목', '종목분석', '기업가치 분석', '차트검색', '전략검색'])
         self.assertIn("{ href: '/page/pattern-scan', label: '차트검색' }", body)
         self.assertIn("{ href: '/page/strategy-search', label: '전략검색' }", body)
 
