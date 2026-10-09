@@ -1,0 +1,13 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>공통 포인터·시장뉴스 검증</title><link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../css/home-weekly-report.css"><style>body{display:block;padding:24px;margin:0}main{max-width:1400px;margin:auto}.test-general{height:90px;border:1px solid #ddd;margin:20px 0;padding:20px}.test-chart{height:90px;border:1px solid #ddd;margin:20px 0;padding:20px}</style></head><body id="tt-body-index"><main>
+<h1>공통 포인터·시장뉴스 검증</h1><p>실제 공통 모듈과 뉴스 카드 생성 함수를 사용하는 검증 화면이다. 뉴스는 테스트 자료다.</p>
+<div class="test-general" tabindex="0">일반 영역: 누른 채 이동하면 빨간 곡선이 나타난다.</div>
+<div class="test-chart ss-chart" data-no-pointer-effect tabindex="0">차트 조작 제외 영역 <canvas width="100" height="20"></canvas></div>
+<label>입력 확인 <input id="test-input" value="텍스트 선택과 입력은 유지"></label>
+<section class="home-weekly-report"><section class="hwr2-section hwr2-news"><h2>시장 뉴스</h2><div id="test-news"></div></section></section>
+<button id="test-zero">뉴스 0건</button><button id="test-one">뉴스 1건</button><button id="test-many">뉴스 여러 건</button>
+</main><script src="../js/site-interactions.js"></script><script src="../js/home-weekly-report.js"></script><script>
+window.SiteInteractionsReady=Promise.resolve(window.SiteInteractions);
+var items=Array.from({length:10},function(_,i){return {title:'검증 뉴스 '+(i+1)+' · 길이가 긴 제목의 줄바꿈과 카드 정렬 확인',summary:'요약은 최대 두 줄로 표시하며 원본 기사 링크는 카드 전체에서 열린다. 포인터 효과와 캐러셀 드래그가 충돌하지 않는다.',source:'테스트 언론사',pubDate:'2026-10-09T09:00:00+09:00',market:i%2?'미국':'국내',link:'#article-'+i};});
+var control;function render(count){if(control)control.destroy();document.querySelector('#test-news').innerHTML=HomeWeeklyReport.newsMarkup(items.slice(0,count));var section=document.querySelector('.hwr-news-carousel');control=section&&SiteInteractions.carousel(section,{track:'.hwr-news-track',previous:'[data-news-prev]',next:'[data-news-next]',page:'[data-news-page]',card:'.hwr-news-card'});}
+document.querySelector('#test-zero').onclick=function(){render(0);};document.querySelector('#test-one').onclick=function(){render(1);};document.querySelector('#test-many').onclick=function(){render(10);};render(10);
+</script></body></html>
