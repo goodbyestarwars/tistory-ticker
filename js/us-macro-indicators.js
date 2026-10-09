@@ -252,12 +252,12 @@
       + '<div data-umi-cards class="umi-grid umi-grid--data"><p class="umi-state">발표값을 불러오는 중입니다.</p></div></div></section>';
   }
 
-  function refresh_(root) {
+  function refresh_(root, force) {
     var target = root.querySelector('[data-umi-cards]');
     var button = root.querySelector('[data-umi-refresh]');
     if (!target) return;
     if (button) { button.disabled = true; button.textContent = '갱신 중'; }
-    fetchResults_()
+    fetchResults_(force)
       .then(function (items) {
         var bySymbol = {};
         items.forEach(function (item) {
@@ -280,7 +280,10 @@
     if (!root) return;
     root.innerHTML = shell_();
     var button = root.querySelector('[data-umi-refresh]');
-    if (button) button.addEventListener('click', function () { refresh_(root); });
+    if (button) button.addEventListener('click', function () {
+      // 갱신 버튼은 30분 캐시를 건너뛰고 다시 받는다. 연타로 VM에 요청이 몰리지 않게 15초 안에는 캐시를 쓴다.
+      refresh_(root, Date.now() - resultsCachedAt > 15000);
+    });
     refresh_(root);
     if (timer) clearInterval(timer);
     timer = setInterval(function () { if (!document.hidden) refresh_(root); }, REFRESH_MS);

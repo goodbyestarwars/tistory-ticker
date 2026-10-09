@@ -3039,6 +3039,22 @@ def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000,
     return {'success': True, 'data': data, 'source': 'dart+finnhub', 'cached': False}
 
 
+def _attach_weekly_news_translations(data):
+    """휴장 지면 시장 뉴스 카드의 미국 기사 제목에 한국어(title_ko)를 붙인다(2026-10-10 요청).
+
+    캐시된 번역만 조회하고(allow_fetch=False) 빠진 제목은 기존 백그라운드 보충에 맡긴다.
+    스냅샷·캐시로 응답하는 경로에서도 매번 호출해 번역이 뒤늦게 채워져도 반영된다.
+    """
+    try:
+        timeline = ((data or {}).get('news') or {}).get('timeline') or []
+        us_rows = [row for row in timeline if row.get('market') == '미국']
+        if us_rows:
+            news_aggregator.translate_news_titles(us_rows, max_items=len(us_rows), allow_fetch=False)
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly report news translation failed: %s', type(exc).__name__)
+    return data
+
+
 @app.get('/weekly-report')
 def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     """주말 홈 화면용 한 주 요약.
@@ -3054,12 +3070,12 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     cached = _weekly_report_cache.get(cache_key)
     now = time.time()
     if cached and not fresh and now - cached['t'] < _WEEKLY_REPORT_TTL:
-        return envelope(cached['data'])
+        return envelope(_attach_weekly_news_translations(cached['data']))
     if not fresh:
         snapshot = _load_weekly_report_snapshot(cache_key)
         if snapshot is not None:
             _weekly_report_cache[cache_key] = {'t': now, 'data': snapshot}
-            return envelope(snapshot)
+            return envelope(_attach_weekly_news_translations(snapshot))
 
     def safe_domestic_board():
         wics_map = market_board.load_wics_map()
@@ -3176,7 +3192,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
     )
     _weekly_report_cache[cache_key] = {'t': time.time(), 'data': data}
     _save_weekly_report_snapshot(cache_key, data)
-    return envelope(data)
+    return envelope(_attach_weekly_news_translations(data))
 
 
 _WEEKEND_US_THEMES_TTL = 30 * 60

@@ -403,6 +403,8 @@
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
+      + '<button type="button" class="ss-box-toggle" aria-pressed="false">박스</button>'
+      + '<button type="button" class="ss-hline-toggle" aria-pressed="false">가로선</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-memo-toggle" aria-pressed="false" title="차트의 봉을 눌러 메모를 남깁니다(일·주·월봉)">메모</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
@@ -1364,6 +1366,8 @@
     var drawButton = container.querySelector('.ss-draw-toggle');
     var pencilButton = container.querySelector('.ss-pencil-toggle');
     var circleButton = container.querySelector('.ss-circle-toggle');
+    var boxButton = container.querySelector('.ss-box-toggle');
+    var hlineButton = container.querySelector('.ss-hline-toggle');
     var drawClear = container.querySelector('.ss-draw-clear');
     if (drawButton && drawButton.getAttribute('data-stock-draw-wired') !== '1') {
       drawButton.setAttribute('data-stock-draw-wired', '1');
@@ -1383,6 +1387,18 @@
         setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'circle' ? null : 'circle');
       };
     }
+    if (boxButton && boxButton.getAttribute('data-stock-draw-wired') !== '1') {
+      boxButton.setAttribute('data-stock-draw-wired', '1');
+      boxButton.onclick = function () {
+        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'box' ? null : 'box');
+      };
+    }
+    if (hlineButton && hlineButton.getAttribute('data-stock-draw-wired') !== '1') {
+      hlineButton.setAttribute('data-stock-draw-wired', '1');
+      hlineButton.onclick = function () {
+        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'hline' ? null : 'hline');
+      };
+    }
     if (drawClear && drawClear.getAttribute('data-stock-draw-wired') !== '1') {
       drawClear.setAttribute('data-stock-draw-wired', '1');
       drawClear.onclick = function () {
@@ -1390,6 +1406,8 @@
         stockDrawingState.lines = [];
         stockDrawingState.paths = [];
         stockDrawingState.circles = [];
+        stockDrawingState.hlines = [];
+        stockDrawingState.boxes = [];
         stockDrawingState.pending = null;
         stockDrawingState.preview = null;
         stockDrawingState.activePath = null;
@@ -2314,6 +2332,8 @@
       + '<div class="ss-chart-tabs">'
       + '<button type="button" class="ss-draw-toggle" aria-pressed="false">직선</button>'
       + '<button type="button" class="ss-circle-toggle" aria-pressed="false">동그라미</button>'
+      + '<button type="button" class="ss-box-toggle" aria-pressed="false">박스</button>'
+      + '<button type="button" class="ss-hline-toggle" aria-pressed="false">가로선</button>'
       + '<button type="button" class="ss-pencil-toggle" aria-pressed="false">연필</button>'
       + '<button type="button" class="ss-memo-toggle" aria-pressed="false" title="차트의 봉을 눌러 메모를 남깁니다(일·주·월봉)">메모</button>'
       + '<button type="button" class="ss-draw-clear">지우기</button>'
@@ -2541,14 +2561,16 @@
       var raw = global.localStorage.getItem(stockDrawingStorageKey(key, timeframe));
       var parsed = raw ? JSON.parse(raw) : [];
       // 기존 추세선 배열 저장값도 그대로 복원한다.
-      if (Array.isArray(parsed)) return { lines: parsed, paths: [], circles: [] };
+      if (Array.isArray(parsed)) return { lines: parsed, paths: [], circles: [], hlines: [], boxes: [] };
       return {
         lines: Array.isArray(parsed && parsed.lines) ? parsed.lines : [],
         paths: Array.isArray(parsed && parsed.paths) ? parsed.paths : [],
-        circles: Array.isArray(parsed && parsed.circles) ? parsed.circles : []
+        circles: Array.isArray(parsed && parsed.circles) ? parsed.circles : [],
+        hlines: Array.isArray(parsed && parsed.hlines) ? parsed.hlines : [],
+        boxes: Array.isArray(parsed && parsed.boxes) ? parsed.boxes : []
       };
     } catch (e) {
-      return { lines: [], paths: [], circles: [] };
+      return { lines: [], paths: [], circles: [], hlines: [], boxes: [] };
     }
   }
 
@@ -2557,7 +2579,9 @@
       global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify({
         lines: drawing.lines,
         paths: drawing.paths,
-        circles: drawing.circles
+        circles: drawing.circles,
+        hlines: drawing.hlines || [],
+        boxes: drawing.boxes || []
       }));
     } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
   }
@@ -2665,6 +2689,45 @@
       ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
       ctx.stroke();
     });
+    (drawing.boxes || []).forEach(function (box) {
+      var a = stockDrawingCoordinate(drawing, box.start);
+      var b = stockDrawingCoordinate(drawing, box.end);
+      if (!a || !b) return;
+      var bx = Math.min(a.x, b.x), by = Math.min(a.y, b.y), bw = Math.abs(b.x - a.x), bh = Math.abs(b.y - a.y);
+      ctx.fillStyle = 'rgba(99,102,241,.12)';
+      ctx.fillRect(bx, by, bw, bh);
+      ctx.strokeStyle = 'rgba(99,102,241,.85)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(bx, by, bw, bh);
+      if (box.label) {
+        ctx.font = '700 12px MaruBuri, serif';
+        ctx.fillStyle = '#4f46e5';
+        ctx.textBaseline = 'top';
+        var text = String(box.label);
+        while (text.length > 1 && ctx.measureText(text).width > bw - 8) text = text.slice(0, -1);
+        ctx.fillText(text, bx + 5, by + 4);
+      }
+    });
+    // 가로선: 클릭한 가격에 차트 전체 폭으로 긋고 오른쪽 끝에 금액 표시.
+    (drawing.hlines || []).forEach(function (hl) {
+      var y = drawing.series.priceToCoordinate(hl.price);
+      if (y == null) return;
+      var w = drawing.overlay.clientWidth;
+      ctx.beginPath();
+      ctx.strokeStyle = '#e11d48';
+      ctx.lineWidth = 1.5;
+      ctx.moveTo(0, y);
+      ctx.lineTo(w, y);
+      ctx.stroke();
+      var txt = hl.price >= 1000 ? Math.round(hl.price).toLocaleString('ko-KR') : String(Math.round(hl.price * 100) / 100);
+      ctx.font = '700 11px sans-serif';
+      var tw = ctx.measureText(txt).width + 10;
+      ctx.fillStyle = '#e11d48';
+      ctx.fillRect(w - tw - 4, y - 18, tw, 16);
+      ctx.fillStyle = '#fff';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(txt, w - tw + 1, y - 10);
+    });
     if (drawing.pending) {
       var pending = stockDrawingCoordinate(drawing, drawing.pending);
       if (pending) {
@@ -2688,6 +2751,8 @@
             ctx.ellipse((previewStart.x + drawing.preview.x) / 2, (previewStart.y + drawing.preview.y) / 2,
               previewRadiusX, previewRadiusY, 0, 0, Math.PI * 2);
           }
+        } else if (drawing.mode === 'box') {
+          ctx.rect(previewStart.x, previewStart.y, drawing.preview.x - previewStart.x, drawing.preview.y - previewStart.y);
         } else {
           ctx.moveTo(previewStart.x, previewStart.y);
           ctx.lineTo(drawing.preview.x, drawing.preview.y);
@@ -2739,7 +2804,7 @@
     if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange) {
       drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange(drawing.timeRangeHandler);
     }
-    [drawing.lineButton, drawing.pencilButton, drawing.circleButton].forEach(function (button) {
+    [drawing.lineButton, drawing.pencilButton, drawing.circleButton, drawing.boxButton, drawing.hlineButton].forEach(function (button) {
       if (!button) return;
       button.classList.remove('is-active');
       button.setAttribute('aria-pressed', 'false');
@@ -2751,7 +2816,7 @@
   function setStockDrawingMode(mode) {
     var drawing = stockDrawingState;
     if (!drawing) return;
-    mode = mode === 'line' || mode === 'pencil' || mode === 'circle' ? mode : null;
+    mode = mode === 'line' || mode === 'pencil' || mode === 'circle' || mode === 'box' || mode === 'hline' ? mode : null;
     drawing.mode = mode;
     drawing.enabled = !!mode;
     drawing.pending = null;
@@ -2771,7 +2836,17 @@
       drawing.circleButton.classList.toggle('is-active', mode === 'circle');
       drawing.circleButton.setAttribute('aria-pressed', mode === 'circle' ? 'true' : 'false');
     }
-    drawing.overlay.title = mode === 'line'
+    if (drawing.boxButton) {
+      drawing.boxButton.classList.toggle('is-active', mode === 'box');
+      drawing.boxButton.setAttribute('aria-pressed', mode === 'box' ? 'true' : 'false');
+    }
+    if (drawing.hlineButton) {
+      drawing.hlineButton.classList.toggle('is-active', mode === 'hline');
+      drawing.hlineButton.setAttribute('aria-pressed', mode === 'hline' ? 'true' : 'false');
+    }
+    drawing.overlay.title = mode === 'hline' ? '차트를 누르면 그 가격에 가로선이 생기고 금액이 표시됩니다.'
+      : mode === 'box' ? '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).'
+      : mode === 'line'
       ? '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.'
       : mode === 'circle' ? '왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.'
       : mode === 'pencil' ? '누른 채로 움직여 자유롭게 그립니다.' : '';
@@ -2791,6 +2866,8 @@
       lines: saved.lines,
       paths: saved.paths,
       circles: saved.circles,
+      hlines: saved.hlines,
+      boxes: saved.boxes,
       pending: null,
       preview: null,
       activePath: null,
@@ -2798,7 +2875,9 @@
       mode: null,
       lineButton: scope.querySelector('.ss-draw-toggle'),
       pencilButton: scope.querySelector('.ss-pencil-toggle'),
-      circleButton: scope.querySelector('.ss-circle-toggle')
+      circleButton: scope.querySelector('.ss-circle-toggle'),
+      boxButton: scope.querySelector('.ss-box-toggle'),
+      hlineButton: scope.querySelector('.ss-hline-toggle')
     };
     var overlay = document.createElement('canvas');
     overlay.className = 'ss-drawing-layer';
@@ -2806,7 +2885,7 @@
     element.appendChild(overlay);
     drawing.overlay = overlay;
     overlay.addEventListener('mousemove', function (event) {
-      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle') || !drawing.pending) return;
+      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle' && drawing.mode !== 'box') || !drawing.pending) return;
       var rect = overlay.getBoundingClientRect();
       drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       redrawStockDrawing(drawing);
@@ -2823,13 +2902,19 @@
       if (!point) return;
       event.preventDefault();
       if (drawing.mode === 'pencil') drawing.activePath = [point];
-      else if (drawing.mode === 'line' || drawing.mode === 'circle') drawing.pending = point;
+      else if (drawing.mode === 'hline') {
+        drawing.hlines.push({ price: point.price });
+        saveStockDrawings(drawing);
+        redrawStockDrawing(drawing);
+        return;
+      }
+      else if (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') drawing.pending = point;
       if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
       redrawStockDrawing(drawing);
     });
     overlay.addEventListener('pointermove', function (event) {
       var rect = overlay.getBoundingClientRect();
-      if ((drawing.mode === 'line' || drawing.mode === 'circle') && drawing.pending) {
+      if ((drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') && drawing.pending) {
         drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
         redrawStockDrawing(drawing);
         return;
@@ -2843,13 +2928,23 @@
       redrawStockDrawing(drawing);
     });
     function finishStockPencil(event) {
-      if (drawing.pending && (drawing.mode === 'line' || drawing.mode === 'circle')) {
+      if (drawing.pending && (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box')) {
         var rect = overlay.getBoundingClientRect();
         var endPoint = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
         var startPoint = drawing.pending;
         if (endPoint) {
           var shape = { start: startPoint, end: endPoint };
           if (drawing.mode === 'circle') drawing.circles.push(shape);
+          else if (drawing.mode === 'box') {
+            // 너무 작은 드래그(클릭)는 박스로 만들지 않는다.
+            var bs = stockDrawingCoordinate(drawing, startPoint), be = stockDrawingCoordinate(drawing, endPoint);
+            if (bs && be && Math.abs(be.x - bs.x) > 6 && Math.abs(be.y - bs.y) > 6) {
+              var label = '';
+              try { label = String(global.prompt('박스 이름(예: 상승 파동, 조정, 응축)', '') || '').slice(0, 20); } catch (e) { /* 무시 */ }
+              shape.label = label;
+              drawing.boxes.push(shape);
+            }
+          }
           else drawing.lines.push(shape);
         }
         drawing.pending = null;

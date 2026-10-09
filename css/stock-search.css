@@ -388,6 +388,8 @@ html.dark #stock-search .ss-hour-direction button { color: #aaa !important; }
 #stock-search .ss-draw-toggle,
 #stock-search .ss-pencil-toggle,
 #stock-search .ss-circle-toggle,
+#stock-search .ss-box-toggle,
+#stock-search .ss-hline-toggle,
 #stock-search .ss-draw-clear {
   padding: 6px 14px;
   font-size: 12.5px;
@@ -400,7 +402,9 @@ html.dark #stock-search .ss-hour-direction button { color: #aaa !important; }
 }
 #stock-search .ss-draw-toggle.is-active,
 #stock-search .ss-pencil-toggle.is-active,
-#stock-search .ss-circle-toggle.is-active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
+#stock-search .ss-circle-toggle.is-active,
+#stock-search .ss-box-toggle.is-active,
+#stock-search .ss-hline-toggle.is-active { border-color: #333; background: #333; color: #fff; font-weight: 700; }
 #stock-search .ss-drawing-layer {
   position: absolute;
   z-index: 6;
@@ -766,6 +770,8 @@ html.dark #stock-search .ss-tf-btn.active { background: #F5EFE0 !important; bord
 html.dark #stock-search .ss-draw-toggle,
 html.dark #stock-search .ss-pencil-toggle,
 html.dark #stock-search .ss-circle-toggle,
+html.dark #stock-search .ss-box-toggle,
+html.dark #stock-search .ss-hline-toggle,
 html.dark #stock-search .ss-draw-clear {
   background: #1A1A1A !important;
   border-color: rgba(245, 239, 224, 0.2) !important;
@@ -773,7 +779,9 @@ html.dark #stock-search .ss-draw-clear {
 }
 html.dark #stock-search .ss-draw-toggle.is-active,
 html.dark #stock-search .ss-pencil-toggle.is-active,
-html.dark #stock-search .ss-circle-toggle.is-active {
+html.dark #stock-search .ss-circle-toggle.is-active,
+html.dark #stock-search .ss-box-toggle.is-active,
+html.dark #stock-search .ss-hline-toggle.is-active {
   border-color: #F5EFE0 !important;
   background: #F5EFE0 !important;
   color: #1A1A1A !important;

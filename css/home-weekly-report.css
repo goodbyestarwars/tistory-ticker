@@ -854,3 +854,10 @@ html.dark .home-weekly-report .hwr-news-card { background:#1d1d1f !important; co
 html.dark .home-weekly-report .hwr-news-card h4 { color:#f5f5f7; }
 html.dark .home-weekly-report .hwr-news-card:hover { box-shadow:0 12px 28px rgba(0,0,0,.5); }
 @media (max-width:720px) { .home-weekly-report .hwr-news-card { height:270px; padding:24px 22px; border-radius:24px; } .home-weekly-report .hwr-news-card h4 { font-size:19px; } }
+
+/* 휴장 뉴스 카드 보강(2026-10-10 '심심하다'): 시장별 포인트색 알약 + 위쪽 색 띠 + 은은한 그라데이션. */
+.home-weekly-report .hwr-news-card { position:relative; overflow:hidden; --card-accent:#e8590c; background:linear-gradient(160deg,#fbfbfd 0%,#f1f1f4 100%) !important; }
+.home-weekly-report .hwr-news-card[data-market="미국"] { --card-accent:#2563eb; }
+.home-weekly-report .hwr-news-card::before { content:''; position:absolute; left:0; top:0; right:0; height:5px; background:var(--card-accent); }
+.home-weekly-report .hwr-news-card-market { align-self:flex-start; padding:4px 11px; border-radius:999px; background:color-mix(in srgb, var(--card-accent) 14%, transparent); color:var(--card-accent); text-transform:none; letter-spacing:0; }
+html.dark .home-weekly-report .hwr-news-card { background:linear-gradient(160deg,#242427 0%,#1b1b1d 100%) !important; }

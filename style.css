@@ -5283,6 +5283,12 @@ html.dark .hrt-delayed .hrt-stock small::after { background: rgba(251,191,36,.18
 .hrt-up { color: #e34d4b; }
 .hrt-down { color: #2674d9; }
 .hrt-flat, .hrt-muted { color: #9da5ad; }
+/* 2026-10-10: 등락률이 실시간으로 바뀔 때 옅은 빨강/파랑 알약 음영(오름=빨강, 내림=파랑)이 켜졌다 사라진다. */
+.hrt-pill-up, .hrt-pill-down { display: inline-block; padding: 2px 8px; border-radius: 999px; animation: hrt-pill-fade 1.6s ease-out; }
+.hrt-pill-up { --hrt-pill: rgba(227, 77, 75, .16); }
+.hrt-pill-down { --hrt-pill: rgba(38, 116, 217, .16); }
+@keyframes hrt-pill-fade { 0%, 35% { background: var(--hrt-pill); } 100% { background: transparent; } }
+@media (prefers-reduced-motion: reduce) { .hrt-pill-up, .hrt-pill-down { animation-duration: .01s; } }
 .hrt-industry { overflow: hidden; text-overflow: ellipsis; color: #586474; }
 .hrt-state { height: 90px; color: #9da5ad !important; text-align: center !important; }
 .hrt-foot { justify-content: space-between; gap: 12px; padding-top: 10px; color: #a1a9b2; font-size: 10px; }
@@ -7631,7 +7637,7 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
   .qi-add-btn, .btn-share, .btn-read, .hrt-etf-toggle, .de-expand-button, .home-reset-button, .home-settings-button,
   .page-btn, .us-stocks-fav-btn, .ss-analysis-link, .my-watchlist-add, .my-watchlist-show, .discussion-write-actions input, .discussion-write-actions button, .discussion-current button,
   .dmi-spot-collapse, .dmi-section-collapse, .dmi-collapse-btn, .kf-collapse-btn, .qi-collapse-btn, .dmi-draw-clear, .kf-draw-clear, .sc-nav,
-  .ss-memo-toggle, .ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle, .ss-draw-clear, .kf-draw-toggle, .dmi-draw-toggle, .mt-sector-editor-add-stock-button, [data-theme-picker-open], [data-sector-editor-open],
+  .ss-memo-toggle, .ss-draw-toggle, .ss-circle-toggle, .ss-box-toggle, .ss-hline-toggle, .ss-pencil-toggle, .ss-draw-clear, .kf-draw-toggle, .dmi-draw-toggle, .mt-sector-editor-add-stock-button, [data-theme-picker-open], [data-sector-editor-open],
   [data-all-stock-refresh], .mt-adopt-controls button, .mt-theme-picker-head button) {
   min-height: var(--np-btn-h) !important;
   padding: 0 16px !important;
@@ -7714,7 +7720,7 @@ html body #stock-calendar .sc-disclosure-search input[type="search"]:focus {
 html body #stock-calendar .sc-disclosure-search small {
   font: 400 12px/1.5 var(--font-ui) !important; color: rgba(var(--np-ink), .6) !important;
 }
-html body #stock-search :where(.ss-draw-toggle, .ss-circle-toggle, .ss-pencil-toggle)[aria-pressed="true"] {
+html body #stock-search :where(.ss-draw-toggle, .ss-circle-toggle, .ss-box-toggle, .ss-hline-toggle, .ss-pencil-toggle)[aria-pressed="true"] {
   background: rgb(var(--np-ink)) !important;
   color: var(--np-paper) !important;
   font-weight: 700 !important;

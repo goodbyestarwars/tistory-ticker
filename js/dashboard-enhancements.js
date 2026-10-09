@@ -49,7 +49,7 @@
       // 실제 노출 순서를 정한다(구성 요소를 appendChild로 이 순서대로 다시 붙임).
       // .ss-circle-toggle이 동그라미 추가(#528) 당시 이 목록에 빠져 있어서 다른 세 버튼만
       // 아래 줄로 옮겨지고 동그라미만 tf 버튼 옆에 혼자 남아 있었다.
-      '.ss-draw-toggle', '.ss-circle-toggle', '.ss-pencil-toggle', '.ss-draw-clear',
+      '.ss-draw-toggle', '.ss-circle-toggle', '.ss-box-toggle', '.ss-hline-toggle', '.ss-pencil-toggle', '.ss-draw-clear',
       '.dmi-draw-toggle', '.dmi-draw-clear',
       '.kf-draw-toggle', '.kf-draw-clear'
     ];

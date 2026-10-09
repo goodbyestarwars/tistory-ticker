@@ -2349,7 +2349,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("drawing.paths.push(drawing.activePath)", search)
         self.assertIn("overlay.addEventListener('pointerdown'", search)
         self.assertIn("overlay.addEventListener('pointermove'", search)
-        self.assertIn("else if (drawing.mode === 'line' || drawing.mode === 'circle') drawing.pending = point", search)
+        self.assertIn("else if (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') drawing.pending = point", search)
         self.assertIn("else drawing.lines.push(shape)", search)
         # 선과 동그라미는 왼쪽에서 오른쪽으로 끌어 완성하는 동일한 포인터 제스처를 쓴다.
         self.assertIn("if (drawing.mode === 'circle') drawing.circles.push(shape)", search)

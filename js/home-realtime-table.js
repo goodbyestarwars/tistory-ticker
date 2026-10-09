@@ -888,6 +888,7 @@
       });
     });
     if (!item) item = (state.data && state.data.rows || []).find(function (candidate) { return candidate.code === code; });
+    var prevRate = item ? number(item.change_rate) : null;
     if (item) { if (price != null) item.price = price; if (rate != null) item.change_rate = rate; }
     var priceCell = row.querySelector('[data-field="price"]');
     // textContent로 쓰면 안에 있는 등락률 줄이 첫 체결에 지워진다.
@@ -899,6 +900,17 @@
     var falling = row.querySelector('[data-field="falling"]');
     if (rising) splitFlapCell(rising, rateCell(rate, true));
     if (falling) splitFlapCell(falling, rateCell(rate, false));
+    // 2026-10-10 요청: 등락률이 바뀔 때 오르면 옅은 빨강, 내리면 옅은 파랑 알약 음영이 잠깐 켜졌다 사라진다.
+    if (rate != null && prevRate != null && rate !== prevRate) {
+      var dir = rate > prevRate ? 'up' : 'down';
+      [rising, falling, priceCell].forEach(function (cell) {
+        var target = cell && cell.querySelector('.hrt-up, .hrt-down, .hrt-price-rate');
+        if (!target) return;
+        target.classList.remove('hrt-pill-up', 'hrt-pill-down');
+        void target.offsetWidth;
+        target.classList.add('hrt-pill-' + dir);
+      });
+    }
   }
 
   function fetchBoard(force) {
