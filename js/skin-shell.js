@@ -299,7 +299,10 @@
     var k = kst(date);
     // 토요일 오전엔 국내장이 없고 미국 금요일 애프터마켓만 남는다 - 08:00 복귀를 적용하지 않고 예전처럼 09:00 전은 미국.
     if (k.day === 6 && k.minutes < M(9)) return 'us';
-    return (k.minutes >= HOME_US_SWITCH_KST_MINUTES || k.minutes < HOME_DOMESTIC_START_KST_MINUTES) ? 'us' : 'domestic';
+    var domesticWindow = k.minutes >= HOME_DOMESTIC_START_KST_MINUTES && k.minutes < HOME_US_SWITCH_KST_MINUTES;
+    // 한국 공휴일에는 국내 화면 대신 휴장 지면을 보여준다. 미국 세션은 별도로 유지한다.
+    if (domesticWindow && k.day !== 6 && isKrHoliday(date)) return 'closed';
+    return domesticWindow ? 'domestic' : 'us';
   }
 
   global.MarketHours = {
