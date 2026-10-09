@@ -17,6 +17,7 @@ on:
 permissions:
   contents: write
   pages: write
+  actions: write
 concurrency:
   group: dcf-annual-archives
   cancel-in-progress: false
@@ -51,7 +52,11 @@ jobs:
           if [ "$DCF_FORCE" = "true" ]; then flags+=(--force); fi
           python scripts/build_dcf_data.py --codes "$DCF_CODES" --max-calls "$DCF_MAX_CALLS" --max-seconds 1500 --daily-calls 12000 --workers 4 --refresh-markets "${flags[@]}"
       - name: Validate generated archives
-        run: python -m unittest discover -s test -p test_dcf_normalize.py
+        run: python -m unittest discover -s test -p 'test_dcf_*.py'
+      - name: Snapshot timestamped supplier prices outside VM
+        run: python scripts/build_dcf_quotes.py
+      - name: Count automatic model eligibility separately from archive coverage
+        run: node scripts/dcf_coverage.js
       - name: Publish static files
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,3 +69,7 @@ jobs:
           git pull --rebase origin master
           git push origin HEAD:master
           gh api --method POST repos/${{ github.repository }}/pages/builds
+      - name: Continue eligible missing issuers within daily quota
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/resume_dcf_collection.py

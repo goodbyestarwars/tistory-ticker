@@ -3,6 +3,11 @@
 #dcf h1 { font-size:30px; margin:0; }
 #dcf h2 { font-size:21px; margin:0 0 14px; }
 #dcf p { margin:10px 0; }
+#dcf .dcf-scenarios { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+#dcf .dcf-scenarios article { border:1px solid #aaa; padding:16px; min-width:0; }
+#dcf .dcf-scenarios strong, #dcf .dcf-fair-price { font-size:26px; font-variant-numeric:tabular-nums; overflow-wrap:anywhere; }
+#dcf .dcf-adjustments>summary { font-size:20px; cursor:pointer; padding:12px 0; }
+@media(max-width:600px) { #dcf .dcf-scenarios { grid-template-columns:1fr; } }
 #dcf button, #dcf input, #dcf select { font:inherit; border-radius:0; }
 #dcf input[type=text], #dcf input[type=search], #dcf input[type=number], #dcf input:not([type]), #dcf select { border:1px solid #aaa; padding:6px 8px; background:var(--np-paper,#fff); color:inherit; box-sizing:border-box; min-width:0; }
 #dcf input[type=search] { width:100%; margin-top:6px; }

@@ -225,8 +225,8 @@ class Collector:
         return {'schemaVersion': 1, 'code': stock['sourceCode'], 'corpCode': corp, 'market': market,
                 'generatedAt': datetime.now(KST).isoformat(), 'currency': 'KRW', 'amountUnit': '원',
                 'displayUnit': '억원', 'basis': basis, 'years': records[-5:], 'priorNwc': records[0]['fields']['nwc'],
-                'shareFields': share_fields, 'quote': missing('VM 무부하 원칙: 현재주가 직접 입력'),
-                'warnings': ['세율·운전자본·차입금·희석주식수는 수동 확인 필요', '정정공시 접수번호가 원자료와 다르면 자동 확인으로 표시하지 않음']}
+                'shareFields': share_fields, 'quote': missing('출처·시각이 있는 별도 정적 시세 또는 기존 공유 캐시를 적용'),
+                'warnings': ['세율·운전자본·차입금·주식 권리의 자동 모형 적용 가능성은 별도 검증', '정정공시 접수번호가 원자료와 다르면 자동 확인으로 표시하지 않음']}
 
 
 def main():
@@ -372,6 +372,7 @@ def main():
                 'corpCodes': {code: corp for code, corp in public_corps.items() if code in source_codes},
                 'available': available, 'failures': failures, 'attempts': attempts, 'cursor': cursor,
                 'collectionUsage': usage,
+                'supplements': sorted(p.stem for p in (OUT / 'supplements').glob('*.js')),
                 'coverage': {'stockCount': len(stocks), 'issuerCount': len(source_codes),
                              'availableIssuers': len(source_codes.intersection(available)),
                              'pendingIssuers': len(source_codes.difference(available)),

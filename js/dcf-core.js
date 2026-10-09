@@ -13,7 +13,7 @@
   function copy(value) { return JSON.parse(JSON.stringify(value)); }
   function missing() { return cell(null); }
   function field(row, key) { return row.fields[key] || missing(); }
-  function accepted(item) { return item && item.value !== null && Number.isFinite(item.value) && (item.status === 'auto' || item.status === 'user'); }
+  function accepted(item) { return item && item.value !== null && Number.isFinite(item.value) && (item.status === 'auto' || item.status === 'user' || item.status === 'estimate'); }
   function combine(items, compute, reason) {
     if (items.some(function (item) { return item.value == null; })) return cell(null, 'missing', '구성 항목 미확보');
     var value = compute.apply(null, items.map(function (item) { return item.value; }));
@@ -176,7 +176,125 @@
     };
     return s;
   }
-  var api = { numeric: numeric, scale: SCALE, cell: cell, field: field, accepted: accepted, recalculate: recalculate,
+
+  // Automatic model is isolated from the untouched public disclosure draft.
+  // Review candidates pass only receipt/unit/account checks, never a checkbox.
+  function analyze(draft, now) {
+    var notes = [], missingKeys = [], company = draft.company;
+    var reportAge = (now || Date.now()) - Date.parse(draft.generatedAt);
+    function blocked(reason) { return { ok: false, classification: '자동 평가 불가', reason: reason,
+      missing: missingKeys, notes: notes, scenarios: [], model: null }; }
+    if (!company) return blocked('종목을 검색하고 검색 결과에서 선택하세요.');
+    if (company.kind === 'financial' || company.kind === 'spac' || company.kind === 'holding' || company.shareClass === 'preferred')
+      return blocked('금융업·스팩·지주회사·우선주는 일반 FCFF 모형으로 자동 평가하지 않습니다. 별도 가치 배분 모형이 필요합니다.');
+    if (!Number.isFinite(reportAge) || reportAge < -86400000 || reportAge > 45 * 86400000)
+      return blocked('최신 정적 공시 자료가 없거나 수집 기준일이 45일을 넘었습니다.');
+    if (draft.baseYear !== Number(new Intl.DateTimeFormat('en',{timeZone:'Asia/Seoul',year:'numeric'}).format(new Date(now || Date.now()))) - 1)
+      return blocked('최근 완료 연도의 사업보고서가 아닙니다.');
+    var supplement = draft.supplement, validSupplement = supplement && supplement.schemaVersion === 1 &&
+      supplement.code === company.sourceCode && supplement.basis === draft.basis && supplement.year === draft.baseYear &&
+      supplement.receipt === (draft.years[4].report || {}).rcept_no &&
+      supplement.revenue === field(draft.years[4], 'revenue').value && supplement.ebit === field(draft.years[4], 'ebit').value && Number.isFinite(supplement.debt) && supplement.debt>=0 && Number.isFinite(supplement.minority) && supplement.minority>=0;
+    var names = { ebit: ['영업이익','영업이익(손실)'], revenue:['매출액','수익(매출액)'],
+      depreciation:['감가상각비'], amortisation:['무형자산상각비'], daCombined:['감가상각 및 무형자산상각비'],
+      ppeCapex:['유형자산의 취득'], intangibleCapex:['무형자산의 취득'], receivables:['매출채권'], inventory:['재고자산'], payables:['매입채무'],
+      pretax:['법인세비용차감전순이익'], taxExpense:['법인세비용'], cash:['현금및현금성자산'] };
+    function usable(row, key) {
+      var item = field(row,key);
+      if (!Number.isFinite(item.value) || item.value == null) return null;
+      if (item.status === 'user') return item.value;
+      if (!row.report || !/^\d{14}$/.test(row.report.rcept_no)) return null;
+      var sources = item.sources || [];
+      if (!sources.length || !sources.every(function (s) { return s.rcept_no === row.report.rcept_no && s.currency === 'KRW'; })) return null;
+      if (item.status === 'auto' || (item.status === 'review' && sources.length === 1 && (names[key] || []).indexOf(sources[0].account_nm) !== -1)) return item.value;
+      return null;
+    }
+    function median(values) { if (!values.length) return null; values=values.slice().sort(function(a,b){return a-b;}); var i=Math.floor(values.length/2);return values.length%2?values[i]:(values[i-1]+values[i])/2; }
+    function clamp(v,min,max){ return Math.max(min,Math.min(max,v)); }
+    function estimated(v,reason){ return cell(v,'estimate',reason); }
+    var taxRates = draft.years.map(function(r){var t=usable(r,'taxExpense'),p=usable(r,'pretax');return t!=null&&p>0&&t/p>=0&&t/p<=1?t/p:null;}).filter(function(v){return v!=null;});
+    var tax = taxRates.length >= 3 ? clamp(median(taxRates),.15,.30) : .25;
+    if (accepted(draft.assumptions.taxRate)) tax=draft.assumptions.taxRate.value;
+    if (tax<0 || tax>1) return blocked('정상 세율은 0~100% 범위여야 합니다.');
+    notes.push('정상 세율: 수익 발생 연도 실효세율 중앙값을 15~30%로 제한; 3년 미만이면 모형 가정 25%. 과거 공시 세율을 변경하지 않습니다.');
+    var model=copy(draft), history=[], valid=0, total=0;
+    var priorNwc = draft.priorNwc && draft.priorNwc.value;
+    var priorValid = draft.priorNwc && draft.priorNwc.sources && draft.priorNwc.sources.length === 3 &&
+      draft.priorNwc.sources.every(function(s){return s.currency==='KRW'&&/^\d{14}$/.test(s.rcept_no||'');});
+    draft.years.forEach(function(r,i){
+      var e=usable(r,'ebit'), dep=usable(r,'depreciation'), amort=usable(r,'amortisation'),da=usable(r,'daCombined');
+      if(da==null && dep!=null && amort!=null) da=dep+amort;
+      var extra=validSupplement && supplement.years && supplement.years[String(r.year)];
+      if(da==null && extra && extra.receipt===(r.report||{}).rcept_no && extra.revenue===field(r,'revenue').value && Number.isFinite(extra.da) && extra.da>=0) da=extra.da;
+      if(field(r,'da').status==='user') da=field(r,'da').value;
+      var pc=usable(r,'ppeCapex'),ic=usable(r,'intangibleCapex'),capex=pc!=null&&ic!=null?Math.abs(pc)+Math.abs(ic):null;
+      if(field(r,'capex').status==='user')capex=field(r,'capex').value;
+      else if(extra && extra.receipt===(r.report||{}).rcept_no && capex!=null && Number.isFinite(extra.leaseCapex) && extra.leaseCapex>=0)capex+=extra.leaseCapex;
+      var ar=usable(r,'receivables'), inv=usable(r,'inventory'), ap=usable(r,'payables');
+      var nwc=ar!=null&&inv!=null&&ap!=null?ar+inv-ap:null;
+      if(field(r,'nwc').status==='user')nwc=field(r,'nwc').value;
+      var delta=nwc!=null&&priorValid&&priorNwc!=null?nwc-priorNwc:null;
+      if(field(r,'deltaNwc').status==='user')delta=field(r,'deltaNwc').value;
+      [['영업이익',e],['감가상각·상각비',da],['CAPEX',capex],['운전자본 증가액',delta]].forEach(function(pair){total++;if(pair[1]!=null)valid++;else missingKeys.push(r.year+' '+pair[0]);});
+      var fcff=e!=null&&da!=null&&capex!=null&&delta!=null&&da>=0&&capex>=0?e*(1-tax)+da-capex-delta:null;
+      history.push({year:r.year,value:fcff,inputs:{ebit:e,da:da,capex:capex,deltaNwc:delta,taxRate:tax}});
+      model.years[i].fields.fcff=estimated(fcff,'정상 세율·영업운전자본 대용치를 적용한 FCFF 모형값');
+      priorNwc=nwc;priorValid=nwc!=null;
+    });
+    var completeness=valid/total;
+    if(validSupplement)notes.push(supplement.leaseCapexProxy ? '리스 재투자 추정: 금융활동 주석의 리스부채 증가를 신규 리스 재투자 대용치로 모형 CAPEX에 더합니다. 변경 계약 등의 영향이 포함될 수 있으며 실제 현금 지출과 구별합니다.' : '리스 금융부채 처리: 사용권자산 감가상각이 포함되므로 신규 리스계약의 사용권자산 취득액도 모형 CAPEX에 더합니다. 공시 현금 CAPEX 원본은 유지합니다.');
+    notes.push('운전자본 모형: 매출채권+재고−매입채무. 기타 영업자산·부채와 비현금 변동은 포함하지 않는 대용치입니다.');
+    var recent=history.slice(-3).map(function(r){return r.value;});
+    if(recent.some(function(v){return v==null;}))return Object.assign(blocked('최근 3년 FCFF의 핵심 공시 구성값이 부족합니다: '+missingKeys.slice(-8).join(', ')),{history:history,completeness:completeness});
+    if(recent[2]<=0 || median(recent)<=0)return Object.assign(blocked('최근 FCFF가 음수이거나 정상화 현금흐름이 양수가 아닙니다. 회복을 임의로 가정하지 않습니다.'),{history:history,completeness:completeness});
+    var latest=draft.years[4], debt=usable(latest,'debt'), cash=usable(latest,'cash'), minority=usable(latest,'nonControllingInterests');
+    if(validSupplement){debt=supplement.debt;minority=supplement.minority;}
+    var netDebt=debt!=null&&cash!=null&&minority!=null?debt-cash+minority:null;
+    var allocation = validSupplement && supplement.allocation;
+    var sf=draft.shareFields, issued=(sf.issuedShares||{}).value,treasury=(sf.treasuryShares||{}).value,shares=(sf.shares||{}).value;
+    var shareOK=Number.isFinite(issued)&&Number.isFinite(treasury)&&issued>0&&treasury>=0&&issued-treasury===shares&&
+      ['issuedShares','treasuryShares','shares'].every(function(k){return (sf[k].sources||[]).length===1&&sf[k].sources[0].rcept_no===(latest.report||{}).rcept_no&&sf[k].sources[0].originalUnit==='주';});
+    if(!shareOK)shares=null;
+    if(company.hasOtherShares){
+      if(!allocation || allocation.common!==shares || !Number.isFinite(allocation.preferred) || allocation.preferred<0)shares=null;
+      else {shares+=allocation.preferred;notes.push('보통주·우선주 경제적 가치 동일 배분 가정. 두 종류 유통주식 합계로 나누며 의결권·추가배당 차이와 미래 희석은 미반영.');}
+    } else notes.push('주식 수: 사업보고서 발행−자기주식 대조. 기준일 이후 증자·희석은 미반영.');
+    if(accepted(draft.assumptions.netDebt)&&draft.assumptions.netDebt.status==='user')netDebt=draft.assumptions.netDebt.value;
+    if(accepted(draft.assumptions.shares)&&draft.assumptions.shares.status==='user')shares=draft.assumptions.shares.value;
+    if(netDebt==null || shares==null || shares<=0)return Object.assign(blocked('순차입금·리스 포함 총차입금·비지배지분·주식 권리 배분의 검증 자료가 부족합니다. 누락 부채를 0으로 처리하지 않습니다.'),{history:history,completeness:completeness});
+    notes.push('지분가치 조정: 이자부차입금(리스 포함)−현금+비지배지분 장부금액. 투자자산은 별도 가산하지 않는 보수적 모형입니다.');
+    var growths=[];
+    ['revenue','ebit'].forEach(function(k){var changes=[];for(var i=1;i<5;i++){var before=usable(draft.years[i-1],k),after=usable(draft.years[i],k);if(before>0&&after>0)changes.push(clamp(after/before-1,-.2,.2));}if(changes.length>=2)growths.push(median(changes));});
+    var fcChanges=[];for(var h=1;h<5;h++){if(history[h-1].value>0&&history[h].value>0)fcChanges.push(clamp(history[h].value/history[h-1].value-1,-.2,.2));}
+    if(fcChanges.length>=2)growths.push(median(fcChanges));
+    var growth=clamp(growths.length?median(growths)*.5:0,-.03,.10);
+    var base=(recent[2]+median(recent))/2;
+    notes.push('미래 FCFF: 최근 3년 중앙값과 최신값의 평균에서 시작. 매출·영업이익·양수 FCFF 증가율은 ±20% 제한 후 중앙값·50% 축소, 최종 −3~10%로 제한. 일회성 항목은 완전히 제거할 수 없습니다.');
+    var assumptions=model.assumptions;
+    function defaultValue(k,v,reason){if(!assumptions[k]||assumptions[k].status!=='user')assumptions[k]=estimated(v,reason);}
+    defaultValue('wacc',.10,'측정 WACC가 아닌 고정 시나리오 할인율 10%; 무위험수익률·베타·시장 프리미엄·부채비용 미확보');
+    defaultValue('terminalGrowth',.02,'장기 성장 모형 가정 2%');
+    defaultValue('growth',growth,'과거 증가율 중앙값 제한·정상화');
+    defaultValue('taxRate',tax,'정상 세율 모형 가정');
+    defaultValue('netDebt',netDebt,'리스 포함 차입금−현금+비지배지분 장부금액');
+    defaultValue('shares',shares,'사업보고서 유통주식 기준·종류주식 배분 가정');
+    defaultValue('forecastMode',1,'자동 정상화 FCFF 5년 추정');
+    for(var f=1;f<=5;f++)defaultValue('forecast'+f,base*Math.pow(1+assumptions.growth.value,f),'정상화 FCFF 성장 모형');
+    var result=evaluate(model,'model',now);
+    if(!result.ok)return Object.assign(blocked(result.reason),{history:history,completeness:completeness,model:model});
+    var scenarios=[{name:'보수적',wacc:assumptions.wacc.value+.02,g:Math.max(-.01,assumptions.terminalGrowth.value-.01),growth:assumptions.growth.value-.02,base:.85},
+      {name:'기본',wacc:assumptions.wacc.value,g:assumptions.terminalGrowth.value,growth:assumptions.growth.value,base:1},
+      {name:'낙관적',wacc:assumptions.wacc.value-.01,g:assumptions.terminalGrowth.value+.005,growth:assumptions.growth.value+.02,base:1.15}].map(function(s){
+        var d=copy(model);d.assumptions.wacc=estimated(s.wacc,'시나리오');d.assumptions.terminalGrowth=estimated(s.g,'시나리오');
+        if(!(draft.assumptions.forecastMode&&draft.assumptions.forecastMode.status==='user'))for(var j=1;j<=5;j++)d.assumptions['forecast'+j]=estimated(result.forecast[j-1]*s.base*Math.pow((1+s.growth)/(1+assumptions.growth.value),j),'시나리오 민감도');
+        return Object.assign(s,evaluate(d,'model',now));
+      });
+    if(scenarios.some(function(s){return !s.ok;}))notes.push('일부 시나리오 할인율·성장률 조건이 유효하지 않아 그 결과는 표시하지 않습니다.');
+    return Object.assign(result,{classification:'추정 포함 계산',model:model,scenarios:scenarios,history:history,notes:notes,missing:missingKeys,completeness:completeness,
+      estimateDependence:'정상 세율·운전자본 범위·미래 FCFF·할인율·성장률·지분 조정·주식 배분에 모형 가정 포함',reason:'공시 기반 재무값과 명시적인 자동 가정을 사용한 시나리오 분석'});
+  }
+
+  var api = { analyze: analyze, numeric: numeric, scale: SCALE, cell: cell, field: field, accepted: accepted, recalculate: recalculate,
     blank: blank, autoDraft: autoDraft, edit: edit, restore: restore, setAssumption: setAssumption, evaluate: evaluate, search: search, state: state };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else global.DcfCore = api;
