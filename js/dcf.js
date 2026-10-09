@@ -10,7 +10,7 @@
   var state = C.state(year), index = null, loading = false, controller = null, message = '', results = [], active = -1;
   var LABELS = { auto: '자동 확인', user: '사용자 조정', review: '확인 필요', missing: '미확보' };
   var FIELDS = [
-    ['revenue', '매출액'], ['ebit', '영업이익 (EBIT 근사)'], ['pretax', '세전이익'], ['taxExpense', '법인세비용'], ['taxPaid', '실제 납부법인세'],
+    ['revenue', '매출액'], ['ebit', '영업이익 (EBIT 근사)'], ['pretax', '세전이익'], ['taxExpense', '법인세비용'], ['taxPaid', '납부법인세 (환급 포함)'],
     ['taxRate', '정상 세율 (%)'], ['da', '감가상각·상각비'], ['capex', 'CAPEX (지출 양수)'], ['nwc', '순영업운전자본'],
     ['deltaNwc', '순영업운전자본 증가액'], ['ocf', '영업현금흐름'], ['cash', '현금및현금성자산'], ['debt', '이자부 차입금'],
     ['simpleFcf', '영업현금흐름−CAPEX'], ['fcff', 'FCFF']
