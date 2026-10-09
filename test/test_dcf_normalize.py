@@ -166,6 +166,21 @@ class NormalizationTests(unittest.TestCase):
                         self.assertTrue(field['sources'] or field.get('formula'))
                     self.assertNotIn('crtfc_key', json.dumps(field))
 
+    def test_cold_actions_runner_bootstraps_public_mapping_without_download(self):
+        stock = B.universe()['005930']
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            out = root / 'dcf-data'
+            B.write_js(out / 'index.js', 'DCF_INDEX', {'available': {'005930': B.datetime.now(B.KST).isoformat()}, 'corpCodes': {'005930': '00126380'}})
+            def mapper(key):
+                data = json.loads((root / 'work/dart_corp_code_map.json').read_text(encoding='utf-8'))
+                self.assertEqual(data, {'005930': '00126380'})
+                return data
+            with patch.object(B, 'ROOT', root), patch.object(B, 'OUT', out), patch.object(B, 'universe', return_value={'005930': stock}), \
+                    patch.object(B.dart_client, 'get_corp_code_map', side_effect=mapper), patch.object(B.dart_client, 'CORP_CODE_MAP_FILE', 'unused'), \
+                    patch.dict(B.os.environ, {'DART_API_KEY': 'not-a-real-key'}), patch.object(B.sys, 'argv', ['build_dcf_data.py', '--codes', '005930']):
+                self.assertEqual(B.main(), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

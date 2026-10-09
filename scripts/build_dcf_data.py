@@ -207,6 +207,11 @@ def main():
         # Existing corp-code client cache is redirected to local work/ (never VM).
         cache = ROOT / 'work/dart_corp_code_map.json'
         cache.parent.mkdir(exist_ok=True)
+        # Cold Actions runners can bootstrap the same PUBLIC mapping snapshot
+        # already used to generate the search index during corpCode maintenance.
+        # These identifiers are public; never bootstrap financial values here.
+        if not cache.exists() and old.get('corpCodes'):
+            cache.write_text(json.dumps(old['corpCodes']), encoding='utf-8')
         dart_client.CORP_CODE_MAP_FILE = str(cache)
         try:
             corp_map = collector.call(dart_client.get_corp_code_map)
@@ -252,7 +257,11 @@ def main():
                     print(code + ': collection failed; previous archive preserved', flush=True)
             if not requested and code not in refresh_due:
                 cursor = (canonical.index(code) + 1) % len(canonical)
+    public_cache = ROOT / 'work/dart_corp_code_map.json'
+    public_corps = json.loads(public_cache.read_text(encoding='utf-8')) if public_cache.exists() else old.get('corpCodes', {})
+    source_codes = {row['sourceCode'] for row in stocks.values()}
     manifest = {'schemaVersion': 1, 'generatedAt': datetime.now(KST).isoformat(), 'stocks': list(stocks.values()),
+                'corpCodes': {code: corp for code, corp in public_corps.items() if code in source_codes},
                 'available': available, 'failures': failures, 'cursor': cursor}
     write_js(manifest_path, 'DCF_INDEX', manifest)
     print('Search master: %d codes; real archives: %d; index: %d bytes' % (len(stocks), len(available), manifest_path.stat().st_size))
