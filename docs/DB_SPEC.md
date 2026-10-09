@@ -417,6 +417,10 @@ PK `(date, sector)`. 업종(운영 `sector_cards` 설정의 테마, "코스피 3
 
 `date`(PK, 야간장이 끝난 아침의 한국 날짜), `night_close`·`night_ts`(오전 6시 이전 마지막 분봉), `bars`(그 구간 분봉 수 - 자료 완전성 확인용), `day_close`·`day_ts`(직전 주간선물 마지막 분봉), `updated_at`. 화~토 오전 6~9시 계산 주기에 기록한다. `future_chart_minute`는 1500봉만 읽혀 며칠 뒤 마감값이 사라지므로 따로 보관한다.
 
+## 별도 방향 성과 검증용 `hour_validation.db` (2026-10-09)
+
+별도 SQLite WAL/FULL/page-cache1MiB. predictions(내용해시PK·불변verdict/압축snapshot/원시지표), outcomes(prediction_id유일·불변평가), observations(시간/가격별KIS J체결), attempts(재시도), metadata(최초이관). UPDATE/DELETE 차단으로 과거 예측/결과를 보호한다. 초기 기존JSONL은 원본바이트archive 후 v6만 멱등이관, 기존회전파일도 유지. DB와WAL512MiB 도달시 신규기록 실패를 노출하며 기존행은 삭제하지 않는다. 기존장외maintenance에서 무결성검사/최근7개백업, 재배포는.py만복사해DB보존. 복구/정책 상세 [명세](HOUR_DIRECTION_VALIDATION.md).
+
 ## 3. `news_momentum.db`
 
 경로: `scripts/cloud-vm/news_momentum.db` (VM 로컬) · 스키마 정의: `news_momentum.py:23-96` · 연결: `get_conn()` — `timeout=5`, `row_factory=sqlite3.Row`, `PRAGMA journal_mode=WAL`, `synchronous=NORMAL`, `foreign_keys=ON`, `busy_timeout=5000`, `temp_store=MEMORY`.

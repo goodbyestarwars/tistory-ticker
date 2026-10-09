@@ -185,9 +185,14 @@ def get_payload(now_kst=None):
     return build_payload(rows, now_kst, fetched, error)
 
 
-def _loop(appkey, appsecret):
+def _loop(appkey, appsecret, on_tick=None):
     while True:
         now_kst = datetime.now(KST)
+        if on_tick:
+            try:
+                on_tick()
+            except Exception:
+                logger.warning('hour validation tick unavailable')
         if in_poll_window(now_kst):
             refresh_once(appkey, appsecret, now_kst)
             time.sleep(POLL_SEC)
@@ -195,7 +200,7 @@ def _loop(appkey, appsecret):
             time.sleep(IDLE_CHECK_SEC)
 
 
-def start_background(appkey, appsecret):
+def start_background(appkey, appsecret, on_tick=None):
     global _thread
     if not appkey or not appsecret:
         logger.warning('KIS_APPKEY/KIS_APPSECRET 미설정 - VI 배지 조회 건너뜀')
@@ -203,6 +208,6 @@ def start_background(appkey, appsecret):
     with _lock:
         if _thread is not None and _thread.is_alive():
             return _thread
-        _thread = threading.Thread(target=_loop, args=(appkey, appsecret), name='circuit-breaker', daemon=True)
+        _thread = threading.Thread(target=_loop, args=(appkey, appsecret, on_tick), name='circuit-breaker', daemon=True)
         _thread.start()
     return _thread

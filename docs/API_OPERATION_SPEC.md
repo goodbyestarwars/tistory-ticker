@@ -106,6 +106,8 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/ohlc-minute/{code}` | 없음 | VM 단기 LRU | 국내 분봉 |
 | `/hour-direction` | 없음 | no-store | 09:05~14:30 전 선택 1종목·최근 30분 직접 확인의 양방향 규칙 가설, 후보 API와 동시 1회·IP 분당 3회 버킷 공유. 새 폴러·추가 분봉 조회 없음. v6 방향만 판단: ±3% 검사 없음, 기준체결가referencePrice·목표가격null, 전일거래량조회 제외·정상4회; 확률 null·validated:false |
 | `/hour-candidates` | 없음 | no-store(전일 확정 거래량만 메모리 캐시) | 오전 09:05~09:15 수동 60분 +3% 실험 필터, 최대 24개 상세·동시 1회·IP 분당 3회. 확률 미검증, 순위 일부만 검사 |
+| `/hour-direction/performance` | 없음 | no-store | v6 성과 SQL 집계·IP분당10회·외부조회0회·모델/시간/종목 분리·장외보류 별도 |
+| `/hour-direction/records` | X-API-Key | no-store | 불변 원본/스냅샷/평가 근거 export·최대100행/페이지 |
 | `/pbar-tratio/{code}?days=N` | 없음 | VM 5분 + SQLite(온디맨드 + 거래일 18:10 일별 수집) | 실제 체결가 매물대(화면은 2026-09-15부터 일봉 추정치 사용) |
 | `/health/volume-profile` | 없음 | 실시간 | 매물대 실제 체결가 일별 수집 상태 |
 | `/etf-components/{code}` | 없음 | VM 캐시 | ETF 구성종목 |

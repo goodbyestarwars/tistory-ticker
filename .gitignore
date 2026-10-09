@@ -51,3 +51,7 @@ scripts/cloud-vm/backups/
 /deploy.log
 /search-scan-refresh.log
 /maintenance.log
+/hour_validation.db
+/hour_validation.db-*
+/hour_validation_archive/
+scripts/cloud-vm/hour_validation_archive/

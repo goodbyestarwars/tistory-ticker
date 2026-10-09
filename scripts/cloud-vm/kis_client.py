@@ -451,7 +451,15 @@ def _get_domestic_quote(token, appkey, appsecret, path, tr_id, params,
             return data, continuation
         return data
 
-    return _with_token_retry(call, token, appkey, appsecret)
+    result = _with_token_retry(call, token, appkey, appsecret)
+    if path.endswith('/inquire-ccnl') and params.get('FID_COND_MRKT_DIV_CODE') == 'J':
+        try:
+            import hour_validation
+            data = result[0] if return_continuation else result
+            hour_validation.observe_trades(params.get('FID_INPUT_ISCD'), data.get('output') or [])
+        except Exception:
+            logger.warning('hour validation existing trade reuse unavailable')
+    return result
 
 
 def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, period='D', max_pages=10):

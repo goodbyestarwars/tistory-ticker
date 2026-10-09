@@ -110,6 +110,10 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 
 `/hour-candidates`와 같은 전역동시1건·IP분당3회 버킷·KIS간격 공유. 국내거래일09:05~14:30전 직접1종목, 워커1개, 최근30분. 전일거래량조회 생략, 정상 공급자4회(분봉1회 포함; 토큰/재시도 별도). 추가폴링/분봉페이지 없음. no-store, 장외공급자0회, 입력422/동시409/확보실패503. 같은 KIS KRX의 최근체결가가 방향 비교 기준이며 매수주문가격이 아니다. 저장상세는 기존5MB회전기록, 수동 클릭/검색만 호출, URL자동진입/분봉갱신에는 조회하지 않는다.
 
+### 1시간 방향 성과 검증(2026-10-09)
+
+기존 `/hour-direction` 계산은 변경하지 않고 `predictionId`, `validationRecorded`를 추가한다. `GET /hour-direction/performance`는 공개/no-store/IP분당10회/외부조회0회. model·code·group_by(model/hour/code/direction)·start포함/end제외(KST날짜)·scope(in-session기본/outside-window)로 분리하며 적중률·보류율·상하 가상수익·손익비·제외사유·가격시간오차를 반환한다. `GET /hour-direction/records`는 기존 X-API-Key 인증, limit최대100/nextCursor를 after로 전달하여 원본/결과 export. [고정 평가 정책·보존·부하](docs/HOUR_DIRECTION_VALIDATION.md). 실제 성과와 통계 우위는 구별하며 validated:false를 유지한다.
+
 ### `GET /hour-candidates`
 
 | 항목 | 값 |

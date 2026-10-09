@@ -62,6 +62,7 @@ import public_data
 import binance_flow
 import volume_surge_live
 import hour_candidates
+import hour_validation
 import circuit_breaker
 import kis_ws_hub
 import kiwoom_ws_hub
@@ -200,7 +201,12 @@ def _start_futures_collectors():
     # 2026-09-15 작업지시서: 메인페이지 VI·사이드카 배지. 서버 한 곳에서만 20초마다 조회(정규장·애프터마켓만),
     # 방문자 브라우저는 /api/circuit-breaker 캐시만 읽는다(circuit_breaker.py).
     try:
-        circuit_breaker.start_background(kis_appkey, kis_appsecret)
+        hour_validation.prepare_store()
+    except Exception:
+        logging.getLogger('main').exception('1시간 방향 검증 기록 초기화 실패')
+    try:
+        circuit_breaker.start_background(kis_appkey, kis_appsecret,
+            on_tick=lambda: hour_validation.run_due(kis_appkey, kis_appsecret))
     except Exception:
         logging.getLogger('main').exception('VI 배지 조회 시작 실패')
 
@@ -3577,6 +3583,31 @@ def hour_direction_endpoint(request: Request,
     except Exception:
         logging.getLogger('main').warning('manual hour direction unavailable')
         raise HTTPException(status_code=503, detail='현재 자료를 받지 못했습니다. 다시 확인해줘.') from None
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
+                    media_type='application/json', headers={'Cache-Control': 'no-store'})
+
+
+@app.get('/hour-direction/performance')
+def hour_direction_performance(request: Request, model: str = Query(None, max_length=80),
+                              code: str = Query(None, pattern='^[0-9A-Z]{6}$'),
+                              group_by: str = Query('model', pattern='^(model|hour|code|direction)$'),
+                              scope: str = Query('in-session', pattern='^(in-session|outside-window)$'),
+                              start: str = Query(None, pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                              end: str = Query(None, pattern=r'^\d{4}-\d{2}-\d{2}$')):
+    _check_rate_limit('hour_performance', request, max_per_window=10)
+    data = hour_validation.summary(model, code, group_by, start, end, scope)
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
+                    media_type='application/json', headers={'Cache-Control': 'no-store'})
+
+
+@app.get('/hour-direction/records')
+def hour_direction_records(after: str = Query('', max_length=128), limit: int = Query(100, ge=1, le=100),
+                           x_api_key: str = Header(default=None)):
+    require_api_key(x_api_key)
+    try:
+        data = hour_validation.records(after, limit)
+    except ValueError:
+        raise HTTPException(status_code=422, detail='invalid record cursor') from None
     return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
                     media_type='application/json', headers={'Cache-Control': 'no-store'})
 
