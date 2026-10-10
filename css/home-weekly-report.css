@@ -826,47 +826,11 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 
 /* ── 2026-10-10 시장 뉴스 개편: 대표 기사 1 + 최신 기사 4(공시 탭은 목록). 큰 빈 카드를 없애고 제목·언론사·시각 위계로 읽게 한다. ── */
 .home-weekly-report .hwr-n2-wrap { min-width: 0; }
-.home-weekly-report .hwr-n2 a { color: inherit; text-decoration: none; }
-.home-weekly-report .hwr-n2 a:focus-visible { outline: 2px solid var(--hw-text); outline-offset: 2px; border-radius: 6px; }
-.home-weekly-report .hwr-n2--feature { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 0; align-items: stretch; border-top: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-n2--feature.is-single { grid-template-columns: minmax(0, 1fr); }
-.home-weekly-report .hwr-n2-feat { display: flex; flex-direction: column; gap: 12px; min-width: 0; padding: 26px 36px 24px 0; }
-.home-weekly-report .hwr-n2--feature.is-single .hwr-n2-feat { padding-right: 0; }
-.home-weekly-report .hwr-n2-feat .hwr-n2-title { font: 400 clamp(24px, 2.4vw, 32px)/1.4 MaruBuri, var(--font-title, serif); letter-spacing: -.01em; overflow-wrap: anywhere; word-break: keep-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4; overflow: hidden; }
-.home-weekly-report .hwr-n2-sum { margin: 0; font-size: 14px; line-height: 1.65; color: var(--hw-muted); display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
-.home-weekly-report .hwr-n2-feat::after { content: '원문 보기 ↗'; padding-top: 2px; font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-n2-side { display: flex; flex-direction: column; min-width: 0; padding-left: 36px; border-left: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-n2-item { display: flex; flex-direction: column; gap: 6px; min-width: 0; padding: 16px 0; border-bottom: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-n2-item:last-child { border-bottom: 0; }
-.home-weekly-report .hwr-n2-item .hwr-n2-title { font: 400 16px/1.45 MaruBuri, var(--font-title, serif); overflow-wrap: anywhere; word-break: keep-all; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
-.home-weekly-report .hwr-n2-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; font-size: 12px; line-height: 1.4; color: var(--hw-muted); }
-.home-weekly-report .hwr-n2-meta time { font-size: 11.5px; font-variant-numeric: tabular-nums; }
-.home-weekly-report .hwr-n2-mk, .home-weekly-report .hwr-n2-kind { padding: 1px 6px; border: 1px solid var(--hw-line); border-radius: 4px; font-size: 11px; color: var(--hw-muted); }
-.home-weekly-report .hwr-n2-kind { color: var(--hw-text); }
-.home-weekly-report .hwr-n2-src { font-weight: 600; }
-.home-weekly-report .hwr-n2-quote { font-size: 12px; font-variant-numeric: tabular-nums; }
-.home-weekly-report .hwr-n2-quote .is-up { color: #d24f45; }
-.home-weekly-report .hwr-n2-quote .is-down { color: #1261c4; }
-.home-weekly-report .hwr-n2--list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 36px; border-top: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-n2--list .hwr-n2-item:nth-last-child(-n+2) { border-bottom: 0; }
-.home-weekly-report .hwr-n2-feat:hover .hwr-n2-title, .home-weekly-report .hwr-n2-item:hover .hwr-n2-title { color: var(--hw-muted); }
 .home-weekly-report .hwr-n2-pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
 .home-weekly-report .hwr-n2-pager[hidden] { display: none; }
 .home-weekly-report .hwr-n2-pager button { width: 36px; height: 36px; border: 1px solid var(--hw-border); border-radius: 10px; background: var(--hw-surface); color: var(--hw-text); cursor: pointer; }
 .home-weekly-report .hwr-n2-pager button:disabled { opacity: .35; cursor: default; }
 .home-weekly-report .hwr-n2-pager [data-news2-page] { min-width: 44px; text-align: center; font-size: 12px; color: var(--hw-muted); font-variant-numeric: tabular-nums; }
-@media (max-width: 1023px) {
-  .home-weekly-report .hwr-n2-feat { padding-right: 24px; }
-  .home-weekly-report .hwr-n2-side { padding-left: 24px; }
-}
-@media (max-width: 767px) {
-  .home-weekly-report .hwr-n2--feature { grid-template-columns: minmax(0, 1fr); }
-  .home-weekly-report .hwr-n2-feat { padding: 20px 0; border-bottom: 1px solid var(--hw-line); }
-  .home-weekly-report .hwr-n2-side { padding-left: 0; border-left: 0; }
-  .home-weekly-report .hwr-n2--list { grid-template-columns: minmax(0, 1fr); }
-  .home-weekly-report .hwr-n2--list .hwr-n2-item:nth-last-child(-n+2) { border-bottom: 1px solid var(--hw-line); }
-  .home-weekly-report .hwr-n2--list .hwr-n2-item:last-child { border-bottom: 0; }
-}
 
 /* ── 2026-10-10 재요청 "이야기 시리즈랑 비슷한 카드": 푸터 .learn-card(둥근 28px·1px 선·번호·원형 표식·굵은 제목·↗)와 같은 구성.
    위 .hwr-n2-* 규칙(대표+최신 편집형)은 더 쓰지 않는다. 색은 사이트 공통 토큰(--np-ink/--np-paper)만 쓰고 다크모드도 같은 토큰을 따른다. ── */
