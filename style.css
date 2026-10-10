@@ -8020,6 +8020,7 @@ html body :where(.hwr-schedule, .hwr-news-card, .hwr-columns > article,
   box-shadow: none !important;
 }
 html body .hwr-outcome-stat { border-radius: 14px !important; }
+html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
 
 @media (max-width: 720px) {
   html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 56px 16px 14px !important; }

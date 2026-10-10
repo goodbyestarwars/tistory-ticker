@@ -884,3 +884,7 @@ html.dark .home-weekly-report .hwr-n3-foot em.is-down { color: #80b8ff; }
   .home-weekly-report .hwr-n3-sum { display: none; }
   .home-weekly-report .hwr-n3-foot { padding-right: 22px; font-size: 12px; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
+
+/* 휴장 대시보드 박스(다음주 핵심 스케줄·내 종목 일정·주말 이슈 카드)는 사이트 종이색(크림)이 아닌 순백으로 (2026-10-11, 사용자 요청).
+   style.css의 @layer 안 !important보다 이기도록 선택자를 높인다. 다크모드는 기존 규칙을 따른다. */
+html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule, a.hwr-n3-card) { background-color: #fff !important; }
