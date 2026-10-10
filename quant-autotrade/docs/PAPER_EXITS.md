@@ -1,0 +1,25 @@
+# 모의매매 병렬 청산 기록 (2026-10-11, 연구용·실주문 없음)
+
+월요일(10/12) 첫 후보 생성부터 같은 후보·같은 진입에 세 청산 전략을 병렬로 기록한다. 코드: `research/paper_exits.py`(엔진), `research/candidate_gen.py`(DB·진입·정산·독립 계좌).
+
+| 전략 키 | 청산 방식 | 최대 보유 |
+|---|---|---|
+| `trail_atr` | ATR 추적(장중). 초기선 = 진입가 − 2.5×ATR14, 이후 고점 − 2.5×ATR 로 상향만. 저가가 선에 닿으면 선(갭이면 시가)에 체결, 최대 보유일 마지막 종가 청산 | 30거래일 |
+| `atr_close` | 같은 추적선을 **종가**가 이탈하면 신호 → **다음 거래일 시가** 체결 | 150거래일 |
+| `dead35` | MA3가 MA5 아래로 교차(어제 MA3≥MA5, 오늘 MA3<MA5) → 다음 거래일 시가 체결. 가격 손절선 없음 | 150거래일 |
+
+공통: 진입은 스캔 다음 거래일 시가 +0.2%(갭 +2% 이상은 `SKIPPED`), 비용 왕복 0.4% + 청산 슬리피지 0.3%, 고정 익절 없음. 백테스트(`backtest/trend_exit_study.py`, `exit_study.simulate`)와 같은 가정이며 동일 입력에서 같은 결과가 나오는지 테스트가 확인한다(`test_paper_exits.py`).
+
+## 확정 규칙
+- 상태: `OPEN` → `PENDING_EXIT`(종가로 신호가 났고 다음 거래일 시가 봉이 아직 없음 — 체결가·수익률 없음) → `CLOSED`. 데이터가 모자라면 미확정으로 두고 `note`에 이유를 남긴다.
+- `CLOSED` 행은 다시 계산하지 않는다(재실행·중복 방지, 과거 기록 보존). 어떤 날짜까지의 데이터로 계산해도 이미 확정된 결과는 데이터가 늘어도 바뀌지 않는다(절단 일관성 테스트).
+- 연구 작업은 장 마감 후(15:45 이후) 받은 오늘 봉까지만 확정 봉으로 쓴다(`research_job.confirmed_cutoff`). 장중에 받은 진행 중 봉으로 손절·신호를 판정하지 않는다.
+
+## 저장 (`research.db` `paper_trades`, 기존 열 유지 + 열 추가·자동 마이그레이션)
+전략별 한 행(`PRIMARY KEY (scan_date, scanner, code, variant)`): 진입일·가(`entry_*`), 초기 손절선(`stop_price`)·현재 추적선(`trail_price`), 신호일(`signal_date`), 청산일·체결가(`exit_date`, `exit_price`), 총/순 수익률(`gross_ret`, `ret`=순), 사유(`exit_reason`: `STOP_INTRADAY`, `SIGNAL_ATR_CLOSE`, `SIGNAL_DEAD35`, `MAX_HOLD_30/150`), 보유일, 최대 보유일, 마지막 확정 봉 날짜, 메모.
+
+## 전략별 독립 계좌
+`candidate_gen.paper_portfolios()`가 전략마다 따로 같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 적용해 실현 기준 계좌를 계산한다. **세 전략의 거래를 합산한 성과는 만들지 않는다.** 미확정 포지션은 성과에서 제외하고 건수(`unsettled`, `pendingExit`)로 보인다. 결과는 `status.json`의 `paperVariants`와 로컬 봇 `/api/research`로 나간다.
+
+## 한계
+일봉 기반 가정 체결이며 실제 체결 가능성·호가는 검증되지 않았다. 후보는 모두 연구용(`live_eligible=0`)이고 실거래·`LIVE_SELL`과 연결되어 있지 않다.

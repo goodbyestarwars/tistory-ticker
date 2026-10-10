@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>퀀트 운영센터 시안</title>
+<style>
+:root{--bg:#fefdfa;--panel:#fff;--ink:#171a21;--sub:#667085;--mute:#8b95a5;--line:#eaecf0;--bd:#e5e7eb;--up:#d24f45;--dn:#1261c4;--ok:#1a7f4b;--warn:#b45309;--bad:#c0362c;--chip:#f3f4f6;--demo:#fff4e0}
+:root[data-theme=dark]{--bg:#141414;--panel:#1a1a1a;--ink:#f5efe0;--sub:rgba(245,239,224,.66);--mute:rgba(245,239,224,.5);--line:rgba(245,239,224,.1);--bd:rgba(245,239,224,.16);--up:#ff8a83;--dn:#80b8ff;--ok:#5fcf8f;--warn:#f0b35c;--bad:#ff8a83;--chip:rgba(255,255,255,.07);--demo:#3a2c12}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#141414;--panel:#1a1a1a;--ink:#f5efe0;--sub:rgba(245,239,224,.66);--mute:rgba(245,239,224,.5);--line:rgba(245,239,224,.1);--bd:rgba(245,239,224,.16);--up:#ff8a83;--dn:#80b8ff;--ok:#5fcf8f;--warn:#f0b35c;--bad:#ff8a83;--chip:rgba(255,255,255,.07);--demo:#3a2c12}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:13.5px/1.5 Pretendard,-apple-system,"Segoe UI","Malgun Gothic",sans-serif;font-variant-numeric:tabular-nums}
+.demo{background:var(--demo);color:var(--warn);text-align:center;padding:5px 12px;font-size:12px;font-weight:600}
+.wrap{max-width:1500px;margin:0 auto;padding:0 20px 40px}
+.top{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--ink)}
+.brand{font-size:17px;font-weight:700;letter-spacing:-.01em;margin-right:6px}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:2px 9px;border:1px solid var(--bd);border-radius:999px;font-size:12px;font-weight:600;background:var(--panel)}
+.chip.paper{color:var(--warn);border-color:var(--warn)}.chip.live{color:#fff;background:var(--bad);border-color:var(--bad)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}.dot.off{background:var(--bad)}.dot.wait{background:var(--warn)}
+.st{display:inline-flex;align-items:center;gap:6px;color:var(--sub);font-size:12.5px}.st b{color:var(--ink);font-weight:600}
+.sp{flex:1}
+button{font:inherit;cursor:pointer}
+.btn{padding:6px 12px;border:1px solid var(--bd);border-radius:8px;background:var(--panel);color:var(--ink);font-size:12.5px;font-weight:600}
+.btn.stop{border-color:var(--bad);color:var(--bad)}
+.tabs{display:flex;gap:22px;border-bottom:1px solid var(--bd);overflow-x:auto}
+.tabs a{padding:11px 0;color:var(--mute);text-decoration:none;font-weight:600;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs a.on{color:var(--ink);border-bottom-color:var(--ink)}
+.kpi{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));border:1px solid var(--bd);border-radius:12px;background:var(--panel);margin:16px 0}
+.kpi div{padding:12px 16px;border-left:1px solid var(--line)}.kpi div:first-child{border-left:0}
+.kpi small{display:block;color:var(--mute);font-size:11.5px;font-weight:600}
+.kpi b{display:block;font-size:19px;letter-spacing:-.01em;margin-top:2px}
+.kpi i{font-style:normal;font-size:11.5px;color:var(--mute)}
+.up{color:var(--up)}.dn{color:var(--dn)}
+.grid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,3fr);gap:16px}
+.col{display:flex;flex-direction:column;gap:16px;min-width:0}
+.box{border:1px solid var(--bd);border-radius:12px;background:var(--panel);padding:14px 16px;min-width:0}
+.hd{display:flex;align-items:baseline;justify-content:space-between;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--ink);margin-bottom:2px}
+.hd h3{margin:0;font-size:15px}.hd span{color:var(--mute);font-size:11.5px}
+table{width:100%;border-collapse:collapse}
+th{padding:8px 8px;text-align:left;color:var(--mute);font-size:11.5px;font-weight:600;border-bottom:1px solid var(--bd);white-space:nowrap}
+td{padding:9px 8px;border-bottom:1px solid var(--line);white-space:nowrap}
+td.n,th.n{text-align:right}
+tr:last-child td{border-bottom:0}
+tbody tr{cursor:pointer}tbody tr:hover{background:var(--chip)}
+.nm{font-weight:650}.cd{display:block;color:var(--mute);font-size:11px;font-weight:400}
+.tag{display:inline-block;padding:1px 7px;border-radius:5px;font-size:11.5px;font-weight:650;background:var(--chip);color:var(--sub)}
+.tag.go{color:var(--ok)}.tag.hold{color:var(--warn)}.tag.no{color:var(--bad)}
+.why{color:var(--sub);font-size:12px;white-space:normal}
+.scroll{overflow-x:auto}
+.empty{padding:14px 4px;color:var(--mute);font-size:12.5px}
+.bar{height:6px;border-radius:3px;background:var(--chip);overflow:hidden;margin:4px 0 10px}.bar i{display:block;height:100%;background:var(--ink)}
+.bar.w i{background:var(--warn)}.bar.b i{background:var(--bad)}
+.row{display:flex;justify-content:space-between;gap:8px;padding:5px 0;font-size:12.5px;color:var(--sub)}.row b{color:var(--ink)}
+.gauge{position:relative;height:10px;border-radius:5px;background:var(--chip);margin:8px 0 4px}
+.gauge i{position:absolute;left:0;top:0;bottom:0;border-radius:5px;background:var(--ink)}
+.gauge u{position:absolute;top:-3px;bottom:-3px;width:1px;background:var(--mute)}
+.scale{display:flex;justify-content:space-between;color:var(--mute);font-size:10.5px}
+.log{font:12px/1.55 ui-monospace,Consolas,monospace;max-height:230px;overflow:auto}
+.log div{display:grid;grid-template-columns:60px 96px 1fr;gap:8px;padding:2px 0;border-bottom:1px dashed var(--line)}
+.log time{color:var(--mute)}.lv{font-weight:700}.lv.s{color:var(--sub)}.lv.g{color:var(--ok)}.lv.r{color:var(--bad)}.lv.w{color:var(--warn)}
+.sub2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px}
+.note{margin:14px 0 0;color:var(--mute);font-size:11.5px}
+.pill{font-size:10.5px;padding:0 6px;border:1px solid var(--bd);border-radius:4px;color:var(--mute);margin-left:4px}
+@media(max-width:1100px){.kpi{grid-template-columns:repeat(4,minmax(0,1fr))}.kpi div:nth-child(4n+1){border-left:0}.kpi div{border-top:1px solid var(--line)}.kpi div:nth-child(-n+4){border-top:0}.grid{grid-template-columns:minmax(0,1fr)}.sub2{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:640px){.wrap{padding:0 12px 32px}.kpi{grid-template-columns:repeat(2,minmax(0,1fr))}.kpi div:nth-child(n){border-left:1px solid var(--line);border-top:1px solid var(--line)}.kpi div:nth-child(odd){border-left:0}.kpi div:nth-child(-n+2){border-top:0}.top{gap:8px}.hide-m{display:none}.log div{grid-template-columns:48px 80px 1fr}}
+</style>
+</head>
+<body>
+<div class="demo">DEMO · 가상 데이터 시안입니다. 실계좌·API와 연결되어 있지 않습니다.</div>
+<div class="wrap">
+  <div class="top">
+    <span class="brand">퀀트 운영센터</span>
+    <span class="chip paper"><span class="dot wait"></span>PAPER</span>
+    <span class="st"><span class="dot"></span>엔진 <b>정상</b></span>
+    <span class="st"><span class="dot"></span>키움 API <b>연결</b></span>
+    <span class="st hide-m">마지막 시세 <b>09:31:05</b></span>
+    <span class="st hide-m">실거래 전략 <b>0</b> · 연구 후보 <b>9</b> · 모의 진입 <b>2</b></span>
+    <span class="st"><span class="dot wait"></span>위험 <b>주의 1</b></span>
+    <span class="sp"></span>
+    <button class="btn" id="theme">다크/라이트</button>
+    <button class="btn stop">신규 매수 정지</button>
+  </div>
+  <nav class="tabs"><a class="on" href="#">운용 현황</a><a href="#">매수 후보</a><a href="#">전략 성과</a><a href="#">모의매매 기록</a><a href="#">포트폴리오 MDD</a><a href="#">위험 관리</a><a href="#">데이터 수집</a><a href="#">설정</a></nav>
+
+  <section class="kpi">
+    <div><small>총 평가금액</small><b>10,482,300</b><i>KRW</i></div>
+    <div><small>오늘 실현손익</small><b class="up">+38,400</b><i>+0.37%</i></div>
+    <div><small>오늘 미실현</small><b class="dn">-12,150</b><i>-0.12%</i></div>
+    <div><small>누적 순수익률</small><b class="up">+4.82%</b><i>모의 · 41일</i></div>
+    <div><small>투자 금액</small><b>2,310,000</b><i>노출 22.0% / 30%</i></div>
+    <div><small>매수 가능 현금</small><b>8,172,300</b><i>예약 0</i></div>
+    <div><small>일 손실한도 사용</small><b>12%</b><i>한도 -1.0%</i></div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <section class="box">
+        <div class="hd"><h3>자동매수 후보</h3><span>장 마감 검색 결과에서 자동 선정 · 행을 누르면 판단 근거</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>종목</th><th>검색기</th><th>검증</th><th>진입 조건</th><th class="n">현재가</th><th class="n">지정가</th><th>주문 상태</th><th>제외·보류 사유</th></tr></thead>
+          <tbody>
+          <tr><td><span class="nm">종목 A</span><span class="cd">000001</span></td><td>이동평균 구름 돌파</td><td><span class="tag hold">모의운영</span></td><td><span class="tag go">충족</span></td><td class="n">48,450</td><td class="n">48,500</td><td><span class="tag go">모의 주문</span></td><td class="why">-</td></tr>
+          <tr><td><span class="nm">종목 B</span><span class="cd">000002</span></td><td>하락추세선 첫돌파</td><td><span class="tag hold">모의운영</span></td><td><span class="tag hold">확인 중</span></td><td class="n">22,100</td><td class="n">-</td><td><span class="tag">대기</span></td><td class="why">5분봉 확정 대기</td></tr>
+          <tr><td><span class="nm">종목 C</span><span class="cd">000003</span></td><td>눌림목</td><td><span class="tag no">검증 미통과</span></td><td><span class="tag">-</span></td><td class="n">101,500</td><td class="n">-</td><td><span class="tag no">제외</span></td><td class="why">전략 기대수익 미검증 → 매수 금지</td></tr>
+          <tr><td><span class="nm">종목 D</span><span class="cd">000004</span></td><td>이동평균 구름 돌파</td><td><span class="tag hold">모의운영</span></td><td><span class="tag no">불충족</span></td><td class="n">7,830</td><td class="n">-</td><td><span class="tag no">제외</span></td><td class="why">갭 +2.4% ≥ 2% 상한</td></tr>
+          </tbody></table></div>
+        <p class="note">후보가 0개인 날도 정상 운용입니다(현금 보유). 확인할 수 없는 값은 추정하지 않고 “-”로 표시합니다.</p>
+      </section>
+
+      <section class="box">
+        <div class="hd"><h3>전략 성과 · 포트폴리오 백테스트</h3><span>동시 5종목 · 종목당 10% · 투자 상한 30% · 비용·슬리피지 반영</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>전략(검색기 · 청산)</th><th>상태</th><th class="n">누적</th><th class="n">연환산</th><th class="n">MDD</th><th class="n">거래</th><th class="n">승률</th><th class="n">PF</th><th class="n">KOSPI 대비</th><th>신규 매수</th></tr></thead>
+          <tbody>
+          <tr><td class="nm">눌림목 · ATR 추적</td><td><span class="tag hold">연구 후보</span></td><td class="n up">+81.7%</td><td class="n up">+14.2%</td><td class="n dn">-9.4%</td><td class="n">192</td><td class="n">40%</td><td class="n">1.98</td><td class="n dn">-8.0%p</td><td><span class="tag no">불가(모의만)</span></td></tr>
+          <tr><td class="nm">눌림목 · 10일 보유</td><td><span class="tag hold">연구 후보</span></td><td class="n up">+41.6%</td><td class="n up">+8.1%</td><td class="n dn">-10.4%</td><td class="n">277</td><td class="n">47%</td><td class="n">1.42</td><td class="n dn">-14.1%p</td><td><span class="tag no">불가(모의만)</span></td></tr>
+          <tr><td class="nm">구름 돌파 · ATR 추적</td><td><span class="tag">검증 중</span></td><td class="n up">+15.5%</td><td class="n up">+3.3%</td><td class="n dn">-15.1%</td><td class="n">204</td><td class="n">40%</td><td class="n">1.19</td><td class="n dn">-18.9%p</td><td><span class="tag no">불가</span></td></tr>
+          <tr><td class="nm">현행 규칙 −3% / +5% (눌림목)</td><td><span class="tag no">중단 권고</span></td><td class="n dn">-38.4%</td><td class="n dn">-10.6%</td><td class="n dn">-39.2%</td><td class="n">620</td><td class="n">—</td><td class="n">0.68</td><td class="n dn">—</td><td><span class="tag no">불가</span></td></tr>
+          <tr><td class="nm">무작위 진입 대조군 · ATR 추적</td><td><span class="tag">대조군</span></td><td class="n dn">-8.8%</td><td class="n dn">-2.0%</td><td class="n dn">-18.0%</td><td class="n">267</td><td class="n">34%</td><td class="n">0.89</td><td class="n dn">—</td><td></td></tr>
+          </tbody></table></div>
+        <p class="note">기간 2022-04~2026-10(234종목, 생존편향 있음). KOSPI 매수후보유 +145.8%(연 22.2%, MDD −38.6%). 표본외 검증은 같은 기간을 둘로 나눈 것뿐이라 독립 검증이 아닙니다. 시안의 수치는 현재까지의 연구 결과이며 수익을 보장하지 않습니다.</p>
+      </section>
+
+      <section class="box">
+        <div class="hd"><h3>모의매매 기록</h3><span>연구 후보의 가상 진입·청산 · 실제 체결 아님 · 백테스트와 합산하지 않음</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>스캔일</th><th>종목</th><th>검색기</th><th>진입(가정)</th><th>청산</th><th class="n">수익률</th><th>상태</th></tr></thead>
+          <tbody>
+          <tr><td>10-12</td><td>종목 A</td><td>눌림목</td><td>10-13 시가+0.2%</td><td>-</td><td class="n">-</td><td><span class="tag hold">진행 중</span></td></tr>
+          <tr><td>10-12</td><td>종목 D</td><td>구름 돌파</td><td>갭 +2.4% 제외</td><td>-</td><td class="n">-</td><td><span class="tag">건너뜀</span></td></tr>
+          </tbody></table></div>
+        <p class="note">DEMO 예시입니다. 모의 기록이 쌓이기 전에는 비어 있고, 스캔이 정상 완료·확정된 날에만 후보가 생성됩니다(후보 생성 상태는 우측 패널).</p>
+      </section>
+
+      <div class="sub2" style="margin-top:0">
+        <section class="box">
+          <div class="hd"><h3>주문 · 체결</h3><span>주문 접수와 체결은 별도 관리</span></div>
+          <div class="scroll"><table>
+            <thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">가격</th><th>상태</th></tr></thead>
+            <tbody>
+            <tr><td>09:12:08</td><td>종목 A</td><td>매수 지정가</td><td class="n">20</td><td class="n">48,500</td><td><span class="tag hold">접수</span></td></tr>
+            <tr><td>09:12:41</td><td>종목 A</td><td>매수</td><td class="n">12/20</td><td class="n">48,450</td><td><span class="tag go">부분 체결</span></td></tr>
+            <tr><td>09:07:22</td><td>종목 E</td><td>매수 지정가</td><td class="n">15</td><td class="n">31,200</td><td><span class="tag">취소</span></td></tr>
+            </tbody></table></div>
+        </section>
+        <section class="box">
+          <div class="hd"><h3>이벤트 로그</h3><span>민감정보 제외</span></div>
+          <div class="log">
+            <div><time>09:12:41</time><span class="lv g">PARTIAL FILL</span><span>종목 A 12/20 @48,450 · 주문 #D-0412</span></div>
+            <div><time>09:12:08</time><span class="lv s">ORDER SENT</span><span>종목 A 지정가 48,500 (상한 48,900) · 구름 돌파</span></div>
+            <div><time>09:11:50</time><span class="lv g">BUY READY</span><span>종목 A 조건 충족 · 스프레드 0.10%</span></div>
+            <div><time>09:08:03</time><span class="lv w">RISK BLOCK</span><span>종목 D 갭 +2.4% ≥ 2% → 매수 안 함</span></div>
+            <div><time>09:07:22</time><span class="lv s">CANCELLED</span><span>종목 E 5분 미체결 취소</span></div>
+            <div><time>09:00:00</time><span class="lv s">SIGNAL</span><span>전일 스캔 후보 3종목 로드</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <div class="col">
+      <section class="box">
+        <div class="hd"><h3>포지션</h3><span>자동매매 관리분</span></div>
+        <div class="scroll"><table>
+          <thead><tr><th>종목</th><th class="n">평균가</th><th class="n">손익</th><th class="n">손절</th></tr></thead>
+          <tbody>
+          <tr><td><span class="nm">종목 F</span><span class="cd">구름 돌파 · 3일</span></td><td class="n">15,800</td><td class="n up">+2.1%</td><td class="n">15,010</td></tr>
+          <tr><td><span class="nm">종목 G</span><span class="cd">구름 돌파 · 1일</span></td><td class="n">52,300</td><td class="n dn">-1.4%</td><td class="n">49,690</td></tr>
+          </tbody></table></div>
+        <p class="note">수동 보유 종목은 이 표에 포함하지 않으며 자동 청산 대상이 아닙니다.</p>
+      </section>
+
+      <section class="box">
+        <div class="hd"><h3>자금 · 위험</h3><span>가설 한도 · 조정 가능</span></div>
+        <div class="row"><span>위험예산 (거래당 0.3%)</span><b>사용 2 / 5</b></div><div class="bar"><i style="width:40%"></i></div>
+        <div class="row"><span>주식 노출 (상한 30%)</span><b>22.0%</b></div><div class="bar w"><i style="width:73%"></i></div>
+        <div class="row"><span>일 손실 (한도 -1.0%)</span><b>-0.12%</b></div><div class="bar"><i style="width:12%"></i></div>
+        <div class="row"><span>동시 보유 (최대 5)</span><b>2</b></div>
+        <div class="row"><span>미체결 주문</span><b>1건 · 예약 970,000</b></div>
+        <div class="row"><span>업종 집중</span><b>반도체 14% · 금융 8%</b></div>
+      </section>
+
+      <section class="box">
+        <div class="hd"><h3>후보 생성 상태</h3><span>스캔 확정 후에만</span></div>
+        <div class="row"><span>최근 스캔(데이터 기준일)</span><b>10-12 · 저장 23:58</b></div>
+        <div class="row"><span>완료 판정</span><b><span class="dot" style="display:inline-block"></span> 확정</b></div>
+        <div class="row"><span>검사</span><b>기준일·부분실행·안정화 통과</b></div>
+        <div class="row"><span>오늘 생성 후보</span><b>9건 (연구용)</b></div>
+        <p class="note">스캔이 실패하거나 전일 데이터이면 후보를 만들지 않고 사유를 기록합니다. 후보는 다음 거래일 09:00 이후에는 만료됩니다.</p>
+      </section>
+
+      <section class="box">
+        <div class="hd"><h3>데이터 수집기</h3><span>로컬 PC · 읽기 전용</span></div>
+        <div class="row"><span>상태</span><b><span class="dot" style="display:inline-block"></span> 실행 중</b></div>
+        <div class="row"><span>수집 종목</span><b>14 / 20</b></div>
+        <div class="row"><span>최근 정상 수집</span><b>09:31:00</b></div>
+        <div class="row"><span>오늘 누락</span><b class="dn">0분</b></div>
+        <div class="row"><span>디스크 사용</span><b>2.4 GB / 5 GB</b></div>
+        <div class="gauge"><i style="width:48%"></i><u style="left:60%"></u><u style="left:80%"></u><u style="left:90%"></u></div>
+        <div class="scale"><span>0</span><span>3GB</span><span>4GB</span><span>4.5GB</span><span>5GB</span></div>
+        <div class="row" style="margin-top:6px"><span>분봉 보관</span><b>90거래일</b></div>
+        <div class="row"><span>호가 원본 보관</span><b>7일</b></div>
+        <p class="note">수집기가 멈춰도 클라우드 엔진의 주문·위험관리는 계속 동작합니다. 4GB 초과 시 주의, 4.5GB 초과 시 필수 데이터만 수집, 5GB에 도달하면 수집이 중단됩니다.</p>
+      </section>
+    </div>
+  </div>
+</div>
+<script>
+document.getElementById('theme').onclick=function(){var r=document.documentElement;var d=r.getAttribute('data-theme')==='dark'||(!r.getAttribute('data-theme')&&matchMedia('(prefers-color-scheme: dark)').matches);r.setAttribute('data-theme',d?'light':'dark');};
+</script>
+</body>
+</html>
