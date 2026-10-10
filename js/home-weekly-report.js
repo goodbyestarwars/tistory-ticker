@@ -175,7 +175,11 @@
   // 2026-10-10 시장 뉴스 개편: 같은 크기 카드 3장을 걷고 "대표 기사 1 + 최신 기사 4"(페이지당 5건)로 위계를 준다.
   // 공시 탭은 기사가 아니라 기업·제목·날짜 중심의 목록(페이지당 6건). 대표 자리는 중요도 점수가 아니라 단순히 해당 탭의 첫 기사다.
   // 데이터는 기존 /weekly-report의 news.timeline(최대 20건, 시간 역순)을 그대로 쓴다 - 새 요청·요약·이미지 없음.
-  var NEWS_CARDS_PER_PAGE = 6;   // 3열 x 2줄. 데이터 20건이면 4페이지(마지막 페이지는 남은 건수만큼만 그린다).
+  // PC 3열 x 2줄 = 6건, 모바일(720px 이하)은 이야기 시리즈처럼 2열 x 2줄 = 4건. 마지막 페이지는 남은 건수만큼만 그린다.
+  var NEWS_MOBILE_QUERY = '(max-width: 720px)';
+  function newsPerPage() {
+    return global.matchMedia && global.matchMedia(NEWS_MOBILE_QUERY).matches ? 4 : 6;
+  }
   var newsStoreSeq = 0;
   var newsStore = {};
   function newsTitle(item) { return String(item.title_ko || '').trim() || item.title || '제목 없음'; }
@@ -216,11 +220,11 @@
     return (items || []).filter(function (item) { return filter === 'all' || newsType(item) === filter; });
   }
   function newsPageCount(list, filter) {
-    return Math.max(1, Math.ceil(list.length / NEWS_CARDS_PER_PAGE));
+    return Math.max(1, Math.ceil(list.length / newsPerPage()));
   }
   function newsPageHtml(state) {
     var list = newsFiltered(state.items, state.filter);
-    var per = NEWS_CARDS_PER_PAGE;
+    var per = newsPerPage();
     var pages = newsPageCount(list, state.filter);
     state.page = Math.min(Math.max(1, state.page), pages);
     var rows = list.slice((state.page - 1) * per, state.page * per);
@@ -275,6 +279,12 @@
     });
     wrap.querySelector('[data-news2-prev]').addEventListener('click', function () { state.page -= 1; newsRender(wrap); keepInView(); });
     wrap.querySelector('[data-news2-next]').addEventListener('click', function () { state.page += 1; newsRender(wrap); keepInView(); });
+    // 화면 폭이 PC<->모바일 경계를 넘으면 페이지당 건수(6/4)가 달라지므로 첫 페이지로 다시 그린다.
+    if (global.matchMedia) {
+      var media = global.matchMedia(NEWS_MOBILE_QUERY);
+      var onChange = function () { if (!wrap.isConnected) { if (media.removeEventListener) media.removeEventListener('change', onChange); return; } state.page = 1; newsRender(wrap); };
+      if (media.addEventListener) media.addEventListener('change', onChange);
+    }
   }
   // 2026-10-04 주말 리포트 재디자인: 종목 하나 = 카드 하나를 걷고 한 줄 행(순위·종목·등락률/가격)으로 바꾼다.
   function moverRows(items, market, emptyText) {

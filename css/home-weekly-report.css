@@ -906,11 +906,15 @@ html.dark .home-weekly-report .hwr-n3-foot em.is-down { color: #80b8ff; }
 .home-weekly-report .hwr-n2-pager { justify-content: center; margin-top: 22px; }
 .home-weekly-report .hwr-n2-pager button { width: 42px; height: 42px; border-radius: 50%; font-size: 18px; }
 @media (max-width: 1100px) { .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) and (min-width: 721px) { .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 720px) {
-  .home-weekly-report .hwr-n3-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
-  .home-weekly-report a.hwr-n3-card { height: 230px; padding: 20px; border-radius: 24px; }
-  .home-weekly-report .hwr-n3-mark { top: 20px; left: 20px; }
-  .home-weekly-report .hwr-n3-no { top: 22px; right: 20px; }
-  .home-weekly-report a.hwr-n3-card::after { right: 20px; bottom: 22px; }
-  .home-weekly-report .hwr-n3-title { font-size: 19px; }
+  /* 모바일도 이야기 시리즈처럼 2열(페이지당 4건 = 2x2). 좁은 칸이라 제목은 줄여 4줄까지, 출처·시각은 두 줄로 접는다. */
+  .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .home-weekly-report a.hwr-n3-card { height: 290px; padding: 18px; gap: 8px; grid-template-rows: 52px auto minmax(0, 1fr) auto; border-radius: 24px; }
+  .home-weekly-report .hwr-n3-mark { top: 18px; left: 18px; width: 44px; height: 44px; font-size: 12px; }
+  .home-weekly-report .hwr-n3-no { top: 20px; right: 18px; font-size: 13px; }
+  .home-weekly-report a.hwr-n3-card::after { right: 18px; bottom: 20px; font-size: 16px; }
+  .home-weekly-report .hwr-n3-title { font-size: 17px; line-height: 1.5; -webkit-line-clamp: 4; }
+  .home-weekly-report .hwr-n3-sum { display: none; }
+  .home-weekly-report .hwr-n3-foot { padding-right: 22px; font-size: 12px; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
 }
