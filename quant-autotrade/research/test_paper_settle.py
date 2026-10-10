@@ -144,7 +144,10 @@ INSERT INTO paper_trades VALUES ('2026-10-12','pullback','000100','trail_atr','2
         results = {'trail_atr': (0.10, -0.02), 'atr_close': (0.20, 0.05), 'dead35': (-0.03, -0.04)}
         for variant, (r1, r2) in results.items():
             for code, ret in zip(['000100', '000101'], (r1, r2)):
-                self.conn.execute("UPDATE paper_trades SET status='CLOSED', entry_date='2026-10-13', exit_date='2026-10-20', ret=? WHERE variant=? AND code=?", (ret, variant, code))
+                self.conn.execute("UPDATE paper_trades SET status='CLOSED', entry_date='2026-10-13', entry_price=100.0, exit_date='2026-10-20', ret=?, exit_reason='SIGNAL_DEAD35' WHERE variant=? AND code=?", (ret, variant, code))
+        for code in ('000100', '000101'):      # 종가 평가용 일봉(가격 변동 없음 -> 미실현 손익 0, 청산일에 실현)
+            for day in range(13, 21):
+                self.conn.execute('INSERT OR IGNORE INTO paper_bars(code, date, open, high, low, close) VALUES (?,?,?,?,?,?)', (code, '2026-10-%02d' % day, 100, 101, 99, 100))
         self.conn.commit()
         acct = cg.paper_portfolios(self.conn)
         self.assertEqual(set(acct), {'trail_atr', 'atr_close', 'dead35'})

@@ -30,6 +30,7 @@ for _p in (os.path.join(REPO, 'quant-autotrade', 'backtest'), os.path.join(REPO,
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import account_sim  # noqa: E402
 import paper_exits  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS paper_trades (
   entry_date TEXT, entry_price REAL, exit_date TEXT, ret REAL, status TEXT NOT NULL, reason TEXT, updated_at TEXT,
   PRIMARY KEY (scan_date, scanner, code, variant));
 CREATE TABLE IF NOT EXISTS gen_log (ts TEXT, scan_date TEXT, ok INTEGER, reason TEXT, created INTEGER);
+CREATE TABLE IF NOT EXISTS paper_bars (code TEXT NOT NULL, date TEXT NOT NULL, open REAL, high REAL, low REAL, close REAL, PRIMARY KEY (code, date));
 """
 
 
@@ -175,6 +177,20 @@ def expire_old(conn, today):
     return cur.rowcount
 
 
+BARS_LOOKBACK = 40
+
+
+def store_bars(conn, code, daily, scan_date):
+    """모의 계좌 평가(종가 기준 미실현 손익·MDD)와 당일 재투입 시나리오 계산에 쓸 확정 일봉을 보관한다.
+    스캔일 40봉 전(ATR·이동평균 계산용)부터 보관하며 이미 있는 날짜는 덮어쓰지 않는다(확정 봉은 불변)."""
+    i = next((k for k, b in enumerate(daily) if b['date'] == scan_date), None)
+    if i is None:
+        return 0
+    rows = [(code, b['date'], b.get('open'), b.get('high'), b.get('low'), b.get('close')) for b in daily[max(0, i - BARS_LOOKBACK):]]
+    cur = conn.executemany('INSERT OR IGNORE INTO paper_bars(code, date, open, high, low, close) VALUES (?,?,?,?,?,?)', rows)
+    return cur.rowcount
+
+
 def ensure_variant_rows(conn, today):
     """진입한 후보마다 모든 청산 전략의 행이 있도록 보충한다(기존 기록은 건드리지 않음). 반환: 새로 만든 행 수."""
     made = 0
@@ -208,6 +224,7 @@ def paper_enter(conn, get_daily, today):
             continue
         entry = nxt['open'] * (1 + ENTRY_SLIP)
         conn.execute("UPDATE candidates SET status='PAPER_ENTERED' WHERE scan_date=? AND scanner=? AND code=?", key)
+        store_bars(conn, code, daily, scan_date)
         for variant in PAPER_VARIANTS:
             conn.execute('INSERT OR IGNORE INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, status, updated_at, max_hold) '
                          'VALUES (?,?,?,?,?,?,?,?,?)', (scan_date, scanner, code, variant, nxt['date'], entry, 'OPEN', today, paper_exits.VARIANTS[variant]['maxHold']))
@@ -238,6 +255,7 @@ def paper_settle(conn, get_daily, today):
             conn.execute("UPDATE paper_trades SET note=?, updated_at=? WHERE scan_date=? AND scanner=? AND code=? AND variant=?",
                          ('일봉 데이터 부족(스캔일 봉 없음) - 미확정', today) + where)
             continue
+        store_bars(conn, code, daily, scan_date)
         r = paper_exits.evaluate(daily, i, variant)
         conn.execute(
             'UPDATE paper_trades SET status=?, entry_date=?, entry_price=?, stop_price=?, trail_price=?, signal_date=?, exit_date=?, exit_price=?, '
@@ -252,48 +270,66 @@ def paper_settle(conn, get_daily, today):
     return settled
 
 
-def _stats(rets):
-    wins = [x for x in rets if x > 0]
-    losses = [x for x in rets if x <= 0]
-    return {'closed': len(rets), 'avg': (sum(rets) / len(rets)) if rets else None, 'win': (len(wins) / len(rets)) if rets else None,
-            'pf': (sum(wins) / -sum(losses)) if losses and sum(losses) < 0 else None}
+def _account_inputs(conn, variant):
+    """전략별 계좌 입력: 진입한 후보의 모의 거래 + 보관된 일봉."""
+    cands = []
+    for r in conn.execute(
+            'SELECT t.scan_date, t.scanner, t.code, t.entry_date, t.entry_price, t.exit_date, t.ret, t.status, t.exit_reason, c.score '
+            "FROM paper_trades t JOIN candidates c ON c.scan_date=t.scan_date AND c.scanner=t.scanner AND c.code=t.code "
+            "WHERE t.variant=? AND c.status='PAPER_ENTERED' AND t.entry_date IS NOT NULL AND t.entry_price IS NOT NULL ORDER BY t.entry_date, c.score DESC", (variant,)):
+        cands.append({'key': (r[0], r[1], r[2]), 'scan_date': r[0], 'scanner': r[1], 'code': r[2], 'entry_date': r[3], 'entry_price': r[4],
+                      'exit_date': r[5], 'net': r[6], 'status': r[7], 'exit_class': paper_exits.exit_class(r[8]), 'score': r[9] or 0})
+    bars = {}
+    for code, date, o, h, l, c in conn.execute('SELECT code, date, open, high, low, close FROM paper_bars ORDER BY code, date'):
+        bars.setdefault(code, []).append({'date': date, 'open': o, 'high': h, 'low': l, 'close': c})
+    return cands, bars
 
 
-def paper_portfolios(conn, per_pos=0.10, total_cap=0.30, max_pos=5, min_order=0.01):
-    """전략별 **독립** 모의 계좌(실현 기준). 같은 후보·같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 전략마다 따로 적용하며
-    세 전략의 거래를 하나의 계좌로 합치지 않는다. 미확정(OPEN/PENDING_EXIT) 포지션은 성과에서 제외하고 건수로만 보인다.
-    같은 날 후보는 점수 순. 청산일에 현금이 돌아온 뒤 다음 날부터 재투입 가능."""
+def paper_account(conn, variant, scenario='conservative', limits=None, broker_cash=None, keep_curve=False):
+    """한 전략의 독립 모의 계좌. 날짜순 자산곡선(현금 + 종가 평가 포지션)으로 누적수익률·MDD(미실현 손익 포함)를 계산한다.
+    평가에 필요한 종가가 없으면 mddExact=False 로 표시하고 mdd 는 비운다(mddApprox 만 참고값)."""
+    cands, bars = _account_inputs(conn, variant)
+    if not cands:
+        return {'closed': 0, 'avg': None, 'win': None, 'pf': None, 'cumRet': None, 'mdd': None, 'mddExact': True, 'mddApprox': None,
+                'missingMarks': 0, 'rejected': {}, 'taken': 0, 'reuseBuys': 0, 'openPositions': 0, 'pendingExit': 0, 'equityLast': 1.0, 'days': 0}
+    closes = {code: {b['date']: b['close'] for b in rows} for code, rows in bars.items()}
+    first = min(c['entry_date'] for c in cands)
+    calendar = sorted({d for rows in closes.values() for d in rows if d >= first})
+
+    def close_at(code, date):
+        return closes.get(code, {}).get(date)
+
+    def make_alt(c):
+        rows = bars.get(c['code'])
+        if not rows:
+            return None
+        i = next((k for k, b in enumerate(rows) if b['date'] == c['scan_date']), None)
+        if i is None:
+            return None
+        r = paper_exits.evaluate(rows, i, variant, 'close')
+        if r['status'] == 'PENDING_ENTRY' or r['entry_price'] is None:
+            return None
+        return {'key': c['key'], 'code': c['code'], 'score': c['score'], 'entry_date': r['entry_date'], 'entry_price': r['entry_price'], 'exit_date': r['exit_date'],
+                'net': r['net_ret'], 'status': r['status'], 'exit_class': paper_exits.exit_class(r['exit_reason'])}
+
+    return account_sim.simulate_account(cands, calendar, close_at, make_alt, scenario, limits, broker_cash, keep_curve)
+
+
+def paper_portfolios(conn, limits=None, broker_cash=None):
+    """전략별 **독립** 모의 계좌(세 전략을 합치지 않음). 같은 후보·같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 전략마다 따로 적용한다.
+    - 기본값(공식 기록): 청산 대금은 다음 거래일부터 사용(선후를 알 수 없을 때의 보수적 가정). 미청산 포지션은 한도를 점유하고 종가로 평가해 자산곡선·MDD에 반영한다.
+    - sameDay: 시가에 못 산 후보를 같은 날 종가에 재투입하는 시나리오(매도가 종가보다 확실히 앞선 경우의 대금만 사용). 두 결과를 따로 보고한다."""
     out = {}
-    score = {(r[0], r[1], r[2]): (r[3] or 0) for r in conn.execute('SELECT scan_date, scanner, code, score FROM candidates')}
     for variant in PAPER_VARIANTS:
-        rows = conn.execute('SELECT scan_date, scanner, code, entry_date, exit_date, ret, status FROM paper_trades WHERE variant=? ORDER BY entry_date', (variant,)).fetchall()
-        closed = [r for r in rows if r[6] == 'CLOSED' and r[3] and r[4] and r[5] is not None]
-        unsettled = sum(1 for r in rows if r[6] in ('OPEN', 'PENDING_EXIT'))
-        pending_exit = sum(1 for r in rows if r[6] == 'PENDING_EXIT')
-        events = sorted({r[3] for r in closed} | {r[4] for r in closed})
-        cash = equity = 1.0
-        pos, taken, rejected = [], [], 0
-        peak, mdd = 1.0, 0.0
-        for d in events:
-            for p in [p for p in pos if p['exit'] <= d]:        # 청산: 현금 회수
-                cash += p['size'] * (1 + p['ret'])
-                pos.remove(p)
-                equity = cash + sum(q['size'] for q in pos)
-                peak = max(peak, equity)
-                mdd = min(mdd, equity / peak - 1)
-            for r in sorted([r for r in closed if r[3] == d], key=lambda r: -score.get((r[0], r[1], r[2]), 0)):
-                invested = sum(q['size'] for q in pos)
-                size = min(per_pos * equity, cash, total_cap * equity - invested)
-                if len(pos) >= max_pos or size < min_order * equity or any(q['code'] == r[2] for q in pos):
-                    rejected += 1
-                    continue
-                cash -= size
-                pos.append({'code': r[2], 'size': size, 'exit': r[4], 'ret': r[5]})
-                taken.append(r[5])
-        stats = _stats(taken)
-        out[variant] = dict(stats, label=paper_exits.VARIANTS[variant]['label'], maxHold=paper_exits.VARIANTS[variant]['maxHold'],
-                            execution=paper_exits.VARIANTS[variant]['execution'], cumRet=(equity - 1) if taken else None, mdd=mdd if taken else None,
-                            rejected=rejected, unsettled=unsettled, pendingExit=pending_exit, candidateTrades=len(rows))
+        base = paper_account(conn, variant, 'conservative', limits, broker_cash)
+        same = paper_account(conn, variant, 'sameDay', limits, broker_cash)
+        rows = conn.execute('SELECT status FROM paper_trades WHERE variant=?', (variant,)).fetchall()
+        v = dict(base)
+        v.update(label=paper_exits.VARIANTS[variant]['label'], maxHold=paper_exits.VARIANTS[variant]['maxHold'],
+                 execution=paper_exits.VARIANTS[variant]['execution'], candidateTrades=len(rows),
+                 unsettled=sum(1 for r in rows if r[0] in ('OPEN', 'PENDING_EXIT')), pendingExit=sum(1 for r in rows if r[0] == 'PENDING_EXIT'),
+                 sameDay={k: same.get(k) for k in ('cumRet', 'mdd', 'mddExact', 'mddApprox', 'closed', 'avg', 'win', 'pf', 'taken', 'reuseBuys', 'rejected', 'openPositions', 'pendingExit')})
+        out[variant] = v
     return out
 
 

@@ -210,22 +210,34 @@
       + '<p class="at-note">기준가는 스캔 시점 종가입니다. 전략 검증을 통과한 검색기가 없어 모든 후보는 연구용이며 실제 주문으로 이어지지 않습니다.</p></section>';
   }
 
+  // MDD: 종가로 미실현 손익을 평가한 자산곡선 기준. 평가 종가가 빠진 날이 있으면 정확한 값처럼 보이지 않게 '≈'와 안내를 붙인다.
+  function mddCell(v) {
+    if (v.mdd != null) return esc(pct2(v.mdd));
+    if (v.mddApprox != null) return '<span class="at-mute" title="평가 종가 일부 없음">≈ ' + esc(pct2(v.mddApprox)) + ' (참고)</span>';
+    return '-';
+  }
+  function sameDayCell(v) {
+    var d = v.sameDay;
+    if (!d || d.cumRet == null) return '<span class="at-mute">-</span>';
+    return '<span class="' + toneOf(d.cumRet) + '">' + esc(pct2(d.cumRet)) + '</span> / ' + (d.mdd != null ? esc(pct2(d.mdd)) : '≈') + (d.reuseBuys ? ' <small class="at-mute">(재투입 ' + esc(d.reuseBuys) + '건)</small>' : '');
+  }
+
   function paperHtml(r) {
     var head = '<section class="at-box"><div class="at-hd"><h3>모의매매 기록</h3><span>가정 체결 · 실제 주문 아님 · 청산 전략별 독립 계좌 · 백테스트·실거래와 합산하지 않음</span></div>';
     if (!r || !r.available) return head + '<p class="at-empty">연구 엔진이 연결되면 연구 후보의 가상 진입·청산 기록이 쌓입니다.</p></section>';
     var pv = r.paperVariants || null;
     var summary = '';
     if (pv) {
-      summary = '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>청산 전략(독립 계좌)</th><th>최대 보유</th><th class="n">종료</th><th class="n">미확정</th><th class="n">평균 수익</th><th class="n">승률</th><th class="n">PF</th><th class="n">실현 누적</th><th class="n">MDD</th></tr></thead><tbody>'
+      summary = '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>청산 전략(독립 계좌)</th><th>최대 보유</th><th class="n">종료</th><th class="n">미확정</th><th class="n">평균 수익</th><th class="n">승률</th><th class="n">PF</th><th class="n">누적(평가)</th><th class="n">MDD</th><th class="n">당일 재투입 시나리오</th></tr></thead><tbody>'
         + VARIANT_ORDER.map(function (k) {
           var v = pv[k]; if (!v) return '';
           return '<tr><td>' + esc(VARIANT_LABEL[k] || k) + '</td><td>' + esc(v.maxHold) + '일</td><td class="n">' + esc(v.closed || 0) + '</td>'
             + '<td class="n">' + esc(v.unsettled || 0) + (v.pendingExit ? ' <small class="at-mute">(신호 대기 ' + esc(v.pendingExit) + ')</small>' : '') + '</td>'
             + '<td class="n ' + toneOf(v.avg) + '">' + (v.avg == null ? '-' : esc(pct2(v.avg))) + '</td><td class="n">' + (v.win == null ? '-' : esc((v.win * 100).toFixed(0)) + '%') + '</td>'
             + '<td class="n">' + (v.pf == null ? '-' : esc(v.pf.toFixed(2))) + '</td><td class="n ' + toneOf(v.cumRet) + '">' + (v.cumRet == null ? '-' : esc(pct2(v.cumRet))) + '</td>'
-            + '<td class="n at-down">' + (v.mdd == null ? '-' : esc(pct2(v.mdd))) + '</td></tr>';
+            + '<td class="n at-down">' + mddCell(v) + '</td>' + '<td class="n">' + sameDayCell(v) + '</td></tr>';
         }).join('') + '</tbody></table></div>'
-        + '<p class="at-note">전략마다 같은 후보·같은 진입에 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 따로 적용한 실현 기준 계좌입니다. 세 전략을 합산하지 않으며, 청산이 확정되지 않은 포지션은 성과에서 제외됩니다.</p>';
+        + '<p class="at-note">전략마다 같은 후보·같은 진입에 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 따로 적용한 계좌이며 세 전략을 합산하지 않습니다. 누적·MDD는 날짜순 자산곡선(현금 + 종가 평가한 미청산 포지션, 청산 신호 대기 포지션은 한도 점유)으로 계산합니다. 기본 값은 청산 대금을 다음 거래일부터 쓰는 보수적 가정이고, 당일 재투입 시나리오는 시가에 못 산 후보를 같은 날 종가에 매수하는 경우(매도가 종가보다 확실히 앞선 대금만 사용)를 따로 보여 줍니다.</p>';
     }
     var list = r.paperTrades || [];
     if (!list.length) return head + summary + '<p class="at-empty">아직 모의 진입 기록이 없습니다. 후보가 생성된 다음 거래일 일봉이 확인되면 기록됩니다.</p></section>';
