@@ -58,3 +58,24 @@ scripts/cloud-vm/backups/
 /hour_validation.db-*
 /hour_validation_archive/
 scripts/cloud-vm/hour_validation_archive/
+
+# 자동매매 프로젝트(quant-autotrade): 소스·테스트·문서만 올린다. 키·토큰·계좌·DB·로그·수집 원본·실행 사본은 올리지 않는다.
+quant-autotrade/**/.env
+quant-autotrade/**/.token
+quant-autotrade/**/*.db
+quant-autotrade/**/*.db-*
+quant-autotrade/**/*.sqlite*
+quant-autotrade/**/*.log
+quant-autotrade/**/*.log.*
+quant-autotrade/**/*.lock
+quant-autotrade/**/status.json
+quant-autotrade/**/probe_result.json
+quant-autotrade/**/config.json
+quant-autotrade/**/STOP
+quant-autotrade/**/logs/
+quant-autotrade/**/research_app/
+quant-autotrade/**/*.pkl
+quant-autotrade/**/*.parquet
+quant-autotrade/**/*.csv
+quant-autotrade/**/tick*/
+quant-autotrade/**/orderbook*/

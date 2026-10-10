@@ -71,6 +71,13 @@
 - 인수인계서는 **가장 최근 1개만** 읽는다. 과거본은 필요할 때만 `grep`으로 본다.
 - 스펙 문서(`docs/*_SPEC.md`, `API_REFERENCE.md`)도 관련 구간만 읽는다.
 
+## 자동매매 프로젝트(quant-autotrade)
+
+- 위치: `quant-autotrade/` (로컬 봇·연구 후보 생성기·백테스트·UI 시안·문서). 작업 브랜치 `feature/quant-autotrade-2`.
+- `master` 병합·운영 배포·실계좌 주문은 사용자 별도 승인 전까지 하지 않는다. 키·토큰·계좌·IP·`.env`·DB·로그는 올리지 않는다.
+- 현황·남은 일: `quant-autotrade/docs/HANDOFF_2026-10-11.md`, 설계·결과: `quant-autotrade/docs/PLAN_2026-10-11.md`, 스케줄러: `quant-autotrade/docs/SCHEDULER.md`.
+- 기능 개발 후에는 테스트를 돌리고 작업 브랜치에 commit·push한다.
+
 ## 작업별 Skill
 
 - 기능 추가: `/feature-development`
