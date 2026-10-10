@@ -2890,6 +2890,7 @@
       drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
       redrawStockDrawing(drawing);
     });
+    overlay.addEventListener('contextmenu', function (event) { if (drawing.enabled) event.preventDefault(); });
     overlay.addEventListener('mouseleave', function () {
       if (drawing.mode === 'pencil' && drawing.activePath) return;
       drawing.preview = null;
@@ -2897,6 +2898,8 @@
     });
     overlay.addEventListener('pointerdown', function (event) {
       if (!drawing.enabled) return;
+      // 2026-10-10 요청: 그리기(가로선·박스·직선·동그라미·연필)는 마우스 왼쪽 버튼으로만. 오른쪽·휠 클릭은 무시한다.
+      if (event.pointerType === 'mouse' && event.button !== 0) return;
       var rect = overlay.getBoundingClientRect();
       var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
       if (!point) return;
