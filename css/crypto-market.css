@@ -1,6 +1,8 @@
 #crypto-market { min-width:0; }
-html:not(.dark) #crypto-market .om-cat-label { color:#222; }
-html.dark #crypto-market .om-cat-label { color:#F5EFE0; }
+/* 2026-10-10 요청: 소제목(가상자산·바이낸스 국내주식 토큰·가상자산 뉴스)을 다른 시장지표 탭 제목(예: 미국 경제 발표 h2 - 마루부리 볼드 20px, 남색)과 같은 형식으로 */
+html:not(.dark) body #crypto-market :is(.om-cat-label, .cm-news-head h3) { color:rgb(13, 27, 64) !important; }
+html.dark body #crypto-market :is(.om-cat-label, .cm-news-head h3) { color:#F5EFE0 !important; }
+body #crypto-market :is(.om-cat-label, .cm-news-head h3) { font-family:"MaruBuriBold","MaruBuri",serif !important; font-weight:400 !important; font-size:20px !important; line-height:1.4 !important; }
 #crypto-market .om-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }
 #crypto-market .om-category:first-of-type .om-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
 #crypto-market .om-card { min-width:0; background:#fff; border:1px solid #e5e7eb; border-radius:20px; }
