@@ -48,10 +48,19 @@
     { href: '/page/stock-calendar', label: '캘린더' },
     { href: '/guestbook', label: '커뮤니티' },
     { href: '/page/watchlist', label: 'MY' },
-    // 2026-10-11 요청("MY 옆에 자동매매라는 메뉴를 그냥 만들어줘"): 조건 없이 항상 보이는 메뉴. 화면(/page/auto-trader)은 이 PC의 로컬 봇에
-    // 연결돼 있을 때만 데이터를 보여주고, 연결이 없으면(다른 방문자·다른 PC) 연결 안내만 나온다. 계좌·주문 정보는 사이트·VM을 거치지 않는다.
-    { href: '/page/auto-trader', label: '자동매매' },
   ];
+  // 자동매매 메뉴: 티스토리 관리자(블로그 소유자) 로그인 상태에서만 보인다(2026-10-11 요청 - 카카오 로그인으로 들어온 관리자 기준).
+  // 티스토리가 모든 페이지에 주는 T.config.ROLE이 방문자는 'guest', 로그인한 블로그 운영자는 그 외 값이다. 브라우저에서 보이는 값이라
+  // 보안 장치는 아니고(화면 껍데기만 가린다), 계좌·주문은 이 PC의 로컬 봇과 토큰이 지킨다.
+  function isBlogAdmin() {
+    try {
+      var c = window.T && window.T.config;
+      return !!(c && c.IS_LOGIN && c.ROLE && c.ROLE !== 'guest');
+    } catch (e) { return false; }
+  }
+  window.__isBlogAdmin = isBlogAdmin;
+  if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매' });
+
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
   // 사용하는 페이지 주소를 바꾸지 않아 기존 진입 경로가 끊기지 않게 한다.

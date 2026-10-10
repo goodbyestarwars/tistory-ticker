@@ -160,6 +160,9 @@
   function init() {
     root = document.getElementById(ROOT_ID);
     if (!root) return;
+    // 티스토리 관리자(블로그 운영자) 로그인 상태에서만 화면을 연다. 방문자에게는 안내 한 줄만 보인다.
+    var c = global.T && global.T.config;
+    if (!(c && c.IS_LOGIN && c.ROLE && c.ROLE !== 'guest')) { root.innerHTML = '<p class="at-empty">블로그 관리자 로그인 후 이용할 수 있습니다.</p>'; return; }
     refresh();
     if (timer) clearInterval(timer);
     timer = setInterval(function () { if (!document.hidden && getToken()) refresh(); }, REFRESH_MS);
