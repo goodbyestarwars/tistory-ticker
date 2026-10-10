@@ -56,6 +56,7 @@ import kiwoom_market
 import market_rank
 import market_board
 import memo
+import chart_drawings
 import option_flow
 import order_book
 import public_data
@@ -947,6 +948,65 @@ async def update_memo(request: Request):
         except RuntimeError as exc:
             if str(exc) == 'MEMO_REVISION_CONFLICT':
                 raise HTTPException(status_code=409, detail='memo changed; reload and try again') from exc
+            raise
+    finally:
+        conn.close()
+    return envelope(saved)
+
+
+@app.get('/chart-drawings')
+def chart_drawings_get(request: Request, code: str = Query(..., max_length=20), timeframe: str = Query('day', max_length=8)):
+    """로그인한 계정의 차트 도형(종목·봉 주기별 1행). 없으면 drawings=null, revision=0."""
+    session = require_google_user(request)
+    _check_rate_limit('chart_drawings', request, max_per_window=60)
+    try:
+        code = chart_drawings.normalize_code(code)
+        timeframe = chart_drawings.normalize_timeframe(timeframe)
+    except chart_drawings.ChartDrawingsError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        return envelope(db_schema.load_user_chart_drawings(conn, user_id, code, timeframe))
+    finally:
+        conn.close()
+
+
+@app.put('/chart-drawings')
+async def chart_drawings_put(request: Request):
+    session = require_google_user(request)
+    _check_rate_limit('chart_drawings', request, max_per_window=60)
+    try:
+        body = await request.json()
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail='request body must be valid JSON') from exc
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail='request body must be an object')
+    try:
+        code = chart_drawings.normalize_code(body.get('code'))
+        timeframe = chart_drawings.normalize_timeframe(body.get('timeframe'))
+        drawings = chart_drawings.normalize_drawings(body.get('drawings'))
+    except chart_drawings.ChartDrawingsError as exc:
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    now = datetime.now(timezone.utc).isoformat()
+    conn = db_schema.get_conn()
+    try:
+        user_id = db_schema.upsert_google_user(conn, session, now)
+        try:
+            saved = db_schema.save_user_chart_drawings(
+                conn, user_id, code, timeframe, drawings, now,
+                expected_revision=body.get('revision'),
+                delete_if_empty=chart_drawings.is_empty(drawings),
+                max_rows=chart_drawings.MAX_ROWS_PER_USER,
+            )
+        except (TypeError, ValueError) as exc:
+            raise HTTPException(status_code=400, detail='revision must be an integer') from exc
+        except RuntimeError as exc:
+            if str(exc) == 'CHART_DRAWINGS_REVISION_CONFLICT':
+                raise HTTPException(status_code=409, detail='drawings changed; reload and try again') from exc
+            if str(exc) == 'CHART_DRAWINGS_ROW_LIMIT':
+                raise HTTPException(status_code=422, detail='too many saved charts') from exc
             raise
     finally:
         conn.close()

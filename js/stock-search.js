@@ -2564,6 +2564,118 @@
     };
   }
 
+  // ---- 차트 도형 계정 저장 (2026-10-10 사용자 요청: "로그인 기반으로 저장") ----
+  // 로그인(Google)하면 종목·봉 주기별로 서버(GET/PUT /chart-drawings)에도 저장하고, 로그인하지 않으면 지금처럼 브라우저에만 둔다.
+  // 브라우저 저장은 항상 먼저 쓰는 캐시다(서버가 느리거나 실패해도 화면은 즉시 동작). 차트를 열 때 서버에 값이 있으면 서버 값을 쓰고,
+  // 서버에 없고 이 브라우저에만 있으면 한 번 올린다(첫 이전). 저장은 1.5초 묶음 1회, 연필 선은 점을 솎아 올린다.
+  // 분봉과 자동 파동(실험)은 서버에 저장하지 않는다.
+  var DRAWING_API_URL = 'https://goodbyestar.cloud/chart-drawings';
+  var DRAWING_AUTH_URL = 'https://goodbyestar.cloud/auth/google/me';
+  var DRAWING_PUSH_DELAY_MS = 1500;
+  var DRAWING_MAX_PATH_POINTS = 120;
+  var drawingSync = { authPromise: null, revisions: {}, timers: {}, pending: {} };
+
+  function drawingAuth() {
+    if (!drawingSync.authPromise && typeof fetch !== 'function') drawingSync.authPromise = Promise.resolve(false);
+    if (!drawingSync.authPromise) {
+      drawingSync.authPromise = fetch(DRAWING_AUTH_URL, { credentials: 'include', cache: 'no-store' })
+        .then(function (r) { return r.json(); })
+        .then(function (body) { var a = body && body.data ? body.data : {}; return !!(a.configured && a.authenticated); })
+        .catch(function () { return false; });
+    }
+    return drawingSync.authPromise;
+  }
+
+  function drawingSyncKey(drawing) { return String(drawing.key || '') + '|' + String(drawing.timeframe || 'day'); }
+  function drawingSyncable(drawing) { return !!drawing && drawing.timeframe !== 'minute' && /^[A-Za-z0-9._-]{1,20}$/.test(String(drawing.key || '')); }
+
+  function thinDrawingPath(path) {
+    if (!Array.isArray(path) || path.length <= DRAWING_MAX_PATH_POINTS) return path;
+    var out = [], step = (path.length - 1) / (DRAWING_MAX_PATH_POINTS - 1);
+    for (var i = 0; i < DRAWING_MAX_PATH_POINTS; i++) out.push(path[Math.round(i * step)]);
+    return out;
+  }
+
+  function drawingsPayload(drawing) {
+    return {
+      lines: drawing.lines || [],
+      paths: (drawing.paths || []).map(thinDrawingPath),
+      circles: drawing.circles || [],
+      hlines: (drawing.hlines || []).map(function (item) { return { price: item.price }; }),
+      boxes: drawing.boxes || []
+    };
+  }
+
+  function drawingsHaveShapes(payload) {
+    return ['lines', 'paths', 'circles', 'hlines', 'boxes'].some(function (kind) { return payload[kind] && payload[kind].length; });
+  }
+
+  function pushDrawings(drawing, keepalive, retried) {
+    var key = drawingSyncKey(drawing);
+    return fetch(DRAWING_API_URL, {
+      method: 'PUT', credentials: 'include', keepalive: !!keepalive,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code: drawing.key, timeframe: drawing.timeframe, drawings: drawingsPayload(drawing), revision: drawingSync.revisions[key] || 0 })
+    }).then(function (response) {
+      if (response.status === 409 && !retried) {
+        // 다른 기기가 먼저 바꿨다: 최신 revision만 받아 이 화면의 현재 상태로 한 번 더 덮어쓴다(마지막 저장 우선).
+        return fetch(DRAWING_API_URL + '?code=' + encodeURIComponent(drawing.key) + '&timeframe=' + encodeURIComponent(drawing.timeframe), { credentials: 'include', cache: 'no-store' })
+          .then(function (r) { return r.json(); })
+          .then(function (body) { var d = body && body.data ? body.data : body; drawingSync.revisions[key] = d.revision || 0; return pushDrawings(drawing, keepalive, true); });
+      }
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json().then(function (body) { var d = body && body.data ? body.data : body; drawingSync.revisions[key] = d.revision || 0; });
+    }).catch(function () { /* 서버 저장 실패는 조용히 넘어간다 - 브라우저 저장본이 남아 있다 */ });
+  }
+
+  function scheduleDrawingPush(drawing) {
+    if (!drawingSyncable(drawing) || typeof global.setTimeout !== 'function') return;
+    var key = drawingSyncKey(drawing);
+    drawingSync.pending[key] = drawing;
+    if (drawingSync.timers[key]) global.clearTimeout(drawingSync.timers[key]);
+    drawingSync.timers[key] = global.setTimeout(function () {
+      delete drawingSync.timers[key];
+      var target = drawingSync.pending[key];
+      delete drawingSync.pending[key];
+      if (target) drawingAuth().then(function (auth) { if (auth) pushDrawings(target, false); });
+    }, DRAWING_PUSH_DELAY_MS);
+  }
+
+  function flushPendingDrawings() {
+    Object.keys(drawingSync.pending).forEach(function (key) {
+      var target = drawingSync.pending[key];
+      delete drawingSync.pending[key];
+      if (drawingSync.timers[key]) { global.clearTimeout(drawingSync.timers[key]); delete drawingSync.timers[key]; }
+      if (target && drawingSync.authPromise) pushDrawings(target, true);
+    });
+  }
+  if (typeof global.addEventListener === 'function') global.addEventListener('pagehide', flushPendingDrawings);
+
+  function pullDrawings(drawing) {
+    if (!drawingSyncable(drawing)) return;
+    drawingAuth().then(function (auth) {
+      if (!auth) return null;
+      return fetch(DRAWING_API_URL + '?code=' + encodeURIComponent(drawing.key) + '&timeframe=' + encodeURIComponent(drawing.timeframe), { credentials: 'include', cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+        .then(function (body) {
+          var d = body && body.data ? body.data : body;
+          drawingSync.revisions[drawingSyncKey(drawing)] = d.revision || 0;
+          if (stockDrawingState !== drawing) return;              // 그 사이 종목·주기가 바뀌었다
+          if (d.drawings) {
+            drawing.lines = d.drawings.lines || [];
+            drawing.paths = d.drawings.paths || [];
+            drawing.circles = d.drawings.circles || [];
+            drawing.hlines = d.drawings.hlines || [];
+            drawing.boxes = d.drawings.boxes || [];
+            writeStockDrawingsLocal(drawing);
+            redrawStockDrawing(drawing);
+          } else if (drawingsHaveShapes(drawingsPayload(drawing))) {
+            pushDrawings(drawing, false);                          // 이 브라우저에만 있던 도형을 계정으로 한 번 옮긴다
+          }
+        });
+    }).catch(function () { /* 서버를 못 불러와도 브라우저 저장본으로 계속 동작 */ });
+  }
+
   function stockDrawingStorageKey(key, timeframe) {
     return 'tistory-ticker:stock-drawings:' + String(key || '') + ':' + String(timeframe || 'day');
   }
@@ -2587,6 +2699,11 @@
   }
 
   function saveStockDrawings(drawing) {
+    writeStockDrawingsLocal(drawing);
+    scheduleDrawingPush(drawing);
+  }
+
+  function writeStockDrawingsLocal(drawing) {
     try {
       global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify({
         lines: drawing.lines,
@@ -3129,6 +3246,7 @@
     stockDrawingState = drawing;
     resizeStockDrawing(drawing);
     if (state.autoWaveEnabled) applyAutoWave(drawing);
+    pullDrawings(drawing);
   }
 
   // ---- 매물대(2026-10-05 사용자 요청: 호가창·차트·매물대 연동, 토스처럼 확대·축소를 따라감) ----
