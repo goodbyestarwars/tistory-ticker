@@ -43,8 +43,12 @@ def _sma(closes, k, n):
     return sum(closes[k - n + 1:k + 1]) / n
 
 
-def evaluate(daily, scan_idx, variant):
-    """scan_idx: 스캔일 봉의 인덱스. daily 는 오름차순 일봉(확정된 봉만). 반환 dict(상태·가격·사유). 데이터가 모자라면 미확정 상태."""
+def evaluate(daily, scan_idx, variant, entry_mode='open'):
+    """scan_idx: 스캔일 봉의 인덱스. daily 는 오름차순 일봉(확정된 봉만). 반환 dict(상태·가격·사유). 데이터가 모자라면 미확정 상태.
+
+    entry_mode='open'  : 다음 거래일 시가(+0.2%)에 진입(기본·공식 기록).
+    entry_mode='close' : **당일 재투입 시나리오 전용** - 같은 날 시가에는 자금이 없어 못 산 후보를 장 마감 시점(종가 +0.2%)에 매수한다.
+                         진입 봉의 장중 가격은 쓰지 않고 다음 봉부터 손절선·신호를 판정한다. 청산 전략 자체는 같다."""
     spec = VARIANTS[variant]
     n = len(daily)
     start = scan_idx + 1
@@ -53,22 +57,27 @@ def evaluate(daily, scan_idx, variant):
             'exit_reason': None, 'hold_days': None, 'last_bar_date': daily[-1]['date'] if daily else None}
     if start >= n or scan_idx < 15:
         return base
-    open1 = daily[start]['open']
-    if not open1:
+    if entry_mode == 'close':
+        px1 = daily[start]['close']
+        first = start + 1               # 종가에 사서 다음 봉부터 평가
+    else:
+        px1 = daily[start]['open']
+        first = start
+    if not px1:
         return base
-    entry = open1 * (1 + ENTRY_SLIP)
+    entry = px1 * (1 + ENTRY_SLIP)
     atr = ex.atr14(daily, scan_idx)
     if not atr:
         return dict(base, note='ATR 계산 불가')
     closes = [d['close'] for d in daily]
-    out = dict(base, status='OPEN', entry_date=daily[start]['date'], entry_price=entry)
+    out = dict(base, status='OPEN', entry_date=daily[start]['date'], entry_price=entry, entry_mode=entry_mode)
     uses_trail = variant in ('trail_atr', 'atr_close')
     hh = entry
     trail = entry - ATR_MULT * atr
     if uses_trail:
         out['stop_price'] = trail
         out['trail_price'] = trail
-    cap = start + spec['maxHold'] - 1                 # 마지막으로 허용되는 봉
+    cap = first + spec['maxHold'] - 1                 # 마지막으로 허용되는 봉
     last_avail = n - 1
     pending = False
     pending_reason = None
@@ -76,12 +85,12 @@ def evaluate(daily, scan_idx, variant):
     def close_out(k, fill, reason):
         gross = fill / entry - 1
         r = dict(out, status='CLOSED', exit_date=daily[k]['date'], exit_price=fill, gross_ret=gross, net_ret=gross - COST,
-                 exit_reason=reason, hold_days=k - start + 1)
+                 exit_reason=reason, hold_days=k - first + 1)
         if uses_trail:
             r['trail_price'] = trail
         return r
 
-    for k in range(start, min(last_avail, cap) + 1):
+    for k in range(first, min(last_avail, cap) + 1):
         bar = daily[k]
         o, lo, hi, cl = bar['open'], bar['low'], bar['high'], bar['close']
         if pending:   # 어제 종가에서 난 신호 -> 오늘 시가 체결
@@ -109,10 +118,27 @@ def evaluate(daily, scan_idx, variant):
     # 데이터가 끝났고 아직 확정되지 않았다
     if uses_trail:
         out['trail_price'] = trail
-    out['hold_days'] = last_avail - start + 1
+    out['hold_days'] = max(0, last_avail - first + 1)
     if pending:
         out['status'] = 'PENDING_EXIT'
         out['note'] = '종가로 청산 신호(%s)가 났고 다음 거래일 시가 봉 대기 중' % out['signal_date']
     else:
         out['note'] = '진행 중(마지막 확정 봉 %s)' % daily[-1]['date']
     return out
+
+
+def exit_class(reason):
+    """청산 체결 시각의 선후관계 분류(일봉만으로 알 수 있는 범위).
+    'open'     다음 거래일 시가 체결(신호 청산) - 장 시작 시점
+    'intraday' 장중 추적선 이탈 체결 - 시가 이후 ~ 종가 이전 어디든(정확한 시각은 일봉으로 알 수 없음, 단 종가 이전임은 확실)
+    'close'    최대 보유일 마지막 종가 청산 - 종가 시점
+    None       미청산"""
+    if not reason:
+        return None
+    if reason.startswith('SIGNAL_'):
+        return 'open'
+    if reason == 'STOP_INTRADAY':
+        return 'intraday'
+    if reason.startswith('MAX_HOLD'):
+        return 'close'
+    return None

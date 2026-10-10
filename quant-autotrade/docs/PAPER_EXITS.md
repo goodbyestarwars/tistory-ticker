@@ -19,7 +19,7 @@
 전략별 한 행(`PRIMARY KEY (scan_date, scanner, code, variant)`): 진입일·가(`entry_*`), 초기 손절선(`stop_price`)·현재 추적선(`trail_price`), 신호일(`signal_date`), 청산일·체결가(`exit_date`, `exit_price`), 총/순 수익률(`gross_ret`, `ret`=순), 사유(`exit_reason`: `STOP_INTRADAY`, `SIGNAL_ATR_CLOSE`, `SIGNAL_DEAD35`, `MAX_HOLD_30/150`), 보유일, 최대 보유일, 마지막 확정 봉 날짜, 메모.
 
 ## 전략별 독립 계좌
-`candidate_gen.paper_portfolios()`가 전략마다 따로 같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 적용해 실현 기준 계좌를 계산한다. **세 전략의 거래를 합산한 성과는 만들지 않는다.** 미확정 포지션은 성과에서 제외하고 건수(`unsettled`, `pendingExit`)로 보인다. 결과는 `status.json`의 `paperVariants`와 로컬 봇 `/api/research`로 나간다.
+`candidate_gen.paper_portfolios()`가 전략마다 따로 같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 적용해 계좌를 계산한다. **세 전략의 거래를 합산한 성과는 만들지 않는다.** 누적수익률·MDD는 날짜순 자산곡선(현금 + 종가로 평가한 미청산 포지션)으로 계산하며, 미확정 포지션(OPEN·PENDING_EXIT)도 한도를 점유한다. 평가 종가가 없으면 MDD를 정확한 값으로 내지 않는다(`mddExact`). 당일 재투입 규칙과 시나리오 차이는 `SAME_DAY_REUSE_2026-10-11.md`를 본다.
 
 ## 한계
 일봉 기반 가정 체결이며 실제 체결 가능성·호가는 검증되지 않았다. 후보는 모두 연구용(`live_eligible=0`)이고 실거래·`LIVE_SELL`과 연결되어 있지 않다.
