@@ -190,7 +190,7 @@
   ];
   var SYMBOL_ORDER = CATEGORIES.reduce(function (acc, cat) { return acc.concat(cat.symbols); }, []);
   var DATA_SYMBOL_ORDER = SYMBOL_ORDER;
-  var CRYPTO_SYMBOLS = ['BTC', 'ETH']; // benchmarkCaption의 원화 단위/52주 표기 분기에 재사용
+  var CRYPTO_SYMBOLS = ['BTC', 'ETH', 'USDT']; // benchmarkCaption의 원화 단위/52주 표기 분기에 재사용
 
   // 카드 표시 단위/소수점 - 지정 없으면 digits:2, unit:''(가격 그대로). 채권 카테고리는
   // 전부 금리(%)라 CATEGORIES에서 심볼을 뽑아 한 번에 채운다(심볼 추가할 때 이중 관리 방지).
@@ -219,7 +219,7 @@
   // "이 선 위로 오르면 시장에 부담"이라는 해석이 뚜렷한 지표 + BTC(52주 이동평균선, 통상적인
   // 기술적분석 지표)에 장기평균 참고선을 붙인다. 시장지수류는 방향성이 뚜렷하지 않거나
   // (에너지) 이미 상승=호재로 직관적이라 생략하고, GOLD는 별도 해석 코멘트를 함께 제공한다.
-  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'GOLD', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH'];
+  var BENCHMARK_SYMBOLS = ['WTI', 'VIX', 'USDKRW', 'GOLD', 'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'BTC', 'ETH', 'USDT'];
   // 2026-07-21: BTC/ETH 카드에만 6개월 평균선을 추가로 그린다(52주선과 별도 색으로 구분).
   var BENCHMARK_6M_SYMBOLS = CRYPTO_SYMBOLS;
   var BENCHMARK_6M_DAYS = 180;

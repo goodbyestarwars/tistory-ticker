@@ -61,7 +61,7 @@
   function shell() {
     function group(title,pairs) { return '<section class="om-category"><div class="om-cat-head"><h3 class="om-cat-label">'+title+'</h3></div><div class="om-grid">'+pairs.map(function (p) {return '<article class="om-card" data-asset="'+p[0]+'"><div class="om-title">'+esc(p[1])+' <small>'+p[0]+'</small></div><div data-body>시세 확인 중...</div></article>';}).join('')+'</div></section>'; }
     return '<div class="cm-status" role="status">30초마다 시세 갱신 · 평균은 완료 일봉 기준</div>'
-      +group('가상자산',[['BTC','비트코인'],['ETH','이더리움']])
+      +group('가상자산',[['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']])
       +group('바이낸스 국내주식 토큰',tools.symbols)
       +'<p class="cm-note">코인은 원화, 토큰은 USDT 기준. 국내주식 토큰은 무기한선물 참고 가격이며 실제 주식 시세와 다릅니다.</p>'
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
@@ -85,12 +85,12 @@
     tools.chart(host.querySelector('.om-chart'),item.symbol,rows,token?item.changeRate>=0:item.change_rate>=0,item.price,token?null:item.change);
   }
   function coins() {
-    var avgJob = Date.now()-averagesAt<3600000 ? Promise.resolve() : Promise.all(['BTC','ETH'].map(function(symbol){
+    var avgJob = Date.now()-averagesAt<3600000 ? Promise.resolve() : Promise.all(['BTC','ETH','USDT'].map(function(symbol){
       return Promise.all([global.OvernightMarket.fetchBenchmark(symbol,365),global.OvernightMarket.fetchBenchmark(symbol,180)]).then(function(values){averages[symbol]={year:values[0],half:values[1],count:0};}).catch(function(){});
     })).then(function(){averagesAt=Date.now();});
-    return Promise.all([tools.get(api+'/futures?days=365&symbols=BTC,ETH'),avgJob]).then(function (out) {
+    return Promise.all([tools.get(api+'/futures?days=365&symbols=BTC,ETH,USDT'),avgJob]).then(function (out) {
       (out[0].data||[]).forEach(function(item){draw(item,averages[item.symbol],false);});
-    }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);['BTC','ETH'].forEach(unavailable);});
+    }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);['BTC','ETH','USDT'].forEach(unavailable);});
   }
   function unavailable(symbol) {
     var el=root.querySelector('[data-asset="'+symbol+'"] [data-body]');

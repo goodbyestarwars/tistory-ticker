@@ -27,6 +27,7 @@ UA = 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.1
 CRYPTO_SYMBOLS = [
     {'key': 'BTC', 'name': 'BTC', 'market': 'KRW-BTC'},
     {'key': 'ETH', 'name': 'ETH', 'market': 'KRW-ETH'},
+    {'key': 'USDT', 'name': 'USDT', 'market': 'KRW-USDT'},   # 2026-10-10 가상자산 탭에 테더 추가(업비트 KRW-USDT, 같은 수집 경로)
 ]
 
 _REALTIME_POLL_SEC = 30
