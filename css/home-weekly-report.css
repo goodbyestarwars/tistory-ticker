@@ -842,13 +842,15 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 }
 .home-weekly-report a.hwr-n3-card:hover { transform: translateY(-3px); border-color: rgba(var(--np-ink, 26, 26, 26), .4); }
 .home-weekly-report a.hwr-n3-card:focus-visible { outline: 2px solid rgb(var(--np-ink, 26, 26, 26)); outline-offset: 4px; }
-.home-weekly-report .hwr-n3-mark {
-  position: absolute; top: 24px; left: 24px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
-  font: 700 13px/1 var(--font-ui, system-ui, sans-serif); font-style: normal; color: #334155; background: #e2e8f0;
+/* 원형 아이콘 대신 "KR | 국내" 알약(옅은 회색 면, 코드는 굵게, 가는 세로선 뒤에 이름) */
+.home-weekly-report .hwr-n3-pill {
+  position: absolute; top: 24px; left: 24px; display: inline-flex; align-items: center; gap: 9px; height: 30px; padding: 0 14px;
+  border-radius: 999px; background: rgba(var(--np-ink, 26, 26, 26), .07); font: 400 13px/1 var(--font-ui, system-ui, sans-serif);
+  color: rgba(var(--np-ink, 26, 26, 26), .55); white-space: nowrap;
 }
-.home-weekly-report .hwr-n3-mark--kr { background: #ffe4d6; }
-.home-weekly-report .hwr-n3-mark--us { background: #dbeafe; }
-.home-weekly-report .hwr-n3-mark--disclosure { background: #ede9fe; }
+.home-weekly-report .hwr-n3-pill b { font-weight: 700; letter-spacing: .02em; color: rgba(var(--np-ink, 26, 26, 26), .8); }
+.home-weekly-report .hwr-n3-pill span { position: relative; padding-left: 10px; }
+.home-weekly-report .hwr-n3-pill span::before { content: ''; position: absolute; left: 0; top: 50%; width: 1px; height: 12px; transform: translateY(-50%); background: rgba(var(--np-ink, 26, 26, 26), .28); }
 .home-weekly-report .hwr-n3-no { position: absolute; top: 26px; right: 24px; font: 400 14px/1 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .4); }
 .home-weekly-report .hwr-n3-title {
   grid-row: 2; font: 400 21px/1.5 "MaruBuriBold", "MaruBuri", serif; word-break: keep-all; overflow-wrap: anywhere;
@@ -875,7 +877,7 @@ html.dark .home-weekly-report .hwr-n3-foot em.is-down { color: #80b8ff; }
   /* 모바일도 이야기 시리즈처럼 2열(페이지당 4건 = 2x2). 좁은 칸이라 제목은 줄여 4줄까지, 출처·시각은 두 줄로 접는다. */
   .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .home-weekly-report a.hwr-n3-card { height: 290px; padding: 18px; gap: 8px; grid-template-rows: 52px auto minmax(0, 1fr) auto; border-radius: 24px; }
-  .home-weekly-report .hwr-n3-mark { top: 18px; left: 18px; width: 44px; height: 44px; font-size: 12px; }
+  .home-weekly-report .hwr-n3-pill { top: 18px; left: 18px; height: 28px; padding: 0 11px; gap: 7px; font-size: 12px; }
   .home-weekly-report .hwr-n3-no { top: 20px; right: 18px; font-size: 13px; }
   .home-weekly-report a.hwr-n3-card::after { right: 18px; bottom: 20px; font-size: 16px; }
   .home-weekly-report .hwr-n3-title { font-size: 17px; line-height: 1.5; -webkit-line-clamp: 4; }

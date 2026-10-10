@@ -204,11 +204,12 @@
   function newsCard(item, number) {
     var type = newsType(item);
     var summary = newsSummary(item);
-    var mark = type === '공시' ? '공시' : (item.market || '뉴스');
+    // 2026-10-10 요청: 원형 아이콘 대신 "KR | 국내" 알약. 코드는 시장(KR/US), 이름은 공시면 '공시', 아니면 국내/미국.
+    var label = type === '공시' ? '공시' : (item.market === '미국' ? '미국' : '국내');
     var tone = type === '공시' ? 'disclosure' : item.market === '미국' ? 'us' : 'kr';
     var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
     return '<a class="hwr-n3-card" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + '<i class="hwr-n3-mark hwr-n3-mark--' + tone + '" aria-hidden="true">' + escapeHtml(mark) + '</i>'
+      + '<span class="hwr-n3-pill hwr-n3-pill--' + tone + '"><b>' + (item.market === '미국' ? 'US' : 'KR') + '</b><span>' + escapeHtml(label) + '</span></span>'
       + '<b class="hwr-n3-no" aria-hidden="true">' + (number < 10 ? '0' : '') + number + '</b>'
       + '<strong class="hwr-n3-title">' + escapeHtml(newsTitle(item)) + '</strong>'
       + (summary ? '<span class="hwr-n3-sum">' + escapeHtml(summary) + '</span>' : '<span class="hwr-n3-sum"></span>')
