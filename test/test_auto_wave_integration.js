@@ -55,6 +55,17 @@ bars.push(Object.assign({}, bars[bars.length - 1], { date: 'new' }));
 sandbox.applyAutoWave(drawing);
 assert.strictEqual(detectCalls, 2);
 
+// 마지막 봉 날짜가 같아도 OHLC가 바뀌면 재계산, 같은 값 재전달이면 재사용
+const before = detectCalls;
+sandbox.applyAutoWave(drawing);
+assert.strictEqual(detectCalls, before, '동일 데이터 재전달은 재계산하지 않는다');
+drawing.bars[drawing.bars.length - 1] = Object.assign({}, drawing.bars[drawing.bars.length - 1], { close: drawing.bars[drawing.bars.length - 1].close + 1 });
+sandbox.applyAutoWave(drawing);
+assert.strictEqual(detectCalls, before + 1, '같은 날짜라도 종가가 바뀌면 재계산한다');
+drawing.bars[drawing.bars.length - 1] = Object.assign({}, drawing.bars[drawing.bars.length - 1], { volume: 999 });
+sandbox.applyAutoWave(drawing);
+assert.strictEqual(detectCalls, before + 2, '거래량 변경도 반영');
+
 // 그리기: 박스마다 fillRect·strokeRect, 미확정은 점선, 저장 필드 없음
 const calls = [];
 const ctx = new Proxy({}, { get: (t, k) => (k === 'measureText' ? () => ({ width: 10 }) : (...a) => calls.push([k, ...a])), set: (t, k, v) => { calls.push(['set:' + k, v]); return true; } });

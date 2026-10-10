@@ -421,6 +421,7 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 자동 파동(실험)</label>'
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -2358,7 +2359,7 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 자동 파동(실험)</label>'
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 자동 파동(실험)</label>'
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
@@ -2644,7 +2645,9 @@
       return;
     }
     var bars = drawing.bars || [];
-    var key = [drawing.key, drawing.timeframe, bars.length, bars.length ? bars[bars.length - 1].date : ''].join('|');
+    // 마지막 봉의 날짜뿐 아니라 시·고·저·종·거래량이 바뀌어도 다시 계산하고, 같은 값이 재전달되면 재사용한다.
+    var lastBar = bars.length ? bars[bars.length - 1] : null;
+    var key = [drawing.key, drawing.timeframe, bars.length, lastBar ? [lastBar.date, lastBar.open, lastBar.high, lastBar.low, lastBar.close, lastBar.volume].join(',') : ''].join('|');
     function compute() {
       if (stockDrawingState !== drawing || !state.autoWaveEnabled) return;
       if (autoWaveCache.key !== key) {
@@ -2673,6 +2676,7 @@
     up: { stroke: '#e34d4b', fill: 'rgba(227,77,75,.10)', label: '상승 파동' },
     down: { stroke: '#2674d9', fill: 'rgba(38,116,217,.10)', label: '하락 파동' },
     side: { stroke: '#808080', fill: 'rgba(128,128,128,.12)', label: '횡보·응축' },
+    wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
 
@@ -2707,13 +2711,16 @@
       ctx.font = '700 10px MaruBuri, serif';
       ctx.fillStyle = st.stroke;
       ctx.textBaseline = 'top';
-      while (text.length > 2 && ctx.measureText(text).width > x2 - x1 - 6) text = text.slice(0, -1);
-      ctx.fillText(text, x1 + 4, y1 + 3);
+      // 확대·이동으로 박스 왼쪽이 화면 밖이어도 라벨은 보이는 영역 안에서 시작한다.
+      var lx = Math.max(x1 + 4, 4);
+      while (text.length > 2 && ctx.measureText(text).width > x2 - lx - 2) text = text.slice(0, -1);
+      if (x2 - lx > 12) ctx.fillText(text, lx, y1 + 3);
     });
     ctx.font = '10px sans-serif';
     ctx.fillStyle = 'rgba(100,100,100,.85)';
-    ctx.textBaseline = 'bottom';
-    ctx.fillText('자동 파동(실험) · 점선은 진행 중이며 새 봉이 들어오면 바뀔 수 있음 · 매매 추천 아님', 8, drawing.overlay.clientHeight - 6);
+    ctx.textBaseline = 'top';
+    // 이동평균 범례 줄 바로 아래(날짜 축·거래량 라벨과 겹치지 않는 위치)
+    ctx.fillText('자동 파동(실험) · 점선은 진행 중이며 새 봉이 들어오면 바뀔 수 있음 · 매매 추천 아님', 8, 30);
     ctx.restore();
   }
 
@@ -3019,6 +3026,7 @@
           if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
           return;
         }
+        if (!(point.price > 0)) return;   // 가격축 밖(0 이하)을 눌러 생긴 음수 가로선은 만들지 않는다
         drawing.hlines.push({ price: point.price });
         saveStockDrawings(drawing);
         redrawStockDrawing(drawing);

@@ -35,4 +35,18 @@ for (let cut = 150; cut < 400; cut += 23) {
   });
 }
 assert(checked > 10);
+// 3) 확정 이전 정보 비사용: 확정 파동의 끝 극점 확정 봉은 그 시점의 마지막 봉을 넘지 않는다.
+for (let cut = 100; cut < 400; cut += 17) {
+  const part = detectWaves(bars.slice(0, cut));
+  part.forEach((w) => {
+    if (w.confirmed) assert(w.endConfirmedIndex >= w.end && w.endConfirmedIndex <= cut - 1, 'confirmedIndex beyond known bars');
+    else assert.strictEqual(w.end, cut - 1, 'unconfirmed wave must end at last known bar');
+  });
+}
+
+// 4) 변동성 큰 박스권은 응축(side)이 아니라 wide로 구분된다.
+const wideBars = [];
+for (let i = 0; i < 120; i++) { const mid = 100 + Math.sin(i / 3.2) * 25; wideBars.push({ date: 'w' + i, open: mid, close: mid + 1, high: mid + 3, low: mid - 3, volume: 1 }); }
+const wideWaves = detectWaves(wideBars);
+assert(!wideWaves.some((w) => w.kind === 'side'), 'wide range must not be labeled 응축');
 console.log('auto-wave ok', waves.length, 'waves,', checked, 'causality checks');
