@@ -423,15 +423,6 @@ def _report_period(report_name, receipt_date):
     return (year, '11014')
 
 
-def _number(value):
-    if value in (None, '', '-'):
-        return None
-    try:
-        return float(str(value).replace(',', '').strip())
-    except (TypeError, ValueError):
-        return None
-
-
 def _format_krw(value):
     number = _number(value)
     if number is None:

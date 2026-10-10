@@ -372,7 +372,7 @@ dict 구성을 함께 대조한다.
 
 `patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. `firstPullbackBreakoutReady`는 최초 검색 완료 여부(미완료와 후보 없음 구분)다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
 
-`/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:10 KST 스냅샷**이다
+`/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:05 KST 스냅샷**이다
 (`volume_breakout_scan.py`, 평일 전용 systemd 타이머). "전일 거래량을 개장 10분 만에
 넘었는가"는 그 시각에만 확정되는 조건이라 장 마감 뒤 도는 `daily_scan.py`로는 알 수 없다.
 스캔 시각이 다른 탭과 달라 `volumeBreakoutScannedAt`을 따로 내려준다. 후보는 KIS 순위

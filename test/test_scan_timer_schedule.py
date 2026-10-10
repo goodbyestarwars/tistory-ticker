@@ -74,9 +74,10 @@ class ScanTimerScheduleTest(unittest.TestCase):
         self.assertNotIn('systemctl is-active', body)
         self.assertLess(deploy.index('stop_piled_up_scans_once || true'), deploy.index('ensure_scan_timers_current || true'))
 
-    def test_intraday_volume_breakout_stays_at_0910_kst(self):
+    def test_intraday_volume_breakout_stays_at_0905_kst(self):
         # "개장 10분 만에 전일 거래량을 넘었는가"는 09:10에만 판정할 수 있다.
-        self.assertEqual(on_calendar('volumebreakout'), 'Mon..Fri *-*-* 00:10:00')
+        # 2026-09-22(#515): 09:10 -> 09:05 로 앞당김
+        self.assertEqual(on_calendar('volumebreakout'), 'Mon..Fri *-*-* 00:05:00')
 
 
 if __name__ == '__main__':
