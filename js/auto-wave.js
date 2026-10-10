@@ -12,6 +12,7 @@
  *     - 20일선이 구간 끝 10봉 동안 SIDE_MA20_FLAT_ATR x ATR 이하로만 움직였다(5일선은 20일선 부근을 오간다)
  *     - 가격 범위가 SIDE_RANGE_ATR_MAX x ATR 이하(변동성이 큰 박스권도 이 상한 안이면 인정)
  *     추세 파동과 겹치면 방향성이 뚜렷한 추세 파동(ER >= TREND_ER_MIN)이 우선하고, 약한 구간 묶음만 횡보 후보가 된다.
+ *     저점 대비 범위가 WIDE_RANGE_PCT(30%) 이상인 박스권은 kind 'wide'(변동성 큰 박스권)로 구분하고 '응축'이라 부르지 않는다.
  *  4. 마지막 확정 스윙 이후 현재까지는 "진행 중"이다: 상승/하락 진행 중(방향 뚜렷), 횡보 진행 중(횡보 조건 충족),
  *     그 외는 방향 미확정. 새 봉이 들어오면 진행 중 구간은 바뀔 수 있다.
  */
@@ -30,7 +31,8 @@
     mergeRangeAtrMax: 9,
     sideMa20FlatAtr: 2.0,
     trendErMin: 0.35,
-    trendMoveAtr: 3.0
+    trendMoveAtr: 3.0,
+    wideRangePct: 0.30
   };
 
   function atrSeries(bars, period) {
@@ -88,6 +90,11 @@
       }
     }
     return swings;
+  }
+
+  /* 같은 박스권이라도 가격 범위가 저점 대비 wideRangePct 이상이면 "응축"이 아니라 변동성 큰 박스권으로 따로 표시한다. */
+  function sideKind(range, opt) {
+    return range.high / range.low - 1 >= opt.wideRangePct ? 'wide' : 'side';
   }
 
   /* 횡보 판정: 구간 [a, b]가 같은 범위를 오가는 박스권인가 */
@@ -149,7 +156,7 @@
       while (j + 1 < legs.length && !legs[j + 1].strong) j++;
       if (isSideways(ctx, legs[k].start, legs[j].end)) {
         var span = rangeOf(bars, legs[k].start, legs[j].end);
-        waves.push({ kind: 'side', state: '확정', confirmed: true, start: legs[k].start, end: legs[j].end, high: span.high, low: span.low, endConfirmedIndex: legs[j].confirmedIndex });
+        waves.push({ kind: sideKind(span, opt), state: '확정', confirmed: true, start: legs[k].start, end: legs[j].end, high: span.high, low: span.low, endConfirmedIndex: legs[j].confirmedIndex });
       }
       k = j + 1;
     }
@@ -168,7 +175,7 @@
       }
       if (best >= 0) {
         var sp = rangeOf(bars, waves[m].start, waves[best].end);
-        merged.push({ kind: 'side', state: '확정', confirmed: true, start: waves[m].start, end: waves[best].end, high: sp.high, low: sp.low, endConfirmedIndex: waves[best].endConfirmedIndex });
+        merged.push({ kind: sideKind(sp, opt), state: '확정', confirmed: true, start: waves[m].start, end: waves[best].end, high: sp.high, low: sp.low, endConfirmedIndex: waves[best].endConfirmedIndex });
         m = best + 1;
       } else { merged.push(waves[m]); m++; }
     }
@@ -182,7 +189,7 @@
         var er = efficiency(bars, last.index, end);
         var net = bars[end].close - bars[last.index].close;
         if (isSideways(ctx, last.index, end)) {
-          waves.push(Object.assign(base, { kind: 'side', state: '진행 중' }));
+          waves.push(Object.assign(base, { kind: sideKind(rp, opt), state: '진행 중' }));
         } else if (er >= opt.trendErMin && Math.abs(net) >= opt.trendMoveAtr * a2) {
           waves.push(Object.assign(base, { kind: net > 0 ? 'up' : 'down', state: '진행 중' }));
         } else {
