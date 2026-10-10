@@ -7,6 +7,14 @@ html.dark #auto-trader { --at-up: #ff8a83; --at-down: #80b8ff; }
 #auto-trader h3 { margin: 0; font: 400 20px/1.4 "MaruBuriBold", "MaruBuri", serif; color: var(--at-ink) !important; }
 #auto-trader h3 small { margin-left: 8px; font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); }
 #auto-trader .at-badge { margin-left: 8px; padding: 3px 10px; border: 1px solid var(--at-line); border-radius: 999px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); vertical-align: middle; }
+#auto-trader .at-badge.is-live { border-color: var(--at-up); color: var(--at-up); }
+#auto-trader .at-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--at-mute); }
+#auto-trader .at-mute { color: var(--at-mute); }
+#auto-trader .at-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+#auto-trader .at-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 6px 5px 12px; border: 1px solid var(--at-line); border-radius: 999px; font-size: 13px; }
+#auto-trader .at-chip button { width: 22px; height: 22px; padding: 0; border: 0; border-radius: 50%; background: rgba(var(--np-ink, 26, 26, 26), .08); color: var(--at-ink); cursor: pointer; line-height: 1; }
+#auto-trader .at-add { margin-top: 14px; max-width: 640px; }
+#auto-trader .at-add input { max-width: 200px; }
 #auto-trader .at-sub, #auto-trader .at-lead { margin: 6px 0 0; font-size: 13px; line-height: 1.7; color: var(--at-mute); }
 #auto-trader .at-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
 #auto-trader .at-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 22px; margin: 16px 0 0; }

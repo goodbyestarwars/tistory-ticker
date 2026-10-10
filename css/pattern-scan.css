@@ -763,6 +763,9 @@ html.dark #pattern-scan .ps-footnote b {
 /* 차트 메모 줄(2026-10-03) */
 #pattern-scan .ps-memo-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
 #pattern-scan .ps-memo-bar span { color: #94a3b8; font-size: 11px; }
+#pattern-scan .ps-autotrade-bar { display: flex; align-items: center; gap: 10px; margin: 6px 0; }
+#pattern-scan .ps-autotrade-bar[hidden] { display: none; }
+#pattern-scan .ps-autotrade-bar span { color: #94a3b8; font-size: 11px; }
 #pattern-scan .ps-chart { position: relative; }
 
 /* 추천일별 묶음(2026-10-04): 하루 한 줄 요약, 누르면 종목이 펼쳐진다 */

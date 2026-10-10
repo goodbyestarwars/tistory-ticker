@@ -1231,6 +1231,46 @@
     if (detail) { detail.hidden = true; detail.innerHTML = ''; destroyPsChart(); }
   }
 
+  // 2026-10-11 자동매매 연동(소유자 전용): 이 PC의 로컬 봇(127.0.0.1:8765)이 켜져 있고 이 브라우저에 접속 토큰이 있을 때만
+  // "자동매매 감시 추가" 버튼이 보인다. 매수는 하지 않고, 감시에 올린 종목의 보유분만 봇이 손절·익절한다. 다른 방문자에게는 보이지 않는다.
+  var AUTO_TRADER_API = 'http://127.0.0.1:8765';
+  var AUTO_TRADER_TOKEN_KEY = 'autotrader_token_v1';
+
+  function autoTraderCall(path, method, body) {
+    var token = '';
+    try { token = global.localStorage.getItem(AUTO_TRADER_TOKEN_KEY) || ''; } catch (e) { token = ''; }
+    if (!token || typeof fetch !== 'function') return Promise.reject(new Error('no token'));
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, 1500) : null;
+    var headers = { 'X-AutoTrader-Token': token };
+    var init = { method: method || 'GET', headers: headers, cache: 'no-store', signal: controller ? controller.signal : undefined };
+    if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
+    return fetch(AUTO_TRADER_API + path, init).then(function (r) {
+      if (timer) clearTimeout(timer);
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.json();
+    }, function (e) { if (timer) clearTimeout(timer); throw e; });
+  }
+
+  function wireAutoTradeBar(box, item) {
+    var bar = box.querySelector('[data-ps-autotrade]');
+    if (!bar || !item || !/^\d{6}$/.test(String(item.code || ''))) return;
+    function paint(watching) {
+      bar.hidden = false;
+      bar.innerHTML = '<button type="button" class="ui-btn ui-btn-secondary" data-at-toggle>' + (watching ? '자동매매 감시 해제' : '자동매매 감시 추가') + '</button>'
+        + '<span>' + (watching ? '감시 중 - 직접 매수하면 봇이 손절(-3%)·익절(+3~5%)을 자동으로 처리합니다' : '매수는 직접 하고, 감시에 올리면 보유분의 손절·익절만 자동으로 합니다') + '</span>';
+      bar.querySelector('[data-at-toggle]').addEventListener('click', function () {
+        autoTraderCall(watching ? '/api/unwatch' : '/api/watch', 'POST', { code: String(item.code), name: String(item.name || '') })
+          .then(function (res) { paint(!!(res.watch || []).some(function (w) { return w.code === String(item.code); })); })
+          .catch(function () { bar.hidden = true; });
+      });
+    }
+    autoTraderCall('/api/watch').then(function (res) {
+      if (!box.isConnected) return;
+      paint(!!(res.watch || []).some(function (w) { return w.code === String(item.code); }));
+    }).catch(function () { /* 봇이 꺼져 있거나 이 PC가 아니면 버튼을 만들지 않는다 */ });
+  }
+
   function renderDetail(box, item, data) {
     var html = '<div class="ps-detail-head">'
       + '<span class="ps-detail-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
@@ -1248,6 +1288,7 @@
       + '<span><i class="ps-pattern-line ps-pattern-line-level"></i>넥라인 · 지지/저항</span>'
       + '</div>';
     html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
+    html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
     html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
     html += activeTab === 'firstPullbackBreakout'
       ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
@@ -1281,6 +1322,7 @@
 
     psMemoItem = item;
     psTrackCtx = item.track || null;
+    wireAutoTradeBar(box, item);
     var chartContainer = box.querySelector('#psChart');
     if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
   }
