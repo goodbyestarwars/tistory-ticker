@@ -22,6 +22,10 @@ WACC/성장률/미래FCFF 사용자 필수입력과 일괄검토 체크박스를
 
 # 9Pay 주요 작업이력
 
+**2026-10-10 휴장 지면 「시장 뉴스」 개편(market-news-ui 브랜치, 승인 전 배포 보류)**
+
+3열 대형 카드를 대표 기사 1 + 최신 4(페이지당 5건, 공시 탭은 2열 목록 6건)로 교체. 기존 /weekly-report news.timeline(최대 20건) 그대로, 통합/뉴스/공시 필터·페이지 이동 유지, 새 API·이미지·요약 생성 없음. js/home-weekly-report.js, css/home-weekly-report.css.
+
 **2026-10-10 가상자산 탭에 테더(USDT) 추가**
 
 기존 BTC·ETH와 같은 업비트 수집 경로에 KRW-USDT를 추가(btc_futures.CRYPTO_SYMBOLS, /futures 화이트리스트)하고 시장지표 > 가상자산 카드·52주 평균에 반영. 별도 프로세스·타이머 없음(기존 30초 폴러에 티커 1건 추가).
