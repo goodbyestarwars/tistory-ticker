@@ -58,15 +58,20 @@
     { key: 'us', code: '미국', label: '미국' }
   ];
 
+  // 2026-10-10 요청: 가상자산 뉴스 탭 추가. 가상자산은 24시간 거래라 시간대 구분이 필요 없고(KST 표기), 배지는 칸 폭을 지키려고 2글자 "코인"을 쓴다.
+  // 기존 두 시장(전체 탭)에는 섞지 않는다 - 이 탭을 열 때만 기존 /crypto-news(가상자산 시장지표 화면이 쓰는 같은 엔드포인트·서버 캐시)를 부른다.
+  var CRYPTO_MARKET = { key: 'crypto', code: '코인', label: '가상자산' };
+  var CRYPTO_API_URL = 'https://goodbyestar.cloud/crypto-news?limit=25';
   var VIEWS = [
     { key: 'all', label: '전체' },
     { key: 'domestic', label: '한국' },
-    { key: 'us', label: '미국' }
+    { key: 'us', label: '미국' },
+    { key: 'crypto', label: '가상자산' }
   ];
 
   var state = {
     container: null, timer: null, generation: 0, loadedAt: 0, retryTimer: null,
-    loading: false, view: 'all', items: [], failed: []
+    loading: false, view: 'all', items: [], failed: [], cryptoItems: [], cryptoFailed: false, cryptoLoadedAt: 0
   };
 
   function escapeHtml(value) {
@@ -169,6 +174,7 @@
   }
 
   function marketOf(item) {
+    if (item && item._market === 'crypto') return CRYPTO_MARKET;
     return item && item._market === 'us' ? MARKETS[1] : MARKETS[0];
   }
 
@@ -236,8 +242,11 @@
       currentItems = currentItems.concat(limitMarketRows(state.items.filter(function (item) { return item._market === market.key; })));
     });
     currentItems.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
-    var items = state.view === 'all' ? currentItems : currentItems.filter(function (item) { return item._market === state.view; });
-    var failed = state.failed;
+    var cryptoView = state.view === 'crypto';
+    var items = cryptoView
+      ? limitMarketRows(state.cryptoItems)
+      : state.view === 'all' ? currentItems : currentItems.filter(function (item) { return item._market === state.view; });
+    var failed = cryptoView ? (state.cryptoFailed ? [CRYPTO_MARKET.label] : []) : state.failed;
     if (!list) return;
     state.loading = false;
     setRefreshState_(container, false);
@@ -260,7 +269,28 @@
     renderNews_(container);
   }
 
+  // 가상자산 탭 전용 조회. 탭을 열 때와, 이 탭이 열린 채 갱신(5분 주기·갱신 버튼)될 때만 부른다.
+  function loadCrypto(container, force) {
+    if (state.loading) return;
+    if (!force && state.cryptoItems.length && Date.now() - state.cryptoLoadedAt < STALE_MS) { renderNews_(container); return; }
+    state.loading = true;
+    setRefreshState_(container, true);
+    var updated = container.querySelector('[data-mn-updated]');
+    if (updated && !state.cryptoLoadedAt) updated.textContent = '뉴스를 불러오는 중';
+    MainNews.fetchJson(CRYPTO_API_URL)
+      .then(function (items) {
+        var rows = items.filter(function (item) { return item.market === 'crypto' && /^https:\/\//.test(item.link || ''); });
+        rows.forEach(function (item) { item._market = 'crypto'; });
+        state.cryptoItems = rows;
+        state.cryptoFailed = !rows.length;
+        if (rows.length) state.cryptoLoadedAt = Date.now();
+      })
+      .catch(function () { state.cryptoFailed = true; })
+      .then(function () { if (state.container) renderNews_(container); });
+  }
+
   function refresh(container) {
+    if (state.view === 'crypto') { loadCrypto(container, true); return; }
     if (state.loading) return;
     state.loading = true;
     var updated = container.querySelector('[data-mn-updated]');
@@ -317,7 +347,8 @@
           item.classList.toggle('is-active', active);
           item.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        renderNews_(container);
+        if (view === 'crypto') loadCrypto(container, false);
+        else renderNews_(container);
       });
     });
     refresh(container);
