@@ -175,8 +175,7 @@
   // 2026-10-10 시장 뉴스 개편: 같은 크기 카드 3장을 걷고 "대표 기사 1 + 최신 기사 4"(페이지당 5건)로 위계를 준다.
   // 공시 탭은 기사가 아니라 기업·제목·날짜 중심의 목록(페이지당 6건). 대표 자리는 중요도 점수가 아니라 단순히 해당 탭의 첫 기사다.
   // 데이터는 기존 /weekly-report의 news.timeline(최대 20건, 시간 역순)을 그대로 쓴다 - 새 요청·요약·이미지 없음.
-  var NEWS_FEATURE_PER_PAGE = 5;
-  var NEWS_LIST_PER_PAGE = 6;
+  var NEWS_CARDS_PER_PAGE = 6;   // 3열 x 2줄. 데이터 20건이면 4페이지(마지막 페이지는 남은 건수만큼만 그린다).
   var newsStoreSeq = 0;
   var newsStore = {};
   function newsTitle(item) { return String(item.title_ko || '').trim() || item.title || '제목 없음'; }
@@ -196,31 +195,40 @@
     return '<a class="' + cls + '" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
       + newsMeta(item, type) + '<strong class="hwr-n2-title">' + escapeHtml(newsTitle(item)) + '</strong>';
   }
-  function newsFeature(item) {
+  // 2026-10-10 재요청("이야기 시리즈랑 비슷한 카드로"): 푸터 이야기 시리즈 카드(.learn-card)와 같은 구성 - 둥근 선 카드, 왼쪽 위 원형 표식,
+  // 오른쪽 위 번호, 굵은 마루부리 제목, 아래 출처·시각, 오른쪽 아래 ↗. 원형 표식은 아이콘 대신 실제 데이터인 시장(한국/미국)·공시 구분을 쓴다.
+  function newsCard(item, number) {
+    var type = newsType(item);
     var summary = newsSummary(item);
-    return newsAnchor(item, 'hwr-n2-feat') + (summary ? '<p class="hwr-n2-sum">' + escapeHtml(summary) + '</p>' : '') + newsQuote(item) + '</a>';
+    var mark = type === '공시' ? '공시' : (item.market || '뉴스');
+    var tone = type === '공시' ? 'disclosure' : item.market === '미국' ? 'us' : 'kr';
+    var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
+    return '<a class="hwr-n3-card" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
+      + '<i class="hwr-n3-mark hwr-n3-mark--' + tone + '" aria-hidden="true">' + escapeHtml(mark) + '</i>'
+      + '<b class="hwr-n3-no" aria-hidden="true">' + (number < 10 ? '0' : '') + number + '</b>'
+      + '<strong class="hwr-n3-title">' + escapeHtml(newsTitle(item)) + '</strong>'
+      + (summary ? '<span class="hwr-n3-sum">' + escapeHtml(summary) + '</span>' : '<span class="hwr-n3-sum"></span>')
+      + '<small class="hwr-n3-foot">' + escapeHtml(item.source || '출처 미상') + (when ? ' · <time>' + escapeHtml(when) + '</time>' : '')
+      + (item.price != null ? ' · <em class="' + signClass(item.changeRate) + '">' + escapeHtml(signed(item.changeRate)) + '</em>' : '') + '</small>'
+      + '</a>';
   }
-  function newsSideItem(item) { return newsAnchor(item, 'hwr-n2-item') + newsQuote(item) + '</a>'; }
   function newsFiltered(items, filter) {
     return (items || []).filter(function (item) { return filter === 'all' || newsType(item) === filter; });
   }
   function newsPageCount(list, filter) {
-    return Math.max(1, Math.ceil(list.length / (filter === '공시' ? NEWS_LIST_PER_PAGE : NEWS_FEATURE_PER_PAGE)));
+    return Math.max(1, Math.ceil(list.length / NEWS_CARDS_PER_PAGE));
   }
   function newsPageHtml(state) {
     var list = newsFiltered(state.items, state.filter);
-    var per = state.filter === '공시' ? NEWS_LIST_PER_PAGE : NEWS_FEATURE_PER_PAGE;
+    var per = NEWS_CARDS_PER_PAGE;
     var pages = newsPageCount(list, state.filter);
     state.page = Math.min(Math.max(1, state.page), pages);
     var rows = list.slice((state.page - 1) * per, state.page * per);
     var html;
     if (!rows.length) {
       html = '<p class="hwr-news-filter-empty">해당 유형의 소식이 없습니다.</p>';
-    } else if (state.filter === '공시') {
-      html = '<div class="hwr-n2 hwr-n2--list">' + rows.map(newsSideItem).join('') + '</div>';
     } else {
-      html = '<div class="hwr-n2 hwr-n2--feature' + (rows.length === 1 ? ' is-single' : '') + '">' + newsFeature(rows[0])
-        + (rows.length > 1 ? '<div class="hwr-n2-side">' + rows.slice(1).map(newsSideItem).join('') + '</div>' : '') + '</div>';
+      html = '<div class="hwr-n3-grid">' + rows.map(function (item, index) { return newsCard(item, (state.page - 1) * per + index + 1); }).join('') + '</div>';
     }
     return { html: html, pages: pages, count: list.length };
   }

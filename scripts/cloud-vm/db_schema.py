@@ -206,6 +206,19 @@ CREATE TABLE IF NOT EXISTS user_memos (
     FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
 );
 
+-- 2026-10-10 차트 도형(직선·동그라미·연필·박스·가로선) 계정 저장. 사용자·종목·봉 주기(day/week/month)당 1행,
+-- 행당 64KB 상한(chart_drawings.py). 메모와 같은 revision 낙관적 동시성 패턴.
+CREATE TABLE IF NOT EXISTS user_chart_drawings (
+    user_id INTEGER NOT NULL,
+    code TEXT NOT NULL,
+    timeframe TEXT NOT NULL,
+    drawings_json TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 1,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (user_id, code, timeframe),
+    FOREIGN KEY (user_id) REFERENCES app_users(id) ON DELETE CASCADE
+);
+
 -- 증시온도 카드의 사용자별 편집본. sector_cards_config는 운영자가 만든 공용 기본값이고,
 -- 이 테이블에 행이 생긴 사용자만 기본값에서 분기한다.
 CREATE TABLE IF NOT EXISTS user_sector_cards_config (
@@ -696,6 +709,60 @@ def save_user_memos(conn, user_id, items, updated_at, expected_revision=None):
         )
         conn.commit()
         return {'items': items, 'revision': next_revision, 'updatedAt': updated_at}
+    except Exception:
+        conn.rollback()
+        raise
+
+
+def load_user_chart_drawings(conn, user_id, code, timeframe):
+    row = conn.execute(
+        'SELECT drawings_json, revision, updated_at FROM user_chart_drawings WHERE user_id=? AND code=? AND timeframe=?',
+        (user_id, code, timeframe),
+    ).fetchone()
+    if not row:
+        return {'drawings': None, 'revision': 0, 'updatedAt': None}
+    try:
+        drawings = json.loads(row[0])
+    except (TypeError, ValueError) as exc:
+        raise ValueError('user_chart_drawings contains invalid JSON') from exc
+    return {'drawings': drawings, 'revision': row[1], 'updatedAt': row[2]}
+
+
+def save_user_chart_drawings(conn, user_id, code, timeframe, drawings, updated_at,
+                             expected_revision=None, delete_if_empty=False, max_rows=None):
+    """revision이 다르면 CHART_DRAWINGS_REVISION_CONFLICT, 사용자 행 수가 max_rows를 넘으면
+    CHART_DRAWINGS_ROW_LIMIT. delete_if_empty이면 도형이 모두 사라진 행은 지운다(공간 회수)."""
+    conn.execute('BEGIN IMMEDIATE')
+    try:
+        current = conn.execute(
+            'SELECT revision FROM user_chart_drawings WHERE user_id=? AND code=? AND timeframe=?',
+            (user_id, code, timeframe),
+        ).fetchone()
+        current_revision = current[0] if current else 0
+        if expected_revision is not None and int(expected_revision) != current_revision:
+            raise RuntimeError('CHART_DRAWINGS_REVISION_CONFLICT')
+        if delete_if_empty:
+            if current:
+                conn.execute(
+                    'DELETE FROM user_chart_drawings WHERE user_id=? AND code=? AND timeframe=?',
+                    (user_id, code, timeframe),
+                )
+            conn.commit()
+            return {'drawings': drawings, 'revision': current_revision + 1 if current else 0, 'updatedAt': updated_at}
+        if not current and max_rows is not None:
+            count = conn.execute('SELECT COUNT(*) FROM user_chart_drawings WHERE user_id=?', (user_id,)).fetchone()[0]
+            if count >= max_rows:
+                raise RuntimeError('CHART_DRAWINGS_ROW_LIMIT')
+        next_revision = current_revision + 1
+        payload = json.dumps(drawings, ensure_ascii=False, separators=(',', ':'))
+        conn.execute(
+            'INSERT INTO user_chart_drawings (user_id, code, timeframe, drawings_json, revision, updated_at) '
+            'VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(user_id, code, timeframe) DO UPDATE SET '
+            'drawings_json=excluded.drawings_json, revision=excluded.revision, updated_at=excluded.updated_at',
+            (user_id, code, timeframe, payload, next_revision, updated_at),
+        )
+        conn.commit()
+        return {'drawings': drawings, 'revision': next_revision, 'updatedAt': updated_at}
     except Exception:
         conn.rollback()
         raise

@@ -867,3 +867,50 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
   .home-weekly-report .hwr-n2--list .hwr-n2-item:nth-last-child(-n+2) { border-bottom: 1px solid var(--hw-line); }
   .home-weekly-report .hwr-n2--list .hwr-n2-item:last-child { border-bottom: 0; }
 }
+
+/* ── 2026-10-10 재요청 "이야기 시리즈랑 비슷한 카드": 푸터 .learn-card(둥근 28px·1px 선·번호·원형 표식·굵은 제목·↗)와 같은 구성.
+   위 .hwr-n2-* 규칙(대표+최신 편집형)은 더 쓰지 않는다. 색은 사이트 공통 토큰(--np-ink/--np-paper)만 쓰고 다크모드도 같은 토큰을 따른다. ── */
+.home-weekly-report .hwr-n3-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; min-width: 0; }
+.home-weekly-report a.hwr-n3-card {
+  position: relative; display: grid; grid-template-rows: 56px auto minmax(0, 1fr) auto; gap: 10px; min-width: 0; height: 260px; box-sizing: border-box;
+  padding: 24px; border: 1px solid rgba(var(--np-ink, 26, 26, 26), .14); border-radius: 28px; background: var(--np-paper, #fff); box-shadow: none;
+  color: rgb(var(--np-ink, 26, 26, 26)); text-align: left; text-decoration: none; transition: border-color .2s, transform .2s;
+}
+.home-weekly-report a.hwr-n3-card:hover { transform: translateY(-3px); border-color: rgba(var(--np-ink, 26, 26, 26), .4); }
+.home-weekly-report a.hwr-n3-card:focus-visible { outline: 2px solid rgb(var(--np-ink, 26, 26, 26)); outline-offset: 4px; }
+.home-weekly-report .hwr-n3-mark {
+  position: absolute; top: 24px; left: 24px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  font: 700 13px/1 var(--font-ui, system-ui, sans-serif); font-style: normal; color: #334155; background: #e2e8f0;
+}
+.home-weekly-report .hwr-n3-mark--kr { background: #ffe4d6; }
+.home-weekly-report .hwr-n3-mark--us { background: #dbeafe; }
+.home-weekly-report .hwr-n3-mark--disclosure { background: #ede9fe; }
+.home-weekly-report .hwr-n3-no { position: absolute; top: 26px; right: 24px; font: 400 14px/1 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .4); }
+.home-weekly-report .hwr-n3-title {
+  grid-row: 2; font: 400 21px/1.5 "MaruBuriBold", "MaruBuri", serif; word-break: keep-all; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; color: rgb(var(--np-ink, 26, 26, 26));
+}
+.home-weekly-report .hwr-n3-sum {
+  grid-row: 3; font: 400 13px/1.7 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .7); word-break: keep-all; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.home-weekly-report .hwr-n3-foot { grid-row: 4; padding-right: 28px; font: 400 13px/1.5 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-weekly-report .hwr-n3-foot time { font-variant-numeric: tabular-nums; }
+.home-weekly-report .hwr-n3-foot em { font-style: normal; font-weight: 600; }
+.home-weekly-report .hwr-n3-foot em.is-up { color: #d24f45; }
+.home-weekly-report .hwr-n3-foot em.is-down { color: #1261c4; }
+html.dark .home-weekly-report .hwr-n3-foot em.is-up { color: #ff8a83; }
+html.dark .home-weekly-report .hwr-n3-foot em.is-down { color: #80b8ff; }
+.home-weekly-report a.hwr-n3-card::after { content: "↗"; position: absolute; right: 24px; bottom: 26px; font-size: 18px; color: rgba(var(--np-ink, 26, 26, 26), .45); }
+/* 이전·다음: 이야기 시리즈 화살표처럼 가운데 둥근 버튼 */
+.home-weekly-report .hwr-n2-pager { justify-content: center; margin-top: 22px; }
+.home-weekly-report .hwr-n2-pager button { width: 42px; height: 42px; border-radius: 50%; font-size: 18px; }
+@media (max-width: 1100px) { .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) {
+  .home-weekly-report .hwr-n3-grid { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .home-weekly-report a.hwr-n3-card { height: 230px; padding: 20px; border-radius: 24px; }
+  .home-weekly-report .hwr-n3-mark { top: 20px; left: 20px; }
+  .home-weekly-report .hwr-n3-no { top: 22px; right: 20px; }
+  .home-weekly-report a.hwr-n3-card::after { right: 20px; bottom: 22px; }
+  .home-weekly-report .hwr-n3-title { font-size: 19px; }
+}
