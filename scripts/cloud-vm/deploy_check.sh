@@ -298,6 +298,10 @@ run_off_hours_maintenance_if_due() {
       maint_status=$?
       if [ "$maint_status" = "76" ]; then
         echo "스캔 실행 중 - 장외 유지보수는 다음 회차로 미룸"
+        # 2026-10-11: 9/27 이후 매일 03~05시에 이 문구만 남고 유지보수·백업이 멈춘 원인(누가 .scan_serial.lock을 쥐는지)을
+        # 알 수 없어 진단 한 줄을 남긴다. 판정 로직은 바꾸지 않는다.
+        echo "  lock holder: $( (fuser -v "$APP_DIR/.scan_serial.lock" 2>&1; ps -eo pid,etime,cmd | grep -E '[s]can|[b]atch' | head -3) | tr '
+' ' ' | cut -c1-300)"
       else
         echo "장외 VM 유지보수 실패: 다음 5분 회차에서 재시도" >&2
       fi
