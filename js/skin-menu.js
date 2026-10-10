@@ -48,7 +48,14 @@
     { href: '/page/stock-calendar', label: '캘린더' },
     { href: '/guestbook', label: '커뮤니티' },
     { href: '/page/watchlist', label: 'MY' },
+    // 2026-10-10 자동매매(소유자 전용): 이 PC의 로컬 봇(127.0.0.1:8765)이 켜져 있고 이 브라우저에 접속 토큰이 있을 때만 보인다.
+    // 다른 방문자에게는 로컬 서버가 없어서 메뉴가 생기지 않는다. 계좌·주문 정보는 사이트·VM을 거치지 않고 이 PC 안에서만 오간다.
+    { href: '/page/auto-trader', label: '자동매매', localOnly: true },
   ];
+
+  var AUTO_TRADER_URL = 'http://127.0.0.1:8765/api/status';
+  var AUTO_TRADER_TOKEN_KEY = 'autotrader_token_v1';
+  var autoTraderVisible = false;
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
   // 사용하는 페이지 주소를 바꾸지 않아 기존 진입 경로가 끊기지 않게 한다.
@@ -174,6 +181,7 @@
   }
 
   function primaryHtml(item, index) {
+    if (item.localOnly && !autoTraderVisible) return '';
     var current = item.children ? groupIsActive(item) : isActive(item);
     var selected = item.children && index === selectedGroupIndex;
     var cls = 'nav-item nav-primary-item' + (current || selected ? ' nav-item-active' : '');
@@ -275,6 +283,27 @@
     }
     if (window.StockSearchPanel) window.StockSearchPanel.wireSidebarSearch();
     wireBigSearch();
+    probeAutoTrader(mount);
+  }
+
+  // 로컬 봇이 응답하고 토큰이 맞으면 "자동매매" 메뉴를 보인다. 토큰은 자동매매 화면에서 한 번 붙여 넣어 이 브라우저에만 저장한다.
+  // 실패(봇 꺼짐·토큰 없음·다른 PC)는 조용히 넘어가고 메뉴는 숨겨진 채 둔다.
+  function probeAutoTrader(mount) {
+    if (!mount || typeof fetch !== 'function') return;
+    var token = '';
+    try { token = window.localStorage.getItem(AUTO_TRADER_TOKEN_KEY) || ''; } catch (err) { token = ''; }
+    if (!token) return;
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timer = controller ? setTimeout(function () { controller.abort(); }, 1500) : null;
+    fetch(AUTO_TRADER_URL, { headers: { 'X-AutoTrader-Token': token }, cache: 'no-store', signal: controller ? controller.signal : undefined })
+      .then(function (response) { return response.ok; })
+      .then(function (ok) {
+        if (!ok || autoTraderVisible) return;
+        autoTraderVisible = true;
+        renderMenu(mount);
+      })
+      .catch(function () { /* 봇이 꺼져 있거나 이 PC가 아니다 */ })
+      .then(function () { if (timer) clearTimeout(timer); });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', render);

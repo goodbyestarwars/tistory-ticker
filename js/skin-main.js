@@ -49,6 +49,25 @@ document.documentElement.classList.add('skin-ready');
   document.body.appendChild(core);
 }());
 
+/* 자동매매(소유자 전용) 화면: Tistory에 /page/auto-trader 페이지를 만들면 이 로더가 화면을 붙인다(DCF와 같은 방식).
+   데이터는 이 PC의 로컬 봇(127.0.0.1:8765)에서만 읽는다 - 계좌·주문 정보는 사이트·VM을 거치지 않는다. */
+(function loadAutoTraderPage() {
+  if (!/^\/(?:page|pages)\/auto-trader\/?$/.test(location.pathname)) return;
+  if (document.querySelector('script[data-auto-trader-page]')) return;
+  var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var mount = document.getElementById('auto-trader');
+  if (!mount) {
+    mount = document.createElement('div'); mount.id = 'auto-trader';
+    var host = document.querySelector('.contents_style') || document.querySelector('.post-single-body') || document.querySelector('.entry-content');
+    if (!host) return;
+    host.appendChild(mount);
+  }
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261010-at-v1'; document.head.appendChild(css);
+  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261010-at-v1'; script.setAttribute('data-auto-trader-page', '1');
+  script.onerror = function () { mount.textContent = '자동매매 화면을 불러오지 못했습니다. 새로고침하세요.'; };
+  document.body.appendChild(script);
+}());
+
   /* ── 월별 /earnings-calendar 공유 로더 ──
      홈의 일정 카드(stock-calendar.js)·미국 실적(home-widgets.js)·주간 리포트
      (home-weekly-report.js)가 같은 year-month 조회를 제각각 fetch 하던 것을 한 번으로
