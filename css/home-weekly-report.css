@@ -897,3 +897,12 @@ html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, ar
 @media (max-width: 720px) {
   .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not([hidden]) { margin-top: 20px; padding: 20px 16px 16px; border-radius: 14px; }
 }
+
+/* 시장 뉴스 새로고침 버튼 (2026-10-11 요청) */
+.home-weekly-report .hwr-news-tools { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
+.home-weekly-report .hwr-news-refresh { padding: 4px 12px; border: 1px solid var(--hw-border); border-radius: 999px; background: transparent; color: var(--hw-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.home-weekly-report .hwr-news-refresh:hover:not(:disabled) { background: var(--hw-line); }
+.home-weekly-report .hwr-news-refresh:disabled { opacity: .55; cursor: default; }
+.home-weekly-report .hwr-news-refresh-note { color: var(--hw-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.home-weekly-report .hwr2-h--tools { flex-wrap: wrap; }
+@media (max-width: 720px) { .home-weekly-report .hwr-news-tools { width: 100%; justify-content: space-between; } }

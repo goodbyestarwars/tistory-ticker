@@ -278,6 +278,36 @@
         newsRender(wrap);
       });
     });
+    // 2026-10-11 요청: 시장 뉴스 새로고침 버튼. 리포트 전체를 다시 그리지 않고 뉴스 목록만 새로 받아 바꾼다.
+    var refreshBtn = root.querySelector('[data-hwr-news-refresh]');
+    var note = root.querySelector('[data-hwr-news-note]');
+    if (refreshBtn) {
+      refreshBtn.addEventListener('click', function () {
+        if (refreshBtn.disabled) return;
+        refreshBtn.disabled = true;
+        refreshBtn.textContent = '불러오는 중…';
+        if (note) note.textContent = '';
+        fetchReport().then(function (payload) {
+          var data = payload && payload.data ? payload.data : payload || {};
+          var items = (data.news && data.news.timeline || []).slice(0, 20);
+          var changed = JSON.stringify(items) !== JSON.stringify(state.items);
+          if (items.length) {
+            writeLocalReport(payload);
+            state.items = items;
+            state.page = 1;
+            newsRender(wrap);
+          }
+          var now = new Date();
+          var hh = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
+          if (note) note.textContent = items.length ? (changed ? '갱신됨 ' : '새 소식 없음 ') + hh : '뉴스를 받지 못해 기존 목록을 유지합니다';
+        }).catch(function () {
+          if (note) note.textContent = '불러오지 못했습니다. 잠시 후 다시 시도하세요';
+        }).then(function () {
+          refreshBtn.disabled = false;
+          refreshBtn.textContent = '새로고침';
+        });
+      });
+    }
     wrap.querySelector('[data-news2-prev]').addEventListener('click', function () { state.page -= 1; newsRender(wrap); keepInView(); });
     wrap.querySelector('[data-news2-next]').addEventListener('click', function () { state.page += 1; newsRender(wrap); keepInView(); });
     // 화면 폭이 PC<->모바일 경계를 넘으면 페이지당 건수(6/4)가 달라지므로 첫 페이지로 다시 그린다.
@@ -965,7 +995,8 @@
       + '<section class="hwr2-section hwr2-themes" data-hwr-themes hidden></section>'
       + checkSection(data)
       + '<section class="hwr2-section hwr2-news"><div class="hwr2-h hwr2-h--tools"><div><h3>시장 뉴스</h3><p>' + escapeHtml(data.news && data.news.basis || '금~일 날짜별 주요 뉴스 · 한국·미국 통합') + '</p></div>'
-      + '<div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div></div>'
+      + '<div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div>'
+      + '<div class="hwr-news-tools"><button type="button" class="hwr-news-refresh" data-hwr-news-refresh>새로고침</button><span class="hwr-news-refresh-note" data-hwr-news-note role="status" aria-live="polite"></span></div></div>'
       + newsTimeline(data.news && data.news.timeline) + '</section>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     bindNewsFilters(root);
