@@ -177,7 +177,7 @@
     var type = newsType(item);
     var quote = item.price != null ? '<span class="hwr2-news-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
     return '<a class="hwr-news-card" data-news-type="' + type + '" data-market="' + escapeHtml(item.market || '국내') + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + '<span class="hwr-news-card-market">' + escapeHtml(item.market || '국내') + ' · ' + type + '</span><h4>' + escapeHtml(String(item.title_ko || '').trim() || item.title || '제목 없음') + '</h4>'
+      + '<h4>' + escapeHtml(String(item.title_ko || '').trim() || item.title || '제목 없음') + '</h4>'
       + '<p>' + escapeHtml(newsSummary(item)) + '</p><span class="hwr-news-card-meta">' + escapeHtml(item.source || '출처 미상')
       + ' · <time>' + escapeHtml(dateLabel(item.pubDate)) + ' ' + escapeHtml(timeLabel(item.pubDate)) + '</time></span>' + quote + '</a>';
   }
