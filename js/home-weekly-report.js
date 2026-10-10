@@ -178,7 +178,7 @@
   // PC 3열 x 2줄 = 6건, 모바일(720px 이하)은 이야기 시리즈처럼 2열 x 2줄 = 4건. 마지막 페이지는 남은 건수만큼만 그린다.
   var NEWS_MOBILE_QUERY = '(max-width: 720px)';
   function newsPerPage() {
-    return global.matchMedia && global.matchMedia(NEWS_MOBILE_QUERY).matches ? 4 : 6;
+    return global.matchMedia && global.matchMedia(NEWS_MOBILE_QUERY).matches ? 6 : 8;
   }
   var newsStoreSeq = 0;
   var newsStore = {};
@@ -201,20 +201,19 @@
   }
   // 2026-10-10 재요청("이야기 시리즈랑 비슷한 카드로"): 푸터 이야기 시리즈 카드(.learn-card)와 같은 구성 - 둥근 선 카드, 왼쪽 위 원형 표식,
   // 오른쪽 위 번호, 굵은 마루부리 제목, 아래 출처·시각, 오른쪽 아래 ↗. 원형 표식은 아이콘 대신 실제 데이터인 시장(한국/미국)·공시 구분을 쓴다.
+  // 2026-10-11 요청: 카드 대신 "경제 종합뉴스" 같은 시각순 목록 행. 왼쪽에 날짜·시각, 오른쪽에 시장·유형·출처와 제목.
   function newsCard(item, number) {
     var type = newsType(item);
-    var summary = newsSummary(item);
-    // 2026-10-10 요청: 원형 아이콘 대신 "KR | 국내" 알약. 코드는 시장(KR/US), 이름은 공시면 '공시', 아니면 국내/미국.
-    var label = type === '공시' ? '공시' : (item.market === '미국' ? '미국' : '국내');
-    var tone = type === '공시' ? 'disclosure' : item.market === '미국' ? 'us' : 'kr';
-    var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
-    return '<a class="hwr-n3-card" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + '<span class="hwr-n3-pill hwr-n3-pill--' + tone + '"><b>' + (item.market === '미국' ? 'US' : 'KR') + '</b><span>' + escapeHtml(label) + '</span></span>'
-      + '<b class="hwr-n3-no" aria-hidden="true">' + (number < 10 ? '0' : '') + number + '</b>'
-      + '<strong class="hwr-n3-title">' + escapeHtml(newsTitle(item)) + '</strong>'
-      + (summary ? '<span class="hwr-n3-sum">' + escapeHtml(summary) + '</span>' : '<span class="hwr-n3-sum"></span>')
-      + '<small class="hwr-n3-foot">' + escapeHtml(item.source || '출처 미상') + (when ? ' · <time>' + escapeHtml(when) + '</time>' : '')
-      + (item.price != null ? ' · <em class="' + signClass(item.changeRate) + '">' + escapeHtml(signed(item.changeRate)) + '</em>' : '') + '</small>'
+    var us = item.market === '미국';
+    var tone = type === '공시' ? 'disclosure' : us ? 'us' : 'kr';
+    var date = dateLabel(item.pubDate);
+    var time = timeLabel(item.pubDate);
+    return '<a class="hwr-nl-row" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
+      + '<span class="hwr-nl-when">' + (date ? '<b>' + escapeHtml(date) + '</b>' : '') + (time ? '<small>' + escapeHtml(time) + '</small>' : '') + '</span>'
+      + '<span class="hwr-nl-body"><span class="hwr-nl-meta"><i class="hwr-nl-mk hwr-nl-mk--' + tone + '">' + (us ? '미국' : '한국') + '</i>'
+      + '<b>' + escapeHtml(type) + '</b><span>' + escapeHtml(item.source || '출처 미상') + '</span>'
+      + (item.price != null ? '<em class="' + signClass(item.changeRate) + '">' + escapeHtml(signed(item.changeRate)) + '</em>' : '') + '</span>'
+      + '<strong class="hwr-nl-title">' + escapeHtml(newsTitle(item)) + '</strong></span>'
       + '</a>';
   }
   function newsFiltered(items, filter) {

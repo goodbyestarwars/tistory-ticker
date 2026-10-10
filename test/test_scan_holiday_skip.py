@@ -80,7 +80,7 @@ class ScanScriptsGuardTests(unittest.TestCase):
         with open(os.path.join(CLOUD_VM, 'setup_dailyscan_timer.sh'), encoding='utf-8') as handle:
             self.assertIn('OnCalendar=*-*-* 11:10:00', handle.read())
         with open(os.path.join(CLOUD_VM, 'setup_volumebreakout_timer.sh'), encoding='utf-8') as handle:
-            self.assertIsNotNone(re.search(r'OnCalendar=Mon\.\.Fri \*-\*-\* 00:10:00', handle.read()))
+            self.assertIsNotNone(re.search(r'OnCalendar=Mon\.\.Fri \*-\*-\* 00:05:00', handle.read()))
 
 
 if __name__ == '__main__':
