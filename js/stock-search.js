@@ -48,6 +48,7 @@
   var VM_HOUR_CANDIDATES_URL = 'https://goodbyestar.cloud/hour-direction';
   var HOUR_CANDIDATES_TIMEOUT_MS = 45000;
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261008-news-et';
+  var AUTO_WAVE_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/auto-wave.js?v=20261010-v2';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -111,6 +112,7 @@
     ichimokuEnabled: false,
     volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
     supportResistanceEnabled: false,
+    autoWaveEnabled: false,
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
@@ -1342,6 +1344,14 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var waveToggle = container.querySelector('[data-chart-wave-toggle]');
+    if (waveToggle) {
+      waveToggle.checked = state.autoWaveEnabled;
+      waveToggle.onchange = function () {
+        state.autoWaveEnabled = waveToggle.checked;
+        applyAutoWave(stockDrawingState);
+      };
+    }
     var srToggle = container.querySelector('#ssSupportResistanceToggle, [data-chart-sr-toggle]');
     if (srToggle) {
       srToggle.checked = state.supportResistanceEnabled;
@@ -2348,6 +2358,7 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 자동 파동(실험)</label>'
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
@@ -2621,6 +2632,91 @@
     return x == null || y == null ? null : { x: Number(x), y: Number(y) };
   }
 
+  // ---- 자동 파동(실험) - js/auto-wave.js. 수동 드로잉과 별도 레이어(drawing.autoWaves)로만 다루고 저장하지 않는다. ----
+  // OFF일 때는 계산도 스크립트 로드도 하지 않는다. 같은 종목·봉 주기·마지막 봉이면 결과를 재사용한다.
+  var autoWaveCache = { key: '', waves: null };
+
+  function applyAutoWave(drawing) {
+    if (!drawing) return;
+    if (!state.autoWaveEnabled || drawing.timeframe === 'minute') {
+      drawing.autoWaves = null;
+      redrawStockDrawing(drawing);
+      return;
+    }
+    var bars = drawing.bars || [];
+    var key = [drawing.key, drawing.timeframe, bars.length, bars.length ? bars[bars.length - 1].date : ''].join('|');
+    function compute() {
+      if (stockDrawingState !== drawing || !state.autoWaveEnabled) return;
+      if (autoWaveCache.key !== key) {
+        try { autoWaveCache = { key: key, waves: global.AutoWave.detectWaves(bars) }; }
+        catch (e) { autoWaveCache = { key: key, waves: [] }; }
+      }
+      drawing.autoWaves = autoWaveCache.waves;
+      redrawStockDrawing(drawing);
+    }
+    if (global.AutoWave && typeof global.AutoWave.detectWaves === 'function') { compute(); return; }
+    if (document.querySelector('script[data-auto-wave-module]')) {
+      var waiting = document.querySelector('script[data-auto-wave-module]');
+      waiting.addEventListener('load', compute);
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = AUTO_WAVE_SCRIPT;
+    script.async = true;
+    script.setAttribute('data-auto-wave-module', '1');
+    script.onload = compute;
+    script.onerror = function () { script.remove(); };
+    document.body.appendChild(script);
+  }
+
+  var AUTO_WAVE_STYLE = {
+    up: { stroke: '#e34d4b', fill: 'rgba(227,77,75,.10)', label: '상승 파동' },
+    down: { stroke: '#2674d9', fill: 'rgba(38,116,217,.10)', label: '하락 파동' },
+    side: { stroke: '#808080', fill: 'rgba(128,128,128,.12)', label: '횡보·응축' },
+    unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
+  };
+
+  function drawAutoWaves(drawing, ctx) {
+    var waves = drawing.autoWaves, bars = drawing.bars || [];
+    if (!waves || !waves.length || bars.length < 2) return;
+    var xa = stockDrawingCoordinate(drawing, { time: bars[bars.length - 2].date, price: bars[bars.length - 2].close });
+    var xb = stockDrawingCoordinate(drawing, { time: bars[bars.length - 1].date, price: bars[bars.length - 1].close });
+    var half = xa && xb ? Math.max(1, Math.abs(xb.x - xa.x) / 2) : 2;
+    ctx.save();
+    waves.forEach(function (wave) {
+      var st = AUTO_WAVE_STYLE[wave.kind];
+      var b0 = bars[wave.start], b1 = bars[wave.end];
+      if (!st || !b0 || !b1) return;
+      var p0 = stockDrawingCoordinate(drawing, { time: b0.date, price: wave.high });
+      var p1 = stockDrawingCoordinate(drawing, { time: b1.date, price: wave.low });
+      if (!p0 || !p1) return;
+      var x1 = Math.min(p0.x, p1.x) - half, x2 = Math.max(p0.x, p1.x) + half;
+      var y1 = Math.min(p0.y, p1.y), y2 = Math.max(p0.y, p1.y);
+      ctx.fillStyle = st.fill;
+      ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+      ctx.strokeStyle = st.stroke;
+      ctx.globalAlpha = wave.confirmed ? 0.55 : 0.85;
+      ctx.lineWidth = 1;
+      ctx.setLineDash(wave.confirmed ? [] : [5, 4]);
+      ctx.strokeRect(x1 + .5, y1 + .5, x2 - x1 - 1, y2 - y1 - 1);
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      var text = st.label;
+      if (!wave.confirmed && wave.kind !== 'unk') text += ' 진행 중';
+      else if (wave.confirmed && wave.endConfirmedIndex != null) text += ' (확정 +' + (wave.endConfirmedIndex - wave.end) + '봉)';
+      ctx.font = '700 10px MaruBuri, serif';
+      ctx.fillStyle = st.stroke;
+      ctx.textBaseline = 'top';
+      while (text.length > 2 && ctx.measureText(text).width > x2 - x1 - 6) text = text.slice(0, -1);
+      ctx.fillText(text, x1 + 4, y1 + 3);
+    });
+    ctx.font = '10px sans-serif';
+    ctx.fillStyle = 'rgba(100,100,100,.85)';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText('자동 파동(실험) · 점선은 진행 중이며 새 봉이 들어오면 바뀔 수 있음 · 매매 추천 아님', 8, drawing.overlay.clientHeight - 6);
+    ctx.restore();
+  }
+
   function redrawStockDrawing(drawing) {
     if (!drawing || !drawing.overlay) return;
     var width = drawing.overlay.clientWidth;
@@ -2630,6 +2726,7 @@
     ctx.clearRect(0, 0, width, height);
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
+    drawAutoWaves(drawing, ctx);
     drawing.paths.forEach(function (path) {
       if (!Array.isArray(path) || path.length < 2) return;
       var started = false;
@@ -3023,6 +3120,7 @@
     }
     stockDrawingState = drawing;
     resizeStockDrawing(drawing);
+    if (state.autoWaveEnabled) applyAutoWave(drawing);
   }
 
   // ---- 매물대(2026-10-05 사용자 요청: 호가창·차트·매물대 연동, 토스처럼 확대·축소를 따라감) ----
