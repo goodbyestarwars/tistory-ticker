@@ -63,7 +63,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict dt {
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dt { margin-bottom: 2px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dd {
-  margin: 0; font: 400 clamp(26px, 2.6vw, 30px)/1.2 "MaruBuriBold", var(--font-title, "MaruBuri"), Georgia, serif; letter-spacing: -.01em;
+  margin: 0; font: 400 clamp(19px, 1.7vw, 22px)/1.2 "MaruBuriBold", var(--font-title, "MaruBuri"), Georgia, serif; letter-spacing: -.01em;
   overflow: visible; white-space: normal; text-overflow: clip;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp dd {
@@ -191,7 +191,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosu
   }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dd {
     font-family: "MaruBuriBold", "MaruBuri", Georgia, serif !important; font-weight: 400 !important;
-    font-size: clamp(26px, 2.6vw, 30px) !important; line-height: 1.2 !important;
+    font-size: clamp(19px, 1.7vw, 22px) !important; line-height: 1.2 !important;
   }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.hmb2-verdict, .hmb2-core) > div { min-height: 0 !important; padding: 0 !important; border: 0 !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > .hmb-investor-trend { border-top: 1px solid var(--hmb-line) !important; padding-top: 14px !important; }
