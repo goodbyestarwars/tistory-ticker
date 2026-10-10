@@ -19,7 +19,7 @@ from bot import CODE_RE, HERE, STOP_FLAG
 TOKEN_PATH = os.path.join(HERE, '.token')
 RESEARCH_DIR = os.path.join(HERE, 'research')
 ALLOWED_ORIGINS = ('https://ghlee.tistory.com',)
-HOST, PORT = '127.0.0.1', 8765
+HOST, PORT = '127.0.0.1', int(os.environ.get('AUTOTRADER_PORT') or 8765)     # 환경변수는 테스트용(운영은 기본 8765)
 
 
 def load_or_create_token():

@@ -32,6 +32,9 @@ DEFAULT_CONFIG = {
     'sell_cooldown_sec': 300,
     'max_attempts_per_code_per_day': 3,
 }
+# 주문 오류 이벤트 문구의 머리말. 텔레그램 알림(tg_data/tg_monitor)이 '증권사 거부'와 '전송 실패'를 가르는 데 같은 값을 쓴다.
+MSG_ORDER_REJECTED = '매도 주문 거부'
+MSG_ORDER_FAILED = '매도 주문 실패'
 
 
 def now_kst():
@@ -184,6 +187,11 @@ class Bot:
                 'take_profit_cap_pct': self.config['take_profit_cap_pct'], 'sells_today': self.store.orders_today(),
                 'max_sells_per_day': self.config['max_sells_per_day']}
 
+    def health(self):
+        """감시용 읽기 전용 상태(텔레그램 관제가 읽는다). 판단 로직에는 쓰이지 않는다."""
+        return {'balance_failures': self._balance_failures, 'last_poll': self.last_poll, 'last_error': self.last_error,
+                'poll_seconds': self.config['poll_seconds']}
+
     # ---- 한 번의 폴링 ----
     def poll_once(self):
         dt = now_kst()
@@ -253,7 +261,7 @@ class Bot:
             result = self.client.sell_market(code, qty)
         except Exception as exc:
             self.store.order_add(code, qty, reason, 'ERROR', None, str(exc))
-            self.store.event('ERROR', code, h['price'], '매도 주문 실패: %s | %s' % (exc, label))
+            self.store.event('ERROR', code, h['price'], '%s: %s | %s' % (MSG_ORDER_FAILED, exc, label))
             self.last_error = '매도 주문 실패: %s' % exc
             return
         if result.get('ok'):
@@ -261,7 +269,7 @@ class Bot:
             self.store.event('SELL_SENT', code, h['price'], '시장가 매도 주문 전송 주문번호 %s: %s' % (result.get('ord_no'), label))
         else:
             self.store.order_add(code, qty, reason, 'ERROR', None, '%s %s' % (result.get('return_code'), result.get('return_msg')))
-            self.store.event('ERROR', code, h['price'], '매도 주문 거부: %s %s | %s' % (result.get('return_code'), result.get('return_msg'), label))
+            self.store.event('ERROR', code, h['price'], '%s: %s %s | %s' % (MSG_ORDER_REJECTED, result.get('return_code'), result.get('return_msg'), label))
 
     # ---- 루프 ----
     def run_forever(self):
