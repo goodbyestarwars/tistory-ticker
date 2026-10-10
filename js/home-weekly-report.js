@@ -172,43 +172,119 @@
     if (!/[가-힣]/.test(summary)) return '';
     return summary.length > 150 ? summary.slice(0, 147) + '…' : summary;
   }
-  // Same report timeline and cap; navigation replaces the collapsed news rows.
-  function newsRow(item) {
+  // 2026-10-10 시장 뉴스 개편: 같은 크기 카드 3장을 걷고 "대표 기사 1 + 최신 기사 4"(페이지당 5건)로 위계를 준다.
+  // 공시 탭은 기사가 아니라 기업·제목·날짜 중심의 목록(페이지당 6건). 대표 자리는 중요도 점수가 아니라 단순히 해당 탭의 첫 기사다.
+  // 데이터는 기존 /weekly-report의 news.timeline(최대 20건, 시간 역순)을 그대로 쓴다 - 새 요청·요약·이미지 없음.
+  // PC 3열 x 2줄 = 6건, 모바일(720px 이하)은 이야기 시리즈처럼 2열 x 2줄 = 4건. 마지막 페이지는 남은 건수만큼만 그린다.
+  var NEWS_MOBILE_QUERY = '(max-width: 720px)';
+  function newsPerPage() {
+    return global.matchMedia && global.matchMedia(NEWS_MOBILE_QUERY).matches ? 4 : 6;
+  }
+  var newsStoreSeq = 0;
+  var newsStore = {};
+  function newsTitle(item) { return String(item.title_ko || '').trim() || item.title || '제목 없음'; }
+  function newsMeta(item, type) {
+    var market = item.market ? '<span class="hwr-n2-mk">' + escapeHtml(item.market) + '</span>' : '';
+    var kind = type === '공시' ? '<span class="hwr-n2-kind">공시</span>' : '';
+    var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
+    return '<span class="hwr-n2-meta">' + market + kind
+      + '<span class="hwr-n2-src">' + escapeHtml(item.source || '출처 미상') + '</span>'
+      + (when ? '<time>' + escapeHtml(when) + '</time>' : '') + '</span>';
+  }
+  function newsQuote(item) {
+    return item.price != null ? '<span class="hwr-n2-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
+  }
+  function newsAnchor(item, cls) {
     var type = newsType(item);
-    var quote = item.price != null ? '<span class="hwr2-news-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
-    return '<a class="hwr-news-card" data-news-type="' + type + '" data-market="' + escapeHtml(item.market || '국내') + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + '<h4>' + escapeHtml(String(item.title_ko || '').trim() || item.title || '제목 없음') + '</h4>'
-      + '<p>' + escapeHtml(newsSummary(item)) + '</p><span class="hwr-news-card-meta">' + escapeHtml(item.source || '출처 미상')
-      + ' · <time>' + escapeHtml(dateLabel(item.pubDate)) + ' ' + escapeHtml(timeLabel(item.pubDate)) + '</time></span>' + quote + '</a>';
+    return '<a class="' + cls + '" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
+      + newsMeta(item, type) + '<strong class="hwr-n2-title">' + escapeHtml(newsTitle(item)) + '</strong>';
+  }
+  // 2026-10-10 재요청("이야기 시리즈랑 비슷한 카드로"): 푸터 이야기 시리즈 카드(.learn-card)와 같은 구성 - 둥근 선 카드, 왼쪽 위 원형 표식,
+  // 오른쪽 위 번호, 굵은 마루부리 제목, 아래 출처·시각, 오른쪽 아래 ↗. 원형 표식은 아이콘 대신 실제 데이터인 시장(한국/미국)·공시 구분을 쓴다.
+  function newsCard(item, number) {
+    var type = newsType(item);
+    var summary = newsSummary(item);
+    var mark = type === '공시' ? '공시' : (item.market || '뉴스');
+    var tone = type === '공시' ? 'disclosure' : item.market === '미국' ? 'us' : 'kr';
+    var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
+    return '<a class="hwr-n3-card" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
+      + '<i class="hwr-n3-mark hwr-n3-mark--' + tone + '" aria-hidden="true">' + escapeHtml(mark) + '</i>'
+      + '<b class="hwr-n3-no" aria-hidden="true">' + (number < 10 ? '0' : '') + number + '</b>'
+      + '<strong class="hwr-n3-title">' + escapeHtml(newsTitle(item)) + '</strong>'
+      + (summary ? '<span class="hwr-n3-sum">' + escapeHtml(summary) + '</span>' : '<span class="hwr-n3-sum"></span>')
+      + '<small class="hwr-n3-foot">' + escapeHtml(item.source || '출처 미상') + (when ? ' · <time>' + escapeHtml(when) + '</time>' : '')
+      + (item.price != null ? ' · <em class="' + signClass(item.changeRate) + '">' + escapeHtml(signed(item.changeRate)) + '</em>' : '') + '</small>'
+      + '</a>';
+  }
+  function newsFiltered(items, filter) {
+    return (items || []).filter(function (item) { return filter === 'all' || newsType(item) === filter; });
+  }
+  function newsPageCount(list, filter) {
+    return Math.max(1, Math.ceil(list.length / newsPerPage()));
+  }
+  function newsPageHtml(state) {
+    var list = newsFiltered(state.items, state.filter);
+    var per = newsPerPage();
+    var pages = newsPageCount(list, state.filter);
+    state.page = Math.min(Math.max(1, state.page), pages);
+    var rows = list.slice((state.page - 1) * per, state.page * per);
+    var html;
+    if (!rows.length) {
+      html = '<p class="hwr-news-filter-empty">해당 유형의 소식이 없습니다.</p>';
+    } else {
+      html = '<div class="hwr-n3-grid">' + rows.map(function (item, index) { return newsCard(item, (state.page - 1) * per + index + 1); }).join('') + '</div>';
+    }
+    return { html: html, pages: pages, count: list.length };
+  }
+  function newsRender(wrap) {
+    var state = newsStore[wrap.getAttribute('data-news-id')];
+    if (!state) return;
+    var out = newsPageHtml(state);
+    wrap.querySelector('[data-news2-body]').innerHTML = out.html;
+    var pager = wrap.querySelector('.hwr-n2-pager');
+    pager.hidden = out.pages <= 1;
+    wrap.querySelector('[data-news2-page]').textContent = state.page + ' / ' + out.pages;
+    wrap.querySelector('[data-news2-prev]').disabled = state.page <= 1;
+    wrap.querySelector('[data-news2-next]').disabled = state.page >= out.pages;
   }
   function newsTimeline(items) {
     if (!items || !items.length) return '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>';
-    return '<div class="hwr-news-carousel" data-no-pointer-effect><div class="hwr-news-track" tabindex="0" role="region" aria-label="시장 뉴스 카드">'
-      + items.slice(0,20).map(newsRow).join('') + '</div><div class="hwr-news-controls"><button type="button" data-news-prev aria-label="이전 뉴스 페이지">←</button>'
-      + '<span data-news-page aria-live="polite">1 / 1</span><button type="button" data-news-next aria-label="다음 뉴스 페이지">→</button></div></div>'
-      + '<p class="hwr-news-filter-empty" data-hwr-news-filter-empty hidden>해당 유형의 소식이 없습니다.</p>';
+    var id = String(++newsStoreSeq);
+    newsStore[id] = { items: items.slice(0, 20), filter: 'all', page: 1 };
+    var first = newsPageHtml(newsStore[id]);
+    return '<div class="hwr-n2-wrap" data-hwr-news2 data-news-id="' + id + '"><div data-news2-body aria-live="polite">' + first.html + '</div>'
+      + '<div class="hwr-n2-pager"' + (first.pages <= 1 ? ' hidden' : '') + '><button type="button" data-news2-prev aria-label="이전 뉴스 페이지" disabled>←</button>'
+      + '<span data-news2-page aria-live="polite">1 / ' + first.pages + '</span><button type="button" data-news2-next aria-label="다음 뉴스 페이지"' + (first.pages <= 1 ? ' disabled' : '') + '>→</button></div></div>';
   }
   function bindNewsFilters(root) {
-    var buttons = root.querySelectorAll('[data-hwr-news-filter]');
-    var events = root.querySelectorAll('[data-news-type]');
-    var empty = root.querySelector('[data-hwr-news-filter-empty]');
-    buttons.forEach(function (button) {
+    var wrap = root.querySelector('[data-hwr-news2]');
+    if (!wrap) return;
+    var state = newsStore[wrap.getAttribute('data-news-id')];
+    var section = wrap.closest('.hwr2-news') || wrap;
+    function keepInView() {
+      var top = section.getBoundingClientRect().top;
+      if (top < 0) section.scrollIntoView({ block: 'start', behavior: 'smooth' });
+    }
+    root.querySelectorAll('[data-hwr-news-filter]').forEach(function (button) {
       button.addEventListener('click', function () {
-        var filter = button.getAttribute('data-hwr-news-filter');
-        var visible = 0;
-        buttons.forEach(function (candidate) {
+        state.filter = button.getAttribute('data-hwr-news-filter');
+        state.page = 1;
+        root.querySelectorAll('[data-hwr-news-filter]').forEach(function (candidate) {
           var active = candidate === button;
           candidate.classList.toggle('is-active', active);
           candidate.setAttribute('aria-selected', active ? 'true' : 'false');
         });
-        events.forEach(function (event) {
-          var show = filter === 'all' || event.getAttribute('data-news-type') === filter;
-          event.hidden = !show;
-          if (show) visible += 1;
-        });
-        if (empty) empty.hidden = visible > 0;
+        newsRender(wrap);
       });
     });
+    wrap.querySelector('[data-news2-prev]').addEventListener('click', function () { state.page -= 1; newsRender(wrap); keepInView(); });
+    wrap.querySelector('[data-news2-next]').addEventListener('click', function () { state.page += 1; newsRender(wrap); keepInView(); });
+    // 화면 폭이 PC<->모바일 경계를 넘으면 페이지당 건수(6/4)가 달라지므로 첫 페이지로 다시 그린다.
+    if (global.matchMedia) {
+      var media = global.matchMedia(NEWS_MOBILE_QUERY);
+      var onChange = function () { if (!wrap.isConnected) { if (media.removeEventListener) media.removeEventListener('change', onChange); return; } state.page = 1; newsRender(wrap); };
+      if (media.addEventListener) media.addEventListener('change', onChange);
+    }
   }
   // 2026-10-04 주말 리포트 재디자인: 종목 하나 = 카드 하나를 걷고 한 줄 행(순위·종목·등락률/가격)으로 바꾼다.
   function moverRows(items, market, emptyText) {
@@ -858,7 +934,6 @@
     return hours ? hours.isWeekendClosed(date) : false;
   }
   function render(root, payload) {
-    if (root._newsCarousel) { root._newsCarousel.destroy(); root._newsCarousel = null; }
     var data = payload && payload.data ? payload.data : payload || {};
     var weekendDay = new Date().getDay();
     var title = weekendDay === 0 || weekendDay === 1 ? '다음 주 준비 리포트' : '한 주 마감 리포트';
@@ -893,11 +968,6 @@
       + newsTimeline(data.news && data.news.timeline) + '</section>'
       + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     bindNewsFilters(root);
-    var carouselSection = root.querySelector('.hwr-news-carousel');
-    if (carouselSection) (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
-      if (!module || !carouselSection.isConnected) return;
-      root._newsCarousel = module.carousel(carouselSection, {track:'.hwr-news-track',previous:'[data-news-prev]',next:'[data-news-next]',page:'[data-news-page]',card:'.hwr-news-card'});
-    }).catch(function () {});
     loadMyWatchlistSchedule(root, data.week && data.week.end);
     loadNextWeekCalendar(root, data.week && data.week.end);
     loadWeekendLive(root, data.week && data.week.end);
@@ -940,7 +1010,7 @@
       && window.HomeMarketSelection.get() === 'closed';
     var existing = document.getElementById('homeWeeklyReport');
     if (!isWeekendWindow(new Date()) && !closedSelected) {
-      if (existing) { if (existing._newsCarousel) existing._newsCarousel.destroy(); existing.remove(); }
+      if (existing) existing.remove();
       return null;
     }
     var feed = document.querySelector('.feed');
@@ -997,5 +1067,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init, newsMarkup: newsTimeline };
+  global.HomeWeeklyReport = { init: init, newsMarkup: newsTimeline, bindNews: bindNewsFilters };
 })(window);

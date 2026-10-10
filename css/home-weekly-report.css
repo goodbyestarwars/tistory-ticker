@@ -823,38 +823,62 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 }
 /* Market-news cards use the available report width, including an open drawer. */
 .home-weekly-report .hwr2-news { container-type: inline-size; min-width:0; }
-.home-weekly-report .hwr-news-carousel { min-width:0; width:100%; }
-.home-weekly-report .hwr-news-track { display:flex; gap:20px; overflow-x:auto; overscroll-behavior-x:contain; scroll-snap-type:x mandatory; touch-action:pan-x pan-y; scrollbar-width:none; padding:4px 0; min-width:0; }
-.home-weekly-report .hwr-news-track::-webkit-scrollbar { display:none; }
-.home-weekly-report .hwr-news-track.is-dragging { scroll-snap-type:none; cursor:grabbing; user-select:none; }
-.home-weekly-report .hwr-news-card { display:flex; flex:0 0 100%; min-width:0; box-sizing:border-box; flex-direction:column; gap:12px; height:260px; padding:22px; scroll-snap-align:start; border:1px solid var(--hw-border); border-radius:18px; background:var(--hw-surface); color:var(--hw-text); box-shadow:none; }
-.home-weekly-report .hwr-news-card[hidden] { display:none!important; }
-.home-weekly-report .hwr-news-card:is(:link,:visited,:hover,:active),.home-weekly-report .hwr-news-card * { text-decoration:none!important; }
-.home-weekly-report .hwr-news-card:focus-visible,.home-weekly-report .hwr-news-track:focus-visible { outline:2px solid var(--hw-text); outline-offset:-2px; }
-.home-weekly-report .hwr-news-card h4 { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:3; overflow:hidden; overflow-wrap:anywhere; margin:0; font:400 19px/1.5 MaruBuri,serif; }
-.home-weekly-report .hwr-news-card p { display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden; margin:0; font-size:13px; line-height:1.6; color:var(--hw-muted); }
-.home-weekly-report .hwr-news-card-market { font-size:11px; color:var(--hw-muted); }
-.home-weekly-report .hwr-news-card-meta { margin-top:auto; font-size:11px; color:var(--hw-muted); overflow-wrap:anywhere; }
-.home-weekly-report .hwr-news-controls { display:flex; align-items:center; justify-content:flex-end; gap:14px; margin-top:14px; }
-.home-weekly-report .hwr-news-controls button { width:36px; height:36px; border:1px solid var(--hw-border); border-radius:10px; background:var(--hw-surface); color:var(--hw-text); cursor:pointer; }
-.home-weekly-report .hwr-news-controls button:disabled { opacity:.35; cursor:default; }
-.home-weekly-report .hwr-news-controls [data-news-page] { font-size:12px; color:var(--hw-muted); }
-@container (min-width:620px) { .home-weekly-report .hwr-news-card { flex-basis:calc((100% - 20px)/2); } }
-@container (min-width:960px) { .home-weekly-report .hwr-news-card { flex-basis:calc((100% - 40px)/3); } }
 
-/* 2026-10-10 사용자 요청: 휴장 지면 시장 뉴스 카드를 애플 홈페이지식 카드(연회색 면·큰 라운드·테두리 없음·굵은 제목)로.
-   제목은 마루부리 볼드(MaruBuriBold 단독 face, 가짜 볼드 방지로 weight 400). */
-.home-weekly-report .hwr-news-card { height:300px; padding:30px 28px; gap:14px; border:0 !important; border-radius:28px; background:#f5f5f7 !important; color:#1d1d1f; transition:transform .25s ease, box-shadow .25s ease; }
-.home-weekly-report .hwr-news-card:hover { transform:translateY(-4px); box-shadow:0 12px 28px rgba(0,0,0,.12); }
-.home-weekly-report .hwr-news-card-market { font-size:12px; font-weight:700; letter-spacing:.02em; text-transform:uppercase; color:#6e6e73; }
-.home-weekly-report .hwr-news-card h4 { font:400 22px/1.4 "MaruBuriBold","MaruBuri",Georgia,serif; letter-spacing:-.01em; color:#1d1d1f; -webkit-line-clamp:4; }
-.home-weekly-report .hwr-news-card p { color:#6e6e73; }
-.home-weekly-report .hwr-news-card-meta { color:#86868b; }
-html.dark .home-weekly-report .hwr-news-card { background:#1d1d1f !important; color:#f5f5f7; }
-html.dark .home-weekly-report .hwr-news-card h4 { color:#f5f5f7; }
-html.dark .home-weekly-report .hwr-news-card:hover { box-shadow:0 12px 28px rgba(0,0,0,.5); }
-@media (max-width:720px) { .home-weekly-report .hwr-news-card { height:270px; padding:24px 22px; border-radius:24px; } .home-weekly-report .hwr-news-card h4 { font-size:19px; } }
+/* ── 2026-10-10 시장 뉴스 개편: 대표 기사 1 + 최신 기사 4(공시 탭은 목록). 큰 빈 카드를 없애고 제목·언론사·시각 위계로 읽게 한다. ── */
+.home-weekly-report .hwr-n2-wrap { min-width: 0; }
+.home-weekly-report .hwr-n2-pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
+.home-weekly-report .hwr-n2-pager[hidden] { display: none; }
+.home-weekly-report .hwr-n2-pager button { width: 36px; height: 36px; border: 1px solid var(--hw-border); border-radius: 10px; background: var(--hw-surface); color: var(--hw-text); cursor: pointer; }
+.home-weekly-report .hwr-n2-pager button:disabled { opacity: .35; cursor: default; }
+.home-weekly-report .hwr-n2-pager [data-news2-page] { min-width: 44px; text-align: center; font-size: 12px; color: var(--hw-muted); font-variant-numeric: tabular-nums; }
 
-/* 2026-10-10: 카드 위 색띠·시장 알약 제거(너무 AI스럽다는 지적). 은은한 그라데이션 면만 남긴다. */
-.home-weekly-report .hwr-news-card { background:linear-gradient(160deg,#fbfbfd 0%,#f1f1f4 100%) !important; }
-html.dark .home-weekly-report .hwr-news-card { background:linear-gradient(160deg,#242427 0%,#1b1b1d 100%) !important; }
+/* ── 2026-10-10 재요청 "이야기 시리즈랑 비슷한 카드": 푸터 .learn-card(둥근 28px·1px 선·번호·원형 표식·굵은 제목·↗)와 같은 구성.
+   위 .hwr-n2-* 규칙(대표+최신 편집형)은 더 쓰지 않는다. 색은 사이트 공통 토큰(--np-ink/--np-paper)만 쓰고 다크모드도 같은 토큰을 따른다. ── */
+.home-weekly-report .hwr-n3-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; min-width: 0; }
+.home-weekly-report a.hwr-n3-card {
+  position: relative; display: grid; grid-template-rows: 56px auto minmax(0, 1fr) auto; gap: 10px; min-width: 0; height: 260px; box-sizing: border-box;
+  padding: 24px; border: 1px solid rgba(var(--np-ink, 26, 26, 26), .14); border-radius: 28px; background: var(--np-paper, #fff); box-shadow: none;
+  color: rgb(var(--np-ink, 26, 26, 26)); text-align: left; text-decoration: none; transition: border-color .2s, transform .2s;
+}
+.home-weekly-report a.hwr-n3-card:hover { transform: translateY(-3px); border-color: rgba(var(--np-ink, 26, 26, 26), .4); }
+.home-weekly-report a.hwr-n3-card:focus-visible { outline: 2px solid rgb(var(--np-ink, 26, 26, 26)); outline-offset: 4px; }
+.home-weekly-report .hwr-n3-mark {
+  position: absolute; top: 24px; left: 24px; display: grid; place-items: center; width: 48px; height: 48px; border-radius: 50%;
+  font: 700 13px/1 var(--font-ui, system-ui, sans-serif); font-style: normal; color: #334155; background: #e2e8f0;
+}
+.home-weekly-report .hwr-n3-mark--kr { background: #ffe4d6; }
+.home-weekly-report .hwr-n3-mark--us { background: #dbeafe; }
+.home-weekly-report .hwr-n3-mark--disclosure { background: #ede9fe; }
+.home-weekly-report .hwr-n3-no { position: absolute; top: 26px; right: 24px; font: 400 14px/1 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .4); }
+.home-weekly-report .hwr-n3-title {
+  grid-row: 2; font: 400 21px/1.5 "MaruBuriBold", "MaruBuri", serif; word-break: keep-all; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; color: rgb(var(--np-ink, 26, 26, 26));
+}
+.home-weekly-report .hwr-n3-sum {
+  grid-row: 3; font: 400 13px/1.7 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .7); word-break: keep-all; overflow-wrap: anywhere;
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+}
+.home-weekly-report .hwr-n3-foot { grid-row: 4; padding-right: 28px; font: 400 13px/1.5 var(--font-ui, system-ui, sans-serif); color: rgba(var(--np-ink, 26, 26, 26), .55); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-weekly-report .hwr-n3-foot time { font-variant-numeric: tabular-nums; }
+.home-weekly-report .hwr-n3-foot em { font-style: normal; font-weight: 600; }
+.home-weekly-report .hwr-n3-foot em.is-up { color: #d24f45; }
+.home-weekly-report .hwr-n3-foot em.is-down { color: #1261c4; }
+html.dark .home-weekly-report .hwr-n3-foot em.is-up { color: #ff8a83; }
+html.dark .home-weekly-report .hwr-n3-foot em.is-down { color: #80b8ff; }
+.home-weekly-report a.hwr-n3-card::after { content: "↗"; position: absolute; right: 24px; bottom: 26px; font-size: 18px; color: rgba(var(--np-ink, 26, 26, 26), .45); }
+/* 이전·다음: 이야기 시리즈 화살표처럼 가운데 둥근 버튼 */
+.home-weekly-report .hwr-n2-pager { justify-content: center; margin-top: 22px; }
+.home-weekly-report .hwr-n2-pager button { width: 42px; height: 42px; border-radius: 50%; font-size: 18px; }
+@media (max-width: 1100px) { .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 1100px) and (min-width: 721px) { .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 720px) {
+  /* 모바일도 이야기 시리즈처럼 2열(페이지당 4건 = 2x2). 좁은 칸이라 제목은 줄여 4줄까지, 출처·시각은 두 줄로 접는다. */
+  .home-weekly-report .hwr-n3-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+  .home-weekly-report a.hwr-n3-card { height: 290px; padding: 18px; gap: 8px; grid-template-rows: 52px auto minmax(0, 1fr) auto; border-radius: 24px; }
+  .home-weekly-report .hwr-n3-mark { top: 18px; left: 18px; width: 44px; height: 44px; font-size: 12px; }
+  .home-weekly-report .hwr-n3-no { top: 20px; right: 18px; font-size: 13px; }
+  .home-weekly-report a.hwr-n3-card::after { right: 18px; bottom: 20px; font-size: 16px; }
+  .home-weekly-report .hwr-n3-title { font-size: 17px; line-height: 1.5; -webkit-line-clamp: 4; }
+  .home-weekly-report .hwr-n3-sum { display: none; }
+  .home-weekly-report .hwr-n3-foot { padding-right: 22px; font-size: 12px; white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+}
