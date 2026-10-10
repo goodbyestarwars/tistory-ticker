@@ -39,6 +39,12 @@ ENTRIES = ('open', 'close1')
 BASE_STEP = 6
 
 
+
+def excluded_at(pdx, code, daily, i):
+    """신호일 i 시점의 데이터만으로 종목 제외 여부를 판정한다(미래 참조 방지)."""
+    return pdx.is_excluded_stock({'code': code, 'name': ''}, daily[:i + 1])
+
+
 def atr14(daily, i):
     trs = []
     for k in range(max(1, i - 13), i + 1):
@@ -139,13 +145,15 @@ def for_stock(args):
     daily = sb.load(conn, code)
     conn.close()
     n = len(daily)
-    if n < 160 or pdx.is_excluded_stock({'code': code, 'name': ''}, daily):
+    if n < 160:   # 제외 판정은 신호일 시점 데이터로만 한다(아래 excluded_at) - 전체 이력의 마지막 봉을 보면 미래 참조가 된다
         return []
     detectors = {'maCloudBreakout': pdx.detect_ma_cloud_breakout, 'doubleBottom': pdx.detect_double_bottom,
                  'invHeadShoulders': pdx.detect_inv_head_shoulders, 'pullback': pdx.detect_pullback,
                  'shortTermMaBreakout': pdx.detect_short_ma_breakout}
     sigs, last_signal = [], {}
     for i in range(120, n - 2):
+        if excluded_at(pdx, code, daily, i):
+            continue
         if i % BASE_STEP == 0:
             sigs.append(('BASELINE', i))
         window = daily[:i + 1]

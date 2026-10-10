@@ -83,7 +83,7 @@ def for_stock(args):
     daily = sb.load(conn, code)
     conn.close()
     n = len(daily)
-    if n < 160 or pdx.is_excluded_stock({'code': code, 'name': ''}, daily):
+    if n < 160:   # 제외 판정은 신호일 시점 데이터로만 한다(아래 excluded_at) - 전체 이력의 마지막 봉을 보면 미래 참조가 된다
         return []
     detectors = {
         'maCloudBreakout': pdx.detect_ma_cloud_breakout, 'doubleBottom': pdx.detect_double_bottom,
@@ -92,6 +92,8 @@ def for_stock(args):
     }
     rows, last_signal = [], {}
     for i in range(120, n - 1):
+        if pdx.is_excluded_stock({'code': code, 'name': ''}, daily[:i + 1]):
+            continue
         if i % 3 == 0:
             rows.append(('BASELINE', i, daily[i]['date']))
         window = daily[:i + 1]

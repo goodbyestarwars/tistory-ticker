@@ -168,23 +168,46 @@ class JobTests(unittest.TestCase):
         c, now_fn, sleep = self.clock(dt(12, 20, 15))
         rj.run_cycle(self.conn, lambda: payload(dt(12, 23, 58), '2026-10-12'), lambda x: [], now_fn, sleep, out_dir=self.tmp)
         first = self.conn.execute("SELECT scan_date, scanner, code FROM candidates ORDER BY code LIMIT 1").fetchone()
-        self.conn.execute("INSERT INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, exit_date, ret, status, updated_at) "
-                          "VALUES (?,?,?,?,?,?,?,?,?,?)", (first[0], first[1], first[2], 'trail_atr', '2026-10-13', 10020.0, '2026-10-20', 0.034, 'CLOSED', 'x'))
-        self.conn.execute("INSERT INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, status, updated_at) "
-                          "VALUES (?,?,?,?,?,?,?,?)", (first[0], first[1], '009999', 'trail_atr', '2026-10-13', 5000.0, 'OPEN', 'x'))
+        self.conn.execute("UPDATE candidates SET status='PAPER_ENTERED' WHERE code=?", (first[2],))
+        cg.ensure_variant_rows(self.conn, '2026-10-20')
+        self.conn.execute("UPDATE paper_trades SET status='CLOSED', entry_date='2026-10-13', entry_price=10020.0, exit_date='2026-10-20', exit_price=10360.0, "
+                          "ret=0.034, gross_ret=0.043, exit_reason='SIGNAL_DEAD35', hold_days=5 WHERE variant='dead35'")
+        self.conn.execute("UPDATE paper_trades SET status='PENDING_EXIT', entry_date='2026-10-13', entry_price=10020.0, signal_date='2026-10-20' WHERE variant='atr_close'")
         self.conn.commit()
         shutil.copy(os.path.join(self.tmp, 'r.db'), os.path.join(self.tmp, 'research.db'))
         out = server.research_status(self.tmp)
         self.assertEqual(out['dataDate'], '2026-10-12')
-        self.assertEqual(out['paperTotal']['closed'], 1)
-        self.assertAlmostEqual(out['paperTotal']['avg'], 0.034)
-        self.assertEqual(out['openPaper'], 1)
-        self.assertEqual(len(out['paperTrades']), 2)
+        self.assertEqual(out['paper']['dead35']['pullback']['closed'], 1)
+        self.assertNotIn('paperTotal', out)                      # 세 전략을 하나의 성과로 합치지 않는다
+        self.assertEqual(out['openPaper']['atr_close'], {'open': 0, 'pendingExit': 1})
+        self.assertEqual(out['openPaper']['trail_atr']['open'], 1)
+        self.assertEqual(len(out['paperTrades']), 3)
         closed = [t for t in out['paperTrades'] if t['status'] == 'CLOSED'][0]
-        self.assertEqual(closed['name'] in ('N0', 'N1'), True)   # 후보 테이블과 조인된 종목명
+        self.assertEqual((closed['variant'], closed['exitReason'], closed['exitPrice'], closed['holdDays']), ('dead35', 'SIGNAL_DEAD35', 10360.0, 5))
+        self.assertEqual(closed['name'] in ('N0', 'N1'), True)
         self.assertEqual(out['recentCandidates'][0]['basePrice'] > 0, True)
         self.assertGreater(out['diskUsedBytes'], 0)
         self.assertEqual(out['diskLimitBytes'], rj.DISK_LIMIT_BYTES)
+        self.assertEqual(set(out['paperVariants']), {'trail_atr', 'atr_close', 'dead35'})
+        self.assertEqual(cg.paper_portfolios(self.conn)['atr_close']['pendingExit'], 1)   # status.json 의 값은 마지막 실행 시점 스냅샷
+
+    def test_status_write_survives_transient_permission_errors(self):
+        import unittest.mock as mock
+        real = os.replace
+        calls = {'n': 0}
+
+        def flaky(src, dst):
+            calls['n'] += 1
+            if calls['n'] <= 2:
+                raise PermissionError('file in use')
+            return real(src, dst)
+
+        with mock.patch('os.replace', flaky):
+            self.assertTrue(rj.write_status(self.tmp, {'a': 1}, delay=0.01))
+        self.assertEqual(rj.load_status(self.tmp), {'a': 1})
+        with mock.patch('os.replace', side_effect=PermissionError('locked')):
+            self.assertFalse(rj.write_status(self.tmp, {'a': 2}, retries=2, delay=0.01))     # 끝내 실패해도 예외 없이 직전 파일 유지
+        self.assertEqual(rj.load_status(self.tmp), {'a': 1})
 
 
 if __name__ == '__main__':

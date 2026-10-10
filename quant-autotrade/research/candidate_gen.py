@@ -30,6 +30,8 @@ for _p in (os.path.join(REPO, 'quant-autotrade', 'backtest'), os.path.join(REPO,
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+import paper_exits  # noqa: E402
+
 KST = timezone(timedelta(hours=9))
 API = os.environ.get('SCAN_API', 'https://goodbyestar.cloud')
 # 과거 백테스트로 다룬 검색기만 연구 후보로 만든다(그 외 탭은 성과 근거가 없다). 값은 /pattern-scan patterns 키.
@@ -39,8 +41,8 @@ STABLE_SEC = 180
 STALE_DAYS = 4
 GAP_SKIP = 0.02
 ENTRY_SLIP = 0.002
-PAPER_VARIANT = 'trail_atr'  # 연구 기본 청산 정책(실거래 정책 아님). exit_study.simulate 변형 이름
-MAX_HOLD = {'fix3_5': 10, 'fix5_10': 15, 'trail_atr': 30, 'time10': 10}
+# 모의매매 청산 전략 3종은 같은 후보·진입에 병렬 적용한다(paper_exits.py). 전략별 계좌는 서로 합산하지 않는다.
+PAPER_VARIANTS = ('trail_atr', 'atr_close', 'dead35')
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS scan_seen (scanned_at TEXT PRIMARY KEY, first_seen REAL NOT NULL, scanned INTEGER, ok INTEGER NOT NULL DEFAULT 0);
@@ -58,9 +60,24 @@ CREATE TABLE IF NOT EXISTS gen_log (ts TEXT, scan_date TEXT, ok INTEGER, reason 
 """
 
 
+PAPER_EXTRA_COLUMNS = (   # 2026-10-11 전략별 청산 기록. 기존 열(ret=순수익률)은 그대로 두고 필요한 열만 덧붙인다.
+    ('stop_price', 'REAL'), ('trail_price', 'REAL'), ('signal_date', 'TEXT'), ('exit_price', 'REAL'), ('gross_ret', 'REAL'),
+    ('exit_reason', 'TEXT'), ('hold_days', 'INTEGER'), ('max_hold', 'INTEGER'), ('last_bar_date', 'TEXT'), ('note', 'TEXT'),
+)
+
+
+def migrate(conn):
+    have = {r[1] for r in conn.execute('PRAGMA table_info(paper_trades)')}
+    for name, typ in PAPER_EXTRA_COLUMNS:
+        if name not in have:
+            conn.execute('ALTER TABLE paper_trades ADD COLUMN %s %s' % (name, typ))
+    conn.commit()
+
+
 def connect(path):
     conn = sqlite3.connect(path)
     conn.executescript(SCHEMA)
+    migrate(conn)
     return conn
 
 
@@ -158,10 +175,22 @@ def expire_old(conn, today):
     return cur.rowcount
 
 
+def ensure_variant_rows(conn, today):
+    """진입한 후보마다 모든 청산 전략의 행이 있도록 보충한다(기존 기록은 건드리지 않음). 반환: 새로 만든 행 수."""
+    made = 0
+    for scan_date, scanner, code in conn.execute("SELECT scan_date, scanner, code FROM candidates WHERE status='PAPER_ENTERED'").fetchall():
+        for variant in PAPER_VARIANTS:
+            cur = conn.execute('INSERT OR IGNORE INTO paper_trades(scan_date, scanner, code, variant, status, updated_at, max_hold) VALUES (?,?,?,?,?,?,?)',
+                               (scan_date, scanner, code, variant, 'OPEN', today, paper_exits.VARIANTS[variant]['maxHold']))
+            made += cur.rowcount
+    conn.commit()
+    return made
+
+
 def paper_enter(conn, get_daily, today):
-    """scan_date 다음 거래일 봉이 생긴 NEW 후보를 모의 진입 처리한다(실주문 없음).
-    get_daily(code) -> 일봉 리스트(date, open, high, low, close). 시가가 기준가 대비 +2% 이상이면 SKIPPED.
-    진입가는 시가*1.002 가정(연구용, 실제 체결 아님)."""
+    """scan_date 다음 거래일 봉이 생긴 NEW 후보를 모의 진입 처리한다(실주문 없음). 모든 청산 전략이 같은 후보·같은 진입을 쓴다.
+    get_daily(code) -> 확정된 일봉 리스트(date, open, high, low, close). 시가가 기준가 대비 +2% 이상이면 SKIPPED.
+    진입가는 시가*1.002 가정(연구용, 실제 체결 아님). 세부 가격은 paper_settle 이 전략별로 채운다."""
     n = 0
     rows = conn.execute("SELECT scan_date, scanner, code, base_price FROM candidates WHERE status='NEW' AND scan_date < ? ORDER BY scan_date",
                         (today,)).fetchall()
@@ -179,41 +208,99 @@ def paper_enter(conn, get_daily, today):
             continue
         entry = nxt['open'] * (1 + ENTRY_SLIP)
         conn.execute("UPDATE candidates SET status='PAPER_ENTERED' WHERE scan_date=? AND scanner=? AND code=?", key)
-        conn.execute('INSERT OR IGNORE INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, status, updated_at) '
-                     'VALUES (?,?,?,?,?,?,?,?)', (scan_date, scanner, code, PAPER_VARIANT, nxt['date'], entry, 'OPEN', today))
+        for variant in PAPER_VARIANTS:
+            conn.execute('INSERT OR IGNORE INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, status, updated_at, max_hold) '
+                         'VALUES (?,?,?,?,?,?,?,?,?)', (scan_date, scanner, code, variant, nxt['date'], entry, 'OPEN', today, paper_exits.VARIANTS[variant]['maxHold']))
         n += 1
     conn.commit()
+    ensure_variant_rows(conn, today)
     return n
 
 
 def paper_settle(conn, get_daily, today):
-    """열린 모의 포지션을 exit_study.simulate와 같은 규칙으로 판정한다.
-    최대 보유일에 못 미친 데이터 끝 봉에서의 '시간 청산'은 확정하지 않는다(아직 진행 중)."""
-    import exit_study as ex
+    """미확정 모의 포지션(OPEN/PENDING_EXIT)을 paper_exits.evaluate 로 다시 판정한다. 반환: 이번에 새로 CLOSED 된 건수.
+
+    - CLOSED 행은 다시 계산하지 않는다(기록 보존, 재실행해도 같은 결과·중복 없음).
+    - 종가로 청산 신호가 났는데 다음 거래일 시가 봉이 아직 없으면 PENDING_EXIT 로 남기고 체결 가격·수익률을 만들지 않는다.
+    - 일봉을 못 받았거나 스캔일 봉이 없으면 행을 바꾸지 않고 note 만 남긴다(미확정)."""
     settled = 0
-    rows = conn.execute("SELECT scan_date, scanner, code, variant FROM paper_trades WHERE status='OPEN'").fetchall()
+    rows = conn.execute("SELECT scan_date, scanner, code, variant FROM paper_trades WHERE status IN ('OPEN','PENDING_EXIT') ORDER BY scan_date, code, variant").fetchall()
+    cache = {}
     for scan_date, scanner, code, variant in rows:
-        daily = get_daily(code) or []
+        if variant not in paper_exits.VARIANTS:
+            continue    # 알 수 없는 과거 전략 이름은 건드리지 않는다
+        if code not in cache:
+            cache[code] = get_daily(code) or []
+        daily = cache[code]
+        where = (scan_date, scanner, code, variant)
         i = next((k for k, b in enumerate(daily) if b['date'] == scan_date), None)
         if i is None:
+            conn.execute("UPDATE paper_trades SET note=?, updated_at=? WHERE scan_date=? AND scanner=? AND code=? AND variant=?",
+                         ('일봉 데이터 부족(스캔일 봉 없음) - 미확정', today) + where)
             continue
-        res = ex.simulate(daily, i, variant, 'open')
-        if res is None:
-            continue
-        ret, k = res
-        start = i + 1
-        if not (k < len(daily) - 1 or (k - start + 1) >= MAX_HOLD[variant]):
-            continue
-        conn.execute('UPDATE paper_trades SET status=?, exit_date=?, ret=?, updated_at=? WHERE scan_date=? AND scanner=? AND code=? AND variant=?',
-                     ('CLOSED', daily[k]['date'], ret, today, scan_date, scanner, code, variant))
-        settled += 1
+        r = paper_exits.evaluate(daily, i, variant)
+        conn.execute(
+            'UPDATE paper_trades SET status=?, entry_date=?, entry_price=?, stop_price=?, trail_price=?, signal_date=?, exit_date=?, exit_price=?, '
+            'gross_ret=?, ret=?, exit_reason=?, hold_days=?, max_hold=?, last_bar_date=?, note=?, updated_at=? '
+            'WHERE scan_date=? AND scanner=? AND code=? AND variant=? AND status IN (\'OPEN\',\'PENDING_EXIT\')',
+            (('OPEN' if r['status'] == 'PENDING_ENTRY' else r['status']), r['entry_date'], r['entry_price'], r['stop_price'], r['trail_price'], r['signal_date'],
+             r['exit_date'], r['exit_price'], r['gross_ret'], r['net_ret'], r['exit_reason'], r['hold_days'], r['maxHold'], r['last_bar_date'],
+             r.get('note'), today) + where)
+        if r['status'] == 'CLOSED':
+            settled += 1
     conn.commit()
     return settled
 
 
-def summary(conn):
-    """검색기별 모의 성과(건수·평균 순수익·승률). 백테스트·실거래와 합치지 않는 별도 집계."""
+def _stats(rets):
+    wins = [x for x in rets if x > 0]
+    losses = [x for x in rets if x <= 0]
+    return {'closed': len(rets), 'avg': (sum(rets) / len(rets)) if rets else None, 'win': (len(wins) / len(rets)) if rets else None,
+            'pf': (sum(wins) / -sum(losses)) if losses and sum(losses) < 0 else None}
+
+
+def paper_portfolios(conn, per_pos=0.10, total_cap=0.30, max_pos=5, min_order=0.01):
+    """전략별 **독립** 모의 계좌(실현 기준). 같은 후보·같은 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 전략마다 따로 적용하며
+    세 전략의 거래를 하나의 계좌로 합치지 않는다. 미확정(OPEN/PENDING_EXIT) 포지션은 성과에서 제외하고 건수로만 보인다.
+    같은 날 후보는 점수 순. 청산일에 현금이 돌아온 뒤 다음 날부터 재투입 가능."""
     out = {}
-    for scanner, n, avg, win in conn.execute("SELECT scanner, COUNT(*), AVG(ret), AVG(ret>0) FROM paper_trades WHERE status='CLOSED' GROUP BY scanner"):
-        out[scanner] = {'closed': n, 'avg': avg, 'win': win}
+    score = {(r[0], r[1], r[2]): (r[3] or 0) for r in conn.execute('SELECT scan_date, scanner, code, score FROM candidates')}
+    for variant in PAPER_VARIANTS:
+        rows = conn.execute('SELECT scan_date, scanner, code, entry_date, exit_date, ret, status FROM paper_trades WHERE variant=? ORDER BY entry_date', (variant,)).fetchall()
+        closed = [r for r in rows if r[6] == 'CLOSED' and r[3] and r[4] and r[5] is not None]
+        unsettled = sum(1 for r in rows if r[6] in ('OPEN', 'PENDING_EXIT'))
+        pending_exit = sum(1 for r in rows if r[6] == 'PENDING_EXIT')
+        events = sorted({r[3] for r in closed} | {r[4] for r in closed})
+        cash = equity = 1.0
+        pos, taken, rejected = [], [], 0
+        peak, mdd = 1.0, 0.0
+        for d in events:
+            for p in [p for p in pos if p['exit'] <= d]:        # 청산: 현금 회수
+                cash += p['size'] * (1 + p['ret'])
+                pos.remove(p)
+                equity = cash + sum(q['size'] for q in pos)
+                peak = max(peak, equity)
+                mdd = min(mdd, equity / peak - 1)
+            for r in sorted([r for r in closed if r[3] == d], key=lambda r: -score.get((r[0], r[1], r[2]), 0)):
+                invested = sum(q['size'] for q in pos)
+                size = min(per_pos * equity, cash, total_cap * equity - invested)
+                if len(pos) >= max_pos or size < min_order * equity or any(q['code'] == r[2] for q in pos):
+                    rejected += 1
+                    continue
+                cash -= size
+                pos.append({'code': r[2], 'size': size, 'exit': r[4], 'ret': r[5]})
+                taken.append(r[5])
+        stats = _stats(taken)
+        out[variant] = dict(stats, label=paper_exits.VARIANTS[variant]['label'], maxHold=paper_exits.VARIANTS[variant]['maxHold'],
+                            execution=paper_exits.VARIANTS[variant]['execution'], cumRet=(equity - 1) if taken else None, mdd=mdd if taken else None,
+                            rejected=rejected, unsettled=unsettled, pendingExit=pending_exit, candidateTrades=len(rows))
+    return out
+
+
+def summary(conn):
+    """전략·검색기별 모의 거래 통계(건수·평균 순수익·승률). 전략끼리, 그리고 백테스트·실거래와 합치지 않는다."""
+    out = {}
+    for variant, scanner, n, avg, win in conn.execute(
+            "SELECT variant, scanner, COUNT(*), AVG(ret), AVG(ret>0) FROM paper_trades WHERE status='CLOSED' GROUP BY variant, scanner"):
+        out.setdefault(variant, {})[scanner] = {'closed': n, 'avg': avg, 'win': win}
     return out

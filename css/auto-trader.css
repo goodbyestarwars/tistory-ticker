@@ -118,3 +118,4 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 #auto-trader .at-caveats { margin: 8px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.7; color: var(--at-mute); }
 #auto-trader .at-table small.at-mute { display: block; font-size: 11px; }
 #auto-trader .at-table td small.at-mute { white-space: nowrap; }
+#auto-trader .at-table.at-wide th, #auto-trader .at-table.at-wide td { white-space: nowrap; }

@@ -51,13 +51,15 @@ def for_stock(args):
     daily = sb.load(conn, code)
     conn.close()
     n = len(daily)
-    if n < 160 or pdx.is_excluded_stock({'code': code, 'name': ''}, daily):
+    if n < 160:   # 제외 판정은 신호일 시점 데이터로만 한다(아래 excluded_at) - 전체 이력의 마지막 봉을 보면 미래 참조가 된다
         return []
     det = {'maCloudBreakout': pdx.detect_ma_cloud_breakout, 'doubleBottom': pdx.detect_double_bottom,
            'invHeadShoulders': pdx.detect_inv_head_shoulders, 'pullback': pdx.detect_pullback,
            'shortTermMaBreakout': pdx.detect_short_ma_breakout}
     sigs, last = [], {}
     for i in range(120, n - 2):
+        if ex.excluded_at(pdx, code, daily, i):
+            continue
         if i % ex.BASE_STEP == 0:
             sigs.append(('BASELINE', i))
         w = daily[:i + 1]

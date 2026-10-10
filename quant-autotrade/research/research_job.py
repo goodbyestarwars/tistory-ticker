@@ -63,6 +63,13 @@ def next_start(now):
     return d
 
 
+def confirmed_cutoff(now):
+    """확정된 일봉으로 인정하는 마지막 날짜. 장 마감 직후(15:45) 이전에 받은 오늘 봉은 진행 중일 수 있어 쓰지 않는다."""
+    if (now.hour, now.minute) < (15, 45):
+        return (now - timedelta(days=1)).strftime('%Y-%m-%d')
+    return now.strftime('%Y-%m-%d')
+
+
 # ---- 잠금·용량·상태 ---------------------------------------------------------
 def pid_alive(pid):
     if pid <= 0:
@@ -106,12 +113,21 @@ def dir_size(path):
     return total
 
 
-def write_status(out_dir, status):
+def write_status(out_dir, status, retries=8, delay=0.25):
+    """status.json 을 임시 파일로 쓴 뒤 원자적으로 교체한다. Windows 에서는 로컬 봇 API·백신이 파일을 잠깐 열고 있으면 교체가
+    PermissionError 로 실패하므로(실측: 검증 서버에서 재현) 짧게 재시도하고, 끝내 안 되면 예외를 올리지 않고 직전 파일을 유지한다."""
     path = os.path.join(out_dir, 'status.json')
     tmp = path + '.tmp'
     with open(tmp, 'w', encoding='utf-8') as f:
         json.dump(status, f, ensure_ascii=False, indent=1)
-    os.replace(tmp, path)
+    for attempt in range(retries):
+        try:
+            os.replace(tmp, path)
+            return True
+        except PermissionError:
+            time.sleep(delay)
+    logging.getLogger('research').warning('status.json 교체 실패(파일이 열려 있음) - 다음 갱신에서 다시 시도')
+    return False
 
 
 def load_status(out_dir):
@@ -197,16 +213,18 @@ def run_cycle(conn, fetch_scan, get_daily, now_fn, sleep_fn, out_dir=None, poll_
                        'runner': state, 'mode': run_mode, 'candidatesToday': cand_today,
                        'nextRunAt': next_start(t).isoformat(timespec='minutes'), 'errors': errors[-5:],
                        'missingWeekdays': missing_weekdays(conn, t), 'diskLimitBytes': DISK_LIMIT_BYTES,
-                       'diskUsedBytes': dir_size(out_dir)})
+                       'diskUsedBytes': dir_size(out_dir), 'paperVariants': cg.paper_portfolios(conn)})
         status.update(extra)
         write_status(out_dir, status)
 
     save('starting', startedAt=now.isoformat(timespec='seconds'))
     today = now.strftime('%Y-%m-%d')
     try:
+        cutoff = confirmed_cutoff(now)
+        confirmed = lambda code: [b for b in (get_daily(code) or []) if b['date'] <= cutoff]   # 진행 중인 오늘 봉으로 체결을 확정하지 않는다
         expired = cg.expire_old(conn, today)
-        entered = cg.paper_enter(conn, get_daily, today)
-        settled = cg.paper_settle(conn, get_daily, today)
+        entered = cg.paper_enter(conn, confirmed, today)
+        settled = cg.paper_settle(conn, confirmed, today)
         log.info('모의 갱신: 만료 %d, 진입 %d, 청산 %d', expired, entered, settled)
         status['lastPaperUpdateAt'] = now_fn().isoformat(timespec='seconds')
     except Exception as exc:

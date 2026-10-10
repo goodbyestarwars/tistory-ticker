@@ -65,4 +65,6 @@ powershell -ExecutionPolicy Bypass -File quant-autotrade\research\install_task.p
 | `nextRunAt` | 다음 정기 실행 예정(평일 20:15) |
 | `errors`, `missingWeekdays` | 최근 오류, 후보가 생성되지 않은 평일(휴장일일 수 있음) |
 
-`/api/research`는 위 값에 더해 `dataDate`(후보 데이터 기준일), `diskUsedBytes`/`diskLimitBytes`(연구 데이터 폴더 사용량·5GB 상한), 검색기별 모의 집계(`paper`)와 전체 집계(`paperTotal`), 열린 모의 포지션 수(`openPaper`), 최근 후보 40건(`recentCandidates`: 스캔일·검색기·종목·점수·기준가·상태·사유), 최근 모의 거래 40건(`paperTrades`)을 포함한다. 운영센터 화면(`js/auto-trader.js`)이 이 응답을 읽어 표시한다(작업 브랜치, 미배포). 구버전 봇처럼 이 경로가 없으면 화면은 '연결 대기', 연구 작업이 아직 실행되지 않았으면 '미실행' 상태를 보여준다.
+모의매매는 세 청산 전략(`trail_atr`·`atr_close`·`dead35`)을 병렬로 기록하며 전략별 독립 계좌 요약은 `paperVariants`로 나간다(`PAPER_EXITS.md`). `paperTotal`(전략 합산)은 제공하지 않는다.
+
+`/api/research`는 위 값에 더해 `dataDate`(후보 데이터 기준일), `diskUsedBytes`/`diskLimitBytes`(연구 데이터 폴더 사용량·5GB 상한), 전략·검색기별 모의 집계(`paper`), 전략별 미확정 건수(`openPaper`), 최근 후보 40건(`recentCandidates`: 스캔일·검색기·종목·점수·기준가·상태·사유), 최근 모의 거래 90건(`paperTrades`: 전략·진입가·손절선·추적선·신호일·청산일·청산가·사유·순수익률·상태)을 포함한다. 운영센터 화면(`js/auto-trader.js`)이 이 응답을 읽어 표시한다(작업 브랜치, 미배포). 구버전 봇처럼 이 경로가 없으면 화면은 '연결 대기', 연구 작업이 아직 실행되지 않았으면 '미실행' 상태를 보여준다.

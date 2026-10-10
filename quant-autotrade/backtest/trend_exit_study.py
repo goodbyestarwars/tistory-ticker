@@ -151,7 +151,7 @@ def for_stock(args):
     daily = sb.load(conn, code)
     conn.close()
     n = len(daily)
-    if n < 160 or pdx.is_excluded_stock({'code': code, 'name': ''}, daily):
+    if n < 160:   # 제외 판정은 신호일 시점 데이터로만 한다(아래 excluded_at) - 전체 이력의 마지막 봉을 보면 미래 참조가 된다
         return []
     closes = [d['close'] for d in daily]
     mas = {w: sma_list(closes, w) for w in (2, 3, 4, 5, 7, 10, 20)}
@@ -160,6 +160,8 @@ def for_stock(args):
            'shortTermMaBreakout': pdx.detect_short_ma_breakout}
     sigs, last = [], {}
     for i in range(120, n - 2):
+        if ex.excluded_at(pdx, code, daily, i):
+            continue
         if i % BASE_STEP == 0:
             sigs.append(('BASELINE', i, 0))
         w = daily[:i + 1]

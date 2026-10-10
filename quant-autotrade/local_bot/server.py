@@ -48,20 +48,28 @@ def research_status(research_dir=RESEARCH_DIR):
         try:
             conn = sqlite3.connect('file:%s?mode=ro' % db.replace(os.sep, '/'), uri=True, timeout=3)
             try:
-                out['paper'] = {r[0]: {'closed': r[1], 'avg': r[2], 'win': r[3]} for r in conn.execute(
-                    "SELECT scanner, COUNT(*), AVG(ret), AVG(ret>0) FROM paper_trades WHERE status='CLOSED' GROUP BY scanner")}
-                total = conn.execute("SELECT COUNT(*), AVG(ret), AVG(ret>0), SUM(ret), MIN(ret) FROM paper_trades WHERE status='CLOSED'").fetchone()
-                out['paperTotal'] = {'closed': total[0], 'avg': total[1], 'win': total[2], 'sum': total[3], 'worst': total[4]}
-                out['openPaper'] = conn.execute("SELECT COUNT(*) FROM paper_trades WHERE status='OPEN'").fetchone()[0]
+                have = {r[1] for r in conn.execute('PRAGMA table_info(paper_trades)')}
+                if 'exit_reason' in have:
+                    # 전략(variant)별로 따로 집계한다 - 세 청산 전략의 거래를 하나의 성과로 합치지 않는다.
+                    paper = {}
+                    for variant, scanner, n, avg, win in conn.execute(
+                            "SELECT variant, scanner, COUNT(*), AVG(ret), AVG(ret>0) FROM paper_trades WHERE status='CLOSED' GROUP BY variant, scanner"):
+                        paper.setdefault(variant, {})[scanner] = {'closed': n, 'avg': avg, 'win': win}
+                    out['paper'] = paper
+                    out['openPaper'] = {r[0]: {'open': r[1], 'pendingExit': r[2]} for r in conn.execute(
+                        "SELECT variant, SUM(status='OPEN'), SUM(status='PENDING_EXIT') FROM paper_trades GROUP BY variant")}
                 cols = ('scanDate', 'scanner', 'code', 'name', 'score', 'basePrice', 'status', 'reason')
                 out['recentCandidates'] = [dict(zip(cols, r)) for r in conn.execute(
                     "SELECT scan_date, scanner, code, name, score, base_price, status, reason FROM candidates ORDER BY scan_date DESC, score DESC LIMIT 40")]
                 out['dataDate'] = (conn.execute("SELECT MAX(scan_date) FROM candidates").fetchone() or [None])[0]
-                tcols = ('scanDate', 'scanner', 'code', 'name', 'variant', 'entryDate', 'entryPrice', 'exitDate', 'ret', 'status')
-                out['paperTrades'] = [dict(zip(tcols, r)) for r in conn.execute(
-                    "SELECT t.scan_date, t.scanner, t.code, c.name, t.variant, t.entry_date, t.entry_price, t.exit_date, t.ret, t.status "
-                    "FROM paper_trades t LEFT JOIN candidates c ON c.scan_date=t.scan_date AND c.scanner=t.scanner AND c.code=t.code "
-                    "ORDER BY t.scan_date DESC, t.code LIMIT 40")]
+                if 'exit_reason' in have:
+                    tcols = ('scanDate', 'scanner', 'code', 'name', 'variant', 'entryDate', 'entryPrice', 'stopPrice', 'trailPrice', 'signalDate', 'exitDate',
+                             'exitPrice', 'ret', 'grossRet', 'exitReason', 'holdDays', 'status', 'note')
+                    out['paperTrades'] = [dict(zip(tcols, r)) for r in conn.execute(
+                        "SELECT t.scan_date, t.scanner, t.code, c.name, t.variant, t.entry_date, t.entry_price, t.stop_price, t.trail_price, t.signal_date, "
+                        "t.exit_date, t.exit_price, t.ret, t.gross_ret, t.exit_reason, t.hold_days, t.status, t.note "
+                        "FROM paper_trades t LEFT JOIN candidates c ON c.scan_date=t.scan_date AND c.scanner=t.scanner AND c.code=t.code "
+                        "ORDER BY t.scan_date DESC, t.code, t.variant LIMIT 90")]
             finally:
                 conn.close()
         except sqlite3.Error:

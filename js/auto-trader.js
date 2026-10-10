@@ -129,7 +129,10 @@
   // ---- 연구 기능 (2026-10-11) -------------------------------------------------------------------
   var SCANNER_LABEL = { maCloudBreakout: '이동평균 구름 돌파', doubleBottom: '쌍바닥', invHeadShoulders: '역헤드앤숄더', pullback: '눌림목',
     shortTermMaBreakout: '단기이평 돌파', BASELINE: '무작위 진입(대조군)' };
-  var VARIANT_LABEL = { trail_atr: 'ATR 추적', time10: '10일 보유', fix3_5: '고정 −3/+5%', fix5_10: '고정 −5/+10%' };
+  var VARIANT_LABEL = { trail_atr: 'ATR 추적(장중·30일)', atr_close: 'ATR 추적(종가→다음 시가·150일)', dead35: '3·5일선 데드크로스(다음 시가·150일)' };
+  var VARIANT_ORDER = ['trail_atr', 'atr_close', 'dead35'];
+  var EXIT_REASON = { STOP_INTRADAY: '추적선 이탈(장중)', SIGNAL_ATR_CLOSE: '종가가 추적선 이탈', SIGNAL_DEAD35: '3·5일선 데드크로스', MAX_HOLD_30: '30일 도달', MAX_HOLD_150: '150일 도달' };
+  var PAPER_STATUS = { OPEN: '진행 중', PENDING_EXIT: '청산 신호·체결 대기', CLOSED: '종료' };
   var RUNNER_LABEL = { starting: '시작 중', waiting: '스캔 대기', done: '후보 생성 완료', no_scan: '스캔 미확정', disk_limit: '용량 상한' };
   var CAND_STATUS = { NEW: '대기', PAPER_ENTERED: '모의 진입', SKIPPED: '건너뜀', EXPIRED: '만료' };
   var REASON_LABEL = { STALE_SCAN: '오래된 스캔(새 스캔 대기)', PARTIAL_SCAN: '처리 종목 수 부족', WAIT_STABLE: '결과 안정화 대기', MIXED_BAR_DATES: '봉 날짜 불일치',
@@ -208,21 +211,35 @@
   }
 
   function paperHtml(r) {
-    var head = '<section class="at-box"><div class="at-hd"><h3>모의매매 기록</h3><span>가정 체결 · 실제 주문 아님 · 백테스트·실거래와 합산하지 않음</span></div>';
+    var head = '<section class="at-box"><div class="at-hd"><h3>모의매매 기록</h3><span>가정 체결 · 실제 주문 아님 · 청산 전략별 독립 계좌 · 백테스트·실거래와 합산하지 않음</span></div>';
     if (!r || !r.available) return head + '<p class="at-empty">연구 엔진이 연결되면 연구 후보의 가상 진입·청산 기록이 쌓입니다.</p></section>';
-    var t = r.paperTotal || { closed: 0 };
-    var summary = '<div class="at-row"><span>종료된 모의 거래</span><b>' + esc(t.closed || 0) + '건'
-      + (t.closed ? ' · 평균 <span class="' + toneOf(t.avg) + '">' + esc(pct2(t.avg)) + '</span> · 승률 ' + esc(((t.win || 0) * 100).toFixed(0)) + '%' : '') + '</b></div>'
-      + '<div class="at-row"><span>진행 중(청산 전)</span><b>' + esc(r.openPaper || 0) + '건</b></div>';
+    var pv = r.paperVariants || null;
+    var summary = '';
+    if (pv) {
+      summary = '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>청산 전략(독립 계좌)</th><th>최대 보유</th><th class="n">종료</th><th class="n">미확정</th><th class="n">평균 수익</th><th class="n">승률</th><th class="n">PF</th><th class="n">실현 누적</th><th class="n">MDD</th></tr></thead><tbody>'
+        + VARIANT_ORDER.map(function (k) {
+          var v = pv[k]; if (!v) return '';
+          return '<tr><td>' + esc(VARIANT_LABEL[k] || k) + '</td><td>' + esc(v.maxHold) + '일</td><td class="n">' + esc(v.closed || 0) + '</td>'
+            + '<td class="n">' + esc(v.unsettled || 0) + (v.pendingExit ? ' <small class="at-mute">(신호 대기 ' + esc(v.pendingExit) + ')</small>' : '') + '</td>'
+            + '<td class="n ' + toneOf(v.avg) + '">' + (v.avg == null ? '-' : esc(pct2(v.avg))) + '</td><td class="n">' + (v.win == null ? '-' : esc((v.win * 100).toFixed(0)) + '%') + '</td>'
+            + '<td class="n">' + (v.pf == null ? '-' : esc(v.pf.toFixed(2))) + '</td><td class="n ' + toneOf(v.cumRet) + '">' + (v.cumRet == null ? '-' : esc(pct2(v.cumRet))) + '</td>'
+            + '<td class="n at-down">' + (v.mdd == null ? '-' : esc(pct2(v.mdd))) + '</td></tr>';
+        }).join('') + '</tbody></table></div>'
+        + '<p class="at-note">전략마다 같은 후보·같은 진입에 자금 규칙(동시 5종목·종목당 10%·투자 30%)을 따로 적용한 실현 기준 계좌입니다. 세 전략을 합산하지 않으며, 청산이 확정되지 않은 포지션은 성과에서 제외됩니다.</p>';
+    }
     var list = r.paperTrades || [];
     if (!list.length) return head + summary + '<p class="at-empty">아직 모의 진입 기록이 없습니다. 후보가 생성된 다음 거래일 일봉이 확인되면 기록됩니다.</p></section>';
-    return head + summary + '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>스캔일</th><th>종목</th><th>검색기</th><th>청산 방식</th><th>진입(가정)</th><th>청산일</th><th class="n">수익률</th><th>상태</th></tr></thead><tbody>'
+    return head + summary + '<div class="at-table-wrap"><table class="at-table at-wide"><thead><tr><th>스캔일</th><th>종목</th><th>청산 전략</th><th>진입(가정)</th><th class="n">손절선→현재선</th><th>신호일</th><th>청산(체결)</th><th>사유</th><th class="n">순수익</th><th>상태</th></tr></thead><tbody>'
       + list.map(function (x) {
-        return '<tr><td>' + esc(x.scanDate) + '</td><td>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></td><td>' + esc(scannerLabel(x.scanner)) + '</td>'
-          + '<td>' + esc(VARIANT_LABEL[x.variant] || x.variant) + '</td><td>' + esc(x.entryDate || '-') + ' @ ' + fmtPrice(x.entryPrice) + '</td><td>' + esc(x.exitDate || '-') + '</td>'
-          + '<td class="n ' + toneOf(x.ret) + '">' + esc(pct2(x.ret)) + '</td><td>' + (x.status === 'OPEN' ? '진행 중' : '종료') + '</td></tr>';
+        var line = x.stopPrice == null ? '<span class="at-mute">가격 손절선 없음</span>' : fmtPrice(x.stopPrice) + ' → ' + fmtPrice(x.trailPrice);
+        var exit = x.status === 'CLOSED' ? esc(x.exitDate) + ' @ ' + fmtPrice(x.exitPrice) + (x.holdDays ? ' <small class="at-mute">' + esc(x.holdDays) + '일 보유</small>' : '')
+          : '<span class="at-mute">' + (x.status === 'PENDING_EXIT' ? '다음 거래일 시가 대기' : '미확정') + '</span>';
+        return '<tr><td>' + esc(x.scanDate) + '</td><td>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></td><td>' + esc(VARIANT_LABEL[x.variant] || x.variant) + '</td>'
+          + '<td>' + (x.entryDate ? esc(x.entryDate) + ' @ ' + fmtPrice(x.entryPrice) : '<span class="at-mute">진입 대기</span>') + '</td><td class="n">' + line + '</td>'
+          + '<td>' + esc(x.signalDate || '-') + '</td><td>' + exit + '</td><td>' + esc(EXIT_REASON[x.exitReason] || x.exitReason || (x.note ? x.note : '-')) + '</td>'
+          + '<td class="n ' + toneOf(x.ret) + '">' + (x.ret == null ? '-' : esc(pct2(x.ret))) + '</td><td>' + esc(PAPER_STATUS[x.status] || x.status) + '</td></tr>';
       }).join('') + '</tbody></table></div>'
-      + '<p class="at-note">진입가는 다음 거래일 시가 + 0.2%, 갭 +2% 이상은 건너뜀, 손익에는 왕복 비용·슬리피지가 반영됩니다. 체결 가능성은 검증되지 않았습니다.</p></section>';
+      + '<p class="at-note">진입가는 다음 거래일 시가 + 0.2%(갭 +2% 이상은 건너뜀). 종가로 청산 신호가 난 포지션은 다음 거래일 시가 봉이 확인되기 전까지 가격·수익률을 확정하지 않습니다. 순수익에는 왕복 비용·슬리피지가 반영됩니다.</p></section>';
   }
 
   function ensureBacktest() {
