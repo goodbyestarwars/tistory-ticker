@@ -654,7 +654,7 @@ document.documentElement.classList.add('skin-ready');
         + '<h1>Markets Closed</h1></div><p>주말·한국 공휴일에는 국내 증시가 쉽니다. 미국 증시는 현지 거래일에 운영됩니다.</p></div><a class="home-closed-status" href="/page/stock-calendar" aria-label="캘린더"><strong>다음 거래일을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><span class="home-closed-link">캘린더 →</span></a></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
-        + '<section class="home-market-board editorial-section" id="homeMarketBoard">'
+        + '<section class="home-market-board editorial-section hmb2" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
         // 2026-09-15 작업지시서: "실시간" 옆에 사이드카(지수 전체) 알약 배지와 VI(개별종목) 카운트 배지를 따로 둔다.
         // 발동이 없으면 둘 다 hidden이라 공간을 차지하지 않는다(아래 homeCircuitBreakerBadges가 채운다).
@@ -662,6 +662,13 @@ document.documentElement.classList.add('skin-ready');
         + '<button type="button" class="home-cb-vi" data-home-cb-vi hidden aria-expanded="false" aria-controls="homeCbDropdown"></button>'
         + '<span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
         + '<div class="home-cb-dropdown" id="homeCbDropdown" data-home-cb-dropdown hidden></div>'
+        + '<div class="hmb2-status" data-hmb-status>'
+        + '<dl class="hmb-list hmb2-verdict">'
+        + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
+        + '</dl>'
+        + '<p class="hmb2-note" data-hmb-note hidden></p>'
+        + '</div>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
@@ -676,13 +683,15 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        + '<div class="hmb-summary-head"><strong data-home-summary-field="title">국내 시장 요약</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
-        + '<dl class="hmb-list">'
-        + '<div><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
-        + '<div><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
-        + '<div><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
-        + '<div><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-breadth" data-home-breadth hidden>'
+        + '<div class="hmb2-subhead"><strong>시장 내부 흐름</strong><span data-breadth-basis></span></div>'
+        + '<div class="hmb2-bars" data-breadth-bars></div>'
+        + '</div>'
+        + '<div class="hmb-summary-head"><strong data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
+        + '<dl class="hmb-list hmb2-core">'
+        + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-leaders"><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-cautions"><dt>주의 업종</dt><dd data-market-field="cautions">데이터 확인 중</dd></div>'
         + '<div data-home-night-futures hidden><dt>KOSPI200 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
@@ -711,6 +720,14 @@ document.documentElement.classList.add('skin-ready');
         + '</section>';
     }
 
+    // 2026-10-10 국내 시장 위젯 개편 스타일. 마크업을 만들기 전에 붙여 첫 그림부터 새 모양으로 나온다.
+    if (!document.querySelector('link[data-home-market-board-css]')) {
+      var hmbCss = document.createElement('link');
+      hmbCss.rel = 'stylesheet';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261010-hmb2-v1';
+      hmbCss.setAttribute('data-home-market-board-css', '1');
+      document.head.appendChild(hmbCss);
+    }
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
@@ -719,9 +736,7 @@ document.documentElement.classList.add('skin-ready');
     var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
     var homeIndexStrip = homeMarketBoard && homeMarketBoard.querySelector('.home-index-strip');
     var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
-    if (homeMarketBoard && homeIndexStrip && homeDisclosureSection) {
-      homeMarketBoard.insertBefore(homeDisclosureSection, homeIndexStrip);
-    }
+    // 2026-10-10 국내 시장 개편: 관심종목 공시는 핵심 시장 지표 아래(마크업 순서 그대로)에 둔다. 지수 띠 위로 올리지 않는다.
     var latestHomeIndices = [];
     var latestUsBoardData = null;
     var weeklyReportModule = null;
@@ -799,10 +814,15 @@ document.documentElement.classList.add('skin-ready');
       // 국내 장이 열려 있을 시간대라 다음날 코스피 방향을 가늠할 수 있는 코스피 야간선물을
       // 그 빈 칸에 채운다(국내 시장 요약에서는 이미 투자자 동향이 있어 굳이 안 보여줌).
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
-      if (title) title.textContent = isUs ? '미국 시장 요약' : '국내 시장 요약';
+      if (title) title.textContent = isUs ? '미국 시장 요약' : '시장 핵심 지표';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
+      // 시장 내부 흐름(상승·하락 비중)과 핵심 상태 요약은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
+      var breadthBlock = dashboardSection.querySelector('[data-home-breadth]');
+      if (breadthBlock && isUs) breadthBlock.hidden = true;
+      var verdictNote = dashboardSection.querySelector('[data-hmb-note]');
+      if (verdictNote && isUs) { verdictNote.hidden = true; verdictNote.textContent = ''; }
       if (nightFutures) nightFutures.hidden = !isUs;
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
@@ -993,6 +1013,64 @@ document.documentElement.classList.add('skin-ready');
     // 가격 카드 자체엔 영향 없음).
     var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
 
+    // 시장 내부 흐름(D): 이미 받은 byMarket(KOSPI·KOSDAQ)과 total(전체)만으로 상승·보합·하락 비중을 그린다.
+    // 보합이 집계되지 않는 응답(섹터 풀 기준)에서는 보합 구간을 만들지 않고, 보합·미분류를 상승·하락에 합치지 않는다.
+    var latestBreadth = null;
+    function breadthRowHtml(name, e, extra) {
+      var flat = typeof e.flat === 'number' ? e.flat : 0;
+      var total = typeof e.total === 'number' && e.total >= e.up + e.down + flat ? e.total : e.up + e.down + flat;
+      if (!(total > 0)) return '';
+      function pct(n) { return (n / total * 100).toFixed(2) + '%'; }
+      return '<div class="hmb2-bar-row' + (extra ? ' ' + extra : '') + '"><b>' + name + '</b>'
+        + '<span class="hmb2-bar" role="img" aria-label="' + name + ' 상승 ' + e.up + ' 보합 ' + flat + ' 하락 ' + e.down + '">'
+        + '<i class="up" style="width:' + pct(e.up) + '"></i>'
+        + (flat ? '<i class="flat" style="width:' + pct(flat) + '"></i>' : '')
+        + '<i class="down" style="width:' + pct(e.down) + '"></i></span>'
+        + '<span class="hmb2-bar-nums"><em class="home-positive">상승 ' + e.up.toLocaleString('ko-KR') + '</em>'
+        + (typeof e.flat === 'number' ? '<span>보합 ' + e.flat.toLocaleString('ko-KR') + '</span>' : '')
+        + '<em class="home-negative">하락 ' + e.down.toLocaleString('ko-KR') + '</em></span></div>';
+    }
+    function renderHomeBreadthBars(byMarket, totalEntry, source) {
+      var block = dashboardSection.querySelector('[data-home-breadth]');
+      if (!block) return;
+      var bars = block.querySelector('[data-breadth-bars]');
+      var basis = block.querySelector('[data-breadth-basis]');
+      var rows = '';
+      ['KOSPI', 'KOSDAQ'].forEach(function (key) {
+        var e = byMarket && byMarket[key];
+        if (e && typeof e.up === 'number' && typeof e.down === 'number') rows += breadthRowHtml(key, e);
+      });
+      if (totalEntry && typeof totalEntry.up === 'number' && typeof totalEntry.down === 'number') rows += breadthRowHtml('전체', totalEntry, 'is-total');
+      if (!rows || !bars) { block.hidden = true; return; }
+      bars.innerHTML = rows;
+      if (basis) basis.textContent = source ? '집계: ' + source : '';
+      block.hidden = homeMarketSession().market !== 'domestic';
+    }
+
+    // 핵심 상태 한 줄(B): 화면에 이미 표시된 확정값(지수 등락·상승/하락 종목 수)만 이어 붙인다. 예측·판단 문구는 만들지 않는다.
+    function renderHomeVerdictNote() {
+      var note = dashboardSection.querySelector('[data-hmb-note]');
+      if (!note) return;
+      if (homeMarketSession().market !== 'domestic') { note.hidden = true; return; }
+      var parts = [];
+      var ups = 0, downs = 0, counted = 0;
+      ['primary', 'secondary'].forEach(function (slot) {
+        var card = homeIndexCard(slot);
+        if (!card) return;
+        var label = (card.querySelector('[data-index-field="label"]') || {}).textContent || '';
+        var change = ((card.querySelector('[data-index-field="change"]') || {}).textContent || '').match(/([▲▼])\s*([\d.,]+)\s*%/);
+        if (label && change) parts.push(label + ' ' + (change[1] === '▲' ? '+' : '-') + change[2] + '%');
+      });
+      if (latestBreadth && latestBreadth.total && typeof latestBreadth.total.up === 'number' && typeof latestBreadth.total.down === 'number') {
+        ups = latestBreadth.total.up; downs = latestBreadth.total.down; counted = 1;
+      }
+      if (parts.length < 2) { note.hidden = true; note.textContent = ''; return; }
+      var text = parts.join(' · ');
+      if (counted) text += ' · ' + (ups > downs ? '상승' : downs > ups ? '하락' : '상승·하락 동수') + ' 종목' + (ups === downs ? '' : ' 우세') + ' (상승 ' + ups.toLocaleString('ko-KR') + ' · 하락 ' + downs.toLocaleString('ko-KR') + ')';
+      note.textContent = text;
+      note.hidden = false;
+    }
+
     function renderHomeIndexBreadth(byMarket) {
       var session = homeMarketSession();
       if (session.market !== 'domestic') return;
@@ -1012,6 +1090,7 @@ document.documentElement.classList.add('skin-ready');
           + '<span class="home-index-breadth-sep">·</span>'
           + '<span class="home-index-breadth-down">하락 ' + entry.down + '</span>';
       });
+      renderHomeVerdictNote();
     }
 
     function loadHomeIndexBreadth() {
@@ -1022,7 +1101,10 @@ document.documentElement.classList.add('skin-ready');
         var byMarket = (data && data.marketBreadth && data.marketBreadth.byMarket)
           || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
           || null;
+        var breadthTotal = data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.total : null;
+        latestBreadth = { byMarket: byMarket, total: breadthTotal };
         renderHomeIndexBreadth(byMarket);
+        renderHomeBreadthBars(byMarket, breadthTotal, data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.source : '섹터 풀 기준');
       }).catch(function () { /* 부가 정보라 실패해도 조용히 넘어간다 */ });
     }
 
@@ -1723,6 +1805,14 @@ document.documentElement.classList.add('skin-ready');
     };
 
     loadSummaryForSession(homeMarketSession());
+    // 지수 등락이 실시간으로 바뀔 때 핵심 상태 한 줄도 같은 값으로 따라가게 한다(새 요청 없음, 화면 값만 읽는다).
+    if (window.MutationObserver && homeIndexStrip) {
+      var verdictTimer = null;
+      new MutationObserver(function () {
+        if (verdictTimer) return;
+        verdictTimer = setTimeout(function () { verdictTimer = null; renderHomeVerdictNote(); }, 400);
+      }).observe(homeIndexStrip, { childList: true, characterData: true, subtree: true });
+    }
     window.addEventListener('home-market-change', function () {
       // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
       // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.
