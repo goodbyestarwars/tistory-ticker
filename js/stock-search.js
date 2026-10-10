@@ -2580,7 +2580,7 @@
         lines: drawing.lines,
         paths: drawing.paths,
         circles: drawing.circles,
-        hlines: drawing.hlines || [],
+        hlines: (drawing.hlines || []).map(function (item) { return { price: item.price }; }),
         boxes: drawing.boxes || []
       }));
     } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
@@ -2722,6 +2722,8 @@
       var txt = hl.price >= 1000 ? Math.round(hl.price).toLocaleString('ko-KR') : String(Math.round(hl.price * 100) / 100);
       ctx.font = '700 11px sans-serif';
       var tw = ctx.measureText(txt).width + 10;
+      hl._y = y;
+      hl._label = { x1: w - tw - 4, x2: w - 4, y1: y - 18, y2: y - 2 };
       ctx.fillStyle = '#e11d48';
       ctx.fillRect(w - tw - 4, y - 18, tw, 16);
       ctx.fillStyle = '#fff';
@@ -2844,7 +2846,7 @@
       drawing.hlineButton.classList.toggle('is-active', mode === 'hline');
       drawing.hlineButton.setAttribute('aria-pressed', mode === 'hline' ? 'true' : 'false');
     }
-    drawing.overlay.title = mode === 'hline' ? '차트를 누르면 그 가격에 가로선이 생기고 금액이 표시됩니다.'
+    drawing.overlay.title = mode === 'hline' ? '차트를 누르면 가로선이 생기고, 선을 끌면 이동, 금액 표시를 누르면 금액을 직접 입력할 수 있습니다.'
       : mode === 'box' ? '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).'
       : mode === 'line'
       ? '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.'
@@ -2906,6 +2908,20 @@
       event.preventDefault();
       if (drawing.mode === 'pencil') drawing.activePath = [point];
       else if (drawing.mode === 'hline') {
+        // 2026-10-10 요청: 가로선 금액 수정 - 금액 라벨을 누르면 숫자를 직접 입력, 선을 끌면 가격이 따라 움직인다.
+        var px = event.clientX - rect.left, py = event.clientY - rect.top;
+        var hit = null, onLabel = false;
+        (drawing.hlines || []).forEach(function (hl) {
+          if (hit || hl._y == null) return;
+          var lb = hl._label;
+          if (lb && px >= lb.x1 && px <= lb.x2 && py >= lb.y1 && py <= lb.y2) { hit = hl; onLabel = true; }
+          else if (Math.abs(py - hl._y) <= 6) hit = hl;
+        });
+        if (hit) {
+          drawing.dragHline = { hl: hit, onLabel: onLabel, startY: py, moved: false };
+          if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
+          return;
+        }
         drawing.hlines.push({ price: point.price });
         saveStockDrawings(drawing);
         redrawStockDrawing(drawing);
@@ -2917,6 +2933,16 @@
     });
     overlay.addEventListener('pointermove', function (event) {
       var rect = overlay.getBoundingClientRect();
+      if (drawing.dragHline) {
+        var dy = event.clientY - rect.top;
+        if (Math.abs(dy - drawing.dragHline.startY) > 3) drawing.dragHline.moved = true;
+        if (drawing.dragHline.moved) {
+          var moved = drawing.series.coordinateToPrice(dy);
+          if (moved != null && isFinite(Number(moved)) && Number(moved) > 0) drawing.dragHline.hl.price = Number(moved);
+          redrawStockDrawing(drawing);
+        }
+        return;
+      }
       if ((drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') && drawing.pending) {
         drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
         redrawStockDrawing(drawing);
@@ -2931,6 +2957,27 @@
       redrawStockDrawing(drawing);
     });
     function finishStockPencil(event) {
+      if (drawing.dragHline) {
+        var dragged = drawing.dragHline;
+        drawing.dragHline = null;
+        if (event && overlay.hasPointerCapture && overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
+        if (!dragged.moved && dragged.onLabel) {
+          var current = dragged.hl.price;
+          var typed = null;
+          try { typed = global.prompt('가로선 금액을 입력하세요(비우면 선을 삭제합니다)', current >= 1000 ? String(Math.round(current)) : String(Math.round(current * 100) / 100)); } catch (e) { typed = null; }
+          if (typed !== null) {
+            var cleaned = String(typed).replace(/[,\s원$]/g, '');
+            if (cleaned === '') {
+              drawing.hlines = drawing.hlines.filter(function (item) { return item !== dragged.hl; });
+            } else if (isFinite(Number(cleaned)) && Number(cleaned) > 0) {
+              dragged.hl.price = Number(cleaned);
+            }
+          }
+        }
+        saveStockDrawings(drawing);
+        redrawStockDrawing(drawing);
+        return;
+      }
       if (drawing.pending && (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box')) {
         var rect = overlay.getBoundingClientRect();
         var endPoint = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
