@@ -65,28 +65,63 @@
     });
   }
 
-  function statusHtml(s) {
+  function fmtWon(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
+  function signed(v) { return v == null ? '-' : (v > 0 ? '+' : v < 0 ? '-' : '') + Math.abs(Math.round(v)).toLocaleString('ko-KR'); }
+
+  /* 운영센터 레이아웃(docs/mockups/quant-console.html 시안). 봇이 실제로 아는 값만 채우고, 없는 값은 '-'·'준비 중'으로 둔다. */
+  function topbarHtml(s) {
     var running = !s.stopped;
-    return '<section class="at-card at-status">'
-      + '<div class="at-head"><div><h2>자동매매 <span class="at-badge' + (s.live_sell ? ' is-live' : '') + '">' + esc(s.mode) + '</span></h2>'
-      + '<p class="at-sub">' + esc(s.now) + ' 기준 · ' + (s.market_open ? '장 시간' : '장 마감/휴장') + ' · 마지막 폴링 ' + esc(s.last_poll || '-') + '</p></div>'
-      + '<div class="at-actions"><button type="button" class="' + (running ? 'is-stop' : 'is-go') + '" data-toggle>' + (running ? '정지' : '재개') + '</button></div></div>'
-      + '<dl class="at-kv"><div><dt>상태</dt><dd class="' + (running ? 'at-up' : 'at-down') + '">' + (running ? '실행 중' : '정지됨') + '</dd></div>'
-      + '<div><dt>손절</dt><dd>-' + esc(s.stop_loss_pct) + '%</dd></div>'
-      + '<div><dt>익절</dt><dd>+' + esc(s.take_profit_floor_pct) + '% ~ +' + esc(s.take_profit_cap_pct) + '%</dd></div>'
-      + '<div><dt>감시 종목</dt><dd>' + esc(s.watch_count) + '개</dd></div>'
-      + '<div><dt>오늘 매도 주문</dt><dd>' + esc(s.sells_today) + ' / ' + esc(s.max_sells_per_day) + '건</dd></div></dl>'
-      + '<p class="at-note">익절 규칙: +' + esc(s.take_profit_cap_pct) + '% 이상이면 즉시 매도, 한 번 +' + esc(s.take_profit_floor_pct) + '%를 넘겼다가 그 아래로 내려오면 매도합니다. 시장가 주문이라 체결가는 달라질 수 있습니다. 매수는 직접 하세요.</p>'
-      + (s.last_error ? '<p class="at-error">최근 오류: ' + esc(s.last_error) + '</p>' : '') + '</section>';
+    return '<div class="at-top"><span class="at-brand">자동매매 운영센터</span>'
+      + '<span class="at-chip2' + (s.live_sell ? ' is-live' : ' is-paper') + '">' + esc(s.mode) + '</span>'
+      + '<span class="at-st"><i class="at-dot' + (running ? '' : ' is-off') + '"></i>엔진 <b>' + (running ? '실행 중' : '정지됨') + '</b></span>'
+      + '<span class="at-st"><i class="at-dot' + (s.last_error ? ' is-wait' : '') + '"></i>로컬 봇 <b>연결</b></span>'
+      + '<span class="at-st at-hide-m">마지막 폴링 <b>' + esc(s.last_poll || '-') + '</b></span>'
+      + '<span class="at-st at-hide-m">' + (s.market_open ? '장 시간' : '장 마감/휴장') + '</span>'
+      + '<span class="at-sp"></span>'
+      + '<button type="button" class="at-btn ' + (running ? 'is-stop' : 'is-go') + '" data-toggle>' + (running ? '정지' : '재개') + '</button></div>'
+      + (s.last_error ? '<p class="at-error">최근 오류: ' + esc(s.last_error) + '</p>' : '');
+  }
+
+  function kpiHtml(s, holdings) {
+    var value = 0, cost = 0;
+    holdings.forEach(function (h) { value += (h.price || 0) * (h.qty || 0); cost += (h.avg || 0) * (h.qty || 0); });
+    var pnl = value - cost;
+    var rate = cost > 0 ? pnl / cost * 100 : null;
+    var managed = holdings.filter(function (h) { return h.watched; }).length;
+    function cell(label, val, sub, cls) { return '<div><small>' + label + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</b><i>' + (sub || '') + '</i></div>'; }
+    return '<section class="at-kpi">'
+      + cell('보유 종목', holdings.length + '개', '자동 관리 ' + managed + '개')
+      + cell('보유 평가금액', holdings.length ? fmtWon(value) : '-', 'KRW')
+      + cell('평가손익', holdings.length ? signed(pnl) : '-', rate == null ? '' : pct(rate), holdings.length ? tone(pnl) : '')
+      + cell('감시 종목', s.watch_count + '개', '손절·익절 대상')
+      + cell('오늘 매도 주문', s.sells_today + ' / ' + s.max_sells_per_day, '일 한도')
+      + cell('손절 기준', '-' + s.stop_loss_pct + '%', '매입가 대비')
+      + cell('익절 기준', '+' + s.take_profit_floor_pct + '~' + s.take_profit_cap_pct + '%', '상한 즉시 · 하한 이탈')
+      + '</section>';
   }
 
   function watchHtml(watch) {
     var rows = watch.length ? '<div class="at-chips">' + watch.map(function (w) {
       return '<span class="at-chip">' + esc(w.name || '') + ' <code>' + esc(w.code) + '</code><button type="button" data-unwatch="' + esc(w.code) + '" aria-label="' + esc(w.code) + ' 감시 해제">×</button></span>';
     }).join('') + '</div>' : '<p class="at-empty">감시 중인 종목이 없습니다. 차트검색 종목 상세의 "자동매매 감시 추가"로 올리거나 아래에 종목코드를 직접 입력하세요.</p>';
-    return '<section class="at-card"><h3>감시 종목 <small>여기에 있는 종목의 보유분만 자동 손절·익절합니다</small></h3>' + rows
+    return '<section class="at-box"><div class="at-hd"><h3>감시 종목</h3><span>여기 있는 종목의 보유분만 자동 손절·익절</span></div>' + rows
       + '<form class="at-token at-add" data-watch-form><input type="text" inputmode="numeric" maxlength="6" placeholder="종목코드 6자리" aria-label="종목코드" data-watch-code>'
-      + '<input type="text" maxlength="20" placeholder="종목명(선택)" aria-label="종목명" data-watch-name><button type="submit">감시 추가</button></form></section>';
+      + '<input type="text" maxlength="20" placeholder="종목명(선택)" aria-label="종목명" data-watch-name><button type="submit">추가</button></form></section>';
+  }
+
+  function ruleHtml(s) {
+    return '<section class="at-box"><div class="at-hd"><h3>운용 규칙</h3><span>PC의 .env·config.json 에서 변경</span></div>'
+      + '<div class="at-row"><span>매수</span><b>수동 (자동 매수 없음)</b></div>'
+      + '<div class="at-row"><span>매도 방식</span><b>시장가</b></div>'
+      + '<div class="at-row"><span>손절</span><b>-' + esc(s.stop_loss_pct) + '%</b></div>'
+      + '<div class="at-row"><span>익절</span><b>+' + esc(s.take_profit_floor_pct) + '% ~ +' + esc(s.take_profit_cap_pct) + '%</b></div>'
+      + '<div class="at-row"><span>일 매도 한도</span><b>' + esc(s.sells_today) + ' / ' + esc(s.max_sells_per_day) + '건</b></div>'
+      + '<p class="at-note">+' + esc(s.take_profit_cap_pct) + '% 이상이면 즉시 매도, 한 번 +' + esc(s.take_profit_floor_pct) + '%를 넘긴 뒤 그 아래로 내려오면 매도합니다. 시장가라 체결가는 달라질 수 있습니다.</p></section>';
+  }
+
+  function futureHtml() {
+    return '<section class="at-box"><div class="at-hd"><h3>자동 매수 · 전략</h3><span>준비 중</span></div>'
+      + '<p class="at-empty">검증을 통과한 전략이 아직 없어 자동 매수는 비활성입니다. 후보·전략 성과·위험예산·데이터 수집기 화면은 검증 단계에 맞춰 이 자리에 연결됩니다.</p></section>';
   }
 
   function holdingsHtml(list) {
@@ -118,13 +153,16 @@
         return '<tr class="at-ev at-ev--' + esc(e.type) + '"><td>' + esc(e.ts) + '</td><td>' + esc(TYPE_LABEL[e.type] || e.type) + '</td><td>' + esc(e.code || '') + '</td>'
           + '<td class="n">' + (e.price == null ? '' : fmtPrice(e.price)) + '</td><td>' + esc(e.detail) + '</td></tr>';
       }).join('') + '</tbody></table></div>' : '<p class="at-empty">기록이 없습니다.</p>';
-    return '<section class="at-card"><div class="at-head"><h3>이벤트 로그</h3>' + select + '</div>' + body + '</section>';
+    return '<section class="at-box"><div class="at-hd"><h3>이벤트 로그</h3>' + select + '</div>' + body + '</section>';
   }
 
   function render(d) {
-    root.innerHTML = statusHtml(d.status) + watchHtml(d.watch)
-      + '<section class="at-card"><h3>보유 종목 <small>키움 잔고 기준, 30초마다 갱신</small></h3>' + holdingsHtml(d.holdings) + '</section>'
-      + '<section class="at-card"><h3>매도 주문 기록</h3>' + ordersHtml(d.orders) + '</section>' + eventsHtml(d.events);
+    root.innerHTML = topbarHtml(d.status) + kpiHtml(d.status, d.holdings)
+      + '<div class="at-grid"><div class="at-col">'
+      + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 30초마다 갱신 · 수동 보유 종목은 건드리지 않음</span></div>' + holdingsHtml(d.holdings) + '</section>'
+      + '<section class="at-box"><div class="at-hd"><h3>매도 주문 기록</h3><span>접수·체결은 별도 확인</span></div>' + ordersHtml(d.orders) + '</section>'
+      + eventsHtml(d.events)
+      + '</div><div class="at-col">' + watchHtml(d.watch) + ruleHtml(d.status) + futureHtml() + '</div></div>';
     root.querySelector('[data-toggle]').addEventListener('click', function () {
       api(d.status.stopped ? '/api/resume' : '/api/stop', 'POST').then(refresh).catch(refresh);
     });
