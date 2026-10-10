@@ -50,9 +50,18 @@ def research_status(research_dir=RESEARCH_DIR):
             try:
                 out['paper'] = {r[0]: {'closed': r[1], 'avg': r[2], 'win': r[3]} for r in conn.execute(
                     "SELECT scanner, COUNT(*), AVG(ret), AVG(ret>0) FROM paper_trades WHERE status='CLOSED' GROUP BY scanner")}
+                total = conn.execute("SELECT COUNT(*), AVG(ret), AVG(ret>0), SUM(ret), MIN(ret) FROM paper_trades WHERE status='CLOSED'").fetchone()
+                out['paperTotal'] = {'closed': total[0], 'avg': total[1], 'win': total[2], 'sum': total[3], 'worst': total[4]}
                 out['openPaper'] = conn.execute("SELECT COUNT(*) FROM paper_trades WHERE status='OPEN'").fetchone()[0]
-                out['recentCandidates'] = [dict(zip(('scanDate', 'scanner', 'code', 'name', 'score', 'status', 'reason'), r)) for r in conn.execute(
-                    "SELECT scan_date, scanner, code, name, score, status, reason FROM candidates ORDER BY scan_date DESC, score DESC LIMIT 30")]
+                cols = ('scanDate', 'scanner', 'code', 'name', 'score', 'basePrice', 'status', 'reason')
+                out['recentCandidates'] = [dict(zip(cols, r)) for r in conn.execute(
+                    "SELECT scan_date, scanner, code, name, score, base_price, status, reason FROM candidates ORDER BY scan_date DESC, score DESC LIMIT 40")]
+                out['dataDate'] = (conn.execute("SELECT MAX(scan_date) FROM candidates").fetchone() or [None])[0]
+                tcols = ('scanDate', 'scanner', 'code', 'name', 'variant', 'entryDate', 'entryPrice', 'exitDate', 'ret', 'status')
+                out['paperTrades'] = [dict(zip(tcols, r)) for r in conn.execute(
+                    "SELECT t.scan_date, t.scanner, t.code, c.name, t.variant, t.entry_date, t.entry_price, t.exit_date, t.ret, t.status "
+                    "FROM paper_trades t LEFT JOIN candidates c ON c.scan_date=t.scan_date AND c.scanner=t.scanner AND c.code=t.code "
+                    "ORDER BY t.scan_date DESC, t.code LIMIT 40")]
             finally:
                 conn.close()
         except sqlite3.Error:

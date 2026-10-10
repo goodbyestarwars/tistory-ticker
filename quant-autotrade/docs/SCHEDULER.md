@@ -65,4 +65,4 @@ powershell -ExecutionPolicy Bypass -File quant-autotrade\research\install_task.p
 | `nextRunAt` | 다음 정기 실행 예정(평일 20:15) |
 | `errors`, `missingWeekdays` | 최근 오류, 후보가 생성되지 않은 평일(휴장일일 수 있음) |
 
-`/api/research`는 위 값에 더해 모의 성과 집계(`paper`), 열린 모의 포지션 수(`openPaper`), 최근 후보 30건(`recentCandidates`)을 포함한다. 웹 화면(`js/auto-trader.js`)에는 아직 연결하지 않았다(UI 단계에서 연결).
+`/api/research`는 위 값에 더해 `dataDate`(후보 데이터 기준일), `diskUsedBytes`/`diskLimitBytes`(연구 데이터 폴더 사용량·5GB 상한), 검색기별 모의 집계(`paper`)와 전체 집계(`paperTotal`), 열린 모의 포지션 수(`openPaper`), 최근 후보 40건(`recentCandidates`: 스캔일·검색기·종목·점수·기준가·상태·사유), 최근 모의 거래 40건(`paperTrades`)을 포함한다. 운영센터 화면(`js/auto-trader.js`)이 이 응답을 읽어 표시한다(작업 브랜치, 미배포). 구버전 봇처럼 이 경로가 없으면 화면은 '연결 대기', 연구 작업이 아직 실행되지 않았으면 '미실행' 상태를 보여준다.

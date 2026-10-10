@@ -106,3 +106,15 @@ html.dark #auto-trader { --at-panel: #1a1a1a; --at-warn: #f0b35c; --at-ok: #5fcf
 html.dark #auto-trader .at-token button { color: #1a1a1a; }
 html.dark body #auto-trader .at-table td.at-up, html.dark body #auto-trader .at-kpi b.at-up, html.dark body #auto-trader dd.at-up { color: var(--at-up); }
 html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .at-kpi b.at-down { color: var(--at-down); }
+
+/* ── 연구 기능 통합 (2026-10-11): 새 카드를 만들지 않고 기존 .at-box 안에서 상태 태그·게이지·구분 행만 추가 ── */
+#auto-trader .at-tag { display: inline-block; padding: 1px 7px; border-radius: 5px; background: rgba(var(--np-ink, 26, 26, 26), .07); color: var(--at-mute); font-size: 11.5px; font-weight: 650; }
+#auto-trader .at-tag--paper_entered { color: var(--at-ok); }
+#auto-trader .at-tag--skipped, #auto-trader .at-tag--expired { color: var(--at-warn); }
+#auto-trader .at-gauge { height: 8px; margin: 8px 0 4px; border-radius: 4px; background: rgba(var(--np-ink, 26, 26, 26), .1); overflow: hidden; }
+#auto-trader .at-gauge i { display: block; height: 100%; background: var(--at-ink); }
+#auto-trader .at-verdict { margin: 10px 0 0; padding: 8px 12px; border-left: 3px solid var(--at-warn); background: rgba(var(--np-ink, 26, 26, 26), .04); font-size: 12.5px; color: var(--at-ink); }
+#auto-trader .at-grp td { padding: 12px 10px 6px; border-bottom: 1px solid var(--at-ink); font-size: 11.5px; font-weight: 700; color: var(--at-mute); white-space: normal; }
+#auto-trader .at-caveats { margin: 8px 0 0; padding-left: 18px; font-size: 12px; line-height: 1.7; color: var(--at-mute); }
+#auto-trader .at-table small.at-mute { display: block; font-size: 11px; }
+#auto-trader .at-table td small.at-mute { white-space: nowrap; }

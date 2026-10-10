@@ -196,7 +196,8 @@ def run_cycle(conn, fetch_scan, get_daily, now_fn, sleep_fn, out_dir=None, poll_
         status.update({'updatedAt': t.isoformat(timespec='seconds'), 'heartbeatAt': t.isoformat(timespec='seconds'), 'pid': os.getpid(),
                        'runner': state, 'mode': run_mode, 'candidatesToday': cand_today,
                        'nextRunAt': next_start(t).isoformat(timespec='minutes'), 'errors': errors[-5:],
-                       'missingWeekdays': missing_weekdays(conn, t), 'diskLimitBytes': DISK_LIMIT_BYTES})
+                       'missingWeekdays': missing_weekdays(conn, t), 'diskLimitBytes': DISK_LIMIT_BYTES,
+                       'diskUsedBytes': dir_size(out_dir)})
         status.update(extra)
         write_status(out_dir, status)
 

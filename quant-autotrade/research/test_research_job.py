@@ -163,6 +163,29 @@ class JobTests(unittest.TestCase):
         self.assertEqual(len(out['recentCandidates']), 2)
         self.assertNotIn('KIWOOM', str(out))
 
+    def test_status_includes_candidates_paper_trades_and_disk_usage(self):
+        import server
+        c, now_fn, sleep = self.clock(dt(12, 20, 15))
+        rj.run_cycle(self.conn, lambda: payload(dt(12, 23, 58), '2026-10-12'), lambda x: [], now_fn, sleep, out_dir=self.tmp)
+        first = self.conn.execute("SELECT scan_date, scanner, code FROM candidates ORDER BY code LIMIT 1").fetchone()
+        self.conn.execute("INSERT INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, exit_date, ret, status, updated_at) "
+                          "VALUES (?,?,?,?,?,?,?,?,?,?)", (first[0], first[1], first[2], 'trail_atr', '2026-10-13', 10020.0, '2026-10-20', 0.034, 'CLOSED', 'x'))
+        self.conn.execute("INSERT INTO paper_trades(scan_date, scanner, code, variant, entry_date, entry_price, status, updated_at) "
+                          "VALUES (?,?,?,?,?,?,?,?)", (first[0], first[1], '009999', 'trail_atr', '2026-10-13', 5000.0, 'OPEN', 'x'))
+        self.conn.commit()
+        shutil.copy(os.path.join(self.tmp, 'r.db'), os.path.join(self.tmp, 'research.db'))
+        out = server.research_status(self.tmp)
+        self.assertEqual(out['dataDate'], '2026-10-12')
+        self.assertEqual(out['paperTotal']['closed'], 1)
+        self.assertAlmostEqual(out['paperTotal']['avg'], 0.034)
+        self.assertEqual(out['openPaper'], 1)
+        self.assertEqual(len(out['paperTrades']), 2)
+        closed = [t for t in out['paperTrades'] if t['status'] == 'CLOSED'][0]
+        self.assertEqual(closed['name'] in ('N0', 'N1'), True)   # 후보 테이블과 조인된 종목명
+        self.assertEqual(out['recentCandidates'][0]['basePrice'] > 0, True)
+        self.assertGreater(out['diskUsedBytes'], 0)
+        self.assertEqual(out['diskLimitBytes'], rj.DISK_LIMIT_BYTES)
+
 
 if __name__ == '__main__':
     unittest.main()
