@@ -22,6 +22,10 @@ WACC/성장률/미래FCFF 사용자 필수입력과 일괄검토 체크박스를
 
 # 9Pay 주요 작업이력
 
+**2026-10-10 자동매매(소유자 전용) 로그 전용 단계: 로컬 봇 + 블로그 화면(auto-trader-ui 브랜치, 배포 보류)**
+
+봇은 저장소 밖 C:\Users\goodb\autotrader(공개 저장소에 전략·키 미포함): 키움 REST 조회 전용(ka10081/ka10080), 주문 코드 없음, 조건 신호 시 가상 매수·손절·익절·기간청산을 SQLite·로그에 기록, 127.0.0.1:8765 상태 API(토큰·CORS 단일 Origin·정지/재개만). 블로그: skin-menu.js 자동매매 메뉴(MY 옆, 로컬 봇이 응답하고 이 브라우저에 토큰이 있을 때만 노출), skin-main.js /page/auto-trader 로더, js/auto-trader.js·css/auto-trader.css. 새 VM API·타이머 없음. 검증: 봇 단위 12건, 실제 사이트에서 메뉴 노출(토큰 없음/맞음/틀림)·연결 화면·정지/재개 확인. Tistory에 /page/auto-trader 페이지 생성 필요(수동).
+
 **2026-10-10 휴장 지면 「시장 뉴스」 이야기 시리즈식 카드 개편(market-news-cards 브랜치, 승인 전 배포 보류)**
 
 대표+최신 편집형 시안을 "이야기 시리즈랑 비슷한 카드"로 교체: 푸터 .learn-card와 같은 둥근 선 카드(원형 시장·공시 표식, 번호, 굵은 마루부리 제목, 출처·시각, ↗), 3열x2줄 6건/페이지, 통합/뉴스/공시 필터·원형 이전/다음 유지. 기존 /weekly-report news.timeline(최대 20건) 그대로, 새 API·이미지·요약 생성 없음. js/home-weekly-report.js, css/home-weekly-report.css.
