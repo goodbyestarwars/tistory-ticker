@@ -78,3 +78,8 @@ html.dark .ifl .ifl-asof, html.dark .ifl .ifl-cap, html.dark .ifl .ifl-note, htm
 html.dark .ifl .ifl-table thead th, html.dark .ifl .ifl-table small, html.dark .ifl .ifl-na,
 html.dark .ifl .ibd-axis, html.dark .ifl .ibd-leg-btn.is-off { color: var(--ibd-sub) !important; }
 html.dark .ifl .ibd-axis { fill: var(--ibd-sub); }
+
+/* 막대 그래프 머리: 제목 왼쪽, 보기(분리형|비교형)·집계(일별|주간|월간) 오른쪽의 작은 선택 두 개 */
+.ifl .ifl-viewctl { display:flex; flex-wrap:wrap; align-items:center; gap:6px 10px; }
+.ifl .ifl-viewctl .ifl-seg-btn { padding:4px 10px; font-size:12px; }
+@media (max-width: 760px) { .ifl .ifl-viewctl { width:100%; } }

@@ -448,14 +448,30 @@
     return sign + num(abs, 0) + '억';
   }
 
-  /* ── 다중 시계열 차트: 묶음 막대(양수는 0선 위, 음수는 아래) 또는 여러 선(+ 오른쪽 보조 축·기준선) ──────────────
-     createChart(host, { height, emptyText }) -> { update(spec), redraw(), destroy() }
-     spec = { type: 'bars'|'lines', dates: ['YYYY-MM-DD'|라벨...], series: [{ key, label, color, values: [수...|null] }],
-              fmt(v), axisFmt(v), zero: true, secondary: { label, values, fmt, axisFmt } | null, refLines: [{ value, label }], ariaLabel }
-     범례 버튼으로 계열을 숨기거나 보인다. 거래가 없는 날은 날짜 자체가 없다(0으로 채우지 않는다). */
+  /* ── 날짜 도우미(UTC 기준 ISO 'YYYY-MM-DD'). 주는 월요일 시작이며 거래일 집계(주간·월간 합계)도 같은 규칙을 쓴다. ── */
+  function isISO(value) { return /^\d{4}-\d{2}-\d{2}$/.test(String(value)); }
+  function weekKeyOf(iso) {
+    if (!isISO(iso)) return null;
+    var t = Date.UTC(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10));
+    var dow = (new Date(t).getUTCDay() + 6) % 7;   // 월요일 = 0
+    return new Date(t - dow * 86400000).toISOString().slice(0, 10);
+  }
+  function monthKeyOf(iso) { return isISO(iso) ? String(iso).slice(0, 7) : null; }
+
+  /* ── 다중 시계열 차트: 묶음 막대 / 계열별로 쌓은 막대 패널 / 여러 선(+ 오른쪽 보조 축·기준선) ─────────────────────
+     createChart(host, { height, panelHeight, emptyText }) -> { update(spec), redraw(), destroy() }
+     spec = { type: 'bars'|'lines',
+              layout: 'grouped'(기본: 날짜마다 막대 나란히) | 'stacked'(막대만: 계열마다 위아래 패널, 날짜 위치·0선·Y축 범위가 모두 같다),
+              dates: ['YYYY-MM-DD'|라벨...],
+              meta: [{ label, tip, start }]   // 집계 막대(주간·월간 합계)의 축 라벨·툴팁 제목·구분선 기준. 없으면 dates 를 쓴다.
+              series: [{ key, label, color, values: [수...|null], summary: [{ label, text, tone, sub }] }],   // summary 는 stacked 패널 머리의 요약 수치
+              fmt(v, signed), axisFmt(v, step), zero: true, secondary: { label, values, fmt, axisFmt } | null,
+              refLines: [{ value, label }], axisTitles: { left, right }, guides: { weeks, months, years }, note, ariaLabel, emptyText }
+     범례 버튼으로 계열을 숨기거나 보인다. 거래가 없는 날은 날짜 자체가 없다(0으로 채우지 않는다). 막대 간격은 거래일(또는 집계 구간)마다 일정하다. */
   function createChart(host, options) {
     var copts = options || {};
     var height = copts.height || 220;
+    var panelHeight = copts.panelHeight || 118;
     var uid = 'ibc' + (++SEQ);
     var state = { spec: null, hidden: {}, view: null };
     var resizeTimer = null;
@@ -482,11 +498,6 @@
       legendEl.innerHTML = html;
     }
 
-    function dateText(d, n) {
-      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) return String(d);
-      return n > 70 ? String(d).slice(2).replace(/-/g, '.') : String(d).slice(5).replace('-', '.');
-    }
-
     function scaleOf(values, withZero) {
       var lo = Infinity, hi = -Infinity;
       values.forEach(function (v) { if (v != null && isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } });
@@ -496,95 +507,216 @@
       return { lo: withZero && lo === 0 ? 0 : lo - pad, hi: withZero && hi === 0 ? 0 : hi + pad };
     }
 
+    function metaOf(spec, i) { return (spec.meta && spec.meta[i]) || null; }
+    function startOf(spec, i) { var m = metaOf(spec, i); return (m && m.start) || spec.dates[i]; }
+    function labelOf(spec, i) {
+      var m = metaOf(spec, i);
+      if (m && m.label != null) return String(m.label);
+      var d = spec.dates[i], n = spec.dates.length;
+      if (!isISO(d)) return String(d);
+      return n > 70 ? String(d).slice(2).replace(/-/g, '.') : String(d).slice(5).replace('-', '.');
+    }
+
+    /* 날짜축: 라벨 간격은 막대 폭·라벨 길이로 자동(겹치지 않게, 가장 최근 날짜는 항상 포함), 월·주(·연) 경계 보조선과 월 표시 */
+    function xAxisGeometry(spec, geo, bars) {
+      var n = spec.dates.length, slot = geo.slot, labW = 0, i;
+      for (i = 0; i < n; i++) labW = Math.max(labW, labelOf(spec, i).length * 6.4 + 8);
+      var step = Math.max(1, Math.ceil((labW + 6) / slot)), idxs = [];
+      for (i = n - 1; i >= 0; i -= step) idxs.unshift(i);
+      var g = spec.guides || {};
+      var useWeeks = g.weeks != null ? g.weeks : (bars && n <= 45), useMonths = g.months != null ? g.months : true, useYears = !!g.years;
+      var lines = [], months = [];
+      var cutX = function (k) { return bars ? (geo.xc(k - 1) + geo.xc(k)) / 2 : geo.xc(k); };
+      for (i = 1; i < n; i++) {
+        var a = startOf(spec, i - 1), b = startOf(spec, i);
+        if (!isISO(a) || !isISO(b)) continue;
+        var monthChange = monthKeyOf(a) !== monthKeyOf(b), yearChange = a.slice(0, 4) !== b.slice(0, 4);
+        if (useYears && yearChange) lines.push({ x: cutX(i), kind: 'month' });
+        else if (useMonths && monthChange) { lines.push({ x: cutX(i), kind: 'month' }); months.push({ x: cutX(i), text: (+b.slice(5, 7)) + '월', year: yearChange ? b.slice(2, 4) : null }); }
+        else if (useWeeks && weekKeyOf(a) !== weekKeyOf(b)) lines.push({ x: cutX(i), kind: 'week' });
+      }
+      // 월 표시 줄: 첫 구간의 월도 적는다(경계가 아니라 시작이므로). 서로 28px 안에 있으면 뒤의 것을 건너뛴다.
+      var monthLabels = [];
+      if (useMonths && n && isISO(startOf(spec, 0))) monthLabels.push({ x: geo.m.l + 2, text: (+startOf(spec, 0).slice(5, 7)) + '월', year: null });
+      months.forEach(function (mo) { monthLabels.push({ x: mo.x + 3, text: (mo.year ? mo.year + '년 ' : '') + mo.text, year: mo.year }); });
+      var shown = [], lastX = -99;
+      monthLabels.forEach(function (mo) { if (mo.x - lastX >= 30) { shown.push(mo); lastX = mo.x; } });
+      return { idxs: idxs, lines: lines, months: useMonths ? shown : [] };
+    }
+
+    function guidesSvg(ax, geo, top, bottom) {
+      return ax.lines.map(function (ln) {
+        return '<line class="ibd-guide ibd-guide-' + ln.kind + '" x1="' + ln.x.toFixed(1) + '" x2="' + ln.x.toFixed(1) + '" y1="' + top + '" y2="' + bottom + '"/>';
+      }).join('');
+    }
+
+    function labelsSvg(spec, ax, geo, yText, monthY) {
+      var svg = '';
+      ax.idxs.forEach(function (k) { svg += '<text class="ibd-axis" text-anchor="middle" x="' + geo.xc(k).toFixed(1) + '" y="' + yText + '">' + esc(labelOf(spec, k)) + '</text>'; });
+      if (monthY != null) ax.months.forEach(function (mo) { svg += '<text class="ibd-axis ibd-axis-month" text-anchor="start" x="' + mo.x.toFixed(1) + '" y="' + monthY + '">' + esc(mo.text) + '</text>'; });
+      return svg;
+    }
+
+    function drawEmpty(text) { chartEl.style.height = height + 'px'; chartEl.innerHTML = '<span class="ibd-empty">' + esc(text) + '</span>'; state.view = null; }
+
     function draw() {
       var spec = state.spec, vis = visibleSeries();
       state.view = null;
-      if (!spec || !spec.dates || !spec.dates.length) { chartEl.innerHTML = '<span class="ibd-empty">' + esc((spec && spec.emptyText) || copts.emptyText || '표시할 자료가 없습니다.') + '</span>'; return; }
-      if (!vis.length) { chartEl.innerHTML = '<span class="ibd-empty">표시할 항목을 하나 이상 켜 주세요.</span>'; return; }
+      if (!spec || !spec.dates || !spec.dates.length) { drawEmpty((spec && spec.emptyText) || copts.emptyText || '표시할 자료가 없습니다.'); return; }
+      if (!vis.length) { drawEmpty('표시할 항목을 하나 이상 켜 주세요.'); return; }
       var n = spec.dates.length;
-      if (spec.type === 'lines' && n < 2) { chartEl.innerHTML = '<span class="ibd-empty">자료가 1개뿐이라 선을 그릴 수 없습니다.</span>'; return; }
+      if (spec.type === 'lines' && n < 2) { drawEmpty('자료가 1개뿐이라 선을 그릴 수 없습니다.'); return; }
       var width = Math.max(260, chartEl.clientWidth || 640);
-      var hasSec = !!(spec.secondary && spec.secondary.values && spec.secondary.values.some(function (v) { return v != null; }));
-      var m = hasSec ? { l: 58, r: 62, t: 12, b: 24 } : { l: 6, r: 62, t: 12, b: 24 };
-      var all = []; vis.forEach(function (s) { all = all.concat(s.values); });
       var withZero = spec.zero !== false;
+      var all = []; vis.forEach(function (s) { all = all.concat(s.values); });
       if (spec.refLines) spec.refLines.forEach(function (r) { all.push(r.value); });
       var sc = scaleOf(all, withZero);
-      if (!sc) { chartEl.innerHTML = '<span class="ibd-empty">표시할 수치가 없습니다.</span>'; return; }
-      var plotW = width - m.l - m.r, plotH = height - m.t - m.b;
+      if (!sc) { drawEmpty('표시할 수치가 없습니다.'); return; }
+      if (spec.type === 'bars' && spec.layout === 'stacked') drawStacked(spec, vis, sc, width, n, withZero);
+      else drawSingle(spec, vis, sc, width, n, withZero);
+    }
+
+    function frameOf(width, mL, mR, n, bars) {
+      var plotW = width - mL - mR, slot = plotW / n;
+      return { width: width, m: { l: mL, r: mR }, plotW: plotW, slot: slot,
+        xc: function (i) { return bars ? mL + slot * (i + 0.5) : mL + (n > 1 ? plotW * (i / (n - 1)) : plotW / 2); } };
+    }
+
+    function barsSvg(vis, geo, y, y0, sc, offsetFn) {
+      var k = vis.length, bw = Math.max(0.6, Math.min(14, geo.slot * (k > 1 ? 0.82 : 0.7) / k)), dense = bw < 1, svg = '';
+      vis.forEach(function (s, si) {
+        s.values.forEach(function (v, i) {
+          if (v == null || !isFinite(v) || v === 0) return;
+          var x = geo.xc(i) - (bw * k) / 2 + bw * si, yv = y(v), h = Math.max(1, Math.abs(yv - y0)), top = v > 0 ? y0 - h : y0;   // 아주 작은 값도 1px 로 보이되 방향은 0선 기준 위·아래를 지킨다
+          svg += '<rect class="ibd-bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" style="fill:' + s.color + (dense ? ';shape-rendering:auto' : '') + '"/>';
+        });
+      });
+      return svg;
+    }
+
+    /* 한 장짜리 차트: 묶음 막대 또는 선 */
+    function drawSingle(spec, vis, sc, width, n, withZero) {
+      var bars = spec.type === 'bars';
+      var hasSec = !!(spec.secondary && spec.secondary.values && spec.secondary.values.some(function (v) { return v != null; }));
+      var titles = spec.axisTitles || null;
+      var top = titles ? 26 : 12;
+      var m = hasSec ? { l: 58, r: 62, t: top, b: 24 } : { l: 6, r: 62, t: top, b: 24 };
+      var geo = frameOf(width, m.l, m.r, n, bars); geo.m = m;
+      var ax = xAxisGeometry(spec, geo, bars), monthRow = bars && ax.months.length > 0;
+      m.b = monthRow ? 38 : 24;
+      var plotH = height - m.t - m.b;
       var y = function (v) { return m.t + plotH * (1 - (v - sc.lo) / (sc.hi - sc.lo)); };
-      var slot = plotW / n;
-      var xc = function (i) { return spec.type === 'bars' ? m.l + slot * (i + 0.5) : m.l + (n > 1 ? plotW * (i / (n - 1)) : plotW / 2); };
       var axisFmt = spec.axisFmt || spec.fmt || defaultFmt;
       var axisX = hasSec ? m.l - 6 : width - m.r + 6, axisAnchor = hasSec ? 'end' : 'start';
-      var svg = '';
+      var svg = guidesSvg(ax, geo, m.t, height - m.b);
       var ticks = niceTicks(sc.lo, sc.hi, 4), tickStep = ticks.length > 1 ? ticks[1] - ticks[0] : 0;
       ticks.forEach(function (v) {
         svg += '<line class="ibd-grid" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>'
           + '<text class="ibd-axis" text-anchor="' + axisAnchor + '" x="' + axisX + '" y="' + (y(v) + 4).toFixed(1) + '">' + esc(axisFmt(v, tickStep)) + '</text>';
       });
+      if (titles) {
+        if (titles.left) svg += '<text class="ibd-axis ibd-axis-title" text-anchor="start" x="' + (hasSec ? 2 : width - m.r + 6) + '" y="' + (m.t - 12) + '">' + esc(titles.left) + '</text>';
+        if (titles.right && hasSec) svg += '<text class="ibd-axis ibd-axis-title ibd-axis-sec" text-anchor="end" x="' + (width - 2) + '" y="' + (m.t - 12) + '">' + esc(titles.right) + '</text>';
+      }
       if (spec.refLines) spec.refLines.forEach(function (r) {
         svg += '<line class="ibd-ref" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(r.value).toFixed(1) + '" y2="' + y(r.value).toFixed(1) + '"/>'
           + '<text class="ibd-ref-label" text-anchor="end" x="' + (width - m.r - 4) + '" y="' + (y(r.value) - 4).toFixed(1) + '">' + esc(r.label) + '</text>';
       });
       if (withZero && sc.lo < 0 && sc.hi > 0) svg += '<line class="ibd-zero" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '"/>';
-      if (spec.type === 'bars') {
-        var k = vis.length, bw = Math.max(0.6, Math.min(14, slot * 0.82 / k)), dense = bw < 1, y0 = y(Math.max(sc.lo, Math.min(sc.hi, 0)));
-        vis.forEach(function (s, si) {
-          s.values.forEach(function (v, i) {
-            if (v == null || !isFinite(v) || v === 0) return;
-            var x = xc(i) - (bw * k) / 2 + bw * si, yv = y(v), top = Math.min(yv, y0), h = Math.max(1, Math.abs(yv - y0));
-            svg += '<rect class="ibd-bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" style="fill:' + s.color + (dense ? ';shape-rendering:auto' : '') + '"/>';
-          });
-        });
+      if (bars) {
+        svg += barsSvg(vis, geo, y, y(Math.max(sc.lo, Math.min(sc.hi, 0))), sc);
       } else {
         vis.forEach(function (s) {
           var d = '', pen = false;
           s.values.forEach(function (v, i) {
             if (v == null || !isFinite(v)) { pen = false; return; }
-            d += (pen ? 'L' : 'M') + xc(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true;
+            d += (pen ? 'L' : 'M') + geo.xc(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true;
           });
           svg += '<path class="ibd-mline" d="' + d + '" style="stroke:' + s.color + '"/>';
-          for (var li = s.values.length - 1; li >= 0; li--) if (s.values[li] != null && isFinite(s.values[li])) { svg += '<circle class="ibd-last" cx="' + xc(li).toFixed(1) + '" cy="' + y(s.values[li]).toFixed(1) + '" r="3.2" style="fill:' + s.color + '"/>'; break; }
+          for (var li = s.values.length - 1; li >= 0; li--) if (s.values[li] != null && isFinite(s.values[li])) { svg += '<circle class="ibd-last" cx="' + geo.xc(li).toFixed(1) + '" cy="' + y(s.values[li]).toFixed(1) + '" r="3.2" style="fill:' + s.color + '"/>'; break; }
         });
       }
-      var secScale = null;
       if (hasSec) {
-        secScale = scaleOf(spec.secondary.values, false);
+        var secScale = scaleOf(spec.secondary.values, false);
         var ys = function (v) { return m.t + plotH * (1 - (v - secScale.lo) / (secScale.hi - secScale.lo)); };
         var d2 = '', pen2 = false;
-        spec.secondary.values.forEach(function (v, i) { if (v == null || !isFinite(v)) { pen2 = false; return; } d2 += (pen2 ? 'L' : 'M') + xc(i).toFixed(1) + ' ' + ys(v).toFixed(1); pen2 = true; });
+        spec.secondary.values.forEach(function (v, i) { if (v == null || !isFinite(v)) { pen2 = false; return; } d2 += (pen2 ? 'L' : 'M') + geo.xc(i).toFixed(1) + ' ' + ys(v).toFixed(1); pen2 = true; });
         svg += '<path class="ibd-secline" d="' + d2 + '"/>';
         var secFmt = spec.secondary.axisFmt || spec.secondary.fmt || defaultFmt;
         var secTicks = niceTicks(secScale.lo, secScale.hi, 4), secStep = secTicks.length > 1 ? secTicks[1] - secTicks[0] : 0;
         secTicks.forEach(function (v) {
           svg += '<text class="ibd-axis ibd-axis-sec" x="' + (width - m.r + 6) + '" y="' + (ys(v) + 4).toFixed(1) + '">' + esc(secFmt(v, secStep)) + '</text>';
         });
-        secScale.y = ys;
       }
-      var idxs = n <= 8 ? spec.dates.map(function (d, i) { return i; }) : [0, Math.floor((n - 1) / 2), n - 1];
-      idxs.forEach(function (i, q) {
-        var anchor = q === 0 ? 'start' : (q === idxs.length - 1 ? 'end' : 'middle');
-        if (n <= 8) anchor = 'middle';
-        svg += '<text class="ibd-axis" text-anchor="' + anchor + '" x="' + xc(i).toFixed(1) + '" y="' + (height - 7) + '">' + esc(dateText(spec.dates[i], n)) + '</text>';
-      });
+      svg += labelsSvg(spec, ax, geo, height - (monthRow ? 22 : 7), monthRow ? height - 8 : null);
       svg += '<line class="ibd-cross" data-ic-cross y1="' + m.t + '" y2="' + (height - m.b) + '" hidden/>'
-        + '<rect class="ibd-hit" x="' + m.l + '" y="' + m.t + '" width="' + plotW + '" height="' + plotH + '"/>';
+        + '<rect class="ibd-hit" x="' + m.l + '" y="' + m.t + '" width="' + geo.plotW + '" height="' + plotH + '"/>';
+      chartEl.style.height = height + 'px';
       chartEl.innerHTML = '<svg class="ibd-svg" viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" role="img" aria-label="' + esc(spec.ariaLabel || '추이 차트') + '">' + svg + '</svg>'
-        + '<div class="ibd-tip" data-ic-tip hidden></div>';
-      state.view = { width: width, m: m, n: n, slot: slot, xc: xc, vis: vis, spec: spec, plotW: plotW };
+        + '<div class="ibd-tip" data-ic-tip hidden></div>' + noteHtml(spec);
+      state.view = { layout: 'single', width: width, m: m, n: n, slot: geo.slot, xc: geo.xc, vis: vis, spec: spec, plotW: geo.plotW, bars: bars };
       wire();
     }
 
+    /* 계열별 패널을 위아래로: 같은 날짜 위치, 같은 Y축 범위(sc), 같은 0선 위치. 날짜 라벨은 맨 아래 패널에만 적고 보조선은 모든 패널에 긋는다. */
+    function drawStacked(spec, vis, sc, width, n, withZero) {
+      var m = { l: 6, r: 62, t: 8, b: 6 };
+      var geo = frameOf(width, m.l, m.r, n, true); geo.m = m;
+      var ax = xAxisGeometry(spec, geo, true), monthRow = ax.months.length > 0;
+      var axisH = monthRow ? 40 : 26;
+      var ticks = niceTicks(sc.lo, sc.hi, 3), tickStep = ticks.length > 1 ? ticks[1] - ticks[0] : 0;
+      var axisFmt = spec.axisFmt || spec.fmt || defaultFmt;
+      var html = '<div class="ibd-stack" data-ic-stack>';
+      vis.forEach(function (s, idx) {
+        var last = idx === vis.length - 1, h = panelHeight + (last ? axisH : 0), plotH = panelHeight - m.t - m.b;
+        var y = function (v) { return m.t + plotH * (1 - (v - sc.lo) / (sc.hi - sc.lo)); };
+        var svg = guidesSvg(ax, geo, m.t, m.t + plotH);
+        ticks.forEach(function (v) {
+          svg += '<line class="ibd-grid" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>'
+            + '<text class="ibd-axis" text-anchor="start" x="' + (width - m.r + 6) + '" y="' + (y(v) + 4).toFixed(1) + '">' + esc(axisFmt(v, tickStep)) + '</text>';
+        });
+        if (sc.lo < 0 && sc.hi > 0) svg += '<line class="ibd-zero" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '"/>';
+        svg += barsSvg([s], geo, y, y(Math.max(sc.lo, Math.min(sc.hi, 0))), sc);
+        if (last) svg += labelsSvg(spec, ax, geo, m.t + plotH + 15, monthRow ? m.t + plotH + 30 : null);
+        svg += '<line class="ibd-cross" data-ic-cross y1="' + m.t + '" y2="' + (m.t + plotH) + '" hidden/>'
+          + '<rect class="ibd-hit" x="' + m.l + '" y="' + m.t + '" width="' + geo.plotW + '" height="' + plotH + '"/>';
+        var sums = (s.summary || []).map(function (it) {
+          return '<span class="ibd-ps"><em>' + esc(it.label) + '</em><b class="' + (it.tone || '') + '">' + esc(it.text) + '</b>' + (it.sub ? '<small>' + esc(it.sub) + '</small>' : '') + '</span>';
+        }).join('');
+        html += '<div class="ibd-panel" data-ic-panel="' + esc(s.key) + '"><div class="ibd-panel-head"><span class="ibd-panel-name"><i class="ibd-swatch" style="background:' + s.color + '"></i>' + esc(s.label) + '</span>'
+          + '<span class="ibd-panel-sums">' + sums + '</span></div>'
+          + '<svg class="ibd-svg" viewBox="0 0 ' + width + ' ' + h + '" width="100%" height="' + h + '" role="img" aria-label="' + esc((spec.ariaLabel || '') + ' ' + s.label) + '">' + svg + '</svg></div>';
+      });
+      html += '</div><div class="ibd-tip" data-ic-tip hidden></div>' + noteHtml(spec);
+      chartEl.style.height = 'auto';
+      chartEl.innerHTML = html;
+      state.view = { layout: 'stacked', width: width, m: m, n: n, slot: geo.slot, xc: geo.xc, vis: vis, spec: spec, plotW: geo.plotW, bars: true };
+      wire();
+    }
+
+    function noteHtml(spec) { return spec.note ? '<div class="ibd-chart-note">' + esc(spec.note) + '</div>' : ''; }
+
+    function headingOf(spec, i) {
+      var meta = metaOf(spec, i);
+      if (meta && meta.tip) return meta.tip;
+      var d = spec.dates[i];
+      return isISO(d) ? dayLabel(d) : String(d);
+    }
+
     function wire() {
-      var svgEl = chartEl.querySelector('svg'), hit = chartEl.querySelector('.ibd-hit'), cross = chartEl.querySelector('[data-ic-cross]'), tip = chartEl.querySelector('[data-ic-tip]');
-      function show(clientX) {
-        var v = state.view; if (!v) return;
-        var rect = svgEl.getBoundingClientRect(), scale = v.width / rect.width, px = (clientX - rect.left) * scale;
-        var i = v.spec.type === 'bars' ? Math.floor((px - v.m.l) / v.slot) : Math.round((px - v.m.l) / (v.plotW) * (v.n - 1));
+      var v0 = state.view, tip = chartEl.querySelector('[data-ic-tip]');
+      if (!v0 || !tip) return;
+      var hits = chartEl.querySelectorAll ? Array.prototype.slice.call(chartEl.querySelectorAll('.ibd-hit')) : [];
+      if (!hits.length) { var one = chartEl.querySelector('.ibd-hit'); if (one) hits = [one]; }
+      var svgs = chartEl.querySelectorAll ? Array.prototype.slice.call(chartEl.querySelectorAll('svg')) : [chartEl.querySelector('svg')];
+      var crosses = chartEl.querySelectorAll ? Array.prototype.slice.call(chartEl.querySelectorAll('[data-ic-cross]')) : [chartEl.querySelector('[data-ic-cross]')];
+      function show(clientX, clientY) {
+        var v = state.view; if (!v || !svgs[0]) return;
+        var rect = svgs[0].getBoundingClientRect(), scale = v.width / rect.width, px = (clientX - rect.left) * scale;
+        var i = v.bars ? Math.floor((px - v.m.l) / v.slot) : Math.round((px - v.m.l) / (v.plotW) * (v.n - 1));
         i = Math.max(0, Math.min(v.n - 1, i));
         var cx = v.xc(i);
-        cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.removeAttribute('hidden');
+        crosses.forEach(function (c) { if (c) { c.setAttribute('x1', cx); c.setAttribute('x2', cx); c.removeAttribute('hidden'); } });
         var rows = v.vis.map(function (s) {
           var val = s.values[i], f = (s.fmt || v.spec.fmt || defaultFmt);
           return '<div class="ibd-tip-row"><i class="ibd-swatch" style="background:' + s.color + '"></i><span>' + esc(s.label) + '</span><b>' + (val == null ? '-' : esc(f(val, true))) + '</b></div>';
@@ -593,18 +725,27 @@
           var sf = v.spec.secondary.fmt || defaultFmt;
           rows += '<div class="ibd-tip-row"><i class="ibd-swatch ibd-swatch-line"></i><span>' + esc(v.spec.secondary.label) + '</span><b>' + esc(sf(v.spec.secondary.values[i])) + '</b></div>';
         }
-        var dlabel = /^\d{4}-\d{2}-\d{2}$/.test(String(v.spec.dates[i])) ? dayLabel(v.spec.dates[i]) : String(v.spec.dates[i]);
-        tip.innerHTML = '<b class="ibd-tip-date">' + esc(dlabel) + '</b>' + rows;
+        tip.innerHTML = '<b class="ibd-tip-date">' + esc(headingOf(v.spec, i)) + '</b>' + rows;
         tip.hidden = false;
+        // 툴팁이 차트 밖으로 잘리지 않게: 폭을 재서 좌우를 가두고, 막대 오른쪽에 두되 모자라면 왼쪽으로 뒤집는다.
+        var box = chartEl.getBoundingClientRect ? chartEl.getBoundingClientRect() : rect, cw = box.width || rect.width;
+        var tw = tip.offsetWidth || 190, th = tip.offsetHeight || 80;
         var left = cx / scale + 12;
-        if (left + 190 > rect.width) left = cx / scale - 200;
-        tip.style.left = Math.max(0, left) + 'px'; tip.style.top = '4px';
+        if (left + tw > cw - 2) left = cx / scale - tw - 12;
+        tip.style.left = Math.max(2, Math.min(left, cw - tw - 2)) + 'px';
+        var topPos = 4;
+        if (v.layout === 'stacked' && clientY != null) topPos = Math.max(2, Math.min(clientY - box.top - th - 14, (box.height || 400) - th - 2));
+        tip.style.top = topPos + 'px';
       }
-      function hide() { cross.setAttribute('hidden', ''); tip.hidden = true; }
-      hit.addEventListener('pointermove', function (e) { show(e.clientX); });
-      hit.addEventListener('pointerdown', function (e) { show(e.clientX); });
-      hit.addEventListener('pointerleave', hide);
-      hit.addEventListener('pointercancel', hide);
+      function hide() { crosses.forEach(function (c) { if (c) c.setAttribute('hidden', ''); }); tip.hidden = true; }
+      state.hideTip = hide;
+      hits.forEach(function (hit) {
+        hit.addEventListener('pointermove', function (e) { show(e.clientX, e.clientY); });
+        hit.addEventListener('pointerdown', function (e) { show(e.clientX, e.clientY); });
+        // 터치는 손을 떼도 값을 읽을 수 있게 유지하고, 차트 밖을 누르면 닫는다. 마우스는 벗어나면 닫는다.
+        hit.addEventListener('pointerleave', function (e) { if (e.pointerType !== 'touch') hide(); });
+        hit.addEventListener('pointercancel', function (e) { if (e.pointerType !== 'touch') hide(); });
+      });
     }
 
     function onLegend(event) {
@@ -614,23 +755,29 @@
       state.hidden[key] = !state.hidden[key];
       renderLegend(); draw();
     }
+    function onOutside(event) {
+      if (!state.hideTip || !event.target || !event.target.closest) return;
+      if (event.target.closest('#' + uid + ' .ibd-hit')) return;
+      state.hideTip();
+    }
     function onResize() {
       clearTimeout(resizeTimer);
       resizeTimer = setTimeout(function () { if (document.body.contains(root) && root.offsetParent !== null) draw(); }, 150);
     }
     legendEl.addEventListener('click', onLegend);
     global.addEventListener('resize', onResize);
+    if (typeof document !== 'undefined' && document.addEventListener) document.addEventListener('pointerdown', onOutside, true);
 
     return {
       update: function (spec) { state.spec = spec; renderLegend(); draw(); },
       redraw: draw,
-      destroy: function () { clearTimeout(resizeTimer); global.removeEventListener('resize', onResize); legendEl.removeEventListener('click', onLegend); }
+      destroy: function () { clearTimeout(resizeTimer); global.removeEventListener('resize', onResize); legendEl.removeEventListener('click', onLegend); if (typeof document !== 'undefined' && document.removeEventListener) document.removeEventListener('pointerdown', onOutside, true); }
     };
   }
 
   global.IndicatorBoard = {
     create: create,
     createChart: createChart,
-    util: { esc: esc, num: num, signed: signed, withSign: withSign, fmtEok: fmtEok, fmtEokAxis: fmtEokAxis, tone: tone, isoDate: isoDate, series: series, sliceRange: sliceRange, pointStats: pointStats, niceTicks: niceTicks, dayLabel: dayLabel, defaultFmt: defaultFmt }
+    util: { isISO: isISO, weekKeyOf: weekKeyOf, monthKeyOf: monthKeyOf, esc: esc, num: num, signed: signed, withSign: withSign, fmtEok: fmtEok, fmtEokAxis: fmtEokAxis, tone: tone, isoDate: isoDate, series: series, sliceRange: sliceRange, pointStats: pointStats, niceTicks: niceTicks, dayLabel: dayLabel, defaultFmt: defaultFmt }
   };
 })(window);
