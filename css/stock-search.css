@@ -884,3 +884,13 @@ html.dark #stock-search .ss-memo-pop-actions [data-memo-save] { background: #0a8
 /* 호가·차트 패널 제목(2026-10-05, 미국 화면과 같은 구성) */
 #stock-search .ss-panel-head { margin-bottom: 10px; }
 #stock-search .ss-panel-head h4 { margin: 0; font-size: 16px; }
+
+/* 파동 분석 규모 선택(대·중·소, 2026-10-12): 파동 분석 체크 옆에 놓는 작은 3칸 선택. 꺼져 있으면 숨긴다. */
+#stock-search .ss-wave-level { display: inline-flex; align-items: center; }
+#stock-search .ss-wave-level[hidden] { display: none; }
+#stock-search .ss-wave-btn { margin: 0; padding: 3px 10px; border: 1px solid #d7dee8; border-right-width: 0; border-radius: 0; background: rgb(255, 254, 252); color: #666; font: 600 12px/1.4 inherit; cursor: pointer; }
+#stock-search .ss-wave-btn:first-child { border-radius: 4px 0 0 4px; }
+#stock-search .ss-wave-btn:last-child { border-right-width: 1px; border-radius: 0 4px 4px 0; }
+#stock-search .ss-wave-btn.active { border-color: #222; background: #222; color: #fff; }
+html.dark #stock-search .ss-wave-btn { border-color: rgba(245, 239, 224, 0.2); background: transparent; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #stock-search .ss-wave-btn.active { border-color: #F5EFE0; background: #F5EFE0; color: #1A1A1A !important; }

@@ -10,6 +10,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
+| `AUTO_WAVE_VALIDATION_2026-10-13.md` | 자동 파동(대·중·소) 검증 보고: 이전 엔진 문제·기준·수동 기준 대조·미래 비참조 시험·수익성 비교 | 차트 파동 작업 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력(최근 50건) | 이력 확인·갱신 시 |
 | `history/WORK_HISTORY_*.md` | 옮겨 둔 지난 이력 | 과거 항목을 `grep`으로 찾을 때만 |
 | `GAS_AUTO_DEPLOY.md` | GAS 자동 배포(GitHub Actions+clasp) 설정·확인 절차 | GAS 배포 작업 |

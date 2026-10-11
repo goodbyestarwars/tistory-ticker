@@ -69,6 +69,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `quick-indices.js` | 885 | 홈 전용 관심지수 카드 바(11종) + 긴급속보 패널 | `window.QuickIndices`, `#quick-indices`(동적 생성) | GAS `?market=1`,`?rankNews=1`, VM `/futures` |
 | `stock-news.js` | 888 | 종목별 뉴스(리스트+AI요약+공시+랭킹뉴스) | `window.StockNews`, `#stock-news` | GAS `?codes=`,`?news=1`,`?rankNews=1` |
 | `stock-search.js` | 910 | 독립 "실시간 시세" 페이지(검색+호가창+캔들차트) | `window.StockSearch`, `#stock-search` | GAS `?codes=`,`?action=priceReason/flowChart`, LWC CDN |
+| `auto-wave.js` | 약 700 | 자동 파동 엔진(대 8.0·중 3.0·소 1.5 ×ATR14 지그재그, 횡보 박스, 대파동 추세 상태, 상태 신호). 봉을 순차로 읽는 상태기계 | `window.AutoWave.analyze/detectWaves/hashBars` | 일봉 OHLCV(브라우저 계산, 서버 호출 없음) |
 | `skin-main.js` | 1,022 | 스킨 공통: 다크모드/폰트 토글, 홈 대시보드 조립, 카테고리 파싱, 아티클 모달, 모바일 드로어 | `window.readPost/sharePost`, `buildHomeDashboard()` | GAS(`?marketTemp=1`,`?bubble=1`,`?patternScan=1`) |
 | `foreign-flow.js` | 4,251 | **최대 파일.** 종목분석 메인: 투자시그널·수급표·매물대·캔들차트·펀더멘탈·뉴스모멘텀·AI 종합요약 | `window.ForeignFlow{fetchFlow,fetchAnalysisSummary,...}`, `#foreign-flow` | GAS 다수 액션, VM(`/foreign-flow/{code}`,`/investor-flow/{code}`,`/news-momentum/{code}`), LWC CDN |
 
