@@ -3,160 +3,783 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>사이트 사용법</title>
+<title>사이트 이용방법</title>
 <link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
-<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css?v=20261011-guide" />
 </head>
 <body>
-<div class="legal-wrap">
+<div class="legal-wrap gd-page">
   <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
 
-  <h1>사이트 사용법</h1>
-  <p class="legal-effective-date">2026년 10월 11일 업데이트 · 차트 그리기 도구(직선·동그라미·박스·가로선·연필)와 파동 분석, 차트 메모·지지저항, 거래원, 차트검색 성과기록, 네이버 로그인, 국내 주요종목(내 카테고리), 증시온도의 사용법과 기준시각을 자세히 설명합니다.</p>
+  <h1>사이트 이용방법</h1>
+  <p class="legal-effective-date">2026년 10월 11일 전면 개정 · 처음 오는 사람도 따라 할 수 있게 예시와 그림 중심으로 다시 썼다</p>
 
-  <h2>1. 화면 상단 공통 기능</h2>
-  <ul>
-    <li>왼쪽 위 로고를 누르면 홈으로 이동합니다.</li>
-    <li>검색창은 화면 위쪽 가운데에 있습니다. 종목명 일부나 티커를 한 글자 이상 입력하면 검색 결과가 나타납니다. 국내 종목은 한글 이름·6자리 종목코드로, 미국 종목은 한글 이름·영문 회사명·티커로 찾을 수 있습니다.</li>
-    <li>검색창을 누르면 위쪽으로 넓은 검색 패널이 열립니다. 입력 전에는 입력창 아래에 <b>최근 조회</b> 5개가 나오며, 종목분석 화면을 본 종목도 여기에 기록됩니다(이 브라우저에 저장).</li>
-    <li>검색 결과에서 종목을 누르면 종목분석으로 이동합니다. 국내 종목은 같은 이름의 ETF·인버스보다 일반 주식이 먼저 나오며, 미국 종목은 주식과 ETF가 구분되어 표시됩니다.</li>
-    <li>검색어를 바꿀 때마다 결과가 다시 정렬됩니다. 너무 짧거나 흔한 검색어는 결과가 많을 수 있으니 회사명이나 티커를 더 입력하세요. 검색 결과가 없으면 종목코드·티커의 철자와 시장(국내/미국)을 확인하세요.</li>
-    <li>검색 결과의 현재가·등락률은 분석 화면에 들어간 뒤 실시간 연결 상태에 따라 갱신됩니다. 검색 목록 자체는 종목을 찾기 위한 목록이며, 검색 순간의 매매 가격을 보장하지 않습니다.</li>
-    <li><b>가</b> 버튼은 명조체와 고딕체를 전환하고, 다크모드 버튼은 화면 테마를 바꿉니다.</li>
-    <li>PC에서는 햄버거 버튼으로 좌측 메뉴를 접을 수 있습니다. 모바일에서는 메뉴 버튼과 검색 버튼을 사용하고, 화면 맨 아래 <b>PC 화면</b>을 누르면 모바일에서도 PC 배치로 볼 수 있습니다.</li>
-  </ul>
-  <p><b>참고:</b> 폰트·테마·리본·차트 표시 설정은 지금 쓰는 브라우저에 저장됩니다. 관심종목(MY)·국내 주요종목의 내 카테고리·차트 메모는 로그인(Google 또는 네이버) 시 계정에 저장됩니다. 네이버 로그인은 네이버 검수가 끝나기 전에는 일부 계정만 쓸 수 있습니다.</p>
+  <p class="gd-lead">주식 사이트가 처음이어도 괜찮다. 이 글은 삼성전자 하나를 찾아보는 3분 코스로 시작하고, 이어서 화면마다 <b>어디에 있고, 무엇을 보여주고, 어떻게 쓰는지</b>를 예를 들어 설명한다. 어려운 말은 나오는 자리에서 바로 풀어 쓴다. 처음부터 끝까지 읽을 필요는 없다. 목차에서 궁금한 곳만 골라 읽으면 된다.</p>
 
-  <h2>2. 메뉴 지도</h2>
-  <ul>
-    <li><b>홈</b> — 시장 카드, 실시간 종목판, 경제 종합뉴스(미국 화면에는 주요 ETF 수익률)</li>
-    <li><b>시장</b> — 마켓브리핑(직접 쓴 해석), 주요 뉴스, 증시온도, 시장지표(국내·글로벌을 한 지면에서 전환)</li>
-    <li><b>종목</b> — 국내 주요종목(내 카테고리·히트맵·활성 종목), 종목분석, 차트검색, 전략검색</li>
-    <li><b>이야기·용어</b> — 화면 맨 아래 카드에서 주식 이야기 시리즈(ETF·기업분석·절세 등)와 금융용어사전(60개 용어 검색)으로 이동합니다.</li>
-    <li><b>캘린더</b> — 국내·미국 실적과 경제 일정</li>
-    <li><b>커뮤니티</b> — 방명록</li>
-    <li><b>MY</b> — 관심종목과 보유 분석</li>
-  </ul>
+  <div class="learn-note">이 글에 나오는 가격·수익률 같은 숫자는 설명하려고 만든 <b>예시</b>다. 실제 시세가 아니다. 지금의 실제 값은 사이트 화면에서 확인한다.</div>
 
-  <h2>3. 국내·미국 화면 전환 기준</h2>
-  <p>홈의 시장 카드, 실시간 종목판, 경제 종합뉴스는 같은 시각 기준으로 함께 바뀝니다.</p>
-  <ul>
-    <li><b>국내 화면:</b> 오전 08:00부터 오후 09:00까지 (NXT 프리마켓 08:00 ~ 애프터마켓·NXT 마감 20:00을 포함)</li>
-    <li><b>미국 화면:</b> 오후 09:00부터 다음 날 오전 08:00까지</li>
-    <li>토요일 오전 09:00 전까지는 미국 금요일장 기준으로 보여줍니다. 주말과 휴장일에는 휴장 안내가 표시됩니다.</li>
-    <li>전환 3분 전부터 상단에 남은 시간이 표시됩니다. 표시 시간은 오전·오후를 포함한 12시간제입니다.</li>
-  </ul>
-
-  <h2>4. 홈 화면</h2>
-  <h3>4-1. 시장 카드</h3>
-  <p>현재 화면에 맞는 대표 지수 2개와 추이 차트, 시장 방향, 증시온도, 원/달러 환율, 주요 업종을 보여줍니다.</p>
-
-  <h3>4-2. 실시간 종목판</h3>
-  <ul>
-    <li>거래대금·거래량·상승률·하락률·시가총액·업종 순으로 정렬할 수 있습니다.</li>
-    <li>국내 화면 시간에는 국내 종목, 미국 화면 시간에는 미국 종목이 표시됩니다.</li>
-    <li>미국 탭에서는 거래대금 상위 종목을 업종별로 묶은 <b>업종 TOP</b>도 볼 수 있습니다. 업종 정보가 없는 종목은 집계에서 빠집니다.</li>
-    <li>목록은 처음에 한 번 불러오고, 그 뒤 바뀐 가격·등락률만 실시간으로 갱신합니다. 바뀐 자리의 숫자만 점수판처럼 넘어갑니다.</li>
-    <li>실시간 자리가 부족한 종목은 잠시 지연 시세로 표시될 수 있습니다.</li>
-  </ul>
-
-  <h3>4-3. 경제 종합뉴스</h3>
-  <ul>
-    <li>국내 화면 시간에는 국내 경제뉴스, 미국 화면 시간에는 미국 시장·거시경제 뉴스를 시간순으로 보여줍니다.</li>
-    <li>여러 제공처의 뉴스를 모아 중복을 줄여 표시하며, 제목을 누르면 원문으로 이동합니다.</li>
-    <li>뉴스에 관련 종목이 확인되면 상승은 빨간색, 하락은 파란색으로 표시합니다.</li>
-  </ul>
-
-  <h2>5. 증시온도</h2>
-  <ul>
-    <li>오늘 시장 분위기를 <b>100점 만점</b> 점수 하나로 보여줍니다. 0~39점은 공포, 40~60점은 보통, 61점부터 과열입니다. 홈 대시보드의 증시온도도 같은 점수와 등급입니다.</li>
-    <li>점수는 10개 지표를 <b>돈</b>(거래대금·수급), <b>가격</b>(평균등락률·상승비율·52주 신고가), <b>위험</b>(VIX·환율·빚투) 세 묶음으로 나눠 평균낸 값입니다. 위험만 높을수록 나쁩니다.</li>
-    <li>최근 단기흐름은 점수를 공포·보통·과열 구간 위에 그린 그래프이고, 아래 날씨 아이콘 줄로 며칠간 흐름을 한눈에 볼 수 있습니다. 그래프를 손가락이나 마우스로 훑으면 그날 점수가 표시됩니다.</li>
-    <li>"오늘의 개미 체크리스트"는 그날 분위기에서 흔히 하는 실수를 막기 위한 점검표이며, 매수·매도 추천이 아닙니다.</li>
-    <li><b>업종 로테이션</b>은 국내 업종을 유입·주도·둔화·이탈로 나눠 보여줍니다. 거래대금과 상대 강도로 자동 분류하므로 참고용입니다.</li>
-    <li>점수는 장중·장외 가리지 않고 몇 분 간격으로 다시 계산됩니다. 화면 아래 업데이트 시각이 기준입니다.</li>
-    <li><b>오늘 돈이 몰린 섹터</b>는 키움증권 테마 중 구성종목 거래대금이 큰 순서입니다. 막대 길이가 거래대금 집중도이고 빨강은 상승, 파랑은 하락입니다. 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.</li>
-    <li>각 테마 아래의 <b>대표 종목</b> 2~3개는 그 테마에서 오늘 거래대금이 가장 큰 종목을 규칙으로 고른 것입니다. 매수·매도 추천이나 투자 권유가 아니며 참고용입니다.</li>
-    <li><b>대표 종목 2주 추적</b>은 거래일 오후 3시 35분 이후 첫 갱신 때 남긴 대표 종목과 그 시점 가격을 기준으로 최근 14일 수익률을 보여줍니다. 기록일별 평균과 종목별 기준가·현재가를 펼쳐 볼 수 있고, 과거 기록일 뿐 앞으로를 보장하지 않으며 수수료·세금은 반영하지 않았습니다. 기록은 거래일에만 쌓입니다.</li>
-  </ul>
-
-  <h2>5-1. 국내 주요종목 (내 카테고리)</h2>
-  <ul>
-    <li>종목 메뉴의 국내 주요종목은 <b>내 카테고리</b>를 기준으로 움직입니다. 카드 보기·히트맵 보기·시총비례 히트맵 모두 같은 카테고리를 보여줍니다.</li>
-    <li>맨 위 칩은 증시온도와 같은 오늘 돈이 몰린 섹터 TOP10입니다. 초록 테두리 칩은 내 카테고리와 연결된 테마로, 누르면 해당 카드로 이동합니다. 점선 칩은 내 카테고리에 없는 테마로, 누르면 그 테마로 새 카테고리가 만들어집니다. 거래대금 막대 표는 <a href="https://ghlee.tistory.com/page/market-temp">증시온도</a>에서 볼 수 있습니다.</li>
-    <li>돈이 몰린 카테고리는 카드 맨 앞에 오고 "돈 몰림 #순위" 배지가 붙습니다. 연결은 테마와 카테고리의 구성종목이 겹치는지로 자동 계산하므로 완벽한 분류는 아닙니다.</li>
-    <li><b>활성 종목</b> 탭은 오늘 거래가 활발한 종목을 먼저 내 카테고리별로 묶어 보여줍니다. 카테고리에 없는 활성 종목은 "편입 후보"로 따로 나오고, ＋를 누르면 넣을 카테고리를 골라 저장합니다. 거래가 거의 없거나 움직임이 없는 종목, 시가총액이 작은 종목은 제외됩니다.</li>
-    <li>새 카테고리는 <b>＋ 키움 테마로 추가</b>에서 화장품·여행·카지노·게임 같은 테마를 검색해 만듭니다. <b>카테고리·종목 편집</b>으로 이름과 종목을 직접 고칠 수도 있습니다.</li>
-    <li>로그인하지 않으면 카테고리가 이 브라우저에만 저장되고, Google 로그인하면 계정에 저장돼 다른 기기에서도 같습니다.</li>
-    <li>시총비례 히트맵은 시가총액을 아는 종목만 그릴 수 있어 선택한 카테고리의 일부 종목이 빠질 수 있으며, 몇 종목이 표시되는지 화면에 적어 둡니다.</li>
-  </ul>
-
-  <h2>6. 종목분석</h2>
-  <ol>
-    <li>검색 결과나 종목 메뉴에서 종목을 고르면 분석 화면으로 이동합니다.</li>
-    <li>현재가·등락률·거래량과 일봉·주봉·월봉·분봉 차트를 볼 수 있습니다.</li>
-    <li>차트의 <b>지지·저항</b> 체크박스를 켜면 지지선·저항선을 겹쳐 봅니다. 가격 구간으로 계산한 참고선입니다.</li>
-    <li><b>차트 그리기 도구</b>: 차트 위 버튼으로 <b>직선</b>(두 점을 눌러 긋기), <b>동그라미</b>, <b>박스</b>(구간 표시), <b>가로선</b>(누른 가격에 전체 폭으로 긋고 오른쪽에 금액 표시), <b>연필</b>(자유 그리기)을 쓸 수 있습니다. 버튼을 누른 상태에서 차트를 누르면 그려지고, 한 번 더 누르면 해제됩니다. 그리기는 마우스 왼쪽 버튼으로만 동작합니다.
-      <ul>
-        <li>가로선은 선을 끌어 위아래로 옮기고, 오른쪽 금액 표시를 누르면 숫자를 직접 입력해 가격을 고칩니다(입력창을 비우면 삭제).</li>
-        <li><b>지우기</b>는 지금 보는 종목·봉 주기의 그림을 모두 지웁니다.</li>
-        <li>그린 내용은 <b>로그인하면 계정에 저장</b>되어 다른 기기에서도 같이 보이고(일·주·월봉), 로그인하지 않으면 이 브라우저에만 저장됩니다. 분봉 차트의 그림은 저장되지 않습니다.</li>
-        <li>선·박스는 종목과 봉 주기(일/주/월)별로 따로 저장되므로 일봉에서 그린 선이 주봉에는 보이지 않습니다.</li>
-      </ul></li>
-    <li><b>파동 분석</b> 체크박스를 켜면 가격 움직임을 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권 구간으로 나눠 겹쳐 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 구조를 이해하기 위한 실험 기능이며 매수·매도 추천이 아닙니다. 저장되지 않고 화면에서만 계산됩니다.</li>
-    <li><b>차트 메모</b>는 차트의 봉을 눌러 핀과 글을 남기는 기능입니다. 종목분석과 차트검색 상세 차트에서 쓰며, 로그인하지 않으면 이 브라우저에만 저장됩니다.</li>
-    <li>호가창은 매수(왼쪽, 빨강)와 매도(오른쪽, 파랑)가 좌우로 나란히 보이고, <b>거래원 매매 상위</b>에서 어느 증권사 창구가 많이 사고팔았는지 볼 수 있습니다(국내 종목, 거래원 집계는 제공처 기준).</li>
-    <li><b>매물대</b>는 최근 120거래일 일봉으로 가격대별 거래량을 추정해 보여줍니다. 구간 경계는 실제 호가 단위에 맞춰 표시합니다.</li>
-    <li>개인·외국인·기관 수급, 공매도·대차, 연기금, 반대매매, 과거 시뮬레이션을 함께 제공합니다.</li>
-    <li>모든 분석은 참고 자료이며 매매 신호나 투자 권유가 아닙니다.</li>
+  <ol class="gd-toc" id="toc">
+    <li><a href="#quick">3분 코스: 삼성전자 하나 찾아보기</a></li>
+    <li><a href="#map">화면 한눈에 보기</a></li>
+    <li><a href="#color">빨강과 파랑 읽는 법</a></li>
+    <li><a href="#terms">처음 보는 말 풀이</a></li>
+    <li><a href="#search">종목 찾기와 실시간 검색 화면</a></li>
+    <li><a href="#chart">차트 쓰는 법</a></li>
+    <li><a href="#analysis">종목분석</a></li>
+    <li><a href="#market">시장 메뉴</a></li>
+    <li><a href="#stocks">종목 메뉴</a></li>
+    <li><a href="#calendar">캘린더</a></li>
+    <li><a href="#my">MY (관심종목)</a></li>
+    <li><a href="#home">홈 화면 읽기</a></li>
+    <li><a href="#faq">자주 묻는 질문</a></li>
+    <li><a href="#more">더 읽을거리와 주의할 점</a></li>
   </ol>
 
-  <h2>7. 차트검색·전략검색</h2>
+  <!-- ───────────── 1. 3분 코스 ───────────── -->
+  <h2 id="quick">1. 3분 코스: 삼성전자 하나 찾아보기</h2>
+  <p>아래 다섯 단계만 따라 하면 이 사이트의 기본 사용법은 다 해 본 셈이다. 로그인은 필요 없다.</p>
+  <ol class="gd-steps">
+    <li><b>검색창을 누른다.</b> 화면 위쪽 가운데에 있다. 안에 <span class="gd-btn">삼성전자 · NVDA 검색</span>처럼 예시가 적혀 있다.</li>
+    <li><b>삼성전자라고 입력한다.</b> 글자를 치는 동안 아래에 후보가 나타난다. 종목코드 <b>005930</b>을 입력해도 같은 결과가 나온다.</li>
+    <li><b>후보에서 삼성전자를 누른다.</b> 실시간 검색 화면이 열리고 현재가, 등락률, 거래량이 보인다.</li>
+    <li><b>아래로 내려 차트를 본다.</b> 처음에는 하루에 막대 하나씩 그린 <b>일봉</b>이다. 차트 위의 <span class="gd-btn">주봉</span> <span class="gd-btn">월봉</span>을 눌러 보면 같은 종목을 더 긴 기간으로 볼 수 있다.</li>
+    <li><b>마음에 들면 ★을 누른다.</b> 검색 결과 줄 맨 오른쪽에 있다. 로그인하면 MY에 관심종목으로 저장된다.</li>
+  </ol>
+
+  <p>삼성전자 검색 결과의 한 줄은 이렇게 읽는다.</p>
+  <div class="gd-eg">
+    <p><b>삼성전자 005930</b> · 현재가 <span class="gd-up">72,100</span> · 등락률 <span class="gd-up">+3.00%</span> · 거래량 12,000,000</p>
+    <ul>
+      <li>어제 끝난 가격이 70,000원이었고 지금 72,100원이면 <b>2,100원 올랐다</b>. 2,100 ÷ 70,000 = 0.03이므로 <b>+3.00%</b>다.</li>
+      <li>올랐으니 빨강이다. 내렸다면 파랑이다.</li>
+      <li>거래량 12,000,000은 오늘 1,200만 주가 사고팔렸다는 뜻이다.</li>
+    </ul>
+  </div>
+
+  <p>여기까지 했다면 다음에는 궁금한 쪽으로 가면 된다.</p>
   <ul>
-    <li>차트검색은 저점상승형·쌍바닥·눌림목·거래량 돌파·각도기·공파산 등 가격과 거래량 모양을 과거 데이터에 대입해 후보를 찾습니다. 탭마다 조건이 다르므로 한 탭의 결과를 다른 탭의 신호로 오해하지 마세요.</li>
-    <li>차트검색 종목 상세의 차트에서도 위의 그리기 도구, 파동 분석, 차트 메모를 같은 방식으로 쓸 수 있습니다.</li>
-    <li>포착된 종목은 <b>사후 추적</b>(현재 포착·추적 중·추적 종료)으로 이후 흐름을 이어서 보고, <b>성과기록</b>에서 최근 2주 추천과 5거래일·10거래일 뒤 수익률(D+5·D+10)을 확인합니다. 아직 측정 전인 행은 수익률이 비어 있습니다.</li>
-    <li>각 결과에는 <b>스캔 시각</b>이 붙습니다. 스캔 시각은 그 조건이 마지막으로 계산된 때이며, 목록의 현재가·등락률은 화면에 들어온 뒤 실시간 시세로 따로 갱신될 수 있습니다.</li>
-    <li>거래량 돌파는 평일 오전 09:05에 장중 한 번, 나머지 차트검색은 장 마감 뒤 저녁에 순서대로 실행됩니다. 서버가 전 종목을 읽으므로 결과가 바로 바뀌지 않고, 완료된 탭부터 갱신됩니다.</li>
-    <li>각도기와 공파산의 백테스트는 과거 신호를 정해진 진입·청산 규칙으로 계산한 결과입니다. 실제 체결 가격·세금·슬리피지와 다를 수 있고, 미래 수익을 보장하지 않습니다.</li>
-    <li>전략검색은 가격 모양 하나가 아니라 수급·재무·보유자료·목표주가 조건을 조합합니다. ETF 수익률 목록은 매일 갱신하고, 나머지 전략 목록은 매주 월요일 장 마감 뒤 한 번 갱신합니다. 각 결과의 기준시각을 확인한 뒤 최신 시세와 함께 보세요.</li>
-    <li>검색 결과는 매수·매도 지시가 아니라 조건에 맞은 종목을 다시 살펴보기 위한 후보 목록입니다. 이미 크게 움직인 종목은 결과가 좋아 보여도 진입 시점이 늦을 수 있습니다.</li>
-    <li><b>주말과 공휴일에는 검색을 돌리지 않습니다.</b> 직전 거래일 결과와 그때의 스캔 시각이 그대로 남습니다.</li>
-    <li>전략검색은 수급·재무·기술 조건을 조합한 목록이며, 같은 방식으로 하루 한 번 갱신됩니다.</li>
+    <li>오늘 시장 분위기가 궁금하면 → <b>시장 &gt; 증시온도</b> (<a href="#market">8장</a>)</li>
+    <li>오늘 어떤 종목이 뜨는지 궁금하면 → <b>홈</b>의 실시간 종목판 (<a href="#home">12장</a>)</li>
+    <li>모르는 말이 나오면 → <a href="#terms">4장 용어 풀이</a> 또는 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html">금융용어사전</a></li>
+  </ul>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 2. 화면 한눈에 보기 ───────────── -->
+  <h2 id="map">2. 화면 한눈에 보기</h2>
+  <p>어느 화면에 들어가도 위쪽 모양은 같다. 아래 그림에서 번호가 붙은 곳만 알면 길을 잃지 않는다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 262" role="img" aria-label="사이트 화면 구성. 위쪽에 로고와 검색창과 다크모드 스위치, 그 아래 메뉴 줄, 홈에서는 한국증시·미국증시·휴장 버튼, 오른쪽 가장자리에 MY 서랍 손잡이가 있다.">
+      <rect x="1" y="1" width="418" height="260" rx="10" class="fig-line"/>
+      <rect x="1" y="1" width="418" height="46" rx="10" class="fig-soft"/>
+      <rect x="1" y="30" width="418" height="17" class="fig-soft"/>
+      <circle cx="24" cy="24" r="11" class="fig-soft2"/>
+      <text x="42" y="28" class="fig-sub">로고 · 블로그명</text>
+      <rect x="130" y="11" width="156" height="26" rx="13" class="fig-white fig-line"/>
+      <text x="144" y="28" class="fig-sub">삼성전자 · NVDA 검색</text>
+      <rect x="318" y="15" width="38" height="18" rx="9" class="fig-acc"/>
+      <circle cx="347" cy="24" r="7" class="fig-white"/>
+      <line x1="1" y1="76" x2="419" y2="76" class="fig-dash"/>
+      <rect x="10" y="52" width="40" height="20" rx="8" class="fig-soft2"/>
+      <text x="18" y="67" class="fig-ink">홈</text>
+      <text x="64" y="67" class="fig-ink">시장</text>
+      <text x="112" y="67" class="fig-ink">종목</text>
+      <text x="160" y="67" class="fig-ink">캘린더</text>
+      <text x="224" y="67" class="fig-ink">커뮤니티</text>
+      <text x="300" y="67" class="fig-ink">MY</text>
+      <rect x="14" y="86" width="196" height="28" rx="14" class="fig-soft"/>
+      <rect x="146" y="89" width="60" height="22" rx="11" class="fig-soft2"/>
+      <text x="26" y="105" class="fig-sub">한국증시</text>
+      <text x="86" y="105" class="fig-sub">미국증시</text>
+      <text x="158" y="105" class="fig-ink">휴장</text>
+      <rect x="14" y="126" width="370" height="122" rx="10" class="fig-line"/>
+      <text x="30" y="150" class="fig-sub">홈 화면의 본문</text>
+      <rect x="28" y="162" width="100" height="70" rx="8" class="fig-soft"/>
+      <rect x="140" y="162" width="100" height="70" rx="8" class="fig-soft"/>
+      <rect x="252" y="162" width="120" height="70" rx="8" class="fig-soft"/>
+      <text x="78" y="202" text-anchor="middle" class="fig-sub">시장 카드</text>
+      <text x="190" y="202" text-anchor="middle" class="fig-sub">종목판</text>
+      <text x="312" y="202" text-anchor="middle" class="fig-sub">뉴스</text>
+      <rect x="392" y="152" width="24" height="46" rx="8" class="fig-acc"/>
+      <text x="404" y="180" text-anchor="middle" class="fig-on-accent">»</text>
+      <circle cx="300" cy="24" r="10" class="fig-marker"/><text x="300" y="29" text-anchor="middle" class="fig-on-accent" style="font-size:13px">1</text>
+      <circle cx="378" cy="24" r="10" class="fig-marker"/><text x="378" y="29" text-anchor="middle" class="fig-on-accent" style="font-size:13px">2</text>
+      <circle cx="382" cy="62" r="10" class="fig-marker"/><text x="382" y="67" text-anchor="middle" class="fig-on-accent" style="font-size:13px">3</text>
+      <circle cx="230" cy="100" r="10" class="fig-marker"/><text x="230" y="105" text-anchor="middle" class="fig-on-accent" style="font-size:13px">4</text>
+      <circle cx="404" cy="136" r="10" class="fig-marker"/><text x="404" y="141" text-anchor="middle" class="fig-on-accent" style="font-size:13px">5</text>
+    </svg>
+    <figcaption>PC 화면의 기본 배치. 번호는 아래 설명과 짝이다.</figcaption>
+  </figure>
+
+  <ol class="gd-legend">
+    <li><b>검색창.</b> 종목 이름이나 코드를 넣는 곳이다. 어느 화면에서든 쓸 수 있다.</li>
+    <li><b>다크모드 스위치.</b> 누르면 어두운 화면과 밝은 화면이 바뀐다. 밤에 보거나 눈이 부실 때 쓴다. 고른 설정은 이 브라우저에 남는다.</li>
+    <li><b>메뉴 줄.</b> 홈 · 시장 · 종목 · 캘린더 · 커뮤니티 · MY. <b>시장</b>과 <b>종목</b>은 마우스를 올리거나 누르면 아래에 세부 메뉴가 펼쳐진다.</li>
+    <li><b>한국증시 · 미국증시 · 휴장 버튼</b>(홈 화면). 지금 시각에 맞는 화면이 자동으로 열리지만, 눌러서 바꿔 볼 수 있다.</li>
+    <li><b>오른쪽 가장자리의 » 손잡이.</b> 누르면 내 관심종목 서랍이 열린다. 다른 화면을 보다가도 바로 열어 볼 수 있다.</li>
+  </ol>
+
+  <h3>폰에서는</h3>
+  <ul>
+    <li>위쪽의 메뉴 버튼(≡)으로 메뉴를 열고, 돋보기 버튼으로 검색한다.</li>
+    <li>표가 좁아 보이면 화면 맨 아래 <span class="gd-btn">PC 화면</span> 버튼을 눌러 PC 배치로 바꿀 수 있다. 다시 누르면 <span class="gd-btn">모바일 화면</span>으로 돌아온다.</li>
   </ul>
 
-  <h2>8. MY (관심종목)</h2>
+  <h3>무엇을 하고 싶을 때 어디로 가나</h3>
+  <div class="gd-tablewrap">
+  <table class="learn-table">
+    <thead><tr><th>하고 싶은 일</th><th>가는 곳</th></tr></thead>
+    <tbody>
+      <tr><td>종목 하나의 시세·차트 보기</td><td>위쪽 검색창에 종목 이름 입력</td></tr>
+      <tr><td>오늘 시장 분위기 보기</td><td>시장 &gt; 증시온도</td></tr>
+      <tr><td>오늘 많이 오른 종목 보기</td><td>홈의 실시간 종목판</td></tr>
+      <tr><td>그날 무슨 일이 있었는지 읽기</td><td>시장 &gt; 마켓브리핑, 주요 뉴스</td></tr>
+      <tr><td>환율·금리·유가·비트코인 보기</td><td>시장 &gt; 시장지표</td></tr>
+      <tr><td>차트 모양·수급으로 종목 거르기</td><td>종목 &gt; 종목분석 · 차트검색 · 전략검색</td></tr>
+      <tr><td>이번 주 실적·경제 일정 보기</td><td>캘린더</td></tr>
+      <tr><td>내가 보는 종목 모아 보기</td><td>MY 또는 오른쪽 » 손잡이</td></tr>
+      <tr><td>모르는 말 찾기</td><td>화면 맨 아래의 금융용어사전, 주식 이야기</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 3. 색 ───────────── -->
+  <h2 id="color">3. 빨강과 파랑 읽는 법</h2>
+  <p>한국 증시에서는 <b>오르면 빨강, 내리면 파랑</b>이다. 미국 쪽 사이트는 오르면 초록, 내리면 빨강을 쓰는 곳이 많아서 처음에는 헷갈리지만, 이 사이트는 한국 방식 하나로 통일했다. 미국 종목도 오르면 빨강이다. 변화가 없으면 회색이다.</p>
+  <div class="gd-eg">
+    <ul>
+      <li>어제 70,000원 → 오늘 72,100원: <span class="gd-up">72,100 +3.00%</span> (빨강)</li>
+      <li>어제 70,000원 → 오늘 69,000원: <span class="gd-down">69,000 −1.43%</span> (파랑). 1,000 ÷ 70,000 = 0.0143이다.</li>
+    </ul>
+  </div>
+  <p>호가창에서는 같은 색이 다른 뜻으로 쓰인다. <b>사려는 쪽(매수)이 빨강, 팔려는 쪽(매도)이 파랑</b>이다. 가격이 올랐다 내렸다는 뜻이 아니라 사고파는 쪽을 구분하는 색이다. 자세한 건 <a href="#orderbook">5장의 호가창 읽는 법</a>에 있다.</p>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 4. 용어 ───────────── -->
+  <h2 id="terms">4. 처음 보는 말 풀이</h2>
+  <p>화면에 자주 나오는 말만 모았다. 더 많은 말은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html">금융용어사전</a>에서 검색한다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>말</th><th>뜻</th><th>예</th></tr></thead>
+    <tbody>
+      <tr><td>현재가</td><td>가장 최근에 거래가 이루어진 가격</td><td>삼성전자 72,100원</td></tr>
+      <tr><td>전일 대비<br>등락률</td><td>어제 장이 끝났을 때의 가격과 비교한 변화. 원 단위가 전일 대비, 퍼센트가 등락률</td><td>70,000 → 72,100이면 +2,100원, +3.00%</td></tr>
+      <tr><td>시가<br>고가<br>저가<br>종가</td><td>그날 <b>첫</b> 거래 가격 · <b>가장 높았던</b> 가격 · <b>가장 낮았던</b> 가격 · <b>마지막</b> 가격</td><td>시가 70,000 · 고가 72,500 · 저가 69,500 · 종가 72,100</td></tr>
+      <tr><td>거래량</td><td>하루 동안 사고팔린 주식 수</td><td>12,000,000주</td></tr>
+      <tr><td>거래대금</td><td>거래된 금액의 합. 거래량 × 가격으로 어림할 수 있다. 돈이 얼마나 몰렸는지 볼 때 거래량보다 낫다</td><td>1,000만 주 × 약 70,000원 ≈ 7,000억 원</td></tr>
+      <tr><td>시가총액</td><td>회사 전체의 값. 주가 × 발행한 주식 수</td><td>주가 10,000원 × 1억 주 = 1조 원</td></tr>
+      <tr><td>매수 · 매도</td><td>사는 것 · 파는 것</td><td>“외국인 매수”는 외국인이 샀다는 뜻</td></tr>
+      <tr><td>호가</td><td>사려는 가격과 팔려는 가격의 대기표</td><td>70,100원에 팔겠다는 주문 1,200주</td></tr>
+      <tr><td>수급</td><td>누가 샀고 누가 팔았는지. 개인 · 외국인 · 기관으로 나눠 본다</td><td>외국인 순매수 500억 = 판 것보다 500억어치 더 샀다</td></tr>
+      <tr><td>이동평균선</td><td>최근 며칠 종가의 평균을 이은 선. 가격의 큰 흐름을 보여준다</td><td>5일선: 69,000 · 70,000 · 71,000 · 72,000 · 73,000의 평균 = 71,000</td></tr>
+      <tr><td>지지 · 저항</td><td>가격이 아래로 내려가다 자주 멈추는 자리(지지), 위로 오르다 자주 막히는 자리(저항)</td><td>70,000원에서 여러 번 반등했다면 70,000원 근처가 지지</td></tr>
+      <tr><td>매물대</td><td>거래가 많이 쌓인 가격 구간. 그 가격에 산 사람이 많다는 뜻이다</td><td>65,000~67,000원 구간에 거래가 몰려 있다</td></tr>
+      <tr><td>52주 신고가</td><td>최근 1년 중 가장 높았던 가격</td><td>오늘 가격이 1년 중 최고면 신고가</td></tr>
+      <tr><td>공매도</td><td>주식을 빌려 먼저 팔고, 나중에 싸게 사서 갚는 거래. 가격이 내려야 이익이다</td><td>100,000원에 팔고 80,000원에 갚으면 차액이 이익</td></tr>
+      <tr><td>반대매매</td><td>빚내서 산 주식 값이 많이 떨어지면 증권사가 강제로 파는 것</td><td>빚투 종목이 급락하면 반대매매가 늘어난다</td></tr>
+      <tr><td>환율</td><td>외국 돈 1단위를 사는 데 드는 원화</td><td>1달러 = 1,340원</td></tr>
+      <tr><td>ETF</td><td>여러 종목을 한 바구니에 담아 주식처럼 사고파는 상품</td><td>코스피 200 지수를 따라가는 ETF</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>ETF·환율처럼 한 번 읽어 두면 오래 쓰이는 내용은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">그림으로 배우는 주식 이야기</a>에 그림과 함께 정리해 뒀다.</p>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 5. 검색 ───────────── -->
+  <h2 id="search">5. 종목 찾기와 실시간 검색 화면</h2>
+
+  <h3>5-1. 검색하는 법</h3>
+  <p>위쪽 검색창에 한 글자만 넣어도 후보가 나온다. 국내 종목은 한글 이름이나 6자리 코드로, 미국 종목은 한글 이름 · 영문 이름 · 티커(알파벳 약칭)로 찾는다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>찾는 종목</th><th>이렇게 입력해도 된다</th></tr></thead>
+    <tbody>
+      <tr><td>삼성전자</td><td>삼성전자 · 삼성 · 005930</td></tr>
+      <tr><td>SK하이닉스</td><td>하이닉스 · SK하이닉스 · 000660</td></tr>
+      <tr><td>엔비디아</td><td>엔비디아 · NVDA · Nvidia</td></tr>
+      <tr><td>애플</td><td>애플 · AAPL</td></tr>
+    </tbody>
+  </table>
+  </div>
   <ul>
-    <li>Google 또는 네이버로 로그인하면 관심종목과 그룹이 계정에 저장돼 다른 기기에서도 같은 목록을 볼 수 있습니다.</li>
-    <li>종목별 수량과 평균매입단가를 입력하면 평가손익과 물타기 계산을 볼 수 있습니다.</li>
-    <li>보유 종목의 매물대·차트 모양·수급 요약을 함께 제공합니다.</li>
-    <li>매매내역이나 증권계좌 정보는 입력받지 않습니다. 자세한 내용은 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>을 확인해 주세요.</li>
+    <li>입력하기 전에 검색창을 누르면 <b>최근 조회</b> 5개가 나온다. 방금 본 종목을 다시 열 때 편하다. 이 기록은 지금 쓰는 브라우저에만 저장된다.</li>
+    <li>국내 종목은 같은 이름의 ETF·인버스보다 일반 주식이 먼저 나온다. 미국 종목은 주식과 ETF를 구분해서 보여준다.</li>
+    <li>결과가 없으면 철자와 시장(국내·미국)을 다시 확인한다. 너무 흔한 말이면 결과가 많으니 회사 이름이나 코드를 더 입력한다.</li>
   </ul>
 
-  <h2>9. 증시 캘린더</h2>
+  <h3>5-2. 실시간 검색 화면의 구성</h3>
+  <p>후보를 누르면 <b>실시간 검색</b> 화면이 열린다. 위에서 아래로 한 번 훑어보자.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 270" role="img" aria-label="실시간 검색 화면. 위에 검색 결과 줄과 요약 카드가 있고, 아래 왼쪽에 호가창, 오른쪽에 기간 버튼과 그리기 도구가 달린 차트가 있다.">
+      <rect x="1" y="1" width="418" height="268" rx="10" class="fig-line"/>
+      <rect x="14" y="10" width="270" height="26" rx="6" class="fig-white fig-line"/>
+      <text x="24" y="28" class="fig-sub">삼성전자</text>
+      <rect x="292" y="10" width="52" height="26" rx="6" class="fig-acc"/>
+      <text x="318" y="28" text-anchor="middle" class="fig-on-accent" style="font-size:13px">검색</text>
+      <rect x="14" y="46" width="392" height="28" rx="6" class="fig-soft"/>
+      <text x="24" y="65" class="fig-ink" style="font-size:13px">삼성전자</text>
+      <text x="82" y="65" class="fig-sub">005930</text>
+      <text x="150" y="65" class="fig-up" style="font-size:13px;font-weight:700">72,100</text>
+      <text x="206" y="65" class="fig-up" style="font-size:13px;font-weight:700">+3.00%</text>
+      <text x="394" y="65" text-anchor="end" class="fig-acc" style="font-size:16px">★</text>
+      <rect x="14" y="82" width="392" height="36" rx="8" class="fig-line"/>
+      <text x="26" y="105" class="fig-ink" style="font-size:13px">삼성전자 (005930)</text>
+      <text x="170" y="105" class="fig-up" style="font-size:13px;font-weight:700">72,100원 +3.00%</text>
+      <rect x="338" y="90" width="60" height="20" rx="8" class="fig-soft2"/>
+      <text x="368" y="104" text-anchor="middle" class="fig-sub">종목분석</text>
+      <rect x="14" y="128" width="150" height="134" rx="8" class="fig-line"/>
+      <text x="24" y="146" class="fig-ink" style="font-size:13px">호가</text>
+      <text x="40" y="168" class="fig-up" style="font-size:12px;font-weight:700">매수</text>
+      <text x="108" y="168" class="fig-down" style="font-size:12px;font-weight:700">매도</text>
+      <line x1="89" y1="156" x2="89" y2="254" class="fig-dash"/>
+      <g class="fig-up" style="font-size:12.5px">
+        <text x="30" y="188">70,000</text><text x="30" y="208">69,900</text><text x="30" y="228">69,800</text><text x="30" y="248">69,700</text>
+      </g>
+      <g class="fig-down" style="font-size:12.5px">
+        <text x="100" y="188">70,100</text><text x="100" y="208">70,200</text><text x="100" y="228">70,300</text><text x="100" y="248">70,400</text>
+      </g>
+      <rect x="174" y="128" width="232" height="134" rx="8" class="fig-line"/>
+      <text x="184" y="146" class="fig-ink" style="font-size:13px">차트</text>
+      <rect x="212" y="134" width="30" height="16" rx="8" class="fig-soft2"/>
+      <text x="227" y="146" text-anchor="middle" class="fig-sub" style="font-size:11.5px">일봉</text>
+      <text x="260" y="146" text-anchor="middle" class="fig-sub" style="font-size:11.5px">주봉</text>
+      <text x="292" y="146" text-anchor="middle" class="fig-sub" style="font-size:11.5px">월봉</text>
+      <text x="324" y="146" text-anchor="middle" class="fig-sub" style="font-size:11.5px">분봉</text>
+      <rect x="182" y="156" width="214" height="18" rx="6" class="fig-soft"/>
+      <text x="194" y="169" class="fig-sub" style="font-size:11.5px">직선</text>
+      <text x="228" y="169" class="fig-sub" style="font-size:11.5px">동그라미</text>
+      <text x="278" y="169" class="fig-sub" style="font-size:11.5px">박스</text>
+      <text x="312" y="169" class="fig-sub" style="font-size:11.5px">가로선</text>
+      <text x="356" y="169" class="fig-sub" style="font-size:11.5px">연필</text>
+      <line x1="184" y1="226" x2="398" y2="226" class="fig-acc-line" style="stroke-dasharray:5 4;stroke-width:1.5"/>
+      <text x="398" y="221" text-anchor="end" class="fig-sub" style="font-size:11px">70,000</text>
+      <polyline points="188,244 206,238 224,243 244,228 264,232 284,214 304,220 324,206 344,212 364,198 384,203" class="fig-up-line"/>
+      <circle cx="318" cy="99" r="10" class="fig-marker"/><text x="318" y="104" text-anchor="middle" class="fig-on-accent" style="font-size:13px">2</text>
+      <circle cx="350" cy="59" r="10" class="fig-marker"/><text x="350" y="64" text-anchor="middle" class="fig-on-accent" style="font-size:13px">1</text>
+      <circle cx="146" cy="142" r="10" class="fig-marker"/><text x="146" y="147" text-anchor="middle" class="fig-on-accent" style="font-size:13px">3</text>
+      <circle cx="392" cy="142" r="10" class="fig-marker"/><text x="392" y="147" text-anchor="middle" class="fig-on-accent" style="font-size:13px">4</text>
+      <circle cx="394" cy="248" r="10" class="fig-marker"/><text x="394" y="253" text-anchor="middle" class="fig-on-accent" style="font-size:13px">5</text>
+    </svg>
+    <figcaption>삼성전자를 검색했을 때의 화면 구조(예시 숫자). 실제 화면은 PC에서 호가가 왼쪽, 차트가 오른쪽에 놓이고 폰에서는 위아래로 쌓인다.</figcaption>
+  </figure>
+
+  <ol class="gd-legend">
+    <li><b>검색 결과 줄.</b> 종목 · 현재가 · 등락률 · 거래량 · 거래대금 · 업종이 한 줄에 나오고, 맨 오른쪽 ★로 관심종목에 담는다.</li>
+    <li><b>요약 카드.</b> 종목 이름과 현재가, 오늘의 등락이 크게 나온다. <span class="gd-btn">종목분석</span>을 누르면 수급·공매도·점수까지 보는 <a href="#analysis">종목분석 화면</a>으로 넘어간다. 카드 아래의 <b>AI</b> 표시가 붙은 한 줄은 AI가 쓴 요약이라 틀릴 수 있다.</li>
+    <li><b>호가.</b> 사려는 주문(왼쪽 빨강)과 팔려는 주문(오른쪽 파랑)이 나란히 쌓인 표다. 읽는 법은 바로 아래에 있다.</li>
+    <li><b>기간 버튼과 그리기 도구.</b> 일봉 · 주봉 · 월봉 · 분봉을 고르고, 차트 위에 선과 도형을 그린다. <a href="#chart">6장</a>에서 자세히 다룬다.</li>
+    <li><b>차트.</b> 한 막대가 하루(또는 한 주, 한 달)다. 막대 아래에는 거래량이 따로 그려진다. 국내 종목은 차트 아래에 <b>관련 뉴스</b>(최근 24시간)도 나온다.</li>
+  </ol>
+  <p>그 위에 <b>1시간 방향</b>이라는 작은 칸이 보일 수 있다. 아직 테스트 중인 실험 기능이고 정확도 검증 전이라 참고하지 않아도 된다.</p>
+
+  <h3 id="orderbook">5-3. 호가창 읽는 법</h3>
+  <p>주식은 경매처럼 거래된다. 사고 싶은 사람은 “이 가격에 사겠다”는 주문을, 팔고 싶은 사람은 “이 가격에 팔겠다”는 주문을 줄 세워 놓는다. 이 줄이 호가창이다.</p>
+  <div class="gd-eg">
+    <p>삼성전자 현재가가 70,000원일 때의 호가창이다.</p>
+    <div class="gd-tablewrap">
+    <table class="learn-table gd-ladder">
+      <thead><tr><th class="num">팔려는 수량</th><th class="num">가격</th><th class="num">사려는 수량</th></tr></thead>
+      <tbody>
+        <tr><td class="num gd-down">300주</td><td class="num gd-down">70,300</td><td></td></tr>
+        <tr><td class="num gd-down">800주</td><td class="num gd-down">70,200</td><td></td></tr>
+        <tr><td class="num gd-down">1,200주</td><td class="num gd-down">70,100</td><td></td></tr>
+        <tr><td></td><td class="num gd-up">70,000</td><td class="num gd-up">1,500주</td></tr>
+        <tr><td></td><td class="num gd-up">69,900</td><td class="num gd-up">900주</td></tr>
+        <tr><td></td><td class="num gd-up">69,800</td><td class="num gd-up">400주</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <ul>
+      <li><b>지금 당장 사려면</b> 가장 싸게 내놓은 70,100원을 내야 한다. 그 가격에 1,200주가 기다리고 있다.</li>
+      <li><b>지금 당장 팔려면</b> 가장 비싸게 사겠다는 70,000원을 받는다. 그 가격에 1,500주가 기다리고 있다.</li>
+      <li>사겠다는 가격과 팔겠다는 가격의 차이가 벌어져 있을수록 거래가 잘 안 되는 종목이다.</li>
+    </ul>
+  </div>
+  <p>사이트의 호가창은 위 표를 옆으로 눕힌 모양이다. <b>왼쪽이 매수(빨강), 오른쪽이 매도(파랑)</b>이고 현재가는 호가표 위쪽에 크게 나온다. 맨 아래에는 <b>총잔량</b>(사려는 전체 수량과 팔려는 전체 수량)이 나온다.</p>
+  <p>호가창 위쪽의 막대 세 줄은 이렇게 읽는다.</p>
   <ul>
-    <li>국내·미국 실적과 경제 일정을 하나의 달력에서 보여줍니다.</li>
-    <li>같은 날짜에 국내와 미국 일정이 함께 있으면 국내 일정이 먼저 표시됩니다.</li>
-    <li>날짜를 누르면 그날 일정만 볼 수 있습니다.</li>
-    <li>CPI·PPI·고용지표·FOMC 같은 경제지표는 등록된 일정만 표시되며, 등록이 없는 일정은 자동으로 생기지 않습니다.</li>
+    <li><b>저항(매도벽)</b>: 파는 쪽 주문이 한 가격에 유난히 많이 쌓인 곳이다. 위로 오르다 여기서 막힐 수 있다.</li>
+    <li><b>지지(매수벽)</b>: 사는 쪽 주문이 한 가격에 유난히 많이 쌓인 곳이다. 내려오다 여기서 받쳐질 수 있다.</li>
+    <li><b>체결강도</b>: 파는 쪽 벽이 얼마나 빨리 소진되는지로 어림잡은 값이다. 증권사 앱의 체결강도와 계산 방식이 다를 수 있다.</li>
+  </ul>
+  <div class="learn-note">호가창의 주문은 언제든 취소할 수 있다. “사려는 수량이 더 많으니 오른다”라고 단정하면 안 된다. 지금 분위기를 보는 참고 자료로만 쓴다.</div>
+
+  <h3>5-4. ★과 로그인</h3>
+  <ul>
+    <li>검색 결과 줄의 <b>★</b>을 누르면 MY의 관심종목에 담긴다. 로그인하지 않은 상태에서 누르면 “로그인 후 관심종목을 저장할 수 있습니다”라고 알려 준다.</li>
+    <li>로그인은 Google 또는 네이버 중에서 고른다. 로그인이 필요한 버튼을 누르면 선택 창이 열린다.</li>
+  </ul>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 6. 차트 ───────────── -->
+  <h2 id="chart">6. 차트 쓰는 법</h2>
+
+  <h3>6-1. 캔들(막대) 한 개 읽기</h3>
+  <p>차트의 막대는 <b>시가 · 고가 · 저가 · 종가</b> 네 가지 가격을 한 개로 그린 것이다. 몸통은 시가와 종가 사이, 위아래로 뻗은 가는 선(꼬리)은 그날의 고가와 저가다.</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 232" role="img" aria-label="캔들 두 개. 왼쪽은 시가 70,000에서 종가 72,100으로 오른 빨강 양봉, 오른쪽은 시가 72,100에서 종가 70,800으로 내린 파랑 음봉이다.">
+      <line x1="110" y1="51.25" x2="110" y2="178.75" class="fig-up-line"/>
+      <rect x="95" y="68.25" width="30" height="89.25" class="fig-up"/>
+      <line x1="125" y1="51.25" x2="134" y2="51.25" class="fig-dash"/>
+      <line x1="125" y1="68.25" x2="134" y2="68.25" class="fig-dash"/>
+      <line x1="125" y1="157.5" x2="134" y2="157.5" class="fig-dash"/>
+      <line x1="113" y1="178.75" x2="134" y2="178.75" class="fig-dash"/>
+      <text x="138" y="55" class="fig-sub">고가 <tspan class="fig-ink" style="font-size:13px">72,500</tspan></text>
+      <text x="138" y="72" class="fig-sub">종가 <tspan class="fig-ink" style="font-size:13px">72,100</tspan></text>
+      <text x="138" y="161" class="fig-sub">시가 <tspan class="fig-ink" style="font-size:13px">70,000</tspan></text>
+      <text x="138" y="183" class="fig-sub">저가 <tspan class="fig-ink" style="font-size:13px">69,500</tspan></text>
+      <text x="110" y="214" text-anchor="middle" class="fig-up" style="font-size:14px;font-weight:700">양봉 · 오른 날</text>
+
+      <line x1="300" y1="55.5" x2="300" y2="144.75" class="fig-down-line"/>
+      <rect x="285" y="68.25" width="30" height="55.25" class="fig-down"/>
+      <line x1="315" y1="55.5" x2="324" y2="55.5" class="fig-dash"/>
+      <line x1="315" y1="68.25" x2="324" y2="68.25" class="fig-dash"/>
+      <line x1="315" y1="123.5" x2="324" y2="123.5" class="fig-dash"/>
+      <line x1="303" y1="144.75" x2="324" y2="144.75" class="fig-dash"/>
+      <text x="328" y="52" class="fig-sub">고가 <tspan class="fig-ink" style="font-size:13px">72,400</tspan></text>
+      <text x="328" y="72" class="fig-sub">시가 <tspan class="fig-ink" style="font-size:13px">72,100</tspan></text>
+      <text x="328" y="127" class="fig-sub">종가 <tspan class="fig-ink" style="font-size:13px">70,800</tspan></text>
+      <text x="328" y="149" class="fig-sub">저가 <tspan class="fig-ink" style="font-size:13px">70,300</tspan></text>
+      <text x="300" y="214" text-anchor="middle" class="fig-down" style="font-size:14px;font-weight:700">음봉 · 내린 날</text>
+    </svg>
+    <figcaption>같은 날의 네 가지 가격이 막대 한 개가 된다. 빨강은 종가가 시가보다 높고, 파랑은 낮다.</figcaption>
+  </figure>
+
+  <ul>
+    <li><b>빨강 몸통(양봉)</b>은 몸통 아래가 시가, 위가 종가다. 하루를 70,000원에 시작해 72,100원에 마쳤으니 오른 날이다.</li>
+    <li><b>파랑 몸통(음봉)</b>은 반대로 위가 시가, 아래가 종가다. 72,100원에 시작해 70,800원에 마쳤으니 내린 날이다.</li>
+    <li>꼬리가 길다는 건 그날 가격이 크게 출렁였다는 뜻이다. 위꼬리가 길면 올랐다가 도로 내려온 것이고, 아래꼬리가 길면 내렸다가 되올라온 것이다.</li>
   </ul>
 
-  <h2>10. 데이터와 갱신</h2>
+  <h3>6-2. 기간 바꾸기</h3>
+  <div class="gd-tablewrap">
+  <table class="learn-table">
+    <thead><tr><th>버튼</th><th>막대 한 개</th><th>이럴 때 쓴다</th></tr></thead>
+    <tbody>
+      <tr><td>일봉</td><td>하루</td><td>최근 몇 달의 흐름을 볼 때 (기본)</td></tr>
+      <tr><td>주봉</td><td>한 주</td><td>1~2년 흐름을 볼 때</td></tr>
+      <tr><td>월봉</td><td>한 달</td><td>수년간의 큰 흐름을 볼 때</td></tr>
+      <tr><td>분봉</td><td>1분 등 짧은 시간</td><td>오늘 하루 움직임을 볼 때. 고르는 칸에서 분 간격을 바꾼다</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="gd-eg">
+    <p>“올해 삼성전자가 어디서 어디까지 움직였지?”가 궁금하면 <b>주봉</b>으로 바꾼다. “아까 10시쯤 왜 갑자기 올랐지?”가 궁금하면 <b>분봉</b>으로 바꾼다.</p>
+  </div>
+  <p>차트 위 <span class="gd-btn">전체 화면</span> 버튼을 누르면 차트가 화면 가득 커진다. 호가창과 차트 사이의 세로 막대를 끌면 두 칸의 폭을 바꿀 수 있다.</p>
+
+  <h3>6-3. 차트 위에 겹쳐 보는 표시</h3>
+  <p>차트 바로 위의 체크 칸을 켜고 끈다. 처음에는 <b>이동평균선</b>과 <b>매물대</b>만 켜져 있다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table">
+    <thead><tr><th>체크 칸</th><th>무엇이 그려지나</th><th>이렇게 본다</th></tr></thead>
+    <tbody>
+      <tr><td>이동평균선 표시</td><td>5일 · 20일 · 60일 · 224일 평균선</td><td>가격이 20일선 위에 있으면 최근 한 달 평균보다 비싸다. 선이 위로 향하면 평균 가격 자체가 오르는 중이다</td></tr>
+      <tr><td>일목균형표(구름) 표시</td><td>구름 모양 띠</td><td>가격이 구름 위에 있으면 상승 쪽, 아래에 있으면 하락 쪽으로 보는 것이 일반적인 해석이다</td></tr>
+      <tr><td>지지·저항 표시</td><td>가격 구간으로 계산한 지지선과 저항선</td><td>자주 멈췄던 가격을 눈으로 확인하는 참고선이다</td></tr>
+      <tr><td>매물대 표시</td><td>차트 오른쪽에 눕힌 막대</td><td>최근 120거래일 일봉으로 가격대별 거래량을 추정한 것이다. 막대가 긴 가격에 산 사람이 많다</td></tr>
+      <tr><td>파동 분석</td><td>상승(빨강) · 하락(파랑) · 횡보(회색) 구간 박스</td><td>실험 기능이다. 점선 구간은 새 봉이 들어오면 바뀔 수 있다. 화면에서만 계산하고 저장하지 않는다</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>이 표시들은 모두 과거 가격으로 계산한 <b>참고선</b>이다. “여기서 반드시 반등한다”는 약속이 아니다.</p>
+
+  <h3>6-4. 그림 그리기</h3>
+  <p>차트 위에 직접 선과 도형을 그려 두는 도구다. 마우스 왼쪽 버튼으로만 그려진다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table">
+    <thead><tr><th>버튼</th><th>그리는 법</th><th>쓰는 예</th></tr></thead>
+    <tbody>
+      <tr><td>직선</td><td>버튼을 누른 뒤 차트에서 시작할 곳과 끝낼 곳을 차례로 누른다. 누르는 사이 점선 미리보기가 따라온다</td><td>고점 두 개를 이어 하락 추세선 긋기</td></tr>
+      <tr><td>동그라미</td><td>직선과 같이 두 곳을 차례로 누르면 그 범위에 동그라미가 그려진다</td><td>눈여겨볼 봉 표시</td></tr>
+      <tr><td>박스</td><td>두 곳을 차례로 누르면 그 범위가 네모로 표시된다</td><td>가격이 오래 머문 박스권 표시</td></tr>
+      <tr><td>가로선</td><td>누른 가격에 차트 전체 폭으로 선이 그어지고 오른쪽에 금액이 적힌다</td><td>내가 산 가격, 손절할 가격 표시</td></tr>
+      <tr><td>연필</td><td>누른 채 자유롭게 그린다</td><td>손으로 메모하듯 표시</td></tr>
+      <tr><td>지우기</td><td>지금 보는 종목·봉 주기의 그림을 모두 지운다</td><td>처음부터 다시 그릴 때</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p><b>예: 70,000원에 가로선 긋기</b></p>
+  <ol class="gd-steps">
+    <li><span class="gd-btn">가로선</span> 버튼을 누른다. 눌린 상태로 바뀐다.</li>
+    <li>차트에서 70,000원 높이를 누른다. 전체 폭으로 선이 그어지고 오른쪽에 금액이 나타난다.</li>
+    <li>선을 위아래로 끌면 옮겨진다. 오른쪽 금액을 누르고 숫자를 직접 입력하면 정확한 가격으로 고쳐진다. 입력 칸을 비우면 그 선이 지워진다.</li>
+    <li>더 그리지 않으려면 <span class="gd-btn">가로선</span> 버튼을 한 번 더 눌러 끈다.</li>
+  </ol>
   <ul>
-    <li>데이터 제공처 전체 목록은 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>에서 확인할 수 있습니다.</li>
-    <li>실시간 시세는 WebSocket으로 받고, 연결이 끊기면 주기적으로 다시 조회합니다. 뉴스·지표·검색 결과는 각각 정해진 주기로 갱신되며, 검색 결과는 화면에 표시된 스캔 시각이 기준입니다.</li>
-    <li>화면에 "참고의견"으로 표시되는 문장은 AI가 만든 요약이며 오류가 있을 수 있습니다.</li>
+    <li>그림은 <b>종목과 봉 주기별로 따로</b> 저장된다. 일봉에서 그은 선은 주봉에서 보이지 않는다.</li>
+    <li>로그인하면 그림이 계정에 저장되어 다른 기기에서도 보인다(일봉·주봉·월봉). 로그인하지 않으면 이 브라우저에만 저장된다. <b>분봉의 그림은 저장되지 않는다.</b></li>
   </ul>
-  <p><b>주의:</b> API 지연·거래소 휴장·제공업체 제한에 따라 값이 늦거나 비어 있을 수 있습니다.</p>
 
-  <h2>11. 처음이라면</h2>
-  <p>주식이 처음이라면 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">그림으로 배우는 주식 이야기</a>를 먼저 읽어 보세요. 시장 구조 → 주문과 체결 → 차트 → 수급과 회사 → 위험 관리 → 돈의 흐름 → 환율·금리·비트코인 순서의 기초 7장이며, 호가창·캔들·매물대·물탱크 같은 그림과 숫자 예시로 설명합니다. 각 장 끝에는 이 사이트의 어느 화면에서 확인하면 되는지도 적어 뒀습니다.</p>
+  <h3>6-5. 차트 메모</h3>
+  <p><span class="gd-btn">메모</span> 버튼을 누른 뒤 차트의 봉을 누르면 그 봉에 핀이 꽂히고 글을 적을 수 있다. 일봉 · 주봉 · 월봉에서 쓴다. 종목분석과 차트검색의 상세 차트에서도 같은 방식이다.</p>
+  <div class="gd-eg">
+    <ul>
+      <li>실적 발표가 있던 봉에 “실적 발표, 시간 외 급락”이라고 적는다.</li>
+      <li>내가 산 날 봉에 “1차 매수 70,000원”이라고 적는다.</li>
+    </ul>
+  </div>
+  <p>로그인하면 메모가 계정에 저장되고, 로그인하지 않으면 이 브라우저에만 저장된다.</p>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
 
-  <h2>12. 이용 안내</h2>
+  <!-- ───────────── 7. 종목분석 ───────────── -->
+  <h2 id="analysis">7. 종목분석</h2>
+  <p><b>종목 &gt; 종목분석</b>에 있다. 종목 하나를 깊이 보는 화면이면서, 반대로 “지금 어떤 모양의 종목이 몇 개나 있나”를 먼저 훑어볼 수도 있다.</p>
+
+  <h3>7-1. 차트 흐름별 탐색</h3>
+  <p>이 화면의 맨 위에는 종목을 차트 모양에 따라 여섯 묶음으로 나눈 카드가 있다. 카드마다 해당하는 종목 수가 적혀 있다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>카드</th><th>뜻</th></tr></thead>
+    <tbody>
+      <tr><td class="gd-up">상방 변곡 감지</td><td>내려가거나 옆으로 가던 종목이 올라가는 쪽으로 방향을 바꾸기 시작한 모양</td></tr>
+      <tr><td class="gd-up">상승 추세 재개</td><td>오르다 잠시 쉬며 내려온 뒤 다시 방향을 되찾은 모양</td></tr>
+      <tr><td class="gd-up">상승 추세 지속</td><td>고점과 저점이 함께 높아지는 상승 흐름</td></tr>
+      <tr><td>수렴·압축</td><td>가격 움직임의 폭이 점점 줄며 방향을 기다리는 모양</td></tr>
+      <tr><td class="gd-down">하방 변곡 감지</td><td>오르거나 옆으로 가던 종목이 내려가는 쪽으로 방향을 바꾼 모양</td></tr>
+      <tr><td class="gd-down">하락 추세 지속</td><td>고점과 저점이 함께 낮아지는 하락 흐름</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>카드를 누르면 그 모양에 해당하는 종목 목록이 열리고, 종목마다 장기 · 중기 · 단기 국면을 함께 볼 수 있다. 목록은 <b>신호 최신순 · 거래대금순 · 거래량순 · 업종별</b>로 정렬한다. 카드 아래의 <b>업종별 보기</b>에서는 같은 분석을 업종 단위로 모아서 본다.</p>
+  <div class="gd-eg">
+    <p>“요즘 움직임이 조용해진 종목 중에서 돈이 많이 오가는 곳이 어디지?”가 궁금하다면 <b>수렴·압축</b> 카드를 누르고 <b>거래대금순</b>으로 정렬한다. 위쪽에 나오는 종목이 가격 폭은 줄었는데 거래대금은 큰 종목이다.</p>
+  </div>
+
+  <h3>7-2. 종목 하나를 열면</h3>
+  <p>목록에서 종목을 누르면 상세 화면이 열린다. 상세 화면의 차트에서도 앞에서 설명한 그리기 도구와 메모를 같은 방식으로 쓴다. 여기에는 종목 하나를 여덟 가지 관점으로 나눠 점수를 보여주는 항목이 더해진다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>항목</th><th>무엇을 보나</th></tr></thead>
+    <tbody>
+      <tr><td>단기 수급강도</td><td>최근 사는 힘과 파는 힘 중 어느 쪽이 센지</td></tr>
+      <tr><td>외국인·기관</td><td>외국인과 기관투자자의 최근 매매 방향</td></tr>
+      <tr><td>기술적 점수</td><td>차트와 보조지표로 본 상태</td></tr>
+      <tr><td>공매도 압박</td><td>공매도와 대차(주식 빌리기) 규모가 부담이 되는 정도</td></tr>
+      <tr><td>연기금</td><td>국민연금 같은 연기금의 매매 흐름</td></tr>
+      <tr><td>반대매매</td><td>빚내서 산 주식이 강제로 팔릴 위험의 정도</td></tr>
+      <tr><td>펀더멘탈</td><td>회사의 실적과 재무 상태</td></tr>
+      <tr><td>가격추세</td><td>최근 가격이 어느 방향으로 힘을 받고 있는지</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>항목마다 점수와 한 줄 해석이 붙는다. 이 밖에 회사 소개, 분기 실적(전년 같은 분기와 비교), 개인 · 외국인 · 기관 수급, 국내 종목의 <b>거래원 매매 상위</b>(어느 증권사 창구에서 많이 사고팔았는지)도 볼 수 있다.</p>
+  <div class="learn-note">점수와 해석은 사이트가 정한 계산 규칙으로 만든 <b>참고값</b>이다. 매수·매도 신호도, 투자 권유도 아니다. 점수가 좋아 보이는 종목도 이미 많이 올라 있을 수 있으니 차트와 함께 본다.</div>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 8. 시장 ───────────── -->
+  <h2 id="market">8. 시장 메뉴</h2>
+  <p>종목 하나가 아니라 시장 전체의 분위기와 사건을 보는 메뉴다. 마켓브리핑 · 주요 뉴스 · 증시온도 · 시장지표 네 가지가 있다.</p>
+
+  <h3>8-1. 마켓브리핑</h3>
+  <p>그날 시장에서 무슨 일이 왜 일어났는지를 글로 풀어 쓴 곳이다. 예를 들어 한 종목이 갑자기 떨어진 날이면 사건이 일어난 날짜, 하락률, 가지고 있는 사람이 확인할 것을 정리한 글이 올라온다. 뉴스는 많은데 무슨 뜻인지 모르겠을 때 읽는다.</p>
+
+  <h3>8-2. 주요 뉴스</h3>
+  <p>그날의 주요 기사를 모아 보여준다. 제목을 누르면 원문으로 이동한다. 기사 내용은 각 언론사 것이니 원문을 확인한다.</p>
+
+  <h3>8-3. 증시온도</h3>
+  <p>오늘 시장 분위기를 <b>0~100점</b> 점수 하나로 보여준다. 체온계처럼 숫자가 낮으면 차갑고(공포), 높으면 뜨겁다(과열).</p>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 100" role="img" aria-label="증시온도 눈금. 0에서 39점은 공포, 40에서 60점은 보통, 61점부터 100점은 과열이다. 예시로 19도가 공포 구간에 표시되어 있다.">
+      <text x="98.4" y="18" text-anchor="middle" class="fig-ink">19℃</text>
+      <polygon points="98.4,38 91.4,26 105.4,26" class="fig-marker"/>
+      <rect x="30" y="42" width="144" height="20" class="fig-down" style="opacity:.28"/>
+      <rect x="174" y="42" width="75.6" height="20" class="fig-soft2"/>
+      <rect x="249.6" y="42" width="140.4" height="20" class="fig-up" style="opacity:.28"/>
+      <text x="102" y="57" text-anchor="middle" class="fig-ink" style="font-size:13px">공포 0~39</text>
+      <text x="211.8" y="57" text-anchor="middle" class="fig-ink" style="font-size:13px">보통 40~60</text>
+      <text x="320" y="57" text-anchor="middle" class="fig-ink" style="font-size:13px">과열 61~100</text>
+      <text x="30" y="80" class="fig-sub">0</text>
+      <text x="174" y="80" text-anchor="middle" class="fig-sub">40</text>
+      <text x="249.6" y="80" text-anchor="middle" class="fig-sub">61</text>
+      <text x="390" y="80" text-anchor="end" class="fig-sub">100</text>
+    </svg>
+    <figcaption>예시: 오늘 19℃가 나왔다면 공포 구간이다. 화면에는 “19℃ 공포”처럼 숫자와 등급이 함께 나온다.</figcaption>
+  </figure>
+
   <ul>
-    <li>시세·수급·차트·뉴스·분석 내용은 투자 참고용이며 투자 자문이 아닙니다.</li>
-    <li>원문 뉴스와 공시는 각 제공처의 내용을 확인해 주세요.</li>
-    <li>서비스 이용에 관한 자세한 내용은 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>을 확인해 주세요.</li>
+    <li><b>점수는 어떻게 만드나.</b> 열 가지 지표를 <b>돈</b>(거래대금 · 수급), <b>가격</b>(평균 등락률 · 오른 종목 비율 · 52주 신고가), <b>위험</b>(변동성 지수 VIX · 환율 · 빚투) 세 묶음으로 나눠 평균을 낸다. 위험 묶음만 높을수록 점수가 나빠진다.</li>
+    <li><b>최근 단기흐름.</b> 며칠 동안의 점수를 그래프로 그린 것이다. 그래프 위를 마우스나 손가락으로 훑으면 그날 점수가 나온다. 그 아래 날씨 아이콘 줄로도 흐름을 한눈에 볼 수 있다.</li>
+    <li><b>오늘의 개미 체크리스트.</b> 그날 분위기에서 개인 투자자가 자주 하는 실수를 막으려는 점검표다. 사라거나 팔라는 말이 아니다.</li>
+    <li><b>업종 로테이션.</b> 국내 업종을 유입 · 주도 · 둔화 · 이탈로 나눈다. 거래대금과 상대 강도로 자동 분류하므로 참고만 한다.</li>
+    <li><b>오늘 돈이 몰린 섹터.</b> 구성종목 거래대금이 큰 순서로 테마를 보여준다. 막대가 길수록 돈이 많이 몰렸고, 빨강은 평균적으로 올랐다는 뜻, 파랑은 내렸다는 뜻이다. 행을 누르면 구성종목이 열린다.</li>
+    <li><b>대표 종목 · 2주 추적.</b> 테마 아래의 대표 종목 2~3개는 그 테마에서 오늘 거래대금이 가장 큰 종목이다. 2주 추적은 거래일 오후 3시 35분 이후 첫 갱신 때 남긴 가격을 기준으로 최근 14일 수익률을 보여준다. 수수료와 세금은 반영하지 않았고 앞날을 보장하지 않는다.</li>
+  </ul>
+  <div class="gd-eg">
+    <p>오늘 증시온도가 19℃(공포)이고 <b>오늘 돈이 몰린 섹터</b>의 맨 위가 반도체이며 막대가 파랑이다. 시장 분위기는 차갑고, 돈이 가장 많이 오간 곳은 반도체인데 그 섹터가 평균적으로 내렸다는 뜻이다. 오늘은 내리는 쪽에 돈이 몰렸다고 읽는다.</p>
+  </div>
+  <p>점수가 낮다고 사라는 뜻도, 높다고 팔라는 뜻도 아니다. 분위기를 숫자로 바꿔 놓은 것일 뿐이다. 점수는 몇 분 간격으로 다시 계산되며 화면 아래 업데이트 시각이 기준이다.</p>
+
+  <h3>8-4. 시장지표</h3>
+  <p>나라별 지수, 환율, 금리 같은 큰 숫자를 한 곳에서 본다. 화면 위의 탭 다섯 개로 바꾼다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>탭</th><th>보여주는 것</th></tr></thead>
+    <tbody>
+      <tr><td>국내 시장지표</td><td>코스피 · 코스닥 지수와 차트, 선물 같은 국내 지표</td></tr>
+      <tr><td>글로벌 시장지표</td><td>나스닥 · S&amp;P500 · 다우 같은 미국 지수, 변동성 지수(VIX)와 원/달러 환율, 미국 국채 금리(10년 · 2년 · 30년)와 한국 국채 3년, 유가(WTI)와 금, 비트코인 · 이더리움</td></tr>
+      <tr><td>주요 미국 발표</td><td>미국의 중요한 경제 발표 결과</td></tr>
+      <tr><td>가상자산</td><td>비트코인 등 가상자산 시세</td></tr>
+      <tr><td>환율</td><td>한국수출입은행이 영업일마다 고시하는 환율 표와 추이 차트</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>환율 탭만 바로 열고 싶으면 <a href="https://ghlee.tistory.com/pages/overnight-market?tab=fx">환율 탭 바로 가기</a>를 누른다.</p>
+
+  <p><b>환율 탭 읽는 법</b></p>
+  <p>환율 탭은 영업일마다 한 번 정해지는 <b>공식 고시환율</b>이다. 실시간 시장환율이 아니다. 실시간 원/달러는 글로벌 시장지표 탭에 있다. 표는 통화 · 매매기준율 · 전일 대비 · 등락률 · 송금 받을 때 · 송금 보낼 때로 이루어진다.</p>
+  <div class="gd-eg">
+    <p>미국 달러가 이렇게 고시되었다고 하자.</p>
+    <ul>
+      <li>매매기준율 <b>1,339.20원</b>: 그날의 기준이 되는 값이다.</li>
+      <li>송금 받을 때 <b>1,325.80원</b>: 해외에서 받은 달러를 원화로 바꿀 때 적용하는 값이다. 1,000달러를 받으면 1,325.80 × 1,000 = <b>1,325,800원</b>이다.</li>
+      <li>송금 보낼 때 <b>1,352.59원</b>: 원화로 달러를 사서 해외로 보낼 때 적용하는 값이다. 1,000달러를 보내려면 1,352.59 × 1,000 = <b>1,352,590원</b>이 든다.</li>
+      <li>보내는 값이 받는 값보다 비싼 건 그 차이가 은행의 몫이기 때문이다.</li>
+    </ul>
+    <p>일본 엔은 <b>100엔 기준</b>으로 적혀 있다. 100엔이 847.46원이면 1엔은 약 8.47원이다.</p>
+  </div>
+  <p>표에서 통화 줄을 누르면 아래 차트가 그 통화로 바뀐다. <b>1개월 · 3개월 · 1년</b> 버튼으로 기간을 고른다. 공휴일과 주말에는 새 고시가 없어서 직전 영업일 값이 그대로 나온다. 이 값은 한국수출입은행 자료다.</p>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 9. 종목 ───────────── -->
+  <h2 id="stocks">9. 종목 메뉴</h2>
+  <p>국내 주요종목 · 종목분석 · 차트검색 · 전략검색 네 가지다. 앞의 둘은 종목을 <b>보는</b> 화면이고, 뒤의 둘은 조건으로 종목을 <b>거르는</b> 화면이다. 종목분석은 <a href="#analysis">7장</a>에서 설명했다.</p>
+
+  <h3>9-1. 국내 주요종목 (내 카테고리)</h3>
+  <p>내가 만든 <b>카테고리</b>(묶음) 단위로 종목을 모아 보는 화면이다. 카드로 보기 · 히트맵(색깔 지도)으로 보기 · 시가총액 크기에 비례한 히트맵으로 보기가 있고, 세 보기 모두 같은 카테고리를 보여준다.</p>
+  <ul>
+    <li>맨 위 칩은 증시온도와 같은 <b>오늘 돈이 몰린 섹터 TOP10</b>이다. 초록 테두리 칩은 내 카테고리와 겹치는 테마로, 누르면 해당 카드로 이동한다. 점선 칩은 내 카테고리에 없는 테마로, 누르면 그 테마로 새 카테고리가 만들어진다.</li>
+    <li>돈이 몰린 카테고리는 맨 앞으로 오고 <b>“돈 몰림 #순위”</b> 표시가 붙는다. 테마와 카테고리의 구성종목이 얼마나 겹치는지로 자동 계산하므로 완벽한 분류는 아니다.</li>
+    <li><b>활성 종목</b> 탭은 오늘 거래가 활발한 종목을 내 카테고리별로 묶어 보여준다. 카테고리에 없는 종목은 “편입 후보”로 따로 나오고, ＋를 누르면 넣을 카테고리를 골라 저장한다.</li>
+  </ul>
+  <div class="gd-eg">
+    <p>화장품 관련 종목을 따로 모아 보고 싶다면 <span class="gd-btn">＋ 키움 테마로 추가</span>에서 “화장품”을 검색해 카테고리를 만든다. 이름이나 종목을 바꾸고 싶으면 <span class="gd-btn">카테고리·종목 편집</span>을 쓴다.</p>
+  </div>
+  <p>로그인하지 않으면 카테고리가 이 브라우저에만 저장되고, 로그인하면 계정에 저장되어 다른 기기에서도 같다. 시가총액 크기 히트맵은 시가총액을 아는 종목만 그릴 수 있어서 일부 종목이 빠질 수 있고, 몇 종목이 표시되는지는 화면에 적혀 있다.</p>
+
+  <h3>9-2. 차트검색</h3>
+  <p>차트의 모양을 과거 데이터에 대 보고 조건에 맞는 종목을 찾아 준다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>탭</th><th>어떤 모양을 찾나</th></tr></thead>
+    <tbody>
+      <tr><td>저점상승형</td><td>하락 뒤 바닥을 다지며 저점이 계단처럼 높아지는 종목</td></tr>
+      <tr><td>하락추세선 첫돌파</td><td>고점들을 이은 내려오는 선을 오늘 처음 뚫고 올라선 종목</td></tr>
+      <tr><td>장기이평 응축기</td><td>224일 이동평균선과 구름대가 가까워지며 가격이 한곳에 모인 종목</td></tr>
+      <tr><td>쌍바닥</td><td>비슷한 높이의 바닥을 두 번 찍고 올라오는 W 모양</td></tr>
+      <tr><td>역헤드앤숄더</td><td>가운데 바닥이 가장 깊고 양옆 바닥이 얕은 모양(머리와 두 어깨를 뒤집은 것)</td></tr>
+      <tr><td>박스권 하단</td><td>좁은 범위에서 횡보하다 박스의 아래쪽에 와 있는 종목</td></tr>
+      <tr><td>이평선 눌림</td><td>크게 오른 뒤 20일선 같은 이동평균선 근처까지 내려와 쉬는 종목</td></tr>
+      <tr><td>첫 눌림 재돌파</td><td>오른 뒤 첫 번째 조정을 거치고 다시 고점을 넘어선 종목</td></tr>
+      <tr><td>각도기 타점</td><td>이동평균선의 기울기가 하락에서 상승으로 바뀌는 종목</td></tr>
+      <tr><td>공파산 타점</td><td>크게 떨어진 뒤 바닥에서 횡보하며 큰 거래가 있었던 종목</td></tr>
+      <tr><td>거래량 돌파(5분)</td><td>장중에 거래량이 갑자기 붙는데 아직 많이 오르지 않은 종목</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>탭을 고르면 그 탭이 찾는 조건이 한 줄 설명으로 나온다. 탭마다 조건이 다르니 한 탭에서 나온 종목을 다른 탭의 신호로 읽지 않는다. 눌림목은 이렇게 생각하면 쉽다. 달리던 사람이 숨을 고르려고 잠깐 걸음을 늦춘 자리다.</p>
+  <ul>
+    <li><b>스캔 시각.</b> 각 결과에는 그 조건을 마지막으로 계산한 시각이 붙는다. 목록의 현재가와 등락률은 화면에 들어온 뒤 실시간 시세로 따로 바뀔 수 있다.</li>
+    <li><b>갱신 시간.</b> <b>거래량 돌파(5분)</b>은 장중에 서버가 약 30초마다 거래량 순위를 읽어 목록을 새로 만든다. 나머지 탭은 장 마감 뒤 저녁에 일봉으로 순서대로 계산한다. 서버가 전 종목을 읽는 작업이라 결과가 바로 바뀌지 않고, 끝난 탭부터 갱신된다. 주말과 공휴일에는 돌리지 않으므로 직전 거래일 결과와 그때의 스캔 시각이 그대로 남는다.</li>
+    <li><b>사후 추적과 성과기록.</b> 포착된 종목은 <b>현재 포착 · 추적 중 · 추적 종료</b>로 이후 흐름을 이어서 본다. <b>성과기록</b>에는 최근 2주 동안 포착한 종목과 5거래일 · 10거래일 뒤 수익률(D+5 · D+10)이 나온다. 아직 날짜가 안 된 행은 수익률이 비어 있다.</li>
+  </ul>
+  <div class="gd-eg">
+    <p>성과기록에서 어떤 종목이 포착일 가격 70,000원이고 D+5 칸에 <span class="gd-up">+4.2%</span>가 적혀 있다면, 포착한 날부터 5거래일 뒤 가격이 약 72,940원이었다는 뜻이다(70,000 × 1.042). 수수료와 세금, 실제 체결 가격과의 차이는 반영하지 않았다.</p>
+  </div>
+  <p>각도기와 공파산의 백테스트는 과거 신호를 정해 둔 진입 · 청산 규칙으로 계산한 결과다. 앞으로의 수익을 보장하지 않는다.</p>
+
+  <h3>9-3. 전략검색</h3>
+  <p>가격 모양 하나가 아니라 수급 · 재무 · 보유자료 · 목표주가 같은 여러 조건을 조합해서 거른다. ETF 수익률 목록은 매일, 나머지 전략 목록은 매주 월요일 장 마감 뒤에 한 번 새로 계산한다. 각 결과의 기준 시각을 확인하고 최신 시세와 함께 본다.</p>
+  <div class="learn-note">차트검색과 전략검색의 결과는 사라거나 팔라는 지시가 아니라 <b>다시 살펴볼 후보 목록</b>이다. 이미 크게 오른 종목은 결과가 좋아 보여도 들어갈 자리를 놓쳤을 수 있다.</div>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 10. 캘린더 ───────────── -->
+  <h2 id="calendar">10. 캘린더</h2>
+  <p>국내와 미국의 실적 발표, 경제 일정을 한 달력에 모아 놓았다.</p>
+  <ul>
+    <li>날짜를 누르면 그날 일정만 모아 볼 수 있다.</li>
+    <li>같은 날 국내와 미국 일정이 함께 있으면 국내 일정이 먼저 나온다.</li>
+    <li>CPI · PPI · 고용지표 · FOMC 같은 경제 일정은 <b>등록된 것만</b> 나온다. 등록이 없는 일정이 저절로 생기지는 않는다.</li>
+  </ul>
+  <div class="gd-eg">
+    <p>관심종목 실적 발표일이 궁금하면 캘린더에서 그 주의 날짜를 눌러 본다. 발표일에는 주가가 크게 움직이는 일이 많아서 미리 알아 두면 놀라지 않는다.</p>
+  </div>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 11. MY ───────────── -->
+  <h2 id="my">11. MY (관심종목)</h2>
+  <p>내가 보는 종목을 모아 두는 곳이다. 어느 화면에서든 오른쪽 가장자리의 <b>»</b> 손잡이를 누르면 같은 목록이 서랍으로 열린다.</p>
+
+  <h3>11-1. 시작하기</h3>
+  <ol class="gd-steps">
+    <li><b>로그인한다.</b> MY 화면의 로그인 버튼을 누르면 Google과 네이버 중에서 고르는 창이 열린다. 로그인하면 관심종목과 그룹이 계정에 저장되어 폰과 PC에서 같은 목록이 보인다.</li>
+    <li><b>종목을 담는다.</b> 검색 결과 줄의 ★을 누르면 들어온다.</li>
+    <li><b>그룹으로 나눈다.</b> 종목이 많아지면 그룹으로 분류해서 본다.</li>
+  </ol>
+
+  <h3>11-2. 평가손익 보는 법</h3>
+  <p>종목마다 <b>수량</b>과 <b>평균매입단가</b>(평단가)를 적어 두면 지금 얼마나 벌었는지 계산해 준다.</p>
+  <div class="gd-eg">
+    <p>삼성전자를 평균 70,000원에 10주 샀고, 지금 72,100원이다.</p>
+    <ul>
+      <li>산 금액(매입금액): 70,000 × 10 = <b>700,000원</b></li>
+      <li>지금 가치(평가금액): 72,100 × 10 = <b>721,000원</b></li>
+      <li>평가손익: 721,000 − 700,000 = <span class="gd-up">+21,000원</span> (21,000 ÷ 700,000 = <span class="gd-up">+3.00%</span>)</li>
+    </ul>
+    <p>아직 팔지 않았으니 <b>평가</b>손익이다. 실제로 팔아서 확정되는 손익이 아니다.</p>
+  </div>
+
+  <h3>11-3. 물타기 계산</h3>
+  <p>물타기는 값이 내린 종목을 더 사서 <b>평균 매입 가격을 낮추는</b> 것이다. 더 사면 평균 가격이 어떻게 되는지 미리 계산해 볼 수 있다.</p>
+  <div class="gd-eg">
+    <p>평균 70,000원에 10주를 가지고 있는데 주가가 60,000원으로 내렸다. 여기서 10주를 더 산다면 이렇게 된다.</p>
+    <div class="gd-tablewrap">
+    <table class="learn-table">
+      <thead><tr><th></th><th class="num">수량</th><th class="num">단가</th><th class="num">금액</th></tr></thead>
+      <tbody>
+        <tr><td>처음 산 것</td><td class="num">10주</td><td class="num">70,000</td><td class="num">700,000</td></tr>
+        <tr><td>추가로 산 것</td><td class="num">10주</td><td class="num">60,000</td><td class="num">600,000</td></tr>
+        <tr><td>합계</td><td class="num">20주</td><td class="num"><b>65,000</b></td><td class="num">1,300,000</td></tr>
+      </tbody>
+    </table>
+    </div>
+    <p>평균 단가가 70,000원에서 <b>65,000원</b>(1,300,000 ÷ 20)으로 낮아진다. 이제 65,000원까지만 올라도 본전이다.</p>
+  </div>
+  <div class="learn-note">물타기는 평균 가격을 낮춰 주지만 <b>내 돈이 더 들어가는 일</b>이다. 위 예에서 주가가 50,000원으로 더 내리면, 20주를 들고 있으니 평가손실이 (65,000 − 50,000) × 20 = 300,000원이 된다. 더 사지 않았다면 (70,000 − 50,000) × 10 = 200,000원이었다. 계산 결과를 보고 판단하는 건 내 몫이다.</div>
+
+  <h3>11-4. 무엇이 저장되나</h3>
+  <ul>
+    <li>보유 종목의 매물대 · 차트 모양 · 수급 요약도 함께 볼 수 있다.</li>
+    <li>매매내역과 증권계좌 정보는 입력받지 않는다. 자세한 내용은 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>에 있다.</li>
+    <li><b>로그인했을 때</b>: 관심종목 · 국내 주요종목 카테고리 · 차트 메모 · 그린 그림(분봉 제외)이 계정에 저장된다.</li>
+    <li><b>로그인하지 않았을 때</b>: 같은 내용이 이 브라우저에만 저장된다. 브라우저 기록을 지우거나 다른 기기로 옮기면 사라진다.</li>
+    <li>다크모드 · 최근 조회 같은 화면 설정은 로그인과 관계없이 이 브라우저에 저장된다.</li>
+    <li>네이버 로그인은 네이버 검수가 끝나기 전에는 일부 계정만 쓸 수 있다.</li>
+  </ul>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 12. 홈 ───────────── -->
+  <h2 id="home">12. 홈 화면 읽기</h2>
+
+  <h3>12-1. 한국증시 · 미국증시 · 휴장</h3>
+  <p>홈 맨 위의 세 버튼으로 화면이 바뀐다. 처음 열 때는 <b>지금 시각에 맞는 화면</b>이 자동으로 열리고, 버튼을 누르면 직접 바꿀 수 있다. 시장 카드, 실시간 종목판, 경제 종합뉴스가 같은 시각 기준으로 함께 바뀐다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table">
+    <thead><tr><th>한국 시간</th><th>자동으로 열리는 화면</th></tr></thead>
+    <tbody>
+      <tr><td>평일 오전 8시 ~ 오후 9시</td><td>한국증시 (아침 8시 NXT 프리마켓부터 저녁 8시 NXT 마감까지 포함)</td></tr>
+      <tr><td>평일 오후 9시 ~ 다음 날 오전 8시</td><td>미국증시</td></tr>
+      <tr><td>토요일 오전 9시 전까지</td><td>미국 금요일장 기준</td></tr>
+      <tr><td>주말 · 공휴일 · 휴장일</td><td>휴장 안내와 다음 주 준비 리포트</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="gd-eg">
+    <p>화요일 밤 10시에 들어오면 미국증시 화면이 열린다. 이때 한국 종목이 궁금하면 위쪽 <span class="gd-btn">한국증시</span> 버튼을 누른다. 화면이 바뀌기 3분 전부터는 화면 위쪽에 남은 시간이 표시된다.</p>
+  </div>
+  <p>참고로 미국 정규장은 한국 시간으로 대략 밤 10시 30분부터 새벽 5시까지다(서머타임 기간 기준이고, 겨울에는 한 시간씩 늦다). 한국 정규장은 평일 오전 9시부터 오후 3시 30분까지다.</p>
+
+  <h3>12-2. 시장 카드</h3>
+  <p>그 시장의 대표 지수 두 개와 추이 차트, 시장 방향, 증시온도, 원/달러 환율, 주요 업종을 한 줄로 요약해 놓았다. 오늘 시장이 대체로 어떤지 3초 만에 훑는 용도다.</p>
+
+  <h3>12-3. 실시간 종목판</h3>
+  <p>지금 거래가 활발한 종목의 순위표다. 위쪽 버튼으로 기준을 바꾼다.</p>
+  <div class="gd-tablewrap">
+  <table class="learn-table gd-nowrap">
+    <thead><tr><th>기준</th><th>이럴 때 본다</th></tr></thead>
+    <tbody>
+      <tr><td>거래대금</td><td>돈이 가장 많이 오가는 종목이 궁금할 때</td></tr>
+      <tr><td>거래량</td><td>주식이 가장 많이 손바뀜한 종목이 궁금할 때</td></tr>
+      <tr><td>상승률 · 하락률</td><td>가장 많이 오른 종목, 내린 종목이 궁금할 때</td></tr>
+      <tr><td>시가총액</td><td>덩치 큰 회사 순서로 볼 때</td></tr>
+      <tr><td>업종 TOP</td><td>미국 화면에서 거래대금 상위 종목을 업종별로 묶어 볼 때</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <ul>
+    <li>한국증시 시간에는 국내 종목, 미국증시 시간에는 미국 종목이 나온다. ETF · ETN은 빠져 있다.</li>
+    <li>목록은 처음에 한 번 불러오고, 그 뒤에는 거래가 일어난 줄의 숫자만 점수판처럼 넘어가며 바뀐다.</li>
+    <li>줄을 누르면 그 종목의 실시간 검색 화면으로 이동한다.</li>
+    <li>실시간 자리가 부족한 종목은 잠깐 지연된 시세로 표시될 수 있다.</li>
+  </ul>
+  <div class="gd-eg">
+    <p>장이 열린 시간에 <b>거래대금</b>으로 정렬하고 맨 위 종목을 누른다. 지금 시장에서 돈이 제일 많이 오가는 종목의 호가와 차트가 바로 열린다.</p>
+  </div>
+
+  <h3>12-4. 경제 종합뉴스</h3>
+  <p>한국증시 화면에는 국내 경제 뉴스를, 미국증시 화면에는 미국 시장과 거시경제 뉴스를 시간 순서로 보여준다. 여러 제공처의 기사를 모아 중복을 줄였고, 제목을 누르면 원문으로 이동한다. 기사에 관련 종목이 확인되면 오른 종목은 빨강, 내린 종목은 파랑으로 함께 표시한다.</p>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 13. FAQ ───────────── -->
+  <h2 id="faq">13. 자주 묻는 질문</h2>
+
+  <details class="gd-faq">
+    <summary>숫자 대신 “확인 중”이라고만 나와요</summary>
+    <div><p>시세를 서버에서 받아오는 중이거나 아직 연결이 안 된 상태다. 몇 초 기다리거나 새로고침한다. 계속 비어 있으면 거래소가 쉬는 시간이거나 데이터 제공처의 지연일 수 있다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>장이 끝났는데 가격이 안 변해요</summary>
+    <div><p>정상이다. 장이 끝나면 새 거래가 없어서 마지막 가격(종가)이 그대로 남는다. 한국 정규장은 평일 오전 9시부터 오후 3시 30분까지이고, 대체거래소 NXT는 아침 8시부터 저녁 8시까지 거래된다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>증권사 앱과 가격이 조금 달라요</summary>
+    <div><p>데이터를 받아오는 곳과 집계하는 시각이 달라서 생길 수 있다. 이 사이트의 값은 참고용이다. 주문을 낼 때는 반드시 증권사 앱의 가격을 기준으로 한다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>로그인하지 않으면 못 쓰는 기능이 있나요?</summary>
+    <div><p>시세, 차트, 시장 정보, 검색은 로그인 없이 쓴다. 로그인이 필요한 건 <b>저장</b>을 계정에 남기는 기능(관심종목, 차트 메모, 그림, 내 카테고리를 다른 기기에서 이어서 보기)이다. 로그인하지 않으면 같은 기능이 그 브라우저 안에서만 저장된다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>저장했던 관심종목이 사라졌어요</summary>
+    <div><p>두 가지 중 하나다. 로그인하지 않은 채 저장했다면 그 브라우저에만 저장돼서, 다른 기기나 다른 브라우저에서는 안 보이고 브라우저 기록을 지우면 사라진다. 로그인 상태가 풀렸다면 다시 로그인한다. 처음부터 로그인한 뒤에 담아 두면 어느 기기에서나 같은 목록이 나온다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>폰에서 표가 좁고 글자가 작아요</summary>
+    <div><p>폰을 가로로 돌려 본다. 또는 화면 맨 아래 <span class="gd-btn">PC 화면</span> 버튼을 누르면 PC 배치로 바뀐다. 이 설정도 이 브라우저에 기억된다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>차트검색 결과가 어제 것이에요</summary>
+    <div><p>주말과 공휴일에는 검색을 돌리지 않아서 직전 거래일의 결과가 남는다. 결과 옆의 스캔 시각을 보면 언제 계산한 것인지 알 수 있다. 평일이라면 저녁에 순서대로 갱신되므로 조금 기다린다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>미국 종목은 어떻게 찾아요?</summary>
+    <div><p>검색창에 한글 이름(엔비디아), 영문 이름(Nvidia), 티커(NVDA) 중 아무거나 입력한다. 티커는 거래소에서 쓰는 알파벳 약칭이다. 한국 종목처럼 6자리 숫자 코드는 없다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>이 종목을 사도 되나요?</summary>
+    <div><p>이 사이트는 사고팔라고 말해 주지 않는다. 시세, 수급, 차트, 점수는 판단에 쓰는 <b>재료</b>일 뿐이고 결정과 책임은 본인에게 있다. 투자는 원금을 잃을 수 있다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>화면에 “AI”라고 적힌 문장은 뭔가요?</summary>
+    <div><p>AI가 데이터를 읽고 만든 한 줄 요약이다. 틀린 내용이 섞일 수 있으니 숫자와 원문은 직접 확인한다.</p></div>
+  </details>
+  <details class="gd-faq">
+    <summary>오류를 발견했거나 문의할 게 있어요</summary>
+    <div><p>화면 맨 아래의 <b>문의하기</b>를 누르거나 아래 메일로 보낸다. 어느 화면에서 무엇을 눌렀더니 어떻게 됐는지 적어 주면 찾기 쉽다.</p></div>
+  </details>
+  <p class="gd-top"><a href="#toc">↑ 목차</a></p>
+
+  <!-- ───────────── 14. 더 읽을거리 ───────────── -->
+  <h2 id="more">14. 더 읽을거리와 주의할 점</h2>
+
+  <h3>이야기 시리즈와 용어사전</h3>
+  <p>주식이 처음이라면 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/index.html">그림으로 배우는 주식 이야기</a>를 순서대로 읽어 본다. 시장 구조 → 주문과 체결 → 차트 → 수급과 회사 → 위험 관리 → 돈의 흐름 → 환율 · 금리 · 비트코인 순서로 7장이고, 호가창 · 캔들 · 매물대 같은 그림과 숫자 예시로 설명한다. 각 장 끝에는 이 사이트의 어느 화면에서 확인하면 되는지도 적어 두었다.</p>
+  <ul>
+    <li>한 가지 주제를 깊게 보고 싶다면 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">ETF 이야기</a> · <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/us-market.html">미국 주식 이야기</a> · <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-patterns.html">차트 이야기</a> · <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/fx-market.html">환율 이야기</a> · <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html">절세 이야기</a>가 있다.</li>
+    <li>모르는 말은 <a href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html">금융용어사전</a>에서 검색한다.</li>
+  </ul>
+
+  <h3>이용할 때 알아 둘 것</h3>
+  <ul>
+    <li>시세 · 수급 · 차트 · 뉴스 · 점수 · AI 요약은 모두 <b>투자 참고용</b>이다. 투자 자문이 아니며 매수·매도 권유가 아니다.</li>
+    <li>데이터 제공처의 지연, 거래소 휴장, 제공업체의 제한에 따라 값이 늦거나 비어 있을 수 있다.</li>
+    <li>뉴스와 공시는 각 제공처의 원문을 확인한다.</li>
+    <li>데이터 제공처 전체 목록과 이용 조건은 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/terms.html">서비스 이용약관</a>에 있고, 개인정보는 <a href="https://goodbyestarwars.github.io/tistory-ticker/legal/privacy.html">개인정보처리방침</a>에 있다.</li>
   </ul>
 
   <div class="legal-contact">문의: goodbyestarwars@gmail.com</div>

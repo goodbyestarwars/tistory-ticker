@@ -210,3 +210,76 @@ a { color: #d24f45; }
   .learn-fig { margin-left: -10px; margin-right: -10px; }
   .learn-fig figcaption { padding: 0 10px; }
 }
+
+/* ── 사이트 이용방법(legal/guide.html) 전용 (2026-10-11 전면 개정) ──
+   설문에서 "너무 어렵다"는 의견이 나와 예시·그림·단계 중심으로 다시 썼다. 왼쪽 색 막대 없이
+   배경만 있는 상자를 쓴다(이야기 시리즈와 같은 원칙). */
+.gd-page { word-break: keep-all; overflow-wrap: break-word; }
+.gd-lead { font-size: 16px; line-height: 1.85; }
+.gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; padding: 14px 16px; list-style: none; background: #f3eede; counter-reset: gdtoc; }
+.gd-toc li { margin: 0; counter-increment: gdtoc; }
+.gd-toc li::before { content: counter(gdtoc) "."; display: inline-block; width: 1.8em; color: #8a6420; font-weight: 700; font-size: 14px; }
+.gd-toc a { color: inherit; font-size: 14px; text-decoration: none; }
+.gd-toc a:hover { color: #d24f45; }
+.gd-top { margin: -4px 0 0; text-align: right; font-size: 12px; }
+.gd-top a { color: #94a3b8; text-decoration: none; }
+
+
+/* 단계 목록: 숫자를 동그라미로 */
+.gd-steps { list-style: none; margin: 0 0 16px; padding: 0; counter-reset: gds; }
+.gd-steps > li { position: relative; margin: 0 0 12px; padding: 3px 0 0 38px; min-height: 28px; counter-increment: gds; }
+.gd-steps > li::before { content: counter(gds); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; background: #1f2937; color: #f8f0db; font-size: 14px; font-weight: 700; line-height: 27px; text-align: center; }
+
+/* 예시 상자: 설명용 숫자임을 알리는 '예시' 표찰을 단다 */
+.gd-eg { margin: 0 0 16px; padding: 11px 15px 8px; background: #f6efd9; font-size: 14px; line-height: 1.75; }
+.gd-eg::before { content: "예시"; display: table; margin: 0 0 6px; padding: 0 9px; border-radius: 999px; background: #1f2937; color: #f8f0db; font-size: 12px; font-weight: 700; line-height: 20px; }
+.gd-eg p:last-child, .gd-eg ul:last-child { margin-bottom: 4px; }
+.gd-eg ul { margin-bottom: 8px; }
+
+/* 화면에 실제로 적혀 있는 버튼·메뉴 이름 */
+.gd-btn { display: inline-block; padding: 0 7px; border: 1px solid #cfcbbb; border-radius: 6px; background: #fff8e6; color: #1f2937; font-size: 13px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.gd-up { color: #d24f45; font-weight: 700; }
+.gd-down { color: #1261c4; font-weight: 700; }
+
+.gd-tablewrap { overflow-x: auto; margin: 0 0 14px; }
+.gd-tablewrap .learn-table { margin-bottom: 0; }
+.gd-page .learn-table td.num, .gd-page .learn-table th.num { text-align: right; font-variant-numeric: tabular-nums; }
+.gd-page .learn-table td:first-child { font-weight: 700; }
+.gd-page .learn-table.gd-nowrap td:first-child { white-space: nowrap; }
+.gd-page .learn-table.gd-ladder { width: 320px; max-width: 100%; margin-left: auto; margin-right: auto; }
+.gd-page .learn-table.gd-ladder td:first-child { font-weight: 400; }
+
+/* 번호 설명(그림의 ①②③과 짝) */
+.gd-legend { list-style: none; margin: 0 0 14px; padding: 0; counter-reset: gdl; }
+.gd-legend > li { position: relative; margin: 0 0 8px; padding-left: 30px; counter-increment: gdl; }
+.gd-legend > li::before { content: counter(gdl); position: absolute; left: 0; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #c08a2b; color: #fffaf0; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+
+/* 자주 묻는 질문 */
+.gd-faq { margin: 0 0 6px; border-bottom: 1px solid #e7e4d8; }
+.gd-faq summary { padding: 11px 24px 11px 0; font-weight: 700; cursor: pointer; list-style: none; position: relative; }
+.gd-faq summary::-webkit-details-marker { display: none; }
+.gd-faq summary::after { content: "+"; position: absolute; right: 4px; top: 8px; color: #94a3b8; font-size: 20px; font-weight: 400; }
+.gd-faq[open] summary::after { content: "−"; }
+.gd-faq > div { padding: 0 0 8px; }
+
+@media (prefers-color-scheme: dark) {
+  .gd-toc { background: #161d2c; }
+  .gd-toc li::before { color: #e0b25a; }
+  .gd-toc a:hover { color: #ff8a80; }
+  .gd-top a { color: #6b7889; }
+  .gd-steps > li::before { background: #d3dbe8; color: #16202f; }
+  .gd-eg { background: #1b2232; }
+  .gd-eg::before { background: #d3dbe8; color: #16202f; }
+  .gd-btn { border-color: #34415b; background: #1d2637; color: #e8eef7; }
+  .gd-up { color: #ff8a80; }
+  .gd-down { color: #7fb3ff; }
+  .gd-legend > li::before { background: #e0b25a; color: #16202f; }
+  .gd-faq { border-bottom-color: #263048; }
+}
+
+@media (max-width: 480px) {
+  .gd-toc { grid-template-columns: 1fr; padding: 12px 14px; }
+  .gd-lead { font-size: 15.5px; }
+  .gd-page .learn-table th, .gd-page .learn-table td { padding: 6px 7px; }
+  .gd-page .learn-table { font-size: 13.5px; }
+}
