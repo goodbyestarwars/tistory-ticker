@@ -59,7 +59,8 @@
     } catch (e) { return false; }
   }
   window.__isBlogAdmin = isBlogAdmin;
-  if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매' });
+  // end:true = PC(721px 이상)에서 메뉴바 오른쪽 끝에 붙인다(2026-10-11 요청: MY 옆이 아니라 오른쪽 끝). 모바일은 가로 스크롤 줄의 맨 끝 그대로.
+  if (isBlogAdmin()) NAV_ITEMS.push({ href: '/page/auto-trader', label: '자동매매', end: true });
 
 
   // 기존 직접 링크는 유지한다. 상단 메뉴에서는 숨기지만 북마크·검색 결과가
@@ -188,7 +189,7 @@
   function primaryHtml(item, index) {
     var current = item.children ? groupIsActive(item) : isActive(item);
     var selected = item.children && index === selectedGroupIndex;
-    var cls = 'nav-item nav-primary-item' + (current || selected ? ' nav-item-active' : '');
+    var cls = 'nav-item nav-primary-item' + (current || selected ? ' nav-item-active' : '') + (item.end ? ' nav-item-end' : '');
     if (!item.children) {
       return '<a class="' + cls + '" href="' + item.href + '"'
         + (current ? ' aria-current="page"' : '') + '>'
