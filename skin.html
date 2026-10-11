@@ -12,6 +12,20 @@
       if (localStorage.getItem('bolt-sidebar-collapsed') === '1') document.documentElement.classList.add('sidebar-collapsed');
     } catch (e) {}
   </script>
+  <script>
+    /* 관심종목 서랍(우측 드로어)이 '열림'으로 저장돼 있으면 첫 페인트 전에 html.wl-open 을 붙여 본문 오른쪽 여백(378px)을 미리 잡는다.
+       안 그러면 본문이 먼저 전체 폭으로 그려진 뒤 서랍 스크립트가 여백을 넣어 좁아졌다가, 홈 레이아웃이 만들어지며 다시 넓어진다(휴장 화면 실측 1019→641→951px).
+       전용 MY 화면(/page/watchlist)에는 전역 서랍이 없어 붙이지 않는다. 서랍 스크립트가 끝내 안 뜨면 6초 뒤 걷어 빈 여백이 남지 않게 한다.
+       상태 키 wl_drawer_open_v1 와 클래스 wl-open 은 js/stock-search-panel.js 와 style.css 가 같은 이름을 쓴다. */
+    try {
+      if (localStorage.getItem('wl_drawer_open_v1') === '1' && !/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) {
+        document.documentElement.classList.add('wl-open');
+        setTimeout(function () {
+          if (!document.querySelector('.global-watchlist-drawer')) document.documentElement.classList.remove('wl-open');
+        }, 6000);
+      }
+    } catch (e) {}
+  </script>
   <!-- 2026-08-30: 여기 있던 `html:not(.skin-ready) body { visibility: hidden }`를 제거했다.
        원래 목적은 "위젯 CSS가 늦게 도착할 때의 무스타일 페인트 차단"이었는데 라이브
        측정에서 아무것도 막지 못하면서 첫 화면만 가리고 있었다:
