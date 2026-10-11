@@ -121,6 +121,34 @@ class StorageAndHistoryTests(unittest.TestCase):
             self.assertNotIn('grossSell', row)
         self.assertEqual(investor_trend.get_history('kosdaq', 260)['count'], 1, '시장이 섞이지 않는다')
 
+    def test_weekend_rows_are_never_returned_or_treated_as_zero(self):
+        self.put('KOSDAQ', [
+            {'date': '20260724', 'ind': 10.0, 'frgn': 1.0, 'orgn': 1.0, 'index': 800.0},   # 금
+            {'date': '20260725', 'ind': 26987.0, 'frgn': -23812.0, 'orgn': -7309.0},         # 토(예전 백필의 잘못된 합계 행)
+            {'date': '20260726', 'ind': 26987.0, 'frgn': -23812.0, 'orgn': -7309.0},         # 일
+            {'date': '20260727', 'ind': 5.0, 'frgn': 2.0, 'orgn': 3.0, 'index': 801.0},      # 월
+        ])
+        data = investor_trend.get_history('kosdaq', 30)
+        self.assertEqual([r['date'] for r in data['rows']], ['2026-07-24', '2026-07-27'])
+
+    def test_backfill_removes_non_trading_rows_inside_the_returned_span_only(self):
+        self.put('KOSDAQ', [
+            {'date': '20260101', 'ind': 9.0, 'frgn': 9.0, 'orgn': 9.0},                      # 구간 밖(더 오래됨) - 그대로
+            {'date': '20260725', 'ind': 26987.0, 'frgn': -23812.0, 'orgn': -7309.0},         # 구간 안 비거래일 - 삭제
+            {'date': '20260727', 'ind': 1.0, 'frgn': 1.0, 'orgn': 1.0},                      # 거래일 - 덮어씀
+        ])
+        output = [kis_row('20260724', 1000, 2000, 3000, '800'), kis_row('20260727', 4000, 5000, 6000, '801')]
+        with mock.patch.object(investor_trend.kis_client, 'get_token', return_value='t'),                 mock.patch.object(investor_trend.kis_client, 'fetch_market_investor_daily', return_value=output):
+            n = investor_trend.backfill_history_kis('k', 's', 'KOSDAQ', 'KSQ', '1001')
+        self.assertEqual(n, 2)
+        conn = REAL_GET_CONN(self.db)
+        dates = [r['date'] for r in db_schema.load_investor_trend_daily(conn, 'KOSDAQ')]
+        monday = [r for r in db_schema.load_investor_trend_daily(conn, 'KOSDAQ') if r['date'] == '20260727'][0]
+        conn.close()
+        self.assertEqual(dates, ['20260101', '20260724', '20260727'])
+        self.assertAlmostEqual(monday['ind'], 40.0)
+        self.assertEqual(monday['index'], 801.0)
+
     def test_provisional_only_for_today_before_settlement(self):
         self.put('KOSPI', [{'date': '20261009', 'ind': 1.0, 'frgn': 2.0, 'orgn': 3.0}])
         during = investor_trend.get_history('kospi', 30, now=datetime(2026, 10, 9, 14, 0, tzinfo=investor_trend.KST))
@@ -132,11 +160,13 @@ class StorageAndHistoryTests(unittest.TestCase):
     def test_days_window_and_empty_history(self):
         rows = []
         for day in range(1, 29):
-            rows.append({'date': '202609%02d' % day, 'ind': float(day), 'frgn': 1.0, 'orgn': 1.0, 'index': 3000.0 + day})
+            if datetime(2026, 9, day).weekday() < 5:  # 거래일(평일)만 저장
+                rows.append({'date': '202609%02d' % day, 'ind': float(day), 'frgn': 1.0, 'orgn': 1.0, 'index': 3000.0 + day})
         self.put('KOSPI', rows)
         data = investor_trend.get_history('kospi', 10)
         self.assertEqual(data['count'], 10)
-        self.assertEqual(data['rows'][0]['date'], '2026-09-19')
+        self.assertEqual(data['rows'][0]['date'], '2026-09-15')
+        self.assertEqual(data['rows'][-1]['date'], '2026-09-28')
         self.assertEqual(data['requestedDays'], 10)
         empty = investor_trend.get_history('kosdaq', 20)
         self.assertEqual(empty['rows'], [])

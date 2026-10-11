@@ -219,13 +219,17 @@ def backfill_history_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
     if not rows:
         logger.warning('investor_trend[%s] KIS history backfill got no rows', market_db)
         return 0
+    first, last = min(r['date'] for r in rows), max(r['date'] for r in rows)
     conn = db_schema.get_conn()
     try:
         db_schema.upsert_investor_trend_rows(conn, market_db, rows)
+        # 이 구간에서 거래소가 돌려주지 않은 날짜는 비거래일이다. 예전 날짜별 백필이 남긴 주말·휴장일 행(주간 합계 같은 값)은 지운다.
+        stale = db_schema.delete_investor_trend_non_trading(conn, market_db, first, last, [r['date'] for r in rows])
     finally:
         conn.close()
-    logger.info('investor_trend[%s] KIS history backfill: %d trading days %s..%s', market_db, len(rows),
-                min(r['date'] for r in rows), max(r['date'] for r in rows))
+    if stale:
+        logger.warning('investor_trend[%s] removed %d non-trading rows saved by an older backfill: %s', market_db, len(stale), ','.join(stale))
+    logger.info('investor_trend[%s] KIS history backfill: %d trading days %s..%s', market_db, len(rows), first, last)
     return len(rows)
 
 
@@ -250,6 +254,8 @@ def get_history(market=DEFAULT_MARKET, days=260, now=None):
         seen.add(r['date'])
         if not (r['ind'] or r['frgn'] or r['orgn']):
             continue
+        if datetime.strptime(r['date'], '%Y%m%d').weekday() >= 5:
+            continue  # 주말에는 장이 열리지 않는다(예전 백필이 남긴 주말 행 방어)
         clean.append(r)
     clean.sort(key=lambda r: r['date'])
     clean = clean[-days:]

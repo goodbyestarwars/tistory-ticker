@@ -1062,6 +1062,20 @@ def upsert_investor_trend_rows(conn, market, rows):
     conn.commit()
 
 
+def delete_investor_trend_non_trading(conn, market, first_date, last_date, trading_dates):
+    """first_date~last_date(YYYYMMDD) 사이에서 trading_dates(거래소가 실제로 돌려준 거래일)에 없는 날짜의 행을 지운다.
+    예전 날짜별 백필이 주말·휴장일에 주간 합계 같은 값을 잘못 저장한 행(2026-10-12 운영 코스닥에서 주말 8행 확인)을 바로잡는다.
+    거래일 목록은 KIS 가 한 번에 준 약 300영업일이므로 그 구간 안의 비거래일만 지우고, 구간 밖은 건드리지 않는다. 지운 날짜 목록을 돌려준다."""
+    trading = set(trading_dates)
+    rows = conn.execute('SELECT date FROM investor_trend_daily WHERE market=? AND date>=? AND date<=?',
+                        (market, first_date, last_date)).fetchall()
+    stale = sorted(r[0] for r in rows if r[0] not in trading)
+    if stale:
+        conn.executemany('DELETE FROM investor_trend_daily WHERE market=? AND date=?', [(market, d) for d in stale])
+        conn.commit()
+    return stale
+
+
 def load_investor_trend_daily(conn, market, limit_days=140):
     """market 하나의 오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가
     이 위에서 돈다. index_close 는 2026-10-12 에 덧붙은 값이라 없으면 None."""
