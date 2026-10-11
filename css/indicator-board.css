@@ -133,3 +133,27 @@ html.dark .ibd .down, html.dark .ibd .down small, html.dark .ibd td.down b { col
 html.dark .ibd .ibd-range-btn.is-active { color: #1A1A1A !important; }
 html.dark .ibd .ibd-sub, html.dark .ibd .ibd-code, html.dark .ibd .ibd-hint, html.dark .ibd .ibd-table thead th, html.dark .ibd .ibd-section th,
 html.dark .ibd .ibd-stat dt, html.dark .ibd .ibd-stat dd small { color: var(--ibd-sub) !important; }
+
+/* ── 투자자별 막대 분리형(.ibd-stack) · 날짜축 보조선·월 표시 · 축 제목 (2026-10-13) ───────────────────────────────── */
+.ibd .ibd-guide { stroke:var(--ibd-line); stroke-width:1; }
+.ibd .ibd-guide-week { stroke:var(--ibd-line-strong); stroke-dasharray:2 3; opacity:.22; }
+.ibd .ibd-guide-month { stroke:var(--ibd-line-strong); opacity:.4; }
+.ibd .ibd-axis-month { font-weight:700; fill:var(--ibd-num); }
+.ibd .ibd-axis-title { font-size:10.5px; font-weight:600; }
+.ibd .ibd-stack { display:block; }
+.ibd .ibd-panel + .ibd-panel { margin-top:8px; }
+.ibd .ibd-panel-head { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:2px 16px; margin:0 0 2px; }
+.ibd .ibd-panel-name { display:inline-flex; align-items:center; gap:7px; font-size:14px; font-weight:700; color:rgb(var(--ibd-ink)); }
+.ibd .ibd-panel-sums { display:flex; flex-wrap:wrap; gap:2px 16px; }
+.ibd .ibd-ps { display:inline-flex; align-items:baseline; gap:5px; font-size:12px; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.ibd .ibd-ps em { font-style:normal; color:var(--ibd-sub); }
+.ibd .ibd-ps b { font-weight:700; color:var(--ibd-num); }
+.ibd .ibd-ps small { font-size:11px; color:var(--ibd-sub); }
+.ibd .ibd-chart-note { margin:6px 0 12px; font-size:11.5px; line-height:1.55; color:var(--ibd-sub); }
+@media (max-width:760px) {
+  .ibd .ibd-panel-sums { gap:2px 11px; }
+  .ibd .ibd-ps { font-size:11.5px; }
+}
+html.dark .ibd .ibd-ps em, html.dark .ibd .ibd-ps small, html.dark .ibd .ibd-chart-note { color:var(--ibd-sub) !important; }
+html.dark .ibd .ibd-ps b { color:var(--ibd-num) !important; }
+html.dark .ibd .ibd-panel-name, html.dark .ibd .ibd-axis-month { color:rgb(var(--ibd-ink)) !important; fill:rgb(var(--ibd-ink)); }
