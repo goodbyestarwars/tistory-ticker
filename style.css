@@ -8556,3 +8556,12 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body:has(.global-watchlist-drawer.is-open) .site-footer-learn .learn-card-grid { --learn-columns:2; }
   }
 }
+
+/* 자동매매 메뉴(관리자 전용)는 PC에서 메뉴바 오른쪽 끝에 둔다(2026-10-11 요청). 1차 메뉴 줄이 내용 폭(fit-content)이라 auto margin 이 먹지 않아,
+   고정 위치 메뉴바(.sidebar-left)를 기준으로 절대 위치를 준다. 줄 폭은 그대로이고 관심종목 드로어가 열려 메뉴바 right 가 줄어도 같이 따라간다.
+   모바일(720px 이하)은 가로 스크롤 줄의 맨 끝에 그대로 둔다. */
+@layer np {
+  @media (min-width: 721px) {
+    html body .sidebar-left .nav-primary-item.nav-item-end { position: absolute !important; right: 16px !important; top: 50% !important; transform: translateY(-50%) !important; }
+  }
+}
