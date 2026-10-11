@@ -351,7 +351,121 @@
     });
   }
 
+  /* ---- 표 + 추이 차트(2026-10-12) ----
+     카드 격자 대신 환율 탭과 같은 표(js/indicator-board.js)로 보여 준다. 시세·차트 이력·WebSocket 갱신 경로는 그대로이고
+     그리는 곳(renderAll)만 바뀌었다. 표 한 장에서 지표를 고르면 아래 추이 차트(1개월~5년)와 기간 통계가 그 지표로 바뀐다. */
+  var BOARD_ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var board = null;
+  var boardLoadJob = null;
+  var BOARD_COLUMNS = [
+    { label: '현재값', short: '현재' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
+    { label: '고가', short: '고가' }, { label: '저가', short: '저가' }
+  ];
+  var BOARD_RANGES = [
+    { key: '1m', label: '1개월', days: 31 }, { key: '3m', label: '3개월', days: 92 },
+    { key: '1y', label: '1년', days: 366 }, { key: '5y', label: '5년', days: 1830 }
+  ];
+  // 이름 옆에 작게 붙이는 약칭. 선물·지수처럼 약칭이 불분명한 것은 비워 둔다.
+  var BOARD_CODES = { VIX: 'VIX', USDKRW: 'USD/KRW', WTI: 'WTI', GOLD: 'GOLD', SOX: 'SOX', US10Y: 'US10Y', US2Y: 'US2Y', US30Y: 'US30Y', KTB3Y: 'KTB3Y' };
+
+  function ensureBoardModule() {
+    if (global.IndicatorBoard) return Promise.resolve();
+    if (boardLoadJob) return boardLoadJob;
+    if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = BOARD_ASSET_BASE + 'css/indicator-board.css?v=20261012-board';
+      document.head.appendChild(link);
+    }
+    boardLoadJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = BOARD_ASSET_BASE + 'js/indicator-board.js?v=20261012-board';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return boardLoadJob;
+  }
+
+  function kstToday() {
+    return new Date(Date.now() + 9 * 60 * 60000).toISOString().slice(0, 10);
+  }
+
+  function boardSeries(symbol, item) {
+    var history = global.MarketChartHistory;
+    var rows = history ? history.merge(symbol, item.chart) : (item.chart || []);
+    var points = global.IndicatorBoard.util.series(rows, 'date', 'close');
+    if (typeof item.price === 'number' && points.length) {
+      var last = points[points.length - 1];
+      var today = kstToday();
+      // 시세가 마지막 종가와 같으면(휴장 등) 날짜만 오늘로 늘리지 않는다 - 거래가 없던 날이 '종료일'로 보이는 것을 막는다.
+      if (last[0] >= today) last[1] = item.price;
+      else if (last[1] !== item.price) points.push([today, item.price]);
+    }
+    return points;
+  }
+
+  function boardRow(symbol, item, cat) {
+    var meta = symbolMeta(symbol);
+    var hasPrice = typeof item.price === 'number';
+    var rate = Number(item.change_rate);
+    var t = rate > 0 ? 'up' : rate < 0 ? 'down' : 'flat';
+    var arrow = rate > 0 ? '▲ ' : rate < 0 ? '▼ ' : '';
+    var high = item.high, low = item.low;
+    if ((high == null || low == null) && item.chart && item.chart.length > 1) {
+      var closes = item.chart.map(function (row) { return Number(row && row.close); }).filter(function (v) { return isFinite(v); });
+      if (closes.length > 1) {
+        if (high == null) high = Math.max.apply(null, closes);
+        if (low == null) low = Math.min.apply(null, closes);
+      }
+    }
+    function amount(v) { return v != null && isFinite(Number(v)) ? fmtPrice(Number(v), meta.digits) + meta.unit : '-'; }
+    var note = BENCHMARK_NOTE[symbol]
+      ? '<div class="ibd-ln">' + escapeHtml(BENCHMARK_NOTE[symbol]) + '</div><div class="ibd-ln"><small>평균은 선택한 기간의 종가 평균이며, 객관적인 "적정 수준"이 아니라 실측 평균 참고선입니다.</small></div>'
+      : '';
+    return {
+      id: symbol, group: cat.key, name: LABELS[symbol], code: BOARD_CODES[symbol] || '',
+      loading: !!item._loading,
+      cells: hasPrice ? [
+        { t: amount(item.price) },
+        { t: arrow + (isFinite(Number(item.change)) ? fmtPrice(Math.abs(Number(item.change)), meta.digits) + meta.changeUnit : '-'), tone: t },
+        { t: isFinite(rate) ? fmtSigned(rate, 2) + '%' : '-', tone: t },
+        { t: amount(high) }, { t: amount(low) }
+      ] : [{ t: item._loading ? '확인 중' : '데이터 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
+      series: hasPrice || (item.chart && item.chart.length) ? boardSeries(symbol, item) : [],
+      fmt: function (v) { return fmtPrice(v, meta.digits) + meta.unit; },
+      axisFmt: function (v) { return fmtPrice(v, Math.abs(v) >= 1000 ? 0 : meta.digits) + (meta.unit || ''); },
+      title: LABELS[symbol] + ' 추이' + (meta.unit ? ' (' + meta.unit + ')' : ''),
+      note: note
+    };
+  }
+
+  function boardGroups() {
+    return CATEGORIES.filter(function (cat) { return cat.key !== 'crypto'; }).map(function (cat) {
+      return { key: cat.key, label: cat.label,
+        hint: cat.direction === -1 ? '상승 = 시장에 부담 요인' : cat.direction === 0 ? '방향성 해석 없음(수치만 참고)' : '' };
+    });
+  }
+
+  function renderBoard(items) {
+    if (!board || !global.IndicatorBoard) return;
+    var bySymbol = {};
+    items.forEach(function (item) { bySymbol[item.symbol] = item; });
+    var rows = [];
+    CATEGORIES.filter(function (cat) { return cat.key !== 'crypto'; }).forEach(function (cat) {
+      cat.symbols.forEach(function (symbol) { rows.push(boardRow(symbol, bySymbol[symbol] || { symbol: symbol }, cat)); });
+    });
+    board.setRows(rows, boardGroups());
+  }
+
   function buildShell() {
+    return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
+      + '<div class="om-summary" id="omSummary" hidden></div>'
+      + '<div class="om-ai" id="omAi" hidden></div>'
+      + '<div class="om-board" data-om-board></div>';
+  }
+
+  // (2026-10-12 이전) 카드 격자 껍데기. 표 형식으로 바꾸면서 쓰지 않지만 되돌릴 수 있게 남긴다.
+  function buildCardShell() {
     var groups = CATEGORIES.filter(function (cat) { return cat.key !== 'crypto'; }).map(function (cat) {
       var hint = cat.direction === -1
         ? '<div class="om-cat-hint">상승 = 시장에 부담 요인</div>'
@@ -981,15 +1095,7 @@
     items.forEach(function (item) { bySymbol[item.symbol] = item; });
 
     renderSummary(container, items);
-
-    SYMBOL_ORDER.forEach(function (symbol) {
-      var card = container.querySelector('.om-card[data-symbol="' + symbol + '"]');
-      if (!card) return;
-      var item = bySymbol[symbol] || { symbol: symbol };
-      card.querySelector('.om-body').outerHTML = buildCardBody(item);
-      var chartContainer = card.querySelector('.om-chart');
-      if (chartContainer) renderSparkline(chartContainer, symbol, item.chart, item.change_rate >= 0, item.price, item.change);
-    });
+    renderBoard(items);
   }
 
   // VM(/futures, BTC 포함)을 SYMBOL_ORDER로 필터링해 renderAll에 넘긴다. 이 필터링이 없으면
@@ -1016,14 +1122,7 @@
         }
       })
       .catch(function () {
-        SYMBOL_ORDER.forEach(function (symbol) {
-          var card = container.querySelector('.om-card[data-symbol="' + symbol + '"]');
-          if (!card) return;
-          var body = card.querySelector('.om-body');
-          if (body && body.classList.contains('om-loading')) {
-            body.outerHTML = '<div class="om-body om-error">시세를 불러오지 못했어요.</div>';
-          }
-        });
+        if (board) board.setEmpty('시세를 불러오지 못했어요. 잠시 후 다시 확인합니다.');
       });
   }
 
@@ -1104,8 +1203,18 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container || container.closest('[hidden]')) return;
+    ensureBoardModule().then(function () {
+      if (!container.closest('[hidden]') && document.body.contains(container)) startInit(container);
+    });
+  }
 
+  function startInit(container) {
+    if (board) { board.destroy(); board = null; }
     container.innerHTML = buildShell();
+    board = global.IndicatorBoard ? global.IndicatorBoard.create(container.querySelector('[data-om-board]'), {
+      columns: BOARD_COLUMNS, ranges: BOARD_RANGES, defaultRange: '3m', prevLabel: '전일', countLabel: '거래일',
+      caption: '글로벌 시장지표 표', emptyText: '시세를 불러오는 중입니다.', height: 210
+    }) : null;
     indicatorsContainer = container;
     refresh(container);
     connectIndicatorSocket();
@@ -1114,24 +1223,8 @@
     if (binanceTimer) clearInterval(binanceTimer);
     binanceTimer = setInterval(function () { loadBinance(container); }, BINANCE_REFRESH_MS);
 
-    // 장기평균 참고선 데이터는 페이지 진입 시 심볼별로 1회만 불러온다(AI 해설과 동일한 이유 -
-    // 30초마다 다시 부를 필요 없는 장기 통계). 전부 도착하면 해당 카드들이 참고선 포함해서
-    // 다시 그려지도록 한 번 더 refresh - 이미 렌더된 다른 카드도 같이 다시 그려지지만 데이터는
-    // 캐시돼 있어 사실상 즉시 끝난다(추가 fetchFutures 호출은 있음, 허용 가능한 비용).
-    var loadBenchmarks = function () {
-      var benchmarkFetches = BENCHMARK_SYMBOLS.map(function (symbol) {
-        return OvernightMarket.fetchBenchmark(symbol)
-          .then(function (b) { benchmarks[symbol] = b; })
-          .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
-      }).concat(BENCHMARK_6M_SYMBOLS.map(function (symbol) {
-        return OvernightMarket.fetchBenchmark(symbol, BENCHMARK_6M_DAYS)
-          .then(function (b) { benchmarks6m[symbol] = b; })
-          .catch(function () { /* 참고선 없이도 나머지 카드는 정상 동작해야 함 */ });
-      }));
-      Promise.all(benchmarkFetches).then(function () { refresh(container); });
-    };
-    // 평균선은 보조 정보이므로 시세 카드의 첫 화면을 기다리게 하지 않는다.
-    setTimeout(loadBenchmarks, 1200);
+    // (2026-10-12) 장기평균 참고선(/futures/avg)은 더 부르지 않는다. 표 아래 추이 차트의 '평균'이 선택한 기간(1개월~5년)의
+    // 종가 평균을 직접 계산해 보여 주므로 같은 정보가 서버 호출 없이 나온다. 함수 fetchBenchmark 는 다른 곳이 쓰므로 남긴다.
 
     if (refreshTimer) clearInterval(refreshTimer);
     refreshTimer = setInterval(function () { refresh(container); }, REFRESH_INTERVAL_MS);

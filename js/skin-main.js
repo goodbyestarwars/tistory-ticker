@@ -326,8 +326,8 @@ document.documentElement.classList.add('skin-ready');
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
         script: ASSET_BASE + 'js/kospi-futures.js?v=20261008-five-year-charts',
-        // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다.
-        styles: []
+        // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
+        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',
@@ -337,21 +337,21 @@ document.documentElement.classList.add('skin-ready');
         // 2026-09-06 리포트("글로벌 시장지표 CSS 형태가 예전과 달라"): overnight-market.js는
         // 자기 CSS를 안 넣는다 - 원래 티스토리 페이지 본문의 <link>에 기대고 있었다.
         // 그래서 국내 주소에서 글로벌 탭을 열면 스타일 없이 그려졌다. 여기서 넣어준다.
-        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts']
+        styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
         script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261008-stock-impact',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261008-five-year-charts']
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261008-five-year-charts', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         key: 'crypto', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
         script: ASSET_BASE + 'js/crypto-market.js?v=20261008-news-timeline',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
-          ASSET_BASE + 'css/crypto-market.css?v=20261008-news-timeline']
+          ASSET_BASE + 'css/crypto-market.css?v=20261008-news-timeline', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.

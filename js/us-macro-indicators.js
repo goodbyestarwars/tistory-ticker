@@ -210,7 +210,7 @@
     return guides[symbol] || '';
   }
 
-  function impactGuide_(symbol) {
+  function impactGuideLines_(symbol) {
     var guides = {
       US_CPI: ['예상보다 물가↑ → 금리 인하 지연 → 기술·성장주 부담', '예상보다 물가↓ → 금리 부담 완화 → 성장주에 도움. 소비 급감은 별도 위험', '물가는 식고 소비는 유지 → 금리·기업 실적 모두 주식에 유리'],
       US_CORE_CPI: ['예상보다 근원 물가↑ → 고금리 장기화 우려 → 성장주·부채 많은 기업 부담', '근원 물가 둔화 → 금리 인하 기대 → 기술·성장주에 도움', '근원 물가 둔화 + 고용 유지 → 실적 훼손 없이 주가 부담 완화'],
@@ -223,8 +223,12 @@
       US_REAL_GDP_GROWTH: ['성장↑ → 기업 이익·경기민감주에 도움. 과열이면 금리 부담', '성장 둔화 → 기업 이익 부담. 침체라면 금리가 내려도 주식 약세 가능', '완만한 성장 + 물가 안정 → 실적·금리 모두 주식에 유리'],
       US_CONSUMER_SENTIMENT: ['소비 기대↑ → 소비주에 도움. 실제 매출 증가 확인 필요', '소비 기대↓ → 유통·자동차 등 실적 부담. 실제 지출 감소 여부 확인', '심리 개선 + 실제 소비 증가 → 소비주 매출·이익에 유리']
     };
-    var guide = guides[symbol];
-    if (!guide) return '';
+    return guides[symbol] || [];
+  }
+
+  function impactGuide_(symbol) {
+    var guide = impactGuideLines_(symbol);
+    if (!guide.length) return '';
     return '<div class="umi-impact" aria-label="주식과의 관계">'
       + ['높으면', '낮으면', '좋은 흐름'].map(function (label, index) {
         return '<p><em>' + label + '</em><span>' + escapeHtml(guide[index]) + '</span></p>';
@@ -242,36 +246,148 @@
       + '<i><b>읽는 기준</b> · ' + escapeHtml(readGuide_(symbol)) + ' · 출처 ' + escapeHtml(meta.source) + '</i></article>';
   }
 
+  /* ---- 표 + 추이 차트(2026-10-12): 카드 대신 js/indicator-board.js 표로 보여 준다. 발표값 계산·캘린더 공유 함수는 그대로 쓴다. ---- */
+  var BOARD_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var board = null;
+  var boardJob = null;
+  var BOARD_COLUMNS = [
+    { label: '발표값', short: '발표' }, { label: '전회 대비', short: '전회' }, { label: '전회 대비율', short: '대비율' },
+    { label: '전년 동월', short: '전년', title: '1년 전 같은 달 대비 변화율' }, { label: '통계 기준', short: '기준' }
+  ];
+  var BOARD_RANGES = [
+    { key: '1y', label: '1년', days: 366 }, { key: '3y', label: '3년', days: 1096 }, { key: '5y', label: '5년', days: 1830 }
+  ];
+
+  function ensureBoard_() {
+    if (global.IndicatorBoard) return Promise.resolve();
+    if (boardJob) return boardJob;
+    if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = BOARD_BASE + 'css/indicator-board.css?v=20261012-board';
+      document.head.appendChild(link);
+    }
+    boardJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = BOARD_BASE + 'js/indicator-board.js?v=20261012-board';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return boardJob;
+  }
+
+  function seriesFmt_(symbol) {
+    return function (v) {
+      if (symbol === 'US_JOB_OPENINGS') return number_(v / 10, 0) + '만 건';
+      var digits = (symbol === 'US_RETAIL_SALES' || symbol === 'US_NONFARM_PAYROLLS') ? 0 : 1;
+      return number_(v, digits) + ' ' + META[symbol].unit;
+    };
+  }
+
+  function seriesAxis_(symbol) {
+    return function (v) {
+      if (symbol === 'US_JOB_OPENINGS') return number_(v / 10, 0);
+      return number_(v, (symbol === 'US_RETAIL_SALES' || symbol === 'US_NONFARM_PAYROLLS') ? 0 : 1);
+    };
+  }
+
+  function signedText_(value, digits) {
+    return (value > 0 ? '+' : '') + number_(value, digits);
+  }
+
+  function periodText_(symbol, item) {
+    var date = String(itemDate_(item) || '');
+    if (!/^\d{6}/.test(date)) return '-';
+    return date.slice(0, 4) + '년 ' + (symbol === 'US_REAL_GDP_GROWTH' ? Math.ceil(Number(date.slice(4, 6)) / 3) + '분기' : Number(date.slice(4, 6)) + '월');
+  }
+
+  function noteHtml_(symbol) {
+    var guide = impactGuideLines_(symbol);
+    var out = '<div class="ibd-ln"><em>읽는 기준</em>' + escapeHtml(readGuide_(symbol)) + ' <small>· 출처 ' + escapeHtml(META[symbol].source) + ' · ' + escapeHtml(META[symbol].cadence) + '</small></div>';
+    ['높으면', '낮으면', '좋은 흐름'].forEach(function (label, index) {
+      if (guide[index]) out += '<div class="ibd-ln"><em>' + label + '</em>' + escapeHtml(guide[index]) + '</div>';
+    });
+    return out;
+  }
+
+  function boardRow_(symbol, item) {
+    var meta = META[symbol];
+    var has = item && item.price != null && isFinite(Number(item.price)) && itemDate_(item);
+    var change = Number(item && item.change);
+    var rate = Number(item && item.change_rate);
+    var yoy = yearChange_(item);
+    var t = change > 0 ? 'up' : change < 0 ? 'down' : 'flat';
+    var changeText = '-';
+    var isPercent = meta.unit === '%';   // 실업률·GDP 성장률은 값 자체가 %라 '%p 차이'로 보여 준다(상대 변화율은 오해를 부른다)
+    if (isFinite(change)) {
+      if (symbol === 'US_JOB_OPENINGS') changeText = signedText_(change / 10, 0) + '만 건';
+      else if (symbol === 'US_NONFARM_PAYROLLS') changeText = signedText_(change, 0) + '천 명';
+      else if (isPercent) changeText = signedText_(change, 1) + '%p';
+      else changeText = signedText_(change, 2);
+    }
+    var yearBefore = yearAgo_(item);
+    var yoyText = '-', yoyTone = '';
+    if (isPercent) {
+      var diff = Number(item && item.price) - yearBefore;
+      if (isFinite(diff)) { yoyText = signedText_(diff, 1) + '%p'; yoyTone = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'; }
+    } else if (isFinite(yoy)) {
+      yoyText = signedText_(yoy, 2) + '%'; yoyTone = yoy > 0 ? 'up' : yoy < 0 ? 'down' : 'flat';
+    }
+    return {
+      id: symbol, group: meta.category, name: meta.label, sub: meta.cadence,
+      cells: has ? [
+        { t: value_(symbol, item) },
+        { t: changeText, tone: t },
+        { t: !isPercent && isFinite(rate) ? signedText_(rate, 2) + '%' : '-', tone: !isPercent ? t : '' },
+        { t: yoyText, tone: yoyTone },
+        { t: periodText_(symbol, item) }
+      ] : [{ t: '확인값 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
+      series: global.IndicatorBoard.util.series(item && item.chart, 'date', 'close'),
+      fmt: seriesFmt_(symbol), axisFmt: seriesAxis_(symbol), dateUnit: 'month',
+      title: meta.label + ' 추이 (' + (symbol === 'US_JOB_OPENINGS' ? '만 건' : meta.unit) + ')',
+      note: noteHtml_(symbol)
+    };
+  }
+
+  function renderBoard_(bySymbol) {
+    if (!board) return;
+    var rows = SYMBOLS.map(function (symbol) { return boardRow_(symbol, bySymbol[symbol] || {}); });
+    board.setRows(rows, [{ key: '물가', label: '물가' }, { key: '고용', label: '고용' }, { key: '경기', label: '경기' }]);
+  }
+
   function shell_() {
     var next = nextFomc_();
     return '<section class="umi" aria-label="미국 경제 발표">'
       + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 최근 평균·5년 흐름과 함께 금리·기업 실적을 거쳐 주식에 미치는 영향을 표시합니다.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
       + '<p class="umi-interpret-note">주식은 예상과의 차이에 반응해. 예상보다 물가가 높고 미국채 금리도 오르면 성장주 부담. 물가가 식고 고용이 버티면 주식에 도움. 금리가 내려도 침체 때문에 내리면 기업 실적이 더 중요해. 아래는 일반적인 영향이며, 현재 발표의 예상치 비교나 매수·매도 신호는 아니야.</p>'
-      + '<div class="umi-grid"><article class="umi-card umi-card--fomc"><small>통화정책 일정</small><strong>다음 FOMC 회의</strong><b>' + escapeHtml(dateLabel_(next)) + '</b><span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></article>'
-      + '<div data-umi-cards class="umi-grid umi-grid--data"><p class="umi-state">발표값을 불러오는 중입니다.</p></div></div></section>';
+      + '<div class="umi-fomc"><b>다음 FOMC 회의 ' + escapeHtml(dateLabel_(next)) + '</b> <span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></div>'
+      + '<div data-umi-board class="umi-board"></div></section>';
   }
 
   function refresh_(root, force) {
-    var target = root.querySelector('[data-umi-cards]');
+    var target = root.querySelector('[data-umi-board]');
     var button = root.querySelector('[data-umi-refresh]');
     if (!target) return;
     if (button) { button.disabled = true; button.textContent = '갱신 중'; }
-    fetchResults_(force)
+    ensureBoard_().then(function () {
+      if (!board || !board.root || !target.contains(board.root)) {
+        if (board) board.destroy();
+        board = global.IndicatorBoard ? global.IndicatorBoard.create(target, {
+          columns: BOARD_COLUMNS, ranges: BOARD_RANGES, defaultRange: '3y', prevLabel: '전회', countLabel: '발표',
+          caption: '미국 경제 발표 표', emptyText: '발표값을 불러오는 중입니다.', nameLabel: '발표 지표', height: 210
+        }) : null;
+      }
+      return fetchResults_(force);
+    })
       .then(function (items) {
         var bySymbol = {};
         items.forEach(function (item) {
-          bySymbol[item.symbol] = global.MarketChartHistory ? Object.assign({},item,{chart:global.MarketChartHistory.merge(item.symbol,item.chart)}) : item;
+          bySymbol[item.symbol] = global.MarketChartHistory ? Object.assign({}, item, { chart: global.MarketChartHistory.merge(item.symbol, item.chart) }) : item;
         });
-        target.innerHTML = SYMBOLS.map(function (symbol) { return card_(symbol, bySymbol[symbol] || {}, true); }).join('');
-        var tools = global.OvernightMarket && global.OvernightMarket.cryptoTools;
-        if (tools) target.querySelectorAll('[data-history-symbol]').forEach(function(el) {
-          var symbol=el.getAttribute('data-history-symbol'), item=bySymbol[symbol];
-          if (!item) return; tools.destroy(symbol);
-          tools.chart(el,symbol,item.chart,Number(item.change)>=0);
-        });
+        renderBoard_(bySymbol);
       })
-      .catch(function () { target.innerHTML = '<p class="umi-state">발표값을 불러오지 못했습니다. 잠시 후 다시 갱신해 주세요.</p>'; })
+      .catch(function () { if (board) board.setEmpty('발표값을 불러오지 못했습니다. 잠시 후 다시 갱신해 주세요.'); })
       .finally(function () { if (button) { button.disabled = false; button.textContent = '갱신'; } });
   }
 

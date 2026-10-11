@@ -875,7 +875,8 @@
       + '<span class="dmi-fund-date">' + escapeHtml(dateText || '-') + '</span></article>';
   }
 
-  function renderFunds(root, funds, programTrading, leverageDetail) {
+  // (2026-10-12 이전) 카드 여섯 장. 표 형식으로 바꾸면서 기본 경로는 아니지만, 보드 스크립트를 못 불러올 때의 대체 화면으로 남긴다.
+  function renderFundCards(root, funds, programTrading, leverageDetail) {
     funds = funds || {};
     programTrading = normalizeProgramTrading(programTrading || {});
     leverageDetail = leverageDetail || {};
@@ -900,6 +901,178 @@
         collateral.balance, leverageDetail.unit, collateral.date || leverageDetail.latest_date, leverageSeriesValues(leverageDetail, 'collateral')));
     }
     root.querySelector('.dmi-fund-grid').innerHTML = cards.join('');
+  }
+
+  /* ---- 증시자금 표 + 추이 차트(2026-10-12) ----
+     카드 여섯 장 대신 환율 탭과 같은 표(js/indicator-board.js)로 보여 준다. 표에서 지표를 고르면 아래 추이 차트(1개월~1년)와
+     기간 통계(시작·종료·변동·최고·최저·평균)가 그 지표로 바뀐다. 값·평균·이력 계산은 기존 카드와 같은 원자료를 쓴다.
+     보드 스크립트를 못 불러오면 예전 카드(renderFundCards)로 되돌아간다. */
+  var FUND_BOARD_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+  var fundBoard = null;
+  var fundBoardJob = null;
+  var FUND_COLUMNS = [
+    { label: '최근 값', short: '최근' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
+    { label: '20일 평균', short: '20일', title: '최근 20거래일 평균(자료가 짧으면 있는 만큼)' },
+    { label: '1년 평균', short: '1년', title: '최근 252거래일 평균(자료가 짧으면 있는 만큼)' }
+  ];
+  var FUND_RANGES = [
+    { key: '1m', label: '1개월', days: 31 }, { key: '3m', label: '3개월', days: 92 }, { key: '1y', label: '1년', days: 366 }
+  ];
+
+  function ensureFundBoard() {
+    if (global.IndicatorBoard) return Promise.resolve();
+    if (fundBoardJob) return fundBoardJob;
+    if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261012-board';
+      document.head.appendChild(link);
+    }
+    fundBoardJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261012-board';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return fundBoardJob;
+  }
+
+  // 차트 눈금용 짧은 금액 표기(조·억). formatFunds 는 소수 한 자리 + '원'이 붙어 눈금에는 길다.
+  function fundsAxis(value, unit) {
+    var amount = Number(value);
+    if (!isFinite(amount)) return '-';
+    if (unit === 'million_krw') amount *= 1000000;
+    if (unit === 'hundred_million_krw') amount *= 100000000;
+    var abs = Math.abs(amount);
+    if (abs >= 1000000000000) return (amount / 1000000000000).toFixed(abs >= 100000000000000 ? 0 : 1) + '조';
+    if (abs >= 100000000) return Math.round(amount / 100000000).toLocaleString('ko-KR') + '억';
+    return formatNumber(amount);
+  }
+
+  function fundSeriesPoints(funds, field) {
+    return global.IndicatorBoard.util.series((funds.series || []).map(function (row) {
+      var source = field === 'credit' ? row.credit : row.market_funds;
+      var value = (field === 'credit' && source != null && typeof source !== 'object') ? Number(source)
+        : (source && Number(source[field === 'credit' ? 'loan_total' : 'investor_deposits']));
+      return { date: row.date, close: value };
+    }), 'date', 'close');
+  }
+
+  function fieldPoints(rows, field) {
+    return global.IndicatorBoard.util.series((rows || []).map(function (row) { return { date: row.date, close: row[field] }; }), 'date', 'close');
+  }
+
+  function pointAverage(points, limit) {
+    var values = points.map(function (p) { return p[1]; });
+    var avg = averageOf(values, limit);
+    return avg == null ? null : { value: avg, count: Math.min(limit, values.length) };
+  }
+
+  function fundRow(spec) {
+    var IB = global.IndicatorBoard.util;
+    // formatFunds 는 양수만 단위(조·억)를 줄이므로, 음수(기간 변동 등)는 부호를 떼고 줄인 뒤 다시 붙인다.
+    var fmt = spec.signed ? function (v) { return formatSignedFunds(v, spec.unit); } : function (v) { return (v < 0 ? '-' : '') + formatFunds(Math.abs(v), spec.unit); };
+    var row = {
+      id: spec.id, group: spec.group, name: spec.label, sub: spec.dateText ? spec.dateText + ' 기준' : '',
+      series: spec.points, fmt: fmt, noRate: !!spec.signed, axisFmt: function (v) { return fundsAxis(v, spec.unit); },
+      title: spec.label + ' 추이',
+      note: '<div class="ibd-ln">' + escapeHtml(spec.desc) + '</div>' + (spec.extra ? '<div class="ibd-ln"><small>' + escapeHtml(spec.extra) + '</small></div>' : '')
+    };
+    var value = spec.value == null ? NaN : Number(spec.value);
+    if (!isFinite(value)) {
+      row.cells = [{ t: '데이터 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }];
+      return row;
+    }
+    var pts = spec.points || [];
+    var prev = null;
+    if (pts.length) {
+      var lastIsToday = spec.dateText && pts[pts.length - 1][0] === IB.isoDate(spec.dateText);
+      var ref = lastIsToday ? pts[pts.length - 2] : pts[pts.length - 1];
+      prev = ref ? ref[1] : null;
+    }
+    var change = prev == null ? NaN : value - prev;
+    var t = isFinite(change) ? (change > 0 ? 'up' : change < 0 ? 'down' : 'flat') : '';
+    var rate = (!spec.signed && prev) ? change / Math.abs(prev) * 100 : NaN;
+    var recentAvg = spec.recentAvg || pointAverage(pts, RECENT_AVERAGE_DAYS);
+    var yearAvg = spec.yearAvg || pointAverage(pts, YEAR_AVERAGE_DAYS);
+    // 평균 칸은 값만 보여 주고(좁은 화면에서 잘리지 않게), 자료가 한도보다 짧으면 몇 개로 계산했는지 설명에 적는다.
+    var short = [];
+    if (recentAvg && recentAvg.count < RECENT_AVERAGE_DAYS) short.push('20일 평균은 확보된 ' + recentAvg.count + '거래일');
+    if (yearAvg && yearAvg.count < YEAR_AVERAGE_DAYS) short.push('1년 평균은 확보된 ' + yearAvg.count + '거래일');
+    if (short.length) row.note += '<div class="ibd-ln"><small>' + escapeHtml(short.join(', ') + ' 자료로 계산했습니다.') + '</small></div>';
+    row.cells = [
+      { t: fmt(value) },
+      { t: isFinite(change) ? formatSignedFunds(change, spec.unit) : '-', tone: t },
+      { t: isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-', tone: isFinite(rate) ? t : '' },
+      { t: recentAvg ? fmt(recentAvg.value) : '-' },
+      { t: yearAvg ? fmt(yearAvg.value) : '-' }
+    ];
+    return row;
+  }
+
+  function fundRows(funds, programTrading, leverageDetail) {
+    funds = funds || {};
+    programTrading = normalizeProgramTrading(programTrading || {});
+    leverageDetail = leverageDetail || {};
+    var credit = funds.credit || {};
+    var deposits = funds.market_funds || {};
+    var rows = [
+      fundRow({ id: 'credit', group: 'balance', label: '신용잔고 (빚투)', unit: funds.credit_unit, value: credit.loan_total, dateText: credit.date || funds.latest_date,
+        points: fundSeriesPoints(funds, 'credit'),
+        desc: '투자자가 증권사에서 돈을 빌려 주식을 산 금액이에요. 늘어날수록 빚내서 투자하는 사람이 많다는 뜻입니다.' }),
+      fundRow({ id: 'deposits', group: 'balance', label: '고객예탁금', unit: funds.market_funds_unit, value: deposits.investor_deposits, dateText: deposits.date || funds.latest_date,
+        points: fundSeriesPoints(funds, 'market_funds'),
+        desc: '투자자가 주식을 사려고 증권사 계좌에 미리 넣어둔 대기 자금이에요. 늘어나면 살 준비가 된 돈이 많다는 뜻입니다.' })
+    ];
+    if (leverageDetail.available) {
+      var lending = leverageDetail.lending || {};
+      var collateral = leverageDetail.collateral || {};
+      rows.push(fundRow({ id: 'lending', group: 'balance', label: '신용대주잔고', unit: leverageDetail.unit, value: lending.balance, dateText: lending.date || leverageDetail.latest_date,
+        points: fieldPoints(leverageDetail.series, 'lending'),
+        desc: '투자자가 공매도를 하려고 증권사에서 주식 자체를 빌린 잔액이에요. 위 "신용잔고(빚투)"는 돈을 빌린 것이고, 이건 반대로 주식을 빌린 거예요.' }));
+      rows.push(fundRow({ id: 'collateral', group: 'balance', label: '예탁증권담보융자', unit: leverageDetail.unit, value: collateral.balance, dateText: collateral.date || leverageDetail.latest_date,
+        points: fieldPoints(leverageDetail.series, 'collateral'),
+        desc: '갖고 있는 주식을 담보로 맡기고 증권사에서 받은 대출금이에요.' }));
+    }
+    if (programTrading.available) {
+      [['arbitrage', '차익거래', '선물 가격과 현재 주가의 차이를 이용해 컴퓨터가 자동으로 사고파는 금액이에요.'],
+       ['nonArbitrage', '비차익거래', '여러 종목을 한 번에 묶어서 컴퓨터가 자동으로 사고파는 금액이에요. 인덱스펀드·ETF의 비중 조정 때 주로 생겨요.']].forEach(function (def) {
+        var field = def[0];
+        var points = fieldPoints(programTrading.history, field);
+        var recent = programTrading.recentAverage && programTrading.recentAverage[field];
+        var year = programTrading.yearAverage && programTrading.yearAverage[field];
+        var meaningful = [programTrading[field]].concat(points.map(function (p) { return p[1]; }), [recent, year]).some(function (v) {
+          return v != null && isFinite(Number(v)) && Math.abs(Number(v)) > 0;
+        });
+        var recentCount = Math.min(RECENT_AVERAGE_DAYS, points.length);
+        var yearCount = Math.min(YEAR_AVERAGE_DAYS, points.length);
+        rows.push(fundRow({ id: field, group: 'program', label: def[1], unit: programTrading.unit, signed: true,
+          value: meaningful ? programTrading[field] : null, dateText: programTrading.date, points: points,
+          recentAvg: recent != null && isFinite(Number(recent)) ? { value: Number(recent), count: recentCount } : null,
+          yearAvg: year != null && isFinite(Number(year)) ? { value: Number(year), count: yearCount } : null,
+          desc: def[2], extra: 'KOSPI 전체, 순매수(+)/순매도(−)' + (meaningful ? '' : ' · 프로그램매매 원자료가 제공되지 않은 상태입니다.') }));
+      });
+    }
+    return rows;
+  }
+
+  function renderFunds(root, funds, programTrading, leverageDetail) {
+    ensureFundBoard().then(function () {
+      if (!global.IndicatorBoard) { renderFundCards(root, funds, programTrading, leverageDetail); return; }
+      var host = root.querySelector('.dmi-fund-grid') || root.querySelector('.dmi-fund-board');
+      if (!host) return;
+      if (!fundBoard || !fundBoard.root || !host.contains(fundBoard.root)) {
+        if (fundBoard) fundBoard.destroy();
+        host.className = 'dmi-fund-board';
+        fundBoard = global.IndicatorBoard.create(host, {
+          columns: FUND_COLUMNS, ranges: FUND_RANGES, defaultRange: '3m', prevLabel: '전일', countLabel: '거래일',
+          caption: '증시자금 표', emptyText: '증시자금 데이터를 불러오는 중입니다.', height: 210
+        });
+      }
+      fundBoard.setRows(fundRows(funds, programTrading, leverageDetail), [
+        { key: 'balance', label: '자금·잔고' }, { key: 'program', label: '프로그램 매매 (KOSPI 전체)' }
+      ]);
+    });
   }
 
   function init() {

@@ -51,3 +51,12 @@ html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background:
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-up circle { fill:#d24f45; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-down circle { fill:#1261c4; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-ring { fill-opacity:.2; stroke:none; }
+
+/* 2026-10-12: 표 형식으로 바뀌며 FOMC 카드는 한 줄 안내로 줄였다. */
+:is(#us-macro-indicators, .sc-econ-results) .umi-fomc { margin: 0 0 12px; padding: 8px 0; border-top: 1px solid rgba(17,17,17,.13); border-bottom: 1px solid rgba(17,17,17,.13); font-size: 13px; line-height: 1.5; color: #374151; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-fomc b { display: inline; margin: 0; color: #111827; font-size: 13px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-fomc span { margin-left: 8px; color: #64748b; font-size: 12px; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc { border-color: rgba(245,239,224,.16); color: rgba(245,239,224,.88); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc b { color: #F5EFE0; }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc span { color: rgba(245,239,224,.62); }
+:is(#us-macro-indicators, .sc-econ-results) .umi-refresh { flex: 0 0 auto; white-space: nowrap; }   /* 2026-10-12: 폭이 좁을 때 '갱신'이 두 줄로 꺾이던 것 */
