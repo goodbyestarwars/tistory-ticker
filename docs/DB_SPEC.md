@@ -234,7 +234,7 @@ KIS `FHPTJ04160001`이 00:00~15:40(KST)에 TR 자체가 막히는 정책 때문�
 | updated_at | TEXT | |
 | index_close | REAL, NULL 허용 | 업종지수 종가(KIS `bstp_nmix_prpr`, 2026-10-12 추가). 투자자 누적 순매수와 지수를 같은 기간에 비교하는 화면용. 지수 없이 다시 쓰는 폴백(네이버·키움)은 `COALESCE`로 이미 저장된 값을 지우지 않는다. 컬럼이 없는 기존 DB는 `create_schema`가 `ALTER TABLE ADD COLUMN`으로 채우고, 마이그레이션 전에 읽는 쪽도 `NULL`로 대신해 오류가 나지 않는다 |
 
-당일(장중) 행은 재조회 때마다 UPSERT로 갱신, 과거 확정일은 불변. `load_investor_trend_daily(limit_days=140)`가 주/월 집계의 기반. 시작 시 한 번 KIS 한 번 호출로 최근 약 300영업일(순매수·지수 종가)을 채운다(`/investor-trend/history`용, 총매수·총매도는 저장하지 않는다).
+당일(장중) 행은 재조회 때마다 UPSERT로 갱신, 과거 확정일은 불변. `load_investor_trend_daily(limit_days=140)`가 주/월 집계의 기반. 시작 시 한 번 KIS 한 번 호출로 최근 약 300영업일(순매수·지수 종가)을 채운다(`/investor-trend/history`용, 총매수·총매도는 저장하지 않는다). 이때 KIS가 돌려준 구간 안에서 거래일이 아닌 날짜의 행(예전 날짜별 백필이 주말·휴장일에 남긴 주간 합계 같은 잘못된 행)은 `delete_investor_trend_non_trading`으로 지운다.
 
 ### 2.10 `volume_profile_daily` — 종목분석 매물대 "실제 체결가" 뷰 온디맨드 누적
 
