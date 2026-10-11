@@ -821,22 +821,6 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
 @media (max-width: 720px) {
   .home-weekly-report .hwr-pulse { margin: 12px 0 14px; padding-right: 0; border-right: 0; justify-content: flex-start; }
 }
-/* Market-news cards use the available report width, including an open drawer. */
-.home-weekly-report .hwr2-news { container-type: inline-size; min-width:0; }
-
-/* ── 2026-10-10 시장 뉴스 개편: 대표 기사 1 + 최신 기사 4(공시 탭은 목록). 큰 빈 카드를 없애고 제목·언론사·시각 위계로 읽게 한다. ── */
-.home-weekly-report .hwr-n2-wrap { min-width: 0; }
-.home-weekly-report .hwr-n2-pager { display: flex; align-items: center; justify-content: flex-end; gap: 12px; margin-top: 14px; }
-.home-weekly-report .hwr-n2-pager[hidden] { display: none; }
-.home-weekly-report .hwr-n2-pager button { width: 36px; height: 36px; border: 1px solid var(--hw-border); border-radius: 10px; background: var(--hw-surface); color: var(--hw-text); cursor: pointer; }
-.home-weekly-report .hwr-n2-pager button:disabled { opacity: .35; cursor: default; }
-.home-weekly-report .hwr-n2-pager [data-news2-page] { min-width: 44px; text-align: center; font-size: 12px; color: var(--hw-muted); font-variant-numeric: tabular-nums; }
-
-/* ── 2026-10-10 재요청 "이야기 시리즈랑 비슷한 카드": 푸터 .learn-card(둥근 28px·1px 선·번호·원형 표식·굵은 제목·↗)와 같은 구성.
-   위 .hwr-n2-* 규칙(대표+최신 편집형)은 더 쓰지 않는다. 색은 사이트 공통 토큰(--np-ink/--np-paper)만 쓰고 다크모드도 같은 토큰을 따른다. ── */
-/* 이전·다음: 이야기 시리즈 화살표처럼 가운데 둥근 버튼 */
-.home-weekly-report .hwr-n2-pager { justify-content: center; margin-top: 22px; }
-.home-weekly-report .hwr-n2-pager button { width: 42px; height: 42px; border-radius: 50%; font-size: 18px; }
 /* 휴장 대시보드 박스(다음주 핵심 스케줄·내 종목 일정·주말 이슈 카드)는 사이트 종이색(크림)이 아닌 순백으로 (2026-10-11, 사용자 요청).
    style.css의 @layer 안 !important보다 이기도록 선택자를 높인다. 다크모드는 기존 규칙을 따른다. */
 html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
@@ -848,47 +832,6 @@ html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, ar
 .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not(.hwr2-themes)::before, .home-weekly-report .hwr2-news::before { display: none; }
 @media (max-width: 720px) {
   .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not(.hwr2-themes):not([hidden]) { margin-top: 20px; padding: 20px 16px 16px; border-radius: 14px; }
-}
-
-/* 시장 뉴스 새로고침 버튼 (2026-10-11 요청) */
-.home-weekly-report .hwr-news-tools { display: flex; align-items: center; gap: 10px; flex: 0 0 auto; }
-.home-weekly-report .hwr-news-refresh { padding: 4px 12px; border: 1px solid var(--hw-border); border-radius: 999px; background: transparent; color: var(--hw-text); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
-.home-weekly-report .hwr-news-refresh:hover:not(:disabled) { background: var(--hw-line); }
-.home-weekly-report .hwr-news-refresh:disabled { opacity: .55; cursor: default; }
-.home-weekly-report .hwr-news-refresh-note { color: var(--hw-muted); font-size: 12px; font-variant-numeric: tabular-nums; }
-.home-weekly-report .hwr2-h--tools { flex-wrap: wrap; }
-@media (max-width: 720px) { .home-weekly-report .hwr-news-tools { width: 100%; justify-content: space-between; } }
-
-/* ── 시장 뉴스: 시각순 목록 행 (2026-10-11, "경제 종합뉴스" 형태) ── */
-.home-weekly-report .hwr-n3-grid { display: block; min-width: 0; margin-top: 4px; }
-.home-weekly-report a.hwr-nl-row { display: grid; grid-template-columns: 84px minmax(0, 1fr); gap: 0 18px; padding: 15px 8px 15px 0; border-bottom: 1px solid var(--hw-line); color: var(--hw-text); text-decoration: none; }
-.home-weekly-report a.hwr-nl-row:hover { background: color-mix(in srgb, var(--hw-text) 4%, transparent); }
-.home-weekly-report a.hwr-nl-row:focus-visible { outline: 2px solid var(--hw-text); outline-offset: -2px; }
-.home-weekly-report .hwr-nl-when { display: flex; flex-direction: column; align-items: flex-end; padding-right: 16px; border-right: 1px solid var(--hw-border); font-variant-numeric: tabular-nums; }
-.home-weekly-report .hwr-nl-when b { font-size: 14px; font-weight: 700; color: var(--hw-text); }
-.home-weekly-report .hwr-nl-when small { margin-top: 2px; font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-nl-body { min-width: 0; }
-.home-weekly-report .hwr-nl-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-nl-meta b { font-weight: 700; color: var(--hw-sub); }
-.home-weekly-report .hwr-nl-mk { padding: 1px 7px; border-radius: 4px; font-style: normal; font-size: 11.5px; font-weight: 700; }
-.home-weekly-report .hwr-nl-mk--kr { color: #b45309; background: #fff7ed; }
-.home-weekly-report .hwr-nl-mk--us { color: #1d4ed8; background: #eff6ff; }
-.home-weekly-report .hwr-nl-mk--disclosure { color: #7c3aed; background: #f5f3ff; }
-html.dark .home-weekly-report .hwr-nl-mk--kr { color: #fbbf24; background: rgba(180, 83, 9, .22); }
-html.dark .home-weekly-report .hwr-nl-mk--us { color: #93c5fd; background: rgba(29, 78, 216, .26); }
-html.dark .home-weekly-report .hwr-nl-mk--disclosure { color: #c4b5fd; background: rgba(109, 40, 217, .28); }
-.home-weekly-report .hwr-nl-meta em { font-style: normal; font-weight: 700; }
-.home-weekly-report .hwr-nl-meta em.is-up { color: #d24f45; }
-.home-weekly-report .hwr-nl-meta em.is-down { color: #1261c4; }
-html.dark .home-weekly-report .hwr-nl-meta em.is-up { color: #ff8a83; }
-html.dark .home-weekly-report .hwr-nl-meta em.is-down { color: #80b8ff; }
-.home-weekly-report .hwr-nl-title { display: -webkit-box; margin-top: 5px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font: 400 17px/1.5 "MaruBuriBold", "MaruBuri", serif; word-break: keep-all; overflow-wrap: anywhere; color: var(--hw-text); }
-.home-weekly-report a.hwr-nl-row:hover .hwr-nl-title { text-decoration: underline; text-underline-offset: 3px; }
-@media (max-width: 720px) {
-  .home-weekly-report a.hwr-nl-row { grid-template-columns: 62px minmax(0, 1fr); gap: 0 12px; padding: 12px 0; }
-  .home-weekly-report .hwr-nl-when { padding-right: 10px; }
-  .home-weekly-report .hwr-nl-when b { font-size: 13px; }
-  .home-weekly-report .hwr-nl-title { font-size: 15px; }
 }
 
 /* ── 주말 미국 뉴스로 본 관심 테마: 박스 없는 개방형 편집 레이아웃 (2026-10-11) ── */

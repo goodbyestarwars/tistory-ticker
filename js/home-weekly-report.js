@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261005-pill-v14';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261011-no-news';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -160,162 +160,7 @@
     var match = String(value || '').match(/(?:T|\s)(\d{1,2}:\d{2})/);
     return match ? match[1] : '';
   }
-  function newsType(item) {
-    var text = String((item && item.title) || '') + ' ' + String((item && item.source) || '');
-    return /(공시|10-[QK]|8-K|분기보고서|사업보고서|증권신고서|유상증자|배당|IPO)/i.test(text) ? '공시' : '뉴스';
-  }
-  function newsSummary(item) {
-    var summary = String((item && (item.summary || item.description)) || '').trim();
-    var title = String((item && item.title) || '').trim();
-    if (!summary || summary === title) return '';
-    // 요약은 번역본이 없어서, 영어 원문이면 보여주지 않는다(제목만 한국어로 번역해 둔다).
-    if (!/[가-힣]/.test(summary)) return '';
-    return summary.length > 150 ? summary.slice(0, 147) + '…' : summary;
-  }
-  // 2026-10-10 시장 뉴스 개편: 같은 크기 카드 3장을 걷고 "대표 기사 1 + 최신 기사 4"(페이지당 5건)로 위계를 준다.
-  // 공시 탭은 기사가 아니라 기업·제목·날짜 중심의 목록(페이지당 6건). 대표 자리는 중요도 점수가 아니라 단순히 해당 탭의 첫 기사다.
-  // 데이터는 기존 /weekly-report의 news.timeline(최대 20건, 시간 역순)을 그대로 쓴다 - 새 요청·요약·이미지 없음.
-  // PC 3열 x 2줄 = 6건, 모바일(720px 이하)은 이야기 시리즈처럼 2열 x 2줄 = 4건. 마지막 페이지는 남은 건수만큼만 그린다.
-  var NEWS_MOBILE_QUERY = '(max-width: 720px)';
-  function newsPerPage() {
-    return global.matchMedia && global.matchMedia(NEWS_MOBILE_QUERY).matches ? 6 : 8;
-  }
-  var newsStoreSeq = 0;
-  var newsStore = {};
-  function newsTitle(item) { return String(item.title_ko || '').trim() || item.title || '제목 없음'; }
-  function newsMeta(item, type) {
-    var market = item.market ? '<span class="hwr-n2-mk">' + escapeHtml(item.market) + '</span>' : '';
-    var kind = type === '공시' ? '<span class="hwr-n2-kind">공시</span>' : '';
-    var when = (dateLabel(item.pubDate) + ' ' + timeLabel(item.pubDate)).trim();
-    return '<span class="hwr-n2-meta">' + market + kind
-      + '<span class="hwr-n2-src">' + escapeHtml(item.source || '출처 미상') + '</span>'
-      + (when ? '<time>' + escapeHtml(when) + '</time>' : '') + '</span>';
-  }
-  function newsQuote(item) {
-    return item.price != null ? '<span class="hwr-n2-quote"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b></span>' : '';
-  }
-  function newsAnchor(item, cls) {
-    var type = newsType(item);
-    return '<a class="' + cls + '" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + newsMeta(item, type) + '<strong class="hwr-n2-title">' + escapeHtml(newsTitle(item)) + '</strong>';
-  }
-  // 2026-10-10 재요청("이야기 시리즈랑 비슷한 카드로"): 푸터 이야기 시리즈 카드(.learn-card)와 같은 구성 - 둥근 선 카드, 왼쪽 위 원형 표식,
-  // 오른쪽 위 번호, 굵은 마루부리 제목, 아래 출처·시각, 오른쪽 아래 ↗. 원형 표식은 아이콘 대신 실제 데이터인 시장(한국/미국)·공시 구분을 쓴다.
-  // 2026-10-11 요청: 카드 대신 "경제 종합뉴스" 같은 시각순 목록 행. 왼쪽에 날짜·시각, 오른쪽에 시장·유형·출처와 제목.
-  function newsCard(item, number) {
-    var type = newsType(item);
-    var us = item.market === '미국';
-    var tone = type === '공시' ? 'disclosure' : us ? 'us' : 'kr';
-    var date = dateLabel(item.pubDate);
-    var time = timeLabel(item.pubDate);
-    return '<a class="hwr-nl-row" data-news-type="' + type + '" href="' + escapeHtml(item.link || '#') + '" target="_blank" rel="noopener noreferrer">'
-      + '<span class="hwr-nl-when">' + (date ? '<b>' + escapeHtml(date) + '</b>' : '') + (time ? '<small>' + escapeHtml(time) + '</small>' : '') + '</span>'
-      + '<span class="hwr-nl-body"><span class="hwr-nl-meta"><i class="hwr-nl-mk hwr-nl-mk--' + tone + '">' + (us ? '미국' : '한국') + '</i>'
-      + '<b>' + escapeHtml(type) + '</b><span>' + escapeHtml(item.source || '출처 미상') + '</span>'
-      + (item.price != null ? '<em class="' + signClass(item.changeRate) + '">' + escapeHtml(signed(item.changeRate)) + '</em>' : '') + '</span>'
-      + '<strong class="hwr-nl-title">' + escapeHtml(newsTitle(item)) + '</strong></span>'
-      + '</a>';
-  }
-  function newsFiltered(items, filter) {
-    return (items || []).filter(function (item) { return filter === 'all' || newsType(item) === filter; });
-  }
-  function newsPageCount(list, filter) {
-    return Math.max(1, Math.ceil(list.length / newsPerPage()));
-  }
-  function newsPageHtml(state) {
-    var list = newsFiltered(state.items, state.filter);
-    var per = newsPerPage();
-    var pages = newsPageCount(list, state.filter);
-    state.page = Math.min(Math.max(1, state.page), pages);
-    var rows = list.slice((state.page - 1) * per, state.page * per);
-    var html;
-    if (!rows.length) {
-      html = '<p class="hwr-news-filter-empty">해당 유형의 소식이 없습니다.</p>';
-    } else {
-      html = '<div class="hwr-n3-grid">' + rows.map(function (item, index) { return newsCard(item, (state.page - 1) * per + index + 1); }).join('') + '</div>';
-    }
-    return { html: html, pages: pages, count: list.length };
-  }
-  function newsRender(wrap) {
-    var state = newsStore[wrap.getAttribute('data-news-id')];
-    if (!state) return;
-    var out = newsPageHtml(state);
-    wrap.querySelector('[data-news2-body]').innerHTML = out.html;
-    var pager = wrap.querySelector('.hwr-n2-pager');
-    pager.hidden = out.pages <= 1;
-    wrap.querySelector('[data-news2-page]').textContent = state.page + ' / ' + out.pages;
-    wrap.querySelector('[data-news2-prev]').disabled = state.page <= 1;
-    wrap.querySelector('[data-news2-next]').disabled = state.page >= out.pages;
-  }
-  function newsTimeline(items) {
-    if (!items || !items.length) return '<p class="hwr-empty">완료된 주간 뉴스가 없습니다.</p>';
-    var id = String(++newsStoreSeq);
-    newsStore[id] = { items: items.slice(0, 20), filter: 'all', page: 1 };
-    var first = newsPageHtml(newsStore[id]);
-    return '<div class="hwr-n2-wrap" data-hwr-news2 data-news-id="' + id + '"><div data-news2-body aria-live="polite">' + first.html + '</div>'
-      + '<div class="hwr-n2-pager"' + (first.pages <= 1 ? ' hidden' : '') + '><button type="button" data-news2-prev aria-label="이전 뉴스 페이지" disabled>←</button>'
-      + '<span data-news2-page aria-live="polite">1 / ' + first.pages + '</span><button type="button" data-news2-next aria-label="다음 뉴스 페이지"' + (first.pages <= 1 ? ' disabled' : '') + '>→</button></div></div>';
-  }
-  function bindNewsFilters(root) {
-    var wrap = root.querySelector('[data-hwr-news2]');
-    if (!wrap) return;
-    var state = newsStore[wrap.getAttribute('data-news-id')];
-    var section = wrap.closest('.hwr2-news') || wrap;
-    function keepInView() {
-      var top = section.getBoundingClientRect().top;
-      if (top < 0) section.scrollIntoView({ block: 'start', behavior: 'smooth' });
-    }
-    root.querySelectorAll('[data-hwr-news-filter]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        state.filter = button.getAttribute('data-hwr-news-filter');
-        state.page = 1;
-        root.querySelectorAll('[data-hwr-news-filter]').forEach(function (candidate) {
-          var active = candidate === button;
-          candidate.classList.toggle('is-active', active);
-          candidate.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        newsRender(wrap);
-      });
-    });
-    // 2026-10-11 요청: 시장 뉴스 새로고침 버튼. 리포트 전체를 다시 그리지 않고 뉴스 목록만 새로 받아 바꾼다.
-    var refreshBtn = root.querySelector('[data-hwr-news-refresh]');
-    var note = root.querySelector('[data-hwr-news-note]');
-    if (refreshBtn) {
-      refreshBtn.addEventListener('click', function () {
-        if (refreshBtn.disabled) return;
-        refreshBtn.disabled = true;
-        refreshBtn.textContent = '불러오는 중…';
-        if (note) note.textContent = '';
-        fetchReport().then(function (payload) {
-          var data = payload && payload.data ? payload.data : payload || {};
-          var items = (data.news && data.news.timeline || []).slice(0, 20);
-          var changed = JSON.stringify(items) !== JSON.stringify(state.items);
-          if (items.length) {
-            writeLocalReport(payload);
-            state.items = items;
-            state.page = 1;
-            newsRender(wrap);
-          }
-          var now = new Date();
-          var hh = ('0' + now.getHours()).slice(-2) + ':' + ('0' + now.getMinutes()).slice(-2);
-          if (note) note.textContent = items.length ? (changed ? '갱신됨 ' : '새 소식 없음 ') + hh : '뉴스를 받지 못해 기존 목록을 유지합니다';
-        }).catch(function () {
-          if (note) note.textContent = '불러오지 못했습니다. 잠시 후 다시 시도하세요';
-        }).then(function () {
-          refreshBtn.disabled = false;
-          refreshBtn.textContent = '새로고침';
-        });
-      });
-    }
-    wrap.querySelector('[data-news2-prev]').addEventListener('click', function () { state.page -= 1; newsRender(wrap); keepInView(); });
-    wrap.querySelector('[data-news2-next]').addEventListener('click', function () { state.page += 1; newsRender(wrap); keepInView(); });
-    // 화면 폭이 PC<->모바일 경계를 넘으면 페이지당 건수(6/4)가 달라지므로 첫 페이지로 다시 그린다.
-    if (global.matchMedia) {
-      var media = global.matchMedia(NEWS_MOBILE_QUERY);
-      var onChange = function () { if (!wrap.isConnected) { if (media.removeEventListener) media.removeEventListener('change', onChange); return; } state.page = 1; newsRender(wrap); };
-      if (media.addEventListener) media.addEventListener('change', onChange);
-    }
-  }
+  // 2026-10-11 사용자 요청: 휴장 화면의 '시장 뉴스' 구역을 삭제했다(렌더·이벤트·뉴스 전용 함수). 서버 /weekly-report 의 뉴스 수집·응답은 그대로다.
   // 2026-10-04 주말 리포트 재디자인: 종목 하나 = 카드 하나를 걷고 한 줄 행(순위·종목·등락률/가격)으로 바꾼다.
   function moverRows(items, market, emptyText) {
     if (!items || !items.length) return '<p class="hwr-empty">' + escapeHtml(emptyText || '해당 조건의 종목을 찾지 못했습니다.') + '</p>';
@@ -971,7 +816,7 @@
     var fx = data.fx || {};
     var gold = data.gold || {};
     applyLockSentiment(isBullishWeek(indices));
-    // 2026-10-04 재디자인: ①휴장 안내(배너, 대시보드 쪽) → ②다음 주 준비(지수·환율·금·일정) → ③움직인 종목 → ④다음 주 체크 종목 → ⑤뉴스.
+    // 2026-10-04 재디자인: ①휴장 안내(배너, 대시보드 쪽) → ②다음 주 준비(지수·환율·금·일정) → ③움직인 종목 → ④다음 주 체크 종목.
     // 데이터·계산은 그대로, 카드를 큰 구역 단위로 줄이고 종목·뉴스는 한 줄 행으로 보여준다.
     var indexCards = indices.filter(function (item) {
       return item && ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX'].indexOf(item.symbol) !== -1;
@@ -993,12 +838,7 @@
       + moversSection(data)
       + '<section class="hwr2-section hwr2-themes" data-hwr-themes hidden></section>'
       + checkSection(data)
-      + '<section class="hwr2-section hwr2-news"><div class="hwr2-h hwr2-h--tools"><div><h3>시장 뉴스</h3><p>' + escapeHtml(data.news && data.news.basis || '금~일 날짜별 주요 뉴스 · 한국·미국 통합') + '</p></div>'
-      + '<div class="hwr-news-filters" role="tablist" aria-label="뉴스 유형 필터"><button type="button" role="tab" aria-selected="true" class="is-active" data-hwr-news-filter="all">통합</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="뉴스">뉴스</button><button type="button" role="tab" aria-selected="false" data-hwr-news-filter="공시">공시</button></div>'
-      + '<div class="hwr-news-tools"><button type="button" class="hwr-news-refresh" data-hwr-news-refresh>새로고침</button><span class="hwr-news-refresh-note" data-hwr-news-note role="status" aria-live="polite"></span></div></div>'
-      + newsTimeline(data.news && data.news.timeline) + '</section>'
-      + '<p class="hwr-disclaimer">뉴스·일정은 수집 시점에 확인된 제목과 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
-    bindNewsFilters(root);
+      + '<p class="hwr-disclaimer">일정은 수집 시점에 확인된 발표일만 표시합니다. 투자 판단의 단독 근거로 사용하지 마세요.</p>';
     loadMyWatchlistSchedule(root, data.week && data.week.end);
     loadNextWeekCalendar(root, data.week && data.week.end);
     loadWeekendLive(root, data.week && data.week.end);
@@ -1098,5 +938,5 @@
     });
     return root;
   }
-  global.HomeWeeklyReport = { init: init, newsMarkup: newsTimeline, bindNews: bindNewsFilters };
+  global.HomeWeeklyReport = { init: init };
 })(window);
