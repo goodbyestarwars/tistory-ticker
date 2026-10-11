@@ -925,12 +925,12 @@
     if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261012-board';
+      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261013-flow';
       document.head.appendChild(link);
     }
     fundBoardJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261012-board';
+      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-flow';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
@@ -1075,6 +1075,57 @@
     });
   }
 
+  /* ---- 04 국내 증시 자금 흐름(2026-10-12) ----
+     외국인·기관·개인 일별 순매수 막대, 누적 순매수 선, 총매수·총매도 지원 여부, 고객예탁금·신용잔고 추이, 규칙 기반 요약.
+     화면과 계산은 js/investor-flow.js, 데이터는 VM /investor-trend/history(순매수만 제공)와 이 모듈이 이미 받은 funds.series. */
+  var flowJob = null;
+  var flowInstance = null;
+
+  function ensureInvestorFlow() {
+    if (global.InvestorFlow) return Promise.resolve();
+    if (flowJob) return flowJob;
+    if (!document.querySelector('link[href*="/css/investor-flow.css"]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = FUND_BOARD_BASE + 'css/investor-flow.css?v=20261013-flow';
+      document.head.appendChild(link);
+    }
+    flowJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = FUND_BOARD_BASE + 'js/investor-flow.js?v=20261013-flow';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return flowJob;
+  }
+
+  // 다른 탭이 옛 판(createChart 없음)을 먼저 캐시해 둔 경우를 위해, 없으면 새 판을 한 번 더 받는다.
+  function ensureChartBoard() {
+    return ensureFundBoard().then(function () {
+      if (!global.IndicatorBoard || global.IndicatorBoard.createChart) return null;
+      return new Promise(function (resolve) {
+        var script = document.createElement('script');
+        script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-flow&r=1';
+        script.onload = script.onerror = function () { resolve(); };
+        document.head.appendChild(script);
+      });
+    });
+  }
+
+  function renderInvestorFlow(root, funds) {
+    var host = root.querySelector('.dmi-invflow-host');
+    if (!host) return;
+    Promise.all([ensureChartBoard(), ensureInvestorFlow()]).then(function () {
+      if (!global.IndicatorBoard || !global.IndicatorBoard.createChart || !global.InvestorFlow) {
+        host.innerHTML = '<div class="dmi-invflow-fail">국내 증시 자금 흐름 화면을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
+        return;
+      }
+      if (flowInstance && host.querySelector('.ifl')) { flowInstance.update(funds); return; }
+      host.innerHTML = '';
+      flowInstance = global.InvestorFlow.mount(host, { funds: funds });
+    });
+  }
+
   function init() {
     var root = document.getElementById('domestic-market-indicators');
     if (!root || root.getAttribute('data-dmi-ready') === '1') return;
@@ -1085,18 +1136,26 @@
     var fundsCollapsed = loadCollapsed('funds');
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
-      + '<section class="dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
-      + '<div class="dmi-subheading"><h3>KOSPI · KOSDAQ 현물 (09:00~15:45) <span class="dmi-market-status" data-dmi-market-status></span></h3>'
+      + '<section class="dmi-block dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
+      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">01</span>국내 주요 지수 <span class="dmi-market-status" data-dmi-market-status></span></h3>'
       + '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button></div>'
+      + '<div class="dmi-block-desc">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
-      + '<div class="dmi-subheading"><h3>투자자별 매매동향</h3></div>'
-      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div>'
-      + '<section class="dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
-      + '<div class="dmi-subheading"><h3>증시자금</h3>'
+      + '<section class="dmi-block dmi-investor-section">'
+      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">02</span>투자자별 매매동향</h3></div>'
+      + '<div class="dmi-block-desc">개인·외국인·기관의 최근 10거래일 순매수(억원)입니다. 양수는 순매수, 음수는 순매도입니다.</div>'
+      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></section>'
+      + '<section class="dmi-block dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
+      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">03</span>증시자금</h3>'
       + '<button type="button" class="dmi-section-collapse dmi-funds-collapse" aria-expanded="' + (fundsCollapsed ? 'false' : 'true') + '">' + (fundsCollapsed ? '펼치기' : '숨기기') + '</button></div>'
+      + '<div class="dmi-block-desc">고객예탁금·신용잔고·신용대주잔고·예탁증권담보융자와 프로그램 매매(차익·비차익)입니다. 표에서 지표를 고르면 아래 추이가 바뀝니다.</div>'
       + '<div class="dmi-funds-body"><div class="dmi-ai" id="dmiFundsAi" hidden></div>'
       + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div></div></section>'
+      + '<section class="dmi-block dmi-invflow-section">'
+      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">04</span>국내 증시 자금 흐름</h3></div>'
+      + '<div class="dmi-block-desc">외국인·기관·개인의 순매수 흐름과 고객예탁금·신용잔고 추이를 함께 봅니다. 순매수 합계는 시장 전체의 신규 자금 유입이 아닙니다.</div>'
+      + '<div class="dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
       + '</div>';
     var marketStatusNode = root.querySelector('[data-dmi-market-status]');
     if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();
@@ -1106,6 +1165,7 @@
       renderSpotQuotes(root, data.indices || {});
       renderInvestor(root, data.investor || {});
       renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
+      renderInvestorFlow(root, data.funds || {});
       connectSocket();
     }).catch(function () {
       root.querySelector('.dmi-shell').insertAdjacentHTML('beforeend', '<div class="dmi-error">국내시장지표 데이터를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>');
