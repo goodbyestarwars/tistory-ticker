@@ -825,19 +825,19 @@ html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: #80b8ff !i
    style.css의 @layer 안 !important보다 이기도록 선택자를 높인다. 다크모드는 기존 규칙을 따른다. */
 html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
 
-/* 이번 주 움직인 종목·주말 이슈 테마·다음 주 체크할 종목도 순백 박스로 (2026-10-11, 사용자 요청). 뉴스 구역은 제외. */
-.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not(.hwr2-themes):not([hidden]) {
+/* 이번 주 움직인 종목·주말 이슈 테마·다음 주 체크할 종목도 순백 박스로 (2026-10-11, 사용자 요청). 뉴스 구역은 제외.
+   2026-10-12: '주말 미국 뉴스로 본 관심 테마'(.hwr2-themes)만 박스 없이 사이트 종이색(크림)으로 남아 있어, 사용자 요청("혼자 크림색")으로 같은 순백 박스에 포함한다. */
+.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not([hidden]) {
   margin-top: 28px; padding: 28px 32px 24px; border: 1px solid var(--hw-border); border-radius: 18px; background-color: var(--hw-surface);
 }
-.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not(.hwr2-themes)::before, .home-weekly-report .hwr2-news::before { display: none; }
+.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news)::before, .home-weekly-report .hwr2-news::before { display: none; }
 @media (max-width: 720px) {
-  .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not(.hwr2-themes):not([hidden]) { margin-top: 20px; padding: 20px 16px 16px; border-radius: 14px; }
+  .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not([hidden]) { margin-top: 20px; padding: 20px 16px 16px; border-radius: 14px; }
 }
 
 /* ── 주말 미국 뉴스로 본 관심 테마: 박스 없는 개방형 편집 레이아웃 (2026-10-11) ── */
-.home-weekly-report .hwr2-themes { margin-top: 56px; }
 .home-weekly-report .hwr2-theme-grid { gap: 0 56px; }
-.home-weekly-report .hwr2-theme { padding: 4px 0 40px; }
+.home-weekly-report .hwr2-theme { padding: 4px 0 14px; }
 .home-weekly-report .hwr2-theme-head { padding-bottom: 12px; }
 .home-weekly-report .hwr2-theme-head strong { font-size: 18px; }
 .home-weekly-report .hwr2-theme-head span { font-size: 12px; font-weight: 500; color: var(--hw-muted); }
