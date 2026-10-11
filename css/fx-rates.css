@@ -1,9 +1,9 @@
 /* 시장지표 > 환율 탭 (2026-10-11). 표 중심 레이아웃 - 카드·둥근 상자·그림자 없이 선과 면으로 구분한다(신문 스타일).
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark 방식. 모든 선택자는 #fx-rates 아래로 한정해 다른 탭에 영향을 주지 않는다. */
 #fx-rates { min-width:0; --fxr-ink:13,27,64; --fxr-line:rgba(17,17,17,.13); --fxr-line-strong:rgba(17,17,17,.85); --fxr-tint:rgba(17,17,17,.045);
-  --fxr-sub:#64748b; --fxr-up:#d24f45; --fxr-down:#1261c4; color:rgb(var(--fxr-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
+  --fxr-sub:#64748b; --fxr-num:#374151; --fxr-up:#d24f45; --fxr-down:#1261c4; color:rgb(var(--fxr-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
 html.dark #fx-rates { --fxr-ink:245,239,224; --fxr-line:rgba(245,239,224,.16); --fxr-line-strong:rgba(245,239,224,.85); --fxr-tint:rgba(245,239,224,.06);
-  --fxr-sub:rgba(245,239,224,.62); --fxr-up:#ec6c62; --fxr-down:#5b9bf0; }
+  --fxr-sub:rgba(245,239,224,.62); --fxr-num:rgba(245,239,224,.88); --fxr-up:#ec6c62; --fxr-down:#5b9bf0; }
 
 #fx-rates .fxr { min-width:0; }
 #fx-rates .fxr-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -21,26 +21,26 @@ html.dark #fx-rates .fxr-state.is-warn { color:#fbbf24; }
 /* 환율 표 */
 #fx-rates .fxr-tablewrap { min-width:0; }
 #fx-rates table { width:100%; border-collapse:collapse; table-layout:auto; background:transparent; font-size:14px; }
-#fx-rates .fxr-table { border-top:2px solid var(--fxr-line-strong); }
-#fx-rates .fxr-table thead th { padding:9px 10px; border-bottom:1px solid var(--fxr-line); background:transparent; text-align:right; font-size:12px; font-weight:700; color:var(--fxr-sub); white-space:nowrap; }
-#fx-rates .fxr-table thead th.fxr-h-cur { text-align:left; }
-#fx-rates .fxr-table tbody th, #fx-rates .fxr-table tbody td { padding:10px 10px; border:0; border-bottom:1px solid var(--fxr-line); background:transparent; vertical-align:middle; }
+#fx-rates .fxr-table { table-layout:fixed; border-top:2px solid var(--fxr-line-strong); }
+#fx-rates .fxr-table thead th { padding:9px 12px; border-bottom:1px solid var(--fxr-line); background:transparent; text-align:right; font-size:12px; font-weight:700; color:var(--fxr-sub); white-space:nowrap; }
+#fx-rates .fxr-table thead th.fxr-h-cur { width:25%; text-align:left; }   /* 나머지 다섯 열은 같은 폭으로 나눈다 */
+#fx-rates .fxr-table tbody th, #fx-rates .fxr-table tbody td { padding:8px 12px; border:0; border-bottom:1px solid var(--fxr-line); background:transparent; vertical-align:middle; }
 #fx-rates .fxr-table tbody td { text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap; }
 #fx-rates .fxr-section th { padding:12px 10px 6px; text-align:left; font-size:12px; font-weight:700; color:var(--fxr-sub); border-bottom:1px solid var(--fxr-line); background:transparent; }
 #fx-rates .fxr-row { cursor:pointer; outline:none; }
-#fx-rates .fxr-row:hover { background:var(--fxr-tint); }
-#fx-rates .fxr-row:focus-visible { box-shadow:inset 2px 0 0 rgb(var(--fxr-ink)); background:var(--fxr-tint); }
-#fx-rates .fxr-row.is-selected { background:var(--fxr-tint); box-shadow:inset 3px 0 0 rgb(var(--fxr-ink)); }
-#fx-rates .fxr-row.is-selected .fxr-cur b { text-decoration:underline; text-underline-offset:3px; }
+#fx-rates .fxr-row:hover { background:rgba(var(--fxr-ink),.03); }
+#fx-rates .fxr-row:focus-visible { outline:1px solid var(--fxr-line-strong); outline-offset:-1px; }
+#fx-rates .fxr-row.is-selected { background:rgba(var(--fxr-ink),.02); }
+#fx-rates .fxr-row.is-selected .fxr-name { font-weight:700; }
 #fx-rates .fxr-cur { text-align:left; font-weight:400; }
-#fx-rates .fxr-cur b { display:inline-block; min-width:38px; font-size:15px; font-weight:800; color:rgb(var(--fxr-ink)); }
-#fx-rates .fxr-name { margin-left:6px; font-size:13px; color:rgb(var(--fxr-ink)); }
+#fx-rates .fxr-name { font-size:14px; font-weight:500; color:rgb(var(--fxr-ink)); }
+#fx-rates .fxr-code { margin-left:4px; font-size:11px; font-weight:400; color:var(--fxr-sub); text-decoration:none; white-space:nowrap; }
 #fx-rates .fxr-unit { display:block; margin-top:1px; font-size:11px; color:var(--fxr-sub); }
-#fx-rates .fxr-rate strong { font-size:16px; font-weight:800; }
+#fx-rates .fxr-rate strong { font-size:15px; font-weight:700; color:rgb(var(--fxr-ink)); }
 #fx-rates .up { color:var(--fxr-up)!important; }
 #fx-rates .down { color:var(--fxr-down)!important; }
-#fx-rates .flat { color:var(--fxr-sub); }
-#fx-rates .fxr-ttb, #fx-rates .fxr-tts { color:var(--fxr-sub); }
+#fx-rates .flat { color:var(--fxr-num); }
+#fx-rates .fxr-ttb, #fx-rates .fxr-tts { color:var(--fxr-num); }
 #fx-rates .fxr-empty { display:block; padding:28px 8px; text-align:center; font-size:13px; color:var(--fxr-sub); }
 #fx-rates td.fxr-empty { display:table-cell; }
 

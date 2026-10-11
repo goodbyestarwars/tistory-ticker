@@ -96,6 +96,10 @@
     return (item.unit > 1 ? item.unit : 1) + ' ' + item.code + '당';
   }
 
+  /* 표시용 통화명. API 가 주는 이름 중 어색한 표기만 일반적인 한글 표기로 바꾼다(환율 값·코드는 그대로). */
+  var DISPLAY_NAMES = { JPY: '일본 엔', CNH: '중국 위안', DKK: '덴마크 크로네', MYR: '말레이시아 링깃' };
+  function displayName(item) { return DISPLAY_NAMES[item.code] || item.name || item.code; }
+
   function rowHtml(item) {
     var t = tone(item.change);
     var arrow = t === 'up' ? '▲' : t === 'down' ? '▼' : '';
@@ -103,7 +107,7 @@
     var changeText = item.change == null ? '-' : arrow + ' ' + num(Math.abs(item.change), item.change !== Math.round(item.change * 100) / 100 ? 4 : 2);
     var on = item.code === selected;
     return '<tr class="fxr-row' + (on ? ' is-selected' : '') + '" data-code="' + esc(item.code) + '" tabindex="0" aria-selected="' + on + '">'
-      + '<th scope="row" class="fxr-cur"><b>' + esc(item.code) + '</b><span class="fxr-name">' + esc(item.name) + '</span><span class="fxr-unit">' + esc(unitText(item)) + '</span></th>'
+      + '<th scope="row" class="fxr-cur"><span class="fxr-name">' + esc(displayName(item)) + '</span> <span class="fxr-code">' + esc(item.code) + '</span><span class="fxr-unit">' + esc(unitText(item)) + '</span></th>'
       + '<td class="fxr-rate"><strong>' + rate(item.dealBasR) + '</strong></td>'
       + '<td class="fxr-chg ' + t + '" data-label="전일 대비" data-short="전일">' + changeText + '</td>'
       + '<td class="fxr-pct ' + t + '" data-label="등락률">' + pctText + '</td>'
@@ -350,6 +354,6 @@
     if (!timer) timer = setInterval(function () { if (active()) refresh(true); }, REFRESH_MS);
   }
 
-  global.FxRates = { init: init, _util: { rate: rate, num: num, tone: tone, dayLabel: dayLabel, kstStamp: kstStamp, pointStats: pointStats, niceTicks: niceTicks, unitText: unitText } };
+  global.FxRates = { init: init, _util: { rate: rate, num: num, tone: tone, dayLabel: dayLabel, kstStamp: kstStamp, pointStats: pointStats, niceTicks: niceTicks, unitText: unitText, displayName: displayName } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })(window);
