@@ -9,14 +9,11 @@ import unittest
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 
 HARNESS = r"""
-const fs = require('fs');
-const src = fs.readFileSync('js/stock-search.js', 'utf8');
-const start = src.indexOf('var SR_PIVOT_WINDOW');
-const end = src.indexOf('function installSupportResistanceCanvas');
-const code = src.slice(start, end);
-const fn = new Function(code + '; return supportResistanceLevels;')();
+const fs = require('fs'), vm = require('vm');
+const window = {};
+vm.runInNewContext(fs.readFileSync('js/chart-sr.js', 'utf8'), { window, document: {} });
 const bars = JSON.parse(process.argv[1]);
-console.log(JSON.stringify(fn(bars)));
+console.log(JSON.stringify(window.NineChartSR.levels(bars)));
 """
 
 
@@ -55,11 +52,15 @@ class SupportResistanceTest(unittest.TestCase):
         self.assertEqual(result['resistance'], [])
 
     def test_colors_and_ui_contract(self):
+        sr = (ROOT / 'js' / 'chart-sr.js').read_text(encoding='utf-8')
+        self.assertIn("var SR_SUPPORT_COLOR = '210,79,69';", sr)      # 지지 = 붉은색
+        self.assertIn("var SR_RESISTANCE_COLOR = '18,97,196';", sr)   # 저항 = 파란색
         src = (ROOT / 'js' / 'stock-search.js').read_text(encoding='utf-8')
-        self.assertIn("var SR_SUPPORT_COLOR = '210,79,69';", src)      # 지지 = 붉은색
-        self.assertIn("var SR_RESISTANCE_COLOR = '18,97,196';", src)   # 저항 = 파란색
         self.assertIn('지지·저항 표시', src)
         self.assertIn('supportResistanceEnabled', src)
+        # 차트검색은 SR 계산을 따로 갖지 않고 공용 모듈을 쓴다(종목분석·차트검색 결과가 같다)
+        self.assertNotIn('function supportResistanceLevels', src)
+        self.assertIn('NineChartSR.levels(bars)', src)
 
 
 if __name__ == '__main__':

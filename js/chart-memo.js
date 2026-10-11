@@ -317,7 +317,7 @@
       ensureStyles();
       try { if (global.getComputedStyle(o.container).position === 'static') o.container.style.position = 'relative'; } catch (e) { /* 무시 */ }
       memoDrawingProbe = o.isDrawing || null;
-      var dispose = installChartMemoLayer(o.container, o.chart, o.series, o.bars, 'day', o.code, o.name, o.formatPrice);
+      var dispose = installChartMemoLayer(o.container, o.chart, o.series, o.bars, o.timeframe || 'day', o.code, o.name, o.formatPrice);
       var ctl = chartMemoCtl;
       return {
         setMode: function (on) { if (ctl) ctl.setMode(on); },

@@ -778,6 +778,15 @@
 #foreign-flow .ff-drawing-layer { position:absolute; top:0; left:0; z-index:6; pointer-events:none; touch-action:none; }
 #foreign-flow .ff-drawing-layer.is-active { pointer-events:auto; cursor:crosshair; }
 html.dark #foreign-flow .ff-draw-tools span { color:rgba(245,239,224,.65); }
+/* 자동 파동 규모 선택(대·중·소) - 차트검색의 .ss-wave-* 와 같은 모양(js/chart-wave-overlay.js 가 단추를 채운다) */
+#foreign-flow .ff-wave-level { display: inline-flex; align-items: center; }
+#foreign-flow .ff-wave-level[hidden] { display: none; }
+#foreign-flow .ff-wave-btn { margin: 0; padding: 3px 10px; border: 1px solid #d7dee8; border-right-width: 0; border-radius: 0; background: rgb(255, 254, 252); color: #666; font: 600 12px/1.4 inherit; cursor: pointer; }
+#foreign-flow .ff-wave-btn:first-child { border-radius: 4px 0 0 4px; }
+#foreign-flow .ff-wave-btn:last-child { border-right-width: 1px; border-radius: 0 4px 4px 0; }
+#foreign-flow .ff-wave-btn.active { border-color: #222; background: #222; color: #fff; }
+html.dark #foreign-flow .ff-wave-btn { border-color: rgba(245, 239, 224, 0.2); background: transparent; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #foreign-flow .ff-wave-btn.active { border-color: #F5EFE0; background: #F5EFE0; color: #1A1A1A !important; }
 html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-color:#F5EFE0; color:#1A1A1A; }
 #foreign-flow .ff-ichimoku-toggle {
   display: flex;
@@ -3017,7 +3026,7 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
    MaruBuriBold는 별도 굵은 글꼴 파일이므로 가짜 볼드 대신 기본 weight로 쓴다. */
 html body #foreign-flow .ff-swing-summary strong,
 html body #foreign-flow .ff-swing-summary b,
-html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif!important; font-weight:700!important; font-synthesis:none; }
+html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:var(--font-ui)!important; font-weight:700!important; font-synthesis:none; }
 #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45; }
 #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
@@ -3137,4 +3146,23 @@ html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14
   #foreign-flow .ff-members-grid { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
   #foreign-flow .ff-members-col + .ff-members-col { padding-left: 0; margin-left: 0; border-left: 0; }
   #foreign-flow .ff-members-list li { grid-template-columns: 20px 92px minmax(0, 1fr); }
+}
+
+/* ── 종목분석 글꼴 통일 (2026-10-13) ──
+   기준은 특정 글꼴 이름이 아니라 상단 종목명(.ff-header)에 실제로 렌더링되는 글꼴이다. 스킨의
+   html body * { font-family: var(--font-ui) !important } 가 종목명에 주는 값을 그대로 쓰므로,
+   종목명 글꼴이 바뀌면 이 화면 전체가 같이 따라간다(글꼴 이름을 여기에 따로 적지 않는다).
+   스킨의 @layer np 안에는 제목류(h1~h3·일부 클래스)를 마루부리로 고정하는 !important 규칙이 있어
+   layer 밖 !important 로는 이길 수 없다 - 같은 layer 안에서 선택자 강도로 이긴다.
+   범위는 #foreign-flow 안뿐이다(블로그 본문·뉴스·다른 페이지·전역 글꼴은 그대로). */
+@layer np {
+  html body #foreign-flow,
+  html body #foreign-flow * { font-family: var(--font-ui) !important; }
+  /* 마루부리 굵은 글꼴 파일(weight 400)로 강조하던 곳은 같은 글꼴의 700 굵기로 맞춘다 */
+  html body #foreign-flow :is(h1, h2, h3, h4, h5, h6),
+  html body #foreign-flow .ff-panel-title,
+  html body #foreign-flow .ff-flow-card-copy strong,
+  html body #foreign-flow .ff-opinion-target strong,
+  html body #foreign-flow .ff-opinion-summary-card > .ff-panel-title,
+  html body #foreign-flow .ff-etf-summary-card > .ff-panel-title { font-weight: 700 !important; font-synthesis: none; }
 }

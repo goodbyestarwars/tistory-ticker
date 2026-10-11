@@ -38,17 +38,23 @@
 (function (global) {
   'use strict';
 
+  // 차트 공통 엔진(js/chart-core.js 외): 이 파일이 실제로 내려온 곳을 기준으로 받는다(운영=GitHub Pages, 로컬 점검=로컬 서버).
+  var CHART_BASE = (function () {
+    var src = document.currentScript && document.currentScript.src;
+    var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
+    return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
+  }());
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261014-core1';
+  var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
   var VM_HOUR_CANDIDATES_URL = 'https://goodbyestar.cloud/hour-direction';
   var HOUR_CANDIDATES_TIMEOUT_MS = 45000;
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261008-news-et';
-  var AUTO_WAVE_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/auto-wave.js?v=20261013-hier';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -112,8 +118,8 @@
     ichimokuEnabled: false,
     volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
     supportResistanceEnabled: false,
-    autoWaveEnabled: false,
-    autoWaveLevel: 'medium',   // 대파동 major · 중파동 medium(기본) · 소파동 minor
+    wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
+    forecast: { enabled: false, level: 'medium', horizon: 10, hidden: {} },   // 다음 파동 예측(실험): 규모·예측 기간(거래일)·시나리오별 숨김
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
@@ -122,7 +128,6 @@
     externalMinuteLoader: null,
     liveQuotes: {}
   };
-  var lwcLoadPromise = null;
   var lwcChart = null;
   var lwcChartContainer = null;
   var lwcCandleSeries = null;
@@ -130,11 +135,13 @@
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcSrCleanup = null;
-  var lwcMemoCleanup = null;
+  var memoCtl = null;
   var lwcRsiZonesCleanup = null;
   var lwcOhlcTooltipCleanup = null;
   var lwcRenderId = 0;
-  var stockDrawingState = null;
+  var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
+  var waveHandle = null;     // chart-wave-overlay 핸들
+  var forecastHandle = null; // chart-forecast-overlay 핸들
   var suggestionRequestId = 0;
   var stockSearchRequestId = 0;
   // This analysis starts only on an explicit check. Never restore or poll a signal.
@@ -219,7 +226,7 @@
   }
 
   var stockChartResizeFrame = 0;
-  var stockChartResizeObserver = null;
+  var stockChartResizeOff = null;
   var stockChartMeasuredWidth = 0;
   var stockChartMeasuredHeight = 0;
 
@@ -244,7 +251,7 @@
           }
         } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
       }
-      if (stockDrawingState) resizeStockDrawing(stockDrawingState);
+      if (drawingCtl) drawingCtl.resize();
     });
   }
   global.addEventListener('tistory-chart-resize', resizeStockChart);
@@ -272,6 +279,8 @@
     });
     clearHourCandidates(container);
     container.innerHTML = buildShell();
+    chartReady().catch(function () { /* 차트를 열 때 다시 시도하고 오류를 보여 준다 */ });   // 라이브러리·모듈을 검색·시세 조회와 겹쳐 미리 받는다
+    if (global.OrderBook) global.OrderBook.flowChartProvider = loadSharedFlowChart;
     wirePanelResize(container);
     wireSearch(container);
     wireHourCandidates(container);
@@ -355,15 +364,14 @@
     return String(code || '') + '|' + String(scope || state.minuteScope || '1');
   }
 
-  var AUTO_WAVE_LEVELS = [{ key: 'major', label: '대파동', tip: '주된 방향(큰 상승·하락, 긴 횡보·바닥). 확정이 가장 늦다' }, { key: 'medium', label: '중파동', tip: '스윙매매 규모의 상승·조정·재상승(기본)' }, { key: 'minor', label: '소파동', tip: '짧은 눌림·재돌파·단기 저점 상승' }];
+  // 다음 파동 예측 체크와 옵션 자리(기간·규모 단추는 js/chart-forecast-overlay.js 가 체크를 켤 때 채운다).
+  function forecastToggleHtml() {
+    return '<label title="실험 기능: 지금 파동 구조가 다섯 시나리오(상승 지속·정상 눌림목·횡보 응축·가짜 상승·추세 훼손) 중 어디에 가까운지 보여 주고, 확인·무효화 가격과 변동 범위를 점선·표로 안내합니다. 가격을 맞히는 예측이 아니며 매매 추천도 아닙니다. 일봉에서만 제공합니다."><input type="checkbox" data-chart-forecast-toggle /> 다음 파동 예측</label><span data-chart-forecast-opts hidden></span>';
+  }
 
-  // 파동 분석 규모 선택(대·중·소). 파동 분석이 꺼져 있으면 숨긴다.
+  // 파동 분석 규모 선택(대·중·소) 자리. 셸을 먼저 그려야 해서 비워 두고(숨김), 단추는 js/chart-wave-overlay.js 가 채운다.
   function waveLevelHtml() {
-    return '<span class="ss-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (state.autoWaveEnabled ? '' : ' hidden') + '>'
-      + AUTO_WAVE_LEVELS.map(function (lv) {
-        var on = lv.key === state.autoWaveLevel;
-        return '<button type="button" class="ss-wave-btn' + (on ? ' active' : '') + '" data-wave-level="' + lv.key + '" aria-pressed="' + on + '" title="' + lv.tip + '">' + lv.label + '</button>';
-      }).join('') + '</span>';
+    return '<span class="ss-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (state.wave.enabled ? '' : ' hidden') + '></span>';
   }
 
   function minuteScopeControlHtml() {
@@ -433,11 +441,12 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml() + forecastToggleHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
+      + '<div class="nc-forecast ss-forecast" data-chart-forecast-panel hidden></div>'
       + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
@@ -1357,34 +1366,30 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    // 파동 분석 체크·규모 선택: 분석은 캐시를 재사용하고 규모만 바꿔 다시 그린다(chart-wave-overlay 가 연결).
+    // 파동 모듈·분석 엔진은 체크를 켜는 순간에야 받는다(안 쓰면 요청도 없다).
     var waveToggle = container.querySelector('[data-chart-wave-toggle]');
-    var waveLevelBox = container.querySelector('[data-chart-wave-level]');
-    function syncWaveLevelControls() {
-      if (!waveLevelBox) return;
-      waveLevelBox.hidden = !state.autoWaveEnabled;
-      Array.prototype.forEach.call(waveLevelBox.querySelectorAll('[data-wave-level]'), function (btn) {
-        var on = btn.getAttribute('data-wave-level') === state.autoWaveLevel;
-        btn.classList.toggle('active', on);
-        btn.setAttribute('aria-pressed', String(on));
-      });
-    }
     if (waveToggle) {
-      waveToggle.checked = state.autoWaveEnabled;
       waveToggle.onchange = function () {
-        state.autoWaveEnabled = waveToggle.checked;
-        syncWaveLevelControls();
-        applyAutoWave(stockDrawingState);
+        state.wave.enabled = waveToggle.checked;   // 모듈이 오기 전에 누른 값을 먼저 반영한다
+        loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
+          Wave.wireControls(container, state.wave, function () { applyStockWave(); }, 'ss');   // 이후 체크·규모 선택은 모듈이 처리
+          waveToggle.onchange();
+        }).catch(function () { waveToggle.checked = false; state.wave.enabled = false; /* 파동 모듈을 못 받아도 차트는 그대로 */ });
       };
+      if (state.wave.enabled) { waveToggle.checked = true; waveToggle.onchange(); }
     }
-    if (waveLevelBox) {
-      syncWaveLevelControls();
-      waveLevelBox.onclick = function (event) {
-        var btn = event.target.closest ? event.target.closest('[data-wave-level]') : null;
-        if (!btn) return;
-        state.autoWaveLevel = btn.getAttribute('data-wave-level');
-        syncWaveLevelControls();
-        applyAutoWave(stockDrawingState);   // 분석은 캐시를 재사용하고 규모만 바꿔 다시 그린다
+    // 다음 파동 예측도 체크를 켜는 순간에야 모듈·분석 엔진·통계 표를 받는다.
+    var forecastToggle = container.querySelector('[data-chart-forecast-toggle]');
+    if (forecastToggle) {
+      forecastToggle.onchange = function () {
+        state.forecast.enabled = forecastToggle.checked;
+        loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
+          F.wireControls(container, state.forecast, function () { applyStockForecast(); }, 'ss');   // 이후 체크·기간·규모·시나리오 선택은 모듈이 처리
+          forecastToggle.onchange();
+        }).catch(function () { forecastToggle.checked = false; state.forecast.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
       };
+      if (state.forecast.enabled) { forecastToggle.checked = true; forecastToggle.onchange(); }
     }
     var srToggle = container.querySelector('#ssSupportResistanceToggle, [data-chart-sr-toggle]');
     if (srToggle) {
@@ -1399,66 +1404,15 @@
       memoButton.setAttribute('data-memo-wired', '1');
       memoButton.onclick = function () {
         if (state.timeframe === 'minute') { memoButton.title = '분봉에서는 일·주·월봉에서 메모해 주세요.'; return; }
-        if (!chartMemoCtl) return;
-        var on = !chartMemoCtl.isMode();
-        if (on) setStockDrawingMode(null);
-        chartMemoCtl.setMode(on);
+        if (!memoCtl) return;
+        var on = !memoCtl.isMode();
+        if (on && drawingCtl) drawingCtl.setMode(null);
+        memoCtl.setMode(on);
         memoButton.classList.toggle('is-active', on);
         memoButton.setAttribute('aria-pressed', on ? 'true' : 'false');
       };
     }
-    var drawButton = container.querySelector('.ss-draw-toggle');
-    var pencilButton = container.querySelector('.ss-pencil-toggle');
-    var circleButton = container.querySelector('.ss-circle-toggle');
-    var boxButton = container.querySelector('.ss-box-toggle');
-    var hlineButton = container.querySelector('.ss-hline-toggle');
-    var drawClear = container.querySelector('.ss-draw-clear');
-    if (drawButton && drawButton.getAttribute('data-stock-draw-wired') !== '1') {
-      drawButton.setAttribute('data-stock-draw-wired', '1');
-      drawButton.onclick = function () {
-        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'line' ? null : 'line');
-      };
-    }
-    if (pencilButton && pencilButton.getAttribute('data-stock-draw-wired') !== '1') {
-      pencilButton.setAttribute('data-stock-draw-wired', '1');
-      pencilButton.onclick = function () {
-        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'pencil' ? null : 'pencil');
-      };
-    }
-    if (circleButton && circleButton.getAttribute('data-stock-draw-wired') !== '1') {
-      circleButton.setAttribute('data-stock-draw-wired', '1');
-      circleButton.onclick = function () {
-        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'circle' ? null : 'circle');
-      };
-    }
-    if (boxButton && boxButton.getAttribute('data-stock-draw-wired') !== '1') {
-      boxButton.setAttribute('data-stock-draw-wired', '1');
-      boxButton.onclick = function () {
-        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'box' ? null : 'box');
-      };
-    }
-    if (hlineButton && hlineButton.getAttribute('data-stock-draw-wired') !== '1') {
-      hlineButton.setAttribute('data-stock-draw-wired', '1');
-      hlineButton.onclick = function () {
-        setStockDrawingMode(stockDrawingState && stockDrawingState.mode === 'hline' ? null : 'hline');
-      };
-    }
-    if (drawClear && drawClear.getAttribute('data-stock-draw-wired') !== '1') {
-      drawClear.setAttribute('data-stock-draw-wired', '1');
-      drawClear.onclick = function () {
-        if (!stockDrawingState) return;
-        stockDrawingState.lines = [];
-        stockDrawingState.paths = [];
-        stockDrawingState.circles = [];
-        stockDrawingState.hlines = [];
-        stockDrawingState.boxes = [];
-        stockDrawingState.pending = null;
-        stockDrawingState.preview = null;
-        stockDrawingState.activePath = null;
-        saveStockDrawings(stockDrawingState);
-        redrawStockDrawing(stockDrawingState);
-      };
-    }
+    // 그리기 도구 단추는 차트를 그릴 때마다 chart-drawing 이 새 컨트롤러에 연결한다.
   }
 
   // 신규상장 종목은 일봉 분석에 필요한 기록이 없어도 실제 분봉은 조회할 수 있다.
@@ -1479,6 +1433,34 @@
     renderChartForCode(container, code);
   }
 
+  // 다른 화면이 같은 종목 일봉을 이 탭 저장소(chart-data 가 쓰는 키)에 남겨 뒀을 수 있는지 동기로 확인한다.
+  // 있으면 엔진을 기다려 캐시에서 읽고(요청 생략), 없으면 엔진을 기다리지 않고 바로 요청한다.
+  function sharedFlowChartMayExist(code) {
+    try { return !!global.sessionStorage.getItem('nine-chart:v1:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
+  }
+
+  // 일봉(/flow-chart) 요청: 호가 요약(order-book.js)·차트가 같은 경로를 쓰고, 종목분석과 메모리·탭 저장소 캐시를 같이 쓴다(chart-data).
+  function requestFlowChart(code) {
+    return global.OrderBook && global.OrderBook.fetchChart
+      ? global.OrderBook.fetchChart(code)
+      : fetchJson('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(code))
+        .then(function (json) { return json && json.data ? json.data : json; })
+        .catch(function () { return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code)); });
+  }
+
+  function loadSharedFlowChart(code) {
+    var api = global.NineChartData;
+    if (api) return api.fetchFlowChart(code, requestFlowChart);
+    // 엔진이 아직 없으면: 탭 저장소에 있을 수 있을 때만 엔진을 기다리고, 아니면 기다리지 않고 바로 요청한다(캐시는 올라온 뒤 채운다).
+    if (sharedFlowChartMayExist(code)) {
+      return chartReady().then(function () { return global.NineChartData.fetchFlowChart(code, requestFlowChart); }, function () { return requestFlowChart(code); });
+    }
+    return requestFlowChart(code).then(function (data) {
+      chartReady().then(function () { global.NineChartData.primeFlowChart(code, data); }).catch(function () { /* 캐시만 건너뜀 */ });
+      return data;
+    });
+  }
+
   function loadChart(container, code) {
     var chartEl = activeStockChartElement(container);
     if (!chartEl) return;
@@ -1489,11 +1471,8 @@
       return;
     }
     chartEl.innerHTML = '<div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div>';
-    var chartRequest = global.OrderBook && global.OrderBook.fetchChart
-      ? global.OrderBook.fetchChart(code)
-      : fetchJson('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(code))
-        .then(function (json) { return json && json.data ? json.data : json; })
-        .catch(function () { return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code)); });
+    // 같은 일봉(/flow-chart)은 종목분석과 메모리·탭 저장소 캐시를 같이 쓰고, 진행 중 요청도 하나로 합친다(chart-data).
+    var chartRequest = loadSharedFlowChart(code);
     chartRequest
       .then(function (data) {
         if (data && (data.error === 'NO_DATA' || (!data.error && Array.isArray(data.daily) && !data.daily.length))) {
@@ -1512,56 +1491,6 @@
       });
   }
 
-  // 일봉을 ISO 주차/월 단위로 묶어 주봉·월봉을 클라이언트에서 계산(백엔드는 일봉만 제공) -
-  // open=구간 첫날, close=구간 마지막날, high/low=구간 내 최댓값/최솟값, volume=합계.
-  function aggregateBars(daily, groupKeyFn) {
-    var groups = [];
-    var byKey = {};
-    daily.forEach(function (d) {
-      var key = groupKeyFn(d.date);
-      var g = byKey[key];
-      if (!g) {
-        g = { date: d.date, open: d.open, high: d.high, low: d.low, close: d.close, volume: d.volume || 0 };
-        byKey[key] = g;
-        groups.push(g);
-      } else {
-        g.high = Math.max(g.high, d.high);
-        g.low = Math.min(g.low, d.low);
-        g.close = d.close;
-        g.date = d.date; // 구간의 마지막 날짜를 대표 타임스탬프로 사용
-        g.volume += (d.volume || 0);
-      }
-    });
-    return groups;
-  }
-
-  function isoWeekKey(dateStr) {
-    var d = new Date(dateStr + 'T00:00:00Z');
-    var day = (d.getUTCDay() + 6) % 7; // 월요일=0
-    d.setUTCDate(d.getUTCDate() - day + 3); // 그 주 목요일로 이동(ISO 주차 계산 관례)
-    var firstThursday = new Date(Date.UTC(d.getUTCFullYear(), 0, 4));
-    var week = 1 + Math.round(((d - firstThursday) / 86400000 - 3 + ((firstThursday.getUTCDay() + 6) % 7)) / 7);
-    return d.getUTCFullYear() + '-W' + week;
-  }
-  function monthKey(dateStr) { return dateStr.slice(0, 7); }
-
-  function barsForTimeframe(daily, tf) {
-    if (tf === 'week') return aggregateBars(daily, isoWeekKey);
-    if (tf === 'month') return aggregateBars(daily, monthKey);
-    return daily;
-  }
-
-  function movingAveragePoints(bars, field, period) {
-    var sum = 0;
-    var points = [];
-    bars.forEach(function (bar, i) {
-      sum += Number(bar[field]) || 0;
-      if (i >= period) sum -= Number(bars[i - period][field]) || 0;
-      if (i >= period - 1) points.push({ time: bar.date, value: sum / period });
-    });
-    return points;
-  }
-
   function stockRsi(bars) {
     var close = bars.map(function (bar) { return Number(bar.close) || 0; });
     var rsi = [], gain = 0, loss = 0, period = 14;
@@ -1577,67 +1506,6 @@
       rsi.push(i < period ? null : (loss === 0 ? 100 : 100 - 100 / (1 + gain / loss)));
     }
     return rsi;
-  }
-
-  function rollingMidpointValues(bars, period) {
-    return bars.map(function (_, i) {
-      if (i < period - 1) return null;
-      var high = -Infinity;
-      var low = Infinity;
-      for (var j = i - period + 1; j <= i; j++) {
-        high = Math.max(high, Number(bars[j].high) || 0);
-        low = Math.min(low, Number(bars[j].low) || 0);
-      }
-      return (high + low) / 2;
-    });
-  }
-
-  function futureBarTimes(lastDate, timeframe, count) {
-    var out = [];
-    var d = new Date(lastDate + 'T00:00:00Z');
-    var originalDay = d.getUTCDate();
-    for (var i = 0; i < count; i++) {
-      if (timeframe === 'week') {
-        d.setUTCDate(d.getUTCDate() + 7);
-      } else if (timeframe === 'month') {
-        var nextMonth = d.getUTCMonth() + 1;
-        var nextYear = d.getUTCFullYear() + Math.floor(nextMonth / 12);
-        nextMonth = nextMonth % 12;
-        var lastDay = new Date(Date.UTC(nextYear, nextMonth + 1, 0)).getUTCDate();
-        d = new Date(Date.UTC(nextYear, nextMonth, Math.min(originalDay, lastDay)));
-      } else {
-        do { d.setUTCDate(d.getUTCDate() + 1); }
-        while (d.getUTCDay() === 0 || d.getUTCDay() === 6);
-      }
-      out.push(d.toISOString().slice(0, 10));
-    }
-    return out;
-  }
-
-  // 일목균형표 구름대: 전환선(9), 기준선(26), 선행스팬B(52)를 계산한 뒤
-  // 선행스팬 A/B를 현재 봉 기준 26봉 앞으로 이동한다. 미래 구간은 일봉이면 주말을,
-  // 주봉/월봉이면 각각 7일/1개월 간격을 사용하며 공휴일 값을 임의 생성하지 않는다.
-  function ichimokuCloudPoints(bars, timeframe) {
-    if (!bars.length) return [];
-    var conversion = rollingMidpointValues(bars, 9);
-    var base = rollingMidpointValues(bars, 26);
-    var spanBValues = rollingMidpointValues(bars, 52);
-    var times = bars.map(function (bar) { return bar.date; })
-      .concat(futureBarTimes(bars[bars.length - 1].date, timeframe, 26));
-    var points = [];
-    bars.forEach(function (_, i) {
-      if (conversion[i] == null || base[i] == null || spanBValues[i] == null) return;
-      points.push({
-        time: times[i + 26],
-        // 일부 Lightweight Charts 버전은 캔들 데이터에 없는 미래 날짜를
-        // timeToCoordinate()로 변환하지 않는다. 그 경우 현재 봉을 기준으로
-        // 구름을 그릴 수 있도록 원본 시각도 함께 보관한다.
-        sourceTime: bars[i].date,
-        spanA: (conversion[i] + base[i]) / 2,
-        spanB: spanBValues[i]
-      });
-    });
-    return points;
   }
 
   function installIchimokuCloudCanvas(container, chart, candleSeries, points) {
@@ -1713,491 +1581,6 @@
     };
   }
 
-  // ---- 지지·저항 (2026-10-03 사용자 요청: "일목균형표 옆에 지지와 저항 옵션, 가로줄(지지 붉은색/저항 파란색)
-  // 또는 음영, 목적은 타점") ----
-  // 현재 차트의 봉(일/주/월/분)에서 스윙 고점·저점(좌우 4봉보다 높거나 낮은 봉)을 찾고, 가까운 가격끼리
-  // 묶어(현재가의 1.2% 이내) 가격대로 만든다. 많이 닿을수록(터치 수)·최근일수록·거래량이 컸을수록 강하다.
-  // 현재가 아래는 지지(붉은색), 위는 저항(파란색)이며 현재가에서 가까운 3개씩만 보여 준다.
-  // 매수·매도 추천이 아니라 과거 가격이 반응했던 자리를 보여 주는 참고선이다.
-  var SR_PIVOT_WINDOW = 4;
-  var SR_CLUSTER_PCT = 0.015;
-  var SR_MIN_GAP_PCT = 0.02;   // 같은 쪽에서 고른 선끼리 최소 간격(라벨·선이 붙어 읽기 어려운 것 방지)
-  var SR_MAX_BARS = 260;
-  var SR_MAX_PER_SIDE = 3;
-  var SR_SUPPORT_COLOR = '210,79,69';
-  var SR_RESISTANCE_COLOR = '18,97,196';
-
-  function supportResistanceLevels(bars) {
-    var empty = { support: [], resistance: [], price: null };
-    if (!bars || bars.length < SR_PIVOT_WINDOW * 2 + 6) return empty;
-    var arr = bars.slice(-SR_MAX_BARS);
-    var len = arr.length;
-    var price = Number(arr[len - 1].close);
-    if (!Number.isFinite(price) || price <= 0) return empty;
-    var volSum = 0;
-    arr.forEach(function (bar) { volSum += Number(bar.volume) || 0; });
-    var volAvg = volSum / len;
-    var k = SR_PIVOT_WINDOW;
-    var pivots = [];
-    for (var i = k; i < len - k; i++) {
-      var hi = Number(arr[i].high);
-      var lo = Number(arr[i].low);
-      var isHigh = Number.isFinite(hi);
-      var isLow = Number.isFinite(lo);
-      var strictHigh = false;
-      var strictLow = false;
-      for (var j = i - k; j <= i + k; j++) {
-        if (j === i) continue;
-        if (Number(arr[j].high) > hi) isHigh = false;
-        else if (Number(arr[j].high) < hi) strictHigh = true;
-        if (Number(arr[j].low) < lo) isLow = false;
-        else if (Number(arr[j].low) > lo) strictLow = true;
-      }
-      var recency = 0.6 + 0.4 * (i / len);
-      var volume = volAvg > 0 ? Math.min(3, (Number(arr[i].volume) || 0) / volAvg) : 1;
-      var weight = recency * (1 + 0.35 * volume);
-      if (isHigh && strictHigh) pivots.push({ price: hi, weight: weight });
-      if (isLow && strictLow) pivots.push({ price: lo, weight: weight });
-    }
-    pivots.sort(function (a, b) { return a.price - b.price; });
-    var tol = price * SR_CLUSTER_PCT;
-    var clusters = [];
-    pivots.forEach(function (p) {
-      var c = clusters[clusters.length - 1];
-      if (c && p.price - c.mean <= tol) {
-        c.sum += p.price * p.weight;
-        c.weight += p.weight;
-        c.mean = c.sum / c.weight;
-        c.low = Math.min(c.low, p.price);
-        c.high = Math.max(c.high, p.price);
-        c.touches += 1;
-      } else {
-        clusters.push({ sum: p.price * p.weight, weight: p.weight, mean: p.price, low: p.price, high: p.price, touches: 1 });
-      }
-    });
-    var minHalf = price * 0.002;
-    function toLevel(c) {
-      return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
-    }
-    var near = clusters.filter(function (c) { return Math.abs(c.mean - price) / price <= 0.25; });
-    var levels = near.filter(function (c) { return c.touches >= 2; }).map(toLevel);
-    // 2026-10-04: 52주 저점 부근처럼 한쪽에 2회 이상 닿은 가격대가 없으면 "지지/저항이 없다"로 보였다(사용자 지적).
-    // 그런 쪽에는 한 번만 닿은 스윙 고·저점(1회)을 가까운 순서로 보충해 최소 2개까지 보여 준다.
-    var weakLevels = near.filter(function (c) { return c.touches < 2; }).map(toLevel);
-    function nearest(list) {
-      var sorted = list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
-      var picked = [];
-      sorted.forEach(function (level) {
-        if (picked.length >= SR_MAX_PER_SIDE) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
-        if (!tooClose) picked.push(level);
-      });
-      return picked;
-    }
-    function fillWeak(picked, side) {
-      if (picked.length >= 2) return picked;
-      var pool = weakLevels.filter(side).sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
-      pool.forEach(function (level) {
-        if (picked.length >= 2) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
-        if (!tooClose) picked.push(level);
-      });
-      return picked;
-    }
-    var isSupport = function (l) { return l.price < price * 0.998; };
-    var isResistance = function (l) { return l.price > price * 1.002; };
-    return {
-      price: price,
-      support: fillWeak(nearest(levels.filter(isSupport)), isSupport),
-      resistance: fillWeak(nearest(levels.filter(isResistance)), isResistance)
-    };
-  }
-
-  function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice) {
-    var all = result ? result.support.map(function (l) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지' }; })
-      .concat(result.resistance.map(function (l) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항' }; })) : [];
-    if (!all.length) return function () {};
-    var chartRoot = container.firstElementChild;
-    if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
-    var canvas = document.createElement('canvas');
-    canvas.className = 'ss-sr-zones';
-    canvas.setAttribute('aria-hidden', 'true');
-    container.insertBefore(canvas, chartRoot || container.firstChild);
-
-    var frameId = 0;
-    var resizeObserver = null;
-    function axisWidth() {
-      try { var w = chart.priceScale('right').width(); if (Number.isFinite(w) && w > 0) return w; } catch (e) { /* 버전에 따라 없다 */ }
-      return 58;
-    }
-    function draw() {
-      frameId = 0;
-      if (!document.body.contains(container)) return;
-      var width = container.clientWidth;
-      var height = container.clientHeight;
-      if (!width || !height) return;
-      var ratio = Math.max(1, global.devicePixelRatio || 1);
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
-      var ctx = canvas.getContext('2d');
-      ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-      ctx.clearRect(0, 0, width, height);
-      var right = width - axisWidth();
-      ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
-      ctx.textBaseline = 'middle';
-      // 라벨이 겹치면 위에서부터 18px 이상 벌린다(선 위치는 그대로, 라벨만 이동)
-      var labelY = {};
-      var placed = all.map(function (item) { return { item: item, y: candleSeries.priceToCoordinate(item.l.price) }; })
-        .filter(function (p) { return Number.isFinite(p.y); })
-        .sort(function (a, b) { return a.y - b.y; });
-      var lastY = -Infinity;
-      placed.forEach(function (p, idx) {
-        var ly = Math.max(Math.min(Math.max(p.y, 10), height - 10), lastY + 19);
-        labelY[p.item.name + p.item.l.price] = ly;
-        lastY = ly;
-      });
-      all.forEach(function (item) {
-        var y = candleSeries.priceToCoordinate(item.l.price);
-        var yTop = candleSeries.priceToCoordinate(item.l.high);
-        var yBottom = candleSeries.priceToCoordinate(item.l.low);
-        if (![y, yTop, yBottom].every(Number.isFinite)) return;
-        // 음영: 스윙 고·저점이 모인 가격 폭
-        ctx.fillStyle = 'rgba(' + item.c + ',' + (0.07 + Math.min(item.l.touches, 6) * 0.012) + ')';
-        ctx.fillRect(0, Math.min(yTop, yBottom), right, Math.max(2, Math.abs(yBottom - yTop)));
-        // 가로줄: 점선
-        ctx.strokeStyle = 'rgba(' + item.c + ',.85)';
-        ctx.lineWidth = 1;
-        ctx.setLineDash([5, 4]);
-        ctx.beginPath();
-        ctx.moveTo(0, Math.round(y) + 0.5);
-        ctx.lineTo(right, Math.round(y) + 0.5);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // 라벨: 오른쪽 끝(가격축 바로 안쪽)에 이름·가격·터치 수
-        var text = item.name + ' ' + formatPrice(item.l.price) + ' ·' + item.l.touches + '회';
-        var tw = ctx.measureText(text).width + 12;
-        var ly = labelY[item.name + item.l.price] != null ? labelY[item.name + item.l.price] : Math.min(Math.max(y, 9), height - 9);
-        ctx.fillStyle = 'rgba(' + item.c + ',.92)';
-        ctx.fillRect(right - tw - 4, ly - 9, tw, 18);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(text, right - tw + 2, ly + 0.5);
-      });
-    }
-    function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
-    }
-    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
-    if ('ResizeObserver' in global) {
-      resizeObserver = new ResizeObserver(scheduleDraw);
-      resizeObserver.observe(container);
-    } else {
-      global.addEventListener('resize', scheduleDraw);
-    }
-    scheduleDraw();
-    // 가격축 범위는 시간축 이동 없이도(확대·세로 드래그) 바뀌므로 짧게 한 번 더 그린다.
-    var settle = global.setTimeout(scheduleDraw, 250);
-    return function () {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      global.clearTimeout(settle);
-      chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
-      if (resizeObserver) resizeObserver.disconnect();
-      else global.removeEventListener('resize', scheduleDraw);
-      canvas.remove();
-    };
-  }
-
-  // ---- 차트 메모 (2026-10-03 사용자 요청: "로그인 안 하면 브라우저에, 로그인하면 DB에") ----
-  // 차트의 봉을 눌러 그 날짜·가격에 메모를 단다. 핀으로 표시되고 누르면 내용·삭제가 보인다.
-  // 저장: 로그인(Google)하면 계정의 메모 배열(`GET/PUT /memo`, 사이트 전역 메모와 같은 데이터)에,
-  // 아니면 이 브라우저(localStorage)에 둔다. 로그인하면 브라우저에 있던 차트 메모를 계정으로 한 번 옮긴다.
-  // 메모는 텍스트라 용량이 작다(종목당 30개 상한, 메모당 500자).
-  var CHART_MEMO_URL = 'https://goodbyestar.cloud/memo';
-  var CHART_MEMO_AUTH_URL = 'https://goodbyestar.cloud/auth/google/me';
-  var CHART_MEMO_LOCAL_KEY = 'ss_chart_memos_v1';
-  var CHART_MEMO_MAX_PER_CODE = 30;
-  var CHART_MEMO_MAX_BODY = 500;
-  var CHART_MEMO_MAX_TOTAL = 200;
-  var chartMemoStore = { auth: null, items: [], revision: 0, loadPromise: null };
-  var chartMemoCtl = null;
-
-  function chartMemoReadLocal() {
-    try {
-      var saved = JSON.parse(global.localStorage.getItem(CHART_MEMO_LOCAL_KEY) || '[]');
-      return Array.isArray(saved) ? saved : [];
-    } catch (e) { return []; }
-  }
-
-  function chartMemoWriteLocal(items) {
-    try {
-      if (items.length) global.localStorage.setItem(CHART_MEMO_LOCAL_KEY, JSON.stringify(items));
-      else global.localStorage.removeItem(CHART_MEMO_LOCAL_KEY);
-    } catch (e) { /* 저장소가 막혀도 화면은 동작 */ }
-  }
-
-  function chartMemoPut(items) {
-    return fetch(CHART_MEMO_URL, {
-      method: 'PUT',
-      credentials: 'include',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: items, revision: chartMemoStore.revision })
-    }).then(function (response) {
-      if (response.status === 409) throw new Error('CONFLICT');
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json();
-    }).then(function (body) {
-      var data = body && body.data ? body.data : body;
-      chartMemoStore.items = data.items || items;
-      chartMemoStore.revision = data.revision || chartMemoStore.revision;
-      return chartMemoStore;
-    });
-  }
-
-  function chartMemoLoad(force) {
-    if (chartMemoStore.loadPromise && !force) return chartMemoStore.loadPromise;
-    chartMemoStore.loadPromise = fetch(CHART_MEMO_AUTH_URL, { credentials: 'include', cache: 'no-store' })
-      .then(function (r) { return r.json(); })
-      .then(function (body) {
-        var auth = body && body.data ? body.data : {};
-        chartMemoStore.auth = !!(auth.configured && auth.authenticated);
-        if (!chartMemoStore.auth) {
-          chartMemoStore.items = chartMemoReadLocal();
-          chartMemoStore.revision = 0;
-          return chartMemoStore;
-        }
-        return fetch(CHART_MEMO_URL, { credentials: 'include', cache: 'no-store' })
-          .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-          .then(function (res) {
-            var data = res && res.data ? res.data : res;
-            chartMemoStore.items = data.items || [];
-            chartMemoStore.revision = data.revision || 0;
-            // 로그인 전에 이 브라우저에 달아 둔 차트 메모를 계정으로 한 번 옮긴다.
-            var local = chartMemoReadLocal();
-            if (!local.length) return chartMemoStore;
-            var have = {};
-            chartMemoStore.items.forEach(function (item) { have[item.id] = true; });
-            var merged = chartMemoStore.items.concat(local.filter(function (item) { return !have[item.id]; })).slice(0, CHART_MEMO_MAX_TOTAL);
-            return chartMemoPut(merged).then(function () { chartMemoWriteLocal([]); return chartMemoStore; })
-              .catch(function () { return chartMemoStore; });
-          });
-      })
-      .catch(function () {
-        chartMemoStore.auth = false;
-        chartMemoStore.items = chartMemoReadLocal();
-        return chartMemoStore;
-      });
-    return chartMemoStore.loadPromise;
-  }
-
-  // fn(items) -> 새 배열. 로그인 상태에서 다른 기기가 먼저 바꿨으면(409) 다시 받아 한 번 더 적용한다.
-  function chartMemoMutate(fn) {
-    return chartMemoLoad().then(function (store) {
-      var next = fn(store.items.slice());
-      if (!store.auth) {
-        store.items = next;
-        chartMemoWriteLocal(next);
-        return store;
-      }
-      return chartMemoPut(next).catch(function (err) {
-        if (err.message !== 'CONFLICT') throw err;
-        return chartMemoLoad(true).then(function (fresh) { return chartMemoPut(fn(fresh.items.slice())); });
-      });
-    });
-  }
-
-  function chartMemoTimeKey(time) {
-    if (time && typeof time === 'object' && time.year) {
-      return time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0');
-    }
-    return time == null ? '' : String(time);
-  }
-
-  function chartMemoCodeKey(code) { return String(code || '').toUpperCase(); }
-
-  function installChartMemoLayer(container, chart, candleSeries, bars, timeframe, code, name, formatPrice) {
-    var key = chartMemoCodeKey(code);
-    if (!key) return function () {};
-    var layer = document.createElement('div');
-    layer.className = 'ss-memo-layer';
-    container.appendChild(layer);
-    var mode = false;
-    var popup = null;
-    var frameId = 0;
-    var resizeObserver = null;
-    var disposed = false;
-
-    function closePopup() { if (popup) { popup.remove(); popup = null; } }
-    function barFor(dateKey) {
-      var found = null;
-      for (var i = 0; i < bars.length; i++) {
-        if (String(bars[i].date) <= dateKey) found = bars[i]; else break;
-      }
-      return found;
-    }
-    function itemsHere() {
-      return chartMemoStore.items.filter(function (it) { return chartMemoCodeKey(it.code) === key && it.date && isFinite(Number(it.price)); });
-    }
-    function placePopup(x, y) {
-      if (!popup) return;
-      var w = container.clientWidth;
-      var h = container.clientHeight;
-      var pw = popup.offsetWidth || 260;
-      var ph = popup.offsetHeight || 170;
-      popup.style.left = Math.max(6, Math.min(x - pw / 2, w - pw - 6)) + 'px';
-      popup.style.top = Math.max(6, Math.min(y + 14, h - ph - 6)) + 'px';
-    }
-    function storageNote() {
-      return chartMemoStore.auth ? '로그인 계정에 저장되어 다른 기기에서도 보입니다.' : '이 브라우저에만 저장됩니다. 로그인하면 계정에 저장됩니다.';
-    }
-    function openEditor(dateKey, price, x, y) {
-      closePopup();
-      var count = itemsHere().length;
-      popup = document.createElement('div');
-      popup.className = 'ss-memo-pop';
-      popup.innerHTML = '<div class="ss-memo-pop-head"><strong>' + escapeHtml(dateKey) + '</strong><span>' + escapeHtml(formatPrice(price)) + '</span></div>'
-        + '<textarea maxlength="' + CHART_MEMO_MAX_BODY + '" placeholder="이 자리에 남길 메모 (예: 지지 확인 후 분할 진입)" aria-label="차트 메모"></textarea>'
-        + '<small class="ss-memo-pop-note">' + storageNote() + '</small>'
-        + '<div class="ss-memo-pop-actions"><button type="button" data-memo-cancel>취소</button><button type="button" data-memo-save>저장</button></div>';
-      layer.appendChild(popup);
-      placePopup(x, y);
-      var text = popup.querySelector('textarea');
-      var note = popup.querySelector('.ss-memo-pop-note');
-      text.focus();
-      popup.querySelector('[data-memo-cancel]').addEventListener('click', closePopup);
-      popup.querySelector('[data-memo-save]').addEventListener('click', function () {
-        var body = text.value.trim();
-        if (!body) { note.textContent = '메모 내용을 입력하세요.'; return; }
-        if (count >= CHART_MEMO_MAX_PER_CODE) { note.textContent = '한 종목에는 메모를 ' + CHART_MEMO_MAX_PER_CODE + '개까지 달 수 있어요.'; return; }
-        var nowIso = new Date().toISOString();
-        var item = { id: 'cm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), code: key, name: name || key, body: body,
-          date: dateKey, price: price, createdAt: nowIso, updatedAt: nowIso };
-        note.textContent = '저장 중...';
-        chartMemoMutate(function (items) { return items.concat([item]); }).then(function () {
-          closePopup();
-          scheduleDraw();
-        }).catch(function () { note.textContent = '저장하지 못했어요. 잠시 뒤 다시 시도해 주세요.'; });
-      });
-    }
-    function openViewer(item, x, y) {
-      closePopup();
-      popup = document.createElement('div');
-      popup.className = 'ss-memo-pop';
-      popup.innerHTML = '<div class="ss-memo-pop-head"><strong>' + escapeHtml(item.date) + '</strong><span>' + escapeHtml(formatPrice(item.price)) + '</span></div>'
-        + '<p class="ss-memo-pop-body">' + escapeHtml(item.body) + '</p>'
-        + '<div class="ss-memo-pop-actions"><button type="button" data-memo-close>닫기</button><button type="button" data-memo-delete>삭제</button></div>';
-      layer.appendChild(popup);
-      placePopup(x, y);
-      popup.querySelector('[data-memo-close]').addEventListener('click', closePopup);
-      popup.querySelector('[data-memo-delete]').addEventListener('click', function () {
-        chartMemoMutate(function (items) { return items.filter(function (it) { return it.id !== item.id; }); }).then(function () {
-          closePopup();
-          scheduleDraw();
-        }).catch(function () { /* 다음 시도 때 다시 */ });
-      });
-    }
-    function draw() {
-      frameId = 0;
-      if (disposed || !document.body.contains(container)) return;
-      layer.querySelectorAll('.ss-memo-pin').forEach(function (pin) { pin.remove(); });
-      itemsHere().forEach(function (item) {
-        var bar = barFor(String(item.date));
-        if (!bar) return;
-        var x = chart.timeScale().timeToCoordinate(bar.date);
-        var y = candleSeries.priceToCoordinate(Number(item.price));
-        if (![x, y].every(Number.isFinite)) return;
-        if (x < 0 || x > container.clientWidth || y < 0 || y > container.clientHeight) return;
-        var pin = document.createElement('button');
-        pin.type = 'button';
-        pin.className = 'ss-memo-pin';
-        pin.style.left = x + 'px';
-        pin.style.top = y + 'px';
-        pin.title = item.date + ' · ' + item.body;
-        pin.setAttribute('aria-label', '차트 메모 보기');
-        pin.textContent = '✎';
-        pin.addEventListener('click', function (event) { event.stopPropagation(); openViewer(item, x, y); });
-        layer.appendChild(pin);
-      });
-    }
-    function scheduleDraw() {
-      if (frameId) global.clearTimeout(frameId);
-      frameId = global.setTimeout(draw, 16);
-    }
-    // 모바일 터치에서는 차트 라이브러리의 click 이벤트가 안정적이지 않아, 컨테이너의 포인터 탭(이동 8px 미만)으로 직접 받는다.
-    var downAt = null;
-    function onDown(event) {
-      downAt = mode ? { x: event.clientX, y: event.clientY, t: Date.now() } : null;
-    }
-    function onUp(event) {
-      var start = downAt;
-      downAt = null;
-      if (!mode || !start) return;
-      if (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8 || Date.now() - start.t > 700) return;
-      if (event.target.closest && event.target.closest('.ss-memo-pin, .ss-memo-pop')) return;
-      if (stockDrawingState && stockDrawingState.mode) return;
-      var box = container.getBoundingClientRect();
-      var px = event.clientX - box.left;
-      var py = event.clientY - box.top;
-      var time = chart.timeScale().coordinateToTime(px);
-      if (time == null) {
-        // 마지막 봉 오른쪽 빈 공간·왼쪽 끝을 눌러도 가장 가까운 봉에 붙인다(예전엔 아무 반응이 없어 "안 된다"로 보였다).
-        var logical = chart.timeScale().coordinateToLogical(px);
-        if (logical != null && bars.length) time = bars[Math.max(0, Math.min(bars.length - 1, Math.round(logical)))].date;
-      }
-      if (time == null) return;
-      var price = candleSeries.coordinateToPrice(py);
-      if (!Number.isFinite(price) || price <= 0) {
-        // 거래량·RSI 패널을 눌렀거나 가격축 밖이면 그 봉의 종가에 붙인다.
-        var hit = barFor(chartMemoTimeKey(time));
-        price = hit ? Number(hit.close) : NaN;
-      }
-      if (!Number.isFinite(price) || price <= 0) return;
-      openEditor(chartMemoTimeKey(time), Math.round(price * 100) / 100, px, py);
-    }
-    container.addEventListener('pointerdown', onDown);
-    container.addEventListener('pointerup', onUp);
-    chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
-    if ('ResizeObserver' in global) {
-      resizeObserver = new ResizeObserver(scheduleDraw);
-      resizeObserver.observe(container);
-    } else {
-      global.addEventListener('resize', scheduleDraw);
-    }
-    chartMemoLoad().then(scheduleDraw);
-    var settle = global.setTimeout(scheduleDraw, 300);
-
-    chartMemoCtl = {
-      setMode: function (on) {
-        mode = !!on;
-        container.classList.toggle('is-memo-mode', mode);
-        if (!mode) closePopup();
-        var hint = layer.querySelector('.ss-memo-hint');
-        if (mode && !hint) {
-          hint = document.createElement('div');
-          hint.className = 'ss-memo-hint';
-          hint.textContent = '메모할 자리를 눌러 주세요 · 다시 "메모" 버튼을 누르면 끝납니다';
-          layer.appendChild(hint);
-        } else if (!mode && hint) hint.remove();
-      },
-      isMode: function () { return mode; }
-    };
-    return function () {
-      disposed = true;
-      if (frameId) global.cancelAnimationFrame(frameId);
-      global.clearTimeout(settle);
-      container.removeEventListener('pointerdown', onDown);
-      container.removeEventListener('pointerup', onUp);
-      try { chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw); } catch (e) { /* 이미 제거 */ }
-      if (resizeObserver) resizeObserver.disconnect();
-      else global.removeEventListener('resize', scheduleDraw);
-      container.classList.remove('is-memo-mode');
-      layer.remove();
-      chartMemoCtl = null;
-    };
-  }
-
-  // RSI 패널은 첨부 화면처럼 검정 단일선으로 표시하고, 70 이상/30 이하에서만
-  // 선과 기준선 사이를 색칠한다. Lightweight Charts v5에는 개별 pane의 영역 채우기
-  // 옵션이 없으므로, RSI 시리즈 좌표를 읽어 차트 아래에 캔버스를 깐다.
   function installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues) {
     if (!rsiSeries || !panes || panes.length < 3) return function () {};
     var chartRoot = container.querySelector('.ss-lw-chart-root') || container.querySelector('div');
@@ -2304,20 +1687,7 @@
     };
   }
 
-  function compactVolume(value) {
-    var n = Number(value) || 0;
-    function scaled(divisor, suffix) {
-      var v = n / divisor;
-      var digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
-      var text = v.toFixed(digits);
-      if (text.indexOf('.') !== -1) text = text.replace(/0+$/, '').replace(/\.$/, '');
-      return text + suffix;
-    }
-    if (Math.abs(n) >= 1000000000) return scaled(1000000000, 'B');
-    if (Math.abs(n) >= 1000000) return scaled(1000000, 'M');
-    if (Math.abs(n) >= 1000) return scaled(1000, 'K');
-    return Math.round(n).toLocaleString('ko-KR');
-  }
+  function compactVolume(value) { return global.NineChartCore.compactVolume(value); }
   function ratioPercent(value, basis) {
     var numerator = Number(value), denominator = Number(basis);
     if (!Number.isFinite(numerator) || !Number.isFinite(denominator) || denominator <= 0) return '';
@@ -2332,9 +1702,7 @@
     return Math.round(n).toLocaleString('ko-KR') + '원';
   }
 
-  function ma224Color() {
-    return document.documentElement.classList.contains('dark') ? '#f1f3f5' : '#000000';
-  }
+  function ma224Color() { return global.NineChartCore.ma224Color(); }
 
   // 전체화면에서는 .ss-panel-right가 모달로 옮겨진다. 기존 #stock-search 참조는
   // 더 이상 #ssChart를 포함하지 않으므로, 토글이 null을 렌더러로 넘기지 않게 한다.
@@ -2354,9 +1722,16 @@
     var cached = state.chartCache[code];
     if (!cached) return;
     if (cached.noDaily) { showMinuteForMissingDaily(container, code); return; }
-    var bars = barsForTimeframe(cached.data.daily, state.timeframe);
-    var chartEl = activeStockChartElement(container);
-    if (chartEl) renderLwChart(chartEl, bars, state.timeframe);
+    var timeframe = state.timeframe;
+    chartReady().then(function () {
+      if (state.selectedCode !== code || state.timeframe !== timeframe) return;   // 받는 사이 종목·주기가 바뀌었다
+      var bars = global.NineChartData.barsForTimeframe(cached.data.daily, timeframe);
+      var chartEl = activeStockChartElement(container);
+      if (chartEl) renderLwChart(chartEl, bars, timeframe);
+    }).catch(function () {
+      var failEl = activeStockChartElement(container);
+      if (failEl && state.selectedCode === code) failEl.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
+    });
   }
 
   // 미국 주식도 국내 종목 화면과 같은 차트 UI/렌더러를 사용한다.
@@ -2392,10 +1767,11 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml() + forecastToggleHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
-      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
+      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>'
+      + '<div class="nc-forecast ss-forecast" data-chart-forecast-panel hidden></div>';
 
     // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
     // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
@@ -2476,76 +1852,35 @@
       });
   }
 
-  function loadLightweightCharts() {
-    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
-    if (lwcLoadPromise) return lwcLoadPromise;
-    lwcLoadPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = LWC_CDN;
-      s.onload = function () { resolve(global.LightweightCharts); };
-      s.onerror = function () { lwcLoadPromise = null; reject(new Error('차트 라이브러리 로드 실패')); };
-      document.head.appendChild(s);
-    });
-    return lwcLoadPromise;
-  }
-
-  function lwcThemeOptions(LWC, timeframe) {
-    var dark = document.documentElement.classList.contains('dark');
-    var fontFamily = global.getComputedStyle
-      ? global.getComputedStyle(document.body).fontFamily
-      : "'MaruBuri', Georgia, serif";
-    return {
-      layout: {
-        background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', fontFamily: fontFamily, attributionLogo: false,
-        panes: { enableResize: false, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
-      },
-      grid: {
-        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
-        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
-      },
-      // Keep the price scale in the candle pane. Volume/RSI are independent v5 panes.
-      // bottom margin은 예전에 거래량을 같은 패널에 겹쳐 그리던 시절 값(0.36)이 거래량이
-      // 별도 패널로 분리된 뒤에도 안 줄어 있었다 - 캔들 패널 아래에 불필요하게 큰 빈
-      // 공간과 그 안에서 자동 생성되는 음수 유령 눈금(가격 데이터가 없는데도 축 범위가
-      // 여백만큼 아래로 늘어나 생기는 "-50,000"류 라벨)이 생겼다(2026-08-14 사용자
-      // 스크린샷 제보). 캔들만 있는 패널이니 작은 여백이면 충분하다.
-      rightPriceScale: {
-        borderColor: dark ? '#3a3a3a' : '#ddd',
-        scaleMargins: { top: 0.06, bottom: 0.08 },
-        alignLabels: false
-      },
-      // 2026-08-05 사용자 리포트: 분봉 X축이 같은 날짜("5일")만 반복 표시됐음 - 분봉의
-      // time은 UNIX 타임스탬프(minuteRowsToBars 참고)인데 timeVisible이 꺼져 있으면
-      // 라이브러리가 날짜만 찍는다. 분봉일 때만 시:분(HH:mm)을 보여주고, 일/주/월봉은
-      // (time이 날짜 문자열이라 시간 개념이 없어) 그대로 둔다.
-      timeScale: {
-        borderColor: dark ? '#3a3a3a' : '#ddd',
-        timeVisible: timeframe === 'minute',
-        secondsVisible: false,
-        rightOffset: 6,
-        minBarSpacing: 3,
-        barSpacing: timeframe === 'minute' ? 9 : 7
-      },
-      handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
-      handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true },
-      // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
-      // 가격/시각 라벨의 기본 배경색, 라이브러리 기본값이라 다크 팔레트와 무관하게 고정)가
-      // 떴음 - 라벨 배경색을 테마에 맞게 명시(js/foreign-flow.js와 동일 수정).
-      crosshair: {
-        mode: LWC.CrosshairMode.Normal,
-        vertLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' },
-        horzLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' }
+  // 차트 엔진(js/chart-core.js)과 이 화면이 쓰는 보조 모듈을 페이지당 한 번만 받는다. 차트 인스턴스는 만들지 않는다(그리는 시점에 만든다).
+  function loadChartCore() {
+    if (global.NineChartCore) return Promise.resolve(global.NineChartCore);
+    var loads = global.__nineChartLoads = global.__nineChartLoads || {};
+    if (loads.core) return loads.core;
+    loads.core = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-nine-chart="core"]');
+      var script = existing || document.createElement('script');
+      script.addEventListener('load', function () { resolve(global.NineChartCore); });
+      script.addEventListener('error', function () { loads.core = null; if (script.remove) script.remove(); reject(new Error('차트 엔진 로드 실패')); });
+      if (!existing) {
+        script.src = CHART_CORE_URL;
+        script.async = true;
+        script.setAttribute('data-nine-chart', 'core');
+        document.head.appendChild(script);
       }
-    };
+    });
+    return loads.core;
   }
 
-  function chartPriceText(value, isUsChart) {
-    var parsed = Number(value);
-    if (!Number.isFinite(parsed)) return '';
-    return isUsChart
-      ? '$' + parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : Math.round(parsed).toLocaleString('ko-KR');
+  // 라이브러리 + 보조 모듈이 모두 준비되면 LightweightCharts 를 돌려준다.
+  function chartReady() {
+    return loadChartCore().then(function (core) {
+      var optional = CHART_OPTIONAL.map(function (name) { return core.loadModule(name).catch(function () { return null; }); });
+      return core.ready(['data']).then(function (parts) { return Promise.all(optional).then(function () { return parts[0]; }); });
+    });
   }
+
+  function chartPriceText(value, isUsChart) { return global.NineChartCore.priceText(value, isUsChart); }
 
   function chartOhlcDateText(time) {
     if (typeof time === 'string') return time;
@@ -2597,732 +1932,72 @@
     };
   }
 
-  // ---- 차트 도형 계정 저장 (2026-10-10 사용자 요청: "로그인 기반으로 저장") ----
-  // 로그인(Google)하면 종목·봉 주기별로 서버(GET/PUT /chart-drawings)에도 저장하고, 로그인하지 않으면 지금처럼 브라우저에만 둔다.
-  // 브라우저 저장은 항상 먼저 쓰는 캐시다(서버가 느리거나 실패해도 화면은 즉시 동작). 차트를 열 때 서버에 값이 있으면 서버 값을 쓰고,
-  // 서버에 없고 이 브라우저에만 있으면 한 번 올린다(첫 이전). 저장은 1.5초 묶음 1회, 연필 선은 점을 솎아 올린다.
-  // 분봉과 자동 파동(실험)은 서버에 저장하지 않는다.
-  var DRAWING_API_URL = 'https://goodbyestar.cloud/chart-drawings';
-  var DRAWING_AUTH_URL = 'https://goodbyestar.cloud/auth/google/me';
-  var DRAWING_PUSH_DELAY_MS = 1500;
-  var DRAWING_MAX_PATH_POINTS = 120;
-  var drawingSync = { authPromise: null, revisions: {}, timers: {}, pending: {} };
-
-  function drawingAuth() {
-    if (!drawingSync.authPromise && typeof fetch !== 'function') drawingSync.authPromise = Promise.resolve(false);
-    if (!drawingSync.authPromise) {
-      drawingSync.authPromise = fetch(DRAWING_AUTH_URL, { credentials: 'include', cache: 'no-store' })
-        .then(function (r) { return r.json(); })
-        .then(function (body) { var a = body && body.data ? body.data : {}; return !!(a.configured && a.authenticated); })
-        .catch(function () { return false; });
-    }
-    return drawingSync.authPromise;
-  }
-
-  function drawingSyncKey(drawing) { return String(drawing.key || '') + '|' + String(drawing.timeframe || 'day'); }
-  function drawingSyncable(drawing) { return !!drawing && drawing.timeframe !== 'minute' && /^[A-Za-z0-9._-]{1,20}$/.test(String(drawing.key || '')); }
-
-  function thinDrawingPath(path) {
-    if (!Array.isArray(path) || path.length <= DRAWING_MAX_PATH_POINTS) return path;
-    var out = [], step = (path.length - 1) / (DRAWING_MAX_PATH_POINTS - 1);
-    for (var i = 0; i < DRAWING_MAX_PATH_POINTS; i++) out.push(path[Math.round(i * step)]);
-    return out;
-  }
-
-  function drawingsPayload(drawing) {
-    return {
-      lines: drawing.lines || [],
-      paths: (drawing.paths || []).map(thinDrawingPath),
-      circles: drawing.circles || [],
-      hlines: (drawing.hlines || []).map(function (item) { return { price: item.price }; }),
-      boxes: drawing.boxes || []
-    };
-  }
-
-  function drawingsHaveShapes(payload) {
-    return ['lines', 'paths', 'circles', 'hlines', 'boxes'].some(function (kind) { return payload[kind] && payload[kind].length; });
-  }
-
-  function pushDrawings(drawing, keepalive, retried) {
-    var key = drawingSyncKey(drawing);
-    return fetch(DRAWING_API_URL, {
-      method: 'PUT', credentials: 'include', keepalive: !!keepalive,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code: drawing.key, timeframe: drawing.timeframe, drawings: drawingsPayload(drawing), revision: drawingSync.revisions[key] || 0 })
-    }).then(function (response) {
-      if (response.status === 409 && !retried) {
-        // 다른 기기가 먼저 바꿨다: 최신 revision만 받아 이 화면의 현재 상태로 한 번 더 덮어쓴다(마지막 저장 우선).
-        return fetch(DRAWING_API_URL + '?code=' + encodeURIComponent(drawing.key) + '&timeframe=' + encodeURIComponent(drawing.timeframe), { credentials: 'include', cache: 'no-store' })
-          .then(function (r) { return r.json(); })
-          .then(function (body) { var d = body && body.data ? body.data : body; drawingSync.revisions[key] = d.revision || 0; return pushDrawings(drawing, keepalive, true); });
-      }
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json().then(function (body) { var d = body && body.data ? body.data : body; drawingSync.revisions[key] = d.revision || 0; });
-    }).catch(function () { /* 서버 저장 실패는 조용히 넘어간다 - 브라우저 저장본이 남아 있다 */ });
-  }
-
-  function scheduleDrawingPush(drawing) {
-    if (!drawingSyncable(drawing) || typeof global.setTimeout !== 'function') return;
-    var key = drawingSyncKey(drawing);
-    drawingSync.pending[key] = drawing;
-    if (drawingSync.timers[key]) global.clearTimeout(drawingSync.timers[key]);
-    drawingSync.timers[key] = global.setTimeout(function () {
-      delete drawingSync.timers[key];
-      var target = drawingSync.pending[key];
-      delete drawingSync.pending[key];
-      if (target) drawingAuth().then(function (auth) { if (auth) pushDrawings(target, false); });
-    }, DRAWING_PUSH_DELAY_MS);
-  }
-
-  function flushPendingDrawings() {
-    Object.keys(drawingSync.pending).forEach(function (key) {
-      var target = drawingSync.pending[key];
-      delete drawingSync.pending[key];
-      if (drawingSync.timers[key]) { global.clearTimeout(drawingSync.timers[key]); delete drawingSync.timers[key]; }
-      if (target && drawingSync.authPromise) pushDrawings(target, true);
-    });
-  }
-  if (typeof global.addEventListener === 'function') global.addEventListener('pagehide', flushPendingDrawings);
-
-  function pullDrawings(drawing) {
-    if (!drawingSyncable(drawing)) return;
-    drawingAuth().then(function (auth) {
-      if (!auth) return null;
-      return fetch(DRAWING_API_URL + '?code=' + encodeURIComponent(drawing.key) + '&timeframe=' + encodeURIComponent(drawing.timeframe), { credentials: 'include', cache: 'no-store' })
-        .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-        .then(function (body) {
-          var d = body && body.data ? body.data : body;
-          drawingSync.revisions[drawingSyncKey(drawing)] = d.revision || 0;
-          if (stockDrawingState !== drawing) return;              // 그 사이 종목·주기가 바뀌었다
-          if (d.drawings) {
-            drawing.lines = d.drawings.lines || [];
-            drawing.paths = d.drawings.paths || [];
-            drawing.circles = d.drawings.circles || [];
-            drawing.hlines = d.drawings.hlines || [];
-            drawing.boxes = d.drawings.boxes || [];
-            writeStockDrawingsLocal(drawing);
-            redrawStockDrawing(drawing);
-          } else if (drawingsHaveShapes(drawingsPayload(drawing))) {
-            pushDrawings(drawing, false);                          // 이 브라우저에만 있던 도형을 계정으로 한 번 옮긴다
-          }
-        });
-    }).catch(function () { /* 서버를 못 불러와도 브라우저 저장본으로 계속 동작 */ });
-  }
-
-  function stockDrawingStorageKey(key, timeframe) {
-    return 'tistory-ticker:stock-drawings:' + String(key || '') + ':' + String(timeframe || 'day');
-  }
-
-  function loadStockDrawings(key, timeframe) {
-    try {
-      var raw = global.localStorage.getItem(stockDrawingStorageKey(key, timeframe));
-      var parsed = raw ? JSON.parse(raw) : [];
-      // 기존 추세선 배열 저장값도 그대로 복원한다.
-      if (Array.isArray(parsed)) return { lines: parsed, paths: [], circles: [], hlines: [], boxes: [] };
-      return {
-        lines: Array.isArray(parsed && parsed.lines) ? parsed.lines : [],
-        paths: Array.isArray(parsed && parsed.paths) ? parsed.paths : [],
-        circles: Array.isArray(parsed && parsed.circles) ? parsed.circles : [],
-        hlines: Array.isArray(parsed && parsed.hlines) ? parsed.hlines : [],
-        boxes: Array.isArray(parsed && parsed.boxes) ? parsed.boxes : []
-      };
-    } catch (e) {
-      return { lines: [], paths: [], circles: [], hlines: [], boxes: [] };
-    }
-  }
-
-  function saveStockDrawings(drawing) {
-    writeStockDrawingsLocal(drawing);
-    scheduleDrawingPush(drawing);
-  }
-
-  function writeStockDrawingsLocal(drawing) {
-    try {
-      global.localStorage.setItem(stockDrawingStorageKey(drawing.key, drawing.timeframe), JSON.stringify({
-        lines: drawing.lines,
-        paths: drawing.paths,
-        circles: drawing.circles,
-        hlines: (drawing.hlines || []).map(function (item) { return { price: item.price }; }),
-        boxes: drawing.boxes || []
-      }));
-    } catch (e) { /* localStorage를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
-  }
-
-  function stockDrawingPointFromCoordinate(drawing, x, y) {
-    var scale = drawing.chart.timeScale();
-    var time = scale.coordinateToTime(x);
-    var logical = scale.coordinateToLogical(x);
-    var price = drawing.series.coordinateToPrice(y);
-    if (price == null || !isFinite(Number(price)) || (time == null && logical == null)) return null;
-    var point = { time: time, price: Number(price) };
-    if (logical != null && isFinite(Number(logical))) {
-      point.logical = Number(logical);
-      var bars = drawing.bars || [];
-      var anchorTime = bars.length ? bars[bars.length - 1].date : time;
-      var anchorX = anchorTime == null ? null : scale.timeToCoordinate(anchorTime);
-      var anchorLogical = anchorX == null ? null : scale.coordinateToLogical(anchorX);
-      if (anchorLogical != null) {
-        point.anchorTime = anchorTime;
-        point.logicalOffset = point.logical - Number(anchorLogical);
-      }
-    }
-    return point;
-  }
-
-  function stockDrawingCoordinate(drawing, point) {
-    if (!point) return null;
-    var scale = drawing.chart.timeScale();
-    var logical = point.logical;
-    if (point.anchorTime != null && point.logicalOffset != null) {
-      var anchorX = scale.timeToCoordinate(point.anchorTime);
-      var anchorLogical = anchorX == null ? null : scale.coordinateToLogical(anchorX);
-      if (anchorLogical != null) logical = Number(anchorLogical) + Number(point.logicalOffset);
-    }
-    var x = logical != null ? scale.logicalToCoordinate(logical) : scale.timeToCoordinate(point.time);
-    var y = drawing.series.priceToCoordinate(point.price);
-    return x == null || y == null ? null : { x: Number(x), y: Number(y) };
-  }
-
-  // ---- 자동 파동(실험) - js/auto-wave.js. 수동 드로잉과 별도 레이어(drawing.autoWaves)로만 다루고 저장하지 않는다. ----
-  // OFF일 때는 계산도 스크립트 로드도 하지 않는다. 분석(대·중·소 전체)은 같은 종목·봉 주기·데이터면 결과를 재사용하고, 규모 선택은 그리기만 바꾼다.
-  // 캐시 키는 마지막 봉만이 아니라 전체 OHLCV 지문(AutoWave.hashBars)이라, 과거 봉이 정정돼 마지막 봉이 같아도 새로 계산한다.
-  var autoWaveCache = { key: '', result: null };
-
-  // 선택한 규모의 파동(박스에 가려진 것 제외)과, 한 단계 위 규모의 옅은 윤곽(부모)을 고른다.
-  function pickAutoWaveLevel(result, level) {
-    var lv = result.levels && result.levels[level] ? level : 'medium';
-    var parentName = lv === 'minor' ? 'medium' : (lv === 'medium' ? 'major' : null);
-    return {
-      level: lv,
-      waves: (result.levels[lv] || []).filter(function (w) { return !w.suppressed; }),
-      parents: parentName ? (result.levels[parentName] || []).filter(function (w) { return !w.suppressed; }) : [],
-      summary: result.state ? result.state.summaryText : ''
-    };
-  }
-
-  function applyAutoWave(drawing) {
-    if (!drawing) return;
-    if (!state.autoWaveEnabled || drawing.timeframe === 'minute') {
-      drawing.autoWaves = null;
-      drawing.autoWaveParents = null;
-      redrawStockDrawing(drawing);
-      return;
-    }
-    var bars = drawing.bars || [];
-    function compute() {
-      if (stockDrawingState !== drawing || !state.autoWaveEnabled) return;
-      var AW = global.AutoWave;
-      var fingerprint = typeof AW.hashBars === 'function' ? AW.hashBars(bars) : (bars.length + ':' + (bars.length ? bars[bars.length - 1].date + ',' + bars[bars.length - 1].close : ''));
-      var key = [drawing.key, drawing.timeframe, fingerprint, AW.version || ''].join('|');
-      if (autoWaveCache.key !== key) {
-        try {
-          if (typeof AW.analyze === 'function') autoWaveCache = { key: key, result: AW.analyze(bars) };
-          else autoWaveCache = { key: key, result: { levels: { medium: AW.detectWaves(bars) }, state: null } };   // 옛 모듈(대·중·소 없음) 호환
-        } catch (e) { autoWaveCache = { key: key, result: { levels: { major: [], medium: [], minor: [] }, state: null } }; }
-      }
-      var picked = pickAutoWaveLevel(autoWaveCache.result, state.autoWaveLevel);
-      drawing.autoWaves = picked.waves;
-      drawing.autoWaveParents = picked.parents;
-      drawing.autoWaveLevel = picked.level;
-      drawing.autoWaveSummary = picked.summary;
-      redrawStockDrawing(drawing);
-    }
-    if (global.AutoWave && (typeof global.AutoWave.analyze === 'function' || typeof global.AutoWave.detectWaves === 'function')) { compute(); return; }
-    if (document.querySelector('script[data-auto-wave-module]')) {
-      var waiting = document.querySelector('script[data-auto-wave-module]');
-      waiting.addEventListener('load', compute);
-      return;
-    }
-    var script = document.createElement('script');
-    script.src = AUTO_WAVE_SCRIPT;
-    script.async = true;
-    script.setAttribute('data-auto-wave-module', '1');
-    script.onload = compute;
-    script.onerror = function () { script.remove(); };
-    document.body.appendChild(script);
-  }
-
-  var AUTO_WAVE_STYLE = {
-    up: { stroke: '#e34d4b', fill: 'rgba(227,77,75,.10)', label: '상승 파동' },
-    down: { stroke: '#2674d9', fill: 'rgba(38,116,217,.10)', label: '하락 파동' },
-    side: { stroke: '#808080', fill: 'rgba(128,128,128,.12)', label: '횡보' },
-    wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
-    unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
+  // ---- 수동 그리기·자동 파동은 공용 모듈(js/chart-drawing.js, js/chart-wave-overlay.js) ----
+  // 저장 키·종류는 예전과 같다(브라우저 `tistory-ticker:stock-drawings:<종목>:<봉>` + 로그인 시 계정 /chart-drawings). 분봉과 자동 파동은 서버에 저장하지 않는다.
+  var STOCK_DRAWING_STORE = {
+    key: function (code, tf) { return 'tistory-ticker:stock-drawings:' + String(code || '') + ':' + String(tf || 'day'); },
+    kinds: ['lines', 'paths', 'circles', 'hlines', 'boxes'],
+    legacyArray: true
   };
-  var AUTO_WAVE_LEVEL_NAME = { major: '대파동', medium: '중파동', minor: '소파동' };
 
-  function drawAutoWaves(drawing, ctx) {
-    var waves = drawing.autoWaves, bars = drawing.bars || [];
-    if (!waves || bars.length < 2) return;
-    var level = drawing.autoWaveLevel || 'medium';
-    var xa = stockDrawingCoordinate(drawing, { time: bars[bars.length - 2].date, price: bars[bars.length - 2].close });
-    var xb = stockDrawingCoordinate(drawing, { time: bars[bars.length - 1].date, price: bars[bars.length - 1].close });
-    var half = xa && xb ? Math.max(1, Math.abs(xb.x - xa.x) / 2) : 2;
-    function rectOf(wave) {
-      var b0 = bars[wave.start], b1 = bars[wave.end];
-      if (!b0 || !b1) return null;
-      var p0 = stockDrawingCoordinate(drawing, { time: b0.date, price: wave.high });
-      var p1 = stockDrawingCoordinate(drawing, { time: b1.date, price: wave.low });
-      if (!p0 || !p1) return null;
-      return { x1: Math.min(p0.x, p1.x) - half, x2: Math.max(p0.x, p1.x) + half, y1: Math.min(p0.y, p1.y), y2: Math.max(p0.y, p1.y) };
-    }
-    ctx.save();
-    // 한 단계 위 규모: 채움·라벨 없이 옅은 점선 윤곽만(복잡해지지 않게 배경 정보로만 둔다)
-    (drawing.autoWaveParents || []).forEach(function (wave) {
-      var st = AUTO_WAVE_STYLE[wave.kind], r = rectOf(wave);
-      if (!st || !r) return;
-      ctx.strokeStyle = st.stroke;
-      ctx.globalAlpha = 0.3;
-      ctx.lineWidth = 1;
-      ctx.setLineDash([2, 3]);
-      ctx.strokeRect(r.x1 + .5, r.y1 + .5, r.x2 - r.x1 - 1, r.y2 - r.y1 - 1);
-    });
-    ctx.setLineDash([]);
-    ctx.globalAlpha = 1;
-    waves.forEach(function (wave) {
-      var st = AUTO_WAVE_STYLE[wave.kind], r = rectOf(wave);
-      if (!st || !r) return;
-      var x1 = r.x1, x2 = r.x2, y1 = r.y1, y2 = r.y2;
-      ctx.fillStyle = st.fill;
-      ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
-      ctx.strokeStyle = st.stroke;
-      ctx.globalAlpha = wave.confirmed ? 0.55 : 0.85;
-      ctx.lineWidth = 1;
-      ctx.setLineDash(wave.confirmed ? [] : [5, 4]);
-      ctx.strokeRect(x1 + .5, y1 + .5, x2 - x1 - 1, y2 - y1 - 1);
-      ctx.setLineDash([]);
-      ctx.globalAlpha = 1;
-      var text = wave.label || st.label;
-      if (!wave.confirmed) text += ' · 진행 중';
-      else if (level !== 'minor' && !wave.isBox && wave.confirmedIndex != null) text += ' · 확정 +' + (wave.confirmedIndex - wave.end) + '봉';
-      ctx.font = '700 10px MaruBuri, serif';
-      ctx.fillStyle = st.stroke;
-      ctx.textBaseline = 'top';
-      // 확대·이동으로 박스 왼쪽이 화면 밖이어도 라벨은 보이는 영역 안에서 시작한다.
-      var lx = Math.max(x1 + 4, 4);
-      while (text.length > 2 && ctx.measureText(text).width > x2 - lx - 2) text = text.slice(0, -1);
-      // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
-      if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
-    });
-    ctx.font = '10px sans-serif';
-    ctx.fillStyle = 'rgba(100,100,100,.85)';
-    ctx.textBaseline = 'top';
-    // 이동평균 범례 줄 바로 아래(날짜 축·거래량 라벨과 겹치지 않는 위치). 한 줄에 규모·현재 구조·주의를 담고, 좁으면 뒤쪽 주의 문구부터 줄인다.
-    var head = '파동 분석(' + (AUTO_WAVE_LEVEL_NAME[level] || '중파동') + ')' + (drawing.autoWaveSummary ? ' · ' + drawing.autoWaveSummary : '');
-    var full = head + ' · 점선=진행 중(바뀔 수 있음) · 매매 추천 아님';
-    var maxWidth = Math.max(60, (drawing.overlay && drawing.overlay.clientWidth ? drawing.overlay.clientWidth : 600) - 16);
-    var line = ctx.measureText(full).width <= maxWidth ? full : head;
-    while (line.length > 6 && ctx.measureText(line).width > maxWidth) line = line.slice(0, -1);
-    ctx.fillText(line, 8, 30);
-    ctx.restore();
-  }
-
-  function redrawStockDrawing(drawing) {
-    if (!drawing || !drawing.overlay) return;
-    var width = drawing.overlay.clientWidth;
-    var height = drawing.overlay.clientHeight;
-    var ctx = drawing.overlay.getContext('2d');
-    if (!ctx || !width || !height) return;
-    ctx.clearRect(0, 0, width, height);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    drawAutoWaves(drawing, ctx);
-    drawing.paths.forEach(function (path) {
-      if (!Array.isArray(path) || path.length < 2) return;
-      var started = false;
-      ctx.beginPath();
-      path.forEach(function (point) {
-        var coordinate = stockDrawingCoordinate(drawing, point);
-        if (!coordinate) return;
-        if (!started) {
-          ctx.moveTo(coordinate.x, coordinate.y);
-          started = true;
-        } else {
-          ctx.lineTo(coordinate.x, coordinate.y);
-        }
-      });
-      if (!started) return;
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    });
-    drawing.lines.forEach(function (line) {
-      var start = stockDrawingCoordinate(drawing, line.start);
-      var end = stockDrawingCoordinate(drawing, line.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-      ctx.stroke();
-      [start, end].forEach(function (point) {
-        ctx.beginPath();
-        ctx.fillStyle = '#fff';
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.strokeStyle = '#e11d48';
-        ctx.lineWidth = 2;
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-    });
-    // 동그라미는 두 클릭으로 정한 사각 영역(bounding box)에 내접하는 타원을 화면 좌표
-    // 기준으로 그린다 - 시간축·가격축의 축척이 서로 달라도(가격 스케일에 맞춰
-    // "동그라미"를 그리면 실제로는 찌그러져 보임) 화면에는 항상 매끈한 원/타원으로 보인다.
-    (drawing.circles || []).forEach(function (circle) {
-      var start = stockDrawingCoordinate(drawing, circle.start);
-      var end = stockDrawingCoordinate(drawing, circle.end);
-      if (!start || !end) return;
-      var centerX = (start.x + end.x) / 2;
-      var centerY = (start.y + end.y) / 2;
-      var radiusX = Math.abs(end.x - start.x) / 2;
-      var radiusY = Math.abs(end.y - start.y) / 2;
-      if (radiusX < 0.5 || radiusY < 0.5) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-    (drawing.boxes || []).forEach(function (box) {
-      var a = stockDrawingCoordinate(drawing, box.start);
-      var b = stockDrawingCoordinate(drawing, box.end);
-      if (!a || !b) return;
-      var bx = Math.min(a.x, b.x), by = Math.min(a.y, b.y), bw = Math.abs(b.x - a.x), bh = Math.abs(b.y - a.y);
-      ctx.fillStyle = 'rgba(99,102,241,.12)';
-      ctx.fillRect(bx, by, bw, bh);
-      ctx.strokeStyle = 'rgba(99,102,241,.85)';
-      ctx.lineWidth = 1.5;
-      ctx.strokeRect(bx, by, bw, bh);
-      if (box.label) {
-        ctx.font = '700 12px MaruBuri, serif';
-        ctx.fillStyle = '#4f46e5';
-        ctx.textBaseline = 'top';
-        var text = String(box.label);
-        while (text.length > 1 && ctx.measureText(text).width > bw - 8) text = text.slice(0, -1);
-        ctx.fillText(text, bx + 5, by + 4);
-      }
-    });
-    // 가로선: 클릭한 가격에 차트 전체 폭으로 긋고 오른쪽 끝에 금액 표시.
-    (drawing.hlines || []).forEach(function (hl) {
-      var y = drawing.series.priceToCoordinate(hl.price);
-      if (y == null) return;
-      var w = drawing.overlay.clientWidth;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 1.5;
-      ctx.moveTo(0, y);
-      ctx.lineTo(w, y);
-      ctx.stroke();
-      var txt = hl.price >= 1000 ? Math.round(hl.price).toLocaleString('ko-KR') : String(Math.round(hl.price * 100) / 100);
-      ctx.font = '700 11px sans-serif';
-      var tw = ctx.measureText(txt).width + 10;
-      hl._y = y;
-      hl._label = { x1: w - tw - 4, x2: w - 4, y1: y - 18, y2: y - 2 };
-      ctx.fillStyle = '#e11d48';
-      ctx.fillRect(w - tw - 4, y - 18, tw, 16);
-      ctx.fillStyle = '#fff';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(txt, w - tw + 1, y - 10);
-    });
-    if (drawing.pending) {
-      var pending = stockDrawingCoordinate(drawing, drawing.pending);
-      if (pending) {
-        ctx.beginPath();
-        ctx.fillStyle = '#e11d48';
-        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    if (drawing.preview && drawing.pending) {
-      var previewStart = stockDrawingCoordinate(drawing, drawing.pending);
-      if (previewStart) {
-        ctx.beginPath();
-        ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = 'rgba(225,29,72,.72)';
-        ctx.lineWidth = 1.5;
-        if (drawing.mode === 'circle') {
-          var previewRadiusX = Math.abs(drawing.preview.x - previewStart.x) / 2;
-          var previewRadiusY = Math.abs(drawing.preview.y - previewStart.y) / 2;
-          if (previewRadiusX >= 0.5 && previewRadiusY >= 0.5) {
-            ctx.ellipse((previewStart.x + drawing.preview.x) / 2, (previewStart.y + drawing.preview.y) / 2,
-              previewRadiusX, previewRadiusY, 0, 0, Math.PI * 2);
-          }
-        } else if (drawing.mode === 'box') {
-          ctx.rect(previewStart.x, previewStart.y, drawing.preview.x - previewStart.x, drawing.preview.y - previewStart.y);
-        } else {
-          ctx.moveTo(previewStart.x, previewStart.y);
-          ctx.lineTo(drawing.preview.x, drawing.preview.y);
-        }
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
-    }
-    if (drawing.activePath && drawing.activePath.length > 1) {
-      var activeStarted = false;
-      ctx.beginPath();
-      drawing.activePath.forEach(function (point) {
-        var coordinate = stockDrawingCoordinate(drawing, point);
-        if (!coordinate) return;
-        if (!activeStarted) {
-          ctx.moveTo(coordinate.x, coordinate.y);
-          activeStarted = true;
-        } else {
-          ctx.lineTo(coordinate.x, coordinate.y);
-        }
-      });
-      if (!activeStarted) return;
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.stroke();
-    }
-  }
-
-  function resizeStockDrawing(drawing) {
-    if (!drawing || !drawing.overlay) return;
-    var ratio = global.devicePixelRatio || 1;
-    var width = drawing.overlay.clientWidth;
-    var height = drawing.overlay.clientHeight;
-    drawing.overlay.width = Math.max(1, Math.round(width * ratio));
-    drawing.overlay.height = Math.max(1, Math.round(height * ratio));
-    var ctx = drawing.overlay.getContext('2d');
-    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    redrawStockDrawing(drawing);
-  }
-
-  function destroyStockDrawing() {
-    var drawing = stockDrawingState;
-    if (!drawing) return;
-    if (drawing.resizeObserver) drawing.resizeObserver.disconnect();
-    if (drawing.resizeHandler) global.removeEventListener('resize', drawing.resizeHandler);
-    if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
-      drawing.chart.timeScale().unsubscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
-    }
-    if (drawing.timeRangeHandler && drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange) {
-      drawing.chart.timeScale().unsubscribeVisibleLogicalRangeChange(drawing.timeRangeHandler);
-    }
-    [drawing.lineButton, drawing.pencilButton, drawing.circleButton, drawing.boxButton, drawing.hlineButton].forEach(function (button) {
-      if (!button) return;
-      button.classList.remove('is-active');
-      button.setAttribute('aria-pressed', 'false');
-    });
-    if (drawing.overlay) drawing.overlay.remove();
-    stockDrawingState = null;
-  }
-
-  function setStockDrawingMode(mode) {
-    var drawing = stockDrawingState;
-    if (!drawing) return;
-    mode = mode === 'line' || mode === 'pencil' || mode === 'circle' || mode === 'box' || mode === 'hline' ? mode : null;
-    drawing.mode = mode;
-    drawing.enabled = !!mode;
-    drawing.pending = null;
-    drawing.preview = null;
-    drawing.activePath = null;
-    drawing.overlay.classList.toggle('is-active', !!mode);
-    drawing.overlay.classList.toggle('is-pencil', mode === 'pencil');
-    if (drawing.lineButton) {
-      drawing.lineButton.classList.toggle('is-active', mode === 'line');
-      drawing.lineButton.setAttribute('aria-pressed', mode === 'line' ? 'true' : 'false');
-    }
-    if (drawing.pencilButton) {
-      drawing.pencilButton.classList.toggle('is-active', mode === 'pencil');
-      drawing.pencilButton.setAttribute('aria-pressed', mode === 'pencil' ? 'true' : 'false');
-    }
-    if (drawing.circleButton) {
-      drawing.circleButton.classList.toggle('is-active', mode === 'circle');
-      drawing.circleButton.setAttribute('aria-pressed', mode === 'circle' ? 'true' : 'false');
-    }
-    if (drawing.boxButton) {
-      drawing.boxButton.classList.toggle('is-active', mode === 'box');
-      drawing.boxButton.setAttribute('aria-pressed', mode === 'box' ? 'true' : 'false');
-    }
-    if (drawing.hlineButton) {
-      drawing.hlineButton.classList.toggle('is-active', mode === 'hline');
-      drawing.hlineButton.setAttribute('aria-pressed', mode === 'hline' ? 'true' : 'false');
-    }
-    drawing.overlay.title = mode === 'hline' ? '차트를 누르면 가로선이 생기고, 선을 끌면 이동, 금액 표시를 누르면 금액을 직접 입력할 수 있습니다.'
-      : mode === 'box' ? '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).'
-      : mode === 'line'
-      ? '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.'
-      : mode === 'circle' ? '왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.'
-      : mode === 'pencil' ? '누른 채로 움직여 자유롭게 그립니다.' : '';
-    redrawStockDrawing(drawing);
-  }
-
-  function setupStockDrawing(element, chart, series, timeframe, bars) {
-    destroyStockDrawing();
+  function stockDrawingButtons(element) {
     var scope = element.parentElement || element;
-    var saved = loadStockDrawings(state.selectedCode, timeframe);
-    var drawing = {
-      key: state.selectedCode,
-      timeframe: timeframe,
-      chart: chart,
-      series: series,
-      bars: bars || [],
-      lines: saved.lines,
-      paths: saved.paths,
-      circles: saved.circles,
-      hlines: saved.hlines,
-      boxes: saved.boxes,
-      pending: null,
-      preview: null,
-      activePath: null,
-      enabled: false,
-      mode: null,
-      lineButton: scope.querySelector('.ss-draw-toggle'),
-      pencilButton: scope.querySelector('.ss-pencil-toggle'),
-      circleButton: scope.querySelector('.ss-circle-toggle'),
-      boxButton: scope.querySelector('.ss-box-toggle'),
-      hlineButton: scope.querySelector('.ss-hline-toggle')
+    return {
+      line: scope.querySelector('.ss-draw-toggle'), pencil: scope.querySelector('.ss-pencil-toggle'),
+      circle: scope.querySelector('.ss-circle-toggle'), box: scope.querySelector('.ss-box-toggle'),
+      hline: scope.querySelector('.ss-hline-toggle'), clear: scope.querySelector('.ss-draw-clear')
     };
-    var overlay = document.createElement('canvas');
-    overlay.className = 'ss-drawing-layer';
-    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-    element.appendChild(overlay);
-    drawing.overlay = overlay;
-    overlay.addEventListener('mousemove', function (event) {
-      if (!drawing.enabled || (drawing.mode !== 'line' && drawing.mode !== 'circle' && drawing.mode !== 'box') || !drawing.pending) return;
-      var rect = overlay.getBoundingClientRect();
-      drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      redrawStockDrawing(drawing);
+  }
+
+  function destroyStockOverlays() {
+    if (forecastHandle) { forecastHandle.detach(); forecastHandle = null; }
+    if (waveHandle) { waveHandle.detach(); waveHandle = null; }
+    if (drawingCtl) { drawingCtl.detach(); drawingCtl = null; }
+  }
+
+  // 차트 한 개에 그리기 층 + 자동 파동을 붙인다. 파동 계산은 켜져 있을 때만, 데이터가 바뀔 때만 한다.
+  function setupStockOverlays(element, chart, series, timeframe, bars) {
+    destroyStockOverlays();
+    var core = global.NineChartCore, Drawing = global.NineChartDrawing;
+    if (!Drawing) return;
+    drawingCtl = Drawing.attach({
+      core: core, container: element, chart: chart, series: series, bars: bars || [],
+      key: state.selectedCode, timeframe: timeframe,
+      className: 'ss-drawing-layer', ariaLabel: '차트 추세선 그리기 영역',
+      bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
+      buttons: stockDrawingButtons(element), store: STOCK_DRAWING_STORE,
+      style: { stroke: '#e11d48', dots: true, previewDash: true },
+      sync: timeframe !== 'minute'
     });
-    overlay.addEventListener('contextmenu', function (event) { if (drawing.enabled) event.preventDefault(); });
-    overlay.addEventListener('mouseleave', function () {
-      if (drawing.mode === 'pencil' && drawing.activePath) return;
-      drawing.preview = null;
-      redrawStockDrawing(drawing);
-    });
-    overlay.addEventListener('pointerdown', function (event) {
-      if (!drawing.enabled) return;
-      // 2026-10-10 요청: 그리기(가로선·박스·직선·동그라미·연필)는 마우스 왼쪽 버튼으로만. 오른쪽·휠 클릭은 무시한다.
-      if (event.pointerType === 'mouse' && event.button !== 0) return;
-      var rect = overlay.getBoundingClientRect();
-      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
-      if (!point) return;
-      event.preventDefault();
-      if (drawing.mode === 'pencil') drawing.activePath = [point];
-      else if (drawing.mode === 'hline') {
-        // 2026-10-10 요청: 가로선 금액 수정 - 금액 라벨을 누르면 숫자를 직접 입력, 선을 끌면 가격이 따라 움직인다.
-        var px = event.clientX - rect.left, py = event.clientY - rect.top;
-        var hit = null, onLabel = false;
-        (drawing.hlines || []).forEach(function (hl) {
-          if (hit || hl._y == null) return;
-          var lb = hl._label;
-          if (lb && px >= lb.x1 && px <= lb.x2 && py >= lb.y1 && py <= lb.y2) { hit = hl; onLabel = true; }
-          else if (Math.abs(py - hl._y) <= 6) hit = hl;
-        });
-        if (hit) {
-          drawing.dragHline = { hl: hit, onLabel: onLabel, startY: py, moved: false };
-          if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
-          return;
-        }
-        if (!(point.price > 0)) return;   // 가격축 밖(0 이하)을 눌러 생긴 음수 가로선은 만들지 않는다
-        drawing.hlines.push({ price: point.price });
-        saveStockDrawings(drawing);
-        redrawStockDrawing(drawing);
-        return;
+    if (state.wave.enabled) applyStockWave();   // 켜 둔 상태에서 종목·주기가 바뀌면 새 차트에도 바로 붙인다
+    if (state.forecast.enabled) applyStockForecast();
+  }
+
+  // 다음 파동 예측: 켜져 있으면 모듈을 받아 현재 차트에 붙이고(계산은 같은 종목·데이터·규모면 공유 캐시), 꺼져 있으면 층과 표를 걷어 낸다.
+  function applyStockForecast() {
+    var ctlNow = drawingCtl;
+    if (!ctlNow || (!state.forecast.enabled && !forecastHandle)) return;
+    var shapes = ctlNow.shapes, scope = ctlNow.overlay.parentElement && ctlNow.overlay.parentElement.parentElement;   // 차트 컨테이너의 부모(표 자리가 형제로 있다)
+    loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
+      if (drawingCtl !== ctlNow || ctlNow.detached) return;   // 그 사이 차트가 다시 그려졌다
+      if (!forecastHandle) {
+        forecastHandle = F.attach({ core: global.NineChartCore, ctl: ctlNow, key: state.selectedCode, timeframe: shapes.timeframe, bars: shapes.bars, state: state.forecast,
+          panel: scope && scope.querySelector ? scope.querySelector('[data-chart-forecast-panel]') : null, font: 'MaruBuri, serif', prefix: 'ss' });
       }
-      else if (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') drawing.pending = point;
-      if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
-      redrawStockDrawing(drawing);
-    });
-    overlay.addEventListener('pointermove', function (event) {
-      var rect = overlay.getBoundingClientRect();
-      if (drawing.dragHline) {
-        var dy = event.clientY - rect.top;
-        if (Math.abs(dy - drawing.dragHline.startY) > 3) drawing.dragHline.moved = true;
-        if (drawing.dragHline.moved) {
-          var moved = drawing.series.coordinateToPrice(dy);
-          if (moved != null && isFinite(Number(moved)) && Number(moved) > 0) drawing.dragHline.hl.price = Number(moved);
-          redrawStockDrawing(drawing);
-        }
-        return;
-      }
-      if ((drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') && drawing.pending) {
-        drawing.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-        redrawStockDrawing(drawing);
-        return;
-      }
-      if (drawing.mode !== 'pencil' || !drawing.activePath) return;
-      var point = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
-      if (!point) return;
-      var last = drawing.activePath[drawing.activePath.length - 1];
-      if (last && last.time === point.time && last.logical === point.logical && Math.abs(last.price - point.price) < 0.000001) return;
-      drawing.activePath.push(point);
-      redrawStockDrawing(drawing);
-    });
-    function finishStockPencil(event) {
-      if (drawing.dragHline) {
-        var dragged = drawing.dragHline;
-        drawing.dragHline = null;
-        if (event && overlay.hasPointerCapture && overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
-        if (!dragged.moved && dragged.onLabel) {
-          var current = dragged.hl.price;
-          var typed = null;
-          try { typed = global.prompt('가로선 금액을 입력하세요(비우면 선을 삭제합니다)', current >= 1000 ? String(Math.round(current)) : String(Math.round(current * 100) / 100)); } catch (e) { typed = null; }
-          if (typed !== null) {
-            var cleaned = String(typed).replace(/[,\s원$]/g, '');
-            if (cleaned === '') {
-              drawing.hlines = drawing.hlines.filter(function (item) { return item !== dragged.hl; });
-            } else if (isFinite(Number(cleaned)) && Number(cleaned) > 0) {
-              dragged.hl.price = Number(cleaned);
-            }
-          }
-        }
-        saveStockDrawings(drawing);
-        redrawStockDrawing(drawing);
-        return;
-      }
-      if (drawing.pending && (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box')) {
-        var rect = overlay.getBoundingClientRect();
-        var endPoint = stockDrawingPointFromCoordinate(drawing, event.clientX - rect.left, event.clientY - rect.top);
-        var startPoint = drawing.pending;
-        if (endPoint) {
-          var shape = { start: startPoint, end: endPoint };
-          if (drawing.mode === 'circle') drawing.circles.push(shape);
-          else if (drawing.mode === 'box') {
-            // 너무 작은 드래그(클릭)는 박스로 만들지 않는다.
-            var bs = stockDrawingCoordinate(drawing, startPoint), be = stockDrawingCoordinate(drawing, endPoint);
-            if (bs && be && Math.abs(be.x - bs.x) > 6 && Math.abs(be.y - bs.y) > 6) {
-              var label = '';
-              try { label = String(global.prompt('박스 이름(예: 상승 파동, 조정, 응축)', '') || '').slice(0, 20); } catch (e) { /* 무시 */ }
-              shape.label = label;
-              drawing.boxes.push(shape);
-            }
-          }
-          else drawing.lines.push(shape);
-        }
-        drawing.pending = null;
-        drawing.preview = null;
-        saveStockDrawings(drawing);
-        redrawStockDrawing(drawing);
-      }
-      if (!drawing.activePath) return;
-      if (drawing.activePath.length > 1) drawing.paths.push(drawing.activePath);
-      drawing.activePath = null;
-      if (event && overlay.hasPointerCapture && overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
-      saveStockDrawings(drawing);
-      redrawStockDrawing(drawing);
-    }
-    overlay.addEventListener('pointerup', finishStockPencil);
-    overlay.addEventListener('pointercancel', finishStockPencil);
-    drawing.timeRangeHandler = function () { redrawStockDrawing(drawing); };
-    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(drawing.timeRangeHandler);
-    if (chart.timeScale().subscribeVisibleLogicalRangeChange) chart.timeScale().subscribeVisibleLogicalRangeChange(drawing.timeRangeHandler);
-    if (global.ResizeObserver) {
-      drawing.resizeObserver = new global.ResizeObserver(function () { resizeStockDrawing(drawing); });
-      drawing.resizeObserver.observe(element);
-    } else {
-      drawing.resizeHandler = function () { resizeStockDrawing(drawing); };
-      global.addEventListener('resize', drawing.resizeHandler);
-    }
-    stockDrawingState = drawing;
-    resizeStockDrawing(drawing);
-    if (state.autoWaveEnabled) applyAutoWave(drawing);
-    pullDrawings(drawing);
+      forecastHandle.apply();
+    }).catch(function () { /* 예측 모듈을 못 받아도 차트는 그대로 */ });
+  }
+
+  // 켜져 있으면 모듈을 받아 현재 차트에 붙이고 계산, 꺼져 있으면 층을 걷어 낸다.
+  function applyStockWave() {
+    var ctlNow = drawingCtl;
+    if (!ctlNow || (!state.wave.enabled && !waveHandle)) return;
+    var bars = ctlNow.shapes.bars, timeframe = ctlNow.shapes.timeframe;
+    loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
+      if (drawingCtl !== ctlNow || ctlNow.detached) return;   // 그 사이 차트가 다시 그려졌다
+      if (!waveHandle) waveHandle = Wave.attach({ core: global.NineChartCore, ctl: ctlNow, key: state.selectedCode, timeframe: timeframe, bars: bars, state: state.wave, font: 'MaruBuri, serif' });
+      waveHandle.apply();
+    }).catch(function () { /* 파동 모듈을 못 받아도 차트는 그대로 */ });
   }
 
   // ---- 매물대(2026-10-05 사용자 요청: 호가창·차트·매물대 연동, 토스처럼 확대·축소를 따라감) ----
@@ -3481,38 +2156,38 @@
     lwcCandleSeries = null;
     lwcLiveBars = [];
     lwcLiveTimeframe = null;
-    destroyStockDrawing();
-    if (stockChartResizeObserver) { stockChartResizeObserver.disconnect(); stockChartResizeObserver = null; }
+    destroyStockOverlays();
+    if (stockChartResizeOff) { stockChartResizeOff(); stockChartResizeOff = null; }
     if (stockChartResizeFrame) { global.cancelAnimationFrame(stockChartResizeFrame); stockChartResizeFrame = 0; }
     stockChartMeasuredWidth = 0;
     stockChartMeasuredHeight = 0;
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
-    if (lwcMemoCleanup) { lwcMemoCleanup(); lwcMemoCleanup = null; }
+    if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
 
-    loadLightweightCharts().then(function (LWC) {
+    chartReady().then(function (LWC) {
+      // 지지·저항은 체크했을 때만 모듈이 필요하다
+      return (state.supportResistanceEnabled ? global.NineChartCore.loadModule('sr').catch(function () { return null; }) : Promise.resolve()).then(function () { return LWC; });
+    }).then(function (LWC) {
       if (renderId !== lwcRenderId || !document.body.contains(container)) return;
+      var core = global.NineChartCore;
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
-      var chart = LWC.createChart(container, mergeOptions({
+      var chart = LWC.createChart(container, core.chartOptions(LWC, 'search', {
+        timeframe: timeframe,
+        fontFamily: global.getComputedStyle ? global.getComputedStyle(document.body).fontFamily : "'MaruBuri', Georgia, serif",
         autoSize: false,
         width: Math.max(1, Math.floor(container.clientWidth)),
-        height: Math.max(1, Math.floor(container.clientHeight || 420)),
-        // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
-        // 쓰면 뒤에 오는 쪽이 통째로 덮어씀).
-        localization: { locale: 'ko-KR' }
-      }, lwcThemeOptions(LWC, timeframe)));
+        height: Math.max(1, Math.floor(container.clientHeight || 420))
+      }));
       lwcChart = chart;
       lwcChartContainer = container;
-      if (global.ResizeObserver) {
-        stockChartResizeObserver = new global.ResizeObserver(resizeStockChart);
-        stockChartResizeObserver.observe(container);
-      }
+      stockChartResizeOff = core.observeResize(container, resizeStockChart);
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.08 },
         alignLabels: false
@@ -3520,20 +2195,11 @@
 
       var isUsChart = /^US:/i.test(String(state.selectedCode || ''));
       var priceMinMove = isUsChart ? 0.01 : 1;
-      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: '#d24f45', downColor: '#1261c4',
-        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4',
-        priceFormat: {
-          type: 'custom',
-          minMove: priceMinMove,
-          formatter: function (v) { return chartPriceText(v, isUsChart); }
-        }
-      });
-      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.08 } });
-      candleSeries.setData(bars.map(function (d) {
-        return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
-      }));
+      var candleSeries = core.addCandles(chart, LWC, bars, {
+        type: 'custom',
+        minMove: priceMinMove,
+        formatter: function (v) { return chartPriceText(v, isUsChart); }
+      }, { top: 0.06, bottom: 0.08 });
       lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
       lwcCandleSeries = candleSeries;
       if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
@@ -3547,38 +2213,26 @@
       lwcLiveTimeframe = timeframe;
       if (state.liveQuotes[state.selectedCode]) updateLiveChartQuote(state.selectedCode, state.liveQuotes[state.selectedCode]);
 
-      var priceStudies = [
-        { period: 5, label: '5', color: '#d24f45' },
-        { period: 20, label: '20', color: '#1261c4' },
-        { period: 60, label: '60', color: '#0ca678' },
-        { period: 224, label: '224', color: ma224Color() }
-      ];
       var priceLegendHtml = [];
       if (state.movingAverageEnabled) {
-        priceStudies.forEach(function (study) {
-          var points = movingAveragePoints(bars, 'close', study.period);
-          var series = chart.addSeries(LWC.LineSeries, {
-            color: study.color,
-            lineWidth: study.period === 224 ? 3 : 1,
+        core.maStudies().forEach(function (study) {
+          var points = core.movingAveragePoints(bars, 'close', study.period);
+          core.addMovingAverageLine(chart, LWC, study, points, {
             priceScaleId: 'right',
-            lastValueVisible: false,
-            priceLineVisible: false,
-            crosshairMarkerVisible: false,
             priceFormat: {
               type: 'custom',
               minMove: priceMinMove,
               formatter: function (v) { return chartPriceText(v, isUsChart); }
             }
           });
-          series.setData(points);
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
-          priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.label + ' <b>' + latest + '</b></span>');
+          priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
 
       // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
       // 분봉 탭에서는 구름대 투영을 건너뛴다(체크돼 있어도 "데이터 부족"으로만 표시됨).
-      var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? ichimokuCloudPoints(bars, timeframe) : [];
+      var cloudPoints = (state.ichimokuEnabled && timeframe !== 'minute') ? core.ichimokuCloudPoints(bars, timeframe) : [];
       if (state.ichimokuEnabled) {
         var spanASeries = chart.addSeries(LWC.LineSeries, {
           color: ICHIMOKU_BORDER_COLOR,
@@ -3608,7 +2262,7 @@
         priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
       }
 
-      var srResult = state.supportResistanceEnabled ? supportResistanceLevels(bars) : null;
+      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars) : null;
       if (state.supportResistanceEnabled) {
         var srPart = function (list, cls) {
           return list.map(function (l) { return '<b class="' + cls + '">' + chartPriceText(l.price, isUsChart) + '</b>'; }).join(' · ');
@@ -3635,53 +2289,13 @@
       // 배지·점선을 오른쪽 가격축(캔들과 같은 여백)에 그대로 그려서 가격 마지막 값 배지·
       // 눈금 라벨과 겹친다. 같은 값은 이미 아래 .ss-volume-study-label(커스텀 범례)이
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
-      var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
-        priceFormat: { type: 'volume' },
-        priceScaleId: 'volume',
-        lastValueVisible: false,
-        priceLineVisible: false
-      }, 1);
-      // scaleMargins를 명시하지 않으면 라이브러리가 알아서 범위를 잡아서, 막대가 패널의
-      // 어느 높이에서 시작/끝나는지 예측할 수 없었다(거래량 범례를 막대 옆 어디에 둬도
-      // 계속 자리가 안 맞는다는 반복 리포트의 근본 원인 - 2026-08-14). 막대를 항상
-      // 패널 하단(기준선 0)에 붙이고 위쪽 15%만 비워서, 범례를 패널 맨 위에 고정하면
-      // 데이터 값과 무관하게 항상 막대 바로 위에 오도록 만든다.
-      chart.priceScale('volume').applyOptions({
-        drawTicks: false, ticksVisible: false, borderVisible: false,
-        scaleMargins: { top: 0.15, bottom: 0 }
+      var volumePane = core.addVolumePane(chart, LWC, bars, {
+        pane: 1, scaleId: 'volume', ma5: true,
+        // 막대를 항상 패널 하단(기준선 0)에 붙이고 위쪽 15%만 비워 범례가 막대 바로 위에 오게 한다(2026-08-14).
+        scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
       });
-      volumeSeries.setData(bars.map(function (d) {
-        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
-      }));
-
-      var volumeMaPoints = movingAveragePoints(bars, 'volume', 20);
-      var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#3b82f6',
-        lineWidth: 2,
-        priceFormat: { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false,
-        crosshairMarkerVisible: false
-      }, 1);
-      volumeMaSeries.setData(volumeMaPoints.map(function (point) {
-        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
-      }));
-
-      // 2026-08-13 사용자 리포트: 거래량 패널에 파란 선(20일 평균) 하나만 있고 무슨 선인지
-      // 설명이 없었음(범례가 CSS display:none으로 숨어 있던 버그) - 5일 평균을 추가하고
-      // 아래 ss-volume-study-label 범례를 살려서 색점으로 구분한다.
-      var volumeMa5Points = movingAveragePoints(bars, 'volume', 5);
-      var volumeMa5Series = chart.addSeries(LWC.LineSeries, {
-        color: '#f59e0b',
-        lineWidth: 1.6,
-        priceFormat: { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false,
-        crosshairMarkerVisible: false
-      }, 1);
-      volumeMa5Series.setData(volumeMa5Points.map(function (point) {
-        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
-      }));
+      var volumeMaPoints = volumePane.ma20.points;
+      var volumeMa5Points = volumePane.ma5.points;
 
       var rsiValues = stockRsi(bars);
       // 첨부 화면과 같은 RSI(14) 검정 단일선. 색상은 50 기준으로 나누지 않고,
@@ -3720,7 +2334,7 @@
       var valueBars = bars.map(function (bar) {
         return { date: bar.date, tradingValue: Math.max(0, Number(bar.close) || 0) * Math.max(0, Number(bar.volume) || 0) };
       });
-      var valueMa20Points = movingAveragePoints(valueBars, 'tradingValue', 20);
+      var valueMa20Points = core.movingAveragePoints(valueBars, 'tradingValue', 20);
       var latestTradingValue = Math.max(0, Number(latestBar.close) || 0) * latestVolume;
       var latestTradingValueMa20 = valueMa20Points.length ? valueMa20Points[valueMa20Points.length - 1].value : null;
       var latestVolumeVs20 = ratioPercent(latestVolume, latestVolumeMa);
@@ -3748,10 +2362,15 @@
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
-      lwcMemoCleanup = timeframe === 'minute' ? null : installChartMemoLayer(container, chart, candleSeries, bars, timeframe, state.selectedCode, state.selectedName, function (p) { return chartPriceText(p, isUsChart); });
-      lwcSrCleanup = installSupportResistanceCanvas(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); });
+      memoCtl = timeframe === 'minute' || !global.NineChartMemo ? null : global.NineChartMemo.install({
+        container: container, chart: chart, series: candleSeries, bars: bars, timeframe: timeframe,
+        code: state.selectedCode, name: state.selectedName,
+        formatPrice: function (p) { return chartPriceText(p, isUsChart); },
+        isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
+      });
+      lwcSrCleanup = global.NineChartSR ? global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }) : null;
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
-      setupStockDrawing(container, chart, candleSeries, timeframe, bars);
+      setupStockOverlays(container, chart, candleSeries, timeframe, bars);
       resizeStockChart();
     }).catch(function () {
       if (renderId !== lwcRenderId) return;
@@ -3764,15 +2383,6 @@
     var n = Number(value);
     return (n >= 0 ? '+' : '') + n.toFixed(1) + '%';
   }
-
-  function mergeOptions(a, b) {
-    var out = {};
-    for (var k in a) out[k] = a[k];
-    for (var k2 in b) out[k2] = b[k2];
-    return out;
-  }
-
-  // ---- 유틸 ----
 
   function fetchJson(url) {
     var hasAbort = 'AbortController' in global;

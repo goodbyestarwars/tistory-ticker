@@ -1099,7 +1099,8 @@
   }
 
   function fetchSummary(code) {
-    return fetchChart(code).then(function (data) {
+    // 차트를 같이 그리는 화면(js/stock-search.js)은 같은 일봉을 공용 캐시(chart-data)로 받으려고 공급 함수를 바꿔 끼운다.
+    return (OrderBook.flowChartProvider || fetchChart)(code).then(function (data) {
         var daily = data && Array.isArray(data.daily) ? data.daily : [];
         var latest = daily.length ? daily[daily.length - 1] : null;
         var previous = daily.length > 1 ? daily[daily.length - 2] : null;

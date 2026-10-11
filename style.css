@@ -7786,9 +7786,10 @@ html:not(.font-gothic) body .nav-logo-name {
   letter-spacing:-.01em!important;
 }
 
-/* 종목분석 판정 상자의 굵은 값은 기기 기본 고딕으로 표시한다. */
+/* 종목분석 판정 상자의 굵은 값은 상단 종목명(.ff-header)과 같은 본문 UI 글꼴(--font-ui)로 표시한다.
+   (2026-10-13: 예전에는 system-ui였고 종목명과 글꼴이 달라 보였다 - css/foreign-flow.css 끝의 글꼴 통일 블록과 같은 기준) */
 html body #foreign-flow .ff-swing-summary :is(strong,b) {
-  font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI","Malgun Gothic",sans-serif!important;
+  font-family:var(--font-ui)!important;
   font-weight:700!important;
   font-synthesis:none!important;
   letter-spacing:-.01em!important;

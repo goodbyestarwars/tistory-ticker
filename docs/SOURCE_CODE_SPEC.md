@@ -68,7 +68,13 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `market-temp.js` | 2300 | 증시온도 100점 종합점수·구간 게이지·3축, 증시 날씨 리본 추이, 개미 체크리스트, AI브리핑, 업종 TOP, WICS 대분류별 전종목 카드 책장 | `window.MarketTemp`, `#market-temp` | VM `/market-temp`,`/industry-flow`, GAS `?codes=`,`?marketTempBriefing=1`,`?bubble=1` |
 | `quick-indices.js` | 885 | 홈 전용 관심지수 카드 바(11종) + 긴급속보 패널 | `window.QuickIndices`, `#quick-indices`(동적 생성) | GAS `?market=1`,`?rankNews=1`, VM `/futures` |
 | `stock-news.js` | 888 | 종목별 뉴스(리스트+AI요약+공시+랭킹뉴스) | `window.StockNews`, `#stock-news` | GAS `?codes=`,`?news=1`,`?rankNews=1` |
-| `stock-search.js` | 910 | 독립 "실시간 시세" 페이지(검색+호가창+캔들차트) | `window.StockSearch`, `#stock-search` | GAS `?codes=`,`?action=priceReason/flowChart`, LWC CDN |
+| `stock-search.js` | 약 2,400 | 독립 "실시간 시세" 페이지(검색+호가창+캔들차트, 차트 공통 기능은 chart-*.js 모듈 사용) | `window.StockSearch`, `#stock-search` | GAS `?codes=`,`?action=priceReason/flowChart`, LWC CDN |
+| `chart-core.js` | 약 480 | **차트 공통 엔진**: LWC 1회 로드·보조 모듈 지연 로드, 화면별 테마·생성 옵션(`chartOptions`), scope(리소스 해제), 공용 ResizeObserver·다크모드 감시자, 캔들·이동평균·거래량 시리즈 부품, 일목 계산·구름 플러그인 | `window.NineChartCore` | LWC CDN, 보조 모듈 |
+| `chart-data.js` | 약 200 | OHLCV 검증·주봉/월봉 집계·데이터 지문, TTL 캐시, 일봉 `/flow-chart` 메모리+sessionStorage 캐시·진행 중 요청 공유 | `window.NineChartData` | (화면이 fetcher 를 넘긴다) |
+| `chart-drawing.js` | 약 560 | 오버레이 캔버스 층(다른 모듈의 아래층 등록) + 수동 드로잉(직선·동그라미·박스·가로선·연필), 앵커/시간·가격 좌표, 브라우저·계정(`/chart-drawings`) 저장 | `window.NineChartDrawing` | VM `/chart-drawings`,`/auth/google/me` |
+| `chart-wave-overlay.js` | 약 260 | 자동 파동 분석 캐시(종목·지문·엔진 버전)·규모 선택 제어·박스 그리기 | `window.NineChartWave` | `auto-wave.js` |
+| `wave-forecast.js` | 약 360 | 다음 파동 시나리오 엔진(규칙 기반, 미래 비참조·재현 가능, 통계 표 결합·검증 문턱) | `window.WaveForecast` | `auto-wave.js`, `data/wave-forecast-stats.js` |
+| `chart-forecast-overlay.js` | 약 300 | 다음 파동 예측 표·점선 그리기·제어·계산 공유 | `window.NineChartForecast` | `wave-forecast.js` |
 | `auto-wave.js` | 약 700 | 자동 파동 엔진(대 8.0·중 3.0·소 1.5 ×ATR14 지그재그, 횡보 박스, 대파동 추세 상태, 상태 신호). 봉을 순차로 읽는 상태기계 | `window.AutoWave.analyze/detectWaves/hashBars` | 일봉 OHLCV(브라우저 계산, 서버 호출 없음) |
 | `skin-main.js` | 1,022 | 스킨 공통: 다크모드/폰트 토글, 홈 대시보드 조립, 카테고리 파싱, 아티클 모달, 모바일 드로어 | `window.readPost/sharePost`, `buildHomeDashboard()` | GAS(`?marketTemp=1`,`?bubble=1`,`?patternScan=1`) |
 | `foreign-flow.js` | 4,251 | **최대 파일.** 종목분석 메인: 투자시그널·수급표·매물대·캔들차트·펀더멘탈·뉴스모멘텀·AI 종합요약 | `window.ForeignFlow{fetchFlow,fetchAnalysisSummary,...}`, `#foreign-flow` | GAS 다수 액션, VM(`/foreign-flow/{code}`,`/investor-flow/{code}`,`/news-momentum/{code}`), LWC CDN |
