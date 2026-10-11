@@ -327,7 +327,7 @@ document.documentElement.classList.add('skin-ready');
         globalName: 'KospiFutures',
         script: ASSET_BASE + 'js/kospi-futures.js?v=20261008-five-year-charts',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
-        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261013-flow']
       },
       {
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',

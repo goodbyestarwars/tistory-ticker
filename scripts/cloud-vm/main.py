@@ -4316,6 +4316,30 @@ def investor_trend_endpoint(period: str = Query('week'), market: str = Query('ko
     return envelope(result)
 
 
+_investor_history_cache = {}
+
+
+@app.get('/investor-trend/history')
+def investor_trend_history_endpoint(request: Request,
+                                    market: str = Query('kospi', pattern='^(kospi|kosdaq)$'),
+                                    days: int = Query(260, ge=5, le=300)):
+    """국내 증시 자금 흐름(투자자별 일별 순매수·누적·지수 비교)용 일별 이력. 외국인·기관·개인 순매수(억원)와 업종지수 종가를
+    날짜 오름차순으로 준다. 총매수·총매도는 원자료(KIS 일별 응답)에 없어 gross.supported=false 로 알린다.
+    investor_trend.py 가 SQLite 에 쌓아 둔 값만 읽으므로 요청마다 KIS 를 부르지 않는다(30초 메모리 캐시)."""
+    _check_rate_limit('investor_trend_history', request, max_per_window=30)
+    key = (market, days)
+    now = time.time()
+    hit = _investor_history_cache.get(key)
+    if hit and now - hit[0] < 30:
+        return envelope(hit[1])
+    try:
+        data = investor_trend.get_history(market, days)
+    except Exception as e:
+        raise _upstream_http_exception('투자자 자금 흐름 이력을 불러오지 못했습니다.', e) from e
+    _investor_history_cache[key] = (now, data)
+    return envelope(data)
+
+
 @app.get('/week52-batch')
 def week52_batch(x_api_key: str = Header(default=None)):
     """week52_scan.py(하루 1회 크론)가 섹터 풀(238종목) 대상으로 미리 계산해둔 52주 신고가/

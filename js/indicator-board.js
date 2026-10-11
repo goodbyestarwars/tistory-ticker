@@ -11,6 +11,9 @@
  *              note: '<p>…</p>'(차트 아래 설명 HTML), loading: true, title: '차트 제목' }
  *   group  : { key, label, hint }
  * 상승 = 빨강, 하락 = 파랑(사이트 공통). 차트는 의존성 없는 SVG.
+ *
+ * createChart(host, { height }) (2026-10-12): 표 없이 다중 시계열만 그리는 차트. 묶음 막대(양수 0선 위·음수 아래)·여러 선·오른쪽 보조 축·기준선,
+ *   범례로 계열 켜고 끄기, 호버/터치로 날짜별 수치, 억·조 원 단위(fmtEok). 국내 증시 자금 흐름(js/investor-flow.js)이 쓴다.
  */
 (function (global) {
   'use strict';
@@ -425,8 +428,209 @@
     return { setRows: setRows, setEmpty: setEmpty, select: select, redraw: redraw, destroy: destroy, root: root, getSelected: function () { return state.selected; } };
   }
 
+  /* ── 금액(억원) 표기: 1조 원 이상은 조, 그 아래는 억 ────────────────────────────────── */
+  function fmtEok(value, signedOut) {
+    if (value == null || !isFinite(value)) return '-';
+    var abs = Math.abs(value), sign = value < 0 ? '-' : (signedOut && value > 0 ? '+' : '');
+    if (abs >= 10000) return sign + num(abs / 10000, abs >= 100000 ? 1 : 2) + '조';
+    return sign + num(abs, 0) + '억';
+  }
+
+  // step(눈금 간격, 억원)이 1조보다 작으면 소수 자릿수를 늘려 이웃한 눈금이 같은 글자로 겹치지 않게 한다(예: 32.5조, 33.0조).
+  function fmtEokAxis(value, step) {
+    if (value == null || !isFinite(value)) return '';
+    if (value === 0) return '0';
+    var abs = Math.abs(value), sign = value < 0 ? '-' : '';
+    if (abs >= 10000) {
+      var dec = step > 0 && step < 10000 ? (step < 1000 ? 2 : 1) : (abs >= 100000 ? 0 : 1);
+      return sign + num(abs / 10000, dec) + '조';
+    }
+    return sign + num(abs, 0) + '억';
+  }
+
+  /* ── 다중 시계열 차트: 묶음 막대(양수는 0선 위, 음수는 아래) 또는 여러 선(+ 오른쪽 보조 축·기준선) ──────────────
+     createChart(host, { height, emptyText }) -> { update(spec), redraw(), destroy() }
+     spec = { type: 'bars'|'lines', dates: ['YYYY-MM-DD'|라벨...], series: [{ key, label, color, values: [수...|null] }],
+              fmt(v), axisFmt(v), zero: true, secondary: { label, values, fmt, axisFmt } | null, refLines: [{ value, label }], ariaLabel }
+     범례 버튼으로 계열을 숨기거나 보인다. 거래가 없는 날은 날짜 자체가 없다(0으로 채우지 않는다). */
+  function createChart(host, options) {
+    var copts = options || {};
+    var height = copts.height || 220;
+    var uid = 'ibc' + (++SEQ);
+    var state = { spec: null, hidden: {}, view: null };
+    var resizeTimer = null;
+    host.innerHTML = '<div class="ibd ibc" id="' + uid + '"><div class="ibd-legend" data-ic-legend role="group" aria-label="표시할 항목"></div>'
+      + '<div class="ibd-chart" data-ic-chart style="height:' + height + 'px"><span class="ibd-empty">불러오는 중</span></div></div>';
+    var root = host.querySelector('#' + uid);
+    var chartEl = root.querySelector('[data-ic-chart]');
+    var legendEl = root.querySelector('[data-ic-legend]');
+
+    function visibleSeries() {
+      return (state.spec && state.spec.series || []).filter(function (s) { return !state.hidden[s.key]; });
+    }
+
+    function renderLegend() {
+      var spec = state.spec;
+      if (!spec || !spec.series || spec.series.length < 2 && !spec.secondary) { legendEl.innerHTML = ''; legendEl.hidden = true; return; }
+      legendEl.hidden = false;
+      var html = spec.series.map(function (s) {
+        var off = !!state.hidden[s.key];
+        return '<button type="button" class="ibd-leg-btn' + (off ? ' is-off' : '') + '" data-ic-key="' + esc(s.key) + '" aria-pressed="' + (!off) + '">'
+          + '<i class="ibd-swatch" style="background:' + s.color + '"></i>' + esc(s.label) + '</button>';
+      }).join('');
+      if (spec.secondary) html += '<span class="ibd-leg-sec"><i class="ibd-swatch ibd-swatch-line"></i>' + esc(spec.secondary.label) + ' (오른쪽 축)</span>';
+      legendEl.innerHTML = html;
+    }
+
+    function dateText(d, n) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(String(d))) return String(d);
+      return n > 70 ? String(d).slice(2).replace(/-/g, '.') : String(d).slice(5).replace('-', '.');
+    }
+
+    function scaleOf(values, withZero) {
+      var lo = Infinity, hi = -Infinity;
+      values.forEach(function (v) { if (v != null && isFinite(v)) { if (v < lo) lo = v; if (v > hi) hi = v; } });
+      if (!isFinite(lo)) return null;
+      if (withZero) { lo = Math.min(lo, 0); hi = Math.max(hi, 0); }
+      var pad = (hi - lo) * 0.07 || Math.abs(hi) * 0.02 || 1;
+      return { lo: withZero && lo === 0 ? 0 : lo - pad, hi: withZero && hi === 0 ? 0 : hi + pad };
+    }
+
+    function draw() {
+      var spec = state.spec, vis = visibleSeries();
+      state.view = null;
+      if (!spec || !spec.dates || !spec.dates.length) { chartEl.innerHTML = '<span class="ibd-empty">' + esc((spec && spec.emptyText) || copts.emptyText || '표시할 자료가 없습니다.') + '</span>'; return; }
+      if (!vis.length) { chartEl.innerHTML = '<span class="ibd-empty">표시할 항목을 하나 이상 켜 주세요.</span>'; return; }
+      var n = spec.dates.length;
+      if (spec.type === 'lines' && n < 2) { chartEl.innerHTML = '<span class="ibd-empty">자료가 1개뿐이라 선을 그릴 수 없습니다.</span>'; return; }
+      var width = Math.max(260, chartEl.clientWidth || 640);
+      var hasSec = !!(spec.secondary && spec.secondary.values && spec.secondary.values.some(function (v) { return v != null; }));
+      var m = hasSec ? { l: 58, r: 62, t: 12, b: 24 } : { l: 6, r: 62, t: 12, b: 24 };
+      var all = []; vis.forEach(function (s) { all = all.concat(s.values); });
+      var withZero = spec.zero !== false;
+      if (spec.refLines) spec.refLines.forEach(function (r) { all.push(r.value); });
+      var sc = scaleOf(all, withZero);
+      if (!sc) { chartEl.innerHTML = '<span class="ibd-empty">표시할 수치가 없습니다.</span>'; return; }
+      var plotW = width - m.l - m.r, plotH = height - m.t - m.b;
+      var y = function (v) { return m.t + plotH * (1 - (v - sc.lo) / (sc.hi - sc.lo)); };
+      var slot = plotW / n;
+      var xc = function (i) { return spec.type === 'bars' ? m.l + slot * (i + 0.5) : m.l + (n > 1 ? plotW * (i / (n - 1)) : plotW / 2); };
+      var axisFmt = spec.axisFmt || spec.fmt || defaultFmt;
+      var axisX = hasSec ? m.l - 6 : width - m.r + 6, axisAnchor = hasSec ? 'end' : 'start';
+      var svg = '';
+      var ticks = niceTicks(sc.lo, sc.hi, 4), tickStep = ticks.length > 1 ? ticks[1] - ticks[0] : 0;
+      ticks.forEach(function (v) {
+        svg += '<line class="ibd-grid" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(v).toFixed(1) + '" y2="' + y(v).toFixed(1) + '"/>'
+          + '<text class="ibd-axis" text-anchor="' + axisAnchor + '" x="' + axisX + '" y="' + (y(v) + 4).toFixed(1) + '">' + esc(axisFmt(v, tickStep)) + '</text>';
+      });
+      if (spec.refLines) spec.refLines.forEach(function (r) {
+        svg += '<line class="ibd-ref" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(r.value).toFixed(1) + '" y2="' + y(r.value).toFixed(1) + '"/>'
+          + '<text class="ibd-ref-label" text-anchor="end" x="' + (width - m.r - 4) + '" y="' + (y(r.value) - 4).toFixed(1) + '">' + esc(r.label) + '</text>';
+      });
+      if (withZero && sc.lo < 0 && sc.hi > 0) svg += '<line class="ibd-zero" x1="' + m.l + '" x2="' + (width - m.r) + '" y1="' + y(0).toFixed(1) + '" y2="' + y(0).toFixed(1) + '"/>';
+      if (spec.type === 'bars') {
+        var k = vis.length, bw = Math.max(0.6, Math.min(14, slot * 0.82 / k)), dense = bw < 1, y0 = y(Math.max(sc.lo, Math.min(sc.hi, 0)));
+        vis.forEach(function (s, si) {
+          s.values.forEach(function (v, i) {
+            if (v == null || !isFinite(v) || v === 0) return;
+            var x = xc(i) - (bw * k) / 2 + bw * si, yv = y(v), top = Math.min(yv, y0), h = Math.max(1, Math.abs(yv - y0));
+            svg += '<rect class="ibd-bar" x="' + x.toFixed(1) + '" y="' + top.toFixed(1) + '" width="' + bw.toFixed(1) + '" height="' + h.toFixed(1) + '" style="fill:' + s.color + (dense ? ';shape-rendering:auto' : '') + '"/>';
+          });
+        });
+      } else {
+        vis.forEach(function (s) {
+          var d = '', pen = false;
+          s.values.forEach(function (v, i) {
+            if (v == null || !isFinite(v)) { pen = false; return; }
+            d += (pen ? 'L' : 'M') + xc(i).toFixed(1) + ' ' + y(v).toFixed(1); pen = true;
+          });
+          svg += '<path class="ibd-mline" d="' + d + '" style="stroke:' + s.color + '"/>';
+          for (var li = s.values.length - 1; li >= 0; li--) if (s.values[li] != null && isFinite(s.values[li])) { svg += '<circle class="ibd-last" cx="' + xc(li).toFixed(1) + '" cy="' + y(s.values[li]).toFixed(1) + '" r="3.2" style="fill:' + s.color + '"/>'; break; }
+        });
+      }
+      var secScale = null;
+      if (hasSec) {
+        secScale = scaleOf(spec.secondary.values, false);
+        var ys = function (v) { return m.t + plotH * (1 - (v - secScale.lo) / (secScale.hi - secScale.lo)); };
+        var d2 = '', pen2 = false;
+        spec.secondary.values.forEach(function (v, i) { if (v == null || !isFinite(v)) { pen2 = false; return; } d2 += (pen2 ? 'L' : 'M') + xc(i).toFixed(1) + ' ' + ys(v).toFixed(1); pen2 = true; });
+        svg += '<path class="ibd-secline" d="' + d2 + '"/>';
+        var secFmt = spec.secondary.axisFmt || spec.secondary.fmt || defaultFmt;
+        var secTicks = niceTicks(secScale.lo, secScale.hi, 4), secStep = secTicks.length > 1 ? secTicks[1] - secTicks[0] : 0;
+        secTicks.forEach(function (v) {
+          svg += '<text class="ibd-axis ibd-axis-sec" x="' + (width - m.r + 6) + '" y="' + (ys(v) + 4).toFixed(1) + '">' + esc(secFmt(v, secStep)) + '</text>';
+        });
+        secScale.y = ys;
+      }
+      var idxs = n <= 8 ? spec.dates.map(function (d, i) { return i; }) : [0, Math.floor((n - 1) / 2), n - 1];
+      idxs.forEach(function (i, q) {
+        var anchor = q === 0 ? 'start' : (q === idxs.length - 1 ? 'end' : 'middle');
+        if (n <= 8) anchor = 'middle';
+        svg += '<text class="ibd-axis" text-anchor="' + anchor + '" x="' + xc(i).toFixed(1) + '" y="' + (height - 7) + '">' + esc(dateText(spec.dates[i], n)) + '</text>';
+      });
+      svg += '<line class="ibd-cross" data-ic-cross y1="' + m.t + '" y2="' + (height - m.b) + '" hidden/>'
+        + '<rect class="ibd-hit" x="' + m.l + '" y="' + m.t + '" width="' + plotW + '" height="' + plotH + '"/>';
+      chartEl.innerHTML = '<svg class="ibd-svg" viewBox="0 0 ' + width + ' ' + height + '" width="100%" height="' + height + '" role="img" aria-label="' + esc(spec.ariaLabel || '추이 차트') + '">' + svg + '</svg>'
+        + '<div class="ibd-tip" data-ic-tip hidden></div>';
+      state.view = { width: width, m: m, n: n, slot: slot, xc: xc, vis: vis, spec: spec, plotW: plotW };
+      wire();
+    }
+
+    function wire() {
+      var svgEl = chartEl.querySelector('svg'), hit = chartEl.querySelector('.ibd-hit'), cross = chartEl.querySelector('[data-ic-cross]'), tip = chartEl.querySelector('[data-ic-tip]');
+      function show(clientX) {
+        var v = state.view; if (!v) return;
+        var rect = svgEl.getBoundingClientRect(), scale = v.width / rect.width, px = (clientX - rect.left) * scale;
+        var i = v.spec.type === 'bars' ? Math.floor((px - v.m.l) / v.slot) : Math.round((px - v.m.l) / (v.plotW) * (v.n - 1));
+        i = Math.max(0, Math.min(v.n - 1, i));
+        var cx = v.xc(i);
+        cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.removeAttribute('hidden');
+        var rows = v.vis.map(function (s) {
+          var val = s.values[i], f = (s.fmt || v.spec.fmt || defaultFmt);
+          return '<div class="ibd-tip-row"><i class="ibd-swatch" style="background:' + s.color + '"></i><span>' + esc(s.label) + '</span><b>' + (val == null ? '-' : esc(f(val, true))) + '</b></div>';
+        }).join('');
+        if (v.spec.secondary && v.spec.secondary.values[i] != null) {
+          var sf = v.spec.secondary.fmt || defaultFmt;
+          rows += '<div class="ibd-tip-row"><i class="ibd-swatch ibd-swatch-line"></i><span>' + esc(v.spec.secondary.label) + '</span><b>' + esc(sf(v.spec.secondary.values[i])) + '</b></div>';
+        }
+        var dlabel = /^\d{4}-\d{2}-\d{2}$/.test(String(v.spec.dates[i])) ? dayLabel(v.spec.dates[i]) : String(v.spec.dates[i]);
+        tip.innerHTML = '<b class="ibd-tip-date">' + esc(dlabel) + '</b>' + rows;
+        tip.hidden = false;
+        var left = cx / scale + 12;
+        if (left + 190 > rect.width) left = cx / scale - 200;
+        tip.style.left = Math.max(0, left) + 'px'; tip.style.top = '4px';
+      }
+      function hide() { cross.setAttribute('hidden', ''); tip.hidden = true; }
+      hit.addEventListener('pointermove', function (e) { show(e.clientX); });
+      hit.addEventListener('pointerdown', function (e) { show(e.clientX); });
+      hit.addEventListener('pointerleave', hide);
+      hit.addEventListener('pointercancel', hide);
+    }
+
+    function onLegend(event) {
+      var btn = event.target.closest && event.target.closest('[data-ic-key]');
+      if (!btn) return;
+      var key = btn.getAttribute('data-ic-key');
+      state.hidden[key] = !state.hidden[key];
+      renderLegend(); draw();
+    }
+    function onResize() {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(function () { if (document.body.contains(root) && root.offsetParent !== null) draw(); }, 150);
+    }
+    legendEl.addEventListener('click', onLegend);
+    global.addEventListener('resize', onResize);
+
+    return {
+      update: function (spec) { state.spec = spec; renderLegend(); draw(); },
+      redraw: draw,
+      destroy: function () { clearTimeout(resizeTimer); global.removeEventListener('resize', onResize); legendEl.removeEventListener('click', onLegend); }
+    };
+  }
+
   global.IndicatorBoard = {
     create: create,
-    util: { esc: esc, num: num, signed: signed, withSign: withSign, tone: tone, isoDate: isoDate, series: series, sliceRange: sliceRange, pointStats: pointStats, niceTicks: niceTicks, dayLabel: dayLabel, defaultFmt: defaultFmt }
+    createChart: createChart,
+    util: { esc: esc, num: num, signed: signed, withSign: withSign, fmtEok: fmtEok, fmtEokAxis: fmtEokAxis, tone: tone, isoDate: isoDate, series: series, sliceRange: sliceRange, pointStats: pointStats, niceTicks: niceTicks, dayLabel: dayLabel, defaultFmt: defaultFmt }
   };
 })(window);

@@ -623,3 +623,30 @@ html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
 @media (max-width: 360px) {
   .dmi-spot-table .dmi-spot-price { font-size: 15px; }
 }
+
+/* 2026-10-12 큰 블록 4개(01 국내 주요 지수 · 02 투자자별 매매동향 · 03 증시자금 · 04 국내 증시 자금 흐름).
+   블록마다 위쪽에 얇은 구분선 한 줄, 블록 사이 간격 52px(모바일 36px), 제목 앞 번호 + 한 줄 설명.
+   블록 안쪽 표·그리드의 위·아래 테두리는 블록 구분선과 겹쳐 이중선이 되므로 걷어 낸다. */
+.dmi-shell .dmi-block { margin-top: 52px; border-top: 1px solid #d8d8d8; border-bottom: 0; }
+.dmi-shell .dmi-heading + .dmi-block { margin-top: 22px; }
+.dmi-shell .dmi-block .dmi-subheading { margin: 0; padding: 18px 0 4px; }
+.dmi-shell .dmi-block-no { display: inline-block; margin-right: 10px; color: #8a8f98; font-size: .8em; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
+.dmi-shell .dmi-block-desc { margin: 0 0 14px; color: #6b7280; font-size: 13px; line-height: 1.55; word-break: keep-all; overflow-wrap: break-word; }
+.dmi-shell .dmi-block .dmi-flow-grid,
+.dmi-shell .dmi-block .dmi-fund-grid { border-top: 0; border-bottom: 0; }
+.dmi-shell .dmi-invflow-section { padding-bottom: 8px; }
+/* 01 은 위 규칙(#domestic-market-indicators .dmi-spot-section { border-top: 0 !important })이 구분선을 지우므로, 블록 구분선만 같은 우선순위로 되살린다.
+   차트 두 개를 감싸던 아래 선은 그대로 없다. */
+#domestic-market-indicators .dmi-spot-section.dmi-block { border-top: 1px solid #d8d8d8 !important; }
+
+@media (max-width: 760px) {
+  .dmi-shell .dmi-block { margin-top: 36px; }
+  .dmi-shell .dmi-heading + .dmi-block { margin-top: 16px; }
+  .dmi-shell .dmi-block .dmi-subheading { padding: 14px 0 4px; }
+  .dmi-shell .dmi-block-desc { font-size: 12.5px; }
+}
+
+html.dark .dmi-shell .dmi-block { border-top-color: rgba(245,239,224,.2); }
+html.dark #domestic-market-indicators .dmi-spot-section.dmi-block { border-top-color: rgba(245,239,224,.2) !important; }
+html.dark .dmi-shell .dmi-block-no { color: rgba(245,239,224,.45); }
+html.dark .dmi-shell .dmi-block-desc { color: rgba(245,239,224,.6); }
