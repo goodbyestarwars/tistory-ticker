@@ -77,6 +77,9 @@ class DomesticLayoutTests(unittest.TestCase):
         # 다크모드에서 투자자 표·상승하락 색을 되돌리는 규칙
         self.assertIn('html.dark .ifl .ifl-table td.up', read('css/investor-flow.css'))
         self.assertIn('html.dark .dmi-shell .dmi-flow-table th', read('css/domestic-market-indicators.css'))
+        board = read('css/indicator-board.css')
+        self.assertIn('html.dark .ibd .up', board)   # 증시자금 표의 상승·하락 색과 선택된 기간 버튼 글자를 다크모드에서 되돌린다
+        self.assertIn('html.dark .ibd .ibd-range-btn.is-active', board)
 
     def test_chart_controls_no_longer_hide_interval_tabs(self):
         for path, needle in (('css/domestic-market-indicators.css', '.dmi-panel > .dmi-tabs:has(+ .de-draw-controls) { padding-right: 190px; }'),
