@@ -567,6 +567,14 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 24시간이다. 키가 없거나 공급자가 실패하면 빈/부분 응답으로 폴백하며 API 키를 저장소에
 기록하지 않는다.
 
+### 4.4 `fx_koreaexim.db` — 한국수출입은행 일별 고시환율 (2026-10-11)
+
+경로: `scripts/cloud-vm/fx_koreaexim.db`(gitignore `*.db`, 백업 대상 아님 - 사라지면 최근 380일을 다시 수집).
+`fx_rates(rate_date, cur_unit, cur_code, unit, cur_nm, deal_bas_r, ttb, tts, bkpr, kftc_deal_bas_r, kftc_bkpr, yy_efee_r, ten_dd_efee_r, fetched_at; PK rate_date+cur_unit)` - 값은 API의
+쉼표 문자열을 숫자로 바꿔 **기준 단위 그대로** 저장(`cur_unit`이 `JPY(100)`이면 100단위). `fx_dates(rate_date PK, status DATA|EMPTY|WEEKEND, rows, checked_at, final)` - 날짜별 조회 결과로
+과거 날짜를 다시 호출하지 않는다(같은 날의 빈 응답은 `final=0`, 다음 날 확정). `fx_meta(key, value)` - `last_check_at`·`last_success_at`·`last_error`·`quota_blocked_date`·`calls:YYYY-MM-DD`(일일 호출 수).
+쓰기는 `fx-koreaexim-poll` 스레드 하나, 읽기는 `/fx-rates`·`/fx-rates/history`. 인증키(`KOREAEXIM_API_KEY`)는 이 DB에 저장하지 않는다. [FX_KOREAEXIM.md](FX_KOREAEXIM.md).
+
 ---
 
 ## 5. 파일 기반 캐시(JSON, VM 로컬)

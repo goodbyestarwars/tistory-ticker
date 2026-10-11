@@ -261,3 +261,6 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 ### 시장지표 5년 이력 (2026-10-08)
 
 `/futures`의 최대500행과 기존 수집 범위를 늘리지 않는다. 5년 자료는 `data/chart-history/*.js` 정적 자산에서 브라우저가 병합한다. API/타이머/DB 신설 없음. 국고채3년 수집만 폐쇄된 Naver HTML→KFIA103000 JSON으로 교체(58→7회,6시간 유지). [운영 절차](MARKET_CHART_HISTORY.md).
+
+### 환율 탭 인증키 (2026-10-11)
+VM `.env`(`/home/goodbyestarwars/kiwoom-api/.env`)의 `KOREAEXIM_API_KEY`(한국수출입은행 환율정보 인증키)와 선택 `KOREAEXIM_DAILY_BUDGET`(하루 호출 상한, 기본 300). 서비스 재시작 없이 다음 주기(최대 15분)에 읽는다. 키가 없으면 `/fx-rates`가 `state:no_key`. 점검은 `GET /fx-rates`의 `state`·`lastSuccessAt`. [FX_KOREAEXIM.md](FX_KOREAEXIM.md).
