@@ -352,12 +352,22 @@ document.documentElement.classList.add('skin-ready');
         script: ASSET_BASE + 'js/crypto-market.js?v=20261008-news-timeline',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
           ASSET_BASE + 'css/crypto-market.css?v=20261008-news-timeline']
+      },
+      {
+        // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.
+        // ?tab=fx 로 이 탭을 바로 열 수 있다. 실시간 원/달러는 글로벌 시장지표 탭이 그대로 담당한다.
+        key: 'fx', label: '환율', slug: 'fx-rates',
+        mountIds: ['fx-rates'], globalName: 'FxRates',
+        script: ASSET_BASE + 'js/fx-rates.js?v=20261011-fx-rates',
+        styles: [ASSET_BASE + 'css/fx-rates.css?v=20261011-fx-rates']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
     if (!matched) return;
     var slug = matched[1].toLowerCase();
     var initialKey = TABS.filter(function (tab) { return tab.slug === slug; })[0].key;
+    var wantedTab = /[?&]tab=([a-z-]+)/i.exec(location.search);
+    if (wantedTab && TABS.some(function (tab) { return tab.key === wantedTab[1].toLowerCase(); })) initialKey = wantedTab[1].toLowerCase();
 
     /* 이미 같은 파일을 가리키는 <link>가 있으면(티스토리 페이지 본문에 박혀 있는 경우)
        중복으로 넣지 않는다. 파일명만 보고 판단한다 - ?v= 값은 서로 다를 수 있다. */

@@ -411,3 +411,12 @@ API의 당일 거래량·거래대금·거래증가율 상위 목록(섹션당 �
 주요 뉴스·홈 경제뉴스·국내/미국 종목 뉴스·가상자산 뉴스는 현재부터 실제 경과 24시간만 표시한다. 날짜 자정 기준이 아니며, 기사가 적어도 오래된 기사로 채우지 않는다. 발행시각 미상·미래 시각은 제외한다. 국내는 KST, 미국은 America/New_York(ET, 서머타임 자동 적용), 가상자산 API는 UTC 오프셋으로 정규화한다. DST 전환일에도 실제 경과 86,400초를 유지한다. 시차만으로 뉴스에 13/14시간을 추가하지 않는다.
 
 API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴스 WebSocket·뉴스 속보에 동일하게 적용한다. `/domestic-news`, `/foreign-news`, `/us-news/{symbol}`, `/crypto-news`에 `newsWindowHours:24`, `newsTimeZone`을 추가한다. 인증된 `/naver-news`도 최근 기사만 반환한다. 공시·주간 보고서·과거 기사 저장은 기존 보존/조회 규칙을 유지한다. 외부 조회 횟수·캐시 TTL·DB 스키마·수집 주기 변경 없음.
+
+### 한국수출입은행 일별 고시환율 (2026-10-11)
+
+시장지표 환율 탭 전용. 공개 GET(CORS: 블로그 도메인), SQLite(`fx_koreaexim.db`)에 저장된 값만 읽고 요청 경로에서 외부 API를 호출하지 않는다. 응답 30초 캐시. 상세 [FX_KOREAEXIM.md](docs/FX_KOREAEXIM.md).
+
+- `GET /fx-rates` (IP별 분당 30회) → `data{source, kind, official:true, realtime:false, notice, baseDate, prevDate, lastCollectedAt, lastCheckedAt, lastSuccessAt, pendingToday, state, stateMessage, coverage{from,to,days}, currencies[]}`.
+  `currencies[]`: `code`(API 표기 그대로, 위안화는 `CNH`), `curUnit`(`JPY(100)` 등 원문), `unit`(1 또는 100 - **기준 단위, 1단위로 환산하지 않음**), `name`, `dealBasR`(매매기준율, 원), `prev`·`change`·`changeRate`(같은 통화·같은 단위의 직전 고시일 대비), `ttb`(송금 받을 때)·`tts`(송금 보낼 때)(없으면 null), `bkpr`, `kftcDealBasR`, `featured`. 주요 통화(USD·JPY·EUR·CNH·GBP·CHF)가 앞.
+  `state`: `ok` · `collecting`(최초/과거 이력 수집 중) · `no_key` · `auth_error` · `quota` · `network_error`. 주말·공휴일에는 새 고시가 없어 `baseDate`가 직전 정상 고시일로 유지된다.
+- `GET /fx-rates/history?cur=USD&range=3m` (`cur` 영문 3자, `range` 1m|3m|1y, IP별 분당 60회) → `data{code, curUnit, unit, name, range, points[[YYYY-MM-DD, 매매기준율]...], count, from, to, coverageFrom, incomplete}`. `incomplete:true`면 선택한 기간보다 수집된 이력이 짧다는 뜻. 잘못된 파라미터는 422.

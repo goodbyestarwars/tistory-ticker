@@ -29,6 +29,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
 import bond_yield
+import fx_koreaexim
 import btc_futures
 import dart_client
 import db_schema
@@ -138,6 +139,8 @@ def _start_futures_collectors():
     domestic_futures.start_background()
     btc_futures.start_background()
     bond_yield.start_background()
+    # 한국수출입은행 일별 고시환율(KOREAEXIM_API_KEY가 있을 때만 수집, 요청 경로는 외부 호출 없음). docs/FX_KOREAEXIM.md
+    fx_koreaexim.start_background()
 
     # 경제 종합뉴스 영문 헤드라인 한글 번역 프리워밍 - 무료 번역 엔드포인트가 429를
     # 낼 때 콜드 캐시 방문자가 영어 제목을 보던 문제를 완화한다(SQLite에 영구 저장).
@@ -3424,6 +3427,22 @@ def crypto_news_endpoint(request: Request, limit: int = Query(20, ge=1, le=50)):
     result['items'] = news_window.recent_items(result.get('items', []), 'crypto')
     return envelope(dict(result, market='crypto', newsWindowHours=24, newsTimeZone='UTC',
                          source='CoinDesk RSS + Cointelegraph RSS'))
+
+
+@app.get('/fx-rates')
+def fx_rates_endpoint(request: Request):
+    """한국수출입은행 일별 공식 고시환율(매매기준율·송금 보낼/받을 때). 실시간 시장환율이 아니다. SQLite에 저장된 값만 읽는다."""
+    _check_rate_limit('fx_rates', request, max_per_window=30)
+    return envelope(fx_koreaexim.snapshot())
+
+
+@app.get('/fx-rates/history')
+def fx_rates_history_endpoint(request: Request,
+                              cur: str = Query('USD', pattern='^[A-Za-z]{3}$'),
+                              range: str = Query('3m', pattern='^(1m|3m|1y)$')):
+    """한 통화의 고시환율 추이. JPY·IDR는 API의 기준 단위(100) 그대로다."""
+    _check_rate_limit('fx_rates_history', request, max_per_window=60)
+    return envelope(fx_koreaexim.history(cur, range))
 
 
 @app.get('/foreign-news')
