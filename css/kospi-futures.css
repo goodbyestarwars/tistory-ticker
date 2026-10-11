@@ -6,7 +6,7 @@
 
 #kospi-futures .kf-panel {
   display: block;
-  margin-bottom: 20px;
+  margin-bottom: 0;
 }
 
 #kospi-futures .kf-quote-table {
@@ -89,11 +89,7 @@
   border-top: 0;
 }
 
-/* 2026-08-14: 옵션 수급이 바로 위 차트 그리드에 딱 붙어 보인다는 리포트 - 참고의견
-   섹션과 같은 위 여백을 준다. */
-#kospi-futures .kf-section[data-section-key="option"] {
-  margin-top: 32px;
-}
+/* (2026-10-12) 옵션 수급 블록의 위 간격·구분선은 css/market-indicators.css 의 .mi-block 규격이 정한다. */
 
 #kospi-futures .kf-section-head {
   display: flex;
@@ -211,7 +207,7 @@
 
 @media (min-width: 761px) {
   #kospi-futures .kf-section-body { position: relative; }
-  #kospi-futures .kf-section-body > .kf-interval-toggle { padding-right: 190px; }
+  #kospi-futures .kf-section-body > .kf-interval-toggle:has(+ .de-draw-controls) { padding-right: 190px; }
   #kospi-futures .kf-section-body > .de-draw-controls {
     position: absolute;
     top: 0;
@@ -446,3 +442,53 @@ html.dark #kospi-futures .kf-option-profile-empty,
 html.dark #kospi-futures .kf-option-profile-loading { color: rgba(245, 239, 224, 0.55); }
 html.dark #kospi-futures .kf-option-profile-row { border-top-color: rgba(245,239,224,.1); }
 html.dark #kospi-futures .kf-option-bar-wrap { background: rgba(245,239,224,.09); }
+
+/* ── 2026-10-12 국내 탭 큰 블록 통일: 04 KOSPI200 선물지표 · 05 옵션 수급 ──────────────────────────────────────
+   번호·제목·설명·구분선은 css/market-indicators.css 의 .mi-block 규격을 따르고, 여기엔 이 모듈 고유 보정만 둔다. */
+#kospi-futures .kf-block,
+#kospi-futures .kf-section.mi-block { margin-bottom: 0; }
+#kospi-futures .kf-section.mi-block .kf-section-body { padding-top: 0; }
+#kospi-futures .mi-block-head .kf-collapse-btn { flex: 0 0 auto; }
+/* 주간·야간 차트 두 칸: 01 의 KOSPI·KOSDAQ 차트와 같은 기준선·간격(가운데 세로선, 좌우 22px) */
+#kospi-futures .kf-chart-grid { gap: 0; align-items: stretch; }
+#kospi-futures .kf-chart-grid .kf-section { padding: 0 22px 0 0; }
+#kospi-futures .kf-chart-grid .kf-section + .kf-section { padding: 0 0 0 22px; border-left: 1px solid #d8d8d8; }
+#kospi-futures .kf-chart-grid .kf-section-head { margin-bottom: 12px; }
+#kospi-futures .kf-chart-grid .kf-section-title { font-family: var(--font-ui); font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--text-main); }
+/* 옵션 콜·풋 카드: 상자 대신 평평한 두 칸(가운데 세로선) */
+#kospi-futures .kf-opt-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; }
+#kospi-futures .kf-opt-card { padding: 4px 24px 6px 0; border: 0; border-radius: 0; background: transparent; }
+#kospi-futures .kf-opt-card + .kf-opt-card { padding: 4px 0 6px 24px; border-left: 1px solid #d8d8d8; }
+#kospi-futures .kf-opt-title { margin-bottom: 10px; font-size: 15px; }
+/* 행사가별 프로파일: 상자 대신 소구역(제목 + 설명 + 표) */
+#kospi-futures .kf-option-profile { margin-top: 0; padding: 30px 0 0; border: 0; border-top: 1px solid var(--mi-rule-soft, #e9ebef); border-radius: 0; background: transparent; }
+#kospi-futures .kf-option-profile-head { display: block; margin: 0 0 14px; }
+#kospi-futures .kf-option-profile-head b { display: block; margin: 0 0 4px; font-family: var(--font-ui); font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--text-main); }
+#kospi-futures .kf-option-profile-head span { display: block; font-size: 12.5px; line-height: 1.6; color: var(--mi-sub, #6b7280); }
+#kospi-futures .kf-opt-desc { margin-top: 22px; font-size: 12px; }
+html.dark #kospi-futures .kf-chart-grid .kf-section + .kf-section,
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: rgba(245, 239, 224, 0.2); }
+html.dark #kospi-futures .kf-opt-card { background: transparent !important; border-color: transparent !important; }
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #kospi-futures .kf-option-profile { border-top-color: rgba(245, 239, 224, 0.11); background: transparent; }
+html.dark #kospi-futures .kf-option-profile-head b,
+html.dark #kospi-futures .kf-chart-grid .kf-section-title { color: #F5EFE0; }
+html.dark #kospi-futures .kf-option-profile-head span { color: rgba(245, 239, 224, 0.64); }
+
+@media (max-width: 760px) {
+  #kospi-futures .kf-chart-grid .kf-section { padding: 0 0 18px; }
+  #kospi-futures .kf-chart-grid .kf-section + .kf-section { padding: 22px 0 0; border-left: 0; border-top: 1px solid #d8d8d8; }
+  #kospi-futures .kf-opt-grid { grid-template-columns: 1fr; }
+  #kospi-futures .kf-opt-card { padding: 4px 0 14px; }
+  #kospi-futures .kf-opt-card + .kf-opt-card { padding: 18px 0 4px; border-left: 0; border-top: 1px solid #d8d8d8; }
+  #kospi-futures .kf-option-profile { padding-top: 24px; }
+  #kospi-futures .kf-chart-grid .kf-section-title { font-size: 16px; }
+  #kospi-futures .kf-option-profile-head b { font-size: 16px; }
+}
+html.dark #kospi-futures .kf-chart-grid .kf-section + .kf-section,
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-top-color: rgba(245, 239, 224, 0.2); }
+/* 차트 위 컨트롤(기간 탭 + 그리기 도구): 현물 차트(css/domestic-market-indicators.css)와 같은 동작 - 합쳐서 폭을 넘으면 그리기 도구가 다음 줄로 내려간다(2026-10-12).
+   예전엔 오른쪽 190px 예약(dashboard-enhancements.js 가 그리기 도구를 옮길 때만 필요)이 이 지면에서는 기간 탭을 짓눌렀다. */
+#kospi-futures .kf-interval-toggle { flex-wrap: wrap; gap: 8px 12px; }
+#kospi-futures .kf-interval-tabs { flex: 0 0 auto; margin: 0; }
+#kospi-futures .kf-draw-buttons { flex: 0 0 auto; margin-left: auto; }

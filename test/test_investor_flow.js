@@ -119,6 +119,18 @@ sm = C.summarize(twenty.slice(0, 10), null, null, 'KOSDAQ');
 assert.match(sm.lines[0].text, /20일 미만/);
 assert.equal(sm.sentences.length, 0);
 
+// ── 02(투자자)·03(잔고) 요약이 따로 만들어지고, 합친 summarize 와 같은 결과를 낸다 ──
+const invOnly = C.summarizeInvestors(twenty, 'KOSPI');
+assert.equal(invOnly.lines.length, 3, '02 요약은 투자자 3줄만');
+assert.equal(JSON.stringify(invOnly.lines.map((l) => l.label)), JSON.stringify(['외국인', '기관', '개인']));
+const balOnly = C.summarizeBalances(C.balanceStats(series(30, (i) => 1000 + i * 10)), C.balanceStats(series(30, () => 500)));
+assert.equal(JSON.stringify(balOnly.lines.map((l) => l.label)), JSON.stringify(['고객예탁금', '신용잔고']), '03 요약은 잔고 2줄만');
+assert.equal(balOnly.sentences.length, 1);
+assert.equal(typeof window.InvestorFlow.mount, 'function');
+assert.equal(typeof window.InvestorFlow.mountBalance, 'function');
+// 투자자 색은 외국인 빨강·기관 파랑·개인 초록으로 고정된 토큰만 쓴다(방향에 따라 바꾸지 않는다)
+assert.equal(JSON.stringify(C.INVESTORS.map((i) => i.key + ':' + /--mi-inv-(\w+)/.exec(i.color)[1])), JSON.stringify(['foreign:foreign', 'institution:inst', 'individual:indiv']));
+
 // ── 공용 차트 ──
 function fakeNode() { return { hidden: false, clientWidth: 640, style: {}, listeners: {}, innerHTML: '', addEventListener(t, f) { this.listeners[t] = f; }, setAttribute() {}, removeAttribute() {}, getBoundingClientRect() { return { left: 0, width: 640 }; }, querySelector() { return fakeNode(); } }; }
 function makeChartHost() {
