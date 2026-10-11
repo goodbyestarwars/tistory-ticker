@@ -1,9 +1,23 @@
-/* 가상자산 전용 시장지표. 토큰 이력은 브라우저 조회/1시간 캐시, VM 수집 추가 없음. */
+/* 가상자산 전용 시장지표. 토큰 이력은 브라우저 조회/1시간 캐시, VM 수집 추가 없음.
+ * 2026-10-12: 카드 격자 대신 js/indicator-board.js 의 '표 + 추이 차트'로 보여 준다(환율 탭과 같은 모양).
+ *   표 한 장에서 코인·토큰을 고르면 아래 추이 차트(1개월~5년)와 기간 통계(평균 포함)가 그 지표로 바뀐다.
+ *   시세·이력·뉴스를 가져오는 경로는 그대로이고, 52주·6개월 평균은 차트 기간별 '평균'이 직접 계산한다. */
 (function (global) {
   'use strict';
   var base = 'https://goodbyestarwars.github.io/tistory-ticker/';
   var api = 'https://goodbyestar.cloud';
-  var root, tools, timer, busy, newsAt = 0, history = {}, averages = {}, averagesAt = 0;
+  var root, tools, timer, busy, board, boardJob, newsAt = 0, history = {};
+  var COINS = [['BTC', '비트코인'], ['ETH', '이더리움'], ['USDT', '테더']];
+  var COIN_DIGITS = { BTC: 0, ETH: 0, USDT: 2 };
+  var coinItems = {}, tokenItems = {}, tokenPairs = [];
+  var COLUMNS = [
+    { label: '현재값', short: '현재' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
+    { label: '고가', short: '고가' }, { label: '저가', short: '저가' }
+  ];
+  var RANGES = [
+    { key: '1m', label: '1개월', days: 31 }, { key: '3m', label: '3개월', days: 92 },
+    { key: '1y', label: '1년', days: 366 }, { key: '5y', label: '5년', days: 1830 }
+  ];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function active() { return root && !document.hidden && !root.closest('[hidden]'); }
   function helpers() {
@@ -14,6 +28,23 @@
       script.onload = function () { resolve(global.OvernightMarket); };
       script.onerror = reject; document.head.appendChild(script);
     });
+  }
+  function ensureBoard() {
+    if (global.IndicatorBoard) return Promise.resolve();
+    if (boardJob) return boardJob;
+    if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
+      var link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = base + 'css/indicator-board.css?v=20261012-board';
+      document.head.appendChild(link);
+    }
+    boardJob = new Promise(function (resolve) {
+      var script = document.createElement('script');
+      script.src = base + 'js/indicator-board.js?v=20261012-board';
+      script.onload = script.onerror = function () { resolve(); };
+      document.head.appendChild(script);
+    });
+    return boardJob;
   }
   // Only completed daily closes count. A short listing never becomes a fabricated 52-week mean.
   function dailyStats(rows, now) {
@@ -49,52 +80,83 @@
       .then(function (rows) { var stats=dailyStats(rows,Date.now()); history[symbol]={at:Date.now(),stats:stats}; return stats; })
       .catch(function () { history[symbol]={at:Date.now(),stats:cached ? cached.stats : null}; return history[symbol].stats; });
   }
-  function avgHtml(stats, price, unit) {
-    return '<div class="om-crypto-averages">'+[['52주 평균','year','52w'],['6개월 평균','half','6m']].map(function (line) {
-      var value = stats && stats[line[1]], avg = value && Number(value.avg);
-      var valid = isFinite(avg) && avg > 0;
-      return '<div class="om-crypto-avg-'+line[2]+'"><span>'+line[0]+'</span><strong>'
-        +(valid ? avg.toLocaleString('ko-KR',{maximumFractionDigits:unit==='원'?0:2})+' '+unit : stats ? '기간 부족 ('+stats.count+'일)' : '자료 확인 불가')
-        +'</strong><small>'+(valid ? '현재가 '+((price/avg-1)*100).toFixed(2)+'% · 평균 대비' : '완료 일봉 종가 기준')+'</small></div>';
-    }).join('')+'</div>';
+
+  /* ---- 표 ---- */
+  function fmtNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : Number(v).toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits }); }
+  function signedNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : (Number(v) > 0 ? '+' : '') + fmtNum(v, digits); }
+  function toneOf(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; }
+
+  // 일봉 이력 + 오늘 값. 코인(원화)은 한국 날짜, 토큰은 UTC 날짜 기준(기존 차트와 같다).
+  function withToday(points, price, utc) {
+    if (!points.length || typeof price !== 'number' || !isFinite(price)) return points;
+    var today = new Date(Date.now() + (utc ? 0 : 9 * 60 * 60000)).toISOString().slice(0, 10);
+    var last = points[points.length - 1];
+    if (last[0] >= today) last[1] = price; else if (last[1] !== price) points.push([today, price]);
+    return points;
   }
+
+  function coinRow(pair) {
+    var symbol = pair[0], item = coinItems[symbol];
+    var digits = COIN_DIGITS[symbol] == null ? 2 : COIN_DIGITS[symbol];
+    var row = { id: symbol, group: 'coin', name: pair[1], code: symbol, loading: false,
+      fmt: function (v) { return fmtNum(v, digits) + '원'; },
+      axisFmt: function (v) { return v >= 100000000 ? fmtNum(v / 100000000, 1) + '억' : v >= 10000 ? fmtNum(v / 10000, 0) + '만' : fmtNum(v, digits); },
+      title: pair[1] + ' 추이 (원)', note: '' };
+    if (!item) { row.loading = !coinItems.__failed; row.cells = [{ t: '확인 불가' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }]; row.series = []; return row; }
+    var rate = Number(item.change_rate), change = Number(item.change), t = toneOf(rate), arrow = rate > 0 ? '▲ ' : rate < 0 ? '▼ ' : '';
+    var rows = global.MarketChartHistory ? global.MarketChartHistory.merge(symbol, item.chart) : (item.chart || []);
+    row.series = withToday(global.IndicatorBoard.util.series(rows, 'date', 'close'), item.price, false);
+    row.cells = [
+      { t: fmtNum(item.price, digits) + '원' },
+      { t: arrow + (isFinite(change) ? fmtNum(Math.abs(change), digits) : '-'), tone: t },
+      { t: isFinite(rate) ? signedNum(rate, 2) + '%' : '-', tone: t },
+      { t: item.high > 0 ? fmtNum(item.high, digits) : '-' }, { t: item.low > 0 ? fmtNum(item.low, digits) : '-' }
+    ];
+    return row;
+  }
+
+  function tokenRow(pair) {
+    var symbol = pair[0], item = tokenItems[symbol], stats = history[symbol] && history[symbol].stats;
+    var row = { id: symbol, group: 'token', name: pair[1], code: symbol.replace(/USDT$/, ''), loading: false, series: [], seriesPending: !history[symbol],
+      fmt: function (v) { return fmtNum(v, 2) + ' USDT'; }, axisFmt: function (v) { return fmtNum(v, 2); },
+      title: pair[1] + ' 토큰 추이 (USDT)',
+      note: '<div class="ibd-ln">국내 주식 이름을 붙인 바이낸스 무기한선물 토큰의 참고 가격입니다. 실제 주식 시세·수급과 다르며 원화로 환산하지 않았습니다.</div>' };
+    if (!item) { row.loading = !tokenItems.__failed; row.cells = [{ t: '확인 불가' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }]; return row; }
+    var price = Number(item.price), rate = Number(item.changeRate), t = toneOf(rate), arrow = rate > 0 ? '▲ ' : rate < 0 ? '▼ ' : '';
+    // 24시간 등락률에서 거슬러 계산한 금액(원자료에는 등락 금액이 없다).
+    var change = isFinite(price) && isFinite(rate) && rate > -100 ? price - price / (1 + rate / 100) : NaN;
+    if (stats && stats.chart) row.series = withToday(global.IndicatorBoard.util.series(stats.chart, 'date', 'close'), price, true);
+    row.cells = [
+      { t: fmtNum(price, 2) + ' USDT' },
+      { t: arrow + (isFinite(change) ? fmtNum(Math.abs(change), 2) : '-'), tone: t },
+      { t: isFinite(rate) ? signedNum(rate, 2) + '%' : '-', tone: t },
+      { t: item.high > 0 ? fmtNum(item.high, 2) : '-' }, { t: item.low > 0 ? fmtNum(item.low, 2) : '-' }
+    ];
+    return row;
+  }
+
+  function renderBoard() {
+    if (!board || !global.IndicatorBoard) return;
+    var rows = COINS.map(coinRow);
+    tokenPairs.forEach(function (pair) { rows.push(tokenRow(pair)); });
+    board.setRows(rows, [
+      { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 24시간' },
+      { key: 'token', label: '바이낸스 국내주식 토큰', hint: 'USDT 기준 · 등락률은 24시간' }
+    ]);
+  }
+
   function shell() {
-    function group(title,pairs) { return '<section class="om-category"><div class="om-cat-head"><h3 class="om-cat-label">'+title+'</h3></div><div class="om-grid">'+pairs.map(function (p) {return '<article class="om-card" data-asset="'+p[0]+'"><div class="om-title">'+esc(p[1])+' <small>'+p[0]+'</small></div><div data-body>시세 확인 중...</div></article>';}).join('')+'</div></section>'; }
-    return '<div class="cm-status" role="status">30초마다 시세 갱신 · 평균은 완료 일봉 기준</div>'
-      +group('가상자산',[['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']])
-      +group('바이낸스 국내주식 토큰',tools.symbols)
-      +'<p class="cm-note">코인은 원화, 토큰은 USDT 기준. 국내주식 토큰은 무기한선물 참고 가격이며 실제 주식 시세와 다릅니다.</p>'
+    return '<div class="cm-status" role="status">30초마다 시세 갱신 · 추이는 완료 일봉 기준</div>'
+      +'<div class="cm-board" data-cm-board></div>'
+      +'<p class="cm-note">코인은 원화, 토큰은 USDT 기준. 국내주식 토큰은 무기한선물 참고 가격이며 실제 주식 시세와 다릅니다. 차트의 평균은 선택한 기간의 종가 평균입니다.</p>'
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
   }
-  function draw(item, stats, token) {
-    var card=root.querySelector('[data-asset="'+item.symbol+'"]'); if(!card)return;
-    tools.destroy(item.symbol);
-    tools.setAverages(item.symbol,stats&&stats.year,stats&&stats.half);
-    var host=card.querySelector('[data-body]');
-    if (!token) {
-      host.innerHTML=tools.body(item);
-      var old=host.querySelector('.om-crypto-averages'); if(old)old.remove();
-      host.insertAdjacentHTML('beforeend',avgHtml(stats,item.price,'원'));
-    } else {
-      var rate=Number(item.changeRate), tone=rate>=0?'om-pos':'om-neg';
-      var range='<div class="om-hl"><span>고가 '+(item.high>0?Number(item.high).toLocaleString('ko-KR'):'-')+'</span><span>저가 '+(item.low>0?Number(item.low).toLocaleString('ko-KR'):'-')+'</span></div>';
-      host.innerHTML='<div class="om-body"><div class="om-price '+tone+'">'+Number(item.price).toLocaleString('ko-KR',{maximumFractionDigits:2})+' USDT</div><div class="om-change '+tone+'">'+(rate>0?'+':'')+rate.toFixed(2)+'% <small>24시간</small></div><div class="om-chart"></div>'+range+avgHtml(stats,item.price,'USDT')+'</div>';
-    }
-    var rows=token ? stats&&stats.chart : item.chart;
-    if(!rows||rows.length<2) {host.querySelector('.om-chart').textContent='차트 이력 확인 불가';return;}
-    tools.chart(host.querySelector('.om-chart'),item.symbol,rows,token?item.changeRate>=0:item.change_rate>=0,item.price,token?null:item.change);
-  }
   function coins() {
-    var avgJob = Date.now()-averagesAt<3600000 ? Promise.resolve() : Promise.all(['BTC','ETH','USDT'].map(function(symbol){
-      return Promise.all([global.OvernightMarket.fetchBenchmark(symbol,365),global.OvernightMarket.fetchBenchmark(symbol,180)]).then(function(values){averages[symbol]={year:values[0],half:values[1],count:0};}).catch(function(){});
-    })).then(function(){averagesAt=Date.now();});
-    return Promise.all([tools.get(api+'/futures?days=365&symbols=BTC,ETH,USDT'),avgJob]).then(function (out) {
-      (out[0].data||[]).forEach(function(item){draw(item,averages[item.symbol],false);});
-    }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);['BTC','ETH','USDT'].forEach(unavailable);});
-  }
-  function unavailable(symbol) {
-    var el=root.querySelector('[data-asset="'+symbol+'"] [data-body]');
-    if(el&&!el.querySelector('.om-price'))el.textContent='시세 확인 불가 · 다음 갱신 때 다시 확인';
+    return tools.get(api+'/futures?days=365&symbols=BTC,ETH,USDT').then(function (out) {
+      coinItems = { __failed: false };
+      (out.data||[]).forEach(function(item){coinItems[item.symbol]=item;});
+      renderBoard();
+    }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);if(!Object.keys(coinItems).length)coinItems.__failed=true;renderBoard();});
   }
   function tokens() {
     return tools.fetchTokens().then(function(data){
@@ -102,11 +164,14 @@
       return tools.get(api+'/binance-kr-equity').then(function(json){return json.data;});
     }).then(function(data){
       var items=data&&data.items||[], index=0;
-      tools.symbols.forEach(function(pair){if(!items.some(function(item){return item.symbol===pair[0];}))unavailable(pair[0]);});
+      tokenPairs = tools.symbols;
+      tokenItems = { __failed: false };
+      items.forEach(function(item){tokenItems[item.symbol]=item;});
+      renderBoard();
       // Three concurrent histories instead of an eight-request burst.
-      function worker(){var item=items[index++];if(!item)return Promise.resolve();return tokenHistory(item.symbol).then(function(stats){draw(item,stats,true);}).then(worker);}
+      function worker(){var item=items[index++];if(!item)return Promise.resolve();return tokenHistory(item.symbol).then(function(){renderBoard();}).then(worker);}
       return Promise.all([worker(),worker(),worker()]);
-    }).catch(function(){tools.symbols.forEach(function(pair){unavailable(pair[0]);});});
+    }).catch(function(){tokenPairs = tools.symbols; if(!Object.keys(tokenItems).length)tokenItems.__failed=true; renderBoard();});
   }
   function news(force) {
     if(!force&&Date.now()-newsAt<300000)return Promise.resolve();
@@ -129,9 +194,17 @@
   function refresh(){if(!active()||busy)return;busy=true;Promise.allSettled([coins(),tokens(),news(false)]).then(function(){busy=false;root.querySelector('.cm-status').textContent='30초마다 시세 갱신 · 확인 '+new Date().toLocaleTimeString('ko-KR');});}
   function init() {
     root=document.getElementById('crypto-market');if(!active())return;
-    if(tools){refresh();return;}
+    if(tools&&board){board.redraw();refresh();return;}
     if(busy)return;busy=true;
-    helpers().then(function(module){tools=module.cryptoTools;root.innerHTML=shell();root.querySelector('[data-news-refresh]').onclick=function(){news(true);};busy=false;refresh();if(!timer)timer=setInterval(refresh,30000);}).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
+    Promise.all([helpers(),ensureBoard()]).then(function(out){
+      tools=out[0].cryptoTools;tokenPairs=tools.symbols;
+      root.innerHTML=shell();
+      board=global.IndicatorBoard?global.IndicatorBoard.create(root.querySelector('[data-cm-board]'),{
+        columns:COLUMNS,ranges:RANGES,defaultRange:'3m',prevLabel:'전일',countLabel:'일봉',
+        caption:'가상자산 시세 표',emptyText:'시세를 불러오는 중입니다.',height:210}):null;
+      root.querySelector('[data-news-refresh]').onclick=function(){news(true);};
+      busy=false;renderBoard();refresh();if(!timer)timer=setInterval(refresh,30000);
+    }).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
   }
   global.CryptoMarket={init:init,dailyStats:dailyStats};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();

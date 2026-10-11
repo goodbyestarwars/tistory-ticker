@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>시장지표 표 + 추이 차트 로컬 테스트</title>
+<!-- 운영 공통 스타일(@layer np 포함)을 그대로 불러 와 새 CSS와 충돌하는지 본다. -->
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css" />
+<link rel="stylesheet" href="../css/market-indicators.css" />
+<link rel="stylesheet" href="../css/overnight-market.css" />
+<link rel="stylesheet" href="../css/us-macro-indicators.css" />
+<link rel="stylesheet" href="../css/crypto-market.css" />
+<link rel="stylesheet" href="../css/domestic-market-indicators.css" />
+<link rel="stylesheet" href="../css/indicator-board.css" />
+<style>
+  body { margin: 0; }
+  .page-body { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
+  .tools { margin: 0 0 14px; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; font: 12px sans-serif; }
+  .tools button, .tools a { padding: 4px 10px; cursor: pointer; font: 12px sans-serif; }
+</style>
+</head>
+<body>
+<div class="page-body">
+  <div class="tools">
+    <button type="button" onclick="document.documentElement.classList.toggle('dark')">다크모드 토글</button>
+    <a href="?tab=global">글로벌</a> <a href="?tab=macro">미국 발표</a> <a href="?tab=crypto">가상자산</a> <a href="?tab=funds">증시자금</a>
+    <span>운영 API는 로컬 서버의 /__proxy 로 읽습니다(읽기 전용).</span>
+  </div>
+  <div class="mi-wrap" id="host"></div>
+</div>
+<script>
+  var tab = new URLSearchParams(location.search).get('tab') || 'global';
+  if (new URLSearchParams(location.search).get('dark')) document.documentElement.classList.add('dark');
+  var mounts = { global: 'overnight-market', macro: 'us-macro-indicators', crypto: 'crypto-market', funds: 'domestic-market-indicators' };
+  var host = document.getElementById('host');
+  var node = document.createElement('div');
+  node.id = mounts[tab];
+  host.appendChild(node);
+  // 운영 API·바이낸스 호출은 로컬 프록시를 거친다(브라우저 CORS 회피). WebSocket 은 끈다.
+  var realFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    var url = typeof input === 'string' ? input : input.url;
+    if (/^https:\/\/(goodbyestar\.cloud|fapi\.binance\.com)\//.test(url)) url = '/__proxy?u=' + encodeURIComponent(url);
+    return realFetch(url, init);
+  };
+  window.WebSocket = undefined;
+  // 브라우저 패널이 숨겨져 있어도(문서 hidden) 모듈이 화면을 그리게 한다 - 로컬 점검용.
+  try { Object.defineProperty(document, 'hidden', { get: function () { return false; } }); } catch (e) {}
+</script>
+<script src="../js/market-history.js"></script>
+<script src="../js/indicator-board.js"></script>
+<script>
+  // 모듈이 5년 이력 묶음을 먼저 받게 한다(운영은 skin-main.js 의 탭 로더가 하는 일).
+  function addScript(src) {
+    return new Promise(function (resolve) { var s = document.createElement('script'); s.src = src; s.onload = s.onerror = resolve; document.body.appendChild(s); });
+  }
+  var group = { global: 'global', macro: 'macro', crypto: 'crypto', funds: 'domestic' }[tab];
+  MarketChartHistory.load(group).then(function () {
+    // overnight-market.js 는 글로벌 탭 본체이면서 가상자산 탭이 쓰는 도구(cryptoTools)도 준다.
+    return addScript('../js/overnight-market.js');
+  }).then(function () {
+    var src = { global: null, macro: '../js/us-macro-indicators.js', crypto: '../js/crypto-market.js', funds: '../js/domestic-market-indicators.js' }[tab];
+    if (src) return addScript(src);
+  }).then(function () {
+    // 국내 시장지표 모듈은 스스로 init 하지 않는다(운영은 kospi-futures.js 가 부른다).
+    if (tab === 'funds' && window.DomesticMarketIndicators) DomesticMarketIndicators.init();
+  });
+</script>
+</body>
+</html>

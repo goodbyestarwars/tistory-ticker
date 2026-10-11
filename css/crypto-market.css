@@ -33,3 +33,7 @@ html.dark #crypto-market .cm-news-item { color:#e5e7eb; border-color:#374151; }
 @media(max-width:1000px){#crypto-market .om-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media(max-width:600px){#crypto-market .om-grid,#crypto-market .om-category:first-of-type .om-grid{grid-template-columns:1fr;}#crypto-market .cm-news{padding:18px;}}
 @media(max-width:720px){#crypto-market .cm-news-item{grid-template-columns:48px 11px minmax(0,1fr);gap:8px;padding:14px 0;}#crypto-market .cm-news-item .app-news-body > strong{font-size:15px;}}
+/* 2026-10-12: 표 형식(js/indicator-board.js)의 기간 버튼이 위 '#crypto-market button' 둥근 알약 스타일을 받지 않게 되돌린다. */
+#crypto-market .ibd button.ibd-range-btn { border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; padding:5px 12px; }
+#crypto-market .ibd button.ibd-range-btn:last-child { border-right-width:1px; }
+#crypto-market .ibd button.ibd-range-btn.is-active { background:rgb(var(--ibd-ink)); }
