@@ -54,6 +54,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `stock-calendar.js` | 285 | 증시 캘린더(구글 캘린더 + DART 실적 병합) | `window.StockCalendar`, `#stock-calendar` | **Google Calendar API(키 하드코딩, 리퍼러 제한 적용됨)**, VM `/earnings-calendar` |
 | `sector-dashboard-v4.js` | 300 | 섹터별 카드/히트맵(증시온도 위젯이 재사용) | `window.SectorDashboard`, `#sector-dashboard` | VM `/sector-quotes` 우선·GAS `?codes=` 폴백, `?marketAnalysis=1` |
 | `investor-trend-widget.js` | 320 | 홈 전용 투자자별(개인/외국인/기관) 매매동향 표 | `window.InvestorTrendWidget`, `#investor-trend-widget` | VM `/investor-trend` |
+| `investor-flow.js` | 약 430 | 국내시장지표 02 '투자자별 매매동향'의 순매수 추이(일별 막대·누적 선·총매수매도 지원 여부·요약)와 03 '증시자금'의 고객예탁금·신용잔고 흐름 | `window.InvestorFlow.mount`(02)·`mountBalance`(03), `_calc`(테스트용 순수 계산) | VM `/investor-trend/history` + 부모가 넘긴 `funds.series` |
 | `stock-search-panel.js` | 446 | 사이드바 종목검색 드롭다운(즐겨찾기/최근검색) | `window.StockSearchPanel`, `#navSearchInput` | GAS `?codes=`, `data/krx_map.js` 지연로드 |
 | `ticker-tooltip-v5.js` | 492 | 본문 내 `$종목명` 자동 감지 → 뱃지/툴팁 | `window.TickerTooltip`, `.post-single-body` | GAS `?codes=`, 네이버 차트 이미지 |
 | `watchlist.js` | 534 | 관심종목(MY) 카드, localStorage 저장, 실시간 체결가 | `window.Watchlist{add,remove,has}`, `#watchlist` | GAS `?codes=`, WS `wss://goodbyestar.cloud/ws/quotes` |
@@ -155,7 +156,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 
 ### 4.1 엔트리포인트(`main.py`, 737줄) 라우트 목록
 
-`GET /health`, `/health/latency`, `/quote`, `/ohlc/{code}`, `/investor-flow/{code}`, `/foreign-flow/{code}`, `/investor-flow-batch`, `/fundamentals-batch`, `/fundamentals/{code}`, `/daily-scan-batch`, `/futures`, `/earnings-calendar`, `/futures/avg`, `/naver-news`, `/news-momentum/{code}`, `/option-flow`, `/market-rank`, `/order-book/{code}`, `/investor-trend`, `/week52-batch` + `WS /ws/quotes`. 상세 파라미터·응답·캐시 TTL은 `API_REFERENCE.md` 참고. `/ws/quotes`와 `/health/latency`는 `API_REFERENCE.md`에 없는 최신 추가분이라 이 문서와 소스가 1차 근거다.
+`GET /health`, `/health/latency`, `/quote`, `/ohlc/{code}`, `/investor-flow/{code}`, `/foreign-flow/{code}`, `/investor-flow-batch`, `/fundamentals-batch`, `/fundamentals/{code}`, `/daily-scan-batch`, `/futures`, `/earnings-calendar`, `/futures/avg`, `/naver-news`, `/news-momentum/{code}`, `/option-flow`, `/market-rank`, `/order-book/{code}`, `/investor-trend`, `/investor-trend/history`, `/week52-batch` + `WS /ws/quotes`. 상세 파라미터·응답·캐시 TTL은 `API_REFERENCE.md` 참고. `/ws/quotes`와 `/health/latency`는 `API_REFERENCE.md`에 없는 최신 추가분이라 이 문서와 소스가 1차 근거다.
 
 ### 4.2 도메인 모듈별 요약
 

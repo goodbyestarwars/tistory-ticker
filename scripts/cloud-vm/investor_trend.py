@@ -160,11 +160,21 @@ def _kis_row_to_common(date_str, row):
             return float(row.get(key) or 0) / 100  # 백만원 -> 억원(2026-07-20 라이브 실측으로 확정)
         except (TypeError, ValueError):
             return 0.0
+
+    def index_close():
+        # 업종지수 종가(bstp_nmix_prpr). 장중 행은 그 시각 지수라 마감 후 같은 날 행으로 덮어써진다.
+        try:
+            value = float(row.get('bstp_nmix_prpr'))
+        except (TypeError, ValueError):
+            return None
+        return value if value > 0 else None
+
     return {
         'date': row.get('stck_bsop_date') or date_str,
         'ind': amt('prsn_ntby_tr_pbmn'),
         'frgn': amt('frgn_reg_ntby_pbmn'),
         'orgn': amt('orgn_ntby_tr_pbmn'),
+        'index': index_close(),
     }
 
 
@@ -175,6 +185,98 @@ def fetch_kis_day(token, appkey, appsecret, date_str, kis_iscd='KSP', kis_inds_c
     if not output:
         return None
     return _kis_row_to_common(date_str, output[0])
+
+
+# ---- KIS 이력(한 번 호출로 약 300영업일) - 투자자별 자금 흐름 그래프(1년)용 ----
+# 2026-10-12 운영 VM 실측: FHPTJ04040000 은 날짜를 하나만 줘도(DATE_1=DATE_2) 그 날짜까지의 최근 300영업일 행을
+# 한꺼번에 내려준다(코스피·코스닥 모두 2025-07-16~2026-10-08, 날짜 중복 없음, 필드 구성 동일). 행마다 순매수 수량·대금과 업종지수
+# 종가만 있고 **총매수·총매도 필드는 없다**(순매수 대금 *_ntby_tr_pbmn, 순매수 수량 *_ntby_qty, 지수 bstp_nmix_*).
+# 그래서 이 모듈은 총매수·총매도를 저장하지도 순매수에서 거꾸로 계산하지도 않는다.
+_HISTORY_MAX_DAYS = 300
+_HISTORY_NOTE_GROSS = ('KIS 시장별 투자자매매동향(일별, FHPTJ04040000)은 투자자별 순매수(수량·대금)와 업종지수만 제공하고 '
+                       '총매수·총매도 금액 필드가 없습니다. 순매수에서 거꾸로 계산하지 않습니다.')
+
+
+def fetch_kis_history(token, appkey, appsecret, kis_iscd, kis_inds_cd, anchor=None):
+    """오늘(휴장이면 가장 가까운 이전 날짜)을 기준으로 KIS 일별 응답 전체(최근 약 300영업일)를 공통 행으로 바꿔 돌려준다."""
+    day = anchor or datetime.now(KST)
+    for back in range(0, 8):
+        date_str = (day - timedelta(days=back)).strftime('%Y%m%d')
+        output = kis_client.fetch_market_investor_daily(
+            token, appkey, appsecret, date_str, date_str, market_iscd=kis_iscd, inds_cd=kis_inds_cd)
+        if output:
+            rows = [_kis_row_to_common(date_str, r) for r in output if r.get('stck_bsop_date')]
+            # 세 값이 모두 0인 행은 거래일 자료가 아니다(미확정·미지원 응답) - 0원 거래로 저장하지 않는다.
+            return [r for r in rows if r['ind'] or r['frgn'] or r['orgn']]
+        time.sleep(_KIS_CALL_DELAY_SEC)
+    return []
+
+
+def backfill_history_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
+    """시작할 때 한 번: 시장당 KIS 1회 호출로 이력·지수 종가를 채운다. 같은 날짜는 덮어써서 중복이 생기지 않는다."""
+    token = kis_client.get_token(appkey, appsecret)
+    rows = fetch_kis_history(token, appkey, appsecret, kis_iscd, kis_inds_cd)
+    if not rows:
+        logger.warning('investor_trend[%s] KIS history backfill got no rows', market_db)
+        return 0
+    first, last = min(r['date'] for r in rows), max(r['date'] for r in rows)
+    conn = db_schema.get_conn()
+    try:
+        db_schema.upsert_investor_trend_rows(conn, market_db, rows)
+        # 이 구간에서 거래소가 돌려주지 않은 날짜는 비거래일이다. 예전 날짜별 백필이 남긴 주말·휴장일 행(주간 합계 같은 값)은 지운다.
+        stale = db_schema.delete_investor_trend_non_trading(conn, market_db, first, last, [r['date'] for r in rows])
+    finally:
+        conn.close()
+    if stale:
+        logger.warning('investor_trend[%s] removed %d non-trading rows saved by an older backfill: %s', market_db, len(stale), ','.join(stale))
+    logger.info('investor_trend[%s] KIS history backfill: %d trading days %s..%s', market_db, len(rows), first, last)
+    return len(rows)
+
+
+def _iso_date(d):
+    return '%s-%s-%s' % (d[:4], d[4:6], d[6:8])
+
+
+def get_history(market=DEFAULT_MARKET, days=260, now=None):
+    """/investor-trend/history - DB에 쌓인 일별 순매수(억원)와 지수 종가를 날짜 오름차순으로 돌려준다(실시간 호출 없음).
+    거래가 없는 날은 행 자체가 없고(0원으로 채우지 않음), 확보된 기간만큼만 내려가며 요청 일수보다 적으면 count 로 알 수 있다."""
+    market_cfg = MARKETS.get(market, MARKETS[DEFAULT_MARKET])
+    days = max(5, min(int(days or 260), _HISTORY_MAX_DAYS))
+    conn = db_schema.get_conn()
+    try:
+        rows = db_schema.load_investor_trend_daily(conn, market_cfg['db'], limit_days=days + 30)
+    finally:
+        conn.close()
+    seen, clean = set(), []
+    for r in rows:
+        if r['date'] in seen:
+            continue
+        seen.add(r['date'])
+        if not (r['ind'] or r['frgn'] or r['orgn']):
+            continue
+        if datetime.strptime(r['date'], '%Y%m%d').weekday() >= 5:
+            continue  # 주말에는 장이 열리지 않는다(예전 백필이 남긴 주말 행 방어)
+        clean.append(r)
+    clean.sort(key=lambda r: r['date'])
+    clean = clean[-days:]
+    now = now or datetime.now(KST)
+    latest = clean[-1]['date'] if clean else None
+    as_of = max((r['updated_at'] for r in clean if r.get('updated_at')), default=None)
+    # 당일 행은 장중 누적치이거나 마감 직후 잠정치일 수 있다(투자자별 수치는 마감 뒤에도 조금 고쳐질 수 있음).
+    provisional = bool(latest == now.strftime('%Y%m%d') and now.hour * 60 + now.minute < 18 * 60 + 30)
+    return {
+        'market': market_cfg['label'], 'unit': '억원', 'source': 'KIS 시장별 투자자매매동향(일별) FHPTJ04040000',
+        'foreignBasis': '등록 외국인 순매수(frgn_reg_ntby_pbmn)',
+        'asOf': as_of, 'latestDate': _iso_date(latest) if latest else None, 'provisional': provisional,
+        'count': len(clean), 'requestedDays': days,
+        'from': _iso_date(clean[0]['date']) if clean else None, 'to': _iso_date(latest) if latest else None,
+        'rows': [{
+            'date': _iso_date(r['date']),
+            'individual': round(r['ind'], 1), 'foreign': round(r['frgn'], 1), 'institution': round(r['orgn'], 1),
+            'indexClose': round(r['index'], 2) if r.get('index') else None,
+        } for r in clean],
+        'gross': {'supported': False, 'reason': _HISTORY_NOTE_GROSS},
+    }
 
 
 def backfill_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd, target_days=_KIS_TARGET_DAYS, max_calendar_days=_KIS_MAX_CALENDAR_DAYS):
@@ -391,6 +493,15 @@ def _poll_market(market_key, market_cfg, kis_appkey, kis_appsecret, kiwoom_appke
         else:
             logger.warning('investor_trend[%s] KIS credentials unavailable; backfill skipped', market_db)
         state['backfilled'] = True
+
+    # 이력·지수 종가 확보(프로세스 시작 뒤 1회, 시장당 KIS 1회 호출). 실패하면 다음 tick 에서 다시 시도하되 최대 5번까지만 부른다(KIS 한도 보호).
+    if has_kis and not state.get('history_done') and state.get('history_tries', 0) < 5:
+        state['history_tries'] = state.get('history_tries', 0) + 1
+        try:
+            if backfill_history_kis(kis_appkey, kis_appsecret, market_db, market_cfg['kis_iscd'], market_cfg['kis_inds_cd']):
+                state['history_done'] = True
+        except Exception:
+            logger.exception('investor_trend[%s] KIS history backfill failed (try %d/5)', market_db, state['history_tries'])
 
     _refresh_recent_chain(market_cfg, has_kis, kis_appkey, kis_appsecret)
 

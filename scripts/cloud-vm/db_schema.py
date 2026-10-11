@@ -148,6 +148,7 @@ CREATE TABLE IF NOT EXISTS investor_trend_daily (
     frgn_amt REAL,
     orgn_amt REAL,
     updated_at TEXT,
+    index_close REAL,   -- 2026-10-12: KIS 일별 응답의 업종지수 종가(bstp_nmix_prpr). 투자자 누적 순매수와 지수를 같은 기간에 비교하는 화면용
     PRIMARY KEY (market, date)
 );
 
@@ -402,6 +403,8 @@ def create_schema(conn):
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime', 'TEXT')
     _ensure_column(conn, 'swing_recommendation_snapshots', 't20_regime_changed', 'INTEGER')
     _migrate_investor_trend_market(conn)
+    # 2026-10-12: 운영 중인 investor_trend_daily 에 업종지수 종가 컬럼을 더한다(없으면 추가). 시장 컬럼 마이그레이션이 테이블을 다시 만든 뒤에 실행한다.
+    _ensure_column(conn, 'investor_trend_daily', 'index_close', 'REAL')
     conn.commit()
 
 
@@ -1042,32 +1045,50 @@ def load_invest_opinions(conn, codes=None):
 
 
 def upsert_investor_trend_rows(conn, market, rows):
-    """market: 'KOSPI'/'KOSDAQ'. rows: [{date('YYYYMMDD'), ind, frgn, orgn}, ...], 단위 억원.
-    이미 확정된 과거일 값은 바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT."""
+    """market: 'KOSPI'/'KOSDAQ'. rows: [{date('YYYYMMDD'), ind, frgn, orgn, index(선택)}, ...], 금액 단위 억원.
+    이미 확정된 과거일 값은 바뀌지 않지만 당일(장중) 행은 재조회 때마다 갱신돼야 하므로 UPSERT.
+    index(업종지수 종가)가 없는 호출(네이버·키움 폴백 등)이 이미 저장된 지수 종가를 지우지 않게 COALESCE 한다."""
     from datetime import datetime, timezone
     now_iso = datetime.now(timezone.utc).isoformat()
+    _ensure_column(conn, 'investor_trend_daily', 'index_close', 'REAL')  # 마이그레이션 전 DB 에도 안전하게(이미 있으면 아무 일도 안 함)
     conn.executemany(
-        'INSERT INTO investor_trend_daily (market, date, ind_amt, frgn_amt, orgn_amt, updated_at) '
-        'VALUES (?, ?, ?, ?, ?, ?) '
+        'INSERT INTO investor_trend_daily (market, date, ind_amt, frgn_amt, orgn_amt, updated_at, index_close) '
+        'VALUES (?, ?, ?, ?, ?, ?, ?) '
         'ON CONFLICT(market, date) DO UPDATE SET '
         'ind_amt=excluded.ind_amt, frgn_amt=excluded.frgn_amt, orgn_amt=excluded.orgn_amt, '
-        'updated_at=excluded.updated_at',
-        [(market, r['date'], r['ind'], r['frgn'], r['orgn'], now_iso) for r in rows],
+        'updated_at=excluded.updated_at, index_close=COALESCE(excluded.index_close, investor_trend_daily.index_close)',
+        [(market, r['date'], r['ind'], r['frgn'], r['orgn'], now_iso, r.get('index')) for r in rows],
     )
     conn.commit()
 
 
+def delete_investor_trend_non_trading(conn, market, first_date, last_date, trading_dates):
+    """first_date~last_date(YYYYMMDD) 사이에서 trading_dates(거래소가 실제로 돌려준 거래일)에 없는 날짜의 행을 지운다.
+    예전 날짜별 백필이 주말·휴장일에 주간 합계 같은 값을 잘못 저장한 행(2026-10-12 운영 코스닥에서 주말 8행 확인)을 바로잡는다.
+    거래일 목록은 KIS 가 한 번에 준 약 300영업일이므로 그 구간 안의 비거래일만 지우고, 구간 밖은 건드리지 않는다. 지운 날짜 목록을 돌려준다."""
+    trading = set(trading_dates)
+    rows = conn.execute('SELECT date FROM investor_trend_daily WHERE market=? AND date>=? AND date<=?',
+                        (market, first_date, last_date)).fetchall()
+    stale = sorted(r[0] for r in rows if r[0] not in trading)
+    if stale:
+        conn.executemany('DELETE FROM investor_trend_daily WHERE market=? AND date=?', [(market, d) for d in stale])
+        conn.commit()
+    return stale
+
+
 def load_investor_trend_daily(conn, market, limit_days=140):
     """market 하나의 오름차순(날짜순) 최근 limit_days개 - investor_trend.py의 주/월 집계가
-    이 위에서 돈다."""
+    이 위에서 돈다. index_close 는 2026-10-12 에 덧붙은 값이라 없으면 None."""
+    # index_close 컬럼은 create_schema 가 한 번 돌아야 생긴다. 아직 마이그레이션 전인 DB(배포 직후 다른 프로세스 등)도 읽을 수 있게 NULL 로 대신한다.
+    has_index = 'index_close' in [c[1] for c in conn.execute('PRAGMA table_info(investor_trend_daily)')]
     rows = conn.execute(
-        'SELECT date, ind_amt, frgn_amt, orgn_amt, updated_at FROM investor_trend_daily '
-        'WHERE market=? ORDER BY date DESC LIMIT ?',
+        'SELECT date, ind_amt, frgn_amt, orgn_amt, updated_at, %s FROM investor_trend_daily '
+        'WHERE market=? ORDER BY date DESC LIMIT ?' % ('index_close' if has_index else 'NULL'),
         (market, limit_days),
     ).fetchall()
     rows.reverse()
     return [
-        {'date': r[0], 'ind': r[1], 'frgn': r[2], 'orgn': r[3], 'updated_at': r[4]}
+        {'date': r[0], 'ind': r[1], 'frgn': r[2], 'orgn': r[3], 'updated_at': r[4], 'index': r[5]}
         for r in rows
     ]
 

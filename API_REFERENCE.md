@@ -224,6 +224,26 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/investor-trend?period=day&market=kosdaq"` |
 | 오류 응답 예시 | 내부 계산 실패 시에만 502, 그 외엔 항상 200(알 수 없는 파라미터는 자동 보정) |
 
+### `GET /investor-trend/history`
+
+국내시장지표 '04 국내 증시 자금 흐름'(`js/investor-flow.js`)이 쓰는 투자자별 **일별 이력**. `/investor-trend`와 같은 SQLite 테이블(`investor_trend_daily`)을 읽어 날짜 오름차순으로 돌려준다(요청마다 KIS를 부르지 않는다).
+
+| 항목 | 내용 |
+|---|---|
+| 인증 필요 여부 | **불필요** (공개, CORS 제한, IP당 분당 30회) |
+| 필수 파라미터 | 없음 |
+| 선택 파라미터 | `market`(기본 `kospi`, `kospi`\|`kosdaq`, 그 외 422), `days`(기본 260, 5~300, 범위 밖 422) |
+| 응답 JSON 구조 | `data = {"market","unit":"억원","source","foreignBasis","asOf":"ISO8601"\|null,"latestDate":"YYYY-MM-DD"\|null,"provisional":bool,"count","requestedDays","from","to","rows":[{"date","individual","foreign","institution","indexClose":number\|null}, ...],"gross":{"supported":false,"reason"}}` |
+| 데이터 단위 | `individual`·`foreign`·`institution`: **억원**(순매수, 부호 있음, KIS 응답의 백만원을 100으로 나눔). `foreign`은 **등록 외국인**(`frgn_reg_ntby_pbmn`) 기준. `indexClose`: 업종지수 종가(포인트, 모르면 `null`) |
+| 거래일 규칙 | 행은 **거래일만** 있다(주말·휴장일은 행이 없고 0으로 채우지 않음). 세 값이 모두 0인 행은 거래일 자료가 아니라 제외하고, 같은 날짜는 한 행만 둔다. 확보된 기간이 요청 `days`보다 짧으면 `count`로 알 수 있다 |
+| `provisional` | 최신 행이 오늘(KST)이고 18:30 이전이면 `true`(장중 누적 또는 마감 직후 잠정치) |
+| 세 주체의 합 | 개인+외국인(등록)+기관은 0이 아니다. 2026-10-11 운영 VM 실측(10-06·10-07·10-08 코스피): `prsn + frgn_reg + orgn + etc_corp(기타법인) + frgn_nreg(비등록 외국인) = 0`이 세 날 모두 성립했고 기타법인이 하루 수천억~1조 원 규모로 나머지를 메운다. 그래서 화면은 세 주체 합이 0이 아닌 이유를 기타법인 등으로 안내한다(기타법인은 이 API 응답에 포함하지 않음) |
+| 총매수·총매도 | **원자료에 없다.** KIS 시장별 투자자매매동향(일별, `FHPTJ04040000`)은 순매수(수량·대금)와 업종지수만 준다. 그래서 `gross.supported=false`이며 순매수에서 거꾸로 계산하지 않는다. 총액 원자료(공식 소스)가 확인되면 `gross`를 채우는 방식으로 확장한다 |
+| 이력 확보 | 시작 시 한 번 `FHPTJ04040000`을 날짜 하나(`DATE_1=DATE_2`)로 호출하면 그 날짜까지 최근 약 300영업일이 한꺼번에 온다(2026-10-12 운영 VM 실측: 코스피·코스닥 모두 2025-07-16~2026-10-08, 날짜 중복 없음). 이후는 기존 1분 폴러가 "오늘" 행만 갱신한다 |
+| 캐시 시간 | 30초 메모리 캐시(`market`·`days` 조합별) |
+| 호출 예시 | `curl "https://goodbyestar.cloud/investor-trend/history?market=kospi&days=260"` |
+| 오류 응답 예시 | 파라미터 오류 422, DB 읽기 실패 시 502(내부 경로·메시지는 노출하지 않음) |
+
 ### `GET /futures`
 
 | 항목 | 내용 |
