@@ -1,10 +1,12 @@
 /* 자동 파동(대·중·소) 시각 검증용 HTML 생성(검토 전용, 운영 화면과 무관):
- *   node auto_wave_preview.js bars.json out.html [--codes=005930,000660] [--names=names.json] [--major=8 --medium=3 --minor=1.5]
+ *   node auto_wave_preview.js bars.json out.html [--codes=005930,000660] [--names=names.json] [--major=8 --medium=3 --minor=1.5] [--engine=legacy]
+ *   (--engine=legacy: 이전 단일 규모 엔진(scripts/analysis/legacy/auto-wave-v1.js)의 결과를 한 패널(최근 약 2년)로 그려 개선 전후를 비교한다)
  * bars.json 은 { 종목코드: [{date,open,high,low,close,volume}, ...] } 모양이다. 종목마다 세 장을 그린다.
  *   1) 전체 기간 + 대파동 박스   2) 최근 약 2년 + 중파동 박스(대파동 윤곽은 옅게)   3) 최근 약 1년 + 소파동 박스(중파동 윤곽은 옅게)
  * 박스: 상승 빨강, 하락 파랑, 횡보 회색, 변동성 큰 박스권 보라 회색. 점선은 진행 중(미확정). 이동평균 60(연한 주황)·224(진한 주황). */
 const fs = require('fs');
 const { analyze } = require('../../js/auto-wave.js');
+const legacy = require('./legacy/auto-wave-v1.js');
 
 const args = process.argv.slice(2);
 const flags = {};
@@ -72,6 +74,12 @@ let html = '<!doctype html><meta charset="utf-8"><body style="font-family:MaruBu
 codes.forEach((code) => {
   const bars = data[code];
   if (!bars) return;
+  if (flags.engine === 'legacy') {
+    const old = { levels: { major: [], medium: legacy.detectWaves(bars), minor: [] }, state: null };
+    html += `<h3 style="margin:14px 0 2px">${names[code] || code} (${code}) · 이전 엔진(v1, 단일 규모) · 파동 ${old.levels.medium.length}개</h3>`;
+    html += panel(bars, old, 'medium', Math.max(0, bars.length - 560), 330, '이전 엔진 (최근 약 2년)', null);
+    return;
+  }
   const res = analyze(bars, options);
   const counts = ['major', 'medium', 'minor'].map((l) => l + ' ' + res.levels[l].length).join(' · ');
   html += `<h3 style="margin:14px 0 2px">${names[code] || code} (${code}) · 일봉 ${bars.length}개 ${bars[0].date}~${bars[bars.length - 1].date} · ${counts} · 상태: ${res.state ? res.state.summaryText : '-'}</h3>`;

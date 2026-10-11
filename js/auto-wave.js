@@ -31,7 +31,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-12-hier-2';
+  var VERSION = '2026-10-13-hier-3';
 
   var DEFAULTS = {
     atrPeriod: 14,
@@ -232,7 +232,7 @@
     var scales = {};
     LEVELS.forEach(function (name) {
       var prm = opt.levels[name];
-      scales[name] = { name: name, prm: prm, zz: makeZigzag(bars, ctx.atr, prm.zigzagAtr), pivots: [], legs: [], boxes: [], openBox: null, boxFloor: 0 };
+      scales[name] = { name: name, prm: prm, zz: makeZigzag(bars, ctx.atr, prm.zigzagAtr), pivots: [], legs: [], boxes: [], openBox: null, boxFloor: 0, growth: {} };
     });
     var majorHighs = [], majorLows = [];
     var pendingRally = [];     // 이번 봉에서 확정된 중파동 상승(하락 구조 안의 반등 후보)
@@ -277,6 +277,7 @@
 
     function boxRevision(sc, box, legsInside, at) {
       var ids = [];
+      (sc.growth[box.id] = sc.growth[box.id] || []).push({ end: box.end, at: at });   // 박스가 그 길이에 처음 알려진 봉(승격 시점 계산용)
       legsInside.forEach(function (l) { if (!l.boxId) { l.boxId = box.id; ids.push(l.id); } });
       if (ids.length) revisions.push({ at: at, level: sc.name, type: 'absorbed', boxId: box.id, waveIds: ids,
         reason: '같은 범위를 오가는 파동 ' + ids.length + '개가 횡보 박스로 묶임(파동 자체는 확정 그대로이고 이 규모에서는 박스 안의 파동으로 표시)' });
@@ -358,6 +359,13 @@
           if (alt !== 'unknown') { base = alt; hs = hs2; ls = ls2; provisional = true; }
         }
       }
+      // 확정된 고점·저점이 아직 짝으로 모자라도, 대파동 규모(8xATR)의 상승·하락이 진행 중이면 그 방향의 임시 구조로 본다(provisional).
+      // 직전 확정 대파동 고점(저점)과의 관계로 방향을 정한다: 상승 중인 대파동이 아직 직전 고점 아래면 '하락 구조 안의 반등', 하락 중인 대파동이 직전 저점 위면 '상승 구조 안의 눌림'.
+      if (base === 'unknown' && z.dir !== 0 && scales.major.pivots.length) {
+        if (z.dir === 1) base = (majorHighs.length && z.extPrice <= majorHighs[majorHighs.length - 1].price) ? 'down' : 'up';
+        else base = (majorLows.length && z.extPrice >= majorLows[majorLows.length - 1].price) ? 'up' : 'down';
+        provisional = true;
+      }
       if (base === 'up' && ls.length && c < ls[ls.length - 1].price * (1 - opt.supportBreakPct) && !(provisional && z.dir === -1)) base = 'up_broken';
       if (base === 'down' && hs.length && c > hs[hs.length - 1].price && !(provisional && z.dir === 1)) base = 'down_recovering';
       return { regime: base, source: 'major', provisional: provisional };
@@ -375,6 +383,58 @@
 
     function rising(arr) {
       return arr.length >= 2 && arr[arr.length - 1].price > arr[arr.length - 2].price;
+    }
+
+    /* 바닥 횡보 모양(이전 하락 → 80봉 이상 박스 → 박스 안 저점 상승)이 i 봉까지의 자료로 성립하는가. 라벨 표시(markBases)와 돌파 신호가 같은 판정을 쓴다. */
+    function baseAsOf(box, boxEnd) {
+      var len = boxEnd - box.start + 1;
+      if (len < opt.baseMinBars) return null;
+      var from = Math.max(0, box.start - 120), prior = -Infinity;
+      for (var k = from; k < box.start; k++) if (bars[k].close > prior) prior = bars[k].close;
+      if (!(prior > 0) || bars[box.start].close > prior * (1 - opt.baseDeclinePct)) return null;
+      var lows = scales.medium.legs.filter(function (w) { return w.kind === 'down' && w.end >= box.start && w.end <= boxEnd; });
+      var steps = 0;
+      for (var q = 1; q < lows.length; q++) if (lows[q].endPrice > lows[q - 1].endPrice) steps++;
+      if (steps < opt.baseMinHigherLows) return null;
+      return { higherLows: steps, declinePct: +(1 - bars[box.start].close / prior).toFixed(3), bars: len };
+    }
+
+    /* 열린 박스의 끝: 마지막 극점 뒤로, 종가가 범위(±25%)를 벗어나기 전까지의 봉. i 봉까지의 자료만 쓴다. */
+    function openBoxEnd(box, i) {
+      var rg = rangeOf(bars, box.start, box.end), span = rg.high - rg.low, tail = box.end;
+      for (var t = box.end + 1; t <= i; t++) {
+        if (bars[t].close > rg.high + span * 0.25 || bars[t].close < rg.low - span * 0.25) break;
+        tail = t;
+      }
+      return tail;
+    }
+
+    /* 바닥 박스 돌파: i 봉 종가가 (i-1 봉까지 알려진) 박스 상단·224일선·구름대 위로 올라선 첫 봉에서 한 번만 낸다. 매수 신호가 아니다.
+       i 봉 이전에 확정·진행 중이던 박스만 보므로 prefix 분석과 전체 분석의 결과가 같다. */
+    var baseDone = {};
+    function checkBaseBreakout(i) {
+      ['medium', 'major'].forEach(function (name) {
+        var sc = scales[name], boxes = sc.boxes.concat(sc.openBox ? [sc.openBox] : []);
+        boxes.forEach(function (b) {
+          if (baseDone[b.start]) return;
+          var boxEnd = b === sc.openBox ? openBoxEnd(b, i - 1) : b.end;
+          if (i <= boxEnd) return;
+          var info = baseAsOf(b, boxEnd);
+          if (!info) return;
+          var hi = rangeOf(bars, b.start, boxEnd);
+          var c = bars[i].close;
+          if (c < hi.low * 0.97) { baseDone[b.start] = 'broken'; return; }
+          var cloudTop = ctx.cloud.top[i], ma = ctx.ma224[i];
+          if (c > hi.high && ma != null && c > ma && cloudTop != null && c > cloudTop) {
+            var volNow = ctx.vol20[i], volBox = 0, cnt = 0;
+            for (var v = b.start; v <= boxEnd; v++) { volBox += bars[v].volume || 0; cnt++; }
+            volBox = cnt ? volBox / cnt : 0;
+            baseDone[b.start] = i;
+            signals.push({ index: i, type: 'base_breakout', boxId: 'medium:box:' + b.start, boxStart: b.start,
+              evidence: { boxBars: info.bars, higherLows: info.higherLows, volumeRatio: volBox > 0 && volNow ? +(volNow / volBox).toFixed(2) : null, above224: true, aboveCloud: true } });
+          }
+        });
+      });
     }
 
     function emit(type, i, extra) {
@@ -434,6 +494,7 @@
     var lastReg = null;
     for (var i = 0; i < n; i++) {
       if (ctx.atr[i] == null) { if (regimeSeries) regimeSeries[i] = null; continue; }
+      checkBaseBreakout(i);
       LEVELS.forEach(function (name) {
         var sc = scales[name];
         var piv = sc.zz.feed(i);
@@ -484,7 +545,7 @@
       }
     });
 
-    promoteLongBoxes(levels, bars, ctx);
+    promoteLongBoxes(levels, bars, ctx, scales, revisions);
     attachParents(levels);
     tagWaves(levels, ctx);
     markBases(levels, bars, ctx, signals);
@@ -498,7 +559,7 @@
   /* 대파동 규모(8xATR)에서는 극점이 거의 안 생기는 긴 횡보·바닥을 놓친다. 중파동 박스가 60봉 이상 이어지면 대파동 박스로도 올린다
      (같은 박스를 한 단계 위 규모에서 보는 것이므로 새 정보를 만들지 않는다). 이미 겹치는 대파동 박스가 있으면 만들지 않는다.
      박스 안에 완전히 들어가는 대파동 확정 파동은 이 규모 화면에서 박스에 가려진다(suppressed). */
-  function promoteLongBoxes(levels, bars, ctx) {
+  function promoteLongBoxes(levels, bars, ctx, scales, revisions) {
     var minBars = ctx.opt.levels.major.box.minBars;
     levels.medium.filter(function (b) { return b.isBox && b.end - b.start + 1 >= minBars; }).forEach(function (b) {
       var overlaps = levels.major.some(function (m) { return m.isBox && m.start <= b.end && m.end >= b.start; });
@@ -512,9 +573,20 @@
         compression: !!(atrStart && atrEnd && atrEnd < atrStart * 0.75)
       };
       levels.major.push(promoted);
+      // 승격 시점: 중파동 박스가 처음 60봉(대파동 박스 최소 길이)에 이른 봉. 그 전에는 대파동 박스를 알 수 없었다.
+      var growth = (scales && scales.medium.growth[b.id]) || [], at = null;
+      for (var g = 0; g < growth.length; g++) if (growth[g].end - b.start + 1 >= minBars) { at = growth[g].at; break; }
+      if (at == null) at = b.confirmedIndex != null ? b.confirmedIndex : bars.length - 1;
+      var absorbed = [];
       levels.major.forEach(function (w) {
-        if (!w.isBox && w.confirmed && w.start >= promoted.start && w.end <= promoted.end) { w.boxId = promoted.id; w.suppressed = true; }
+        if (!w.isBox && w.confirmed && w.start >= promoted.start && w.end <= promoted.end && !w.boxId) { w.boxId = promoted.id; w.suppressed = true; absorbed.push(w); }
       });
+      if (absorbed.length) {
+        var when = at;
+        absorbed.forEach(function (w) { if (w.confirmedIndex > when) when = w.confirmedIndex; });
+        revisions.push({ at: when, level: 'major', type: 'absorbed', boxId: promoted.id, waveIds: absorbed.map(function (w) { return w.id; }),
+          reason: '중파동 횡보 박스가 ' + minBars + '봉 이상 이어져 대파동 박스로도 올라가, 이 박스 안의 대파동 ' + absorbed.length + '개가 박스 안의 파동으로 표시됨(파동 자체는 확정 그대로)' });
+      }
     });
     levels.major.sort(function (a, b) { return a.start - b.start || a.end - b.end; });
   }
@@ -572,7 +644,8 @@
      횡보를 곧바로 세력 매집으로 단정하지 않는다 - 모양과 거래량 변화를 사실대로 적을 뿐이다.
      돌파 신호(base_breakout)는 종가가 박스 상단·224일선·구름대 위로 올라선 첫 봉에서만 난다. */
   function markBases(levels, bars, ctx, signals) {
-    var opt = ctx.opt;
+    var opt = ctx.opt, brk = {};
+    signals.forEach(function (sg) { if (sg.type === 'base_breakout') brk[sg.boxStart] = sg.index; });
     ['major', 'medium'].forEach(function (name) {
       levels[name].forEach(function (b) {
         if (!b.isBox || b.end - b.start + 1 < opt.baseMinBars) return;
@@ -585,21 +658,7 @@
         if (steps < opt.baseMinHigherLows) return;
         b.tags.push('base'); b.label = '바닥 횡보(저점 상승)';
         b.base = { higherLows: steps, declinePct: +(1 - bars[b.start].close / prior).toFixed(3), bars: b.end - b.start + 1 };
-        // 박스 이후 첫 돌파 봉
-        var after = b.confirmed ? b.end : b.end;
-        for (var i = after + 1; i < bars.length; i++) {
-          var cloudTop = ctx.cloud.top[i], ma = ctx.ma224[i];
-          if (bars[i].close > b.high && ma != null && bars[i].close > ma && cloudTop != null && bars[i].close > cloudTop) {
-            var volNow = ctx.vol20[i], volBox = 0, cnt = 0;
-            for (var v = b.start; v <= b.end; v++) { volBox += bars[v].volume || 0; cnt++; }
-            volBox = cnt ? volBox / cnt : 0;
-            var evidence = { boxBars: b.base.bars, higherLows: steps, volumeRatio: volBox > 0 && volNow ? +(volNow / volBox).toFixed(2) : null, above224: true, aboveCloud: true };
-            signals.push({ index: i, type: 'base_breakout', boxId: b.id, evidence: evidence });
-            b.base.breakoutIndex = i;
-            break;
-          }
-          if (bars[i].close < b.low * 0.97 && !(i <= b.end)) break;
-        }
+        if (brk[b.start] != null) b.base.breakoutIndex = brk[b.start];
       });
     });
   }

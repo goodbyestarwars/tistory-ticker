@@ -48,7 +48,7 @@
   var VM_HOUR_CANDIDATES_URL = 'https://goodbyestar.cloud/hour-direction';
   var HOUR_CANDIDATES_TIMEOUT_MS = 45000;
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261008-news-et';
-  var AUTO_WAVE_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/auto-wave.js?v=20261010-v2';
+  var AUTO_WAVE_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/auto-wave.js?v=20261013-hier';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -113,6 +113,7 @@
     volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
     supportResistanceEnabled: false,
     autoWaveEnabled: false,
+    autoWaveLevel: 'medium',   // 대파동 major · 중파동 medium(기본) · 소파동 minor
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
@@ -354,6 +355,17 @@
     return String(code || '') + '|' + String(scope || state.minuteScope || '1');
   }
 
+  var AUTO_WAVE_LEVELS = [{ key: 'major', label: '대파동', tip: '주된 방향(큰 상승·하락, 긴 횡보·바닥). 확정이 가장 늦다' }, { key: 'medium', label: '중파동', tip: '스윙매매 규모의 상승·조정·재상승(기본)' }, { key: 'minor', label: '소파동', tip: '짧은 눌림·재돌파·단기 저점 상승' }];
+
+  // 파동 분석 규모 선택(대·중·소). 파동 분석이 꺼져 있으면 숨긴다.
+  function waveLevelHtml() {
+    return '<span class="ss-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (state.autoWaveEnabled ? '' : ' hidden') + '>'
+      + AUTO_WAVE_LEVELS.map(function (lv) {
+        var on = lv.key === state.autoWaveLevel;
+        return '<button type="button" class="ss-wave-btn' + (on ? ' active' : '') + '" data-wave-level="' + lv.key + '" aria-pressed="' + on + '" title="' + lv.tip + '">' + lv.label + '</button>';
+      }).join('') + '</span>';
+  }
+
   function minuteScopeControlHtml() {
     return '<label class="ss-minute-scope"><span>분봉 간격</span><select data-minute-scope aria-label="분봉 간격">'
       + MINUTE_SCOPES.map(function (scope) {
@@ -421,7 +433,7 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>'
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -1346,11 +1358,32 @@
       };
     }
     var waveToggle = container.querySelector('[data-chart-wave-toggle]');
+    var waveLevelBox = container.querySelector('[data-chart-wave-level]');
+    function syncWaveLevelControls() {
+      if (!waveLevelBox) return;
+      waveLevelBox.hidden = !state.autoWaveEnabled;
+      Array.prototype.forEach.call(waveLevelBox.querySelectorAll('[data-wave-level]'), function (btn) {
+        var on = btn.getAttribute('data-wave-level') === state.autoWaveLevel;
+        btn.classList.toggle('active', on);
+        btn.setAttribute('aria-pressed', String(on));
+      });
+    }
     if (waveToggle) {
       waveToggle.checked = state.autoWaveEnabled;
       waveToggle.onchange = function () {
         state.autoWaveEnabled = waveToggle.checked;
+        syncWaveLevelControls();
         applyAutoWave(stockDrawingState);
+      };
+    }
+    if (waveLevelBox) {
+      syncWaveLevelControls();
+      waveLevelBox.onclick = function (event) {
+        var btn = event.target.closest ? event.target.closest('[data-wave-level]') : null;
+        if (!btn) return;
+        state.autoWaveLevel = btn.getAttribute('data-wave-level');
+        syncWaveLevelControls();
+        applyAutoWave(stockDrawingState);   // 분석은 캐시를 재사용하고 규모만 바꿔 다시 그린다
       };
     }
     var srToggle = container.querySelector('#ssSupportResistanceToggle, [data-chart-sr-toggle]');
@@ -2359,7 +2392,7 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>'
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
@@ -2751,30 +2784,50 @@
   }
 
   // ---- 자동 파동(실험) - js/auto-wave.js. 수동 드로잉과 별도 레이어(drawing.autoWaves)로만 다루고 저장하지 않는다. ----
-  // OFF일 때는 계산도 스크립트 로드도 하지 않는다. 같은 종목·봉 주기·마지막 봉이면 결과를 재사용한다.
-  var autoWaveCache = { key: '', waves: null };
+  // OFF일 때는 계산도 스크립트 로드도 하지 않는다. 분석(대·중·소 전체)은 같은 종목·봉 주기·데이터면 결과를 재사용하고, 규모 선택은 그리기만 바꾼다.
+  // 캐시 키는 마지막 봉만이 아니라 전체 OHLCV 지문(AutoWave.hashBars)이라, 과거 봉이 정정돼 마지막 봉이 같아도 새로 계산한다.
+  var autoWaveCache = { key: '', result: null };
+
+  // 선택한 규모의 파동(박스에 가려진 것 제외)과, 한 단계 위 규모의 옅은 윤곽(부모)을 고른다.
+  function pickAutoWaveLevel(result, level) {
+    var lv = result.levels && result.levels[level] ? level : 'medium';
+    var parentName = lv === 'minor' ? 'medium' : (lv === 'medium' ? 'major' : null);
+    return {
+      level: lv,
+      waves: (result.levels[lv] || []).filter(function (w) { return !w.suppressed; }),
+      parents: parentName ? (result.levels[parentName] || []).filter(function (w) { return !w.suppressed; }) : [],
+      summary: result.state ? result.state.summaryText : ''
+    };
+  }
 
   function applyAutoWave(drawing) {
     if (!drawing) return;
     if (!state.autoWaveEnabled || drawing.timeframe === 'minute') {
       drawing.autoWaves = null;
+      drawing.autoWaveParents = null;
       redrawStockDrawing(drawing);
       return;
     }
     var bars = drawing.bars || [];
-    // 마지막 봉의 날짜뿐 아니라 시·고·저·종·거래량이 바뀌어도 다시 계산하고, 같은 값이 재전달되면 재사용한다.
-    var lastBar = bars.length ? bars[bars.length - 1] : null;
-    var key = [drawing.key, drawing.timeframe, bars.length, lastBar ? [lastBar.date, lastBar.open, lastBar.high, lastBar.low, lastBar.close, lastBar.volume].join(',') : ''].join('|');
     function compute() {
       if (stockDrawingState !== drawing || !state.autoWaveEnabled) return;
+      var AW = global.AutoWave;
+      var fingerprint = typeof AW.hashBars === 'function' ? AW.hashBars(bars) : (bars.length + ':' + (bars.length ? bars[bars.length - 1].date + ',' + bars[bars.length - 1].close : ''));
+      var key = [drawing.key, drawing.timeframe, fingerprint, AW.version || ''].join('|');
       if (autoWaveCache.key !== key) {
-        try { autoWaveCache = { key: key, waves: global.AutoWave.detectWaves(bars) }; }
-        catch (e) { autoWaveCache = { key: key, waves: [] }; }
+        try {
+          if (typeof AW.analyze === 'function') autoWaveCache = { key: key, result: AW.analyze(bars) };
+          else autoWaveCache = { key: key, result: { levels: { medium: AW.detectWaves(bars) }, state: null } };   // 옛 모듈(대·중·소 없음) 호환
+        } catch (e) { autoWaveCache = { key: key, result: { levels: { major: [], medium: [], minor: [] }, state: null } }; }
       }
-      drawing.autoWaves = autoWaveCache.waves;
+      var picked = pickAutoWaveLevel(autoWaveCache.result, state.autoWaveLevel);
+      drawing.autoWaves = picked.waves;
+      drawing.autoWaveParents = picked.parents;
+      drawing.autoWaveLevel = picked.level;
+      drawing.autoWaveSummary = picked.summary;
       redrawStockDrawing(drawing);
     }
-    if (global.AutoWave && typeof global.AutoWave.detectWaves === 'function') { compute(); return; }
+    if (global.AutoWave && (typeof global.AutoWave.analyze === 'function' || typeof global.AutoWave.detectWaves === 'function')) { compute(); return; }
     if (document.querySelector('script[data-auto-wave-module]')) {
       var waiting = document.querySelector('script[data-auto-wave-module]');
       waiting.addEventListener('load', compute);
@@ -2792,27 +2845,44 @@
   var AUTO_WAVE_STYLE = {
     up: { stroke: '#e34d4b', fill: 'rgba(227,77,75,.10)', label: '상승 파동' },
     down: { stroke: '#2674d9', fill: 'rgba(38,116,217,.10)', label: '하락 파동' },
-    side: { stroke: '#808080', fill: 'rgba(128,128,128,.12)', label: '횡보·응축' },
+    side: { stroke: '#808080', fill: 'rgba(128,128,128,.12)', label: '횡보' },
     wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
+  var AUTO_WAVE_LEVEL_NAME = { major: '대파동', medium: '중파동', minor: '소파동' };
 
   function drawAutoWaves(drawing, ctx) {
     var waves = drawing.autoWaves, bars = drawing.bars || [];
-    if (!waves || !waves.length || bars.length < 2) return;
+    if (!waves || bars.length < 2) return;
+    var level = drawing.autoWaveLevel || 'medium';
     var xa = stockDrawingCoordinate(drawing, { time: bars[bars.length - 2].date, price: bars[bars.length - 2].close });
     var xb = stockDrawingCoordinate(drawing, { time: bars[bars.length - 1].date, price: bars[bars.length - 1].close });
     var half = xa && xb ? Math.max(1, Math.abs(xb.x - xa.x) / 2) : 2;
-    ctx.save();
-    waves.forEach(function (wave) {
-      var st = AUTO_WAVE_STYLE[wave.kind];
+    function rectOf(wave) {
       var b0 = bars[wave.start], b1 = bars[wave.end];
-      if (!st || !b0 || !b1) return;
+      if (!b0 || !b1) return null;
       var p0 = stockDrawingCoordinate(drawing, { time: b0.date, price: wave.high });
       var p1 = stockDrawingCoordinate(drawing, { time: b1.date, price: wave.low });
-      if (!p0 || !p1) return;
-      var x1 = Math.min(p0.x, p1.x) - half, x2 = Math.max(p0.x, p1.x) + half;
-      var y1 = Math.min(p0.y, p1.y), y2 = Math.max(p0.y, p1.y);
+      if (!p0 || !p1) return null;
+      return { x1: Math.min(p0.x, p1.x) - half, x2: Math.max(p0.x, p1.x) + half, y1: Math.min(p0.y, p1.y), y2: Math.max(p0.y, p1.y) };
+    }
+    ctx.save();
+    // 한 단계 위 규모: 채움·라벨 없이 옅은 점선 윤곽만(복잡해지지 않게 배경 정보로만 둔다)
+    (drawing.autoWaveParents || []).forEach(function (wave) {
+      var st = AUTO_WAVE_STYLE[wave.kind], r = rectOf(wave);
+      if (!st || !r) return;
+      ctx.strokeStyle = st.stroke;
+      ctx.globalAlpha = 0.3;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 3]);
+      ctx.strokeRect(r.x1 + .5, r.y1 + .5, r.x2 - r.x1 - 1, r.y2 - r.y1 - 1);
+    });
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+    waves.forEach(function (wave) {
+      var st = AUTO_WAVE_STYLE[wave.kind], r = rectOf(wave);
+      if (!st || !r) return;
+      var x1 = r.x1, x2 = r.x2, y1 = r.y1, y2 = r.y2;
       ctx.fillStyle = st.fill;
       ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
       ctx.strokeStyle = st.stroke;
@@ -2822,22 +2892,28 @@
       ctx.strokeRect(x1 + .5, y1 + .5, x2 - x1 - 1, y2 - y1 - 1);
       ctx.setLineDash([]);
       ctx.globalAlpha = 1;
-      var text = st.label;
-      if (!wave.confirmed && wave.kind !== 'unk') text += ' 진행 중';
-      else if (wave.confirmed && wave.endConfirmedIndex != null) text += ' (확정 +' + (wave.endConfirmedIndex - wave.end) + '봉)';
+      var text = wave.label || st.label;
+      if (!wave.confirmed) text += ' · 진행 중';
+      else if (level !== 'minor' && !wave.isBox && wave.confirmedIndex != null) text += ' · 확정 +' + (wave.confirmedIndex - wave.end) + '봉';
       ctx.font = '700 10px MaruBuri, serif';
       ctx.fillStyle = st.stroke;
       ctx.textBaseline = 'top';
       // 확대·이동으로 박스 왼쪽이 화면 밖이어도 라벨은 보이는 영역 안에서 시작한다.
       var lx = Math.max(x1 + 4, 4);
       while (text.length > 2 && ctx.measureText(text).width > x2 - lx - 2) text = text.slice(0, -1);
-      if (x2 - lx > 12) ctx.fillText(text, lx, y1 + 3);
+      // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
+      if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
     });
     ctx.font = '10px sans-serif';
     ctx.fillStyle = 'rgba(100,100,100,.85)';
     ctx.textBaseline = 'top';
-    // 이동평균 범례 줄 바로 아래(날짜 축·거래량 라벨과 겹치지 않는 위치)
-    ctx.fillText('파동 분석 · 점선은 진행 중이며 새 봉이 들어오면 바뀔 수 있음 · 매매 추천 아님', 8, 30);
+    // 이동평균 범례 줄 바로 아래(날짜 축·거래량 라벨과 겹치지 않는 위치). 한 줄에 규모·현재 구조·주의를 담고, 좁으면 뒤쪽 주의 문구부터 줄인다.
+    var head = '파동 분석(' + (AUTO_WAVE_LEVEL_NAME[level] || '중파동') + ')' + (drawing.autoWaveSummary ? ' · ' + drawing.autoWaveSummary : '');
+    var full = head + ' · 점선=진행 중(바뀔 수 있음) · 매매 추천 아님';
+    var maxWidth = Math.max(60, (drawing.overlay && drawing.overlay.clientWidth ? drawing.overlay.clientWidth : 600) - 16);
+    var line = ctx.measureText(full).width <= maxWidth ? full : head;
+    while (line.length > 6 && ctx.measureText(line).width > maxWidth) line = line.slice(0, -1);
+    ctx.fillText(line, 8, 30);
     ctx.restore();
   }
 
