@@ -72,6 +72,9 @@ quant-autotrade/**/status.json
 quant-autotrade/**/probe_result.json
 quant-autotrade/**/config.json
 quant-autotrade/**/STOP
+quant-autotrade/**/planned_stop.flag
+quant-autotrade/**/NO_AUTOSTART
+quant-autotrade/**/backup_*/
 quant-autotrade/**/logs/
 quant-autotrade/**/research_app/
 quant-autotrade/**/*.pkl

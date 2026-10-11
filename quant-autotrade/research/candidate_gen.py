@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS candidates (
   scan_date TEXT NOT NULL, scanner TEXT NOT NULL, code TEXT NOT NULL, name TEXT, score REAL, base_price REAL,
   scanned_at TEXT NOT NULL, created_at TEXT NOT NULL,
   strategy_status TEXT NOT NULL DEFAULT 'RESEARCH', live_eligible INTEGER NOT NULL DEFAULT 0,
-  status TEXT NOT NULL DEFAULT 'NEW', reason TEXT,
+  status TEXT NOT NULL DEFAULT 'NEW', reason TEXT, reasons TEXT,
   PRIMARY KEY (scan_date, scanner, code));
 CREATE TABLE IF NOT EXISTS paper_trades (
   scan_date TEXT NOT NULL, scanner TEXT NOT NULL, code TEXT NOT NULL, variant TEXT NOT NULL,
@@ -68,11 +68,15 @@ PAPER_EXTRA_COLUMNS = (   # 2026-10-11 전략별 청산 기록. 기존 열(ret=�
 )
 
 
+CANDIDATE_EXTRA_COLUMNS = (('reasons', 'TEXT'),)   # 2026-10-11 스캔 선정 이유(JSON 배열 문자열). 알림·표시용 기록이며 판정에는 쓰지 않는다.
+
+
 def migrate(conn):
-    have = {r[1] for r in conn.execute('PRAGMA table_info(paper_trades)')}
-    for name, typ in PAPER_EXTRA_COLUMNS:
-        if name not in have:
-            conn.execute('ALTER TABLE paper_trades ADD COLUMN %s %s' % (name, typ))
+    for table, extra in (('paper_trades', PAPER_EXTRA_COLUMNS), ('candidates', CANDIDATE_EXTRA_COLUMNS)):
+        have = {r[1] for r in conn.execute('PRAGMA table_info(%s)' % table)}
+        for name, typ in extra:
+            if name not in have:
+                conn.execute('ALTER TABLE %s ADD COLUMN %s %s' % (table, name, typ))
     conn.commit()
 
 
@@ -161,9 +165,11 @@ def generate(conn, payload, now_kst, now_epoch=None):
                 code, price = str(it.get('code') or '').strip(), it.get('price')
                 if not code or not isinstance(price, (int, float)) or price <= 0:
                     continue
-                cur = conn.execute('INSERT OR IGNORE INTO candidates(scan_date, scanner, code, name, score, base_price, scanned_at, created_at) '
-                                   'VALUES (?,?,?,?,?,?,?,?)', (scan_date, key, code, str(it.get('name') or ''),
-                                                                 float(it.get('score') or 0), float(price), str(payload.get('scannedAt')), now_iso))
+                why = it.get('reasons')
+                why = json.dumps([str(x) for x in why[:4]], ensure_ascii=False) if isinstance(why, list) and why else None
+                cur = conn.execute('INSERT OR IGNORE INTO candidates(scan_date, scanner, code, name, score, base_price, scanned_at, created_at, reasons) '
+                                   'VALUES (?,?,?,?,?,?,?,?,?)', (scan_date, key, code, str(it.get('name') or ''),
+                                                                  float(it.get('score') or 0), float(price), str(payload.get('scannedAt')), now_iso, why))
                 created += cur.rowcount
     conn.execute('INSERT INTO gen_log VALUES (?,?,?,?,?)', (now_kst.isoformat(timespec='seconds'), scan_date, 1 if ok else 0, reason, created))
     conn.commit()

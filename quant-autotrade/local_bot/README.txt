@@ -35,6 +35,14 @@
   - 이 PC의 로컬 서버(127.0.0.1:8765)만 읽는다. 폴더의 .token 파일 내용을 화면의 "접속 토큰" 칸에 한 번 붙여 넣으면 이 브라우저에 저장된다.
   - 크롬이 "로컬 네트워크 접근"을 물으면 허용한다.
 
+텔레그램 관제 (알림 + 읽기 전용 명령)
+  - 처음 한 번: install_bot.ps1 (저장소에서 실행 - 파일 반영 + 자동 실행 등록 + 재시작), 이어서 이 폴더의 telegram_setup.bat
+    (메모장이 열리면 TELEGRAM_BOT_TOKEN= 뒤에 토큰을 붙여 넣고 저장 -> 휴대폰에서 /pair 일회용코드). 설정값은 .env 의 TELEGRAM_BOT_TOKEN / TELEGRAM_ALLOWED_USER_ID / TELEGRAM_CHAT_ID 이며 직접 쓰지 않아도 된다.
+  - 자동 알림: 종목 선정, 모의매매, 감시 종목 조건/주문 접수/거부/실패/보유 종료, 시스템 경고, 일일 보고서. 명령: /help 로 확인(전부 읽기 전용, 매매·설정 변경 불가).
+  - 자동 실행/복구: 작업 스케줄러 AutotraderBot 이 로그온 때와 5분마다 봇을 확인해 죽었으면 다시 켠다. stop.bat 은 restart.bat 전까지 자동 시작을 멈춘다.
+  - 상세: quant-autotrade\docs\TELEGRAM.md
+
 파일
   logs\autotrader-날짜.log (사람이 읽는 로그), autotrader.db (화면이 읽는 기록), .token (화면 접속 토큰), STOP (있으면 정지)
-테스트(키 불필요): python -m unittest -v
+bot.lock (실행 중 표시), telegram.db (텔레그램 발송 대기열·상태), planned_stop.flag / NO_AUTOSTART (restart.bat / stop.bat 이 만드는 표식)
+테스트(키 불필요): python -m unittest -v   (개발 저장소에서만. 텔레그램 통합 테스트는 test_tg_unit / test_tg_integration)
