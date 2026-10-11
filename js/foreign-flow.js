@@ -109,13 +109,25 @@
 
   // TradingView Lightweight Charts(오픈소스, CDN 지연 로드) - 가격 캔들차트 렌더링 엔진.
   // 손으로 그리던 SVG 캔들차트를 대체 - 확대/축소·패닝·크로스헤어를 라이브러리가 제공.
-  var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
-  var lwcLoadPromise = null;
+  // 차트 공통 엔진(js/chart-core.js 외): 이 파일이 실제로 내려온 곳을 기준으로 받는다(운영=GitHub Pages, 로컬 점검=로컬 서버).
+  var CHART_BASE = (function () {
+    var src = document.currentScript && document.currentScript.src;
+    var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
+    return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
+  }());
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261014-core1';
+  var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
-  var lwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
+  var lwcScope = null;         // 차트 한 개가 만든 구독·옵저버·오버레이를 한 번에 해제하는 범위(chart-core)
+  var flowRenderId = 0;
   var lwcMarkers = null;       // v5 Series Markers 플러그인
-  var flowDrawingState = null;
+  var drawingCtl = null;       // chart-drawing 컨트롤러(차트 하나당 하나)
+  var waveHandle = null;       // chart-wave-overlay 핸들
+  var flowChartFont = 'sans-serif';
+  var forecastHandle = null;   // chart-forecast-overlay 핸들
+  var forecastState = { enabled: false, level: 'medium', horizon: 10, hidden: {} };   // 다음 파동 예측(실험)
+  var waveState = { enabled: false, level: 'medium' };   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
 
   function resizeForeignFlowChart() {
     if (!lwcChart || !lwcChartContainer || !lwcChart.resize) return;
@@ -140,8 +152,6 @@
 
   var cacheByCode = {};   // code -> { t, data }
   var inflightByCode = {}; // code -> Promise
-  var flowChartCache = {};    // code -> { t, data }
-  var flowChartInflight = {}; // code -> Promise
   var investorFlowCache = {};    // code -> { t, data }
   var investorFlowInflight = {}; // code -> Promise
   var quoteCache = {};    // code -> { t, data } - 헤더 현재가용
@@ -209,6 +219,7 @@
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
     container.innerHTML = buildShell();
+    chartReady().catch(function () { /* 차트 탭을 열 때 다시 시도하고 오류를 보여 준다 */ });   // 라이브러리·모듈을 검색·수급 조회와 겹쳐 미리 받는다
     wireEvents(container);
     ensureKrxMap().catch(function () { /* 입력 시 다시 시도한다. */ });
     // WICS는 이 화면에서만 필요한 업종 보강 데이터다. 공통 스킨에서 모든 페이지에
@@ -1408,12 +1419,28 @@
     return p;
   }
 
-  // 가격 차트(지지/저항 + MA5/20/60/224) - 5분 메모리 캐시 + 진행 중 요청 재사용
-  function fetchFlowChart(code) {
-    var hit = flowChartCache[code];
-    if (hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
-    if (flowChartInflight[code]) return flowChartInflight[code];
+  // 가격 차트(지지/저항 + MA5/20/60/224). 공용 데이터 계층(chart-data)이 5분 메모리·탭 저장소 캐시와 진행 중 요청 공유를 맡는다
+  // (같은 /flow-chart 를 부르는 차트검색·실시간 시세와 같은 캐시). 엔진이 아직 안 왔으면 기다리지 않고 바로 요청한다(캐시만 다음부터).
+  // 다른 화면이 같은 종목 일봉을 이 탭 저장소(chart-data 가 쓰는 키)에 남겨 뒀을 수 있는지 동기로 확인한다.
+  // 있으면 엔진을 기다려 캐시에서 읽고(요청 생략), 없으면 엔진을 기다리지 않고 바로 요청한다.
+  function sharedFlowChartMayExist(code) {
+    try { return !!global.sessionStorage.getItem('nine-chart:v1:flow-chart|' + String(code || '').toUpperCase() + '|server'); } catch (e) { return false; }
+  }
 
+  function fetchFlowChart(code) {
+    var api = global.NineChartData;
+    if (api) return api.fetchFlowChart(code, requestFlowChart);
+    if (sharedFlowChartMayExist(code)) {
+      return chartReady().then(function () { return global.NineChartData.fetchFlowChart(code, requestFlowChart); }, function () { return requestFlowChart(code); });
+    }
+    return requestFlowChart(code).then(function (data) {
+      // 엔진이 올라오면 이 응답을 캐시에 넣어 둔다(같은 종목을 다시 열 때·다른 화면에서 열 때 다시 받지 않게). 화면 표시는 기다리지 않는다.
+      chartReady().then(function () { global.NineChartData.primeFlowChart(code, data); }).catch(function () { /* 캐시만 건너뜀 */ });
+      return data;
+    });
+  }
+
+  function requestFlowChart(code) {
     // 2026-09-03: VM(/flow-chart)을 1차로 쓴다. 예전에는 GAS ?action=flowChart만 썼는데,
     // GAS는 자체 데이터 없이 이 VM의 /ohlc를 부른 뒤 이평선·지지저항만 계산해 넘겨주는
     // 중간 경유지였고 그 왕복이 운영 실측에서 28~30초씩 걸리다 타임아웃/404로 끝났다
@@ -1421,7 +1448,7 @@
     // 기다리느라 종목분석 전체가 20초(FETCH_TIMEOUT_MS)를 채우고 있었다.
     // 응답 형태는 GAS와 동일해서({code, daily, ma, levels}) 렌더 경로는 그대로다.
     // GAS는 VM이 죽었을 때만 쓰는 폴백으로 남긴다 - /foreign-flow가 네이버를 남겨둔 것과 같다.
-    var p = fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(code), FLOW_CHART_VM_TIMEOUT_MS)
+    return fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(code), FLOW_CHART_VM_TIMEOUT_MS)
       .then(function (envelope) {
         var d = envelope && envelope.data ? envelope.data : envelope;
         if (!d || d.error || !d.daily || !d.daily.length) throw new Error('VM 가격차트 없음');
@@ -1429,18 +1456,7 @@
       })
       .catch(function () {
         return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), FLOW_CHART_GAS_TIMEOUT_MS);
-      })
-      .then(function (data) {
-        delete flowChartInflight[code];
-        if (data && !data.error) flowChartCache[code] = { t: Date.now(), data: data };
-        return data;
-      })
-      .catch(function (err) {
-        delete flowChartInflight[code];
-        throw err;
       });
-    flowChartInflight[code] = p;
-    return p;
   }
 
   // 일부 폴백 소스(네이버 수급 표)는 개인 순매매를 제공하지 않는다. 값을 억지로
@@ -1749,6 +1765,8 @@
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
     wireVolumeProfileToggle(box, chartData);
+    wireWaveControls(box);
+    wireForecastControls(box);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code, aptOpeningPrice);
     wireOpinionEvidence(box, data.code);
     startQuotePolling(box, data.code);
@@ -4352,6 +4370,10 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
+        + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
+        + '<label class="ff-ichimoku-toggle" title="실험 기능: 지금 파동 구조가 다섯 시나리오(상승 지속·정상 눌림목·횡보 응축·가짜 상승·추세 훼손) 중 어디에 가까운지 보여 주고, 확인·무효화 가격과 변동 범위를 점선·표로 안내합니다. 가격을 맞히는 예측이 아니며 매매 추천도 아닙니다. 일봉에서만 제공합니다."><input type="checkbox" id="ffForecastToggle" data-chart-forecast-toggle' + (forecastState.enabled ? ' checked' : '') + ' /> 다음 파동 예측</label>'
+        + '<span data-chart-forecast-opts hidden></span>'
         + '</div>'
         + buildVpLegend()
         + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구">'
@@ -4361,7 +4383,8 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
-        + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div></div>'
+        + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
+        + '<div class="nc-forecast ff-forecast" data-chart-forecast-panel hidden></div></div>'
         + (chartData.flow && chartData.flow.length
           ? '<div class="ff-chart-flow-caption">아래 보라·초록 선은 외국인·기관의 하루 순매매량(주). 0 위는 순매수, 아래는 순매도.</div>'
           : '')
@@ -4405,6 +4428,62 @@
     });
   }
 
+  // 자동 파동 체크·규모 선택: 분석은 캐시를 재사용하고 규모만 바꿔 다시 그린다(chart-wave-overlay 가 연결).
+  // 파동 모듈·분석 엔진은 체크를 켜는 순간에야 받는다(안 쓰면 요청도 없다).
+  function wireWaveControls(box) {
+    var toggle = box.querySelector('[data-chart-wave-toggle]');
+    if (!toggle) return;
+    toggle.onchange = function () {
+      waveState.enabled = toggle.checked;   // 모듈이 오기 전에 누른 값을 먼저 반영한다
+      loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
+        Wave.wireControls(box, waveState, function () { applyFlowWave(); }, 'ff');   // 이후 체크·규모 선택은 모듈이 처리
+        toggle.onchange();
+      }).catch(function () { toggle.checked = false; waveState.enabled = false; /* 파동 모듈을 못 받아도 차트는 그대로 */ });
+    };
+    if (waveState.enabled) { toggle.checked = true; toggle.onchange(); }   // 이전 종목에서 켜 둔 상태를 이어 간다
+  }
+
+  // 다음 파동 예측도 체크를 켜는 순간에야 모듈·분석 엔진·통계 표를 받는다.
+  function wireForecastControls(box) {
+    var toggle = box.querySelector('[data-chart-forecast-toggle]');
+    if (!toggle) return;
+    toggle.onchange = function () {
+      forecastState.enabled = toggle.checked;
+      loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
+        F.wireControls(box, forecastState, function () { applyFlowForecast(); }, 'ff');   // 이후 체크·기간·규모·시나리오 선택은 모듈이 처리
+        toggle.onchange();
+      }).catch(function () { toggle.checked = false; forecastState.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
+    };
+    if (forecastState.enabled) { toggle.checked = true; toggle.onchange(); }
+  }
+
+  // 켜져 있으면 모듈을 받아 현재 차트에 붙이고(계산은 같은 종목·데이터·규모면 공유 캐시), 꺼져 있으면 층과 표를 걷어 낸다.
+  function applyFlowForecast() {
+    var ctlNow = drawingCtl;
+    if (!ctlNow || (!forecastState.enabled && !forecastHandle)) return;
+    loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
+      if (drawingCtl !== ctlNow || ctlNow.detached) return;
+      if (!forecastHandle) {
+        var host = ctlNow.overlay.parentElement && ctlNow.overlay.parentElement.parentElement;
+        forecastHandle = F.attach({ core: global.NineChartCore, ctl: ctlNow, key: ctlNow.shapes.key, timeframe: 'day', bars: ctlNow.shapes.bars, state: forecastState,
+          panel: host ? host.querySelector('[data-chart-forecast-panel]') : null, font: flowChartFont, prefix: 'ff' });
+      }
+      forecastHandle.apply();
+    }).catch(function () { /* 예측 모듈을 못 받아도 차트는 그대로 */ });
+  }
+
+  // 켜져 있으면 모듈을 받아 현재 차트에 붙이고 계산, 꺼져 있으면 층을 걷어 낸다.
+  function applyFlowWave() {
+    if (!drawingCtl) return;
+    var ctlNow = drawingCtl;
+    if (!waveState.enabled && !waveHandle) return;
+    loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
+      if (drawingCtl !== ctlNow || ctlNow.detached) return;
+      if (!waveHandle) waveHandle = Wave.attach({ core: global.NineChartCore, ctl: ctlNow, key: ctlNow.shapes.key, timeframe: 'day', bars: ctlNow.shapes.bars, state: waveState, font: flowChartFont, summaryFont: flowChartFont, summaryTop: 4 });
+      waveHandle.apply();
+    }).catch(function () { /* 파동 모듈을 못 받아도 차트는 그대로 */ });
+  }
+
   // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
   var supportResistanceEnabled = true;   // 2026-10-04 "지지·저항 체크 기능" - 종목분석은 기본 켜짐, 체크로 끌 수 있다
@@ -4425,57 +4504,8 @@
     return out;
   }
 
-  // TradingView 공식 "Bands Indicator" 플러그인 예제와 같은 구조(Series Primitive, v5 지원 -
-  // js/pattern-scan.js 참고). drawBackground()로 캔들/선보다 먼저 그려 구름이 배경에 깔리게 한다.
-  function createIchimokuCloudPrimitive(bandPts, cloudColor) {
-    return {
-      _chart: null,
-      _series: null,
-      attached: function (params) { this._chart = params.chart; this._series = params.series; },
-      detached: function () { this._chart = null; this._series = null; },
-      updateAllViews: function () {},
-      paneViews: function () {
-        var self = this;
-        return [{
-          renderer: function () {
-            return {
-              draw: function () {},
-              drawBackground: function (target) {
-                var chart = self._chart, series = self._series;
-                if (!chart || !series) return;
-                target.useBitmapCoordinateSpace(function (scope) {
-                  var ctx = scope.context;
-                  var hRatio = scope.horizontalPixelRatio, vRatio = scope.verticalPixelRatio;
-                  var timeScale = chart.timeScale();
-                  var pts = bandPts.map(function (p) {
-                    var x = timeScale.timeToCoordinate(p.time);
-                    var yA = series.priceToCoordinate(p.a);
-                    var yB = series.priceToCoordinate(p.b);
-                    if (x == null || yA == null || yB == null) return null;
-                    return { x: x * hRatio, yA: yA * vRatio, yB: yB * vRatio };
-                  });
-                  ctx.save();
-                  for (var k = 0; k < pts.length - 1; k++) {
-                    var p0 = pts[k], p1 = pts[k + 1];
-                    if (!p0 || !p1) continue;
-                    ctx.beginPath();
-                    ctx.moveTo(p0.x, p0.yA);
-                    ctx.lineTo(p1.x, p1.yA);
-                    ctx.lineTo(p1.x, p1.yB);
-                    ctx.lineTo(p0.x, p0.yB);
-                    ctx.closePath();
-                    ctx.fillStyle = cloudColor;
-                    ctx.fill();
-                  }
-                  ctx.restore();
-                });
-              }
-            };
-          }
-        }];
-      }
-    };
-  }
+  // 구름 채우기 시리즈 플러그인은 차트 공통 엔진(js/chart-core.js createCloudPrimitive)을 쓴다.
+  function createIchimokuCloudPrimitive(bandPts, cloudColor) { return global.NineChartCore.createCloudPrimitive(bandPts, cloudColor); }
 
   // computeIchimoku(daily)는 computeIchimokuScore가 이미 쓰는 기존 함수를 그대로 재사용한다
   // (전환선/기준선도 내부적으로 계산해야 선행스팬이 나오지만, 화면엔 구름 경계선 2개만 그림).
@@ -5627,58 +5657,53 @@
       + '</div>';
   }
 
-  // CDN에서 라이브러리를 1회만 지연 로드(이미 로드돼 있으면 즉시 resolve)
-  function loadLightweightCharts() {
-    if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
-    if (lwcLoadPromise) return lwcLoadPromise;
-    lwcLoadPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = LWC_CDN;
-      s.onload = function () { resolve(global.LightweightCharts); };
-      s.onerror = function () { lwcLoadPromise = null; reject(new Error('차트 라이브러리 로드 실패')); };
-      document.head.appendChild(s);
+  // 차트 엔진(js/chart-core.js)과 이 화면이 쓰는 모듈을 페이지당 한 번만 받는다. 차트 인스턴스는 그릴 때 만든다.
+  function loadChartCore() {
+    if (global.NineChartCore) return Promise.resolve(global.NineChartCore);
+    var loads = global.__nineChartLoads = global.__nineChartLoads || {};
+    if (loads.core) return loads.core;
+    loads.core = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-nine-chart="core"]');
+      var script = existing || document.createElement('script');
+      script.addEventListener('load', function () { resolve(global.NineChartCore); });
+      script.addEventListener('error', function () { loads.core = null; if (script.remove) script.remove(); reject(new Error('차트 엔진 로드 실패')); });
+      if (!existing) {
+        script.src = CHART_CORE_URL;
+        script.async = true;
+        script.setAttribute('data-nine-chart', 'core');
+        document.head.appendChild(script);
+      }
     });
-    return lwcLoadPromise;
+    return loads.core;
   }
 
-  // 차트 메모(공용 모듈 js/chart-memo.js). 이 스크립트와 같은 폴더에서 한 번만 지연 로드한다.
-  var chartMemoPromise = null;
+  // 라이브러리(LightweightCharts) + 데이터 모듈은 필수, 그리기·지지저항·메모는 선택(못 받아도 차트는 그려진다).
+  function chartReady() {
+    return loadChartCore().then(function (core) {
+      var optional = CHART_OPTIONAL.map(function (name) { return core.loadModule(name).catch(function () { return null; }); });
+      return core.ready(['data']).then(function (parts) { return Promise.all(optional).then(function () { return parts[0]; }); });
+    });
+  }
+
   var flowMemo = null;
-  function loadChartMemoModule() {
-    if (global.NineChartMemo) return Promise.resolve(global.NineChartMemo);
-    if (chartMemoPromise) return chartMemoPromise;
-    chartMemoPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = KRX_MAP_JS.replace('/data/krx_map.js', '/js/chart-memo.js');
-      s.onload = function () { resolve(global.NineChartMemo); };
-      s.onerror = function () { chartMemoPromise = null; reject(new Error('chart-memo load failed')); };
-      document.head.appendChild(s);
-    });
-    return chartMemoPromise;
-  }
-
   function setupFlowMemo(container, chart, series, daily, code) {
     var button = container.parentElement.querySelector('[data-ff-memo]');
-    if (!button) return;
-    button.disabled = true;
-    loadChartMemoModule().then(function (api) {
-      if (!document.body.contains(container) || lwcChart !== chart) return;
-      var name = '';
-      var head = document.querySelector('#foreign-flow .ff-header'); if (head) name = Array.prototype.filter.call(head.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent; }).join('');
-      flowMemo = api.install({
-        container: container, chart: chart, series: series, bars: daily, code: code, name: name.trim() || code,
-        formatPrice: function (p) { return Number(p).toLocaleString() + '원'; },
-        isDrawing: function () { return !!(flowDrawingState && flowDrawingState.mode); }
-      });
-      button.disabled = false;
-      button.onclick = function () {
-        var on = !flowMemo.isMode();
-        if (on && flowDrawingState) setFlowDrawingMode(flowDrawingState, null);
-        flowMemo.setMode(on);
-        button.classList.toggle('is-active', on);
-        button.setAttribute('aria-pressed', String(on));
-      };
-    }).catch(function () { /* 메모 모듈을 못 받아도 차트는 그대로 */ });
+    if (!button || !global.NineChartMemo) return;
+    var name = '';
+    var head = document.querySelector('#foreign-flow .ff-header'); if (head) name = Array.prototype.filter.call(head.childNodes, function (n) { return n.nodeType === 3; }).map(function (n) { return n.textContent; }).join('');
+    flowMemo = global.NineChartMemo.install({
+      container: container, chart: chart, series: series, bars: daily, code: code, name: name.trim() || code,
+      formatPrice: function (p) { return Number(p).toLocaleString() + '원'; },
+      isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
+    });
+    button.disabled = false;
+    button.onclick = function () {
+      var on = !flowMemo.isMode();
+      if (on && drawingCtl) drawingCtl.setMode(null);
+      flowMemo.setMode(on);
+      button.classList.toggle('is-active', on);
+      button.setAttribute('aria-pressed', String(on));
+    };
   }
 
   function destroyFlowMemo() {
@@ -5689,37 +5714,24 @@
 
   // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색 차트와 같은 계산·그림으로 맞춘다(2026-10-03 사용자 지적:
   // 같은 삼성전자 차트인데 지지/저항이 서로 달랐다 - 여기는 서버 levels + 파랑=지지였고 저기는 붉은색=지지).
-  var chartSrPromise = null;
   var flowSrCleanup = null;
-  function loadChartSrModule() {
-    if (global.NineChartSR) return Promise.resolve(global.NineChartSR);
-    if (chartSrPromise) return chartSrPromise;
-    chartSrPromise = new Promise(function (resolve, reject) {
-      var s = document.createElement('script');
-      s.src = KRX_MAP_JS.replace('/data/krx_map.js', '/js/chart-sr.js');
-      s.onload = function () { resolve(global.NineChartSR); };
-      s.onerror = function () { chartSrPromise = null; reject(new Error('chart-sr load failed')); };
-      document.head.appendChild(s);
-    });
-    return chartSrPromise;
-  }
   function setupFlowSupportResistance(container, chart, series, daily, fallbackLevels, LWC) {
     flowSrCtx = { container: container, chart: chart, series: series, daily: daily, levels: fallbackLevels, LWC: LWC };
-    if (!supportResistanceEnabled) return;
-    loadChartSrModule().then(function (api) {
-      if (!document.body.contains(container) || lwcChart !== chart || !supportResistanceEnabled || flowSrCleanup) return;
-      var result = api.levels(daily);
-      if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
-      flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); });
-    }).catch(function () { addLevelLines(series, LWC, fallbackLevels || {}, daily); });
+    if (!supportResistanceEnabled || flowSrCleanup) return;
+    var api = global.NineChartSR;
+    if (!api) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }   // 모듈을 못 받았으면 서버 levels 로 그린다
+    var result = api.levels(daily);
+    if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
+    flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); });
   }
 
-  // 재검색/언마운트 시 이전 차트 인스턴스와 다크모드 감시자를 정리(리스너 누수 방지)
+  // 재검색/언마운트 시 이전 차트 인스턴스·오버레이·구독을 정리(리스너 누수 방지)
   function destroyLwChart() {
+    flowRenderId++;
     if (flowSrCleanup) { flowSrCleanup(); flowSrCleanup = null; }
     destroyFlowMemo();
-    destroyFlowDrawing();
-    if (lwcThemeObserver) { lwcThemeObserver.disconnect(); lwcThemeObserver = null; }
+    destroyFlowOverlays();
+    if (lwcScope) { lwcScope.dispose(); lwcScope = null; }
     if (lwcChart) {
       try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ }
       lwcChart = null;
@@ -5731,42 +5743,6 @@
     ichimokuCloudPrimitive = null;
     lwcCandleSeries = null;
     vpPrimitive = null;
-  }
-
-  // 9bolt 스킨의 html.dark 토글은 새로고침 없이 클래스만 바뀌므로, 캔버스 기반 차트도
-  // 같이 갱신되게 색상을 여기 한 곳에서 계산한다(MutationObserver로 재적용).
-  function lwcThemeOptions(LWC) {
-    var dark = document.documentElement.classList.contains('dark');
-    return {
-      // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
-      // 링크를 사이트 어딘가에 별도로 넣어야 함(사용자가 나중에 문서 만들 예정, 아직 미작성).
-      layout: {
-        background: { color: 'transparent' },
-        textColor: dark ? '#aaa' : '#555',
-        attributionLogo: false,
-        panes: { enableResize: true, separatorColor: dark ? '#3a3a3a' : '#e5e7eb', separatorHoverColor: dark ? '#666' : '#cbd5e1' }
-      },
-      grid: {
-        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
-        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
-      },
-      // scaleMargins: 캔들이 세로로 납작해 보인다는 피드백(2026-07-19)으로 기본 여백(대략
-      // 위20%/아래10%)보다 좁혀 캔들이 세로 공간을 더 채우도록 함.
-      rightPriceScale: {
-        borderColor: dark ? '#3a3a3a' : '#ddd',
-        scaleMargins: { top: 0.06, bottom: 0.36 },
-        alignLabels: false
-      },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd', rightOffset: 6, minBarSpacing: 2, timeVisible: false, secondsVisible: false },
-      // 2026-07-28 사용자 리포트: 다크모드에서 차트 위에 안 어울리는 회색 네모(십자선
-      // 가격/시각 라벨의 기본 배경색 #4c525e, 라이브러리 기본값이라 다크 팔레트와 무관하게
-      // 고정)가 떴음 - 라벨 배경색을 명시적으로 테마에 맞게 지정해서 해결.
-      crosshair: {
-        mode: LWC.CrosshairMode.Normal,
-        vertLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' },
-        horzLine: { labelBackgroundColor: dark ? '#2a2a2a' : '#555' }
-      }
-    };
   }
 
   function chartDate(value) {
@@ -5812,24 +5788,16 @@
   // 0=가격, 1=거래량, 2=외국인·기관 순매수. RSI는 아래 별도 섹션에서 표시한다.
   function renderLwChart(container, chartData, code) {
     destroyLwChart();
+    var renderId = flowRenderId;
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
-    loadLightweightCharts().then(function (LWC) {
-      if (!document.body.contains(container)) return; // 로딩 중 다른 종목 재검색되면 중단
+    chartReady().then(function (LWC) {
+      if (renderId !== flowRenderId || !document.body.contains(container)) return; // 로딩 중 다른 종목 재검색되면 중단
+      var core = global.NineChartCore;
+      var scope = lwcScope = core.createScope('flow-chart');
+      // 글꼴은 종목명(.ff-header)에 실제로 렌더링되는 글꼴을 따른다(2026-10-13 종목분석 글꼴 통일 - css/foreign-flow.css 끝 참고).
+      var fontFamily = global.getComputedStyle ? global.getComputedStyle(container).fontFamily : '';
 
-      var chart = LWC.createChart(container, mergeOptions({
-        autoSize: true,
-        height: FCHART_H,
-        // crosshair는 lwcThemeOptions()에 있음(mergeOptions가 얕은 병합이라 두 곳에 나눠
-        // 쓰면 뒤에 오는 쪽이 통째로 덮어씀 - rightPriceScale과 동일한 이유).
-        timeScale: { timeVisible: false, secondsVisible: false, rightOffset: 6, minBarSpacing: 2 },
-        localization: { locale: 'ko-KR' },
-        layout: { panes: { enableResize: true, separatorColor: '#e5e7eb', separatorHoverColor: '#cbd5e1' } },
-        // 2026-07-19: 캔들이 세로로 너무 납작해 보인다는 피드백 - 가격축(오른쪽) 드래그로
-        // 직접 세로 확대가 가능하게 함(마우스 휠은 기존처럼 가로/시간축 확대). 위아래 여백은
-        // lwcThemeOptions()의 rightPriceScale에 같이 설정(mergeOptions가 얕은 병합이라
-        // 여기 쓰면 아래서 borderColor로 덮어써짐 - 두 값을 한 객체에 모아야 함).
-        handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
-      }, lwcThemeOptions(LWC)));
+      var chart = LWC.createChart(container, core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily }));
       lwcChart = chart;
       lwcChartContainer = container;
       chart.priceScale('right').applyOptions({
@@ -5838,44 +5806,22 @@
       });
 
       var daily = chartData.daily;
-      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: '#d24f45', downColor: '#1261c4',
-        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4',
-        priceFormat: {
-          type: 'custom',
-          minMove: 1,
-          formatter: chartPriceFormatter
-        }
-      });
-      candleSeries.priceScale().applyOptions({ scaleMargins: { top: 0.06, bottom: 0.36 } });
-      candleSeries.setData(daily.map(function (d) {
-        return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
-      }));
+      var candleSeries = core.addCandles(chart, LWC, daily, { type: 'custom', minMove: 1, formatter: chartPriceFormatter }, { top: 0.06, bottom: 0.36 });
       lwcCandleSeries = candleSeries;
 
       var levels = chartData.levels || {};
       setupFlowSupportResistance(container, chart, candleSeries, daily, levels, LWC);
 
-      ['ma5', 'ma20', 'ma60', 'ma224'].forEach(function (key) {
-        var series = (chartData.ma && chartData.ma[key]) || [];
-        if (!series.length) return;
-        var color = key === 'ma224' ? ma224Color() : MA_COLORS[key];
-        var lineSeries = chart.addSeries(LWC.LineSeries, {
-          color: color,
-          lineWidth: MA_WIDTHS[key],
-          priceLineVisible: false,
-          lastValueVisible: false,
-          crosshairMarkerVisible: false,
-          visible: movingAverageEnabled
-        });
+      // 이동평균선: 서버가 계산한 값(데이터 앞쪽의 부분 창 구간 포함)을 그대로 그린다. 시리즈 생성은 공용 부품.
+      core.maStudies().forEach(function (study) {
+        var values = (chartData.ma && chartData.ma[study.key]) || [];
+        if (!values.length) return;
         var pts = [];
         daily.forEach(function (d, i) {
-          if (series[i] == null) return;
-          pts.push({ time: d.date, value: series[i] });
+          if (values[i] == null) return;
+          pts.push({ time: d.date, value: values[i] });
         });
-        lineSeries.setData(pts);
-        movingAverageOverlaySeries.push(lineSeries);
+        movingAverageOverlaySeries.push(core.addMovingAverageLine(chart, LWC, study, pts, { visible: movingAverageEnabled }));
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
@@ -5883,31 +5829,8 @@
 
       // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
-      var volumeSeries = chart.addSeries(LWC.HistogramSeries, {
-        priceFormat: { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false
-      }, 1);
-      volumeSeries.setData(daily.map(function (d) {
-        return {
-          time: d.date,
-          value: Math.max(0, Number(d.volume) || 0),
-          color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)'
-        };
-      }));
-
-      var volumeMaPoints = movingAverageChartPoints(daily, 'volume', 20);
-      var volumeMaSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#3b82f6',
-        lineWidth: 2,
-        priceFormat: { type: 'volume' },
-        lastValueVisible: false,
-        priceLineVisible: false,
-        crosshairMarkerVisible: false
-      }, 1);
-      volumeMaSeries.setData(volumeMaPoints.map(function (point) {
-        return { time: point.time, value: Math.max(0, Number(point.value) || 0) };
-      }));
+      var volumePane = core.addVolumePane(chart, LWC, daily, { pane: 1 });
+      var volumeMaPoints = volumePane.ma20.points;
 
       var flowMap = {};
       (chartData.flow || []).forEach(function (row) { flowMap[chartDate(row.date)] = row; });
@@ -5975,215 +5898,56 @@
         chart.timeScale().fitContent();
       }
 
-      setupFlowDrawing(container, chart, candleSeries, code);
+      setupFlowOverlays(container, chart, candleSeries, daily, code, fontFamily);
       setupFlowMemo(container, chart, candleSeries, daily, code);
 
-      lwcThemeObserver = new MutationObserver(function () {
-        chart.applyOptions(lwcThemeOptions(LWC));
-      });
-      lwcThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+      // html.dark 토글에는 클래스만 바뀌므로 캔버스 차트 색도 같이 갱신한다(공용 감시자 - 차트 수와 무관하게 관찰자는 하나).
+      scope.theme(function () { chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily })); });
     }).catch(function () {
       container.innerHTML = '<div class="ff-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
   }
 
-  // 실시간 시세 차트와 같은 날짜·가격 좌표 저장 방식. 수급/거래량 패널은 덮지 않는다.
-  function flowDrawingStorageKey(code) {
-    return 'tistory-ticker:flow-drawings:' + String(code || '') + ':day';
-  }
+  // ---- 수동 그리기·자동 파동은 공용 모듈(js/chart-drawing.js, js/chart-wave-overlay.js) ----
+  // 실시간 시세 차트와 같은 날짜·가격 좌표 저장 방식이다. 가격 패널만 덮고 수급/거래량 패널은 덮지 않는다.
+  // 저장 키·형식은 예전과 같다(`tistory-ticker:flow-drawings:<종목>:day`, 직선·동그라미·연필).
+  var FLOW_DRAWING_STORE = {
+    key: function (code) { return 'tistory-ticker:flow-drawings:' + String(code || '') + ':day'; },
+    kinds: ['lines', 'circles', 'paths'],
+    legacyArray: false
+  };
+  var FLOW_DRAWING_TITLE = '도구 선택 후 왼쪽에서 오른쪽으로 드래그하세요.';
 
-  function loadFlowDrawings(code) {
-    try {
-      var saved = JSON.parse(global.localStorage.getItem(flowDrawingStorageKey(code)) || '{}');
-      return { lines: Array.isArray(saved.lines) ? saved.lines : [],
-        circles: Array.isArray(saved.circles) ? saved.circles : [],
-        paths: Array.isArray(saved.paths) ? saved.paths : [] };
-    } catch (ignore) { return { lines: [], circles: [], paths: [] }; }
-  }
-
-  function saveFlowDrawings(drawing) {
-    try { global.localStorage.setItem(flowDrawingStorageKey(drawing.code), JSON.stringify(drawing.saved)); }
-    catch (ignore) { /* 저장이 막혀도 현재 차트의 그리기는 유지한다. */ }
-  }
-
-  function flowDrawingCoordinate(drawing, point) {
-    if (!point) return null;
-    var x = drawing.chart.timeScale().timeToCoordinate(point.time);
-    var y = drawing.series.priceToCoordinate(point.price);
-    return x == null || y == null || !isFinite(x) || !isFinite(y) ? null : { x: x, y: y };
-  }
-
-  function redrawFlowDrawing(drawing) {
-    if (!drawing || !drawing.overlay.isConnected) return;
-    var panes = drawing.chart.panes();
-    var width = drawing.chart.timeScale().width();
-    var height = panes[0] ? panes[0].getHeight() : 0;
-    if (!(width > 0 && height > 0)) return;
-    var ratio = global.devicePixelRatio || 1;
-    var canvas = drawing.overlay;
-    canvas.style.width = width + 'px';
-    canvas.style.height = height + 'px';
-    var ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    if (canvas.width !== Math.round(width * ratio) || canvas.height !== Math.round(height * ratio)) {
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
-    }
-    ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    ctx.clearRect(0, 0, width, height);
-    ctx.strokeStyle = '#d24f45';
-    ctx.lineWidth = 2;
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    function shape(item, circle) {
-      var start = flowDrawingCoordinate(drawing, item.start);
-      var end = flowDrawingCoordinate(drawing, item.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      if (circle) {
-        var rx = Math.abs(end.x - start.x) / 2, ry = Math.abs(end.y - start.y) / 2;
-        if (rx < 0.5 || ry < 0.5) return;
-        ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2, rx, ry, 0, 0, Math.PI * 2);
-      } else { ctx.moveTo(start.x, start.y); ctx.lineTo(end.x, end.y); }
-      ctx.stroke();
-    }
-    function path(points) {
-      if (!Array.isArray(points)) return;
-      var started = false;
-      ctx.beginPath();
-      points.forEach(function (point) {
-        var p = flowDrawingCoordinate(drawing, point);
-        if (!p) return;
-        if (!started) { ctx.moveTo(p.x, p.y); started = true; }
-        else ctx.lineTo(p.x, p.y);
-      });
-      if (started) ctx.stroke();
-    }
-    drawing.saved.lines.forEach(function (item) { shape(item, false); });
-    drawing.saved.circles.forEach(function (item) { shape(item, true); });
-    drawing.saved.paths.forEach(path);
-    if (drawing.path) path(drawing.path);
-    if (drawing.start && drawing.end) shape({ start: drawing.start, end: drawing.end }, drawing.mode === 'circle');
-  }
-
-  function scheduleFlowDrawing(drawing) {
-    if (!drawing || drawing.frame != null) return;
-    drawing.frame = global.requestAnimationFrame(function () {
-      drawing.frame = null;
-      if (flowDrawingState === drawing) redrawFlowDrawing(drawing);
+  function flowDrawingButtons(container) {
+    var map = {};
+    Array.prototype.forEach.call(container.parentElement.querySelectorAll('[data-ff-draw]'), function (button) {
+      map[button.getAttribute('data-ff-draw')] = button;
     });
+    return map;
   }
 
-  function setFlowDrawingMode(drawing, mode) {
-    drawing.mode = mode;
-    drawing.start = drawing.end = drawing.path = null;
-    drawing.pointerId = null;
-    drawing.overlay.classList.toggle('is-active', !!mode);
-    drawing.buttons.forEach(function (button) {
-      var active = !!mode && button.getAttribute('data-ff-draw') === mode;
-      if (button.getAttribute('data-ff-draw') !== 'clear') button.setAttribute('aria-pressed', String(active));
-      button.classList.toggle('is-active', active);
-    });
-    redrawFlowDrawing(drawing);
+  function destroyFlowOverlays() {
+    if (forecastHandle) { forecastHandle.detach(); forecastHandle = null; }
+    if (waveHandle) { waveHandle.detach(); waveHandle = null; }
+    if (drawingCtl) { drawingCtl.detach(); drawingCtl = null; }
   }
 
-  function destroyFlowDrawing() {
-    var drawing = flowDrawingState;
-    if (!drawing) return;
-    flowDrawingState = null;
-    if (drawing.frame != null) global.cancelAnimationFrame(drawing.frame);
-    if (drawing.observer) drawing.observer.disconnect();
-    if (drawing.primitive) drawing.series.detachPrimitive(drawing.primitive);
-    drawing.buttons.forEach(function (button) {
-      button.onclick = null;
-      button.disabled = true;
-      button.classList.remove('is-active');
-      if (button.hasAttribute('aria-pressed')) button.setAttribute('aria-pressed', 'false');
+  function setupFlowOverlays(container, chart, series, daily, code, fontFamily) {
+    destroyFlowOverlays();
+    var core = global.NineChartCore, Drawing = global.NineChartDrawing;
+    if (!Drawing) return;
+    drawingCtl = Drawing.attach({
+      core: core, container: container, chart: chart, series: series, bars: daily, key: code, timeframe: 'day',
+      className: 'ff-drawing-layer', ariaLabel: '가격 차트 그리기 영역', title: FLOW_DRAWING_TITLE,
+      titles: { line: FLOW_DRAWING_TITLE, circle: FLOW_DRAWING_TITLE, pencil: FLOW_DRAWING_TITLE },
+      bounds: 'pricePane', point: 'timePrice', clampToCanvas: true, minLengthPx: 3,
+      tools: ['line', 'circle', 'pencil'], buttons: flowDrawingButtons(container), store: FLOW_DRAWING_STORE,
+      style: { stroke: '#d24f45', dots: false, previewDash: false },
+      sync: false, disableButtonsOnDetach: true
     });
-    drawing.overlay.remove();
-  }
-
-  function setupFlowDrawing(container, chart, series, code) {
-    destroyFlowDrawing();
-    var overlay = document.createElement('canvas');
-    overlay.className = 'ff-drawing-layer';
-    overlay.setAttribute('aria-label', '가격 차트 그리기 영역');
-    overlay.title = '도구 선택 후 왼쪽에서 오른쪽으로 드래그하세요.';
-    container.appendChild(overlay);
-    var drawing = { code: code, chart: chart, series: series, overlay: overlay, saved: loadFlowDrawings(code),
-      mode: null, start: null, end: null, path: null, pointerId: null, frame: null,
-      buttons: container.parentElement.querySelectorAll('[data-ff-draw]') };
-    flowDrawingState = drawing;
-    drawing.buttons.forEach(function (button) {
-      button.disabled = false;
-      button.onclick = function () {
-        var mode = button.getAttribute('data-ff-draw');
-        if (mode === 'clear') {
-          drawing.saved = { lines: [], circles: [], paths: [] };
-          saveFlowDrawings(drawing);
-          setFlowDrawingMode(drawing, null);
-        } else setFlowDrawingMode(drawing, drawing.mode === mode ? null : mode);
-      };
-    });
-    function point(event) {
-      var rect = overlay.getBoundingClientRect();
-      var x = event.clientX - rect.left, y = event.clientY - rect.top;
-      if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
-      var time = chart.timeScale().coordinateToTime(x), price = series.coordinateToPrice(y);
-      return time == null || price == null || !isFinite(price) ? null : { time: time, price: Number(price) };
-    }
-    overlay.addEventListener('pointerdown', function (event) {
-      if (!drawing.mode || drawing.pointerId != null || (event.button != null && event.button !== 0)) return;
-      var start = point(event);
-      if (!start) return;
-      event.preventDefault();
-      drawing.pointerId = event.pointerId;
-      drawing.start = drawing.end = start;
-      drawing.path = drawing.mode === 'pencil' ? [start] : null;
-      overlay.setPointerCapture(event.pointerId);
-    });
-    overlay.addEventListener('pointermove', function (event) {
-      if (drawing.pointerId !== event.pointerId) return;
-      var next = point(event);
-      if (!next) return;
-      drawing.end = next;
-      if (drawing.path) drawing.path.push(next);
-      redrawFlowDrawing(drawing);
-    });
-    function finish(event, cancelled) {
-      if (drawing.pointerId !== event.pointerId) return;
-      var end = point(event);
-      if (!cancelled && end && drawing.start) {
-        var a = flowDrawingCoordinate(drawing, drawing.start), b = flowDrawingCoordinate(drawing, end);
-        if (drawing.mode === 'pencil') {
-          if (drawing.path.length > 1) { drawing.path.push(end); drawing.saved.paths.push(drawing.path); }
-        } else if (a && b && Math.hypot(b.x - a.x, b.y - a.y) >= 3) {
-          drawing.saved[drawing.mode === 'circle' ? 'circles' : 'lines'].push({ start: drawing.start, end: end });
-        }
-        saveFlowDrawings(drawing);
-      }
-      drawing.start = drawing.end = drawing.path = null;
-      drawing.pointerId = null;
-      if (overlay.hasPointerCapture(event.pointerId)) overlay.releasePointerCapture(event.pointerId);
-      redrawFlowDrawing(drawing);
-    }
-    overlay.addEventListener('pointerup', function (event) { finish(event, false); });
-    overlay.addEventListener('pointercancel', function (event) { finish(event, true); });
-    // 차트의 가격축 확대·시간축 이동·패널 크기 변경에도 날짜/가격 좌표를 다시 투영한다.
-    drawing.primitive = { updateAllViews: function () { scheduleFlowDrawing(drawing); }, paneViews: function () { return []; } };
-    series.attachPrimitive(drawing.primitive);
-    if (global.ResizeObserver) {
-      drawing.observer = new global.ResizeObserver(function () { scheduleFlowDrawing(drawing); });
-      drawing.observer.observe(container);
-    }
-    redrawFlowDrawing(drawing);
-  }
-
-  function mergeOptions(a, b) {
-    var out = {};
-    for (var k in a) out[k] = a[k];
-    for (var k2 in b) out[k2] = b[k2];
-    return out;
+    flowChartFont = fontFamily || 'sans-serif';
+    if (waveState.enabled) applyFlowWave();   // 켜 둔 상태에서 종목이 바뀌면 새 차트에도 바로 붙인다
+    if (forecastState.enabled) applyFlowForecast();
   }
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
@@ -6262,28 +6026,7 @@
     draw(levels.support, '#1261c4', '지지');
     draw(levels.resistance, '#d24f45', '저항');
   }
-  function movingAverageChartPoints(bars, field, period) {
-    var sum = 0;
-    var points = [];
-    bars.forEach(function (bar, i) {
-      sum += Number(bar[field]) || 0;
-      if (i >= period) sum -= Number(bars[i - period][field]) || 0;
-      if (i >= period - 1) points.push({ time: bar.date, value: sum / period });
-    });
-    return points;
-  }
-  function compactChartVolume(value) {
-    var n = Number(value) || 0;
-    function scaled(divisor, suffix) {
-      var v = n / divisor;
-      var digits = v >= 100 ? 0 : v >= 10 ? 1 : 2;
-      return v.toFixed(digits).replace(/0+$/, '').replace(/\.$/, '') + suffix;
-    }
-    if (Math.abs(n) >= 1000000000) return scaled(1000000000, 'B');
-    if (Math.abs(n) >= 1000000) return scaled(1000000, 'M');
-    if (Math.abs(n) >= 1000) return scaled(1000, 'K');
-    return Math.round(n).toLocaleString('ko-KR');
-  }
+  function compactChartVolume(value) { return global.NineChartCore.compactVolume(value); }
   function fmtPct(v) { return v == null || isNaN(v) ? '-' : v.toFixed(2) + '%'; }
   function fmtSignedPct(v) {
     if (v == null || isNaN(v)) return '-';

@@ -44,8 +44,8 @@ console.log(JSON.stringify({calls:calls.length,settled:true}));
         source = (ROOT / 'js/stock-search.js').read_text(encoding='utf-8')
         renderer = source[source.index('function renderLwChart('):]
         self.assertIn('autoSize: false', renderer)
-        self.assertIn('stockChartResizeObserver.disconnect()', renderer)
-        self.assertIn('new global.ResizeObserver(resizeStockChart)', renderer)
+        self.assertIn('stockChartResizeOff()', renderer)
+        self.assertIn('core.observeResize(container, resizeStockChart)', renderer)
         modal = (ROOT / 'js/dashboard-enhancements.js').read_text(encoding='utf-8')
         self.assertIn('if (chartTarget && !stockRoot)', modal)
         css = (ROOT / 'css/dashboard-enhancements.css').read_text(encoding='utf-8')

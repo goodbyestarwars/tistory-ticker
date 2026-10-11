@@ -1,12 +1,5 @@
-/* 차트 도형 계정 저장 로직 검증(브라우저 없이): stock-search.js의 동기화 함수 구간을 가짜 fetch로 실행한다. */
-const fs = require('fs');
-const vm = require('vm');
+/* 차트 도형 계정 저장 로직 검증(브라우저 없이): 공용 js/chart-drawing.js 의 동기화 함수를 가짜 fetch로 실행한다. */
 const assert = require('assert');
-const src = fs.readFileSync(__dirname + '/../js/stock-search.js', 'utf8');
-const a = src.indexOf('  var DRAWING_API_URL'), b = src.indexOf('  function stockDrawingStorageKey(key, timeframe) {');
-assert(a > 0 && b > a);
-const code = src.slice(a, b);
-
 const server = { authed: true, rows: {}, puts: [], gets: 0, authCalls: 0, conflictOnce: false };
 function resp(status, body) { return Promise.resolve({ status, ok: status < 300, json: () => Promise.resolve(body) }); }
 function fakeFetch(url, opt) {
@@ -26,13 +19,12 @@ function fakeFetch(url, opt) {
   return resp(200, { data: { revision: cur + 1 } });
 }
 let timers = [];
-const sandbox = {
-  fetch: fakeFetch, encodeURIComponent, URL, JSON, Math, Object, Array, String, Promise,
-  global: { clearTimeout: (t) => { timers = timers.filter((x) => x !== t); }, setTimeout: (fn) => { const t = { fn }; timers.push(t); return t; }, addEventListener() {} },
-  stockDrawingState: null, redrawStockDrawing() {}, writeStockDrawingsLocal() { sandbox.localWrites++; }, localWrites: 0
-};
-vm.createContext(sandbox);
-vm.runInContext(code + '\nthis.scheduleDrawingPush=scheduleDrawingPush;this.pullDrawings=pullDrawings;this.drawingSync=drawingSync;this.drawingsPayload=drawingsPayload;this.thin=thinDrawingPath;', sandbox);
+globalThis.fetch = fakeFetch;
+globalThis.setTimeout = (fn) => { const t = { fn }; timers.push(t); return t; };
+globalThis.clearTimeout = (t) => { timers = timers.filter((x) => x !== t); };
+const Drawing = require('../js/chart-drawing.js');
+const sync = Drawing._sync;
+const sandbox = { localWrites: 0, pullDrawings: (d, current) => sync.pull(d, current, () => { sandbox.localWrites++; }), scheduleDrawingPush: sync.schedulePush, drawingSync: sync.state, drawingsPayload: sync.payload, thin: sync.thin, stockDrawingState: null };
 const tick = () => new Promise((r) => setImmediate(r));
 const fire = async () => { const t = timers.slice(); timers = []; t.forEach((x) => x.fn()); for (let i = 0; i < 8; i++) await tick(); };
 const pt = (n) => ({ time: 't' + n, price: n, logical: n });
@@ -41,7 +33,7 @@ const pt = (n) => ({ time: 't' + n, price: n, logical: n });
   const drawing = { key: '005930', timeframe: 'day', lines: [], paths: [], circles: [], hlines: [{ price: 1500000, _y: 3, _label: {} }], boxes: [] };
   sandbox.stockDrawingState = drawing;
   // 1) 서버에 없고 로컬에 있으면 한 번 올린다(이전)
-  sandbox.pullDrawings(drawing); for (let i = 0; i < 10; i++) await tick();
+  sandbox.pullDrawings(drawing, () => sandbox.stockDrawingState === drawing); for (let i = 0; i < 10; i++) await tick();
   assert.strictEqual(server.puts.length, 1, '로컬 도형을 첫 이전으로 올린다');
   assert.deepStrictEqual(server.puts[0].drawings.hlines, [{ price: 1500000 }], '내부 필드(_y 등)는 올리지 않는다');
   assert.strictEqual(server.rows['005930|day'].revision, 1);
@@ -57,13 +49,13 @@ const pt = (n) => ({ time: 't' + n, price: n, logical: n });
   const other = { key: '000660', timeframe: 'day', lines: [], paths: [], circles: [], hlines: [], boxes: [] };
   sandbox.stockDrawingState = other;
   const putsBefore = server.puts.length;
-  sandbox.pullDrawings(other); for (let i = 0; i < 10; i++) await tick();
+  sandbox.pullDrawings(other, () => sandbox.stockDrawingState === other); for (let i = 0; i < 10; i++) await tick();
   assert.strictEqual(other.lines.length, 1); assert.strictEqual(other.hlines[0].price, 5);
   assert.strictEqual(server.puts.length, putsBefore, '서버 값을 받을 때는 다시 올리지 않는다');
   // 4) 그 사이 종목이 바뀌면 늦게 온 응답을 적용하지 않는다
   const stale = { key: '035420', timeframe: 'day', lines: [], paths: [], circles: [], hlines: [], boxes: [] };
   server.rows['035420|day'] = { drawings: { hlines: [{ price: 9 }] }, revision: 1 };
-  sandbox.stockDrawingState = stale; sandbox.pullDrawings(stale); sandbox.stockDrawingState = other;
+  sandbox.stockDrawingState = stale; sandbox.pullDrawings(stale, () => sandbox.stockDrawingState === stale); sandbox.stockDrawingState = other;
   for (let i = 0; i < 10; i++) await tick();
   assert.strictEqual(stale.hlines.length, 0, '오래된 응답은 버린다');
   // 5) 409 충돌: 최신 revision을 받아 한 번 더 저장
@@ -82,7 +74,7 @@ const pt = (n) => ({ time: 't' + n, price: n, logical: n });
   sandbox.drawingSync.authPromise = Promise.resolve(false);
   const d3 = { key: '111111', timeframe: 'day', lines: [], paths: [], circles: [], hlines: [{ price: 1 }], boxes: [] };
   sandbox.stockDrawingState = d3; const n2 = server.puts.length, g2 = server.gets;
-  sandbox.scheduleDrawingPush(d3); await fire(); sandbox.pullDrawings(d3); for (let i = 0; i < 6; i++) await tick();
+  sandbox.scheduleDrawingPush(d3); await fire(); sandbox.pullDrawings(d3, () => true); for (let i = 0; i < 6; i++) await tick();
   assert.strictEqual(server.puts.length, n2); assert.strictEqual(server.gets, g2);
   // 8) 연필 점 솎기
   const long = Array.from({ length: 1000 }, (_, i) => pt(i));

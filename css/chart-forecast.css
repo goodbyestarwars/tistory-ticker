@@ -1,0 +1,67 @@
+/* 다음 파동 예측(js/chart-forecast-overlay.js) - 차트검색·종목분석 공통. 간결한 표 중심, 카드·그라데이션 없음.
+   상승 빨강 #d24f45 · 하락 파랑 #1261c4 · 횡보 회색. 다크모드는 html.dark 에서 글자·선 색만 바꾼다. */
+:is(#stock-search, #foreign-flow) .ss-forecast-group,
+:is(#stock-search, #foreign-flow) .ff-forecast-group { display: inline-flex; align-items: center; margin-left: 8px; }
+:is(#stock-search, #foreign-flow) .ss-forecast-group[hidden],
+:is(#stock-search, #foreign-flow) .ff-forecast-group[hidden] { display: none; }
+:is(#stock-search, #foreign-flow) [data-chart-forecast-opts] { display: inline-flex; align-items: center; flex-wrap: wrap; }
+:is(#stock-search, #foreign-flow) [data-chart-forecast-opts][hidden] { display: none; }
+:is(#stock-search, #foreign-flow) .ss-forecast-btn,
+:is(#stock-search, #foreign-flow) .ff-forecast-btn { margin: 0; padding: 3px 9px; border: 1px solid #d7dee8; border-right-width: 0; border-radius: 0; background: rgb(255, 254, 252); color: #666; font: 600 12px/1.4 inherit; cursor: pointer; }
+:is(#stock-search, #foreign-flow) .ss-forecast-btn:first-child,
+:is(#stock-search, #foreign-flow) .ff-forecast-btn:first-child { border-radius: 4px 0 0 4px; }
+:is(#stock-search, #foreign-flow) .ss-forecast-btn:last-child,
+:is(#stock-search, #foreign-flow) .ff-forecast-btn:last-child { border-right-width: 1px; border-radius: 0 4px 4px 0; }
+:is(#stock-search, #foreign-flow) .ss-forecast-btn.active,
+:is(#stock-search, #foreign-flow) .ff-forecast-btn.active { border-color: #222; background: #222; color: #fff; }
+html.dark :is(#stock-search, #foreign-flow) .ss-forecast-btn,
+html.dark :is(#stock-search, #foreign-flow) .ff-forecast-btn { border-color: rgba(245, 239, 224, 0.2); background: transparent; color: rgba(245, 239, 224, 0.7) !important; }
+html.dark :is(#stock-search, #foreign-flow) .ss-forecast-btn.active,
+html.dark :is(#stock-search, #foreign-flow) .ff-forecast-btn.active { border-color: #F5EFE0; background: #F5EFE0; color: #1A1A1A !important; }
+
+.nc-forecast { margin: 10px 0 0; padding: 10px 0 0; border-top: 1px solid #e5e7eb; font-size: 12.5px; line-height: 1.55; color: #333; text-align: left; }
+.nc-forecast[hidden] { display: none; }
+.nc-forecast .nc-fc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
+.nc-forecast .nc-fc-head strong { font-size: 14px; }
+.nc-forecast .nc-fc-head em { font-style: normal; color: #8b6f00; font-size: 12px; }
+.nc-forecast .nc-fc-asof { margin-left: auto; color: #8b95a1; font-size: 11.5px; }
+.nc-forecast .nc-fc-state, .nc-forecast .nc-fc-main { margin-top: 4px; }
+.nc-forecast .nc-fc-up { color: #d24f45; font-weight: 700; }
+.nc-forecast .nc-fc-down { color: #1261c4; font-weight: 700; }
+.nc-forecast .nc-fc-flat { color: #666; font-weight: 700; }
+.nc-forecast .nc-fc-dim { color: #98a2b3; }
+.nc-forecast .nc-fc-table { width: 100%; margin: 8px 0 4px; border-collapse: collapse; table-layout: fixed; }
+.nc-forecast .nc-fc-table th { padding: 5px 6px; border-top: 1px solid #cbd2d8; border-bottom: 1px solid #cbd2d8; background: transparent; color: #64748b; font-size: 12px; font-weight: 700; text-align: left; white-space: nowrap; }
+.nc-forecast .nc-fc-table td { padding: 6px; border-bottom: 1px solid #eef2f6; vertical-align: top; word-break: keep-all; overflow-wrap: anywhere; }
+.nc-forecast .nc-fc-table tr.is-off td { opacity: .6; }
+.nc-forecast .nc-fc-table tr.is-primary td { background: rgba(17, 17, 17, .03); }
+.nc-forecast .nc-fc-table th:nth-child(1) { width: 17%; } .nc-forecast .nc-fc-table th:nth-child(2) { width: 9%; }
+.nc-forecast .nc-fc-table th:nth-child(3) { width: 25%; } .nc-forecast .nc-fc-table th:nth-child(4) { width: 25%; }
+.nc-forecast .nc-fc-table label { display: inline-flex; align-items: baseline; gap: 4px; cursor: pointer; }
+.nc-forecast .nc-fc-sub { margin-top: 4px; color: #475467; }
+.nc-forecast .nc-fc-sub b { color: #222; }
+.nc-forecast .nc-fc-foot, .nc-forecast .nc-fc-note { margin-top: 6px; color: #8b95a1; font-size: 11.5px; }
+html.dark .nc-forecast { border-top-color: rgba(245, 239, 224, .18); color: rgba(245, 239, 224, .85) !important; }
+html.dark .nc-forecast * { color: inherit; }
+html.dark .nc-forecast .nc-fc-up { color: #ff8a83 !important; }
+html.dark .nc-forecast .nc-fc-down { color: #80b8ff !important; }
+html.dark .nc-forecast .nc-fc-flat { color: rgba(245, 239, 224, .7) !important; }
+html.dark .nc-forecast .nc-fc-dim, html.dark .nc-forecast .nc-fc-asof, html.dark .nc-forecast .nc-fc-foot, html.dark .nc-forecast .nc-fc-note { color: rgba(245, 239, 224, .5) !important; }
+html.dark .nc-forecast .nc-fc-head em { color: #d9b44a !important; }
+html.dark .nc-forecast .nc-fc-table th { border-color: rgba(245, 239, 224, .22); color: rgba(245, 239, 224, .6) !important; }
+html.dark .nc-forecast .nc-fc-table td { border-color: rgba(245, 239, 224, .1); }
+html.dark .nc-forecast .nc-fc-table tr.is-primary td { background: rgba(245, 239, 224, .05); }
+html.dark .nc-forecast .nc-fc-sub { color: rgba(245, 239, 224, .75) !important; }
+html.dark .nc-forecast .nc-fc-sub b { color: #F5EFE0 !important; }
+@media (max-width: 720px) {
+  .nc-forecast .nc-fc-table, .nc-forecast .nc-fc-table thead, .nc-forecast .nc-fc-table tbody, .nc-forecast .nc-fc-table tr, .nc-forecast .nc-fc-table td { display: block; width: 100%; }
+  .nc-forecast .nc-fc-table thead { display: none; }
+  .nc-forecast .nc-fc-table tr { padding: 6px 0; border-bottom: 1px solid #eef2f6; }
+  .nc-forecast .nc-fc-table td { padding: 1px 0; border: 0; }
+  .nc-forecast .nc-fc-table tr.is-off td:not(:first-child) { display: none; }   /* 성립하지 않은 시나리오는 이름만 */
+  .nc-forecast .nc-fc-table td:nth-child(2)::before { content: '상태 '; color: #98a2b3; }
+  .nc-forecast .nc-fc-table td:nth-child(3)::before { content: '확인 '; color: #98a2b3; }
+  .nc-forecast .nc-fc-table td:nth-child(4)::before { content: '무효화 '; color: #98a2b3; }
+  .nc-forecast .nc-fc-table td:nth-child(5)::before { content: '통계 '; color: #98a2b3; }
+  .nc-forecast .nc-fc-asof { margin-left: 0; flex-basis: 100%; }
+}

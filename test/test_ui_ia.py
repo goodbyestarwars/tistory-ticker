@@ -2068,10 +2068,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_stock_search_minute_chart_shows_time_of_day(self):
         # 2026-08-05(3차) 사용자 리포트: 분봉 X축이 날짜만 반복 표시됨 - 분봉일 때만
         # timeVisible을 켜서 시:분(HH:mm)이 보이게 했다(일/주/월봉은 날짜 문자열이라 그대로).
-        source = self.read("js/stock-search.js")
-        self.assertIn("function lwcThemeOptions(LWC, timeframe)", source)
-        self.assertIn("timeVisible: timeframe === 'minute'", source)
-        self.assertIn("lwcThemeOptions(LWC, timeframe)", source)
+        source = self.read("js/chart-core.js")
+        self.assertIn("function chartOptions(LWC, profileName, opts)", source)
+        self.assertIn("timeVisible: tf === 'minute'", source)
+        self.assertIn("timeframe: timeframe,", self.read("js/stock-search.js"))
 
     def test_stock_search_candle_hover_shows_complete_ohlc(self):
         """봉을 가리킬 때 종가만 축에서 추측하지 않도록 OHLC를 함께 보여 준다."""
@@ -2254,26 +2254,26 @@ class UiInformationArchitectureTest(unittest.TestCase):
     def test_stock_search_renders_requested_price_studies_without_resizing_chart(self):
         source = self.read("js/stock-search.js")
         style = self.read("css/stock-search.css")
-        self.assertIn("{ period: 5, label: '5'", source)
-        self.assertIn("{ period: 20, label: '20'", source)
-        self.assertIn("{ period: 60, label: '60'", source)
-        self.assertIn("{ period: 224, label: '224'", source)
+        core = self.read("js/chart-core.js")
+        self.assertIn("{ key: 'ma5', period: 5, color: '#d24f45', width: 1 }", core)
+        self.assertIn("{ key: 'ma20', period: 20, color: '#1261c4', width: 1 }", core)
+        self.assertIn("{ key: 'ma60', period: 60, color: '#0ca678', width: 1 }", core)
+        self.assertIn("{ key: 'ma224', period: 224, color: null, width: 3 }", core)   # 224일선만 굵게
         self.assertIn("function chartPriceText(value, isUsChart)", source)
-        self.assertIn("'$' + parsed.toLocaleString('en-US'", source)
+        self.assertIn("function priceText(value, isUs)", core)
+        self.assertIn("'$' + n.toLocaleString('en-US'", core)
         self.assertIn("var priceMinMove = isUsChart ? 0.01 : 1", source)
-        self.assertIn("fontFamily: fontFamily", source)
+        self.assertIn("fontFamily: global.getComputedStyle", source)
+        self.assertIn("layout.fontFamily = opts.fontFamily", core)
         self.assertIn("font-family: inherit", style)
-        self.assertIn("color: '#d24f45'", source)
-        self.assertIn("color: '#1261c4'", source)
-        self.assertIn("color: '#0ca678'", source)
-        self.assertIn("study.period === 224 ? 3 : 1", source)
         self.assertIn("id=\"ssMovingAverageToggle\"", source)
         self.assertIn("id=\"ssIchimokuToggle\"", source)
-        self.assertIn("ichimokuCloudPoints(bars, timeframe)", source)
-        self.assertIn("rollingMidpointValues(bars, 9)", source)
-        self.assertIn("rollingMidpointValues(bars, 26)", source)
-        self.assertIn("rollingMidpointValues(bars, 52)", source)
-        self.assertIn("sourceTime: bars[i].date", source)
+        self.assertIn("core.ichimokuCloudPoints(bars, timeframe)", source)
+        self.assertIn("rollingMidpoint(bars, ICHIMOKU.tenkan)", core)
+        self.assertIn("rollingMidpoint(bars, ICHIMOKU.kijun)", core)
+        self.assertIn("rollingMidpoint(bars, ICHIMOKU.senkouB)", core)
+        self.assertIn("tenkan: 9, kijun: 26, senkouB: 52, displacement: 26", core)
+        self.assertIn("sourceTime: bars[i].date", core)
         self.assertIn("if (!Number.isFinite(x) && point.sourceTime)", source)
         self.assertIn("installIchimokuCloudCanvas", source)
         self.assertIn("function activeStockChartElement(container)", source)
@@ -2288,8 +2288,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn(".ss-ichimoku-cloud", style)
         self.assertIn(".ss-price-study-label", style)
         self.assertIn(".ss-chart { position: relative; height: 420px; }", style)
-        self.assertIn("function setupStockDrawing", source)
-        self.assertIn("stockDrawingStorageKey", source)
+        self.assertIn("function setupStockOverlays", source)
+        self.assertIn("STOCK_DRAWING_STORE", source)
+        self.assertIn("tistory-ticker:stock-drawings:", source)
         self.assertIn(".ss-drawing-layer.is-active", style)
 
     def test_us_stock_detail_uses_site_font_and_consistent_type_scale(self):
@@ -2343,18 +2344,19 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn('class="ss-pencil-toggle"', search)
         self.assertIn('class="ss-circle-toggle"', search)
         self.assertIn('class="ss-draw-clear"', search)
-        self.assertIn("function setupStockDrawing", search)
-        self.assertIn("function loadStockDrawings", search)
-        self.assertIn("function saveStockDrawings", search)
-        self.assertIn("drawing.paths.push(drawing.activePath)", search)
-        self.assertIn("overlay.addEventListener('pointerdown'", search)
-        self.assertIn("overlay.addEventListener('pointermove'", search)
-        self.assertIn("else if (drawing.mode === 'line' || drawing.mode === 'circle' || drawing.mode === 'box') drawing.pending = point", search)
-        self.assertIn("else drawing.lines.push(shape)", search)
+        drawing = self.read("js/chart-drawing.js")
+        self.assertIn("function setupStockOverlays", search)
+        self.assertIn("function loadShapes(store, key, timeframe)", drawing)
+        self.assertIn("function writeShapesLocal(store, d)", drawing)
+        self.assertIn("d.paths.push(d.activePath)", drawing)
+        self.assertIn("scope.on(overlay, 'pointerdown', onPointerDown)", drawing)
+        self.assertIn("scope.on(overlay, 'pointermove', onPointerMove)", drawing)
+        self.assertIn("else if (d.mode === 'line' || d.mode === 'circle' || d.mode === 'box') d.pending = point", drawing)
+        self.assertIn("} else if (longEnough) d.lines.push(shape)", drawing)
         # 선과 동그라미는 왼쪽에서 오른쪽으로 끌어 완성하는 동일한 포인터 제스처를 쓴다.
-        self.assertIn("if (drawing.mode === 'circle') drawing.circles.push(shape)", search)
-        self.assertIn("왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선", search)
-        self.assertIn("ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, Math.PI * 2)", search)
+        self.assertIn("if (d.mode === 'circle') { if (longEnough) d.circles.push(shape); }", drawing)
+        self.assertIn("왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선", drawing)
+        self.assertIn("ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2, rx, ry, 0, 0, Math.PI * 2)", drawing)
         self.assertIn("#stock-search .ss-circle-toggle", self.read("css/stock-search.css"))
         self.assertIn(".us-stocks-market-grid > *", style)
         self.assertIn(".us-stocks-market-grid > .us-stocks-panel { padding: 0; border: 0;", style)
@@ -3310,18 +3312,21 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
 
     def test_lightweight_charts_uses_v5_api_across_chart_modules(self):
         files = (
+            "js/chart-core.js",   # 차트검색·종목분석은 라이브러리를 공통 엔진에서 한 번만 받는다
             "js/domestic-market-indicators.js",
-            "js/foreign-flow.js",
             "js/kospi-futures.js",
             "js/overnight-market.js",
             "js/pattern-scan.js",
             "js/quick-indices.js",
-            "js/stock-search.js",
         )
         for filename in files:
             source = self.read(filename)
             self.assertIn("lightweight-charts@5.2.0", source, filename)
-            self.assertNotRegex(source, r"add(?:Line|Area|Candlestick|Histogram)Series\(")
+        for filename in files + ("js/foreign-flow.js", "js/stock-search.js"):
+            self.assertNotRegex(self.read(filename), r"add(?:Line|Area|Candlestick|Histogram)Series\(", filename)
+        for filename in ("js/foreign-flow.js", "js/stock-search.js"):
+            self.assertNotIn("lightweight-charts@", self.read(filename), filename)
+            self.assertIn("js/chart-core.js", self.read(filename), filename)
         self.assertIn("createSeriesMarkers(candleSeries, markers)", self.read("js/pattern-scan.js"))
 
     def test_earnings_calendar_allows_supported_tistory_origins(self):
@@ -3955,11 +3960,12 @@ console.log(JSON.stringify(cases.map(function (iso) {
         self.assertIn("if (/^[0-9A-Za-z]{6}$/.test(query))", flow)
 
     def test_stock_chart_mouse_wheel_zoom_enlarges_candles(self):
-        source = self.read("js/stock-search.js")
+        source = self.read("js/chart-core.js")
         self.assertIn("handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }", source)
         self.assertIn("handleScroll: { mouseWheel: true, pressedMouseMove: true", source)
-        self.assertIn("barSpacing: timeframe === 'minute' ? 9 : 7", source)
+        self.assertIn("barSpacing: tf === 'minute' ? 9 : 7", source)
         self.assertIn("minBarSpacing: 3", source)
+        self.assertIn("core.chartOptions(LWC, 'search'", self.read("js/stock-search.js"))
 
     def test_pattern_scan_exposes_post_recommendation_tracking(self):
         source = self.read("js/pattern-scan.js")

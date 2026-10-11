@@ -21,12 +21,14 @@ const container = {querySelector(selector) {
 let source = fs.readFileSync('js/stock-search.js', 'utf8');
 source = source.replace('global.StockSearch = { init: init };', `
   global.chartTest = {loadChart: loadChart, state: state, resolveName: resolveDomesticName};
+  chartReady = function () {return Promise.resolve({});};   // 엔진 로드는 이 시험의 관심사가 아니다
   renderMinuteChart = function () {renders.push('minute');};
   renderLwChart = function (element, bars, tf) {renders.push(tf);};
   startMinuteRefresh = function () {};
   stopMinuteRefresh = function () {};
   global.StockSearch = { init: init };`);
 const window = {addEventListener() {}};
+vm.runInNewContext(fs.readFileSync('js/chart-data.js', 'utf8'), {window, Date, Promise, JSON, Math, Array, Object, String});   // 실제 공용 데이터 계층
 vm.runInNewContext(source, {window, console, setTimeout, clearTimeout, renders,
   document: {readyState: 'loading', addEventListener() {}, querySelector() {return null;}},
   fetch(url) {requests.push(url); return fixture.fail ? Promise.reject(new Error('offline'))
@@ -35,7 +37,7 @@ vm.runInNewContext(source, {window, console, setTimeout, clearTimeout, renders,
   window.chartTest.state.selectedCode = '468670';
   window.chartTest.loadChart(container, '468670');
   if (fixture.switchStock) window.chartTest.state.selectedCode = '005930';
-  for (let i = 0; i < 4; i++) await new Promise(setImmediate);
+  for (let i = 0; i < 12; i++) await new Promise(setImmediate);
   if (fixture.reload) window.chartTest.loadChart(container, '468670');
   console.log(JSON.stringify({renders, requests, chart, notice, scope, buttons,
     timeframe: window.chartTest.state.timeframe,
@@ -63,7 +65,7 @@ class MissingDailyChartTest(unittest.TestCase):
         self.assertEqual(result['byName'], {'name': '브릴스', 'code': '468670'})
 
     def test_regular_daily_data_stays_on_daily_chart(self):
-        result = self.run_chart(payload={'daily': [{'date': '2026-09-30', 'close': 10000}]})
+        result = self.run_chart(payload={'daily': [{'date': '2026-09-30', 'open': 9900, 'high': 10100, 'low': 9800, 'close': 10000, 'volume': 1000}]})
         self.assertEqual(result['renders'], ['day'])
         self.assertTrue(result['notice']['hidden'])
 
