@@ -21,7 +21,7 @@ def load_env():
     path = os.path.join(HERE, '.env')
     if not os.path.exists(path):
         return
-    with open(path, encoding='utf-8') as f:
+    with open(path, encoding='utf-8-sig') as f:      # 메모장이 BOM 을 붙여 저장해도 첫 줄 키가 깨지지 않게
         for line in f:
             line = line.strip()
             if not line or line.startswith('#') or '=' not in line:

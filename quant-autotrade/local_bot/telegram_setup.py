@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """텔레그램 연결 설정 도구(이 PC의 콘솔에서 직접 실행). 값은 .env 에만 저장하고 화면·로그에는 가려서 보여 준다.
 
-  python telegram_setup.py            봇 토큰 입력(화면에 보이지 않음) -> 일회용 코드 페어링 -> 허용 사용자·채팅 ID 를 .env 에 저장
+  python telegram_setup.py            .env 를 메모장으로 열어 토큰을 붙여 넣게 함 -> 일회용 코드 페어링 -> 허용 사용자·채팅 ID 를 .env 에 저장
+  python telegram_setup.py --type     메모장 대신 콘솔에 직접 입력(입력한 토큰이 화면에 보임)
   python telegram_setup.py --repair   이미 연결돼 있어도 다시 페어링(다른 계정으로 바꿀 때)
   python telegram_setup.py --test     연결 확인 메시지를 실제로 보낸다
   python telegram_setup.py --status   설정 상태 확인(값은 가림)
@@ -9,9 +10,10 @@
 페어링 보안: 코드는 PC 화면에만 나온다(8자리, 10분 유효, 5회 틀리면 중단). 개인 채팅에서 온 /pair 코드만 받는다.
 처음 /start 를 누른 사람을 자동 등록하는 경로는 없다. 봇이 실행 중이면(수신 충돌) 먼저 멈춰야 하므로 telegram_setup.bat 을 쓰면 편하다.
 """
-import getpass
 import os
+import re
 import secrets
+import subprocess
 import sys
 import time
 
@@ -24,6 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ENV_PATH = os.path.join(HERE, '.env')
 CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'      # 0/O, 1/I 처럼 헷갈리는 글자 제외
 CODE_LEN, CODE_TTL_SEC, MAX_ATTEMPTS = 8, 600, 5
+TOKEN_SHAPE = re.compile(r'^\d{6,12}:[A-Za-z0-9_-]{30,}$')
 
 
 class PairingSession:
@@ -117,6 +120,43 @@ def run_pairing(api, env_path, session, out=print, poll_timeout=20, stop_after=N
     return None
 
 
+def read_env_value(path, key):
+    """.env 에서 key 의 값을 읽는다(없으면 None). BOM·따옴표·공백은 정리한다."""
+    if not os.path.exists(path):
+        return None
+    with open(path, encoding='utf-8-sig') as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith('#') and '=' in line:
+                k, v = line.split('=', 1)
+                if k.strip() == key:
+                    return v.strip().strip('"').strip("'").strip()
+    return None
+
+
+def clean_token(text):
+    """붙여 넣은 토큰의 공백·따옴표·'bot' 접두어를 정리한다."""
+    token = (text or '').strip().strip('"').strip("'").strip()
+    return token[3:] if token.lower().startswith('bot') and ':' in token else token
+
+
+def ask_token(env_path, typed=False, out=print):
+    """토큰을 받는다. 기본은 .env 를 메모장으로 열어 붙여 넣게 한다(Windows 콘솔의 숨김 입력은 붙여넣기가 되지 않는다).
+    토큰이 콘솔에 나타나지 않으므로 화면 공유·캡처에도 안전하다. --type 은 콘솔에 직접 입력(화면에 보임)."""
+    if typed:
+        out('봇 토큰을 붙여 넣고 Enter 를 누르세요(입력한 내용이 화면에 보입니다):')
+        return clean_token(input('토큰: '))
+    if read_env_value(env_path, 'TELEGRAM_BOT_TOKEN') is None:
+        update_env_file(env_path, {'TELEGRAM_BOT_TOKEN': ''})
+    out('메모장이 열립니다. TELEGRAM_BOT_TOKEN= 뒤에 BotFather 가 준 토큰을 붙여 넣고, 저장(Ctrl+S)한 뒤 메모장을 닫으세요.')
+    try:
+        subprocess.Popen(['notepad.exe', env_path])
+    except OSError:
+        out('메모장을 열지 못했습니다. 직접 여세요: %s' % env_path)
+    input('저장했으면 Enter 를 누르세요: ')
+    return clean_token(read_env_value(env_path, 'TELEGRAM_BOT_TOKEN'))
+
+
 def load_env_into_os():
     from main import load_env
     load_env()
@@ -161,10 +201,12 @@ def main(argv):
     settings = load_settings()
     token = settings.token
     if not token:
-        print('BotFather 에서 만든 봇 토큰을 붙여 넣으세요(화면에 보이지 않습니다).')
-        token = getpass.getpass('토큰: ').strip()
+        token = ask_token(ENV_PATH, typed='--type' in argv)
         if not token:
             print('토큰이 비어 있어 종료합니다.')
+            return 1
+        if not TOKEN_SHAPE.match(token):
+            print('토큰 형식이 아닙니다(숫자:영문숫자 형태, BotFather 가 준 전체). 다시 실행해서 처음부터 끝까지 붙여 넣으세요.')
             return 1
     api = TelegramAPI(token, settings.api_base)
     try:
@@ -172,8 +214,8 @@ def main(argv):
     except TelegramError as exc:
         print('봇 확인 실패:', redact(exc, [token]))
         return 1
-    if token != settings.token:
-        update_env_file(ENV_PATH, {'TELEGRAM_BOT_TOKEN': token})
+    if token != settings.token or '--type' not in argv:
+        update_env_file(ENV_PATH, {'TELEGRAM_BOT_TOKEN': token})     # 값을 정리해 다시 쓴다(메모장이 붙인 BOM 제거 포함)
         print('토큰을 .env 에 저장했습니다.')
     print('봇 확인: @%s' % me.get('username'))
     if settings.allowed_user_id and '--repair' not in argv:

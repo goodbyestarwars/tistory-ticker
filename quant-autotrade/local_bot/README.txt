@@ -37,7 +37,7 @@
 
 텔레그램 관제 (알림 + 읽기 전용 명령)
   - 처음 한 번: install_bot.ps1 (저장소에서 실행 - 파일 반영 + 자동 실행 등록 + 재시작), 이어서 이 폴더의 telegram_setup.bat
-    (봇 토큰 입력 -> 휴대폰에서 /pair 일회용코드). 설정값은 .env 의 TELEGRAM_BOT_TOKEN / TELEGRAM_ALLOWED_USER_ID / TELEGRAM_CHAT_ID 이며 직접 쓰지 않아도 된다.
+    (메모장이 열리면 TELEGRAM_BOT_TOKEN= 뒤에 토큰을 붙여 넣고 저장 -> 휴대폰에서 /pair 일회용코드). 설정값은 .env 의 TELEGRAM_BOT_TOKEN / TELEGRAM_ALLOWED_USER_ID / TELEGRAM_CHAT_ID 이며 직접 쓰지 않아도 된다.
   - 자동 알림: 종목 선정, 모의매매, 감시 종목 조건/주문 접수/거부/실패/보유 종료, 시스템 경고, 일일 보고서. 명령: /help 로 확인(전부 읽기 전용, 매매·설정 변경 불가).
   - 자동 실행/복구: 작업 스케줄러 AutotraderBot 이 로그온 때와 5분마다 봇을 확인해 죽었으면 다시 켠다. stop.bat 은 restart.bat 전까지 자동 시작을 멈춘다.
   - 상세: quant-autotrade\docs\TELEGRAM.md

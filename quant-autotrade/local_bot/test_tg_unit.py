@@ -4,6 +4,7 @@
 가짜 키움 클라이언트 + 가짜 텔레그램 API(HTML 규칙을 실제처럼 엄격히 검사)로, 알림 중복 방지·장애 상태 머신·감시자·인가·서식을 검증한다.
 실제 텔레그램 서버와의 통신은 test_tg_integration.py(가짜 HTTP 서버)와 사용자 PC 실사용 테스트에서 따로 확인한다.
 """
+import codecs
 import json
 import os
 import shutil
@@ -1071,6 +1072,48 @@ class ProcGuardTests(unittest.TestCase):
             sleeper.kill()
             sleeper.wait()
             shutil.rmtree(d, ignore_errors=True)
+
+
+class SetupHelperTests(unittest.TestCase):
+    """토큰 입력 도우미: 메모장이 BOM 을 붙이거나 따옴표·공백이 섞여도 키움 키와 토큰이 깨지지 않아야 한다."""
+
+    def test_notepad_edited_env_with_bom_is_handled(self):
+        import telegram_setup
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('autotrader_main', os.path.join(HERE, 'main.py'))     # sys.path 에 서버용 main.py 가 섞여 있어 경로로 읽는다
+        main_mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(main_mod)
+        d = tempfile.mkdtemp()
+        try:
+            path = os.path.join(d, '.env')
+            with open(path, 'w', encoding='utf-8-sig') as f:         # 메모장이 BOM 을 붙여 저장한 모양
+                f.write('KIWOOM_APPKEY=abc\nTELEGRAM_BOT_TOKEN=  "%s" \n' % TOKEN)
+            self.assertEqual(telegram_setup.read_env_value(path, 'KIWOOM_APPKEY'), 'abc')
+            self.assertEqual(telegram_setup.read_env_value(path, 'TELEGRAM_BOT_TOKEN'), TOKEN)
+            self.assertIsNone(telegram_setup.read_env_value(path, 'NOPE'))
+            orig = main_mod.HERE
+            main_mod.HERE = d
+            os.environ.pop('KIWOOM_APPKEY', None)
+            try:
+                main_mod.load_env()
+                self.assertEqual(os.environ.get('KIWOOM_APPKEY'), 'abc')      # 첫 줄 키가 BOM 때문에 깨지지 않는다
+            finally:
+                main_mod.HERE = orig
+                os.environ.pop('KIWOOM_APPKEY', None)
+                os.environ.pop('TELEGRAM_BOT_TOKEN', None)
+            tg_config.update_env_file(path, {'TELEGRAM_BOT_TOKEN': TOKEN})   # 다시 쓰면 BOM 이 사라진다
+            self.assertFalse(open(path, 'rb').read().startswith(codecs.BOM_UTF8))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
+
+    def test_clean_token_and_shape(self):
+        import telegram_setup
+        self.assertEqual(telegram_setup.clean_token('  "%s"  ' % TOKEN), TOKEN)
+        self.assertEqual(telegram_setup.clean_token('bot' + TOKEN), TOKEN)
+        self.assertTrue(telegram_setup.TOKEN_SHAPE.match(TOKEN))
+        self.assertFalse(telegram_setup.TOKEN_SHAPE.match('123456789:short'))
+        self.assertFalse(telegram_setup.TOKEN_SHAPE.match('아무 글자'))
+        self.assertEqual(telegram_setup.clean_token(None), '')
 
 
 if __name__ == '__main__':

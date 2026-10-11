@@ -261,6 +261,35 @@ class PairingTests(HTTPCase):
         self.assertTrue(any('연결 완료' in t for t in self.fake.texts(USER)))
         self.assertFalse(any(str(USER) in line for line in out))                       # 콘솔에도 전체 ID 비노출(끝 3자리만)
 
+    def test_setup_main_full_flow_token_then_pairing(self):
+        """telegram_setup.main 전체: 토큰 입력(메모장 단계는 대체) -> 형식 검사 -> getMe 확인 -> .env 저장 -> 코드 페어링."""
+        env = os.path.join(self.dir, '.env')
+        open(env, 'w', encoding='utf-8-sig').write('KIWOOM_APPKEY=abc\nTELEGRAM_BOT_TOKEN=\n')
+        saved = (telegram_setup.ENV_PATH, telegram_setup.ask_token, telegram_setup.load_env_into_os, telegram_setup.PairingSession.__init__)
+        for key in ('TELEGRAM_BOT_TOKEN', 'TELEGRAM_ALLOWED_USER_ID', 'TELEGRAM_CHAT_ID'):
+            os.environ.pop(key, None)
+        os.environ['TELEGRAM_API_BASE'] = self.fake.base
+        telegram_setup.ENV_PATH = env
+        telegram_setup.load_env_into_os = lambda: None
+        telegram_setup.ask_token = lambda path, typed=False, out=print: telegram_setup.clean_token(' "%s" ' % self.fake.token)
+        orig_init = telegram_setup.PairingSession.__init__
+        telegram_setup.PairingSession.__init__ = lambda self_, code=None, **kw: orig_init(self_, code='Q2W3E4R5', ttl=15, **kw)
+        self.later(1.0, (self.fake.push_message, (USER, '/start Q2W3E4R5'), {}))          # 딥링크 형태
+        try:
+            rc = telegram_setup.main([])
+        finally:
+            telegram_setup.ENV_PATH, telegram_setup.ask_token, telegram_setup.load_env_into_os = saved[:3]
+            telegram_setup.PairingSession.__init__ = saved[3]
+            os.environ.pop('TELEGRAM_API_BASE', None)
+        self.assertEqual(rc, 0)
+        text = open(env, encoding='utf-8').read()
+        self.assertIn('TELEGRAM_BOT_TOKEN=%s' % self.fake.token, text)
+        self.assertIn('TELEGRAM_ALLOWED_USER_ID=%d' % USER, text)
+        self.assertIn('KIWOOM_APPKEY=abc', text)
+        self.assertFalse(open(env, 'rb').read().startswith(b'\xef\xbb\xbf'))
+        loaded = tg_config.load_settings({'TELEGRAM_BOT_TOKEN': self.fake.token, 'TELEGRAM_ALLOWED_USER_ID': str(USER)})
+        self.assertTrue(loaded.ready)
+
     def test_pairing_aborts_after_too_many_wrong_codes(self):
         session = telegram_setup.PairingSession(code='K7M2QX9P', max_attempts=2, ttl=15)
         push = self.fake.push_message
