@@ -202,7 +202,7 @@
 .dmi-panel-title { padding: 0 0 7px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 18px; }
 .dmi-chart-tools { gap: 10px; }
 .dmi-chart-tools .dmi-collapse-btn { display: none; }
-.dmi-tabs { gap: 15px; margin: 0 0 8px; }
+.dmi-tabs { flex-wrap: wrap; gap: 8px 15px; margin: 0 0 8px; }
 .dmi-tab,
 .dmi-tabs .dmi-draw-toggle,
 .dmi-tabs .dmi-draw-clear { border: 0; border-radius: 0; border-bottom: 1px solid transparent; background: transparent; color: #777; padding: 3px 0 5px; font-size: 12px; }
@@ -439,7 +439,7 @@ html.dark .dmi-section-collapse {
 @media (min-width: 761px) {
   /* 차트 탭은 왼쪽, 그리기 도구는 차트 바로 위 오른쪽으로 분리한다. */
   .dmi-panel { position: relative; }
-  .dmi-panel > .dmi-tabs { padding-right: 190px; }
+  .dmi-panel > .dmi-tabs:has(+ .de-draw-controls) { padding-right: 190px; }
   .dmi-panel > .de-draw-controls {
     position: absolute;
     top: 29px;
@@ -538,7 +538,7 @@ html.dark .dmi-section-collapse {
 .dmi-chart-tools .dmi-collapse-btn { display: inline-flex; align-items: center; justify-content: center; }
 
 @media (min-width: 761px) {
-  .dmi-panel > .dmi-tabs { padding-right: 190px; }
+  .dmi-panel > .dmi-tabs:has(+ .de-draw-controls) { padding-right: 190px; }
   .dmi-panel > .de-draw-controls {
     position: absolute;
     top: 29px;
@@ -624,29 +624,29 @@ html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
   .dmi-spot-table .dmi-spot-price { font-size: 15px; }
 }
 
-/* 2026-10-12 큰 블록 4개(01 국내 주요 지수 · 02 투자자별 매매동향 · 03 증시자금 · 04 국내 증시 자금 흐름).
-   블록마다 위쪽에 얇은 구분선 한 줄, 블록 사이 간격 52px(모바일 36px), 제목 앞 번호 + 한 줄 설명.
-   블록 안쪽 표·그리드의 위·아래 테두리는 블록 구분선과 겹쳐 이중선이 되므로 걷어 낸다. */
-.dmi-shell .dmi-block { margin-top: 52px; border-top: 1px solid #d8d8d8; border-bottom: 0; }
-.dmi-shell .dmi-heading + .dmi-block { margin-top: 22px; }
-.dmi-shell .dmi-block .dmi-subheading { margin: 0; padding: 18px 0 4px; }
-.dmi-shell .dmi-block-no { display: inline-block; margin-right: 10px; color: #8a8f98; font-size: .8em; font-weight: 600; letter-spacing: 0; font-variant-numeric: tabular-nums; }
-.dmi-shell .dmi-block-desc { margin: 0 0 14px; color: #6b7280; font-size: 13px; line-height: 1.55; word-break: keep-all; overflow-wrap: break-word; }
-.dmi-shell .dmi-block .dmi-flow-grid,
+/* 2026-10-12 큰 블록(공통 규격은 css/market-indicators.css 의 .mi-block). 여기엔 국내시장지표 고유 보정만 둔다.
+   증시자금 표(.ibd)는 자기 위·아래 선을 가지므로 자리표시 그리드의 이중 테두리를 걷고, 01 은 첫 블록이라 구분선이 없다. */
 .dmi-shell .dmi-block .dmi-fund-grid { border-top: 0; border-bottom: 0; }
-.dmi-shell .dmi-invflow-section { padding-bottom: 8px; }
-/* 01 은 위 규칙(#domestic-market-indicators .dmi-spot-section { border-top: 0 !important })이 구분선을 지우므로, 블록 구분선만 같은 우선순위로 되살린다.
-   차트 두 개를 감싸던 아래 선은 그대로 없다. */
-#domestic-market-indicators .dmi-spot-section.dmi-block { border-top: 1px solid #d8d8d8 !important; }
-
+.dmi-shell .dmi-investor-section .dmi-flow-grid { border-bottom: 0; }
+.dmi-shell .dmi-block .dmi-subheading { margin: 0; padding: 30px 0 0; }
+.dmi-shell .dmi-block.mi-block--first .dmi-subheading { padding-top: 0; }
+.dmi-shell .dmi-balance-sub .dmi-ai { margin-top: 22px; }
+/* 02·03 안의 투자자·잔고 화면이 늦게 올 때의 자리표시·실패 문구 */
+.dmi-invflow-loading, .dmi-invflow-fail { padding: 22px 0; font-size: 13px; color: #6b7280; }
+html.dark .dmi-invflow-loading, html.dark .dmi-invflow-fail { color: rgba(245,239,224,.6); }
 @media (max-width: 760px) {
-  .dmi-shell .dmi-block { margin-top: 36px; }
-  .dmi-shell .dmi-heading + .dmi-block { margin-top: 16px; }
-  .dmi-shell .dmi-block .dmi-subheading { padding: 14px 0 4px; }
-  .dmi-shell .dmi-block-desc { font-size: 12.5px; }
+  .dmi-shell .dmi-block .dmi-subheading { padding-top: 24px; }
+  .dmi-shell .dmi-block.mi-block--first .dmi-subheading { padding-top: 0; }
 }
+.dmi-shell .dmi-flow-title { margin-bottom: 8px; }
+/* 2026-10-12 차트 위 컨트롤(기간 탭 + 그리기 도구): 사이트 버튼 규격(style.css 의 .ui-btn 계열, 좌우 16px)을 따르므로 크기는 건드리지 않고,
+   합쳐서 패널 폭(약 360px)을 넘으면 그리기 도구가 다음 줄 오른쪽으로 내려가게만 한다. 예전엔 .dmi-tabs 에 오른쪽 190px 를 예약해(그리기 도구를
+   dashboard-enhancements.js 가 옮겨 놓을 때만 필요) 이 지면(/pages/kospi-futures)에서는 기간 탭이 그리기 버튼 뒤로 겹쳐 보이지 않았다. */
+#domestic-market-indicators .dmi-interval-tabs,
+#domestic-market-indicators .dmi-draw-buttons { flex: 0 0 auto; }
+#domestic-market-indicators .dmi-spot-section .dmi-panel,
+#domestic-market-indicators .dmi-spot-section .dmi-panel + .dmi-panel { padding-bottom: 0; }
 
-html.dark .dmi-shell .dmi-block { border-top-color: rgba(245,239,224,.2); }
-html.dark #domestic-market-indicators .dmi-spot-section.dmi-block { border-top-color: rgba(245,239,224,.2) !important; }
-html.dark .dmi-shell .dmi-block-no { color: rgba(245,239,224,.45); }
-html.dark .dmi-shell .dmi-block-desc { color: rgba(245,239,224,.6); }
+/* 다크모드: 02 투자자별 순매수 표의 날짜·헤더가 위쪽 '글자색 #000 !important' 규칙 때문에 어두운 배경 위 검정으로 보이지 않았다. 상승·하락 색 칸은 건드리지 않는다. */
+html.dark .dmi-shell .dmi-flow-table th,
+html.dark .dmi-shell .dmi-flow-table td:not(.dmi-positive):not(.dmi-negative) { color: #F5EFE0 !important; }

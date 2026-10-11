@@ -925,12 +925,12 @@
     if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261013-flow';
+      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261013-sections';
       document.head.appendChild(link);
     }
     fundBoardJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-flow';
+      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-sections';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
@@ -1075,11 +1075,12 @@
     });
   }
 
-  /* ---- 04 국내 증시 자금 흐름(2026-10-12) ----
-     외국인·기관·개인 일별 순매수 막대, 누적 순매수 선, 총매수·총매도 지원 여부, 고객예탁금·신용잔고 추이, 규칙 기반 요약.
-     화면과 계산은 js/investor-flow.js, 데이터는 VM /investor-trend/history(순매수만 제공)와 이 모듈이 이미 받은 funds.series. */
+  /* ---- 02 투자자별 순매수 추이 · 03 고객예탁금·신용잔고 흐름(2026-10-12) ----
+     화면과 계산은 js/investor-flow.js, 데이터는 VM /investor-trend/history(순매수만 제공)와 이 모듈이 이미 받은 funds.series.
+     (처음엔 '04 국내 증시 자금 흐름'이라는 독립 구역이었으나 02와 같은 순매수 데이터라 02로 합쳤다. 잔고 흐름은 03으로 옮겼다.) */
   var flowJob = null;
   var flowInstance = null;
+  var balanceInstance = null;
 
   function ensureInvestorFlow() {
     if (global.InvestorFlow) return Promise.resolve();
@@ -1087,12 +1088,12 @@
     if (!document.querySelector('link[href*="/css/investor-flow.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = FUND_BOARD_BASE + 'css/investor-flow.css?v=20261013-flow';
+      link.href = FUND_BOARD_BASE + 'css/investor-flow.css?v=20261013-sections';
       document.head.appendChild(link);
     }
     flowJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = FUND_BOARD_BASE + 'js/investor-flow.js?v=20261013-flow';
+      script.src = FUND_BOARD_BASE + 'js/investor-flow.js?v=20261013-sections';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
@@ -1105,7 +1106,7 @@
       if (!global.IndicatorBoard || global.IndicatorBoard.createChart) return null;
       return new Promise(function (resolve) {
         var script = document.createElement('script');
-        script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-flow&r=1';
+        script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261013-sections&r=1';
         script.onload = script.onerror = function () { resolve(); };
         document.head.appendChild(script);
       });
@@ -1113,16 +1114,23 @@
   }
 
   function renderInvestorFlow(root, funds) {
-    var host = root.querySelector('.dmi-invflow-host');
-    if (!host) return;
+    var trendHost = root.querySelector('.dmi-invflow-host');
+    var balanceHost = root.querySelector('.dmi-balance-host');
+    if (!trendHost && !balanceHost) return;
     Promise.all([ensureChartBoard(), ensureInvestorFlow()]).then(function () {
       if (!global.IndicatorBoard || !global.IndicatorBoard.createChart || !global.InvestorFlow) {
-        host.innerHTML = '<div class="dmi-invflow-fail">국내 증시 자금 흐름 화면을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
+        if (trendHost) trendHost.innerHTML = '<div class="dmi-invflow-fail">투자자별 순매수 추이 화면을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
+        if (balanceHost) balanceHost.innerHTML = '<div class="dmi-invflow-fail">고객예탁금·신용잔고 흐름 화면을 불러오지 못했습니다. 잠시 후 새로고침해 주세요.</div>';
         return;
       }
-      if (flowInstance && host.querySelector('.ifl')) { flowInstance.update(funds); return; }
-      host.innerHTML = '';
-      flowInstance = global.InvestorFlow.mount(host, { funds: funds });
+      if (trendHost && !(flowInstance && trendHost.querySelector('.ifl'))) {
+        trendHost.innerHTML = '';
+        flowInstance = global.InvestorFlow.mount(trendHost, { funds: funds });
+      }
+      if (balanceHost) {
+        if (balanceInstance && balanceHost.querySelector('.ifl')) balanceInstance.update(funds);
+        else { balanceHost.innerHTML = ''; balanceInstance = global.InvestorFlow.mountBalance(balanceHost, { funds: funds }); }
+      }
     });
   }
 
@@ -1134,28 +1142,35 @@
     installStyle();
     var spotCollapsed = loadCollapsed('spot');
     var fundsCollapsed = loadCollapsed('funds');
+    function blockHead(no, name, extra, buttonHtml) {
+      return '<div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">' + no + '</span><span class="mi-block-name">' + name + (extra || '') + '</span></h3>' + (buttonHtml || '') + '</div>';
+    }
     root.innerHTML = '<div class="dmi-shell">'
       + '<div class="dmi-heading"><h2>국내시장지표</h2><span class="dmi-live-status" data-dmi-connection>REST 확인 중</span></div>'
-      + '<section class="dmi-block dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
-      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">01</span>국내 주요 지수 <span class="dmi-market-status" data-dmi-market-status></span></h3>'
-      + '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button></div>'
-      + '<div class="dmi-block-desc">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
+      + '<section class="mi-block mi-block--first dmi-block dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
+      + blockHead('01', '국내 주요 지수', ' <span class="dmi-market-status" data-dmi-market-status></span>',
+        '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button>')
+      + '<div class="mi-block-desc">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
-      + '<section class="dmi-block dmi-investor-section">'
-      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">02</span>투자자별 매매동향</h3></div>'
-      + '<div class="dmi-block-desc">개인·외국인·기관의 최근 10거래일 순매수(억원)입니다. 양수는 순매수, 음수는 순매도입니다.</div>'
-      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></section>'
-      + '<section class="dmi-block dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
-      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">03</span>증시자금</h3>'
-      + '<button type="button" class="dmi-section-collapse dmi-funds-collapse" aria-expanded="' + (fundsCollapsed ? 'false' : 'true') + '">' + (fundsCollapsed ? '펼치기' : '숨기기') + '</button></div>'
-      + '<div class="dmi-block-desc">고객예탁금·신용잔고·신용대주잔고·예탁증권담보융자와 프로그램 매매(차익·비차익)입니다. 표에서 지표를 고르면 아래 추이가 바뀝니다.</div>'
-      + '<div class="dmi-funds-body"><div class="dmi-ai" id="dmiFundsAi" hidden></div>'
-      + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div></div></section>'
-      + '<section class="dmi-block dmi-invflow-section">'
-      + '<div class="dmi-subheading"><h3><span class="dmi-block-no">04</span>국내 증시 자금 흐름</h3></div>'
-      + '<div class="dmi-block-desc">외국인·기관·개인의 순매수 흐름과 고객예탁금·신용잔고 추이를 함께 봅니다. 순매수 합계는 시장 전체의 신규 자금 유입이 아닙니다.</div>'
-      + '<div class="dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
+      + '<section class="mi-block dmi-block dmi-investor-section">'
+      + blockHead('02', '투자자별 매매동향')
+      + '<div class="mi-block-desc">개인·외국인·기관의 순매수(억원)를 표와 그래프로 봅니다. 양수는 순매수, 음수는 순매도이며 거래일만 표시합니다.</div>'
+      + '<div class="mi-sub"><div class="mi-sub-title">최근 10거래일 순매수</div>'
+      + '<div class="mi-sub-cap">KOSPI·KOSDAQ 각각 개인·외국인·기관의 일별 순매수(억원)입니다.</div>'
+      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></div>'
+      + '<div class="mi-sub dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
+      + '<section class="mi-block dmi-block dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
+      + blockHead('03', '증시자금', '',
+        '<button type="button" class="dmi-section-collapse dmi-funds-collapse" aria-expanded="' + (fundsCollapsed ? 'false' : 'true') + '">' + (fundsCollapsed ? '펼치기' : '숨기기') + '</button>')
+      + '<div class="mi-block-desc">고객예탁금·신용잔고·신용대주잔고·예탁증권담보융자와 프로그램 매매(차익·비차익)입니다.</div>'
+      + '<div class="dmi-funds-body">'
+      + '<div class="mi-sub"><div class="mi-sub-title">지표별 현황과 추이</div>'
+      + '<div class="mi-sub-cap">표에서 지표를 고르면 아래 추이 그래프와 기간 통계가 그 지표로 바뀝니다.</div>'
+      + '<div class="dmi-fund-grid"><div class="dmi-fund-card">데이터 준비 중</div><div class="dmi-fund-card">데이터 준비 중</div></div></div>'
+      + '<div class="mi-sub dmi-balance-sub"><div class="dmi-balance-host"><div class="dmi-invflow-loading">불러오는 중...</div></div>'
+      + '<div class="dmi-ai" id="dmiFundsAi" hidden></div></div>'
+      + '</div></section>'
       + '</div>';
     var marketStatusNode = root.querySelector('[data-dmi-market-status]');
     if (marketStatusNode) marketStatusNode.textContent = domesticCashMarketStatusLabel();

@@ -71,8 +71,8 @@
   // 2026-07-16: 야간선물도 분봉 지원 추가 - 처음엔 KIS에 소스가 없다고 판단했었으나 공식
   // 예제 저장소에서 TR(FHKIF03020200)을 찾아 실측 확인함(night_futures_ws.py 참고).
   var CHARTS = [
-    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: 'KOSPI200 주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
-    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: 'KOSPI200 야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
+    { key: 'day', symbol: 'KOSPI200_DAY', elId: 'kfChartDay', label: '주간선물 (09:00~15:45)', intervals: ['minute', 'day', 'week'] },
+    { key: 'night', symbol: 'KOSPI200_NIGHT', elId: 'kfChartNight', label: '야간선물 (18:00~05:00)', intervals: ['minute', 'day', 'week'] }
   ];
   var OPTION_FLOW_API = 'https://goodbyestar.cloud/option-flow';
   var KOSPI_FUTURES_CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/kospi-futures.css?v=20260912-remove-ai-section-v1';
@@ -284,10 +284,23 @@
         + '</div>';
     }).join('');
 
+    // 2026-10-12: 국내 탭의 큰 블록 규격(css/market-indicators.css .mi-block)을 따른다 - 04 선물지표, 05 옵션 수급(buildOptionSection).
     return ''
-      + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div>'
-      + '<div class="kf-chart-grid">' + sections + '</div>'
+      + '<section class="mi-block kf-block" data-mi-block="futures">'
+      + buildBlockHead('04', 'KOSPI200 선물지표')
+      + '<div class="mi-block-desc">KOSPI200 주간선물(09:00~15:45)과 야간선물(18:00~05:00)의 시세·미결제약정과 차트입니다.</div>'
+      + '<div class="mi-sub"><div class="mi-sub-title">주간·야간 선물 시세</div>'
+      + '<div class="mi-sub-cap">현재가, 전일 대비, 등락률과 미결제약정(증감)입니다.</div>'
+      + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div></div>'
+      + '<div class="mi-sub"><div class="kf-chart-grid">' + sections + '</div></div>'
+      + '</section>'
       + buildOptionSection();
+  }
+
+  // 큰 블록 머리: 번호 + 제목(+ 상태 문구) + 오른쪽 버튼. 헤딩 태그 대신 role=heading 을 써서 스킨의 제목 서체 규칙을 받지 않게 한다.
+  function buildBlockHead(no, name, extraHtml, buttonHtml) {
+    return '<div class="mi-block-head"><div class="mi-block-title" role="heading" aria-level="3"><span class="mi-block-no">' + no
+      + '</span><span class="mi-block-name">' + escapeHtml(name) + (extraHtml || '') + '</span></div>' + (buttonHtml || '') + '</div>';
   }
 
   // ---- 옵션 수급(콜/풋 OI 원자료) ----
@@ -307,11 +320,15 @@
         + '</div>';
     }).join('');
     var collapsed = loadCollapsed('option');
-    return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="option">'
-      + '<div class="kf-section-head"><div class="kf-section-title">옵션 수급 <span class="kf-option-title-meta">만기 확인 중</span></div>'
-      + '<button type="button" class="kf-collapse-btn" data-chart-key="option" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button></div>'
-      + '<div class="kf-section-body"><div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div>'
-      + '<div class="kf-option-profile" id="kfOptionProfile">'
+    return '<section class="kf-section mi-block' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="option" data-mi-block="option">'
+      + buildBlockHead('05', '옵션 수급', ' <span class="kf-option-title-meta">만기 확인 중</span>',
+        '<button type="button" class="kf-collapse-btn" data-chart-key="option" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button>')
+      + '<div class="mi-block-desc">KOSPI200 옵션 콜·풋의 거래량·미결제약정(OI) 증감과 행사가별 분포입니다.</div>'
+      + '<div class="kf-section-body">'
+      + '<div class="mi-sub"><div class="mi-sub-title">콜·풋 미결제약정 수급</div>'
+      + '<div class="mi-sub-cap">콜옵션과 풋옵션의 거래량, 미결제약정(OI), OI 증감을 따로 보여 줍니다.</div>'
+      + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div></div>'
+      + '<div class="mi-sub kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
       + '<div class="kf-option-profile-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>행사가별 데이터를 불러오는 중...</div>'
       + '</div>'
@@ -320,7 +337,7 @@
       + '콜·풋 종류와 OI 증감만으로 투자자의 매수·매도 또는 시장 상승·하락 방향을 판단할 수 없습니다. '
       + '합계와 행사가별 프로파일은 KIS가 반환한 콜·풋 각 최대 100건의 조회 범위이며 전체 시장 합계가 아닙니다. '
       + '5분 주기 REST 스냅샷이고 업데이트 시각은 자료 수집 시각입니다. 야간 체결 반영을 보장하지 않습니다.</div></div>'
-      + '</div>';
+      + '</section>';
   }
 
   // 2026-07-20: 콜은 정상 거래되는데 풋만 거래량 0(+OI증감 0)이 종일 이어지는 현상을
