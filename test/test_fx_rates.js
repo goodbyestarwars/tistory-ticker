@@ -17,6 +17,13 @@ assert.equal(u.unitText({ unit: 100, code: 'JPY' }), '100 JPY당');
 assert.equal(u.unitText({ unit: 1, code: 'USD' }), '1 USD당');
 assert.equal(u.unitText({ unit: 0, code: 'USD' }), '1 USD당');
 
+// 통화명: 한글 이름을 먼저, 어색한 API 표기만 일반 표기로(코드·값은 그대로)
+assert.equal(u.displayName({ code: 'USD', name: '미국 달러' }), '미국 달러');
+assert.equal(u.displayName({ code: 'JPY', name: '일본 옌' }), '일본 엔');
+assert.equal(u.displayName({ code: 'CNH', name: '위안화' }), '중국 위안');
+assert.equal(u.displayName({ code: 'EUR', name: '유로' }), '유로');
+assert.equal(u.displayName({ code: 'XXX', name: '' }), 'XXX');
+
 // 상승 빨강 / 하락 파랑 구분
 assert.equal(u.tone(4.2), 'up');
 assert.equal(u.tone(-4.2), 'down');
