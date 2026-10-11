@@ -8513,20 +8513,20 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 /* 관심종목을 열면 PC 본문 전체를 남은 폭에 배치한다. 330px 패널 + 48px 손잡이. */
 @layer np {
   @media(min-width:1024px) {
-    html body:has(.global-watchlist-drawer.is-open):not(.iframe-mode):not(:has(:fullscreen)) { padding-right:378px!important; box-sizing:border-box; }
-    html body:has(.global-watchlist-drawer.is-open):not(:has(:fullscreen)) :is(.navbar,.sidebar-left) { right:378px!important; width:auto!important; }
-    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page :is(.briefing-intro,.briefing-carousel-controls) { margin-right:0!important; flex-wrap:wrap; }
+    html body:has(.global-watchlist-drawer.is-open):not(.iframe-mode):not(:has(:fullscreen)), html.wl-open.wl-open body:not(.iframe-mode):not(:has(:fullscreen)) { padding-right:378px!important; box-sizing:border-box; }
+    html body:has(.global-watchlist-drawer.is-open):not(:has(:fullscreen)) :is(.navbar,.sidebar-left), html.wl-open.wl-open body:not(:has(:fullscreen)) :is(.navbar,.sidebar-left) { right:378px!important; width:auto!important; }
+    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page :is(.briefing-intro,.briefing-carousel-controls), html.wl-open.wl-open body .home-editorial-page :is(.briefing-intro,.briefing-carousel-controls) { margin-right:0!important; flex-wrap:wrap; }
   }
   @media(min-width:1024px) and (max-width:1500px) {
-    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page .home-overview-grid { grid-template-columns:minmax(0,1fr)!important; }
-    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page .home-widget-grid > .home-widget { grid-column:1 / -1!important; }
-    html body#tt-body-index:has(.global-watchlist-drawer.is-open) .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; gap:24px!important; }
-    html body:has(.global-watchlist-drawer.is-open) .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
+    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page .home-overview-grid, html.wl-open.wl-open body .home-editorial-page .home-overview-grid { grid-template-columns:minmax(0,1fr)!important; }
+    html body:has(.global-watchlist-drawer.is-open) .home-editorial-page .home-widget-grid > .home-widget, html.wl-open.wl-open body .home-editorial-page .home-widget-grid > .home-widget { grid-column:1 / -1!important; }
+    html body#tt-body-index:has(.global-watchlist-drawer.is-open) .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn, html.wl-open.wl-open body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; gap:24px!important; }
+    html body:has(.global-watchlist-drawer.is-open) .learn-card-grid, html.wl-open.wl-open body .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; }
   }
   @media(min-width:1024px) and (max-width:1240px) {
-    html body:has(.global-watchlist-drawer.is-open) #stock-search .ss-panels { grid-template-columns:minmax(0,1fr)!important; row-gap:16px; }
-    html body:has(.global-watchlist-drawer.is-open) #stock-search :is(.ss-panel-left,.ss-panel-right,.ss-news-panel) { grid-column:1!important; grid-row:auto!important; }
-    html body:has(.global-watchlist-drawer.is-open) #stock-search .ss-resize-handle { display:none!important; }
+    html body:has(.global-watchlist-drawer.is-open) #stock-search .ss-panels, html.wl-open.wl-open body #stock-search .ss-panels { grid-template-columns:minmax(0,1fr)!important; row-gap:16px; }
+    html body:has(.global-watchlist-drawer.is-open) #stock-search :is(.ss-panel-left,.ss-panel-right,.ss-news-panel), html.wl-open.wl-open body #stock-search :is(.ss-panel-left,.ss-panel-right,.ss-news-panel) { grid-column:1!important; grid-row:auto!important; }
+    html body:has(.global-watchlist-drawer.is-open) #stock-search .ss-resize-handle, html.wl-open.wl-open body #stock-search .ss-resize-handle { display:none!important; }
   }
 }
 
@@ -8553,7 +8553,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   }
   @media(max-width:360px) { html body .site-footer-learn .learn-card-area { --learn-row-height:280px; } }
   @media(min-width:1024px) and (max-width:1500px) {
-    html body:has(.global-watchlist-drawer.is-open) .site-footer-learn .learn-card-grid { --learn-columns:2; }
+    html body:has(.global-watchlist-drawer.is-open) .site-footer-learn .learn-card-grid, html.wl-open.wl-open body .site-footer-learn .learn-card-grid { --learn-columns:2; }
   }
 }
 

@@ -612,6 +612,8 @@
 
   function setWatchlistDrawerOpen(drawer, open) {
     drawer.classList.toggle('is-open', open);
+    // html.wl-open: skin.html 머리말 스크립트가 첫 페인트 전에 붙이는 같은 표시. style.css 의 본문 여백 규칙이 이 클래스도 받는다.
+    document.documentElement.classList.toggle('wl-open', open);
     var toggle = drawer.querySelector('.global-watchlist-toggle');
     var icon = drawer.querySelector('.global-watchlist-toggle-icon');
     toggle.setAttribute('aria-expanded', String(open));
@@ -645,6 +647,7 @@
     // mount instead of moving it into the global drawer; other pages retain
     // the global drawer behavior unchanged.
     if (/^\/(?:page|pages)\/watchlist\/?$/.test(location.pathname)) {
+      document.documentElement.classList.remove('wl-open');   // 이 화면에는 전역 드로어가 없다(여백 예약 해제)
       loadWatchlistOnDemand();
       return;
     }
