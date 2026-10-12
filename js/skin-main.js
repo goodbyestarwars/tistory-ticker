@@ -1289,8 +1289,9 @@ document.documentElement.classList.add('skin-ready');
       if (!element) return;
       var chartRows = homeChartRows(rows, key) || [];
       var domesticMini = key === 'KOSPI' || key === 'KOSDAQ';
+      var oneYearMini = domesticMini || key === 'NASDAQ_INDEX' || key === 'SP500_INDEX';
       var oneYearFrom = '';
-      if (domesticMini) {
+      if (oneYearMini) {
         var todayKst = new Date(Date.now() + 9 * 3600000);
         var month = todayKst.getUTCMonth(), day = todayKst.getUTCDate();
         todayKst.setUTCFullYear(todayKst.getUTCFullYear() - 1);
@@ -1304,7 +1305,7 @@ document.documentElement.classList.add('skin-ready');
       var values = chartRows.map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); });
       var caption = window.MarketChartHistory ? window.MarketChartHistory.caption(chartRows) : '최근 이력';
-      if (domesticMini && chartRows.length) {
+      if (oneYearMini && chartRows.length) {
         var first = String(chartRows[0].date || '').replace(/-/g, '');
         var last = String(chartRows[chartRows.length - 1].date || '').replace(/-/g, '');
         if (/^\d{8}$/.test(first) && /^\d{8}$/.test(last)) {
