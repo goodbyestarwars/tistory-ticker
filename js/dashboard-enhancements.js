@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-chart-restore1';
+  var ENHANCEMENT_VERSION = '20261013-bar-zoom1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -232,16 +232,28 @@
     if (!modalTarget) return;
     var usChartModal = modalTarget.id === 'usStocksChart';
     var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : null;
+    var candleZoom = chartTarget && /^(ssChart|ffLwChart|psChart)$/.test(chartTarget.id);
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
     modalTarget.parentNode.insertBefore(placeholder, modalTarget);
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
-    overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-restore" aria-label="차트를 원래 화면으로 줄이기">↙ 줄이기</button><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
+    overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong>'
+      + (candleZoom ? '<div class="de-chart-bar-zoom" role="group" aria-label="주가 봉 크기"><button type="button" data-bar-zoom="out" aria-label="봉 작게">−</button><button type="button" data-bar-zoom="in" aria-label="봉 크게">＋</button><button type="button" data-bar-zoom="fit">한눈에</button></div>' : '')
+      + '<button type="button" class="de-chart-restore" aria-label="차트를 원래 화면으로 줄이기">↙ 줄이기</button><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
     // 위젯 내부에 붙이면 부모의 폭/transform/overflow 규칙이 fixed 모달에
     // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
     document.body.appendChild(overlay);
     var body = overlay.querySelector('.de-chart-modal-body');
+    var zoomControls = overlay.querySelector('.de-chart-bar-zoom');
+    if (zoomControls) zoomControls.addEventListener('click', function (event) {
+      var button = event.target.closest('[data-bar-zoom]');
+      var core = global.NineChartCore;
+      if (!button || !core) return;
+      var action = button.getAttribute('data-bar-zoom');
+      if (action === 'fit') core.fitBars(chartTarget);
+      else core.zoomBars(chartTarget, action === 'in' ? 0.8 : 1.25);
+    });
     var oldStyle = modalTarget.getAttribute('style');
     var oldChartStyle = chartTarget ? chartTarget.getAttribute('style') : null;
     var flowRoot = modalTarget.closest ? modalTarget.closest('#foreign-flow') : null;
@@ -258,7 +270,7 @@
       nav.className = 'de-chart-stock-nav';
       nav.innerHTML = '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
         + '<span class="de-chart-stock-current" aria-live="polite"></span>';
-      head.insertBefore(nav, head.querySelector('.de-chart-restore'));
+      head.insertBefore(nav, head.querySelector('.de-chart-bar-zoom') || head.querySelector('.de-chart-restore'));
       var input = nav.querySelector('input');
       var current = nav.querySelector('.de-chart-stock-current');
       function showSelection(selection) {

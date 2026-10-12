@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bollinger1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bar-zoom1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -5804,6 +5804,7 @@
       var chart = LWC.createChart(container, core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily }));
       lwcChart = chart;
       lwcChartContainer = container;
+      scope.add(core.registerChart(container, chart));
       scope.add(core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }

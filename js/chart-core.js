@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-14-core-1';
+  var VERSION = '2026-10-14-core-2';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -262,6 +262,31 @@
       }
     };
     return scope;
+  }
+
+  // 화면마다 생성한 차트 인스턴스를 같은 시간축 조작 버튼에서 찾는다.
+  // 재렌더 시 이전 인스턴스의 정리 함수가 새 차트를 지우지 않도록 동일성 확인.
+  var chartInstances = typeof WeakMap === 'function' ? new WeakMap() : null;
+  function registerChart(container, chart) {
+    if (!chartInstances || !container || !chart) return function () {};
+    chartInstances.set(container, chart);
+    return function () { if (chartInstances.get(container) === chart) chartInstances.delete(container); };
+  }
+  function zoomBars(container, factor) {
+    var chart = chartInstances && chartInstances.get(container);
+    if (!chart || !isFinite(factor) || factor <= 0) return false;
+    var scale = chart.timeScale(), visible = scale.getVisibleLogicalRange();
+    if (!visible) return false;
+    var center = (visible.from + visible.to) / 2;
+    var count = Math.min(2000, Math.max(12, (visible.to - visible.from) * factor));
+    scale.setVisibleLogicalRange({ from: center - count / 2, to: center + count / 2 });
+    return true;
+  }
+  function fitBars(container) {
+    var chart = chartInstances && chartInstances.get(container);
+    if (!chart) return false;
+    chart.timeScale().fitContent();
+    return true;
   }
 
   // ---- 데이터 보조(순수 함수) ----
@@ -597,6 +622,7 @@
     isDark: isDark, themeColors: themeColors, chartOptions: chartOptions, themeUpdateOptions: themeUpdateOptions, profiles: PROFILES,
     ma224Color: ma224Color, maStudies: maStudies,
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
+    registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,

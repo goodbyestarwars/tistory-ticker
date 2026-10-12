@@ -20,8 +20,8 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261013-bollinger1', PATTERN_SCRIPT_URL).href
-    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-bollinger1';
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261013-bar-zoom1', PATTERN_SCRIPT_URL).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-bar-zoom1';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
@@ -1463,6 +1463,7 @@
   var LWC_CDN = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var lwcLoadPromise = null;
   var psLwcChart = null;         // 현재 렌더된 차트 인스턴스(재조회/닫기 시 정리용)
+  var psChartRegistryOff = null;
   var psLwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
   var psRangePromise = null;
   function loadPatternRangeModule() {
@@ -1577,6 +1578,7 @@
   }
 
   function destroyPsChart() {
+    if (psChartRegistryOff) { psChartRegistryOff(); psChartRegistryOff = null; }
     if (psPanCleanup) { psPanCleanup(); psPanCleanup = null; }
     if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
     destroyPsMemo();
@@ -1796,6 +1798,7 @@
         localization: { priceFormatter: psChartPriceFormatter }
       }, psThemeOptions()));
       psLwcChart = chart;
+      psChartRegistryOff = global.NineChartCore.registerChart(container, chart);
       psPanCleanup = global.NineChartCore.installVerticalPan(chart, container, {
         priceSeries: function () { return candleSeries; }
       });

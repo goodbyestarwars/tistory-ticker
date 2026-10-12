@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bollinger1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bar-zoom1';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -137,6 +137,7 @@
   var lwcRsiZonesCleanup = null;
   var lwcOhlcTooltipCleanup = null;
   var stockPanCleanup = null;
+  var stockChartRegistryOff = null;
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
   var waveHandle = null;     // chart-wave-overlay 핸들
@@ -2034,6 +2035,7 @@
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
+    if (stockChartRegistryOff) { stockChartRegistryOff(); stockChartRegistryOff = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
@@ -2055,6 +2057,7 @@
       }));
       lwcChart = chart;
       lwcChartContainer = container;
+      stockChartRegistryOff = core.registerChart(container, chart);
       stockPanCleanup = core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
