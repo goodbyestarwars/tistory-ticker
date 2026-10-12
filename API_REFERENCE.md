@@ -371,6 +371,8 @@ dict 구성을 함께 대조한다.
 | GET | `/strategy-scan-batch` | API 키 | 전략검색 캐시 |
 | GET | `/scan-performance` | API 키 | 스캔 히트 종목의 D+N 사후 수익률 |
 | GET | `/flow-chart/{code}` | 없음 | 종목분석 가격차트(일봉+MA+지지/저항) |
+
+`/flow-chart/{code}`는 기존과 같이 최근 500봉을 반환한다. `?history=5y`는 종목별 SQLite 이력을 우선 사용하고 부족할 때만 키움 수정주가 일봉을 연속조회하며, 실제 확보한 날짜 범위(최대 1,550봉)를 반환한다. `historyAttempted`는 장기 조회가 실제 완료됐는지만 나타내며 5년 분량 확보를 뜻하지 않는다. 공급자 장애 시 저장된 일봉을 반환한다.
 | GET | `/invest-signal` | 없음 | 종목분석 차트 흐름별 탐색(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |
 | GET | `/sector-rotation`, `/sector-rotation/{업종}` | 없음 | 업종 로테이션(유입 `emerging`·주도 `leading`·둔화 `weakening`·이탈 `lagging`·중립 `neutral`, 각 항목 `rank`·`rank5DaysAgo`·`rankChange5d`(양수=순위 상승)·`rs5`·`rs20`·퍼센타일·Breadth·`tradingValueRatio`·`rotationScore`). 일봉 확정값 서버 계산, 5분 캐시. `map`은 Rotation Map용 `{sector,x=rs20,y=rs5,phase}`. 상세는 대표 강세 종목 `leaders` 포함 |
 | GET | `/pattern-scan` | 없음 | 차트검색 패턴별 목록(`/daily-scan-batch`를 GAS와 같은 형태로 재포장) |

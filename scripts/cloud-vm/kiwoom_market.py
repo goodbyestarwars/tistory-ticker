@@ -47,18 +47,21 @@ def to_num(v):
         return 0.0
 
 
-def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS):
+def fetch_daily_ohlc(token, code, max_days=OHLC_MIN_DAYS, max_pages=1):
     """일봉 OHLC를 오름차순(과거->최신)으로 반환. gas의 fetchDailyOhlc_()와 동일한 행 형식
     ({date, open, high, low, close, volume})을 쓴다. 데이터가 max_days에 못 미치면
     (신규상장 등) 있는 만큼만 반환 - 호출부가 길이 체크로 스킵 여부를 판단한다.
     max_days=None이면 ka10081 한 번 호출로 나오는 만큼(종목마다 다르지만 보통 600영업일 안팎,
     2년 반 정도) 전부 반환 - 종목분석 가격차트(getFlowChart)용."""
-    res = kiwoom_client.call_tr(token, 'ka10081', '/api/dostk/chart', {
+    body = {
         'stk_cd': code,
         'base_dt': datetime.now().strftime('%Y%m%d'),
         'upd_stkpc_tp': '1',
-    })
-    rows = res.get('stk_dt_pole_chart_qry') or []
+    }
+    pages = (kiwoom_client.call_tr_pages(token, 'ka10081', '/api/dostk/chart', body,
+                                         max_pages=max_pages, gap_sec=0.35)
+             if max_pages > 1 else [kiwoom_client.call_tr(token, 'ka10081', '/api/dostk/chart', body)])
+    rows = [row for page in pages for row in (page.get('stk_dt_pole_chart_qry') or [])]
 
     out = []
     seen = set()

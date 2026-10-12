@@ -5770,6 +5770,8 @@
   // TradingView Lightweight Charts v5 멀티 패널 차트.
   // 0=가격, 1=거래량, 2=외국인·기관 순매수. RSI는 아래 별도 섹션에서 표시한다.
   function renderLwChart(container, chartData, code, currentPrice) {
+    if (global.NineChartData) global.NineChartData.installRangeButtons(container, code,
+      function () { return chartData; }, function (data) { renderLwChart(container, data, code, currentPrice); });
     destroyLwChart();
     var renderId = flowRenderId;
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
@@ -5871,15 +5873,11 @@
       // 보조선만 두껍게 보이고 캔들 몸통은 안 보임) - 기본은 최근 90봉만
       // 보여주고(그래야 캔들이 눈에 띄게 넓어짐), 데이터가 그보다 적을 때만 fitContent로
       // 폴백한다. 사용자는 마우스 휠/드래그로 왼쪽(과거)까지 자유롭게 스크롤할 수 있다.
-      var DEFAULT_VISIBLE_BARS = 90;
-      if (daily.length > DEFAULT_VISIBLE_BARS) {
-        chart.timeScale().setVisibleLogicalRange({
-          from: daily.length - DEFAULT_VISIBLE_BARS,
-          to: daily.length + 1
-        });
-      } else {
-        chart.timeScale().fitContent();
-      }
+      var visibleDates = global.NineChartData && global.NineChartData.rangeDates(daily, code);
+      if (visibleDates) chart.timeScale().setVisibleRange(visibleDates);
+      else chart.timeScale().fitContent();
+      if (global.NineChartData) global.NineChartData.loadOnLeftScroll(chart, container, code,
+        function () { return chartData; });
 
       setupFlowOverlays(container, chart, candleSeries, daily, code, fontFamily);
       setupFlowMemo(container, chart, candleSeries, daily, code);

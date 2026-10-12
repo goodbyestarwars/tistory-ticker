@@ -1570,7 +1570,13 @@
       if (state.selectedCode !== code || state.timeframe !== timeframe) return;   // 받는 사이 종목·주기가 바뀌었다
       var bars = global.NineChartData.barsForTimeframe(cached.data.daily, timeframe);
       var chartEl = activeStockChartElement(container);
-      if (chartEl) renderLwChart(chartEl, bars, timeframe);
+      if (chartEl) {
+        global.NineChartData.installRangeButtons(chartEl, code, function () { return state.chartCache[code].data; }, function (data) {
+          state.chartCache[code] = { t: Date.now(), data: data };
+          renderChartForCode(container, code);
+        });
+        renderLwChart(chartEl, bars, timeframe);
+      }
     }).catch(function () {
       var failEl = activeStockChartElement(container);
       if (failEl && state.selectedCode === code) failEl.innerHTML = '<div class="ss-hint ss-error">차트 라이브러리를 불러오지 못했어요.</div>';
@@ -2190,6 +2196,12 @@
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
+      if (timeframe !== 'minute' && global.NineChartData && /^[0-9]{6}$/.test(String(state.selectedCode || ''))) {
+        var visibleDates = global.NineChartData.rangeDates(bars, state.selectedCode);
+        if (visibleDates) chart.timeScale().setVisibleRange(visibleDates);
+        global.NineChartData.loadOnLeftScroll(chart, container, state.selectedCode,
+          function () { return state.chartCache[state.selectedCode] && state.chartCache[state.selectedCode].data; });
+      }
       var panes = chart.panes();
       var totalHeight = container.clientHeight || 420;
       var sizes = sizeStockChartPanes(panes, totalHeight);

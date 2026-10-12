@@ -27,6 +27,20 @@ CREATE TABLE IF NOT EXISTS daily_prices (
 );
 CREATE INDEX IF NOT EXISTS idx_daily_prices_code ON daily_prices(code);
 
+-- 요청한 종목만 보존하는 수정주가 차트 이력. 배치/검색기용 daily_prices와 분리한다.
+CREATE TABLE IF NOT EXISTS chart_daily_prices (
+    code TEXT NOT NULL, date TEXT NOT NULL, open REAL NOT NULL, high REAL NOT NULL,
+    low REAL NOT NULL, close REAL NOT NULL, volume INTEGER NOT NULL,
+    PRIMARY KEY (code, date)
+);
+CREATE TABLE IF NOT EXISTS chart_history_state (
+    code TEXT PRIMARY KEY, earliest TEXT, extended INTEGER NOT NULL DEFAULT 0,
+    checked_at TEXT
+);
+CREATE TABLE IF NOT EXISTS chart_history_fetches (
+    date TEXT NOT NULL, code TEXT NOT NULL, PRIMARY KEY(date, code)
+);
+
 CREATE TABLE IF NOT EXISTS fundamentals (
     code TEXT PRIMARY KEY,
     corp_code TEXT,

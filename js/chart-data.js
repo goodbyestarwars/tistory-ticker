@@ -194,11 +194,91 @@
     return data;
   }
 
+  var chartRanges = {};
+  var viewportOverrides = {};
+  var loadingRanges = {};
+  var RANGE_OPTIONS = [
+    ['1m', '1개월', 30], ['3m', '3개월', 91], ['6m', '6개월', 183],
+    ['1y', '1년', 366], ['3y', '3년', 1096], ['5y', '5년', 1830], ['all', '전체', 1830]
+  ];
+  function selectedRange(code) { return chartRanges[code] || '1y'; }
+  function rangeDates(bars, code) {
+    if (viewportOverrides[code]) return viewportOverrides[code];
+    if (!bars || !bars.length) return null;
+    var choice = RANGE_OPTIONS.filter(function (o) { return o[0] === selectedRange(code); })[0];
+    if (!choice || !choice[2]) return { from: bars[0].date, to: bars[bars.length - 1].date };
+    var end = bars[bars.length - 1].date;
+    var start = new Date(end + 'T00:00:00Z');
+    start.setUTCDate(start.getUTCDate() - choice[2]);
+    return { from: start.toISOString().slice(0, 10), to: end };
+  }
+  function installRangeButtons(chartElement, code, getData, onData) {
+    var parent = chartElement && chartElement.parentElement;
+    if (!parent || !/^[0-9]{6}$/.test(code)) return;
+    var wrap = parent.querySelector('.nine-chart-ranges');
+    if (!wrap) {
+      wrap = document.createElement('div');
+      wrap.className = 'nine-chart-ranges';
+      wrap.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;align-items:center';
+      parent.insertBefore(wrap, chartElement);
+    }
+    wrap.innerHTML = RANGE_OPTIONS.map(function (o) {
+      return '<button type="button" data-range="' + o[0] + '" style="padding:4px 7px;border:1px solid #aaa;border-radius:4px;background:'
+        + (selectedRange(code) === o[0] ? '#d24f45;color:white' : 'transparent;color:inherit') + '">' + o[1] + '</button>';
+    }).join('') + '<span class="nine-chart-range-status" aria-live="polite"></span>';
+    wrap.onclick = function (event) {
+      var button = event.target.closest('[data-range]');
+      if (!button) return;
+      var choice = button.getAttribute('data-range');
+      chartRanges[code] = choice;
+      if (wrap.dataset.scrollLoading !== '1') delete viewportOverrides[code];
+      delete wrap.dataset.scrollLoading;
+      var extended = choice === '3y' || choice === '5y' || choice === 'all';
+      var status = wrap.querySelector('.nine-chart-range-status');
+      if (extended && (!getData() || !getData().extendedHistory)) {
+        if (loadingRanges[code]) return;
+        loadingRanges[code] = true;
+        status.textContent = '과거 데이터 불러오는 중…';
+        fetchFlowChart(code, function (c) {
+          var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+          var timer = controller ? setTimeout(function () { controller.abort(); }, 50000) : null;
+          return fetch('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(c) + '?history=5y',
+            controller ? { signal: controller.signal } : {})
+            .then(function (r) { if (!r.ok) throw new Error('HISTORY_HTTP'); return r.json(); })
+            .then(function (r) { return r && r.data ? r.data : r; })
+            .finally(function () { if (timer) clearTimeout(timer); });
+        }, { adjust: '5y', noSession: true, force: true }).then(function (data) {
+          if (data && data.daily && data.daily.length) { data.extendedHistory = !!data.historyAttempted; onData(data); }
+          var current = parent.querySelector('.nine-chart-range-status');
+          if (current) current.textContent = data && data.historyAttempted ? '' : '저장된 데이터만 표시';
+        }).catch(function () {
+          onData(getData());
+          var current = parent.querySelector('.nine-chart-range-status');
+          if (current) current.textContent = '저장된 데이터만 표시';
+        })
+          .finally(function () { delete loadingRanges[code]; });
+      } else onData(getData());
+    };
+  }
+  function loadOnLeftScroll(chart, chartElement, code, getData) {
+    if (!chart || !chart.timeScale || !/^[0-9]{6}$/.test(code)) return;
+    chart.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
+      if (!range || range.from > 12 || loadingRanges[code] || (getData() && getData().extendedHistory)) return;
+      var button = chartElement.parentElement.querySelector('.nine-chart-ranges [data-range="5y"]');
+      if (!button) return;
+      viewportOverrides[code] = chart.timeScale().getVisibleRange();
+      button.parentElement.dataset.scrollLoading = '1';
+      button.click();
+    });
+  }
+
   global.NineChartData = {
     FLOW_CHART_TTL_MS: FLOW_CHART_TTL_MS,
     createCache: createCache, normalizeBars: normalizeBars, fingerprint: fingerprint,
     aggregateBars: aggregateBars, isoWeekKey: isoWeekKey, monthKey: monthKey, barsForTimeframe: barsForTimeframe,
     flowChartKey: flowChartKey, fetchFlowChart: fetchFlowChart, primeFlowChart: primeFlowChart,
+    selectedRange: selectedRange, rangeDates: rangeDates, installRangeButtons: installRangeButtons,
+    loadOnLeftScroll: loadOnLeftScroll,
     _flowChartCache: flowChartCache
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartData;
