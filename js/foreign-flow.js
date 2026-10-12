@@ -5774,7 +5774,7 @@
       function () { return chartData; }, function (data) { renderLwChart(container, data, code, currentPrice); });
     destroyLwChart();
     var renderId = flowRenderId;
-    container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
+    container.querySelectorAll('.ff-volume-study-label, .ff-lwc-pane-labels').forEach(function (el) { el.remove(); });
     chartReady().then(function (LWC) {
       if (renderId !== flowRenderId || !document.body.contains(container)) return; // 로딩 중 다른 종목 재검색되면 중단
       var core = global.NineChartCore;
