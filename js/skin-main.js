@@ -1030,7 +1030,7 @@ document.documentElement.classList.add('skin-ready');
             exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
         }
         var updated = document.getElementById('hmbUpdated');
-        if (updated && market.updatedAt) updated.textContent = formatHomeTimestamp(market.updatedAt) + ' 기준';
+        if (updated && market.updatedAt) updated.textContent = '시황 ' + formatHomeTimestamp(market.updatedAt) + ' 기준';
       }
     }
 
@@ -1059,7 +1059,7 @@ document.documentElement.classList.add('skin-ready');
         + (typeof e.flat === 'number' ? '<span>보합 ' + e.flat.toLocaleString('ko-KR') + '</span>' : '')
         + '<em class="home-negative">하락 ' + e.down.toLocaleString('ko-KR') + '</em></span></div>';
     }
-    function renderHomeBreadthBars(byMarket, totalEntry, source) {
+    function renderHomeBreadthBars(byMarket, totalEntry, source, updatedAt) {
       var block = dashboardSection.querySelector('[data-home-breadth]');
       if (!block) return;
       var bars = block.querySelector('[data-breadth-bars]');
@@ -1072,7 +1072,7 @@ document.documentElement.classList.add('skin-ready');
       if (totalEntry && typeof totalEntry.up === 'number' && typeof totalEntry.down === 'number') rows += breadthRowHtml('전체', totalEntry, 'is-total');
       if (!rows || !bars) { block.hidden = true; return; }
       bars.innerHTML = rows;
-      if (basis) basis.textContent = source ? '집계: ' + source : '';
+      if (basis) basis.textContent = (updatedAt ? '종목 수 ' + formatHomeTimestamp(updatedAt) + ' 기준 · ' : '') + (source ? '집계: ' + source : '');
       block.hidden = homeMarketSession().market !== 'domestic';
     }
 
@@ -1133,7 +1133,7 @@ document.documentElement.classList.add('skin-ready');
         var breadthTotal = data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.total : null;
         latestBreadth = { byMarket: byMarket, total: breadthTotal };
         renderHomeIndexBreadth(byMarket);
-        renderHomeBreadthBars(byMarket, breadthTotal, data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.source : '섹터 풀 기준');
+        renderHomeBreadthBars(byMarket, breadthTotal, data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.source : '섹터 풀 기준', body && body.updatedAt);
       }).catch(function () { /* 부가 정보라 실패해도 조용히 넘어간다 */ });
     }
 

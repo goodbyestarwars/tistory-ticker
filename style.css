@@ -6977,19 +6977,19 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-periods::-webki
   background: transparent !important;
 }
 body#tt-body-index .home-editorial-page .home-widget-grid {
-  align-items: stretch !important;
+  align-items: start !important;
 }
 body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
 body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
-  align-self: stretch !important;
+  align-self: start !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news {
   height: auto !important;
-  min-height: 500px !important;
+  min-height: 0 !important;
   overflow: visible !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-  height: 360px !important;
+  height: auto !important;
   max-height: 360px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;
@@ -7018,10 +7018,10 @@ body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-fu
 }
 @media (max-width: 640px) {
   body#tt-body-index .home-editorial-page .home-economic-news {
-    min-height: 410px !important;
+    min-height: 0 !important;
   }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
-    height: 280px !important;
+    height: auto !important;
     max-height: 280px !important;
   }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-body > strong,
@@ -7578,6 +7578,31 @@ html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 
 html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 46px 24px 16px !important; }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: 16px !important; }
+/* 홈 리드 두 칸은 카드가 아니라 하나의 금융 리포트 지면이다. */
+html body#tt-body-index .home-editorial-page .home-widget-grid { column-gap: 0 !important; }
+html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  padding: 28px 30px 30px !important;
+}
+html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-news {
+  border-left: 1px solid var(--rule) !important;
+}
+@media (max-width: 820px) {
+  html body#tt-body-index .home-editorial-page .home-widget-grid > .home-market-board {
+    border-bottom: 1px solid var(--rule) !important;
+  }
+  html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-news {
+    border-left: 0 !important;
+  }
+}
+@media (max-width: 640px) {
+  html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
+    padding: 22px 0 24px !important;
+  }
+}
 /* 페이지 바탕 상자·블로그 글은 카드가 아니라 위 가는 선만 둔다 */
 html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar .sc-cal-col) {
   border: 0 !important;
