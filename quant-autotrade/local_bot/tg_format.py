@@ -377,7 +377,7 @@ def fmt_daily(d):
 
 
 # ---- 명령 응답 ---------------------------------------------------------------
-HELP_ITEMS = (('status', '시스템 현재 상태'), ('candidates', '최신 연구 후보'), ('paper', '모의매매 전략별 성과'), ('holdings', '실제 계좌 보유 종목'),
+HELP_ITEMS = (('status', '시스템 현재 상태'), ('candidates', '최신 연구 후보'), ('paper', '모의매매 전략별 성과'), ('sim', '장중 가상매매(실시간 모의) 현황'), ('holdings', '실제 계좌 보유 종목'),
               ('orders', '최근 주문·처리 상태'), ('risk', '자금 한도·위험관리 규칙'), ('daily', '최신 일일 보고서'),
               ('mute', '일반 알림 일시 중지 (/mute 2h)'), ('unmute', '일반 알림 재개'), ('test', '텔레그램 연결 확인'), ('help', '명령어 안내'))
 
@@ -556,3 +556,88 @@ def fmt_mute(until, now):
 def fmt_unmute(suppressed, now):
     tail = '중지 중 생략된 알림 %d건은 /daily · /candidates · /paper 로 확인하세요.' % suppressed if suppressed else '중지 중 생략된 알림은 없습니다.'
     return '\n'.join([head('🔔', '일반 알림 재개'), '', tail, foot(now)])
+
+# ---- 장중 가상매매(C: 실시간 페이퍼 트레이딩) -------------------------------------------------
+TAG_LIVE = '[모의매매]'
+LIVE_EXIT_REASONS = {'STOP_INTRADAY': '추적선 장중 이탈(가상 손절)', 'SIGNAL_EXIT': '청산 신호 → 다음 거래일 관측가 매도', 'FIX_STOP': '−3% 손절(대조군)',
+                     'FIX_TARGET': '+5% 익절(대조군)', 'MAX_HOLD_30': '최대 30일 보유 종가 청산', 'MAX_HOLD_150': '최대 150일 보유 종가 청산'}
+LIVE_SIGNAL_REASONS = {'SIGNAL_ATR_CLOSE': '종가가 추적선 아래', 'SIGNAL_DEAD35': '3·5일선 데드크로스', 'STOP_BREACH_UNOBSERVED': '장중 추적선 이탈(시세 단절로 실시간 미관측)'}
+LIVE_ALERT_KINDS = {'FEED_DOWN', 'LIVE_SELL_ACTIVE', 'CALENDAR_ERROR', 'NO_CANDIDATES'}
+
+
+def _vshort(sid):
+    return VARIANT_SHORT.get(sid, sid or '-')
+
+
+def fmt_live_events(events, now):
+    """lp_events 묶음 한 번에 한 메시지. 맨 앞에 [모의매매]를 달아 실주문 알림과 구별한다. 가상 체결이며 실제 체결이 아니다."""
+    lines = [head('🧪', '%s 장중 가상매매' % TAG_LIVE, '가상 체결 · 실계좌 주문 아님 · 관측 시세 기준')]
+    groups = {}
+    for e in events:
+        groups.setdefault(e['kind'], []).append(e)
+    sel = groups.get('CANDIDATES_SELECTED')
+    if sel:
+        p = sel[-1]['payload']
+        by = ' · '.join('%s %d' % (SCANNER_LABELS.get(k, k), v) for k, v in (p.get('byScanner') or {}).items())
+        lines += ['', '▪ <b>연구 후보 자동 선정</b> (스캔 %s)' % esc(p.get('scan_date')), '  선정 %s건 · 제외 %s건%s' % (p.get('selected'), p.get('excluded'), (' · ' + by) if by else '')]
+    buys = groups.get('BUY') or []
+    if buys:
+        per = {}
+        for e in buys:
+            per.setdefault(e['code'], []).append(e)
+        lines += ['', '▪ <b>가상 매수 %d종목</b>' % len(per)]
+        for code, es in list(per.items())[:8]:
+            p = es[0]['payload']
+            lines.append('· %s %s' % (stock(p.get('name'), code), esc(SCANNER_LABELS.get(p.get('scanner'), p.get('scanner')))))
+            lines.append('  가상 체결가 %s (관측 %s %s, 슬리피지 가정 포함) · %s주' % (num(p.get('price')), num(p.get('quote')), esc(str(p.get('quoteTs'))[11:16]), num(p.get('qty'))))
+            lines.append('  계좌: ' + ', '.join('%s %s원' % (_vshort(x['strategy_id']), num(x['payload'].get('cost'))) for x in es))
+        if len(per) > 8:
+            lines.append('… 외 %d종목' % (len(per) - 8))
+    sells = (groups.get('SELL') or []) + (groups.get('SELL_STOP') or [])
+    if sells:
+        lines += ['', '▪ <b>가상 매도 %d건</b> (순수익률, 비용·슬리피지 반영)' % len(sells)]
+        for e in sells[:10]:
+            p = e['payload']
+            lines.append('· %s %s %s %s' % (tone(p.get('netRet')), pct(p.get('netRet')), stock(p.get('name'), e['code']), esc(_vshort(e['strategy_id']))))
+            lines.append('  %s · 가상 체결가 %s · 손익 %s원' % (esc(LIVE_EXIT_REASONS.get(p.get('reason'), p.get('reason'))), num(p.get('price')), num(p.get('pnl'))))
+    sig = groups.get('EXIT_SIGNAL') or []
+    if sig:
+        lines += ['', '▪ <b>청산 신호 %d건</b> · 다음 거래일 처음 관측한 시세에 가상 매도' % len(sig)]
+        for e in sig[:8]:
+            lines.append('· %s %s — %s' % (stock(e['payload'].get('name'), e['code']), esc(_vshort(e['strategy_id'])), esc(LIVE_SIGNAL_REASONS.get(e['payload'].get('reason'), e['payload'].get('reason')))))
+    eod = groups.get('EOD_REPORT')
+    if eod:
+        accts = eod[-1]['payload'].get('accounts') or {}
+        lines += ['', '▪ <b>장 마감 가상 계좌</b>']
+        for sid, a in accts.items():
+            lines.append('· %s 평가자산 %s원 · 보유 %s종목' % (esc(_vshort(sid)), num(a.get('equity')), a.get('positions')))
+    for kind, label in (('FEED_DOWN', '🚨 시세 수신 중단'), ('FEED_RECOVERED', '✅ 시세 수신 복구'), ('ENGINE_START', 'ℹ️ 장중 모의매매 엔진 시작'),
+                        ('ENGINE_RESTART', 'ℹ️ 엔진 재시작·복구(단절 구간은 채우지 않음)'),
+                        ('LIVE_SELL_ACTIVE', '🚨 실주문 스위치(LIVE_SELL) 감지 — 모의매매 엔진 중지'), ('CALENDAR_ERROR', '⚠️ 거래일 달력 확인 불가 — 진입 보류'),
+                        ('NO_CANDIDATES', '⚠️ 직전 거래일 후보 없음 — 오늘 진입 없음')):
+        for e in groups.get(kind, [])[:2]:
+            msg = e['payload'].get('msg') or ''
+            lines += ['', '%s%s' % (label, (' — ' + esc(msg)) if msg else '')]
+    lines += ['', foot(now)]
+    return '\n'.join(lines)
+
+
+def fmt_live(st, now):
+    lines = [head('🧪', '%s 장중 가상매매 현황' % TAG_LIVE, '실시간 페이퍼 트레이딩 · 가상 체결')]
+    if not st:
+        lines += ['', '상태 파일 없음 — 장중 모의매매 엔진(live_paper_job)이 아직 실행되지 않았습니다.', '', foot(now)]
+        return '\n'.join(lines)
+    lines.append('엔진: %s%s · 시세 %s · 마지막 수신 %s' % (esc(st.get('engine')), (' (' + esc(st['halted']) + ')') if st.get('halted') else '',
+                                                        '정상' if st.get('feedOk') else '⚠️ 단절', ts(st.get('lastQuoteAt'))))
+    lines.append('실주문: %s' % ('🚨 LIVE_SELL 켜짐(엔진 중지)' if st.get('liveSellActive') else '차단됨(주문 API 호출 없음)'))
+    for sid, a in (st.get('accounts') or {}).items():
+        lines += ['', '<b>%s</b>' % esc(_vshort(sid)),
+                  '평가자산 %s원 (%s) · 예수금 %s원 · 보유 %s종목' % (num(a.get('equity')), pct(a.get('cumRet')), num(a.get('cash')), a.get('positions')),
+                  '실현 %s원 · MDD %s · 청산 %s건%s' % (num(a.get('realizedPnl')), pct(a.get('mdd')), a.get('closed'), (' · 승률 %s' % pct(a['win'], 0)) if a.get('win') is not None else '')]
+    pos = st.get('positions') or []
+    if pos:
+        lines += ['', '▪ <b>가상 보유</b>']
+        for p in pos[:10]:
+            lines.append('· %s %s %s · 매수 %s → 현재 %s' % (tone(p.get('ret')), pct(p.get('ret')), stock(p.get('name'), p['code']), num(p.get('entryPrice')), num(p.get('lastPrice'))))
+    lines += ['', foot(now)]
+    return '\n'.join(lines)

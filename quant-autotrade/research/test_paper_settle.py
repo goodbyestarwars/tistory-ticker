@@ -9,7 +9,8 @@ from datetime import datetime, timedelta, timezone
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import candidate_gen as cg  # noqa: E402
+import candidate_gen as cg
+import krx_calendar  # noqa: E402
 import paper_exits as pe  # noqa: E402
 import research_job as rj  # noqa: E402
 from test_paper_exits import walk  # noqa: E402
@@ -27,10 +28,14 @@ def rising_then(closes_tail, n_up=40, start_date=datetime(2026, 1, 1)):
     """완만히 오르다 closes_tail 로 끝나는 일봉. 마지막 인덱스의 날짜는 start_date + len-1."""
     closes = [100 + k * 0.5 for k in range(n_up)] + list(closes_tail)
     out = []
+    d = start_date
     for k, c in enumerate(closes):
         prev = closes[k - 1] if k else c
-        out.append({'date': (start_date + timedelta(days=k)).strftime('%Y-%m-%d'), 'open': prev, 'close': c,
+        while not krx_calendar.is_trading_day(d):    # 일봉은 거래일에만 존재한다(주말·공휴일 봉 없음)
+            d += timedelta(days=1)
+        out.append({'date': d.strftime('%Y-%m-%d'), 'open': prev, 'close': c,
                     'high': max(prev, c) * 1.004, 'low': min(prev, c) * 0.996})
+        d += timedelta(days=1)
     return out
 
 
@@ -46,12 +51,12 @@ class ParallelPaperTests(unittest.TestCase):
         daily = rising_then([121, 122, 123])
         scan_date = daily[39]['date']
         seed_candidate(self.conn, scan_date)
-        self.assertEqual(cg.paper_enter(self.conn, lambda c: daily, '2026-03-01'), 1)
+        self.assertEqual(cg.paper_enter(self.conn, lambda c: daily, '2026-12-01'), 1)
         rows = self.conn.execute('SELECT variant, entry_date, entry_price, max_hold FROM paper_trades ORDER BY variant').fetchall()
         self.assertEqual([r[0] for r in rows], ['atr_close', 'dead35', 'trail_atr'])
         self.assertEqual(len({(r[1], r[2]) for r in rows}), 1)                   # 같은 진입
         self.assertEqual({r[0]: r[3] for r in rows}, {'trail_atr': 30, 'atr_close': 150, 'dead35': 150})   # 최대 보유 구분
-        self.assertEqual(cg.paper_enter(self.conn, lambda c: daily, '2026-03-02'), 0)          # 재실행: 후보가 이미 처리됨
+        self.assertEqual(cg.paper_enter(self.conn, lambda c: daily, '2026-12-02'), 0)          # 재실행: 후보가 이미 처리됨
         self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM paper_trades').fetchone()[0], 3)
 
     def test_settle_is_idempotent_and_never_rewrites_closed_rows(self):
@@ -78,8 +83,8 @@ class ParallelPaperTests(unittest.TestCase):
         scan_date = daily[39]['date']
         seed_candidate(self.conn, scan_date, base=daily[39]['close'])
         daily[40]['open'] = daily[39]['close']
-        cg.paper_enter(self.conn, lambda c: daily, '2026-03-01')
-        cg.paper_settle(self.conn, lambda c: daily, '2026-03-01')
+        cg.paper_enter(self.conn, lambda c: daily, '2026-12-01')
+        cg.paper_settle(self.conn, lambda c: daily, '2026-12-01')
         row = self.conn.execute("SELECT status, exit_date, exit_price, ret, signal_date, exit_reason, stop_price, trail_price FROM paper_trades WHERE variant='atr_close'").fetchone()
         self.assertEqual(row[0], 'PENDING_EXIT')
         self.assertIsNone(row[1])
@@ -88,9 +93,9 @@ class ParallelPaperTests(unittest.TestCase):
         self.assertEqual(row[4], daily[-1]['date'])
         self.assertIsNotNone(row[6])       # 손절선(초기 추적선)은 기록된다
         # 다음 거래일 봉이 나오면 그 시가로 확정
-        nxt = {'date': (datetime.strptime(daily[-1]['date'], '%Y-%m-%d') + timedelta(days=1)).strftime('%Y-%m-%d'), 'open': 107.0, 'high': 109.0, 'low': 104.0, 'close': 105.0}
+        nxt = {'date': krx_calendar.next_trading_day(daily[-1]['date']).strftime('%Y-%m-%d'), 'open': 107.0, 'high': 109.0, 'low': 104.0, 'close': 105.0}
         daily2 = daily + [nxt]
-        cg.paper_settle(self.conn, lambda c: daily2, '2026-03-02')
+        cg.paper_settle(self.conn, lambda c: daily2, '2026-12-02')
         row = self.conn.execute("SELECT status, exit_date, exit_price, ret, exit_reason, hold_days FROM paper_trades WHERE variant='atr_close'").fetchone()
         self.assertEqual(row[0], 'CLOSED')
         self.assertEqual(row[1], nxt['date'])

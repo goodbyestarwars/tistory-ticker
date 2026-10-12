@@ -116,6 +116,38 @@ def read_status_json(research_dir):
     return data if isinstance(data, dict) else None
 
 
+def read_live_json(research_dir):
+    """장중 페이퍼 트레이딩 상태(livepaper.json). 없거나 깨졌으면 None."""
+    path = os.path.join(research_dir, 'livepaper.json')
+    try:
+        with open(path, encoding='utf-8') as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
+def live_events_since(research_dir, last_id, limit=200):
+    """장중 페이퍼 트레이딩 이벤트(lp_events) 중 last_id 이후. 테이블이 아직 없으면 빈 목록."""
+    conn = ro_connect(research_db_path(research_dir))
+    if conn is None:
+        return []
+    try:
+        if 'kind' not in _columns(conn, 'lp_events'):
+            return []
+        rows = _rows(conn, 'SELECT id, ts, kind, strategy_id, code, level, payload FROM lp_events WHERE id>? ORDER BY id LIMIT ?', (last_id, limit))
+    except sqlite3.Error:
+        return []
+    finally:
+        conn.close()
+    for r in rows:
+        try:
+            r['payload'] = json.loads(r['payload'] or '{}')
+        except ValueError:
+            r['payload'] = {}
+    return rows
+
+
 def research_db_path(research_dir):
     return os.path.join(research_dir, 'research.db')
 

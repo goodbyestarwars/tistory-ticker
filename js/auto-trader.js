@@ -194,6 +194,75 @@
     return html + '</section>';
   }
 
+  // ---- C 장중 실시간 페이퍼 트레이딩(가상 체결) ----
+  // r.livePaper: 로컬 봇이 research/livepaper.json 을 그대로 전달. 없으면 엔진 미실행. A 백테스트·B 일봉 사후 모의와 합산하지 않는다.
+  var LIVE_STATUS = { OPEN: '보유', PENDING_EXIT: '청산 신호 대기', CLOSED: '청산' };
+  var LIVE_REASON = { STOP_INTRADAY: '추적선 장중 이탈', SIGNAL_EXIT: '신호 후 다음 거래일 관측가', MAX_HOLD_30: '최대 30일 종가', MAX_HOLD_150: '최대 150일 종가',
+    SIGNAL_ATR_CLOSE: '종가 추적선 이탈', SIGNAL_DEAD35: '3·5 데드크로스', STOP_BREACH_UNOBSERVED: '장중 이탈(미관측)', FIX_STOP: '−3% 손절', FIX_TARGET: '+5% 익절' };
+  var LIVE_HALT = { LIVE_SELL_ACTIVE: '실주문 스위치 감지 — 엔진 중지', NOT_TRADING_DAY: '휴장일', CALENDAR_UNKNOWN: '거래일 달력 확인 불가 — 진입 보류' };
+
+  function sparkline(points) {
+    if (!points || points.length < 2) return '<span class="at-mute">자산곡선은 장 마감 후 쌓입니다</span>';
+    var vals = points.map(function (p) { return p.equity; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    var w = 160, h = 36, span = hi - lo || 1;
+    var d = vals.map(function (v, i) { return (i * w / (vals.length - 1)).toFixed(1) + ',' + (h - 3 - (v - lo) / span * (h - 6)).toFixed(1); }).join(' ');
+    return '<svg class="at-spark" viewBox="0 0 ' + w + ' ' + h + '" width="' + w + '" height="' + h + '" role="img" aria-label="가상 계좌 자산곡선"><polyline points="' + d + '" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>';
+  }
+
+  function liveHtml(r) {
+    var head = '<section class="at-box at-live"><div class="at-hd"><h3>C 장중 실시간 가상매매</h3><span>관측 시세 기준 가상 체결 · 실제 체결·주문 아님 · A·B와 합산하지 않음</span></div>';
+    var L = r && r.livePaper;
+    if (!L) return head + '<p class="at-empty">장중 모의매매 엔진(<code>live_paper_job</code>)이 아직 실행되지 않았습니다. 실행되면 거래일 09:00~15:30 사이 가상 매수·매도와 가상 계좌가 여기에 나타납니다.</p></section>';
+    var halted = L.halted ? '<p class="at-error">' + esc(LIVE_HALT[L.halted] || L.halted) + '</p>' : '';
+    var rows = [
+      ['엔진 상태', esc(L.engine || '-') + (L.feedOk === false ? ' · <b class="at-down">시세 단절</b>' : '')],
+      ['마지막 시세 수신', esc(dtShort(L.lastQuoteAt))],
+      ['데이터 기준일 · 생성', esc(L.dataDate || '-') + ' · ' + esc(dtShort(L.generatedAt))],
+      ['실주문', L.liveSellActive ? '<b class="at-down">LIVE_SELL 켜짐 — 엔진 중지</b>' : '차단됨(주문 API 호출 없음)'],
+      ['시뮬레이션 종류', esc(L.simulationType || 'LIVE_PAPER')]
+    ];
+    var html = head + rows.map(function (x) { return '<div class="at-row"><span>' + x[0] + '</span><b>' + x[1] + '</b></div>'; }).join('') + halted;
+    var acc = L.accounts || {};
+    var ids = VARIANT_ORDER.concat(Object.keys(acc).filter(function (k) { return VARIANT_ORDER.indexOf(k) < 0; }));
+    html += '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>청산 전략(독립 계좌)</th><th class="n">초기자금</th><th class="n">평가자산</th><th class="n">예수금</th><th class="n">투자금</th>'
+      + '<th class="n">평가손익</th><th class="n">실현손익</th><th class="n">누적수익률</th><th class="n">MDD</th><th class="n">청산·승률·PF</th><th>자산곡선</th></tr></thead><tbody>'
+      + ids.map(function (k) {
+        var a = acc[k]; if (!a) return '';
+        var curve = (L.equityCurves || {})[k];
+        return '<tr><td>' + esc(VARIANT_LABEL[k] || k) + '</td><td class="n">' + fmtWon(a.initialCash) + '</td><td class="n">' + fmtWon(a.equity) + '</td><td class="n">' + fmtWon(a.cash) + '</td>'
+          + '<td class="n">' + fmtWon(a.invested) + '</td><td class="n ' + toneOf(a.unrealizedPnl) + '">' + signed(a.unrealizedPnl) + '</td><td class="n ' + toneOf(a.realizedPnl) + '">' + signed(a.realizedPnl) + '</td>'
+          + '<td class="n ' + toneOf(a.cumRet) + '">' + esc(pct2(a.cumRet)) + '</td><td class="n at-down">' + esc(pct2(a.mdd)) + '</td>'
+          + '<td class="n">' + esc(a.closed || 0) + '건' + (a.win == null ? '' : ' · ' + esc((a.win * 100).toFixed(0)) + '%') + (a.pf == null ? '' : ' · ' + esc(a.pf.toFixed(2))) + '</td>'
+          + '<td class="' + toneOf(a.cumRet) + '">' + sparkline(curve) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    var pos = L.positions || [];
+    html += '<h4 class="at-sub">가상 보유 종목</h4>';
+    html += pos.length ? '<div class="at-table-wrap"><table class="at-table at-wide"><thead><tr><th>종목</th><th>검색기</th><th>청산 전략</th><th class="n">매수가(가상)</th><th class="n">현재가</th><th class="n">수익률</th><th class="n">보유일</th><th class="n">청산 기준</th><th>상태</th></tr></thead><tbody>'
+      + pos.map(function (p) {
+        var basis = p.trailPrice ? '추적선 ' + fmtPrice(p.trailPrice) : (p.stopPrice ? '손절 ' + fmtPrice(p.stopPrice) : '<span class="at-mute">가격선 없음(신호)</span>');
+        return '<tr><td>' + esc(p.name || '') + ' <code>' + esc(p.code) + '</code></td><td>' + esc(scannerLabel(p.scanner)) + '</td><td>' + esc(VARIANT_LABEL[p.strategyId] || p.strategyId) + '</td>'
+          + '<td class="n">' + fmtPrice(p.entryPrice) + '</td><td class="n">' + fmtPrice(p.lastPrice) + '</td><td class="n ' + toneOf(p.ret) + '">' + (p.ret == null ? '-' : esc(pct2(p.ret))) + '</td>'
+          + '<td class="n">' + esc(p.holdDays || 0) + '/' + esc(p.maxHold || '-') + '</td><td class="n">' + basis + '</td>'
+          + '<td>' + esc(LIVE_STATUS[p.status] || p.status) + (p.signalReason ? ' <small class="at-mute">' + esc(LIVE_REASON[p.signalReason] || p.signalReason) + '</small>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p class="at-empty">가상 보유 종목이 없습니다.</p>';
+    var tr = L.trades || [];
+    html += '<h4 class="at-sub">가상 거래 내역</h4>';
+    html += tr.length ? '<div class="at-table-wrap"><table class="at-table at-wide"><thead><tr><th>종목</th><th>청산 전략</th><th>매수(가상)</th><th>매도(가상)</th><th>사유</th><th class="n">순수익</th><th class="n">손익(원)</th><th>체결 품질</th></tr></thead><tbody>'
+      + tr.map(function (x) {
+        return '<tr><td>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></td><td>' + esc(VARIANT_LABEL[x.strategyId] || x.strategyId) + '</td>'
+          + '<td>' + esc(dtShort(x.entryTs)) + ' @ ' + fmtPrice(x.entryPrice) + '</td><td>' + esc(dtShort(x.exitTs)) + ' @ ' + fmtPrice(x.exitPrice) + '</td>'
+          + '<td>' + esc(LIVE_REASON[x.exitReason] || x.exitReason) + '</td><td class="n ' + toneOf(x.netRet) + '">' + esc(pct2(x.netRet)) + '</td><td class="n ' + toneOf(x.pnl) + '">' + signed(x.pnl) + '</td>'
+          + '<td><small class="at-mute">' + esc(x.quality === 'CONFIRMED_CLOSE' ? '확정 종가' : '관측가 기준') + '</small></td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p class="at-empty">아직 청산된 가상 거래가 없습니다.</p>';
+    var sel = L.selection || [];
+    if (sel.length) {
+      var picked = sel.filter(function (s) { return s.decision === 'SELECTED'; }).length;
+      html += '<p class="at-note">최근 스캔 후보 ' + esc(sel.length) + '건 중 선정 ' + esc(picked) + '건, 제외 ' + esc(sel.length - picked) + '건(중복 신호·감시 상한). 검색기마다 점수 체계가 달라 점수를 섞어 정렬하지 않고 검색기 안의 순위로 번갈아 배치합니다.</p>';
+    }
+    html += '<p class="at-note">가격은 키움 1분봉 종가(마지막 관측가)이며 호가는 쓰지 않습니다. 진입은 09:00 이후 처음 관측한 신선한 시세(09:30까지)에 슬리피지 ' + esc(L.assumptions ? (L.assumptions.entrySlip * 100).toFixed(1) : '0.2') + '%를 더해 가상 매수하고, 시세가 없으면 미체결로 남깁니다. 시세 단절 구간은 채우지 않습니다. KOSPI 대비 성과는 장중 지수 수집이 아직 연결되지 않아 표시하지 않습니다.</p></section>';
+    return html;
+  }
+
   function candidatesHtml(r) {
     var head = '<section class="at-box"><div class="at-hd"><h3>연구 후보</h3><span>스캔 확정 후에만 생성 · 연구용(실주문 없음)</span></div>';
     if (!r || !r.available) return head + '<p class="at-empty">연구 엔진이 연결되면 장 마감 스캔에서 확정된 후보가 여기에 나타납니다.</p></section>';
@@ -223,7 +292,7 @@
   }
 
   function paperHtml(r) {
-    var head = '<section class="at-box"><div class="at-hd"><h3>모의매매 기록</h3><span>가정 체결 · 실제 주문 아님 · 청산 전략별 독립 계좌 · 백테스트·실거래와 합산하지 않음</span></div>';
+    var head = '<section class="at-box"><div class="at-hd"><h3>B 일봉 사후 모의매매</h3><span>확정 일봉으로 다음 시가 체결을 가정 · 실제 주문 아님 · 청산 전략별 독립 계좌 · A·C와 합산하지 않음</span></div>';
     if (!r || !r.available) return head + '<p class="at-empty">연구 엔진이 연결되면 연구 후보의 가상 진입·청산 기록이 쌓입니다.</p></section>';
     var pv = r.paperVariants || null;
     var summary = '';
@@ -274,7 +343,7 @@
   }
 
   function backtestHtml() {
-    var head = '<section class="at-box"><div class="at-hd"><h3>검색기별 백테스트 성과</h3><span>과거 시뮬레이션 · 모의매매·실거래 성과 아님</span></div>';
+    var head = '<section class="at-box"><div class="at-hd"><h3>A 검색기별 백테스트 성과</h3><span>과거 데이터 시뮬레이션 · B·C 모의매매·실거래 성과 아님</span></div>';
     if (backtest.state === 'loading' || backtest.state === 'idle') return head + '<p class="at-empty">백테스트 요약을 불러오는 중입니다.</p></section>';
     if (backtest.state === 'fail' || !backtest.data) return head + '<p class="at-empty">백테스트 요약을 불러오지 못했습니다(<code>data/quant-backtest.js</code>가 아직 배포되지 않았거나 네트워크 오류).</p></section>';
     var d = backtest.data, rows = d.rows || [];
@@ -333,7 +402,7 @@
     root.innerHTML = topbarHtml(d.status, d.research) + kpiHtml(d.status, d.holdings)
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 30초마다 갱신 · 수동 보유 종목은 건드리지 않음</span></div>' + holdingsHtml(d.holdings) + '</section>'
-      + candidatesHtml(d.research) + paperHtml(d.research) + backtestHtml()
+      + candidatesHtml(d.research) + liveHtml(d.research) + paperHtml(d.research) + backtestHtml()
       + '<section class="at-box"><div class="at-hd"><h3>매도 주문 기록</h3><span>접수·체결은 별도 확인</span></div>' + ordersHtml(d.orders) + '</section>'
       + eventsHtml(d.events)
       + '</div><div class="at-col">' + watchHtml(d.watch) + engineHtml(d.research) + ruleHtml(d.status) + '</div></div>';

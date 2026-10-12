@@ -30,6 +30,7 @@ for _p in (HERE, os.path.join(REPO, 'quant-autotrade', 'backtest'), os.path.join
     if _p not in sys.path:
         sys.path.insert(0, _p)
 import candidate_gen as cg  # noqa: E402
+import krx_calendar  # noqa: E402
 
 AUTOTRADER_DIR = os.environ.get('AUTOTRADER_DIR') or os.path.join(os.path.expanduser('~'), 'autotrader')
 KST = cg.KST
@@ -42,23 +43,31 @@ LOCK_STALE_SEC = 20 * 3600
 
 
 # ---- 실행 구간 -------------------------------------------------------------
+def _trading(d):
+    """거래일 여부(KRX 달력). 일정 계산용이라 달력을 모르면 평일로 대신한다(후보 생성·진입 판정은 candidate_gen 이 따로 보류한다)."""
+    try:
+        return krx_calendar.is_trading_day(d)
+    except krx_calendar.CalendarUnknown:
+        return d.weekday() < 5
+
+
 def session_mode(now):
     """('poll', 종료시각) 또는 ('once', None). 평일 20:15~다음 날 08:15 안이면 감시(poll), 밖이면 한 번만 확인(once)."""
-    if now.weekday() < 5 and (now.hour, now.minute) >= START_HM:
+    if _trading(now) and (now.hour, now.minute) >= START_HM:
         end = (now + timedelta(days=1)).replace(hour=END_HM[0], minute=END_HM[1], second=0, microsecond=0)
         return 'poll', end
     prev = now - timedelta(days=1)
-    if (now.hour, now.minute) < END_HM and prev.weekday() < 5:
+    if (now.hour, now.minute) < END_HM and _trading(prev):
         return 'poll', now.replace(hour=END_HM[0], minute=END_HM[1], second=0, microsecond=0)
     return 'once', None
 
 
 def next_start(now):
-    """다음 정기 실행 예정 시각(평일 20:15)."""
+    """다음 정기 실행 예정 시각(거래일 20:15)."""
     d = now.replace(hour=START_HM[0], minute=START_HM[1], second=0, microsecond=0)
     if now >= d:
         d += timedelta(days=1)
-    while d.weekday() >= 5:
+    while not _trading(d):
         d += timedelta(days=1)
     return d
 
@@ -148,7 +157,7 @@ def missing_weekdays(conn, now, days=14):
     for k in range(1, days + 1):
         d = (now - timedelta(days=k)).date()
         s = d.strftime('%Y-%m-%d')
-        if d.weekday() < 5 and s >= first and s not in ok_days:
+        if _trading(d) and s >= first and s not in ok_days:
             out.append(s)
     return sorted(out)
 

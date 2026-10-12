@@ -11,20 +11,27 @@ sys.path.insert(0, HERE)
 import paper_exits as pe  # noqa: E402
 import trend_exit_study as te  # noqa: E402
 import exit_study as ex  # noqa: E402
+import krx_calendar  # noqa: E402,F401  (sys.path 에 cloud-vm 추가)
+import market_temp  # noqa: E402
+
+_HOLIDAYS = market_temp.KRX_HOLIDAYS_2026
 
 
 def walk(seed, n=420, drift=0.0004, vol=0.02):
     rnd = random.Random(seed)
     px = 10000.0
     out = []
-    day = datetime(2025, 1, 1)
+    day = datetime(2026, 1, 2)   # 거래일에만 봉이 있다(주말·2026 공휴일 건너뜀). 2026 말을 넘기면 평일만 건너뛴다.
     for k in range(n):
+        while day.weekday() >= 5 or day.strftime('%Y-%m-%d') in _HOLIDAYS:
+            day += timedelta(days=1)
         gap = rnd.gauss(0, 0.004)
         o = px * (1 + gap)
         c = o * (1 + rnd.gauss(drift, vol))
-        out.append({'date': (day + timedelta(days=k)).strftime('%Y-%m-%d'), 'open': o, 'high': max(o, c) * (1 + abs(rnd.gauss(0, 0.006))),
+        out.append({'date': day.strftime('%Y-%m-%d'), 'open': o, 'high': max(o, c) * (1 + abs(rnd.gauss(0, 0.006))),
                     'low': min(o, c) * (1 - abs(rnd.gauss(0, 0.006))), 'close': c})
         px = c
+        day += timedelta(days=1)
     return out
 
 
