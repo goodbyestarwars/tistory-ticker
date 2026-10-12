@@ -119,7 +119,6 @@
     volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
-    forecast: { enabled: false, level: 'medium', horizon: 10, hidden: {} },   // 다음 파동 예측(실험): 규모·예측 기간(거래일)·시나리오별 숨김
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
     lastResults: null,     // 마지막 검색 결과(재렌더링용, 재조회 없이 접기/펼치기)
@@ -141,7 +140,6 @@
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
   var waveHandle = null;     // chart-wave-overlay 핸들
-  var forecastHandle = null; // chart-forecast-overlay 핸들
   var suggestionRequestId = 0;
   var stockSearchRequestId = 0;
   // This analysis starts only on an explicit check. Never restore or poll a signal.
@@ -364,11 +362,6 @@
     return String(code || '') + '|' + String(scope || state.minuteScope || '1');
   }
 
-  // 다음 파동 예측 체크와 옵션 자리(기간·규모 단추는 js/chart-forecast-overlay.js 가 체크를 켤 때 채운다).
-  function forecastToggleHtml() {
-    return '<label title="실험 기능: 지금 파동 구조가 다섯 시나리오(상승 지속·정상 눌림목·횡보 응축·가짜 상승·추세 훼손) 중 어디에 가까운지 보여 주고, 확인·무효화 가격과 변동 범위를 점선·표로 안내합니다. 가격을 맞히는 예측이 아니며 매매 추천도 아닙니다. 일봉에서만 제공합니다."><input type="checkbox" data-chart-forecast-toggle /> 다음 파동 예측</label><span data-chart-forecast-opts hidden></span>';
-  }
-
   // 파동 분석 규모 선택(대·중·소) 자리. 셸을 먼저 그려야 해서 비워 두고(숨김), 단추는 js/chart-wave-overlay.js 가 채운다.
   function waveLevelHtml() {
     return '<span class="ss-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (state.wave.enabled ? '' : ' hidden') + '></span>';
@@ -441,12 +434,11 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml() + forecastToggleHtml()
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
-      + '<div class="nc-forecast ss-forecast" data-chart-forecast-panel hidden></div>'
       + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
@@ -1380,19 +1372,6 @@
       };
       if (state.wave.enabled) { waveToggle.checked = true; waveToggle.onchange(); }
     }
-    // 다음 파동 예측도 체크를 켜는 순간에야 모듈·분석 엔진·통계 표를 받는다.
-    var forecastToggle = container.querySelector('[data-chart-forecast-toggle]');
-    if (forecastToggle) {
-      forecastToggle.onchange = function () {
-        state.forecast.enabled = forecastToggle.checked;
-        loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-          if (!forecastToggle.isConnected) return;
-          F.wireControls(forecastToggle.closest('.de-modal-target') || container, state.forecast, function () { applyStockForecast(); }, 'ss');
-          applyStockForecast();
-        }).catch(function () { forecastToggle.checked = false; state.forecast.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
-      };
-      if (state.forecast.enabled) { forecastToggle.checked = true; forecastToggle.onchange(); }
-    }
     var srToggle = container.querySelector('#ssSupportResistanceToggle, [data-chart-sr-toggle]');
     if (srToggle) {
       srToggle.checked = state.supportResistanceEnabled;
@@ -1769,11 +1748,10 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
-      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml() + forecastToggleHtml()
+      + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
-      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>'
-      + '<div class="nc-forecast ss-forecast" data-chart-forecast-panel hidden></div>';
+      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
 
     // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
     // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
@@ -1952,7 +1930,6 @@
   }
 
   function destroyStockOverlays() {
-    if (forecastHandle) { forecastHandle.detach(); forecastHandle = null; }
     if (waveHandle) { waveHandle.detach(); waveHandle = null; }
     if (drawingCtl) { drawingCtl.detach(); drawingCtl = null; }
   }
@@ -1972,22 +1949,6 @@
       sync: timeframe !== 'minute'
     });
     if (state.wave.enabled) applyStockWave();   // 켜 둔 상태에서 종목·주기가 바뀌면 새 차트에도 바로 붙인다
-    if (state.forecast.enabled) applyStockForecast();
-  }
-
-  // 다음 파동 예측: 켜져 있으면 모듈을 받아 현재 차트에 붙이고(계산은 같은 종목·데이터·규모면 공유 캐시), 꺼져 있으면 층과 표를 걷어 낸다.
-  function applyStockForecast() {
-    var ctlNow = drawingCtl;
-    if (!ctlNow || (!state.forecast.enabled && !forecastHandle)) return;
-    var shapes = ctlNow.shapes, scope = ctlNow.overlay.parentElement && ctlNow.overlay.parentElement.parentElement;   // 차트 컨테이너의 부모(표 자리가 형제로 있다)
-    loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-      if (drawingCtl !== ctlNow || ctlNow.detached) return;   // 그 사이 차트가 다시 그려졌다
-      if (!forecastHandle) {
-        forecastHandle = F.attach({ core: global.NineChartCore, ctl: ctlNow, key: state.selectedCode, timeframe: shapes.timeframe, bars: shapes.bars, state: state.forecast,
-          panel: scope && scope.querySelector ? scope.querySelector('[data-chart-forecast-panel]') : null, font: 'MaruBuri, serif', prefix: 'ss' });
-      }
-      forecastHandle.apply();
-    }).catch(function () { /* 예측 모듈을 못 받아도 차트는 그대로 */ });
   }
 
   // 켜져 있으면 모듈을 받아 현재 차트에 붙이고 계산, 꺼져 있으면 층을 걷어 낸다.

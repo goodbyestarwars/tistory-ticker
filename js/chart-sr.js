@@ -107,8 +107,8 @@
   }
 
   function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice) {
-    var all = result ? result.support.map(function (l) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지' }; })
-      .concat(result.resistance.map(function (l) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항' }; })) : [];
+    var all = result ? result.support.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지 ' + (i + 1) }; })
+      .concat(result.resistance.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항 ' + (i + 1) }; })) : [];
     if (!all.length) return function () {};
     var chartRoot = container.firstElementChild;
     if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
@@ -135,30 +135,34 @@
       var ctx = canvas.getContext('2d');
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
-      var right = width - axisWidth();
+      var right = Math.max(0, width - axisWidth());
       ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
       ctx.textBaseline = 'middle';
-      // 라벨이 겹치면 위에서부터 18px 이상 벌린다(선 위치는 그대로, 라벨만 이동)
-      var labelY = {};
+      // 라벨은 가격축 안쪽에 두고, 서로 겹치면 위치만 조정한다.
       var placed = all.map(function (item) { return { item: item, y: candleSeries.priceToCoordinate(item.l.price) }; })
-        .filter(function (p) { return Number.isFinite(p.y); })
+        .filter(function (p) { return Number.isFinite(p.y) && p.y >= 0 && p.y <= height; })
         .sort(function (a, b) { return a.y - b.y; });
+      var labelY = new Map();
       var lastY = -Infinity;
-      placed.forEach(function (p, idx) {
-        var ly = Math.max(Math.min(Math.max(p.y, 10), height - 10), lastY + 19);
-        labelY[p.item.name + p.item.l.price] = ly;
+      placed.forEach(function (p) {
+        var ly = Math.max(10, Math.min(height - 10, p.y), lastY + 20);
+        labelY.set(p.item, ly);
         lastY = ly;
       });
+      if (placed.length && lastY > height - 10) {
+        var shift = lastY - (height - 10);
+        placed.forEach(function (p) { labelY.set(p.item, labelY.get(p.item) - shift); });
+      }
       all.forEach(function (item) {
         var y = candleSeries.priceToCoordinate(item.l.price);
         var yTop = candleSeries.priceToCoordinate(item.l.high);
         var yBottom = candleSeries.priceToCoordinate(item.l.low);
         if (![y, yTop, yBottom].every(Number.isFinite)) return;
         // 음영: 스윙 고·저점이 모인 가격 폭
-        ctx.fillStyle = 'rgba(' + item.c + ',' + (0.07 + Math.min(item.l.touches, 6) * 0.012) + ')';
-        ctx.fillRect(0, Math.min(yTop, yBottom), right, Math.max(2, Math.abs(yBottom - yTop)));
+        ctx.fillStyle = 'rgba(' + item.c + ',.075)';
+        ctx.fillRect(0, Math.max(0, Math.min(yTop, yBottom)), right, Math.max(2, Math.abs(yBottom - yTop)));
         // 가로줄: 점선
-        ctx.strokeStyle = 'rgba(' + item.c + ',.85)';
+        ctx.strokeStyle = 'rgba(' + item.c + ',.52)';
         ctx.lineWidth = 1;
         ctx.setLineDash([5, 4]);
         ctx.beginPath();
@@ -166,14 +170,15 @@
         ctx.lineTo(right, Math.round(y) + 0.5);
         ctx.stroke();
         ctx.setLineDash([]);
-        // 라벨: 오른쪽 끝(가격축 바로 안쪽)에 이름·가격·터치 수
-        var text = item.name + ' ' + formatPrice(item.l.price) + ' ·' + item.l.touches + '회';
+        var text = item.name + ' ' + formatPrice(item.l.low) + '~' + formatPrice(item.l.high);
         var tw = ctx.measureText(text).width + 12;
-        var ly = labelY[item.name + item.l.price] != null ? labelY[item.name + item.l.price] : Math.min(Math.max(y, 9), height - 9);
-        ctx.fillStyle = 'rgba(' + item.c + ',.92)';
-        ctx.fillRect(right - tw - 4, ly - 9, tw, 18);
-        ctx.fillStyle = '#fff';
-        ctx.fillText(text, right - tw + 2, ly + 0.5);
+        var ly = labelY.get(item);
+        if (ly == null || right < 80) return;
+        var left = Math.max(2, right - tw - 4);
+        ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.88)' : 'rgba(255,254,252,.88)';
+        ctx.fillRect(left, ly - 9, Math.min(tw, right - left - 2), 18);
+        ctx.fillStyle = 'rgb(' + item.c + ')';
+        ctx.fillText(text, left + 6, ly + 0.5, Math.max(0, right - left - 12));
       });
     }
     function scheduleDraw() {

@@ -125,8 +125,6 @@
   var drawingCtl = null;       // chart-drawing 컨트롤러(차트 하나당 하나)
   var waveHandle = null;       // chart-wave-overlay 핸들
   var flowChartFont = 'sans-serif';
-  var forecastHandle = null;   // chart-forecast-overlay 핸들
-  var forecastState = { enabled: false, level: 'medium', horizon: 10, hidden: {} };   // 다음 파동 예측(실험)
   var waveState = { enabled: false, level: 'medium' };   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
 
   function resizeForeignFlowChart() {
@@ -1766,7 +1764,6 @@
     wireIchimokuToggle(box, chartData);
     wireVolumeProfileToggle(box, chartData);
     wireWaveControls(box);
-    wireForecastControls(box);
     wireAptTabs(box, chartData && chartData.daily, aptCurrentPrice, data.code, aptOpeningPrice);
     wireOpinionEvidence(box, data.code);
     startQuotePolling(box, data.code);
@@ -4372,8 +4369,6 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
-        + '<label class="ff-ichimoku-toggle" title="실험 기능: 지금 파동 구조가 다섯 시나리오(상승 지속·정상 눌림목·횡보 응축·가짜 상승·추세 훼손) 중 어디에 가까운지 보여 주고, 확인·무효화 가격과 변동 범위를 점선·표로 안내합니다. 가격을 맞히는 예측이 아니며 매매 추천도 아닙니다. 일봉에서만 제공합니다."><input type="checkbox" id="ffForecastToggle" data-chart-forecast-toggle' + (forecastState.enabled ? ' checked' : '') + ' /> 다음 파동 예측</label>'
-        + '<span data-chart-forecast-opts hidden></span>'
         + '</div>'
         + buildVpLegend()
         + '<div class="ff-draw-tools" role="group" aria-label="차트 그리기 도구">'
@@ -4384,7 +4379,7 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
         + '<div class="ff-chart ff-chart-candle" id="ffLwChart" style="height:' + FCHART_H + 'px"></div>'
-        + '<div class="nc-forecast ff-forecast" data-chart-forecast-panel hidden></div></div>'
+        + '</div></div>'
         + (chartData.flow && chartData.flow.length
           ? '<div class="ff-chart-flow-caption">아래 보라·초록 선은 외국인·기관의 하루 순매매량(주). 0 위는 순매수, 아래는 순매도.</div>'
           : '')
@@ -4444,36 +4439,6 @@
       }).catch(function () { toggle.checked = false; waveState.enabled = false; /* 파동 모듈을 못 받아도 차트는 그대로 */ });
     };
     if (waveState.enabled) { toggle.checked = true; toggle.onchange(); }   // 이전 종목에서 켜 둔 상태를 이어 간다
-  }
-
-  // 다음 파동 예측도 체크를 켜는 순간에야 모듈·분석 엔진·통계 표를 받는다.
-  function wireForecastControls(box) {
-    var toggle = box.querySelector('[data-chart-forecast-toggle]');
-    if (!toggle) return;
-    toggle.onchange = function () {
-      forecastState.enabled = toggle.checked;
-      loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-        if (!toggle.isConnected) return;
-        F.wireControls(toggle.closest('.ff-price-chart-panel') || box, forecastState, function () { applyFlowForecast(); }, 'ff');
-        applyFlowForecast();
-      }).catch(function () { toggle.checked = false; forecastState.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
-    };
-    if (forecastState.enabled) { toggle.checked = true; toggle.onchange(); }
-  }
-
-  // 켜져 있으면 모듈을 받아 현재 차트에 붙이고(계산은 같은 종목·데이터·규모면 공유 캐시), 꺼져 있으면 층과 표를 걷어 낸다.
-  function applyFlowForecast() {
-    var ctlNow = drawingCtl;
-    if (!ctlNow || (!forecastState.enabled && !forecastHandle)) return;
-    loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-      if (drawingCtl !== ctlNow || ctlNow.detached) return;
-      if (!forecastHandle) {
-        var host = ctlNow.overlay.parentElement && ctlNow.overlay.parentElement.parentElement;
-        forecastHandle = F.attach({ core: global.NineChartCore, ctl: ctlNow, key: ctlNow.shapes.key, timeframe: 'day', bars: ctlNow.shapes.bars, state: forecastState,
-          panel: host ? host.querySelector('[data-chart-forecast-panel]') : null, font: flowChartFont, prefix: 'ff' });
-      }
-      forecastHandle.apply();
-    }).catch(function () { /* 예측 모듈을 못 받아도 차트는 그대로 */ });
   }
 
   // 켜져 있으면 모듈을 받아 현재 차트에 붙이고 계산, 꺼져 있으면 층을 걷어 낸다.
@@ -5931,7 +5896,6 @@
   }
 
   function destroyFlowOverlays() {
-    if (forecastHandle) { forecastHandle.detach(); forecastHandle = null; }
     if (waveHandle) { waveHandle.detach(); waveHandle = null; }
     if (drawingCtl) { drawingCtl.detach(); drawingCtl = null; }
   }
@@ -5951,7 +5915,6 @@
     });
     flowChartFont = fontFamily || 'sans-serif';
     if (waveState.enabled) applyFlowWave();   // 켜 둔 상태에서 종목이 바뀌면 새 차트에도 바로 붙인다
-    if (forecastState.enabled) applyFlowForecast();
   }
 
   function fmtAbsShares(v) { return v == null || isNaN(v) ? '-' : Math.round(v).toLocaleString() + '주'; }
