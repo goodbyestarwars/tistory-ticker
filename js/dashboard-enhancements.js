@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-stock-nav1';
+  var ENHANCEMENT_VERSION = '20261013-stock-nav2';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -179,7 +179,19 @@
     button.className = 'de-expand-button';
     button.textContent = target.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면';
     button.setAttribute('data-de-expand-title', title);
-    button.addEventListener('click', function () { openChartModal(target, title); });
+    button.addEventListener('click', function () {
+      var overlay = target.closest('.de-chart-overlay');
+      if (overlay) {
+        var maximized = overlay.classList.toggle('de-chart-maximized');
+        button.textContent = maximized ? '⛶ 원래 크기' : (target.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면');
+        global.requestAnimationFrame(function () {
+          global.dispatchEvent(new Event('resize'));
+          global.dispatchEvent(new Event('tistory-chart-resize'));
+        });
+      } else {
+        openChartModal(target, title);
+      }
+    });
     var anchor = target.parentElement;
     var controlRow = null;
     var dmiPanel = target.closest ? target.closest('.dmi-panel') : null;
@@ -244,9 +256,7 @@
       var head = overlay.querySelector('.de-chart-modal-head');
       var nav = document.createElement('div');
       nav.className = 'de-chart-stock-nav';
-      nav.innerHTML = '<button type="button" data-chart-prev aria-label="이전 종목">〈 이전</button>'
-        + '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
-        + '<button type="button" data-chart-next aria-label="다음 종목">다음 〉</button>'
+      nav.innerHTML = '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
         + '<span class="de-chart-stock-current" aria-live="polite"></span>';
       head.insertBefore(nav, head.querySelector('.de-chart-close'));
       var input = nav.querySelector('input');
@@ -267,8 +277,6 @@
         input.reportValidity();
       });
       input.addEventListener('input', function () { input.setCustomValidity(''); });
-      nav.querySelector('[data-chart-prev]').addEventListener('click', function () { showSelection(stockSearchApi.fullscreenAdjacent(-1)); });
-      nav.querySelector('[data-chart-next]').addEventListener('click', function () { showSelection(stockSearchApi.fullscreenAdjacent(1)); });
     }
     modalTarget.classList.add('de-modal-target');
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
@@ -320,6 +328,10 @@
     }
     function close() {
       if (!overlay.parentNode) return;
+      var maximizeButton = modalTarget.querySelector('.de-expand-button');
+      if (maximizeButton && overlay.classList.contains('de-chart-maximized')) {
+        maximizeButton.textContent = chartTarget && chartTarget.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면';
+      }
       var currentChartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : chartTarget;
       placeholder.parentNode.insertBefore(modalTarget, placeholder);
       if (oldStyle == null) modalTarget.removeAttribute('style'); else modalTarget.setAttribute('style', oldStyle);
