@@ -15,6 +15,7 @@
 <h1>증시검색 로컬 테스트</h1>
 <p style="font-size:13px;color:#888;">기본은 mock 데이터. 실제 GAS/VM 호출로 테스트하려면 <code>?real=1</code>을 붙이세요.</p>
 <p id="test-hour-direction-count" style="font-size:13px;color:#666;">1시간 방향 요청: 0건</p>
+<p id="test-pointer-scope" style="font-size:13px;color:#666;">포인터 범위: 종목 선택 후 확인</p>
 <div id="stock-search"></div>
 
 <script src="../data/krx_map.js"></script>
@@ -94,9 +95,26 @@
     };
   }
 </script>
+<script src="../js/site-interactions.js"></script>
 <script src="../js/order-book.js"></script>
 <script src="../js/watchlist.js"></script>
 <script src="../js/stock-search.js"></script>
 <script src="../js/dashboard-enhancements.js"></script>
+<script>
+  (function () {
+    var root = document.querySelector('#stock-search');
+    var probe = new MutationObserver(function () {
+      var summary = root.querySelector('.ss-summary');
+      var chart = root.querySelector('.ss-chart');
+      if (!summary || !chart || !window.SiteInteractions) return;
+      var allowed = !window.SiteInteractions.isExcluded(summary);
+      var blocked = window.SiteInteractions.isExcluded(chart);
+      document.querySelector('#test-pointer-scope').textContent = '포인터 범위: 일반 요약 '
+        + (allowed ? '허용' : '실패') + ' · 실제 차트 ' + (blocked ? '제외' : '실패');
+      probe.disconnect();
+    });
+    probe.observe(root, { childList: true, subtree: true });
+  }());
+</script>
 </body>
 </html>
