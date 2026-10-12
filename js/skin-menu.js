@@ -189,6 +189,7 @@
   function primaryHtml(item, index) {
     var current = item.children ? groupIsActive(item) : isActive(item);
     var selected = item.children && index === selectedGroupIndex;
+    var expanded = selected && !(window.matchMedia && window.matchMedia('(min-width: 721px)').matches);
     var cls = 'nav-item nav-primary-item' + (current || selected ? ' nav-item-active' : '') + (item.end ? ' nav-item-end' : '');
     if (!item.children) {
       return '<a class="' + cls + '" href="' + item.href + '"'
@@ -196,7 +197,7 @@
         + '<span class="nav-item-label">' + item.label + '</span></a>';
     }
     return '<div class="nav-group"><button type="button" class="' + cls + ' nav-group-trigger" data-group-index="' + index + '"'
-      + ' aria-expanded="' + String(selected) + '" aria-controls="nav-secondary-row" aria-haspopup="true">'
+      + ' aria-expanded="' + String(expanded) + '" aria-controls="nav-secondary-row" aria-haspopup="true">'
       + '<span class="nav-item-label">' + item.label + '</span></button>' + dropdownHtml(item) + '</div>';
   }
 
@@ -240,23 +241,52 @@
     });
   }
 
+  function openDropdown(mount, group) {
+    if (!group) return;
+    closeDropdowns(mount);
+    group.classList.add('is-open');
+    var button = group.querySelector('.nav-group-trigger');
+    if (button) button.setAttribute('aria-expanded', 'true');
+  }
+
   function wireNavigation(mount) {
     document.addEventListener('click', function (event) {
       if (!event.target.closest || !event.target.closest('.nav-group')) closeDropdowns(mount);
     });
     document.addEventListener('keydown', function (event) {
-      if (event.key === 'Escape') closeDropdowns(mount);
+      if (event.key === 'Escape') {
+        closeDropdowns(mount);
+        var focused = mount.querySelector('.nav-group-trigger:focus');
+        if (focused) focused.blur();
+      }
+    });
+    mount.addEventListener('pointerover', function (event) {
+      if (!window.matchMedia || !window.matchMedia('(min-width: 721px)').matches) return;
+      var group = event.target.closest ? event.target.closest('.nav-group') : null;
+      if (group && !group.contains(event.relatedTarget)) openDropdown(mount, group);
+    });
+    mount.addEventListener('pointerout', function (event) {
+      if (!window.matchMedia || !window.matchMedia('(min-width: 721px)').matches) return;
+      var group = event.target.closest ? event.target.closest('.nav-group') : null;
+      if (group && !group.contains(event.relatedTarget) && !group.contains(document.activeElement)) closeDropdowns(mount);
+    });
+    mount.addEventListener('focusin', function (event) {
+      if (!window.matchMedia || !window.matchMedia('(min-width: 721px)').matches) return;
+      var group = event.target.closest ? event.target.closest('.nav-group') : null;
+      if (group) openDropdown(mount, group);
+    });
+    mount.addEventListener('focusout', function (event) {
+      if (!window.matchMedia || !window.matchMedia('(min-width: 721px)').matches) return;
+      var group = event.target.closest ? event.target.closest('.nav-group') : null;
+      if (group && !group.contains(event.relatedTarget)) closeDropdowns(mount);
     });
     mount.addEventListener('click', function (event) {
       var trigger = event.target.closest ? event.target.closest('.nav-group-trigger') : null;
       if (!trigger) return;
-      // PC: 하위 메뉴는 호버·포커스로 열리는 카드다. 터치·클릭은 카드를 여닫기만 하고 줄을 다시 그리지 않는다.
+      // PC: 하위 메뉴 카드는 JS의 단일 is-open 상태로만 연다.
       if (window.matchMedia && window.matchMedia('(min-width: 721px)').matches) {
         var group = trigger.closest('.nav-group');
-        var willOpen = !group.classList.contains('is-open');
-        closeDropdowns(mount);
-        if (willOpen) group.classList.add('is-open');
-        trigger.setAttribute('aria-expanded', String(willOpen));
+        openDropdown(mount, group);
         return;
       }
       var nextIndex = Number(trigger.getAttribute('data-group-index'));

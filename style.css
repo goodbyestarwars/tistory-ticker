@@ -7885,7 +7885,7 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
     transition: background-color .18s ease, color .18s ease !important;
   }
   html body .sidebar-left .nav-primary-item .nav-item-label { font: 500 14.5px/1 var(--font-ui) !important; letter-spacing: -0.01em !important; color: inherit !important; }
-  html body .sidebar-left :where(.nav-primary-item:hover, .nav-group:hover > .nav-primary-item, .nav-group.is-open > .nav-primary-item, .nav-group:focus-within > .nav-primary-item) {
+  html body .sidebar-left :where(.nav-primary-item:hover, .nav-group.is-open > .nav-primary-item) {
     background: rgba(var(--np-ink), .07) !important;
     color: rgb(var(--np-ink)) !important;
   }
@@ -7903,7 +7903,7 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
     transition: opacity .18s ease, transform .18s ease, visibility 0s linear .18s !important;
     z-index: 300 !important;
   }
-  html body .sidebar-left :where(.nav-group:hover, .nav-group:focus-within, .nav-group.is-open) > .nav-dropdown {
+  html body .sidebar-left .nav-group.is-open > .nav-dropdown {
     opacity: 1 !important;
     visibility: visible !important;
     transform: none !important;
@@ -8002,7 +8002,7 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
     align-self: center !important;
   }
   html body .sidebar-left .nav-primary-item { height: 36px !important; border-radius: 10px !important; }
-  html body .sidebar-left :where(.nav-primary-item:hover, .nav-group:hover > .nav-primary-item, .nav-group.is-open > .nav-primary-item, .nav-group:focus-within > .nav-primary-item) {
+  html body .sidebar-left :where(.nav-primary-item:hover, .nav-group.is-open > .nav-primary-item) {
     background: rgba(var(--np-ink), .06) !important;
   }
   html body .sidebar-left .nav-primary-item.nav-item-active {

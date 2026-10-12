@@ -74,7 +74,7 @@
     return localizedUsName(item && item.code, item && item.name);
   }
   function stockInitials(item) {
-    var value = String(displayName(item) || item && item.code || '?').replace(/^US:/i, '').trim();
+    var value = String(displayName(item) || item && item.code || '종목').replace(/^US:/i, '').trim();
     return escapeHtml(value.slice(0, 2).toUpperCase());
   }
   function stockIconHtml(item) {

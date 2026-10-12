@@ -6,7 +6,6 @@
   // name-pattern selectors here: many ordinary cards and information panels
   // contain "chart" or "slider" in their class names without being interactive.
   var excluded = '[data-no-pointer-effect],[data-drag-ready],[draggable="true"],[role="scrollbar"],[role="slider"],[role="separator"],canvas,iframe,input,textarea,select,button,label,[contenteditable]:not([contenteditable="false"]),.ss-chart,.ss-lw-chart-root,.dmi-chart,.ff-chart-candle,.kf-chart,.ps-chart,.om-chart,.qi-card-chart,.umi-history-chart,.us-native-chart-mount,.ss-drawing-layer,.dmi-drawing-layer,.nc-drawing-layer';
-  function selectionActive() { var s = global.getSelection(); return !!(s && !s.isCollapsed); }
   function isExcluded(target) { return !target || !target.closest || !!target.closest(excluded); }
   function scrollbar(event) {
     if(event.clientX>=document.documentElement.clientWidth||event.clientY>=document.documentElement.clientHeight)return true;
@@ -52,7 +51,7 @@
     }
     document.addEventListener('pointerdown',function(event) {
       hide();
-      if(event.pointerType!=='mouse'||event.button!==0||!fine.matches||reduced.matches||document.hidden||scrollbar(event)||isExcluded(event.target)||selectionActive())return;
+      if(event.pointerType!=='mouse'||event.button!==0||!fine.matches||reduced.matches||document.hidden||scrollbar(event)||isExcluded(event.target))return;
       held=true; head={x:event.clientX,y:event.clientY};
       points=Array.from({length:16},function(){return {x:head.x,y:head.y};});
       pointer.style.visibility='visible'; frame=global.requestAnimationFrame(draw);
@@ -60,18 +59,17 @@
     document.addEventListener('pointermove',function(event) {
       if(!held)return;
       // Hit-test the actual hovered element even when another widget has capture.
-      if(event.pointerType!=='mouse'||!(event.buttons&1)||scrollbar(event)||isExcluded(event.target)||isExcluded(document.elementFromPoint(event.clientX,event.clientY))||selectionActive()){hide();return;}
+      if(event.pointerType!=='mouse'||!(event.buttons&1)||scrollbar(event)||isExcluded(event.target)||isExcluded(document.elementFromPoint(event.clientX,event.clientY))){hide();return;}
       head.x=event.clientX; head.y=event.clientY;
     },{passive:true,capture:true});
     global.addEventListener('pointerup',hide,true); global.addEventListener('pointercancel',hide,true);
     global.addEventListener('blur',hide); global.addEventListener('pagehide',hide);
     document.addEventListener('pointerout',function(e){if(!e.relatedTarget)hide();},{passive:true});
-    document.addEventListener('selectionchange',function(){if(held&&selectionActive())hide();});
     document.addEventListener('visibilitychange',function(){if(document.hidden)hide();});
     fine.addEventListener('change',hide); reduced.addEventListener('change',hide);
     document.addEventListener('wheel',function(event) {
       if(!held)return;
-      if(isExcluded(event.target)||scrollbar(event)||selectionActive()){hide();return;}
+      if(isExcluded(event.target)||scrollbar(event)){hide();return;}
       if(event.deltaY){event.preventDefault();size=Math.max(20,Math.min(96,size+(event.deltaY<0?6:-6)));}
     },{passive:false,capture:true});
   }

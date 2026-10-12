@@ -192,6 +192,8 @@
       controlRow = anchor.querySelector('.ss-chart-tabs');
     } else if (anchor && anchor.querySelector('.ff-chart-toggles')) {
       controlRow = anchor.querySelector('.ff-chart-toggles');
+    } else if (target.id === 'psChart') {
+      controlRow = target.closest('.ps-detail').querySelector('.ps-chart-switcher');
     } else if (target.classList.contains('ff-apt-chart-wrap')) {
       controlRow = anchor && anchor.querySelector('.ff-extra-card-title');
     } else if (anchor && anchor.querySelector('.ff-extra-card-title')) {
@@ -213,9 +215,10 @@
     // Move that whole panel into the modal so returning from fullscreen cannot
     // strand the drawing controls outside the fullscreen chart.
     var flowChartPanel = target && target.id === 'ffLwChart' && target.parentElement.classList.contains('ff-price-chart-panel');
-    var modalTarget = target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target;
+    var patternDetail = target && target.id === 'psChart' && target.closest ? target.closest('#psDetail') : null;
+    var modalTarget = patternDetail || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);
     if (!modalTarget) return;
-    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart') : null;
+    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : null;
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
     modalTarget.parentNode.insertBefore(placeholder, modalTarget);
@@ -232,11 +235,25 @@
     var flowScope = null;
     var stockRoot = chartTarget && chartTarget.id === 'ssChart' && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
     var stockScope = null;
+    var patternRoot = chartTarget && chartTarget.id === 'psChart' ? document.querySelector('#pattern-scan') : null;
+    var patternScope = null;
     modalTarget.classList.add('de-modal-target');
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
     // 문서 최상위 모달로 옮길 때도 같은 스코프를 유지해야 SVG가 기본 검정색으로
     // 렌더링되지 않고 건물·배경·프로파일 색상을 그대로 사용한다.
-    if (stockRoot) {
+    if (patternRoot) {
+      patternScope = document.createElement('div');
+      patternScope.className = 'de-pattern-scan-scope';
+      patternScope.id = 'pattern-scan';
+      patternRoot.id = 'pattern-scan-original';
+      body.appendChild(patternScope);
+      patternScope.appendChild(modalTarget);
+      patternScope.style.width = '100%';
+      patternScope.style.flex = '1 1 100%';
+      patternScope.style.minWidth = '0';
+      modalTarget.style.width = '100%';
+      modalTarget.style.boxSizing = 'border-box';
+    } else if (stockRoot) {
       // stock-search.css is intentionally scoped to #stock-search. Keep that
       // scope while the chart panel is temporarily moved to document.body.
       stockScope = document.createElement('div');
@@ -270,10 +287,11 @@
     }
     function close() {
       if (!overlay.parentNode) return;
+      var currentChartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : chartTarget;
       placeholder.parentNode.insertBefore(modalTarget, placeholder);
       if (oldStyle == null) modalTarget.removeAttribute('style'); else modalTarget.setAttribute('style', oldStyle);
-      if (chartTarget) {
-        if (oldChartStyle == null) chartTarget.removeAttribute('style'); else chartTarget.setAttribute('style', oldChartStyle);
+      if (currentChartTarget) {
+        if (oldChartStyle == null) currentChartTarget.removeAttribute('style'); else currentChartTarget.setAttribute('style', oldChartStyle);
       }
       modalTarget.classList.remove('de-modal-target');
       if (flowScope) {
@@ -284,12 +302,16 @@
         stockScope.remove();
         stockRoot.id = 'stock-search';
       }
+      if (patternScope) {
+        patternScope.remove();
+        patternRoot.id = 'pattern-scan';
+      }
       placeholder.remove();
       overlay.remove();
       document.removeEventListener('keydown', onKeydown);
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));
-        if (chartTarget) chartTarget.dispatchEvent(new Event('resize'));
+        if (currentChartTarget) currentChartTarget.dispatchEvent(new Event('resize'));
         // Re-measure the chart after it has returned from the fullscreen modal.
         global.dispatchEvent(new Event('tistory-chart-resize'));
         requestAnimationFrame(function () {
@@ -316,6 +338,7 @@
     document.querySelectorAll('#foreign-flow .ff-flow-chart-card #ffLwChart').forEach(function (el) { addExpandButton(el, '종목분석 가격·거래량 차트'); });
     document.querySelectorAll('#foreign-flow .ff-apt-chart-wrap').forEach(function (el) { addExpandButton(el, '종목분석 매물대'); });
     document.querySelectorAll('#stock-search .ss-chart').forEach(function (el) { addExpandButton(el, '실시간 시세 차트'); });
+    document.querySelectorAll('#pattern-scan #psChart').forEach(function (el) { addExpandButton(el, '차트검색 상세 차트'); });
     document.querySelectorAll('#kospi-futures .kf-chart').forEach(function (el) { addExpandButton(el, el.closest('.kf-section') ? el.closest('.kf-section').querySelector('.kf-section-title').textContent : '선물 차트'); });
     document.querySelectorAll('#domestic-market-indicators .dmi-chart').forEach(function (el) {
       var panel = el.closest('.dmi-panel');

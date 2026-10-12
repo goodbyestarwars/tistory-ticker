@@ -816,8 +816,10 @@ document.documentElement.classList.add('skin-ready');
       var fullText = text == null ? '' : String(text);
       // 요약 API가 일시적으로 '?'를 반환해도 사용자가 의미 없는 물음표를
       // 지표 값으로 오해하지 않도록 상태 문구로 바꿔 표시한다.
-      if (/^\?+$/.test(fullText.trim())) fullText = '데이터 확인 중';
+      var placeholderOnly = /^\?+$/.test(fullText.trim());
+      if (placeholderOnly) fullText = '';
       element.textContent = fullText;
+      element.hidden = placeholderOnly;
       // 업종명은 카드 폭에 맞춰 말줄임표로 보이지만, hover/focus 시 전체 문구를
       // 확인할 수 있도록 native tooltip과 접근성 레이블을 함께 유지한다.
       element.title = fullText;

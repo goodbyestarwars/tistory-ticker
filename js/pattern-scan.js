@@ -99,6 +99,10 @@
   var scanData = null;
   var scanPerformanceData = null;
   var activeTab = 'risingLows';
+  var rootContainer = null;
+  var detailNavItems = [];
+  var currentDetailItem = null;
+  var detailRequestSeq = 0;
   // 2026-10-06 사용자 지적("스캔 시점에는 스캐너가 의미가 없어, 사전포착이야"): 거래량 돌파 탭은 09:05 스냅샷 대신
   // VM이 장중 30초마다 갱신하는 감지 목록(/volume-surge-live)을 쓴다. 실패하면 기존 스냅샷을 그대로 둔다.
   var LIVE_SURGE_URL = 'https://goodbyestar.cloud/volume-surge-live';
@@ -139,6 +143,7 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    rootContainer = container;
     container.innerHTML = buildShell();
     wireTabs(container);
     renderTabDesc(container);
@@ -851,6 +856,7 @@
       return trackView === 'all' || itemStage(it).key === trackView;
     });
     if (!items.length) {
+      detailNavItems = [];
       list.innerHTML = '<div class="ps-hint">' + (allItems.length
         ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
         : '지금 이 패턴에 해당하는 종목이 없어요.') + '</div>';
@@ -865,6 +871,7 @@
       if (scoreDiff) return scoreDiff;
       return String(b.date || '').localeCompare(String(a.date || ''));
     });
+    detailNavItems = sorted.slice();
 
     list.innerHTML = '<div class="ps-list-head" aria-hidden="true">'
       + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>개별 관측</span>'
@@ -893,7 +900,7 @@
     list.querySelectorAll('.ps-item').forEach(function (el) {
       var open = function () {
         var code = el.getAttribute('data-code');
-        var item = items.filter(function (x) { return x.code === code; })[0];
+        var item = sorted.filter(function (x) { return x.code === code; })[0];
         openDetail(container, item);
       };
       el.addEventListener('click', open);
@@ -967,13 +974,15 @@
       var review = container.querySelector('[data-scanner-review]');
       if (review) review.innerHTML = scannerReviewHtml(data && data.stats);
       if (!tracks.length) {
+        detailNavItems = [];
         list.innerHTML = head + '<div class="ps-hint">' + (trackView === 'success' ? '아직 돌파 성공(포착가 대비 장중 +5%)한 종목이 없어요.' : '아직 5일선 이탈로 돌파 실패한 종목이 없어요.') + '</div>';
         return;
       }
       var byCode = {};
+      detailNavItems = tracks.map(trackToItem);
       list.innerHTML = head + '<div class="ps-track-head" aria-hidden="true"><span>종목</span><span>포착일</span><span>상태</span><span>포착가 → 현재가</span><span>경과</span><span>최대 상승/하락</span></div>'
-        + tracks.map(function (t) {
-          byCode[t.id] = t;
+        + tracks.map(function (t, index) {
+          byCode[t.id] = detailNavItems[index];
           var ret = t.detected_close && t.current_close != null ? (t.current_close / t.detected_close - 1) * 100 : null;
           return '<div class="ps-track-row" data-track-id="' + t.id + '" tabindex="0" role="button">'
             + '<span class="ps-name">' + stockIconHtml(t.code) + '<span>' + escapeHtml(t.name) + '</span></span>'
@@ -985,7 +994,7 @@
             + '</div>';
         }).join('');
       list.querySelectorAll('.ps-track-row').forEach(function (el) {
-        var open = function () { openDetail(container, trackToItem(byCode[el.getAttribute('data-track-id')])); };
+        var open = function () { openDetail(container, byCode[el.getAttribute('data-track-id')]); };
         el.addEventListener('click', open);
         el.addEventListener('keydown', function (event) {
           if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
@@ -1169,8 +1178,12 @@
   // ---- 상세(캔들차트 + 패턴선) ----
 
   function openDetail(container, item) {
-    var detail = container.querySelector('#psDetail');
+    var detail = document.getElementById('psDetail');
     if (!detail || !item) return;
+    var requestSeq = ++detailRequestSeq;
+    var requestPattern = activeTab;
+    currentDetailItem = item;
+    destroyPsChart();
     // 이 패턴은 구름 안·상단 시도가 핵심이므로 상세 차트에서 구름을 기본으로 켠다.
     psIchimokuEnabled = activeTab === 'maCloudBreakout';
     detail.hidden = false;
@@ -1178,7 +1191,7 @@
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     var chartUrl = GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
-      + '&pattern=' + encodeURIComponent(activeTab) + '&scanDate=' + encodeURIComponent(item.date || '');
+      + '&pattern=' + encodeURIComponent(requestPattern) + '&scanDate=' + encodeURIComponent(item.date || '');
     function loadFromGas() {
       return fetchWithRetry(chartUrl, function (data) {
         return data && !data.error && Array.isArray(data.daily);
@@ -1186,17 +1199,18 @@
     }
     // 재판정이 필요 없는 탭은 VM에서 캔들만 받아 곧바로 그린다. detail은 어차피 목록
     // 스냅샷에서 오므로(아래 !data.detail 분기) 화면 내용은 GAS 경유와 같다.
-    var chartRequest = GAS_REDETECTED_PATTERNS[activeTab]
+    var chartRequest = GAS_REDETECTED_PATTERNS[requestPattern]
       ? loadFromGas()
       : PatternScan.fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(item.code))
           .then(function (envelope) {
             var d = envelope && envelope.data ? envelope.data : envelope;
             if (!d || d.error || !Array.isArray(d.daily) || !d.daily.length) throw new Error('VM 캔들 없음');
-            return { code: item.code, daily: d.daily, pattern: activeTab, detail: null };
+            return { code: item.code, daily: d.daily, pattern: requestPattern, detail: null };
           })
           .catch(loadFromGas);
     chartRequest
       .then(function (data) {
+        if (requestSeq !== detailRequestSeq || currentDetailItem !== item || !detail.isConnected) return;
         if (data.error || !data.daily || !data.daily.length) {
           detail.innerHTML = '<div class="ps-error">' + escapeHtml((data && data.message) || '차트를 불러오지 못했어요.') + '</div>';
           return;
@@ -1222,13 +1236,49 @@
         renderDetail(detail, item, data);
       })
       .catch(function () {
+        if (requestSeq !== detailRequestSeq || currentDetailItem !== item || !detail.isConnected) return;
         detail.innerHTML = '<div class="ps-error">차트를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
       });
   }
 
   function closeDetail(container) {
-    var detail = container.querySelector('#psDetail');
+    var detail = document.getElementById('psDetail');
+    detailRequestSeq += 1;
+    currentDetailItem = null;
     if (detail) { detail.hidden = true; detail.innerHTML = ''; destroyPsChart(); }
+  }
+
+  function detailItemIndex(item) {
+    for (var i = 0; i < detailNavItems.length; i++) {
+      if (detailNavItems[i] === item || (detailNavItems[i].code === item.code && String(detailNavItems[i].date || '') === String(item.date || ''))) return i;
+    }
+    return -1;
+  }
+
+  function buildDetailSwitcher(item) {
+    var index = detailItemIndex(item);
+    var options = detailNavItems.map(function (candidate, i) {
+      return '<option value="' + i + '"' + (i === index ? ' selected' : '') + '>'
+        + escapeHtml(candidate.name + ' · ' + candidate.code) + '</option>';
+    }).join('');
+    return '<div class="ps-chart-switcher" aria-label="차트 종목 전환">'
+      + '<button type="button" class="ps-chart-nav" data-ps-chart-prev' + (index <= 0 ? ' disabled' : '') + ' aria-label="이전 종목">〈 이전</button>'
+      + '<label><span class="sr-only">차트 종목 선택</span><select data-ps-chart-select>' + options + '</select></label>'
+      + '<button type="button" class="ps-chart-nav" data-ps-chart-next' + (index < 0 || index >= detailNavItems.length - 1 ? ' disabled' : '') + ' aria-label="다음 종목">다음 〉</button>'
+      + '</div>';
+  }
+
+  function wireDetailSwitcher(box) {
+    var select = box.querySelector('[data-ps-chart-select]');
+    function openIndex(index) {
+      var item = detailNavItems[index];
+      if (item) openDetail(rootContainer, item);
+    }
+    if (select) select.addEventListener('change', function () { openIndex(Number(select.value)); });
+    var prev = box.querySelector('[data-ps-chart-prev]');
+    var next = box.querySelector('[data-ps-chart-next]');
+    if (prev) prev.addEventListener('click', function () { openIndex(detailItemIndex(currentDetailItem) - 1); });
+    if (next) next.addEventListener('click', function () { openIndex(detailItemIndex(currentDetailItem) + 1); });
   }
 
   // 2026-10-11 자동매매 연동(소유자 전용): 이 PC의 로컬 봇(127.0.0.1:8765)이 켜져 있고 이 브라우저에 접속 토큰이 있을 때만
@@ -1272,7 +1322,8 @@
   }
 
   function renderDetail(box, item, data) {
-    var html = '<div class="ps-detail-head">'
+    var chartHeight = box.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
+    var html = buildDetailSwitcher(item) + '<div class="ps-detail-head">'
       + '<span class="ps-detail-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
       + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
@@ -1289,14 +1340,15 @@
       + '</div>';
     html += '<div class="ps-memo-bar"><button type="button" class="ui-btn ui-btn-secondary" data-ps-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button><span>로그인하면 계정에, 아니면 이 브라우저에 저장됩니다</span></div>';
     html += '<div class="ps-autotrade-bar" data-ps-autotrade hidden></div>';
-    html += '<div class="ps-chart" id="psChart" style="height:' + CHART_H + 'px"></div>';
+    html += '<div class="ps-chart" id="psChart" style="height:' + chartHeight + 'px"></div>';
     html += activeTab === 'firstPullbackBreakout'
       ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
       : '<div class="ps-footnote">※ 장 마감 후 확정 일봉 기준이라 실제 진입은 다음 거래일입니다. 다음 날 시가가 2% 이상 갭상승하면 과거 성과가 나빴습니다(백테스트). 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
     box.innerHTML = html;
+    wireDetailSwitcher(box);
 
     var closeBtn = box.querySelector('#psClose');
-    if (closeBtn) closeBtn.addEventListener('click', function () { destroyPsChart(); box.hidden = true; box.innerHTML = ''; });
+    if (closeBtn) closeBtn.addEventListener('click', function () { closeDetail(rootContainer); });
 
     var srToggle = box.querySelector('#psSupportResistanceToggle');
     if (srToggle) {
@@ -1668,10 +1720,11 @@
     destroyPsChart();
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
+      var chartHeight = container.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
 
       var chart = LWC.createChart(container, mergeOptions({
         autoSize: true,
-        height: CHART_H,
+        height: chartHeight,
         crosshair: { mode: LWC.CrosshairMode.Normal },
         timeScale: { timeVisible: false, secondsVisible: false },
         localization: { priceFormatter: psChartPriceFormatter }

@@ -363,6 +363,30 @@
   padding: 16px 18px 18px;
 }
 
+#pattern-scan .ps-chart-switcher {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 12px;
+  min-width: 0;
+}
+#pattern-scan .ps-chart-switcher label { flex: 1 1 260px; min-width: 0; }
+#pattern-scan .ps-chart-switcher select,
+#pattern-scan .ps-chart-nav {
+  height: 34px;
+  border: 1px solid #d8dde5;
+  border-radius: 8px;
+  background: #fffefc;
+  color: #20242b;
+  font: 600 12.5px/1 Pretendard, "Malgun Gothic", sans-serif;
+}
+#pattern-scan .ps-chart-switcher select { width: 100%; padding: 0 30px 0 10px; }
+#pattern-scan .ps-chart-nav { flex: 0 0 auto; padding: 0 11px; cursor: pointer; }
+#pattern-scan .ps-chart-nav:disabled { opacity: .38; cursor: default; }
+#pattern-scan .ps-chart-switcher .de-expand-button { margin: 0; white-space: nowrap; }
+.de-chart-overlay #pattern-scan .ps-detail { min-height: 100%; border: 0; }
+.de-chart-overlay #pattern-scan .de-expand-button { display: none !important; }
+
 #pattern-scan .ps-detail-head {
   display: flex;
   align-items: center;
@@ -703,6 +727,12 @@ html.dark #pattern-scan .ps-detail {
   background: #1A1A1A;
   border-color: rgba(245, 239, 224, 0.14);
 }
+html.dark #pattern-scan .ps-chart-switcher select,
+html.dark #pattern-scan .ps-chart-nav {
+  background: #1A1A1A;
+  border-color: rgba(245, 239, 224, .2);
+  color: #F5EFE0;
+}
 
 html.dark #pattern-scan .ps-score-box {
   background: rgba(245, 239, 224, 0.06);
@@ -758,6 +788,11 @@ html.dark #pattern-scan .ps-footnote b {
 @media (max-width: 720px) {
   /* 실측 33px. 가로 스크롤 탭이라 높이만 키우면 레이아웃이 밀리지 않는다. */
   #pattern-scan .ps-tab { min-height: 44px; }
+  #pattern-scan .ps-chart-switcher { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 6px; }
+  #pattern-scan .ps-chart-switcher label { grid-column: 1 / -1; grid-row: 1; }
+  #pattern-scan .ps-chart-switcher [data-ps-chart-prev] { grid-column: 1; grid-row: 2; }
+  #pattern-scan .ps-chart-switcher [data-ps-chart-next] { grid-column: 3; grid-row: 2; }
+  #pattern-scan .ps-chart-switcher .de-expand-button { grid-column: 2; grid-row: 2; justify-self: center; }
 }
 
 /* 차트 메모 줄(2026-10-03) */
