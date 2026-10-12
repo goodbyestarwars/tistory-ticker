@@ -16,6 +16,7 @@
 <p style="font-size:13px;color:#888;">기본은 mock 데이터. 실제 GAS/VM 호출로 테스트하려면 <code>?real=1</code>을 붙이세요.</p>
 <p id="test-hour-direction-count" style="font-size:13px;color:#666;">1시간 방향 요청: 0건</p>
 <p id="test-pointer-scope" style="font-size:13px;color:#666;">포인터 범위: 종목 선택 후 확인</p>
+<button type="button" id="test-dark-toggle">테스트 다크모드</button>
 <div id="stock-search"></div>
 
 <script src="../data/krx_map.js"></script>
@@ -102,6 +103,9 @@
 <script src="../js/dashboard-enhancements.js"></script>
 <script>
   (function () {
+    document.querySelector('#test-dark-toggle').addEventListener('click', function () {
+      document.documentElement.classList.toggle('dark');
+    });
     var root = document.querySelector('#stock-search');
     var probe = new MutationObserver(function () {
       var summary = root.querySelector('.ss-summary');
