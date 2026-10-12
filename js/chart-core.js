@@ -36,7 +36,7 @@
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
-    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '' }
+    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261012-current-price' }
   };
 
   // ---- 라이브러리·모듈 로드: 페이지당 한 번(여러 화면·여러 호출자가 동시에 불러도 같은 약속을 돌려준다) ----

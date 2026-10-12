@@ -55,12 +55,17 @@ class SupportResistanceTest(unittest.TestCase):
         sr = (ROOT / 'js' / 'chart-sr.js').read_text(encoding='utf-8')
         self.assertIn("var SR_SUPPORT_COLOR = '210,79,69';", sr)      # 지지 = 붉은색
         self.assertIn("var SR_RESISTANCE_COLOR = '18,97,196';", sr)   # 저항 = 파란색
+        self.assertIn('ctx.setLineDash([2, 2]);', sr)
+        self.assertIn('var SR_BAND_ALPHA = [0.14, 0.085, 0.045];', sr)
         src = (ROOT / 'js' / 'stock-search.js').read_text(encoding='utf-8')
         self.assertIn('지지·저항 표시', src)
         self.assertIn('supportResistanceEnabled', src)
         # 차트검색은 SR 계산을 따로 갖지 않고 공용 모듈을 쓴다(종목분석·차트검색 결과가 같다)
         self.assertNotIn('function supportResistanceLevels', src)
-        self.assertIn('NineChartSR.levels(bars)', src)
+        self.assertIn('NineChartSR.levels(bars, srReferencePrice)', src)
+        self.assertIn('NineChartSR.levels(lwcLiveBars, referencePrice)', src)
+        flow = (ROOT / 'js' / 'foreign-flow.js').read_text(encoding='utf-8')
+        self.assertIn('api.levels(daily, flowSrReferencePrice)', flow)
 
 
 if __name__ == '__main__':

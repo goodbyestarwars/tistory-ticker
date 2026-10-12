@@ -20,13 +20,15 @@
   var SR_SUPPORT_COLOR = '210,79,69';
   var SR_RESISTANCE_COLOR = '18,97,196';
 
-  function supportResistanceLevels(bars) {
+  function supportResistanceLevels(bars, referencePrice) {
     var empty = { support: [], resistance: [], price: null };
     if (!bars || bars.length < SR_PIVOT_WINDOW * 2 + 6) return empty;
     var arr = bars.slice(-SR_MAX_BARS);
     var len = arr.length;
-    var price = Number(arr[len - 1].close);
-    if (!Number.isFinite(price) || price <= 0) return empty;
+    var calculationPrice = Number(arr[len - 1].close);
+    if (!Number.isFinite(calculationPrice) || calculationPrice <= 0) return empty;
+    var price = Number(referencePrice);
+    if (!Number.isFinite(price) || price <= 0) price = calculationPrice;
     var volSum = 0;
     arr.forEach(function (bar) { volSum += Number(bar.volume) || 0; });
     var volAvg = volSum / len;
@@ -53,7 +55,8 @@
       if (isLow && strictLow) pivots.push({ price: lo, weight: weight });
     }
     pivots.sort(function (a, b) { return a.price - b.price; });
-    var tol = price * SR_CLUSTER_PCT;
+    // 군집 계산 폭은 기존 마지막 종가 기준을 유지하고, 아래 분류만 화면 현재가를 쓴다.
+    var tol = calculationPrice * SR_CLUSTER_PCT;
     var clusters = [];
     pivots.forEach(function (p) {
       var c = clusters[clusters.length - 1];
@@ -68,11 +71,11 @@
         clusters.push({ sum: p.price * p.weight, weight: p.weight, mean: p.price, low: p.price, high: p.price, touches: 1 });
       }
     });
-    var minHalf = price * 0.002;
+    var minHalf = calculationPrice * 0.002;
     function toLevel(c) {
       return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
     }
-    var near = clusters.filter(function (c) { return Math.abs(c.mean - price) / price <= 0.25; });
+    var near = clusters.filter(function (c) { return Math.abs(c.mean - calculationPrice) / calculationPrice <= 0.25; });
     var levels = near.filter(function (c) { return c.touches >= 2; }).map(toLevel);
     // 2026-10-04: 52주 저점 부근처럼 한쪽에 2회 이상 닿은 가격대가 없으면 "지지/저항이 없다"로 보였다(사용자 지적).
     // 그런 쪽에는 한 번만 닿은 스윙 고·저점(1회)을 가까운 순서로 보충해 최소 2개까지 보여 준다.
@@ -82,7 +85,7 @@
       var picked = [];
       sorted.forEach(function (level) {
         if (picked.length >= SR_MAX_PER_SIDE) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < SR_MIN_GAP_PCT; });
         if (!tooClose) picked.push(level);
       });
       return picked;
@@ -92,23 +95,37 @@
       var pool = weakLevels.filter(side).sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
       pool.forEach(function (level) {
         if (picked.length >= 2) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / price < SR_MIN_GAP_PCT; });
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < SR_MIN_GAP_PCT; });
         if (!tooClose) picked.push(level);
       });
       return picked;
     }
-    var isSupport = function (l) { return l.price < price * 0.998; };
-    var isResistance = function (l) { return l.price > price * 1.002; };
+    // 현재가가 밴드 안에 있어도 중심값으로 한쪽에 분류한다. 돌파된 저항은 지지로,
+    // 이탈한 지지는 저항으로 바뀌며 각 방향 번호는 현재가와 가까운 순서다.
+    var isSupport = function (l) { return l.price <= price; };
+    var isResistance = function (l) { return l.price > price; };
+    function finish(list) {
+      return list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); }).slice(0, SR_MAX_PER_SIDE);
+    }
     return {
       price: price,
-      support: fillWeak(nearest(levels.filter(isSupport)), isSupport),
-      resistance: fillWeak(nearest(levels.filter(isResistance)), isResistance)
+      calculationPrice: calculationPrice,
+      support: finish(fillWeak(nearest(levels.filter(isSupport)), isSupport)),
+      resistance: finish(fillWeak(nearest(levels.filter(isResistance)), isResistance))
     };
   }
 
-  function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice) {
-    var all = result ? result.support.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지 ' + (i + 1) }; })
-      .concat(result.resistance.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항 ' + (i + 1) }; })) : [];
+  function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice, options) {
+    options = options || {};
+    // 강도 차이는 신뢰도가 아니라 각 방향에서 현재가와의 거리 순위를 뜻한다.
+    var SR_BAND_ALPHA = [0.14, 0.085, 0.045];
+    var SR_LINE_ALPHA = [0.72, 0.50, 0.32];
+    var SR_LABEL_ALPHA = [1.0, 0.78, 0.58];
+    function itemsFor(current) {
+      return current ? current.support.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_SUPPORT_COLOR, name: '지지 ' + (i + 1), rank: i }; })
+        .concat(current.resistance.slice(0, SR_MAX_PER_SIDE).map(function (l, i) { return { l: l, c: SR_RESISTANCE_COLOR, name: '저항 ' + (i + 1), rank: i }; })) : [];
+    }
+    var all = itemsFor(result);
     if (!all.length) return function () {};
     var chartRoot = container.firstElementChild;
     if (chartRoot) chartRoot.classList.add('ss-lw-chart-root');
@@ -159,27 +176,42 @@
         var yBottom = candleSeries.priceToCoordinate(item.l.low);
         if (![y, yTop, yBottom].every(Number.isFinite)) return;
         // 음영: 스윙 고·저점이 모인 가격 폭
-        ctx.fillStyle = 'rgba(' + item.c + ',.075)';
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_BAND_ALPHA[item.rank] + ')';
         ctx.fillRect(0, Math.max(0, Math.min(yTop, yBottom)), right, Math.max(2, Math.abs(yBottom - yTop)));
         // 가로줄: 점선
-        ctx.strokeStyle = 'rgba(' + item.c + ',.52)';
+        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LINE_ALPHA[item.rank] + ')';
         ctx.lineWidth = 1;
-        ctx.setLineDash([5, 4]);
+        ctx.setLineDash([2, 2]);
         ctx.beginPath();
         ctx.moveTo(0, Math.round(y) + 0.5);
         ctx.lineTo(right, Math.round(y) + 0.5);
         ctx.stroke();
         ctx.setLineDash([]);
-        var text = item.name + ' ' + formatPrice(item.l.low) + '~' + formatPrice(item.l.high);
+        var text = item.name + ' ' + displayPrice(item.l.low) + '~' + displayPrice(item.l.high);
         var tw = ctx.measureText(text).width + 12;
         var ly = labelY.get(item);
         if (ly == null || right < 80) return;
         var left = Math.max(2, right - tw - 4);
         ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.88)' : 'rgba(255,254,252,.88)';
         ctx.fillRect(left, ly - 9, Math.min(tw, right - left - 2), 18);
-        ctx.fillStyle = 'rgb(' + item.c + ')';
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
         ctx.fillText(text, left + 6, ly + 0.5, Math.max(0, right - left - 12));
       });
+    }
+    function krxTickSize(value) {
+      if (value < 2000) return 1;
+      if (value < 5000) return 5;
+      if (value < 20000) return 10;
+      if (value < 50000) return 50;
+      if (value < 200000) return 100;
+      if (value < 500000) return 500;
+      return 1000;
+    }
+    function displayPrice(value) {
+      var number = Number(value);
+      if (!Number.isFinite(number)) return formatPrice(value);
+      var rounded = options.isUs ? Math.round(number * 100) / 100 : Math.round(number / krxTickSize(number)) * krxTickSize(number);
+      return formatPrice(rounded);
     }
     function scheduleDraw() {
       if (frameId) global.cancelAnimationFrame(frameId);
@@ -195,14 +227,20 @@
     scheduleDraw();
     // 가격축 범위는 시간축 이동 없이도(확대·세로 드래그) 바뀌므로 짧게 한 번 더 그린다.
     var settle = global.setTimeout(scheduleDraw, 250);
-    return function () {
+    function cleanup() {
       if (frameId) global.cancelAnimationFrame(frameId);
       global.clearTimeout(settle);
       chart.timeScale().unsubscribeVisibleLogicalRangeChange(scheduleDraw);
       if (resizeObserver) resizeObserver.disconnect();
       else global.removeEventListener('resize', scheduleDraw);
       canvas.remove();
+    }
+    cleanup.update = function (nextResult) {
+      result = nextResult;
+      all = itemsFor(result);
+      scheduleDraw();
     };
+    return cleanup;
   }
 
   function ensureStyles() {
@@ -216,10 +254,10 @@
 
   global.NineChartSR = {
     levels: supportResistanceLevels,
-    install: function (container, chart, series, result, formatPrice) {
+    install: function (container, chart, series, result, formatPrice, options) {
       ensureStyles();
       try { if (global.getComputedStyle(container).position === 'static') container.style.position = 'relative'; } catch (e) { /* 무시 */ }
-      return installSupportResistanceCanvas(container, chart, series, result, formatPrice);
+      return installSupportResistanceCanvas(container, chart, series, result, formatPrice, options);
     }
   };
 })(window);

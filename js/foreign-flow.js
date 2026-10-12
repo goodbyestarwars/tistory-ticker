@@ -1691,6 +1691,7 @@
 
     var latest = data.daily && data.daily[0]; // getForeignFlow는 최신일 우선(내림차순) 정렬
     var aptCurrentPrice = quote ? Number(quote.price) : (latest && latest.close);
+    flowSrReferencePrice = Number.isFinite(Number(aptCurrentPrice)) ? Number(aptCurrentPrice) : null;
     var aptDaily = chartData && chartData.daily;
     var aptOpeningPrice = aptDaily && aptDaily.length ? Number(aptDaily[aptDaily.length - 1].open) : null;
     // quote(실시간, NXT 시간외 포함)가 있으면 그걸 헤더에 우선 쓰고, 실패 시에만 daily[0](정규장
@@ -1759,7 +1760,7 @@
     wireChartHover(box.querySelector('.ff-chart-net'), data.daily, 'net');
     wireChartHover(box.querySelector('.ff-chart-ratio'), data.daily, 'ratio');
     wireFlowPeriod(box, data.code, data.name);
-    wireViewTabs(box, data.code, data.name, chartData);
+    wireViewTabs(box, data.code, data.name, chartData, aptCurrentPrice);
     wireMovingAverageToggle(box);
     wireIchimokuToggle(box, chartData);
     wireVolumeProfileToggle(box, chartData);
@@ -1792,6 +1793,7 @@
         if (!header) { stopQuotePolling(); return; } // 다른 종목 재검색으로 이 헤더 자체가 사라짐
         var aptCard = box.querySelector('#ffAptCard');
         if (aptCard && typeof aptCard.__updateCurrentPrice === 'function') aptCard.__updateCurrentPrice(q.price);
+        updateFlowSrReference(q.price);
         var priceEl = header.querySelector('.ff-price');
         var asofEl = header.querySelector('.ff-asof');
         if (!priceEl) return; // 최초 조회 때 시세를 아예 못 받아온 드문 경우 - 다음 tick 재시도
@@ -1818,7 +1820,7 @@
       + '</div>';
   }
 
-  function wireViewTabs(box, code, name, chartData) {
+  function wireViewTabs(box, code, name, chartData, currentPrice) {
     var tabs = box.querySelectorAll('.ff-view-tab');
     var flowBox = box.querySelector('#ffViewFlow');
     var aptBox = box.querySelector('#ffViewApt');
@@ -1853,7 +1855,7 @@
         if (view === 'chart' && chartBox && !chartBox.dataset.rendered) {
           chartBox.dataset.rendered = '1';
           var lwContainer = chartBox.querySelector('#ffLwChart');
-          if (lwContainer) renderLwChart(lwContainer, chartData, code);
+          if (lwContainer) renderLwChart(lwContainer, chartData, code, flowSrReferencePrice || currentPrice);
         }
         // 과거 시뮬레이션 탭도 처음 열릴 때만 만든다(수급/펀더멘탈처럼 항상 켜둘 필요는 없음).
         if (view === 'sim' && simBox && !simBox.dataset.loaded) {
@@ -5684,14 +5686,26 @@
   // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색 차트와 같은 계산·그림으로 맞춘다(2026-10-03 사용자 지적:
   // 같은 삼성전자 차트인데 지지/저항이 서로 달랐다 - 여기는 서버 levels + 파랑=지지였고 저기는 붉은색=지지).
   var flowSrCleanup = null;
-  function setupFlowSupportResistance(container, chart, series, daily, fallbackLevels, LWC) {
-    flowSrCtx = { container: container, chart: chart, series: series, daily: daily, levels: fallbackLevels, LWC: LWC };
+  var flowSrReferencePrice = null;
+  function setupFlowSupportResistance(container, chart, series, daily, fallbackLevels, LWC, referencePrice) {
+    flowSrReferencePrice = Number.isFinite(Number(referencePrice)) && Number(referencePrice) > 0 ? Number(referencePrice) : flowSrReferencePrice;
+    flowSrCtx = { container: container, chart: chart, series: series, daily: daily, levels: fallbackLevels, LWC: LWC, referencePrice: flowSrReferencePrice };
     if (!supportResistanceEnabled || flowSrCleanup) return;
     var api = global.NineChartSR;
     if (!api) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }   // 모듈을 못 받았으면 서버 levels 로 그린다
-    var result = api.levels(daily);
+    var result = api.levels(daily, flowSrReferencePrice);
     if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
-    flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); });
+    flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); }, { isUs: false });
+  }
+
+  function updateFlowSrReference(referencePrice) {
+    var price = Number(referencePrice);
+    if (!Number.isFinite(price) || price <= 0) return;
+    flowSrReferencePrice = price;
+    if (!flowSrCtx) return;
+    flowSrCtx.referencePrice = price;
+    if (!supportResistanceEnabled || !flowSrCleanup || typeof flowSrCleanup.update !== 'function' || !global.NineChartSR) return;
+    flowSrCleanup.update(global.NineChartSR.levels(flowSrCtx.daily, price));
   }
 
   // 재검색/언마운트 시 이전 차트 인스턴스·오버레이·구독을 정리(리스너 누수 방지)
@@ -5755,7 +5769,7 @@
 
   // TradingView Lightweight Charts v5 멀티 패널 차트.
   // 0=가격, 1=거래량, 2=외국인·기관 순매수. RSI는 아래 별도 섹션에서 표시한다.
-  function renderLwChart(container, chartData, code) {
+  function renderLwChart(container, chartData, code, currentPrice) {
     destroyLwChart();
     var renderId = flowRenderId;
     container.querySelectorAll('.ff-volume-study-label').forEach(function (el) { el.remove(); });
@@ -5779,7 +5793,7 @@
       lwcCandleSeries = candleSeries;
 
       var levels = chartData.levels || {};
-      setupFlowSupportResistance(container, chart, candleSeries, daily, levels, LWC);
+      setupFlowSupportResistance(container, chart, candleSeries, daily, levels, LWC, currentPrice);
 
       // 이동평균선: 서버가 계산한 값(데이터 앞쪽의 부분 창 구간 포함)을 그대로 그린다. 시리즈 생성은 공용 부품.
       core.maStudies().forEach(function (study) {

@@ -1357,7 +1357,7 @@
         if (!psSrEnabled) {
           if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
         } else if (psSrCtx && psLwcChart === psSrCtx.chart) {
-          setupPsSupportResistance(psSrCtx.container, psSrCtx.chart, psSrCtx.series, psSrCtx.daily);
+          setupPsSupportResistance(psSrCtx.container, psSrCtx.chart, psSrCtx.series, psSrCtx.daily, psSrCtx.referencePrice);
         }
       });
     }
@@ -1376,7 +1376,7 @@
     psTrackCtx = item.track || null;
     wireAutoTradeBar(box, item);
     var chartContainer = box.querySelector('#psChart');
-    if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail);
+    if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail, item.price);
   }
 
   // 일목균형표는 패턴별 오버레이(지지/저항/스윙 dot)와 별개의 보조지표라 기본은 꺼둔 채
@@ -1496,21 +1496,21 @@
     if (psSrPromise) return psSrPromise;
     psSrPromise = new Promise(function (resolve, reject) {
       var sc = document.createElement('script');
-      sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-sr.js';
+      sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-sr.js?v=20261012-current-price';
       sc.onload = function () { resolve(window.NineChartSR); };
       sc.onerror = function () { psSrPromise = null; reject(new Error('chart-sr load failed')); };
       document.head.appendChild(sc);
     });
     return psSrPromise;
   }
-  function setupPsSupportResistance(container, chart, series, daily) {
-    psSrCtx = { container: container, chart: chart, series: series, daily: daily };
+  function setupPsSupportResistance(container, chart, series, daily, referencePrice) {
+    psSrCtx = { container: container, chart: chart, series: series, daily: daily, referencePrice: referencePrice };
     if (!psSrEnabled) return;
     loadPsSrModule().then(function (api) {
       if (!document.body.contains(container) || psLwcChart !== chart || !psSrEnabled || psSrCleanup) return;
-      var result = api.levels(daily);
+      var result = api.levels(daily, referencePrice);
       if (!result.support.length && !result.resistance.length) return;
-      psSrCleanup = api.install(container, chart, series, result, function (p) { return psChartPriceFormatter(p); });
+      psSrCleanup = api.install(container, chart, series, result, function (p) { return psChartPriceFormatter(p); }, { isUs: false });
     }).catch(function () { /* 지지·저항을 못 받아도 차트는 그대로 */ });
   }
 
@@ -1716,7 +1716,7 @@
 
   // 실제 트레이딩뷰 엔진으로 캔들 + MA(눌림목만) + 패턴 오버레이를 렌더링.
   // 가로 스크롤 없이 컨테이너 폭에 autoSize로 맞춰 한눈에 들어오게 한다.
-  function renderPatternChart(container, daily, pattern, detail) {
+  function renderPatternChart(container, daily, pattern, detail, currentPrice) {
     destroyPsChart();
     loadLightweightCharts().then(function (LWC) {
       if (!document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
@@ -1768,7 +1768,7 @@
       });
 
       setupPsMemo(container, chart, candleSeries, daily);
-      setupPsSupportResistance(container, chart, candleSeries, daily);
+      setupPsSupportResistance(container, chart, candleSeries, daily, currentPrice);
 
       psLwcThemeObserver = new MutationObserver(function () {
         chart.applyOptions(psThemeOptions());

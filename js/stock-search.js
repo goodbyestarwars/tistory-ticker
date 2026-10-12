@@ -1128,6 +1128,7 @@
     var changeEl = box.querySelector('.ss-summary-change');
     if (changeEl) { changeEl.textContent = fmtSignedPct(quote.changeRate); changeEl.className = 'ss-summary-change ' + cls; }
     updateLiveChartQuote(quote.code, quote);
+    updateStockSrReference(quote.price);
   }
 
   // 호가창과 차트가 서로 다른 시점의 가격을 보여주지 않도록, 같은 WebSocket 체결가를
@@ -1723,6 +1724,24 @@
 
   function chartPriceText(value, isUsChart) { return global.NineChartCore.priceText(value, isUsChart); }
 
+  function stockSrLegendHtml(result, isUsChart) {
+    var srPart = function (list, cls) {
+      return list.map(function (l) { return '<b class="' + cls + '">' + chartPriceText(l.price, isUsChart) + '</b>'; }).join(' · ');
+    };
+    return result && (result.support.length || result.resistance.length)
+      ? '지지 ' + (result.support.length ? srPart(result.support, 'ss-sr-support') : '없음')
+        + ' / 저항 ' + (result.resistance.length ? srPart(result.resistance, 'ss-sr-resistance') : '없음')
+      : '지지·저항 <b>데이터 부족</b>';
+  }
+
+  function updateStockSrReference(referencePrice) {
+    if (!state.supportResistanceEnabled || !global.NineChartSR || !lwcLiveBars.length || !lwcSrCleanup || typeof lwcSrCleanup.update !== 'function') return;
+    var result = global.NineChartSR.levels(lwcLiveBars, referencePrice);
+    lwcSrCleanup.update(result);
+    var label = lwcChartContainer && lwcChartContainer.querySelector('.ss-sr-label');
+    if (label) label.innerHTML = stockSrLegendHtml(result, /^US:/i.test(String(state.selectedCode || '')));
+  }
+
   function chartOhlcDateText(time) {
     if (typeof time === 'string') return time;
     if (typeof time === 'number' && Number.isFinite(time)) {
@@ -2086,16 +2105,11 @@
         priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
       }
 
-      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars) : null;
+      var liveQuote = state.liveQuotes[state.selectedCode];
+      var srReferencePrice = liveQuote && Number.isFinite(Number(liveQuote.price)) ? Number(liveQuote.price) : null;
+      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars, srReferencePrice) : null;
       if (state.supportResistanceEnabled) {
-        var srPart = function (list, cls) {
-          return list.map(function (l) { return '<b class="' + cls + '">' + chartPriceText(l.price, isUsChart) + '</b>'; }).join(' · ');
-        };
-        priceLegendHtml.push('<span class="ss-sr-label">'
-          + (srResult && (srResult.support.length || srResult.resistance.length)
-            ? '지지 ' + (srResult.support.length ? srPart(srResult.support, 'ss-sr-support') : '없음')
-              + ' / 저항 ' + (srResult.resistance.length ? srPart(srResult.resistance, 'ss-sr-resistance') : '없음')
-            : '지지·저항 <b>데이터 부족</b>') + '</span>');
+        priceLegendHtml.push('<span class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
       }
 
       if (priceLegendHtml.length) {
@@ -2192,7 +2206,7 @@
         formatPrice: function (p) { return chartPriceText(p, isUsChart); },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
       });
-      lwcSrCleanup = global.NineChartSR ? global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }) : null;
+      lwcSrCleanup = global.NineChartSR ? global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }, { isUs: isUsChart }) : null;
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockOverlays(container, chart, candleSeries, timeframe, bars);
       resizeStockChart();

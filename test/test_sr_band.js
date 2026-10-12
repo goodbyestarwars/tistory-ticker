@@ -6,9 +6,10 @@ let frames = new Map(), nextFrame = 0, observers = 0, subscriptions = 0;
 const calls = [];
 const ctx = {
   setTransform() {}, clearRect() {}, fillRect(...a) { calls.push(['band', ...a]); },
-  beginPath() {}, moveTo() {}, lineTo() {}, stroke() {}, setLineDash() {},
+  beginPath() {}, moveTo() {}, lineTo() {}, stroke() { calls.push(['stroke', this.strokeStyle, this.lineWidth]); },
+  setLineDash(a) { if (a.length) calls.push(['dash', a.slice()]); },
   measureText(s) { return { width: s.length * 6 }; },
-  fillText(s) { calls.push(['label', s]); }
+  fillText(s) { calls.push(['label', s, this.fillStyle]); }
 };
 const doc = {
   body: { contains: () => true }, documentElement: { classList: { contains: () => false } },
@@ -50,4 +51,41 @@ for (const n of [500, 1000, 2000]) {
   assert.strictEqual(subscriptions, 0);
   calls.length = 0;
 }
+
+const referenceBars = barsFor(500);
+const baseline = window.NineChartSR.levels(referenceBars);
+const shifted = window.NineChartSR.levels(referenceBars, 130);
+assert.strictEqual(shifted.price, 130);
+assert(shifted.support.every(level => level.price <= 130), 'all levels below the displayed price are support');
+assert(shifted.resistance.every(level => level.price > 130), 'all levels above the displayed price are resistance');
+assert(baseline.resistance.length && baseline.resistance.some(old => shifted.support.some(level => level.price === old.price)), 'a broken historical resistance is reclassified as support');
+
+const displayResult = {
+  support: [
+    { price: 163000, low: 162041, high: 164244 },
+    { price: 159300, low: 159059, high: 159559 },
+    { price: 148000, low: 147441, high: 149159 }
+  ],
+  resistance: [
+    { price: 176300, low: 175659, high: 176941 },
+    { price: 181600, low: 180741, high: 182659 }
+  ]
+};
+const displaySeries = { priceToCoordinate: p => 360 - (p - 140000) / 200 };
+const displayOff = window.NineChartSR.install(container, chart, displaySeries, displayResult, p => Math.round(p).toLocaleString('en-US'), { isUs: false });
+for (const fn of frames.values()) fn();
+frames.clear();
+const displayLabels = calls.filter(c => c[0] === 'label');
+assert(displayLabels.some(c => c[1] === '지지 1 162,000~164,200'), displayLabels.map(c => c[1]).join(', '));
+assert(displayLabels.some(c => c[1] === '지지 2 159,100~159,600'), displayLabels.map(c => c[1]).join(', '));
+assert.strictEqual(calls.find(c => c[0] === 'dash')[1].join(','), '2,2');
+assert(calls.some(c => c[0] === 'stroke' && c[1].endsWith(',0.72)') && c[2] === 1));
+assert(displayLabels.some(c => c[2].endsWith(',0.58)')), 'far label uses the lowest distance alpha');
+const observerCount = observers, subscriptionCount = subscriptions;
+displayOff.update({ support: displayResult.resistance, resistance: displayResult.support });
+for (const fn of frames.values()) fn();
+frames.clear();
+assert.strictEqual(observers, observerCount, 'live price reclassification reuses the ResizeObserver');
+assert.strictEqual(subscriptions, subscriptionCount, 'live price reclassification reuses the chart subscription');
+displayOff();
 console.log('SR bands: 500/1000/2000 bars, labels, axis bounds, cleanup ok');
