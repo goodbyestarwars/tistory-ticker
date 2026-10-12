@@ -4436,8 +4436,11 @@
     toggle.onchange = function () {
       waveState.enabled = toggle.checked;   // 모듈이 오기 전에 누른 값을 먼저 반영한다
       loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
-        Wave.wireControls(box, waveState, function () { applyFlowWave(); }, 'ff');   // 이후 체크·규모 선택은 모듈이 처리
-        toggle.onchange();
+        if (!toggle.isConnected) return;
+        // 전체화면은 가격 차트 패널을 원래 #foreign-flow 밖으로 옮긴다.
+        // 현재 체크박스가 속한 패널에 연결하고, 이전 지연 로더를 다시 호출하지 않는다.
+        Wave.wireControls(toggle.closest('.ff-price-chart-panel') || box, waveState, function () { applyFlowWave(); }, 'ff');
+        applyFlowWave();
       }).catch(function () { toggle.checked = false; waveState.enabled = false; /* 파동 모듈을 못 받아도 차트는 그대로 */ });
     };
     if (waveState.enabled) { toggle.checked = true; toggle.onchange(); }   // 이전 종목에서 켜 둔 상태를 이어 간다
@@ -4450,8 +4453,9 @@
     toggle.onchange = function () {
       forecastState.enabled = toggle.checked;
       loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-        F.wireControls(box, forecastState, function () { applyFlowForecast(); }, 'ff');   // 이후 체크·기간·규모·시나리오 선택은 모듈이 처리
-        toggle.onchange();
+        if (!toggle.isConnected) return;
+        F.wireControls(toggle.closest('.ff-price-chart-panel') || box, forecastState, function () { applyFlowForecast(); }, 'ff');
+        applyFlowForecast();
       }).catch(function () { toggle.checked = false; forecastState.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
     };
     if (forecastState.enabled) { toggle.checked = true; toggle.onchange(); }

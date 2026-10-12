@@ -1373,8 +1373,9 @@
       waveToggle.onchange = function () {
         state.wave.enabled = waveToggle.checked;   // 모듈이 오기 전에 누른 값을 먼저 반영한다
         loadChartCore().then(function (core) { return core.loadModule('wave'); }).then(function (Wave) {
-          Wave.wireControls(container, state.wave, function () { applyStockWave(); }, 'ss');   // 이후 체크·규모 선택은 모듈이 처리
-          waveToggle.onchange();
+          if (!waveToggle.isConnected) return;
+          Wave.wireControls(waveToggle.closest('.de-modal-target') || container, state.wave, function () { applyStockWave(); }, 'ss');
+          applyStockWave();
         }).catch(function () { waveToggle.checked = false; state.wave.enabled = false; /* 파동 모듈을 못 받아도 차트는 그대로 */ });
       };
       if (state.wave.enabled) { waveToggle.checked = true; waveToggle.onchange(); }
@@ -1385,8 +1386,9 @@
       forecastToggle.onchange = function () {
         state.forecast.enabled = forecastToggle.checked;
         loadChartCore().then(function (core) { return core.loadModule('forecastUi'); }).then(function (F) {
-          F.wireControls(container, state.forecast, function () { applyStockForecast(); }, 'ss');   // 이후 체크·기간·규모·시나리오 선택은 모듈이 처리
-          forecastToggle.onchange();
+          if (!forecastToggle.isConnected) return;
+          F.wireControls(forecastToggle.closest('.de-modal-target') || container, state.forecast, function () { applyStockForecast(); }, 'ss');
+          applyStockForecast();
         }).catch(function () { forecastToggle.checked = false; state.forecast.enabled = false; /* 예측 모듈을 못 받아도 차트는 그대로 */ });
       };
       if (state.forecast.enabled) { forecastToggle.checked = true; forecastToggle.onchange(); }
