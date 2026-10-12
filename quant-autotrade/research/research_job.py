@@ -180,13 +180,37 @@ def _load_env(path):
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def make_daily_source():
-    """키움 일봉 조회기(코드별 캐시). 키는 .env 에서 읽고 값은 로그에 남기지 않는다. 주문 함수는 호출하지 않는다."""
-    bot_dir = os.environ.get('AUTOTRADER_BOT_DIR') or AUTOTRADER_DIR
-    sys.path.insert(0, bot_dir)
-    _load_env(os.path.join(bot_dir, '.env'))
-    from kiwoom import KiwoomClient
-    client = KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', ''))
+# 연구·모의매매 실행기가 부를 수 있는 키움 TR(api-id → 경로). 일봉·1분봉 조회뿐이다.
+READ_ONLY_APIS = {'ka10081': '/api/dostk/chart', 'ka10080': '/api/dostk/chart'}
+
+
+def read_only_client(client):
+    """봇과 공유하는 KiwoomClient 에서 주문 경로를 구조적으로 막는다(실주문 불가를 코드 읽기가 아니라 실행 시점에 보장).
+    call() 은 위 조회 TR 외에는 네트워크에 나가기 전에 예외를 내고, 매도 함수는 호출되면 예외를 낸다. 반환은 같은 객체."""
+    real_call = client.call
+
+    def guarded_call(api_id, path, body, *args, **kw):
+        if READ_ONLY_APIS.get(api_id) != path:
+            raise RuntimeError('모의매매·연구 실행기는 조회 API만 호출할 수 있습니다(차단: %s %s)' % (api_id, path))
+        return real_call(api_id, path, body, *args, **kw)
+
+    def refuse(*_a, **_k):
+        raise RuntimeError('모의매매·연구 실행기에서는 주문 함수를 쓸 수 없습니다')
+
+    client.call = guarded_call
+    client.sell_market = refuse
+    return client
+
+
+def make_daily_source(client=None):
+    """키움 일봉 조회기(코드별 캐시). 키는 .env 에서 읽고 값은 로그에 남기지 않는다. 주문 함수는 호출하지 않는다(client 는 read_only_client 로 막는다)."""
+    if client is None:
+        bot_dir = os.environ.get('AUTOTRADER_BOT_DIR') or AUTOTRADER_DIR
+        sys.path.insert(0, bot_dir)
+        _load_env(os.path.join(bot_dir, '.env'))
+        from kiwoom import KiwoomClient
+        client = KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', ''))
+    client = read_only_client(client)
     cache = {}
 
     def get_daily(code):

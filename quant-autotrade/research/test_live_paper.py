@@ -219,6 +219,14 @@ class SafetyTests(Base):
         self.assertEqual(self.count('SELECT COUNT(*) FROM lp_positions'), 0)
         self.assertEqual(self.count("SELECT COUNT(*) FROM lp_events WHERE kind='LIVE_SELL_ACTIVE'"), 1)
 
+    def test_summary_before_first_start_does_not_crash_or_write(self):
+        """`live_paper_job.py --status` 는 엔진 시작 전(계좌 행 없음)에도 초기 자금 기준 요약을 낸다. 기록은 하지 않는다."""
+        s = self.eng.summary()
+        self.assertEqual(set(s), set(lp.STRATEGIES))
+        self.assertEqual(s['trail_atr']['equity'], 10_000_000)
+        self.assertEqual(s['trail_atr']['cumRet'], 0.0)
+        self.assertEqual(self.count('SELECT COUNT(*) FROM lp_accounts'), 0)
+
     def test_holiday_halts(self):
         self.assertEqual(self.eng.start(datetime(2026, 10, 9, 9, 5, tzinfo=KST)), 'NOT_TRADING_DAY')
 

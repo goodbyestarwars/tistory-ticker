@@ -152,9 +152,9 @@ def main():
         rj._load_env(os.path.join(bot_dir, '.env'))
         sys.path.insert(0, bot_dir)
         from kiwoom import KiwoomClient
-        client = KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', ''))
+        client = rj.read_only_client(KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', '')))   # 조회 TR 외에는 전송 전에 차단
         conn = cg.connect(os.path.join(out_dir, 'research.db'))
-        eng = lp.Engine(conn, KiwoomQuotes(client), rj.make_daily_source())
+        eng = lp.Engine(conn, KiwoomQuotes(client), rj.make_daily_source(client))
         if '--status' in sys.argv:
             print(json.dumps(eng.summary(), ensure_ascii=False, indent=1))
             return

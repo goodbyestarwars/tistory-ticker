@@ -50,6 +50,32 @@ class DayLoop(Base):
         self.assertEqual(self.count('SELECT COUNT(*) FROM lp_positions'), n_pos)
         self.assertEqual(self.count("SELECT COUNT(*) FROM lp_events WHERE kind='EOD_REPORT'"), 1)
 
+    def test_read_only_client_blocks_order_paths(self):
+        """봇과 공유하는 키움 클라이언트라도 모의매매 실행기에서는 조회 TR 외에 네트워크로 나갈 수 없다."""
+        import research_job as rj
+
+        class FakeClient:
+            def __init__(self):
+                self.sent = []
+
+            def call(self, api_id, path, body, _retried=False):
+                self.sent.append((api_id, path))
+                return {}
+
+            def sell_market(self, code, qty):
+                self.sent.append(('kt10001', '/api/dostk/ordr'))
+                return {'ok': True}
+
+        c = rj.read_only_client(FakeClient())
+        c.call('ka10080', '/api/dostk/chart', {})            # 1분봉 조회는 통과
+        c.call('ka10081', '/api/dostk/chart', {})            # 일봉 조회는 통과
+        for api, path in (('kt10001', '/api/dostk/ordr'), ('kt10000', '/api/dostk/ordr'), ('kt00018', '/api/dostk/acnt'), ('ka10081', '/api/dostk/ordr')):
+            with self.assertRaises(RuntimeError):
+                c.call(api, path, {})
+        with self.assertRaises(RuntimeError):
+            c.sell_market('005930', 1)
+        self.assertEqual(c.sent, [('ka10080', '/api/dostk/chart'), ('ka10081', '/api/dostk/chart')])   # 차단된 호출은 전송 단계까지 가지 못했다
+
     def test_holiday_does_nothing(self):
         eng = lp.Engine(self.conn, self.q, lambda c: [], self.cfg, environ={})
         self.assertEqual(job.run(eng, None, lambda: datetime(2026, 10, 9, 9, 0, tzinfo=KST), lambda s: None), 'NOT_TRADING_DAY')

@@ -270,6 +270,8 @@ class Engine:
     # ---- 계좌 ---------------------------------------------------------------
     def account(self, sid):
         r = self.conn.execute('SELECT initial_cash, cash, realized_pnl FROM lp_accounts WHERE strategy_id=?', (sid,)).fetchone()
+        if r is None:   # start() 전(--status 점검 등)에는 계좌 행이 아직 없다 - 초기 자금으로 보여 줄 뿐 기록하지 않는다
+            return {'initial': self.cfg.initial_cash, 'cash': self.cfg.initial_cash, 'realized': 0.0}
         return {'initial': r[0], 'cash': r[1], 'realized': r[2]}
 
     def holdings(self, sid):
