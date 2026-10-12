@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-stock-nav2';
+  var ENHANCEMENT_VERSION = '20261013-chart-restore1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -237,7 +237,7 @@
     modalTarget.parentNode.insertBefore(placeholder, modalTarget);
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
-    overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
+    overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong><button type="button" class="de-chart-restore" aria-label="차트를 원래 화면으로 줄이기">↙ 줄이기</button><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
     // 위젯 내부에 붙이면 부모의 폭/transform/overflow 규칙이 fixed 모달에
     // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
     document.body.appendChild(overlay);
@@ -258,7 +258,7 @@
       nav.className = 'de-chart-stock-nav';
       nav.innerHTML = '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
         + '<span class="de-chart-stock-current" aria-live="polite"></span>';
-      head.insertBefore(nav, head.querySelector('.de-chart-close'));
+      head.insertBefore(nav, head.querySelector('.de-chart-restore'));
       var input = nav.querySelector('input');
       var current = nav.querySelector('.de-chart-stock-current');
       function showSelection(selection) {
@@ -368,6 +368,7 @@
       });
     }
     function onKeydown(event) { if (event.key === 'Escape') close(); }
+    overlay.querySelector('.de-chart-restore').addEventListener('click', close);
     overlay.querySelector('.de-chart-close').addEventListener('click', close);
     overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKeydown);

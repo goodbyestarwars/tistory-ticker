@@ -203,7 +203,10 @@
 .de-chart-stock-nav button { padding: 6px 8px; border: 1px solid #bbc5d0; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; }
 .de-chart-stock-current { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 640px) { .de-chart-modal-head { flex-wrap: wrap; } .de-chart-stock-nav { order: 3; flex-basis: 100%; } .de-chart-stock-form { flex: 1 1 100%; } .de-chart-stock-current { display: none; } }
+.de-chart-restore { flex: 0 0 auto; padding: 6px 10px; border: 1px solid #bbc5d0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
+.de-chart-restore:hover { border-color: #315b43; color: #315b43; }
 .de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
+html.dark .de-chart-restore { border-color: rgba(245,239,224,.32); color: #F5EFE0; }
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
 .de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart, .de-chart-modal-body > .dmi-chart { width: 100%; }
 .de-chart-modal-body > .de-stock-search-scope { display: block; flex: 1 1 100%; width: 100%; min-width: 0; }
