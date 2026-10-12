@@ -397,7 +397,7 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
 #order-book .ob-footer-bar-ask { background: #1261c4; }
 #order-book .ob-footer-bar-bid { background: #d24f45; }
 
-/* ---- 최근 체결(ka10003 스냅샷 누적) ---- */
+/* ---- 최근 체결: KIS 개별 수신 / REST 표본을 구분 ---- */
 #order-book .ob-trades {
   padding: 0 14px 14px;
   border-top: 1px solid #eee;
@@ -417,8 +417,8 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
 #order-book .ob-trades-header,
 #order-book .ob-trade-row {
   display: grid;
-  grid-template-columns: 56px minmax(80px, 1fr) 72px;
-  gap: 8px;
+  grid-template-columns: 56px minmax(70px, 1fr) 64px 84px;
+  gap: 6px;
   font-size: 12px;
   padding: 2px 0;
   font-variant-numeric: tabular-nums;
@@ -434,6 +434,8 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
 #order-book .ob-trade-qty {
   text-align: right;
 }
+#order-book .ob-trade-direction { text-align: right; white-space: nowrap; }
+#order-book .ob-trade-empty { padding: 8px 0; color: #9ca3af; font-size: 12px; }
 #order-book .ob-trades-list {
   max-height: 220px;
   overflow-y: auto;
@@ -446,11 +448,14 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
   white-space: nowrap;
 }
 #order-book .ob-trade-price.ob-up,
-#order-book .ob-trade-qty.ob-up { color: #d24f45; }
+#order-book .ob-trade-qty.ob-up,
+#order-book .ob-trade-direction.ob-up { color: #d24f45; }
 #order-book .ob-trade-price.ob-down,
-#order-book .ob-trade-qty.ob-down { color: #1261c4; }
+#order-book .ob-trade-qty.ob-down,
+#order-book .ob-trade-direction.ob-down { color: #1261c4; }
 #order-book .ob-trade-price.ob-flat,
-#order-book .ob-trade-qty.ob-flat { color: #666; }
+#order-book .ob-trade-qty.ob-flat,
+#order-book .ob-trade-direction.ob-flat { color: #666; }
 
 /* ---- 다크모드 ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
@@ -505,11 +510,14 @@ html.dark #order-book .ob-trades-note { color: rgba(245, 239, 224, 0.45) !import
 html.dark #order-book .ob-trades-header { color: rgba(245, 239, 224, 0.45) !important; }
 html.dark #order-book .ob-trade-time { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #order-book .ob-trade-price.ob-up,
-html.dark #order-book .ob-trade-qty.ob-up { color: #e8776d !important; }
+html.dark #order-book .ob-trade-qty.ob-up,
+html.dark #order-book .ob-trade-direction.ob-up { color: #e8776d !important; }
 html.dark #order-book .ob-trade-price.ob-down,
-html.dark #order-book .ob-trade-qty.ob-down { color: #6ea8e8 !important; }
+html.dark #order-book .ob-trade-qty.ob-down,
+html.dark #order-book .ob-trade-direction.ob-down { color: #6ea8e8 !important; }
 html.dark #order-book .ob-trade-price.ob-flat,
-html.dark #order-book .ob-trade-qty.ob-flat { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #order-book .ob-trade-qty.ob-flat,
+html.dark #order-book .ob-trade-direction.ob-flat { color: rgba(245, 239, 224, 0.7) !important; }
 
 
 /* ============================================================

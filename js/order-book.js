@@ -74,7 +74,11 @@
     timer: null,
     // history[i] = { t: ms, base: 그 시점 현재가(없으면 직전 값 유지), asks:[{price,qty}], bids:[{price,qty}] }
     history: [],
-    trades: [],          // 최근 체결 스냅샷 누적 - [{time,price,qty,up,down}], 최신이 앞
+    trades: [],          // REST 2초 표본. 실시간 개별 체결과 합치지 않는다.
+    liveTrades: [],      // KIS WebSocket에서 실제 수신한 개별 체결(최대 20건)
+    lastLiveTradeDate: null,
+    tradeFeedStatus: 'REST 표본만 수신 중',
+    tradeRenderTimer: null,
     startTime: null,
     lastBase: null,      // 직전 tick의 현재가(quote 조회가 실패한 틱에서 이어받을 기준가)
     trackedWall: null,   // { price, peakQty } - 지금 지켜보고 있는 매도벽
@@ -91,8 +95,8 @@
     lastWsAnalysisAt: 0,
     lastStrength: null,
     lastRealStrength: null,
-    lastQuoteVolume: null, // 직전 WS 체결의 누적 거래량(체결 1건 수량 = 증가분)
-    volFlow: [],         // 최근 WS 체결 {t, qty, buy} - 매수 체결 속도(주/초) 계산용
+    lastQuoteVolume: null, // 직전 WS 시세의 누적 거래량(차이는 여러 체결의 합일 수 있음)
+    volFlow: [],         // 매도벽 소진 보조 근사치 전용. buy:false를 매도주도로 해석하지 않는다.
     volSince: 0,
     wallTrack: null,     // { price, samples:[{t,qty}], execs:[{t,qty}] } - 성벽 잔량 변화·체결량 창
     summary: null,
@@ -261,6 +265,11 @@
     state.name = name;
     state.history = [];
     state.trades = [];
+    state.liveTrades = [];
+    state.lastLiveTradeDate = null;
+    state.tradeFeedStatus = '실시간 연결 확인 중';
+    clearTimeout(state.tradeRenderTimer);
+    state.tradeRenderTimer = null;
     state.startTime = Date.now();
     state.lastBase = null;
     state.lastRealtimeQuote = null;
@@ -319,6 +328,7 @@
       state.realtimeSocket.close();
       state.realtimeSocket = null;
     }
+    state.tradeFeedStatus = '실시간 연결 중단';
   }
 
   function startRealtimeQuote(container, code) {
@@ -339,10 +349,20 @@
           var quote = JSON.parse(event.data);
           if (quote.type === 'quote' && quote.code === code) applyRealtimeQuote(container, quote);
           if (quote.type === 'orderbook' && quote.code === code) applyRealtimeOrderbook(container, quote);
+          if (quote.type === 'status' && quote.upstream === 'retrying') {
+            state.tradeFeedStatus = '실시간 재연결 중 · 누락 가능';
+            scheduleTradeRender(container);
+          }
+          if (quote.type === 'coverage' && Array.isArray(quote.delayed) && quote.delayed.indexOf(code) !== -1) {
+            state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
+            scheduleTradeRender(container);
+          }
         } catch (err) {}
       };
 
       socket.onopen = function () {
+        state.tradeFeedStatus = '실시간 체결 대기 중';
+        scheduleTradeRender(container);
         clearInterval(state.realtimeKeepaliveTimer);
         state.realtimeKeepaliveTimer = setInterval(function () {
           if (socket.readyState === WebSocket.OPEN) socket.send('ping');
@@ -357,6 +377,8 @@
         clearInterval(state.realtimeKeepaliveTimer);
         state.realtimeKeepaliveTimer = null;
         if (generation !== state.realtimeGeneration || document.hidden) return;
+        state.tradeFeedStatus = '실시간 재연결 중 · 누락 가능';
+        scheduleTradeRender(container);
         state.realtimeReconnectTimer = setTimeout(connect, REALTIME_RECONNECT_MS);
       };
     }
@@ -370,6 +392,14 @@
   function applyRealtimeQuote(container, quote) {
     if (typeof quote.price !== 'number') return;
     state.lastBase = quote.price;
+    if (quote.delayed) state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
+    else if (quote.source === 'Kiwoom WebSocket') state.tradeFeedStatus = '키움 시세 수신 · 개별 체결 없음';
+    if (quote.trade && quote.source === 'KIS WebSocket' && !quote.delayed) {
+      recordLiveTrade(quote.trade);
+      state.tradeFeedStatus = 'KIS 실시간 수신';
+      scheduleTradeRender(container);
+    }
+    if (quote.delayed || quote.source === 'Kiwoom WebSocket') scheduleTradeRender(container);
     recordWallExec(quote);
     state.lastRealtimeQuote = quote;
     state.lastRealtimeAt = Date.now();
@@ -631,9 +661,42 @@
     var t = book && book.trade;
     if (!t || t.price == null || !t.qty) return;
     var last = state.trades[0];
+    if (last && String(t.time || '') < String(last.time || '')) state.trades = [];
+    last = state.trades[0];
     if (last && last.time === t.time && last.price === t.price && last.qty === t.qty) return;
     state.trades.unshift({ time: t.time, price: t.price, qty: t.qty, up: t.up, down: t.down });
     if (state.trades.length > TRADE_LIST_MAX) state.trades.length = TRADE_LIST_MAX;
+  }
+
+  function recordLiveTrade(trade) {
+    var price = Number(trade.price), qty = Number(trade.qty);
+    if (!(price > 0 && qty > 0) || !/^\d{6}$/.test(String(trade.time || ''))) return;
+    var source = trade.directionSource === 'provider' || trade.directionSource === 'estimate' ? trade.directionSource : 'unknown';
+    var date = /^\d{8}$/.test(String(trade.date || '')) ? String(trade.date) : null;
+    if (date && state.lastLiveTradeDate && date !== state.lastLiveTradeDate) state.liveTrades = [];
+    if (date) state.lastLiveTradeDate = date;
+    // KIS에는 개별 이벤트 ID가 없다. 동일 시각·가격·수량의 별개 체결을
+    // 지우지 않도록 실시간 틱에는 값 기반 중복 제거를 적용하지 않는다.
+    state.liveTrades.unshift({
+      time: String(trade.time), price: price, qty: qty,
+      date: date,
+      direction: source !== 'unknown' && (trade.direction === 'buy' || trade.direction === 'sell') ? trade.direction : 'unknown',
+      directionSource: source,
+      market: trade.market || ''
+    });
+    if (state.liveTrades.length > TRADE_LIST_MAX) state.liveTrades.length = TRADE_LIST_MAX;
+  }
+
+  function scheduleTradeRender(container) {
+    if (state.tradeRenderTimer) return;
+    var generation = state.realtimeGeneration;
+    state.tradeRenderTimer = setTimeout(function () {
+      state.tradeRenderTimer = null;
+      if (generation !== state.realtimeGeneration) return;
+      var board = container.querySelector('#obBoard');
+      var section = board && board.querySelector('.ob-trades');
+      if (section) section.outerHTML = buildTradesHtml();
+    }, 100);
   }
 
   // ---- 매도벽 돌파 감지("게임처럼 뚫는 느낌", 2026-07-27 사용자 요청) ----
@@ -892,7 +955,8 @@
     var now = Date.now();
     var qty = vol - prev;
     var price = Number(quote.price);
-    // 체결 방향은 시세에 없어서, 직전 WS 호가의 최우선 매도호가 이상에서 찍힌 체결을 "매수 체결"로 근사한다.
+    // 매도벽 소진 보조 근사치다. 누적량 차이는 여러 체결의 합일 수 있고
+    // buy:false는 매도주도가 아니라 매수 근거를 확인하지 못했다는 뜻이다.
     var bestAsk = null;
     if (state.lastWsBook) {
       state.lastWsBook.asks.forEach(function (r) { if (bestAsk == null || r.price < bestAsk) bestAsk = r.price; });
@@ -1272,22 +1336,32 @@
     return s.slice(0, 2) + ':' + s.slice(2, 4) + ':' + s.slice(4, 6);
   }
 
-  // 최근 체결 리스트(시간/체결가/체결량) - 2초 폴링으로 누적한 근사치라는 걸 범례에 명시.
+  // 실시간 체결과 2초 REST 표본을 한 목록에 섞지 않는다. 표본에는 방향색을 쓰지 않는다.
   function buildTradesHtml() {
-    if (!state.trades.length) return '';
-    var rows = state.trades.map(function (t) {
-      var cls = t.up ? 'ob-up' : (t.down ? 'ob-down' : 'ob-flat');
-      var arrow = t.up ? '▲' : (t.down ? '▼' : '-');
+    var live = state.liveTrades.length > 0;
+    var trades = live ? state.liveTrades : state.trades;
+    var rows = trades.map(function (t) {
+      var cls = live && t.direction === 'buy' ? 'ob-up' : live && t.direction === 'sell' ? 'ob-down' : 'ob-flat';
+      var direction = cls === 'ob-up'
+        ? (t.directionSource === 'provider' ? '▲ 매수주도' : '▲ 매수추정')
+        : cls === 'ob-down'
+          ? (t.directionSource === 'provider' ? '▼ 매도주도' : '▼ 매도추정')
+          : '— 판정불가';
       return '<div class="ob-trade-row">'
         + '<span class="ob-trade-time">' + fmtTime(t.time) + '</span>'
-        + '<span class="ob-trade-price ' + cls + '">' + Math.round(t.price).toLocaleString('ko-KR') + ' ' + arrow + '</span>'
+        + '<span class="ob-trade-price ' + cls + '">' + Math.round(t.price).toLocaleString('ko-KR') + '</span>'
         + '<span class="ob-trade-qty ' + cls + '">' + fmtQty(t.qty) + '</span>'
+        + '<span class="ob-trade-direction ' + cls + '">' + direction + '</span>'
         + '</div>';
     }).join('');
+    var note = live
+      ? 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ' + state.tradeFeedStatus
+        + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
+      : 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus;
     return '<div class="ob-trades">'
-      + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(2초 간격 폴링 기준 근사치, 그 사이 체결은 생략될 수 있음)</span></div>'
-      + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span></div>'
-      + '<div class="ob-trades-list">' + rows + '</div>'
+      + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(' + note + ')</span></div>'
+      + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span><span>체결 방향</span></div>'
+      + '<div class="ob-trades-list">' + (rows || '<div class="ob-trade-empty">체결 수신 대기 중</div>') + '</div>'
       + '</div>';
   }
 

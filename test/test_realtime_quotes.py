@@ -67,6 +67,37 @@ class RealtimeQuotesTests(unittest.TestCase):
         self.assertEqual(events[0]['volume'], 2000.0)
         self.assertEqual(events[0]['source'], 'KIS WebSocket')
 
+    def test_kis_trade_keeps_individual_quantity_and_provider_direction(self):
+        def frame(division, change_rate='-1.0', tr_id='H0STCNT0', price='70000', ask='70100', bid='69900'):
+            row = [''] * 46
+            row[0], row[1], row[2] = '005930', '093112', price
+            row[4], row[5] = '700', change_rate
+            row[10], row[11] = ask, bid
+            row[12], row[13], row[21] = '1250', '2000', division
+            row[33] = '20261012'
+            return '0|' + tr_id + '|1|' + '^'.join(row)
+
+        buy = realtime_quotes._kis_quote_events(frame('1'))[0]
+        sell = realtime_quotes._kis_quote_events(frame('5', '+1.0'))[0]
+        unknown = realtime_quotes._kis_quote_events(frame('3'))[0]
+        self.assertEqual(buy['trade']['qty'], 1250)
+        self.assertEqual(buy['trade']['date'], '20261012')
+        self.assertEqual(buy['volume'], 2000)
+        self.assertEqual(buy['trade']['direction'], 'buy')
+        self.assertEqual(buy['changeRate'], -1.0)
+        self.assertEqual(sell['trade']['direction'], 'sell')
+        self.assertEqual(sell['changeRate'], 1.0)
+        self.assertEqual(unknown['trade']['direction'], 'unknown')
+        self.assertEqual(unknown['trade']['directionSource'], 'unknown')
+        estimated_buy = realtime_quotes._kis_quote_events(frame('1', tr_id='H0UNCNT0', price='70100'))[0]
+        estimated_sell = realtime_quotes._kis_quote_events(frame('5', tr_id='H0UNCNT0', price='69900'))[0]
+        midpoint = realtime_quotes._kis_quote_events(frame('1', tr_id='H0UNCNT0'))[0]
+        bad_spread = realtime_quotes._kis_quote_events(frame('1', tr_id='H0UNCNT0', ask='73000'))[0]
+        self.assertEqual((estimated_buy['trade']['direction'], estimated_buy['trade']['directionSource']), ('buy', 'estimate'))
+        self.assertEqual((estimated_sell['trade']['direction'], estimated_sell['trade']['directionSource']), ('sell', 'estimate'))
+        self.assertEqual(midpoint['trade']['direction'], 'unknown')
+        self.assertEqual(bad_spread['trade']['direction'], 'unknown')
+
     def test_parses_kis_us_trade_message(self):
         row = ['DNASAAPL', 'AAPL'] + [''] * 9 + ['200', '', '2', '1.0'] + [''] * 5 + ['1000']
         events = realtime_quotes._kis_quote_events('0|HDFSCNT0|1|' + '^'.join(row))

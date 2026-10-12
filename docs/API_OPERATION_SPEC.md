@@ -183,6 +183,13 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 - KIS 경로는 브라우저 연결마다 KIS 세션을 열지 않는다. 프로세스 공용 허브
   (`kis_ws_hub.py`)가 KIS WebSocket 하나를 유지하고, 야간선물·주간선물·옵션 수집기와 이
   중계가 모두 여기에 구독만 한다(2026-09-14, 같은 앱키 세션끼리 충돌해 체결이 0건이던 장애).
+- 국내 KIS 개별 체결 quote에는 기존 가격·누적량 필드를 유지하고 선택적 `trade` 객체
+  `{time,date,price,qty,direction,directionSource,market}`를 더한다. `date`는 원본 영업일자
+  (없으면 빈 문자열)이고 `qty`는 KIS `CNTG_VOL`이며
+  누적량 차이가 아니다. KRX `CCLD_DVSN` 1/5는 공급자 구분(`provider`), 통합/NXT는
+  같은 프레임의 최우선 호가로 판정 가능한 경우만 `estimate`, 나머지는 `unknown`이다.
+  원본 이벤트 ID가 없어 동일 값 체결의 중복·누락을 확정할 수 없고, REST·키움 폴백
+  quote에는 이 객체가 없다. 호가창은 2초 REST 표본을 별도로 표시한다.
 - 틱이 없는 동안 15초마다 `{"type":"status","upstream":"connected|retrying","lastTickAgeSec":…}`를
   보낸다. 화면은 이것으로 "지연"을 판단할 수 있다.
 - 구독 3초 뒤부터 1초마다 허브 실제 등록 여부를 보고, 바뀌면
