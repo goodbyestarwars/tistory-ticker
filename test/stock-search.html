@@ -14,6 +14,7 @@
 <body>
 <h1>증시검색 로컬 테스트</h1>
 <p style="font-size:13px;color:#888;">기본은 mock 데이터. 실제 GAS/VM 호출로 테스트하려면 <code>?real=1</code>을 붙이세요.</p>
+<p id="test-hour-direction-count" style="font-size:13px;color:#666;">1시간 방향 요청: 0건</p>
 <div id="stock-search"></div>
 
 <script src="../data/krx_map.js"></script>
@@ -47,8 +48,13 @@
     var MOCK_DAILY = buildMockDaily();
 
     var originalFetch = window.fetch;
+    var hourDirectionRequests = 0;
     window.fetch = function (url) {
       var u = String(url);
+      if (u.indexOf('/hour-direction') > -1) {
+        hourDirectionRequests += 1;
+        document.querySelector('#test-hour-direction-count').textContent = '1시간 방향 요청: ' + hourDirectionRequests + '건';
+      }
       if (u.indexOf('action=flowChart') > -1) {
         return Promise.resolve({ ok: true, json: function () {
           return Promise.resolve({ code: '005930', daily: MOCK_DAILY, ma: {}, levels: {} });
