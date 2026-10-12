@@ -24,14 +24,17 @@ class AutoTraderResearchUiTests(unittest.TestCase):
         self.assertIn('연구 작업이 아직 실행되지 않았습니다', self.js)
 
     def test_all_research_sections_exist_with_empty_states(self):
-        for title in ('연구 엔진', '연구 후보', '모의매매 기록', '검색기별 백테스트 성과'):
+        for title in ('연구 엔진', '연구 후보', 'B 일봉 사후 모의매매', 'A 검색기별 백테스트 성과', 'C 장중 실시간 가상매매'):
             self.assertIn('<h3>%s</h3>' % title, self.js)
-        for empty in ('아직 생성된 연구 후보가 없습니다', '아직 모의 진입 기록이 없습니다', '백테스트 요약을 불러오지 못했습니다'):
+        for empty in ('아직 생성된 연구 후보가 없습니다', '아직 모의 진입 기록이 없습니다', '백테스트 요약을 불러오지 못했습니다', 'live_paper_job'):
             self.assertIn(empty, self.js)
 
     def test_backtest_paper_and_live_are_kept_apart(self):
-        self.assertIn('모의매매·실거래 성과 아님', self.js)
-        self.assertIn('백테스트·실거래와 합산하지 않음', self.js)
+        self.assertIn('B·C 모의매매·실거래 성과 아님', self.js)         # A 백테스트
+        self.assertIn('A·C와 합산하지 않음', self.js)                  # B 일봉 사후
+        self.assertIn('A·B와 합산하지 않음', self.js)                  # C 장중 실시간(가상 체결)
+        self.assertIn('실제 체결·주문 아님', self.js)
+        self.assertIn('r.livePaper', self.js)
         self.assertIn('disk', self.js.lower())
         self.assertIn('r.diskUsedBytes != null', self.js)   # 실제 값이 있을 때만 디스크 사용량 표시
 

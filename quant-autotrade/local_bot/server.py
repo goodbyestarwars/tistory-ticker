@@ -4,7 +4,7 @@
 - 127.0.0.1에만 바인딩한다(외부에서 접속 불가).
 - 모든 요청에 X-AutoTrader-Token 헤더(.token 파일 값)가 있어야 한다. 토큰이 틀리면 401.
 - CORS는 지정한 블로그 주소(Origin) 하나만 허용한다. Chrome의 사설망 접근 확인(Private Network Access) 사전 요청도 처리한다.
-- GET /api/research: 연구 후보 생성기(research/research_job.py)가 남기는 상태 파일(research/status.json)과 후보·모의 집계를 읽기 전용으로 돌려준다.
+- GET /api/research: 연구 후보 생성기(research/research_job.py)가 남기는 상태 파일(research/status.json)과 후보·모의 집계, 장중 가상매매 상태(livePaper = research/livepaper.json)를 읽기 전용으로 돌려준다.
 - POST는 /api/stop·/api/resume(정지 플래그 파일 생성·삭제)과 /api/watch·/api/unwatch(감시 종목 추가·해제)뿐이다.
   주문을 내거나 설정(손절·익절 값, LIVE_SELL)을 바꾸는 기능은 화면에 없다 - 그 값은 PC의 .env·config.json 에서만 바꾼다.
 """
@@ -30,7 +30,25 @@ def load_or_create_token():
         return f.read().strip()
 
 
+def live_paper_status(research_dir=RESEARCH_DIR):
+    """장중 실시간 페이퍼 트레이딩(live_paper_job)이 남기는 livepaper.json. 없거나 깨졌으면 None. 가상 체결 기록이며 주문 정보가 아니다."""
+    try:
+        with open(os.path.join(research_dir, 'livepaper.json'), encoding='utf-8') as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    return data if isinstance(data, dict) else None
+
+
 def research_status(research_dir=RESEARCH_DIR):
+    out = _research_status(research_dir)
+    live = live_paper_status(research_dir)
+    if live is not None:
+        out['livePaper'] = live
+    return out
+
+
+def _research_status(research_dir=RESEARCH_DIR):
     """연구 후보 생성기 상태(읽기 전용). 파일·DB가 없으면 available=False. 인증정보·계좌 정보는 포함하지 않는다."""
     path = os.path.join(research_dir, 'status.json')
     if not os.path.exists(path):

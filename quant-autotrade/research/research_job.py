@@ -30,6 +30,7 @@ for _p in (HERE, os.path.join(REPO, 'quant-autotrade', 'backtest'), os.path.join
     if _p not in sys.path:
         sys.path.insert(0, _p)
 import candidate_gen as cg  # noqa: E402
+import krx_calendar  # noqa: E402
 
 AUTOTRADER_DIR = os.environ.get('AUTOTRADER_DIR') or os.path.join(os.path.expanduser('~'), 'autotrader')
 KST = cg.KST
@@ -42,23 +43,31 @@ LOCK_STALE_SEC = 20 * 3600
 
 
 # ---- 실행 구간 -------------------------------------------------------------
+def _trading(d):
+    """거래일 여부(KRX 달력). 일정 계산용이라 달력을 모르면 평일로 대신한다(후보 생성·진입 판정은 candidate_gen 이 따로 보류한다)."""
+    try:
+        return krx_calendar.is_trading_day(d)
+    except krx_calendar.CalendarUnknown:
+        return d.weekday() < 5
+
+
 def session_mode(now):
     """('poll', 종료시각) 또는 ('once', None). 평일 20:15~다음 날 08:15 안이면 감시(poll), 밖이면 한 번만 확인(once)."""
-    if now.weekday() < 5 and (now.hour, now.minute) >= START_HM:
+    if _trading(now) and (now.hour, now.minute) >= START_HM:
         end = (now + timedelta(days=1)).replace(hour=END_HM[0], minute=END_HM[1], second=0, microsecond=0)
         return 'poll', end
     prev = now - timedelta(days=1)
-    if (now.hour, now.minute) < END_HM and prev.weekday() < 5:
+    if (now.hour, now.minute) < END_HM and _trading(prev):
         return 'poll', now.replace(hour=END_HM[0], minute=END_HM[1], second=0, microsecond=0)
     return 'once', None
 
 
 def next_start(now):
-    """다음 정기 실행 예정 시각(평일 20:15)."""
+    """다음 정기 실행 예정 시각(거래일 20:15)."""
     d = now.replace(hour=START_HM[0], minute=START_HM[1], second=0, microsecond=0)
     if now >= d:
         d += timedelta(days=1)
-    while d.weekday() >= 5:
+    while not _trading(d):
         d += timedelta(days=1)
     return d
 
@@ -148,7 +157,7 @@ def missing_weekdays(conn, now, days=14):
     for k in range(1, days + 1):
         d = (now - timedelta(days=k)).date()
         s = d.strftime('%Y-%m-%d')
-        if d.weekday() < 5 and s >= first and s not in ok_days:
+        if _trading(d) and s >= first and s not in ok_days:
             out.append(s)
     return sorted(out)
 
@@ -171,13 +180,37 @@ def _load_env(path):
                 os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
 
 
-def make_daily_source():
-    """키움 일봉 조회기(코드별 캐시). 키는 .env 에서 읽고 값은 로그에 남기지 않는다. 주문 함수는 호출하지 않는다."""
-    bot_dir = os.environ.get('AUTOTRADER_BOT_DIR') or AUTOTRADER_DIR
-    sys.path.insert(0, bot_dir)
-    _load_env(os.path.join(bot_dir, '.env'))
-    from kiwoom import KiwoomClient
-    client = KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', ''))
+# 연구·모의매매 실행기가 부를 수 있는 키움 TR(api-id → 경로). 일봉·1분봉 조회뿐이다.
+READ_ONLY_APIS = {'ka10081': '/api/dostk/chart', 'ka10080': '/api/dostk/chart'}
+
+
+def read_only_client(client):
+    """봇과 공유하는 KiwoomClient 에서 주문 경로를 구조적으로 막는다(실주문 불가를 코드 읽기가 아니라 실행 시점에 보장).
+    call() 은 위 조회 TR 외에는 네트워크에 나가기 전에 예외를 내고, 매도 함수는 호출되면 예외를 낸다. 반환은 같은 객체."""
+    real_call = client.call
+
+    def guarded_call(api_id, path, body, *args, **kw):
+        if READ_ONLY_APIS.get(api_id) != path:
+            raise RuntimeError('모의매매·연구 실행기는 조회 API만 호출할 수 있습니다(차단: %s %s)' % (api_id, path))
+        return real_call(api_id, path, body, *args, **kw)
+
+    def refuse(*_a, **_k):
+        raise RuntimeError('모의매매·연구 실행기에서는 주문 함수를 쓸 수 없습니다')
+
+    client.call = guarded_call
+    client.sell_market = refuse
+    return client
+
+
+def make_daily_source(client=None):
+    """키움 일봉 조회기(코드별 캐시). 키는 .env 에서 읽고 값은 로그에 남기지 않는다. 주문 함수는 호출하지 않는다(client 는 read_only_client 로 막는다)."""
+    if client is None:
+        bot_dir = os.environ.get('AUTOTRADER_BOT_DIR') or AUTOTRADER_DIR
+        sys.path.insert(0, bot_dir)
+        _load_env(os.path.join(bot_dir, '.env'))
+        from kiwoom import KiwoomClient
+        client = KiwoomClient(os.environ.get('KIWOOM_APPKEY', ''), os.environ.get('KIWOOM_SECRETKEY', ''))
+    client = read_only_client(client)
     cache = {}
 
     def get_daily(code):

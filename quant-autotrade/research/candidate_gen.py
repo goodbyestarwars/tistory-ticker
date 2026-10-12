@@ -11,7 +11,9 @@
     4) 같은 scannedAt이 STABLE_SEC 이상 변하지 않음 (다른 스캔이 아직 쓰는 중인 상태 차단)
   참고: 21:00 batch_scan.py는 공매도·대차·재무 캐시를 만들 뿐 패턴 결과를 만들지 않는다. 패턴 후보의 출처는 20:10 daily_scan.py다.
 - 후보는 (scan_date, scanner, code)로 한 번만 만들고 이후 갱신하지 않는다. 진입은 scan_date 다음 거래일에만 허용하고,
-  그 뒤로 STALE_DAYS(달력일)가 지나면 만료 처리해 오래된 후보로는 진입하지 않는다.
+  진입 봉이 스캔일의 다음 **거래일**이 아니면(KRX 달력, `krx_calendar.py`) 진입하지 않고, 거래일로 STALE_TRADING_DAYS 가 지나면 만료 처리한다
+  (2026-10-12: 달력일 4일 규칙과 주말만 거르던 `_next_weekday` 를 실제 휴장일 표 기준으로 교체. 10/8 스캔은 10/9 휴장·주말을 건너 10/12 에 진입한다).
+  휴장일 표를 확인할 수 없으면 후보를 만들지 않고 진입도 보류한다(CALENDAR_UNKNOWN).
 - 수익성이 검증되지 않은 검색기도 'RESEARCH' 상태로 후보를 만들고 모의 진입·성과를 기록한다. live_eligible은 항상 0이다
   (실거래 연결은 별도 승인 단계).
 - 기존 차트검색기 산식·스케줄은 건드리지 않는다. 이 모듈은 서버 응답을 읽기만 한다.
@@ -31,6 +33,7 @@ for _p in (os.path.join(REPO, 'quant-autotrade', 'backtest'), os.path.join(REPO,
         sys.path.insert(0, _p)
 
 import account_sim  # noqa: E402
+import krx_calendar  # noqa: E402
 import paper_exits  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
@@ -39,7 +42,7 @@ API = os.environ.get('SCAN_API', 'https://goodbyestar.cloud')
 RESEARCH_SCANNERS = ('maCloudBreakout', 'doubleBottom', 'invHeadShoulders', 'pullback')
 SCAN_START_KST = (20, 10)
 STABLE_SEC = 180
-STALE_DAYS = 4
+STALE_TRADING_DAYS = 3   # 스캔일 이후 거래일 수가 이보다 크면 NEW 후보를 만료(달력일 4일 규칙 대체)
 GAP_SKIP = 0.02
 ENTRY_SLIP = 0.002
 # 모의매매 청산 전략 3종은 같은 후보·진입에 병렬 적용한다(paper_exits.py). 전략별 계좌는 서로 합산하지 않는다.
@@ -101,11 +104,9 @@ def _kst(scanned_at):
     return dt.astimezone(KST)
 
 
-def _next_weekday(d):
-    d = d + timedelta(days=1)
-    while d.weekday() >= 5:
-        d += timedelta(days=1)
-    return d
+def _next_trading_day(d):
+    """d(KST datetime) 다음 거래일 0시. 휴장일 표를 모르면 krx_calendar.CalendarUnknown 이 올라간다."""
+    return datetime.combine(krx_calendar.next_trading_day(d), datetime.min.time()).replace(tzinfo=KST)
 
 
 def check_scan(conn, payload, now_kst, now_epoch=None):
@@ -132,8 +133,11 @@ def check_scan(conn, payload, now_kst, now_epoch=None):
     d = datetime.strptime(data_date, '%Y-%m-%d').replace(tzinfo=KST)
     if sdt < d.replace(hour=SCAN_START_KST[0], minute=SCAN_START_KST[1]):
         return False, 'SCAN_BEFORE_CLOSE_DATA(%s)' % data_date, data_date
-    # 이 데이터로 진입 가능한 날은 data_date 다음 평일(거래일 가정)뿐이다. 그날 09:00 이후에는 오래된 후보로 간주해 만들지 않는다.
-    entry_day = _next_weekday(d)
+    # 이 데이터로 진입 가능한 날은 data_date 다음 거래일(KRX 달력)뿐이다. 그날 09:00 이후에는 오래된 후보로 간주해 만들지 않는다.
+    try:
+        entry_day = _next_trading_day(d)
+    except krx_calendar.CalendarUnknown as exc:
+        return False, 'CALENDAR_UNKNOWN(%s)' % exc, data_date
     if now_kst >= entry_day.replace(hour=9, minute=0):
         return False, 'STALE_SCAN(%s)' % data_date, data_date
     universe, scanned = int(payload.get('universe') or 0), int(payload.get('scanned') or 0)
@@ -177,10 +181,17 @@ def generate(conn, payload, now_kst, now_epoch=None):
 
 
 def expire_old(conn, today):
-    cutoff = (datetime.strptime(today, '%Y-%m-%d') - timedelta(days=STALE_DAYS)).strftime('%Y-%m-%d')
-    cur = conn.execute("UPDATE candidates SET status='EXPIRED', reason='STALE' WHERE status='NEW' AND scan_date < ?", (cutoff,))
+    """스캔일 이후 거래일이 STALE_TRADING_DAYS 를 넘은 NEW 후보를 만료한다. 달력을 확인할 수 없으면 아무것도 만료하지 않는다(보류)."""
+    n = 0
+    for (scan_date,) in conn.execute("SELECT DISTINCT scan_date FROM candidates WHERE status='NEW'").fetchall():
+        try:
+            late = krx_calendar.trading_days_between(scan_date, today) > STALE_TRADING_DAYS
+        except krx_calendar.CalendarUnknown:
+            continue
+        if late:
+            n += conn.execute("UPDATE candidates SET status='EXPIRED', reason='STALE' WHERE status='NEW' AND scan_date=?", (scan_date,)).rowcount
     conn.commit()
-    return cur.rowcount
+    return n
 
 
 BARS_LOOKBACK = 40
@@ -222,7 +233,11 @@ def paper_enter(conn, get_daily, today):
         if nxt is None:
             continue
         key = (scan_date, scanner, code)
-        if (datetime.strptime(nxt['date'], '%Y-%m-%d') - datetime.strptime(scan_date, '%Y-%m-%d')).days > STALE_DAYS:
+        try:
+            expected = krx_calendar.next_trading_day(scan_date).strftime('%Y-%m-%d')
+        except krx_calendar.CalendarUnknown:
+            continue    # 달력 미확인: 진입 보류(후보는 NEW 로 유지)
+        if nxt['date'] != expected:   # 다음 거래일이 아닌 봉(데이터 누락·지연)으로는 진입하지 않는다
             conn.execute("UPDATE candidates SET status='EXPIRED', reason='ENTRY_TOO_LATE' WHERE scan_date=? AND scanner=? AND code=?", key)
             continue
         if base and nxt['open'] / base - 1 >= GAP_SKIP:

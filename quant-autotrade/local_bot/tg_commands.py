@@ -7,6 +7,7 @@ dispatch(text) -> [(응답 텍스트, reply_markup 또는 None), ...]
 """
 import re
 
+import tg_data
 import tg_format as F
 from tg_views import Views
 
@@ -52,7 +53,7 @@ class Commands:
         self.svc = svc
         self.views = Views(svc)
         self._msg_age = None
-        self.table = {'start': self.start, 'help': self.help, 'menu': self.help, 'status': self.status, 'candidates': self.candidates, 'paper': self.paper,
+        self.table = {'start': self.start, 'help': self.help, 'menu': self.help, 'status': self.status, 'candidates': self.candidates, 'paper': self.paper, 'sim': self.sim,
                       'holdings': self.holdings, 'orders': self.orders, 'risk': self.risk, 'daily': self.daily, 'mute': self.mute, 'unmute': self.unmute, 'test': self.test}
 
     def dispatch(self, text, msg_age=None):
@@ -88,6 +89,9 @@ class Commands:
 
     def paper(self, arg):
         return self.views.paper(arg)
+
+    def sim(self, arg):
+        return (F.fmt_live(tg_data.read_live_json(self.svc.research_dir), self.svc.now_dt()), None)
 
     def holdings(self, arg):
         return self.views.holdings()

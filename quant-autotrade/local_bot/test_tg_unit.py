@@ -909,6 +909,69 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(len(e.flush()), 1)                   # 5분 안의 재시작 반복은 알림을 또 보내지 않는다
 
 
+class LivePaperAlertTests(unittest.TestCase):
+    """장중 가상매매(C) 이벤트 알림: [모의매매] 표시, 한 번만, 재시작 후에도 중복 없음, /sim 현황."""
+    def setUp(self):
+        self.env = Env()
+        self.env.baseline()
+        sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'research'))
+        import live_paper as lp
+        self.lp = lp
+        self.conn = self.env.research_db()
+        lp.ensure_schema(self.conn)
+
+    def tearDown(self):
+        self.conn.close()
+        self.env.close()
+
+    def add(self, kind, sid=None, code=None, level='info', **payload):
+        ts = datetime.fromtimestamp(self.env.t[0], KST)
+        with self.conn:
+            self.lp.Engine.event(type('E', (), {'conn': self.conn})(), ts, kind, sid, code, level, payload, key='%s:%s:%s:%s' % (kind, sid, code, self.env.t[0]))
+
+    def test_buy_sell_batched_tagged_and_not_repeated(self):
+        e = self.env
+        self.add('BUY', 'trail_atr', '005930', name='삼성전자', scanner='pullback', qty=10, price=70140.0, quote=70000.0, quoteTs='2026-10-12T09:01:00+09:00', cost=701400.0)
+        self.add('BUY', 'dead35', '005930', name='삼성전자', scanner='pullback', qty=10, price=70140.0, quote=70000.0, quoteTs='2026-10-12T09:01:00+09:00', cost=701400.0)
+        self.add('SELL_STOP', 'trail_atr', '000660', name='SK하이닉스', reason='STOP_INTRADAY', netRet=-0.035, price=190000.0, pnl=-35000.0)
+        e.tick()
+        texts = e.flush()
+        self.assertEqual(len(texts), 1)
+        self.assertIn('[모의매매]', texts[0])
+        self.assertIn('가상 매수 1종목', texts[0])
+        self.assertIn('삼성전자', texts[0])
+        self.assertIn('가상 매도 1건', texts[0])
+        self.assertIn('실계좌 주문 아님', texts[0])
+        e.advance(120)
+        e.tick()
+        self.assertEqual(e.flush(), texts)            # 새 메시지 없음
+        e.new_service()                                # 프로세스 재시작
+        e.tick()
+        self.assertEqual(len(e.flush()), 1)           # 이전 메시지만(대기열 재전송 없음)
+
+    def test_feed_down_is_alert_and_live_sell_critical(self):
+        e = self.env
+        self.add('FEED_DOWN', level='error', msg='시세 수신 중단')
+        e.tick()
+        self.assertIn('시세 수신 중단', e.flush()[0])
+        e.advance(10)
+        self.add('LIVE_SELL_ACTIVE', level='critical', msg='x')
+        e.tick()
+        self.assertIn('LIVE_SELL', e.flush()[-1])
+
+    def test_sim_command_reads_livepaper_json(self):
+        e = self.env
+        out, _ = e.svc.commands.sim('')
+        self.assertIn('상태 파일 없음', out)
+        with open(os.path.join(e.research, 'livepaper.json'), 'w', encoding='utf-8') as f:
+            json.dump({'engine': 'running', 'feedOk': True, 'liveSellActive': False, 'accounts': {'trail_atr': {'equity': 10100000, 'cumRet': 0.01, 'cash': 9000000, 'positions': 1,
+                       'realizedPnl': 0, 'mdd': 0, 'closed': 0}}, 'positions': [{'code': '005930', 'name': '삼성전자', 'ret': 0.01, 'entryPrice': 70000, 'lastPrice': 70700}]}, f)
+        out, _ = e.svc.commands.sim('')
+        self.assertIn('[모의매매]', out)
+        self.assertIn('차단됨', out)
+        self.assertIsNone(fake_telegram.html_problem(out), out)
+
+
 class AuthAndCommandTests(unittest.TestCase):
     def setUp(self):
         self.env = Env()
@@ -952,12 +1015,12 @@ class AuthAndCommandTests(unittest.TestCase):
         names = set(self.svc.commands.table)
         for forbidden in ('buy', 'sell', 'order', 'watch', 'unwatch', 'stop', 'resume', 'set', 'config', 'live'):
             self.assertNotIn(forbidden, names)
-        self.assertEqual(set(self.svc.commands.table) - {'menu'}, {'start', 'help', 'status', 'candidates', 'paper', 'holdings', 'orders', 'risk', 'daily', 'mute', 'unmute', 'test'})
+        self.assertEqual(set(self.svc.commands.table) - {'menu'}, {'start', 'help', 'status', 'candidates', 'paper', 'holdings', 'orders', 'risk', 'daily', 'mute', 'unmute', 'test', 'sim'})
 
     def test_every_command_replies_with_valid_html(self):
         self.env.client.holdings = [holding('005930', avg=70000.0, price=72000.0)]
         for cmd in ('/start', '/help', '/status', '/candidates', '/paper', '/holdings', '/orders', '/risk', '/daily', '/test', '/mute 2h', '/unmute',
-                    '/status@ninepay_bot', '/candidates pullback', '/paper trail_atr', '📊 상태', '🔎 후보', '💼 보유', '/unknown', '그냥 글'):
+                    '/status@ninepay_bot', '/candidates pullback', '/paper trail_atr', '/sim', '📊 상태', '🔎 후보', '💼 보유', '/unknown', '그냥 글'):
             self.env.api.sent.clear()
             self.env.advance(2)
             self.svc.handle_update(self.msg(cmd))

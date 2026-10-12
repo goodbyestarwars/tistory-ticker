@@ -67,7 +67,7 @@ class Monitor:
             self.streaks.clear()           # PC 절전에서 깬 직후의 오래된 값으로 경고를 내지 않는다
         self._last_tick = now
         for name, fn in (('events', self.watch_bot_events), ('positions', self.watch_positions), ('health', self.watch_bot_health),
-                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('scan', self.watch_scan_done),
+                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('scan', self.watch_scan_done),
                          ('pc', self.watch_pc)):
             try:
                 fn()
@@ -293,6 +293,23 @@ class Monitor:
         status = tg_data.read_status_json(svc.research_dir) or {}
         key = 'paper:' + digest('|'.join(sorted('%s|%s|%s|%s|%s' % (e['kind'], e['scan_date'], e['scanner'], e['code'], e.get('variant')) for e in events)))
         svc.notifier.notify(key, F.fmt_paper_update(events, status.get('paperVariants') or {}, svc.now_dt()), 'general', 'info')
+
+    # ---- 5-2) 장중 가상매매(C) 이벤트 ----
+    def watch_live_paper(self):
+        """live_paper_job 이 research.db(lp_events)에 남긴 이벤트를 한 주기에 한 메시지로 묶어 보낸다. 커서(마지막 id)와 알림 대기열 키로 재시작에도 중복 없음."""
+        svc, t = self.svc, self.svc.tstore
+        if not os.path.exists(tg_data.research_db_path(svc.research_dir)):
+            return
+        last = int(t.kv_get('lp_last_id') or 0)
+        events = tg_data.live_events_since(svc.research_dir, last)
+        if not events:
+            return
+        alert = [e for e in events if e['kind'] in F.LIVE_ALERT_KINDS and e['level'] in ('error', 'critical', 'warn')]
+        key = 'live:%d-%d' % (events[0]['id'], events[-1]['id'])
+        category = 'alert' if alert and len(alert) == len(events) else 'general'
+        level = 'critical' if any(e['level'] == 'critical' for e in events) else ('warn' if alert else 'info')
+        svc.notifier.notify(key, F.fmt_live_events(events, svc.now_dt()), category, level)   # 같은 key 는 대기열이 한 번만 받는다
+        t.kv_set('lp_last_id', events[-1]['id'])
 
     # ---- 6) 스캔 정상 완료 -> 종목 선정 + 일일 보고서 ----
     def watch_scan_done(self):
