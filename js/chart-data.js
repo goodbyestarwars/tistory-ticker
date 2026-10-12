@@ -262,7 +262,10 @@
   }
   function loadOnLeftScroll(chart, chartElement, code, getData) {
     if (!chart || !chart.timeScale || !/^[0-9]{6}$/.test(code)) return;
+    var seenAwayFromStart = false;
     chart.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
+      if (range && range.from > 20) seenAwayFromStart = true;
+      if (!seenAwayFromStart) return;
       if (!range || range.from > 12 || loadingRanges[code] || (getData() && getData().extendedHistory)) return;
       var button = chartElement.parentElement.querySelector('.nine-chart-ranges [data-range="5y"]');
       if (!button) return;

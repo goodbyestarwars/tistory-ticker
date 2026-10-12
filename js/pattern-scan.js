@@ -1325,7 +1325,7 @@
     var chartHeight = box.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
     var html = buildDetailSwitcher(item) + '<div class="ps-detail-head">'
       + '<span class="ps-detail-name">' + stockIconHtml(item.code) + '<span>' + escapeHtml(item.name) + ' <span class="ps-code">(' + escapeHtml(item.code) + ')</span></span>'
-      + '<span class="ps-timeframe-badge">2년 일봉 · 1D</span></span>'
+      + '<span class="ps-timeframe-badge">일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     if (item.track) html += buildTrackBox(item.track);
@@ -1376,7 +1376,22 @@
     psTrackCtx = item.track || null;
     wireAutoTradeBar(box, item);
     var chartContainer = box.querySelector('#psChart');
-    if (chartContainer) renderPatternChart(chartContainer, data.daily, data.pattern, data.detail, item.price);
+    if (chartContainer) {
+      renderPatternChart(chartContainer, data.daily, data.pattern, data.detail, item.price);
+      loadPatternRangeModule().then(function (api) {
+        if (!chartContainer.isConnected || currentDetailItem !== item) return;
+        api.installRangeButtons(chartContainer, item.code, function () { return data; }, function (newData) {
+          if (newData && newData.daily && newData.daily.length) {
+            data.daily = newData.daily;
+            data.extendedHistory = !!newData.extendedHistory;
+            chartContainer.parentElement.dataset.extendedHistory = data.extendedHistory ? '1' : '';
+          }
+          renderPatternChart(chartContainer, data.daily, data.pattern, data.detail, item.price);
+          var legend = box.querySelector('.ps-moving-average-legend');
+          if (legend) legend.outerHTML = buildMovingAverageLegend(data.daily);
+        });
+      }).catch(function () { /* 차트 자체는 계속 표시 */ });
+    }
   }
 
   // 일목균형표는 패턴별 오버레이(지지/저항/스윙 dot)와 별개의 보조지표라 기본은 꺼둔 채
@@ -1429,6 +1444,19 @@
   var lwcLoadPromise = null;
   var psLwcChart = null;         // 현재 렌더된 차트 인스턴스(재조회/닫기 시 정리용)
   var psLwcThemeObserver = null; // html.dark 토글에 맞춰 차트 색상 실시간 갱신
+  var psRangePromise = null;
+  function loadPatternRangeModule() {
+    if (global.NineChartData) return Promise.resolve(global.NineChartData);
+    if (psRangePromise) return psRangePromise;
+    psRangePromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-data.js?v=20261014-history2';
+      script.onload = function () { global.NineChartData ? resolve(global.NineChartData) : reject(new Error('chart-data')); };
+      script.onerror = function () { psRangePromise = null; reject(new Error('chart-data')); };
+      document.head.appendChild(script);
+    });
+    return psRangePromise;
+  }
 
   function loadLightweightCharts() {
     if (global.LightweightCharts) return Promise.resolve(global.LightweightCharts);
@@ -1766,6 +1794,13 @@
         from: Math.max(0, daily.length - visibleBars),
         to: daily.length - 1 + 3
       });
+      loadPatternRangeModule().then(function (api) {
+        if (psLwcChart !== chart) return;
+        var dates = api.rangeDates(daily, String(currentDetailItem && currentDetailItem.code || ''));
+        if (dates) chart.timeScale().setVisibleRange(dates);
+        api.loadOnLeftScroll(chart, container, String(currentDetailItem && currentDetailItem.code || ''),
+          function () { return { extendedHistory: !!(container.parentElement && container.parentElement.dataset.extendedHistory) }; });
+      }).catch(function () { /* 기존 500봉 뷰 유지 */ });
 
       setupPsMemo(container, chart, candleSeries, daily);
       setupPsSupportResistance(container, chart, candleSeries, daily, currentPrice);
