@@ -19,6 +19,9 @@
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
+  var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261013-bollinger1', PATTERN_SCRIPT_URL).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-bollinger1';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
@@ -1184,8 +1187,7 @@
     var requestPattern = activeTab;
     currentDetailItem = item;
     destroyPsChart();
-    // 이 패턴은 구름 안·상단 시도가 핵심이므로 상세 차트에서 구름을 기본으로 켠다.
-    psIchimokuEnabled = activeTab === 'maCloudBreakout';
+    psIchimokuEnabled = false;
     detail.hidden = false;
     detail.innerHTML = '<div class="ps-loading"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
@@ -1332,6 +1334,7 @@
     html += buildScoreBox(data.detail);
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
+    html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
     html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
@@ -1362,6 +1365,11 @@
       });
     }
     var ichiToggle = box.querySelector('#psIchimokuToggle');
+    var bollingerToggle = box.querySelector('#psBollingerToggle');
+    if (bollingerToggle) bollingerToggle.addEventListener('change', function () {
+      psBollingerEnabled = bollingerToggle.checked;
+      if (psBollingerEnabled) addPsBollinger(data.daily); else removePsBollinger();
+    });
     var ichiLegend = box.querySelector('.ps-ichimoku-legend');
     if (ichiLegend) ichiLegend.hidden = !psIchimokuEnabled;
     if (ichiToggle) {
@@ -1397,6 +1405,18 @@
   // 일목균형표는 패턴별 오버레이(지지/저항/스윙 dot)와 별개의 보조지표라 기본은 꺼둔 채
   // 체크박스로 켤 수 있게 한다(js/foreign-flow.js와 같은 색상 배정 - 사이트 전체 일관성).
   var psIchimokuEnabled = false;
+  var psBollingerEnabled = false;
+  var psBollingerSeries = [];
+
+  function addPsBollinger(daily) {
+    if (!psLwcChart || psBollingerSeries.length || !global.NineChartCore) return;
+    psBollingerSeries = global.NineChartCore.addBollingerBands(psLwcChart, global.LightweightCharts, daily);
+  }
+
+  function removePsBollinger() {
+    psBollingerSeries.forEach(function (series) { try { psLwcChart.removeSeries(series); } catch (e) { /* 이미 제거됨 */ } });
+    psBollingerSeries = [];
+  }
 
   function buildIchimokuLegend() {
     return '<div class="ps-ichimoku-legend"' + (psIchimokuEnabled ? '' : ' hidden') + '>'
@@ -1471,6 +1491,20 @@
     return lwcLoadPromise;
   }
 
+  var psCorePromise = null;
+  function loadPatternChartCore() {
+    if (global.NineChartCore) return Promise.resolve(global.NineChartCore);
+    if (psCorePromise) return psCorePromise;
+    psCorePromise = new Promise(function (resolve, reject) {
+      var script = document.createElement('script');
+      script.src = PATTERN_CORE_URL;
+      script.onload = function () { global.NineChartCore ? resolve(global.NineChartCore) : reject(new Error('chart-core')); };
+      script.onerror = function () { psCorePromise = null; reject(new Error('chart-core')); };
+      document.head.appendChild(script);
+    });
+    return psCorePromise;
+  }
+
   // 차트 메모(2026-10-03): 종목분석과 같은 공용 모듈(js/chart-memo.js)을 지연 로드한다.
   var psMemoItem = null;
   var psMemo = null;
@@ -1516,7 +1550,7 @@
   // 지지·저항(공용 모듈 js/chart-sr.js): 실시간 검색·종목분석 차트와 같은 계산·그림(2026-10-04 사용자 지적:
   // 차트검색에는 지지/저항이 적용돼 있지 않았다). 지지=붉은색, 저항=파란색.
   var psSrPromise = null;
-  var psSrEnabled = true;   // 2026-10-04 지지·저항 체크 기능(기본 켜짐)
+  var psSrEnabled = false;
   var psSrCtx = null;
   var psSrCleanup = null;
   function loadPsSrModule() {
@@ -1543,6 +1577,7 @@
   }
 
   function destroyPsChart() {
+    if (psPanCleanup) { psPanCleanup(); psPanCleanup = null; }
     if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
     destroyPsMemo();
     if (psLwcThemeObserver) { psLwcThemeObserver.disconnect(); psLwcThemeObserver = null; }
@@ -1551,6 +1586,7 @@
       psLwcChart = null;
     }
     psIchimokuSeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
+    psBollingerSeries = [];
     psIchimokuCloudPrimitive = null;
   }
 
@@ -1743,10 +1779,12 @@
   }
 
   // 실제 트레이딩뷰 엔진으로 캔들 + MA(눌림목만) + 패턴 오버레이를 렌더링.
+  var psPanCleanup = null;
   // 가로 스크롤 없이 컨테이너 폭에 autoSize로 맞춰 한눈에 들어오게 한다.
   function renderPatternChart(container, daily, pattern, detail, currentPrice) {
     destroyPsChart();
-    loadLightweightCharts().then(function (LWC) {
+    Promise.all([loadLightweightCharts(), loadPatternChartCore()]).then(function (loaded) {
+      var LWC = loaded[0];
       if (!document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
       var chartHeight = container.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
 
@@ -1758,15 +1796,11 @@
         localization: { priceFormatter: psChartPriceFormatter }
       }, psThemeOptions()));
       psLwcChart = chart;
-
-      var candleSeries = chart.addSeries(LWC.CandlestickSeries, {
-        upColor: '#d24f45', downColor: '#1261c4',
-        borderUpColor: '#d24f45', borderDownColor: '#1261c4',
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+      psPanCleanup = global.NineChartCore.installVerticalPan(chart, container, {
+        priceSeries: function () { return candleSeries; }
       });
-      candleSeries.setData(daily.map(function (d) {
-        return { time: d.date, open: d.open, high: d.high, low: d.low, close: d.close };
-      }));
+
+      var candleSeries = global.NineChartCore.addCandles(chart, LWC, daily);
 
       // 패턴 종류와 관계없이 실시간 시세 차트와 같은 5·20·60·224일선을 항상 표시한다.
       var ma224Series = null;
@@ -1787,9 +1821,10 @@
       addTrackMarkers(LWC, candleSeries, daily, psTrackCtx);
 
       if (psIchimokuEnabled) addIchimokuOverlay(daily);
+      if (psBollingerEnabled) addPsBollinger(daily);
 
-      // 약 2년(500거래일) 일봉을 기본 표시한다. 서버가 보유한 일봉이 더 적으면 전체를 쓴다.
-      var visibleBars = Math.min(500, daily.length);
+      // 기본 화면은 최근 약 1년의 거래일을 보여준다.
+      var visibleBars = Math.min(252, daily.length);
       chart.timeScale().setVisibleLogicalRange({
         from: Math.max(0, daily.length - visibleBars),
         to: daily.length - 1 + 3
@@ -1817,27 +1852,10 @@
 
   // 종가 N일 이동평균선을 라인 시리즈로 그림(눌림목 전용)
   function addMaLine(chart, daily, period, color) {
-    var pts = [];
-    var sum = 0;
-    for (var i = 0; i < daily.length; i++) {
-      sum += daily[i].close;
-      if (i >= period) sum -= daily[i - period].close;
-      if (i >= period - 1) pts.push({ time: daily[i].date, value: sum / period });
-    }
+    var pts = global.NineChartCore.movingAveragePoints(daily, 'close', period);
     if (pts.length < 2) return null;
-    // 2026-08-22 요청: "224선은 좀 더 굵게(차트 공통)" - js/foreign-flow.js(MA_WIDTHS.ma224=3)·
-    // js/stock-search.js(lineWidth: period===224 ? 3 : 1)는 이미 224일선만 굵게 그리고 있었고,
-    // 이 파일(pattern-scan.js)만 전부 1px로 통일돼 있던 걸 맞춘다.
-    var lineWidth = period === 224 ? 3 : 1;
-    var series = chart.addSeries(global.LightweightCharts.LineSeries, {
-      color: color,
-      lineWidth: lineWidth,
-      priceLineVisible: false,
-      lastValueVisible: false,
-      crosshairMarkerVisible: false
-    });
-    series.setData(pts);
-    return series;
+    return global.NineChartCore.addMovingAverageLine(chart, global.LightweightCharts,
+      { color: color, width: period === 224 ? 3 : 1 }, pts);
   }
 
   // 종가 N일 단순이동평균에 배율을 곱한 엔벨로프선(공파산 탭의 파란점선 전용) - 점선으로

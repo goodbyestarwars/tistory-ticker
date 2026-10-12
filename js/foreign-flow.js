@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261014-core1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bollinger1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -4367,6 +4367,7 @@
       body = '<div class="ff-price-chart-panel"><div class="ff-chart-toggles">'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
+        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
@@ -4413,6 +4414,18 @@
 
   var movingAverageEnabled = true;
   var movingAverageOverlaySeries = [];
+  var bollingerEnabled = false;
+  var bollingerOverlaySeries = [];
+
+  function removeBollingerOverlay() {
+    bollingerOverlaySeries.forEach(function (series) { try { lwcChart.removeSeries(series); } catch (e) { /* 이미 제거된 차트 */ } });
+    bollingerOverlaySeries = [];
+  }
+
+  function addBollingerOverlay(daily) {
+    if (!lwcChart || bollingerOverlaySeries.length || !daily || !global.NineChartCore) return;
+    bollingerOverlaySeries = global.NineChartCore.addBollingerBands(lwcChart, global.LightweightCharts, daily);
+  }
 
   function wireMovingAverageToggle(box) {
     var toggle = box.querySelector('#ffMovingAverageToggle');
@@ -4457,7 +4470,7 @@
 
   // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
-  var supportResistanceEnabled = true;   // 2026-10-04 "지지·저항 체크 기능" - 종목분석은 기본 켜짐, 체크로 끌 수 있다
+  var supportResistanceEnabled = false;
   var flowSrCtx = null;
   var ichimokuOverlaySeries = [];
   var ichimokuCloudPrimitive = null; // { series, primitive }
@@ -4519,6 +4532,11 @@
   }
 
   function wireIchimokuToggle(box, chartData) {
+    var bollingerToggle = box.querySelector('#ffBollingerToggle');
+    if (bollingerToggle) bollingerToggle.addEventListener('change', function () {
+      bollingerEnabled = bollingerToggle.checked;
+      if (bollingerEnabled) addBollingerOverlay(chartData && chartData.daily); else removeBollingerOverlay();
+    });
     var srToggle = box.querySelector('#ffSupportResistanceToggle');
     if (srToggle) {
       srToggle.addEventListener('change', function () {
@@ -5723,6 +5741,7 @@
     lwcMarkers = null;
     movingAverageOverlaySeries = [];
     ichimokuOverlaySeries = []; // chart.remove()가 시리즈까지 다 정리하므로 참조만 비움
+    bollingerOverlaySeries = [];
     ichimokuCloudPrimitive = null;
     lwcCandleSeries = null;
     vpPrimitive = null;
@@ -5785,6 +5804,10 @@
       var chart = LWC.createChart(container, core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily }));
       lwcChart = chart;
       lwcChartContainer = container;
+      scope.add(core.installVerticalPan(chart, container, {
+        priceSeries: function () { return lwcCandleSeries; },
+        isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
+      }));
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.36 },
         alignLabels: false
@@ -5810,6 +5833,7 @@
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
+      if (bollingerEnabled) addBollingerOverlay(daily);
       if (vpEnabled) addVolumeProfileOverlay(daily);
 
       // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지

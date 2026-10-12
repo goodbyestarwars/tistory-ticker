@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20260826-dmi-layout-v1';
+  var ENHANCEMENT_VERSION = '20261013-stock-nav1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -177,7 +177,7 @@
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'de-expand-button';
-    button.textContent = '⛶ 전체 화면';
+    button.textContent = target.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면';
     button.setAttribute('data-de-expand-title', title);
     button.addEventListener('click', function () { openChartModal(target, title); });
     var anchor = target.parentElement;
@@ -218,6 +218,7 @@
     var patternDetail = target && target.id === 'psChart' && target.closest ? target.closest('#psDetail') : null;
     var modalTarget = patternDetail || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);
     if (!modalTarget) return;
+    var usChartModal = modalTarget.id === 'usStocksChart';
     var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : null;
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
@@ -237,6 +238,38 @@
     var stockScope = null;
     var patternRoot = chartTarget && chartTarget.id === 'psChart' ? document.querySelector('#pattern-scan') : null;
     var patternScope = null;
+    var stockSearchApi = stockRoot && global.StockSearch;
+    var selectionListener = null;
+    if (stockSearchApi && typeof stockSearchApi.fullscreenSelection === 'function') {
+      var head = overlay.querySelector('.de-chart-modal-head');
+      var nav = document.createElement('div');
+      nav.className = 'de-chart-stock-nav';
+      nav.innerHTML = '<button type="button" data-chart-prev aria-label="이전 종목">〈 이전</button>'
+        + '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
+        + '<button type="button" data-chart-next aria-label="다음 종목">다음 〉</button>'
+        + '<span class="de-chart-stock-current" aria-live="polite"></span>';
+      head.insertBefore(nav, head.querySelector('.de-chart-close'));
+      var input = nav.querySelector('input');
+      var current = nav.querySelector('.de-chart-stock-current');
+      function showSelection(selection) {
+        if (!selection) return;
+        current.textContent = (selection.name || '') + ' (' + (selection.code || '') + ')';
+        input.value = selection.name || selection.code || '';
+      }
+      showSelection(stockSearchApi.currentSelection());
+      selectionListener = function (event) { showSelection(event.detail); };
+      document.addEventListener('nine-stock-selection', selectionListener);
+      nav.querySelector('form').addEventListener('submit', function (event) {
+        event.preventDefault();
+        var selected = stockSearchApi.fullscreenSelection(input.value);
+        if (!selected) input.setCustomValidity('종목을 찾지 못했습니다.');
+        else { input.setCustomValidity(''); showSelection(selected); }
+        input.reportValidity();
+      });
+      input.addEventListener('input', function () { input.setCustomValidity(''); });
+      nav.querySelector('[data-chart-prev]').addEventListener('click', function () { showSelection(stockSearchApi.fullscreenAdjacent(-1)); });
+      nav.querySelector('[data-chart-next]').addEventListener('click', function () { showSelection(stockSearchApi.fullscreenAdjacent(1)); });
+    }
     modalTarget.classList.add('de-modal-target');
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
     // 문서 최상위 모달로 옮길 때도 같은 스코프를 유지해야 SVG가 기본 검정색으로
@@ -309,6 +342,8 @@
       placeholder.remove();
       overlay.remove();
       document.removeEventListener('keydown', onKeydown);
+      if (selectionListener) document.removeEventListener('nine-stock-selection', selectionListener);
+      if (usChartModal && global.UsStocks && global.UsStocks.commitFullscreenChart) global.UsStocks.commitFullscreenChart();
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));
         if (currentChartTarget) currentChartTarget.dispatchEvent(new Event('resize'));

@@ -275,6 +275,136 @@
     return points;
   }
 
+  // 모집단 표준편차를 사용한다. 중심선은 기존 SMA 계산을 그대로 재사용한다.
+  function bollingerPoints(bars, period, multiplier) {
+    period = period || 20; multiplier = multiplier == null ? 2 : multiplier;
+    var middle = movingAveragePoints(bars, 'close', period);
+    var sumSquares = 0, invalid = 0, out = [];
+    bars.forEach(function (bar, i) {
+      var close = Number(bar.close);
+      if (Number.isFinite(close) && close > 0) sumSquares += close * close;
+      else invalid++;
+      if (i >= period) {
+        var old = Number(bars[i - period].close);
+        if (Number.isFinite(old) && old > 0) sumSquares -= old * old;
+        else invalid--;
+      }
+      if (i < period - 1 || invalid) return;
+      var avg = middle[i - period + 1].value;
+      var deviation = Math.sqrt(Math.max(0, sumSquares / period - avg * avg));
+      if (Number.isFinite(deviation)) out.push({ time: bar.date, middle: avg, upper: avg + multiplier * deviation, lower: avg - multiplier * deviation });
+    });
+    return out;
+  }
+
+  function addBollingerBands(chart, LWC, bars) {
+    var points = bollingerPoints(bars, 20, 2);
+    if (!points.length) return [];
+    var specs = [
+      { key: 'upper', color: '#d9a600', width: 2 },
+      { key: 'middle', color: '#e6bc30', width: 1, style: LWC.LineStyle.Dashed },
+      { key: 'lower', color: '#d9a600', width: 2 }
+    ];
+    var series = specs.map(function (spec) {
+      var line = chart.addSeries(LWC.LineSeries, {
+        color: spec.color, lineWidth: spec.width, lineStyle: spec.style,
+        priceScaleId: 'right', lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false
+      });
+      line.setData(points.map(function (p) { return { time: p.time, value: p[spec.key] }; }));
+      return line;
+    });
+    if (typeof series[0].attachPrimitive === 'function') {
+      try { series[0].attachPrimitive(createCloudPrimitive(points.map(function (p) { return { time: p.time, a: p.upper, b: p.lower }; }), 'rgba(230,190,35,0.08)')); } catch (e) { /* 선은 유지 */ }
+    }
+    return series;
+  }
+
+  // Lightweight Charts는 본문 세로 팬을 제공하지 않는다. 같은 가격축의 모든
+  // 시리즈 autoscale 범위를 함께 옮기면 데이터·작도 좌표는 그대로 유지된다.
+  function installVerticalPan(chart, container, opts) {
+    opts = opts || {};
+    var originalAdd = chart.addSeries.bind(chart);
+    var originalRemove = chart.removeSeries.bind(chart);
+    var originalTouchAction = container.style.touchAction;
+    container.style.touchAction = 'none';
+    var watched = [], offset = 0, pointer = null, frame = 0;
+    chart.addSeries = function (type, options, paneIndex) {
+      var next = Object.assign({}, options || {});
+      var provider = null;
+      if (paneIndex == null || paneIndex === 0) {
+        var originalProvider = next.autoscaleInfoProvider;
+        provider = function (defaultInfo) {
+          var info = originalProvider ? originalProvider(defaultInfo) : defaultInfo();
+          if (!info || !info.priceRange || !offset) return info;
+          return Object.assign({}, info, { priceRange: {
+            minValue: info.priceRange.minValue + offset,
+            maxValue: info.priceRange.maxValue + offset
+          } });
+        };
+        next.autoscaleInfoProvider = provider;
+      }
+      var series = originalAdd(type, next, paneIndex);
+      if (provider) watched.push({ series: series, provider: provider });
+      return series;
+    };
+    chart.removeSeries = function (series) {
+      watched = watched.filter(function (entry) { return entry.series !== series; });
+      return originalRemove(series);
+    };
+    function refresh() {
+      frame = 0;
+      watched.forEach(function (entry) {
+        try { entry.series.applyOptions({ autoscaleInfoProvider: entry.provider }); } catch (e) { /* 제거된 시리즈 */ }
+      });
+    }
+    function requestRefresh() { if (!frame) frame = global.requestAnimationFrame(refresh); }
+    function priceSeries() { return opts.priceSeries && opts.priceSeries(); }
+    function down(event) {
+      if (event.button !== 0 || (opts.isDrawing && opts.isDrawing())) return;
+      if (event.target.closest && event.target.closest('button,input,select,textarea')) return;
+      pointer = { id: event.pointerId, y: event.clientY };
+    }
+    function move(event) {
+      if (!pointer || pointer.id !== event.pointerId || (opts.isDrawing && opts.isDrawing())) return;
+      var series = priceSeries();
+      if (!series || !series.coordinateToPrice) return;
+      var dy = event.clientY - pointer.y;
+      pointer.y = event.clientY;
+      if (!dy) return;
+      // 좌표 변환은 가격 패널 안에서 수행한다. 전체 높이의 가운데는 거래량·RSI
+      // 패널일 수 있어 priceToCoordinate가 null을 돌려준다.
+      var y = Math.max(20, Math.min(100, container.clientHeight / 4));
+      var upper = series.coordinateToPrice(y), lower = series.coordinateToPrice(y + dy);
+      if (Number.isFinite(upper) && Number.isFinite(lower)) {
+        offset += upper - lower;
+        requestRefresh();
+      }
+    }
+    function up(event) { if (pointer && pointer.id === event.pointerId) pointer = null; }
+    function reset(event) {
+      if (opts.isDrawing && opts.isDrawing()) return;
+      offset = 0;
+      chart.priceScale('right').applyOptions({ autoScale: true });
+      requestRefresh();
+    }
+    container.addEventListener('pointerdown', down);
+    container.addEventListener('pointermove', move);
+    global.addEventListener('pointerup', up);
+    global.addEventListener('pointercancel', up);
+    container.addEventListener('dblclick', reset);
+    return function () {
+      if (frame) global.cancelAnimationFrame(frame);
+      chart.addSeries = originalAdd;
+      chart.removeSeries = originalRemove;
+      container.removeEventListener('pointerdown', down);
+      container.removeEventListener('pointermove', move);
+      global.removeEventListener('pointerup', up);
+      global.removeEventListener('pointercancel', up);
+      container.removeEventListener('dblclick', reset);
+      container.style.touchAction = originalTouchAction;
+    };
+  }
+
   function chartDate(value) {
     var raw = String(value || '');
     if (/^\d{8}$/.test(raw)) return raw.slice(0, 4) + '-' + raw.slice(4, 6) + '-' + raw.slice(6, 8);
@@ -467,7 +597,7 @@
     isDark: isDark, themeColors: themeColors, chartOptions: chartOptions, themeUpdateOptions: themeUpdateOptions, profiles: PROFILES,
     ma224Color: ma224Color, maStudies: maStudies,
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
-    movingAveragePoints: movingAveragePoints, chartDate: chartDate, compactVolume: compactVolume,
+    movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions

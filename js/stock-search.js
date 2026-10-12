@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261014-core1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bollinger1';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -52,7 +52,7 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261008-news-et';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261013-fullscreen1';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -114,7 +114,8 @@
     minuteScope: '1',
     movingAverageEnabled: true,
     ichimokuEnabled: false,
-    volumeProfileEnabled: true,   // 호가창·차트·매물대 연동 - 기본 켜짐
+    bollingerEnabled: false,
+    volumeProfileEnabled: false,
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
@@ -135,6 +136,7 @@
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
   var lwcOhlcTooltipCleanup = null;
+  var stockPanCleanup = null;
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
   var waveHandle = null;     // chart-wave-overlay 핸들
@@ -421,8 +423,9 @@
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
+      + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
-      + '<label><input type="checkbox" id="ssVolumeProfileToggle" checked /> 매물대 표시</label>'
+      + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -902,6 +905,7 @@
     }
     state.selectedCode = item.code;
     state.selectedName = item.name;
+    document.dispatchEvent(new CustomEvent('nine-stock-selection', { detail: { code: item.code, name: item.name } }));
     state.minuteScope = '1';
     state.externalMinuteLoader = null;
     var chartNotice = container.querySelector('#ssChartNotice');
@@ -1209,6 +1213,14 @@
       ichimokuToggle.checked = state.ichimokuEnabled;
       ichimokuToggle.onchange = function () {
         state.ichimokuEnabled = ichimokuToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var bollingerToggle = container.querySelector('#ssBollingerToggle, [data-chart-bollinger-toggle]');
+    if (bollingerToggle) {
+      bollingerToggle.checked = state.bollingerEnabled;
+      bollingerToggle.onchange = function () {
+        state.bollingerEnabled = bollingerToggle.checked;
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -1593,6 +1605,7 @@
 
     stopMinuteRefresh();
     state.selectedCode = code;
+    state.selectedName = /^US:/i.test(code) ? localizedUsName(code) : (options.name || code);
     state.timeframe = 'day';
     state.minuteScope = '1';
     state.externalMinuteLoader = function (scope) { return options.load('minute', scope); };
@@ -1614,8 +1627,9 @@
       + '<div class="ss-chart-studies">'
       + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
+      + '<label><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
-      + '<label><input type="checkbox" data-chart-vp-toggle checked /> 매물대 표시</label>'
+      + '<label><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -1624,7 +1638,11 @@
     // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
     // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
     // 실제로 눌렀을 때 renderMinuteChart()가 조회한다.
-    return Promise.resolve().then(function () { return options.load('daily'); }).then(function (dailyResult) {
+    var existingDaily = state.chartCache[code];
+    return Promise.resolve().then(function () {
+      return existingDaily && Date.now() - existingDaily.t < 5 * 60 * 1000 && existingDaily.data
+        ? existingDaily.data.daily : options.load('daily');
+    }).then(function (dailyResult) {
       var daily = Array.isArray(dailyResult) ? dailyResult : [];
       if (!daily.length) throw new Error('NO_DATA');
       state.chartCache[code] = { t: Date.now(), data: { daily: daily } };
@@ -2015,6 +2033,7 @@
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
+    if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
@@ -2036,6 +2055,10 @@
       }));
       lwcChart = chart;
       lwcChartContainer = container;
+      stockPanCleanup = core.installVerticalPan(chart, container, {
+        priceSeries: function () { return lwcCandleSeries; },
+        isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
+      });
       stockChartResizeOff = core.observeResize(container, resizeStockChart);
       chart.priceScale('right').applyOptions({
         scaleMargins: { top: 0.06, bottom: 0.08 },
@@ -2077,6 +2100,10 @@
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
           priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
+      }
+      if (state.bollingerEnabled) {
+        core.addBollingerBands(chart, LWC, bars);
+        priceLegendHtml.push('<span style="color:#d9a600">볼린저 20·2</span>');
       }
 
       // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
@@ -2268,7 +2295,60 @@
   }
   function escapeAttr(s) { return escapeHtml(s); }
 
+  // 전체화면 헤더에서도 같은 종목 선택 경로를 호출한다. 차트 패널은 기존 모달이
+  // 이동시킨 DOM 그대로 두므로 전체화면과 수동 작도가 유지된다.
+  function fullscreenSelection(query) {
+    var container = document.querySelector('#stock-search-original') || document.querySelector('#stock-search');
+    if (!container) return null;
+    var needle = String(query || '').trim().toLowerCase();
+    if (!needle) return null;
+    if (/^US:/i.test(String(state.selectedCode || ''))) {
+      var symbol = String(query || '').trim().replace(/^US:/i, '').toUpperCase();
+      var usMatch = LOCAL_US_SYMBOLS.filter(function (row) {
+        return row.symbol === symbol || row.name.toLowerCase() === needle || row.aliases.toLowerCase().indexOf(needle) !== -1;
+      })[0];
+      if (usMatch) symbol = usMatch.symbol;
+      if (!global.UsStocks || !global.UsStocks.selectChartInFullscreen(symbol)) return null;
+      state.selectedCode = 'US:' + symbol;
+      state.selectedName = localizedUsName(symbol, usMatch && usMatch.name);
+      var usSelection = { code: state.selectedCode, name: state.selectedName };
+      document.dispatchEvent(new CustomEvent('nine-stock-selection', { detail: usSelection }));
+      return usSelection;
+    }
+    var map = applyDomesticListingFallbacks();
+    var match = Object.keys(map).filter(function (name) {
+      return name.toLowerCase() === needle || String(map[name]).toLowerCase() === needle;
+    })[0] || Object.keys(map).filter(function (name) { return name.toLowerCase().indexOf(needle) !== -1; })[0];
+    if (!needle || !match) return null;
+    var item = (state.lastResults || []).filter(function (row) { return row.code === map[match]; })[0]
+      || { name: match, code: map[match], price: null, changeRate: null, sectors: lookupSectors(map[match]) };
+    selectStock(container, item);
+    return { code: item.code, name: item.name };
+  }
+
+  function fullscreenAdjacent(direction) {
+    if (/^US:/i.test(String(state.selectedCode || ''))) {
+      var usIndex = LOCAL_US_SYMBOLS.findIndex(function (row) { return 'US:' + row.symbol === state.selectedCode; });
+      if (usIndex < 0) return null;
+      return fullscreenSelection('US:' + LOCAL_US_SYMBOLS[(usIndex + direction + LOCAL_US_SYMBOLS.length) % LOCAL_US_SYMBOLS.length].symbol);
+    }
+    var rows = state.lastResults && state.lastResults.length > 1 ? state.lastResults : Object.keys(applyDomesticListingFallbacks()).map(function (name) {
+      return { name: name, code: global.KRX_MAP[name] };
+    }).sort(function (a, b) { return a.code.localeCompare(b.code); }).filter(function (row, index, all) {
+      return index === 0 || row.code !== all[index - 1].code;
+    });
+    var index = rows.findIndex(function (row) { return row.code === state.selectedCode; });
+    if (index < 0 || !rows.length) return null;
+    var item = rows[(index + direction + rows.length) % rows.length];
+    return fullscreenSelection(item.code);
+  }
+
   global.StockSearch = { init: init };
+  if (global.StockSearch) {
+    global.StockSearch.fullscreenSelection = fullscreenSelection;
+    global.StockSearch.fullscreenAdjacent = fullscreenAdjacent;
+    global.StockSearch.currentSelection = function () { return { code: state.selectedCode, name: state.selectedName || localizedUsName(state.selectedCode) }; };
+  }
   global.StockSearchChart = { mount: mountExternalChart, updateQuote: updateLiveChartQuote };
 
   if (document.readyState === 'loading') {

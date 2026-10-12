@@ -362,6 +362,26 @@
     });
   }
 
+  // 전체화면에서는 차트 mount를 이동해 둔 상태다. 상세 패널 전체를 다시 그리면
+  // 복귀용 placeholder가 사라지므로 차트 데이터만 교체하고 종료 시 상세를 동기화한다.
+  var fullscreenChartChanged = false;
+  function selectChartInFullscreen(symbol) {
+    var next = String(symbol || '').toUpperCase().replace(/^US:/, '');
+    if (!/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(next)) return false;
+    stopRefresh();
+    stopRealtime();
+    state.symbol = next;
+    fullscreenChartChanged = true;
+    loadNativeChart();
+    return true;
+  }
+
+  function commitFullscreenChart() {
+    if (!fullscreenChartChanged || !state.symbol) return;
+    fullscreenChartChanged = false;
+    select(state.symbol);
+  }
+
   function startRefresh() {
     stopRefresh();
     if (!canRefresh()) return;
@@ -1221,5 +1241,6 @@
   function escapeHtml(value) { return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
   function escapeAttr(value) { return escapeHtml(value); }
 
-  global.UsStocks = { init: init, select: select, pause: pause };
+  global.UsStocks = { init: init, select: select, pause: pause,
+    selectChartInFullscreen: selectChartInFullscreen, commitFullscreenChart: commitFullscreenChart };
 })(window);
