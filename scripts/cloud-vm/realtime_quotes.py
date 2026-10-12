@@ -144,6 +144,23 @@ def _kis_number(value):
         return None
 
 
+def _kis_trade_direction(tr_id, division, price, ask, bid):
+    # KIS 공식 레거시 예제의 KRX CCLD_DVSN: 1=매수(+), 5=매도(-).
+    # 통합/NXT CNTG_CLS_CODE의 값별 의미는 공식 예제에서 확인되지 않아
+    # 동일 체결 프레임의 최우선 호가로만 보수적으로 추정한다.
+    if tr_id == 'H0STCNT0' and division in ('1', '5'):
+        return ('buy' if division == '1' else 'sell', 'provider')
+    if division not in ('1', '5') or price is None or ask is None or bid is None:
+        return ('unknown', 'unknown')
+    if bid <= 0 or ask <= bid or (ask - bid) / bid > 0.03:
+        return ('unknown', 'unknown')
+    if price >= ask:
+        return ('buy', 'estimate')
+    if price <= bid:
+        return ('sell', 'estimate')
+    return ('unknown', 'unknown')
+
+
 def _kis_quote_events(raw):
     """KIS 국내 체결·통합호가/미국 체결을 공통 이벤트로 변환한다.
 
@@ -184,6 +201,24 @@ def _kis_quote_events(raw):
                 'changeRate': change_rate or 0,
                 'source': 'KIS WebSocket',
             }
+            # KIS 체결 프레임의 CNTG_VOL(12)은 개별 체결량, ACML_VOL(13)은
+            # 당일 누적량이다. CCLD_DVSN/CNTG_CLS_CODE(21)는 체결구분이다.
+            # 원본 식별자는 없으므로 동일 시각·가격·수량을 여기서 합치지 않는다.
+            trade_qty = _kis_number(row[12])
+            trade_time = str(row[1] or '').strip()
+            division = str(row[21] or '').strip() if len(row) >= 22 else ''
+            if len(row) >= 22 and trade_qty is not None and abs(trade_qty) > 0 and len(trade_time) == 6 and trade_time.isdigit():
+                direction, direction_source = _kis_trade_direction(
+                    tr_id, division, price, _kis_number(row[10]), _kis_number(row[11]))
+                event['trade'] = {
+                    'time': trade_time,
+                    'date': str(row[33] or '').strip() if len(row) > 33 else '',
+                    'price': abs(price or 0),
+                    'qty': abs(trade_qty),
+                    'direction': direction,
+                    'directionSource': direction_source,
+                    'market': tr_id,
+                }
         elif tr_id == 'H0UNASP0':
             if len(row) < 43:
                 continue

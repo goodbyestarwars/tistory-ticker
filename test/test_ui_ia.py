@@ -2234,7 +2234,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ob-summary-high", style)
         self.assertIn("ob-summary-low", style)
         self.assertIn("grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);", stock_search_style)
-        self.assertIn("grid-template-columns: 56px minmax(80px, 1fr) 72px;", style)
+        self.assertIn("grid-template-columns: 56px minmax(70px, 1fr) 64px 84px;", style)
+        self.assertIn("<span>체결 방향</span>", source)
         self.assertIn("white-space: nowrap;", style)
 
     def test_stock_search_keeps_two_panel_default_and_allows_manual_resize(self):

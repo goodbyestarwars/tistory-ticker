@@ -390,6 +390,15 @@ dict 구성을 함께 대조한다.
 | WS | `/ws/quotes` | Origin 확인 | 국내·미국 실시간 종목판 |
 | WS | `/ws/economic-news` | Origin 확인 | 시장별 경제 종합뉴스 push |
 
+국내 KIS `/ws/quotes`의 `type:quote`에는 개별 체결을 수신한 경우에만 선택적
+`trade:{time,date,price,qty,direction,directionSource,market}`가 추가된다. `date`는
+원본 영업일자(없으면 빈 문자열)이며 `qty`는 원본
+`CNTG_VOL`(주), 기존 최상위 `volume`은 당일 누적량이다. KRX 체결구분 1/5는
+`directionSource:provider`, 통합/NXT는 동시 최우선 호가로만 `estimate`, 그 밖은
+`unknown`이다. 키움·REST 폴백에는 `trade`가 없으며, 원본 이벤트 ID도 없어
+실시간 수신 목록의 중복·누락을 완전하게 판별할 수 없다. `/order-book/{code}`의
+`trade.up/down`은 여전히 전일 종가 대비 방향인 REST 표본이며 체결 주도 방향이 아니다.
+
 `patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. `firstPullbackBreakoutReady`는 최초 검색 완료 여부(미완료와 후보 없음 구분)다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
 
 `/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:05 KST 스냅샷**이다
