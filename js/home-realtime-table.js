@@ -906,9 +906,15 @@
       [rising, falling, priceCell].forEach(function (cell) {
         var target = cell && cell.querySelector('.hrt-up, .hrt-down, .hrt-price-rate');
         if (!target) return;
+        if (target.classList.contains('hrt-price-rate') && global.getComputedStyle(target).display === 'none') return;
         target.classList.remove('hrt-pill-up', 'hrt-pill-down');
         void target.offsetWidth;
         target.classList.add('hrt-pill-' + dir);
+        target.onanimationend = function (event) {
+          if (event.animationName === 'hrt-pill-fade') {
+            target.classList.remove('hrt-pill-up', 'hrt-pill-down');
+          }
+        };
       });
     }
   }
