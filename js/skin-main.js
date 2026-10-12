@@ -750,7 +750,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261010-hmb2-v1';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261013-investor-spark2';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -1748,21 +1748,25 @@ document.documentElement.classList.add('skin-ready');
     function investorSparkline(values, positive) {
       var nums = (values || []).map(Number).filter(function (v) { return isFinite(v); });
       if (nums.length < 2) return '<span class="hmb-investor-spark-empty">-</span>';
-      var min = Math.min.apply(Math, nums.concat([0]));
-      var max = Math.max.apply(Math, nums.concat([0]));
-      var range = max - min || 1;
+      var min = Math.min.apply(Math, nums);
+      var max = Math.max.apply(Math, nums);
+      var range = max - min;
+      function y(value) { return range ? 36 - (value - min) / range * 32 : 20; }
+      function x(index) { return 2 + index * 96 / (nums.length - 1); }
       var points = nums.map(function (value, index) {
-        var x = 2 + index * 96 / Math.max(1, nums.length - 1);
-        var y = 26 - (value - min) / range * 22;
-        return x.toFixed(1) + ',' + y.toFixed(1);
+        return x(index).toFixed(1) + ',' + y(value).toFixed(1);
       }).join(' ');
-      var zeroY = (26 - (0 - min) / range * 22).toFixed(1);
+      var zeroLine = min < 0 && max > 0
+        ? '<line x1="2" y1="' + y(0).toFixed(1) + '" x2="98" y2="' + y(0).toFixed(1) + '" class="hmb-investor-zero"></line>' : '';
       var color = positive ? '#d24f45' : '#1261c4';
-      return '<svg class="hmb-investor-spark" viewBox="0 0 100 28" role="img" aria-label="외국인 순매수 추이">'
-        + '<line x1="2" y1="' + zeroY + '" x2="98" y2="' + zeroY + '" class="hmb-investor-zero"></line>'
+      var highIndex = nums.indexOf(max), lowIndex = nums.indexOf(min);
+      return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="최근 외국인 순매수 추이, 고점 ' + investorAmountText(max) + ', 저점 ' + investorAmountText(min) + '">'
+        + zeroLine
         + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-opacity=".2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
-        + '</svg>';
+        + '</svg><span class="hmb-investor-point is-high" style="left:' + x(highIndex).toFixed(1) + '%;top:' + (y(max) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>'
+        + (range ? '<span class="hmb-investor-point is-low" style="left:' + x(lowIndex).toFixed(1) + '%;top:' + (y(min) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>' : '')
+        + '</div><div class="hmb-investor-extrema"><span>고점 <b>' + investorAmountText(max) + '</b></span><span>저점 <b>' + investorAmountText(min) + '</b></span></div>';
     }
 
     function renderHomeInvestorTrend(results) {

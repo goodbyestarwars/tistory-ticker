@@ -138,6 +138,16 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-tren
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top b { font: 700 14px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { position: relative; width: 100%; height: 40px; margin-top: 2px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark { width: 100%; height: 100%; margin: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { position: absolute; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point.is-high { background: var(--hmb-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point.is-low { background: var(--hmb-down); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: var(--hmb-mute); font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span { white-space: nowrap; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:first-child b { color: var(--hmb-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:last-child b { color: var(--hmb-down); }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { box-shadow: 0 0 0 2px #1a1a1a; }
 
 /* ── F. 관심종목 주간 공시: 위젯 최상단이 아니라 핵심 지표 아래, 기존 가로 이동·선택 기능은 그대로 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hmb-line); }
