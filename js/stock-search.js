@@ -52,8 +52,6 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var VM_HOUR_CANDIDATES_URL = 'https://goodbyestar.cloud/hour-direction';
-  var HOUR_CANDIDATES_TIMEOUT_MS = 45000;
   var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261008-news-et';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
@@ -142,10 +140,6 @@
   var waveHandle = null;     // chart-wave-overlay 핸들
   var suggestionRequestId = 0;
   var stockSearchRequestId = 0;
-  // This analysis starts only on an explicit check. Never restore or poll a signal.
-  var hourCandidatesRequestId = 0;
-  var hourCandidatesController = null;
-  var hourCandidatesTimer = null;
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
@@ -275,13 +269,11 @@
     document.querySelectorAll('.post-single-title').forEach(function (title) {
       if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
     });
-    clearHourCandidates(container);
     container.innerHTML = buildShell();
     chartReady().catch(function () { /* 차트를 열 때 다시 시도하고 오류를 보여 준다 */ });   // 라이브러리·모듈을 검색·시세 조회와 겹쳐 미리 받는다
     if (global.OrderBook) global.OrderBook.flowChartProvider = loadSharedFlowChart;
     wirePanelResize(container);
     wireSearch(container);
-    wireHourCandidates(container);
     autoSearchFromUrl(container);
 
     // 실시간 체결가 소켓의 visibilitychange 처리는 order-book.js가 자기 자신의 init()에서
@@ -310,9 +302,7 @@
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
-    var hourPanel = container.querySelector('#ssHourCandidates');
-    if (hourPanel) hourPanel.hidden = !!isUs;
-    if (isUs) { stockSearchRequestId += 1; clearHourCandidates(container); }
+    if (isUs) stockSearchRequestId += 1;
   }
 
   function loadUsStocksModule(container) {
@@ -405,7 +395,6 @@
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
       + '<div id="ssSummary" class="ss-summary"></div>'
-      + hourCandidatesShell()
       + '<div class="ss-panels">'
       // css/order-book.css의 모든 규칙이 "#order-book .ob-xxx"로 ID에 고정돼 있어(다른
       // ID로 마운트하면 스타일이 하나도 안 먹음 - 실측으로 발견) 마운트 id를 그대로
@@ -442,128 +431,6 @@
       + '</div>'
       + '<section class="ss-news-panel"><div class="ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="ssDomesticNews" class="ss-domestic-news"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
-  }
-
-  function hourCandidatesShell() {
-    return '<div id="ssHourCandidates" class="ss-hour-direction" hidden title="실험 판단 · 확인 당시 가격보다 1시간 뒤 높을지 낮을지 판단. 예측 정확도는 검증 전이다.">'
-      + '<div id="ssHourResult" aria-live="polite" aria-atomic="true">' + directionHtml('unclear', '아직 직접 확인하지 않았어.') + '</div>'
-      + '<span class="ss-hour-test">테스트 중</span>'
-      + '<button type="button" data-hour-check="selected" aria-label="다시 확인" title="다시 확인">↻</button></div>';
-  }
-
-  function wireHourCandidates(container) {
-    container.querySelectorAll('[data-hour-check]').forEach(function (button) {
-      button.addEventListener('click', function () { checkHourCandidates(container); });
-    });
-  }
-
-  function updateHourCandidatesControls(container, busy) {
-    container.querySelectorAll('[data-hour-check]').forEach(function (button) {
-      button.disabled = busy || !/^[0-9A-Z]{6}$/.test(String(state.selectedCode || ''));
-    });
-    var panel = container.querySelector('#ssHourCandidates');
-    if (panel) panel.setAttribute('aria-busy', busy ? 'true' : 'false');
-  }
-
-  function clearHourCandidates(container) {
-    hourCandidatesRequestId += 1;
-    if (hourCandidatesController) hourCandidatesController.abort();
-    if (hourCandidatesTimer) clearTimeout(hourCandidatesTimer);
-    hourCandidatesController = null;
-    hourCandidatesTimer = null;
-    var result = container.querySelector('#ssHourResult');
-    if (result) { result.innerHTML = directionHtml('unclear', '아직 직접 확인하지 않았어.'); result.hidden = false; }
-    var panel = container.querySelector('#ssHourCandidates');
-    if (panel) panel.hidden = true;
-    updateHourCandidatesControls(container, false);
-  }
-
-  function directionHtml(direction, reason) {
-    var labels = { up: '상승가능', down: '하락가능', unclear: '판단 어려움' };
-    var safeDirection = labels[direction] ? direction : 'unclear';
-    return '<div class="ss-hour-line"><span class="ss-hour-title">1시간 방향 :</span><strong class="ss-hour-'
-      + safeDirection + '">' + labels[safeDirection] + '</strong></div>'
-      + '<p class="ss-hour-reason">' + escapeHtml(reason || '판단 근거가 부족해.') + '</p>';
-  }
-
-  function checkHourCandidates(container) {
-    var result = container.querySelector('#ssHourResult');
-    var panel = container.querySelector('#ssHourCandidates');
-    var code = String(state.selectedCode || '');
-    if (!result || !panel || panel.hidden || !/^[0-9A-Z]{6}$/.test(code)) return;
-    clearHourCandidates(container);
-    panel.hidden = false;
-    var requestId = hourCandidatesRequestId;
-    var controller = 'AbortController' in global ? new global.AbortController() : null;
-    hourCandidatesController = controller;
-    var timedOut = false;
-    var timer = setTimeout(function () {
-      timedOut = true;
-      if (controller) controller.abort();
-      if (requestId === hourCandidatesRequestId) {
-        result.innerHTML = directionHtml('unclear', '조회 시간이 길어졌습니다. 다시 확인해줘.');
-        updateHourCandidatesControls(container, false);
-        hourCandidatesRequestId += 1;
-      }
-    }, HOUR_CANDIDATES_TIMEOUT_MS);
-    hourCandidatesTimer = timer;
-    result.innerHTML = directionHtml('unclear', '현재 자료를 확인하고 있어…');
-    updateHourCandidatesControls(container, true);
-    var params = new URLSearchParams({ code: code, name: String(state.selectedName || '').slice(0, 80) });
-    fetch(VM_HOUR_CANDIDATES_URL + '?' + params.toString(), controller
-      ? { signal: controller.signal, cache: 'no-store' } : { cache: 'no-store' })
-      .then(function (response) {
-        if (!response.ok) {
-          var error = new Error('hour-direction');
-          error.status = response.status;
-          throw error;
-        }
-        return response.json();
-      })
-      .then(function (envelope) {
-        if (requestId !== hourCandidatesRequestId || state.selectedCode !== code) return;
-        var data = envelope && envelope.data;
-        if (!data || data.code !== code || !['up', 'down', 'unclear'].includes(data.direction)
-          || data.validated !== false || data.probability !== null) throw new Error('invalid-hour-direction');
-        renderHourCandidates(container, data, requestId);
-      })
-      .catch(function (error) {
-        if (requestId !== hourCandidatesRequestId || timedOut) return;
-        var reason = error.status === 409 ? '다른 확인이 진행 중입니다. 잠시 후 다시 확인해줘.'
-          : error.status === 429 ? '확인 요청이 많습니다. 잠시 후 다시 확인해줘.'
-          : '현재 자료를 받지 못했습니다. 다시 확인해줘.';
-        result.innerHTML = directionHtml('unclear', reason);
-      })
-      .then(function () {
-        clearTimeout(timer);
-        if (requestId !== hourCandidatesRequestId) return;
-        hourCandidatesController = null;
-        // renderHourCandidates may have set a local expiry timer. No poll.
-        if (hourCandidatesTimer === timer) hourCandidatesTimer = null;
-        updateHourCandidatesControls(container, false);
-      });
-  }
-
-  function renderHourCandidates(container, data, requestId) {
-    var result = container.querySelector('#ssHourResult');
-    if (!result) return;
-    var expiry = Date.parse(data.expiresAt);
-    var hasDirection = data.direction === 'up' || data.direction === 'down';
-    if (hasDirection && (!Number.isFinite(expiry) || expiry <= Date.now())) {
-      result.innerHTML = directionHtml('unclear', '이전 판단이 만료됐습니다. 다시 확인해줘.');
-      return;
-    }
-    // The short reason stays in a tooltip for a directional result. Missing
-    // evidence is explained inline so a grey label does not look like a sell.
-    result.innerHTML = directionHtml(data.direction, data.reason);
-    result.title = String(data.reason || '') + (data.checkedAt ? '\n확인: ' + data.checkedAt : '');
-    if (hasDirection) {
-      hourCandidatesTimer = setTimeout(function () {
-        if (requestId !== hourCandidatesRequestId) return;
-        result.innerHTML = directionHtml('unclear', '이전 판단이 만료됐습니다. 다시 확인해줘.');
-        hourCandidatesTimer = null;
-      }, Math.min(expiry - Date.now(), 60 * 60 * 1000));
-    }
   }
 
   function wirePanelResize(container) {
@@ -705,14 +572,14 @@
         var picked = idx > -1 && items[idx] ? items[idx].getAttribute('data-name') : input.value.trim();
         if (idx > -1 && items[idx]) input.value = picked;
         hideSuggestions(suggestBox);
-        runSearch(container, picked, true);
+        runSearch(container, picked);
       } else if (e.key === 'Escape') {
         hideSuggestions(suggestBox);
       }
     });
     goBtn.addEventListener('click', function () {
       hideSuggestions(suggestBox);
-      runSearch(container, input.value.trim(), true);
+      runSearch(container, input.value.trim());
     });
     document.addEventListener('click', function (e) {
       if (!container.contains(e.target)) hideSuggestions(suggestBox);
@@ -780,7 +647,7 @@
           var name = el.getAttribute('data-name');
           container.querySelector('#ssInput').value = name;
           hideSuggestions(box);
-          runSearch(container, el.getAttribute('data-code') || name, true);
+          runSearch(container, el.getAttribute('data-code') || name);
         });
       });
     });
@@ -800,14 +667,13 @@
     return null;
   }
 
-  function runSearch(container, query, manualSelection) {
+  function runSearch(container, query) {
     var searchId = ++stockSearchRequestId;
-    clearHourCandidates(container);
     var resultsBox = container.querySelector('#ssResults');
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
     var domesticMatch = resolveDomesticName(query);
     if (domesticMatch) {
-      runDomesticSearch(container, domesticMatch.name, manualSelection, searchId);
+      runDomesticSearch(container, domesticMatch.name, searchId);
       return;
     }
     if (/^US:/i.test(query) || (/^[A-Z][A-Z0-9.\-^=]{0,11}$/.test(query) && !/^[0-9A-Za-z]{6}$/.test(query))) {
@@ -822,14 +688,14 @@
           openUsSymbol(container, rows[0].code);
           return;
         }
-        runDomesticSearch(container, query, manualSelection, searchId);
-      }).catch(function () { if (searchId === stockSearchRequestId) runDomesticSearch(container, query, manualSelection, searchId); });
+        runDomesticSearch(container, query, searchId);
+      }).catch(function () { if (searchId === stockSearchRequestId) runDomesticSearch(container, query, searchId); });
       return;
     }
-    runDomesticSearch(container, query, manualSelection, searchId);
+    runDomesticSearch(container, query, searchId);
   }
 
-  function runDomesticSearch(container, query, manualSelection, searchId) {
+  function runDomesticSearch(container, query, searchId) {
     var resultsBox = container.querySelector('#ssResults');
 
     var map = applyDomesticListingFallbacks();
@@ -868,7 +734,7 @@
         });
         state.lastResults = items;
         state.resultsCollapsed = false;
-        renderResults(container, items, manualSelection);
+        renderResults(container, items);
       })
       .catch(function () {
         if (searchId !== stockSearchRequestId) return;
@@ -926,7 +792,7 @@
   // 계속 남아있어 "없어지질 않는다"는 리포트가 있었음 - 종목을 고르면 목록을 접어
   // "검색 결과 N건 (다시 보기)" 한 줄로 줄인다(재조회 없이 state.lastResults로 다시
   // 펼칠 수 있음). 선택된 종목이 어떤 건지 잊지 않도록 접힌 줄에도 이름을 같이 보여준다.
-  function renderResults(container, items, manualSelection) {
+  function renderResults(container, items) {
     var resultsBox = container.querySelector('#ssResults');
 
     if (state.resultsCollapsed) {
@@ -962,7 +828,7 @@
     resultsBox.querySelectorAll('.ss-result-row').forEach(function (row) {
       row.addEventListener('click', function () {
         var idx = Number(row.getAttribute('data-idx'));
-        selectStock(container, items[idx], true);
+        selectStock(container, items[idx]);
         resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
         row.classList.add('active');
         // 종목을 골랐으면 목록을 접어서 화면을 계속 차지하지 않게 한다(사용자 리포트) -
@@ -997,7 +863,7 @@
 
     // 결과가 1건뿐이면(코드 직접 입력 등) 바로 상세까지 보여준다
     if (items.length === 1) {
-      selectStock(container, items[0], manualSelection === true);
+      selectStock(container, items[0]);
       var onlyRow = resultsBox.querySelector('.ss-result-row');
       if (onlyRow) onlyRow.classList.add('active');
     }
@@ -1022,9 +888,8 @@
 
   // ---- 선택 종목: 요약 + 호가창(재사용) + 차트 ----
 
-  function selectStock(container, item, manualSelection) {
+  function selectStock(container, item) {
     stockSearchRequestId += 1;
-    clearHourCandidates(container);
     setMarketMode(container, false);
     if (isUsRoute()) {
       try {
@@ -1037,7 +902,6 @@
     }
     state.selectedCode = item.code;
     state.selectedName = item.name;
-    updateHourCandidatesControls(container, false);
     state.minuteScope = '1';
     state.externalMinuteLoader = null;
     var chartNotice = container.querySelector('#ssChartNotice');
@@ -1050,9 +914,6 @@
     wirePanelResize(container);
 
     renderSummary(container, item);
-    var directionPanel = container.querySelector('#ssHourCandidates');
-    if (directionPanel) directionPanel.hidden = false;
-    if (manualSelection === true) checkHourCandidates(container);
     loadPriceReason(container, item);
 
     var ladderBox = container.querySelector('#order-book');

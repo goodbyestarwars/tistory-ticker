@@ -12,7 +12,7 @@
 
 기존 빨간색16점 곡선 SVG·40px 기준/20~96px 휠 조절·프레임 간 추종식을 유지한다. SVG는 페이지당 하나, 스크립트 중복 로드도 이벤트 등록 전에 반환한다. 마우스 왼쪽 누름 중에만 RAF를 돌리며 이동 이벤트는 활성 상태에서만 처리한다. 프레임에서 레이아웃을 읽지 않는다.
 
-캔버스/iframe·실제 `.ss-chart`, `.ss-lw-chart-root`, `.dmi-chart`, `.ff-chart`, `.kf-chart` 및 chart 계열 영역·`.de-chart-overlay/.de-chart-modal`·그리기 레이어/도구·carousel/slider 영역·`.learn-card-grid`·입력/편집/버튼·`role=slider/scrollbar`·`data-drag-ready`·`draggable=true`·`data-no-pointer-effect` 영역을 제외한다. 일반/내부 스크롤바와 활성 텍스트 선택도 감지한다. 새 조작 컴포넌트는 `data-no-pointer-effect`를 사용할 수 있다.
+캔버스/iframe·실제 Lightweight Charts 마운트(`.ss-chart`, `.dmi-chart`, `.ff-chart-candle`, `.kf-chart`, `.ps-chart`, `.om-chart`, `.qi-card-chart`, `.umi-history-chart`, `.us-native-chart-mount`)·그리기 레이어·입력/편집/버튼/레이블·슬라이더/리사이즈 구분선·`data-drag-ready`·`draggable=true`·`data-no-pointer-effect` 영역만 제외한다. `[class$="-chart"]`, `[class*="-chart-"]`, `[id*="Chart"]`처럼 이름만 보고 막는 선택자는 쓰지 않는다. 따라서 일반 콘텐츠, 차트 이름이 들어간 정보 카드, 표, 뉴스, 모달의 일반 배경은 효과를 허용한다. 일반/내부 스크롤바와 활성 텍스트 선택도 감지한다. 새 조작 컴포넌트는 `data-no-pointer-effect`를 사용할 수 있다.
 
 일반 영역에서 시작해 제외 영역에 들어가면 종료하며 새 누름 전에는 재시작하지 않는다. 캡처 단계에서 실제 hover 요소를 확인해 위젯의 포인터 캡처나 전파 중단에도 종료한다. 차트의 pointer/mouse/wheel 기본 이벤트를 막지 않는다. 효과가 실제 활성인 일반 영역의 휠만 크기 조절에 사용한다.
 

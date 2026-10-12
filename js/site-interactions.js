@@ -2,7 +2,10 @@
 (function (global) {
   'use strict';
   if (global.SiteInteractions) return;
-  var excluded = '[data-no-pointer-effect],[data-drag-ready],[draggable="true"],[role="scrollbar"],canvas,iframe,input,textarea,select,button,[contenteditable]:not([contenteditable="false"]),[role="slider"],.ss-chart,[class$="-chart"],[class*="-chart-"],[id*="Chart"],.ss-lw-chart-root,.de-chart-overlay,.de-chart-modal,.dmi-chart,.ff-chart,.kf-chart,[class*="drawing-layer"],[class*="chart-tools"],[class*="carousel"],[class*="slider"],.learn-card-grid,.learn-track,.learn-grid,.dcf-table-wrap';
+  // Keep the effect off controls and surfaces that own pointer gestures. Avoid
+  // name-pattern selectors here: many ordinary cards and information panels
+  // contain "chart" or "slider" in their class names without being interactive.
+  var excluded = '[data-no-pointer-effect],[data-drag-ready],[draggable="true"],[role="scrollbar"],[role="slider"],[role="separator"],canvas,iframe,input,textarea,select,button,label,[contenteditable]:not([contenteditable="false"]),.ss-chart,.ss-lw-chart-root,.dmi-chart,.ff-chart-candle,.kf-chart,.ps-chart,.om-chart,.qi-card-chart,.umi-history-chart,.us-native-chart-mount,.ss-drawing-layer,.dmi-drawing-layer,.nc-drawing-layer';
   function selectionActive() { var s = global.getSelection(); return !!(s && !s.isCollapsed); }
   function isExcluded(target) { return !target || !target.closest || !!target.closest(excluded); }
   function scrollbar(event) {

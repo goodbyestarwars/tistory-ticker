@@ -23,6 +23,10 @@ function fixture({fine=true,reduced=false}={}) {
     visible(){return body.children[0].style.visibility==='visible';},tick(){const [n,f]=frames.entries().next().value;frames.delete(n);f(16);}};
 }
 test('one overlay and one set of handlers despite duplicate script execution',()=>{const f=fixture();vm.runInContext(source,f.context);assert.equal(f.body.children.length,1);assert.equal(f.document.listeners.pointerdown.length,1);assert.equal(f.frames.size,0);});
+test('exclusions target real controls and gesture surfaces instead of chart-like names',()=>{
+  for(const broad of ['[class$="-chart"]','[class*="-chart-"]','[id*="Chart"]','[class*="carousel"]','[class*="slider"]','.de-chart-modal','.de-chart-overlay','.learn-card-grid','.dcf-table-wrap'])assert.equal(source.includes(broad),false);
+  for(const exact of ['canvas','input','[role="separator"]','.ss-chart','.dmi-chart','.ff-chart-candle','.ss-drawing-layer','.us-native-chart-mount'])assert.equal(source.includes(exact),true);
+});
 test('mouse press starts a single frame loop; release clears path and frames',()=>{const f=fixture();f.down();assert.equal(f.frames.size,1);f.tick();assert.equal(f.frames.size,1);assert.ok(f.body.children[0].children[0].attrs.d.includes(' Q '));f.window.fire('pointerup');assert.equal(f.visible(),false);assert.equal(f.frames.size,0);assert.equal(f.body.children[0].children[0].attrs.d,undefined);});
 test('excluded chart/input/carousel start does not block native events',()=>{const f=fixture();const e=f.down(f.blocked);assert.equal(f.visible(),false);assert.equal(e.prevented,undefined);assert.equal(f.frames.size,0);});
 test('entering an excluded area ends effect; leaving cannot restart without a new press',()=>{const f=fixture();f.down();f.hover(f.blocked);f.move();assert.equal(f.visible(),false);f.hover(f.normal);f.move();assert.equal(f.visible(),false);f.down();assert.equal(f.visible(),true);});
