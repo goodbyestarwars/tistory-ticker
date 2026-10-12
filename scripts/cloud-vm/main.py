@@ -2010,7 +2010,8 @@ def _load_flow_chart_daily(code):
 
 
 @app.get('/flow-chart/{code}')
-def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=6)):
+def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=6),
+               history: str = Query('1y', pattern='^(1y|5y)$')):
     """종목분석 가격차트(일봉 + MA5/20/60/224 + 지지/저항).
 
     2026-09-03: gas의 ?action=flowChart를 그대로 옮겨온 것이다. GAS판은 자체 데이터가
@@ -2028,7 +2029,8 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
     (js/foreign-flow.js)가 두 경로를 같은 렌더 함수로 그릴 수 있어야 하기 때문이다.
     """
     _check_rate_limit('flow_chart', request)
-    daily = _load_flow_chart_daily(code)
+    import chart_history
+    daily = chart_history.get_daily(code, extended=(history == '5y'), token_getter=get_kiwoom_token)
     if not daily or len(daily) < 30:
         raise HTTPException(status_code=404, detail='일봉 데이터를 찾을 수 없습니다.')
 
@@ -2041,7 +2043,7 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
     ma224 = pattern_detect.moving_average(daily, 'close', 224)
     levels = pattern_detect.compute_support_resistance(daily)
 
-    start = max(0, len(daily) - FLOW_CHART_DISPLAY_DAYS)
+    start = max(0, len(daily) - (1550 if history == '5y' else FLOW_CHART_DISPLAY_DAYS))
     return envelope({
         'code': code.upper(),
         'daily': daily[start:],
@@ -2052,6 +2054,7 @@ def flow_chart(request: Request, code: str = Path(..., min_length=6, max_length=
             'ma224': ma224[start:],
         },
         'levels': levels,
+        'historyAttempted': chart_history.history_attempted(code),
     })
 
 

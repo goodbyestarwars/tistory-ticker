@@ -137,6 +137,10 @@ erDiagram
 
 인덱스: `idx_daily_prices_code`. INSERT 주체: `daily_scan.py`(일 1회 배치). 읽기: `week52_scan.py`, `rescan_patterns.py`가 API 재호출 없이 이 DB만 재사용.
 
+### 2.1a `chart_daily_prices` — 종목 차트 온디맨드 이력
+
+`/flow-chart/{code}?history=5y`를 사용한 종목만 키움 `ka10081` 수정주가(`upd_stkpc_tp=1`) 연속조회 결과를 `(code,date)` PK로 저장한다. 종목별 최대 1,550행(5년 표시와 지표 준비 구간)이다. 기본 1년 요청은 이 캐시 또는 같은 수정주가 정책의 `daily_prices`에서 즉시 읽고, 장 마감 후 최근 일봉만 갱신한다. `chart_history_state`는 종목별 이력 조회 여부·확인 시각, `chart_history_fetches`는 날짜별 장기 요청 수(일 20종목 제한)를 저장한다. 단일 동시 장기 요청, 키움 페이지 간 0.35초 간격, 페이지별 15초 제한을 둔다. 검색기와 자동매매가 읽는 `daily_prices`는 변경하지 않는다. 보유 데이터보다 과거가 없는 신규 상장 종목은 실제 확보 날짜만 표시한다.
+
 ### 2.2 `fundamentals` — DART 재무제표 요약
 
 | 컬럼 | 타입 | 설명 |
