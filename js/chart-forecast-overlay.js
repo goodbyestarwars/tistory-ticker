@@ -55,6 +55,22 @@
     return fc;
   }
 
+  function computeAsync(bars, key, level, core) {
+    var Wave = global.NineChartWave, WF = global.WaveForecast;
+    if (!Wave || !WF || !global.AutoWave) return Promise.reject(new Error('예측 모듈이 없습니다.'));
+    var cacheKey = [key, 'day', Wave.fingerprintOf(bars), global.AutoWave.version || '', WF.MODEL_VERSION, level].join('|');
+    var c = getCache(), hit = c.get(cacheKey);
+    if (hit) return Promise.resolve(hit.value);
+    return Wave.analysisAsync(bars, key, 'day', core).then(function (an) {
+      var current = c.get(cacheKey);
+      if (current) return current.value;
+      var fc = WF.forecast(bars, an, { level: level });
+      if (fc && !fc.insufficient) WF.attachStats(fc, global.WAVE_FORECAST_STATS || null);
+      c.set(cacheKey, fc);
+      return fc;
+    });
+  }
+
   // ---- 그리기(오버레이 층) ----
   function drawForecast(ctx, view, fc, st, font) {
     if (!fc || fc.insufficient || !view.bars || !view.bars.length) return;
@@ -214,7 +230,7 @@
   // ---- 한 차트에 붙이기 ----
   // opts: { core, ctl, key, timeframe, bars, state:{enabled,level,horizon,hidden}, panel, font }
   function attach(opts) {
-    var core = opts.core || global.NineChartCore, ctl = opts.ctl, st = opts.state, detached = false, fcNow = null;
+    var core = opts.core || global.NineChartCore, ctl = opts.ctl, st = opts.state, detached = false, fcNow = null, generation = 0;
     var font = opts.font || 'sans-serif', prefix = opts.prefix || 'ss';
     function renderPanel() {
       var panel = opts.panel;
@@ -226,25 +242,29 @@
     }
     function apply() {
       if (detached) return Promise.resolve();
+      var request = ++generation;
       if (!st.enabled || opts.timeframe !== 'day') {
         fcNow = null; ctl.removeLayer('forecast'); renderPanel();
         return Promise.resolve();
       }
       ensureStyles(core);
       return core.ready(['forecast', 'forecastStats', 'wave']).catch(function () { return core.ready(['forecast', 'wave']); }).then(function () {
-        if (detached || !st.enabled) return;
-        fcNow = compute(opts.bars, opts.key, st.level);
+        if (detached || !st.enabled || request !== generation) return;
+        return computeAsync(opts.bars, opts.key, st.level, core);
+      }).then(function (forecast) {
+        if (detached || !st.enabled || request !== generation || !forecast) return;
+        fcNow = forecast;
         ctl.addLayer('forecast', function (ctx, view) { drawForecast(ctx, view, fcNow, st, font); });
         renderPanel();
         global.NineChartForecast.last = fcNow;   // 점검용: 가장 최근에 그린 예측
         if (opts.onForecast) opts.onForecast(fcNow);
       }).catch(function () {
-        if (opts.panel && st.enabled) opts.panel.innerHTML = '<div class="nc-fc-note">다음 파동 예측 모듈을 불러오지 못했습니다.</div>';
+        if (!detached && request === generation && opts.panel && st.enabled) opts.panel.innerHTML = '<div class="nc-fc-note">다음 파동 예측을 표시하지 못했습니다.</div>';
       });
     }
     return {
       apply: apply, forecast: function () { return fcNow; },
-      detach: function () { detached = true; fcNow = null; try { ctl.removeLayer('forecast'); } catch (e) { /* 이미 정리됨 */ } if (opts.panel) opts.panel.innerHTML = ''; }
+      detach: function () { detached = true; generation++; fcNow = null; try { ctl.removeLayer('forecast'); } catch (e) { /* 이미 정리됨 */ } if (opts.panel) opts.panel.innerHTML = ''; }
     };
   }
 

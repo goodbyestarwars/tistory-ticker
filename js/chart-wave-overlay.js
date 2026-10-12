@@ -28,6 +28,7 @@
   // ---- 분석 결과 캐시(페이지 안의 모든 차트가 공유) ----
   var data = global.NineChartData;
   var cache = null;
+  var pending = Object.create(null), worker = null, jobs = Object.create(null), nextJob = 0;
   function getCache() {
     if (!cache) {
       var D = global.NineChartData;
@@ -56,6 +57,43 @@
     } catch (e) { result = { levels: { major: [], medium: [], minor: [] }, state: null }; }
     c.set(cacheKey, result);
     return result;
+  }
+
+  // The initial analysis can scan many candidate boxes. Keep it off the UI thread;
+  // the promise and the completed result are shared by both chart features.
+  function analysisAsync(bars, key, timeframe, core) {
+    var AW = global.AutoWave;
+    if (!AW) return Promise.reject(new Error('파동 엔진이 없습니다.'));
+    var cacheKey = [key, timeframe, fingerprintOf(bars), AW.version || ''].join('|');
+    var c = getCache(), hit = c.get(cacheKey);
+    if (hit) return Promise.resolve(hit.value);
+    if (pending[cacheKey]) return pending[cacheKey];
+    if (!global.Worker || !global.Blob || !global.URL || !global.URL.createObjectURL) {
+      return Promise.reject(new Error('이 브라우저는 파동 계산 Worker를 지원하지 않습니다.'));
+    }
+    if (!worker) {
+      var source = "var loaded='';self.onmessage=function(e){try{if(loaded!==e.data.url){importScripts(e.data.url);loaded=e.data.url;}self.postMessage({id:e.data.id,result:self.AutoWave.analyze(e.data.bars)});}catch(err){self.postMessage({id:e.data.id,error:String(err)});}};";
+      var url = global.URL.createObjectURL(new global.Blob([source], { type: 'text/javascript' }));
+      try { worker = new global.Worker(url); } finally { global.URL.revokeObjectURL(url); }
+      worker.onmessage = function (event) {
+        var job = jobs[event.data.id];
+        if (!job) return;
+        delete jobs[event.data.id];
+        if (event.data.error) job.reject(new Error(event.data.error));
+        else job.resolve(event.data.result);
+      };
+      worker.onerror = function () {
+        Object.keys(jobs).forEach(function (id) { jobs[id].reject(new Error('파동 계산 Worker 오류')); delete jobs[id]; });
+        worker.terminate(); worker = null;
+      };
+    }
+    var id = ++nextJob;
+    pending[cacheKey] = new Promise(function (resolve, reject) {
+      jobs[id] = { resolve: resolve, reject: reject };
+      try { worker.postMessage({ id: id, url: (core || global.NineChartCore).moduleUrl('autowave'), bars: bars }); }
+      catch (e) { delete jobs[id]; reject(e); }
+    }).then(function (result) { c.set(cacheKey, result); return result; }).finally(function () { delete pending[cacheKey]; });
+    return pending[cacheKey];
   }
 
   // 선택한 규모의 파동(박스에 가려진 것 제외)과, 한 단계 위 규모의 옅은 윤곽(부모)을 고른다.
@@ -191,35 +229,49 @@
   // 반환: { apply(), picked(), analysis(), detach() } - apply() 는 현재 state 에 맞게 계산(필요할 때만)·층 등록/해제.
   function attach(opts) {
     var core = opts.core || global.NineChartCore;
-    var ctl = opts.ctl, state = opts.state, detached = false, pickedNow = null, resultNow = null;
+    var ctl = opts.ctl, state = opts.state, detached = false, pickedNow = null, resultNow = null, generation = 0, notice = null;
     var font = opts.font || 'sans-serif';
+    function showError(message) {
+      if (!notice) {
+        notice = document.createElement('div'); notice.className = 'nc-wave-error'; notice.setAttribute('role', 'status');
+        notice.style.cssText = 'position:absolute;left:8px;top:8px;z-index:2;padding:4px 8px;background:#fff;color:#b42318;font-size:12px;pointer-events:none';
+        ctl.overlay.parentElement.appendChild(notice);
+      }
+      notice.textContent = message;
+    }
     function apply() {
       if (detached) return Promise.resolve();
+      var request = ++generation;
       if (!state.enabled || opts.timeframe === 'minute') {
         pickedNow = null; resultNow = null;
+        if (notice) { notice.remove(); notice = null; }
         ctl.removeLayer('wave');
         return Promise.resolve();
       }
       return core.loadModule('autowave').then(function () {
-        if (detached || !state.enabled) return;
-        resultNow = analysis(opts.bars, opts.key, opts.timeframe);
+        if (detached || !state.enabled || request !== generation) return;
+        return global.NineChartWave.analysisAsync(opts.bars, opts.key, opts.timeframe, core);
+      }).then(function (result) {
+        if (detached || !state.enabled || request !== generation || !result) return;
+        resultNow = result;
         if (!resultNow) return;
+        if (notice) { notice.remove(); notice = null; }
         pickedNow = pickLevel(resultNow, state.level);
         ctl.addLayer('wave', function (ctx, view) { drawWaves(ctx, view, pickedNow, font, opts.summaryFont, opts.summaryTop); });
         if (opts.onPicked) opts.onPicked(pickedNow, resultNow);
-      }).catch(function () { /* 엔진 스크립트를 못 받으면 파동만 빠지고 차트는 계속 */ });
+      }).catch(function () { if (!detached && state.enabled && request === generation) showError('파동 분석을 표시하지 못했습니다.'); });
     }
     return {
       apply: apply,
       picked: function () { return pickedNow; },
       analysis: function () { return resultNow; },
-      detach: function () { detached = true; pickedNow = null; resultNow = null; try { ctl.removeLayer('wave'); } catch (e) { /* 이미 정리됨 */ } }
+      detach: function () { detached = true; generation++; pickedNow = null; resultNow = null; if (notice) notice.remove(); try { ctl.removeLayer('wave'); } catch (e) { /* 이미 정리됨 */ } }
     };
   }
 
   global.NineChartWave = {
     LEVELS: LEVELS, LEVEL_NAME: LEVEL_NAME, STYLE: STYLE, TIP: TIP,
-    analysis: analysis, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
+    analysis: analysis, analysisAsync: analysisAsync, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
     levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, attach: attach,
     _cache: getCache
   };

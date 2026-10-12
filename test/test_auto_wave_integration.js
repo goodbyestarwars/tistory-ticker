@@ -8,6 +8,8 @@ const moduleNew = { version: AutoWave.version, hashBars: AutoWave.hashBars, dete
 globalThis.AutoWave = moduleNew;
 require('../js/chart-data.js');
 const Wave = require('../js/chart-wave-overlay.js');
+// Browser UI uses a Worker; this DOM-free integration test supplies the same analysis asynchronously.
+Wave.analysisAsync = (bars, key, timeframe) => Promise.resolve(Wave.analysis(bars, key, timeframe));
 const core = { loadModule: () => Promise.resolve(globalThis.AutoWave) };
 
 function makeCtl() {
@@ -144,5 +146,16 @@ const mk = (key, tf, state, b) => { const ctl = makeCtl(); return { ctl, state, 
   assert.strictEqual(st.enabled, true); assert.strictEqual(box.hidden, false);
   box.onclick({ target: { closest: () => btn('minor') } });
   assert.strictEqual(st.level, 'minor'); assert.deepStrictEqual(seen, ['toggle', 'level']);
+  let finishAnalysis;
+  Wave.analysisAsync = () => new Promise((resolve) => { finishAnalysis = resolve; });
+  const stale = mk('STALE', 'day', { enabled: true, level: 'medium' });
+  const oldApply = stale.h.apply();
+  await Promise.resolve();
+  stale.state.enabled = false;
+  await stale.h.apply();
+  assert(finishAnalysis, 'Worker 결과 대기 중인 요청');
+  finishAnalysis(Wave.analysis(bars, 'STALE', 'day'));
+  await oldApply;
+  assert(!stale.ctl.layers.wave, '꺼진 뒤 늦게 도착한 분석은 그리지 않는다');
   console.log('auto wave integration ok');
 })().catch((e) => { console.error(e); process.exit(1); });

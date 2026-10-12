@@ -11,6 +11,8 @@ require('../js/chart-data.js');
 const Wave = require('../js/chart-wave-overlay.js');
 const WF = require('../js/wave-forecast.js');
 const Forecast = require('../js/chart-forecast-overlay.js');
+// Browser UI runs analysis in a Worker; this DOM-free attach test supplies its result.
+Wave.analysisAsync = (bars, key, timeframe) => Promise.resolve(Wave.analysis(bars, key, timeframe));
 
 const cases = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/wave/cases_bars.json'), 'utf8'));
 const toBars = (rows) => rows.map((r) => ({ date: r[0], open: r[1], high: r[2], low: r[3], close: r[4], volume: r[5] }));
@@ -153,6 +155,18 @@ assert.deepStrictEqual(seen, ['toggle', 'horizon', 'level', 'visibility']);
   assert(!layers.forecast && p2.innerHTML === '', 'detach 후에는 아무것도 남지 않는다');
   await h.apply();
   assert(!layers.forecast, 'detach 뒤 apply 는 무시');
+  let finishAnalysis;
+  Wave.analysisAsync = () => new Promise((resolve) => { finishAnalysis = resolve; });
+  const staleState = { enabled: true, level: 'medium', horizon: 10, hidden: {} };
+  const stalePanel = { hidden: true, innerHTML: '' };
+  const stale = Forecast.attach({ core, ctl, key: 'STALE', timeframe: 'day', bars, state: staleState, panel: stalePanel });
+  const oldApply = stale.apply();
+  await Promise.resolve(); await Promise.resolve();
+  staleState.enabled = false; await stale.apply();
+  assert(finishAnalysis, '예측이 Worker 분석을 기다린다');
+  finishAnalysis(Wave.analysis(bars, 'STALE', 'day'));
+  await oldApply;
+  assert(!layers.forecast && stalePanel.hidden, '꺼진 뒤 늦게 도착한 예측은 적용하지 않는다');
   assert(linksAdded.length === 1 && /css\/chart-forecast\.css/.test(linksAdded[0].href), '표 스타일시트는 한 번만 붙인다');
   console.log('chart forecast overlay ok');
 })().catch((e) => { console.error(e); process.exit(1); });
