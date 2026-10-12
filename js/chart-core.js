@@ -7,7 +7,7 @@
  *
  * 화면 전용 기능(RSI 패널·수급 패널·매물대 막대·범례 배치 등)은 각 화면에 그대로 두고, 이 엔진의 부품을 호출해 붙인다.
  * 보조 모듈 목록: chart-data(데이터·캐시) / chart-drawing(수동 드로잉·오버레이 층) / chart-wave-overlay(자동 파동)
- *                chart-sr(지지·저항) / chart-memo(메모) / wave-forecast(다음 파동 예측).
+ *                / chart-sr(지지·저항) / chart-memo(메모).
  */
 (function (global) {
   'use strict';
@@ -35,9 +35,6 @@
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
-    forecast: { file: 'js/wave-forecast.js', global: 'WaveForecast', v: '20261014-fc1', needs: ['autowave'] },
-    forecastStats: { file: 'data/wave-forecast-stats.js', global: 'WAVE_FORECAST_STATS', v: '20261014-fc1' },
-    forecastUi: { file: 'js/chart-forecast-overlay.js', global: 'NineChartForecast', v: '20261014-fc1', needs: ['data', 'wave', 'forecast'] },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
     sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '' }
   };
