@@ -5284,7 +5284,7 @@ html.dark .hrt-delayed .hrt-stock small::after { background: rgba(251,191,36,.18
 .hrt-down { color: #2674d9; }
 .hrt-flat, .hrt-muted { color: #9da5ad; }
 /* 2026-10-10: 등락률이 실시간으로 바뀔 때 옅은 빨강/파랑 알약 음영(오름=빨강, 내림=파랑)이 켜졌다 사라진다. */
-.hrt-pill-up, .hrt-pill-down { display: inline-block; padding: 2px 8px; border-radius: 999px; animation: hrt-pill-fade 1.6s ease-out; }
+.hrt-pill-up, .hrt-pill-down { border-radius: 999px; animation: hrt-pill-fade 1.6s ease-out; }
 .hrt-pill-up { --hrt-pill: rgba(227, 77, 75, .16); }
 .hrt-pill-down { --hrt-pill: rgba(38, 116, 217, .16); }
 @keyframes hrt-pill-fade { 0%, 35% { background: var(--hrt-pill); } 100% { background: transparent; } }
