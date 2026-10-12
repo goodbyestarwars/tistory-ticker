@@ -696,19 +696,16 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
         + '</dl>'
-        + '<p class="hmb2-note" data-hmb-note hidden></p>'
         + '</div>'
         + '<div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
-        + '<div class="home-index-breadth" data-index-field="breadth" hidden></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '<article class="home-index-card" data-home-index-slot="secondary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSDAQ</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
-        + '<div class="home-index-breadth" data-index-field="breadth" hidden></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
@@ -763,7 +760,6 @@ document.documentElement.classList.add('skin-ready');
     // 첫 화면의 편집 순서를 시장 제목 → 요약 → 일정/공시 → 지수 차트로 고정한다.
     // 기존 데이터 로더와 DOM 선택자는 유지하고, 표시 순서만 여기서 정리한다.
     var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
-    var homeIndexStrip = homeMarketBoard && homeMarketBoard.querySelector('.home-index-strip');
     var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
     // 2026-10-10 국내 시장 개편: 관심종목 공시는 핵심 시장 지표 아래(마크업 순서 그대로)에 둔다. 지수 띠 위로 올리지 않는다.
     var latestHomeIndices = [];
@@ -847,11 +843,9 @@ document.documentElement.classList.add('skin-ready');
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
       if (investorTrend) investorTrend.hidden = isUs;
-      // 시장 내부 흐름(상승·하락 비중)과 핵심 상태 요약은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
+      // 시장 내부 흐름(상승·하락 비중)은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
       var breadthBlock = dashboardSection.querySelector('[data-home-breadth]');
       if (breadthBlock && isUs) breadthBlock.hidden = true;
-      var verdictNote = dashboardSection.querySelector('[data-hmb-note]');
-      if (verdictNote && isUs) { verdictNote.hidden = true; verdictNote.textContent = ''; }
       if (nightFutures) nightFutures.hidden = !isUs;
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
@@ -1034,17 +1028,11 @@ document.documentElement.classList.add('skin-ready');
       }
     }
 
-    // 2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
-    // 대시보드에") - 위 ?marketTemp=1(GAS 레거시 경로)은 byMarket 세부값이 없어서,
-    // js/market-temp.js와 같은 VM 엔드포인트를 따로 불러 KOSPI/KOSDAQ 카드에 채운다.
-    // KIS 키가 있으면 marketBreadth.byMarket(전종목), 없으면 components.riseRatio.byMarket
-    // (섹터 풀 기준)으로 물러난다 - 둘 다 없으면 그냥 그 줄을 숨긴다(부가 정보라 실패해도
-    // 가격 카드 자체엔 영향 없음).
+    // 시장 내부 흐름의 시장별 막대는 기존 VM 응답을 재사용한다.
     var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
 
     // 시장 내부 흐름(D): 이미 받은 byMarket(KOSPI·KOSDAQ)과 total(전체)만으로 상승·보합·하락 비중을 그린다.
     // 보합이 집계되지 않는 응답(섹터 풀 기준)에서는 보합 구간을 만들지 않고, 보합·미분류를 상승·하락에 합치지 않는다.
-    var latestBreadth = null;
     function breadthRowHtml(name, e, extra) {
       var flat = typeof e.flat === 'number' ? e.flat : 0;
       var total = typeof e.total === 'number' && e.total >= e.up + e.down + flat ? e.total : e.up + e.down + flat;
@@ -1076,52 +1064,6 @@ document.documentElement.classList.add('skin-ready');
       block.hidden = homeMarketSession().market !== 'domestic';
     }
 
-    // 핵심 상태 한 줄(B): 화면에 이미 표시된 확정값(지수 등락·상승/하락 종목 수)만 이어 붙인다. 예측·판단 문구는 만들지 않는다.
-    function renderHomeVerdictNote() {
-      var note = dashboardSection.querySelector('[data-hmb-note]');
-      if (!note) return;
-      if (homeMarketSession().market !== 'domestic') { note.hidden = true; return; }
-      var parts = [];
-      var ups = 0, downs = 0, counted = 0;
-      ['primary', 'secondary'].forEach(function (slot) {
-        var card = homeIndexCard(slot);
-        if (!card) return;
-        var label = (card.querySelector('[data-index-field="label"]') || {}).textContent || '';
-        var change = ((card.querySelector('[data-index-field="change"]') || {}).textContent || '').match(/([▲▼])\s*([\d.,]+)\s*%/);
-        if (label && change) parts.push(label + ' ' + (change[1] === '▲' ? '+' : '-') + change[2] + '%');
-      });
-      if (latestBreadth && latestBreadth.total && typeof latestBreadth.total.up === 'number' && typeof latestBreadth.total.down === 'number') {
-        ups = latestBreadth.total.up; downs = latestBreadth.total.down; counted = 1;
-      }
-      if (parts.length < 2) { note.hidden = true; note.textContent = ''; return; }
-      var text = parts.join(' · ');
-      if (counted) text += ' · ' + (ups > downs ? '상승' : downs > ups ? '하락' : '상승·하락 동수') + ' 종목' + (ups === downs ? '' : ' 우세') + ' (상승 ' + ups.toLocaleString('ko-KR') + ' · 하락 ' + downs.toLocaleString('ko-KR') + ')';
-      note.textContent = text;
-      note.hidden = false;
-    }
-
-    function renderHomeIndexBreadth(byMarket) {
-      var session = homeMarketSession();
-      if (session.market !== 'domestic') return;
-      session.keys.forEach(function (key, index) {
-        var card = homeIndexCard(index === 0 ? 'primary' : 'secondary');
-        if (!card) return;
-        var breadthEl = card.querySelector('[data-index-field="breadth"]');
-        if (!breadthEl) return;
-        var entry = byMarket && byMarket[key];
-        if (!entry || typeof entry.up !== 'number' || typeof entry.down !== 'number') {
-          breadthEl.hidden = true;
-          breadthEl.innerHTML = '';
-          return;
-        }
-        breadthEl.hidden = false;
-        breadthEl.innerHTML = '<span class="home-index-breadth-up">상승 ' + entry.up + '</span>'
-          + '<span class="home-index-breadth-sep">·</span>'
-          + '<span class="home-index-breadth-down">하락 ' + entry.down + '</span>';
-      });
-      renderHomeVerdictNote();
-    }
-
     function loadHomeIndexBreadth() {
       if (homeMarketSession().market !== 'domestic') return;
       fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
@@ -1131,8 +1073,6 @@ document.documentElement.classList.add('skin-ready');
           || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
           || null;
         var breadthTotal = data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.total : null;
-        latestBreadth = { byMarket: byMarket, total: breadthTotal };
-        renderHomeIndexBreadth(byMarket);
         renderHomeBreadthBars(byMarket, breadthTotal, data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.source : '섹터 풀 기준', body && body.updatedAt);
       }).catch(function () { /* 부가 정보라 실패해도 조용히 넘어간다 */ });
     }
@@ -1346,9 +1286,33 @@ document.documentElement.classList.add('skin-ready');
     function renderHomeIndexChart(element, rows, positive, key) {
       if (!element) return;
       var chartRows = homeChartRows(rows, key) || [];
+      var domesticMini = key === 'KOSPI' || key === 'KOSDAQ';
+      var oneYearFrom = '';
+      if (domesticMini) {
+        var todayKst = new Date(Date.now() + 9 * 3600000);
+        var month = todayKst.getUTCMonth(), day = todayKst.getUTCDate();
+        todayKst.setUTCFullYear(todayKst.getUTCFullYear() - 1);
+        if (todayKst.getUTCMonth() !== month) todayKst.setUTCDate(0);
+        oneYearFrom = todayKst.toISOString().slice(0, 10).replace(/-/g, '');
+        chartRows = chartRows.filter(function (row) {
+          var date = String(row && row.date || '').replace(/-/g, '');
+          return !/^\d{8}$/.test(date) || date >= oneYearFrom;
+        });
+      }
       var values = chartRows.map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); });
       var caption = window.MarketChartHistory ? window.MarketChartHistory.caption(chartRows) : '최근 이력';
+      if (domesticMini && chartRows.length) {
+        var first = String(chartRows[0].date || '').replace(/-/g, '');
+        var last = String(chartRows[chartRows.length - 1].date || '').replace(/-/g, '');
+        if (/^\d{8}$/.test(first) && /^\d{8}$/.test(last)) {
+          var daysLate = (Date.parse(first.slice(0, 4) + '-' + first.slice(4, 6) + '-' + first.slice(6, 8))
+            - Date.parse(oneYearFrom.slice(0, 4) + '-' + oneYearFrom.slice(4, 6) + '-' + oneYearFrom.slice(6, 8))) / 86400000;
+          caption = (daysLate <= 7 ? '최근 1년' : '확보된 이력') + ' · '
+            + first.slice(0, 4) + '.' + first.slice(4, 6) + '.' + first.slice(6, 8)
+            + ' ~ ' + last.slice(0, 4) + '.' + last.slice(4, 6) + '.' + last.slice(6, 8);
+        }
+      }
       element.setAttribute('data-history-count', String(values.length));
       element.setAttribute('data-history-range', caption);
       element.setAttribute('title', caption);
@@ -1375,6 +1339,11 @@ document.documentElement.classList.add('skin-ready');
       var color = positive ? '#d24f45' : '#1261c4';
       var lastY = height - pad - ((values[values.length - 1] - min) / range) * (height - pad * 2);
       var gradientId = 'homeIndexFill' + String(key || 'index').replace(/[^A-Za-z0-9_-]/g, '') + (positive ? 'Up' : 'Down');
+      if (domesticMini) {
+        element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
+          + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline></svg>';
+        return;
+      }
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
         + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
         + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
@@ -1488,16 +1457,12 @@ document.documentElement.classList.add('skin-ready');
         var change = card.querySelector('[data-index-field="change"]');
         var status = card.querySelector('[data-index-field="status"]');
         var chart = card.querySelector('[data-index-field="chart"]');
-        var breadth = card.querySelector('[data-index-field="breadth"]');
         if (label) label.textContent = session.labels[index];
         if (previousKey && previousKey !== key) {
           if (price) price.textContent = '-';
           if (change) change.textContent = '-';
           if (status) status.textContent = '· 확인 중';
           if (chart) chart.innerHTML = '<span class="home-index-chart-empty">시세 전환 중</span>';
-          // 코스피·코스닥 상승·하락 건수는 국내 시장 탭에서만 의미가 있다(미국 시장
-          // 탭으로 바뀌면 NASDAQ100/S&P500 선물이 들어와 이 필드 자체가 안 맞음).
-          if (breadth) { breadth.hidden = true; breadth.innerHTML = ''; }
         }
       });
     }
@@ -1834,14 +1799,6 @@ document.documentElement.classList.add('skin-ready');
     };
 
     loadSummaryForSession(homeMarketSession());
-    // 지수 등락이 실시간으로 바뀔 때 핵심 상태 한 줄도 같은 값으로 따라가게 한다(새 요청 없음, 화면 값만 읽는다).
-    if (window.MutationObserver && homeIndexStrip) {
-      var verdictTimer = null;
-      new MutationObserver(function () {
-        if (verdictTimer) return;
-        verdictTimer = setTimeout(function () { verdictTimer = null; renderHomeVerdictNote(); }, 400);
-      }).observe(homeIndexStrip, { childList: true, characterData: true, subtree: true });
-    }
     window.addEventListener('home-market-change', function () {
       // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
       // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.

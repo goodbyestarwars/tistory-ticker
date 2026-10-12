@@ -892,19 +892,6 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   font-weight: 700;
   white-space: nowrap;
 }
-/* 2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
-   대시보드에") - 가격 줄 바로 아래 한 줄로 상승·하락 종목 수를 보여준다. 상승은
-   빨강(--up), 하락은 파랑(--down) - 이 사이트 등락 의미색 그대로 재사용. */
-.home-index-breadth {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  margin-top: 3px;
-  font-size: 10px;
-}
-.home-index-breadth-up { color: var(--up); font-weight: 700; }
-.home-index-breadth-down { color: var(--down); font-weight: 700; }
-.home-index-breadth-sep { color: #a0a7b0; }
 .home-index-chart {
   height: 39px;
   margin-top: 7px;
@@ -5283,12 +5270,11 @@ html.dark .hrt-delayed .hrt-stock small::after { background: rgba(251,191,36,.18
 .hrt-up { color: #e34d4b; }
 .hrt-down { color: #2674d9; }
 .hrt-flat, .hrt-muted { color: #9da5ad; }
-/* 2026-10-10: 등락률이 실시간으로 바뀔 때 옅은 빨강/파랑 알약 음영(오름=빨강, 내림=파랑)이 켜졌다 사라진다. */
-.hrt-pill-up, .hrt-pill-down { border-radius: 999px; animation: hrt-pill-fade 1.6s ease-out; }
-.hrt-pill-up { --hrt-pill: rgba(227, 77, 75, .16); }
-.hrt-pill-down { --hrt-pill: rgba(38, 116, 217, .16); }
-@keyframes hrt-pill-fade { 0%, 35% { background: var(--hrt-pill); } 100% { background: transparent; } }
-@media (prefers-reduced-motion: reduce) { .hrt-pill-up, .hrt-pill-down { animation-duration: .01s; } }
+/* 전일 대비 등락률의 현재 부호를 잠깐 강조한다. 크기·정렬은 바꾸지 않는다. */
+.hrt-pill-up { background-color: rgba(227, 77, 75, .18); }
+.hrt-pill-down { background-color: rgba(38, 116, 217, .18); }
+html.dark .hrt-pill-up { background-color: rgba(227, 77, 75, .28); }
+html.dark .hrt-pill-down { background-color: rgba(38, 116, 217, .28); }
 .hrt-industry { overflow: hidden; text-overflow: ellipsis; color: #586474; }
 .hrt-state { height: 90px; color: #9da5ad !important; text-align: center !important; }
 .hrt-foot { justify-content: space-between; gap: 12px; padding-top: 10px; color: #a1a9b2; font-size: 10px; }

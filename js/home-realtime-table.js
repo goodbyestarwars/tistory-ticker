@@ -900,21 +900,23 @@
     var falling = row.querySelector('[data-field="falling"]');
     if (rising) splitFlapCell(rising, rateCell(rate, true));
     if (falling) splitFlapCell(falling, rateCell(rate, false));
-    // 2026-10-10 요청: 등락률이 바뀔 때 오르면 옅은 빨강, 내리면 옅은 파랑 알약 음영이 잠깐 켜졌다 사라진다.
-    if (rate != null && prevRate != null && rate !== prevRate) {
-      var dir = rate > prevRate ? 'up' : 'down';
+    // 음영은 직전 틱과의 차이가 아니라 현재 전일 대비 등락률의 부호를 따른다.
+    if (rate != null && rate !== prevRate) {
+      var dir = rate > 0 ? 'up' : rate < 0 ? 'down' : '';
       [rising, falling, priceCell].forEach(function (cell) {
         var target = cell && cell.querySelector('.hrt-up, .hrt-down, .hrt-price-rate');
         if (!target) return;
         if (target.classList.contains('hrt-price-rate') && global.getComputedStyle(target).display === 'none') return;
+        if (target._hrtPillTimer) global.clearTimeout(target._hrtPillTimer);
         target.classList.remove('hrt-pill-up', 'hrt-pill-down');
-        void target.offsetWidth;
+        if (!dir) return;
         target.classList.add('hrt-pill-' + dir);
-        target.onanimationend = function (event) {
-          if (event.animationName === 'hrt-pill-fade') {
-            target.classList.remove('hrt-pill-up', 'hrt-pill-down');
-          }
-        };
+        var timer = global.setTimeout(function () {
+          if (target._hrtPillTimer !== timer) return;
+          target.classList.remove('hrt-pill-up', 'hrt-pill-down');
+          target._hrtPillTimer = null;
+        }, 1600);
+        target._hrtPillTimer = timer;
       });
     }
   }

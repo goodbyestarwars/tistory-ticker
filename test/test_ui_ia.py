@@ -853,30 +853,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("keys: ['KOSPI', 'KOSDAQ']", main)
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
 
-    def test_home_index_cards_show_kospi_kosdaq_advance_decline_counts(self):
-        """2026-09-22 사용자 요청("코스피/코스닥 나눠서 상승종목/하락종목 건수 넣을수 있나?
-        대시보드에"). 기존 ?marketTemp=1(GAS 레거시 경로)은 시장별 세부값이 없어서,
-        js/market-temp.js와 같은 VM /market-temp 엔드포인트를 따로 불러 KOSPI/KOSDAQ
-        카드에 상승·하락 건수를 채운다(KIS 전종목 기준을 우선하고, 없으면 섹터 풀
-        기준으로 물러난다). 미국 시장 탭으로 전환하면 숨긴다."""
+    def test_home_index_cards_keep_breadth_in_market_flow_only(self):
+        """시장별 종목 수는 카드·상단 요약에서 중복하지 않고 내부 흐름에만 표시한다."""
         main = self.read("js/skin-main.js")
-        style = self.read("style.css")
-        self.assertIn("data-index-field=\"breadth\" hidden></div>'", main)
         self.assertIn("var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';", main)
-        self.assertIn("function renderHomeIndexBreadth(byMarket)", main)
         self.assertIn("function loadHomeIndexBreadth()", main)
-        self.assertIn("if (session.market !== 'domestic') return;", main)
+        self.assertIn("if (homeMarketSession().market !== 'domestic') return;", main)
         self.assertIn("(data && data.marketBreadth && data.marketBreadth.byMarket)", main)
         self.assertIn("(data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)", main)
         self.assertIn("loadHomeIndexBreadth();", main)
-        # 시장 탭이 바뀌면(코스피/코스닥 -> 나스닥/S&P500) 이전 값이 남지 않게 숨긴다.
-        self.assertIn("if (breadth) { breadth.hidden = true; breadth.innerHTML = ''; }", main)
-        for token in (
-            ".home-index-breadth {",
-            ".home-index-breadth-up { color: var(--up); font-weight: 700; }",
-            ".home-index-breadth-down { color: var(--down); font-weight: 700; }",
-        ):
-            self.assertIn(token, style)
+        self.assertIn("renderHomeBreadthBars(byMarket, breadthTotal", main)
+        self.assertNotIn('data-index-field="breadth"', main)
+        self.assertNotIn('data-hmb-note', main)
 
     def test_us_home_cards_use_spot_index_products_explicitly(self):
         main = self.read("js/skin-main.js")
