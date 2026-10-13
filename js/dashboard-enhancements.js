@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-two-year-view1';
+  var ENHANCEMENT_VERSION = '20261013-hts-wheel1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -177,13 +177,14 @@
     var button = document.createElement('button');
     button.type = 'button';
     button.className = 'de-expand-button';
-    button.textContent = target.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면';
+    button.textContent = target.classList.contains('ss-chart') ? '⛶ 독립 차트' : '⛶ 전체 화면';
+    if (target.classList.contains('ss-chart')) button.classList.add('de-expand-chart-launch');
     button.setAttribute('data-de-expand-title', title);
     button.addEventListener('click', function () {
       var overlay = target.closest('.de-chart-overlay');
       if (overlay) {
         var maximized = overlay.classList.toggle('de-chart-maximized');
-        button.textContent = maximized ? '⛶ 원래 크기' : (target.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면');
+        button.textContent = maximized ? '↙ 창 크기' : (target.classList.contains('ss-chart') ? '⛶ 화면 가득' : '⛶ 전체 화면');
         global.requestAnimationFrame(function () {
           global.dispatchEvent(new Event('resize'));
           global.dispatchEvent(new Event('tistory-chart-resize'));
@@ -239,7 +240,7 @@
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
     overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong>'
-      + (candleZoom ? '<div class="de-chart-bar-zoom" role="group" aria-label="주가 봉 크기"><button type="button" data-bar-zoom="out" aria-label="봉 작게">−</button><button type="button" data-bar-zoom="in" aria-label="봉 크게">＋</button><button type="button" data-bar-zoom="fit">2년 한눈에</button></div>' : '')
+      + (candleZoom ? '<div class="de-chart-bar-zoom" role="group" aria-label="주가 봉 크기" title="마우스 휠 위: 확대 · 아래: 축소"><button type="button" data-bar-zoom="out" aria-label="봉 작게">−</button><button type="button" data-bar-zoom="in" aria-label="봉 크게">＋</button></div>' : '')
       + '<button type="button" class="de-chart-restore" aria-label="차트를 원래 화면으로 줄이기">↙ 줄이기</button><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
     // 위젯 내부에 붙이면 부모의 폭/transform/overflow 규칙이 fixed 모달에
     // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
@@ -251,8 +252,7 @@
       var core = global.NineChartCore;
       if (!button || !core) return;
       var action = button.getAttribute('data-bar-zoom');
-      if (action === 'fit') core.fitBars(chartTarget, 2);
-      else core.zoomBars(chartTarget, action === 'in' ? 0.8 : 1.25);
+      core.zoomBars(chartTarget, action === 'in' ? 0.8 : 1.25);
     });
     var oldStyle = modalTarget.getAttribute('style');
     var oldChartStyle = chartTarget ? chartTarget.getAttribute('style') : null;
@@ -291,6 +291,8 @@
       input.addEventListener('input', function () { input.setCustomValidity(''); });
     }
     modalTarget.classList.add('de-modal-target');
+    var stockLaunchButton = modalTarget.querySelector && modalTarget.querySelector('.de-expand-chart-launch');
+    if (stockLaunchButton) stockLaunchButton.textContent = '⛶ 화면 가득';
     // 매물대 차트의 CSS는 원래 #foreign-flow 아래를 기준으로 범위를 좁혀 두었다.
     // 문서 최상위 모달로 옮길 때도 같은 스코프를 유지해야 SVG가 기본 검정색으로
     // 렌더링되지 않고 건물·배경·프로파일 색상을 그대로 사용한다.
@@ -341,9 +343,7 @@
     function close() {
       if (!overlay.parentNode) return;
       var maximizeButton = modalTarget.querySelector('.de-expand-button');
-      if (maximizeButton && overlay.classList.contains('de-chart-maximized')) {
-        maximizeButton.textContent = chartTarget && chartTarget.classList.contains('ss-chart') ? '⛶ 전체보기' : '⛶ 전체 화면';
-      }
+      if (maximizeButton) maximizeButton.textContent = chartTarget && chartTarget.classList.contains('ss-chart') ? '⛶ 독립 차트' : '⛶ 전체 화면';
       var currentChartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : chartTarget;
       placeholder.parentNode.insertBefore(modalTarget, placeholder);
       if (oldStyle == null) modalTarget.removeAttribute('style'); else modalTarget.setAttribute('style', oldStyle);
