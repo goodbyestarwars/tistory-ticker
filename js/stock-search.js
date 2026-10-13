@@ -270,9 +270,10 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    document.title = document.title.replace(/증시검색/g, '실시간 시세');
+    if (isIndependentChartMode()) container.classList.add('ss-independent-chart');
+    document.title = document.title.replace(/증시검색/g, isIndependentChartMode() ? '독립 차트' : '실시간 시세');
     document.querySelectorAll('.post-single-title').forEach(function (title) {
-      if (title.textContent.trim() === '증시검색') title.textContent = '실시간 시세';
+      if (title.textContent.trim() === '증시검색') title.textContent = isIndependentChartMode() ? '독립 차트' : '실시간 시세';
     });
     container.innerHTML = buildShell();
     chartReady().catch(function () { /* 차트를 열 때 다시 시도하고 오류를 보여 준다 */ });   // 라이브러리·모듈을 검색·시세 조회와 겹쳐 미리 받는다
@@ -295,6 +296,10 @@
   function isUsRoute() {
     var params = new URLSearchParams(location.search);
     return params.get('market') === 'us' || /^US:/i.test(params.get('code') || '');
+  }
+
+  function isIndependentChartMode() {
+    return new URLSearchParams(location.search).get('tool') === 'independent-chart';
   }
 
   // Keep the domestic and US views mutually exclusive. Both modules share this
@@ -340,6 +345,7 @@
   function autoSearchFromUrl(container) {
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
+    if (!code && isIndependentChartMode()) code = '005930';
     if (params.get('market') === 'us' || /^US:/i.test(code)) {
       setMarketMode(container, true);
       loadUsStocksModule(container);
@@ -347,7 +353,7 @@
     }
     setMarketMode(container, false);
     if (!code) return;
-    var name = (params.get('name') || '').trim();
+    var name = (params.get('name') || '').trim() || (code === '005930' ? '삼성전자' : '');
     var input = container.querySelector('#ssInput');
     if (input) input.value = name || code;
     runSearch(container, code);
@@ -801,6 +807,13 @@
   function renderResults(container, items) {
     var resultsBox = container.querySelector('#ssResults');
 
+    if (isIndependentChartMode() && items.length) {
+      state.lastResults = items;
+      resultsBox.hidden = true;
+      selectStock(container, items[0]);
+      return;
+    }
+
     if (state.resultsCollapsed) {
       var selected = items.filter(function (it) { return it.code === state.selectedCode; })[0];
       resultsBox.innerHTML = '<div class="ss-results-collapsed">'
@@ -920,23 +933,23 @@
     // aria 범위와 키보드 End 위치를 실제 데스크톱 폭으로 다시 계산한다.
     wirePanelResize(container);
 
-    renderSummary(container, item);
-    loadPriceReason(container, item);
+    if (!isIndependentChartMode()) {
+      renderSummary(container, item);
+      loadPriceReason(container, item);
 
-    var ladderBox = container.querySelector('#order-book');
-    if (!state.ladderMounted && global.OrderBook) {
-      global.OrderBook.init('#order-book', {
-        hideSearch: true,
-        onQuote: function (quote) { applyRealtimeQuote(container, quote); }
-      });
-      state.ladderMounted = true;
-    }
-    if (global.OrderBook && ladderBox) {
-      global.OrderBook.select(ladderBox, item.code, item.name);
+      var ladderBox = container.querySelector('#order-book');
+      if (!state.ladderMounted && global.OrderBook) {
+        global.OrderBook.init('#order-book', {
+          hideSearch: true,
+          onQuote: function (quote) { applyRealtimeQuote(container, quote); }
+        });
+        state.ladderMounted = true;
+      }
+      if (global.OrderBook && ladderBox) global.OrderBook.select(ladderBox, item.code, item.name);
     }
 
     loadChart(container, item.code);
-    loadDomesticNews(container, item);
+    if (!isIndependentChartMode()) loadDomesticNews(container, item);
     wireChartTabs(container);
   }
 

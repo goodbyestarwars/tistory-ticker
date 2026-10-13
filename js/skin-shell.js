@@ -405,9 +405,9 @@
         '<a class="learn-card" style="--lc-a:#f5e6ef;--lc-b:#e3b9d0" href="https://goodbyestarwars.github.io/tistory-ticker/learn/glossary.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h11a3 3 0 0 1 3 3v13H8a3 3 0 0 1-3-3V4z"/><path d="M9 9h6M9 13h4"/></svg><b>금융용어사전</b><span class="learn-description">뉴스와 투자 공부에서 만나는 낯선 금융용어를 찾아봐요.</span><small>용어 찾아보기</small></a>' +
         '<a class="learn-card" style="--lc-a:#d8f1ee;--lc-b:#a6d8d2" href="https://goodbyestarwars.github.io/tistory-ticker/learn/tax-story.html"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 4h12v16l-2-1.4-2 1.4-2-1.4-2 1.4-2-1.4L6 20V4z"/><path d="M9.5 14.5l5-5M9.7 9.7h.01M14.3 14.3h.01"/></svg><b>절세 이야기</b><span class="learn-description">투자에 붙는 세금과 계좌별 차이를 알아보고 세후 수익을 생각해요.</span><small>세후수익률</small></a>' +
       '</div><div class="learn-mobile-controls"><button type="button" data-learn-prev aria-label="이전 이야기">←</button><button type="button" data-learn-next aria-label="다음 이야기">→</button></div></div></nav>' +
-      '<section class="site-footer-company" aria-label="회사 정보">' +
+      '<section class="site-footer-company" aria-label="9Pay 서비스 안내">' +
         '<img class="footer-falcon-logo" src="https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20261005-falcon" alt="송골매 로고" width="80" height="80" loading="lazy">' +
-        '<div class="footer-company-copy"><strong>(주)윤미경 컴퍼니</strong><p>서울시 송파구 송파대로 111</p><p>개인정보 비공개</p><small>© 2026 팔콘 윤 Co., Ltd.</small></div>' +
+        '<div class="footer-company-copy"><strong>9Pay 투자 리서치</strong><p>시장 흐름부터 종목 분석, 독립 차트와 투자 계산 도구까지 한곳에서 확인하세요.</p><p class="footer-service-tags"><span>실시간 시세</span><span>종목 분석</span><span>독립 차트</span><span>투자 캘린더</span></p><small class="footer-disclaimer">제공되는 시세와 분석 정보는 투자 참고용이며, 투자 판단과 결과에 대한 책임은 이용자에게 있습니다.</small><small>© 2026 9Pay. All rights reserved.</small></div>' +
       '</section>'
   };
 

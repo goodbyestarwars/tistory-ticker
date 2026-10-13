@@ -8267,6 +8267,9 @@ html body .footer-company-copy { min-width:0; font:400 14px/1.8 var(--font-ui)!i
 html body .footer-company-copy strong { display:block; font:600 16px/1.8 var(--font-ui)!important; color:rgb(var(--np-ink))!important; }
 html body .footer-company-copy p { margin:2px 0!important; }
 html body .footer-company-copy small { display:block; margin-top:8px; font-size:12px!important; }
+html body .footer-company-copy .footer-service-tags { display:flex; flex-wrap:wrap; gap:6px; margin:9px 0!important; }
+html body .footer-company-copy .footer-service-tags span { display:inline-flex; align-items:center; min-height:26px; padding:0 10px; border:1px solid rgba(var(--np-ink),.14); border-radius:999px; color:rgba(var(--np-ink),.78); font-size:11px; font-weight:700; line-height:1; }
+html body .footer-company-copy .footer-disclaimer { max-width:760px; color:rgba(var(--np-ink),.52)!important; line-height:1.65!important; }
 @media(max-width:720px) {
   html body .site-footer-company { align-items:flex-start; gap:18px; padding:26px 0 32px!important; }
   html body .footer-falcon-logo { width:60px; height:60px; }

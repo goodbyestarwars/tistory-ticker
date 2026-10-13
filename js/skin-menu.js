@@ -48,7 +48,7 @@
     {
       label: '투자도구',
       children: [
-        { href: '/page/stock-search', label: '독립 차트' },
+        { href: '/page/stock-search?tool=independent-chart', label: '독립 차트' },
         { href: '#averaging-calculator', label: '물타기 계산기', tool: 'averaging' }
       ]
     },
@@ -181,6 +181,7 @@
     if (currentPath() !== parts[0]) return false;
     var query = new URLSearchParams(location.search);
     if (!parts[1]) return query.get('view') !== 'stocks';
+    if (parts[1].indexOf('tool=independent-chart') === 0) return query.get('tool') === 'independent-chart';
     if (parts[1].indexOf('view=stocks') === 0) {
       return query.get('view') === 'stocks' && (parts[1].indexOf('panel=heatmap') === -1 || query.get('panel') === 'heatmap');
     }
@@ -331,7 +332,7 @@
       return;
     }
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools2';
     script.setAttribute('data-invest-tools', '1');
     script.onload = function () { if (window.NineInvestTools) window.NineInvestTools.openAveraging(); };
     document.body.appendChild(script);

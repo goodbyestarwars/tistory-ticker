@@ -866,3 +866,15 @@ html.dark #stock-search .ss-memo-pop-actions [data-memo-save] { background: #0a8
 #stock-search .ss-wave-btn.active { border-color: #222; background: #222; color: #fff; }
 html.dark #stock-search .ss-wave-btn { border-color: rgba(245, 239, 224, 0.2); background: transparent; color: rgba(245, 239, 224, 0.7) !important; }
 html.dark #stock-search .ss-wave-btn.active { border-color: #F5EFE0; background: #F5EFE0; color: #1A1A1A !important; }
+
+/* 투자도구 > 독립 차트: 종목 검색과 공통 차트 엔진만 사용한다. */
+#stock-search.ss-independent-chart :is(.ss-results, .ss-summary, .ss-panel-left, .ss-resize-handle, .ss-news-panel) { display: none !important; }
+#stock-search.ss-independent-chart .ss-detail { margin-top: 18px; }
+#stock-search.ss-independent-chart .ss-panels { display: block; }
+#stock-search.ss-independent-chart .ss-panel-right { width: 100%; max-width: none; }
+#stock-search.ss-independent-chart .ss-chart { height: clamp(520px, 68vh, 820px); }
+@media (max-width: 720px) {
+  #stock-search.ss-independent-chart .ss-detail { margin-top: 12px; }
+  #stock-search.ss-independent-chart .ss-panel-right { padding: 10px; }
+  #stock-search.ss-independent-chart .ss-chart { height: max(480px, 62vh); }
+}
