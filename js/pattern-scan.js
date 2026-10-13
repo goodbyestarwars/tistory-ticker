@@ -20,8 +20,8 @@
   var CONTAINER_SELECTOR = '#pattern-scan';
   var KIWOOM_VM_URL = 'https://goodbyestar.cloud';
   var PATTERN_SCRIPT_URL = document.currentScript && document.currentScript.src;
-  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261013-two-year-view1', PATTERN_SCRIPT_URL).href
-    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-two-year-view1';
+  var PATTERN_CORE_URL = PATTERN_SCRIPT_URL ? new URL('chart-core.js?v=20261013-rounded-labels1', PATTERN_SCRIPT_URL).href
+    : 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
   var SCAN_PERFORMANCE_PUBLIC_URL = KIWOOM_VM_URL + '/scan-performance-public';
   var FETCH_TIMEOUT_MS = 15000;
   // 목록은 VM에서 캐시 파일 서빙이라 이 안에 안 들어오면 GAS 폴백이 낫다.
@@ -1559,7 +1559,7 @@
     if (psSrPromise) return psSrPromise;
     psSrPromise = new Promise(function (resolve, reject) {
       var sc = document.createElement('script');
-      sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-sr.js?v=20261012-current-price';
+      sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-sr.js?v=20261013-rounded-labels1';
       sc.onload = function () { resolve(window.NineChartSR); };
       sc.onerror = function () { psSrPromise = null; reject(new Error('chart-sr load failed')); };
       document.head.appendChild(sc);

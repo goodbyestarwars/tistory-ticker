@@ -136,6 +136,20 @@
 
     var frameId = 0;
     var resizeObserver = null;
+    function roundedBox(ctx, x, y, width, height, radius) {
+      radius = Math.min(radius, width / 2, height / 2);
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
     function axisWidth() {
       try { var w = chart.priceScale('right').width(); if (Number.isFinite(w) && w > 0) return w; } catch (e) { /* 버전에 따라 없다 */ }
       return 58;
@@ -187,15 +201,28 @@
         ctx.lineTo(right, Math.round(y) + 0.5);
         ctx.stroke();
         ctx.setLineDash([]);
-        var text = item.name + ' ' + displayPrice(item.l.low) + '~' + displayPrice(item.l.high);
-        var tw = ctx.measureText(text).width + 12;
+        var priceText = displayPrice(item.l.low) + '~' + displayPrice(item.l.high);
+        var nameWidth = ctx.measureText(item.name).width + 14;
+        var priceWidth = ctx.measureText(priceText).width + 14;
+        var tw = nameWidth + priceWidth + 4;
         var ly = labelY.get(item);
         if (ly == null || right < 80) return;
         var left = Math.max(2, right - tw - 4);
-        ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.88)' : 'rgba(255,254,252,.88)';
-        ctx.fillRect(left, ly - 9, Math.min(tw, right - left - 2), 18);
+        // 종류·순위와 가격 범위를 서로 다른 둥근 배지로 나눠 가격축 숫자와 혼동되지 않게 한다.
+        roundedBox(ctx, left, ly - 10, nameWidth, 20, 10);
         ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
-        ctx.fillText(text, left + 6, ly + 0.5, Math.max(0, right - left - 12));
+        ctx.fill();
+        ctx.fillStyle = '#fff';
+        ctx.fillText(item.name, left + 7, ly + 0.5);
+        var priceLeft = left + nameWidth + 4;
+        roundedBox(ctx, priceLeft, ly - 10, Math.min(priceWidth, right - priceLeft - 2), 20, 10);
+        ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.94)' : 'rgba(255,254,252,.94)';
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
+        ctx.fillText(priceText, priceLeft + 7, ly + 0.5, Math.max(0, right - priceLeft - 11));
       });
     }
     function krxTickSize(value) {

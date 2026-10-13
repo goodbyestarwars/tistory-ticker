@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-14-core-3';
+  var VERSION = '2026-10-14-core-4';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -36,7 +36,7 @@
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
-    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261012-current-price' }
+    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261013-rounded-labels1' }
   };
 
   // ---- 라이브러리·모듈 로드: 페이지당 한 번(여러 화면·여러 호출자가 동시에 불러도 같은 약속을 돌려준다) ----

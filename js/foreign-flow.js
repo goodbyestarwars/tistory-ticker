@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-two-year-view1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-rounded-labels1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;

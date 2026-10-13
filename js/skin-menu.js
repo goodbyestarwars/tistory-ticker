@@ -45,6 +45,13 @@
         { href: '/page/strategy-search', label: '전략검색' }
       ]
     },
+    {
+      label: '투자도구',
+      children: [
+        { href: '/page/stock-search', label: '독립 차트' },
+        { href: '#averaging-calculator', label: '물타기 계산기', tool: 'averaging' }
+      ]
+    },
     { href: '/page/stock-calendar', label: '캘린더' },
     { href: '/guestbook', label: '커뮤니티' },
     { href: '/page/watchlist', label: 'MY' },
@@ -80,6 +87,8 @@
     pattern: '<path d="M8 4v16M16 6v14"/><rect x="6" y="8" width="4" height="7" rx="1"/><rect x="14" y="10" width="4" height="6" rx="1"/>',
     strategy: '<circle cx="12" cy="12" r="8"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
     valuation: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h2M14 18h2"/>',
+    independentChart: '<path d="M4 19V5h16v14z"/><path d="M7 15l3-4 3 2 4-6"/>',
+    averaging: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h3M14 15h2M8 18h3M14 18h2"/>',
     dot: '<circle cx="12" cy="12" r="3"/>'
   };
 
@@ -91,6 +100,8 @@
     if (href.indexOf('kospi-futures') !== -1) return 'indicators';
     if (href.indexOf('foreign-flow') !== -1) return 'analysis';
     if (href.indexOf('/dcf') !== -1) return 'valuation';
+    if (item.tool === 'averaging') return 'averaging';
+    if (item.label === '독립 차트') return 'independentChart';
     if (href.indexOf('pattern-scan') !== -1) return 'pattern';
     if (href.indexOf('strategy-search') !== -1) return 'strategy';
     if (item.label === '마켓브리핑') return 'briefing';
@@ -101,6 +112,7 @@
     var links = item.children.map(function (child) {
       var active = isActive(child);
       return '<a class="nav-dd-item' + (active ? ' active' : '') + '" href="' + child.href + '" role="menuitem"'
+        + (child.tool ? ' data-invest-tool="' + child.tool + '"' : '')
         + (active ? ' aria-current="page"' : '') + '>'
         + '<span class="nav-dd-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
         + NAV_ICON_PATHS[navIconKey(child)] + '</svg></span><span class="nav-dd-label">' + child.label + '</span></a>';
@@ -208,6 +220,7 @@
       var active = isActive(child);
       return (index ? '<span class="nav-secondary-separator" aria-hidden="true">|</span>' : '')
         + '<a class="nav-secondary-item' + (active ? ' active' : '') + '" href="' + child.href + '"'
+        + (child.tool ? ' data-invest-tool="' + child.tool + '"' : '')
         + (active ? ' aria-current="page"' : '') + '>' + child.label + '</a>';
     }).join('');
     return '<div class="nav-secondary-row" id="nav-secondary-row" aria-label="' + group.label + ' 2차 메뉴">'
@@ -281,6 +294,13 @@
       if (group && !group.contains(event.relatedTarget)) closeDropdowns(mount);
     });
     mount.addEventListener('click', function (event) {
+      var toolLink = event.target.closest ? event.target.closest('[data-invest-tool]') : null;
+      if (toolLink) {
+        event.preventDefault();
+        openInvestmentTool(toolLink.getAttribute('data-invest-tool'));
+        closeDropdowns(mount);
+        return;
+      }
       var trigger = event.target.closest ? event.target.closest('.nav-group-trigger') : null;
       if (!trigger) return;
       // PC: 하위 메뉴 카드는 JS의 단일 is-open 상태로만 연다.
@@ -297,6 +317,24 @@
       var currentTrigger = mount.querySelector('.nav-group-trigger[data-group-index="' + nextIndex + '"]');
       if (currentTrigger) currentTrigger.focus();
     });
+  }
+
+  function openInvestmentTool(tool) {
+    if (tool !== 'averaging') return;
+    if (window.NineInvestTools && window.NineInvestTools.openAveraging) {
+      window.NineInvestTools.openAveraging();
+      return;
+    }
+    var existing = document.querySelector('script[data-invest-tools]');
+    if (existing) {
+      existing.addEventListener('load', function () { if (window.NineInvestTools) window.NineInvestTools.openAveraging(); }, { once: true });
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools1';
+    script.setAttribute('data-invest-tools', '1');
+    script.onload = function () { if (window.NineInvestTools) window.NineInvestTools.openAveraging(); };
+    document.body.appendChild(script);
   }
 
   function render() {

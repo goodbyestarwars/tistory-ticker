@@ -138,6 +138,24 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 검색 결과가 실시간 시세 페이지로 가야 메뉴에서 뺀 자리를 대신할 수 있다.
         self.assertIn("var TARGET_PAGE = '/page/stock-search';", self.read("js/stock-search-panel.js"))
 
+    def test_investment_tools_menu_sits_between_stocks_and_calendar(self):
+        source = self.read("js/skin-menu.js")
+        stocks = source.index("label: '종목'")
+        tools = source.index("label: '투자도구'")
+        calendar = source.index("label: '캘린더'")
+        self.assertLess(stocks, tools)
+        self.assertLess(tools, calendar)
+        self.assertIn("{ href: '/page/stock-search', label: '독립 차트' }", source)
+        self.assertIn("label: '물타기 계산기', tool: 'averaging'", source)
+        self.assertIn("data-invest-tool", source)
+
+    def test_support_resistance_labels_separate_rank_from_price(self):
+        source = self.read("js/chart-sr.js")
+        self.assertIn("function roundedBox", source)
+        self.assertIn("var priceText = displayPrice(item.l.low)", source)
+        self.assertIn("ctx.fillText(item.name", source)
+        self.assertIn("ctx.fillText(priceText", source)
+
     def test_domestic_market_indicators_is_separate_from_temperature_and_combined_with_futures(self):
         menu = self.read("js/skin-menu.js")
         market_temp = self.read("js/market-temp.js")
