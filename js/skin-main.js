@@ -1264,6 +1264,18 @@ document.documentElement.classList.add('skin-ready');
     // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
+    var homeChartMotion = new WeakMap();
+    var homeChartReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    function stopHomeChartMotion(element) {
+      var state = homeChartMotion.get(element);
+      if (state && state.frame) cancelAnimationFrame(state.frame);
+    }
+    if (document.addEventListener) document.addEventListener('visibilitychange', function () {
+      if (document.hidden) dashboardSection.querySelectorAll('.home-index-chart').forEach(function (element) {
+        var state = homeChartMotion.get(element);
+        if (state && state.finish) state.finish();
+      });
+    });
     var HOME_SAMPLE_CHARTS = {
       KOSPI: [2642.31, 2648.2, 2655.4, 2651.8, 2663.7, 2670.1, 2665.3, 2678.6, 2684.2, 2691.5, 2687.4, 2698.2, 2705.6, 2712.1, 2708.9, 2720.4],
       KOSDAQ: [756.88, 758.4, 761.2, 759.6, 763.8, 766.1, 764.2, 768.7, 771.5, 770.2, 774.9, 777.1, 775.4, 779.8, 782.6, 785.3],
@@ -1340,20 +1352,24 @@ document.documentElement.classList.add('skin-ready');
       }
       note.textContent = caption;
       if (values.length < 2) {
+        stopHomeChartMotion(element);
+        homeChartMotion.delete(element);
         element.innerHTML = '<span class="home-index-chart-empty">추이 데이터 없음</span>';
         return;
       }
-      var width = 240;
-      var height = 48;
+      var width = element.clientWidth || 240;
+      var height = element.clientHeight || 48;
       var pad = 2;
+      var lineEnd = width - 26; // 24px is reserved for the pen at the right edge.
       var min = Math.min.apply(Math, values);
       var max = Math.max.apply(Math, values);
       var range = max - min || 1;
-      var points = values.map(function (value, index) {
-        var x = pad + index * (width - pad * 2) / (values.length - 1);
+      var coords = values.map(function (value, index) {
+        var x = pad + index * (lineEnd - pad) / (values.length - 1);
         var y = height - pad - ((value - min) / range) * (height - pad * 2);
-        return x.toFixed(2) + ',' + y.toFixed(2);
-      }).join(' ');
+        return [x, y];
+      });
+      var points = coords.map(function (point) { return point[0].toFixed(2) + ',' + point[1].toFixed(2); }).join(' ');
       var hasReference = isFinite(Number(reference)) && reference != null;
       var baseline = hasReference ? Number(reference) : key === 'kospiNight'
         ? Number(chartRows[0].open) : values[values.length - 2];
@@ -1364,11 +1380,61 @@ document.documentElement.classList.add('skin-ready');
       var lastY = height - pad - ((values[values.length - 1] - min) / range) * (height - pad * 2);
       var guideY = height - pad - ((baseline - min) / range) * (height - pad * 2);
       guideY = Math.max(pad, Math.min(height - pad, guideY));
-      element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
-        + '<line x1="' + pad + '" x2="' + (width - pad) + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
-        + '<polyline points="' + points + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
-        + '</svg>'
-        + '<span class="home-glow-dot" style="left:' + ((width - pad) / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + '" aria-hidden="true"></span>';
+      var signature = chartRows.map(function (row) { return (row.ts || row.date || '') + ':' + row.close; }).join('|');
+      var old = homeChartMotion.get(element);
+      var sameSize = old && old.width === width && old.height === height;
+      if (old && sameSize && old.signature === signature && element.querySelector('.home-chart-trace')) {
+        var oldDot = element.querySelector('.home-glow-dot');
+        if (oldDot) oldDot.style.borderColor = dotColor;
+        return;
+      }
+      stopHomeChartMotion(element);
+      var append = old && sameSize && chartRows.length > old.count && signature.indexOf(old.signature + '|') === 0;
+      var reviseLast = old && sameSize && chartRows.length === old.count && old.signature.split('|').slice(0, -1).join('|') === signature.split('|').slice(0, -1).join('|');
+      var animate = !homeChartReducedMotion && !document.hidden && typeof requestAnimationFrame === 'function'
+        && (!old || append || reviseLast);
+      var startIndex = append ? old.count - 1 : reviseLast ? Math.max(0, coords.length - 2) : 0;
+      var duration = append || reviseLast ? 420 : 1800;
+      var initial = animate ? startIndex : coords.length - 1;
+      element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">'
+        + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
+        + '<polyline class="home-chart-trace" points="' + (animate ? coords[initial][0].toFixed(2) + ',' + coords[initial][1].toFixed(2) : points) + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
+        + '<g class="home-chart-pen" transform="translate(' + coords[initial][0].toFixed(2) + ' ' + coords[initial][1].toFixed(2) + ')">'
+        + '<path d="M0 0 L5 -2 L18 -2 L21 -4 L21 0 L18 2 L5 2 Z" fill="#c5cbd1" stroke="#87919b" stroke-width=".8" vector-effect="non-scaling-stroke"></path>'
+        + '<path d="M6 -1 L17 -1" stroke="#f8fafc" stroke-width=".8" vector-effect="non-scaling-stroke"></path>'
+        + '<circle cx="0" cy="0" r="1.4" fill="#4b5563"></circle></g></svg>'
+        + '<span class="home-glow-dot" style="left:' + (lineEnd / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + '" aria-hidden="true"></span>';
+      var trace = element.querySelector('.home-chart-trace');
+      var pen = element.querySelector('.home-chart-pen');
+      var dot = element.querySelector('.home-glow-dot');
+      var state = { signature: signature, count: chartRows.length, width: width, height: height, frame: 0, finish: null };
+      homeChartMotion.set(element, state);
+      function paint(progress) {
+        var position = startIndex + progress * (coords.length - 1 - startIndex);
+        var index = Math.min(coords.length - 2, Math.floor(position));
+        var fraction = Math.min(1, position - index);
+        var x = coords[index][0] + (coords[index + 1][0] - coords[index][0]) * fraction;
+        var y = coords[index][1] + (coords[index + 1][1] - coords[index][1]) * fraction;
+        var visible = coords.slice(0, index + 1).map(function (point) { return point[0].toFixed(2) + ',' + point[1].toFixed(2); });
+        visible.push(x.toFixed(2) + ',' + y.toFixed(2));
+        trace.setAttribute('points', visible.join(' '));
+        pen.setAttribute('transform', 'translate(' + x.toFixed(2) + ' ' + y.toFixed(2) + ')');
+        dot.style.left = (x / width * 100).toFixed(2) + '%';
+        dot.style.top = (y / height * 100).toFixed(2) + '%';
+      }
+      state.finish = function () { if (state.frame) cancelAnimationFrame(state.frame); state.frame = 0; paint(1); };
+      if (animate) {
+        var began = null;
+        function tick(now) {
+          if (homeChartMotion.get(element) !== state) return;
+          if (began === null) began = now;
+          var progress = Math.min(1, (now - began) / duration);
+          paint(progress);
+          if (progress < 1) state.frame = requestAnimationFrame(tick);
+          else state.frame = 0;
+        }
+        state.frame = requestAnimationFrame(tick);
+      } else state.finish();
     }
 
     function formatHomeTimestamp(value) {
@@ -1553,6 +1619,14 @@ document.documentElement.classList.add('skin-ready');
         renderHomeIndexChart(chartEl, item && item.chart, key);
       });
     }
+
+    var homeChartResizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(homeChartResizeTimer);
+      homeChartResizeTimer = setTimeout(function () {
+        if (latestHomeIndices && latestHomeIndices.length) renderHomeIndices(latestHomeIndices);
+      }, 120);
+    });
 
     var homeHistoryJobs = {};
     function loadHomeHistory(session) {
