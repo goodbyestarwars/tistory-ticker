@@ -75,7 +75,7 @@
   function topbarHtml(s) {
     var running = !s.stopped;
     return '<div class="at-top"><span class="at-brand">자동매매 운영센터</span>'
-      + '<span class="at-chip2' + (s.live_sell ? ' is-live' : ' is-paper') + '">' + esc(s.mode) + '</span>'
+      + '<span class="at-chip2' + (s.live_active ? ' is-live' : ' is-paper') + '">' + esc(s.mode) + '</span>'
       + '<span class="at-st"><i class="at-dot' + (running ? '' : ' is-off') + '"></i>엔진 <b>' + (running ? '실행 중' : '정지됨') + '</b></span>'
       + '<span class="at-st"><i class="at-dot' + (s.last_error ? ' is-wait' : '') + '"></i>로컬 봇 <b>연결</b></span>'
       + '<span class="at-st at-hide-m">마지막 폴링 <b>' + esc(s.last_poll || '-') + '</b></span>'
@@ -98,7 +98,7 @@
       + cell('평가손익', holdings.length ? signed(pnl) : '-', rate == null ? '' : pct(rate), holdings.length ? tone(pnl) : '')
       + cell('감시 종목', s.watch_count + '개', '손절·익절 대상')
       + cell('오늘 매도 주문', s.sells_today + ' / ' + s.max_sells_per_day, '일 한도')
-      + cell('실주문', s.live_sell ? '매도 활성 표시' : '비활성', 'PC 실행본 상태')
+      + cell('실주문', s.live_active ? '가동 중' : '비활성', 'PC 실행본 상태')
       + '</section>';
   }
 
@@ -112,15 +112,22 @@
   }
 
   function ruleHtml(s) {
-    return '<section class="at-box"><div class="at-hd"><h3>신규 운용 정책</h3><span>실계좌 1개 준비 · 주문 비활성</span></div>'
+    var states = { DISABLED_OR_UNCERTAIN: '시작 승인 전', INSUFFICIENT_STARTING_CASH: '입금 확인 필요',
+      BUY_FILL_UNCONFIRMED: '매수 체결 확인 필요', SELL_FILL_UNCONFIRMED: '매도 체결 확인 필요',
+      FOREIGN_HOLDINGS: '기존 보유 종목 확인 필요', PENDING_ORDERS: '주문 체결 대기',
+      NO_ENTRY: '진입 조건 없음', NO_CANDIDATE: '적합한 후보 없음', BUY_SENT: '매수 주문 전송',
+      STOP_NET_5: '손절 주문 전송', PROFIT_NET_6: '익절 주문 전송', PROFIT_FLOOR_NET_3: '익절 주문 전송' };
+    var live = s.live_engine;
+    var stateText = live ? (states[live.state] || '점검 중') + ' · 마지막 확인 ' + esc(live.checked_at || '-') : '시작 승인 전';
+    return '<section class="at-box"><div class="at-hd"><h3>신규 운용 정책</h3><span>실계좌 1개 · ' + (s.live_active ? '가동 중' : '시작 준비 중') + '</span></div>'
       + '<div class="at-row"><span>운용 예산</span><b>100만원 · 최대 3종목 · 종목당 최대 30만원</b></div>'
       + '<div class="at-row"><span>현금 예비금</span><b>10만원 유지</b></div>'
       + '<div class="at-row"><span>중복 매수</span><b>같은 종목 보유·주문 대기 중 재매수 금지</b></div>'
       + '<div class="at-row"><span>후보 선별</span><b>거래대금·유동성·변동성·추세 데이터</b></div>'
       + '<div class="at-row"><span>손절 목표</span><b>매매 비용 고려 순손익 -5%</b></div>'
-      + '<div class="at-row"><span>익절 목표</span><b>순손익 +3~6% (세부 매도 규칙 확정 대기)</b></div>'
-      + '<p class="at-note">익절 구간의 구체 매도 시점은 아직 확정되지 않았습니다. 조건이 없으면 기간 제한 없이 보유합니다. 급변·갭·매매 비용으로 실제 손절은 -5%에 보장되지 않습니다.</p>'
-      + '<p class="at-note">현재 PC 실행본: ' + (s.live_sell ? '매도 주문 활성 표시 — 즉시 확인 필요' : '실주문 비활성') + '. 자동매수와 새 정책의 실주문 연결은 아직 없습니다.</p></section>';
+      + '<div class="at-row"><span>익절 규칙</span><b>순손익 +6% 도달 시 매도 · +3% 도달 후 +3% 아래로 내려오면 매도</b></div>'
+      + '<p class="at-note">그 밖에는 보유 기간 제한 없이 유지합니다. 급변·갭·매매 비용으로 실제 손절은 -5%에 보장되지 않습니다.</p>'
+      + '<p class="at-note">실계좌 매매 엔진: ' + stateText + '. 실제 주문 시작은 별도 최종 승인과 입금 확인 후 가능합니다.</p></section>';
   }
 
   function holdingsHtml(list) {

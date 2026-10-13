@@ -182,7 +182,21 @@ class Bot:
 
     def status(self):
         dt = now_kst()
-        return {'mode': '실주문 ON(매도 전용)' if live_sell_enabled() else '기록 전용(매도 주문 안 나감)', 'live_sell': live_sell_enabled(),
+        live_engine = None
+        try:
+            with open(os.path.join(HERE, 'live_status.json'), encoding='utf-8') as f:
+                item = json.load(f)
+            checked = datetime.fromisoformat(str(item.get('checked_at', '')))
+            if checked.tzinfo and 0 <= (dt - checked).total_seconds() <= 90:
+                live_engine = item
+        except (OSError, ValueError):
+            pass
+        live_active = bool(live_engine and live_engine.get('state') in
+                           ('NO_ENTRY', 'NO_CANDIDATE', 'PENDING_ORDERS', 'BUY_SENT',
+                            'STOP_NET_5', 'PROFIT_NET_6', 'PROFIT_FLOOR_NET_3'))
+        mode = '실계좌 엔진 가동' if live_active else '실주문 비활성(준비 중)'
+        return {'mode': mode, 'live_sell': live_sell_enabled(), 'live_active': live_active,
+                'live_engine': live_engine,
                 'stopped': self.stopped(), 'market_open': market_open(dt), 'now': dt.strftime('%Y-%m-%d %H:%M:%S'),
                 'last_poll': self.last_poll, 'last_error': self.last_error, 'watch_count': len(self.store.watch_list()),
                 'stop_loss_pct': self.config['stop_loss_pct'], 'take_profit_floor_pct': self.config['take_profit_floor_pct'],
