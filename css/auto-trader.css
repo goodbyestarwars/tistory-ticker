@@ -133,4 +133,13 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 #auto-trader .at-journal-flow b { display: block; overflow-wrap: anywhere; font-size: 12px; }
 #auto-trader .at-journal-item p { margin: 4px 0; font-size: 12px; }
 #auto-trader .at-journal-item p b { margin-right: 8px; }
+#auto-trader .at-paper-overview { border-color: var(--at-ink); margin-top: 16px; }
+#auto-trader .at-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+#auto-trader .at-summary-grid div { min-width: 0; padding: 12px; border: 1px solid var(--at-line); border-radius: 8px; }
+#auto-trader .at-summary-grid small { display: block; color: var(--at-mute); }
+#auto-trader .at-summary-grid b { display: block; font-size: 18px; overflow-wrap: anywhere; }
+#auto-trader .at-journal-group { border-bottom: 1px solid var(--at-line); }
+#auto-trader .at-journal-group summary { cursor: pointer; padding: 14px 0; font-size: 13px; }
+#auto-trader .at-journal-group .at-journal-item { padding-left: 16px; }
+@media (max-width: 700px) { #auto-trader .at-summary-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) { #auto-trader .at-journal-flow { grid-template-columns: repeat(2, minmax(0, 1fr)); } }

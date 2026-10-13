@@ -263,6 +263,23 @@
     return html;
   }
 
+  function paperOverviewHtml(r) {
+    var accounts = r && r.livePaper && r.livePaper.accounts;
+    var head = '<section class="at-box at-paper-overview"><div class="at-hd"><h3>장중 가상계좌 합산 성과</h3><span>3개 독립 계좌 합산 · 실제 주문·체결 아님</span></div>';
+    if (!accounts) return head + '<p class="at-empty">장중 가상계좌 기록이 아직 없습니다.</p></section>';
+    var keys = Object.keys(accounts).filter(function (k) { return accounts[k] && accounts[k].initialCash != null && accounts[k].equity != null; });
+    if (!keys.length) return head + '<p class="at-empty">평가 가능한 가상계좌 기록이 없습니다.</p></section>';
+    var total = { initialCash: 0, equity: 0, realizedPnl: 0, unrealizedPnl: 0 };
+    keys.forEach(function (k) { var a = accounts[k]; total.initialCash += Number(a.initialCash); total.equity += Number(a.equity); total.realizedPnl += Number(a.realizedPnl || 0); total.unrealizedPnl += Number(a.unrealizedPnl || 0); });
+    var pnl = total.equity - total.initialCash, rate = total.initialCash ? pnl / total.initialCash : null;
+    function card(label, value, cls) { return '<div><small>' + label + '</small><b class="' + (cls || '') + '">' + value + '</b></div>'; }
+    return head + '<div class="at-summary-grid">'
+      + card('합산 초기자금', fmtWon(total.initialCash) + '원') + card('합산 총평가잔고', fmtWon(total.equity) + '원')
+      + card('누적 평가손익', signed(pnl) + '원', toneOf(pnl)) + card('누적 평가수익률', esc(pct2(rate)), toneOf(rate))
+      + card('실현손익', signed(total.realizedPnl) + '원', toneOf(total.realizedPnl)) + card('미실현손익', signed(total.unrealizedPnl) + '원', toneOf(total.unrealizedPnl))
+      + '</div><p class="at-note">평가손익·수익률은 각 계좌의 평가잔고와 초기자금으로 계산합니다. 실현·미실현손익은 별도 항목이며 평가손익에 다시 더하지 않습니다. 현재 기록된 ' + keys.length + '개 계좌 기준입니다.</p></section>';
+  }
+
   function journalHtml(r) {
     var head = '<section class="at-box at-journal"><div class="at-hd"><h3>통합 시간순 거래 일지</h3><span>전략별 가상 거래 · 최신 활동순</span></div>';
     function balance(v) { return v == null ? '기록 없음' : fmtWon(v) + '원'; }
@@ -272,8 +289,8 @@
     function addLive(x, closed) {
       var selected = selection[[x.scanDate, x.scanner, x.code].join('|')];
       var basis = scannerLabel(x.scanner) + ' 신호' + (selected && /^RANK_\d+_OF_/.test(selected.reason || '') ? ' · 검색기 내 ' + selected.reason.split('_')[1] + '순위' : '');
-      rows.push({ when: closed ? x.exitTs : x.entryTs, html: '<article class="at-journal-item"><div class="at-journal-head"><time>' + esc(dtShort(closed ? x.exitTs : x.entryTs)) + '</time><b>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></b><span>' + esc(VARIANT_LABEL[x.strategyId] || x.strategyId) + ' · 장중 가상매매</span></div>'
-        + '<div class="at-journal-flow"><div><small>매수 시각 · 가격</small><b>' + esc(dtShort(x.entryTs)) + ' · ' + fmtPrice(x.entryPrice) + '원</b></div><div><small>매도 시각 · 가격</small><b>' + (closed ? esc(dtShort(x.exitTs)) + ' · ' + fmtPrice(x.exitPrice) + '원' : '미매도') + '</b></div><div><small>수익률</small><b class="' + toneOf(closed ? x.netRet : x.ret) + '">' + esc(pct2(closed ? x.netRet : x.ret)) + '</b></div><div><small>전략 예수금</small><b>매수 후 ' + balance(x.balanceAfterBuy) + (closed ? ' · 매도 후 ' + balance(x.balanceAfterSell) : '') + '</b></div></div>'
+      rows.push({ when: closed ? x.exitTs : x.entryTs, groupKey: ['C', x.code, x.entryTs].join('|'), name: x.name, code: x.code, entryTs: x.entryTs, html: '<article class="at-journal-item"><div class="at-journal-head"><time>' + esc(dtShort(closed ? x.exitTs : x.entryTs)) + '</time><b>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></b><span>' + esc(VARIANT_LABEL[x.strategyId] || x.strategyId) + ' · 장중 가상매매</span></div>'
+        + '<div class="at-journal-flow"><div><small>매수 시각 · 가격 · 수량</small><b>' + esc(dtShort(x.entryTs)) + ' · ' + fmtPrice(x.entryPrice) + '원 · ' + esc(x.qty == null ? '수량 미기록' : x.qty + '주') + '</b></div><div><small>매도 시각 · 가격 · 수량</small><b>' + (closed ? esc(dtShort(x.exitTs)) + ' · ' + fmtPrice(x.exitPrice) + '원 · ' + esc(x.qty == null ? '수량 미기록' : x.qty + '주') : '미매도') + '</b></div><div><small>수익률</small><b class="' + toneOf(closed ? x.netRet : x.ret) + '">' + esc(pct2(closed ? x.netRet : x.ret)) + '</b></div><div><small>전략 예수금</small><b>매수 후 ' + balance(x.balanceAfterBuy) + (closed ? ' · 매도 후 ' + balance(x.balanceAfterSell) : '') + '</b></div></div>'
         + '<p><b>매수 근거</b> ' + esc(basis) + '</p><p><b>매도 상태·사유</b> ' + (closed ? esc(LIVE_REASON[x.exitReason] || x.exitReason || '사유 미기록') : x.status === 'PENDING_EXIT' ? '청산 신호 · 다음 관측가 대기 (' + esc(LIVE_REASON[x.signalReason] || x.signalReason || '-') + ')' : '보유 중 · 청산 조건 미충족') + '</p></article>' });
     }
     (live && live.positions || []).forEach(function (x) { addLive(x, false); });
@@ -281,11 +298,20 @@
     (r && r.paperTrades || []).filter(function (x) { return x.entryDate; }).forEach(function (x) {
       var closed = x.status === 'CLOSED', when = closed ? x.exitDate : x.entryDate;
       rows.push({ when: when, html: '<article class="at-journal-item"><div class="at-journal-head"><time>' + esc(when || '-') + '</time><b>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></b><span>' + esc(VARIANT_LABEL[x.variant] || x.variant) + ' · 일봉 사후 모의</span></div>'
-        + '<div class="at-journal-flow"><div><small>매수일 · 가격</small><b>' + esc(x.entryDate) + ' (시각 미기록) · ' + fmtPrice(x.entryPrice) + '원</b></div><div><small>매도일 · 가격</small><b>' + (closed ? esc(x.exitDate) + ' (시각 미기록) · ' + fmtPrice(x.exitPrice) + '원' : '미매도') + '</b></div><div><small>수익률</small><b class="' + toneOf(x.ret) + '">' + (closed ? esc(pct2(x.ret)) : '미확정') + '</b></div><div><small>거래 직후 잔고</small><b>기록 없음</b></div></div>'
+        + '<div class="at-journal-flow"><div><small>매수일 · 가격 · 수량</small><b>' + esc(x.entryDate) + ' (시각 미기록) · ' + fmtPrice(x.entryPrice) + '원 · ' + esc(x.qty == null ? '수량 미기록' : x.qty + '주') + '</b></div><div><small>매도일 · 가격 · 수량</small><b>' + (closed ? esc(x.exitDate) + ' (시각 미기록) · ' + fmtPrice(x.exitPrice) + '원 · ' + esc(x.qty == null ? '수량 미기록' : x.qty + '주') : '미매도') + '</b></div><div><small>수익률</small><b class="' + toneOf(x.ret) + '">' + (closed ? esc(pct2(x.ret)) : '미확정') + '</b></div><div><small>거래 직후 잔고</small><b>기록 없음</b></div></div>'
         + '<p><b>매수 근거</b> ' + esc(scannerLabel(x.scanner)) + ' 신호</p><p><b>매도 상태·사유</b> ' + (closed ? esc(EXIT_REASON[x.exitReason] || x.exitReason || '사유 미기록') : x.status === 'PENDING_EXIT' ? '청산 신호 · 다음 거래일 시가 대기' : '보유 중 · 청산 조건 미충족') + '</p></article>' });
     });
     rows.sort(function (a, b) { return String(b.when || '').localeCompare(String(a.when || '')); });
-    return head + (rows.length ? rows.map(function (x) { return x.html; }).join('') : '<p class="at-empty">아직 매수된 가상 거래가 없습니다.</p>')
+    var groups = {};
+    rows.forEach(function (x) { if (x.groupKey) (groups[x.groupKey] || (groups[x.groupKey] = [])).push(x); });
+    var shown = {};
+    return head + (rows.length ? rows.map(function (x) {
+      if (!x.groupKey || groups[x.groupKey].length < 2) return x.html;
+      if (shown[x.groupKey]) return '';
+      shown[x.groupKey] = true;
+      var members = groups[x.groupKey];
+      return '<details class="at-journal-group"><summary><b>' + esc(x.name || '') + ' <code>' + esc(x.code) + '</code></b> · 매수 ' + esc(dtShort(x.entryTs)) + ' · ' + members.length + '개 전략 비교</summary>' + members.map(function (m) { return m.html; }).join('') + '</details>';
+    }).join('') : '<p class="at-empty">아직 매수된 가상 거래가 없습니다.</p>')
       + '<p class="at-note">장중 가상매매와 일봉 사후 모의를 시간순으로 보여 줍니다. 두 성과는 합산하지 않습니다. 장중 과거 매도 내역의 예수금은 기록에 순수령액이 없으면 표시하지 않습니다. 실계좌 주문·체결 내역은 아래 별도 기록을 확인하세요.</p></section>';
   }
 
@@ -425,7 +451,7 @@
 
   function render(d) {
     ensureBacktest();
-    root.innerHTML = topbarHtml(d.status, d.research) + kpiHtml(d.status, d.holdings)
+    root.innerHTML = topbarHtml(d.status, d.research) + paperOverviewHtml(d.research) + kpiHtml(d.status, d.holdings)
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 30초마다 갱신 · 수동 보유 종목은 건드리지 않음</span></div>' + holdingsHtml(d.holdings) + '</section>'
       + journalHtml(d.research) + candidatesHtml(d.research) + liveHtml(d.research) + paperHtml(d.research) + backtestHtml()
