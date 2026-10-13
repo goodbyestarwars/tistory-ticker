@@ -98,7 +98,7 @@
       + cell('평가손익(비용 제외)', holdings.length ? signed(pnl) : '-', rate == null ? '' : pct(rate), holdings.length ? tone(pnl) : '')
       + cell('감시 종목', s.watch_count + '개', '손절·익절 대상')
       + cell('오늘 매도 주문', s.sells_today + ' / ' + s.max_sells_per_day, '일 한도')
-      + cell('실주문', s.live_active ? '가동 중' : '비활성', 'PC 실행본 상태')
+      + cell('실주문', s.live_active ? '가동 중' : s.live_scheduled ? '08:55 예약' : '비활성', 'PC 실행본 상태')
       + '</section>';
   }
 
@@ -118,8 +118,8 @@
       NO_ENTRY: '진입 조건 없음', NO_CANDIDATE: '적합한 후보 없음', BUY_SENT: '매수 주문 전송',
       STOP_NET_5: '손절 주문 전송', PROFIT_NET_6: '익절 주문 전송', PROFIT_FLOOR_NET_3: '익절 주문 전송' };
     var live = s.live_engine;
-    var stateText = live ? (states[live.state] || '점검 중') + ' · 마지막 확인 ' + esc(live.checked_at || '-') : '시작 승인 전';
-    return '<section class="at-box"><div class="at-hd"><h3>신규 운용 정책</h3><span>실계좌 1개 · ' + (s.live_active ? '가동 중' : '시작 준비 중') + '</span></div>'
+    var stateText = live ? (states[live.state] || '점검 중') + ' · 마지막 확인 ' + esc(live.checked_at || '-') : s.live_scheduled ? (s.market_open ? '실행 상태 확인 필요' : '오늘 08:55 시작 설정됨 · 장전 점검 예정') : '시작 승인 전';
+    return '<section class="at-box"><div class="at-hd"><h3>신규 운용 정책</h3><span>실계좌 1개 · ' + (s.live_active ? '가동 중' : s.live_scheduled ? '08:55 예약' : '시작 준비 중') + '</span></div>'
       + '<div class="at-row"><span>운용 예산</span><b>100만원 · 최대 3종목 · 종목당 최대 30만원</b></div>'
       + '<div class="at-row"><span>현금 예비금</span><b>10만원 유지</b></div>'
       + '<div class="at-row"><span>중복 매수</span><b>같은 종목 보유·주문 대기 중 재매수 금지</b></div>'
@@ -127,7 +127,7 @@
       + '<div class="at-row"><span>손절 목표</span><b>매매 비용 고려 순손익 -5%</b></div>'
       + '<div class="at-row"><span>익절 규칙</span><b>순손익 +6% 도달 시 매도 · +3% 도달 후 +3% 아래로 내려오면 매도</b></div>'
       + '<p class="at-note">그 밖에는 보유 기간 제한 없이 유지합니다. 급변·갭·매매 비용으로 실제 손절은 -5%에 보장되지 않습니다.</p>'
-      + '<p class="at-note">실계좌 매매 엔진: ' + stateText + '. 실제 주문 시작은 별도 최종 승인과 입금 확인 후 가능합니다.</p></section>';
+      + '<p class="at-note">실계좌 매매 엔진: ' + stateText + '. ' + (s.live_scheduled ? '장 시작 후 조건을 충족하면 실주문을 전송합니다.' : '실제 주문 시작에는 별도 최종 승인과 입금 확인이 필요합니다.') + '</p></section>';
   }
 
   function holdingsHtml(list) {

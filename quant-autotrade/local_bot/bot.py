@@ -182,6 +182,15 @@ class Bot:
 
     def status(self):
         dt = now_kst()
+        live_scheduled = False
+        try:
+            with open(os.path.join(HERE, 'LIVE_TRADING_APPROVAL'), encoding='utf-8') as f:
+                approval = json.load(f)
+            live_scheduled = (os.environ.get('LIVE_TRADING') == '1' and
+                              approval.get('date') == dt.strftime('%Y-%m-%d') and
+                              bool(re.fullmatch(r'[0-9a-f]{64}', str(approval.get('account_sha256', '')))))
+        except (OSError, ValueError):
+            pass
         live_engine = None
         try:
             with open(os.path.join(HERE, 'live_status.json'), encoding='utf-8') as f:
@@ -194,8 +203,12 @@ class Bot:
         live_active = bool(live_engine and live_engine.get('state') in
                            ('NO_ENTRY', 'NO_CANDIDATE', 'PENDING_ORDERS', 'BUY_SENT',
                             'STOP_NET_5', 'PROFIT_NET_6', 'PROFIT_FLOOR_NET_3'))
-        mode = '실계좌 엔진 가동' if live_active else '실주문 비활성(준비 중)'
+        mode = ('실계좌 엔진 가동' if live_active else
+                '오늘 실주문 시작 설정됨' if live_scheduled and dt.hour < 9 else
+                '실계좌 엔진 상태 확인 필요' if live_scheduled and market_open(dt) else
+                '실주문 비활성(준비 중)')
         return {'mode': mode, 'live_sell': live_sell_enabled(), 'live_active': live_active,
+                'live_scheduled': live_scheduled,
                 'live_engine': live_engine,
                 'stopped': self.stopped(), 'market_open': market_open(dt), 'now': dt.strftime('%Y-%m-%d %H:%M:%S'),
                 'last_poll': self.last_poll, 'last_error': self.last_error, 'watch_count': len(self.store.watch_list()),
