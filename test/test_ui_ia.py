@@ -157,6 +157,20 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (!isIndependentChartMode()) loadDomesticNews", chart)
         self.assertIn("#stock-search.ss-independent-chart .ss-panels", chart_style)
 
+    def test_footer_documents_cover_current_chart_and_investment_tools(self):
+        release = self.read("release-notes.html")
+        guide = self.read("legal/guide.html")
+        license_page = self.read("legal/opensource-license.html")
+        self.assertIn("2026년 10월 13일 · 5년 차트·HTS형 조작·투자도구", release)
+        self.assertIn("볼린저 밴드(20일·2표준편차)", release)
+        self.assertIn('id="tools">10. 투자도구', guide)
+        self.assertIn("미국주식 환율 계산기", guide)
+        self.assertIn("＋ 추가", guide)
+        self.assertIn("마우스 휠", guide)
+        self.assertIn("볼린저 밴드", guide)
+        self.assertIn("2026년 10월 13일 확인", license_page)
+        self.assertIn("Apache License 2.0 전문", license_page)
+
     def test_support_resistance_labels_separate_rank_from_price(self):
         source = self.read("js/chart-sr.js")
         self.assertIn("function roundedBox", source)
