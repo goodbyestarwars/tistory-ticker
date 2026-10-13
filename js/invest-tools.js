@@ -59,6 +59,27 @@
   }
 
   function numberValue(input) { return Number(String(input.value || '').replace(/,/g, '')); }
+  function groupInput(input) {
+    var before = input.value, caret = input.selectionStart;
+    var raw = before.replace(/,/g, '');
+    if (!/^(?:\d+)?(?:\.\d*)?$/.test(raw)) return;
+    var parts = raw.split('.');
+    parts[0] = parts[0].replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    var formatted = parts.join('.');
+    if (formatted === before) return;
+    var digitsBeforeCaret = before.slice(0, caret).replace(/,/g, '').length;
+    input.value = formatted;
+    var position = 0, seen = 0;
+    while (position < formatted.length && seen < digitsBeforeCaret) {
+      if (formatted.charAt(position) !== ',') seen++;
+      position++;
+    }
+    input.setSelectionRange(position, position);
+  }
+  function formatInputsOnEdit(event) {
+    var input = event.target;
+    if (input && input.matches('input[inputmode="decimal"]')) groupInput(input);
+  }
   function formatNumber(value, digits) {
     if (!Number.isFinite(value)) return '-';
     return value.toLocaleString('ko-KR', { maximumFractionDigits: digits == null ? 0 : digits });
@@ -134,7 +155,7 @@
       set('change', result.averageChangePct == null ? '-' : (result.averageChangePct > 0 ? '+' : '') + result.averageChangePct.toFixed(2) + '%');
       set('recovery', result.recoveryPct == null ? '-' : (result.recoveryPct > 0 ? '+' : '') + result.recoveryPct.toFixed(2) + '%');
     }
-    overlay.addEventListener('input', render);
+    overlay.addEventListener('input', function (event) { formatInputsOnEdit(event); render(); });
     overlay.querySelector('.it-add-more').addEventListener('click', function () {
       var additions = overlay.querySelector('.it-additions');
       additions.insertAdjacentHTML('beforeend', buyRowHtml(additions.children.length + 1));
@@ -168,9 +189,10 @@
       + '<label><span>투자할 원화</span><input inputmode="decimal" data-it-fx="krw" placeholder="예: 5,000,000"></label>'
       + '<label><span>달러 살 때 적용 환율</span><input inputmode="decimal" data-it-fx="rate" placeholder="자동으로 입력됩니다"></label>'
       + '<label><span>미국주식 1주 가격</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="stockPrice" placeholder="예: 180"><i>$</i></span></label>'
-      + '<label><span>매수 수수료</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="commission" value="0.25"><i>%</i></span></label>'
+      + '<label><span>증권사 (선택)</span><input data-it-broker placeholder="예: 이용 증권사"></label>'
+      + '<label><span>매수 수수료율</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="commission" value="0.25"><i>%</i></span></label>'
       + '</div>'
-      + '<p class="it-field-help">환율은 자동으로 들어옵니다. 증권사 앱에 실제 적용환율이 보이면 그 숫자로 바꿔 더 정확하게 계산할 수 있습니다.</p>'
+      + '<p class="it-field-help">환율은 자동 입력됩니다. 수수료는 기본 예시 0.25%로 자동 계산합니다. 증권사·계좌의 실제 매수 요율을 확인해 수정하면 이 브라우저에 저장됩니다. 증권사 이름만으로 요율을 조회하지는 않습니다.</p>'
       + '<div class="it-results" aria-live="polite">'
       + '<article class="it-primary"><span>매수 가능 수량 · 정수주 기준</span><strong data-it-fx-result="shares">-</strong></article>'
       + '<article><span>환전 후 투자 가능 달러</span><strong data-it-fx-result="usd">-</strong></article>'
@@ -180,6 +202,13 @@
       + '<article><span>남는 금액</span><strong data-it-fx-result="remaining">-</strong></article>'
       + '</div><p class="it-note">환전·매수 전 비교용 예상치입니다. 실제 체결 환율, 환율 우대, 최소 수수료와 제비용은 이용 증권사 기준을 확인하세요.</p></section>';
     document.body.appendChild(overlay);
+    var feeInput = overlay.querySelector('[data-it-fx="commission"]');
+    var brokerInput = overlay.querySelector('[data-it-broker]');
+    try {
+      var saved = JSON.parse(localStorage.getItem('nine_invest_fx_fee_v1') || 'null');
+      if (saved && /^\d+(?:\.\d+)?$/.test(String(saved.rate))) feeInput.value = String(saved.rate);
+      if (saved && typeof saved.broker === 'string') brokerInput.value = saved.broker.slice(0, 80);
+    } catch (e) { /* 저장소 사용이 제한되면 기본값 사용 */ }
     var oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     function close() { overlay.remove(); document.body.style.overflow = oldOverflow; document.removeEventListener('keydown', onKey); }
@@ -197,7 +226,13 @@
       set('commission', '$' + formatNumber(result.commissionUsd, 2));
       set('remaining', '$' + formatNumber(result.remainingUsd, 2) + ' · ' + formatNumber(result.remainingKrw, 0) + '원');
     }
-    overlay.addEventListener('input', render);
+    overlay.addEventListener('input', function (event) {
+      formatInputsOnEdit(event);
+      if (event.target === feeInput || event.target === brokerInput) {
+        try { localStorage.setItem('nine_invest_fx_fee_v1', JSON.stringify({ rate: feeInput.value.replace(/,/g, ''), broker: brokerInput.value.slice(0, 80) })); } catch (e) { /* 저장소 제한 */ }
+      }
+      render();
+    });
     overlay.querySelector('.it-close').addEventListener('click', close);
     overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKey);
@@ -209,7 +244,7 @@
       var usd = data && (data.currencies || []).filter(function (item) { return item.code === 'USD'; })[0];
       var buyRate = Number(usd && (usd.tts || usd.dealBasR));
       if (!Number.isFinite(buyRate)) throw new Error('USD rate unavailable');
-      overlay.querySelector('[data-it-fx="rate"]').value = String(buyRate);
+      overlay.querySelector('[data-it-fx="rate"]').value = formatNumber(buyRate, 4);
       overlay.querySelector('[data-it-rate-status]').textContent = '자동 입력 · 한국수출입은행 ' + (data.baseDate || '최근 고시일') + ' 달러 살 때 참고환율 ' + formatNumber(buyRate, 2) + '원 · 실시간 환율 아님';
       render();
     }).catch(function () {
