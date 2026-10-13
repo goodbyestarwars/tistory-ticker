@@ -33,12 +33,12 @@
     };
   }
 
-  function calculateNasdaqFx(krwBudget, marketRate, spreadPct, stockPrice, commissionPct) {
-    var krw = Number(krwBudget), rate = Number(marketRate), spread = Number(spreadPct || 0);
+  function calculateNasdaqFx(krwBudget, appliedRate, stockPrice, commissionPct) {
+    var krw = Number(krwBudget), rate = Number(appliedRate);
     var price = Number(stockPrice), commission = Number(commissionPct || 0);
-    if (![krw, rate, spread, price, commission].every(Number.isFinite)
-        || krw <= 0 || rate <= 0 || price <= 0 || spread < 0 || commission < 0) return null;
-    var effectiveRate = rate * (1 + spread / 100);
+    if (![krw, rate, price, commission].every(Number.isFinite)
+        || krw <= 0 || rate <= 0 || price <= 0 || commission < 0) return null;
+    var effectiveRate = rate;
     var availableUsd = krw / effectiveRate;
     var perShareUsd = price * (1 + commission / 100);
     var shares = Math.floor(availableUsd / perShareUsd);
@@ -166,16 +166,15 @@
       + '<div class="it-rate-status" data-it-rate-status>공식 원/달러 환율을 불러오는 중...</div>'
       + '<div class="it-input-grid">'
       + '<label><span>투자할 원화</span><input inputmode="decimal" data-it-fx="krw" placeholder="예: 5,000,000"></label>'
-      + '<label><span>원/달러 기준환율</span><input inputmode="decimal" data-it-fx="rate" placeholder="예: 1,350"></label>'
-      + '<label><span>환전 가산율</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="spread" value="1"><i>%</i></span></label>'
+      + '<label><span>달러 살 때 적용 환율</span><input inputmode="decimal" data-it-fx="rate" placeholder="자동으로 입력됩니다"></label>'
       + '<label><span>미국주식 1주 가격</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="stockPrice" placeholder="예: 180"><i>$</i></span></label>'
       + '<label><span>매수 수수료</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="commission" value="0.25"><i>%</i></span></label>'
       + '</div>'
-      + '<p class="it-field-help">환율 우대가 적용되면 환전 가산율을 실제 값으로 바꾸세요. 증권사마다 환율과 수수료가 다릅니다.</p>'
+      + '<p class="it-field-help">환율은 자동으로 들어옵니다. 증권사 앱에 실제 적용환율이 보이면 그 숫자로 바꿔 더 정확하게 계산할 수 있습니다.</p>'
       + '<div class="it-results" aria-live="polite">'
       + '<article class="it-primary"><span>매수 가능 수량 · 정수주 기준</span><strong data-it-fx-result="shares">-</strong></article>'
       + '<article><span>환전 후 투자 가능 달러</span><strong data-it-fx-result="usd">-</strong></article>'
-      + '<article><span>실제 적용 환율</span><strong data-it-fx-result="effectiveRate">-</strong></article>'
+      + '<article><span>계산에 쓴 환율</span><strong data-it-fx-result="effectiveRate">-</strong></article>'
       + '<article><span>주식 매수금액</span><strong data-it-fx-result="order">-</strong></article>'
       + '<article><span>예상 매수 수수료</span><strong data-it-fx-result="commission">-</strong></article>'
       + '<article><span>남는 금액</span><strong data-it-fx-result="remaining">-</strong></article>'
@@ -189,7 +188,7 @@
     function render() {
       var values = {};
       overlay.querySelectorAll('[data-it-fx]').forEach(function (input) { values[input.getAttribute('data-it-fx')] = numberValue(input); });
-      var result = calculateNasdaqFx(values.krw, values.rate, values.spread, values.stockPrice, values.commission);
+      var result = calculateNasdaqFx(values.krw, values.rate, values.stockPrice, values.commission);
       if (!result) { ['shares', 'usd', 'effectiveRate', 'order', 'commission', 'remaining'].forEach(function (key) { set(key, '-'); }); return; }
       set('shares', formatNumber(result.shares, 0) + '주');
       set('usd', '$' + formatNumber(result.availableUsd, 2));
@@ -208,9 +207,10 @@
     }).then(function (payload) {
       var data = payload && payload.data;
       var usd = data && (data.currencies || []).filter(function (item) { return item.code === 'USD'; })[0];
-      if (!usd || !Number.isFinite(Number(usd.dealBasR))) throw new Error('USD rate unavailable');
-      overlay.querySelector('[data-it-fx="rate"]').value = String(usd.dealBasR);
-      overlay.querySelector('[data-it-rate-status]').textContent = '한국수출입은행 ' + (data.baseDate || '최근 고시일') + ' 기준환율 ' + formatNumber(Number(usd.dealBasR), 2) + '원 · 실시간 환율 아님';
+      var buyRate = Number(usd && (usd.tts || usd.dealBasR));
+      if (!Number.isFinite(buyRate)) throw new Error('USD rate unavailable');
+      overlay.querySelector('[data-it-fx="rate"]').value = String(buyRate);
+      overlay.querySelector('[data-it-rate-status]').textContent = '자동 입력 · 한국수출입은행 ' + (data.baseDate || '최근 고시일') + ' 달러 살 때 참고환율 ' + formatNumber(buyRate, 2) + '원 · 실시간 환율 아님';
       render();
     }).catch(function () {
       overlay.querySelector('[data-it-rate-status]').textContent = '환율을 불러오지 못했습니다. 현재 이용 중인 증권사 환율을 직접 입력하세요.';

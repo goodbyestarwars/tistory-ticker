@@ -340,7 +340,7 @@
       return;
     }
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools3';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools4';
     script.setAttribute('data-invest-tools', '1');
     script.onload = open;
     document.body.appendChild(script);
