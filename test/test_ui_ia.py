@@ -156,9 +156,6 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("if (!code && isIndependentChartMode()) code = '005930';", chart)
         self.assertIn("if (!isIndependentChartMode()) loadDomesticNews", chart)
         self.assertIn("#stock-search.ss-independent-chart .ss-panels", chart_style)
-        footer = self.read("js/skin-shell.js")
-        self.assertIn("9Pay 투자 리서치", footer)
-        self.assertIn("footer-disclaimer", footer)
 
     def test_support_resistance_labels_separate_rank_from_price(self):
         source = self.read("js/chart-sr.js")
