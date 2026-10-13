@@ -51,7 +51,9 @@ def load_config():
 
 
 def live_sell_enabled():
-    return os.environ.get('LIVE_SELL', '').strip().lower() in ('1', 'true', 'yes', 'on')
+    # Deployment approval is not approval to send orders. A separate reviewed
+    # activation change is required even if an older PC .env contains LIVE_SELL.
+    return False
 
 
 class Store:

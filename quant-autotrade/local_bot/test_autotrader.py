@@ -45,6 +45,9 @@ class BaseCase(unittest.TestCase):
         server_mod.STOP_FLAG = bot_mod.STOP_FLAG
         self.store.watch_add('005930', '삼성전자')
         os.environ.pop('LIVE_SELL', None)
+        # Exercise the legacy order path only inside tests; production gate stays shut.
+        self._orig_live = bot_mod.live_sell_enabled
+        bot_mod.live_sell_enabled = lambda: os.environ.get('LIVE_SELL') == 'true'
         # 장 시간으로 고정(평일 10:00)
         self._orig_now = bot_mod.now_kst
         base = bot_mod.now_kst()
@@ -55,6 +58,7 @@ class BaseCase(unittest.TestCase):
 
     def tearDown(self):
         bot_mod.now_kst = self._orig_now
+        bot_mod.live_sell_enabled = self._orig_live
         os.environ.pop('LIVE_SELL', None)
 
     def poll(self, price, avg=100000.0, **kw):
@@ -66,6 +70,17 @@ class BaseCase(unittest.TestCase):
 
 
 class DecideExitTests(unittest.TestCase):
+    def test_deployed_order_gate_remains_closed_with_old_env(self):
+        old = os.environ.get('LIVE_SELL')
+        try:
+            os.environ['LIVE_SELL'] = 'true'
+            self.assertFalse(bot_mod.live_sell_enabled())
+        finally:
+            if old is None:
+                os.environ.pop('LIVE_SELL', None)
+            else:
+                os.environ['LIVE_SELL'] = old
+
     def test_rules(self):
         cfg = bot_mod.DEFAULT_CONFIG
         self.assertEqual(bot_mod.decide_exit(-3.0, -3.0, cfg), 'STOP')

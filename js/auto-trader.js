@@ -117,13 +117,22 @@
   }
 
   function ruleHtml(s) {
-    return '<section class="at-box"><div class="at-hd"><h3>운용 규칙</h3><span>PC의 .env·config.json 에서 변경</span></div>'
+    return '<section class="at-box"><div class="at-hd"><h3>신규 운용 정책</h3><span>실계좌 1개 준비 · 주문 비활성</span></div>'
+      + '<div class="at-row"><span>운용 예산</span><b>100만원 · 최대 3종목 · 종목당 최대 30만원</b></div>'
+      + '<div class="at-row"><span>현금 예비금</span><b>10만원 유지</b></div>'
+      + '<div class="at-row"><span>중복 매수</span><b>같은 종목 보유·주문 대기 중 재매수 금지</b></div>'
+      + '<div class="at-row"><span>후보 선별</span><b>거래대금·유동성·변동성·추세 데이터</b></div>'
+      + '<div class="at-row"><span>손절 목표</span><b>매매 비용 고려 순손익 -5%</b></div>'
+      + '<div class="at-row"><span>익절 목표</span><b>순손익 +3~6% (세부 매도 규칙 확정 대기)</b></div>'
+      + '<p class="at-note">시뮬레이션 가정: 순수익 +3% 도달 후 +3% 아래로 되돌아가거나 +6% 도달 시 청산. 사용자 확정 전 실주문에 적용하지 않습니다. 청산 신호가 없으면 기간 제한 없이 보유합니다. 실제 손절은 급변·갭·체결 비용 때문에 -5%에 보장되지 않습니다.</p>'
+      + '<p class="at-note">기존 ATR 장중·ATR 종가·3·5일선 전략은 비교용 독립 모의 기록입니다. 새 정책의 청산 신호로 합치지 않습니다.</p></section>'
+      + '<section class="at-box"><div class="at-hd"><h3>기존 로컬 감시 규칙</h3><span>기록 전용 · 신규 정책과 별개</span></div>'
       + '<div class="at-row"><span>매수</span><b>수동 (자동 매수 없음)</b></div>'
       + '<div class="at-row"><span>매도 방식</span><b>시장가</b></div>'
       + '<div class="at-row"><span>손절</span><b>-' + esc(s.stop_loss_pct) + '%</b></div>'
       + '<div class="at-row"><span>익절</span><b>+' + esc(s.take_profit_floor_pct) + '% ~ +' + esc(s.take_profit_cap_pct) + '%</b></div>'
       + '<div class="at-row"><span>일 매도 한도</span><b>' + esc(s.sells_today) + ' / ' + esc(s.max_sells_per_day) + '건</b></div>'
-      + '<p class="at-note">+' + esc(s.take_profit_cap_pct) + '% 이상이면 즉시 매도, 한 번 +' + esc(s.take_profit_floor_pct) + '%를 넘긴 뒤 그 아래로 내려오면 매도합니다. 시장가라 체결가는 달라질 수 있습니다.</p></section>';
+      + '<p class="at-note">기존 설정값입니다. 저장소의 새 봇 코드는 주문 게이트가 닫혀 있습니다. 현재 PC 실행본 상태: ' + (s.live_sell ? '매도 주문 활성 표시 — 실행본을 확인하세요' : '기록 전용') + '. 새 정책의 실주문 연결은 없습니다.</p></section>';
   }
 
   // ---- 연구 기능 (2026-10-11) -------------------------------------------------------------------
