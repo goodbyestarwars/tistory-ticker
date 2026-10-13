@@ -798,7 +798,8 @@
         }).join('') : '<tr><td colspan="4">데이터 준비 중</td></tr>')
         + '</tbody></table></section>';
     }).join('');
-    root.querySelector('.dmi-flow-grid').innerHTML = html;
+    var grid = root.querySelector('.dmi-flow-grid');
+    if (grid) grid.innerHTML = html;
   }
 
   // 프로그램매매 순매수는 KIS 일별 프로그램매매 API의 코스피 시장 전체 기준값이다.
@@ -1134,6 +1135,51 @@
     });
   }
 
+  function initInvestor() {
+    var root = document.getElementById('domestic-investor-flow');
+    if (!root || root.getAttribute('data-dmi-ready') === '1') return;
+    root.setAttribute('data-dmi-ready', '1');
+    installStyle();
+    root.innerHTML = '<div class="dmi-shell"><div class="dmi-heading"><h2>국내 투자자 수급</h2></div>'
+      + '<section class="mi-block mi-block--first dmi-block dmi-investor-section">'
+      + '<div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">01</span><span class="mi-block-name">투자자별 매매동향</span></h3></div>'
+      + '<div class="mi-block-desc">개인·외국인·기관의 순매수(억원)를 표와 그래프로 봅니다. 양수는 순매수, 음수는 순매도이며 거래일만 표시합니다.</div>'
+      + '<div class="mi-sub"><div class="mi-sub-title">최근 10거래일 순매수</div>'
+      + '<div class="mi-sub-cap">KOSPI·KOSDAQ 각각 개인·외국인·기관의 일별 순매수(억원)입니다.</div>'
+      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></div>'
+      + '<div class="mi-sub dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
+      + '<section class="mi-block dmi-block dmi-investor-rank"><div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">02</span><span class="mi-block-name">종목별 순매수·순매도 상위</span></h3></div>'
+      + '<div class="mi-block-desc">KIS 장중 가집계 · 순매수 수량(주). 입력 시각에 따라 잠정치가 달라질 수 있습니다.</div>'
+      + '<div class="dmi-rank-grid">공식 순위 확인 중...</div>'
+      + '<div class="mi-sub-cap">개인 종목 순위: 공식 응답 필드 미검증으로 미제공</div></section></div>';
+    fetchJson().then(function (data) {
+      renderInvestor(root, data.investor || {});
+      renderInvestorFlow(root, data.funds || {});
+    }).catch(function () {
+      root.querySelector('.dmi-flow-grid').textContent = '투자자 수급 데이터를 불러오지 못했습니다.';
+    });
+    fetch('https://goodbyestar.cloud/investor-trend/stock-ranks').then(function (response) {
+      if (!response.ok) throw new Error('HTTP ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      var data = payload && payload.success && payload.data;
+      if (!data || data.source !== 'KIS FHPTJ04400000' || data.metric !== 'shares') throw new Error('invalid rank data');
+      var labels = { foreign: '외국인', institution: '기관' };
+      var html = ['foreign', 'institution'].map(function (investor) {
+        return ['buy', 'sell'].map(function (side) {
+          var rows = data.ranks && data.ranks[investor] && data.ranks[investor][side];
+          if (!Array.isArray(rows) || !rows.length) return '<section class="dmi-rank-card"><h4>' + labels[investor] + ' 순' + (side === 'buy' ? '매수' : '매도') + '</h4><p>검증된 순위 없음</p></section>';
+          return '<section class="dmi-rank-card"><h4>' + labels[investor] + ' 순' + (side === 'buy' ? '매수' : '매도') + '</h4><ol>'
+            + rows.map(function (row) { return '<li><span>' + escapeHtml(row.name) + ' (' + escapeHtml(row.code) + ')</span><b>' + Math.abs(Number(row.quantity)).toLocaleString('ko-KR') + '주</b></li>'; }).join('')
+            + '</ol></section>';
+        }).join('');
+      }).join('');
+      root.querySelector('.dmi-rank-grid').innerHTML = html;
+    }).catch(function () {
+      root.querySelector('.dmi-rank-grid').textContent = '외국인·기관 순위: 공식 응답 확인 불가';
+    });
+  }
+
   function init() {
     var root = document.getElementById('domestic-market-indicators');
     if (!root || root.getAttribute('data-dmi-ready') === '1') return;
@@ -1153,15 +1199,8 @@
       + '<div class="mi-block-desc">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
-      + '<section class="mi-block dmi-block dmi-investor-section">'
-      + blockHead('02', '투자자별 매매동향')
-      + '<div class="mi-block-desc">개인·외국인·기관의 순매수(억원)를 표와 그래프로 봅니다. 양수는 순매수, 음수는 순매도이며 거래일만 표시합니다.</div>'
-      + '<div class="mi-sub"><div class="mi-sub-title">최근 10거래일 순매수</div>'
-      + '<div class="mi-sub-cap">KOSPI·KOSDAQ 각각 개인·외국인·기관의 일별 순매수(억원)입니다.</div>'
-      + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></div>'
-      + '<div class="mi-sub dmi-invflow-host"><div class="dmi-invflow-loading">불러오는 중...</div></div></section>'
       + '<section class="mi-block dmi-block dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
-      + blockHead('03', '증시자금', '',
+      + blockHead('02', '증시자금', '',
         '<button type="button" class="dmi-section-collapse dmi-funds-collapse" aria-expanded="' + (fundsCollapsed ? 'false' : 'true') + '">' + (fundsCollapsed ? '펼치기' : '숨기기') + '</button>')
       + '<div class="mi-block-desc">고객예탁금·신용잔고·신용대주잔고·예탁증권담보융자와 프로그램 매매(차익·비차익)입니다.</div>'
       + '<div class="dmi-funds-body">'
@@ -1178,7 +1217,6 @@
       root._dmiData = data;
       renderCharts(root, data.indices || {});
       renderSpotQuotes(root, data.indices || {});
-      renderInvestor(root, data.investor || {});
       renderFunds(root, data.funds || {}, data.programTrading || {}, data.leverageDetail || {});
       renderInvestorFlow(root, data.funds || {});
       connectSocket();
@@ -1301,5 +1339,5 @@
     });
   }
 
-  global.DomesticMarketIndicators = { init: init };
+  global.DomesticMarketIndicators = { init: init, initInvestor: initInvestor };
 })(window);

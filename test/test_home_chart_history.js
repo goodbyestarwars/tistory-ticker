@@ -22,6 +22,8 @@ assert.ok(expected.length>1200,'shared five-year archive remains intact');
 vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI')",context);
 assert.equal(element.nextElementSibling.textContent,element.attrs['data-history-range']);
 assert.ok(element.innerHTML.includes('home-chart-pen'),'domestic chart has a small pen at the line end');
+assert.ok(element.innerHTML.includes('M0 0 L4 -1.2'),'pen nib starts exactly at the traced data point');
+assert.ok(!element.innerHTML.includes('fill="#c5cbd1"'),'old grey clip is gone');
 assert.ok(!element.innerHTML.includes('stroke-width="9"'),'domestic mini-chart has no glow line');
 assert.ok(!element.innerHTML.includes('<polygon'),'domestic mini-chart has no filled shadow');
 const unchangedMarkup=element.innerHTML;

@@ -244,6 +244,10 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/investor-trend/history?market=kospi&days=260"` |
 | 오류 응답 예시 | 파라미터 오류 422, DB 읽기 실패 시 502(내부 경로·메시지는 노출하지 않음) |
 
+### `GET /investor-trend/stock-ranks`
+
+KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·순매도 상위(순매수 수량, 주)를 반환한다. 공식 응답의 종목코드·종목명·투자자별 순매수 수량 필드를 검사하고 유효한 행만 표시한다. 5분 캐시. `individual.supported=false`이며 개인 종목 순위는 표시하지 않는다.
+
 ### `GET /futures`
 
 | 항목 | 내용 |

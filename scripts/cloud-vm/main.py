@@ -4348,6 +4348,35 @@ def investor_trend_endpoint(period: str = Query('week'), market: str = Query('ko
 
 
 _investor_history_cache = {}
+_investor_stock_rank_cache = {'at': 0, 'data': None}
+
+
+@app.get('/investor-trend/stock-ranks')
+def investor_stock_ranks_endpoint(request: Request):
+    """KIS 공식 외국인·기관 종목 가집계. 개인 순위는 원자료 검증 전 미지원."""
+    _check_rate_limit('investor_stock_ranks', request, max_per_window=30)
+    now = time.time()
+    cached = _investor_stock_rank_cache
+    if cached['data'] is not None and now - cached['at'] < 300:
+        return envelope(cached['data'])
+    appkey = os.environ.get('KIS_APPKEY', '').strip()
+    appsecret = os.environ.get('KIS_APPSECRET', '').strip()
+    if not appkey or not appsecret:
+        raise HTTPException(status_code=503, detail='KIS 시세 인증 미설정')
+    try:
+        token = kis_client.get_token(appkey, appsecret)
+        ranks = {}
+        for investor in ('foreign', 'institution'):
+            ranks[investor] = {}
+            for side in ('buy', 'sell'):
+                ranks[investor][side] = kis_client.fetch_investor_stock_rank(
+                    token, appkey, appsecret, investor, side)
+    except Exception as exc:
+        raise _upstream_http_exception('종목별 투자자 순위를 불러오지 못했습니다.', exc) from exc
+    data = {'source': 'KIS FHPTJ04400000', 'metric': 'shares',
+            'provisional': True, 'ranks': ranks, 'individual': {'supported': False}}
+    cached.update(at=now, data=data)
+    return envelope(data)
 
 
 @app.get('/investor-trend/history')

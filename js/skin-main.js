@@ -325,8 +325,14 @@ document.documentElement.classList.add('skin-ready');
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261008-five-year-charts',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261014-investor-tab',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
+        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261014-split']
+      },
+      {
+        key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
+        mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
+        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261014-investor-tab',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261014-split']
       },
       {
@@ -389,6 +395,7 @@ document.documentElement.classList.add('skin-ready');
     /* 이미 페이지 본문에 있는 <script>도 세어야 한다. 티스토리 페이지 HTML이 자기 모듈을
        불러오는 중일 수 있는데, 여기서 같은 파일을 또 넣으면 모듈 IIFE가 두 번 돈다. */
     function ensureScript(tab) {
+      if (tab.key === 'investor' && window.DomesticMarketIndicators) return false;
       if (document.querySelector('script[data-mi-script="' + tab.key + '"]')) return;
       var expectedSrc = tab.script;
       var existing = Array.prototype.slice.call(document.querySelectorAll('script[src*="/js/' + tab.slug + '.js"]'));
@@ -398,6 +405,7 @@ document.documentElement.classList.add('skin-ready');
       script.src = tab.script;
       script.defer = true;
       script.setAttribute('data-mi-script', tab.key);
+      if (tab.key === 'investor') script.onload = function () { activate('investor', true); };
       document.body.appendChild(script);
       return true;
     }
@@ -430,8 +438,9 @@ document.documentElement.classList.add('skin-ready');
       if (!tab) return;
       if (ensureScript(tab)) return; // 최신 스크립트가 붙으면 모듈이 스스로 init한다.
       var module = window[tab.globalName];
-      if (module && typeof module.init === 'function') {
-        module.init();
+      var method = tab.method || 'init';
+      if (module && typeof module[method] === 'function') {
+        module[method]();
       }
     }
 
@@ -1360,7 +1369,7 @@ document.documentElement.classList.add('skin-ready');
       var width = element.clientWidth || 240;
       var height = element.clientHeight || 48;
       var pad = 2;
-      var lineEnd = width - 26; // 24px is reserved for the pen at the right edge.
+      var lineEnd = width - 26; // 펜촉 끝이 실제 데이터 끝 좌표에 닿도록 우측 공간을 둔다.
       var min = Math.min.apply(Math, values);
       var max = Math.max.apply(Math, values);
       var range = max - min || 1;
@@ -1400,9 +1409,9 @@ document.documentElement.classList.add('skin-ready');
         + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
         + '<polyline class="home-chart-trace" points="' + (animate ? coords[initial][0].toFixed(2) + ',' + coords[initial][1].toFixed(2) : points) + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<g class="home-chart-pen" transform="translate(' + coords[initial][0].toFixed(2) + ' ' + coords[initial][1].toFixed(2) + ')">'
-        + '<path d="M0 0 L5 -2 L18 -2 L21 -4 L21 0 L18 2 L5 2 Z" fill="#c5cbd1" stroke="#87919b" stroke-width=".8" vector-effect="non-scaling-stroke"></path>'
-        + '<path d="M6 -1 L17 -1" stroke="#f8fafc" stroke-width=".8" vector-effect="non-scaling-stroke"></path>'
-        + '<circle cx="0" cy="0" r="1.4" fill="#4b5563"></circle></g></svg>'
+        + '<path d="M0 0 L4 -1.2 L8 -1.2 L8 1.2 L4 1.2 Z" fill="#374151" stroke="#1f2937" stroke-width=".5" vector-effect="non-scaling-stroke"></path>'
+        + '<path d="M8 -1.4 L19 -1.4 M8 1.4 L19 1.4 M19 -2.4 L19 2.4" fill="none" stroke="#374151" stroke-width=".9" vector-effect="non-scaling-stroke"></path>'
+        + '<path d="M9 0 L17 0" stroke="#9ca3af" stroke-width=".55" vector-effect="non-scaling-stroke"></path></g></svg>'
         + '<span class="home-glow-dot" style="left:' + (lineEnd / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + '" aria-hidden="true"></span>';
       var trace = element.querySelector('.home-chart-trace');
       var pen = element.querySelector('.home-chart-pen');

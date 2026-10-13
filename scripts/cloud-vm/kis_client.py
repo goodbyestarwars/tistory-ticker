@@ -5,6 +5,7 @@ kiwoom_client.py와 동일한 캐싱 패턴. 코스피200 야간선물(FID_COND_
 
 import json
 import logging
+import re
 import threading
 import time
 import urllib.error
@@ -850,6 +851,41 @@ def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20
     if not isinstance(rows, list):
         rows = [rows] if isinstance(rows, dict) else []
     return rows[:max(1, min(int(limit), 100))]
+
+
+def fetch_investor_stock_rank(token, appkey, appsecret, investor, side):
+    """KIS FHPTJ04400000 외국인/기관 종목별 순매수 수량 순위."""
+    if investor not in ('foreign', 'institution') or side not in ('buy', 'sell'):
+        raise ValueError('unsupported investor rank')
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/foreign-institution-total',
+        'FHPTJ04400000', {
+            'FID_COND_MRKT_DIV_CODE': 'V',
+            'FID_COND_SCR_DIV_CODE': '16449',
+            'FID_INPUT_ISCD': '0000',
+            'FID_DIV_CLS_CODE': '0',  # 수량순
+            'FID_RANK_SORT_CLS_CODE': '0' if side == 'buy' else '1',
+            'FID_ETC_CLS_CODE': '1' if investor == 'foreign' else '2',
+        })
+    rows = data.get('output')
+    if not isinstance(rows, list):
+        return []
+    field = 'frgn_ntby_qty' if investor == 'foreign' else 'orgn_ntby_qty'
+    result = []
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        code = str(row.get('mksc_shrn_iscd') or '').strip()
+        name = str(row.get('hts_kor_isnm') or '').strip()
+        raw = str(row.get(field) or '').replace(',', '').strip()
+        if not (code.isdigit() and len(code) == 6 and name and re.fullmatch(r'-?\d+', raw)):
+            continue
+        quantity = int(raw)
+        if quantity == 0:
+            continue
+        result.append({'code': code, 'name': name, 'quantity': quantity})
+    return result[:10]
 
 
 def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20, sort_code='0', exclude_etf=False):
