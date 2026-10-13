@@ -1261,8 +1261,7 @@ document.documentElement.classList.add('skin-ready');
       return dashboardSection.querySelector('[data-home-index-slot="' + slot + '"]');
     }
 
-    // 2026-08-29: 운영 데이터로 전환. /futures 응답의 chart 배열(일봉 90개, 마지막 종가가
-    // 현재가와 일치함을 라이브로 확인)을 그대로 스파크라인에 쓴다. 레이아웃 작업 때
+    // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
     var HOME_SAMPLE_CHARTS = {
@@ -1281,40 +1280,56 @@ document.documentElement.classList.add('skin-ready');
           return { close: close, timestamp: index };
         });
       }
-      if (window.MarketChartHistory) return window.MarketChartHistory.merge(key === 'kospiNight' ? 'KOSPI200_NIGHT' : key, rows);
+      if (key === 'kospiNight') return rows;
+      if (window.MarketChartHistory) return window.MarketChartHistory.merge(key, rows);
       return rows;
     }
 
-    function renderHomeIndexChart(element, rows, positive, key) {
+    function nightSessionKey(ts) {
+      var kst = new Date(Number(ts) * 1000 + 9 * 3600000);
+      if (!isFinite(kst.getTime())) return '';
+      var hour = kst.getUTCHours();
+      if (hour >= 6 && hour < 18) return '';
+      if (hour < 6) kst.setUTCDate(kst.getUTCDate() - 1);
+      return kst.toISOString().slice(0, 10);
+    }
+
+    function nightSessionRows(rows) {
+      var valid = (rows || []).filter(function (row) {
+        return row && Number(row.ts) > 0 && row.close != null && isFinite(Number(row.close)) && nightSessionKey(row.ts);
+      }).sort(function (a, b) { return Number(a.ts) - Number(b.ts); });
+      if (!valid.length) return [];
+      var latestKey = nightSessionKey(valid[valid.length - 1].ts);
+      return valid.filter(function (row) { return nightSessionKey(row.ts) === latestKey; });
+    }
+
+    function nightMinuteLabel(ts) {
+      var date = new Date(Number(ts) * 1000 + 9 * 3600000);
+      return date.toISOString().slice(0, 16).replace('T', ' ');
+    }
+
+    function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
       var chartRows = homeChartRows(rows, key) || [];
-      var domesticMini = key === 'KOSPI' || key === 'KOSDAQ';
-      var oneYearMini = domesticMini || key === 'NASDAQ_INDEX' || key === 'SP500_INDEX';
-      var oneYearFrom = '';
-      if (oneYearMini) {
-        var todayKst = new Date(Date.now() + 9 * 3600000);
-        var month = todayKst.getUTCMonth(), day = todayKst.getUTCDate();
-        todayKst.setUTCFullYear(todayKst.getUTCFullYear() - 1);
-        if (todayKst.getUTCMonth() !== month) todayKst.setUTCDate(0);
-        oneYearFrom = todayKst.toISOString().slice(0, 10).replace(/-/g, '');
-        chartRows = chartRows.filter(function (row) {
-          var date = String(row && row.date || '').replace(/-/g, '');
-          return !/^\d{8}$/.test(date) || date >= oneYearFrom;
-        });
-      }
+      var monthlyMini = key !== 'kospiNight';
+      if (monthlyMini) chartRows = chartRows.filter(function (row) {
+        return row && /^\d{8}$/.test(String(row.date || '').replace(/-/g, '')) && isFinite(Number(row.close));
+      }).slice(-20);
+      else chartRows = nightSessionRows(chartRows);
       var values = chartRows.map(function (row) { return Number(row && row.close); })
         .filter(function (value) { return isFinite(value); });
-      var caption = window.MarketChartHistory ? window.MarketChartHistory.caption(chartRows) : '최근 이력';
-      if (oneYearMini && chartRows.length) {
+      var caption = key === 'kospiNight' ? '야간 세션 분봉 없음' : '최근 20거래일 자료 없음';
+      if (monthlyMini && chartRows.length) {
         var first = String(chartRows[0].date || '').replace(/-/g, '');
         var last = String(chartRows[chartRows.length - 1].date || '').replace(/-/g, '');
         if (/^\d{8}$/.test(first) && /^\d{8}$/.test(last)) {
-          var daysLate = (Date.parse(first.slice(0, 4) + '-' + first.slice(4, 6) + '-' + first.slice(6, 8))
-            - Date.parse(oneYearFrom.slice(0, 4) + '-' + oneYearFrom.slice(4, 6) + '-' + oneYearFrom.slice(6, 8))) / 86400000;
-          caption = (daysLate <= 7 ? '최근 1년' : '확보된 이력') + ' · '
+          caption = (chartRows.length >= 20 ? '최근 20거래일' : '확보된 ' + chartRows.length + '거래일') + ' · '
             + first.slice(0, 4) + '.' + first.slice(4, 6) + '.' + first.slice(6, 8)
             + ' ~ ' + last.slice(0, 4) + '.' + last.slice(4, 6) + '.' + last.slice(6, 8);
         }
+      } else if (chartRows.length) {
+        caption = '야간 1회 · ' + nightMinuteLabel(chartRows[0].ts) + ' ~ '
+          + nightMinuteLabel(chartRows[chartRows.length - 1].ts) + ' KST · ' + chartRows.length + '개 시세';
       }
       element.setAttribute('data-history-count', String(values.length));
       element.setAttribute('data-history-range', caption);
@@ -1339,24 +1354,21 @@ document.documentElement.classList.add('skin-ready');
         var y = height - pad - ((value - min) / range) * (height - pad * 2);
         return x.toFixed(2) + ',' + y.toFixed(2);
       }).join(' ');
-      var color = positive ? '#d24f45' : '#1261c4';
+      var hasReference = isFinite(Number(reference)) && reference != null;
+      var baseline = hasReference ? Number(reference) : key === 'kospiNight'
+        ? Number(chartRows[0].open) : values[values.length - 2];
+      if (!isFinite(baseline)) baseline = values[0];
+      var last = values[values.length - 1];
+      var dotColor = key === 'kospiNight' && !hasReference ? '#64748b'
+        : last > baseline ? '#d24f45' : last < baseline ? '#1261c4' : '#64748b';
       var lastY = height - pad - ((values[values.length - 1] - min) / range) * (height - pad * 2);
-      var gradientId = 'homeIndexFill' + String(key || 'index').replace(/[^A-Za-z0-9_-]/g, '') + (positive ? 'Up' : 'Down');
-      if (domesticMini) {
-        element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
-          + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline></svg>';
-        return;
-      }
+      var guideY = height - pad - ((baseline - min) / range) * (height - pad * 2);
+      guideY = Math.max(pad, Math.min(height - pad, guideY));
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none">'
-        + '<defs><linearGradient id="' + gradientId + '" x1="0" y1="0" x2="0" y2="1">'
-        + '<stop offset="0" stop-color="' + color + '" stop-opacity=".22"></stop>'
-        + '<stop offset="1" stop-color="' + color + '" stop-opacity=".01"></stop></linearGradient></defs>'
-        + '<polygon points="' + pad + ',' + height + ' ' + points + ' ' + (width - pad) + ',' + height + '" fill="url(#' + gradientId + ')"></polygon>'
-        // 빛 규칙(2026-10-03): 선 뒤 후광 + 마지막 값에만 빛나는 점(점은 HTML이라 늘어나는 SVG에서도 동그랗다).
-        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-opacity=".22" stroke-width="9" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
-        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+        + '<line x1="' + pad + '" x2="' + (width - pad) + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
+        + '<polyline points="' + points + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '</svg>'
-        + '<span class="home-glow-dot ' + (positive ? 'is-up' : 'is-down') + '" style="left:' + ((width - pad) / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%" aria-hidden="true"></span>';
+        + '<span class="home-glow-dot" style="left:' + ((width - pad) / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + '" aria-hidden="true"></span>';
     }
 
     function formatHomeTimestamp(value) {
@@ -1470,6 +1482,16 @@ document.documentElement.classList.add('skin-ready');
       });
     }
 
+    var homeNightMinuteRows = [];
+    function loadHomeNightMinutes() {
+      fetchHomeJson('https://goodbyestar.cloud/futures?interval=minute&symbols=KOSPI200_NIGHT', 12000)
+        .then(function (data) {
+          var item = (data && data.data || []).filter(function (row) { return row.symbol === 'KOSPI200_NIGHT'; })[0];
+          homeNightMinuteRows = nightSessionRows(item && item.chart);
+          if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
+        }).catch(function () { /* 기존에 확인한 마지막 세션 분봉을 유지한다. */ });
+    }
+
     function renderHomeIndices(items) {
       var session = homeMarketSession();
       applyHomeMarketSession(session);
@@ -1494,11 +1516,21 @@ document.documentElement.classList.add('skin-ready');
         var nText = (isFinite(nPrice) ? nPrice.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-')
           + (isFinite(nRate) ? ' ' + (nChange > 0 ? '▲' : nChange < 0 ? '▼' : '') + Math.abs(nRate).toFixed(2) + '%' : '');
         setField('nightFutures', nText, nTone);
-        // 주간(국내 시장) 쪽 코스피/코스닥 카드처럼 추이 그래프도 같이 보여준다(2026-08-13
-        // 사용자 리포트 - 텍스트만 있고 그래프가 빠져 있었음). renderHomeIndexChart는 SVG를
-        // preserveAspectRatio="none"으로 채우므로 컨테이너 CSS 크기만 다르면(style.css의
-        // .home-night-futures-chart) 그대로 재사용된다.
-        if (nightChartEl) { nightChartEl.hidden = false; renderHomeIndexChart(nightChartEl, nightItem.chart, nChange >= 0, 'kospiNight'); }
+        // 야간 차트에는 별도로 받은 실제 분봉만 사용한다. 마지막 세션은 장 종료 후에도
+        // 남기고, 다음 18:00 세션의 첫 분봉이 도착하면 그때 새 세션으로 교체한다.
+        if (nightChartEl) {
+          nightChartEl.hidden = false;
+          var sessionRows = nightSessionRows(homeNightMinuteRows);
+          var quoteTime = Date.parse(nightItem.updated_at || '') / 1000;
+          var sameSession = sessionRows.length && nightSessionKey(quoteTime) === nightSessionKey(sessionRows[0].ts);
+          // 분봉은 5분마다 수집된다. 그 사이에는 KIS 실시간 체결 시세(검증된
+          // updated_at과 price)가 마지막 분봉보다 새로울 때만 실제 한 점을 보탠다.
+          if (sameSession && isFinite(nPrice) && quoteTime > Number(sessionRows[sessionRows.length - 1].ts)) {
+            sessionRows.push({ ts: quoteTime, close: nPrice, open: nPrice });
+          }
+          var reference = sameSession && isFinite(nPrice) && isFinite(nChange) ? nPrice - nChange : null;
+          renderHomeIndexChart(nightChartEl, sessionRows, 'kospiNight', reference);
+        }
       } else {
         setField('nightFutures', '데이터 확인 중', 'home-neutral');
         if (nightChartEl) { nightChartEl.hidden = true; nightChartEl.innerHTML = ''; }
@@ -1518,7 +1550,7 @@ document.documentElement.classList.add('skin-ready');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
         if (statusEl) statusEl.textContent = item ? '· ' + (item.status || session.statusLabel || '장중') : '· 데이터 지연';
-        renderHomeIndexChart(chartEl, item && item.chart, change >= 0, key);
+        renderHomeIndexChart(chartEl, item && item.chart, key);
       });
     }
 
@@ -1551,10 +1583,12 @@ document.documentElement.classList.add('skin-ready');
     }
 
     loadHomeIndices();
+    loadHomeNightMinutes();
     loadHomeIndexBreadth();
     setInterval(function () {
       if (document.hidden) return;
       loadHomeIndices();
+      loadHomeNightMinutes();
       loadHomeIndexBreadth();
     }, 60 * 1000);
 

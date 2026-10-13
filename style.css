@@ -8278,8 +8278,8 @@ html body .footer-company-copy small { display:block; margin-top:8px; font-size:
 /* ── 22. 빛 규칙 점(2026-10-03): 홈 지수 카드 마지막 값 ── */
 .home-index-chart { position: relative; }
 .home-glow-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: rgb(255, 254, 252); border: 2px solid #64748b; pointer-events: none; }
-.home-glow-dot.is-up { border-color: #d24f45; box-shadow: 0 0 0 4px rgba(210, 79, 69, .16), 0 0 12px rgba(210, 79, 69, .5); }
-.home-glow-dot.is-down { border-color: #1261c4; box-shadow: 0 0 0 4px rgba(18, 97, 196, .16), 0 0 12px rgba(18, 97, 196, .5); }
+.home-glow-dot.is-up { border-color: #d24f45; }
+.home-glow-dot.is-down { border-color: #1261c4; }
 
 /* ── 23. Markets Closed 휴장 히어로 재디자인 (2026-10-03 사용자 요청) ──
       세로 구분선·큰 맨글자 대신: 둥근 유리 카드 안에 [자물쇠 타일 + 제목] 과 오른쪽 안내 카드. 마크업은 그대로. ── */
