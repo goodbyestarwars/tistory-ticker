@@ -11,6 +11,7 @@
 import json
 import os
 import secrets
+import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
@@ -20,6 +21,29 @@ TOKEN_PATH = os.path.join(HERE, '.token')
 RESEARCH_DIR = os.path.join(HERE, 'research')
 ALLOWED_ORIGINS = ('https://ghlee.tistory.com',)
 HOST, PORT = '127.0.0.1', int(os.environ.get('AUTOTRADER_PORT') or 8765)     # 환경변수는 테스트용(운영은 기본 8765)
+
+
+def live_snapshot(path=None):
+    """Read-only local order ledger; never exposes account identifiers or credentials."""
+    path = path or os.path.join(HERE, 'live_orders.db')
+    if not os.path.exists(path):
+        return {}, []
+    try:
+        db = sqlite3.connect(path, timeout=1)
+        db.row_factory = sqlite3.Row
+        try:
+            positions = {r['code']: dict(r) for r in db.execute(
+                "SELECT code,qty,state,floor_reached FROM positions WHERE state IN ('OPEN','PENDING')")}
+            intents = [dict(r) for r in db.execute(
+                'SELECT ts,code,side,qty,state,order_no FROM intents ORDER BY id DESC LIMIT 100')]
+        finally:
+            db.close()
+    except sqlite3.Error:
+        return {}, []
+    orders = [{'ts': r['ts'].replace('T', ' ')[:19], 'code': r['code'], 'qty': r['qty'],
+               'reason': r['side'], 'status': r['state'], 'ord_no': r['order_no'],
+               'detail': '실계좌 ' + ('매수' if r['side'] == 'BUY' else '매도') + ' 주문'} for r in intents]
+    return positions, orders
 
 
 def load_or_create_token():
@@ -141,9 +165,16 @@ def make_handler(bot, store, token):
             if url.path == '/api/watch':
                 return self._send(200, {'watch': store.watch_list()})
             if url.path == '/api/holdings':
-                return self._send(200, {'holdings': bot.holdings, 'updated': bot.last_poll})
+                positions, _ = live_snapshot()
+                holdings = [dict(h, live_managed=h['code'] in positions,
+                                 live_floor_reached=bool(positions.get(h['code'], {}).get('floor_reached')))
+                            for h in bot.holdings]
+                return self._send(200, {'holdings': holdings, 'updated': bot.last_poll})
             if url.path == '/api/orders':
-                return self._send(200, {'orders': store.orders(limit)})
+                _, live_orders = live_snapshot()
+                orders = store.orders(limit) + live_orders
+                orders.sort(key=lambda r: r['ts'], reverse=True)
+                return self._send(200, {'orders': orders[:limit]})
             if url.path == '/api/research':
                 return self._send(200, research_status())
             if url.path == '/api/events':

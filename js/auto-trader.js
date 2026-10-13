@@ -48,8 +48,8 @@
 
   var TYPE_LABEL = { SIGNAL: '신호', SELL_SENT: '매도 전송', POSITION_CLOSED: '보유 종료', SKIP: '건너뜀',
     ERROR: '오류', CRITICAL: '긴급', START: '시작', STOP: '정지', RESUME: '재개', WATCH_ADD: '감시 추가', WATCH_REMOVE: '감시 해제' };
-  var REASON_LABEL = { STOP: '손절', TP_CAP: '익절(상한)', TP_FLOOR: '익절(하한 이탈)' };
-  var ORDER_STATUS = { DRY: '기록만', SENT: '전송됨', ERROR: '실패' };
+  var REASON_LABEL = { STOP: '손절', TP_CAP: '익절(상한)', TP_FLOOR: '익절(하한 이탈)', BUY: '매수', SELL: '매도' };
+  var ORDER_STATUS = { DRY: '기록만', SENT: '전송됨', ACK: '전송됨 · 체결 확인 전', UNKNOWN: '확인 필요', ERROR: '실패' };
 
   function shellDisconnected(message) {
     root.innerHTML = '<section class="at-card at-connect"><h2>자동매매</h2>'
@@ -90,12 +90,12 @@
     holdings.forEach(function (h) { value += (h.price || 0) * (h.qty || 0); cost += (h.avg || 0) * (h.qty || 0); });
     var pnl = value - cost;
     var rate = cost > 0 ? pnl / cost * 100 : null;
-    var managed = holdings.filter(function (h) { return h.watched; }).length;
+    var managed = holdings.filter(function (h) { return h.watched || h.live_managed; }).length;
     function cell(label, val, sub, cls) { return '<div><small>' + label + '</small><b' + (cls ? ' class="' + cls + '"' : '') + '>' + val + '</b><i>' + (sub || '') + '</i></div>'; }
     return '<section class="at-kpi">'
       + cell('보유 종목', holdings.length + '개', '자동 관리 ' + managed + '개')
       + cell('보유 평가금액', holdings.length ? fmtWon(value) : '-', 'KRW')
-      + cell('평가손익', holdings.length ? signed(pnl) : '-', rate == null ? '' : pct(rate), holdings.length ? tone(pnl) : '')
+      + cell('평가손익(비용 제외)', holdings.length ? signed(pnl) : '-', rate == null ? '' : pct(rate), holdings.length ? tone(pnl) : '')
       + cell('감시 종목', s.watch_count + '개', '손절·익절 대상')
       + cell('오늘 매도 주문', s.sells_today + ' / ' + s.max_sells_per_day, '일 한도')
       + cell('실주문', s.live_active ? '가동 중' : '비활성', 'PC 실행본 상태')
@@ -132,17 +132,17 @@
 
   function holdingsHtml(list) {
     if (!list.length) return '<p class="at-empty">잔고에 보유 종목이 없거나 아직 장 시간 조회 전입니다.</p>';
-    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">수량</th><th class="n">매입가</th><th class="n">현재가</th><th class="n">수익률</th><th class="n">최고 수익률</th><th>자동 관리</th></tr></thead><tbody>'
+    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>종목</th><th class="n">수량</th><th class="n">매입가</th><th class="n">현재가</th><th class="n">평가 수익률(비용 제외)</th><th>익절 상태</th><th>자동 관리</th></tr></thead><tbody>'
       + list.map(function (h) {
         return '<tr><td>' + esc(h.name || '') + ' <code>' + esc(h.code) + '</code></td><td class="n">' + esc(h.qty) + '</td><td class="n">' + fmtPrice(h.avg) + '</td>'
-          + '<td class="n">' + fmtPrice(h.price) + '</td><td class="n ' + tone(h.gain) + '">' + pct(h.gain) + '</td><td class="n">' + pct(h.peak) + '</td>'
-          + '<td>' + (h.watched ? '감시 중' : '<span class="at-mute">감시 안 함(건드리지 않음)</span>') + '</td></tr>';
+          + '<td class="n">' + fmtPrice(h.price) + '</td><td class="n ' + tone(h.gain) + '">' + pct(h.gain) + '</td><td>' + (h.live_managed ? (h.live_floor_reached ? '+3% 도달' : '+3% 미도달') : pct(h.peak)) + '</td>'
+          + '<td>' + (h.live_managed ? '실계좌 엔진 관리' : h.watched ? '기존 감시' : '<span class="at-mute">관리 안 함</span>') + '</td></tr>';
       }).join('') + '</tbody></table></div>';
   }
 
   function ordersHtml(rows) {
     rows = rows.filter(function (o) { return o.status !== 'DRY'; });
-    if (!rows.length) return '<p class="at-empty">아직 매도 주문 기록이 없습니다.</p>';
+    if (!rows.length) return '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
     return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th class="n">수량</th><th>사유</th><th>상태</th><th>내용</th></tr></thead><tbody>'
       + rows.map(function (o) {
         return '<tr><td>' + esc(o.ts) + '</td><td>' + esc(o.code) + '</td><td class="n">' + esc(o.qty) + '</td><td>' + esc(REASON_LABEL[o.reason] || o.reason) + '</td>'
@@ -168,7 +168,7 @@
     root.innerHTML = topbarHtml(d.status) + kpiHtml(d.status, d.holdings)
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 30초마다 갱신 · 수동 보유 종목은 건드리지 않음</span></div>' + holdingsHtml(d.holdings) + '</section>'
-      + '<section class="at-box"><div class="at-hd"><h3>매도 주문 기록</h3><span>접수·체결은 별도 확인</span></div>' + ordersHtml(d.orders) + '</section>'
+      + '<section class="at-box"><div class="at-hd"><h3>실계좌 주문 기록</h3><span>전송과 실제 체결은 구분</span></div>' + ordersHtml(d.orders) + '</section>'
       + eventsHtml(d.events)
       + '</div><div class="at-col">' + watchHtml(d.watch) + ruleHtml(d.status) + '</div></div>';
     root.querySelector('[data-toggle]').addEventListener('click', function () {
