@@ -181,7 +181,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `investor_flow.py` | 389 | 공매도/대차/연기금+반대매매 압박 지표 | `fetch_stock`, `short_pressure_score`, `pension_streak` |
 | `foreign_flow_compute.py` | 128 | 수급 표 rolling/streak/signal 순수 계산 | `rolling_sum`, `build_result` |
 | `domestic_futures.py` | 278 | 코스피/코스닥/코스피200주간선물/환율(네이버) | `refresh_realtime_all`, `refresh_minute_all` |
-| `foreign_futures.py` | 155 | 나스닥100/S&P500/다우/SOX/VIX/WTI/GOLD(네이버) | `refresh_realtime_all` |
+| `foreign_futures.py` | 가변 | 나스닥100/S&P500/다우/SOX/VIX/WTI/GOLD(네이버), BRENT(KIS ICE) | `refresh_realtime_all` |
+| `commodity_kis.py` | 가변 | 공식 상품 마스터의 ICE 브렌트유 근월물·현재가·일봉·스테일 검증 | `front_brent_code`, `fetch_price`, `fetch_daily` |
 | `btc_futures.py` | 156 | BTC/ETH(업비트) | `fetch_ticker`, `refresh_realtime` |
 | `bond_yield.py` | 200 | 국고채3년(네이버)+미국채·미국 거시지표(FRED) | `fetch_fred_series`, `refresh_fred_all` |
 | `option_flow.py` | 88 | 코스피200 옵션 콜/풋 수급 집계 | `refresh_option_flow` |

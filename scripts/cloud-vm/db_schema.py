@@ -81,6 +81,11 @@ CREATE TABLE IF NOT EXISTS future_prices (
     updated_at TEXT
 );
 
+CREATE TABLE IF NOT EXISTS future_contracts (
+    symbol TEXT PRIMARY KEY,
+    contract_code TEXT NOT NULL
+);
+
 -- 콜/풋 옵션 수급 요약(전체 만기 합산이 아니라 최근월물 기준 1행씩) - 종목별이 아니라
 -- side(CALL/PUT) 단위 집계만 저장. 상세 행사가별 데이터는 저장하지 않는다(온디맨드 집계만 필요).
   CREATE TABLE IF NOT EXISTS option_flow (
@@ -837,6 +842,27 @@ def upsert_investor_flow_daily(conn, code, flow_rows):
         [(code, r['date'], r['close'], r['change_pct'], r.get('ind_net'), r['foreign_net'], r['inst_net'])
          for r in flow_rows],
     )
+
+
+def set_future_contract(conn, symbol, contract_code):
+    """월물 교체 시 이전 월물 일봉을 보이지 않게 한다."""
+    conn.execute('CREATE TABLE IF NOT EXISTS future_contracts ('
+                 'symbol TEXT PRIMARY KEY, contract_code TEXT NOT NULL)')
+    previous = conn.execute('SELECT contract_code FROM future_contracts WHERE symbol=?', (symbol,)).fetchone()
+    if previous and previous[0] != contract_code:
+        conn.execute('DELETE FROM future_chart WHERE symbol=?', (symbol,))
+    conn.execute('INSERT INTO future_contracts (symbol, contract_code) VALUES (?, ?) '
+                 'ON CONFLICT(symbol) DO UPDATE SET contract_code=excluded.contract_code',
+                 (symbol, contract_code))
+    conn.commit()
+
+
+def load_future_contract(conn, symbol):
+    try:
+        row = conn.execute('SELECT contract_code FROM future_contracts WHERE symbol=?', (symbol,)).fetchone()
+    except Exception:
+        return None
+    return row[0] if row else None
 
 
 def upsert_future_price(conn, symbol, name, price, change, change_rate, high, low, updated_at, oi=None, oi_change=None):
