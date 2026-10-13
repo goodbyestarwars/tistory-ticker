@@ -77,6 +77,7 @@
     trades: [],          // REST 2초 표본. 실시간 개별 체결과 합치지 않는다.
     liveTrades: [],      // KIS WebSocket에서 실제 수신한 개별 체결(최대 20건)
     lastLiveTradeDate: null,
+    liveTradeProvider: null,
     tradeFeedStatus: 'REST 표본만 수신 중',
     tradeRenderTimer: null,
     startTime: null,
@@ -267,6 +268,7 @@
     state.trades = [];
     state.liveTrades = [];
     state.lastLiveTradeDate = null;
+    state.liveTradeProvider = null;
     state.tradeFeedStatus = '실시간 연결 확인 중';
     clearTimeout(state.tradeRenderTimer);
     state.tradeRenderTimer = null;
@@ -393,11 +395,19 @@
     if (typeof quote.price !== 'number') return;
     state.lastBase = quote.price;
     if (quote.delayed) state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
-    else if (quote.source === 'Kiwoom WebSocket') state.tradeFeedStatus = '키움 시세 수신 · 개별 체결 없음';
-    if (quote.trade && quote.source === 'KIS WebSocket' && !quote.delayed) {
-      recordLiveTrade(quote.trade);
-      state.tradeFeedStatus = 'KIS 실시간 수신';
-      scheduleTradeRender(container);
+    else if (quote.source === 'Kiwoom WebSocket') state.tradeFeedStatus = '키움 실시간 수신';
+    if (quote.trade && !quote.delayed && (quote.source === 'KIS WebSocket' || quote.source === 'Kiwoom WebSocket')) {
+      var provider = quote.source === 'Kiwoom WebSocket' ? 'Kiwoom' : 'KIS';
+      if (provider === 'Kiwoom' && state.liveTradeProvider !== 'Kiwoom') {
+        state.liveTrades = [];
+        state.lastLiveTradeDate = null;
+      }
+      if (provider === 'Kiwoom' || state.liveTradeProvider !== 'Kiwoom') {
+        state.liveTradeProvider = provider;
+        recordLiveTrade(quote.trade);
+        state.tradeFeedStatus = provider === 'Kiwoom' ? '키움 실시간 체결 수신' : 'KIS 실시간 수신 · 키움 대기';
+        scheduleTradeRender(container);
+      }
     }
     if (quote.delayed || quote.source === 'Kiwoom WebSocket') scheduleTradeRender(container);
     recordWallExec(quote);
@@ -1355,8 +1365,10 @@
         + '</div>';
     }).join('');
     var note = live
-      ? 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ' + state.tradeFeedStatus
-        + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
+      ? (state.liveTradeProvider === 'Kiwoom'
+          ? '키움 0B 개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
+          : 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
+        + state.tradeFeedStatus + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
       : 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus;
     return '<div class="ob-trades">'
       + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(' + note + ')</span></div>'
