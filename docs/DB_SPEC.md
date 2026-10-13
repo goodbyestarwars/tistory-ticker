@@ -216,7 +216,7 @@ UPSERT: `upsert_future_price()`(`db_schema.py:223-234`), `ON CONFLICT(symbol) DO
 | future_chart | (symbol, date) | open/high/low/close |
 | future_chart_minute | (symbol, ts) | open/high/low/close (ts=UTC epoch초) |
 
-`load_future_chart(limit_days)`는 행 개수 제한, `load_future_chart_since(since_date)`는 날짜 하한 필터 — 심볼마다 거래일 밀도가 달라(채권 주5일 vs BTC 주7일) "N일치"의 의미가 달라지는 문제(2026-07-18 발견)를 `/futures/avg`에서 회피하기 위해 후자를 쓴다. `load_future_chart_minute`은 최근 1,500봉(대략 3~4거래일)만 반환.
+`load_future_chart(limit_days)`는 행 개수 제한, `load_future_chart_since(since_date)`는 날짜 하한 필터 — 심볼마다 거래일 밀도가 달라(채권 주5일 vs BTC 주7일) "N일치"의 의미가 달라지는 문제(2026-07-18 발견)를 `/futures/avg`에서 회피하기 위해 후자를 쓴다. `load_future_chart_minute`은 최근 1,500봉(대략 3~4거래일)만 반환. `future_contracts(symbol,contract_code)`는 KIS 브렌트유의 현재 월물을 기록하고 월물 변경 때 이전 일봉을 분리하는 데 사용한다.
 
 ### 2.8 `kis_flow_cache` — KIS 종목별 투자자매매동향 온디맨드 캐시
 

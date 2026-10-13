@@ -153,6 +153,7 @@
     VIX: 'VIX(변동성지수)',
     WTI: 'WTI 원유',
     GOLD: '금 선물',
+    BRENT: '브렌트유 선물',
     USDKRW: '원/달러 환율',
     KTB3Y: '국고채 3년물 금리',
     US10Y: '미국 국채 10년물 금리',
@@ -183,7 +184,7 @@
     // 무료 일별 데이터 소스를 못 찾아 보류(scripts/cloud-vm/bond_yield.py 상단 주석 참고).
     { key: 'bond', label: '채권', direction: -1, listIndividually: true,
       symbols: ['US10Y', 'US2Y', 'US30Y', 'KTB3Y'] },
-    { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'GOLD'] },
+    { key: 'energy', label: '에너지·원자재', direction: 0, symbols: ['WTI', 'BRENT', 'GOLD'] },
     // 2026-07-18: 이더리움 추가(사용자 요청) - BTC와 가격 규모가 크게 달라(BTC 억 단위 vs
     // ETH 백만 단위) 평균으로 뭉뚱그리면 의미가 없어서 listIndividually:true.
     { key: 'crypto', label: '가상자산', direction: 1, listIndividually: true, symbols: ['BTC', 'ETH'] }
@@ -366,7 +367,7 @@
     { key: '1y', label: '1년', days: 366 }, { key: '5y', label: '5년', days: 1830 }
   ];
   // 이름 옆에 작게 붙이는 약칭. 선물·지수처럼 약칭이 불분명한 것은 비워 둔다.
-  var BOARD_CODES = { VIX: 'VIX', USDKRW: 'USD/KRW', WTI: 'WTI', GOLD: 'GOLD', SOX: 'SOX', US10Y: 'US10Y', US2Y: 'US2Y', US30Y: 'US30Y', KTB3Y: 'KTB3Y' };
+  var BOARD_CODES = { VIX: 'VIX', USDKRW: 'USD/KRW', WTI: 'WTI', BRENT: 'BRENT', GOLD: 'GOLD', SOX: 'SOX', US10Y: 'US10Y', US2Y: 'US2Y', US30Y: 'US30Y', KTB3Y: 'KTB3Y' };
 
   function ensureBoardModule() {
     if (global.IndicatorBoard) return Promise.resolve();
@@ -422,6 +423,12 @@
     var note = BENCHMARK_NOTE[symbol]
       ? '<div class="ibd-ln">' + escapeHtml(BENCHMARK_NOTE[symbol]) + '</div><div class="ibd-ln"><small>평균은 선택한 기간의 종가 평균이며, 객관적인 "적정 수준"이 아니라 실측 평균 참고선입니다.</small></div>'
       : '';
+    if (item.source) {
+      note += '<div class="ibd-ln"><small>출처: ' + escapeHtml(item.source)
+        + (item.contract_code ? ' · 월물 ' + escapeHtml(item.contract_code) : '')
+        + ' · 시세 지연 여부 ' + escapeHtml(item.source_delay || '미확인')
+        + (item.stale ? ' · 최근 체결 시각 초과' : '') + '</small></div>';
+    }
     return {
       id: symbol, group: cat.key, name: LABELS[symbol], code: BOARD_CODES[symbol] || '',
       loading: !!item._loading,
@@ -430,7 +437,7 @@
         { t: arrow + (isFinite(Number(item.change)) ? fmtPrice(Math.abs(Number(item.change)), meta.digits) + meta.changeUnit : '-'), tone: t },
         { t: isFinite(rate) ? fmtSigned(rate, 2) + '%' : '-', tone: t },
         { t: amount(high) }, { t: amount(low) }
-      ] : [{ t: item._loading ? '확인 중' : '데이터 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
+      ] : [{ t: item._loading ? '확인 중' : item.stale ? '시세 지연' : '데이터 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
       series: hasPrice || (item.chart && item.chart.length) ? boardSeries(symbol, item) : [],
       fmt: function (v) { return fmtPrice(v, meta.digits) + meta.unit; },
       axisFmt: function (v) { return fmtPrice(v, Math.abs(v) >= 1000 ? 0 : meta.digits) + (meta.unit || ''); },

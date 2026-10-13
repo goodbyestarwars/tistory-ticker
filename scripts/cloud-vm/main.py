@@ -388,7 +388,7 @@ _FUTURES_TTL = 30
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'raw':.., 'gzip':.., 'data':..}
 _MARKET_INDICATOR_SYMBOLS = {
     'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX',
-    'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD',
+    'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD', 'BRENT',
     'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE', 'US_PPI', 'US_REAL_GDP_GROWTH',
     'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT', 'US_JOB_OPENINGS', 'US_RETAIL_SALES',
     'US_CONSUMER_SENTIMENT',
@@ -1578,16 +1578,30 @@ def _market_indicator_snapshot(symbols):
     conn = db_schema.get_conn()
     try:
         latest = {row['symbol']: row for row in db_schema.load_all_future_prices(conn)}
+        brent_contract = db_schema.load_future_contract(conn, 'BRENT') if 'BRENT' in wanted else None
     finally:
         conn.close()
+    brent_stale = True
+    brent = latest.get('BRENT')
+    if brent:
+        try:
+            brent_stale = (datetime.now(timezone.utc) - datetime.fromisoformat(
+                str(brent['updated_at']).replace('Z', '+00:00'))).total_seconds() > 20 * 60
+        except (TypeError, ValueError):
+            pass
     return [
         {
             'symbol': symbol,
             'name': (latest.get(symbol) or {}).get('name'),
-            'price': (latest.get(symbol) or {}).get('price'),
-            'change': (latest.get(symbol) or {}).get('change'),
-            'change_rate': (latest.get(symbol) or {}).get('change_rate'),
+            'price': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('price'),
+            'change': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('change'),
+            'change_rate': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('change_rate'),
             'updated_at': (latest.get(symbol) or {}).get('updated_at'),
+            'source': {'WTI': 'Naver 비공식 선물 시세', 'GOLD': 'Naver 비공식 선물 시세',
+                       'BRENT': 'KIS 공식 해외선물 시세'}.get(symbol),
+            'source_delay': '미확인' if symbol in ('WTI', 'GOLD', 'BRENT') else None,
+            'contract_code': brent_contract if symbol == 'BRENT' else None,
+            'stale': brent_stale if symbol == 'BRENT' else False,
         }
         for symbol in sorted(wanted)
     ]
@@ -2952,7 +2966,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
         # 주의: 새 심볼을 수집기(foreign_futures.SYMBOLS 등)에 추가하면 이 목록에도 같이
         # 넣어야 응답에 실린다(2026-07-17 GOLD 추가 때 빠뜨려서 한 번 헛배포함).
         order = ['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'NASDAQ100', 'SP500', 'DOW',
-                 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'USDKRW',
+                 'KOSPI200_DAY', 'KOSPI200_NIGHT', 'SOX', 'VIX', 'WTI', 'GOLD', 'BRENT', 'USDKRW',
                  'KTB3Y', 'US10Y', 'US2Y', 'US30Y', 'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE',
                  'US_PPI', 'US_REAL_GDP_GROWTH', 'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT',
                  'US_JOB_OPENINGS', 'US_RETAIL_SALES', 'US_CONSUMER_SENTIMENT', 'BTC', 'ETH', 'USDT']
@@ -3028,14 +3042,28 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 quote.setdefault('low', None)
                 quote.setdefault('updated_at', None)
                 p = quote
+            commodity_source = {'WTI': 'Naver 비공식 선물 시세', 'GOLD': 'Naver 비공식 선물 시세',
+                                'BRENT': 'KIS 공식 해외선물 시세'}.get(symbol)
+            contract_code = db_schema.load_future_contract(conn, symbol) if symbol == 'BRENT' else None
+            stale = False
+            if symbol == 'BRENT' and p:
+                try:
+                    quote_time = datetime.fromisoformat(str(p['updated_at']).replace('Z', '+00:00'))
+                    stale = (datetime.now(timezone.utc) - quote_time).total_seconds() > 20 * 60
+                except (TypeError, ValueError):
+                    stale = True
             result.append({
                 'symbol': symbol,
                 'name': p['name'] if p else None,
-                'price': p['price'] if p else None,
-                'change': p['change'] if p else None,
-                'change_rate': p['change_rate'] if p else None,
-                'high': p['high'] if p else None,
-                'low': p['low'] if p else None,
+                'price': p['price'] if p and not stale else None,
+                'change': p['change'] if p and not stale else None,
+                'change_rate': p['change_rate'] if p and not stale else None,
+                'high': p['high'] if p and not stale else None,
+                'low': p['low'] if p and not stale else None,
+                'source': commodity_source,
+                'source_delay': '미확인' if commodity_source else None,
+                'contract_code': contract_code,
+                'stale': stale,
                 'high_low_scope': p.get('high_low_scope') if p else None,
                 'updated_at': p['updated_at'] if p else None,
                 'oi': p['oi'] if p else None,

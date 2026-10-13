@@ -132,7 +132,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 
 | Endpoint | 인증 | 캐시/갱신 | 비고 |
 |---|---|---|---|
-| `/futures?interval=day&days=90` | 없음 | SQLite 폴러 읽기 | 국내·미국 지수, 환율, 채권, 원자재, BTC/ETH |
+| `/futures?interval=day&days=90` | 없음 | SQLite 폴러 읽기 | 국내·미국 지수, 환율, 채권, 원자재, BTC/ETH. WTI·금은 Naver, 브렌트유는 KIS ICE. 원자재 행의 `source`,`source_delay`,`contract_code`,`stale` 참고 (`COMMODITY_SOURCES.md`) |
 | `/futures/avg?symbol=BTC&days=365` | 없음 | 즉시 계산 | 지정 심볼 장기 평균·고저 |
 | `/option-flow` | 없음 | 5분 폴러 | 콜·풋 옵션 수급 |
 | `/kofia-market?days=30` | 없음 | VM 캐시 | 신용융자·예탁금·반대매매 보조지표 |

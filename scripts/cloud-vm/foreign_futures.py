@@ -19,6 +19,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 import db_schema
+import commodity_kis
 
 logger = logging.getLogger('foreign_futures')
 
@@ -112,6 +113,18 @@ def refresh_realtime_all():
                 conn, sym['key'], sym['name'], q['price'], q['change'], q['change_rate'],
                 q['high'], q['low'], now_iso,
             )
+        # ICE 브렌트유만 KIS 시세/일봉 권한과 값을 운영 계정으로 실측 확인했다.
+        # 다른 원자재는 거래소 시세 권한이 없어 기존 경로를 그대로 둔다.
+        try:
+            code = commodity_kis.front_brent_code()
+            quote = commodity_kis.fetch_price(code) if code else None
+            if quote:
+                db_schema.set_future_contract(conn, 'BRENT', code)
+                db_schema.upsert_future_price(conn, 'BRENT', '브렌트유 선물',
+                    quote['price'], quote['change'], quote['change_rate'],
+                    quote['high'], quote['low'], quote['observed_at'])
+        except Exception:
+            logger.exception('KIS Brent quote unavailable')
     finally:
         conn.close()
 
@@ -128,6 +141,14 @@ def refresh_history_all():
             if rows:
                 db_schema.upsert_future_chart_rows(conn, sym['key'], rows)
                 logger.info('foreign futures history refreshed: %s %d rows', sym['key'], len(rows))
+        try:
+            code = commodity_kis.front_brent_code()
+            rows = commodity_kis.fetch_daily(code) if code else []
+            if rows:
+                db_schema.set_future_contract(conn, 'BRENT', code)
+                db_schema.upsert_future_chart_rows(conn, 'BRENT', rows)
+        except Exception:
+            logger.exception('KIS Brent daily chart unavailable')
     finally:
         conn.close()
 
