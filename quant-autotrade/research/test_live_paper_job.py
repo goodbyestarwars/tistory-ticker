@@ -43,6 +43,9 @@ class DayLoop(Base):
         self.assertEqual(st['orderApi'], 'none')
         self.assertEqual(set(st['accounts']), set(lp.STRATEGIES))
         self.assertTrue(st['trades'] and st['positions'])
+        self.assertTrue(all(p['balanceAfterBuy'] is not None for p in st['positions']))
+        self.assertTrue(all(t['balanceAfterBuy'] is not None and t['balanceAfterSell'] is not None for t in st['trades']))
+        self.assertTrue(all(t['scanDate'] for t in st['trades']))
         # 같은 날 다시 켜도(재시작) 새 매수·중복 EOD 없음
         n_pos = self.count('SELECT COUNT(*) FROM lp_positions')
         clock['t'] = datetime(2026, 10, 12, 15, 46, tzinfo=KST)
