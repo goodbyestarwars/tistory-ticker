@@ -396,6 +396,13 @@ document.documentElement.classList.add('skin-ready');
        불러오는 중일 수 있는데, 여기서 같은 파일을 또 넣으면 모듈 IIFE가 두 번 돈다. */
     function ensureScript(tab) {
       if (tab.key === 'investor' && window.DomesticMarketIndicators) return false;
+      if (tab.key === 'investor') {
+        var pending = document.querySelector('script[data-mi-script="investor"], script[src*="/js/domestic-market-indicators.js"]');
+        if (pending) {
+          pending.addEventListener('load', function () { activate('investor', true); }, { once: true });
+          return true;
+        }
+      }
       if (document.querySelector('script[data-mi-script="' + tab.key + '"]')) return;
       var expectedSrc = tab.script;
       var existing = Array.prototype.slice.call(document.querySelectorAll('script[src*="/js/' + tab.slug + '.js"]'));
