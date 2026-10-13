@@ -1,4 +1,6 @@
 import os
+import hashlib
+import json
 import tempfile
 import unittest
 from datetime import datetime, timedelta, timezone
@@ -67,6 +69,23 @@ class LiveEngineTests(unittest.TestCase):
                 result = trade_once(broker, ledger, [], lambda _: [], folder, datetime(2026, 10, 14, 9, 15, tzinfo=KST))
             self.assertEqual(result, 'DISABLED_OR_UNCERTAIN')
             self.assertEqual(broker.calls, [])
+
+    def test_approval_is_bound_to_date_account_and_production(self):
+        with tempfile.TemporaryDirectory() as folder:
+            now = datetime(2026, 10, 14, 9, tzinfo=KST)
+            path = os.path.join(folder, 'LIVE_TRADING_APPROVAL')
+            with open(path, 'w', encoding='utf-8') as f:
+                json.dump({'date': '2026-10-14',
+                           'account_sha256': hashlib.sha256(b'test-account').hexdigest()}, f)
+            with patch.dict(os.environ, {'LIVE_TRADING': '1', 'KIWOOM_BASE_URL': 'https://api.kiwoom.com'}):
+                self.assertTrue(approval_ok(folder, ['test-account'], now))
+                self.assertFalse(approval_ok(folder, ['other-account'], now))
+                self.assertFalse(approval_ok(folder, ['test-account', 'other-account'], now))
+                self.assertFalse(approval_ok(folder, ['test-account'], now + timedelta(days=1)))
+            with patch.dict(os.environ, {'LIVE_TRADING': '0', 'KIWOOM_BASE_URL': 'https://api.kiwoom.com'}):
+                self.assertFalse(approval_ok(folder, ['test-account'], now))
+            with patch.dict(os.environ, {'LIVE_TRADING': '1', 'KIWOOM_BASE_URL': 'https://mockapi.kiwoom.com'}):
+                self.assertFalse(approval_ok(folder, ['test-account'], now))
 
     def test_budget_and_duplicate_safeguards(self):
         with tempfile.TemporaryDirectory() as folder:
