@@ -8577,9 +8577,3 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body .sidebar-left .nav-primary-item.nav-item-end { position: absolute !important; right: 16px !important; top: 50% !important; transform: translateY(-50%) !important; }
   }
 }
-
-/* 경제 종합뉴스 영역: 제목·부제·뉴스 목록을 MaruBuri로 통일 (2026-10-13). */
-html body .home-economic-news,
-html body .home-economic-news * {
-  font-family: var(--font-title) !important;
-}
