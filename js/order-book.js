@@ -395,7 +395,7 @@
     if (typeof quote.price !== 'number') return;
     state.lastBase = quote.price;
     if (quote.delayed) state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
-    else if (quote.source === 'Kiwoom WebSocket') state.tradeFeedStatus = '키움 실시간 수신';
+    else if (quote.source === 'Kiwoom WebSocket' && state.liveTradeProvider !== 'Kiwoom') state.tradeFeedStatus = '키움 실시간 수신';
     if (quote.trade && !quote.delayed && (quote.source === 'KIS WebSocket' || quote.source === 'Kiwoom WebSocket')) {
       var provider = quote.source === 'Kiwoom WebSocket' ? 'Kiwoom' : 'KIS';
       if (provider === 'Kiwoom' && state.liveTradeProvider !== 'Kiwoom') {
@@ -409,6 +409,7 @@
         scheduleTradeRender(container);
       }
     }
+    if (state.liveTradeProvider === 'Kiwoom') state.tradeFeedStatus = '키움 실시간 체결 수신';
     if (quote.delayed || quote.source === 'Kiwoom WebSocket') scheduleTradeRender(container);
     recordWallExec(quote);
     state.lastRealtimeQuote = quote;
