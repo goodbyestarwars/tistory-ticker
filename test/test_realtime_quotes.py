@@ -41,7 +41,22 @@ class RealtimeQuotesTests(unittest.TestCase):
             'volume': 1234567.0,
             'exchange': '2',
             'marketSession': '1',
+            'source': 'Kiwoom WebSocket',
         }])
+
+    def test_kiwoom_signed_trade_direction(self):
+        def frame(qty):
+            return {'trnm': 'REAL', 'data': [{'item': '035420_AL', 'type': '0B',
+                'values': {'10': '-176100', '11': '-900', '12': '-0.51',
+                           '20': '093456', '15': qty, '9081': '1'}}]}
+        buy = realtime_quotes._quote_events(frame('+136'))[0]
+        sell = realtime_quotes._quote_events(frame('-3'))[0]
+        unsigned = realtime_quotes._quote_events(frame('7'))[0]
+        self.assertEqual((buy['trade']['direction'], buy['trade']['qty']), ('buy', 136.0))
+        self.assertEqual((sell['trade']['direction'], sell['trade']['qty']), ('sell', 3.0))
+        self.assertEqual(unsigned['trade']['direction'], 'unknown')
+        self.assertEqual(buy['source'], 'Kiwoom WebSocket')
+        self.assertNotIn('trade', realtime_quotes._quote_events(frame('0'))[0])
 
     def test_accepts_single_data_row_and_named_values(self):
         events = realtime_quotes._quote_events({
