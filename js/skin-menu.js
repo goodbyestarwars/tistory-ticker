@@ -49,7 +49,8 @@
       label: '투자도구',
       children: [
         { href: '/page/stock-search?tool=independent-chart', label: '독립 차트' },
-        { href: '#averaging-calculator', label: '물타기 계산기', tool: 'averaging' }
+        { href: '#averaging-calculator', label: '물타기 계산기', tool: 'averaging' },
+        { href: '#nasdaq-fx-calculator', label: '미국주식 환율 계산기', tool: 'nasdaqFx' }
       ]
     },
     { href: '/page/stock-calendar', label: '캘린더' },
@@ -89,6 +90,7 @@
     valuation: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h2M14 18h2"/>',
     independentChart: '<path d="M4 19V5h16v14z"/><path d="M7 15l3-4 3 2 4-6"/>',
     averaging: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h3M14 15h2M8 18h3M14 18h2"/>',
+    nasdaqFx: '<circle cx="9" cy="9" r="5"/><path d="M7 9h4M9 7v4M14 15h5M16.5 12.5v5"/><path d="M4 20h16"/>',
     dot: '<circle cx="12" cy="12" r="3"/>'
   };
 
@@ -101,6 +103,7 @@
     if (href.indexOf('foreign-flow') !== -1) return 'analysis';
     if (href.indexOf('/dcf') !== -1) return 'valuation';
     if (item.tool === 'averaging') return 'averaging';
+    if (item.tool === 'nasdaqFx') return 'nasdaqFx';
     if (item.label === '독립 차트') return 'independentChart';
     if (href.indexOf('pattern-scan') !== -1) return 'pattern';
     if (href.indexOf('strategy-search') !== -1) return 'strategy';
@@ -321,20 +324,25 @@
   }
 
   function openInvestmentTool(tool) {
-    if (tool !== 'averaging') return;
-    if (window.NineInvestTools && window.NineInvestTools.openAveraging) {
-      window.NineInvestTools.openAveraging();
+    if (tool !== 'averaging' && tool !== 'nasdaqFx') return;
+    var open = function () {
+      if (!window.NineInvestTools) return;
+      if (tool === 'averaging' && window.NineInvestTools.openAveraging) window.NineInvestTools.openAveraging();
+      if (tool === 'nasdaqFx' && window.NineInvestTools.openNasdaqFx) window.NineInvestTools.openNasdaqFx();
+    };
+    if (window.NineInvestTools) {
+      open();
       return;
     }
     var existing = document.querySelector('script[data-invest-tools]');
     if (existing) {
-      existing.addEventListener('load', function () { if (window.NineInvestTools) window.NineInvestTools.openAveraging(); }, { once: true });
+      existing.addEventListener('load', open, { once: true });
       return;
     }
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools2';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261013-tools3';
     script.setAttribute('data-invest-tools', '1');
-    script.onload = function () { if (window.NineInvestTools) window.NineInvestTools.openAveraging(); };
+    script.onload = open;
     document.body.appendChild(script);
   }
 

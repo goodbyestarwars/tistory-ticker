@@ -148,6 +148,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("{ href: '/page/stock-search?tool=independent-chart', label: '독립 차트' }", source)
         self.assertIn("query.get('tool') === 'independent-chart'", source)
         self.assertIn("label: '물타기 계산기', tool: 'averaging'", source)
+        self.assertIn("label: '미국주식 환율 계산기', tool: 'nasdaqFx'", source)
         self.assertIn("data-invest-tool", source)
         chart = self.read("js/stock-search.js")
         chart_style = self.read("css/stock-search.css")

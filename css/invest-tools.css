@@ -27,6 +27,12 @@
 .it-results strong { font-size: 20px; font-variant-numeric: tabular-nums; }
 .it-results .it-primary strong { color: #234b32; font-size: 30px; }
 .it-note { margin-top: 15px; }
+.it-rate-status { margin:-6px 0 18px; padding:10px 13px; border-radius:10px; background:#eef5ff; color:#315577; font-size:12px; font-weight:700; line-height:1.5; }
+.it-input-unit { position:relative; display:block; }
+.it-input-unit input { padding-right:42px; }
+.it-input-unit i { position:absolute; right:14px; top:50%; transform:translateY(-50%); color:#687482; font-size:13px; font-style:normal; font-weight:800; pointer-events:none; }
+.it-field-help { margin:10px 0 0; color:#687482; font-size:12px; line-height:1.5; }
+html.dark .it-rate-status { background:#1e2c39; color:#a9cceb; }
 html.dark .it-modal { border-color: #343b43; background: #1a1a1a; color: #f5efe0; }
 html.dark .it-input-grid input { border-color: #454d56; background: #242424; color: #f5efe0; }
 html.dark .it-add-row { border-color: #353c44; background: #202321; }

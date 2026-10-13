@@ -33,6 +33,31 @@
     };
   }
 
+  function calculateNasdaqFx(krwBudget, marketRate, spreadPct, stockPrice, commissionPct) {
+    var krw = Number(krwBudget), rate = Number(marketRate), spread = Number(spreadPct || 0);
+    var price = Number(stockPrice), commission = Number(commissionPct || 0);
+    if (![krw, rate, spread, price, commission].every(Number.isFinite)
+        || krw <= 0 || rate <= 0 || price <= 0 || spread < 0 || commission < 0) return null;
+    var effectiveRate = rate * (1 + spread / 100);
+    var availableUsd = krw / effectiveRate;
+    var perShareUsd = price * (1 + commission / 100);
+    var shares = Math.floor(availableUsd / perShareUsd);
+    var orderUsd = shares * price;
+    var commissionUsd = orderUsd * commission / 100;
+    var usedUsd = orderUsd + commissionUsd;
+    var remainingUsd = Math.max(0, availableUsd - usedUsd);
+    return {
+      effectiveRate: effectiveRate,
+      availableUsd: availableUsd,
+      shares: shares,
+      orderUsd: orderUsd,
+      commissionUsd: commissionUsd,
+      usedKrw: usedUsd * effectiveRate,
+      remainingUsd: remainingUsd,
+      remainingKrw: remainingUsd * effectiveRate
+    };
+  }
+
   function numberValue(input) { return Number(String(input.value || '').replace(/,/g, '')); }
   function formatNumber(value, digits) {
     if (!Number.isFinite(value)) return '-';
@@ -42,7 +67,7 @@
     if (document.querySelector('link[data-invest-tools-css]')) return;
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/invest-tools.css?v=20261013-tools2';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/invest-tools.css?v=20261013-tools3';
     link.setAttribute('data-invest-tools-css', '1');
     document.head.appendChild(link);
   }
@@ -130,7 +155,70 @@
     overlay.querySelector('input').focus();
   }
 
-  var api = { calculateAverage: calculateAverage, openAveraging: openAveraging };
+  function openNasdaqFx() {
+    ensureStyle();
+    var previous = document.querySelector('.it-overlay');
+    if (previous) previous.remove();
+    var overlay = document.createElement('div');
+    overlay.className = 'it-overlay';
+    overlay.innerHTML = '<section class="it-modal it-fx-modal" role="dialog" aria-modal="true" aria-labelledby="itFxTitle">'
+      + '<header><div><span>투자도구 · 미국주식</span><h2 id="itFxTitle">나스닥 환율 계산기</h2><p>원화 예산으로 살 수 있는 미국주식 수량과 환전 후 남는 금액을 계산합니다.</p></div><button type="button" class="it-close" aria-label="닫기">✕</button></header>'
+      + '<div class="it-rate-status" data-it-rate-status>공식 원/달러 환율을 불러오는 중...</div>'
+      + '<div class="it-input-grid">'
+      + '<label><span>투자할 원화</span><input inputmode="decimal" data-it-fx="krw" placeholder="예: 5,000,000"></label>'
+      + '<label><span>원/달러 기준환율</span><input inputmode="decimal" data-it-fx="rate" placeholder="예: 1,350"></label>'
+      + '<label><span>환전 가산율</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="spread" value="1"><i>%</i></span></label>'
+      + '<label><span>미국주식 1주 가격</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="stockPrice" placeholder="예: 180"><i>$</i></span></label>'
+      + '<label><span>매수 수수료</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="commission" value="0.25"><i>%</i></span></label>'
+      + '</div>'
+      + '<p class="it-field-help">환율 우대가 적용되면 환전 가산율을 실제 값으로 바꾸세요. 증권사마다 환율과 수수료가 다릅니다.</p>'
+      + '<div class="it-results" aria-live="polite">'
+      + '<article class="it-primary"><span>매수 가능 수량 · 정수주 기준</span><strong data-it-fx-result="shares">-</strong></article>'
+      + '<article><span>환전 후 투자 가능 달러</span><strong data-it-fx-result="usd">-</strong></article>'
+      + '<article><span>실제 적용 환율</span><strong data-it-fx-result="effectiveRate">-</strong></article>'
+      + '<article><span>주식 매수금액</span><strong data-it-fx-result="order">-</strong></article>'
+      + '<article><span>예상 매수 수수료</span><strong data-it-fx-result="commission">-</strong></article>'
+      + '<article><span>남는 금액</span><strong data-it-fx-result="remaining">-</strong></article>'
+      + '</div><p class="it-note">환전·매수 전 비교용 예상치입니다. 실제 체결 환율, 환율 우대, 최소 수수료와 제비용은 이용 증권사 기준을 확인하세요.</p></section>';
+    document.body.appendChild(overlay);
+    var oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    function close() { overlay.remove(); document.body.style.overflow = oldOverflow; document.removeEventListener('keydown', onKey); }
+    function onKey(event) { if (event.key === 'Escape') close(); }
+    function set(key, value) { overlay.querySelector('[data-it-fx-result="' + key + '"]').textContent = value; }
+    function render() {
+      var values = {};
+      overlay.querySelectorAll('[data-it-fx]').forEach(function (input) { values[input.getAttribute('data-it-fx')] = numberValue(input); });
+      var result = calculateNasdaqFx(values.krw, values.rate, values.spread, values.stockPrice, values.commission);
+      if (!result) { ['shares', 'usd', 'effectiveRate', 'order', 'commission', 'remaining'].forEach(function (key) { set(key, '-'); }); return; }
+      set('shares', formatNumber(result.shares, 0) + '주');
+      set('usd', '$' + formatNumber(result.availableUsd, 2));
+      set('effectiveRate', formatNumber(result.effectiveRate, 2) + '원/$');
+      set('order', '$' + formatNumber(result.orderUsd, 2) + ' · ' + formatNumber(result.usedKrw, 0) + '원');
+      set('commission', '$' + formatNumber(result.commissionUsd, 2));
+      set('remaining', '$' + formatNumber(result.remainingUsd, 2) + ' · ' + formatNumber(result.remainingKrw, 0) + '원');
+    }
+    overlay.addEventListener('input', render);
+    overlay.querySelector('.it-close').addEventListener('click', close);
+    overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', onKey);
+    fetch('https://goodbyestar.cloud/fx-rates', { cache: 'no-store' }).then(function (response) {
+      if (!response.ok) throw new Error('fx ' + response.status);
+      return response.json();
+    }).then(function (payload) {
+      var data = payload && payload.data;
+      var usd = data && (data.currencies || []).filter(function (item) { return item.code === 'USD'; })[0];
+      if (!usd || !Number.isFinite(Number(usd.dealBasR))) throw new Error('USD rate unavailable');
+      overlay.querySelector('[data-it-fx="rate"]').value = String(usd.dealBasR);
+      overlay.querySelector('[data-it-rate-status]').textContent = '한국수출입은행 ' + (data.baseDate || '최근 고시일') + ' 기준환율 ' + formatNumber(Number(usd.dealBasR), 2) + '원 · 실시간 환율 아님';
+      render();
+    }).catch(function () {
+      overlay.querySelector('[data-it-rate-status]').textContent = '환율을 불러오지 못했습니다. 현재 이용 중인 증권사 환율을 직접 입력하세요.';
+    });
+    overlay.querySelector('[data-it-fx="krw"]').focus();
+  }
+
+  var api = { calculateAverage: calculateAverage, calculateNasdaqFx: calculateNasdaqFx, openAveraging: openAveraging, openNasdaqFx: openNasdaqFx };
   global.NineInvestTools = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
