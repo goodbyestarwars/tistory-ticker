@@ -130,6 +130,17 @@ def _quote_events(message):
             event['exchange'] = str(exchange).strip()
         if session is not None:
             event['marketSession'] = str(session).strip()
+        # Kiwoom 0B FID 15: positive=buy execution, negative=sell execution.
+        raw_qty = str(value('15') or '').replace(',', '').strip()
+        qty = _number(raw_qty)
+        tm = str(value('20') or '').strip()
+        if qty is not None and abs(qty) > 0 and re.fullmatch(r'\d{6}', tm):
+            direction = 'buy' if raw_qty.startswith('+') else 'sell' if raw_qty.startswith('-') else 'unknown'
+            event['trade'] = {'time': tm, 'price': abs(price), 'qty': abs(qty),
+                              'direction': direction,
+                              'directionSource': 'provider' if direction != 'unknown' else 'unknown',
+                              'market': str(exchange).strip() if exchange is not None else ''}
+        event['source'] = 'Kiwoom WebSocket'
         events.append(event)
     return events
 
@@ -415,13 +426,13 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
                 next_coverage_check = now + _RELAY_TICK_SEC
                 live_keys = hub.live_or_pending_keys()
                 kis_missing = [code for code in domestic_codes if ('H0UNCNT0', code) not in live_keys]
-                if kis_missing and kiwoom_hub is None and not kiwoom_unavailable:
+                if (kis_missing or include_orderbook) and kiwoom_hub is None and not kiwoom_unavailable:
                     kiwoom_hub = kiwoom_ws_hub.start(
                         os.environ.get('KIWOOM_APPKEY'), os.environ.get('KIWOOM_SECRETKEY'))
                     kiwoom_unavailable = kiwoom_hub is None
                 kiwoom_live = frozenset()
                 if kiwoom_hub is not None:
-                    missing_set = frozenset(kis_missing)
+                    missing_set = frozenset(kis_missing + (domestic_codes[:1] if include_orderbook else []))
                     if missing_set != kiwoom_codes:
                         if kiwoom_sub is None:
                             kiwoom_sub = kiwoom_hub.subscribe(missing_set)
