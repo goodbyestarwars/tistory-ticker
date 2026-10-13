@@ -38,6 +38,13 @@ t.recordLiveTrade({ direction: 'buy', directionSource: 'provider', time: '090002
 assert.strictEqual(t.state.liveTrades.length, 1);
 assert.strictEqual(t.state.liveTrades[0].date, '20261014');
 
+// 키움 전용 목록에서는 공급자 판정을 그대로 표시한다.
+t.state.liveTradeProvider = 'Kiwoom';
+t.state.liveTrades = [];
+t.recordLiveTrade({ direction: 'sell', directionSource: 'provider', time: '093456', price: 176100, qty: 3, market: '1' });
+assert(t.buildTradesHtml().includes('키움 0B 개별 수신 체결'));
+assert(t.buildTradesHtml().includes('▼ 매도주도'));
+
 // REST 표본은 방향을 추측하거나 실시간 목록과 합치지 않는다.
 t.recordTrade({ trade: { time: '093116', price: 69900, qty: 50, up: true, down: false } });
 assert.strictEqual(t.state.trades.length, 1);
