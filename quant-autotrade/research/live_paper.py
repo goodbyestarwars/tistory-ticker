@@ -421,7 +421,7 @@ class Engine:
                               "WHERE id=? AND status IN ('OPEN','PENDING_EXIT')", (_iso(now), fill, reason, gross, net, pnl, fee, price, _iso(q['ts']) if q else None, quality, pid))
             self.conn.execute('UPDATE lp_accounts SET cash = cash + ?, realized_pnl = realized_pnl + ?, updated_at=? WHERE strategy_id=?', (proceeds, pnl, _iso(now), sid))
             kind = 'SELL_STOP' if reason in ('STOP_INTRADAY', 'FIX_STOP') else 'SELL'
-            self.event(now, kind, sid, code, payload={'name': name, 'qty': qty, 'price': fill, 'quote': price, 'reason': reason, 'netRet': net, 'pnl': pnl, 'fee': fee,
+            self.event(now, kind, sid, code, payload={'name': name, 'qty': qty, 'price': fill, 'quote': price, 'reason': reason, 'netRet': net, 'pnl': pnl, 'fee': fee, 'proceeds': proceeds,
                                                       'simulationType': SIM_TYPE}, key='sell:%d' % pid)
         return True
 

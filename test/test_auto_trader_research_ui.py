@@ -38,6 +38,13 @@ class AutoTraderResearchUiTests(unittest.TestCase):
         self.assertIn('disk', self.js.lower())
         self.assertIn('r.diskUsedBytes != null', self.js)   # 실제 값이 있을 때만 디스크 사용량 표시
 
+    def test_chronological_journal_marks_unknown_daily_fields(self):
+        self.assertIn('통합 시간순 거래 일지', self.js)
+        self.assertIn('rows.sort(function (a, b)', self.js)
+        self.assertIn('시각 미기록', self.js)
+        self.assertIn('거래 직후 잔고', self.js)
+        self.assertIn('청산 조건 미충족', self.js)
+
     def test_no_live_switch_or_secrets_in_front_end(self):
         self.assertNotIn('LIVE_SELL=true', self.js)
         self.assertNotRegex(self.js, r"(appkey|secretkey|password)\s*[:=]\s*['\"][A-Za-z0-9]{12,}")

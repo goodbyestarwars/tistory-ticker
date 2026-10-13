@@ -48,16 +48,45 @@ class KiwoomQuotes:
 
 def build_status(eng, now, state, cands=None, extra=None):
     conn = eng.conn
+    # Replay virtual cash movements per independent strategy. Older records may
+    # lack enough detail; leave their balance unknown instead of guessing.
+    cash_after = {}
+    cash = {sid: eng.account(sid)['initial'] for sid in eng.cfg.strategies}
+    for ts, kind, sid, code, raw in conn.execute(
+            "SELECT ts, kind, strategy_id, code, payload FROM lp_events WHERE kind IN ('BUY','SELL','SELL_STOP') ORDER BY id"):
+        if sid not in cash:
+            continue
+        try:
+            payload = json.loads(raw or '{}')
+            if cash[sid] is None:
+                continue
+            if kind == 'BUY':
+                cash[sid] -= float(payload['cost'])
+            else:
+                # Net proceeds are not present in older sell events.
+                if 'proceeds' not in payload:
+                    cash[sid] = None
+                    continue
+                cash[sid] += float(payload['proceeds'])
+            cash_after[(sid, code, ts, kind)] = cash[sid]
+        except (KeyError, TypeError, ValueError):
+            cash[sid] = None
     pos = []
     for r in conn.execute("SELECT strategy_id, code, name, scanner, scan_date, qty, entry_ts, entry_price, last_price, last_ts, trail_price, stop_price, status, signal_date, "
                           "signal_reason, hold_days, max_hold, quality FROM lp_positions WHERE status IN ('OPEN','PENDING_EXIT') ORDER BY entry_ts DESC"):
         d = dict(zip(('strategyId', 'code', 'name', 'scanner', 'scanDate', 'qty', 'entryTs', 'entryPrice', 'lastPrice', 'lastTs', 'trailPrice', 'stopPrice', 'status',
                       'signalDate', 'signalReason', 'holdDays', 'maxHold', 'quality'), r))
         d['ret'] = (d['lastPrice'] / d['entryPrice'] - 1) if d['lastPrice'] and d['entryPrice'] else None
+        d['balanceAfterBuy'] = cash_after.get((d['strategyId'], d['code'], d['entryTs'], 'BUY'))
         pos.append(d)
-    trades = [dict(zip(('strategyId', 'code', 'name', 'scanner', 'entryTs', 'entryPrice', 'exitTs', 'exitPrice', 'exitReason', 'netRet', 'pnl', 'fee', 'qty', 'quality'), r))
-              for r in conn.execute("SELECT strategy_id, code, name, scanner, entry_ts, entry_price, exit_ts, exit_price, exit_reason, net_ret, pnl_krw, fee_krw, qty, quality "
+    trades = [dict(zip(('strategyId', 'code', 'name', 'scanner', 'scanDate', 'entryTs', 'entryPrice', 'exitTs', 'exitPrice', 'exitReason', 'netRet', 'pnl', 'fee', 'qty', 'quality'), r))
+              for r in conn.execute("SELECT strategy_id, code, name, scanner, scan_date, entry_ts, entry_price, exit_ts, exit_price, exit_reason, net_ret, pnl_krw, fee_krw, qty, quality "
                                     "FROM lp_positions WHERE status='CLOSED' ORDER BY exit_ts DESC LIMIT 60")]
+    for d in trades:
+        d['balanceAfterBuy'] = cash_after.get((d['strategyId'], d['code'], d['entryTs'], 'BUY'))
+        d['balanceAfterSell'] = cash_after.get((d['strategyId'], d['code'], d['exitTs'], 'SELL'))
+        if d['balanceAfterSell'] is None:
+            d['balanceAfterSell'] = cash_after.get((d['strategyId'], d['code'], d['exitTs'], 'SELL_STOP'))
     equity = {}
     for sid in eng.cfg.strategies:
         equity[sid] = [{'date': r[0], 'equity': r[1]} for r in conn.execute('SELECT date, equity FROM lp_equity WHERE strategy_id=? ORDER BY date DESC LIMIT 250', (sid,))][::-1]
