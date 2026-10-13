@@ -119,7 +119,7 @@ class Ledger:
 
 
 def approval_ok(folder, account_ids, now):
-    """Two independent local switches, bound to one account and the KST trading day."""
+    """Account-bound mandate effective from the user's approved start date."""
     if os.environ.get('LIVE_TRADING') != '1' or len(account_ids) != 1:
         return False
     if os.environ.get('KIWOOM_BASE_URL', 'https://api.kiwoom.com').rstrip('/') != 'https://api.kiwoom.com':
@@ -130,7 +130,13 @@ def approval_ok(folder, account_ids, now):
     except (OSError, ValueError):
         return False
     fingerprint = hashlib.sha256(account_ids[0].encode()).hexdigest()
-    return data == {'date': now.strftime('%Y-%m-%d'), 'account_sha256': fingerprint}
+    if data.get('account_sha256') != fingerprint:
+        return False
+    try:
+        approved_day = datetime.strptime(str(data.get('date')), '%Y-%m-%d').date()
+    except ValueError:
+        return False
+    return approved_day <= now.date()
 
 
 def readiness(client, folder, now):
@@ -171,10 +177,16 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None):
     held = {h['code']: h for h in holdings}
     with ledger.connect() as db:
         positions = {r['code']: dict(r) for r in db.execute('SELECT * FROM positions')}
-        sent = {r['code'] for r in db.execute("SELECT code FROM intents WHERE side='BUY'")}
-        sell_sent = {r['code'] for r in db.execute("SELECT code FROM intents WHERE side='SELL'")}
-        committed = sum(r[0] * r[1] for r in db.execute("SELECT qty,price FROM intents WHERE side='BUY'"))
-    if not sent and cash < BUDGET:
+        sent_today = {r['code'] for r in db.execute(
+            "SELECT code FROM intents WHERE side='BUY' AND substr(ts,1,10)=?", (now.strftime('%Y-%m-%d'),))}
+        had_buy = db.execute("SELECT 1 FROM intents WHERE side='BUY' LIMIT 1").fetchone() is not None
+        sell_sent = {r['code'] for r in db.execute(
+            "SELECT DISTINCT s.code FROM intents s WHERE s.side='SELL' AND s.id > "
+            "COALESCE((SELECT MAX(b.id) FROM intents b WHERE b.side='BUY' AND b.code=s.code),0)")}
+        committed = sum(r[0] * r[1] if r[1] else PER_STOCK for r in db.execute(
+            "SELECT p.qty, (SELECT b.price FROM intents b WHERE b.side='BUY' AND b.code=p.code "
+            "ORDER BY b.id DESC LIMIT 1) FROM positions p WHERE p.state IN ('OPEN','PENDING')"))
+    if not had_buy and cash < BUDGET:
         return 'INSUFFICIENT_STARTING_CASH'
     for code, pos in positions.items():
         h = held.get(code)
@@ -218,7 +230,8 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None):
     # Existing holdings consume slots and capital even if manually acquired.
     ranked = rank_candidates(candidate_rows, get_daily, now.strftime('%Y-%m-%d'))
     for _, code, base, scan_date in ranked:
-        if code in held or code in sent or code in positions or slots_used >= MAX_STOCKS:
+        pos = positions.get(code)
+        if code in held or code in sent_today or (pos and pos['state'] != 'CLOSED') or slots_used >= MAX_STOCKS:
             continue
         price = fresh_price(client, code, now)
         if price is None:
@@ -232,7 +245,9 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None):
         result = client.buy_limit(code, qty, int(price))
         ledger.acknowledge(intent, result)
         with ledger.connect() as db:
-            db.execute('INSERT OR IGNORE INTO positions(code,qty,state,buy_day) VALUES(?,?,?,?)',
+            db.execute("INSERT INTO positions(code,qty,state,buy_day,floor_reached) VALUES(?,?,?,?,0) "
+                       "ON CONFLICT(code) DO UPDATE SET qty=excluded.qty,state='PENDING',"
+                       "buy_day=excluded.buy_day,floor_reached=0",
                        (code, qty, 'PENDING', now.strftime('%Y-%m-%d')))
         return 'BUY_SENT'
     return 'NO_CANDIDATE'

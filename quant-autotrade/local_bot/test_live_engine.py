@@ -81,7 +81,7 @@ class LiveEngineTests(unittest.TestCase):
                 self.assertTrue(approval_ok(folder, ['test-account'], now))
                 self.assertFalse(approval_ok(folder, ['other-account'], now))
                 self.assertFalse(approval_ok(folder, ['test-account', 'other-account'], now))
-                self.assertFalse(approval_ok(folder, ['test-account'], now + timedelta(days=1)))
+                self.assertTrue(approval_ok(folder, ['test-account'], now + timedelta(days=1)))
             with patch.dict(os.environ, {'LIVE_TRADING': '0', 'KIWOOM_BASE_URL': 'https://api.kiwoom.com'}):
                 self.assertFalse(approval_ok(folder, ['test-account'], now))
             with patch.dict(os.environ, {'LIVE_TRADING': '1', 'KIWOOM_BASE_URL': 'https://mockapi.kiwoom.com'}):
@@ -113,6 +113,20 @@ class LiveEngineTests(unittest.TestCase):
                 self.assertEqual(trade_once(broker, ledger, [], bars, folder, now), 'PROFIT_NET_6')
                 self.assertEqual(trade_once(broker, ledger, [], bars, folder, now), 'SELL_FILL_UNCONFIRMED')
             self.assertEqual(broker.calls, [('SELL', '005930', 3)])
+
+    def test_next_day_reentry_after_closed_position(self):
+        with tempfile.TemporaryDirectory() as folder:
+            broker = FakeBroker()
+            ledger = Ledger(os.path.join(folder, 'orders.db'))
+            with ledger.connect() as db:
+                db.execute("INSERT INTO positions(code,qty,state,buy_day) VALUES('005930',3,'CLOSED','2026-10-13')")
+                db.execute("INSERT INTO intents(ts,code,side,qty,price,state) VALUES('2026-10-13T09:01','005930','BUY',3,10000,'ACK')")
+                db.execute("INSERT INTO intents(ts,code,side,qty,state) VALUES('2026-10-13T09:10','005930','SELL',3,'ACK')")
+            rows = [{'code': '005930', 'scan_date': '2026-10-13', 'status': 'NEW', 'base_price': 10_000}]
+            with patch('live_engine.approval_ok', return_value=True), patch('live_engine.rank_candidates', return_value=[((2, 2, 0, 0), '005930', 10_000, '2026-10-13')]):
+                now = datetime(2026, 10, 14, 9, 15, tzinfo=KST)
+                self.assertEqual(trade_once(broker, ledger, rows, bars, folder, now), 'BUY_SENT')
+            self.assertEqual(len(broker.calls), 1)
 
 
 if __name__ == '__main__':
