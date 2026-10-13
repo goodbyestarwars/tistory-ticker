@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-search-width2';
+  var ENHANCEMENT_VERSION = '20261013-two-year-view1';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -239,7 +239,7 @@
     var overlay = document.createElement('div');
     overlay.className = 'de-chart-overlay';
     overlay.innerHTML = '<div class="de-chart-modal" role="dialog" aria-modal="true" aria-label="' + escapeHtml(title) + '"><div class="de-chart-modal-head"><strong>' + escapeHtml(title) + '</strong>'
-      + (candleZoom ? '<div class="de-chart-bar-zoom" role="group" aria-label="주가 봉 크기"><button type="button" data-bar-zoom="out" aria-label="봉 작게">−</button><button type="button" data-bar-zoom="in" aria-label="봉 크게">＋</button><button type="button" data-bar-zoom="fit">한눈에</button></div>' : '')
+      + (candleZoom ? '<div class="de-chart-bar-zoom" role="group" aria-label="주가 봉 크기"><button type="button" data-bar-zoom="out" aria-label="봉 작게">−</button><button type="button" data-bar-zoom="in" aria-label="봉 크게">＋</button><button type="button" data-bar-zoom="fit">2년 한눈에</button></div>' : '')
       + '<button type="button" class="de-chart-restore" aria-label="차트를 원래 화면으로 줄이기">↙ 줄이기</button><button type="button" class="de-chart-close" aria-label="닫기">✕</button></div><div class="de-chart-modal-body"></div></div>';
     // 위젯 내부에 붙이면 부모의 폭/transform/overflow 규칙이 fixed 모달에
     // 전파되어 화면이 밀리거나 좌우가 잘릴 수 있다. 모달은 문서 최상위에 둔다.
@@ -251,7 +251,7 @@
       var core = global.NineChartCore;
       if (!button || !core) return;
       var action = button.getAttribute('data-bar-zoom');
-      if (action === 'fit') core.fitBars(chartTarget);
+      if (action === 'fit') core.fitBars(chartTarget, 2);
       else core.zoomBars(chartTarget, action === 'in' ? 0.8 : 1.25);
     });
     var oldStyle = modalTarget.getAttribute('style');

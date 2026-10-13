@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bar-zoom1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-two-year-view1';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -201,10 +201,12 @@
     volumeLegend.classList.add('is-minimal');   // 5일·20일 평균 줄
   }
 
-  function sizeStockChartPanes(panes, totalHeight) {
+  function sizeStockChartPanes(panes, totalHeight, compactSubPanes) {
     if (!panes || panes.length < 2) return { mainHeight: totalHeight, subHeight: 0 };
     var subPaneCount = panes.length - 1;
-    var preferredSubHeight = Math.max(SUB_PANE_MIN_HEIGHT, Math.round(totalHeight * SUB_PANE_RATIO));
+    var minSubHeight = compactSubPanes ? 58 : SUB_PANE_MIN_HEIGHT;
+    var subRatio = compactSubPanes ? 0.12 : SUB_PANE_RATIO;
+    var preferredSubHeight = Math.max(minSubHeight, Math.round(totalHeight * subRatio));
     var availableSubHeight = Math.max(1, Math.floor((totalHeight - 220) / subPaneCount));
     var subHeight = Math.min(preferredSubHeight, availableSubHeight);
     var mainHeight = Math.max(220, totalHeight - subHeight * subPaneCount);
@@ -241,7 +243,7 @@
           stockChartMeasuredHeight = height;
           var panes = lwcChart.panes ? lwcChart.panes() : [];
           if (panes.length > 1) {
-            var sizes = sizeStockChartPanes(panes, height);
+            var sizes = sizeStockChartPanes(panes, height, !!lwcChartContainer.closest('.de-chart-overlay'));
             positionLwcPaneLabels(lwcChartContainer, panes, sizes.mainHeight, sizes.subHeight);
           }
         } catch (e) { /* 레이아웃 정리 후 다음 요청에서 재시도 */ }
@@ -2057,7 +2059,7 @@
       }));
       lwcChart = chart;
       lwcChartContainer = container;
-      stockChartRegistryOff = core.registerChart(container, chart);
+      stockChartRegistryOff = core.registerChart(container, chart, { bars: bars.length, timeframe: timeframe });
       stockPanCleanup = core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
@@ -2234,7 +2236,7 @@
       }
       var panes = chart.panes();
       var totalHeight = container.clientHeight || 420;
-      var sizes = sizeStockChartPanes(panes, totalHeight);
+      var sizes = sizeStockChartPanes(panes, totalHeight, !!container.closest('.de-chart-overlay'));
       // 패널 제목·거래량 범례 위치를 CSS 고정 %(58/72/86%) 대신 실제로 적용한 패널 높이
       // 그대로 계산해서 맞춘다 - 컨테이너 높이가 달라지면 고정 %는 패널 경계와 어긋난다
       // (2026-08-13 사용자 스크린샷 제보: "거래량" 제목이 실제 거래량 패널과 안 맞음).

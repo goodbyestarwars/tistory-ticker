@@ -41,7 +41,9 @@ function sortKeys(v) {
 const FONT = 'Pretendard, "Malgun Gothic", sans-serif';
 for (const dark of [false, true]) for (const tf of ['day', 'minute']) {
   const got = Core.chartOptions(LWC, 'search', { dark, timeframe: tf, fontFamily: FONT, autoSize: false, width: 712, height: 420 });
-  expectEqual(got, golden.search[(dark ? 'dark' : 'light') + '-' + tf], '차트검색 옵션 ' + dark + tf);
+  const expected = JSON.parse(JSON.stringify(golden.search[(dark ? 'dark' : 'light') + '-' + tf]));
+  expected.layout.panes.enableResize = true; // 거래량·RSI 영역을 사용자가 직접 줄일 수 있다.
+  expectEqual(got, expected, '차트검색 옵션 ' + dark + tf);
 }
 for (const dark of [false, true]) {
   const got = Core.chartOptions(LWC, 'analysis', { dark, autoSize: true, height: 360 });   // 글꼴 지정 없음 = 옛 옵션과 동일

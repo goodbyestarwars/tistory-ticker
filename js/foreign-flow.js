@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-bar-zoom1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-two-year-view1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -5801,10 +5801,11 @@
       // 글꼴은 종목명(.ff-header)에 실제로 렌더링되는 글꼴을 따른다(2026-10-13 종목분석 글꼴 통일 - css/foreign-flow.css 끝 참고).
       var fontFamily = global.getComputedStyle ? global.getComputedStyle(container).fontFamily : '';
 
+      var daily = chartData.daily;
       var chart = LWC.createChart(container, core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily }));
       lwcChart = chart;
       lwcChartContainer = container;
-      scope.add(core.registerChart(container, chart));
+      scope.add(core.registerChart(container, chart, { bars: daily.length, timeframe: 'day' }));
       scope.add(core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
@@ -5814,7 +5815,6 @@
         alignLabels: false
       });
 
-      var daily = chartData.daily;
       var candleSeries = core.addCandles(chart, LWC, daily, { type: 'custom', minMove: 1, formatter: chartPriceFormatter }, { top: 0.06, bottom: 0.36 });
       lwcCandleSeries = candleSeries;
 

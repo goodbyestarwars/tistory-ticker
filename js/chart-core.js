@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-14-core-2';
+  var VERSION = '2026-10-14-core-3';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -122,7 +122,7 @@
   //   analysis - 종목분석: 패널 구분선 드래그, 캔들 아래 여백 36%, 최소 봉 간격 2
   var PROFILES = {
     search: {
-      font: true, enableResize: false, margins: { top: 0.06, bottom: 0.08 },
+      font: true, enableResize: true, margins: { top: 0.06, bottom: 0.08 },
       timeScale: function (tf) { return { rightOffset: 6, minBarSpacing: 3, timeVisible: tf === 'minute', secondsVisible: false, barSpacing: tf === 'minute' ? 9 : 7 }; },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }
@@ -267,13 +267,14 @@
   // 화면마다 생성한 차트 인스턴스를 같은 시간축 조작 버튼에서 찾는다.
   // 재렌더 시 이전 인스턴스의 정리 함수가 새 차트를 지우지 않도록 동일성 확인.
   var chartInstances = typeof WeakMap === 'function' ? new WeakMap() : null;
-  function registerChart(container, chart) {
+  function registerChart(container, chart, options) {
     if (!chartInstances || !container || !chart) return function () {};
-    chartInstances.set(container, chart);
-    return function () { if (chartInstances.get(container) === chart) chartInstances.delete(container); };
+    var record = { chart: chart, bars: options && Number(options.bars) || 0, timeframe: options && options.timeframe || 'day' };
+    chartInstances.set(container, record);
+    return function () { var current = chartInstances.get(container); if (current && current.chart === chart) chartInstances.delete(container); };
   }
   function zoomBars(container, factor) {
-    var chart = chartInstances && chartInstances.get(container);
+    var record = chartInstances && chartInstances.get(container), chart = record && record.chart;
     if (!chart || !isFinite(factor) || factor <= 0) return false;
     var scale = chart.timeScale(), visible = scale.getVisibleLogicalRange();
     if (!visible) return false;
@@ -282,10 +283,14 @@
     scale.setVisibleLogicalRange({ from: center - count / 2, to: center + count / 2 });
     return true;
   }
-  function fitBars(container) {
-    var chart = chartInstances && chartInstances.get(container);
+  function fitBars(container, years) {
+    var record = chartInstances && chartInstances.get(container), chart = record && record.chart;
     if (!chart) return false;
-    chart.timeScale().fitContent();
+    var timeframe = record.timeframe, barsPerYear = timeframe === 'week' ? 52 : timeframe === 'month' ? 12 : timeframe === 'minute' ? 0 : 252;
+    var wanted = barsPerYear && Number(years) > 0 ? Math.round(barsPerYear * Number(years)) : record.bars;
+    var count = Math.min(record.bars || wanted, wanted || record.bars);
+    if (count > 1) chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, record.bars - count), to: record.bars - 1 + 3 });
+    else chart.timeScale().fitContent();
     return true;
   }
 
