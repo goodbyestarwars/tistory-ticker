@@ -168,7 +168,7 @@ class KiwoomClient:
         """
         res = self.call('kt10001', '/api/dostk/ordr', {'dmst_stex_tp': 'KRX', 'stk_cd': code, 'ord_qty': str(int(qty)),
                                                       'ord_uv': '', 'trde_tp': '3', 'cond_uv': ''})
-        ok = str(res.get('return_code', '')) in ('0', '')
+        ok = str(res.get('return_code', '')) == '0'
         return {'ok': ok, 'ord_no': res.get('ord_no'), 'return_code': res.get('return_code'), 'return_msg': res.get('return_msg')}
 
     # ---- 조회 ----

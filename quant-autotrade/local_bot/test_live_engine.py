@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from unittest.mock import patch
 
 from live_engine import Ledger, approval_ok, exit_reason, net_gain, rank_candidates, trade_once
+from kiwoom import KiwoomClient
 
 KST = timezone(timedelta(hours=9))
 
@@ -37,6 +38,13 @@ def bars(code):
 
 
 class LiveEngineTests(unittest.TestCase):
+    def test_broker_order_requires_explicit_success_code(self):
+        client = KiwoomClient('test-key', 'test-secret')
+        with patch.object(client, 'call', return_value={'ord_no': '123'}) as call:
+            self.assertFalse(client.sell_market('005930', 1)['ok'])
+            self.assertFalse(client.buy_limit('005930', 1, 10000)['ok'])
+        self.assertEqual(call.call_count, 2)
+
     def test_exit_policy(self):
         self.assertEqual(exit_reason(-5, False), 'STOP_NET_5')
         self.assertEqual(exit_reason(6, False), 'PROFIT_NET_6')
