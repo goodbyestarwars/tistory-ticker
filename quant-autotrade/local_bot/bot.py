@@ -186,8 +186,9 @@ class Bot:
         try:
             with open(os.path.join(HERE, 'LIVE_TRADING_APPROVAL'), encoding='utf-8') as f:
                 approval = json.load(f)
+            approved_date = datetime.strptime(str(approval.get('date', '')), '%Y-%m-%d').date()
             live_scheduled = (os.environ.get('LIVE_TRADING') == '1' and
-                              approval.get('date') == dt.strftime('%Y-%m-%d') and
+                              approved_date <= dt.date() and
                               bool(re.fullmatch(r'[0-9a-f]{64}', str(approval.get('account_sha256', '')))))
         except (OSError, ValueError):
             pass
