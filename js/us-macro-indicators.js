@@ -27,6 +27,11 @@
     US_REAL_GDP_GROWTH: { label: '실질 GDP 성장률', unit: '%', cadence: '분기 · 연율', category: '경기', source: 'BEA' },
     US_CONSUMER_SENTIMENT: { label: '소비자심리지수', unit: 'pt', cadence: '월간 · 미시간대', category: '경기', source: 'UMich' }
   };
+  // 2026-10-15: CPI·근원 CPI는 FRED 계절조정 지수(CPIAUCSL·CPILFESL)다. BLS 헤드라인 전월 대비는 같은 계절조정 기준이고,
+  // BLS 전년 동월 대비는 비계절조정 지수 기준이라 계절조정 지수로 계산한 값과 소수 둘째 자리가 다를 수 있다. BLS는 소수 첫째 자리로 발표하므로 같게 맞춘다.
+  var BLS_SYMBOLS = { US_CPI: true, US_CORE_CPI: true };
+  // 확인된 발표일(KST 기준 UTC). 이 시각 + 3시간이 지났는데 다음 달 자료가 없으면 '이전 발표 기준'으로 경고한다. 표에 없는 달은 매월 17일(KST) 기준.
+  var CPI_RELEASES = { '202609': '2026-10-14T12:30:00Z' };
   var timer = null;
   var resultsCache = null;
   var resultsCachedAt = 0;
@@ -38,7 +43,7 @@
     if (resultsInflight) return resultsInflight;
     var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
     var timeout = controller ? setTimeout(function () { controller.abort(); }, 20000) : null;
-    resultsInflight = fetch(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')),
+    resultsInflight = fetch(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')) + (force ? '&_=' + Date.now() : ''),
       controller ? { signal: controller.signal } : {})
       .then(function (response) { if (!response.ok) throw new Error('macro response'); return response.json(); })
       .then(function (payload) {
@@ -295,15 +300,50 @@
     return (value > 0 ? '+' : '') + number_(value, digits);
   }
 
+  function kstParts_(now) {
+    var d = new Date((now == null ? Date.now() : now) + 9 * 3600000);
+    return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, day: d.getUTCDate() };
+  }
+
+  // 지금 시점에 발표돼 있어야 하는 가장 최근 CPI 기준월(YYYYMM).
+  function expectedCpiMonth_(now) {
+    var t = now == null ? Date.now() : now;
+    var known = null;
+    Object.keys(CPI_RELEASES).sort().forEach(function (month) {
+      if (t >= Date.parse(CPI_RELEASES[month]) + 3 * 3600000) known = month;
+    });
+    var k = kstParts_(t);
+    var index = k.y * 12 + (k.m - 1) - (k.day >= 17 ? 1 : 2);
+    var generic = String(Math.floor(index / 12) * 100 + (index % 12) + 1);
+    return known && known > generic ? known : generic;
+  }
+
+  // CPI·근원 CPI가 발표 시점 뒤에도 이전 기준월에 머물면 {last, expected}, 아니면 null.
+  function releaseStale_(symbol, item, now) {
+    if (!BLS_SYMBOLS[symbol]) return null;
+    var last = String(itemDate_(item) || '').slice(0, 6);
+    var expected = expectedCpiMonth_(now);
+    return /^\d{6}$/.test(last) && last < expected ? { last: last, expected: expected } : null;
+  }
+
+  function monthLabel_(yyyymm) { return yyyymm.slice(0, 4) + '년 ' + Number(yyyymm.slice(4, 6)) + '월'; }
+
   function periodText_(symbol, item) {
     var date = String(itemDate_(item) || '');
     if (!/^\d{6}/.test(date)) return '-';
-    return date.slice(0, 4) + '년 ' + (symbol === 'US_REAL_GDP_GROWTH' ? Math.ceil(Number(date.slice(4, 6)) / 3) + '분기' : Number(date.slice(4, 6)) + '월');
+    var text = date.slice(0, 4) + '년 ' + (symbol === 'US_REAL_GDP_GROWTH' ? Math.ceil(Number(date.slice(4, 6)) / 3) + '분기' : Number(date.slice(4, 6)) + '월');
+    if (BLS_SYMBOLS[symbol]) text += ' · 계절조정';
+    var stale = releaseStale_(symbol, item);
+    return stale ? text + ' ⚠ 이전 발표 기준' : text;
   }
 
-  function noteHtml_(symbol) {
+  function noteHtml_(symbol, item) {
     var guide = impactGuideLines_(symbol);
-    var out = '<div class="ibd-ln"><em>읽는 기준</em>' + escapeHtml(readGuide_(symbol)) + ' <small>· 출처 ' + escapeHtml(META[symbol].source) + ' · ' + escapeHtml(META[symbol].cadence) + '</small></div>';
+    var out = '';
+    var stale = releaseStale_(symbol, item);
+    if (stale) out += '<div class="ibd-ln"><em>⚠ 이전 발표 기준</em>' + escapeHtml(monthLabel_(stale.expected) + ' 발표가 나왔을 시점인데 마지막 데이터 기준월은 ' + monthLabel_(stale.last) + '입니다. 갱신을 눌러 다시 확인하세요.') + '</div>';
+    if (BLS_SYMBOLS[symbol]) out += '<div class="ibd-ln"><em>표기 기준</em>' + escapeHtml('발표값은 지수(FRED 계절조정 ' + (symbol === 'US_CPI' ? 'CPIAUCSL' : 'CPILFESL') + '), 전월 대비율은 BLS 발표(계절조정)와 같은 기준, 전년 동월은 계절조정 지수로 계산해 BLS 비계절조정 발표와 소수 둘째 자리가 다를 수 있습니다. 소수 첫째 자리로 표시합니다.') + '</div>';
+    out += '<div class="ibd-ln"><em>읽는 기준</em>' + escapeHtml(readGuide_(symbol)) + ' <small>· 출처 ' + escapeHtml(META[symbol].source) + ' · ' + escapeHtml(META[symbol].cadence) + '</small></div>';
     ['높으면', '낮으면', '좋은 흐름'].forEach(function (label, index) {
       if (guide[index]) out += '<div class="ibd-ln"><em>' + label + '</em>' + escapeHtml(guide[index]) + '</div>';
     });
@@ -333,19 +373,24 @@
     } else if (isFinite(yoy)) {
       yoyText = signedText_(yoy, 2) + '%'; yoyTone = yoy > 0 ? 'up' : yoy < 0 ? 'down' : 'flat';
     }
+    // CPI·근원 CPI: 지수값 / 전월 대비율 / 전년 동월을 구분해 표시(BLS와 같은 소수 첫째 자리)
+    var bls = !!BLS_SYMBOLS[symbol];
+    var rateText = !isPercent && isFinite(rate) ? signedText_(rate, bls ? 1 : 2) + '%' : '-';
+    if (bls && isFinite(rate)) rateText += ' (전월)';
+    if (bls && isFinite(yoy)) yoyText = signedText_(yoy, 1) + '% (전년)';
     return {
       id: symbol, group: meta.category, name: meta.label, sub: meta.cadence,
       cells: has ? [
-        { t: value_(symbol, item) },
+        { t: value_(symbol, item) + (bls ? ' (지수)' : '') },
         { t: changeText, tone: t },
-        { t: !isPercent && isFinite(rate) ? signedText_(rate, 2) + '%' : '-', tone: !isPercent ? t : '' },
+        { t: rateText, tone: !isPercent ? t : '' },
         { t: yoyText, tone: yoyTone },
         { t: periodText_(symbol, item) }
       ] : [{ t: '확인값 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
       series: global.IndicatorBoard.util.series(item && item.chart, 'date', 'close'),
       fmt: seriesFmt_(symbol), axisFmt: seriesAxis_(symbol), dateUnit: 'month',
       title: meta.label + ' 추이 (' + (symbol === 'US_JOB_OPENINGS' ? '만 건' : meta.unit) + ')',
-      note: noteHtml_(symbol)
+      note: noteHtml_(symbol, item)
     };
   }
 
@@ -405,7 +450,8 @@
     timer = setInterval(function () { if (!document.hidden) refresh_(root); }, REFRESH_MS);
   }
 
-  global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_ };
+  global.UsMacroIndicators = { init: init, fetchResults: fetchResults_, resultCards: resultCards_,
+    _test: { expectedCpiMonth: expectedCpiMonth_, releaseStale: releaseStale_, boardRow: boardRow_, yearChange: yearChange_ } };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
   else init();
 })(window);
