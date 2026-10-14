@@ -16,6 +16,7 @@ import os
 import re
 import sqlite3
 import threading
+import time
 from datetime import datetime, timedelta, timezone
 
 KST = timezone(timedelta(hours=9))
@@ -31,7 +32,12 @@ DEFAULT_CONFIG = {
     'max_sells_per_day': 10,
     'sell_cooldown_sec': 300,
     'max_attempts_per_code_per_day': 3,
+    'off_hours_balance_sec': 300,     # 장외 잔고 조회(읽기 전용) 간격. 주문은 장 시간에만 나간다.
 }
+# 2026-10-15 사용자 지시: 기존 보유 LG유플러스는 고정 손절·익절을 적용하지 않고 분석 상태만 본다(자동 매도 없음, 사용자 확인 후 직접 진행).
+SEED_ANALYSIS_ONLY = {'032640': 'LG유플러스'}
+BALANCE_STALE_OPEN_SEC = 120         # 장 중 잔고·현재가가 이보다 오래되면 '오래됨'
+BALANCE_STALE_CLOSED_SEC = 900
 # 주문 오류 이벤트 문구의 머리말. 텔레그램 알림(tg_data/tg_monitor)이 '증권사 거부'와 '전송 실패'를 가르는 데 같은 값을 쓴다.
 MSG_ORDER_REJECTED = '매도 주문 거부'
 MSG_ORDER_FAILED = '매도 주문 실패'
@@ -64,10 +70,20 @@ class Store:
             CREATE TABLE IF NOT EXISTS events (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, type TEXT NOT NULL,
                 code TEXT, price REAL, detail TEXT);
             CREATE TABLE IF NOT EXISTS watch (code TEXT PRIMARY KEY, name TEXT, added_ts TEXT NOT NULL);
+            CREATE TABLE IF NOT EXISTS analysis_only (code TEXT PRIMARY KEY, name TEXT, added_ts TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS peaks (code TEXT PRIMARY KEY, peak_gain REAL NOT NULL, updated_ts TEXT NOT NULL);
             CREATE TABLE IF NOT EXISTS orders (id INTEGER PRIMARY KEY AUTOINCREMENT, ts TEXT NOT NULL, day TEXT NOT NULL, code TEXT NOT NULL,
                 qty INTEGER NOT NULL, reason TEXT NOT NULL, status TEXT NOT NULL, ord_no TEXT, detail TEXT);
             ''')
+            # 2026-10-15: 감시 등록은 "매도 규칙 확인"(confirmed=1) 전에는 판단·주문에 쓰지 않는다(기존 열 보존, 기본 0).
+            if 'confirmed' not in {r[1] for r in c.execute('PRAGMA table_info(watch)')}:
+                c.execute('ALTER TABLE watch ADD COLUMN confirmed INTEGER NOT NULL DEFAULT 0')
+            for code, name in SEED_ANALYSIS_ONLY.items():
+                cur = c.execute('INSERT OR IGNORE INTO analysis_only (code, name, added_ts) VALUES (?,?,?)',
+                                (code, name, now_kst().strftime('%Y-%m-%d %H:%M:%S')))
+                if cur.rowcount:
+                    c.execute('DELETE FROM watch WHERE code=?', (code,))     # 고정 손절·익절 대상에서 뺀다
+                    c.execute('DELETE FROM peaks WHERE code=?', (code,))
 
     def _conn(self):
         conn = sqlite3.connect(self.path, timeout=30)
@@ -89,10 +105,33 @@ class Store:
         return [dict(r) for r in rows]
 
     # ---- 감시 목록 ----
-    def watch_add(self, code, name=''):
+    def watch_add(self, code, name='', confirmed=False):
+        """감시 종목 등록. 새로 등록하면 confirmed=0(미확인)이고, 이미 있는 종목을 다시 등록해도 확인 상태를 바꾸지 않는다."""
         ts = now_kst().strftime('%Y-%m-%d %H:%M:%S')
         with self._conn() as c:
-            c.execute('INSERT INTO watch (code, name, added_ts) VALUES (?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name', (code, name, ts))
+            c.execute('INSERT INTO watch (code, name, added_ts, confirmed) VALUES (?,?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name',
+                      (code, name, ts, 1 if confirmed else 0))
+
+    def watch_confirm(self, code, confirmed=True):
+        with self._conn() as c:
+            cur = c.execute('UPDATE watch SET confirmed=? WHERE code=?', (1 if confirmed else 0, code))
+        return cur.rowcount > 0
+
+    def analysis_list(self):
+        with self._conn() as c:
+            return [dict(r) for r in c.execute('SELECT * FROM analysis_only ORDER BY added_ts')]
+
+    def analysis_add(self, code, name=''):
+        """분석 전용 등록: 고정 손절·익절 감시에서는 빠지고(있으면 제거) 분석 상태만 본다."""
+        ts = now_kst().strftime('%Y-%m-%d %H:%M:%S')
+        with self._conn() as c:
+            c.execute('INSERT INTO analysis_only (code, name, added_ts) VALUES (?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name', (code, name, ts))
+            c.execute('DELETE FROM watch WHERE code=?', (code,))
+            c.execute('DELETE FROM peaks WHERE code=?', (code,))
+
+    def analysis_remove(self, code):
+        with self._conn() as c:
+            c.execute('DELETE FROM analysis_only WHERE code=?', (code,))
 
     def watch_remove(self, code):
         with self._conn() as c:
@@ -167,6 +206,44 @@ def decide_exit(gain, peak, config):
     return None
 
 
+def live_policy(folder=HERE):
+    """PC 실계좌 엔진(live_engine.py)의 실제 상수를 읽어 화면에 보여 준다. 엔진 파일이 없거나 값이 안 맞으면 None(화면은 '조회 불가'로 표시).
+
+    이 모듈을 import하는 것은 상수 조회뿐이며 주문 함수를 호출하지 않는다. 손절·익절 값은 상수가 아니라 exit_reason() 안에 있어
+    경계값을 대입해 확인하고, 기대와 다르면 값을 보여 주지 않는다.
+    """
+    path = os.path.join(folder, 'live_engine.py')
+    if not os.path.exists(path):
+        return None
+    mtime = os.path.getmtime(path)
+    cached = _POLICY_CACHE.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    policy = _read_live_policy(path)
+    _POLICY_CACHE[path] = (mtime, policy)
+    return policy
+
+
+_POLICY_CACHE = {}
+
+
+def _read_live_policy(path):
+    try:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('_live_engine_policy', path)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        policy = {'budget': int(mod.BUDGET), 'reserve': int(mod.RESERVE), 'per_stock': int(mod.PER_STOCK),
+                  'max_stocks': int(mod.MAX_STOCKS), 'cost_pct': float(mod.COST_PCT), 'source': 'live_engine.py'}
+        exit_ok = (mod.exit_reason(-5.0, False) == 'STOP_NET_5' and mod.exit_reason(-4.9, False) is None
+                   and mod.exit_reason(6.0, False) == 'PROFIT_NET_6' and mod.exit_reason(5.9, False) is None
+                   and mod.exit_reason(2.9, True) == 'PROFIT_FLOOR_NET_3' and mod.exit_reason(3.0, True) is None)
+        policy['exit'] = {'stop_net_pct': -5.0, 'take_profit_net_pct': 6.0, 'floor_net_pct': 3.0} if exit_ok else None
+        return policy
+    except Exception:
+        return None
+
+
 class Bot:
     def __init__(self, client, store, config):
         self.client, self.store, self.config = client, store, config
@@ -176,6 +253,10 @@ class Bot:
         self.holdings = []          # 최근 잔고(감시 여부 포함)
         self._held_before = set()
         self._balance_failures = 0
+        self.balance_ok_at = None       # 마지막 정상 잔고 조회 시각(KST 문자열)
+        self._balance_ok_epoch = None
+        self.balance_error = None       # 마지막 조회 실패 메시지(성공하면 None)
+        self._last_balance_try = None
 
     def stopped(self):
         return os.path.exists(STOP_FLAG)
@@ -209,6 +290,8 @@ class Bot:
                 '실계좌 엔진 상태 확인 필요' if live_scheduled and market_open(dt) else
                 '실주문 비활성(준비 중)')
         return {'mode': mode, 'live_sell': live_sell_enabled(), 'live_active': live_active,
+                'balance': self.balance_info(), 'live_policy': live_policy(),
+                'live_env': os.environ.get('LIVE_TRADING') == '1', 'order_gate': 'LOCAL_BOT_RECORD_ONLY',
                 'live_scheduled': live_scheduled,
                 'live_engine': live_engine,
                 'stopped': self.stopped(), 'market_open': market_open(dt), 'now': dt.strftime('%Y-%m-%d %H:%M:%S'),
@@ -217,39 +300,78 @@ class Bot:
                 'take_profit_cap_pct': self.config['take_profit_cap_pct'], 'sells_today': self.store.orders_today(),
                 'max_sells_per_day': self.config['max_sells_per_day']}
 
+    def balance_info(self):
+        """잔고 조회 상태. NOT_YET(아직 조회 전) / OK / STALE(오래됨) / FAILED(마지막 시도 실패). 보유 0개와 조회 실패를 구분하는 데 쓴다."""
+        age = None if self._balance_ok_epoch is None else max(0, int(time.time() - self._balance_ok_epoch))
+        limit = BALANCE_STALE_OPEN_SEC if market_open(now_kst()) else BALANCE_STALE_CLOSED_SEC
+        if self._balance_ok_epoch is None:
+            state = 'FAILED' if self.balance_error else 'NOT_YET'
+        elif self.balance_error:
+            state = 'FAILED'
+        elif age > limit:
+            state = 'STALE'
+        else:
+            state = 'OK'
+        return {'state': state, 'last_ok': self.balance_ok_at, 'age_sec': age, 'error': self.balance_error,
+                'count': len(self.holdings) if self._balance_ok_epoch is not None else None,
+                'stale_after_sec': limit}
+
     def health(self):
         """감시용 읽기 전용 상태(텔레그램 관제가 읽는다). 판단 로직에는 쓰이지 않는다."""
         return {'balance_failures': self._balance_failures, 'last_poll': self.last_poll, 'last_error': self.last_error,
                 'poll_seconds': self.config['poll_seconds']}
 
     # ---- 한 번의 폴링 ----
+    def _balance_due(self, is_open):
+        if is_open:
+            return True
+        gap = self.config.get('off_hours_balance_sec', 300)
+        return self._last_balance_try is None or time.time() - self._last_balance_try >= gap
+
     def poll_once(self):
         dt = now_kst()
         self.last_poll = dt.strftime('%Y-%m-%d %H:%M:%S')
-        if self.stopped() or not market_open(dt):
+        is_open = market_open(dt)
+        # 2026-10-15: 잔고 조회(읽기 전용)와 주문 판단을 분리한다. 장전·장후에도 보유 종목을 보여 주되 주문 판단은 장 시간에만 한다.
+        if not self._balance_due(is_open):
             return
+        self._last_balance_try = time.time()
         try:
             holdings = self.client.balance()
             self._balance_failures = 0
         except Exception as exc:
             self._balance_failures += 1
-            self.last_error = '잔고 조회 실패: %s' % exc
-            level = 'CRITICAL' if self._balance_failures >= 3 else 'ERROR'
-            self.store.event(level, None, None, '잔고 조회 실패(%d회 연속) - 손절·익절 판단을 못 합니다: %s' % (self._balance_failures, exc))
+            self.balance_error = '잔고 조회 실패: %s' % exc
+            self.last_error = self.balance_error
+            if is_open and not self.stopped():
+                level = 'CRITICAL' if self._balance_failures >= 3 else 'ERROR'
+                self.store.event(level, None, None, '잔고 조회 실패(%d회 연속) - 손절·익절 판단을 못 합니다: %s' % (self._balance_failures, exc))
             return
-        watched = {w['code'] for w in self.store.watch_list()}
+        self.balance_error = None
+        if self.last_error and self.last_error.startswith('잔고 조회 실패'):
+            self.last_error = None
+        self.balance_ok_at = dt.strftime('%Y-%m-%d %H:%M:%S')
+        self._balance_ok_epoch = time.time()
+        watch_rows = {w['code']: w for w in self.store.watch_list()}
+        analysis = {a['code'] for a in self.store.analysis_list()}
         for h in holdings:
-            h['watched'] = h['code'] in watched
+            row = watch_rows.get(h['code'])
+            h['analysis_only'] = h['code'] in analysis
+            h['watched'] = row is not None and not h['analysis_only']
+            h['watch_confirmed'] = bool(row and row.get('confirmed')) and h['watched']
             h['gain'] = (h['price'] / h['avg'] - 1) * 100 if h['avg'] > 0 and h['price'] > 0 else None
             h['peak'] = self.store.peak_get(h['code'])
         self.holdings = holdings
+        if self.stopped() or not is_open:
+            return
         held_now = {h['code'] for h in holdings}
         for gone in self._held_before - held_now:
             self.store.peak_clear(gone)
             self.store.event('POSITION_CLOSED', gone, None, '보유 종료(전량 매도 또는 외부 매도)')
-        self._held_before = held_now & watched
+        self._held_before = {h['code'] for h in holdings if h['watched']}
         for h in holdings:
-            if h['watched']:
+            # 확인하지 않은 감시 등록은 판단·주문에 쓰지 않는다(이미 기준을 넘은 기존 보유가 등록 즉시 매도되는 사고 방지).
+            if h['watched'] and h['watch_confirmed']:
                 self.evaluate(h)
 
     def evaluate(self, h):

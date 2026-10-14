@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>auto-trader 로컬 테스트</title>
+<link rel="stylesheet" href="../css/auto-trader.css" />
+<style>
+  body { font-family: system-ui, 'Pretendard', sans-serif; margin: 0; background: #fff; --np-paper: #fff; }
+  html.dark body { background: #1a1a1a; color: #eee; --np-paper: #1a1a1a; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap"><p style="font-size:12px;color:#888">시나리오: ?s=ok | premarket-ok | not-yet | failed | stale | zero | legacy | nopolicy — 로컬 봇·VM 응답을 흉내 낸 mock(실제 주문·계좌 연결 없음)</p>
+<div id="auto-trader"></div></div>
+<script>
+  var scenario = (location.search.match(/s=([\w-]+)/) || [0, 'ok'])[1];
+  window.T = { config: { IS_LOGIN: true, ROLE: 'owner' } };
+  try { localStorage.setItem('autotrader_token_v1', 'mock'); } catch (e) {}
+  function daily() {
+    var out = [], close = 15200, d = new Date('2025-08-20');
+    for (var i = 0; i < 420; i++) { d.setDate(d.getDate() + 1); if (d.getDay() === 0 || d.getDay() === 6) continue;
+      close += (Math.sin(i / 9) * 60) - 2; var s = d.toISOString().slice(0, 10);
+      out.push({ date: s, open: close + 20, high: close + 80, low: close - 80, close: close, volume: 700000 + (i % 7) * 40000 }); }
+    return out;
+  }
+  var bars = daily();
+  var maOf = function (n) { return bars.map(function (b, i) { var sl = bars.slice(Math.max(0, i - n + 1), i + 1); return sl.reduce(function (s, x) { return s + x.close; }, 0) / sl.length; }); };
+  var lastClose = bars[bars.length - 1].close;
+  var nowStr = '2026-10-15 08:40:12';
+  var mockStatus = { mode: '실주문 비활성(준비 중)', live_sell: false, live_active: false, live_scheduled: scenario === 'ok' || scenario === 'premarket-ok', live_engine: null,
+    stopped: false, market_open: false, now: nowStr, last_poll: nowStr, last_error: null, watch_count: 1, stop_loss_pct: 3, take_profit_floor_pct: 3, take_profit_cap_pct: 5,
+    sells_today: 0, max_sells_per_day: 10, order_gate: 'LOCAL_BOT_RECORD_ONLY', live_env: false,
+    live_policy: scenario === 'nopolicy' ? null : { budget: 1000000, reserve: 100000, per_stock: 300000, max_stocks: 3, cost_pct: 0.7, source: 'live_engine.py', exit: { stop_net_pct: -5, take_profit_net_pct: 6, floor_net_pct: 3 } },
+    balance: { state: 'OK', last_ok: '2026-10-15 08:39:40', age_sec: 32, error: null, count: 2, stale_after_sec: 900 } };
+  if (scenario === 'not-yet') mockStatus.balance = { state: 'NOT_YET', last_ok: null, age_sec: null, error: null, count: null, stale_after_sec: 900 };
+  if (scenario === 'failed') mockStatus.balance = { state: 'FAILED', last_ok: null, age_sec: null, error: '잔고 조회 실패: HTTP 500', count: null, stale_after_sec: 900 };
+  if (scenario === 'stale') mockStatus.balance = { state: 'STALE', last_ok: '2026-10-15 07:50:00', age_sec: 3000, error: null, count: 2, stale_after_sec: 900 };
+  if (scenario === 'zero') mockStatus.balance.count = 0;
+  if (scenario === 'legacy') { delete mockStatus.balance; delete mockStatus.live_policy; }
+  var holdings = [
+    { code: '032640', name: 'LG유플러스', qty: 120, sellable: 120, avg: 15600, price: 14690, gain: -5.83, kind: 'manual', engine_qty: 0, manual_qty: 120, locked_qty: 0, sell_watch: 'analysis', rule_beyond: false, pending_order: false, watched: false, live_managed: false },
+    { code: '005930', name: '삼성전자', qty: 10, sellable: 6, avg: 70000, price: 66000, gain: -5.71, kind: 'mixed', engine_qty: 4, manual_qty: 6, locked_qty: 4, sell_watch: 'rule_unconfirmed', rule_beyond: true, pending_order: true, watched: true, live_managed: true }
+  ];
+  if (scenario === 'zero' || scenario === 'not-yet' || scenario === 'failed') holdings = [];
+  if (scenario === 'legacy') holdings = holdings.map(function (h) { var c = Object.assign({}, h); ['kind', 'engine_qty', 'manual_qty', 'locked_qty', 'sell_watch', 'rule_beyond', 'pending_order'].forEach(function (k) { delete c[k]; }); return c; });
+  var orders = [
+    { ts: '2026-10-14 09:01:10', code: '005930', qty: 4, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문' },
+    { ts: '2026-10-14 09:00:50', code: '000660', qty: 2, reason: 'BUY', status: 'UNKNOWN', detail: '실계좌 매수 주문' },
+    { ts: '2026-10-13 10:12:00', code: '035420', qty: 3, reason: 'STOP', status: 'ERROR', detail: '1999 거부' }
+  ];
+  var events = []; for (var i = 0; i < 14; i++) events.push({ ts: '2026-10-15 08:' + (10 + i) + ':00', type: i % 5 === 0 ? 'ERROR' : 'SKIP', code: '005930', price: null, detail: '이벤트 ' + i });
+  var VMDATA = {
+    chart: { code: '032640', daily: bars, ma: { ma5: maOf(5), ma20: maOf(20), ma60: maOf(60), ma224: maOf(224) }, levels: { support: [lastClose - 90, lastClose - 300], resistance: [lastClose + 140, lastClose + 320] } },
+    flow: { code: '032640', as_of: '2026-10-14', rolling: { '5d': { foreign: -169525, inst: -91348, ind: 1 }, '20d': { foreign: -1619077, inst: -197746, ind: 2 } } }
+  };
+  var realFetch = window.fetch;
+  window.fetch = function (url) {
+    var u = String(url), body;
+    var json = function (b) { return Promise.resolve({ ok: true, status: 200, json: function () { return Promise.resolve(b); } }); };
+    if (u.indexOf('127.0.0.1:8765/api/status') > -1) return json(mockStatus);
+    if (u.indexOf('/api/watch') > -1) return json({ watch: [{ code: '005930', name: '삼성전자', confirmed: 0 }] });
+    if (u.indexOf('/api/holdings') > -1) return json({ holdings: holdings, updated: nowStr, balance: mockStatus.balance });
+    if (u.indexOf('/api/orders') > -1) return json({ orders: orders });
+    if (u.indexOf('/api/events') > -1) return json({ events: events });
+    if (u.indexOf('/api/analysis') > -1) return scenario === 'legacy' ? Promise.resolve({ ok: false, status: 404, json: function () { return Promise.resolve({}); } }) : json({ analysis: [{ code: '032640', name: 'LG유플러스' }] });
+    if (u.indexOf('/flow-chart/') > -1) return json({ success: true, data: VMDATA.chart });
+    if (u.indexOf('/foreign-flow/') > -1) return json({ success: true, data: VMDATA.flow });
+    return realFetch.apply(this, arguments);
+  };
+</script>
+<script src="../js/auto-trader.js"></script>
+</body>
+</html>

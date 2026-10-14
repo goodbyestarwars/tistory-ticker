@@ -5,8 +5,10 @@
 - 모든 요청에 X-AutoTrader-Token 헤더(.token 파일 값)가 있어야 한다. 토큰이 틀리면 401.
 - CORS는 지정한 블로그 주소(Origin) 하나만 허용한다. Chrome의 사설망 접근 확인(Private Network Access) 사전 요청도 처리한다.
 - GET /api/research: 연구 후보 생성기(research/research_job.py)가 남기는 상태 파일(research/status.json)과 후보·모의 집계, 장중 가상매매 상태(livePaper = research/livepaper.json)를 읽기 전용으로 돌려준다.
-- POST는 /api/stop·/api/resume(정지 플래그 파일 생성·삭제)과 /api/watch·/api/unwatch(감시 종목 추가·해제)뿐이다.
+- POST는 /api/stop·/api/resume(정지 플래그 파일 생성·삭제), /api/watch·/api/unwatch(감시 종목 추가·해제),
+  /api/watch-confirm(감시 종목의 손절·익절 규칙 확인 표시), /api/analysis·/api/analysis-remove(분석 전용 등록·해제)뿐이다.
   주문을 내거나 설정(손절·익절 값, LIVE_SELL)을 바꾸는 기능은 화면에 없다 - 그 값은 PC의 .env·config.json 에서만 바꾼다.
+  감시 등록은 기본 '규칙 미확인'이라 확인하기 전에는 판단·주문에 쓰이지 않고, 분석 전용 종목에는 고정 손절·익절을 적용하지 않는다.
 """
 import json
 import os
@@ -15,7 +17,7 @@ import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from bot import CODE_RE, HERE, STOP_FLAG
+from bot import CODE_RE, HERE, STOP_FLAG, live_sell_enabled
 
 TOKEN_PATH = os.path.join(HERE, '.token')
 RESEARCH_DIR = os.path.join(HERE, 'research')
@@ -44,6 +46,52 @@ def live_snapshot(path=None):
                'reason': r['side'], 'status': r['state'], 'ord_no': r['order_no'],
                'detail': '실계좌 ' + ('매수' if r['side'] == 'BUY' else '매도') + ' 주문'} for r in intents]
     return positions, orders
+
+
+def classify_holdings(holdings, positions, orders, watch_rows, analysis_codes, config, today):
+    """보유 종목에 화면용 구분을 붙인다(읽기 전용 계산).
+
+    kind: engine(실계좌 엔진이 산 종목) / mixed(엔진 + 기존 수동 보유 수량이 섞임) / manual(기존 수동 보유)
+    qty = 잔고 수량, sellable = 주문 가능, locked_qty = 잔고 - 주문 가능(미체결 등으로 묶인 수량)
+    sell_watch: analysis(분석 전용) / rule_confirmed / rule_unconfirmed / none  - 규칙 확인과 실주문 활성은 별개다.
+    rule_beyond: 규칙을 적용하면 등록 즉시 기준을 넘는 상태(미확인 등록이 즉시 매도로 이어지지 않도록 화면이 경고한다).
+    pending_order: 오늘 이 종목에 전송 후 접수·체결 확인이 끝나지 않은 주문이 있음.
+    """
+    pending_codes = {o['code'] for o in orders
+                     if str(o.get('ts', ''))[:10] == today and o.get('status') in ('UNKNOWN', 'ACK', 'SENT')}
+    out = []
+    for h in holdings:
+        row = dict(h)
+        code = row['code']
+        pos = positions.get(code)
+        qty = int(row.get('qty') or 0)
+        engine_qty = int(pos.get('qty') or 0) if pos else 0
+        if pos and engine_qty > 0:
+            row['kind'] = 'engine' if engine_qty >= qty else 'mixed'
+            row['engine_qty'] = min(engine_qty, qty)
+            row['manual_qty'] = max(0, qty - engine_qty)
+            row['qty_mismatch'] = engine_qty > qty
+        else:
+            row['kind'] = 'manual'
+            row['engine_qty'] = 0
+            row['manual_qty'] = qty
+            row['qty_mismatch'] = False
+        row['live_managed'] = bool(pos)
+        row['live_floor_reached'] = bool(pos and pos.get('floor_reached'))
+        row['locked_qty'] = max(0, qty - int(row.get('sellable') or 0))
+        watch = watch_rows.get(code)
+        if code in analysis_codes:
+            row['sell_watch'] = 'analysis'
+        elif watch:
+            row['sell_watch'] = 'rule_confirmed' if watch.get('confirmed') else 'rule_unconfirmed'
+        else:
+            row['sell_watch'] = 'none'
+        gain = row.get('gain')
+        row['rule_beyond'] = bool(row['sell_watch'] in ('rule_confirmed', 'rule_unconfirmed') and gain is not None and
+                                  (gain <= -config['stop_loss_pct'] or gain >= config['take_profit_cap_pct']))
+        row['pending_order'] = code in pending_codes
+        out.append(row)
+    return out
 
 
 def load_or_create_token():
@@ -165,11 +213,14 @@ def make_handler(bot, store, token):
             if url.path == '/api/watch':
                 return self._send(200, {'watch': store.watch_list()})
             if url.path == '/api/holdings':
-                positions, _ = live_snapshot()
-                holdings = [dict(h, live_managed=h['code'] in positions,
-                                 live_floor_reached=bool(positions.get(h['code'], {}).get('floor_reached')))
-                            for h in bot.holdings]
-                return self._send(200, {'holdings': holdings, 'updated': bot.last_poll})
+                positions, live_orders = live_snapshot()
+                holdings = classify_holdings(
+                    bot.holdings, positions, live_orders + store.orders(50),
+                    {w['code']: w for w in store.watch_list()}, {a['code'] for a in store.analysis_list()},
+                    bot.config, bot.status()['now'][:10])
+                return self._send(200, {'holdings': holdings, 'updated': bot.last_poll, 'balance': bot.balance_info()})
+            if url.path == '/api/analysis':
+                return self._send(200, {'analysis': store.analysis_list()})
             if url.path == '/api/orders':
                 _, live_orders = live_snapshot()
                 orders = store.orders(limit) + live_orders
@@ -201,15 +252,32 @@ def make_handler(bot, store, token):
                     os.remove(STOP_FLAG)
                 store.event('RESUME', None, None, '화면에서 재개 요청')
                 return self._send(200, {'stopped': False})
-            if self.path in ('/api/watch', '/api/unwatch'):
+            if self.path in ('/api/watch', '/api/unwatch', '/api/watch-confirm', '/api/analysis', '/api/analysis-remove'):
                 body = self._body()
                 code = str(body.get('code') or '').strip()
                 if not CODE_RE.match(code):
                     return self._send(400, {'error': '종목코드 6자리가 필요합니다'})
+                name = str(body.get('name') or '').strip()[:40]
+                if self.path == '/api/analysis':
+                    store.analysis_add(code, name)
+                    store.event('ANALYSIS_ADD', code, None, '분석 전용 등록(고정 손절·익절 미적용, 자동 매도 없음) %s' % name)
+                    return self._send(200, {'analysis': store.analysis_list(), 'watch': store.watch_list()})
+                if self.path == '/api/analysis-remove':
+                    store.analysis_remove(code)
+                    store.event('ANALYSIS_REMOVE', code, None, '분석 전용 해제')
+                    return self._send(200, {'analysis': store.analysis_list()})
+                if self.path == '/api/watch-confirm':
+                    confirmed = bool(body.get('confirmed', True))
+                    if not store.watch_confirm(code, confirmed):
+                        return self._send(404, {'error': '감시 종목이 아닙니다'})
+                    store.event('WATCH_CONFIRM', code, None, ('손절·익절 규칙 확인' if confirmed else '규칙 확인 취소')
+                                + (' - 로컬 봇의 실주문은 비활성이라 주문은 나가지 않음' if not live_sell_enabled() else ''))
+                    return self._send(200, {'watch': store.watch_list()})
                 if self.path == '/api/watch':
-                    name = str(body.get('name') or '').strip()[:40]
+                    if code in {a['code'] for a in store.analysis_list()}:
+                        return self._send(409, {'error': '분석 전용 종목입니다. 분석 전용을 해제한 뒤 감시 등록하세요'})
                     store.watch_add(code, name)
-                    store.event('WATCH_ADD', code, None, '감시 추가 %s' % name)
+                    store.event('WATCH_ADD', code, None, '감시 추가(규칙 미확인 - 확인 전에는 판단·주문에 쓰지 않음) %s' % name)
                 else:
                     store.watch_remove(code)
                     store.event('WATCH_REMOVE', code, None, '감시 해제')

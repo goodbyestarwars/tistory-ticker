@@ -56,7 +56,7 @@ class HTTPCase(unittest.TestCase):
         self.client = FakeClient()
         self.client.holdings = [holding('005930', avg=70000.0, price=72000.0)]
         self.bot = bot_mod.Bot(self.client, self.store, dict(bot_mod.DEFAULT_CONFIG))
-        self.store.watch_add('005930', '삼성전자')
+        self.store.watch_add('005930', '삼성전자', confirmed=True)
         self.settings = tg_config.Settings(token=self.fake.token, allowed_user_id=USER, api_base=self.fake.base)
         self.services = []
 
