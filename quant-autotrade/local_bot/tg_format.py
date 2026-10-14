@@ -300,16 +300,17 @@ def fmt_startup(info, now):
     kind = info.get('kind')
     title = {'boot': 'PC 부팅 후 자동 시작', 'planned': '재시작 완료', 'unclean': '비정상 종료 후 복구', 'first': '시작'}.get(kind, '시작')
     icon = '⚠️' if kind == 'unclean' else '✅'
-    lines = [head(icon, '자동매매 봇 %s' % title), '']
+    lines = [head(icon, '기존 수동 감시 봇 %s' % title), '']
     if kind == 'unclean':
         lines.append('이전 실행이 정상 종료되지 않았습니다. 마지막 생존 신호 %s' % ts(info.get('last_heartbeat')))
         lines.append('원인: 전원 차단·강제 종료·프로세스 오류 등. 그동안(%s) 손절·익절 판단이 없었습니다.' % info.get('gap_text', '-'))
     elif kind == 'boot':
         lines.append('PC가 켜진 뒤 자동으로 시작했습니다. 마지막 생존 신호 %s' % ts(info.get('last_heartbeat')))
-    lines.append('모드: %s' % ('🚨 <b>실주문 ON (매도 전용)</b>' if info.get('live_sell') else '기록 전용 (매도 주문 미전송)'))
+    lines.append('기존 감시 기능: %s' % ('🚨 <b>실주문 ON (매도 전용)</b>' if info.get('live_sell') else '기록 전용 (이 봇은 매도 주문 미전송)'))
     if info.get('mode_changed'):
         lines.append('⚠️ 지난 실행과 모드(LIVE_SELL)가 달라졌습니다. 의도한 변경인지 확인하세요.')
-    lines.append('감시 종목 %d · 텔레그램 관제 연결됨' % info.get('watch_count', 0))
+    lines.append('기존 수동 감시 종목 %d · 텔레그램 관제 연결됨' % info.get('watch_count', 0))
+    lines.append('별도 실계좌 자동매매 엔진의 주문·보유 상태를 뜻하지 않습니다.')
     lines += ['', '메뉴는 /help', foot(now)]
     return '\n'.join(lines)
 
