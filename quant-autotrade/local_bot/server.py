@@ -17,7 +17,7 @@ import sqlite3
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
-from bot import CODE_RE, HERE, STOP_FLAG, live_sell_enabled
+from bot import CODE_RE, HERE, STOP_FLAG, engine_excluded, live_sell_enabled
 
 TOKEN_PATH = os.path.join(HERE, '.token')
 RESEARCH_DIR = os.path.join(HERE, 'research')
@@ -218,6 +218,10 @@ def make_handler(bot, store, token):
                     bot.holdings, positions, live_orders + store.orders(50),
                     {w['code']: w for w in store.watch_list()}, {a['code'] for a in store.analysis_list()},
                     bot.config, bot.status()['now'][:10])
+                excluded = engine_excluded()
+                for row in holdings:
+                    # True/False = 엔진 제외 목록과의 대조 결과, None = 제외 목록을 읽지 못함
+                    row['engine_excluded'] = None if excluded is None else row['code'] in excluded
                 return self._send(200, {'holdings': holdings, 'updated': bot.last_poll, 'balance': bot.balance_info()})
             if url.path == '/api/analysis':
                 return self._send(200, {'analysis': store.analysis_list()})

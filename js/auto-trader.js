@@ -65,7 +65,8 @@
     FOREIGN_HOLDINGS: '기존 보유 종목 때문에 멈춤', PENDING_ORDERS: '미체결 주문 대기',
     NO_ENTRY: '진입 조건 없음', NO_CANDIDATE: '적합한 후보 없음', BUY_SENT: '매수 주문 전송',
     STOP_NET_5: '손절 주문 전송', PROFIT_NET_6: '익절 주문 전송', PROFIT_FLOOR_NET_3: '익절 주문 전송',
-    PRICE_UNAVAILABLE: '현재가 확인 불가', CLOSED_OR_STOPPED: '장 시간 밖 또는 정지' };
+    PRICE_UNAVAILABLE: '현재가 확인 불가', CLOSED_OR_STOPPED: '장 시간 밖 또는 정지',
+    EXCLUSION_UNCONFIRMED: '제외 목록 확인 실패 - 주문 중지' };
 
   /* ───────────── 분석 전용 종목 판단(순수 함수 - 테스트 대상) ─────────────
    * 고정 손절·익절 대신 현재가·이동평균·지지/저항·거래량·외국인/기관 수급을 점수화한다. 자동 주문과는 연결되지 않는다.
@@ -235,10 +236,12 @@
   function sellWatchCell(h, cfg) {
     var code = esc(h.code), name = esc(h.name || '');
     var out = [];
-    if (h.kind !== 'manual') out.push(badge('엔진 관리 ' + h.engine_qty + '주', 'is-engine'));
+    if (h.kind !== 'manual') out.push(badge(h.engine_excluded === true ? '엔진 장부 ' + h.engine_qty + '주 · 엔진 제외' : '엔진 관리 ' + h.engine_qty + '주', 'is-engine'));
     if (h.sell_watch === 'analysis') {
       out.push(badge(h.kind === 'manual' ? '분석 전용 · 자동 매도 없음' : '분석 전용(이 화면·로컬 봇 기준)', 'is-analysis'));
-      if (h.kind !== 'manual') out.push('<small class="at-warn-text">PC 엔진 장부에 엔진 보유로 등록돼 있습니다. 엔진이 가동되면 엔진의 고정 규칙(손절·익절)으로 매도 주문이 나갈 수 있으며, 분석 전용 설정은 엔진에 적용되지 않습니다.</small>');
+      if (h.engine_excluded === true) out.push(badge('엔진 제외 확인됨', 'is-ok'), '<small class="at-mute">엔진 장부의 매수 기록은 보존되고, PC 엔진은 이 종목을 자동매수·자동매도하지 않습니다.</small>');
+      else if (h.engine_excluded === null) out.push('<small class="at-warn-text">엔진 제외 목록을 읽지 못했습니다(확인 불가). 엔진 제외 여부를 직접 확인하세요.</small>');
+      else if (h.kind !== 'manual') out.push('<small class="at-warn-text">PC 엔진 장부에 엔진 보유로 등록돼 있고 엔진 제외 목록에는 없습니다. 엔진이 가동되면 엔진의 고정 규칙(손절·익절)으로 매도 주문이 나갈 수 있습니다.</small>');
       out.push('<button type="button" class="at-mini" data-act="analysis-remove" data-code="' + code + '">분석 해제</button>');
     } else if (h.sell_watch === 'rule_confirmed') {
       out.push(badge('규칙 확인됨', 'is-ok'));
@@ -307,7 +310,7 @@
 
   // 분석 전용으로 둔 종목이 PC 엔진 장부(live_orders.db)에도 엔진 보유로 있으면, 엔진의 고정 규칙이 별도로 적용될 수 있다(엔진은 이 화면과 무관).
   function engineConflictHtml(d) {
-    var hit = d.holdings.filter(function (h) { return h.sell_watch === 'analysis' && h.kind !== 'manual'; });
+    var hit = d.holdings.filter(function (h) { return h.sell_watch === 'analysis' && h.kind !== 'manual' && h.engine_excluded !== true; });
     if (!hit.length) return '';
     var armed = d.status.live_active || d.status.live_scheduled;
     return '<p class="at-banner is-bad"><b>확인 필요:</b> ' + hit.map(function (h) { return esc(h.name || h.code); }).join(', ')
@@ -334,6 +337,7 @@
     var warn = manual ? '<p class="at-note is-wait">기존 수동 보유 ' + manual + '종목이 있습니다. PC 엔진 코드상 이런 보유가 있으면 신규 매수 전에 <code>FOREIGN_HOLDINGS</code>로 멈추고, 엔진은 직접 산 종목만 매도합니다(기존 보유는 건드리지 않음).</p>' : '';
     return '<section class="at-box"><div class="at-hd"><h3>오늘의 매매 규칙</h3><span>신규 후보 상태 포함</span></div>' + rows.join('') + note
       + '<div class="at-row"><span>엔진 상태</span><b>' + engineLine + '</b></div>'
+      + '<div class="at-row"><span>엔진 제외 종목</span><b>' + (s.engine_excluded == null ? '확인 불가' : s.engine_excluded.length ? esc(s.engine_excluded.join(', ')) + ' (자동매수·매도 없음)' : '없음') + '</b></div>'
       + '<div class="at-row"><span>실주문</span><b>' + esc(liveState(s).orders) + '</b></div>'
       + '<div class="at-row"><span>로컬 감시 봇 매도</span><b>기록 전용(주문 없음)</b></div>' + warn + '</section>';
   }
