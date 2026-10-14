@@ -664,3 +664,6 @@ html.dark .dmi-shell .dmi-flow-table td:not(.dmi-positive):not(.dmi-negative) { 
 .dmi-rank-table th:first-child, .dmi-rank-table td:first-child { text-align: center; }
 .dmi-rank-table th:last-child, .dmi-rank-table td:last-child { text-align: right; white-space: nowrap; }
 .dmi-rank-table td:nth-child(3) { color: var(--ui-muted); }
+
+.dmi-rank-name { display: inline-flex; align-items: center; gap: 7px; }
+.dmi-rank-name .ss-stock-icon { flex: 0 0 auto; width: 23px; height: 23px; border-radius: 50%; object-fit: contain; background: #f3f5f7; }
