@@ -342,6 +342,37 @@
       + '<div class="at-row"><span>로컬 감시 봇 매도</span><b>기록 전용(주문 없음)</b></div>' + warn + '</section>';
   }
 
+  var REJECT_LABEL = { LOW_QUALITY: '품질 기준 미달', MAX_BUYS_PER_CODE: '같은 종목 하루 매수 횟수 상한', ADD_PRICE_OUT_OF_RANGE: '추가 매수 가격 조건 밖',
+    ADD_NO_REFERENCE_PRICE: '직전 매수가 없음', CASH_UNKNOWN: '주문 가능 현금 확인 불가', BELOW_MIN_ORDER: '최소 주문 금액 미만' };
+  var BIND_LABEL = { allocation: '품질 비례 몫', risk: '거래당 위험 한도', position_cap: '종목당 비중 상한', liquidity: '유동성 한도',
+    portfolio_risk: '전체 위험 한도', budget_room: '총 운용금 잔여', cash: '주문 가능 현금' };
+
+  // 동적 배분 엔진이 남긴 근거. 엔진 보고(live_allocation.json)가 오늘 날짜일 때만 '적용 중'으로 표시한다 - 파일이 없거나 오래되면 미적용이다.
+  function allocationHtml(s) {
+    var a = s.allocation;
+    var today = String(s.now || '').slice(0, 10);
+    if (!a || String(a.checked_at || '').slice(0, 10) !== today) {
+      return '<section class="at-box"><div class="at-hd"><h3>자금 배분 방식</h3><span>고정 한도 정책 운영 중</span></div>'
+        + '<p class="at-note">동적 자금 배분은 <b>아직 적용되지 않았습니다</b>. 실계좌 엔진의 현재 정책(위 "오늘의 매매 규칙")이 그대로 쓰입니다. 동적 배분 엔진이 가동되면 매수 우선순위와 금액 산정 근거가 여기에 표시됩니다.</p></section>';
+    }
+    var cash = a.cash_snapshot || {};
+    var rows = (a.considered || []).map(function (c, i) {
+      var parts = c.parts || {};
+      return '<tr' + (a.chosen === c.code ? ' class="at-chosen"' : '') + '><td class="n">' + (i + 1) + '</td><td><code>' + esc(c.code) + '</code></td><td class="n">' + esc(c.quality) + '</td>'
+        + '<td>' + esc(c.tranche ? ({ first: '첫 진입(절반)', add: '추가 매수', full: '한 번에' }[c.tranche] || c.tranche) : '-') + '</td>'
+        + '<td class="n">' + (c.qty ? esc(c.qty) + '주 · ' + fmtWon(c.notional) + '원' : '<span class="at-mute">' + esc(REJECT_LABEL[c.reject] || c.reject || '-') + '</span>') + '</td>'
+        + '<td>' + (c.binding ? esc(BIND_LABEL[c.binding] || c.binding) : '-') + '</td>'
+        + '<td><small class="at-mute">유동성 ' + esc(parts.liquidity) + ' · 변동성 ' + esc(parts.volatility) + ' · 추세 ' + esc(parts.trend) + ' · 증가 ' + esc(parts.surge) + '</small></td></tr>';
+    }).join('');
+    return '<section class="at-box"><div class="at-hd"><h3>자금 배분 근거 (동적 배분 ' + esc(a.policy) + ')</h3><span>엔진 보고 ' + esc(hhmm(String(a.checked_at).replace('T', ' '))) + '</span></div>'
+      + '<div class="at-row"><span>주문 가능 현금(가장 작은 값)</span><b>' + fmtWon(a.cash_usable) + '원</b></div>'
+      + '<div class="at-row"><span>현금 조회값</span><b>주문가능 ' + fmtWon(cash.ord_alow) + ' · 증거금100% ' + fmtWon(cash.ord_alow_100) + ' · 예수금 ' + fmtWon(cash.entr) + '</b></div>'
+      + '<div class="at-row"><span>운용 예산 잔여</span><b>' + fmtWon(a.budget_room) + ' / ' + fmtWon(a.budget_total) + '원 (보유 원가 ' + fmtWon(a.committed) + ')</b></div>'
+      + (rows ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th class="n">우선</th><th>종목</th><th class="n">품질</th><th>구분</th><th class="n">주문</th><th>제한 요인</th><th>점수 구성</th></tr></thead><tbody>' + rows + '</tbody></table></div>'
+        : '<p class="at-empty">이번 사이클에 비교한 후보가 없습니다(' + esc(a.state || '-') + ').</p>')
+      + '<p class="at-note">품질 점수는 유동성·거래대금 증가·변동성·추세로 계산하고, 금액은 품질 비례 몫·거래당 위험·전체 위험·종목당 비중·유동성·남은 예산·주문 가능 현금 중 가장 작은 값입니다.</p></section>';
+  }
+
   function watchHtml(watch) {
     var rows = watch.length ? '<div class="at-chips">' + watch.map(function (w) {
       return '<span class="at-chip">' + esc(w.name || '') + ' <code>' + esc(w.code) + '</code> ' + (w.confirmed ? '<small>확인됨</small>' : '<small class="at-warn-text">미확인</small>')
@@ -398,7 +429,7 @@
       + analysisHtml(d)
       + '<section class="at-box"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10)) + '</section>'
       + eventsHtml(d.events)
-      + '</div><div class="at-col">' + policyHtml(d.status, d.holdings) + watchHtml(d.watch) + '</div></div>';
+      + '</div><div class="at-col">' + policyHtml(d.status, d.holdings) + allocationHtml(d.status) + watchHtml(d.watch) + '</div></div>';
     wire(d);
   }
 

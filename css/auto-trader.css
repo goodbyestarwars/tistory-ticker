@@ -190,6 +190,7 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 #auto-trader .at-why li.is-ok { color: var(--at-ok); }
 #auto-trader .at-why li.is-info { color: var(--at-mute); }
 html.dark #auto-trader .at-verdict2.is-review { color: #1a1a1a; }
+#auto-trader .at-chosen td { font-weight: 700; }
 @media (max-width: 1100px) {
   #auto-trader .at-kpi { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   #auto-trader .at-kpi div:nth-child(n) { border-top: 1px solid var(--at-line); border-left: 1px solid var(--at-line); }

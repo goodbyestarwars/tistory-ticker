@@ -128,6 +128,10 @@ class SourceSafetyTests(unittest.TestCase):
         self.assertNotIn('체결 완료', self.src)
         self.assertIn('체결 확인 전', self.src)
 
+    def test_dynamic_allocation_is_never_shown_as_applied_without_todays_engine_report(self):
+        self.assertIn('아직 적용되지 않았습니다', self.src)
+        self.assertIn("String(a.checked_at || '').slice(0, 10) !== today", self.src)   # 엔진 보고가 오늘 날짜일 때만 '적용 중'으로 표시
+
     def test_unknown_balance_is_not_rendered_as_zero(self):
         for text in ('조회 전', '확인 불가', '오래됨'):
             self.assertIn(text, self.src)
