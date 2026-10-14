@@ -1,3 +1,11 @@
+**2026-10-15 급락 후 첫 눌림목(공파산) 4단계 관찰·이력 저장**
+
+마지막 봉에서 `entry_signal`이 켜진 종목만 보여 거의 항상 비던 검색기를, 같은 전략의 진행 단계(① 매집 관찰 → ② 상승 돌파 → ③ 눌림 대기 → ④ 지지 확인)로 나눠 보여 주게 했다. 기존 `gongpasan_strategy.py`의 판정 조건·수치·백테스트는 그대로이고(수정 없음), 새 `gongpasan_stages.py`가 같은 컬럼과 첫 눌림 상태 머신을 읽기만 한다(④는 기존 `entry_signal`과 일치함을 테스트로 고정, 봉마다 앞쪽만 읽어 미래 참조 없음). `/pattern-scan`의 `patterns.gongpasan`은 ④ 전용으로 유지하고 ①~③은 별도 `gongpasanStages`(status ok/stale·단계별 건수·상위 30건)로 내린다. 일봉 기준일이 기대 거래일보다 오래되면 stale로 목록을 비우고 이력도 저장하지 않는다.
+
+이력: ④ 최종 신호는 다른 패턴과 같은 `scan_hits`·`pattern_tracks`(`pattern:gongpasan`, 기준일=봉 날짜)에 저장해 사후 추적한다. ①~③은 새 `gongpasan_stage_log`(PK 종목·단계·단계시작일, `source=live`)에만 쌓고 종료 사유(PROMOTED/SUPPORT_FAILED/EXPIRED/REPLACED/CONDITION_LOST)를 남기며 성과 통계에 섞지 않는다. 과거 기록은 복원하지 않았다(실제 저장분만). UI는 단계 칩 4개와 종목별 배지, 상세에 통과/미충족 조건·돌파 기준가·20일선 거리·무효 조건을 보여 준다. `pattern_funnel.py`에 공파산 60거래일 단계 퍼널과 임계값 near-miss 집계를 추가했다.
+
+검증: `test_gongpasan_stages.py` 신규(단계 판정·entry 일치·재진입 없음·20거래일 만료·미래 비참조·이력 중복 방지·scan_hits/pattern_tracks 저장·stale 처리), 기존 공파산 전략·공개 스캔 라우트 테스트 통과. 배포 결과는 PR 병합 후 아래 항목에 기록.
+
 **2026-10-15 차트검색기 0건 오류 수정·메뉴명/설명 개편**
 
 `/pattern-scan` 응답과 GAS 폴백에서 `shortTermMaBreakout`(하락추세선 돌파)이 빠져 탭이 항상 비던 문제를 수정했다(판정·`scan_hits` 기록은 정상이었음, 27거래일 245건). 각도기·공파산 완료 시각(`angleMomentumScannedAt`·`gongpasanScannedAt`)을 API에 추가했다. 11개 메뉴명을 사용자 지정 이름으로 바꾸고, 탭마다 검색 목적·패턴 조건·포착 상태·진입 확인·무효 조건·스캔 기준을 0건이어도 항상 보이게 했다. 목록에 형성 중/돌파 준비/돌파 확인 배지를 추가했고, 장 마감 뒤 실시간 감시 목록이 비면 09:05 스냅샷을 덮어쓰지 않게 했다. 검색 조건·점수·임계값은 바꾸지 않았다. 읽기 전용 단계별 탈락 진단 `scripts/cloud-vm/pattern_funnel.py`를 추가했다.

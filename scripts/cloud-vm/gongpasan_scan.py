@@ -23,8 +23,11 @@ from datetime import datetime, timezone
 import daily_scan_cache
 import db_schema
 import market_clock
+import gongpasan_stages as gs
 import gongpasan_strategy as gp
 import pattern_detect as pd
+import pattern_tracker
+import scan_forward
 
 FULL_UNIVERSE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js'
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
@@ -122,9 +125,62 @@ def _build_match(stock, df):
     }
 
 
+def expected_bar_date(now_kst=None):
+    """이 시각에 DB에 있어야 하는 가장 최근 확정 일봉 날짜(YYYY-MM-DD). 장 마감 15:40 이후면 오늘, 아니면 직전 거래일."""
+    from datetime import timedelta
+    now_kst = now_kst or market_clock.kst_now()
+    day = now_kst
+    if not (market_clock.is_kr_trading_day(day) and (day.hour, day.minute) >= (15, 40)):
+        day = day - timedelta(days=1)
+        while not market_clock.is_kr_trading_day(day):
+            day = day - timedelta(days=1)
+    return day.strftime('%Y-%m-%d')
+
+
+def latest_bar_date(bar_dates):
+    """종목 마지막 봉 날짜 분포에서, 전체의 30% 이상이 도달한 가장 최근 날짜(일부 종목만 먼저 갱신된 날을 기준일로 잡지 않기 위함)."""
+    total = sum(bar_dates.values())
+    seen = 0
+    for day in sorted(bar_dates, reverse=True):
+        seen += bar_dates[day]
+        if total and seen >= 0.3 * total:
+            return day
+    return None
+
+
+def build_stage_payload(stage_items, counts, as_of, expected, scanned, scan_at):
+    """/pattern-scan의 gongpasanStages 필드. 일봉이 expected보다 오래됐으면 status=stale로 목록을 비워 신규 결과처럼 보이지 않게 한다."""
+    stale = (not as_of) or as_of < expected
+    return {
+        'status': 'stale' if stale else 'ok',
+        'asOf': as_of, 'expectedAsOf': expected, 'scanned': scanned, 'scannedAt': scan_at,
+        'counts': counts,
+        'stages': {k: ([] if stale else stage_items.get(k, [])) for k in (gs.WATCH_ACCUM, gs.BREAKOUT, gs.WAIT_PULLBACK)},
+    }
+
+
 def _rank_and_cap(matches):
     matches = sorted(matches, key=lambda it: (it.get('score') or 0, it.get('date') or ''), reverse=True)
     return matches[:MAX_MATCHES]
+
+
+def _record_history(conn, as_of, matches, stage_details, current_stage, frames):
+    """최종 신호는 다른 패턴 검색기와 같은 scan_hits/pattern_tracks에, 중간 단계는 gongpasan_stage_log에만 남긴다.
+    기준 거래일(봉 날짜)을 쓴다 - 이 스캔은 자정 무렵 끝나 today_kst()가 봉 날짜보다 하루 뒤일 수 있다. 실패해도 스캔은 계속한다."""
+    try:
+        scan_forward.record_hits(conn, as_of, 'pattern:gongpasan', matches)
+        pattern_tracker.record_new(conn, as_of, 'pattern:gongpasan', matches)
+    except Exception as e:
+        log('최종 신호 이력 저장 실패(무시하고 계속): %s' % e)
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        for stock, detail in stage_details:
+            gs.record_stage(conn, as_of, stock['name'], stock['code'], detail, now_iso)
+        closed = gs.close_ended(conn, as_of, current_stage, frames)
+        conn.commit()
+        log('단계 이력: 현재 %d종목, 종료 처리 %d건' % (len(stage_details), closed))
+    except Exception as e:
+        log('단계 이력 저장 실패(무시하고 계속): %s' % e)
 
 
 def main():
@@ -154,6 +210,15 @@ def main():
     matches = []
     net_returns = []
     scanned = 0
+    # 2026-10-15 단계별 후보: 이미 읽은 daily_prices 일봉으로만 계산한다(API 추가 호출 없음).
+    gs.ensure_schema(conn)
+    previously_open = gs.open_codes(conn)
+    stage_items = {gs.WATCH_ACCUM: [], gs.BREAKOUT: [], gs.WAIT_PULLBACK: []}
+    stage_counts = {k: 0 for k in gs.STAGE_ORDER}
+    current_stage = {}      # code -> (stage, stage_since)
+    stage_details = []      # (stock, detail) 이력 저장용
+    frames = {}             # 열린 이력이 있던 종목의 (df, trace)
+    bar_dates = {}
 
     # 낙폭(160일)+공구리(40일)+매집봉(60일) 조회가 안정되려면 최소 이 정도 데이터가 필요하다.
     min_rows_needed = gp.DECLINE_LOOKBACK + 10
@@ -177,14 +242,43 @@ def main():
         if bool(df.iloc[-1]['entry_signal']):
             matches.append(_build_match(stock, df))
 
+        trace = gs.stage_trace(df)
+        last_date = df.iloc[-1]['date'].strftime('%Y-%m-%d')
+        bar_dates[last_date] = bar_dates.get(last_date, 0) + 1
+        if code in previously_open:
+            frames[code] = (df, trace)
+        detail = gs.describe_stage(df, trace)
+        if detail:
+            stage_counts[detail['stage']] += 1
+            current_stage[code] = (detail['stage'], detail['stageSince'])
+            stage_details.append((stock, detail))
+            if detail['stage'] != gs.SUPPORT_CONFIRMED:
+                stage_items[detail['stage']].append(gs.build_stage_item(stock, df, detail))
+
         if (i + 1) % 300 == 0 or (i + 1) == len(codes):
             log('[%d/%d] 진행 중 (스캔 %d / 후보 %d)' % (i + 1, len(codes), scanned, len(matches)))
 
-    conn.close()
 
     matches = _rank_and_cap(matches)
-    backtest_summary = gp.summarize_backtest(net_returns)
+    as_of = latest_bar_date(bar_dates)
+    expected = expected_bar_date()
     scan_at = datetime.now(timezone.utc).isoformat()
+    for k, items in stage_items.items():
+        # 매집 관찰은 낙폭이 깊은 순, 돌파는 돌파 거래일 최근 순, 눌림 대기는 20일선에 가까운 순
+        if k == gs.WATCH_ACCUM:
+            items.sort(key=lambda it: it['patternDetail'].get('retreatPct') or 0)
+        elif k == gs.BREAKOUT:
+            items.sort(key=lambda it: it['code'])
+        else:
+            items.sort(key=lambda it: abs(it['patternDetail'].get('lowGapPct') or 0))
+        stage_items[k] = items[:gs.MAX_ITEMS_PER_STAGE]
+    stage_payload = build_stage_payload(stage_items, stage_counts, as_of, expected, scanned, scan_at)
+    if stage_payload['status'] == 'ok' and '--test' not in sys.argv:
+        _record_history(conn, as_of, matches, stage_details, current_stage, frames)
+    else:
+        log('일봉 기준일 %s < 기대 %s - 단계 후보를 신규 결과로 내보내지 않고 이력도 저장하지 않습니다.' % (as_of, expected))
+    conn.close()
+    backtest_summary = gp.summarize_backtest(net_returns)
 
     # 2026-08-21 코드 감사: 잠금 없는 read-modify-write는 daily_scan.py 등 다른 스크립트와
     # 실행 시간이 겹치면 서로의 결과를 덮어쓸 수 있었다 - daily_scan_cache.update()로 직렬화.
@@ -194,6 +288,7 @@ def main():
         existing['patternScan']['patterns']['gongpasan'] = matches
         existing['gongpasanBacktest'] = dict(backtest_summary or {}, timecutDays=gp.DEFAULT_TIMECUT_DAYS) if backtest_summary else None
         existing['gongpasanScannedAt'] = scan_at
+        existing['gongpasanStages'] = stage_payload
         existing.setdefault('universe', len(codes))
 
     daily_scan_cache.update(_apply)

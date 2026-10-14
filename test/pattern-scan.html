@@ -266,6 +266,23 @@
     pullback: { daily: pullbackDaily, code: '012330', name: '현대모비스' }
   };
 
+  function gpMock(code, name, stage, days) {
+    var labels = { WATCH_ACCUM: '매집 관찰', BREAKOUT: '상승 돌파', WAIT_PULLBACK: '눌림 대기' };
+    return {
+      code: code, name: name, price: 52000, changeRate: 1.2, date: '2026-07-10', score: null,
+      miniChart: byPattern.pullback.daily.slice(-20).map(function (d) { return { date: d.date, close: d.close }; }),
+      reasons: ['160일 고점 대비 -41.0% 하락(기준 -25% 이상)', '40일 변동폭 14.2%(기준 20% 이내)'],
+      interpretation: labels[stage] + ' 단계입니다. 최종 매수 신호(지지 확인)가 아닙니다.',
+      patternDetail: {
+        stage: stage, stageLabel: labels[stage], asOf: '2026-07-10', stageSince: '2026-07-04', close: 52000, ma20: 49000, ma20GapPct: 6.1,
+        lowGapPct: 4.8, retreatPct: -41.0, daysSinceBreakout: days, breakoutDate: stage === 'WATCH_ACCUM' ? undefined : '2026-07-04', breakoutLevel: 50500,
+        met: ['160일 고점 대비 -41.0% 하락(기준 -25% 이상)', '40일 변동폭 14.2%(기준 20% 이내)', '매집봉 2026-06-20 · 거래량 20일 평균의 3.1배 · 저점 유지'],
+        unmet: stage === 'BREAKOUT' ? ['20일선 첫 접근·지지 미확인(아직 매수 신호가 아닙니다)'] : ['돌파봉 미발생'],
+        invalid: '첫 접근 봉의 종가가 20일선 -1% 아래면 이 돌파는 끝나고(재진입 없음), 20거래일이 지나도 끝납니다.'
+      }
+    };
+  }
+
   PatternScan.fetchJson = function (url) {
     console.log('[mock] fetch', url);
     if (url.indexOf('patternScan=1') > -1) {
@@ -279,7 +296,18 @@
           invHeadShoulders: [mockMatch(byPattern.invHeadShoulders.daily, '035420', 'NAVER', 'invHeadShoulders')],
           boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차', 'boxRangeLow')],
           pullback: [mockMatch(byPattern.pullback.daily, '012330', '현대모비스', 'pullback')],
-          angleMomentum: [mockMatch(byPattern.pullback.daily, '000270', '기아', 'pullback')]
+          angleMomentum: [mockMatch(byPattern.pullback.daily, '000270', '기아', 'pullback')],
+          gongpasan: []
+        },
+        // 2026-10-15 급락 후 첫 눌림목 4단계 mock (최종 신호 0건이어도 1~3단계 후보가 보여야 한다)
+        gongpasanStages: {
+          status: 'ok', asOf: '2026-07-10', expectedAsOf: '2026-07-10', scanned: 236, scannedAt: '2026-07-10T15:30:00+00:00',
+          counts: { WATCH_ACCUM: 41, BREAKOUT: 1, WAIT_PULLBACK: 1, SUPPORT_CONFIRMED: 0 },
+          stages: {
+            WATCH_ACCUM: [gpMock('000150', '두산', 'WATCH_ACCUM', 0)],
+            BREAKOUT: [gpMock('005930', '삼성전자', 'BREAKOUT', 0)],
+            WAIT_PULLBACK: [gpMock('000660', 'SK하이닉스', 'WAIT_PULLBACK', 4)]
+          }
         }
       });
     }

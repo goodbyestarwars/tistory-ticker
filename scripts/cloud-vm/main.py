@@ -2693,6 +2693,8 @@ def _build_pattern_scan():
         # 2026-10-15: 각도기·공파산은 일봉 배치가 끝난 뒤 직렬 실행돼 완료 시각이 다르다.
         'angleMomentumScannedAt': data.get('angleMomentumScannedAt'),
         'gongpasanScannedAt': data.get('gongpasanScannedAt'),
+        # 2026-10-15: 급락 후 첫 눌림목 4단계(매집 관찰·상승 돌파·눌림 대기). patterns.gongpasan은 최종 지지 확인 전용으로 그대로.
+        'gongpasanStages': data.get('gongpasanStages'),
         'angleMomentumBacktest': data.get('angleMomentumBacktest'),
         'gongpasanBacktest': data.get('gongpasanBacktest'),
     }
