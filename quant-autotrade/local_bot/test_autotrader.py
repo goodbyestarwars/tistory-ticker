@@ -322,6 +322,23 @@ class OpsCenterTests(BaseCase):
                 f.write(raw)
             self.assertEqual(bot_mod.engine_excluded(folder), expected, raw)
 
+    def test_allocation_snapshot_only_exists_when_the_dynamic_engine_wrote_it(self):
+        folder = tempfile.mkdtemp()
+        self.assertIsNone(bot_mod.allocation_snapshot(folder))                    # 파일 없음 = 동적 배분 미적용
+        path = os.path.join(folder, 'live_allocation.json')
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump({'policy': 'fixed-old', 'checked_at': 'x'}, f)
+        self.assertIsNone(bot_mod.allocation_snapshot(folder))                    # 다른 정책 이름은 인정하지 않음
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump({'policy': 'dynamic-v1', 'checked_at': '2026-10-15T09:10:00+09:00', 'state': 'BUY_SENT', 'chosen': '111111', 'cash_usable': 295800,
+                       'considered': [{'code': '111111', 'quality': 91.2, 'qty': 20, 'secret_like': 'dropped'}]}, f)
+        snap = bot_mod.allocation_snapshot(folder)
+        self.assertEqual((snap['policy'], snap['chosen'], snap['cash_usable']), ('dynamic-v1', '111111', 295800))
+        self.assertNotIn('secret_like', snap['considered'][0])
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write('{broken')
+        self.assertIsNone(bot_mod.allocation_snapshot(folder))
+
     def test_status_exposes_balance_and_never_enables_orders(self):
         st = self.bot.status()
         self.assertEqual(st['balance']['state'], 'NOT_YET')

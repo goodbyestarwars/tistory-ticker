@@ -220,6 +220,25 @@ def engine_excluded(folder=HERE):
     return sorted(codes)
 
 
+def allocation_snapshot(folder=HERE):
+    """동적 배분 엔진(live_engine_dynamic)이 남기는 live_allocation.json을 읽기 전용으로 요약한다. 없거나 깨졌으면 None.
+    이 파일은 동적 배분 엔진이 실제로 돌았을 때만 생긴다 - 파일이 없으면 화면은 '동적 배분 미적용'으로 표시한다."""
+    try:
+        with open(os.path.join(folder, 'live_allocation.json'), encoding='utf-8') as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    if not isinstance(data, dict) or data.get('policy') != 'dynamic-v1':
+        return None
+    keep = ('code', 'quality', 'price', 'qty', 'notional', 'cost_with_fee', 'reject', 'binding', 'tranche', 'share', 'conviction',
+            'eff_stop_pct', 'target', 'limits', 'parts', 'scan_date')
+    considered = [{k: c.get(k) for k in keep} for c in (data.get('considered') or []) if isinstance(c, dict)][:12]
+    return {'policy': data.get('policy'), 'checked_at': data.get('checked_at'), 'state': data.get('state'), 'chosen': data.get('chosen'),
+            'cash_usable': data.get('cash_usable'), 'cash_snapshot': data.get('cash_snapshot'), 'budget_total': data.get('budget_total'),
+            'committed': data.get('committed'), 'budget_room': data.get('budget_room'), 'portfolio_risk_used': data.get('portfolio_risk_used'),
+            'considered': considered}
+
+
 def live_policy(folder=HERE):
     """PC 실계좌 엔진(live_engine.py)의 실제 상수를 읽어 화면에 보여 준다. 엔진 파일이 없거나 값이 안 맞으면 None(화면은 '조회 불가'로 표시).
 
@@ -304,7 +323,7 @@ class Bot:
                 '실계좌 엔진 상태 확인 필요' if live_scheduled and market_open(dt) else
                 '실주문 비활성(준비 중)')
         return {'mode': mode, 'live_sell': live_sell_enabled(), 'live_active': live_active,
-                'balance': self.balance_info(), 'live_policy': live_policy(), 'engine_excluded': engine_excluded(),
+                'balance': self.balance_info(), 'live_policy': live_policy(), 'engine_excluded': engine_excluded(), 'allocation': allocation_snapshot(),
                 'live_env': os.environ.get('LIVE_TRADING') == '1', 'order_gate': 'LOCAL_BOT_RECORD_ONLY',
                 'live_scheduled': live_scheduled,
                 'live_engine': live_engine,
