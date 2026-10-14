@@ -14,7 +14,6 @@ html.dark .ifl .ifl-seg-btn.is-active { color:#1A1A1A; }
 /* 투자자 선택 버튼: 색 점 + 선택되면 그 투자자의 색으로 채운다(범례·그래프와 같은 값) */
 .ifl .ifl-seg-inv .ifl-seg-btn { display:inline-flex; align-items:center; gap:7px; }
 .ifl .ifl-seg-inv .ifl-seg-btn.is-active { border-color:var(--ifl-inv); background:var(--ifl-inv); color:#fff; }
-.ifl .ifl-seg-inv .ifl-seg-btn.is-active .ibd-swatch { background:#fff !important; }
 html.dark .ifl .ifl-seg-inv .ifl-seg-btn.is-active { color:#fff; }
 .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; color:var(--ibd-sub); font-variant-numeric:tabular-nums; }
 .ifl .ifl-state { margin:10px 0 0; padding:8px 10px; border-top:1px solid var(--ibd-line); border-bottom:1px solid var(--ibd-line); font-size:12.5px; line-height:1.55; color:var(--ibd-num); }
@@ -84,8 +83,5 @@ html.dark .ifl .ibd-axis { fill: var(--ibd-sub); }
 .ifl .ifl-viewctl .ifl-seg-btn { padding:4px 10px; font-size:12px; }
 @media (max-width: 760px) { .ifl .ifl-viewctl { width:100%; } }
 
-/* 홈페이지 공통 탭 규격; 데이터 범례 색은 그래프에 유지한다. */
+/* 시장지표의 기간·선택 버튼은 style.css 공통 탭 규칙을 사용한다. */
 .ifl .ifl-seg { gap: 6px; flex-wrap: wrap; }
-.ifl .ifl-seg-btn.ui-btn { min-height: 32px; padding: 6px 13px; border: 1px solid var(--ui-rule); border-radius: 0; background: var(--ui-surface); color: var(--ui-muted); font-size: 12.5px; }
-.ifl .ifl-seg-btn.ui-btn.active { border-color: var(--ui-ink); background: var(--ui-ink); color: var(--ui-surface); }
-html.dark .ifl .ifl-seg-btn.ui-btn.active { color: var(--ui-surface) !important; }

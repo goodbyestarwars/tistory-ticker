@@ -7689,7 +7689,7 @@ html body :where(.ss-fav-btn, .us-stocks-fav-btn, .ss-watch-toggle, .sc-nav) {
 /* ── 6. 탭 : 애플 세그먼트 스타일 — 알약형, 선택된 탭만 연한 면 ── */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
+  .ui-btn-tab, .ibd-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
   min-height: 34px !important;
   padding: 0 14px !important;
   border: 0 !important;
@@ -7702,7 +7702,7 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 }
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  .ui-btn-tab, .ibd-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
   background: rgba(var(--np-ink), .07) !important;
   color: rgb(var(--np-ink)) !important;
   font-weight: 600 !important;
