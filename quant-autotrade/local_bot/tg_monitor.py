@@ -66,7 +66,7 @@ class Monitor:
         if self._last_tick is not None and now - self._last_tick > SLEEP_GAP_SEC:
             self.streaks.clear()           # PC 절전에서 깬 직후의 오래된 값으로 경고를 내지 않는다
         self._last_tick = now
-        for name, fn in (('events', self.watch_bot_events), ('positions', self.watch_positions), ('health', self.watch_bot_health),
+        for name, fn in (('events', self.watch_bot_events), ('live_orders', self.watch_live_orders), ('positions', self.watch_positions), ('health', self.watch_bot_health),
                          ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('scan', self.watch_scan_done),
                          ('pc', self.watch_pc)):
             try:
@@ -97,6 +97,34 @@ class Monitor:
             except Exception as exc:
                 log.error('이벤트 %s 알림 처리 실패: %s', ev.get('id'), type(exc).__name__)
             t.kv_set('events_last_id', ev['id'])
+
+    def watch_live_orders(self):
+        """Report real-order ledger changes without treating broker ACK as execution."""
+        svc, t = self.svc, self.svc.tstore
+        path = os.path.join(svc.base_dir, 'live_orders.db')
+        if not os.path.exists(path):
+            return
+        last = t.kv_get('live_orders_last_id')
+        if last is None:
+            rows = tg_data.live_intents_since(path, 0, 1000)
+            today = svc.now_dt().strftime('%Y-%m-%d')
+            recent = [r for r in rows if str(r['ts']).startswith(today)]
+            if recent:
+                buys = sum(r['side'] == 'BUY' for r in recent)
+                sells = sum(r['side'] == 'SELL' for r in recent)
+                message = (F.head('🏦', '실계좌 주문 기록 연결') + '\n\n오늘 장부에 매수 %d건 · 매도 %d건의 주문 기록이 있습니다. '
+                           '주문 접수 기록이며 체결·손익 확정은 계좌 잔고와 대조해야 합니다.\n\n' + F.foot(svc.now_dt())) % (buys, sells)
+                svc.notifier.notify('live_orders_bootstrap:' + today, message, 'order', 'info')
+            t.kv_set('live_orders_last_id', tg_data.live_intents_max_id(path))
+            return
+        for row in tg_data.live_intents_since(path, last):
+            side = '매수' if row['side'] == 'BUY' else '매도'
+            state = {'ACK': '증권사 접수', 'UNCERTAIN': '접수 여부 불확실'}.get(row['state'], row['state'])
+            message = (F.head('🏦', '실계좌 %s 주문 %s' % (side, state)) + '\n\n종목 <code>%s</code> · %d주\n'
+                       '체결 여부는 이 알림만으로 확정할 수 없습니다.\n\n' + F.foot(F.to_dt(row['ts']) or svc.now_dt())) % (F.esc(row['code']), row['qty'])
+            svc.notifier.notify('live_order:%d' % row['id'], message, 'order',
+                                'critical' if row['state'] == 'UNCERTAIN' else 'info')
+            t.kv_set('live_orders_last_id', row['id'])
 
     def _name(self, code):
         for w in self.svc.bot.store.watch_list():
