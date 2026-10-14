@@ -2673,6 +2673,8 @@ def _build_pattern_scan():
         'firstPullbackBreakoutReady': 'firstPullbackBreakout' in patterns,
         'patterns': {
             'risingLows': patterns.get('risingLows') or [],
+            # 2026-10-15: 판정·저장(scan_hits)은 되는데 응답에서 빠져 탭이 항상 비던 키.
+            'shortTermMaBreakout': patterns.get('shortTermMaBreakout') or [],
             'maCloudBreakout': patterns.get('maCloudBreakout') or [],
             'doubleBottom': patterns.get('doubleBottom') or [],
             'invHeadShoulders': patterns.get('invHeadShoulders') or [],
@@ -2688,6 +2690,9 @@ def _build_pattern_scan():
             'volumeBreakout': patterns.get('volumeBreakout') or [],
         },
         'volumeBreakoutScannedAt': data.get('volumeBreakoutScannedAt'),
+        # 2026-10-15: 각도기·공파산은 일봉 배치가 끝난 뒤 직렬 실행돼 완료 시각이 다르다.
+        'angleMomentumScannedAt': data.get('angleMomentumScannedAt'),
+        'gongpasanScannedAt': data.get('gongpasanScannedAt'),
         'angleMomentumBacktest': data.get('angleMomentumBacktest'),
         'gongpasanBacktest': data.get('gongpasanBacktest'),
     }

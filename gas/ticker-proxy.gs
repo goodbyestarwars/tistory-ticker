@@ -2837,7 +2837,7 @@ function getChunkedCache_(key) {
 // UrlFetchApp 할당량을 태우던 이어달리기 워커는 삭제되고, VM의 /daily-scan-batch 결과를
 // 그대로 읽어와 원래 응답 형태로 재포장한다 - 프론트(js/pattern-scan.js)는 변경 불필요.
 function getPatternScanResult() {
-  var cached = getChunkedCache_('patternScanResult_v3');
+  var cached = getChunkedCache_('patternScanResult_v4');
   if (cached) return cached;
 
   var data = kiwoomVmFetch_('/daily-scan-batch');
@@ -2858,6 +2858,7 @@ function getPatternScanResult() {
     firstPullbackBreakoutReady: Object.prototype.hasOwnProperty.call(patternScan.patterns || {}, 'firstPullbackBreakout'),
     patterns: {
       risingLows: (patternScan.patterns && patternScan.patterns.risingLows) || [],
+      shortTermMaBreakout: (patternScan.patterns && patternScan.patterns.shortTermMaBreakout) || [],
       maCloudBreakout: (patternScan.patterns && patternScan.patterns.maCloudBreakout) || [],
       doubleBottom: (patternScan.patterns && patternScan.patterns.doubleBottom) || [],
       invHeadShoulders: (patternScan.patterns && patternScan.patterns.invHeadShoulders) || [],
@@ -2875,13 +2876,15 @@ function getPatternScanResult() {
       volumeBreakout: (patternScan.patterns && patternScan.patterns.volumeBreakout) || []
     },
     volumeBreakoutScannedAt: data.volumeBreakoutScannedAt || null,
+    angleMomentumScannedAt: data.angleMomentumScannedAt || null,
+    gongpasanScannedAt: data.gongpasanScannedAt || null,
     // 각도기 테스트 탭 전용 - 과거 entry_signal 발생분 전체를 5일 보유로 백테스트한 요약
     // (승률/평균수익률 등). 다른 패턴엔 없는 필드라 patterns 밖에 별도로 둔다.
     angleMomentumBacktest: data.angleMomentumBacktest || null,
     // 공파산 타점 탭 전용 - 같은 구조의 별도 백테스트 요약.
     gongpasanBacktest: data.gongpasanBacktest || null
   };
-  putChunkedCache_('patternScanResult_v3', result, SCAN_RESULT_CACHE_TTL);
+  putChunkedCache_('patternScanResult_v4', result, SCAN_RESULT_CACHE_TTL);
   return result;
 }
 

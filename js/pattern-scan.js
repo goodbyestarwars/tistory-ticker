@@ -79,25 +79,112 @@
   // 항목을 채운 것, 새 필터를 만든 건 아님).
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·관리종목·우선주·거래정지·정리매매·동전주(1,000원 미만) 제외';
   var TABS = [
-    { key: 'risingLows', label: '저점상승형', desc: '하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다. 최근 60거래일에서 저점이 3개 이상 이어서 1% 이상씩 높아지고(첫 저점 대비 +4%~+20%), 첫 저점과 마지막 저점이 15거래일 이상 떨어져 있어야 합니다. 계단 시작 뒤 첫 저점 아래로 내려간 적이 없고(하방이 막힘), 계단 시작 전에 첫 저점보다 12% 이상 높았던 구간이 있어야 하며(하락 뒤의 바닥), 현재가가 마지막 저점의 +10% 이내이고 최근 20거래일 +15% 이하(이미 오른 종목 제외)여야 합니다. 로보티즈처럼 하락 파동 속 3~4봉 반등은 제외합니다.' },
-    { key: 'shortTermMaBreakout', label: '하락추세선 첫돌파', desc: '최근 30봉 내 의미 있는 두 스윙 고점을 연결한 하락 추세선을 오늘 종가가 처음 돌파한 종목입니다. 전일까지 가격은 추세선 아래 또는 인접한 위치에 머물러 있어야 하며, 현재 종가는 상승 중인 5일 이동평균선 위에 있어야 합니다. 이미 추세선을 크게 벗어난 종목은 제외해 막 돌파가 시작되는 구간을 포착합니다.' },
-    { key: 'maCloudBreakout', label: '장기이평 응축기', desc: '224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목을 찾습니다. 종가가 224일선 주변에서 지지받으면서 구름 상단 돌파를 준비하거나, 최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파한 종목도 포함합니다. 이미 구름대와 장기이평선에서 크게 벗어나 상승이 진행된 종목은 제외합니다.' },
-    { key: 'doubleBottom', label: '쌍바닥', desc: '최근 120봉에서 10~45봉 간격으로 형성된 두 스윙 저점의 가격 차이가 3% 이내인 쌍바닥 후보를 찾습니다. 두 바닥 사이에는 더 낮은 저점이 없어야 하며, 첫 바닥 이후 넥라인까지 최소 8% 이상의 반등이 있어야 합니다. 두 번째 바닥에서 매도 거래량이 감소하고 저점이 유지된 뒤, 넥라인 방향으로 회복하거나 재돌파를 준비하는 종목을 선별합니다.' },
-    { key: 'invHeadShoulders', label: '역헤드앤숄더', desc: '최근 90봉에서 왼쪽 어깨-머리-오른쪽 어깨가 형성된 역헤드앤숄더 후보를 찾습니다. 머리는 양 어깨보다 최소 2% 낮고, 양 어깨 가격 차이는 4% 이내여야 합니다. 오른쪽 어깨 이후 머리 저점이 훼손되지 않은 상태에서 넥라인에 접근하거나 최근 종가 기준으로 새롭게 돌파한 종목을 선별하며, 넥라인 접근·돌파 시 거래량 증가를 높게 평가합니다.' },
-    { key: 'boxRangeLow', label: '박스권 하단', desc: '최근 20봉 동안 가격 변동폭이 10% 이내로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
-    { key: 'pullback', label: '이평선 눌림', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
-    { key: 'firstPullbackBreakout', label: '첫 눌림 재돌파', desc: '일봉 기준. 상승 중인 20일선이 60일선 위에 있고, 거래량 1.5배 이상으로 20일 고가를 돌파한 뒤 첫 2~8봉 조정에서 거래량이 상승 구간의 80% 이하로 줄어든 종목을 찾습니다. 고점 대비 2~12% 조정 후 최근 3봉 고가를 양봉 종가로 재돌파하고, 거래량이 돌파 전 20봉 평균의 1.2배·조정 평균의 1.5배 이상이어야 합니다. 재돌파 가격보다 3% 넘게 오른 종목과 이미 재돌파한 뒤의 반복 신호는 제외합니다. 장 마감 배치 결과이며 눌림 저점 이탈 여부를 함께 확인하세요.' },
+    { key: 'risingLows', label: '저점상승 패턴', desc: '하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다. 최근 60거래일에서 저점이 3개 이상 이어서 1% 이상씩 높아지고(첫 저점 대비 +4%~+20%), 첫 저점과 마지막 저점이 15거래일 이상 떨어져 있어야 합니다. 계단 시작 뒤 첫 저점 아래로 내려간 적이 없고(하방이 막힘), 계단 시작 전에 첫 저점보다 12% 이상 높았던 구간이 있어야 하며(하락 뒤의 바닥), 현재가가 마지막 저점의 +10% 이내이고 최근 20거래일 +15% 이하(이미 오른 종목 제외)여야 합니다. 로보티즈처럼 하락 파동 속 3~4봉 반등은 제외합니다.' },
+    { key: 'shortTermMaBreakout', label: '하락추세선 돌파', desc: '최근 30봉 내 의미 있는 두 스윙 고점을 연결한 하락 추세선을 오늘 종가가 처음 돌파한 종목입니다. 전일까지 가격은 추세선 아래 또는 인접한 위치에 머물러 있어야 하며, 현재 종가는 상승 중인 5일 이동평균선 위에 있어야 합니다. 이미 추세선을 크게 벗어난 종목은 제외해 막 돌파가 시작되는 구간을 포착합니다.' },
+    { key: 'maCloudBreakout', label: '장기이평 응축·돌파', desc: '224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목을 찾습니다. 종가가 224일선 주변에서 지지받으면서 구름 상단 돌파를 준비하거나, 최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파한 종목도 포함합니다. 이미 구름대와 장기이평선에서 크게 벗어나 상승이 진행된 종목은 제외합니다.' },
+    { key: 'doubleBottom', label: '쌍바닥 패턴', desc: '최근 120봉에서 10~45봉 간격으로 형성된 두 스윙 저점의 가격 차이가 3% 이내인 쌍바닥 후보를 찾습니다. 두 바닥 사이에는 더 낮은 저점이 없어야 하며, 첫 바닥 이후 넥라인까지 최소 8% 이상의 반등이 있어야 합니다. 두 번째 바닥에서 매도 거래량이 감소하고 저점이 유지된 뒤, 넥라인 방향으로 회복하거나 재돌파를 준비하는 종목을 선별합니다.' },
+    { key: 'invHeadShoulders', label: '역헤드앤숄더 패턴', desc: '최근 90봉에서 왼쪽 어깨-머리-오른쪽 어깨가 형성된 역헤드앤숄더 후보를 찾습니다. 머리는 양 어깨보다 최소 2% 낮고, 양 어깨 가격 차이는 4% 이내여야 합니다. 오른쪽 어깨 이후 머리 저점이 훼손되지 않은 상태에서 넥라인에 접근하거나 최근 종가 기준으로 새롭게 돌파한 종목을 선별하며, 넥라인 접근·돌파 시 거래량 증가를 높게 평가합니다.' },
+    { key: 'boxRangeLow', label: '박스권 하단 반등', desc: '최근 20봉 동안 가격 변동폭이 10% 이내로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
+    { key: 'pullback', label: '이동평균 눌림목', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
+    { key: 'firstPullbackBreakout', label: '첫 눌림목 재돌파', desc: '일봉 기준. 상승 중인 20일선이 60일선 위에 있고, 거래량 1.5배 이상으로 20일 고가를 돌파한 뒤 첫 2~8봉 조정에서 거래량이 상승 구간의 80% 이하로 줄어든 종목을 찾습니다. 고점 대비 2~12% 조정 후 최근 3봉 고가를 양봉 종가로 재돌파하고, 거래량이 돌파 전 20봉 평균의 1.2배·조정 평균의 1.5배 이상이어야 합니다. 재돌파 가격보다 3% 넘게 오른 종목과 이미 재돌파한 뒤의 반복 신호는 제외합니다. 장 마감 배치 결과이며 눌림 저점 이탈 여부를 함께 확인하세요.' },
     // 2026-08-22: "시초 갭상승" 탭 삭제 요청 - 백엔드 detect_opening_gap/GAS는 그대로 두고
     // (다른 데서 재사용 가능성 대비, 되돌리기 쉽게) 화면 탭 목록에서만 제외했다.
-    { key: 'angleMomentum', label: '각도기 타점', desc: '전형가 기준 5·10·20일 이동평균선의 기울기를 주가 수준과 무관한 퍼센트 변화율로 정규화해 계산합니다. 단기 이동평균이 상승 전환하고 중·장기 이동평균의 하락 기울기가 함께 개선되는 구간 중, 단기 기울기 변화가 최근 20일 평소 수준보다 강하게 확대되는 순간을 포착합니다. 거래량 급증 이후가 아니라 이동평균 곡률이 먼저 꺾이는 초기 변화를 찾는 실험적 검색기입니다.' },
+    { key: 'angleMomentum', label: '이평선 기울기 전환', desc: '전형가 기준 5·10·20일 이동평균선의 기울기를 주가 수준과 무관한 퍼센트 변화율로 정규화해 계산합니다. 단기 이동평균이 상승 전환하고 중·장기 이동평균의 하락 기울기가 함께 개선되는 구간 중, 단기 기울기 변화가 최근 20일 평소 수준보다 강하게 확대되는 순간을 포착합니다. 거래량 급증 이후가 아니라 이동평균 곡률이 먼저 꺾이는 초기 변화를 찾는 실험적 검색기입니다.' },
     // 2026-08-20: "역매공파·공구리·오돌이" 같은 용어를 지워달라는 요청 - 특정 단타 기법의
     // 고유 용어라 출처가 드러나는 걸 원하지 않는다고 함. 조건 로직(숫자·판정 기준)은 그대로
     // 두고 설명 문구만 용어 없이 풀어썼다(공구리->횡보, 오돌이 표현 삭제).
-    { key: 'gongpasan', label: '공파산 타점', desc: '최근 160일 고점 대비 25% 이상 하락한 뒤 40일 안팎의 바닥 횡보와 대량거래 매집 흔적이 나타난 종목을 추적합니다. 이후 직전 5봉 고가와 5일선을 강한 양봉으로 돌파한 뒤, 가격이 처음으로 20일선까지 눌렸을 때 거래량이 감소하고 종가 기준 지지가 확인되는 첫 눌림 구간을 매매 후보로 선별합니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심입니다.' },
+    { key: 'gongpasan', label: '급락 후 첫 눌림목', desc: '최근 160일 고점 대비 25% 이상 하락한 뒤 40일 안팎의 바닥 횡보와 대량거래 매집 흔적이 나타난 종목을 추적합니다. 이후 직전 5봉 고가와 5일선을 강한 양봉으로 돌파한 뒤, 가격이 처음으로 20일선까지 눌렸을 때 거래량이 감소하고 종가 기준 지지가 확인되는 첫 눌림 구간을 매매 후보로 선별합니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심입니다.' },
     // 2026-09-04: 이 탭만 장중 스냅샷이다. 나머지는 전부 장 마감 뒤 일봉 배치라
     // 스캔 시각이 다르고, 그래서 목록 위 안내도 이 탭에서는 따로 표시한다.
-    { key: 'volumeBreakout', label: '거래량 돌파(5분)', desc: '장중 30초마다 거래량 순위를 읽어, 최근 3분 동안 늘어난 거래량이 전일 거래량의 3% 이상(3분 환산)인데 아직 많이 오르지 않은 종목을 잡습니다. 감지 시각·감지가를 기록하고, 감지 후 6% 이상 오르거나 45분이 지난 종목은 내립니다. 거래량 순위권에 못 든 아주 초기 종목은 놓칠 수 있습니다.' }
+    { key: 'volumeBreakout', label: '장중 거래량 급증', desc: '장중 30초마다 거래량 순위를 읽어, 최근 3분 동안 늘어난 거래량이 전일 거래량의 3% 이상(3분 환산)인데 아직 많이 오르지 않은 종목을 잡습니다. 감지 시각·감지가를 기록하고, 감지 후 6% 이상 오르거나 45분이 지난 종목은 내립니다. 거래량 순위권에 못 든 아주 초기 종목은 놓칠 수 있습니다.' }
   ];
+
+
+  // 2026-10-15 검색기 설명 개편: 위 TABS.desc(패턴 조건 수치)는 pattern_detect.py 하드필터를 옮긴 그대로 두고, 검색 목적·포착 상태·진입 확인·
+  // 무효 조건·스캔 기준을 TAB_INFO로 나눠 목록이 0건이어도 항상 보이게 한다. 상태 이름은 patternDetail.status 값과 같다.
+  var TRACK_RULE = '포착가 대비 장중 +5% 터치 시 돌파 성공, 5일선 종가 이탈 시 돌파 실패(시장 급락일은 판정 보류), 20거래일 안에 결론이 없으면 기간 만료로 추적합니다.';
+  var ENTRY_NOTE = ' 검색 결과는 패턴 후보이며 매수 신호가 아닙니다. 실제 매수 시점은 호가·체결·잔고를 따로 확인해 판단하세요.';
+  var BASIS_DAILY = '일봉 확정 스캔. 평일 20:10(KST)에 시작해 전종목 판정과 저장이 끝난 시각을 스캔 시각으로 표시하며, 기준 봉은 그 거래일 종가입니다.';
+  var TAB_INFO = {
+    risingLows: {
+      purpose: '하락 뒤 바닥에서 저점이 계단식으로 높아지는 종목을 찾습니다.',
+      state: '형성 중(저항 돌파 전). 이미 저항을 돌파한 종목은 제외됩니다.',
+      entry: '직전 저항선을 종가로 돌파하고 거래량이 붙는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '계단 시작 첫 저점을 종가로 이탈하면 다음 스캔에서 조건에서 빠집니다. 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    shortTermMaBreakout: {
+      purpose: '하락 추세선(두 스윙 고점 연결)을 종가로 처음 돌파한 종목을 찾습니다.',
+      state: '돌파 확인(오늘 종가 기준 첫 돌파).',
+      entry: '다음 거래일에 추세선 위에서 안착하고 거래량이 유지되는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '종가가 추세선 아래로 되돌아가면 돌파 실패 신호입니다. 자동 판정 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    maCloudBreakout: {
+      purpose: '224일선과 구름대가 가까워지며 응축된 뒤 돌파를 준비하거나 막 돌파한 종목을 찾습니다.',
+      state: '돌파 준비(응축, COMPRESSION_READY) 또는 돌파 확인(최근 1~3거래일 내 신규 돌파, BREAKOUT_NEW).',
+      entry: '구름 상단과 224일선 위에서 종가가 안착하는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '종가가 구름 상단·224일선 아래로 돌아가면 패턴 훼손입니다. 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    doubleBottom: {
+      purpose: '비슷한 두 저점을 만든 뒤 넥라인으로 회복하는 쌍바닥을 찾습니다.',
+      state: '두 번째 저점 회복(RECOVERY) 또는 넥라인 접근(NECKLINE_READY). 넥라인 돌파가 끝난 종목은 이 목록에서 제외됩니다.',
+      entry: '넥라인을 종가로 돌파하고 거래량이 늘어나는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '두 번째 저점을 종가로 이탈하면 쌍바닥이 깨진 것입니다(다음 스캔에서 조건 탈락). 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    invHeadShoulders: {
+      purpose: '왼쪽 어깨·머리·오른쪽 어깨와 넥라인이 갖춰진 역헤드앤숄더를 찾습니다.',
+      state: '넥라인 접근(NECKLINE_READY) 또는 최근 넥라인 돌파(BREAKOUT_NEW).',
+      entry: '넥라인 종가 돌파와 거래량 증가를 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '머리 저점을 이탈하면 패턴이 무효입니다(다음 스캔에서 조건 탈락). 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    boxRangeLow: {
+      purpose: '좁은 박스권 안에서 하단 지지를 받으며 반등을 시도하는 종목을 찾습니다.',
+      state: '하단 접근(APPROACH) 또는 하단 반등(REBOUND, 지지 시험 뒤 양봉 또는 전일 대비 상승).',
+      entry: '하단 지지 뒤 반등이 이어지는지, 박스 상단까지 여유가 있는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '박스 하단을 종가로 이탈하면 박스 전제가 깨집니다. 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    pullback: {
+      purpose: '강한 상승 뒤 20일선 또는 240일선 부근에서 거래량이 줄며 조정받는 눌림목을 찾습니다.',
+      state: '눌림 진행(PULLING_BACK) 또는 지지 확인(SUPPORT_CONFIRMED).',
+      entry: '이동평균선 지지 뒤 반등 양봉과 거래량 회복을 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '20일선·240일선을 종가로 이탈하면 눌림이 아니라 추세 훼손입니다. 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    firstPullbackBreakout: {
+      purpose: '거래량 돌파 뒤 첫 조정을 거치고 다시 고가를 넘는 첫 눌림목 재돌파를 찾습니다.',
+      state: '돌파 확인(일봉 종가 재돌파, BREAKOUT_CONFIRMED). 하루에 몇 건 안 나오는 희귀 신호라 0건인 날이 많습니다.',
+      entry: '재돌파 종가 확인 뒤 눌림 저점을 손절 기준선으로 삼을 수 있는지 확인합니다.' + ENTRY_NOTE,
+      invalid: '눌림 저점 이탈이 차트상 무효 신호입니다. 자동 판정 추적 기준: ' + TRACK_RULE,
+      basis: BASIS_DAILY
+    },
+    angleMomentum: {
+      purpose: '이동평균선 기울기가 꺾여 오르기 시작하는 초기 변화를 찾는 실험적 검색기입니다.',
+      state: '후보(단기 기울기 전환 직후). 최대 20건까지만 표시됩니다.',
+      entry: '아래 백테스트 요약의 승률·평균수익률이 낮아 단독 진입 근거로 쓰기 어렵습니다. 다른 패턴과 겹치는지 함께 보세요.' + ENTRY_NOTE,
+      invalid: '자동 무효 판정과 사후 추적은 없습니다. 다음 스캔에서 조건을 못 채우면 목록에서 빠집니다.',
+      basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다.'
+    },
+    gongpasan: {
+      purpose: '큰 낙폭 뒤 바닥 횡보와 매집 흔적이 있는 종목이 돌파 후 처음 20일선까지 눌리는 자리를 찾습니다.',
+      state: '첫 눌림(FIRST_PULLBACK) 또는 지지 확인(SUPPORT_CONFIRMED). 마지막 봉에서 신호가 켜진 종목만 나와 0건인 날이 흔합니다.',
+      entry: '종가가 20일선 -1% 이내에서 지지되고 눌림 거래량이 줄었는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
+      invalid: '종가가 20일선보다 1% 넘게 아래로 내려가면 지지 실패입니다(자동 사후 추적은 없음).',
+      basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다.'
+    },
+    volumeBreakout: {
+      purpose: '장중에 거래량이 갑자기 늘기 시작했지만 아직 많이 오르지 않은 종목을 먼저 찾습니다.',
+      state: '장중 감지(초기 early / 진행 moving). 감지 뒤 6% 이상 오르거나 45분이 지나면 목록에서 내립니다.',
+      entry: '감지가는 참고값입니다. 장중 변동이 커서 호가·체결을 직접 확인하기 전에는 진입 근거로 쓰지 마세요.' + ENTRY_NOTE,
+      invalid: '자동 무효 판정과 사후 추적은 없습니다. 감지 뒤 6% 이상 오르거나 45분이 지나면 목록에서 빠집니다.',
+      basis: '장중 감시. 평일 09:00~15:35에 30초마다 갱신하며, 일봉 스캔 시각과는 별개입니다.'
+    }
+  };
+  var INFO_ROWS = [['purpose', '검색 목적'], ['cond', '패턴 조건'], ['state', '포착 상태'], ['entry', '진입 확인'], ['invalid', '무효 조건'], ['basis', '스캔 기준']];
 
   var scanData = null;
   var scanPerformanceData = null;
@@ -184,9 +271,14 @@
     var box = container.querySelector('#psTabDesc');
     if (!box) return;
     var tab = TABS.filter(function (t) { return t.key === activeTab; })[0];
+    var info = TAB_INFO[activeTab] || {};
+    var rows = INFO_ROWS.map(function (r) {
+      var text = r[0] === 'cond' ? (tab ? tab.desc : '') : (info[r[0]] || '');
+      return text ? '<div class="ps-info-row"><b>' + r[1] + '</b><span>' + escapeHtml(text) + '</span></div>' : '';
+    }).join('');
     box.innerHTML = '<strong>' + escapeHtml(COMMON_SEARCH_DESC) + '</strong>'
       + '<hr class="ps-tab-desc-divider">'
-      + '<span>' + escapeHtml(tab ? tab.desc : '') + '</span>';
+      + rows;
   }
 
   function wireTabs(container) {
@@ -277,10 +369,19 @@
       meta.textContent = liveSurgeInfo.active
         ? '실시간 사전포착 · 장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · 마지막 ' + hhmm : '')
           + ' · 이미 많이 오른 ' + (liveSurgeInfo.ranCount || 0) + '종목은 제외'
-        : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 마지막 감지 기록을 보여줍니다.';
+        : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 마지막 감지 기록을 보여줍니다.'
+          + (scanData && scanData.volumeBreakoutScannedAt ? ' · 기록 시각 ' + kstText(scanData.volumeBreakoutScannedAt) : '');
       return;
     }
-    meta.textContent = scanMetaText;
+    var own = scanData && (activeTab === 'angleMomentum' ? scanData.angleMomentumScannedAt
+      : activeTab === 'gongpasan' ? scanData.gongpasanScannedAt : null);
+    meta.textContent = own ? scanMetaText + ' · 이 탭 스캔 ' + kstText(own) : scanMetaText;
+  }
+
+  function kstText(iso) {
+    var t = new Date(iso);
+    if (isNaN(t.getTime())) return '';
+    return new Date(t.getTime() + 9 * 3600000).toISOString().slice(0, 16).replace('T', ' ');
   }
 
   function loadLiveSurge(container) {
@@ -289,7 +390,9 @@
         var data = envelope && envelope.data ? envelope.data : envelope;
         if (!data || !Array.isArray(data.items)) throw new Error('live surge empty');
         liveSurgeInfo = data;
-        if (scanData) {
+        // 2026-10-15: 장이 닫혀 실시간 목록이 비면(전부 만료) 09:05 스냅샷을 덮어쓰지 않는다 - 안내 문구가 "마지막 감지 기록"을
+        // 보여준다고 하므로 0건으로 덮으면 문구와 화면이 어긋난다.
+        if (scanData && (data.active || data.items.length)) {
           scanData.patterns = scanData.patterns || {};
           scanData.patterns.volumeBreakout = data.items;
         }
@@ -798,9 +901,25 @@
     return { key: 'hold', label: '포착 유지', tone: 'is-hold' };
   }
 
+  // patternDetail.status → 목록 배지. 형성 중 / 돌파 준비 / 돌파 확인을 한눈에 가른다(2026-10-15).
+  var PATTERN_STATE = {
+    BREAKOUT_NEW: { label: '돌파 확인', tone: 'is-confirm' },
+    BREAKOUT_CONFIRMED: { label: '돌파 확인', tone: 'is-confirm' },
+    COMPRESSION_READY: { label: '돌파 준비', tone: 'is-ready' },
+    NECKLINE_READY: { label: '돌파 준비', tone: 'is-ready' },
+    RECOVERY: { label: '형성 중', tone: 'is-form' },
+    APPROACH: { label: '형성 중', tone: 'is-form' },
+    REBOUND: { label: '반등 확인', tone: 'is-confirm' },
+    PULLING_BACK: { label: '눌림 진행', tone: 'is-form' },
+    SUPPORT_CONFIRMED: { label: '지지 확인', tone: 'is-confirm' },
+    FIRST_PULLBACK: { label: '첫 눌림', tone: 'is-form' }
+  };
+
   function stageBadgeHtml(item) {
     var st = itemStage(item);
-    return '<b class="ps-stage ' + st.tone + '">' + st.label + '</b> ';
+    var ps = PATTERN_STATE[String(detailFor(item).status || '')];
+    return '<b class="ps-stage ' + st.tone + '">' + st.label + '</b> '
+      + (ps && ps.label !== st.label ? '<b class="ps-stage ps-pstate ' + ps.tone + '">' + ps.label + '</b> ' : '');
   }
 
   // 신규/유지 구분과 칩 숫자에 쓰는 서버 추적 기록(2분 캐시). 도착하면 목록과 칩을 다시 그린다.
