@@ -312,6 +312,16 @@ class OpsCenterTests(BaseCase):
         os.utime(path, (1, 1))
         self.assertIsNone(bot_mod.live_policy(folder)['exit'])
 
+    def test_engine_excluded_list_is_read_with_the_engines_validation(self):
+        folder = tempfile.mkdtemp()
+        self.assertIsNone(bot_mod.engine_excluded(folder))                       # 파일 없음 = 확인 불가
+        path = os.path.join(folder, 'engine_excluded.json')
+        for raw, expected in (('{"codes": ["032640"]}', ['032640']), ('{"codes": []}', []), ('{"codes": "032640"}', None),
+                              ('{"codes": ["32640"]}', None), ('{bad', None), ('﻿{"codes": ["032640"]}', None)):
+            with open(path, 'w', encoding='utf-8') as f:
+                f.write(raw)
+            self.assertEqual(bot_mod.engine_excluded(folder), expected, raw)
+
     def test_status_exposes_balance_and_never_enables_orders(self):
         st = self.bot.status()
         self.assertEqual(st['balance']['state'], 'NOT_YET')
@@ -397,6 +407,19 @@ class ServerTests(BaseCase):
         self.assertEqual(st, 200)
         self.assertNotIn('000660', [w['code'] for w in body['watch']])
         self.assertEqual(self._req('/api/analysis-remove', 'POST', self.token, body={'code': '000660'})[0], 200)
+
+    def test_holdings_report_engine_exclusion_match(self):
+        self.poll(100000)
+        orig = server_mod.engine_excluded
+        try:
+            server_mod.engine_excluded = lambda: ['005930']
+            self.assertIs(self._req('/api/holdings', token=self.token)[2]['holdings'][0]['engine_excluded'], True)
+            server_mod.engine_excluded = lambda: ['000660']
+            self.assertIs(self._req('/api/holdings', token=self.token)[2]['holdings'][0]['engine_excluded'], False)
+            server_mod.engine_excluded = lambda: None
+            self.assertIsNone(self._req('/api/holdings', token=self.token)[2]['holdings'][0]['engine_excluded'])
+        finally:
+            server_mod.engine_excluded = orig
 
     def test_holdings_response_has_balance_and_kind(self):
         self.poll(100000)

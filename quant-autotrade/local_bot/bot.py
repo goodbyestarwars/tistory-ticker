@@ -206,6 +206,20 @@ def decide_exit(gain, peak, config):
     return None
 
 
+def engine_excluded(folder=HERE):
+    """PC 실계좌 엔진이 읽는 제외 종목 목록(engine_excluded.json)을 읽기 전용으로 보여 준다. 없거나 형식이 틀리면 None.
+    엔진(live_engine.load_exclusions)과 같은 검증을 쓴다 - 화면의 분석 전용 표시와 실제 엔진 제외가 일치하는지 대조하는 용도다."""
+    try:
+        with open(os.path.join(folder, 'engine_excluded.json'), encoding='utf-8') as f:
+            data = json.load(f)
+    except (OSError, ValueError):
+        return None
+    codes = data.get('codes') if isinstance(data, dict) else None
+    if not isinstance(codes, list) or not all(isinstance(c, str) and CODE_RE.fullmatch(c) for c in codes):
+        return None
+    return sorted(codes)
+
+
 def live_policy(folder=HERE):
     """PC 실계좌 엔진(live_engine.py)의 실제 상수를 읽어 화면에 보여 준다. 엔진 파일이 없거나 값이 안 맞으면 None(화면은 '조회 불가'로 표시).
 
@@ -290,7 +304,7 @@ class Bot:
                 '실계좌 엔진 상태 확인 필요' if live_scheduled and market_open(dt) else
                 '실주문 비활성(준비 중)')
         return {'mode': mode, 'live_sell': live_sell_enabled(), 'live_active': live_active,
-                'balance': self.balance_info(), 'live_policy': live_policy(),
+                'balance': self.balance_info(), 'live_policy': live_policy(), 'engine_excluded': engine_excluded(),
                 'live_env': os.environ.get('LIVE_TRADING') == '1', 'order_gate': 'LOCAL_BOT_RECORD_ONLY',
                 'live_scheduled': live_scheduled,
                 'live_engine': live_engine,

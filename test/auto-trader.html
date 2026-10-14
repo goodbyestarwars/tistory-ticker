@@ -12,7 +12,7 @@
 </style>
 </head>
 <body>
-<div class="wrap"><p style="font-size:12px;color:#888">시나리오: ?s=ok | conflict | premarket-ok | not-yet | failed | stale | zero | legacy | nopolicy — 로컬 봇·VM 응답을 흉내 낸 mock(실제 주문·계좌 연결 없음)</p>
+<div class="wrap"><p style="font-size:12px;color:#888">시나리오: ?s=ok | excluded | conflict | premarket-ok | not-yet | failed | stale | zero | legacy | nopolicy — 로컬 봇·VM 응답을 흉내 낸 mock(실제 주문·계좌 연결 없음)</p>
 <div id="auto-trader"></div></div>
 <script>
   var scenario = (location.search.match(/s=([\w-]+)/) || [0, 'ok'])[1];
@@ -43,6 +43,9 @@
     { code: '032640', name: 'LG유플러스', qty: 120, sellable: 120, avg: 15600, price: 14690, gain: -5.83, kind: 'manual', engine_qty: 0, manual_qty: 120, locked_qty: 0, sell_watch: 'analysis', rule_beyond: false, pending_order: false, watched: false, live_managed: false },
     { code: '005930', name: '삼성전자', qty: 10, sellable: 6, avg: 70000, price: 66000, gain: -5.71, kind: 'mixed', engine_qty: 4, manual_qty: 6, locked_qty: 4, sell_watch: 'rule_unconfirmed', rule_beyond: true, pending_order: true, watched: true, live_managed: true }
   ];
+  mockStatus.engine_excluded = scenario === 'conflict' ? [] : ['032640'];
+  if (scenario === 'excluded') { holdings[0].kind = 'engine'; holdings[0].engine_qty = 13; holdings[0].manual_qty = 0; }
+  holdings.forEach(function (h) { h.engine_excluded = mockStatus.engine_excluded.indexOf(h.code) > -1; });
   if (scenario === 'conflict') { holdings[0].kind = 'engine'; holdings[0].engine_qty = 120; holdings[0].manual_qty = 0; }
   if (scenario === 'zero' || scenario === 'not-yet' || scenario === 'failed') holdings = [];
   if (scenario === 'legacy') holdings = holdings.map(function (h) { var c = Object.assign({}, h); ['kind', 'engine_qty', 'manual_qty', 'locked_qty', 'sell_watch', 'rule_beyond', 'pending_order'].forEach(function (k) { delete c[k]; }); return c; });
