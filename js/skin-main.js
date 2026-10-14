@@ -1900,7 +1900,7 @@ document.documentElement.classList.add('skin-ready');
       var highIndex = nums.indexOf(max), lowIndex = nums.indexOf(min);
       return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="최근 외국인 순매수 추이, 고점 ' + investorAmountText(max) + ', 저점 ' + investorAmountText(min) + '">'
         + zeroLine
-        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
+        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '</svg><span class="hmb-investor-point is-high" style="left:' + x(highIndex).toFixed(1) + '%;top:' + (y(max) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>'
         + (range ? '<span class="hmb-investor-point is-low" style="left:' + x(lowIndex).toFixed(1) + '%;top:' + (y(min) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>' : '')
         + '</div><div class="hmb-investor-extrema"><span>고점 <b>' + investorAmountText(max) + '</b></span><span>저점 <b>' + investorAmountText(min) + '</b></span></div>';
