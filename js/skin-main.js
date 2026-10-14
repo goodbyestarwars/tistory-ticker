@@ -1173,10 +1173,11 @@ document.documentElement.classList.add('skin-ready');
         return {
           source: 'futures',
           keys: ['NASDAQ100', 'SP500'],
-          labels: ['나스닥100 선물', 'S&P500 선물'],
-          live: '나스닥100 · S&P500 선물',
+          labels: ['나스닥100 선물(CME)', 'S&P500 선물(CME)'],
+          live: '나스닥100 · S&P500 선물(CME)',
           statusLabel: '선물 거래중',
-          subtitle: '미국 지수선물 · 거래중(현물 ' + spot.label + ')'
+          // 2026-10-15 "선물이야 현물이야" 문의: 선물 값은 현물 지수와 다르다는 점을 부제에 못 박는다.
+          subtitle: '미국 지수선물(CME) 거래중 · 현물 지수와 값이 다름(현물 ' + spot.label + ')'
         };
       }
       return {
