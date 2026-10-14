@@ -36,6 +36,7 @@ CACHE = {
     'universe': 2900,
     'patternScan': {'scanned': 2800, 'patterns': {
         'risingLows': [{'code': '000001'}],
+        'shortTermMaBreakout': [{'code': '000005'}],
         'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
         'boxRangeLow': [], 'openingGap': [], 'angleMomentum': [], 'gongpasan': [],
         'firstPullbackBreakout': [{'code': '000004'}],
@@ -44,6 +45,8 @@ CACHE = {
     'pullbackScan': {'scanned': 2700, 'matches': [{'code': '000002'}]},
     'angleMomentumBacktest': {'totalTrades': 10},
     'volumeBreakoutScannedAt': '2026-09-04T00:10:03+00:00',
+    'angleMomentumScannedAt': '2026-09-03T11:50:00+00:00',
+    'gongpasanScannedAt': '2026-09-03T12:10:00+00:00',
     'gongpasanBacktest': None,
     'investSignal': {'scanned': 2800, 'counts': {'매수 우위': 1}, 'buckets': {
         '적극 매수': [], '매수 우위': [['000001', '테스트', 100, 1.0, 5, 3]],
@@ -104,17 +107,22 @@ class PublicScanRouteTests(unittest.TestCase):
 
     def test_pattern_scan_matches_the_gas_shape(self):
         data = self.route_data(main.pattern_scan_result)
-        self.assertEqual(sorted(data), ['angleMomentumBacktest', 'firstPullbackBreakoutReady', 'gongpasanBacktest', 'patterns',
+        self.assertEqual(sorted(data), ['angleMomentumBacktest', 'angleMomentumScannedAt', 'firstPullbackBreakoutReady', 'gongpasanBacktest',
+                                        'gongpasanScannedAt', 'patterns',
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt',
                                         'universe', 'volumeBreakoutScannedAt'])
         self.assertEqual(sorted(data['patterns']),
                          ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'firstPullbackBreakout', 'gongpasan', 'invHeadShoulders',
-                          'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'volumeBreakout'])
+                          'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'shortTermMaBreakout', 'volumeBreakout'])
         # 2026-09-04: volumeBreakout만 장중 09:10 스냅샷이라 스캔 시각이 따로 온다.
         self.assertEqual(data['volumeBreakoutScannedAt'], CACHE['volumeBreakoutScannedAt'])
         # 눌림목만 patternScan.patterns가 아니라 pullbackScan.matches에서 온다.
         self.assertEqual(data['patterns']['pullback'], [{'code': '000002'}])
         self.assertEqual(data['patterns']['risingLows'], [{'code': '000001'}])
+        # 2026-10-15: 판정은 되는데 응답에서 빠져 탭이 항상 비던 키.
+        self.assertEqual(data['patterns']['shortTermMaBreakout'], [{'code': '000005'}])
+        self.assertEqual(data['angleMomentumScannedAt'], CACHE['angleMomentumScannedAt'])
+        self.assertEqual(data['gongpasanScannedAt'], CACHE['gongpasanScannedAt'])
         self.assertEqual(data['pullbackScanned'], 2700)
         self.assertEqual(data['angleMomentumBacktest'], {'totalTrades': 10})
         self.assertIsNone(data['gongpasanBacktest'])

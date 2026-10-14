@@ -886,3 +886,17 @@ html.dark #pattern-scan .ps-stage.is-hold { background: rgba(148, 163, 184, .18)
 #pattern-scan .ps-track-fail-reason { display: block; white-space: normal; }
 #pattern-scan .ps-scanner-review { margin: 8px 0; padding: 8px 12px; font-size: 13px; line-height: 1.6; }
 #pattern-scan .ps-scanner-review.is-review { background: rgba(210, 79, 69, .1); }
+
+/* 2026-10-15 검색기 설명 항목(검색 목적·패턴 조건·포착 상태·진입 확인·무효 조건·스캔 기준)과 패턴 상태 배지. 상승=빨강 */
+#pattern-scan .ps-info-row { display: flex; gap: 10px; margin: 5px 0; line-height: 1.55; }
+#pattern-scan .ps-info-row b { flex: 0 0 4.6em; color: #35506f; font-weight: 700; }
+#pattern-scan .ps-info-row span { flex: 1 1 auto; min-width: 0; word-break: keep-all; }
+html.dark #pattern-scan .ps-info-row b { color: #F5EFE0; }
+#pattern-scan .ps-pstate.is-confirm { background: #fee2e2; color: #b91c1c; }
+#pattern-scan .ps-pstate.is-form { background: #e0f2fe; color: #0369a1; }
+html.dark #pattern-scan .ps-pstate.is-confirm { background: rgba(239, 68, 68, .22); color: #fecaca; }
+html.dark #pattern-scan .ps-pstate.is-form { background: rgba(56, 189, 248, .2); color: #bae6fd; }
+@media (max-width: 640px) {
+  #pattern-scan .ps-info-row { flex-direction: column; gap: 1px; }
+  #pattern-scan .ps-info-row b { flex-basis: auto; }
+}

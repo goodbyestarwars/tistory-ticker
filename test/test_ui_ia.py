@@ -2715,7 +2715,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
     def test_pattern_scan_includes_ma_cloud_breakout_search(self):
         source = self.read("js/pattern-scan.js")
         self.assertIn("key: 'maCloudBreakout'", source)
-        self.assertIn("label: '장기이평 응축기'", source)
+        self.assertIn("label: '장기이평 응축·돌파'", source)
         # 2026-10-04 재설계: 돌파 준비 + 신규 돌파 두 상태
         self.assertIn("224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목", source)
         self.assertIn("최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파", source)

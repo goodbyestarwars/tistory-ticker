@@ -131,7 +131,7 @@ source = source.replace('global.PatternScan =',
 const context = {window:{}, document:{readyState:'loading', addEventListener(){}}, console};
 vm.runInNewContext(source, context);
 const api = context.window.__test;
-assert.equal(api.tabs.find(t => t.key === 'pullback').label, '이평선 눌림');
+assert.equal(api.tabs.find(t => t.key === 'pullback').label, '이동평균 눌림목');
 assert.equal(api.tabs.filter(t => t.key === 'firstPullbackBreakout').length, 1);
 const p = JSON.parse(fs.readFileSync(0, 'utf8'));
 const lines = []; let markers = [];
