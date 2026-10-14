@@ -287,7 +287,7 @@
     // 2026-10-12: 국내 탭의 큰 블록 규격(css/market-indicators.css .mi-block)을 따른다 - 04 선물지표, 05 옵션 수급(buildOptionSection).
     return ''
       + '<section class="mi-block kf-block" data-mi-block="futures">'
-      + buildBlockHead('04', 'KOSPI200 선물지표')
+      + buildBlockHead('03', 'KOSPI200 선물지표')
       + '<div class="mi-block-desc">KOSPI200 주간선물(09:00~15:45)과 야간선물(18:00~05:00)의 시세·미결제약정과 차트입니다.</div>'
       + '<div class="mi-sub"><div class="mi-sub-title">주간·야간 선물 시세</div>'
       + '<div class="mi-sub-cap">현재가, 전일 대비, 등락률과 미결제약정(증감)입니다.</div>'
@@ -321,7 +321,7 @@
     }).join('');
     var collapsed = loadCollapsed('option');
     return '<section class="kf-section mi-block' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="option" data-mi-block="option">'
-      + buildBlockHead('05', '옵션 수급', ' <span class="kf-option-title-meta">만기 확인 중</span>',
+      + buildBlockHead('04', '옵션 수급', ' <span class="kf-option-title-meta">만기 확인 중</span>',
         '<button type="button" class="kf-collapse-btn" data-chart-key="option" aria-label="' + (collapsed ? '펼치기' : '숨기기') + '">' + (collapsed ? '펼치기' : '숨기기') + '</button>')
       + '<div class="mi-block-desc">KOSPI200 옵션 콜·풋의 거래량·미결제약정(OI) 증감과 행사가별 분포입니다.</div>'
       + '<div class="kf-section-body">'

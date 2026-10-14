@@ -223,3 +223,9 @@
 .discussion-item-body {
   overflow-wrap: break-word;
 }
+
+/* 전략검색 비교표와 같은 선·셀 간격을 쓰는 공통 데이터 표. */
+.ui-data-table { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+.ui-data-table th { padding: 9px 8px; border-top: 1px solid #aeb5bd; border-bottom: 1px solid #aeb5bd; background: transparent; color: var(--ui-muted); font-size: 11px; text-align: left; }
+.ui-data-table td { padding: 11px 8px; border-bottom: 1px solid var(--ui-rule); background: transparent; }
+.ui-data-table tbody tr:hover { background: color-mix(in srgb, var(--ui-ink) 3%, var(--ui-surface)); }

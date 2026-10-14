@@ -58,6 +58,32 @@
     };
   }
 
+  // 미국주식 온라인 기본 매수 요율, 2026-10-14 공식 안내 확인.
+  var FX_BROKERS = {
+    kis: { name: '한국투자증권', rate: 0.25, url: 'https://www.truefriend.com/main/bond/research/_static/TF03ca050000.jsp' },
+    kiwoom: { name: '키움증권', rate: 0.25, url: 'https://www.kiwoom.com/h/help/fee/VHelpFoFeeView' },
+    other: { name: '기타 · 직접 입력', rate: 0.25, url: '' }
+  };
+  function fxBrokerKey(value) {
+    if (FX_BROKERS[value]) return value;
+    if (/한국투자|KIS|뱅키스/i.test(value || '')) return 'kis';
+    if (/키움|kiwoom/i.test(value || '')) return 'kiwoom';
+    return 'other';
+  }
+  function validFee(value) { return /^\d+(?:\.\d+)?$/.test(String(value)) && Number.isFinite(Number(value)); }
+  function resolveFxFee(saved) {
+    // 계좌 연동 설정은 화면에 공개되지 않는다. 미저장 시 기존 데이터 연동 KIS를 선택.
+    var broker = saved && saved.broker ? fxBrokerKey(saved.broker) : 'kis';
+    var rates = {};
+    if (saved && saved.rates && typeof saved.rates === 'object') {
+      Object.keys(FX_BROKERS).forEach(function (key) {
+        if (validFee(saved.rates[key])) rates[key] = Number(saved.rates[key]);
+      });
+    }
+    if (saved && validFee(saved.rate) && saved.manual !== false) rates[broker] = Number(saved.rate);
+    return { broker: broker, rates: rates };
+  }
+
   function numberValue(input) { return Number(String(input.value || '').replace(/,/g, '')); }
   function groupInput(input) {
     var before = input.value, caret = input.selectionStart;
@@ -189,10 +215,10 @@
       + '<label><span>투자할 원화</span><input inputmode="decimal" data-it-fx="krw" placeholder="예: 5,000,000"></label>'
       + '<label><span>달러 살 때 적용 환율</span><input inputmode="decimal" data-it-fx="rate" placeholder="자동으로 입력됩니다"></label>'
       + '<label><span>미국주식 1주 가격</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="stockPrice" placeholder="예: 180"><i>$</i></span></label>'
-      + '<label><span>증권사 (선택)</span><input data-it-broker placeholder="예: 이용 증권사"></label>'
+      + '<label><span>증권사 · 미국주식 온라인</span><select data-it-broker><option value="kis">한국투자증권</option><option value="kiwoom">키움증권</option><option value="other">기타 · 직접 입력</option></select></label>'
       + '<label><span>매수 수수료율</span><span class="it-input-unit"><input inputmode="decimal" data-it-fx="commission" value="0.25"><i>%</i></span></label>'
       + '</div>'
-      + '<p class="it-field-help">환율은 자동 입력됩니다. 수수료는 기본 예시 0.25%로 자동 계산합니다. 증권사·계좌의 실제 매수 요율을 확인해 수정하면 이 브라우저에 저장됩니다. 증권사 이름만으로 요율을 조회하지는 않습니다.</p>'
+      + '<p class="it-field-help" data-it-fee-help></p><button type="button" class="ui-btn ui-btn-text" data-it-fee-reset>기본 수수료율로 복원</button>'
       + '<div class="it-results" aria-live="polite">'
       + '<article class="it-primary"><span>매수 가능 수량 · 정수주 기준</span><strong data-it-fx-result="shares">-</strong></article>'
       + '<article><span>환전 후 투자 가능 달러</span><strong data-it-fx-result="usd">-</strong></article>'
@@ -204,11 +230,28 @@
     document.body.appendChild(overlay);
     var feeInput = overlay.querySelector('[data-it-fx="commission"]');
     var brokerInput = overlay.querySelector('[data-it-broker]');
-    try {
-      var saved = JSON.parse(localStorage.getItem('nine_invest_fx_fee_v1') || 'null');
-      if (saved && /^\d+(?:\.\d+)?$/.test(String(saved.rate))) feeInput.value = String(saved.rate);
-      if (saved && typeof saved.broker === 'string') brokerInput.value = saved.broker.slice(0, 80);
-    } catch (e) { /* 저장소 사용이 제한되면 기본값 사용 */ }
+    var saved = null;
+    try { saved = JSON.parse(localStorage.getItem('nine_invest_fx_fee_v1') || 'null'); } catch (e) { /* 저장소 제한 */ }
+    var feeSettings = resolveFxFee(saved);
+    brokerInput.value = feeSettings.broker;
+    function applyBrokerFee() {
+      var broker = FX_BROKERS[brokerInput.value];
+      var manual = Object.prototype.hasOwnProperty.call(feeSettings.rates, brokerInput.value);
+      feeInput.value = String(manual ? feeSettings.rates[brokerInput.value] : broker.rate);
+      var help = overlay.querySelector('[data-it-fee-help]');
+      help.textContent = (manual ? '저장된 수동 요율 적용. ' : brokerInput.value === 'other' ? '예시 요율 0.25% · 실제 요율을 직접 입력하세요. ' : broker.name + ' 온라인 기본 요율 ' + broker.rate + '% 적용. ')
+        + '계좌별 우대율은 조회할 수 없습니다. 실제 매수 요율로 수정하면 증권사별로 저장됩니다.'
+        + (!saved ? ' 증권사는 서비스 데이터 연동 기준으로 선택되며 본인 계좌 연동을 의미하지 않습니다.' : '');
+      if (broker.url) {
+        var link = document.createElement('a'); link.href = broker.url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.textContent = ' 공식 수수료 안내'; help.appendChild(link);
+      }
+    }
+    function saveFeeSettings() {
+      var manual = Object.prototype.hasOwnProperty.call(feeSettings.rates, brokerInput.value);
+      try { localStorage.setItem('nine_invest_fx_fee_v1', JSON.stringify({ broker: brokerInput.value, rate: feeInput.value.replace(/,/g, ''), manual: manual, rates: feeSettings.rates })); } catch (e) { /* 저장소 제한 */ }
+    }
+    applyBrokerFee();
     var oldOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     function close() { overlay.remove(); document.body.style.overflow = oldOverflow; document.removeEventListener('keydown', onKey); }
@@ -228,10 +271,19 @@
     }
     overlay.addEventListener('input', function (event) {
       formatInputsOnEdit(event);
-      if (event.target === feeInput || event.target === brokerInput) {
-        try { localStorage.setItem('nine_invest_fx_fee_v1', JSON.stringify({ rate: feeInput.value.replace(/,/g, ''), broker: brokerInput.value.slice(0, 80) })); } catch (e) { /* 저장소 제한 */ }
+      if (event.target === feeInput) {
+        var rateText = feeInput.value.replace(/,/g, '');
+        if (validFee(rateText)) {
+          feeSettings.rates[brokerInput.value] = Number(rateText);
+          saveFeeSettings();
+          overlay.querySelector('[data-it-fee-help]').textContent = '수동 요율 적용 · 계좌별 우대율 확인 불가. 실제 매수 요율을 증권사 앱에서 확인하세요. 증권사별로 저장됩니다.';
+        }
       }
       render();
+    });
+    brokerInput.addEventListener('change', function () { applyBrokerFee(); saveFeeSettings(); render(); });
+    overlay.querySelector('[data-it-fee-reset]').addEventListener('click', function () {
+      delete feeSettings.rates[brokerInput.value]; applyBrokerFee(); saveFeeSettings(); render();
     });
     overlay.querySelector('.it-close').addEventListener('click', close);
     overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
@@ -253,7 +305,7 @@
     overlay.querySelector('[data-it-fx="krw"]').focus();
   }
 
-  var api = { calculateAverage: calculateAverage, calculateNasdaqFx: calculateNasdaqFx, openAveraging: openAveraging, openNasdaqFx: openNasdaqFx };
+  var api = { calculateAverage: calculateAverage, calculateNasdaqFx: calculateNasdaqFx, resolveFxFee: resolveFxFee, openAveraging: openAveraging, openNasdaqFx: openNasdaqFx };
   global.NineInvestTools = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);

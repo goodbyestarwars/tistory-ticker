@@ -7,8 +7,8 @@
 .it-close { width: 42px; height: 42px; flex: 0 0 42px; border: 1px solid #d5dce4; border-radius: 50%; background: transparent; color: inherit; cursor: pointer; font-size: 17px; }
 .it-input-grid { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 14px; }
 .it-input-grid label { display: grid; gap: 7px; color: #465261; font-size: 13px; font-weight: 700; }
-.it-input-grid input { width: 100%; min-height: 50px; box-sizing: border-box; padding: 12px 14px; border: 1px solid #c9d2dc; border-radius: 10px; background: #fff; color: #17202a; font: inherit; font-size: 17px; }
-.it-input-grid input:focus { outline: 2px solid rgba(49,91,67,.18); border-color: #315b43; }
+.it-input-grid input, .it-input-grid select { width: 100%; min-height: 50px; box-sizing: border-box; padding: 12px 14px; border: 1px solid #c9d2dc; border-radius: 10px; background: #fff; color: #17202a; font: inherit; font-size: 17px; }
+.it-input-grid input:focus, .it-input-grid select:focus { outline: 2px solid rgba(49,91,67,.18); border-color: #315b43; }
 .it-current-grid { margin-bottom: 22px; }
 .it-additions-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .it-additions-head > strong { font-size: 15px; }
@@ -34,7 +34,7 @@
 .it-field-help { margin:10px 0 0; color:#687482; font-size:12px; line-height:1.5; }
 html.dark .it-rate-status { background:#1e2c39; color:#a9cceb; }
 html.dark .it-modal { border-color: #343b43; background: #1a1a1a; color: #f5efe0; }
-html.dark .it-input-grid input { border-color: #454d56; background: #242424; color: #f5efe0; }
+html.dark .it-input-grid input, html.dark .it-input-grid select { border-color: #454d56; background: #242424; color: #f5efe0; }
 html.dark .it-add-row { border-color: #353c44; background: #202321; }
 html.dark .it-add-row input, html.dark .it-remove { border-color: #454d56; background: #242424; color: #f5efe0; }
 html.dark .it-results article { border-color: #353c44; background: #222; }

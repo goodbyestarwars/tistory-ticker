@@ -1163,8 +1163,8 @@ document.documentElement.classList.add('skin-ready');
         return {
           source: 'spot',
           keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
-          labels: ['나스닥', 'S&P500'],
-          live: '나스닥 · S&P500',
+          labels: ['나스닥 종합 현물', 'S&P500 현물'],
+          live: '나스닥 종합 · S&P500 현물',
           statusLabel: spot.label,
           subtitle: spot.subtitle
         };
@@ -1182,8 +1182,8 @@ document.documentElement.classList.add('skin-ready');
       return {
         source: 'spot',
         keys: ['NASDAQ_INDEX', 'SP500_INDEX'],
-        labels: ['나스닥', 'S&P500'],
-        live: '나스닥 · S&P500',
+        labels: ['나스닥 종합 현물', 'S&P500 현물'],
+        live: '나스닥 종합 · S&P500 현물',
         statusLabel: spot.label,
         subtitle: spot.subtitle
       };
@@ -1375,14 +1375,17 @@ document.documentElement.classList.add('skin-ready');
       }
       var width = element.clientWidth || 240;
       var height = element.clientHeight || 48;
-      var pad = 2;
+      var pad = monthlyMini ? 38 : 2;
+      var topPad = monthlyMini ? 5 : 2;
+      var bottom = monthlyMini ? height - 16 : height - 2;
+      var plotHeight = bottom - topPad;
       var lineEnd = width - 26; // 펜촉 끝이 실제 데이터 끝 좌표에 닿도록 우측 공간을 둔다.
       var min = Math.min.apply(Math, values);
       var max = Math.max.apply(Math, values);
       var range = max - min || 1;
       var coords = values.map(function (value, index) {
         var x = pad + index * (lineEnd - pad) / (values.length - 1);
-        var y = height - pad - ((value - min) / range) * (height - pad * 2);
+        var y = bottom - ((value - min) / range) * plotHeight;
         return [x, y];
       });
       var points = coords.map(function (point) { return point[0].toFixed(2) + ',' + point[1].toFixed(2); }).join(' ');
@@ -1393,16 +1396,26 @@ document.documentElement.classList.add('skin-ready');
       var last = values[values.length - 1];
       var dotColor = key === 'kospiNight' && !hasReference ? '#64748b'
         : last > baseline ? '#d24f45' : last < baseline ? '#1261c4' : '#64748b';
-      var lastY = height - pad - ((values[values.length - 1] - min) / range) * (height - pad * 2);
-      var guideY = height - pad - ((baseline - min) / range) * (height - pad * 2);
-      guideY = Math.max(pad, Math.min(height - pad, guideY));
+      var lastY = bottom - ((values[values.length - 1] - min) / range) * plotHeight;
+      var guideY = bottom - ((baseline - min) / range) * plotHeight;
+      guideY = Math.max(topPad, Math.min(bottom, guideY));
       var signature = chartRows.map(function (row) { return (row.ts || row.date || '') + ':' + row.close; }).join('|');
       var old = homeChartMotion.get(element);
       var sameSize = old && old.width === width && old.height === height;
       if (old && sameSize && old.signature === signature && element.querySelector('.home-chart-trace')) {
         var oldDot = element.querySelector('.home-glow-dot');
-        if (oldDot) oldDot.style.borderColor = dotColor;
+        if (oldDot) { oldDot.style.borderColor = dotColor; oldDot.style.backgroundColor = dotColor; }
         return;
+      }
+      var axis = '';
+      if (monthlyMini) {
+        [max, min].forEach(function (value, index) {
+          axis += '<text class="home-chart-axis" x="1" y="' + (index ? bottom : topPad + 6) + '">' + value.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '</text>';
+        });
+        [0, chartRows.length - 1].forEach(function (index) {
+          var date = String(chartRows[index].date).replace(/-/g, '');
+          axis += '<text class="home-chart-axis" x="' + (index ? lineEnd : pad) + '" y="' + (height - 2) + '" text-anchor="' + (index ? 'end' : 'start') + '">' + date.slice(4, 6) + '/' + date.slice(6, 8) + '</text>';
+        });
       }
       stopHomeChartMotion(element);
       var append = old && sameSize && chartRows.length > old.count && signature.indexOf(old.signature + '|') === 0;
@@ -1413,13 +1426,14 @@ document.documentElement.classList.add('skin-ready');
       var duration = append || reviseLast ? 420 : 1800;
       var initial = animate ? startIndex : coords.length - 1;
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">'
+        + axis
         + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
         + '<polyline class="home-chart-trace" points="' + (animate ? coords[initial][0].toFixed(2) + ',' + coords[initial][1].toFixed(2) : points) + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<g class="home-chart-pen" transform="translate(' + coords[initial][0].toFixed(2) + ' ' + coords[initial][1].toFixed(2) + ')">'
         + '<path d="M0 0 L4 -1.2 L8 -1.2 L8 1.2 L4 1.2 Z" fill="#374151" stroke="#1f2937" stroke-width=".5" vector-effect="non-scaling-stroke"></path>'
         + '<path d="M8 -1.4 L19 -1.4 M8 1.4 L19 1.4 M19 -2.4 L19 2.4" fill="none" stroke="#374151" stroke-width=".9" vector-effect="non-scaling-stroke"></path>'
         + '<path d="M9 0 L17 0" stroke="#9ca3af" stroke-width=".55" vector-effect="non-scaling-stroke"></path></g></svg>'
-        + '<span class="home-glow-dot" style="left:' + (lineEnd / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + '" aria-hidden="true"></span>';
+        + '<span class="home-glow-dot" style="left:' + (lineEnd / width * 100).toFixed(2) + '%;top:' + (lastY / height * 100).toFixed(2) + '%;border-color:' + dotColor + ';background-color:' + dotColor + '" aria-hidden="true"></span>';
       var trace = element.querySelector('.home-chart-trace');
       var pen = element.querySelector('.home-chart-pen');
       var dot = element.querySelector('.home-glow-dot');
@@ -1882,11 +1896,10 @@ document.documentElement.classList.add('skin-ready');
       }).join(' ');
       var zeroLine = min < 0 && max > 0
         ? '<line x1="2" y1="' + y(0).toFixed(1) + '" x2="98" y2="' + y(0).toFixed(1) + '" class="hmb-investor-zero"></line>' : '';
-      var color = positive ? '#d24f45' : '#1261c4';
+      var color = '#111111';
       var highIndex = nums.indexOf(max), lowIndex = nums.indexOf(min);
       return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="최근 외국인 순매수 추이, 고점 ' + investorAmountText(max) + ', 저점 ' + investorAmountText(min) + '">'
         + zeroLine
-        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-opacity=".2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"></polyline>'
         + '</svg><span class="hmb-investor-point is-high" style="left:' + x(highIndex).toFixed(1) + '%;top:' + (y(max) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>'
         + (range ? '<span class="hmb-investor-point is-low" style="left:' + x(lowIndex).toFixed(1) + '%;top:' + (y(min) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>' : '')
