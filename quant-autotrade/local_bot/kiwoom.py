@@ -108,10 +108,16 @@ class KiwoomClient:
         raise RuntimeError('계좌번호 응답 형식 불명')
 
     def cash_available(self):
+        """100% margin buying capacity, including reusable sale proceeds.
+
+        entr is settled deposit and ord_alow_amt excludes the reuse amount in
+        this account. Never use lower-margin buying power or withdrawal cash.
+        """
         res = self.call('kt00001', '/api/dostk/acnt', {'qry_tp': '2'})
-        if str(res.get('return_code', '')) != '0' or res.get('ord_alow_amt') is None:
+        value = str(res.get('100stk_ord_alow_amt', '')).strip().replace(',', '')
+        if str(res.get('return_code', '')) != '0' or not value or not value.isascii() or not value.isdigit():
             raise RuntimeError('주문 가능 금액 조회 실패')
-        return int(float(str(res['ord_alow_amt']).replace(',', '')))
+        return int(value)
 
     def unfilled(self):
         res = self.call('ka10075', '/api/dostk/acnt',
