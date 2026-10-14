@@ -297,7 +297,7 @@
 
     function seg(name, items, current, attr) {
       return '<div class="ifl-seg" role="group" aria-label="' + name + '">' + items.map(function (it) {
-        return '<button type="button" class="ifl-seg-btn' + (it.key === current ? ' is-active' : '') + '" ' + attr + '="' + it.key + '" aria-pressed="' + (it.key === current) + '">' + esc(it.label) + '</button>';
+        return '<button type="button" class="ui-btn ui-btn-tab ifl-seg-btn' + (it.key === current ? ' is-active active' : '') + '" ' + attr + '="' + it.key + '" aria-pressed="' + (it.key === current) + '">' + esc(it.label) + '</button>';
       }).join('') + '</div>';
     }
 
@@ -329,12 +329,12 @@
       var rows = rowsOf();
       Array.prototype.forEach.call(root.querySelectorAll('[data-if-market]'), function (b) {
         var on = b.getAttribute('data-if-market') === state.market;
-        b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
       });
       Array.prototype.forEach.call(root.querySelectorAll('[data-if-period]'), function (b) {
         var p = periodOf(b.getAttribute('data-if-period'));
         var on = p.key === state.period, short = rows.length && rows.length < p.n;
-        b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
         b.disabled = !!short;
         b.title = short ? '확보된 자료가 ' + rows.length + '거래일이라 선택할 수 없습니다' : (p.n + '거래일 기준');
       });
@@ -349,11 +349,11 @@
       var mode = aggMode();
       Array.prototype.forEach.call(root.querySelectorAll('[data-if-view]'), function (b) {
         var on = b.getAttribute('data-if-view') === state.view;
-        b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
       });
       Array.prototype.forEach.call(root.querySelectorAll('[data-if-agg]'), function (b) {
         var key = b.getAttribute('data-if-agg'), on = key === mode, few = key !== 'day' && rowsOf().length && bucketCount(key) < 2;
-        b.classList.toggle('is-active', on); b.setAttribute('aria-pressed', String(on));
+        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
         b.disabled = !!few;
         b.title = few ? '선택한 기간이 짧아 ' + (key === 'week' ? '주간' : '월간') + ' 구간이 1개뿐입니다' : '';
       });
@@ -417,7 +417,7 @@
       var na = '<td class="ifl-na">매수·매도 총액 원자료 미지원</td>';
       q('[data-if-gross]').innerHTML = '<div class="ifl-seg ifl-seg-inv" role="group" aria-label="투자자">' + INVESTORS.map(function (i) {
         var on = i.key === state.gross;
-        return '<button type="button" class="ifl-seg-btn' + (on ? ' is-active' : '') + '" data-if-gross-inv="' + i.key + '" aria-pressed="' + on + '" style="--ifl-inv:' + i.color + '">'
+        return '<button type="button" class="ui-btn ui-btn-tab ifl-seg-btn' + (on ? ' is-active active' : '') + '" data-if-gross-inv="' + i.key + '" aria-pressed="' + on + '" style="--ifl-inv:' + i.color + '">'
           + '<i class="ibd-swatch" style="background:' + i.color + '"></i>' + i.label + '</button>';
       }).join('') + '</div>'
         + '<table class="ifl-table ifl-gross-table"><tbody>'

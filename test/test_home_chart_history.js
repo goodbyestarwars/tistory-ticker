@@ -39,6 +39,15 @@ window.MARKET_HISTORY_ARCHIVES={};
 context.recent=[{date:'20260901',close:100},{date:'20261007',close:110}];
 vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI')",context);
 assert.equal(element.attrs['data-history-range'],'확보된 2거래일 · 2026.09.01 ~ 2026.10.07');
+assert.equal((element.innerHTML.match(/class="home-chart-axis"/g) || []).length, 4, 'date and index scale labels are visible');
+vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI',100)", context);
+assert.ok(element.innerHTML.includes('background-color:#d24f45'), 'rising latest marker is filled red');
+vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI',120)", context);
+// 같은 시계열에서 전일 기준만 바뀌어도 끝점 색을 갱신한다.
+const coloredDot = { style: {} };
+element.querySelector = () => coloredDot;
+vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI',120)", context);
+assert.equal(coloredDot.style.backgroundColor, '#1261c4', 'falling latest marker is filled blue on refresh');
 const frames=[];
 context.requestAnimationFrame=callback=>{frames.push(callback);return frames.length;};
 context.cancelAnimationFrame=()=>{};

@@ -1169,9 +1169,9 @@
         return ['buy', 'sell'].map(function (side) {
           var rows = data.ranks && data.ranks[investor] && data.ranks[investor][side];
           if (!Array.isArray(rows) || !rows.length) return '<section class="dmi-rank-card"><h4>' + labels[investor] + ' 순' + (side === 'buy' ? '매수' : '매도') + '</h4><p>검증된 순위 없음</p></section>';
-          return '<section class="dmi-rank-card"><h4>' + labels[investor] + ' 순' + (side === 'buy' ? '매수' : '매도') + '</h4><ol>'
-            + rows.map(function (row) { return '<li><span>' + escapeHtml(row.name) + ' (' + escapeHtml(row.code) + ')</span><b>' + Math.abs(Number(row.quantity)).toLocaleString('ko-KR') + '주</b></li>'; }).join('')
-            + '</ol></section>';
+          return '<section class="dmi-rank-card"><h4>' + labels[investor] + ' 순' + (side === 'buy' ? '매수' : '매도') + '</h4><div class="ss-table-wrap"><table class="ui-data-table dmi-rank-table"><thead><tr><th scope="col">순위</th><th scope="col">종목</th><th scope="col">코드</th><th scope="col">순' + (side === 'buy' ? '매수' : '매도') + ' 수량</th></tr></thead><tbody>'
+            + rows.map(function (row, index) { return '<tr><td>' + (index + 1) + '</td><td>' + escapeHtml(row.name) + '</td><td>' + escapeHtml(row.code) + '</td><td>' + Math.abs(Number(row.quantity)).toLocaleString('ko-KR') + '주</td></tr>'; }).join('')
+            + '</tbody></table></div></section>';
         }).join('');
       }).join('');
       root.querySelector('.dmi-rank-grid').innerHTML = html;

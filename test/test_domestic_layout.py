@@ -12,20 +12,20 @@ def read(path):
 
 
 class DomesticLayoutTests(unittest.TestCase):
-    def test_blocks_are_numbered_01_to_05_with_the_same_head(self):
+    def test_blocks_are_numbered_01_to_04_with_separate_investor_tab(self):
         domestic = read('js/domestic-market-indicators.js')
         futures = read('js/kospi-futures.js')
-        for number, name in (('01', '국내 주요 지수'), ('02', '투자자별 매매동향'), ('03', '증시자금')):
+        for number, name in (('01', '국내 주요 지수'), ('02', '증시자금')):
             self.assertIn("blockHead('%s', '%s'" % (number, name), domestic)
-        self.assertIn("buildBlockHead('04', 'KOSPI200 선물지표')", futures)
-        self.assertIn("buildBlockHead('05', '옵션 수급'", futures)
+        self.assertIn("buildBlockHead('03', 'KOSPI200 선물지표')", futures)
+        self.assertIn("buildBlockHead('04', '옵션 수급'", futures)
         # 번호는 .mi-block-no, 제목은 .mi-block-title, 한 줄 설명은 .mi-block-desc 로 모든 블록이 같다
-        self.assertEqual(domestic.count('mi-block-no'), 1, '헤더 생성 함수 한 곳에서만 번호를 만든다')
+        self.assertEqual(domestic.split('function init()')[1].count('mi-block-no'), 1)
         self.assertEqual(futures.count('mi-block-no'), 1)
         self.assertGreaterEqual(domestic.count('mi-block-desc'), 3)
         self.assertGreaterEqual(futures.count('mi-block-desc'), 2)
         # 01 만 첫 블록(위 구분선 없음)
-        self.assertEqual(domestic.count('mi-block--first'), 1)
+        self.assertEqual(domestic.split('function init()')[1].count('mi-block--first'), 1)
 
     def test_duplicate_money_flow_section_is_merged_into_02_and_03(self):
         domestic = read('js/domestic-market-indicators.js')

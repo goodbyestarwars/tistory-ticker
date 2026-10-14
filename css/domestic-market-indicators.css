@@ -658,3 +658,9 @@ html.dark .dmi-invflow-loading, html.dark .dmi-invflow-fail { color: rgba(245,23
 /* 다크모드: 02 투자자별 순매수 표의 날짜·헤더가 위쪽 '글자색 #000 !important' 규칙 때문에 어두운 배경 위 검정으로 보이지 않았다. 상승·하락 색 칸은 건드리지 않는다. */
 html.dark .dmi-shell .dmi-flow-table th,
 html.dark .dmi-shell .dmi-flow-table td:not(.dmi-positive):not(.dmi-negative) { color: #F5EFE0 !important; }
+
+.dmi-rank-card .ss-table-wrap { overflow-x: auto; scrollbar-width: thin; }
+.dmi-rank-table { min-width: 330px; }
+.dmi-rank-table th:first-child, .dmi-rank-table td:first-child { text-align: center; }
+.dmi-rank-table th:last-child, .dmi-rank-table td:last-child { text-align: right; white-space: nowrap; }
+.dmi-rank-table td:nth-child(3) { color: var(--ui-muted); }
