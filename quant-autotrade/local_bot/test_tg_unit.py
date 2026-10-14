@@ -826,19 +826,17 @@ class MonitorTests(unittest.TestCase):
         e.tick()
         self.assertEqual(len(e.flush()), 2)
 
-    def test_research_not_started_and_heartbeat_and_disk(self):
+    def test_retired_research_heartbeat_is_ignored_but_disk_is_watched(self):
         e = self.env
         e.at(2026, 10, 13, 21, 0)
         e.write_status(runner='done', mode='poll', startedAt='2026-10-12T20:15:00+09:00')
         e.tick()
         texts = e.flush()
-        self.assertEqual(len(texts), 1)
-        self.assertIn('오늘 연구 작업 미시작', texts[0])
+        self.assertEqual(texts, [])
         e.write_status(runner='waiting', mode='poll', startedAt='2026-10-13T20:15:00+09:00', heartbeatAt='2026-10-13T20:20:00+09:00', diskUsedBytes=4.5 * 1024 ** 3)
         e.tick()
         texts = e.flush()
-        self.assertTrue(any('오늘 연구 작업이 시작되었습니다' in t for t in texts))
-        self.assertTrue(any('연구 작업 응답 없음' in t for t in texts))
+        self.assertFalse(any('연구 작업' in t for t in texts))
         self.assertTrue(any('연구 데이터 용량' in t for t in texts))
 
     def test_research_log_kiwoom_daily_failures(self):

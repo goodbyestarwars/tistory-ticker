@@ -230,18 +230,10 @@ class Monitor:
                           'critical' if runner == 'disk_limit' else 'warn', 12 * 3600)
         elif ratio < 0.7:
             n.clear_alert('research_disk', '연구 데이터 용량이 정상 범위로 돌아왔습니다.')
-        hb = F.to_dt(rs.get('heartbeatAt'))
-        if runner in ('starting', 'waiting') and in_poll_window(now_dt) and hb and now_dt - hb > timedelta(minutes=25):
-            n.raise_alert('research_hb', F.fmt_alert('연구 작업 응답 없음', '스캔 대기 중이어야 하는 시간인데 연구 작업의 마지막 생존 신호가 %s 전입니다(%s).' % (fmt_duration((now_dt - hb).total_seconds()), F.ts(hb)),
-                                                      'warn', '작업 스케줄러의 AutotraderResearch 작업 상태를 확인하세요', now_dt), 'warn', 3 * 3600)
-        else:
-            n.clear_alert('research_hb', '연구 작업이 다시 응답합니다.')
-        started = F.to_dt(rs.get('startedAt'))
-        if now_dt.weekday() < 5 and (now_dt.hour, now_dt.minute) >= (20, 45) and (started is None or started.strftime('%Y-%m-%d') != now_dt.strftime('%Y-%m-%d')):
-            n.raise_alert('research_not_started', F.fmt_alert('오늘 연구 작업 미시작', '평일 20:15 연구 작업이 오늘 아직 시작되지 않았습니다(마지막 시작 %s).' % F.ts(started), 'warn',
-                                                              'PC 절전·작업 스케줄러 상태를 확인하세요. PC에 로그온하면 자동으로 따라잡습니다', now_dt), 'warn', 6 * 3600)
-        elif started and started.strftime('%Y-%m-%d') == now_dt.strftime('%Y-%m-%d'):
-            n.clear_alert('research_not_started', '오늘 연구 작업이 시작되었습니다.')
+        # AutotraderResearch is retired. Its status.json remains for historical data,
+        # so neither its heartbeat nor its old 20:15 start time indicates a fault.
+        n.clear_alert('research_hb', '중지된 옛 연구 작업의 생존 신호 경고를 해제했습니다.')
+        n.clear_alert('research_not_started', '중지된 옛 연구 작업의 시작 경고를 해제했습니다.')
         success = F.to_dt(rs.get('lastSuccessAt'))
         if success and now_dt - success > timedelta(days=4) and now_dt.weekday() < 5 and now_dt.hour >= 9:
             n.raise_alert('research_stale', F.fmt_alert('연구 데이터 갱신 지연', ['마지막 후보 생성이 %s 전(%s)입니다.' % (fmt_duration((now_dt - success).total_seconds()), F.ts(success)),
