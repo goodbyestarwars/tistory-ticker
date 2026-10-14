@@ -170,11 +170,11 @@
       basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다.'
     },
     gongpasan: {
-      purpose: '큰 낙폭 뒤 바닥 횡보와 매집 흔적이 있는 종목이 돌파 후 처음 20일선까지 눌리는 자리를 찾습니다.',
-      state: '첫 눌림(FIRST_PULLBACK) 또는 지지 확인(SUPPORT_CONFIRMED). 마지막 봉에서 신호가 켜진 종목만 나와 0건인 날이 흔합니다.',
-      entry: '종가가 20일선 -1% 이내에서 지지되고 눌림 거래량이 줄었는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
-      invalid: '종가가 20일선보다 1% 넘게 아래로 내려가면 지지 실패입니다(자동 사후 추적은 없음).',
-      basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다.'
+      purpose: '큰 낙폭 뒤 바닥을 다지고 매집한 종목이 돌파 후 처음 20일선까지 눌리는 자리를, 진행 단계별로 일찍부터 관찰합니다.',
+      state: '4단계: ① 매집 관찰(낙폭·횡보·매집봉) → ② 상승 돌파(돌파봉 발생) → ③ 눌림 대기(돌파 후 20거래일 안, 20일선 첫 접근 전) → ④ 지지 확인(최종 신호). 1~3단계는 관찰용이고 ④만 최종 신호입니다.',
+      entry: '④ 지지 확인에서 종가가 20일선 -1% 이내로 지지되고 눌림 거래량이 줄었는지 확인한 뒤 판단합니다. 1~3단계는 진입 근거가 아닙니다.' + ENTRY_NOTE,
+      invalid: '첫 20일선 접근 봉의 종가가 20일선보다 1% 넘게 낮으면 그 돌파는 끝나고(같은 돌파 재진입 없음), 20거래일이 지나도 끝납니다. 최종 신호(④)만 사후 추적됩니다.',
+      basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다. 데이터 기준일이 기대 거래일보다 오래되면 단계 후보를 숨깁니다.'
     },
     volumeBreakout: {
       purpose: '장중에 거래량이 갑자기 늘기 시작했지만 아직 많이 오르지 않은 종목을 먼저 찾습니다.',
@@ -786,6 +786,16 @@
         + (isFinite(amBurst) ? ' · 분출 ' + amBurst.toFixed(1) + '배' : '')
         + (detail.volumeRatio != null ? ' · 거래량 ' + Number(detail.volumeRatio).toFixed(1) + '배' : '');
     }
+    if (patternKey === 'gongpasan' && detail.stage && detail.stage !== 'SUPPORT_CONFIRMED') {
+      var gsDays = Number(detail.daysSinceBreakout);
+      var gsGap = Number(detail.ma20GapPct);
+      // 단계 이름은 앞의 배지가 이미 보여 주므로 여기선 진행 수치만 쓴다.
+      return [
+        isFinite(gsDays) && detail.stage !== 'WATCH_ACCUM' ? '돌파 ' + gsDays + '거래일째' : '',
+        isFinite(gsGap) && detail.stage !== 'WATCH_ACCUM' ? '20일선 대비 ' + (gsGap > 0 ? '+' : '') + gsGap.toFixed(1) + '%' : '',
+        detail.stage === 'WATCH_ACCUM' && detail.retreatPct != null ? '160일 고점 대비 ' + detail.retreatPct + '%' : ''
+      ].filter(Boolean).join(' · ');
+    }
     if (patternKey === 'gongpasan') {
       var gpDays = Number(detail.daysSinceBreakout);
       var gpGap = Number(detail.ma20Distance);
@@ -892,7 +902,83 @@
     return false;
   }
 
+  // ---- 급락 후 첫 눌림목 4단계 (2026-10-15) ----
+  // patterns.gongpasan은 최종 "지지 확인"만 담고(기존 그대로), 매집 관찰·상승 돌파·눌림 대기는 gongpasanStages로 따로 온다.
+  // 이 단계(전략 진행도)는 추적 탭의 신규 포착/돌파 성공/돌파 실패(+5%·5일선 판정)와 다른 개념이라 배지·칩을 따로 쓴다.
+  var GP_STAGES = [
+    { key: 'WATCH_ACCUM', label: '매집 관찰' },
+    { key: 'BREAKOUT', label: '상승 돌파' },
+    { key: 'WAIT_PULLBACK', label: '눌림 대기' },
+    { key: 'SUPPORT_CONFIRMED', label: '지지 확인' }
+  ];
+  var GP_STAGE_KEYS = GP_STAGES.map(function (s) { return s.key; });
+  var GP_MAX_SHOWN = 30;
+  var gpStageFilter = 'all';
+
+  function gpStageLabel(key) {
+    var i = GP_STAGE_KEYS.indexOf(key);
+    return i < 0 ? '' : GP_STAGES[i].label;
+  }
+
+  function gpAllItems() {
+    var out = [];
+    ((scanData && scanData.patterns && scanData.patterns.gongpasan) || []).forEach(function (it) {
+      it._gpStage = 'SUPPORT_CONFIRMED';
+      out.push(it);
+    });
+    var st = scanData && scanData.gongpasanStages;
+    if (st && st.status === 'ok' && st.stages) {
+      ['WAIT_PULLBACK', 'BREAKOUT', 'WATCH_ACCUM'].forEach(function (k) {
+        (st.stages[k] || []).forEach(function (it) { it._gpStage = k; out.push(it); });
+      });
+    }
+    return out;
+  }
+
+  function gpBarHtml() {
+    var st = scanData && scanData.gongpasanStages;
+    var finals = (scanData && scanData.patterns && scanData.patterns.gongpasan) || [];
+    var counts = (st && st.counts) || {};
+    var usable = !!(st && st.status === 'ok');
+    var chips = '<button type="button" class="ps-gp-chip' + (gpStageFilter === 'all' ? ' active' : '') + '" data-gp-stage="all">전체</button>'
+      + GP_STAGES.map(function (s, i) {
+        var n = s.key === 'SUPPORT_CONFIRMED' ? finals.length : (usable ? Number(counts[s.key] || 0) : null);
+        return '<button type="button" class="ps-gp-chip is-' + s.key.toLowerCase() + (gpStageFilter === s.key ? ' active' : '') + '" data-gp-stage="' + s.key + '">'
+          + '<small>' + (i + 1) + '단계</small>' + escapeHtml(s.label) + ' <b>' + (n == null ? '-' : n) + '</b></button>';
+      }).join('');
+    var note;
+    if (!st) {
+      note = '단계 정보가 아직 없어요. 다음 스캔 완료 뒤 표시됩니다(지금은 최종 지지 확인만 보여요).';
+    } else if (st.status !== 'ok') {
+      note = '단계 데이터가 오래됐어요(일봉 기준일 ' + escapeHtml(st.asOf || '확인 불가') + ' · 기대 ' + escapeHtml(st.expectedAsOf || '') + '). 새 스캔이 끝날 때까지 단계 후보를 숨깁니다.';
+    } else {
+      var cut = GP_STAGES.slice(0, 3).filter(function (s) { return Number(counts[s.key] || 0) > ((st.stages && st.stages[s.key]) || []).length; });
+      note = '일봉 기준일 ' + escapeHtml(st.asOf || '') + ' · 단계 스캔 ' + escapeHtml(kstText(st.scannedAt))
+        + ' · 최종 매수 신호는 4단계 지지 확인뿐이고 1~3단계는 관찰용입니다'
+        + (cut.length ? ' · ' + cut.map(function (s) { return s.label; }).join('·') + '은 상위 ' + GP_MAX_SHOWN + '건만 표시' : '');
+    }
+    return '<div class="ps-gp-bar"><div class="ps-gp-chips">' + chips + '</div><div class="ps-gp-note">' + note + '</div></div>';
+  }
+
+  function gpEmptyText(allCount) {
+    var st = scanData && scanData.gongpasanStages;
+    if (allCount) return '이 단계에 해당하는 종목이 없어요. 위 단계 칸에서 다른 단계를 눌러보세요.';
+    if (!st) return '단계 정보가 아직 없어 최종 지지 확인 종목만 표시합니다. 지금은 해당 종목이 없어요.';
+    if (st.status !== 'ok') return '단계 데이터가 오래돼 후보를 표시하지 않았어요. 스캔 오류가 아니라 일봉 갱신 대기일 수 있으니 새 스캔 완료 뒤 다시 확인하세요.';
+    return '정상 0건입니다. 스캔은 완료됐고(' + escapeHtml(String(st.scanned || 0)) + '종목, 일봉 ' + escapeHtml(st.asOf || '') + ') 4단계 모두 조건에 맞는 종목이 없어요.';
+  }
+
+  function wireGpBar(container, list) {
+    list.querySelectorAll('.ps-gp-chip').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        gpStageFilter = btn.getAttribute('data-gp-stage');
+        renderList(container);
+      });
+    });
+  }
+
   function itemStage(item) {
+    if (item && item._gpStage && item._gpStage !== 'SUPPORT_CONFIRMED') return { key: 'gpstage', label: gpStageLabel(item._gpStage), tone: 'is-hold' };
     var track = trackMapFor(scannerKey(activeTab))[item && item.code];
     var scanDay = String((item && item.date) || '').slice(0, 10);
     var isNew = !track || (scanDay && String(track.detected_date) >= scanDay);
@@ -916,6 +1002,9 @@
   };
 
   function stageBadgeHtml(item) {
+    if (activeTab === 'gongpasan' && item && item._gpStage) {
+      return '<b class="ps-stage ps-gp-badge is-' + item._gpStage.toLowerCase() + '">' + escapeHtml(gpStageLabel(item._gpStage)) + '</b> ';
+    }
     var st = itemStage(item);
     var ps = PATTERN_STATE[String(detailFor(item).status || '')];
     return '<b class="ps-stage ' + st.tone + '">' + st.label + '</b> '
@@ -973,15 +1062,19 @@
       return;
     }
     ensureTrackMap(container);
-    var allItems = (scanData.patterns && scanData.patterns[activeTab]) || [];
+    var isGp = activeTab === 'gongpasan';
+    var allItems = isGp ? gpAllItems() : ((scanData.patterns && scanData.patterns[activeTab]) || []);
+    var gpBar = isGp ? gpBarHtml() : '';
     var items = allItems.filter(function (it) {
+      if (isGp && gpStageFilter !== 'all' && it._gpStage !== gpStageFilter) return false;
       return trackView === 'all' || itemStage(it).key === trackView;
     });
     if (!items.length) {
       detailNavItems = [];
-      list.innerHTML = '<div class="ps-hint">' + (allItems.length
+      list.innerHTML = gpBar + '<div class="ps-hint">' + (isGp ? gpEmptyText(allItems.length) : (allItems.length
         ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
-        : '지금 이 패턴에 해당하는 종목이 없어요.') + '</div>';
+        : '지금 이 패턴에 해당하는 종목이 없어요.')) + '</div>';
+      if (isGp) wireGpBar(container, list);
       return;
     }
 
@@ -989,13 +1082,14 @@
     // 실시간 사전포착 목록은 서버가 정한 순서(초기 먼저, 거래량 속도 순)를 그대로 쓴다.
     var serverOrdered = !!(items[0] && items[0].patternDetail && items[0].patternDetail.live);
     var sorted = serverOrdered ? items.slice() : items.slice().sort(function (a, b) {
+      if (isGp && a._gpStage !== b._gpStage) return GP_STAGE_KEYS.indexOf(b._gpStage) - GP_STAGE_KEYS.indexOf(a._gpStage);
       var scoreDiff = (b.score || 0) - (a.score || 0);
       if (scoreDiff) return scoreDiff;
       return String(b.date || '').localeCompare(String(a.date || ''));
     });
     detailNavItems = sorted.slice();
 
-    list.innerHTML = '<div class="ps-list-head" aria-hidden="true">'
+    list.innerHTML = gpBar + '<div class="ps-list-head" aria-hidden="true">'
       + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>개별 관측</span>'
       + '</div>'
       + sorted.map(function (it, index) {
@@ -1030,6 +1124,7 @@
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
       });
     });
+    if (isGp) wireGpBar(container, list);
     patchLivePrices(container);
     renderTrackSummary(container);
     paintStageCounts(container);
@@ -1450,6 +1545,7 @@
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
     if (item.track) html += buildTrackBox(item.track);
+    html += buildGpStageBox(data.detail);
     html += buildScoreBox(data.detail);
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
@@ -1559,6 +1655,28 @@
           + study.label + ' <b>' + (latest == null ? '—' : psChartPriceFormatter(latest)) + '</b></span>';
       }).join('')
       + '</div>';
+  }
+
+  // 급락 후 첫 눌림목 중간 단계(1~3단계) 상세: 통과한 조건 / 아직 못 채운 조건 / 기준가 / 무효 조건. 점수는 최종 신호에만 있다.
+  function buildGpStageBox(detail) {
+    if (!detail || !detail.stage || activeTab !== 'gongpasan') return '';
+    function list(arr) {
+      return (arr && arr.length) ? '<ul>' + arr.map(function (t) { return '<li>' + escapeHtml(t) + '</li>'; }).join('') + '</ul>' : '<span>-</span>';
+    }
+    var gap = Number(detail.ma20GapPct);
+    var cls = String(detail.stage).toLowerCase();
+    return '<div class="ps-gp-box is-' + cls + '">'
+      + '<div class="ps-gp-box-head"><b class="ps-stage ps-gp-badge is-' + cls + '">' + escapeHtml(detail.stageLabel || '') + '</b>'
+      + '<span>단계 시작 ' + escapeHtml(detail.stageSince || '-') + ' · 데이터 기준일 ' + escapeHtml(detail.asOf || '-') + '</span></div>'
+      + '<div class="ps-gp-warn">최종 매수 신호(4단계 지지 확인)가 아닙니다. 관찰용 단계입니다.</div>'
+      + '<dl>'
+      + '<dt>통과한 조건</dt><dd>' + list(detail.met) + '</dd>'
+      + '<dt>아직 못 채운 조건</dt><dd>' + list(detail.unmet) + '</dd>'
+      + (detail.breakoutLevel != null ? '<dt>돌파 기준가</dt><dd>' + fmt(detail.breakoutLevel) + '원 (돌파일 ' + escapeHtml(detail.breakoutDate || '-') + ')</dd>' : '')
+      + (detail.ma20 != null ? '<dt>20일선·현재가</dt><dd>20일선 ' + fmt(detail.ma20) + '원 · 현재가 ' + fmt(detail.close) + '원 (' + (isFinite(gap) ? (gap > 0 ? '+' : '') + gap.toFixed(1) + '%' : '-') + ')</dd>' : '')
+      + (detail.daysSinceBreakout != null && detail.stage !== 'WATCH_ACCUM' ? '<dt>돌파 후 경과</dt><dd>' + detail.daysSinceBreakout + '거래일 (최대 20거래일)</dd>' : '')
+      + '<dt>무효화 조건</dt><dd>' + escapeHtml(detail.invalid || '-') + '</dd>'
+      + '</dl></div>';
   }
 
   // 점수 + 원인(부분점수) + AI 한 줄 해석 - 지시서 원칙("결과에는 점수 + 원인 + AI 한 줄 해석을

@@ -900,3 +900,37 @@ html.dark #pattern-scan .ps-pstate.is-form { background: rgba(56, 189, 248, .2);
   #pattern-scan .ps-info-row { flex-direction: column; gap: 1px; }
   #pattern-scan .ps-info-row b { flex-basis: auto; }
 }
+
+/* 2026-10-15 급락 후 첫 눌림목 4단계: 단계 칩·배지·상세 박스. 추적 탭(신규/성공/실패)과 색 계열을 달리한다. */
+#pattern-scan .ps-gp-bar { margin: 0 0 10px; }
+#pattern-scan .ps-gp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+#pattern-scan .ps-gp-chip { display: inline-flex; flex-direction: column; align-items: flex-start; min-height: 40px; padding: 5px 12px; border: 1px solid #d9e2ee; border-radius: 10px; background: #fff; color: #35506f; font-size: 13px; font-weight: 700; cursor: pointer; }
+#pattern-scan .ps-gp-chip small { font-size: 10px; font-weight: 600; color: #94a3b8; }
+#pattern-scan .ps-gp-chip b { font-weight: 800; }
+#pattern-scan .ps-gp-chip.active { border-color: #35506f; background: #eef3f9; }
+#pattern-scan .ps-gp-note { margin-top: 6px; font-size: 12px; line-height: 1.5; color: #64748b; }
+#pattern-scan .ps-gp-badge.is-watch_accum { background: #f1f5f9; color: #475569; }
+#pattern-scan .ps-gp-badge.is-breakout { background: #e0f2fe; color: #0369a1; }
+#pattern-scan .ps-gp-badge.is-wait_pullback { background: #fff4d6; color: #a15c07; }
+#pattern-scan .ps-gp-badge.is-support_confirmed { background: #fee2e2; color: #b91c1c; }
+#pattern-scan .ps-gp-box { margin: 0 0 12px; padding: 12px 14px; border: 1px solid #d9e2ee; border-radius: 12px; background: #f8fafc; font-size: 13px; line-height: 1.55; }
+#pattern-scan .ps-gp-box-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 6px; }
+#pattern-scan .ps-gp-warn { margin-bottom: 8px; font-weight: 700; color: #a15c07; }
+#pattern-scan .ps-gp-box dl { display: grid; grid-template-columns: 8.5em 1fr; gap: 4px 10px; margin: 0; }
+#pattern-scan .ps-gp-box dt { color: #35506f; font-weight: 700; }
+#pattern-scan .ps-gp-box dd { margin: 0; min-width: 0; word-break: keep-all; }
+#pattern-scan .ps-gp-box ul { margin: 0; padding-left: 16px; }
+html.dark #pattern-scan .ps-gp-chip { background: rgba(255, 255, 255, .04); border-color: rgba(245, 239, 224, .18); color: #F5EFE0; }
+html.dark #pattern-scan .ps-gp-chip.active { background: rgba(245, 239, 224, .12); border-color: #F5EFE0; }
+html.dark #pattern-scan .ps-gp-note { color: #cbd5e1; }
+html.dark #pattern-scan .ps-gp-badge.is-watch_accum { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+html.dark #pattern-scan .ps-gp-badge.is-breakout { background: rgba(56, 189, 248, .2); color: #bae6fd; }
+html.dark #pattern-scan .ps-gp-badge.is-wait_pullback { background: rgba(245, 158, 11, .22); color: #fde68a; }
+html.dark #pattern-scan .ps-gp-badge.is-support_confirmed { background: rgba(239, 68, 68, .22); color: #fecaca; }
+html.dark #pattern-scan .ps-gp-box { background: rgba(255, 255, 255, .04); border-color: rgba(245, 239, 224, .18); }
+html.dark #pattern-scan .ps-gp-box dt { color: #F5EFE0; }
+@media (max-width: 640px) {
+  #pattern-scan .ps-gp-chip { flex: 1 1 calc(50% - 6px); }
+  #pattern-scan .ps-gp-box dl { grid-template-columns: 1fr; gap: 0; }
+  #pattern-scan .ps-gp-box dd { margin-bottom: 6px; }
+}

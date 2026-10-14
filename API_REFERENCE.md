@@ -407,7 +407,7 @@ dict 구성을 함께 대조한다.
 
 `patterns.firstPullbackBreakout`은 일봉 **첫 눌림 재돌파** 목록이다. 기존 `patterns.pullback`의 화면 이름은 **이평선 눌림**이며 키·조건은 유지한다. `firstPullbackBreakoutReady`는 최초 검색 완료 여부(미완료와 후보 없음 구분)다. 새 검색기의 조건·필드·공통 배치/추적 규칙은 [FIRST_PULLBACK_BREAKOUT.md](docs/FIRST_PULLBACK_BREAKOUT.md)를 참고한다.
 
-`/pattern-scan`의 `patterns`는 `risingLows`·`shortTermMaBreakout`·`maCloudBreakout`·`doubleBottom`·`invHeadShoulders`·`boxRangeLow`·`pullback`·`firstPullbackBreakout`·`angleMomentum`·`gongpasan`·`volumeBreakout`(+화면에서 숨긴 `openingGap`) 12개 키를 항상 리스트로 내려준다(2026-10-15에 `shortTermMaBreakout`이 응답에서 빠져 있던 것을 추가). `angleMomentumScannedAt`·`gongpasanScannedAt`은 일봉 배치 뒤 직렬 실행되는 두 스캔의 완료 시각이다.
+`/pattern-scan`의 `patterns`는 `risingLows`·`shortTermMaBreakout`·`maCloudBreakout`·`doubleBottom`·`invHeadShoulders`·`boxRangeLow`·`pullback`·`firstPullbackBreakout`·`angleMomentum`·`gongpasan`·`volumeBreakout`(+화면에서 숨긴 `openingGap`) 12개 키를 항상 리스트로 내려준다(2026-10-15에 `shortTermMaBreakout`이 응답에서 빠져 있던 것을 추가). `gongpasanStages`는 급락 후 첫 눌림목 1~3단계(WATCH_ACCUM·BREAKOUT·WAIT_PULLBACK) 관찰 후보다(`status` ok|stale, `asOf` 일봉 기준일, `counts` 단계별 전체 건수, `stages` 단계별 상위 30건, 항목의 `score`는 null). 최종 신호는 `patterns.gongpasan`(지지 확인)뿐이다. `angleMomentumScannedAt`·`gongpasanScannedAt`은 일봉 배치 뒤 직렬 실행되는 두 스캔의 완료 시각이다.
 
 `/pattern-scan`의 `patterns.volumeBreakout`은 다른 탭과 달리 **장중 09:05 KST 스냅샷**이다
 (`volume_breakout_scan.py`, 평일 전용 systemd 타이머). "전일 거래량을 개장 10분 만에
