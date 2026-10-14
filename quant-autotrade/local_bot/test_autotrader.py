@@ -43,7 +43,7 @@ class BaseCase(unittest.TestCase):
         self.bot = bot_mod.Bot(self.client, self.store, self.config)
         bot_mod.STOP_FLAG = os.path.join(self.dir, 'STOP')
         server_mod.STOP_FLAG = bot_mod.STOP_FLAG
-        self.store.watch_add('005930', '삼성전자')
+        self.store.watch_add('005930', '삼성전자', confirmed=True)
         os.environ.pop('LIVE_SELL', None)
         # Exercise the legacy order path only inside tests; production gate stays shut.
         self._orig_live = bot_mod.live_sell_enabled
@@ -162,7 +162,7 @@ class ExitFlowTests(BaseCase):
     def test_daily_limits(self):
         os.environ['LIVE_SELL'] = 'true'
         self.config['max_sells_per_day'] = 1
-        self.store.watch_add('000660', 'SK하이닉스')
+        self.store.watch_add('000660', 'SK하이닉스', confirmed=True)
         self.client.holdings = [holding('005930', 100000, 96000), holding('000660', 100000, 96000)]
         self.bot.poll_once()
         self.assertEqual(len(self.client.sells), 1)
@@ -196,6 +196,126 @@ class ExitFlowTests(BaseCase):
         names = (' '.join(dir(kiwoom.KiwoomClient)) + ' ' + ' '.join(dir(bot_mod.Bot))).lower()
         for word in ('buy', 'kt10000', 'purchase'):
             self.assertNotIn(word, names)
+
+
+class OpsCenterTests(BaseCase):
+    """2026-10-15 운영센터: 장전 잔고 조회, 기존 보유 구분, 분석 전용, 규칙 확인 게이트, 정책 대조."""
+
+    def test_balance_state_before_first_poll_is_not_yet_not_zero(self):
+        info = self.bot.balance_info()
+        self.assertEqual(info['state'], 'NOT_YET')
+        self.assertIsNone(info['count'])
+
+    def test_premarket_reads_balance_but_never_orders(self):
+        os.environ['LIVE_SELL'] = 'true'
+        self.now = self.now.replace(hour=8, minute=30)
+        self.poll(90000)                                   # 장전: 규칙상 손절 구간이어도
+        self.assertEqual(self.client.sells, [])
+        self.assertEqual(self.store.orders(), [])
+        info = self.bot.balance_info()
+        self.assertEqual(info['state'], 'OK')
+        self.assertEqual(info['count'], 1)
+        self.assertEqual(self.bot.holdings[0]['code'], '005930')
+        self.assertIsNotNone(info['last_ok'])
+
+    def test_balance_failure_is_not_shown_as_zero_holdings(self):
+        self.now = self.now.replace(hour=8, minute=30)
+        self.client.fail_balance = True
+        self.bot.poll_once()
+        info = self.bot.balance_info()
+        self.assertEqual(info['state'], 'FAILED')
+        self.assertIsNone(info['count'])
+        self.assertIn('잔고 조회 실패', info['error'])
+        self.assertEqual(self.client.sells, [])
+
+    def test_failure_after_success_keeps_last_ok_time(self):
+        self.poll(100000)
+        ok_at = self.bot.balance_ok_at
+        self.client.fail_balance = True
+        self.bot.poll_once()
+        info = self.bot.balance_info()
+        self.assertEqual((info['state'], info['last_ok']), ('FAILED', ok_at))
+
+    def test_zero_holdings_is_a_real_empty_balance(self):
+        self.client.holdings = []
+        self.bot.poll_once()
+        info = self.bot.balance_info()
+        self.assertEqual((info['state'], info['count']), ('OK', 0))
+
+    def test_off_hours_balance_is_throttled(self):
+        self.now = self.now.replace(hour=8, minute=30)
+        calls = []
+        orig = self.client.balance
+        self.client.balance = lambda: (calls.append(1), orig())[1]
+        self.bot.poll_once()
+        self.bot.poll_once()
+        self.assertEqual(len(calls), 1)
+
+    def test_unconfirmed_watch_is_not_evaluated_until_confirmed(self):
+        os.environ['LIVE_SELL'] = 'true'
+        self.store.watch_add('000660', 'SK하이닉스')          # 기본: 규칙 미확인
+        self.client.holdings = [holding('000660', 100000, 90000)]   # 이미 -10%
+        self.bot.poll_once()
+        self.assertEqual(self.client.sells, [])
+        self.assertEqual(self.store.orders(), [])
+        self.assertNotIn('DRY_SELL', self.types())
+        self.assertTrue(self.store.watch_confirm('000660'))
+        self.bot.poll_once()
+        self.assertEqual(self.client.sells, [('000660', 10)])    # 확인 뒤에는 기존 규칙대로(테스트 경로)
+
+    def test_analysis_only_code_is_never_evaluated_even_if_watched(self):
+        os.environ['LIVE_SELL'] = 'true'
+        self.assertIn('032640', [a['code'] for a in self.store.analysis_list()])   # 시드
+        self.store.watch_add('032640', 'LG유플러스', confirmed=True)
+        self.client.holdings = [holding('032640', 15000, 10000)]  # -33%
+        self.bot.poll_once()
+        self.assertEqual(self.client.sells, [])
+        self.assertFalse(self.bot.holdings[0]['watched'])
+        self.assertTrue(self.bot.holdings[0]['analysis_only'])
+
+    def test_analysis_add_removes_fixed_rule_watch(self):
+        self.store.analysis_add('005930', '삼성전자')
+        self.assertEqual(self.store.watch_list(), [])
+        self.poll(90000)
+        self.assertEqual(self.client.sells, [])
+
+    def test_classify_manual_engine_mixed_and_flags(self):
+        hold = [dict(holding('032640', 15000, 14700, qty=10, sellable=6), gain=-2.0),
+                dict(holding('000660', 100000, 90000, qty=5), gain=-10.0),
+                dict(holding('005930', 100000, 100000, qty=8), gain=0.0)]
+        positions = {'000660': {'qty': 5, 'state': 'OPEN', 'floor_reached': 0}, '005930': {'qty': 3, 'state': 'OPEN', 'floor_reached': 1}}
+        orders = [{'ts': '2026-10-15 09:01:00', 'code': '000660', 'status': 'ACK'}]
+        rows = {r['code']: r for r in server_mod.classify_holdings(
+            hold, positions, orders, {'000660': {'confirmed': 0}}, {'032640'}, self.config, '2026-10-15')}
+        self.assertEqual((rows['032640']['kind'], rows['032640']['manual_qty'], rows['032640']['locked_qty'], rows['032640']['sell_watch']),
+                         ('manual', 10, 4, 'analysis'))
+        self.assertEqual((rows['000660']['kind'], rows['000660']['sell_watch'], rows['000660']['rule_beyond'], rows['000660']['pending_order']),
+                         ('engine', 'rule_unconfirmed', True, True))
+        self.assertEqual((rows['005930']['kind'], rows['005930']['engine_qty'], rows['005930']['manual_qty']), ('mixed', 3, 5))
+        self.assertFalse(rows['032640']['rule_beyond'])
+
+    def test_live_policy_reads_engine_constants_or_reports_none(self):
+        folder = tempfile.mkdtemp()
+        self.assertIsNone(bot_mod.live_policy(folder))
+        path = os.path.join(folder, 'live_engine.py')
+        body = ('BUDGET=2_000_000\nRESERVE=50_000\nPER_STOCK=500_000\nMAX_STOCKS=2\nCOST_PCT=0.5\n'
+                'def exit_reason(g, r):\n    if g <= -5: return "STOP_NET_5"\n    if g >= 6: return "PROFIT_NET_6"\n'
+                '    if r and g < 3: return "PROFIT_FLOOR_NET_3"\n')
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(body.replace('\\n', '\n'))
+        pol = bot_mod.live_policy(folder)
+        self.assertEqual((pol['budget'], pol['max_stocks'], pol['per_stock']), (2000000, 2, 500000))
+        self.assertEqual(pol['exit']['stop_net_pct'], -5.0)
+        # 손절선이 다르면(-4) 값을 보여 주지 않는다 - 하드코딩된 문구를 현재 설정처럼 쓰지 않기 위해
+        with open(path, 'w', encoding='utf-8') as f:
+            f.write(body.replace('\\n', '\n').replace('g <= -5', 'g <= -4'))
+        os.utime(path, (1, 1))
+        self.assertIsNone(bot_mod.live_policy(folder)['exit'])
+
+    def test_status_exposes_balance_and_never_enables_orders(self):
+        st = self.bot.status()
+        self.assertEqual(st['balance']['state'], 'NOT_YET')
+        self.assertEqual(st['order_gate'], 'LOCAL_BOT_RECORD_ONLY')
 
 
 class ServerTests(BaseCase):
@@ -263,6 +383,27 @@ class ServerTests(BaseCase):
         status, _, body = self._req('/api/unwatch', 'POST', self.token, body={'code': '000660'})
         self.assertNotIn('000660', [w['code'] for w in body['watch']])
         self.assertEqual(self._req('/api/watch', 'POST', body={'code': '000660'})[0], 401)
+
+    def test_analysis_and_watch_confirm_endpoints(self):
+        self.assertEqual(self._req('/api/analysis', 'POST', body={'code': '032640'})[0], 401)
+        st, _, body = self._req('/api/watch', 'POST', self.token, body={'code': '032640', 'name': 'LG유플러스'})
+        self.assertEqual(st, 409)                                  # 분석 전용 종목은 고정 규칙 감시로 올릴 수 없다
+        st, _, body = self._req('/api/watch', 'POST', self.token, body={'code': '000660', 'name': 'SK하이닉스'})
+        self.assertFalse([w for w in self.store.watch_list() if w['code'] == '000660'][0]['confirmed'])   # 새 등록은 규칙 미확인
+        self.assertEqual(self._req('/api/watch-confirm', 'POST', self.token, body={'code': '000660'})[0], 200)
+        self.assertTrue([w for w in self.store.watch_list() if w['code'] == '000660'][0]['confirmed'])
+        self.assertEqual(self._req('/api/watch-confirm', 'POST', self.token, body={'code': '111111'})[0], 404)
+        st, _, body = self._req('/api/analysis', 'POST', self.token, body={'code': '000660', 'name': 'SK하이닉스'})
+        self.assertEqual(st, 200)
+        self.assertNotIn('000660', [w['code'] for w in body['watch']])
+        self.assertEqual(self._req('/api/analysis-remove', 'POST', self.token, body={'code': '000660'})[0], 200)
+
+    def test_holdings_response_has_balance_and_kind(self):
+        self.poll(100000)
+        _, _, body = self._req('/api/holdings', token=self.token)
+        self.assertEqual(body['balance']['state'], 'OK')
+        self.assertEqual(body['holdings'][0]['kind'], 'manual')
+        self.assertEqual(body['holdings'][0]['sell_watch'], 'rule_confirmed')
 
     def test_holdings_orders_events(self):
         self.poll(96000)

@@ -91,7 +91,7 @@ class Env:
         self.store = bot_mod.Store(os.path.join(self.dir, 'autotrader.db'))
         self.client = FakeClient()
         self.bot = bot_mod.Bot(self.client, self.store, dict(bot_mod.DEFAULT_CONFIG))
-        self.store.watch_add('005930', '삼성전자')
+        self.store.watch_add('005930', '삼성전자', confirmed=True)
         self.settings = tg_config.Settings(token=TOKEN, allowed_user_id=user, chat_id=None)
         self.api = FakeAPI()
         self.uptime = 99999
