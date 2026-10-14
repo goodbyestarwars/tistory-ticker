@@ -36,7 +36,13 @@ NAME = '국고채 3년물 금리(%)'
 MARKET_INDEX_CD = 'IRR_GOVT03Y'
 _URL = 'https://finance.naver.com/marketindex/interestDailyQuote.naver?marketindexCd=%s&page=%d'
 
-_POLL_INTERVAL_SEC = 6 * 3600
+_POLL_INTERVAL_SEC = 6 * 3600          # KTB3Y(네이버 58페이지 조회라 무거움)는 예전처럼 6시간마다
+# 2026-10-15: FRED 미국 발표(CPI 등)는 6시간 주기라 발표(미국 동부 08:30 = 한국 21:30/22:30)가 FRED에 반영된 뒤에도
+# 최대 6시간 이전 값에 머물렀다(2026-10-14 9월 CPI). 발표가 몰리는 평일 21:30~다음날 04:00(KST)에는 15분마다,
+# 그 밖에는 2시간마다 받는다. FRED CSV는 가벼운 요청 10건이라 e2-micro 부담이 작다.
+_FRED_POLL_SEC = 2 * 3600
+_FRED_RELEASE_POLL_SEC = 15 * 60
+_KST = timezone(timedelta(hours=9))
 # 2026-07-18: 90일 -> 400일로 확대(사용자 지적 - "3개월 평균은 너무 짧다") - 다른 벤치마크
 # 심볼(foreign_futures.py의 WTI/VIX/USDKRW, FRED 미국 국채)도 전부 400일 안팎을 쓰므로
 # 맞춤. 실측: page=53(약 371일치)까지도 계속 다른 날짜가 나와 400일 확보 가능함을 확인.
@@ -196,22 +202,45 @@ def refresh_fred_all():
                 for r in rows
             ]
             db_schema.upsert_future_chart_rows(conn, symbol, chart_rows)
-            logger.info('FRED refreshed: %s value=%.2f%% (%d rows)', symbol, latest['value'], len(chart_rows))
+            logger.info('FRED refreshed: %s value=%.3f latest_obs=%s (%d rows)', symbol, latest['value'], latest['date'], len(chart_rows))
     finally:
         conn.close()
 
 
-def _poll_loop():
-    while True:
+def _fred_poll_seconds(now=None):
+    """다음 FRED 조회까지 기다릴 초. 평일 저녁 21:30~다음날 04:00(KST) 발표·반영 구간이면 15분, 아니면 2시간."""
+    now = (now or datetime.now(_KST)).astimezone(_KST)
+    minutes = now.hour * 60 + now.minute
+    if minutes >= 21 * 60 + 30:
+        in_window = now.weekday() < 5            # 월~금 저녁
+    elif minutes < 4 * 60:
+        in_window = 1 <= now.weekday() <= 5      # 화~토 새벽(전날 저녁 발표분)
+    else:
+        in_window = False
+    return _FRED_RELEASE_POLL_SEC if in_window else _FRED_POLL_SEC
+
+
+def _poll_step(last_ktb, now_ts=None):
+    """한 번의 조회. KTB3Y는 6시간이 지났을 때만, FRED는 매번. 새 last_ktb(시각)를 돌려준다."""
+    now_ts = time.time() if now_ts is None else now_ts
+    if last_ktb is None or now_ts - last_ktb >= _POLL_INTERVAL_SEC:
         try:
             refresh_ktb3y()
         except Exception:
             logger.exception('KTB3Y refresh failed')
-        try:
-            refresh_fred_all()
-        except Exception:
-            logger.exception('refresh_fred_all failed')
-        time.sleep(_POLL_INTERVAL_SEC)
+        last_ktb = now_ts
+    try:
+        refresh_fred_all()
+    except Exception:
+        logger.exception('refresh_fred_all failed')
+    return last_ktb
+
+
+def _poll_loop():
+    last_ktb = None
+    while True:
+        last_ktb = _poll_step(last_ktb)
+        time.sleep(_fred_poll_seconds())
 
 
 def start_background():

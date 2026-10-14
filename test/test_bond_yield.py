@@ -66,5 +66,67 @@ class FredMacroSymbolTests(unittest.TestCase):
         )
 
 
+class FredPollCadenceTests(unittest.TestCase):
+    """2026-10-15: 9월 CPI(10/14 발표)가 6시간 주기 때문에 늦게 반영된 문제."""
+
+    def kst(self, y, m, d, hh, mm):
+        return bond_yield.datetime(y, m, d, hh, mm, tzinfo=bond_yield._KST)
+
+    def test_release_window_polls_every_15_minutes_otherwise_two_hours(self):
+        # 2026-10-14(수) 저녁 발표 구간, 다음날 새벽까지
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 14, 21, 30)), 15 * 60)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 14, 23, 59)), 15 * 60)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 15, 3, 59)), 15 * 60)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 15, 4, 0)), 2 * 3600)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 15, 12, 0)), 2 * 3600)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 14, 21, 29)), 2 * 3600)
+        # 금요일 저녁 -> 토요일 새벽까지는 창, 토요일·일요일 저녁은 아님
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 16, 22, 0)), 15 * 60)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 17, 2, 0)), 15 * 60)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 17, 22, 0)), 2 * 3600)
+        self.assertEqual(bond_yield._fred_poll_seconds(self.kst(2026, 10, 18, 2, 0)), 2 * 3600)
+
+    def test_stale_worst_case_is_no_longer_six_hours(self):
+        self.assertLessEqual(bond_yield._FRED_POLL_SEC, 2 * 3600)
+        self.assertLess(bond_yield._FRED_POLL_SEC, bond_yield._POLL_INTERVAL_SEC)
+
+    def test_fred_polls_every_step_but_ktb3y_only_every_six_hours(self):
+        with mock.patch.object(bond_yield, 'refresh_ktb3y') as ktb, mock.patch.object(bond_yield, 'refresh_fred_all') as fred:
+            last = bond_yield._poll_step(None, now_ts=1000.0)
+            last = bond_yield._poll_step(last, now_ts=1000.0 + 900)
+            last = bond_yield._poll_step(last, now_ts=1000.0 + 1800)
+            self.assertEqual((ktb.call_count, fred.call_count), (1, 3))
+            bond_yield._poll_step(last, now_ts=1000.0 + bond_yield._POLL_INTERVAL_SEC + 1)
+            self.assertEqual((ktb.call_count, fred.call_count), (2, 4))
+
+    def test_one_failing_source_does_not_stop_the_other(self):
+        with mock.patch.object(bond_yield, 'refresh_ktb3y', side_effect=RuntimeError('x')),                 mock.patch.object(bond_yield, 'refresh_fred_all') as fred:
+            bond_yield._poll_step(None, now_ts=1.0)
+            fred.assert_called_once()
+
+    def test_fred_request_still_sends_no_user_agent(self):
+        """FRED는 데스크톱 UA를 보내면 응답을 안 준다(2026-07-18 실측) - 기존 규칙 유지."""
+        captured = {}
+
+        class Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return b'observation_date,CPIAUCSL' + bytes([10]) + b'2026-09-01,336.298' + bytes([10])
+
+        def fake_urlopen(req, timeout=0):
+            captured['headers'] = dict(req.header_items())
+            return Resp()
+
+        with mock.patch.object(bond_yield.urllib.request, 'urlopen', side_effect=fake_urlopen):
+            rows = bond_yield.fetch_fred_series('CPIAUCSL')
+        self.assertEqual(rows, [{'date': '20260901', 'value': 336.298}])
+        self.assertNotIn('User-agent', captured['headers'])
+
+
 if __name__ == '__main__':
     unittest.main()
