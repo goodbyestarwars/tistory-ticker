@@ -7528,7 +7528,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
    - 면: 종이색 위에 거의 투명한 회색 한 겹(--np-tint)만 얹는다(색이 섞이지 않게). 그림자·큰 둥근 모서리 없음.
    - 한 경계에는 선 하나만 둔다(이웃 행의 위/아래 테두리가 겹쳐 이중선이 되던 곳을 정리).
    - 버튼: 연한 회색 면 + 둥근 사각형(아이콘은 원형), 핵심 동작만 애플 블루, 높이·글꼴 통일. 탭은 세그먼트(선택된 것만 연한 면), 칩은 알약+가는 선, 입력칸은 둥근 모서리.
-   - 글꼴: 제목·헤드라인·뉴스 = 마루부리(--font-title), 나머지(메뉴 포함) = 프리텐다드(--font-ui). 기존 규칙을 그대로 둔다.
+   - 글꼴: 배너·큰 제목·경제 종합뉴스 기사 제목만 마루부리, 나머지(메뉴·소제목·표 포함)는 프리텐다드.
    ========================================================================== */
 :root {
   --np-ink: 17, 17, 17;
@@ -7778,23 +7778,29 @@ html body .site-footer {
   background-position: top left !important;
 }
 
-/* ── 10. 제목 글꼴 : 마루부리 '진짜 굵은 글자'(MaruBuriBold). 일반 글자를 억지로 굵게(가짜 볼드) 만들지 않는다 ──
-      제목·헤드라인·뉴스 제목만 마루부리, 나머지(메뉴 포함)는 기존 프리텐다드. '가' 버튼으로 고딕을 고르면 적용하지 않는다. */
-html:not(.font-gothic) body :where(h1, h2, h3, .post-single-title, .home-section-heading strong, .mt-card-title, .mt-briefing-panel-title,
-  .mt-strategy-panel-title, .mt-sf-visual-head > span:first-child, .mt-history-tail-head > strong, .hen-main strong, .hen-head strong,
-  .app-news-body > strong, .app-news-body > b, .mn-row-title, .hwr-section-heading strong, .hwr-card-title strong, .guest-title, .discussion-heading h1, .dmi-flow-title, .kf-section-title, .dmi-subheading h3, .om-title, .sn-news-featured-title, .sn-news-grid-title,
-  .sn-news-headline-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title, .mt-stocks-only-heading h1, .mt-section-head h2, .mt-section-head > strong) {
+/* ── 10. 글꼴: 배너·큰 제목과 경제 종합뉴스 기사 제목에만 마루부리 ── */
+html:not(.font-gothic) body,
+html:not(.font-gothic) body * {
+  font-family: var(--font-ui) !important;
+}
+html:not(.font-gothic) body :is(h1, h2, .nav-logo-name, .post-single-title, .post-title,
+  .section-title, .home-section-heading strong, .home-card-heading strong, .hrt-head strong,
+  .hen-head strong, .hen-breaking-head strong, .briefing-intro strong) {
   font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-synthesis: none;
   font-weight: 400 !important;
   letter-spacing: -0.01em !important;
 }
-
-/* 로고는 실제 마루부리 Bold 파일을 사용한다. */
-html:not(.font-gothic) body .nav-logo-name {
-  font-family:"MaruBuriBold","MaruBuri","Maru Buri",Georgia,serif!important;
-  font-weight:400!important;
-  font-synthesis:none!important;
-  letter-spacing:-.01em!important;
+/* 큰 제목 안 링크·텍스트도 같은 글꼴을 상속한다. */
+html:not(.font-gothic) body :is(h1, h2, .nav-logo-name, .post-single-title, .post-title,
+  .section-title, .home-section-heading strong, .home-card-heading strong, .hrt-head strong,
+  .hen-head strong, .hen-breaking-head strong, .briefing-intro strong) :where(*) {
+  font-family: inherit !important;
+}
+/* 작은 피드 제목과 데이터 소제목은 UI 글꼴을 사용한다. */
+html:not(.font-gothic) body .feed-headline-item .post-title,
+html:not(.font-gothic) body .feed-headline-item .post-title :where(*) {
+  font-family: var(--font-ui) !important;
 }
 
 /* 종목분석 판정 상자의 굵은 값은 상단 종목명(.ff-header)과 같은 본문 UI 글꼴(--font-ui)로 표시한다.
@@ -7806,12 +7812,14 @@ html body #foreign-flow .ff-swing-summary :is(strong,b) {
   letter-spacing:-.01em!important;
 }
 
-/* 작은 뉴스 제목은 네이버 공식 Regular로 표시하고 합성 굵기를 사용하지 않는다. */
-html:not(.font-gothic) body :is(.hen-main strong, .app-news-body > strong, .app-news-body > b, .mn-row-title, .hwr-news-row strong, .us-stocks-news-body strong, .ss-news-body b, .feed-headline-item .post-title) {
-  font-family:"MaruBuri","Maru Buri",Georgia,serif!important;
-  font-weight:400!important;
-  font-synthesis:none;
-  letter-spacing:0!important;
+/* 경제 종합뉴스의 기사 제목만 Regular를 사용한다. 출처·시간·시세는 UI 글꼴이다. */
+html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
+  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
+  #main-news .mn-row-title) {
+  font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-weight: 400 !important;
+  font-synthesis: none;
+  letter-spacing: 0 !important;
 }
 
 /* 우측 관심종목 서랍 손잡이 : 검은 면 + 흰 글씨, 모서리 0 */

@@ -195,7 +195,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosu
     font-size: clamp(28px, 2.6vw, 32px) !important; line-height: 1.15 !important; letter-spacing: -.02em !important;
   }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dd {
-    font-family: "MaruBuriBold", "MaruBuri", Georgia, serif !important; font-weight: 400 !important;
+    font-family: var(--font-ui) !important; font-weight: 700 !important;
     font-size: clamp(19px, 1.7vw, 22px) !important; line-height: 1.2 !important;
   }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.hmb2-verdict, .hmb2-core) > div { min-height: 0 !important; padding: 0 !important; border: 0 !important; }
