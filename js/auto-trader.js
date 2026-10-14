@@ -237,7 +237,8 @@
     var out = [];
     if (h.kind !== 'manual') out.push(badge('엔진 관리 ' + h.engine_qty + '주', 'is-engine'));
     if (h.sell_watch === 'analysis') {
-      out.push(badge('분석 전용 · 자동 매도 없음', 'is-analysis'));
+      out.push(badge(h.kind === 'manual' ? '분석 전용 · 자동 매도 없음' : '분석 전용(이 화면·로컬 봇 기준)', 'is-analysis'));
+      if (h.kind !== 'manual') out.push('<small class="at-warn-text">PC 엔진 장부에 엔진 보유로 등록돼 있습니다. 엔진이 가동되면 엔진의 고정 규칙(손절·익절)으로 매도 주문이 나갈 수 있으며, 분석 전용 설정은 엔진에 적용되지 않습니다.</small>');
       out.push('<button type="button" class="at-mini" data-act="analysis-remove" data-code="' + code + '">분석 해제</button>');
     } else if (h.sell_watch === 'rule_confirmed') {
       out.push(badge('규칙 확인됨', 'is-ok'));
@@ -302,6 +303,17 @@
     return '<section class="at-box"><div class="at-hd"><h3>분석 전용 보유 종목</h3><span>보유 유지 · 매도 주의 · 매도 검토 · 자동 주문 없음</span></div>'
       + '<p class="at-note at-note-top">고정 손절·익절 규칙을 적용하지 않고 현재가·이동평균·지지/저항·거래량·외국인/기관 수급으로 상태만 보여 줍니다. 매도는 자동으로 실행되지 않으며 직접 확인한 뒤 증권사에서 진행합니다. 데이터가 없거나 오래되면 판단 불가로 표시합니다.</p>'
       + cards + '</section>';
+  }
+
+  // 분석 전용으로 둔 종목이 PC 엔진 장부(live_orders.db)에도 엔진 보유로 있으면, 엔진의 고정 규칙이 별도로 적용될 수 있다(엔진은 이 화면과 무관).
+  function engineConflictHtml(d) {
+    var hit = d.holdings.filter(function (h) { return h.sell_watch === 'analysis' && h.kind !== 'manual'; });
+    if (!hit.length) return '';
+    var armed = d.status.live_active || d.status.live_scheduled;
+    return '<p class="at-banner is-bad"><b>확인 필요:</b> ' + hit.map(function (h) { return esc(h.name || h.code); }).join(', ')
+      + '은(는) 분석 전용이지만 PC 실계좌 엔진 장부에 엔진 보유 ' + hit.map(function (h) { return h.engine_qty + '주'; }).join(', ') + '로 등록돼 있습니다. '
+      + (armed ? '오늘 실주문이 시작 설정되어 있어 엔진이 가동되면 엔진 규칙(손절·익절)으로 매도 주문을 낼 수 있습니다. ' : '엔진이 가동되면 엔진 규칙으로 매도 주문을 낼 수 있습니다. ')
+      + '이 화면은 엔진 설정을 바꾸지 않습니다. 엔진 장부 처리는 직접 결정해야 합니다.</p>';
   }
 
   function policyHtml(s, holdings) {
@@ -375,7 +387,7 @@
     // 구버전 봇은 조회 상태를 모른다: 보유 목록이 있으면 그대로 보여 주고(배너로 경고), 비어 있으면 0개가 아니라 '조회 전'으로 둔다.
     if (!balance) balance = { state: d.holdings.length ? 'OK' : 'NOT_YET', legacy: true, last_ok: d.status.last_poll || null, age_sec: null };
     root.innerHTML = (d.legacy ? '<p class="at-banner is-bad">PC에서 실행 중인 자동매매 프로그램이 이전 버전이라 잔고 조회 상태·분석 전용·정책 정보가 없습니다. 프로그램을 새 버전으로 업데이트하면 표시됩니다(보유 종목 수는 이 상태에서 신뢰하지 마세요).</p>' : '')
-      + topbarHtml(d.status, balance) + kpiHtml(d.status, d.holdings, d.orders, balance)
+      + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance)
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
       + holdingsHtml(d.holdings, balance, d.status) + '</section>'
