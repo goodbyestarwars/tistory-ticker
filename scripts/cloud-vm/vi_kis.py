@@ -25,7 +25,7 @@ TR_ID = 'H0STVIC0'
 FIELDS = ('sop_date', 'code', 'name', 'market_cls', 'cls_code', 'cancel_hour', 'trigger_hour', 'kind_code', 'price',
           'static_price', 'static_dprt', 'dyn_price', 'dyn_dprt', 'count', 'etp')
 # 전체 종목 이벤트를 받는 키가 있는지 실제 승인 응답으로 확인하기 위한 후보(종목별이면 거부되거나 프레임이 오지 않는다). 전체 종목을 무작정 구독하지 않는다.
-PROBE_KEYS = tuple(k for k in os.environ.get('VI_WS_KEYS', '000000,005930').split(',') if k.strip())
+PROBE_KEYS = tuple(k for k in os.environ.get('VI_WS_KEYS', '000000').split(',') if k.strip())
 RAW_KEEP = 40
 
 _lock = threading.Lock()
@@ -114,7 +114,7 @@ async def _run_once(appkey, appsecret):
     hub = kis_ws_hub.start(appkey, appsecret)
     if hub is None:
         raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못함')
-    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_OPTIONS) for key in PROBE_KEYS])
+    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_ORDERBOOK) for key in PROBE_KEYS])
     with _lock:
         _state['subscribedAt'] = datetime.now(KST).isoformat(timespec='seconds')
     try:
