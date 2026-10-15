@@ -126,6 +126,10 @@ erDiagram
 
 (`future_prices`↔`future_chart`류는 FK 제약이 실제로 걸려 있지 않음 — 애플리케이션 레벨에서만 symbol로 연결)
 
+### 장중 투자자 관측: `investor_trend_intraday` (2026-10-16)
+
+기존 `ohlc_snapshot.db` 안에 `(market,date,slot)` 복합 PK, `ind_amt/frgn_amt/orgn_amt/frgn_high/frgn_low`(억원), `updated_at`(KST 관측 시각)을 저장한다. 기존 KIS 투자자 동향 폴러의 정상 당일 값만 09:00~15:30에 기록한다. 30분 구간(slot 0~13)의 최신 누적값을 UPSERT하고 구간 내 외국인 고저는 MAX/MIN으로 보존한다. 새 외부 조회·스레드·타이머 없음. 14일보다 오래된 기록은 정상 기록 시 정리한다(시장 2개 × 하루 최대 14행). 재시작 후 보존, 전일 값·휴장일·장외 값은 기록하지 않는다. API 읽기는 DB만 사용하고 과거 일별 값으로 빈 구간을 채우지 않는다.
+
 ### 2.1 `daily_prices` — 종목 일봉 260일
 
 | 컬럼 | 타입 | 제약 | 설명 |

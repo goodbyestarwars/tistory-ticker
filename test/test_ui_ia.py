@@ -877,8 +877,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         style = self.read("style.css")
         for token in (
             "data-home-investor-trend",
-            "investor-trend?period=day&market=kospi",
-            "investor-trend?period=day&market=kosdaq",
+            "investor-trend?period=intraday&market=kospi",
+            "investor-trend?period=intraday&market=kosdaq",
             "외국인 순매수 추이",
             "function investorSparkline",
         ):

@@ -224,6 +224,10 @@ FastAPI가 `/openapi.json`을 만드는 것과 같은 소스를 보고 정리한
 | 호출 예시 | `curl "https://goodbyestar.cloud/investor-trend?period=day&market=kosdaq"` |
 | 오류 응답 예시 | 내부 계산 실패 시에만 502, 그 외엔 항상 200(알 수 없는 파라미터는 자동 보정) |
 
+### `GET /investor-trend?period=intraday`
+
+2026-10-16 추가. `market=kospi|kosdaq`, 공개·외부 조회 0회. 기존 KIS FHPTJ04040000 폴러의 성공 결과만 저장한다. 응답 `data{period,market,date,intervalMinutes:30,sessionStart:"09:00",sessionEnd:"15:30",slotCount:14,state:ok|no_samples,source,basis,latest,asOf,extrema:{high:{value,slot}|null,low:{value,slot}|null},rows:[{slot,label,ind,frgn,orgn,high,low,asOf}]}`. 금액은 억원, `slot`은 0~13이며 각 30분 구간의 최신 **누적값**이다(구간 매수액 합계가 아님). `asOf`는 KST 수집 시각으로 거래소 체결 시각이 아니다. 고저는 저장된 1분 관측 범위이며 미관측 고저를 보장하지 않는다. 미확보 구간은 누락, 일별 값에서 과거 장중 봉을 복원하지 않는다. 기존 day/week/month 응답은 유지한다.
+
 ### `GET /investor-trend/history`
 
 국내시장지표 '04 국내 증시 자금 흐름'(`js/investor-flow.js`)이 쓰는 투자자별 **일별 이력**. `/investor-trend`와 같은 SQLite 테이블(`investor_trend_daily`)을 읽어 날짜 오름차순으로 돌려준다(요청마다 KIS를 부르지 않는다).

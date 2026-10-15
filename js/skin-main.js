@@ -734,7 +734,9 @@ document.documentElement.classList.add('skin-ready');
         + '<div data-home-night-futures hidden><dt>KOSPI200 야간선물</dt><dd data-market-field="nightFutures">데이터 확인 중</dd>'
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
-        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><span>외국인 순매수</span></div>'
+        + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인 · 30분 누적</span>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="면적 차트로 전환">‹</button>'
+        + '<span data-investor-mode>막대</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="면적 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
@@ -763,7 +765,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-cards4';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261016-investor-intraday';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -1872,6 +1874,7 @@ document.documentElement.classList.add('skin-ready');
     };
 
     function investorAmountText(value) {
+      if (value == null || value === '') return '-';
       var n = Number(value);
       if (!isFinite(n)) return '-';
       if (n === 0) return '0억';
@@ -1881,30 +1884,79 @@ document.documentElement.classList.add('skin-ready');
       return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
     }
 
-    function investorSparkline(values, positive) {
-      var nums = (values || []).map(Number).filter(function (v) { return isFinite(v); });
-      if (nums.length < 2) return '<span class="hmb-investor-spark-empty">-</span>';
-      var min = Math.min.apply(Math, nums);
-      var max = Math.max.apply(Math, nums);
-      var range = max - min;
-      function y(value) { return range ? 36 - (value - min) / range * 32 : 20; }
-      function x(index) { return 2 + index * 96 / (nums.length - 1); }
-      var points = nums.map(function (value, index) {
-        return x(index).toFixed(1) + ',' + y(value).toFixed(1);
-      }).join(' ');
-      var zeroLine = min < 0 && max > 0
-        ? '<line x1="2" y1="' + y(0).toFixed(1) + '" x2="98" y2="' + y(0).toFixed(1) + '" class="hmb-investor-zero"></line>' : '';
-      var color = '#111111';
-      var highIndex = nums.indexOf(max), lowIndex = nums.indexOf(min);
-      return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 40" preserveAspectRatio="none" role="img" aria-label="최근 외국인 순매수 추이, 고점 ' + investorAmountText(max) + ', 저점 ' + investorAmountText(min) + '">'
-        + zeroLine
-        + '<polyline points="' + points + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
-        + '</svg><span class="hmb-investor-point is-high" style="left:' + x(highIndex).toFixed(1) + '%;top:' + (y(max) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>'
-        + (range ? '<span class="hmb-investor-point is-low" style="left:' + x(lowIndex).toFixed(1) + '%;top:' + (y(min) / 40 * 100).toFixed(1) + '%" aria-hidden="true"></span>' : '')
-        + '</div><div class="hmb-investor-extrema"><span>고점 <b>' + investorAmountText(max) + '</b></span><span>저점 <b>' + investorAmountText(min) + '</b></span></div>';
+    var homeInvestorMode = 'bar';
+    var homeInvestorResults = null;
+    var homeInvestorLoading = false;
+
+    function investorTimeText(value) {
+      var date = new Date(value);
+      return value && isFinite(date.getTime()) ? date.toLocaleTimeString('ko-KR', {
+        timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false
+      }) : '-';
+    }
+
+    function investorSparkline(result, mode, marketKey) {
+      // Retain real slot positions: never compress gaps or invent missing bars.
+      var rows = (result.rows || []).filter(function (r) {
+        return Number.isInteger(r.slot) && r.slot >= 0 && r.slot < 14
+          && r.frgn != null && isFinite(Number(r.frgn));
+      }).slice().sort(function (a, b) { return a.slot - b.slot; });
+      if (!rows.length) return '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
+      var high = result.extrema && result.extrema.high;
+      var low = result.extrema && result.extrema.low;
+      if (!high || high.value == null || !isFinite(Number(high.value))) high = rows.reduce(function (a, r) { return r.frgn > a.value ? { slot: r.slot, value: Number(r.frgn) } : a; }, { slot: rows[0].slot, value: Number(rows[0].frgn) });
+      if (!low || low.value == null || !isFinite(Number(low.value))) low = rows.reduce(function (a, r) { return r.frgn < a.value ? { slot: r.slot, value: Number(r.frgn) } : a; }, { slot: rows[0].slot, value: Number(rows[0].frgn) });
+      var nums = rows.map(function (r) { return Number(r.frgn); }).concat([Number(high.value), Number(low.value), 0]);
+      var min = Math.min.apply(Math, nums), max = Math.max.apply(Math, nums);
+      if (min === max) { min -= 1; max += 1; }
+      function y(value) { return 78 - (value - min) / (max - min) * 66; }
+      function x(slot) { return 4 + slot * 92 / 13; }
+      var zero = y(0), marks = '';
+      var prefix = 'home-investor-' + marketKey;
+      if (mode === 'area') {
+        var groups = [];
+        rows.forEach(function (r) {
+          var group = groups[groups.length - 1];
+          if (!group || r.slot !== group[group.length - 1].slot + 1) { group = []; groups.push(group); }
+          group.push(r);
+        });
+        marks = '<defs><clipPath id="' + prefix + '-buy"><rect x="0" y="0" width="100" height="' + zero + '"/></clipPath>'
+          + '<clipPath id="' + prefix + '-sell"><rect x="0" y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
+        groups.forEach(function (group) {
+          var points = group.map(function (r) { return x(r.slot).toFixed(2) + ',' + y(Number(r.frgn)).toFixed(2); }).join(' ');
+          if (group.length > 1) {
+            var area = x(group[0].slot) + ',' + zero + ' ' + points + ' ' + x(group[group.length - 1].slot) + ',' + zero;
+            ['buy', 'sell'].forEach(function (side) {
+              marks += '<g clip-path="url(#' + prefix + '-' + side + ')" class="hmb-investor-' + side + '">'
+                + '<polygon points="' + area + '" class="hmb-investor-area"/>'
+                + '<polyline points="' + points + '" class="hmb-investor-line" vector-effect="non-scaling-stroke"/></g>';
+            });
+          }
+        });
+      }
+      rows.forEach(function (r) {
+        var value = Number(r.frgn), side = value > 0 ? 'buy' : value < 0 ? 'sell' : 'flat';
+        var minute = 540 + r.slot * 30;
+        var label = Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0');
+        var title = '<title>' + label + ' 구간 · 누적 ' + investorAmountText(value) + ' · 수집 ' + investorTimeText(r.asOf) + '</title>';
+        if (mode === 'area') {
+          marks += '<circle cx="' + x(r.slot) + '" cy="' + y(value) + '" r=".8" class="hmb-investor-' + side + '">' + title + '</circle>';
+        } else {
+          marks += '<rect data-investor-slot="' + r.slot + '" x="' + (x(r.slot) - 2.3) + '" y="' + (value === 0 ? zero - .3 : Math.min(zero, y(value))) + '" width="4.6" height="' + Math.max(.6, Math.abs(y(value) - zero)) + '" rx=".4" class="hmb-investor-' + side + '">' + title + '</rect>';
+        }
+      });
+      function point(extreme, name) {
+        return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(extreme.slot).toFixed(2) + '%;top:' + (y(extreme.value) / 90 * 100).toFixed(2) + '%" aria-hidden="true"></span>';
+      }
+      return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 누적 외국인 순매수, 확보 ' + rows.length + '개, 관측 고점 ' + investorAmountText(high.value) + ', 저점 ' + investorAmountText(low.value) + '">'
+        + '<line x1="1" y1="' + zero + '" x2="99" y2="' + zero + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
+        + marks + '</svg>' + point(high, 'high') + (high.value !== low.value ? point(low, 'low') : '') + '</div>'
+        + '<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'
+        + '<div class="hmb-investor-extrema"><span>고점 <b>' + investorAmountText(high.value) + '</b></span><span>저점 <b>' + investorAmountText(low.value) + '</b></span></div>';
     }
 
     function renderHomeInvestorTrend(results) {
+      homeInvestorResults = results;
       var host = dashboardSection.querySelector('[data-home-investor-trend]');
       if (!host) return;
       var body = host.querySelector('.hmb-investor-trend-body');
@@ -1916,28 +1968,45 @@ document.documentElement.classList.add('skin-ready');
       var html = markets.map(function (market, index) {
         var result = results[index] && results[index].data ? results[index].data : (results[index] || {});
         var rows = Array.isArray(result.rows) ? result.rows : [];
-        var values = rows.map(function (row) { return Number(row.frgn); }).filter(function (value) { return isFinite(value); });
-        var latest = values.length ? values[values.length - 1] : null;
+        var latest = result.latest;
         var tone = latest > 0 ? 'home-positive' : latest < 0 ? 'home-negative' : 'home-neutral';
         return '<div class="hmb-investor-row">'
           + '<div class="hmb-investor-row-top"><strong>' + market.label + '</strong><b class="' + tone + '">' + investorAmountText(latest) + '</b></div>'
-          + investorSparkline(values.slice(-10), latest != null && latest >= 0)
+          + investorSparkline(result, homeInvestorMode, market.key)
+          + '<div class="hmb-investor-asof">' + String(result.date || '').replace(/[^0-9-]/g, '') + ' · '
+          + (rows.length ? '관측 ' + investorTimeText(result.asOf) + ' · ' + rows.length + '/14개' : '일별 최근값 · 장중 기록 없음') + '</div>'
           + '</div>';
       }).join('');
       body.innerHTML = html || '<span class="hmb-investor-loading">데이터 확인 중</span>';
     }
 
+    var investorHost = dashboardSection.querySelector('[data-home-investor-trend]');
+    if (investorHost) investorHost.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-investor-switch]')) return;
+      homeInvestorMode = homeInvestorMode === 'bar' ? 'area' : 'bar';
+      var name = investorHost.querySelector('[data-investor-mode]');
+      if (name) name.textContent = homeInvestorMode === 'bar' ? '막대' : '면적';
+      investorHost.querySelectorAll('[data-investor-switch]').forEach(function (button) {
+        button.setAttribute('aria-label', (homeInvestorMode === 'bar' ? '면적' : '막대') + ' 차트로 전환');
+      });
+      if (homeInvestorResults) renderHomeInvestorTrend(homeInvestorResults);
+    });
+
     loadHomeInvestorTrend = function () {
       var host = dashboardSection.querySelector('[data-home-investor-trend]');
-      if (!host || host.hidden) return;
+      if (!host || host.hidden || homeInvestorLoading) return;
+      homeInvestorLoading = true;
       var body = host.querySelector('.hmb-investor-trend-body');
       if (body && !body.querySelector('.hmb-investor-row')) body.innerHTML = '<span class="hmb-investor-loading">데이터 확인 중</span>';
       Promise.all([
-        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=day&market=kospi', 12000),
-        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=day&market=kosdaq', 12000)
+        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=kospi', 12000),
+        fetchHomeJson('https://goodbyestar.cloud/investor-trend?period=intraday&market=kosdaq', 12000)
       ]).then(renderHomeInvestorTrend).catch(function () {
-        if (body) body.innerHTML = '<span class="hmb-investor-loading">데이터 확인 중</span>';
-      });
+        if (body && !homeInvestorResults) body.innerHTML = '<span class="hmb-investor-loading">데이터 확인 중</span>';
+        else if (body) body.querySelectorAll('.hmb-investor-asof').forEach(function (el) {
+          if (el.textContent.indexOf('갱신 지연') < 0) el.textContent += ' · 갱신 지연';
+        });
+      }).then(function () { homeInvestorLoading = false; });
     };
 
     loadSummaryForSession(homeMarketSession());

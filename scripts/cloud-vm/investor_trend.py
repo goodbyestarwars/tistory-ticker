@@ -44,6 +44,7 @@ TR(ka10059)을 전 종목(800여개) 순회 합산해야 하는데 그래도 ETF
   텍스트 자체에 '-'로 포함돼 있음(클래스는 색상용, 파싱엔 안 씀)."""
 
 import logging
+import math
 import re
 import threading
 import time
@@ -341,6 +342,10 @@ def refresh_recent_kis(appkey, appsecret, market_db, kis_iscd, kis_inds_cd):
         db_schema.upsert_investor_trend_rows(conn, market_db, [row])
         logger.info('investor_trend[%s] KIS recent refreshed: %s ind=%.0f frgn=%.0f orgn=%.0f',
                      market_db, row['date'], row['ind'], row['frgn'], row['orgn'])
+        try:
+            record_intraday(conn, market_db, row)
+        except Exception:
+            logger.exception('investor_trend[%s] intraday observation failed', market_db)
     finally:
         conn.close()
 
@@ -451,9 +456,76 @@ PERIOD_BUCKETS = {
 }
 
 
+def record_intraday(conn, market, row, now=None):
+    """Record observed cumulative values, not interval sums or exchange ticks."""
+    import market_clock
+    now = (now or datetime.now(KST)).astimezone(KST)
+    minute = now.hour * 60 + now.minute
+    date = now.strftime('%Y%m%d')
+    if (row.get('date') != date or not market_clock.is_kr_trading_day(now)
+            or not 540 <= minute <= 930):
+        return False
+    values = [row.get(key) for key in ('ind', 'frgn', 'orgn')]
+    if any(v is None or not math.isfinite(float(v)) for v in values):
+        return False
+    ind, frgn, orgn = map(float, values)
+    slot = (minute - 540) // 30
+    conn.execute(
+        'INSERT INTO investor_trend_intraday '
+        '(market,date,slot,ind_amt,frgn_amt,orgn_amt,frgn_high,frgn_low,updated_at) '
+        'VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(market,date,slot) DO UPDATE SET '
+        'ind_amt=excluded.ind_amt,frgn_amt=excluded.frgn_amt,orgn_amt=excluded.orgn_amt,'
+        'frgn_high=MAX(investor_trend_intraday.frgn_high,excluded.frgn_high),'
+        'frgn_low=MIN(investor_trend_intraday.frgn_low,excluded.frgn_low),updated_at=excluded.updated_at',
+        (market, date, slot, ind, frgn, orgn, frgn, frgn, now.isoformat()))
+    cutoff = (now - timedelta(days=14)).strftime('%Y%m%d')
+    conn.execute('DELETE FROM investor_trend_intraday WHERE date < ?', (cutoff,))
+    conn.commit()
+    return True
+
+
+def get_intraday_result(market=DEFAULT_MARKET, now=None):
+    import market_clock
+    now = (now or datetime.now(KST)).astimezone(KST)
+    market = market if market in MARKETS else DEFAULT_MARKET
+    cfg = MARKETS[market]
+    conn = db_schema.get_conn()
+    try:
+        daily = db_schema.load_investor_trend_daily(conn, cfg['db'], limit_days=1)
+        latest_day = conn.execute('SELECT MAX(date) FROM investor_trend_intraday WHERE market=?',
+                                  (cfg['db'],)).fetchone()[0]
+        today = now.strftime('%Y%m%d')
+        active_date = market_clock.is_kr_trading_day(now) and now.hour >= 9
+        date = today if active_date else latest_day or (daily[-1]['date'] if daily else today)
+        records = conn.execute(
+            'SELECT slot,ind_amt,frgn_amt,orgn_amt,frgn_high,frgn_low,updated_at '
+            'FROM investor_trend_intraday WHERE market=? AND date=? ORDER BY slot',
+            (cfg['db'], date)).fetchall()
+    finally:
+        conn.close()
+    def label(slot):
+        minute = 540 + slot * 30
+        return '%02d:%02d' % divmod(minute, 60)
+    rows = [{'slot': r[0], 'label': label(r[0]), 'ind': r[1], 'frgn': r[2], 'orgn': r[3],
+             'high': r[4], 'low': r[5], 'asOf': r[6]} for r in records]
+    fallback = daily[-1] if daily and daily[-1]['date'] == date else None
+    latest = rows[-1]['frgn'] if rows else fallback['frgn'] if fallback else None
+    high = max(rows, key=lambda r: r['high']) if rows else None
+    low = min(rows, key=lambda r: r['low']) if rows else None
+    return {'period': 'intraday', 'market': market, 'date': _iso_date(date),
+            'intervalMinutes': 30, 'sessionStart': '09:00', 'sessionEnd': '15:30', 'slotCount': 14,
+            'source': 'KIS FHPTJ04040000', 'basis': '수집 시각 기준 누적 순매수',
+            'state': 'ok' if rows else 'no_samples', 'rows': rows, 'latest': latest,
+            'asOf': rows[-1]['asOf'] if rows else fallback['updated_at'] if fallback else None,
+            'extrema': {'high': {'value': high['high'], 'slot': high['slot']} if high else None,
+                        'low': {'value': low['low'], 'slot': low['slot']} if low else None}}
+
+
 def get_result(period, market=DEFAULT_MARKET):
     """main.py의 /investor-trend가 호출 - DB에 쌓인 캐시만 읽는다(실시간 호출 없음).
     market: MARKETS의 키('kospi'/'kosdaq', 소문자) - 모르는 값이면 기본 코스피로 처리."""
+    if period == 'intraday':
+        return get_intraday_result(market)
     fn = PERIOD_BUCKETS.get(period)
     if fn is None:
         raise ValueError('unknown period: %s' % period)
