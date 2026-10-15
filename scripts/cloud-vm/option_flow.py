@@ -15,6 +15,7 @@ import db_schema
 import kis_client
 import kis_ws_hub
 import market_clock
+import option_window
 import polling
 
 logger = logging.getLogger('option_flow')
@@ -156,10 +157,53 @@ def _strike_rows(side, rows, updated_at):
     return result
 
 
+def _kospi200_spot(token, appkey, appsecret, board_calls, board_puts):
+    """창 중심이 될 KOSPI200 현물. 업종 현재지수(2001) → 실패하면 전광판 행의 풋콜패리티 추정."""
+    try:
+        row = kis_client.fetch_index_price(token, appkey, appsecret, '2001')
+        value = float(str(row.get('bstp_nmix_prpr') or '').replace(',', ''))
+        if 100 < value < 5000:
+            return value, 'KIS 업종지수 2001'
+    except Exception as exc:  # noqa: BLE001
+        logger.info('KOSPI200 현물 조회 실패, 풋콜패리티로 대체: %s', exc)
+    value = option_window.spot_from_parity(board_calls, board_puts)
+    if value and 100 < value < 5000:
+        return value, '전광판 풋콜패리티 추정'
+    return None, None
+
+
+def _window_rows(token, appkey, appsecret, board_calls, board_puts):
+    """ATM ±N% 행사가를 개별 시세로 모아 (calls, puts, scope)를 돌려준다. 못 만들면 (None, None, 사유 scope)."""
+    call_prefix, put_prefix = option_window.prefix_of(board_calls), option_window.prefix_of(board_puts)
+    spot, spot_src = _kospi200_spot(token, appkey, appsecret, board_calls, board_puts)
+    if not (call_prefix and put_prefix and spot):
+        return None, None, {'mode': 'BOARD_TOP100', 'reason': 'NO_SPOT_OR_PREFIX'}
+    pct = option_window.window_pct()
+    strikes = option_window.window_strikes(spot, pct)
+    calls, puts, stats = option_window.fetch_window(
+        lambda code: kis_client.fetch_option_quote(token, appkey, appsecret, code),
+        call_prefix, put_prefix, strikes)
+    if not option_window.window_ok(stats):
+        logger.warning('옵션 ATM 창 집계 신뢰 불가 %s - 전광판 상위 100행으로 대체', stats)
+        return None, None, {'mode': 'BOARD_TOP100', 'reason': 'WINDOW_INCOMPLETE', 'stats': stats}
+    scope = {'mode': 'ATM_WINDOW', 'spot': round(spot, 2), 'spot_source': spot_src, 'window_pct': pct,
+             'strike_min': strikes[0], 'strike_max': strikes[-1], 'stats': stats}
+    return calls, puts, scope
+
+
 def refresh_option_flow(appkey, appsecret):
     token = kis_client.get_token(appkey, appsecret)
     mtrt = nearest_option_maturity_yyyymm()
     calls, puts = kis_client.fetch_option_board(token, appkey, appsecret, mtrt)
+    # 2026-10-16: 전광판은 행사가 높은 쪽 100행뿐이라 지수가 오르면 ATM이 빠진다 - ATM 창으로 다시 집계한다(option_window.py).
+    try:
+        w_calls, w_puts, scope = _window_rows(token, appkey, appsecret, calls, puts)
+    except Exception:  # noqa: BLE001
+        logger.exception('옵션 ATM 창 수집 실패 - 전광판 상위 100행으로 대체')
+        w_calls, w_puts, scope = None, None, {'mode': 'BOARD_TOP100', 'reason': 'ERROR'}
+    if w_calls is not None:
+        calls, puts = w_calls, w_puts
+    option_window.write_scope(dict(scope, maturity=mtrt))
     call_v, call_oi, call_oic = _aggregate(calls)
     put_v, put_oi, put_oic = _aggregate(puts)
     now_iso = datetime.now(timezone.utc).isoformat()

@@ -258,6 +258,17 @@ def fetch_option_board(token, appkey, appsecret, mtrt_yyyymm):
     return output1, output2
 
 
+def fetch_option_quote(token, appkey, appsecret, code):
+    """옵션 개별 시세(선물옵션 시세, FHMIF10000000)의 output1. 없는 코드는 rt_cd 0이지만 acpr가 0으로 온다(2026-10-16 실측)."""
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-futureoption/v1/quotations/inquire-price',
+        'FHMIF10000000',
+        {'FID_COND_MRKT_DIV_CODE': 'O', 'FID_INPUT_ISCD': code},
+    )
+    return data.get('output1') or {}
+
+
 def fetch_investor_trade_daily(token, appkey, appsecret, code, date1, mrkt_div_code='UN'):
     """종목별 투자자매매동향(일별), TR FHPTJ04160001 - 종목분석 메인 수급 표
     (kiwoom_market.fetch_foreign_inst_daily)의 1차 데이터소스(2026-07-19부터).
