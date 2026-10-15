@@ -4,9 +4,9 @@ KRX 공시(KIND)는 운영 VM(GCP) IP를 403으로 막아서(docs/MARKET_HALT_KI
 구독만 얹는다. 새 세션·새 앱키를 열지 않으므로 시세·자동매매 연결에 영향이 없다(등록 2건 추가).
 
 - 구독: 코스피 대표(005930), 코스닥 대표(247540) 각 1건. 시장 구분은 어느 키로 받았는지로 정한다(프레임 EXCH_CLS_CODE는 거래소 구분이라 시장 구분에 쓰지 않는다).
-- 장운영구분코드(mkop_cls_code) 해석은 사용자가 제공한 KIS 코드표를 쓴다: 서킷브레이커 174·175·182·184·185 / 매도 사이드카 387 발동·388 해제 /
-  매수 사이드카 397 발동·398 해제 / 시장 임시정지 164. **실제 수신으로 확인되기 전까지는 미검증**이며, 서킷브레이커 코드별 단계(1~3)는 확인하지 못해 단계를 추정하지 않는다.
-  코드표에 없는 값은 이벤트로 만들지 않고 최근 수신 기록(raw)에만 남긴다 - 화면 근거와 검증 근거를 분리한다.
+- 장운영구분코드(mkop_cls_code) 해석은 KIS 포털 H0STMKO0 코드표(사용자 전달, 2026-10-15)를 쓴다: 164 시장임시정지 / 174 서킷브레이크 발동 / 175·185 해제 /
+  182 장중동시마감 / 184 서킷브레이크 개시 / 387 매도 사이드카 발동·388 해제 / 397 매수 사이드카 발동·398 해제. 그 밖의 장운영 코드(110 장전동시호가 등)는 정상 운영 단계다.
+  **실제 발동 수신으로는 아직 확인되지 않았다.** 코드표에 단계(1~3)가 없어 단계를 추정하지 않고, 182·184는 의미가 모호해 이벤트로 만들지 않고 수신 기록(raw)에만 남긴다.
 - 모든 프레임은 최근 수신 기록과 코드별 카운트에 남겨 `/api/circuit-breaker.market_halt.kis`로 확인할 수 있다.
 - 이벤트는 당일 JSON 파일에 저장해 재시작해도 이력이 남는다. 재연결 뒤 첫 프레임이 오기 전에는 '수신 중'으로 보지 않는다(구독 등록 확인 기준).
 """
@@ -29,8 +29,8 @@ SOURCE = 'KIS 실시간 장운영정보'
 KEYS = (('KOSPI', '005930'), ('KOSDAQ', '247540'))
 FIELDS = ('mksc_shrn_iscd', 'trht_yn', 'tr_susp_reas_cntt', 'mkop_cls_code', 'antc_mkop_cls_code', 'mrkt_trtm_cls_code',
           'divi_app_cls_code', 'iscd_stat_cls_code', 'vi_cls_code', 'ovtm_vi_cls_code', 'EXCH_CLS_CODE')
-CB_CODES = ('174', '175', '182', '184', '185')
 CODE_ACTIONS = {                       # 코드 -> (kind, direction, status)
+    '174': ('CIRCUIT_BREAKER', None, 'active'), '175': ('CIRCUIT_BREAKER', None, 'released'), '185': ('CIRCUIT_BREAKER', None, 'released'),
     '387': ('SIDECAR', 'SELL', 'active'), '388': ('SIDECAR', 'SELL', 'released'),
     '397': ('SIDECAR', 'BUY', 'active'), '398': ('SIDECAR', 'BUY', 'released'),
 }
@@ -69,8 +69,6 @@ def classify(code):
     code = str(code or '').strip()
     if code in CODE_ACTIONS:
         return CODE_ACTIONS[code]
-    if code in CB_CODES:
-        return ('CIRCUIT_BREAKER', None, 'active')
     if code == HALT_CODE:
         return ('MARKET_HALT', None, 'active')
     return None
