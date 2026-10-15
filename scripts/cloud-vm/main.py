@@ -225,6 +225,8 @@ def _start_futures_collectors():
         else:
             import market_halt_kis
             market_halt_kis.start_background(kis_appkey, kis_appsecret)
+        import vi_kis
+        vi_kis.start_background(kis_appkey, kis_appsecret)
     except Exception:
         logging.getLogger('main').exception('시장조치 수신 시작 실패')
 
