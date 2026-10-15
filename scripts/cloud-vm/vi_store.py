@@ -67,6 +67,15 @@ def codes_without_market():
         return sorted({r['code'] for r in _store['records'].values() if r['code'] not in _store['markets']})[:120]
 
 
+def top_codes(n=2):
+    """오늘 VI가 가장 잦았던 종목코드(발동횟수 기준) - 실시간 필드 검증용 구독 후보."""
+    with _lock:
+        best = {}
+        for r in _store['records'].values():
+            best[r['code']] = max(best.get(r['code'], 0), r.get('count') or 1)
+    return [c for c, _ in sorted(best.items(), key=lambda kv: -kv[1])[:n]]
+
+
 def status_of(rec, now_kst):
     released = rec.get('released_at')
     if released is not None and released <= now_kst:

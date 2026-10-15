@@ -110,20 +110,34 @@ def snapshot():
                 'subscribedAt': _state['subscribedAt'], 'control': control[-10:], 'raw': list(_state['raw'][-8:])}
 
 
+WATCH_STOCKS = int(os.environ.get('VI_WS_WATCH', '2'))     # 오늘 VI가 잦은 종목 N개를 종목별로도 구독(실시간 필드·종목별 구독 검증, 전체 종목 구독 아님)
+
+
+def _wanted_keys():
+    return list(PROBE_KEYS) + [c for c in vi_store.top_codes(WATCH_STOCKS) if c not in PROBE_KEYS]
+
+
 async def _run_once(appkey, appsecret):
     hub = kis_ws_hub.start(appkey, appsecret)
     if hub is None:
         raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못함')
-    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_QUOTES) for key in PROBE_KEYS])
+    keys = _wanted_keys()
+    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_QUOTES) for key in keys])
     with _lock:
         _state['subscribedAt'] = datetime.now(KST).isoformat(timespec='seconds')
+        _state['keys'] = keys
+    checked = time.time()
     try:
         while True:
             try:
-                raw = await asyncio.wait_for(sub.queue.get(), timeout=60)
+                raw = await asyncio.wait_for(sub.queue.get(), timeout=30)
+                handle_raw(raw)
             except asyncio.TimeoutError:
-                continue
-            handle_raw(raw)
+                pass
+            if time.time() - checked > 300:
+                checked = time.time()
+                if _wanted_keys() != keys:
+                    return                       # 관찰 대상이 바뀌면 다시 구독(_reconnect_loop가 곧바로 다시 부른다)
     finally:
         sub.close()
 
@@ -132,6 +146,7 @@ async def _reconnect_loop(appkey, appsecret):
     while True:
         try:
             await _run_once(appkey, appsecret)
+            await asyncio.sleep(1)
         except asyncio.CancelledError:
             raise
         except Exception:
