@@ -82,3 +82,4 @@ quant-autotrade/**/*.parquet
 quant-autotrade/**/*.csv
 quant-autotrade/**/tick*/
 quant-autotrade/**/orderbook*/
+scripts/cloud-vm/market_halt_kis_events.json

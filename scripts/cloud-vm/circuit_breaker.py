@@ -210,7 +210,8 @@ def normalize_halt_event(raw):
         return None
     stage = raw.get('stage')
     if kind == 'CIRCUIT_BREAKER':
-        if stage not in (1, 2, 3):
+        # KIS 장운영정보(장운영구분코드)는 단계를 주지 않으므로 코드가 있으면 단계 미확인(None)을 허용한다 - 단계를 추정하지 않는다.
+        if stage not in (1, 2, 3) and not (stage is None and raw.get('code')):
             return None
     else:
         stage = None
@@ -225,7 +226,8 @@ def normalize_halt_event(raw):
     return {'id': event_id, 'market': market, 'kind': kind, 'stage': stage, 'status': status, 'triggered_at': triggered.isoformat(),
             'released_at': released.isoformat() if released else None, 'resumed_at': resumed.isoformat() if resumed else None,
             'ends_at': ends.isoformat() if ends else None, 'direction': direction, 'time_precision': precision,
-            'change_pct': float(change) if isinstance(change, (int, float)) else None, 'basis': None}
+            'change_pct': float(change) if isinstance(change, (int, float)) else None, 'basis': None,
+            'code': str(raw['code']) if raw.get('code') else None}
 
 
 def declare_halt_source(source, source_url=None, refresh_sec=None):
@@ -305,6 +307,8 @@ def build_market_halt(now_kst=None):
             event = dict(event, status='released', released_at=ends.isoformat(), basis='DURATION_ELAPSED')
         shown.append(event)
     delay = '공시 기준 · %s초마다 확인 · 실시간 체결 데이터가 아니라 공시 게시 후 반영됩니다' % refresh_sec if refresh_sec else '공시 기준 · 실시간 데이터가 아닙니다'
+    if source and source.startswith('KIS'):
+        delay = 'KIS 실시간 장운영정보 구독 · 발동·해제 코드 수신 즉시 반영'
     return dict(base, available=True, reason=None, note=None, events=shown, delay_note=delay,
                 active_count=sum(1 for e in shown if e['status'] == 'active'))
 
@@ -318,6 +322,11 @@ def get_payload(now_kst=None):
     payload = build_payload(rows, now_kst, fetched, error)
     halt = build_market_halt(now_kst)
     payload['market_halt'] = halt
+    try:
+        import market_halt_kis
+        halt['kis'] = market_halt_kis.snapshot()
+    except Exception:
+        halt['kis'] = None
     # 헤더 배지(사이드카)도 같은 수신 경로로만 채운다 - 수신이 없으면 기존처럼 available=False로 숨긴다.
     if halt['available']:
         active = [e for e in halt['events'] if e['kind'] == 'SIDECAR' and e['status'] == 'active']
