@@ -271,6 +271,7 @@ def _loop():
 
 def start_background():
     global _thread
+    circuit_breaker.declare_halt_source(SOURCE_LABEL, SOURCE_URL, POLL_SEC)
     with _lock:
         if _thread is not None and _thread.is_alive():
             return _thread

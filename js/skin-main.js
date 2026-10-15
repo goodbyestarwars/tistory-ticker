@@ -2757,7 +2757,8 @@ document.documentElement.classList.add('skin-ready');
         // 수신 경로가 없거나 끊김: 정상으로 보이게 두지 않고 '확인 불가'를 낮은 강조로 표시한다(경고색 배너가 아님).
         el.className = 'home-halt is-unknown';
         el.innerHTML = '<span>사이드카·서킷브레이커 자동 확인 불가</span><small>'
-          + esc(halt.reason === 'STALE' ? '수신 지연 중 · 정상이라는 뜻이 아님 · 한국거래소 공지 확인' : '수신 경로 미연결 · 정상 여부를 알 수 없음 · 한국거래소 공지 확인') + '</small>';
+          + esc(halt.reason === 'FETCH_FAILED' ? '수신 실패(한국거래소 접속 오류) · 정상이라는 뜻이 아님 · 한국거래소 공지 확인'
+            : halt.reason === 'STALE' ? '수신 지연 중 · 정상이라는 뜻이 아님 · 한국거래소 공지 확인' : '수신 경로 미연결 · 정상 여부를 알 수 없음 · 한국거래소 공지 확인') + '</small>';
         el.hidden = false;
         return;
       }

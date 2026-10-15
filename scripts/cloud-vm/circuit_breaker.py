@@ -228,6 +228,12 @@ def normalize_halt_event(raw):
             'change_pct': float(change) if isinstance(change, (int, float)) else None, 'basis': None}
 
 
+def declare_halt_source(source, source_url=None, refresh_sec=None):
+    """수신 경로를 선언한다(아직 한 번도 못 받았어도 출처·주기를 payload에 싣고, 실패하면 '수신 실패'로 구분해 보여 주기 위함)."""
+    with _lock:
+        _halt.update({'source': str(source or '')[:60] or None, 'source_url': source_url, 'refresh_sec': refresh_sec})
+
+
 def set_halt_error(message):
     """수신 실패를 기록한다. 직전 이벤트는 지우지 않지만 수신 시각은 갱신하지 않으므로 오래되면 확인 불가로 내려간다."""
     with _lock:
@@ -285,8 +291,10 @@ def build_market_halt(now_kst=None):
     else:
         ok = received_today and received_dt.hour * 60 + received_dt.minute >= 15 * 60 + 45
     if not ok:
-        base['reason'] = 'STALE'
-        base['note'] = '사이드카·서킷브레이커 수신이 지연되고 있어 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.'
+        failed = bool(last_error) and not (received_dt is not None and (now_kst - received_dt).total_seconds() <= HALT_STALE_SEC)
+        base['reason'] = 'FETCH_FAILED' if failed else 'STALE'
+        base['note'] = ('사이드카·서킷브레이커 수신에 실패해 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.' if failed else
+                        '사이드카·서킷브레이커 수신이 지연되고 있어 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.')
         return base
     shown = []
     for event in events:
