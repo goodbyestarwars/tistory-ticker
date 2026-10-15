@@ -179,17 +179,33 @@ def fetch_fred_series(series_id, days=_FRED_HISTORY_DAYS):
     return rows
 
 
-def refresh_fred_all():
+MACRO_SYMBOLS = tuple(symbol for symbol in FRED_SYMBOLS if symbol.startswith('US_'))
+_fred_refresh_lock = threading.Lock()
+
+
+def refresh_fred_all(symbols=None):
+    """Refresh selected FRED series; return successful and failed source counts."""
+    with _fred_refresh_lock:
+        return _refresh_fred_locked(symbols)
+
+
+def _refresh_fred_locked(symbols):
+    selected = symbols if symbols is not None else FRED_SYMBOLS
+    success = 0
+    failed = 0
     conn = db_schema.get_conn()
     try:
         now_iso = datetime.now(timezone.utc).isoformat()
-        for symbol, meta in FRED_SYMBOLS.items():
+        for symbol in selected:
+            meta = FRED_SYMBOLS[symbol]
             try:
                 rows = fetch_fred_series(meta['series'])
             except Exception:
                 logger.exception('FRED fetch failed: %s', symbol)
+                failed += 1
                 continue
             if not rows:
+                failed += 1
                 continue
             latest = rows[-1]
             prev = rows[-2] if len(rows) > 1 else None
@@ -203,9 +219,11 @@ def refresh_fred_all():
                 for r in rows
             ]
             db_schema.upsert_future_chart_rows(conn, symbol, chart_rows)
+            success += 1
             logger.info('FRED refreshed: %s value=%.3f latest_obs=%s (%d rows)', symbol, latest['value'], latest['date'], len(chart_rows))
     finally:
         conn.close()
+    return {'success': success, 'failed': failed}
 
 
 def _fred_poll_seconds(now=None):

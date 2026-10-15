@@ -254,6 +254,8 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 
 ### `GET /futures`
 
+미국 경제 발표 탭의 수동 갱신은 `PUT /futures/refresh-macro`로 FRED 거시지표 11종 수집을 요청한다. 응답 `data`에는 `running`, `started_at`(Unix 초), `checked_at`(UTC ISO), `success`·`failed`(확인한 계열 수), `error`가 있다. 진행 상태는 `GET /futures/refresh-macro`로 읽는다. 동시 요청은 한 작업으로 합치고 시작 간격은 서버 전체에서 최소 5분이다. 공개 라우트이며 기존 CORS와 IP별 요청 제한을 적용한다. 수집이 끝나면 `/futures`의 30초 메모리 캐시를 비운다. 발표가 없으면 기존 관측값이 유지된다.
+
 | 항목 | 내용 |
 |---|---|
 | 인증 필요 여부 | **불필요** (공개, CORS 제한) |

@@ -36,6 +36,28 @@
   var resultsCache = null;
   var resultsCachedAt = 0;
   var resultsInflight = null;
+  var manualRefreshInflight = false;
+
+  function requestSourceRefresh_() {
+    return fetch(API + '/refresh-macro', { method: 'PUT' })
+      .then(function (response) { if (!response.ok) throw new Error('refresh request'); return response.json(); })
+      .then(function (payload) {
+        if (!payload.success || !payload.data) throw new Error('refresh response');
+        if (!payload.data.running) return payload.data;
+        var attempts = 0;
+        function check() {
+          if (++attempts > 90) throw new Error('refresh timeout');
+          return new Promise(function (resolve) { setTimeout(resolve, 2000); })
+            .then(function () { return fetch(API + '/refresh-macro'); })
+            .then(function (response) { if (!response.ok) throw new Error('refresh status'); return response.json(); })
+            .then(function (status) {
+              if (!status.success || !status.data) throw new Error('refresh status');
+              return status.data.running ? check() : status.data;
+            });
+        }
+        return check();
+      });
+  }
 
   // 캘린더와 발표 탭이 같은 캐시를 공유한다. 달력 날짜 변경은 추가 요청을 만들지 않는다.
   function fetchResults_(force) {
@@ -406,6 +428,7 @@
     return '<section class="umi" aria-label="미국 경제 발표">'
       + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 최근 평균·5년 흐름과 함께 금리·기업 실적을 거쳐 주식에 미치는 영향을 표시합니다.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
+      + '<p class="umi-refresh-status" data-umi-refresh-status aria-live="polite"></p>'
       + '<p class="umi-interpret-note">주식은 예상과의 차이에 반응해. 예상보다 물가가 높고 미국채 금리도 오르면 성장주 부담. 물가가 식고 고용이 버티면 주식에 도움. 금리가 내려도 침체 때문에 내리면 기업 실적이 더 중요해. 아래는 일반적인 영향이며, 현재 발표의 예상치 비교나 매수·매도 신호는 아니야.</p>'
       + '<div class="umi-fomc"><b>다음 FOMC 회의 ' + escapeHtml(dateLabel_(next)) + '</b> <span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></div>'
       + '<div data-umi-board class="umi-board"></div></section>';
@@ -434,7 +457,7 @@
         renderBoard_(bySymbol);
       })
       .catch(function () { if (board) board.setEmpty('발표값을 불러오지 못했습니다. 잠시 후 다시 갱신해 주세요.'); })
-      .finally(function () { if (button) { button.disabled = false; button.textContent = '갱신'; } });
+      .finally(function () { if (button && !manualRefreshInflight) { button.disabled = false; button.textContent = '갱신'; } });
   }
 
   function init() {
@@ -443,8 +466,24 @@
     root.innerHTML = shell_();
     var button = root.querySelector('[data-umi-refresh]');
     if (button) button.addEventListener('click', function () {
-      // 갱신 버튼은 30분 캐시를 건너뛰고 다시 받는다. 연타로 VM에 요청이 몰리지 않게 15초 안에는 캐시를 쓴다.
-      refresh_(root, Date.now() - resultsCachedAt > 15000);
+      if (manualRefreshInflight) return;
+      manualRefreshInflight = true;
+      var status = root.querySelector('[data-umi-refresh-status]');
+      button.disabled = true;
+      button.textContent = '자료 확인 중';
+      if (status) status.textContent = 'FRED 발표 자료를 확인하고 있습니다.';
+      requestSourceRefresh_().then(function (result) {
+        if (result.error) throw new Error('source refresh failed');
+        if (status) status.textContent = '자료 확인 완료 · ' + new Date(result.checked_at).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false }) + ' (한국시간)' + (result.failed ? ' · 일부 자료 확인 실패' : '') + '. 새 발표가 없으면 기존 수치가 유지됩니다.';
+        resultsCachedAt = 0;
+        return refresh_(root, true);
+      }).catch(function () {
+        if (status) status.textContent = '원본 자료 확인에 실패했습니다. 잠시 후 다시 눌러 주세요.';
+      }).finally(function () {
+        manualRefreshInflight = false;
+        button.disabled = false;
+        button.textContent = '갱신';
+      });
     });
     refresh_(root);
     if (timer) clearInterval(timer);

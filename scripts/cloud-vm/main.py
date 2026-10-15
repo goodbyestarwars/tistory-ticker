@@ -404,6 +404,45 @@ _order_book_cache = OrderedDict()  # code -> {'t':.., 'data':..}
 # 갱신되는 소스를 읽으므로 TTL을 늘려도 어긋나지 않는다.
 _FUTURES_TTL = 30
 _futures_cache = OrderedDict()  # (interval, days, symbols) -> {'t':.., 'raw':.., 'gzip':.., 'data':..}
+_macro_refresh_lock = threading.Lock()
+_macro_refresh_state = {'running': False, 'started_at': 0.0, 'checked_at': None,
+                        'success': 0, 'failed': 0, 'error': False}
+_MACRO_REFRESH_COOLDOWN = 300
+
+
+def _run_macro_refresh():
+    try:
+        result = bond_yield.refresh_fred_all(bond_yield.MACRO_SYMBOLS)
+        with _macro_refresh_lock:
+            _macro_refresh_state.update(checked_at=datetime.now(timezone.utc).isoformat(),
+                                        success=result['success'], failed=result['failed'],
+                                        error=result['success'] == 0)
+            _futures_cache.clear()
+    except Exception:
+        logging.getLogger('main').exception('manual macro refresh failed')
+        with _macro_refresh_lock:
+            _macro_refresh_state.update(checked_at=datetime.now(timezone.utc).isoformat(), error=True)
+    finally:
+        with _macro_refresh_lock:
+            _macro_refresh_state['running'] = False
+
+
+@app.put('/futures/refresh-macro')
+def request_macro_refresh(request: Request):
+    """Queue a bounded FRED check; visitors share one refresh per five minutes."""
+    _check_rate_limit('macro_refresh', request, max_per_window=10)
+    with _macro_refresh_lock:
+        if not _macro_refresh_state['running'] and time.time() - _macro_refresh_state['started_at'] >= _MACRO_REFRESH_COOLDOWN:
+            _macro_refresh_state.update(running=True, started_at=time.time(), error=False)
+            threading.Thread(target=_run_macro_refresh, name='manual-macro-refresh', daemon=True).start()
+        return {'success': True, 'data': dict(_macro_refresh_state)}
+
+
+@app.get('/futures/refresh-macro')
+def macro_refresh_status(request: Request):
+    _check_rate_limit('macro_refresh_status', request, max_per_window=60)
+    with _macro_refresh_lock:
+        return {'success': True, 'data': dict(_macro_refresh_state)}
 _MARKET_INDICATOR_SYMBOLS = {
     'KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX',
     'USDKRW', 'VIX', 'US10Y', 'US2Y', 'US30Y', 'KTB3Y', 'WTI', 'GOLD', 'BRENT',

@@ -133,6 +133,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | Endpoint | 인증 | 캐시/갱신 | 비고 |
 |---|---|---|---|
 | `/futures?interval=day&days=90` | 없음 | SQLite 폴러 읽기 | 국내·미국 지수, 환율, 채권, 원자재, BTC/ETH. WTI·금은 Naver, 브렌트유는 KIS ICE. 원자재 행의 `source`,`source_delay`,`contract_code`,`stale` 참고 (`COMMODITY_SOURCES.md`) |
+| `PUT /futures/refresh-macro`, `GET /futures/refresh-macro` | 없음 | FRED 수동 수집 요청·상태 조회 | 미국 경제 발표 11종만 백그라운드 확인. 동시 요청 합침, 서버 전체 5분 재요청 제한, 완료 후 `/futures` 캐시 무효화. 원본 장애 시 `error`·`failed` 확인 |
 | `/futures/avg?symbol=BTC&days=365` | 없음 | 즉시 계산 | 지정 심볼 장기 평균·고저 |
 | `/option-flow` | 없음 | 5분 폴러 | 콜·풋 옵션 수급 |
 | `/kofia-market?days=30` | 없음 | VM 캐시 | 신용융자·예탁금·반대매매 보조지표 |
