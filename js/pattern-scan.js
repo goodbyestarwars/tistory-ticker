@@ -84,7 +84,7 @@
     { key: 'maCloudBreakout', label: '장기이평 응축·돌파', desc: '224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목을 찾습니다. 종가가 224일선 주변에서 지지받으면서 구름 상단 돌파를 준비하거나, 최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파한 종목도 포함합니다. 이미 구름대와 장기이평선에서 크게 벗어나 상승이 진행된 종목은 제외합니다.' },
     { key: 'doubleBottom', label: '쌍바닥 패턴', desc: '최근 120봉에서 10~45봉 간격으로 형성된 두 스윙 저점의 가격 차이가 3% 이내인 쌍바닥 후보를 찾습니다. 두 바닥 사이에는 더 낮은 저점이 없어야 하며, 첫 바닥 이후 넥라인까지 최소 8% 이상의 반등이 있어야 합니다. 두 번째 바닥에서 매도 거래량이 감소하고 저점이 유지된 뒤, 넥라인 방향으로 회복하거나 재돌파를 준비하는 종목을 선별합니다.' },
     { key: 'invHeadShoulders', label: '역헤드앤숄더 패턴', desc: '최근 90봉에서 왼쪽 어깨-머리-오른쪽 어깨가 형성된 역헤드앤숄더 후보를 찾습니다. 머리는 양 어깨보다 최소 2% 낮고, 양 어깨 가격 차이는 4% 이내여야 합니다. 오른쪽 어깨 이후 머리 저점이 훼손되지 않은 상태에서 넥라인에 접근하거나 최근 종가 기준으로 새롭게 돌파한 종목을 선별하며, 넥라인 접근·돌파 시 거래량 증가를 높게 평가합니다.' },
-    { key: 'boxRangeLow', label: '박스권 하단 반등', desc: '최근 20봉 동안 가격 변동폭이 10% 이내로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
+    { key: 'boxRangeLow', label: '박스권 하단 반등', desc: '최근 20봉 종가 박스폭((상단-하단)/하단)이 5% 이상 10% 이하로 제한되고 5일선과 20일선이 서로 가까워지는 횡보 구간에서, 현재 가격이 박스 하단 35% 영역에 위치한 종목을 찾습니다. RSI와 거래량이 과열·침체되지 않고, 장기 하락이 아닌 상태에서 박스 하단 지지 또는 반등이 확인되는 종목을 우선 선별합니다.' },
     { key: 'pullback', label: '이동평균 눌림목', desc: '최근 강한 상승이 발생한 뒤 고점 대비 5~15% 조정받은 종목 중, 현재 가격이 20일선 또는 240일 장기이평선 부근에서 거래량 감소와 함께 지지받는 눌림 구간을 찾습니다. 선행 상승에는 거래량이 동반되고 조정 과정에서는 거래량이 줄어드는 건강한 눌림을 우선하며, 이평 부근에서 반등이 확인된 종목을 높게 평가합니다.' },
     { key: 'firstPullbackBreakout', label: '첫 눌림목 재돌파', desc: '일봉 기준. 상승 중인 20일선이 60일선 위에 있고, 거래량 1.5배 이상으로 20일 고가를 돌파한 뒤 첫 2~8봉 조정에서 거래량이 상승 구간의 80% 이하로 줄어든 종목을 찾습니다. 고점 대비 2~12% 조정 후 최근 3봉 고가를 양봉 종가로 재돌파하고, 거래량이 돌파 전 20봉 평균의 1.2배·조정 평균의 1.5배 이상이어야 합니다. 재돌파 가격보다 3% 넘게 오른 종목과 이미 재돌파한 뒤의 반복 신호는 제외합니다. 장 마감 배치 결과이며 눌림 저점 이탈 여부를 함께 확인하세요.' },
     // 2026-08-22: "시초 갭상승" 탭 삭제 요청 - 백엔드 detect_opening_gap/GAS는 그대로 두고
@@ -143,7 +143,7 @@
     },
     boxRangeLow: {
       purpose: '좁은 박스권 안에서 하단 지지를 받으며 반등을 시도하는 종목을 찾습니다.',
-      state: '하단 접근(APPROACH) 또는 하단 반등(REBOUND, 지지 시험 뒤 양봉 또는 전일 대비 상승).',
+      state: '하단 접근(APPROACH, 반등 미확인) 또는 하단 반등(REBOUND, 지지 시험 뒤 양봉 또는 전일 대비 상승). 예상 손익비는 목표=박스 상단, 손절=지지 2회 이상 확인 시 지지 저가 아래 1%이며, 신뢰할 손절 기준이 없으면 보류입니다(수익을 보장하지 않습니다).',
       entry: '하단 지지 뒤 반등이 이어지는지, 박스 상단까지 여유가 있는지 확인한 뒤 판단합니다.' + ENTRY_NOTE,
       invalid: '박스 하단을 종가로 이탈하면 박스 전제가 깨집니다. 추적 기준: ' + TRACK_RULE,
       basis: BASIS_DAILY
@@ -761,7 +761,13 @@
       var criteria = detail.criteria || {};
       var position = Number(criteria.lowerPositionPct);
       var boxLabel = detail.status === 'REBOUND' ? '🟢 하단 반등' : '🟡 하단 접근';
-      return isFinite(position) ? boxLabel + ' · 박스 하단 ' + position.toFixed(0) + '%' + (criteria.rsi14 != null ? ' · RSI ' + Number(criteria.rsi14).toFixed(0) : '') : boxLabel;
+      var boxParts = [];
+      if (criteria.boxWidthPct != null) boxParts.push('박스폭 ' + Number(criteria.boxWidthPct).toFixed(1) + '%');
+      if (criteria.boxTop != null && criteria.boxBottom != null) boxParts.push('상단 ' + fmt(criteria.boxTop) + '·하단 ' + fmt(criteria.boxBottom));
+      if (criteria.riskRewardStatus === 'PENDING') boxParts.push('손익비 판정 보류');
+      else if (criteria.riskReward != null) boxParts.push('예상 손익비 ' + Number(criteria.riskReward).toFixed(1) + ':1');
+      var boxTail = boxParts.length ? ' · ' + boxParts.join(' · ') : '';
+      return isFinite(position) ? boxLabel + ' · 박스 하단 ' + position.toFixed(0) + '%' + (criteria.rsi14 != null ? ' · RSI ' + Number(criteria.rsi14).toFixed(0) : '') + boxTail : boxLabel + boxTail;
     }
     if (patternKey === 'openingGap') {
       var gap = Number(detail.gapRatePct);

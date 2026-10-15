@@ -69,7 +69,7 @@ def ma_cloud_breakout_daily(tail=None, volume=120_000, last_volume=None):
 def box_range_daily():
     daily = []
     start = date(2025, 1, 1)
-    values = [100, 102, 98, 101, 99] * 8
+    values = [100, 104, 98, 102, 99] * 8      # 2026-10-15: 박스폭 5% 이상 필요 - 종가 98~104(6.1%)
     for i, close in enumerate(values):
         open_price = 100 if i < 35 else 101
         daily.append({
@@ -553,7 +553,7 @@ class BoxRangeLowRedesignTest(unittest.TestCase):
         detail = self.detect(box_range_daily())
         self.assertIn(detail["status"], ("APPROACH", "REBOUND"))
         self.assertEqual(detail["support"], 98000.0)      # 박스 하단 = 최근 20봉 최저 종가
-        self.assertEqual(detail["resistance"], 102000.0)
+        self.assertEqual(detail["resistance"], 104000.0)
 
     def test_rebound_when_low_tests_box_bottom_and_close_recovers(self):
         daily = box_range_daily()

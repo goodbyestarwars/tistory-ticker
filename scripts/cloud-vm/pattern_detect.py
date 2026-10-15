@@ -140,6 +140,16 @@ IHS_VOLUME_BONUS_2 = 1.50
 IHS_MAX_DURATION_RATIO = 2.0      # 좌/우 형성 기간 비율이 이 이하면 시간 대칭 정상
 
 BOX_CLOSE_RANGE_MAX = 0.10
+BOX_CLOSE_RANGE_MIN = 0.05        # 2026-10-15: 3%대 좁은 박스는 되돌림 폭이 작아 손익비가 안 나온다 - 박스폭 5% 미만 제외
+BOX_RANGE_EPS = 1e-9              # 5.0%·10.0% 경계가 부동소수 오차로 갈리지 않게
+BOX_STAIR_SEGMENTS = 4            # 20봉을 5봉씩 4구간으로 나눠 저점·고점이 연속으로 낮아지는지 본다
+BOX_STAIR_STEP = 0.005            # 구간 저점·고점이 앞 구간보다 0.5% 넘게 낮아져야 '낮아졌다'로 센다
+BOX_BREACH_TOL = 0.015            # 저가가 박스 하단(최저 종가)보다 1.5% 넘게 아래면 이탈
+BOX_BREACH_MAX = 3                # 이탈 봉이 이만큼이면 반복 이탈로 제외
+BOX_TOUCH_TOL = 0.02              # 저가가 박스 하단 +2% 이내면 하단 테스트
+BOX_TOUCH_GAP = 3                 # 서로 다른 지지 확인으로 세려면 이만큼 떨어져 있어야 한다
+BOX_STOP_BUFFER = 0.01            # 손절 기준 = 지지 확인 봉 최저 저가의 1% 아래(무효화 가격)
+BOX_RR_TARGET = 2.0
 BOX_MA_NEAR_TOL = 0.03
 BOX_MA_NEAR_COUNT = 3
 BOX_RSI_PERIOD = 14
@@ -149,7 +159,7 @@ BOX_VOLUME_AVG_PERIOD = 5
 BOX_VOLUME_REFERENCE_OFFSET = 20
 BOX_VOLUME_RATIO_MIN = 0.50       # 2026-10-04: 최근 5봉 평균 거래량 / 최근 20봉 평균 거래량 하한(죽은 거래량 제외)
 BOX_VOLUME_RATIO_MAX = 1.20       #   상한(박스 하단에서 거래량이 폭증한 구간 제외)
-BOX_MAX_MA20_DECLINE_10D = 0.03   # 20일선이 10거래일 동안 이만큼 이상 내려가면 계단식 하락으로 보고 제외
+BOX_MAX_MA20_DECLINE_10D = 0.01   # 20일선이 10거래일 동안 이만큼 이상 내려가면 계단식 하락으로 보고 제외(2026-10-15: 3% → 1%)
 BOX_SUPPORT_TEST_TOL = 0.02       # 하단 반등: 최근 3봉 저가가 박스 하단(최저 종가) +2% 이내를 테스트
 BOX_PANIC_VOLUME_MULT = 2.0       # 음봉 + 20일 평균 2배 이상 거래량 = 하단 투매봉으로 제외
 BOX_MARKET_CAP_MIN_EOK = 3000.0
@@ -803,9 +813,9 @@ def _quality_gate_matches(matches, pattern_key):
                 return score_at_least(item, 80)
             if criteria:
                 lower_position = criteria.get('lowerPositionPct')
-                close_range = criteria.get('closeRangePct')
-                if lower_position is not None and close_range is not None:
-                    return lower_position <= 25 and close_range <= 8
+                if lower_position is not None:
+                    # 2026-10-15: 박스폭 8% 이하 조건을 없앴다(8~10%도 정상 후보). 대신 지지 반복 확인 또는 손익비 2:1 이상.
+                    return lower_position <= 25 and ((criteria.get('supportTouches') or 0) >= 2 or criteria.get('riskRewardStatus') == 'OK')
             return score_at_least(item, 90 if stage == 2 else 95)
         if pattern_key == 'openingGap':
             if stage == 1:
@@ -1595,6 +1605,38 @@ def _ma_above_count(fast_vals, slow_vals):
     return int(np.sum(valid & (fast >= slow)))
 
 
+def _box_staircase_down(lows, highs):
+    """20봉을 5봉씩 4구간으로 나눠 구간 저점·고점이 함께 연속(2번 이상 연달아) 낮아지면 흘러내리는 박스(계단식 하락)다."""
+    size = len(lows) // BOX_STAIR_SEGMENTS
+    if size < 2:
+        return False
+    seg_lo = [float(min(lows[i * size:(i + 1) * size])) for i in range(BOX_STAIR_SEGMENTS)]
+    seg_hi = [float(max(highs[i * size:(i + 1) * size])) for i in range(BOX_STAIR_SEGMENTS)]
+    steps = [seg_lo[i + 1] < seg_lo[i] * (1 - BOX_STAIR_STEP) and seg_hi[i + 1] < seg_hi[i] * (1 - BOX_STAIR_STEP)
+             for i in range(BOX_STAIR_SEGMENTS - 1)]
+    return any(steps[i] and steps[i + 1] for i in range(len(steps) - 1))
+
+
+def _box_support_touches(range_win, support, resistance):
+    """박스 하단을 실제로 지지한 횟수와 그 봉들의 최저 저가.
+    지지 확인 봉 = 종가가 앞뒤 2봉 중 가장 낮은 스윙 저점이면서 저가가 하단 근처(하단 +2%, 박스가 좁으면 박스 높이의 25%)이고
+    종가가 저가보다 0.5% 넘게 회복한 봉. 서로 3봉 이상 떨어진 것만 센다(하단 부근에 머무른 연속 봉을 여러 번으로 세지 않는다)."""
+    width = (resistance - support) / support if support else 0
+    tol = min(BOX_TOUCH_TOL, 0.25 * width) if width > 0 else BOX_TOUCH_TOL
+    closes = [row['close'] for row in range_win]
+    touches, last_idx, touch_lows = 0, -10 ** 6, []
+    for i, row in enumerate(range_win):
+        around = closes[max(0, i - 2):i + 3]
+        if row['close'] > min(around):
+            continue
+        if row['low'] <= support * (1 + tol) and row['close'] > row['low'] * 1.005:
+            touch_lows.append(float(row['low']))
+            if i - last_idx >= BOX_TOUCH_GAP:
+                touches += 1
+            last_idx = i
+    return touches, (min(touch_lows) if touch_lows else None)
+
+
 def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     """Detect the A~G box-range lower-zone formula.
 
@@ -1619,8 +1661,10 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     close_min = float(closes.min())
     close_max = float(closes.max())
     close_range = (close_max - close_min) / close_min if close_min else math.inf
-    if close_range > BOX_CLOSE_RANGE_MAX:
-        return None
+    if close_range > BOX_CLOSE_RANGE_MAX + BOX_RANGE_EPS or close_range < BOX_CLOSE_RANGE_MIN - BOX_RANGE_EPS:
+        return None                      # 박스폭 (상단-하단)/하단: 5% 이상 10% 이하만
+    if _box_staircase_down(lows, highs):
+        return None                      # 저점·고점이 연속으로 낮아지는 흘러내리는 박스
     wick_low, wick_high = float(lows.min()), float(highs.max())
     wick_range = (wick_high - wick_low) / wick_low if wick_low else math.inf   # 윗·아랫꼬리가 지나치게 크면 감점
 
@@ -1658,6 +1702,15 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     if abs(return_20) > BOX_RETURN_MAX:
         return None
 
+    # 하단 반복 이탈·이탈 후 회복 실패 제외: 저가가 하단(최저 종가)보다 1.5% 넘게 아래로 간 봉이 3개 이상이거나,
+    # 최근 5봉 안에 이탈이 있었는데 아직 종가가 하단 +1%를 되찾지 못했으면 제외한다.
+    breach_floor = close_min * (1 - BOX_BREACH_TOL)
+    breach_idx = [i for i in range(len(range_win)) if lows[i] < breach_floor]
+    if len(breach_idx) >= BOX_BREACH_MAX:
+        return None
+    if any(i >= len(range_win) - 5 for i in breach_idx) and last_close < close_min * 1.01:
+        return None
+
     # 박스 = 최근 20봉 종가 범위. 위치 = (종가 - 최저 종가) / (최고 종가 - 최저 종가), 하단 35% 이내.
     support, resistance = close_min, close_max
     box_range = resistance - support
@@ -1682,24 +1735,41 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
     status = 'REBOUND' if (tested and (bullish or up_vs_prev)) else 'APPROACH'
     ma5_now, ma5_prev = ma5_all[-1], ma5_all[-2]
 
-    # ---- 점수(100): 박스폭 안정성 20 · 박스 하단 위치 20 · 이평 응축 15 · RSI 10 · 거래량 안정 10 · MA20 추세 10 · 하단 지지/반등 15
-    range_score = (14 - round(close_range / BOX_CLOSE_RANGE_MAX * 14)) + (6 if wick_range <= 0.15 else 3 if wick_range <= 0.20 else 0)
-    position_score = 20 if lower_position <= 0.20 else 14
-    ma_score = round(close_near_count / 20 * 15)
-    rsi_score = 10 if rsi <= 50 else 7          # 35~50 하단 성격이 강함, 50~65 정상
-    volume_score = 10 if 0.7 <= volume_ratio <= 1.0 else 7
-    ma20_score = 10 if ma20_slope10 >= 0 else 7 if ma20_slope10 >= -0.015 else 4
-    rebound_score = min(15, (5 if tested else 0) + (4 if bullish else 0) + (2 if up_vs_prev else 0)
-                        + (2 if (ma5_now is not None and last_close > ma5_now) else 0)
-                        + (2 if (ma5_now is not None and ma5_prev is not None and ma5_now >= ma5_prev) else 0))
-    score = clamp_score(range_score + position_score + ma_score + rsi_score + volume_score + ma20_score + rebound_score)
+    # ---- 지지 신뢰도·반등 강도·손익비 (2026-10-15) ----
+    touches, touch_low = _box_support_touches(range_win, close_min, close_max)
+    prev5 = [r['volume'] for r in win[-6:-1]]
+    prev5_avg = (sum(prev5) / len(prev5)) if prev5 else 0
+    volume_recovery = bool(prev5_avg and last_bar['volume'] >= prev5_avg * 1.2 and (bullish or up_vs_prev))
+    stop_price = touch_low * (1 - BOX_STOP_BUFFER) if (touch_low is not None and touches >= 2) else None   # 지지를 2번 이상 확인한 경우만 신뢰
+    target_price = resistance
+    risk_reward, rr_status = None, 'PENDING'
+    if stop_price is not None and last_close > stop_price and target_price > last_close:
+        risk_reward = (target_price - last_close) / (last_close - stop_price)
+        rr_status = 'OK' if risk_reward >= BOX_RR_TARGET else 'LOW'
+
+    # ---- 점수(100): 박스 구조 15 · 하단 위치 10 · 이평 응축 10 · RSI 5 · 거래량 안정 5 · 추세 15 · 지지 신뢰도 15 · 반등 강도 25
+    # 박스폭은 5~10% 안에서 점수 차이를 두지 않는다(좁다고 가산점 없음) - 꼬리 포함 변동폭 정리 상태만 본다.
+    range_score = 9 + (6 if wick_range <= 0.15 else 3 if wick_range <= 0.20 else 0)
+    position_score = 10 if lower_position <= 0.20 else 7
+    ma_score = round(close_near_count / 20 * 10)
+    rsi_score = 5 if rsi <= 50 else 4
+    volume_score = 5 if 0.7 <= volume_ratio <= 1.0 else 3
+    ma20_score = 15 if ma20_slope10 >= 0 else 11 if ma20_slope10 >= -0.005 else 7
+    support_score = 15 if touches >= 3 else 10 if touches == 2 else 4 if touches == 1 else 0
+    rebound_score = min(25, (6 if tested else 0) + (6 if bullish else 0) + (3 if up_vs_prev else 0)
+                        + (3 if (ma5_now is not None and last_close > ma5_now) else 0)
+                        + (2 if (ma5_now is not None and ma5_prev is not None and ma5_now >= ma5_prev) else 0)
+                        + (5 if volume_recovery else 0))
+    if status != 'REBOUND':
+        rebound_score = min(rebound_score, 8)          # 단순 하단 접근은 반등 확인 점수를 크게 받지 못한다
+    score = clamp_score(range_score + position_score + ma_score + rsi_score + volume_score + ma20_score + support_score + rebound_score)
     reasons = [
-        'A 최근 20봉 종가 변동폭 %.1f%% (10%% 이하)·꼬리 포함 %.1f%%(%d/20점)' % (close_range * 100, wick_range * 100, range_score),
-        'B 5·20일선 3%% 이내 응축 %d회(%d/15점) · 박스 하단 %.0f%%(%d/20점)' % (close_near_count, ma_score, lower_position * 100, position_score),
-        'C RSI(14) %.1f (35~65)(%d/10점)' % (rsi, rsi_score),
-        'D 최근 5봉/20봉 평균 거래량 %.0f%% (50~120%%)(%d/10점)' % (volume_ratio * 100, volume_score),
-        'E 20일선 10일 기울기 %+.1f%% (-3%% 이상)(%d/10점)' % (ma20_slope10 * 100, ma20_score),
-        'F 20봉 수익률 %.1f%% (±10%% 이내) · 하단 %s(%d/15점)' % (return_20 * 100, '반등 확인' if status == 'REBOUND' else '접근', rebound_score),
+        'A 최근 20봉 종가 박스폭 %.1f%% (5~10%%)·꼬리 포함 %.1f%%(%d/15점) · 상단 %s원·하단 %s원' % (close_range * 100, wick_range * 100, range_score, format(int(resistance), ','), format(int(support), ',')),
+        'B 5·20일선 3%% 이내 응축 %d회(%d/10점) · 박스 하단 %.0f%%(%d/10점)' % (close_near_count, ma_score, lower_position * 100, position_score),
+        'C RSI(14) %.1f (35~65)(%d/5점)' % (rsi, rsi_score),
+        'D 최근 5봉/20봉 평균 거래량 %.0f%% (50~120%%)(%d/5점)' % (volume_ratio * 100, volume_score),
+        'E 20일선 10일 기울기 %+.1f%% (-1%% 이상)(%d/15점) · 연속 하락 박스 아님' % (ma20_slope10 * 100, ma20_score),
+        'F 20봉 수익률 %.1f%% (±10%% 이내) · 하단 %s(%d/25점)%s · 지지 확인 %d회(%d/15점) · %s' % (return_20 * 100, '반등 확인' if status == 'REBOUND' else '접근(반등 미확인)', rebound_score, ' · 거래량 회복' if volume_recovery else '', touches, support_score, ('기대 손익비 %.1f:1(목표 박스 상단·손절 %s원)' % (risk_reward, format(int(stop_price), ','))) if risk_reward is not None else '손익비 판정 보류(지지 반복 확인 부족)'),
         'G 시가총액 %.0f억원 (3000억원 이상)' % market_cap_eok if market_cap_eok is not None else 'G 시가총액 확인 대기',
     ]
     result = {
@@ -1713,7 +1783,7 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
         'score': score,
         'reasons': reasons,
         'interpretation': '최근 20봉 횡보 박스의 하단 %.1f%% 구간에서 %s 상태입니다(%d점).' % (
-            lower_position * 100, '하단을 테스트한 뒤 반등하는' if status == 'REBOUND' else '하단에 접근한', score),
+            lower_position * 100, '하단을 테스트한 뒤 반등하는' if status == 'REBOUND' else '하단에 접근했지만 반등은 아직 확인되지 않은', score),
         'criteria': {
             'closeRangePct': close_range * 100,
             'wickRangePct': wick_range * 100,
@@ -1724,6 +1794,15 @@ def detect_box_range_low(daily, market_cap_eok=None, require_market_cap=False):
             'ma20Slope10Pct': ma20_slope10 * 100,
             'return20Pct': return_20 * 100,
             'lowerPositionPct': lower_position * 100,
+            'boxWidthPct': close_range * 100,
+            'boxTop': resistance,
+            'boxBottom': support,
+            'supportTouches': touches,
+            'volumeRecovery': volume_recovery,
+            'stopPrice': stop_price,
+            'targetPrice': target_price,
+            'riskReward': round(risk_reward, 2) if risk_reward is not None else None,
+            'riskRewardStatus': rr_status,   # OK(2:1 이상) / LOW / PENDING(신뢰할 손절 기준 없음 - 판정 보류)
         },
     }
     # 2026-08-22 신설(작업지시서 3단계): 박스 하단 Zone 안에서도 지금이 실제 진입 타점인지는
@@ -2272,6 +2351,9 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
         if key in pattern_results:
             filtered = _quality_gate_matches(pattern_results.get(key), key)
             pattern_results[key] = _rank_matches(filtered)
+            if key == 'boxRangeLow':
+                # 기대 손익비 2:1 이상(신뢰할 손절 기준이 있는 후보)을 먼저, 그 안에서는 점수순(안정 정렬).
+                pattern_results[key].sort(key=lambda it: 0 if ((it.get('patternDetail') or {}).get('criteria') or {}).get('riskRewardStatus') == 'OK' else 1)
     if pullback_matches is not None:
         pullback_matches[:] = _rank_matches(_quality_gate_matches(pullback_matches, 'pullback'))
     if 'accumulationBar' in pattern_results:
