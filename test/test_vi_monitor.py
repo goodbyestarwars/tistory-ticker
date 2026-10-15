@@ -139,7 +139,7 @@ NODE = r'''
 const fs = require('fs');
 const src = fs.readFileSync(process.argv[1], 'utf8');
 const a = src.indexOf('// ---- 시장 변동성 모니터');
-const b = src.indexOf('function chip(', a);
+const b = src.indexOf('function col(', a);
 const pre = "var MARKET_LABEL={KOSPI:'코스피',KOSDAQ:'코스닥'};function haltTitle(e){return (MARKET_LABEL[e.market]||'')+' 사이드카';}" +
   "function hhmm(i){return String(i).slice(11,16);}function hhmmss(i){return i?String(i).slice(11,19):'-';}function esc(s){return String(s==null?'':s);}var viView={mode:'active',market:'ALL',kind:'ALL'};";
 const f = new Function(pre + src.slice(a, b) + 'return {haltSummary,viSummary,latestLine,viPanelHtml,viView};');
@@ -166,6 +166,12 @@ def vi_row(code, market, kind, status, trig='2026-10-15T10:29:00+09:00'):
 
 
 class FrontendTests(unittest.TestCase):
+    def test_monitor_markup_is_three_columns_with_updated_time_and_one_line_latest(self):
+        js = open(os.path.join(ROOT, 'js', 'skin-main.js'), encoding='utf-8').read()
+        for token in ('class="vol-head"', 'class="vol-cols"', "col('halt', '서킷브레이커'", "col('halt', '사이드카'", "col('vi', 'VI'", 'class="vol-latest"', 'aria-controls="volPanel"'):
+            self.assertIn(token, js)
+
+
     def test_cb_and_sidecar_active_at_once_and_many_vi_rows(self):
         halt = {'available': True, 'events': [
             {'id': 'a', 'market': 'KOSPI', 'kind': 'CIRCUIT_BREAKER', 'stage': None, 'status': 'active', 'triggered_at': '2026-10-15T10:20:00+09:00'},
