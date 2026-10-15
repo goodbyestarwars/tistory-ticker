@@ -2834,7 +2834,7 @@ document.documentElement.classList.add('skin-ready');
       return html + '<small class="vol-src">출처 KIS 변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
     }
 
-    // 기본(발동 없음)에는 아무것도 그리지 않는다. CB·사이드카 발동 카드 > VI 한 줄 요약 > (수신 불가 한 줄) 순으로 위에서 아래로 쌓는다.
+    // 평소(이벤트가 없을 때)에는 아무것도 그리지 않는다. CB·사이드카 발동 카드 > VI 한 줄 요약 > (수신 불가 한 줄) 순으로 위에서 아래로 쌓는다.
     function renderAlerts(box, data) {
       if (!box) return;
       if (!data) { box.hidden = true; return; }

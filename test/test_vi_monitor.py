@@ -171,7 +171,7 @@ class FrontendTests(unittest.TestCase):
         js = open(os.path.join(ROOT, 'js', 'skin-main.js'), encoding='utf-8').read()
         for token in ('class="vol-alert ', 'class="vol-viline"', 'class="vol-unknown"', 'aria-controls="volPanel"', 'function renderAlerts('):
             self.assertIn(token, js)
-        seg = js[js.index('homeCircuitBreakerBadges'):js.index('function openPanel(')]
+        seg = js[js.index('(function homeCircuitBreakerBadges'):js.index('function openPanel(')]
         self.assertNotIn('발동 없음', seg)
         self.assertNotIn("text: '없음'", seg)                                           # 없음을 상시 표시하지 않는다
         self.assertIn("if (!html && panel !== 'vi') { box.hidden = true;", js)          # 아무것도 없으면 영역을 비운다
