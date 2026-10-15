@@ -1,0 +1,85 @@
+/* 시장 페이지 모바일 전용 카드 UI (2026-10-16, js/mobile-market.js)
+ * 규칙: 767px 이하에서만 기존 요소의 모양을 바꾼다. 미디어쿼리 밖에는 .mm-only 요소를 숨기는 규칙뿐이라
+ * PC(1024px 이상)·태블릿(768px~)의 레이아웃·차트·표·여백·글꼴은 이 파일로 달라지지 않는다.
+ * 상승 빨강·하락 파랑 의미색 유지. 터치 영역 44px, 움직임 줄이기 설정 존중. */
+
+.mm-only { display: none; }
+
+@media (max-width: 767px) {
+  .mm-only { display: revert; }
+  .mm-cards.mm-only, .mm-nav.mm-only, .mm-invpick.mm-only { display: flex; }
+  .mm-more.mm-only, .mm-toggle.mm-only { display: block; }
+  .mm-more[hidden] { display: none; }
+
+  :root { --mm-up: #d24f45; --mm-down: #2f6fd0; --mm-line: rgba(26, 26, 26, .14); --mm-ink: #1a1a1a; --mm-sub: rgba(26, 26, 26, .62); --mm-bg: rgba(26, 26, 26, .035); --mm-act-bg: #1a1a1a; --mm-act-ink: #fffefc; }
+  html.dark { --mm-up: #ff8a83; --mm-down: #5b9bf0; --mm-line: rgba(245, 239, 224, .2); --mm-ink: #f5efe0; --mm-sub: rgba(245, 239, 224, .66); --mm-bg: rgba(245, 239, 224, .05); --mm-act-bg: #f5efe0; --mm-act-ink: #1a1a1a; }
+
+  .mm-up { color: var(--mm-up) !important; }
+  .mm-down { color: var(--mm-down) !important; }
+
+  /* ---- 덱(가로 스와이프 카드) ---- */
+  .mm-deck { display: flex !important; grid-template-columns: none !important; gap: 0 !important; overflow-x: auto; overflow-y: hidden; scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; scrollbar-width: none; scroll-behavior: smooth; }
+  .mm-deck::-webkit-scrollbar { display: none; }
+  .mm-deck:focus-visible { outline: 2px solid var(--mm-ink); outline-offset: 2px; }
+  .mm-deck > .mm-slide { flex: 0 0 100% !important; width: 100% !important; max-width: 100% !important; min-width: 0; position: relative; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; }
+  /* 차트 안의 가로 끌기는 브라우저가 가져가 카드가 넘어가게 하고(세로 스크롤·핀치·길게 눌러 십자선은 그대로), 날짜별 수치는 터치/길게 눌러 본다 */
+  .mm-deck .dmi-chart, .mm-deck .ibd-chart, .mm-deck canvas { touch-action: pan-y pinch-zoom; }
+
+  .mm-nav { align-items: center; gap: 6px; margin: 8px 0 10px; }
+  .mm-tabs { display: flex; flex: 1 1 auto; min-width: 0; gap: 6px; overflow-x: auto; scrollbar-width: none; }
+  .mm-tabs::-webkit-scrollbar { display: none; }
+  .mm-tab { flex: 0 0 auto; appearance: none; min-height: 44px; padding: 0 14px; border: 1px solid var(--mm-line); border-radius: 999px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; white-space: nowrap; }
+  .mm-tab.is-active { background: var(--mm-act-bg); border-color: var(--mm-act-bg); color: var(--mm-act-ink); }
+  .mm-count { flex: 0 0 auto; color: var(--mm-sub); font: 600 12px/1 Pretendard, "Malgun Gothic", sans-serif; font-variant-numeric: tabular-nums; }
+  .mm-arrow { flex: 0 0 44px; appearance: none; width: 44px; height: 44px; border: 1px solid var(--mm-line); border-radius: 50%; background: transparent; color: var(--mm-ink); font: 700 22px/1 Pretendard, sans-serif; cursor: pointer; padding: 0; }
+  .mm-arrow:disabled { opacity: .3; cursor: default; }
+
+  /* ---- 요약 카드 ---- */
+  .mm-cards { gap: 10px; margin: 0 0 12px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; }
+  .mm-cards::-webkit-scrollbar { display: none; }
+  .mm-card { appearance: none; flex: 1 0 calc(50% - 5px); min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; border: 1px solid var(--mm-line); border-radius: 12px; background: var(--mm-bg); color: var(--mm-ink); text-align: left; cursor: pointer; scroll-snap-align: start; font-family: Pretendard, "Malgun Gothic", sans-serif; }
+  .mm-cards[data-mm-cards="global"] .mm-card { flex-basis: 46%; }
+  .mm-card.is-on { border-color: var(--mm-ink); box-shadow: inset 0 0 0 1px var(--mm-ink); }
+  .mm-card-name { font-size: 12.5px; font-weight: 700; color: var(--mm-sub); }
+  .mm-card-price { font-size: 20px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--mm-ink); }
+  .mm-card-chg { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mm-sub); }
+  .dmi-spot-quotes.mm-has-cards { display: none; } /* 값은 위 카드가 같은 데이터를 보여 준다(표는 PC·태블릿에서 그대로) */
+
+  /* ---- 국내 투자자 수급 ---- */
+  .mm-invpick { gap: 6px; margin: 0 0 8px; }
+  .mm-invbtn { appearance: none; flex: 1 1 0; min-height: 44px; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+  .mm-invbtn.is-active { background: var(--mm-act-bg); border-color: var(--mm-act-bg); color: var(--mm-act-ink); }
+  .ifl .ibd-leg-btn { min-height: 36px; }
+
+  /* 누적 순매수 표 → 투자자 3장 카드(원본 열·값 그대로, 칸 이름은 data-label) */
+  .ifl .ifl-table[data-if-cumtable] thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .ifl .ifl-table[data-if-cumtable], .ifl .ifl-table[data-if-cumtable] tbody { display: block; width: 100%; }
+  .ifl .ifl-table[data-if-cumtable] { position: relative; }
+  .ifl .ifl-table[data-if-cumtable] tr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; padding: 12px 14px; margin: 0 0 10px; border: 1px solid var(--mm-line); border-radius: 12px; background: var(--mm-bg); }
+  .ifl .ifl-table[data-if-cumtable] th[scope="row"] { grid-column: 1 / -1; display: block; padding: 0; border: 0; font-size: 14.5px; font-weight: 800; text-align: left; }
+  .ifl .ifl-table[data-if-cumtable] td { display: flex; flex-direction: column; gap: 2px; padding: 0; border: 0; text-align: left; font-size: 15px; font-weight: 800; font-variant-numeric: tabular-nums; }
+  .ifl .ifl-table[data-if-cumtable] td::before { content: attr(data-label); font-size: 11.5px; font-weight: 600; color: var(--mm-sub); }
+  .ifl .ifl-table[data-if-cumtable] td:last-child { grid-column: 1 / -1; }
+
+  /* ---- 종목별 순매수·순매도 상위 ---- */
+  .dmi-rank-card .ss-table-wrap { overflow: visible; }
+  .dmi-rank-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+  .dmi-rank-table, .dmi-rank-table tbody { display: block; width: 100%; }
+  .dmi-rank-table tr { display: grid; grid-template-columns: 28px 1fr auto; grid-template-areas: "rank name qty" "rank code qty"; align-items: center; column-gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--mm-line); }
+  .dmi-rank-table td { display: block; padding: 0; border: 0; min-width: 0; }
+  .dmi-rank-table td:nth-child(1) { grid-area: rank; font-weight: 800; color: var(--mm-sub); text-align: center; }
+  .dmi-rank-table td:nth-child(2) { grid-area: name; font-weight: 700; overflow: hidden; }
+  .dmi-rank-table td:nth-child(3) { grid-area: code; font-size: 11.5px; color: var(--mm-sub); }
+  .dmi-rank-table td:nth-child(4) { grid-area: qty; font-weight: 800; font-variant-numeric: tabular-nums; text-align: right; white-space: nowrap; }
+  .dmi-rank-table tr.mm-row-hidden { display: none; }
+  .mm-more { width: 100%; min-height: 44px; margin: 8px 0 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+
+  /* ---- 증시온도 ---- */
+  .mt-kpi-strip.mm-deck > .mt-kpi { border-left: 0 !important; }
+  .mm-toggle { width: 100%; min-height: 44px; margin: 6px 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
+  .mm-collapsed { display: none !important; }
+}
+
+@media (max-width: 767px) and (prefers-reduced-motion: reduce) {
+  .mm-deck { scroll-behavior: auto; }
+}

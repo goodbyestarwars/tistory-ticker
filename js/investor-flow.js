@@ -281,9 +281,9 @@
       var body = q('[data-if-cumtable] tbody'), take = lastRows(rows, p.n), last = take.length ? take[take.length - 1] : null;
       body.innerHTML = INVESTORS.map(function (inv) {
         var arr = cum.series[inv.key], total = take.length ? arr[arr.length - 1] : null, st = streak(rows, inv.key);
-        function cell(v) { return '<td class="num ' + (v > 0 ? 'up' : v < 0 ? 'down' : '') + '">' + (v == null ? '-' : esc(fmtEok(v, true))) + '</td>'; }
-        return '<tr><th scope="row"><i class="ibd-swatch" style="background:' + inv.color + '"></i> ' + inv.label + '</th>' + cell(total) + cell(last ? Number(last[inv.key]) : null)
-          + '<td class="num">' + (st.days ? st.days + '일 연속 ' + (st.sign > 0 ? '순매수' : '순매도') : '-') + '</td></tr>';
+        function cell(v, label) { return '<td class="num ' + (v > 0 ? 'up' : v < 0 ? 'down' : '') + '" data-label="' + label + '">' + (v == null ? '-' : esc(fmtEok(v, true))) + '</td>'; }
+        return '<tr><th scope="row"><i class="ibd-swatch" style="background:' + inv.color + '"></i> ' + inv.label + '</th>' + cell(total, '기간 누적 순매수') + cell(last ? Number(last[inv.key]) : null, '최근 1일')
+          + '<td class="num" data-label="연속 일수">' + (st.days ? st.days + '일 연속 ' + (st.sign > 0 ? '순매수' : '순매도') : '-') + '</td></tr>';
       }).join('');
     }
 
