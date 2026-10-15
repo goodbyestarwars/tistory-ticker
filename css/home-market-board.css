@@ -225,7 +225,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-alert span { overflow: hidden; font: 500 12px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); opacity: .85; text-overflow: ellipsis; white-space: nowrap; }
 .vol-alert.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }
 .vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }
-.vol-alert.is-vi { border-color: #d7dbe0; background: #f1f3f5; color: #374151; }
+.vol-alert.is-vi { flex: 0 0 auto; min-height: 0; gap: 1px; padding: 8px 14px; border-color: var(--hmb-line, #e2e8f0); background: var(--np-paper, #fffefc); color: var(--hmb-ink, #1a1a1a); }   /* 바탕색(크림) 박스, 내용 크기에 맞춤 */
 .vol-alert:focus-visible, .vol-history-link:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .vol-history-link { padding: 0; border: 0; background: none; color: var(--hmb-mute, #64748b); font: 500 11px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .vol-history-link[hidden] { display: none; }
@@ -247,10 +247,10 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-list .vol-state { font-size: 11px; color: var(--hmb-mute, #64748b); }
 .vol-list li.is-active .vol-state { color: #b45309; }
 .vol-note, .vol-src { display: block; margin: 6px 0 0; color: var(--hmb-mute, #64748b); font-size: 11px; line-height: 1.5; }
-@media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-panel { left: 0; right: auto; } }
+@media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-alert.is-vi { width: auto; align-self: flex-start; } .vol-panel { left: 0; right: auto; } }
 html.dark .vol-panel { background: #1e1e1e; border-color: rgba(245, 239, 224, .14); }
 html.dark .vol-seg-btn.is-on { background: #F5EFE0; color: #1e1e1e; }
 html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
 html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(232, 119, 109, .45); color: #f4a39b; }
 html.dark .vol-alert.is-side { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); color: #fbbf24; }
-html.dark .vol-alert.is-vi { background: rgba(245, 239, 224, .07); border-color: rgba(245, 239, 224, .2); color: #F5EFE0; }
+html.dark .vol-alert.is-vi { background: var(--np-paper, #1A1A1A); border-color: rgba(245, 239, 224, .2); color: #F5EFE0; }
