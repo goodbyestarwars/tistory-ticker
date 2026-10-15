@@ -57,7 +57,7 @@ _state = {
     'error': None,
 }
 _thread = None
-_halt = {'events': [], 'source': None, 'received_at': None}
+_halt = {'events': [], 'source': None, 'source_url': None, 'refresh_sec': None, 'received_at': None, 'last_error': None}
 
 
 def in_poll_window(now_kst):
@@ -218,11 +218,23 @@ def normalize_halt_event(raw):
     if status != 'active' and released is None and resumed is None:
         return None                      # 해제·재개라면 그 시각이 있어야 한다
     event_id = str(raw.get('id') or '%s-%s-%s-%s' % (market, kind, stage or 0, triggered.isoformat()))
+    ends = _iso_kst(raw.get('ends_at'))
+    direction = raw.get('direction') if raw.get('direction') in ('SELL', 'BUY') else None
+    precision = 'minute' if raw.get('time_precision') == 'minute' else 'second'
+    change = raw.get('change_pct')
     return {'id': event_id, 'market': market, 'kind': kind, 'stage': stage, 'status': status, 'triggered_at': triggered.isoformat(),
-            'released_at': released.isoformat() if released else None, 'resumed_at': resumed.isoformat() if resumed else None}
+            'released_at': released.isoformat() if released else None, 'resumed_at': resumed.isoformat() if resumed else None,
+            'ends_at': ends.isoformat() if ends else None, 'direction': direction, 'time_precision': precision,
+            'change_pct': float(change) if isinstance(change, (int, float)) else None, 'basis': None}
 
 
-def ingest_market_halt(events, source, now_kst=None):
+def set_halt_error(message):
+    """수신 실패를 기록한다. 직전 이벤트는 지우지 않지만 수신 시각은 갱신하지 않으므로 오래되면 확인 불가로 내려간다."""
+    with _lock:
+        _halt['last_error'] = str(message)[:200] if message else None
+
+
+def ingest_market_halt(events, source, now_kst=None, source_url=None, refresh_sec=None):
     """확인된 공식 수신 경로가 연결되면 이 함수로 현재 상황을 통째로 넣는다(빈 목록 = '확인된 이벤트 없음'). 같은 id는 하나만 남기고(뒤의 것이 이김),
     당일(KST) 발동 건만 보관하며 형식이 틀린 건은 버린다. 반환: 보관한 건수."""
     now_kst = now_kst or datetime.now(KST)
@@ -234,27 +246,59 @@ def ingest_market_halt(events, source, now_kst=None):
             byid[event['id']] = event
     with _lock:
         _halt.update({'events': sorted(byid.values(), key=lambda e: e['triggered_at']), 'source': str(source or '')[:60] or None,
-                      'received_at': now_kst.isoformat(timespec='seconds')})
+                      'source_url': source_url, 'refresh_sec': refresh_sec, 'received_at': now_kst.isoformat(timespec='seconds'), 'last_error': None})
     return len(byid)
+
+
+def _halt_window(now_kst):
+    """(거래일 여부, 수신 창 안인지). 수신 창 = 거래일 08:50~16:10(market_halt_kind와 같은 값)."""
+    import market_clock
+    trading = market_clock.is_kr_trading_day(now_kst)
+    minutes = now_kst.hour * 60 + now_kst.minute
+    return trading, trading and (8 * 60 + 50 <= minutes <= 16 * 60 + 10)
 
 
 def build_market_halt(now_kst=None):
     """화면용 시장 전체 사이드카·서킷브레이커 상태. 수신 경로가 없거나 수신이 끊겼으면 available=False(확인 불가)이며 events는 비운다.
-    available=True일 때만 events(오늘 발동 전부)와 active_count를 신뢰할 수 있다."""
+    available=True일 때만 events(오늘 발동 전부)와 active_count를 신뢰할 수 있다.
+
+    신선도: 수신 창(거래일 08:50~16:10) 안에서는 마지막 성공 수신이 HALT_STALE_SEC 안이어야 한다. 창 밖(장 시작 전·휴장일)에는 발동이 있을 수 없어 '이벤트 없음'으로 보고,
+    장 마감 뒤에는 오늘 15:45 이후 성공 수신이 있어야 당일 이력을 신뢰한다.
+    사이드카는 공시 본문의 지속시간(ends_at)이 지나면 '발동 후 N분 경과'로 자동 해제 처리한다(basis=DURATION_ELAPSED) - 해제 공시가 따로 없기 때문이다."""
     now_kst = now_kst or datetime.now(KST)
     with _lock:
         events, source, received = list(_halt['events']), _halt['source'], _halt['received_at']
-    base = {'available': False, 'source': source, 'received_at': received, 'events': [], 'active_count': 0, 'reason': None, 'note': HALT_NOTE}
-    if not source or not received:
+        source_url, refresh_sec, last_error = _halt['source_url'], _halt['refresh_sec'], _halt['last_error']
+    base = {'available': False, 'source': source, 'source_url': source_url, 'refresh_sec': refresh_sec, 'received_at': received, 'last_error': last_error,
+            'delay_note': None, 'events': [], 'active_count': 0, 'reason': None, 'note': HALT_NOTE}
+    if not source:
         base['reason'] = 'NO_VERIFIED_SOURCE'
         return base
+    trading, in_window = _halt_window(now_kst)
     received_dt = _iso_kst(received)
-    if received_dt is None or (now_kst - received_dt).total_seconds() > HALT_STALE_SEC:
+    today = now_kst.strftime('%Y-%m-%d')
+    received_today = received_dt is not None and received_dt.strftime('%Y-%m-%d') == today
+    if in_window:
+        ok = received_dt is not None and 0 <= (now_kst - received_dt).total_seconds() <= HALT_STALE_SEC
+    elif not trading or now_kst.hour * 60 + now_kst.minute < 8 * 60 + 50:
+        ok = True                                  # 휴장일·장 시작 전: 발동이 있을 수 없다(받은 당일 이력이 있으면 아래에서 그대로 보여 줌)
+    else:
+        ok = received_today and received_dt.hour * 60 + received_dt.minute >= 15 * 60 + 45
+    if not ok:
         base['reason'] = 'STALE'
         base['note'] = '사이드카·서킷브레이커 수신이 지연되고 있어 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.'
         return base
-    events = [e for e in events if e['triggered_at'][:10] == now_kst.strftime('%Y-%m-%d')]
-    return dict(base, available=True, reason=None, note=None, events=events, active_count=sum(1 for e in events if e['status'] == 'active'))
+    shown = []
+    for event in events:
+        if event['triggered_at'][:10] != today:
+            continue
+        ends = _iso_kst(event.get('ends_at'))
+        if event['kind'] == 'SIDECAR' and event['status'] == 'active' and ends is not None and now_kst >= ends:
+            event = dict(event, status='released', released_at=ends.isoformat(), basis='DURATION_ELAPSED')
+        shown.append(event)
+    delay = '공시 기준 · %s초마다 확인 · 실시간 체결 데이터가 아니라 공시 게시 후 반영됩니다' % refresh_sec if refresh_sec else '공시 기준 · 실시간 데이터가 아닙니다'
+    return dict(base, available=True, reason=None, note=None, events=shown, delay_note=delay,
+                active_count=sum(1 for e in shown if e['status'] == 'active'))
 
 
 def get_payload(now_kst=None):
