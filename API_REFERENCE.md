@@ -261,7 +261,7 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 | 선택 파라미터 | `interval`, `days`, `symbols` (모두 쿼리) |
 | 파라미터 형식·허용값 | `interval`: `"day"`(기본) \| `"minute"`(코스피200 주/야간선물처럼 `domestic_futures.MINUTE_SYMBOLS`에 있는 심볼만 실제 분봉 적용, 나머지는 그대로 일봉) · `days`: 정수, 1~500로 clamp(기본 90) · `symbols`: 쉼표로 구분한 지원 심볼만 선택(미지정 시 전체) |
 | 응답 JSON 구조 | `data = [{"symbol","name","price","change","change_rate","high","low","updated_at","source","source_delay","contract_code","stale","oi","oi_change","chart":[...]}, ...]` — 기존 심볼에 `BRENT` 추가. WTI·GOLD·BRENT의 출처와 지연 확인 상태를 명시하며, BRENT 시세가 20분 넘게 오래되면 `stale=true`와 가격 `null`을 반환한다. |
-| 데이터 단위 | 지수류는 포인트, 환율은 원, 채권금리·실업률·실질 GDP 성장률은 %, CPI·근원 CPI·근원 PCE·PPI·소비심리는 지수, 비농업고용·JOLTS 구인건수는 천 건, 소매판매는 백만 달러, 원자재/코인은 해당 통화 그대로. `oi`(미결제약정)는 코스피200 야간선물(`KOSPI200_NIGHT`)만 값이 있고 나머지는 `null` |
+| 데이터 단위 | 지수류는 포인트, 환율은 원, 채권금리·실업률·실질 GDP 성장률은 %, CPI·근원 CPI·근원 PCE·PPI·소비심리는 지수, 비농업고용·JOLTS 구인건수는 천 건, 소매판매는 백만 달러, 원자재/코인은 해당 통화 그대로. `US_PPI_FINAL_DEMAND`는 FRED `PPIFIS`(BLS 최종수요·계절조정), 기존 `US_PPI`는 별도 전 품목 `PPIACO`다. `oi`(미결제약정)는 코스피200 야간선물(`KOSPI200_NIGHT`)만 값이 있고 나머지는 `null` |
 | 시장 범위 | 국내(코스피/코스닥/코스피200 주간·야간선물) + 해외(미국 지수 3종 현물·선물, SOX, VIX, WTI, 금, ICE 브렌트유) + 환율 + 국채금리 + FRED 거시지표 + 가상자산(BTC/ETH). 원자재별 출처·권한 검증은 [COMMODITY_SOURCES](docs/COMMODITY_SOURCES.md) 참고 |
 | 데이터 갱신 주기 | 백그라운드 수집기가 심볼별로 상시 수집(수집 주기는 심볼마다 다름 — `foreign_futures.py`/`domestic_futures.py`/`btc_futures.py`/`bond_yield.py` 각각 확인 필요) |
 | 캐시 시간 | 10초 메모리 캐시(조회 조건별) — 원본 최신 시각은 수집 주기를 따름 |

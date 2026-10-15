@@ -62,6 +62,7 @@ FRED_SYMBOLS = {
     'US_CORE_CPI': {'series': 'CPILFESL', 'name': '미국 근원 소비자물가지수(Core CPI, 지수)'},
     'US_CORE_PCE': {'series': 'PCEPILFE', 'name': '미국 근원 개인소비지출물가지수(Core PCE, 지수)'},
     'US_PPI': {'series': 'PPIACO', 'name': '미국 생산자물가지수(PPI, 지수)'},
+    'US_PPI_FINAL_DEMAND': {'series': 'PPIFIS', 'name': '미국 최종수요 생산자물가지수(PPI, 계절조정)'},
     'US_REAL_GDP_GROWTH': {'series': 'A191RL1Q225SBEA', 'name': '미국 실질 GDP 성장률(연율, %)'},
     'US_NONFARM_PAYROLLS': {'series': 'PAYEMS', 'name': '미국 비농업고용(천 명)'},
     'US_UNEMPLOYMENT': {'series': 'UNRATE', 'name': '미국 실업률(%)'},

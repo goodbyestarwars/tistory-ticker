@@ -349,7 +349,7 @@ document.documentElement.classList.add('skin-ready');
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261008-stock-impact',
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261016-ppi-final-demand',
         styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261008-five-year-charts', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {

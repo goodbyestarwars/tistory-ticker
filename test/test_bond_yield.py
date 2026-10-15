@@ -53,6 +53,7 @@ class FredMacroSymbolTests(unittest.TestCase):
             'US_CORE_CPI': 'CPILFESL',
             'US_CORE_PCE': 'PCEPILFE',
             'US_PPI': 'PPIACO',
+            'US_PPI_FINAL_DEMAND': 'PPIFIS',
             'US_REAL_GDP_GROWTH': 'A191RL1Q225SBEA',
             'US_NONFARM_PAYROLLS': 'PAYEMS',
             'US_UNEMPLOYMENT': 'UNRATE',
