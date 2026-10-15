@@ -131,14 +131,14 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core > [data
 /* 투자자 동향 */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend { grid-column: 1 / -1; padding-top: 14px; border-top: 1px solid var(--hmb-line); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend[hidden] { display: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 8px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head dt { margin: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 22px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top strong { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-row-top b { font: 700 14px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { position: relative; width: 100%; height: 40px; margin-top: 2px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-wrap { position: relative; width: 100%; height: 90px; margin-top: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark { width: 100%; height: 100%; margin: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { position: absolute; width: 7px; height: 7px; border-radius: 50%; transform: translate(-50%, -50%); box-shadow: 0 0 0 2px #fff; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point.is-high { background: var(--hmb-up); }
@@ -148,6 +148,21 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extr
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:first-child b { color: var(--hmb-up); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:last-child b { color: var(--hmb-down); }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { box-shadow: 0 0 0 2px #1a1a1a; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls { display: flex; align-items: center; gap: 8px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls [data-investor-mode] { min-width: 24px; text-align: center; color: var(--hmb-ink); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-buy { fill: var(--hmb-up); color: var(--hmb-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-sell { fill: var(--hmb-down); color: var(--hmb-down); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-flat { fill: var(--hmb-flat); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-area { fill: currentColor; opacity: .14; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-axis { display: flex; justify-content: space-between; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-asof { margin-top: 6px; color: var(--hmb-mute); font: 400 11px/1.5 var(--font-ui, system-ui, sans-serif); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark-empty { display: flex; align-items: center; justify-content: center; height: 90px; color: var(--hmb-mute); font: 400 12px/1.5 var(--font-ui, system-ui, sans-serif); }
+@media (pointer: coarse) {
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { min-width: 44px; min-height: 44px; }
+}
 
 /* ── F. 관심종목 주간 공시: 위젯 최상단이 아니라 핵심 지표 아래, 기존 가로 이동·선택 기능은 그대로 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hmb-line); }
@@ -210,7 +225,6 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-chart:
 .home-chart-axis { font: 9px var(--font-data, system-ui, sans-serif); fill: #6b7280; }
 html.dark .home-chart-axis { fill: #a5adb7; }
 
-html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spark polyline { stroke: #e5e7eb; }
 
 /* ── 2026-10-15 시장 변동성 모니터(CB·사이드카·VI): '시장 방향' 오른쪽 빈 공간. 제목만 MaruBuri, 나머지는 Pretendard(--font-ui). 발동 상태만 색을 쓴다. ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-status { display: flex; flex-wrap: wrap; align-items: flex-start; gap: 12px 24px; }

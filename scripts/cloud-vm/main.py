@@ -4363,7 +4363,7 @@ def investor_trend_endpoint(period: str = Query('week'), market: str = Query('ko
     investor_trend.py의 백그라운드 폴러(1분)가 시장별로 미리 채워둔 SQLite만 읽으므로
     요청마다 실시간 호출을 다시 하지 않는다. market이 모르는 값이면 investor_trend.get_result가
     코스피로 처리한다(선물은 데이터 소스가 없어 미지원 - investor_trend.py 모듈 독스트링 참고)."""
-    if period not in ('day', 'week', 'month'):
+    if period not in ('day', 'week', 'month', 'intraday'):
         period = 'week'
     try:
         result = investor_trend.get_result(period, market)

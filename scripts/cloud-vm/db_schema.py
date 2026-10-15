@@ -171,6 +171,20 @@ CREATE TABLE IF NOT EXISTS investor_trend_daily (
     PRIMARY KEY (market, date)
 );
 
+-- Half-hour observations from the existing KIS daily-value poll (억원).
+CREATE TABLE IF NOT EXISTS investor_trend_intraday (
+    market TEXT NOT NULL,
+    date TEXT NOT NULL,
+    slot INTEGER NOT NULL,
+    ind_amt REAL NOT NULL,
+    frgn_amt REAL NOT NULL,
+    orgn_amt REAL NOT NULL,
+    frgn_high REAL NOT NULL,
+    frgn_low REAL NOT NULL,
+    updated_at TEXT NOT NULL,
+    PRIMARY KEY (market, date, slot)
+);
+
 -- 2026-08-05: 종목분석 매물대 카드 "실제 체결가" 뷰(js/foreign-flow.js) - KIS pbar-tratio는
 -- "오늘"만 주므로, 조회될 때마다(kis_flow_cache와 동일한 온디맨드 적재 패턴 - 배치 없음)
 -- 그날 최신 누적 스냅샷을 가격별로 UPSERT해 여러 거래일치를 자연히 쌓는다. pbar-tratio
