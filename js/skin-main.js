@@ -2731,13 +2731,24 @@ document.documentElement.classList.add('skin-ready');
     // 시장 전체 사이드카(주황)·서킷브레이커(빨강). 발동 중이 가장 위, 그 아래 당일 해제·거래재개 이력. 같은 id는 한 번만 그린다.
     var MARKET_LABEL = { KOSPI: '코스피', KOSDAQ: '코스닥' };
     function haltTitle(e) {
-      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커 ' + e.stage + '단계' : '사이드카');
+      var side = e.direction === 'SELL' ? '매도 사이드카' : e.direction === 'BUY' ? '매수 사이드카' : '사이드카';
+      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커 ' + e.stage + '단계' : side);
     }
     function haltRow(e) {
       var cls = e.kind === 'CIRCUIT_BREAKER' ? 'is-cb' : 'is-sidecar';
-      var state = e.status === 'active' ? '발동 중' : (e.status === 'resumed' ? '거래 재개 ' + hhmm(e.resumed_at || e.released_at) : '해제 ' + hhmm(e.released_at || e.resumed_at));
+      var state = e.status === 'active' ? '발동 중' : (e.status === 'resumed' ? '거래 재개 ' + hhmm(e.resumed_at || e.released_at)
+        : '해제 ' + hhmm(e.released_at || e.resumed_at) + (e.basis === 'DURATION_ELAPSED' ? ' (지속시간 경과)' : ''));
+      var pct = typeof e.change_pct === 'number' ? ' · ' + (e.kind === 'CIRCUIT_BREAKER' ? '지수 ' : '선물 ') + (e.change_pct > 0 ? '+' : '') + e.change_pct.toFixed(2) + '%' : '';
       return '<li class="' + cls + (e.status === 'active' ? ' is-active' : ' is-ended') + '"><b>' + esc(haltTitle(e)) + '</b>'
-        + '<span>발동 ' + esc(hhmm(e.triggered_at)) + '</span><em>' + esc(state) + '</em></li>';
+        + '<span>발동 ' + esc(hhmm(e.triggered_at)) + esc(pct) + '</span><em>' + esc(state) + '</em></li>';
+    }
+    // 출처와 '실시간이 아님'을 항상 밝힌다. 링크는 한국거래소 KIND 주소만 허용한다.
+    function haltSource(halt) {
+      var url = /^https:\/\/kind\.krx\.co\.kr\//.test(String(halt.source_url || '')) ? halt.source_url : '';
+      var label = esc(halt.source || '한국거래소 공시');
+      return '<small class="home-halt-src">출처 ' + (url ? '<a href="' + esc(url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>' : label)
+        + ' · ' + esc(halt.delay_note || '공시 기준 · 실시간 데이터가 아닙니다')
+        + (halt.received_at ? ' · 확인 ' + esc(hhmm(halt.received_at)) : '') + '</small>';
     }
     function renderHalt(el, halt) {
       if (!el) return;
@@ -2760,7 +2771,8 @@ document.documentElement.classList.add('skin-ready');
       el.className = 'home-halt ' + (active.length ? (anyCb ? 'is-cb-active' : 'is-sidecar-active') : 'is-history');
       el.innerHTML = (active.length ? '<strong>' + (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중</strong>' : '<strong>오늘 시장 조치 이력</strong>')
         + '<ul>' + active.map(haltRow).join('') + '</ul>'
-        + (ended.length ? (active.length ? '<h4>오늘 해제·거래재개 이력</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '');
+        + (ended.length ? (active.length ? '<h4>오늘 해제·거래재개 이력</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '')
+        + haltSource(halt);
       el.hidden = false;
     }
 

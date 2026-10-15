@@ -155,6 +155,29 @@ class FrontendTests(unittest.TestCase):
         self.assertEqual(box['innerHTML'].count('코스피 사이드카'), 1)
 
 
+class FrontendSourceTests(unittest.TestCase):
+    def test_direction_source_link_and_not_realtime_label(self):
+        halt = {'available': True, 'source': '한국거래소 KIND 시장조치 공시', 'source_url': 'https://kind.krx.co.kr/disclosure/todaydisclosure.do',
+                'delay_note': '공시 기준 · 30초마다 확인 · 실시간 체결 데이터가 아니라 공시 게시 후 반영됩니다', 'received_at': '2026-10-15T13:13:53+09:00',
+                'events': [dict(e('KOSPI', 'SIDECAR', 'released', '09:07', rel='09:12'), direction='SELL', basis='DURATION_ELAPSED', change_pct=-5.27),
+                           dict(e('KOSDAQ', 'CIRCUIT_BREAKER', 'resumed', '12:23', stage=1, res='12:43'), change_pct=-8.01)]}
+        (box,) = render([halt])
+        html = box['innerHTML']
+        self.assertIn('코스피 매도 사이드카', html)
+        self.assertIn('해제 09:12 (지속시간 경과)', html)
+        self.assertIn('선물 -5.27%', html)
+        self.assertIn('지수 -8.01%', html)
+        self.assertIn('거래 재개 12:43', html)
+        self.assertIn('href="https://kind.krx.co.kr/disclosure/todaydisclosure.do"', html)
+        self.assertIn('실시간 체결 데이터가 아니라', html)
+        self.assertIn('확인 13:13', html)
+
+    def test_non_krx_source_url_is_never_linked(self):
+        (box,) = render([{'available': True, 'source': 'x', 'source_url': 'https://evil.example/', 'received_at': None,
+                          'events': [e('KOSPI', 'SIDECAR', 'active', '10:10')]}])
+        self.assertNotIn('href=', box['innerHTML'])
+
+
 class WiringTests(unittest.TestCase):
     def read(self, *parts):
         with open(os.path.join(ROOT, *parts), encoding='utf-8') as f:

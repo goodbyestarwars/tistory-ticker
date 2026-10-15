@@ -213,6 +213,12 @@ def _start_futures_collectors():
             on_tick=lambda: hour_validation.run_due(kis_appkey, kis_appsecret))
     except Exception:
         logging.getLogger('main').exception('VI 배지 조회 시작 실패')
+    # 2026-10-15 사용자 승인: 시장 전체 사이드카·서킷브레이커는 한국거래소 KIND 시장조치 공시를 30초마다 확인한다(market_halt_kind.py, 거래일 08:50~16:10).
+    try:
+        import market_halt_kind
+        market_halt_kind.start_background()
+    except Exception:
+        logging.getLogger('main').exception('시장조치(KIND) 수신 시작 실패')
 
     # 2026-09-15 사용자 결정: 매물대를 나중에 실제 체결가 기준으로 옮길 수 있게, KRX 거래일 장 마감 뒤
     # (18:10~20:00) 하루 한 번 상위·최근 조회 종목의 당일 매물대를 volume_profile_daily에 쌓는다.
