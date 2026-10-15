@@ -227,7 +227,6 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }
 .vol-alert.is-vi { border-color: #d7dbe0; background: #f1f3f5; color: #374151; }
 .vol-alert:focus-visible, .vol-history-link:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-.vol-unknown { flex: 1 0 100%; color: var(--hmb-faint, #94a3b8); font: 500 11px/1.5 var(--font-ui, "Pretendard", system-ui, sans-serif); }
 .vol-history-link { padding: 0; border: 0; background: none; color: var(--hmb-mute, #64748b); font: 500 11px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .vol-history-link[hidden] { display: none; }
 .vol-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(440px, calc(100vw - 32px)); max-height: min(60vh, 420px); overflow: auto; padding: 10px 12px; border: 1px solid var(--hmb-line, #e2e8f0); border-radius: 2px; background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); font-size: 12px; }

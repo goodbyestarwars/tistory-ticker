@@ -763,7 +763,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-cards2';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-cards3';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -2849,7 +2849,6 @@ document.documentElement.classList.add('skin-ready');
       if (!data) { box.hidden = true; if (link) link.hidden = true; return; }
       lastData = data;
       var halts = activeHalts(data.market_halt), vi = viLine(data);
-      var unknown = !data.market_halt || !data.market_halt.available;
       var haltHistory = haltHistoryCount(data.market_halt);
       var viHistory = data.vi_available === false ? 0 : (data.vi_today || []).length;
       var cards = halts.map(function (e) { return haltCardHtml(e, panel === 'halt'); }).join('') + (vi ? viCardHtml(vi, panel === 'vi') : '');
@@ -2857,7 +2856,7 @@ document.documentElement.classList.add('skin-ready');
         link.hidden = !!cards || !(haltHistory || viHistory);
         link.setAttribute('aria-expanded', panel === 'all' ? 'true' : 'false');
       }
-      var html = cards + (unknown ? '<span class="vol-unknown">서킷브레이커·사이드카 수신 확인 불가</span>' : '');
+      var html = cards;                  // 수신이 안 되면 카드가 없을 뿐 별도 문구는 두지 않는다(안 뜰 때는 비어 있는 게 정상)
       if (!html && !panel) { box.hidden = true; box.innerHTML = ''; return; }
       box.innerHTML = html + '<div class="vol-panel" id="volPanel" role="region" aria-label="시장 변동성 상세"' + (panel ? '' : ' hidden') + '></div>';
       box.hidden = false;
