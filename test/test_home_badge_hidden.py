@@ -30,7 +30,7 @@ class VolMonitorContractTest(unittest.TestCase):
             self.assertNotIn(token, self.js)
 
     def test_unavailable_is_shown_as_unknown_not_as_normal(self):
-        self.assertIn('수신 확인 불가', self.js)
+        self.assertNotIn('vol-unknown', self.js + self.css)                  # 수신 불가 문구는 두지 않는다(카드가 없을 뿐)
         self.assertIn("data.vi_available === false || data.vi_active_count == null", self.js)
 
     def test_panel_is_keyboard_accessible_and_closes_on_escape(self):

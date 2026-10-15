@@ -170,7 +170,7 @@ def vi_row(code, market, kind, status, trig='2026-10-15T10:29:00+09:00'):
 class FrontendTests(unittest.TestCase):
     def test_markup_renders_cards_only_for_active_events(self):
         js = open(os.path.join(ROOT, 'js', 'skin-main.js'), encoding='utf-8').read()
-        for token in ('class="vol-alert ', 'class="vol-alert is-vi"', 'class="vol-unknown"', 'aria-controls="volPanel"', 'function renderAlerts(', 'data-vol-history'):
+        for token in ('class="vol-alert ', 'class="vol-alert is-vi"', 'aria-controls="volPanel"', 'function renderAlerts(', 'data-vol-history'):
             self.assertIn(token, js)
         seg = js[js.index('(function homeCircuitBreakerBadges'):js.index('function hideAll(')]
         self.assertNotIn('발동 없음', seg)
