@@ -46,7 +46,7 @@ PRIORITY_ORDERBOOK = 2
 PRIORITY_OPTIONS = 3
 
 # KIS 세션당 실시간 등록 상한 - 공식 문서에서 확인하지 못한 값이라 환경변수로 조정한다.
-DEFAULT_MAX_REGISTRATIONS = 40
+DEFAULT_MAX_REGISTRATIONS = 41   # 2026-10-15: KIS 세션당 41건 시도(VI 전체시장 검증용 1건 추가). 거부 응답이 오면 controlLog/controlErrors에 남으니 40으로 되돌린다
 # KIS PINGPONG 주기를 확인하지 못해 넉넉히 잡는다. 틱이 없는 새벽에도 PINGPONG은 프레임으로 센다.
 DEFAULT_WATCHDOG_SEC = 180
 RECONNECT_MIN_SEC = 5

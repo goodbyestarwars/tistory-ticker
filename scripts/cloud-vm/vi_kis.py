@@ -114,7 +114,7 @@ async def _run_once(appkey, appsecret):
     hub = kis_ws_hub.start(appkey, appsecret)
     if hub is None:
         raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못함')
-    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_ORDERBOOK) for key in PROBE_KEYS])
+    sub = hub.subscribe([(TR_ID, key, kis_ws_hub.PRIORITY_QUOTES) for key in PROBE_KEYS])
     with _lock:
         _state['subscribedAt'] = datetime.now(KST).isoformat(timespec='seconds')
     try:
