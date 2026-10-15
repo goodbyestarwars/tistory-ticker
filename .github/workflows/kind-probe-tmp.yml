@@ -1,0 +1,13 @@
+name: kind-probe-tmp
+on:
+  pull_request:
+    paths: ['.github/workflows/kind-probe-tmp.yml']
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          curl -s -m 20 -o /dev/null -w "KIND main: %{http_code}\n" -A "Mozilla/5.0" "https://kind.krx.co.kr/main.do?method=loadInitPage"
+          curl -s -m 20 -o /dev/null -w "KIND list: %{http_code}\n" -A "Mozilla/5.0" -X POST "https://kind.krx.co.kr/disclosure/todaydisclosure.do" -d "method=searchTodayDisclosureSub&currentPageSize=5&pageIndex=1&orderMode=0&orderStat=D&forward=todaydisclosure_sub&chose=S&todayFlag=Y&selDate=2026-10-15"
+          curl -s -m 20 -I -A "Mozilla/5.0" "https://kind.krx.co.kr/" | head -3
+          curl -s -m 10 https://ipinfo.io/country
