@@ -66,6 +66,19 @@ class FredMacroSymbolTests(unittest.TestCase):
             expected,
         )
 
+    def test_manual_refresh_collects_only_selected_macro_series(self):
+        conn = mock.MagicMock()
+        rows = [{'date': '20260801', 'value': 100.0}, {'date': '20260901', 'value': 101.0}]
+        with mock.patch.object(bond_yield.db_schema, 'get_conn', return_value=conn), \
+                mock.patch.object(bond_yield, 'fetch_fred_series', return_value=rows) as fetch, \
+                mock.patch.object(bond_yield.db_schema, 'upsert_future_price') as upsert, \
+                mock.patch.object(bond_yield.db_schema, 'upsert_future_chart_rows'):
+            result = bond_yield.refresh_fred_all(('US_PPI_FINAL_DEMAND',))
+        self.assertEqual(result, {'success': 1, 'failed': 0})
+        fetch.assert_called_once_with('PPIFIS')
+        self.assertEqual(upsert.call_args.args[1], 'US_PPI_FINAL_DEMAND')
+        conn.close.assert_called_once()
+
 
 class FredPollCadenceTests(unittest.TestCase):
     """2026-10-15: 9월 CPI(10/14 발표)가 6시간 주기 때문에 늦게 반영된 문제."""
