@@ -1,7 +1,7 @@
 /* 투자자별 순매수 추이 + 고객예탁금·신용잔고 흐름 (시장지표 > 국내 시장지표 02·03, 2026-10-12)
  *
  * InvestorFlow.mount(host)        - 02 투자자별 매매동향: 기간 누적 순매수 선(지수 겹쳐 보기 선택, 날짜별 툴팁에 당일·기간 누적), 하단 요약표,
- *                                   총매수·총매도 원자료 지원 여부, 투자자별 규칙 기반 요약
+ *                                   투자자별 규칙 기반 요약
  *                                   (2026-10-16: 일별·주간·월간 순매수 막대 그래프는 제거했다. 일별 수치는 누적 선 툴팁과 요약표에서 본다.)
  * InvestorFlow.mountBalance(host) - 03 증시자금: 고객예탁금·신용잔고 추이·5/20거래일 변화·20일 평균 대비·규칙 기반 해설
  * (처음엔 '04 국내 증시 자금 흐름'이라는 독립 구역이었으나, 02와 같은 순매수 데이터를 다뤄 02로 합쳤다.)
@@ -186,7 +186,6 @@
   function periodOf(key) { return PERIODS.filter(function (x) { return x.key === key; })[0]; }
   function marketOf(key) { return MARKETS.filter(function (m) { return m.key === key; })[0]; }
 
-  function investorOf(key) { return INVESTORS.filter(function (i) { return i.key === key; })[0]; }
 
   /* 누적 순매수 선 그래프 명세(IndicatorBoard.createChart 입력). 툴팁은 투자자마다 [당일 순매수 | 기간 누적]을 나란히 보이고,
      기준점(누적 0)에는 당일 값이 없어 '-'로 두며 제목에 '누적 시작점'이라고 밝힌다. 지수 겹쳐 보기를 켜면 지수가 오른쪽 축 점선과 툴팁 한 줄로 나온다. */
@@ -208,7 +207,7 @@
   function mount(host, options) {
     var opts = options || {};
     var IB = global.IndicatorBoard;
-    var state = { market: 'kospi', period: 'm', gross: 'foreign', showIndex: true, data: {}, error: null, loading: false };
+    var state = { market: 'kospi', period: 'm', showIndex: true, data: {}, error: null, loading: false };
     var charts = {};
     var timer = null;
     var api = opts.apiBase || API;
@@ -229,8 +228,7 @@
       + '<label class="ifl-check"><input type="checkbox" data-if-index checked /> 지수 겹쳐 보기(오른쪽 축)</label></div>'
       + '<div class="ifl-cap" data-if-linecap></div><div data-if-lines></div>'
       + '<table class="ifl-table" data-if-cumtable><caption class="ibd-sr">투자자별 기간 누적 순매수</caption><thead><tr><th>투자자</th><th class="num">기간 누적 순매수</th><th class="num">최근 1일</th><th class="num">연속 일수</th></tr></thead><tbody></tbody></table>'
-      + '<div class="ifl-note">' + esc(NOTE_NET) + '</div></section>'
-      + '<section class="ifl-sec"><div class="mi-sub2-title">실제 매수·매도 금액</div><div data-if-gross></div></section>'
+      + '<div class="ifl-note">' + esc(NOTE_NET) + '</div><div class="ifl-note" data-if-basis></div></section>'
       + '<section class="ifl-sec ifl-summary"><div class="mi-sub2-title">투자자별 순매수 요약</div><div data-if-summary></div></section>'
       + '</div>';
     var root = host.querySelector('.ifl');
@@ -289,21 +287,9 @@
       }).join('');
     }
 
-    function renderGross() {
-      var d = state.data[state.market], rows = rowsOf(), p = periodOf(state.period);
-      var inv = investorOf(state.gross), take = lastRows(rows, p.n), net = take.length ? sumOf(take, inv.key) : null;
-      var reason = d && d.gross && d.gross.reason ? d.gross.reason : '이 데이터 소스는 순매수만 제공합니다.';
-      var na = '<td class="ifl-na">매수·매도 총액 원자료 미지원</td>';
-      q('[data-if-gross]').innerHTML = '<div class="ifl-seg ifl-seg-inv" role="group" aria-label="투자자">' + INVESTORS.map(function (i) {
-        var on = i.key === state.gross;
-        return '<button type="button" class="ui-btn ui-btn-tab ifl-seg-btn' + (on ? ' is-active active' : '') + '" data-if-gross-inv="' + i.key + '" aria-pressed="' + on + '" style="--ifl-inv:' + i.color + '">'
-          + '<i class="ibd-swatch" style="background:' + i.color + '"></i>' + i.label + '</button>';
-      }).join('') + '</div>'
-        + '<table class="ifl-table ifl-gross-table"><tbody>'
-        + '<tr><th scope="row">총매수금액</th>' + na + '</tr><tr><th scope="row">총매도금액</th>' + na + '</tr>'
-        + '<tr><th scope="row">순매수금액 <small>(' + esc(p.label) + ' 합계)</small></th><td class="num ' + (net > 0 ? 'up' : net < 0 ? 'down' : '') + '">' + (net == null ? '-' : esc(fmtEok(net, true))) + '</td></tr>'
-        + '<tr><th scope="row">매수·매도 차이</th>' + na + '</tr></tbody></table>'
-        + '<div class="ifl-note">' + esc(reason) + (d && d.foreignBasis ? ' 외국인은 ' + esc(d.foreignBasis) + ' 기준입니다.' : '') + '</div>';
+    function renderBasis() {
+      var d = state.data[state.market];
+      q('[data-if-basis]').textContent = d && d.foreignBasis ? '외국인은 ' + d.foreignBasis + ' 기준입니다. 이 자료에는 순매수만 있고 매수·매도 총액은 없습니다.' : '';
     }
 
     function renderSummary() {
@@ -315,7 +301,7 @@
     }
 
     function renderAll() {
-      setButtons(); renderAsOf(); renderState(); renderLines(); renderGross(); renderSummary();
+      setButtons(); renderAsOf(); renderState(); renderLines(); renderBasis(); renderSummary();
     }
 
     function load(market, force) {
@@ -342,8 +328,6 @@
       if (mk) { state.market = mk.getAttribute('data-if-market'); renderAll(); load(state.market, false); return; }
       var pk = t.closest('[data-if-period]');
       if (pk && !pk.disabled) { state.period = pk.getAttribute('data-if-period'); renderAll(); return; }
-      var gk = t.closest('[data-if-gross-inv]');
-      if (gk) { state.gross = gk.getAttribute('data-if-gross-inv'); renderGross(); }
     });
     q('[data-if-index]').addEventListener('change', function (e) { state.showIndex = !!e.target.checked; renderLines(); });
 

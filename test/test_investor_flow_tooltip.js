@@ -24,7 +24,7 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.051, msg + ' (' + a + 
 
 // ── 1) 막대 그래프 코드가 남아 있지 않다 ──
 const src = fs.readFileSync('js/investor-flow.js', 'utf8');
-['data-if-bars', 'data-if-view', 'data-if-agg', 'barsSpec', 'ifl-viewctl', '분리형', '비교형', '일별 순매수·순매도'].forEach((t) => assert.ok(src.indexOf(t) < 0, '제거된 막대 그래프 흔적: ' + t));
+['data-if-bars', 'data-if-view', 'data-if-agg', 'barsSpec', 'ifl-viewctl', '분리형', '비교형', '일별 순매수·순매도', 'data-if-gross', '실제 매수·매도 금액', 'ifl-gross-table'].forEach((t) => assert.ok(src.indexOf(t) < 0, '제거된 막대 그래프 흔적: ' + t));
 ['aggregate', 'barsSpec', 'resolveAgg', 'periodSummary', 'outlierNote'].forEach((k) => assert.equal(C[k], undefined, '_calc.' + k + ' 제거'));
 // 누적 선·지수 겹쳐 보기·기간 버튼·하단 표는 그대로 있다
 ['data-if-lines', 'data-if-index', 'data-if-cumtable', 'data-if-period', 'data-if-market', '지수 겹쳐 보기'].forEach((t) => assert.ok(src.indexOf(t) > 0, '유지: ' + t));
