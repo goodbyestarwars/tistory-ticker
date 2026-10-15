@@ -2728,11 +2728,24 @@ document.documentElement.classList.add('skin-ready');
       setDropdown(false);
     }
 
+    document.addEventListener('click', function (ev) {
+      var btn = ev.target && ev.target.closest ? ev.target.closest('.home-halt-sum') : null;
+      if (!btn) return;
+      var box = btn.parentNode, body = box.querySelector('.home-halt-body');
+      if (!body) return;
+      haltOpen = body.hidden;                       // 접혀 있었으면 펼친다
+      body.hidden = !haltOpen;
+      btn.setAttribute('aria-expanded', haltOpen ? 'true' : 'false');
+      var arrow = btn.querySelector('i');
+      if (arrow) arrow.textContent = haltOpen ? '▴' : '▾';
+    });
+
     // 시장 전체 사이드카(주황)·서킷브레이커(빨강). 발동 중이 가장 위, 그 아래 당일 해제·거래재개 이력. 같은 id는 한 번만 그린다.
     var MARKET_LABEL = { KOSPI: '코스피', KOSDAQ: '코스닥' };
+    var haltOpen = null;
     function haltTitle(e) {
       var side = e.direction === 'SELL' ? '매도 사이드카' : e.direction === 'BUY' ? '매수 사이드카' : '사이드카';
-      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커 ' + e.stage + '단계' : side);
+      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커' + (e.stage ? ' ' + e.stage + '단계' : '') : side);
     }
     function haltRow(e) {
       var cls = e.kind === 'CIRCUIT_BREAKER' ? 'is-cb' : 'is-sidecar';
@@ -2770,10 +2783,17 @@ document.documentElement.classList.add('skin-ready');
       var ended = events.filter(function (e) { return e.status !== 'active'; }).sort(byNewest);
       var anyCb = active.some(function (e) { return e.kind === 'CIRCUIT_BREAKER'; });
       el.className = 'home-halt ' + (active.length ? (anyCb ? 'is-cb-active' : 'is-sidecar-active') : 'is-history');
-      el.innerHTML = (active.length ? '<strong>' + (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중</strong>' : '<strong>오늘 시장 조치 이력</strong>')
+      // 압축 한 줄(눌러서 펼침). 발동 중이면 기본 펼침, 해제 이력만 있으면 기본 접힘 - 사용자가 누른 뒤에는 그 선택을 유지한다.
+      var open = haltOpen === null ? active.length > 0 : haltOpen;
+      var summary = active.length
+        ? (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중 ' + active.length + '건 · 누르면 상세'
+        : '오늘 시장 조치 ' + events.length + '건 · 모두 해제';
+      el.innerHTML = '<button type="button" class="home-halt-sum" aria-expanded="' + (open ? 'true' : 'false') + '">' + esc(summary) + '<i aria-hidden="true">' + (open ? '▴' : '▾') + '</i></button>'
+        + '<div class="home-halt-body"' + (open ? '' : ' hidden') + '>'
+        + (active.length ? '<strong>' + (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중</strong>' : '<strong>오늘 시장 조치 이력</strong>')
         + '<ul>' + active.map(haltRow).join('') + '</ul>'
         + (ended.length ? (active.length ? '<h4>오늘 해제·거래재개 이력</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '')
-        + haltSource(halt);
+        + haltSource(halt) + '</div>';
       el.hidden = false;
     }
 
