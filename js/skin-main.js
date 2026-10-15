@@ -327,13 +327,13 @@ document.documentElement.classList.add('skin-ready');
         globalName: 'KospiFutures',
         script: ASSET_BASE + 'js/kospi-futures.js?v=20261014-investor-tab',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
-        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261014-split']
+        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-flow-tip']
       },
       {
         key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
         script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261014-investor-tab',
-        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261014-split']
+        styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-flow-tip']
       },
       {
         key: 'global', label: '글로벌 시장지표', slug: 'overnight-market',

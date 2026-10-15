@@ -124,6 +124,11 @@ html.dark .ibd .ibd-tip { background:#1A1A1A; color:#F5EFE0; }
 .ibd .ibd-tip-row { display:flex; align-items:center; gap:6px; white-space:nowrap; }
 .ibd .ibd-tip-row span { flex:1 1 auto; }
 .ibd .ibd-tip-row b { font-variant-numeric:tabular-nums; margin-left:10px; }
+.ibd .ibd-tip-grid { display:grid; grid-template-columns:auto auto auto; align-items:center; gap:2px 14px; white-space:nowrap; }
+.ibd .ibd-tip-grid em { font-style:normal; font-size:11px; opacity:.62; text-align:right; }
+.ibd .ibd-tip-grid b { font-variant-numeric:tabular-nums; text-align:right; }
+.ibd .ibd-tip-grid .ibd-tip-name { display:inline-flex; align-items:center; gap:6px; }
+.ibd .ibd-tip-grid + .ibd-tip-row { margin-top:3px; padding-top:3px; border-top:1px solid var(--ibd-line-strong); }
 .ibd .ibd-svg .ibd-hit { touch-action:pan-y; }
 
 /* 다크모드: style.css 의 html.dark .post-single-body * { color: ... !important } 가 본문 글자를 전부 크림색으로 덮어, 표의 상승(빨강)·하락(파랑) 색과
@@ -157,3 +162,8 @@ html.dark .ibd .ibd-stat dt, html.dark .ibd .ibd-stat dd small { color: var(--ib
 html.dark .ibd .ibd-ps em, html.dark .ibd .ibd-ps small, html.dark .ibd .ibd-chart-note { color:var(--ibd-sub) !important; }
 html.dark .ibd .ibd-ps b { color:var(--ibd-num) !important; }
 html.dark .ibd .ibd-panel-name, html.dark .ibd .ibd-axis-month { color:rgb(var(--ibd-ink)) !important; fill:rgb(var(--ibd-ink)); }
+@media (max-width: 520px) {
+  .ibd .ibd-tip-grid { gap:1px 8px; font-size:11px; }
+  .ibd .ibd-tip-grid em { font-size:10px; }
+  .ibd .ibd-tip { padding:5px 7px; }
+}

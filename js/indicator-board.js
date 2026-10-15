@@ -466,6 +466,7 @@
               meta: [{ label, tip, start }]   // 집계 막대(주간·월간 합계)의 축 라벨·툴팁 제목·구분선 기준. 없으면 dates 를 쓴다.
               series: [{ key, label, color, values: [수...|null], summary: [{ label, text, tone, sub }] }],   // summary 는 stacked 패널 머리의 요약 수치
               fmt(v, signed), axisFmt(v, step), zero: true, secondary: { label, values, fmt, axisFmt } | null,
+              tipHeads: ['열1 머리글', '열2 머리글'] + series[].tipExtra: { label, values }   // 툴팁을 [tipExtra 값 | 기본 값] 두 열 표로(선택)
               refLines: [{ value, label }], axisTitles: { left, right }, guides: { weeks, months, years }, note, ariaLabel, emptyText }
      범례 버튼으로 계열을 숨기거나 보인다. 거래가 없는 날은 날짜 자체가 없다(0으로 채우지 않는다). 막대 간격은 거래일(또는 집계 구간)마다 일정하다. */
   function createChart(host, options) {
@@ -717,10 +718,21 @@
         i = Math.max(0, Math.min(v.n - 1, i));
         var cx = v.xc(i);
         crosses.forEach(function (c) { if (c) { c.setAttribute('x1', cx); c.setAttribute('x2', cx); c.removeAttribute('hidden'); } });
-        var rows = v.vis.map(function (s) {
-          var val = s.values[i], f = (s.fmt || v.spec.fmt || defaultFmt);
-          return '<div class="ibd-tip-row"><i class="ibd-swatch" style="background:' + s.color + '"></i><span>' + esc(s.label) + '</span><b>' + (val == null ? '-' : esc(f(val, true))) + '</b></div>';
-        }).join('');
+        var rows;
+        if (v.vis.some(function (s) { return s.tipExtra; })) {
+          // 계열마다 [tipExtra 값 | 기본 값] 두 열(예: 당일 순매수 | 기간 누적)을 머리글과 함께 표처럼 보인다.
+          var heads = v.spec.tipHeads || ['', ''];
+          rows = '<div class="ibd-tip-grid"><span></span><em>' + esc(heads[0]) + '</em><em>' + esc(heads[1]) + '</em>' + v.vis.map(function (s) {
+            var val = s.values[i], ex = s.tipExtra ? s.tipExtra.values[i] : null, f = (s.fmt || v.spec.fmt || defaultFmt);
+            return '<span class="ibd-tip-name"><i class="ibd-swatch" style="background:' + s.color + '"></i>' + esc(s.label) + '</span>'
+              + '<b>' + (ex == null ? '-' : esc(f(ex, true))) + '</b><b>' + (val == null ? '-' : esc(f(val, true))) + '</b>';
+          }).join('') + '</div>';
+        } else {
+          rows = v.vis.map(function (s) {
+            var val = s.values[i], f = (s.fmt || v.spec.fmt || defaultFmt);
+            return '<div class="ibd-tip-row"><i class="ibd-swatch" style="background:' + s.color + '"></i><span>' + esc(s.label) + '</span><b>' + (val == null ? '-' : esc(f(val, true))) + '</b></div>';
+          }).join('');
+        }
         if (v.spec.secondary && v.spec.secondary.values[i] != null) {
           var sf = v.spec.secondary.fmt || defaultFmt;
           rows += '<div class="ibd-tip-row"><i class="ibd-swatch ibd-swatch-line"></i><span>' + esc(v.spec.secondary.label) + '</span><b>' + esc(sf(v.spec.secondary.values[i])) + '</b></div>';

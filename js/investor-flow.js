@@ -1,7 +1,8 @@
 /* 투자자별 순매수 추이 + 고객예탁금·신용잔고 흐름 (시장지표 > 국내 시장지표 02·03, 2026-10-12)
  *
- * InvestorFlow.mount(host)        - 02 투자자별 매매동향: 외국인·기관·개인 순매수·순매도 막대(분리형 = 투자자별 3개 패널 / 비교형 = 날짜별 3막대,
- *                                   일별·주간 합계·월간 합계), 기간 누적 순매수 선(지수 겹쳐 보기 선택), 총매수·총매도 원자료 지원 여부, 투자자별 규칙 기반 요약
+ * InvestorFlow.mount(host)        - 02 투자자별 매매동향: 기간 누적 순매수 선(지수 겹쳐 보기 선택, 날짜별 툴팁에 당일·기간 누적), 하단 요약표,
+ *                                   총매수·총매도 원자료 지원 여부, 투자자별 규칙 기반 요약
+ *                                   (2026-10-16: 일별·주간·월간 순매수 막대 그래프는 제거했다. 일별 수치는 누적 선 툴팁과 요약표에서 본다.)
  * InvestorFlow.mountBalance(host) - 03 증시자금: 고객예탁금·신용잔고 추이·5/20거래일 변화·20일 평균 대비·규칙 기반 해설
  * (처음엔 '04 국내 증시 자금 흐름'이라는 독립 구역이었으나, 02와 같은 순매수 데이터를 다뤄 02로 합쳤다.)
  *
@@ -51,17 +52,18 @@
     var before = rows.length > take.length ? rows[rows.length - take.length - 1] : null;
     var dates = [before ? before.date : '기간 시작'];
     var index = [before && before.indexClose != null ? before.indexClose : null];
-    var out = {};
-    INVESTORS.forEach(function (inv) { out[inv.key] = [0]; });
+    var out = {}, daily = {};
+    INVESTORS.forEach(function (inv) { out[inv.key] = [0]; daily[inv.key] = [null]; });   // 기준점(0)에는 '당일' 값이 없다
     take.forEach(function (r) {
       dates.push(r.date);
       index.push(r.indexClose != null ? r.indexClose : null);
       INVESTORS.forEach(function (inv) {
-        var arr = out[inv.key];
-        arr.push(arr[arr.length - 1] + (Number(r[inv.key]) || 0));
+        var arr = out[inv.key], v = Number(r[inv.key]) || 0;
+        arr.push(arr[arr.length - 1] + v);
+        daily[inv.key].push(v);
       });
     });
-    return { dates: dates, series: out, index: index, days: take.length, hasBaselineDate: !!before };
+    return { dates: dates, series: out, daily: daily, index: index, days: take.length, hasBaselineDate: !!before };
   }
 
   /* 끝에서부터 같은 부호가 이어진 거래일 수. sign: 1 순매수, -1 순매도, 0 값 없음 */
@@ -115,73 +117,8 @@
     return out;
   }
 
-  /* ── 막대 그래프 보기(분리형·비교형)와 집계(일별·주간·월간) ──────────────────────────────────────────────────────────
-     집계는 실제 거래일 데이터를 구간(주 = 월요일 시작, 월 = 달력 월)별로 모두 더한 '합계'이며 일별 평균이 아니다.
-     선택한 기간(최근 N거래일) 안의 거래일만 더하므로 첫 구간은 기간 시작에 걸쳐 일부 거래일만 합산될 수 있다(partial). */
-  var VIEWS = [{ key: 'split', label: '분리형' }, { key: 'compare', label: '비교형' }];
-  var AGGS = [{ key: 'day', label: '일별' }, { key: 'week', label: '주간' }, { key: 'month', label: '월간' }];
-  var DEFAULT_AGG = { w: 'day', m: 'day', q: 'week', y: 'month' };   // 기간별 기본 집계: 1주·1개월 일별, 3개월 주간, 1년 월간
-
-  function bucketKeyOf(date, mode) {
-    var U = global.IndicatorBoard.util;
-    return mode === 'week' ? U.weekKeyOf(date) : mode === 'month' ? U.monthKeyOf(date) : date;
-  }
   function round1(x) { return Math.round(x * 10) / 10; }
   function mmdd(iso) { return String(iso).slice(5).replace('-', '.'); }
-
-  function aggregate(rows, mode, prevRow) {
-    var out = [];
-    rows.forEach(function (r) {
-      var key = bucketKeyOf(r.date, mode), b = out.length ? out[out.length - 1] : null;
-      if (!b || b.key !== key) {
-        b = { key: key, start: r.date, end: r.date, days: 0, sums: {}, partial: false };
-        INVESTORS.forEach(function (inv) { b.sums[inv.key] = 0; });
-        out.push(b);
-      }
-      b.end = r.date; b.days++;
-      INVESTORS.forEach(function (inv) { b.sums[inv.key] += Number(r[inv.key]) || 0; });
-    });
-    out.forEach(function (b) { INVESTORS.forEach(function (inv) { b.sums[inv.key] = round1(b.sums[inv.key]); }); });
-    if (out.length && prevRow && mode !== 'day' && bucketKeyOf(prevRow.date, mode) === out[0].key) out[0].partial = true;
-    return out;
-  }
-
-  function bucketMeta(b, mode) {
-    if (mode === 'week') {
-      return { start: b.start, label: mmdd(b.start), tip: (b.start === b.end ? mmdd(b.start) : mmdd(b.start) + ' ~ ' + mmdd(b.end)) + ' · 주간 합계 · ' + b.days + '거래일' + (b.partial ? ' (선택 기간 시작 구간, 일부 거래일만 합산)' : '') };
-    }
-    if (mode === 'month') {
-      return { start: b.start, label: b.start.slice(2, 4) + '.' + b.start.slice(5, 7), tip: b.start.slice(0, 7) + ' · 월간 합계 · ' + b.days + '거래일' + (b.partial ? ' (선택 기간 시작 구간, 일부 거래일만 합산)' : '') };
-    }
-    return null;
-  }
-
-  function defaultAgg(periodKey) { return DEFAULT_AGG[periodKey] || 'day'; }
-
-  /* 분리형 패널 머리의 요약 수치: 최근 순매수 / 5거래일 합계 / 선택 기간 합계(계산에 쓴 거래일 수를 함께 적는다) */
-  function periodSummary(windowRows, key) {
-    var n = windowRows.length;
-    if (!n) return [];
-    var last = windowRows[n - 1], v = Number(last[key]) || 0, k5 = Math.min(5, n);
-    var s5 = round1(sumOf(windowRows.slice(n - k5), key)), sAll = round1(sumOf(windowRows, key));
-    // 요약 수치는 +/- 부호로만 방향을 나타낸다(투자자 고유색과 상승·하락 의미색이 한 패널 안에서 섞이지 않게 중립 색)
-    return [
-      { label: '최근 순매수', text: fmtEok(v, true), sub: mmdd(last.date) },
-      { label: k5 === 5 ? '5거래일 합계' : k5 + '거래일 합계(5일 미만)', text: fmtEok(s5, true) },
-      { label: '선택 기간 합계', text: fmtEok(sAll, true), sub: n + '거래일' }
-    ];
-  }
-
-  /* 극단값 점검: 한 막대가 나머지보다 훨씬 커서 다른 막대가 작게 보이는 경우를 알린다(축은 실제 금액 그대로, 자르지 않는다). */
-  function outlierNote(items) {
-    var mags = items.map(function (i) { return Math.abs(i.value); }).filter(function (x) { return x > 0; }).sort(function (a, b) { return a - b; });
-    if (mags.length < 8) return '';
-    var med = mags[Math.floor(mags.length / 2)], top = items[0];
-    items.forEach(function (i) { if (Math.abs(i.value) > Math.abs(top.value)) top = i; });
-    var ratio = Math.abs(top.value) / med;
-    if (!(ratio > 5)) return '';
-    return '가장 큰 막대는 ' + top.tip + ' ' + top.label + ' ' + fmtEok(top.value, true) + '이며 막대 크기 중앙값(' + fmtEok(med) + ')의 약 ' + Math.round(ratio) + '배라 다른 막대가 작게 보입니다. 축은 실제 금액 그대로이며 잘라내지 않았습니다.';
-  }
 
   /* 요약: 정해진 규칙으로만 만든다(추천·점수·판정 없음). 투자자 요약(02)과 잔고 요약(03)을 따로 만들고, summarize 는 둘을 이어 붙인 래퍼다. */
   function summarizeInvestors(rows, marketLabel) {
@@ -249,48 +186,29 @@
   function periodOf(key) { return PERIODS.filter(function (x) { return x.key === key; })[0]; }
   function marketOf(key) { return MARKETS.filter(function (m) { return m.key === key; })[0]; }
 
-  /* 선택한 집계(없으면 기간 기본값). 선택한 기간이 구간 2개 미만으로 묶이면 그 집계는 의미가 없어 일별로 둔다. */
-  function resolveAgg(rows, periodKey, agg) {
-    var take = lastRows(rows, periodOf(periodKey).n), m = agg || defaultAgg(periodKey);
-    return m !== 'day' && aggregate(take, m, null).length < 2 ? 'day' : m;
-  }
+  function investorOf(key) { return INVESTORS.filter(function (i) { return i.key === key; })[0]; }
 
-  /* 막대 그래프 한 장의 명세(IndicatorBoard.createChart 입력)와 제목·설명. o = { period, agg, view, label, emptyText } */
-  function barsSpec(rows, o) {
-    var IBu = global.IndicatorBoard.util, take = lastRows(rows, periodOf(o.period).n);
-    var prev = rows.length > take.length ? rows[rows.length - take.length - 1] : null;
-    var mode = resolveAgg(rows, o.period, o.agg), buckets = aggregate(take, mode, prev), split = o.view !== 'compare';
-    var unit = mode === 'week' ? '주간 합계' : mode === 'month' ? '월간 합계' : '일별';
-    var cap = mode === 'day'
-      ? '그날 시장에서 사고판 금액의 차이입니다. 순매수는 0선 위, 순매도는 0선 아래이며 거래일만 표시합니다.'
-      : (mode === 'week' ? '같은 주(월~금)의 거래일 순매수를 모두 더한 ' : '같은 달의 거래일 순매수를 모두 더한 ') + unit + '입니다(일별 평균이 아님). 순매수는 0선 위, 순매도는 0선 아래이며, 첫 구간은 선택한 기간에 걸린 일부 거래일만 합산될 수 있어 막대를 누르면 거래일 수가 나옵니다.';
-    var items = [];
-    var series = !buckets.length ? [] : INVESTORS.map(function (inv) {
-      var values = buckets.map(function (bk) { return bk.sums[inv.key]; });
-      buckets.forEach(function (bk, i) { items.push({ label: inv.label, tip: mode === 'day' ? bk.start : bucketMeta(bk, mode).tip.split(' · ')[0], value: values[i] }); });
-      return { key: inv.key, label: inv.label, color: inv.color, values: values, summary: split ? periodSummary(take, inv.key) : undefined };
-    });
+  /* 누적 순매수 선 그래프 명세(IndicatorBoard.createChart 입력). 툴팁은 투자자마다 [당일 순매수 | 기간 누적]을 나란히 보이고,
+     기준점(누적 0)에는 당일 값이 없어 '-'로 두며 제목에 '누적 시작점'이라고 밝힌다. 지수 겹쳐 보기를 켜면 지수가 오른쪽 축 점선과 툴팁 한 줄로 나온다. */
+  function lineSpec(cum, label, showIndex) {
+    var IB = global.IndicatorBoard;
+    var hasIndex = showIndex && cum.index.some(function (v) { return v != null; });
     return {
-      mode: mode, buckets: buckets, split: split,
-      title: mode === 'day' ? '일별 순매수·순매도' : unit + ' 순매수·순매도',
-      caption: cap + (split ? ' 세 그래프는 같은 날짜 위치와 같은 금액 눈금을 씁니다.' : ''),
-      spec: {
-        type: 'bars', layout: split ? 'stacked' : 'grouped',
-        dates: buckets.map(function (bk) { return bk.start; }),
-        meta: mode === 'day' ? null : buckets.map(function (bk) { return bucketMeta(bk, mode); }),
-        guides: mode === 'month' ? { weeks: false, months: false, years: true } : mode === 'week' ? { weeks: false, months: true } : undefined,
-        series: series, fmt: IBu.fmtEok, axisFmt: IBu.fmtEokAxis, zero: true,
-        ariaLabel: o.label + ' 투자자별 ' + unit + ' 순매수', emptyText: o.emptyText, note: outlierNote(items)
-      }
+      type: 'lines', dates: cum.dates,
+      tipHeads: ['당일 순매수', '기간 누적'],
+      meta: cum.dates.map(function (d, i) { return i === 0 ? { tip: (cum.hasBaselineDate ? mmdd(d) + ' · ' : '') + '누적 시작점(0)' } : null; }),
+      series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, values: cum.series[inv.key], tipExtra: { label: '당일 순매수', values: cum.daily[inv.key] } }; }),
+      fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: true, ariaLabel: label + ' 투자자별 누적 순매수',
+      axisTitles: hasIndex ? { left: '누적 순매수(원)', right: label + ' 지수(포인트)' } : { left: '누적 순매수(원)' },
+      secondary: hasIndex ? { label: label + ' 지수', values: cum.index, fmt: function (v) { return IB.util.num(v, 2); }, axisFmt: function (v) { return IB.util.num(v, 0); } } : null
     };
   }
-  function investorOf(key) { return INVESTORS.filter(function (i) { return i.key === key; })[0]; }
 
   /* 02 투자자별 매매동향 - 투자자별 순매수 추이(일별 막대 · 누적 선 · 실제 매수·매도 · 요약). 시장 전환·기간은 이 안의 모든 그래프·표가 같이 따른다. */
   function mount(host, options) {
     var opts = options || {};
     var IB = global.IndicatorBoard;
-    var state = { market: 'kospi', period: 'm', gross: 'foreign', showIndex: true, view: 'split', agg: null, data: {}, error: null, loading: false };
+    var state = { market: 'kospi', period: 'm', gross: 'foreign', showIndex: true, data: {}, error: null, loading: false };
     var charts = {};
     var timer = null;
     var api = opts.apiBase || API;
@@ -303,13 +221,10 @@
 
     host.innerHTML = '<div class="ibd ifl">'
       + '<div class="mi-sub-title">투자자별 순매수 추이</div>'
-      + '<div class="mi-sub-cap">외국인·기관·개인의 순매수·순매도를 그래프로 봅니다. 시장과 기간을 고르면 아래 그래프와 표가 모두 따라 바뀝니다.</div>'
+      + '<div class="mi-sub-cap">외국인·기관·개인의 순매수를 기간 누적 선으로 봅니다. 시장과 기간을 고르면 아래 그래프와 표가 모두 따라 바뀝니다. 그래프에 마우스를 올리면 그날의 당일 순매수와 기간 누적 순매수가 함께 나옵니다.</div>'
       + '<div class="ifl-controls">' + seg('시장', MARKETS, 'kospi', 'data-if-market') + seg('기간', PERIODS, 'm', 'data-if-period')
       + '<span class="ifl-asof" data-if-asof></span></div>'
       + '<div class="ifl-state" data-if-state role="status" hidden></div>'
-      + '<section class="ifl-sec"><div class="ifl-sechead"><div class="mi-sub2-title" data-if-barstitle>일별 순매수·순매도</div>'
-      + '<div class="ifl-viewctl">' + seg('보기', VIEWS, 'split', 'data-if-view') + seg('집계', AGGS, 'day', 'data-if-agg') + '</div></div>'
-      + '<div class="ifl-cap" data-if-barscap></div><div data-if-bars></div></section>'
       + '<section class="ifl-sec"><div class="ifl-sechead"><div class="mi-sub2-title">누적 순매수 추이</div>'
       + '<label class="ifl-check"><input type="checkbox" data-if-index checked /> 지수 겹쳐 보기(오른쪽 축)</label></div>'
       + '<div class="ifl-cap" data-if-linecap></div><div data-if-lines></div>'
@@ -320,7 +235,6 @@
       + '</div>';
     var root = host.querySelector('.ifl');
     function q(sel) { return root.querySelector(sel); }
-    charts.bars = IB.createChart(q('[data-if-bars]'), { height: 250, panelHeight: 118, emptyText: '선택한 기간의 자료가 없습니다.' });
     charts.lines = IB.createChart(q('[data-if-lines]'), { height: 240, emptyText: '선택한 기간의 자료가 없습니다.' });
 
     function rowsOf() { var d = state.data[state.market]; return d && d.rows ? d.rows : []; }
@@ -340,25 +254,6 @@
       });
     }
 
-    // 선택한 기간의 거래일을 집계 구간으로 묶었을 때 구간이 몇 개인가(2개 미만이면 그 집계는 의미가 없어 비활성)
-    function bucketCount(mode) {
-      return aggregate(lastRows(rowsOf(), periodOf(state.period).n), mode, null).length;
-    }
-    function aggMode() { return resolveAgg(rowsOf(), state.period, state.agg); }
-    function setViewButtons() {
-      var mode = aggMode();
-      Array.prototype.forEach.call(root.querySelectorAll('[data-if-view]'), function (b) {
-        var on = b.getAttribute('data-if-view') === state.view;
-        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
-      });
-      Array.prototype.forEach.call(root.querySelectorAll('[data-if-agg]'), function (b) {
-        var key = b.getAttribute('data-if-agg'), on = key === mode, few = key !== 'day' && rowsOf().length && bucketCount(key) < 2;
-        b.classList.toggle('is-active', on); b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on));
-        b.disabled = !!few;
-        b.title = few ? '선택한 기간이 짧아 ' + (key === 'week' ? '주간' : '월간') + ' 구간이 1개뿐입니다' : '';
-      });
-    }
-
     function renderAsOf() {
       var d = state.data[state.market], el = q('[data-if-asof]');
       if (!d) { el.textContent = ''; return; }
@@ -374,29 +269,13 @@
       el.hidden = !msgs.length; el.textContent = msgs.join(' ');
     }
 
-    function renderBars() {
-      var rows = rowsOf();
-      var barsEmpty = rows.length ? '선택한 기간의 자료가 없습니다.' : state.data[state.market] ? '확보된 자료가 없습니다.' : state.error ? '자료를 불러오지 못했습니다.' : '불러오는 중입니다.';
-      var out = barsSpec(rows, { period: state.period, agg: state.agg, view: state.view, label: marketOf(state.market).label, emptyText: barsEmpty });
-      q('[data-if-barstitle]').textContent = out.title;
-      q('[data-if-barscap]').textContent = out.caption;
-      charts.bars.update(out.spec);
-    }
-
     function renderLines() {
       var rows = rowsOf(), p = periodOf(state.period);
       var cum = cumulative(rows, p.n);
       var label = marketOf(state.market).label;
-      q('[data-if-linecap]').textContent = '선택한 기간의 시작을 0으로 두고 거래일마다 순매수를 더한 값입니다. 기간을 바꾸면 그 기간 기준으로 다시 누적합니다.' + (state.showIndex ? ' 진회색 점선은 ' + label + ' 지수입니다(오른쪽 축).' : '');
+      q('[data-if-linecap]').textContent = '선택한 기간의 시작을 0으로 두고 거래일마다 순매수를 더한 값입니다. 기간을 바꾸면 그 기간 기준으로 다시 누적합니다. 마우스를 올리면 그날의 당일 순매수와 기간 누적 순매수를 함께 봅니다.' + (state.showIndex ? ' 진회색 점선은 ' + label + ' 지수입니다(오른쪽 축).' : '');
       if (!cum.days) { charts.lines.update({ type: 'lines', dates: [], series: [], emptyText: '선택한 기간의 자료가 없습니다.' }); renderCumTable(rows, cum, p); return; }
-      var hasIndex = state.showIndex && cum.index.some(function (v) { return v != null; });
-      charts.lines.update({
-        type: 'lines', dates: cum.dates,
-        series: INVESTORS.map(function (inv) { return { key: inv.key, label: inv.label, color: inv.color, values: cum.series[inv.key] }; }),
-        fmt: fmtEok, axisFmt: IB.util.fmtEokAxis, zero: true, ariaLabel: label + ' 투자자별 누적 순매수',
-        axisTitles: hasIndex ? { left: '누적 순매수(원)', right: label + ' 지수(포인트)' } : { left: '누적 순매수(원)' },
-        secondary: hasIndex ? { label: label + ' 지수', values: cum.index, fmt: function (v) { return IB.util.num(v, 2); }, axisFmt: function (v) { return IB.util.num(v, 0); } } : null
-      });
+      charts.lines.update(lineSpec(cum, label, state.showIndex));
       renderCumTable(rows, cum, p);
     }
 
@@ -436,7 +315,7 @@
     }
 
     function renderAll() {
-      setButtons(); renderBars(); setViewButtons(); renderAsOf(); renderState(); renderLines(); renderGross(); renderSummary();
+      setButtons(); renderAsOf(); renderState(); renderLines(); renderGross(); renderSummary();
     }
 
     function load(market, force) {
@@ -462,11 +341,7 @@
       var mk = t.closest('[data-if-market]');
       if (mk) { state.market = mk.getAttribute('data-if-market'); renderAll(); load(state.market, false); return; }
       var pk = t.closest('[data-if-period]');
-      if (pk && !pk.disabled) { state.period = pk.getAttribute('data-if-period'); state.agg = null; renderAll(); return; }   // 기간을 바꾸면 집계는 그 기간의 기본값(1주·1개월 일별, 3개월 주간, 1년 월간)으로
-      var vk = t.closest('[data-if-view]');
-      if (vk) { state.view = vk.getAttribute('data-if-view'); renderBars(); setViewButtons(); return; }
-      var ak = t.closest('[data-if-agg]');
-      if (ak && !ak.disabled) { state.agg = ak.getAttribute('data-if-agg'); renderBars(); setViewButtons(); return; }
+      if (pk && !pk.disabled) { state.period = pk.getAttribute('data-if-period'); renderAll(); return; }
       var gk = t.closest('[data-if-gross-inv]');
       if (gk) { state.gross = gk.getAttribute('data-if-gross-inv'); renderGross(); }
     });
@@ -478,7 +353,7 @@
       var rows = rowsOf(), cur = periodOf(state.period);
       if (rows.length && rows.length < cur.n) {
         var ok = PERIODS.filter(function (x) { return rows.length >= x.n; }).pop();
-        if (ok) { state.period = ok.key; state.agg = null; renderAll(); }
+        if (ok) { state.period = ok.key; renderAll(); }
       }
     });
     timer = setInterval(function () { if (!document.hidden && document.body.contains(root) && root.offsetParent !== null) load(state.market, true); }, TTL_MS);
@@ -553,6 +428,6 @@
     mount: mount,
     mountBalance: mountBalance,
     _calc: { cumulative: cumulative, streak: streak, balanceStats: balanceStats, balanceSeries: balanceSeries, summarize: summarize, summarizeInvestors: summarizeInvestors, summarizeBalances: summarizeBalances, lastRows: lastRows, sumOf: sumOf, PERIODS: PERIODS, TREND_PCT: TREND_PCT, INVESTORS: INVESTORS,
-      aggregate: aggregate, resolveAgg: resolveAgg, barsSpec: barsSpec, bucketMeta: bucketMeta, defaultAgg: defaultAgg, periodSummary: periodSummary, outlierNote: outlierNote, VIEWS: VIEWS, AGGS: AGGS }
+      mmdd: mmdd, lineSpec: lineSpec }
   };
 })(window);
