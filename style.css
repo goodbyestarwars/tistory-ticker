@@ -4903,7 +4903,7 @@ html.dark .post-single-body th {
   background: rgba(245, 239, 224, 0.08) !important;
   font-weight: 700 !important;
 }
-html.dark .post-single-body table:not([class]) tr:nth-child(even) td {
+html.dark .post-single-body tr:nth-child(even) td {
   background: rgba(245, 239, 224, 0.04) !important;
 }
 html.dark .post-comments { color: #F5EFE0; }
