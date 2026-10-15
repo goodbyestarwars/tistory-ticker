@@ -13,6 +13,11 @@ VI(개별종목 변동성완화장치): KIS "변동성완화장치(VI) 현황" [
         vi_prc(발동가격), vi_count(발동횟수) - KIS 공식 예제 open-trading-api inquire_vi_status 컬럼 기준.
   vi_cls_code 값의 뜻은 문서로 확인하지 못해, 발동/해제 판정은 해제시간(vi_cncl_hour) 유무로 한다.
 
+시장 전체 사이드카·서킷브레이커(2026-10-15 재조사): KIS 국내주식 REST/실시간 목록 156개(장운영정보 H0STMKO0는 종목별 VI·거래정지 코드뿐,
+지수·프로그램매매·업종 API에도 발동 필드 없음)와 키움 문서에서 이를 알려주는 필드를 확인하지 못했고, KRX Open API 카탈로그·공공데이터에도 당일 발동 현황이 없다.
+KRX 사이트 크롤링은 금지 원칙이라 추가하지 않았다. 그래서 market_halt는 확인된 수신 경로가 연결될 때까지 available=False(=확인 불가)로 내려가며,
+가격 급락만으로 발동을 추정하지 않는다. 수신 경로가 생기면 ingest_market_halt()로 넣기만 하면 화면까지 이어진다.
+
 사이드카(프로그램매매 호가 일시효력정지): KIS·키움 문서에서 이를 알려주는 필드를 찾지 못했다
 (국내업종 현재지수·국내지수 실시간프로그램매매·장운영정보 컬럼 확인). 미검증 필드를 쓰지 않고
 KRX 크롤링도 새로 추가하지 않는 원칙에 따라, 확인된 출처가 생길 때까지 sidecar.available=False로 두고
@@ -38,6 +43,11 @@ MAX_LIST = 10
 VI_PATH = '/uapi/domestic-stock/v1/quotations/inquire-vi-status'
 VI_TR_ID = 'FHPST01390000'
 SIDECAR_NOTE = '사이드카 발동 여부를 알려주는 확인된 증권사 API 필드가 없어 아직 표시하지 않습니다.'
+HALT_NOTE = '사이드카·서킷브레이커 자동 수신 경로가 연결되지 않아 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.'
+HALT_KINDS = ('SIDECAR', 'CIRCUIT_BREAKER')
+HALT_MARKETS = ('KOSPI', 'KOSDAQ')
+HALT_STATUSES = ('active', 'released', 'resumed')
+HALT_STALE_SEC = 180             # 수신이 이보다 오래 끊기면 '정상'으로 두지 않고 확인 불가로 내린다
 
 _lock = threading.Lock()
 _state = {
@@ -47,6 +57,7 @@ _state = {
     'error': None,
 }
 _thread = None
+_halt = {'events': [], 'source': None, 'received_at': None}
 
 
 def in_poll_window(now_kst):
@@ -176,13 +187,94 @@ def refresh_once(appkey, appsecret, now_kst=None, getter=None):
     return rows
 
 
+def _iso_kst(value):
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(str(value))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        return None                      # 시간대 없는 시각은 믿지 않는다
+    return dt.astimezone(KST)
+
+
+def normalize_halt_event(raw):
+    """공식 수신 경로에서 온 한 건을 검증·정규화한다. 시장·종류·시각이 불확실하면 None(버림) - 추정으로 채우지 않는다.
+    서킷브레이커는 1~3단계 필수. 상태는 active(발동 중) / released(해제) / resumed(거래 재개)."""
+    if not isinstance(raw, dict):
+        return None
+    market, kind, status = raw.get('market'), raw.get('kind'), raw.get('status')
+    triggered = _iso_kst(raw.get('triggered_at'))
+    if market not in HALT_MARKETS or kind not in HALT_KINDS or status not in HALT_STATUSES or triggered is None:
+        return None
+    stage = raw.get('stage')
+    if kind == 'CIRCUIT_BREAKER':
+        if stage not in (1, 2, 3):
+            return None
+    else:
+        stage = None
+    released, resumed = _iso_kst(raw.get('released_at')), _iso_kst(raw.get('resumed_at'))
+    if status != 'active' and released is None and resumed is None:
+        return None                      # 해제·재개라면 그 시각이 있어야 한다
+    event_id = str(raw.get('id') or '%s-%s-%s-%s' % (market, kind, stage or 0, triggered.isoformat()))
+    return {'id': event_id, 'market': market, 'kind': kind, 'stage': stage, 'status': status, 'triggered_at': triggered.isoformat(),
+            'released_at': released.isoformat() if released else None, 'resumed_at': resumed.isoformat() if resumed else None}
+
+
+def ingest_market_halt(events, source, now_kst=None):
+    """확인된 공식 수신 경로가 연결되면 이 함수로 현재 상황을 통째로 넣는다(빈 목록 = '확인된 이벤트 없음'). 같은 id는 하나만 남기고(뒤의 것이 이김),
+    당일(KST) 발동 건만 보관하며 형식이 틀린 건은 버린다. 반환: 보관한 건수."""
+    now_kst = now_kst or datetime.now(KST)
+    today = now_kst.strftime('%Y-%m-%d')
+    byid = {}
+    for raw in events or []:
+        event = normalize_halt_event(raw)
+        if event and event['triggered_at'][:10] == today:
+            byid[event['id']] = event
+    with _lock:
+        _halt.update({'events': sorted(byid.values(), key=lambda e: e['triggered_at']), 'source': str(source or '')[:60] or None,
+                      'received_at': now_kst.isoformat(timespec='seconds')})
+    return len(byid)
+
+
+def build_market_halt(now_kst=None):
+    """화면용 시장 전체 사이드카·서킷브레이커 상태. 수신 경로가 없거나 수신이 끊겼으면 available=False(확인 불가)이며 events는 비운다.
+    available=True일 때만 events(오늘 발동 전부)와 active_count를 신뢰할 수 있다."""
+    now_kst = now_kst or datetime.now(KST)
+    with _lock:
+        events, source, received = list(_halt['events']), _halt['source'], _halt['received_at']
+    base = {'available': False, 'source': source, 'received_at': received, 'events': [], 'active_count': 0, 'reason': None, 'note': HALT_NOTE}
+    if not source or not received:
+        base['reason'] = 'NO_VERIFIED_SOURCE'
+        return base
+    received_dt = _iso_kst(received)
+    if received_dt is None or (now_kst - received_dt).total_seconds() > HALT_STALE_SEC:
+        base['reason'] = 'STALE'
+        base['note'] = '사이드카·서킷브레이커 수신이 지연되고 있어 발동 여부를 확인할 수 없습니다(정상이라는 뜻이 아닙니다). 한국거래소 공지를 확인하세요.'
+        return base
+    events = [e for e in events if e['triggered_at'][:10] == now_kst.strftime('%Y-%m-%d')]
+    return dict(base, available=True, reason=None, note=None, events=events, active_count=sum(1 for e in events if e['status'] == 'active'))
+
+
 def get_payload(now_kst=None):
     now_kst = now_kst or datetime.now(KST)
     with _lock:
         rows = list(_state['rows']) if _state['date'] == now_kst.strftime('%Y%m%d') else []
         fetched = _state['fetchedAt']
         error = _state['error']
-    return build_payload(rows, now_kst, fetched, error)
+    payload = build_payload(rows, now_kst, fetched, error)
+    halt = build_market_halt(now_kst)
+    payload['market_halt'] = halt
+    # 헤더 배지(사이드카)도 같은 수신 경로로만 채운다 - 수신이 없으면 기존처럼 available=False로 숨긴다.
+    if halt['available']:
+        active = [e for e in halt['events'] if e['kind'] == 'SIDECAR' and e['status'] == 'active']
+        if active:
+            last = active[-1]
+            payload['sidecar'] = {'available': True, 'active': True, 'market': last['market'], 'triggered_at': last['triggered_at'], 'note': None}
+        else:
+            payload['sidecar'] = {'available': True, 'active': False, 'market': None, 'triggered_at': None, 'note': None}
+    return payload
 
 
 def _loop(appkey, appsecret, on_tick=None):

@@ -700,6 +700,8 @@ document.documentElement.classList.add('skin-ready');
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section hmb2" id="homeMarketBoard">'
+        // 2026-10-15: 시장 전체 사이드카·서킷브레이커 긴급 알림 영역(개별 종목 VI 배지와 별개). 이벤트가 없으면 숨김, 수신 불가면 '확인 불가'만 낮은 강조로 표시.
+        + '<div class="home-halt" data-home-halt hidden role="status" aria-live="polite"></div>'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
         // 2026-09-15 작업지시서: "실시간" 옆에 사이드카(지수 전체) 알약 배지와 VI(개별종목) 카운트 배지를 따로 둔다.
         // 발동이 없으면 둘 다 hidden이라 공간을 차지하지 않는다(아래 homeCircuitBreakerBadges가 채운다).
@@ -2717,11 +2719,49 @@ document.documentElement.classList.add('skin-ready');
       if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
     }
     function hideAll() {
+      var haltBox = q('[data-home-halt]');
+      if (haltBox) haltBox.hidden = true;
       var sidecar = q('[data-home-cb-sidecar]');
       var button = q('[data-home-cb-vi]');
       if (sidecar) sidecar.hidden = true;
       if (button) button.hidden = true;
       setDropdown(false);
+    }
+
+    // 시장 전체 사이드카(주황)·서킷브레이커(빨강). 발동 중이 가장 위, 그 아래 당일 해제·거래재개 이력. 같은 id는 한 번만 그린다.
+    var MARKET_LABEL = { KOSPI: '코스피', KOSDAQ: '코스닥' };
+    function haltTitle(e) {
+      return (MARKET_LABEL[e.market] || e.market) + ' ' + (e.kind === 'CIRCUIT_BREAKER' ? '서킷브레이커 ' + e.stage + '단계' : '사이드카');
+    }
+    function haltRow(e) {
+      var cls = e.kind === 'CIRCUIT_BREAKER' ? 'is-cb' : 'is-sidecar';
+      var state = e.status === 'active' ? '발동 중' : (e.status === 'resumed' ? '거래 재개 ' + hhmm(e.resumed_at || e.released_at) : '해제 ' + hhmm(e.released_at || e.resumed_at));
+      return '<li class="' + cls + (e.status === 'active' ? ' is-active' : ' is-ended') + '"><b>' + esc(haltTitle(e)) + '</b>'
+        + '<span>발동 ' + esc(hhmm(e.triggered_at)) + '</span><em>' + esc(state) + '</em></li>';
+    }
+    function renderHalt(el, halt) {
+      if (!el) return;
+      if (!halt) { el.hidden = true; return; }
+      if (!halt.available) {
+        // 수신 경로가 없거나 끊김: 정상으로 보이게 두지 않고 '확인 불가'를 낮은 강조로 표시한다(경고색 배너가 아님).
+        el.className = 'home-halt is-unknown';
+        el.innerHTML = '<span>사이드카·서킷브레이커 자동 확인 불가</span><small>'
+          + esc(halt.reason === 'STALE' ? '수신 지연 중 · 정상이라는 뜻이 아님 · 한국거래소 공지 확인' : '수신 경로 미연결 · 정상 여부를 알 수 없음 · 한국거래소 공지 확인') + '</small>';
+        el.hidden = false;
+        return;
+      }
+      var seen = {};
+      var events = (halt.events || []).filter(function (e) { if (!e || seen[e.id]) return false; seen[e.id] = true; return true; });
+      if (!events.length) { el.hidden = true; return; }                       // 이벤트가 없으면 배너를 두지 않는다
+      var byNewest = function (a, b) { return String(b.triggered_at).localeCompare(String(a.triggered_at)); };
+      var active = events.filter(function (e) { return e.status === 'active'; }).sort(byNewest);
+      var ended = events.filter(function (e) { return e.status !== 'active'; }).sort(byNewest);
+      var anyCb = active.some(function (e) { return e.kind === 'CIRCUIT_BREAKER'; });
+      el.className = 'home-halt ' + (active.length ? (anyCb ? 'is-cb-active' : 'is-sidecar-active') : 'is-history');
+      el.innerHTML = (active.length ? '<strong>' + (anyCb ? '서킷브레이커' : '사이드카') + ' 발동 중</strong>' : '<strong>오늘 시장 조치 이력</strong>')
+        + '<ul>' + active.map(haltRow).join('') + '</ul>'
+        + (ended.length ? (active.length ? '<h4>오늘 해제·거래재개 이력</h4>' : '') + '<ul class="is-history-list">' + ended.map(haltRow).join('') + '</ul>' : '');
+      el.hidden = false;
     }
 
     function renderSidecar(el, sidecar) {
@@ -2784,6 +2824,7 @@ document.documentElement.classList.add('skin-ready');
         .then(function (body) {
           var data = body && body.data ? body.data : body;
           if (!data || !isDomesticCard()) return;
+          renderHalt(q('[data-home-halt]'), data.market_halt);
           renderSidecar(q('[data-home-cb-sidecar]'), data.sidecar);
           renderVi(q('[data-home-cb-vi]'), q('[data-home-cb-dropdown]'), data);
         })
