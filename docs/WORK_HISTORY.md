@@ -1,3 +1,7 @@
+**2026-10-15 시장 변동성 모니터 통합(CB·사이드카·VI) + KIS 실시간 VI(H0STVIC0) 구독**
+
+국내 시장 카드 '시장 방향' 오른쪽에 CB·사이드카·VI를 한 줄로 압축한 '시장 변동성' 모니터를 두고(`js/skin-main.js` `homeCircuitBreakerBadges`, `css/home-market-board.css` `.vol-*`), 눌러서 VI 상세(발동 중/오늘 이력·코스피/코스닥·정적/동적 필터, 종목 클릭 시 차트검색)와 기존 CB·사이드카 이력 화면(`renderHalt`)을 연다. 맨 위 배너·헤더 VI/사이드카 배지·드롭다운은 제거(중복 방지). 백엔드: `vi_store.py`(REST+실시간을 (종목, 발동시각)으로 합친 당일 이력, 파일 보존, 해제 미수신 10분 초과·수신 끊김이면 확인 불가), `vi_kis.py`(H0STVIC0 15필드 파싱, 공유 허브 구독), `/api/circuit-breaker`에 `vi_available`·`vi_today`·`vi_basis` 추가(기존 키 유지, 수신이 끊기면 `vi_active_count=null`). 허브: 구독 승인/거부 응답 이력(`controlLog`), 등록 상한 40→41 시도. 정적/동적 구분은 `vi_kind_code`가 아니라 기준가격(정적 기준가만 있으면 정적, 동적 기준가만 있으면 동적, 2026-10-15 REST 실측)으로 한다. 테스트: `test_vi_monitor.py` 신규, `test_home_badge_hidden.py`는 모니터 계약으로 교체.
+
 **2026-10-15 '장중 거래량 급증' 매집 신호 리뷰 보완 4건**
 
 PR #651 리뷰 반영(`volume_accumulation.py`, `volume_surge_live.py`, `js/pattern-scan.js`). ① 장중 현재가가 매집봉 저가(2%)·종가(4%) 지지를 이탈하면 '지지 대기'로 두지 않고 목록에서 제외. ② 순위권 밖 매집봉 후보는 기존 시세 배치(`domestic_quotes.fetch_quotes`, 60종목/요청·5초 캐시)로 한 번에 현재가·거래량을 갱신(최대 120종목, 실패 시 일봉 기준 유지, 종목별 REST 호출 없음). ③ 5분봉 표본이 모자라면 분배 위험을 '낮음'이 아니라 '판정 보류'(PENDING)로 표시. ④ 가격 기준 구분: 장중 감지 행은 감지가(최초 감지 시점 가격), 일봉 매집봉만 있는 행은 일봉 스캔가이며 화면 라벨도 감지/스캔으로 구분. 검증: `test_volume_accumulation_review.py` 신규 8건 + 기존 23건·`test_volume_surge_live.py` 통과, 전체 회귀에서 새 실패 없음(기존 실패 7건은 master에서도 동일). 자동매매 엔진 미접촉.

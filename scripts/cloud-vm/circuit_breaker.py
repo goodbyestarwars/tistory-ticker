@@ -200,6 +200,7 @@ def refresh_once(appkey, appsecret, now_kst=None, getter=None):
         _state['error'] = None
     for row in rows:
         vi_store.merge(row, 'REST', now_kst)
+    vi_store.save()
     return rows
 
 
@@ -408,6 +409,7 @@ def start_background(appkey, appsecret, on_tick=None):
     if not appkey or not appsecret:
         logger.warning('KIS_APPKEY/KIS_APPSECRET 미설정 - VI 배지 조회 건너뜀')
         return None
+    vi_store.load(datetime.now(KST))
     with _lock:
         if _thread is not None and _thread.is_alive():
             return _thread
