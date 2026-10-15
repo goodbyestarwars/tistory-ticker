@@ -55,6 +55,15 @@ class KisHaltTests(unittest.TestCase):
         self.assertIsNone(cb.normalize_halt_event({'market': 'KOSPI', 'kind': 'CIRCUIT_BREAKER', 'stage': None, 'status': 'active',
                                                    'triggered_at': self.now.isoformat()}))   # 코드 없는 단계 미상은 여전히 버림
 
+    def test_cb_release_codes_and_ambiguous_codes(self):
+        mk.handle_raw(frame('005930', '174'), self.now)
+        mk.handle_raw(frame('005930', '182'), self.now)
+        mk.handle_raw(frame('005930', '184'), self.now)
+        self.assertEqual(len(mk.snapshot()['events']), 1)
+        mk.handle_raw(frame('005930', '185'), self.now + timedelta(minutes=20))
+        (ev,) = mk.snapshot()['events']
+        self.assertEqual(ev['status'], 'released')
+
     def test_release_without_trigger_is_kept_as_missed(self):
         mk.handle_raw(frame('005930', '398'), self.now)
         (ev,) = mk.snapshot()['events']
