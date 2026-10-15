@@ -308,6 +308,13 @@
       var tr = board.querySelector('tr.ibd-row[data-id="' + picked[i].id.replace(/"/g, '') + '"]');
       if (tr) tr.click();
     });
+    // 지금 차트로 보고 있는 지수 카드에 표시(aria-pressed)
+    var selected = board.querySelector('tr.ibd-row.is-selected');
+    var selId = selected && selected.getAttribute('data-id');
+    Array.prototype.forEach.call(host.querySelectorAll('.mm-card'), function (b, i) {
+      var on = !!selId && picked[i].id === selId;
+      b.classList.toggle('is-on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
   }
 
   /* ---------- 증시온도 ---------- */

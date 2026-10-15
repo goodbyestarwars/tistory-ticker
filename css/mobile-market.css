@@ -39,6 +39,7 @@
   .mm-cards::-webkit-scrollbar { display: none; }
   .mm-card { appearance: none; flex: 1 0 calc(50% - 5px); min-width: 0; min-height: 44px; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 12px 14px; border: 1px solid var(--mm-line); border-radius: 12px; background: var(--mm-bg); color: var(--mm-ink); text-align: left; cursor: pointer; scroll-snap-align: start; font-family: Pretendard, "Malgun Gothic", sans-serif; }
   .mm-cards[data-mm-cards="global"] .mm-card { flex-basis: 46%; }
+  .mm-card.is-on { border-color: var(--mm-ink); box-shadow: inset 0 0 0 1px var(--mm-ink); }
   .mm-card-name { font-size: 12.5px; font-weight: 700; color: var(--mm-sub); }
   .mm-card-price { font-size: 20px; font-weight: 800; line-height: 1.15; font-variant-numeric: tabular-nums; color: var(--mm-ink); }
   .mm-card-chg { font-size: 12.5px; font-weight: 700; font-variant-numeric: tabular-nums; color: var(--mm-sub); }
