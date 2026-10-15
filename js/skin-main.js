@@ -701,7 +701,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section hmb2" id="homeMarketBoard">'
         + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
-        + '<div class="home-cb-wrap"><span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
+        + '<div class="home-cb-wrap"><button type="button" class="vol-history-link" data-vol-open="all" data-vol-history hidden aria-expanded="false" aria-controls="volPanel">오늘 변동성 이력</button><span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
         + '<div class="hmb2-status" data-hmb-status>'
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
@@ -763,7 +763,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-alert';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-cards';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -2777,18 +2777,25 @@ document.documentElement.classList.add('skin-ready');
     }
     function haltCardHtml(e, open) {
       var isCb = e.kind === 'CIRCUIT_BREAKER';
-      var detail = [MARKET_LABEL[e.market] || e.market, isCb ? (e.stage ? e.stage + '단계' : '') : (e.direction === 'SELL' ? '매도' : e.direction === 'BUY' ? '매수' : ''), hhmm(e.triggered_at) + ' 발동']
+      var detail = [MARKET_LABEL[e.market] || e.market, isCb ? (e.stage ? e.stage + '단계' : '') : (e.direction === 'SELL' ? '매도' : e.direction === 'BUY' ? '매수' : '')]
         .filter(function (t) { return t; }).join(' · ');
       return '<button type="button" class="vol-alert ' + (isCb ? 'is-cb' : 'is-side') + '" data-vol-open="halt" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
-        + '<strong>' + (isCb ? '서킷브레이커 발동' : '사이드카 발동') + '</strong><span>' + esc(detail) + '</span></button>';
+        + '<strong>' + (isCb ? '서킷브레이커' : '사이드카') + '</strong>'
+        + '<b class="vol-state">' + esc((detail ? detail + ' ' : '') + '발동') + '</b>'
+        + '<span>' + esc(hhmm(e.triggered_at)) + ' 발동</span></button>';
     }
-    // VI는 경보 카드가 아니라 한 줄 요약: 발동 중이 1건 이상일 때만, 가장 최근 발동 종목과 함께.
+    // VI 카드용 요약: 발동 중이 1건 이상일 때만 값이 있고, 전체 현황을 못 받는 중이면 null(카드를 그리지 않는다).
     function viLine(data) {
       if (data.vi_available === false || data.vi_active_count == null) return null;
       var act = (data.vi_today || []).filter(function (r) { return r.status === 'active'; });
       if (!act.length) return null;
       var last = act[0];
-      return 'VI 발동 ' + act.length + '건 · 최근 ' + hhmm(last.triggered_at) + ' ' + (MARKET_LABEL[last.market] ? MARKET_LABEL[last.market] + ' ' : '') + last.name + ' 발동';
+      return { count: act.length, time: hhmm(last.triggered_at), market: MARKET_LABEL[last.market] || '', name: last.name };
+    }
+    function viCardHtml(v, open) {
+      return '<button type="button" class="vol-alert is-vi" data-vol-open="vi" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
+        + '<strong>변동성완화장치 · VI</strong><b class="vol-count">' + v.count + '<small>건 발동 중</small></b>'
+        + '<span>최근 ' + esc(v.time) + ' ' + esc((v.market ? v.market + ' ' : '') + v.name) + '</span></button>';
     }
     function haltHistoryCount(halt) {
       return halt && halt.available ? (halt.events || []).length : 0;
@@ -2834,43 +2841,57 @@ document.documentElement.classList.add('skin-ready');
       return html + '<small class="vol-src">출처 KIS 변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
     }
 
-    // 평소(이벤트가 없을 때)에는 아무것도 그리지 않는다. CB·사이드카 발동 카드 > VI 한 줄 요약 > (수신 불가 한 줄) 순으로 위에서 아래로 쌓는다.
+    // 평소(이벤트가 없을 때)에는 카드 영역을 그리지 않는다. 발동 중인 것만 카드로: 서킷브레이커(빨강) · 사이드카(주황) · VI(회색).
+    // 해제된 이벤트는 카드에서 빠지고 당일 이력은 상세(카드를 눌러 열거나 헤더의 '오늘 변동성 이력' 링크)에서만 본다.
     function renderAlerts(box, data) {
       if (!box) return;
-      if (!data) { box.hidden = true; return; }
+      var link = q('[data-vol-history]');
+      if (!data) { box.hidden = true; if (link) link.hidden = true; return; }
       lastData = data;
       var halts = activeHalts(data.market_halt), vi = viLine(data);
       var unknown = !data.market_halt || !data.market_halt.available;
-      var history = haltHistoryCount(data.market_halt);
-      var html = halts.map(function (e) { return haltCardHtml(e, panel === 'halt'); }).join('');
-      if (vi) html += '<button type="button" class="vol-viline" data-vol-open="vi" aria-expanded="' + (panel === 'vi' ? 'true' : 'false') + '" aria-controls="volPanel">' + esc(vi) + '</button>';
-      if (!halts.length && history) html += '<button type="button" class="vol-viline" data-vol-open="halt" aria-expanded="' + (panel === 'halt' ? 'true' : 'false') + '" aria-controls="volPanel">오늘 서킷브레이커·사이드카 이력 ' + history + '건</button>';
-      if (unknown) html += '<span class="vol-unknown">서킷브레이커·사이드카 수신 확인 불가</span>';
-      if (!html && panel !== 'vi') { box.hidden = true; box.innerHTML = ''; panel = null; return; }
+      var haltHistory = haltHistoryCount(data.market_halt);
+      var viHistory = data.vi_available === false ? 0 : (data.vi_today || []).length;
+      var cards = halts.map(function (e) { return haltCardHtml(e, panel === 'halt'); }).join('') + (vi ? viCardHtml(vi, panel === 'vi') : '');
+      if (link) {
+        link.hidden = !!cards || !(haltHistory || viHistory);
+        link.setAttribute('aria-expanded', panel === 'all' ? 'true' : 'false');
+      }
+      var html = cards + (unknown ? '<span class="vol-unknown">서킷브레이커·사이드카 수신 확인 불가</span>' : '');
+      if (!html && !panel) { box.hidden = true; box.innerHTML = ''; return; }
       box.innerHTML = html + '<div class="vol-panel" id="volPanel" role="region" aria-label="시장 변동성 상세"' + (panel ? '' : ' hidden') + '></div>';
       box.hidden = false;
       var p = box.querySelector('.vol-panel');
-      if (panel === 'vi') p.innerHTML = viPanelHtml(data);
-      else if (panel === 'halt') {
+      function haltHolder() {
         haltOpen = true;
         var holder = document.createElement('div');
         holder.className = 'home-halt';
         renderHalt(holder, data.market_halt);
         if (holder.hidden) holder.innerHTML = '<small class="vol-note">오늘 사이드카·서킷브레이커 발동 이력이 없습니다.</small>';
-        p.appendChild(holder);
         holder.hidden = false;
+        return holder;
+      }
+      if (panel === 'vi') p.innerHTML = viPanelHtml(data);
+      else if (panel === 'halt') p.appendChild(haltHolder());
+      else if (panel === 'all') {
+        if (haltHistory) p.appendChild(haltHolder());
+        var viBox = document.createElement('div');
+        viBox.innerHTML = viPanelHtml(data);
+        p.appendChild(viBox);
       }
     }
     function openPanel(next, focusBack) {
       panel = panel === next ? null : next;
-      var box = q('[data-vol-monitor]');
-      renderAlerts(box, lastData);
-      if (!panel && focusBack && box) { var b = box.querySelector('[data-vol-open="' + focusBack + '"]'); if (b) b.focus(); }
+      if (panel === 'all') viView.mode = 'today';          // 이력 링크로 열면 오늘 이력부터 보여 준다
+      renderAlerts(q('[data-vol-monitor]'), lastData);
+      if (!panel && focusBack) { var b = q('[data-vol-open="' + focusBack + '"]'); if (b) b.focus(); }
     }
 
     function hideAll() {
       var box = q('[data-vol-monitor]');
       if (box) box.hidden = true;
+      var hl = q('[data-vol-history]');
+      if (hl) hl.hidden = true;
       panel = null;
     }
 

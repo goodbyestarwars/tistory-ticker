@@ -39,13 +39,22 @@ class VolMonitorContractTest(unittest.TestCase):
         self.assertIn('aria-controls="volPanel"', self.js)
         self.assertIn(':focus-visible', self.css)
 
-    def test_alert_cards_colors_dark_mode_and_mobile(self):
-        self.assertIn('.vol-alert.is-cb { border-color: #f3b4ae; border-left-color: #b42318; background: #fdecea; color: #b42318; }', self.css)   # CB 빨강
-        self.assertIn('.vol-alert.is-side { border-color: #f5c98a; border-left-color: #d97706; background: #fff4e5; color: #b45309; }', self.css)   # 사이드카 주황
-        self.assertIn('html.dark .vol-alert.is-cb', self.css)
-        self.assertIn('html.dark .vol-alert.is-side', self.css)
-        self.assertIn('html.dark .vol-panel', self.css)
-        self.assertIn('@media (max-width: 720px)', self.css)
+    def test_alert_cards_colors_unified_size_dark_mode_and_mobile(self):
+        self.assertIn('.vol-alert.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }', self.css)       # 연한 빨강
+        self.assertIn('.vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }', self.css)     # 연한 주황
+        self.assertIn('.vol-alert.is-vi { border-color: #d7dbe0; background: #f1f3f5; color: #374151; }', self.css)        # 연한 회색
+        self.assertIn('min-height: 78px', self.css)                                                                       # 카드 높이 통일
+        self.assertIn('padding: 10px 12px', self.css[self.css.index('.vol-alert {'):self.css.index('.vol-alert strong')])
+        self.assertIn('800 22px', self.css)                                                                               # VI 건수 20~24px 강조
+        for sel in ('html.dark .vol-alert.is-cb', 'html.dark .vol-alert.is-side', 'html.dark .vol-alert.is-vi', 'html.dark .vol-panel'):
+            self.assertIn(sel, self.css)
+        mobile = self.css[self.css.index('@media (max-width: 720px) { .vol-monitor'):]
+        self.assertIn('flex-direction: column', mobile[:mobile.index('\n')])                                              # 모바일 세로 배치
+
+    def test_history_link_only_when_no_cards_and_keeps_history_reachable(self):
+        self.assertIn('data-vol-history hidden', self.js)
+        self.assertIn("link.hidden = !!cards || !(haltHistory || viHistory);", self.js)
+        self.assertIn("viView.mode = 'today'", self.js)
 
     def test_no_pills_no_serif_and_no_always_on_none_text(self):
         self.assertNotIn('vol-chip', self.css + self.js)
