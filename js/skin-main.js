@@ -1289,7 +1289,7 @@ document.documentElement.classList.add('skin-ready');
       element.classList.add('has-session-chart');
       element.setAttribute('data-session-symbol', key);
       var controls = '<div class="hmb-price-controls"><span>30분 · '
-        + (key === 'KOSPI200_NIGHT' ? 'KST' : '뉴욕시간') + '</span>'
+        + (['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간') + '</span>'
         + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
         + (homePriceMode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
         + (homePriceMode === 'bar' ? '막대' : '면적') + '</span>'
@@ -1408,7 +1408,7 @@ document.documentElement.classList.add('skin-ready');
 
     function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
-      if (['NASDAQ_INDEX', 'SP500_INDEX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
+      if (['KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
         stopHomeChartMotion(element);
         var oldCaption = element.nextElementSibling;
         if (oldCaption && oldCaption.classList.contains('home-index-history-caption')) oldCaption.remove();
@@ -1472,8 +1472,8 @@ document.documentElement.classList.add('skin-ready');
         ? Number(chartRows[0].open) : values[values.length - 2];
       if (!isFinite(baseline)) baseline = values[0];
       var last = values[values.length - 1];
-      var dotColor = key === 'kospiNight' && !hasReference ? '#64748b'
-        : last > baseline ? '#d24f45' : last < baseline ? '#1261c4' : '#64748b';
+      var dotColor = key === 'kospiNight' && !hasReference ? 'var(--hmb-chart-line, #b0bbc8)'
+        : last > baseline ? 'var(--hmb-chart-up, #e7aaa5)' : last < baseline ? 'var(--hmb-chart-down, #9dbbe0)' : 'var(--hmb-chart-line, #b0bbc8)';
       var lastY = bottom - ((values[values.length - 1] - min) / range) * plotHeight;
       var guideY = bottom - ((baseline - min) / range) * plotHeight;
       guideY = Math.max(topPad, Math.min(bottom, guideY));
@@ -1506,7 +1506,7 @@ document.documentElement.classList.add('skin-ready');
       element.innerHTML = '<svg viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" aria-hidden="true">'
         + axis
         + '<line x1="' + pad + '" x2="' + lineEnd + '" y1="' + guideY.toFixed(2) + '" y2="' + guideY.toFixed(2) + '" stroke="#cbd0d6" stroke-width="1" stroke-dasharray="3 3" vector-effect="non-scaling-stroke"></line>'
-        + '<polyline class="home-chart-trace" points="' + (animate ? coords[initial][0].toFixed(2) + ',' + coords[initial][1].toFixed(2) : points) + '" fill="none" stroke="#374151" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
+        + '<polyline class="home-chart-trace" points="' + (animate ? coords[initial][0].toFixed(2) + ',' + coords[initial][1].toFixed(2) : points) + '" fill="none" stroke="var(--hmb-chart-line, #b0bbc8)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"></polyline>'
         + '<g class="home-chart-pen" transform="translate(' + coords[initial][0].toFixed(2) + ' ' + coords[initial][1].toFixed(2) + ')">'
         + '<path d="M0 0 L4 -1.2 L8 -1.2 L8 1.2 L4 1.2 Z" fill="#374151" stroke="#1f2937" stroke-width=".5" vector-effect="non-scaling-stroke"></path>'
         + '<path d="M8 -1.4 L19 -1.4 M8 1.4 L19 1.4 M19 -2.4 L19 2.4" fill="none" stroke="#374151" stroke-width=".9" vector-effect="non-scaling-stroke"></path>'

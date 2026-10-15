@@ -12,6 +12,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-faint: rgba(var(--np-ink, 26, 26, 26), .38);
   --hmb-line: rgba(var(--np-ink, 26, 26, 26), .1);
   --hmb-chart-up: #e7aaa5;
+  --hmb-chart-line: #b0bbc8;
   --hmb-chart-down: #9dbbe0;
   --hmb-chart-up-text: #ad706b;
   --hmb-chart-down-text: #6386b2;
@@ -24,6 +25,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
 }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-chart-up: #d79b96;
+  --hmb-chart-line: #9faab8;
   --hmb-chart-down: #94b2d7;
   --hmb-chart-up-text: #d8aba6;
   --hmb-chart-down-text: #a9c3e4;
