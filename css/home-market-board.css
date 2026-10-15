@@ -217,22 +217,15 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-status { dis
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { flex: 0 1 auto; min-width: 0; }
 .vol-monitor { position: relative; flex: 1 1 280px; max-width: 420px; margin-left: auto; font-family: var(--font-ui, "Pretendard", system-ui, sans-serif); font-variant-numeric: tabular-nums; }
 .vol-monitor[hidden] { display: none; }
-.vol-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding-bottom: 3px; border-bottom: 1px solid var(--hmb-line, #e2e8f0); }
-.vol-head strong { font: 600 13px/1.25 var(--font-ui, "Pretendard", system-ui, sans-serif); letter-spacing: 0; }
-.vol-updated { color: var(--hmb-faint, #94a3b8); font-size: 11px; white-space: nowrap; }
-.vol-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.vol-col { display: flex; flex-direction: column; gap: 1px; min-width: 0; padding: 5px 8px; border: 0; border-left: 1px solid var(--hmb-line, #e2e8f0); border-radius: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-.vol-col:first-child { border-left: 0; padding-left: 0; }
-.vol-label { color: var(--hmb-mute, #64748b); font: 500 11px/1.25 var(--font-ui, "Pretendard", system-ui, sans-serif); }
-.vol-value { overflow: hidden; font: 700 15px/1.25 var(--font-ui, "Pretendard", system-ui, sans-serif); text-overflow: ellipsis; white-space: nowrap; }
-.vol-col:hover .vol-value { text-decoration: underline; text-underline-offset: 3px; }
-.vol-col:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
-.vol-col[aria-expanded="true"] .vol-label { color: inherit; font-weight: 700; }
-.vol-col.is-cb .vol-value { color: #b42318; }
-.vol-col.is-side .vol-value { color: #b45309; }
-.vol-col.is-vi .vol-value { font-weight: 800; }
-.vol-col.is-unknown .vol-value { color: var(--hmb-faint, #94a3b8); font-weight: 600; }
-.vol-latest { overflow: hidden; padding-top: 3px; border-top: 1px solid var(--hmb-line, #e2e8f0); color: var(--hmb-mute, #64748b); font-size: 11px; line-height: 1.3; text-overflow: ellipsis; white-space: nowrap; min-height: 14px; }
+.vol-alert { display: block; width: 100%; margin: 0 0 6px; padding: 8px 12px; border: 1px solid; border-left-width: 4px; border-radius: 2px; text-align: left; font: inherit; cursor: pointer; }
+.vol-alert strong { display: block; font: 700 14px/1.3 var(--font-ui, "Pretendard", system-ui, sans-serif); }
+.vol-alert span { display: block; margin-top: 1px; font: 500 12px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); opacity: .85; }
+.vol-alert.is-cb { border-color: #f3b4ae; border-left-color: #b42318; background: #fdecea; color: #b42318; }
+.vol-alert.is-side { border-color: #f5c98a; border-left-color: #d97706; background: #fff4e5; color: #b45309; }
+.vol-alert:focus-visible, .vol-viline:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+.vol-viline { display: block; max-width: 100%; margin: 0 0 4px; padding: 0; overflow: hidden; border: 0; background: none; color: var(--hmb-mute, #64748b); font: 500 12px/1.5 var(--font-ui, "Pretendard", system-ui, sans-serif); text-align: left; text-overflow: ellipsis; text-underline-offset: 3px; white-space: nowrap; cursor: pointer; }
+.vol-viline:hover { text-decoration: underline; }
+.vol-unknown { display: block; color: var(--hmb-faint, #94a3b8); font: 500 11px/1.5 var(--font-ui, "Pretendard", system-ui, sans-serif); }
 .vol-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 30; width: min(440px, calc(100vw - 32px)); max-height: min(60vh, 420px); overflow: auto; padding: 10px 12px; border: 1px solid var(--hmb-line, #e2e8f0); border-radius: 2px; background: #fff; box-shadow: 0 8px 20px rgba(15, 23, 42, .12); font-size: 12px; }
 .vol-panel[hidden] { display: none; }
 .vol-panel .home-halt { margin: 0; padding: 0; border: 0; background: transparent; }
@@ -255,5 +248,5 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 html.dark .vol-panel { background: #1e1e1e; border-color: rgba(245, 239, 224, .14); }
 html.dark .vol-seg-btn.is-on { background: #F5EFE0; color: #1e1e1e; }
 html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
-html.dark .vol-col.is-cb .vol-value { color: #f4a39b; }
-html.dark .vol-col.is-side .vol-value { color: #fbbf24; }
+html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(232, 119, 109, .45); border-left-color: #e8776d; color: #f4a39b; }
+html.dark .vol-alert.is-side { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); border-left-color: #f59e0b; color: #fbbf24; }
