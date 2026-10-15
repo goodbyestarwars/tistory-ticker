@@ -6,7 +6,7 @@
   var API = 'https://goodbyestar.cloud/futures';
   // 물가·고용·경기를 한쪽으로 치우치지 않게 읽는 최소 세트. 금리는 글로벌 시장지표에만 둔다.
   var SYMBOLS = [
-    'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE', 'US_PPI',
+    'US_CPI', 'US_CORE_CPI', 'US_CORE_PCE', 'US_PPI_FINAL_DEMAND',
     'US_NONFARM_PAYROLLS', 'US_UNEMPLOYMENT', 'US_JOB_OPENINGS',
     'US_RETAIL_SALES', 'US_REAL_GDP_GROWTH', 'US_CONSUMER_SENTIMENT'
   ];
@@ -14,12 +14,12 @@
   // 연준이 공표한 2026년 잔여 회의와 2027년 일정. FOMC 공표 전에는 확정 일정이 아니므로
   // 별도 데이터 수집값처럼 다루지 않고, 공식 일정이 바뀔 때만 이 목록을 갱신한다.
   var FOMC_DATES = ['2026-10-27', '2026-12-08', '2027-01-26', '2027-03-16', '2027-04-27', '2027-06-08', '2027-07-27', '2027-09-14', '2027-10-26', '2027-12-07'];
-  var INFLATION_SYMBOLS = { US_CPI: true, US_CORE_CPI: true, US_CORE_PCE: true, US_PPI: true };
+  var INFLATION_SYMBOLS = { US_CPI: true, US_CORE_CPI: true, US_CORE_PCE: true, US_PPI_FINAL_DEMAND: true };
   var META = {
     US_CPI: { label: '소비자물가지수 (CPI)', unit: 'pt', cadence: '월간 · 헤드라인 CPI', category: '물가', source: 'BLS' },
     US_CORE_CPI: { label: '근원 소비자물가지수', unit: 'pt', cadence: '월간 · Core CPI', category: '물가', source: 'BLS' },
     US_CORE_PCE: { label: '근원 PCE 물가', unit: 'pt', cadence: '월간 · Core PCE', category: '물가', source: 'BEA' },
-    US_PPI: { label: '생산자물가지수 (PPI)', unit: 'pt', cadence: '월간 · 생산단 물가', category: '물가', source: 'BLS' },
+    US_PPI_FINAL_DEMAND: { label: '최종수요 생산자물가지수 (PPI)', unit: 'pt', cadence: '월간 · 최종수요 · 계절조정', category: '물가', source: 'BLS' },
     US_NONFARM_PAYROLLS: { label: '비농업고용', unit: '천 명', cadence: '월간 · 고용보고서', category: '고용', source: 'BLS' },
     US_UNEMPLOYMENT: { label: '실업률', unit: '%', cadence: '월간 · 가계조사', category: '고용', source: 'BLS' },
     US_JOB_OPENINGS: { label: 'JOLTS 구인건수', unit: '천 건', cadence: '월간 · 구인 수요', category: '고용', source: 'BLS' },
@@ -208,7 +208,7 @@
 
   function readGuide_(symbol) {
     var guides = {
-      US_CPI: '지수의 크기보다 물가 상승률을 확인', US_CORE_CPI: '식품·에너지를 제외한 물가 추세', US_CORE_PCE: '연준 물가 목표 2%는 전체 PCE 기준', US_PPI: '생산자가 받는 가격의 변화',
+      US_CPI: '지수의 크기보다 물가 상승률을 확인', US_CORE_CPI: '식품·에너지를 제외한 물가 추세', US_CORE_PCE: '연준 물가 목표 2%는 전체 PCE 기준', US_PPI_FINAL_DEMAND: '최종수요에서 생산자가 받는 가격의 변화',
       US_NONFARM_PAYROLLS: '고용 증가폭과 이전 발표의 수정을 함께 확인', US_UNEMPLOYMENT: '실업률의 수준과 상승 속도를 함께 확인', US_JOB_OPENINGS: '기업의 구인 수요와 변화 속도를 확인', US_RETAIL_SALES: '물가가 반영된 판매액이므로 실질 소비와 구분',
       US_REAL_GDP_GROWTH: '연율 2% 안팎이면 완만한 성장', US_CONSUMER_SENTIMENT: '장기 평균과의 차이를 확인'
     };
@@ -220,7 +220,7 @@
       US_CPI: ['예상보다 물가↑ → 금리 인하 지연 → 기술·성장주 부담', '예상보다 물가↓ → 금리 부담 완화 → 성장주에 도움. 소비 급감은 별도 위험', '물가는 식고 소비는 유지 → 금리·기업 실적 모두 주식에 유리'],
       US_CORE_CPI: ['예상보다 근원 물가↑ → 고금리 장기화 우려 → 성장주·부채 많은 기업 부담', '근원 물가 둔화 → 금리 인하 기대 → 기술·성장주에 도움', '근원 물가 둔화 + 고용 유지 → 실적 훼손 없이 주가 부담 완화'],
       US_CORE_PCE: ['예상보다 물가↑ → 연준 인하 기대 후퇴 → 기술·성장주 부담', '예상보다 물가↓ → 인하 기대 강화 → 성장주·금리에 민감한 업종에 도움', '물가 둔화 + 소비 유지 → 금리 부담은 줄고 기업 매출은 지지'],
-      US_PPI: ['원가↑ → 가격에 못 넘기면 이익↓. 물가 전가 시 금리 부담도 증가', '원가↓ → 제조·유통업 이익에 도움. 주문 감소 때문이면 실적 위험', '원가는 낮아지고 판매는 유지 → 기업 이익 개선에 유리'],
+      US_PPI_FINAL_DEMAND: ['원가↑ → 가격에 못 넘기면 이익↓. 물가 전가 시 금리 부담도 증가', '원가↓ → 제조·유통업 이익에 도움. 주문 감소 때문이면 실적 위험', '원가는 낮아지고 판매는 유지 → 기업 이익 개선에 유리'],
       US_NONFARM_PAYROLLS: ['고용↑ → 소비·기업 매출에 도움. 예상보다 너무 강하면 금리↑·성장주 부담', '완만한 둔화는 인하 기대에 도움. 급감하면 소비·기업 실적 악화 우려', '고용은 완만히 늘고 물가는 둔화 → 소비주·성장주에 함께 도움'],
       US_UNEMPLOYMENT: ['실업 급증 → 소비↓·기업 매출↓ → 소비주·경기민감주 부담', '고용 안정 → 소비주에 도움. 지나치게 낮으면 임금·금리 부담', '실업 급등 없이 물가 둔화 → 실적 유지·금리 부담 완화로 주식에 유리'],
       US_JOB_OPENINGS: ['구인↑ → 경기 활력. 과열되면 임금·금리↑ → 기업 이익·성장주 부담', '완만한 감소는 금리 부담 완화. 급감하면 경기민감주 실적 위험', '구인 과열은 줄고 실업은 안정 → 금리·실적 측면에서 주식에 도움'],
@@ -343,6 +343,7 @@
     var stale = releaseStale_(symbol, item);
     if (stale) out += '<div class="ibd-ln"><em>⚠ 이전 발표 기준</em>' + escapeHtml(monthLabel_(stale.expected) + ' 발표가 나왔을 시점인데 마지막 데이터 기준월은 ' + monthLabel_(stale.last) + '입니다. 갱신을 눌러 다시 확인하세요.') + '</div>';
     if (BLS_SYMBOLS[symbol]) out += '<div class="ibd-ln"><em>표기 기준</em>' + escapeHtml('발표값은 지수(FRED 계절조정 ' + (symbol === 'US_CPI' ? 'CPIAUCSL' : 'CPILFESL') + '), 전월 대비율은 BLS 발표(계절조정)와 같은 기준, 전년 동월은 계절조정 지수로 계산해 BLS 비계절조정 발표와 소수 둘째 자리가 다를 수 있습니다. 소수 첫째 자리로 표시합니다.') + '</div>';
+    if (symbol === 'US_PPI_FINAL_DEMAND') out += '<div class="ibd-ln"><em>표기 기준</em>최종수요 PPI의 계절조정 지수(FRED PPIFIS)입니다. 전월 대비는 BLS 발표처럼 소수 첫째 자리로 표시합니다. 전년 대비는 같은 계절조정 지수로 계산하므로 BLS의 비계절조정 발표와 다를 수 있습니다.</div>';
     out += '<div class="ibd-ln"><em>읽는 기준</em>' + escapeHtml(readGuide_(symbol)) + ' <small>· 출처 ' + escapeHtml(META[symbol].source) + ' · ' + escapeHtml(META[symbol].cadence) + '</small></div>';
     ['높으면', '낮으면', '좋은 흐름'].forEach(function (label, index) {
       if (guide[index]) out += '<div class="ibd-ln"><em>' + label + '</em>' + escapeHtml(guide[index]) + '</div>';
@@ -374,10 +375,10 @@
       yoyText = signedText_(yoy, 2) + '%'; yoyTone = yoy > 0 ? 'up' : yoy < 0 ? 'down' : 'flat';
     }
     // CPI·근원 CPI: 지수값 / 전월 대비율 / 전년 동월을 구분해 표시(BLS와 같은 소수 첫째 자리)
-    var bls = !!BLS_SYMBOLS[symbol];
-    var rateText = !isPercent && isFinite(rate) ? signedText_(rate, bls ? 1 : 2) + '%' : '-';
-    if (bls && isFinite(rate)) rateText += ' (전월)';
-    if (bls && isFinite(yoy)) yoyText = signedText_(yoy, 1) + '% (전년)';
+    var bls = !!BLS_SYMBOLS[symbol], releaseRate = bls || symbol === 'US_PPI_FINAL_DEMAND';
+    var rateText = !isPercent && isFinite(rate) ? signedText_(rate, releaseRate ? 1 : 2) + '%' : '-';
+    if (releaseRate && isFinite(rate)) rateText += ' (전월)';
+    if (releaseRate && isFinite(yoy)) yoyText = signedText_(yoy, 1) + '% (전년)';
     return {
       id: symbol, group: meta.category, name: meta.label, sub: meta.cadence,
       cells: has ? [

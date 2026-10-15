@@ -101,12 +101,13 @@ class CpiDisplayTests(unittest.TestCase):
         self.assertEqual(run('2026-11-18T12:00:00+09:00', {})['expected'], '202610')   # 17일 이후: 직전 달
 
     def test_other_series_keep_two_decimals_and_have_no_cpi_warning(self):
-        item = {'symbol': 'US_PPI', 'price': 260.0, 'change': 1.0, 'change_rate': 0.386, 'chart': chart([('20250901', 250.0), ('20260801', 259.0)]), 'updated_at': 'x'}
-        r = run('2026-10-15T03:00:00+09:00', {'US_PPI': item})
-        cells = r['rows']['US_PPI']['cells']
-        self.assertEqual(cells[2], '+0.39%')
-        self.assertNotIn('(전월)', cells[2])
-        self.assertIsNone(r['rows']['US_PPI']['stale'])
+        item = {'symbol': 'US_PPI_FINAL_DEMAND', 'price': 159.780, 'change': 2.118, 'change_rate': 1.343, 'chart': chart([('20250901', 150.0), ('20260801', 157.662), ('20260901', 159.780)]), 'updated_at': 'x'}
+        r = run('2026-10-16T03:00:00+09:00', {'US_PPI_FINAL_DEMAND': item})
+        row = r['rows']['US_PPI_FINAL_DEMAND']
+        self.assertEqual(row['cells'][2], '+1.3% (전월)')
+        self.assertIn('2026년 9월', row['cells'][4])
+        self.assertIn('PPIFIS', row['note'])
+        self.assertIsNone(row['stale'])
 
     def test_refresh_button_force_bypasses_cache_and_browser_cache(self):
         r = run('2026-10-15T03:00:00+09:00', {})
