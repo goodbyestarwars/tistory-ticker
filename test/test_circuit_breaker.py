@@ -128,11 +128,9 @@ class WiringTests(unittest.TestCase):
         js = self.read('js', 'skin-main.js')
         self.assertIn("'https://goodbyestar.cloud/api/circuit-breaker'", js)
         self.assertNotIn('inquire-vi-status', js)   # 브라우저가 증권사 API를 직접 부르지 않는다
-        self.assertIn('data-home-cb-sidecar', js)
-        self.assertIn('data-home-cb-vi', js)
-        self.assertIn('data-home-cb-dropdown', js)
-        # 드롭다운은 실제 헤더 바로 아래에 붙여 VI 버튼을 가리지 않는다(고정 top이 버튼을 덮었던 라이브 확인).
-        self.assertIn("dropdown.style.top = (heading.offsetTop + heading.offsetHeight + 6) + 'px';", js)
+        self.assertIn('data-vol-monitor', js)
+        self.assertIn('data-vol-open="', js)
+        self.assertIn('vi_today', js)
 
 
 if __name__ == '__main__':

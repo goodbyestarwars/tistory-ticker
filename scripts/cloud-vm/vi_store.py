@@ -7,10 +7,15 @@
 - VI 종류 코드(vi_kind_code) 해석은 실수신으로 확인된 값만 쓴다(KIND_LABELS). 모르는 값은 kind=None('확인 불가')로 둔다.
 - 메모리 한도: 하루 MAX_RECORDS건(초과 시 오래된 해제 건부터 버림), 날짜가 바뀌면 비운다.
 """
+import json
+import logging
+import os
 import threading
 from datetime import datetime, timedelta, timezone
 
 KST = timezone(timedelta(hours=9))
+logger = logging.getLogger('vi_store')
+STORE_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'vi_today_events.json')
 ACTIVE_MAX_SEC = 10 * 60          # 정적·동적 VI는 보통 2분 단일가 - 10분 넘게 해제를 못 받으면 발동 중으로 두지 않는다
 MAX_RECORDS = 600
 # 실수신으로 확인된 vi_kind_code만 채운다(확인 전에는 비워 '확인 불가'). 값은 vi_kind_labels_verified()로 점검.
@@ -98,7 +103,7 @@ def snapshot(now_kst, fresh=True):
         status = status_of(r, now_kst)
         if status == 'active' and not fresh:
             status = 'unknown'
-        kind = KIND_LABELS.get(r.get('kind_code'))
+        kind = KIND_LABELS.get(r.get('kind_code')) or kind_from_prices(r)
         out.append({
             'code': r['code'], 'name': r.get('name') or r['code'], 'market': markets.get(r['code']), 'status': status,
             'triggered_at': _iso(r['triggered_at']), 'released_at': _iso(r['released_at']) if status == 'released' else None,
@@ -111,5 +116,52 @@ def snapshot(now_kst, fresh=True):
     return out, counts
 
 
+def kind_from_prices(r):
+    """정적/동적 VI 구분: REST·실시간이 주는 기준가격으로만 판단한다(2026-10-15 실측 - 정적 VI는 정적 기준가·괴리율만, 동적 VI는 동적 기준가·괴리율만 값이 있고 나머지는 0).
+    vi_kind_code 값의 뜻은 확인하지 못해 쓰지 않는다. 둘 다 있거나 둘 다 없으면 BOTH/None(확인 불가)."""
+    st, dy = (r.get('static_price') or 0) > 0, (r.get('dyn_price') or 0) > 0
+    if st and dy:
+        return 'BOTH'
+    return 'STATIC' if st else ('DYNAMIC' if dy else None)
+
+
 def _neg(iso):
     return tuple(-ord(c) for c in (iso or ''))
+
+
+def save():
+    """당일 이력을 파일에 남겨 서버가 재시작돼도 REST 목록(최근 30건)에서 밀려난 앞부분을 잃지 않는다."""
+    with _lock:
+        data = {'date': _store['date'], 'records': [dict(r, triggered_at=r['triggered_at'].isoformat(), sources=sorted(r['sources']),
+                                                         released_at=r['released_at'].isoformat() if r['released_at'] else None,
+                                                         seen_at=r['seen_at'].isoformat() if r.get('seen_at') else None) for r in _store['records'].values()]}
+    try:
+        tmp = STORE_FILE + '.tmp'
+        with open(tmp, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False)
+        os.replace(tmp, STORE_FILE)
+    except OSError as exc:
+        logger.info('VI 이력 저장 실패: %s', exc)
+
+
+def load(now_kst):
+    try:
+        with open(STORE_FILE, encoding='utf-8') as f:
+            data = json.load(f)
+        if data.get('date') != now_kst.strftime('%Y%m%d'):
+            return 0
+        recs = {}
+        for r in data.get('records') or []:
+            trig = datetime.fromisoformat(r['triggered_at'])
+            r['triggered_at'] = trig
+            r['released_at'] = datetime.fromisoformat(r['released_at']) if r.get('released_at') else None
+            r['seen_at'] = datetime.fromisoformat(r['seen_at']) if r.get('seen_at') else None
+            r['sources'] = set(r.get('sources') or [])
+            recs['%s|%s' % (r['code'], trig.strftime('%H%M%S'))] = r
+    except (OSError, ValueError, KeyError, TypeError):
+        return 0
+    with _lock:
+        _roll(now_kst.strftime('%Y%m%d'))
+        for k, r in recs.items():
+            _store['records'].setdefault(k, r)
+    return len(recs)

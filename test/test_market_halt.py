@@ -89,7 +89,7 @@ RUNNER = r'''
 const fs = require('fs'), vm = require('vm');
 const src = fs.readFileSync('js/skin-main.js', 'utf8');
 const start = src.indexOf("var MARKET_LABEL = { KOSPI");
-const end = src.indexOf("function renderSidecar(el, sidecar)");
+const end = src.indexOf("// ---- 시장 변동성 모니터");
 const body = src.slice(start, end);
 const hhmm = (iso) => { const d = new Date(iso); return isNaN(d) ? '' : new Date(d.getTime() + 9 * 3600000).toISOString().slice(11, 16); };
 const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
@@ -190,10 +190,12 @@ class WiringTests(unittest.TestCase):
 
     def test_banner_sits_above_the_market_card_heading_and_is_polled_from_the_cache_endpoint(self):
         js = self.read('js', 'skin-main.js')
-        self.assertLess(js.index('data-home-halt hidden'), js.index('<div class="home-card-heading">'))
-        self.assertIn("renderHalt(q('[data-home-halt]'), data.market_halt);", js)
+        # 2026-10-15: 맨 위 배너를 없애고 '시장 방향' 오른쪽의 시장 변동성 모니터(CB·사이드카·VI)로 통합했다.
+        self.assertGreater(js.index('data-vol-monitor hidden'), js.index('<div class="hmb2-direction">'))
+        self.assertLess(js.index('data-vol-monitor hidden'), js.index('<div class="home-index-strip"'))
+        self.assertIn('renderHalt(holder, data.market_halt);', js)                  # 기존 발동 이력 화면 재사용
         self.assertNotIn('KRX', js[js.index('homeCircuitBreakerBadges'):js.index('homeCircuitBreakerBadges') + 200])
-        self.assertIn('class="home-cb-vi"', js)                                     # 개별 종목 VI 배지는 그대로
+        self.assertNotIn('data-home-cb-vi', js)                                     # 헤더 VI 배지·배너와 중복 표시 안 함
 
     def test_css_colors_circuit_breaker_red_and_sidecar_orange(self):
         css = self.read('style.css')
