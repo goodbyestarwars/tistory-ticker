@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>투자자별 순매수 추이 미리보기</title>
+<!-- 2026-10-16 누적 순매수 선 그래프 + 날짜별 툴팁 확인용 페이지. 운영 API 대신 실제 수집 스냅샷(test/fixtures/investor)을 쓴다. 로컬: python -m http.server 8777 → /test/investor-flow.html -->
+<link rel="stylesheet" href="../css/indicator-board.css" />
+<link rel="stylesheet" href="../css/market-indicators.css" />
+<link rel="stylesheet" href="../css/investor-flow.css" />
+<style>body{margin:0;padding:20px 16px;font-family:Pretendard,"Malgun Gothic",sans-serif;background:#fffefc;color:#1a1a1a}html.dark body{background:#1a1a1a;color:#f5efe0}.wrap{max-width:860px;margin:0 auto}</style>
+</head>
+<body>
+<div class="wrap"><button type="button" id="dark">다크모드 전환</button><div id="host"></div></div>
+<script src="../js/indicator-board.js"></script>
+<script src="../js/investor-flow.js"></script>
+<script>
+(function () {
+  var snaps = {};
+  function get(market) {
+    if (snaps[market]) return Promise.resolve(snaps[market]);
+    return fetch('fixtures/investor/' + market + '_history.json').then(function (r) { return r.json(); }).then(function (j) { snaps[market] = j; return j; });
+  }
+  var realFetch = window.fetch.bind(window);
+  window.fetch = function (url) {
+    var m = /investor-trend\/history\?market=(kospi|kosdaq)/.exec(String(url));
+    if (!m) return realFetch.apply(window, arguments);
+    return get(m[1]).then(function (j) { return { ok: true, json: function () { return Promise.resolve(j); } }; });
+  };
+  document.getElementById('dark').onclick = function () { document.documentElement.classList.toggle('dark'); if (window.__flow) window.__flow.redraw(); };
+  window.__flow = window.InvestorFlow.mount(document.getElementById('host'));
+})();
+</script>
+</body>
+</html>

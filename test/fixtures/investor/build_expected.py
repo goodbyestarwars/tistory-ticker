@@ -1,8 +1,13 @@
 # -*- coding: utf-8 -*-
-"""투자자별 순매수 분리형·비교형 그래프(js/investor-flow.js)의 집계 기대값을 JS와 독립적으로 계산한다(pandas).
+"""투자자별 누적 순매수 선 그래프·툴팁(js/investor-flow.js)의 기대값을 JS와 독립적으로 계산한다(pandas).
 입력: kospi_history.json·kosdaq_history.json (운영 API GET /investor-trend/history?days=300 응답 스냅샷, 2026-10-11 수집, 억원·거래일만).
-출력: expected.json  — 시장·기간(1주 5/1개월 20/3개월 60/1년 250 거래일)·집계(일별·주간·월간)별 구간 합계, 5거래일 합계, 기간 합계.
-주(週)는 월요일 시작, 월은 달력 월이며 합계는 실제 거래일만 더한 값(평균이 아님)이다. 실행: python build_expected.py
+출력: expected.json - 시장·기간(1주 5/1개월 20/3개월 60/1년 250 거래일)별
+  dates     : 기준점(기간 직전 거래일 또는 '기간 시작') + 기간 거래일
+  daily     : 투자자별 당일 순매수(기준점은 null)
+  cum       : 투자자별 기간 누적 순매수(기준점 0에서 시작, cumsum)
+  index     : 지수 종가(기준점은 직전 거래일 종가)
+  last / period / streak : 하단 요약표(최근 1일·기간 누적·연속 일수와 방향)
+2026-10-16: 일별 막대 그래프를 없애면서 예전 집계(일별·주간·월간 합계) 기대값은 지웠다. 실행: python build_expected.py
 """
 import json
 import os
@@ -20,24 +25,18 @@ def load(market):
     return df.sort_values('date').reset_index(drop=True)
 
 
-def buckets(win, prev_date, mode):
-    if mode == 'day':
-        key = win['date'].dt.strftime('%Y-%m-%d')
-    elif mode == 'week':
-        key = win['date'].dt.to_period('W-SUN').astype(str)      # 월요일 시작 ~ 일요일 끝
-    else:
-        key = win['date'].dt.to_period('M').astype(str)
-    out = []
-    for k, g in win.groupby(key, sort=True):
-        row = {'key': str(k), 'start': g['date'].iloc[0].strftime('%Y-%m-%d'), 'end': g['date'].iloc[-1].strftime('%Y-%m-%d'), 'days': int(len(g))}
-        for inv in INV:
-            row[inv] = round(float(g[inv].sum()), 1)
-        out.append(row)
-    if out and prev_date is not None and mode != 'day':
-        first = win['date'].iloc[0]
-        same = (prev_date.to_period('W-SUN') == first.to_period('W-SUN')) if mode == 'week' else (prev_date.to_period('M') == first.to_period('M'))
-        out[0]['partial'] = bool(same)
-    return out
+def streak(series):
+    last = float(series.iloc[-1])
+    if last == 0:
+        return {'sign': 0, 'days': 0}
+    sign = 1 if last > 0 else -1
+    days = 0
+    for v in reversed(series.tolist()):
+        if (v > 0) == (sign > 0) and v != 0:
+            days += 1
+        else:
+            break
+    return {'sign': sign, 'days': days}
 
 
 expected = {}
@@ -46,13 +45,18 @@ for market in ('kospi', 'kosdaq'):
     expected[market] = {'rows': int(len(df)), 'periods': {}}
     for pk, n in PERIODS.items():
         win = df.tail(n).reset_index(drop=True)
-        prev = df['date'].iloc[len(df) - n - 1] if len(df) > n else None
-        e = {'days': int(len(win)), 'from': win['date'].iloc[0].strftime('%Y-%m-%d'), 'to': win['date'].iloc[-1].strftime('%Y-%m-%d'), 'agg': {}, 'summary': {}}
-        for mode in ('day', 'week', 'month'):
-            e['agg'][mode] = buckets(win, prev, mode)
+        has_before = len(df) > n
+        before = df.iloc[len(df) - n - 1] if has_before else None
+        dates = ([before['date'].strftime('%Y-%m-%d')] if has_before else ['기간 시작']) + [d.strftime('%Y-%m-%d') for d in win['date']]
+        idx = ([float(before['indexClose'])] if has_before and pd.notna(before['indexClose']) else [None]) + [None if pd.isna(v) else float(v) for v in win['indexClose']]
+        e = {'days': int(len(win)), 'hasBefore': bool(has_before), 'dates': dates, 'index': idx, 'daily': {}, 'cum': {}, 'last': {}, 'period': {}, 'streak': {}}
         for inv in INV:
-            last5 = win.tail(5)
-            e['summary'][inv] = {'last': round(float(win[inv].iloc[-1]), 1), 'last5': round(float(last5[inv].sum()), 1), 'last5days': int(len(last5)), 'period': round(float(win[inv].sum()), 1)}
+            vals = [float(v) for v in win[inv]]
+            e['daily'][inv] = [None] + vals
+            e['cum'][inv] = [0.0] + [round(float(v), 1) for v in win[inv].cumsum()]
+            e['last'][inv] = round(vals[-1], 1)
+            e['period'][inv] = round(float(win[inv].sum()), 1)
+            e['streak'][inv] = streak(df[inv])
         expected[market]['periods'][pk] = e
 json.dump(expected, open(os.path.join(HERE, 'expected.json'), 'w', encoding='utf-8'), ensure_ascii=False, separators=(",", ":"))
-print('expected.json written', {m: {p: {a: len(v) for a, v in e['agg'].items()} for p, e in expected[m]['periods'].items()} for m in expected})
+print('expected.json written', {m: {p: e['days'] for p, e in expected[m]['periods'].items()} for m in expected})

@@ -926,12 +926,12 @@
     if (!document.querySelector('link[href*="/css/indicator-board.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261014-split';
+      link.href = FUND_BOARD_BASE + 'css/indicator-board.css?v=20261016-flow-tip';
       document.head.appendChild(link);
     }
     fundBoardJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261014-split';
+      script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261016-flow-tip';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
@@ -1089,12 +1089,12 @@
     if (!document.querySelector('link[href*="/css/investor-flow.css"]')) {
       var link = document.createElement('link');
       link.rel = 'stylesheet';
-      link.href = FUND_BOARD_BASE + 'css/investor-flow.css?v=20261014-split';
+      link.href = FUND_BOARD_BASE + 'css/investor-flow.css?v=20261016-flow-tip';
       document.head.appendChild(link);
     }
     flowJob = new Promise(function (resolve) {
       var script = document.createElement('script');
-      script.src = FUND_BOARD_BASE + 'js/investor-flow.js?v=20261014-split';
+      script.src = FUND_BOARD_BASE + 'js/investor-flow.js?v=20261016-flow-tip';
       script.onload = script.onerror = function () { resolve(); };
       document.head.appendChild(script);
     });
@@ -1107,7 +1107,7 @@
       if (!global.IndicatorBoard || global.IndicatorBoard.createChart) return null;
       return new Promise(function (resolve) {
         var script = document.createElement('script');
-        script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261014-split&r=1';
+        script.src = FUND_BOARD_BASE + 'js/indicator-board.js?v=20261016-flow-tip&r=1';
         script.onload = script.onerror = function () { resolve(); };
         document.head.appendChild(script);
       });
