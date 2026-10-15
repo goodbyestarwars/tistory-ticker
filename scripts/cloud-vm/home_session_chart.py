@@ -6,19 +6,25 @@ import db_schema
 
 US_SPOT = {'NASDAQ_INDEX', 'SP500_INDEX'}
 US_FUTURES = {'NASDAQ100', 'SP500'}
-SYMBOLS = US_SPOT | US_FUTURES
+KR_SPOT = {'KOSPI', 'KOSDAQ'}
+SYMBOLS = US_SPOT | US_FUTURES | KR_SPOT
 NY = ZoneInfo('America/New_York')
 KST = timezone(timedelta(hours=9))
 
 
 def session(symbol, moment):
-    zone = KST if symbol == 'KOSPI200_NIGHT' else NY
+    zone = KST if symbol == 'KOSPI200_NIGHT' or symbol in KR_SPOT else NY
     local = moment.astimezone(zone)
     minute = local.hour * 60 + local.minute
-    if symbol in US_SPOT:
-        if local.weekday() >= 5 or not 570 <= minute <= 960:
+    if symbol in US_SPOT | KR_SPOT:
+        opening, closing = (540, 930) if symbol in KR_SPOT else (570, 960)
+        if local.weekday() >= 5 or not opening <= minute <= closing:
             return None
-        start = local.replace(hour=9, minute=30, second=0, microsecond=0)
+        if symbol in KR_SPOT:
+            import market_clock
+            if not market_clock.is_kr_trading_day(local):
+                return None
+        start = local.replace(hour=opening // 60, minute=opening % 60, second=0, microsecond=0)
         duration = 390
     else:
         if symbol == 'KOSPI200_NIGHT':
@@ -47,7 +53,7 @@ def record(conn, symbol, quote, now=None):
     if symbol not in SYMBOLS or quote.get('market_status') != 'OPEN':
         return False
     try:
-        moment = datetime.fromisoformat(quote['traded_at'].replace('Z', '+00:00'))
+        moment = datetime.fromisoformat(str(quote.get('traded_at') or '').replace('Z', '+00:00'))
         price = float(quote['price'])
         if moment.tzinfo is None or not math.isfinite(price) or price <= 0:
             return False

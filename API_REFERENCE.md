@@ -466,3 +466,5 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 2026-10-16 추가. 공개·IP 분당 30회, 외부 공급자 호출 0회. 기존 홈 야간 분봉 요청을 대체한다. `data`는 NASDAQ_INDEX/SP500_INDEX/NASDAQ100/SP500/KOSPI200_NIGHT 5행: `symbol`, `intervalMinutes:30`, `basis`, `session{date,start,end,timeZone,slotCount,slot}` 또는 null, `rows[{slot,open,high,low,close,ts}]`. 미국은 기존 시세 성공 결과의 실제 `localTradedAt`·`marketStatus=OPEN`만 저장(미래 60초 초과·20분 초과 지연 거부). 미국 OHLC는 관측 표본 범위이며 거래소 봉이 아니다. 야간은 기존 실제 분봉 집계. 누락 구간 생성 없음. 각 최신 한 세션만 반환, 빈 기록은 rows 빈 배열. 시각은 미국 ET(DST 자동)/야간 KST, 날짜는 세션 시작일. 가격 단위는 포인트.
 
 2026-10-16 야간 차트 보완: 같은 세션의 실제 분봉보다 새로운 20분 이내 최신 시세만 한 점 보태며 basis는 '실제 분봉 + 같은 세션 최신 시세'. 날짜/누락 구간을 합성하지 않는다.
+
+2026-10-16 한국 지수 추가: /home-session-chart에 KOSPI/KOSDAQ 추가(총7행). Asia/Seoul 정규장09:00~15:30 최대14개, 국내 거래일만 기록. 기존 domestic_futures 시세 성공 결과의 localTradedAt/marketStatus만 사용, 추가 공급자 호출 없음.

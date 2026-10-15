@@ -41,6 +41,7 @@ import urllib.request
 from datetime import datetime, timedelta, timezone
 
 import db_schema
+import home_session_chart
 
 logger = logging.getLogger('domestic_futures')
 
@@ -110,7 +111,8 @@ def fetch_index_realtime(code):
     if sign in ('FALLING', 'LOWER_LIMIT'):
         change = -abs(change)
         change_rate = -abs(change_rate)
-    return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
+    return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low,
+            'traded_at': d.get('localTradedAt'), 'market_status': d.get('marketStatus')}
 
 
 def fetch_domestic_index_chart(category, code, days=250):
@@ -232,6 +234,10 @@ def refresh_realtime_all():
             db_schema.upsert_future_price(
                 conn, symbol, name, q['price'], q['change'], q['change_rate'], q['high'], q['low'], now_iso,
             )
+            try:
+                home_session_chart.record(conn, symbol, q)
+            except Exception:
+                logger.exception('home session observation failed: %s', symbol)
         try:
             fx = fetch_fx_realtime()
         except Exception:

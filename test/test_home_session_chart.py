@@ -118,4 +118,17 @@ class SessionCharts(unittest.TestCase):
         with mock.patch.object(foreign_futures, '_get_json', side_effect=AssertionError('provider call')):
             r = TestClient(main.app).get('/home-session-chart')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(len(r.json()['data']), 5)
+        self.assertEqual(len(r.json()['data']), 7)
+
+    def test_korean_regular_session_fourteen_slots_holiday_and_missing_timestamp(self):
+        with mock.patch('market_clock.is_kr_trading_day', return_value=True):
+            self.assertFalse(self.put(100, '2026-10-16T08:59:00+09:00', 'KOSPI'))
+            self.put(100, '2026-10-16T09:00:00+09:00', 'KOSPI')
+            self.put(110, '2026-10-16T15:30:00+09:00', 'KOSPI')
+            r = self.get('KOSPI')
+            self.assertEqual((r['session']['timeZone'], r['session']['slotCount']), ('Asia/Seoul', 14))
+            self.assertEqual([p['slot'] for p in r['rows']], [0, 13])
+            self.assertEqual(self.get('KOSDAQ')['rows'], [])
+        with mock.patch('market_clock.is_kr_trading_day', return_value=False):
+            self.assertFalse(self.put(100, '2026-10-16T10:00:00+09:00', 'KOSDAQ'))
+        self.assertFalse(charts.record(self.conn, 'KOSPI', dict(price=100, market_status='OPEN', traded_at=None)))
