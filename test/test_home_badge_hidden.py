@@ -42,8 +42,21 @@ class VolMonitorContractTest(unittest.TestCase):
     def test_dark_mode_mobile_and_status_colors(self):
         self.assertIn('html.dark .vol-panel', self.css)
         self.assertIn('@media (max-width: 720px)', self.css)
-        self.assertIn('.vol-chip.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }', self.css)   # CB 빨강
-        self.assertIn('.vol-chip.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }', self.css)   # 사이드카 주황
+        self.assertIn('.vol-col.is-cb .vol-value { color: #b42318; }', self.css)       # CB 발동만 빨강
+        self.assertIn('.vol-col.is-side .vol-value { color: #b45309; }', self.css)     # 사이드카 발동만 주황
+        self.assertIn('html.dark .vol-col.is-cb .vol-value', self.css)
+        self.assertNotIn('.vol-col.is-calm', self.css)                                  # 정상 상태는 색 강조 없음
+
+    def test_newspaper_style_three_columns_without_pills_or_serif_title(self):
+        self.assertNotIn('vol-chip', self.css + self.js)                                # 둥근 알약 제거
+        head = self.css[self.css.index('.vol-head strong'):]
+        head = head[:head.index('}')]
+        self.assertIn('600 13px', head)
+        self.assertNotIn('MaruBuri', head)                                              # 제목은 Pretendard(--font-ui)
+        self.assertIn('grid-template-columns: repeat(3, minmax(0, 1fr))', self.css)
+        self.assertIn('border-left: 1px solid', self.css)                               # 가는 세로 구분선
+        self.assertIn('text-overflow: ellipsis', self.css[self.css.index('.vol-latest {'):])   # 최근 발동 한 줄 말줄임
+        self.assertIn('갱신', self.js)                                                  # 상단 오른쪽 갱신 시각
 
     def test_vi_panel_has_filters_and_stock_links(self):
         for token in ("['active', '발동 중']", "['today', '오늘 이력']", "['KOSPI', '코스피']", "['STATIC', '정적']", "['DYNAMIC', '동적']", '/page/stock-search?code='):

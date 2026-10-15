@@ -763,7 +763,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-monitor';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261015-vol-monitor2';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -2842,9 +2842,10 @@ document.documentElement.classList.add('skin-ready');
       return html + '<small class="vol-src">출처 KIS 변동성완화장치 현황(20초 갱신)' + (basis.ws_events ? ' · 실시간 H0STVIC0 보완 ' + basis.ws_events + '건' : '') + ' · 서버 가동 이후 수신분부터 쌓입니다</small>';
     }
 
-    function chip(key, label, info, open) {
-      return '<button type="button" class="vol-chip is-' + info.tone + '" data-vol-open="' + key + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
-        + '<span>' + label + '</span><b>' + esc(info.text) + '</b></button>';
+    // 3열 정보형: 알약 버튼 대신 세로 구분선으로 나눈 칸. 칸 전체가 버튼이라 키보드(Tab·Enter·Space)로 열고 Esc로 닫는다.
+    function col(key, label, info, open) {
+      return '<button type="button" class="vol-col is-' + info.tone + '" data-vol-open="' + key + '" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
+        + '<span class="vol-label">' + label + '</span><b class="vol-value">' + esc(info.text) + '</b></button>';
     }
     function renderMonitor(box, data) {
       if (!box) return;
@@ -2852,9 +2853,10 @@ document.documentElement.classList.add('skin-ready');
       lastData = data;
       var h = haltSummary(data.market_halt), vi = viSummary(data);
       var latest = latestLine(data);
-      var keep = box.querySelector('.vol-panel');
-      var inner = '<div class="vol-head"><strong>시장 변동성</strong><span class="vol-latest">' + esc(latest) + '</span></div>'
-        + '<div class="vol-chips">' + chip('halt', 'CB', h.cb, panel === 'halt') + chip('halt', '사이드카', h.side, panel === 'halt') + chip('vi', 'VI', vi, panel === 'vi') + '</div>'
+      var updated = data.fetchedAt ? hhmm(data.fetchedAt) : '';
+      var inner = '<div class="vol-head"><strong>시장 변동성</strong><span class="vol-updated">' + (updated ? esc(updated) + ' 갱신' : '갱신 시각 확인 불가') + '</span></div>'
+        + '<div class="vol-cols" role="group" aria-label="서킷브레이커 · 사이드카 · VI">' + col('halt', '서킷브레이커', h.cb, panel === 'halt') + col('halt', '사이드카', h.side, panel === 'halt') + col('vi', 'VI', vi, panel === 'vi') + '</div>'
+        + '<div class="vol-latest" title="' + esc(latest) + '">' + esc(latest) + '</div>'
         + '<div class="vol-panel" id="volPanel" role="region" aria-label="시장 변동성 상세"' + (panel ? '' : ' hidden') + '></div>';
       box.innerHTML = inner;
       box.hidden = false;
