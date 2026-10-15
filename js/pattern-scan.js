@@ -1015,7 +1015,7 @@
   // '장중 거래량 급증' 한 검색기의 매집 신호(실시간 매집 의심 / 기존 매집봉 재상승 / 초기 급증)와 분배 위험 배지.
   var VA_TYPE = { REALTIME_ACCUM: '실시간 매집 의심', OLD_BAR_REBREAK: '기존 매집봉 재상승', EARLY_PACE: '거래량 초기 급증' };
   var VA_STAGE = { REBREAK: '재돌파', NEAR: '고점 근접', SUPPORTED: '지지 대기' };
-  var VA_RISK = { LOW: '낮음', MID: '보통', HIGH: '높음' };
+  var VA_RISK = { LOW: '낮음', PENDING: '판정 보류', MID: '보통', HIGH: '높음' };
   var VA_FLAG = { LONG_UPPER_WICK: '급등 뒤 긴 윗꼬리', GIVEBACK: '상승분 반납', CLOSE_WEAK: '종가 위치 약함', BIG_SELL_BAR: '대량 음봉',
     EXTENDED: '고점 대비 과열(추격 위험)', UPPER_WICK_DAY: '당일 긴 윗꼬리' };
 
@@ -1140,9 +1140,10 @@
         + '<span class="ps-quote is-scan"'
         + (it.price == null || isNaN(Number(it.price)) ? '' : ' data-scan-price="' + escapeHtml(String(Number(it.price))) + '"')
         + (it.date ? ' data-scan-date="' + escapeHtml(String(it.date)) + '"' : '')
+        + ' data-price-word="' + priceWordFor(it) + '"'
         + '><span class="ps-price">' + fmt(it.price) + '</span>'
         + '<span class="ps-rate ' + cc + '">' + chgSign(it.changeRate) + '</span>'
-        + '<span class="ps-price-basis">' + (activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지 시점' : '스캔 시점') + '</span></span>'
+        + '<span class="ps-price-basis">' + priceWordFor(it) + ' 시점</span></span>'
         + '<span class="ps-observation">' + escapeHtml(scannerInterpretation(it, activeTab) + analystTargetPriceText(it)) + performanceTrackingHtml(it) + '</span>'
         + '</div>';
     }).join('');
@@ -1341,14 +1342,22 @@
     var m = String(value || '').match(/^(\d{4})-?(\d{2})-?(\d{2})/);
     return m ? m[2] + '/' + m[3] : '';
   }
-  function scanGapHtml(livePrice, scanPrice, scanDate) {
+  // 가격 기준 라벨: 장중 감지(초기 급증·실시간 매집)는 '감지', 일봉 매집봉·일봉 스캔은 '스캔'. 행에 priceBasis가 없으면 기존 규칙을 따른다.
+  function priceWordFor(item) {
+    var basis = item && item.patternDetail && item.patternDetail.priceBasis;
+    if (basis === 'DETECT') return '감지';
+    if (basis === 'SCAN') return '스캔';
+    return activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지' : '스캔';
+  }
+
+  function scanGapHtml(livePrice, scanPrice, scanDate, word) {
     var gap = gapPercent(livePrice, scanPrice);
     if (gap == null) return '';
     var rounded = Math.round(gap * 10) / 10;
     var tone = rounded > 0 ? 'is-up' : (rounded < 0 ? 'is-down' : 'is-flat');
     var sign = rounded > 0 ? '+' : (rounded < 0 ? '-' : '');
     var date = scanDateLabel(scanDate);
-    var word = activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지' : '스캔';
+    word = word || (activeTab === 'volumeBreakout' && liveSurgeInfo ? '감지' : '스캔');
     return '<b class="ps-scan-gap ' + tone + '">' + word + ' 대비 ' + sign + Math.abs(rounded).toFixed(1) + '%</b>'
       + '<span class="ps-scan-ref">' + (date ? escapeHtml(date) + ' ' : '') + word + '가 ' + fmt(scanPrice) + '원</span>';
   }
@@ -1375,7 +1384,7 @@
       var priceEl = quote.querySelector('.ps-price');
       var basisEl = quote.querySelector('.ps-price-basis');
       if (priceEl) priceEl.textContent = fmt(live.price);
-      if (basisEl) basisEl.innerHTML = scanGapHtml(Number(live.price), scanPrice, quote.getAttribute('data-scan-date'));
+      if (basisEl) basisEl.innerHTML = scanGapHtml(Number(live.price), scanPrice, quote.getAttribute('data-scan-date'), quote.getAttribute('data-price-word'));
       quote.className = quote.className.replace('is-scan', 'is-live');
       var rateEl = quote.querySelector('.ps-rate');
       if (rateEl && live.changeRate != null && !isNaN(live.changeRate)) {

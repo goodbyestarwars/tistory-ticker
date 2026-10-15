@@ -72,6 +72,7 @@ _thread = None
 _accum = {}          # code -> {'name','price','change','firstAt','lastAt','realtime': 신호|없음, 'old': 신호|없음, 'meta': 일봉 행}
 _stats_cache = {}    # (date, code) -> (20일 평균 거래량, 20일 평균 거래대금) | None
 _bars_cache = {}     # (date, code) -> 최근 일봉(오늘 제외) | []
+QUOTE_SUPPLEMENT_MAX = 120   # 순위권 밖 매집봉 후보 시세 보강 상한(배치 2요청 이하)
 _acc_loader = None   # 일봉 스캔의 accumulationBar 행 목록을 돌려주는 함수(main이 주입 - 큰 캐시 파일을 두 번 읽지 않기 위해)
 
 
@@ -250,7 +251,7 @@ def _reset_for_day(date_str):
     _bars_cache.clear()
 
 
-def process_rows(rows, now_t, date_str, prev_lookup, etf_codes=(), stats_lookup=None, bars_lookup=None, now_kst=None):
+def process_rows(rows, now_t, date_str, prev_lookup, etf_codes=(), stats_lookup=None, bars_lookup=None, now_kst=None, quote_fetcher=None):
     """순위 행(공통 모델)을 받아 표본을 쌓고 감지 목록을 갱신한다. prev_lookup(code)->(volume,date)|None."""
     latest = {}
     for row in rows:
@@ -297,10 +298,10 @@ def process_rows(rows, now_t, date_str, prev_lookup, etf_codes=(), stats_lookup=
         logger.info('거래량 사전포착 %s %s 3분속도 %.1f%% 누적 %.0f%% 등락 %+.2f%%',
                     code, det['name'], pace[0] * 100, pace[1] * 100, change)
     if stats_lookup is not None and now_kst is not None:
-        _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup)
+        _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup, quote_fetcher)
 
 
-def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup):
+def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup, quote_fetcher=None):
     """① 실시간 매집 의심(30초 표본 → 5분봉)과 ② 기존 매집봉 재상승(일봉 + 장중 현재가·거래량)을 갱신한다."""
     for code, row in latest.items():
         dq = _samples.get(code)
@@ -315,6 +316,8 @@ def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup):
             entry = _accum.get(code)
             if sig:
                 entry = _accum.setdefault(code, {'firstAt': now_t})
+                if 'realtime' not in entry:
+                    entry['firstRealtimeAt'], entry['firstPrice'] = now_t, price      # 실시간 매집 후보의 감지 시각·감지가
                 entry.update({'name': row.get('name') or code, 'price': price, 'change': _num(row.get('change_rate')), 'lastAt': now_t, 'realtime': sig})
             elif entry is not None:
                 entry.pop('realtime', None)
@@ -326,6 +329,21 @@ def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup):
         logger.exception('기존 매집봉 목록 읽기 실패')
         return
     elapsed = va.elapsed_minutes(now_kst)
+    # 순위권 밖 매집봉 후보는 기존 시세 캐시·배치 조회(domestic_quotes, 60종목/요청·5초 캐시)로 한 번에 갱신한다 - 종목별 REST 호출 없음.
+    extra = {}
+    if quote_fetcher is not None:
+        need = []
+        for item in daily_items:
+            code = item.get('code')
+            dq = _samples.get(code)
+            if code and not (code in latest and dq and dq[-1][0] == now_t) and code not in need:
+                need.append(code)
+        if need:
+            try:
+                for q in quote_fetcher(need[:QUOTE_SUPPLEMENT_MAX]) or []:
+                    extra[q.get('code')] = q
+            except Exception as exc:
+                logger.info('매집봉 후보 시세 보강 실패(일봉 기준 유지): %s', exc)
     for item in daily_items:
         code = item.get('code')
         bars = bars_lookup(code) if code else None
@@ -333,18 +351,24 @@ def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup):
             continue
         row = latest.get(code)
         dq = _samples.get(code)
-        live_price = live_rvol = None
+        live_price = live_rvol = live_change = None
         if row is not None and dq and dq[-1][0] == now_t:
             live_price = dq[-1][2]
+            live_change = _num(row.get('change_rate'))
             post_avg = va.old_bar_post_avg(bars)
             live_rvol = va.rvol_time_proportional(dq[-1][1], post_avg, elapsed) if post_avg else None
+        elif code in extra and _num(extra[code].get('price')):
+            live_price = _num(extra[code].get('price'))
+            live_change = _num(extra[code].get('changeRate'))
+            post_avg = va.old_bar_post_avg(bars)
+            live_rvol = va.rvol_time_proportional(_num(extra[code].get('volume')), post_avg, elapsed) if post_avg else None
         sig = va.old_bar_signal(bars, live_price, live_rvol)
         with _lock:
             entry = _accum.setdefault(code, {'firstAt': now_t})
             entry['meta'] = {'name': item.get('name') or code, 'price': item.get('price'), 'changeRate': item.get('changeRate'), 'date': item.get('date'),
                              'miniChart': item.get('miniChart') or []}
             if live_price is not None:
-                entry.update({'price': live_price, 'change': _num(row.get('change_rate')), 'lastAt': now_t})
+                entry.update({'price': live_price, 'change': live_change, 'lastAt': now_t})
             if sig:
                 entry['old'] = sig
             else:
@@ -410,10 +434,15 @@ def _merge_accumulation(early_items, now_t):
             signals.append(entry['old'])
         meta = entry.get('meta') or {}
         name = (base or {}).get('name') or entry.get('name') or meta.get('name') or code
-        price = (base or {}).get('price') if base else (entry.get('price') or meta.get('price'))
-        change = (base or {}).get('changeRate') if base else (entry.get('change') if entry.get('change') is not None else meta.get('changeRate'))
-        day = (base or {}).get('date') or meta.get('date') or _state.get('date')
-        row = va.combined_item(code, name, price, change, day, signals, status=status, extra_detail=extra)
+        # 가격 기준: 장중 감지(초기 급증·실시간 매집)는 감지가, 일봉 매집봉만 있으면 일봉 스캔가(현재가는 화면이 실시간으로 따로 덮는다).
+        if base:
+            price, change, day, basis = base.get('price'), base.get('changeRate'), base.get('date'), 'DETECT'
+        elif entry.get('realtime') and entry.get('firstPrice') is not None:
+            price, change, basis = entry['firstPrice'], entry.get('change'), 'DETECT'
+            day = datetime.fromtimestamp(entry.get('firstRealtimeAt') or now_t, KST).strftime('%Y-%m-%d')
+        else:
+            price, change, day, basis = meta.get('price'), meta.get('changeRate'), meta.get('date') or _state.get('date'), 'SCAN'
+        row = va.combined_item(code, name, price, change, day, signals, status=status, extra_detail=extra, price_basis=basis)
         if base:
             row['miniChart'] = base.get('miniChart') or []
         elif meta.get('miniChart'):
@@ -519,7 +548,8 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
         return False
     conn = db_schema.get_conn()
     try:
-        process_rows(rows, now_kst.timestamp(), date_str, lambda code: _prev_volume(conn, date_str, code),
+        import domestic_quotes
+        process_rows(rows, now_kst.timestamp(), date_str, lambda code: _prev_volume(conn, date_str, code), quote_fetcher=domestic_quotes.fetch_quotes,
                      stats_lookup=lambda code: _avg_stats(conn, date_str, code), bars_lookup=lambda code: _recent_bars(conn, date_str, code), now_kst=now_kst)
     finally:
         conn.close()
