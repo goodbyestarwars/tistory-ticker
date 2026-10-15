@@ -187,7 +187,7 @@ class PollingTests(Base):
         self.assertTrue(cb.build_market_halt(kst(13, 1))['available'])                     # 직전 수신이 3분 안이면 유지
         halt = cb.build_market_halt(kst(13, 4))
         self.assertFalse(halt['available'])                                                  # 수신이 끊긴 채 3분이 넘으면 확인 불가
-        self.assertEqual((halt['reason'], halt['events']), ('STALE', []))
+        self.assertEqual((halt['reason'], halt['events']), ('FETCH_FAILED', []))                      # 수신이 끊긴 채 실패가 이어지면 '수신 실패'
         self.assertIn('KIND down', halt['last_error'])
 
     def test_after_first_poll_only_the_latest_page_is_requested_but_old_events_are_kept(self):
@@ -210,6 +210,25 @@ class PollingTests(Base):
         mk.poll_once(kst(10, 0), FakeKind(rows_html=quiet))
         halt = cb.build_market_halt(kst(10, 0, 20))
         self.assertEqual((halt['available'], halt['events']), (True, []))
+
+
+class FetchFailureTests(Base):
+    def test_blocked_source_is_reported_as_fetch_failed_not_normal(self):
+        """운영 VM은 KIND에서 403을 받는다(2026-10-15 실측) - 수신 실패는 정상으로도 '미연결'로도 보이면 안 되고 실패로 구분한다."""
+        cb.declare_halt_source(mk.SOURCE_LABEL, mk.SOURCE_URL, mk.POLL_SEC)
+        self.assertIsNone(mk.poll_once(kst(10, 0), FakeKind(fail=True)))
+        halt = cb.build_market_halt(kst(10, 0, 30))
+        self.assertEqual((halt['available'], halt['reason'], halt['events']), (False, 'FETCH_FAILED', []))
+        self.assertEqual(halt['source'], mk.SOURCE_LABEL)
+        self.assertIn('수신에 실패', halt['note'])
+        self.assertIn('KIND down', halt['last_error'])
+
+    def test_success_clears_the_failure_state(self):
+        cb.declare_halt_source(mk.SOURCE_LABEL, mk.SOURCE_URL, mk.POLL_SEC)
+        mk.poll_once(kst(10, 0), FakeKind(fail=True))
+        mk.poll_once(kst(10, 0, 30), FakeKind())
+        halt = cb.build_market_halt(kst(10, 0, 40))
+        self.assertEqual((halt['available'], halt['last_error']), (True, None))
 
 
 class PhaseTests(Base):

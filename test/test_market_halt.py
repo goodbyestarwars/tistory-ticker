@@ -123,6 +123,11 @@ class FrontendTests(unittest.TestCase):
         self.assertNotIn('정상입니다', none['innerHTML'] + stale['innerHTML'])
         self.assertTrue(absent['hidden'])                                         # 구버전 서버(필드 없음)는 숨김
 
+    def test_fetch_failed_text_is_distinct_from_not_connected(self):
+        failed, never = render([{'available': False, 'reason': 'FETCH_FAILED', 'events': []}, {'available': False, 'reason': 'NO_VERIFIED_SOURCE', 'events': []}])
+        self.assertIn('수신 실패', failed['innerHTML'])
+        self.assertIn('수신 경로 미연결', never['innerHTML'])
+
     def test_no_events_means_no_banner(self):
         (box,) = render([{'available': True, 'events': []}])
         self.assertTrue(box['hidden'])
