@@ -86,6 +86,23 @@ def get_results():
             output.append(dict(symbol=symbol, rows=points, session=meta,
                                basis='시세 수집 관측값 · 공급자 지연 가능', intervalMinutes=30))
         night = db_schema.load_future_chart_minute(conn, 'KOSPI200_NIGHT')
+        # Preserve the previous home chart's live-price tail between minute
+        # collections. Only a newer quote from the very same session is valid.
+        quote = next((p for p in db_schema.load_all_future_prices(conn)
+                      if p['symbol'] == 'KOSPI200_NIGHT'), None)
+        if night and quote:
+            try:
+                moment = datetime.fromisoformat(quote['updated_at'].replace('Z', '+00:00'))
+                ts, price = int(moment.timestamp()), float(quote['price'])
+                old_session = session('KOSPI200_NIGHT', datetime.fromtimestamp(night[-1]['ts'], timezone.utc))
+                quote_session = session('KOSPI200_NIGHT', moment)
+                if (moment.tzinfo and old_session and quote_session
+                        and old_session['date'] == quote_session['date']
+                        and ts > night[-1]['ts'] and math.isfinite(price) and price > 0
+                        and -60 <= (datetime.now(timezone.utc) - moment).total_seconds() <= 1200):
+                    night.append(dict(ts=ts, open=price, high=price, low=price, close=price))
+            except (KeyError, TypeError, ValueError, OverflowError):
+                pass
         valid = []
         for row in night:
             try:
@@ -108,7 +125,7 @@ def get_results():
                 point.update(high=max(point['high'], row['high']), low=min(point['low'], row['low']),
                              close=row['close'], ts=row['ts'])
         output.append(dict(symbol='KOSPI200_NIGHT', rows=list(buckets.values()), session=latest,
-                           basis='기존 실제 분봉 집계', intervalMinutes=30))
+                           basis='실제 분봉 + 같은 세션 최신 시세', intervalMinutes=30))
         return output
     finally:
         conn.close()
