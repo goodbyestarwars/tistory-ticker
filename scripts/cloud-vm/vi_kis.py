@@ -110,7 +110,7 @@ def snapshot():
                 'subscribedAt': _state['subscribedAt'], 'control': control[-10:], 'raw': list(_state['raw'][-8:])}
 
 
-WATCH_STOCKS = int(os.environ.get('VI_WS_WATCH', '2'))     # 오늘 VI가 잦은 종목 N개를 종목별로도 구독(실시간 필드·종목별 구독 검증, 전체 종목 구독 아님)
+WATCH_STOCKS = int(os.environ.get('VI_WS_WATCH', '3'))     # 오늘 VI가 잦은 종목 N개를 종목별로도 구독(실시간 필드·종목별 구독 검증, 전체 종목 구독 아님)
 
 
 def _wanted_keys():
@@ -134,7 +134,7 @@ async def _run_once(appkey, appsecret):
                 handle_raw(raw)
             except asyncio.TimeoutError:
                 pass
-            if time.time() - checked > 300:
+            if time.time() - checked > 90:
                 checked = time.time()
                 if _wanted_keys() != keys:
                     return                       # 관찰 대상이 바뀌면 다시 구독(_reconnect_loop가 곧바로 다시 부른다)
