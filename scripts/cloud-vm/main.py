@@ -42,6 +42,7 @@ import earnings_calendar
 import finnhub_realtime
 import foreign_flow_compute
 import foreign_futures
+import home_session_chart
 import market_temp
 import naver_news
 import news_aggregator
@@ -2942,6 +2943,13 @@ def _futures_response(request, entry):
                         headers={'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'})
     return Response(content=entry['raw'], media_type='application/json',
                     headers={'Vary': 'Accept-Encoding'})
+
+
+@app.get('/home-session-chart')
+def home_session_prices(request: Request):
+    """Read-only 30-minute US/night home charts; no provider calls."""
+    _check_rate_limit('home-session-chart', request, max_per_window=30)
+    return {'success': True, 'data': home_session_chart.get_results()}
 
 
 @app.get('/futures')

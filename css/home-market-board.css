@@ -268,3 +268,8 @@ html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
 html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(232, 119, 109, .45); color: #f4a39b; }
 html.dark .vol-alert.is-side { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); color: #fbbf24; }
 html.dark .vol-alert.is-vi { background: var(--np-paper, #1A1A1A); border-color: rgba(245, 239, 224, .2); color: #F5EFE0; }
+
+/* US/night sessions use the same bar/area controls as investor flow. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-chart.has-session-chart { height: auto; overflow: visible; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-controls { display:flex; align-items:center; justify-content:flex-end; gap:5px; color:var(--hmb-mute); font:400 11px/1.4 var(--font-ui,system-ui,sans-serif); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-controls > span:first-child { margin-right:auto; }

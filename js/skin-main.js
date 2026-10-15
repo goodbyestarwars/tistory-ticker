@@ -765,7 +765,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261016-investor-intraday';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261016-us-night-sessions';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -1280,6 +1280,76 @@ document.documentElement.classList.add('skin-ready');
     // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
+    var homeSessionCharts = {}, homePriceMode = 'bar', homeSessionLoading = false;
+    function renderHomeSessionChart(element, key, reference) {
+      var result = homeSessionCharts[key] || {}, meta = result.session;
+      var rows = (result.rows || []).filter(function (r) {
+        return r.close != null && isFinite(Number(r.close)) && Number.isInteger(r.slot);
+      });
+      element.classList.add('has-session-chart');
+      element.setAttribute('data-session-symbol', key);
+      var controls = '<div class="hmb-price-controls"><span>30분 · '
+        + (key === 'KOSPI200_NIGHT' ? 'KST' : '뉴욕시간') + '</span>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
+        + (homePriceMode === 'bar' ? '면적' : '막대') + ' 차트로 전환">‹</button><span>'
+        + (homePriceMode === 'bar' ? '막대' : '면적') + '</span>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-price-switch aria-label="'
+        + (homePriceMode === 'bar' ? '면적' : '막대') + ' 차트로 전환">›</button></div>';
+      if (!meta || !rows.length) {
+        element.innerHTML = controls + '<div class="hmb-investor-spark-empty">장중 기록 수집 전</div>';
+        return;
+      }
+      function amount(v) { return Number(v).toLocaleString('ko-KR', { maximumFractionDigits: 2 }); }
+      function time(ts) { return new Intl.DateTimeFormat('en-GB', { timeZone: meta.timeZone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date(ts * 1000)); }
+      // A quote may belong to a newer session than the saved chart: only a
+      // reference carried by that same series can label the baseline "previous".
+      reference = result.reference;
+      var base = reference != null && isFinite(Number(reference)) ? Number(reference) : Number(rows[0].open);
+      var high = rows.reduce(function (a, r) { return r.high > a.high ? r : a; }, rows[0]);
+      var low = rows.reduce(function (a, r) { return r.low < a.low ? r : a; }, rows[0]);
+      var min = Math.min(base, low.low), max = Math.max(base, high.high), range = max - min || 1;
+      function x(slot) { return 4 + slot * 92 / (meta.slotCount - 1); }
+      function y(v) { return 78 - (v - min) / range * 66; }
+      var zero = y(base), marks = '', id = 'home-price-' + key;
+      var groups = [];
+      rows.forEach(function (r) {
+        var group = groups[groups.length - 1];
+        if (!group || r.slot !== group[group.length - 1].slot + 1) { group = []; groups.push(group); }
+        group.push(r);
+      });
+      if (homePriceMode === 'area') {
+        marks = '<defs><clipPath id="' + id + '-buy"><rect width="100" height="' + zero + '"/></clipPath>'
+          + '<clipPath id="' + id + '-sell"><rect y="' + zero + '" width="100" height="' + (90 - zero) + '"/></clipPath></defs>';
+        groups.forEach(function (group) {
+          if (group.length < 2) return;
+          var points = group.map(function (r) { return x(r.slot) + ',' + y(r.close); }).join(' ');
+          ['buy', 'sell'].forEach(function (side) {
+            marks += '<g class="hmb-investor-' + side + '" clip-path="url(#' + id + '-' + side + ')"><polygon class="hmb-investor-area" points="'
+              + x(group[0].slot) + ',' + zero + ' ' + points + ' ' + x(group[group.length - 1].slot) + ',' + zero
+              + '"/><polyline class="hmb-investor-line" vector-effect="non-scaling-stroke" points="' + points + '"/></g>';
+          });
+        });
+      }
+      rows.forEach(function (r) {
+        var tone = r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
+        var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' 구간 · ' + amount(r.close) + ' · 관측 ' + time(r.ts) + '</title>';
+        marks += homePriceMode === 'bar'
+          ? '<rect data-price-slot="' + r.slot + '" class="hmb-investor-' + tone + '" x="' + (x(r.slot) - 28 / meta.slotCount) + '" y="' + Math.min(zero, y(r.close)) + '" width="' + 56 / meta.slotCount + '" height="' + Math.max(.6, Math.abs(zero - y(r.close))) + '">' + title + '</rect>'
+          : '<circle class="hmb-investor-' + tone + '" cx="' + x(r.slot) + '" cy="' + y(r.close) + '" r=".7">' + title + '</circle>';
+      });
+      function dot(r, value, name) { return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(r.slot) + '%;top:' + y(value) / 90 * 100 + '%"></span>'; }
+      element.innerHTML = controls + '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 가격 추이, 관측 고점 ' + amount(high.high) + ', 저점 ' + amount(low.low) + '">'
+        + '<line class="hmb-investor-zero" x1="1" x2="99" y1="' + zero + '" y2="' + zero + '" vector-effect="non-scaling-stroke"/>' + marks + '</svg>' + dot(high, high.high, 'high') + dot(low, low.low, 'low') + '</div>'
+        + '<div class="hmb-investor-axis"><span>' + time(Date.parse(meta.start) / 1000) + '</span><span>' + time(Date.parse(meta.end) / 1000) + '</span></div>'
+        + '<div class="hmb-investor-extrema"><span>관측 고점 <b>' + amount(high.high) + '</b></span><span>저점 <b>' + amount(low.low) + '</b></span></div>'
+        + '<div class="hmb-investor-asof">' + meta.date + ' · 관측 ' + time(rows[rows.length - 1].ts) + ' · ' + rows.length + '/' + meta.slotCount + '개</div>'
+        + '<div class="hmb-investor-asof">' + result.basis + ' · 기준 ' + amount(base) + (reference == null ? '(첫 관측)' : '(전일)') + '</div>';
+    }
+    dashboardSection.addEventListener('click', function (event) {
+      if (!event.target.closest('[data-price-switch]')) return;
+      homePriceMode = homePriceMode === 'bar' ? 'area' : 'bar';
+      if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
+    });
     var homeChartMotion = new WeakMap();
     var homeChartReducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     function stopHomeChartMotion(element) {
@@ -1338,6 +1408,14 @@ document.documentElement.classList.add('skin-ready');
 
     function renderHomeIndexChart(element, rows, key, reference) {
       if (!element) return;
+      if (['NASDAQ_INDEX', 'SP500_INDEX', 'NASDAQ100', 'SP500', 'kospiNight'].indexOf(key) >= 0) {
+        stopHomeChartMotion(element);
+        var oldCaption = element.nextElementSibling;
+        if (oldCaption && oldCaption.classList.contains('home-index-history-caption')) oldCaption.remove();
+        renderHomeSessionChart(element, key === 'kospiNight' ? 'KOSPI200_NIGHT' : key, reference);
+        return;
+      }
+      element.classList.remove('has-session-chart');
       var chartRows = homeChartRows(rows, key) || [];
       var monthlyMini = key !== 'kospiNight';
       if (monthlyMini) chartRows = chartRows.filter(function (row) {
@@ -1578,14 +1656,15 @@ document.documentElement.classList.add('skin-ready');
       });
     }
 
-    var homeNightMinuteRows = [];
-    function loadHomeNightMinutes() {
-      fetchHomeJson('https://goodbyestar.cloud/futures?interval=minute&symbols=KOSPI200_NIGHT', 12000)
+    function loadHomeSessionCharts() {
+      if (homeSessionLoading) return;
+      homeSessionLoading = true;
+      fetchHomeJson('https://goodbyestar.cloud/home-session-chart', 12000)
         .then(function (data) {
-          var item = (data && data.data || []).filter(function (row) { return row.symbol === 'KOSPI200_NIGHT'; })[0];
-          homeNightMinuteRows = nightSessionRows(item && item.chart);
+          (data && data.data || []).forEach(function (item) { homeSessionCharts[item.symbol] = item; });
           if (latestHomeIndices) renderHomeIndices(latestHomeIndices);
-        }).catch(function () { /* 기존에 확인한 마지막 세션 분봉을 유지한다. */ });
+        }).catch(function () { /* Keep the last confirmed series on failure. */ })
+        .finally(function () { homeSessionLoading = false; });
     }
 
     function renderHomeIndices(items) {
@@ -1616,16 +1695,7 @@ document.documentElement.classList.add('skin-ready');
         // 남기고, 다음 18:00 세션의 첫 분봉이 도착하면 그때 새 세션으로 교체한다.
         if (nightChartEl) {
           nightChartEl.hidden = false;
-          var sessionRows = nightSessionRows(homeNightMinuteRows);
-          var quoteTime = Date.parse(nightItem.updated_at || '') / 1000;
-          var sameSession = sessionRows.length && nightSessionKey(quoteTime) === nightSessionKey(sessionRows[0].ts);
-          // 분봉은 5분마다 수집된다. 그 사이에는 KIS 실시간 체결 시세(검증된
-          // updated_at과 price)가 마지막 분봉보다 새로울 때만 실제 한 점을 보탠다.
-          if (sameSession && isFinite(nPrice) && quoteTime > Number(sessionRows[sessionRows.length - 1].ts)) {
-            sessionRows.push({ ts: quoteTime, close: nPrice, open: nPrice });
-          }
-          var reference = sameSession && isFinite(nPrice) && isFinite(nChange) ? nPrice - nChange : null;
-          renderHomeIndexChart(nightChartEl, sessionRows, 'kospiNight', reference);
+          renderHomeIndexChart(nightChartEl, [], 'kospiNight', isFinite(nPrice) && isFinite(nChange) ? nPrice - nChange : null);
         }
       } else {
         setField('nightFutures', '데이터 확인 중', 'home-neutral');
@@ -1646,7 +1716,7 @@ document.documentElement.classList.add('skin-ready');
         if (priceEl) { priceEl.textContent = isFinite(price) ? price.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : '-'; priceEl.className = tone; }
         if (changeEl) { changeEl.textContent = isFinite(rate) ? (change > 0 ? '▲' : change < 0 ? '▼' : '') + Math.abs(rate).toFixed(2) + '%' : '-'; changeEl.className = tone; }
         if (statusEl) statusEl.textContent = item ? '· ' + (item.status || session.statusLabel || '장중') : '· 데이터 지연';
-        renderHomeIndexChart(chartEl, item && item.chart, key);
+        renderHomeIndexChart(chartEl, item && item.chart, key, item && item.price != null && item.change != null ? Number(item.price) - Number(item.change) : null);
       });
     }
 
@@ -1687,12 +1757,12 @@ document.documentElement.classList.add('skin-ready');
     }
 
     loadHomeIndices();
-    loadHomeNightMinutes();
+    loadHomeSessionCharts();
     loadHomeIndexBreadth();
     setInterval(function () {
       if (document.hidden) return;
       loadHomeIndices();
-      loadHomeNightMinutes();
+      loadHomeSessionCharts();
       loadHomeIndexBreadth();
     }, 60 * 1000);
 

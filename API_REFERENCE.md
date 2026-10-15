@@ -461,3 +461,6 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
   `currencies[]`: `code`(API 표기 그대로, 위안화는 `CNH`), `curUnit`(`JPY(100)` 등 원문), `unit`(1 또는 100 - **기준 단위, 1단위로 환산하지 않음**), `name`, `dealBasR`(매매기준율, 원), `prev`·`change`·`changeRate`(같은 통화·같은 단위의 직전 고시일 대비), `ttb`(송금 받을 때)·`tts`(송금 보낼 때)(없으면 null), `bkpr`, `kftcDealBasR`, `featured`. 주요 통화(USD·JPY·EUR·CNH·GBP·CHF)가 앞.
   `state`: `ok` · `collecting`(최초/과거 이력 수집 중) · `no_key` · `auth_error` · `quota` · `network_error`. 주말·공휴일에는 새 고시가 없어 `baseDate`가 직전 정상 고시일로 유지된다.
 - `GET /fx-rates/history?cur=USD&range=3m` (`cur` 영문 3자, `range` 1m|3m|1y, IP별 분당 60회) → `data{code, curUnit, unit, name, range, points[[YYYY-MM-DD, 매매기준율]...], count, from, to, coverageFrom, incomplete}`. `incomplete:true`면 선택한 기간보다 수집된 이력이 짧다는 뜻. 잘못된 파라미터는 422.
+
+### `GET /home-session-chart`
+2026-10-16 추가. 공개·IP 분당 30회, 외부 공급자 호출 0회. 기존 홈 야간 분봉 요청을 대체한다. `data`는 NASDAQ_INDEX/SP500_INDEX/NASDAQ100/SP500/KOSPI200_NIGHT 5행: `symbol`, `intervalMinutes:30`, `basis`, `session{date,start,end,timeZone,slotCount,slot}` 또는 null, `rows[{slot,open,high,low,close,ts}]`. 미국은 기존 시세 성공 결과의 실제 `localTradedAt`·`marketStatus=OPEN`만 저장(미래 60초 초과·20분 초과 지연 거부). 미국 OHLC는 관측 표본 범위이며 거래소 봉이 아니다. 야간은 기존 실제 분봉 집계. 누락 구간 생성 없음. 각 최신 한 세션만 반환, 빈 기록은 rows 빈 배열. 시각은 미국 ET(DST 자동)/야간 KST, 날짜는 세션 시작일. 가격 단위는 포인트.
