@@ -934,3 +934,17 @@ html.dark #pattern-scan .ps-gp-box dt { color: #F5EFE0; }
   #pattern-scan .ps-gp-box dl { grid-template-columns: 1fr; gap: 0; }
   #pattern-scan .ps-gp-box dd { margin-bottom: 6px; }
 }
+
+/* 2026-10-15 '장중 거래량 급증' 매집 신호·분배 위험 배지. 위험 색은 상승 빨강과 헷갈리지 않게 주황 계열로 단계만 구분한다. */
+#pattern-scan .ps-va.is-realtime_accum { background: #e0f2fe; color: #0369a1; }
+#pattern-scan .ps-va.is-old_bar_rebreak { background: #fee2e2; color: #b91c1c; }
+#pattern-scan .ps-va.is-early_pace { background: #f1f5f9; color: #475569; }
+#pattern-scan .ps-risk.is-low { background: #ecfdf5; color: #047857; }
+#pattern-scan .ps-risk.is-mid { background: #fff4d6; color: #a15c07; }
+#pattern-scan .ps-risk.is-high { background: #ffedd5; color: #9a3412; }
+html.dark #pattern-scan .ps-va.is-realtime_accum { background: rgba(56, 189, 248, .2); color: #bae6fd; }
+html.dark #pattern-scan .ps-va.is-old_bar_rebreak { background: rgba(239, 68, 68, .22); color: #fecaca; }
+html.dark #pattern-scan .ps-va.is-early_pace { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+html.dark #pattern-scan .ps-risk.is-low { background: rgba(16, 185, 129, .18); color: #6ee7b7; }
+html.dark #pattern-scan .ps-risk.is-mid { background: rgba(245, 158, 11, .22); color: #fde68a; }
+html.dark #pattern-scan .ps-risk.is-high { background: rgba(249, 115, 22, .24); color: #fdba74; }

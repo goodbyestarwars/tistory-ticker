@@ -96,7 +96,7 @@
     { key: 'gongpasan', label: '급락 후 첫 눌림목', desc: '최근 160일 고점 대비 25% 이상 하락한 뒤 40일 안팎의 바닥 횡보와 대량거래 매집 흔적이 나타난 종목을 추적합니다. 이후 직전 5봉 고가와 5일선을 강한 양봉으로 돌파한 뒤, 가격이 처음으로 20일선까지 눌렸을 때 거래량이 감소하고 종가 기준 지지가 확인되는 첫 눌림 구간을 매매 후보로 선별합니다. 돌파봉 자체가 아니라 돌파 후 첫 20일선 지지가 핵심입니다.' },
     // 2026-09-04: 이 탭만 장중 스냅샷이다. 나머지는 전부 장 마감 뒤 일봉 배치라
     // 스캔 시각이 다르고, 그래서 목록 위 안내도 이 탭에서는 따로 표시한다.
-    { key: 'volumeBreakout', label: '장중 거래량 급증', desc: '장중 30초마다 거래량 순위를 읽어, 최근 3분 동안 늘어난 거래량이 전일 거래량의 3% 이상(3분 환산)인데 아직 많이 오르지 않은 종목을 잡습니다. 감지 시각·감지가를 기록하고, 감지 후 6% 이상 오르거나 45분이 지난 종목은 내립니다. 거래량 순위권에 못 든 아주 초기 종목은 놓칠 수 있습니다.' }
+    { key: 'volumeBreakout', label: '장중 거래량 급증', desc: '한 검색기에서 세 가지를 함께 봅니다. ① 장중 30초마다 거래량 순위를 읽어 최근 3분 거래량이 전일의 3% 이상(3분 환산)인데 아직 많이 오르지 않은 초기 급증, ② 실시간 매집 의심: 20일 평균 대비 상대거래량(RVOL) 2배 이상·누적 거래대금 30억원 이상이면서 장중 가격 범위 안 위치가 높고, 거래량 급증 5분봉 뒤 가격을 지키는 종목(급등 뒤 긴 윗꼬리·상승분 반납은 분배 위험으로 감점·제외), ③ 기존 매집봉 재상승: 최근 15거래일 안 거래량 20일 평균 2.5배 이상 양봉(매집봉) 뒤 거래량이 줄고 가격을 지키다 매집봉 고점을 거래량 증가와 함께 재돌파하는 종목. 같은 종목이 여러 조건을 채우면 한 행에 신호를 함께 표시합니다.' }
   ];
 
 
@@ -177,11 +177,11 @@
       basis: '일봉 확정 스캔. 일봉 배치가 끝난 뒤 이어서 실행되므로 스캔 시각이 다른 탭보다 늦을 수 있습니다. 데이터 기준일이 기대 거래일보다 오래되면 단계 후보를 숨깁니다.'
     },
     volumeBreakout: {
-      purpose: '장중에 거래량이 갑자기 늘기 시작했지만 아직 많이 오르지 않은 종목을 먼저 찾습니다.',
-      state: '장중 감지(초기 early / 진행 moving). 감지 뒤 6% 이상 오르거나 45분이 지나면 목록에서 내립니다.',
-      entry: '감지가는 참고값입니다. 장중 변동이 커서 호가·체결을 직접 확인하기 전에는 진입 근거로 쓰지 마세요.' + ENTRY_NOTE,
-      invalid: '자동 무효 판정과 사후 추적은 없습니다. 감지 뒤 6% 이상 오르거나 45분이 지나면 목록에서 빠집니다.',
-      basis: '장중 감시. 평일 09:00~15:35에 30초마다 갱신하며, 일봉 스캔 시각과는 별개입니다.'
+      purpose: '장중 거래량이 붙기 시작했거나 매집이 의심되는 종목, 이전에 매집봉이 나온 뒤 다시 거래량을 싣고 올라서는 종목을 한 검색기에서 찾습니다.',
+      state: '유형별 상태: 초기 급증(early/moving) · 실시간 매집 의심(확정 / 5분봉 부족 시 판정 보류) · 기존 매집봉 재상승(재돌파 > 고점 근접 > 지지 대기). 분배 위험(낮음·보통·높음)을 함께 표시합니다.',
+      entry: '거래량 배율과 판단 근거를 확인하고, 분배 위험이 보통 이상이면 윗꼬리·상승분 반납 여부를 차트에서 직접 확인하세요. 매집을 확정하는 신호가 아니며 방향을 보장하지 않습니다. 감지가는 참고값입니다.' + ENTRY_NOTE,
+      invalid: '자동 무효 판정과 사후 추적은 없습니다. 실시간 신호는 조건이 깨지면(가격 방어 실패·분배 위험 높음) 목록에서 빠지고, 매집봉은 이후 저가·종가가 매집봉 저가·종가를 크게 깨면 빠집니다.',
+      basis: '장중(평일 09:00~15:35): 30초 순위 표본으로 만든 5분봉·상대거래량(단순 시간비례 근사, 개장 20분 전·표본 부족 시 판정 보류)과 일봉 기반 매집봉을 현재가로 갱신합니다. 장 마감: 일봉(확정 종가) 기반 매집봉과 마지막 장중 판정만 보여 주며 실시간이 아닙니다.'
     }
   };
   var INFO_ROWS = [['purpose', '검색 목적'], ['cond', '패턴 조건'], ['state', '포착 상태'], ['entry', '진입 확인'], ['invalid', '무효 조건'], ['basis', '스캔 기준']];
@@ -367,9 +367,9 @@
         ? new Date(t.getTime() + 9 * 3600000).toISOString().slice(11, 19)
         : '';
       meta.textContent = liveSurgeInfo.active
-        ? '실시간 사전포착 · 장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · 마지막 ' + hhmm : '')
-          + ' · 이미 많이 오른 ' + (liveSurgeInfo.ranCount || 0) + '종목은 제외'
-        : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 마지막 감지 기록을 보여줍니다.'
+        ? '장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · 마지막 ' + hhmm : '')
+          + ' · 이미 많이 오른 ' + (liveSurgeInfo.ranCount || 0) + '종목은 제외 · 실시간 매집 의심은 순위권 종목의 5분봉·RVOL 근사 기반'
+        : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 일봉 기반 매집봉과 마지막 장중 판정을 보여줍니다(실시간 아님).'
           + (scanData && scanData.volumeBreakoutScannedAt ? ' · 기록 시각 ' + kstText(scanData.volumeBreakoutScannedAt) : '');
       return;
     }
@@ -804,6 +804,17 @@
         + (isFinite(gpGap) ? ' · 저가-MA20 ' + gpGap.toFixed(1) + '%' : '')
         + (detail.pullbackVolumeRatio != null ? ' · 눌림 거래량 ' + Math.round(Number(detail.pullbackVolumeRatio) * 100) + '%' : '');
     }
+    if (patternKey === 'volumeBreakout' && vaSignals(detail).length) {
+      var parts = [];
+      var mult = Number(detail.volumeMultiple);
+      if (isFinite(mult)) parts.push('거래량 ' + mult.toFixed(1) + '배');
+      vaSignals(detail).forEach(function (sg) {
+        if (sg.type === 'REALTIME_ACCUM' && sg.closePos != null) parts.push('범위 내 위치 ' + Math.round(sg.closePos * 100) + '%');
+        if (sg.type === 'OLD_BAR_REBREAK' && sg.gapToHighPct != null) parts.push('매집봉 고점 대비 ' + (sg.gapToHighPct > 0 ? '+' : '') + sg.gapToHighPct.toFixed(1) + '%');
+        if (sg.status === 'pending') parts.push('가격 방어 판정 보류');
+      });
+      return parts.join(' · ') || '매집 신호';
+    }
     if (patternKey === 'volumeBreakout') {
       var volumeRatio = Number(detail.volumeRatio);
       if (detail.live && isFinite(Number(detail.pace3))) {
@@ -1001,7 +1012,30 @@
     FIRST_PULLBACK: { label: '첫 눌림', tone: 'is-form' }
   };
 
+  // '장중 거래량 급증' 한 검색기의 매집 신호(실시간 매집 의심 / 기존 매집봉 재상승 / 초기 급증)와 분배 위험 배지.
+  var VA_TYPE = { REALTIME_ACCUM: '실시간 매집 의심', OLD_BAR_REBREAK: '기존 매집봉 재상승', EARLY_PACE: '거래량 초기 급증' };
+  var VA_STAGE = { REBREAK: '재돌파', NEAR: '고점 근접', SUPPORTED: '지지 대기' };
+  var VA_RISK = { LOW: '낮음', MID: '보통', HIGH: '높음' };
+  var VA_FLAG = { LONG_UPPER_WICK: '급등 뒤 긴 윗꼬리', GIVEBACK: '상승분 반납', CLOSE_WEAK: '종가 위치 약함', BIG_SELL_BAR: '대량 음봉',
+    EXTENDED: '고점 대비 과열(추격 위험)', UPPER_WICK_DAY: '당일 긴 윗꼬리' };
+
+  function vaSignals(detail) {
+    return ((detail && detail.signals) || []).filter(function (sg) { return sg && (sg.type === 'REALTIME_ACCUM' || sg.type === 'OLD_BAR_REBREAK'); });
+  }
+
+  function vaBadgesHtml(item) {
+    var detail = detailFor(item);
+    var sigs = (detail.signals || []).filter(function (sg) { return sg && VA_TYPE[sg.type]; });
+    if (!sigs.length) return '';
+    var risk = (detail.distribution && detail.distribution.risk) || 'LOW';
+    return sigs.map(function (sg) {
+      var extra = sg.type === 'OLD_BAR_REBREAK' && VA_STAGE[sg.stage] ? ' · ' + VA_STAGE[sg.stage] : (sg.status === 'pending' ? ' · 판정 보류' : '');
+      return '<b class="ps-stage ps-va is-' + String(sg.type).toLowerCase() + '">' + escapeHtml(VA_TYPE[sg.type] + extra) + '</b> ';
+    }).join('') + (vaSignals(detail).length ? '<b class="ps-stage ps-risk is-' + String(risk).toLowerCase() + '">분배 위험 ' + escapeHtml(VA_RISK[risk] || risk) + '</b> ' : '');
+  }
+
   function stageBadgeHtml(item) {
+    if (activeTab === 'volumeBreakout' && vaBadgesHtml(item)) return vaBadgesHtml(item);
     if (activeTab === 'gongpasan' && item && item._gpStage) {
       return '<b class="ps-stage ps-gp-badge is-' + item._gpStage.toLowerCase() + '">' + escapeHtml(gpStageLabel(item._gpStage)) + '</b> ';
     }
@@ -1546,6 +1580,7 @@
       + '</div>';
     if (item.track) html += buildTrackBox(item.track);
     html += buildGpStageBox(data.detail);
+    html += buildVolumeAccumBox(data.detail);
     html += buildScoreBox(data.detail);
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
@@ -1655,6 +1690,26 @@
           + study.label + ' <b>' + (latest == null ? '—' : psChartPriceFormatter(latest)) + '</b></span>';
       }).join('')
       + '</div>';
+  }
+
+  // '장중 거래량 급증' 상세: 유형·거래량 배율·분배 위험·데이터 기준. 판단 근거 목록은 아래 점수 박스(reasons)에 신호별로 붙는다.
+  function buildVolumeAccumBox(detail) {
+    if (!detail || activeTab !== 'volumeBreakout' || !vaSignals(detail).length) return '';
+    var risk = (detail.distribution && detail.distribution.risk) || 'LOW';
+    var flags = ((detail.distribution && detail.distribution.flags) || []).map(function (f) { return VA_FLAG[f] || f; });
+    var rows = vaSignals(detail).map(function (sg) {
+      var basis = sg.type === 'REALTIME_ACCUM'
+        ? '장중 30초 표본으로 만든 5분봉 ' + (sg.barsUsed != null ? sg.barsUsed + '개' : '') + ' · RVOL은 단순 시간비례 근사'
+        : '일봉(확정 종가) 기준 · 장중에는 현재가·거래량으로 갱신';
+      var mult = sg.type === 'REALTIME_ACCUM' ? sg.rvol : sg.volumeMultiple;
+      return '<dt>' + escapeHtml(VA_TYPE[sg.type]) + (sg.status === 'pending' ? ' (판정 보류)' : '') + '</dt><dd>'
+        + (mult != null ? '거래량 배율 ' + Number(mult).toFixed(2) + '배 · ' : '') + '점수 ' + escapeHtml(sg.score) + ' · ' + escapeHtml(basis) + '</dd>';
+    }).join('');
+    return '<div class="ps-gp-box ps-va-box">'
+      + '<div class="ps-gp-box-head"><b class="ps-stage ps-risk is-' + String(risk).toLowerCase() + '">분배 위험 ' + escapeHtml(VA_RISK[risk] || risk) + '</b>'
+      + '<span>' + (flags.length ? escapeHtml(flags.join(' · ')) : '분배 의심 신호 없음') + '</span></div>'
+      + '<div class="ps-gp-warn">매집을 확정하는 신호가 아니며 방향을 보장하지 않습니다. 데이터가 부족한 항목은 판정을 보류합니다.</div>'
+      + '<dl>' + rows + '</dl></div>';
   }
 
   // 급락 후 첫 눌림목 중간 단계(1~3단계) 상세: 통과한 조건 / 아직 못 채운 조건 / 기준가 / 무효 조건. 점수는 최종 신호에만 있다.

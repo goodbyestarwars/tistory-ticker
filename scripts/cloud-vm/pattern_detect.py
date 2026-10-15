@@ -13,6 +13,7 @@ PATTERN_SWING = 2
 # A pattern bucket may contain at most this many candidates after its
 # chart-quality gates are applied. We do not slice by universe order.
 PATTERN_MAX_MATCHES = 20
+ACCUM_BAR_MAX = 40
 RISING_LOWS_DISPLAY_LIMIT = 20
 PENNY_STOCK_MAX_PRICE = 1000  # 국내 주식 기준: 1,000원 미만은 동전주로 제외
 
@@ -2165,6 +2166,7 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
     pattern_results.setdefault('openingGap', [])
     pattern_results.setdefault('shortTermMaBreakout', [])
     pattern_results.setdefault('firstPullbackBreakout', [])
+    pattern_results.setdefault('accumulationBar', [])
     if is_excluded_stock(stock, daily):
         return pattern_scanned, pullback_scanned
 
@@ -2234,6 +2236,13 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
         if first_pullback and common_search_ok():
             pattern_results['firstPullbackBreakout'].append(build_pattern_match(stock, daily, first_pullback))
 
+    # 2026-10-15 '장중 거래량 급증' 검색기의 기존 매집봉 추적(일봉): 결과는 별도 키로 모아 /pattern-scan의 volumeBreakout 탭에 합쳐 보인다.
+    if len(daily) >= 25:
+        import volume_accumulation
+        acc = volume_accumulation.old_bar_signal(daily)
+        if acc and common_search_ok():
+            pattern_results['accumulationBar'].append(build_pattern_match(stock, daily, volume_accumulation.daily_detail(acc)))
+
     if len(daily) >= PULLBACK_MIN_DAYS:
         pullback_scanned = True
         pullback = detect_pullback(daily)
@@ -2265,4 +2274,7 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
             pattern_results[key] = _rank_matches(filtered)
     if pullback_matches is not None:
         pullback_matches[:] = _rank_matches(_quality_gate_matches(pullback_matches, 'pullback'))
+    if 'accumulationBar' in pattern_results:
+        # 품질 게이트(점수 90 이상만 남김)는 쓰지 않는다 - 재돌파·근접·지지 단계가 점수로 이미 정렬되므로 상위 ACCUM_BAR_MAX건만 둔다.
+        pattern_results['accumulationBar'] = _rank_matches(pattern_results['accumulationBar'])[:ACCUM_BAR_MAX]
     return pattern_results

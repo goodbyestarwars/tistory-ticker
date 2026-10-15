@@ -266,6 +266,20 @@
     pullback: { daily: pullbackDaily, code: '012330', name: '현대모비스' }
   };
 
+  function vaMock(code, name, score, kind) {
+    var rt = { type: 'REALTIME_ACCUM', label: '실시간 매집 의심', status: kind === 'pending' ? 'pending' : 'confirmed', score: score, rvol: 2.96, amount: 4.6e9, closePos: 0.94,
+      defended: kind === 'pending' ? null : true, barsUsed: 12, distribution: { risk: kind === 'pending' ? 'MID' : 'LOW', flags: kind === 'pending' ? ['GIVEBACK'] : [] },
+      reasons: ['RVOL 2.96배(누적 거래량 ÷ 20일 평균 × 경과시간 비율, 단순 시간비례 근사)', kind === 'pending' ? '5분봉 표본 부족 - 가격 방어 판정 보류' : '5분봉 거래량 급증 뒤 급증 봉 저가·종가를 지킴'] };
+    var old = { type: 'OLD_BAR_REBREAK', label: '기존 매집봉 재상승', status: 'confirmed', stage: 'REBREAK', score: score, volumeMultiple: 1.8, gapToHighPct: 0.5,
+      distribution: { risk: 'LOW', flags: [] }, reasons: ['매집봉 2026-09-21: 거래량 20일 평균의 3.0배 양봉', '매집봉 고점 10,550원 재돌파 + 거래량 1.8배 재증가'] };
+    var sigs = kind === 'both' ? [old, rt] : kind === 'old' ? [old] : [rt];
+    var risk = kind === 'pending' ? 'MID' : 'LOW';
+    return { code: code, name: name, price: 52000, changeRate: 2.4, date: '2026-07-10', score: score, miniChart: byPattern.pullback.daily.slice(-20).map(function (d) { return { date: d.date, close: d.close }; }),
+      reasons: ['[기존 매집봉 재상승] 매집봉 고점 재돌파', '[실시간 매집 의심] RVOL 2.96배'], interpretation: '매집 신호입니다. 분배 위험 ' + risk + '.',
+      patternDetail: { score: score, live: true, status: 'watch', signals: sigs, distribution: { risk: risk, flags: kind === 'pending' ? ['GIVEBACK'] : [] }, volumeMultiple: 2.96,
+        reasons: ['[기존 매집봉 재상승] 매집봉 고점 재돌파', '[실시간 매집 의심] RVOL 2.96배'], interpretation: '매집 신호입니다. 분배 위험 ' + risk + '.' } };
+  }
+
   function gpMock(code, name, stage, days) {
     var labels = { WATCH_ACCUM: '매집 관찰', BREAKOUT: '상승 돌파', WAIT_PULLBACK: '눌림 대기' };
     return {
@@ -297,7 +311,9 @@
           boxRangeLow: [mockMatch(byPattern.boxRangeLow.daily, '005380', '현대차', 'boxRangeLow')],
           pullback: [mockMatch(byPattern.pullback.daily, '012330', '현대모비스', 'pullback')],
           angleMomentum: [mockMatch(byPattern.pullback.daily, '000270', '기아', 'pullback')],
-          gongpasan: []
+          gongpasan: [],
+          // 2026-10-15 '장중 거래량 급증' 한 검색기에서 두 매집 패턴을 함께 보여 주는 mock(신호 2개 / 실시간 보류 / 재돌파 일봉)
+          volumeBreakout: [vaMock('005930', '삼성전자', 91, 'both'), vaMock('000660', 'SK하이닉스', 78, 'old'), vaMock('035420', 'NAVER', 60, 'pending')]
         },
         // 2026-10-15 급락 후 첫 눌림목 4단계 mock (최종 신호 0건이어도 1~3단계 후보가 보여야 한다)
         gongpasanStages: {

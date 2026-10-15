@@ -63,6 +63,7 @@ import order_book
 import public_data
 import binance_flow
 import volume_surge_live
+import volume_accumulation
 import hour_candidates
 import hour_validation
 import circuit_breaker
@@ -198,6 +199,7 @@ def _start_futures_collectors():
     # 2026-10-06 사용자 지적("스캔 시점에는 스캐너가 의미가 없어, 사전포착이야"): 거래량 돌파 탭을 09:05 1회
     # 스냅샷에서 장중 30초 연속 감시로 바꾼다. 거래량 순위 4건/30초, FastAPI 안의 스레드 하나(volume_surge_live.py).
     try:
+        volume_surge_live.set_daily_loader(lambda: ((load_daily_scan_cache_cached() or {}).get('patternScan') or {}).get('patterns', {}).get('accumulationBar') or [])
         volume_surge_live.start_background(kis_appkey, kis_appsecret)
     except Exception:
         logging.getLogger('main').exception('거래량 사전포착 시작 실패')
@@ -2693,7 +2695,9 @@ def _build_pattern_scan():
             # 2026-09-04: 장중 스냅샷(volume_breakout_scan.py, 2026-09-22부터 09:05). 다른 탭은 전부
             # 장 마감 뒤 일봉 배치라 스캔 시각이 다르다 - 화면이 자체 시각을 쓰도록
             # volumeBreakoutScannedAt을 따로 내려준다.
-            'volumeBreakout': patterns.get('volumeBreakout') or [],
+            # 2026-10-15: '장중 거래량 급증' 검색기는 장중 감시(/volume-surge-live)와 같은 행 모양으로 기존 매집봉 추적(일봉, accumulationBar)을 함께 담는다.
+            # 같은 종목은 한 행으로 합친다(volume_accumulation.merge_lists). 새 응답 키는 만들지 않는다.
+            'volumeBreakout': volume_accumulation.merge_lists(patterns.get('accumulationBar') or [], patterns.get('volumeBreakout') or []),
         },
         'volumeBreakoutScannedAt': data.get('volumeBreakoutScannedAt'),
         # 2026-10-15: 각도기·공파산은 일봉 배치가 끝난 뒤 직렬 실행돼 완료 시각이 다르다.
