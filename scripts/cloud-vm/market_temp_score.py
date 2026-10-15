@@ -268,8 +268,8 @@ def total_and_temperature(component_scores, credit_available):
 
 # ---- 3축 요약(2026-09-07) ----
 #
-# "지표가 10개라 아무도 안 본다"는 사용자 판단으로 도입했다. 배점 자체는 그대로 두고
-# (10개 컴포넌트는 '자세히'에서 계속 보여준다) 그 위에 사람이 셀 수 있는 축 3개를 얹는다.
+# 기존 10개 컴포넌트 배점과 40℃ temp는 API 호환을 위해 보존한다. 화면의 0~100
+# 심리 점수는 수급·가격 방향만 사용하고 위험은 독립 축으로 보여준다.
 #
 # 축 안에서는 **단순 평균**이다. 예전 총점은 VIX 20 대 환율 5처럼 4배 차이 나는 가중치를
 # 갖고 있었는데 왜 4배인지 설명할 수 없었다. 설명 못 하는 가중치는 신뢰를 못 얻는다.
@@ -278,7 +278,7 @@ def total_and_temperature(component_scores, credit_available):
 # 강도와 겹쳐 제외하고, 금리 부담도를 위험 축에 넣는다. 미국선물은 15:30 이후 중립으로
 # 굳는 시간이 길어 참고 지표로만 보여준다.
 AXES = (
-    ('money', '돈', '돈이 들어오나', ('tradingValue', 'flow')),
+    ('money', '수급', '매수 우위인가', ('tradingValue', 'flow')),
     ('price', '가격', '실제로 오르나', ('avgChange', 'riseRatio', 'sectorStrength')),
     # 이 셋은 점수가 높을수록 "안전"이다(VIX가 낮으면 20점). 축 값은 뒤집어서
     # "위험도"로 내보낸다 - 화면에서 '위험 23 = 낮음'으로 읽혀야 하기 때문이다.
@@ -315,22 +315,37 @@ def grade_for_score100(score100):
     return dict(GRADE3[-1][1])
 
 
-def build_axes(components):
-    """10개 컴포넌트를 돈·가격·위험 3축(각 0~100)과 종합점수(0~100)로 접는다.
+def _directional_turnover(components):
+    """거래 활발함은 방향이 아니다. 가격·상승 폭·순매수의 일치만 방향에 반영한다."""
+    turnover = components.get('tradingValue') or {}
+    if turnover.get('score') is None:
+        return None
+    price = _axis_ratio(components, ('avgChange', 'riseRatio', 'sectorStrength'))
+    flow = _axis_ratio(components, ('flow',))
+    if price is None or flow is None:
+        return 0.5
+    # 가격과 상승 종목 폭, 순매수 강도가 같은 편일 때만 거래 활발함을 보탠다.
+    direction = (price - 0.5) * 0.65 + (flow - 0.5) * 0.35
+    activity = _clamp(turnover['score'] / COMPONENT_MAX['tradingValue'], 0, 1)
+    return _clamp(0.5 + direction * activity, 0, 1)
 
-    종합점수는 세 축의 단순 평균이다. 위험 축만 화면 표기가 뒤집혀 있으므로(높을수록
-    나쁨) 평균에는 그 반대인 '안전도'를 넣는다 - 즉 세 축 모두 "높을수록 좋음"으로
-    맞춘 뒤 평균한다.
-    """
+
+def build_axes(components):
+    """수급·가격의 평균을 심리 점수로, VIX·환율·금리·신용을 별도 위험도로 낸다."""
     axes = {}
     contributions = []
     for key, label, question, comp_keys in AXES:
         ratio = _axis_ratio(components, comp_keys)
+        if key == 'money':
+            directional_turnover = _directional_turnover(components)
+            flow_ratio = _axis_ratio(components, ('flow',))
+            available = [v for v in (directional_turnover, flow_ratio) if v is not None]
+            ratio = sum(available) / len(available) if available else None
         if ratio is None:
             axes[key] = {'label': label, 'question': question, 'value': None,
                          'components': list(comp_keys)}
             continue
-        good = ratio * 100.0                      # 높을수록 좋은 값
+        good = ratio * 100.0
         shown = (100.0 - good) if key == 'risk' else good
         axes[key] = {
             'label': label, 'question': question,
@@ -338,7 +353,8 @@ def build_axes(components):
             'inverted': key == 'risk',
             'components': list(comp_keys),
         }
-        contributions.append(good)
+        if key != 'risk':
+            contributions.append(good)
 
     score100 = _round_half_up(sum(contributions) / len(contributions), 0) if contributions else None
     return {'axes': axes, 'score100': score100,

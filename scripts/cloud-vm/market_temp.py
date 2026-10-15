@@ -145,6 +145,20 @@ def read_daily_history(conn):
     return [{'date': r[0], 'temp': r[1], 'score': r[2]} for r in reversed(rows)]
 
 
+def recompute_direction_history(conn, history):
+    """같은 계산식의 기록만 비교한다. 구성값이 없는 옛 날짜는 빈 점수로 둔다."""
+    snapshots = conn.execute(
+        'SELECT date, components_json FROM market_temp_snapshot ORDER BY date DESC LIMIT ?',
+        (DAILY_HISTORY_MAX,)).fetchall()
+    by_date = {}
+    for date, raw in snapshots:
+        try:
+            by_date[date] = score.build_axes(json.loads(raw))['score100']
+        except (TypeError, ValueError, KeyError):
+            continue
+    return [dict(row, score=by_date.get(row['date'])) for row in history]
+
+
 def upsert_daily_temp(conn, temp, today, trading_day=True, score100=None):
     """오늘 온도를 기록하고 갱신된 이력을 돌려준다(GAS upsertDailyMarketTemp_와 동일).
 
@@ -327,11 +341,8 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
          if k in components and not (k == 'creditRisk' and not credit_available)],
         credit_available)
 
-    # 2026-09-07: 10개 컴포넌트를 돈·가격·위험 3축(각 0~100)과 종합점수(0~100)로 접는다.
-    # "지표가 10개라 아무도 안 본다"는 판단으로 화면의 주인공을 이쪽으로 옮겼다 -
-    # 컴포넌트 원본은 응답에 그대로 남아 '자세히'에서 계속 보인다.
-    # 2026-09-29: 금리 부담도(rates)를 위험 축에 넣고, 중복성이 큰 52주 신고/신저가는
-    # 공식 10개 지표에서 뺐다.
+    # 방향 점수는 수급·가격만 평균한다. 거래대금은 가격·상승 폭·수급으로 확인하고,
+    # 위험은 독립 축이다. 기존 온도·원점수 필드는 API 호환을 위해 유지한다.
     summary = score.build_axes(components)
     history_rows = upsert_daily_temp(conn, totals['temp'], today, trading_day=trading_day,
                                      score100=summary['score100'])
@@ -358,6 +369,7 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
             conn, today, industry_flow, session_started)
     except Exception:
         LOGGER.exception('업종 순위 이력 기록/조회 실패 - 순위 변화 표시만 빠진다')
+    history_rows = recompute_direction_history(conn, history_rows)
     prior_score_rows = [h for h in history_rows
                         if h['date'] != today and h.get('score') is not None]
     has_delta = summary['score100'] is not None and bool(prior_score_rows)
@@ -368,6 +380,7 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
         'grade': grade_for_temp(totals['temp']),
         # 3축 요약. 화면은 이 셋과 score100만 크게 보여준다.
         'score100': summary['score100'],
+        'scoreMethod': 'direction-v2',
         'axes': summary['axes'],
         'grade3': summary['grade3'],
         # 사람이 반응하는 건 절대값보다 "어제보다 얼마"다. 직전 거래일 종합점수와의 차.

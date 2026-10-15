@@ -391,6 +391,24 @@ class MarketTempAssemblyTest(unittest.TestCase):
         finally:
             conn.close()
 
+    def test_historical_scores_recomputed_only_with_real_component_snapshots(self):
+        import market_temp as mt
+        conn = self._conn()
+        try:
+            mt.upsert_daily_temp(conn, 20, '2026-10-12', score100=90)
+            mt.upsert_daily_temp(conn, 21, '2026-10-13', score100=90)
+            components = {'tradingValue': {'score': 15}, 'flow': {'score': 2},
+                          'avgChange': {'score': 0}, 'riseRatio': {'score': 0},
+                          'sectorStrength': {'score': 0}, 'vix': {'score': 0}}
+            mt.record_component_snapshot(conn, '2026-10-13', True,
+                                         {'score100': 90, 'axes': {}}, components, None)
+            rows = mt.recompute_direction_history(conn, mt.read_daily_history(conn))
+            self.assertIsNone(rows[0]['score'])  # 원자료 없는 옛 점수는 이어 붙이지 않는다.
+            self.assertEqual(rows[1]['score'], mts.build_axes(components)['score100'])
+            self.assertLess(rows[1]['score'], 40)
+        finally:
+            conn.close()
+
     def test_history_is_none_on_first_day_then_reports_day_change(self):
         import market_temp as mt
         conn = self._conn()
@@ -787,18 +805,30 @@ class ThreeAxisSummaryTest(unittest.TestCase):
 
     def test_axes_are_simple_averages_of_their_components(self):
         got = mts.build_axes(self.LIVE)
-        # 돈 = (7/15 + 10/20)/2 = 0.4833
-        self.assertEqual(got['axes']['money']['value'], 48)
+        # 거래대금은 가격·상승 폭·수급으로 확인된 방향만 반영한다.
+        self.assertEqual(got['axes']['money']['value'], 54)
         # 가격 = (12/15 + 8/10 + 7/10)/3 = 0.7667
         self.assertEqual(got['axes']['price']['value'], 77)
         # 위험 = 100 - (20/20 + 2.6/5 + 6/10 + 8/10)/4 = 100 - 73.0
         self.assertEqual(got['axes']['risk']['value'], 27)
         self.assertTrue(got['axes']['risk']['inverted'])
 
-    def test_total_is_the_average_of_three_axes_with_risk_flipped_back(self):
+    def test_total_is_direction_only(self):
         got = mts.build_axes(self.LIVE)
-        self.assertEqual(got['score100'], 66)   # (48.3 + 76.7 + 73.0)/3
+        self.assertEqual(got['score100'], 65)
         self.assertEqual(got['grade3']['label'], '과열')
+
+    def test_vix_and_leverage_change_risk_but_not_direction(self):
+        stressed = dict(self.LIVE, vix={'score': 0}, creditRisk={'score': 0})
+        self.assertEqual(mts.build_axes(stressed)['score100'], mts.build_axes(self.LIVE)['score100'])
+        self.assertGreater(mts.build_axes(stressed)['axes']['risk']['value'],
+                           mts.build_axes(self.LIVE)['axes']['risk']['value'])
+
+    def test_busy_selloff_does_not_raise_direction(self):
+        selloff = dict(self.LIVE, tradingValue={'score': 15}, flow={'score': 2},
+                       avgChange={'score': 0}, riseRatio={'score': 0}, sectorStrength={'score': 0})
+        quiet = dict(selloff, tradingValue={'score': 0})
+        self.assertLess(mts.build_axes(selloff)['score100'], mts.build_axes(quiet)['score100'])
 
     def test_dropped_components_do_not_move_the_total(self):
         """미국선물·52주는 축에서 뺐다 - 값이 바뀌어도 종합점수는 그대로여야 한다."""
