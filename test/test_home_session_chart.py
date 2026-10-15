@@ -93,6 +93,25 @@ class SessionCharts(unittest.TestCase):
         self.assertEqual(q['market_status'], 'OPEN')
         self.assertEqual(q['traded_at'], fixture['datas'][0]['localTradedAt'])
 
+    def test_night_live_quote_tail_keeps_gaps_and_rejects_old_or_other_session(self):
+        moment = datetime.fromisoformat('2026-10-16T01:50:00+09:00')
+        minute_ts = int(datetime.fromisoformat('2026-10-15T23:57:00+09:00').timestamp())
+        db_schema.upsert_future_chart_minute_rows(self.conn, 'KOSPI200_NIGHT',
+            [dict(ts=minute_ts, open=880, high=884, low=879, close=883)])
+        with mock.patch.object(charts, 'datetime', wraps=datetime) as clock:
+            clock.now.return_value = moment
+            for stamp, expected in [('2026-10-16T01:49:00+09:00', [11, 15]),
+                                    ('2026-10-15T23:56:00+09:00', [11]),
+                                    ('2026-10-16T18:01:00+09:00', [11]),
+                                    ('2026-10-16T01:20:00+09:00', [11])]:
+                self.conn.execute('INSERT OR REPLACE INTO future_prices (symbol,name,price,updated_at) VALUES (?,?,?,?)',
+                    ('KOSPI200_NIGHT', 'night', 885, stamp))
+                self.conn.commit()
+                result = self.get('KOSPI200_NIGHT')
+                self.assertEqual([r['slot'] for r in result['rows']], expected)
+                if len(expected) == 2:
+                    self.assertEqual(result['rows'][-1]['close'], 885)
+
     def test_public_route_does_not_fetch_provider(self):
         from fastapi.testclient import TestClient
         import main
