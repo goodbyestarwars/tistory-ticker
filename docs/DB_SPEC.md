@@ -425,6 +425,8 @@ PK `(date, sector)`. 업종(운영 `sector_cards` 설정의 테마, "코스피 3
 
 하루 1행(약 4KB). `date`(PK), `score100`, `axes_json`, `components_json`(10개 지표 원값·점수), `breadth_json`(전종목 등락 종목 수), `updated_at`. 거래일에 3~15분 주기 계산이 같은 날짜 행을 덮어써서 장 마감 뒤 마지막 값이 남는다. 800일 보관. 지표별 예측력을 과거로 검증하려고 만들었다(`scripts/analysis/`).
 
+2026-10-16부터 화면의 `score100`/`recentDays[].score`는 수급·가격 방향 점수다. 과거 `market_temp_daily.score100`은 같은 이름으로 예전 위험 혼합식 값이 남아 있어, 응답 이력은 `components_json`이 있는 날짜만 현재 식으로 다시 계산한다. 스냅샷이 없는 날짜는 점수를 비워 서로 다른 식의 점을 한 그래프에 섞지 않는다. 기존 `temp`·원점수 필드는 호환을 위해 그대로 보존한다.
+
 ### 2.22 `night_futures_close` — 야간선물 마감값(검증용, 2026-10-04)
 
 `date`(PK, 야간장이 끝난 아침의 한국 날짜), `night_close`·`night_ts`(오전 6시 이전 마지막 분봉), `bars`(그 구간 분봉 수 - 자료 완전성 확인용), `day_close`·`day_ts`(직전 주간선물 마지막 분봉), `updated_at`. 화~토 오전 6~9시 계산 주기에 기록한다. `future_chart_minute`는 1500봉만 읽혀 며칠 뒤 마감값이 사라지므로 따로 보관한다.

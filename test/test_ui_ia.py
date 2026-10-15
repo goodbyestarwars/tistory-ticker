@@ -1606,23 +1606,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("box-shadow: none", row_rule.group("body"))
 
     def test_market_temperature_history_self_records_without_manual_trigger(self):
-        gas = self.read("gas/ticker-proxy.gs")
         source = self.read("js/market-temp.js")
-        style = self.read("css/market-temp.css")
-        for token in (
-            "market_temp_v8",
-            "upsertDailyMarketTemp_(temp)",
-            "readDailyMarketTempHistory_",
-            "computeMarketTempHistory_(temp, dailyHistory)",
-            "computeMarketTempSparkline_(temp, dailyHistory)",
-        ):
-            self.assertIn(token, gas)
-        self.assertIn("if (shown.length === 1)", source)
-        self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
-        self.assertNotIn("추이 데이터 수집 중 (며칠 후부터 표시됩니다)", source)
-        self.assertNotIn("며칠 후부터 표시됩니다", source)
-        self.assertIn(".mt-spark-single", style)
-
+        backend = self.read("scripts/cloud-vm/market_temp.py")
+        self.assertIn("recentDays", source)
+        self.assertIn("recompute_direction_history(conn, history_rows)", backend)
+        self.assertIn("market_temp_snapshot", backend)
     def test_home_us_schedule_title_follows_the_market_label(self):
         style = self.read("style.css")
         selector = "body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row"
@@ -1631,47 +1619,17 @@ class UiInformationArchitectureTest(unittest.TestCase):
         rule = style[start:end]
         self.assertIn("grid-template-columns: max-content minmax(0, 1fr) max-content", rule)
 
-    def test_market_temperature_short_flow_has_period_switches_and_zero_centered_wave(self):
-        gas = self.read("gas/ticker-proxy.gs")
+    def test_market_temperature_short_flow_has_period_switches_and_heatmap(self):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
-        for period in (5, 10, 20, 40):
-            self.assertIn(str(period), source)
         self.assertIn("var HISTORY_PERIODS = [5, 10, 20, 40];", source)
-        self.assertIn("최근 단기흐름", source)
-        self.assertIn("smoothSegment_", source)
-        self.assertIn("30일 평균", source)
-        self.assertIn("5일 평균", source)
-        self.assertIn("computeMarketTempSparkline_(temp, dailyHistory)", gas)
-        self.assertIn("slice(-40)", gas)
-        # 단기흐름은 점수의 방향, 30일 평균선, 날짜별 상태를 보여주고
-        # 정확한 일별 점수는 차트 툴팁에 남긴다.
-        self.assertIn("function marketMood_(score)", source)
-        self.assertIn("function tomorrowFlow_(days, shown, baseline)", source)
-        self.assertIn("다음 거래일 가설", source)
-        self.assertNotIn("꽁꽁", source)
-        self.assertNotIn("구름 조금", source)
-        self.assertNotIn("폭염", source)
-        self.assertIn('class="mt-rib-avg"', source)
-        self.assertIn('class="mt-rib-avg5"', source)
-        self.assertIn("function markerCircle(className, point, radius)", source)
-        self.assertIn('mt-rib-band-fear', source)
-        self.assertIn("stroke-linecap: round;", style)
-        self.assertIn("background: transparent; color: var(--mt-blue)", style)
-        self.assertIn("#market-temp .mt-tomorrow-down { border-left-color:var(--mt-blue); }", style)
-        self.assertIn("grid-template-columns: repeat(2, minmax(0, 1fr));", style)
-        self.assertNotIn('gradientUnits="userSpaceOnUse"', source)
-        self.assertIn("data-rib-stage", source)
-        self.assertIn("mt-weather-strip", source)
-        self.assertIn("function animateHistory(root)", source)
-        self.assertIn("animateHistory(content);", source)
-        self.assertIn("panel.addEventListener('pointermove', scrub);", source)
-        for token in (".mt-rib-border", ".mt-rib-line", ".mt-weather-mark",
-                      "#market-temp .mt-rib-tip[hidden]"):
-            self.assertIn(token, style)
-        self.assertNotIn("mt-wave-segment-", source)
-        self.assertIn("#market-temp .mt-rib-avg5 { stroke: var(--mt-yellow); stroke-width: 2.4; stroke-dasharray: none;", style)
-
+        self.assertIn('class="mt-heatmap"', source)
+        self.assertIn('class="mt-heat-day', source)
+        self.assertIn('tabindex="0"', source)
+        self.assertIn('is-latest', source)
+        self.assertIn("data.scoreMethod !== 'direction-v2'", source)
+        self.assertIn('#market-temp .mt-heatmap { display:grid;', style)
+        self.assertIn('grid-template-columns:repeat(5,minmax(0,1fr))', style)
     def test_market_temperature_score_says_scale_meaning_and_retail_action(self):
         """2026-09-16 사용자 지적.
 
@@ -1991,7 +1949,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
             self.assertIn("border-radius: 0", rule(selector))
         self.assertEqual(rule("#market-temp .mt-gauge-seg").count("stroke-linecap: round"), 0)
-        self.assertIn("markerCircle('mt-rib-now mt-rib-tone-' + nowTone, now, 5)", source)
+        self.assertIn("mt-heat-day", source)
         self.assertIn('<circle class="', source)
 
         start = gas.index("function getMarketTempBriefing()")
@@ -2039,23 +1997,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         ):
             self.assertIn(token, source)
 
-    def test_market_temperature_components_prioritize_action_and_driver_graphs(self):
+    def test_market_temperature_components_explain_direction_and_risk(self):
         source = self.read("js/market-temp.js")
-        style = self.read("css/market-temp.css")
-        # 2026-10-04 점수·행동 중복(52점 / 오늘 시장 판단 / 개미 체크리스트)을 걷었다 - 한 번만 보여 준다.
-        self.assertNotIn("오늘 시장 판단", source)
-        self.assertIn("그래서 내일은?", source)
-        self.assertIn("점수를 올린 요인", source)
-        self.assertIn("점수를 내린 요인", source)
-        self.assertIn("function buildDriverRow", source)
-        self.assertIn("점수·계산 기준·데이터 출처 보기", source)
-        self.assertIn("function score100(data)", source)
-        self.assertIn("mt-market-decision", style)
-        self.assertIn("mt-driver-grid", style)
-        self.assertIn("grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr)", style)
-        self.assertIn("mt-driver-legend", style)
-        self.assertNotIn("<table class=\"mt-comp-table\"", source)
-
+        self.assertIn("거래대금 증가만으로 매수 주도라고 판단하지 않습니다", source)
+        self.assertIn("별도 위험 지표", source)
+        self.assertIn("실제 매수·매도 주체는 판정하지 않습니다", source)
     def test_market_temperature_includes_kofia_credit_risk_component(self):
         gas = self.read("gas/ticker-proxy.gs")
         source = self.read("js/market-temp.js")
@@ -2658,7 +2604,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertNotIn("function buildRadar(", source)
         self.assertNotIn("function row2col(", source)
         # 서버가 내려주는 3축 종합점수를 우선 쓴다.
-        self.assertIn("var summary = Number(data && data.score100);", source)
+        self.assertIn("var summary = data && data.score100 != null ? Number(data.score100) : NaN;", source)
         # 2026-09-02 요청 기능(상승·하락 코스피/코스닥 따로)은 버리지 않고 요약 카드로 옮겼다.
         self.assertIn("+ buildBreadth(data)", source)
         # 비교할 어제가 없는 것과 "어제와 같음"을 뭉뚱그리지 않는다.
