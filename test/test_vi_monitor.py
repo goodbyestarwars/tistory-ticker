@@ -142,11 +142,12 @@ const a = src.indexOf('// ---- 시장 변동성 모니터');
 const b = src.indexOf('function renderAlerts(', a);
 const pre = "var MARKET_LABEL={KOSPI:'코스피',KOSDAQ:'코스닥'};function haltTitle(e){return (MARKET_LABEL[e.market]||'')+' 사이드카';}" +
   "function hhmm(i){return String(i).slice(11,16);}function hhmmss(i){return i?String(i).slice(11,19):'-';}function esc(s){return String(s==null?'':s);}var viView={mode:'active',market:'ALL',kind:'ALL'};";
-const f = new Function(pre + src.slice(a, b) + 'return {activeHalts,haltCardHtml,viLine,haltHistoryCount,viPanelHtml,viView};');
+const f = new Function(pre + src.slice(a, b) + 'return {activeHalts,haltCardHtml,viLine,viCardHtml,haltHistoryCount,viPanelHtml,viView};');
 const api = f();
 const data = JSON.parse(process.argv[2]);
 const halts = api.activeHalts(data.market_halt);
-const out = {halts: halts.map(e => api.haltCardHtml(e, false)), vi: api.viLine(data), history: api.haltHistoryCount(data.market_halt)};
+const vi = api.viLine(data);
+const out = {halts: halts.map(e => api.haltCardHtml(e, false)), vi: vi, viCard: vi ? api.viCardHtml(vi, false) : null, history: api.haltHistoryCount(data.market_halt)};
 out.panelActive = api.viPanelHtml(data);
 api.viView.mode = 'today'; out.panelToday = api.viPanelHtml(data);
 api.viView.market = 'KOSDAQ'; api.viView.kind = 'DYNAMIC'; out.panelFiltered = api.viPanelHtml(data);
@@ -169,46 +170,65 @@ def vi_row(code, market, kind, status, trig='2026-10-15T10:29:00+09:00'):
 class FrontendTests(unittest.TestCase):
     def test_markup_renders_cards_only_for_active_events(self):
         js = open(os.path.join(ROOT, 'js', 'skin-main.js'), encoding='utf-8').read()
-        for token in ('class="vol-alert ', 'class="vol-viline"', 'class="vol-unknown"', 'aria-controls="volPanel"', 'function renderAlerts('):
+        for token in ('class="vol-alert ', 'class="vol-alert is-vi"', 'class="vol-unknown"', 'aria-controls="volPanel"', 'function renderAlerts(', 'data-vol-history'):
             self.assertIn(token, js)
-        seg = js[js.index('(function homeCircuitBreakerBadges'):js.index('function openPanel(')]
+        seg = js[js.index('(function homeCircuitBreakerBadges'):js.index('function hideAll(')]
         self.assertNotIn('발동 없음', seg)
-        self.assertNotIn("text: '없음'", seg)                                           # 없음을 상시 표시하지 않는다
-        self.assertIn("if (!html && panel !== 'vi') { box.hidden = true;", js)          # 아무것도 없으면 영역을 비운다
+        self.assertNotIn("text: '없음'", seg)                                           # 빈 상태 카드를 그리지 않는다
+        self.assertIn("if (!html && !panel) { box.hidden = true;", js)                  # 카드가 하나도 없으면 영역 전체 숨김
 
-    def test_cb_and_sidecar_active_at_once_show_two_cards_and_vi_is_one_line(self):
-        halt = {'available': True, 'events': [
-            {'id': 'a', 'market': 'KOSPI', 'kind': 'CIRCUIT_BREAKER', 'stage': 2, 'status': 'active', 'triggered_at': '2026-10-15T10:20:00+09:00'},
-            {'id': 'b', 'market': 'KOSDAQ', 'kind': 'SIDECAR', 'direction': 'SELL', 'status': 'active', 'triggered_at': '2026-10-15T10:25:00+09:00'},
-            {'id': 'c', 'market': 'KOSDAQ', 'kind': 'SIDECAR', 'direction': 'BUY', 'status': 'released', 'triggered_at': '2026-10-15T09:00:00+09:00', 'released_at': '2026-10-15T09:05:00+09:00'}]}
-        data = {'market_halt': halt, 'vi_available': True, 'vi_active_count': 1,
+    def test_scenario_all_zero_hides_everything_but_history_stays(self):
+        r = render({'market_halt': {'available': True, 'events': [
+            {'id': 'c', 'market': 'KOSDAQ', 'kind': 'SIDECAR', 'direction': 'BUY', 'status': 'released', 'triggered_at': '2026-10-15T09:00:00+09:00', 'released_at': '2026-10-15T09:05:00+09:00'}]},
+            'vi_available': True, 'vi_active_count': 0, 'vi_today': [vi_row('222222', 'KOSPI', 'STATIC', 'released')]})
+        self.assertEqual((r['halts'], r['vi']), ([], None))                            # 카드 0장
+        self.assertEqual(r['history'], 1)                                              # 해제 이력은 유지
+        self.assertIn('종목222222', r['panelToday'])                                    # 이력 조회 경로 유지
+
+    def test_scenario_vi_only_is_one_gray_card_with_count(self):
+        r = render({'market_halt': {'available': True, 'events': []}, 'vi_available': True, 'vi_active_count': 15,
+                    'vi_today': [vi_row('%06d' % i, 'KOSDAQ', 'STATIC', 'active', trig='2026-10-15T16:%02d:00+09:00' % (30 - i)) for i in range(15)]})
+        self.assertEqual(r['halts'], [])
+        self.assertEqual((r['vi']['count'], r['vi']['time'], r['vi']['market']), (15, '16:30', '코스닥'))
+        self.assertIn('is-vi', r['viCard'])
+        self.assertIn('변동성완화장치 · VI', r['viCard'])
+        self.assertIn('class="vol-count">15<small>', r['viCard'])
+
+    def test_scenario_sidecar_only_and_cb_only_and_both(self):
+        def halt(*evs):
+            return {'market_halt': {'available': True, 'events': list(evs)}, 'vi_available': True, 'vi_active_count': 0, 'vi_today': []}
+        cb = {'id': 'a', 'market': 'KOSPI', 'kind': 'CIRCUIT_BREAKER', 'stage': 2, 'status': 'active', 'triggered_at': '2026-10-15T10:20:00+09:00'}
+        sc = {'id': 'b', 'market': 'KOSDAQ', 'kind': 'SIDECAR', 'direction': 'SELL', 'status': 'active', 'triggered_at': '2026-10-15T10:25:00+09:00'}
+        only_sc = render(halt(sc))
+        self.assertEqual((len(only_sc['halts']), 'is-side' in only_sc['halts'][0], '매도' in only_sc['halts'][0], '10:25' in only_sc['halts'][0]), (1, True, True, True))
+        only_cb = render(halt(cb))
+        self.assertEqual((len(only_cb['halts']), 'is-cb' in only_cb['halts'][0], '2단계' in only_cb['halts'][0], '코스피' in only_cb['halts'][0]), (1, True, True, True))
+        both = render(halt(sc, cb))
+        self.assertEqual(len(both['halts']), 2)
+        self.assertIn('is-cb', both['halts'][0])                                       # CB가 먼저
+
+    def test_scenario_release_removes_the_card_but_keeps_history(self):
+        ev = {'id': 'a', 'market': 'KOSPI', 'kind': 'CIRCUIT_BREAKER', 'stage': None, 'status': 'active', 'triggered_at': '2026-10-15T10:20:00+09:00'}
+        self.assertEqual(len(render({'market_halt': {'available': True, 'events': [ev]}, 'vi_available': True, 'vi_active_count': 0, 'vi_today': []})['halts']), 1)
+        released = dict(ev, status='released', released_at='2026-10-15T10:40:00+09:00')
+        r = render({'market_halt': {'available': True, 'events': [released]}, 'vi_available': True, 'vi_active_count': 0, 'vi_today': []})
+        self.assertEqual((r['halts'], r['history']), ([], 1))
+
+    def test_scenario_feed_failure_never_keeps_old_active_state(self):
+        r = render({'market_halt': {'available': False, 'events': []}, 'vi_available': False, 'vi_active_count': None,
+                    'vi_today': [vi_row('111111', 'KOSDAQ', 'DYNAMIC', 'unknown')]})
+        self.assertEqual((r['halts'], r['vi'], r['history']), ([], None, 0))
+        self.assertIn('정상이라는 뜻이 아니며', r['panelActive'])
+
+    def test_vi_panel_filters_and_links(self):
+        data = {'market_halt': {'available': True, 'events': []}, 'vi_available': True, 'vi_active_count': 1,
                 'vi_today': [vi_row('111111', 'KOSDAQ', 'DYNAMIC', 'active'), vi_row('222222', 'KOSPI', 'STATIC', 'released')]}
         r = render(data)
-        self.assertEqual(len(r['halts']), 2)                                           # 해제된 사이드카는 상단 카드에서 빠진다
-        self.assertIn('is-cb', r['halts'][0])
-        self.assertIn('2단계', r['halts'][0])
-        self.assertIn('is-side', r['halts'][1])
-        self.assertIn('매도', r['halts'][1])
-        self.assertEqual(r['vi'], 'VI 발동 1건 · 최근 10:29 코스닥 종목111111 발동')
-        self.assertEqual(r['history'], 3)                                              # 이력 3건은 상세에서 볼 수 있다
         self.assertIn('종목111111', r['panelActive'])
         self.assertNotIn('종목222222', r['panelActive'])
-        self.assertIn('종목222222', r['panelToday'])
         self.assertIn('동적 VI', r['panelToday'])
         self.assertIn('/page/stock-search?code=111111', r['panelToday'])
-        self.assertIn('종목111111', r['panelFiltered'])
         self.assertNotIn('종목222222', r['panelFiltered'])                              # 코스닥·동적 필터
-
-    def test_default_state_has_no_cards_and_no_vi_line(self):
-        r = render({'market_halt': {'available': True, 'events': []}, 'vi_available': True, 'vi_active_count': 0,
-                    'vi_today': [vi_row('222222', 'KOSPI', 'STATIC', 'released')]})
-        self.assertEqual((r['halts'], r['vi']), ([], None))                            # VI 발동 0건이면 숨김
-        self.assertIn('지금 발동 중인 VI가 없습니다', r['panelActive'])
-
-    def test_unavailable_never_draws_cards_or_counts(self):
-        r = render({'market_halt': {'available': False, 'events': []}, 'vi_available': False, 'vi_active_count': None, 'vi_today': []})
-        self.assertEqual((r['halts'], r['vi']), ([], None))
-        self.assertIn('정상이라는 뜻이 아니며', r['panelActive'])
 
     def test_missing_values_show_dash(self):
         row = vi_row('333333', 'KOSDAQ', None, 'active')
