@@ -199,7 +199,8 @@ assert.match(h.chartEl.innerHTML, /1개뿐/);
 
 // 이 화면의 기본값은 서버에서 받은 자료만 쓴다 - 소스에 총매수·총매도를 순매수에서 계산하는 코드가 없다
 const src = fs.readFileSync('js/investor-flow.js', 'utf8');
-assert.ok(src.indexOf('원자료 미지원') > 0);
+assert.ok(src.indexOf('data-if-gross') < 0 && src.indexOf('실제 매수·매도 금액') < 0 && src.indexOf('renderGross') < 0, '실제 매수·매도 금액 구역 제거');
+assert.ok(src.indexOf('data-if-basis') > 0, '외국인 기준 안내는 누적 표 아래에 남긴다');
 assert.ok(!/grossBuy|totalBuy|총매수\s*=|buy\s*=\s*\(?\s*net/.test(src), '총매수를 순매수에서 거꾸로 계산하지 않는다');
 assert.ok(src.indexOf('/investor-trend/history') > 0);
 

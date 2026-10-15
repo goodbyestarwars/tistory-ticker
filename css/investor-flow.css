@@ -3,8 +3,7 @@
    투자자 구분색은 외국인 빨강·기관 파랑·개인 초록으로 고정(css/market-indicators.css 의 --mi-inv-*)이며 막대·선·범례·툴팁·버튼에 같은 값을 쓴다.
    순매수·순매도는 0선 위아래로만 구분하고 같은 투자자의 색을 방향에 따라 바꾸지 않는다. */
 .ifl { margin:0; }
-.ifl .ifl-asof, .ifl .ifl-cap, .ifl .ifl-note, .ifl .ifl-state, .ifl .ifl-sentence, .ifl .ifl-lv, .ifl .ifl-na { word-break:keep-all; overflow-wrap:break-word; }
-.ifl .ifl-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 6px; }
+.ifl .ifl-asof, .ifl .ifl-cap, .ifl .ifl-note, .ifl .ifl-state, .ifl .ifl-sentence, .ifl .ifl-lv, .ifl .ifl-controls { display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; margin:0 0 6px; }
 .ifl .ifl-seg { display:inline-flex; gap:0; }
 .ifl .ifl-seg-btn { appearance:none; margin:0; padding:6px 13px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12.5px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ifl .ifl-seg-btn:last-child { border-right-width:1px; }
@@ -12,10 +11,7 @@
 html.dark .ifl .ifl-seg-btn.is-active { color:#1A1A1A; }
 .ifl .ifl-seg-btn:disabled { opacity:.35; cursor:not-allowed; }
 /* 투자자 선택 버튼: 색 점 + 선택되면 그 투자자의 색으로 채운다(범례·그래프와 같은 값) */
-.ifl .ifl-seg-inv .ifl-seg-btn { display:inline-flex; align-items:center; gap:7px; }
-.ifl .ifl-seg-inv .ifl-seg-btn.is-active { border-color:var(--ifl-inv); background:var(--ifl-inv); color:#fff; }
-html.dark .ifl .ifl-seg-inv .ifl-seg-btn.is-active { color:#fff; }
-.ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; color:var(--ibd-sub); font-variant-numeric:tabular-nums; }
+html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; color:var(--ibd-sub); font-variant-numeric:tabular-nums; }
 .ifl .ifl-state { margin:10px 0 0; padding:8px 10px; border-top:1px solid var(--ibd-line); border-bottom:1px solid var(--ibd-line); font-size:12.5px; line-height:1.55; color:var(--ibd-num); }
 .ifl .ifl-state[hidden] { display:none; }
 
@@ -41,9 +37,6 @@ html.dark .ifl .ifl-seg-inv .ifl-seg-btn.is-active { color:#fff; }
 .ifl .ifl-table td.up, .ifl .ifl-table td.up small { color:var(--ibd-up); }
 .ifl .ifl-table td.down, .ifl .ifl-table td.down small { color:var(--ibd-down); }
 .ifl .ifl-table .ibd-swatch { margin-right:4px; vertical-align:baseline; }
-.ifl .ifl-gross-table { margin-top:10px; }
-.ifl .ifl-gross-table td { text-align:right; }
-.ifl .ifl-na { color:var(--ibd-sub)!important; font-size:12.5px; text-align:right; }
 
 /* 요약 */
 .ifl .ifl-lines { margin:8px 0 0; padding:0; list-style:none; border-top:2px solid var(--ibd-line-strong); }
@@ -70,11 +63,10 @@ html.dark .ifl .ifl-seg-inv .ifl-seg-btn.is-active { color:#fff; }
 /* 다크모드: style.css 의 html.dark .post-single-body * { color: ... !important } 가 이 화면의 글자색을 전부 크림색으로 덮는다.
    선택된 버튼의 반전 글자, 상승(빨강)·하락(파랑) 수치, 보조 글자의 옅은 색을 같은 !important 로 더 높은 명시도에서 되돌린다. */
 html.dark .ifl .ifl-seg-btn.is-active { color: #1A1A1A !important; }
-html.dark .ifl .ifl-seg-inv .ifl-seg-btn.is-active { color: #fff !important; }
-html.dark .ifl .ifl-table td.up, html.dark .ifl .ifl-table td.up small, html.dark .ifl .ifl-lv.up { color: var(--ibd-up) !important; }
+html.dark html.dark .ifl .ifl-table td.up, html.dark .ifl .ifl-table td.up small, html.dark .ifl .ifl-lv.up { color: var(--ibd-up) !important; }
 html.dark .ifl .ifl-table td.down, html.dark .ifl .ifl-table td.down small, html.dark .ifl .ifl-lv.down { color: var(--ibd-down) !important; }
 html.dark .ifl .ifl-asof, html.dark .ifl .ifl-cap, html.dark .ifl .ifl-note, html.dark .ifl .ifl-minih,
-html.dark .ifl .ifl-table thead th, html.dark .ifl .ifl-table small, html.dark .ifl .ifl-na,
+html.dark .ifl .ifl-table thead th, html.dark .ifl .ifl-table small,
 html.dark .ifl .ibd-axis, html.dark .ifl .ibd-leg-btn.is-off { color: var(--ibd-sub) !important; }
 html.dark .ifl .ibd-axis { fill: var(--ibd-sub); }
 
