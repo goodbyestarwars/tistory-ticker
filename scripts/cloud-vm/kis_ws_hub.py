@@ -157,7 +157,7 @@ class KisWsHub:
             'reconnects': 0, 'watchdogReconnects': 0, 'unsubscribes': 0,
             'pingpongs': 0, 'controlOk': 0, 'controlErrors': 0,
             'lastError': None, 'lastControl': None, 'lastDisconnect': None,
-            'lastTickByTr': {},
+            'lastTickByTr': {}, 'controlLog': [],
         }
 
     # ---- 구독 API(어느 스레드에서 불러도 된다) ----
@@ -410,13 +410,15 @@ class KisWsHub:
             return
         body = message.get('body') or {}
         rt_cd = str(body.get('rt_cd', '')).strip()
-        info = {
+        info = {'rtCd': rt_cd or None,
             'at': _utc_iso(now),
             'trId': header.get('tr_id'),
             'trKey': header.get('tr_key'),
             'msgCd': body.get('msg_cd'),
             'msg': body.get('msg1'),
         }
+        with self._lock:                       # 구독별 승인/거부 응답(최근 30건) - 실수신 검증용
+            self._state['controlLog'] = (self._state['controlLog'] + [info])[-30:]
         if rt_cd and rt_cd != '0':
             with self._lock:
                 self._state['controlErrors'] += 1
@@ -506,6 +508,7 @@ class KisWsHub:
             'controlErrors': state['controlErrors'],
             'lastError': state['lastError'],
             'lastDisconnect': state['lastDisconnect'],
+            'controlLog': list(state['controlLog']),
             'watchdogSec': self.watchdog_sec,
         }
 

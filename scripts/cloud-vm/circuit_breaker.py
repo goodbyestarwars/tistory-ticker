@@ -32,6 +32,7 @@ import time
 from datetime import datetime, timedelta, timezone
 
 import kis_client
+import vi_store
 
 logger = logging.getLogger('circuit_breaker')
 
@@ -47,6 +48,7 @@ HALT_NOTE = '사이드카·서킷브레이커 자동 수신 경로가 연결되�
 HALT_KINDS = ('SIDECAR', 'CIRCUIT_BREAKER')
 HALT_MARKETS = ('KOSPI', 'KOSDAQ')
 HALT_STATUSES = ('active', 'released', 'resumed')
+VI_STALE_SEC = 90               # REST 전체 현황 조회가 이보다 오래 끊기면 전체 VI 건수를 보여 주지 않는다
 HALT_STALE_SEC = 180             # 수신이 이보다 오래 끊기면 '정상'으로 두지 않고 확인 불가로 내린다
 
 _lock = threading.Lock()
@@ -99,8 +101,20 @@ def parse_rows(output, date_str):
             'vi_kind_code': str(item.get('vi_kind_code') or '').strip() or None,
             'vi_cls_code': str(item.get('vi_cls_code') or '').strip() or None,
             'count': _int(item.get('vi_count')),
+            'price': _num(item.get('vi_prc')),
+            'static_price': _num(item.get('vi_stnd_prc')), 'static_dprt': _num(item.get('vi_dprt')),
+            'dyn_price': _num(item.get('vi_dmc_stnd_prc')), 'dyn_dprt': _num(item.get('vi_dmc_dprt')),
+            'market_cls': str(item.get('mrkt_div_cls_code') or '').strip() or None,
         })
     return rows
+
+
+def _num(value):
+    try:
+        text = str(value).replace(',', '').strip()
+        return float(text) if text else None
+    except (TypeError, ValueError):
+        return None
 
 
 def _int(value):
@@ -184,7 +198,29 @@ def refresh_once(appkey, appsecret, now_kst=None, getter=None):
         _state['rows'] = rows
         _state['fetchedAt'] = now_kst.isoformat(timespec='seconds')
         _state['error'] = None
+    for row in rows:
+        vi_store.merge(row, 'REST', now_kst)
     return rows
+
+
+def fill_markets():
+    """VI 종목의 코스피/코스닥 구분을 기존 시세 배치(domestic_quotes, 네이버 mt)로 한 번에 채운다. 종목별 호출 없음."""
+    codes = vi_store.codes_without_market()
+    if not codes:
+        return
+    try:
+        import domestic_quotes
+        vi_store.set_markets({q['code']: q.get('market') for q in domestic_quotes.fetch_quotes(codes)})
+    except Exception as exc:
+        logger.info('VI 종목 시장 구분 조회 실패: %s', exc)
+
+
+def vi_fresh(now_kst, fetched_at):
+    """REST 전체 현황이 신선한가. 조회 시간대에는 마지막 성공이 VI_STALE_SEC 안이어야 하고, 시간대 밖에는 발동이 있을 수 없어 신선으로 본다."""
+    if not in_poll_window(now_kst):
+        return True
+    fetched = _iso_kst(fetched_at)
+    return fetched is not None and 0 <= (now_kst - fetched).total_seconds() <= VI_STALE_SEC
 
 
 def _iso_kst(value):
@@ -320,6 +356,19 @@ def get_payload(now_kst=None):
         fetched = _state['fetchedAt']
         error = _state['error']
     payload = build_payload(rows, now_kst, fetched, error)
+    fresh = vi_fresh(now_kst, fetched)
+    today, counts = vi_store.snapshot(now_kst, fresh=fresh)
+    payload['vi_available'] = fresh
+    payload['vi_today'] = today
+    payload['vi_basis'] = {'full_market': 'REST', 'realtime': 'H0STVIC0', 'ws_events': counts['ws'], 'rest_events': counts['rest']}
+    try:
+        import vi_kis
+        payload['vi_basis']['ws'] = vi_kis.snapshot()
+    except Exception:
+        payload['vi_basis']['ws'] = None
+    if not fresh:
+        payload['vi_active_count'] = None          # 전체 현황을 못 받는 동안은 건수를 말하지 않는다
+        payload['vi_list'] = []
     halt = build_market_halt(now_kst)
     payload['market_halt'] = halt
     try:
@@ -348,6 +397,7 @@ def _loop(appkey, appsecret, on_tick=None):
                 logger.warning('hour validation tick unavailable')
         if in_poll_window(now_kst):
             refresh_once(appkey, appsecret, now_kst)
+            fill_markets()
             time.sleep(POLL_SEC)
         else:
             time.sleep(IDLE_CHECK_SEC)
