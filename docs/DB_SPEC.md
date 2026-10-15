@@ -655,3 +655,6 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 ### 시장지표 5년 정적 이력 (2026-10-08)
 
 `data/chart-history/*.js` / `window.MARKET_HISTORY_ARCHIVES[group]`: `{updatedAt,from,to,years,sources,series}`. 가격 선형 차트는 `[YYYYMMDD,close]`, 국내 캔들은 `[YYYYMMDD,open,high,low,close]`. SQLite 추가 없음. VM 재시작/재검색 감지 제외. [조회·갱신·용량](MARKET_CHART_HISTORY.md).
+
+### home_session_prices (2026-10-16)
+홈 미국 현물 2종·CME 선물 2종의 기존 시세 폴러 관측을 30분별로 보존. PK `(symbol,session,slot)`, `open/high/low/close`는 실제 수집 표본, `ts`는 공급자 시세 UTC 초. 같은 구간 최신 시세로 종가 갱신·고저 보존, 역순 시세로 종가 후퇴 없음. 14일 전 날짜 삭제. 새 외부 호출/스레드 없음. 야간은 별도 저장 없이 `future_chart_minute`를 읽어 집계한다.

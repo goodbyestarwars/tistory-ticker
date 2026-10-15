@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 
 import db_schema
 import commodity_kis
+import home_session_chart
 
 logger = logging.getLogger('foreign_futures')
 
@@ -73,7 +74,8 @@ def fetch_realtime(sym):
     if sign in ('FALLING', 'LOWER_LIMIT'):
         change = -abs(change)
         change_rate = -abs(change_rate)
-    return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low}
+    return {'price': price, 'change': change, 'change_rate': change_rate, 'high': high, 'low': low,
+            'traded_at': d.get('localTradedAt'), 'market_status': d.get('marketStatus')}
 
 
 def fetch_daily_chart(sym, days=400):
@@ -113,6 +115,10 @@ def refresh_realtime_all():
                 conn, sym['key'], sym['name'], q['price'], q['change'], q['change_rate'],
                 q['high'], q['low'], now_iso,
             )
+            try:
+                home_session_chart.record(conn, sym['key'], q)
+            except Exception:
+                logger.exception('home session observation failed: %s', sym['key'])
         # ICE 브렌트유만 KIS 시세/일봉 권한과 값을 운영 계정으로 실측 확인했다.
         # 다른 원자재는 거래소 시세 권한이 없어 기존 경로를 그대로 둔다.
         try:

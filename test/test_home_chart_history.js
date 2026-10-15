@@ -2,14 +2,14 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const now=Date.UTC(2026,9,8);
 class Clock extends Date { constructor(...args){super(...(args.length?args:[now]));} static now(){return now;} }
 const window={},document={createElement(){return {className:'',textContent:'',classList:{contains(){return true;}}};}};
-const context={window,document,Date:Clock,Promise,setTimeout,clearTimeout,isFinite};
+const context={window,document,Date:Clock,Promise,setTimeout,clearTimeout,isFinite,dashboardSection:{addEventListener(){}}};
 vm.createContext(context);
 vm.runInContext(fs.readFileSync('js/market-history.js','utf8'),context);
 vm.runInContext(fs.readFileSync('data/chart-history/domestic.js','utf8'),context);
 vm.runInContext(fs.readFileSync('data/chart-history/global.js','utf8'),context);
 const source=fs.readFileSync('js/skin-main.js','utf8');
 vm.runInContext(source.slice(source.indexOf('    var HOME_USE_SAMPLE_CHARTS'),source.indexOf('    function formatHomeTimestamp')),context);
-const element={attrs:{},setAttribute(k,v){this.attrs[k]=v;},insertAdjacentElement(where,node){this.nextElementSibling=node;},querySelector(){return {style:{},setAttribute(){}};}};
+const element={classList:{add(){},remove(){}},attrs:{},setAttribute(k,v){this.attrs[k]=v;},insertAdjacentElement(where,node){this.nextElementSibling=node;},querySelector(){return {style:{},setAttribute(){}};}};
 context.element=element;
 context.recent=[{date:'20261007',close:9999}];
 vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI')",context);
@@ -29,12 +29,6 @@ assert.ok(!element.innerHTML.includes('<polygon'),'domestic mini-chart has no fi
 const unchangedMarkup=element.innerHTML;
 vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI')",context);
 assert.equal(element.innerHTML,unchangedMarkup,'periodic refresh with identical data keeps the rendered trace');
-for (const symbol of ['NASDAQ_INDEX','SP500_INDEX']) {
-  vm.runInContext(`renderHomeIndexChart(element,recent,'${symbol}')`,context);
-  assert.equal(Number(element.attrs['data-history-count']),20,`${symbol} chart uses 20 trading days`);
-  assert.match(element.attrs['data-history-range'],/최근 20거래일 · 2026\.09\.\d\d ~ 2026\.10\.\d\d/);
-  assert.ok(element.innerHTML.includes('home-chart-pen'),'US mini-chart has the same pen');
-}
 window.MARKET_HISTORY_ARCHIVES={};
 context.recent=[{date:'20260901',close:100},{date:'20261007',close:110}];
 vm.runInContext("renderHomeIndexChart(element,recent,'KOSPI')",context);
@@ -54,7 +48,7 @@ context.cancelAnimationFrame=()=>{};
 const trace={points:'',setAttribute(name,value){if(name==='points')this.points=value;}};
 const pen={setAttribute(){}};
 const dot={style:{}};
-const animatedElement={attrs:{},setAttribute(k,v){this.attrs[k]=v;},insertAdjacentElement(where,node){this.nextElementSibling=node;},querySelector(selector){return selector==='.home-chart-trace'?trace:selector==='.home-chart-pen'?pen:dot;}};
+const animatedElement={classList:{add(){},remove(){}},attrs:{},setAttribute(k,v){this.attrs[k]=v;},insertAdjacentElement(where,node){this.nextElementSibling=node;},querySelector(selector){return selector==='.home-chart-trace'?trace:selector==='.home-chart-pen'?pen:dot;}};
 context.animatedElement=animatedElement;
 context.motionRows=[{date:'20261012',close:100},{date:'20261013',close:102}];
 vm.runInContext("renderHomeIndexChart(animatedElement,motionRows,'KOSPI')",context);
@@ -71,4 +65,4 @@ frames.shift()(2000);
 assert.equal(trace.points.split(' ').length,3,'existing samples are already visible while the final segment draws');
 frames.shift()(2420);
 assert.equal(trace.points.split(' ').length,3,'new real sample completes the trace');
-console.log('PASS domestic and US home 20-day charts, pen, retained five-year archive, fresh-date precedence, visible range caption');
+console.log('PASS domestic home 20-day charts, pen, retained five-year archive, fresh-date precedence, visible range caption');
