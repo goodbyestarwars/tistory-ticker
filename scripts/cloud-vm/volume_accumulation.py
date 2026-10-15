@@ -152,7 +152,7 @@ def distribution_flags(bars, price_now, avg_bar_volume=None):
 
 FLAG_TEXT = {'LONG_UPPER_WICK': '급등 뒤 긴 윗꼬리', 'GIVEBACK': '상승분 반납', 'CLOSE_WEAK': '종가 위치 약함', 'BIG_SELL_BAR': '대량 음봉',
              'EXTENDED': '고점 대비 과열(추격 위험)', 'UPPER_WICK_DAY': '당일 긴 윗꼬리'}
-RISK_TEXT = {'LOW': '낮음', 'MID': '보통', 'HIGH': '높음'}
+RISK_TEXT = {'LOW': '낮음', 'PENDING': '판정 보류', 'MID': '보통', 'HIGH': '높음'}
 
 
 def realtime_signal(samples, now_t, now_kst, price, change_rate, cum_volume, cum_amount, avg20_volume, avg20_amount):
@@ -178,6 +178,8 @@ def realtime_signal(samples, now_t, now_kst, price, change_rate, cum_volume, cum
     if close_pos is not None and close_pos < 0.35 and 'CLOSE_WEAK' not in flags:
         flags = flags + ['CLOSE_WEAK']
         risk = ('LOW', 'MID', 'HIGH')[min(len(flags), 2)]
+    if risk == 'LOW' and len(bars) < BARS_NEEDED:
+        risk = 'PENDING'          # 5분봉 표본이 모자라 윗꼬리·상승분 반납을 볼 수 없다 - 낮음이 아니라 판정 보류
     defended, spike_i = price_defense(bars, price)
     if risk == 'HIGH' or defended is False or (close_pos is not None and close_pos < CLOSE_POS_MIN):
         return None
@@ -256,7 +258,10 @@ def old_bar_signal(daily, live_price=None, live_rvol_vs_post=None):
             any(_f(b.get('close')) is not None and _f(b.get('close')) < a_c * (1 - SUPPORT_CLOSE_TOL) for b in post):
         return None                              # 매집봉 저가·종가를 크게 깨 지지 실패
     last = post[-1]
-    price = _f(live_price) or _f(last.get('close'))
+    live = _f(live_price)
+    if live is not None and (live < a_l * (1 - SUPPORT_LOW_TOL) or live < a_c * (1 - SUPPORT_CLOSE_TOL)):
+        return None                              # 장중 현재가가 매집봉 저가·종가 지지를 이탈 - 지지 대기로 두지 않는다
+    price = live or _f(last.get('close'))
     last_vol = _f(last.get('volume'))
     vol_ratio = (live_rvol_vs_post if live_rvol_vs_post is not None else (last_vol / mid_avg if last_vol and mid_avg else None))
     if price is None:
@@ -310,7 +315,7 @@ def merge_signals(signals):
 
 
 def worst_risk(signals):
-    ranks = {'LOW': 0, 'MID': 1, 'HIGH': 2}
+    ranks = {'LOW': 0, 'PENDING': 1, 'MID': 2, 'HIGH': 3}
     risks = [s.get('distribution', {}).get('risk', 'LOW') for s in signals]
     return max(risks, key=lambda r: ranks.get(r, 0)) if risks else 'LOW'
 
@@ -320,6 +325,8 @@ def interpretation_for(signals, risk):
     labels = ' + '.join(s['label'] for s in signals)
     pending = any(s.get('status') == 'pending' for s in signals)
     text = '%s 신호입니다. 분배 위험 %s.' % (labels, RISK_TEXT.get(risk, '-'))
+    if risk == 'PENDING':
+        text = '%s 신호입니다. 분배 위험은 5분봉 표본이 부족해 판정 보류.' % labels
     if pending:
         text += ' 일부 판정(가격 방어)은 데이터 부족으로 보류 중입니다.'
     text += ' 매집 여부를 확정하는 신호가 아니며 방향을 보장하지 않습니다.'
@@ -330,11 +337,11 @@ def daily_detail(sig):
     """일봉 판정 결과 → 차트검색 patternDetail(pattern_detect.build_pattern_match의 detail 입력)."""
     risk = sig['distribution']['risk']
     return {'score': sig['score'], 'reasons': list(sig['reasons']), 'interpretation': interpretation_for([sig], risk), 'status': sig['stage'],
-            'live': False, 'signals': [sig], 'distribution': sig['distribution'], 'volumeMultiple': sig.get('volumeMultiple'),
+            'live': False, 'priceBasis': 'SCAN', 'signals': [sig], 'distribution': sig['distribution'], 'volumeMultiple': sig.get('volumeMultiple'),
             'accDate': sig['accDate'], 'accHigh': sig['accHigh'], 'accLow': sig['accLow'], 'gapToHighPct': sig['gapToHighPct']}
 
 
-def combined_item(code, name, price, change_rate, date, signals, extra_reasons=(), live=True, status='watch', extra_detail=None):
+def combined_item(code, name, price, change_rate, date, signals, extra_reasons=(), live=True, status='watch', extra_detail=None, price_basis=None):
     """여러 신호를 한 종목 한 행으로 합친다(중복 표시 없음). 반환: 차트검색 공통 행."""
     score, ordered = merge_signals(signals)
     risk = worst_risk(ordered)
@@ -351,6 +358,8 @@ def combined_item(code, name, price, change_rate, date, signals, extra_reasons=(
     detail = {'score': score, 'reasons': reasons, 'interpretation': interpretation_for(ordered, risk), 'live': live, 'status': status,
               'signals': ordered, 'distribution': {'risk': risk, 'flags': flags}, 'volumeMultiple': mult}
     detail.update(extra_detail or {})
+    if price_basis:
+        detail['priceBasis'] = price_basis          # DETECT(장중 감지가) / SCAN(일봉 스캔가) - 화면 라벨 구분용
     return {'code': code, 'name': name, 'price': price, 'changeRate': change_rate, 'date': date, 'miniChart': [], 'score': score,
             'reasons': reasons, 'interpretation': detail['interpretation'], 'patternDetail': detail}
 
@@ -370,7 +379,8 @@ def merge_lists(primary, secondary):
                     uniq.append(s)
             merged = combined_item(code, base['name'], base['price'], base.get('changeRate'), base.get('date'), uniq,
                                    live=bool(base['patternDetail'].get('live')), status=base['patternDetail'].get('status') or 'watch',
-                                   extra_detail={k: v for k, v in base['patternDetail'].items() if k not in ('signals', 'score', 'reasons', 'interpretation', 'distribution', 'volumeMultiple')})
+                                   extra_detail={k: v for k, v in base['patternDetail'].items() if k not in ('signals', 'score', 'reasons', 'interpretation', 'distribution', 'volumeMultiple')},
+                                   price_basis=base['patternDetail'].get('priceBasis'))
             merged['miniChart'] = base.get('miniChart') or item.get('miniChart') or []
             by_code[code].clear()
             by_code[code].update(merged)

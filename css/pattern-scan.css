@@ -948,3 +948,5 @@ html.dark #pattern-scan .ps-va.is-early_pace { background: rgba(148, 163, 184, .
 html.dark #pattern-scan .ps-risk.is-low { background: rgba(16, 185, 129, .18); color: #6ee7b7; }
 html.dark #pattern-scan .ps-risk.is-mid { background: rgba(245, 158, 11, .22); color: #fde68a; }
 html.dark #pattern-scan .ps-risk.is-high { background: rgba(249, 115, 22, .24); color: #fdba74; }
+#pattern-scan .ps-risk.is-pending { background: #f1f5f9; color: #64748b; }
+html.dark #pattern-scan .ps-risk.is-pending { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
