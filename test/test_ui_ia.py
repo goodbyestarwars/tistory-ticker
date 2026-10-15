@@ -1657,9 +1657,9 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("(data && data.grade3 && data.grade3.tone)", source)
         self.assertIn("buildBriefingStrategy(data)", source)
         self.assertIn("buildTemperatureActions()", source)
-        self.assertIn("오늘 돈이 몰린 섹터", source)
+        self.assertIn("오늘 거래대금 상위 섹터", source)
         # 2026-10-02: 주요종목 상단은 키움 테마 '돈이 몰린 섹터'와 내 카테고리 매핑으로 바뀌었다.
-        self.assertIn("<h2>오늘 돈이 몰린 섹터</h2>", source)
+        self.assertIn("<h2>오늘 거래대금 상위 섹터</h2>", source)
         self.assertIn("data-money-strip", source)
         # 주석은 사용자 원문("분할매수가 많은데")을 인용하므로 화면에 나가던 코드 토큰으로 확인한다.
         for gone in ("action: '적극 분할매수'", "summary: '공포 우세 구간 · 분할 매수 후보를 확인'",
@@ -3429,7 +3429,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("mt-if-fill", source)
         self.assertIn("maxAmount", source)
         # 순위의 선 연결 그래프는 없애고, 거래대금 자체가 보이는 카드 흐름으로 바꿨다.
-        self.assertIn("오늘 돈이 몰린 섹터", source)
+        self.assertIn("오늘 거래대금 상위 섹터", source)
         self.assertIn("mt-money-flow-grid", source)
         self.assertNotIn("+ buildIndustryRankFlow_()", source)
         # 데이터원: 예전 경로(market-board 상위 30종목)는 절반 이상이 ETF라 테마가

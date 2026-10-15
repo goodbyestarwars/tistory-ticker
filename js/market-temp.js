@@ -229,7 +229,7 @@
     } else if (isFinite(money) && money < 40) {
       todo[0] = '거래대금이 붙은 종목만 남기고, 나머지는 장 마감 뒤 다시 본다';
       avoid.unshift('돈이 없는 종목을 혼자만의 기대감으로 매수');
-      base = { tone: tone, mood: '시장 안에 새 돈이 약한 날', title: '지금은 매수보다 후보 선별이 먼저다', short: '' };
+      base = { tone: tone, mood: '매수 우위가 약한 날', title: '지금은 매수보다 후보 선별이 먼저다', short: '' };
     } else if (tone === 'greed' && isFinite(money) && money >= 60) {
       todo[0] = '수익권 종목은 익절선과 이탈가를 오늘 가격으로 올려 적는다';
       avoid.unshift('오른 종목을 놓칠까 봐 시장가로 추격 매수');
@@ -885,7 +885,7 @@
     })();
   }
 
-  // ---- 위: 오늘 돈이 몰린 섹터 → 내 카테고리 매핑 ----
+  // ---- 위: 오늘 거래대금 상위 섹터 → 내 카테고리 매핑 ----
   // 거래대금 막대 표는 증시온도가 기준이라 여기서는 링크로 보내고(2026-10-02 사용자 요청), 같은 TOP10을 칩으로만
   // 보여 준다. 연결된 내 카테고리가 있으면 눌러서 이동하고, 없으면 ＋로 한 번에 카테고리를 만든다.
   function renderMoneyStrip_(mount, rows, sectors) {
@@ -899,8 +899,8 @@
         : '<button type="button" class="mt-money-chip is-add" data-add-theme="' + escapeHtml(row.theme_code || '') + '" data-theme-name="' + escapeHtml(row.industry) + '" title="내 카테고리에 없는 테마 - 눌러서 카테고리로 추가">' + label + '<small>＋ 추가</small></button>';
     }).join('');
     mount.innerHTML = '<div class="mt-section mt-card mt-money-card">'
-      + '<div class="mt-money-head"><strong>오늘 돈이 몰린 섹터 TOP10</strong><a href="/page/market-temp#mt-money-flow">거래대금 막대로 보기 →</a></div>'
-      + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">돈이 몰린 섹터를 불러오지 못했습니다.</div>')
+      + '<div class="mt-money-head"><strong>오늘 거래대금 상위 섹터 TOP10</strong><a href="/page/market-temp#mt-money-flow">거래대금 막대로 보기 →</a></div>'
+      + (chips ? '<div class="mt-money-chips">' + chips + '</div>' : '<div class="mt-hint">거래대금 상위 섹터를 불러오지 못했습니다.</div>')
       + '<p class="mt-top-note"><span class="mt-money-key is-mapped"></span>내 카테고리와 연결(누르면 카드로 이동) <span class="mt-money-key is-add"></span>내 카테고리에 없음(누르면 추가) · 키움증권 테마, 거래대금 순</p>'
       + '</div>';
     mount.onclick = function (event) {
@@ -1141,7 +1141,7 @@
     return out;
   }
 
-  // ---- 오늘 돈이 몰린 섹터 (증시온도 체크리스트 아래) ----
+  // ---- 오늘 거래대금 상위 섹터 (증시온도 체크리스트 아래) ----
   //
   // 2026-09-02 사용자 요청으로 추천을 섹터 단위로 바꿨다(흐름: 오늘의 섹터 → 그 종목 →
   // 파생 섹터). 2026-09-14 사용자 지적("광통신이 상한가 갔는데 하나도 없네, 내가 만든
@@ -1393,7 +1393,7 @@
     var picksByRow = selectMoneyPicks_(shown);
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
-      + '<div class="mt-sf-visual-head"><span>오늘 돈이 몰린 섹터</span><small>막대 = 1위 대비 거래대금 · 빨강 상승 · 파랑 하락</small></div>'
+      + '<div class="mt-sf-visual-head"><span>오늘 거래대금 상위 섹터</span><small>막대 = 1위 대비 거래대금 · 빨강 상승 · 파랑 하락</small></div>'
       + '<div class="mt-sf-thead" aria-hidden="true"><span>순위</span><span>섹터명</span><span class="mt-sf-th-meta"><span>거래대금</span><span>등락률(평균)</span></span><span>거래대금 집중도</span><span>대표 종목 (등락률)</span></div>'
       + '<div class="mt-sf-grid">'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount, picksByRow[i]); }).join('')
@@ -1433,13 +1433,13 @@
     var initialView = requestedPanel === 'all' ? 'active'
       : ['cards', 'active', 'heatmap', 'marketcap'].indexOf(requestedPanel) !== -1 ? requestedPanel : 'cards';
     return '<div class="mt-stocks-only">'
-      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>내 카테고리를 기준으로 종목을 모니터링하고, 오늘 돈이 몰린 섹터와 연결해서 봅니다.</p></div>'
+      + '<div class="mt-stocks-only-heading"><h1>국내 주요종목</h1><p>내 카테고리를 기준으로 종목을 모니터링하고, 오늘 거래대금 상위 섹터와 연결해서 봅니다.</p></div>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금 막대 표는 증시온도에서 봅니다. 여기서는 같은 순위를 내 카테고리와 연결해서 모니터링합니다.</p></div>'
-      + '<div data-money-strip><div class="mt-hint">돈이 몰린 섹터를 불러오는 중입니다.</div></div>'
+      + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2><p>거래대금 막대 표는 증시온도에서 봅니다. 여기서는 같은 순위를 내 카테고리와 연결해서 모니터링합니다.</p></div>'
+      + '<div data-money-strip><div class="mt-hint">거래대금 상위 섹터를 불러오는 중입니다.</div></div>'
       + '</section>'
       + '<section class="mt-section-block">'
-      + '<div class="mt-section-head"><h2>내 카테고리 모니터링</h2><p>돈이 몰린 카테고리가 앞에 옵니다. 활성 종목 탭에서 카테고리에 없는 종목을 편입하고, 새 카테고리는 키움 테마에서 추가합니다.</p></div>'
+      + '<div class="mt-section-head"><h2>내 카테고리 모니터링</h2><p>거래대금 상위 카테고리가 앞에 옵니다. 활성 종목 탭에서 카테고리에 없는 종목을 편입하고, 새 카테고리는 키움 테마에서 추가합니다.</p></div>'
       + buildExploreCard(initialView)
       + '</section>'
       + '</div>';
@@ -2376,7 +2376,7 @@
       + '<div class="mt-cp-metrics">'
       + metric('시장 체력', health, level(health, ['약함', '보통', '강함']), toneOf(health))
       + metric('위험도', risk, level(risk, ['낮음', '보통', '높음']), toneOf(risk))
-      + metric('자금 유입', money, level(money, ['약함', '보통', '강함']), toneOf(money))
+      + metric('수급 방향', money, level(money, ['약함', '보통', '강함']), toneOf(money))
       + '</div></div>'
       + '<div class="mt-ant-list mt-ant-todo"><b>지금 할 것</b><ul>' + list(guide.todo) + '</ul></div>'
       + '<div class="mt-ant-list mt-ant-avoid"><b>주의할 것</b><ul>' + list(guide.avoid) + '</ul></div>'
@@ -2416,7 +2416,7 @@
   function buildTemperatureActions() {
     return '<div class="mt-temperature-actions">'
       + '<section class="mt-section-block mt-temperature-money-flow" id="mt-money-flow">'
-      + '<div class="mt-section-head"><h2>오늘 돈이 몰린 섹터</h2><p>거래대금과 평균 등락률을 함께 보고 실제 자금이 몰리는 테마를 확인합니다.</p></div>'
+      + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2><p>거래대금 순위와 평균 등락률을 함께 봅니다. 거래대금만으로 매수 주도 여부는 알 수 없습니다.</p></div>'
       + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
       + '</section></div>';
   }
