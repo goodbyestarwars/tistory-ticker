@@ -9,7 +9,7 @@
   var root, tools, timer, busy, board, boardJob, newsAt = 0, history = {};
   var COINS = [['BTC', '비트코인'], ['ETH', '이더리움'], ['USDT', '테더']];
   var COIN_DIGITS = { BTC: 0, ETH: 0, USDT: 2 };
-  var coinItems = {}, tokenItems = {}, tokenPairs = [];
+  var coinItems = {}, tokenItems = {}, tokenPairs = [], tokenQuoteAt = '';
   var COLUMNS = [
     { label: '현재값', short: '현재' }, { label: '전일 대비', short: '전일' }, { label: '등락률', short: '등락' },
     { label: '고가', short: '고가' }, { label: '저가', short: '저가' }
@@ -85,6 +85,12 @@
   function fmtNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : Number(v).toLocaleString('ko-KR', { minimumFractionDigits: digits, maximumFractionDigits: digits }); }
   function signedNum(v, digits) { return v == null || !isFinite(Number(v)) ? '-' : (Number(v) > 0 ? '+' : '') + fmtNum(v, digits); }
   function toneOf(v) { return v > 0 ? 'up' : v < 0 ? 'down' : 'flat'; }
+  function tokenQuoteTime(stamp) {
+    var time = Date.parse(stamp);
+    if (!isFinite(time)) return '';
+    var kst = new Date(time + 9 * 3600000).toISOString();
+    return kst.slice(0, 10).replace(/-/g, '.') + ' ' + kst.slice(11, 19) + ' KST';
+  }
 
   // 일봉 이력 + 오늘 값. 코인(원화)은 한국 날짜, 토큰은 UTC 날짜 기준(기존 차트와 같다).
   function withToday(points, price, utc) {
@@ -139,10 +145,14 @@
     if (!board || !global.IndicatorBoard) return;
     var rows = COINS.map(coinRow);
     tokenPairs.forEach(function (pair) { rows.push(tokenRow(pair)); });
+    var tokenHint = 'USDT 기준 · 등락률은 24시간 · ' + (tokenQuoteAt ? '마지막 시세 수신 ' + tokenQuoteAt : '시세 수신 전');
     board.setRows(rows, [
       { key: 'coin', label: '가상자산', hint: '원화 기준 · 전일 대비는 24시간' },
-      { key: 'token', label: '바이낸스 국내주식 토큰', hint: 'USDT 기준 · 등락률은 24시간' }
+      { key: 'token', label: '바이낸스 국내주식 토큰', hint: tokenHint }
     ]);
+    // IndicatorBoard는 같은 행 구조에서 표의 숫자만 갱신하므로 제목 옆 시각은 별도로 반영한다.
+    var groupHints = board.root.querySelectorAll('.ibd-section small');
+    if (groupHints[1]) groupHints[1].textContent = tokenHint;
   }
 
   function shell() {
@@ -167,6 +177,7 @@
       tokenPairs = tools.symbols;
       tokenItems = { __failed: false };
       items.forEach(function(item){tokenItems[item.symbol]=item;});
+      if(items.length) tokenQuoteAt=tokenQuoteTime(data.updatedAt);
       renderBoard();
       // Three concurrent histories instead of an eight-request burst.
       function worker(){var item=items[index++];if(!item)return Promise.resolve();return tokenHistory(item.symbol).then(function(){renderBoard();}).then(worker);}
