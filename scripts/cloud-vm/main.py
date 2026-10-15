@@ -60,6 +60,7 @@ import market_board
 import memo
 import chart_drawings
 import option_flow
+import option_window
 import order_book
 import public_data
 import binance_flow
@@ -3601,6 +3602,7 @@ def option_flow_endpoint():
     data['maturity'] = maturity
     data['maturity_label'] = '%s년 %s월물' % (maturity[:4], maturity[4:])
     data['websocket'] = option_flow.websocket_available()
+    data['scope'] = option_window.read_scope()        # ATM 창 / 전광판 100행 폴백 안내(화면에 집계 범위를 밝히는 용도)
     # 2026-09-17: 옵션 실시간을 끄면(기본) WebSocket은 안 쓴다 - 출처 문구도 따라가야 한다.
     data['source'] = ('KIS 옵션 전광판 REST + KIS WebSocket' if data['websocket']
                       else 'KIS 옵션 전광판 REST (5분 스냅샷)')

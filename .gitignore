@@ -84,3 +84,4 @@ quant-autotrade/**/tick*/
 quant-autotrade/**/orderbook*/
 scripts/cloud-vm/market_halt_kis_events.json
 scripts/cloud-vm/vi_today_events.json
+scripts/cloud-vm/option_flow_scope.json

@@ -399,7 +399,7 @@
       var optionMeta = container.querySelector('.kf-option-title-meta');
       if (optionMeta) {
         var sourceLabel = bySide.websocket ? ' · WS 실시간 보강' : ' · REST 스냅샷';
-        optionMeta.textContent = (bySide.maturity_label || '최근월물') + sourceLabel;
+        optionMeta.textContent = (bySide.maturity_label || '최근월물') + sourceLabel + optionScopeLabel(bySide.scope);
       }
       OPTION_SIDES.forEach(function (s) {
         var card = container.querySelector('.kf-opt-card[data-side="' + s.key + '"]');
@@ -418,6 +418,15 @@
       if (profile) profile.innerHTML = '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b></div>'
         + '<div class="kf-option-profile-empty">행사가별 옵션 데이터를 불러오지 못했어요.</div>';
     });
+  }
+
+  // 집계 범위를 밝힌다: ATM 창이면 행사가 범위, 전광판 상위 100행 폴백이면 참고 불가 경고(2026-10-16 - 이 폴백은 늘 콜 우세로 보인다).
+  function optionScopeLabel(scope) {
+    if (!scope) return '';
+    if (scope.mode === 'ATM_WINDOW') {
+      return ' · 행사가 ' + fmtOptionNumber(scope.strike_min) + '~' + fmtOptionNumber(scope.strike_max) + ' 합계(현물 ±' + fmtOptionNumber(scope.window_pct) + '%)';
+    }
+    return ' · 중앙 행사가 누락(전광판 100행 제한) - 콜/풋 비교 참고 불가';
   }
 
   function fmtOptionNumber(value) {
