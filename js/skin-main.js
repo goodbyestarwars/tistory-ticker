@@ -256,6 +256,27 @@ document.documentElement.classList.add('skin-ready');
     document.body.appendChild(script);
   })();
 
+  /* 시장 페이지(시장지표 탭들·증시온도)의 모바일 전용 카드 UI(2026-10-16). 767px 이하에서만 불러온다 - PC·태블릿은
+     파일 자체를 받지 않으므로 화면이 달라지지 않는다. 기존 요소·데이터는 그대로 두고 카드·스와이프를 얹는다.
+     js/mobile-market.js, css/mobile-market.css, docs/UI_GUIDE.md '시장 모바일 카드 UI' */
+  (function loadMobileMarket() {
+    if (!/^\/(?:page|pages)\/(?:market-temp|kospi-futures|overnight-market)\/?$/i.test(location.pathname)) return;
+    if (!window.matchMedia || !window.matchMedia('(max-width: 767px)').matches) return;
+    if (document.querySelector('script[data-mobile-market]')) return;
+    var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
+    var version = '20261016-mobile-cards';
+    var link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = ASSET_BASE + 'css/mobile-market.css?v=' + version;
+    link.setAttribute('data-mobile-market-css', '1');
+    document.head.appendChild(link);
+    var script = document.createElement('script');
+    script.src = ASSET_BASE + 'js/mobile-market.js?v=' + version;
+    script.defer = true;
+    script.setAttribute('data-mobile-market', '1');
+    document.body.appendChild(script);
+  })();
+
   /* 증시온도(/page/market-temp): 티스토리 본문에 오래된 <script>/<link>가 남아 있어도
      최신 팔레트·순위 시각화·단기흐름 그래프가 적용되도록 스킨에서 한 번 더 보장한다. */
   (function loadMarketTempPage() {
