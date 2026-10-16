@@ -353,16 +353,54 @@
       + '<p class="at-note">등록한 종목은 "규칙 미확인" 상태로 시작합니다. 보유 목록에서 규칙을 확인해도 로컬 봇의 실주문은 비활성이라 주문은 나가지 않습니다.</p></section>';
   }
 
-  function ordersHtml(rows, today) {
+  // 종목명: 서버가 준 name → 보유·감시 목록 → 사이트 종목 사전(data/krx_map.js, 없으면 한 번만 불러와 다시 그린다) 순서로 찾는다.
+  var lastRendered = null, krxByCode = null, krxLoading = false;
+  function loadKrxMap() {
+    if (global.KRX_MAP || krxLoading) return;
+    krxLoading = true;
+    var sc = document.createElement('script');
+    sc.src = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
+    sc.onload = function () { krxByCode = null; if (lastRendered) render(lastRendered); };
+    document.head.appendChild(sc);
+  }
+  function krxName(code) {
+    if (!global.KRX_MAP) return '';
+    if (!krxByCode) { krxByCode = {}; Object.keys(global.KRX_MAP).forEach(function (n) { krxByCode[global.KRX_MAP[n]] = n; }); }
+    return krxByCode[code] || '';
+  }
+  function orderNames(d) {
+    var m = {};
+    (d.holdings || []).concat(d.watch || []).forEach(function (h) { if (h && h.code && h.name) m[h.code] = h.name; });
+    return m;
+  }
+  // 매수 가격 = 주문 접수가(지정가), 매도 가격 = 시장가라 체결가가 없어 전송 시점 판정가(새 엔진) 또는 1분봉 종가 추정(예전 주문). 둘 다 실제 체결가가 아니다.
+  var PRICE_KIND = { order: '주문가', decision: '판정가', estimate: '추정' };
+  function priceCell(price, kind, empty) {
+    if (!price) return '<td class="n at-mute" title="' + esc(empty || '') + '">-</td>';
+    return '<td class="n">' + fmtPrice(price) + (kind && PRICE_KIND[kind] ? '<small class="at-sub">' + PRICE_KIND[kind] + '</small>' : '') + '</td>';
+  }
+
+  function ordersHtml(rows, today, d) {
     rows = rows.filter(function (o) { return o.status !== 'DRY'; });
     if (!rows.length) return '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
-    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th>상태</th><th>내용</th></tr></thead><tbody>'
-      + rows.slice(0, 30).map(function (o) {
-        var isBuy = o.reason === 'BUY';
-        return '<tr><td>' + esc(o.ts) + '</td><td>' + esc(o.code) + '</td><td>' + (isBuy ? '매수' : '매도') + (REASON_LABEL[o.reason] && !isBuy && o.reason !== 'SELL' ? ' · ' + esc(REASON_LABEL[o.reason]) : '') + '</td>'
-          + '<td class="n">' + esc(o.qty) + '</td><td class="at-st-' + esc(o.status) + '">' + esc(ORDER_STATUS[o.status] || o.status) + '</td><td>' + esc(o.detail || '') + '</td></tr>';
-      }).join('') + '</tbody></table></div>'
-      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 실제 체결은 키움 체결내역에서 확인하세요.</p>';
+    var names = orderNames(d || {});
+    var shown = rows.slice(0, 30);
+    var missing = false;
+    var body = shown.map(function (o) {
+      var isBuy = o.reason === 'BUY';
+      var name = o.name || names[o.code] || krxName(o.code);
+      if (!name) missing = true;
+      return '<tr><td>' + esc(o.ts) + '</td><td>' + (name ? '<b>' + esc(name) + '</b><small class="at-sub">' + esc(o.code) + '</small>' : esc(o.code)) + '</td>'
+        + '<td>' + (isBuy ? '매수' : '매도') + (REASON_LABEL[o.reason] && !isBuy && o.reason !== 'SELL' ? ' · ' + esc(REASON_LABEL[o.reason]) : '') + '</td>'
+        + '<td class="n">' + esc(o.qty) + '</td>'
+        + (isBuy ? priceCell(o.price, 'order', '매수 주문가 기록 없음') : priceCell(o.buy_price, 'order', '이 매도의 매수 기록을 찾지 못함'))
+        + (isBuy ? '<td class="n at-mute">-</td>' : priceCell(o.price, o.price_kind, '매도 가격이 기록되지 않았고 추정할 분봉도 없음(전송 후 약 2거래일까지만 추정)'))
+        + '<td class="at-st-' + esc(o.status) + '">' + esc(ORDER_STATUS[o.status] || o.status) + '</td><td>' + esc(o.detail || '') + '</td></tr>';
+    }).join('');
+    if (missing) loadKrxMap();
+    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">매수 가격</th><th class="n">매도 가격</th><th>상태</th><th>내용</th></tr></thead><tbody>'
+      + body + '</tbody></table></div>'
+      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 매수 가격은 주문 접수가이고, 매도는 시장가 주문이라 전송 시점의 판정가(2026-10-16 이후 주문) 또는 1분봉 종가 추정(그 이전 주문)을 보여 줍니다. 모두 실제 체결가가 아니니 체결가는 키움 체결내역에서 확인하세요.</p>';
   }
 
   function eventRows(rows) {
@@ -387,6 +425,7 @@
   }
 
   function render(d) {
+    lastRendered = d;
     var balance = d.holdingsMeta.balance || d.status.balance;
     // 구버전 봇은 조회 상태를 모른다: 보유 목록이 있으면 그대로 보여 주고(배너로 경고), 비어 있으면 0개가 아니라 '조회 전'으로 둔다.
     if (!balance) balance = { state: d.holdings.length ? 'OK' : 'NOT_YET', legacy: true, last_ok: d.status.last_poll || null, age_sec: null };
@@ -396,7 +435,7 @@
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
       + holdingsHtml(d.holdings, balance, d.status) + '</section>'
       + analysisHtml(d)
-      + '<section class="at-box"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10)) + '</section>'
+      + '<section class="at-box"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10), d) + '</section>'
       + eventsHtml(d.events)
       + '</div><div class="at-col">' + policyHtml(d.status, d.holdings) + watchHtml(d.watch) + '</div></div>';
     wire(d);
