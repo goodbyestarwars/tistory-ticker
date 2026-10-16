@@ -47,7 +47,7 @@ assert.ok(/^\.mm-only\s*\{\s*display:\s*none;\s*\}$/.test(plain[0]), '그 하나
 const medias = topLevelRules.filter((r) => /^@media/.test(r));
 assert.ok(medias.length >= 2 && medias.every((m) => /^@media \(max-width: 767px\)/.test(m)), '모든 @media는 767px 이하');
 // 안쪽 규칙의 선택자는 모두 이 UI의 요소여야 한다(기존 요소는 .mm-* 상태 클래스나 모바일 전용 요소 아래에서만 바뀐다)
-const inner = medias[0].replace(/^@media[^{]*\{/, '').replace(/\}$/, '');
+const inner = medias.slice(0, 2).map((m) => m.replace(/^@media[^{]*\{/, '').replace(/\}$/, '').replace(/@layer np\s*\{/, '').replace(/\}\s*$/, '')).join(String.fromCharCode(10));
 const selectors = [];
 {
   let d = 0, start = 0;
@@ -60,7 +60,7 @@ selectors.forEach((sel) => {
   sel.split(',').forEach((one) => {
     one = one.trim();
     if (/^:root$|^html\.dark$/.test(one)) return; // 색 변수 선언뿐
-    assert.ok(/^\.mi-wrap|^#market-temp|\.mm-|\.dmi-spot-quotes\.mm-has-cards|\[data-if-cumtable\]|\.dmi-rank-(card|table)|\.ifl \.ibd-leg-btn|\.mt-kpi-strip\.mm-deck/.test(one), '이 UI와 무관한 선택자: ' + one);
+    assert.ok(/^html body \.mi-wrap|^html body #market-temp|\.mm-|\.dmi-spot-quotes\.mm-has-cards|\[data-if-cumtable\]|\.dmi-rank-(card|table)|\.ifl \.ibd-leg-btn|\.mt-kpi-strip\.mm-deck/.test(one), '이 UI와 무관한 선택자: ' + one);
   });
 });
 // 기존 요소를 바꾸는 선택자는 모두 모바일 상태에서만: 표→카드 변환은 data-if-cumtable·dmi-rank-* 로만 한정

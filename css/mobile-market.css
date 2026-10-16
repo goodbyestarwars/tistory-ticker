@@ -80,28 +80,6 @@
   .mm-collapsed { display: none !important; }
 
   /* ================= 슬림 밀도(2026-10-16): 글자·여백·카드·표를 한 단계 줄여 앱처럼 ================= */
-  .mi-wrap { margin-left: -4px; margin-right: -4px; font-size: 13px; }
-  .mi-wrap .mi-tabs, .mi-wrap [data-mi-tabs] { margin-bottom: 8px !important; padding: 4px !important; gap: 4px !important; }
-  .mi-wrap .mi-tab { min-height: 32px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
-  .mi-wrap .dmi-heading, .mi-wrap .dmi-heading h2 { font-size: 17px !important; min-height: 0 !important; height: auto !important; margin-bottom: 4px !important; }
-  .mi-wrap .mi-block { margin-top: 14px !important; padding-top: 12px !important; }
-  .mi-wrap .mi-block-title { font-size: 16px !important; line-height: 1.25 !important; gap: 6px !important; }
-  .mi-wrap .mi-block-name { font-size: 16px !important; line-height: 1.25 !important; }
-  .mi-wrap .mi-block-no { font-size: 11px !important; }
-  .mi-wrap .mi-block-desc { font-size: 11.5px !important; line-height: 1.4 !important; margin: 3px 0 10px !important; }
-  .mi-wrap .mi-sub { margin-top: 14px !important; }
-  .mi-wrap .mi-sub-title { font-size: 14px !important; margin-bottom: 2px !important; }
-  .mi-wrap .mi-sub-cap { font-size: 11.5px !important; line-height: 1.4 !important; margin-bottom: 8px !important; }
-  .mi-wrap .mi-sub2-title { font-size: 13px !important; }
-  .mi-wrap .ifl-note, .mi-wrap .ifl-cap, .mi-wrap .ifl-asof, .mi-wrap .ifl-state { font-size: 11px !important; line-height: 1.4 !important; margin-top: 4px !important; }
-  .mi-wrap .dmi-panel-title { font-size: 14.5px !important; margin-bottom: 4px !important; padding-bottom: 4px !important; }
-  .mi-wrap .dmi-tab, .mi-wrap .dmi-draw-toggle, .mi-wrap .dmi-draw-clear, .mi-wrap .ifl-seg-btn { min-height: 30px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
-  .mi-wrap .ibd-table td, .mi-wrap .ibd-table th, .mi-wrap .dmi-flow-table td, .mi-wrap .dmi-flow-table th { font-size: 12.5px !important; }
-  .mi-wrap .ibd-row .ibd-nm { font-size: 13px !important; }
-  .mi-wrap .ibd-row { min-height: 0 !important; }
-  .mi-wrap .ibd-table td, .mi-wrap .ibd-table th[scope="row"] { padding-top: 6px !important; padding-bottom: 6px !important; }
-  .mi-wrap .ibd-section th { padding-top: 8px !important; padding-bottom: 3px !important; font-size: 11.5px !important; }
-  .mi-wrap .ibd-leg-btn { min-height: 30px !important; font-size: 11.5px !important; padding: 0 8px !important; }
 
   .mm-nav { margin: 4px 0 8px; gap: 4px; }
   .mm-tab { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
@@ -125,22 +103,51 @@
   .mm-more, .mm-toggle { min-height: 36px; font-size: 12.5px; margin-top: 6px; }
 
   /* 증시온도: 큰 숫자·카드 여백을 줄인다 */
-  #market-temp .mt-card { padding: 12px 12px !important; border-radius: 14px !important; }
-  #market-temp .mt-section-head h2, #market-temp h2 { font-size: 17px !important; }
-  #market-temp .mt-hot-strip { padding: 4px 6px !important; gap: 6px !important; }
-  #market-temp .mt-hot-name { font-size: 16px !important; }
-  #market-temp .mt-hot-hot { font-size: 13px !important; }
-  #market-temp .mt-hot-icon { font-size: 16px !important; }
-  #market-temp .mt-card-title { font-size: 14px !important; }
-  #market-temp .mt-tm-verdict b, #market-temp .mt-val-pos, #market-temp .mt-val-neg { font-size: 17px !important; }
-  #market-temp .mt-summary-mood { font-size: 15px !important; }
-  #market-temp .mt-strategy-action { font-size: 17px !important; line-height: 1.35 !important; }
-  #market-temp .mt-cp-metric-row b { font-size: 22px !important; }
-  #market-temp .mt-kpi-num { font-size: 20px !important; }
-  #market-temp .mt-kpi { padding: 10px 12px !important; }
-  #market-temp .mt-section-block { margin-top: 12px !important; }
-  #market-temp .mt-tm-why li, #market-temp .mt-reason-list li, #market-temp .mt-ai-text { font-size: 13px !important; }
-  #market-temp .mt-detail-fold summary { font-size: 13px !important; }
+
+}
+
+/* 사이트 공통 규칙(style.css @layer np 안의 !important)이 여백·글자를 고정하는 곳은 같은 레이어에서 덮어쓴다 */
+@media (max-width: 767px) {
+  @layer np {
+    html body .mi-wrap { margin-left: -4px; margin-right: -4px; font-size: 13px; }
+    html body .mi-wrap .mi-tabs, .mi-wrap [data-mi-tabs] { margin-bottom: 8px !important; padding: 4px !important; gap: 4px !important; }
+    html body .mi-wrap .mi-tab { min-height: 32px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
+    html body .mi-wrap .dmi-heading, .mi-wrap .dmi-heading h2 { font-size: 17px !important; min-height: 0 !important; height: auto !important; margin-bottom: 4px !important; }
+    html body .mi-wrap .mi-block { margin-top: 14px !important; padding-top: 12px !important; }
+    html body .mi-wrap .mi-block-title { font-size: 16px !important; line-height: 1.25 !important; gap: 6px !important; }
+    html body .mi-wrap .mi-block-name { font-size: 16px !important; line-height: 1.25 !important; }
+    html body .mi-wrap .mi-block-no { font-size: 11px !important; }
+    html body .mi-wrap .mi-block-desc { font-size: 11.5px !important; line-height: 1.4 !important; margin: 3px 0 10px !important; }
+    html body .mi-wrap .mi-sub { margin-top: 14px !important; }
+    html body .mi-wrap .mi-sub-title { font-size: 14px !important; margin-bottom: 2px !important; }
+    html body .mi-wrap .mi-sub-cap { font-size: 11.5px !important; line-height: 1.4 !important; margin-bottom: 8px !important; }
+    html body .mi-wrap .mi-sub2-title { font-size: 13px !important; }
+    html body .mi-wrap .ifl-note, .mi-wrap .ifl-cap, .mi-wrap .ifl-asof, .mi-wrap .ifl-state { font-size: 11px !important; line-height: 1.4 !important; margin-top: 4px !important; }
+    html body .mi-wrap .dmi-panel-title { font-size: 14.5px !important; margin-bottom: 4px !important; padding-bottom: 4px !important; }
+    html body .mi-wrap .dmi-tab, .mi-wrap .dmi-draw-toggle, .mi-wrap .dmi-draw-clear, .mi-wrap .ifl-seg-btn { min-height: 30px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
+    html body .mi-wrap .ibd-table td, .mi-wrap .ibd-table th, .mi-wrap .dmi-flow-table td, .mi-wrap .dmi-flow-table th { font-size: 12.5px !important; }
+    html body .mi-wrap .ibd-row .ibd-nm { font-size: 13px !important; }
+    html body .mi-wrap .ibd-row { min-height: 0 !important; }
+    html body .mi-wrap .ibd-table td, .mi-wrap .ibd-table th[scope="row"] { padding-top: 6px !important; padding-bottom: 6px !important; }
+    html body .mi-wrap .ibd-section th { padding-top: 8px !important; padding-bottom: 3px !important; font-size: 11.5px !important; }
+    html body .mi-wrap .ibd-leg-btn { min-height: 30px !important; font-size: 11.5px !important; padding: 0 8px !important; }
+    html body #market-temp .mt-card { padding: 12px 12px !important; border-radius: 14px !important; }
+    html body #market-temp .mt-section-head h2, #market-temp h2 { font-size: 17px !important; }
+    html body #market-temp .mt-hot-strip { padding: 4px 6px !important; gap: 6px !important; }
+    html body #market-temp .mt-hot-name { font-size: 16px !important; }
+    html body #market-temp .mt-hot-hot { font-size: 13px !important; }
+    html body #market-temp .mt-hot-icon { font-size: 16px !important; }
+    html body #market-temp .mt-card-title { font-size: 14px !important; }
+    html body #market-temp .mt-tm-verdict b, #market-temp .mt-val-pos, #market-temp .mt-val-neg { font-size: 17px !important; }
+    html body #market-temp .mt-summary-mood { font-size: 15px !important; }
+    html body #market-temp .mt-strategy-action { font-size: 17px !important; line-height: 1.35 !important; }
+    html body #market-temp .mt-cp-metric-row b { font-size: 22px !important; }
+    html body #market-temp .mt-kpi-num { font-size: 20px !important; }
+    html body #market-temp .mt-kpi { padding: 10px 12px !important; }
+    html body #market-temp .mt-section-block { margin-top: 12px !important; }
+    html body #market-temp .mt-tm-why li, #market-temp .mt-reason-list li, #market-temp .mt-ai-text { font-size: 13px !important; }
+    html body #market-temp .mt-detail-fold summary { font-size: 13px !important; }
+  }
 }
 
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
