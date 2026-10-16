@@ -65,6 +65,7 @@ import order_book
 import public_data
 import binance_flow
 import volume_surge_live
+import gap_shadow
 import volume_accumulation
 import hour_candidates
 import hour_validation
@@ -3847,6 +3848,16 @@ def volume_surge_live_endpoint(request: Request):
     """
     _check_rate_limit('volume_surge_live', request, max_per_window=60)
     return envelope(volume_surge_live.get_payload())
+
+
+@app.get('/gap-shadow')
+def gap_shadow_endpoint(request: Request):
+    """아침 라이브 갭상승 그림자 검색기(2026-10-16, Issue #697)의 규칙·성과 요약·최근 신호. 읽기 전용.
+
+    실제 매매 성과가 아니다(주문 없음). 계좌·주문 정보 없음. 표본 15건 미만은 summary에서 enough=false.
+    """
+    _check_rate_limit('gap_shadow', request, max_per_window=30)
+    return envelope(gap_shadow.get_payload())
 
 
 @app.get('/api/circuit-breaker')

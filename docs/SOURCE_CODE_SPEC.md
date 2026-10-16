@@ -195,6 +195,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `binance_client.py` | 120 | 바이낸스 공개 시세 API 래퍼(재시도·429 Retry-After·451 제한 구분) | `get_json`, `futures_symbol_info`, `ticker_24hr`, `premium_index`, `klines` |
 | `binance_flow.py` | 230 | 바이낸스 국내주식 토큰 참고 시세 수집(스레드 1개, 별도 SQLite) | `refresh_once`, `resolve_markets`, `get_payload`, `start_background` |
 | `circuit_breaker.py` | 200 | 메인 VI·사이드카 배지 - KIS VI 현황 20초 폴링(거래 시간만)·메모리 캐시 | `refresh_once`, `parse_rows`, `build_payload`, `get_payload`, `start_background` |
+| `gap_shadow.py` | 380 | 아침 라이브 갭상승 그림자 검색기(Issue #697) - `volume_surge_live`의 순위 행을 재사용해 신호·가상 진입·장중 경로·D0~D5 성과를 별도 SQLite에 기록(주문 없음) | `step`, `observe`, `update_outcomes`, `maybe_update_outcomes`, `evaluate_trade`, `summarize`, `get_payload` |
 | `load_probe.py` | 160 | `/health/load` VM 부하 스냅샷(/proc 읽기 전용) | `snapshot` |
 | `market_clock.py` | 60 | 국내 장 활성·미국 선물 주말 휴장 판정(수집 주기 완화용) | `kr_market_active`, `us_futures_weekend_closed`, `sleep_seconds` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
