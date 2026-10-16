@@ -2665,3 +2665,7 @@ html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b,
 html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b.mt-rib-tone-fear,
 html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b.mt-rib-tone-neutral,
 html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b.mt-rib-tone-greed { color: #f5f5f5; fill: #f5f5f5; }
+
+/* 2026-10-16 사용자 요청: 체크포인트 판단 문구(굵기 유지)를 한 줄로. 칸 너비(container query)에 맞춰 글자 크기를 줄이고 최대 24px. */
+#market-temp .mt-cp-call { container-type: inline-size; }
+html body #market-temp .mt-cp-call .mt-strategy-action { white-space: nowrap !important; font-size: clamp(11px, 3.8cqw, 24px) !important; letter-spacing: -.04em; }
