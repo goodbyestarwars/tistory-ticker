@@ -32,6 +32,28 @@ def _columns(conn, table):
     return {r[1] for r in conn.execute('PRAGMA table_info(%s)' % table)}
 
 
+def live_intents_since(path, last_id, limit=100):
+    """Read the separate real-order ledger; ACK means accepted, not filled."""
+    conn = ro_connect(path)
+    if conn is None:
+        return []
+    try:
+        return _rows(conn, 'SELECT id,ts,code,side,qty,state FROM intents WHERE id>? ORDER BY id LIMIT ?',
+                     (last_id, limit))
+    finally:
+        conn.close()
+
+
+def live_intents_max_id(path):
+    conn = ro_connect(path)
+    if conn is None:
+        return 0
+    try:
+        return conn.execute('SELECT COALESCE(MAX(id),0) FROM intents').fetchone()[0]
+    finally:
+        conn.close()
+
+
 # ---- 봇 이벤트·주문 ----------------------------------------------------------
 def parse_label(detail):
     """DRY_SELL/SELL_SENT/주문 거부·실패 이벤트 문구에서 사유·수익률·매입가·현재가·수량을 꺼낸다. 못 읽으면 빈 dict."""

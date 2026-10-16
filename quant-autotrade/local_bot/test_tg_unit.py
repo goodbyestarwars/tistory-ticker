@@ -8,6 +8,7 @@ import codecs
 import json
 import os
 import shutil
+import sqlite3
 import sys
 import tempfile
 import time
@@ -541,6 +542,24 @@ class MonitorTests(unittest.TestCase):
     def tearDown(self):
         self.env.close()
 
+    def test_real_order_ledger_alerts_do_not_claim_fills(self):
+        e = self.env
+        path = os.path.join(e.dir, 'live_orders.db')
+        with sqlite3.connect(path) as db:
+            db.execute('CREATE TABLE intents(id INTEGER PRIMARY KEY, ts TEXT, code TEXT, side TEXT, qty INTEGER, state TEXT)')
+            db.execute("INSERT INTO intents VALUES(1,'2026-10-12T09:00:00+09:00','005930','BUY',2,'ACK')")
+        e.tick()
+        initial = e.flush()
+        self.assertEqual(len(initial), 1)
+        self.assertIn('실계좌 주문 기록 연결', initial[0])
+        with sqlite3.connect(path) as db:
+            db.execute("INSERT INTO intents VALUES(2,'2026-10-12T09:01:00+09:00','005930','SELL',2,'ACK')")
+        e.tick()
+        texts = e.flush()
+        self.assertEqual(len(texts), 2)
+        self.assertIn('실계좌 매도 주문 증권사 접수', texts[-1])
+        self.assertIn('체결 여부는 이 알림만으로 확정할 수 없습니다', texts[-1])
+
     def test_dry_sell_notified_once_per_day(self):
         e = self.env
         e.poll(price=96000.0)
@@ -826,19 +845,17 @@ class MonitorTests(unittest.TestCase):
         e.tick()
         self.assertEqual(len(e.flush()), 2)
 
-    def test_research_not_started_and_heartbeat_and_disk(self):
+    def test_retired_research_heartbeat_is_ignored_but_disk_is_watched(self):
         e = self.env
         e.at(2026, 10, 13, 21, 0)
         e.write_status(runner='done', mode='poll', startedAt='2026-10-12T20:15:00+09:00')
         e.tick()
         texts = e.flush()
-        self.assertEqual(len(texts), 1)
-        self.assertIn('오늘 연구 작업 미시작', texts[0])
+        self.assertEqual(texts, [])
         e.write_status(runner='waiting', mode='poll', startedAt='2026-10-13T20:15:00+09:00', heartbeatAt='2026-10-13T20:20:00+09:00', diskUsedBytes=4.5 * 1024 ** 3)
         e.tick()
         texts = e.flush()
-        self.assertTrue(any('오늘 연구 작업이 시작되었습니다' in t for t in texts))
-        self.assertTrue(any('연구 작업 응답 없음' in t for t in texts))
+        self.assertFalse(any('연구 작업' in t for t in texts))
         self.assertTrue(any('연구 데이터 용량' in t for t in texts))
 
     def test_research_log_kiwoom_daily_failures(self):

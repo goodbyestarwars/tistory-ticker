@@ -66,7 +66,7 @@ class Monitor:
         if self._last_tick is not None and now - self._last_tick > SLEEP_GAP_SEC:
             self.streaks.clear()           # PC 절전에서 깬 직후의 오래된 값으로 경고를 내지 않는다
         self._last_tick = now
-        for name, fn in (('events', self.watch_bot_events), ('positions', self.watch_positions), ('health', self.watch_bot_health),
+        for name, fn in (('events', self.watch_bot_events), ('live_orders', self.watch_live_orders), ('positions', self.watch_positions), ('health', self.watch_bot_health),
                          ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('scan', self.watch_scan_done),
                          ('pc', self.watch_pc)):
             try:
@@ -97,6 +97,34 @@ class Monitor:
             except Exception as exc:
                 log.error('이벤트 %s 알림 처리 실패: %s', ev.get('id'), type(exc).__name__)
             t.kv_set('events_last_id', ev['id'])
+
+    def watch_live_orders(self):
+        """Report real-order ledger changes without treating broker ACK as execution."""
+        svc, t = self.svc, self.svc.tstore
+        path = os.path.join(svc.base_dir, 'live_orders.db')
+        if not os.path.exists(path):
+            return
+        last = t.kv_get('live_orders_last_id')
+        if last is None:
+            rows = tg_data.live_intents_since(path, 0, 1000)
+            today = svc.now_dt().strftime('%Y-%m-%d')
+            recent = [r for r in rows if str(r['ts']).startswith(today)]
+            if recent:
+                buys = sum(r['side'] == 'BUY' for r in recent)
+                sells = sum(r['side'] == 'SELL' for r in recent)
+                message = (F.head('🏦', '실계좌 주문 기록 연결') + '\n\n오늘 장부에 매수 %d건 · 매도 %d건의 주문 기록이 있습니다. '
+                           '주문 접수 기록이며 체결·손익 확정은 계좌 잔고와 대조해야 합니다.\n\n' + F.foot(svc.now_dt())) % (buys, sells)
+                svc.notifier.notify('live_orders_bootstrap:' + today, message, 'order', 'info')
+            t.kv_set('live_orders_last_id', tg_data.live_intents_max_id(path))
+            return
+        for row in tg_data.live_intents_since(path, last):
+            side = '매수' if row['side'] == 'BUY' else '매도'
+            state = {'ACK': '증권사 접수', 'UNCERTAIN': '접수 여부 불확실'}.get(row['state'], row['state'])
+            message = (F.head('🏦', '실계좌 %s 주문 %s' % (side, state)) + '\n\n종목 <code>%s</code> · %d주\n'
+                       '체결 여부는 이 알림만으로 확정할 수 없습니다.\n\n' + F.foot(F.to_dt(row['ts']) or svc.now_dt())) % (F.esc(row['code']), row['qty'])
+            svc.notifier.notify('live_order:%d' % row['id'], message, 'order',
+                                'critical' if row['state'] == 'UNCERTAIN' else 'info')
+            t.kv_set('live_orders_last_id', row['id'])
 
     def _name(self, code):
         for w in self.svc.bot.store.watch_list():
@@ -230,18 +258,10 @@ class Monitor:
                           'critical' if runner == 'disk_limit' else 'warn', 12 * 3600)
         elif ratio < 0.7:
             n.clear_alert('research_disk', '연구 데이터 용량이 정상 범위로 돌아왔습니다.')
-        hb = F.to_dt(rs.get('heartbeatAt'))
-        if runner in ('starting', 'waiting') and in_poll_window(now_dt) and hb and now_dt - hb > timedelta(minutes=25):
-            n.raise_alert('research_hb', F.fmt_alert('연구 작업 응답 없음', '스캔 대기 중이어야 하는 시간인데 연구 작업의 마지막 생존 신호가 %s 전입니다(%s).' % (fmt_duration((now_dt - hb).total_seconds()), F.ts(hb)),
-                                                      'warn', '작업 스케줄러의 AutotraderResearch 작업 상태를 확인하세요', now_dt), 'warn', 3 * 3600)
-        else:
-            n.clear_alert('research_hb', '연구 작업이 다시 응답합니다.')
-        started = F.to_dt(rs.get('startedAt'))
-        if now_dt.weekday() < 5 and (now_dt.hour, now_dt.minute) >= (20, 45) and (started is None or started.strftime('%Y-%m-%d') != now_dt.strftime('%Y-%m-%d')):
-            n.raise_alert('research_not_started', F.fmt_alert('오늘 연구 작업 미시작', '평일 20:15 연구 작업이 오늘 아직 시작되지 않았습니다(마지막 시작 %s).' % F.ts(started), 'warn',
-                                                              'PC 절전·작업 스케줄러 상태를 확인하세요. PC에 로그온하면 자동으로 따라잡습니다', now_dt), 'warn', 6 * 3600)
-        elif started and started.strftime('%Y-%m-%d') == now_dt.strftime('%Y-%m-%d'):
-            n.clear_alert('research_not_started', '오늘 연구 작업이 시작되었습니다.')
+        # AutotraderResearch is retired. Its status.json remains for historical data,
+        # so neither its heartbeat nor its old 20:15 start time indicates a fault.
+        n.clear_alert('research_hb', '중지된 옛 연구 작업의 생존 신호 경고를 해제했습니다.')
+        n.clear_alert('research_not_started', '중지된 옛 연구 작업의 시작 경고를 해제했습니다.')
         success = F.to_dt(rs.get('lastSuccessAt'))
         if success and now_dt - success > timedelta(days=4) and now_dt.weekday() < 5 and now_dt.hour >= 9:
             n.raise_alert('research_stale', F.fmt_alert('연구 데이터 갱신 지연', ['마지막 후보 생성이 %s 전(%s)입니다.' % (fmt_duration((now_dt - success).total_seconds()), F.ts(success)),

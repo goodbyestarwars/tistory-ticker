@@ -191,9 +191,8 @@ class ExitFlowTests(BaseCase):
         self.assertIsNone(self.store.peak_get('005930'))
         self.assertIn('POSITION_CLOSED', self.types())
 
-    def test_no_buy_function_exists(self):
-        import kiwoom
-        names = (' '.join(dir(kiwoom.KiwoomClient)) + ' ' + ' '.join(dir(bot_mod.Bot))).lower()
+    def test_legacy_watch_bot_never_buys(self):
+        names = ' '.join(dir(bot_mod.Bot)).lower()
         for word in ('buy', 'kt10000', 'purchase'):
             self.assertNotIn(word, names)
 

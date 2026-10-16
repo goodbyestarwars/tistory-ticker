@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-"""키움 REST API 최소 클라이언트(조회 전용). 주문 함수는 이 프로그램에 아예 없다.
+"""키움 REST API 최소 클라이언트. 주문 함수는 별도 비활성 게이트 뒤에서만 호출한다.
 
-토큰 발급(/oauth2/token), 일봉(ka10081), 분봉(ka10080)만 쓴다. 호출 방식은 사이트 서버(kiwoom_client.py)에서
+토큰 발급(/oauth2/token), 계좌·시세 조회, 주식 주문을 지원한다. 호출 방식은 사이트 서버(kiwoom_client.py)에서
 운영 중 검증된 것과 같다. 키는 환경변수(.env)에서만 읽고 로그·파일에 남기지 않는다.
 """
 import json
@@ -36,7 +36,7 @@ class KiwoomClient:
         self._appkey = appkey
         self._secretkey = secretkey
         self._min_gap = min_gap_sec
-        self._lock = threading.Lock()
+        self._lock = threading.RLock()
         self._token = None
         self._expires_at = 0.0
         self._last_call = 0.0
@@ -96,6 +96,36 @@ class KiwoomClient:
         return payload
 
     # ---- 계좌 조회 (읽기 전용) ----
+    def account_ids(self):
+        res = self.call('ka00001', '/api/dostk/acnt', {})
+        if str(res.get('return_code', '')) != '0':
+            raise RuntimeError('계좌번호 조회 실패')
+        raw = res.get('acctNo')
+        if isinstance(raw, str):
+            return [raw] if raw else []
+        if isinstance(raw, list):
+            return [str(x) for x in raw if x]
+        raise RuntimeError('계좌번호 응답 형식 불명')
+
+    def cash_available(self):
+        """100% margin buying capacity, including reusable sale proceeds.
+
+        entr is settled deposit and ord_alow_amt excludes the reuse amount in
+        this account. Never use lower-margin buying power or withdrawal cash.
+        """
+        res = self.call('kt00001', '/api/dostk/acnt', {'qry_tp': '2'})
+        value = str(res.get('100stk_ord_alow_amt', '')).strip().replace(',', '')
+        if str(res.get('return_code', '')) != '0' or not value or not value.isascii() or not value.isdigit():
+            raise RuntimeError('주문 가능 금액 조회 실패')
+        return int(value)
+
+    def unfilled(self):
+        res = self.call('ka10075', '/api/dostk/acnt',
+                        {'all_stk_tp': '0', 'trde_tp': '0', 'stk_cd': '', 'stex_tp': '1'})
+        if str(res.get('return_code', '')) != '0' or not isinstance(res.get('oso'), list):
+            raise RuntimeError('미체결 조회 실패')
+        return res['oso']
+
     def balance(self):
         """보유 종목 목록(계좌평가잔고내역 kt00018). [{code, name, qty, sellable, avg, price}]
 
@@ -122,7 +152,20 @@ class KiwoomClient:
                         'avg': _num(r.get('pur_pric')), 'price': _num(r.get('cur_prc'))})
         return out
 
-    # ---- 주문 (매도 전용. 매수 함수는 이 프로그램에 없다) ----
+    # ---- 주문 (기본 비활성; 호출자는 계좌·예산·승인 게이트를 확인해야 한다) ----
+    def buy_limit(self, code, qty, price):
+        """Real buy order. Caller must enforce the separate activation and budget gates."""
+        res = self.call('kt10000', '/api/dostk/ordr',
+                        {'dmst_stex_tp': 'KRX', 'stk_cd': code, 'ord_qty': str(int(qty)),
+                         'ord_uv': str(int(price)), 'trde_tp': '0', 'cond_uv': ''})
+        return {'ok': str(res.get('return_code', '')) == '0', 'ord_no': res.get('ord_no')}
+
+    def cancel_order(self, code, order_no):
+        res = self.call('kt10003', '/api/dostk/ordr',
+                        {'dmst_stex_tp': 'KRX', 'orig_ord_no': str(order_no),
+                         'stk_cd': code, 'cncl_qty': '0'})
+        return {'ok': str(res.get('return_code', '')) == '0', 'ord_no': res.get('ord_no')}
+
     def sell_market(self, code, qty):
         """시장가 매도(kt10001). 성공 여부와 주문번호를 돌려준다. 호출은 bot.py의 LIVE_SELL 검사를 통과한 경우에만 일어난다.
 
@@ -131,7 +174,7 @@ class KiwoomClient:
         """
         res = self.call('kt10001', '/api/dostk/ordr', {'dmst_stex_tp': 'KRX', 'stk_cd': code, 'ord_qty': str(int(qty)),
                                                       'ord_uv': '', 'trde_tp': '3', 'cond_uv': ''})
-        ok = str(res.get('return_code', '')) in ('0', '')
+        ok = str(res.get('return_code', '')) == '0'
         return {'ok': ok, 'ord_no': res.get('ord_no'), 'return_code': res.get('return_code'), 'return_msg': res.get('return_msg')}
 
     # ---- 조회 ----
