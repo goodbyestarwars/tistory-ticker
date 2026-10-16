@@ -267,9 +267,12 @@
         + '><div class="kf-interval-tabs">' + c.intervals.map(function (iv) {
           return '<button type="button" class="kf-interval-btn' + (iv === panelState[c.key].interval ? ' active' : '') + '" data-interval="' + iv + '">' + INTERVAL_LABELS[iv] + '</button>';
         }).join('') + '</div>'
-        + '<div class="kf-draw-buttons"><button type="button" class="kf-draw-toggle" aria-pressed="false">직선</button>'
-        + '<button type="button" class="kf-draw-toggle kf-circle-toggle" aria-pressed="false">동그라미</button>'
-        + '<button type="button" class="kf-draw-clear">지우기</button></div>'
+        + '<div class="kf-draw-buttons"><button type="button" class="kf-draw-toggle kf-line-toggle" aria-pressed="false" title="왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.">직선</button>'
+        + '<button type="button" class="kf-draw-toggle kf-circle-toggle" aria-pressed="false" title="왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.">동그라미</button>'
+        + '<button type="button" class="kf-draw-toggle kf-box-toggle" aria-pressed="false" title="끌어서 박스를 그리면 이름을 입력할 수 있습니다.">박스</button>'
+        + '<button type="button" class="kf-draw-toggle kf-hline-toggle" aria-pressed="false" title="차트를 누르면 가로선이 생기고, 선을 끌면 이동합니다.">가로선</button>'
+        + '<button type="button" class="kf-draw-toggle kf-pencil-toggle" aria-pressed="false" title="누른 채로 움직여 자유롭게 그립니다.">연필</button>'
+        + '<button type="button" class="kf-draw-clear" title="그린 도형을 모두 지웁니다.">지우기</button></div>'
         + '</div>';
       var collapsed = loadCollapsed(c.key);
       return '<div class="kf-section' + (collapsed ? ' kf-collapsed' : '') + '" data-section-key="' + c.key + '">'
@@ -534,212 +537,88 @@
     return 'tistory-ticker:kf-drawings:' + key + ':' + interval;
   }
 
-  function loadKfDrawingShapes(key, interval) {
-    try {
-      var raw = global.localStorage.getItem(kfDrawingStorageKey(key, interval));
-      var parsed = raw ? JSON.parse(raw) : [];
-      if (Array.isArray(parsed)) return { lines: parsed, circles: [] };
-      return { lines: Array.isArray(parsed.lines) ? parsed.lines : [], circles: Array.isArray(parsed.circles) ? parsed.circles : [] };
-    } catch (e) { return { lines: [], circles: [] }; }
-  }
+  // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
+  // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
+  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
 
-  function saveKfDrawingShapes(state) {
-    try { global.localStorage.setItem(kfDrawingStorageKey(state.key, state.interval), JSON.stringify({ lines: state.lines, circles: state.circles })); } catch (e) { /* 무시 */ }
-  }
-
-  function kfDrawingCoordinate(state, point) {
-    if (!point) return null;
-    var x = state.chart.timeScale().timeToCoordinate(point.time);
-    var y = state.series.priceToCoordinate(point.price);
-    if (x != null && y != null) return { x: Number(x), y: Number(y) };
-    if (isFinite(Number(point.xRatio)) && isFinite(Number(point.yRatio))) {
-      return { x: Number(point.xRatio) * state.overlay.clientWidth, y: Number(point.yRatio) * state.overlay.clientHeight };
-    }
-    return null;
-  }
-
-  function orderedKfDrawingShape_(first, second) {
-    return Number(first.xRatio) <= Number(second.xRatio) ? { start: first, end: second } : { start: second, end: first };
-  }
-
-  function redrawKfDrawing(state) {
-    if (!state || !state.overlay) return;
-    var width = state.overlay.clientWidth;
-    var height = state.overlay.clientHeight;
-    var ctx = state.overlay.getContext('2d');
-    if (!ctx || !width || !height) return;
-    ctx.clearRect(0, 0, width, height);
-    ctx.lineCap = 'round';
-    state.lines.forEach(function (line) {
-      var start = kfDrawingCoordinate(state, line.start);
-      var end = kfDrawingCoordinate(state, line.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-      ctx.stroke();
-      [start, end].forEach(function (point) {
-        ctx.beginPath();
-        ctx.fillStyle = '#fff';
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.strokeStyle = '#e11d48';
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-    });
-    state.circles.forEach(function (circle) {
-      var start = kfDrawingCoordinate(state, circle.start);
-      var end = kfDrawingCoordinate(state, circle.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2,
-        Math.max(2, Math.abs(end.x - start.x) / 2), Math.max(2, Math.abs(end.y - start.y) / 2), 0, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-    if (state.pending) {
-      var pending = kfDrawingCoordinate(state, state.pending);
-      if (pending) {
-        ctx.beginPath();
-        ctx.fillStyle = '#e11d48';
-        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    if (state.preview && state.pending) {
-      var previewStart = kfDrawingCoordinate(state, state.pending);
-      if (previewStart) {
-        ctx.beginPath();
-        ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = 'rgba(225,29,72,.72)';
-        ctx.lineWidth = 1.5;
-        if (state.mode === 'circle') {
-          ctx.ellipse((previewStart.x + state.preview.x) / 2, (previewStart.y + state.preview.y) / 2,
-            Math.max(2, Math.abs(state.preview.x - previewStart.x) / 2), Math.max(2, Math.abs(state.preview.y - previewStart.y) / 2), 0, 0, Math.PI * 2);
-        } else {
-          ctx.moveTo(previewStart.x, previewStart.y);
-          ctx.lineTo(state.preview.x, state.preview.y);
+  function loadChartDrawing() {
+    var loads = global.__nineChartLoads = global.__nineChartLoads || {};
+    var corePromise;
+    if (global.NineChartCore) corePromise = Promise.resolve(global.NineChartCore);
+    else if (loads.core) corePromise = loads.core;
+    else {
+      loads.core = corePromise = new Promise(function (resolve, reject) {
+        var existing = document.querySelector('script[data-nine-chart="core"]');
+        var script = existing || document.createElement('script');
+        script.addEventListener('load', function () { resolve(global.NineChartCore); });
+        script.addEventListener('error', function () { loads.core = null; if (script.remove) script.remove(); reject(new Error('차트 엔진 로드 실패')); });
+        if (!existing) {
+          script.src = CHART_CORE_URL;
+          script.async = true;
+          script.setAttribute('data-nine-chart', 'core');
+          document.head.appendChild(script);
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
+      });
     }
+    return corePromise.then(function (core) { return core.loadModule('drawing'); });
   }
 
-  function resizeKfDrawing(state) {
-    if (!state || !state.overlay) return;
-    var ratio = global.devicePixelRatio || 1;
-    var width = state.overlay.clientWidth;
-    var height = state.overlay.clientHeight;
-    state.overlay.width = Math.max(1, Math.round(width * ratio));
-    state.overlay.height = Math.max(1, Math.round(height * ratio));
-    var ctx = state.overlay.getContext('2d');
-    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    redrawKfDrawing(state);
+  function drawingBars(points) {
+    return (points || []).map(function (p) { return { date: p.time, close: p.close }; });
+  }
+
+  var KF_DRAWING_STORE = {
+    key: function (code, tf) { return kfDrawingStorageKey(code, tf); },
+    kinds: ['lines', 'paths', 'circles', 'hlines', 'boxes'],
+    legacyArray: true
+  };
+
+  function kfDrawingButtons(element) {
+    var section = element.closest ? element.closest('.kf-section') : null;
+    var find = function (cls) { return section ? section.querySelector(cls) : null; };
+    return {
+      line: find('.kf-line-toggle'), circle: find('.kf-circle-toggle'), box: find('.kf-box-toggle'),
+      hline: find('.kf-hline-toggle'), pencil: find('.kf-pencil-toggle'), clear: find('.kf-draw-clear')
+    };
+  }
+
+  function setupKfDrawing(key, element, chart, series, interval, points) {
+    destroyKfDrawing(key);
+    var state = { key: key, interval: interval, ctl: null, points: points, detached: false };
+    drawingStates[key] = state;
+    loadChartDrawing().then(function (Drawing) {
+      if (state.detached || drawingStates[key] !== state || !document.body.contains(element)) return;
+      // 다른 렌더가 같은 칸의 DOM을 이미 갈아엎어 이 차트가 화면에서 떨어졌다면(예: 스크립트가 두 번 실행된 모바일) 붙이지 않는다.
+      var chartEl = chart.chartElement ? chart.chartElement() : null;
+      if (chartEl && !element.contains(chartEl)) return;
+      state.ctl = Drawing.attach({
+        core: global.NineChartCore, container: element, chart: chart, series: series, bars: drawingBars(state.points),
+        key: key, timeframe: interval,
+        className: 'kf-drawing-layer', ariaLabel: '차트 그리기 영역',
+        bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
+        buttons: kfDrawingButtons(element), store: KF_DRAWING_STORE,
+        style: { stroke: '#e11d48', dots: true, previewDash: true },
+        sync: false
+      });
+    }).catch(function () { /* 공통 엔진을 못 받아도 차트는 그대로 */ });
+  }
+
+  function refreshKfDrawing(key, points) {
+    var state = drawingStates[key];
+    if (!state) return;
+    state.points = points;
+    if (state.ctl && !state.ctl.detached) {
+      state.ctl.shapes.bars = drawingBars(points);
+      state.ctl.schedule(true);
+    }
   }
 
   function destroyKfDrawing(key) {
     var state = drawingStates[key];
     if (!state) return;
-    if (state.resizeObserver) state.resizeObserver.disconnect();
-    if (state.resizeHandler) global.removeEventListener('resize', state.resizeHandler);
-    if (state.timeRangeHandler && state.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
-      state.chart.timeScale().unsubscribeVisibleTimeRangeChange(state.timeRangeHandler);
-    }
-    [state.lineButton, state.circleButton].forEach(function (button) {
-      if (!button) return;
-      button.classList.remove('is-active');
-      button.setAttribute('aria-pressed', 'false');
-    });
-    if (state.overlay) state.overlay.remove();
+    state.detached = true;
+    if (state.ctl) state.ctl.detach();
     drawingStates[key] = null;
-  }
-
-  function setKfDrawingMode(key, mode) {
-    var state = drawingStates[key];
-    if (!state) return;
-    state.enabled = !!mode;
-    state.mode = mode || null;
-    state.pending = null;
-    state.preview = null;
-    state.overlay.classList.toggle('is-active', state.enabled);
-    [state.lineButton, state.circleButton].forEach(function (button) {
-      if (!button) return;
-      var active = state.enabled && ((state.mode === 'line' && button === state.lineButton) || (state.mode === 'circle' && button === state.circleButton));
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    redrawKfDrawing(state);
-  }
-
-  function setupKfDrawing(key, element, chart, series, interval) {
-    destroyKfDrawing(key);
-    var section = element.closest('.kf-section');
-    var savedShapes = loadKfDrawingShapes(key, interval);
-    var state = {
-      key: key,
-      interval: interval,
-      chart: chart,
-      series: series,
-      lines: savedShapes.lines,
-      circles: savedShapes.circles,
-      pending: null,
-      preview: null,
-      enabled: false,
-      mode: null,
-      lineButton: section && section.querySelector('.kf-draw-toggle'),
-      circleButton: section && section.querySelector('.kf-circle-toggle')
-    };
-    if (!state.lineButton) return;
-    var overlay = document.createElement('canvas');
-    overlay.className = 'kf-drawing-layer';
-    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-    element.appendChild(overlay);
-    state.overlay = overlay;
-    overlay.addEventListener('click', function (event) {
-      if (!state.enabled) return;
-      var rect = overlay.getBoundingClientRect();
-      var time = chart.timeScale().coordinateToTime(event.clientX - rect.left);
-      var price = series.coordinateToPrice(event.clientY - rect.top);
-      if (time == null || price == null || !isFinite(Number(price))) return;
-      var point = { time: time, price: Number(price), xRatio: (event.clientX - rect.left) / Math.max(1, overlay.clientWidth), yRatio: (event.clientY - rect.top) / Math.max(1, overlay.clientHeight) };
-      if (!state.pending) {
-        state.pending = point;
-        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
-      } else {
-        state[state.mode === 'circle' ? 'circles' : 'lines'].push(orderedKfDrawingShape_(state.pending, point));
-        state.pending = null;
-        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveKfDrawingShapes(state);
-      }
-      redrawKfDrawing(state);
-    });
-    overlay.addEventListener('mousemove', function (event) {
-      if (!state.enabled || !state.pending) return;
-      var rect = overlay.getBoundingClientRect();
-      state.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      redrawKfDrawing(state);
-    });
-    overlay.addEventListener('mouseleave', function () {
-      state.preview = null;
-      redrawKfDrawing(state);
-    });
-    state.timeRangeHandler = function () { redrawKfDrawing(state); };
-    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(state.timeRangeHandler);
-    if (global.ResizeObserver) {
-      state.resizeObserver = new global.ResizeObserver(function () { resizeKfDrawing(state); });
-      state.resizeObserver.observe(element);
-    } else {
-      state.resizeHandler = function () { resizeKfDrawing(state); };
-      global.addEventListener('resize', state.resizeHandler);
-    }
-    drawingStates[key] = state;
-    resizeKfDrawing(state);
   }
 
   function destroyChart(key) {
@@ -879,7 +758,7 @@
     if (live && live.interval === interval && live.container === container && container.querySelector('canvas')) {
       try {
         live.series.setData(points);
-        redrawKfDrawing(drawingStates[key]);
+        refreshKfDrawing(key, points);
         return;
       } catch (err) { /* 재사용 실패 시 아래에서 새로 만든다 */ }
     }
@@ -908,7 +787,7 @@
       applySavedRange(chart, key, interval, points);
 
       // 사용자가 확대·이동할 때마다 현재 구간을 저장(디바운스) - 페이지를 새로고침해도 복원된다.
-      setupKfDrawing(key, container, chart, series, interval);
+      setupKfDrawing(key, container, chart, series, interval, points);
       chart.timeScale().subscribeVisibleTimeRangeChange(function () {
         if (inst.rangeSaveTimer) clearTimeout(inst.rangeSaveTimer);
         inst.rangeSaveTimer = setTimeout(function () {
@@ -1003,32 +882,6 @@
       + '<button type="button" class="kf-retry-btn">다시 시도</button></div>';
     var btn = container.querySelector('.kf-retry-btn');
     if (btn) btn.addEventListener('click', function () { loadMinuteAndRender(cfg, true); });
-  }
-
-  function wireDrawingControls(container) {
-    container.querySelectorAll('.kf-draw-toggle').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var section = button.closest('.kf-section');
-        var key = section && section.getAttribute('data-section-key');
-        var state = drawingStates[key];
-        var mode = button.classList.contains('kf-circle-toggle') ? 'circle' : 'line';
-        setKfDrawingMode(key, state && state.enabled && state.mode === mode ? null : mode);
-      });
-    });
-    container.querySelectorAll('.kf-draw-clear').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var section = button.closest('.kf-section');
-        var key = section && section.getAttribute('data-section-key');
-        var state = drawingStates[key];
-        if (!state) return;
-        state.lines = [];
-        state.circles = [];
-        state.pending = null;
-        state.preview = null;
-        saveKfDrawingShapes(state);
-        redrawKfDrawing(state);
-      });
-    });
   }
 
   function wireIntervalToggles(container) {
@@ -1151,7 +1004,6 @@
     loadDomesticMarketIndicators(container);
     container.innerHTML = buildShell();
     wireIntervalToggles(container);
-    wireDrawingControls(container);
     wireCollapseToggles(container);
     updateMarketStatusBadges(container); // 가격 fetch를 기다리지 않고 바로 표시
 

@@ -272,24 +272,6 @@
     return 'tistory-ticker:dmi-drawings:' + key + ':' + interval;
   }
 
-  function loadDrawingShapes(key, interval) {
-    try {
-      var raw = global.localStorage.getItem(drawingStorageKey(key, interval));
-      var parsed = raw ? JSON.parse(raw) : [];
-      // 과거 저장값은 선 배열이었다. 기존 사용자가 남긴 선을 보존하면서 도형 저장값으로 확장한다.
-      if (Array.isArray(parsed)) return { lines: parsed, circles: [] };
-      return { lines: Array.isArray(parsed.lines) ? parsed.lines : [], circles: Array.isArray(parsed.circles) ? parsed.circles : [] };
-    } catch (e) {
-      return { lines: [], circles: [] };
-    }
-  }
-
-  function saveDrawingShapes(state) {
-    try {
-      global.localStorage.setItem(drawingStorageKey(state.key, state.interval), JSON.stringify({ lines: state.lines, circles: state.circles }));
-    } catch (e) { /* 저장소를 사용할 수 없는 환경에서도 차트는 계속 동작 */ }
-  }
-
   function collapseStorageKey(market) {
     return 'tistory-ticker:dmi-collapsed:' + market;
   }
@@ -302,233 +284,88 @@
     try { global.localStorage.setItem(collapseStorageKey(market), collapsed ? '1' : '0'); } catch (e) { /* 무시 */ }
   }
 
-  function drawingPointFromCoordinate(state, x, y) {
-    var time = state.chart.timeScale().coordinateToTime(x);
-    var price = state.series.coordinateToPrice(y);
-    if (time == null || price == null || !isFinite(Number(price))) return null;
-    // 시간축 좌표만 저장하면 이동·확대 직후 visible range 밖의 점은 LWC가 좌표를 돌려주지
-    // 않아 선이 사라질 수 있다. 화면 비율도 함께 남겨 어느 방향으로 찍어도 즉시 보이게 한다.
-    return { time: time, price: Number(price), xRatio: x / Math.max(1, state.overlay.clientWidth), yRatio: y / Math.max(1, state.overlay.clientHeight) };
-  }
+  // 2026-10-16 사용자 요청: 그리기 도구를 공통 차트(js/chart-drawing.js)와 같게 - 끌어서 그리는 직선·동그라미·박스·가로선·연필.
+  // 이 화면 전용 클릭-클릭 구현은 걷어 내고 공통 엔진(NineChartDrawing.attach)을 지연 로드해 붙인다. 저장 키·옛 저장값({lines, circles})은 그대로 읽는다.
+  var CHART_CORE_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/chart-core.js?v=20261013-rounded-labels1';
 
-  function drawingCoordinate(state, point) {
-    if (!point) return null;
-    var x = state.chart.timeScale().timeToCoordinate(point.time);
-    var y = state.series.priceToCoordinate(point.price);
-    if (x != null && y != null) return { x: Number(x), y: Number(y) };
-    if (isFinite(Number(point.xRatio)) && isFinite(Number(point.yRatio))) {
-      return { x: Number(point.xRatio) * state.overlay.clientWidth, y: Number(point.yRatio) * state.overlay.clientHeight };
-    }
-    return null;
-  }
-
-  function orderedDrawingShape_(first, second) {
-    return Number(first.xRatio) <= Number(second.xRatio) ? { start: first, end: second } : { start: second, end: first };
-  }
-
-  function redrawDrawing(state) {
-    if (!state || !state.overlay) return;
-    var width = state.overlay.clientWidth;
-    var height = state.overlay.clientHeight;
-    var ctx = state.overlay.getContext('2d');
-    if (!ctx || !width || !height) return;
-    ctx.clearRect(0, 0, width, height);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    state.lines.forEach(function (line) {
-      var start = drawingCoordinate(state, line.start);
-      var end = drawingCoordinate(state, line.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.moveTo(start.x, start.y);
-      ctx.lineTo(end.x, end.y);
-      ctx.stroke();
-      [start, end].forEach(function (point) {
-        ctx.beginPath();
-        ctx.fillStyle = '#fff';
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.beginPath();
-        ctx.strokeStyle = '#e11d48';
-        ctx.lineWidth = 2;
-        ctx.arc(point.x, point.y, 4, 0, Math.PI * 2);
-        ctx.stroke();
-      });
-    });
-    state.circles.forEach(function (circle) {
-      var start = drawingCoordinate(state, circle.start);
-      var end = drawingCoordinate(state, circle.end);
-      if (!start || !end) return;
-      ctx.beginPath();
-      ctx.strokeStyle = '#e11d48';
-      ctx.lineWidth = 2;
-      ctx.ellipse((start.x + end.x) / 2, (start.y + end.y) / 2,
-        Math.max(2, Math.abs(end.x - start.x) / 2), Math.max(2, Math.abs(end.y - start.y) / 2), 0, 0, Math.PI * 2);
-      ctx.stroke();
-    });
-    if (state.pending) {
-      var pending = drawingCoordinate(state, state.pending);
-      if (pending) {
-        ctx.beginPath();
-        ctx.fillStyle = '#e11d48';
-        ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2);
-        ctx.fill();
-      }
-    }
-    if (state.preview && state.pending) {
-      var previewStart = drawingCoordinate(state, state.pending);
-      if (previewStart) {
-        ctx.beginPath();
-        ctx.setLineDash([5, 4]);
-        ctx.strokeStyle = 'rgba(225,29,72,.72)';
-        ctx.lineWidth = 1.5;
-        if (state.mode === 'circle') {
-          ctx.ellipse((previewStart.x + state.preview.x) / 2, (previewStart.y + state.preview.y) / 2,
-            Math.max(2, Math.abs(state.preview.x - previewStart.x) / 2), Math.max(2, Math.abs(state.preview.y - previewStart.y) / 2), 0, 0, Math.PI * 2);
-        } else {
-          ctx.moveTo(previewStart.x, previewStart.y);
-          ctx.lineTo(state.preview.x, state.preview.y);
+  function loadChartDrawing() {
+    var loads = global.__nineChartLoads = global.__nineChartLoads || {};
+    var corePromise;
+    if (global.NineChartCore) corePromise = Promise.resolve(global.NineChartCore);
+    else if (loads.core) corePromise = loads.core;
+    else {
+      loads.core = corePromise = new Promise(function (resolve, reject) {
+        var existing = document.querySelector('script[data-nine-chart="core"]');
+        var script = existing || document.createElement('script');
+        script.addEventListener('load', function () { resolve(global.NineChartCore); });
+        script.addEventListener('error', function () { loads.core = null; if (script.remove) script.remove(); reject(new Error('차트 엔진 로드 실패')); });
+        if (!existing) {
+          script.src = CHART_CORE_URL;
+          script.async = true;
+          script.setAttribute('data-nine-chart', 'core');
+          document.head.appendChild(script);
         }
-        ctx.stroke();
-        ctx.setLineDash([]);
-      }
+      });
     }
+    return corePromise.then(function (core) { return core.loadModule('drawing'); });
   }
 
-  function resizeDrawingCanvas(state) {
-    if (!state || !state.overlay) return;
-    var ratio = global.devicePixelRatio || 1;
-    var width = state.overlay.clientWidth;
-    var height = state.overlay.clientHeight;
-    state.overlay.width = Math.max(1, Math.round(width * ratio));
-    state.overlay.height = Math.max(1, Math.round(height * ratio));
-    var ctx = state.overlay.getContext('2d');
-    if (ctx) ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
-    redrawDrawing(state);
+  function drawingBars(points) {
+    return (points || []).map(function (p) { return { date: p.time, close: p.close }; });
+  }
+
+  var DMI_DRAWING_STORE = {
+    key: function (code, tf) { return drawingStorageKey(code, tf); },
+    kinds: ['lines', 'paths', 'circles', 'hlines', 'boxes'],
+    legacyArray: true
+  };
+
+  function drawingButtons(element) {
+    var panel = element.closest ? element.closest('.dmi-panel') : null;
+    var find = function (cls) { return panel ? panel.querySelector(cls) : null; };
+    return {
+      line: find('.dmi-line-toggle'), circle: find('.dmi-circle-toggle'), box: find('.dmi-box-toggle'),
+      hline: find('.dmi-hline-toggle'), pencil: find('.dmi-pencil-toggle'), clear: find('.dmi-draw-clear')
+    };
+  }
+
+  function setupDrawing(key, element, chart, series, interval, points) {
+    destroyDrawing(key);
+    var state = { key: key, interval: interval, ctl: null, points: points, detached: false };
+    drawingStates[key] = state;
+    loadChartDrawing().then(function (Drawing) {
+      if (state.detached || drawingStates[key] !== state || !document.body.contains(element)) return;
+      // 다른 렌더가 같은 칸의 DOM을 이미 갈아엎어 이 차트가 화면에서 떨어졌다면(예: 스크립트가 두 번 실행된 모바일) 붙이지 않는다.
+      var chartEl = chart.chartElement ? chart.chartElement() : null;
+      if (chartEl && !element.contains(chartEl)) return;
+      state.ctl = Drawing.attach({
+        core: global.NineChartCore, container: element, chart: chart, series: series, bars: drawingBars(state.points),
+        key: key, timeframe: interval,
+        className: 'dmi-drawing-layer', ariaLabel: '차트 그리기 영역',
+        bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
+        buttons: drawingButtons(element), store: DMI_DRAWING_STORE,
+        style: { stroke: '#e11d48', dots: true, previewDash: true },
+        sync: false
+      });
+    }).catch(function () { /* 공통 엔진을 못 받아도 차트는 그대로 */ });
+  }
+
+  function refreshDrawing(key, points) {
+    var state = drawingStates[key];
+    if (!state) return;
+    state.points = points;
+    if (state.ctl && !state.ctl.detached) {
+      state.ctl.shapes.bars = drawingBars(points);
+      state.ctl.schedule(true);
+    }
   }
 
   function destroyDrawing(key) {
     var state = drawingStates[key];
     if (!state) return;
-    if (state.resizeObserver) state.resizeObserver.disconnect();
-    if (state.resizeHandler) global.removeEventListener('resize', state.resizeHandler);
-    if (state.timeRangeHandler && state.chart.timeScale().unsubscribeVisibleTimeRangeChange) {
-      state.chart.timeScale().unsubscribeVisibleTimeRangeChange(state.timeRangeHandler);
-    }
-    if (state.overlay) state.overlay.remove();
+    state.detached = true;
+    if (state.ctl) state.ctl.detach();
     drawingStates[key] = null;
-  }
-
-  function setDrawingMode(key, mode) {
-    var state = drawingStates[key];
-    if (!state) return;
-    state.enabled = !!mode;
-    state.mode = mode || null;
-    state.pending = null;
-    state.preview = null;
-    state.overlay.classList.toggle('is-active', state.enabled);
-    [state.lineButton, state.circleButton].forEach(function (button) {
-      if (!button) return;
-      var active = state.enabled && ((state.mode === 'line' && button === state.lineButton) || (state.mode === 'circle' && button === state.circleButton));
-      button.classList.toggle('is-active', active);
-      button.setAttribute('aria-pressed', active ? 'true' : 'false');
-    });
-    state.overlay.title = state.enabled ? '시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 ' + (state.mode === 'circle' ? '동그라미' : '직선') + '이 완성됩니다.' : '';
-    redrawDrawing(state);
-  }
-
-  function bindDrawingControls(key, element) {
-    var panel = element.closest ? element.closest('.dmi-panel') : null;
-    if (!panel) return;
-    var button = panel.querySelector('.dmi-draw-toggle');
-    var circle = panel.querySelector('.dmi-circle-toggle');
-    var clear = panel.querySelector('.dmi-draw-clear');
-    if (!button || button.getAttribute('data-dmi-draw-wired') === '1') return;
-    button.setAttribute('data-dmi-draw-wired', '1');
-    button.addEventListener('click', function () {
-      var state = drawingStates[key];
-      setDrawingMode(key, state && state.enabled && state.mode === 'line' ? null : 'line');
-    });
-    if (circle) circle.addEventListener('click', function () {
-      var state = drawingStates[key];
-      setDrawingMode(key, state && state.enabled && state.mode === 'circle' ? null : 'circle');
-    });
-    if (clear) {
-      clear.addEventListener('click', function () {
-        var state = drawingStates[key];
-        if (!state) return;
-        state.lines = [];
-        state.circles = [];
-        state.pending = null;
-        state.preview = null;
-        saveDrawingShapes(state);
-        redrawDrawing(state);
-      });
-    }
-  }
-
-  function setupDrawing(key, element, chart, series, interval) {
-    destroyDrawing(key);
-    var savedShapes = loadDrawingShapes(key, interval);
-    var state = {
-      key: key,
-      interval: interval,
-      chart: chart,
-      series: series,
-      lines: savedShapes.lines,
-      circles: savedShapes.circles,
-      pending: null,
-      preview: null,
-      enabled: false,
-      mode: null
-    };
-    var overlay = document.createElement('canvas');
-    overlay.className = 'dmi-drawing-layer';
-    overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-    element.appendChild(overlay);
-    state.overlay = overlay;
-    state.lineButton = element.closest('.dmi-panel').querySelector('.dmi-draw-toggle');
-    state.circleButton = element.closest('.dmi-panel').querySelector('.dmi-circle-toggle');
-    overlay.addEventListener('click', function (event) {
-      if (!state.enabled) return;
-      var rect = overlay.getBoundingClientRect();
-      var point = drawingPointFromCoordinate(state, event.clientX - rect.left, event.clientY - rect.top);
-      if (!point) return;
-      if (!state.pending) {
-        state.pending = point;
-        overlay.setAttribute('aria-label', '추세선 시작점이 지정되었습니다. 끝점을 한 번 클릭하세요.');
-      } else {
-        state[state.mode === 'circle' ? 'circles' : 'lines'].push(orderedDrawingShape_(state.pending, point));
-        state.pending = null;
-        overlay.setAttribute('aria-label', '차트 추세선 그리기 영역');
-        saveDrawingShapes(state);
-      }
-      redrawDrawing(state);
-    });
-    overlay.addEventListener('mousemove', function (event) {
-      if (!state.enabled || !state.pending) return;
-      var rect = overlay.getBoundingClientRect();
-      state.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
-      redrawDrawing(state);
-    });
-    overlay.addEventListener('mouseleave', function () {
-      state.preview = null;
-      redrawDrawing(state);
-    });
-    state.timeRangeHandler = function () { redrawDrawing(state); };
-    if (chart.timeScale().subscribeVisibleTimeRangeChange) chart.timeScale().subscribeVisibleTimeRangeChange(state.timeRangeHandler);
-    if (global.ResizeObserver) {
-      state.resizeObserver = new global.ResizeObserver(function () { resizeDrawingCanvas(state); });
-      state.resizeObserver.observe(element);
-    } else {
-      state.resizeHandler = function () { resizeDrawingCanvas(state); };
-      global.addEventListener('resize', state.resizeHandler);
-    }
-    drawingStates[key] = state;
-    bindDrawingControls(key, element);
-    resizeDrawingCanvas(state);
   }
 
   function installStyle() {
@@ -706,7 +543,7 @@
       var current = chartInstances[key];
       if (current && current.interval === interval) {
         current.series.setData(points);
-        redrawDrawing(drawingStates[key]);
+        refreshDrawing(key, points);
         return;
       }
       if (current) {
@@ -735,7 +572,7 @@
       series.setData(points);
       chart.timeScale().fitContent();
       chartInstances[key] = { chart: chart, series: series, interval: interval, element: element };
-      setupDrawing(key, element, chart, series, interval);
+      setupDrawing(key, element, chart, series, interval, points);
     }).catch(function () {
       element.innerHTML = '<div class="dmi-chart-message">차트 라이브러리를 불러오지 못했습니다.</div>';
     });
@@ -776,9 +613,12 @@
         return '<button type="button" class="dmi-tab' + (interval === 'day' ? ' is-active' : '') + '" data-interval="' + interval + '">' + label + '</button>';
       }).join('') + '</div>'
       + '<div class="dmi-draw-buttons">'
-      + '<button type="button" class="dmi-draw-toggle" aria-pressed="false" title="시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 직선이 완성됩니다.">직선</button>'
-      + '<button type="button" class="dmi-draw-toggle dmi-circle-toggle" aria-pressed="false" title="시작점을 한 번 클릭한 뒤 끝점을 한 번 클릭하면 동그라미가 완성됩니다.">동그라미</button>'
-      + '<button type="button" class="dmi-draw-clear" title="그린 선을 모두 지웁니다.">지우기</button>'
+      + '<button type="button" class="dmi-draw-toggle dmi-line-toggle" aria-pressed="false" title="왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.">직선</button>'
+      + '<button type="button" class="dmi-draw-toggle dmi-circle-toggle" aria-pressed="false" title="왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.">동그라미</button>'
+      + '<button type="button" class="dmi-draw-toggle dmi-box-toggle" aria-pressed="false" title="끌어서 박스를 그리면 이름을 입력할 수 있습니다.">박스</button>'
+      + '<button type="button" class="dmi-draw-toggle dmi-hline-toggle" aria-pressed="false" title="차트를 누르면 가로선이 생기고, 선을 끌면 이동합니다.">가로선</button>'
+      + '<button type="button" class="dmi-draw-toggle dmi-pencil-toggle" aria-pressed="false" title="누른 채로 움직여 자유롭게 그립니다.">연필</button>'
+      + '<button type="button" class="dmi-draw-clear" title="그린 도형을 모두 지웁니다.">지우기</button>'
       + '</div>'
       + '</div><div class="dmi-chart" aria-label="' + escapeHtml(item.name || market) + ' 표준 차트"></div></section>';
   }
