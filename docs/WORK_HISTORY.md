@@ -1,3 +1,7 @@
+**2026-10-16 홈 KOSPI·KOSDAQ 장중 차트가 비던 문제 수정**
+
+증상: 홈 KOSPI·KOSDAQ 카드가 개장 중에도 '장중 기록 수집 전'. 원인: `scripts/cloud-vm/domestic_futures.py`의 폴링이 KIS 모드(`use_kis_realtime=True`)일 때 KOSPI/KOSDAQ를 별도 분기에서 수집하면서 `home_session_chart.record()`를 호출하지 않아, 운영 DB `home_session_prices`에 KOSPI/KOSDAQ 행이 한 번도 저장되지 않았다(VM 확인: 미국 4종만 있음, 코드·세션 계산·네이버 응답은 정상). 수정: 그 분기에서도 같은 연결로 관측 기록(실패는 로그만). 테스트 `test_kis_mode_poll_loop_records_korean_index_observations` 추가(수정 전 실패·후 통과), `test_home_session_chart.py` 11건 통과. 과거 구간은 복원하지 않으므로(규칙) 배포 이후 30분 구간부터 쌓인다.
+
 **2026-10-16 시장 모바일 UI 슬림화(앱 밀도)**
 
 PR #689 후속. 767px 이하에서 글자·여백·카드·표 행을 한 단계 줄임(`css/mobile-market.css`만 변경): 블록 제목 19→16px, 설명·캡션 11~11.5px, 카드 숫자 20→17px, 탭·버튼 높이 44→34~36px, 표 행 패딩 10→7px(기본 10px 6px), 증시온도 카드 여백 20→12px·큰 숫자 29→22px·23→17px, 환율·선물·미국 발표 제목 축소. 사이트 공통 `@layer np`의 `!important`가 여백·글자를 고정하는 곳은 같은 레이어 안(`@media{@layer np{…}}`)에서 덮어씀(미디어쿼리 밖 규칙은 여전히 `.mm-only` 숨김 하나뿐 - `test/test_mobile_market.js`). PC·태블릿 불변.

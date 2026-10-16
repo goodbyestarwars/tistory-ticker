@@ -132,3 +132,25 @@ class SessionCharts(unittest.TestCase):
         with mock.patch('market_clock.is_kr_trading_day', return_value=False):
             self.assertFalse(self.put(100, '2026-10-16T10:00:00+09:00', 'KOSDAQ'))
         self.assertFalse(charts.record(self.conn, 'KOSPI', dict(price=100, market_status='OPEN', traded_at=None)))
+
+    def test_kis_mode_poll_loop_records_korean_index_observations(self):
+        """2026-10-16: KIS 모드(use_kis_realtime=True) 폴링 분기에서도 KOSPI/KOSDAQ 관측이 저장돼야 한다."""
+        import domestic_futures
+        import market_clock
+        stamp = datetime.now(timezone.utc).astimezone(charts.KST).isoformat()
+        quote = dict(price=5600.0, change=1.0, change_rate=0.1, high=5610.0, low=5590.0,
+                     traded_at=stamp, market_status='OPEN')
+
+        class Stop(BaseException):
+            pass
+
+        with mock.patch.object(domestic_futures, 'fetch_index_realtime', return_value=quote), \
+                mock.patch.object(market_clock, 'kr_market_active', return_value=True), \
+                mock.patch.object(domestic_futures, 'refresh_history_all', side_effect=Stop), \
+                mock.patch.object(domestic_futures, 'refresh_realtime_all'), \
+                mock.patch.object(charts, 'session', return_value=dict(
+                    date='2026-10-16', start='x', end='y', slotCount=14, slot=1, timeZone='Asia/Seoul')):
+            with self.assertRaises(Stop):
+                domestic_futures._poll_loop(use_kis_realtime=True)
+        symbols = {r[0] for r in self.conn.execute('SELECT symbol FROM home_session_prices')}
+        self.assertEqual(symbols, {'KOSPI', 'KOSDAQ'})
