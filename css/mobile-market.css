@@ -148,7 +148,7 @@
     html body #market-temp .mt-card-title { font-size: 14px !important; }
     html body #market-temp .mt-tm-verdict b, html body #market-temp .mt-val-pos, html body #market-temp .mt-val-neg { font-size: 17px !important; }
     html body #market-temp .mt-summary-mood { font-size: 15px !important; }
-    html body #market-temp .mt-strategy-action { font-size: 17px !important; line-height: 1.35 !important; }
+    html body #market-temp .mt-strategy-action { font-size: 15px !important; line-height: 1.35 !important; }
     html body #market-temp .mt-cp-metric-row b { font-size: 22px !important; }
     html body #market-temp .mt-kpi-num { font-size: 20px !important; }
     html body #market-temp .mt-kpi { padding: 10px 12px !important; }
