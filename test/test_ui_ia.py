@@ -1623,13 +1623,11 @@ class UiInformationArchitectureTest(unittest.TestCase):
         source = self.read("js/market-temp.js")
         style = self.read("css/market-temp.css")
         self.assertIn("var HISTORY_PERIODS = [5, 10, 20, 40];", source)
-        self.assertIn('class="mt-heatmap"', source)
-        self.assertIn('class="mt-heat-day', source)
-        self.assertIn('tabindex="0"', source)
-        self.assertIn('is-latest', source)
+        self.assertIn('class="mt-flow-svg"', source)
+        self.assertIn('mt-fc-dot mt-rib-tone-', source)
         self.assertIn("data.scoreMethod !== 'direction-v2'", source)
-        self.assertIn('#market-temp .mt-heatmap { display:grid;', style)
-        self.assertIn('grid-template-columns:repeat(5,minmax(0,1fr))', style)
+        self.assertIn('#market-temp .mt-flow-svg {', style)
+        self.assertIn('#market-temp .mt-fc-line {', style)
     def test_market_temperature_score_says_scale_meaning_and_retail_action(self):
         """2026-09-16 사용자 지적.
 
@@ -1950,7 +1948,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         for selector in ("#market-temp .mt-rib-now-label", "#market-temp .mt-rib-tip", "#market-temp .mt-flow-period"):
             self.assertIn("border-radius: 0", rule(selector))
         self.assertEqual(rule("#market-temp .mt-gauge-seg").count("stroke-linecap: round"), 0)
-        self.assertIn("mt-heat-day", source)
+        self.assertIn("mt-fc-dot", source)
         self.assertIn('<circle class="', source)
 
         start = gas.index("function getMarketTempBriefing()")

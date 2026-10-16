@@ -27,6 +27,7 @@ const code = [
   grab('  function shortDate_'),
   grab('  function historyDays_'),
   grab('  function escapeHtml'),
+  grab('  function buildFlowChart_'),
   grab('  function buildSparklineContent')
 ].join('\n');
 // 소스의 SCORE_CUT_ 선언이 위 값과 같은지(복붙 오류 방지)
@@ -56,16 +57,13 @@ function days(scores, start) {
 }
 const data = { scoreMethod: 'direction-v2', recentDays: days([40, 52, 62, 68, 71, 37, 29, 30, 69, 70], 1) };
 let html = t.buildSparklineContent(data, 5);
-const cells = html.match(/<li class="mt-heat-day[^"]*"/g);
-assert.strictEqual(cells.length, 5, '선택한 기간(5일)만 표시');
-assert.ok(/mt-rib-tone-fear[^>]*>[\s\S]*?<strong>29<\/strong>/.test(html));
-assert.ok(/<li class="mt-heat-day mt-rib-tone-neutral"[^>]*>(?:(?!<\/li>)[\s\S])*<strong>30<\/strong>/.test(html), '30점은 보통');
-assert.ok(/<li class="mt-heat-day mt-rib-tone-neutral"[^>]*>(?:(?!<\/li>)[\s\S])*<strong>69<\/strong>/.test(html), '69점은 보통');
-assert.ok(/<li class="mt-heat-day mt-rib-tone-greed is-latest"[^>]*>(?:(?!<\/li>)[\s\S])*<strong>70<\/strong>/.test(html), '최신 70점은 빨강 + 테두리 표시, 색은 그대로');
-// 막대 높이 = 점수
-assert.ok(html.indexOf('style="height:70%"') > 0 && html.indexOf('style="height:29%"') > 0 && html.indexOf('style="height:30%"') > 0);
+const dotTones = (html.match(/mt-fc-dot mt-rib-tone-(\w+)/g) || []).map((m) => m.split('tone-')[1]);
+assert.strictEqual(dotTones.length, 5, '선택한 기간(5일)만 표시');
+// 5일 = 37,29,30,69,70 -> 보통,공포,보통,보통,과열
+assert.deepStrictEqual(Array.from(dotTones), ['neutral', 'fear', 'neutral', 'neutral', 'greed'], '29 공포 / 30·69 보통 / 70 과열');
+assert.ok(/mt-fc-last mt-rib-tone-greed[^>]*>70점 과열/.test(html), '최신 70점 라벨');
 // 날짜 순서 유지
-const dates = (html.match(/mt-heat-date">([0-9/]+)</g) || []).map((m) => m.replace(/.*">|</g, ''));
+const dates = (html.match(/mt-fc-axis" x="[0-9.]+" y="\d+" text-anchor="middle">([0-9/]+)</g) || []).map((m) => m.replace(/.*">|</g, ''));
 assert.deepStrictEqual(Array.from(dates), ['10/6', '10/7', '10/8', '10/9', '10/10']);
 // 최신 증감: 70 - 69 = ▲1 (기간 5일의 첫 칸이 아니라 바로 앞 거래일 기준)
 assert.ok(/▲1 /.test(html), '전 거래일 대비 ▲1');
@@ -76,7 +74,7 @@ assert.ok(html.indexOf('위험도') > 0 && html.indexOf('높을수록 위험') >
 
 // 3) 기간 전환(10일) · 하락 증감 · 첫 날(이전 없음)
 html = t.buildSparklineContent(data, 10);
-assert.strictEqual(html.match(/<li class="mt-heat-day/g).length, 10);
+assert.strictEqual(html.match(/mt-fc-dot /g).length, 10);
 const down = { scoreMethod: 'direction-v2', recentDays: days([60, 50], 1) };
 assert.ok(/▼10 /.test(t.buildSparklineContent(down, 5)));
 const one = { scoreMethod: 'direction-v2', recentDays: days([55], 1) };
@@ -84,7 +82,7 @@ html = t.buildSparklineContent(one, 5);
 assert.ok(html.indexOf('mt-heat-delta') < 0, '이전 거래일이 없으면 증감 표시 안 함');
 // 당일 데이터가 없으면 마지막으로 계산된 거래일을 최신으로 표시한다
 html = t.buildSparklineContent({ scoreMethod: 'direction-v2', recentDays: days([50, 55, 58], 12) }, 5);
-assert.ok(/최신 거래일 10\/14/.test(html) && /<strong>58<\/strong>/.test(html));
+assert.ok(/최신 거래일 10\/14/.test(html) && /58점 보통/.test(html));
 // 예전 산식(direction-v2 아님)은 섞지 않는다
 assert.strictEqual(t.historyDays_({ scoreMethod: 'old', recentDays: days([50], 1) }).length, 0);
 assert.ok(/새 기준으로 다시 계산할 수 있는 기록이 없습니다/.test(t.buildSparklineContent({ scoreMethod: 'old', recentDays: days([50], 1) }, 5)));
