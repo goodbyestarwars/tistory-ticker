@@ -521,11 +521,12 @@
     if (!balance) balance = { state: d.holdings.length ? 'OK' : 'NOT_YET', legacy: true, last_ok: d.status.last_poll || null, age_sec: null };
     root.innerHTML = (d.legacy ? '<p class="at-banner is-bad">PC에서 실행 중인 자동매매 프로그램이 이전 버전이라 잔고 조회 상태·분석 전용·정책 정보가 없습니다. 프로그램을 새 버전으로 업데이트하면 표시됩니다(보유 종목 수는 이 상태에서 신뢰하지 마세요).</p>' : '')
       + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance) + monthSummaryHtml(d.orders, String(d.status.now || '').slice(0, 10))
+      // 주문 기록은 표가 넓어(11칸) 두 칼럼 안에 두면 줄바꿈이 심해 전체 폭 구역으로 올렸다(2026-10-16).
+      + '<section class="at-box at-orders-wide"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10), d) + '</section>'
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
       + holdingsHtml(d.holdings, balance, d.status) + '</section>'
       + analysisHtml(d)
-      + '<section class="at-box"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10), d) + '</section>'
       + eventsHtml(d.events)
       + '</div><div class="at-col">' + policyHtml(d.status, d.holdings) + watchHtml(d.watch) + '</div></div>';
     wire(d);
