@@ -79,7 +79,7 @@ class AccumulationBarParityTest(unittest.TestCase):
 
 
 class AccumulationContextTest(unittest.TestCase):
-    """2026-10-17: 매집 확인·후보·털기?(분배 가능성) 구분과 빈 거래량 처리."""
+    """2026-10-17: 매집봉과 털기?(상승 뒤 대량 양봉) 두 가지만 그날 정보로 표시하고, 빈 거래량은 서버처럼 처리한다."""
 
     def base(self):
         return series()
@@ -87,50 +87,21 @@ class AccumulationContextTest(unittest.TestCase):
     def acc_bar(self, bars, i, volume=400000):
         put(bars, i, 10000, 10600, 9990, 10500, volume)
 
-    def hold_after(self, bars, i, count=4, volume=100000):
-        for k in range(i + 1, i + 1 + count):
-            put(bars, k, 10450, 10500, 10300, 10400, volume)       # 거래량 25%, 저가·종가가 매집봉 지지 위
-
-    def test_confirmed_after_four_dry_supported_bars(self):
+    def test_accumulation_bar_is_marked_on_its_own_day_only(self):
         bars = self.base()
         self.acc_bar(bars, 30)
-        self.hold_after(bars, 30)
         out = js_hits(bars)
-        self.assertEqual(out['statuses'], [[30, 'confirmed']])
-        # 후보는 그날(30)에, 4봉 지지는 판정이 가능해진 4번째 봉(34)에 찍는다 - 과거 차트가 미리 알았던 것처럼 보이지 않게
-        self.assertEqual(out['markers'], [[bars[30]['date'], '후보'], [bars[34]['date'], '4봉 지지']])
+        self.assertEqual(out['statuses'], [[30, 'accumulation']])
+        self.assertEqual(out['markers'], [[bars[30]['date'], '매집봉']])
+        self.assertEqual(out['summary'], {'accumulation': 1, 'distribution': 0})
 
-    def test_fourth_bar_volume_is_excluded_like_the_screener(self):
+    def test_marks_do_not_depend_on_later_bars(self):
         bars = self.base()
         self.acc_bar(bars, 30)
-        self.hold_after(bars, 30)
-        bars[34]['volume'] = 900000                                # 4번째 봉은 거래량 평균에 넣지 않는다(검색기가 최신 봉을 빼는 방식)
-        self.assertEqual(js_hits(bars)['statuses'], [[30, 'confirmed']])
-        bars[33]['volume'] = 900000                                # 앞 3봉에 들어가면 실패
-        self.assertEqual(js_hits(bars)['statuses'], [[30, 'failed']])
-
-    def test_pending_when_fewer_than_four_bars_follow(self):
-        bars = self.base()[:38]
-        self.acc_bar(bars, 35)
-        self.hold_after(bars, 35, count=2)
-        out = js_hits(bars)
-        self.assertEqual(out['statuses'], [[35, 'pending']])
-        self.assertEqual(out['markers'], [[bars[35]['date'], '후보']])     # 4봉이 안 지났으니 후보만
-
-    def test_failed_followup_is_not_marked(self):
-        bars = self.base()
-        self.acc_bar(bars, 30)
-        self.hold_after(bars, 30, volume=300000)                  # 이후 거래량이 줄지 않음(분배일 수 있음)
-        out = js_hits(bars)
-        self.assertEqual(out['statuses'], [[30, 'failed']])
-        # 실패도 지우지 않고 흐린 회색으로 남긴다(좋은 것만 남아 결과가 좋아 보이는 착시 방지)
-        self.assertEqual(out['markers'], [[bars[30]['date'], '후보'], [bars[34]['date'], '4봉 실패']])
-        self.assertEqual(out['summary']['failed'], 1)
-        bars2 = self.base()
-        self.acc_bar(bars2, 30)
-        self.hold_after(bars2, 30)
-        put(bars2, 33, 10450, 10450, 9500, 10300, 100000)         # 저가가 매집봉 저가의 98% 아래로 이탈
-        self.assertEqual(js_hits(bars2)['statuses'], [[30, 'failed']])
+        for k in range(31, 40):                                   # 이후 봉을 어떻게 바꿔도(급락·거래량 폭증) 그날의 표시는 그대로 - 미래 정보 없음
+            put(bars, k, 9000, 9100, 8000, 8100, 900000)
+        self.assertEqual(js_hits(bars)['markers'], [[bars[30]['date'], '매집봉']])
+        self.assertEqual(js_hits(bars[:31])['markers'], [[bars[30]['date'], '매집봉']])
 
     def test_runup_before_the_bar_is_marked_as_possible_distribution(self):
         bars = self.base()
@@ -138,16 +109,10 @@ class AccumulationContextTest(unittest.TestCase):
             bars[k].update({'open': 7900 + (k - 9) * 105, 'high': 8100 + (k - 9) * 105, 'low': 7850 + (k - 9) * 105, 'close': 7900 + (k - 9) * 105})
         bars[29]['close'] = 10000
         self.acc_bar(bars, 30)
-        self.hold_after(bars, 30)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'distribution']])
-        self.assertEqual(out['markers'], [[bars[30]['date'], '털기?']])       # 그날 맥락으로 판정, 4봉 뒤 표시 없음
-        self.assertEqual(js_hits(self._with_failed_followup(bars))['markers'], [[bars[30]['date'], '털기?']])
-        self.assertEqual(out['summary']['distribution'], 1)
-
-    def _with_failed_followup(self, bars):
-        put(bars, 33, 10450, 10450, 9000, 9500, 900000)            # 후속 지지 실패여도 털기?는 그대로
-        return bars
+        self.assertEqual(out['markers'], [[bars[30]['date'], '털기?']])
+        self.assertEqual(out['summary'], {'accumulation': 0, 'distribution': 1})
 
     def test_missing_volume_is_skipped_not_counted_as_zero(self):
         bars = self.base()
@@ -159,7 +124,7 @@ class AccumulationContextTest(unittest.TestCase):
         self.acc_bar(bars, 30, volume=400000)                     # 2배: 서버는 후보 아님. 빈 값을 0으로 세면 평균이 10만이 돼 4배로 잘못 찍힌다
         self.assertIsNone(va.find_accumulation_bar(bars))
         self.assertEqual(js_indices(bars), [])
-        self.acc_bar(bars, 30, volume=520000)                     # 2.6배면 둘 다 후보
+        self.acc_bar(bars, 30, volume=520000)                     # 2.6배면 둘 다 매집봉
         self.assertEqual(va.find_accumulation_bar(bars), 30)
         self.assertEqual(js_indices(bars), [30])
 
@@ -172,8 +137,11 @@ class AccumulationToggleWiringTest(unittest.TestCase):
         ss = self.read('js/stock-search.js')
         ff = self.read('js/foreign-flow.js')
         self.assertIn('id="ssAccumulationToggle"', ss)
-        self.assertIn('매집봉 후보 표시', ss)
-        self.assertIn('매집봉 후보 표시', ff)
+        self.assertIn('/> 매집봉 표시</label>', ss)
+        self.assertIn('/> 매집봉 표시</label>', ff)
+        label = ss[ss.index('<label title="일봉에서만 표시합니다.'):ss.index('매집봉 표시</label>')]
+        for text in ('후보', '4봉', '지지', '실패'):                 # 알아보기 어렵다는 지적을 받은 용어는 화면 문구에 없다
+            self.assertNotIn(text, label)
         self.assertIn('id="ffAccumulationToggle"', ff)
         self.assertIn("timeframe === 'day' && !isUsChart", ss)      # 국내 일봉에서만
         self.assertIn('setAccumulationMarkers', ss)

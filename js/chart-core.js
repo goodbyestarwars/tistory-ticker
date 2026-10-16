@@ -620,24 +620,21 @@
   }
 
 
-  // ---- 매집봉 후보 표시(2026-10-16 사용자 요청, 2026-10-17 맥락 구분 보강) ----
+  // ---- 매집봉 표시(2026-10-16 사용자 요청, 2026-10-17 단순화) ----
   // 봉 하나 조건은 scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같다(검색기와 차트가 어긋나지 않게):
   // 거래량이 직전 20일 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
-  // 이 조건만으로는 매집인지 물량을 터는 봉인지 가를 수 없어서(5년 일봉 시험: docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 맥락을 나눠 표시한다.
-  // 표시는 "그날 알 수 있었던 것"과 "나중에 알게 된 것"을 다른 봉에 찍는다(과거 차트가 미리 알았던 것처럼 보이지 않게):
-  //  - 후보(후보 봉 그날)   : 봉 하나 조건을 만족한 날. 직전 20봉이 +25% 이상 올랐으면 대신 털기?(분배 가능성, 20일 뒤 -10% 이하 비율 48%)
-  //  - 4봉 지지(4번째 봉 날) : 후보 다음 4봉에서 앞 3봉 평균 거래량이 후보 봉의 60% 이하로 줄고, 4봉 모두 저가가 후보 저가의 98%·종가가 후보 종가의 96% 아래로 내려가지 않음.
-  //                           거래량 평균에서 마지막(4번째) 봉을 빼는 것은 검색기 후속 확인이 최신 봉을 빼는 방식과 같다. 매집 주체를 확인했다는 뜻이 아니다.
-  //  - 4봉 실패(4번째 봉 날) : 위 조건을 못 채움(결과가 좋아 보이는 착시를 막으려고 흐린 회색으로 남긴다)
-  //  털기?는 후속 확인과 상관없이 그날의 맥락만으로 판정하며 4봉 뒤 표시를 달지 않는다. 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
+  // 같은 모양이라도 직전 20봉이 +25% 이상 오른 뒤에 나온 대량 양봉은 물량을 터는 쪽일 수 있어(5년 일봉: 20일 뒤 -10% 이하 48%,
+  // docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 회색 '털기?'로 따로 표시한다. 두 표시 모두 그날 알 수 있는 정보만 쓴다(미래 봉을 보지 않는다).
+  // 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
   var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b',
-    runupBars: 20, distributionRunup: 0.25, confirmBars: 4, dryRatio: 0.6, supportLow: 0.98, supportClose: 0.96 };
+    runupBars: 20, distributionRunup: 0.25 };
 
   // 빈 값(null·'')은 0이 아니라 없는 값이다 - 서버(volume_accumulation._f)가 평균에서 빼는 것과 같게 맞춘다.
   function accNumber(value) {
     return value === null || value === undefined || value === '' ? NaN : Number(value);
   }
 
+  // 반환: [{ index, date, multiple, status }] status = 'accumulation'(매집봉) | 'distribution'(털기?)
   function accumulationBars(bars) {
     var out = [];
     if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
@@ -653,63 +650,37 @@
       var avg = count ? sum / count : 0;
       if (!avg || v < ACCUMULATION.volMult * avg || c <= o || (c / o - 1) * 100 < ACCUMULATION.minBodyPct) continue;
       if ((c - l) / (h - l) < ACCUMULATION.closePosMin || c * v < ACCUMULATION.amountMin) continue;
-      var status = accumulationStatus(bars, i, v);
-      var confirmBar = bars[i + ACCUMULATION.confirmBars];
-      out.push({ index: i, date: b.date, multiple: v / avg, status: status, resolveDate: confirmBar ? confirmBar.date : null });
+      var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
+      out.push({ index: i, date: b.date, multiple: v / avg,
+        status: isFinite(before) && before >= ACCUMULATION.distributionRunup ? 'distribution' : 'accumulation' });
     }
     return out;
   }
 
-  // 'distribution' | 'confirmed' | 'pending' | 'failed'
-  function accumulationStatus(bars, i, volume) {
-    var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
-    if (isFinite(before) && before >= ACCUMULATION.distributionRunup) return 'distribution';
-    var post = bars.slice(i + 1, i + 1 + ACCUMULATION.confirmBars);
-    if (post.length < ACCUMULATION.confirmBars) return 'pending';
-    var accLow = accNumber(bars[i].low), accClose = accNumber(bars[i].close), sum = 0, count = 0, ok = true;
-    post.forEach(function (bar, k) {
-      var pl = accNumber(bar.low), pc = accNumber(bar.close), pv = accNumber(bar.volume);
-      if (k < post.length - 1 && isFinite(pv)) { sum += pv; count++; }
-      if ((isFinite(pl) && pl < accLow * ACCUMULATION.supportLow) || (isFinite(pc) && pc < accClose * ACCUMULATION.supportClose)) ok = false;
-    });
-    var midAvg = count ? sum / count : NaN;
-    if (!isFinite(midAvg) || midAvg > ACCUMULATION.dryRatio * volume) ok = false;
-    return ok ? 'confirmed' : 'failed';
-  }
-
   var ACC_MARKER = {
-    candidate: { color: '#fbbf24', size: 1, text: '후보' },
-    supported: { color: '#f59e0b', size: 2, text: '4봉 지지' },
-    failed: { color: '#9ca3af', size: 1, text: '4봉 실패' },
+    accumulation: { color: '#f59e0b', size: 2, text: '매집봉' },
     distribution: { color: '#6b7280', size: 1, text: '털기?' }
   };
 
   function accumulationMarkers(bars) {
-    var out = [];
-    function put(date, style) {
-      if (date) out.push({ time: date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text });
-    }
-    accumulationBars(bars).forEach(function (hit) {
-      if (hit.status === 'distribution') { put(hit.date, ACC_MARKER.distribution); return; }
-      put(hit.date, ACC_MARKER.candidate);                                   // 그날 알 수 있었던 것
-      if (hit.status === 'confirmed') put(hit.resolveDate, ACC_MARKER.supported);   // 4봉이 지난 뒤에야 알게 된 것은 4번째 봉에 찍는다
-      else if (hit.status === 'failed') put(hit.resolveDate, ACC_MARKER.failed);
+    return accumulationBars(bars).map(function (hit) {
+      var style = ACC_MARKER[hit.status];
+      return { time: hit.date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text };
     });
-    return out;
   }
 
   function accumulationSummary(bars) {
-    var counts = { confirmed: 0, pending: 0, distribution: 0, failed: 0 };
+    var counts = { accumulation: 0, distribution: 0 };
     accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
     return counts;
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
-  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: 맥락별 개수 {confirmed, pending, distribution, failed}(꺼져 있으면 모두 0).
+  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: {accumulation, distribution} 개수(꺼져 있으면 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     var acc = enabled ? accumulationMarkers(bars) : [];
-    var counts = enabled ? accumulationSummary(bars) : { confirmed: 0, pending: 0, distribution: 0, failed: 0 };
+    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, distribution: 0 };
     var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
     if (typeof LWC.createSeriesMarkers !== 'function') return counts;
     if (!holder.plugin) {
