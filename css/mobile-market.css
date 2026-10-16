@@ -78,6 +78,84 @@
   .mt-kpi-strip.mm-deck > .mt-kpi { border-left: 0 !important; }
   .mm-toggle { width: 100%; min-height: 44px; margin: 6px 0; border: 1px solid var(--mm-line); border-radius: 10px; background: transparent; color: var(--mm-ink); font: 700 13.5px/1 Pretendard, "Malgun Gothic", sans-serif; cursor: pointer; }
   .mm-collapsed { display: none !important; }
+
+  /* ================= 슬림 밀도(2026-10-16): 글자·여백·카드·표를 한 단계 줄여 앱처럼 ================= */
+
+  .mm-nav { margin: 4px 0 8px; gap: 4px; }
+  .mm-tab { min-height: 34px; padding: 0 12px; font-size: 12.5px; }
+  .mm-count { font-size: 11px; }
+  .mm-arrow { flex-basis: 34px; width: 34px; height: 34px; font-size: 18px; }
+  .mm-cards { gap: 8px; margin-bottom: 8px; }
+  .mm-card { min-height: 40px; padding: 8px 10px; gap: 2px; border-radius: 10px; }
+  .mm-card-name { font-size: 11.5px; }
+  .mm-card-price { font-size: 17px; }
+  .mm-card-chg { font-size: 11.5px; }
+  .mm-invpick { margin-bottom: 6px; }
+  .mm-invbtn { min-height: 34px; font-size: 12.5px; border-radius: 8px; }
+  .ifl .ifl-table[data-if-cumtable] tr { padding: 9px 11px; gap: 4px 10px; margin-bottom: 8px; border-radius: 10px; }
+  .ifl .ifl-table[data-if-cumtable] th[scope="row"] { font-size: 13px; }
+  .ifl .ifl-table[data-if-cumtable] td { font-size: 14px; }
+  .ifl .ifl-table[data-if-cumtable] td::before { font-size: 10.5px; }
+  .dmi-rank-table tr { padding: 7px 0; column-gap: 8px; }
+  .dmi-rank-table td:nth-child(2) { font-size: 13px; }
+  .dmi-rank-table td:nth-child(3) { font-size: 10.5px; }
+  .dmi-rank-table td:nth-child(4) { font-size: 12.5px; }
+  .mm-more, .mm-toggle { min-height: 36px; font-size: 12.5px; margin-top: 6px; }
+
+}
+
+/* 사이트 공통 규칙(style.css @layer np 안의 !important)이 여백·글자를 고정하는 곳은 같은 레이어에서 덮어쓴다 */
+@media (max-width: 767px) {
+  @layer np {
+    html body .mi-wrap { margin-left: -4px; margin-right: -4px; font-size: 13px; }
+    html body .mi-wrap .mi-tabs, html body .mi-wrap [data-mi-tabs] { margin-bottom: 8px !important; padding: 4px !important; gap: 4px !important; }
+    html body .mi-wrap .mi-tab { min-height: 32px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
+    html body .mi-wrap .dmi-heading, html body .mi-wrap .dmi-heading h2 { font-size: 17px !important; min-height: 0 !important; height: auto !important; margin-bottom: 4px !important; }
+    html body .mi-wrap .mi-block { margin-top: 14px !important; padding-top: 12px !important; }
+    html body .mi-wrap .mi-block-title { font-size: 16px !important; line-height: 1.25 !important; gap: 6px !important; }
+    html body .mi-wrap .mi-block-name { font-size: 16px !important; line-height: 1.25 !important; }
+    html body .mi-wrap .mi-block-no { font-size: 11px !important; }
+    html body .mi-wrap .mi-block-desc { font-size: 11.5px !important; line-height: 1.4 !important; margin: 3px 0 10px !important; }
+    html body .mi-wrap .mi-sub { margin-top: 14px !important; }
+    html body .mi-wrap .mi-sub-title { font-size: 14px !important; margin-bottom: 2px !important; }
+    html body .mi-wrap .mi-sub-cap { font-size: 11.5px !important; line-height: 1.4 !important; margin-bottom: 8px !important; }
+    html body .mi-wrap .mi-sub2-title { font-size: 13px !important; }
+    html body .mi-wrap .ifl-note, html body .mi-wrap .ifl-cap, html body .mi-wrap .ifl-asof, html body .mi-wrap .ifl-state { font-size: 11px !important; line-height: 1.4 !important; margin-top: 4px !important; }
+    html body .mi-wrap .dmi-panel-title { font-size: 14.5px !important; margin-bottom: 4px !important; padding-bottom: 4px !important; }
+    html body .mi-wrap .dmi-tab, html body .mi-wrap .dmi-draw-toggle, html body .mi-wrap .dmi-draw-clear, html body .mi-wrap .ifl-seg-btn { min-height: 30px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
+    html body .mi-wrap .dmi-flow-table td, html body .mi-wrap .dmi-flow-table th { font-size: 12px !important; }
+    html body .mi-wrap .ibd-row { padding: 7px 4px !important; gap: 2px 6px !important; }
+    html body .mi-wrap .ibd-row .ibd-c1, html body .mi-wrap .ibd-row .ibd-c3 { font-size: 13px !important; }
+    html body .mi-wrap .ibd-row .ibd-c2, html body .mi-wrap .ibd-row .ibd-c4, html body .mi-wrap .ibd-row .ibd-c5 { font-size: 11px !important; }
+    html body .mi-wrap .ibd-row .ibd-nm { font-size: 13px !important; }
+    html body .mi-wrap .ibd-row { min-height: 0 !important; }
+    html body .mi-wrap .ibd-section th { padding-top: 8px !important; padding-bottom: 3px !important; font-size: 11.5px !important; }
+    html body .mi-wrap .ibd-leg-btn { min-height: 30px !important; font-size: 11.5px !important; padding: 0 8px !important; }
+    html body #fx-rates .fxr-title, html body #fx-rates .fxr-subtitle { font-size: 15px !important; }
+    html body #fx-rates .fxr-row { padding: 7px 4px !important; gap: 2px 6px !important; }
+    html body #fx-rates .fxr-row strong, html body #fx-rates .fxr-name, html body #fx-rates .fxr-pct, html body #fx-rates .fxr-rate { font-size: 13px !important; }
+    html body #fx-rates .fxr-chg, html body #fx-rates .fxr-ttb, html body #fx-rates .fxr-tts { font-size: 11px !important; }
+    html body #kospi-futures .kf-stat-price, html body #kospi-futures .kf-section-title { font-size: 15px !important; }
+    html body #kospi-futures .kf-opt-title { font-size: 13.5px !important; }
+    html body #us-macro-indicators .umi h2, html body #us-macro-indicators h2 { font-size: 17px !important; }
+    html body #us-macro-indicators .ibd-subtitle { font-size: 14px !important; }
+    html body #market-temp .mt-card { padding: 12px 12px !important; border-radius: 14px !important; }
+    html body #market-temp .mt-section-head h2, html body #market-temp h2 { font-size: 17px !important; }
+    html body #market-temp .mt-hot-strip { padding: 4px 6px !important; gap: 6px !important; }
+    html body #market-temp .mt-hot-name { font-size: 16px !important; }
+    html body #market-temp .mt-hot-hot { font-size: 13px !important; }
+    html body #market-temp .mt-hot-icon { font-size: 16px !important; }
+    html body #market-temp .mt-card-title { font-size: 14px !important; }
+    html body #market-temp .mt-tm-verdict b, html body #market-temp .mt-val-pos, html body #market-temp .mt-val-neg { font-size: 17px !important; }
+    html body #market-temp .mt-summary-mood { font-size: 15px !important; }
+    html body #market-temp .mt-strategy-action { font-size: 17px !important; line-height: 1.35 !important; }
+    html body #market-temp .mt-cp-metric-row b { font-size: 22px !important; }
+    html body #market-temp .mt-kpi-num { font-size: 20px !important; }
+    html body #market-temp .mt-kpi { padding: 10px 12px !important; }
+    html body #market-temp .mt-section-block { margin-top: 12px !important; }
+    html body #market-temp .mt-tm-why li, html body #market-temp .mt-reason-list li, html body #market-temp .mt-ai-text { font-size: 13px !important; }
+    html body #market-temp .mt-detail-fold summary { font-size: 13px !important; }
+  }
 }
 
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
