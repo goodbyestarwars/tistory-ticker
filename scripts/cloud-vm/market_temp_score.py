@@ -285,11 +285,11 @@ AXES = (
     ('risk', '위험', '무리하고 있나', ('vix', 'exchange', 'rates', 'creditRisk')),
 )
 
-# 3등급. 사용자 체감 기준: 0~39 공포, 40~60 보통, 61~100 과열.
+# 3등급(2026-10-16 사용자 지정): 0~29 공포, 30~69 보통, 70~100 과열. js/market-temp.js SCORE_CUT_ 와 같다.
 GRADE3 = (
-    (40, {'emoji': '🔵', 'label': '공포', 'tone': 'fear'}),
-    (61, {'emoji': '🟡', 'label': '보통', 'tone': 'neutral'}),
-    (None, {'emoji': '🔥', 'label': '과열', 'tone': 'greed'}),
+    (30, {'emoji': '🔵', 'label': '공포', 'tone': 'fear'}),
+    (70, {'emoji': '⚪', 'label': '보통', 'tone': 'neutral'}),
+    (None, {'emoji': '🔴', 'label': '과열', 'tone': 'greed'}),
 )
 
 
@@ -309,8 +309,10 @@ def _axis_ratio(components, keys):
 
 
 def grade_for_score100(score100):
+    # 화면이 보여 주는 정수(반올림, 0.5는 올림 - JS Math.round 와 같다)로 판정해 칸의 숫자와 색이 어긋나지 않게 한다.
+    shown = int(Decimal(str(score100)).quantize(Decimal('1'), rounding=ROUND_HALF_UP))
     for threshold, grade in GRADE3:
-        if threshold is None or score100 < threshold:
+        if threshold is None or shown < threshold:
             return dict(grade)
     return dict(GRADE3[-1][1])
 
