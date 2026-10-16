@@ -8,6 +8,8 @@ vm.runInContext(source.slice(source.indexOf('    var HOME_USE_SAMPLE_CHARTS'),so
 const stamp=Date.parse('2026-10-15T09:30:00-04:00')/1000;
 const element={innerHTML:'',attrs:{},classList:{add(){}},setAttribute(k,v){this.attrs[k]=v;}};
 context.element=element;
+assert.equal(context.homePriceMode,'area','2026-10-16: 면적/막대 전환의 기본값은 면적');
+context.homePriceMode='bar';  // 아래 막대 렌더링 검증은 막대 모드에서 시작
 context.homeSessionCharts.NASDAQ_INDEX={reference:100,basis:'시세 수집 관측값 · 공급자 지연 가능',
  session:{date:'2026-10-15',start:'2026-10-15T09:30:00-04:00',end:'2026-10-15T16:00:00-04:00',timeZone:'America/New_York',slotCount:14},
  rows:[{slot:0,open:100,high:110,low:99,close:105,ts:stamp+60},
