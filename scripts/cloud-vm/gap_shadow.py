@@ -47,6 +47,8 @@ COST_PCT = 0.7                         # 왕복 비용 가정(이슈 #697)
 DAILY_DAYS = 6                         # D0~D5
 MIN_SAMPLE = 15
 OUTCOME_REFRESH_SEC = 30 * 60
+PATH_GAP_MAX_SEC = 120                 # 진입 뒤 관측 간격이 이보다 길면 장중 경로가 불완전(순위권 이탈·재시작 등)
+PATH_END_SOD = 15 * 3600 + 20 * 60     # 마지막 관측이 이 시각 이후여야 장 마감까지 본 것으로 친다
 
 DDL = '''
 CREATE TABLE IF NOT EXISTS gap_shadow_signal (
@@ -77,6 +79,10 @@ CREATE TABLE IF NOT EXISTS gap_shadow_signal (
     daily_json TEXT,
     outcome_days INTEGER NOT NULL DEFAULT 0,
     outcome_updated_at TEXT,
+    path_obs_count INTEGER,
+    path_last_obs_ts REAL,
+    path_max_gap_sec REAL,
+    official_open REAL,
     PRIMARY KEY (trading_date, code)
 )'''
 
@@ -102,9 +108,17 @@ def sod(now_kst):
     return now_kst.hour * 3600 + now_kst.minute * 60 + now_kst.second
 
 
+NEW_COLUMNS = (('path_obs_count', 'INTEGER'), ('path_last_obs_ts', 'REAL'), ('path_max_gap_sec', 'REAL'),
+               ('official_open', 'REAL'))
+
+
 def connect(db_file=None):
     conn = sqlite3.connect(db_file or DB_FILE, timeout=5)
     conn.execute(DDL)
+    have = {r[1] for r in conn.execute('PRAGMA table_info(gap_shadow_signal)').fetchall()}
+    for name, kind in NEW_COLUMNS:       # 2026-10-16 사후 리뷰 보완: 먼저 만들어진 DB에도 열을 덧붙인다
+        if name not in have:
+            conn.execute('ALTER TABLE gap_shadow_signal ADD COLUMN %s %s' % (name, kind))
     return conn
 
 
@@ -132,6 +146,10 @@ def step(ob, t_sod, ts, price, volume):
         e['max'] = max(e['max'], price)
         e['min'] = min(e['min'], price)
         e['last'] = price
+        if e.get('last_ts'):
+            e['max_gap'] = max(e.get('max_gap') or 0, ts - e['last_ts'])
+        e['count'] = (e.get('count') or 0) + 1
+        e['last_ts'] = ts
         e['updated_at'] = ts
         if price <= e['stop_price']:
             e['stop_hit'] = 1
@@ -143,7 +161,7 @@ def step(ob, t_sod, ts, price, volume):
             'at': ts, 'price': price, 'stop_price': stop, 'stop_pct': stop_pct,
             'risk_ok': int(stop_pct is not None and 0 < stop_pct <= MAX_STOP_PCT),
             'max': price, 'min': price, 'last': price, 'updated_at': ts,
-            'stop_hit': int(price <= stop),
+            'stop_hit': int(price <= stop), 'count': 1, 'last_ts': ts, 'max_gap': 0,
         }
         ob['status'] = 'ENTERED'
         return 'ENTRY'
@@ -200,18 +218,21 @@ def _save_entry(conn, date_str, code, ob):
     e = ob['entry']
     conn.execute(
         'UPDATE gap_shadow_signal SET entry_at=?, entry_price=?, stop_price=?, stop_pct=?, risk_ok=?, '
-        'intraday_max=?, intraday_min=?, intraday_last=?, intraday_updated_at=?, stop_hit_intraday=? '
+        'intraday_max=?, intraday_min=?, intraday_last=?, intraday_updated_at=?, stop_hit_intraday=?, '
+        'path_obs_count=?, path_last_obs_ts=?, path_max_gap_sec=? '
         'WHERE trading_date=? AND code=? AND entry_at IS NULL',
         (_iso(e['at']), e['price'], e['stop_price'], round(e['stop_pct'], 3) if e['stop_pct'] is not None else None,
-         e['risk_ok'], e['max'], e['min'], e['last'], _iso(e['updated_at']), e['stop_hit'], date_str, code))
+         e['risk_ok'], e['max'], e['min'], e['last'], _iso(e['updated_at']), e['stop_hit'],
+         e['count'], e['last_ts'], e['max_gap'], date_str, code))
 
 
 def _save_path(conn, date_str, code, ob):
     e = ob['entry']
     conn.execute(
         'UPDATE gap_shadow_signal SET intraday_max=?, intraday_min=?, intraday_last=?, intraday_updated_at=?, '
-        'stop_hit_intraday=? WHERE trading_date=? AND code=?',
-        (e['max'], e['min'], e['last'], _iso(e['updated_at']), e['stop_hit'], date_str, code))
+        'stop_hit_intraday=?, path_obs_count=?, path_last_obs_ts=?, path_max_gap_sec=? WHERE trading_date=? AND code=?',
+        (e['max'], e['min'], e['last'], _iso(e['updated_at']), e['stop_hit'],
+         e['count'], e['last_ts'], e['max_gap'], date_str, code))
 
 
 def _restore_day(conn, date_str):
@@ -220,10 +241,11 @@ def _restore_day(conn, date_str):
     for row in conn.execute(
             'SELECT code, prev_close, prev_volume, open_obs_price, gap_pct, or_high, or_low, signal_price, '
             'signal_cum_volume, signal_cum_ratio, entry_price, stop_price, stop_pct, risk_ok, '
-            'intraday_max, intraday_min, intraday_last, stop_hit_intraday FROM gap_shadow_signal WHERE trading_date=?',
+            'intraday_max, intraday_min, intraday_last, stop_hit_intraday, path_obs_count, path_last_obs_ts, '
+            'path_max_gap_sec FROM gap_shadow_signal WHERE trading_date=?',
             (date_str,)).fetchall():
         (code, prev_close, prev_volume, open_price, gap, or_high, or_low, sig_price, sig_vol, sig_ratio,
-         entry_price, stop_price, stop_pct, risk_ok, imax, imin, ilast, stop_hit) = row
+         entry_price, stop_price, stop_pct, risk_ok, imax, imin, ilast, stop_hit, obs_count, last_ts, max_gap) = row
         ob = new_obs(prev_close, prev_volume)
         ob.update({'first_t': 0, 'first_price': open_price, 'gap_pct': gap, 'or_high': or_high, 'or_low': or_low,
                    'signal': {'at': 0, 'price': sig_price, 'volume': sig_vol, 'ratio': sig_ratio}})
@@ -235,7 +257,8 @@ def _restore_day(conn, date_str):
                            'risk_ok': risk_ok, 'max': imax if imax is not None else entry_price,
                            'min': imin if imin is not None else entry_price,
                            'last': ilast if ilast is not None else entry_price, 'updated_at': 0,
-                           'stop_hit': stop_hit or 0}
+                           'stop_hit': stop_hit or 0, 'count': obs_count or 1, 'last_ts': last_ts,
+                           'max_gap': max_gap or 0}
         obs[code] = ob
     return obs
 
