@@ -27,6 +27,14 @@ def put(bars, i, o, h, l, c, v):
 
 
 def js_indices(bars):
+    return js_indices_full(bars)['indices']
+
+
+def js_hits(bars):
+    return js_indices_full(bars)
+
+
+def js_indices_full(bars):
     with tempfile.NamedTemporaryFile('w', suffix='.json', delete=False, encoding='utf-8') as f:
         json.dump(bars, f)
         path = f.name
@@ -70,6 +78,75 @@ class AccumulationBarParityTest(unittest.TestCase):
         self.assertIn('amountMin: %d' % va.ACC_AMOUNT_MIN, src)
 
 
+class AccumulationContextTest(unittest.TestCase):
+    """2026-10-17: 매집 확인·후보·털기?(분배 가능성) 구분과 빈 거래량 처리."""
+
+    def base(self):
+        return series()
+
+    def acc_bar(self, bars, i, volume=400000):
+        put(bars, i, 10000, 10600, 9990, 10500, volume)
+
+    def hold_after(self, bars, i, count=4, volume=100000):
+        for k in range(i + 1, i + 1 + count):
+            put(bars, k, 10450, 10500, 10300, 10400, volume)       # 거래량 25%, 저가·종가가 매집봉 지지 위
+
+    def test_confirmed_after_four_dry_supported_bars(self):
+        bars = self.base()
+        self.acc_bar(bars, 30)
+        self.hold_after(bars, 30)
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[30, 'confirmed']])
+        self.assertEqual(out['markers'], [[bars[30]['date'], '매집 확인']])
+
+    def test_pending_when_fewer_than_four_bars_follow(self):
+        bars = self.base()[:38]
+        self.acc_bar(bars, 35)
+        self.hold_after(bars, 35, count=2)
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[35, 'pending']])
+        self.assertEqual(out['markers'][0][1], '후보')
+
+    def test_failed_followup_is_not_marked(self):
+        bars = self.base()
+        self.acc_bar(bars, 30)
+        self.hold_after(bars, 30, volume=300000)                  # 이후 거래량이 줄지 않음(분배일 수 있음)
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[30, 'failed']])
+        self.assertEqual(out['markers'], [])
+        bars2 = self.base()
+        self.acc_bar(bars2, 30)
+        self.hold_after(bars2, 30)
+        put(bars2, 33, 10450, 10450, 9500, 10300, 100000)         # 저가가 매집봉 저가의 98% 아래로 이탈
+        self.assertEqual(js_hits(bars2)['statuses'], [[30, 'failed']])
+
+    def test_runup_before_the_bar_is_marked_as_possible_distribution(self):
+        bars = self.base()
+        for k in range(9, 30):                                    # 직전 20봉이 약 +27% 오른 구간
+            bars[k].update({'open': 7900 + (k - 9) * 105, 'high': 8100 + (k - 9) * 105, 'low': 7850 + (k - 9) * 105, 'close': 7900 + (k - 9) * 105})
+        bars[29]['close'] = 10000
+        self.acc_bar(bars, 30)
+        self.hold_after(bars, 30)
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[30, 'distribution']])
+        self.assertEqual(out['markers'][0][1], '털기?')
+        self.assertEqual(out['summary']['distribution'], 1)
+
+    def test_missing_volume_is_skipped_not_counted_as_zero(self):
+        bars = self.base()
+        for r in bars:
+            r['volume'] = 200000                                  # 평소 거래량 20만
+        for k in range(10, 30):
+            if k % 2:
+                bars[k]['volume'] = None                          # 서버는 이 값을 평균에서 뺀다(평균 20만 유지)
+        self.acc_bar(bars, 30, volume=400000)                     # 2배: 서버는 후보 아님. 빈 값을 0으로 세면 평균이 10만이 돼 4배로 잘못 찍힌다
+        self.assertIsNone(va.find_accumulation_bar(bars))
+        self.assertEqual(js_indices(bars), [])
+        self.acc_bar(bars, 30, volume=520000)                     # 2.6배면 둘 다 후보
+        self.assertEqual(va.find_accumulation_bar(bars), 30)
+        self.assertEqual(js_indices(bars), [30])
+
+
 class AccumulationToggleWiringTest(unittest.TestCase):
     def read(self, p):
         return open(os.path.join(ROOT, p), encoding='utf-8').read()
@@ -78,6 +155,8 @@ class AccumulationToggleWiringTest(unittest.TestCase):
         ss = self.read('js/stock-search.js')
         ff = self.read('js/foreign-flow.js')
         self.assertIn('id="ssAccumulationToggle"', ss)
+        self.assertIn('매집봉 후보 표시', ss)
+        self.assertIn('매집봉 후보 표시', ff)
         self.assertIn('id="ffAccumulationToggle"', ff)
         self.assertIn("timeframe === 'day' && !isUsChart", ss)      # 국내 일봉에서만
         self.assertIn('setAccumulationMarkers', ss)

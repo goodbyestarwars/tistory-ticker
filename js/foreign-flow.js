@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261016-accumulation';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261017-accumulation2';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -4370,7 +4370,7 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(차트검색 거래량 돌파 탭의 매집봉과 같은 기준). 매수 신호가 아닙니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 매집봉 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)을 후보로 봅니다. 이후 4봉에서 거래량이 줄고 가격이 지켜지면 매집 확인, 직전 20봉이 25% 이상 오른 뒤의 봉은 털기?(분배 가능성)로 구분하며 확인에 실패한 봉은 표시하지 않습니다. 매수 신호가 아닙니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 매집봉 후보 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
         + '</div>'

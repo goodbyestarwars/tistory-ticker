@@ -620,53 +620,95 @@
   }
 
 
-  // ---- 매집봉 표시(2026-10-16 사용자 요청) ----
-  // scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 의 "봉 하나" 조건과 같은 기준이다(검색기와 차트가 어긋나지 않게):
-  // 거래량이 직전 20봉 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
-  // 검색기는 이 중 "최근 15거래일 안에서 마지막 봉을 뺀 가장 최근 것"만 쓰고, 차트는 보이는 기간의 모든 봉에 표시한다.
-  // 일봉 기준이므로 주·월·분봉과 미국 종목(거래대금 단위가 달라)에서는 쓰지 않는다.
-  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b' };
+  // ---- 매집봉 후보 표시(2026-10-16 사용자 요청, 2026-10-17 맥락 구분 보강) ----
+  // 봉 하나 조건은 scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같다(검색기와 차트가 어긋나지 않게):
+  // 거래량이 직전 20일 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
+  // 이 조건만으로는 매집인지 물량을 터는 봉인지 가를 수 없어서(5년 일봉 시험: docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 맥락을 나눠 표시한다:
+  //  - 털기?   : 봉 직전 20봉이 +25% 이상 오른 뒤의 대량 양봉(고점권 분배 가능성, 20일 뒤 -10% 이하 비율 48%)
+  //  - 매집 확인: 이후 4봉 평균 거래량이 매집봉의 60% 이하로 줄고 저가·종가가 매집봉 지지(저가 98%·종가 96%)를 지킴 - 검색기의 후속 확인과 같은 기준
+  //  - 후보     : 아직 이후 4봉이 지나지 않아 판단 전
+  //  후속 확인에 실패한 봉은 표시하지 않는다(점 하나가 확인처럼 읽히지 않게). 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
+  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b',
+    runupBars: 20, distributionRunup: 0.25, confirmBars: 4, dryRatio: 0.6, supportLow: 0.98, supportClose: 0.96 };
+
+  // 빈 값(null·'')은 0이 아니라 없는 값이다 - 서버(volume_accumulation._f)가 평균에서 빼는 것과 같게 맞춘다.
+  function accNumber(value) {
+    return value === null || value === undefined || value === '' ? NaN : Number(value);
+  }
 
   function accumulationBars(bars) {
     var out = [];
     if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
     for (var i = ACCUMULATION.avgBars; i < bars.length; i++) {
       var b = bars[i];
-      var o = Number(b.open), h = Number(b.high), l = Number(b.low), c = Number(b.close), v = Number(b.volume);
+      var o = accNumber(b.open), h = accNumber(b.high), l = accNumber(b.low), c = accNumber(b.close), v = accNumber(b.volume);
       if (!isFinite(o) || !isFinite(h) || !isFinite(l) || !isFinite(c) || !isFinite(v) || o <= 0 || c <= 0 || h <= l) continue;
       var sum = 0, count = 0;
       for (var j = i - ACCUMULATION.avgBars; j < i; j++) {
-        var pv = Number(bars[j].volume);
+        var pv = accNumber(bars[j].volume);
         if (isFinite(pv)) { sum += pv; count++; }
       }
       var avg = count ? sum / count : 0;
       if (!avg || v < ACCUMULATION.volMult * avg || c <= o || (c / o - 1) * 100 < ACCUMULATION.minBodyPct) continue;
       if ((c - l) / (h - l) < ACCUMULATION.closePosMin || c * v < ACCUMULATION.amountMin) continue;
-      out.push({ index: i, date: b.date, multiple: v / avg });
+      out.push({ index: i, date: b.date, multiple: v / avg, status: accumulationStatus(bars, i, v) });
     }
     return out;
   }
 
-  function accumulationMarkers(bars) {
-    return accumulationBars(bars).map(function (hit) {
-      return { time: hit.date, position: 'belowBar', color: ACCUMULATION.color, shape: 'circle', size: 1, text: '매집' };
+  // 'distribution' | 'confirmed' | 'pending' | 'failed'
+  function accumulationStatus(bars, i, volume) {
+    var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
+    if (isFinite(before) && before >= ACCUMULATION.distributionRunup) return 'distribution';
+    var post = bars.slice(i + 1, i + 1 + ACCUMULATION.confirmBars);
+    if (post.length < ACCUMULATION.confirmBars) return 'pending';
+    var accLow = accNumber(bars[i].low), accClose = accNumber(bars[i].close), sum = 0, count = 0, ok = true;
+    post.forEach(function (bar, k) {
+      var pl = accNumber(bar.low), pc = accNumber(bar.close), pv = accNumber(bar.volume);
+      if (k < post.length - 1 && isFinite(pv)) { sum += pv; count++; }
+      if ((isFinite(pl) && pl < accLow * ACCUMULATION.supportLow) || (isFinite(pc) && pc < accClose * ACCUMULATION.supportClose)) ok = false;
     });
+    var midAvg = count ? sum / count : NaN;
+    if (!isFinite(midAvg) || midAvg > ACCUMULATION.dryRatio * volume) ok = false;
+    return ok ? 'confirmed' : 'failed';
+  }
+
+  var ACC_MARKER = {
+    confirmed: { color: '#f59e0b', size: 2, text: '매집 확인' },
+    pending: { color: '#fbbf24', size: 1, text: '후보' },
+    distribution: { color: '#6b7280', size: 1, text: '털기?' }
+  };
+
+  function accumulationMarkers(bars) {
+    var out = [];
+    accumulationBars(bars).forEach(function (hit) {
+      var style = ACC_MARKER[hit.status];
+      if (style) out.push({ time: hit.date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text });
+    });
+    return out;
+  }
+
+  function accumulationSummary(bars) {
+    var counts = { confirmed: 0, pending: 0, distribution: 0, failed: 0 };
+    accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
+    return counts;
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
-  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: 표시한 매집봉 개수.
+  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: 맥락별 개수 {confirmed, pending, distribution, failed}(꺼져 있으면 모두 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     var acc = enabled ? accumulationMarkers(bars) : [];
+    var counts = enabled ? accumulationSummary(bars) : { confirmed: 0, pending: 0, distribution: 0, failed: 0 };
     var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
-    if (typeof LWC.createSeriesMarkers !== 'function') return 0;
+    if (typeof LWC.createSeriesMarkers !== 'function') return counts;
     if (!holder.plugin) {
-      if (!merged.length) return 0;
+      if (!merged.length) return counts;
       holder.plugin = LWC.createSeriesMarkers(series, merged);
     } else if (typeof holder.plugin.setMarkers === 'function') {
       holder.plugin.setMarkers(merged);
     }
-    return acc.length;
+    return counts;
   }
 
   global.NineChartCore = {
@@ -682,7 +724,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
