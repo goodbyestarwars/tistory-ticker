@@ -2643,7 +2643,7 @@ html.dark #market-temp .mt-heat-stats { color:#b8c2cc; }
 #market-temp .mt-fc-axis { fill: #8a949f; font-size: 10px; }
 #market-temp .mt-fc-line { fill: none; stroke: #52606c; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 #market-temp .mt-fc-dot { fill: var(--mt-tone); stroke: #fff; stroke-width: 2; }
-#market-temp .mt-fc-last { fill: var(--mt-tone); font-size: 12px; font-weight: 800; }
+#market-temp .mt-fc-last { fill: var(--mt-tone); font-size: 12px; font-weight: 500; }
 #market-temp .mt-fc-cursor { stroke: #6b7280; stroke-opacity: .5; }
 #market-temp .mt-fc-cursor[hidden], #market-temp .mt-fc-tip[hidden] { display: none; }
 #market-temp .mt-fc-tip { position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px)); padding: 3px 8px; border: 1px solid var(--mt-tone); background: #fff; color: #222; font-size: 12px; white-space: nowrap; pointer-events: none; }
@@ -2651,3 +2651,6 @@ html.dark #market-temp .mt-fc-axis { fill: #98a3ae; }
 html.dark #market-temp .mt-fc-line { stroke: #c3ccd5; }
 html.dark #market-temp .mt-fc-dot { stroke: #1a1a1a; }
 html.dark #market-temp .mt-fc-tip { background: #1f2327; color: #eef2f5; }
+/* 2026-10-16 최신 점수 문구가 너무 굵다는 요청: 그래프 라벨·상단 '최신 N점 · 보통'을 보통 굵기로 */
+#market-temp .mt-history-chart-meta b { font-weight: 500; }
+#market-temp .mt-history-chart-meta .mt-heat-delta { font-weight: 500; }

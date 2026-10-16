@@ -1,6 +1,6 @@
 **2026-10-16 증시온도 단기흐름 기본 기간 20일·선 굵기 1.2px**
 
-사용자 요청으로 `DEFAULT_HISTORY_PERIOD` 10→20(기록이 20일 미만이면 기존처럼 가능한 최대 기간으로 대체), 그래프 선(`.mt-fc-line`) 두께 2→1.2px. 검증: 증시온도 JS·UI 테스트 통과(`test_market_temp_heatmap.js`, `test_ui_ia.py` 14건).
+사용자 요청으로 `DEFAULT_HISTORY_PERIOD` 10→20(기록이 20일 미만이면 기존처럼 가능한 최대 기간으로 대체), 그래프 선(`.mt-fc-line`) 두께 2→1.2px, 최신 점수 문구(그래프 라벨·상단 '최신 N점 · 보통')와 증감 글자 굵기 800/700→500. 검증: 증시온도 JS·UI 테스트 통과(`test_market_temp_heatmap.js`, `test_ui_ia.py` 14건).
 
 **2026-10-16 증시온도 '최근 단기흐름'을 선 그래프로 교체(시안 A)**
 
