@@ -88,6 +88,87 @@ def _minute_closes(client, code, now_epoch):
     return out
 
 
+_FILLS_FILE = os.path.join(HERE, 'order_fills.json')
+_FILLS_CACHE = {}
+
+
+def load_fills(path=None):
+    """키움 당일매매일지 등에서 사용자가 확인해 둔 실제 체결(평균가)을 읽는다. 없거나 형식이 틀리면 빈 목록(화면은 기존 방식 그대로).
+
+    형식: {"fills": [{"date": "2026-10-14", "code": "086520", "name": "에코프로", "side": "BUY|SELL", "qty": 3, "price": 88500, "source": "키움 당일매매일지"}]}
+    같은 날짜·종목·방향은 한 줄(평균가)로 적는다. 이 파일은 PC 폴더에만 두며 저장소에 올리지 않는다(.gitignore).
+    """
+    path = path or _FILLS_FILE
+    try:
+        mtime = os.path.getmtime(path)
+    except OSError:
+        return []
+    cached = _FILLS_CACHE.get(path)
+    if cached and cached[0] == mtime:
+        return cached[1]
+    out = []
+    try:
+        with open(path, encoding='utf-8') as f:
+            data = json.load(f)
+        for row in (data.get('fills') if isinstance(data, dict) else None) or []:
+            code, side = str(row.get('code') or ''), str(row.get('side') or '').upper()
+            date = str(row.get('date') or '')
+            price, qty = float(row.get('price') or 0), int(row.get('qty') or 0)
+            if CODE_RE.fullmatch(code) and side in ('BUY', 'SELL') and len(date) == 10 and price > 0 and qty > 0:
+                out.append({'date': date, 'code': code, 'side': side, 'price': price, 'qty': qty,
+                            'name': str(row.get('name') or '').strip(), 'source': str(row.get('source') or '체결 기록')})
+    except (OSError, ValueError, TypeError):
+        out = []
+    _FILLS_CACHE[path] = (mtime, out)
+    return out
+
+
+def apply_fills(orders, fills):
+    """실제 체결 평균가를 주문 행에 덮어쓰고(price_kind='actual', status='FILLED'), 장부에 없는 수동 거래는 행으로 추가한 뒤
+    모든 매도 행의 매수 가격(buy_price)을 같은 종목의 직전 매수(체결가 우선)로 다시 맞춘다. 장부·엔진은 건드리지 않는다."""
+    if not fills:
+        return orders
+    index = {}
+    for f in fills:
+        index[(f['date'], f['code'], f['side'])] = f
+    matched = set()
+    for o in orders:
+        if not str(o.get('detail', '')).startswith('실계좌') or o.get('reason') not in ('BUY', 'SELL'):
+            continue
+        key = (str(o.get('ts', ''))[:10], o.get('code'), o['reason'])
+        f = index.get(key)
+        if f:
+            o['price'], o['price_kind'], o['status'] = int(round(f['price'])), 'actual', 'FILLED'
+            o['fill_source'] = f['source']
+            if f.get('name') and not o.get('name'):
+                o['name'] = f['name']
+            matched.add(key)
+    for key, f in index.items():
+        if key in matched:
+            continue
+        orders.append({'ts': f['date'] + ' (시각 미상)', 'code': f['code'], 'qty': f['qty'], 'reason': f['side'], 'status': 'FILLED', 'ord_no': None,
+                       'detail': '수동 거래 · ' + f['source'], 'name': f['name'] or None, 'price': int(round(f['price'])), 'price_kind': 'actual',
+                       'fill_source': f['source'], 'manual': True})
+    # 매도 행의 매수 가격: 같은 종목에서 이 매도보다 앞선 가장 최근 매수. 시각 미상 행은 그날의 맨 끝으로 본다.
+    def sort_key(o):
+        ts = str(o.get('ts', ''))
+        return ts[:10] + (' 99:99:99' if '(' in ts else ts[10:])
+    buys_by_code = {}
+    for o in orders:
+        if o.get('reason') == 'BUY' and o.get('price') and o.get('status') != 'DRY' and (str(o.get('detail', '')).startswith('실계좌') or o.get('manual')):
+            buys_by_code.setdefault(o['code'], []).append((sort_key(o), o['price']))
+    for lst in buys_by_code.values():
+        lst.sort()
+    for o in orders:
+        if o.get('reason') != 'SELL' or not (str(o.get('detail', '')).startswith('실계좌') or o.get('manual')):
+            continue
+        key = sort_key(o)
+        prior = [p for k, p in buys_by_code.get(o['code'], []) if k < key]
+        if prior:
+            o['buy_price'] = int(prior[-1])
+    return orders
+
+
 def enrich_orders(orders, client=None, names=None, now_epoch=None):
     """주문 행에 종목명과(가격이 없는 최근 매도는) 1분봉 기반 추정 매도가를 덧붙인다. 읽기 전용이며 실패해도 행은 그대로 둔다."""
     import time as _time
@@ -315,7 +396,7 @@ def make_handler(bot, store, token):
                 return self._send(200, {'analysis': store.analysis_list()})
             if url.path == '/api/orders':
                 _, live_orders = live_snapshot()
-                live_orders = enrich_orders(live_orders, getattr(bot, 'client', None), known_names(bot, store))
+                live_orders = enrich_orders(apply_fills(live_orders, load_fills()), getattr(bot, 'client', None), known_names(bot, store))
                 orders = store.orders(limit) + live_orders
                 orders.sort(key=lambda r: r['ts'], reverse=True)
                 return self._send(200, {'orders': orders[:limit]})

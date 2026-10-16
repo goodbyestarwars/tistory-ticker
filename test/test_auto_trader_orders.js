@@ -95,3 +95,10 @@ const before = sb.f.getLoads();
 sb.f.ordersHtml([{ ts: '2026-10-16 09:00:00', code: '123456', qty: 1, reason: 'BUY', status: 'ACK', detail: '', price: 100 }], 't', {});
 assert.strictEqual(sb.f.getLoads() - before, 1);
 console.log('auto-trader 주문 기록·월간 합계·CSV 검증 통과');
+
+// 6) 실제 체결가(키움 일지): 가격 구분 '체결가', 상태 '체결 확인(키움 일지)', 수동 거래 행도 표시
+const actual = [{ ts: '2026-10-15 (시각 미상)', code: '032640', qty: 13, reason: 'SELL', status: 'FILLED', detail: '수동 거래 · 키움 당일매매일지', name: 'LG유플러스', buy_price: 14750, price: 14820, price_kind: 'actual', manual: true }];
+const ta = strip(sb.f.ordersHtml(actual, '2026-10-16', D));
+['LG유플러스', '14,750', '14,820', '체결가', '체결 확인(키움 일지)', '수동 거래', '+0.47%'].forEach((k) => assert.ok(ta.includes(k), k));
+assert.ok(sb.f.ordersCsv(actual, D).includes(',LG유플러스,032640,매도,13,14750,14820,체결가,0.47,'), 'CSV에 체결가 구분');
+console.log('auto-trader 체결가 표시 검증 통과');

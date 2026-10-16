@@ -57,7 +57,7 @@
     WATCH_CONFIRM: '규칙 확인', ANALYSIS_ADD: '분석 전용 등록', ANALYSIS_REMOVE: '분석 전용 해제' };
   var REASON_LABEL = { STOP: '손절', TP_CAP: '익절(상한)', TP_FLOOR: '익절(하한 이탈)', BUY: '매수', SELL: '매도' };
   // 체결 여부는 이 화면이 확인할 수 없다 - 접수·전송까지만 말하고 완료 표현은 쓰지 않는다.
-  var ORDER_STATUS = { DRY: '기록만(주문 안 보냄)', SENT: '전송됨 · 체결 확인 전', ACK: '접수됨 · 체결 확인 전',
+  var ORDER_STATUS = { FILLED: '체결 확인(키움 일지)', DRY: '기록만(주문 안 보냄)', SENT: '전송됨 · 체결 확인 전', ACK: '접수됨 · 체결 확인 전',
     UNKNOWN: '전송 시도 · 응답 확인 필요', ERROR: '실패·거부' };
   var KIND_LABEL = { manual: '기존 수동 보유', engine: '엔진 보유', mixed: '엔진 + 기존 보유' };
   var ENGINE_STATES = { DISABLED_OR_UNCERTAIN: '승인·주문 확인 필요', INSUFFICIENT_STARTING_CASH: '입금 확인 필요',
@@ -374,7 +374,7 @@
     return m;
   }
   // 매수 가격 = 주문 접수가(지정가), 매도 가격 = 시장가라 체결가가 없어 전송 시점 판정가(새 엔진) 또는 1분봉 종가 추정(예전 주문). 둘 다 실제 체결가가 아니다.
-  var PRICE_KIND = { order: '주문가', decision: '판정가', estimate: '추정' };
+  var PRICE_KIND = { order: '주문가', decision: '판정가', estimate: '추정', actual: '체결가' };
   function priceCell(price, kind, empty) {
     if (!price) return '<td class="n at-mute" title="' + esc(empty || '') + '">-</td>';
     return '<td class="n">' + fmtPrice(price) + (kind && PRICE_KIND[kind] ? '<small class="at-sub">' + PRICE_KIND[kind] + '</small>' : '') + '</td>';
@@ -490,7 +490,7 @@
       + '<span class="at-legend"><i class="at-sw at-sw-win"></i>익절(매수가 대비 +) <i class="at-sw at-sw-loss"></i>손절(-)</span></div>';
     return tools + (shown.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">매수 가격</th><th class="n">매도 가격</th><th class="n">등락률</th><th class="n">평가금액</th><th class="n">평가손익</th><th>상태</th><th>내용</th></tr></thead><tbody>'
       + body + '</tbody></table></div>' : '<p class="at-empty">' + esc(selDay) + '에는 주문이 없습니다.</p>')
-      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 매수 가격은 주문 접수가이고, 매도는 시장가 주문이라 전송 시점의 판정가(2026-10-16 이후 주문) 또는 1분봉 종가 추정(그 이전 주문)을 보여 줍니다. 등락률은 매도 가격이 매수 주문가보다 얼마나 높고 낮은지, 평가금액·평가손익은 수량을 곱한 값(수수료·세금 제외)입니다. 모두 실제 체결가가 아니니 체결가는 키움 체결내역에서 확인하세요.</p>';
+      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 매수 가격은 주문 접수가이고, 매도는 시장가 주문이라 전송 시점의 판정가(2026-10-16 이후 주문) 또는 1분봉 종가 추정(그 이전 주문)을 보여 줍니다. 등락률은 매도 가격이 매수 주문가보다 얼마나 높고 낮은지, 평가금액·평가손익은 수량을 곱한 값(수수료·세금 제외)입니다. “체결가” 표시는 키움 당일매매일지로 확인한 실제 체결 평균가이고, 그 외 가격은 실제 체결가가 아니니 키움 체결내역에서 확인하세요.</p>';
   }
 
   function eventRows(rows) {
