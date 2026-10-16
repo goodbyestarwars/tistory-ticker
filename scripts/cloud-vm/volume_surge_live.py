@@ -23,12 +23,14 @@
 import json
 import logging
 import os
+import sqlite3
 import threading
 import time
 from collections import deque
 from datetime import datetime, timedelta, timezone
 
 import volume_accumulation as va
+import volume_surge_history
 
 logger = logging.getLogger('volume_surge_live')
 
@@ -291,7 +293,8 @@ def process_rows(rows, now_t, date_str, prev_lookup, etf_codes=(), stats_lookup=
         det = {
             'code': code, 'name': row.get('name') or code, 'detectedAt': now_t,
             'detectPrice': price_now, 'detectChange': change, 'detectCum': pace[1],
-            'peakPace3': pace[0], 'prevVolume': prev[0],
+            'peakPace3': pace[0], 'prevVolume': prev[0], 'detectVolume': vol_now,
+            'detectValueRaw': _num(str(row.get('_history_cum_value_raw')).replace(',', '')),
         }
         with _lock:
             _state['detections'][code] = det
@@ -317,7 +320,8 @@ def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup, qu
             if sig:
                 entry = _accum.setdefault(code, {'firstAt': now_t})
                 if 'realtime' not in entry:
-                    entry['firstRealtimeAt'], entry['firstPrice'] = now_t, price      # 실시간 매집 후보의 감지 시각·감지가
+                    entry['firstRealtimeAt'], entry['firstPrice'], entry['firstVolume'] = now_t, price, vol
+                    entry['firstValueRaw'] = _num(str(row.get('_history_cum_value_raw')).replace(',', ''))
                 entry.update({'name': row.get('name') or code, 'price': price, 'change': _num(row.get('change_rate')), 'lastAt': now_t, 'realtime': sig})
             elif entry is not None:
                 entry.pop('realtime', None)
@@ -385,6 +389,39 @@ def _save():
         os.replace(tmp, STATE_FILE)
     except OSError as exc:
         logger.info('감지 기록 저장 실패: %s', exc)
+
+
+def _record_signal_history(rows, now_t, date_str):
+    """Record first visible intraday signals; never infer unverified metrics."""
+    with _lock:
+        detections = list(_state['detections'].values())
+        accum = {code: dict(entry) for code, entry in _accum.items() if entry.get('realtime')}
+    events = []
+    for signal_type, observations in (
+        ('EARLY_PACE', ((d['code'], d['detectedAt'], d['detectPrice'], d.get('detectVolume'), d.get('detectValueRaw')) for d in detections)),
+        (va.TYPE_REALTIME, ((code, entry['firstRealtimeAt'], entry['firstPrice'], entry.get('firstVolume'), entry.get('firstValueRaw'))
+                            for code, entry in accum.items() if entry.get('firstRealtimeAt'))),
+    ):
+        for code, detected_at, price, volume, value_raw in observations:
+            # The ranking response has no trustworthy exchange as-of time. Its
+            # normalized trade_amount can also be a price*volume fallback.
+            events.append({
+                'trading_date': date_str, 'code': code, 'signal_type': signal_type,
+                'detected_at': volume_surge_history.iso(detected_at),
+                'usable_at': volume_surge_history.iso(now_t),
+                'detected_price': price,
+                'cumulative_volume': volume,
+                'cumulative_value_raw': value_raw,
+                'value_field': 'acml_tr_pbmn' if value_raw is not None else None,
+                'value_unit': None,
+                'vwap_relative_pct': None, 'index_relative_pct': None,
+                'rejection_reason': None, 'source': 'KIS domestic ranking poll',
+                'source_as_of': None,
+            })
+    try:
+        volume_surge_history.record(events)
+    except (OSError, ValueError, sqlite3.Error):
+        logger.exception('장중 신호 이력 저장 실패')
 
 
 def _load(date_str):
@@ -524,6 +561,9 @@ def _fetch_rows(appkey, appsecret):
     for raw in rows:
         item = market_board._kis_domestic_row(raw)
         if item:
+            # Preserve the original field separately from market_board's
+            # price*volume fallback; the KIS unit remains unverified.
+            item['_history_cum_value_raw'] = raw.get('acml_tr_pbmn')
             out.append(item)
     return out
 
@@ -551,6 +591,7 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
         import domestic_quotes
         process_rows(rows, now_kst.timestamp(), date_str, lambda code: _prev_volume(conn, date_str, code), quote_fetcher=domestic_quotes.fetch_quotes,
                      stats_lookup=lambda code: _avg_stats(conn, date_str, code), bars_lookup=lambda code: _recent_bars(conn, date_str, code), now_kst=now_kst)
+        _record_signal_history(rows, now_kst.timestamp(), date_str)
     finally:
         conn.close()
     with _lock:
