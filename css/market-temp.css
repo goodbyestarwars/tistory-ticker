@@ -2670,6 +2670,9 @@ html.dark #market-temp .mt-history-tail.mt-card .mt-history-chart-meta b.mt-rib-
 #market-temp .mt-cp-call { container-type: inline-size; }
 html body #market-temp .mt-cp-call .mt-strategy-action { white-space: nowrap !important; letter-spacing: -.04em; font-size: clamp(10px, 3.4cqw, 24px) !important; }
 /* 모바일은 cqw가 기대 폭으로 풀리지 않아(320px에서 끝이 잘림) 뷰포트 폭 기준으로 직접 계산한다. */
-@media (max-width: 767px) {
-  html body #market-temp .mt-cp-call .mt-strategy-action { font-size: clamp(9px, calc(4.6vw - 3.5px), 15px) !important; }
+/* mobile-market.css의 15px !important가 @layer np 안에 있어 레이어 밖 !important는 진다. 같은 레이어에 넣고 특이도로 이긴다. */
+@layer np {
+  @media (max-width: 767px) {
+    html body #market-temp .mt-cp-call .mt-strategy-action { font-size: clamp(9px, calc(4.6vw - 3.5px), 15px) !important; }
+  }
 }
