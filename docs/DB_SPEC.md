@@ -2,7 +2,7 @@
 
 ## 장중 거래량 신호 이력 (2026-10-16)
 
-`scripts/cloud-vm/volume_surge_history.db`는 `volume_surge_live.py`의 최초 `EARLY_PACE` 및 `REALTIME_ACCUM` 신호를 `(trading_date, code, signal_type)`당 한 행으로 보존한다. 당일 화면용 JSON 상태가 다음 날 초기화돼도 이 SQLite 파일은 지우지 않는다. 감지 시각, 전략에서 사용할 수 있는 폴링 시각, 감지가, 누적 거래량, 신호 출처를 기록한다. KIS 원필드 `acml_tr_pbmn`이 있을 때만 그 숫자를 `cumulative_value_raw`에 원단위 그대로 보관하며, 단위 미확인이라 원화 환산·VWAP 계산에는 쓰지 않는다. 서버의 KIS 순위 폴링 시각만 확인 가능하며 거래소 원자료 시각은 제공되지 않아 `source_as_of`는 NULL이다. VWAP 대비, 지수 대비는 신뢰할 수 있는 동시각 자료가 없어 NULL이다. 별도 거절 필터가 없으므로 `rejection_reason`도 NULL이다. 계좌·주문·토큰은 저장하지 않는다. 외부 API 호출·신규 프로세스·매매 연결은 없다. 배포 전 이력은 소급 복원하지 않는다.
+`scripts/cloud-vm/volume_surge_history.db`는 `volume_surge_live.py`의 최초 `EARLY_PACE` 및 `REALTIME_ACCUM` 신호를 `(trading_date, code, signal_type)`당 한 행으로 보존한다. 당일 화면용 JSON 상태가 다음 날 초기화돼도 이 SQLite 파일은 지우지 않는다. `detected_at`은 신호 감지 폴링 시각이고 `usable_at`은 첫 저장에 성공한 폴링 시각이다. 감지가와 누적 거래량도 기록한다. KIS 원필드 `acml_tr_pbmn`이 있을 때만 그 숫자를 `cumulative_value_raw`에 원단위 그대로 보관하며, 단위 미확인이라 원화 환산·VWAP 계산에는 쓰지 않는다. 거래소 원자료 시각은 제공되지 않아 `source_as_of`는 NULL이다. VWAP 대비, 지수 대비는 신뢰할 수 있는 동시각 자료가 없어 NULL이다. 별도 거절 필터가 없으므로 `rejection_reason`도 NULL이다. 계좌·주문·토큰은 저장하지 않는다. 외부 API 호출·신규 프로세스·매매 연결은 없다. 배포 전 이력은 소급 복원하지 않는다. 구버전 당일 JSON에서 복원한 신호는 누적 거래량이 없어 저장을 건너뛴다.
 
 DCF 기업별 정적 자료는 SQLite가 아닌 `dcf-data/`에 저장한다. VM 재시작 감시 경로 `data/`를 피하고 공시 원자료·단위·출처·확인 상태를 보존한다. [규격·갱신·검증](DCF.md).
 

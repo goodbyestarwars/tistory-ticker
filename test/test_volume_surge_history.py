@@ -39,6 +39,23 @@ class SignalHistoryTest(unittest.TestCase):
             self.assertEqual(rows, [('EARLY_PACE', 71000, 123456, None, None, None),
                                     ('REALTIME_ACCUM', 71100, 130000, None, None, None)])
 
+    def test_old_state_is_not_backfilled_and_history_failure_is_isolated(self):
+        scanner._reset_for_day('2026-10-16')
+        with scanner._lock:
+            scanner._state['detections']['111111'] = {
+                'code': '111111', 'detectedAt': 1792100000, 'detectPrice': 1000,
+            }
+        with mock.patch.object(history, 'record') as writer:
+            scanner._record_signal_history([], 1792100100, '2026-10-16')
+            writer.assert_called_once_with([])
+        with scanner._lock:
+            scanner._state['detections']['111111']['detectVolume'] = 20000
+            scanner._state['detections']['111111']['detectedAt'] = None
+        with mock.patch.object(history, 'record') as writer:
+            scanner._record_signal_history([], 1792100100, '2026-10-16')
+            writer.assert_not_called()
+        self.assertNotIn(('2026-10-16', '111111', 'EARLY_PACE'), scanner._history_recorded)
+
 
 if __name__ == '__main__':
     unittest.main()
