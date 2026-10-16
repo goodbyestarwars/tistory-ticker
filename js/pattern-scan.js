@@ -930,8 +930,7 @@
   ];
   var GP_STAGE_KEYS = GP_STAGES.map(function (s) { return s.key; });
   var GP_MAX_SHOWN = 30;
-  var gpStageFilter = 'all';
-
+  
   function gpStageLabel(key) {
     var i = GP_STAGE_KEYS.indexOf(key);
     return i < 0 ? '' : GP_STAGES[i].label;
@@ -952,50 +951,15 @@
     return out;
   }
 
-  function gpBarHtml() {
-    var st = scanData && scanData.gongpasanStages;
-    var finals = (scanData && scanData.patterns && scanData.patterns.gongpasan) || [];
-    var counts = (st && st.counts) || {};
-    var usable = !!(st && st.status === 'ok');
-    var chips = '<button type="button" class="ps-gp-chip' + (gpStageFilter === 'all' ? ' active' : '') + '" data-gp-stage="all">전체</button>'
-      + GP_STAGES.map(function (s, i) {
-        var n = s.key === 'SUPPORT_CONFIRMED' ? finals.length : (usable ? Number(counts[s.key] || 0) : null);
-        return '<button type="button" class="ps-gp-chip is-' + s.key.toLowerCase() + (gpStageFilter === s.key ? ' active' : '') + '" data-gp-stage="' + s.key + '">'
-          + '<small>' + (i + 1) + '단계</small>' + escapeHtml(s.label) + ' <b>' + (n == null ? '-' : n) + '</b></button>';
-      }).join('');
-    var note;
-    if (!st) {
-      note = '단계 정보가 아직 없어요. 다음 스캔 완료 뒤 표시됩니다(지금은 최종 지지 확인만 보여요).';
-    } else if (st.status !== 'ok') {
-      note = '단계 데이터가 오래됐어요(일봉 기준일 ' + escapeHtml(st.asOf || '확인 불가') + ' · 기대 ' + escapeHtml(st.expectedAsOf || '') + '). 새 스캔이 끝날 때까지 단계 후보를 숨깁니다.';
-    } else {
-      var cut = GP_STAGES.slice(0, 3).filter(function (s) { return Number(counts[s.key] || 0) > ((st.stages && st.stages[s.key]) || []).length; });
-      note = '일봉 기준일 ' + escapeHtml(st.asOf || '') + ' · 단계 스캔 ' + escapeHtml(kstText(st.scannedAt))
-        + ' · 최종 매수 신호는 4단계 지지 확인뿐이고 1~3단계는 관찰용입니다'
-        + (cut.length ? ' · ' + cut.map(function (s) { return s.label; }).join('·') + '은 상위 ' + GP_MAX_SHOWN + '건만 표시' : '');
-    }
-    return '<div class="ps-gp-bar"><div class="ps-gp-chips">' + chips + '</div><div class="ps-gp-note">' + note + '</div></div>';
-  }
-
   function gpEmptyText(allCount) {
     var st = scanData && scanData.gongpasanStages;
-    if (allCount) return '이 단계에 해당하는 종목이 없어요. 위 단계 칸에서 다른 단계를 눌러보세요.';
+    if (allCount) return '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.';
     if (!st) return '단계 정보가 아직 없어 최종 지지 확인 종목만 표시합니다. 지금은 해당 종목이 없어요.';
     if (st.status !== 'ok') return '단계 데이터가 오래돼 후보를 표시하지 않았어요. 스캔 오류가 아니라 일봉 갱신 대기일 수 있으니 새 스캔 완료 뒤 다시 확인하세요.';
     return '정상 0건입니다. 스캔은 완료됐고(' + escapeHtml(String(st.scanned || 0)) + '종목, 일봉 ' + escapeHtml(st.asOf || '') + ') 4단계 모두 조건에 맞는 종목이 없어요.';
   }
 
-  function wireGpBar(container, list) {
-    list.querySelectorAll('.ps-gp-chip').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        gpStageFilter = btn.getAttribute('data-gp-stage');
-        renderList(container);
-      });
-    });
-  }
-
   function itemStage(item) {
-    if (item && item._gpStage && item._gpStage !== 'SUPPORT_CONFIRMED') return { key: 'gpstage', label: gpStageLabel(item._gpStage), tone: 'is-hold' };
     var track = trackMapFor(scannerKey(activeTab))[item && item.code];
     var scanDay = String((item && item.date) || '').slice(0, 10);
     var isNew = !track || (scanDay && String(track.detected_date) >= scanDay);
@@ -1105,30 +1069,14 @@
     ensureTrackMap(container);
     var isGp = activeTab === 'gongpasan';
     var allItems = isGp ? gpAllItems() : ((scanData.patterns && scanData.patterns[activeTab]) || []);
-    var gpBar = isGp ? gpBarHtml() : '';
     var items = allItems.filter(function (it) {
-      if (isGp && gpStageFilter !== 'all' && it._gpStage !== gpStageFilter) return false;
       return trackView === 'all' || itemStage(it).key === trackView;
     });
     if (!items.length) {
       detailNavItems = [];
-      // 급락 후 첫 눌림목: 1~3단계 후보는 신규 포착·돌파 준비 같은 추적 상태가 없어 '전체'에만 나온다. 그 상태 칸이 골라져 있어 가려진 경우는 이유와 '전체 보기'를 알려 준다.
-      var gpHidden = isGp && trackView !== 'all' ? allItems.filter(function (it) { return gpStageFilter === 'all' || it._gpStage === gpStageFilter; }).length : 0;
-      var hintHtml = gpHidden
-        ? '이 상태에는 해당하는 종목이 없어요. 1~3단계 관찰 후보 ' + gpHidden + '건은 추적 상태가 없어 위 “전체” 상태에서만 보여요. <button type="button" class="ps-gp-viewall" data-gp-viewall>전체 보기</button>'
-        : (isGp ? gpEmptyText(allItems.length) : (allItems.length
-          ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
-          : '지금 이 패턴에 해당하는 종목이 없어요.'));
-      list.innerHTML = gpBar + '<div class="ps-hint">' + hintHtml + '</div>';
-      if (isGp) {
-        wireGpBar(container, list);
-        var viewAll = list.querySelector('[data-gp-viewall]');
-        if (viewAll) viewAll.addEventListener('click', function () {
-          trackView = 'all';
-          container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === 'all'); });
-          renderList(container);
-        });
-      }
+      list.innerHTML = '<div class="ps-hint">' + (isGp ? gpEmptyText(allItems.length) : (allItems.length
+        ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
+        : '지금 이 패턴에 해당하는 종목이 없어요.')) + '</div>';
       return;
     }
 
@@ -1143,7 +1091,7 @@
     });
     detailNavItems = sorted.slice();
 
-    list.innerHTML = gpBar + '<div class="ps-list-head" aria-hidden="true">'
+    list.innerHTML = '<div class="ps-list-head" aria-hidden="true">'
       + '<span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>감지 신호</span><span>현재가·등락률</span><span>개별 관측</span>'
       + '</div>'
       + sorted.map(function (it, index) {
@@ -1179,7 +1127,6 @@
         if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); open(); }
       });
     });
-    if (isGp) wireGpBar(container, list);
     patchLivePrices(container);
     renderTrackSummary(container);
     paintStageCounts(container);
