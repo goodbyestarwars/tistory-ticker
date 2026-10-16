@@ -38,7 +38,7 @@
   var GAUGE_MAX_TEMP = 40; // 서버가 실제 만점 기준으로 이미 0~40℃로 정규화해서 내려줌
   var sectorConfigPromise = null;
   var HISTORY_PERIODS = [5, 10, 20, 40];
-  var DEFAULT_HISTORY_PERIOD = 10;
+  var DEFAULT_HISTORY_PERIOD = 20;
   // VM이 집계한 테마 흐름(증시온도 배경 계산의 238종목 재사용). 2026-09-01 이전에는
   // 아래 폴백만 썼는데, 거래대금 상위 30종목 중 17개가 ETF라 테마가 8개뿐이었다.
   var INDUSTRY_FLOW_URL = 'https://goodbyestar.cloud/industry-flow';

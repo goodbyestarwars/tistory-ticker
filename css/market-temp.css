@@ -2641,7 +2641,7 @@ html.dark #market-temp .mt-heat-stats { color:#b8c2cc; }
 #market-temp .mt-fc-band-neutral { fill: #8b95a5; fill-opacity: .12; }
 #market-temp .mt-fc-band-greed { fill: #d65f5f; fill-opacity: .09; }
 #market-temp .mt-fc-axis { fill: #8a949f; font-size: 10px; }
-#market-temp .mt-fc-line { fill: none; stroke: #52606c; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#market-temp .mt-fc-line { fill: none; stroke: #52606c; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
 #market-temp .mt-fc-dot { fill: var(--mt-tone); stroke: #fff; stroke-width: 2; }
 #market-temp .mt-fc-last { fill: var(--mt-tone); font-size: 12px; font-weight: 800; }
 #market-temp .mt-fc-cursor { stroke: #6b7280; stroke-opacity: .5; }
