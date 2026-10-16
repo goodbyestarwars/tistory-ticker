@@ -174,6 +174,8 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 
 지지·저항은 `chart-sr.js`의 기존 스윙·군집 계산값을 그대로 사용한다. 각 지지·저항 최대 3개를 실제 `low~high` 범위의 연한 빨강·파랑 반투명 가로 밴드로, 중심 가격을 가는 점선으로 표시한다. 우측 라벨은 `지지 1 44,800~47,200` 형식이며 숫자는 계산 결과를 가격 형식에 맞춰 만든다. 라벨은 가격축 안쪽에 두고 겹치면 세로 위치만 조정한다. 차트 전체화면·종목 변경·확대 시 공통 모듈을 다시 그리며 차트 교체 때 구독과 관찰자를 정리한다.
 
+매집봉 표시(2026-10-16)는 `chart-core.js`의 `accumulationBars`·`setAccumulationMarkers` 한 곳에서 계산한다. 기준은 검색기(`scripts/cloud-vm/volume_accumulation.py` `find_accumulation_bar`)의 봉 하나 조건과 같다(거래량 직전 20일 평균의 2.5배 이상·몸통 2% 이상 양봉·종가 위치 0.6 이상·거래대금 30억원 이상, `test/test_accumulation_bars.py`가 둘을 대조). 일봉·국내 종목에서만 쓰고, 종목분석은 기존 이벤트 마커와 한 마커 플러그인에 합쳐 건다. 매수 신호가 아니다.
+
 - 종목분석 글꼴은 `.ff-header` 기준 프리텐다드이고, 큰 제목 마루부리·상승 빨강·하락 파랑 규칙은 유지한다.
 ### 시장 모바일 카드 UI (2026-10-16)
 767px 이하에서만 시장지표(국내·글로벌·투자자 수급)·증시온도에 가로 스와이프 카드를 얹는다. `js/skin-main.js`가 그 폭·그 페이지에서만 `js/mobile-market.js`·`css/mobile-market.css`를 불러오므로 PC·태블릿(768px~)은 파일을 받지 않는다. CSS는 미디어쿼리 밖에 `.mm-only` 숨김 하나뿐이다(`test/test_mobile_market.js`가 검사). 기존 요소는 지우지 않고 클래스·접기·복사 카드만 더한다. 차트 안 가로 끌기는 `touch-action: pan-y`라 카드가 넘어가고 날짜별 수치는 길게 눌러 본다. 새 모바일 구역은 `mobile-market.js`의 `WATCH` 목록에 함수 하나로 추가한다. 상세 기록은 [WORK_HISTORY.md](WORK_HISTORY.md).

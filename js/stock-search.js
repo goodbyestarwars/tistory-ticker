@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261013-rounded-labels1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261016-accumulation';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -115,6 +115,7 @@
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     bollingerEnabled: false,
+    accumulationEnabled: false,
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
@@ -435,6 +436,7 @@
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
+      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(차트검색 거래량 돌파 탭의 매집봉과 같은 기준). 매수 신호가 아닙니다."><input type="checkbox" id="ssAccumulationToggle" /> 매집봉 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -1237,6 +1239,14 @@
       bollingerToggle.checked = state.bollingerEnabled;
       bollingerToggle.onchange = function () {
         state.bollingerEnabled = bollingerToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var accToggle = container.querySelector('#ssAccumulationToggle');
+    if (accToggle) {
+      accToggle.checked = state.accumulationEnabled;
+      accToggle.onchange = function () {
+        state.accumulationEnabled = accToggle.checked;
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -2118,6 +2128,12 @@
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
           priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
+      }
+      if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
+        var accCount = core.setAccumulationMarkers(LWC, candleSeries, bars, true, {});
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">● 매집봉 <b>' + accCount + '개</b></span>');
+      } else if (state.accumulationEnabled) {
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">매집봉은 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
         core.addBollingerBands(chart, LWC, bars);
