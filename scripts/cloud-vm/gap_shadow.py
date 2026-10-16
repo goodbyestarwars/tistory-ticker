@@ -88,6 +88,7 @@ CREATE TABLE IF NOT EXISTS gap_shadow_signal (
 
 _lock = threading.Lock()
 _day = {'date': None, 'obs': {}, 'prev': {}}
+_runtime = {'date': None, 'polls': 0, 'lastObserveAt': None}
 _last_outcome_run = 0.0
 
 
@@ -307,6 +308,11 @@ def _observe(rows, now_kst, prices_conn, db_file=None):
             code = (row.get('code') or '').strip()
             if code:
                 latest[code] = row
+        with _lock:
+            if _runtime['date'] != date_str:
+                _runtime.update({'date': date_str, 'polls': 0})
+            _runtime['polls'] += 1
+            _runtime['lastObserveAt'] = _iso(ts)
         for code, row in latest.items():
             price, volume = _num(row.get('price')), _num(row.get('trade_volume'))
             ob = obs.get(code)
@@ -329,13 +335,17 @@ def _observe(rows, now_kst, prices_conn, db_file=None):
 # ---------------------------------------------------------------- 사후 성과(일봉)
 
 def update_outcomes(prices_conn, db_file=None, today=None):
-    """D0~D5 일봉을 채운다(일봉은 20시대 배치 뒤에 들어오므로 장 밖에 반복 호출). 멱등."""
+    """D0~D5 일봉을 채운다(일봉은 20시대 배치 뒤에 들어오므로 장 밖에 반복 호출). 멱등.
+
+    진입이 없는 신호(순위권 이탈)도 채워 선택 편향을 비교할 수 있게 하고, D0 일봉 시가는 `official_open`으로 저장해
+    30초 시초 관측가와의 차이를 잰다(2026-10-16 ChatGPT 사후 리뷰).
+    """
     today = today or datetime.now(KST).strftime('%Y-%m-%d')
     updated = 0
     with closing(connect(db_file)) as conn:
         pending = conn.execute(
-            'SELECT trading_date, code FROM gap_shadow_signal WHERE entry_price IS NOT NULL AND outcome_days<? '
-            'AND trading_date<=?', (DAILY_DAYS, today)).fetchall()
+            'SELECT trading_date, code FROM gap_shadow_signal WHERE outcome_days<? AND trading_date<=?',
+            (DAILY_DAYS, today)).fetchall()
         for date_str, code in pending:
             bars = prices_conn.execute(
                 'SELECT date, open, high, low, close FROM daily_prices WHERE code=? AND date>=? ORDER BY date LIMIT ?',
@@ -344,9 +354,9 @@ def update_outcomes(prices_conn, db_file=None, today=None):
                 continue
             days = [{'date': b[0], 'open': b[1], 'high': b[2], 'low': b[3], 'close': b[4]} for b in bars]
             conn.execute(
-                'UPDATE gap_shadow_signal SET daily_json=?, outcome_days=?, outcome_updated_at=? '
+                'UPDATE gap_shadow_signal SET daily_json=?, outcome_days=?, outcome_updated_at=?, official_open=? '
                 'WHERE trading_date=? AND code=?',
-                (json.dumps(days), len(days), _iso(time.time()), date_str, code))
+                (json.dumps(days), len(days), _iso(time.time()), days[0]['open'], date_str, code))
             updated += 1
         conn.commit()
     return updated
@@ -436,24 +446,62 @@ def _stats(results, cost_pct):
     return out
 
 
+def path_complete(count, last_ts, max_gap):
+    """진입 뒤 30초 관측 경로가 장 마감까지 끊김 없이 이어졌는가(순위권 이탈·재시작이 있으면 False)."""
+    if not count or not last_ts:
+        return False
+    if (max_gap or 0) > PATH_GAP_MAX_SEC:
+        return False
+    return sod(datetime.fromtimestamp(last_ts, KST)) >= PATH_END_SOD
+
+
+def _median(values):
+    values = sorted(values)
+    n = len(values)
+    if not n:
+        return None
+    return values[n // 2] if n % 2 else (values[n // 2 - 1] + values[n // 2]) / 2
+
+
 def summarize(db_file=None, horizons=(0, 1, 3, 5), cost_pct=COST_PCT):
     with closing(connect(db_file)) as conn:
         rows = conn.execute(
-            'SELECT trading_date, code, entry_price, stop_price, risk_ok, intraday_max, intraday_min, '
-            'intraday_last, daily_json FROM gap_shadow_signal WHERE entry_price IS NOT NULL').fetchall()
-        total = conn.execute('SELECT COUNT(*) FROM gap_shadow_signal').fetchone()[0]
-    trades = []
-    for date_str, code, entry, stop, risk_ok, imax, imin, ilast, dj in rows:
+            'SELECT entry_price, stop_price, risk_ok, intraday_max, intraday_min, intraday_last, daily_json, '
+            'path_obs_count, path_last_obs_ts, path_max_gap_sec, signal_price, open_obs_price, official_open '
+            'FROM gap_shadow_signal').fetchall()
+    trades, missing_fwd, entered_fwd, open_diffs = [], [], [], []
+    for (entry, stop, risk_ok, imax, imin, ilast, dj, cnt, last_ts, max_gap, sig_price, open_obs, official) in rows:
         try:
             days = json.loads(dj) if dj else []
         except ValueError:
             days = []
+        if official and open_obs:
+            open_diffs.append((open_obs / official - 1) * 100)
+        fwd = {}
+        for k in (0, 1):
+            if len(days) > k and days[k].get('close') and sig_price:
+                fwd['d%d' % k] = (days[k]['close'] / sig_price - 1) * 100
+        if entry is None:
+            missing_fwd.append(fwd)
+            continue
+        entered_fwd.append(fwd)
         trades.append({'entry': entry, 'stop': stop, 'risk_ok': risk_ok,
-                       'intraday': {'max': imax, 'min': imin, 'last': ilast}, 'days': days})
+                       'intraday': {'max': imax, 'min': imin, 'last': ilast}, 'days': days,
+                       'complete': path_complete(cnt, last_ts, max_gap)})
+    total, entered = len(rows), len(trades)
+    complete = sum(1 for t in trades if t['complete'])
+
+    def fwd_stats(items, key):
+        values = [i[key] for i in items if key in i]
+        return {'n': len(values), 'meanPct': round(sum(values) / len(values), 3) if values else None,
+                'medianPct': round(_median(values), 3) if values else None}
+
+    sets = (('all', lambda t: True), ('riskOk', lambda t: t['risk_ok'] == 1),
+            ('complete', lambda t: t['complete']), ('completeRiskOk', lambda t: t['complete'] and t['risk_ok'] == 1))
     by_horizon = {}
     for h in horizons:
         item = {}
-        for label, pred in (('all', lambda t: True), ('riskOk', lambda t: t['risk_ok'] == 1)):
+        for label, pred in sets:
             for stop_label, use_stop in (('withStop', True), ('noStop', False)):
                 results = []
                 for t in trades:
@@ -465,10 +513,30 @@ def summarize(db_file=None, horizons=(0, 1, 3, 5), cost_pct=COST_PCT):
                 item['%s_%s' % (label, stop_label)] = _stats(results, cost_pct)
         by_horizon['D%d' % h] = item
     return {
-        'signals': total, 'entered': len(trades), 'costPct': cost_pct, 'minSample': MIN_SAMPLE,
+        'signals': total, 'entered': entered, 'costPct': cost_pct, 'minSample': MIN_SAMPLE,
         'byHorizon': by_horizon,
+        'observation': {
+            'entryMissing': total - entered,
+            'entryMissingPct': round((total - entered) / total * 100, 1) if total else None,
+            'pathComplete': complete, 'pathIncomplete': entered - complete,
+            'pathGapMaxSec': PATH_GAP_MAX_SEC, 'pathEndsAfter': '15:20',
+            # 진입이 누락된 신호와 진입된 신호의 신호가 대비 D0/D1 종가 수익(선택 편향 점검, 비용 미반영)
+            'forwardFromSignalPrice': {
+                'entered': {'D0': fwd_stats(entered_fwd, 'd0'), 'D1': fwd_stats(entered_fwd, 'd1')},
+                'entryMissing': {'D0': fwd_stats(missing_fwd, 'd0'), 'D1': fwd_stats(missing_fwd, 'd1')},
+            },
+        },
+        'openObsVsOfficial': {
+            'n': len(open_diffs),
+            'medianDiffPct': round(_median(open_diffs), 3) if open_diffs else None,
+            'meanAbsDiffPct': round(sum(abs(d) for d in open_diffs) / len(open_diffs), 3) if open_diffs else None,
+            'maxAbsDiffPct': round(max(abs(d) for d in open_diffs), 3) if open_diffs else None,
+            'note': '30초 시초 관측가 대 D0 일봉 시가(daily_prices). 일봉이 들어온 신호만 계산',
+        },
         'note': ('실제 매매 성과가 아닌 그림자 기록입니다. 시초가·첫 5분 고저는 30초 관측가이며 공식 OHLC가 아니고, '
-                 '체결가·슬리피지·호가는 반영하지 않았습니다. 표본이 %d건 미만이면 결론으로 쓰지 않습니다.' % MIN_SAMPLE),
+                 '체결가·슬리피지·호가는 반영하지 않았습니다. 손절은 실계좌의 -3%%·2회 확인과 다르게 시초 범위 저가(손절폭 %d%% 이하만 risk_ok)입니다. '
+                 'complete_* 는 진입 뒤 관측이 장 마감까지 %d초 간격 안에서 이어진 건만, all_* 는 순위권 이탈로 경로가 끊긴 건도 포함합니다. '
+                 '표본이 %d건 미만이면 결론으로 쓰지 않습니다.' % (MAX_STOP_PCT, PATH_GAP_MAX_SEC, MIN_SAMPLE)),
     }
 
 
@@ -478,16 +546,36 @@ def recent_signals(db_file=None, limit=50):
         rows = conn.execute(
             'SELECT trading_date, code, name, gap_pct, open_obs_price, or_high, or_low, signal_at, signal_price, '
             'signal_cum_ratio, entry_at, entry_price, stop_price, stop_pct, risk_ok, intraday_max, intraday_min, '
-            'stop_hit_intraday, outcome_days FROM gap_shadow_signal ORDER BY signal_at DESC LIMIT ?',
+            'stop_hit_intraday, outcome_days, path_obs_count, path_last_obs_ts, path_max_gap_sec, official_open '
+            'FROM gap_shadow_signal ORDER BY signal_at DESC LIMIT ?',
             (max(1, min(int(limit), 200)),)).fetchall()
-    return [dict(r) for r in rows]
+    out = []
+    for r in rows:
+        d = dict(r)
+        d['path_complete'] = (path_complete(d.get('path_obs_count'), d.get('path_last_obs_ts'), d.get('path_max_gap_sec'))
+                              if d.get('entry_price') else None)
+        out.append(d)
+    return out
+
+
+def runtime_status():
+    """오늘 이 프로세스가 본 것(재시작하면 초기화): 폴링 횟수·마지막 관측·종목 상태 개수. 장중 동작 확인용."""
+    with _lock:
+        counts = {}
+        for ob in _day['obs'].values():
+            counts[ob['status']] = counts.get(ob['status'], 0) + 1
+        return {'date': _runtime['date'], 'polls': _runtime['polls'], 'lastObserveAt': _runtime['lastObserveAt'],
+                'watched': len(_day['obs']), 'statusCounts': counts}
 
 
 def get_payload(db_file=None):
     return {
+        'runtime': runtime_status(),
         'rules': {
             'openObsEnd': '09:03', 'orEnd': '09:05', 'signalEnd': '14:00', 'gapPct': [GAP_MIN, GAP_MAX],
             'cumVolumeRatioMin': CUM_RATIO_MIN, 'maxStopPct': MAX_STOP_PCT, 'costPct': COST_PCT,
+            'stopRule': '시초 범위(09:00~09:05 관측가) 저가. 실계좌의 -3%·2회 확인과 다름',
+            'pathGapMaxSec': PATH_GAP_MAX_SEC,
         },
         'summary': summarize(db_file),
         'recent': recent_signals(db_file),
