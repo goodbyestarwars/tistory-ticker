@@ -242,3 +242,8 @@ html.dark #auto-trader .at-month-table th { background: #1a1a1a; }
   #auto-trader .at-month-sum div:nth-child(odd) { border-left: 0; }
   #auto-trader .at-month-sum div:nth-child(n+3) { border-top: 1px solid var(--at-line); }
 }
+/* 2026-10-16 주문 기록 전체 폭: 시각·종목·가격·상태는 줄바꿈 없이 한 줄로 */
+#auto-trader .at-orders-wide { margin: 16px 0; }
+#auto-trader .at-orders-wide .at-table td, #auto-trader .at-orders-wide .at-table th { white-space: nowrap; }
+#auto-trader .at-orders-wide .at-table td:last-child, #auto-trader .at-orders-wide .at-table td:nth-last-child(2) { white-space: normal; min-width: 96px; }
+#auto-trader .at-orders-wide .at-table th, #auto-trader .at-orders-wide .at-table td { padding-left: 8px; padding-right: 8px; }
