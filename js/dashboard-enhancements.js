@@ -64,8 +64,18 @@
     drawRow.className = 'de-draw-controls';
     drawRow.setAttribute('role', 'group');
     drawRow.setAttribute('aria-label', '차트 그리기 도구');
-    controlRow.parentNode.insertBefore(drawRow, controlRow.nextSibling);
     buttons.forEach(function (button) { drawRow.appendChild(button); });
+    if (controlRow.classList.contains('ss-chart-tabs')) {
+      // 2026-10-16 사용자 요청: 그리기 도구 줄을 메모·일봉·주봉 탭 줄과 같은 줄(오른쪽)에 둔다 - 차트 위 세로 공간 절약.
+      // 좁아서 한 줄에 안 들어가면 도구 줄이 아래로 내려간다(flex-wrap).
+      var bar = document.createElement('div');
+      bar.className = 'de-chart-toolbar';
+      controlRow.parentNode.insertBefore(bar, controlRow);
+      bar.appendChild(controlRow);
+      bar.appendChild(drawRow);
+    } else {
+      controlRow.parentNode.insertBefore(drawRow, controlRow.nextSibling);
+    }
   }
 
   function customCardHtml(card) {
