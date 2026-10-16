@@ -36,16 +36,104 @@ def live_snapshot(path=None):
         try:
             positions = {r['code']: dict(r) for r in db.execute(
                 "SELECT code,qty,state,floor_reached FROM positions WHERE state IN ('OPEN','PENDING')")}
-            intents = [dict(r) for r in db.execute(
-                'SELECT ts,code,side,qty,state,order_no FROM intents ORDER BY id DESC LIMIT 100')]
+            # price/reason 열은 2026-10-16 이후 엔진이 채운다(이전 장부에는 열 자체가 없을 수 있어 열 존재를 확인한다).
+            cols = {r[1] for r in db.execute('PRAGMA table_info(intents)')}
+            sel = 'id,ts,code,side,qty,state,order_no' + (',price' if 'price' in cols else '') + (',reason' if 'reason' in cols else '')
+            intents = [dict(r) for r in db.execute('SELECT %s FROM intents ORDER BY id DESC LIMIT 100' % sel)]
+            buys = [dict(r) for r in db.execute("SELECT id,code,price FROM intents WHERE side='BUY' ORDER BY id")] if 'price' in cols else []
         finally:
             db.close()
     except sqlite3.Error:
         return {}, []
-    orders = [{'ts': r['ts'].replace('T', ' ')[:19], 'code': r['code'], 'qty': r['qty'],
-               'reason': r['side'], 'status': r['state'], 'ord_no': r['order_no'],
-               'detail': '실계좌 ' + ('매수' if r['side'] == 'BUY' else '매도') + ' 주문'} for r in intents]
+    orders = []
+    for r in intents:
+        is_buy = r['side'] == 'BUY'
+        price = r.get('price')
+        order = {'ts': r['ts'].replace('T', ' ')[:19], 'code': r['code'], 'qty': r['qty'],
+                 'reason': r['side'], 'status': r['state'], 'ord_no': r['order_no'],
+                 'detail': '실계좌 ' + ('매수' if is_buy else '매도') + ' 주문',
+                 # 매수 = 주문 접수가(지정가), 매도 = 시장가라 가격이 없고 새 엔진은 전송 시점 판정가를 남긴다. 둘 다 체결가가 아니다.
+                 'price': int(price) if price else None,
+                 'price_kind': ('order' if is_buy else 'decision') if price else None}
+        if not is_buy:
+            order['exit_reason'] = r.get('reason')
+            # 이 매도가 닫는 매수의 주문가: 같은 종목의 직전 매수
+            prior = [b['price'] for b in buys if b['code'] == r['code'] and b['id'] < r['id'] and b['price']]
+            order['buy_price'] = int(prior[-1]) if prior else None
+        orders.append(order)
     return positions, orders
+
+
+_EST_CACHE = {}        # (code, ts) -> 추정 매도가 | None  (영구)
+_MIN_CACHE = {}        # code -> (조회 시각 epoch, {분 라벨: 종가})
+_NAMES_FILE = os.path.join(HERE, 'order_names.json')
+
+
+def _minute_closes(client, code, now_epoch):
+    """1분봉 종가 {'YYYYMMDDHHMM': 종가}. 엔진의 last_price와 같은 ka10080(조회 전용)이며 5분간 캐시한다. 실패하면 {}."""
+    cached = _MIN_CACHE.get(code)
+    if cached and now_epoch - cached[0] < 300:
+        return cached[1]
+    out = {}
+    try:
+        res = client.call('ka10080', '/api/dostk/chart', {'stk_cd': code, 'tic_scope': '1', 'upd_stkpc_tp': '1'})
+        for row in (res.get('stk_min_pole_chart_qry') or []):
+            tm = str(row.get('cntr_tm') or row.get('dt') or '')
+            price = abs(float(str(row.get('cur_prc') or '0').replace(',', '')))
+            if len(tm) >= 12 and price > 0:
+                out[tm[:12]] = price     # 라벨은 봉 시작 분(키움·네이버 1분봉 대조 확인)
+    except Exception:
+        out = {}
+    _MIN_CACHE[code] = (now_epoch, out)
+    return out
+
+
+def enrich_orders(orders, client=None, names=None, now_epoch=None):
+    """주문 행에 종목명과(가격이 없는 최근 매도는) 1분봉 기반 추정 매도가를 덧붙인다. 읽기 전용이며 실패해도 행은 그대로 둔다."""
+    import time as _time
+    now_epoch = now_epoch or _time.time()
+    names = names or {}
+    for o in orders:
+        if not o.get('name') and names.get(o.get('code')):
+            o['name'] = names[o['code']]
+        if o.get('reason') == 'SELL' and o.get('price') is None and o.get('detail', '').startswith('실계좌') and client is not None:
+            ts = str(o.get('ts') or '')
+            key = (o.get('code'), ts)
+            if key not in _EST_CACHE:
+                label = ts[:16].replace('-', '').replace(' ', '').replace(':', '')   # 'YYYYMMDDHHMM' (전송 분의 봉)
+                price = _minute_closes(client, o['code'], now_epoch).get(label)
+                if price is not None:
+                    _EST_CACHE[key] = price          # 못 구한 건 기억하지 않고(분봉 캐시 5분) 다음 요청에서 다시 시도한다
+            if _EST_CACHE.get(key) is not None:
+                o['price'], o['price_kind'] = int(_EST_CACHE[key]), 'estimate'
+    return orders
+
+
+def known_names(bot, store):
+    """종목코드 -> 종목명: 보유·감시·분석 종목과 지난번에 저장한 목록. 새로 알게 된 이름은 파일에 남긴다(주문 후 잔고에서 빠진 종목 이름 보존)."""
+    names = {}
+    try:
+        with open(_NAMES_FILE, encoding='utf-8') as f:
+            saved = json.load(f)
+        if isinstance(saved, dict):
+            names.update({k: v for k, v in saved.items() if isinstance(k, str) and isinstance(v, str)})
+    except (OSError, ValueError):
+        saved = {}
+    fresh = {}
+    for src in (getattr(bot, 'holdings', None) or [], store.watch_list(), store.analysis_list()):
+        for row in src:
+            code, name = str(row.get('code') or ''), str(row.get('name') or '').strip()
+            if CODE_RE.fullmatch(code) and name:
+                fresh[code] = name
+    if any(names.get(c) != n for c, n in fresh.items()):
+        names.update(fresh)
+        try:
+            with open(_NAMES_FILE, 'w', encoding='utf-8') as f:
+                json.dump(names, f, ensure_ascii=False)
+        except OSError:
+            pass
+    names.update(fresh)
+    return names
 
 
 def classify_holdings(holdings, positions, orders, watch_rows, analysis_codes, config, today):
@@ -227,6 +315,7 @@ def make_handler(bot, store, token):
                 return self._send(200, {'analysis': store.analysis_list()})
             if url.path == '/api/orders':
                 _, live_orders = live_snapshot()
+                live_orders = enrich_orders(live_orders, getattr(bot, 'client', None), known_names(bot, store))
                 orders = store.orders(limit) + live_orders
                 orders.sort(key=lambda r: r['ts'], reverse=True)
                 return self._send(200, {'orders': orders[:limit]})

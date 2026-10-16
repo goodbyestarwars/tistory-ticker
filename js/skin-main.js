@@ -62,8 +62,8 @@ document.documentElement.classList.add('skin-ready');
     if (!host) return;
     host.appendChild(mount);
   }
-  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261010-at-v2'; document.head.appendChild(css);
-  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261010-at-v2'; script.setAttribute('data-auto-trader-page', '1');
+  var css = document.createElement('link'); css.rel = 'stylesheet'; css.href = base + 'css/auto-trader.css?v=20261016-order-prices'; document.head.appendChild(css);
+  var script = document.createElement('script'); script.src = base + 'js/auto-trader.js?v=20261016-order-prices'; script.setAttribute('data-auto-trader-page', '1');
   script.onerror = function () { mount.textContent = '자동매매 화면을 불러오지 못했습니다. 새로고침하세요.'; };
   document.body.appendChild(script);
 }());
