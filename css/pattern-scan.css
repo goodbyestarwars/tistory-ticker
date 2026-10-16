@@ -950,3 +950,5 @@ html.dark #pattern-scan .ps-risk.is-mid { background: rgba(245, 158, 11, .22); c
 html.dark #pattern-scan .ps-risk.is-high { background: rgba(249, 115, 22, .24); color: #fdba74; }
 #pattern-scan .ps-risk.is-pending { background: #f1f5f9; color: #64748b; }
 html.dark #pattern-scan .ps-risk.is-pending { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+/* 2026-10-16 급락 후 첫 눌림목: 상태 칸 때문에 가려진 1~3단계 후보를 '전체'로 보는 버튼(단계 칩과 클릭 처리가 겹치지 않게 별도 클래스) */
+#pattern-scan .ps-gp-viewall { margin-left: 8px; padding: 4px 12px; border: 1px solid #d9e2ee; border-radius: 999px; background: transparent; color: inherit; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }

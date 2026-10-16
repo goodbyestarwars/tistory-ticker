@@ -1077,7 +1077,8 @@
     var cached = trackedCache[key + '|active'];
     var stats = cached && cached.data && cached.data.stats;
     var counts = { all: 0, new: 0, ready: 0 };
-    ((scanData && scanData.patterns && scanData.patterns[activeTab]) || []).forEach(function (it) {
+    // 급락 후 첫 눌림목은 1~3단계 관찰 후보(gongpasanStages)도 '전체'에 센다. 빠지면 단계 칸은 4건인데 전체는 0건으로 보인다(2026-10-16).
+    (activeTab === 'gongpasan' ? gpAllItems() : ((scanData && scanData.patterns && scanData.patterns[activeTab]) || [])).forEach(function (it) {
       counts.all += 1;
       var k = itemStage(it).key;
       if (counts[k] != null) counts[k] += 1;
@@ -1111,10 +1112,23 @@
     });
     if (!items.length) {
       detailNavItems = [];
-      list.innerHTML = gpBar + '<div class="ps-hint">' + (isGp ? gpEmptyText(allItems.length) : (allItems.length
-        ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
-        : '지금 이 패턴에 해당하는 종목이 없어요.')) + '</div>';
-      if (isGp) wireGpBar(container, list);
+      // 급락 후 첫 눌림목: 1~3단계 후보는 신규 포착·돌파 준비 같은 추적 상태가 없어 '전체'에만 나온다. 그 상태 칸이 골라져 있어 가려진 경우는 이유와 '전체 보기'를 알려 준다.
+      var gpHidden = isGp && trackView !== 'all' ? allItems.filter(function (it) { return gpStageFilter === 'all' || it._gpStage === gpStageFilter; }).length : 0;
+      var hintHtml = gpHidden
+        ? '이 상태에는 해당하는 종목이 없어요. 1~3단계 관찰 후보 ' + gpHidden + '건은 추적 상태가 없어 위 “전체” 상태에서만 보여요. <button type="button" class="ps-gp-viewall" data-gp-viewall>전체 보기</button>'
+        : (isGp ? gpEmptyText(allItems.length) : (allItems.length
+          ? '이 상태에 해당하는 종목이 없어요. 위 상태 칸에서 다른 상태를 보거나 전체를 눌러보세요.'
+          : '지금 이 패턴에 해당하는 종목이 없어요.'));
+      list.innerHTML = gpBar + '<div class="ps-hint">' + hintHtml + '</div>';
+      if (isGp) {
+        wireGpBar(container, list);
+        var viewAll = list.querySelector('[data-gp-viewall]');
+        if (viewAll) viewAll.addEventListener('click', function () {
+          trackView = 'all';
+          container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-view') === 'all'); });
+          renderList(container);
+        });
+      }
       return;
     }
 
