@@ -131,6 +131,14 @@
     html body .mi-wrap .ibd-row { min-height: 0 !important; }
     html body .mi-wrap .ibd-section th { padding-top: 8px !important; padding-bottom: 3px !important; font-size: 11.5px !important; }
     html body .mi-wrap .ibd-leg-btn { min-height: 30px !important; font-size: 11.5px !important; padding: 0 8px !important; }
+    html body #fx-rates .fxr-title, html body #fx-rates .fxr-subtitle { font-size: 15px !important; }
+    html body #fx-rates .fxr-row { padding: 7px 4px !important; gap: 2px 6px !important; }
+    html body #fx-rates .fxr-row strong, html body #fx-rates .fxr-name, html body #fx-rates .fxr-pct, html body #fx-rates .fxr-rate { font-size: 13px !important; }
+    html body #fx-rates .fxr-chg, html body #fx-rates .fxr-ttb, html body #fx-rates .fxr-tts { font-size: 11px !important; }
+    html body #kospi-futures .kf-stat-price, html body #kospi-futures .kf-section-title { font-size: 15px !important; }
+    html body #kospi-futures .kf-opt-title { font-size: 13.5px !important; }
+    html body #us-macro-indicators .umi h2, html body #us-macro-indicators h2 { font-size: 17px !important; }
+    html body #us-macro-indicators .ibd-subtitle { font-size: 14px !important; }
     html body #market-temp .mt-card { padding: 12px 12px !important; border-radius: 14px !important; }
     html body #market-temp .mt-section-head h2, html body #market-temp h2 { font-size: 17px !important; }
     html body #market-temp .mt-hot-strip { padding: 4px 6px !important; gap: 6px !important; }
