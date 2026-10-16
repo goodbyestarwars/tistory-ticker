@@ -598,6 +598,9 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
         process_rows(rows, now_kst.timestamp(), date_str, lambda code: _prev_volume(conn, date_str, code), quote_fetcher=domestic_quotes.fetch_quotes,
                      stats_lookup=lambda code: _avg_stats(conn, date_str, code), bars_lookup=lambda code: _recent_bars(conn, date_str, code), now_kst=now_kst)
         _record_signal_history(rows, now_kst.timestamp(), date_str)
+        # 2026-10-16 Issue #697: 같은 순위 행으로 아침 라이브 갭상승 그림자 기록(주문 없음, 실패해도 위 감지에 영향 없음).
+        import gap_shadow
+        gap_shadow.observe(rows, now_kst, conn)
     finally:
         conn.close()
     with _lock:
@@ -618,6 +621,8 @@ def _loop(appkey, appsecret):
                 logger.exception('거래량 사전포착 갱신 실패')
             time.sleep(POLL_SEC)
         else:
+            import gap_shadow
+            gap_shadow.maybe_update_outcomes()  # 장 밖: 일봉이 들어온 그림자 신호의 D0~D5 성과 채우기(SQLite만)
             time.sleep(IDLE_CHECK_SEC)
 
 
