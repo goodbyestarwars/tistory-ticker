@@ -125,7 +125,9 @@ class PatternTrackerTest(unittest.TestCase):
         conn = make_conn('000001', flat_history())
         stats = pt.tracker_stats(conn, 'pattern:none')
         self.assertEqual(stats['total'], 0)
-        self.assertIsNone(stats['breakoutRatePct'])
+        self.assertIsNone(stats['avgRet5Pct'])
+        for dead in ('breakout', 'breakoutConfirmed', 'breakoutRatePct', 'confirmRatePct', 'decidedSamples'):
+            self.assertNotIn(dead, stats)
 
 
 if __name__ == '__main__':

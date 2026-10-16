@@ -1,3 +1,7 @@
+**2026-10-16 패턴 추적 통계에서 쓰지 않는 값 제거(breakoutConfirmed 등)**
+
+`/pattern-tracks`의 `stats`에서 `breakout`·`breakoutConfirmed`·`breakoutRatePct`·`confirmRatePct`·`decidedSamples`를 뺐다. `BREAKOUT_CONFIRMED`는 2026-10-06 판정 개편(SUCCESS/FAILED) 이후 새로 만들어지지 않는 옛 상태라 항상 0이었고, 화면(`js/pattern-scan.js`)은 이 값들을 쓰지 않는다(성공·실패·평균 수익·최대 상승/하락만 사용). 옛 상태 이름 상수와 이전 기록은 그대로 둔다. 검증: `test/test_pattern_tracker.py` 11건. 배포: master 병합 후 VM 자동 배포(재시작·`/health` 확인은 아래 PR 참조).
+
 **2026-10-16 증시온도 체크포인트 판단 문구 한 줄 표시**
 
 사용자 요청. `.mt-cp-call`에 container query를 걸고 판단 문구를 `nowrap`, 글자 크기 `clamp(10px, 3.4cqw, 24px)`(굵기 유지; 처음 3.8cqw·11px는 320px 폭에서 끝이 잘려 3.4cqw·10px로 낮춤. 그 뒤에도 320px에서 잘려 767px 이하는 `clamp(9px, 4.6vw-3.5px, 15px)`로 직접 계산하되 `mobile-market.css`의 15px !important가 `@layer np` 안이라 같은 레이어로 넣어야 적용됨(CDP로 매칭 규칙 확인). 헤드리스 Edge iframe 캡처로 확인)로 칸 너비에 맞춰 한 줄에 들어가게 함. CSS만 변경. 실화면 미확인(좁은 칸에서 11px까지 작아질 수 있음).
