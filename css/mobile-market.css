@@ -123,10 +123,12 @@
     html body .mi-wrap .ifl-note, html body .mi-wrap .ifl-cap, html body .mi-wrap .ifl-asof, html body .mi-wrap .ifl-state { font-size: 11px !important; line-height: 1.4 !important; margin-top: 4px !important; }
     html body .mi-wrap .dmi-panel-title { font-size: 14.5px !important; margin-bottom: 4px !important; padding-bottom: 4px !important; }
     html body .mi-wrap .dmi-tab, html body .mi-wrap .dmi-draw-toggle, html body .mi-wrap .dmi-draw-clear, html body .mi-wrap .ifl-seg-btn { min-height: 30px !important; height: auto !important; padding: 0 10px !important; font-size: 12px !important; }
-    html body .mi-wrap .ibd-table td, html body .mi-wrap .ibd-table th, html body .mi-wrap .dmi-flow-table td, html body .mi-wrap .dmi-flow-table th { font-size: 12.5px !important; }
+    html body .mi-wrap .dmi-flow-table td, html body .mi-wrap .dmi-flow-table th { font-size: 12px !important; }
+    html body .mi-wrap .ibd-row { padding: 7px 4px !important; gap: 2px 6px !important; }
+    html body .mi-wrap .ibd-row .ibd-c1, html body .mi-wrap .ibd-row .ibd-c3 { font-size: 13px !important; }
+    html body .mi-wrap .ibd-row .ibd-c2, html body .mi-wrap .ibd-row .ibd-c4, html body .mi-wrap .ibd-row .ibd-c5 { font-size: 11px !important; }
     html body .mi-wrap .ibd-row .ibd-nm { font-size: 13px !important; }
     html body .mi-wrap .ibd-row { min-height: 0 !important; }
-    html body .mi-wrap .ibd-table td, html body .mi-wrap .ibd-table th[scope="row"] { padding-top: 6px !important; padding-bottom: 6px !important; }
     html body .mi-wrap .ibd-section th { padding-top: 8px !important; padding-bottom: 3px !important; font-size: 11.5px !important; }
     html body .mi-wrap .ibd-leg-btn { min-height: 30px !important; font-size: 11.5px !important; padding: 0 8px !important; }
     html body #market-temp .mt-card { padding: 12px 12px !important; border-radius: 14px !important; }
