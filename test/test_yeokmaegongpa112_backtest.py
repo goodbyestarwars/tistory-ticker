@@ -115,5 +115,44 @@ class ConditionTest(unittest.TestCase):
         self.assertEqual(s['targetPct'], 25.0)
 
 
+class EntryStudyTest(unittest.TestCase):
+    def setUp(self):
+        spec2 = importlib.util.spec_from_file_location('yh112e', os.path.join(ROOT, 'scripts', 'research', 'yeokmaegongpa112_entry_study.py'))
+        self.es = importlib.util.module_from_spec(spec2)
+        spec2.loader.exec_module(self.es)
+
+    def tools(self, rows):
+        close = [r[4] for r in rows]
+        pre = bt.prefix(close)
+        return {'p20': pre, 'p60': pre, 'p112': pre, 'vol': bt.prefix([float(r[5]) for r in rows])}
+
+    def rows(self, n=140):
+        return [bar(i, 100, 101, 99, 100) for i in range(n)]
+
+    def test_support_retest_entry_found_with_structural_support(self):
+        rows = self.rows()
+        s = 125
+        rows[s + 3] = bar(s + 3, 100, 101, 99.5 - 0.0, 101)    # 저가 99.5 -> 공구리 저점 99의 +2%(100.98) 이내, 양봉, 저점 위 마감
+        found = self.es.find_entries(rows, s, self.tools(rows))
+        self.assertEqual(found['E0'], (s, None))
+        self.assertEqual(found['E2'], (s + 3, 99))
+
+    def test_no_entry_when_window_passes(self):
+        rows = self.rows()
+        s = 100
+        for k in range(s + 1, s + 30):
+            rows[k] = bar(k, 100, 120, 110, 115)   # 저가가 공구리 저점에서 멀리 떨어진 채 계속 위
+        found = self.es.find_entries(rows, s, self.tools(rows))
+        self.assertNotIn('E2', found)
+
+    def test_ma112_cross_needs_volume_and_prior_close_below(self):
+        rows = [bar(i, 100, 101, 99, 100) for i in range(160)]
+        s = 130
+        rows[s + 4] = bar(s + 4, 100, 130, 99, 100.0, 100000)     # 전날 종가 <= 112일선 -> 종가 상향 돌파 시도
+        rows[s + 5] = bar(s + 5, 100, 140, 99, 130, 400000)       # 거래량 4배, 종가가 112일선(약 100) 위
+        found = self.es.find_entries(rows, s, self.tools(rows))
+        self.assertEqual(found['E3'][0], s + 5)
+
+
 if __name__ == '__main__':
     unittest.main()

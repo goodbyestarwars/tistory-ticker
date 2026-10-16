@@ -53,7 +53,7 @@ def sma_at(pre, i, p):
     return (pre[i + 1] - pre[i + 1 - p]) / p if i + 1 >= p else None
 
 
-def simulate(bars, i, rule, mas):
+def simulate(bars, i, rule, mas, support=None):
     """신호일 i, 다음 날 시가 진입. 반환 dict 또는 None(진입 포기)."""
     n = len(bars)
     if i + 1 >= n:
@@ -61,7 +61,7 @@ def simulate(bars, i, rule, mas):
     entry = bars[i + 1][1]
     if not entry or entry <= 0:
         return None
-    base_low = min(b[3] for b in bars[max(0, i - 19):i + 1])
+    base_low = support if support else min(b[3] for b in bars[max(0, i - 19):i + 1])   # support: 호출자가 정한 구조 손절 기준 저점
     stop = None
     if rule == 'R1':
         stop = entry * (1 - STOP_FIXED)
