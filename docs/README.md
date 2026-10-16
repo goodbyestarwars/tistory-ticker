@@ -13,6 +13,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `MARKET_TEMP_METHOD.md` | 증시온도 방향 점수·위험도·원자료·이력 재계산 기준 | 증시온도 작업 |
 | `AUTO_WAVE_VALIDATION_2026-10-13.md` | 자동 파동(대·중·소) 검증 보고: 이전 엔진 문제·기준·수동 기준 대조·미래 비참조 시험·수익성 비교 | 차트 파동 작업 |
 | `WAVE_FORECAST_VALIDATION_2026-10-14.md` | 제거된 다음 파동 예측 기능의 과거 검증 기록 | 과거 연구 확인 |
+| `AI_COLLABORATION.md` | ChatGPT·Claude Code의 수동 GitHub Issue/PR 협업 절차 | 두 도구 협업 시 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력(최근 50건) | 이력 확인·갱신 시 |
 | `history/WORK_HISTORY_*.md` | 옮겨 둔 지난 이력 | 과거 항목을 `grep`으로 찾을 때만 |
 | `GAS_AUTO_DEPLOY.md` | GAS 자동 배포(GitHub Actions+clasp) 설정·확인 절차 | GAS 배포 작업 |
