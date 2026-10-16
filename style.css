@@ -7696,6 +7696,8 @@ html body :where(.ui-btn-a, .ui-btn-primary, .ui-btn-b, .ui-btn-secondary, .ui-b
   background: rgba(var(--np-ink), .12) !important;
   color: rgb(var(--np-ink)) !important;
 }
+/* 차트검색 탭 줄(메모·일봉…)과 한 줄에 놓이는 그리기 도구 단추는 조금 작게 - 한 줄에 들어가도록(2026-10-16). */
+html body .de-chart-toolbar .de-draw-controls :where(button) { min-height: 34px !important; padding: 0 11px !important; font-size: 12.5px !important; white-space: nowrap !important; }
 /* 핵심 동작 몇 곳에만 애플 블루(검색 등). 나머지 버튼은 연한 회색 면이라 색이 튀지 않는다. */
 html body :where(.ss-go-btn, .ui-btn-a, .ui-btn-primary, .discussion-write-actions input[type="submit"]) {
   background: #0071e3 !important;
@@ -7716,7 +7718,7 @@ html body :where(.ss-fav-btn, .us-stocks-fav-btn, .ss-watch-toggle, .sc-nav) {
 /* ── 6. 탭 : 애플 세그먼트 스타일 — 알약형, 선택된 탭만 연한 면 ── */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .ibd-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
+  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
   min-height: 34px !important;
   padding: 0 14px !important;
   border: 0 !important;
@@ -7729,7 +7731,7 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 }
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .ibd-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
   background: rgba(var(--np-ink), .07) !important;
   color: rgb(var(--np-ink)) !important;
   font-weight: 600 !important;
@@ -7881,7 +7883,7 @@ html body .home-widget-grid { border-bottom: 0 !important; }
 html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 8px !important; background: rgba(var(--np-ink), .07) !important; color: rgb(var(--np-ink)) !important; }
 /* 탭 글자는 줄바꿈하지 않는다(좁은 화면에서 두 줄로 깨지던 것). 넘치면 가로로 민다. */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab,
-  .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .home-market-switch button, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
+  .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .nine-range-btn, .home-market-switch button, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
 html body .mt-view-toggle { overflow-x: auto !important; scrollbar-width: none !important; }
 html body .mt-section-block { border-top: 0 !important; }
 
@@ -8001,7 +8003,7 @@ html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { marg
       시장지표·차트검색·전략검색 탭, 그 밖의 탭 묶음, 상단 메뉴(PC)를 연한 트랙 + 선택된 것만 바탕색 면으로 통일.
       상단 메뉴의 하위 드롭다운 카드는 건드리지 않는다. ── */
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods) {
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods) {
   display: inline-flex !important;
   align-items: center !important;
   width: fit-content !important;
@@ -8017,9 +8019,9 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
   scrollbar-width: none !important;
 }
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods)::-webkit-scrollbar { display: none; }
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)::-webkit-scrollbar { display: none; }
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .home-market-switch, .hrt-tabs, .mt-flow-periods)
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)
   > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
   background: var(--np-paper) !important;
   color: rgb(var(--np-ink)) !important;

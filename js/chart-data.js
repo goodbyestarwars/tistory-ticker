@@ -218,13 +218,12 @@
     var wrap = parent.querySelector('.nine-chart-ranges');
     if (!wrap) {
       wrap = document.createElement('div');
-      wrap.className = 'nine-chart-ranges';
-      wrap.style.cssText = 'display:flex;gap:4px;flex-wrap:wrap;margin:6px 0;align-items:center';
+      wrap.className = 'nine-chart-ranges';   // 모양은 css/ui-system.css(.nine-chart-ranges) - 사이트 탭(.ss-tf-btn)과 같은 스타일
       parent.insertBefore(wrap, chartElement);
     }
     wrap.innerHTML = RANGE_OPTIONS.map(function (o) {
-      return '<button type="button" data-range="' + o[0] + '" style="padding:4px 7px;border:1px solid #aaa;border-radius:4px;background:'
-        + (selectedRange(code) === o[0] ? '#d24f45;color:white' : 'transparent;color:inherit') + '">' + o[1] + '</button>';
+      var on = selectedRange(code) === o[0];
+      return '<button type="button" class="nine-range-btn' + (on ? ' active' : '') + '" data-range="' + o[0] + '" aria-pressed="' + on + '">' + o[1] + '</button>';
     }).join('') + '<span class="nine-chart-range-status" aria-live="polite"></span>';
     wrap.onclick = function (event) {
       var button = event.target.closest('[data-range]');

@@ -229,3 +229,9 @@
 .ui-data-table th { padding: 9px 8px; border-top: 1px solid #aeb5bd; border-bottom: 1px solid #aeb5bd; background: transparent; color: var(--ui-muted); font-size: 11px; text-align: left; }
 .ui-data-table td { padding: 11px 8px; border-bottom: 1px solid var(--ui-rule); background: transparent; }
 .ui-data-table tbody tr:hover { background: color-mix(in srgb, var(--ui-ink) 3%, var(--ui-surface)); }
+
+/* 차트 기간 버튼 묶음(js/chart-data.js installRangeButtons) - 모양은 style.css의 사이트 세그먼트(탭) 규칙을 따른다(2026-10-16). 여기는 간격만. */
+.nine-chart-ranges { margin: 4px 0 6px; }
+.nine-chart-ranges .nine-chart-range-status { color: #888; font-size: 12px; padding: 0 6px; white-space: nowrap; }
+.nine-chart-ranges .nine-chart-range-status:empty { display: none; }
+html.dark .nine-chart-ranges .nine-chart-range-status { color: rgba(245, 239, 224, 0.6); }
