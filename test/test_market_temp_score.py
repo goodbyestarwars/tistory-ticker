@@ -816,7 +816,8 @@ class ThreeAxisSummaryTest(unittest.TestCase):
     def test_total_is_direction_only(self):
         got = mts.build_axes(self.LIVE)
         self.assertEqual(got['score100'], 65)
-        self.assertEqual(got['grade3']['label'], '과열')
+        # 2026-10-16 경계 변경(30/70): 65점은 보통이다(이전 40/61 기준에서는 과열이었다).
+        self.assertEqual(got['grade3']['label'], '보통')
 
     def test_vix_and_leverage_change_risk_but_not_direction(self):
         stressed = dict(self.LIVE, vix={'score': 0}, creditRisk={'score': 0})
@@ -846,7 +847,16 @@ class ThreeAxisSummaryTest(unittest.TestCase):
         self.assertEqual(got['axes']['risk']['value'], 29)
 
     def test_three_grades_replace_the_old_five(self):
-        self.assertEqual(mts.grade_for_score100(39)['label'], '공포')
-        self.assertEqual(mts.grade_for_score100(40)['label'], '보통')
-        self.assertEqual(mts.grade_for_score100(60)['label'], '보통')
-        self.assertEqual(mts.grade_for_score100(61)['label'], '과열')
+        # 2026-10-16 사용자 지정 경계: 0~29 공포, 30~69 보통, 70~100 과열.
+        for score, label in ((0, '공포'), (29, '공포'), (30, '보통'), (37, '보통'), (62, '보통'), (68, '보통'),
+                             (69, '보통'), (70, '과열'), (71, '과열'), (100, '과열')):
+            self.assertEqual(mts.grade_for_score100(score)['label'], label, score)
+        self.assertEqual(mts.grade_for_score100(71)['tone'], 'greed')
+        self.assertEqual(mts.grade_for_score100(37)['tone'], 'neutral')
+
+    def test_grade_uses_the_rounded_score_shown_on_screen(self):
+        # 화면 칸은 반올림한 정수를 보여 주므로 29.6은 '30점·보통', 69.5는 '70점·과열'이다(JS Math.round와 같은 0.5 올림).
+        self.assertEqual(mts.grade_for_score100(29.4)['label'], '공포')
+        self.assertEqual(mts.grade_for_score100(29.6)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(69.4)['label'], '보통')
+        self.assertEqual(mts.grade_for_score100(69.5)['label'], '과열')

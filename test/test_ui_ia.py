@@ -1667,7 +1667,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertNotIn(gone, source)
         # 설명문도 실제 계산(3축 평균, 50/75 경계)과 맞춘다.
         self.assertNotIn("원점수 120점을 100점으로 환산", source)
-        self.assertIn("0~39점은 공포, 40~60점은 보통, 61점부터 과열", source)
+        self.assertIn("zoneRangeText_()", source)
+        self.assertIn("var SCORE_CUT_ = { fear: 30, greed: 70 };", source)
         self.assertIn("코스피 시장 전체 최근 5일 수급", source)
         self.assertNotIn("KODEX 200 최근 5일", source)
         for token in (".mt-gauge-seg", ".mt-summary-sowhat", ".mt-ant-list li"):
