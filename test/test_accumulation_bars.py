@@ -97,7 +97,17 @@ class AccumulationContextTest(unittest.TestCase):
         self.hold_after(bars, 30)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'confirmed']])
-        self.assertEqual(out['markers'], [[bars[30]['date'], '매집 확인']])
+        # 후보는 그날(30)에, 4봉 지지는 판정이 가능해진 4번째 봉(34)에 찍는다 - 과거 차트가 미리 알았던 것처럼 보이지 않게
+        self.assertEqual(out['markers'], [[bars[30]['date'], '후보'], [bars[34]['date'], '4봉 지지']])
+
+    def test_fourth_bar_volume_is_excluded_like_the_screener(self):
+        bars = self.base()
+        self.acc_bar(bars, 30)
+        self.hold_after(bars, 30)
+        bars[34]['volume'] = 900000                                # 4번째 봉은 거래량 평균에 넣지 않는다(검색기가 최신 봉을 빼는 방식)
+        self.assertEqual(js_hits(bars)['statuses'], [[30, 'confirmed']])
+        bars[33]['volume'] = 900000                                # 앞 3봉에 들어가면 실패
+        self.assertEqual(js_hits(bars)['statuses'], [[30, 'failed']])
 
     def test_pending_when_fewer_than_four_bars_follow(self):
         bars = self.base()[:38]
@@ -105,7 +115,7 @@ class AccumulationContextTest(unittest.TestCase):
         self.hold_after(bars, 35, count=2)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[35, 'pending']])
-        self.assertEqual(out['markers'][0][1], '후보')
+        self.assertEqual(out['markers'], [[bars[35]['date'], '후보']])     # 4봉이 안 지났으니 후보만
 
     def test_failed_followup_is_not_marked(self):
         bars = self.base()
@@ -113,7 +123,9 @@ class AccumulationContextTest(unittest.TestCase):
         self.hold_after(bars, 30, volume=300000)                  # 이후 거래량이 줄지 않음(분배일 수 있음)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'failed']])
-        self.assertEqual(out['markers'], [])
+        # 실패도 지우지 않고 흐린 회색으로 남긴다(좋은 것만 남아 결과가 좋아 보이는 착시 방지)
+        self.assertEqual(out['markers'], [[bars[30]['date'], '후보'], [bars[34]['date'], '4봉 실패']])
+        self.assertEqual(out['summary']['failed'], 1)
         bars2 = self.base()
         self.acc_bar(bars2, 30)
         self.hold_after(bars2, 30)
@@ -129,8 +141,13 @@ class AccumulationContextTest(unittest.TestCase):
         self.hold_after(bars, 30)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'distribution']])
-        self.assertEqual(out['markers'][0][1], '털기?')
+        self.assertEqual(out['markers'], [[bars[30]['date'], '털기?']])       # 그날 맥락으로 판정, 4봉 뒤 표시 없음
+        self.assertEqual(js_hits(self._with_failed_followup(bars))['markers'], [[bars[30]['date'], '털기?']])
         self.assertEqual(out['summary']['distribution'], 1)
+
+    def _with_failed_followup(self, bars):
+        put(bars, 33, 10450, 10450, 9000, 9500, 900000)            # 후속 지지 실패여도 털기?는 그대로
+        return bars
 
     def test_missing_volume_is_skipped_not_counted_as_zero(self):
         bars = self.base()

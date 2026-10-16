@@ -623,11 +623,13 @@
   // ---- 매집봉 후보 표시(2026-10-16 사용자 요청, 2026-10-17 맥락 구분 보강) ----
   // 봉 하나 조건은 scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같다(검색기와 차트가 어긋나지 않게):
   // 거래량이 직전 20일 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
-  // 이 조건만으로는 매집인지 물량을 터는 봉인지 가를 수 없어서(5년 일봉 시험: docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 맥락을 나눠 표시한다:
-  //  - 털기?   : 봉 직전 20봉이 +25% 이상 오른 뒤의 대량 양봉(고점권 분배 가능성, 20일 뒤 -10% 이하 비율 48%)
-  //  - 매집 확인: 이후 4봉 평균 거래량이 매집봉의 60% 이하로 줄고 저가·종가가 매집봉 지지(저가 98%·종가 96%)를 지킴 - 검색기의 후속 확인과 같은 기준
-  //  - 후보     : 아직 이후 4봉이 지나지 않아 판단 전
-  //  후속 확인에 실패한 봉은 표시하지 않는다(점 하나가 확인처럼 읽히지 않게). 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
+  // 이 조건만으로는 매집인지 물량을 터는 봉인지 가를 수 없어서(5년 일봉 시험: docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 맥락을 나눠 표시한다.
+  // 표시는 "그날 알 수 있었던 것"과 "나중에 알게 된 것"을 다른 봉에 찍는다(과거 차트가 미리 알았던 것처럼 보이지 않게):
+  //  - 후보(후보 봉 그날)   : 봉 하나 조건을 만족한 날. 직전 20봉이 +25% 이상 올랐으면 대신 털기?(분배 가능성, 20일 뒤 -10% 이하 비율 48%)
+  //  - 4봉 지지(4번째 봉 날) : 후보 다음 4봉에서 앞 3봉 평균 거래량이 후보 봉의 60% 이하로 줄고, 4봉 모두 저가가 후보 저가의 98%·종가가 후보 종가의 96% 아래로 내려가지 않음.
+  //                           거래량 평균에서 마지막(4번째) 봉을 빼는 것은 검색기 후속 확인이 최신 봉을 빼는 방식과 같다. 매집 주체를 확인했다는 뜻이 아니다.
+  //  - 4봉 실패(4번째 봉 날) : 위 조건을 못 채움(결과가 좋아 보이는 착시를 막으려고 흐린 회색으로 남긴다)
+  //  털기?는 후속 확인과 상관없이 그날의 맥락만으로 판정하며 4봉 뒤 표시를 달지 않는다. 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
   var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b',
     runupBars: 20, distributionRunup: 0.25, confirmBars: 4, dryRatio: 0.6, supportLow: 0.98, supportClose: 0.96 };
 
@@ -651,7 +653,9 @@
       var avg = count ? sum / count : 0;
       if (!avg || v < ACCUMULATION.volMult * avg || c <= o || (c / o - 1) * 100 < ACCUMULATION.minBodyPct) continue;
       if ((c - l) / (h - l) < ACCUMULATION.closePosMin || c * v < ACCUMULATION.amountMin) continue;
-      out.push({ index: i, date: b.date, multiple: v / avg, status: accumulationStatus(bars, i, v) });
+      var status = accumulationStatus(bars, i, v);
+      var confirmBar = bars[i + ACCUMULATION.confirmBars];
+      out.push({ index: i, date: b.date, multiple: v / avg, status: status, resolveDate: confirmBar ? confirmBar.date : null });
     }
     return out;
   }
@@ -674,16 +678,22 @@
   }
 
   var ACC_MARKER = {
-    confirmed: { color: '#f59e0b', size: 2, text: '매집 확인' },
-    pending: { color: '#fbbf24', size: 1, text: '후보' },
+    candidate: { color: '#fbbf24', size: 1, text: '후보' },
+    supported: { color: '#f59e0b', size: 2, text: '4봉 지지' },
+    failed: { color: '#9ca3af', size: 1, text: '4봉 실패' },
     distribution: { color: '#6b7280', size: 1, text: '털기?' }
   };
 
   function accumulationMarkers(bars) {
     var out = [];
+    function put(date, style) {
+      if (date) out.push({ time: date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text });
+    }
     accumulationBars(bars).forEach(function (hit) {
-      var style = ACC_MARKER[hit.status];
-      if (style) out.push({ time: hit.date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text });
+      if (hit.status === 'distribution') { put(hit.date, ACC_MARKER.distribution); return; }
+      put(hit.date, ACC_MARKER.candidate);                                   // 그날 알 수 있었던 것
+      if (hit.status === 'confirmed') put(hit.resolveDate, ACC_MARKER.supported);   // 4봉이 지난 뒤에야 알게 된 것은 4번째 봉에 찍는다
+      else if (hit.status === 'failed') put(hit.resolveDate, ACC_MARKER.failed);
     });
     return out;
   }
