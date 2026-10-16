@@ -187,6 +187,100 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(s['byHorizon']['D5']['all_withStop']['n'], 0)   # 일봉 부족 -> 표본에서 제외
 
 
+class ObservationCompletenessTest(PipelineTest):
+    """2026-10-16 ChatGPT 사후 리뷰: 관측 공백·진입 누락·시초가 차이·표시·마이그레이션."""
+
+    def test_long_observation_gap_after_entry_marks_path_incomplete_and_misses_stop(self):
+        self.obs(9, 0, 30, 10200, 20000)
+        self.obs(9, 2, 0, 10150, 40000)
+        self.obs(9, 4, 30, 10280, 60000)
+        self.obs(9, 7, 0, 10300, 60000)
+        self.obs(9, 7, 30, 10320, 70000)
+        self.obs(9, 8, 0, 10330, 80000)
+        # 순위권에서 사라진 사이에 손절가 아래로 갔다 회복(관측 못 함) -> 14:00에야 다시 관측
+        self.obs(14, 0, 0, 10400, 90000)
+        r = self.row()[0]
+        self.assertEqual(r['stop_hit_intraday'], 0)                   # 못 본 급락은 기록되지 않는다
+        self.assertGreater(r['path_max_gap_sec'], gs.PATH_GAP_MAX_SEC)
+        self.assertFalse(gs.path_complete(r['path_obs_count'], r['path_last_obs_ts'], r['path_max_gap_sec']))
+        s = gs.summarize(self.db)
+        self.assertEqual((s['observation']['pathComplete'], s['observation']['pathIncomplete']), (0, 1))
+        self.prices.execute("INSERT INTO daily_prices VALUES ('005930','2026-10-19',10200,10600,10100,10450,1000)")
+        gs.update_outcomes(self.prices, self.db, today='2026-10-19')
+        s = gs.summarize(self.db)
+        self.assertEqual(s['byHorizon']['D0']['all_withStop']['n'], 1)
+        self.assertEqual(s['byHorizon']['D0']['complete_withStop']['n'], 0)   # 완전한 경로만 보면 표본 제외
+
+    def test_path_complete_requires_small_gaps_and_late_last_observation(self):
+        close = at(15, 25).timestamp()
+        self.assertTrue(gs.path_complete(500, close, 60))
+        self.assertFalse(gs.path_complete(500, close, 600))                    # 중간 공백
+        self.assertFalse(gs.path_complete(500, at(13, 0).timestamp(), 30))     # 장 마감 전에 관측이 끊김
+        self.assertFalse(gs.path_complete(None, close, 30))
+        self.assertFalse(gs.path_complete(500, None, 30))
+
+    def test_signal_without_next_observation_is_counted_as_entry_missing_with_forward_compare(self):
+        self.obs(9, 0, 30, 10200, 20000)
+        self.obs(9, 2, 0, 10150, 40000)
+        self.obs(9, 4, 30, 10280, 60000)
+        self.assertEqual(self.obs(9, 7, 0, 10300, 60000), [('005930', 'SIGNAL')])   # 이후 순위권에서 사라짐
+        r = self.row()[0]
+        self.assertIsNone(r['entry_price'])
+        self.prices.execute("INSERT INTO daily_prices VALUES ('005930','2026-10-19',10200,10700,10100,10609,1000)")
+        self.prices.execute("INSERT INTO daily_prices VALUES ('005930','2026-10-20',10600,10900,10500,10815,1000)")
+        gs.update_outcomes(self.prices, self.db, today='2026-10-20')           # 진입 없는 신호도 일봉을 채운다
+        s = gs.summarize(self.db)
+        self.assertEqual((s['signals'], s['entered']), (1, 0))
+        obs = s['observation']
+        self.assertEqual((obs['entryMissing'], obs['entryMissingPct']), (1, 100.0))
+        d0 = obs['forwardFromSignalPrice']['entryMissing']['D0']
+        self.assertEqual(d0['n'], 1)
+        self.assertAlmostEqual(d0['meanPct'], round((10609 / 10300 - 1) * 100, 3))
+        self.assertEqual(obs['forwardFromSignalPrice']['entered']['D0']['n'], 0)
+
+    def test_open_observation_vs_official_open_is_measured(self):
+        self.run_morning()
+        self.prices.execute("INSERT INTO daily_prices VALUES ('005930','2026-10-19',10150,10600,10100,10450,1000)")
+        gs.update_outcomes(self.prices, self.db, today='2026-10-19')
+        self.assertEqual(self.row()[0]['official_open'], 10150)
+        o = gs.summarize(self.db)['openObsVsOfficial']
+        self.assertEqual(o['n'], 1)
+        self.assertAlmostEqual(o['medianDiffPct'], round((10200 / 10150 - 1) * 100, 3))
+        self.assertAlmostEqual(o['maxAbsDiffPct'], round((10200 / 10150 - 1) * 100, 3))
+
+    def test_older_database_gets_new_columns_without_losing_rows(self):
+        old_ddl = gs.DDL.replace('    path_obs_count INTEGER,\n    path_last_obs_ts REAL,\n    path_max_gap_sec REAL,\n    official_open REAL,\n', '')
+        self.assertNotIn('path_obs_count', old_ddl)
+        with closing(sqlite3.connect(self.db)) as conn:
+            conn.execute(old_ddl)
+            conn.execute("INSERT INTO gap_shadow_signal (trading_date, code, signal_at, signal_price) VALUES ('2026-10-16','000001','x',100)")
+            conn.commit()
+        gs.connect(self.db).close()
+        gs.connect(self.db).close()                       # 두 번째는 변화 없음
+        with closing(sqlite3.connect(self.db)) as conn:
+            cols = {r[1] for r in conn.execute('PRAGMA table_info(gap_shadow_signal)')}
+            self.assertTrue({'path_obs_count', 'path_last_obs_ts', 'path_max_gap_sec', 'official_open'} <= cols)
+            self.assertEqual(conn.execute('SELECT COUNT(*) FROM gap_shadow_signal').fetchone()[0], 1)
+
+    def test_restart_after_gap_flags_the_downtime_as_observation_gap(self):
+        self.run_morning()
+        gs._day.update({'date': None, 'obs': {}, 'prev': {}})
+        self.obs(13, 0, 0, 10500, 99000)                   # 재시작 뒤 첫 관측 - 사이 공백이 기록돼야 한다
+        r = self.row()[0]
+        self.assertGreater(r['path_max_gap_sec'], 3600)
+
+    def test_runtime_status_and_rules_text_for_screen(self):
+        self.run_morning()
+        rt = gs.runtime_status()
+        self.assertEqual(rt['date'], '2026-10-19')
+        self.assertGreaterEqual(rt['polls'], 7)
+        self.assertEqual(rt['statusCounts'].get('ENTERED'), 1)
+        payload = gs.get_payload(self.db)
+        self.assertIn('-3%', payload['rules']['stopRule'])
+        self.assertIn('실계좌', payload['summary']['note'])
+        self.assertIn('complete_', payload['summary']['note'])
+
+
 class EvaluateTest(unittest.TestCase):
     def days(self, *rows):
         return [{'date': 'd%d' % i, 'open': o, 'high': h, 'low': l, 'close': c} for i, (o, h, l, c) in enumerate(rows)]
