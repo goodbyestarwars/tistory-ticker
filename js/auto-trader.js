@@ -64,7 +64,7 @@
     BUY_FILL_UNCONFIRMED: '매수 체결 확인 필요', SELL_FILL_UNCONFIRMED: '매도 체결 확인 필요',
     FOREIGN_HOLDINGS: '기존 보유 종목 때문에 멈춤', PENDING_ORDERS: '미체결 주문 대기',
     NO_ENTRY: '진입 조건 없음', NO_CANDIDATE: '적합한 후보 없음', BUY_SENT: '매수 주문 전송',
-    STOP_NET_5: '손절 주문 전송', PROFIT_NET_6: '익절 주문 전송', PROFIT_FLOOR_NET_3: '익절 주문 전송',
+    STOP_3: '손절 주문 전송', STOP_EMERGENCY: '비상 손절 주문 전송', TRAIL_2_5: '추적 청산(익절) 주문 전송',
     PRICE_UNAVAILABLE: '현재가 확인 불가', CLOSED_OR_STOPPED: '장 시간 밖 또는 정지',
     EXCLUSION_UNCONFIRMED: '제외 목록 확인 실패 - 주문 중지' };
 
@@ -326,7 +326,7 @@
       row('운용 예산', fmtWon(pol.budget) + '원 · 최대 ' + pol.max_stocks + '종목 · 종목당 최대 ' + fmtWon(pol.per_stock) + '원');
       row('현금 예비금', fmtWon(pol.reserve) + '원 유지');
       row('매매 비용 가정', pol.cost_pct + '% (순손익 계산용)');
-      row('청산 규칙', pol.exit ? '순손익 ' + pol.exit.stop_net_pct + '% 손절 · +' + pol.exit.take_profit_net_pct + '% 익절 · +' + pol.exit.floor_net_pct + '% 도달 뒤 이탈 시 매도' : '확인 불가(엔진 규칙 대조 실패 - 표시 안 함)');
+      row('청산 규칙', pol.exit ? '매입가 대비 -' + pol.exit.stop_pct + '% 손절(연속 ' + pol.exit.confirm_checks + '회 확인) · -' + pol.exit.emergency_stop_pct + '% 비상 즉시 손절 · 고점이 +' + pol.exit.trail_arm_pct + '% 이상이면 고점 대비 -' + pol.exit.trail_pct + '% 이탈 시 추적 매도(고정 익절 없음, 비용 제외)' : '확인 불가(엔진 규칙 대조 실패 - 표시 안 함)');
     }
     var manual = holdings.filter(function (h) { return h.kind !== 'engine'; }).length;
     var note = pol ? '<p class="at-note">값 출처: PC 엔진 <code>live_engine.py</code>(읽기 전용). 이 화면의 문구를 고정값으로 쓰지 않습니다.</p>'

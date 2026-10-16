@@ -298,17 +298,25 @@ class OpsCenterTests(BaseCase):
         folder = tempfile.mkdtemp()
         self.assertIsNone(bot_mod.live_policy(folder))
         path = os.path.join(folder, 'live_engine.py')
+        # 2026-10-16 청산 규칙(손절 -3% 2회 확인·비상 -5%·+3% 이후 고점 대비 -2.5% 추적)을 흉내 낸 최소 엔진 파일
         body = ('BUDGET=2_000_000\nRESERVE=50_000\nPER_STOCK=500_000\nMAX_STOCKS=2\nCOST_PCT=0.5\n'
-                'def exit_reason(g, r):\n    if g <= -5: return "STOP_NET_5"\n    if g >= 6: return "PROFIT_NET_6"\n'
-                '    if r and g < 3: return "PROFIT_FLOOR_NET_3"\n')
+                'STOP_PCT=3.0\nEMERGENCY_STOP_PCT=5.0\nTRAIL_ARM_PCT=3.0\nTRAIL_PCT=2.5\nCONFIRM_CHECKS=2\n'
+                'def exit_decision(price, avg, peak, hits):\n'
+                '    new_peak = max(peak or avg, price)\n'
+                '    gain = (price / avg - 1) * 100\n'
+                '    if gain <= -5: return "STOP_EMERGENCY", new_peak, hits + 1\n'
+                '    breach = "STOP_3" if gain <= -3 else ("TRAIL_2_5" if (new_peak / avg - 1) * 100 >= 3 and price <= new_peak * 0.975 else None)\n'
+                '    n = hits + 1 if breach else 0\n'
+                '    return (breach if breach and n >= 2 else None), new_peak, n\n')
         with open(path, 'w', encoding='utf-8') as f:
-            f.write(body.replace('\\n', '\n'))
+            f.write(body.replace('\n', '\n'))
         pol = bot_mod.live_policy(folder)
         self.assertEqual((pol['budget'], pol['max_stocks'], pol['per_stock']), (2000000, 2, 500000))
-        self.assertEqual(pol['exit']['stop_net_pct'], -5.0)
-        # 손절선이 다르면(-4) 값을 보여 주지 않는다 - 하드코딩된 문구를 현재 설정처럼 쓰지 않기 위해
+        self.assertEqual((pol['exit']['stop_pct'], pol['exit']['emergency_stop_pct'], pol['exit']['trail_arm_pct'],
+                          pol['exit']['trail_pct'], pol['exit']['confirm_checks']), (3.0, 5.0, 3.0, 2.5, 2))
+        # 규칙이 다르면(비상 손절 -6) 값을 보여 주지 않는다 - 하드코딩된 문구를 현재 설정처럼 쓰지 않기 위해
         with open(path, 'w', encoding='utf-8') as f:
-            f.write(body.replace('\\n', '\n').replace('g <= -5', 'g <= -4'))
+            f.write(body.replace('\n', '\n').replace('gain <= -5', 'gain <= -6'))
         os.utime(path, (1, 1))
         self.assertIsNone(bot_mod.live_policy(folder)['exit'])
 

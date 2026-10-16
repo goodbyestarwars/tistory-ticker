@@ -249,10 +249,17 @@ def _read_live_policy(path):
         spec.loader.exec_module(mod)
         policy = {'budget': int(mod.BUDGET), 'reserve': int(mod.RESERVE), 'per_stock': int(mod.PER_STOCK),
                   'max_stocks': int(mod.MAX_STOCKS), 'cost_pct': float(mod.COST_PCT), 'source': 'live_engine.py'}
-        exit_ok = (mod.exit_reason(-5.0, False) == 'STOP_NET_5' and mod.exit_reason(-4.9, False) is None
-                   and mod.exit_reason(6.0, False) == 'PROFIT_NET_6' and mod.exit_reason(5.9, False) is None
-                   and mod.exit_reason(2.9, True) == 'PROFIT_FLOOR_NET_3' and mod.exit_reason(3.0, True) is None)
-        policy['exit'] = {'stop_net_pct': -5.0, 'take_profit_net_pct': 6.0, 'floor_net_pct': 3.0} if exit_ok else None
+        # 2026-10-16 청산 규칙(손절 짧게·익절 길게): 상수와 exit_decision() 경계값이 기대와 맞을 때만 화면에 보여 준다.
+        stop, emergency, arm, trail, confirm = (float(mod.STOP_PCT), float(mod.EMERGENCY_STOP_PCT), float(mod.TRAIL_ARM_PCT),
+                                                float(mod.TRAIL_PCT), int(mod.CONFIRM_CHECKS))
+        d = mod.exit_decision
+        exit_ok = (d(100 - emergency, 100, None, 0)[0] == 'STOP_EMERGENCY'
+                   and d(100 - stop, 100, None, 0)[0] is None and d(100 - stop, 100, None, confirm - 1)[0] == 'STOP_3'
+                   and d(100 + arm, 100, None, 0)[0] is None
+                   and d((100 + arm) * (1 - trail / 100) - 0.01, 100, 100 + arm, confirm - 1)[0] == 'TRAIL_2_5'
+                   and d(200, 100, None, 0)[0] is None)
+        policy['exit'] = {'stop_pct': stop, 'emergency_stop_pct': emergency, 'trail_arm_pct': arm, 'trail_pct': trail,
+                          'confirm_checks': confirm} if exit_ok else None
         return policy
     except Exception:
         return None
@@ -298,7 +305,7 @@ class Bot:
             pass
         live_active = bool(live_engine and live_engine.get('state') in
                            ('NO_ENTRY', 'NO_CANDIDATE', 'PENDING_ORDERS', 'BUY_SENT',
-                            'STOP_NET_5', 'PROFIT_NET_6', 'PROFIT_FLOOR_NET_3'))
+                            'STOP_3', 'STOP_EMERGENCY', 'TRAIL_2_5'))
         mode = ('실계좌 엔진 가동' if live_active else
                 '오늘 실주문 시작 설정됨' if live_scheduled and dt.hour < 9 else
                 '실계좌 엔진 상태 확인 필요' if live_scheduled and market_open(dt) else
