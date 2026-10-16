@@ -206,6 +206,44 @@
     return ANT_GUIDE_BY_TONE[tone] ? tone : 'neutral';
   }
 
+  // 2026-10-17 사용자 지적("가격 97점 오름 우세인데 '뚜렷한 방향이 없는 날'이라니, 하락한 날도 그렇고"):
+  // 종합점수(수급·가격 평균)가 보통(30~69)이면 두 축이 같이 중간이든 한쪽이 극단이든 모두 '방향 없음'으로 뭉뚱그려졌다.
+  // 점수가 보통일 때는 가격 축과 수급 축을 따로 읽어 "가격은 오르는데 수급이 약한 날"처럼 실제 상태를 말한다. 두 축이 모두 중간일 때만
+  // 기존 '뚜렷한 방향이 없는 날'을 쓴다. 기준은 축 옆 단어(axisWord)와 같다 - 65 이상 우세, 35 미만 열세.
+  var AXIS_HIGH = 65, AXIS_LOW = 35;
+  var DIRECTION_MOODS = {
+    upWeakMoney: { mood: '가격은 오르고 수급은 약한 날', title: '오른다고 추격하지 말고, 수급이 붙는 종목만 본다',
+      short: '가격은 오름 쪽이 뚜렷하지만 수급(거래대금·외국인·기관)이 이를 받치지 않습니다. 오른 종목 가운데 거래대금이 붙는 종목만 확인합니다.',
+      todo: '오른 종목 중 거래대금이 붙는 업종·종목만 남기고 나머지는 지켜본다', avoid: '오른 종목이라는 이유만으로 추격 매수' },
+    upStrong: { mood: '상승 쪽으로 힘이 실리는 날', title: '급하게 따라가지 말고, 눌림에서 확인한다',
+      short: '가격과 수급이 같은 쪽입니다. 이미 오른 종목은 눌림에서, 돈이 붙는 업종 안에서만 고릅니다.',
+      todo: '돈이 붙는 업종에서 눌림이 나온 종목을 차트로 확인한다', avoid: '장중 급등을 보고 시장가로 따라가기' },
+    downWithMoney: { mood: '가격은 내리고 돈은 들어오는 날', title: '내리는 종목을 받는 돈이 있는지 확인한다',
+      short: '가격은 내림 쪽이지만 수급은 매수 쪽입니다. 하락 중 거래대금 증가는 매도 주도일 수도 있어, 하락이 멈추는 종목부터 봅니다.',
+      todo: '하락이 멈추고 거래대금이 늘어나는 종목만 관심종목에 둔다', avoid: '아직 내리는 종목의 평단만 낮추는 물타기' },
+    downWeak: { mood: '내림 쪽으로 기운 날', title: '떨어지는 종목은 잡지 말고, 반등이 확인된 뒤에 본다',
+      short: '가격이 내림 쪽으로 기울었고 수급도 받쳐 주지 않습니다. 보유 종목은 5일선 이탈 여부를 먼저 점검합니다.',
+      todo: '보유 종목의 5일선 이탈 여부를 먼저 점검한다', avoid: '바닥이라고 단정하고 먼저 사기' },
+    moneyOnly: { mood: '돈은 들어오는데 가격은 아직인 날', title: '돈이 몰리는 곳에서 가격이 따라오는지 확인한다',
+      short: '수급은 매수 쪽이지만 가격은 아직 뚜렷하지 않습니다. 돈이 몰리는 업종에서 가격이 따라오는 종목만 봅니다.',
+      todo: '돈이 몰리는 업종 안에서 가격이 따라오는 종목을 확인한다', avoid: '가격이 확인되기 전에 미리 크게 사기' },
+    moneyOut: { mood: '돈이 빠져나가는 날', title: '신규 진입은 줄이고, 보유 종목의 이탈 가격을 점검한다',
+      short: '가격은 뚜렷하지 않지만 수급이 매도 쪽입니다. 신규 진입을 줄이고 보유 종목의 정리 가격을 미리 정합니다.',
+      todo: '보유 종목의 정리 가격을 미리 적어 둔다', avoid: '수급이 빠지는 종목을 값이 싸 보인다고 사기' }
+  };
+
+  // 종합 점수가 보통(neutral)일 때만 쓴다. 공포·과열은 이미 방향이 뚜렷한 등급이다. 값이 없으면 null(기존 문구 유지).
+  function directionMood_(price, money, tone) {
+    if (tone !== 'neutral' || !isFinite(price) || !isFinite(money)) return null;
+    var priceUp = price >= AXIS_HIGH, priceDown = price < AXIS_LOW;
+    var moneyBuy = money >= AXIS_HIGH, moneySell = money < AXIS_LOW;
+    if (priceUp) return moneyBuy ? DIRECTION_MOODS.upStrong : DIRECTION_MOODS.upWeakMoney;
+    if (priceDown) return moneyBuy ? DIRECTION_MOODS.downWithMoney : DIRECTION_MOODS.downWeak;
+    if (moneyBuy) return DIRECTION_MOODS.moneyOnly;
+    if (moneySell) return DIRECTION_MOODS.moneyOut;
+    return null;
+  }
+
   function antGuide(data) {
     var tone = crowdTone(data);
     var base = ANT_GUIDE_BY_TONE[tone];
@@ -214,11 +252,14 @@
     var avoid = base.avoid.slice();
     var risk = Number(axes.risk && axes.risk.value);
     var money = Number(axes.money && axes.money.value);
+    var priceAxis = Number(axes.price && axes.price.value);
+    var direction = directionMood_(priceAxis, money, tone);
     var score = score100(data);
     var context = [];
     if (isFinite(score)) context.push('시장 점수 ' + Math.round(score) + '점');
     if (isFinite(risk)) context.push('위험 ' + Math.round(risk) + '점');
-    if (isFinite(money)) context.push('매수 우위 ' + Math.round(money) + '점');
+    if (isFinite(priceAxis)) context.push('가격 ' + Math.round(priceAxis) + '점');
+    if (isFinite(money)) context.push('수급 ' + Math.round(money) + '점');
 
     // 등급 하나로 같은 문구를 반복하지 않는다. 오늘의 위험·자금 축이 어느 쪽으로
     // 기울었는지에 따라 "정리", "관망", "수익 보호" 중 우선 행동을 바꾼다.
@@ -226,6 +267,10 @@
       todo[0] = '손절가를 깼으면 오늘 정리한다. 못 하겠으면 1개월 버틸 근거를 먼저 적는다';
       avoid.unshift('손실 종목의 평단만 낮추는 물타기');
       base = { tone: tone, mood: '위험 신호가 높아진 날', title: '오늘은 수익보다 계좌 방어가 먼저다', short: '' };
+    } else if (direction) {
+      todo[0] = direction.todo;
+      avoid.unshift(direction.avoid);
+      base = { tone: tone, mood: direction.mood, title: direction.title, short: direction.short };
     } else if (isFinite(money) && money < 40) {
       todo[0] = '거래대금이 붙은 종목만 남기고, 나머지는 장 마감 뒤 다시 본다';
       avoid.unshift('돈이 없는 종목을 혼자만의 기대감으로 매수');
@@ -1751,7 +1796,7 @@
   function axisWord(key, value) {
     if (!isFinite(value)) return '';
     var words = AXIS_WORDS[key] || ['약함', '보통', '강함'];
-    return value >= 65 ? words[2] : value >= 35 ? words[1] : words[0];
+    return value >= AXIS_HIGH ? words[2] : value >= AXIS_LOW ? words[1] : words[0];
   }
 
   // 2026-10-04 사용자 지적("돈/가격/위험 기준을 개미는 몰라, 모르는 상태에서 보여주는 건 가비지"):
