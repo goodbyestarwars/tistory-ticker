@@ -380,27 +380,117 @@
     return '<td class="n">' + fmtPrice(price) + (kind && PRICE_KIND[kind] ? '<small class="at-sub">' + PRICE_KIND[kind] + '</small>' : '') + '</td>';
   }
 
+  // ---- 주문 지표(등락률·평가금액·평가손익) ----
+  // 등락률 = 매도 가격 / 이 매도가 닫는 매수 주문가 - 1. 평가금액 = 수량 x 가격(매수=매수금액, 매도=매도금액), 평가손익 = 매도 행의 수량 x (매도가 - 매수가).
+  // 모두 비용(수수료·세금) 제외이며 매도 가격은 판정가·추정이라 실제 체결 손익과 다를 수 있다.
+  function orderMetric(o) {
+    var isBuy = o.reason === 'BUY', qty = Number(o.qty) || 0, price = Number(o.price) || 0, buy = Number(o.buy_price) || 0;
+    var m = { isBuy: isBuy, qty: qty, price: price, amount: price && qty ? price * qty : null, pnl: null, ret: null, cost: null };
+    if (!isBuy && price && buy && qty) { m.pnl = (price - buy) * qty; m.ret = (price / buy - 1) * 100; m.cost = buy * qty; }
+    return m;
+  }
+  function realOrders(orders) { return (orders || []).filter(function (o) { return o.status !== 'DRY' && (o.reason === 'BUY' || o.reason === 'SELL'); }); }
+  var selMonth = null, selDay = null, monthScroll = null;
+  var WEEK = ['일', '월', '화', '수', '목', '금', '토'];
+  function daysInMonth(ym) { var p = ym.split('-'); return new Date(Number(p[0]), Number(p[1]), 0).getDate(); }
+  function shiftMonth(ym, delta) { var p = ym.split('-'), d = new Date(Number(p[0]), Number(p[1]) - 1 + delta, 1); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2); }
+  function pad2(n) { return ('0' + n).slice(-2); }
+  function monthAggregate(orders, ym) {
+    var n = daysInMonth(ym), days = [], i;
+    for (i = 1; i <= n; i++) days.push({ date: ym + '-' + pad2(i), buy: 0, sell: 0, pnl: 0, cost: 0, count: 0, unpriced: 0 });
+    realOrders(orders).forEach(function (o) {
+      var day = String(o.ts || '').slice(0, 10);
+      if (day.slice(0, 7) !== ym) return;
+      var row = days[Number(day.slice(8, 10)) - 1]; if (!row) return;
+      var m = orderMetric(o); row.count++;
+      if (m.isBuy) { if (m.amount != null) row.buy += m.amount; else row.unpriced++; }
+      else if (m.amount != null) { row.sell += m.amount; if (m.pnl != null) { row.pnl += m.pnl; row.cost += m.cost; } else row.unpriced++; }
+      else row.unpriced++;
+    });
+    return days;
+  }
+  function monthSummaryHtml(orders, today) {
+    var ym = selMonth || String(today).slice(0, 7);
+    if (!/^\d{4}-\d{2}$/.test(ym)) return '';
+    var days = monthAggregate(orders, ym);
+    var tot = days.reduce(function (a, r) { a.buy += r.buy; a.sell += r.sell; a.pnl += r.pnl; a.cost += r.cost; a.count += r.count; a.unpriced += r.unpriced; return a; }, { buy: 0, sell: 0, pnl: 0, cost: 0, count: 0, unpriced: 0 });
+    var rate = tot.cost > 0 ? tot.pnl / tot.cost * 100 : null;
+    var rows = days.map(function (r) {
+      var dt = new Date(r.date + 'T00:00:00'), has = r.count > 0, sel = selDay === r.date;
+      var rr = r.cost > 0 ? r.pnl / r.cost * 100 : null;
+      return '<tr class="at-day' + (has ? ' has' : '') + (sel ? ' is-sel' : '') + '"' + (has ? ' data-day="' + r.date + '" tabindex="0"' : '') + '>'
+        + '<td>' + Number(r.date.slice(8, 10)) + '일 <small class="at-sub-inline">' + WEEK[dt.getDay()] + '</small></td>'
+        + '<td class="n">' + (r.buy ? fmtWon(r.buy) : '-') + '</td><td class="n">' + (r.sell ? fmtWon(r.sell) : '-') + '</td>'
+        + '<td class="n ' + (r.cost ? tone(r.pnl) : '') + '">' + (r.cost ? signed(r.pnl) : '-') + '</td>'
+        + '<td class="n ' + (rr != null ? tone(rr) : '') + '">' + (rr != null ? pct(rr) : '-') + '</td>'
+        + '<td class="n">' + (has ? r.count + (r.unpriced ? ' <small class="at-sub-inline" title="가격이 없어 금액·손익에서 빠진 주문">(가격 없음 ' + r.unpriced + ')</small>' : '') : '-') + '</td></tr>';
+    }).join('');
+    return '<section class="at-box at-month"><div class="at-hd"><h3>월간 일자별 합계</h3><span>매수·매도 금액과 평가손익 · 비용 제외 · 매도가는 판정가·추정</span></div>'
+      + '<div class="at-month-ctl"><button type="button" class="at-mini" data-mon="-1" aria-label="이전 달">◀</button>'
+      + '<input type="month" data-month value="' + esc(ym) + '" aria-label="월 선택"><button type="button" class="at-mini" data-mon="1" aria-label="다음 달">▶</button>'
+      + '<button type="button" class="at-mini" data-mon="today">이번 달</button>'
+      + (selDay ? '<span class="at-day-pick">' + esc(selDay) + ' 주문만 보는 중 <button type="button" class="at-mini" data-day-clear>전체 보기</button></span>' : '<span class="at-mute">날짜 줄을 누르면 그날 주문만 아래 주문 기록에 보입니다.</span>') + '</div>'
+      + '<div class="at-month-sum"><div><small>월 매수금액</small><b>' + fmtWon(tot.buy) + '</b></div><div><small>월 매도금액(평가금액)</small><b>' + fmtWon(tot.sell) + '</b></div>'
+      + '<div><small>월 평가손익</small><b class="' + tone(tot.pnl) + '">' + (tot.cost ? signed(tot.pnl) : '-') + '</b></div>'
+      + '<div><small>월 수익률</small><b class="' + (rate != null ? tone(rate) : '') + '">' + (rate != null ? pct(rate) : '-') + '</b></div>'
+      + '<div><small>주문 건수</small><b>' + tot.count + '</b><i>' + (tot.unpriced ? '가격 없음 ' + tot.unpriced : '모두 가격 있음') + '</i></div></div>'
+      + '<div class="at-table-wrap at-month-wrap"><table class="at-table at-month-table"><thead><tr><th>일</th><th class="n">매수금액</th><th class="n">매도금액(평가금액)</th><th class="n">평가손익</th><th class="n">수익률</th><th class="n">주문</th></tr></thead><tbody>'
+      + rows + '</tbody><tfoot><tr><th>합계</th><th class="n">' + fmtWon(tot.buy) + '</th><th class="n">' + fmtWon(tot.sell) + '</th><th class="n ' + (tot.cost ? tone(tot.pnl) : '') + '">' + (tot.cost ? signed(tot.pnl) : '-') + '</th><th class="n">' + (rate != null ? pct(rate) : '-') + '</th><th class="n">' + tot.count + '</th></tr></tfoot></table></div></section>';
+  }
+
+  // ---- CSV 내려받기(브라우저에서만 만든다, 서버로 보내지 않음) ----
+  function csvCell(v) { var s = v == null ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }
+  function ordersCsv(orders, d) {
+    var names = orderNames(d || {});
+    var head = ['시각', '종목명', '종목코드', '구분', '수량', '매수 가격', '매도 가격', '가격 구분', '등락률(%)', '평가금액', '평가손익', '상태', '매도 사유', '내용'];
+    var rows = realOrders(orders).slice().sort(function (a, b) { return String(a.ts).localeCompare(String(b.ts)); }).map(function (o) {
+      var m = orderMetric(o), name = o.name || names[o.code] || krxName(o.code);
+      return [o.ts, name, o.code, m.isBuy ? '매수' : '매도', o.qty, m.isBuy ? o.price : o.buy_price, m.isBuy ? '' : o.price, PRICE_KIND[o.price_kind] || '',
+        m.ret != null ? m.ret.toFixed(2) : '', m.amount != null ? Math.round(m.amount) : '', m.pnl != null ? Math.round(m.pnl) : '',
+        ORDER_STATUS[o.status] || o.status, o.exit_reason || '', o.detail || ''].map(csvCell).join(',');
+    });
+    return '\ufeff' + head.join(',') + '\r\n' + rows.join('\r\n') + '\r\n';
+  }
+  function downloadCsv(orders, d, ym) {
+    var list = ym ? realOrders(orders).filter(function (o) { return String(o.ts || '').slice(0, 7) === ym; }) : orders;
+    var stamp = String((d.status && d.status.now) || '').slice(0, 10).replace(/-/g, '');
+    var name = ym ? '주문기록_' + ym + '.csv' : '주문기록_전체_' + stamp + '.csv';
+    var blob = new Blob([ordersCsv(list, d)], { type: 'text/csv;charset=utf-8' });
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; document.body.appendChild(a); a.click();
+    setTimeout(function () { document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+  }
+
   function ordersHtml(rows, today, d) {
     rows = rows.filter(function (o) { return o.status !== 'DRY'; });
     if (!rows.length) return '<p class="at-empty">아직 주문 기록이 없습니다.</p>';
     var names = orderNames(d || {});
-    var shown = rows.slice(0, 30);
+    var list = selDay ? rows.filter(function (o) { return String(o.ts || '').slice(0, 10) === selDay; }) : rows;
+    var shown = selDay ? list : list.slice(0, 30);
     var missing = false;
     var body = shown.map(function (o) {
-      var isBuy = o.reason === 'BUY';
+      var isBuy = o.reason === 'BUY', m = orderMetric(o);
       var name = o.name || names[o.code] || krxName(o.code);
       if (!name) missing = true;
-      return '<tr><td>' + esc(o.ts) + '</td><td>' + (name ? '<b>' + esc(name) + '</b><small class="at-sub">' + esc(o.code) + '</small>' : esc(o.code)) + '</td>'
+      // 익절(매수가 대비 +)은 연한 붉은 음영, 손절(-)은 연한 파란 음영. 가격이 없어 등락률을 못 구하면 음영 없음.
+      var shade = m.ret == null ? '' : m.ret > 0 ? ' class="at-row-win"' : m.ret < 0 ? ' class="at-row-loss"' : '';
+      return '<tr' + shade + '><td>' + esc(o.ts) + '</td><td>' + (name ? '<b>' + esc(name) + '</b><small class="at-sub">' + esc(o.code) + '</small>' : esc(o.code)) + '</td>'
         + '<td>' + (isBuy ? '매수' : '매도') + (REASON_LABEL[o.reason] && !isBuy && o.reason !== 'SELL' ? ' · ' + esc(REASON_LABEL[o.reason]) : '') + '</td>'
         + '<td class="n">' + esc(o.qty) + '</td>'
         + (isBuy ? priceCell(o.price, 'order', '매수 주문가 기록 없음') : priceCell(o.buy_price, 'order', '이 매도의 매수 기록을 찾지 못함'))
         + (isBuy ? '<td class="n at-mute">-</td>' : priceCell(o.price, o.price_kind, '매도 가격이 기록되지 않았고 추정할 분봉도 없음(전송 후 약 2거래일까지만 추정)'))
+        + '<td class="n ' + (m.ret != null ? tone(m.ret) : 'at-mute') + '">' + (m.ret != null ? pct(m.ret) : '-') + '</td>'
+        + '<td class="n">' + (m.amount != null ? fmtWon(m.amount) : '-') + '</td>'
+        + '<td class="n ' + (m.pnl != null ? tone(m.pnl) : 'at-mute') + '">' + (m.pnl != null ? signed(m.pnl) : '-') + '</td>'
         + '<td class="at-st-' + esc(o.status) + '">' + esc(ORDER_STATUS[o.status] || o.status) + '</td><td>' + esc(o.detail || '') + '</td></tr>';
     }).join('');
     if (missing) loadKrxMap();
-    return '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">매수 가격</th><th class="n">매도 가격</th><th>상태</th><th>내용</th></tr></thead><tbody>'
-      + body + '</tbody></table></div>'
-      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 매수 가격은 주문 접수가이고, 매도는 시장가 주문이라 전송 시점의 판정가(2026-10-16 이후 주문) 또는 1분봉 종가 추정(그 이전 주문)을 보여 줍니다. 모두 실제 체결가가 아니니 체결가는 키움 체결내역에서 확인하세요.</p>';
+    var tools = '<div class="at-order-tools"><button type="button" class="at-mini" data-dl="all">CSV 내려받기(전체)</button>'
+      + '<button type="button" class="at-mini" data-dl="month">CSV 내려받기(선택한 달)</button>'
+      + '<span class="at-legend"><i class="at-sw at-sw-win"></i>익절(매수가 대비 +) <i class="at-sw at-sw-loss"></i>손절(-)</span></div>';
+    return tools + (shown.length ? '<div class="at-table-wrap"><table class="at-table"><thead><tr><th>시각</th><th>종목</th><th>구분</th><th class="n">수량</th><th class="n">매수 가격</th><th class="n">매도 가격</th><th class="n">등락률</th><th class="n">평가금액</th><th class="n">평가손익</th><th>상태</th><th>내용</th></tr></thead><tbody>'
+      + body + '</tbody></table></div>' : '<p class="at-empty">' + esc(selDay) + '에는 주문이 없습니다.</p>')
+      + '<p class="at-note">"체결 확인 전"은 전송·접수까지만 확인된 상태입니다. 매수 가격은 주문 접수가이고, 매도는 시장가 주문이라 전송 시점의 판정가(2026-10-16 이후 주문) 또는 1분봉 종가 추정(그 이전 주문)을 보여 줍니다. 등락률은 매도 가격이 매수 주문가보다 얼마나 높고 낮은지, 평가금액·평가손익은 수량을 곱한 값(수수료·세금 제외)입니다. 모두 실제 체결가가 아니니 체결가는 키움 체결내역에서 확인하세요.</p>';
   }
 
   function eventRows(rows) {
@@ -430,7 +520,7 @@
     // 구버전 봇은 조회 상태를 모른다: 보유 목록이 있으면 그대로 보여 주고(배너로 경고), 비어 있으면 0개가 아니라 '조회 전'으로 둔다.
     if (!balance) balance = { state: d.holdings.length ? 'OK' : 'NOT_YET', legacy: true, last_ok: d.status.last_poll || null, age_sec: null };
     root.innerHTML = (d.legacy ? '<p class="at-banner is-bad">PC에서 실행 중인 자동매매 프로그램이 이전 버전이라 잔고 조회 상태·분석 전용·정책 정보가 없습니다. 프로그램을 새 버전으로 업데이트하면 표시됩니다(보유 종목 수는 이 상태에서 신뢰하지 마세요).</p>' : '')
-      + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance)
+      + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance) + monthSummaryHtml(d.orders, String(d.status.now || '').slice(0, 10))
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
       + holdingsHtml(d.holdings, balance, d.status) + '</section>'
@@ -444,6 +534,32 @@
   function post(path, body) { return api(path, 'POST', body).then(refresh).catch(refresh); }
 
   function wire(d) {
+    var tdy = String(d.status.now || '').slice(0, 10);
+    var mon = root.querySelector('[data-month]');
+    if (mon) mon.addEventListener('change', function (e) { if (/^\d{4}-\d{2}$/.test(e.target.value)) { selMonth = e.target.value; selDay = null; monthScroll = null; render(d); } });
+    root.querySelectorAll('[data-mon]').forEach(function (b) {
+      b.addEventListener('click', function () {
+        var v = b.getAttribute('data-mon'), cur = selMonth || tdy.slice(0, 7);
+        selMonth = v === 'today' ? tdy.slice(0, 7) : shiftMonth(cur, Number(v)); selDay = null; monthScroll = null; render(d);
+      });
+    });
+    root.querySelectorAll('[data-day]').forEach(function (r) {
+      function pick() { var day = r.getAttribute('data-day'); selDay = selDay === day ? null : day; render(d); }
+      r.addEventListener('click', pick);
+      r.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); pick(); } });
+    });
+    // 월간 표 스크롤: 15초마다 다시 그려도 보던 위치를 유지하고, 처음에는 주문이 있는 첫 날 근처에서 시작한다.
+    var mw = root.querySelector('.at-month-wrap');
+    if (mw) {
+      var first = mw.querySelector('tr.is-sel') || mw.querySelector('tr.has');
+      mw.scrollTop = monthScroll != null ? monthScroll : (first ? Math.max(0, first.offsetTop - 70) : 0);
+      mw.addEventListener('scroll', function () { monthScroll = mw.scrollTop; });
+    }
+    var clr = root.querySelector('[data-day-clear]');
+    if (clr) clr.addEventListener('click', function () { selDay = null; render(d); });
+    root.querySelectorAll('[data-dl]').forEach(function (b) {
+      b.addEventListener('click', function () { downloadCsv(d.orders, d, b.getAttribute('data-dl') === 'month' ? (selMonth || tdy.slice(0, 7)) : null); });
+    });
     root.querySelector('[data-toggle]').addEventListener('click', function () {
       api(d.status.stopped ? '/api/resume' : '/api/stop', 'POST').then(refresh).catch(refresh);
     });
@@ -528,7 +644,7 @@
   function refresh() {
     if (!root) return;
     if (!getToken()) { shellDisconnected('아직 접속 토큰이 없습니다.'); return; }
-    Promise.all([api('/api/status'), api('/api/watch'), api('/api/holdings'), api('/api/orders?limit=50'),
+    Promise.all([api('/api/status'), api('/api/watch'), api('/api/holdings'), api('/api/orders?limit=1000'),
       api('/api/events?limit=200' + (typeFilter ? '&type=' + encodeURIComponent(typeFilter) : '')),
       api('/api/analysis').catch(function (e) { if (e && e.message === 'token') throw e; return { analysis: [], legacy: true }; })])
       .then(function (out) {
