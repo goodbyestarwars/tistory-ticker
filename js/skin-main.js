@@ -756,8 +756,8 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart home-night-futures-chart" data-night-futures-chart aria-hidden="true"></div></div>'
         + '<div class="hmb-investor-trend" data-home-investor-trend aria-label="KOSPI KOSDAQ 외국인 순매수 추이">'
         + '<div class="hmb-investor-trend-head"><dt>투자자 동향</dt><div class="hmb-investor-controls"><span>외국인 · 30분 누적</span>'
-        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="면적 차트로 전환">‹</button>'
-        + '<span data-investor-mode>막대</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="면적 차트로 전환">›</button></div></div>'
+        + '<button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">‹</button>'
+        + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
         + '</dl>'
@@ -1301,7 +1301,7 @@ document.documentElement.classList.add('skin-ready');
     // 2026-08-29: 운영 데이터로 전환. /futures 응답의 일봉과 별도 야간 분봉을 쓴다. 레이아웃 작업 때
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
-    var homeSessionCharts = {}, homePriceMode = 'bar', homeSessionLoading = false;
+    var homeSessionCharts = {}, homePriceMode = 'area', homeSessionLoading = false;
     function renderHomeSessionChart(element, key, reference) {
       var result = homeSessionCharts[key] || {}, meta = result.session;
       var rows = (result.rows || []).filter(function (r) {
@@ -1975,7 +1975,7 @@ document.documentElement.classList.add('skin-ready');
       return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
     }
 
-    var homeInvestorMode = 'bar';
+    var homeInvestorMode = 'area';  // 2026-10-16 사용자 요청: 면적/막대 전환 지표의 기본값은 면적
     var homeInvestorResults = null;
     var homeInvestorLoading = false;
 

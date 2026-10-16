@@ -17,6 +17,8 @@ const sample = {data: {date: '2026-10-16', latest: -200, asOf: '2026-10-16T10:35
   {slot: 1, frgn: 0}, {slot: 3, frgn: -200}],
   extrema: {high: {slot: 0, value: 100}, low: {slot: 3, value: -250}}}};
 context.sample = sample;
+assert.equal(vm.runInContext('homeInvestorMode', context), 'area', '2026-10-16: 면적/막대 전환의 기본값은 면적');
+vm.runInContext("homeInvestorMode = 'bar'", context);  // 아래 막대 검증은 막대 모드에서 시작
 vm.runInContext('renderHomeInvestorTrend([sample,sample])', context);
 assert.equal((body.innerHTML.match(/data-investor-slot=/g) || []).length, 6, 'only observed bars, independently for both markets');
 assert.ok(body.innerHTML.includes('data-investor-slot="3"'));
