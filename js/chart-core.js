@@ -619,6 +619,56 @@
     return out;
   }
 
+
+  // ---- 매집봉 표시(2026-10-16 사용자 요청) ----
+  // scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 의 "봉 하나" 조건과 같은 기준이다(검색기와 차트가 어긋나지 않게):
+  // 거래량이 직전 20봉 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
+  // 검색기는 이 중 "최근 15거래일 안에서 마지막 봉을 뺀 가장 최근 것"만 쓰고, 차트는 보이는 기간의 모든 봉에 표시한다.
+  // 일봉 기준이므로 주·월·분봉과 미국 종목(거래대금 단위가 달라)에서는 쓰지 않는다.
+  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b' };
+
+  function accumulationBars(bars) {
+    var out = [];
+    if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
+    for (var i = ACCUMULATION.avgBars; i < bars.length; i++) {
+      var b = bars[i];
+      var o = Number(b.open), h = Number(b.high), l = Number(b.low), c = Number(b.close), v = Number(b.volume);
+      if (!isFinite(o) || !isFinite(h) || !isFinite(l) || !isFinite(c) || !isFinite(v) || o <= 0 || c <= 0 || h <= l) continue;
+      var sum = 0, count = 0;
+      for (var j = i - ACCUMULATION.avgBars; j < i; j++) {
+        var pv = Number(bars[j].volume);
+        if (isFinite(pv)) { sum += pv; count++; }
+      }
+      var avg = count ? sum / count : 0;
+      if (!avg || v < ACCUMULATION.volMult * avg || c <= o || (c / o - 1) * 100 < ACCUMULATION.minBodyPct) continue;
+      if ((c - l) / (h - l) < ACCUMULATION.closePosMin || c * v < ACCUMULATION.amountMin) continue;
+      out.push({ index: i, date: b.date, multiple: v / avg });
+    }
+    return out;
+  }
+
+  function accumulationMarkers(bars) {
+    return accumulationBars(bars).map(function (hit) {
+      return { time: hit.date, position: 'belowBar', color: ACCUMULATION.color, shape: 'circle', size: 1, text: '매집' };
+    });
+  }
+
+  // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
+  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: 표시한 매집봉 개수.
+  function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
+    holder = holder || {};
+    var acc = enabled ? accumulationMarkers(bars) : [];
+    var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
+    if (typeof LWC.createSeriesMarkers !== 'function') return 0;
+    if (!holder.plugin) {
+      if (!merged.length) return 0;
+      holder.plugin = LWC.createSeriesMarkers(series, merged);
+    } else if (typeof holder.plugin.setMarkers === 'function') {
+      holder.plugin.setMarkers(merged);
+    }
+    return acc.length;
+  }
+
   global.NineChartCore = {
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,
     CANDLE_UP: CANDLE_UP, CANDLE_DOWN: CANDLE_DOWN, ICHIMOKU: ICHIMOKU,
@@ -631,7 +681,8 @@
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
-    priceText: priceText, mergeOptions: mergeOptions
+    priceText: priceText, mergeOptions: mergeOptions,
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
