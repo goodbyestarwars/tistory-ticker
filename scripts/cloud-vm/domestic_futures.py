@@ -312,6 +312,12 @@ def _poll_loop(use_kis_realtime=False):
                                         conn, symbol, name, q['price'], q['change'], q['change_rate'],
                                         q['high'], q['low'], datetime.now(timezone.utc).isoformat(),
                                     )
+                                    # 2026-10-16: KIS 모드에서는 이 분기가 KOSPI/KOSDAQ를 수집하므로 홈 30분 차트 관측도 여기서
+                                    # 남긴다. 빠져 있어 KIS 모드 운영 중 KOSPI/KOSDAQ 장중 기록이 한 번도 저장되지 않았다.
+                                    try:
+                                        home_session_chart.record(conn, symbol, q)
+                                    except Exception:
+                                        logger.exception('home session observation failed: %s', symbol)
                                 finally:
                                     conn.close()
                         except Exception:
