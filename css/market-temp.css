@@ -2633,3 +2633,21 @@ html.dark #market-temp .mt-heat-delta.is-down { color:#5b9bf0; }
 html.dark #market-temp .mt-heat-stats { color:#b8c2cc; }
 #market-temp .mt-risk-list { list-style:none; margin:0; padding:0; }
 @media(max-width:640px) { #market-temp .mt-heat-day { min-height:64px; } #market-temp .mt-heat-day .mt-heat-bar { width:80%; height:18px; } #market-temp .mt-heat-delta span { display:none; } }
+
+/* 2026-10-16 최근 단기흐름 선 그래프(구간 배경 + 선). 점 색은 공포·보통·과열 구간색. */
+#market-temp .mt-flow-chart { position: relative; margin: 10px 0 4px; }
+#market-temp .mt-flow-svg { display: block; width: 100%; height: auto; overflow: visible; touch-action: pan-y; cursor: crosshair; }
+#market-temp .mt-fc-band-fear { fill: #4a90d9; fill-opacity: .09; }
+#market-temp .mt-fc-band-neutral { fill: #8b95a5; fill-opacity: .12; }
+#market-temp .mt-fc-band-greed { fill: #d65f5f; fill-opacity: .09; }
+#market-temp .mt-fc-axis { fill: #8a949f; font-size: 10px; }
+#market-temp .mt-fc-line { fill: none; stroke: #52606c; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+#market-temp .mt-fc-dot { fill: var(--mt-tone); stroke: #fff; stroke-width: 2; }
+#market-temp .mt-fc-last { fill: var(--mt-tone); font-size: 12px; font-weight: 800; }
+#market-temp .mt-fc-cursor { stroke: #6b7280; stroke-opacity: .5; }
+#market-temp .mt-fc-cursor[hidden], #market-temp .mt-fc-tip[hidden] { display: none; }
+#market-temp .mt-fc-tip { position: absolute; z-index: 2; transform: translate(-50%, calc(-100% - 10px)); padding: 3px 8px; border: 1px solid var(--mt-tone); background: #fff; color: #222; font-size: 12px; white-space: nowrap; pointer-events: none; }
+html.dark #market-temp .mt-fc-axis { fill: #98a3ae; }
+html.dark #market-temp .mt-fc-line { stroke: #c3ccd5; }
+html.dark #market-temp .mt-fc-dot { stroke: #1a1a1a; }
+html.dark #market-temp .mt-fc-tip { background: #1f2327; color: #eef2f5; }

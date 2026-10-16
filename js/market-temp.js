@@ -2222,25 +2222,78 @@
     });
   }
 
+  // 2026-10-16: 최근 단기흐름을 막대 칸에서 선 그래프로 바꿨다(사용자 시안 A: 구간 배경 + 선).
+  // 공포·보통·과열 띠 위에 점수 선과 점을 그리고 점 색은 scoreTone_ 구간색을 따른다. 정확한 값은 hover/탭 툴팁.
+  function buildFlowChart_(shown) {
+    var W = 360, H = 190, L = 26, R = 10, T = 14, B = 24, n = shown.length;
+    function X(i) { return n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1); }
+    function Y(v) { return T + (100 - Math.max(0, Math.min(100, v))) * (H - T - B) / 100; }
+    var cuts = SCORE_CUT_;
+    function band(from, to, tone) {
+      return '<rect class="mt-fc-band mt-fc-band-' + tone + '" x="' + L + '" y="' + Y(to).toFixed(1) + '" width="' + (W - L - R) + '" height="' + (Y(from) - Y(to)).toFixed(1) + '"/>';
+    }
+    var grid = band(cuts.greed, 100, 'greed') + band(cuts.fear, cuts.greed, 'neutral') + band(0, cuts.fear, 'fear')
+      + [0, cuts.fear, cuts.greed, 100].map(function (v) {
+        return '<text class="mt-fc-axis" x="' + (L - 5) + '" y="' + (Y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + v + '</text>';
+      }).join('');
+    var step = n > 10 ? Math.ceil(n / 6) : 1;
+    var xlabels = shown.map(function (day, i) {
+      if (i !== n - 1 && (i % step !== 0 || n - 1 - i < step / 2)) return '';
+      return '<text class="mt-fc-axis" x="' + X(i).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + escapeHtml(shortDate_(day.date)) + '</text>';
+    }).join('');
+    var line = shown.map(function (day, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(day.score).toFixed(1); }).join('');
+    var dots = shown.map(function (day, i) {
+      return '<circle class="mt-fc-dot mt-rib-tone-' + scoreTone_(day.score) + '" cx="' + X(i).toFixed(1) + '" cy="' + Y(day.score).toFixed(1) + '" r="' + (i === n - 1 ? 5 : 3) + '"/>';
+    }).join('');
+    var last = shown[n - 1];
+    var lastY = Y(last.score);
+    var lastLabel = '<text class="mt-fc-last mt-rib-tone-' + scoreTone_(last.score) + '" x="' + (X(n - 1) - 8).toFixed(1) + '" y="' + (lastY > T + 16 ? lastY - 10 : lastY + 18).toFixed(1) + '" text-anchor="end">'
+      + Math.round(last.score) + '점 ' + marketMood_(last.score).word + '</text>';
+    var pts = shown.map(function (day, i) {
+      return { x: Number(X(i).toFixed(1)), y: Number(Y(day.score).toFixed(1)), t: day.date + ' · ' + Math.round(day.score) + '점 · ' + marketMood_(day.score).word, k: scoreTone_(day.score) };
+    });
+    var summary = '최근 ' + n + '거래일 시장 방향 점수: ' + shown.map(function (d) { return shortDate_(d.date) + ' ' + Math.round(d.score); }).join(', ');
+    return '<div class="mt-flow-chart" data-mt-flow-chart data-w="' + W + '" data-h="' + H + '" data-pts="' + escapeHtml(JSON.stringify(pts)) + '">'
+      + '<svg class="mt-flow-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + escapeHtml(summary) + '">'
+      + grid + '<path class="mt-fc-line" d="' + line + '"/>' + dots + lastLabel + xlabels
+      + '<line class="mt-fc-cursor" y1="' + T + '" y2="' + (H - B) + '" hidden></line></svg>'
+      + '<div class="mt-fc-tip" hidden></div></div>';
+  }
+  function wireFlowChart_(root) {
+    root.querySelectorAll('[data-mt-flow-chart]').forEach(function (box) {
+      if (box.__wired) return;
+      box.__wired = true;
+      var pts;
+      try { pts = JSON.parse(box.getAttribute('data-pts')); } catch (e) { return; }
+      var svg = box.querySelector('svg'), tip = box.querySelector('.mt-fc-tip'), cur = box.querySelector('.mt-fc-cursor');
+      var W = Number(box.getAttribute('data-w')), H = Number(box.getAttribute('data-h'));
+      function show(event) {
+        var rect = svg.getBoundingClientRect();
+        if (!rect.width || !pts.length) return;
+        var x = (event.clientX - rect.left) / rect.width * W;
+        var best = 0;
+        pts.forEach(function (p, i) { if (Math.abs(p.x - x) < Math.abs(pts[best].x - x)) best = i; });
+        var p = pts[best];
+        cur.setAttribute('x1', p.x); cur.setAttribute('x2', p.x); cur.hidden = false;
+        tip.textContent = p.t;
+        tip.className = 'mt-fc-tip mt-rib-tone-' + p.k;
+        tip.hidden = false;
+        tip.style.left = (p.x / W * rect.width) + 'px';
+        tip.style.top = (p.y / H * rect.height) + 'px';
+      }
+      function hide() { tip.hidden = true; cur.hidden = true; }
+      svg.addEventListener('pointermove', show);
+      svg.addEventListener('pointerdown', show);
+      svg.addEventListener('pointerleave', hide);
+    });
+  }
+
   function buildSparklineContent(data, period) {
     var all = historyDays_(data);
     var shown = all.slice(-period);
     if (!shown.length) return '<div class="mt-stats-empty">새 기준으로 다시 계산할 수 있는 기록이 없습니다.</div>';
     var offset = all.length - shown.length;
-    var cells = shown.map(function (day, index) {
-      var tone = scoreTone_(day.score);
-      var mood = marketMood_(day.score).word;
-      var date = escapeHtml(day.date);
-      var rounded = Math.round(day.score);
-      var label = date + ' · ' + rounded + '점 · ' + mood;
-      // 막대 높이는 실제 점수(0~100)에 비례, 색은 scoreTone_ 구간으로만 정한다. 최신일은 테두리로만 강조한다.
-      var height = Math.max(0, Math.min(100, day.score));
-      return '<li class="mt-heat-day mt-rib-tone-' + tone + (index === shown.length - 1 ? ' is-latest' : '')
-        + '" tabindex="0" title="' + label + '" aria-label="' + label + (index === shown.length - 1 ? ' · 최신 거래일' : '') + '">'
-        + '<span class="mt-heat-date">' + escapeHtml(shortDate_(day.date)) + '</span>'
-        + '<span class="mt-heat-bar" aria-hidden="true"><i style="height:' + height.toFixed(0) + '%"></i></span>'
-        + '<strong>' + rounded + '</strong><small>' + mood + '</small></li>';
-    }).join('');
+    var chart = buildFlowChart_(shown);
     var latest = shown[shown.length - 1];
     var before = all[all.length - 2];  // 기간 선택과 상관없이 바로 앞 거래일
     var change = before ? Math.round(latest.score) - Math.round(before.score) : null;
@@ -2253,7 +2306,7 @@
     var cuts = SCORE_CUT_;
     return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일 · 날짜별 시장 방향 점수 · 최신 거래일 ' + escapeHtml(shortDate_(latest.date)) + '</span>'
       + '<b class="mt-rib-tone-' + scoreTone_(latest.score) + '">최신 ' + Math.round(latest.score) + '점 · ' + marketMood_(latest.score).word + changeHtml + '</b></div>'
-      + '<ol class="mt-heatmap" aria-label="날짜별 시장 방향 점수">' + cells + '</ol>'
+      + chart
       + '<p class="mt-heat-stats">' + stats + '</p>'
       + '<p class="mt-heat-legend"><span class="mt-rib-tone-fear">■ 공포 ' + range_(0, cuts.fear - 1) + '</span><span class="mt-rib-tone-neutral">■ 보통 ' + range_(cuts.fear, cuts.greed - 1)
       + '</span><span class="mt-rib-tone-greed">■ 과열 ' + range_(cuts.greed, 100) + '</span></p>'
@@ -2321,6 +2374,7 @@
       });
       content.innerHTML = buildSparklineContent(data, period);
       animateHistory(content);
+      wireFlowChart_(content);
     });
 
     // 그래프를 훑으면(마우스 이동·손가락 가로 드래그) 가장 가까운 날의 점수와 날씨를 띄운다.
@@ -3859,6 +3913,7 @@
     animateHistory(container);
 
     wireHistoryPeriods(container, data);
+    wireFlowChart_(container);
     wireTooltipClamp(container);
   }
 
