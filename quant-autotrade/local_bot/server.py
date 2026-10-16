@@ -39,7 +39,7 @@ def live_snapshot(path=None):
             # price/reason 열은 2026-10-16 이후 엔진이 채운다(이전 장부에는 열 자체가 없을 수 있어 열 존재를 확인한다).
             cols = {r[1] for r in db.execute('PRAGMA table_info(intents)')}
             sel = 'id,ts,code,side,qty,state,order_no' + (',price' if 'price' in cols else '') + (',reason' if 'reason' in cols else '')
-            intents = [dict(r) for r in db.execute('SELECT %s FROM intents ORDER BY id DESC LIMIT 100' % sel)]
+            intents = [dict(r) for r in db.execute('SELECT %s FROM intents ORDER BY id DESC LIMIT 3000' % sel)]
             buys = [dict(r) for r in db.execute("SELECT id,code,price FROM intents WHERE side='BUY' ORDER BY id")] if 'price' in cols else []
         finally:
             db.close()

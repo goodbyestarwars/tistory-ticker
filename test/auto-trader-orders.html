@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>운영센터 주문 기록 미리보기</title>
+<!-- 2026-10-16 주문 기록(종목명·가격·등락률·음영·월간 합계·CSV) 확인용. 로컬 봇 API를 가짜 응답으로 대신한다. 로컬: python -m http.server 8777 → /test/auto-trader-orders.html -->
+<link rel="stylesheet" href="../css/auto-trader.css" />
+<style>body{margin:0;padding:20px 16px;font-family:Pretendard,"Malgun Gothic",sans-serif;background:#fffefc;color:#1a1a1a;--np-paper:#fffefc}html.dark body{background:#1a1a1a;color:#f5efe0;--np-paper:#1a1a1a;--np-ink:245,239,224}.wrap{max-width:1100px;margin:0 auto}</style>
+</head>
+<body>
+<div class="wrap"><button type="button" id="dark">다크모드 전환</button><div id="auto-trader"></div></div>
+<script>
+(function () {
+  var orders = [
+    { ts: '2026-10-16 09:58:32', code: '036460', qty: 8, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문', name: '한국가스공사', price: 36900, price_kind: 'order' },
+    { ts: '2026-10-16 09:57:25', code: '089590', qty: 52, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: '제주항공', buy_price: 5760, price: 5500, price_kind: 'estimate' },
+    { ts: '2026-10-16 09:13:35', code: '011200', qty: 12, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문', name: 'HMM', price: 23650, price_kind: 'order' },
+    { ts: '2026-10-16 09:12:29', code: '352820', qty: 1, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: '하이브', buy_price: 165900, price: 172000, price_kind: 'estimate' },
+    { ts: '2026-10-16 09:04:48', code: '089590', qty: 52, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문', name: '제주항공', price: 5760, price_kind: 'order' },
+    { ts: '2026-10-16 09:03:42', code: '011200', qty: 12, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: 'HMM', buy_price: 23150, price: 23850, price_kind: 'estimate' },
+    { ts: '2026-10-16 09:00:56', code: '352820', qty: 1, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문', name: '하이브', price: 165900, price_kind: 'order' },
+    { ts: '2026-10-15 11:25:44', code: '457190', qty: 3, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: '이수스페셜티케미컬', buy_price: 87000, price: 89800, price_kind: 'estimate' },
+    { ts: '2026-10-15 09:43:22', code: '010950', qty: 1, reason: 'BUY', status: 'ACK', detail: '실계좌 매수 주문', name: 'S-Oil', price: 160800, price_kind: 'order' },
+    { ts: '2026-10-14 10:14:44', code: '018880', qty: 50, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: '한온시스템', buy_price: 3855, price: null },
+    { ts: '2026-10-14 09:47:42', code: '005830', qty: 1, reason: 'SELL', status: 'ACK', detail: '실계좌 매도 주문', name: 'DB손해보험', buy_price: 195700, price: null }
+  ];
+  var status = { now: '2026-10-16 15:40:00', stopped: false, max_sells_per_day: 5, balance: { state: 'OK', last_ok: '2026-10-16 15:39:30' }, config: {} };
+  var routes = {
+    '/api/status': status, '/api/watch': { watch: [] }, '/api/holdings': { holdings: [], balance: status.balance },
+    '/api/orders': { orders: orders }, '/api/events': { events: [] }, '/api/analysis': { analysis: [] }
+  };
+  window.fetch = function (url) {
+    var path = String(url).replace('http://127.0.0.1:8765', '').split('?')[0];
+    return Promise.resolve({ status: 200, ok: true, json: function () { return Promise.resolve(routes[path] || {}); } });
+  };
+  window.T = { config: { IS_LOGIN: true, ROLE: 'owner' } };   // 티스토리 관리자 로그인 흉내
+  try { localStorage.setItem('autotrader_token_v1', 'preview'); } catch (e) { /* */ }
+  document.getElementById('dark').onclick = function () { document.documentElement.classList.toggle('dark'); };
+})();
+</script>
+<script src="../js/auto-trader.js"></script>
+</body>
+</html>
