@@ -1,5 +1,7 @@
 # 매집봉 재검증(MFE·MAE·목표/손절 선후)과 차트 표시 개선 (2026-10-18)
 
+> 차트 표시 변경은 PR #733으로 분리·병합했다(체크박스·범례 이름을 `대량거래 흔적 표시`로 바꿈). 이 PR은 연구 스크립트·보고서·테스트만 담는다.
+
 연구 + 차트 표시 변경 문서다. 검색기 11개, 거래량 돌파 탭의 매집봉 정의(`volume_accumulation.py`), PC 자동매매 엔진은 바꾸지 않았다. 신규 조건을 자동매수에 연결하지 않았다.
 도구: `scripts/research/accumulation_mfe_study.py`(공통 부품은 `accumulation_precursor_study.py`, PR #730의 파일을 그대로 가져옴), 테스트 `test/test_accumulation_mfe_study.py`·`test/test_accumulation_bars.py`.
 

@@ -436,7 +436,7 @@
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 보라색 윗꼬리형은 윗꼬리가 범위의 40% 이상, 몸통 3% 이하, 거래량 2배 이상인 봉으로 연구용 가설입니다. 직전 20봉이 25% 이상 오른 뒤에 나온 봉은 물량을 터는 쪽일 수 있어 회색 털기?로 따로 표시합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다."><input type="checkbox" id="ssAccumulationToggle" /> 매집봉 표시</label>'
+      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 보라색 윗꼬리형은 윗꼬리가 범위의 40% 이상, 몸통 3% 이하, 거래량 2배 이상인 봉으로 연구용 가설입니다. 직전 20봉이 25% 이상 오른 뒤에 나온 봉은 물량을 터는 쪽일 수 있어 회색 털기?로 따로 표시합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량거래 흔적 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -2131,9 +2131,9 @@
       }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
         var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, { chart: chart, container: container });
-        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">● 대량 양봉 <b>' + accCounts.accumulation + '</b></span><span style="color:#8b5cf6"> · ● 윗꼬리형 <b>' + accCounts.wick + '</b></span><span style="color:#6b7280"> · 털기? <b>' + accCounts.distribution + '</b></span><span style="opacity:.7"> (관찰용)</span>');
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적 ● 대량 양봉 <b>' + accCounts.accumulation + '</b></span><span style="color:#8b5cf6"> · ● 윗꼬리형 <b>' + accCounts.wick + '</b></span><span style="color:#6b7280"> · 털기? <b>' + accCounts.distribution + '</b></span><span style="opacity:.7"> (관찰용)</span>');
       } else if (state.accumulationEnabled) {
-        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량 양봉·윗꼬리형은 국내 일봉에서만 표시됩니다</span>');
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적은 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
         core.addBollingerBands(chart, LWC, bars);

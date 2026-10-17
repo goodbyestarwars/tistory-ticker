@@ -137,11 +137,11 @@ class AccumulationToggleWiringTest(unittest.TestCase):
         ss = self.read('js/stock-search.js')
         ff = self.read('js/foreign-flow.js')
         self.assertIn('id="ssAccumulationToggle"', ss)
-        self.assertIn('/> 매집봉 표시</label>', ss)
-        self.assertIn('/> 매집봉 표시</label>', ff)
+        self.assertIn('/> 대량거래 흔적 표시</label>', ss)
+        self.assertIn('/> 대량거래 흔적 표시</label>', ff)
         self.assertIn('chart: chart, container: container', ss)   # 십자선 툴팁에 필요한 연결
         self.assertIn('chart: chart, container: container', ff)
-        label = ss[ss.index('<label title="일봉에서만 표시합니다.'):ss.index('매집봉 표시</label>')]
+        label = ss[ss.index('<label title="일봉에서만 표시합니다.'):ss.index('대량거래 흔적 표시</label>')]
         for text in ('후보', '4봉', '지지', '실패'):                 # 알아보기 어렵다는 지적을 받은 용어는 화면 문구에 없다
             self.assertNotIn(text, label)
         self.assertIn('id="ffAccumulationToggle"', ff)
