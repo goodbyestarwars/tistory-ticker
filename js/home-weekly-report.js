@@ -173,12 +173,19 @@
         + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
     }).join('') + '</ol>';
   }
+  // 2026-10-18 사용자 질문("많이 오른 종목에 왜 표시가 안되지?"): 미국은 마지막 거래일에 KIS 상승률 순위가 비어 키움 폴백이 되는데,
+  // 폴백은 거래대금 상위 약 20종목 안에서만 고른다. 시장 전체가 내린 날은 그중 +1% 이상이 하나도 없어 빈 칸이 되므로 이유를 적는다.
+  function emptyMoverText(market, rising) {
+    if (market !== 'us') return '';
+    return rising ? '마지막 거래일 거래대금 상위 미국 종목 중 +1% 이상 오른 종목이 없었습니다.'
+      : '마지막 거래일 거래대금 상위 미국 종목 중 -1% 이하로 내린 종목이 없었습니다.';
+  }
   function moversSection(data) {
     var hot = data.hotStocks || {}, cold = data.coldStocks || {};
     function block(label, market, hotItems, coldItems) {
       return '<div class="hwr2-market"><h4 class="hwr2-market-title">' + label + '</h4><div class="hwr2-cols">'
-        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">많이 오른 종목</h5>' + moverRows(hotItems, market) + '</div>'
-        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-down">많이 내린 종목</h5>' + moverRows(coldItems, market) + '</div>'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">많이 오른 종목</h5>' + moverRows(hotItems, market, emptyMoverText(market, true)) + '</div>'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-down">많이 내린 종목</h5>' + moverRows(coldItems, market, emptyMoverText(market, false)) + '</div>'
         + '</div></div>';
     }
     return '<section class="hwr2-section"><div class="hwr2-h"><h3>이번 주 움직인 종목</h3><p>마지막 거래일 기준 · 상승은 +1% 이상, 하락은 -1% 이하만 표시</p></div>'
