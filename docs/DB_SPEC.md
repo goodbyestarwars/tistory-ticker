@@ -1,5 +1,16 @@
 # 9Pay 증권 DB 정의서
 
+## 아침 라이브 갭상승 그림자 기록 (2026-10-16, Issue #697)
+
+`scripts/cloud-vm/gap_shadow.db`(`gap_shadow.py`, 저장소 제외 `*.db`)의 `gap_shadow_signal`은 `(trading_date, code)`당 첫 신호 1행이다. `volume_surge_live`가 30초마다 받는 KIS 순위 행만 재사용하며(추가 외부 호출 없음) 주문·계좌·토큰은 저장하지 않는다. 기존 `openingGap` 검색기와 추적 통계는 건드리지 않는다.
+
+- 규칙(사전 고정): 시초 관측가=09:00~09:03 첫 관측(누적 거래량>0), 갭 +1~+8%, 시초 범위=09:00~09:05 관측가 고저, 신호=09:05~14:00 첫 폴링에서 현재가>범위 고가·현재가≥시초 관측가·누적 거래량/전일 거래량≥5%, 가상 진입=신호 **다음** 폴링 관측가, 손절 후보=범위 저가, 손절폭>4%이면 `risk_ok=0`.
+- 저장: `signal_at`/`entry_at`(UTC ISO), `signal_price`/`entry_price`, `prev_close`, `open_obs_price`, `or_high`/`or_low`, `gap_pct`, `signal_cum_volume`·`signal_cum_ratio`, `stop_price`·`stop_pct`·`risk_ok`, 진입 뒤 장중 관측 `intraday_max/min/last`·`stop_hit_intraday`, `daily_json`(D0~D5 일봉)·`outcome_days`. 진입이 없으면 `entry_*`는 NULL(순위권에서 사라진 경우 - 평가에서 제외하되 `signals` 개수에는 남음).
+- 일봉은 장 밖 대기 루프(`maybe_update_outcomes`, 30분에 한 번)가 `daily_prices`와 대조해 채운다. D0 일봉 고저는 진입 전 구간을 포함하므로 손절 판정에 쓰지 않고 장중 관측 경로만 쓴다. D1+는 시가 ≤ 손절가면 시가 청산, 저가 ≤ 손절가면 손절가 청산(자료가 일봉뿐이라 같은 날 순서는 보수적으로 손절 우선).
+- 관측 완전성(2026-10-16 사후 리뷰): `path_obs_count`·`path_last_obs_ts`(epoch)·`path_max_gap_sec`가 진입 뒤 30초 관측 개수·마지막 관측·최대 간격을 남긴다. 최대 간격 120초 초과이거나 마지막 관측이 15:20 이전이면 장중 경로 불완전(순위권 이탈·재시작)으로 보고 `complete_*` 평가에서 뺀다 - 못 본 급락을 손절·MAE로 계산하지 않기 위해서다. 진입이 없는 신호도 일봉을 채워 진입된 신호와 신호가 대비 D0/D1 수익을 비교하고, `official_open`(D0 일봉 시가)으로 30초 시초 관측가와의 차이를 잰다. 먼저 만들어진 DB에는 `connect()`가 열을 덧붙인다.
+- 한계(미확인): 순위 응답에는 시가·고저가 필드가 없어 시초가·첫 5분 고저·MAE/MFE는 30초 관측가이며 공식 OHLC가 아니다. 순위권 밖 종목은 보지 못한다. 거래대금 원필드 단위가 미확인이라 거래량만 쓴다. 체결가·슬리피지·호가는 반영하지 않았다.
+- 평가(`/gap-shadow` summary): 비용 0.7%(왕복 가정) 반영 순수익률 기대값, 평균이익/평균손실, 손익비, R 배수(손절폭 기준), +15% 도달 비율, 손절 적용/미적용, `risk_ok` 필터 비교, 중앙값·최대 1건 제외 기대값. 승률은 보조 지표다.
+
 ## 장중 거래량 신호 이력 (2026-10-16)
 
 `scripts/cloud-vm/volume_surge_history.db`는 `volume_surge_live.py`의 최초 `EARLY_PACE` 및 `REALTIME_ACCUM` 신호를 `(trading_date, code, signal_type)`당 한 행으로 보존한다. 당일 화면용 JSON 상태가 다음 날 초기화돼도 이 SQLite 파일은 지우지 않는다. `detected_at`은 신호 감지 폴링 시각이고 `usable_at`은 첫 저장에 성공한 폴링 시각이다. 감지가와 누적 거래량도 기록한다. KIS 원필드 `acml_tr_pbmn`이 있을 때만 그 숫자를 `cumulative_value_raw`에 원단위 그대로 보관하며, 단위 미확인이라 원화 환산·VWAP 계산에는 쓰지 않는다. 거래소 원자료 시각은 제공되지 않아 `source_as_of`는 NULL이다. VWAP 대비, 지수 대비는 신뢰할 수 있는 동시각 자료가 없어 NULL이다. 별도 거절 필터가 없으므로 `rejection_reason`도 NULL이다. 계좌·주문·토큰은 저장하지 않는다. 외부 API 호출·신규 프로세스·매매 연결은 없다. 배포 전 이력은 소급 복원하지 않는다. 구버전 당일 JSON에서 복원한 신호는 누적 거래량이 없어 저장을 건너뛴다.

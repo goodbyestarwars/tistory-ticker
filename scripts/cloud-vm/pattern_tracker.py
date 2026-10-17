@@ -416,7 +416,7 @@ def list_tracks(conn, scanner, view='all', days=90, limit=100):
 
 
 def tracker_stats(conn, scanner, days=90):
-    """검색기 자체의 성적표: 포착 수, 상태별 개수, 돌파율, 평균 5/10일 수익률, 평균 최대 상승/하락. 기록이 없으면 None 값."""
+    """검색기 자체의 성적표: 포착 수, 상태별 개수, 평균 5/10일 수익률, 평균 최대 상승/하락. 기록이 없으면 None 값."""
     ensure_schema(conn)
     since = (datetime.now(KST) - timedelta(days=int(days))).strftime('%Y-%m-%d')
     rows = conn.execute(
@@ -431,18 +431,11 @@ def tracker_stats(conn, scanner, days=90):
     counts = {}
     for status, *_ in rows:
         counts[status] = counts.get(status, 0) + 1
-    broke = [r for r in rows if r[2] or r[0] in SUCCESS_STATUSES]
-    decided = [r for r in rows if r[0] in CLOSED_STATUSES or r[2]]
     return {
         'days': int(days), 'total': total, 'counts': counts,
-        'breakout': len(broke),
-        'breakoutConfirmed': counts.get('BREAKOUT_CONFIRMED', 0),
         'success': sum(counts.get(s, 0) for s in SUCCESS_STATUSES),
         'failed': counts.get('FAILED', 0),
         'active': sum(counts.get(s, 0) for s in OPEN_STATUSES),
-        'breakoutRatePct': round(len(broke) / total * 100, 1) if total else None,
-        'confirmRatePct': round(counts.get('BREAKOUT_CONFIRMED', 0) / total * 100, 1) if total else None,
-        'decidedSamples': len(decided),
         'avgRet5Pct': avg([r[3] for r in rows]),
         'avgRet10Pct': avg([r[4] for r in rows]),
         'avgMaxReturnPct': avg([r[5] for r in rows]),

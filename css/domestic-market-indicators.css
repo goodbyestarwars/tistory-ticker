@@ -523,7 +523,7 @@ html.dark .dmi-section-collapse {
    이동해도 동일한 오른쪽 정렬을 유지한다. */
 .dmi-tabs { align-items: center; }
 .dmi-interval-tabs { display: flex; align-items: center; gap: 15px; }
-.dmi-draw-buttons { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.dmi-draw-buttons { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-left: auto; }
 .dmi-panel .de-draw-controls {
   display: flex;
   justify-content: flex-end;
