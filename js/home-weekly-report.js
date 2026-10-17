@@ -148,6 +148,25 @@
       + glow.svg
       + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>' + glow.dot;
   }
+  // 2026-10-18 사용자 요청: 휴장 리포트의 지수 미니 차트에도 장중 대시보드처럼 마우스를 올리면 날짜·종가·전일 대비를 보여 준다.
+  // 좌표는 sparkline()과 같은 식이며(viewBox 100x32), js/home-chart-hover.js(skin-main이 로드)가 data-hover-points 를 읽는다.
+  function indexHoverAttr(item) {
+    var rows = (item && item.series || []).map(function (point) { return { date: point.date, close: num(point.close) }; })
+      .filter(function (row) { return row.close != null; });
+    if (rows.length < 2) return '';
+    var values = rows.map(function (row) { return row.close; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values), range = max - min || 1;
+    var base = num(item.base);
+    var points = rows.map(function (row, index) {
+      var prev = index ? rows[index - 1].close : base;
+      var change = prev ? (row.close / prev - 1) * 100 : null;
+      var text = dateLabel(row.date) + ' 종가 ' + row.close.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+        + (change != null ? ' (' + (index ? '전일 ' : '직전 주 마감 ') + (change > 0 ? '+' : '') + change.toFixed(2) + '%)' : '');
+      return [2 + index * 96 / (rows.length - 1), (30 - (row.close - min) / range * 26) / 32 * 100, text];
+    });
+    return ' data-hover-points="' + JSON.stringify(points.map(function (point) { return [Math.round(point[0] * 100) / 100, Math.round(point[1] * 100) / 100, point[2]]; }))
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"';
+  }
   function dateLabel(value) {
     var text = String(value || '');
     var match = text.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -170,6 +189,22 @@
       var reason = item.reason || '순위·등락 데이터 기준';
       return '<li><i class="hwr2-rank">' + (index < 9 ? '0' : '') + (index + 1) + '</i>'
         + '<span class="hwr2-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(meta) + '</small><em>' + escapeHtml(reason) + '</em></span>'
+        + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
+    }).join('') + '</ol>';
+  }
+  function candidateRows(items) {
+    if (!items || !items.length) return '<p class="hwr-empty">현재 조건 충족 후보 없음</p>';
+    return '<ol class="hwr2-rows hwr2-rows--candidates">' + items.slice(0, 5).map(function (item, index) {
+      var waves = item.waves || {};
+      var reasons = [];
+      if (waves.mid === '상승 추세') reasons.push('중기 상승');
+      if (waves.small === '상승 추세') reasons.push('단기 상승');
+      if (item.momentum === '강화') reasons.push('수급 강화');
+      if (item.fundamental === '지지') reasons.push('펀더멘털 지지');
+      if (item.risk === '없음') reasons.push('위험 없음');
+      return '<li><i class="hwr2-rank">' + (index < 9 ? '0' : '') + (index + 1) + '</i>'
+        + '<span class="hwr2-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small>'
+        + (reasons.length ? '<em>선정 근거 · ' + escapeHtml(reasons.join(' · ')) + '</em>' : '') + '</span>'
         + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
     }).join('') + '</ol>';
   }
@@ -236,11 +271,11 @@
     var past = outcomes.domestic;
     var hasPast = past && past.length;
     var left = '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">매매 신호 <small>2주 스윙 상승 후보</small></h5>'
-      + moverRows(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</div>';
+      + candidateRows(data.hotCandidates && data.hotCandidates.domestic) + '</div>';
     var right = hasPast
       ? '<div class="hwr2-col"><h5 class="hwr2-col-sub">지난 신호 성과 <small>신호일 대비 확정 수익률</small></h5>' + pastOutcomeStatsCard(outcomes.stats) + pastOutcomeRows(past) + '</div>'
       : '';
-    return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 차트 국면·모멘텀·펀더멘털·위험 필터를 통과한 종목만 표시합니다</p></div>'
+    return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 중·단기 상승 추세와 위험 필터를 통과한 종목 중, 수급 모멘텀과 펀더멘털 점수를 반영해 최대 5종목을 표시합니다.</p></div>'
       + '<div class="hwr2-cols' + (hasPast ? '' : ' is-single') + '">' + left + right + '</div></section>';
   }
   // 2026-10-04: 위 지수 4개(KOSPI·KOSDAQ·나스닥·S&P500)는 바로 아래 지수 블록에 이미 있어서 여기서는 빼고,
@@ -840,7 +875,7 @@
     }).map(function (item) {
       return '<article class="hwr-index-card"><strong class="hwr2-idx-name">' + escapeHtml(item.name) + '</strong><b>' + formatMarketValue(item) + '</b>'
         + '<span class="hwr2-idx-chg ' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span>'
-        + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
+        + '<div class="hwr-spark"' + indexHoverAttr(item) + '>' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
     }).join('');
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<section class="hwr2-section hwr2-prep">'
