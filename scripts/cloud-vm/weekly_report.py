@@ -237,7 +237,7 @@ def hot_stocks(board_data, limit=10):
 # 급등했다가 금요일 순위에서 빠진 종목은 빠질 수 있다(화면 문구에 후보 풀 기준임을 적는다). 주간 자료를 못 받으면 예전 방식으로 둔다.
 WEEKLY_MOVE_MIN = 3.0
 _POOL_SECTIONS = ('rising', 'falling', 'volumeGrowth', 'volumeSurge', 'tradeVolume', 'marketCap', 'turnover',
-                  'amountTurnover', 'volumePower', 'tradeAmount', 'newHigh', 'newLow')
+                  'amountTurnover', 'volumePower', 'tradeAmount', 'newHigh', 'newLow', 'weeklyRising', 'weeklyFalling')
 
 
 def candidate_pool(board_data):
