@@ -212,4 +212,3 @@ PR #651 리뷰 반영(`volume_accumulation.py`, `volume_surge_live.py`, `js/patt
 **2026-10-15 사이드카·서킷브레이커 KIS 실시간 장운영정보(H0STMKO0) 수신 추가 (실수신 검증 대기)**
 
 KIND가 운영 VM에서 403이라 기존 KIS 공유 WebSocket 허브에 `H0STMKO0`을 코스피(005930)·코스닥(247540) 대표 1건씩 구독하는 `scripts/cloud-vm/market_halt_kis.py`를 추가했다(새 세션·앱키 없음, 등록 2건). 장운영구분코드 해석(CB 174·175·182·184·185, 매도 사이드카 387/388, 매수 397/398, 임시정지 164)은 사용자 제공 코드표이며 **실수신으로 확인되기 전까지 미검증**, CB 단계는 추정하지 않는다. 모든 프레임은 `market_halt.kis`(최근 raw·코드별 카운트)에 노출하고 당일 이벤트는 JSON에 저장한다. KIND 수집기는 `MARKET_HALT_KIND=1`일 때만 시작. 표시는 압축 한 줄 + 클릭 펼침. 테스트 `test_market_halt_kis.py` 신규 7건.
-
