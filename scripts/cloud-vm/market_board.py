@@ -1067,6 +1067,44 @@ def merge_us_kis_metadata(metric_rows):
                     row[key] = metadata[key]
 
 
+def fetch_us_weekly_rank(appkey, appsecret, limit=30, nday='3'):
+    """KIS 해외 상승률/하락률 순위의 N일(기본 3 = 5거래일) 버전. 주간 리포트의 후보 풀 보강용이다(2026-10-18).
+
+    응답의 rate 는 당일 등락이고 n_rate 가 기준가격(N일 전) 대비율이라, 순위 행의 change_rate 를 n_rate 로 바꿔 돌려준다.
+    거래량 10만주 이상(VOL_RANG 4)으로 거래가 거의 없는 종목을 거른다. 실패하면 빈 값(호출부가 기존 후보 풀로 계속 진행).
+    반환: {'weeklyRising': [...], 'weeklyFalling': [...]}"""
+    if not appkey or not appsecret:
+        return {}
+    token = kis_client.get_token(appkey, appsecret)
+    out = {}
+    for key, gubn in (('weeklyRising', '1'), ('weeklyFalling', '0')):
+        try:
+            raw_rows = _fetch_us_kis_metric(token, appkey, appsecret, _weekly_updown_fetcher, limit, gubn=gubn, nday=nday)
+        except Exception as exc:
+            logger.warning('KIS 미국 주간 %s 순위 실패: %s', key, exc)
+            continue
+        rows = []
+        for raw in raw_rows:
+            if not isinstance(raw, dict):
+                continue
+            raw = dict(raw)
+            weekly = _number(_kis_value(raw, 'n_rate'))
+            if weekly is None:
+                continue
+            raw['day_rate'] = raw.get('rate')
+            raw['rate'] = weekly
+            rows.append(raw)
+        items = _normalize_kis_us_rows(rows)
+        items.sort(key=lambda row: row.get('change_rate') or 0, reverse=(gubn == '1'))
+        out[key] = items[:limit]
+    return out
+
+
+def _weekly_updown_fetcher(token, appkey, appsecret, exchange, limit=20, gubn='1', nday='3'):
+    rows = kis_client.fetch_us_updown_rank(token, appkey, appsecret, exchange, gubn=gubn, limit=limit, nday=nday)
+    return rows
+
+
 def fetch_us_kis(appkey, appsecret, limit=20, finnhub_api_key=''):
     """KIS 기반 미국 실시간 종목판.
 

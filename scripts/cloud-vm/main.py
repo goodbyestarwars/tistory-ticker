@@ -524,7 +524,7 @@ def _weekly_series_for_movers(domestic_board, us_board, start, end):
         logging.getLogger('main').warning('weekly movers domestic series failed: %s', type(exc).__name__)
         result['domestic'] = {}
     try:
-        symbols = {code: code.split(':', 1)[-1] for code in list(weekly_report.candidate_pool(us_board).keys())[:60]}
+        symbols = {code: code.split(':', 1)[-1] for code in list(weekly_report.candidate_pool(us_board).keys())[:90]}
 
         def one(item):
             code, symbol = item
@@ -3394,6 +3394,14 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
                 logging.getLogger('main').warning('weekly report %s failed: %s', name, type(exc).__name__)
                 results[name] = [] if name != 'domestic_board' and name != 'us_board' else {}
 
+    # 2026-10-18: 미국은 당일 순위 후보만으로는 주중 급등·급락주를 놓치므로 KIS 5거래일 상승/하락률 순위를 후보 풀에 더한다(실패하면 그대로 진행).
+    try:
+        weekly_rank = market_board.fetch_us_weekly_rank(
+            os.environ.get('KIS_APPKEY', '').strip(), os.environ.get('KIS_APPSECRET', '').strip())
+        if weekly_rank and isinstance(results.get('us_board'), dict):
+            results['us_board'].setdefault('sections', {}).update(weekly_rank)
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly report US weekly rank failed: %s', type(exc).__name__)
     weekly_series = _weekly_series_for_movers(results['domestic_board'], results['us_board'], start, end)
     data = weekly_report.build_report(
         start, end, futures_rows=results['futures'],

@@ -431,3 +431,34 @@ class MarketBoardConcurrencyTests(unittest.TestCase):
                             'scripts', 'cloud-vm', 'market_board.py')
         with open(path, encoding='utf-8') as handle:
             return handle.read()
+
+
+class UsWeeklyRankTests(unittest.TestCase):
+    """2026-10-18: 주간 리포트 후보 풀용 KIS 5거래일 상승/하락률 순위."""
+
+    def test_weekly_rank_uses_n_rate_and_requests_five_day_window(self):
+        calls = []
+
+        def updown(_token, _appkey, _secret, exchange, gubn='1', limit=20, nday='0'):
+            calls.append((exchange, gubn, nday))
+            if exchange != 'NAS':
+                return []
+            if gubn == '1':
+                return [{'symb': 'UP', 'last': '10', 'diff': '1', 'rate': '-2.0', 'n_rate': '35.5', 'tvol': '200000', 'tamt': '2000000', 'excd': 'NAS'},
+                        {'symb': 'NOBASE', 'last': '10', 'rate': '1.0', 'tvol': '1', 'excd': 'NAS'}]
+            return [{'symb': 'DN', 'last': '5', 'diff': '1', 'rate': '1.0', 'n_rate': '-40.2', 'tvol': '200000', 'tamt': '1000000', 'excd': 'NAS'}]
+
+        with mock.patch.object(market_board.kis_client, 'get_token', return_value='t'), \
+                mock.patch.object(market_board.kis_client, 'fetch_us_updown_rank', side_effect=updown):
+            result = market_board.fetch_us_weekly_rank('k', 's')
+
+        self.assertTrue(all(nday == '3' for _e, _g, nday in calls))
+        self.assertEqual([r['symbol'] for r in result['weeklyRising']], ['UP'])       # n_rate 없는 행은 뺀다
+        self.assertEqual(result['weeklyRising'][0]['change_rate'], 35.5)             # 당일 -2.0 이 아니라 5일 등락
+        self.assertEqual(result['weeklyFalling'][0]['change_rate'], -40.2)
+
+    def test_rank_requests_never_send_empty_vol_rang(self):
+        path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm', 'kis_client.py')
+        with open(path, encoding='utf-8') as handle:
+            source = handle.read()
+        self.assertNotIn("'VOL_RANG': ''", source)     # KIS 해외 순위의 필수값 - 빈 값이면 응답이 비어 폴백으로 떨어졌다
