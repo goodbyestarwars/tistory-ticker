@@ -336,3 +336,48 @@ class WeeklyReportTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class WeeklyMoversTests(unittest.TestCase):
+    start = datetime(2026, 10, 12).date()
+    end = datetime(2026, 10, 16).date()
+
+    def board(self):
+        return {'sections': {
+            'tradeAmount': [{'code': 'US:AAA', 'name': 'A', 'price': 10, 'change_rate': -6.0, 'trade_amount': 1e9},
+                            {'code': 'US:BBB', 'name': 'B', 'price': 20, 'change_rate': 0.4, 'trade_amount': 5e8}],
+            'falling': [{'code': 'US:CCC', 'name': 'C', 'price': 5, 'change_rate': -2.0, 'trade_amount': 1e8}]}}
+
+    def series(self):
+        return {
+            # 금요일 하루는 -6%지만 한 주는 +20%(직전 주 마지막 종가 100 -> 120)
+            'US:AAA': [{'date': '2026-10-09', 'close': 100}, {'date': '2026-10-13', 'close': 115}, {'date': '2026-10-16', 'close': 120}],
+            'US:BBB': [{'date': '2026-10-09', 'close': 20}, {'date': '2026-10-16', 'close': 20.2}],
+            'US:CCC': [{'date': '2026-10-09', 'close': 10}, {'date': '2026-10-16', 'close': 8}],
+        }
+
+    def test_weekly_change_uses_previous_week_close_as_base(self):
+        info = weekly_report.weekly_change(self.series()['US:AAA'], self.start, self.end)
+        self.assertAlmostEqual(info['changeRate'], 20.0)
+        self.assertEqual(info['lastDate'], '2026-10-16')
+
+    def test_weekly_change_ignores_stale_or_missing_week(self):
+        self.assertIsNone(weekly_report.weekly_change([{'date': '2026-10-09', 'close': 100}], self.start, self.end))
+        self.assertIsNone(weekly_report.weekly_change([{'date': '2026-10-09', 'close': 100}, {'date': '2026-10-12', 'close': 90}], self.start, self.end))
+
+    def test_hot_and_cold_follow_the_week_not_the_last_day(self):
+        hot = weekly_report.weekly_movers(self.board(), self.series(), self.start, self.end, rising=True)
+        cold = weekly_report.weekly_movers(self.board(), self.series(), self.start, self.end, rising=False)
+        self.assertEqual([r['code'] for r in hot], ['US:AAA'])          # 금요일 -6%였지만 한 주 +20%
+        self.assertEqual(hot[0]['changeRate'], 20.0)
+        self.assertEqual(hot[0]['dayChangeRate'], -6.0)
+        self.assertIn('이번 주 +20.00%', hot[0]['reason'])
+        self.assertEqual([r['code'] for r in cold], ['US:CCC'])         # 한 주 -20%
+        self.assertNotIn('US:BBB', [r['code'] for r in hot + cold])     # +1%는 3% 문턱 미만
+
+    def test_build_report_falls_back_to_last_day_without_weekly_series(self):
+        report = weekly_report.build_report(self.start, self.end, us_board=self.board(), weekly_series={'domestic': {}, 'us': self.series()})
+        self.assertEqual(report['hotStocks']['period'], {'domestic': 'lastDay', 'us': 'week'})
+        self.assertEqual([r['code'] for r in report['hotStocks']['us']], ['US:AAA'])
+        plain = weekly_report.build_report(self.start, self.end, us_board=self.board())
+        self.assertEqual(plain['hotStocks']['period'], {'domestic': 'lastDay', 'us': 'lastDay'})

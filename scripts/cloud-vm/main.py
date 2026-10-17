@@ -500,6 +500,51 @@ def _save_weekly_report_snapshot(cache_key, data):
             pass
 
 
+def _weekly_series_for_movers(domestic_board, us_board, start, end):
+    """2026-10-18: '이번 주 움직인 종목'을 한 주 등락률로 고르기 위한 일봉 종가 모음.
+    후보는 순위 바구니에 오른 종목뿐이라 호출 수가 작다(국내는 DB 한 번, 미국은 종목당 일봉 한 번·최대 60종목).
+    어느 쪽이든 실패하면 빈 값을 돌려 그 시장은 예전(마지막 거래일 순위) 방식으로 남는다."""
+    result = {'domestic': {}, 'us': {}}
+    since = (start - timedelta(days=12)).isoformat()
+    try:
+        codes = list(weekly_report.candidate_pool(domestic_board).keys())
+        if codes:
+            conn = db_schema.get_conn()
+            try:
+                for i in range(0, len(codes), 400):
+                    chunk = codes[i:i + 400]
+                    marks = ','.join('?' * len(chunk))
+                    for code, day, close in conn.execute(
+                            'SELECT code, date, close FROM daily_prices WHERE code IN (%s) AND date >= ? AND date <= ?' % marks,
+                            chunk + [since, end.isoformat()]):
+                        result['domestic'].setdefault(code, []).append({'date': day, 'close': close})
+            finally:
+                conn.close()
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly movers domestic series failed: %s', type(exc).__name__)
+        result['domestic'] = {}
+    try:
+        symbols = {code: code.split(':', 1)[-1] for code in list(weekly_report.candidate_pool(us_board).keys())[:60]}
+
+        def one(item):
+            code, symbol = item
+            chart = us_stocks.chart(symbol, timeframe='daily')
+            return code, [{'date': p.get('time'), 'close': p.get('close')} for p in chart.get('points') or []
+                          if isinstance(p.get('time'), str)]
+        with ThreadPoolExecutor(max_workers=6) as pool:
+            for future in [pool.submit(one, item) for item in symbols.items()]:
+                try:
+                    code, points = future.result()
+                    if points:
+                        result['us'][code] = points
+                except Exception as exc:
+                    logging.getLogger('main').info('weekly movers us chart failed: %s', type(exc).__name__)
+    except Exception as exc:
+        logging.getLogger('main').warning('weekly movers us series failed: %s', type(exc).__name__)
+        result['us'] = {}
+    return result
+
+
 def _load_daily_scan_for_weekly():
     """Read the domestic chart-gated scan without making another market/API call."""
     try:
@@ -3349,6 +3394,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
                 logging.getLogger('main').warning('weekly report %s failed: %s', name, type(exc).__name__)
                 results[name] = [] if name != 'domestic_board' and name != 'us_board' else {}
 
+    weekly_series = _weekly_series_for_movers(results['domestic_board'], results['us_board'], start, end)
     data = weekly_report.build_report(
         start, end, futures_rows=results['futures'],
         domestic_news_items=results['domestic_news'],
@@ -3357,6 +3403,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
         schedule_events=results['schedule'],
         domestic_swing_scan=_load_daily_scan_for_weekly(),
         past_swing_outcomes=_load_past_swing_outcomes(),
+        weekly_series=weekly_series,
     )
     _weekly_report_cache[cache_key] = {'t': time.time(), 'data': data}
     _save_weekly_report_snapshot(cache_key, data)

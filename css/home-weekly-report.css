@@ -851,3 +851,4 @@ html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, ar
 .home-weekly-report .hwr2-theme-stocks em { font-size: 11.5px; color: var(--hw-muted); }
 .home-weekly-report .hwr2-theme-stocks a { color: var(--hw-text); }
 .home-weekly-report .hwr2-theme-us { margin-top: 2px; padding-top: 0; border-top: 0; }
+.hwr2-market-title small { margin-left: 6px; font-size: 12px; font-weight: 400; opacity: .7; }
