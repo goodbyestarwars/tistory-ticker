@@ -280,6 +280,11 @@ def fmt_order_event(kind, d, now):
     else:  # PARTIAL
         lines = [head('◐', '감시 종목 수량 감소', TAG_REAL), '', who, '보유 수량 %s주 → %s주 (잔고 기준)' % (num(d.get('before')), num(d.get('after'))),
                  '일부 체결 또는 직접 매도로 보입니다. 증권사 앱에서 확인하세요.']
+    if kind in ('SENT', 'REJECTED', 'FAILED'):
+        # 2026-10-18: 어느 시각에 낸 주문인지 초 단위 KST 로 밝힌다(주문 수량·보유 평균·현재가는 위 줄에 이미 있다).
+        at = to_dt(now)
+        if at is not None:
+            lines.insert(3, '주문 시각: %s(%s) %s KST' % (at.strftime('%Y-%m-%d'), WEEKDAYS[at.weekday()], at.strftime('%H:%M:%S')))
     lines += ['', foot(now)]
     return '\n'.join(l for l in lines if l is not None)
 
