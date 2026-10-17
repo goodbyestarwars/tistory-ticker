@@ -173,9 +173,15 @@
         + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
     }).join('') + '</ol>';
   }
-  // 2026-10-18 사용자 질문("많이 오른 종목에 왜 표시가 안되지?"): 미국은 마지막 거래일에 KIS 상승률 순위가 비어 키움 폴백이 되는데,
-  // 폴백은 거래대금 상위 약 20종목 안에서만 고른다. 시장 전체가 내린 날은 그중 +1% 이상이 하나도 없어 빈 칸이 되므로 이유를 적는다.
-  function emptyMoverText(market, rising) {
+  // 2026-10-18 사용자 지적("이 섹터는 금요일 기준이 아니라 한 주간 뜨거운 종목인데"): 서버가 순위에 오른 종목을 주간 등락률로 다시 골라
+  // hotStocks.period[시장] = 'week' 로 알려 준다. 주간 자료를 못 받은 시장만 'lastDay'(마지막 거래일 순위)이며 그때는 문구로 밝힌다.
+  // 미국 마지막 거래일 순위는 KIS 상승률 순위가 비면 거래대금 상위 약 20종목 안에서만 고르므로 하락장에는 빈 칸이 되어 이유를 적는다.
+  function moverPeriod(data, market) {
+    var period = (data.hotStocks && data.hotStocks.period) || {};
+    return period[market === 'us' ? 'us' : 'domestic'] === 'week' ? 'week' : 'lastDay';
+  }
+  function emptyMoverText(market, rising, period) {
+    if (period === 'week') return rising ? '이번 주 +3% 이상 오른 종목이 순위 후보 중에 없었습니다.' : '이번 주 -3% 이하로 내린 종목이 순위 후보 중에 없었습니다.';
     if (market !== 'us') return '';
     return rising ? '마지막 거래일 거래대금 상위 미국 종목 중 +1% 이상 오른 종목이 없었습니다.'
       : '마지막 거래일 거래대금 상위 미국 종목 중 -1% 이하로 내린 종목이 없었습니다.';
@@ -183,12 +189,16 @@
   function moversSection(data) {
     var hot = data.hotStocks || {}, cold = data.coldStocks || {};
     function block(label, market, hotItems, coldItems) {
-      return '<div class="hwr2-market"><h4 class="hwr2-market-title">' + label + '</h4><div class="hwr2-cols">'
-        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">많이 오른 종목</h5>' + moverRows(hotItems, market, emptyMoverText(market, true)) + '</div>'
-        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-down">많이 내린 종목</h5>' + moverRows(coldItems, market, emptyMoverText(market, false)) + '</div>'
+      var period = moverPeriod(data, market);
+      return '<div class="hwr2-market"><h4 class="hwr2-market-title">' + label + (period === 'lastDay' ? ' <small>(마지막 거래일 기준)</small>' : '') + '</h4><div class="hwr2-cols">'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">많이 오른 종목</h5>' + moverRows(hotItems, market, emptyMoverText(market, true, period)) + '</div>'
+        + '<div class="hwr2-col"><h5 class="hwr2-col-sub is-down">많이 내린 종목</h5>' + moverRows(coldItems, market, emptyMoverText(market, false, period)) + '</div>'
         + '</div></div>';
     }
-    return '<section class="hwr2-section"><div class="hwr2-h"><h3>이번 주 움직인 종목</h3><p>마지막 거래일 기준 · 상승은 +1% 이상, 하락은 -1% 이하만 표시</p></div>'
+    var weekly = moverPeriod(data, 'domestic') === 'week' || moverPeriod(data, 'us') === 'week';
+    var note = weekly ? '이번 주(월~금) 등락률 기준 · 순위에 오른 종목 중 상승은 +3% 이상, 하락은 -3% 이하만 표시'
+      : '마지막 거래일 기준 · 상승은 +1% 이상, 하락은 -1% 이하만 표시';
+    return '<section class="hwr2-section"><div class="hwr2-h"><h3>이번 주 움직인 종목</h3><p>' + note + '</p></div>'
       + block('한국', 'domestic', hot.domestic, cold.domestic)
       + block('미국', 'us', hot.us, cold.us)
       + '</section>';
