@@ -620,21 +620,51 @@
   }
 
 
-  // ---- 매집봉 표시(2026-10-16 사용자 요청, 2026-10-17 단순화) ----
-  // 봉 하나 조건은 scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같다(검색기와 차트가 어긋나지 않게):
-  // 거래량이 직전 20일 평균의 2.5배 이상 + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
-  // 같은 모양이라도 직전 20봉이 +25% 이상 오른 뒤에 나온 대량 양봉은 물량을 터는 쪽일 수 있어(5년 일봉: 20일 뒤 -10% 이하 48%,
-  // docs/ACCUMULATION_BAR_CONTEXT_2026-10-17.md) 회색 '털기?'로 따로 표시한다. 두 표시 모두 그날 알 수 있는 정보만 쓴다(미래 봉을 보지 않는다).
-  // 일봉·국내 종목에서만 쓴다. 매수 신호가 아니다.
+  // ---- 매집봉 표시(2026-10-16 사용자 요청, 2026-10-17 단순화, 2026-10-18 윗꼬리형 추가) ----
+  // 세 가지만 찍는다. 모두 그날 알 수 있는 정보만 쓰고(미래 봉·사후 상승 여부로 색을 바꾸지 않는다) 매수 신호나 매집 확정이 아니다.
+  //  - 대량 양봉(주황)  : scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같은 기준 - 거래량 직전 20일 평균의 2.5배 이상
+  //                       + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
+  //  - 윗꼬리형(보라)   : 연구용 가설 - 윗꼬리가 범위의 40% 이상 + 몸통 절댓값 3% 이하 + 거래량 직전 20일 평균의 2배 이상 + 거래대금 30억원 이상.
+  //                       5년 일봉 시험(docs/ACCUMULATION_MFE_CHART_2026-10-18.md)에서 기준선보다 나은 근거가 없어 관찰용으로만 둔다.
+  //  - 털기?(회색)      : 위 두 조건 중 하나를 만족하지만 직전 20봉이 +25% 이상 오른 뒤에 나온 봉(상승 과열 뒤 위험 의심).
+  // 한 봉은 하나의 표시만 받는다: 털기? > 대량 양봉 > 윗꼬리형 (대량 양봉 조건을 먼저 보고, 어느 쪽이든 과열이면 털기?).
+  // 일봉·국내 종목에서만 쓴다.
   var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b',
-    runupBars: 20, distributionRunup: 0.25 };
+    runupBars: 20, distributionRunup: 0.25,
+    wickVolMult: 2.0, wickMinRatio: 0.4, wickMaxBodyPct: 3.0, highBars: 60 };
 
   // 빈 값(null·'')은 0이 아니라 없는 값이다 - 서버(volume_accumulation._f)가 평균에서 빼는 것과 같게 맞춘다.
   function accNumber(value) {
     return value === null || value === undefined || value === '' ? NaN : Number(value);
   }
 
-  // 반환: [{ index, date, multiple, status }] status = 'accumulation'(매집봉) | 'distribution'(털기?)
+  // i번째 봉 종가가 최근 period봉(i 포함) 이동평균 대비 몇 % 위인지. 봉이 모자라면 null.
+  function accMaDistance(bars, i, period) {
+    if (i + 1 < period) return null;
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) {
+      var cj = accNumber(bars[j].close);
+      if (!isFinite(cj)) return null;
+      sum += cj;
+    }
+    return (accNumber(bars[i].close) / (sum / period) - 1) * 100;
+  }
+
+  // i번째 봉 종가가 직전 60봉(i 제외) 최고가 대비 몇 % 위/아래인지. 직전 봉이 20개도 없으면 null.
+  function accHighDistance(bars, i) {
+    var from = Math.max(0, i - ACCUMULATION.highBars);
+    if (i - from < ACCUMULATION.avgBars) return null;
+    var top = -Infinity;
+    for (var j = from; j < i; j++) {
+      var hj = accNumber(bars[j].high);
+      if (isFinite(hj) && hj > top) top = hj;
+    }
+    return isFinite(top) && top > 0 ? (accNumber(bars[i].close) / top - 1) * 100 : null;
+  }
+
+  // 반환: [{ index, date, kind, status, multiple, wickPct, highDist, ma112Dist, ma224Dist, runup }]
+  //   kind   = 'volume'(대량 양봉 조건) | 'wick'(윗꼬리형 조건)
+  //   status = 'accumulation'(대량 양봉) | 'wick'(윗꼬리형) | 'distribution'(털기?)
   function accumulationBars(bars) {
     var out = [];
     if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
@@ -648,17 +678,27 @@
         if (isFinite(pv)) { sum += pv; count++; }
       }
       var avg = count ? sum / count : 0;
-      if (!avg || v < ACCUMULATION.volMult * avg || c <= o || (c / o - 1) * 100 < ACCUMULATION.minBodyPct) continue;
-      if ((c - l) / (h - l) < ACCUMULATION.closePosMin || c * v < ACCUMULATION.amountMin) continue;
+      if (!avg || c * v < ACCUMULATION.amountMin) continue;
+      var kind = null;
+      if (v >= ACCUMULATION.volMult * avg && c > o && (c / o - 1) * 100 >= ACCUMULATION.minBodyPct && (c - l) / (h - l) >= ACCUMULATION.closePosMin) {
+        kind = 'volume';
+      } else if (v >= ACCUMULATION.wickVolMult * avg && (h - Math.max(o, c)) / (h - l) >= ACCUMULATION.wickMinRatio
+          && Math.abs(c / o - 1) * 100 <= ACCUMULATION.wickMaxBodyPct) {
+        kind = 'wick';
+      }
+      if (!kind) continue;
       var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
-      out.push({ index: i, date: b.date, multiple: v / avg,
-        status: isFinite(before) && before >= ACCUMULATION.distributionRunup ? 'distribution' : 'accumulation' });
+      var hot = isFinite(before) && before >= ACCUMULATION.distributionRunup;
+      out.push({ index: i, date: b.date, kind: kind, status: hot ? 'distribution' : (kind === 'volume' ? 'accumulation' : 'wick'),
+        multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, highDist: accHighDistance(bars, i),
+        ma112Dist: accMaDistance(bars, i, 112), ma224Dist: accMaDistance(bars, i, 224), runup: isFinite(before) ? before * 100 : null });
     }
     return out;
   }
 
   var ACC_MARKER = {
-    accumulation: { color: '#f59e0b', size: 2, text: '매집봉' },
+    accumulation: { color: '#f59e0b', size: 2, text: '대량 양봉' },
+    wick: { color: '#8b5cf6', size: 1, text: '윗꼬리형' },
     distribution: { color: '#6b7280', size: 1, text: '털기?' }
   };
 
@@ -670,17 +710,66 @@
   }
 
   function accumulationSummary(bars) {
-    var counts = { accumulation: 0, distribution: 0 };
+    var counts = { accumulation: 0, wick: 0, distribution: 0 };
     accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
     return counts;
   }
 
+  function accSigned(value, digits) {
+    if (value === null || value === undefined || !isFinite(value)) return '—';
+    return (value >= 0 ? '+' : '') + value.toFixed(digits === undefined ? 1 : digits) + '%';
+  }
+
+  // 마커가 찍힌 봉 위에 십자선이 오면 판단에 쓴 수치를 보여 준다(관찰용). 반환: 해제 함수.
+  function attachAccumulationTooltip(chart, container, bars) {
+    if (!chart || !container || typeof chart.subscribeCrosshairMove !== 'function') return function () {};
+    var byDate = {};
+    accumulationBars(bars).forEach(function (hit) { byDate[hit.date] = hit; });
+    Array.prototype.forEach.call(container.querySelectorAll('.nine-acc-tip'), function (old) { old.remove(); });   // 다시 그릴 때 이전 차트의 툴팁이 남지 않게
+    var tip = document.createElement('div');
+    tip.className = 'nine-acc-tip';
+    tip.hidden = true;
+    var dark = isDark();
+    tip.style.cssText = 'position:absolute;z-index:8;pointer-events:none;max-width:230px;padding:6px 8px;border-radius:6px;font-size:11px;line-height:1.5;'
+      + 'box-shadow:0 2px 8px rgba(15,23,42,.18);border:1px solid ' + (dark ? 'rgba(245,239,224,.24)' : 'rgba(148,163,184,.52)') + ';'
+      + 'background:' + (dark ? 'rgba(26,26,26,.95)' : 'rgba(255,255,255,.96)') + ';color:' + (dark ? '#F5EFE0' : '#334155') + ';';
+    container.appendChild(tip);
+    function dateKey(time) {
+      if (typeof time === 'string') return time;
+      if (time && typeof time === 'object' && time.year != null) return time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0');
+      return '';
+    }
+    var onMove = function (param) {
+      var hit = param && param.point ? byDate[dateKey(param.time)] : null;
+      if (!hit) { tip.hidden = true; return; }
+      var style = ACC_MARKER[hit.status];
+      tip.innerHTML = '<b style="color:' + style.color + '">' + style.text + '</b> <span style="opacity:.7">' + hit.date + ' · 관찰용, 매수 신호 아님</span><br>'
+        + '거래량 <b>' + hit.multiple.toFixed(1) + '배</b> · 윗꼬리 <b>' + hit.wickPct.toFixed(0) + '%</b><br>'
+        + '직전 60봉 고점 대비 <b>' + accSigned(hit.highDist) + '</b><br>'
+        + '112일선 대비 <b>' + accSigned(hit.ma112Dist) + '</b> · 224일선 대비 <b>' + accSigned(hit.ma224Dist) + '</b><br>'
+        + '직전 20봉 <b>' + accSigned(hit.runup) + '</b>';
+      var width = container.clientWidth || 0;
+      var x = Number(param.point.x || 0);
+      tip.style.left = Math.max(4, x > width * 0.58 ? x - 244 : x + 14) + 'px';
+      tip.style.top = Math.max(4, Number(param.point.y || 0) + 14) + 'px';
+      tip.hidden = false;
+    };
+    chart.subscribeCrosshairMove(onMove);
+    return function () {
+      if (typeof chart.unsubscribeCrosshairMove === 'function') chart.unsubscribeCrosshairMove(onMove);
+      tip.remove();
+    };
+  }
+
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
-  // holder: { plugin, base } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. 반환: {accumulation, distribution} 개수(꺼져 있으면 0).
+  // holder: { plugin, base, chart, container } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. chart·container 가 있으면 툴팁도 함께 건다.
+  // 반환: {accumulation, wick, distribution} 개수(꺼져 있으면 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     var acc = enabled ? accumulationMarkers(bars) : [];
-    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, distribution: 0 };
+    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, wick: 0, distribution: 0 };
+    if (holder.tipCleanup) { holder.tipCleanup(); holder.tipCleanup = null; }
+    if (enabled && holder.chart && holder.container) holder.tipCleanup = attachAccumulationTooltip(holder.chart, holder.container, bars);
     var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
     if (typeof LWC.createSeriesMarkers !== 'function') return counts;
     if (!holder.plugin) {
@@ -705,7 +794,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
