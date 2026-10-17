@@ -594,6 +594,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_WIDGETS_SCRIPT_URL = document.currentScript && document.currentScript.src
       ? document.currentScript.src.replace(/skin-main(?:\.min)?\.js(?:\?.*)?$/, 'home-widgets.js?v=20261005-rotation-moved')
       : 'https://goodbyestarwars.github.io/tistory-ticker/js/home-widgets.js?v=20261005-rotation-moved';
+    var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261005-stocks30-v2';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
   var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261018-week-movers';
@@ -1302,6 +1303,16 @@ document.documentElement.classList.add('skin-ready');
     // 다시 고정 샘플이 필요하면 이 값을 true로만 바꾸면 된다(아래 기구는 유지).
     var HOME_USE_SAMPLE_CHARTS = false;
     var homeSessionCharts = {}, homePriceMode = 'area', homeSessionLoading = false;
+    // 마우스 오버용 점 목록(js/home-chart-hover.js가 읽는다). [x%, y%, 문구] - 문구는 textContent 로만 쓰이지만 속성 이스케이프는 여기서 한다.
+    function homeHoverAttr(points) {
+      return JSON.stringify(points.map(function (p) { return [Math.round(p[0] * 100) / 100, Math.round(p[1] * 100) / 100, p[2]]; }))
+        .replace(/&/g, '&amp;').replace(/'/g, '&#39;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    function homePercentText(value, base) {
+      if (!isFinite(value) || !isFinite(base) || !base) return '';
+      var pct = (value / base - 1) * 100;
+      return (pct > 0 ? '+' : '') + pct.toFixed(2) + '%';
+    }
     function renderHomeSessionChart(element, key, reference) {
       var result = homeSessionCharts[key] || {}, meta = result.session;
       var rows = (result.rows || []).filter(function (r) {
@@ -1359,7 +1370,14 @@ document.documentElement.classList.add('skin-ready');
           : '<circle class="hmb-investor-' + tone + '" cx="' + x(r.slot) + '" cy="' + y(r.close) + '" r=".7">' + title + '</circle>';
       });
       function dot(r, value, name) { return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(r.slot) + '%;top:' + y(value) / 90 * 100 + '%"></span>'; }
-      element.innerHTML = controls + '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 가격 추이, 관측 고점 ' + amount(high.high) + ', 저점 ' + amount(low.low) + '">'
+      var zoneName = ['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간';
+      var hoverPoints = rows.map(function (r) {
+        var change = homePercentText(Number(r.close), base);
+        return [x(r.slot), y(Number(r.close)) / 90 * 100,
+          time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' ' + zoneName + ' 구간 · 지수 ' + amount(r.close)
+            + (change ? ' (기준 대비 ' + change + ')' : '') + '\n관측 ' + time(r.ts)];
+      });
+      element.innerHTML = controls + '<div class="hmb-investor-spark-wrap" data-hover-points="' + homeHoverAttr(hoverPoints) + '"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 가격 추이, 관측 고점 ' + amount(high.high) + ', 저점 ' + amount(low.low) + '">'
         + '<line class="hmb-investor-zero" x1="1" x2="99" y1="' + zero + '" y2="' + zero + '" vector-effect="non-scaling-stroke"/>' + marks + '</svg>' + dot(high, high.high, 'high') + dot(low, low.low, 'low') + '</div>'
         + '<div class="hmb-investor-axis"><span>' + time(Date.parse(meta.start) / 1000) + '</span><span>' + time(Date.parse(meta.end) / 1000) + '</span></div>'
         + '<div class="hmb-investor-extrema"><span>관측 고점 <b>' + amount(high.high) + '</b></span><span>저점 <b>' + amount(low.low) + '</b></span></div>'
@@ -2039,7 +2057,13 @@ document.documentElement.classList.add('skin-ready');
       function point(extreme, name) {
         return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(extreme.slot).toFixed(2) + '%;top:' + (y(extreme.value) / 90 * 100).toFixed(2) + '%" aria-hidden="true"></span>';
       }
-      return '<div class="hmb-investor-spark-wrap"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 누적 외국인 순매수, 확보 ' + rows.length + '개, 관측 고점 ' + investorAmountText(high.value) + ', 저점 ' + investorAmountText(low.value) + '">'
+      var investorHover = rows.map(function (r) {
+        var minute = 540 + r.slot * 30;
+        return [x(r.slot), y(Number(r.frgn)) / 90 * 100,
+          Math.floor(minute / 60) + ':' + String(minute % 60).padStart(2, '0') + ' KST 구간 · 외국인 누적 ' + investorAmountText(Number(r.frgn))
+            + '\n수집 ' + investorTimeText(r.asOf)];
+      });
+      return '<div class="hmb-investor-spark-wrap" data-hover-points="' + homeHoverAttr(investorHover) + '"><svg class="hmb-investor-spark" viewBox="0 0 100 90" preserveAspectRatio="none" role="img" aria-label="30분 구간별 누적 외국인 순매수, 확보 ' + rows.length + '개, 관측 고점 ' + investorAmountText(high.value) + ', 저점 ' + investorAmountText(low.value) + '">'
         + '<line x1="1" y1="' + zero + '" x2="99" y2="' + zero + '" class="hmb-investor-zero" vector-effect="non-scaling-stroke"/>'
         + marks + '</svg>' + point(high, 'high') + (high.value !== low.value ? point(low, 'low') : '') + '</div>'
         + '<div class="hmb-investor-axis"><span>09:00</span><span>12:00</span><span>15:30</span></div>'
@@ -2296,7 +2320,8 @@ document.documentElement.classList.add('skin-ready');
       loadHomeScript(HOME_WEEKLY_REPORT_SCRIPT_URL, 'HomeWeeklyReport').catch(function () { return null; }),
       loadHomeScript(HOME_WIDGETS_SCRIPT_URL, 'HomeDashboardWidgets').catch(function () { return null; }),
       loadHomeScript(HOME_REALTIME_TABLE_SCRIPT_URL, 'HomeRealtimeTable').catch(function () { return null; }),
-      loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews').catch(function () { return null; })
+      loadHomeScript(HOME_ECONOMIC_NEWS_SCRIPT_URL, 'HomeEconomicNews').catch(function () { return null; }),
+      loadHomeScript(HOME_CHART_HOVER_SCRIPT_URL, 'HomeChartHover').catch(function () { return null; })
     ]).then(function (modules) {
         var weekly = modules[0];
         var widgets = modules[1];

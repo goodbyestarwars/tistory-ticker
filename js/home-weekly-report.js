@@ -148,6 +148,25 @@
       + glow.svg
       + '<polyline points="' + poly + '" fill="none" stroke="' + strokeAttr(className, '#2563eb') + '" stroke-width="1.8" vector-effect="non-scaling-stroke"></polyline></svg>' + glow.dot;
   }
+  // 2026-10-18 사용자 요청: 휴장 리포트의 지수 미니 차트에도 장중 대시보드처럼 마우스를 올리면 날짜·종가·전일 대비를 보여 준다.
+  // 좌표는 sparkline()과 같은 식이며(viewBox 100x32), js/home-chart-hover.js(skin-main이 로드)가 data-hover-points 를 읽는다.
+  function indexHoverAttr(item) {
+    var rows = (item && item.series || []).map(function (point) { return { date: point.date, close: num(point.close) }; })
+      .filter(function (row) { return row.close != null; });
+    if (rows.length < 2) return '';
+    var values = rows.map(function (row) { return row.close; });
+    var min = Math.min.apply(null, values), max = Math.max.apply(null, values), range = max - min || 1;
+    var base = num(item.base);
+    var points = rows.map(function (row, index) {
+      var prev = index ? rows[index - 1].close : base;
+      var change = prev ? (row.close / prev - 1) * 100 : null;
+      var text = dateLabel(row.date) + ' 종가 ' + row.close.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+        + (change != null ? ' (' + (index ? '전일 ' : '직전 주 마감 ') + (change > 0 ? '+' : '') + change.toFixed(2) + '%)' : '');
+      return [2 + index * 96 / (rows.length - 1), (30 - (row.close - min) / range * 26) / 32 * 100, text];
+    });
+    return ' data-hover-points="' + JSON.stringify(points.map(function (point) { return [Math.round(point[0] * 100) / 100, Math.round(point[1] * 100) / 100, point[2]]; }))
+      .replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"';
+  }
   function dateLabel(value) {
     var text = String(value || '');
     var match = text.match(/(\d{4})-(\d{2})-(\d{2})/);
@@ -840,7 +859,7 @@
     }).map(function (item) {
       return '<article class="hwr-index-card"><strong class="hwr2-idx-name">' + escapeHtml(item.name) + '</strong><b>' + formatMarketValue(item) + '</b>'
         + '<span class="hwr2-idx-chg ' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</span>'
-        + '<div class="hwr-spark">' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
+        + '<div class="hwr-spark"' + indexHoverAttr(item) + '>' + sparkline(item.series, 'hwr-index-spark ' + signClass(item.changeRate)) + '</div></article>';
     }).join('');
     root.innerHTML = '<div class="hwr-head"><div class="hwr-head-copy"><h2>' + title + '</h2><p>이번 주 시장 흐름을 한눈에</p></div>' + sentimentArt(indices) + '<div class="hwr-period">' + escapeHtml(data.week && data.week.label || '기준일 확인 중') + '<small>금요일 장 마감 기준</small></div></div>'
       + '<section class="hwr2-section hwr2-prep">'
