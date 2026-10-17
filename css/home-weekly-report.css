@@ -226,13 +226,13 @@ html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: #
 .hwr-fx-spark polyline { fill: none; stroke: #64748b; stroke-width: 1.7; vector-effect: non-scaling-stroke; }
 .hwr-fx-guide-line { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
 .hwr-fx-average-line { stroke: #475569; stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-.hwr-fx-interest-band { fill: rgba(255, 179, 0, .45); }
+.hwr-fx-interest-band { fill: rgba(255, 205, 90, .24); }
 .hwr-fx-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: #64748b; font-size: 9px; line-height: 1.4; }
 .hwr-fx-legend > span { display: inline-flex; align-items: center; gap: 4px; }
 .hwr-fx-legend b { color: #334155; font-weight: 800; }
 .hwr-fx-legend-line, .hwr-fx-legend-swatch { display: inline-block; width: 13px; height: 0; }
 .hwr-fx-legend-line--average { border-top: 1px dashed #475569; }
-.hwr-fx-legend-swatch { height: 7px; border: 1px solid rgba(230, 150, 0, .7); border-radius: 2px; background: rgba(255, 179, 0, .45); }
+.hwr-fx-legend-swatch { height: 7px; border: 1px solid rgba(230, 170, 40, .45); border-radius: 2px; background: rgba(255, 205, 90, .24); }
 .hwr-fx-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: #94a3b8; font-size: 8px; font-variant-numeric: tabular-nums; }
 .hwr-fx-meta { display: block; margin-top: 7px; color: #94a3b8; font-size: 9px; }
 .hwr-fx-advice { display: flex; align-items: baseline; gap: 7px; }

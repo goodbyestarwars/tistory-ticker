@@ -610,9 +610,11 @@
     if (current <= p25) return Object.assign({ status: 'interest', label: '매수 관심 구간', message: '1년 관측 범위 하단이라 분할 접근을 검토' }, common);
     return Object.assign({ status: 'neutral', label: '중립·관망', message: '1년 평균 범위 안에서 방향을 확인' }, common);
   }
-  function fxSparkline(fx, title) {
+  function fxSparkline(fx, title, unit) {
     var analysis = fx && fx.analysis || {};
-    var points = (fx && fx.chart || []).map(function (point) { return num(point && point.close); }).filter(function (value) { return value != null; });
+    var rows = (fx && fx.chart || []).map(function (point) { return { date: point && point.date, close: num(point && point.close) }; })
+      .filter(function (row) { return row.close != null; });
+    var points = rows.map(function (row) { return row.close; });
     if (points.length < 2) return '<div class="hwr-fx-chart hwr-fx-chart--empty">1년 추이 데이터 없음</div>';
     var reference = [analysis.low, analysis.high, analysis.average, analysis.p25, analysis.p75].map(num).filter(function (value) { return value != null; });
     var values = points.concat(reference);
@@ -639,10 +641,19 @@
     // CSS에 없어서 프레젠테이션 속성이 그대로 살아남는다 -> 0.10 x 0.10 = 불투명도 1%로
     // 매수 관심 구간이 사실상 안 보였다(2026-08-30 FOUC 수정에서 들어간 값).
     // CSS와 같은 최종 색을 fill 하나로 넣어 곱해지지 않게 한다.
-    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(255, 179, 0, 0.45)"></rect>';
+    var interestBand = p25 == null || low == null ? '' : '<rect class="hwr-fx-interest-band" x="0" y="' + bandTop.toFixed(1) + '" width="100" height="' + bandHeight.toFixed(1) + '" rx="1" fill="rgba(255, 205, 90, 0.24)"></rect>';
     var spark = signClass(fx.change_rate);
     var fxGlow = glowParts(poly, 44, spark);
-    return '<div class="hwr-fx-chart"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'
+    // 2026-10-18 사용자 요청: 환율·금 선물 1년 차트도 마우스를 올리면 날짜와 값을 보여 준다(js/home-chart-hover.js가 읽는다).
+    var fxIsUsd = unit === 'usd';
+    var fxHover = JSON.stringify(rows.map(function (row, index) {
+      var prev = index ? rows[index - 1].close : null;
+      var change = prev ? (row.close / prev - 1) * 100 : null;
+      var value = fxIsUsd ? '$' + row.close.toLocaleString('en-US', { maximumFractionDigits: 1 }) : row.close.toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '원';
+      return [Math.round((2 + index * 96 / Math.max(1, rows.length - 1)) * 100) / 100, Math.round(y(row.close) / 44 * 10000) / 100,
+        String(row.date || '').slice(0, 10) + ' 종가 ' + value + (change != null ? ' (전일 ' + (change > 0 ? '+' : '') + change.toFixed(2) + '%)' : '')];
+    })).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    return '<div class="hwr-fx-chart" data-hover-points="' + fxHover + '"><svg class="hwr-fx-spark ' + spark + '" viewBox="0 0 100 44" width="100%" height="72" preserveAspectRatio="none" role="img" aria-label="최근 1년 ' + escapeHtml(title || '자산') + ' 추이">'
       + '<line class="hwr-fx-guide-line" x1="0" y1="5" x2="100" y2="5"' + guideAttrs + '></line>'
       + '<line class="hwr-fx-guide-line" x1="0" y1="39" x2="100" y2="39"' + guideAttrs + '></line>'
       + fxGlow.svg + interestBand + averageLine
@@ -667,7 +678,7 @@
     // 쪼개지던 문제(2026-08-31 사용자 리포트).
     var num_ = function (value) { return '<span class="hwr-fx-num">' + display(value) + '</span>'; };
     var status = (analysis.status || 'unknown').replace(/[^a-z-]/g, '');
-    return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + num_(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + num_(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + num_(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + num_(low) + '</span><span>1년 고점 ' + num_(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
+    return '<article class="hwr-fx-card hwr-fx-card--' + escapeHtml(status) + '"><div class="hwr-card-title"><strong>' + escapeHtml(options.title || '원/달러 환율') + '</strong><span>최근 1년 기준</span></div><div class="hwr-fx-main"><strong>' + num_(current) + '</strong><b class="' + signClass(fx.change_rate) + '">' + signed(fx.change_rate) + '</b></div>' + fxSparkline(fx, options.title, options.unit) + '<div class="hwr-fx-legend"><span><i class="hwr-fx-legend-line hwr-fx-legend-line--average"></i>1년 평균 <b>' + num_(average) + '</b></span><span><i class="hwr-fx-legend-swatch"></i>매수 관심 ≤ ' + num_(p25) + '</span></div><div class="hwr-fx-range"><span>1년 저점 ' + num_(low) + '</span><span>1년 고점 ' + num_(high) + '</span></div><div class="hwr-fx-meta">' + fxStatus(fx, options.fallbackLabel, options.fallbackMessage) + '</div></article>';
   }
   // 관심종목 코드 -> 표시용 이름 맵. window.Watchlist.getList()는 #watchlist 컨테이너가
   // 실제로 DOM에 있는 페이지(예: /page/watchlist)에서만 채워지고 홈 화면(휴장 탭이 붙는
