@@ -192,6 +192,22 @@
         + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
     }).join('') + '</ol>';
   }
+  function candidateRows(items) {
+    if (!items || !items.length) return '<p class="hwr-empty">현재 조건 충족 후보 없음</p>';
+    return '<ol class="hwr2-rows hwr2-rows--candidates">' + items.slice(0, 5).map(function (item, index) {
+      var waves = item.waves || {};
+      var reasons = [];
+      if (waves.mid === '상승 추세') reasons.push('중기 상승');
+      if (waves.small === '상승 추세') reasons.push('단기 상승');
+      if (item.momentum === '강화') reasons.push('수급 강화');
+      if (item.fundamental === '지지') reasons.push('펀더멘털 지지');
+      if (item.risk === '없음') reasons.push('위험 없음');
+      return '<li><i class="hwr2-rank">' + (index < 9 ? '0' : '') + (index + 1) + '</i>'
+        + '<span class="hwr2-name"><strong>' + escapeHtml(item.name) + '</strong><small>' + escapeHtml(item.code) + '</small>'
+        + (reasons.length ? '<em>선정 근거 · ' + escapeHtml(reasons.join(' · ')) + '</em>' : '') + '</span>'
+        + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
+    }).join('') + '</ol>';
+  }
   // 2026-10-18 사용자 지적("이 섹터는 금요일 기준이 아니라 한 주간 뜨거운 종목인데"): 서버가 순위에 오른 종목을 주간 등락률로 다시 골라
   // hotStocks.period[시장] = 'week' 로 알려 준다. 주간 자료를 못 받은 시장만 'lastDay'(마지막 거래일 순위)이며 그때는 문구로 밝힌다.
   // 미국 마지막 거래일 순위는 KIS 상승률 순위가 비면 거래대금 상위 약 20종목 안에서만 고르므로 하락장에는 빈 칸이 되어 이유를 적는다.
@@ -255,11 +271,11 @@
     var past = outcomes.domestic;
     var hasPast = past && past.length;
     var left = '<div class="hwr2-col"><h5 class="hwr2-col-sub is-up">매매 신호 <small>2주 스윙 상승 후보</small></h5>'
-      + moverRows(data.hotCandidates && data.hotCandidates.domestic, 'domestic', '현재 조건 충족 후보 없음') + '</div>';
+      + candidateRows(data.hotCandidates && data.hotCandidates.domestic) + '</div>';
     var right = hasPast
       ? '<div class="hwr2-col"><h5 class="hwr2-col-sub">지난 신호 성과 <small>신호일 대비 확정 수익률</small></h5>' + pastOutcomeStatsCard(outcomes.stats) + pastOutcomeRows(past) + '</div>'
       : '';
-    return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 차트 국면·모멘텀·펀더멘털·위험 필터를 통과한 종목만 표시합니다</p></div>'
+    return '<section class="hwr2-section"><div class="hwr2-h"><h3>다음 주 체크할 종목</h3><p>국내 중·단기 상승 추세와 위험 필터를 통과한 종목 중, 수급 모멘텀과 펀더멘털 점수를 반영해 최대 5종목을 표시합니다.</p></div>'
       + '<div class="hwr2-cols' + (hasPast ? '' : ' is-single') + '">' + left + right + '</div></section>';
   }
   // 2026-10-04: 위 지수 4개(KOSPI·KOSDAQ·나스닥·S&P500)는 바로 아래 지수 블록에 이미 있어서 여기서는 빼고,
