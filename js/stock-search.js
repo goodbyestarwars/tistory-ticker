@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation5';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation6';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -2131,7 +2131,7 @@
       }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
         var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, { chart: chart, container: container });
-        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적 ● 대량 양봉 <b>' + accCounts.accumulation + '</b></span><span style="color:#8b5cf6"> · ● 윗꼬리형 <b>' + accCounts.wick + '</b></span><span style="color:#6b7280"> · 털기? <b>' + accCounts.distribution + '</b></span><span style="opacity:.7"> (관찰용)</span>');
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적 ● 대량 양봉 <b>' + accCounts.accumulation + '</b></span><span style="color:#7c3aed"> · ● 윗꼬리형 <b>' + accCounts.wick + '</b></span><span style="color:#4b5563"> · 털기? <b>' + accCounts.distribution + '</b></span><span style="opacity:.7"> (관찰용)</span>');
       } else if (state.accumulationEnabled) {
         priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적은 국내 일봉에서만 표시됩니다</span>');
       }
@@ -2216,6 +2216,7 @@
       // 2026-09-16 민원("차트 안 글자가 겹쳐 보임"): 축 라벨 칩('70'·'30')이 가격축 눈금(70.0·30.0)
       // 바로 옆에 겹쳐 찍혀 같은 숫자가 두 번 보였다. 점선은 그대로 두고 중복 칩만 끈다.
       rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+      rsiSeries.createPriceLine({ price: 50, color: '#c4c4c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '50' });
       rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
       // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
       // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널

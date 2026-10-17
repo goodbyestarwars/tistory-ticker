@@ -219,5 +219,21 @@ class WickBarAndPriorityTest(unittest.TestCase):
         self.assertNotIn('매집 확정', ss[ss.index('ssAccumulationToggle'):ss.index('ssAccumulationToggle') + 900])
 
 
+class MarkerConsistencyAndRsiMidlineTest(unittest.TestCase):
+    """2026-10-18: 세 표시의 점 크기를 같게(크기는 키우지 않고 색을 진하게), RSI 차트에 50 가로선."""
+
+    def test_all_three_markers_share_one_small_size(self):
+        src = open(os.path.join(ROOT, 'js', 'chart-core.js'), encoding='utf-8').read()
+        block = src[src.index('var ACC_MARKER = {'):src.index('function accumulationMarkers')]
+        import re
+        self.assertEqual(re.findall(r'size: (\d)', block), ['1', '1', '1'])
+
+    def test_rsi_charts_draw_the_50_line(self):
+        ss = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
+        ff = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
+        self.assertIn("rsiSeries.createPriceLine({ price: 50,", ss)
+        self.assertIn('y(50).toFixed(1)', ff)
+
+
 if __name__ == '__main__':
     unittest.main()

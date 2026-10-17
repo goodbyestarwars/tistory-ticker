@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation5';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation6';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -5609,7 +5609,9 @@
     var svg = '<svg class="ff-svg" viewBox="0 0 ' + CHART_W + ' ' + RATIO_H + '" role="img" aria-label="RSI(14) 추이">';
     svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(70).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(70).toFixed(1) + '"/>';
     svg += '<line class="ff-grid ff-rsi-band" x1="' + PAD.l + '" y1="' + y(30).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(30).toFixed(1) + '"/>';
+    svg += '<line class="ff-grid ff-rsi-band ff-rsi-mid" x1="' + PAD.l + '" y1="' + y(50).toFixed(1) + '" x2="' + (CHART_W - PAD.r) + '" y2="' + y(50).toFixed(1) + '"/>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(70) + 4).toFixed(1) + '" text-anchor="end">70</text>';
+    svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(50) + 4).toFixed(1) + '" text-anchor="end">50</text>';
     svg += '<text class="ff-axis" x="' + (PAD.l - 6) + '" y="' + (y(30) + 4).toFixed(1) + '" text-anchor="end">30</text>';
     svg += rsiAxisLabels(pts, x, RATIO_H - 8);
     svg += buildRsiThresholdFill(pts, x, y, 70, 'above');
