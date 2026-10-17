@@ -629,7 +629,7 @@
   //  - 털기?(회색)      : 위 두 조건 중 하나를 만족하지만 직전 20봉이 +25% 이상 오른 뒤에 나온 봉(상승 과열 뒤 위험 의심).
   // 한 봉은 하나의 표시만 받는다: 털기? > 대량 양봉 > 윗꼬리형 (대량 양봉 조건을 먼저 보고, 어느 쪽이든 과열이면 털기?).
   // 일봉·국내 종목에서만 쓴다.
-  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#f59e0b',
+  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#e8590c',
     runupBars: 20, distributionRunup: 0.25,
     wickVolMult: 2.0, wickMinRatio: 0.4, wickMaxBodyPct: 3.0, highBars: 60 };
 
@@ -697,9 +697,9 @@
   }
 
   var ACC_MARKER = {
-    accumulation: { color: '#f59e0b', size: 2, text: '대량 양봉' },
-    wick: { color: '#8b5cf6', size: 1, text: '윗꼬리형' },
-    distribution: { color: '#6b7280', size: 1, text: '털기?' }
+    accumulation: { color: '#e8590c', size: 1, text: '대량 양봉' },
+    wick: { color: '#7c3aed', size: 1, text: '윗꼬리형' },
+    distribution: { color: '#4b5563', size: 1, text: '털기?' }
   };
 
   function accumulationMarkers(bars) {
