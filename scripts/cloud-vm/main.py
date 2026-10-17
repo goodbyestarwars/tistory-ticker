@@ -531,14 +531,19 @@ def _weekly_series_for_movers(domestic_board, us_board, start, end):
             chart = us_stocks.chart(symbol, timeframe='daily')
             return code, [{'date': p.get('time'), 'close': p.get('close')} for p in chart.get('points') or []
                           if isinstance(p.get('time'), str)]
-        with ThreadPoolExecutor(max_workers=6) as pool:
+        # 주 첫 요청에서 nginx(60초)에 막히지 않도록 전체 대기 시간을 25초로 묶는다. 못 받은 종목은 후보에서 빠질 뿐이다.
+        deadline = time.time() + 25
+        pool = ThreadPoolExecutor(max_workers=6)
+        try:
             for future in [pool.submit(one, item) for item in symbols.items()]:
                 try:
-                    code, points = future.result()
+                    code, points = future.result(timeout=max(0.1, deadline - time.time()))
                     if points:
                         result['us'][code] = points
                 except Exception as exc:
                     logging.getLogger('main').info('weekly movers us chart failed: %s', type(exc).__name__)
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
     except Exception as exc:
         logging.getLogger('main').warning('weekly movers us series failed: %s', type(exc).__name__)
         result['us'] = {}
