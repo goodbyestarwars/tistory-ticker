@@ -38,6 +38,17 @@ class HomeChartHoverTest(unittest.TestCase):
         self.assertIn("'<div class=\"hwr-spark\"' + indexHoverAttr(item)", src)
         self.assertIn("' 종가 '", src)
 
+    def test_fx_and_gold_year_charts_have_hover_and_lighter_band(self):
+        src = read('js/home-weekly-report.js')
+        css = read('css/home-weekly-report.css')
+        self.assertIn('<div class="hwr-fx-chart" data-hover-points="', src)
+        self.assertIn("fxSparkline(fx, options.title, options.unit)", src)
+        self.assertIn("' 종가 ' + value", src)
+        # 매수 관심 구간 색: 예전 rgba(255,179,0,.45)보다 연하게(사용자 요청 2026-10-18)
+        self.assertNotIn('255, 179, 0', src)
+        self.assertIn('.hwr-fx-interest-band { fill: rgba(255, 205, 90, .24); }', css)
+        self.assertNotIn('rgba(255, 179, 0, .45)', css)
+
 
 if __name__ == '__main__':
     unittest.main()
