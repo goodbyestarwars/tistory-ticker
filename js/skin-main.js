@@ -2314,6 +2314,30 @@ document.documentElement.classList.add('skin-ready');
     var pagination = feed.querySelector(':scope > .pagination');
     if (pagination) pagination.remove();
 
+    // 2026-10-18 사용자 요청("휴장에는 마켓브리핑이 없는데 추가"): 마켓 브리핑 섹션은 위젯 모듈이 .home-widget-grid 안으로 옮기는데,
+    // 휴장 화면은 그 그리드를 통째로 숨겨서 브리핑도 같이 사라졌다. 휴장(dashboardSection.is-market-closed)이면 주간 리포트 바로 아래로
+    // 꺼내 보이고, 장이 열리면 원래 자리(표시해 둔 주석 노드 앞)로 되돌린다. 탭 전환으로 클래스가 바뀔 때마다 다시 맞춘다.
+    function syncBriefingPlacement() {
+      var section = feed.querySelector('.home-briefing-section') || document.querySelector('.home-briefing-section');
+      if (!section) return;
+      var closed = dashboardSection.classList.contains('is-market-closed');
+      var report = document.getElementById('homeWeeklyReport');
+      if (closed) {
+        if (!report || !report.parentNode) return;
+        if (!section.__homeSlot) {
+          section.__homeSlot = document.createComment('home-briefing-slot');
+          section.parentNode.insertBefore(section.__homeSlot, section);
+        }
+        if (report.nextSibling !== section) report.parentNode.insertBefore(section, report.nextSibling);
+        section.hidden = false;
+      } else if (section.__homeSlot && section.__homeSlot.parentNode) {
+        section.__homeSlot.parentNode.insertBefore(section, section.__homeSlot);
+        section.__homeSlot.remove();
+        section.__homeSlot = null;
+      }
+    }
+    if (window.MutationObserver) new MutationObserver(syncBriefingPlacement).observe(dashboardSection, { attributes: true, attributeFilter: ['class'] });
+
     // 네 모듈은 서로의 코드에 의존하지 않는다. 기존 직렬 로딩을 병렬로
     // 바꿔 첫 화면에서 네트워크 왕복 한 번 이상을 줄인다.
     Promise.all([
@@ -2337,6 +2361,8 @@ document.documentElement.classList.add('skin-ready');
         });
         if (table && table.init) table.init({ mount: dashboardSection.querySelector('#homeRealtimeBoard') });
         if (news && news.init) news.init({ mount: dashboardSection.querySelector('#homeEconomicNews') });
+        syncBriefingPlacement();
+        setTimeout(syncBriefingPlacement, 1500);
       })
       .catch(function () {
         /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
