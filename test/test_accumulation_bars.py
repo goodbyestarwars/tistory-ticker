@@ -92,16 +92,16 @@ class AccumulationContextTest(unittest.TestCase):
         self.acc_bar(bars, 30)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'accumulation']])
-        self.assertEqual(out['markers'], [[bars[30]['date'], '매집봉']])
-        self.assertEqual(out['summary'], {'accumulation': 1, 'distribution': 0})
+        self.assertEqual(out['markers'], [[bars[30]['date'], '대량 양봉']])
+        self.assertEqual(out['summary'], {'accumulation': 1, 'wick': 0, 'distribution': 0})
 
     def test_marks_do_not_depend_on_later_bars(self):
         bars = self.base()
         self.acc_bar(bars, 30)
         for k in range(31, 40):                                   # 이후 봉을 어떻게 바꿔도(급락·거래량 폭증) 그날의 표시는 그대로 - 미래 정보 없음
             put(bars, k, 9000, 9100, 8000, 8100, 900000)
-        self.assertEqual(js_hits(bars)['markers'], [[bars[30]['date'], '매집봉']])
-        self.assertEqual(js_hits(bars[:31])['markers'], [[bars[30]['date'], '매집봉']])
+        self.assertEqual(js_hits(bars)['markers'], [[bars[30]['date'], '대량 양봉']])
+        self.assertEqual(js_hits(bars[:31])['markers'], [[bars[30]['date'], '대량 양봉']])
 
     def test_runup_before_the_bar_is_marked_as_possible_distribution(self):
         bars = self.base()
@@ -112,7 +112,7 @@ class AccumulationContextTest(unittest.TestCase):
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'distribution']])
         self.assertEqual(out['markers'], [[bars[30]['date'], '털기?']])
-        self.assertEqual(out['summary'], {'accumulation': 0, 'distribution': 1})
+        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 0, 'distribution': 1})
 
     def test_missing_volume_is_skipped_not_counted_as_zero(self):
         bars = self.base()
@@ -137,9 +137,11 @@ class AccumulationToggleWiringTest(unittest.TestCase):
         ss = self.read('js/stock-search.js')
         ff = self.read('js/foreign-flow.js')
         self.assertIn('id="ssAccumulationToggle"', ss)
-        self.assertIn('/> 매집봉 표시</label>', ss)
-        self.assertIn('/> 매집봉 표시</label>', ff)
-        label = ss[ss.index('<label title="일봉에서만 표시합니다.'):ss.index('매집봉 표시</label>')]
+        self.assertIn('/> 대량거래 흔적 표시</label>', ss)
+        self.assertIn('/> 대량거래 흔적 표시</label>', ff)
+        self.assertIn('chart: chart, container: container', ss)   # 십자선 툴팁에 필요한 연결
+        self.assertIn('chart: chart, container: container', ff)
+        label = ss[ss.index('<label title="일봉에서만 표시합니다.'):ss.index('대량거래 흔적 표시</label>')]
         for text in ('후보', '4봉', '지지', '실패'):                 # 알아보기 어렵다는 지적을 받은 용어는 화면 문구에 없다
             self.assertNotIn(text, label)
         self.assertIn('id="ffAccumulationToggle"', ff)
@@ -147,6 +149,74 @@ class AccumulationToggleWiringTest(unittest.TestCase):
         self.assertIn('setAccumulationMarkers', ss)
         self.assertIn('setAccumulationMarkers', ff)
         self.assertIn('base: buildChartMarkers(daily, chartData)', ff)   # 기존 이벤트 마커와 합쳐서 건다
+
+
+class WickBarAndPriorityTest(unittest.TestCase):
+    """2026-10-18: 윗꼬리형(연구용 가설)을 보라색으로 추가. 한 봉은 하나의 표시만, 사후 정보로 색이 바뀌지 않는다."""
+
+    def test_wick_bar_is_marked_purple_kind(self):
+        bars = series()
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000   # 거래대금 40억
+        put(bars, 30, 100000, 109000, 99500, 101000, 90000)       # 평소의 2.25배, 윗꼬리 79%, 몸통 1%, 거래대금 90억
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[30, 'wick']])
+        self.assertEqual(out['markers'], [[bars[30]['date'], '윗꼬리형']])
+        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 1, 'distribution': 0})
+        hit = out['hits'][0]
+        self.assertEqual(hit['kind'], 'wick')
+        self.assertAlmostEqual(hit['multiple'], 2.25, places=2)
+        self.assertGreater(hit['wickPct'], 70)
+        self.assertIsNone(hit['ma224Dist'])                        # 224봉이 안 되면 없는 값(0으로 속이지 않음)
+
+    def test_wick_thresholds(self):
+        bars = series()
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000
+        put(bars, 30, 100000, 109000, 99500, 101000, 70000)       # 1.75배 < 2배
+        put(bars, 33, 100000, 109000, 99500, 104000, 90000)       # 몸통 4% > 3%
+        put(bars, 36, 100000, 101800, 99500, 101000, 90000)       # 윗꼬리 35% < 40%
+        self.assertEqual(js_indices(bars), [])
+
+    def test_one_bar_gets_one_marker_volume_type_first(self):
+        bars = series()
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000
+        put(bars, 30, 100000, 106000, 99900, 105000, 120000)      # 대량 양봉 조건(3배·몸통 5%·종가 위치 0.83)
+        out = js_hits(bars)
+        self.assertEqual(out['statuses'], [[30, 'accumulation']])
+        self.assertEqual(len(out['markers']), 1)
+
+    def test_overheated_wick_bar_becomes_distribution(self):
+        bars = series()
+        for k in range(9, 30):
+            bars[k].update({'open': 79000 + (k - 9) * 1050, 'high': 81000 + (k - 9) * 1050, 'low': 78500 + (k - 9) * 1050, 'close': 79000 + (k - 9) * 1050, 'volume': 40000})
+        for k in list(range(0, 9)) + list(range(30, 40)):
+            bars[k].update({'open': 79000, 'high': 79500, 'low': 78500, 'close': 79000, 'volume': 40000})
+        bars[29]['close'] = 100000
+        put(bars, 30, 100000, 109000, 99500, 101000, 90000)
+        self.assertEqual(js_hits(bars)['statuses'], [[30, 'distribution']])
+
+    def test_tooltip_numbers_use_only_known_bars(self):
+        bars = series(260)
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000
+        put(bars, 250, 100000, 109000, 99500, 101000, 90000)
+        before = js_hits(bars)['hits'][0]
+        for k in range(251, 260):
+            put(bars, k, 50000, 51000, 40000, 41000, 900000)      # 이후 봉을 바꿔도 수치는 그대로
+        after = js_hits(bars)['hits'][0]
+        self.assertEqual(before, after)
+        self.assertAlmostEqual(before['highDist'], (101000 / 100500 - 1) * 100, places=4)   # 직전 60봉 고점 100500 대비
+        self.assertIsNotNone(before['ma112Dist'])
+        self.assertIsNotNone(before['ma224Dist'])
+        self.assertAlmostEqual(before['runup'], 0.0, places=6)
+
+    def test_checkbox_text_says_observation_only(self):
+        ss = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
+        self.assertIn('관찰용', ss)
+        self.assertIn('윗꼬리형', ss)
+        self.assertNotIn('매집 확정', ss[ss.index('ssAccumulationToggle'):ss.index('ssAccumulationToggle') + 900])
 
 
 if __name__ == '__main__':

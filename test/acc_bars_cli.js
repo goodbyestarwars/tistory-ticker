@@ -8,4 +8,5 @@ process.stdout.write(JSON.stringify({
   statuses: hits.map((hit) => [hit.index, hit.status]),
   markers: core.accumulationMarkers(bars).map((m) => [m.time, m.text]),
   summary: core.accumulationSummary(bars),
+  hits: hits,
 }));
