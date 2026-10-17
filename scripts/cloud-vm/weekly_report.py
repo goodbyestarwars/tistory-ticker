@@ -231,6 +231,72 @@ def hot_stocks(board_data, limit=10):
     return rows
 
 
+# ---- 2026-10-18 사용자 지적("이 섹터는 금요일 기준이 아니라 한 주간 뜨거운 종목인데") ----
+# '이번 주 움직인 종목'이 마지막 거래일 하루의 등락률로 뽑혀 한 주 흐름과 달랐다. 순위 바구니에 한 번이라도 오른 종목을 후보 풀로 모은 뒤
+# 그 종목들의 주간 등락률(직전 주 마지막 종가 -> 이번 주 마지막 종가)로 다시 고른다. 후보 풀이 순위 바구니라 한 주 중 다른 요일에만
+# 급등했다가 금요일 순위에서 빠진 종목은 빠질 수 있다(화면 문구에 후보 풀 기준임을 적는다). 주간 자료를 못 받으면 예전 방식으로 둔다.
+WEEKLY_MOVE_MIN = 3.0
+_POOL_SECTIONS = ('rising', 'falling', 'volumeGrowth', 'volumeSurge', 'tradeVolume', 'marketCap', 'turnover',
+                  'amountTurnover', 'volumePower', 'tradeAmount', 'newHigh', 'newLow')
+
+
+def candidate_pool(board_data):
+    """순위 바구니·rows 에 나온 종목을 코드별로 한 번씩만 모은다(마지막 거래일 값 포함)."""
+    pool = {}
+    sections = (board_data or {}).get('sections') or {}
+    rows = []
+    for name in _POOL_SECTIONS:
+        rows.extend(sections.get(name) or [])
+    rows.extend((board_data or {}).get('rows') or [])
+    for raw in rows:
+        item = _hot_row(raw, '순위 후보')
+        if item and item['code'] not in pool:
+            pool[item['code']] = item
+    return pool
+
+
+def weekly_change(points, start, end):
+    """points=[{'date','close'}]. 기준은 직전 주 마지막 종가(없으면 주 첫 종가). 이번 주 종가가 없으면 None."""
+    series = []
+    for point in points or []:
+        day = _date_value(point.get('date')) if isinstance(point, dict) else None
+        close = _number(point.get('close')) if isinstance(point, dict) else None
+        if day and close is not None and close > 0:
+            series.append((day, close))
+    series.sort()
+    in_week = [(d, c) for d, c in series if start <= d <= end]
+    if not in_week:
+        return None
+    before = [(d, c) for d, c in series if d < start]
+    base = before[-1][1] if before else in_week[0][1]
+    last_day, last = in_week[-1]
+    # 주 마지막 거래일에서 2일 넘게 비어 있으면(거래정지·상장폐지 직전 등) 그 주 성과로 쓰지 않는다.
+    if (end - last_day).days > 3:
+        return None
+    return {'changeRate': (last - base) / base * 100, 'last': last, 'lastDate': last_day.isoformat()}
+
+
+def weekly_movers(board_data, series_by_code, start, end, rising=True, limit=10):
+    """후보 풀을 주간 등락률로 다시 골라 hot/cold 항목을 만든다. series_by_code 가 비면 빈 목록."""
+    rows = []
+    for code, item in candidate_pool(board_data).items():
+        info = weekly_change((series_by_code or {}).get(code), start, end)
+        if not info:
+            continue
+        rate = info['changeRate']
+        if (rising and rate < WEEKLY_MOVE_MIN) or (not rising and rate > -WEEKLY_MOVE_MIN):
+            continue
+        day_rate = item.get('changeRate')
+        row = dict(item)
+        row.update({'changeRate': round(rate, 2), 'dayChangeRate': day_rate, 'price': info['last'] or item.get('price'),
+                    'tags': ['주간 상승' if rising else '주간 하락']})
+        row['reason'] = '이번 주 %+0.2f%%' % rate + (' · 마지막 거래일 %+0.2f%%' % day_rate if day_rate is not None else '')
+        rows.append(row)
+    rows.sort(key=lambda r: (abs(r['changeRate']), log1p(max(r.get('tradeAmount') or 0, 0))), reverse=True)
+    return rows[:limit]
+
+
+
 def cold_stocks(board_data, limit=5):
     """Select visible decliners by actual move, with liquidity only as a tiebreaker."""
     sections = (board_data or {}).get('sections') or {}
@@ -684,10 +750,24 @@ def past_candidate_outcome_stats(rows):
     return {'t5': t5, 't10': t10}
 
 
+def _mover_periods(weekly_series):
+    """시장별로 실제 어느 기준으로 골랐는지('week'|'lastDay') - 화면 문구가 이 값을 따른다."""
+    weekly_series = weekly_series or {}
+    return {m: ('week' if weekly_series.get(m) else 'lastDay') for m in ('domestic', 'us')}
+
+
+def _movers(board, market, start, end, weekly_series, rising):
+    series = (weekly_series or {}).get(market)
+    if series:
+        return weekly_movers(board, series, start, end, rising=rising, limit=10 if rising else 5)
+    return hot_stocks(board) if rising else cold_stocks(board)
+
+
+
 def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None, domestic_swing_scan=None,
-                 past_swing_outcomes=None):
+                 past_swing_outcomes=None, weekly_series=None):
     # 시장 지수·종목 요약은 월~금 기준으로 유지하고, 휴장 화면의 뉴스만
     # 직전 금요일부터 일요일까지의 주말 구간으로 별도 제한한다.
     news_start, news_end = news_window(start, end)
@@ -698,14 +778,16 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
         'fx': fx_analysis(next((row for row in futures_rows or [] if row.get('symbol') == 'USDKRW'), None)),
         'gold': gold_analysis(next((row for row in futures_rows or [] if row.get('symbol') == 'GOLD'), None)),
         'hotStocks': {
-            'domestic': hot_stocks(domestic_board),
-            'us': hot_stocks(us_board),
-            'basis': '주말 마지막 거래일의 KIS 순위(상승·하락·거래량급증·매수체결강도) 기준',
+            'domestic': _movers(domestic_board, 'domestic', start, end, weekly_series, True),
+            'us': _movers(us_board, 'us', start, end, weekly_series, True),
+            'period': _mover_periods(weekly_series),
+            'basis': '순위(상승·하락·거래량급증·매수체결강도 등)에 오른 종목 중 이번 주(월~금) 등락률 기준. 주간 자료가 없는 시장은 마지막 거래일 순위 기준',
         },
         'coldStocks': {
-            'domestic': cold_stocks(domestic_board),
-            'us': cold_stocks(us_board),
-            'basis': '하락률 상위 중 시가총액·거래대금이 확인되는 유동성 종목 우선',
+            'domestic': _movers(domestic_board, 'domestic', start, end, weekly_series, False),
+            'us': _movers(us_board, 'us', start, end, weekly_series, False),
+            'period': _mover_periods(weekly_series),
+            'basis': '순위에 오른 종목 중 이번 주(월~금) 하락률 기준. 주간 자료가 없는 시장은 하락률 상위 중 유동성 종목 우선',
         },
         'hotCandidates': {
             'domestic': swing_candidates(domestic_swing_scan),
