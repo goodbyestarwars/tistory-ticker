@@ -72,6 +72,7 @@ import hour_validation
 import circuit_breaker
 import kis_ws_hub
 import kiwoom_ws_hub
+import kiwoom_9pay_live
 import load_probe
 import market_clock
 import realtime_quotes
@@ -206,6 +207,13 @@ def _start_futures_collectors():
         volume_surge_live.start_background(kis_appkey, kis_appsecret)
     except Exception:
         logging.getLogger('main').exception('거래량 사전포착 시작 실패')
+
+    # Read-only research observer; opt in on VM only. Uses the existing Kiwoom
+    # hub and KIS rank samples, never imports account or order modules.
+    try:
+        kiwoom_9pay_live.start_background(kiwoom_appkey, kiwoom_secretkey)
+    except Exception:
+        logging.getLogger('main').exception('9Pay 장중 연구 관찰기 시작 실패')
 
     # 2026-09-15 작업지시서: 메인페이지 VI·사이드카 배지. 서버 한 곳에서만 20초마다 조회(정규장·애프터마켓만),
     # 방문자 브라우저는 /api/circuit-breaker 캐시만 읽는다(circuit_breaker.py).
@@ -1397,6 +1405,7 @@ def health_realtime():
     snapshot = kis_ws_hub.health_snapshot()
     # 2026-09-15: KIS 자리를 넘친 종목을 받는 키움 공유 허브 상태(등록 응답·체결 수·접미사)도 함께 본다.
     snapshot['kiwoom'] = kiwoom_ws_hub.health_snapshot()
+    snapshot['ninePayResearch'] = kiwoom_9pay_live.health_snapshot()
     return envelope(snapshot)
 
 

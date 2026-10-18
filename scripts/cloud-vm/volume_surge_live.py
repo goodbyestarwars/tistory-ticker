@@ -305,6 +305,23 @@ def process_rows(rows, now_t, date_str, prev_lookup, etf_codes=(), stats_lookup=
         _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup, quote_fetcher)
 
 
+def sample_snapshot(codes):
+    """Read existing KIS rank-poll samples for the 9Pay research fallback.
+
+    No API call is made here. The poller may rotate its day cache concurrently;
+    an absent sample is reported by omission rather than manufactured as zero.
+    """
+    result = {}
+    for code in codes:
+        dq = _samples.get(code)
+        if dq:
+            try:
+                result[code] = dq[-1]
+            except IndexError:
+                pass
+    return result
+
+
 def _evaluate_accumulation(latest, now_t, now_kst, stats_lookup, bars_lookup, quote_fetcher=None):
     """① 실시간 매집 의심(30초 표본 → 5분봉)과 ② 기존 매집봉 재상승(일봉 + 장중 현재가·거래량)을 갱신한다."""
     for code, row in latest.items():
