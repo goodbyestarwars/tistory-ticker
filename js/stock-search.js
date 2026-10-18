@@ -144,6 +144,26 @@
   var waveHandle = null;     // chart-wave-overlay 핸들
   var suggestionRequestId = 0;
   var stockSearchRequestId = 0;
+  var INDEXES = [
+    { code: 'KOSPI', name: '코스피', aliases: 'kospi 코스피 종합주가지수' },
+    { code: 'KOSDAQ', name: '코스닥', aliases: 'kosdaq 코스닥' },
+    { code: 'NASDAQ_INDEX', name: '나스닥 종합', aliases: 'nasdaq 나스닥 나스닥종합' },
+    { code: 'SP500_INDEX', name: 'S&P 500', aliases: 's&p s&p500 sp500 에스앤피 스탠더드앤드푸어스' },
+    { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
+    { code: 'VIX', name: 'VIX 변동성 지수', aliases: 'vix 변동성 공포지수' }
+  ];
+  var indexChart = null;
+  var indexTimer = null;
+  function indexMatches(query) {
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return [];
+    return INDEXES.filter(function (row) { return (row.name + ' ' + row.code + ' ' + row.aliases).toLowerCase().indexOf(q) >= 0; });
+  }
+  function exactIndex(query) {
+    var q = String(query || '').trim().toLowerCase().replace(/^index:/, '');
+    return INDEXES.filter(function (row) { return row.code.toLowerCase() === q || row.name.toLowerCase() === q || row.aliases.split(' ').indexOf(q) >= 0; })[0];
+  }
+
   // 거래량/RSI 서브패널은 같은 최소 높이와 비율을 사용해 항상 1:1로 유지한다.
   var SUB_PANE_MIN_HEIGHT = 82;
   var SUB_PANE_RATIO = 0.20;
@@ -313,7 +333,7 @@
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
-    if (isUs) stockSearchRequestId += 1;
+    if (isUs) { stockSearchRequestId += 1; hideIndex(container); }
   }
 
   function loadUsStocksModule(container) {
@@ -347,6 +367,7 @@
     var params = new URLSearchParams(location.search);
     var code = (params.get('code') || '').trim();
     if (!code && isIndependentChartMode()) code = '005930';
+    if (/^INDEX:/i.test(code)) { runSearch(container, code); return; }
     if (params.get('market') === 'us' || /^US:/i.test(code)) {
       setMarketMode(container, true);
       loadUsStocksModule(container);
@@ -405,6 +426,7 @@
       + '</div>'
       + '<div id="ssResults" class="ss-results"></div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
+      + '<section id="ssIndexPanel" class="ss-index-panel" hidden></section>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
       + '<div id="ssSummary" class="ss-summary"></div>'
       + '<div class="ss-panels">'
@@ -637,12 +659,13 @@
     if (!query) { hideSuggestions(box); return; }
     applyDomesticListingFallbacks();
     var requestId = ++suggestionRequestId;
+    var indexRows = indexMatches(query).map(function (row) { return { name: row.name, code: 'INDEX:' + row.code, market: 'index' }; });
     var domesticRows = matchNames(query, 6).map(function (name) {
       return { name: name, code: global.KRX_MAP[name], market: 'kr' };
     });
     fetchUsSearch(query).then(function (usRows) {
       if (requestId !== suggestionRequestId) return;
-      var rows = domesticRows.concat(usRows).slice(0, 8);
+      var rows = indexRows.concat(domesticRows, usRows).slice(0, 8);
       if (!rows.length) { hideSuggestions(box); return; }
       box.innerHTML = rows.map(function (row) {
         var isUs = row.market === 'us' || /^US:/i.test(row.code);
@@ -685,6 +708,24 @@
     var searchId = ++stockSearchRequestId;
     var resultsBox = container.querySelector('#ssResults');
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
+    var chosenIndex = exactIndex(query);
+    if (chosenIndex) { openIndex(container, chosenIndex); return; }
+    var indexCandidates = indexMatches(query);
+    if (indexCandidates.length && !resolveDomesticName(query)) {
+      hideIndex(container); setMarketMode(container, false);
+      container.querySelector('#ssDetail').hidden = true;
+      resultsBox.innerHTML = '<div class="ss-results-count">지수 검색 결과 ' + indexCandidates.length + '건</div>'
+        + indexCandidates.map(function (row) { return '<button type="button" class="ss-index-result" data-symbol="' + escapeAttr(row.code) + '">' + escapeHtml(row.name) + '</button>'; }).join('');
+      resultsBox.querySelectorAll('.ss-index-result').forEach(function (button) {
+        button.addEventListener('click', function () {
+          var selected = indexCandidates.filter(function (row) { return row.code === button.getAttribute('data-symbol'); })[0];
+          if (selected) openIndex(container, selected);
+        });
+      });
+      return;
+    }
+    hideIndex(container);
+    setMarketMode(container, false);
     var domesticMatch = resolveDomesticName(query);
     if (domesticMatch) {
       runDomesticSearch(container, domesticMatch.name, searchId);
@@ -707,6 +748,78 @@
       return;
     }
     runDomesticSearch(container, query, searchId);
+  }
+
+  function hideIndex(container) {
+    var panel = container.querySelector('#ssIndexPanel');
+    if (panel) panel.hidden = true;
+    if (indexTimer) { clearInterval(indexTimer); indexTimer = null; }
+    if (indexChart) { indexChart.remove(); indexChart = null; }
+  }
+
+  function indexChartRows(rows) {
+    return (rows || []).map(function (row) {
+      var d = String(row.date || '');
+      var time = d.length === 8 ? d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6) : d;
+      return { time: time, open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close) };
+    }).filter(function (row) { return /^\d{4}-\d{2}-\d{2}$/.test(row.time) && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0; });
+  }
+
+  function openIndex(container, row) {
+    stockSearchRequestId += 1;
+    hideIndex(container);
+    setMarketMode(container, false);
+    var panel = container.querySelector('#ssIndexPanel');
+    container.querySelector('#ssResults').hidden = true;
+    container.querySelector('#ssDetail').hidden = true;
+    panel.hidden = false;
+    panel.innerHTML = '<div class="ss-hint">지수 시세와 차트를 불러오는 중...</div>';
+    state.selectedCode = 'INDEX:' + row.code;
+    state.selectedName = row.name;
+    try {
+      var url = new URL(location.href);
+      url.searchParams.set('code', 'INDEX:' + row.code);
+      url.searchParams.set('name', row.name);
+      url.searchParams.delete('market');
+      history.replaceState(null, '', url.pathname + url.search + url.hash);
+    } catch (err) { /* URL 갱신 실패는 검색 결과와 무관 */ }
+    function refresh() {
+      if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
+      fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500')
+        .then(function (body) {
+          if (state.selectedCode !== 'INDEX:' + row.code) return;
+          var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
+          if (!item) throw new Error('index missing');
+          if (indexChart) {
+            var quote = panel.querySelector('.ss-index-quote');
+            var note = panel.querySelector('.ss-index-note');
+            if (quote) quote.innerHTML = (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR')) + ' <small>' + fmtSignedPct(item.change_rate) + '</small>';
+            if (quote) quote.className = 'ss-index-quote ' + signClass(item.change_rate);
+            if (note) note.textContent = '현물 지수 · 갱신 ' + (item.updated_at || '시각 미확인') + ' · 지수 분봉 미제공';
+            return;
+          }
+          panel.innerHTML = '<div class="ss-index-heading"><strong>' + escapeHtml(row.name) + '</strong><span>' + escapeHtml(row.code) + '</span></div>'
+            + '<div class="ss-index-quote ' + signClass(item.change_rate) + '">' + (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR'))
+            + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
+            + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 지수 분봉 미제공</div>'
+            + '<div class="ss-index-chart" id="ssIndexChart"></div>';
+          var bars = indexChartRows(item.chart);
+          if (!bars.length) { panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.'; return; }
+          chartReady().then(function (LWC) {
+            if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+            if (indexChart) indexChart.remove();
+            var host = panel.querySelector('#ssIndexChart');
+            if (!host) return;
+            var dark = document.documentElement.classList.contains('dark');
+            indexChart = LWC.createChart(host, { autoSize: true, height: 440, layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78' }, timeScale: { borderVisible: false } });
+            var series = indexChart.addSeries(LWC.CandlestickSeries, { upColor: '#d24f45', downColor: '#1261c4', borderVisible: false, wickUpColor: '#d24f45', wickDownColor: '#1261c4' });
+            series.setData(bars);
+            indexChart.timeScale().fitContent();
+          }).catch(function () { if (panel.querySelector('#ssIndexChart')) panel.querySelector('#ssIndexChart').textContent = '차트를 불러오지 못했습니다.'; });
+        }).catch(function () { if (state.selectedCode === 'INDEX:' + row.code) panel.innerHTML = '<div class="ss-hint ss-error">지수 데이터를 불러오지 못했습니다.</div>'; });
+    }
+    refresh();
+    indexTimer = setInterval(refresh, 30000);
   }
 
   function runDomesticSearch(container, query, searchId) {
@@ -912,6 +1025,7 @@
   function selectStock(container, item) {
     stockSearchRequestId += 1;
     setMarketMode(container, false);
+    hideIndex(container);
     if (isUsRoute()) {
       try {
         var url = new URL(location.href);

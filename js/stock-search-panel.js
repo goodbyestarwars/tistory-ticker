@@ -224,10 +224,25 @@
     writeJson(STORAGE_RECENT, list);
   }
 
+  var INDEX_SEARCH_ROWS = [
+    { code: 'INDEX:KOSPI', name: '코스피', aliases: 'kospi 코스피 종합주가지수' },
+    { code: 'INDEX:KOSDAQ', name: '코스닥', aliases: 'kosdaq 코스닥' },
+    { code: 'INDEX:NASDAQ_INDEX', name: '나스닥 종합', aliases: 'nasdaq 나스닥 나스닥종합' },
+    { code: 'INDEX:SP500_INDEX', name: 'S&P 500', aliases: 's&p s&p500 sp500 에스앤피' },
+    { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
+    { code: 'INDEX:VIX', name: 'VIX 변동성 지수', aliases: 'vix 변동성 공포지수' }
+  ];
+  function indexSearchRows(query) {
+    var q = String(query || '').trim().toLowerCase();
+    if (!q) return [];
+    return INDEX_SEARCH_ROWS.filter(function (row) { return (row.code + ' ' + row.name + ' ' + row.aliases).toLowerCase().indexOf(q) >= 0; });
+  }
   // ---- 종목명/코드 검색 (KRX_MAP, 기존 위젯들과 동일 패턴) ----
 
   function resolveStock(query) {
     if (!query) return null;
+    var index = indexSearchRows(query).filter(function (row) { return row.code.toLowerCase() === String(query).toLowerCase() || row.name.toLowerCase() === String(query).toLowerCase() || row.aliases.split(' ').indexOf(String(query).toLowerCase()) >= 0; })[0];
+    if (index) return { code: index.code, name: index.name };
     var map = applyDomesticListingFallbacks();
     if (/^[0-9A-Z]{6}$/i.test(query)) {
       for (var nm in map) {
@@ -386,12 +401,13 @@
 
   function renderMatches(box, query) {
     currentMatchQuery = query;
+    var indexRows = indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: 'index' }; });
     var domesticRows = suggestNames(query).map(function (name) {
       return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' };
     });
     fetchUsSearch(query).then(function (usRows) {
       if (currentMatchQuery !== query) return;
-      currentMatchRows = usRows.concat(domesticRows).slice(0, MAX_SUGGEST);
+      currentMatchRows = indexRows.concat(usRows, domesticRows).slice(0, MAX_SUGGEST);
       if (!currentMatchRows.length) { hideSuggest(box); return; }
       box.innerHTML = currentMatchRows.map(function (row, i) {
         return buildRow(row.code, row.name, i, row.market);
@@ -400,7 +416,7 @@
       wireRowClicks(box);
     }).catch(function () {
       if (currentMatchQuery !== query) return;
-      currentMatchRows = domesticRows.slice(0, MAX_SUGGEST);
+      currentMatchRows = indexRows.concat(domesticRows).slice(0, MAX_SUGGEST);
       if (!currentMatchRows.length) { hideSuggest(box); return; }
       box.innerHTML = currentMatchRows.map(function (row, i) {
         return buildRow(row.code, row.name, i, row.market);
@@ -473,7 +489,7 @@
   function currentRowList(query) {
     if (query) {
       if (currentMatchQuery === query && currentMatchRows.length) return currentMatchRows;
-      return suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; });
+      return indexSearchRows(query).map(function (row) { return { code: row.code, name: row.name, market: 'index' }; }).concat(suggestNames(query).map(function (name) { return { code: (global.KRX_MAP || {})[name], name: name, market: 'kr' }; }));
     }
     var favorites = getFavorites();
     var favCodes = favorites.map(function (it) { return it.code; });
