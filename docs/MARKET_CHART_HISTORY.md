@@ -6,6 +6,8 @@
 
 `data/chart-history/{domestic,global,crypto,macro}.js`는 `window.MARKET_HISTORY_ARCHIVES[group]`에 저장된 읽기 전용 자료다. `js/market-history.js`가 탭별 1회 요청을 공유하고 기존 VM의 최근 자료와 날짜 기준으로 합친다. 중복 날짜는 최신 VM 자료가 우선하고 5년보다 오래된 자료는 제외한다. 과거 이력 로드 실패 시 기존 최근 차트가 유지된다.
 
+2026-10-18부터 차트검색의 6개 지수(KOSPI·KOSDAQ·NASDAQ_INDEX·SP500_INDEX·DOW_INDEX·SOX)는 같은 파일에서 OHLC를 받아 최근 3년만 표시한다. 글로벌 정적 파일의 미국 현물지수 3종과 SOX는 종가만 저장하던 형식을 OHLC로 확장했다. 주간 갱신기 `scripts/build_market_history.py`도 이 4종을 OHLC로 계속 저장한다. VM `/futures`의 500봉 상한과 기존 시장지표 5년 범위는 유지한다.
+
 | 파일 | 지표 수 | 원본 바이트 | gzip 바이트 |
 |---|---:|---:|---:|
 | 국내 | 3 | 152,749 | 52,596 |

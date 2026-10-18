@@ -11,7 +11,7 @@
       var script = document.createElement('script'), done = false;
       function finish(ok) { if (done) return; done = true; clearTimeout(timer); resolve(ok); }
       var timer = setTimeout(function () { finish(false); }, 10000);
-      script.src = base + group + '.js?v=20261008-5y';
+      script.src = base + group + '.js?v=20261018-index-ohlc';
       script.onload = function () { finish(true); };
       script.onerror = function () { finish(false); };
       document.head.appendChild(script);
