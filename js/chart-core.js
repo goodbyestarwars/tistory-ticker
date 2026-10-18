@@ -622,7 +622,7 @@
   }
 
 
-  // ---- 대량 거래 흔적 표시 (2026-10-19 사용자 정의로 교체: 기존 대량 양봉·윗꼬리형·털기? 표시는 삭제) ----
+  // ---- 대량 거래 표시 (2026-10-19 사용자 정의로 교체: 기존 대량 양봉·윗꼬리형·털기? 표시는 삭제) ----
   // 매집이 확인된 것이 아니라 "거래량이 평소보다 크게 터진 봉이 바닥권 또는 횡보(박스권)에서 나왔다"는 관찰용 표시다. 그날까지의 정보만 쓴다.
   //  - 거래량 : 직전 20일 평균의 2배 이상 + 거래대금 30억원 이상.
   //  - 바닥권 : 종가가 최근 250봉 저가~고가 범위의 하위 30%.
@@ -741,8 +741,26 @@
   // 범례(차트검색·종목분석 공통): 색·이름·개수. 개수는 setAccumulationMarkers 가 돌려준 값이다.
   function accumulationLegendHtml(counts) {
     counts = counts || { accumulation: 0, bottom: 0, box: 0 };
-    return '<span style="color:' + ACCUMULATION.color + '">대량 거래 흔적 ● ' + ACC_MARKER.bottom.text + ' <b>' + counts.bottom + '</b> · ● ' + ACC_MARKER.box.text + ' <b>' + counts.box + '</b></span>'
-      + '<span style="opacity:.7"> (관찰용 · 거래량 2배↑ · 신고가 구간 제외 · 고가 = 시가 대비 당일 고가)</span>';
+    return '<span style="color:' + ACCUMULATION.color + '">대량 거래 ● ' + ACC_MARKER.bottom.text + ' <b>' + counts.bottom + '</b> · ● ' + ACC_MARKER.box.text + ' <b>' + counts.box + '</b></span>';
+  }
+
+  // 봉마다 거래량과 '직전 N봉 평균 대비 배수'(그 봉 제외, 전일 하루가 아님)를 한 번에 계산한다. 반환: { '날짜키': { volume, multiple } }.
+  // 직전 봉이 N개 안 되거나 평균이 0이면 multiple = null. 마우스 오버 툴팁이 읽기만 하므로 차트당 한 번(O(n)) 계산한다.
+  function volumeMultiples(bars, period) {
+    var n = period || 20, out = {};
+    if (!bars) return out;
+    var window = [], sum = 0;
+    for (var i = 0; i < bars.length; i++) {
+      var v = accNumber(bars[i].volume);
+      var multiple = null;
+      if (window.length === n && sum > 0 && isFinite(v)) multiple = v / (sum / n);
+      if (bars[i].date !== undefined && bars[i].date !== null) out[String(bars[i].date)] = { volume: isFinite(v) ? v : null, multiple: multiple };
+      if (isFinite(v)) {
+        window.push(v); sum += v;
+        if (window.length > n) sum -= window.shift();
+      }
+    }
+    return out;
   }
 
   function accSigned(value, digits) {
@@ -774,7 +792,7 @@
       if (!hit) { tip.hidden = true; return; }
       var style = ACC_MARKER[hit.zone];
       tip.innerHTML = '<b style="color:' + style.color + '">' + style.label + '</b><br><span style="opacity:.7">' + hit.date + ' · 관찰용, 매집 확정 아님</span><br>'
-        + '거래량 <b>' + hit.multiple.toFixed(1) + '배</b> · 윗꼬리 <b>' + hit.wickPct.toFixed(0) + '%</b><br>'
+        + '거래량 <b>' + hit.multiple.toFixed(1) + '배</b> <span style="opacity:.7">(직전 20일 평균 대비)</span> · 윗꼬리 <b>' + hit.wickPct.toFixed(0) + '%</b><br>'
         + '고가 <b>' + accSigned(hit.highChange) + '</b> <span style="opacity:.7">(시가→당일 고가)</span><br>'
         + '종가 <b>' + accSigned(hit.openChange) + '</b> <span style="opacity:.7">(시가→종가)</span> · 고점 대비 종가 <b>' + accSigned(hit.fromHigh) + '</b><br>'
         + '250봉 가격 위치 <b>' + (hit.position === null || hit.position === undefined ? '—' : hit.position.toFixed(0) + '%') + '</b> · 60봉 고저 폭 <b>' + (hit.boxRange === null || hit.boxRange === undefined ? '—' : hit.boxRange.toFixed(0) + '%') + '</b><br>'
@@ -921,7 +939,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
