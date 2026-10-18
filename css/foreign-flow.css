@@ -3168,3 +3168,56 @@ html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14
   html body #foreign-flow .ff-opinion-summary-card > .ff-panel-title,
   html body #foreign-flow .ff-etf-summary-card > .ff-panel-title { font-weight: 700 !important; font-synthesis: none; }
 }
+
+/* ---- 매물대 분석 패널(2026-10-19): 종목분석·MY 공통. js/foreign-flow.js vpAnalysisHtml ---- */
+.ff-vp-an { margin: 4px 0 14px; padding: 12px; border: 1px solid #e3e8ee; border-radius: 12px; background: #fff; color: #33475b; font-size: 13px; line-height: 1.55; }
+.ff-vp-an-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.ff-vp-an-head > strong { font-size: 15px; color: #1f2d3d; }
+.ff-vp-periods { display: inline-flex; gap: 4px; }
+.ff-vp-period { min-height: 32px; padding: 0 12px; border: 1px solid #d5dce4; border-radius: 999px; background: #fff; color: #526173; font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.ff-vp-period.on { border-color: #e8590c; background: #fff4ec; color: #c2410c; }
+.ff-vp-an-basis { margin: 6px 0 10px; color: #6b7a8a; font-size: 12px; }
+.ff-vp-an-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.ff-vp-an-card { min-width: 0; padding: 10px 11px; border: 1px solid #e3e8ee; border-left-width: 4px; border-radius: 10px; background: #f8fafc; display: flex; flex-direction: column; gap: 2px; }
+.ff-vp-an-card > span { color: #6b7a8a; font-size: 11px; font-weight: 700; }
+.ff-vp-an-card > strong { color: #1f2d3d; font-size: 14px; overflow-wrap: anywhere; }
+.ff-vp-an-card > small { color: #526173; font-size: 11px; }
+.ff-vp-an-card.resist { border-left-color: #1261c4; }
+.ff-vp-an-card.support { border-left-color: #d24f45; }
+.ff-vp-an-card.poc { border-left-color: #e8590c; }
+.ff-vp-an-card.current { border-left-color: #526173; }
+.ff-vp-an-card.is-empty > strong { color: #8a97a5; font-weight: 600; }
+.ff-vp-an-state { margin: 10px 0 0; padding: 9px 11px; border-radius: 10px; background: #f1f4f7; }
+.ff-vp-an-state.up { background: #fff0ee; }
+.ff-vp-an-state.down { background: #eaf2fd; }
+.ff-vp-an-state > b { margin-right: 4px; }
+.ff-vp-an-personal { margin: 8px 0 0; padding: 8px 11px; border-radius: 10px; background: #f3eefa; color: #503277; }
+.ff-vp-an-sub { margin-top: 12px; }
+.ff-vp-an-sub > strong { display: block; margin-bottom: 4px; color: #1f2d3d; }
+.ff-vp-an-thin { margin: 0; padding-left: 18px; }
+.ff-vp-an-thin li { margin: 2px 0; }
+.ff-vp-an-empty, .ff-vp-an-caution, .ff-vp-an-shift { margin: 4px 0 0; color: #6b7a8a; font-size: 12px; }
+.ff-vp-an-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.ff-vp-an-table th, .ff-vp-an-table td { padding: 6px 8px; border-bottom: 1px solid #e9edf2; text-align: left; vertical-align: top; }
+.ff-vp-an-table thead th { color: #6b7a8a; font-weight: 700; }
+.ff-vp-an-table tr.on { background: #fff8f2; }
+.ff-vp-an-table small { display: block; color: #8a97a5; }
+html.dark .ff-vp-an { border-color: rgba(245,239,224,.14); background: #1f2326; color: #d9dde1; }
+html.dark .ff-vp-an-head > strong, html.dark .ff-vp-an-sub > strong, html.dark .ff-vp-an-card > strong { color: #f5efe0; }
+html.dark .ff-vp-an-card, html.dark .ff-vp-an-state { border-color: rgba(245,239,224,.14); background: #24292d; }
+html.dark .ff-vp-an-state.up { background: #3a2422; }
+html.dark .ff-vp-an-state.down { background: #1f2c3d; }
+html.dark .ff-vp-an-personal { background: #2d2638; color: #d8c9ee; }
+html.dark .ff-vp-period { border-color: rgba(245,239,224,.2); background: #24292d; color: #d9dde1; }
+html.dark .ff-vp-period.on { border-color: #e8590c; background: #3b2a1f; color: #ffb27a; }
+html.dark .ff-vp-an-table th, html.dark .ff-vp-an-table td { border-color: rgba(245,239,224,.1); }
+html.dark .ff-vp-an-table tr.on { background: #2b2620; }
+@media (max-width: 720px) {
+  .ff-vp-an-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ff-vp-period { min-height: 44px; }
+  .ff-vp-an-table thead { display: none; }
+  .ff-vp-an-table, .ff-vp-an-table tbody, .ff-vp-an-table tr, .ff-vp-an-table th, .ff-vp-an-table td { display: block; width: 100%; box-sizing: border-box; }
+  .ff-vp-an-table tr { margin-bottom: 8px; padding: 6px 4px; border: 1px solid #e9edf2; border-radius: 10px; }
+  .ff-vp-an-table td::before { content: attr(data-label) " "; color: #8a97a5; font-size: 11px; font-weight: 700; margin-right: 6px; }
+  .ff-vp-an-table th, .ff-vp-an-table td { border-bottom: 0; padding: 3px 8px; }
+}
