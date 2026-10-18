@@ -26,7 +26,7 @@ def _current_price(client, code):
     return price or None
 
 
-def trade_signal_once(client, ledger, signal, folder, now=None, policy=None):
+def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clock=None):
     """Send at most one limit buy; existing trade_once manages later exits.
 
     The caller must pass signals from ninepay_signal_client. Checks are repeated
@@ -97,6 +97,11 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None):
               policy.BUDGET - policy.RESERVE - committed) // price
     if qty < 1 or qty * price > policy.PER_STOCK:
         return 'QTY_OR_LIMIT'
+    order_time = clock() if clock else datetime.now(KST)
+    order_minute = order_time.hour * 60 + order_time.minute
+    if (order_time.date() != now.date() or not 540 <= order_minute <= 920
+            or not 0 <= order_time.timestamp() - float(signal['at']) <= MAX_SIGNAL_AGE_SEC):
+        return 'STALE_BEFORE_ORDER'
     note = {'scanner': '9Pay intraday', 'signal_id': sid, 'source': signal['source'],
             'signal_at': signal['at'], 'signal_price': signal_price,
             'checked_price': price, 'slots_used': slots}

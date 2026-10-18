@@ -99,7 +99,7 @@ class TradeTests(unittest.TestCase):
 
     def run_trade(self, sig=None):
         return trade_signal_once(self.client, self.ledger, sig or signal(), self.folder.name,
-                                 NOW, FakePolicy)
+                                 NOW, FakePolicy, clock=lambda: NOW)
 
     def test_disabled_does_not_touch_broker(self):
         with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '0'}):
@@ -122,6 +122,13 @@ class TradeTests(unittest.TestCase):
             self.assertEqual(self.run_trade(), 'BUY_FILL_UNCONFIRMED')
         self.assertEqual(self.client.orders, [('005930', 30, 10_000)])
         self.assertEqual(self.ledger.reserved[0][4], 'NINEPAY_ENTRY')
+
+    def test_signal_expiring_during_checks_cannot_order(self):
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            result = trade_signal_once(self.client, self.ledger, signal(), self.folder.name,
+                                       NOW, FakePolicy, clock=lambda: NOW + timedelta(seconds=12))
+        self.assertEqual(result, 'STALE_BEFORE_ORDER')
+        self.assertEqual(self.client.orders, [])
 
 
 if __name__ == '__main__':
