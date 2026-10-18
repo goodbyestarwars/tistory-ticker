@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""차트 '대량 거래 흔적'(js/chart-core.js accumulationBars, 2026-10-19 사용자 정의)의 계약:
+"""차트 '대량 거래'(js/chart-core.js accumulationBars, 2026-10-19 사용자 정의)의 계약:
 거래량 직전 20일 평균 2배 이상 + 거래대금 30억 이상 + 바닥권(250봉 범위 하위 30%) 또는 횡보(60봉 고저 폭 25% 이하·하위 60%), 250봉 고가 90% 이상 구간 제외."""
 
 import json
@@ -106,10 +106,11 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
     def test_tooltip_and_legend_text(self):
         res = run_node('acc_tip_cli.js', self.bars, self.bars[290]['date'])
         self.assertFalse(res['tipHidden'])
-        for needle in ('대량 거래 · 바닥권', '고가 <b>+9.0%</b>', '시가→당일 고가', '종가 <b>+1.0%</b>', '시가→종가', '60봉 고저 폭', '매집 확정 아님'):
+        for needle in ('대량 거래 · 바닥권', '고가 <b>+9.0%</b>', '시가→당일 고가', '종가 <b>+1.0%</b>', '시가→종가', '60봉 고저 폭', '매집 확정 아님', '직전 20일 평균 대비'):
             self.assertIn(needle, res['tip'])
-        for needle in ('#e8590c', '대량 바닥권', '대량 횡보', '신고가 구간 제외', '고가 = 시가 대비 당일 고가'):
+        for needle in ('#e8590c', '대량 바닥권', '대량 횡보'):
             self.assertIn(needle, res['legend'])
+        self.assertNotIn('관찰용', res['legend'])                    # 범례의 '(관찰용 ~' 문구는 삭제
 
     def test_tooltip_numbers_ignore_later_bars(self):
         before = run_node('acc_bars_cli.js', self.bars)['hits'][0]
