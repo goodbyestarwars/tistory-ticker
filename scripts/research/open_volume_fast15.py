@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """단타 집중: '전일 거래량 100%가 장 시작 15분 안에 터진' 이벤트 x '시가 대비 +5% 이상' x '저점 상승'의 조합별 성과(연구용, 2026-10-18).
 
-모두 감지 시점(진입 전)에 아는 값이다. 시가 대비 상승률 = 감지 봉 종가 / 당일 시가(전일 종가 기준 아님). 진입 = 감지 다음 봉 시가 + 0.10%.
+모두 감지 시점(진입 전)에 아는 값이다. 시가 대비 상승률 = 감지 봉까지의 **고가** / 당일 시가(종가·전일 종가 기준 아님; 2026-10-18 지시로 종가에서 고가로 변경). 진입 = 감지 다음 봉 시가 + 0.10%.
 저점 상승 = 감지 봉까지 최근 9분을 3분씩 나눈 구간 저점이 계속 높아짐(w1<w2<w3). 기준선 = 같은 날짜 전체 표본(층 가중) 09:30 진입 평균.
 사용: python open_volume_fast15.py <1분봉 폴더> <네이버 캐시> <universe_bands.json> <out.json>
 """
@@ -40,7 +40,7 @@ def main(bars_dir, cache_dir, uni_path, out_path):
             continue
         bars = [b for b in __import__('open_volume_study').load_bars(bars_dir, r['code'], r['day']) if '0900' <= b[0] <= '1530']
         k = next(i for i, b in enumerate(bars) if __import__('open_volume_study').minute_add(b[0], 1) == c['time'])
-        rows.append(dict(c['fwd'], day=r['day'], w=r['w'], rise=c['rise_from_open'], hl=higher_lows(bars[:k + 1]), time=c['time'], amount=c['cum_amount']))
+        rows.append(dict(c['fwd'], day=r['day'], w=r['w'], rise=(max(b[2] for b in bars[:k + 1]) / bars[0][1] - 1) * 100, rise_close=c['rise_from_open'], hl=higher_lows(bars[:k + 1]), time=c['time'], amount=c['cum_amount']))
     groups = {
         '15분 안 100% (전체)': lambda x: True,
         '+ 시가 대비 5% 이상': lambda x: x['rise'] >= 5,
