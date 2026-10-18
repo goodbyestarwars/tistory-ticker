@@ -62,12 +62,12 @@ def merge(old, new):
     return [rows[d] for d in sorted(rows)]
 
 
-def naver(category, code, domestic=False):
+def naver(category, code, domestic=False, ohlc=False):
     url = 'https://api.stock.naver.com/chart/%s/%s/%s/day?startDateTime=%s&endDateTime=%s' % (
         'domestic' if domestic else 'foreign', category, code, START, END)
     rows = json.loads(get(url))
     return [[r['localDate']] + [float(r[k]) for k in (
-        ('openPrice', 'highPrice', 'lowPrice', 'closePrice') if domestic else ('closePrice',))] for r in rows]
+        ('openPrice', 'highPrice', 'lowPrice', 'closePrice') if domestic or ohlc else ('closePrice',))] for r in rows]
 
 
 def upbit(symbol, existing):
@@ -130,8 +130,9 @@ def main():
     jobs = []
     for symbol, (category, code) in assignments('domestic_futures.py', 'CHART_SYMBOLS').items():
         jobs.append(('domestic', symbol, lambda c=category, s=code: naver(c, s, True), 'Naver'))
+    index_ohlc = {'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'SOX'}
     for meta in assignments('foreign_futures.py', 'SYMBOLS'):
-        jobs.append(('global', meta['key'], lambda m=meta: naver(m['category'], m['code']), 'Naver'))
+        jobs.append(('global', meta['key'], lambda m=meta: naver(m['category'], m['code'], ohlc=m['key'] in index_ohlc), 'Naver'))
     jobs += [('global', 'USDKRW', lambda: fx(groups['global'].get('USDKRW', [])), 'Naver'),
              ('global', 'KTB3Y', lambda: ktb(groups['global'].get('KTB3Y', [])), 'Naver')]
     for symbol, meta in assignments('bond_yield.py', 'FRED_SYMBOLS').items():
