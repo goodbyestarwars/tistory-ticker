@@ -85,7 +85,9 @@ class FakeClient:
 
 def signal(**changes):
     item = {'code': '005930', 'signalId': '2026-10-19:005930', 'at': NOW.timestamp()-2,
-            'price': 10_000, 'source': 'Kiwoom WebSocket'}
+            'price': 10_000, 'source': 'Kiwoom WebSocket', 'ruleVersion': 'ab70-v1',
+            'volumeMissing': False, 'excluded': False, 'branches': ['A', 'B'],
+            'first70At': NOW.timestamp()-60, 'volumeRatio': .8}
     item.update(changes)
     return item
 
@@ -128,6 +130,16 @@ class TradeTests(unittest.TestCase):
             result = trade_signal_once(self.client, self.ledger, signal(), self.folder.name,
                                        NOW, FakePolicy, clock=lambda: NOW + timedelta(seconds=12))
         self.assertEqual(result, 'STALE_BEFORE_ORDER')
+        self.assertEqual(self.client.orders, [])
+
+    def test_stop_created_during_price_check_blocks_order(self):
+        def price_check(*args):
+            with open(os.path.join(self.folder.name, 'STOP'), 'w'):
+                pass
+            return {'return_code': 0, 'cur_prc': '10000'}
+        self.client.call = price_check
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            self.assertEqual(self.run_trade(), 'DISABLED_OR_UNCERTAIN')
         self.assertEqual(self.client.orders, [])
 
 

@@ -11,11 +11,12 @@ NOW = datetime(2026, 10, 19, 0, 30, tzinfo=timezone.utc).timestamp()
 
 
 def payload(**changes):
-    state = {'running': True, 'active': True, 'rankError': None,
+    state = {'ruleVersion': 'ab70-v1', 'running': True, 'active': True, 'rankError': None,
              'amountFallback': False, 'rankAt': datetime.fromtimestamp(NOW, timezone.utc).isoformat(),
              'signals': [{'signalId': '2026-10-19:005930', 'code': '005930',
                           'at': NOW - 2, 'price': 105000, 'source': 'Kiwoom WebSocket',
-                          'volumeMissing': False}]}
+                          'volumeMissing': False, 'excluded': False, 'ruleVersion': 'ab70-v1',
+                          'branches': ['B'], 'first70At': NOW - 60, 'volumeRatio': .8}]}
     state.update(changes)
     return {'data': {'ninePayResearch': state}}
 
@@ -37,6 +38,34 @@ class SignalClientTests(unittest.TestCase):
             valid_signals(payload(amountFallback=True), NOW)
         with self.assertRaises(SignalFeedUnavailable):
             valid_signals(payload(rankAt=None), NOW)
+
+    def test_wrong_version_persistence_failure_or_drops_blocks_feed(self):
+        for change in ({'ruleVersion': 'old'}, {'persistenceError': 'failed'}, {'queueDropped': 1}):
+            with self.subTest(change=change), self.assertRaises(SignalFeedUnavailable):
+                valid_signals(payload(**change), NOW)
+
+    def test_ab_and_observed_cutoff_evidence_required(self):
+        for change in ({'branches': []}, {'branches': ['C']}, {'first70At': NOW},
+                       {'first70At': None}, {'volumeRatio': .69}, {'excluded': True},
+                       {'price': float('nan')}, {'ruleVersion': 'old'}):
+            bad = payload()
+            bad['data']['ninePayResearch']['signals'][0].update(change)
+            with self.subTest(change=change):
+                self.assertEqual(valid_signals(bad, NOW), [])
+
+    def test_a_b_or_both_produce_one_event(self):
+        for branches in (['A'], ['B'], ['A', 'B']):
+            good = payload()
+            good['data']['ninePayResearch']['signals'][0]['branches'] = branches
+            self.assertEqual(len(valid_signals(good, NOW)), 1)
+
+    def test_cutoff_092959_accepted_093000_rejected(self):
+        good = payload()
+        item = good['data']['ninePayResearch']['signals'][0]
+        item.update(at=NOW, first70At=NOW-1)
+        self.assertEqual(len(valid_signals(good, NOW)), 1)
+        item['first70At'] = NOW
+        self.assertEqual(valid_signals(good, NOW), [])
 
 
 if __name__ == '__main__':

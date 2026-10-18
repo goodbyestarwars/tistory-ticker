@@ -6,6 +6,7 @@ fresh, complete events and fails closed on partial/outdated rank coverage.
 
 from datetime import datetime, timedelta, timezone
 import json
+import math
 import re
 import time
 from urllib.request import urlopen
@@ -16,6 +17,31 @@ SIGNAL_ID = re.compile(r'^\d{4}-\d{2}-\d{2}:\d{6}$')
 URL = 'https://goodbyestar.cloud/health/realtime'
 MAX_SIGNAL_AGE_SEC = 10
 MAX_RANK_AGE_SEC = 120
+RULE_VERSION = 'ab70-v1'
+
+
+def valid_evidence(item, now):
+    """Require current A/B evidence, observed before the 09:30 cutoff."""
+    try:
+        first = float(item['first70At'])
+        at = float(item['at'])
+        price = float(item['price'])
+        ratio = float(item['volumeRatio'])
+        first_day = datetime.fromtimestamp(first, KST)
+        signal_day = datetime.fromtimestamp(at, KST)
+    except (KeyError, TypeError, ValueError, OverflowError, OSError):
+        return False
+    branches = item.get('branches')
+    return (item.get('ruleVersion') == RULE_VERSION
+            and item.get('volumeMissing') is False
+            and item.get('excluded') is False
+            and isinstance(branches, list) and bool(branches)
+            and all(b in ('A', 'B') for b in branches)
+            and all(math.isfinite(v) for v in (first, at, price, ratio))
+            and price > 0 and ratio >= .7 and first <= at <= now
+            and 0 <= now-at <= MAX_SIGNAL_AGE_SEC
+            and first_day.date() == signal_day.date() == datetime.fromtimestamp(now, KST).date()
+            and first_day.hour == 9 and first_day.minute < 30)
 
 
 class SignalFeedUnavailable(RuntimeError):
@@ -28,6 +54,8 @@ def valid_signals(payload, now=None):
     state = root.get('ninePayResearch') if isinstance(root, dict) else None
     if not isinstance(state, dict) or not state.get('running') or not state.get('active'):
         raise SignalFeedUnavailable('observer inactive')
+    if state.get('ruleVersion') != RULE_VERSION or state.get('persistenceError') or state.get('queueDropped'):
+        raise SignalFeedUnavailable('rule/evidence unavailable')
     if state.get('rankError') or state.get('amountFallback'):
         raise SignalFeedUnavailable('ranking incomplete')
     try:
@@ -44,7 +72,7 @@ def valid_signals(payload, now=None):
         code, sid = str(item.get('code') or ''), str(item.get('signalId') or '')
         if not CODE.fullmatch(code) or not SIGNAL_ID.fullmatch(sid) or sid != today + ':' + code:
             continue
-        if item.get('volumeMissing') is not False:
+        if not valid_evidence(item, now):
             continue
         if item.get('source') not in ('Kiwoom WebSocket', 'KIS rank polling'):
             continue
@@ -54,8 +82,9 @@ def valid_signals(payload, now=None):
             continue
         if not 0 <= now - at <= MAX_SIGNAL_AGE_SEC or price <= 0:
             continue
-        accepted.append({'signalId': sid, 'code': code, 'at': at,
-                         'price': price, 'source': item['source']})
+        accepted.append({key: item[key] for key in (
+            'signalId', 'code', 'at', 'price', 'source', 'ruleVersion',
+            'volumeMissing', 'excluded', 'branches', 'first70At', 'volumeRatio')})
     return accepted
 
 

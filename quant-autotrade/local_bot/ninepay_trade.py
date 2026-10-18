@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import re
 import math
+from ninepay_signal_client import valid_evidence
 
 KST = timezone(timedelta(hours=9))
 CODE = re.compile(r'^\d{6}$')
@@ -52,6 +53,8 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
         return 'STALE_SIGNAL'
     if signal.get('source') not in ('Kiwoom WebSocket', 'KIS rank polling'):
         return 'BAD_SIGNAL'
+    if not valid_evidence(signal, now.timestamp()):
+        return 'BAD_RULE_EVIDENCE'
     accounts = client.account_ids()
     if not policy.approval_ok(folder, accounts, now) or ledger.has_uncertain():
         return 'DISABLED_OR_UNCERTAIN'
@@ -102,6 +105,11 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
     if (order_time.date() != now.date() or not 540 <= order_minute <= 920
             or not 0 <= order_time.timestamp() - float(signal['at']) <= MAX_SIGNAL_AGE_SEC):
         return 'STALE_BEFORE_ORDER'
+    if (os.environ.get('NINEPAY_LIVE_TRADING') != '1'
+            or os.path.exists(os.path.join(folder, 'STOP'))
+            or not policy.approval_ok(folder, accounts, order_time)
+            or ledger.has_uncertain()):
+        return 'DISABLED_OR_UNCERTAIN'
     note = {'scanner': '9Pay intraday', 'signal_id': sid, 'source': signal['source'],
             'signal_at': signal['at'], 'signal_price': signal_price,
             'checked_price': price, 'slots_used': slots}
