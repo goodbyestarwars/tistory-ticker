@@ -879,3 +879,17 @@ html.dark #stock-search .ss-wave-btn.active { border-color: #F5EFE0; background:
   #stock-search.ss-independent-chart .ss-panel-right { padding: 10px; }
   #stock-search.ss-independent-chart .ss-chart { height: max(480px, 62vh); }
 }
+
+/* Major market indices use the existing /futures OHLC history. */
+.ss-index-panel { padding: 18px; border: 1px solid #dce2e8; border-radius: 12px; background: #fff; }
+.ss-index-heading { display: flex; gap: 12px; align-items: baseline; }
+.ss-index-heading strong { font-size: 22px; }
+.ss-index-heading span, .ss-index-note { color: #66717d; font-size: 13px; }
+.ss-index-quote { font-size: 28px; font-weight: 700; margin: 10px 0; }
+.ss-index-quote small { font-size: 16px; }
+.ss-index-chart { min-height: 440px; margin-top: 16px; }
+
+.ss-index-result { display: block; width: 100%; text-align: left; padding: 12px 16px; border: 1px solid #dce2e8; background: transparent; cursor: pointer; }
+.ss-index-result:hover { background: rgba(127, 140, 155, .1); }
+html.dark #stock-search .ss-index-panel { background: #1a1a1a; border-color: rgba(245,239,224,.2); color: #f5efe0; }
+html.dark #stock-search .ss-index-result { border-color: rgba(245,239,224,.2); color: #f5efe0; }
