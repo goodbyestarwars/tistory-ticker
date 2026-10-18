@@ -258,15 +258,24 @@
   }
 
   function buildShell() {
-    var tabsHtml = TABS.map(function (t, i) {
-      return '<button type="button" class="ps-tab ui-btn ui-btn-tab' + (t.key === activeTab ? ' active' : '') + '" data-tab="' + t.key + '">' + t.label + '</button>';
+    function tabButton(t) {
+      return '<button type="button" class="ps-tab ui-btn ui-btn-tab' + (t.key === activeTab ? ' active' : '') + '" aria-pressed="' + (t.key === activeTab) + '" data-tab="' + t.key + '">' + t.label + '</button>';
+    }
+    var primaryKeys = {ninepayLive: 'short', maCloudBreakout: 'long'};
+    var primaryHtml = TABS.filter(function (t) { return primaryKeys[t.key]; }).map(function (t) {
+      var label = t.key === 'maCloudBreakout' ? '01. ' + t.label : t.label;
+      return '<div class="ps-primary-choice" data-primary-group="' + primaryKeys[t.key] + '">'
+        + tabButton({key:t.key, label:label}) + '</div>';
     }).join('');
+    var tabsHtml = TABS.filter(function (t) { return !primaryKeys[t.key]; }).map(tabButton).join('');
 
     return ''
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
       + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab ui-btn ui-btn-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
-      + '<div class="ps-tabs">' + tabsHtml + '<span class="ps-legacy-heading" data-short-label>02. 기존 단타형 검색기</span></div>'
+      + '<div class="ps-scanner-menu">'
+      + primaryHtml
+      + '<div class="ps-legacy-tools" data-legacy-tools><span class="ps-legacy-heading" data-short-label>02. 기존 단타형 검색기</span><div class="ps-tabs">' + tabsHtml + '</div></div></div>'
       + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
       // 목록 가격이 스캔 시점인지 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
@@ -326,8 +335,9 @@
     });
     container.querySelectorAll('.ps-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        container.querySelectorAll('.ps-tab').forEach(function (b) { b.classList.remove('active'); });
+        container.querySelectorAll('.ps-tab').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-pressed', 'false'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-pressed', 'true');
         activeTab = btn.getAttribute('data-tab');
         renderTabDesc(container);
         updateMeta(container);
@@ -341,6 +351,8 @@
 
   function syncScannerGroup(container) {
     container.querySelectorAll('[data-short-label]').forEach(function (el) { el.hidden = activeGroup !== 'short'; });
+    container.querySelectorAll('[data-primary-group]').forEach(function (el) { el.hidden = el.getAttribute('data-primary-group') !== activeGroup; });
+    container.querySelectorAll('[data-legacy-tools]').forEach(function (el) { el.hidden = activeGroup === 'long'; });
     container.querySelectorAll('[data-horizon]').forEach(function (btn) {
       var on = btn.getAttribute('data-horizon') === activeGroup;
       btn.classList.toggle('active', on); btn.setAttribute('aria-selected', String(on));
@@ -410,7 +422,7 @@
     var meta = container.querySelector('#psMeta');
     if (!meta) return;
     if (activeTab === 'ninepayLive') {
-      meta.textContent = '우선순위 1 · 장중 A OR B · 기존 단타형은 우선순위 2 · 실주문 미연동';
+      meta.textContent = '장중 09:00~15:35 감시 · 장초반 거래량 70% 이상 · A OR B';
       return;
     }
     if (activeTab === 'volumeBreakout' && liveSurgeInfo) {
@@ -1205,7 +1217,7 @@
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
-    ['#psViewTabs', '#psTrackSummary', '[data-scanner-review]'].forEach(function (selector) {
+    ['#psViewTabs', '#psTrackSummary', '#psPriceBasis', '[data-scanner-review]'].forEach(function (selector) {
       var el = container.querySelector(selector); if (el) el.hidden = activeTab === 'ninepayLive';
     });
     if (activeTab === 'ninepayLive') { renderNinepay(container); return; }
