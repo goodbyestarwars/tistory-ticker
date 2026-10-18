@@ -20,10 +20,22 @@
   var SR_SUPPORT_COLOR = '210,79,69';
   var SR_RESISTANCE_COLOR = '18,97,196';
 
-  function supportResistanceLevels(bars, referencePrice) {
+  // 2026-10-18 사용자 요청("지지·저항이 너무 촘촘하다. 단타 관점엔 좋지만 추세 관점엔 너무 짧다"): 일봉·주봉·월봉은 추세 설정을 쓴다.
+  // 스윙 판정 폭을 넓히고(일봉 좌우 10봉), 묶는 폭·선 사이 최소 간격을 키우고(일봉 3%·6%), 더 긴 기간(일봉 500봉)을 보며,
+  // 현재가에서 가까운 순이 아니라 많이 닿고 최근·거래량이 컸던 강한 가격대부터 골라 서로 떨어진 선만 남긴다.
+  // 분봉 등 timeframe 을 알려 주지 않은 호출은 예전(단타) 설정 그대로다.
+  function srProfile(options) {
+    var tf = options && options.timeframe;
+    if (tf === 'day') return { window: 10, cluster: 0.03, gap: 0.06, maxBars: 500, near: 0.35, byStrength: true };
+    if (tf === 'week' || tf === 'month') return { window: 5, cluster: 0.04, gap: 0.08, maxBars: 260, near: 0.35, byStrength: true };
+    return { window: SR_PIVOT_WINDOW, cluster: SR_CLUSTER_PCT, gap: SR_MIN_GAP_PCT, maxBars: SR_MAX_BARS, near: 0.25, byStrength: false };
+  }
+
+  function supportResistanceLevels(bars, referencePrice, options) {
     var empty = { support: [], resistance: [], price: null };
-    if (!bars || bars.length < SR_PIVOT_WINDOW * 2 + 6) return empty;
-    var arr = bars.slice(-SR_MAX_BARS);
+    var cfg = srProfile(options);
+    if (!bars || bars.length < cfg.window * 2 + 6) return empty;
+    var arr = bars.slice(-cfg.maxBars);
     var len = arr.length;
     var calculationPrice = Number(arr[len - 1].close);
     if (!Number.isFinite(calculationPrice) || calculationPrice <= 0) return empty;
@@ -32,7 +44,7 @@
     var volSum = 0;
     arr.forEach(function (bar) { volSum += Number(bar.volume) || 0; });
     var volAvg = volSum / len;
-    var k = SR_PIVOT_WINDOW;
+    var k = cfg.window;
     var pivots = [];
     for (var i = k; i < len - k; i++) {
       var hi = Number(arr[i].high);
@@ -56,7 +68,7 @@
     }
     pivots.sort(function (a, b) { return a.price - b.price; });
     // 군집 계산 폭은 기존 마지막 종가 기준을 유지하고, 아래 분류만 화면 현재가를 쓴다.
-    var tol = calculationPrice * SR_CLUSTER_PCT;
+    var tol = calculationPrice * cfg.cluster;
     var clusters = [];
     pivots.forEach(function (p) {
       var c = clusters[clusters.length - 1];
@@ -75,27 +87,31 @@
     function toLevel(c) {
       return { price: c.mean, low: Math.min(c.low, c.mean - minHalf), high: Math.max(c.high, c.mean + minHalf), touches: c.touches, score: c.weight };
     }
-    var near = clusters.filter(function (c) { return Math.abs(c.mean - calculationPrice) / calculationPrice <= 0.25; });
+    var near = clusters.filter(function (c) { return Math.abs(c.mean - calculationPrice) / calculationPrice <= cfg.near; });
     var levels = near.filter(function (c) { return c.touches >= 2; }).map(toLevel);
     // 2026-10-04: 52주 저점 부근처럼 한쪽에 2회 이상 닿은 가격대가 없으면 "지지/저항이 없다"로 보였다(사용자 지적).
     // 그런 쪽에는 한 번만 닿은 스윙 고·저점(1회)을 가까운 순서로 보충해 최소 2개까지 보여 준다.
     var weakLevels = near.filter(function (c) { return c.touches < 2; }).map(toLevel);
     function nearest(list) {
-      var sorted = list.sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
+      var sorted = list.sort(cfg.byStrength
+        ? function (a, b) { return b.score - a.score; }                                  // 추세: 강한 가격대 먼저
+        : function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });   // 단타: 현재가에서 가까운 순
       var picked = [];
       sorted.forEach(function (level) {
         if (picked.length >= SR_MAX_PER_SIDE) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < SR_MIN_GAP_PCT; });
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < cfg.gap; });
         if (!tooClose) picked.push(level);
       });
       return picked;
     }
     function fillWeak(picked, side) {
       if (picked.length >= 2) return picked;
-      var pool = weakLevels.filter(side).sort(function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
+      // 추세 설정은 약한 가격대(1회 터치)도 현재가에 붙은 것이 아니라 더 강한 것부터 보충한다.
+      var pool = weakLevels.filter(side).sort(cfg.byStrength ? function (a, b) { return b.score - a.score; }
+        : function (a, b) { return Math.abs(a.price - price) - Math.abs(b.price - price); });
       pool.forEach(function (level) {
         if (picked.length >= 2) return;
-        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < SR_MIN_GAP_PCT; });
+        var tooClose = picked.some(function (other) { return Math.abs(other.price - level.price) / calculationPrice < cfg.gap; });
         if (!tooClose) picked.push(level);
       });
       return picked;
