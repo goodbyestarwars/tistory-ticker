@@ -225,6 +225,8 @@ html.dark .de-chart-bar-zoom button { border-color: rgba(245,239,224,.32); color
 .de-chart-modal-body:has(> .de-stock-search-scope) { overflow-x: hidden; scrollbar-gutter: stable; }
 .de-chart-modal-body > #stock-search.de-stock-search-scope { display: flex; flex-direction: column; height: 100%; min-height: 0; margin: 0; }
 .de-chart-modal-body > #stock-search.de-stock-search-scope > .ss-panel-right { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.de-chart-modal-body > #stock-search.de-stock-search-scope > .ss-index-panel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.de-chart-modal-body > #stock-search.de-stock-search-scope .ss-index-chart { flex: 1 1 auto; height: auto !important; min-height: 240px; }
 .de-chart-modal-body > #stock-search.de-stock-search-scope .ss-panel-right > :not(.ss-chart) { flex-shrink: 0; }
 .de-chart-modal-body > #stock-search.de-stock-search-scope .ss-chart { flex: 1 1 auto; height: auto !important; min-height: 240px; }
 .de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
