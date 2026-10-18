@@ -893,3 +893,10 @@ html.dark #stock-search .ss-wave-btn.active { border-color: #F5EFE0; background:
 .ss-index-result:hover { background: rgba(127, 140, 155, .1); }
 html.dark #stock-search .ss-index-panel { background: #1a1a1a; border-color: rgba(245,239,224,.2); color: #f5efe0; }
 html.dark #stock-search .ss-index-result { border-color: rgba(245,239,224,.2); color: #f5efe0; }
+
+.ss-index-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.ss-index-tools button { padding: 7px 11px; border: 1px solid #dce2e8; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
+.ss-index-tools button.active, .ss-index-tools button.is-active { background: #1a1a1a; color: #fff; }
+.ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
+html.dark #stock-search .ss-index-tools button { border-color: rgba(245,239,224,.25); }
+html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: #f5efe0; color: #1a1a1a; }
