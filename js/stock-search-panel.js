@@ -227,10 +227,9 @@
   var INDEX_SEARCH_ROWS = [
     { code: 'INDEX:KOSPI', name: '코스피', aliases: 'kospi 코스피 종합주가지수' },
     { code: 'INDEX:KOSDAQ', name: '코스닥', aliases: 'kosdaq 코스닥' },
-    { code: 'INDEX:NASDAQ_INDEX', name: '나스닥 종합', aliases: 'nasdaq 나스닥 나스닥종합' },
-    { code: 'INDEX:SP500_INDEX', name: 'S&P 500', aliases: 's&p s&p500 sp500 에스앤피' },
-    { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
-    { code: 'INDEX:VIX', name: 'VIX 변동성 지수', aliases: 'vix 변동성 공포지수' }
+    { code: 'INDEX:NASDAQ_INDEX', name: '나스닥', aliases: 'nasdaq 나스닥 나스닥종합' },
+    { code: 'INDEX:SP500_INDEX', name: 'S&P&500', aliases: 's&p s&p500 sp500 s&p 500 에스앤피' },
+    { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' }
   ];
   function indexSearchRows(query) {
     var q = String(query || '').trim().toLowerCase();
