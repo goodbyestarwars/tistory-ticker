@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-zone1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-zone1-trend1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -116,6 +116,7 @@
     ichimokuEnabled: false,
     bollingerEnabled: false,
     accumulationEnabled: false,
+    trendEnabled: false,
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
@@ -488,6 +489,7 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
+      + '<label title="이동평균 배열로 추세를 봅니다(주가 예측·매수 신호 아님). 장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224(주가가 크게 빠진 하락 추세, 파랑), 단기 정배열 = MA5 &gt; MA10 &gt; MA20(탄력이 붙음, 빨강). 같은 상태가 3봉 연속 유지되면 전환 표시를 한 번 찍고, 범례에 현재 상태와 250일 고점 대비 하락률을 보여줍니다."><input type="checkbox" id="ssTrendToggle" /> 추세(이평 배열) 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2배 이상(거래대금 30억원 이상)인 봉이 바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)에서 나오면 주황 점으로 표시합니다. 250일 고가의 90% 이상인 신고가 구간은 제외합니다. 매집을 확정하는 것이 아니라 관찰용이며 매수 신호가 아닙니다(5년 일봉 시험에서 바닥권 표시는 이후 기준선보다 낮았습니다). 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량거래 흔적 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
@@ -1473,6 +1475,14 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var trendToggle = container.querySelector('#ssTrendToggle');
+    if (trendToggle) {
+      trendToggle.checked = state.trendEnabled;
+      trendToggle.onchange = function () {
+        state.trendEnabled = trendToggle.checked;
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
     var vpToggle = container.querySelector('#ssVolumeProfileToggle, [data-chart-vp-toggle]');
     if (vpToggle) {
       vpToggle.checked = state.volumeProfileEnabled;
@@ -2444,8 +2454,13 @@
           priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
+      var markHolder = { chart: chart, container: container };
+      if (state.trendEnabled) {
+        core.setTrendMarkers(LWC, candleSeries, bars, true, markHolder);
+        priceLegendHtml.push(core.trendLegendHtml(core.trendSummary(bars)));
+      }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
-        var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, { chart: chart, container: container });
+        var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, markHolder);
         priceLegendHtml.push(core.accumulationLegendHtml(accCounts));
       } else if (state.accumulationEnabled) {
         priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적은 국내 일봉에서만 표시됩니다</span>');
