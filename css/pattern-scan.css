@@ -1,9 +1,32 @@
 /* ============ 차트 패턴 스캔 ============ */
 
 #pattern-scan [hidden] { display: none !important; }
-#pattern-scan .ps-legacy-heading { order: 1; flex-basis: 100%; padding-top: 7px; font-size: 13px; font-weight: 700; }
+#pattern-scan .ps-scanner-menu { display: grid; gap: 12px; min-width: 0; }
+#pattern-scan .ps-primary-choice { display: flex; align-items: center; }
+#pattern-scan .ps-legacy-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }
+#pattern-scan .ps-legacy-heading { padding-left: 14px; font: 600 14px/1.4 var(--font-ui, sans-serif); color: rgb(var(--np-ink, 23, 32, 51)); white-space: nowrap; }
+/* Match the theme layer so its grouped-tab rules cannot restore a shared track. */
+@layer np {
+html body #pattern-scan .ps-scanner-menu .ps-tabs {
+  flex-wrap: nowrap !important; max-width: 100% !important; min-width: 0;
+  padding: 0 !important; gap: 8px !important; background: transparent !important; border-radius: 0 !important;
+}
+html body #pattern-scan .ps-scanner-menu .ps-tabs .ps-tab { flex: 0 0 auto; white-space: nowrap; }
+html body #pattern-scan .ps-scanner-menu .ps-tab,
+html body #pattern-scan .ps-horizon .ps-horizon-tab {
+  min-height: 36px !important; padding: 0 14px !important; border-radius: 10px !important;
+  border: 0 !important; box-shadow: none !important;
+  background: rgba(var(--np-ink, 23, 32, 51), .055) !important;
+  font-size: 14px !important;
+}
+html body #pattern-scan .ps-scanner-menu .ps-tab.active,
+html body #pattern-scan .ps-horizon .ps-horizon-tab.active {
+  background: rgba(var(--np-ink, 23, 32, 51), .13) !important;
+  color: rgb(var(--np-ink, 23, 32, 51)) !important;
+}
+}
 #pattern-scan .np-mobile-hint { display: none; }
-#pattern-scan .ps-horizon { display: flex; flex-basis: 100%; gap: 8px; margin-bottom: 8px; }
+#pattern-scan .ps-horizon { display: inline-flex; width: fit-content; max-width: 100%; box-sizing: border-box; gap: 8px; padding: 0; background: transparent; }
 #pattern-scan .ps-horizon-tab { padding: 10px 22px; border: 1px solid #d9e2ee; background: transparent; color: inherit; border-radius: 4px; cursor: pointer; font: inherit; }
 #pattern-scan .ps-horizon-tab.active { background: #172033; color: #fff; border-color: #172033; }
 #pattern-scan .np-live h2 { margin: 22px 0 12px; }
@@ -31,15 +54,16 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: #f5efe0; color: #1a
   #pattern-scan .np-table td[colspan] { display: block; }
   #pattern-scan .np-table td[colspan]::before { content: none; }
   #pattern-scan .ps-horizon-tab { flex: 1; padding: 10px; }
+  #pattern-scan .ps-horizon { width: 100%; }
+  #pattern-scan .ps-legacy-tools { display: grid; gap: 6px; }
 }
 
 #pattern-scan .ps-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 14px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  margin-bottom: 18px;
 }
 
 #pattern-scan .ps-tabs {
