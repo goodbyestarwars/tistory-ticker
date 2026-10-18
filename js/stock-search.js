@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-zone1-trend1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-vol1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -491,7 +491,7 @@
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label title="이동평균 배열로 추세를 봅니다(주가 예측·매수 신호 아님). 장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224(주가가 크게 빠진 하락 추세, 파랑), 단기 정배열 = MA5 &gt; MA10 &gt; MA20(탄력이 붙음, 빨강). 같은 상태가 3봉 연속 유지되면 전환 표시를 한 번 찍고, 범례에 현재 상태와 250일 고점 대비 하락률을 보여줍니다."><input type="checkbox" id="ssTrendToggle" /> 추세(이평 배열) 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2배 이상(거래대금 30억원 이상)인 봉이 바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)에서 나오면 주황 점으로 표시합니다. 250일 고가의 90% 이상인 신고가 구간은 제외합니다. 매집을 확정하는 것이 아니라 관찰용이며 매수 신호가 아닙니다(5년 일봉 시험에서 바닥권 표시는 이후 기준선보다 낮았습니다). 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량거래 흔적 표시</label>'
+      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2배 이상(거래대금 30억원 이상)인 봉이 바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)에서 나오면 주황 점으로 표시합니다. 250일 고가의 90% 이상인 신고가 구간은 제외합니다. 매집을 확정하는 것이 아니라 관찰용이며 매수 신호가 아닙니다(5년 일봉 시험에서 바닥권 표시는 이후 기준선보다 낮았습니다). 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량 거래</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -2041,9 +2041,21 @@
     return '';
   }
 
+  // 툴팁의 거래량 줄: '거래량 1,234,000 (20일 평균 대비 2.2배)'. 기준은 그 봉 직전 20봉(그 봉 제외) 평균이며 전일 하루가 아니다.
+  function stockVolumeTooltipHtml(volInfo, time) {
+    if (!volInfo || !volInfo.map) return '';
+    var key = time && typeof time === 'object' && time.year != null
+      ? time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0') : String(time);
+    var row = volInfo.map[key];
+    if (!row || row.volume === null || row.volume === undefined) return '';
+    var multiple = row.multiple === null || row.multiple === undefined ? '—' : row.multiple.toFixed(1) + '배';
+    return '<span class="ss-ohlc-volume">거래량 <em>' + Math.round(row.volume).toLocaleString('ko-KR') + '</em> <i>(' + (volInfo.label || '20일') + ' 평균 대비 <em>' + multiple + '</em>)</i></span>';
+  }
+
   // Lightweight Charts 기본 십자선에는 현재 가로선 값만 있어 어떤 봉의 종가인지
   // 바로 알기 어렵다. 캔들 시리즈에서 실제 OHLC를 받아 네 값 모두를 고정 형식으로 표시한다.
-  function installStockOhlcTooltip(container, chart, candleSeries, isUsChart) {
+  // volInfo(선택) = { map: core.volumeMultiples 결과, label: '20일'|'20봉' } - 있으면 거래량과 직전 평균 대비 배수를 한 줄 더 보여 준다.
+  function installStockOhlcTooltip(container, chart, candleSeries, isUsChart, volInfo) {
     if (!container || !chart || !candleSeries || !chart.subscribeCrosshairMove) return function () {};
     var tooltip = document.createElement('div');
     tooltip.className = 'ss-ohlc-tooltip';
@@ -2065,7 +2077,8 @@
         + '<span>시 <em>' + chartPriceText(bar.open, isUsChart) + '</em></span>'
         + '<span>고 <em>' + chartPriceText(bar.high, isUsChart) + '</em></span>'
         + '<span>저 <em>' + chartPriceText(bar.low, isUsChart) + '</em></span>'
-        + '<span class="ss-ohlc-close">종 <em>' + chartPriceText(bar.close, isUsChart) + '</em></span>';
+        + '<span class="ss-ohlc-close">종 <em>' + chartPriceText(bar.close, isUsChart) + '</em></span>'
+        + stockVolumeTooltipHtml(volInfo, param.time);
       tooltip.hidden = false;
     };
     chart.subscribeCrosshairMove(onCrosshairMove);
@@ -2425,7 +2438,7 @@
         minMove: priceMinMove,
         formatter: function (v) { return chartPriceText(v, isUsChart); }
       }, { top: 0.06, bottom: 0.08 });
-      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
+      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart, { map: core.volumeMultiples(bars, 20), label: timeframe === 'day' ? '20일' : '직전 20봉' });
       lwcCandleSeries = candleSeries;
       if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
         try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, timeframe === 'week' ? '주봉' : timeframe === 'month' ? '월봉' : timeframe === 'minute' ? '분봉' : '일봉')); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
@@ -2463,7 +2476,7 @@
         var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, markHolder);
         priceLegendHtml.push(core.accumulationLegendHtml(accCounts));
       } else if (state.accumulationEnabled) {
-        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적은 국내 일봉에서만 표시됩니다</span>');
+        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량 거래는 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
         core.addBollingerBands(chart, LWC, bars);
