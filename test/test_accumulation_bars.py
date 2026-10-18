@@ -111,7 +111,7 @@ class AccumulationContextTest(unittest.TestCase):
         self.acc_bar(bars, 30)
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'distribution']])
-        self.assertEqual(out['markers'], [[bars[30]['date'], '털기?']])
+        self.assertEqual(out['markers'], [[bars[30]['date'], '고점권 대량']])
         self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 0, 'distribution': 1})
 
     def test_missing_volume_is_skipped_not_counted_as_zero(self):
@@ -161,7 +161,7 @@ class WickBarAndPriorityTest(unittest.TestCase):
         put(bars, 30, 100000, 109000, 99500, 101000, 90000)       # 평소의 2.25배, 윗꼬리 79%, 몸통 1%, 거래대금 90억
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'wick']])
-        self.assertEqual(out['markers'], [[bars[30]['date'], '윗꼬리형']])
+        self.assertEqual(out['markers'], [[bars[30]['date'], '대량 윗꼬리']])
         self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 1, 'distribution': 0})
         hit = out['hits'][0]
         self.assertEqual(hit['kind'], 'wick')
@@ -215,7 +215,7 @@ class WickBarAndPriorityTest(unittest.TestCase):
     def test_checkbox_text_says_observation_only(self):
         ss = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
         self.assertIn('관찰용', ss)
-        self.assertIn('윗꼬리형', ss)
+        self.assertIn('대량 윗꼬리', ss)
         self.assertNotIn('매집 확정', ss[ss.index('ssAccumulationToggle'):ss.index('ssAccumulationToggle') + 900])
 
 
@@ -233,6 +233,33 @@ class MarkerConsistencyAndRsiMidlineTest(unittest.TestCase):
         ff = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
         self.assertIn("rsiSeries.createPriceLine({ price: 50,", ss)
         self.assertIn('y(50).toFixed(1)', ff)
+
+
+class MarkerWordingAndTooltipFieldsTest(unittest.TestCase):
+    """2026-10-18 문구 정리: 모양(대량 양봉/대량 윗꼬리)과 가격 위치(고점권)를 한 이름에 섞지 않고, 툴팁 수치를 늘렸다. 판정 조건은 그대로다."""
+
+    def test_full_labels_are_the_requested_wording(self):
+        src = open(os.path.join(ROOT, 'js', 'chart-core.js'), encoding='utf-8').read()
+        for text in ("label: '대량 양봉 · 매수 우위 관찰'", "label: '대량 윗꼬리 · 매도압력 의심'", "label: '고점권 대량거래 · 분배 위험'"):
+            self.assertIn(text, src)
+        block = src[src.index('var ACC_MARKER = {'):src.index('function accumulationMarkers')]
+        self.assertNotIn('매집 확정', block)             # 표시 이름에 확정 표현을 쓰지 않는다
+
+    def test_tooltip_numbers_open_change_drop_from_high_and_position(self):
+        bars = series(260)
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000
+        put(bars, 250, 100000, 109000, 99500, 101000, 90000)      # 시가 대비 +1%, 고가 대비 -7.34%, 윗꼬리 79%
+        hit = js_hits(bars)['hits'][0]
+        self.assertAlmostEqual(hit['openChange'], 1.0, places=6)
+        self.assertAlmostEqual(hit['fromHigh'], (101000 / 109000 - 1) * 100, places=6)
+        self.assertIsNotNone(hit['position'])
+        self.assertTrue(0 <= hit['position'] <= 100)
+        short = series(60)
+        for r in short:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 100000, 100500, 99500, 100200, 40000
+        put(short, 40, 100000, 109000, 99500, 101000, 90000)
+        self.assertIsNone(js_hits(short)['hits'][0]['position'])   # 봉이 120개도 안 되면 위치를 만들지 않는다
 
 
 if __name__ == '__main__':
