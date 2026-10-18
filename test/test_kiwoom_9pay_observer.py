@@ -12,10 +12,23 @@ spec.loader.exec_module(module)
 def test_candidates_bounded_and_unique():
     rows = [{'code': f'{i:06d}', 'price': 100, 'trade_volume': i + 1,
              'trade_amount': (40 - i) * 100} for i in range(40)]
-    out = module.candidates(rows, 30)
+    out = module.candidates(rows, limit=30)
     assert len(out) <= 30
     assert len({r['code'] for r in out}) == len(out)
     assert rows[-1]['code'] in {r['code'] for r in out}
+
+
+def test_amount_rank_uses_official_fields_and_union():
+    calls = []
+    def call(token, api, path, body):
+        calls.append((api, body))
+        return {'trde_prica_upper': [{'stk_cd': '005930_AL', 'stk_nm': 'A',
+                'cur_prc': '+100', 'now_trde_qty': '1,000', 'trde_prica': '200'}]}
+    amount = module.fetch_amount_top(call, 'dummy')
+    assert calls == [('ka10032', {'mrkt_tp': '000', 'mang_stk_incls': '0', 'stex_tp': '3'})]
+    assert amount[0]['code'] == '005930'
+    assert '005930' in {r['code'] for r in module.candidates(
+        [{'code': '000001', 'price': 100, 'trade_volume': 100}], amount, limit=2)}
 
 
 def test_signal_requires_volume_and_first_pullback():

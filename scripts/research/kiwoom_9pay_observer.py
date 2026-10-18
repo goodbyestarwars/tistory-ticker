@@ -13,17 +13,43 @@ CODE = re.compile(r"^[0-9]{6}$")
 MAX_CANDIDATES = 30
 
 
-def candidates(volume_rows, limit=30):
-    """Union of volume and amount leaders inside ka10030's returned universe.
+def fetch_amount_top(call_tr, token, limit=30):
+    """Read ka10032 through an injected existing client; no new credentials.
 
-    ka10030 is volume ranked, so the amount half is not a market-wide amount
-    ranking. Missing positive volume/price rows are excluded.
+    The caller owns rate limiting. A failed response is an error, not an empty
+    market. The official example names the result array trde_prica_upper.
     """
+    data = call_tr(token, 'ka10032', '/api/dostk/rkinfo', {
+        'mrkt_tp': '000', 'mang_stk_incls': '0', 'stex_tp': '3'})
+    if str(data.get('return_code', 0)) != '0':
+        raise ValueError('ka10032 rejected request')
+    rows = data.get('trde_prica_upper')
+    if not isinstance(rows, list):
+        raise ValueError('ka10032 missing ranking array')
+    result = []
+    for raw in rows:
+        code = str(raw.get('stk_cd', '')).split('_')[0]
+        try:
+            price = abs(float(str(raw.get('cur_prc', '')).replace(',', '')))
+            volume = float(str(raw.get('now_trde_qty', '')).replace(',', ''))
+            amount = float(str(raw.get('trde_prica', '')).replace(',', ''))
+        except (TypeError, ValueError):
+            continue
+        if CODE.fullmatch(code) and price > 0 and volume > 0 and amount > 0:
+            result.append({'code': code, 'name': raw.get('stk_nm'), 'price': price,
+                           'trade_volume': volume, 'trade_amount': amount})
+    return result[:limit]
+
+
+def candidates(volume_rows, amount_rows=None, limit=30):
+    """Union of ka10030 volume and ka10032 amount leaders, bounded at 30."""
     limit = min(MAX_CANDIDATES, max(1, int(limit)))
-    valid = [r for r in volume_rows if CODE.fullmatch(str(r.get('code', '')))
-             and (r.get('trade_volume') or 0) > 0 and (r.get('price') or 0) > 0]
-    by_volume = sorted(valid, key=lambda r: r['trade_volume'], reverse=True)
-    by_amount = sorted(valid, key=lambda r: r.get('trade_amount') or
+    def valid(rows):
+        return [r for r in rows if CODE.fullmatch(str(r.get('code', '')))
+                and (r.get('trade_volume') or 0) > 0 and (r.get('price') or 0) > 0]
+    by_volume = sorted(valid(volume_rows), key=lambda r: r['trade_volume'], reverse=True)
+    by_amount = sorted(valid(amount_rows if amount_rows is not None else volume_rows),
+                       key=lambda r: r.get('trade_amount') or
                        r['price'] * r['trade_volume'], reverse=True)
     selected = {}
     for row in by_volume[:(limit + 1) // 2] + by_amount[:limit // 2]:
