@@ -633,11 +633,25 @@
   // 일봉·국내 종목에서만 쓴다.
   var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#e8590c',
     runupBars: 20, distributionRunup: 0.25,
-    wickVolMult: 2.0, wickMinRatio: 0.4, wickMaxBodyPct: 3.0, highBars: 60 };
+    wickVolMult: 2.0, wickMinRatio: 0.4, wickMaxBodyPct: 3.0, highBars: 60,
+    // 2026-10-19 224일선 위 역망치(세력 탈출 의심) - docs/INVERTED_HAMMER_EXIT_STUDY_2026-10-19.md: 5년 일봉 8,779건, 이후 20일 -1.67%p·60일 -3.53%p(기준선 대비)
+    exitVolMult: 2.5, exitRangeMinPct: 2.0, exitUpperMin: 0.6, exitLowerMax: 0.15, exitBodyMax: 0.3 };
 
   // 빈 값(null·'')은 0이 아니라 없는 값이다 - 서버(volume_accumulation._f)가 평균에서 빼는 것과 같게 맞춘다.
   function accNumber(value) {
     return value === null || value === undefined || value === '' ? NaN : Number(value);
+  }
+
+  // i번째 봉까지 최근 period봉(i 포함) 종가 이동평균. 봉이 모자라거나 값이 비면 null.
+  function accMa(bars, i, period) {
+    if (i + 1 < period) return null;
+    var sum = 0;
+    for (var j = i - period + 1; j <= i; j++) {
+      var cj = accNumber(bars[j].close);
+      if (!isFinite(cj)) return null;
+      sum += cj;
+    }
+    return sum / period;
   }
 
   // i번째 봉 종가가 최근 period봉(i 포함) 이동평균 대비 몇 % 위인지. 봉이 모자라면 null.
@@ -679,7 +693,7 @@
 
   // 반환: [{ index, date, kind, status, multiple, wickPct, openChange, highChange, fromHigh, position, highDist, ma112Dist, ma224Dist, runup }]
   //   kind   = 'volume'(대량 양봉 조건) | 'wick'(윗꼬리형 조건)
-  //   status = 'accumulation'(대량 양봉) | 'wick'(윗꼬리형) | 'distribution'(털기?)
+  //   status = 'accumulation'(대량 양봉) | 'wick'(윗꼬리형) | 'exit'(224일선 위 대량 역망치) | 'distribution'(털기?)
   function accumulationBars(bars) {
     var out = [];
     if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
@@ -704,7 +718,11 @@
       if (!kind) continue;
       var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
       var hot = isFinite(before) && before >= ACCUMULATION.distributionRunup;
-      out.push({ index: i, date: b.date, kind: kind, status: hot ? 'distribution' : (kind === 'volume' ? 'accumulation' : 'wick'),
+      var ma224 = accMa(bars, i, 224);
+      var range = h - l, upper = h - Math.max(o, c), lower = Math.min(o, c) - l;
+      var exit = ma224 !== null && c > ma224 && v >= ACCUMULATION.exitVolMult * avg && range / c * 100 >= ACCUMULATION.exitRangeMinPct
+        && upper / range >= ACCUMULATION.exitUpperMin && lower / range <= ACCUMULATION.exitLowerMax && Math.abs(c - o) / range <= ACCUMULATION.exitBodyMax;
+      out.push({ index: i, date: b.date, kind: kind, status: hot ? 'distribution' : (exit ? 'exit' : (kind === 'volume' ? 'accumulation' : 'wick')),
         multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, openChange: (c / o - 1) * 100, highChange: (h / o - 1) * 100, fromHigh: (c / h - 1) * 100, position: accPosition(bars, i), highDist: accHighDistance(bars, i),
         ma112Dist: accMaDistance(bars, i, 112), ma224Dist: accMaDistance(bars, i, 224), runup: isFinite(before) ? before * 100 : null });
     }
@@ -716,6 +734,7 @@
   var ACC_MARKER = {
     accumulation: { color: '#e8590c', size: 1, text: '대량 양봉', label: '대량 양봉 · 매수 우위 관찰' },
     wick: { color: '#7c3aed', size: 1, text: '대량 윗꼬리', label: '대량 윗꼬리 · 매도압력 의심' },
+    exit: { color: '#4b5563', size: 1, text: '224선 위 윗꼬리', label: '224일선 위 대량 윗꼬리 · 세력 탈출 의심' },
     distribution: { color: '#4b5563', size: 1, text: '고점권 대량', label: '고점권 대량거래 · 분배 위험' }
   };
 
@@ -727,16 +746,17 @@
   }
 
   function accumulationSummary(bars) {
-    var counts = { accumulation: 0, wick: 0, distribution: 0 };
+    var counts = { accumulation: 0, wick: 0, exit: 0, distribution: 0 };
     accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
     return counts;
   }
 
   // 범례(차트검색·종목분석 공통): 색·이름·개수. 개수는 setAccumulationMarkers 가 돌려준 값이다.
   function accumulationLegendHtml(counts) {
-    counts = counts || { accumulation: 0, wick: 0, distribution: 0 };
+    counts = counts || { accumulation: 0, wick: 0, exit: 0, distribution: 0 };
     return '<span style="color:' + ACC_MARKER.accumulation.color + '">대량거래 흔적 ● ' + ACC_MARKER.accumulation.text + ' <b>' + counts.accumulation + '</b></span>'
       + '<span style="color:' + ACC_MARKER.wick.color + '"> · ● ' + ACC_MARKER.wick.text + ' <b>' + counts.wick + '</b></span>'
+      + '<span style="color:' + ACC_MARKER.exit.color + '"> · ● ' + ACC_MARKER.exit.text + ' <b>' + (counts.exit || 0) + '</b></span>'
       + '<span style="color:' + ACC_MARKER.distribution.color + '"> · ● ' + ACC_MARKER.distribution.text + ' <b>' + counts.distribution + '</b></span>'
       + '<span style="opacity:.7"> (관찰용 · 고가 = 시가 대비 당일 고가)</span>';
   }
@@ -776,7 +796,9 @@
         + '250봉 가격 위치 <b>' + (hit.position === null || hit.position === undefined ? '—' : hit.position.toFixed(0) + '%') + '</b><br>'
         + '직전 60봉 고점 대비 <b>' + accSigned(hit.highDist) + '</b><br>'
         + '112일선 대비 <b>' + accSigned(hit.ma112Dist) + '</b> · 224일선 대비 <b>' + accSigned(hit.ma224Dist) + '</b><br>'
-        + '직전 20봉 <b>' + accSigned(hit.runup) + '</b>';
+        + '직전 20봉 <b>' + accSigned(hit.runup) + '</b>'
+        + (hit.status === 'exit' ? '<br><span style="opacity:.7">5년 일봉: 224일선 위 대량 역망치 뒤 20일 -1.7%p·60일 -3.5%p(기준선 대비). 확정 아님</span>' : '')
+        + (hit.status === 'wick' ? '<br><span style="opacity:.7">역배열 역망치 매집은 5년 일봉에서 근거를 확인하지 못했습니다</span>' : '');
       var width = container.clientWidth || 0;
       var x = Number(param.point.x || 0);
       tip.style.left = Math.max(4, x > width * 0.58 ? x - 244 : x + 14) + 'px';
@@ -792,11 +814,11 @@
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
   // holder: { plugin, base, chart, container } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. chart·container 가 있으면 툴팁도 함께 건다.
-  // 반환: {accumulation, wick, distribution} 개수(꺼져 있으면 0).
+  // 반환: {accumulation, wick, exit, distribution} 개수(꺼져 있으면 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     var acc = enabled ? accumulationMarkers(bars) : [];
-    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, wick: 0, distribution: 0 };
+    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, wick: 0, exit: 0, distribution: 0 };
     if (holder.tipCleanup) { holder.tipCleanup(); holder.tipCleanup = null; }
     if (enabled && holder.chart && holder.container) holder.tipCleanup = attachAccumulationTooltip(holder.chart, holder.container, bars);
     var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });

@@ -93,7 +93,7 @@ class AccumulationContextTest(unittest.TestCase):
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'accumulation']])
         self.assertEqual(out['markers'], [[bars[30]['date'], '대량 양봉']])
-        self.assertEqual(out['summary'], {'accumulation': 1, 'wick': 0, 'distribution': 0})
+        self.assertEqual(out['summary'], {'accumulation': 1, 'wick': 0, 'exit': 0, 'distribution': 0})
 
     def test_marks_do_not_depend_on_later_bars(self):
         bars = self.base()
@@ -112,7 +112,7 @@ class AccumulationContextTest(unittest.TestCase):
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'distribution']])
         self.assertEqual(out['markers'], [[bars[30]['date'], '고점권 대량']])
-        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 0, 'distribution': 1})
+        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 0, 'exit': 0, 'distribution': 1})
 
     def test_missing_volume_is_skipped_not_counted_as_zero(self):
         bars = self.base()
@@ -162,7 +162,7 @@ class WickBarAndPriorityTest(unittest.TestCase):
         out = js_hits(bars)
         self.assertEqual(out['statuses'], [[30, 'wick']])
         self.assertEqual(out['markers'], [[bars[30]['date'], '대량 윗꼬리']])
-        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 1, 'distribution': 0})
+        self.assertEqual(out['summary'], {'accumulation': 0, 'wick': 1, 'exit': 0, 'distribution': 0})
         hit = out['hits'][0]
         self.assertEqual(hit['kind'], 'wick')
         self.assertAlmostEqual(hit['multiple'], 2.25, places=2)
@@ -222,11 +222,11 @@ class WickBarAndPriorityTest(unittest.TestCase):
 class MarkerConsistencyAndRsiMidlineTest(unittest.TestCase):
     """2026-10-18: 세 표시의 점 크기를 같게(크기는 키우지 않고 색을 진하게), RSI 차트에 50 가로선."""
 
-    def test_all_three_markers_share_one_small_size(self):
+    def test_all_markers_share_one_small_size(self):
         src = open(os.path.join(ROOT, 'js', 'chart-core.js'), encoding='utf-8').read()
         block = src[src.index('var ACC_MARKER = {'):src.index('function accumulationMarkers')]
         import re
-        self.assertEqual(re.findall(r'size: (\d)', block), ['1', '1', '1'])
+        self.assertEqual(re.findall(r'size: (\d)', block), ['1', '1', '1', '1'])
 
     def test_rsi_charts_draw_the_50_line(self):
         ss = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
@@ -324,7 +324,7 @@ class HighChangeDisplayTest(unittest.TestCase):
         self.assertEqual([tuple(m) for m in res_g['markers']], [(gray[250]['date'], '고점권 대량', '#4b5563')])
         for needle in ('#e8590c', '#7c3aed', '#4b5563', '대량 양봉', '대량 윗꼬리', '고점권 대량', '고가 = 시가 대비 당일 고가'):
             self.assertIn(needle, res['legend'])
-        self.assertEqual(res['counts'], {'accumulation': 1, 'wick': 0, 'distribution': 0})
+        self.assertEqual(res['counts'], {'accumulation': 1, 'wick': 0, 'exit': 0, 'distribution': 0})
 
     def test_both_screens_share_core_tooltip_and_legend_and_title(self):
         stock = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
@@ -334,6 +334,45 @@ class HighChangeDisplayTest(unittest.TestCase):
         sentence = '툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고'
         self.assertIn(sentence, stock)
         self.assertIn(sentence, flow)
+
+
+class ExitMarkerTest(unittest.TestCase):
+    """2026-10-19: 224일선 위 대량(2.5배) 역망치는 '세력 탈출 의심'(회색)으로 표시한다. 224일선 아래 윗꼬리는 보라 그대로이고 매집 표현은 쓰지 않는다."""
+
+    def _flat(self):
+        bars = series(300)
+        for r in bars:
+            r['open'], r['high'], r['low'], r['close'], r['volume'] = 10000, 10050, 9950, 10020, 400000
+        return bars
+
+    def test_hammer_above_224_with_2_5x_volume_is_exit(self):
+        bars = self._flat()
+        put(bars, 280, 10000, 11000, 9950, 10050, 1100000)                # 윗꼬리 95%, 아랫꼬리 5%, 몸통 5%, 거래량 2.75배, 224선 위
+        res = js_tip(bars, bars[280]['date'])
+        self.assertEqual([tuple(m) for m in res['markers']], [(bars[280]['date'], '224선 위 윗꼬리', '#4b5563')])
+        self.assertEqual(res['counts'], {'accumulation': 0, 'wick': 0, 'exit': 1, 'distribution': 0})
+        self.assertIn('224일선 위 대량 윗꼬리 · 세력 탈출 의심', res['tip'])
+        self.assertIn('224선 위 윗꼬리', res['legend'])
+
+    def test_below_224_or_weaker_volume_stays_purple_with_no_accumulation_claim(self):
+        weak = self._flat()
+        put(weak, 280, 10000, 11000, 9950, 10050, 900000)                 # 거래량 2.25배(<2.5배): 윗꼬리형 그대로
+        res = js_tip(weak, weak[280]['date'])
+        self.assertEqual([tuple(m) for m in res['markers']], [(weak[280]['date'], '대량 윗꼬리', '#7c3aed')])
+        self.assertIn('역배열 역망치 매집은 5년 일봉에서 근거를 확인하지 못했습니다', res['tip'])
+        below = self._flat()
+        for k in range(0, 280):                                            # 224일선이 봉 종가보다 높다(하락 추세)
+            below[k]['close'] = 12000
+        put(below, 280, 10000, 11000, 9950, 10050, 1100000)
+        res_b = js_tip(below, below[280]['date'])
+        self.assertEqual([tuple(m) for m in res_b['markers']], [(below[280]['date'], '대량 윗꼬리', '#7c3aed')])
+
+    def test_exit_does_not_change_orange_accumulation_or_python_parity(self):
+        bars = self._flat()
+        put(bars, 296, 10000, 10600, 9990, 10500, 1200000)                 # 대량 양봉(몸통 큼): 탈출 모양 아님
+        self.assertEqual(js_indices(bars), [296])
+        self.assertEqual(va.find_accumulation_bar(bars), 296)
+        self.assertEqual(js_hits(bars)['statuses'], [[296, "accumulation"]])
 
 
 if __name__ == '__main__':
