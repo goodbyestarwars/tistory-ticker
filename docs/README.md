@@ -10,6 +10,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
+| `NINEPAY_SCANNER_AB_2026-10-19.md` | 기존 검색기 메뉴의 단타/스윙/중장기 분류, 장초반 70% A OR B·화면 계약·#761 충돌 검토(미배포) | 장중 검색기 UI·조건 |
 | `MARKET_TEMP_METHOD.md` | 증시온도 방향 점수·위험도·원자료·이력 재계산 기준 | 증시온도 작업 |
 | `AUTO_WAVE_VALIDATION_2026-10-13.md` | 자동 파동(대·중·소) 검증 보고: 이전 엔진 문제·기준·수동 기준 대조·미래 비참조 시험·수익성 비교 | 차트 파동 작업 |
 | `WAVE_FORECAST_VALIDATION_2026-10-14.md` | 제거된 다음 파동 예측 기능의 과거 검증 기록 | 과거 연구 확인 |

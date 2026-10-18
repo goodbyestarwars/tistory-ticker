@@ -79,6 +79,8 @@
   // 항목을 채운 것, 새 필터를 만든 건 아님).
   var COMMON_SEARCH_DESC = '검색기 공통: 시가총액 3,000억원 이상 · ETF·스팩·ETN·관리종목·우선주·거래정지·정리매매·동전주(1,000원 미만) 제외';
   var TABS = [
+    { key: 'ninepayLive', label: '01. 실시간 단타 검색기', desc: '공통: 09:00:00~09:29:59에 전일 확정 거래량의 70% 이상 유입을 관측해야 합니다. 80% 이상은 우선 평가합니다. A: 초기 급증 → 첫 1% 눌림 → 고점 재돌파. B: 직전 확정 일봉 2개의 저점 상승 + 당일 갭상승 → 첫 눌림에서 시가 지지 → 저점 대비 0.3% 반등. A OR B이며 종목·거래일당 신호는 한 번입니다.' },
+    { key: 'openingGap', label: '갭상승', desc: '기존 야간 확정 일봉 갭상승 검색 결과입니다. 신규 실시간 A/B와 별도로 유지합니다.' },
     { key: 'risingLows', label: '저점상승 패턴', desc: '하락 뒤 바닥을 다지며 스윙 저점이 계단식으로 오르는 종목입니다. 최근 60거래일에서 저점이 3개 이상 이어서 1% 이상씩 높아지고(첫 저점 대비 +4%~+20%), 첫 저점과 마지막 저점이 15거래일 이상 떨어져 있어야 합니다. 계단 시작 뒤 첫 저점 아래로 내려간 적이 없고(하방이 막힘), 계단 시작 전에 첫 저점보다 12% 이상 높았던 구간이 있어야 하며(하락 뒤의 바닥), 현재가가 마지막 저점의 +10% 이내이고 최근 20거래일 +15% 이하(이미 오른 종목 제외)여야 합니다. 로보티즈처럼 하락 파동 속 3~4봉 반등은 제외합니다.' },
     { key: 'shortTermMaBreakout', label: '하락추세선 돌파', desc: '최근 30봉 내 의미 있는 두 스윙 고점을 연결한 하락 추세선을 오늘 종가가 처음 돌파한 종목입니다. 전일까지 가격은 추세선 아래 또는 인접한 위치에 머물러 있어야 하며, 현재 종가는 상승 중인 5일 이동평균선 위에 있어야 합니다. 이미 추세선을 크게 벗어난 종목은 제외해 막 돌파가 시작되는 구간을 포착합니다.' },
     { key: 'maCloudBreakout', label: '장기이평 응축·돌파', desc: '224일 장기 이동평균선과 일목균형표 구름대가 서로 가까워지며 가격이 응축된 종목을 찾습니다. 종가가 224일선 주변에서 지지받으면서 구름 상단 돌파를 준비하거나, 최근 1~3거래일 내 구름 상단과 장기이평선을 종가 기준으로 새롭게 돌파한 종목도 포함합니다. 이미 구름대와 장기이평선에서 크게 벗어나 상승이 진행된 종목은 제외합니다.' },
@@ -188,7 +190,14 @@
 
   var scanData = null;
   var scanPerformanceData = null;
-  var activeTab = 'risingLows';
+  var activeTab = 'ninepayLive';
+  var activeGroup = 'short';
+  var SCANNER_GROUPS = {
+    short: ['ninepayLive', 'volumeBreakout', 'openingGap', 'shortTermMaBreakout', 'angleMomentum'],
+    swing: ['risingLows', 'doubleBottom', 'invHeadShoulders', 'boxRangeLow', 'pullback', 'firstPullbackBreakout', 'gongpasan'],
+    long: ['maCloudBreakout']
+  };
+  var ninepayData = null, ninepayError = '', ninepayBusy = false, ninepayTimer = null;
   var rootContainer = null;
   var detailNavItems = [];
   var currentDetailItem = null;
@@ -236,18 +245,28 @@
     rootContainer = container;
     container.innerHTML = buildShell();
     wireTabs(container);
+    syncScannerGroup(container);
     renderTabDesc(container);
+    updateMeta(container);
+    renderList(container);
+    loadNinepay(container);
+    clearInterval(ninepayTimer);
+    ninepayTimer = setInterval(function () {
+      if (activeTab === 'ninepayLive' && !document.hidden && document.body.contains(container)) loadNinepay(container);
+    }, 10000);
     loadScan(container);
   }
 
   function buildShell() {
     var tabsHtml = TABS.map(function (t, i) {
-      return '<button type="button" class="ps-tab' + (i === 0 ? ' active' : '') + '" data-tab="' + t.key + '">' + t.label + '</button>';
+      return '<button type="button" class="ps-tab ui-btn ui-btn-tab' + (t.key === activeTab ? ' active' : '') + '" data-tab="' + t.key + '">' + t.label + '</button>';
     }).join('');
 
     return ''
       + '<div class="ps-head">'
-      + '<div class="ps-tabs">' + tabsHtml + '</div>'
+      + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
+      + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab ui-btn ui-btn-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
+      + '<div class="ps-tabs">' + tabsHtml + '<span class="ps-legacy-heading" data-short-label>02. 기존 단타형 검색기</span></div>'
       + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
       // 목록 가격이 스캔 시점인지 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
@@ -270,6 +289,12 @@
   function renderTabDesc(container) {
     var box = container.querySelector('#psTabDesc');
     if (!box) return;
+    if (activeTab === 'ninepayLive') {
+      box.innerHTML = '<strong>A OR B · 장초반 거래량 70% 필수 / 80% 우선</strong><p>' + escapeHtml(TABS[0].desc) + '</p>'
+        + '<p>09:30 이후 처음 확인된 70%는 당일 제외합니다. 이전 충족 시각을 추정하지 않습니다. 09:30 이전 충족 종목은 오후에도 첫 눌림을 감시합니다.</p>'
+        + '<small>공유 피드에 장전 거래량이 섞일 수 있어 최초 장중 수신 누적값을 빼고 유입 하한을 계산합니다. 화면 비율은 실제 전체 유입의 하한이며 늦게 발견한 종목을 놓칠 수 있습니다. B의 시가·확정 일봉이 없으면 B만 미확인입니다. 후보 최대 20개로 전 종목 검색이 아닙니다.</small>';
+      return;
+    }
     var tab = TABS.filter(function (t) { return t.key === activeTab; })[0];
     var info = TAB_INFO[activeTab] || {};
     var rows = INFO_ROWS.map(function (r) {
@@ -282,6 +307,14 @@
   }
 
   function wireTabs(container) {
+    container.querySelectorAll('[data-horizon]').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        activeGroup = btn.getAttribute('data-horizon');
+        syncScannerGroup(container);
+        var target = container.querySelector('[data-tab="' + SCANNER_GROUPS[activeGroup][0] + '"]');
+        if (target) target.click();
+      });
+    });
     container.querySelectorAll('.ps-view-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
         container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.remove('active'); });
@@ -301,7 +334,21 @@
         renderList(container);
         closeDetail(container);
         syncLiveSurge(container);
+        if (activeTab === 'ninepayLive') loadNinepay(container);
       });
+    });
+  }
+
+  function syncScannerGroup(container) {
+    container.querySelectorAll('[data-short-label]').forEach(function (el) { el.hidden = activeGroup !== 'short'; });
+    container.querySelectorAll('[data-horizon]').forEach(function (btn) {
+      var on = btn.getAttribute('data-horizon') === activeGroup;
+      btn.classList.toggle('active', on); btn.setAttribute('aria-selected', String(on));
+    });
+    container.querySelectorAll('[data-tab]').forEach(function (btn) {
+      btn.hidden = SCANNER_GROUPS[activeGroup].indexOf(btn.getAttribute('data-tab')) < 0;
+      var index = SCANNER_GROUPS[activeGroup].indexOf(btn.getAttribute('data-tab'));
+      btn.style.order = activeGroup === 'short' && index > 0 ? index + 1 : index;
     });
   }
 
@@ -347,6 +394,7 @@
       .catch(function (err) {
         var list = container.querySelector('#psList');
         if (!list) return;
+        if (activeTab === 'ninepayLive') { renderNinepay(container); return; }
         list.innerHTML = '<div class="ps-error">' + escapeHtml((err && err.message) || '스캔 결과를 불러오지 못했어요.')
           + '<button type="button" class="ps-retry" id="psRetry">다시 조회</button></div>';
         var retry = list.querySelector('#psRetry');
@@ -361,6 +409,10 @@
   function updateMeta(container) {
     var meta = container.querySelector('#psMeta');
     if (!meta) return;
+    if (activeTab === 'ninepayLive') {
+      meta.textContent = '우선순위 1 · 장중 A OR B · 기존 단타형은 우선순위 2 · 실주문 미연동';
+      return;
+    }
     if (activeTab === 'volumeBreakout' && liveSurgeInfo) {
       var t = liveSurgeInfo.updatedAt ? new Date(liveSurgeInfo.updatedAt) : null;
       var hhmm = t && !isNaN(t.getTime())
@@ -433,6 +485,7 @@
   }
 
   function loadScanPerformance(container) {
+    if (activeTab === 'ninepayLive') return;
     var key = scannerKey(activeTab);
     var summaryBox = container.querySelector('#psTrackSummary');
     if (scanPerformanceByKey[key]) {
@@ -1056,9 +1109,106 @@
     });
   }
 
+  function loadNinepay(container) {
+    if (ninepayBusy) return;
+    ninepayBusy = true;
+    return fetchJson(KIWOOM_VM_URL + '/health/realtime', 8000).then(function (body) {
+      var n = body && body.data && body.data.ninePayResearch;
+      if (!n) throw new Error('검색기 상태 미수신');
+      ninepayData = Object.assign({}, n, {hubCoverage: body.data.kiwoom || {}}); ninepayError = '';
+    }).catch(function (error) { ninepayError = error.message || 'API 오류'; })
+      .then(function () { ninepayBusy = false; if (activeTab === 'ninepayLive') renderNinepay(container); });
+  }
+
+  function npTime(at) {
+    if (at == null) return '미확인';
+    var d = typeof at === 'number' ? new Date(at * 1000) : new Date(at);
+    return isNaN(d.getTime()) ? '미확인' : new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+    }).format(d);
+  }
+
+  function npNumber(value, suffix, digits) {
+    return value == null || !isFinite(Number(value)) ? '미수신' : Number(value).toLocaleString('ko-KR', {
+      maximumFractionDigits: digits == null ? 0 : digits
+    }) + (suffix || '');
+  }
+
+  function renderNinepay(container) {
+    var list = container.querySelector('#psList'); if (!list) return;
+    var n = ninepayData;
+    var compatible = n && n.ruleVersion === 'ab70-v1';
+    var rows = compatible && Array.isArray(n.items) ? n.items.slice() : [];
+    rows.sort(function (a, b) { return Number(!!b.priority80) - Number(!!a.priority80); });
+    var signals = compatible && Array.isArray(n.signals) ? n.signals : [];
+    var notices = [];
+    var state = !n ? (ninepayError ? 'API 오류' : '로딩 중') : !compatible ? 'A/B 기준 미반영' : !n.running ? '수집 중단'
+      : !n.active ? '휴장·장외 대기' : !rows.some(function (r) { return r.at; }) ? '장중 데이터 미수신' : '장중 감시 중';
+    if (n && !compatible) notices.push('현재 운영 VM은 이전 3분 거래량 3% 기준입니다. A/B·70% 기준은 아직 배포되지 않았으며 이전 신호를 새 조건으로 표시하지 않습니다.');
+    if (ninepayError) notices.push('API 오류: ' + ninepayError + (n ? ' · 마지막 수신 자료를 표시합니다.' : ''));
+    if (n && n.rankError) notices.push('후보 순위 오류: ' + n.rankError);
+    if (n && n.amountFallback) notices.push('거래대금 순위 미수신 · 후보 누락 가능');
+    if (n && n.persistenceError) notices.push(n.persistenceError);
+    if (n && n.queueDropped) notices.push('검색기 수신 큐 누락 ' + n.queueDropped + '건');
+    if (n && n.capacityOmitted && n.capacityOmitted.length) notices.push('20개 구독 한도로 순위 후보 ' + n.capacityOmitted.length + '개 제외');
+    if (n && n.hubCoverage && n.hubCoverage.droppedCount) notices.push('공유 키움 허브 구독 누락 ' + n.hubCoverage.droppedCount + '개 · 해당 후보 영향은 미확인');
+    if (n && n.active && n.rankAt && Date.now() - Date.parse(n.rankAt) > 120000) notices.push('순위 갱신 2분 이상 지연');
+    var label = {watch:'감시', volume_met:'거래량 충족', pullback:'첫 눌림', signaled:'반등·재돌파 → 신호', invalidated:'첫 눌림 재이탈 · 종료'};
+    var nameMap = {}; rows.forEach(function (r) { nameMap[r.code] = r.name || r.code; });
+    function stock(r) { return '<button type="button" class="np-stock ui-btn-text" data-np-code="' + escapeHtml(r.code) + '">' + escapeHtml(r.name || nameMap[r.code] || '종목명 미수신') + '</button><small>' + escapeHtml(r.code) + '</small>'; }
+    function td(title, value, cls) { return '<td data-label="' + title + '" class="' + (cls || '') + '">' + value + '</td>'; }
+    var tableRows = rows.map(function (r) {
+      var delay = r.sampleAt == null ? null : Math.max(0, Math.floor(Date.now() / 1000 - r.sampleAt));
+      var rate = r.changeRate == null ? '미확인' : chgSign(r.changeRate);
+      var evidence = r.risingLows == null ? '저점 상승 미확인' : (r.risingLows ? '확정 저점 상승' : '저점 상승 불충족');
+      if (r.lows && r.lows.length === 2) evidence += ' ' + npNumber(r.lows[0]) + ' → ' + npNumber(r.lows[1]);
+      if (r.lowDates && r.lowDates.length === 2) evidence += ' (' + r.lowDates.join(' → ') + ')';
+      return '<tr>' + td('종목', stock(r), 'np-name')
+        + td('현재가 / 등락률', npNumber(r.price, '원') + '<small class="' + chgClass(r.changeRate) + '">' + escapeHtml(rate) + '</small>')
+        + td('거래량 비율 / 70% 최초 관측', (r.volumeRatio == null ? '미수신' : '≥' + npNumber(r.volumeRatio * 100, '%', 1)) + '<small>' + npTime(r.first70At) + '</small><small>' + (r.priority80 ? '80% 이상 · 우선' : '80% 장초반 관측 미확인') + '</small>')
+        + td('B: 갭 / 확정 저점', npNumber(r.gapPct, '%', 2) + '<small>' + escapeHtml(evidence) + '</small>')
+        + td('첫 눌림 / 진입', npNumber(r.pullbackLow, '원') + '<small>' + escapeHtml(r.branches && r.branches.length ? r.branches.join(' OR ') + ' 신호' : r.bSupportBroken ? 'B 시가 지지 이탈' : '반등·재돌파 대기') + '</small>')
+        + td('현재 단계', escapeHtml(r.excluded || label[r.stage] || '감시 · 미수신'))
+        + td('신호 시각 / 감지가', npTime(r.signalAt) + '<small>' + npNumber(r.signalPrice, '원') + '</small>')
+        + td('수신 시각 / 지연·결측', npTime(r.at) + '<small>' + (delay == null ? '미수신' : delay + '초 전 · ' + (delay > 90 ? '지연' : '수신')) + '</small><small>' + (r.volumeMissing ? '거래량·전일값 결측' : r.at ? escapeHtml(r.source || '경로 미확인') : '거래량 미수신') + '</small>') + '</tr>';
+    }).join('');
+    var recordRows = signals.slice().reverse().map(function (s) {
+      return '<tr>' + td('종목', stock(s)) + td('신호', escapeHtml((s.branches || []).join(' OR ') || '미확인'))
+        + td('감지 시각 / 가격', npTime(s.at) + '<small>' + npNumber(s.signalPrice == null ? s.price : s.signalPrice, '원') + '</small>')
+        + td('주문 / 체결 / 청산', '미연동 / 미연동 / 미연동')
+        + td('실현손익 / 비용', '미확인<small>수수료·세금 미연동</small>') + '</tr>';
+    }).join('');
+    var html = '<section class="np-live ui-module"><h2 class="ui-section-heading">01. 실시간 단타 검색기</h2>'
+      + '<div class="np-state" role="status">' + escapeHtml(state) + ' · 후보 ' + rows.length + '/20 · 오늘 신호 ' + signals.length + ' · 최근 수신 ' + npTime(n && n.lastEventAt) + '</div>'
+      + (notices.length ? '<p class="ps-error" role="alert">' + notices.map(escapeHtml).join('<br>') + '</p>' : '')
+      + '<p class="np-note">70% 최초 시각은 실제 수신 시각입니다. 비율은 장전 거래량을 뺀 관측 유입 하한입니다. 후보 순위 갱신 60초 · 화면 갱신 10초 · 표시 지연은 수신 후 경과이며 거래소 지연은 미확인입니다. 종목 선택 시 기존 차트가 열립니다.</p>'
+      + '<p class="np-mobile-hint np-note">카드를 좌우로 넘기면 다음 종목을 볼 수 있습니다.</p>'
+      + '<div class="np-deck"><table class="np-table"><thead><tr><th>종목</th><th>현재가</th><th>거래량 / 70% 시각</th><th>B 근거</th><th>첫 눌림</th><th>단계</th><th>신호</th><th>수신 상태</th></tr></thead><tbody>'
+      + (tableRows || '<tr><td colspan="8" class="ps-hint">' + (n && compatible && n.active ? '장중 후보·체결 데이터를 기다리고 있습니다.' : n && compatible ? '휴장·장외입니다. 다음 거래일 실제 수신 후보를 표시합니다.' : 'A/B 운영 데이터가 아직 없습니다.') + '</td></tr>') + '</tbody></table></div>'
+      + '<h2 class="ui-section-heading">03. 검색 결과 및 매매 기록</h2><p class="np-note">신호와 실제 주문은 별개입니다. PC 주문·체결·청산·손익 데이터는 현재 미연동입니다.</p>'
+      + '<div class="np-deck"><table class="np-table"><thead><tr><th>오늘 포착 종목</th><th>A/B</th><th>신호 시각·감지가</th><th>주문·체결·청산</th><th>손익·비용</th></tr></thead><tbody>'
+      + (recordRows || '<tr><td colspan="5" class="ps-hint">오늘 포착 기록이 없습니다.</td></tr>') + '</tbody></table></div>'
+      + '<p class="np-note">02. 기존 단타형 검색기는 위 버튼에서 선택하세요. 기존 기록·20:10 야간 검색은 유지됩니다.</p></section>';
+    if (list.dataset.ninepayHtml !== html || !list.querySelector('.np-live')) {
+      var scrolls = Array.prototype.map.call(list.querySelectorAll('.np-table tbody'), function (body) { return body.scrollLeft; });
+      list.innerHTML = html; list.dataset.ninepayHtml = html;
+      list.querySelectorAll('.np-table tbody').forEach(function (body, index) { body.scrollLeft = scrolls[index] || 0; });
+      detailNavItems = rows.map(function (r) { return {code:r.code, name:r.name || r.code, price:r.price, changeRate:r.changeRate}; });
+      list.querySelectorAll('[data-np-code]').forEach(function (button) { button.addEventListener('click', function () {
+        var code = button.getAttribute('data-np-code');
+        var item = detailNavItems.filter(function (r) { return r.code === code; })[0] || {code:code, name:nameMap[code] || code};
+        openDetail(container, item);
+      }); });
+    }
+  }
+
   function renderList(container) {
     var list = container.querySelector('#psList');
     if (!list) return;
+    ['#psViewTabs', '#psTrackSummary', '[data-scanner-review]'].forEach(function (selector) {
+      var el = container.querySelector(selector); if (el) el.hidden = activeTab === 'ninepayLive';
+    });
+    if (activeTab === 'ninepayLive') { renderNinepay(container); return; }
     if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
 
     if (trackView === 'success' || trackView === 'failed') { renderTrackedList(container); return; }
