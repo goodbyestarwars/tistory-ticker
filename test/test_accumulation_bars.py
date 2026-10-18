@@ -106,10 +106,11 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
     def test_tooltip_and_legend_text(self):
         res = run_node('acc_tip_cli.js', self.bars, self.bars[290]['date'])
         self.assertFalse(res['tipHidden'])
-        for needle in ('대량 거래 · 바닥권', '고가 <b>+9.0%</b>', '시가→당일 고가', '종가 <b>+1.0%</b>', '시가→종가', '60봉 고저 폭', '매집 확정 아님'):
+        for needle in ('대량 거래 · 바닥권', '고가 <b>+9.0%</b>', '시가→당일 고가', '종가 <b>+1.0%</b>', '시가→종가', '60봉 고저 폭', '매집 확정 아님', '직전 20일 평균 대비'):
             self.assertIn(needle, res['tip'])
-        for needle in ('#e8590c', '대량 바닥권', '대량 횡보', '신고가 구간 제외', '고가 = 시가 대비 당일 고가'):
+        for needle in ('#e8590c', '대량 바닥권', '대량 횡보'):
             self.assertIn(needle, res['legend'])
+        self.assertNotIn('관찰용', res['legend'])                    # 범례의 '(관찰용 ~' 문구는 삭제
 
     def test_tooltip_numbers_ignore_later_bars(self):
         before = run_node('acc_bars_cli.js', self.bars)['hits'][0]
