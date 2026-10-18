@@ -261,15 +261,21 @@
     function tabButton(t) {
       return '<button type="button" class="ps-tab ui-btn ui-btn-tab' + (t.key === activeTab ? ' active' : '') + '" aria-pressed="' + (t.key === activeTab) + '" data-tab="' + t.key + '">' + t.label + '</button>';
     }
-    var tabsHtml = TABS.filter(function (t) { return t.key !== 'ninepayLive'; }).map(tabButton).join('');
+    var primaryKeys = {ninepayLive: 'short', maCloudBreakout: 'long'};
+    var primaryHtml = TABS.filter(function (t) { return primaryKeys[t.key]; }).map(function (t) {
+      var label = t.key === 'maCloudBreakout' ? '01. ' + t.label : t.label;
+      return '<div class="ps-primary-choice" data-primary-group="' + primaryKeys[t.key] + '">'
+        + tabButton({key:t.key, label:label}) + '</div>';
+    }).join('');
+    var tabsHtml = TABS.filter(function (t) { return !primaryKeys[t.key]; }).map(tabButton).join('');
 
     return ''
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
       + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab ui-btn ui-btn-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
       + '<div class="ps-scanner-menu">'
-      + '<div class="ps-primary-choice" data-short-primary>' + tabButton(TABS[0]) + '</div>'
-      + '<div class="ps-legacy-tools"><span class="ps-legacy-heading" data-short-label>02. 기존 단타형 검색기</span><div class="ps-tabs">' + tabsHtml + '</div></div></div>'
+      + primaryHtml
+      + '<div class="ps-legacy-tools" data-legacy-tools><span class="ps-legacy-heading" data-short-label>02. 기존 단타형 검색기</span><div class="ps-tabs">' + tabsHtml + '</div></div></div>'
       + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
       // 목록 가격이 스캔 시점인지 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
       + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
@@ -345,7 +351,8 @@
 
   function syncScannerGroup(container) {
     container.querySelectorAll('[data-short-label]').forEach(function (el) { el.hidden = activeGroup !== 'short'; });
-    container.querySelectorAll('[data-short-primary]').forEach(function (el) { el.hidden = activeGroup !== 'short'; });
+    container.querySelectorAll('[data-primary-group]').forEach(function (el) { el.hidden = el.getAttribute('data-primary-group') !== activeGroup; });
+    container.querySelectorAll('[data-legacy-tools]').forEach(function (el) { el.hidden = activeGroup === 'long'; });
     container.querySelectorAll('[data-horizon]').forEach(function (btn) {
       var on = btn.getAttribute('data-horizon') === activeGroup;
       btn.classList.toggle('active', on); btn.setAttribute('aria-selected', String(on));
