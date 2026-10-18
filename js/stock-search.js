@@ -784,6 +784,8 @@
     indexSeries = null;
     var host = panel.querySelector('#ssIndexChart');
     if (!host || !indexBars.length) return;
+    // 구버전 CSS가 캐시에 남아도 그리기 캔버스의 기준점을 차트 안에 고정한다.
+    host.style.position = 'relative';
     host.textContent = '차트를 불러오는 중...';
     chartReady().then(function (LWC) {
       if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
@@ -807,7 +809,8 @@
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
         core: global.NineChartCore, container: host, chart: indexChart, series: series,
-        bars: bars, key: 'INDEX_' + symbol, timeframe: indexTimeframe,
+        // 예전 캔버스 배치에서 저장된 잘못된 좌표를 다시 그리지 않는다.
+        bars: bars, key: 'INDEX_V2_' + symbol, timeframe: indexTimeframe,
         className: 'ss-drawing-layer', ariaLabel: '지수 차트 그리기 영역',
         bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
