@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation6';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-sr-trend';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
@@ -5725,7 +5725,7 @@
     if (!supportResistanceEnabled || flowSrCleanup) return;
     var api = global.NineChartSR;
     if (!api) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }   // 모듈을 못 받았으면 서버 levels 로 그린다
-    var result = api.levels(daily, flowSrReferencePrice);
+    var result = api.levels(daily, flowSrReferencePrice, { timeframe: 'day' });
     if (!result.support.length && !result.resistance.length) { addLevelLines(series, LWC, fallbackLevels || {}, daily); return; }
     flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); }, { isUs: false });
   }
@@ -5737,7 +5737,7 @@
     if (!flowSrCtx) return;
     flowSrCtx.referencePrice = price;
     if (!supportResistanceEnabled || !flowSrCleanup || typeof flowSrCleanup.update !== 'function' || !global.NineChartSR) return;
-    flowSrCleanup.update(global.NineChartSR.levels(flowSrCtx.daily, price));
+    flowSrCleanup.update(global.NineChartSR.levels(flowSrCtx.daily, price, { timeframe: 'day' }));
   }
 
   // 재검색/언마운트 시 이전 차트 인스턴스·오버레이·구독을 정리(리스너 누수 방지)

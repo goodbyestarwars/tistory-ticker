@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-accumulation6';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-sr-trend';
   var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -1786,7 +1786,7 @@
 
   function updateStockSrReference(referencePrice) {
     if (!state.supportResistanceEnabled || !global.NineChartSR || !lwcLiveBars.length || !lwcSrCleanup || typeof lwcSrCleanup.update !== 'function') return;
-    var result = global.NineChartSR.levels(lwcLiveBars, referencePrice);
+    var result = global.NineChartSR.levels(lwcLiveBars, referencePrice, { timeframe: lwcLiveTimeframe });
     lwcSrCleanup.update(result);
     var label = lwcChartContainer && lwcChartContainer.querySelector('.ss-sr-label');
     if (label) label.innerHTML = stockSrLegendHtml(result, /^US:/i.test(String(state.selectedCode || '')));
@@ -2174,7 +2174,7 @@
 
       var liveQuote = state.liveQuotes[state.selectedCode];
       var srReferencePrice = liveQuote && Number.isFinite(Number(liveQuote.price)) ? Number(liveQuote.price) : null;
-      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars, srReferencePrice) : null;
+      var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars, srReferencePrice, { timeframe: timeframe }) : null;
       if (state.supportResistanceEnabled) {
         priceLegendHtml.push('<span class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
       }
@@ -2216,7 +2216,7 @@
       // 2026-09-16 민원("차트 안 글자가 겹쳐 보임"): 축 라벨 칩('70'·'30')이 가격축 눈금(70.0·30.0)
       // 바로 옆에 겹쳐 찍혀 같은 숫자가 두 번 보였다. 점선은 그대로 두고 중복 칩만 끈다.
       rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
-      rsiSeries.createPriceLine({ price: 50, color: '#c4c4c4', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '50' });
+      rsiSeries.createPriceLine({ price: 50, color: '#6b7280', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '50' });
       rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
       // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
       // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널

@@ -729,6 +729,8 @@
 #foreign-flow .ff-line-ratio { fill: none; stroke: #0ca678; stroke-width: 2.4; stroke-linejoin: round; }
 #foreign-flow .ff-line-rsi { fill: none; stroke: #333; stroke-width: 1.6; stroke-linejoin: round; }
 #foreign-flow .ff-rsi-band { stroke-dasharray: 3 3; }
+#foreign-flow .ff-rsi-mid { stroke: #6b7280; stroke-width: 1.2; }   /* 2026-10-18: RSI 50 선을 70·30보다 진하게 */
+html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
 #foreign-flow .ff-rsi-fill { fill-opacity: 0.55; stroke: none; }
 #foreign-flow .ff-rsi-fill-above { fill: #d24f45; }
 #foreign-flow .ff-rsi-fill-below { fill: #1261c4; }
