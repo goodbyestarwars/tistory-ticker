@@ -123,13 +123,13 @@
   var PROFILES = {
     search: {
       font: true, enableResize: true, margins: { top: 0.06, bottom: 0.08 },
-      timeScale: function (tf) { return { rightOffset: 6, minBarSpacing: 3, timeVisible: tf === 'minute', secondsVisible: false, barSpacing: tf === 'minute' ? 9 : 7 }; },
+      timeScale: function (tf) { return { rightOffset: 6, minBarSpacing: 0.5, timeVisible: tf === 'minute', secondsVisible: false, barSpacing: tf === 'minute' ? 9 : 7 }; },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }
     },
     analysis: {
       font: true, enableResize: true, margins: { top: 0.06, bottom: 0.36 },
-      timeScale: function () { return { rightOffset: 6, minBarSpacing: 2, timeVisible: false, secondsVisible: false }; },
+      timeScale: function () { return { rightOffset: 6, minBarSpacing: 0.5, timeVisible: false, secondsVisible: false }; },
       handleScroll: null,
       handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
     }
