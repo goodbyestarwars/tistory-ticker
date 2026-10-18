@@ -48,3 +48,4 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 - 문서와 실제 코드가 다르면 코드를 기준으로 문서를 갱신한다.
 
 - 자동매매 프로젝트(별도 폴더·브랜치): `quant-autotrade/README.md`, `quant-autotrade/docs/HANDOFF_2026-10-11.md`
+`n| `PRE_SURGE_EXECUTABLE_ENTRY_2026-10-18.md` | 급등 직전 첫 거래량 돌파 연구의 자료 감사·실행 가능 진입 검증 게이트 |
