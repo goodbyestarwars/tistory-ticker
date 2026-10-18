@@ -1,0 +1,32 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>9Pay 검색기 로컬 검증 · 합성 데이터</title>
+<link rel="stylesheet" href="../css/ui-system.css"><link rel="stylesheet" href="../css/pattern-scan.css">
+<style>body{font:14px system-ui,sans-serif;margin:0;color:#172033;background:#fff}.page{max-width:1200px;margin:24px auto;padding:0 16px}h1{font:26px MaruBuri,serif}.fixture-note{color:#8b5e00}#qa-results{white-space:pre-wrap;font-size:11px;overflow-wrap:anywhere}</style>
+</head><body><main class="page"><h1>검색기</h1><p class="fixture-note">로컬 화면 검증 전용 · 합성 종목/가격이며 실제 검색 결과나 주문이 아닙니다.</p><div id="pattern-scan"></div><pre id="qa-results"></pre></main>
+<script>
+var mode=new URLSearchParams(location.search).get('mode')||'active';
+var now=Date.now()/1000;
+var fixtureRow={code:'005930',name:'삼성전자',price:71000,changeRate:2.1,at:now-2,sampleAt:now-3,volumeRatio:0.82,first70At:now-240,priority80:true,first80At:now-120,gapPct:1.1,risingLows:true,lows:[68000,69000],lowDates:['2026-10-15','2026-10-16'],pullbackLow:70400,stage:'signaled',branches:['B'],signalAt:now-30,signalPrice:70800,volumeMissing:false,source:'Kiwoom WebSocket'};
+var fixture={ruleVersion:'ab70-v1',running:true,active:true,rankAt:new Date().toISOString(),lastEventAt:new Date().toISOString(),items:[fixtureRow,Object.assign({},fixtureRow,{code:'035420',name:'NAVER',price:205000,changeRate:-0.8,volumeRatio:null,volumeMissing:true,stage:'watch',signalAt:null,signalPrice:null,branches:[],priority80:false,first70At:null,risingLows:null,lows:[],lowDates:[]})],signals:[Object.assign({},fixtureRow,{at:now-30})]};
+if(mode==='closed'){fixture.active=false;fixture.items=[];fixture.signals=[];}
+if(mode==='missing'){fixture.items=[{code:'005930',name:'삼성전자'}];fixture.signals=[];}
+if(mode==='legacy'){delete fixture.ruleVersion;}
+window.qaRequests=[];
+window.fetch=function(url){qaRequests.push(String(url));if(mode==='error'&&String(url).includes('/health/realtime'))return Promise.reject(Error('검증용 연결 실패'));
+ var value=String(url).includes('/health/realtime')?{success:true,data:{ninePayResearch:fixture}}:String(url).includes('/pattern-scan')?{data:{patterns:{},scannedAt:'2026-10-16 20:10'}}:{data:{items:[],tracks:[],daily:[]}};
+ return Promise.resolve({ok:true,json:function(){return Promise.resolve(value)}});};
+</script><script src="../js/pattern-scan.js"></script>
+<script>
+setTimeout(function(){
+ var root=document.getElementById('pattern-scan');
+ var check={mode:mode,defaultShort:root.querySelector('[data-horizon="short"]').getAttribute('aria-selected')==='true',
+ newFirst:root.querySelector('[data-tab="ninepayLive"]').hidden===false,state:root.querySelector('.np-state').textContent,
+ overflow:document.documentElement.scrollWidth>innerWidth,requests:qaRequests,version:fixture.ruleVersion};
+ root.querySelector('[data-horizon="swing"]').click();check.swing=!root.querySelector('[data-tab="risingLows"]').hidden;
+ root.querySelector('[data-horizon="long"]').click();check.long=!root.querySelector('[data-tab="maCloudBreakout"]').hidden;
+ root.querySelector('[data-horizon="short"]').click();check.legacyShort=!root.querySelector('[data-tab="volumeBreakout"]').hidden;
+ check.safeOrder=root.textContent.includes('미연동 / 미연동 / 미연동')||mode!=='active';
+ check.signalDedup=root.querySelectorAll('.np-table')[1].querySelectorAll('tbody tr').length===1;
+ document.getElementById('qa-results').textContent=JSON.stringify(check);
+},500);
+</script></body></html>

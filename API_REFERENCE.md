@@ -367,7 +367,7 @@ dict 구성을 함께 대조한다.
 | GET | `/domestic-news` | 없음 | 국내 일반뉴스·DART 공시 |
 | GET | `/foreign-news` | 없음 | 미국·글로벌 일반뉴스 |
 | GET | `/market-board` | 없음 | 시장별 실시간 종목판·업종 TOP |
-| GET | `/health/realtime` | 없음 | KIS·키움 실시간 공유 허브 상태와 `ninePayResearch`(연구용 후보·순위 오류·거래량 이벤트·KIS 폴백·신호 수; `NINEPAY_RESEARCH_ENABLED=1`일 때만 동작) |
+| GET | `/health/realtime` | 없음 | KIS·키움 공유 허브와 `ninePayResearch`(후보·순위 오류·거래량 이벤트·KIS 폴백·신호; `NINEPAY_RESEARCH_ENABLED=1`일 때 동작). A/B 계약(미배포): `ruleVersion=ab70-v1`, `items`에 후보명·가격·70% 최초 관측·80% 우선·갭·저점·눌림·단계·신호·결측. `at`는 수신 시각, `orderStatus=미연동`. [필드·조건·저장 상세](docs/NINEPAY_SCANNER_AB_2026-10-19.md) |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
 | GET | `/money-picks` | 없음 | 증시온도 '돈이 몰린 섹터' 대표 종목의 최근 14일 기록 `{history:[{date,code,name,theme,rank,rec_price}],windowDays,recordAfter,perTheme}`. 기준가만 주며 수익률은 화면이 현재가로 계산 |
 | GET | `/theme-list` | 없음 | 키움 전체 테마 목록 `{themes:[{code,name,stock_count,change_rate}],count}`(카테고리 추가 후보, 3분 백그라운드 값) |
