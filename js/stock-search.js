@@ -2230,7 +2230,7 @@
   function renderVpPanel(panel, analysis, info) {
     if (!panel) return;
     var VP = global.NineVolumeProfile;
-    if (!analysis || !VP) { panel.hidden = true; panel.innerHTML = ''; return; }
+    if (!analysis || !VP) { panel.hidden = true; panel.innerHTML = ''; panel.__vpHtml = null; return; }
     var fmt = function (v) { return chartPriceText(v, info.isUs); };
     var opts = { format: fmt };
     var core = global.NineChartCore;
@@ -2243,11 +2243,15 @@
     }
     var poc = analysis.poc;
     var pg = analysis.pocGap && analysis.pocGap.where !== 'inside' ? analysis.pocGap : null;
+    // 패널은 보이는 구간·해상도가 바뀔 때마다 다시 그려진다. 그때마다 innerHTML 을 통째로 바꾸면 사용자가 펼쳐 둔 '거래량이 적은 가격대'가
+    // 바로 접혀 펼쳐지지 않는 것처럼 보인다(2026-10-19 사용자 리포트). 그래서 (1) 내용이 같으면 다시 그리지 않고 (2) 다시 그릴 때는 펼침 상태를 이어받는다.
+    var prevThin = panel.querySelector ? panel.querySelector('.ss-vp-thin') : null;
+    var thinOpen = !!(prevThin && prevThin.open);
     var thin = analysis.thin.length
       ? '<details class="ss-vp-thin"><summary>거래량이 적은 가격대 ' + analysis.thin.length + '곳</summary><ul>' + analysis.thin.map(function (t) {
         return '<li>' + vpEsc(VP.thinText(t, opts)) + '</li>';
       }).join('') + '</ul></details>' : '';
-    panel.innerHTML = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 확대·축소하면 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
+    var html = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 확대·축소하면 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
       + '<div class="ss-vp-items">'
       + zone('가까운 저항 후보', analysis.resistance, analysis.resistanceGap, '+')
       + zone('가까운 지지 후보', analysis.support, analysis.supportGap, '-')
@@ -2257,6 +2261,10 @@
       + '<span class="ss-vp-item"><b>현재가 위·아래</b> ' + analysis.aboveShare.toFixed(0) + '% / ' + analysis.belowShare.toFixed(0) + '%</span></div>'
       + (analysis.state ? '<p class="ss-vp-state"><b>' + vpEsc(analysis.state.label) + '</b> ' + vpEsc(analysis.state.text) + '</p>' : '')
       + '<p class="ss-vp-hover" data-vp-hover>막대 쪽에 마우스를 올리면 그 가격대의 추정 거래량 비중이 보입니다.</p>' + thin;
+    if (panel.__vpHtml !== html) {                                   // 내용이 같으면 DOM 을 건드리지 않는다(펼침·호버 문구 유지)
+      panel.innerHTML = thinOpen ? html.replace('<details class="ss-vp-thin">', '<details class="ss-vp-thin" open>') : html;
+      panel.__vpHtml = html;
+    }
     panel.hidden = false;
   }
 
