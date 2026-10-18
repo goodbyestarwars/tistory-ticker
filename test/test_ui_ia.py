@@ -2106,7 +2106,10 @@ class UiInformationArchitectureTest(unittest.TestCase):
         stock_search = self.read("js/stock-search.js")
         order_book = self.read("js/order-book.js")
         self.assertNotIn("var REALTIME_QUOTES_URL", stock_search)  # 자체 소켓 상수는 없어야 함(주석의 경위 설명 문구는 남아있어도 됨)
-        self.assertNotIn("new WebSocket(", stock_search)
+        # 2026-10-19: 종목 시세용 소켓(ws/quotes)은 여전히 없어야 한다. 지수(코스피 등) 시세만 /ws/market-indicators 소켓을 하나 연다.
+        self.assertNotIn("'wss://goodbyestar.cloud/ws/quotes", stock_search)       # 주석의 경위 설명은 남아있어도 됨
+        self.assertEqual(stock_search.count("new WebSocket("), 1)
+        self.assertIn("new WebSocket(INDEX_WS_URL", stock_search)
         self.assertIn("onQuote: function (quote) { applyRealtimeQuote(container, quote); }", stock_search)
         self.assertIn("state.onQuote = (opts && opts.onQuote) || null;", order_book)
         self.assertIn("if (state.onQuote) state.onQuote(quote);", order_book)
