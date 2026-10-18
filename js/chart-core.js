@@ -464,6 +464,7 @@
       upColor: CANDLE_UP, downColor: CANDLE_DOWN,
       borderUpColor: CANDLE_UP, borderDownColor: CANDLE_DOWN,
       wickUpColor: CANDLE_UP, wickDownColor: CANDLE_DOWN,
+      priceLineStyle: global.LightweightCharts.LineStyle.Solid,
       priceFormat: priceFormat
     };
   }

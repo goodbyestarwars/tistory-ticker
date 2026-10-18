@@ -112,7 +112,8 @@ def _quote_events(message):
         price = _number(value('10', 'price'))
         change = _number(value('11', 'change'))
         change_rate = _number(value('12', 'changeRate', 'change_rate'))
-        cumulative_volume = _number(value('16', 'acc_trde_qty', 'acml_vol', 'volume'))
+        # Kiwoom official 0B schema: 13=cumulative volume, 16=open price.
+        cumulative_volume = _number(value('13', 'acc_trde_qty', 'acml_vol', 'volume'))
         if price is None:
             continue
         event = {
