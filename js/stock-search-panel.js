@@ -229,7 +229,8 @@
     { code: 'INDEX:KOSDAQ', name: '코스닥', aliases: 'kosdaq 코스닥' },
     { code: 'INDEX:NASDAQ_INDEX', name: '나스닥', aliases: 'nasdaq 나스닥 나스닥종합' },
     { code: 'INDEX:SP500_INDEX', name: 'S&P&500', aliases: 's&p s&p500 sp500 s&p 500 에스앤피' },
-    { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' }
+    { code: 'INDEX:DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
+    { code: 'INDEX:SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
   function indexSearchRows(query) {
     var q = String(query || '').trim().toLowerCase();
