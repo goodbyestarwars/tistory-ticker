@@ -622,18 +622,16 @@
   }
 
 
-  // ---- 대량거래 흔적 표시(매집봉이라 부르지 않는다: 실제 매집 확인이 아님) (2026-10-16 사용자 요청, 2026-10-17 단순화, 2026-10-18 윗꼬리형 추가) ----
-  // 세 가지만 찍는다. 모두 그날 알 수 있는 정보만 쓰고(미래 봉·사후 상승 여부로 색을 바꾸지 않는다) 매수 신호나 매집 확정이 아니다.
-  //  - 대량 양봉(주황)  : scripts/cloud-vm/volume_accumulation.py find_accumulation_bar 와 같은 기준 - 거래량 직전 20일 평균의 2.5배 이상
-  //                       + 양봉 몸통 2% 이상 + 종가가 그날 범위의 상위 40%(위치 0.6 이상) + 거래대금 30억원 이상.
-  //  - 윗꼬리형(보라)   : 연구용 가설 - 윗꼬리가 범위의 40% 이상 + 몸통 절댓값 3% 이하 + 거래량 직전 20일 평균의 2배 이상 + 거래대금 30억원 이상.
-  //                       5년 일봉 시험(docs/ACCUMULATION_MFE_CHART_2026-10-18.md)에서 기준선보다 나은 근거가 없어 관찰용으로만 둔다.
-  //  - 털기?(회색)      : 위 두 조건 중 하나를 만족하지만 직전 20봉이 +25% 이상 오른 뒤에 나온 봉(상승 과열 뒤 위험 의심).
-  // 한 봉은 하나의 표시만 받는다: 털기? > 대량 양봉 > 윗꼬리형 (대량 양봉 조건을 먼저 보고, 어느 쪽이든 과열이면 털기?).
-  // 일봉·국내 종목에서만 쓴다.
-  var ACCUMULATION = { volMult: 2.5, minBodyPct: 2.0, closePosMin: 0.6, amountMin: 3000000000, avgBars: 20, color: '#e8590c',
-    runupBars: 20, distributionRunup: 0.25,
-    wickVolMult: 2.0, wickMinRatio: 0.4, wickMaxBodyPct: 3.0, highBars: 60 };
+  // ---- 대량 거래 흔적 표시 (2026-10-19 사용자 정의로 교체: 기존 대량 양봉·윗꼬리형·털기? 표시는 삭제) ----
+  // 매집이 확인된 것이 아니라 "거래량이 평소보다 크게 터진 봉이 바닥권 또는 횡보(박스권)에서 나왔다"는 관찰용 표시다. 그날까지의 정보만 쓴다.
+  //  - 거래량 : 직전 20일 평균의 2배 이상 + 거래대금 30억원 이상.
+  //  - 바닥권 : 종가가 최근 250봉 저가~고가 범위의 하위 30%.
+  //  - 횡보(박스권) : 최근 60봉 고저 폭이 25% 이하이고 250봉 범위 하위 60%(바닥권이 아닌 경우).
+  //  - 신고가 구간 제외 : 종가가 최근 250봉 고가의 90% 이상이면 표시하지 않는다.
+  // 일봉·국내 종목에서만 쓰고 250봉이 안 되는 종목은 표시하지 않는다.
+  // 주의: 5년 일봉 시험(docs/INVERTED_HAMMER_EXIT_STUDY_2026-10-19.md '사용자 정의 매집봉')에서 바닥권 표시는 이후 기준선보다 낮았고 횡보는 유의하지 않았다. 매수 신호가 아니다.
+  var ACCUMULATION = { volMult: 2.0, amountMin: 3000000000, avgBars: 20, color: '#e8590c', windowBars: 250, boxBars: 60,
+    bottomPos: 0.3, boxPos: 0.6, boxMaxRange: 0.25, highExclude: 0.9 };
 
   // 빈 값(null·'')은 0이 아니라 없는 값이다 - 서버(volume_accumulation._f)가 평균에서 빼는 것과 같게 맞춘다.
   function accNumber(value) {
@@ -677,68 +675,74 @@
     return hi > lo ? (accNumber(bars[i].close) - lo) / (hi - lo) * 100 : null;
   }
 
-  // 반환: [{ index, date, kind, status, multiple, wickPct, openChange, highChange, fromHigh, position, highDist, ma112Dist, ma224Dist, runup }]
-  //   kind   = 'volume'(대량 양봉 조건) | 'wick'(윗꼬리형 조건)
-  //   status = 'accumulation'(대량 양봉) | 'wick'(윗꼬리형) | 'distribution'(털기?)
+  // 반환: [{ index, date, zone, multiple, wickPct, openChange, highChange, fromHigh, position, boxRange, highDist, ma112Dist, ma224Dist }]
+  //   zone = 'bottom'(바닥권) | 'box'(횡보). 고가(highChange) = (당일 고가 / 당일 시가 - 1) x 100, 종가 변화율(openChange)과 다르다.
   function accumulationBars(bars) {
     var out = [];
-    if (!bars || bars.length <= ACCUMULATION.avgBars) return out;
-    for (var i = ACCUMULATION.avgBars; i < bars.length; i++) {
+    var W = ACCUMULATION.windowBars;
+    if (!bars || bars.length < W) return out;
+    for (var i = W - 1; i < bars.length; i++) {
       var b = bars[i];
       var o = accNumber(b.open), h = accNumber(b.high), l = accNumber(b.low), c = accNumber(b.close), v = accNumber(b.volume);
       if (!isFinite(o) || !isFinite(h) || !isFinite(l) || !isFinite(c) || !isFinite(v) || o <= 0 || c <= 0 || h <= l) continue;
+      if (c * v < ACCUMULATION.amountMin) continue;
       var sum = 0, count = 0;
       for (var j = i - ACCUMULATION.avgBars; j < i; j++) {
         var pv = accNumber(bars[j].volume);
         if (isFinite(pv)) { sum += pv; count++; }
       }
       var avg = count ? sum / count : 0;
-      if (!avg || c * v < ACCUMULATION.amountMin) continue;
-      var kind = null;
-      if (v >= ACCUMULATION.volMult * avg && c > o && (c / o - 1) * 100 >= ACCUMULATION.minBodyPct && (c - l) / (h - l) >= ACCUMULATION.closePosMin) {
-        kind = 'volume';
-      } else if (v >= ACCUMULATION.wickVolMult * avg && (h - Math.max(o, c)) / (h - l) >= ACCUMULATION.wickMinRatio
-          && Math.abs(c / o - 1) * 100 <= ACCUMULATION.wickMaxBodyPct) {
-        kind = 'wick';
+      if (!avg || v < ACCUMULATION.volMult * avg) continue;
+      var top = -Infinity, bot = Infinity;
+      for (var k = i - W + 1; k <= i; k++) {
+        var hk = accNumber(bars[k].high), lk = accNumber(bars[k].low);
+        if (isFinite(hk) && hk > top) top = hk;
+        if (isFinite(lk) && lk < bot) bot = lk;
       }
-      if (!kind) continue;
-      var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
-      var hot = isFinite(before) && before >= ACCUMULATION.distributionRunup;
-      out.push({ index: i, date: b.date, kind: kind, status: hot ? 'distribution' : (kind === 'volume' ? 'accumulation' : 'wick'),
-        multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, openChange: (c / o - 1) * 100, highChange: (h / o - 1) * 100, fromHigh: (c / h - 1) * 100, position: accPosition(bars, i), highDist: accHighDistance(bars, i),
-        ma112Dist: accMaDistance(bars, i, 112), ma224Dist: accMaDistance(bars, i, 224), runup: isFinite(before) ? before * 100 : null });
+      if (!isFinite(top) || !isFinite(bot) || top <= bot || c >= ACCUMULATION.highExclude * top) continue;
+      var pos = (c - bot) / (top - bot);
+      var h60 = -Infinity, l60 = Infinity;
+      for (var m = i - ACCUMULATION.boxBars + 1; m <= i; m++) {
+        var hm = accNumber(bars[m].high), lm = accNumber(bars[m].low);
+        if (isFinite(hm) && hm > h60) h60 = hm;
+        if (isFinite(lm) && lm < l60) l60 = lm;
+      }
+      var boxRange = isFinite(h60) && isFinite(l60) && l60 > 0 ? h60 / l60 - 1 : null;
+      var zone = pos <= ACCUMULATION.bottomPos ? 'bottom'
+        : (boxRange !== null && boxRange <= ACCUMULATION.boxMaxRange && pos <= ACCUMULATION.boxPos ? 'box' : null);
+      if (!zone) continue;
+      out.push({ index: i, date: b.date, zone: zone, multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, openChange: (c / o - 1) * 100,
+        highChange: (h / o - 1) * 100, fromHigh: (c / h - 1) * 100, position: pos * 100, boxRange: boxRange === null ? null : boxRange * 100,
+        highDist: (c / top - 1) * 100, ma112Dist: accMaDistance(bars, i, 112), ma224Dist: accMaDistance(bars, i, 224) });
     }
     return out;
   }
 
-  // 2026-10-18 문구 정리: 주황·보라는 봉 모양(대량 양봉 / 대량 윗꼬리), 회색은 가격 위치(상승 과열 뒤 = 고점권)다. 모양과 위치를 한 이름에 섞지 않는다.
-  // text 는 차트에 찍히는 짧은 이름, label 은 범례·툴팁의 전체 이름이다. 모두 관찰용이며 매집·분배를 확정하지 않는다.
+  // text 는 차트에 찍히는 짧은 이름, label 은 범례·툴팁의 전체 이름이다. 모두 관찰용이며 매집을 확정하지 않는다.
   var ACC_MARKER = {
-    accumulation: { color: '#e8590c', size: 1, text: '대량 양봉', label: '대량 양봉 · 매수 우위 관찰' },
-    wick: { color: '#7c3aed', size: 1, text: '대량 윗꼬리', label: '대량 윗꼬리 · 매도압력 의심' },
-    distribution: { color: '#4b5563', size: 1, text: '고점권 대량', label: '고점권 대량거래 · 분배 위험' }
+    bottom: { color: '#e8590c', size: 1, text: '대량 바닥권', label: '대량 거래 · 바닥권 (매집 의심, 관찰용)' },
+    box: { color: '#e8590c', size: 1, text: '대량 횡보', label: '대량 거래 · 횡보(박스권) (매집 의심, 관찰용)' }
   };
 
   function accumulationMarkers(bars) {
     return accumulationBars(bars).map(function (hit) {
-      var style = ACC_MARKER[hit.status];
+      var style = ACC_MARKER[hit.zone];
       return { time: hit.date, position: 'belowBar', color: style.color, shape: 'circle', size: style.size, text: style.text };
     });
   }
 
+  // 반환: { accumulation: 전체 개수, bottom: 바닥권 개수, box: 횡보 개수 }
   function accumulationSummary(bars) {
-    var counts = { accumulation: 0, wick: 0, distribution: 0 };
-    accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
+    var counts = { accumulation: 0, bottom: 0, box: 0 };
+    accumulationBars(bars).forEach(function (hit) { counts.accumulation++; counts[hit.zone]++; });
     return counts;
   }
 
   // 범례(차트검색·종목분석 공통): 색·이름·개수. 개수는 setAccumulationMarkers 가 돌려준 값이다.
   function accumulationLegendHtml(counts) {
-    counts = counts || { accumulation: 0, wick: 0, distribution: 0 };
-    return '<span style="color:' + ACC_MARKER.accumulation.color + '">대량거래 흔적 ● ' + ACC_MARKER.accumulation.text + ' <b>' + counts.accumulation + '</b></span>'
-      + '<span style="color:' + ACC_MARKER.wick.color + '"> · ● ' + ACC_MARKER.wick.text + ' <b>' + counts.wick + '</b></span>'
-      + '<span style="color:' + ACC_MARKER.distribution.color + '"> · ● ' + ACC_MARKER.distribution.text + ' <b>' + counts.distribution + '</b></span>'
-      + '<span style="opacity:.7"> (관찰용 · 고가 = 시가 대비 당일 고가)</span>';
+    counts = counts || { accumulation: 0, bottom: 0, box: 0 };
+    return '<span style="color:' + ACCUMULATION.color + '">대량 거래 흔적 ● ' + ACC_MARKER.bottom.text + ' <b>' + counts.bottom + '</b> · ● ' + ACC_MARKER.box.text + ' <b>' + counts.box + '</b></span>'
+      + '<span style="opacity:.7"> (관찰용 · 거래량 2배↑ · 신고가 구간 제외 · 고가 = 시가 대비 당일 고가)</span>';
   }
 
   function accSigned(value, digits) {
@@ -768,15 +772,14 @@
     var onMove = function (param) {
       var hit = param && param.point ? byDate[dateKey(param.time)] : null;
       if (!hit) { tip.hidden = true; return; }
-      var style = ACC_MARKER[hit.status];
-      tip.innerHTML = '<b style="color:' + style.color + '">' + style.label + '</b><br><span style="opacity:.7">' + hit.date + ' · 관찰용, 매집·분배 확정 아님</span><br>'
+      var style = ACC_MARKER[hit.zone];
+      tip.innerHTML = '<b style="color:' + style.color + '">' + style.label + '</b><br><span style="opacity:.7">' + hit.date + ' · 관찰용, 매집 확정 아님</span><br>'
         + '거래량 <b>' + hit.multiple.toFixed(1) + '배</b> · 윗꼬리 <b>' + hit.wickPct.toFixed(0) + '%</b><br>'
         + '고가 <b>' + accSigned(hit.highChange) + '</b> <span style="opacity:.7">(시가→당일 고가)</span><br>'
         + '종가 <b>' + accSigned(hit.openChange) + '</b> <span style="opacity:.7">(시가→종가)</span> · 고점 대비 종가 <b>' + accSigned(hit.fromHigh) + '</b><br>'
-        + '250봉 가격 위치 <b>' + (hit.position === null || hit.position === undefined ? '—' : hit.position.toFixed(0) + '%') + '</b><br>'
-        + '직전 60봉 고점 대비 <b>' + accSigned(hit.highDist) + '</b><br>'
-        + '112일선 대비 <b>' + accSigned(hit.ma112Dist) + '</b> · 224일선 대비 <b>' + accSigned(hit.ma224Dist) + '</b><br>'
-        + '직전 20봉 <b>' + accSigned(hit.runup) + '</b>';
+        + '250봉 가격 위치 <b>' + (hit.position === null || hit.position === undefined ? '—' : hit.position.toFixed(0) + '%') + '</b> · 60봉 고저 폭 <b>' + (hit.boxRange === null || hit.boxRange === undefined ? '—' : hit.boxRange.toFixed(0) + '%') + '</b><br>'
+        + '250봉 고점 대비 종가 <b>' + accSigned(hit.highDist) + '</b><br>'
+        + '112일선 대비 <b>' + accSigned(hit.ma112Dist) + '</b> · 224일선 대비 <b>' + accSigned(hit.ma224Dist) + '</b>';
       var width = container.clientWidth || 0;
       var x = Number(param.point.x || 0);
       tip.style.left = Math.max(4, x > width * 0.58 ? x - 244 : x + 14) + 'px';
@@ -792,11 +795,11 @@
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
   // holder: { plugin, base, chart, container } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. chart·container 가 있으면 툴팁도 함께 건다.
-  // 반환: {accumulation, wick, distribution} 개수(꺼져 있으면 0).
+  // 반환: {accumulation, bottom, box} 개수(꺼져 있으면 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     var acc = enabled ? accumulationMarkers(bars) : [];
-    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, wick: 0, distribution: 0 };
+    var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, bottom: 0, box: 0 };
     if (holder.tipCleanup) { holder.tipCleanup(); holder.tipCleanup = null; }
     if (enabled && holder.chart && holder.container) holder.tipCleanup = attachAccumulationTooltip(holder.chart, holder.container, bars);
     var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
