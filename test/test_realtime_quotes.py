@@ -39,6 +39,7 @@ class RealtimeQuotesTests(unittest.TestCase):
             'change': -3500.0,
             'changeRate': -1.52,
             'volume': 1234567.0,
+            'openPrice': 225000.0,
             'exchange': '2',
             'marketSession': '1',
             'source': 'Kiwoom WebSocket',
