@@ -2041,9 +2041,21 @@
     return '';
   }
 
+  // 툴팁의 거래량 줄: '거래량 1,234,000 (20일 평균 대비 2.2배)'. 기준은 그 봉 직전 20봉(그 봉 제외) 평균이며 전일 하루가 아니다.
+  function stockVolumeTooltipHtml(volInfo, time) {
+    if (!volInfo || !volInfo.map) return '';
+    var key = time && typeof time === 'object' && time.year != null
+      ? time.year + '-' + String(time.month).padStart(2, '0') + '-' + String(time.day).padStart(2, '0') : String(time);
+    var row = volInfo.map[key];
+    if (!row || row.volume === null || row.volume === undefined) return '';
+    var multiple = row.multiple === null || row.multiple === undefined ? '—' : row.multiple.toFixed(1) + '배';
+    return '<span class="ss-ohlc-volume">거래량 <em>' + Math.round(row.volume).toLocaleString('ko-KR') + '</em> <i>(' + (volInfo.label || '20일') + ' 평균 대비 <em>' + multiple + '</em>)</i></span>';
+  }
+
   // Lightweight Charts 기본 십자선에는 현재 가로선 값만 있어 어떤 봉의 종가인지
   // 바로 알기 어렵다. 캔들 시리즈에서 실제 OHLC를 받아 네 값 모두를 고정 형식으로 표시한다.
-  function installStockOhlcTooltip(container, chart, candleSeries, isUsChart) {
+  // volInfo(선택) = { map: core.volumeMultiples 결과, label: '20일'|'20봉' } - 있으면 거래량과 직전 평균 대비 배수를 한 줄 더 보여 준다.
+  function installStockOhlcTooltip(container, chart, candleSeries, isUsChart, volInfo) {
     if (!container || !chart || !candleSeries || !chart.subscribeCrosshairMove) return function () {};
     var tooltip = document.createElement('div');
     tooltip.className = 'ss-ohlc-tooltip';
@@ -2065,7 +2077,8 @@
         + '<span>시 <em>' + chartPriceText(bar.open, isUsChart) + '</em></span>'
         + '<span>고 <em>' + chartPriceText(bar.high, isUsChart) + '</em></span>'
         + '<span>저 <em>' + chartPriceText(bar.low, isUsChart) + '</em></span>'
-        + '<span class="ss-ohlc-close">종 <em>' + chartPriceText(bar.close, isUsChart) + '</em></span>';
+        + '<span class="ss-ohlc-close">종 <em>' + chartPriceText(bar.close, isUsChart) + '</em></span>'
+        + stockVolumeTooltipHtml(volInfo, param.time);
       tooltip.hidden = false;
     };
     chart.subscribeCrosshairMove(onCrosshairMove);
@@ -2425,7 +2438,7 @@
         minMove: priceMinMove,
         formatter: function (v) { return chartPriceText(v, isUsChart); }
       }, { top: 0.06, bottom: 0.08 });
-      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
+      lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart, { map: core.volumeMultiples(bars, 20), label: timeframe === 'day' ? '20일' : '직전 20봉' });
       lwcCandleSeries = candleSeries;
       if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
         try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, timeframe === 'week' ? '주봉' : timeframe === 'month' ? '월봉' : timeframe === 'minute' ? '분봉' : '일봉')); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
