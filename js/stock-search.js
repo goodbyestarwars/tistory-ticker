@@ -152,6 +152,11 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' }
   ];
   var indexChart = null;
+  var indexSeries = null;
+  var indexDrawingCtl = null;
+  var indexBars = [];
+  var indexTimeframe = 'day';
+  var indexRenderId = 0;
   var indexTimer = null;
   function indexMatches(query) {
     var q = String(query || '').trim().toLowerCase();
@@ -753,15 +758,56 @@
     var panel = container.querySelector('#ssIndexPanel');
     if (panel) panel.hidden = true;
     if (indexTimer) { clearInterval(indexTimer); indexTimer = null; }
+    indexRenderId += 1;
+    if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
+    indexSeries = null;
+    indexBars = [];
   }
 
   function indexChartRows(rows) {
     return (rows || []).map(function (row) {
       var d = String(row.date || '');
       var time = d.length === 8 ? d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6) : d;
-      return { time: time, open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close) };
-    }).filter(function (row) { return /^\d{4}-\d{2}-\d{2}$/.test(row.time) && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0; });
+      return { date: time, open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close) };
+    }).filter(function (row) { return /^\d{4}-\d{2}-\d{2}$/.test(row.date) && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0; });
+  }
+
+  function renderIndexChart(panel, symbol) {
+    var renderId = ++indexRenderId;
+    if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
+    if (indexChart) { indexChart.remove(); indexChart = null; }
+    indexSeries = null;
+    var host = panel.querySelector('#ssIndexChart');
+    if (!host || !indexBars.length) return;
+    host.textContent = '차트를 불러오는 중...';
+    chartReady().then(function (LWC) {
+      if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
+      var bars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
+      var dark = document.documentElement.classList.contains('dark');
+      host.textContent = '';
+      indexChart = LWC.createChart(host, { autoSize: true, height: 440,
+        layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78' },
+        timeScale: { borderVisible: false } });
+      var series = indexChart.addSeries(LWC.CandlestickSeries, {
+        upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+      });
+      indexSeries = series;
+      series.setData(bars.map(function (bar) {
+        return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
+      }));
+      indexChart.timeScale().fitContent();
+      var Drawing = global.NineChartDrawing;
+      if (Drawing) indexDrawingCtl = Drawing.attach({
+        core: global.NineChartCore, container: host, chart: indexChart, series: series,
+        bars: bars, key: 'INDEX_' + symbol, timeframe: indexTimeframe,
+        className: 'ss-drawing-layer', ariaLabel: '지수 차트 그리기 영역',
+        bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
+        buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
+        style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
+      });
+    }).catch(function () { if (renderId === indexRenderId) host.textContent = '차트를 불러오지 못했습니다.'; });
   }
 
   function openIndex(container, row) {
@@ -775,6 +821,7 @@
     panel.innerHTML = '<div class="ss-hint">지수 시세와 차트를 불러오는 중...</div>';
     state.selectedCode = 'INDEX:' + row.code;
     state.selectedName = row.name;
+    indexTimeframe = 'day';
     try {
       var url = new URL(location.href);
       url.searchParams.set('code', 'INDEX:' + row.code);
@@ -786,35 +833,55 @@
       if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
       fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500')
         .then(function (body) {
-          if (state.selectedCode !== 'INDEX:' + row.code) return;
+          if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
-          if (indexChart) {
+          var bars = indexChartRows(item.chart);
+          if (panel.querySelector('.ss-index-heading')) {
             var quote = panel.querySelector('.ss-index-quote');
             var note = panel.querySelector('.ss-index-note');
             if (quote) quote.innerHTML = (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR')) + ' <small>' + fmtSignedPct(item.change_rate) + '</small>';
             if (quote) quote.className = 'ss-index-quote ' + signClass(item.change_rate);
-            if (note) note.textContent = '현물 지수 · 갱신 ' + (item.updated_at || '시각 미확인') + ' · 지수 분봉 미제공';
+            if (note) note.textContent = '현물 지수 · 갱신 ' + (item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
+            if (bars.length) {
+              var latest = bars[bars.length - 1];
+              var old = indexBars[indexBars.length - 1];
+              if (!old || latest.date !== old.date) {
+                indexBars = bars;
+                renderIndexChart(panel, row.code);
+              } else if (indexTimeframe === 'day' && indexSeries && latest.close !== old.close) {
+                indexBars = bars;
+                indexSeries.update({ time: latest.date, open: latest.open, high: latest.high, low: latest.low, close: latest.close });
+              }
+            }
             return;
           }
           panel.innerHTML = '<div class="ss-index-heading"><strong>' + escapeHtml(row.name) + '</strong><span>' + escapeHtml(row.code) + '</span></div>'
             + '<div class="ss-index-quote ' + signClass(item.change_rate) + '">' + (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR'))
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
-            + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 지수 분봉 미제공</div>'
+            + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공</div>'
+            + '<div class="ss-index-tools">'
+            + '<button type="button" disabled title="이 지수의 실제 분봉 원본이 없습니다">분봉</button>'
+            + '<button type="button" class="active" data-index-tf="day">일봉</button>'
+            + '<button type="button" data-index-tf="week">주봉</button>'
+            + '<button type="button" data-index-tf="month">월봉</button>'
+            + '<button type="button" class="ss-draw-toggle">직선</button>'
+            + '<button type="button" class="ss-circle-toggle">동그라미</button>'
+            + '<button type="button" class="ss-box-toggle">박스</button>'
+            + '<button type="button" class="ss-hline-toggle">가로선</button>'
+            + '<button type="button" class="ss-pencil-toggle">연필</button>'
+            + '<button type="button" class="ss-draw-clear">지우기</button></div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
-          var bars = indexChartRows(item.chart);
-          if (!bars.length) { panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.'; return; }
-          chartReady().then(function (LWC) {
-            if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
-            if (indexChart) indexChart.remove();
-            var host = panel.querySelector('#ssIndexChart');
-            if (!host) return;
-            var dark = document.documentElement.classList.contains('dark');
-            indexChart = LWC.createChart(host, { autoSize: true, height: 440, layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78' }, timeScale: { borderVisible: false } });
-            var series = indexChart.addSeries(LWC.CandlestickSeries, { upColor: '#d24f45', downColor: '#1261c4', borderVisible: false, wickUpColor: '#d24f45', wickDownColor: '#1261c4' });
-            series.setData(bars);
-            indexChart.timeScale().fitContent();
-          }).catch(function () { if (panel.querySelector('#ssIndexChart')) panel.querySelector('#ssIndexChart').textContent = '차트를 불러오지 못했습니다.'; });
+          panel.querySelectorAll('[data-index-tf]').forEach(function (button) {
+            button.addEventListener('click', function () {
+              indexTimeframe = button.getAttribute('data-index-tf');
+              panel.querySelectorAll('[data-index-tf]').forEach(function (b) { b.classList.toggle('active', b === button); });
+              renderIndexChart(panel, row.code);
+            });
+          });
+          indexBars = bars;
+          if (bars.length) renderIndexChart(panel, row.code);
+          else panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.';
         }).catch(function () { if (state.selectedCode === 'INDEX:' + row.code) panel.innerHTML = '<div class="ss-hint ss-error">지수 데이터를 불러오지 못했습니다.</div>'; });
     }
     refresh();
