@@ -190,7 +190,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `realtime_quotes.py` | 122 | KIS(공용 허브 구독)/키움 0B 실시간→브라우저 중계 | `relay_quotes` |
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
 | `kiwoom_ws_hub.py` | 470 | 키움 실시간 WebSocket 공유 허브 - KIS 자리를 넘친 국내 종목 0B 체결(연결 1개, 전체 목록 REG·접미사 재시도·상태) | `start`, `KiwoomWsHub.subscribe/live_codes`, `health_snapshot` |
-| `kiwoom_9pay_observer.py` | - | 장초반 70% 관측 후 A OR B 순수 상태기계(미배포); 첫 눌림·B 확정 일봉 저점·신호 중복·증거 복원 | `Observer.observe/export_state/restore_state` |
+| `kiwoom_9pay_observer.py` | - | 장초반 70% 관측 후 A OR B 순수 상태기계; 첫 눌림·B 확정 일봉 저점·신호 중복·증거 복원 | `Observer.observe/export_state/restore_state` |
 | `kiwoom_9pay_live.py` | - | 기존 공유 WS·순위·KIS 표본 연결, 후보 20개·충족 종목 고정, JSON 증거·관측 공백/MFE·상태 스냅샷 | `start_background`, `health_snapshot`, `_persist` |
 | `theme_flow.py` | 200 | 키움 테마(ka90001/ka90002) 기준 "오늘 돈이 몰린 섹터" 3분 백그라운드 수집 | `fetch_theme_flow`, `build_theme_rows`, `start_background`, `get_cached` |
 | `volume_profile_collector.py` | 270 | 매물대 실제 체결가 일별 수집(KRX 거래일 18:10~20:00 하루 1회, 순위·최근 조회 종목 최대 120, `volume_profile_daily`) | `start_background`, `run_once`, `should_run`, `select_codes`, `get_status` |
