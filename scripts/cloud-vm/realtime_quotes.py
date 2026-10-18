@@ -125,6 +125,9 @@ def _quote_events(message):
         }
         if cumulative_volume is not None:
             event['volume'] = abs(cumulative_volume)
+        opening_price = _number(value('16'))
+        if opening_price is not None and opening_price != 0:
+            event['openPrice'] = abs(opening_price)
         exchange = value('9081', 'exchange', 'stex_tp')
         session = value('290', 'session', 'market_session')
         if exchange is not None:
