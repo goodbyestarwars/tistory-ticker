@@ -160,6 +160,31 @@
   var indexTimeframe = 'day';
   var indexRenderId = 0;
   var indexTimer = null;
+  var indexHistoryModuleJob = null;
+  function loadIndexHistory(symbol) {
+    var group = symbol === 'KOSPI' || symbol === 'KOSDAQ' ? 'domestic' : 'global';
+    if (!indexHistoryModuleJob) {
+      indexHistoryModuleJob = global.MarketChartHistory ? Promise.resolve(global.MarketChartHistory) : new Promise(function (resolve) {
+        var script = document.createElement('script');
+        script.src = CHART_BASE + 'js/market-history.js?v=20261018-index-3y';
+        script.onload = function () { resolve(global.MarketChartHistory || null); };
+        script.onerror = function () { resolve(null); };
+        document.head.appendChild(script);
+      });
+    }
+    return indexHistoryModuleJob.then(function (history) {
+      return history ? history.load(group).then(function () { return history; }) : null;
+    });
+  }
+  function indexThreeYearRows(symbol, recent, history) {
+    var rows = history ? history.merge(symbol, recent) : (recent || []);
+    var today = new Date(Date.now() + 9 * 3600000);
+    var month = today.getUTCMonth(), day = today.getUTCDate();
+    today.setUTCFullYear(today.getUTCFullYear() - 3);
+    if (today.getUTCMonth() !== month) today.setUTCDate(0);
+    var from = today.toISOString().slice(0, 10).replace(/-/g, '');
+    return rows.filter(function (row) { return String(row.date || '').replace(/-/g, '') >= from; });
+  }
   function indexMatches(query) {
     var q = String(query || '').trim().toLowerCase();
     if (!q) return [];
@@ -840,12 +865,15 @@
     } catch (err) { /* URL 갱신 실패는 검색 결과와 무관 */ }
     function refresh() {
       if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
-      fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500')
-        .then(function (body) {
+      Promise.all([
+        fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
+        loadIndexHistory(row.code).catch(function () { return null; })
+      ]).then(function (results) {
+          var body = results[0], history = results[1];
           if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
-          var bars = indexChartRows(item.chart);
+          var bars = indexChartRows(indexThreeYearRows(row.code, item.chart, history));
           if (panel.querySelector('.ss-index-heading')) {
             var quote = panel.querySelector('.ss-index-quote');
             var note = panel.querySelector('.ss-index-note');
