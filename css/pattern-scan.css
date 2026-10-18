@@ -1,5 +1,38 @@
 /* ============ 차트 패턴 스캔 ============ */
 
+#pattern-scan [hidden] { display: none !important; }
+#pattern-scan .ps-legacy-heading { order: 1; flex-basis: 100%; padding-top: 7px; font-size: 13px; font-weight: 700; }
+#pattern-scan .np-mobile-hint { display: none; }
+#pattern-scan .ps-horizon { display: flex; flex-basis: 100%; gap: 8px; margin-bottom: 8px; }
+#pattern-scan .ps-horizon-tab { padding: 10px 22px; border: 1px solid #d9e2ee; background: transparent; color: inherit; border-radius: 4px; cursor: pointer; font: inherit; }
+#pattern-scan .ps-horizon-tab.active { background: #172033; color: #fff; border-color: #172033; }
+#pattern-scan .np-live h2 { margin: 22px 0 12px; }
+#pattern-scan .np-state { padding: 12px 0; border-bottom: 1px solid #d9e2ee; font-weight: 700; }
+#pattern-scan .np-note { font-size: 13px; line-height: 1.7; color: #64748b; margin: 12px 0; }
+#pattern-scan .np-deck { overflow-x: auto; max-width: 100%; }
+#pattern-scan .np-table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: left; }
+#pattern-scan .np-table th { padding: 12px 8px; color: #64748b; font-weight: 600; border-bottom: 1px solid #d9e2ee; }
+#pattern-scan .np-table td { padding: 13px 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; min-width: 92px; line-height: 1.6; overflow-wrap: anywhere; }
+#pattern-scan .np-table small { display: block; font-size: 11px; }
+#pattern-scan .np-stock { padding: 0; text-align: left; cursor: pointer; font: inherit; font-weight: 700; color: inherit; background: transparent; border: 0; text-decoration: underline; text-underline-offset: 3px; }
+#pattern-scan .np-stock:focus-visible { outline: 2px solid #1261c4; outline-offset: 3px; }
+html.dark #pattern-scan .np-note, html.dark #pattern-scan .np-table th { color: #cbd5e1; }
+html.dark #pattern-scan .np-table td, html.dark #pattern-scan .np-state { border-color: #444; }
+html.dark #pattern-scan .ps-horizon-tab.active { background: #f5efe0; color: #1a1a1a; }
+@media (max-width: 767px) {
+  #pattern-scan .np-table, #pattern-scan .np-table tbody { display: block; width: 100%; }
+  #pattern-scan .np-table thead { display: none; }
+  #pattern-scan .np-table tbody { display: flex; gap: 12px; scroll-snap-type: x mandatory; overflow-x: auto; padding-bottom: 12px; }
+  #pattern-scan .np-table tr { display: block; box-sizing: border-box; flex: 0 0 90%; border: 1px solid #d9e2ee; border-radius: 8px; padding: 12px; scroll-snap-align: start; }
+  #pattern-scan .np-mobile-hint { display: block; }
+  #pattern-scan .np-table td { display: grid; grid-template-columns: minmax(110px, 43%) 1fr; gap: 2px 8px; padding: 9px 0; min-width: 0; }
+  #pattern-scan .np-table td::before { content: attr(data-label); grid-column: 1; grid-row: 1 / span 5; color: #64748b; font-size: 11px; }
+  #pattern-scan .np-table td small { grid-column: 2; }
+  #pattern-scan .np-table td[colspan] { display: block; }
+  #pattern-scan .np-table td[colspan]::before { content: none; }
+  #pattern-scan .ps-horizon-tab { flex: 1; padding: 10px; }
+}
+
 #pattern-scan .ps-head {
   display: flex;
   align-items: center;
