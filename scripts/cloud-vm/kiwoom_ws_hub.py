@@ -15,7 +15,8 @@ KIS에 못 들어간 종목을 여기에 구독한다. 키움도 못 받는 종�
 - 연결당 등록 가능 종목 수: `KIWOOM_WS_MAX_CODES`(기본 100).
 - 통합(KRX+NXT) 체결을 받는 종목코드 표기: `KIWOOM_WS_CODE_SUFFIX`(기본 `_AL` - 키움 테마 구성종목
   응답 ka90002에서 `_AL` 접미사가 실제로 왔다). 등록이 거절되면 접미사 없이 한 번 다시 등록한다.
-- 0B 체결의 누적거래량 필드 번호는 확인하지 못해 `volume`은 넘기지 않는다(가격·대비·등락률만).
+- 0B 누적거래량은 키움 공식 예제상 FID 13이다. 기존 화면 구독에는 `volume`을 넘기지
+  않고, 연구용으로 명시적으로 요청한 구독자에게만 전달한다(장중 값·리셋은 실측 전).
 
 앱키·토큰은 상태(health)와 로그에 담지 않는다.
 """
@@ -89,13 +90,14 @@ def _return_ok(message):
 class Subscription:
     """허브가 받은 체결 이벤트(dict)를 구독자 이벤트루프의 asyncio.Queue로 넘긴다."""
 
-    def __init__(self, hub, sub_id, codes, loop, maxsize):
+    def __init__(self, hub, sub_id, codes, loop, maxsize, include_volume=False):
         self._hub = hub
         self.id = sub_id
         self.codes = frozenset(codes)
         self.loop = loop
         self.queue = asyncio.Queue(maxsize=maxsize)
         self.closed = False
+        self.include_volume = include_volume
         self.dropped_events = 0
 
     def _deliver(self, event):
@@ -173,12 +175,12 @@ class KiwoomWsHub:
 
     # ---- 구독 API(어느 스레드에서 불러도 된다) ----
 
-    def subscribe(self, codes, loop=None, maxsize=QUEUE_MAXSIZE):
+    def subscribe(self, codes, loop=None, maxsize=QUEUE_MAXSIZE, include_volume=False):
         loop = loop or asyncio.get_running_loop()
         normalized = _normalize(codes)
         with self._lock:
             self._seq += 1
-            sub = Subscription(self, self._seq, normalized, loop, maxsize)
+            sub = Subscription(self, self._seq, normalized, loop, maxsize, include_volume)
             self._subs[sub.id] = sub
             self._remember_order(normalized)
         self._poke()
@@ -471,12 +473,13 @@ class KiwoomWsHub:
             subs = list(self._subs.values())
         for event in events:
             code = event.get('code')
-            payload = {key: value for key, value in event.items() if key != 'volume'}
-            payload['source'] = 'Kiwoom WebSocket'
             for sub in subs:
                 if code in sub.codes:
                     try:
-                        sub.loop.call_soon_threadsafe(sub._deliver, dict(payload))
+                        payload = dict(event) if sub.include_volume else {
+                            key: value for key, value in event.items() if key != 'volume'}
+                        payload['source'] = 'Kiwoom WebSocket'
+                        sub.loop.call_soon_threadsafe(sub._deliver, payload)
                     except RuntimeError:
                         pass
 

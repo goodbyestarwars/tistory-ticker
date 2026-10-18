@@ -149,10 +149,12 @@
     { code: 'KOSDAQ', name: '코스닥', aliases: 'kosdaq 코스닥' },
     { code: 'NASDAQ_INDEX', name: '나스닥', aliases: 'nasdaq 나스닥 나스닥종합' },
     { code: 'SP500_INDEX', name: 'S&P&500', aliases: 's&p s&p500 sp500 s&p 500 에스앤피 스탠더드앤드푸어스' },
-    { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' }
+    { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
+    { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
   var indexChart = null;
   var indexSeries = null;
+  var indexOhlcTooltipCleanup = null;
   var indexDrawingCtl = null;
   var indexBars = [];
   var indexTimeframe = 'day';
@@ -760,6 +762,7 @@
     if (indexTimer) { clearInterval(indexTimer); indexTimer = null; }
     indexRenderId += 1;
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
+    if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     indexBars = [];
@@ -776,6 +779,7 @@
   function renderIndexChart(panel, symbol) {
     var renderId = ++indexRenderId;
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
+    if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     var host = panel.querySelector('#ssIndexChart');
@@ -787,16 +791,18 @@
       var dark = document.documentElement.classList.contains('dark');
       host.textContent = '';
       indexChart = LWC.createChart(host, { autoSize: true, height: 440,
-        layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78' },
+        layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
         timeScale: { borderVisible: false } });
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
-        wickUpColor: '#d24f45', wickDownColor: '#1261c4'
+        wickUpColor: '#d24f45', wickDownColor: '#1261c4',
+        priceLineStyle: LWC.LineStyle.Solid
       });
       indexSeries = series;
       series.setData(bars.map(function (bar) {
         return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
       }));
+      indexOhlcTooltipCleanup = installStockOhlcTooltip(host, indexChart, series, false);
       indexChart.timeScale().fitContent();
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
@@ -849,9 +855,13 @@
               if (!old || latest.date !== old.date) {
                 indexBars = bars;
                 renderIndexChart(panel, row.code);
-              } else if (indexTimeframe === 'day' && indexSeries && latest.close !== old.close) {
+              } else if (latest.open !== old.open || latest.high !== old.high || latest.low !== old.low || latest.close !== old.close) {
                 indexBars = bars;
-                indexSeries.update({ time: latest.date, open: latest.open, high: latest.high, low: latest.low, close: latest.close });
+                if (indexTimeframe === 'day' && indexSeries) {
+                  indexSeries.update({ time: latest.date, open: latest.open, high: latest.high, low: latest.low, close: latest.close });
+                } else {
+                  renderIndexChart(panel, row.code);
+                }
               }
             }
             return;

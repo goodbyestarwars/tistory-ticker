@@ -24,6 +24,7 @@ __pycache__/
 scripts/cloud-vm/*_cache.json
 scripts/cloud-vm/hour_candidate_checks.jsonl
 scripts/cloud-vm/hour_candidate_checks.jsonl.1
+scripts/cloud-vm/kiwoom_9pay_research.jsonl*
 scripts/cloud-vm/earnings_calendar_store.json
 scripts/cloud-vm/dart_corp_code_map.json
 scripts/cloud-vm/program_trading_history.json
