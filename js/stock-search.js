@@ -44,8 +44,8 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-sr-trend';
-  var CHART_OPTIONAL = ['drawing', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-vp1';
+  var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
@@ -160,6 +160,31 @@
   var indexTimeframe = 'day';
   var indexRenderId = 0;
   var indexTimer = null;
+  var indexHistoryModuleJob = null;
+  function loadIndexHistory(symbol) {
+    var group = symbol === 'KOSPI' || symbol === 'KOSDAQ' ? 'domestic' : 'global';
+    if (!indexHistoryModuleJob) {
+      indexHistoryModuleJob = global.MarketChartHistory ? Promise.resolve(global.MarketChartHistory) : new Promise(function (resolve) {
+        var script = document.createElement('script');
+        script.src = CHART_BASE + 'js/market-history.js?v=20261018-index-3y';
+        script.onload = function () { resolve(global.MarketChartHistory || null); };
+        script.onerror = function () { resolve(null); };
+        document.head.appendChild(script);
+      });
+    }
+    return indexHistoryModuleJob.then(function (history) {
+      return history ? history.load(group).then(function () { return history; }) : null;
+    });
+  }
+  function indexThreeYearRows(symbol, recent, history) {
+    var rows = history ? history.merge(symbol, recent) : (recent || []);
+    var today = new Date(Date.now() + 9 * 3600000);
+    var month = today.getUTCMonth(), day = today.getUTCDate();
+    today.setUTCFullYear(today.getUTCFullYear() - 3);
+    if (today.getUTCMonth() !== month) today.setUTCDate(0);
+    var from = today.toISOString().slice(0, 10).replace(/-/g, '');
+    return rows.filter(function (row) { return String(row.date || '').replace(/-/g, '') >= from; });
+  }
   function indexMatches(query) {
     var q = String(query || '').trim().toLowerCase();
     if (!q) return [];
@@ -464,7 +489,7 @@
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 보라색 윗꼬리형은 윗꼬리가 범위의 40% 이상, 몸통 3% 이하, 거래량 2배 이상인 봉으로 연구용 가설입니다. 직전 20봉이 25% 이상 오른 뒤에 나온 봉은 물량을 터는 쪽일 수 있어 회색 털기?로 따로 표시합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량거래 흔적 표시</label>'
+      + '<label title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 주황 = 대량 양봉(매수 우위 관찰), 보라 = 대량 윗꼬리(매도압력 의심: 윗꼬리 40% 이상·몸통 3% 이하·거래량 2배 이상, 연구용 가설). 회색 = 고점권 대량거래(분배 위험): 위 두 모양 중 하나가 직전 20봉 +25% 이상 오른 뒤에 나온 경우로, 모양이 아니라 가격 위치로 구분합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ssAccumulationToggle" /> 대량거래 흔적 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -784,6 +809,8 @@
     indexSeries = null;
     var host = panel.querySelector('#ssIndexChart');
     if (!host || !indexBars.length) return;
+    // 구버전 CSS가 캐시에 남아도 그리기 캔버스의 기준점을 차트 안에 고정한다.
+    host.style.position = 'relative';
     host.textContent = '차트를 불러오는 중...';
     chartReady().then(function (LWC) {
       if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
@@ -792,6 +819,8 @@
       host.textContent = '';
       indexChart = LWC.createChart(host, { autoSize: true, height: 440,
         layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
+        // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
+        crosshair: { mode: LWC.CrosshairMode.Normal },
         timeScale: { borderVisible: false } });
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
@@ -807,7 +836,8 @@
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
         core: global.NineChartCore, container: host, chart: indexChart, series: series,
-        bars: bars, key: 'INDEX_' + symbol, timeframe: indexTimeframe,
+        // 예전 캔버스 배치에서 저장된 잘못된 좌표를 다시 그리지 않는다.
+        bars: bars, key: 'INDEX_V2_' + symbol, timeframe: indexTimeframe,
         className: 'ss-drawing-layer', ariaLabel: '지수 차트 그리기 영역',
         bounds: 'container', point: 'anchored', tools: ['line', 'pencil', 'circle', 'box', 'hline'],
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
@@ -837,12 +867,15 @@
     } catch (err) { /* URL 갱신 실패는 검색 결과와 무관 */ }
     function refresh() {
       if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
-      fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500')
-        .then(function (body) {
+      Promise.all([
+        fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
+        loadIndexHistory(row.code).catch(function () { return null; })
+      ]).then(function (results) {
+          var body = results[0], history = results[1];
           if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
-          var bars = indexChartRows(item.chart);
+          var bars = indexChartRows(indexThreeYearRows(row.code, item.chart, history));
           if (panel.querySelector('.ss-index-heading')) {
             var quote = panel.querySelector('.ss-index-quote');
             var note = panel.querySelector('.ss-index-note');
@@ -2153,13 +2186,97 @@
     });
   }
 
-  function createVolumeProfilePrimitive(bars, isUs, code) {
+  // ---- 매물대 분석 패널(2026-10-19): 화면에 보이는 봉 기준 비중·가까운 지지/저항 후보. 계산은 js/volume-profile-analysis.js ----
+  function vpPanelFor(container) {
+    var host = container && container.parentNode;
+    if (!host) return null;
+    var panel = host.querySelector('.ss-vp-panel');
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.className = 'ss-vp-panel';
+      panel.setAttribute('aria-live', 'polite');
+      container.insertAdjacentElement('afterend', panel);
+    }
+    return panel;
+  }
+
+  function vpEsc(text) {
+    return String(text == null ? '' : text).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+  }
+
+  function renderVpPanel(panel, analysis, info) {
+    if (!panel) return;
+    var VP = global.NineVolumeProfile;
+    if (!analysis || !VP) { panel.hidden = true; panel.innerHTML = ''; return; }
+    var fmt = function (v) { return chartPriceText(v, info.isUs); };
+    var opts = { format: fmt };
+    var core = global.NineChartCore;
+    function vol(v) { return (core && core.compactVolume ? core.compactVolume(v) : Math.round(v).toLocaleString('ko-KR')) + '주'; }
+    function zone(label, z, g, sign) {
+      if (!z) return '<span class="ss-vp-item"><b>' + label + '</b> 뚜렷한 구간 없음</span>';
+      return '<span class="ss-vp-item"><b>' + label + '</b> ' + fmt(z.low) + '~' + fmt(z.high)
+        + (g ? ' <em>(' + sign + g.pct.toFixed(1) + '%)</em>' : ' <em>(현재가 포함)</em>')
+        + ' · ' + vol(z.volume) + ' · ' + z.share.toFixed(1) + '%</span>';
+    }
+    var poc = analysis.poc;
+    var pg = analysis.pocGap && analysis.pocGap.where !== 'inside' ? analysis.pocGap : null;
+    var thin = analysis.thin.length
+      ? '<details class="ss-vp-thin"><summary>거래량이 적은 가격대 ' + analysis.thin.length + '곳</summary><ul>' + analysis.thin.map(function (t) {
+        return '<li>' + vpEsc(VP.thinText(t, opts)) + '</li>';
+      }).join('') + '</ul></details>' : '';
+    panel.innerHTML = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 확대·축소하면 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
+      + '<div class="ss-vp-items">'
+      + zone('가까운 저항 후보', analysis.resistance, analysis.resistanceGap, '+')
+      + zone('가까운 지지 후보', analysis.support, analysis.supportGap, '-')
+      + '<span class="ss-vp-item"><b>최대 매물대</b> ' + fmt(poc.low) + '~' + fmt(poc.high)
+      + (pg ? ' <em>(' + (pg.where === 'above' ? '+' : '-') + pg.pct.toFixed(1) + '%)</em>' : ' <em>(현재가 포함)</em>')
+      + ' · ' + vol(poc.volume) + ' · ' + poc.share.toFixed(1) + '%</span>'
+      + '<span class="ss-vp-item"><b>현재가 위·아래</b> ' + analysis.aboveShare.toFixed(0) + '% / ' + analysis.belowShare.toFixed(0) + '%</span></div>'
+      + (analysis.state ? '<p class="ss-vp-state"><b>' + vpEsc(analysis.state.label) + '</b> ' + vpEsc(analysis.state.text) + '</p>' : '')
+      + '<p class="ss-vp-hover" data-vp-hover>막대 쪽에 마우스를 올리면 그 가격대의 추정 거래량 비중이 보입니다.</p>' + thin;
+    panel.hidden = false;
+  }
+
+  function createVolumeProfilePrimitive(bars, isUs, code, container, unit) {
     return {
       _series: null, _chart: null, _requestUpdate: null,
       _key: null, _profile: null, _shown: {}, _step: null,
-      attached: function (params) { this._series = params.series; this._chart = params.chart; this._requestUpdate = params.requestUpdate; },
-      detached: function () { this._series = null; this._chart = null; this._requestUpdate = null; },
+      attached: function (params) {
+        var self = this;
+        this._series = params.series; this._chart = params.chart; this._requestUpdate = params.requestUpdate;
+        this._panel = vpPanelFor(container);
+        // 마우스가 가리키는 가격이 속한 구간의 추정 거래량·비중(막대 위에 올리면 보인다)
+        this._onCross = function (param) {
+          var line = self._panel && self._panel.querySelector('[data-vp-hover]');
+          if (!line || !self._profile || !self._series) return;
+          if (!param || !param.point) { line.textContent = '막대 쪽에 마우스를 올리면 그 가격대의 추정 거래량 비중이 보입니다.'; return; }
+          var price = self._series.coordinateToPrice(param.point.y);
+          var hit = null;
+          if (price != null) self._profile.bins.forEach(function (b) { if (price >= b.low && price < b.high) hit = b; });
+          var all = self._profile.bins.reduce(function (sum, b) { return sum + b.volume; }, 0);
+          if (!hit || !(all > 0)) { line.textContent = '이 가격대에는 집계된 추정 거래량이 없습니다.'; return; }
+          var core = global.NineChartCore;
+          line.textContent = chartPriceText(hit.low, isUs) + '~' + chartPriceText(hit.high, isUs) + ' · 추정 거래량 '
+            + (core && core.compactVolume ? core.compactVolume(hit.volume) : Math.round(hit.volume)) + '주 · 전체의 '
+            + (hit.volume / all * 100).toFixed(1) + '% · 최대 구간 대비 ' + Math.round(hit.volume / self._profile.maxVolume * 100) + '%';
+        };
+        try { params.chart.subscribeCrosshairMove(this._onCross); } catch (e) { /* 구버전은 호버 문구만 빠진다 */ }
+      },
+      detached: function () {
+        try { if (this._chart && this._onCross) this._chart.unsubscribeCrosshairMove(this._onCross); } catch (e) { /* 이미 제거됨 */ }
+        if (this._panel && this._panel.parentNode) this._panel.parentNode.removeChild(this._panel);
+        this._panel = null; this._series = null; this._chart = null; this._requestUpdate = null;
+      },
       updateAllViews: function () {},
+      _analyze: function (win, profile, from, to) {
+        var VP = global.NineVolumeProfile;
+        var live = lwcLiveBars.length ? lwcLiveBars[lwcLiveBars.length - 1].close : null;
+        var price = Number(live != null ? live : bars[bars.length - 1].close);
+        if (!VP || !(price > 0)) { renderVpPanel(this._panel, null); return null; }
+        var analysis = VP.analyze(profile.bins, price, bars.slice(0, to + 1).map(function (b) { return b.close; }), { format: function (v) { return chartPriceText(v, isUs); } });
+        renderVpPanel(this._panel, analysis, { isUs: isUs, barCount: to - from + 1, unit: unit || '봉' });
+        return analysis;
+      },
       _profileFor: function (heightPx) {
         var series = this._series, chart = this._chart;
         var from = 0, to = bars.length - 1;
@@ -2177,6 +2294,8 @@
         if (key !== this._key) {
           this._key = key;
           this._profile = computeVolumeProfile(win, binCount, isUs);
+          this._analysis = this._profile ? this._analyze(win, this._profile, from, to) : null;
+          if (!this._profile) renderVpPanel(this._panel, null);
           publishVolumeProfile(code, this._profile);
         }
         return this._profile;
@@ -2198,6 +2317,7 @@
                   var maxBarPx = paneWidth * VP_MAX_WIDTH_RATIO;
                   if (self._step !== profile.binSize) { self._shown = {}; self._step = profile.binSize; }
                   var next = {}, moving = false;
+                  var an = self._analysis;
                   ctx.save();
                   profile.bins.forEach(function (b, i) {
                     var t = b.volume / profile.maxVolume;
@@ -2218,6 +2338,10 @@
                     if (ctx.roundRect) ctx.roundRect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2), [3 * hR, 0, 0, 3 * hR]);
                     else ctx.rect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2));
                     ctx.fill();
+                    // 가장 가까운 저항 후보(파랑)·지지 후보(빨강) 구간은 테두리로 구별한다(최대 매물대 주황과 별개).
+                    var edge = an && an.resistance && i >= an.resistance.from && i <= an.resistance.to ? 'rgba(18,97,196,0.9)'
+                      : an && an.support && i >= an.support.from && i <= an.support.to ? 'rgba(210,79,69,0.9)' : null;
+                    if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1, hR); ctx.stroke(); }
                   });
                   ctx.restore();
                   self._shown = next;
@@ -2254,6 +2378,7 @@
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
     container.querySelectorAll('.ss-volume-study-label, .ss-price-study-label, .ss-lwc-pane-labels, .ss-ichimoku-cloud, .ss-sr-zones').forEach(function (el) { el.remove(); });
+    if (container.parentNode && container.parentNode.querySelectorAll) container.parentNode.querySelectorAll('.ss-vp-panel').forEach(function (el) { el.remove(); });
 
     chartReady().then(function (LWC) {
       // 지지·저항은 체크했을 때만 모듈이 필요하다
@@ -2293,7 +2418,7 @@
       lwcOhlcTooltipCleanup = installStockOhlcTooltip(container, chart, candleSeries, isUsChart);
       lwcCandleSeries = candleSeries;
       if (state.volumeProfileEnabled && typeof candleSeries.attachPrimitive === 'function') {
-        try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode)); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
+        try { candleSeries.attachPrimitive(createVolumeProfilePrimitive(lwcBarsForProfile(bars), isUsChart, state.selectedCode, container, timeframe === 'week' ? '주봉' : timeframe === 'month' ? '월봉' : timeframe === 'minute' ? '분봉' : '일봉')); } catch (e) { /* 매물대만 빠지고 차트는 계속 */ }
       } else if (!state.volumeProfileEnabled) {
         publishVolumeProfile(state.selectedCode, null);
       }
@@ -2321,7 +2446,7 @@
       }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
         var accCounts = core.setAccumulationMarkers(LWC, candleSeries, bars, true, { chart: chart, container: container });
-        priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적 ● 대량 양봉 <b>' + accCounts.accumulation + '</b></span><span style="color:#7c3aed"> · ● 윗꼬리형 <b>' + accCounts.wick + '</b></span><span style="color:#4b5563"> · 털기? <b>' + accCounts.distribution + '</b></span><span style="opacity:.7"> (관찰용)</span>');
+        priceLegendHtml.push(core.accumulationLegendHtml(accCounts));
       } else if (state.accumulationEnabled) {
         priceLegendHtml.push('<span style="color:' + core.ACCUMULATION.color + '">대량거래 흔적은 국내 일봉에서만 표시됩니다</span>');
       }

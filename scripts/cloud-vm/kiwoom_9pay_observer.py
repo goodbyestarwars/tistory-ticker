@@ -5,8 +5,9 @@ existing Kiwoom hub. A quote without *verified* cumulative volume is recorded
 as missing; a caller may supply a KIS cumulative-volume polling observation.
 """
 
-from collections import deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
+from datetime import datetime, timedelta, timezone
+import math
 import re
 
 CODE = re.compile(r"^[0-9]{6}$")
@@ -59,65 +60,175 @@ def candidates(volume_rows, amount_rows=None, limit=30):
 
 @dataclass
 class Track:
-    samples: deque = field(default_factory=lambda: deque(maxlen=120))
+    bases: dict = field(default_factory=dict)
+    last_volumes: dict = field(default_factory=dict)
     stage: str = 'watch'
     peak: float = 0.0
     trough: float = 0.0
-    peak_volume: float = 0.0
+    first70_at: float | None = None
+    first80_at: float | None = None
+    pullback_at: float | None = None
     signal_at: float | None = None
     signal_price: float | None = None
+    branches: list = field(default_factory=list)
+    last_at: float = 0.0
+    last_price: float = 0.0
+    open_price: float | None = None
+    b_invalid: bool = False
+    rebound_started: bool = False
+    entry_invalid: bool = False
+    gap_count: int = 0
+    max_gap_sec: float = 0.0
+    excluded: str | None = None
     mfe_pct: float | None = None
     mae_pct: float | None = None
 
 
-class Observer:
-    """First surge -> first pullback -> rebreak, sampled price path only."""
+KST = timezone(timedelta(hours=9))
+VERSION = 'ab70-v1'
 
-    def __init__(self, codes, prev_volumes, surge_ratio=0.03, pullback_pct=0.01):
+
+def positive(value):
+    try:
+        value = float(value)
+        return value if math.isfinite(value) and value > 0 else None
+    except (TypeError, ValueError):
+        return None
+
+
+class Observer:
+    """A OR B after observed 70% inflow before 09:30. Never backdate evidence.
+
+    Shared feeds can include premarket volume. Subtract the first observation
+    per source after 09:00: this is a conservative lower bound, not an invented
+    09:00 cumulative value. B uses the last two confirmed daily lows.
+    """
+
+    def __init__(self, codes, prev_volumes, contexts=None, pullback_pct=0.01, rebound_pct=0.003):
         self.tracks = {c: Track() for c in codes}
         self.prev_volumes = prev_volumes
-        self.surge_ratio = surge_ratio
+        self.contexts = contexts or {}
         self.pullback_pct = pullback_pct
+        self.rebound_pct = rebound_pct
 
-    def observe(self, code, at, price, cumulative_volume=None, source='Kiwoom WebSocket'):
-        if code not in self.tracks or not price or price <= 0:
+    def observe(self, code, at, price, cumulative_volume=None, source='Kiwoom WebSocket',
+                open_price=None, received_at=None):
+        price = positive(price)
+        received_at = at if received_at is None else received_at
+        stamp = datetime.fromtimestamp(received_at, KST)
+        sample_stamp = datetime.fromtimestamp(at, KST)
+        if (code not in self.tracks or price is None or stamp.date() != sample_stamp.date()
+                or not 540 <= stamp.hour * 60 + stamp.minute <= 935 or at > received_at
+                or sample_stamp.hour * 60 + sample_stamp.minute < 540
+                or received_at - at > 90):
             return None
         t = self.tracks[code]
-        if t.samples and at <= t.samples[-1][0]:
+        if at <= t.last_at:
             return None
-        missing = cumulative_volume is None or self.prev_volumes.get(code) is None
-        t.samples.append((at, price, cumulative_volume))
+        old_price = t.last_price
+        if t.last_at:
+            gap_sec = at - t.last_at
+            t.max_gap_sec = max(t.max_gap_sec, gap_sec)
+            if gap_sec > 90:
+                t.gap_count += 1
+        t.last_at, t.last_price = at, price
+        if positive(open_price) is not None:
+            t.open_price = positive(open_price)
+        context = self.contexts.get(code, {})
+        prev_close = positive(context.get('prevClose'))
+        lows = context.get('lows') or []
+        rising = (positive(lows[0]) < positive(lows[1])) if len(lows) == 2 and all(positive(x) for x in lows) else None
+        gap = (t.open_price / prev_close - 1) * 100 if t.open_price and prev_close else None
+        baseline = positive(self.prev_volumes.get(code))
+        volume = positive(cumulative_volume)
+        if cumulative_volume == 0:
+            volume = 0.0
+        prior_volume = t.last_volumes.get(source)
+        reset = volume is not None and prior_volume is not None and volume < prior_volume
+        if volume is not None:
+            if source not in t.bases or reset:
+                t.bases[source] = volume
+            t.last_volumes[source] = volume
+        inflow = max(0, volume - t.bases[source]) if volume is not None else None
+        ratio = inflow / baseline if inflow is not None and baseline else None
+        missing = ratio is None or reset
+        before_deadline = stamp.hour == 9 and stamp.minute < 30
+        just_qualified = False
+        if t.first70_at is None and not t.excluded:
+            if not before_deadline:
+                t.excluded = '09:30 이전 70% 충족 관측 없음'
+            elif not missing and ratio >= 0.7:
+                t.first70_at, t.stage, t.peak = received_at, 'volume_met', price
+                just_qualified = True
+        if t.first70_at and before_deadline and not missing and ratio >= 0.8 and not t.first80_at:
+            t.first80_at = received_at
+        signal = False
         if t.signal_price:
             change = 100 * (price / t.signal_price - 1)
             t.mfe_pct = max(t.mfe_pct, change)
             t.mae_pct = min(t.mae_pct, change)
-        result = {'code': code, 'at': at, 'source': source, 'stage': t.stage,
-                  'volumeMissing': missing, 'signal': False,
-                  'price': price,
-                  'mfePct': t.mfe_pct, 'maePct': t.mae_pct}
-        if missing or len(t.samples) < 2 or t.stage == 'signaled':
-            return result
-        previous = t.samples[-2][2]
-        if previous is None or cumulative_volume < previous:
-            t.stage = 'watch'  # reset, day rollover or bad cumulative field
-            return result
-        baseline = self.prev_volumes[code]
-        if baseline <= 0:
-            return result
-        if t.stage == 'watch':
-            window = next((s for s in t.samples if at - s[0] <= 180 and s[2] is not None), None)
-            if window and at > window[0] and cumulative_volume - window[2] >= baseline * self.surge_ratio:
-                t.stage, t.peak, t.peak_volume = 'surge', price, cumulative_volume
-        elif t.stage == 'surge':
-            t.peak = max(t.peak, price)
-            if price <= t.peak * (1 - self.pullback_pct):
-                t.stage, t.trough = 'pullback', price
-        elif t.stage == 'pullback':
-            t.trough = min(t.trough, price)
-            if price > t.peak and cumulative_volume > t.peak_volume:
-                t.stage, t.signal_at, t.signal_price = 'signaled', at, price
-                t.mfe_pct = t.mae_pct = 0.0
-                result['signal'] = True
-        result['stage'] = t.stage
-        result['mfePct'], result['maePct'] = t.mfe_pct, t.mae_pct
+        elif t.first70_at and not just_qualified and not missing and not t.entry_invalid:
+            if t.pullback_at is None:
+                t.peak = max(t.peak, price)
+                if price <= t.peak * (1 - self.pullback_pct):
+                    t.pullback_at, t.trough, t.stage = received_at, price, 'pullback'
+            else:
+                if t.rebound_started and price < t.trough:
+                    t.entry_invalid, t.stage = True, 'invalidated'
+                t.trough = min(t.trough, price)
+                if t.open_price and t.trough < t.open_price:
+                    t.b_invalid = True
+                rebound = price >= t.trough * (1 + self.rebound_pct) and price > old_price
+                t.rebound_started = t.rebound_started or rebound
+                a = not t.entry_invalid and price > t.peak and prior_volume is not None and volume > prior_volume
+                b = (rising is True and gap is not None and gap > 0 and not t.b_invalid
+                     and not t.entry_invalid
+                     and t.trough >= t.open_price and price >= t.trough * (1 + self.rebound_pct)
+                     and price > old_price)
+                if a or b:
+                    t.branches = (['A'] if a else []) + (['B'] if b else [])
+                    t.signal_at, t.signal_price, t.stage = received_at, price, 'signaled'
+                    t.mfe_pct = t.mae_pct = 0.0
+                    signal = True
+        result = {'code': code, 'at': received_at, 'sampleAt': at, 'source': source,
+                  'stage': t.stage, 'price': price, 'signal': signal, 'volumeMissing': missing,
+                  'volumeRatio': ratio, 'volumeRatioBasis': '관측 이후 유입 하한',
+                  'cumulativeVolume': volume, 'observedInflow': inflow,
+                  'first70At': t.first70_at, 'first80At': t.first80_at,
+                  'priority80': t.first80_at is not None, 'excluded': t.excluded,
+                  'gapPct': gap, 'risingLows': rising, 'lows': lows,
+                  'changeRate': (price / prev_close - 1) * 100 if prev_close else None,
+                  'lowDates': context.get('lowDates'), 'previousDay': context.get('previousDay'),
+                  'openPrice': t.open_price, 'pullbackLow': t.trough or None,
+                  'peak': t.peak or None, 'bSupportBroken': t.b_invalid,
+                  'entryInvalid': t.entry_invalid,
+                  'gapCount': t.gap_count, 'maxGapSec': t.max_gap_sec,
+                  'branches': list(t.branches), 'signalAt': t.signal_at,
+                  'signalPrice': t.signal_price, 'mfePct': t.mfe_pct, 'maePct': t.mae_pct,
+                  'signalId': stamp.strftime('%Y-%m-%d') + ':' + code, 'ruleVersion': VERSION}
         return result
+
+    def export_state(self, day):
+        return {'version': VERSION, 'day': day,
+                'tracks': {code: asdict(t) for code, t in self.tracks.items()},
+                'previous': self.prev_volumes, 'contexts': self.contexts}
+
+    def restore_state(self, data, day):
+        if data.get('version') != VERSION or data.get('day') != day:
+            return False
+        restored = {}
+        for code, values in list(data.get('tracks', {}).items())[:MAX_CANDIDATES]:
+            if not CODE.fullmatch(code):
+                continue
+            t = Track(**values)
+            if t.signal_at and not t.first70_at:
+                continue
+            if t.first70_at:
+                at = datetime.fromtimestamp(t.first70_at, KST)
+                if at.strftime('%Y-%m-%d') != day or at.hour != 9 or at.minute >= 30:
+                    continue
+            restored[code] = t
+        self.tracks = restored
+        self.prev_volumes.update(data.get('previous', {}))
+        self.contexts.update(data.get('contexts', {}))
+        return True

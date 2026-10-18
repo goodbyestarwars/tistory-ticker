@@ -70,6 +70,7 @@ Tistory 스킨(`ghlee.tistory.com`)에 GitHub Pages 정적 자산으로 로드�
 | `stock-news.js` | 888 | 종목별 뉴스(리스트+AI요약+공시+랭킹뉴스) | `window.StockNews`, `#stock-news` | GAS `?codes=`,`?news=1`,`?rankNews=1` |
 | `stock-search.js` | 약 2,400 | 독립 "실시간 시세" 페이지(검색+호가창+캔들차트, 차트 공통 기능은 chart-*.js 모듈 사용) | `window.StockSearch`, `#stock-search` | GAS `?codes=`,`?action=priceReason/flowChart`, LWC CDN |
 | `chart-core.js` | 약 480 | **차트 공통 엔진**: LWC 1회 로드·보조 모듈 지연 로드, 화면별 테마·생성 옵션(`chartOptions`), scope(리소스 해제), 공용 ResizeObserver·다크모드 감시자, 캔들·이동평균·거래량 시리즈 부품, 일목 계산·구름 플러그인 | `window.NineChartCore` | LWC CDN, 보조 모듈 |
+| `volume-profile-analysis.js` | 약 250 | **매물대 분석 공통 계산**(2026-10-19): 구간별 비중·밀도 강도, 주요 집중 구간, 현재가 기준 지지/저항 후보·거리, 얇은 구간, 상태 문장. 화면 코드 없음. `chart-core.js` 모듈 `vp`, 종목분석·MY·차트검색이 공용 |
 | `chart-data.js` | 약 200 | OHLCV 검증·주봉/월봉 집계·데이터 지문, TTL 캐시, 일봉 `/flow-chart` 메모리+sessionStorage 캐시·진행 중 요청 공유 | `window.NineChartData` | (화면이 fetcher 를 넘긴다) |
 | `chart-drawing.js` | 약 560 | 오버레이 캔버스 층(다른 모듈의 아래층 등록) + 수동 드로잉(직선·동그라미·박스·가로선·연필), 앵커/시간·가격 좌표, 브라우저·계정(`/chart-drawings`) 저장 | `window.NineChartDrawing` | VM `/chart-drawings`,`/auth/google/me` |
 | `chart-wave-overlay.js` | 약 260 | 자동 파동 분석 캐시(종목·지문·엔진 버전)·규모 선택 제어·박스 그리기 | `window.NineChartWave` | `auto-wave.js` |
@@ -189,6 +190,8 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `realtime_quotes.py` | 122 | KIS(공용 허브 구독)/키움 0B 실시간→브라우저 중계 | `relay_quotes` |
 | `kis_ws_hub.py` | 450 | KIS 실시간 WebSocket 공유 허브(세션 1개, 구독 다중화·우선순위·워치독·상태) | `start`, `KisWsHub.subscribe`, `health_snapshot` |
 | `kiwoom_ws_hub.py` | 470 | 키움 실시간 WebSocket 공유 허브 - KIS 자리를 넘친 국내 종목 0B 체결(연결 1개, 전체 목록 REG·접미사 재시도·상태) | `start`, `KiwoomWsHub.subscribe/live_codes`, `health_snapshot` |
+| `kiwoom_9pay_observer.py` | - | 장초반 70% 관측 후 A OR B 순수 상태기계; 첫 눌림·B 확정 일봉 저점·신호 중복·증거 복원 | `Observer.observe/export_state/restore_state` |
+| `kiwoom_9pay_live.py` | - | 기존 공유 WS·순위·KIS 표본 연결, 후보 20개·충족 종목 고정, JSON 증거·관측 공백/MFE·상태 스냅샷 | `start_background`, `health_snapshot`, `_persist` |
 | `theme_flow.py` | 200 | 키움 테마(ka90001/ka90002) 기준 "오늘 돈이 몰린 섹터" 3분 백그라운드 수집 | `fetch_theme_flow`, `build_theme_rows`, `start_background`, `get_cached` |
 | `volume_profile_collector.py` | 270 | 매물대 실제 체결가 일별 수집(KRX 거래일 18:10~20:00 하루 1회, 순위·최근 조회 종목 최대 120, `volume_profile_daily`) | `start_background`, `run_once`, `should_run`, `select_codes`, `get_status` |
 | `rest_quote_fallback.py` | 190 | 실시간 등록 자리에 못 들어간 국내 종목의 REST 통합(UN) 시세 폴백 | `RestQuoteFallback.want/release/latest`, `quote_event`, `start` |

@@ -201,7 +201,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-foreign-flow-css]')) {
       var ffLink = document.createElement('link');
       ffLink.rel = 'stylesheet';
-      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20260915-vp-host-v1';
+      ffLink.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/foreign-flow.css?v=20261019-vp-an1';
       ffLink.setAttribute('data-foreign-flow-css', '1');
       document.head.appendChild(ffLink);
     }

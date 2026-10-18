@@ -213,6 +213,8 @@
       controlRow = futuresSection.querySelector('.kf-interval-toggle');
     } else if (anchor && anchor.querySelector('.ss-chart-tabs')) {
       controlRow = anchor.querySelector('.ss-chart-tabs');
+    } else if (anchor && anchor.querySelector('.ss-index-tools')) {
+      controlRow = anchor.querySelector('.ss-index-tools');
     } else if (anchor && anchor.querySelector('.ff-chart-toggles')) {
       controlRow = anchor.querySelector('.ff-chart-toggles');
     } else if (target.id === 'psChart') {
@@ -226,7 +228,7 @@
       controlRow.classList.add('de-chart-control-row');
       button.classList.add('de-expand-inline');
       controlRow.appendChild(button);
-      moveDrawingControlsBelowFullscreen(controlRow);
+      if (!target.classList.contains('ss-index-chart')) moveDrawingControlsBelowFullscreen(controlRow);
     } else if (anchor) {
       anchor.insertBefore(button, target);
     }
@@ -239,10 +241,11 @@
     // strand the drawing controls outside the fullscreen chart.
     var flowChartPanel = target && target.id === 'ffLwChart' && target.parentElement.classList.contains('ff-price-chart-panel');
     var patternDetail = target && target.id === 'psChart' && target.closest ? target.closest('#psDetail') : null;
-    var modalTarget = patternDetail || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);
+    var indexPanel = target && target.id === 'ssIndexChart' && target.closest ? target.closest('#ssIndexPanel') : null;
+    var modalTarget = patternDetail || indexPanel || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);
     if (!modalTarget) return;
     var usChartModal = modalTarget.id === 'usStocksChart';
-    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : null;
+    var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ssIndexChart, #ffLwChart, #psChart') : null;
     var candleZoom = chartTarget && /^(ssChart|ffLwChart|psChart)$/.test(chartTarget.id);
     var placeholder = document.createElement('div');
     placeholder.className = 'de-chart-placeholder';
@@ -268,13 +271,13 @@
     var oldChartStyle = chartTarget ? chartTarget.getAttribute('style') : null;
     var flowRoot = modalTarget.closest ? modalTarget.closest('#foreign-flow') : null;
     var flowScope = null;
-    var stockRoot = chartTarget && chartTarget.id === 'ssChart' && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
+    var stockRoot = chartTarget && /^(ssChart|ssIndexChart)$/.test(chartTarget.id) && modalTarget.closest ? modalTarget.closest('#stock-search') : null;
     var stockScope = null;
     var patternRoot = chartTarget && chartTarget.id === 'psChart' ? document.querySelector('#pattern-scan') : null;
     var patternScope = null;
     var stockSearchApi = stockRoot && global.StockSearch;
     var selectionListener = null;
-    if (stockSearchApi && typeof stockSearchApi.fullscreenSelection === 'function') {
+    if (chartTarget && chartTarget.id === 'ssChart' && stockSearchApi && typeof stockSearchApi.fullscreenSelection === 'function') {
       var head = overlay.querySelector('.de-chart-modal-head');
       var nav = document.createElement('div');
       nav.className = 'de-chart-stock-nav';
@@ -347,6 +350,8 @@
     }
     if (chartTarget && !stockRoot) {
       chartTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
+    } else if (chartTarget && chartTarget.id === 'ssIndexChart') {
+      chartTarget.style.height = Math.max(520, Math.round(global.innerHeight * 0.7)) + 'px';
     } else if (modalTarget.id === 'ffLwChart' || modalTarget.classList.contains('kf-chart') || modalTarget.classList.contains('dmi-chart')) {
       modalTarget.style.height = Math.max(720, Math.round(global.innerHeight * 0.88)) + 'px';
     }
@@ -354,7 +359,7 @@
       if (!overlay.parentNode) return;
       var maximizeButton = modalTarget.querySelector('.de-expand-button');
       if (maximizeButton) maximizeButton.textContent = chartTarget && chartTarget.classList.contains('ss-chart') ? '⛶ 독립 차트' : '⛶ 전체 화면';
-      var currentChartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ffLwChart, #psChart') : chartTarget;
+      var currentChartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ssIndexChart, #ffLwChart, #psChart') : chartTarget;
       placeholder.parentNode.insertBefore(modalTarget, placeholder);
       if (oldStyle == null) modalTarget.removeAttribute('style'); else modalTarget.setAttribute('style', oldStyle);
       if (currentChartTarget) {
@@ -408,6 +413,10 @@
     document.querySelectorAll('#foreign-flow .ff-flow-chart-card #ffLwChart').forEach(function (el) { addExpandButton(el, '종목분석 가격·거래량 차트'); });
     document.querySelectorAll('#foreign-flow .ff-apt-chart-wrap').forEach(function (el) { addExpandButton(el, '종목분석 매물대'); });
     document.querySelectorAll('#stock-search .ss-chart').forEach(function (el) { addExpandButton(el, '실시간 시세 차트'); });
+    document.querySelectorAll('#stock-search #ssIndexChart').forEach(function (el) {
+      var heading = el.closest('#ssIndexPanel').querySelector('.ss-index-heading strong');
+      addExpandButton(el, (heading ? heading.textContent : '지수') + ' 차트');
+    });
     document.querySelectorAll('#pattern-scan #psChart').forEach(function (el) { addExpandButton(el, '차트검색 상세 차트'); });
     document.querySelectorAll('#kospi-futures .kf-chart').forEach(function (el) { addExpandButton(el, el.closest('.kf-section') ? el.closest('.kf-section').querySelector('.kf-section-title').textContent : '선물 차트'); });
     document.querySelectorAll('#domestic-market-indicators .dmi-chart').forEach(function (el) {

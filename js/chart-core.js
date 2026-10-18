@@ -36,7 +36,8 @@
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
-    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261018-sr-trend' }
+    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261018-sr-trend' },
+    vp: { file: 'js/volume-profile-analysis.js', global: 'NineVolumeProfile', v: '20261019-vp1' }
   };
 
   // ---- 라이브러리·모듈 로드: 페이지당 한 번(여러 화면·여러 호출자가 동시에 불러도 같은 약속을 돌려준다) ----
@@ -123,13 +124,13 @@
   var PROFILES = {
     search: {
       font: true, enableResize: true, margins: { top: 0.06, bottom: 0.08 },
-      timeScale: function (tf) { return { rightOffset: 6, minBarSpacing: 3, timeVisible: tf === 'minute', secondsVisible: false, barSpacing: tf === 'minute' ? 9 : 7 }; },
+      timeScale: function (tf) { return { rightOffset: 6, minBarSpacing: 0.5, timeVisible: tf === 'minute', secondsVisible: false, barSpacing: tf === 'minute' ? 9 : 7 }; },
       handleScroll: { mouseWheel: true, pressedMouseMove: true, horzTouchDrag: true, vertTouchDrag: false },
       handleScale: { axisPressedMouseMove: true, mouseWheel: true, pinch: true }
     },
     analysis: {
       font: true, enableResize: true, margins: { top: 0.06, bottom: 0.36 },
-      timeScale: function () { return { rightOffset: 6, minBarSpacing: 2, timeVisible: false, secondsVisible: false }; },
+      timeScale: function () { return { rightOffset: 6, minBarSpacing: 0.5, timeVisible: false, secondsVisible: false }; },
       handleScroll: null,
       handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
     }
@@ -663,7 +664,20 @@
     return isFinite(top) && top > 0 ? (accNumber(bars[i].close) / top - 1) * 100 : null;
   }
 
-  // 반환: [{ index, date, kind, status, multiple, wickPct, highDist, ma112Dist, ma224Dist, runup }]
+  // i번째 봉이 최근 250봉(i 포함) 저가~고가 범위에서 몇 % 위치인지. 봉이 120개도 안 되면 null.
+  function accPosition(bars, i) {
+    var from = Math.max(0, i - 249);
+    if (i - from < 119) return null;
+    var lo = Infinity, hi = -Infinity;
+    for (var j = from; j <= i; j++) {
+      var l = accNumber(bars[j].low), h = accNumber(bars[j].high);
+      if (isFinite(l) && l < lo) lo = l;
+      if (isFinite(h) && h > hi) hi = h;
+    }
+    return hi > lo ? (accNumber(bars[i].close) - lo) / (hi - lo) * 100 : null;
+  }
+
+  // 반환: [{ index, date, kind, status, multiple, wickPct, openChange, highChange, fromHigh, position, highDist, ma112Dist, ma224Dist, runup }]
   //   kind   = 'volume'(대량 양봉 조건) | 'wick'(윗꼬리형 조건)
   //   status = 'accumulation'(대량 양봉) | 'wick'(윗꼬리형) | 'distribution'(털기?)
   function accumulationBars(bars) {
@@ -691,16 +705,18 @@
       var before = i > ACCUMULATION.runupBars ? accNumber(bars[i - 1].close) / accNumber(bars[i - 1 - ACCUMULATION.runupBars].close) - 1 : NaN;
       var hot = isFinite(before) && before >= ACCUMULATION.distributionRunup;
       out.push({ index: i, date: b.date, kind: kind, status: hot ? 'distribution' : (kind === 'volume' ? 'accumulation' : 'wick'),
-        multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, highDist: accHighDistance(bars, i),
+        multiple: v / avg, wickPct: (h - Math.max(o, c)) / (h - l) * 100, openChange: (c / o - 1) * 100, highChange: (h / o - 1) * 100, fromHigh: (c / h - 1) * 100, position: accPosition(bars, i), highDist: accHighDistance(bars, i),
         ma112Dist: accMaDistance(bars, i, 112), ma224Dist: accMaDistance(bars, i, 224), runup: isFinite(before) ? before * 100 : null });
     }
     return out;
   }
 
+  // 2026-10-18 문구 정리: 주황·보라는 봉 모양(대량 양봉 / 대량 윗꼬리), 회색은 가격 위치(상승 과열 뒤 = 고점권)다. 모양과 위치를 한 이름에 섞지 않는다.
+  // text 는 차트에 찍히는 짧은 이름, label 은 범례·툴팁의 전체 이름이다. 모두 관찰용이며 매집·분배를 확정하지 않는다.
   var ACC_MARKER = {
-    accumulation: { color: '#e8590c', size: 1, text: '대량 양봉' },
-    wick: { color: '#7c3aed', size: 1, text: '윗꼬리형' },
-    distribution: { color: '#4b5563', size: 1, text: '털기?' }
+    accumulation: { color: '#e8590c', size: 1, text: '대량 양봉', label: '대량 양봉 · 매수 우위 관찰' },
+    wick: { color: '#7c3aed', size: 1, text: '대량 윗꼬리', label: '대량 윗꼬리 · 매도압력 의심' },
+    distribution: { color: '#4b5563', size: 1, text: '고점권 대량', label: '고점권 대량거래 · 분배 위험' }
   };
 
   function accumulationMarkers(bars) {
@@ -714,6 +730,15 @@
     var counts = { accumulation: 0, wick: 0, distribution: 0 };
     accumulationBars(bars).forEach(function (hit) { counts[hit.status]++; });
     return counts;
+  }
+
+  // 범례(차트검색·종목분석 공통): 색·이름·개수. 개수는 setAccumulationMarkers 가 돌려준 값이다.
+  function accumulationLegendHtml(counts) {
+    counts = counts || { accumulation: 0, wick: 0, distribution: 0 };
+    return '<span style="color:' + ACC_MARKER.accumulation.color + '">대량거래 흔적 ● ' + ACC_MARKER.accumulation.text + ' <b>' + counts.accumulation + '</b></span>'
+      + '<span style="color:' + ACC_MARKER.wick.color + '"> · ● ' + ACC_MARKER.wick.text + ' <b>' + counts.wick + '</b></span>'
+      + '<span style="color:' + ACC_MARKER.distribution.color + '"> · ● ' + ACC_MARKER.distribution.text + ' <b>' + counts.distribution + '</b></span>'
+      + '<span style="opacity:.7"> (관찰용 · 고가 = 시가 대비 당일 고가)</span>';
   }
 
   function accSigned(value, digits) {
@@ -744,8 +769,11 @@
       var hit = param && param.point ? byDate[dateKey(param.time)] : null;
       if (!hit) { tip.hidden = true; return; }
       var style = ACC_MARKER[hit.status];
-      tip.innerHTML = '<b style="color:' + style.color + '">' + style.text + '</b> <span style="opacity:.7">' + hit.date + ' · 관찰용, 매수 신호 아님</span><br>'
+      tip.innerHTML = '<b style="color:' + style.color + '">' + style.label + '</b><br><span style="opacity:.7">' + hit.date + ' · 관찰용, 매집·분배 확정 아님</span><br>'
         + '거래량 <b>' + hit.multiple.toFixed(1) + '배</b> · 윗꼬리 <b>' + hit.wickPct.toFixed(0) + '%</b><br>'
+        + '고가 <b>' + accSigned(hit.highChange) + '</b> <span style="opacity:.7">(시가→당일 고가)</span><br>'
+        + '종가 <b>' + accSigned(hit.openChange) + '</b> <span style="opacity:.7">(시가→종가)</span> · 고점 대비 종가 <b>' + accSigned(hit.fromHigh) + '</b><br>'
+        + '250봉 가격 위치 <b>' + (hit.position === null || hit.position === undefined ? '—' : hit.position.toFixed(0) + '%') + '</b><br>'
         + '직전 60봉 고점 대비 <b>' + accSigned(hit.highDist) + '</b><br>'
         + '112일선 대비 <b>' + accSigned(hit.ma112Dist) + '</b> · 224일선 대비 <b>' + accSigned(hit.ma224Dist) + '</b><br>'
         + '직전 20봉 <b>' + accSigned(hit.runup) + '</b>';
@@ -795,7 +823,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -1,5 +1,7 @@
 # 9Pay 증권 DB 정의서
 
+9Pay A/B 장중 관찰 증거는 DB 스키마 추가 없이 `kiwoom_9pay_state.json`에 당일·버전·최초 70/80% 시각·단계·신호를 원자적으로 저장한다. 같은 날짜·규칙 버전의 확인된 증거만 복원하고, 다른 날짜/버전·손상 파일은 과거 충족으로 추정하지 않는다. 파일은 Git 제외 대상이며 계좌·주문 데이터가 없다. [필드·보존·한계](NINEPAY_SCANNER_AB_2026-10-19.md).
+
 ## 아침 라이브 갭상승 그림자 기록 (2026-10-16, Issue #697)
 
 `scripts/cloud-vm/gap_shadow.db`(`gap_shadow.py`, 저장소 제외 `*.db`)의 `gap_shadow_signal`은 `(trading_date, code)`당 첫 신호 1행이다. `volume_surge_live`가 30초마다 받는 KIS 순위 행만 재사용하며(추가 외부 호출 없음) 주문·계좌·토큰은 저장하지 않는다. 기존 `openingGap` 검색기와 추적 통계는 건드리지 않는다.

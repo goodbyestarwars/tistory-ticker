@@ -115,8 +115,10 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261018-sr-trend';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-vp1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
+  // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
+  var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
   var lwcChartContainer = null;
   var lwcScope = null;         // 차트 한 개가 만든 구독·옵저버·오버레이를 한 번에 해제하는 범위(chart-core)
@@ -4370,7 +4372,7 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 보라색 윗꼬리형은 윗꼬리가 범위의 40% 이상, 몸통 3% 이하, 거래량 2배 이상인 봉으로 연구용 가설입니다. 직전 20봉이 25% 이상 오른 뒤에 나온 봉은 물량을 터는 쪽일 수 있어 회색 털기?로 따로 표시합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 대량거래 흔적 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="거래량이 직전 20일 평균의 2.5배 이상이고 몸통 2% 이상 양봉이며 종가가 그날 범위의 위쪽 40%, 거래대금 30억원 이상인 봉(거래량 돌파 탭과 같은 기준)입니다. 주황 = 대량 양봉(매수 우위 관찰), 보라 = 대량 윗꼬리(매도압력 의심: 윗꼬리 40% 이상·몸통 3% 이하·거래량 2배 이상, 연구용 가설). 회색 = 고점권 대량거래(분배 위험): 위 두 모양 중 하나가 직전 20봉 +25% 이상 오른 뒤에 나온 경우로, 모양이 아니라 가격 위치로 구분합니다. 5년 일봉 시험에서 수익성이 입증되지 않아 모두 관찰용이며 매수 신호가 아닙니다. 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 대량거래 흔적 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
         + '</div>'
@@ -4729,10 +4731,17 @@
     var avgNumber = Number(avgPrice);
     var displayAvg = avgPrice != null && isFinite(avgNumber) && profile.integerPrices
       ? Math.round(avgNumber / krxTickSize(avgNumber)) * krxTickSize(avgNumber) : avgPrice;
-    var maxVolume = rows.reduce(function (max, row) { return Math.max(max, row.volume); }, 0);
+    // 마지막 행만 구간 수가 적을 수 있다(compactAptProfileBins) - 막대 길이·최대 판정은 같은 가격폭으로 환산해 비교한다.
+    var groupBins = rows.reduce(function (max, row) { return row.synthetic ? max : Math.max(max, row.end - row.start + 1); }, 1);
+    function widthVolume(row) {
+      var count = row.end - row.start + 1;
+      return row.synthetic || !(count > 0) ? 0 : row.volume * groupBins / count;
+    }
+    var totalVolume = profile.bins.reduce(function (sum, bin) { return sum + Math.max(0, Number(bin.volume) || 0); }, 0);
+    var maxVolume = rows.reduce(function (max, row) { return Math.max(max, widthVolume(row)); }, 0);
     // 눈에 보이는 막대는 세부 구간을 합친 행이다. 강조 가격대도 그 행 중 거래량
     // 최댓값으로 골라 가장 긴 막대와 '최대 매물대'가 어긋나지 않게 한다.
-    var pocRow = rows.findIndex(function (row) { return row.volume > 0 && row.volume === maxVolume; });
+    var pocRow = rows.findIndex(function (row) { return row.volume > 0 && widthVolume(row) === maxVolume; });
     var pocBin = pocRow >= 0 ? rows[pocRow] : null;
     var showHolding = holdingAveragePrice !== undefined;
     var myAverage = Number(holdingAveragePrice);
@@ -4786,7 +4795,12 @@
       var isAverage = rowHasPrice(row, avgPrice);
       var isPoc = originalIndex === pocRow;
       var isMine = originalIndex === myRow;
-      var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(row.volume / maxVolume * 1000) / 10) : 0;
+      var width = row.volume > 0 && maxVolume > 0 ? Math.max(0.8, Math.round(widthVolume(row) / maxVolume * 1000) / 10) : 0;
+      var rowShare = totalVolume > 0 ? row.volume / totalVolume * 100 : 0;
+      var rowStrength = maxVolume > 0 ? widthVolume(row) / maxVolume * 100 : 0;
+      var rowTitle = row.volume > 0
+        ? rangeText(row) + (isUs ? '' : '원') + ' · 추정 거래량 ' + compactChartVolume(row.volume) + '주 · 전체의 ' + rowShare.toFixed(1) + '% · 최대 구간 대비 ' + Math.round(rowStrength) + '%'
+        : rangeText(row) + (isUs ? '' : '원') + ' · 확인된 거래 없음';
       var classes = 'ff-apt-simple-row side-' + side + (row.synthetic ? ' is-empty' : '') + (isCurrent ? ' is-current' : '') + (isAverage ? ' is-average' : '') + (isPoc ? ' is-poc' : '') + (isMine ? ' is-mine' : '');
       var markers = (isMine ? '<span class="mine">내 평단</span>' : '') + (isCurrent ? '<span class="current">현재</span>' : '')
         + (isAverage ? '<span class="average">평균</span>' : '')
@@ -4802,10 +4816,10 @@
           sideHeading = '<div class="ff-apt-simple-side-heading current"><strong>현재가 기준</strong><span>' + won(currentPrice) + '</span></div>';
         }
       }
-      return sideHeading + '<div class="' + classes + '">'
+      return sideHeading + '<div class="' + classes + '" title="' + escapeAttr(rowTitle) + '">'
         + '<span class="ff-apt-simple-price">' + rangeText(row) + '</span>'
         + '<span class="ff-apt-simple-track"><i style="width:' + width + '%"></i></span>'
-        + '<span class="ff-apt-simple-volume">' + (row.volume > 0 ? compactChartVolume(row.volume) + '주' : '거래 없음') + '</span>'
+        + '<span class="ff-apt-simple-volume">' + (row.volume > 0 ? compactChartVolume(row.volume) + '주 · ' + rowShare.toFixed(1) + '%' : '거래 없음') + '</span>'
         + '<span class="ff-apt-simple-markers">' + markers + '</span>'
         + '</div>';
     }).join('');
@@ -4849,7 +4863,7 @@
       + '<div class="ff-apt-market-summary"><span>시장 평균단가</span><strong>' + won(displayAvg) + '</strong></div>'
       + '</div>'
       + '<div class="ff-apt-chart-wrap ff-apt-simple" role="img" aria-label="가격대별 거래량 매물대 막대 차트">'
-      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>한 칸은 한 가격 구간 · 가장 긴 막대가 이 화면의 최대 거래량</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
+      + '<div class="ff-apt-simple-head"><div><strong>가격대별 거래량</strong><span>한 칸은 한 가격 구간 · 숫자는 추정 거래량과 전체 대비 비중 · 가장 긴 막대가 최대 구간</span></div><div class="ff-apt-simple-head-right"><b class="ff-apt-simple-signal ' + relationTone + '">' + relation + '</b><em>' + periodLabel + '</em></div></div>'
       + limitHtml
       + myPosition
       + '<div class="ff-apt-split"><div class="ff-apt-simple-chart">' + rowHtml + '</div>'
@@ -4860,14 +4874,178 @@
       + '<div class="ff-apt-simple-note" role="note">' + relationNote + ' 위·아래 수치는 호가창 대기 물량이 아닌 해당 기간의 과거 체결 거래량입니다. 단독 매매 신호가 아닌 참고 지표입니다.</div>';
   }
 
-  // 2026-09-15 사용자 결정: MY 매물대와 같은 최근 120거래일 일봉 추정치 하나로 통일했다
-  // (buildApproxVolumeProfile 참고). 2026-08-05에 실제 체결가(/pbar-tratio) 뷰로 바꿨었지만
-  // 조회된 날만 누적돼 종목마다 기간이 달랐고 MY 매물대와 값이 어긋났다.
-  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code) {
+  // ---- 매물대 분석(2026-10-19): 가격대별 비중·현재가 기준 지지/저항 후보·얇은 구간·20/60/120거래일 비교 ----
+  // 계산은 js/volume-profile-analysis.js(차트검색과 공통), 이 파일은 일봉을 구간으로 만들고 화면에 그린다.
+  // 기간 버튼은 서버 호출 없이 이미 받은 일봉(최대 500거래일)으로 다시 계산한다.
+  var VP_PERIODS = [20, 60, 120];
+  var vpRegistry = {};
+  var vpAnalysisPromise = null;
+
+  function ensureVpAnalysis() {
+    if (global.NineVolumeProfile) return Promise.resolve(global.NineVolumeProfile);
+    if (vpAnalysisPromise) return vpAnalysisPromise;
+    vpAnalysisPromise = new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[data-nine-vp-analysis]');
+      var tag = existing || document.createElement('script');
+      tag.addEventListener('load', function () { resolve(global.NineVolumeProfile); });
+      tag.addEventListener('error', function () { vpAnalysisPromise = null; reject(new Error('매물대 분석 모듈 로드 실패')); });
+      if (!existing) {
+        tag.src = VP_ANALYSIS_URL;
+        tag.async = true;
+        tag.setAttribute('data-nine-vp-analysis', '1');
+        document.head.appendChild(tag);
+      }
+    });
+    return vpAnalysisPromise;
+  }
+
+  function vpPrice(value, isUs) {
+    if (value == null || !isFinite(Number(value))) return '-';
+    return isUs ? '$' + Number(value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+      : Math.round(Number(value)).toLocaleString('ko-KR') + '원';
+  }
+
+  function vpEntry(id, daily, price, holding, code, openPrice) {
+    var prev = vpRegistry[id];
+    var same = prev && prev.code === code;
+    vpRegistry[id] = {
+      id: id, daily: daily, price: price, holding: holding, code: code, openPrice: openPrice,
+      lookback: same ? prev.lookback : APT_LOOKBACK_DAYS,
+      binIndex: same ? prev.binIndex : APT_BIN_DEFAULT_INDEX,
+      onRender: same ? prev.onRender : null
+    };
+    return vpRegistry[id];
+  }
+
+  function vpAnalysisHtml(entry, estimate) {
+    var VP = global.NineVolumeProfile;
+    if (!VP) { ensureVpAnalysis().then(vpRefreshAll, function () {}); return ''; }
+    var isUs = /^US:/i.test(String(entry.code || ''));
+    var opts = { format: function (v) { return vpPrice(v, isUs); } };
+    var closes = normalizeDailyForVolumeProfile(entry.daily).map(function (row) { return row.close; });
+    var price = Number(entry.price);
+    var main = VP.analyze(estimate.profile.bins, price, closes, opts);
+    if (!main) return '';
+    var fmt = opts.format;
+    function vol(v) { return compactChartVolume(v) + '주'; }
+
+    function card(cls, title, zone, gapInfo, sign) {
+      if (!zone) return '<div class="ff-vp-an-card ' + cls + ' is-empty"><span>' + title + '</span><strong>뚜렷한 구간 없음</strong><small>기준 이상 집중된 구간이 없습니다</small></div>';
+      var distance = gapInfo ? sign + gapInfo.pct.toFixed(1) + '% (' + fmt(gapInfo.diff) + ' ' + (sign === '+' ? '위' : '아래') + ')' : '현재가가 구간 안';
+      return '<div class="ff-vp-an-card ' + cls + '"><span>' + title + '</span><strong>' + fmt(zone.low) + '~' + fmt(zone.high) + '</strong>'
+        + '<small>현재가 대비 ' + distance + '</small><small>추정 ' + vol(zone.volume) + ' · 전체의 ' + zone.share.toFixed(1) + '%</small></div>';
+    }
+    var poc = main.poc;
+    var pocGap = main.pocGap && main.pocGap.where !== 'inside' ? main.pocGap : null;
+    var pocCard = '<div class="ff-vp-an-card poc"><span>최대 매물대(POC)</span><strong>' + fmt(poc.low) + '~' + fmt(poc.high) + '</strong>'
+      + '<small>현재가 대비 ' + (pocGap ? (pocGap.where === 'above' ? '+' : '-') + pocGap.pct.toFixed(1) + '% (' + fmt(pocGap.diff) + ' ' + (pocGap.where === 'above' ? '위' : '아래') + ')' : '현재가가 구간 안') + '</small>'
+      + '<small>추정 ' + vol(poc.volume) + ' · 전체의 ' + poc.share.toFixed(1) + '%</small></div>';
+    var current = '<div class="ff-vp-an-card current"><span>현재가</span><strong>' + fmt(price) + '</strong>'
+      + '<small>위 ' + main.aboveShare.toFixed(1) + '% · 아래 ' + main.belowShare.toFixed(1) + '%</small><small>' + (main.inZone ? '주요 집중 구간 안' : '주요 집중 구간 밖') + '</small></div>';
+
+    var periodButtons = VP_PERIODS.map(function (days) {
+      return '<button type="button" class="ff-vp-period' + (days === entry.lookback ? ' on' : '') + '" data-vp-period="' + days + '" aria-pressed="' + (days === entry.lookback ? 'true' : 'false') + '">' + days + '거래일</button>';
+    }).join('');
+    var included = estimate.daysIncluded;
+    var shortNote = included < entry.lookback ? ' 요청 ' + entry.lookback + '거래일 중 자료가 있는 <b>' + included + '거래일</b>만 포함했습니다.' : '';
+
+    var thinHtml = main.thin.length
+      ? '<ul class="ff-vp-an-thin">' + main.thin.map(function (t) {
+        return '<li>' + escapeHtml(VP.thinText(t, opts)) + ' 현재가에서 ' + (t.contains ? '구간 안' : t.distancePct.toFixed(1) + '% ' + (t.where === 'above' ? '위' : '아래')) + '입니다.</li>';
+      }).join('') + '</ul><p class="ff-vp-an-caution">거래량이 적다는 것은 그 가격대에서 거래가 적었다는 뜻일 뿐, 빠른 상승이나 하락을 뜻하지 않습니다.</p>'
+      : '<p class="ff-vp-an-empty">주요 구간 가까이에서 뚜렷하게 얇은 가격대는 발견되지 않았습니다.</p>';
+
+    // 기간 비교(20/60/120): 같은 구간 수로 각각 다시 계산한다.
+    var cmp = VP_PERIODS.map(function (days) {
+      var est = buildApproxVolumeProfile(entry.daily, APT_BIN_STEPS[entry.binIndex], days);
+      var an = est && VP.analyze(est.profile.bins, price, closes, opts);
+      return { days: days, included: est ? est.daysIncluded : 0, an: an };
+    });
+    function zoneCell(z) { return z ? fmt(z.low) + '~' + fmt(z.high) : '-'; }
+    var cmpRows = cmp.map(function (row) {
+      var an = row.an;
+      return '<tr' + (row.days === entry.lookback ? ' class="on"' : '') + '><th scope="row">' + row.days + '거래일' + (row.included < row.days ? '<small>(' + row.included + '일)</small>' : '') + '</th>'
+        + (an ? '<td data-label="최대 매물대">' + zoneCell(an.poc) + '<small>' + an.poc.share.toFixed(1) + '%</small></td>'
+          + '<td data-label="위·아래 비중">' + an.aboveShare.toFixed(0) + '% / ' + an.belowShare.toFixed(0) + '%</td>'
+          + '<td data-label="가까운 저항">' + zoneCell(an.resistance) + '</td><td data-label="가까운 지지">' + zoneCell(an.support) + '</td>'
+          : '<td colspan="4">자료 부족</td>') + '</tr>';
+    }).join('');
+    var pocs = cmp.filter(function (row) { return row.an; }).map(function (row) { return row.days + '일 ' + fmt((row.an.poc.low + row.an.poc.high) / 2); });
+    var shiftText = pocs.length > 1 ? '최대 매물대 중심: ' + pocs.join(' → ') : '';
+
+    var personal = '';
+    var hold = Number(entry.holding);
+    if (entry.holding !== undefined && isFinite(hold) && hold > 0) {
+      var mine = VP.analyze(estimate.profile.bins, hold, closes, opts);
+      if (mine) {
+        var parts = [];
+        if (mine.pocGap.where === 'inside') parts.push('평단은 최대 매물대 안에 있습니다');
+        else parts.push('평단은 최대 매물대 ' + (mine.pocGap.where === 'above' ? '하단보다 ' + mine.pocGap.pct.toFixed(1) + '% 아래' : '상단보다 ' + mine.pocGap.pct.toFixed(1) + '% 위') + '입니다');
+        if (mine.resistance) parts.push('평단 위 가까운 집중 구간은 ' + zoneCell(mine.resistance) + '(평단에서 ' + mine.resistanceGap.pct.toFixed(1) + '% 위)');
+        if (mine.support) parts.push('아래는 ' + zoneCell(mine.support) + '(' + mine.supportGap.pct.toFixed(1) + '% 아래)');
+        personal = '<p class="ff-vp-an-personal">내 평단 ' + fmt(hold) + ': ' + parts.join(', ') + '.</p>';
+      }
+    }
+
+    var tone = { 'breakout-held': 'up', 'breakout-try': 'up', 'support-near': 'neutral', 'inside': 'neutral', 'below-resistance': 'neutral', 'reenter': 'down', 'support-lost': 'down' }[main.state.key] || 'flat';
+    return '<section class="ff-vp-an" aria-label="매물대 분석">'
+      + '<div class="ff-vp-an-head"><strong>매물대 분석</strong><div class="ff-vp-periods" role="group" aria-label="분석 기간">' + periodButtons + '</div></div>'
+      + '<p class="ff-vp-an-basis">일봉 고가·저가·거래량을 가격 구간에 비례 배분한 <b>추정치</b>이며 실제 체결가별 거래량이 아닙니다. 최근 <b>' + included + '거래일</b> 기준.' + shortNote + '</p>'
+      + '<div class="ff-vp-an-cards">' + current
+      + card('resist', '가까운 저항 후보', main.resistance, main.resistanceGap, '+')
+      + card('support', '가까운 지지 후보', main.support, main.supportGap, '-')
+      + pocCard + '</div>'
+      + '<p class="ff-vp-an-state ' + tone + '"><b>' + escapeHtml(main.state.label) + '</b> ' + escapeHtml(main.state.text) + '</p>'
+      + personal
+      + '<div class="ff-vp-an-sub"><strong>거래량이 적은 가격대</strong>' + thinHtml + '</div>'
+      + '<div class="ff-vp-an-sub"><strong>기간별 비교</strong><table class="ff-vp-an-table"><thead><tr><th scope="col">기간</th><th scope="col">최대 매물대·비중</th><th scope="col">현재가 위/아래</th><th scope="col">가까운 저항</th><th scope="col">가까운 지지</th></tr></thead><tbody>' + cmpRows + '</tbody></table>'
+      + (shiftText ? '<p class="ff-vp-an-shift">' + escapeHtml(shiftText) + '</p>' : '') + '</div>'
+      + '<p class="ff-vp-an-caution">집중 구간은 지난 거래의 추정치이며 현재 매도·매수 대기 물량이 아닙니다. 주요 구간 기준: 최대 밀도의 ' + Math.round(main.settings.significantRatio * 100) + '% 이상, 가까움: ' + main.settings.nearPct + '% 이내.</p>'
+      + '</section>';
+  }
+
+  function vpRender(entry) {
+    var estimate = buildApproxVolumeProfile(entry.daily, APT_BIN_STEPS[entry.binIndex], entry.lookback);
+    if (!estimate) return null;
+    var profile = attachAptPriceLimits(estimate.profile, entry.openPrice);
+    profile.source = estimate.source;
+    var analysis = vpAnalysisHtml(entry, estimate);
+    var html = buildAptDynamicHtml(profile, entry.price, entry.binIndex, estimate.daysIncluded, estimate.avgPrice, entry.holding, entry.code, analysis)
+      .replace('class="ff-apt-chart-wrap ff-apt-simple"', 'class="ff-apt-chart-wrap ff-apt-simple ff-apt-in"');
+    if (entry.onRender) entry.onRender(profile);
+    return { html: html, profile: profile };
+  }
+
+  function vpRefreshAll() {
+    Array.prototype.forEach.call(document.querySelectorAll('.ff-vp-root[data-vp-id]'), function (root) {
+      var entry = vpRegistry[root.getAttribute('data-vp-id')];
+      var out = entry && vpRender(entry);
+      if (out) root.innerHTML = out.html;
+    });
+  }
+
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('click', function (event) {
+      var button = event.target && event.target.closest ? event.target.closest('[data-vp-period]') : null;
+      var root = button && button.closest('.ff-vp-root[data-vp-id]');
+      var entry = root && vpRegistry[root.getAttribute('data-vp-id')];
+      if (!entry) return;
+      var days = Number(button.getAttribute('data-vp-period'));
+      if (VP_PERIODS.indexOf(days) < 0 || days === entry.lookback) return;
+      entry.lookback = days;
+      var out = vpRender(entry);
+      if (out) root.innerHTML = out.html;
+    });
+  }
+
+  // 2026-09-15 사용자 결정: MY 매물대와 같은 일봉 추정치 하나로 통일했다(기본 최근 120거래일, 2026-10-19부터 20/60/120 선택).
+  // 2026-08-05에 실제 체결가(/pbar-tratio) 뷰로 바꿨었지만 조회된 날만 누적돼 종목마다 기간이 달랐고 MY 매물대와 값이 어긋났다.
+  function buildAptDynamicHtml(profile, currentPrice, stepIndex, daysIncluded, avgPrice, holdingAveragePrice, code, analysisHtml) {
     var days = daysIncluded || 1;
     var footnote = '<div class="ff-footnote ff-apt-simple-source">일봉 고가·저가·거래량을 가격 구간에 비례 배분한 추정치 · 최근 <b>'
       + days + '거래일</b> 반영</div>';
-    return buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉', holdingAveragePrice, code)
+    return (analysisHtml || '')
+      + buildSimpleVolumeProfileHtml(profile, currentPrice, avgPrice, '최근 ' + days + '거래일 일봉', holdingAveragePrice, code)
       + footnote;
   }
 
@@ -4916,8 +5094,8 @@
   // 최근 120거래일 일봉의 고가~저가 구간에 거래량을 비례 배분한 동일 가격폭 구간(기본 24개,
   // 화면 12행). 예전엔 조회된 날만 누적되는 실제 체결가(/pbar-tratio)라 종목마다 기간이
   // 7~17거래일처럼 들쭉날쭉해 MY 매물대와 값이 달랐다.
-  function buildApproxVolumeProfile(daily, binCount) {
-    var profile = computeVolumeProfile(normalizeDailyForVolumeProfile(daily), APT_LOOKBACK_DAYS, binCount);
+  function buildApproxVolumeProfile(daily, binCount, lookbackDays) {
+    var profile = computeVolumeProfile(normalizeDailyForVolumeProfile(daily), lookbackDays || APT_LOOKBACK_DAYS, binCount);
     if (!profile) return null;
     var total = profile.bins.reduce(function (sum, bin) { return sum + Math.max(0, Number(bin.volume) || 0); }, 0);
     var avg = total > 0 ? profile.bins.reduce(function (sum, bin) {
@@ -4963,14 +5141,11 @@
   }
 
   function renderVolumeProfileHtml(daily, currentPrice, holdingAveragePrice, code) {
-    var estimate = buildApproxVolumeProfile(daily, APT_BIN_STEPS[APT_BIN_DEFAULT_INDEX]);
-    if (!estimate) return '';
     var last = Array.isArray(daily) && daily.length ? daily[daily.length - 1] : null;
-    var profile = attachAptPriceLimits(estimate.profile, last && Number(last.open));
-    profile.source = estimate.source;
-    // 종목분석은 탭을 열 때 playAptEntrance로 ff-apt-in을 붙이지만 MY는 바로 보여야 해서 처음부터 붙인다.
-    return buildAptDynamicHtml(profile, currentPrice, APT_BIN_DEFAULT_INDEX, estimate.daysIncluded, estimate.avgPrice, holdingAveragePrice, code)
-      .replace('class="ff-apt-chart-wrap ff-apt-simple"', 'class="ff-apt-chart-wrap ff-apt-simple ff-apt-in"');
+    // 종목분석은 탭을 열 때 playAptEntrance로 ff-apt-in을 붙이지만 MY는 바로 보여야 해서 vpRender가 처음부터 붙인다.
+    var entry = vpEntry('my:' + (code || ''), daily, currentPrice, holdingAveragePrice, code, last && Number(last.open));
+    var out = vpRender(entry);
+    return out ? '<div class="ff-vp-root" data-vp-id="' + escapeAttr(entry.id) + '">' + out.html + '</div>' : '';
   }
 
   // 체결 데이터가 없는 가격대를 profile 원자료에 임의로 덧붙이면 실제 매물대처럼
@@ -5007,6 +5182,8 @@
     if (!card) return;
     var stepIndex = APT_BIN_DEFAULT_INDEX;
     var activeProfile = null;
+    var entry = vpEntry('card', chartDaily, currentPrice, undefined, code, openPrice);
+    entry.onRender = function (profile) { activeProfile = profile; };   // 기간 버튼으로 다시 그려도 현재가 표시가 같은 프로필을 본다
 
     function markerY(map, price) {
       var low = Number(map.getAttribute('data-apt-price-low'));
@@ -5080,6 +5257,7 @@
       var parsed = Number(nextPrice);
       if (!isFinite(parsed) || !activeProfile) return;
       currentPrice = parsed;
+      entry.price = parsed;
       var simpleCurrent = card.querySelector('[data-apt-simple-current]');
       if (simpleCurrent) simpleCurrent.textContent = Math.round(parsed).toLocaleString('ko-KR') + '원';
       var map = card.querySelector('[data-price-map-surface]');
@@ -5096,15 +5274,14 @@
       var dynamic = card.querySelector('#ffAptDynamic');
       if (!dynamic) return;
       // 2026-09-15: MY 매물대와 같은 최근 120거래일 일봉 추정치(buildApproxVolumeProfile)만 쓴다.
-      var estimate = buildApproxVolumeProfile(chartDaily, APT_BIN_STEPS[stepIndex]);
-      if (!estimate) {
+      entry.binIndex = stepIndex;
+      entry.price = currentPrice;
+      var out = vpRender(entry);
+      if (!out) {
         dynamic.innerHTML = '<div class="ff-apt-empty">매물대를 계산할 거래량 데이터가 없습니다.</div>';
         return;
       }
-      var profile = attachAptPriceLimits(estimate.profile, openPrice);
-      profile.source = estimate.source;
-      activeProfile = profile;
-      dynamic.innerHTML = buildAptDynamicHtml(profile, currentPrice, stepIndex, estimate.daysIncluded, estimate.avgPrice);
+      dynamic.innerHTML = '<div class="ff-vp-root" data-vp-id="card">' + out.html + '</div>';
       wireZoom();
       wireBinRail();
       playAptEntrance(card);
@@ -6402,6 +6579,7 @@
     fetchFlowChart: fetchFlowChart,
     buildVolumeProfileSummary: buildVolumeProfileSummary,
     renderVolumeProfileHtml: renderVolumeProfileHtml,
+    ensureVolumeProfileAnalysis: ensureVpAnalysis,
     fetchNewsMomentum: fetchNewsMomentum,
     // js/stock-news.js "종목분석 요약" 패널 전용 경량 API(위 정의부 주석 참고) - #foreign-flow
     // 마운트 없이도(즉 이 스크립트를 로드만 해도) 호출 가능.
