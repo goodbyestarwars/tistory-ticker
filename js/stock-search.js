@@ -161,6 +161,11 @@
   var indexTimeframe = 'day';
   var indexRenderId = 0;
   var indexTimer = null;
+  // 지수 실시간(2026-10-19): 서버 /ws/market-indicators 가 5초마다 보내는 최신 스냅샷(VM 수집값 중계)으로 시세 숫자를 갱신한다.
+  // 서버가 지원하는 지수(코스피·코스닥·나스닥·S&P500·다우)만 연결하고 필라델피아 반도체(SOX)는 지원 목록에 없어 30초 조회만 쓴다.
+  var INDEX_WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators';
+  var INDEX_WS_SYMBOLS = { KOSPI: 1, KOSDAQ: 1, NASDAQ_INDEX: 1, SP500_INDEX: 1, DOW_INDEX: 1 };
+  var indexSocket = null, indexSocketTimer = null, indexSocketDelay = 1500, indexSocketGen = 0, indexSocketTarget = null;
   var indexHistoryModuleJob = null;
   function loadIndexHistory(symbol) {
     var group = symbol === 'KOSPI' || symbol === 'KOSDAQ' ? 'domestic' : 'global';
@@ -783,10 +788,78 @@
     runDomesticSearch(container, query, searchId);
   }
 
+  // 오늘(한국 시각) 날짜 'YYYY-MM-DD'.
+  function kstToday(now) {
+    var d = new Date((now || Date.now()) + 9 * 3600 * 1000);
+    return d.getUTCFullYear() + '-' + String(d.getUTCMonth() + 1).padStart(2, '0') + '-' + String(d.getUTCDate()).padStart(2, '0');
+  }
+
+  // 실시간 시세로 마지막 일봉을 갱신할 수 있으면 새 봉을, 아니면 null 을 돌려준다.
+  // 한국 지수만, 마지막 봉 날짜가 오늘(KST)일 때만 고가·저가·종가를 갱신한다(어제 봉을 오늘 가격으로 덮어쓰지 않는다). 시가는 그대로 둔다.
+  function indexLiveBar(code, lastBar, price, today) {
+    if ((code !== 'KOSPI' && code !== 'KOSDAQ') || !lastBar || !(price > 0) || lastBar.date !== today) return null;
+    return { date: lastBar.date, open: lastBar.open, high: Math.max(lastBar.high, price), low: Math.min(lastBar.low, price), close: price };
+  }
+
+  function closeIndexSocket() {
+    indexSocketGen += 1;
+    if (indexSocketTimer) { clearTimeout(indexSocketTimer); indexSocketTimer = null; }
+    var current = indexSocket;
+    indexSocket = null;
+    indexSocketDelay = 1500;
+    indexSocketTarget = null;
+    if (current) { try { current.close(); } catch (e) { /* 이미 닫힘 */ } }
+  }
+
+  // 탭이 숨겨져 있던 동안 끊겼다면 다시 보일 때 이어 붙인다(30초 조회와 같은 정책).
+  document.addEventListener('visibilitychange', function () {
+    var t = indexSocketTarget;
+    if (document.hidden || indexSocket || !t || t.panel.hidden || state.selectedCode !== 'INDEX:' + t.row.code) return;
+    connectIndexSocket(t.panel, t.row);
+  });
+
+  function connectIndexSocket(panel, row) {
+    if (!INDEX_WS_SYMBOLS[row.code] || indexSocket || !global.WebSocket || document.hidden) return;
+    indexSocketTarget = { panel: panel, row: row };
+    var gen = indexSocketGen;
+    var socket;
+    try { socket = new WebSocket(INDEX_WS_URL + '?symbols=' + encodeURIComponent(row.code)); } catch (e) { return; }
+    indexSocket = socket;
+    socket.onopen = function () { if (gen === indexSocketGen) indexSocketDelay = 1500; };
+    socket.onmessage = function (event) {
+      if (gen !== indexSocketGen || state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+      var packet;
+      try { packet = JSON.parse(event.data); } catch (e) { return; }
+      if (!packet || packet.type !== 'market-indicators' || !Array.isArray(packet.data)) return;
+      var quote = packet.data.filter(function (q) { return q && q.symbol === row.code && typeof q.price === 'number'; })[0];
+      if (!quote) return;
+      var quoteEl = panel.querySelector('.ss-index-quote');
+      var noteEl = panel.querySelector('.ss-index-note');
+      if (quoteEl) { quoteEl.innerHTML = Number(quote.price).toLocaleString('ko-KR') + ' <small>' + fmtSignedPct(quote.change_rate) + '</small>'; quoteEl.className = 'ss-index-quote ' + signClass(quote.change_rate); }
+      if (noteEl) noteEl.textContent = '현물 지수 · 실시간 연결(5초) · 갱신 ' + (quote.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
+      var last = indexBars.length ? indexBars[indexBars.length - 1] : null;
+      var next = indexLiveBar(row.code, last, quote.price, kstToday());
+      if (next && (next.close !== last.close || next.high !== last.high || next.low !== last.low)) {
+        indexBars[indexBars.length - 1] = next;
+        if (indexTimeframe === 'day' && indexSeries) indexSeries.update({ time: next.date, open: next.open, high: next.high, low: next.low, close: next.close });
+      }
+    };
+    socket.onerror = function () { /* onclose 에서 재연결 */ };
+    socket.onclose = function () {
+      if (gen !== indexSocketGen) return;
+      indexSocket = null;
+      if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+      var delay = indexSocketDelay;
+      indexSocketDelay = Math.min(30000, Math.round(indexSocketDelay * 1.8));
+      indexSocketTimer = setTimeout(function () { indexSocketTimer = null; connectIndexSocket(panel, row); }, delay);
+    };
+  }
+
   function hideIndex(container) {
     var panel = container.querySelector('#ssIndexPanel');
     if (panel) panel.hidden = true;
     if (indexTimer) { clearInterval(indexTimer); indexTimer = null; }
+    closeIndexSocket();
     indexRenderId += 1;
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
@@ -883,7 +956,7 @@
             var note = panel.querySelector('.ss-index-note');
             if (quote) quote.innerHTML = (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR')) + ' <small>' + fmtSignedPct(item.change_rate) + '</small>';
             if (quote) quote.className = 'ss-index-quote ' + signClass(item.change_rate);
-            if (note) note.textContent = '현물 지수 · 갱신 ' + (item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
+            if (note) note.textContent = '현물 지수 · ' + (indexSocket && indexSocket.readyState === 1 ? '실시간 연결(5초) · ' : '') + '갱신 ' + (item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
             if (bars.length) {
               var latest = bars[bars.length - 1];
               var old = indexBars[indexBars.length - 1];
@@ -931,6 +1004,7 @@
     }
     refresh();
     indexTimer = setInterval(refresh, 30000);
+    connectIndexSocket(panel, row);
   }
 
   function runDomesticSearch(container, query, searchId) {
