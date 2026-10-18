@@ -138,7 +138,8 @@
     + '<a href="/page/stock-search?code=INDEX%3AKOSDAQ">코스닥</a>'
     + '<a href="/page/stock-search?code=INDEX%3ANASDAQ_INDEX">나스닥</a>'
     + '<a href="/page/stock-search?code=INDEX%3ASP500_INDEX">S&amp;P&amp;500</a>'
-    + '<a href="/page/stock-search?code=INDEX%3ADOW_INDEX">다우존스</a></div>'
+    + '<a href="/page/stock-search?code=INDEX%3ADOW_INDEX">다우존스</a>'
+    + '<a href="/page/stock-search?code=INDEX%3ASOX">필라델피아 반도체</a></div>'
     + '<div id="navSearchSuggest" class="nav-search-suggest"></div></div>';
 
   function wireBigSearch() {
