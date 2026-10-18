@@ -188,7 +188,8 @@ def _handle_signal(result, signaled):
     if not result['signal'] or code in signaled:
         return
     signaled.add(code)
-    item = {key: result[key] for key in ('code', 'at', 'source', 'volumeMissing', 'mfePct', 'maePct')}
+    item = {key: result[key] for key in ('code', 'at', 'source', 'price', 'volumeMissing', 'mfePct', 'maePct')}
+    item['signalId'] = '%s:%s' % (datetime.fromtimestamp(result['at'], KST).strftime('%Y-%m-%d'), code)
     with _lock:
         _status['signalCount'] += 1
         _status['signals'] = (_status['signals'] + [item])[-20:]

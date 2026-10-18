@@ -93,6 +93,7 @@ class Observer:
             t.mae_pct = min(t.mae_pct, change)
         result = {'code': code, 'at': at, 'source': source, 'stage': t.stage,
                   'volumeMissing': missing, 'signal': False,
+                  'price': price,
                   'mfePct': t.mfe_pct, 'maePct': t.mae_pct}
         if missing or len(t.samples) < 2 or t.stage == 'signaled':
             return result

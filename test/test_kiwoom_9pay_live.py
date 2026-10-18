@@ -26,11 +26,12 @@ def test_disabled_start_does_not_launch(monkeypatch):
 def test_signal_dedupes_across_sources(monkeypatch):
     records = []
     monkeypatch.setattr(live, '_record', records.append)
-    result = {'code': '005930', 'at': 10, 'source': 'KIS rank polling',
+    result = {'code': '005930', 'at': 10, 'price': 100, 'source': 'KIS rank polling',
               'volumeMissing': False, 'mfePct': 0.0, 'maePct': 0.0, 'signal': True}
     seen = set()
     before = live.health_snapshot()['signalCount']
     live._handle_signal(result, seen)
     live._handle_signal(result, seen)
     assert len(records) == 1
+    assert records[0]['price'] == 100
     assert live.health_snapshot()['signalCount'] == before + 1
