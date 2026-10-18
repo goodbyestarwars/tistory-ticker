@@ -101,6 +101,7 @@ def flags(bars, daily_ctx):
     out['ABSORB'] = out['A2_intraday_higher_lows'] and out['A3_above_open_vwap'] and out['A4_close_near_high']
     out['DISTRIB'] = out['D1_drop_from_high'] or out['D2_long_upper_wick'] or (out['D3_giveback_half'] and out['D4_below_vwap'])
     out['_rise_pct'] = rise
+    out['_drawdown_pct'] = (hi / price - 1) * 100
     return out
 
 
@@ -205,6 +206,23 @@ def excess(rows, base_by_day, key):
     m = sum(days) / len(days)
     sd = (sum((x - m) ** 2 for x in days) / (len(days) - 1)) ** 0.5
     return {'mean': m, 'days': len(days), 't': m / (sd / len(days) ** 0.5) if sd else None}
+
+
+def defense_class(fl):
+    """09:30 확정 시점의 가격 방어 분류(09:00~09:29 분봉만). DROPPED: 장중 +3% 이상 오른 뒤 고점 대비 3% 이상 하락(D1). DEFENDED: 시가·VWAP 위에서 고점 대비 2% 이내.
+    MIXED: 그 밖. 사후(이후 가격)로 나누지 않는다 - 사후 구분은 신호가 아니라 설명용이다."""
+    if fl['D1_drop_from_high']:
+        return 'DROPPED'
+    if fl['A3_above_open_vwap'] and fl['_drawdown_pct'] < 2.0:
+        return 'DEFENDED'
+    return 'MIXED'
+
+
+def bucket(value, edges, labels):
+    for e, lab in zip(edges, labels):
+        if value < e:
+            return lab
+    return labels[-1]
 
 
 def stratum(ratio):
@@ -362,6 +380,44 @@ def run(bands_universe_path, bars_dir, cache_dir, out_path, hits_path=None):
             rows = [dict(r['fwd30'], day=r['day'], a_day=r['a_day'], w=r['w']) for r, f in flagged if f == want]
             out['overlap'][label + '_stats'] = {k: stats(rows, k) for k in ('m60', 'day_close', 'next_open', 'd5', 'a_day')}
             out['overlap'][label + '_excess'] = {k: excess(rows, base_by_day, k) for k in ('m60', 'day_close', 'd5')}
+    # 4-2) 가격 방어 성공 / 고점 대비 급락 / 혼합 (100% 돌파 이벤트, 09:30 확정)
+    out['defense'] = {}
+    for cls in ('DEFENDED', 'MIXED', 'DROPPED'):
+        sel = [r for r in ev if defense_class(r['fl']) == cls]
+        entry = {'n': len(sel), 'share': round(len(sel) / len(ev) * 100, 1) if ev else None}
+        for part, f in (('all', lambda r: True), ('train', lambda r: r['day'] < SPLIT), ('valid', lambda r: r['day'] >= SPLIT)):
+            rows = [dict(r['fwd30'], day=r['day'], a_day=r['a_day'], w=r['w']) for r in sel if f(r)]
+            entry[part] = {'stats': {k: stats(rows, k) for k in ('m60', 'day_close', 'next_open', 'd5', 'd10', 'a_day')},
+                           'excess': {k: excess(rows, base_by_day, k) for k in ('m60', 'day_close', 'd5')},
+                           'weighted': {k: wmean([(net(e.get(k)), e['w']) for e in rows]) for k in ('m60', 'day_close', 'd5')},
+                           'first': {x: sum(1 for e in rows if e.get('first') == x) for x in ('tp', 'sl', 'none')},
+                           'mfe': (sum(e['day_high'] for e in rows) / len(rows)) if rows else None, 'mae': (sum(e['day_low'] for e in rows) / len(rows)) if rows else None}
+        out['defense'][cls] = entry
+    # 4-3) 100% 돌파의 감지 프로필: 감지 시점 시가 대비 상승률·시가 갭 구간별 감지 후 성과
+    prof = {'by_rise_at_detection': {}, 'by_open_gap': {}, 'by_detect_time': {}}
+    labels_rise = ['<2%', '2~5%', '5~10%', '>=10%']
+    labels_gap = ['<0%', '0~2%', '2~5%', '>=5%']
+    labels_time = ['~09:10', '09:10~09:20', '09:20~09:30']
+    groups = {'by_rise_at_detection': (lambda r, c: bucket(c['rise_from_open'], [2, 5, 10], labels_rise), labels_rise),
+              'by_open_gap': (lambda r, c: bucket(r['open_gap'], [0, 2, 5], labels_gap), labels_gap),
+              'by_detect_time': (lambda r, c: bucket(c['time'], ['0910', '0920'], labels_time), labels_time)}
+    for gname, (fn, labs) in groups.items():
+        for lab in labs:
+            rows = [dict(c['fwd'], day=r['day'], w=r['w']) for r in records if '1.0' in r['cross'] for c in [r['cross']['1.0']] if c['fwd'] and fn(r, c) == lab]
+            prof[gname][lab] = {'n': len(rows), 'stats': {k: stats(rows, k) for k in ('m60', 'day_close', 'd5')},
+                                'excess': {k: excess(rows, base_by_day, k) for k in ('day_close', 'd5')}}
+    out['detect_profile'] = prof
+    # 4-4) 선택 편향 점검: 층별 이벤트 수·모집단 추정·0건 층의 상한(3의 법칙), 표본 평균 대 가중 평균
+    sel_chk = {}
+    for st in ('S1', 'S2', 'S3', 'S4', 'S5'):
+        rs = [r for r in records if r['stratum'] == st]
+        evs = [r for r in rs if '1.0' in r['cross']]
+        pop_n = sum(v.get(st, 0) for v in population.values()) if have_pop else None
+        est = sum(r['w'] for r in evs) if have_pop else None
+        sel_chk[st] = {'collected': len(rs), 'events100': len(evs), 'population': pop_n, 'est_events': round(est, 1) if est is not None else None,
+                       'event_rate_pct': round(len(evs) / len(rs) * 100, 2) if rs else None,
+                       'upper95_events_if_zero': (round(3 / len(rs) * pop_n, 0) if rs and not evs and pop_n else None)}
+    out['selection_check'] = sel_chk
     out['events_list'] = [{'code': r['code'], 'day': r['day'], 'time': r['cross']['1.0']['time'], 'stratum': r['stratum']} for r in records if '1.0' in r['cross']]
     json.dump(out, open(out_path, 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
     print('records', len(records), 'quality_dropped', quality_drop, 'events(100%)', len(out['events_list']))
