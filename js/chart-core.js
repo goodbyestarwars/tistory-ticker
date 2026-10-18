@@ -790,16 +790,111 @@
     };
   }
 
+  // ---- 이동평균 배열 추세 상태(2026-10-19 사용자 요청: 주가 예측이 아니라 추세를 보는 옵션) ----
+  //  장기 역배열 = MA20 < MA60 < MA120 < MA224 (주가가 크게 빠져 장기 추세가 하락), 장기 정배열 = 반대 순서.
+  //  단기 정배열 = MA5 > MA10 > MA20 (탄력이 붙음), 단기 역배열 = 반대 순서. 그 밖은 혼조.
+  //  전환 표시는 같은 상태가 3봉 연속 유지됐을 때 3번째 봉에 한 번 찍는다(그 봉까지의 종가만 쓴다, 미래 비참조). 매수·매도 신호가 아니다.
+  var TREND = { longBars: [20, 60, 120, 224], shortBars: [5, 10, 20], confirmBars: 3, highBars: 250 };
+
+  function trendMaSeries(bars, period) {
+    var out = new Array(bars.length), sum = 0, count = 0;
+    for (var i = 0; i < bars.length; i++) {
+      var c = accNumber(bars[i].close);
+      if (!isFinite(c)) { out[i] = null; sum = 0; count = 0; continue; }
+      sum += c; count++;
+      if (count > period) { sum -= accNumber(bars[i - period].close); count = period; }
+      out[i] = count === period ? sum / period : null;
+    }
+    return out;
+  }
+
+  // 반환: 봉마다 { long: 'reverse'|'forward'|'mixed'|null, short: 'forward'|'reverse'|'mixed'|null }
+  function trendStates(bars) {
+    var states = [];
+    if (!bars || !bars.length) return states;
+    var longMa = TREND.longBars.map(function (p) { return trendMaSeries(bars, p); });
+    var shortMa = TREND.shortBars.map(function (p) { return trendMaSeries(bars, p); });
+    function order(mas, i) {
+      var v = mas.map(function (m) { return m[i]; });
+      if (v.some(function (x) { return x === null || x === undefined; })) return null;
+      var up = true, down = true;
+      for (var k = 1; k < v.length; k++) { if (!(v[k] > v[k - 1])) up = false; if (!(v[k] < v[k - 1])) down = false; }
+      return up ? 'asc' : (down ? 'desc' : 'mixed');
+    }
+    for (var i = 0; i < bars.length; i++) {
+      var lo = order(longMa, i), sh = order(shortMa, i);
+      states.push({
+        long: lo === null ? null : (lo === 'asc' ? 'reverse' : (lo === 'desc' ? 'forward' : 'mixed')),    // MA20<MA60<MA120<MA224(오름차순) = 역배열
+        short: sh === null ? null : (sh === 'desc' ? 'forward' : (sh === 'asc' ? 'reverse' : 'mixed'))     // MA5>MA10>MA20(내림차순) = 정배열
+      });
+    }
+    return states;
+  }
+
+  // 마지막 봉 기준 현재 상태 + 250봉 고점 대비 하락률. 봉이 모자라면 해당 값은 null.
+  function trendSummary(bars) {
+    var states = trendStates(bars);
+    var last = states.length ? states[states.length - 1] : { long: null, short: null };
+    var dd = null;
+    if (bars && bars.length) {
+      var from = Math.max(0, bars.length - TREND.highBars), top = -Infinity;
+      for (var j = from; j < bars.length; j++) { var hj = accNumber(bars[j].high); if (isFinite(hj) && hj > top) top = hj; }
+      var cl = accNumber(bars[bars.length - 1].close);
+      if (isFinite(top) && top > 0 && isFinite(cl)) dd = (cl / top - 1) * 100;
+    }
+    return { long: last.long, short: last.short, drawdown: dd };
+  }
+
+  // 전환 표시: 장기 역배열 시작(파랑, 위), 단기 정배열 시작(빨강, 아래). 같은 상태가 confirmBars 연속일 때 그 마지막 봉에 한 번.
+  function trendMarkers(bars) {
+    var states = trendStates(bars), out = [];
+    function scan(key, want, build) {
+      var run = 0, fired = false;
+      for (var i = 0; i < states.length; i++) {
+        if (states[i][key] === want) {
+          run++;
+          if (run === TREND.confirmBars && !fired) { out.push(build(bars[i].date)); fired = true; }
+        } else { run = 0; fired = false; }
+      }
+    }
+    scan('long', 'reverse', function (date) { return { time: date, position: 'aboveBar', color: '#2563eb', shape: 'arrowDown', size: 1, text: '장기 역배열' }; });
+    scan('short', 'forward', function (date) { return { time: date, position: 'belowBar', color: '#dc2626', shape: 'arrowUp', size: 1, text: '단기 정배열' }; });
+    return out;
+  }
+
+  var TREND_LABEL = { long: { reverse: '장기 역배열', forward: '장기 정배열', mixed: '장기 혼조' }, short: { forward: '단기 정배열', reverse: '단기 역배열', mixed: '단기 혼조' } };
+  var TREND_COLOR = { long: { reverse: '#2563eb', forward: '#dc2626', mixed: '#8a9099' }, short: { forward: '#dc2626', reverse: '#2563eb', mixed: '#8a9099' } };
+
+  // 범례·배지 HTML(차트검색·종목분석 공통). 정배열은 빨강, 역배열은 파랑, 혼조는 회색.
+  function trendLegendHtml(summary) {
+    summary = summary || { long: null, short: null, drawdown: null };
+    var parts = [];
+    ['long', 'short'].forEach(function (key) {
+      var s = summary[key];
+      parts.push(s ? '<span style="color:' + TREND_COLOR[key][s] + '">' + TREND_LABEL[key][s] + '</span>' : '<span style="opacity:.6">' + (key === 'long' ? '장기' : '단기') + ' 데이터 부족</span>');
+    });
+    var dd = summary.drawdown === null || summary.drawdown === undefined || !isFinite(summary.drawdown) ? '—' : (summary.drawdown >= 0 ? '+' : '') + summary.drawdown.toFixed(1) + '%';
+    return '<span style="opacity:.75">추세</span> ' + parts.join(' · ') + '<span style="opacity:.7"> · 250일 고점 대비 <b>' + dd + '</b> (이평 배열, 신호 아님)</span>';
+  }
+
+  // 주 마커 홀더(holder)에 전환 표시를 건다. 대량거래 표시와 한 플러그인에 합쳐진다. enabled=false 면 전환 표시를 뺀다.
+  function setTrendMarkers(LWC, series, bars, enabled, holder) {
+    holder = holder || {};
+    holder.trend = enabled ? trendMarkers(bars) : [];
+    return setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
+  }
+
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
   // holder: { plugin, base, chart, container } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. chart·container 가 있으면 툴팁도 함께 건다.
   // 반환: {accumulation, wick, distribution} 개수(꺼져 있으면 0).
   function setAccumulationMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
+    holder.accEnabled = !!enabled;
     var acc = enabled ? accumulationMarkers(bars) : [];
     var counts = enabled ? accumulationSummary(bars) : { accumulation: 0, wick: 0, distribution: 0 };
     if (holder.tipCleanup) { holder.tipCleanup(); holder.tipCleanup = null; }
     if (enabled && holder.chart && holder.container) holder.tipCleanup = attachAccumulationTooltip(holder.chart, holder.container, bars);
-    var merged = (holder.base || []).concat(acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
+    var merged = (holder.base || []).concat(holder.trend || [], acc).sort(function (a, b) { return a.time < b.time ? -1 : a.time > b.time ? 1 : 0; });
     if (typeof LWC.createSeriesMarkers !== 'function') return counts;
     if (!holder.plugin) {
       if (!merged.length) return counts;
@@ -823,7 +918,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
