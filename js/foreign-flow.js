@@ -4373,7 +4373,7 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="이동평균 배열로 추세를 봅니다(주가 예측·매수 신호 아님). 장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224(주가가 크게 빠진 하락 추세, 파랑), 단기 정배열 = MA5 &gt; MA10 &gt; MA20(탄력이 붙음, 빨강). 같은 상태가 3봉 연속 유지되면 전환 표시를 한 번 찍고, 범례에 현재 상태와 250일 고점 대비 하락률을 보여줍니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세(이평 배열) 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2배 이상(거래대금 30억원 이상)인 봉이 바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)에서 나오면 주황 점으로 표시합니다. 250일 고가의 90% 이상인 신고가 구간은 제외합니다. 매집을 확정하는 것이 아니라 관찰용이며 매수 신호가 아닙니다(5년 일봉 시험에서 바닥권 표시는 이후 기준선보다 낮았습니다). 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 대량거래 흔적 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="일봉에서만 표시합니다. 거래량이 직전 20일 평균의 2배 이상(거래대금 30억원 이상)인 봉이 바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)에서 나오면 주황 점으로 표시합니다. 250일 고가의 90% 이상인 신고가 구간은 제외합니다. 매집을 확정하는 것이 아니라 관찰용이며 매수 신호가 아닙니다(5년 일봉 시험에서 바닥권 표시는 이후 기준선보다 낮았습니다). 봉 위에 십자선을 올리면 판단 수치가 나옵니다. 툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100이고, &quot;종가&quot;는 시가에서 종가까지의 변화율로 서로 다른 값입니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 대량 거래</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
         + '</div>'
@@ -4434,7 +4434,7 @@
     container.appendChild(badge);
   }
 
-  var accumulationEnabled = false;   // 대량거래 흔적 표시(2026-10-16) - 이벤트 마커와 한 플러그인에 합쳐 건다
+  var accumulationEnabled = false;   // 대량 거래 표시(2026-10-16) - 이벤트 마커와 한 플러그인에 합쳐 건다
   var flowMarkerHolder = null, flowMarkerCtx = null;
 
   function removeBollingerOverlay() {

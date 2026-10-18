@@ -622,7 +622,7 @@
   }
 
 
-  // ---- 대량 거래 흔적 표시 (2026-10-19 사용자 정의로 교체: 기존 대량 양봉·윗꼬리형·털기? 표시는 삭제) ----
+  // ---- 대량 거래 표시 (2026-10-19 사용자 정의로 교체: 기존 대량 양봉·윗꼬리형·털기? 표시는 삭제) ----
   // 매집이 확인된 것이 아니라 "거래량이 평소보다 크게 터진 봉이 바닥권 또는 횡보(박스권)에서 나왔다"는 관찰용 표시다. 그날까지의 정보만 쓴다.
   //  - 거래량 : 직전 20일 평균의 2배 이상 + 거래대금 30억원 이상.
   //  - 바닥권 : 종가가 최근 250봉 저가~고가 범위의 하위 30%.
@@ -741,7 +741,7 @@
   // 범례(차트검색·종목분석 공통): 색·이름·개수. 개수는 setAccumulationMarkers 가 돌려준 값이다.
   function accumulationLegendHtml(counts) {
     counts = counts || { accumulation: 0, bottom: 0, box: 0 };
-    return '<span style="color:' + ACCUMULATION.color + '">대량 거래 흔적 ● ' + ACC_MARKER.bottom.text + ' <b>' + counts.bottom + '</b> · ● ' + ACC_MARKER.box.text + ' <b>' + counts.box + '</b></span>'
+    return '<span style="color:' + ACCUMULATION.color + '">대량 거래 ● ' + ACC_MARKER.bottom.text + ' <b>' + counts.bottom + '</b> · ● ' + ACC_MARKER.box.text + ' <b>' + counts.box + '</b></span>'
       + '<span style="opacity:.7"> (관찰용 · 거래량 2배↑ · 신고가 구간 제외 · 고가 = 시가 대비 당일 고가)</span>';
   }
 
