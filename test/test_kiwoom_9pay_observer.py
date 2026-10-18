@@ -1,7 +1,7 @@
 import importlib.util
 from pathlib import Path
 
-path = Path(__file__).parents[1] / 'scripts/research/kiwoom_9pay_observer.py'
+path = Path(__file__).parents[1] / 'scripts/cloud-vm/kiwoom_9pay_observer.py'
 spec = importlib.util.spec_from_file_location('observer', path)
 module = importlib.util.module_from_spec(spec)
 import sys

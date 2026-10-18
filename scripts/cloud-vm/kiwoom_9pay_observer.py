@@ -118,4 +118,5 @@ class Observer:
                 t.mfe_pct = t.mae_pct = 0.0
                 result['signal'] = True
         result['stage'] = t.stage
+        result['mfePct'], result['maePct'] = t.mfe_pct, t.mae_pct
         return result

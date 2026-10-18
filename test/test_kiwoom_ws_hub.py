@@ -132,6 +132,12 @@ class KiwoomWsHubTests(unittest.TestCase):
             self.assertEqual(event, {'type': 'quote', 'code': '005930', 'price': 397000.0,
                                      'change': -3000.0, 'changeRate': -0.75, 'source': 'Kiwoom WebSocket'})
 
+            research = hub.subscribe(['005930'], include_volume=True)
+            await fake.send_all(REAL_005930)
+            research_event = await asyncio.wait_for(research.queue.get(), 3)
+            self.assertEqual(research_event['volume'], 300.0)
+            research.close()
+
             other = hub.subscribe(['000660'])
             await fake.send_all(REAL_005930)
             await asyncio.wait_for(sub.queue.get(), 3)
