@@ -4,7 +4,7 @@
 #pattern-scan .ps-scanner-menu { display: grid; gap: 12px; min-width: 0; }
 #pattern-scan .ps-primary-choice { display: flex; align-items: center; }
 #pattern-scan .ps-legacy-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; min-width: 0; }
-#pattern-scan .ps-legacy-heading { font-size: 12px; font-weight: 600; color: var(--ui-muted, #64748b); white-space: nowrap; }
+#pattern-scan .ps-legacy-heading { padding-left: 14px; font-size: 12px; font-weight: 600; color: var(--ui-muted, #64748b); white-space: nowrap; }
 html body #pattern-scan .ps-scanner-menu .ps-tabs { flex-wrap: nowrap !important; max-width: 100% !important; min-width: 0; }
 html body #pattern-scan .ps-scanner-menu .ps-tabs .ps-tab { flex: 0 0 auto; white-space: nowrap; }
 html body #pattern-scan .ps-scanner-menu .ps-primary-choice .ps-tab {
