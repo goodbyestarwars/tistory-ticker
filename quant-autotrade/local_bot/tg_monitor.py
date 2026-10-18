@@ -21,6 +21,8 @@ from datetime import timedelta
 
 import tg_data
 import tg_format as F
+import tg_live_orders
+import tg_volume_surge
 from bot import MSG_ORDER_FAILED, MSG_ORDER_REJECTED
 from tg_notify import fmt_duration
 from tg_views import Views, recent_errors
@@ -67,7 +69,7 @@ class Monitor:
             self.streaks.clear()           # PC 절전에서 깬 직후의 오래된 값으로 경고를 내지 않는다
         self._last_tick = now
         for name, fn in (('events', self.watch_bot_events), ('positions', self.watch_positions), ('health', self.watch_bot_health),
-                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('scan', self.watch_scan_done),
+                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('liveorders', self.watch_live_orders), ('surge', self.watch_volume_surge), ('scan', self.watch_scan_done),
                          ('pc', self.watch_pc)):
             try:
                 fn()
@@ -310,6 +312,58 @@ class Monitor:
         level = 'critical' if any(e['level'] == 'critical' for e in events) else ('warn' if alert else 'info')
         svc.notifier.notify(key, F.fmt_live_events(events, svc.now_dt()), category, level)   # 같은 key 는 대기열이 한 번만 받는다
         t.kv_set('lp_last_id', events[-1]['id'])
+
+    # ---- 5-3) 실계좌 엔진 매수·매도 주문 (2026-10-18) ----
+    def watch_live_orders(self):
+        """PC 실계좌 엔진의 장부(live_orders.db intents)를 읽기 전용으로 읽어 오늘 주문을 알린다. 단계(접수·부분/전량 체결·거부·실패)나
+        확인된 체결이 바뀌면 알림 키가 달라져 한 번 더 나가고, 같으면 대기열이 중복을 막는다(재시작 후에도 같다). 엔진은 건드리지 않는다."""
+        svc = self.svc
+        path = os.path.join(svc.base_dir, 'live_orders.db')
+        if not os.path.exists(path):
+            return
+        now_dt = svc.now_dt()
+        intents = tg_live_orders.read_intents(path, now_dt.strftime('%Y-%m-%d'))
+        if not intents:
+            return
+        fills = tg_live_orders.read_fills(svc.base_dir)
+        for intent in intents:
+            try:
+                name = self._name(intent['code']) or self._saved_name(intent['code'])
+                key, data = tg_live_orders.build(intent, intents, fills, name)
+                svc.notifier.notify(key, tg_live_orders.fmt_live_order(data, now_dt), 'order', 'critical')
+            except Exception as exc:
+                log.error('실계좌 주문 %s 알림 처리 실패: %s', intent.get('id'), type(exc).__name__)
+
+    def _saved_name(self, code):
+        """order_names.json(운영센터가 쌓는 종목명 사전). 못 찾으면 None - 알림에는 종목코드가 항상 들어간다."""
+        try:
+            import json
+            with open(os.path.join(self.svc.base_dir, 'order_names.json'), encoding='utf-8') as f:
+                data = json.load(f)
+            value = data.get(code) if isinstance(data, dict) else None
+            return value if isinstance(value, str) and value.strip() else None
+        except (OSError, ValueError):
+            return None
+
+    # ---- 5-4) 거래량 급증 관찰 알림 (2026-10-18) ----
+    def watch_volume_surge(self):
+        """VM 장중 감시(volume_surge_live)의 실시간 감지 행을 관찰용 알림으로 보낸다. 새 스캔을 하지 않고, 30초 이상 간격으로 공개 응답만 읽는다.
+        같은 거래일·종목·감지 시각은 알림 키가 같아 한 번만 나가고 재시작 뒤에도 같다. 주문·판단에는 영향이 없다."""
+        svc, t = self.svc, self.svc.tstore
+        now_dt = svc.now_dt()
+        if not tg_volume_surge.in_session(now_dt):
+            return
+        now = svc.clock()
+        last = t.kv_get('surge_last_fetch') or 0
+        if now - last < tg_volume_surge.POLL_MIN_SEC:
+            return
+        t.kv_set('surge_last_fetch', now)
+        fetch = getattr(svc, 'surge_fetch', None) or tg_volume_surge.fetch
+        payload = fetch()                       # 실패는 tick 이 삼켜 다음 주기에 다시 시도한다
+        for d in tg_volume_surge.live_detections(payload):
+            d['name'] = d.get('name') or self._name(d['code']) or self._saved_name(d['code'])
+            if svc.notifier.notify(tg_volume_surge.alert_key(d), tg_volume_surge.fmt_surge(d, now_dt), 'general', 'info'):
+                tg_volume_surge.record(t, d, now)
 
     # ---- 6) 스캔 정상 완료 -> 종목 선정 + 일일 보고서 ----
     def watch_scan_done(self):
