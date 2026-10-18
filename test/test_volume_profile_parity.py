@@ -120,9 +120,10 @@ class MyUsesStockAnalysisVolumeProfileTests(unittest.TestCase):
     def test_my_average_and_visible_maximum_match_the_rendered_rows(self):
         flow = _read('js/foreign-flow.js')
         parts = [_function(flow, name) for name in (
-            'compactAptProfileBins', 'buildAptOrderBookRows', 'buildSimpleVolumeProfileHtml')]
+            'compactAptProfileBins', 'buildAptOrderBookRows', 'buildMiniProfileSvg_', 'krxTickSize', 'buildSimpleVolumeProfileHtml')]
         parts.append('''
 function compactChartVolume(value) { return String(value); }
+function escapeAttr(value) { return String(value); }
 const bins = Array.from({ length: 24 }, (_, i) => ({
   low: 100 + i * 10, high: 110 + i * 10,
   volume: i === 0 ? 90 : (i === 2 || i === 3 ? 60 : 1)
@@ -159,7 +160,7 @@ console.log(JSON.stringify({
     def test_my_page_loads_the_same_chart_styles(self):
         main = _read('js/skin-main.js')
         style = _read('css/foreign-flow.css')
-        self.assertIn("css/foreign-flow.css?v=20260915-vp-host-v1", main)
+        self.assertIn("css/foreign-flow.css?v=20261019-vp-an1", main)
         self.assertIn("link[data-foreign-flow-css]", main)
         for selector in (':is(#foreign-flow, .ff-vp-host) .ff-apt-simple-row {',
                          ':is(#foreign-flow, .ff-vp-host) .ff-apt-chart-wrap.ff-apt-simple {',
