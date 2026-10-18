@@ -819,6 +819,8 @@
       host.textContent = '';
       indexChart = LWC.createChart(host, { autoSize: true, height: 440,
         layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
+        // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
+        crosshair: { mode: LWC.CrosshairMode.Normal },
         timeScale: { borderVisible: false } });
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
