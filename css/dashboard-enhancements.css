@@ -207,8 +207,15 @@
 .de-chart-stock-form { display: flex; flex: 1 1 520px; max-width: 520px; gap: 6px; min-width: 0; }
 .de-chart-stock-form input { flex: 1 1 auto; width: 100%; min-width: 0; min-height: 48px; padding: 12px 15px; border: 1px solid #bbc5d0; border-radius: 9px; font: inherit; font-size: 16px; }
 .de-chart-stock-nav button { min-height: 48px; padding: 10px 15px; border: 1px solid #bbc5d0; border-radius: 9px; background: transparent; color: inherit; cursor: pointer; white-space: nowrap; }
-.de-chart-stock-current { flex: 0 1 130px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-@media (max-width: 640px) { .de-chart-modal-head { flex-wrap: wrap; gap: 8px; padding-right: 10px; padding-left: 10px; } .de-chart-restore { order: 1; margin-left: auto; } .de-chart-close { order: 1; } .de-chart-bar-zoom { order: 2; } .de-chart-stock-nav { order: 3; flex-basis: 100%; } .de-chart-stock-form { flex: 1 1 100%; } .de-chart-stock-form input { font-size: 16px; } .de-chart-stock-current { display: none; } }
+.de-chart-stock-current { flex: 0 1 auto; min-width: 0; white-space: nowrap; }
+.de-chart-stock-quote { display: inline-flex; align-items: baseline; gap: 8px; flex: 0 0 auto; white-space: nowrap; }
+.de-chart-stock-quote[hidden] { display: none; }
+.de-chart-stock-price { font-size: 17px; font-weight: 700; }
+.de-chart-stock-quote.is-up { color: #d24f45; }
+.de-chart-stock-quote.is-down { color: #1261c4; }
+.de-chart-stock-quote.is-flat { color: #6b7480; }
+@media (max-width: 1100px) { .de-chart-stock-nav { flex-wrap: wrap; } .de-chart-stock-form { flex: 1 1 100%; max-width: none; } }
+@media (max-width: 640px) { .de-chart-modal-head { flex-wrap: wrap; gap: 8px; padding-right: 10px; padding-left: 10px; } .de-chart-restore { order: 1; margin-left: auto; } .de-chart-close { order: 1; } .de-chart-bar-zoom { order: 2; } .de-chart-stock-nav { order: 3; flex-basis: 100%; } .de-chart-stock-form { flex: 1 1 100%; } .de-chart-stock-form input { font-size: 16px; } .de-chart-stock-current { white-space: normal; } }
 .de-chart-bar-zoom { display: flex; flex: 0 0 auto; align-items: center; gap: 3px; margin-left: auto; }
 .de-chart-stock-nav + .de-chart-bar-zoom { margin-left: 0; }
 .de-chart-bar-zoom button { min-width: 32px; padding: 6px 7px; border: 1px solid #bbc5d0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }

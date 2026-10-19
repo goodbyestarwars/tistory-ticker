@@ -284,23 +284,47 @@
     var patternScope = null;
     var stockSearchApi = stockRoot && global.StockSearch;
     var selectionListener = null;
+    var quoteListener = null;
     if (chartTarget && chartTarget.id === 'ssChart' && stockSearchApi && typeof stockSearchApi.fullscreenSelection === 'function') {
       var head = overlay.querySelector('.de-chart-modal-head');
       var nav = document.createElement('div');
       nav.className = 'de-chart-stock-nav';
       nav.innerHTML = '<form class="de-chart-stock-form"><input type="search" aria-label="종목명 또는 종목코드" placeholder="종목명 · 코드 검색" /><button type="submit">검색</button></form>'
-        + '<span class="de-chart-stock-current" aria-live="polite"></span>';
+        + '<span class="de-chart-stock-current" aria-live="polite"></span>'
+        + '<span class="de-chart-stock-quote" aria-live="polite"><strong class="de-chart-stock-price"></strong><span class="de-chart-stock-rate"></span></span>';
       head.insertBefore(nav, head.querySelector('.de-chart-bar-zoom') || head.querySelector('.de-chart-restore'));
       var input = nav.querySelector('input');
       var current = nav.querySelector('.de-chart-stock-current');
+      var quoteBox = nav.querySelector('.de-chart-stock-quote');
+      var price = nav.querySelector('.de-chart-stock-price');
+      var rate = nav.querySelector('.de-chart-stock-rate');
+      var selectedCode = null;
+      function showQuote(quote) {
+        var value = Number(quote && quote.price);
+        var changeRate = Number(quote && quote.changeRate);
+        var valid = quote && quote.price != null && quote.changeRate != null
+          && Number.isFinite(value) && Number.isFinite(changeRate) && value > 0;
+        quoteBox.hidden = !valid;
+        if (!valid) { price.textContent = ''; rate.textContent = ''; return; }
+        price.textContent = value.toLocaleString('ko-KR') + '원';
+        rate.textContent = changeRate > 0 ? '▲ +' + changeRate.toFixed(2) + '%'
+          : changeRate < 0 ? '▼ ' + changeRate.toFixed(2) + '%' : '0.00%';
+        quoteBox.className = 'de-chart-stock-quote ' + (changeRate > 0 ? 'is-up' : changeRate < 0 ? 'is-down' : 'is-flat');
+      }
       function showSelection(selection) {
         if (!selection) return;
+        selectedCode = selection.code;
         current.textContent = (selection.name || '') + ' (' + (selection.code || '') + ')';
         input.value = selection.name || selection.code || '';
+        showQuote(selection);
       }
       showSelection(stockSearchApi.currentSelection());
       selectionListener = function (event) { showSelection(event.detail); };
       document.addEventListener('nine-stock-selection', selectionListener);
+      quoteListener = function (event) {
+        if (event.detail && event.detail.code === selectedCode) showQuote(event.detail);
+      };
+      document.addEventListener('nine-stock-quote', quoteListener);
       nav.querySelector('form').addEventListener('submit', function (event) {
         event.preventDefault();
         var selected = stockSearchApi.fullscreenSelection(input.value);
@@ -389,6 +413,7 @@
       overlay.remove();
       document.removeEventListener('keydown', onKeydown);
       if (selectionListener) document.removeEventListener('nine-stock-selection', selectionListener);
+      if (quoteListener) document.removeEventListener('nine-stock-quote', quoteListener);
       if (usChartModal && global.UsStocks && global.UsStocks.commitFullscreenChart) global.UsStocks.commitFullscreenChart();
       requestAnimationFrame(function () {
         global.dispatchEvent(new Event('resize'));

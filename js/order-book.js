@@ -102,6 +102,7 @@
     wallTrack: null,     // { price, samples:[{t,qty}], execs:[{t,qty}] } - 성벽 잔량 변화·체결량 창
     summary: null,
     summaryGeneration: 0,
+    quoteOnly: false,
     onQuote: null // 2026-08-05: 이 위젯을 임베드하는 상위 페이지(js/stock-search.js)가 자기
                   // 화면의 가격 표시도 같은 틱으로 갱신하고 싶을 때 쓰는 훅. 상위 페이지가
                   // 별도로 wss://.../ws/quotes 소켓을 또 열면(같은 코드에 소켓 2개) 두 소켓의
@@ -133,6 +134,7 @@
     if (!container) return;
     container.innerHTML = buildShell(opts);
     state.onQuote = (opts && opts.onQuote) || null;
+    state.quoteOnly = !!(opts && opts.quoteOnly);
     if (!opts || !opts.hideSearch) wireSearch(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuote();
@@ -300,11 +302,14 @@
     if (milestoneBox) milestoneBox.innerHTML = '';
     resetHud(container);
 
-    tick(container);
-    state.timer = setInterval(function () { tick(container); }, POLL_MS);
+    if (!state.quoteOnly) {
+      tick(container);
+      state.timer = setInterval(function () { tick(container); }, POLL_MS);
+    }
     startRealtimeQuote(container, code);
 
     // OHLC summary is loaded once per selected stock; quote polling remains lightweight.
+    if (state.quoteOnly) return;
     var summaryGeneration = state.summaryGeneration;
     fetchSummary(code).then(function (summary) {
       if (state.code !== code || state.summaryGeneration !== summaryGeneration) return;

@@ -1234,7 +1234,10 @@
     }
     state.selectedCode = item.code;
     state.selectedName = item.name;
-    document.dispatchEvent(new CustomEvent('nine-stock-selection', { detail: { code: item.code, name: item.name } }));
+    delete state.liveQuotes[item.code];
+    document.dispatchEvent(new CustomEvent('nine-stock-selection', { detail: {
+      code: item.code, name: item.name, price: item.price, changeRate: item.changeRate
+    } }));
     state.minuteScope = '1';
     state.externalMinuteLoader = null;
     var chartNotice = container.querySelector('#ssChartNotice');
@@ -1249,17 +1252,18 @@
     if (!isIndependentChartMode()) {
       renderSummary(container, item);
       loadPriceReason(container, item);
-
-      var ladderBox = container.querySelector('#order-book');
-      if (!state.ladderMounted && global.OrderBook) {
-        global.OrderBook.init('#order-book', {
-          hideSearch: true,
-          onQuote: function (quote) { applyRealtimeQuote(container, quote); }
-        });
-        state.ladderMounted = true;
-      }
-      if (global.OrderBook && ladderBox) global.OrderBook.select(ladderBox, item.code, item.name);
     }
+
+    var ladderBox = container.querySelector('#order-book');
+    if (!state.ladderMounted && global.OrderBook && ladderBox) {
+      global.OrderBook.init('#order-book', {
+        hideSearch: true,
+        quoteOnly: isIndependentChartMode(),
+        onQuote: function (quote) { applyRealtimeQuote(container, quote); }
+      });
+      state.ladderMounted = true;
+    }
+    if (global.OrderBook && ladderBox) global.OrderBook.select(ladderBox, item.code, item.name);
 
     loadChart(container, item.code);
     if (!isIndependentChartMode()) loadDomesticNews(container, item);
@@ -1420,7 +1424,7 @@
   }
 
   function applyRealtimeQuote(container, quote) {
-    if (state.selectedCode !== quote.code || typeof quote.price !== 'number') return;
+    if (state.selectedCode !== quote.code || !Number.isFinite(quote.price)) return;
     state.liveQuotes[quote.code] = quote;
 
     // 검색 결과는 GAS 조회 시점의 스냅샷이고 상세 상단은 WebSocket 체결가이므로,
@@ -1454,12 +1458,14 @@
     }
 
     var box = container.querySelector('#ssSummary');
-    if (!box) return;
     var cls = signClass(quote.changeRate);
-    var priceEl = box.querySelector('.ss-summary-price');
+    var priceEl = box && box.querySelector('.ss-summary-price');
     if (priceEl) { priceEl.textContent = fmtPrice(quote.price) + '원'; priceEl.className = 'ss-summary-price ' + cls; }
-    var changeEl = box.querySelector('.ss-summary-change');
+    var changeEl = box && box.querySelector('.ss-summary-change');
     if (changeEl) { changeEl.textContent = fmtSignedPct(quote.changeRate); changeEl.className = 'ss-summary-change ' + cls; }
+    document.dispatchEvent(new CustomEvent('nine-stock-quote', { detail: {
+      code: quote.code, price: quote.price, changeRate: quote.changeRate
+    } }));
     updateLiveChartQuote(quote.code, quote);
     updateStockSrReference(quote.price);
   }
@@ -2798,7 +2804,7 @@
     var item = (state.lastResults || []).filter(function (row) { return row.code === map[match]; })[0]
       || { name: match, code: map[match], price: null, changeRate: null, sectors: lookupSectors(map[match]) };
     selectStock(container, item);
-    return { code: item.code, name: item.name };
+    return { code: item.code, name: item.name, price: item.price, changeRate: item.changeRate };
   }
 
   function fullscreenAdjacent(direction) {
@@ -2822,7 +2828,12 @@
   if (global.StockSearch) {
     global.StockSearch.fullscreenSelection = fullscreenSelection;
     global.StockSearch.fullscreenAdjacent = fullscreenAdjacent;
-    global.StockSearch.currentSelection = function () { return { code: state.selectedCode, name: state.selectedName || localizedUsName(state.selectedCode) }; };
+    global.StockSearch.currentSelection = function () {
+      var item = (state.lastResults || []).filter(function (row) { return row.code === state.selectedCode; })[0] || {};
+      var quote = state.liveQuotes[state.selectedCode] || item;
+      return { code: state.selectedCode, name: state.selectedName || localizedUsName(state.selectedCode),
+        price: quote.price, changeRate: quote.changeRate };
+    };
   }
   global.StockSearchChart = { mount: mountExternalChart, updateQuote: updateLiveChartQuote };
 
