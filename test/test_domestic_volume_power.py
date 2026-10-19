@@ -13,7 +13,7 @@ class VolumePowerTests(TestCase):
             rows = kis_client.fetch_domestic_volume_power_rank('t','k','s')
         args = call.call_args.args
         self.assertEqual(args[3:5], ('/uapi/domestic-stock/v1/ranking/volume-power','FHPST01680000'))
-        self.assertEqual(args[5]['FID_TRGT_EXLS_CLS_CODE'], '0')
+        self.assertEqual(args[5]['FID_TRGT_EXLS_CLS_CODE'], '0000000001')
         self.assertEqual(args[5]['FID_COND_MRKT_DIV_CODE'], 'J')
         self.assertEqual(rows[0]['tday_rltv'], '123.45')
         self.assertEqual(call.call_count, 1)
@@ -53,3 +53,15 @@ class VolumePowerTests(TestCase):
 
     def test_empty_strength_rank_is_empty(self):
         self.assertEqual(self.board()['sections']['volumePower'],[])
+
+    def test_etf_exclusion_mask(self):
+        with mock.patch.object(kis_client, '_get_domestic_quote', return_value={'output': []}) as call:
+            kis_client.fetch_domestic_volume_power_rank('t','k','s',exclude_etf=True)
+        self.assertEqual(call.call_args.args[5]['FID_TRGT_EXLS_CLS_CODE'], '0000001101')
+
+    def test_spac_defense_filter(self):
+        rows = self.board([
+            {'stck_shrn_iscd':'123456','hts_kor_isnm':'테스트스팩12호','tday_rltv':'999'},
+            {'stck_shrn_iscd':'000660','hts_kor_isnm':'SK하이닉스','tday_rltv':'300'}])['sections']
+        for key in ('volumePower', 'volumePowerStocks'):
+            self.assertEqual([r['code'] for r in rows[key]], ['000660'])
