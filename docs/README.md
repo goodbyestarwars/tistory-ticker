@@ -9,6 +9,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../ARCHITECTURE.md` | 인프라, 호출 흐름, 배포 경로 | 구조·배포 작업 |
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
+| `SUPPLY_TRACE_CHART_2026-10-19.md` | 수급 흔적 차트: 3배 거래량·112/224/448 장기선·윗꼬리 후 회복 기준과 로컬 검증 | 차트 표시 |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
 | `DOMESTIC_VOLUME_POWER.md` | 국내 실시간 종목판 체결강도 순위 API·공유 캐시·PC/모바일 표시 | 체결강도 탭 |
 | `NINEPAY_SCANNER_AB_2026-10-19.md` | 기존 검색기 메뉴의 단타/스윙/중장기 분류, 장초반 70% A OR B·화면 계약·#761 충돌 검토(웹/VM 배포 완료) | 장중 검색기 UI·조건 |

@@ -121,14 +121,14 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
     def test_both_screens_share_core_tooltip_legend_and_title(self):
         stock = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
         flow = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
-        self.assertIn('core.accumulationLegendHtml(accCounts)', stock)
-        self.assertIn('setAccumulationMarkers(', flow)
-        sentence = '바닥권(종가가 250일 범위 하위 30%) 또는 횡보(60일 고저 폭 25% 이하, 250일 범위 하위 60%)'
-        self.assertIn(sentence, stock)
-        self.assertIn(sentence, flow)
-        self.assertIn('툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100', stock)
-        self.assertIn('툴팁의 &quot;고가&quot;는 (당일 고가 ÷ 당일 시가 − 1)×100', flow)
-        self.assertNotIn('대량 양봉', stock[stock.index('ssAccumulationToggle') - 1500:stock.index('ssAccumulationToggle') + 200])
+        self.assertIn('core.supplyTraceLegendHtml(accCounts)', stock)
+        self.assertIn('setSupplyTraceMarkers(', flow)
+        for source in (stock, flow):
+            self.assertIn('수급 흔적</label>', source)
+            self.assertIn('직전 20일 평균 3배 이상', source)
+            self.assertIn('종가×거래량 대용값', source)
+            self.assertNotIn('setAccumulationMarkers(', source)
+
 
 
 if __name__ == '__main__':

@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-14-core-4';
+  var VERSION = '2026-10-19-supply-1';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -902,7 +902,7 @@
   function setTrendMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
     holder.trend = enabled ? trendMarkers(bars) : [];
-    return setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
+    return Object.prototype.hasOwnProperty.call(holder, 'supplyEnabled') ? setSupplyTraceMarkers(LWC, series, bars, holder.supplyEnabled, holder) : setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
@@ -926,7 +926,126 @@
     return counts;
   }
 
+
+  // 수급 흔적: OHLCV 관찰용. 이전 accumulation* API는 비교·롤백용으로 보존한다.
+  var SUPPLY_TRACES = { volumePeriod: 20, volumeMultiple: 3, maPeriods: [112, 224, 448],
+    approachPct: 2, crossPct: 1, followBars: 20, upperWickPct: 40, lowTolerancePct: 2,
+    color: '#e8590c' };
+  function supplyTraceBars(bars) {
+    bars = bars || [];
+    var cfg = SUPPLY_TRACES, hits = [], pending = [], volumes = [], closes = [];
+    var states = cfg.maPeriods.map(function () { return { side: 0, near: false, broken: null }; });
+    bars.forEach(function (b, i) {
+      var o = accNumber(b.open), h = accNumber(b.high), l = accNumber(b.low), c = accNumber(b.close), v = accNumber(b.volume);
+      var valid = [o,h,l,c].every(function (x) { return isFinite(x) && x > 0; }) && h >= Math.max(o,c) && l <= Math.min(o,c) && h >= l;
+      var volValid = isFinite(v) && v >= 0;
+      var prior = volumes.slice(-cfg.volumePeriod);
+      var avg = prior.length === cfg.volumePeriod && prior.every(function (x) { return isFinite(x); }) ? prior.reduce(function (a,x) { return a+x; },0)/cfg.volumePeriod : NaN;
+      var multiple = volValid && avg > 0 ? v/avg : null;
+      volumes.push(volValid ? v : NaN);
+      closes.push(valid ? c : NaN);
+      if (!valid) { pending = []; states = cfg.maPeriods.map(function () { return { side:0, near:false, broken:null }; }); return; }
+      var hit = { index:i, date:b.date || b.time, multiple:multiple, amount:volValid ? c*v : null,
+        candle:c>o?'양봉':c<o?'음봉':'보합', wickPct:h>l?(h-Math.max(o,c))/(h-l)*100:0,
+        volumeSurge:multiple !== null && multiple >= cfg.volumeMultiple, longMA:[], recoveries:[] };
+      pending = pending.filter(function (a) {
+        if (i-a.index > cfg.followBars || l < a.low*(1-cfg.lowTolerancePct/100)) return false;
+        if (c > a.high) { hit.recoveries.push({ date:a.date, index:a.index, elapsed:i-a.index, low:a.low, high:a.high }); return false; }
+        return true;
+      });
+      cfg.maPeriods.forEach(function (period, k) {
+        var window = closes.slice(-period), st = states[k];
+        if (window.length !== period || !window.every(function (x) { return isFinite(x); })) return;
+        var ma = window.reduce(function (a,x) { return a+x; },0)/period, distance = (c/ma-1)*100;
+        var near = Math.abs(distance) <= cfg.approachPct;
+        var side = distance >= cfg.crossPct ? 1 : distance <= -cfg.crossPct ? -1 : 0;
+        var action = null;
+        if (st.broken && i-st.broken.index > cfg.followBars) st.broken = null;
+        if (side === -1 && st.side === 1) { action='이탈'; st.broken={index:i, ma:ma}; }
+        if (side === 1 && st.side === -1) {
+          action = st.broken && c >= st.broken.ma ? '회복' : '돌파';
+          st.broken=null;
+        }
+        if (!action && near && !st.near) action='접근';
+        if (action) hit.longMA.push({period:period, action:action, ma:ma, distance:distance});
+        if (side) st.side=side;
+        else if (!st.side) st.side=distance <= 0 ? -1 : 1;
+        st.near=near;
+      });
+      if (hit.volumeSurge && hit.wickPct >= cfg.upperWickPct) pending.push({index:i,date:hit.date,low:l,high:h});
+      if (hit.volumeSurge || hit.longMA.length || hit.recoveries.length) hits.push(hit);
+    });
+    return hits;
+  }
+  function supplyTraceMarkers(bars, hits) {
+    var markers=[];
+    (hits || supplyTraceBars(bars)).forEach(function (h) {
+      if (h.volumeSurge) markers.push({time:h.date,position:'belowBar',color:SUPPLY_TRACES.color,shape:'circle',size:0.7,text:'거래량 급증'});
+      if (h.longMA.length) markers.push({time:h.date,position:'aboveBar',color:'#7950b2',shape:'square',size:0.7,text:h.longMA.map(function (m) { return m.period+' '+m.action; }).join(' · ')});
+      if (h.recoveries.length) markers.push({time:h.date,position:'belowBar',color:CANDLE_UP,shape:'arrowUp',size:0.7,text:'회복 확인'});
+    });
+    return markers;
+  }
+  function supplyTraceSummary(bars, hits) {
+    hits=hits || supplyTraceBars(bars);
+    var result={bars:hits.length, volume:0, longMA:0, recovery:0, unavailable:[]};
+    hits.forEach(function (h) { if(h.volumeSurge)result.volume++; if(h.longMA.length)result.longMA++; if(h.recoveries.length)result.recovery++; });
+    SUPPLY_TRACES.maPeriods.forEach(function (p) {
+      var tail=(bars || []).slice(-p);
+      if(tail.length<p || tail.some(function(b){var o=accNumber(b.open),h=accNumber(b.high),l=accNumber(b.low),c=accNumber(b.close);return ![o,h,l,c].every(function(x){return isFinite(x)&&x>0;})||h<Math.max(o,c)||l>Math.min(o,c)||h<l;}))result.unavailable.push(p);
+    });
+    return result;
+  }
+  function supplyTraceLegendHtml(counts) {
+    counts=counts || {volume:0,longMA:0,recovery:0,unavailable:[]};
+    return '<span style="color:#e8590c">● 거래량 급증 '+counts.volume+'</span> · <span style="color:#7950b2">■ 장기선 공방 '+counts.longMA+'</span> · <span style="color:'+CANDLE_UP+'">▲ 회복 확인 '+counts.recovery+'</span><span style="opacity:.75"> · 관찰용·매집 확정 아님'+(counts.unavailable.length?' · 장기선 데이터 부족: '+counts.unavailable.join('/'):'')+'</span>';
+  }
+  function supplyEscape(value) { return String(value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function supplyTraceTooltipHtml(h) {
+    if (!h) return '';
+    var out='<b>'+supplyEscape(h.date)+' · 수급 흔적</b><br>';
+    if(h.volumeSurge)out+='<b style="color:#e8590c">● 거래량 급증</b><br>';
+    out+='거래량 '+(h.multiple===null?'—':h.multiple.toFixed(2)+'배')+' (직전 20일 평균)<br>거래대금 '+(h.amount===null?'—':(h.amount/100000000).toFixed(2)+'억원')+' (종가×거래량 대용값)<br>'+h.candle+' · 윗꼬리 '+h.wickPct.toFixed(1)+'% (고저 범위 대비)<br>';
+    if(h.volumeSurge && h.wickPct>=SUPPLY_TRACES.upperWickPct)out+='매물 소화 의심 추적 시작 (미확인)<br>';
+    if(h.longMA.length)out+='<b style="color:#7950b2">■ 장기선 공방</b><br>'+h.longMA.map(function(m){return m.period+'일선 '+m.action+' · '+Math.round(m.ma).toLocaleString()+'원 ('+accSigned(m.distance)+')';}).join('<br>')+'<br>';
+    if(h.recoveries.length)out+='<b style="color:'+CANDLE_UP+'">▲ 회복 확인</b><br>'+h.recoveries.map(function(a){return supplyEscape(a.date)+' 윗꼬리봉 이후 '+a.elapsed+'거래일<br>저점 '+a.low.toLocaleString()+'원 대비 -2% 이내 방어·종가가 고가 '+a.high.toLocaleString()+'원 초과';}).join('<br>')+'<br>';
+    return out+'<small>일봉 OHLCV 관찰용 · 실제 매집·세력 매수 확정 및 매수 신호 아님<br>진행 중 일봉은 종가 확정 전 변할 수 있음</small>';
+  }
+  function attachSupplyTraceTooltip(chart, container, bars, hits) {
+    var byDate={}; (hits || supplyTraceBars(bars)).forEach(function(h){byDate[h.date]=h;});
+    var tip=document.createElement('div'); tip.className='nine-acc-tip nine-supply-tip';
+    tip.style.cssText='position:absolute;z-index:30;display:none;box-sizing:border-box;padding:9px;border:1px solid #888;border-radius:6px;background:rgba(255,255,255,.97);color:#222;font-size:11px;line-height:1.5;overflow:auto;pointer-events:auto;';
+    container.appendChild(tip);
+    function handler(param) {
+      var time=param && param.time;
+      if(time && typeof time==='object')time=time.year+'-'+String(time.month).padStart(2,'0')+'-'+String(time.day).padStart(2,'0');
+      var hit=byDate[time], point=param && param.point;
+      if(!hit || !point || point.x<0 || point.y<0 || point.x>container.clientWidth || point.y>container.clientHeight){tip.style.display='none';return;}
+      tip.innerHTML=supplyTraceTooltipHtml(hit);
+      var width=Math.max(0,Math.min(330,container.clientWidth-8));
+      var rect=container.getBoundingClientRect(), top=Math.max(4,4-rect.top), bottom=Math.min(container.clientHeight-4,(global.innerHeight || rect.bottom)-rect.top-4);
+      tip.style.width=width+'px'; tip.style.maxHeight=Math.max(0,Math.min(340,bottom-top))+'px'; tip.style.display='block';
+      tip.style.left=Math.max(4,Math.min(point.x+12,container.clientWidth-width-4))+'px';
+      tip.style.top=Math.max(top,Math.min(point.y+14,bottom-tip.offsetHeight))+'px';
+    }
+    chart.subscribeCrosshairMove(handler);
+    return function(){chart.unsubscribeCrosshairMove(handler);tip.remove();};
+  }
+  function setSupplyTraceMarkers(LWC, series, bars, enabled, holder) {
+    holder=holder || {}; holder.supplyEnabled=!!enabled;
+    var hits=enabled?supplyTraceBars(bars):[], counts=supplyTraceSummary(enabled?bars:[],hits);
+    if(holder.tipCleanup){holder.tipCleanup();holder.tipCleanup=null;}
+    if(enabled && holder.chart && holder.container)holder.tipCleanup=attachSupplyTraceTooltip(holder.chart,holder.container,bars,hits);
+    var merged=(holder.base || []).concat(holder.trend || [], enabled?supplyTraceMarkers(bars,hits):[]).sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
+    if(typeof LWC.createSeriesMarkers==='function') {
+      if(holder.plugin && holder.plugin.setMarkers)holder.plugin.setMarkers(merged);
+      else if(merged.length)holder.plugin=LWC.createSeriesMarkers(series,merged);
+    }
+    return counts;
+  }
+
   global.NineChartCore = {
+    SUPPLY_TRACES: SUPPLY_TRACES, supplyTraceBars: supplyTraceBars, supplyTraceMarkers: supplyTraceMarkers, supplyTraceSummary: supplyTraceSummary, supplyTraceLegendHtml: supplyTraceLegendHtml, supplyTraceTooltipHtml: supplyTraceTooltipHtml, attachSupplyTraceTooltip: attachSupplyTraceTooltip, setSupplyTraceMarkers: setSupplyTraceMarkers,
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,
     CANDLE_UP: CANDLE_UP, CANDLE_DOWN: CANDLE_DOWN, ICHIMOKU: ICHIMOKU,
     ICHIMOKU_CLOUD_FILL: ICHIMOKU_CLOUD_FILL, ICHIMOKU_BORDER_COLOR: ICHIMOKU_BORDER_COLOR,
