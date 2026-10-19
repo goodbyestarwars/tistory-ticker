@@ -44,7 +44,8 @@ class VolumeRankEtfExclusionTests(unittest.TestCase):
                 {'stck_shrn_iscd': '035420', 'hts_kor_isnm': 'NAVER', 'stck_prpr': '1000', 'prdy_ctrt': '-2.1'},
                 {'stck_shrn_iscd': '087010', 'hts_kor_isnm': '펩트론', 'stck_prpr': '91500', 'prdy_ctrt': '-29.94'},
             ]
-        with mock.patch.object(kis_client, 'get_token', return_value='t'), \
+        with mock.patch.object(kis_client, 'fetch_domestic_volume_power_rank', return_value=[]), \
+                mock.patch.object(kis_client, 'get_token', return_value='t'), \
                 mock.patch.object(kis_client, 'fetch_domestic_volume_rank', side_effect=rank), \
                 mock.patch.object(kis_client, 'fetch_domestic_fluctuation_rank', side_effect=fluct), \
                 mock.patch.object(kis_client, 'fetch_domestic_market_cap_rank', return_value=[]), \

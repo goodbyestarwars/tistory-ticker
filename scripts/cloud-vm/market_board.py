@@ -2,6 +2,7 @@
 """홈 실시간 종목판용 국내·미국 공통 데이터 모델."""
 
 import logging
+import math
 import json
 import re
 import time
@@ -465,6 +466,9 @@ def _kis_domestic_row(row):
     price = abs(_number(_kis_value(row, 'stck_prpr', 'cur_prc', 'price')) or 0)
     volume = _number(_kis_value(row, 'acml_vol', 'cntg_vol', 'trde_qty', 'trade_volume')) or 0
     amount = _number(_kis_value(row, 'acml_tr_pbmn', 'trde_prica', 'trade_amount'))
+    strength = _number(_kis_value(row, 'tday_rltv'))
+    if strength is not None and (not math.isfinite(strength) or strength < 0):
+        strength = None
     return {
         'market': 'domestic',
         'code': code,
@@ -480,6 +484,7 @@ def _kis_domestic_row(row):
         'volume_growth_rate': _number(_kis_value(row, 'vol_inrt', 'volume_growth_rate', 'volumeGrowth')),
         'turnover_rate': _number(_kis_value(row, 'vol_tnrt', 'nday_vol_tnrt', 'turnover_rate', 'turnover')),
         'amount_turnover_rate': _number(_kis_value(row, 'tr_pbmn_tnrt', 'nday_tr_pbmn_tnrt', 'amount_turnover_rate', 'amountTurnover')),
+        'execution_strength': strength,
         'week52_high': _positive_number(_kis_value(row, 'w52_hgpr', 'd250_hgpr', '250hgst', 'week52_high')),
         'week52_low': _positive_number(_kis_value(row, 'w52_lwpr', 'd250_lwpr', '250lwst', 'week52_low')),
         'industry': '미분류',
@@ -500,6 +505,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     kis_token = kis_client.get_token(appkey, appsecret)
     query_limit = max(12, min(int(limit), 40))
     tasks = {
+        'volumePower': lambda: kis_client.fetch_domestic_volume_power_rank(
+            kis_token, appkey, appsecret, limit=query_limit),
         'amount': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='3', limit=query_limit),
         'volume': lambda: kis_client.fetch_domestic_volume_rank(
@@ -592,6 +599,10 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         )
     merged = {row['code']: row for row in rows_with_week52 if row.get('code')}
     sections = _sections(list(merged.values()))
+    # Only genuine strength values from the ranking TR; no price/volume proxy.
+    sections['volumePower'] = sorted(
+        [row for row in merged.values() if row.get('execution_strength') is not None],
+        key=lambda row: row['execution_strength'], reverse=True)
 
     # KIS 순위 API는 응답 자체가 해당 정렬 순서이므로, 거래증가율·회전율은
     # 공통 행 모델로 합친 뒤 API가 반환한 순서를 유지한다.
@@ -658,7 +669,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         'rows': sections['tradeAmount'][:limit],
         'sections': {key: value[:limit] for key, value in sections.items()},
         'updated_at': int(time.time()),
-        'source': 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액)',
+        'source': 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액·체결강도)',
     }
 
 
