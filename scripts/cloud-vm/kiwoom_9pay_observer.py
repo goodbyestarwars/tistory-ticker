@@ -18,7 +18,7 @@ MAX_CANDIDATES = 30
 def excluded_product(name):
     """User excludes inverse/leveraged products, not all ETFs or ETNs."""
     normalized = re.sub(r'\s+', '', unicodedata.normalize('NFKC', str(name or '')).casefold())
-    return any(word in normalized for word in ('인버스', '레버리지', 'inverse', 'leverag'))
+    return any(word in normalized for word in ('인버스', '레버리지', 'inverse', 'leverag', '2x', '3x', '2배', '3배', '-1x'))
 
 
 def fetch_amount_top(call_tr, token, limit=30):

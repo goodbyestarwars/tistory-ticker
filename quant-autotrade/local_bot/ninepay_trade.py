@@ -28,7 +28,7 @@ def _current_price(client, code):
     name = re.sub(r'\s+', '', unicodedata.normalize('NFKC', str(response.get('stk_nm') or '')).casefold())
     if not name:
         raise ProductNotAllowed('PRODUCT_NAME_UNCONFIRMED')
-    if any(word in name for word in ('인버스', '레버리지', 'inverse', 'leverag')):
+    if any(word in name for word in ('인버스', '레버리지', 'inverse', 'leverag', '2x', '3x', '2배', '3배', '-1x')):
         raise ProductNotAllowed('PRODUCT_EXCLUDED')
     try:
         price = abs(int(str(response.get('cur_prc', '')).replace(',', '')))

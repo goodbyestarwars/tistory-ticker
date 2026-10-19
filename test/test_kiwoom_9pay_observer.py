@@ -159,3 +159,4 @@ def test_inverse_and_leveraged_products_excluded_before_candidate_quota():
     assert {row['code'] for row in result} == {'005930'}
     assert not module.excluded_product('KODEX 200')
     assert module.excluded_product('ETF Leveraged')
+    assert module.excluded_product('선물 ETN 2X')
