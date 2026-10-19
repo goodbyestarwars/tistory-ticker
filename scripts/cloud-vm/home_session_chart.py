@@ -75,6 +75,20 @@ def record(conn, symbol, quote, now=None):
         (symbol, meta['date'], meta['slot'], price, price, price, price, ts))
     conn.execute('DELETE FROM home_session_prices WHERE session < ?',
                  ((now - timedelta(days=14)).strftime('%Y-%m-%d'),))
+    # Keep the actual quote's previous-close basis with its own session.
+    # Missing change is not zero; never borrow a reference from another day.
+    try:
+        change = float(quote['change'])
+        reference = price - change
+        if math.isfinite(change) and math.isfinite(reference) and reference > 0:
+            conn.execute("""INSERT INTO home_session_reference(symbol,session,reference,ts)
+                VALUES(?,?,?,?) ON CONFLICT(symbol,session) DO UPDATE SET
+                reference=excluded.reference,ts=excluded.ts WHERE excluded.ts>=ts""",
+                (symbol, meta['date'], reference, ts))
+    except (KeyError, TypeError, ValueError):
+        pass
+    conn.execute('DELETE FROM home_session_reference WHERE session < ?',
+                 ((now - timedelta(days=14)).strftime('%Y-%m-%d'),))
     conn.commit()
     return True
 
@@ -89,7 +103,10 @@ def get_results():
                 ORDER BY slot''', (symbol, symbol)).fetchall()
             points = [dict(zip(('slot', 'open', 'high', 'low', 'close', 'ts'), r)) for r in rows]
             meta = session(symbol, datetime.fromtimestamp(points[-1]['ts'], timezone.utc)) if points else None
+            ref = conn.execute('SELECT reference FROM home_session_reference WHERE symbol=? AND session=?',
+                               (symbol, meta['date'])).fetchone() if meta else None
             output.append(dict(symbol=symbol, rows=points, session=meta,
+                               reference=ref[0] if ref else None,
                                basis='시세 수집 관측값 · 공급자 지연 가능', intervalMinutes=30))
         night = db_schema.load_future_chart_minute(conn, 'KOSPI200_NIGHT')
         # Preserve the previous home chart's live-price tail between minute

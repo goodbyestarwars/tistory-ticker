@@ -56,3 +56,15 @@ assert.match(element.innerHTML,/30분 · KST/);
 assert.match(element.innerHTML,/09:00/);
 assert.match(element.innerHTML,/15:30/);
 assert.match(element.innerHTML,/1\/14개/);
+
+context.homePriceMode='bar';
+context.homeSessionCharts.KOSPI.reference=110;
+vm.runInContext("renderHomeSessionChart(element,'KOSPI',100)",context);
+assert.match(element.innerHTML,/hmb-investor-sell/,'above first observation but below previous close is blue');
+assert.ok(!element.innerHTML.includes('hmb-investor-buy'));
+assert.match(element.innerHTML,/전일 종가 110/);
+delete context.homeSessionCharts.KOSPI.reference;
+vm.runInContext("renderHomeSessionChart(element,'KOSPI',110)",context);
+assert.match(element.innerHTML,/전일 종가 미확인/);
+assert.match(element.innerHTML,/hmb-investor-flat/);
+assert.ok(!element.innerHTML.includes('hmb-investor-buy'));
