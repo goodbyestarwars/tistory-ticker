@@ -8633,3 +8633,15 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   }
   html body :where(.ss-chart-tabs, .ss-index-tools, .ff-draw-tools, .dmi-draw-buttons, .kf-draw-buttons) { gap: 4px !important; }
 }
+/* 차트 주기/그리기 두 그룹은 페이지 폭의 양 끝에 둔다. 같은 np 레이어의
+   기존 세그먼트 트랙(!important)보다 뒤에서 덮어써야 운영 스킨에도 적용된다. */
+@layer np {
+  html body .ss-chart-tabs.ss-chart-tabs {
+    display: flex !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+}
