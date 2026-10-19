@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 """DART 재무제표로 5년 실적 추세 + 최근 분기 YoY를 계산.
 투자자수급 파이프라인(investor_flow.py)과 동일하게: 순수 계산 함수 + fetch_stock() 오케스트레이터.
-QoQ(직전 분기 대비)는 DART가 분기 누적치만 줘서 표준 단독분기 차감 로직이 더 필요해 이번 단계는 제외."""
+검색기 검증은 공식 전체재무제표의 3개월 금액과 누적 금액을 구분하고 4분기는 연간-3분기누적으로 계산한다."""
 
 import time
-from datetime import datetime
+from datetime import datetime, timezone, date
 
 import dart_client
 
@@ -58,9 +58,9 @@ def call_fnltt_any(api_key, corp_code, year, reprt_code):
     """연결재무제표(CFS) 우선, 없으면 별도재무제표(OFS)로 재시도(자회사 없는 회사는 CFS 미제공)."""
     rows = dart_client.call_fnltt(api_key, corp_code, year, reprt_code, 'CFS')
     if rows:
-        return rows
+        return [dict(r, fs_div='CFS') for r in rows]
     time.sleep(THROTTLE_SEC)
-    return dart_client.call_fnltt(api_key, corp_code, year, reprt_code, 'OFS')
+    return [dict(r, fs_div='OFS') for r in dart_client.call_fnltt(api_key, corp_code, year, reprt_code, 'OFS')]
 
 
 def fetch_annual_series(api_key, corp_code, current_year=None):
@@ -88,6 +88,8 @@ def fetch_annual_series(api_key, corp_code, current_year=None):
             assets = extract_amount(rows, ASSETS_IDS, '자산총계', ('BS',), amount_key)
             years[yr] = {
                 'year': yr,
+                'rcept_no': (find_row(rows, OPERATING_INCOME_IDS, '영업이익', ('IS', 'CIS')) or {}).get('rcept_no') if offset == 0 else None,
+                'fs_div': (rows[0].get('fs_div') if rows else None),
                 'revenue': revenue,
                 'operating_income': operating_income,
                 'net_income': net_income,
@@ -126,7 +128,7 @@ def fetch_annual_series(api_key, corp_code, current_year=None):
 
 def fetch_latest_quarter(api_key, corp_code, current_year=None):
     """가장 최근에 공시됐을 보고서를 최신 것부터 순서대로 시도해 매출/영업이익/순이익 + YoY를 뽑는다.
-    분기 보고서는 frmtrm_q_amount(전년 동기 누적)를, 사업보고서는 frmtrm_amount(전기)를 비교값으로 쓴다."""
+    분기 보고서는 frmtrm_q_amount(전년 동기 3개월)를, 사업보고서는 frmtrm_amount(전기)를 비교값으로 쓴다."""
     y = current_year or datetime.now().year
     candidates = [
         (y, '11014'), (y, '11012'), (y, '11013'),
@@ -156,6 +158,9 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
         return {
             'year': yr,
             'reprt_code': reprt_code,
+            'rcept_no': row.get('rcept_no'),
+            'fs_div': row.get('fs_div'),
+            'amount_basis': 'annual' if reprt_code == '11011' else 'standalone_3m',
             'label': QUARTER_LABEL.get(reprt_code, reprt_code),
             'period_label': row.get('thstrm_nm'),
             'revenue': revenue,
@@ -238,4 +243,80 @@ def fetch_stock(api_key, corp_code):
     dividend = fetch_dividend_history(api_key, corp_code)
     if annual is None and latest_quarter is None:
         return None
-    return {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    try:
+        result['screening'] = fetch_screening(api_key, corp_code, annual, latest_quarter)
+    except Exception:
+        # 기존 재무 표시/배치는 보존하되 검증 실패를 통과로 만들지 않는다.
+        result['screening'] = {'version': 1, 'error': 'LATEST_DISCLOSURE_UNVERIFIED', 'checked_at': datetime.now(timezone.utc).isoformat()}
+    return result
+
+
+SCREENING_VERSION = 1
+
+
+def expected_period(as_of):
+    """12월 결산 정기보고서의 보수적 제출기한 기준. 비12월 결산은 검증 제외."""
+    y = as_of.year
+    if as_of >= date(y, 11, 15): return (y, '11014')
+    if as_of >= date(y, 8, 15): return (y, '11012')
+    if as_of >= date(y, 5, 16): return (y, '11013')
+    if as_of >= date(y, 4, 1): return (y-1, '11011')
+    return (y-1, '11014')
+
+
+def latest_periodic_filing(reports):
+    import re
+    found = []
+    for r in reports:
+        name = r.get('report_nm') or ''
+        match = re.search(r'\((20\d{2})\.(\d{2})\)', name)
+        if not match or not any(k in name for k in ('사업보고서', '반기보고서', '분기보고서')):
+            continue
+        year, month = map(int, match.groups())
+        code = {12: '11011', 3: '11013', 6: '11012', 9: '11014'}.get(month)
+        found.append({'year': year, 'month': month, 'reprt_code': code,
+                      'rcept_no': r.get('rcept_no'), 'rcept_dt': r.get('rcept_dt')})
+    return max(found, key=lambda r: (r['year'], r['month'], r.get('rcept_dt') or '', r.get('rcept_no') or '')) if found else None
+
+
+def fetch_screening(api_key, corp_code, annual, quarter, as_of=None):
+    as_of = as_of or datetime.now(timezone.utc).date()
+    filing = latest_periodic_filing(dart_client.call_periodic_reports(api_key, corp_code, as_of))
+    result = {'version': SCREENING_VERSION, 'checked_at': datetime.now(timezone.utc).isoformat(), 'filing': filing}
+    if not filing or not filing['reprt_code']:
+        return dict(result, error='LATEST_DISCLOSURE_UNVERIFIED')
+    if not quarter or (quarter['year'], quarter['reprt_code']) != (filing['year'], filing['reprt_code']) or quarter.get('rcept_no') != filing.get('rcept_no'):
+        return dict(result, error='LATEST_DISCLOSURE_PENDING')
+    if filing['reprt_code'] != '11011':
+        # fnlttSinglAcntAll IS/CIS thstrm_amount is explicitly 3 months; add_amount is cumulative.
+        standalone = {'operating_income': quarter.get('operating_income'), 'net_income': quarter.get('net_income'),
+                      'basis': 'dart_thstrm_amount_3m', 'year': quarter['year'], 'reprt_code': quarter['reprt_code']}
+    else:
+        fs = quarter.get('fs_div')
+        if fs not in ('CFS', 'OFS'):
+            return dict(result, error='STATEMENT_BASIS_MISSING')
+        rows = dart_client.call_fnltt(api_key, corp_code, filing['year'], '11014', fs)
+        standalone = {'basis': 'annual_minus_q3_ytd_same_fs', 'year': filing['year'], 'reprt_code': '11011', 'fs_div': fs}
+        for key, ids, name in [('operating_income', OPERATING_INCOME_IDS, '영업이익'), ('net_income', NET_INCOME_IDS, '당기순이익')]:
+            ytd = extract_amount(rows, ids, name, ('IS', 'CIS'), 'thstrm_add_amount')
+            value = quarter.get(key)
+            standalone[key] = value-ytd if value is not None and ytd is not None else None
+    result['standalone'] = standalone
+    return result
+
+
+def screening_cache_fresh(entry, checked_at=None, now=None, max_days=7):
+    now = now or datetime.now(timezone.utc)
+    proof = (entry or {}).get('screening') or {}
+    try:
+        stamp = datetime.fromisoformat(proof.get('checked_at') or checked_at or '')
+        if stamp.tzinfo is None: return False
+        age = (now-stamp).total_seconds()/86400
+        filing = proof.get('filing') or {}
+        order = {'11013': 1, '11012': 2, '11014': 3, '11011': 4}
+        expected = expected_period(now.date())
+        return (proof.get('version') == SCREENING_VERSION and not proof.get('error') and 0 <= age <= max_days
+                and (int(filing.get('year',0)), order.get(filing.get('reprt_code'),0)) >= (expected[0], order[expected[1]]))
+    except (TypeError, ValueError):
+        return False

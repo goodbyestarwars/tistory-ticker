@@ -130,3 +130,20 @@ def call_alot_matter(api_key, corp_code, bsns_year, reprt_code='11011'):
             raise DartRateLimitError('DART alotMatter status %s: %s' % (status, message))
         raise RuntimeError('DART alotMatter status %s: %s' % (status, message))
     return data.get('list') or []
+
+
+def call_periodic_reports(api_key, corp_code, end_date):
+    """공식 list API의 정기보고서 접수 목록. 키/원본 URL을 로그에 남기지 않는다."""
+    from datetime import timedelta
+    params = {'crtfc_key': api_key, 'corp_code': corp_code,
+              'bgn_de': (end_date - timedelta(days=550)).strftime('%Y%m%d'),
+              'end_de': end_date.strftime('%Y%m%d'), 'pblntf_ty': 'A',
+              'page_count': '100', 'sort': 'date', 'sort_mth': 'desc'}
+    data = json.loads(_fetch(BASE_URL + '/list.json?' + urllib.parse.urlencode(params)).decode('utf-8'))
+    if data.get('status') == '013':
+        return []
+    if data.get('status') != '000':
+        raise RuntimeError('DART periodic report lookup failed')
+    if int(data.get('total_page', 1)) > 1:
+        raise RuntimeError('DART periodic report list incomplete')
+    return data.get('list') or []

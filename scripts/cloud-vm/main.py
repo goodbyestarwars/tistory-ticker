@@ -2781,6 +2781,7 @@ def _build_pattern_scan():
     pattern_scan = data.get('patternScan') or {}
     pullback_scan = data.get('pullbackScan') or {}
     patterns = pattern_scan.get('patterns') or {}
+    long_term_items, long_term_summary = pattern_detect.validated_long_term_snapshot(pattern_scan)
     return {
         'scannedAt': data.get('generatedAt'),
         'universe': data.get('universe') or 0,
@@ -2788,11 +2789,13 @@ def _build_pattern_scan():
         'pullbackScannedAt': data.get('generatedAt'),
         'pullbackScanned': pullback_scan.get('scanned') or 0,
         'firstPullbackBreakoutReady': 'firstPullbackBreakout' in patterns,
+        'longTermFilter': long_term_summary,
         'patterns': {
             'risingLows': patterns.get('risingLows') or [],
             # 2026-10-15: 판정·저장(scan_hits)은 되는데 응답에서 빠져 탭이 항상 비던 키.
             'shortTermMaBreakout': patterns.get('shortTermMaBreakout') or [],
             'maCloudBreakout': patterns.get('maCloudBreakout') or [],
+            'longTermQuality': long_term_items,
             'doubleBottom': patterns.get('doubleBottom') or [],
             'invHeadShoulders': patterns.get('invHeadShoulders') or [],
             'boxRangeLow': patterns.get('boxRangeLow') or [],

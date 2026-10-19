@@ -2286,7 +2286,9 @@ def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_gette
         pattern_scanned = True
         ma_cloud = detect_ma_cloud_breakout(daily)
         if ma_cloud and common_search_ok():
-            pattern_results['maCloudBreakout'].append(build_pattern_match(stock, daily, ma_cloud))
+            match = build_pattern_match(stock, daily, ma_cloud)
+            match['longTermLiquidity'] = long_term_liquidity(daily, market_cap_eok)
+            pattern_results['maCloudBreakout'].append(match)
 
     if len(daily) >= BOX_WINDOW:
         db = detect_double_bottom(daily)
@@ -2360,3 +2362,124 @@ def finalize_pattern_results(pattern_results, pullback_matches=None):
         # 품질 게이트(점수 90 이상만 남김)는 쓰지 않는다 - 재돌파·근접·지지 단계가 점수로 이미 정렬되므로 상위 ACCUM_BAR_MAX건만 둔다.
         pattern_results['accumulationBar'] = _rank_matches(pattern_results['accumulationBar'])[:ACCUM_BAR_MAX]
     return pattern_results
+
+
+# Only the new long-term display/namespace is gated; all original detector buckets remain intact.
+LONG_TERM_FILTER = {'min_price': 5000, 'min_market_cap_eok': 3000,
+                    'min_avg20_value_eok': 30, 'max_finance_age_days': 7}
+LONG_TERM_REASON = {
+    'PRICE': '주가 기준 미달', 'MARKET_CAP_MISSING': '시총 미확인', 'MARKET_CAP': '시총 기준 미달',
+    'LIQUIDITY_MISSING': '20일 거래대금 미확인', 'LIQUIDITY': '20일 평균 거래대금 미달',
+    'FINANCIAL_MISSING': '재무자료 누락', 'ANNUAL_STALE': '최근 연간자료 미확인',
+    'ANNUAL_LOSS': '연간 영업이익/순이익 흑자 미충족', 'DISCLOSURE_STALE': '최신 공시 확인 만료',
+    'LATEST_DISCLOSURE_UNVERIFIED': '최신 정기공시 미확인', 'LATEST_DISCLOSURE_PENDING': '최신 공시 재무값 미반영',
+    'STATEMENT_BASIS_MISSING': '재무제표 기준 미확인', 'QUARTER_MISSING': '단독분기 실적 미확인',
+    'QUARTER_LOSS': '최근 단독분기 적자', 'REPORT_DATE_INVALID': '공시일자 미확인'}
+
+
+def long_term_liquidity(daily, market_cap_eok):
+    import math
+    tail = daily[-20:]
+    try:
+        values = [float(r['close'])*float(r['volume']) for r in tail]
+        avg = sum(values)/20/100000000 if len(values)==20 and all(math.isfinite(v) and v>=0 for v in values) else None
+    except (KeyError, TypeError, ValueError):
+        avg = None
+    return {'market_cap_eok': market_cap_eok, 'avg20_value_eok': avg, 'amount_basis': 'close_times_volume_proxy'}
+
+
+def long_term_financial_check(item, entry, now=None, config=None):
+    import math
+    from datetime import datetime, timezone
+    import fundamentals
+    cfg = dict(LONG_TERM_FILTER, **(config or {}))
+    now = now or datetime.now(timezone.utc)
+    reasons = []
+    def number(v):
+        try:
+            n = float(v)
+            return n if math.isfinite(n) else None
+        except (TypeError, ValueError): return None
+    liq = item.get('longTermLiquidity') or {}
+    price, cap, avg = number(item.get('price')), number(liq.get('market_cap_eok')), number(liq.get('avg20_value_eok'))
+    if price is None or price < cfg['min_price']: reasons.append('PRICE')
+    if cap is None: reasons.append('MARKET_CAP_MISSING')
+    elif cap < cfg['min_market_cap_eok']: reasons.append('MARKET_CAP')
+    if avg is None: reasons.append('LIQUIDITY_MISSING')
+    elif avg < cfg['min_avg20_value_eok']: reasons.append('LIQUIDITY')
+    proof = (entry or {}).get('screening') or {}
+    annual = (entry or {}).get('annual') or {}
+    years = sorted(annual.get('years') or [], key=lambda r:r.get('year',0))
+    last = years[-1] if years else {}
+    metrics = {k: last.get(k) for k in ('year', 'rcept_no', 'fs_div', 'operating_income', 'net_income', 'roe_pct', 'debt_ratio_pct', 'operating_income_yoy_pct', 'net_income_yoy_pct')}
+    if not entry or proof.get('version') != fundamentals.SCREENING_VERSION:
+        reasons.append('FINANCIAL_MISSING')
+    expected_year = now.year-1 if (now.month,now.day)>=(4,1) else now.year-2
+    if not last or number(last.get('year')) is None or not expected_year <= last['year'] <= now.year-1:
+        reasons.append('ANNUAL_STALE')
+    ops, nets = number(last.get('operating_income')), number(last.get('net_income'))
+    if ops is None or nets is None: reasons.append('FINANCIAL_MISSING')
+    elif ops<=0 or nets<=0: reasons.append('ANNUAL_LOSS')
+    # A new cache timestamp must not make an old filing appear current.
+    if proof.get('error'): reasons.append(proof['error'])
+    if not fundamentals.screening_cache_fresh(entry, now=now, max_days=cfg['max_finance_age_days']):
+        reasons.append('DISCLOSURE_STALE')
+    filing = proof.get('filing') or {}
+    for receipt in (filing.get('rcept_no'), last.get('rcept_no')):
+        try:
+            filed = datetime.strptime(str(receipt)[:8], '%Y%m%d').date()
+            if filed>now.date(): raise ValueError()
+        except (TypeError,ValueError): reasons.append('REPORT_DATE_INVALID')
+    q = proof.get('standalone') or {}
+    qop, qnet = number(q.get('operating_income')), number(q.get('net_income'))
+    if qop is None or qnet is None or q.get('basis') not in ('dart_thstrm_amount_3m','annual_minus_q3_ytd_same_fs'):
+        reasons.append('QUARTER_MISSING')
+    elif qop<0 or qnet<0: reasons.append('QUARTER_LOSS')
+    return {'passed': not reasons, 'reasons': list(dict.fromkeys(reasons)), 'annual': metrics,
+            'latest_quarter': q, 'filing': filing, 'checked_at': proof.get('checked_at'), 'liquidity': liq}
+
+
+def apply_long_term_filter(pattern_results, fundamentals_cache, now=None, config=None):
+    import copy
+    cfg = dict(LONG_TERM_FILTER, **(config or {}))
+    source = pattern_results.get('maCloudBreakout') or []
+    accepted, excluded, counts = [], [], {}
+    for item in source:
+        check = long_term_financial_check(item, (fundamentals_cache or {}).get(item['code']), now=now, config=cfg)
+        if check['passed']:
+            qualified = copy.deepcopy(item)
+            qualified['financialScreen'] = check
+            qualified.setdefault('patternDetail', {})['financialScreen'] = check
+            accepted.append(qualified)
+        else:
+            excluded.append({'code': item['code'], 'name':item.get('name'), 'reasons':check['reasons']})
+            for reason in check['reasons']: counts[reason] = counts.get(reason,0)+1
+    pattern_results['longTermQuality'] = accepted
+    return {'version':1, 'thresholds':cfg, 'technical':len(source), 'passed':len(accepted),
+            'excluded':len(excluded), 'reasonCounts':counts, 'reasonLabels':LONG_TERM_REASON, 'excludedItems':excluded}
+
+
+
+def validated_long_term_snapshot(pattern_scan, now=None):
+    """Read-time expiry guard for an old daily cache; no DART/market API requests."""
+    import copy
+    summary = copy.deepcopy(pattern_scan.get('longTermFilter'))
+    if not summary or summary.get('version') != 1:
+        return [], None
+    valid = []
+    for item in (pattern_scan.get('patterns') or {}).get('longTermQuality') or []:
+        proof = item.get('financialScreen') or {}
+        entry = {'annual': {'years': [proof.get('annual') or {}]}, 'screening': {
+            'version': 1, 'checked_at': proof.get('checked_at'), 'filing': proof.get('filing'),
+            'standalone': proof.get('latest_quarter')}}
+        check = long_term_financial_check(item, entry, now=now)
+        if proof.get('passed') is True and check['passed']:
+            valid.append(item)
+        else:
+            summary['excludedItems'].append({'code': item['code'], 'name': item.get('name'), 'reasons':check['reasons']})
+            for reason in check['reasons']:
+                summary['reasonCounts'][reason] = summary['reasonCounts'].get(reason,0)+1
+    summary['passed'] = len(valid)
+    summary['excluded'] = summary['technical']-len(valid)
+    summary['thresholds'] = dict(LONG_TERM_FILTER)
+    return valid, summary

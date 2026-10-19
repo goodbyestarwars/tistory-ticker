@@ -547,6 +547,7 @@ def main():
         key=lambda item: item.get('swing', {}).get('internalPriorityScore', 0), reverse=True)
     signal_state['swingCandidates'] = signal_state['swingCandidates'][:100]
     pd.finalize_pattern_results(pattern_results, pullback_matches)
+    long_term_filter = pd.apply_long_term_filter(pattern_results, fundamentals_cache)
 
     # 2026-08-23: 차트검색(패턴 탭)에 평균 투자의견의 목표가를 붙인다(사용자 확인 - "db에
     # 저장할까? 일단 차트검색, 전략검색에만 넣어"). 전체 유니버스가 아니라 화면에 실제로
@@ -618,6 +619,7 @@ def main():
         existing['patternScan']['scanned'] = pattern_scanned
         existing['patternScan'].setdefault('patterns', {})
         existing['patternScan']['patterns'].update(pattern_results)
+        existing['patternScan']['longTermFilter'] = long_term_filter
         existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
         existing['investSignal'] = {
             'scanned': signal_state['scanned'],

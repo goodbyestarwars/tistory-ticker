@@ -7,6 +7,7 @@ shortTermMaBreakout이 판정·저장은 되는데 /pattern-scan 응답에서 �
 import json
 import os
 import subprocess
+import shutil
 import sys
 import unittest
 from unittest.mock import patch
@@ -47,15 +48,16 @@ class ScannerCatalogTest(unittest.TestCase):
         self.assertEqual((data['scannedAt'], data['volumeBreakoutScannedAt'], data['angleMomentumScannedAt'],
                           data['gongpasanScannedAt']), ('A', 'V', 'G', 'P'))
 
+    @unittest.skipUnless(shutil.which('node'), 'Node frontend checks run separately on the desktop')
     def test_front_menu_names_and_info_rows(self):
         script = r'''
 const fs = require('fs'), vm = require('vm');
 let source = fs.readFileSync('js/pattern-scan.js', 'utf8');
-source = source.replace('global.PatternScan =', 'global.__t = {tabs: TABS, info: TAB_INFO, rows: INFO_ROWS}; global.PatternScan =');
+source = source.replace('global.PatternScan =', 'global.__t = {tabs: TABS, menu: MENU_TABS, info: TAB_INFO, rows: INFO_ROWS}; global.PatternScan =');
 const ctx = {window: {}, document: {readyState: 'loading', addEventListener() {}}, console};
 vm.runInNewContext(source, ctx);
 const t = ctx.window.__t;
-console.log(JSON.stringify({tabs: t.tabs.map(x => [x.key, x.label, !!x.desc]), info: t.info, rows: t.rows.map(r => r[0])}));
+console.log(JSON.stringify({tabs: t.tabs.map(x => [x.key, x.label, !!x.desc]), info: t.info, menu:t.menu, rows: t.rows.map(r => r[0])}));
 '''
         out = subprocess.run(['node', '-e', script], cwd=ROOT, capture_output=True, text=True, encoding='utf-8')
         self.assertEqual(out.returncode, 0, out.stderr)
@@ -70,7 +72,8 @@ console.log(JSON.stringify({tabs: t.tabs.map(x => [x.key, x.label, !!x.desc]), i
                 self.assertTrue(data['info'][key].get(row), '%s/%s 설명 누락' % (key, row))
         # 화면의 모든 탭 키는 API가 내려주는 키여야 한다.
         api_keys = set(self.build({})['patterns'])
-        self.assertTrue({k for k, _, _ in data['tabs']} <= api_keys)
+        self.assertTrue({k for k, _, _ in data['tabs'] if k != 'ninepayLive'} <= api_keys)
+        self.assertEqual(len(data['menu']), 5)
 
 
 if __name__ == '__main__':

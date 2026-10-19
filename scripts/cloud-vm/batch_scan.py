@@ -76,6 +76,14 @@ def main():
         log('--test 모드: %d종목만 스모크 테스트' % len(codes_map))
     log('대상 종목 수: %d' % len(codes_map))
 
+    if '--long-term-only' in sys.argv:
+        path = os.path.join(os.path.dirname(__file__), 'daily_scan_cache.json')
+        with open(path, encoding='utf-8') as f:
+            candidates = (((json.load(f).get('patternScan') or {}).get('patterns') or {}).get('maCloudBreakout') or [])
+        codes_map = {r['code']: r.get('name', r['code']) for r in candidates}
+        if codes_map: scan_fundamentals(codes_map, candidate_only=True)
+        return
+
     if '--fundamentals-only' in sys.argv:
         log('--fundamentals-only 모드: 수급 재수집 건너뛰고 펀더멘탈 이어달리기만 실행')
         scan_fundamentals(codes_map)
@@ -162,7 +170,7 @@ def is_stale(fetched_at, code):
     return age_days >= FUNDAMENTALS_STALE_DAYS
 
 
-def scan_fundamentals(codes_map):
+def scan_fundamentals(codes_map, candidate_only=False):
     """DART 재무제표(5년 실적 추세 + 최근 분기 YoY) - 이 배치(하루 1회) 안에서 이어서 실행.
     이미 최근(FUNDAMENTALS_STALE_DAYS 이내)에 수집한 종목은 재조회하지 않고, 하루 안에
     전체(2,691~2,766종목)를 다 못 돌면 커서를 저장해뒀다가 다음날 실행에서 이어간다."""
@@ -178,6 +186,14 @@ def scan_fundamentals(codes_map):
 
     cache, fetched_at, cursor = load_fundamentals_state()
     items = list(codes_map.items())
+    universe_count = len(items)
+    if candidate_only:
+        cursor = 0
+        try:
+            with open(FUNDAMENTALS_OUTPUT_FILE, encoding='utf-8') as f:
+                universe_count = json.load(f).get('universe') or max(len(cache), len(items))
+        except (OSError, ValueError):
+            universe_count = max(len(cache), len(items))
     if cursor >= len(items):
         cursor = 0  # 전체를 한 바퀴 다 돌았으면 처음부터(오래된 데이터부터 자연스럽게 갱신됨)
 
@@ -187,23 +203,32 @@ def scan_fundamentals(codes_map):
     skipped_count = 0
     stop_reason = '전체 순회 완료'
 
-    while i < len(items):
+    priority = []
+    if not candidate_only:
+        try:
+            with open(os.path.join(os.path.dirname(__file__), 'daily_scan_cache.json'), encoding='utf-8') as f:
+                raw = (((json.load(f).get('patternScan') or {}).get('patterns') or {}).get('maCloudBreakout') or [])
+            priority = [(r['code'], codes_map[r['code']]) for r in raw if r.get('code') in codes_map]
+        except (OSError, ValueError, TypeError):
+            priority = []
+    while priority or i < len(items):
         if time.time() - started_at > FUNDAMENTALS_TIME_BUDGET_SEC:
             stop_reason = '시간예산 초과로 중단'
             break
 
-        code, name = items[i]
+        is_priority = bool(priority)
+        code, name = priority.pop(0) if is_priority else items[i]
         # Dividend screening was added after the original fundamentals cache.
         # Revisit legacy entries once, then let the normal 90-day freshness
         # window apply even when DART has no dividend rows for that company.
-        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}):
+        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and fundamentals.screening_cache_fresh(cache.get(code)):
             skipped_count += 1
-            i += 1
+            if not is_priority: i += 1
             continue
 
         corp_code = corp_map.get(code)
         if not corp_code:
-            i += 1
+            if not is_priority: i += 1
             continue
         try:
             result = fundamentals.fetch_stock(dart_key, corp_code)
@@ -222,9 +247,9 @@ def scan_fundamentals(codes_map):
         except Exception as e:
             log('[펀더멘탈 %d/%d] %s(%s) 실패: %s' % (i + 1, len(items), name, code, e))
         time.sleep(THROTTLE_SEC)
-        i += 1
+        if not is_priority: i += 1
 
-    save_fundamentals_cursor(i)
+    if not candidate_only: save_fundamentals_cursor(i)
 
     if not cache:
         log('펀더멘탈 데이터가 없어 저장을 건너뜁니다.')
@@ -232,7 +257,7 @@ def scan_fundamentals(codes_map):
 
     payload = {
         'generatedAt': datetime.now(timezone.utc).isoformat(),
-        'universe': len(items),
+        'universe': universe_count,
         'scanned': len(cache),
         'data': cache,
         'fetchedAt': fetched_at,

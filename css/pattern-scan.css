@@ -996,3 +996,30 @@ html.dark #pattern-scan .ps-risk.is-mid { background: rgba(245, 158, 11, .22); c
 html.dark #pattern-scan .ps-risk.is-high { background: rgba(249, 115, 22, .24); color: #fdba74; }
 #pattern-scan .ps-risk.is-pending { background: #f1f5f9; color: #64748b; }
 html.dark #pattern-scan .ps-risk.is-pending { background: rgba(148, 163, 184, .18); color: #cbd5e1; }
+
+/* Five consolidated menus; original-pattern history remains selectable. */
+#pattern-scan .ps-source-history { display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0;font-size:12px; }
+#pattern-scan .ps-source-history select { max-width:100%;padding:6px;background:transparent;color:inherit;border:1px solid #aaa; }
+#pattern-scan .ps-pattern-tags { display:flex;flex-wrap:wrap;gap:4px;min-width:0; }
+#pattern-scan .ps-pattern-tag { display:inline-block;padding:3px 6px;background:rgba(120,120,120,.10);font-size:11px;font-weight:500;white-space:normal;overflow-wrap:anywhere; }
+#pattern-scan .ps-unified-note { padding:10px 0;font-size:12px;line-height:1.6;overflow-wrap:anywhere; }
+#pattern-scan .ps-unified-item .ps-observation { min-width:0;white-space:normal;overflow-wrap:anywhere; }
+#pattern-scan .ps-unified-item .ps-observation small { display:block; }
+#pattern-scan .ps-financial { display:block;font-size:11px;line-height:1.6; }
+@media(max-width:768px) {
+ #pattern-scan .ps-unified-item { display:grid;grid-template-columns:30px minmax(0,1fr) minmax(90px,.6fr);gap:8px;width:100%;min-width:0; }
+ #pattern-scan .ps-unified-item .ps-mini-chart-wrap { grid-column:2/4; }
+ #pattern-scan .ps-unified-item .ps-pattern-tags { grid-column:1/4; }
+ #pattern-scan .ps-unified-item .ps-quote { grid-column:3;grid-row:1; }
+ #pattern-scan .ps-unified-item .ps-observation { grid-column:1/4; }
+ #pattern-scan .ps-source-history label,#pattern-scan .ps-source-history select { width:100%; }
+}
+
+@media(max-width:768px) {
+ #pattern-scan .ps-unified-item .ps-rank { grid-column:1;grid-row:1; }
+ #pattern-scan .ps-unified-item .ps-stock { grid-column:2;grid-row:1; }
+ #pattern-scan .ps-unified-item .ps-mini-chart-wrap { grid-column:1/4;grid-row:2;width:100%;height:38px; }
+ #pattern-scan .ps-unified-item .ps-mini-chart { width:100%;height:38px; }
+ #pattern-scan .ps-unified-item .ps-pattern-tags { grid-column:1/4;grid-row:3; }
+ #pattern-scan .ps-unified-item .ps-observation { grid-column:1/4;grid-row:4; }
+}

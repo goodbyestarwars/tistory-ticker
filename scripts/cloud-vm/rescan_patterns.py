@@ -115,6 +115,12 @@ def main():
     conn.close()
 
     pd.finalize_pattern_results(pattern_results, pullback_matches)
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'fundamentals_cache.json'), encoding='utf-8') as f:
+            fundamentals_cache = json.load(f).get('data') or {}
+    except (OSError, ValueError):
+        fundamentals_cache = {}
+    long_term_filter = pd.apply_long_term_filter(pattern_results, fundamentals_cache)
     scan_at = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, scan_at, pullback_matches)
 
@@ -127,6 +133,7 @@ def main():
         existing['patternScan']['scanned'] = pattern_scanned
         existing['patternScan'].setdefault('patterns', {})
         existing['patternScan']['patterns'].update(pattern_results)
+        existing['patternScan']['longTermFilter'] = long_term_filter
         existing['pullbackScan'] = {'scanned': pullback_scanned, 'matches': pullback_matches}
         existing['patternRescanAt'] = scan_at  # investSignal은 그대로라 top-level generatedAt은 안 건드림
         existing.setdefault('universe', len(codes))

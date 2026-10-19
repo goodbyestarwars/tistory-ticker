@@ -1,0 +1,14 @@
+const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
+const source=fs.readFileSync('js/pattern-scan.js','utf8');
+const ctx={window:{},document:{readyState:'loading',addEventListener(){}},console};vm.runInNewContext(source,ctx);
+const api=ctx.window.PatternScan, menus=api.menuTabs, merge=api.mergeScannerRows;
+assert.equal(menus.length,5);assert.deepEqual(JSON.parse(JSON.stringify(menus.map(m=>m.sources.length))),[2,2,4,3,1]);
+assert.ok(!menus.some(m=>m.key==='openingGap'));assert.ok(source.includes('key===historySource'));assert.ok(source.includes("scannerKey(activeTab)"));
+const keys=['ninepayLive','volumeBreakout','shortTermMaBreakout','angleMomentum','risingLows','doubleBottom','invHeadShoulders','boxRangeLow','pullback','firstPullbackBreakout','gongpasan','longTermQuality'];
+const entries=keys.map(key=>({key,items:[{code:'005930',name:'same',patternDetail:{status:'READY'}}]}));
+const before=JSON.stringify(entries), rows=merge(entries);
+assert.equal(rows.length,1);assert.equal(rows[0].members.length,12);assert.equal(JSON.stringify(entries),before);
+const twice=merge(entries.concat(entries));assert.equal(twice[0].members.length,12);
+const stages=merge([{key:'gongpasan',items:[{code:'005930',_gpStage:'WATCH_ACCUM'},{code:'005930',_gpStage:'WAIT_PULLBACK'}]}]);assert.equal(stages.length,1);assert.equal(stages[0].members.length,2);
+const realtime=merge([{key:'ninepayLive',items:[{code:'005930',price:100,at:Date.now()/1000}]},{key:'volumeBreakout',items:[{code:'005930',price:90,miniChart:[1,2]}]}]);assert.equal(realtime[0].price,100);assert.equal(realtime[0].miniChart.length,2);
+console.log('PASS five menus, all 12 visible source memberships, one row per code, no input mutation, stages, duplicates, realtime price');
