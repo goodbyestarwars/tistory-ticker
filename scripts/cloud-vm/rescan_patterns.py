@@ -65,7 +65,46 @@ def load_market_cap_cache():
         return {}
 
 
+
+def load_fundamentals_cache():
+    try:
+        with open(os.path.join(os.path.dirname(__file__), 'fundamentals_cache.json'), encoding='utf-8') as f:
+            return json.load(f).get('data') or {}
+    except (OSError, ValueError):
+        return {}
+
+
+def refresh_long_term_only():
+    """Current technical snapshot -> financial gate only; no full-universe rescan/API calls.
+    Uses the existing atomic cache lock and leaves original detectors/hits/tracks untouched.
+    """
+    import copy
+    funds = load_fundamentals_cache()
+    caps = load_market_cap_cache()
+    conn = db_schema.get_conn()
+    summary = None
+    try:
+        def apply(existing):
+            nonlocal summary
+            scan = existing.setdefault('patternScan', {})
+            raw = copy.deepcopy((scan.get('patterns') or {}).get('maCloudBreakout') or [])
+            for item in raw:
+                daily = db_schema.load_daily_prices(conn, item['code'])
+                item['longTermLiquidity'] = pd.long_term_liquidity(daily, caps.get(item['code']))
+            groups = {'maCloudBreakout': raw}
+            summary = pd.apply_long_term_filter(groups, funds)
+            scan.setdefault('patterns', {})['longTermQuality'] = groups['longTermQuality']
+            scan['longTermFilter'] = summary
+        daily_scan_cache.update(apply)
+    finally:
+        conn.close()
+    log('장기 재무 관문 갱신: 기술 %d / 통과 %d / 제외 %d' % (summary['technical'], summary['passed'], summary['excluded']))
+    return summary
+
 def main():
+    if '--long-term-only' in sys.argv:
+        refresh_long_term_only()
+        return
     name_map, etf_names = load_universe_metadata()
     if not name_map:
         log('전종목 이름 매핑을 못 불러왔습니다.')
@@ -115,12 +154,7 @@ def main():
     conn.close()
 
     pd.finalize_pattern_results(pattern_results, pullback_matches)
-    try:
-        with open(os.path.join(os.path.dirname(__file__), 'fundamentals_cache.json'), encoding='utf-8') as f:
-            fundamentals_cache = json.load(f).get('data') or {}
-    except (OSError, ValueError):
-        fundamentals_cache = {}
-    long_term_filter = pd.apply_long_term_filter(pattern_results, fundamentals_cache)
+    long_term_filter = pd.apply_long_term_filter(pattern_results, load_fundamentals_cache())
     scan_at = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, scan_at, pullback_matches)
 

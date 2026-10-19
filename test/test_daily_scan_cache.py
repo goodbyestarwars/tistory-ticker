@@ -75,5 +75,25 @@ class DailyScanCacheUpdateTests(unittest.TestCase):
         self.assertEqual(saved, {'x': 1, 'y': 2})
 
 
+
+class LongTermRefreshTest(unittest.TestCase):
+    def test_gate_refresh_preserves_every_original_bucket_and_history(self):
+        import copy
+        from unittest.mock import patch
+        import rescan_patterns
+        raw = {'code':'005930', 'name':'test', 'price':5000, 'patternDetail':{}}
+        cache = {'patternScan': {'patterns': {'maCloudBreakout':[raw], 'risingLows':[raw], 'gongpasan':[raw]}}, 'gongpasanStages': {'status':'ok'}, 'investSignal': {'unchanged':True}}
+        before = copy.deepcopy(cache)
+        class Conn:
+            def close(self): pass
+        daily = [{'close':5000,'volume':1000000} for _ in range(20)]
+        with patch.object(rescan_patterns.db_schema,'get_conn',return_value=Conn()), patch.object(rescan_patterns.db_schema,'load_daily_prices',return_value=daily), patch.object(rescan_patterns,'load_market_cap_cache',return_value={'005930':3000}), patch.object(rescan_patterns,'load_fundamentals_cache',return_value={}), patch.object(rescan_patterns.daily_scan_cache,'update',side_effect=lambda fn:fn(cache)):
+            summary = rescan_patterns.refresh_long_term_only()
+        self.assertEqual(summary['excluded'],1)
+        self.assertEqual(cache['patternScan']['patterns']['maCloudBreakout'],before['patternScan']['patterns']['maCloudBreakout'])
+        self.assertEqual(cache['patternScan']['patterns']['risingLows'],before['patternScan']['patterns']['risingLows'])
+        self.assertEqual(cache['investSignal'],before['investSignal'])
+        self.assertEqual(cache['gongpasanStages'],before['gongpasanStages'])
+
 if __name__ == '__main__':
     unittest.main()
