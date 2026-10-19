@@ -154,3 +154,14 @@ class SessionCharts(unittest.TestCase):
                 domestic_futures._poll_loop(use_kis_realtime=True)
         symbols = {r[0] for r in self.conn.execute('SELECT symbol FROM home_session_prices')}
         self.assertEqual(symbols, {'KOSPI', 'KOSDAQ'})
+
+    def test_previous_close_saved_in_same_session_only(self):
+        self.put(105, change=-5)
+        self.assertEqual(self.get()['reference'], 110)
+        self.put(106, '2026-10-16T10:01:00-04:00')
+        self.assertIsNone(self.get()['reference'])
+
+    def test_invalid_previous_close_not_invented(self):
+        for value in (None, '', float('nan'), float('inf')):
+            self.put(100, change=value)
+            self.assertIsNone(self.get()['reference'])
