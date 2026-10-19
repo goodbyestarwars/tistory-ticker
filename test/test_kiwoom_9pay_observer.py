@@ -149,3 +149,14 @@ def test_second_pullback_cannot_be_relabelled_first():
     result = feed(o, '09:04:00', 106, 830)
     assert result['entryInvalid']
     assert not feed(o, '09:05:00', 112, 840)['signal']
+def test_inverse_and_leveraged_products_excluded_before_candidate_quota():
+    rows = [dict(code='000001', name='KODEX 인버스', price=100, trade_volume=9999),
+            dict(code='000002', name='TIGER 레 버 리 지', price=100, trade_volume=8888),
+            dict(code='000003', name='ETN INVERSE', price=100, trade_volume=7777),
+            dict(code='005930', name='삼성전자', price=100, trade_volume=100),
+            dict(code='069500', name='KODEX 200', price=100, trade_volume=90)]
+    result = module.candidates(rows, limit=2)
+    assert {row['code'] for row in result} == {'005930'}
+    assert not module.excluded_product('KODEX 200')
+    assert module.excluded_product('ETF Leveraged')
+    assert module.excluded_product('선물 ETN 2X')

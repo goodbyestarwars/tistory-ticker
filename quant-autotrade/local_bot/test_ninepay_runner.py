@@ -75,7 +75,7 @@ class SharedEngineTests(Base):
 
     def broker(self, holdings=()):
         b = FakeBroker(list(holdings), {'005930': 10000, '000660': 9600})
-        b.call = lambda *args: {'return_code': 0, 'cur_prc': '10000'}
+        b.call = lambda *args: {'return_code': 0, 'cur_prc': '10000', 'stk_nm': '삼성전자'}
         return b
 
     def buy(self, b, sig=None):
