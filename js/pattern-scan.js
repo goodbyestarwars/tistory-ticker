@@ -270,34 +270,25 @@
 
   function buildShell() {
     function tabButton(t) {
-      return '<button type="button" class="ps-tab ui-btn ui-btn-tab' + (t.key === activeTab ? ' active' : '') + '" aria-pressed="' + (t.key === activeTab) + '" data-tab="' + t.key + '">' + t.label + '</button>';
+      return '<button type="button" class="ps-tab' + (t.key === activeTab ? ' active' : '') + '" aria-pressed="' + (t.key === activeTab) + '" data-tab="' + t.key + '">' + t.label + '</button>';
     }
-    var primaryKeys = {liveFlow: 'short', longTermQuality: 'long'};
-    var primaryHtml = MENU_TABS.filter(function (t) { return primaryKeys[t.key]; }).map(function (t) {
-      var label = t.label;
-      return '<div class="ps-primary-choice" data-primary-group="' + primaryKeys[t.key] + '">'
-        + tabButton({key:t.key, label:label}) + '</div>';
-    }).join('');
-    var tabsHtml = MENU_TABS.filter(function (t) { return !primaryKeys[t.key]; }).map(tabButton).join('');
+    var tabsHtml = MENU_TABS.map(tabButton).join('');
 
     return ''
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
-      + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab ui-btn ui-btn-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
-      + '<div class="ps-scanner-menu">'
-      + primaryHtml
-      + '<div class="ps-legacy-tools" data-legacy-tools><span class="ps-legacy-heading" data-short-label>통합 검색기</span><div class="ps-tabs">' + tabsHtml + '</div></div></div>'
-      + '<div class="ps-meta" id="psMeta">불러오는 중...</div>'
-      // 목록 가격이 스캔 시점인지 지금인지 한 줄로 밝힌다(patchLivePrices가 채운다).
-      + '<div class="ps-price-basis-note" id="psPriceBasis"></div>'
+      + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
+      + '<nav class="ps-subnav" aria-label="선택 분류의 검색기">' + tabsHtml + '</nav>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
-      + '<div class="ps-source-history" id="psSourceHistory"></div><div data-scanner-review></div><div class="ps-view-tabs" id="psViewTabs" role="tablist">'
+      + '<div class="ps-filterbar"><div class="ps-source-history" id="psSourceHistory"></div>'
+      + '<details class="ps-data-fold"><summary>데이터 기준</summary><div class="ps-meta" id="psMeta">불러오는 중...</div><div class="ps-price-basis-note" id="psPriceBasis"></div></details></div>'
+      + '<div class="ps-view-tabs" id="psViewTabs" role="tablist" aria-label="포착 상태">'
       + STAGE_VIEWS.map(function (v, i) {
-        return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
+        return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
       + '</div>'
-      + '<div class="ps-track-summary" id="psTrackSummary"></div>'
+      + '<details class="ps-review-fold"><summary>상태·성과 자세히</summary><div data-scanner-review></div><div class="ps-track-summary" id="psTrackSummary"></div></details>'
       + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
@@ -328,6 +319,17 @@
   }
 
   function wireTabs(container) {
+    container.addEventListener('keydown', function (event) {
+      var target = event.target;
+      if (!target.matches('[data-horizon], .ps-subnav [data-tab], .ps-view-tab')) return;
+      if (['ArrowLeft', 'ArrowRight', 'Home', 'End'].indexOf(event.key) < 0) return;
+      var selector = target.hasAttribute('data-horizon') ? '[data-horizon]' : target.hasAttribute('data-tab') ? '.ps-subnav [data-tab]' : '.ps-view-tab';
+      var tabs = Array.prototype.filter.call(container.querySelectorAll(selector), function (tab) { return !tab.hidden; });
+      var index = tabs.indexOf(target);
+      var next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      event.preventDefault();
+      tabs[next].focus(); tabs[next].click();
+    });
     container.querySelectorAll('[data-horizon]').forEach(function (btn) {
       btn.addEventListener('click', function () {
         activeGroup = btn.getAttribute('data-horizon');
@@ -338,8 +340,9 @@
     });
     container.querySelectorAll('.ps-view-tab').forEach(function (btn) {
       btn.addEventListener('click', function () {
-        container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.remove('active'); });
+        container.querySelectorAll('.ps-view-tab').forEach(function (b) { b.classList.remove('active'); b.setAttribute('aria-selected', 'false'); });
         btn.classList.add('active');
+        btn.setAttribute('aria-selected', 'true');
         trackView = btn.getAttribute('data-view');
         renderList(container);
         closeDetail(container);
@@ -353,7 +356,7 @@
         activeTab = btn.getAttribute('data-tab');
         var grouped = groupFor(activeTab);
         if (grouped) { historySource = grouped.sources.filter(function(k){return k !== 'ninepayLive';})[0]; trackView = 'all'; scanPerformanceData = null; }
-        container.querySelectorAll('.ps-view-tab').forEach(function(b){b.classList.toggle('active',b.getAttribute('data-view')===trackView);});
+        container.querySelectorAll('.ps-view-tab').forEach(function(b){var on=b.getAttribute('data-view')===trackView;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
         renderTabDesc(container);
         updateMeta(container);
         renderList(container);
@@ -366,9 +369,6 @@
   }
 
   function syncScannerGroup(container) {
-    container.querySelectorAll('[data-short-label]').forEach(function (el) { el.hidden = activeGroup !== 'short'; });
-    container.querySelectorAll('[data-primary-group]').forEach(function (el) { el.hidden = el.getAttribute('data-primary-group') !== activeGroup; });
-    container.querySelectorAll('[data-legacy-tools]').forEach(function (el) { el.hidden = activeGroup === 'long'; });
     container.querySelectorAll('[data-horizon]').forEach(function (btn) {
       var on = btn.getAttribute('data-horizon') === activeGroup;
       btn.classList.toggle('active', on); btn.setAttribute('aria-selected', String(on));
@@ -1266,13 +1266,15 @@
     var purpose={liveFlow:'9Pay A/B와 장중 급증·매집 의심·재돌파를 종목별로 모은다. 관찰 신호이며 실제 매집·주문·체결을 뜻하지 않는다.',
       trendBreakout:'하락추세선 돌파와 이평 기울기 전환을 구분해 본다.',bottomFormation:'저점상승·쌍바닥·역헤드앤숄더·박스권 하단의 모든 충족 상태를 본다.',
       pullbackRebreak:'이평 눌림·첫 눌림 재돌파·급락 후 첫 눌림의 단계별 후보를 함께 본다.',longTermQuality:'224일선·구름대 응축/돌파 중 최근 연간 영업이익·순이익 흑자와 최신 단독분기 비적자를 확인한 기업만 본다.'};
-    box.innerHTML='<strong>'+escapeHtml(purpose[activeTab])+'</strong><p>기존 판정식은 유지한다. 같은 종목은 한 줄, 개별 패턴·단계는 모두 표시한다. 이력·성과는 아래에서 원래 검색기를 선택한다(합산하지 않음).</p>'
-      +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외한다.</p>':'')
-      +'<details><summary>개별 판정 조건</summary>'+group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</details>';
+    var shortPurpose={liveFlow:'거래량·수급·재돌파 신호를 종목별로 확인합니다.',trendBreakout:'추세선 돌파와 이평 기울기 전환을 구분합니다.',bottomFormation:'저점상승·쌍바닥 등 바닥 형성 패턴을 함께 봅니다.',pullbackRebreak:'눌림과 재돌파 후보의 진행 단계를 확인합니다.',longTermQuality:'장기 기술 패턴과 재무 건전성을 함께 확인합니다.'};
+    box.innerHTML='<details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
+      +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
+      +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
+      +group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
     var history=container.querySelector('#psSourceHistory');
     var keys=group.sources.filter(function(k){return k!=='ninepayLive';});
     if(activeTab==='longTermQuality')keys.push('maCloudBreakout');
-    history.innerHTML='<label>이력·성과 기준 <select data-history-source>'+keys.map(function(k){return '<option value="'+k+'"'+(k===historySource?' selected':'')+'>'+escapeHtml(sourceLabel(k))+(k==='maCloudBreakout'?' (이전 기술식 이력)':'')+'</option>';}).join('')+'</select></label><span> 개별 검색기 통계 · 통합 승률 아님</span>';
+    history.innerHTML='<label><span>이력 기준</span> <select aria-label="이력·성과 기준 검색기" data-history-source>'+keys.map(function(k){return '<option value="'+k+'"'+(k===historySource?' selected':'')+'>'+escapeHtml(sourceLabel(k))+(k==='maCloudBreakout'?' (이전 기술식 이력)':'')+'</option>';}).join('')+'</select></label><span class="ps-history-note">개별 검색기 통계</span>';
     history.querySelector('select').addEventListener('change',function(e){historySource=e.target.value;scanPerformanceData=null;loadScanPerformance(container);renderList(container);});
   }
   function memberTagHtml(member) {
