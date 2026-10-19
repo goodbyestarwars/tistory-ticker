@@ -507,6 +507,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
     tasks = {
         'volumePower': lambda: kis_client.fetch_domestic_volume_power_rank(
             kis_token, appkey, appsecret, limit=query_limit),
+        'volumePowerStocks': lambda: kis_client.fetch_domestic_volume_power_rank(
+            kis_token, appkey, appsecret, limit=query_limit, exclude_etf=True),
         'amount': lambda: kis_client.fetch_domestic_volume_rank(
             kis_token, appkey, appsecret, sort_code='3', limit=query_limit),
         'volume': lambda: kis_client.fetch_domestic_volume_rank(
@@ -599,10 +601,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         )
     merged = {row['code']: row for row in rows_with_week52 if row.get('code')}
     sections = _sections(list(merged.values()))
-    # Only genuine strength values from the ranking TR; no price/volume proxy.
-    sections['volumePower'] = sorted(
-        [row for row in merged.values() if row.get('execution_strength') is not None],
-        key=lambda row: row['execution_strength'], reverse=True)
+    sections['volumePower'] = []
+    sections['volumePowerStocks'] = []
 
     # KIS 순위 API는 응답 자체가 해당 정렬 순서이므로, 거래증가율·회전율은
     # 공통 행 모델로 합친 뒤 API가 반환한 순서를 유지한다.
@@ -618,6 +618,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         return result
 
     metric_keys = {
+        'volumePower': 'execution_strength',
+        'volumePowerStocks': 'execution_strength',
         'volumeGrowth': 'volume_growth_rate',
         'volumeGrowthStocks': 'volume_growth_rate',
         'turnoverStocks': 'turnover_rate',
@@ -626,6 +628,8 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         'amountTurnover': 'amount_turnover_rate',
     }
     for section_name, rank_name in (
+        ('volumePower', 'volumePower'),
+        ('volumePowerStocks', 'volumePowerStocks'),
         ('tradeAmount', 'amount'),
         ('tradeVolume', 'volume'),
         ('volumeGrowth', 'volumeGrowth'),
@@ -643,6 +647,10 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         ordered = ordered_section(rank_name)
         if section_name in metric_keys:
             ordered = [row for row in ordered if row.get(metric_keys[section_name]) is not None]
+        if section_name.startswith('volumePower'):
+            ordered = sorted([row for row in ordered if not re.search(
+                r'스팩|기업인수목적|\bSPAC(?:\b|\d)', str(row.get('name') or ''), re.I)],
+                key=lambda row: row['execution_strength'], reverse=True)
         if section_name == 'risingStocks':
             ordered = sorted([row for row in ordered if (row.get('change_rate') or 0) > 0], key=lambda row: row['change_rate'], reverse=True)
         elif section_name == 'fallingStocks':
