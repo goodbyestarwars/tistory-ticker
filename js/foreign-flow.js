@@ -4382,7 +4382,7 @@
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="line" aria-pressed="false" disabled>직선</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="circle" aria-pressed="false" disabled>동그라미</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="pencil" aria-pressed="false" disabled>연필</button>'
-        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="measure" aria-pressed="false" disabled title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
+        + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="measure" aria-pressed="false" disabled title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">세로</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-memo aria-pressed="false" disabled title="차트의 봉을 눌러 메모를 남깁니다">메모</button>'
         + '<button type="button" class="ui-btn ui-btn-secondary" data-ff-draw="clear" disabled>지우기</button>'
         + '<span>도구 선택 후 왼쪽에서 오른쪽으로 드래그 · 종목별 자동 저장</span></div>'
