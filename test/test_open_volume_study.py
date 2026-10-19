@@ -215,5 +215,26 @@ class StrataAndSelectionTests(unittest.TestCase):
         self.assertIsNone(ov.wmean([(None, 1.0)]))
 
 
+class DefenseAndExportTests(unittest.TestCase):
+    def test_defense_class_is_exclusive_and_uses_only_0930_flags(self):
+        base = {'D1_drop_from_high': False, 'A3_above_open_vwap': False, '_drawdown_pct': 5.0}
+        self.assertEqual(ov.defense_class(dict(base)), 'MIXED')
+        self.assertEqual(ov.defense_class(dict(base, A3_above_open_vwap=True, _drawdown_pct=1.0)), 'DEFENDED')
+        self.assertEqual(ov.defense_class(dict(base, A3_above_open_vwap=True, _drawdown_pct=2.5)), 'MIXED')
+        self.assertEqual(ov.defense_class(dict(base, D1_drop_from_high=True, A3_above_open_vwap=True, _drawdown_pct=1.0)), 'DROPPED')
+
+    def test_flags_report_drawdown_from_high(self):
+        bars = bars_from(flat())[:30]
+        ctx = {'lows_rising': False, 'prev_high': 0, 'high_zone': False}
+        fl = ov.flags(bars, ctx)
+        self.assertIn('_drawdown_pct', fl)
+        self.assertAlmostEqual(fl['_drawdown_pct'], (100.1 / 100.0 - 1) * 100, places=3)
+
+    def test_bucket_edges(self):
+        self.assertEqual(ov.bucket(1.9, [2, 5, 10], list('abcd')), 'a')
+        self.assertEqual(ov.bucket(2.0, [2, 5, 10], list('abcd')), 'b')
+        self.assertEqual(ov.bucket(99, [2, 5, 10], list('abcd')), 'd')
+
+
 if __name__ == '__main__':
     unittest.main()
