@@ -2,6 +2,7 @@ from datetime import datetime, timezone
 import os
 import sys
 import unittest
+from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
 from ninepay_signal_client import SignalFeedUnavailable, valid_signals
@@ -22,6 +23,27 @@ def payload(**changes):
 
 
 class SignalClientTests(unittest.TestCase):
+    def test_real_vm_observer_signal_passes_pc_contract(self):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts' / 'cloud-vm'))
+        import kiwoom_9pay_observer as observer
+        o = observer.Observer(['005930'], {'005930': 1000})
+        start = NOW - 30*60  # 09:00 KST
+        for seconds, price, volume in ((0,100,0),(60,110,700),(120,108,710),(180,111,720)):
+            item = o.observe('005930', start+seconds, price, volume)
+        self.assertTrue(item['signal'])
+        self.assertIsNone(item['excluded'])
+        state = payload()['data']['ninePayResearch']
+        state.update(signals=[item], rankAt=datetime.fromtimestamp(item['at'], timezone.utc).isoformat())
+        self.assertEqual(valid_signals({'data': {'ninePayResearch': state}}, item['at'])[0]['code'], '005930')
+
+    def test_missing_exclusion_field_or_reason_still_blocks(self):
+        bad = payload()
+        item = bad['data']['ninePayResearch']['signals'][0]
+        del item['excluded']
+        self.assertEqual(valid_signals(bad, NOW), [])
+        item['excluded'] = '09:30 이전 70% 충족 관측 없음'
+        self.assertEqual(valid_signals(bad, NOW), [])
+
     def test_accepts_fresh_complete_signal(self):
         self.assertEqual(valid_signals(payload(), NOW)[0]['code'], '005930')
 
