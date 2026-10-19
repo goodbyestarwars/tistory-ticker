@@ -25,7 +25,7 @@ const code = `
   var indexTimeframe = 'day';
   var WebSocket = FakeWS;
   var global = { WebSocket: FakeWS };
-  var document = { hidden: false };
+  var document = DOC;
   function fmtSignedPct(v) { return (v >= 0 ? '+' : '') + v + '%'; }
   function signClass(v) { return v >= 0 ? 'up' : 'down'; }
   var setTimeout = function (fn, ms) { timers.push({ fn: fn, ms: ms }); return timers.length; };
@@ -34,10 +34,11 @@ const code = `
   ${grab('indexLiveBar')}
   ${grab('closeIndexSocket')}
   ${grab('connectIndexSocket')}
-  return { connect: connectIndexSocket, close: closeIndexSocket, get bars() { return indexBars; }, get socket() { return indexSocket; }, state: state };
+  return { connect: connectIndexSocket, close: closeIndexSocket, get bars() { return indexBars; }, get socket() { return indexSocket; }, get target() { return indexSocketTarget; }, state: state };
 `;
 const kstDay = new Date(Date.now() + 9 * 3600 * 1000).toISOString().slice(0, 10);
-const api = new Function('FakeWS', 'panel', 'updates', 'timers', 'TODAY', code)(FakeWS, panel, updates, timers, kstDay);
+const DOC = { hidden: false };
+const api = new Function('FakeWS', 'panel', 'updates', 'timers', 'TODAY', 'DOC', code)(FakeWS, panel, updates, timers, kstDay, DOC);
 const out = {};
 api.connect(panel, { code: 'KOSPI' });
 out.url = sockets[0].url;
@@ -63,4 +64,13 @@ out.noReconnectAfterClose = timers.length === 1;
 const n = sockets.length;
 api.connect(panel, { code: 'SOX' });
 out.soxSkipped = sockets.length === n;
+DOC.hidden = true;                                                                              // 숨겨진 탭에서 열면 소켓은 만들지 않되 대상은 기억한다
+const m = sockets.length;
+api.state.selectedCode = 'INDEX:KOSPI';
+api.connect(panel, { code: 'KOSPI' });
+out.hiddenNoSocket = sockets.length === m;
+out.hiddenRemembersTarget = !!(api.target && api.target.row.code === 'KOSPI');
+DOC.hidden = false;
+api.connect(panel, { code: 'KOSPI' });                                                          // 다시 보이면 연결된다
+out.visibleConnects = sockets.length === m + 1;
 process.stdout.write(JSON.stringify(out));

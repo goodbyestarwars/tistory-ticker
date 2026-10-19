@@ -165,7 +165,7 @@
   // 서버가 지원하는 지수(코스피·코스닥·나스닥·S&P500·다우)만 연결하고 필라델피아 반도체(SOX)는 지원 목록에 없어 30초 조회만 쓴다.
   var INDEX_WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators';
   var INDEX_WS_SYMBOLS = { KOSPI: 1, KOSDAQ: 1, NASDAQ_INDEX: 1, SP500_INDEX: 1, DOW_INDEX: 1 };
-  var indexSocket = null, indexSocketTimer = null, indexSocketDelay = 1500, indexSocketGen = 0, indexSocketTarget = null;
+  var indexSocket = null, indexSocketTimer = null, indexSocketDelay = 1500, indexSocketGen = 0, indexSocketTarget = null, indexRefreshNow = null;
   var indexHistoryModuleJob = null;
   function loadIndexHistory(symbol) {
     var group = symbol === 'KOSPI' || symbol === 'KOSDAQ' ? 'domestic' : 'global';
@@ -812,15 +812,19 @@
   }
 
   // 탭이 숨겨져 있던 동안 끊겼다면 다시 보일 때 이어 붙인다(30초 조회와 같은 정책).
+  // 지수 화면을 숨겨진 탭에서 열면(링크를 새 탭으로 열 때 등) 조회가 건너뛰어져 '불러오는 중...'에 멈춘다. 탭이 보이면 바로 한 번 조회한다.
   document.addEventListener('visibilitychange', function () {
+    if (document.hidden) return;
+    if (indexRefreshNow) indexRefreshNow();
     var t = indexSocketTarget;
-    if (document.hidden || indexSocket || !t || t.panel.hidden || state.selectedCode !== 'INDEX:' + t.row.code) return;
+    if (indexSocket || !t || t.panel.hidden || state.selectedCode !== 'INDEX:' + t.row.code) return;
     connectIndexSocket(t.panel, t.row);
   });
 
   function connectIndexSocket(panel, row) {
-    if (!INDEX_WS_SYMBOLS[row.code] || indexSocket || !global.WebSocket || document.hidden) return;
-    indexSocketTarget = { panel: panel, row: row };
+    if (!INDEX_WS_SYMBOLS[row.code]) return;
+    indexSocketTarget = { panel: panel, row: row };          // 숨겨진 탭에서 열었어도 보이는 순간 이어 붙일 수 있게 먼저 기억한다
+    if (indexSocket || !global.WebSocket || document.hidden) return;
     var gen = indexSocketGen;
     var socket;
     try { socket = new WebSocket(INDEX_WS_URL + '?symbols=' + encodeURIComponent(row.code)); } catch (e) { return; }
@@ -860,6 +864,7 @@
     if (panel) panel.hidden = true;
     if (indexTimer) { clearInterval(indexTimer); indexTimer = null; }
     closeIndexSocket();
+    indexRefreshNow = null;
     indexRenderId += 1;
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
@@ -1002,6 +1007,7 @@
           else panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.';
         }).catch(function () { if (state.selectedCode === 'INDEX:' + row.code) panel.innerHTML = '<div class="ss-hint ss-error">지수 데이터를 불러오지 못했습니다.</div>'; });
     }
+    indexRefreshNow = refresh;
     refresh();
     indexTimer = setInterval(refresh, 30000);
     connectIndexSocket(panel, row);
