@@ -41,7 +41,7 @@ async def main():
     for dark in [False,True]:
      await ev('document.documentElement.classList.toggle("dark",'+json.dumps(dark)+');qa.renderAnalysis(sample);qa.renderAnalysis(sample);')
      result=await ev('JSON.stringify({pending:mount.innerText.includes("구성종목 데이터 준비 중"),count:mount.querySelectorAll("[data-etf-holdings]").length,sources:mount.querySelectorAll(".us-analysis-source").length,month:mount.innerText.includes("2026-10"),overflow:document.documentElement.scrollWidth>innerWidth,underline:Array.from(mount.querySelectorAll("a")).some(a=>getComputedStyle(a).textDecorationLine.includes("underline"))})')
-     result=json.loads(result);assert result['pending'] and result['count']==1 and result['sources']==4 and result['month'] and not result['overflow'] and not result['underline'],result
+     result=json.loads(result);assert result['pending'] and result['count']==1 and result['sources']==5 and result['month'] and not result['overflow'] and not result['underline'],result
      await call('Input.dispatchKeyEvent',{'type':'keyDown','key':'Tab','code':'Tab','windowsVirtualKeyCode':9})
      await call('Input.dispatchKeyEvent',{'type':'keyUp','key':'Tab','code':'Tab','windowsVirtualKeyCode':9})
      await ev('mount.querySelector("a").focus()')

@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261019-supply1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-us-ranges';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -52,7 +52,7 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261019-analysis-etf';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261020-analysis-review';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -1927,6 +1927,8 @@
   }
 
   function renderChartForCode(container, code) {
+    var rangeWrap = container.querySelector('.nine-chart-ranges');
+    if (rangeWrap) rangeWrap.hidden = state.timeframe === 'minute';
     if (state.timeframe === 'minute') {
       renderMinuteChart(container, code);
       startMinuteRefresh(container, code);
@@ -1995,7 +1997,7 @@
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
-      + '<div class="ss-chart-legend">거래량은 캔들 아래에 국내 종목 화면과 같은 방식으로 표시됩니다.</div>';
+      + '<div class="ss-chart-legend">미국 일봉은 제공된 약 2년 자료 범위에서 기간을 선택합니다. 전체 = 수신한 자료 전체.</div>';
 
     // 첫 화면은 일봉만 보인다. 이전에는 보이지 않는 분봉까지 동시에 조회해서
     // 미국 상세 진입 때 뉴스·일봉·분봉 외부 요청이 한꺼번에 몰렸다. 분봉은 탭을
@@ -2714,10 +2716,10 @@
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
-      if (timeframe !== 'minute' && global.NineChartData && /^[0-9]{6}$/.test(String(state.selectedCode || ''))) {
+      if (timeframe !== 'minute' && global.NineChartData && (/^[0-9]{6}$/.test(String(state.selectedCode || '')) || isUsChart)) {
         var visibleDates = global.NineChartData.rangeDates(bars, state.selectedCode);
         if (visibleDates) chart.timeScale().setVisibleRange(visibleDates);
-        global.NineChartData.loadOnLeftScroll(chart, container, state.selectedCode,
+        if (!isUsChart) global.NineChartData.loadOnLeftScroll(chart, container, state.selectedCode,
           function () { return state.chartCache[state.selectedCode] && state.chartCache[state.selectedCode].data; });
       }
       var panes = chart.panes();
@@ -2841,6 +2843,10 @@
     global.StockSearch.currentSelection = function () {
       var item = (state.lastResults || []).filter(function (row) { return row.code === state.selectedCode; })[0] || {};
       var quote = state.liveQuotes[state.selectedCode] || item;
+      if (/^US:/i.test(state.selectedCode || '') && global.UsStocks && global.UsStocks.currentQuote) {
+        var usQuote = global.UsStocks.currentQuote();
+        if (usQuote && 'US:' + usQuote.symbol === state.selectedCode) quote = { price: usQuote.price, changeRate: usQuote.change_rate };
+      }
       return { code: state.selectedCode, name: state.selectedName || localizedUsName(state.selectedCode),
         price: quote.price, changeRate: quote.changeRate };
     };

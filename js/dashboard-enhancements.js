@@ -10,7 +10,7 @@
   'use strict';
 
   var CUSTOM_CARDS_KEY = 'market_temp_custom_cards_v1';
-  var ENHANCEMENT_VERSION = '20261013-hts-wheel1';
+  var ENHANCEMENT_VERSION = '20261020-us-chart-layout';
   var STYLE_HREF = 'https://goodbyestarwars.github.io/tistory-ticker/css/dashboard-enhancements.css?v=' + ENHANCEMENT_VERSION;
   var customCardsReady = false;
   var observer;
@@ -251,7 +251,10 @@
     var indexPanel = target && target.id === 'ssIndexChart' && target.closest ? target.closest('#ssIndexPanel') : null;
     var modalTarget = patternDetail || indexPanel || (target && (target.id === 'ssChart' || flowChartPanel) ? target.parentElement : target);
     if (!modalTarget) return;
-    var usChartModal = modalTarget.id === 'usStocksChart';
+    if (modalTarget.id === 'usStocksChart' && modalTarget.parentElement.classList.contains('us-stocks-chart-panel')) {
+      modalTarget = modalTarget.parentElement;
+    }
+    var usChartModal = modalTarget.id === 'usStocksChart' || !!modalTarget.querySelector('#usStocksChart');
     var chartTarget = modalTarget.querySelector ? modalTarget.querySelector('#ssChart, #ssIndexChart, #ffLwChart, #psChart') : null;
     var candleZoom = chartTarget && /^(ssChart|ffLwChart|psChart)$/.test(chartTarget.id);
     var placeholder = document.createElement('div');
@@ -306,7 +309,7 @@
           && Number.isFinite(value) && Number.isFinite(changeRate) && value > 0;
         quoteBox.hidden = !valid;
         if (!valid) { price.textContent = ''; rate.textContent = ''; return; }
-        price.textContent = value.toLocaleString('ko-KR') + '원';
+        price.textContent = /^US:/i.test(selectedCode || '') ? '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : value.toLocaleString('ko-KR') + '원';
         rate.textContent = changeRate > 0 ? '▲ +' + changeRate.toFixed(2) + '%'
           : changeRate < 0 ? '▼ ' + changeRate.toFixed(2) + '%' : '0.00%';
         quoteBox.className = 'de-chart-stock-quote ' + (changeRate > 0 ? 'is-up' : changeRate < 0 ? 'is-down' : 'is-flat');

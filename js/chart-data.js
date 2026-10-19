@@ -210,18 +210,21 @@
     var end = bars[bars.length - 1].date;
     var start = new Date(end + 'T00:00:00Z');
     start.setUTCDate(start.getUTCDate() - choice[2]);
-    return { from: start.toISOString().slice(0, 10), to: end };
+    return { from: [start.toISOString().slice(0, 10), bars[0].date].sort()[1], to: end };
   }
   function installRangeButtons(chartElement, code, getData, onData) {
     var parent = chartElement && chartElement.parentElement;
-    if (!parent || !/^[0-9]{6}$/.test(code)) return;
+    var isUs = /^US:[A-Z0-9.\-]+$/i.test(code);
+    if (!parent || (!/^[0-9]{6}$/.test(code) && !isUs)) return;
     var wrap = parent.querySelector('.nine-chart-ranges');
     if (!wrap) {
       wrap = document.createElement('div');
       wrap.className = 'nine-chart-ranges';   // 모양은 css/ui-system.css(.nine-chart-ranges) - 사이트 탭(.ss-tf-btn)과 같은 스타일
       parent.insertBefore(wrap, chartElement);
     }
-    wrap.innerHTML = RANGE_OPTIONS.map(function (o) {
+    wrap.hidden = false;
+    var options = isUs ? RANGE_OPTIONS.filter(function (o) { return o[0] !== '3y' && o[0] !== '5y'; }) : RANGE_OPTIONS;
+    wrap.innerHTML = options.map(function (o) {
       var on = selectedRange(code) === o[0];
       return '<button type="button" class="nine-range-btn' + (on ? ' active' : '') + '" data-range="' + o[0] + '" aria-pressed="' + on + '">' + o[1] + '</button>';
     }).join('') + '<span class="nine-chart-range-status" aria-live="polite"></span>';
@@ -232,7 +235,7 @@
       chartRanges[code] = choice;
       if (wrap.dataset.scrollLoading !== '1') delete viewportOverrides[code];
       delete wrap.dataset.scrollLoading;
-      var extended = choice === '3y' || choice === '5y' || choice === 'all';
+      var extended = !isUs && (choice === '3y' || choice === '5y' || choice === 'all');
       var status = wrap.querySelector('.nine-chart-range-status');
       if (extended && (!getData() || !getData().extendedHistory)) {
         if (loadingRanges[code]) return;

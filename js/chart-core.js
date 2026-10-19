@@ -31,7 +31,7 @@
   var SELF_SRC = (DOC && DOC.currentScript && DOC.currentScript.src) || '';
   var ROOT = (SELF_SRC.match(/^(.*\/)js\/chart-core\.js/) || [])[1] || 'https://goodbyestarwars.github.io/tistory-ticker/';
   var MODULES = {
-    data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261014-history2' },
+    data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261020-us-ranges' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },

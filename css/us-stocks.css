@@ -312,3 +312,20 @@ html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(24
 .us-etf-holdings ul { padding-left: 20px; }
 html.dark .us-stocks-analysis-card .us-analysis-source { color: #b4bfd0; }
 html.dark .us-stocks-analysis-card a { color: #93c5fd; }
+.us-stocks-analysis-card [data-analysis-value]:has(.us-consensus) { white-space: normal; overflow: visible; }
+.us-stocks-analysis-card .us-consensus { display: flex; align-items: center; gap: 8px; min-height: 94px; }
+.us-consensus svg { width: 92px; height: 92px; flex: 0 0 92px; }
+.us-consensus text { fill: currentColor; font-size: 20px; font-weight: 700; }
+.us-consensus text.us-consensus-caption { font-size: 10px; font-weight: 400; }
+.us-stocks-analysis-card .us-consensus-legend { display: grid; gap: 8px; flex: 1; min-width: 0; }
+.us-stocks-analysis-card .us-consensus-legend > span { display: flex; align-items: center; gap: 5px; font-size: 11px; }
+.us-consensus-legend i { width: 6px; height: 6px; flex: 0 0 6px; border-radius: 50%; }
+.us-consensus-legend strong { margin-left: auto; font-size: 12px; }
+.us-analysis-records { line-height: 1.6; }
+.us-analysis-records ul { padding: 0; margin: 7px 0; list-style: none; max-height: 320px; overflow: auto; }
+.us-analysis-records li { padding: 7px 0; border-bottom: 1px solid #e5eaf2; overflow-wrap: anywhere; }
+.us-analysis-records summary { min-height: 30px; padding: 5px 0; }
+@media(max-width:480px) {
+ .us-stocks-analysis-card .us-consensus { flex-direction: column; gap: 3px; }
+ .us-stocks-analysis-card .us-consensus-legend { width: 100%; gap: 4px; }
+}

@@ -391,7 +391,7 @@ dict 구성을 함께 대조한다.
 | GET | `/etf-components/{code}` | 없음 | ETF 구성종목 |
 | GET | `/us-search`, `/us-quote/{symbol}`, `/us-quotes?symbols=AAPL,MSFT`, `/us-orderbook/{symbol}` | 없음 | 미국 검색·단건/일괄 시세·호가 |
 | GET | `/us-options/{symbol}` | 없음 | 미국 종목 가장 가까운 만기(당일이면 0DTE)의 행사가별 감마 노출 요약. Cboe 지연 시세 공개 JSON 기반, 결과만 캐시(장중 5분·장외 30분·옵션 없음/4MB 초과 1시간). 행사가별 `call/put`(감마 노출 백만$)·`*_oi`·`*_vol`과 `as_of`(Cboe 기준 시각 epoch초) 포함 |
-| GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석 |
+| GET | `/us-chart/{symbol}`, `/us-news/{symbol}`, `/us-analysis/{symbol}` | 없음 | 미국 차트·뉴스·분석. 분석 v3의 `summary.insider`는 최근90일 비파생 P/S 매수·매도와 기타 변동/공시일/원문을 구분. `summary.analyst_ratings`는 월별 추천 집계와 별도이며 `access_denied`는 기관별 자료 미확보를 뜻함. 상세: `docs/US_ANALYSIS_REVIEW_2026-10-20.md` |
 | GET/PUT | `/watchlist` | Google 세션 | 관심종목 조회·저장 |
 | GET | `/watchlist/disclosures` | Google 세션 | 관심종목 최근 7일 DART 공시 |
 | GET/PUT | `/memo` | Google 세션 | 메모 목록 조회·저장(종목별/자유 메모, `user_memos` 1행 JSON 배열 - watchlist_configs와 같은 패턴) |

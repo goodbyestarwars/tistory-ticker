@@ -44,9 +44,9 @@ class UsAnalysisTests(unittest.TestCase):
         self.assertEqual(result['summary']['latest_revenue'], 100)
         self.assertEqual(result['summary']['latest_net_income'], 25)
         self.assertEqual(result['summary']['next_earnings'], '2026-08-15')
-        self.assertEqual(result['summary']['insider_net_change'], 80)
+        self.assertEqual(result['summary']['insider_net_change'], 0)  # Undated/code-less changes are not purchases.
         self.assertEqual(cached['summary'], result['summary'])
-        self.assertEqual(fetch.call_count, 7)
+        self.assertEqual(fetch.call_count, 8)
 
     def test_reads_finnhub_list_based_income_statement(self):
         financials = {'data': [{'report': {'ic': [

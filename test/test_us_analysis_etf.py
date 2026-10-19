@@ -37,7 +37,7 @@ class AnalysisRegression(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root, patch.object(analysis, 'CACHE_DB_FILE',root+'/a.db'):
             with patch.object(analysis, '_get_json',return_value={}) as fetch:
                 result=analysis.get_analysis('AAPL','test')
-                self.assertEqual(fetch.call_count,8)
+                self.assertEqual(fetch.call_count,9)
                 self.assertFalse(result['available'])
                 self.assertTrue(result['partial'])
             now=time.time()
