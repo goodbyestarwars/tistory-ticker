@@ -160,3 +160,8 @@ def test_inverse_and_leveraged_products_excluded_before_candidate_quota():
     assert not module.excluded_product('KODEX 200')
     assert module.excluded_product('ETF Leveraged')
     assert module.excluded_product('선물 ETN 2X')
+    for name in ('KODEX CD금리액티브(합성)', 'CD1년금리액티브', 'KOFR금리', 'SOFR금리',
+                 '머니마켓액티브', 'Money Market', '단기채권액티브', '단기통안채'):
+        assert module.excluded_product(name)
+    for name in ('KODEX 200', 'TIGER 반도체', 'ETF 미국S&P500(합성)', '삼성전자'):
+        assert not module.excluded_product(name)
