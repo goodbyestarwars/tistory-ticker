@@ -28,6 +28,7 @@ class StockChartToolbarTest(unittest.TestCase):
         css = read('css/stock-search.css')
         self.assertIn('justify-content: space-between;', css)
         self.assertIn('flex-wrap: wrap;', css)
+        self.assertIn('#stock-search .ss-panels { grid-template-columns: minmax(0, 1fr);', css)
         skin_css = read('style.css')
         self.assertIn('html body .ss-chart-tabs.ss-chart-tabs {', skin_css)
         self.assertIn('width: 100% !important;', skin_css)

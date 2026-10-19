@@ -677,7 +677,7 @@ html body .ss-chart-tabs.ss-chart-tabs {
 /* ---- 반응형: 좁은 화면에서는 호가/차트를 위아래로 ---- */
 @media (max-width: 860px) {
   #stock-search .ss-input-wrap { flex: 1; min-width: 0; }
-  #stock-search .ss-panels { grid-template-columns: 1fr; row-gap: 16px; }
+  #stock-search .ss-panels { grid-template-columns: minmax(0, 1fr); row-gap: 16px; }
   #stock-search .ss-panel-left,
   #stock-search .ss-panel-right,
   #stock-search .ss-news-panel { grid-column: 1; grid-row: auto; }
