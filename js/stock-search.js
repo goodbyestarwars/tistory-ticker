@@ -52,7 +52,7 @@
   var MAX_RESULTS = 30;
   var FETCH_TIMEOUT_MS = 15000;
   var VM_OHLC_MINUTE_URL = 'https://goodbyestar.cloud/ohlc-minute/';
-  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261013-fullscreen1';
+  var US_STOCKS_SCRIPT = 'https://goodbyestarwars.github.io/tistory-ticker/js/us-stocks.js?v=20261019-analysis-etf';
   var US_API_BASE = 'https://goodbyestar.cloud';
   var LOCAL_US_SYMBOLS = [
     { symbol: 'AAPL', name: '애플', aliases: '애플 apple apple inc' },
@@ -1916,7 +1916,14 @@
   function activeStockChartElement(container) {
     var fullscreenChart = document.querySelector('.de-chart-overlay #ssChart');
     if (fullscreenChart) return fullscreenChart;
-    return container && container.querySelector ? container.querySelector('#ssChart') : null;
+    if (!container || !container.querySelectorAll) return null;
+    // Embedded US and domestic hosts both retain #ssChart. Never render into
+    // the hidden market's chart when switching back to the other market.
+    var charts = container.querySelectorAll('#ssChart');
+    for (var i = 0; i < charts.length; i++) {
+      if (!charts[i].closest('[hidden]')) return charts[i];
+    }
+    return null;
   }
 
   function renderChartForCode(container, code) {
