@@ -144,7 +144,10 @@ class TradeTests(unittest.TestCase):
 
     def test_excluded_products_and_unknown_name_never_order(self):
         for name in ('KODEX 200선물인버스2X', 'TIGER 레버리지', 'ETN Inverse',
-                     'ETF LEVERAGED', 'ETN 2X', 'ETF 3배', '레 버 리 지', ''):
+                     'ETF LEVERAGED', 'ETN 2X', 'ETF 3배', '레 버 리 지',
+                     'KODEX CD금리액티브(합성)', 'TIGER CD1년금리액티브(합성)',
+                     'KODEX KOFR금리액티브', '미국달러SOFR금리', 'TIGER 머니마켓액티브',
+                     'ETF 단기채권', 'ETF Money Market', ''):
             self.client.call = lambda *args, n=name: {'return_code': 0, 'cur_prc': '10000', 'stk_nm': n}
             with self.subTest(name=name), patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
                 self.assertIn(self.run_trade(), ('PRODUCT_EXCLUDED', 'PRODUCT_NAME_UNCONFIRMED'))

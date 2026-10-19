@@ -56,6 +56,9 @@ def run_cycle(client, ledger, daily, folder, now, existing_due, *,
             return '9PAY_FEED_UNAVAILABLE'
         for signal in signals:
             state = signal_trade(client, ledger, signal, folder, now)
+            if state != '9PAY_BUY_SENT':
+                ledger.skip(now.strftime('%Y-%m-%d'), signal.get('code') or '*',
+                            '9PAY_' + state, 'signal_id=' + str(signal.get('signalId') or ''))
             if state in ('9PAY_BUY_SENT', 'DISABLED_OR_UNCERTAIN', 'PENDING_ORDERS',
                          'BUY_FILL_UNCONFIRMED', 'SELL_FILL_UNCONFIRMED', 'FOREIGN_HOLDINGS'):
                 return state
