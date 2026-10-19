@@ -26,6 +26,11 @@ class FinancialGateTest(unittest.TestCase):
   raw=[item(),dict(item(),code='000660')];before=copy.deepcopy(raw);groups={'maCloudBreakout':raw}
   summary=p.apply_long_term_filter(groups,{'005930':entry()},now=NOW)
   self.assertEqual(groups['maCloudBreakout'],before);self.assertEqual(len(groups['longTermQuality']),1);self.assertEqual(summary['excluded'],1);self.assertEqual(summary['reasonCounts']['FINANCIAL_MISSING'],1)
+ def test_pending_and_missing_are_not_age_expiry(self):
+  e=entry();e['screening']['error']='LATEST_DISCLOSURE_PENDING'
+  result=p.long_term_financial_check(item(),e,now=NOW)
+  self.assertFalse(result['passed']);self.assertIn('LATEST_DISCLOSURE_PENDING',result['reasons']);self.assertNotIn('DISCLOSURE_STALE',result['reasons'])
+  self.assertNotIn('DISCLOSURE_STALE',p.long_term_financial_check(item(),None,now=NOW)['reasons'])
  def test_new_filing_pending_no_fallback(self):
   reports=[{'report_nm':'반기보고서 (2026.06)','rcept_dt':'20260814','rcept_no':'20260814000002'}]
   q={'year':2026,'reprt_code':'11012','rcept_no':'20260814000001'}

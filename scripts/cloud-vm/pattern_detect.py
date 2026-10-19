@@ -2422,7 +2422,7 @@ def long_term_financial_check(item, entry, now=None, config=None):
     elif ops<=0 or nets<=0: reasons.append('ANNUAL_LOSS')
     # A new cache timestamp must not make an old filing appear current.
     if proof.get('error'): reasons.append(proof['error'])
-    if not fundamentals.screening_cache_fresh(entry, now=now, max_days=cfg['max_finance_age_days']):
+    if proof.get('version') == fundamentals.SCREENING_VERSION and not proof.get('error') and not fundamentals.screening_cache_fresh(entry, now=now, max_days=cfg['max_finance_age_days']):
         reasons.append('DISCLOSURE_STALE')
     filing = proof.get('filing') or {}
     for receipt in (filing.get('rcept_no'), last.get('rcept_no')):
