@@ -1,4 +1,9 @@
 /* 자동매매(소유자 전용) 화면 스타일. #auto-trader 안쪽만. 상승 빨강·하락 파랑 외에 장식색을 쓰지 않는다. */
+/* Tistory가 본문 앞에 삽입하는 광고는 운영 화면 뒤, 공감 버튼 앞에 둔다. */
+.post-single-body:has(#auto-trader) { display: flex; flex-direction: column; }
+.post-single-body:has(#auto-trader) > .contents_style { order: 0; }
+.post-single-body:has(#auto-trader) > ins.adsbygoogle { order: 1; }
+.post-single-body:has(#auto-trader) > .container_postbtn { order: 2; }
 #auto-trader { --at-ink: rgb(var(--np-ink, 26, 26, 26)); --at-mute: rgba(var(--np-ink, 26, 26, 26), .55); --at-line: rgba(var(--np-ink, 26, 26, 26), .12);
   --at-up: #d24f45; --at-down: #1261c4; min-width: 0; color: var(--at-ink); font-family: var(--font-ui, system-ui, sans-serif); }
 html.dark #auto-trader { --at-up: #ff8a83; --at-down: #80b8ff; }
