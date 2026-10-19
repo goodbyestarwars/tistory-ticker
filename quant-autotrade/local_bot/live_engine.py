@@ -16,7 +16,7 @@ KST = timezone(timedelta(hours=9))
 BUDGET = 1_000_000
 RESERVE = 100_000
 PER_STOCK = 300_000
-MAX_STOCKS = 3
+MAX_STOCKS = None  # 2026-10-19 user removed the count cap; shared capital limits remain.
 # Conservative round-trip cost allowance until actual account fees/taxes are verified.
 COST_PCT = 0.7
 CODE_RE = re.compile(r'^\d{6}$')
@@ -35,6 +35,10 @@ def load_exclusions(folder):
     if not isinstance(codes, list) or not all(isinstance(c, str) and CODE_RE.fullmatch(c) for c in codes):
         return None
     return set(codes)
+
+
+def slots_full(count):
+    return MAX_STOCKS is not None and count >= MAX_STOCKS
 
 
 def net_gain(price, avg, cost_pct=COST_PCT):
@@ -323,9 +327,9 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
     if not (9 <= now.hour < 10):
         ledger.skip(today, '*', 'WINDOW_CLOSED', 'entry window 09:00-10:00', once=True)
         return 'NO_ENTRY'
-    if cash <= RESERVE or slots_used >= MAX_STOCKS or committed >= BUDGET - RESERVE:
-        why = 'SLOTS_FULL' if slots_used >= MAX_STOCKS else 'NO_CASH' if cash <= RESERVE else 'BUDGET_COMMITTED'
-        ledger.skip(today, '*', why, 'slots=%d/%d cash=%d committed=%d' % (slots_used, MAX_STOCKS, cash, committed))
+    if cash <= RESERVE or slots_full(slots_used) or committed >= BUDGET - RESERVE:
+        why = 'SLOTS_FULL' if slots_full(slots_used) else 'NO_CASH' if cash <= RESERVE else 'BUDGET_COMMITTED'
+        ledger.skip(today, '*', why, 'slots=%d/%s cash=%d committed=%d' % (slots_used, MAX_STOCKS, cash, committed))
         return 'NO_ENTRY'
     # Existing holdings consume slots and capital even if manually acquired.
     rejected = []
@@ -338,8 +342,8 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
             ledger.skip(today, code, 'EXCLUDED')
             continue                        # 제외 종목: 자동매수 금지
         pos = positions.get(code)
-        if code in held or code in sent_today or (pos and pos['state'] != 'CLOSED') or slots_used >= MAX_STOCKS:
-            ledger.skip(today, code, 'ALREADY_HELD_OR_SENT' if slots_used < MAX_STOCKS else 'SLOTS_FULL')
+        if code in held or code in sent_today or (pos and pos['state'] != 'CLOSED') or slots_full(slots_used):
+            ledger.skip(today, code, 'SLOTS_FULL' if slots_full(slots_used) else 'ALREADY_HELD_OR_SENT')
             continue
         price = fresh_price(client, code, now)
         if price is None:
