@@ -98,3 +98,17 @@ def test_publish_held_if_evidence_write_fails(monkeypatch):
               'signalAt': 10, 'first70At': 1, 'branches': ['A']}
     live._consume(result, None, '2026-10-19', set())
     assert not live.health_snapshot()['signals']
+def test_restore_removes_previously_pinned_inverse(tmp_path, monkeypatch):
+    import json
+    path = tmp_path / 'state.json'
+    monkeypatch.setattr(live, 'STATE_PATH', str(path))
+    o = live.logic.Observer(['252670'], {'252670': 1000})
+    o.tracks['252670'] = live.logic.Track()
+    data = o.export_state('2026-10-19')
+    data.update(candidateDetails=[{'code': '252670', 'name': 'KODEX 200선물인버스2X'}],
+                signals=[{'code': '252670'}], observations={'252670': {'code': '252670'}})
+    path.write_text(json.dumps(data), encoding='utf-8')
+    live._restore(o, '2026-10-19')
+    assert '252670' not in o.tracks
+    snapshot = live.health_snapshot()
+    assert snapshot['candidateDetails'] == [] and snapshot['signals'] == []

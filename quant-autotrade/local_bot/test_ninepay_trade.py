@@ -76,7 +76,7 @@ class FakeClient:
         return self.cash
 
     def call(self, api_id, path, body):
-        return {'return_code': 0, 'cur_prc': str(self.price)}
+        return {'return_code': 0, 'cur_prc': str(self.price), 'stk_nm': '삼성전자'}
 
     def buy_limit(self, code, qty, price):
         self.orders.append((code, qty, price))
@@ -136,10 +136,18 @@ class TradeTests(unittest.TestCase):
         def price_check(*args):
             with open(os.path.join(self.folder.name, 'STOP'), 'w'):
                 pass
-            return {'return_code': 0, 'cur_prc': '10000'}
+            return {'return_code': 0, 'cur_prc': '10000', 'stk_nm': '삼성전자'}
         self.client.call = price_check
         with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
             self.assertEqual(self.run_trade(), 'DISABLED_OR_UNCERTAIN')
+        self.assertEqual(self.client.orders, [])
+
+    def test_excluded_products_and_unknown_name_never_order(self):
+        for name in ('KODEX 200선물인버스2X', 'TIGER 레버리지', 'ETN Inverse',
+                     'ETF LEVERAGED', 'ETN 2X', 'ETF 3배', '레 버 리 지', ''):
+            self.client.call = lambda *args, n=name: {'return_code': 0, 'cur_prc': '10000', 'stk_nm': n}
+            with self.subTest(name=name), patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+                self.assertIn(self.run_trade(), ('PRODUCT_EXCLUDED', 'PRODUCT_NAME_UNCONFIRMED'))
         self.assertEqual(self.client.orders, [])
 
 

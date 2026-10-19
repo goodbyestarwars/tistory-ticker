@@ -50,6 +50,8 @@ class IndexLiveBarTest(unittest.TestCase):
             self.assertIn(sym + ': 1', ss)
         self.assertNotIn('SOX: 1', ss)                                            # 서버 지원 목록에 없다
         self.assertIn('indexTimer = setInterval(refresh, 30000)', ss)             # 30초 조회는 히스토리·폴백으로 유지
+        self.assertIn('indexRefreshNow = refresh;', ss)                           # 숨겨진 탭에서 열어도 보이는 순간 바로 조회한다
+        self.assertIn('if (indexRefreshNow) indexRefreshNow();', ss)
 
 
 class IndexSocketSimulationTest(unittest.TestCase):
@@ -65,7 +67,7 @@ class IndexSocketSimulationTest(unittest.TestCase):
         self.assertIn('실시간 연결(5초)', r['note'])
         self.assertEqual((r['bar']['high'], r['bar']['close'], r['bar']['open'], r['bar']['low']), (108.5, 108.5, 100, 98))
         self.assertEqual(r['updates'], 1)
-        for key in ('unchangedAfterIgnored', 'reconnectScheduled', 'reconnected', 'ignoredAfterSwitch', 'closed', 'noReconnectAfterClose', 'soxSkipped'):
+        for key in ('unchangedAfterIgnored', 'reconnectScheduled', 'reconnected', 'ignoredAfterSwitch', 'closed', 'noReconnectAfterClose', 'soxSkipped', 'hiddenNoSocket', 'hiddenRemembersTarget', 'visibleConnects'):
             self.assertTrue(r[key], key)
 
 
