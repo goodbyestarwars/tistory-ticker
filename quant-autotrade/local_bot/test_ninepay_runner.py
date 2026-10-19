@@ -106,10 +106,17 @@ class SharedEngineTests(Base):
         self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
         self.assertEqual(b.buys, [('005930', 1, 10000)])  # 900,000 committed cap
 
-    def test_slots_shared_with_existing_searchers(self):
+    def test_three_existing_positions_do_not_block_fourth_within_budget(self):
         for code in ('000001', '000002', '000003'):
             self.position(code, 1, 10000)
         b = self.broker([holding(c, 1, 10000, 10000) for c in ('000001','000002','000003')])
+        self.assertIsNone(engine.MAX_STOCKS)
+        self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
+        self.assertEqual(b.buys, [('005930', 30, 10000)])
+
+    def test_no_count_cap_never_overrides_budget(self):
+        self.position('000660', 90, 10000)
+        b = self.broker([holding('000660',90,10000,10000)])
         self.assertEqual(self.buy(b), 'BUDGET_OR_SLOTS_FULL')
         self.assertEqual(b.buys, [])
 
