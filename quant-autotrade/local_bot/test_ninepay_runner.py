@@ -26,7 +26,7 @@ class OrderingTests(unittest.TestCase):
             calls.append('9pay')
             return buy
         with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
-            result = run_cycle(None, None, None, '.', NOW, due, engine_cycle=legacy,
+            result = run_cycle(None, Mock(), None, '.', NOW, due, engine_cycle=legacy,
                                signal_fetch=fetch, signal_trade=enter,
                                get_candidates=lambda now: [])
         return result, calls
@@ -47,6 +47,16 @@ class OrderingTests(unittest.TestCase):
 
     def test_three_second_poll_does_not_repeat_exit_checks(self):
         self.assertEqual(self.cycle(due=False), ('9PAY_BUY_SENT', ['feed', '9pay']))
+
+    def test_order_block_reason_is_persisted(self):
+        ledger = Mock()
+        sig = {'code': '010580', 'signalId': '2026-10-19:010580'}
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            result = run_cycle(None, ledger, None, '.', NOW, False,
+                               signal_fetch=lambda **kw: [sig],
+                               signal_trade=lambda *args: 'BUDGET_OR_SLOTS_FULL')
+        self.assertEqual(result, 'BUDGET_OR_SLOTS_FULL')
+        self.assertEqual(ledger.skip.call_args.args[1:3], ('010580','9PAY_BUDGET_OR_SLOTS_FULL'))
 
     def test_disabled_9pay_keeps_existing_cycle(self):
         fn = Mock(side_effect=['EXITS_CHECKED', 'NO_CANDIDATE'])
