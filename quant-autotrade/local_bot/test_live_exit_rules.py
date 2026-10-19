@@ -8,6 +8,7 @@ import os
 import sqlite3
 import sys
 import unittest
+from unittest.mock import patch
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import live_engine as le
@@ -233,8 +234,14 @@ class EntryRecordTests(Base):
                 db.execute("INSERT INTO positions(code,qty,state,buy_day,floor_reached) VALUES(?,1,'OPEN','2026-10-14',0)", (code,))
         held = [holding(c, 1, 1000, 1000) for c in ('000001', '000002', '000003')]
         b = FakeBroker(held, {c: 1000 for c in ('000001', '000002', '000003')})
-        self.cycle(b)
+        with patch.object(le, 'MAX_STOCKS', 3):
+            self.cycle(b)
         self.assertIn(('*', 'SLOTS_FULL'), self.skips())
+
+    def test_default_count_cap_removed_without_changing_capital_limits(self):
+        self.assertIsNone(le.MAX_STOCKS)
+        self.assertFalse(le.slots_full(100))
+        self.assertEqual((le.BUDGET, le.RESERVE, le.PER_STOCK), (1000000,100000,300000))
 
     def test_excluded_candidate_is_recorded_as_excluded(self):
         self.clear()

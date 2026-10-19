@@ -34,7 +34,9 @@ def valid_evidence(item, now):
     branches = item.get('branches')
     return (item.get('ruleVersion') == RULE_VERSION
             and item.get('volumeMissing') is False
-            and item.get('excluded') is False
+            # Observer contract: explicit null = no exclusion reason; string = excluded.
+            # A missing field remains invalid, rather than silently authorizing entry.
+            and 'excluded' in item and (item['excluded'] is None or item['excluded'] is False)
             and isinstance(branches, list) and bool(branches)
             and all(b in ('A', 'B') for b in branches)
             and all(math.isfinite(v) for v in (first, at, price, ratio))
