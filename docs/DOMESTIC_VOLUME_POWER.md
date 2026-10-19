@@ -2,12 +2,12 @@
 
 2026-10-19 사용자 요청. 기존 홈 실시간 종목판에 국내 `체결강도` 탭을 추가한다. 별도 검색 엔진·PC 매매 규칙·주문 연동을 만들지 않는다.
 
-- 공식 TR: `FHPST01680000`, `GET /uapi/domestic-stock/v1/ranking/volume-power`, KRX `J`, 화면20168, 시장0000, 제외코드0. [KIS 공식 예제](https://github.com/koreainvestment/open-trading-api/tree/main/examples_llm/domestic_stock/volume_power).
+- 공식 TR: `FHPST01680000`, `GET /uapi/domestic-stock/v1/ranking/volume-power`, KRX `J`, 화면20168, 시장0000. [KIS 공식 예제](https://github.com/koreainvestment/open-trading-api/tree/main/examples_llm/domestic_stock/volume_power).
 - `tday_rltv`(당일 체결강도)를 `execution_strength`로 전달하고 `/market-board?market=domestic`의 `data.sections.volumePower`에 내림차순 배열로 제공한다. 회전율·거래량으로 대신 계산하지 않는다. 미수신/비정상 값은 제외하며 전체 오류 시 다른 순위로 바꿔 채우지 않는다.
-- 기존 시장/limit별 공유 캐시·동시 요청 병합·워머를 재사용한다. 보드 수집당 순위 GET 한 번만 추가하고 연속조회·종목별 체결강도 조회는 하지 않는다. 기존 단기 캐시를 사용하므로 페이지 방문자마다 호출하지 않는다.
+- 기존 시장/limit별 공유 캐시·동시 요청 병합·워머를 재사용한다. 보드 수집당 순위 GET 두 번만 추가(스팩 제외·ETF/ETN/스팩 제외)하고 연속조회·종목별 체결강도 조회는 하지 않는다. 기존 단기 캐시를 사용하므로 페이지 방문자마다 호출하지 않는다.
 - 순위/강도는 프론트의 약30초 스냅샷 갱신, 현재가는 기존 `/ws/quotes` 공유 연결로 갱신한다. KRX 순위이므로 NXT 통합 체결강도라고 표시하지 않는다.
 - PC는 현재가 다음에 체결강도 열, 모바일은 종목/현재가/체결강도 3열. 100 초과 빨강·미만 파랑, 값 누락은 미수신. 기존 ETF·ETN 토글과 종목 차트 링크를 재사용한다.
-- 이 TR의 공식 제외코드는0만 확인되어 ETF 제외 마스크를 임의로 보내지 않는다. 반환 상위30개 안에서 기존 브라우저 필터를 적용하므로 ETF 제외 후30개 미만일 수 있다. 일반 ETF 포함/제외 정책을 9Pay 단타 상품 제외 정책과 혼동하지 않는다.
+- 2026-10-19 실제 API 대조: 제외코드 `0000000001`은 스팩 제외, `0000001101`은 ETF/ETN/스팩 제외로 각각30행을 확인했다. 두 순위를 공유 캐시에 보관해 ETF 제외 시에도 후보를 확보한다. 브라우저와 서버가 스팩 이름을 추가 방어하고 체결강도 화면은 최대15개 표시한다. 유효 응답이 부족하면 임의 종목으로 채우지 않는다. 일반 ETF 포함/제외 정책을 9Pay 단타 상품 제외 정책과 혼동하지 않는다.
 
 ## 검증
 

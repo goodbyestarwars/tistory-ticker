@@ -418,8 +418,15 @@
 
   function visibleRows(rows) {
     return (rows || []).filter(function (item) {
+      if (state.market === 'domestic' && isSpac(item)) return false;
       return state.includeEtf || !isEtf(item);
     });
+  }
+
+  function isSpac(item) {
+    return !!item && (item.is_spac === true || [item.name, item.display_name, item.name_ko].some(function (name) {
+      return /스팩|기업인수목적|\bSPAC(?:\b|\d)/i.test(String(name || '').replace(/\s+/g, ' '));
+    }));
   }
 
   function fmtPrice(value, currency) {
@@ -723,7 +730,7 @@
     if (!state.mount) return;
     var body = state.mount.querySelector('[data-hrt-body]');
     if (!body) return;
-    var rows = rowsForActive().slice(0, HOME_ROW_LIMIT);
+    var rows = rowsForActive().slice(0, state.active === 'volumePower' ? 15 : HOME_ROW_LIMIT);
     state.mount.setAttribute('data-hrt-active', state.active);
     body.innerHTML = rows.length
       ? rows.map(function (item, index) {
@@ -736,7 +743,7 @@
     if (foot) foot.textContent = state.active === 'industry'
       ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')
       : state.active === 'volumePower'
-        ? (rows.length ? '체결강도·순위는 약30초 스냅샷(KRX) · 가격은 실시간 갱신' : '체결강도 순위 미수신')
+        ? (rows.length ? '스팩 제외 · 최대15개 · 체결강도 약30초 스냅샷(KRX)' : '체결강도 순위 미수신')
         : '체결 발생 행만 갱신';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
