@@ -53,6 +53,25 @@ class ChartHistoryTests(unittest.TestCase):
         self.assertEqual(80, len(result))
         self.assertEqual(80, len({row['date'] for row in result}))
 
+    def test_todays_candle_refreshes_after_check_expires(self):
+        today = self.today.isoformat()
+        conn = db_schema.get_conn()
+        conn.execute('INSERT INTO chart_daily_prices VALUES (?,?,?,?,?,?,?)',
+                     ('011200', today, 100, 110, 90, 95, 1000))
+        old_check = (datetime.now(chart_history.KST) - timedelta(hours=2)).isoformat()
+        conn.execute('INSERT INTO chart_history_state(code,earliest,extended,checked_at) VALUES (?,?,?,?)',
+                     ('011200', today, 0, old_check))
+        conn.commit()
+        conn.close()
+        updated = [{'date': today, 'open': 100, 'high': 115, 'low': 90,
+                    'close': 105, 'volume': 2000}]
+        with mock.patch.object(chart_history.kiwoom_market, 'fetch_daily_ohlc', return_value=updated) as fetch:
+            result = chart_history.get_daily('011200', token_getter=lambda: 'token')
+            self.assertEqual(105, result[-1]['close'])
+            self.assertEqual(2000, result[-1]['volume'])
+            chart_history.get_daily('011200', token_getter=lambda: 'token')
+            self.assertEqual(1, fetch.call_count)
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -337,11 +337,32 @@
 #stock-search .ss-panel-right { overflow: hidden; min-width: 0; }
 
 /* ---- 차트 탭 ---- */
-#stock-search .ss-chart-tabs {
-  display: flex;
+html body .ss-chart-tabs.ss-chart-tabs {
+  display: flex !important;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start !important;
   gap: 6px;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  background: transparent !important;
+  padding: 0 !important;
   margin-bottom: 10px;
 }
+.ss-chart-tabs .ss-timeframe-tools,
+.ss-chart-tabs .ss-drawing-tools,
+.ss-index-tools .ss-timeframe-tools,
+.ss-index-tools .ss-drawing-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-width: 100%;
+}
+.ss-chart-tabs .ss-drawing-tools,
+.ss-index-tools .ss-drawing-tools { justify-content: flex-end; margin-left: auto; }
+.ss-chart-tabs .ss-drawing-tools .de-expand-inline,
+.ss-index-tools .ss-drawing-tools .de-expand-inline { margin-left: 0; }
 #stock-search .ss-tf-btn {
   padding: 6px 14px;
   font-size: 12.5px;
@@ -901,12 +922,16 @@ html.dark #stock-search .ss-wave-btn.active { border-color: #F5EFE0; background:
 html.dark #stock-search .ss-index-panel { background: #1a1a1a; border-color: rgba(245,239,224,.2); color: #f5efe0; }
 html.dark #stock-search .ss-index-result { border-color: rgba(245,239,224,.2); color: #f5efe0; }
 
-.ss-index-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 16px; }
+.ss-index-tools { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 6px; margin-top: 16px; }
 .ss-index-tools button { padding: 7px 11px; border: 1px solid #dce2e8; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .ss-index-tools button.active, .ss-index-tools button.is-active { background: #1a1a1a; color: #fff; }
 .ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
 html.dark #stock-search .ss-index-tools button { border-color: rgba(245,239,224,.25); }
 html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: #f5efe0; color: #1a1a1a; }
+@media (max-width: 720px) {
+  .ss-chart-tabs .ss-drawing-tools,
+  #stock-search .ss-index-tools .ss-drawing-tools { width: 100%; justify-content: flex-start; margin-left: 0; }
+}
 
 /* ---- 차트 매물대 분석 패널(2026-10-19): 화면에 보이는 봉 기준 비중·가까운 지지/저항 후보 ---- */
 #stock-search .ss-vp-panel { margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""차트검색 차트 툴바 정리(2026-10-16): 그리기 도구를 탭 줄과 한 줄에, 분봉 간격 줄은 분봉에서만, 기간 버튼은 사이트 탭 스타일."""
+"""차트 주기와 그리기 도구의 양끝 배치 및 기존 버튼 유지."""
 
 import os
 import unittest
@@ -13,12 +13,21 @@ def read(path):
 
 
 class StockChartToolbarTest(unittest.TestCase):
-    def test_draw_tools_share_the_tab_row(self):
-        js = read('js/dashboard-enhancements.js')
-        self.assertIn("controlRow.classList.contains('ss-chart-tabs')", js)
-        self.assertIn("bar.className = 'de-chart-toolbar'", js)
-        css = read('css/dashboard-enhancements.css')
-        self.assertIn('.de-chart-toolbar { display: flex; flex-wrap: wrap;', css)
+    def test_chart_tool_groups_keep_order_and_fullscreen_controls(self):
+        js = read('js/stock-search.js')
+        self.assertEqual(3, js.count('class="ss-timeframe-tools"'))
+        self.assertEqual(3, js.count('class="ss-drawing-tools"'))
+        stock = js[js.index("+ '<div class=\"ss-chart-tabs\">'"):]
+        labels = ('>일봉</button>', '>주봉</button>', '>월봉</button>', '>분봉</button>',
+                  '>메모</button>', '>직선</button>', '>동그라미</button>', '>박스</button>',
+                  '>가로선</button>', '>측정</button>', '>연필</button>', '>지우기</button>')
+        positions = [stock.index(label) for label in labels]
+        self.assertEqual(sorted(positions), positions)
+        self.assertLess(stock.index('class="ss-timeframe-tools"'), stock.index('class="ss-drawing-tools"'))
+        self.assertIn("controlRow.querySelector('.ss-drawing-tools')", read('js/dashboard-enhancements.js'))
+        css = read('css/stock-search.css')
+        self.assertIn('justify-content: space-between;', css)
+        self.assertIn('flex-wrap: wrap;', css)
 
     def test_minute_scope_row_is_hidden_unless_minute(self):
         css = read('css/stock-search.css')

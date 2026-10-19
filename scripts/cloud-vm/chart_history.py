@@ -65,10 +65,15 @@ def get_daily(code, extended=False, token_getter=None):
             state = conn.execute('SELECT extended,checked_at FROM chart_history_state WHERE code=?',
                                  (code,)).fetchone()
             last_date = rows[-1]['date'] if rows else None
-            fresh = last_date == now.date().isoformat() or (now.hour < 16 and last_date ==
-                     (now.date() - timedelta(days=1)).isoformat())
+            # Today's candle changes during trading. A matching date alone does not
+            # make it fresh; use the last successful check as the refresh boundary.
+            checked_at = datetime.fromisoformat(state[1]) if state and state[1] else None
+            refresh_minutes = 5 if now.weekday() < 5 and 9 <= now.hour < 16 else 60
+            recent_check = bool(checked_at and now - checked_at < timedelta(minutes=refresh_minutes))
+            fresh = (last_date == now.date().isoformat() and recent_check) or (
+                now.hour < 9 and last_date == (now.date() - timedelta(days=1)).isoformat())
             needs_history = extended and not (state and state[0])
-            needs_latest = not fresh and (not state or not state[1] or state[1][:10] != now.date().isoformat())
+            needs_latest = not fresh and not recent_check
             quota_ok = not needs_history or conn.execute(
                 'SELECT COUNT(*) FROM chart_history_fetches WHERE date=?',
                 (now.date().isoformat(),)).fetchone()[0] < 20

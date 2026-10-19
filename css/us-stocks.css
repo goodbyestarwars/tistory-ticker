@@ -129,7 +129,7 @@
 .us-stocks-book-current span:last-child { color: #64748b; }
 .us-native-chart-mount { width: 100%; max-width: 100%; min-width: 0; min-height: 420px; overflow: hidden; }
 .us-native-chart-mount .ss-chart-tabs { max-width: 100%; flex-wrap: wrap; }
-.us-native-chart-mount .ss-chart-tabs > button { flex: 0 0 auto; white-space: nowrap; }
+.us-native-chart-mount .ss-chart-tabs button { flex: 0 0 auto; white-space: nowrap; }
 .us-native-chart-mount, .us-native-chart-mount .ss-chart, .us-native-chart-mount .ss-lw-chart-root { width: 100%; max-width: 100%; min-width: 0; }
 .us-stocks-news-panel { margin-top: 12px; }
 .us-stocks-news { padding: 2px 8px 4px; }

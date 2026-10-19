@@ -43,6 +43,12 @@
 
   function moveDrawingControlsBelowFullscreen(controlRow) {
     if (!controlRow || controlRow.getAttribute('data-de-draw-layout') === '1') return;
+    // Stock chart toolbars already keep timeframe and drawing buttons in two groups.
+    // Moving individual buttons would break their order and edge alignment.
+    if (controlRow.querySelector('.ss-drawing-tools')) {
+      controlRow.setAttribute('data-de-draw-layout', '1');
+      return;
+    }
     var buttonSelectors = [
       // 2026-09-23 사용자 요청: 동그라미를 봉 위치(.ss-chart-tabs 안, tf 버튼 옆)가 아니라
       // 선 그리기·연필 사이 - 이 배열의 순서가 아래로 옮겨지는 "차트 그리기 도구" 줄의
@@ -227,7 +233,8 @@
     if (controlRow) {
       controlRow.classList.add('de-chart-control-row');
       button.classList.add('de-expand-inline');
-      controlRow.appendChild(button);
+      var drawingGroup = controlRow.querySelector('.ss-drawing-tools');
+      (drawingGroup || controlRow).appendChild(button);
       if (!target.classList.contains('ss-index-chart')) moveDrawingControlsBelowFullscreen(controlRow);
     } else if (anchor) {
       anchor.insertBefore(button, target);

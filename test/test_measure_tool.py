@@ -78,13 +78,13 @@ class WiringTest(unittest.TestCase):
 
 
 class VerticalLabelAndCompactToolbarTest(unittest.TestCase):
-    """2026-10-19: 버튼 이름은 '측정'이 아니라 '세로'. 차트 위 도구 줄(탭+그리기 단추)은 한 단계 작게(공통 차트 포함)."""
+    """2026-10-19: 측정 도구 이름과 작은 차트 도구 버튼."""
 
-    def test_button_label_is_vertical(self):
+    def test_button_label_is_measure(self):
         for name in ('stock-search.js', 'foreign-flow.js'):
             src = open(os.path.join(ROOT, 'js', name), encoding='utf-8').read()
-            self.assertNotIn('>측정</button>', src)
-            self.assertIn('>세로</button>', src)
+            self.assertIn('>측정</button>', src)
+            self.assertNotIn('>세로</button>', src)
 
     def test_compact_rule_is_in_np_layer_and_covers_common_chart_toolbars(self):
         css = open(os.path.join(ROOT, 'style.css'), encoding='utf-8').read().replace(chr(13) + chr(10), chr(10))
