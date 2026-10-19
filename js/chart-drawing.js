@@ -17,7 +17,7 @@
   var DRAWING_PUSH_DELAY_MS = 1500;
   var DRAWING_MAX_PATH_POINTS = 120;
   var ALL_KINDS = ['lines', 'paths', 'circles', 'hlines', 'boxes'];
-  var MODES = ['line', 'pencil', 'circle', 'box', 'hline'];
+  var MODES = ['line', 'pencil', 'circle', 'box', 'hline', 'measure'];
 
   // ---- 계정 저장(2026-10-10 "로그인 기반으로 저장") ----
   // 로그인(Google)하면 종목·봉 주기별로 서버(GET/PUT /chart-drawings)에도 저장하고, 아니면 브라우저에만 둔다. 브라우저 저장은 항상 먼저 쓰는 캐시다.
@@ -204,8 +204,43 @@
     box: '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).',
     line: '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.',
     circle: '왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.',
-    pencil: '누른 채로 움직여 자유롭게 그립니다.'
+    pencil: '누른 채로 움직여 자유롭게 그립니다.',
+    measure: '고점에서 저점(또는 저점에서 고점)까지 끌면 가격 변화율(%)·가격 차이·봉 수를 보여 줍니다. 봉의 고가·저가 가까이에서 시작·끝내면 그 값에 붙습니다. 지우기를 누르면 사라집니다.'
   };
+
+  // ---- 측정 도구(2026-10-19): 두 점 사이의 가격 변화율 ----
+  // 변화율 = (끝 가격 / 시작 가격 - 1) x 100. 시작=고점, 끝=저점이면 음수(하락률)다. 저장하지 않는 임시 표시다.
+  function measureMetrics(start, end) {
+    if (!start || !end || !(start.price > 0) || !(end.price > 0)) return null;
+    var bars = start.logical != null && end.logical != null ? Math.round(Math.abs(end.logical - start.logical)) : null;
+    return { pct: (end.price / start.price - 1) * 100, diff: end.price - start.price, bars: bars };
+  }
+
+  function measurePriceText(price) {
+    var abs = Math.abs(price);
+    return abs >= 1000 ? Math.round(price).toLocaleString('ko-KR') : String(Math.round(price * 100) / 100);
+  }
+
+  function measureLabelLines(m, start, end) {
+    var sign = m.pct >= 0 ? '+' : '-';
+    var lines = [sign + Math.abs(m.pct).toFixed(2) + '%', measurePriceText(start.price) + ' → ' + measurePriceText(end.price) + ' (' + (m.diff >= 0 ? '+' : '-') + measurePriceText(Math.abs(m.diff)) + ')'];
+    if (m.bars != null) lines.push(m.bars + '봉');
+    return lines;
+  }
+
+  // 포인터가 봉의 고가·저가 근처(px 이내)이면 그 가격으로 붙인다. 봉을 못 찾거나 멀면 그대로 둔다.
+  function snapToBarExtreme(d, point, y, tolerancePx) {
+    if (!point || !d.bars || !d.bars.length) return point;
+    var bar = null;
+    if (point.logical != null) bar = d.bars[Math.round(point.logical)];
+    if (!bar && point.time != null) { for (var i = d.bars.length - 1; i >= 0; i--) { if (d.bars[i].date === point.time) { bar = d.bars[i]; break; } } }
+    if (!bar) return point;
+    var yh = d.series.priceToCoordinate(bar.high), yl = d.series.priceToCoordinate(bar.low);
+    var tol = tolerancePx || 14, price = null;
+    if (yh != null && Math.abs(yh - y) <= tol && (yl == null || Math.abs(yh - y) <= Math.abs(yl - y))) price = bar.high;
+    else if (yl != null && Math.abs(yl - y) <= tol) price = bar.low;
+    return price == null ? point : Object.assign({}, point, { price: Number(price) });
+  }
 
   function attach(opts) {
     var core = opts.core || global.NineChartCore;
@@ -223,7 +258,7 @@
       key: opts.key, timeframe: opts.timeframe, chart: chart, series: series, bars: opts.bars || [],
       sync: opts.sync === true,
       lines: saved.lines, paths: saved.paths, circles: saved.circles, hlines: saved.hlines, boxes: saved.boxes,
-      pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null
+      pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null, measure: null
     };
     var detached = false, frame = 0, lastSig = '', layers = [], bounds = { w: 0, h: 0 };
     var buttons = opts.buttons || {};
@@ -370,7 +405,35 @@
         ctx.fillStyle = stroke; ctx.fillRect(width - tw - 4, y - 18, tw, 16);
         ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(txt, width - tw + 1, y - 10);
       });
-      if (d.pending && style.dots) {
+      // 측정: 끝난 측정과 끄는 중인 미리보기. 시작점에서 가로 점선, 끝점 x 에 세로 자(눈금 양끝 표시), 오른쪽(가장자리면 왼쪽)에 % 라벨.
+      var measureShown = d.measure, measureLive = false;
+      if (d.mode === 'measure' && d.pending && d.preview && d.previewPoint) { measureShown = { start: d.pending, end: d.previewPoint }; measureLive = true; }
+      if (measureShown) {
+        var ma = coord(measureShown.start), mb = coord(measureShown.end);
+        var mm = measureMetrics(measureShown.start, measureShown.end);
+        if (ma && mb && mm) {
+          var down = mm.pct < 0, mcolor = down ? '#2563eb' : '#dc2626';
+          ctx.save();
+          ctx.strokeStyle = mcolor; ctx.fillStyle = mcolor; ctx.lineWidth = 1.5;
+          ctx.setLineDash([5, 4]); ctx.beginPath(); ctx.moveTo(ma.x, ma.y); ctx.lineTo(mb.x, ma.y); ctx.stroke(); ctx.setLineDash([]);
+          ctx.beginPath(); ctx.moveTo(mb.x, ma.y); ctx.lineTo(mb.x, mb.y); ctx.stroke();
+          var tick = down ? -6 : 6;
+          ctx.beginPath(); ctx.moveTo(mb.x - 5, mb.y + tick); ctx.lineTo(mb.x, mb.y); ctx.lineTo(mb.x + 5, mb.y + tick); ctx.stroke();
+          [ma, mb].forEach(function (pt) { ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2); ctx.fill(); });
+          var lines = measureLabelLines(mm, measureShown.start, measureShown.end);
+          var lw = 0;
+          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' MaruBuri, serif'; lw = Math.max(lw, ctx.measureText(t).width); });
+          var bw2 = lw + 14, bh2 = 8 + 18 + (lines.length - 1) * 14;
+          var bx2 = mb.x + 10 + bw2 > width ? mb.x - 10 - bw2 : mb.x + 10;
+          var by2 = Math.max(4, Math.min((bounds.h || 400) - bh2 - 4, (ma.y + mb.y) / 2 - bh2 / 2));
+          ctx.fillStyle = 'rgba(255,255,255,.94)'; ctx.fillRect(bx2, by2, bw2, bh2);
+          ctx.strokeStyle = mcolor; ctx.lineWidth = 1; ctx.strokeRect(bx2, by2, bw2, bh2);
+          ctx.fillStyle = mcolor; ctx.textBaseline = 'top';
+          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' MaruBuri, serif'; ctx.fillText(t, bx2 + 7, i === 0 ? by2 + 5 : by2 + 24 + (i - 1) * 14 - 4); });
+          ctx.restore();
+        }
+      }
+      if (d.pending && style.dots && d.mode !== 'measure') {
         var pending = coord(d.pending);
         if (pending) { ctx.beginPath(); ctx.fillStyle = stroke; ctx.arc(pending.x, pending.y, 4, 0, Math.PI * 2); ctx.fill(); }
       }
@@ -405,7 +468,7 @@
     function setMode(mode) {
       mode = tools.indexOf(mode) > -1 ? mode : null;
       d.mode = mode; d.enabled = !!mode;
-      d.pending = null; d.preview = null; d.activePath = null; d.dragHline = null;
+      d.pending = null; d.preview = null; d.previewPoint = null; d.activePath = null; d.dragHline = null;
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
       var titles = opts.titles || DEFAULT_TITLES;
@@ -415,7 +478,7 @@
     }
 
     function clearAll() {
-      d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = [];
+      d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = []; d.measure = null;
       d.pending = null; d.preview = null; d.activePath = null;
       persist();
       redraw();
@@ -453,6 +516,9 @@
         persist();
         redraw();
         return;
+      } else if (d.mode === 'measure') {
+        d.measure = null;
+        d.pending = snapToBarExtreme(d, point, event.clientY - rect.top);       // 시작점도 봉의 고가·저가에 붙는다
       } else if (d.mode === 'line' || d.mode === 'circle' || d.mode === 'box') d.pending = point;
       if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
       redraw();
@@ -470,8 +536,9 @@
         }
         return;
       }
-      if ((d.mode === 'line' || d.mode === 'circle' || d.mode === 'box') && d.pending) {
+      if ((d.mode === 'line' || d.mode === 'circle' || d.mode === 'box' || d.mode === 'measure') && d.pending) {
         d.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+        if (d.mode === 'measure') d.previewPoint = snapToBarExtreme(d, pointFromEvent(event, strict), d.preview.y);
         redraw();
         return;
       }
@@ -506,6 +573,19 @@
         redraw();
         return;
       }
+      if (d.pending && d.mode === 'measure') {
+        var mEnd = cancelled ? null : pointFromEvent(event, strict);
+        var mRect = overlay.getBoundingClientRect();
+        var mStart = d.pending;
+        if (mEnd) {
+          mEnd = snapToBarExtreme(d, mEnd, event.clientY - mRect.top);
+          var ma0 = coord(mStart), mb0 = coord(mEnd);
+          if (ma0 && mb0 && Math.hypot(mb0.x - ma0.x, mb0.y - ma0.y) >= 6) d.measure = { start: mStart, end: mEnd };   // 클릭만 한 경우는 만들지 않는다
+        }
+        d.pending = null; d.preview = null; d.previewPoint = null;
+        redraw();
+        return;                                                                     // 측정은 저장하지 않는다
+      }
       if (d.pending && (d.mode === 'line' || d.mode === 'circle' || d.mode === 'box')) {
         var endPoint = cancelled ? null : pointFromEvent(event, strict);
         var startPoint = d.pending;
@@ -536,9 +616,10 @@
     }
 
     scope.on(overlay, 'mousemove', function (event) {
-      if (!d.enabled || (d.mode !== 'line' && d.mode !== 'circle' && d.mode !== 'box') || !d.pending) return;
+      if (!d.enabled || (d.mode !== 'line' && d.mode !== 'circle' && d.mode !== 'box' && d.mode !== 'measure') || !d.pending) return;
       var rect = overlay.getBoundingClientRect();
       d.preview = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+      if (d.mode === 'measure') d.previewPoint = snapToBarExtreme(d, pointFromEvent(event, strict), d.preview.y);
       redraw();
     });
     scope.on(overlay, 'contextmenu', function (event) { if (d.enabled) event.preventDefault(); });
@@ -620,6 +701,7 @@
   global.NineChartDrawing = {
     attach: attach, loadShapes: loadShapes, writeShapesLocal: writeShapesLocal,
     anchoredFromXY: anchoredFromXY, anchoredToXY: anchoredToXY,
+    measureMetrics: measureMetrics, measureLabelLines: measureLabelLines, snapToBarExtreme: snapToBarExtreme,   // 측정 도구(검증용으로도 내보낸다)
     // 계정 저장 부품(검증·점검용)
     _sync: { state: drawingSync, schedulePush: scheduleDrawingPush, pull: pullDrawings, push: pushDrawings, payload: drawingsPayload, thin: thinDrawingPath, flush: flushPendingDrawings }
   };
