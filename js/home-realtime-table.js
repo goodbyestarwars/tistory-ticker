@@ -29,6 +29,7 @@
     ['volumeGrowth', '거래증가율'],
     ['turnover', '거래회전율'],
     ['amountTurnover', '거래대금회전율'],
+    ['volumePower', '체결강도'],
     ['rising', '상승률'],
     ['falling', '하락률'],
     ['marketCap', '시가총액'],
@@ -272,6 +273,11 @@
   }
 
   function columnsForActive() {
+    if (state.market === 'domestic' && state.active === 'volumePower') {
+      var columns = columnsForMarket().slice();
+      columns.splice(2, 0, ['volumePower', '체결강도(%)']);
+      return columns;
+    }
     return state.active === 'industry'
       ? INDUSTRY_COLUMNS
       : columnsForMarket();
@@ -502,7 +508,11 @@
     if ((!industry || industry === '미분류') && global.WICS_MAP && global.WICS_MAP[code]) {
       industry = global.WICS_MAP[code].industry || global.WICS_MAP[code].sector || '';
     }
+    var strength = item.execution_strength == null || item.execution_strength === '' ? null : number(item.execution_strength);
+    var strengthTone = strength > 100 ? 'hrt-up' : strength != null && strength < 100 ? 'hrt-down' : 'hrt-flat';
     var cells = {
+      volumePower: '<td data-field="volumePower" class="' + strengthTone + '">'
+        + (strength == null ? '미수신' : strength.toFixed(2) + '%') + '</td>',
       stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
         + '&name=' + encodeURIComponent(displayName) + '"><strong>' + escapeHtml(displayName) + '</strong><small>'
         + escapeHtml(item.symbol || code) + '</small></a></td>',
@@ -517,7 +527,7 @@
       industry: '<td class="hrt-industry" title="' + escapeHtml(industry) + '">' + escapeHtml(industry || '-') + '</td>'
     };
     var delayedClass = state.delayedCodes && state.delayedCodes[code] ? ' class="hrt-delayed"' : '';
-    return '<tr data-code="' + escapeHtml(code) + '"' + delayedClass + '>' + columnsForMarket().map(function (column) {
+    return '<tr data-code="' + escapeHtml(code) + '"' + delayedClass + '>' + columnsForActive().map(function (column) {
       return cells[column[0]];
     }).join('') + '</tr>';
   }
@@ -548,6 +558,7 @@
   }
 
   function emptyStateText() {
+    if (state.active === 'volumePower') return '체결강도 순위 미수신 · 휴장 또는 API 응답 없음';
     if (state.active === 'industry') return '업종 분류 데이터가 없습니다.';
     if (state.market === 'domestic' && ['volumeGrowth', 'turnover', 'amountTurnover'].indexOf(state.active) >= 0) {
       return '국내시장 휴장 또는 해당 순위 데이터가 없습니다.';
@@ -637,6 +648,7 @@
 
   function rowsForActive() {
     var sections = state.data && state.data.sections;
+    if (state.active === 'volumePower' && (!sections || !Array.isArray(sections.volumePower))) return [];
     if (state.active === 'industry' && state.market === 'us') return usIndustryTop();
     if (state.active === 'industry') return (sections && sections.industry) || [];
     // ETF·ETN 제외 모드면 서버가 KIS에서 처음부터 일반 종목만 받은 순위(…Stocks)를 쓴다. 없거나 비면 기존 순위를 거른다.
@@ -723,7 +735,9 @@
     var foot = state.mount.querySelector('[data-hrt-foot]');
     if (foot) foot.textContent = state.active === 'industry'
       ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')
-      : '체결 발생 행만 갱신';
+      : state.active === 'volumePower'
+        ? (rows.length ? '체결강도·순위는 약30초 스냅샷(KRX) · 가격은 실시간 갱신' : '체결강도 순위 미수신')
+        : '체결 발생 행만 갱신';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
       button.classList.toggle('active', selected);
