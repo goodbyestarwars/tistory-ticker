@@ -736,7 +736,7 @@
     if (foot) foot.textContent = state.active === 'industry'
       ? (state.market === 'us' ? '거래대금 합계 순 · 현재 수집 종목 기준 · 업종은 자체 분류' : '평균등락률 → 상승비율 → 거래대금 순 · 현재 수집 후보 기준')
       : state.active === 'volumePower'
-        ? (rows.length ? '체결강도·순위는 30초 스냅샷(KRX) · 가격은 실시간 갱신' : '체결강도 순위 미수신')
+        ? (rows.length ? '체결강도·순위는 약30초 스냅샷(KRX) · 가격은 실시간 갱신' : '체결강도 순위 미수신')
         : '체결 발생 행만 갱신';
     state.mount.querySelectorAll('[data-hrt-tab]').forEach(function (button) {
       var selected = button.getAttribute('data-hrt-tab') === state.active;
