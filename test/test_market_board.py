@@ -11,6 +11,11 @@ import market_board
 
 
 class MarketBoardTests(unittest.TestCase):
+    def setUp(self):
+        # New independent rank is mocked in legacy regression tests too.
+        patcher = mock.patch.object(market_board.kis_client, 'fetch_domestic_volume_power_rank', return_value=[])
+        patcher.start()
+        self.addCleanup(patcher.stop)
     def test_market_board_can_request_extra_candidates_for_etf_filter(self):
         with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), 'scripts', 'cloud-vm', 'main.py'), encoding='utf-8') as handle:
             source = handle.read()
@@ -262,7 +267,7 @@ class MarketBoardTests(unittest.TestCase):
                 }):
             result = market_board.fetch_domestic_kis('appkey', 'secret', limit=1)
 
-        self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액)')
+        self.assertEqual(result['source'], 'KIS 국내 순위(거래금액·거래량·거래증가율·거래회전율·거래대금회전율·등락률·시가총액·체결강도)')
         self.assertEqual(result['rows'][0]['code'], '005930')
         self.assertEqual(result['rows'][0]['trade_amount'], 9_000_000_000)
         self.assertEqual(result['rows'][0]['market_cap'], 5_000_000)
