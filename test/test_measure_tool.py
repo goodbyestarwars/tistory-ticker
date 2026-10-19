@@ -77,5 +77,27 @@ class WiringTest(unittest.TestCase):
         self.assertGreaterEqual(css.count('ss-measure-toggle'), 4)                                      # 기본·활성·다크 2종
 
 
+class VerticalLabelAndCompactToolbarTest(unittest.TestCase):
+    """2026-10-19: 버튼 이름은 '측정'이 아니라 '세로'. 차트 위 도구 줄(탭+그리기 단추)은 한 단계 작게(공통 차트 포함)."""
+
+    def test_button_label_is_vertical(self):
+        for name in ('stock-search.js', 'foreign-flow.js'):
+            src = open(os.path.join(ROOT, 'js', name), encoding='utf-8').read()
+            self.assertNotIn('>측정</button>', src)
+            self.assertIn('>세로</button>', src)
+
+    def test_compact_rule_is_in_np_layer_and_covers_common_chart_toolbars(self):
+        css = open(os.path.join(ROOT, 'style.css'), encoding='utf-8').read().replace(chr(13) + chr(10), chr(10))
+        block = css[css.index('/* 2026-10-19 사용자 요청: 차트 위 도구 줄'):]
+        self.assertIn('@layer np {', block)
+        for cls in ('.ss-chart-tabs', '.ss-index-tools', '.ff-draw-tools', '.dmi-draw-buttons', '.kf-draw-buttons'):
+            self.assertIn(cls, block)
+        self.assertIn('min-height: 26px !important;', block)
+        self.assertIn('padding: 0 9px !important;', block)
+        self.assertIn('font-size: 12px !important;', block)
+        self.assertIn('.ss-measure-toggle', css[:css.index('/* 2026-10-19 사용자 요청: 차트 위 도구 줄')])      # 세로 단추도 공통 단추 규칙에 들어간다
+        self.assertIn('min-height: 26px !important; padding: 0 9px !important; font-size: 12px !important;', css)   # 차트검색 탭 줄 안의 그리기 단추 규칙(de-draw-controls)
+
+
 if __name__ == '__main__':
     unittest.main()
