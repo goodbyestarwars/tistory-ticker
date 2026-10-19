@@ -1336,7 +1336,8 @@ document.documentElement.classList.add('skin-ready');
       // A quote may belong to a newer session than the saved chart: only a
       // reference carried by that same series can label the baseline "previous".
       reference = result.reference;
-      var base = reference != null && isFinite(Number(reference)) ? Number(reference) : Number(rows[0].open);
+      var hasReference = reference != null && isFinite(Number(reference)) && Number(reference) > 0;
+      var base = hasReference ? Number(reference) : Number(rows[0].open);
       var high = rows.reduce(function (a, r) { return r.high > a.high ? r : a; }, rows[0]);
       var low = rows.reduce(function (a, r) { return r.low < a.low ? r : a; }, rows[0]);
       var min = Math.min(base, low.low), max = Math.max(base, high.high), range = max - min || 1;
@@ -1356,14 +1357,14 @@ document.documentElement.classList.add('skin-ready');
           if (group.length < 2) return;
           var points = group.map(function (r) { return x(r.slot) + ',' + y(r.close); }).join(' ');
           ['buy', 'sell'].forEach(function (side) {
-            marks += '<g class="hmb-investor-' + side + '" clip-path="url(#' + id + '-' + side + ')"><polygon class="hmb-investor-area" points="'
+            marks += '<g class="hmb-investor-' + (hasReference ? side : 'flat') + '" clip-path="url(#' + id + '-' + side + ')"><polygon class="hmb-investor-area" points="'
               + x(group[0].slot) + ',' + zero + ' ' + points + ' ' + x(group[group.length - 1].slot) + ',' + zero
               + '"/><polyline class="hmb-investor-line" vector-effect="non-scaling-stroke" points="' + points + '"/></g>';
           });
         });
       }
       rows.forEach(function (r) {
-        var tone = r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
+        var tone = !hasReference ? 'flat' : r.close > base ? 'buy' : r.close < base ? 'sell' : 'flat';
         var title = '<title>' + time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' 구간 · ' + amount(r.close) + ' · 관측 ' + time(r.ts) + '</title>';
         marks += homePriceMode === 'bar'
           ? '<rect data-price-slot="' + r.slot + '" class="hmb-investor-' + tone + '" x="' + (x(r.slot) - 28 / meta.slotCount) + '" y="' + Math.min(zero, y(r.close)) + '" width="' + 56 / meta.slotCount + '" height="' + Math.max(.6, Math.abs(zero - y(r.close))) + '">' + title + '</rect>'
@@ -1372,7 +1373,7 @@ document.documentElement.classList.add('skin-ready');
       function dot(r, value, name) { return '<span class="hmb-investor-point is-' + name + '" style="left:' + x(r.slot) + '%;top:' + y(value) / 90 * 100 + '%"></span>'; }
       var zoneName = ['KOSPI', 'KOSDAQ', 'KOSPI200_NIGHT'].indexOf(key) >= 0 ? 'KST' : '뉴욕시간';
       var hoverPoints = rows.map(function (r) {
-        var change = homePercentText(Number(r.close), base);
+        var change = hasReference ? homePercentText(Number(r.close), base) : '';
         return [x(r.slot), y(Number(r.close)) / 90 * 100,
           time(Date.parse(meta.start) / 1000 + r.slot * 1800) + ' ' + zoneName + ' 구간 · 지수 ' + amount(r.close)
             + (change ? ' (기준 대비 ' + change + ')' : '') + '\n관측 ' + time(r.ts)];
@@ -1382,7 +1383,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb-investor-axis"><span>' + time(Date.parse(meta.start) / 1000) + '</span><span>' + time(Date.parse(meta.end) / 1000) + '</span></div>'
         + '<div class="hmb-investor-extrema"><span>관측 고점 <b>' + amount(high.high) + '</b></span><span>저점 <b>' + amount(low.low) + '</b></span></div>'
         + '<div class="hmb-investor-asof">' + meta.date + ' · 관측 ' + time(rows[rows.length - 1].ts) + ' · ' + rows.length + '/' + meta.slotCount + '개</div>'
-        + '<div class="hmb-investor-asof">' + result.basis + ' · 기준 ' + amount(base) + (reference == null ? '(첫 관측)' : '(전일)') + '</div>';
+        + '<div class="hmb-investor-asof">' + result.basis + (hasReference ? ' · 전일 종가 ' + amount(base) : ' · 전일 종가 미확인(중립색)') + '</div>';
     }
     dashboardSection.addEventListener('click', function (event) {
       if (!event.target.closest('[data-price-switch]')) return;

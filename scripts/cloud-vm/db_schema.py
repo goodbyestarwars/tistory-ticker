@@ -15,6 +15,10 @@ import sqlite3
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ohlc_snapshot.db')
 
 SCHEMA = '''
+CREATE TABLE IF NOT EXISTS home_session_reference (
+    symbol TEXT NOT NULL, session TEXT NOT NULL, reference REAL NOT NULL,
+    ts INTEGER NOT NULL, PRIMARY KEY(symbol,session)
+);
 CREATE TABLE IF NOT EXISTS home_session_prices (
     symbol TEXT NOT NULL, session TEXT NOT NULL, slot INTEGER NOT NULL,
     open REAL NOT NULL, high REAL NOT NULL, low REAL NOT NULL, close REAL NOT NULL,
