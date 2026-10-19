@@ -32,6 +32,7 @@ class StockChartToolbarTest(unittest.TestCase):
         skin_css = read('style.css')
         self.assertIn('html body .ss-chart-tabs.ss-chart-tabs {', skin_css)
         self.assertIn('width: 100% !important;', skin_css)
+        self.assertIn('width: calc(100vw - 48px) !important;', skin_css)
 
     def test_minute_scope_row_is_hidden_unless_minute(self):
         css = read('css/stock-search.css')

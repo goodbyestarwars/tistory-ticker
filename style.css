@@ -8644,4 +8644,11 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     background: transparent !important;
     padding: 0 !important;
   }
+  @media (max-width: 720px) {
+    html body .ss-chart-tabs.ss-chart-tabs,
+    html body .ss-index-tools.ss-index-tools {
+      width: calc(100vw - 48px) !important;
+      max-width: calc(100vw - 48px) !important;
+    }
+  }
 }
