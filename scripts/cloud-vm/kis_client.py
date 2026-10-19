@@ -864,15 +864,14 @@ def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20
     return rows[:max(1, min(int(limit), 100))]
 
 
-def fetch_domestic_volume_power_rank(token, appkey, appsecret, limit=30):
+def fetch_domestic_volume_power_rank(token, appkey, appsecret, limit=30, exclude_etf=False):
     """KRX strength ranking, FHPST01680000; tday_rltv is the reported strength.
 
-    Official API documents exclusion code 0 only. ETF/ETN filtering remains
-    the existing board filter; do not invent a server exclusion bit mask.
+    SPAC and ETF/ETN exclusion masks verified against live KIS on 2026-10-19.
     """
     data = _get_domestic_quote(token, appkey, appsecret,
         '/uapi/domestic-stock/v1/ranking/volume-power', 'FHPST01680000', {
-            'FID_TRGT_EXLS_CLS_CODE': '0', 'FID_COND_MRKT_DIV_CODE': 'J',
+            'FID_TRGT_EXLS_CLS_CODE': '0000001101' if exclude_etf else '0000000001', 'FID_COND_MRKT_DIV_CODE': 'J',
             'FID_COND_SCR_DIV_CODE': '20168', 'FID_INPUT_ISCD': '0000',
             'FID_DIV_CLS_CODE': '0', 'FID_INPUT_PRICE_1': '',
             'FID_INPUT_PRICE_2': '', 'FID_VOL_CNT': '', 'FID_TRGT_CLS_CODE': '0',
