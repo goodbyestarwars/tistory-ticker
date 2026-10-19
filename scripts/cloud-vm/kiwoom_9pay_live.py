@@ -22,7 +22,7 @@ LOG_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_research.jsonl')
 STATE_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_state.json')
 _lock = threading.Lock()
 _thread = None
-_status = {'ruleVersion': logic.VERSION, 'productPolicy': 'no-inverse-leverage-v1', 'running': False, 'active': False, 'candidates': [],
+_status = {'ruleVersion': logic.VERSION, 'productPolicy': 'no-leverage-cash-v2', 'running': False, 'active': False, 'candidates': [],
            'candidateDetails': [], 'observations': {}, 'rankAt': None,
            'rankError': None, 'amountFallback': False, 'wsVolumeEvents': 0,
            'kisFallbackSamples': 0, 'signalCount': 0, 'signals': [], 'lastEventAt': None,
