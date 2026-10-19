@@ -163,7 +163,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-cont
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-buy { fill: var(--hmb-chart-up); color: var(--hmb-chart-up); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-sell { fill: var(--hmb-chart-down); color: var(--hmb-chart-down); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-flat { fill: var(--hmb-flat); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-flat { fill: var(--hmb-flat); color: var(--hmb-flat); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-area { fill: currentColor; opacity: .14; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-line { stroke: currentColor; stroke-width: 1.5; fill: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-zero { stroke: var(--hmb-line); stroke-width: 1; stroke-dasharray: none; }
