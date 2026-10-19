@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 import os
 import re
 import math
+import unicodedata
 from ninepay_signal_client import valid_evidence
 
 KST = timezone(timedelta(hours=9))
@@ -16,10 +17,22 @@ MAX_CHASE_PCT = 0.3
 MAX_SIGNAL_AGE_SEC = 10
 
 
+class ProductNotAllowed(ValueError):
+    pass
+
+
 def _current_price(client, code):
     response = client.call('ka10001', '/api/dostk/stkinfo', {'stk_cd': code})
     if str(response.get('return_code', '')) != '0':
         return None
+    name = re.sub(r'\s+', '', unicodedata.normalize('NFKC', str(response.get('stk_nm') or '')).casefold())
+    if not name:
+        raise ProductNotAllowed('PRODUCT_NAME_UNCONFIRMED')
+    if any(word in name for word in (
+            '인버스', '레버리지', 'inverse', 'leverag', '2x', '3x', '2배', '3배', '-1x',
+            'cd금리', 'cd91', 'cd1년', 'kofr', 'sofr', '머니마켓', 'moneymarket',
+            '단기채', '단기통안', '초단기', '파킹', 'mmf', '양도성예금', '금리액티브')):
+        raise ProductNotAllowed('PRODUCT_EXCLUDED')
     try:
         price = abs(int(str(response.get('cur_prc', '')).replace(',', '')))
     except (TypeError, ValueError):
@@ -91,7 +104,10 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
     slots = len(set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'})
     if slots >= policy.MAX_STOCKS or cash <= policy.RESERVE or committed >= policy.BUDGET - policy.RESERVE:
         return 'BUDGET_OR_SLOTS_FULL'
-    price = _current_price(client, code)
+    try:
+        price = _current_price(client, code)
+    except ProductNotAllowed as exc:
+        return str(exc)
     if price is None:
         return 'PRICE_UNAVAILABLE'
     if price > signal_price * (1 + MAX_CHASE_PCT / 100):

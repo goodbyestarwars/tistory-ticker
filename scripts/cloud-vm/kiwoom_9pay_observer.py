@@ -9,9 +9,19 @@ from dataclasses import dataclass, field, asdict
 from datetime import datetime, timedelta, timezone
 import math
 import re
+import unicodedata
 
 CODE = re.compile(r"^[0-9]{6}$")
 MAX_CANDIDATES = 30
+
+
+def excluded_product(name):
+    """Exclude inverse/leverage and cash-management funds, not all ETFs/ETNs."""
+    normalized = re.sub(r'\s+', '', unicodedata.normalize('NFKC', str(name or '')).casefold())
+    return any(word in normalized for word in (
+        '인버스', '레버리지', 'inverse', 'leverag', '2x', '3x', '2배', '3배', '-1x',
+        'cd금리', 'cd91', 'cd1년', 'kofr', 'sofr', '머니마켓', 'moneymarket',
+        '단기채', '단기통안', '초단기', '파킹', 'mmf', '양도성예금', '금리액티브'))
 
 
 def fetch_amount_top(call_tr, token, limit=30):
@@ -47,6 +57,7 @@ def candidates(volume_rows, amount_rows=None, limit=30):
     limit = min(MAX_CANDIDATES, max(1, int(limit)))
     def valid(rows):
         return [r for r in rows if CODE.fullmatch(str(r.get('code', '')))
+                and not excluded_product(r.get('name'))
                 and (r.get('trade_volume') or 0) > 0 and (r.get('price') or 0) > 0]
     by_volume = sorted(valid(volume_rows), key=lambda r: r['trade_volume'], reverse=True)
     by_amount = sorted(valid(amount_rows if amount_rows is not None else volume_rows),

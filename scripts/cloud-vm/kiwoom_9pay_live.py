@@ -22,7 +22,7 @@ LOG_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_research.jsonl')
 STATE_PATH = os.path.join(os.path.dirname(__file__), 'kiwoom_9pay_state.json')
 _lock = threading.Lock()
 _thread = None
-_status = {'ruleVersion': logic.VERSION, 'running': False, 'active': False, 'candidates': [],
+_status = {'ruleVersion': logic.VERSION, 'productPolicy': 'no-leverage-cash-v2', 'running': False, 'active': False, 'candidates': [],
            'candidateDetails': [], 'observations': {}, 'rankAt': None,
            'rankError': None, 'amountFallback': False, 'wsVolumeEvents': 0,
            'kisFallbackSamples': 0, 'signalCount': 0, 'signals': [], 'lastEventAt': None,
@@ -81,7 +81,12 @@ def _restore(observer, day):
             data = json.load(inp)
         if not observer.restore_state(data, day):
             return
-        signals = list(data.get('signals', []))
+        blocked = {row['code'] for row in data.get('candidateDetails', [])
+                   if logic.excluded_product(row.get('name'))}
+        for code in blocked:
+            observer.tracks.pop(code, None)
+        signals = [row for row in data.get('signals', []) if row['code'] not in blocked
+                   and not logic.excluded_product(row.get('name'))]
         recorded = {row['code'] for row in signals}
         for code, track in observer.tracks.items():
             if track.signal_at and code not in recorded:
@@ -90,8 +95,8 @@ def _restore(observer, day):
                             signalId=day + ':' + code, branches=track.branches, restored=True)
                 item.pop('signal', None)
                 signals.append(item)
-        _set(candidateDetails=data.get('candidateDetails', []),
-             observations=data.get('observations', {}), signals=signals[-MAX_CODES:],
+        _set(candidateDetails=[row for row in data.get('candidateDetails', []) if row['code'] not in blocked],
+             observations={code: row for code, row in data.get('observations', {}).items() if code not in blocked}, signals=signals[-MAX_CODES:],
              signalCount=sum(bool(t.signal_at) for t in observer.tracks.values()))
     except (OSError, ValueError, TypeError, KeyError, AttributeError, OverflowError):
         # Missing/corrupt evidence is never reconstructed from a later ratio.
@@ -135,12 +140,12 @@ def _rank(appkey, secretkey):
     import volume_surge_live
 
     token = kiwoom_client.get_token(appkey, secretkey)
-    volume = market_rank.fetch_volume_top(token, limit=MAX_CODES)
+    volume = market_rank.fetch_volume_top(token, limit=60)
     if not volume:
         raise ValueError('empty volume ranking')
     fallback = False
     try:
-        amount = logic.fetch_amount_top(kiwoom_client.call_tr, token, limit=MAX_CODES)
+        amount = logic.fetch_amount_top(kiwoom_client.call_tr, token, limit=60)
         if not amount:
             raise ValueError('empty amount ranking')
     except Exception as exc:
@@ -312,6 +317,11 @@ def _handle_signal(result, signaled):
     signaled.add(code)
     item = dict(result)
     item.pop('signal', None)
+    with _lock:
+        item['name'] = next((row.get('name') for row in _status['candidateDetails']
+                             if row['code'] == code), None)
+    if logic.excluded_product(item['name']):
+        return
     item['signalId'] = '%s:%s' % (datetime.fromtimestamp(result['at'], KST).strftime('%Y-%m-%d'), code)
     with _lock:
         _status['signalCount'] += 1
