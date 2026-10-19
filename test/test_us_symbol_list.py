@@ -53,7 +53,8 @@ REAL_RESPONSE = {'return_code': 0, 'return_msg': '정상적으로 처리되었�
 
 def load(payload):
     """응답을 목록으로 바꾼다(네트워크 없이)."""
-    with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
+    with mock.patch.dict(os.environ, {'KIWOOM_APPKEY':'test-key','KIWOOM_SECRETKEY':'test-secret'}), \
+            mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
             mock.patch.object(us_stocks.kiwoom_client, 'call_tr', return_value=payload):
         return us_stocks._records_from_kiwoom_symbol_list()
 
@@ -101,7 +102,8 @@ class SymbolListTest(unittest.TestCase):
             calls.append((api_id, path, body))
             return response
 
-        with mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
+        with mock.patch.dict(os.environ, {'KIWOOM_APPKEY':'test-key','KIWOOM_SECRETKEY':'test-secret'}), \
+            mock.patch.object(us_stocks.kiwoom_client, 'get_token', return_value='t'), \
                 mock.patch.object(us_stocks.kiwoom_client, 'call_tr', side_effect=fake_call_tr):
             rows = us_stocks._records_from_kiwoom_symbol_list()
         return rows, calls

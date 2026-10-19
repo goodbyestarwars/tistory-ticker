@@ -83,6 +83,7 @@ import scan_forward
 import sector_cards
 import swing_model
 import us_analysis
+import us_etf_holdings
 import us_options
 import us_stocks
 import weekly_report
@@ -2067,10 +2068,17 @@ def us_analysis_endpoint(request: Request, symbol: str = Path(..., min_length=1,
         ticker = us_stocks.normalize_symbol(symbol)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return envelope(us_analysis.get_analysis(
+    instrument = us_stocks.instrument_info(ticker)
+    result = dict(us_analysis.get_analysis(
         ticker,
         finnhub_api_key=os.environ.get('FINNHUB_API_KEY', '').strip(),
+        instrument_type=instrument['quote_type'],
     ))
+    result['instrument'] = instrument
+    if instrument['quote_type'] == 'ETF':
+        result['etf_holdings'] = us_etf_holdings.get_holdings(ticker, instrument)
+    instrument.pop('issuer_hint', None)
+    return envelope(result)
 
 
 @app.get('/ohlc/{code}')

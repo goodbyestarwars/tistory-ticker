@@ -7,7 +7,7 @@
   'use strict';
 
   var API_BASE = 'https://goodbyestar.cloud';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20260828-domestic-layout-parity-v2';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/us-stocks.css?v=20261019-us-analysis-etf-v1';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var REFRESH_MS = 15000;
   // 공개 호가 API의 분당 30회 제한 아래에서, 완료된 요청 다음에만 재조회한다.
@@ -1017,9 +1017,11 @@
 
   function loadAnalysis() {
     if (!state.symbol) return;
-    fetchJson(API_BASE + '/us-analysis/' + encodeURIComponent(state.symbol))
-      .then(renderAnalysis)
+    var symbol = state.symbol;
+    fetchJson(API_BASE + '/us-analysis/' + encodeURIComponent(symbol))
+      .then(function (payload) { if (state.symbol === symbol) renderAnalysis(payload); })
       .catch(function () {
+        if (state.symbol !== symbol) return;
         var mount = document.querySelector('#usStocksAnalysis');
         if (mount) mount.innerHTML = '<div class="us-stocks-analysis-empty">재무·실적 데이터를 확인할 수 없습니다.</div>';
       });
@@ -1028,6 +1030,7 @@
   function renderAnalysis(payload) {
     var mount = document.querySelector('#usStocksAnalysis');
     if (!mount) return;
+    mount.querySelectorAll('.us-analysis-source').forEach(function (node) { node.remove(); });
     var summary = payload && payload.summary || {};
     var recommendation = summary.recommendation || {};
     setAnalysisCard(mount, 'financials', formatMetric(summary.pe, 1, ' PER'), 'PBR ' + formatMetric(summary.pb, 1, ' · ') + 'ROE ' + formatMetric(summary.roe, 1, '%'));
@@ -1036,8 +1039,62 @@
     setAnalysisCard(mount, 'statements', revenue === '-' ? '매출성장 ' + formatMetric(summary.revenue_growth, 1, '%') : '매출 ' + revenue, netIncome === '-' ? '순이익률 ' + formatMetric(summary.net_margin, 1, '%') : '순이익 ' + netIncome + ' · 성장 ' + formatMetric(summary.revenue_growth, 1, '%'));
     setAnalysisCard(mount, 'earnings', summary.next_earnings || '예정일 없음', '최근 EPS 서프라이즈 ' + formatMetric(summary.eps_surprise_percent, 1, '%'));
     setAnalysisCard(mount, 'recommendation', '매수 ' + (Number(recommendation.strongBuy || 0) + Number(recommendation.buy || 0)), '보유 ' + Number(recommendation.hold || 0) + ' · 매도 ' + (Number(recommendation.sell || 0) + Number(recommendation.strongSell || 0)));
+    var recCard = mount.querySelector('[data-analysis-card="recommendation"]');
+    if (recCard) {
+      if (recommendation.available === false) setAnalysisCard(mount, 'recommendation', '집계 자료 없음', '');
+      recCard.insertAdjacentHTML('beforeend', '<p class="us-analysis-source">Finnhub · 기준월 '
+        + escapeHtml(recommendation.period ? String(recommendation.period).slice(0, 7) : '미제공')
+        + ' · <a href="https://finnhub.io/docs/api/recommendation-trends" target="_blank" rel="noopener noreferrer">집계 API 출처 ↗</a></p>');
+    }
+    var period = summary.statement_period || {};
+    var financialCard = mount.querySelector('[data-analysis-card="financials"]');
+    if (financialCard) {
+      var fields = summary.metric_basis || {};
+      financialCard.insertAdjacentHTML('beforeend', '<details class="us-analysis-source"><summary>재무 기준·출처</summary>'
+        + ['pe', 'pb', 'roe'].map(function (key) {
+          return '<p>' + escapeHtml(key.toUpperCase() + ': Finnhub ' + ((fields[key] || {}).field || '자료 없음')) + '</p>';
+        }).join('') + '<p>비율 기준일: 제공처 미제공 · 조회 ' + escapeHtml(payload.fetched_at || '미확보') + '</p></details>');
+    }
+    var statementCard = mount.querySelector('[data-analysis-card="statements"]');
+    if (statementCard) statementCard.insertAdjacentHTML('beforeend', '<p class="us-analysis-source">Finnhub 공시 · '
+      + escapeHtml(period.start && period.end ? String(period.start).slice(0, 10) + ' ~ ' + String(period.end).slice(0, 10) + ' 기간 합계 (누적 포함)' : '실적 기준기간 미확보')
+      + ' · 공시 ' + escapeHtml(period.filed ? String(period.filed).slice(0, 10) : '미확보') + '</p>');
+    renderEtfHoldings(mount, payload.etf_holdings, payload.instrument);
     var insiderTone = Number(summary.insider_net_change) > 0 ? 'us-up' : Number(summary.insider_net_change) < 0 ? 'us-down' : '';
     setAnalysisCard(mount, 'insider', '<span class="' + insiderTone + '">' + formatVolume(summary.insider_net_change) + '주</span>', '거래 ' + Number(summary.insider_transaction_count || 0) + '건');
+  }
+
+  function renderEtfHoldings(mount, data, instrument) {
+    var old = mount.querySelector('[data-etf-holdings]');
+    if (old) old.remove();
+    if (!instrument || instrument.quote_type !== 'ETF') return;
+    data = data || {};
+    var section = document.createElement('section');
+    section.className = 'us-stocks-analysis-card us-etf-holdings';
+    section.setAttribute('data-etf-holdings', '');
+    var official = /^https:\/\//i.test(data.issuer_url || '') ? '<a href="' + escapeAttr(data.issuer_url) + '" target="_blank" rel="noopener noreferrer">운용사 공식 사이트 ↗</a>' : '운용사 링크 미확보';
+    var html = '<h3>ETF 구성종목</h3>';
+    if (data.status !== 'ready' || !Array.isArray(data.holdings) || !data.holdings.length) {
+      html += '<p>구성종목 데이터 준비 중</p><p>' + official + '</p>';
+    } else {
+      html += '<p>전체 ' + escapeHtml(data.total_count) + '개 · 명세 기준일 ' + escapeHtml(data.as_of) + '</p>';
+      if (/^https:\/\//i.test(data.source_url || '')) html += '<p><a href="' + escapeAttr(data.source_url) + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(data.source || '자료 출처') + ' ↗</a></p>';
+      function rows(items) {
+        return '<ul>' + items.map(function (row) {
+          var kind = { equity: '현물', cash: '현금', derivative: '파생상품', other: '기타' }[row.kind] || '미분류';
+          return '<li>' + escapeHtml(row.name) + ' · ' + escapeHtml(row.ticker || '티커 없음') + ' · '
+            + escapeHtml(Number(row.weight_percent).toFixed(2)) + '% · ' + kind + ' · '
+            + escapeHtml(row.basis === 'economic_exposure' ? '실질 노출' : '보유 평가액')
+            + (row.country ? ' · ' + escapeHtml(row.country) : '') + '</li>';
+        }).join('') + '</ul>';
+      }
+      html += rows(data.holdings.slice(0, 20));
+      if (data.holdings.length > 20) html += '<details><summary>전체 보기 (' + data.holdings.length + '개)</summary>' + rows(data.holdings.slice(20)) + '</details>';
+      html += '<p>' + official + '</p>';
+    }
+    html += '<p class="us-analysis-source">현물 보유와 스왑·파생상품의 실질 기업 노출은 다를 수 있습니다. 비중 합계는 100%와 다를 수 있습니다.</p>';
+    section.innerHTML = html;
+    mount.appendChild(section);
   }
 
   function renderCongressLinks() {

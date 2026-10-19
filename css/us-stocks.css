@@ -299,3 +299,16 @@ html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(24
   .us-stocks-metrics-core { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 1; }
 }
+
+/* Analysis provenance and licensed ETF snapshots in both US detail hosts. */
+.us-stocks-analysis-card .us-analysis-source { margin: 7px 0 0; color: #64748b; font-size: 11px; overflow-wrap: anywhere; }
+.us-stocks-analysis-card .us-analysis-source p { margin: 5px 0; }
+.us-stocks-analysis-card a, .us-stocks-analysis-card a:hover { color: #2563eb; text-decoration: none !important; }
+.us-stocks-analysis-card a:focus-visible, .us-stocks-analysis-card summary:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; border-radius: 2px; }
+.us-stocks-analysis-card summary { cursor: pointer; }
+.us-etf-holdings { grid-column: 1 / -1; overflow-wrap: anywhere; }
+.us-etf-holdings h3 { margin: 0 0 8px; font-size: 14px; }
+.us-etf-holdings p, .us-etf-holdings li { font-size: 12px; line-height: 1.6; }
+.us-etf-holdings ul { padding-left: 20px; }
+html.dark .us-stocks-analysis-card .us-analysis-source { color: #b4bfd0; }
+html.dark .us-stocks-analysis-card a { color: #93c5fd; }

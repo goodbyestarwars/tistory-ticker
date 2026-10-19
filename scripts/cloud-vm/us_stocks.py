@@ -281,6 +281,14 @@ def _records_from_kiwoom_symbol_list():
     return normalized
 
 
+def instrument_info(symbol):
+    """Reuse the warmed broker directory; never download a directory per detail view."""
+    for entry in _symbol_cache['rows']:
+        if entry[0] == symbol:
+            return dict(_symbol_row(entry), issuer_hint=entry[4])
+    return {'symbol': symbol, 'quote_type': 'UNKNOWN', 'name': ''}
+
+
 def _symbol_row(entry):
     """검색이 돌려줄 행 하나를 만든다. 목록 전체를 이 모양으로 들고 있지는 않는다."""
     symbol, name, exchange, is_etf, _haystack = entry
