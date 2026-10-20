@@ -5,14 +5,17 @@
 ## 0. 이번 작업의 상태 (먼저 읽기)
 | 항목 | 상태 |
 |---|---|
-| 읽기 전용 백테스트 코드 (B_SR·C_SR, 검색기별·거래별 출력) | **완료** — `scripts/research/exit_sr_study.py` |
-| 단위 테스트 | **통과** — `test/test_exit_sr_study.py` 11건, 기존 `test/test_exit_strategy_study.py` 18건 |
-| 실거래 원장·검색기 포착 이력·키움 분봉으로 A/B/C 비교 | **미수행** — 이 작업 환경(클라우드 컨테이너)에는 `live_orders.db`·`research.db`·키움 키·분봉 파일이 없고 운영 API(goodbyestar.cloud)에도 접속되지 않는다 |
-| 운영 PC 설치본 `live_engine.py`와 GitHub 소스의 버전·해시 대조 | **미수행** — 저장소에 `live_engine.py`가 없다(PC 전용). 이 환경에서 PC에 접근할 수 없다 |
-| 하이브·파인엠텍·제주항공 사례 재현 | **미수행** (같은 이유). 절차는 §5 |
-| Q1~Q5의 수치 답 | **이번 환경에서는 낼 수 없다.** 아래 §6은 근거가 있는 부분(2026-10-18 연구)만 인용하고, 나머지는 "미결"로 둔다. 수치를 추정해 채우지 않았다 |
+| 읽기 전용 백테스트(B_SR·C_SR·A·A_cycle), 검색기별·거래별 출력 | **완료** — `exit_sr_study.py` |
+| 실제 원장 읽기 전용 어댑터(온라인 백업 스냅샷, ACK/체결 구분, 검색기 출처 미확인 분류) | **완료** — `exit_ledger_adapter.py` |
+| PC 실행 드라이버(엔진 해시 대조, 분봉 조회 전용 수집, 사례·검색기별·국면별·워크포워드·충족률) + 원클릭 PowerShell | **완료** — `exit_sr_local.py`, `run_exit_sr_local.ps1` |
+| 테스트 | **통과** — `test_exit_sr_study.py` 11건, `test_exit_sr_local.py` 6건, 기존 `test_exit_strategy_study.py` 18건 (합성 자료) |
+| 실제 원장·분봉으로 A/B/C 비교, 3개 사례 재현 | **미수행** — 이 세션은 클라우드이고 PC 파일·키움 키·원장에 접근할 수 없다(`gcloud`도 미인증, 운영 API 미접속). 원장·키를 클라우드로 올리라고 요구하지 않는다 |
+| Q1~Q5의 수치 답 | **미결** — §6. PC 실행 후 익명 요약을 받아 §7을 채운다 |
 
-즉 이번 PR은 "비교를 정직하게 돌릴 수 있는 도구와 판정 기준"이고, 실제 비교 결과는 운영 PC에서 §4 절차로 돌린 뒤 이 문서 §7에 채운다.
+### 운영 파일 대조에서 이미 확인된 사실 (저장소 쪽)
+- 저장소 `quant-autotrade/local_bot/live_runner_9pay.py`의 SHA-256 = `F3C8F1AC…D338E0` — 사용자가 알려준 PC `live_runner.py`와 **동일**(파일명만 다름).
+- 저장소 `quant-autotrade/local_bot/live_engine.py` = `77FE76A0…7488F2` ≠ PC `live_engine.py` `A1B1DAC1…491040`. **저장소 사본은 PC 운영본이 아니다.** 청산 상수(-3/-5/+3/-2.5/확인 2)는 저장소 사본에서 PC가 알려준 값과 같다. 운영본의 `exit_decision()`·사이클 로직 차이는 PC 사본 없이는 확인할 수 없으므로 `extract` 단계가 PC 파일의 해시와 상수를 직접 기록한다. 해시 일치가 과거 거래 시점의 버전 동일을 증명하지는 않는다.
+- 사용자 제공 3건(원장 판정 기록, 이 세션에서 재현 못 함): 하이브 352820(10-19, doubleBottom, 순위 1, 최고 +3.67%, 판정 +0.90%, TRAIL_2_5), 파인엠텍 441270(10-20, pullback, 순위 3, +4.04%, +1.06%, TRAIL_2_5), 제주항공 089590(10-20, invHeadShoulders, 순위 12, +2.14%, -3.02%, STOP_3), 확인 횟수 모두 2. `ACK`는 접수이며 체결 완료·순수익을 증명하지 않는다. 하이브 10-16 별도 매매는 섞지 않는다(어댑터는 BUY→다음 SELL을 매수 단위로 짝지음).
 
 ## 1. 현재 A 전략 (문서·코드 기준)
 `quant-autotrade/docs/LIVE_EXIT_RULES_2026-10-16.md`와 `scripts/research/exit_strategy_study.py`의 `RuleA`가 같은 규칙을 구현한다: 일반 손절 가격 -3% 연속 2회 확인, 비상 손절 -5% 즉시, 고점 +3% 이상이면 고점 대비 -2.5% 연속 2회 추적, 고정 익절 없음. 가격 구분: 매입가(체결가)·고점(관측 1분봉 종가 최댓값)·판정가(1분봉 종가)·체결가(다음 분봉 시가-슬리피지)·비용(왕복 0.7% 허용치 가정, 실제 세금·수수료는 원장에서 확인 필요).
@@ -42,10 +45,16 @@
 - 아직 구현하지 않은 것(다음 단계): 계좌 단위 동시 보유·예산 재현, 시초 급락/갭/VI/거래정지/분봉 누락 스트레스 시나리오 일괄 테스트(코드는 갭 이후 첫 시가 체결·분봉 누락 시 경로 종료를 이미 따른다), 워크포워드(현재는 시간순 60/40 분리).
 
 ## 4. 운영 PC 실행 절차 (읽기 전용, 주문 없음)
-1. `scripts/research/exit_strategy_collect.py`로 진입 목록과 분봉 수집(키움 ka10080 조회만, 키는 PC `.env`에서 프로세스 안으로만 읽음; 저장소 밖 폴더에 저장).
-2. `python scripts/research/exit_sr_study.py <entries.json> <분봉 폴더> <네이버 일봉 캐시> <출력 접두어>` → `<접두어>.json`(규칙별 전체/학습/검증, A 대비 구간, 검색기별) + `<접두어>_trades.csv`(거래별 A 대비 청산 사유·수익률 차이).
-3. 실거래 대조: `exit_strategy_calibrate.py`로 실제 매수/매도와 A 재현이 일치하는지 확인(불일치 거래는 평가에서 분리하고 원인을 기록). 원장은 읽기 전용(`?mode=ro`)으로만 연다.
-4. 설치본 대조: PC `live_engine.py`의 `sha256`을 계산해 이 문서에 기록하고, 상수 -3/-5/+3/-2.5/확인 2회가 같은지 확인한다(2026-10-18 확인 시에는 같았음).
+```powershell
+cd C:\Users\goodb\tistory-ticker ; git fetch ; git checkout research/exit-support-resistance
+.\scripts\research\run_exit_sr_local.ps1      # 경로 기본값은 스크립트 param 참고
+```
+1. `extract`: `live_orders.db`(와 research.db)를 `file:…?mode=ro`로 열어 SQLite 온라인 백업으로 작업 폴더(`C:\Users\goodb\exit_sr_study`, autotrader 폴더와 분리)에 스냅샷 → `engine_check.json`(PC 파일 해시·상수·저장소 사본 비교) → `trades.json`(주문번호 제외). 운영 DB에는 쓰기·마이그레이션·VACUUM을 하지 않는다.
+2. `bars`: 분석 가능한 매수(ACK, 가격 있음)의 매수일~매도일+3거래일 1분봉을 ka10080 조회로 저장(`minbars`). 키는 `.env`에서 프로세스 안으로만 읽고 출력하지 않는다. 분봉이 없는 거래는 가격을 만들지 않고 `coverage.json`에 `MINUTE_BARS_MISSING`으로 제외한다.
+3. `analyze`: 실제 진입(체결가가 있으면 체결가, 없으면 의도가 + `fill_confirmed=false`)에서 A / **A_cycle** / B_SR 9 / C_SR 4를 돌린다. `A`는 서로 다른 완료 봉 2개 확인, `A_cycle`은 엔진 사이클이 같은 1분봉을 두 번 볼 수 있는 운영 방식(한 봉에서 2회 충족 가능) — 운영 A 재현 기준은 `A_cycle`이고 둘의 차이도 측정된다. 5분봉은 1분봉에서 집계하며 닫힌 뒤에만 판정에 쓴다.
+4. 올려도 되는 익명 요약: `out\summary.json`, `trades_abc.csv`, `cases.json`, `coverage.json`, `engine_check.json`. 올리면 안 되는 것: `snapshots`(원장 사본), `minbars`, `.env`.
+- 표는 구분해 읽는다: (1) 실제 체결 결과는 원장의 `actual` 필드(판정 기록이며 체결 순수익 아님), (2) 같은 진입에 매도 규칙만 바꾼 시뮬레이션(summary.json), (3) 가상 진입 백테스트는 `exit_sr_study.py run`(PR #794 초기 도구)이며 실제 거래와 섞지 않는다.
+- 장부 note(JSON)의 검색기·순위 필드명은 이 세션에서 실물을 못 봐 `scanner/source/pattern/rank/base` 등 후보 키로 찾는다. 못 찾으면 research.db의 code+검색기 열 테이블에서 보충하고, 그래도 없으면 `출처 미확인`이다. 필드명이 다르면 `exit_ledger_adapter.py` 상단 키 목록만 고치면 된다.
 
 ## 5. 3개 사례 분석 절차 (하이브·파인엠텍·제주항공)
 각 종목마다 원장 `intents`(reason/note의 검색기·순위·기준가)와 `research.db` 포착 이력으로 최초 검색기와 원본 패턴 ID를 확인(없으면 `출처 미확인`), 실제 진입 시각·체결가를 `entry_hhmm`/`entry_fill_price`로 넣어 A/B/C를 재현한다(`simulate`가 지원). 파인엠텍 질문(검색기, 진입 가격 구조, 엔진 매도 사유, 매도 당시 지지 붕괴 여부, 매도 이후 고저, 구조 추적 시 매도 시점, 이익 증가 vs 위험 증가)은 `_trades.csv`의 `a_reason`/`x_reason`/`mfe`/`mae`/`x_exit_*`와 분봉으로 숫자로 답한다. **세 사례만으로 규칙을 정하지 않는다.** 아직 실행하지 않아 이 문서에 수치는 없다.

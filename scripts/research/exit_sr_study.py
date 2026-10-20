@@ -151,8 +151,18 @@ class SRRule(xs.Rule):
         return r
 
 
+class RuleACycle(xs.RuleA):
+    """운영 A 재현: 엔진은 약 30초 주기로 도는데 판정 가격은 1분봉 종가라 같은 봉을 두 번 볼 수 있다. 그러면 '연속 2회 확인'이
+    한 봉 안에서 충족된다. 'A'(서로 다른 완료 봉 2개)와의 차이를 측정하려고 봉마다 step을 두 번 부른다."""
+    name = 'A_cycle'
+
+    def step(self, price, bar, day_state):
+        first = super().step(price, bar, day_state)
+        return first or super().step(price, bar, day_state)
+
+
 def make_sr_rules():
-    rules = {'A': lambda p, c: xs.RuleA(p, c)}
+    rules = {'A': lambda p, c: xs.RuleA(p, c), 'A_cycle': lambda p, c: RuleACycle(p, c)}
     for sup in ('prev_low', 'low15', 'combo'):
         for confirm in ('bar1', 'c5', 'c5x2'):
             rules['B_SR_%s_%s' % (sup, confirm)] = lambda p, c, sup=sup, confirm=confirm: SRRule(p, c, sup, confirm)
