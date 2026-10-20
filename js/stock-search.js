@@ -112,6 +112,7 @@
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
     minuteScope: '1',
+    studyOrder: ['ma','trace'],
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     bollingerEnabled: false,
@@ -138,6 +139,10 @@
   var lwcSrCleanup = null;
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
+  function rememberStudyToggle(key,enabled) {
+    var i=state.studyOrder.indexOf(key);if(i>=0)state.studyOrder.splice(i,1);
+    if(enabled)state.studyOrder.push(key);
+  }
   var supplyMarkerHolder = null;
   var lwcOhlcTooltipCleanup = null;
   var stockPanCleanup = null;
@@ -1543,6 +1548,7 @@
       movingAverageToggle.checked = state.movingAverageEnabled;
       movingAverageToggle.onchange = function () {
         state.movingAverageEnabled = movingAverageToggle.checked;
+        rememberStudyToggle('ma',state.movingAverageEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -1551,6 +1557,7 @@
       ichimokuToggle.checked = state.ichimokuEnabled;
       ichimokuToggle.onchange = function () {
         state.ichimokuEnabled = ichimokuToggle.checked;
+        rememberStudyToggle('cloud',state.ichimokuEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -1559,6 +1566,7 @@
       bollingerToggle.checked = state.bollingerEnabled;
       bollingerToggle.onchange = function () {
         state.bollingerEnabled = bollingerToggle.checked;
+        rememberStudyToggle('bollinger',state.bollingerEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -1567,6 +1575,7 @@
       accToggle.checked = state.accumulationEnabled;
       accToggle.onchange = function () {
         state.accumulationEnabled = accToggle.checked;
+        rememberStudyToggle('trace',state.accumulationEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -1607,6 +1616,7 @@
       srToggle.checked = state.supportResistanceEnabled;
       srToggle.onchange = function () {
         state.supportResistanceEnabled = srToggle.checked;
+        rememberStudyToggle('sr',state.supportResistanceEnabled);
         renderChartForCode(container, state.selectedCode);
       };
     }
@@ -2586,10 +2596,10 @@
             }
           });
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
-          priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
+          priceLegendHtml.push('<span data-study="ma" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
-      var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, timeframe:timeframe };
+      var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, studyOrder:state.studyOrder, timeframe:timeframe };
       if (state.trendEnabled) {
         core.setTrendMarkers(LWC, candleSeries, bars, true, markHolder);
         if (timeframe === 'minute') priceLegendHtml.push('<span>기간별 추세 띠는 일·주·월봉에서 표시됩니다</span>');
@@ -2601,7 +2611,7 @@
       }
       if (state.bollingerEnabled) {
         core.addBollingerBands(chart, LWC, bars);
-        priceLegendHtml.push('<span style="color:#d9a600">볼린저 20·2</span>');
+        priceLegendHtml.push('<span data-study="bollinger" style="color:#d9a600">볼린저 20·2</span>');
       }
 
       // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
@@ -2633,20 +2643,21 @@
         spanASeries.setData(safeCloudPoints.map(function (point) { return { time: point.time, value: point.spanA }; }));
         spanBSeries.setData(safeCloudPoints.map(function (point) { return { time: point.time, value: point.spanB }; }));
         cloudPoints = safeCloudPoints;
-        priceLegendHtml.push('<span class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
+        priceLegendHtml.push('<span data-study="cloud" class="ss-ichimoku-label">일목 구름대' + (cloudPoints.length ? '' : ' <b>데이터 부족</b>') + '</span>');
       }
 
       var liveQuote = state.liveQuotes[state.selectedCode];
       var srReferencePrice = liveQuote && Number.isFinite(Number(liveQuote.price)) ? Number(liveQuote.price) : null;
       var srResult = state.supportResistanceEnabled && global.NineChartSR ? global.NineChartSR.levels(bars, srReferencePrice, { timeframe: timeframe }) : null;
       if (state.supportResistanceEnabled) {
-        priceLegendHtml.push('<span class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
+        priceLegendHtml.push('<span data-study="sr" class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
       }
 
-      if (priceLegendHtml.length) {
+      if (priceLegendHtml.length || (state.accumulationEnabled && timeframe === 'day' && !isUsChart)) {
         var priceLegend = document.createElement('div');
         priceLegend.className = 'ss-price-study-label';
         priceLegend.innerHTML = priceLegendHtml.join('');
+        Array.from(priceLegend.children).sort(function(a,b){return state.studyOrder.indexOf(a.dataset.study)-state.studyOrder.indexOf(b.dataset.study);}).forEach(function(el){priceLegend.appendChild(el);});
         container.appendChild(priceLegend);
       }
 

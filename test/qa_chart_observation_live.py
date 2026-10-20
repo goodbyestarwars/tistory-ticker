@@ -59,7 +59,7 @@ async def main():
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-trace-legend-6'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-inline-legend-7'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
@@ -107,10 +107,21 @@ async def main():
                         assert not layout['overflow'],layout
                         if width==1440:assert 390<=layout['left']<=400,layout
                         assert layout['asks']==10 and layout['bids']==10 and layout['trades'] and layout['header'],layout
-                        assert layout['legend']=='● 거래량  ■ 장기선  ▲ 회복',layout
+                        assert ' '.join(layout['legend'].split())=='● 거래량 ■ 장기선 ▲ 회복',layout
                         await ev('window.scrollBy(0,document.getElementById("order-book").getBoundingClientRect().top-40)')
                         shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
                         (OUT/f'live-orderbook-{width}.png').write_bytes(base64.b64decode(shot['data']))
+                        legend=await ev('(()=>{let l=document.querySelector("#'+host+' .nine-trace-legend");return {inline:l.parentElement.classList.contains("ss-price-study-label"),colors:Array.from(l.children).map(x=>x.style.color)};})()')
+                        assert legend['inline'] and legend['colors']==['rgb(232, 89, 12)','rgb(121, 80, 178)','rgb(210, 79, 69)'],legend
+                        for toggle,key in [('ssBollingerToggle','bollinger'),('ssIchimokuToggle','cloud')]:
+                            await ev('document.getElementById("'+toggle+'").click()')
+                            await wait('!!document.querySelector("#'+host+' [data-study='+key+']")')
+                        await ev('document.getElementById("ssMovingAverageToggle").click()')
+                        await wait('!document.querySelector("#'+host+' [data-study=ma]")')
+                        await ev('document.getElementById("ssMovingAverageToggle").click()')
+                        await wait('!!document.querySelector("#'+host+' [data-study=ma]") && !!document.querySelector("#'+host+' .ss-price-study-label .nine-trace-legend")')
+                        order=await ev('Array.from(new Set(Array.from(document.querySelector("#'+host+' .ss-price-study-label").children).map(x=>x.dataset.study)))')
+                        assert order==['trace','bollinger','cloud','ma'],order
                         result['orderbook']=layout
                     results.append({'screen':screen,'viewport':width,'defaults':defaults,'ranges':ranges,**result})
                     print('PASS',screen,width)

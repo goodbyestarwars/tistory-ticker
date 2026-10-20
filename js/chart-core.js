@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-trace-legend-6';
+  var VERSION = '2026-10-20-inline-legend-7';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -947,7 +947,7 @@
   function studyHeaderBottom(container) {
     var ma=container.querySelector('.ss-price-study-label'),top=Math.max(26,ma?ma.offsetTop+ma.offsetHeight+4:26);
     var trace=container.querySelector('.nine-trace-legend');
-    if(trace){trace.style.top=top+'px';top+=trace.offsetHeight+4;}
+    if(trace && trace.parentElement!==ma){trace.style.top=top+'px';top+=trace.offsetHeight+4;}
     return top;
   }
   function installTrendBands(chart,series,container,bars,timeframe) {
@@ -1145,11 +1145,18 @@
     if(holder.legendCleanup){holder.legendCleanup();holder.legendCleanup=null;}
     if(enabled && holder.container){
       var legend=document.createElement('div');legend.className='nine-trace-legend';
-      legend.textContent='● 거래량  ■ 장기선  ▲ 회복';
+      legend.dataset.study='trace';
+      legend.innerHTML='<span style="color:'+SUPPLY_TRACES.color+'">● 거래량</span> <span style="color:#7950b2">■ 장기선</span> <span style="color:'+CANDLE_UP+'">▲ 회복</span>';
       legend.title='일봉 OHLCV 관찰값이며 실제 수급 주체를 뜻하지 않습니다. 장기선은 112/224/448봉 자료가 필요합니다.'+(mode==='important'?' 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다.':'');
       legend.style.cssText='position:absolute;z-index:8;left:8px;right:76px;font-size:11px;line-height:1.5;white-space:normal;';
       holder.container.appendChild(legend);
-      var legendFrame=global.requestAnimationFrame(function(){studyHeaderBottom(holder.container);holder.container.dispatchEvent(new Event('nine-study-header-change'));});
+      var legendFrame=global.requestAnimationFrame(function(){
+        var header=holder.container.querySelector('.ss-price-study-label');
+        if(header){legend.style.cssText='display:inline-flex;gap:6px;white-space:nowrap;pointer-events:auto;';header.appendChild(legend);
+          var order=holder.studyOrder || [];Array.from(header.children).sort(function(a,b){return order.indexOf(a.dataset.study)-order.indexOf(b.dataset.study);}).forEach(function(el){header.appendChild(el);});
+        }
+        studyHeaderBottom(holder.container);holder.container.dispatchEvent(new Event('nine-study-header-change'));
+      });
       holder.legendCleanup=function(){global.cancelAnimationFrame(legendFrame);legend.remove();};
     }
     if(holder.container)holder.container.dispatchEvent(new Event('nine-study-header-change'));
