@@ -15,6 +15,45 @@ KST = timezone(timedelta(hours=9))
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
+class FeedDiagnostics:
+    """Bounded transition log with fixed reasons only; never stores response bodies."""
+    REASONS = frozenset(('observer inactive', 'rule/evidence unavailable', 'ranking incomplete',
+                         'ranking timestamp missing', 'ranking stale', 'HTTPError', 'URLError',
+                         'TimeoutError', 'JSONDecodeError', 'ConnectionResetError',
+                         'RemoteDisconnected', 'SSLError', 'OSError'))
+
+    def __init__(self, folder, clock=None):
+        self.folder = folder
+        self.clock = clock or (lambda: datetime.now(KST))
+        self.latest = {}
+        self._last_key = None
+        self._last_at = 0
+
+    def __call__(self, state, error=None):
+        now = self.clock()
+        reason = str(error) if error is not None else None
+        if error is not None and reason not in self.REASONS:
+            reason = 'unclassified'
+        status = getattr(error, 'http_status', None)
+        status = status if isinstance(status, int) and 100 <= status <= 599 else None
+        self.latest = {'checked_at': now.isoformat(), 'state': state,
+                       'reason': reason, 'http_status': status}
+        key = (now.date(), state, reason, status)
+        if key == self._last_key and (state == 'OK' or now.timestamp() - self._last_at < 60):
+            return
+        try:
+            folder = os.path.join(self.folder, 'logs')
+            os.makedirs(folder, exist_ok=True)
+            path = os.path.join(folder, 'ninepay-feed-' + now.strftime('%Y%m%d') + '.jsonl')
+            if os.path.exists(path) and os.path.getsize(path) > 1024 * 1024:
+                os.replace(path, path + '.1')
+            with open(path, 'a', encoding='utf-8') as stream:
+                stream.write(json.dumps(self.latest, ensure_ascii=False) + '\n')
+            self._last_key, self._last_at = key, now.timestamp()
+        except OSError:
+            pass  # Diagnostics must never stop position/exit checks.
+
+
 def research_path():
     installed = os.path.join(HERE, 'research_app', 'quant-autotrade', 'research')
     return installed if os.path.exists(installed) else os.path.abspath(os.path.join(HERE, '..', 'research'))
@@ -37,7 +76,7 @@ def candidates(now):
 
 def run_cycle(client, ledger, daily, folder, now, existing_due, *,
               engine_cycle=trade_once, signal_fetch=fetch_signals,
-              signal_trade=trade_signal_once, get_candidates=candidates):
+              signal_trade=trade_signal_once, get_candidates=candidates, feed_report=None):
     """Single runner: exits once per 30s, then 9Pay, then legacy entries.
 
     A failed 9Pay feed blocks legacy entries while 9Pay is enabled, but never
@@ -52,8 +91,12 @@ def run_cycle(client, ledger, daily, folder, now, existing_due, *,
     if os.environ.get('NINEPAY_LIVE_TRADING') == '1':
         try:
             signals = signal_fetch(now=now.timestamp())
-        except SignalFeedUnavailable:
+        except SignalFeedUnavailable as exc:
+            if feed_report is not None:
+                feed_report('UNAVAILABLE', exc)
             return '9PAY_FEED_UNAVAILABLE'
+        if feed_report is not None:
+            feed_report('OK')
         for signal in signals:
             state = signal_trade(client, ledger, signal, folder, now)
             if state != '9PAY_BUY_SENT':
@@ -86,6 +129,7 @@ def main():
     import krx_calendar
     ledger = Ledger(os.path.join(HERE, 'live_orders.db'))
     daily_cache = {}
+    feed_report = FeedDiagnostics(HERE)
     next_existing_cycle = 0.0
     def daily(code):
         if code not in daily_cache:
@@ -102,11 +146,13 @@ def main():
             if existing_due:
                 next_existing_cycle = time.monotonic() + 30
             try:
-                result = run_cycle(client, ledger, daily, HERE, now, existing_due)
+                result = run_cycle(client, ledger, daily, HERE, now, existing_due,
+                                   feed_report=feed_report)
             except Exception as exc:
                 result = 'ERROR_' + type(exc).__name__
             with open(os.path.join(HERE, 'live_status.json'), 'w', encoding='utf-8') as f:
-                json.dump({'checked_at': now.isoformat(), 'state': result}, f)
+                json.dump({'checked_at': now.isoformat(), 'state': result,
+                           'feed': feed_report.latest}, f)
             if result in ('DISABLED_OR_UNCERTAIN', 'BUY_FILL_UNCONFIRMED',
                           'SELL_FILL_UNCONFIRMED', 'FOREIGN_HOLDINGS') or result.startswith('ERROR_'):
                 return 0

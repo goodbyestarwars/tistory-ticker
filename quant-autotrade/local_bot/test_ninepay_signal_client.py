@@ -2,10 +2,13 @@ from datetime import datetime, timezone
 import os
 import sys
 import unittest
+import io
+import json
+from urllib.error import HTTPError
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(__file__))
-from ninepay_signal_client import SignalFeedUnavailable, valid_signals
+from ninepay_signal_client import SignalFeedUnavailable, valid_signals, fetch_signals, URL
 
 
 NOW = datetime(2026, 10, 19, 0, 30, tzinfo=timezone.utc).timestamp()
@@ -23,6 +26,23 @@ def payload(**changes):
 
 
 class SignalClientTests(unittest.TestCase):
+    def test_dedicated_endpoint_keeps_timeout_and_http_status_without_response_body(self):
+        seen = []
+        def unavailable(url, timeout):
+            seen.append((url, timeout))
+            raise HTTPError(url, 502, 'sensitive upstream detail', {}, None)
+        with self.assertRaises(SignalFeedUnavailable) as raised:
+            fetch_signals(now=NOW, opener=unavailable)
+        self.assertEqual(seen, [('https://goodbyestar.cloud/health/9pay', 2)])
+        self.assertEqual(str(raised.exception), 'HTTPError')
+        self.assertEqual(raised.exception.http_status, 502)
+
+    def test_recovery_cannot_replay_stale_saved_signals(self):
+        stale = payload()
+        stale['data']['ninePayResearch']['signals'][0]['at'] = NOW - 11
+        self.assertEqual(fetch_signals(now=NOW,
+            opener=lambda *a, **kw: io.StringIO(json.dumps(stale))), [])
+
     def test_real_vm_observer_signal_passes_pc_contract(self):
         sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'scripts' / 'cloud-vm'))
         import kiwoom_9pay_observer as observer

@@ -10,11 +10,12 @@ import math
 import re
 import time
 from urllib.request import urlopen
+from urllib.error import HTTPError
 
 KST = timezone(timedelta(hours=9))
 CODE = re.compile(r'^\d{6}$')
 SIGNAL_ID = re.compile(r'^\d{4}-\d{2}-\d{2}:\d{6}$')
-URL = 'https://goodbyestar.cloud/health/realtime'
+URL = 'https://goodbyestar.cloud/health/9pay'
 MAX_SIGNAL_AGE_SEC = 10
 MAX_RANK_AGE_SEC = 120
 RULE_VERSION = 'ab70-v1'
@@ -47,7 +48,9 @@ def valid_evidence(item, now):
 
 
 class SignalFeedUnavailable(RuntimeError):
-    pass
+    def __init__(self, reason='', *, http_status=None):
+        super().__init__(reason)
+        self.http_status = http_status
 
 
 def valid_signals(payload, now=None):
@@ -94,6 +97,8 @@ def fetch_signals(url=URL, now=None, opener=urlopen):
     try:
         with opener(url, timeout=2) as response:
             payload = json.load(response)
+    except HTTPError as exc:
+        raise SignalFeedUnavailable('HTTPError', http_status=exc.code) from None
     except Exception as exc:
         raise SignalFeedUnavailable(type(exc).__name__) from None
     return valid_signals(payload, now)

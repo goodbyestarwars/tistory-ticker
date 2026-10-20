@@ -1402,6 +1402,12 @@ def health_volume_profile(request: Request):
     return envelope(volume_profile_collector.get_status())
 
 
+@app.get('/health/9pay')
+async def health_ninepay():
+    """PC signal intake avoids the sync API thread pool and unrelated hub snapshots."""
+    return envelope({'ninePayResearch': kiwoom_9pay_live.signal_snapshot()})
+
+
 @app.get('/health/realtime')
 def health_realtime():
     """KIS 실시간 공유 허브 상태 - VM 접속 없이 실시간이 살아 있는지 본다.
@@ -1697,9 +1703,11 @@ async def realtime_quote_socket(websocket: WebSocket):
             pass
     finally:
         _ws_active_connections -= 1
-        for task in (relay_task, finnhub_task, receive_task):
+        tasks = [task for task in (relay_task, finnhub_task, receive_task) if task is not None]
+        for task in tasks:
             if not task.done():
                 task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
         try:
             await websocket.close()
         except Exception:

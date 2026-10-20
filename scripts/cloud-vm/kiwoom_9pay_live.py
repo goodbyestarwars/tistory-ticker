@@ -28,6 +28,7 @@ _status = {'ruleVersion': logic.VERSION, 'productPolicy': 'no-leverage-cash-v2',
            'rankError': None, 'amountFallback': False, 'wsVolumeEvents': 0,
            'kisFallbackSamples': 0, 'signalCount': 0, 'signals': [], 'lastEventAt': None,
            'persistenceError': None, 'orderStatus': '미연동', 'coverageLimit': MAX_CODES}
+_status['queueDropped'] = 0
 
 
 def market_open(now=None):
@@ -50,6 +51,23 @@ def health_snapshot():
                     observations={code: dict(row) for code, row in _status['observations'].items()})
 
 
+def signal_snapshot():
+    """Small, in-memory PC intake contract; no other hub locks or broker calls."""
+    state_keys = ('ruleVersion', 'running', 'active', 'rankAt', 'rankError',
+                  'amountFallback', 'queueDropped', 'persistenceError')
+    signal_keys = ('signalId', 'code', 'at', 'price', 'source', 'ruleVersion',
+                   'volumeMissing', 'excluded', 'branches', 'first70At', 'volumeRatio')
+    with _lock:
+        state = {key: _status.get(key) for key in state_keys}
+        # Preserve absent fields as absent: adding excluded=None would authorize
+        # incomplete evidence at the PC boundary.
+        state['signals'] = [{key: (list(item[key]) if key == 'branches'
+                                  and isinstance(item[key], list) else item[key])
+                             for key in signal_keys if key in item}
+                            for item in _status['signals']]
+    return state
+
+
 def _observe_status(result):
     if result is None:
         return
@@ -63,6 +81,7 @@ def _persist(observer, day):
         payload = observer.export_state(day)
         snapshot = health_snapshot()
         payload.update({key: snapshot[key] for key in ('candidateDetails', 'observations', 'signals')})
+        payload['queueDropped'] = snapshot.get('queueDropped', 0)
         with open(STATE_PATH + '.tmp', 'w', encoding='utf-8') as out:
             json.dump(payload, out, ensure_ascii=False, allow_nan=False)
             out.flush()
@@ -82,6 +101,10 @@ def _restore(observer, day):
             data = json.load(inp)
         if not observer.restore_state(data, day):
             return
+        saved_drops = data.get('queueDropped', 0)
+        if not isinstance(saved_drops, int) or saved_drops < 0:
+            saved_drops = 1  # Invalid completeness evidence must also keep intake closed.
+        _set(queueDropped=max(_status.get('queueDropped', 0), saved_drops))
         blocked = {row['code'] for row in data.get('candidateDetails', [])
                    if logic.excluded_product(row.get('name'))}
         for code in blocked:
@@ -194,11 +217,18 @@ async def _run(appkey, secretkey):
     candidates = []
     next_rank = next_kis = next_outcome = 0.0
     day = None
+    rank_task = None
+    rank_day = None
+    rank_started = 0.0
+    logged_drops = 0
+    restored_drops = 0
+    high_water = 0
     try:
         while True:
             now = time.time()
             today = datetime.now(KST).strftime('%Y-%m-%d')
             if today != day:
+                first_day = day is None
                 ws = logic.Observer([], {})
                 kis = ws
                 last_ws_volume.clear()
@@ -208,23 +238,50 @@ async def _run(appkey, secretkey):
                      lastEventAt=None)
                 day = today
                 _restore(ws, day)
+                if first_day:
+                    restored_drops = _status.get('queueDropped', 0)
+                    logged_drops = restored_drops
                 signaled.update(code for code, track in ws.tracks.items() if track.signal_at)
                 candidates = [code for code, track in ws.tracks.items() if track.first70_at][:MAX_CODES]
                 sub.update(candidates)
                 _set(candidates=candidates)
                 next_rank = 0
             active = market_open()
-            _set(active=active, queueDropped=sub.dropped_events)
+            high_water = max(high_water, sub.queue.qsize())
+            total_drops = restored_drops + sub.dropped_events
+            _set(active=active, queueDropped=total_drops,
+                 queueDepth=sub.queue.qsize(), queueHighWater=high_water,
+                 rankInFlight=rank_task is not None)
+            if total_drops != logged_drops:
+                _record({'type': 'queue_drop', 'at': now, 'queueDropped': total_drops,
+                         'delta': total_drops-logged_drops,
+                         'queueDepth': sub.queue.qsize(), 'rankInFlight': rank_task is not None})
+                _persist(ws, day)  # Restart must not silently remove a known completeness block.
+                logged_drops = total_drops
             if not active:
+                if rank_task is not None:
+                    rank_task.cancel()
+                    await asyncio.gather(rank_task, return_exceptions=True)
+                    rank_task = None
+                    _set(rankInFlight=False)
                 if candidates:
                     candidates = []
                     sub.update([])
                 await asyncio.sleep(30)
                 continue
-            if now >= next_rank:
+            if rank_task is None and now >= next_rank:
                 next_rank = now + RANK_INTERVAL
+                rank_day, rank_started = day, now
+                # Keep draining ticks while the REST/DB ranking call is pending.
+                # Awaiting it inline previously stopped the only queue consumer.
+                rank_task = asyncio.create_task(asyncio.to_thread(_rank, appkey, secretkey))
+            if rank_task is not None and rank_task.done():
+                completed, rank_task = rank_task, None
                 try:
-                    codes, previous, fallback, details, contexts = await asyncio.to_thread(_rank, appkey, secretkey)
+                    codes, previous, fallback, details, contexts = completed.result()
+                    if rank_day != day:
+                        next_rank = 0
+                        continue
                     ranked_codes = list(codes)
                     pinned = sorted((code for code, track in ws.tracks.items() if track.first70_at),
                                     key=lambda code: (not bool(ws.tracks[code].first80_at), ws.tracks[code].first70_at))
@@ -254,7 +311,9 @@ async def _run(appkey, secretkey):
                                        rankAt=stamp, rankError=None, amountFallback=fallback, capacityOmitted=omitted)
                     _record({'type': 'rank', 'at': stamp, 'codes': codes,
                              'rankedCodes': ranked_codes, 'capacityOmitted': omitted,
-                             'amountFallback': fallback, 'prevVolumeKnown': len(previous)})
+                             'amountFallback': fallback, 'prevVolumeKnown': len(previous),
+                             'durationSec': max(0, time.time()-rank_started),
+                             'queueDropped': total_drops, 'queueDepth': sub.queue.qsize()})
                 except Exception as exc:
                     logger.exception('9Pay rank refresh failed')
                     scan_observation.failure('kiwoom', type(exc).__name__)
@@ -285,13 +344,18 @@ async def _run(appkey, secretkey):
                                  'lastSampleAt': track.last_at})
                 _persist(ws, day)
             try:
-                event = await asyncio.wait_for(sub.queue.get(), timeout=1)
+                event = await asyncio.wait_for(sub.queue.get(), timeout=.1 if rank_task else 1)
             except asyncio.TimeoutError:
                 continue
             code = event.get('code')
             if code not in candidates:
                 continue
-            at = time.time()
+            # Use actual hub receipt time, so buffered/day-old ticks cannot be
+            # re-stamped as newly received market evidence after a delay.
+            try:
+                at = float(event['receivedAt'])
+            except (KeyError, TypeError, ValueError):
+                continue
             volume = event.get('volume')
             if volume is not None:
                 last_ws_volume[code] = at
@@ -304,6 +368,9 @@ async def _run(appkey, secretkey):
                 _consume(result, ws, day, signaled)
     finally:
         sub.close()
+        if rank_task is not None:
+            rank_task.cancel()
+            await asyncio.gather(rank_task, return_exceptions=True)
 
 
 def _consume(result, observer, day, signaled):

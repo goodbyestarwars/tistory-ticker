@@ -329,9 +329,15 @@ POST_CHECK=skipped
 # 회사 소개는 브라우저 전용 정적 자료라 갱신해도 VM 재시작·전 종목 재검색이 불필요하다.
 VM_WATCH_PATHS="scripts/cloud-vm/ data/ :(exclude)data/company-profiles.js :(exclude)data/chart-history/"
 
-if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
-  git pull origin master -q
+api_deploy_window_protected() {
+  local kst_dow kst_hm
+  kst_dow="$(TZ=Asia/Seoul date +%u)"
+  kst_hm=$((10#$(TZ=Asia/Seoul date +%H%M)))
+  [ "$kst_dow" -le 5 ] && [ "$kst_hm" -ge 800 ] && [ "$kst_hm" -lt 2000 ]
+}
 
+deploy_pending_revision() {
+if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   # 직전 배포 SHA를 모르거나(첫 실행·파일 유실) 이 체크아웃에 없는 커밋이면 판단할 수
   # 없으니 예전처럼 전부 수행한다. git diff는 커밋 트리끼리 비교하므로 스파스 체크아웃과 무관하다.
   VM_CODE_CHANGED=1
@@ -341,7 +347,20 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
     VM_CODE_CHANGED=0
   fi
 
+  # Preserve the deployed SHA so the pending backend revision is retried after 20:00.
+  # Do not pull/copy backend files or restart a live signal producer during the session.
+  if [ "$VM_CODE_CHANGED" = "1" ] && api_deploy_window_protected; then
+    echo "VM 배포 보류: 평일 08:00~20:00 KST 신호 피드 보호 (pending=$REMOTE)"
+    return 0
+  fi
+  git pull origin master -q
+
   if [ "$VM_CODE_CHANGED" = "1" ]; then
+    # Fetch/pull may span the start of the protected window.
+    if api_deploy_window_protected; then
+      echo "VM 배포 보류: pull 중 보호 시간 진입 (pending=$REMOTE)"
+      return 0
+    fi
     # SQLite 백업은 198MB DB에서 배포를 장시간 붙잡고 VM 자원을 소모하므로 비활성화한다.
     # 기존 backups 파일은 유지하며, 필요할 때 별도 수동 백업으로 처리한다.
     echo "SQLite deploy backup disabled"
@@ -375,6 +394,8 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
     run_search_scan_refresh_after_deploy
   fi
 fi
+}
+deploy_pending_revision
 
 # 유지보수 대기자를 먼저 등록해 뉴스 모멘텀의 연속 슬라이스가 백업을 굶기지 않게 한다.
 # 두 작업은 같은 스캔 잠금 아래에서만 실제 실행된다.

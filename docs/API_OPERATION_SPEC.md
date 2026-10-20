@@ -73,6 +73,7 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/health/load` | 없음 | VM 부하 스냅샷: loadAvg, 메모리·스왑(MB), FastAPI 스레드별 누적 CPU 초(상위 12), 다른 파이썬 프로세스의 .py 이름·RSS·누적 CPU 초·경과 초(상위 10). 명령줄 인자는 내보내지 않음. 분당 20회 제한 |
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
 | GET | `/health/realtime` | 없음 | KIS·키움 실시간 공유 허브와 9Pay 읽기 전용 관찰기 상태. A/B 계약 `ruleVersion=ab70-v1`·후보 `items`·최초 충족·신호·결측·저장 오류는 [별도 명세](NINEPAY_SCANNER_AB_2026-10-19.md). 계좌·주문 미연동 |
+| GET | `/health/9pay` | 없음 | PC 신호 수신 전용 비동기 메모리 응답. 기존 `data.ninePayResearch` 계약 중 상태·순위 시각·완전성·신호 근거만 반환한다. 다른 허브 스냅샷·동기 API 스레드 풀·외부 조회를 사용하지 않는다. 신호 만료·누락 차단은 PC에서 그대로 검사한다 |
 | GET | `/health/schedules` | 없음 | VM systemd 예약·최근 결과·다음 실행 및 장외 유지보수 날짜 마커의 비밀정보 없는 상태. 60초 캐시; 실제 백업 성공은 별도 무결성 로그로 확인 |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
 | GET | `/money-picks` | 없음 | 증시온도 '돈이 몰린 섹터' 대표 종목의 최근 14일 기록 `{history:[{date,code,name,theme,rank,rec_price}],windowDays,recordAfter,perTheme}`. 기준가만 주며 수익률은 화면이 현재가로 계산 |
@@ -246,6 +247,8 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 오류 상태를 유지한다.
 
 ## 6. 배포·운영 체크리스트
+
+2026-10-20 피드 장애 대응: `deploy_check.sh`는 평일 **08:00 이상~20:00 미만 KST**에 VM 실행 경로 변경을 배포하지 않는다. pull/파일 복사/API 재시작 전에 확인하고, 보류한 커밋은 배포 SHA에 기록하지 않아 20시 이후 다음 회차에 재판정한다. 휴장일도 보수적으로 같은 평일 시간 보호를 적용한다. 정적 전용 커밋은 기존처럼 처리하며, 이 보호는 자동 배포 경로에만 적용된다. 수동 systemctl/VM 재시작에 대한 사용자 사전 승인 규칙은 별도로 유지한다.
 
 1. 최신 `origin/master`에서 변경 범위를 확인한다.
 2. Python 컴파일·JavaScript 문법 검사와 관련 UI/회귀 테스트를 실행한다.

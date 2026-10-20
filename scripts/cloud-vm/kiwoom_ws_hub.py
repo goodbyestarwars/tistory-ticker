@@ -479,6 +479,8 @@ class KiwoomWsHub:
                         payload = dict(event) if sub.include_volume else {
                             key: value for key, value in event.items() if key != 'volume'}
                         payload['source'] = 'Kiwoom WebSocket'
+                        if sub.include_volume:
+                            payload['receivedAt'] = now
                         sub.loop.call_soon_threadsafe(sub._deliver, payload)
                     except RuntimeError:
                         pass
