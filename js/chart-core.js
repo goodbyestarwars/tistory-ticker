@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-period-traces-4';
+  var VERSION = '2026-10-20-period-boxes-5';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -945,49 +945,38 @@
     }).join(' · ')+' <small>'+unit+' · 종가 변화 · 3봉 확인</small>';
   }
   function installTrendBands(chart,series,container,bars,timeframe) {
-    var lanes=trendRegimes(bars,timeframe),wrap=document.createElement('div');wrap.className='nine-trend-bands';
-    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:0;right:0;min-height:82px;pointer-events:none;font:11px/1.4 sans-serif;';
-    var summary=document.createElement('div');summary.className='nine-trend-current';summary.style.cssText='padding:0 76px 3px 8px;white-space:normal;';
-    function summaryAt(index){var b=bars[index],stamp=b && (b.date || b.time);if(typeof stamp==='number')stamp=new Date(stamp*1000).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});summary.innerHTML=(b?'<small>'+supplyEscape(stamp)+'</small> ':'')+trendRegimeLegendHtml(lanes,timeframe,index);}
-    summaryAt(bars.length-1);wrap.appendChild(summary);
-    var tracks=[];
-    REGIME.lanes.forEach(function(cfg){var row=document.createElement('div');row.className='nine-trend-lane';row.style.cssText='position:relative;height:14px;margin-bottom:2px;overflow:hidden;';
-      var rail=document.createElement('div');rail.style.cssText='position:absolute;inset:1px 0;overflow:hidden;';row.appendChild(rail);
-      var label=document.createElement('span');label.textContent=cfg.label;label.style.cssText='position:absolute;left:4px;padding:0 4px;font-size:10px;line-height:14px;';row.appendChild(label);
-      tracks.push({cfg:cfg,rail:rail,label:label});wrap.appendChild(row);
+    var lanes=trendRegimes(bars,timeframe),wrap=document.createElement('div');wrap.className='nine-trend-bands nine-trend-boxes';
+    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:8px;right:76px;pointer-events:none;font:11px/1.4 sans-serif;';
+    var summary=document.createElement('div');summary.className='nine-trend-current';summary.style.cssText='font-size:10px;opacity:.75;margin-bottom:4px;';wrap.appendChild(summary);
+    var grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;';wrap.appendChild(grid);
+    var boxes=REGIME.lanes.map(function(cfg){
+      var box=document.createElement('div');box.className='nine-trend-lane nine-trend-box';box.style.cssText='border:1px solid;border-radius:6px;text-align:center;padding:5px 1px;min-width:0;';
+      var label=document.createElement('div');label.textContent=cfg.label;label.style.cssText='font-size:10px;white-space:nowrap;';box.appendChild(label);
+      var status=document.createElement('strong');status.style.cssText='display:block;font-size:12px;white-space:nowrap;';box.appendChild(status);grid.appendChild(box);
+      return {cfg:cfg,box:box,status:status};
     });
-    container.appendChild(wrap);
-    var scale=series.priceScale(), original=scale.options?scale.options().scaleMargins:{top:.06,bottom:.08};
-    original={top:original.top,bottom:original.bottom};
-    var frame=0,disposed=false,lastTop=null;
-    function draw(){
-      frame=0;if(disposed)return;
-      var ts=chart.timeScale(),range=ts.getVisibleLogicalRange(),width=container.clientWidth,from=range?Math.max(0,Math.floor(range.from)):0,to=range?Math.min(bars.length-1,Math.ceil(range.to)):bars.length-1;
-      var background=isDark()?'rgba(26,26,26,.96)':'rgba(255,255,255,.96)';wrap.style.background=background;
-      tracks.forEach(function(track){
-        var html='',items=lanes[track.cfg.key],start=from;
-        for(var i=from;i<=to;i++){
-          if(i<to && items[i+1].state===items[start].state)continue;
-          var x1=ts.timeToCoordinate(items[start].date),x2=ts.timeToCoordinate(items[i].date),spacing=range?width/Math.max(1,range.to-range.from):2;
-          if(x1!==null && x2!==null)html+='<i data-state="'+items[start].state+'" style="position:absolute;top:1px;height:11px;left:'+Math.max(0,x1-spacing/2)+'px;width:'+Math.max(1,Math.min(width,x2+spacing/2)-Math.max(0,x1-spacing/2))+'px;background:'+REGIME_COLOR[items[start].state]+';opacity:.82"></i>';
-          start=i+1;
-        }
-        track.rail.innerHTML=html;track.label.style.background=background;
+    function summaryAt(index){
+      var stamp=bars[index] && (bars[index].date || bars[index].time);summary.textContent=(stamp || '')+' · 기간별 추세';
+      boxes.forEach(function(item){var r=lanes[item.cfg.key][index] || {state:'unknown'},color=r.state==='unknown'?'#747b84':REGIME_COLOR[r.state];
+        item.box.dataset.state=r.state;item.box.style.color=color;item.box.style.borderColor=color;item.box.style.background=color+'18';
+        item.status.textContent=r.state==='neutral'?'중립':REGIME_LABEL[r.state];
       });
+    }
+    summaryAt(bars.length-1);container.appendChild(wrap);
+    var scale=series.priceScale(),original=scale.options?scale.options().scaleMargins:{top:.06,bottom:.08};original={top:original.top,bottom:original.bottom};
+    var frame=0,disposed=false,lastTop=null;
+    function draw(){frame=0;if(disposed)return;wrap.style.background=isDark()?'rgba(26,26,26,.96)':'rgba(255,255,255,.96)';
       var legend=container.querySelector('.ss-price-study-label'),top=Math.max(26,legend?legend.offsetTop+legend.offsetHeight+4:26);wrap.style.top=top+'px';
       var panes=chart.panes && chart.panes(),height=panes && panes[0]?panes[0].getHeight():container.clientHeight;
-      var margin=Math.min(.45,Math.max(original.top,(top+wrap.offsetHeight+8)/Math.max(1,height)));
+      var margin=Math.min(.45,Math.max(original.top,(top+wrap.offsetHeight+10)/Math.max(1,height)));
       if(lastTop===null || Math.abs(margin-lastTop)>.001){lastTop=margin;scale.applyOptions({scaleMargins:{top:margin,bottom:original.bottom}});}
     }
     function schedule(){if(!frame && !disposed)frame=global.requestAnimationFrame(draw);}
     var indexes={};bars.forEach(function(b,i){indexes[b.date || b.time]=i;});
-    function crosshair(param){var t=param && param.time;if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');summaryAt(indexes[t]===undefined?bars.length-1:indexes[t]);schedule();}
-    chart.subscribeCrosshairMove(crosshair);
-    chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);
-    container.addEventListener('pointerup',schedule);
-    var ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null;if(ro)ro.observe(container);
-    draw();schedule();
-    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);container.removeEventListener('pointerup',schedule);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart already disposed */}};
+    function crosshair(param){var t=param && param.time;if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');summaryAt(indexes[t]===undefined?bars.length-1:indexes[t]);}
+    chart.subscribeCrosshairMove(crosshair);chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);
+    var ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null;if(ro)ro.observe(container);draw();schedule();
+    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart disposed */}};
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.

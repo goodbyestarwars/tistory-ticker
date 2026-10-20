@@ -11,6 +11,7 @@ import websockets
 REPO=Path(__file__).resolve().parents[1]
 OUT=REPO.parents[1]/'outputs/chart-regime-traces-20261020'
 LOCAL=os.environ.get('CHART_OBS_LOCAL')=='1'
+ASSETS=['js/chart-core.js','js/stock-search.js','js/foreign-flow.js','css/stock-search.css','css/order-book.css']
 if LOCAL:OUT=OUT/'preflight'
 
 
@@ -31,9 +32,9 @@ async def main():
                 while True:
                     result=json.loads(await ws.recv())
                     if result.get('method')=='Fetch.requestPaused':
-                        p=result['params'];filename=next((f for f in ['js/chart-core.js','js/stock-search.js','js/foreign-flow.js'] if '/'+f in p['request']['url']),None)
+                        p=result['params'];filename=next((f for f in ASSETS if '/'+f in p['request']['url']),None)
                         if filename:
-                            params={'requestId':p['requestId'],'responseCode':200,'responseHeaders':[{'name':'Content-Type','value':'application/javascript; charset=utf-8'}], 'body':base64.b64encode((REPO/filename).read_bytes()).decode()}
+                            params={'requestId':p['requestId'],'responseCode':200,'responseHeaders':[{'name':'Content-Type','value':('text/css' if filename.endswith('.css') else 'application/javascript')+'; charset=utf-8'}], 'body':base64.b64encode((REPO/filename).read_bytes()).decode()}
                             await ws.send(json.dumps({'id':100000+seq,'method':'Fetch.fulfillRequest','params':params}))
                         else:await ws.send(json.dumps({'id':200000+seq,'method':'Fetch.continueRequest','params':{'requestId':p['requestId']}}))
                     if result.get('id')==seq:return result.get('result',{})
@@ -47,7 +48,7 @@ async def main():
                     await asyncio.sleep(.5)
                 raise AssertionError(source)
             await call('Network.enable');await call('Network.setCacheDisabled',{'cacheDisabled':True})
-            if LOCAL:await call('Fetch.enable',{'patterns':[{'urlPattern':'*://goodbyestarwars.github.io/tistory-ticker/js/'+f+'*'} for f in ['chart-core.js','stock-search.js','foreign-flow.js']]})
+            if LOCAL:await call('Fetch.enable',{'patterns':[{'urlPattern':'*://goodbyestarwars.github.io/tistory-ticker/'+f+'*'} for f in ASSETS]})
             results=[]
             for width in (1440,390):
                 await call('Emulation.setDeviceMetricsOverride',{'width':width,'height':1100,'deviceScaleFactor':1,'mobile':False})
@@ -58,7 +59,7 @@ async def main():
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-period-traces-4'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-period-boxes-5'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
@@ -96,6 +97,19 @@ async def main():
                     (OUT/f'live-{prefix}-{width}-detail.png').write_bytes(base64.b64decode(shot['data']))
                     result=await ev('(()=>{let c=document.getElementById("'+host+'");return {bands:c.querySelectorAll(".nine-trend-bands").length,lanes:c.querySelectorAll(".nine-trend-lane").length,tips:c.querySelectorAll(".nine-supply-tip").length,width:c.clientWidth,summary:c.querySelector(".nine-trend-current").innerText};})()')
                     assert result['bands']==1 and result['lanes']==4 and result['tips']==1 and result['width']<=width,result
+                    assert await ev('document.querySelectorAll("#'+host+' .nine-trend-box strong").length')==4
+                    assert await ev('Array.from(document.querySelectorAll("#'+host+' .nine-trend-box strong")).every(x=>["상승","하락","중립","자료 부족"].includes(x.textContent))')
+                    if prefix=='ss':
+                        await wait('!!document.querySelector("#order-book .ob-trades")')
+                        layout=await ev('(()=>{let p=document.querySelector(".ss-panel-left"),ob=document.getElementById("order-book");return {left:p.getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth,asks:ob.querySelectorAll(".ob-row-ask").length,bids:ob.querySelectorAll(".ob-row-bid").length,trades:!!ob.querySelector(".ob-trades"),header:!!ob.querySelector(".ob-header"),legend:document.querySelector(".nine-trace-legend").textContent};})()')
+                        assert not layout['overflow'],layout
+                        if width==1440:assert 390<=layout['left']<=400,layout
+                        assert layout['asks']==10 and layout['bids']==10 and layout['trades'] and layout['header'],layout
+                        assert layout['legend']=='● 거래량  ■ 장기선  ▲ 회복',layout
+                        await ev('window.scrollBy(0,document.getElementById("order-book").getBoundingClientRect().top-40)')
+                        shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
+                        (OUT/f'live-orderbook-{width}.png').write_bytes(base64.b64decode(shot['data']))
+                        result['orderbook']=layout
                     results.append({'screen':screen,'viewport':width,'defaults':defaults,'ranges':ranges,**result})
                     print('PASS',screen,width)
             (OUT/'live-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf8')

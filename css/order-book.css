@@ -609,3 +609,14 @@ html.dark #order-book .ob-spread { background: #29313b; color: #cbd5e1; }
   #order-book .ob-depth { gap: 3px; }
   #order-book .ob-depth .ob-qty, #order-book .ob-depth .ob-delta { font-size: 10px; }
 }
+
+/* 호가 압축: 가격 글꼴·10단계·잔량·체결내역은 유지하고 막대 여백만 줄인다. */
+#stock-search #order-book .ob-table-pairs { padding: 4px 4px 6px; }
+#stock-search #order-book .ob-pair-head,
+#stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 84px minmax(0,1fr); column-gap: 3px; padding-inline: 4px; }
+#stock-search #order-book .ob-depth { gap: 3px; }
+@media (max-width: 420px) {
+  #stock-search #order-book .ob-pair-head,
+  #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 78px minmax(0,1fr); column-gap: 2px; }
+  #stock-search #order-book .ob-depth { flex-wrap: wrap; height: auto; min-height: 24px; gap: 1px 3px; }
+}
