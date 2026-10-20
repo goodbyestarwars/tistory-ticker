@@ -950,7 +950,7 @@
     var aligned=direction?known.filter(function(p){return p.state===direction;}):[];
     var pending=periods.some(function(p){return p.pending>0;});
     var againstLong=opposed.some(function(p){return p.key==='month6'||p.key==='year1';});
-    var text=!known.length?'보조 자료 부족':opposed.length||pending?'전환 확인 중':aligned.length?'방향 일치':'기간 흐름 중립';
+    var text=!known.length?'보조 자료 부족':opposed.length||pending?'전환 확인 중':aligned.length?'방향 일치':!direction && known.some(function(p){return p.state!=='neutral';})?'방향 비교 보류':'기간 흐름 중립';
     return {index:index,direction:direction,periods:periods,aligned:aligned.map(function(p){return p.key;}),
       opposed:opposed.map(function(p){return p.key;}),againstLong:againstLong,pending:pending,text:text};
   }

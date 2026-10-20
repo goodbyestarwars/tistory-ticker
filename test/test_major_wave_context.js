@@ -5,6 +5,7 @@ require('../js/chart-data.js');const Wave=require('../js/chart-wave-overlay.js')
 const row=(state,raw=state,pending=0)=>({state,raw,pending,change:10});
 const lanes=Object.fromEntries(core.REGIME.lanes.map(c=>[c.key,[row('up')]]));
 assert.equal(core.majorWaveContext(lanes,{kind:'up'},0).text,'방향 일치');
+assert.equal(core.majorWaveContext(lanes,{kind:'side'},0).text,'방향 비교 보류');
 lanes.year1=[row('down')];
 let c=core.majorWaveContext(lanes,{kind:'up'},0);assert.equal(c.text,'전환 확인 중');assert.equal(c.againstLong,true);
 lanes.year1=[row('up','down',2)];c=core.majorWaveContext(lanes,{kind:'up'},0);assert.equal(c.text,'전환 확인 중');assert.equal(c.pending,true);assert.equal(c.againstLong,false);
