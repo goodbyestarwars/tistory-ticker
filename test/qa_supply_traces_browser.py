@@ -84,9 +84,10 @@ async def main():
        for years,count in [(1,252),(3,756),(5,1260)]:
         await ev('current.chart.timeScale().setVisibleLogicalRange({from:Math.max(0,bars.length-'+str(count)+'),to:bars.length-1})')
         await asyncio.sleep(.08)
-        density=await ev('(()=>{let m=markerMap.get(current.series)||[];return {count:m.length,unique:new Set(m.map(x=>x.time)).size,texts:m.filter(x=>x.text).length,bands:document.querySelectorAll("#chart .nine-trend-bands").length};})()')
+        density=await ev('(()=>{let m=markerMap.get(current.series)||[],r=current.chart.timeScale().getVisibleLogicalRange();return {count:m.length,unique:new Set(m.map(x=>x.time)).size,texts:m.filter(x=>x.text).length,bands:document.querySelectorAll("#chart .nine-trend-bands").length,logicalSpan:r.to-r.from};})()')
         assert density['count']==density['unique'] and density['texts']==0 and density['bands']==1,density
         assert density['count']<=max(1,(width-76)//14+2),density
+        assert density['logicalSpan']>=count*.95,density
         reports.append({'screen':screen,'width':width,'years':years,**density})
        await ev('current.chart.timeScale().setVisibleLogicalRange({from:example.hit.index-32,to:example.hit.index+12});document.querySelector("#chart .nine-supply-tip").style.display="none";')
        await ev('core.setTrendMarkers(LightweightCharts,current.series,bars,false,current.holder)')

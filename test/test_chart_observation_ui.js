@@ -1,4 +1,6 @@
 const assert=require('node:assert/strict'),core=require('../js/chart-core.js');
+assert.equal(core.profiles.search.timeScale('day').minBarSpacing,.1);
+assert.equal(core.profiles.analysis.timeScale('day').minBarSpacing,.1);
 function bars(n=500){return Array.from({length:n},(_,i)=>({date:new Date(Date.UTC(2021,0,i+1)).toISOString().slice(0,10),open:100+i,high:102+i,low:99+i,close:101+i,volume:100}));}
 let b=bars(),r=core.trendRegimes(b);
 for(const key of ['short','medium','long'])assert.equal(r[key].at(-1).state,'up');

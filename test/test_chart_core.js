@@ -8,8 +8,11 @@ const fs = require('fs');
 const path = require('path');
 
 const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/core_golden.json'), 'utf8'));
+// Approved 2026-10-20 UI change: fit 1/3/5-year daily ranges on narrow screens.
+// Preserve the historical fixture and compare every other option unchanged.
+for (const profile of [golden.search,golden.analysis]) for (const opts of Object.values(profile)) opts.timeScale.minBarSpacing=.1;
 const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/flow_chart_005930.json'), 'utf8'));
-const LWC = { CrosshairMode: { Normal: 0 }, CandlestickSeries: 'candle', LineSeries: 'line', HistogramSeries: 'hist' };
+const LWC = { CrosshairMode: { Normal: 0 }, LineStyle:{Solid:0}, CandlestickSeries: 'candle', LineSeries: 'line', HistogramSeries: 'hist' };
 
 // ---- 가짜 브라우저 환경 ----
 let darkMode = false, scripts = [], observers = { mo: 0, ro: 0, roDisconnect: 0, moDisconnect: 0 };

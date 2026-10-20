@@ -47,7 +47,8 @@ async def main():
                         await wait('!!document.querySelector("#foreign-flow [data-view=chart]")')
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces'
+                    await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces-2'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'important'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==0
@@ -63,7 +64,11 @@ async def main():
                         await asyncio.sleep(1)
                         await wait('(()=>{let s=document.getElementById("'+host+'").parentElement.querySelector(".nine-chart-range-status");return !s || !s.textContent.includes("불러오는");})()')
                         await wait('document.querySelectorAll("#'+host+' .nine-trend-bands").length===1')
-                        ranges.append(period)
+                        await wait('!!window.qaLiveChart')
+                        visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
+                        expected={'1y':365,'3y':1095,'5y':1825}[period]
+                        assert visible['spanDays']>=expected*.85,(screen,width,period,visible)
+                        ranges.append({'period':period,**visible})
                     await ev('document.getElementById("'+prefix+'TrendToggle").click()')
                     await wait('!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('document.getElementById("'+prefix+'TrendToggle").click()')
