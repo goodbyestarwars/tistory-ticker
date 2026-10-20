@@ -9,6 +9,10 @@ PR #794(`research/exit-support-resistance`)는 **병합 보류**다. 이 문서�
 > ```
 > 금지: `C:\Users\goodb\autotrader` 파일 수정/삭제, 실제 주문, `AutotraderLiveTrading` 예약 작업 변경·재시작, 운영 DB 쓰기, `.env`/원장/분봉 내용 출력·업로드, 스크립트 수정. 실패하면 출력된 `[실행 불가:코드]` 메시지만 그대로 보고한다.
 
+## 실행 순서 (권장)
+1. 입력 구조 점검 + 자료 충족 예상만 먼저: `bootstrap_exit_sr.ps1 -Mode audit` — 장부/`research.db`/체결 파일의 실제 구조, 장부 note 키 이름, 포착 이력 4종 건수·기간을 출력하고 어댑터 가정과 다르면 경고한다(값·주문번호는 읽지 않는다, 분봉 수집 없음). 부족한 기간·검색기가 여기서 먼저 보인다.
+2. 전체 실행: `bootstrap_exit_sr.ps1`(기본 `-Mode all`) — 검색기 전체 가상 백테스트(`out_universe\RESULT_UNIVERSE.md`)와 실제 원장 분석(`out\RESULT.md`, 실제 매도 vs A_cycle 재현 일치율 = 백테스트 현실성 검증 포함).
+
 ## 연구 범위 (2026-10-21 수정: 검색기 전체 우선)
 - **universe(우선)**: 실제 매수 여부와 무관하게 검색기 4종(pullback·maCloudBreakout·doubleBottom·invHeadShoulders)의 과거 포착 이력 전체를 같은 진입(다음 거래일 09:01 시가+0.1%, 기준가 +2% 이상 갭 제외)·같은 비용에서 A / A_cycle / B_SR / C_SR로 비교한다. 결과: `out_universe\RESULT_UNIVERSE.md`(전체·검색기별 A/B/C 표, 동시 보유 3슬롯 반영, 워크포워드, 국면별, 최종 판정 4택1).
 - **ledger**: 실제 원장 거래 분석(`out\RESULT.md`, 하이브·파인엠텍·제주항공은 해석용 사례). universe와 섞지 않는다.

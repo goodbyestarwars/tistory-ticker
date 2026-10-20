@@ -234,6 +234,43 @@ def verdict(summary):
     return {'conclusion': '%s 연구상 우세' % wins[0][1], 'reasons': ['%s: 검증 평균차 %+.2f%%p (95%% 하한 > 0), MDD·최악 악화 없음' % (wins[0][2], wins[0][0])]}
 
 
+def lookahead_audit(entries, rules, trades_by_rule, sample=60):
+    """미래 자료 사용 점검: 청산 다음 봉까지만 남기고 경로를 잘라 같은 규칙을 다시 돌렸을 때 청산 사유·시각이 같아야 한다.
+    판정이 청산 이후 자료에 의존했다면(룩어헤드) 잘린 경로에서 결과가 달라진다. HORIZON 청산은 경로 끝이 청산이라 제외."""
+    out = {}
+    step = max(1, len(entries) // sample)
+    for name, factory in rules.items():
+        checked = bad = 0
+        for i in range(0, len(entries), step):
+            e, t = entries[i], trades_by_rule[name][i]
+            if t['reason'] == 'HORIZON':
+                continue
+            idx = next((k for k, p in enumerate(e['path']) if p[0] == t['exit_day'] and p[1] == t['exit_hhmm']), None)
+            if idx is None:
+                continue
+            cut = dict(e, path=e['path'][:idx + 1])
+            ctx = {'atr_pct': e['atr_pct'], 'daily_lows': e['daily_lows'], 'daily_highs': e['daily_highs']}
+            t2 = xs.simulate(cut, factory, ctx)
+            checked += 1
+            if (t2['reason'], t2['exit_day'], t2['exit_hhmm']) != (t['reason'], t['exit_day'], t['exit_hhmm']):
+                bad += 1
+        out[name] = {'checked': checked, 'mismatch': bad}
+    return out
+
+
+def sufficiency(hits_report, plan_ex, path_ex, entries, cut):
+    """검색기별로 어느 기간·자료가 모자라는지: 포착 -> 진입 후보 -> 사용 가능 진입 -> 검증 구간 건수와 목표 대비 부족분."""
+    rows = {}
+    for s in CORE:
+        mine = [e for e in entries if s in e['scanners']]
+        valid = [e for e in mine if e['entry_day'] > cut]
+        vdays = sorted({e['entry_day'] for e in valid})
+        rows[s] = {'hits': (hits_report.get('by_scanner') or {}).get(s, 0), 'usable_entries': len(mine), 'valid_entries': len(valid),
+                   'valid_months': round(months_between(vdays[0], vdays[-1]), 2) if len(vdays) > 1 else None,
+                   'short_of_30_per_scanner': max(0, sr.MIN_GROUP_N - len(mine)), 'short_of_100_valid': max(0, MIN_VALID - len(valid))}
+    return rows
+
+
 def analyze(entries, cache_dir, plan_ex, path_ex, hits_report, hold_days):
     rules = sr.make_sr_rules()
     res = {n: [] for n in rules}
@@ -281,6 +318,19 @@ def analyze(entries, cache_dir, plan_ex, path_ex, hits_report, hold_days):
     S['walk_forward'] = loc.walk_forward(entries, res)
     S['regimes'] = loc.regimes(entries, res, cache_dir)
     S['slot_sim'] = {n: slot_sim(entries, tr) for n, tr in res.items() if n in ('A', BASELINE, S['representatives'].get('B_SR'), S['representatives'].get('C_SR'))}
+    S['sufficiency'] = sufficiency(hits_report, plan_ex, path_ex, entries, cut)
+    for sname, v in S['by_scanner'].items():
+        if 'rules' not in v:
+            continue
+        idx = [i for i, e in enumerate(entries) if sname in e['scanners']]
+        vidx = [i for i in idx if entries[i]['entry_day'] > cut]
+        v['paired_vs_A_cycle'] = {n: xs.paired_bootstrap([res[BASELINE][i] for i in idx], [res[n][i] for i in idx]) for n in (S['representatives'].get('B_SR'), S['representatives'].get('C_SR')) if n}
+        v['paired_valid_vs_A_cycle'] = ({n: xs.paired_bootstrap([res[BASELINE][i] for i in vidx], [res[n][i] for i in vidx]) for n in (S['representatives'].get('B_SR'), S['representatives'].get('C_SR')) if n}
+                                        if len(vidx) >= 5 else {})
+    S['audits'] = {'lookahead': lookahead_audit(entries, rules, res),
+                   'survivorship': {'excluded_no_daily_cache': path_ex.get('NO_DAILY_CACHE', 0), 'excluded_minute_missing_or_halted': path_ex.get('MINUTE_BARS_MISSING_OR_HALTED_HOLD_DAY', 0) + path_ex.get('MINUTE_BARS_MISSING_ENTRY_DAY', 0),
+                                    'note': '일봉·분봉이 없는 종목(상장폐지·거래정지·자료 누락)은 평가에서 빠진다. 이런 종목은 대체로 손실이 컸을 가능성이 있어 전략 간 비교보다 절대 성과를 낙관적으로 만들 수 있다. 제외 건수를 위에 그대로 적는다.'},
+                   'design': ['지지·저항은 판정 시점까지 확정된 봉만 사용(5분봉 저점은 우측 2봉이 닫힌 뒤 확정, 일봉 구조는 scan_date까지)', '체결은 판정 다음 분봉 시가', '대표 B/C 선택은 학습 구간만 사용']}
     S['verdict'] = verdict(S)
     return S, res
 
@@ -294,6 +344,10 @@ def render(S):
         '- 제외: ' + json.dumps(S['exclusions'], ensure_ascii=False), '- 경고: ' + ('; '.join(S['hits']['warnings']) or '없음'),
         '- 학습/검증 분리일 %s, 검증 %d건 %s~%s (%s개월)' % (S['split_day'], v['n'], v['from'], v['to'], '-' if v['months'] is None else '%.1f' % v['months']), '',
         '## 최종 판정: **%s**' % S['verdict']['conclusion']] + ['- ' + r for r in S['verdict']['reasons']]
+    L += ['', '## 자료 충족도 (먼저 읽기)', '', '| 검색기 | 포착 | 사용 가능 진입 | 확보율 | 검증 진입 | 검증 개월 | 30건까지 부족 | 검증 100건까지 부족 |', '|---|---:|---:|---:|---:|---:|---:|---:|']
+    for sname, r in S['sufficiency'].items():
+        L.append('| %s | %d | %d | %s | %d | %s | %d | %d |' % (sname, r['hits'], r['usable_entries'], '-' if not r['hits'] else '%.0f%%' % (r['usable_entries'] / r['hits'] * 100), r['valid_entries'],
+                                                              '-' if r['valid_months'] is None else '%.1f' % r['valid_months'], r['short_of_30_per_scanner'], r['short_of_100_valid']))
     reps = S['representatives']
     L += ['', '## 전체 검색기 — A / B_SR / C_SR (대표 설정은 학습 구간 평균 기준 선택)', '',
           '| 구분 | 규칙 | 건수 | 평균 | 중앙값 | 승률 | 손익비 | MDD(%p) | 최악 | 평균이익반납 | 손절후회복 | 청산후+3%추가상승 | 검증 평균 | 검증 A_cycle 대비 [95%] |', '|---|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---|']
@@ -312,15 +366,22 @@ def render(S):
     for s, v in S['by_scanner'].items():
         L.append('### %s — %d건%s' % (s, v['n'], ' (%s)' % v['status'] if 'status' in v else ''))
         if 'rules' in v:
-            L += ['| 규칙 | 평균 | 중앙값 | 승률 | MDD | 최악 | 검증 평균 |', '|---|---:|---:|---:|---:|---:|---:|']
+            L += ['| 규칙 | 평균 | 중앙값 | 승률 | MDD | 최악 | 검증 평균 | A_cycle 대비 전체 [95%] | A_cycle 대비 검증 [95%] |', '|---|---:|---:|---:|---:|---:|---:|---|---|']
             for n in ('A_cycle', reps.get('B_SR'), reps.get('C_SR')):
                 if n and v['rules'][n].get('n'):
                     r = v['rules'][n]
-                    L.append('| %s | %s | %s | %.0f%% | %.1f | %s | %s |' % (n, pct(r['mean']), pct(r['median']), r['win'], r['mdd'], pct(r['worst']), pct(v['valid_rules'][n].get('mean'))))
+                    ci = lambda d: '기준' if n == 'A_cycle' else ('-' if not d else '%+.2f [%+.2f, %+.2f]' % (d['mean_diff'], d['lo'], d['hi']))
+                    L.append('| %s | %s | %s | %.0f%% | %.1f | %s | %s | %s | %s |' % (n, pct(r['mean']), pct(r['median']), r['win'], r['mdd'], pct(r['worst']), pct(v['valid_rules'][n].get('mean')),
+                                                                                  ci(v.get('paired_vs_A_cycle', {}).get(n)), ci(v.get('paired_valid_vs_A_cycle', {}).get(n))))
         L.append('')
     L += ['## 동시 보유 %d슬롯 반영(계좌 근사)' % SLOTS, '', '| 규칙 | 진입 | 슬롯부족 건너뜀 | 거래당 평균 | 순수익 합(%p) | MDD |', '|---|---:|---:|---:|---:|---:|']
     for n, r in S['slot_sim'].items():
         L.append('| %s | %d | %d | %s | %s | %s |' % (n, r['taken'], r['skipped_no_slot'], pct(r['mean_net_pct']), r['sum_net_pct'], '-' if not r['summary'].get('n') else '%.1f' % r['summary']['mdd']))
+    la_ = S['audits']['lookahead']
+    sv = S['audits']['survivorship']
+    L += ['', '## 점검: 미래 데이터·생존 편향', '- 룩어헤드 감사(경로를 청산 다음 봉에서 잘라 재실행했을 때 결과 불일치): ' + ', '.join('%s %d/%d' % (n, v['mismatch'], v['checked']) for n, v in la_.items() if v['checked']) + ' (불일치 0이어야 정상)',
+          '- 생존 편향: ' + sv['note'] + ' (일봉 없음 %d건, 분봉 누락·거래정지 의심 %d건)' % (sv['excluded_no_daily_cache'], sv['excluded_minute_missing_or_halted']),
+          '- 설계: ' + ' / '.join(S['audits']['design'])]
     L += ['', '## 6개 질문', '']
     a, b, c = (S['rules'].get(BASELINE, {}), S['rules'].get(reps.get('B_SR') or '', {}), S['rules'].get(reps.get('C_SR') or '', {}))
     def vm(r):

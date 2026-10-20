@@ -184,6 +184,73 @@ def ensure_daily_cache_one(cache, code):
     return ok
 
 
+def inspect_inputs(snap_dir, hits_report=None, autotrader=None):
+    """실행 전에 실제 입력 구조를 점검한다(값은 읽지 않고 구조·건수·키 이름만). 어댑터가 가정한 필드가 실제와 다르면 경고한다."""
+    import collections
+    import sqlite3
+    rep = {'warnings': []}
+    lp = os.path.join(snap_dir, 'live_orders.db')
+    if os.path.exists(lp):
+        db = la.open_ro(lp)
+        try:
+            cols = [r[1] for r in db.execute('PRAGMA table_info(intents)')]
+            rep['intents_columns'] = cols
+            rep['intents_by_side_state'] = {'%s/%s' % (a, b): n for a, b, n in db.execute('SELECT side, state, COUNT(*) FROM intents GROUP BY side, state')}
+            keys = collections.Counter()
+            notes = 0
+            if 'note' in cols:
+                for (raw,) in db.execute("SELECT note FROM intents WHERE side='BUY' AND note IS NOT NULL"):
+                    try:
+                        d = json.loads(raw)
+                    except ValueError:
+                        continue
+                    if isinstance(d, dict):
+                        notes += 1
+                        keys.update(d.keys())
+            rep['buy_note_keys'] = dict(keys)
+            rep['buy_notes_parsed'] = notes
+            if not any(k in keys for k in la.SCANNER_KEYS):
+                rep['warnings'].append('BUY note 에 검색기 필드(%s)가 없다 - research.db 보충에 의존하거나 "출처 미확인"이 된다. exit_ledger_adapter.SCANNER_KEYS 확인' % '/'.join(la.SCANNER_KEYS))
+            for need in ('reason', 'note'):
+                if need not in cols:
+                    rep['warnings'].append('intents.%s 열이 없다(2026-10-16 이전 장부?)' % need)
+        finally:
+            db.close()
+    rp = os.path.join(snap_dir, 'research.db')
+    if os.path.exists(rp):
+        db = la.open_ro(rp)
+        try:
+            tables = {}
+            for (t,) in db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall():
+                tables[t] = {'columns': [r[1] for r in db.execute('PRAGMA table_info("%s")' % t)], 'rows': db.execute('SELECT COUNT(*) FROM "%s"' % t).fetchone()[0]}
+            rep['research_tables'] = tables
+            c = tables.get('candidates')
+            if not c or not c['rows']:
+                rep['warnings'].append('research.db candidates 가 비어 있거나 없다 - 포착 이력은 공개 API/--hits-file 에만 의존한다')
+            else:
+                rng = db.execute('SELECT MIN(scan_date), MAX(scan_date) FROM candidates').fetchone()
+                rep['research_candidates_range'] = list(rng)
+        except sqlite3.Error as exc:
+            rep['warnings'].append('research.db 점검 실패: %s' % type(exc).__name__)
+        finally:
+            db.close()
+    else:
+        rep['warnings'].append('research.db 사본 없음(autotrader\\research\\research.db 확인)')
+    if autotrader:
+        fp = os.path.join(autotrader, 'order_fills.json')
+        rep['order_fills_json'] = os.path.exists(fp)
+        if not rep['order_fills_json']:
+            rep['warnings'].append('order_fills.json 없음 - 실제 체결가를 확인할 수 없어 진입가는 의도가격(fill_confirmed=false)이다')
+    if hits_report:
+        rep['hits'] = {'total': hits_report.get('total'), 'by_scanner': hits_report.get('by_scanner'), 'date_range': hits_report.get('date_range'), 'sources': hits_report.get('sources')}
+        for w in hits_report.get('warnings', []):
+            rep['warnings'].append(w)
+        for s in uni.CORE:
+            if not (hits_report.get('by_scanner') or {}).get(s):
+                rep['warnings'].append('포착 이력 없음: %s' % s)
+    return rep
+
+
 def pct(x):
     return '-' if x is None else '%+.2f%%' % x
 
@@ -222,6 +289,10 @@ def render_result(out_dir, engine_path=None):
             r, a['n'], pct(a['mean']), pct(a['median']), a['win'], a['mdd'], pct(a['worst']), pct(v['valid'].get('mean')),
             '기준' if r == 'A_cycle' else ('-' if not d else '%+.2f [%+.2f, %+.2f]' % (d['mean_diff'], d['lo'], d['hi']))))
     ac = summ['adoption_check']
+    rl = summ.get('realism') or {}
+    if rl:
+        L += ['', '## 백테스트 현실성 검증 (실제 매도 vs A_cycle 재현)', '- 비교 %d건: 사유 일치 %d건, 청산 시각 3분 이내 %d건, 비교 제외(매도 기록 없음) %d건. %s' % (
+            rl['compared'], rl['reason_match'], rl['exit_within_3min'], rl['skipped_no_actual_sell'], rl['note'])]
     L += ['', '## 채택 판단', '- 검증 구간 %d건 (기준 %d건 이상): %s' % (ac['valid_trades'], ac['min_valid_trades'], '충족' if ac['sufficient'] else '**부족 - 기존 A 유지**'),
           '- ' + ac['note'], '- 검색기별: ' + '; '.join('%s %d건%s' % (k, v['n'], ' (표본 부족)' if 'status' in v else '') for k, v in summ['by_scanner'].items()), '']
     open(os.path.join(out_dir, 'RESULT.md'), 'w', encoding='utf-8').write('\n'.join(L))
@@ -233,7 +304,7 @@ def main(argv=None):
     ap.add_argument('--autotrader', default=r'C:\Users\goodb\autotrader')
     ap.add_argument('--work', default=r'C:\Users\goodb\exit_sr_study')
     ap.add_argument('--allow-market-hours', action='store_true')
-    ap.add_argument('--mode', choices=('all', 'universe', 'ledger'), default='all', help='universe=검색기 포착 이력 전체 가상 백테스트(우선), ledger=실제 원장 거래, all=둘 다(결과는 따로)')
+    ap.add_argument('--mode', choices=('all', 'universe', 'ledger', 'audit'), default='all', help='universe=검색기 포착 이력 전체 가상 백테스트(우선), ledger=실제 원장 거래, all=둘 다(결과는 따로)')
     ap.add_argument('--api', default='https://goodbyestar.cloud', help='공개 /scan-performance-public 로 포착 이력을 받는다(검색기당 최대 1500건)')
     ap.add_argument('--hits-file', default=None, help='전체 포착 이력 JSON(예: VM scan_hits 덤프). 있으면 API 상한을 넘는 이력까지 쓴다')
     ap.add_argument('--hold-days', type=int, default=4)
@@ -253,6 +324,18 @@ def main(argv=None):
     if '005930' in fails:
         print('실행 불가 - 일봉 캐시(거래일 달력) 확보 실패:', fails['005930'], '(네이버 fchart 접속 확인)')
         return 3
+    snap = os.path.join(a.work, 'snapshots')
+    rdb = os.path.join(snap, 'research.db')
+    hits0, hrep = uni.collect_hits(api=a.api, hits_file=a.hits_file, research_db=rdb if os.path.exists(rdb) else None)
+    insp = inspect_inputs(snap, hrep, a.autotrader)
+    json.dump(insp, open(os.path.join(a.work, 'inspect.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    print('=== 입력 구조 점검 (inspect.json) ===')
+    print(json.dumps({k: insp.get(k) for k in ('intents_by_side_state', 'buy_note_keys', 'research_candidates_range', 'hits')}, ensure_ascii=False))
+    for w in insp['warnings']:
+        print(' 경고:', w)
+    if a.mode == 'audit':
+        print('audit 모드: 자료 충족 예상만 점검하고 분봉은 받지 않았습니다. 포착 이력 4종 건수/기간은 위 hits 항목이며, 실제 확보율·검증 기간은 universe 실행 후 RESULT_UNIVERSE.md 의 "자료 충족도"에 나옵니다.')
+        return 0
     if a.mode in ('all', 'universe'):
         sys.path.insert(0, os.path.join(HERE, '..', '..', 'quant-autotrade', 'local_bot'))
         from kiwoom import KiwoomClient

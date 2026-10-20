@@ -100,6 +100,12 @@ class UniverseRunTest(unittest.TestCase):
         self.assertIn('A_cycle', S['rules'])
         self.assertTrue(all('status' in v for v in S['by_scanner'].values()))   # 검색기별 30건 미만
         self.assertIn('최종 판정: **판정 보류**', text)
+        self.assertIn('자료 충족도', text)
+        self.assertIn('미래 데이터·생존 편향', text)
+        la_ = S['audits']['lookahead']
+        self.assertTrue(sum(v['checked'] for v in la_.values()) > 0)
+        self.assertEqual(sum(v['mismatch'] for v in la_.values()), 0)         # 청산 이후 자료에 의존하지 않는다
+        self.assertEqual(S['sufficiency']['pullback']['short_of_100_valid'], 100 - S['sufficiency']['pullback']['valid_entries'])
         for need in ('RESULT_UNIVERSE.md', 'trades_abc.csv', 'hits_report.json'):
             self.assertTrue(os.path.exists(os.path.join(out, need)))
 
@@ -119,6 +125,34 @@ class UniverseRunTest(unittest.TestCase):
         r = uni.slot_sim(entries, trades, 3)
         self.assertEqual((r['taken'], r['skipped_no_slot']), (3, 2))
         self.assertEqual(r['sum_net_pct'], 0.0 + 1.0 + 2.0)                # 순위 높은 앞 3개
+
+
+class InspectTest(unittest.TestCase):
+    def test_inspect_reports_structure_and_missing_fields_without_values(self):
+        import sqlite3
+        d = tempfile.mkdtemp()
+        db = sqlite3.connect(os.path.join(d, 'live_orders.db'))
+        db.execute('CREATE TABLE intents(id INTEGER PRIMARY KEY, ts TEXT, code TEXT, side TEXT, qty INT, price INT, state TEXT, order_no TEXT, detail TEXT, reason TEXT, note TEXT)')
+        db.execute("INSERT INTO intents VALUES(1,'2026-10-19T09:05:00','111111','BUY',1,100,'ACK','SECRETNO','0','ENTRY','{\"rank\": 3, \"score\": 1}')")
+        db.commit()
+        db.close()
+        rep = runall.inspect_inputs(d, {'total': 0, 'by_scanner': {}, 'warnings': []}, d)
+        self.assertEqual(rep['buy_note_keys'], {'rank': 1, 'score': 1})
+        text = json.dumps(rep, ensure_ascii=False)
+        self.assertNotIn('SECRETNO', text)
+        self.assertTrue(any('검색기 필드' in w for w in rep['warnings']))
+        self.assertTrue(any('research.db' in w for w in rep['warnings']))
+        self.assertTrue(any('포착 이력 없음' in w for w in rep['warnings']))
+
+
+class RealismTest(unittest.TestCase):
+    def test_compares_actual_sell_with_sim(self):
+        import exit_sr_local as loc
+        entries = [{'code': 'a', 'actual': {'sell_ts': '2026-09-10T10:00:00+09:00', 'sell_reason': 'STOP_3', 'sell_decision_price': 97}},
+                   {'code': 'b', 'actual': {'sell_ts': None}}]
+        res = {'A_cycle': [{'exit_day': '2026-09-10', 'exit_hhmm': '1001', 'reason': 'STOP_3', 'trigger_price': 97.0}, {}]}
+        r = loc.realism(entries, res)
+        self.assertEqual((r['compared'], r['reason_match'], r['exit_within_3min'], r['skipped_no_actual_sell']), (1, 1, 1, 1))
 
 
 class VerdictTest(unittest.TestCase):

@@ -176,6 +176,33 @@ def regimes(entries, results, cache_dir):
     return out
 
 
+def realism(entries, res):
+    """백테스트 현실성: 실제 원장 매도를 A_cycle(운영 사이클 재현)로 다시 돌린 결과와 비교한다. 규칙을 맞추는 용도가 아니라 시뮬레이터가
+    실제 엔진을 얼마나 재현하는지 보는 검증이다. 원장 매도가 없거나(보유 중·수동) 사유가 비교 불가면 제외하고 건수를 센다."""
+    rows, skipped = [], 0
+    for i, e in enumerate(entries):
+        a = e.get('actual') or {}
+        if not a.get('sell_ts'):
+            skipped += 1
+            continue
+        t = res['A_cycle'][i]
+        sday, shhmm = a['sell_ts'][:10], a['sell_ts'][11:13] + a['sell_ts'][14:16]
+        same_day = t['exit_day'] == sday
+        diff = None
+        if same_day:
+            diff = (int(t['exit_hhmm'][:2]) * 60 + int(t['exit_hhmm'][2:])) - (int(shhmm[:2]) * 60 + int(shhmm[2:]))
+        px = None
+        if a.get('sell_decision_price') and t.get('trigger_price'):
+            px = (t['trigger_price'] / float(a['sell_decision_price']) - 1) * 100
+        rows.append({'code': e['code'], 'actual_reason': a.get('sell_reason'), 'sim_reason': t['reason'], 'reason_match': a.get('sell_reason') == t['reason'],
+                     'same_day': same_day, 'minutes_diff': diff, 'decision_price_diff_pct': None if px is None else round(px, 2)})
+    n = len(rows)
+    close = [r for r in rows if r['same_day'] and r['minutes_diff'] is not None and abs(r['minutes_diff']) <= 3]
+    return {'compared': n, 'skipped_no_actual_sell': skipped, 'reason_match': sum(1 for r in rows if r['reason_match']),
+            'exit_within_3min': len(close), 'rows': rows,
+            'note': '일치율이 낮으면 시뮬레이터 현실성이 부족한 것이다. 불일치 거래는 원인(분봉 시차·사이클 간격·수동 청산)을 확인하기 전에는 성과 평가에 쓰지 않는다.'}
+
+
 def structure_at(entry, until_idx):
     """매도 시점까지의 구조 상태(그 시점에 알 수 있었던 것만): 확정된 5분봉 상승 저점, 일봉 지지, 직전일 저점, 시초 15분 저점."""
     path = entry['path']
@@ -238,6 +265,7 @@ def cmd_analyze(work, cache_dir, case_codes=None):
         for n, tr in res.items():
             if n != 'A_cycle':
                 summary['paired_valid_vs_A_cycle'][n] = xs.paired_bootstrap([res['A_cycle'][i] for i in vi], [tr[i] for i in vi])
+    summary['realism'] = realism(entries, res)
     summary['by_scanner'] = sr.group_report(res, entries)
     summary['walk_forward'] = walk_forward(entries, res)
     summary['regimes'] = regimes(entries, res, cache_dir)
