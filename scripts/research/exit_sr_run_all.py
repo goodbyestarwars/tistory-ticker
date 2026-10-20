@@ -292,7 +292,10 @@ def render_result(out_dir, engine_path=None):
     rl = summ.get('realism') or {}
     if rl:
         L += ['', '## 백테스트 현실성 검증 (실제 매도 vs A_cycle 재현)', '- 비교 %d건: 사유 일치 %d건, 청산 시각 3분 이내 %d건, 비교 제외(매도 기록 없음) %d건. %s' % (
-            rl['compared'], rl['reason_match'], rl['exit_within_3min'], rl['skipped_no_actual_sell'], rl['note'])]
+            rl['compared'], rl['reason_match'], rl['exit_within_3min'], rl['skipped_no_actual_sell'], rl['note']),
+              '- 불일치 원인 분류(중복 가능): ' + json.dumps(rl['mismatch_causes'], ensure_ascii=False)]
+        if rl['low_agreement']:
+            L.append('- **일치율 70% 미만 - 성과 판단 보류, 원인 조사 먼저**: sim_earlier/later 는 분봉 시차·사이클 간격(30초 vs 1분봉), different_day 는 장 마감·수동 청산·보유 이월, reason_mismatch 는 엔진 버전/상수 차이(engine_check.json)를 확인한다. 불일치 거래의 원장 note(hits, 고점)와 분봉을 대조할 것.')
     L += ['', '## 채택 판단', '- 검증 구간 %d건 (기준 %d건 이상): %s' % (ac['valid_trades'], ac['min_valid_trades'], '충족' if ac['sufficient'] else '**부족 - 기존 A 유지**'),
           '- ' + ac['note'], '- 검색기별: ' + '; '.join('%s %d건%s' % (k, v['n'], ' (표본 부족)' if 'status' in v else '') for k, v in summ['by_scanner'].items()), '']
     open(os.path.join(out_dir, 'RESULT.md'), 'w', encoding='utf-8').write('\n'.join(L))

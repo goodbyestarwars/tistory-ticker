@@ -374,9 +374,24 @@ def render(S):
                     L.append('| %s | %s | %s | %.0f%% | %.1f | %s | %s | %s | %s |' % (n, pct(r['mean']), pct(r['median']), r['win'], r['mdd'], pct(r['worst']), pct(v['valid_rules'][n].get('mean')),
                                                                                   ci(v.get('paired_vs_A_cycle', {}).get(n)), ci(v.get('paired_valid_vs_A_cycle', {}).get(n))))
         L.append('')
-    L += ['## 동시 보유 %d슬롯 반영(계좌 근사)' % SLOTS, '', '| 규칙 | 진입 | 슬롯부족 건너뜀 | 거래당 평균 | 순수익 합(%p) | MDD |', '|---|---:|---:|---:|---:|---:|']
+    L += ['## 동시 보유 %d슬롯 반영 — 연구용 가정(실제 운영 엔진의 보유 종목 수 제한은 해제된 상태이므로 실제 계좌 재현이 아님)' % SLOTS, '', '| 규칙 | 진입 | 슬롯부족 건너뜀 | 거래당 평균 | 순수익 합(%p) | MDD |', '|---|---:|---:|---:|---:|---:|']
     for n, r in S['slot_sim'].items():
         L.append('| %s | %d | %d | %s | %s | %s |' % (n, r['taken'], r['skipped_no_slot'], pct(r['mean_net_pct']), r['sum_net_pct'], '-' if not r['summary'].get('n') else '%.1f' % r['summary']['mdd']))
+    L += ['', '## 탐색 결과 (채택 판정 아님)', '- 아래는 확보한 데이터에서 어느 쪽이 높게 나왔는지의 **탐색 결과**이며 최종 판정과 별개다. 표본·기간이 기준에 못 미치면 이 숫자로 승자를 선언하지 않는다.']
+    for fam in ('B_SR', 'C_SR'):
+        n = reps.get(fam)
+        if not n:
+            L.append('- %s: 학습 구간 20건 미만이라 대표 설정을 고르지 못했다' % fam)
+            continue
+        dv = S['paired_valid_vs_A_cycle'].get(n)
+        da = S['paired_vs_A_cycle'].get(n)
+        rv = S['rules'][n]['valid']
+        L.append('- %s(%s): 검증 %s건 A_cycle 대비 %s / 전체 %s건 %s. MDD %s vs A_cycle %s, 최악 %s vs %s.' % (
+            fam, n, rv.get('n', 0), '%+.2f [%+.2f, %+.2f]%%p' % (dv['mean_diff'], dv['lo'], dv['hi']) if dv else '계산 불가(검증 5건 미만)',
+            S['rules'][n]['all']['n'], '%+.2f [%+.2f, %+.2f]%%p' % (da['mean_diff'], da['lo'], da['hi']) if da else '-',
+            '-' if not rv.get('n') else '%.1f' % rv['mdd'], '-' if not S['rules'][BASELINE]['valid'].get('n') else '%.1f' % S['rules'][BASELINE]['valid']['mdd'],
+            '-' if not rv.get('n') else pct(rv['worst']), '-' if not S['rules'][BASELINE]['valid'].get('n') else pct(S['rules'][BASELINE]['valid']['worst'])))
+    L.append('- 신뢰구간이 0을 포함하면 A와 구분되지 않는다. 13개 설정 중 학습 최고를 고르는 구조라 다중비교로 좋아 보일 수 있고, 표본이 작으면 구간이 매우 넓다.')
     la_ = S['audits']['lookahead']
     sv = S['audits']['survivorship']
     L += ['', '## 점검: 미래 데이터·생존 편향', '- 룩어헤드 감사(경로를 청산 다음 봉에서 잘라 재실행했을 때 결과 불일치): ' + ', '.join('%s %d/%d' % (n, v['mismatch'], v['checked']) for n, v in la_.items() if v['checked']) + ' (불일치 0이어야 정상)',

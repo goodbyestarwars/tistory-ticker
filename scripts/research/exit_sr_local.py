@@ -197,9 +197,22 @@ def realism(entries, res):
         rows.append({'code': e['code'], 'actual_reason': a.get('sell_reason'), 'sim_reason': t['reason'], 'reason_match': a.get('sell_reason') == t['reason'],
                      'same_day': same_day, 'minutes_diff': diff, 'decision_price_diff_pct': None if px is None else round(px, 2)})
     n = len(rows)
+    causes = {'reason_mismatch': 0, 'different_day': 0, 'sim_earlier': 0, 'sim_later': 0, 'price_gap_over_1pct': 0}
+    for r in rows:
+        if not r['reason_match']:
+            causes['reason_mismatch'] += 1
+        if not r['same_day']:
+            causes['different_day'] += 1
+        elif r['minutes_diff'] is not None and r['minutes_diff'] < -3:
+            causes['sim_earlier'] += 1
+        elif r['minutes_diff'] is not None and r['minutes_diff'] > 3:
+            causes['sim_later'] += 1
+        if r['decision_price_diff_pct'] is not None and abs(r['decision_price_diff_pct']) > 1:
+            causes['price_gap_over_1pct'] += 1
     close = [r for r in rows if r['same_day'] and r['minutes_diff'] is not None and abs(r['minutes_diff']) <= 3]
     return {'compared': n, 'skipped_no_actual_sell': skipped, 'reason_match': sum(1 for r in rows if r['reason_match']),
-            'exit_within_3min': len(close), 'rows': rows,
+            'exit_within_3min': len(close), 'rows': rows, 'mismatch_causes': causes,
+            'low_agreement': bool(n and (sum(1 for r in rows if r['reason_match']) / n < 0.7 or len(close) / n < 0.7)),
             'note': '일치율이 낮으면 시뮬레이터 현실성이 부족한 것이다. 불일치 거래는 원인(분봉 시차·사이클 간격·수동 청산)을 확인하기 전에는 성과 평가에 쓰지 않는다.'}
 
 
