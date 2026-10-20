@@ -2592,6 +2592,7 @@
       var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, timeframe:timeframe };
       if (state.trendEnabled) {
         core.setTrendMarkers(LWC, candleSeries, bars, true, markHolder);
+        if (timeframe === 'minute') priceLegendHtml.push('<span>기간별 추세 띠는 일·주·월봉에서 표시됩니다</span>');
       }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
         core.setSupplyTraceMarkers(LWC, candleSeries, bars, true, markHolder);

@@ -903,7 +903,7 @@
     holder = holder || {};
     holder.trend = []; // Legacy calculations remain exported; no trend arrows on candles.
     if (holder.trendCleanup) { holder.trendCleanup(); holder.trendCleanup = null; }
-    if (enabled && holder.chart && holder.container) holder.trendCleanup = installTrendBands(holder.chart, series, holder.container, bars, holder.timeframe || 'day');
+    if (enabled && holder.chart && holder.container && holder.timeframe !== 'minute') holder.trendCleanup = installTrendBands(holder.chart, series, holder.container, bars, holder.timeframe || 'day');
     return Object.prototype.hasOwnProperty.call(holder, 'supplyEnabled') ? setSupplyTraceMarkers(LWC, series, bars, holder.supplyEnabled, holder) : setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
   }
 

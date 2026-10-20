@@ -78,6 +78,9 @@ async def main():
        if width==390: await call('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
        info=await ev('(()=>{let c=document.getElementById("chart"),p={x:c.clientWidth-2,y:c.clientHeight-2};handlers.get(current.chart).forEach(fn=>fn({time:example.hit.date,point:p}));let tip=c.querySelector(".nine-supply-tip"),r=tip.getBoundingClientRect(),b=c.getBoundingClientRect();return {text:tip.innerText,bounded:r.left>=b.left&&r.right<=b.right&&r.top>=b.top&&r.bottom<=b.bottom&&r.bottom<=innerHeight,count:core.supplyDisplayMarkers(core.supplyDisplayEvents(bars,null,"detail")).filter(m=>m.time===example.hit.date).length,subscriptions:handlers.get(current.chart).length};})()')
        assert info['bounded'] and info['count']==1,info
+       assert await ev('document.querySelector("#chart .nine-trend-current").innerText.includes(example.hit.date)'), 'past crosshair date'
+       await ev('handlers.get(current.chart).forEach(fn=>fn({}));')
+       assert await ev('document.querySelector("#chart .nine-trend-current").innerText.includes(bars.at(-1).date)'), 'latest date on leave'
        for text in ['거래량 급증','장기선 공방','회복 확인','4.95배']: assert text in info['text'],info
        mode=await ev('(()=>{let h=current.holder;h.supplyMode="important";core.setSupplyTraceMarkers(LightweightCharts,current.series,bars,true,h);let none=(markerMap.get(current.series)||[]).length;h.supplyMode="detail";core.setSupplyTraceMarkers(LightweightCharts,current.series,bars,true,h);return none;})()')
        assert mode==0,mode

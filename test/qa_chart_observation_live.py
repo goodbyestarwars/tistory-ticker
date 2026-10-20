@@ -62,6 +62,10 @@ async def main():
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
+                    await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
+                    await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===0')
+                    await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
+                    await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===1')
                     await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
                     shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
                     (OUT/f'live-{prefix}-{width}-important.png').write_bytes(base64.b64decode(shot['data']))
