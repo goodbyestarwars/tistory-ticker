@@ -58,10 +58,10 @@ async def main():
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces-3'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-period-traces-4'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
-                    assert defaults=={'trend':True,'traces':True,'mode':'important'},defaults
-                    assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==0
+                    assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
+                    assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
                     await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
                     shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
                     (OUT/f'live-{prefix}-{width}-important.png').write_bytes(base64.b64decode(shot['data']))
@@ -77,6 +77,10 @@ async def main():
                         await wait('!!window.qaLiveChart')
                         visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
                         expected={'1y':365,'3y':1095,'5y':1825}[period]
+                        for _ in range(20):
+                            if visible['spanDays']>=expected*.97:break
+                            await asyncio.sleep(.5)
+                            visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
                         assert visible['spanDays']>=expected*.97,(screen,width,period,visible)
                         ranges.append({'period':period,**visible})
                     await ev('document.getElementById("'+prefix+'TrendToggle").click()')
@@ -87,7 +91,7 @@ async def main():
                     shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
                     (OUT/f'live-{prefix}-{width}-detail.png').write_bytes(base64.b64decode(shot['data']))
                     result=await ev('(()=>{let c=document.getElementById("'+host+'");return {bands:c.querySelectorAll(".nine-trend-bands").length,lanes:c.querySelectorAll(".nine-trend-lane").length,tips:c.querySelectorAll(".nine-supply-tip").length,width:c.clientWidth,summary:c.querySelector(".nine-trend-current").innerText};})()')
-                    assert result['bands']==1 and result['lanes']==3 and result['tips']==1 and result['width']<=width,result
+                    assert result['bands']==1 and result['lanes']==4 and result['tips']==1 and result['width']<=width,result
                     results.append({'screen':screen,'viewport':width,'defaults':defaults,'ranges':ranges,**result})
                     print('PASS',screen,width)
             (OUT/'live-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf8')

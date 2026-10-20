@@ -4410,9 +4410,10 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="이평 배열과 기울기가 일치할 때 상승/하락, 그 외 전환·중립. 새 상태가 연속 3봉일 때 확인합니다. 단기 5/10/20·중기 20/60/120·장기 60/120/224 SMA. 기울기는 단기 MA20의 5봉·중기 MA60의 10봉·장기 MA120의 20봉 변화율 ±0.2% 기준입니다. 진행 중 봉의 결과는 잠정입니다. 매수 신호가 아닙니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세 상태 띠</label>'
-        + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 확대하면 숨겨진 기호를 확인할 수 있고 모든 조건은 십자선 툴팁에 있습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
-        + '<label class="ff-ichimoku-toggle nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ffSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="important">중요 · 검증 통과 없음</option><option value="detail">상세 · 관찰 전체</option></select></label>'
+        + '<label class="ff-ichimoku-toggle" title="1개월/3개월/6개월/1년 전 대비 종가 변화로 표시합니다. 상승/하락 기준은 각각 ±3/6/9/12%이며 3봉 연속 확인합니다. 빨강 상승, 파랑 하락, 회색 중립입니다. 파동 구조 분석 및 매수 신호가 아닙니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세 상태 띠</label>'
+        + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
+        + '<label class="ff-ichimoku-toggle nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ffSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="detail">상세 · 관찰 전체</option><option value="important">중요 · 검증 통과 없음</option></select></label>'
+        + '<span class="nine-trace-legend" title="기호는 일봉 관찰값이며 실제 수급 주체를 뜻하지 않습니다">● 거래량 · ■ 장기선 · ▲ 가격 회복 · 수급 아님 · 장기선은 112/224/448봉 필요</span>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
         + '</div>'
@@ -4469,7 +4470,7 @@
     if(container)container.querySelectorAll('.ff-supply-badge').forEach(function(el){el.remove();});
   }
 
-  var supplyDisplayMode = 'important';
+  var supplyDisplayMode = 'detail';
   var accumulationEnabled = true;   // 수급 흔적 표시(기존 토글 ID 유지) - 이벤트 마커와 한 플러그인에 합쳐 건다
   var flowMarkerHolder = null, flowMarkerCtx = null;
 

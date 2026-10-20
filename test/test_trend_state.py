@@ -76,7 +76,7 @@ class TrendStateTest(unittest.TestCase):
         self.assertIn('core.setTrendMarkers(', flow)
         self.assertNotIn('core.trendMarkers(', stock)
         self.assertNotIn('core.trendMarkers(', flow)
-        sentence = '단기 5/10/20·중기 20/60/120·장기 60/120/224 SMA'
+        sentence = '1개월/3개월/6개월/1년 전 대비 종가 변화'
         self.assertIn(sentence, stock)
         self.assertIn(sentence, flow)
 

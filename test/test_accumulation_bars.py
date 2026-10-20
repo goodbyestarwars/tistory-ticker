@@ -126,7 +126,7 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
         for source in (stock, flow):
             self.assertIn('거래량·가격 흔적</label>', source)
             self.assertIn('3배 거래량', source)
-            self.assertIn('검증 통과 유형', source)
+            self.assertIn('중요 · 검증 통과 없음', source)
             self.assertNotIn('setAccumulationMarkers(', source)
 
 

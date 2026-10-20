@@ -62,7 +62,7 @@ async def main():
       assert await ev('document.querySelectorAll("#chart .nine-trend-bands").length')==1,result
       assert result['tips']==(1 if tf=='day' else 0),result
       if tf!='day':
-       assert await ev('document.getElementById("chart").innerText.includes("수급 흔적은 국내 일봉에서만 표시됩니다")')
+       assert await ev('document.getElementById("chart").innerText.includes("국내 일봉")')
       else:
        await ev('window.current=qa.get();current.chart.timeScale().setVisibleLogicalRange({from:example.hit.index-32,to:example.hit.index+12});document.getElementById("legend").innerHTML=core.supplyTraceLegendHtml(core.supplyTraceSummary(bars));')
        await asyncio.sleep(.1)
@@ -100,7 +100,7 @@ async def main():
       reports.append({'screen':screen,'width':width,'timeframe':tf,**result})
    assert await ev('errors')==[],await ev('errors')
    (OUT/'browser-results.json').write_text(json.dumps(reports,ensure_ascii=False,indent=2),encoding='utf-8')
-   print('PASS',len(reports),'production renderer cases: 1440px / 390px, repeated day/week/month, 3 regime lanes, tooltip bounds and one symbol/day with all overlap details')
+   print('PASS',len(reports),'production renderer cases: 1440px / 390px, repeated day/week/month, 4 period lanes, tooltip bounds and one symbol/day with all overlap details')
  finally: proc.terminate()
 if __name__=='__main__':asyncio.run(main())
 

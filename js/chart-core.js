@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-regime-traces-3';
+  var VERSION = '2026-10-20-period-traces-4';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -907,35 +907,33 @@
     return Object.prototype.hasOwnProperty.call(holder, 'supplyEnabled') ? setSupplyTraceMarkers(LWC, series, bars, holder.supplyEnabled, holder) : setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
   }
 
-  var REGIME = { confirmBars:3, slopePct:.2, lanes:[
-    {key:'short',label:'단기',periods:[5,10,20],slopeMA:20,lookback:5},
-    {key:'medium',label:'중기',periods:[20,60,120],slopeMA:60,lookback:10},
-    {key:'long',label:'장기',periods:[60,120,224],slopeMA:120,lookback:20}
+  // 각 띠는 그 시점까지의 종가 변화만 본다. 파동 분석의 극점·구조 판정과 독립적이다.
+  var REGIME = { confirmBars:3, lanes:[
+    {key:'month1',label:'1개월',periods:{day:21,week:4,month:1},threshold:3},
+    {key:'month3',label:'3개월',periods:{day:63,week:13,month:3},threshold:6},
+    {key:'month6',label:'6개월',periods:{day:126,week:26,month:6},threshold:9},
+    {key:'year1',label:'1년',periods:{day:252,week:52,month:12},threshold:12}
   ] };
   var REGIME_COLOR={up:CANDLE_UP,down:CANDLE_DOWN,neutral:'#a0a6ad',unknown:'#d8dce1'};
   var REGIME_LABEL={up:'상승',down:'하락',neutral:'전환·중립',unknown:'자료 부족'};
-  function trendRegimes(bars) {
+  function trendRegimes(bars,timeframe) {
     bars=bars || [];
-    var clean=bars.map(function(b){return {close:accNumber(b.close)>0?accNumber(b.close):NaN};}), mas={};
-    [5,10,20,60,120,224].forEach(function(p){mas[p]=trendMaSeries(clean,p);});
+    timeframe=timeframe==='week'||timeframe==='month'?timeframe:'day';
+    var closes=bars.map(function(b){var c=accNumber(b.close);return c>0?c:NaN;});
+    var invalidPrefix=[0];closes.forEach(function(c){invalidPrefix.push(invalidPrefix[invalidPrefix.length-1]+(isFinite(c)?0:1));});
     var lanes={};
     REGIME.lanes.forEach(function(cfg){
-      var stable='unknown',pending=null,run=0;
+      var stable='unknown',pending=null,run=0,lookback=cfg.periods[timeframe];
       lanes[cfg.key]=bars.map(function(b,i){
-        var values=cfg.periods.map(function(p){return mas[p][i];});
-        var current=mas[cfg.slopeMA][i], prior=i>=cfg.lookback?mas[cfg.slopeMA][i-cfg.lookback]:null;
-        var ready=values.every(function(v){return v!==null && isFinite(v);}) && prior>0 && current>0;
-        var slope=ready?(current/prior-1)*100:null,raw='unknown';
-        if(ready){
-          var up=values.every(function(v,k){return !k||values[k-1]>v;}),down=values.every(function(v,k){return !k||values[k-1]<v;});
-          raw=up && slope>=REGIME.slopePct?'up':down && slope<=-REGIME.slopePct?'down':'neutral';
-        }
+        var ready=i>=lookback && invalidPrefix[i+1]===invalidPrefix[i-lookback];
+        var change=ready?(closes[i]/closes[i-lookback]-1)*100:null;
+        var raw=!ready?'unknown':change>=cfg.threshold?'up':change<=-cfg.threshold?'down':'neutral';
         if(raw==='unknown'){stable='unknown';pending=null;run=0;}
         else {
           if(raw===pending)run++;else{pending=raw;run=1;}
           if(run>=REGIME.confirmBars)stable=raw;
         }
-        return {index:i,date:b.date || b.time,state:stable,raw:raw,pending:raw!==stable?run:0,slope:slope};
+        return {index:i,date:b.date || b.time,state:stable,raw:raw,pending:raw!==stable?run:0,change:change};
       });
     });
     return lanes;
@@ -943,19 +941,19 @@
   function trendRegimeLegendHtml(lanes,timeframe,index) {
     var unit=timeframe==='day'?'일봉':timeframe==='week'?'주봉':timeframe==='month'?'월봉':'분봉';
     return REGIME.lanes.map(function(c){var rows=lanes[c.key] || [],r=rows[index===undefined?rows.length-1:index] || {state:'unknown'};
-      return '<span style="color:'+(r.state==='unknown'?'#747b84':REGIME_COLOR[r.state])+'">'+c.label+' '+REGIME_LABEL[r.state]+(r.pending?' (확인 '+r.pending+'/3)':'')+'</span>';
-    }).join(' · ')+' <small>'+unit+' · 3봉 확인</small>';
+      return '<span style="color:'+(r.state==='unknown'?'#747b84':REGIME_COLOR[r.state])+'">'+c.label+' '+REGIME_LABEL[r.state]+(r.pending?' ('+r.pending+'/3 확인)':'')+'</span>';
+    }).join(' · ')+' <small>'+unit+' · 종가 변화 · 3봉 확인</small>';
   }
   function installTrendBands(chart,series,container,bars,timeframe) {
-    var lanes=trendRegimes(bars),wrap=document.createElement('div');wrap.className='nine-trend-bands';
-    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:0;right:0;min-height:57px;pointer-events:none;font:10px/1.4 sans-serif;';
+    var lanes=trendRegimes(bars,timeframe),wrap=document.createElement('div');wrap.className='nine-trend-bands';
+    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:0;right:0;min-height:82px;pointer-events:none;font:11px/1.4 sans-serif;';
     var summary=document.createElement('div');summary.className='nine-trend-current';summary.style.cssText='padding:0 76px 3px 8px;white-space:normal;';
     function summaryAt(index){var b=bars[index],stamp=b && (b.date || b.time);if(typeof stamp==='number')stamp=new Date(stamp*1000).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});summary.innerHTML=(b?'<small>'+supplyEscape(stamp)+'</small> ':'')+trendRegimeLegendHtml(lanes,timeframe,index);}
     summaryAt(bars.length-1);wrap.appendChild(summary);
     var tracks=[];
-    REGIME.lanes.forEach(function(cfg){var row=document.createElement('div');row.className='nine-trend-lane';row.style.cssText='position:relative;height:11px;margin-bottom:2px;overflow:hidden;';
+    REGIME.lanes.forEach(function(cfg){var row=document.createElement('div');row.className='nine-trend-lane';row.style.cssText='position:relative;height:14px;margin-bottom:2px;overflow:hidden;';
       var rail=document.createElement('div');rail.style.cssText='position:absolute;inset:1px 0;overflow:hidden;';row.appendChild(rail);
-      var label=document.createElement('span');label.textContent=cfg.label;label.style.cssText='position:absolute;left:4px;padding:0 4px;font-size:9px;';row.appendChild(label);
+      var label=document.createElement('span');label.textContent=cfg.label;label.style.cssText='position:absolute;left:4px;padding:0 4px;font-size:10px;line-height:14px;';row.appendChild(label);
       tracks.push({cfg:cfg,rail:rail,label:label});wrap.appendChild(row);
     });
     container.appendChild(wrap);
@@ -971,7 +969,7 @@
         for(var i=from;i<=to;i++){
           if(i<to && items[i+1].state===items[start].state)continue;
           var x1=ts.timeToCoordinate(items[start].date),x2=ts.timeToCoordinate(items[i].date),spacing=range?width/Math.max(1,range.to-range.from):2;
-          if(x1!==null && x2!==null)html+='<i data-state="'+items[start].state+'" style="position:absolute;top:1px;height:7px;left:'+Math.max(0,x1-spacing/2)+'px;width:'+Math.max(1,Math.min(width,x2+spacing/2)-Math.max(0,x1-spacing/2))+'px;background:'+REGIME_COLOR[items[start].state]+';opacity:.65"></i>';
+          if(x1!==null && x2!==null)html+='<i data-state="'+items[start].state+'" style="position:absolute;top:1px;height:11px;left:'+Math.max(0,x1-spacing/2)+'px;width:'+Math.max(1,Math.min(width,x2+spacing/2)-Math.max(0,x1-spacing/2))+'px;background:'+REGIME_COLOR[items[start].state]+';opacity:.82"></i>';
           start=i+1;
         }
         track.rail.innerHTML=html;track.label.style.background=background;
@@ -1109,12 +1107,12 @@
   }
   function supplyTraceLegendHtml(counts) {
     counts=counts || {volume:0,longMA:0,recovery:0,unavailable:[]};
-    return '<span style="color:#e8590c">● 거래량 급증 '+counts.volume+'</span> · <span style="color:#7950b2">■ 장기선 공방 '+counts.longMA+'</span> · <span style="color:'+CANDLE_UP+'">▲ 회복 확인 '+counts.recovery+'</span><span style="opacity:.75"> · 관찰용·매집 확정 아님'+(counts.unavailable.length?' · 장기선 데이터 부족: '+counts.unavailable.join('/'):'')+'</span>';
+    return '<span style="color:#e8590c">● 거래량 급증 '+counts.volume+'</span> · <span style="color:#7950b2">■ 장기선 관찰 '+counts.longMA+'</span> · <span style="color:'+CANDLE_UP+'">▲ 가격 회복 '+counts.recovery+'</span><span style="opacity:.75"> · 일봉 관찰값 · 실제 수급/매집 아님'+(counts.unavailable.length?' · 장기선 자료 부족: '+counts.unavailable.join('/')+'일':'')+'</span>';
   }
   function supplyEscape(value) { return String(value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
   function supplyTraceTooltipHtml(h) {
     if (!h) return '';
-    var out='<b>'+supplyEscape(h.date)+' · 수급 흔적</b><br>';
+    var out='<b>'+supplyEscape(h.date)+' · 거래량·가격 관찰</b><br>';
     if(h.volumeSurge)out+='<b style="color:#e8590c">● 거래량 급증</b><br>';
     out+='거래량 '+(h.multiple===null?'—':h.multiple.toFixed(2)+'배')+' (직전 20일 평균)<br>거래대금 '+(h.amount===null?'—':(h.amount/100000000).toFixed(2)+'억원')+' (종가×거래량 대용값)<br>'+h.candle+' · 윗꼬리 '+h.wickPct.toFixed(1)+'% (고저 범위 대비)<br>';
     if(h.volumeSurge && h.wickPct>=SUPPLY_TRACES.upperWickPct)out+='윗꼬리 이후 저점·회복 관찰 시작 (미확인)<br>';
@@ -1147,7 +1145,7 @@
     var hits=enabled?supplyTraceBars(bars):[], counts=supplyTraceSummary(enabled?bars:[],hits);
     if(holder.tipCleanup){holder.tipCleanup();holder.tipCleanup=null;}
     if(holder.densityCleanup){holder.densityCleanup();holder.densityCleanup=null;}
-    var mode=holder.supplyMode || 'important',events=enabled?supplyDisplayEvents(bars,hits,mode):[];
+    var mode=holder.supplyMode || 'detail',events=enabled?supplyDisplayEvents(bars,hits,mode):[];
     counts.mode=mode;counts.selected=events.length;
     if(enabled && holder.chart && holder.container && mode==='detail')holder.tipCleanup=attachSupplyTraceTooltip(holder.chart,holder.container,bars,hits);
     function paint(){
