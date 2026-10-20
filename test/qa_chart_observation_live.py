@@ -1,0 +1,82 @@
+"""Read-only live Pages verification. Opens HMM charts; never submits orders."""
+import asyncio
+import base64
+import json
+from pathlib import Path
+import subprocess
+import urllib.request
+import websockets
+
+REPO=Path(__file__).resolve().parents[1]
+OUT=REPO.parents[1]/'outputs/chart-regime-traces-20261020'
+
+
+async def main():
+    OUT.mkdir(parents=True,exist_ok=True)
+    proc=subprocess.Popen(['C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','--headless=new','--disable-gpu','--no-first-run',
+        '--remote-debugging-port=9269','--user-data-dir='+str(REPO.parent/'edge-chart-observation-live'),'about:blank'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    try:
+        for _ in range(70):
+            try:
+                targets=json.load(urllib.request.urlopen('http://127.0.0.1:9269/json/list'));break
+            except OSError:await asyncio.sleep(.1)
+        async with websockets.connect(next(t for t in targets if t['type']=='page')['webSocketDebuggerUrl'],max_size=20000000) as ws:
+            seq=0
+            async def call(method,params=None):
+                nonlocal seq
+                seq+=1;await ws.send(json.dumps({'id':seq,'method':method,'params':params or {}}))
+                while True:
+                    result=json.loads(await ws.recv())
+                    if result.get('id')==seq:return result.get('result',{})
+            async def ev(source):
+                r=await call('Runtime.evaluate',{'expression':source,'returnByValue':True,'awaitPromise':True})
+                if 'exceptionDetails' in r:raise AssertionError(r)
+                return r['result'].get('value')
+            async def wait(source):
+                for _ in range(100):
+                    if await ev(source):return
+                    await asyncio.sleep(.5)
+                raise AssertionError(source)
+            await call('Network.enable');await call('Network.setCacheDisabled',{'cacheDisabled':True})
+            results=[]
+            for width in (1440,390):
+                await call('Emulation.setDeviceMetricsOverride',{'width':width,'height':1100,'deviceScaleFactor':1,'mobile':False})
+                for screen,prefix,host in [('stock-search','ss','ssChart'),('foreign-flow','ff','ffLwChart')]:
+                    await call('Page.navigate',{'url':'https://ghlee.tistory.com/page/'+screen+'?code=011200&name=HMM'})
+                    if prefix=='ff':
+                        await wait('!!document.querySelector("#foreign-flow [data-view=chart]")')
+                        await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
+                    await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces'
+                    defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
+                    assert defaults=={'trend':True,'traces':True,'mode':'important'},defaults
+                    assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==0
+                    await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
+                    shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
+                    (OUT/f'live-{prefix}-{width}-important.png').write_bytes(base64.b64decode(shot['data']))
+                    await ev('let m=document.getElementById("'+prefix+'SupplyMode");m.value="detail";m.dispatchEvent(new Event("change"))')
+                    await wait('!!document.querySelector("#'+host+' .nine-supply-tip") && !!document.querySelector("#'+host+' .nine-trend-bands")')
+                    ranges=[]
+                    for period in ('1y','3y','5y'):
+                        clicked=await ev('(()=>{let b=document.getElementById("'+host+'").parentElement.querySelector(\'[data-range="'+period+'"]\');if(b){b.click();return true;}return false;})()')
+                        assert clicked,(screen,period)
+                        await asyncio.sleep(1)
+                        await wait('(()=>{let s=document.getElementById("'+host+'").parentElement.querySelector(".nine-chart-range-status");return !s || !s.textContent.includes("불러오는");})()')
+                        await wait('document.querySelectorAll("#'+host+' .nine-trend-bands").length===1')
+                        ranges.append(period)
+                    await ev('document.getElementById("'+prefix+'TrendToggle").click()')
+                    await wait('!document.querySelector("#'+host+' .nine-trend-bands")')
+                    await ev('document.getElementById("'+prefix+'TrendToggle").click()')
+                    await wait('document.querySelectorAll("#'+host+' .nine-trend-bands").length===1')
+                    await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
+                    shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
+                    (OUT/f'live-{prefix}-{width}-detail.png').write_bytes(base64.b64decode(shot['data']))
+                    result=await ev('(()=>{let c=document.getElementById("'+host+'");return {bands:c.querySelectorAll(".nine-trend-bands").length,lanes:c.querySelectorAll(".nine-trend-lane").length,tips:c.querySelectorAll(".nine-supply-tip").length,width:c.clientWidth,summary:c.querySelector(".nine-trend-current").innerText};})()')
+                    assert result['bands']==1 and result['lanes']==3 and result['tips']==1 and result['width']<=width,result
+                    results.append({'screen':screen,'viewport':width,'defaults':defaults,'ranges':ranges,**result})
+                    print('PASS',screen,width)
+            (OUT/'live-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf8')
+    finally:proc.terminate()
+
+
+if __name__=='__main__':asyncio.run(main())

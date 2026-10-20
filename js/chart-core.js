@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-19-supply-1';
+  var VERSION = '2026-10-20-regime-traces';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -901,8 +901,95 @@
   // 주 마커 홀더(holder)에 전환 표시를 건다. 대량거래 표시와 한 플러그인에 합쳐진다. enabled=false 면 전환 표시를 뺀다.
   function setTrendMarkers(LWC, series, bars, enabled, holder) {
     holder = holder || {};
-    holder.trend = enabled ? trendMarkers(bars) : [];
+    holder.trend = []; // Legacy calculations remain exported; no trend arrows on candles.
+    if (holder.trendCleanup) { holder.trendCleanup(); holder.trendCleanup = null; }
+    if (enabled && holder.chart && holder.container) holder.trendCleanup = installTrendBands(holder.chart, series, holder.container, bars, holder.timeframe || 'day');
     return Object.prototype.hasOwnProperty.call(holder, 'supplyEnabled') ? setSupplyTraceMarkers(LWC, series, bars, holder.supplyEnabled, holder) : setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
+  }
+
+  var REGIME = { confirmBars:3, slopePct:.2, lanes:[
+    {key:'short',label:'단기',periods:[5,10,20],slopeMA:20,lookback:5},
+    {key:'medium',label:'중기',periods:[20,60,120],slopeMA:60,lookback:10},
+    {key:'long',label:'장기',periods:[60,120,224],slopeMA:120,lookback:20}
+  ] };
+  var REGIME_COLOR={up:CANDLE_UP,down:CANDLE_DOWN,neutral:'#a0a6ad',unknown:'#d8dce1'};
+  var REGIME_LABEL={up:'상승',down:'하락',neutral:'전환·중립',unknown:'자료 부족'};
+  function trendRegimes(bars) {
+    bars=bars || [];
+    var clean=bars.map(function(b){return {close:accNumber(b.close)>0?accNumber(b.close):NaN};}), mas={};
+    [5,10,20,60,120,224].forEach(function(p){mas[p]=trendMaSeries(clean,p);});
+    var lanes={};
+    REGIME.lanes.forEach(function(cfg){
+      var stable='unknown',pending=null,run=0;
+      lanes[cfg.key]=bars.map(function(b,i){
+        var values=cfg.periods.map(function(p){return mas[p][i];});
+        var current=mas[cfg.slopeMA][i], prior=i>=cfg.lookback?mas[cfg.slopeMA][i-cfg.lookback]:null;
+        var ready=values.every(function(v){return v!==null && isFinite(v);}) && prior>0 && current>0;
+        var slope=ready?(current/prior-1)*100:null,raw='unknown';
+        if(ready){
+          var up=values.every(function(v,k){return !k||values[k-1]>v;}),down=values.every(function(v,k){return !k||values[k-1]<v;});
+          raw=up && slope>=REGIME.slopePct?'up':down && slope<=-REGIME.slopePct?'down':'neutral';
+        }
+        if(raw==='unknown'){stable='unknown';pending=null;run=0;}
+        else {
+          if(raw===pending)run++;else{pending=raw;run=1;}
+          if(run>=REGIME.confirmBars)stable=raw;
+        }
+        return {index:i,date:b.date || b.time,state:stable,raw:raw,pending:raw!==stable?run:0,slope:slope};
+      });
+    });
+    return lanes;
+  }
+  function trendRegimeLegendHtml(lanes,timeframe,index) {
+    var unit=timeframe==='day'?'일봉':timeframe==='week'?'주봉':timeframe==='month'?'월봉':'분봉';
+    return REGIME.lanes.map(function(c){var rows=lanes[c.key] || [],r=rows[index===undefined?rows.length-1:index] || {state:'unknown'};
+      return '<span style="color:'+(r.state==='unknown'?'#747b84':REGIME_COLOR[r.state])+'">'+c.label+' '+REGIME_LABEL[r.state]+(r.pending?' (확인 '+r.pending+'/3)':'')+'</span>';
+    }).join(' · ')+' <small>'+unit+' · 3봉 확인</small>';
+  }
+  function installTrendBands(chart,series,container,bars,timeframe) {
+    var lanes=trendRegimes(bars),wrap=document.createElement('div');wrap.className='nine-trend-bands';
+    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:0;right:0;min-height:57px;pointer-events:none;font:10px/1.4 sans-serif;';
+    var summary=document.createElement('div');summary.className='nine-trend-current';summary.style.cssText='padding:0 76px 3px 8px;white-space:normal;';
+    function summaryAt(index){var b=bars[index],stamp=b && (b.date || b.time);if(typeof stamp==='number')stamp=new Date(stamp*1000).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});summary.innerHTML=(b?'<small>'+supplyEscape(stamp)+'</small> ':'')+trendRegimeLegendHtml(lanes,timeframe,index);}
+    summaryAt(bars.length-1);wrap.appendChild(summary);
+    var tracks=[];
+    REGIME.lanes.forEach(function(cfg){var row=document.createElement('div');row.className='nine-trend-lane';row.style.cssText='position:relative;height:11px;margin-bottom:2px;overflow:hidden;';
+      var rail=document.createElement('div');rail.style.cssText='position:absolute;inset:1px 0;overflow:hidden;';row.appendChild(rail);
+      var label=document.createElement('span');label.textContent=cfg.label;label.style.cssText='position:absolute;left:4px;padding:0 4px;font-size:9px;';row.appendChild(label);
+      tracks.push({cfg:cfg,rail:rail,label:label});wrap.appendChild(row);
+    });
+    container.appendChild(wrap);
+    var scale=series.priceScale(), original=scale.options?scale.options().scaleMargins:{top:.06,bottom:.08};
+    original={top:original.top,bottom:original.bottom};
+    var frame=0,disposed=false,lastTop=null;
+    function draw(){
+      frame=0;if(disposed)return;
+      var ts=chart.timeScale(),range=ts.getVisibleLogicalRange(),width=container.clientWidth,from=range?Math.max(0,Math.floor(range.from)):0,to=range?Math.min(bars.length-1,Math.ceil(range.to)):bars.length-1;
+      var background=isDark()?'rgba(26,26,26,.96)':'rgba(255,255,255,.96)';wrap.style.background=background;
+      tracks.forEach(function(track){
+        var html='',items=lanes[track.cfg.key],start=from;
+        for(var i=from;i<=to;i++){
+          if(i<to && items[i+1].state===items[start].state)continue;
+          var x1=ts.timeToCoordinate(items[start].date),x2=ts.timeToCoordinate(items[i].date),spacing=range?width/Math.max(1,range.to-range.from):2;
+          if(x1!==null && x2!==null)html+='<i data-state="'+items[start].state+'" style="position:absolute;top:1px;height:7px;left:'+Math.max(0,x1-spacing/2)+'px;width:'+Math.max(1,Math.min(width,x2+spacing/2)-Math.max(0,x1-spacing/2))+'px;background:'+REGIME_COLOR[items[start].state]+';opacity:.65"></i>';
+          start=i+1;
+        }
+        track.rail.innerHTML=html;track.label.style.background=background;
+      });
+      var legend=container.querySelector('.ss-price-study-label'),top=Math.max(26,legend?legend.offsetTop+legend.offsetHeight+4:26);wrap.style.top=top+'px';
+      var panes=chart.panes && chart.panes(),height=panes && panes[0]?panes[0].getHeight():container.clientHeight;
+      var margin=Math.min(.45,Math.max(original.top,(top+wrap.offsetHeight+8)/Math.max(1,height)));
+      if(lastTop===null || Math.abs(margin-lastTop)>.001){lastTop=margin;scale.applyOptions({scaleMargins:{top:margin,bottom:original.bottom}});}
+    }
+    function schedule(){if(!frame && !disposed)frame=global.requestAnimationFrame(draw);}
+    var indexes={};bars.forEach(function(b,i){indexes[b.date || b.time]=i;});
+    function crosshair(param){var t=param && param.time;if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');summaryAt(indexes[t]===undefined?bars.length-1:indexes[t]);schedule();}
+    chart.subscribeCrosshairMove(crosshair);
+    chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);
+    container.addEventListener('pointerup',schedule);
+    var ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null;if(ro)ro.observe(container);
+    draw();schedule();
+    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);container.removeEventListener('pointerup',schedule);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart already disposed */}};
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
@@ -986,6 +1073,30 @@
     });
     return markers;
   }
+  // Importance means independently validated outcome evidence, not 3x volume
+  // or simple MA proximity. The 2020-2026 audit admitted no types. Raw evidence
+  // stays available in detail mode; no invented "important" buy signal.
+  var SUPPLY_DISPLAY={validatedTypes:[],minPixels:16};
+  function supplyDisplayEvents(bars,hits,mode) {
+    var dates={},priority={recovery:4,longMA:3,volume:2,approach:1};
+    (hits || supplyTraceBars(bars)).forEach(function(h){
+      var type=h.recoveries.length?'recovery':h.longMA.some(function(m){return m.action!=='접근';})?'longMA':h.volumeSurge?'volume':'approach';
+      if(!dates[h.date] || priority[type]>priority[dates[h.date].type])dates[h.date]={index:h.index,date:h.date,type:type,hit:h};
+    });
+    return Object.keys(dates).map(function(d){return dates[d];}).sort(function(a,b){return a.index-b.index;}).filter(function(e){return mode==='detail' || SUPPLY_DISPLAY.validatedTypes.indexOf(e.type)>=0;});
+  }
+  function supplyDisplayMarkers(events,range,width) {
+    var last=-Infinity;
+    return events.filter(function(e){
+      if(!range)return true;
+      if(e.index<Math.floor(range.from)-1 || e.index>Math.ceil(range.to)+1)return false;
+      var x=(e.index-range.from)*width/Math.max(1,range.to-range.from);
+      if(x-last<SUPPLY_DISPLAY.minPixels)return false;
+      last=x;return true;
+    }).map(function(e){return {time:e.date,position:e.type==='longMA'||e.type==='approach'?'aboveBar':'belowBar',
+      color:e.type==='volume'?SUPPLY_TRACES.color:e.type==='recovery'?CANDLE_UP:'#7950b2',
+      shape:e.type==='volume'?'circle':e.type==='recovery'?'arrowUp':'square',size:.45,text:''};});
+  }
   function supplyTraceSummary(bars, hits) {
     hits=hits || supplyTraceBars(bars);
     var result={bars:hits.length, volume:0, longMA:0, recovery:0, unavailable:[]};
@@ -1006,7 +1117,7 @@
     var out='<b>'+supplyEscape(h.date)+' · 수급 흔적</b><br>';
     if(h.volumeSurge)out+='<b style="color:#e8590c">● 거래량 급증</b><br>';
     out+='거래량 '+(h.multiple===null?'—':h.multiple.toFixed(2)+'배')+' (직전 20일 평균)<br>거래대금 '+(h.amount===null?'—':(h.amount/100000000).toFixed(2)+'억원')+' (종가×거래량 대용값)<br>'+h.candle+' · 윗꼬리 '+h.wickPct.toFixed(1)+'% (고저 범위 대비)<br>';
-    if(h.volumeSurge && h.wickPct>=SUPPLY_TRACES.upperWickPct)out+='매물 소화 의심 추적 시작 (미확인)<br>';
+    if(h.volumeSurge && h.wickPct>=SUPPLY_TRACES.upperWickPct)out+='윗꼬리 이후 저점·회복 관찰 시작 (미확인)<br>';
     if(h.longMA.length)out+='<b style="color:#7950b2">■ 장기선 공방</b><br>'+h.longMA.map(function(m){return m.period+'일선 '+m.action+' · '+Math.round(m.ma).toLocaleString()+'원 ('+accSigned(m.distance)+')';}).join('<br>')+'<br>';
     if(h.recoveries.length)out+='<b style="color:'+CANDLE_UP+'">▲ 회복 확인</b><br>'+h.recoveries.map(function(a){return supplyEscape(a.date)+' 윗꼬리봉 이후 '+a.elapsed+'거래일<br>저점 '+a.low.toLocaleString()+'원 대비 -2% 이내 방어·종가가 고가 '+a.high.toLocaleString()+'원 초과';}).join('<br>')+'<br>';
     return out+'<small>일봉 OHLCV 관찰용 · 실제 매집·세력 매수 확정 및 매수 신호 아님<br>진행 중 일봉은 종가 확정 전 변할 수 있음</small>';
@@ -1035,16 +1146,30 @@
     holder=holder || {}; holder.supplyEnabled=!!enabled;
     var hits=enabled?supplyTraceBars(bars):[], counts=supplyTraceSummary(enabled?bars:[],hits);
     if(holder.tipCleanup){holder.tipCleanup();holder.tipCleanup=null;}
-    if(enabled && holder.chart && holder.container)holder.tipCleanup=attachSupplyTraceTooltip(holder.chart,holder.container,bars,hits);
-    var merged=(holder.base || []).concat(holder.trend || [], enabled?supplyTraceMarkers(bars,hits):[]).sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
-    if(typeof LWC.createSeriesMarkers==='function') {
-      if(holder.plugin && holder.plugin.setMarkers)holder.plugin.setMarkers(merged);
-      else if(merged.length)holder.plugin=LWC.createSeriesMarkers(series,merged);
+    if(holder.densityCleanup){holder.densityCleanup();holder.densityCleanup=null;}
+    var mode=holder.supplyMode || 'important',events=enabled?supplyDisplayEvents(bars,hits,mode):[];
+    counts.mode=mode;counts.selected=events.length;
+    if(enabled && holder.chart && holder.container && mode==='detail')holder.tipCleanup=attachSupplyTraceTooltip(holder.chart,holder.container,bars,hits);
+    function paint(){
+      var range=holder.chart?holder.chart.timeScale().getVisibleLogicalRange():null,width=holder.container?Math.max(1,holder.container.clientWidth-76):1;
+      var merged=(holder.base || []).concat(holder.trend || [],supplyDisplayMarkers(events,range,width)).sort(function(a,b){return a.time<b.time?-1:a.time>b.time?1:0;});
+      if(typeof LWC.createSeriesMarkers==='function') {
+        if(holder.plugin && holder.plugin.setMarkers)holder.plugin.setMarkers(merged);
+        else if(merged.length)holder.plugin=LWC.createSeriesMarkers(series,merged);
+      }
+    }
+    paint();
+    if(holder.chart && enabled){
+      var ts=holder.chart.timeScale(),ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(paint):null;
+      ts.subscribeVisibleLogicalRangeChange(paint);if(ro && holder.container)ro.observe(holder.container);
+      holder.densityCleanup=function(){ts.unsubscribeVisibleLogicalRangeChange(paint);if(ro)ro.disconnect();};
     }
     return counts;
   }
 
   global.NineChartCore = {
+    REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,installTrendBands:installTrendBands,
+    SUPPLY_DISPLAY:SUPPLY_DISPLAY,supplyDisplayEvents:supplyDisplayEvents,supplyDisplayMarkers:supplyDisplayMarkers,
     SUPPLY_TRACES: SUPPLY_TRACES, supplyTraceBars: supplyTraceBars, supplyTraceMarkers: supplyTraceMarkers, supplyTraceSummary: supplyTraceSummary, supplyTraceLegendHtml: supplyTraceLegendHtml, supplyTraceTooltipHtml: supplyTraceTooltipHtml, attachSupplyTraceTooltip: attachSupplyTraceTooltip, setSupplyTraceMarkers: setSupplyTraceMarkers,
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,
     CANDLE_UP: CANDLE_UP, CANDLE_DOWN: CANDLE_DOWN, ICHIMOKU: ICHIMOKU,

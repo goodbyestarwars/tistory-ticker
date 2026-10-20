@@ -844,6 +844,9 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   line-height: 1.5;
 }
 #foreign-flow .ff-volume-study-label b { color: #4f8df7; font-weight: 600; }
+#foreign-flow .nine-trace-mode { display:inline-flex;align-items:center;gap:4px; }
+#foreign-flow .nine-trace-mode select { max-width:210px;min-height:26px;padding:2px 5px;border:1px solid #aaa;border-radius:4px;font:inherit;background:transparent;color:inherit; }
+#foreign-flow .nine-trace-mode select:focus-visible { outline:2px solid #1261c4;outline-offset:2px; }
 #foreign-flow .ff-volume-study-label .ff-volume-ma-value { color: #2563eb; }
 #foreign-flow .ff-lwc-pane-labels + .ff-volume-study-label { display: none; }
 #foreign-flow .ff-legend-item {

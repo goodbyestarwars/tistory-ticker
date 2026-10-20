@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-us-ranges';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-regime-traces';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -115,8 +115,9 @@
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     bollingerEnabled: false,
-    accumulationEnabled: false,
-    trendEnabled: false,
+    accumulationEnabled: true,
+    supplyMode: 'important',
+    trendEnabled: true,
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
@@ -498,9 +499,10 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
-      + '<label title="이동평균 배열로 추세를 봅니다(주가 예측·매수 신호 아님). 장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224(주가가 크게 빠진 하락 추세, 파랑), 단기 정배열 = MA5 &gt; MA10 &gt; MA20(탄력이 붙음, 빨강). 같은 상태가 3봉 연속 유지되면 전환 표시를 한 번 찍고, 범례에 현재 상태와 250일 고점 대비 하락률을 보여줍니다."><input type="checkbox" id="ssTrendToggle" /> 추세(이평 배열) 표시</label>'
+      + '<label title="이평 배열과 기울기가 일치할 때 상승/하락, 그 외 전환·중립. 새 상태가 연속 3봉일 때 확인합니다. 단기 5/10/20·중기 20/60/120·장기 60/120/224 SMA. 기울기는 단기 MA20의 5봉·중기 MA60의 10봉·장기 MA120의 20봉 변화율 ±0.2% 기준입니다. 진행 중 봉의 결과는 잠정입니다. 매수 신호가 아닙니다."><input type="checkbox" id="ssTrendToggle" checked /> 추세 상태 띠</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="국내 일봉 OHLCV 관찰용·매집 확정 및 매수 신호 아님. 거래량 급증: 직전 20일 평균 3배 이상. 장기선 공방: 112·224·448일선 접근(±2%)과 돌파·이탈(±1% 확인)·20봉 이내 회복. 대량 윗꼬리(40% 이상) 이후 20봉 이내 저점 -2% 방어와 고가 종가 재돌파는 회복 당일에 별도 표시. 거래대금은 종가×거래량 대용값. 마커 봉의 십자선 툴팁에서 겹친 조건을 모두 확인합니다."><input type="checkbox" id="ssAccumulationToggle" /> 수급 흔적</label>'
+      + '<label title="일봉 OHLCV 관찰용. 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 확대하면 숨겨진 기호를 확인할 수 있고 모든 조건은 십자선 툴팁에 있습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
+      + '<label class="nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ssSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="important">중요 · 검증 통과 없음</option><option value="detail">상세 · 관찰 전체</option></select></label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -1576,6 +1578,8 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var supplyModeSelect=container.querySelector('#ssSupplyMode');
+    if(supplyModeSelect){supplyModeSelect.value=state.supplyMode;supplyModeSelect.onchange=function(){state.supplyMode=supplyModeSelect.value==='detail'?'detail':'important';renderChartForCode(container,state.selectedCode);};}
     var vpToggle = container.querySelector('#ssVolumeProfileToggle, [data-chart-vp-toggle]');
     if (vpToggle) {
       vpToggle.checked = state.volumeProfileEnabled;
@@ -2509,6 +2513,8 @@
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (supplyMarkerHolder && supplyMarkerHolder.tipCleanup) supplyMarkerHolder.tipCleanup();
+    if (supplyMarkerHolder && supplyMarkerHolder.trendCleanup) supplyMarkerHolder.trendCleanup();
+    if (supplyMarkerHolder && supplyMarkerHolder.densityCleanup) supplyMarkerHolder.densityCleanup();
     supplyMarkerHolder = null;
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
@@ -2582,14 +2588,12 @@
           priceLegendHtml.push('<span style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
-      var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false };
+      var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, timeframe:timeframe };
       if (state.trendEnabled) {
         core.setTrendMarkers(LWC, candleSeries, bars, true, markHolder);
-        priceLegendHtml.push(core.trendLegendHtml(core.trendSummary(bars)));
       }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
-        var accCounts = core.setSupplyTraceMarkers(LWC, candleSeries, bars, true, markHolder);
-        priceLegendHtml.push(core.supplyTraceLegendHtml(accCounts));
+        core.setSupplyTraceMarkers(LWC, candleSeries, bars, true, markHolder);
       } else if (state.accumulationEnabled) {
         priceLegendHtml.push('<span style="color:' + core.SUPPLY_TRACES.color + '">수급 흔적은 국내 일봉에서만 표시됩니다</span>');
       }

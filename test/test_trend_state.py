@@ -72,9 +72,11 @@ class TrendStateTest(unittest.TestCase):
         flow = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
         self.assertIn('ssTrendToggle', stock)
         self.assertIn('ffTrendToggle', flow)
-        self.assertIn('core.trendLegendHtml(core.trendSummary(bars))', stock)
-        self.assertIn('core.trendLegendHtml(core.trendSummary(bars))', flow)
-        sentence = '장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224'
+        self.assertIn('core.setTrendMarkers(', stock)
+        self.assertIn('core.setTrendMarkers(', flow)
+        self.assertNotIn('core.trendMarkers(', stock)
+        self.assertNotIn('core.trendMarkers(', flow)
+        sentence = '단기 5/10/20·중기 20/60/120·장기 60/120/224 SMA'
         self.assertIn(sentence, stock)
         self.assertIn(sentence, flow)
 

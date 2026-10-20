@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-us-ranges';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-regime-traces';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4410,8 +4410,9 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="이동평균 배열로 추세를 봅니다(주가 예측·매수 신호 아님). 장기 역배열 = MA20 &lt; MA60 &lt; MA120 &lt; MA224(주가가 크게 빠진 하락 추세, 파랑), 단기 정배열 = MA5 &gt; MA10 &gt; MA20(탄력이 붙음, 빨강). 같은 상태가 3봉 연속 유지되면 전환 표시를 한 번 찍고, 범례에 현재 상태와 250일 고점 대비 하락률을 보여줍니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세(이평 배열) 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="국내 일봉 OHLCV 관찰용·매집 확정 및 매수 신호 아님. 거래량 급증: 직전 20일 평균 3배 이상. 장기선 공방: 112·224·448일선 접근(±2%)과 돌파·이탈(±1% 확인)·20봉 이내 회복. 대량 윗꼬리(40% 이상) 이후 20봉 이내 저점 -2% 방어와 고가 종가 재돌파는 회복 당일에 별도 표시. 거래대금은 종가×거래량 대용값. 마커 봉의 십자선 툴팁에서 겹친 조건을 모두 확인합니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 수급 흔적</label>'
+        + '<label class="ff-ichimoku-toggle" title="이평 배열과 기울기가 일치할 때 상승/하락, 그 외 전환·중립. 새 상태가 연속 3봉일 때 확인합니다. 단기 5/10/20·중기 20/60/120·장기 60/120/224 SMA. 기울기는 단기 MA20의 5봉·중기 MA60의 10봉·장기 MA120의 20봉 변화율 ±0.2% 기준입니다. 진행 중 봉의 결과는 잠정입니다. 매수 신호가 아닙니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세 상태 띠</label>'
+        + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 확대하면 숨겨진 기호를 확인할 수 있고 모든 조건은 십자선 툴팁에 있습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
+        + '<label class="ff-ichimoku-toggle nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ffSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="important">중요 · 검증 통과 없음</option><option value="detail">상세 · 관찰 전체</option></select></label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
         + '<span class="ff-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (waveState.enabled ? '' : ' hidden') + '></span>'
         + '</div>'
@@ -4459,31 +4460,17 @@
   var movingAverageOverlaySeries = [];
   var bollingerEnabled = false;
   var bollingerOverlaySeries = [];
-  var trendEnabled = false;          // 이동평균 배열 추세 표시(2026-10-19)
-  // 추세 배지(차트검색 범례와 같은 문구): 현재 장기·단기 이평 배열과 250일 고점 대비 하락률. 꺼져 있으면 지운다.
-  function renderTrendBadge(container, bars) {
-    if (!container) return;
-    Array.prototype.forEach.call(container.querySelectorAll('.ff-trend-badge'), function (el) { el.remove(); });
-    var core = global.NineChartCore;
-    if (!trendEnabled || !core || !core.trendLegendHtml) return;
-    var badge = document.createElement('div');
-    badge.className = 'ff-trend-badge';
-    badge.style.cssText = 'position:absolute;z-index:6;left:8px;bottom:6px;font-size:11px;line-height:1.4;pointer-events:none;padding:2px 6px;';
-    badge.innerHTML = core.trendLegendHtml(core.trendSummary(bars));
-    container.appendChild(badge);
+  var trendEnabled = true;          // 이동평균 배열 추세 표시(2026-10-19)
+  // 이전 배지를 정리한다. 현재 추세는 공통 상단 상태 띠에서 표시한다.
+  function renderTrendBadge(container) {
+    if(container)container.querySelectorAll('.ff-trend-badge').forEach(function(el){el.remove();});
+  }
+  function renderSupplyBadge(container) {
+    if(container)container.querySelectorAll('.ff-supply-badge').forEach(function(el){el.remove();});
   }
 
-  function renderSupplyBadge(container, bars) {
-    if (!container) return;
-    Array.prototype.forEach.call(container.querySelectorAll('.ff-supply-badge'), function(el) { el.remove(); });
-    var core=global.NineChartCore;
-    if (!accumulationEnabled || !core || !core.supplyTraceLegendHtml) return;
-    var badge=document.createElement('div'); badge.className='ff-supply-badge';
-    badge.style.cssText='position:absolute;z-index:6;left:8px;right:8px;top:34px;font-size:11px;line-height:1.4;pointer-events:none;';
-    badge.innerHTML=core.supplyTraceLegendHtml(core.supplyTraceSummary(bars)); container.appendChild(badge);
-  }
-
-  var accumulationEnabled = false;   // 수급 흔적 표시(기존 토글 ID 유지) - 이벤트 마커와 한 플러그인에 합쳐 건다
+  var supplyDisplayMode = 'important';
+  var accumulationEnabled = true;   // 수급 흔적 표시(기존 토글 ID 유지) - 이벤트 마커와 한 플러그인에 합쳐 건다
   var flowMarkerHolder = null, flowMarkerCtx = null;
 
   function removeBollingerOverlay() {
@@ -4621,11 +4608,17 @@
       accumulationEnabled = accToggle.checked;
       var ctx = flowMarkerCtx;
       if (ctx && flowMarkerHolder && lwcChart === ctx.chart && global.NineChartCore) {
+        flowMarkerHolder.supplyMode=supplyDisplayMode;
         global.NineChartCore.setSupplyTraceMarkers(ctx.LWC, ctx.series, ctx.bars, accumulationEnabled, flowMarkerHolder);
         renderSupplyBadge(flowMarkerHolder.container, ctx.bars);
         lwcMarkers = flowMarkerHolder.plugin;
       }
     });
+    var supplyModeSelect=box.querySelector('#ffSupplyMode');
+    if(supplyModeSelect){supplyModeSelect.value=supplyDisplayMode;supplyModeSelect.addEventListener('change',function(){
+      supplyDisplayMode=supplyModeSelect.value==='detail'?'detail':'important';
+      var ctx=flowMarkerCtx;if(ctx && flowMarkerHolder && lwcChart===ctx.chart){flowMarkerHolder.supplyMode=supplyDisplayMode;global.NineChartCore.setSupplyTraceMarkers(ctx.LWC,ctx.series,ctx.bars,accumulationEnabled,flowMarkerHolder);}
+    });}
     var srToggle = box.querySelector('#ffSupportResistanceToggle');
     if (srToggle) {
       srToggle.addEventListener('change', function () {
@@ -5995,6 +5988,8 @@
   // 재검색/언마운트 시 이전 차트 인스턴스·오버레이·구독을 정리(리스너 누수 방지)
   function destroyLwChart() {
     if (flowMarkerHolder && flowMarkerHolder.tipCleanup) flowMarkerHolder.tipCleanup();
+    if (flowMarkerHolder && flowMarkerHolder.trendCleanup) flowMarkerHolder.trendCleanup();
+    if (flowMarkerHolder && flowMarkerHolder.densityCleanup) flowMarkerHolder.densityCleanup();
     flowMarkerHolder = null; flowMarkerCtx = null;
     flowRenderId++;
     if (flowSrCleanup) { flowSrCleanup(); flowSrCleanup = null; }
@@ -6125,9 +6120,9 @@
       foreignSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.foreign_net != null ? { time: d.date, value: Number(r.foreign_net) } : null; }).filter(Boolean));
       institutionSeries.setData(daily.map(function (d) { var r = flowMap[chartDate(d.date)]; return r && r.inst_net != null ? { time: d.date, value: Number(r.inst_net) } : null; }).filter(Boolean));
 
-      flowMarkerHolder = { plugin: null, base: buildChartMarkers(daily, chartData), chart: chart, container: container };
+      flowMarkerHolder = { plugin: null, base: buildChartMarkers(daily, chartData), chart: chart, container: container, supplyEnabled:false, supplyMode:supplyDisplayMode,timeframe:'day' };
       flowMarkerCtx = { LWC: LWC, series: candleSeries, bars: daily, chart: chart };
-      flowMarkerHolder.trend = trendEnabled ? core.trendMarkers(daily) : [];
+      core.setTrendMarkers(LWC,candleSeries,daily,trendEnabled,flowMarkerHolder);
       core.setSupplyTraceMarkers(LWC, candleSeries, daily, accumulationEnabled, flowMarkerHolder);
       renderSupplyBadge(container, daily);
       lwcMarkers = flowMarkerHolder.plugin;

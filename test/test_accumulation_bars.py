@@ -121,12 +121,12 @@ class HighChangeTooltipLegendTest(unittest.TestCase):
     def test_both_screens_share_core_tooltip_legend_and_title(self):
         stock = open(os.path.join(ROOT, 'js', 'stock-search.js'), encoding='utf-8').read()
         flow = open(os.path.join(ROOT, 'js', 'foreign-flow.js'), encoding='utf-8').read()
-        self.assertIn('core.supplyTraceLegendHtml(accCounts)', stock)
+        self.assertIn('core.setSupplyTraceMarkers(', stock)
         self.assertIn('setSupplyTraceMarkers(', flow)
         for source in (stock, flow):
-            self.assertIn('수급 흔적</label>', source)
-            self.assertIn('직전 20일 평균 3배 이상', source)
-            self.assertIn('종가×거래량 대용값', source)
+            self.assertIn('거래량·가격 흔적</label>', source)
+            self.assertIn('3배 거래량', source)
+            self.assertIn('검증 통과 유형', source)
             self.assertNotIn('setAccumulationMarkers(', source)
 
 

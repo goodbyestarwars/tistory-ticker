@@ -472,6 +472,9 @@ html body .ss-chart-tabs.ss-chart-tabs {
   pointer-events: none;
 }
 #stock-search .ss-price-study-label b { font-weight: 600; }
+#stock-search .nine-trace-mode { display:inline-flex;align-items:center;gap:4px; }
+#stock-search .nine-trace-mode select { max-width:210px;min-height:26px;padding:2px 5px;border:1px solid #aaa;border-radius:4px;font:inherit;background:transparent;color:inherit; }
+#stock-search .nine-trace-mode select:focus-visible { outline:2px solid #1261c4;outline-offset:2px; }
 #stock-search .ss-price-study-label .ss-ichimoku-label { color: #8a9099; }
 #stock-search .ss-ohlc-tooltip {
   position: absolute;

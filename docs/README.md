@@ -10,6 +10,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
 | `SUPPLY_TRACE_CHART_2026-10-19.md` | 수급 흔적 차트: 3배 거래량·112/224/448 장기선·윗꼬리 후 회복 기준과 로컬 검증 | 차트 표시 |
+| `CHART_REGIME_TRACES_2026-10-20.md` | 추세 상태 띠·1일1기호·줌 밀도·중요/상세 및 기존 일봉 재검증(중요 유형 채택0) | 차트 추세·흔적 UI |
 | `UI_GUIDE.md` | 색상, 레이아웃, 반응형 원칙 | UI 작업 |
 | `DOMESTIC_VOLUME_POWER.md` | 국내 실시간 종목판 체결강도 순위 API·공유 캐시·PC/모바일 표시 | 체결강도 탭 |
 | `SCANNER_FIVE_GROUPS_2026-10-19.md` | 검색기 5개 통합·DART 연간/단독분기 관문·기존 이력 분리·검증 | 검색기 개편 |
