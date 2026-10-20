@@ -93,6 +93,7 @@
     lastRealtimeAt: 0,
     lastWsBook: null,    // 최근 WS 호가 {asks(높은 값부터), bids} - REST 폴링 호가보다 우선해 분석에 쓴다
     lastWsBookAt: 0,
+    previousDepth: null, // 같은 가격의 직전 실수신 잔량만 증감 비교
     lastWsAnalysisAt: 0,
     lastStrength: null,
     lastRealStrength: null,
@@ -280,6 +281,7 @@
     state.lastRealtimeAt = 0;
     state.lastWsBook = null;
     state.lastWsBookAt = 0;
+    state.previousDepth = null;
     state.lastWsAnalysisAt = 0;
     state.lastStrength = null;
     state.lastRealStrength = null;
@@ -456,11 +458,22 @@
     var board = container.querySelector('#obBoard');
     if (!board) return;
     var asks = Array.isArray(orderbook.asks) ? orderbook.asks.slice() : [];
-    var bids = Array.isArray(orderbook.bids) ? orderbook.bids : [];
+    var bids = Array.isArray(orderbook.bids) ? orderbook.bids.slice() : [];
     // 2026-10-06: KIS WebSocket은 매도 1호가(가장 싼 값)부터 주지만 REST·renderBoard의 asks는
     // 높은 값부터라 data-level이 반대다. 순서를 맞추지 않으면 실시간 호가가 오는 순간 매도 쪽이
     // 거꾸로 뒤집혀 최우선 매도호가가 맨 위(매수 1호가와 100원 떨어진 줄)로 간다(셀바스AI).
     asks.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
+    bids.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
+    asks = validDepth(asks);
+    bids = validDepth(bids);
+    // 공급자가 이전 REST보다 많은/적은 단계를 보내면 행 구조만 다시 만든다.
+    if (board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
+        || board.querySelectorAll('.ob-row-bid').length !== Math.min(bids.length, 10)) {
+      renderBoard(container, { asks: asks, bids: bids }, state.lastRealtimeQuote);
+      state.previousDepth = null; // 새 행에는 직전 동일 가격 비교가 아직 없다.
+    }
+    asks = asks.slice(0, 10);
+    bids = bids.slice(0, 10);
     var maxQty = 1;
     asks.concat(bids).forEach(function (row) {
       var qty = numericOrNull(row.qty);
@@ -468,6 +481,9 @@
     });
 
     function updateSide(rows, side) {
+      board.querySelectorAll('.ob-row-' + side).forEach(function (line) {
+        line.hidden = Number(line.getAttribute('data-level')) > rows.length;
+      });
       rows.forEach(function (row, index) {
         var line = board.querySelector('.ob-row-' + side + '[data-level="' + (index + 1) + '"]');
         if (!line) return;
@@ -479,10 +495,26 @@
         if (qtyEl) qtyEl.textContent = qty == null ? '-' : fmtQty(qty);
         if (priceEl) priceEl.textContent = price == null ? '-' : Math.round(price).toLocaleString('ko-KR');
         if (bar) bar.style.width = Math.max(2, Math.round((qty || 0) / maxQty * 100)) + '%';
+        var deltaEl = line.querySelector('.ob-delta');
+        if (deltaEl) setDelta(deltaEl, depthDelta(side, price, qty));
       });
     }
     updateSide(asks, 'ask');
     updateSide(bids, 'bid');
+    var spread = board.querySelector('.ob-spread');
+    if (spread) spread.textContent = '매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가';
+    var totalAsk = asks.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
+    var totalBid = bids.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
+    var total = totalAsk + totalBid || 1;
+    var askTotalEl = board.querySelector('[data-field="ask-total"]');
+    var bidTotalEl = board.querySelector('[data-field="bid-total"]');
+    var askBar = board.querySelector('.ob-footer-bar-ask');
+    var bidBar = board.querySelector('.ob-footer-bar-bid');
+    if (askTotalEl) askTotalEl.textContent = fmtQty(totalAsk);
+    if (bidTotalEl) bidTotalEl.textContent = fmtQty(totalBid);
+    if (askBar) askBar.style.width = (totalAsk / total * 100).toFixed(1) + '%';
+    if (bidBar) bidBar.style.width = (totalBid / total * 100).toFixed(1) + '%';
+    rememberDepth(asks, bids);
     var wsAsks = asks.map(function (r) { return { price: numericOrNull(r.price), qty: numericOrNull(r.qty) || 0 }; });
     var wsBids = bids.map(function (r) { return { price: numericOrNull(r.price), qty: numericOrNull(r.qty) || 0 }; });
     drawSilhouette(board, wsAsks, wsBids);
@@ -578,7 +610,7 @@
     var lines = '', dots = '';
     ['bid', 'ask'].forEach(function (side) {
       var pts = [];
-      table.querySelectorAll('.ob-row-' + side).forEach(function (row) {
+      table.querySelectorAll('.ob-row-' + side + ':not([hidden])').forEach(function (row) {
         var level = Number(row.getAttribute('data-level'));
         var odd = !!walls[side][level];
         row.classList.toggle('ob-row-odd', odd);
@@ -1200,14 +1232,20 @@
 
   function renderBoard(container, book, quote) {
     var board = container.querySelector('#obBoard');
-    if (!book || (!book.asks.length && !book.bids.length)) {
+    if (!book || (!(book.asks || []).length && !(book.bids || []).length)) {
       board.innerHTML = '<div class="ob-hint">호가 정보가 없는 종목이거나 장 운영시간이 아니에요.</div>';
       return;
     }
 
+    var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
+    var bids = validDepth(book.bids).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
+    if (!asks.length && !bids.length) {
+      board.innerHTML = '<div class="ob-hint">현재 수신된 유효 호가가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.</div>';
+      return;
+    }
     var maxQty = 0;
-    book.asks.forEach(function (r) { if (r.qty > maxQty) maxQty = r.qty; });
-    book.bids.forEach(function (r) { if (r.qty > maxQty) maxQty = r.qty; });
+    asks.forEach(function (r) { if (r.qty > maxQty) maxQty = r.qty; });
+    bids.forEach(function (r) { if (r.qty > maxQty) maxQty = r.qty; });
     if (!maxQty) maxQty = 1;
 
     var priceCls = quote ? signClass(quote.changeRate) : '';
@@ -1226,29 +1264,18 @@
 
     var summaryHtml = buildSummaryHtml(buildSummaryView(quote));
 
-    // 2026-10-04 사용자 요청: 호가창을 좌우로 나란히(왼쪽 매수·오른쪽 매도, 막대는 가운데에서 바깥으로) 바꿨다.
-    // 줄 수가 20에서 10으로 줄어 모바일에서 차트 아래로 내려가는 거리가 짧아진다. 색은 사이트 규칙대로
-    // 매수=빨강·매도=파랑. data-level은 원래 배열 순서(index+1)를 그대로 써서 실시간 갱신(applyRealtimeOrderbook)이 같다.
-    var pairRows = '';
-    var pairCount = Math.max(book.asks.length, book.bids.length);
-    for (var j = 0; j < pairCount; j++) {
-      var bidRow = book.bids[j];
-      var askIndex = book.asks.length - 1 - j;          // asks는 높은 값부터라 가장 싼 매도호가가 맨 끝에 있다
-      var askRow = askIndex >= 0 ? book.asks[askIndex] : null;
-      pairRows += '<div class="ob-pair">'
-        + (bidRow ? rowHtml(bidRow, maxQty, 'bid', j + 1) : '<div class="ob-row ob-row-empty"></div>')
-        + (askRow ? rowHtml(askRow, maxQty, 'ask', askIndex + 1) : '<div class="ob-row ob-row-empty"></div>')
-        + '</div>';
-    }
+    var ladderRows = asks.map(function (row, index) { return rowHtml(row, maxQty, 'ask', index + 1); }).join('');
+    ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계">매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가</div>';
+    ladderRows += bids.map(function (row, index) { return rowHtml(row, maxQty, 'bid', index + 1); }).join('');
 
-    var totalAsk = book.totalAskQty || 0;
-    var totalBid = book.totalBidQty || 0;
+    var totalAsk = asks.reduce(function (sum, row) { return sum + row.qty; }, 0);
+    var totalBid = bids.reduce(function (sum, row) { return sum + row.qty; }, 0);
     var totalSum = totalAsk + totalBid || 1;
     var askPct = (totalAsk / totalSum * 100).toFixed(1);
     var bidPct = (totalBid / totalSum * 100).toFixed(1);
 
     var footerHtml = '<div class="ob-footer">'
-      + '<div class="ob-footer-label">총잔량 <span class="ob-ask-text">매도 ' + fmtQty(totalAsk) + '</span> · <span class="ob-bid-text">매수 ' + fmtQty(totalBid) + '</span></div>'
+      + '<div class="ob-footer-label">표시 호가 잔량 합계 <span class="ob-ask-text">매도 <b data-field="ask-total">' + fmtQty(totalAsk) + '</b></span> · <span class="ob-bid-text">매수 <b data-field="bid-total">' + fmtQty(totalBid) + '</b></span></div>'
       + '<div class="ob-footer-bar"><span class="ob-footer-bar-ask" style="width:' + askPct + '%"></span><span class="ob-footer-bar-bid" style="width:' + bidPct + '%"></span></div>'
       + '</div>';
 
@@ -1258,12 +1285,13 @@
       + '<span data-field="current-price">' + priceNum + '</span>'
       + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
       + '</div>'
-      + '<div class="ob-table ob-table-pairs">'
-      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 가격 · 잔량</span><span class="ob-ask-text">잔량 · 매도 가격</span></div>'
-      + pairRows + '</div>'
+      + '<div class="ob-table ob-table-pairs" aria-label="매도 최대 10호가와 매수 최대 10호가">'
+      + '<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량 · 증감</span><span>가격</span><span class="ob-ask-text">매도 잔량 · 증감</span></div>'
+      + ladderRows + '</div>'
       + footerHtml
       + buildTradesHtml();
-    drawSilhouette(board, book.asks, book.bids);
+    drawSilhouette(board, asks, bids);
+    rememberDepth(asks, bids);
   }
 
   function buildSummaryView(quote) {
@@ -1387,11 +1415,42 @@
     var pct = Math.max(2, Math.round(row.qty / maxQty * 100));
     var barCls = side === 'ask' ? 'ob-bar-ask' : 'ob-bar-bid';
     var textCls = side === 'ask' ? 'ob-ask-text' : 'ob-bid-text';
+    var delta = depthDelta(side, row.price, row.qty);
+    var deltaCls = delta == null ? '' : delta > 0 ? ' ob-delta-up' : delta < 0 ? ' ob-delta-down' : '';
+    var deltaText = delta == null ? '—' : delta > 0 ? '+' + fmtQty(delta) : fmtQty(delta);
+    var depth = '<span class="ob-depth"><span class="ob-qty ' + textCls + '">' + fmtQty(row.qty) + '</span>'
+      + '<span class="ob-delta' + deltaCls + '">' + deltaText + '</span>'
+      + '<span class="ob-bar-wrap"><span class="' + barCls + '" style="width:' + pct + '%"></span></span></span>';
     return '<div class="ob-row ob-row-' + side + '" data-level="' + level + '">'
-      + '<span class="ob-qty ' + textCls + '">' + fmtQty(row.qty) + '</span>'
-      + '<span class="ob-bar-wrap"><span class="' + barCls + '" style="width:' + pct + '%"></span></span>'
+      + (side === 'ask' ? '<span class="ob-depth-empty"></span>' : depth)
       + '<span class="ob-price ' + textCls + '">' + Math.round(row.price).toLocaleString('ko-KR') + '</span>'
+      + (side === 'ask' ? depth : '<span class="ob-depth-empty"></span>')
       + '</div>';
+  }
+
+  function validDepth(rows) {
+    return (Array.isArray(rows) ? rows : []).filter(function (row) {
+      return row && row.qty != null && row.qty !== ''
+        && Number.isFinite(Number(row.price)) && Number(row.price) > 0
+        && Number.isFinite(Number(row.qty)) && Number(row.qty) >= 0;
+    });
+  }
+
+  function depthDelta(side, price, qty) {
+    var previous = state.previousDepth && state.previousDepth[side][String(price)];
+    return previous == null ? null : Number(qty) - previous;
+  }
+
+  function rememberDepth(asks, bids) {
+    var next = { ask: Object.create(null), bid: Object.create(null) };
+    asks.forEach(function (row) { next.ask[String(row.price)] = Number(row.qty); });
+    bids.forEach(function (row) { next.bid[String(row.price)] = Number(row.qty); });
+    state.previousDepth = next;
+  }
+
+  function setDelta(element, delta) {
+    element.textContent = delta == null ? '—' : delta > 0 ? '+' + fmtQty(delta) : fmtQty(delta);
+    element.className = 'ob-delta' + (delta > 0 ? ' ob-delta-up' : delta < 0 ? ' ob-delta-down' : '');
   }
 
   function fmtQty(v) {
