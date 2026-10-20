@@ -178,12 +178,89 @@
     ctx.textBaseline = 'top';
     // 이동평균 범례 줄 바로 아래(날짜 축·거래량 라벨과 겹치지 않는 위치). 한 줄에 규모·현재 구조·주의를 담고, 좁으면 뒤쪽 주의 문구부터 줄인다.
     var head = '파동 분석(' + (LEVEL_NAME[level] || '중파동') + ')' + (picked.summary ? ' · ' + picked.summary : '');
-    var full = head + ' · 점선=진행 중(바뀔 수 있음) · 매매 추천 아님';
+    if(level==='major')head='파동 분석 > 대파동 · 현재 자료로 재구성'+(picked.support?' · '+picked.support.text:'');
+    var full = head + ' · 실선=확정 · 점선=진행 중';
     var maxWidth = Math.max(60, (view.width || 600) - 16);
     var line = ctx.measureText(full).width <= maxWidth ? full : head;
     while (line.length > 6 && ctx.measureText(line).width > maxWidth) line = line.slice(0, -1);
     ctx.fillText(line, 8, summaryTop == null ? 30 : summaryTop);   // 차트검색은 이동평균 범례 줄 아래(30), 범례가 없는 화면은 맨 위
     ctx.restore();
+  }
+
+  function activeMajor(result) {
+    var waves=(result.levels.major || []).filter(function(w){return !w.suppressed;});
+    // 마지막 봉을 덮는 진행 중 박스를 우선한다. 없으면 마지막 방향 파동.
+    return waves.filter(function(w){return w.end===result.asOf && w.isBox;}).pop()
+      || waves.filter(function(w){return !w.isBox;}).pop() || waves.pop() || null;
+  }
+  function escapeText(value) { return String(value).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];}); }
+  function contextHtml(context) {
+    if(!context)return '보조 자료 부족';
+    var labels={up:'상승',down:'하락',neutral:'중립',unknown:'자료 부족'};
+    return '<b>'+context.text+(context.againstLong?' · 장기 흐름 역행':'')+'</b><br>'
+      +context.periods.map(function(p){return p.label+' '+labels[p.state]+(p.change==null?'':' ('+(p.change>=0?'+':'')+p.change.toFixed(1)+'%)')
+        +(p.pending?' · '+p.pending+'/3봉 확인 중':'');}).join('<br>');
+  }
+  // 과거 십자선은 그 날짜까지 다시 계산한다. 현재 그림의 확정 정보를 과거에 소급하지 않는다.
+  function majorTooltipHtml(bars, result, lanes, index, core, reconstructed) {
+    var wave=activeMajor(result),date=bars[index].date;
+    var out='<b>대파동 · '+escapeText(date)+' 당시 자료 기준</b><br>';
+    if(!wave)return out+'파동 자료 부족';
+    out+=escapeText(wave.label || (STYLE[wave.kind] || STYLE.unk).label)+' · '+(wave.confirmed?'확정(실선)':'진행 중(점선·변경 가능)')+'<br>';
+    out+='극점 구간 '+escapeText(bars[wave.start].date)+' ~ '+escapeText(bars[wave.end].date)+'<br>';
+    if(wave.confirmed && wave.confirmedIndex!=null)out+='확정일 '+escapeText(bars[wave.confirmedIndex].date)+' · 극점 이후 '+(wave.confirmedIndex-wave.end)+'봉<br>';
+    var context=core.majorWaveContext(lanes,wave,index);
+    out+=contextHtml(context);
+    // 확정 당시와 조회일의 보조 판정을 별도 표기한다. 확정 여부는 기간 흐름이 바꾸지 않는다.
+    if(wave.confirmed && wave.confirmedIndex!=null && wave.confirmedIndex!==index){
+      out+='<br>확정일 보조 설명 ('+escapeText(bars[wave.confirmedIndex].date)+')<br>'+contextHtml(core.majorWaveContext(lanes,wave,wave.confirmedIndex));
+    }
+    if(reconstructed && index<bars.length-1){
+      var drawn=(reconstructed.levels.major || []).filter(function(w){return !w.suppressed && w.start<=index && w.end>=index;});
+      var region=drawn.filter(function(w){return w.isBox;}).pop() || drawn.pop();
+      if(region){
+        out+='<hr><b>현재 그림의 해당 영역 (사후 재구성)</b><br>'+escapeText(region.label || STYLE[region.kind].label);
+        if(region.confirmed && region.confirmedIndex!=null){
+          out+='<br>확정일 '+escapeText(bars[region.confirmedIndex].date)+(region.confirmedIndex>index?' · 조회일에는 미확정':'');
+          out+='<br>확정일 보조 설명<br>'+contextHtml(core.majorWaveContext(lanes,region,region.confirmedIndex));
+        }else out+=' · 진행 중';
+      }
+    }
+    return out+'<br><small>종가 변화 ±3/6/9/12% · 3봉 확인 · 미완료 봉은 잠정<br>화면 영역은 현재 자료로 재구성한 파동이며 이후 확정을 포함할 수 있음<br>보조 판정은 극점·확정일을 옮기지 않음</small>';
+  }
+  function attachMajorTooltip(opts, result, lanes) {
+    var chart=opts.ctl.shapes && opts.ctl.shapes.chart,container=opts.ctl.overlay && opts.ctl.overlay.parentElement;
+    if(!chart || !container)return function(){};
+    var core=opts.core || global.NineChartCore,bars=opts.bars,indexes={};bars.forEach(function(b,i){indexes[b.date]=i;});
+    var tip=document.createElement('div');tip.className='nine-wave-tip';tip.setAttribute('role','status');
+    tip.style.cssText='position:absolute;z-index:29;display:none;box-sizing:border-box;padding:8px;background:rgba(255,255,255,.97);border:1px solid #888;color:#222;font:11px/1.45 sans-serif;overflow:auto;pointer-events:none;';container.appendChild(tip);
+    var supplyTip=container.querySelector('.nine-supply-tip');
+    // 대파동/흔적을 한 툴팁으로 읽게 해 서로 덮지 않는다. 흔적 OFF면 원 툴팁도 없다.
+    if(supplyTip)supplyTip.style.visibility='hidden';
+    var last=-1,lastTrace=null,frame=0,latest=null,disposed=false;
+    function update(){
+      frame=0;if(disposed)return;
+      var param=latest,t=param && param.time;
+      if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');
+      var i=indexes[t],point=param && param.point;
+      // 수동 작도 모드에서는 안내가 그리기를 가리지 않는다.
+      if(i===undefined || !point || point.x<0 || point.y<0 || point.x>container.clientWidth || point.y>container.clientHeight || (opts.ctl.mode && opts.ctl.mode())){tip.style.display='none';return;}
+      supplyTip=container.querySelector('.nine-supply-tip');
+      if(supplyTip)supplyTip.style.visibility='hidden';
+      var traceHtml=supplyTip && supplyTip.style.display==='block'?supplyTip.innerHTML:'';
+      if(last!==i || lastTrace!==traceHtml){
+        var historical=i===bars.length-1?result:analysis(bars.slice(0,i+1),opts.key,opts.timeframe);
+        tip.innerHTML=majorTooltipHtml(bars,historical,lanes,i,core,result);
+        if(traceHtml)tip.innerHTML+='<hr>'+traceHtml;
+        last=i;lastTrace=traceHtml;
+      }
+      var width=Math.min(310,container.clientWidth-8);tip.style.width=width+'px';tip.style.maxHeight=Math.min(520,container.clientHeight-8)+'px';tip.style.display='block';
+      tip.style.left=Math.max(4,Math.min(point.x+12,container.clientWidth-width-4))+'px';
+      tip.style.top=Math.max(4,Math.min(point.y+12,container.clientHeight-tip.offsetHeight-4))+'px';
+    }
+    function move(param){latest=param;if(!frame)frame=global.requestAnimationFrame(update);}
+    chart.subscribeCrosshairMove(move);
+    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);chart.unsubscribeCrosshairMove(move);tip.remove();if(supplyTip)supplyTip.style.visibility='';};
   }
 
   // ---- 한 차트에 붙이기 ----
@@ -192,9 +269,11 @@
   function attach(opts) {
     var core = opts.core || global.NineChartCore;
     var ctl = opts.ctl, state = opts.state, detached = false, pickedNow = null, resultNow = null;
-    var font = opts.font || 'sans-serif';
+    var font = opts.font || 'sans-serif', tipCleanup=null;
+    function clearTip(){if(tipCleanup){tipCleanup();tipCleanup=null;}}
     function apply() {
       if (detached) return Promise.resolve();
+      clearTip();
       if (!state.enabled || opts.timeframe === 'minute') {
         pickedNow = null; resultNow = null;
         ctl.removeLayer('wave');
@@ -204,8 +283,21 @@
         if (detached || !state.enabled) return;
         resultNow = analysis(opts.bars, opts.key, opts.timeframe);
         if (!resultNow) return;
+        clearTip();
         pickedNow = pickLevel(resultNow, state.level);
-        ctl.addLayer('wave', function (ctx, view) { drawWaves(ctx, view, pickedNow, font, opts.summaryFont, opts.summaryTop); });
+        if(state.level==='major' && core.trendRegimes && core.majorWaveContext){
+          var lanes=core.trendRegimes(opts.bars,opts.timeframe);
+          pickedNow.support=core.majorWaveContext(lanes,activeMajor(resultNow),resultNow.asOf);
+          tipCleanup=attachMajorTooltip(opts,resultNow,lanes);
+        }
+        ctl.addLayer('wave', function (ctx, view) {
+          var container=ctl.overlay && ctl.overlay.parentElement,top=opts.summaryTop;
+          if(container){
+            var header=container.querySelector('.ss-price-study-label'),trace=container.querySelector('.nine-trace-legend');
+            top=Math.max(top || 4,header?header.offsetTop+header.offsetHeight+4:4,trace?trace.offsetTop+trace.offsetHeight+4:4);
+          }
+          drawWaves(ctx, view, pickedNow, font, opts.summaryFont, top);
+        });
         if (opts.onPicked) opts.onPicked(pickedNow, resultNow);
       }).catch(function () { /* 엔진 스크립트를 못 받으면 파동만 빠지고 차트는 계속 */ });
     }
@@ -213,14 +305,14 @@
       apply: apply,
       picked: function () { return pickedNow; },
       analysis: function () { return resultNow; },
-      detach: function () { detached = true; pickedNow = null; resultNow = null; try { ctl.removeLayer('wave'); } catch (e) { /* 이미 정리됨 */ } }
+      detach: function () { detached = true; clearTip(); pickedNow = null; resultNow = null; try { ctl.removeLayer('wave'); } catch (e) { /* 이미 정리됨 */ } }
     };
   }
 
   global.NineChartWave = {
     LEVELS: LEVELS, LEVEL_NAME: LEVEL_NAME, STYLE: STYLE, TIP: TIP,
     analysis: analysis, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
-    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, attach: attach,
+    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
     _cache: getCache
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartWave;

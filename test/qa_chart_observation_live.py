@@ -1,4 +1,7 @@
-"""Read-only live Pages verification. Opens HMM charts; never submits orders."""
+"""Major-wave preflight/live QA on both production chart pages (no order actions).
+CHART_OBS_LOCAL=1 substitutes only local frontend assets before master deployment.
+Checks desktop/mobile touch, 1/3/5y, historical dates, tooltips and preserved controls.
+"""
 import asyncio
 import base64
 import json
@@ -9,9 +12,9 @@ import urllib.request
 import websockets
 
 REPO=Path(__file__).resolve().parents[1]
-OUT=REPO.parents[1]/'outputs/chart-regime-traces-20261020'
+OUT=REPO.parents[1]/'outputs/major-wave-20261020'
 LOCAL=os.environ.get('CHART_OBS_LOCAL')=='1'
-ASSETS=['js/chart-core.js','js/stock-search.js','js/foreign-flow.js','css/stock-search.css','css/order-book.css']
+ASSETS=['js/chart-core.js','js/chart-wave-overlay.js','js/stock-search.js','js/foreign-flow.js','css/stock-search.css','css/order-book.css']
 if LOCAL:OUT=OUT/'preflight'
 
 
@@ -52,79 +55,76 @@ async def main():
             results=[]
             for width in (1440,390):
                 await call('Emulation.setDeviceMetricsOverride',{'width':width,'height':1100,'deviceScaleFactor':1,'mobile':False})
+                await call('Emulation.setTouchEmulationEnabled',{'enabled':width==390})
                 for screen,prefix,host in [('stock-search','ss','ssChart'),('foreign-flow','ff','ffLwChart')]:
+                    print('START',screen,width,flush=True)
                     await call('Page.navigate',{'url':'https://ghlee.tistory.com/page/'+screen+'?code=011200&name=HMM'})
                     if prefix=='ff':
                         await wait('!!document.querySelector("#foreign-flow [data-view=chart]")')
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
-                    await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
-                    await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-inline-legend-7'
-                    defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
-                    assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
-                    assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
-                    await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
-                    await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===0')
-                    assert await ev('document.querySelectorAll("#'+host+' .nine-trace-legend").length')==0
-                    await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
-                    await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===1')
-                    await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
-                    shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
-                    (OUT/f'live-{prefix}-{width}-important.png').write_bytes(base64.b64decode(shot['data']))
-                    await ev('let m=document.getElementById("'+prefix+'SupplyMode");m.value="detail";m.dispatchEvent(new Event("change"))')
-                    await wait('!!document.querySelector("#'+host+' .nine-supply-tip") && !!document.querySelector("#'+host+' .nine-trend-bands")')
+                    await wait('!!window.NineChartCore && !!document.querySelector("#'+host+' canvas")')
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-major-context-8'
+                    assert await ev('document.querySelectorAll("[id$=TrendToggle], .nine-trend-bands, .nine-trend-boxes").length')==0
+                    await ev('NineChartCore.loadModule("wave")')
+                    await ev('window.qaWave=null;window.qaOpts=null;let attach=NineChartWave.attach;NineChartWave.attach=function(opts){qaOpts=opts;qaWave=attach(opts);return qaWave;}')
+                    toggle='ssAutoWaveToggle' if prefix=='ss' else 'ffWaveToggle'
+                    await ev('document.getElementById("'+toggle+'").click()')
+                    await wait('!!qaWave && !!qaWave.picked()')
+                    await ev('document.querySelector("[data-wave-level=major]").click()')
+                    await wait('qaWave.picked().level==="major" && document.querySelectorAll("#'+host+' .nine-wave-tip").length===1')
                     ranges=[]
                     for period in ('1y','3y','5y'):
-                        clicked=await ev('(()=>{let b=document.getElementById("'+host+'").parentElement.querySelector(\'[data-range="'+period+'"]\');if(b){b.click();return true;}return false;})()')
-                        assert clicked,(screen,period)
-                        await asyncio.sleep(1)
+                        print('RANGE',screen,width,period,flush=True)
+                        assert await ev('(()=>{let b=Array.from(document.getElementById("'+host+'").parentElement.querySelectorAll("[data-range]")).find(x=>x.dataset.range==="'+period+'");if(b){b.click();return true;}return false;})()')
+                        await wait('!!qaWave && !!qaWave.picked() && !!document.querySelector("#'+host+' .nine-wave-tip")')
                         await wait('(()=>{let s=document.getElementById("'+host+'").parentElement.querySelector(".nine-chart-range-status");return !s || !s.textContent.includes("불러오는");})()')
-                        await wait('document.querySelectorAll("#'+host+' .nine-trend-bands").length===1')
-                        await wait('!!window.qaLiveChart')
-                        visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
-                        expected={'1y':365,'3y':1095,'5y':1825}[period]
-                        for _ in range(20):
-                            if visible['spanDays']>=expected*.97:break
-                            await asyncio.sleep(.5)
-                            visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
-                        assert visible['spanDays']>=expected*.97,(screen,width,period,visible)
+                        await asyncio.sleep(1)
+                        expression='(()=>{let r=qaOpts.ctl.shapes.chart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaOpts.bars.length,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()'
+                        visible=await ev(expression)
+                        for _ in range(24):
+                            if visible['spanDays']>={'1y':365,'3y':1095,'5y':1825}[period]*.97:break
+                            await asyncio.sleep(.5);visible=await ev(expression)
+                        assert visible['spanDays']>={'1y':365,'3y':1095,'5y':1825}[period]*.97,visible
+                        assert await ev('document.querySelectorAll("#'+host+' .nine-wave-tip").length')==1
+                        assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
+                        assert await ev('Object.keys(qaWave.analysis().levels).join(",")')=='major,medium,minor'
                         ranges.append({'period':period,**visible})
-                    await ev('document.getElementById("'+prefix+'TrendToggle").click()')
-                    await wait('!document.querySelector("#'+host+' .nine-trend-bands")')
-                    await ev('document.getElementById("'+prefix+'TrendToggle").click()')
-                    await wait('document.querySelectorAll("#'+host+' .nine-trend-bands").length===1')
                     await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
+                    point=await ev('(()=>{let s=qaOpts.ctl.shapes,i=s.bars.length-60,b=s.bars[i],r=document.getElementById("'+host+'").querySelector("canvas").getBoundingClientRect();return {x:r.left+s.chart.timeScale().timeToCoordinate(b.date),y:r.top+s.series.priceToCoordinate(b.close),date:b.date};})()')
+                    if width==390:
+                        await call('Input.dispatchTouchEvent',{'type':'touchStart','touchPoints':[{'x':point['x'],'y':point['y']}]})
+                        await asyncio.sleep(.8)
+                        await call('Input.dispatchTouchEvent',{'type':'touchEnd','touchPoints':[]})
+                    else:
+                        await call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':point['x']-20,'y':point['y']-20})
+                        await call('Input.dispatchMouseEvent',{'type':'mouseMoved','x':point['x'],'y':point['y']})
+                    await wait('document.querySelector("#'+host+' .nine-wave-tip").style.display==="block" && document.querySelector("#'+host+' .nine-wave-tip").textContent.includes("'+point['date']+' 당시 자료 기준")')
+                    tip=await ev('document.querySelector("#'+host+' .nine-wave-tip").textContent')
+                    assert point['date']+' 당시 자료 기준' in tip,tip
+                    assert '화면 영역은 현재 자료로 재구성한 파동' in tip,tip
                     shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
-                    (OUT/f'live-{prefix}-{width}-detail.png').write_bytes(base64.b64decode(shot['data']))
-                    result=await ev('(()=>{let c=document.getElementById("'+host+'");return {bands:c.querySelectorAll(".nine-trend-bands").length,lanes:c.querySelectorAll(".nine-trend-lane").length,tips:c.querySelectorAll(".nine-supply-tip").length,width:c.clientWidth,summary:c.querySelector(".nine-trend-current").innerText};})()')
-                    assert result['bands']==1 and result['lanes']==4 and result['tips']==1 and result['width']<=width,result
-                    assert await ev('document.querySelectorAll("#'+host+' .nine-trace-legend").length')==1
-                    assert await ev('document.querySelectorAll("#'+host+' .nine-trend-box strong").length')==4
-                    assert await ev('Array.from(document.querySelectorAll("#'+host+' .nine-trend-box strong")).every(x=>["상승","하락","중립","자료 부족"].includes(x.textContent))')
-                    if prefix=='ss':
-                        await wait('!!document.querySelector("#order-book .ob-trades")')
-                        layout=await ev('(()=>{let p=document.querySelector(".ss-panel-left"),ob=document.getElementById("order-book");return {left:p.getBoundingClientRect().width,overflow:document.documentElement.scrollWidth>innerWidth,asks:ob.querySelectorAll(".ob-row-ask").length,bids:ob.querySelectorAll(".ob-row-bid").length,trades:!!ob.querySelector(".ob-trades"),header:!!ob.querySelector(".ob-header"),legend:document.querySelector(".nine-trace-legend").textContent};})()')
-                        assert not layout['overflow'],layout
-                        if width==1440:assert 390<=layout['left']<=400,layout
-                        assert layout['asks']==10 and layout['bids']==10 and layout['trades'] and layout['header'],layout
-                        assert ' '.join(layout['legend'].split())=='● 거래량 ■ 장기선 ▲ 회복',layout
-                        await ev('window.scrollBy(0,document.getElementById("order-book").getBoundingClientRect().top-40)')
-                        shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False})
-                        (OUT/f'live-orderbook-{width}.png').write_bytes(base64.b64decode(shot['data']))
-                        legend=await ev('(()=>{let l=document.querySelector("#'+host+' .nine-trace-legend");return {inline:l.parentElement.classList.contains("ss-price-study-label"),colors:Array.from(l.children).map(x=>x.style.color)};})()')
-                        assert legend['inline'] and legend['colors']==['rgb(232, 89, 12)','rgb(121, 80, 178)','rgb(210, 79, 69)'],legend
-                        for toggle,key in [('ssBollingerToggle','bollinger'),('ssIchimokuToggle','cloud')]:
-                            await ev('document.getElementById("'+toggle+'").click()')
-                            await wait('!!document.querySelector("#'+host+' [data-study='+key+']")')
-                        await ev('document.getElementById("ssMovingAverageToggle").click()')
-                        await wait('!document.querySelector("#'+host+' [data-study=ma]")')
-                        await ev('document.getElementById("ssMovingAverageToggle").click()')
-                        await wait('!!document.querySelector("#'+host+' [data-study=ma]") && !!document.querySelector("#'+host+' .ss-price-study-label .nine-trace-legend")')
-                        order=await ev('Array.from(new Set(Array.from(document.querySelector("#'+host+' .ss-price-study-label").children).map(x=>x.dataset.study)))')
-                        assert order==['trace','bollinger','cloud','ma'],order
-                        result['orderbook']=layout
-                    results.append({'screen':screen,'viewport':width,'defaults':defaults,'ranges':ranges,**result})
-                    print('PASS',screen,width)
+                    (OUT/f'major-{prefix}-{width}.png').write_bytes(base64.b64decode(shot['data']))
+                    # 규모 전환과 반복 토글 시 툴팁/구독을 중복 생성하지 않는다.
+                    await ev('document.querySelector("[data-wave-level=minor]").click()')
+                    await wait('qaWave.picked().level==="minor" && !document.querySelector("#'+host+' .nine-wave-tip")')
+                    await ev('document.querySelector("[data-wave-level=medium]").click()')
+                    await wait('qaWave.picked().level==="medium"')
+                    await ev('document.querySelector("[data-wave-level=major]").click()')
+                    await wait('document.querySelectorAll("#'+host+' .nine-wave-tip").length===1')
+                    await ev('document.getElementById("'+toggle+'").click()')
+                    await wait('!document.querySelector("#'+host+' .nine-wave-tip")')
+                    await ev('document.getElementById("'+toggle+'").click()')
+                    await wait('document.querySelectorAll("#'+host+' .nine-wave-tip").length===1')
+                    assert not await ev('document.documentElement.scrollWidth>innerWidth')
+                    assert await ev('!!document.getElementById("'+prefix+'MovingAverageToggle")')
+                    # 같은 차트에서 확대/축소하고 파동 자료·저장된 작도/설정이 그대로인지 확인한다.
+                    saved=await ev('JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>!k.includes("cache"))))')
+                    zoom=await ev('(async()=>{let c=document.getElementById("'+host+'"),t=qaOpts.ctl.shapes.chart.timeScale(),r=t.getVisibleLogicalRange(),before=r.to-r.from;NineChartCore.zoomBars(c,.8);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));let a=t.getVisibleLogicalRange();NineChartCore.zoomBars(c,1.25);await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));let b=t.getVisibleLogicalRange();return {before,after:a.to-a.from,restored:b.to-b.from};})()')
+                    assert zoom['after']<zoom['before'] and abs(zoom['restored']-zoom['before'])<.01,zoom
+                    assert saved==await ev('JSON.stringify(Object.fromEntries(Object.entries(localStorage).filter(([k])=>!k.includes("cache"))))')
+                    assert await ev('!!qaOpts.ctl.shapes.lines && !!qaOpts.ctl.setMode')
+                    result={'screen':screen,'width':width,'ranges':ranges,'tip':tip,'noSeparateTrend':True}
+                    results.append(result);print('PASS',screen,width,flush=True)
             (OUT/'live-results.json').write_text(json.dumps(results,ensure_ascii=False,indent=2),encoding='utf8')
     finally:proc.terminate()
 

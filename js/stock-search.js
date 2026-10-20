@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-regime-traces3';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-major-context1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -118,7 +118,6 @@
     bollingerEnabled: false,
     accumulationEnabled: true,
     supplyMode: 'detail',
-    trendEnabled: true,
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
@@ -504,7 +503,6 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
-      + '<label title="1개월/3개월/6개월/1년 전 대비 종가 변화로 표시합니다. 상승/하락 기준은 각각 ±3/6/9/12%이며 3봉 연속 확인합니다. 빨강 상승, 파랑 하락, 회색 중립입니다. 파동 구조 분석 및 매수 신호가 아닙니다."><input type="checkbox" id="ssTrendToggle" checked /> 추세 상태</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
       + '<label class="nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ssSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="detail">상세 · 관찰 전체</option><option value="important">중요 · 검증 통과 없음</option></select></label>'
@@ -1579,14 +1577,6 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
-    var trendToggle = container.querySelector('#ssTrendToggle');
-    if (trendToggle) {
-      trendToggle.checked = state.trendEnabled;
-      trendToggle.onchange = function () {
-        state.trendEnabled = trendToggle.checked;
-        renderChartForCode(container, state.selectedCode);
-      };
-    }
     var supplyModeSelect=container.querySelector('#ssSupplyMode');
     if(supplyModeSelect){supplyModeSelect.value=state.supplyMode;supplyModeSelect.onchange=function(){state.supplyMode=supplyModeSelect.value==='detail'?'detail':'important';renderChartForCode(container,state.selectedCode);};}
     var vpToggle = container.querySelector('#ssVolumeProfileToggle, [data-chart-vp-toggle]');
@@ -2524,7 +2514,6 @@
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (supplyMarkerHolder && supplyMarkerHolder.legendCleanup) supplyMarkerHolder.legendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.tipCleanup) supplyMarkerHolder.tipCleanup();
-    if (supplyMarkerHolder && supplyMarkerHolder.trendCleanup) supplyMarkerHolder.trendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.densityCleanup) supplyMarkerHolder.densityCleanup();
     supplyMarkerHolder = null;
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
@@ -2600,10 +2589,6 @@
         });
       }
       var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, studyOrder:state.studyOrder, timeframe:timeframe };
-      if (state.trendEnabled) {
-        core.setTrendMarkers(LWC, candleSeries, bars, true, markHolder);
-        if (timeframe === 'minute') priceLegendHtml.push('<span>기간별 추세 띠는 일·주·월봉에서 표시됩니다</span>');
-      }
       if (state.accumulationEnabled && timeframe === 'day' && !isUsChart) {
         core.setSupplyTraceMarkers(LWC, candleSeries, bars, true, markHolder);
       } else if (state.accumulationEnabled) {

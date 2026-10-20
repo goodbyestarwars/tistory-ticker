@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-inline-legend-7';
+  var VERSION = '2026-10-20-major-context-8';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -33,7 +33,7 @@
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261020-us-ranges' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
-    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261014-core1', needs: ['data', 'autowave'] },
+    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261020-major-context1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
     sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261018-sr-trend' },
@@ -903,11 +903,10 @@
     holder = holder || {};
     holder.trend = []; // Legacy calculations remain exported; no trend arrows on candles.
     if (holder.trendCleanup) { holder.trendCleanup(); holder.trendCleanup = null; }
-    if (enabled && holder.chart && holder.container && holder.timeframe !== 'minute') holder.trendCleanup = installTrendBands(holder.chart, series, holder.container, bars, holder.timeframe || 'day');
     return Object.prototype.hasOwnProperty.call(holder, 'supplyEnabled') ? setSupplyTraceMarkers(LWC, series, bars, holder.supplyEnabled, holder) : setAccumulationMarkers(LWC, series, bars, holder.accEnabled === true, holder);
   }
 
-  // 각 띠는 그 시점까지의 종가 변화만 본다. 파동 분석의 극점·구조 판정과 독립적이다.
+  // 대파동 보조 판정은 그 시점까지의 종가 변화만 본다. 극점·구조 판정과 독립적이다.
   var REGIME = { confirmBars:3, lanes:[
     {key:'month1',label:'1개월',periods:{day:21,week:4,month:1},threshold:3},
     {key:'month3',label:'3개월',periods:{day:63,week:13,month:3},threshold:6},
@@ -938,6 +937,23 @@
     });
     return lanes;
   }
+  // 대파동 보조 설명만 계산한다. ATR 극점·박스·확정 시점은 변경하지 않는다.
+  // index는 설명 기준 봉이며, 확정 당시 설명에는 confirmedIndex를 전달한다.
+  function majorWaveContext(lanes, wave, index) {
+    var direction=wave && (wave.kind==='up'||wave.kind==='down')?wave.kind:null;
+    var periods=REGIME.lanes.map(function(cfg){
+      var row=(lanes[cfg.key] || [])[index] || {state:'unknown',raw:'unknown',pending:0,change:null};
+      return {key:cfg.key,label:cfg.label,state:row.state,raw:row.raw,pending:row.pending,change:row.change};
+    });
+    var known=periods.filter(function(p){return p.state!=='unknown';});
+    var opposed=direction?known.filter(function(p){return p.state!=='neutral' && p.state!==direction;}):[];
+    var aligned=direction?known.filter(function(p){return p.state===direction;}):[];
+    var pending=periods.some(function(p){return p.pending>0;});
+    var againstLong=opposed.some(function(p){return p.key==='month6'||p.key==='year1';});
+    var text=!known.length?'보조 자료 부족':opposed.length||pending?'전환 확인 중':aligned.length?'방향 일치':'기간 흐름 중립';
+    return {index:index,direction:direction,periods:periods,aligned:aligned.map(function(p){return p.key;}),
+      opposed:opposed.map(function(p){return p.key;}),againstLong:againstLong,pending:pending,text:text};
+  }
   function trendRegimeLegendHtml(lanes,timeframe,index) {
     var unit=timeframe==='day'?'일봉':timeframe==='week'?'주봉':timeframe==='month'?'월봉':'분봉';
     return REGIME.lanes.map(function(c){var rows=lanes[c.key] || [],r=rows[index===undefined?rows.length-1:index] || {state:'unknown'};
@@ -950,41 +966,6 @@
     if(trace && trace.parentElement!==ma){trace.style.top=top+'px';top+=trace.offsetHeight+4;}
     return top;
   }
-  function installTrendBands(chart,series,container,bars,timeframe) {
-    var lanes=trendRegimes(bars,timeframe),wrap=document.createElement('div');wrap.className='nine-trend-bands nine-trend-boxes';
-    wrap.style.cssText='position:absolute;z-index:7;top:26px;left:8px;right:76px;pointer-events:none;font:11px/1.4 sans-serif;';
-    var summary=document.createElement('div');summary.className='nine-trend-current';summary.style.cssText='font-size:10px;opacity:.75;margin-bottom:4px;';wrap.appendChild(summary);
-    var grid=document.createElement('div');grid.style.cssText='display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:4px;';wrap.appendChild(grid);
-    var boxes=REGIME.lanes.map(function(cfg){
-      var box=document.createElement('div');box.className='nine-trend-lane nine-trend-box';box.style.cssText='border:1px solid;border-radius:6px;text-align:center;padding:5px 1px;min-width:0;';
-      var label=document.createElement('div');label.textContent=cfg.label;label.style.cssText='font-size:10px;white-space:nowrap;';box.appendChild(label);
-      var status=document.createElement('strong');status.style.cssText='display:block;font-size:12px;white-space:nowrap;';box.appendChild(status);grid.appendChild(box);
-      return {cfg:cfg,box:box,status:status};
-    });
-    function summaryAt(index){
-      var stamp=bars[index] && (bars[index].date || bars[index].time);summary.textContent=(stamp || '')+' · 기간별 추세';
-      boxes.forEach(function(item){var r=lanes[item.cfg.key][index] || {state:'unknown'},color=r.state==='unknown'?'#747b84':REGIME_COLOR[r.state];
-        item.box.dataset.state=r.state;item.box.style.color=color;item.box.style.borderColor=color;item.box.style.background=color+'18';
-        item.status.textContent=r.state==='neutral'?'중립':REGIME_LABEL[r.state];
-      });
-    }
-    summaryAt(bars.length-1);container.appendChild(wrap);
-    var scale=series.priceScale(),original=scale.options?scale.options().scaleMargins:{top:.06,bottom:.08};original={top:original.top,bottom:original.bottom};
-    var frame=0,disposed=false,lastTop=null;
-    function draw(){frame=0;if(disposed)return;wrap.style.background=isDark()?'rgba(26,26,26,.96)':'rgba(255,255,255,.96)';
-      var top=studyHeaderBottom(container);wrap.style.top=top+'px';
-      var panes=chart.panes && chart.panes(),height=panes && panes[0]?panes[0].getHeight():container.clientHeight;
-      var margin=Math.min(.45,Math.max(original.top,(top+wrap.offsetHeight+10)/Math.max(1,height)));
-      if(lastTop===null || Math.abs(margin-lastTop)>.001){lastTop=margin;scale.applyOptions({scaleMargins:{top:margin,bottom:original.bottom}});}
-    }
-    function schedule(){if(!frame && !disposed)frame=global.requestAnimationFrame(draw);}
-    var indexes={};bars.forEach(function(b,i){indexes[b.date || b.time]=i;});
-    function crosshair(param){var t=param && param.time;if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');summaryAt(indexes[t]===undefined?bars.length-1:indexes[t]);}
-    chart.subscribeCrosshairMove(crosshair);chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);container.addEventListener('nine-study-header-change',schedule);
-    var ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null;if(ro)ro.observe(container);draw();schedule();
-    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);container.removeEventListener('nine-study-header-change',schedule);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart disposed */}};
-  }
-
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
   // holder: { plugin, base, chart, container } - 호출자가 들고 있다가 껐다 켤 때 같은 객체를 넘긴다. chart·container 가 있으면 툴팁도 함께 건다.
   // 반환: {accumulation, bottom, box} 개수(꺼져 있으면 0).
@@ -1180,7 +1161,7 @@
   }
 
   global.NineChartCore = {
-    REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,installTrendBands:installTrendBands,
+    REGIME:REGIME,trendRegimes:trendRegimes,trendRegimeLegendHtml:trendRegimeLegendHtml,majorWaveContext:majorWaveContext,
     SUPPLY_DISPLAY:SUPPLY_DISPLAY,supplyDisplayEvents:supplyDisplayEvents,supplyDisplayMarkers:supplyDisplayMarkers,
     SUPPLY_TRACES: SUPPLY_TRACES, supplyTraceBars: supplyTraceBars, supplyTraceMarkers: supplyTraceMarkers, supplyTraceSummary: supplyTraceSummary, supplyTraceLegendHtml: supplyTraceLegendHtml, supplyTraceTooltipHtml: supplyTraceTooltipHtml, attachSupplyTraceTooltip: attachSupplyTraceTooltip, setSupplyTraceMarkers: setSupplyTraceMarkers,
     VERSION: VERSION, ROOT: ROOT, LWC_URL: LWC_URL,

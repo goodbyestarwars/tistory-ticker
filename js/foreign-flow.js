@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-regime-traces3';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-major-context1';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4410,7 +4410,6 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="1개월/3개월/6개월/1년 전 대비 종가 변화로 표시합니다. 상승/하락 기준은 각각 ±3/6/9/12%이며 3봉 연속 확인합니다. 빨강 상승, 파랑 하락, 회색 중립입니다. 파동 구조 분석 및 매수 신호가 아닙니다."><input type="checkbox" id="ffTrendToggle"' + (trendEnabled ? ' checked' : '') + ' /> 추세 상태</label>'
         + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
         + '<label class="ff-ichimoku-toggle nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ffSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="detail">상세 · 관찰 전체</option><option value="important">중요 · 검증 통과 없음</option></select></label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
@@ -4460,8 +4459,7 @@
   var movingAverageOverlaySeries = [];
   var bollingerEnabled = false;
   var bollingerOverlaySeries = [];
-  var trendEnabled = true;          // 이동평균 배열 추세 표시(2026-10-19)
-  // 이전 배지를 정리한다. 현재 추세는 공통 상단 상태 띠에서 표시한다.
+  // 예전 추세 배지의 잔여 DOM만 정리한다. 보조 설명은 대파동에 통합한다.
   function renderTrendBadge(container) {
     if(container)container.querySelectorAll('.ff-trend-badge').forEach(function(el){el.remove();});
   }
@@ -4592,16 +4590,6 @@
     if (bollingerToggle) bollingerToggle.addEventListener('change', function () {
       bollingerEnabled = bollingerToggle.checked;
       if (bollingerEnabled) addBollingerOverlay(chartData && chartData.daily); else removeBollingerOverlay();
-    });
-    var trendToggle = box.querySelector('#ffTrendToggle');
-    if (trendToggle) trendToggle.addEventListener('change', function () {
-      trendEnabled = trendToggle.checked;
-      var ctx = flowMarkerCtx;
-      if (ctx && flowMarkerHolder && lwcChart === ctx.chart && global.NineChartCore) {
-        global.NineChartCore.setTrendMarkers(ctx.LWC, ctx.series, ctx.bars, trendEnabled, flowMarkerHolder);
-        lwcMarkers = flowMarkerHolder.plugin;
-        renderTrendBadge(flowMarkerHolder.container, ctx.bars);
-      }
     });
     var accToggle = box.querySelector('#ffAccumulationToggle');
     if (accToggle) accToggle.addEventListener('change', function () {
@@ -5988,7 +5976,6 @@
   // 재검색/언마운트 시 이전 차트 인스턴스·오버레이·구독을 정리(리스너 누수 방지)
   function destroyLwChart() {
     if (flowMarkerHolder && flowMarkerHolder.tipCleanup) flowMarkerHolder.tipCleanup();
-    if (flowMarkerHolder && flowMarkerHolder.trendCleanup) flowMarkerHolder.trendCleanup();
     if (flowMarkerHolder && flowMarkerHolder.densityCleanup) flowMarkerHolder.densityCleanup();
     flowMarkerHolder = null; flowMarkerCtx = null;
     flowRenderId++;
@@ -6122,7 +6109,6 @@
 
       flowMarkerHolder = { plugin: null, base: buildChartMarkers(daily, chartData), chart: chart, container: container, supplyEnabled:false, supplyMode:supplyDisplayMode,timeframe:'day' };
       flowMarkerCtx = { LWC: LWC, series: candleSeries, bars: daily, chart: chart };
-      core.setTrendMarkers(LWC,candleSeries,daily,trendEnabled,flowMarkerHolder);
       core.setSupplyTraceMarkers(LWC, candleSeries, daily, accumulationEnabled, flowMarkerHolder);
       renderSupplyBadge(container, daily);
       lwcMarkers = flowMarkerHolder.plugin;
