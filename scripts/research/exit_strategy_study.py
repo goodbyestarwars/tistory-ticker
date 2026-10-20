@@ -244,8 +244,10 @@ def simulate(entry, rule_factory, ctx):
     """진입 한 건에 규칙 하나를 적용한다. 반환: dict(exit_reason, entry, exit, ret_pct(비용 전·슬리피지 반영), net_pct, ...). 과거 정보만 쓴다."""
     path = entry['path']
     day0 = entry['entry_day']
-    entry_idx = next(i for i, p in enumerate(path) if p[0] == day0 and p[1] == EVAL_FIRST)
-    entry_fill = path[entry_idx][2] * (1 + SLIP_BUY_PCT / 100)
+    # 실제 체결 재현용(2026-10-21): entry_hhmm/entry_fill_price 가 있으면 그 분봉·체결가에서 진입한다. 없으면 기존처럼 09:01 시가.
+    first_hhmm = entry.get('entry_hhmm', EVAL_FIRST)
+    entry_idx = next(i for i, p in enumerate(path) if p[0] == day0 and p[1] == first_hhmm)
+    entry_fill = entry.get('entry_fill_price') or path[entry_idx][2] * (1 + SLIP_BUY_PCT / 100)
     rule = rule_factory(path[entry_idx][2], ctx)
     rule.avg = entry_fill
     rule.peak = entry_fill
