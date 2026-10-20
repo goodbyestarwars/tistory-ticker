@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-period-boxes-5';
+  var VERSION = '2026-10-20-trace-legend-6';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -944,6 +944,12 @@
       return '<span style="color:'+(r.state==='unknown'?'#747b84':REGIME_COLOR[r.state])+'">'+c.label+' '+REGIME_LABEL[r.state]+(r.pending?' ('+r.pending+'/3 확인)':'')+'</span>';
     }).join(' · ')+' <small>'+unit+' · 종가 변화 · 3봉 확인</small>';
   }
+  function studyHeaderBottom(container) {
+    var ma=container.querySelector('.ss-price-study-label'),top=Math.max(26,ma?ma.offsetTop+ma.offsetHeight+4:26);
+    var trace=container.querySelector('.nine-trace-legend');
+    if(trace){trace.style.top=top+'px';top+=trace.offsetHeight+4;}
+    return top;
+  }
   function installTrendBands(chart,series,container,bars,timeframe) {
     var lanes=trendRegimes(bars,timeframe),wrap=document.createElement('div');wrap.className='nine-trend-bands nine-trend-boxes';
     wrap.style.cssText='position:absolute;z-index:7;top:26px;left:8px;right:76px;pointer-events:none;font:11px/1.4 sans-serif;';
@@ -966,7 +972,7 @@
     var scale=series.priceScale(),original=scale.options?scale.options().scaleMargins:{top:.06,bottom:.08};original={top:original.top,bottom:original.bottom};
     var frame=0,disposed=false,lastTop=null;
     function draw(){frame=0;if(disposed)return;wrap.style.background=isDark()?'rgba(26,26,26,.96)':'rgba(255,255,255,.96)';
-      var legend=container.querySelector('.ss-price-study-label'),top=Math.max(26,legend?legend.offsetTop+legend.offsetHeight+4:26);wrap.style.top=top+'px';
+      var top=studyHeaderBottom(container);wrap.style.top=top+'px';
       var panes=chart.panes && chart.panes(),height=panes && panes[0]?panes[0].getHeight():container.clientHeight;
       var margin=Math.min(.45,Math.max(original.top,(top+wrap.offsetHeight+10)/Math.max(1,height)));
       if(lastTop===null || Math.abs(margin-lastTop)>.001){lastTop=margin;scale.applyOptions({scaleMargins:{top:margin,bottom:original.bottom}});}
@@ -974,9 +980,9 @@
     function schedule(){if(!frame && !disposed)frame=global.requestAnimationFrame(draw);}
     var indexes={};bars.forEach(function(b,i){indexes[b.date || b.time]=i;});
     function crosshair(param){var t=param && param.time;if(t && typeof t==='object')t=t.year+'-'+String(t.month).padStart(2,'0')+'-'+String(t.day).padStart(2,'0');summaryAt(indexes[t]===undefined?bars.length-1:indexes[t]);}
-    chart.subscribeCrosshairMove(crosshair);chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);
+    chart.subscribeCrosshairMove(crosshair);chart.timeScale().subscribeVisibleLogicalRangeChange(schedule);container.addEventListener('nine-study-header-change',schedule);
     var ro=typeof ResizeObserver!=='undefined'?new ResizeObserver(schedule):null;if(ro)ro.observe(container);draw();schedule();
-    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart disposed */}};
+    return function(){disposed=true;if(frame)global.cancelAnimationFrame(frame);container.removeEventListener('nine-study-header-change',schedule);chart.timeScale().unsubscribeVisibleLogicalRangeChange(schedule);chart.unsubscribeCrosshairMove(crosshair);if(ro)ro.disconnect();wrap.remove();try{scale.applyOptions({scaleMargins:original});}catch(e){/* chart disposed */}};
   }
 
   // 시리즈에 마커를 건다. 같은 시리즈에 이미 다른 마커(예: 종목분석의 이벤트 표시)가 있으면 holder.base 와 합쳐 한 번에 건다.
@@ -1136,6 +1142,18 @@
     if(holder.densityCleanup){holder.densityCleanup();holder.densityCleanup=null;}
     var mode=holder.supplyMode || 'detail',events=enabled?supplyDisplayEvents(bars,hits,mode):[];
     counts.mode=mode;counts.selected=events.length;
+    if(holder.legendCleanup){holder.legendCleanup();holder.legendCleanup=null;}
+    if(enabled && holder.container){
+      var legend=document.createElement('div');legend.className='nine-trace-legend';
+      legend.textContent='● 거래량  ■ 장기선  ▲ 회복';
+      legend.title='일봉 OHLCV 관찰값이며 실제 수급 주체를 뜻하지 않습니다. 장기선은 112/224/448봉 자료가 필요합니다.'+(mode==='important'?' 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다.':'');
+      legend.style.cssText='position:absolute;z-index:8;left:8px;right:76px;font-size:11px;line-height:1.5;white-space:normal;';
+      holder.container.appendChild(legend);
+      var legendFrame=global.requestAnimationFrame(function(){studyHeaderBottom(holder.container);holder.container.dispatchEvent(new Event('nine-study-header-change'));});
+      holder.legendCleanup=function(){global.cancelAnimationFrame(legendFrame);legend.remove();};
+    }
+    if(holder.container)holder.container.dispatchEvent(new Event('nine-study-header-change'));
+
     if(enabled && holder.chart && holder.container && mode==='detail')holder.tipCleanup=attachSupplyTraceTooltip(holder.chart,holder.container,bars,hits);
     function paint(){
       var range=holder.chart?holder.chart.timeScale().getVisibleLogicalRange():null,width=holder.container?Math.max(1,holder.container.clientWidth-76):1;

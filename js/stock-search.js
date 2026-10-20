@@ -503,7 +503,6 @@
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
       + '<label class="nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ssSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="detail">상세 · 관찰 전체</option><option value="important">중요 · 검증 통과 없음</option></select></label>'
-      + '<span class="nine-trace-legend" title="기호는 일봉 관찰값이며 실제 수급 주체를 뜻하지 않습니다. 장기선은 112/224/448봉 자료가 필요합니다.">● 거래량  ■ 장기선  ▲ 회복</span>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -2513,6 +2512,7 @@
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
+    if (supplyMarkerHolder && supplyMarkerHolder.legendCleanup) supplyMarkerHolder.legendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.tipCleanup) supplyMarkerHolder.tipCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.trendCleanup) supplyMarkerHolder.trendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.densityCleanup) supplyMarkerHolder.densityCleanup();

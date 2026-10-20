@@ -59,12 +59,13 @@ async def main():
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-period-boxes-5'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-trace-legend-6'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'detail'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==1
                     await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
                     await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===0')
+                    assert await ev('document.querySelectorAll("#'+host+' .nine-trace-legend").length')==0
                     await ev('document.getElementById("'+prefix+'AccumulationToggle").click()')
                     await wait('document.querySelectorAll("#'+host+' .nine-supply-tip").length===1')
                     await ev('window.scrollBy(0,document.getElementById("'+host+'").getBoundingClientRect().top-150)')
@@ -97,6 +98,7 @@ async def main():
                     (OUT/f'live-{prefix}-{width}-detail.png').write_bytes(base64.b64decode(shot['data']))
                     result=await ev('(()=>{let c=document.getElementById("'+host+'");return {bands:c.querySelectorAll(".nine-trend-bands").length,lanes:c.querySelectorAll(".nine-trend-lane").length,tips:c.querySelectorAll(".nine-supply-tip").length,width:c.clientWidth,summary:c.querySelector(".nine-trend-current").innerText};})()')
                     assert result['bands']==1 and result['lanes']==4 and result['tips']==1 and result['width']<=width,result
+                    assert await ev('document.querySelectorAll("#'+host+' .nine-trace-legend").length')==1
                     assert await ev('document.querySelectorAll("#'+host+' .nine-trend-box strong").length')==4
                     assert await ev('Array.from(document.querySelectorAll("#'+host+' .nine-trend-box strong")).every(x=>["상승","하락","중립","자료 부족"].includes(x.textContent))')
                     if prefix=='ss':
