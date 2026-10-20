@@ -99,6 +99,33 @@ def scenario_net(raw_pct, sb, ss, cost):
     return ((1 + raw_pct / 100) * (1 - ss / 100) / (1 + sb / 100) - 1) * 100 - cost
 
 
+def day_bootstrap_ci(values, days, rounds=2000, seed=11):
+    """평균의 95% 구간: 같은 진입일의 거래를 한 묶음으로 재표집한다(같은 날 거래는 같은 시장 흐름을 공유하므로 독립으로 보지 않는다)."""
+    import random
+    rng = random.Random(seed)
+    by = defaultdict(list)
+    for v, d in zip(values, days):
+        by[d].append(v)
+    keys = list(by)
+    if len(keys) < 2:
+        return None
+    means = []
+    for _ in range(rounds):
+        pick = [x for k in (rng.choice(keys) for _ in keys) for x in by[k]]
+        means.append(sum(pick) / len(pick))
+    means.sort()
+    return {'mean': sum(values) / len(values), 'lo': means[int(rounds * 0.025)], 'hi': means[int(rounds * 0.975)]}
+
+
+def mean_intervals(entries, res):
+    out = {}
+    days = [e['entry_day'] for e in entries]
+    for r, tr in res.items():
+        raws = [raw_returns(e, t) for e, t in zip(entries, tr)]
+        out[r] = {'raw': day_bootstrap_ci(raws, days), 'net': day_bootstrap_ci([t['net_pct'] for t in tr], days)}
+    return out
+
+
 def cost_breakdown(entries, res, real_cost=None):
     e0, t0 = entries[0], res['A_cycle'][0]
     first = next(p for p in e0['path'] if p[0] == e0['entry_day'] and p[1] == xs.EVAL_FIRST)
@@ -168,6 +195,9 @@ def subsets(entries, res):
             continue
         out[name]['rules'] = {r: {'mean': round(sum(tr[i]['net_pct'] for i in idx) / len(idx), 3), 'median': round(statistics.median([tr[i]['net_pct'] for i in idx]), 3),
                                   'raw_mean': round(sum(raw_returns(entries[i], tr[i]) for i in idx) / len(idx), 3)} for r, tr in res.items()}
+        days_sub = [entries[i]['entry_day'] for i in idx]
+        out[name]['mean_ci'] = {r: {'raw': day_bootstrap_ci([raw_returns(entries[i], tr[i]) for i in idx], days_sub),
+                                    'net': day_bootstrap_ci([tr[i]['net_pct'] for i in idx], days_sub)} for r, tr in res.items()} if len(idx) >= 10 else {}
         a = [res['A_cycle'][i] for i in idx]
         out[name]['paired_vs_A_cycle'] = {r: xs.paired_bootstrap(a, [tr[i] for i in idx]) for r, tr in res.items() if r != 'A_cycle'} if len(idx) >= 10 else {}
     return out
@@ -197,7 +227,8 @@ def similarity(entries, res):
             continue
         same = sum(1 for x, y in zip(a, tr) if (x['reason'], x['exit_day'], x['exit_hhmm']) == (y['reason'], y['exit_day'], y['exit_hhmm']))
         diffs = [y['net_pct'] - x['net_pct'] for x, y in zip(a, tr)]
-        out[r] = {'identical_exit_share_pct': round(same / len(a) * 100, 1), 'mean_diff': round(sum(diffs) / len(diffs), 3), 'stdev_diff': round(statistics.pstdev(diffs), 3),
+        se = statistics.pstdev(diffs) / (len(diffs) ** 0.5)
+        out[r] = {'naive_se_of_mean_diff': round(se, 3), 'identical_exit_share_pct': round(same / len(a) * 100, 1), 'mean_diff': round(sum(diffs) / len(diffs), 3), 'stdev_diff': round(statistics.pstdev(diffs), 3),
                   'abs_diff_under_0.3pp_pct': round(sum(1 for d in diffs if abs(d) < 0.3) / len(diffs) * 100, 1),
                   'diff_pctiles': {k: round(v, 2) for k, v in pct_pts(diffs).items()}}
     out['A_cycle_exit_reasons'] = {k: sum(1 for t in a if t['reason'] == k) for k in sorted({t['reason'] for t in a})}
@@ -241,23 +272,36 @@ def render(D):
     for r, d in D['distribution'].items():
         L.append('| %s | %d | %s | %s | %s | %s | %s | %s | %s | %d | %d | %s | %s%% |' % (r, d['n'], f(d['mean']), f(d['trimmed_mean_5pct']), f(d['median']), f(d.get('p10')), f(d.get('p25')),
                                                                                    f(d.get('p75')), f(d.get('p90')), d['wins'], d['losses'], f(d['mean_without_top5']), f(d['sum_top10_share_of_positive_sum'])))
+    L += ['', '평균의 95%% 구간(진입일 단위 재표집, 진입일 %d일):' % D['correlation']['entry_days'], '', '| 규칙 | 원가격 평균 [구간] | net 평균 [구간] |', '|---|---|---|']
+    for r, v in D['mean_intervals'].items():
+        fm = lambda c: '-' if not c else '%+.2f [%+.2f, %+.2f]' % (c['mean'], c['lo'], c['hi'])
+        L.append('| %s | %s | %s |' % (r, fm(v['raw']), fm(v['net'])))
     L += ['', '손실 폭별 건수(A_cycle): ' + json.dumps(A['buckets'], ensure_ascii=False), '', '청산 사유별(A_cycle): ' + json.dumps(A['by_reason'], ensure_ascii=False), '',
           '## 3. 진입 집합 (엔진 필터 반영)', '', '| 집합 | 건수 | 진입일 | ' + ' | '.join('%s 평균(원/ net)' % r for r in D['distribution']) + ' |', '|---|---:|---:|' + '---:|' * len(D['distribution'])]
     for name, v in D['subsets'].items():
         if 'rules' in v:
             L.append('| %s | %d | %d | %s |' % (name, v['n'], v['days'], ' | '.join('%s/%s' % (f(v['rules'][r]['raw_mean']), f(v['rules'][r]['mean'])) for r in D['distribution'])))
+    L += ['', '집합별 원가격 평균 95% 구간(A_cycle / 대표 B_SR / 대표 C_SR) 및 A_cycle 대비 순수익 평균차 [95%]:']
+    for name, v in D['subsets'].items():
+        ci = v.get('mean_ci') or {}
+        pv = v.get('paired_vs_A_cycle') or {}
+        if not ci:
+            continue
+        reps_ = [r for r in D['distribution'] if r not in ('A', 'HOLD')]
+        L.append('- %s (n=%d): ' % (name, v['n']) + '; '.join('%s 원가격 %s' % (r, '-' if not ci.get(r, {}).get('raw') else '%+.2f [%+.2f, %+.2f]' % tuple(ci[r]['raw'][k] for k in ('mean', 'lo', 'hi'))) for r in reps_)
+                 + '; 대비: ' + ', '.join('%s %s' % (r, '-' if r not in pv else '%+.2f [%+.2f, %+.2f]' % (pv[r]['mean_diff'], pv[r]['lo'], pv[r]['hi'])) for r in reps_ if r != 'A_cycle'))
     L += ['', '- 엔진 필터는 `exit_strategy_collect.rank_one`(live_engine.rank_candidates의 유동성·변동성·추세 필터와 같은 점수)을 재사용한 것이며, 실제 엔진의 실시간 호가·VI·예산·보유 제한·잔고 조건은 재현하지 않았다. 일 상위 N은 연구용 가정이다.', '',
           '## 4. 같은 진입에서 전략 간 차이가 작은 이유', json.dumps(D['similarity'], ensure_ascii=False), '',
           '## 5. 단순 보유 기준 대비 (후보 자체의 가격 움직임과 청산 효과 분리)', json.dumps(D['hold'], ensure_ascii=False), '',
           '## 6. 상관·중복', json.dumps(D['correlation'], ensure_ascii=False), '',
-          '## 7. 청산 시뮬레이터 현실성 (실제 원장 vs A_cycle)', json.dumps(D['ledger_realism'], ensure_ascii=False), '',
+          '## 7. 청산 시뮬레이터 현실성 (실제 원장 vs A_cycle)', json.dumps(D['ledger_realism'], ensure_ascii=False), '- 이 항목이 비어 있으면 시뮬레이터가 실제 엔진을 재현한다는 근거가 없는 상태다. `-Mode ledger`(장 마감 후)로 채울 것.', '',
           '- **MDD 주의**: 이 연구의 MDD는 거래별 순수익률(%)을 순서대로 단순 합산한 누적 곡선의 낙폭(%p)이다. 계좌 자본 대비 낙폭이 아니다(종목당 금액·동시 보유·복리 미반영). 계좌 기준 성과와 혼동하지 말 것.', '',
           '## 질문별 답', '']
     ex_drag = A['mean'] - raw
     L += ['- 평균 %s%% 중 비용·슬리피지 몫: 모델 총 차감 %.2f%%p. 원가격 평균 %s%% → 슬리피지 후 %s%% → 비용 후 %s%% (A_cycle).' % (f(A['mean']), drag, f(raw), f(sc['슬리피지만(0.1/0.15)']), f(sc['모델 net 평균(시뮬레이터 값)'])),
           '- 비용을 제외한 가격 움직임의 기대수익: A_cycle 원가격 평균 %s%%, 단순 보유 원가격 평균 %s%%. 신뢰구간과 진입일 수(%d일)를 함께 보고 판단해야 하며 표본이 작으면 0과 구분되지 않을 수 있다.' % (f(raw), f(D['hold']['HOLD_raw_mean']), D['correlation']['entry_days']),
           '- 엔진 필터 적용 시: 위 3번 표에서 집합별 평균을 비교(필터가 평균을 바꾸는지는 건수·신뢰구간과 함께 본다).',
-          '- 차이가 작은 근본 원인: 4번 지표(청산이 동일한 비율, 차이의 표준편차)와 모델이 모든 전략에 같이 얹는 %.2f%%p 차감이 전략 간 차이보다 훨씬 크다는 점.' % drag,
+          '- 차이가 작은 근본 원인: 모든 전략에 같은 %.2f%%p를 얹는 것은 수준만 낮출 뿐 전략 간 차이를 줄이지 않는다. 4번의 거래별 차이 표준편차(큼)와 평균 차이(0 근처)·단순 표준오차를 비교해, 차이가 작게 보이는 것이 같은 청산이어서인지 큰 차이가 서로 상쇄해서인지 구분할 것.' % drag,
           '- 모델 신뢰도: 현실성 일치율(7번), 룩어헤드 감사 0 여부(RESULT_UNIVERSE.md), 독립 표본이 진입일 수에 가깝다는 점, 비용 가정이 허용치 기반이라 절대 수익률은 비관적일 수 있다는 점을 종합해야 한다.']
     return '\n'.join(L)
 
@@ -277,7 +321,7 @@ def main(argv=None):
     res, reps = simulate_all(entries, summary)
     D = {'entries': len(entries), 'restored_pairs': pairs, 'exclusions': ex, 'representatives': reps, 'cost': cost_breakdown(entries, res, a.real_cost),
          'distribution': {r: distribution(tr) for r, tr in res.items()}, 'subsets': subsets(entries, res), 'similarity': similarity(entries, res),
-         'hold': hold_effect(entries, res), 'correlation': correlation(entries, res), 'ledger_realism': ledger_realism(a.work)}
+         'hold': hold_effect(entries, res), 'mean_intervals': mean_intervals(entries, res), 'correlation': correlation(entries, res), 'ledger_realism': ledger_realism(a.work)}
     out = os.path.join(a.work, 'out_diagnose')
     os.makedirs(out, exist_ok=True)
     json.dump(D, open(os.path.join(out, 'diagnose.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
