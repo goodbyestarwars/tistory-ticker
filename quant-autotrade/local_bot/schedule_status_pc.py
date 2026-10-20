@@ -58,7 +58,7 @@ def summarize(raw, research_status=None, now=None):
             except (ValueError, TypeError):
                 label = '미확인' if state != 'Disabled' else label
         jobs.append({'id': name, 'name': name, 'state': label, 'lastSuccessAt': last,
-                     'nextRunAt': row.get('nextRunAt'), 'lastResultCode': row.get('code'),
+                     'nextRunAt': None if state == 'Disabled' else row.get('nextRunAt'), 'lastResultCode': row.get('code'),
                      'triggerCount': row.get('triggerCount')})
     return {'asOf': now.isoformat(timespec='seconds'), 'jobs': jobs}
 

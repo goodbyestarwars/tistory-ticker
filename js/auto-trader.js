@@ -66,7 +66,7 @@
     var rows = (items || []).map(function (j) {
       return '<tr><td>' + esc(j.group) + '</td><td>' + esc(j.name) + '</td><td>' + esc(j.state || '미확인')
         + '</td><td>' + esc(scheduleTime(j.lastSuccessAt))
-        + '</td><td>' + esc(j.nextRunAt ? scheduleTime(j.nextRunAt) : '변경 시') + '</td></tr>';
+        + '</td><td>' + esc(j.nextRunAt ? scheduleTime(j.nextRunAt) : j.state === '의도적 비활성화' ? '없음' : j.id === 'deploy' ? '5분 간격' : '변경 시') + '</td></tr>';
     }).join('');
     return '<section class="at-box at-orders-wide"><div class="at-hd"><h3>갱신·스케줄 상태</h3><span>시각 KST · 작업 결과 기준 · 계좌 정보 제외</span></div>'
       + '<details data-schedule-details' + (scheduleExpanded ? ' open' : '') + '><summary>사이트 · Actions · GAS · VM · PC 확인</summary><div class="at-month-wrap"><table><thead><tr><th>영역</th><th>작업</th><th>상태</th><th>마지막 성공</th><th>다음 실행</th></tr></thead><tbody>'
