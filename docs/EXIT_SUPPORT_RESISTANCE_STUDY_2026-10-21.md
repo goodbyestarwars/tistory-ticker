@@ -45,6 +45,7 @@
 - 아직 구현하지 않은 것(다음 단계): 계좌 단위 동시 보유·예산 재현, 시초 급락/갭/VI/거래정지/분봉 누락 스트레스 시나리오 일괄 테스트(코드는 갭 이후 첫 시가 체결·분봉 누락 시 경로 종료를 이미 따른다), 워크포워드(현재는 시간순 60/40 분리).
 
 ## 4. 운영 PC 실행 절차 (읽기 전용, 주문 없음)
+**가장 쉬운 방법**: `docs/EXIT_SR_LOCAL_AGENT.md`의 한 줄 명령(또는 로컬 Claude/Codex에 그 지시문)을 실행하면 저장소 확보(전용 사본)·사전점검·일봉 캐시 자동 확보·분석·`RESULT.md`까지 한 번에 끝난다. 아래는 단계별 설명이다.
 ```powershell
 cd C:\Users\goodb\tistory-ticker ; git fetch ; git checkout research/exit-support-resistance
 .\scripts\research\run_exit_sr_local.ps1      # 경로 기본값은 스크립트 param 참고

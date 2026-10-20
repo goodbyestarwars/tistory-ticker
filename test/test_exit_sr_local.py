@@ -10,6 +10,8 @@ import unittest
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts', 'research'))
 import exit_ledger_adapter as la  # noqa: E402
 import exit_sr_local as loc  # noqa: E402
+import exit_sr_run_all as runall  # noqa: E402
+import datetime as dt  # noqa: E402
 import exit_sr_study as sr  # noqa: E402
 import exit_strategy_study as xs  # noqa: E402
 
@@ -129,6 +131,11 @@ class PipelineTest(unittest.TestCase):
         self.assertEqual(cases[0]['scanner'], 'pullback')
         blob = ''.join(open(os.path.join(out, f), encoding='utf-8-sig').read() for f in os.listdir(out))
         self.assertNotIn('SECRET', blob)
+        text = runall.render_result(out)
+        self.assertIn('실제 체결 순수익이 아니다', text)
+        self.assertIn('A_cycle', text)
+        self.assertIn('기존 A 유지', text)                               # 표본 부족이면 채택하지 않는다
+        self.assertTrue(os.path.exists(os.path.join(out, 'RESULT.md')))
 
     def test_cycle_confirm_never_later_than_distinct_bars(self):
         closes = [10000] * 10 + [9650] * 30                     # -3.5% 갭 하락
@@ -138,6 +145,32 @@ class PipelineTest(unittest.TestCase):
         ac = xs.simulate(e, lambda p, c: sr.RuleACycle(p, c), {})
         self.assertLessEqual((ac['exit_day'], ac['exit_hhmm']), (a['exit_day'], a['exit_hhmm']))
         self.assertLess(ac['exit_hhmm'], a['exit_hhmm'])        # 같은 봉에서 2회 확인되어 한 봉 빨리 나간다
+
+
+class PreflightTest(unittest.TestCase):
+    def setUp(self):
+        self.d = tempfile.mkdtemp()
+        self.after = dt.datetime(2026, 10, 21, 20, 0, tzinfo=runall.KST)
+
+    def codes(self, *a, **k):
+        return {c for c, _ in runall.preflight(*a, **k)}
+
+    def test_missing_dir_reports_exact_cause_only(self):
+        self.assertEqual(self.codes(os.path.join(self.d, 'x'), os.path.join(self.d, 'w'), now=self.after), {'NO_AUTOTRADER_DIR'})
+
+    def test_work_inside_autotrader_and_market_hours_blocked(self):
+        a = os.path.join(self.d, 'a')
+        os.makedirs(a)
+        open(os.path.join(a, 'live_orders.db'), 'w').close()
+        open(os.path.join(a, '.env'), 'w').write('KIWOOM_APPKEY=k\nKIWOOM_SECRETKEY=s\n')
+        noon = dt.datetime(2026, 10, 21, 12, 0, tzinfo=runall.KST)
+        self.assertIn('WORK_INSIDE_AUTOTRADER', self.codes(a, os.path.join(a, 'w'), now=self.after))
+        self.assertIn('MARKET_HOURS', self.codes(a, os.path.join(self.d, 'w'), now=noon))
+        self.assertEqual(self.codes(a, os.path.join(self.d, 'w'), now=self.after), set())
+        self.assertEqual(self.codes(a, os.path.join(self.d, 'w'), allow_market_hours=True, now=noon), set())
+
+    def test_weekend_is_not_market_hours(self):
+        self.assertFalse(runall.market_open_now(dt.datetime(2026, 10, 24, 12, 0, tzinfo=runall.KST)))
 
 
 if __name__ == '__main__':

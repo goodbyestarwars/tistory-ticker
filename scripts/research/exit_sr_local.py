@@ -156,13 +156,22 @@ def walk_forward(entries, results, folds=3):
 
 
 def regimes(entries, results, cache_dir):
-    mkt = xs.market_returns(cache_dir)
-    out = {}
+    """국면 구분: 진입 전 10거래일 KODEX200(069500) 수익률이 +1% 초과 상승 / -1% 미만 하락 / 그 사이 횡보. 069500 일봉이 없으면 판정 불가."""
+    path = os.path.join(cache_dir, '069500.json')
+    try:
+        rows = [r for r in json.load(open(path, encoding='utf-8')) if r[4]]
+    except (OSError, ValueError):
+        return {'status': '국면 판정 불가: 069500(KODEX200) 일봉 캐시 없음'}
+
+    def prior(day, n=10):
+        prev = [r for r in rows if r[0] < day][-(n + 1):]
+        return (prev[-1][4] / prev[0][4] - 1) * 100 if len(prev) == n + 1 else None
+    out = {'proxy': '069500 KODEX200, 진입 전 10거래일 수익률'}
     for name, tr in results.items():
         buckets = defaultdict(list)
         for t, e in zip(tr, entries):
-            r = xs.prior_return(mkt, e['entry_day'])
-            buckets['up' if r > 1 else 'down' if r < -1 else 'flat'].append(t)
+            r = prior(e['entry_day'])
+            buckets['판정불가' if r is None else 'up' if r > 1 else 'down' if r < -1 else 'flat'].append(t)
         out[name] = {k: xs.summarize(v) for k, v in buckets.items()}
     return out
 
