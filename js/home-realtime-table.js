@@ -273,9 +273,15 @@
   }
 
   function columnsForActive() {
-    if (state.market === 'domestic' && state.active === 'volumePower') {
+    var metricColumns = {
+      volumeGrowth: ['volumeGrowth', '거래증가율(%)'],
+      turnover: ['turnover', '거래회전율(%)'],
+      amountTurnover: ['amountTurnover', '거래대금회전율(%)'],
+      volumePower: ['volumePower', '체결강도(%)']
+    };
+    if (state.market === 'domestic' && metricColumns[state.active]) {
       var columns = columnsForMarket().slice();
-      columns.splice(2, 0, ['volumePower', '체결강도(%)']);
+      columns.splice(2, 0, metricColumns[state.active]);
       return columns;
     }
     return state.active === 'industry'
@@ -504,6 +510,12 @@
     return (parsed * 100).toFixed(1) + '%';
   }
 
+  function metricPct(value) {
+    if (value == null || value === '') return '<span class="hrt-muted">-</span>';
+    var parsed = number(value);
+    return parsed == null ? '<span class="hrt-muted">-</span>' : parsed.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '%';
+  }
+
   function rowHtml(item, rank) {
     var code = item.code || item.symbol;
     var displayName = localizedUsName(item);
@@ -519,6 +531,9 @@
     if (strength != null && strength >= 999.99) strength = null;   // 999.99%는 상한 표시값(무의미)이라 감춘다
     var strengthTone = strength > 100 ? 'hrt-up' : strength != null && strength < 100 ? 'hrt-down' : 'hrt-flat';
     var cells = {
+      volumeGrowth: '<td data-field="volumeGrowth">' + metricPct(item.volume_growth_rate) + '</td>',
+      turnover: '<td data-field="turnover">' + metricPct(item.turnover_rate) + '</td>',
+      amountTurnover: '<td data-field="amountTurnover">' + metricPct(item.amount_turnover_rate) + '</td>',
       volumePower: '<td data-field="volumePower" class="' + strengthTone + '">'
         + (strength == null ? '-' : strength.toFixed(2) + '%') + '</td>',
       stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
