@@ -90,8 +90,13 @@
         return getJson(gh + w.id + '/runs?per_page=10').then(function (res) {
           var run = (res.workflow_runs || [])[0];
           var lastGood = (res.workflow_runs || []).filter(function (item) { return item.conclusion === 'success'; })[0];
+          var lateChart = false;
+          if (w.name === '5년 차트' && run && run.event === 'schedule' && run.created_at) {
+            var chartDate = new Date(run.created_at).toLocaleDateString('sv-SE', { timeZone: 'Asia/Seoul' });
+            lateChart = Date.parse(run.created_at) - Date.parse(chartDate + 'T00:15:00Z') > 3600000;
+          }
           return { group: w.name === 'GAS 배포' ? 'GAS' : '사이트', name: w.name,
-            state: !run ? '미확인' : run.conclusion === 'success' ? '정상' : run.conclusion === 'failure' ? '오류' : '지연',
+            state: !run ? '미확인' : run.conclusion === 'success' ? lateChart ? '지연' : '정상' : run.conclusion === 'failure' ? '오류' : '지연',
             lastSuccessAt: lastGood ? lastGood.updated_at : null, nextRunAt: w.next };
         }).catch(function () { return { group: '사이트', name: w.name, state: '미확인', nextRunAt: w.next }; });
       })),
