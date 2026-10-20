@@ -12,6 +12,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime, timedelta, timezone
+from scanner_observation import measured
 
 logger = logging.getLogger(__name__)
 
@@ -826,6 +827,7 @@ def fetch_domestic_trade(token, appkey, appsecret, code, market='UN'):
     return rows if isinstance(rows, list) else []
 
 
+@measured('kis.volume_rank')
 def fetch_domestic_volume_rank(token, appkey, appsecret, sort_code='3', limit=20, exclude_etf=False):
     """국내주식 순위분석[v1_국내주식-047].
 
@@ -917,6 +919,7 @@ def fetch_investor_stock_rank(token, appkey, appsecret, investor, side):
     return result[:10]
 
 
+@measured('kis.fluctuation_rank')
 def fetch_domestic_fluctuation_rank(token, appkey, appsecret, limit=20, sort_code='0', exclude_etf=False):
     """국내주식 등락률 순위[v1_국내주식-088].
 

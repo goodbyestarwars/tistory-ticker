@@ -1045,6 +1045,7 @@
   }
 
   function itemStage(item) {
+    if (item && item._observationStale) return { key:'hold', label:'마지막 관측·기록', tone:'is-hold' };
     var track = trackMapFor(scannerKey(activeTab))[item && item.code];
     var scanDay = String((item && item.date) || '').slice(0, 10);
     var isNew = !track || (scanDay && String(track.detected_date) >= scanDay);
@@ -1246,7 +1247,8 @@
         var identity=entry.key+'|'+String(item._gpStage || '')+'|'+String((item.patternDetail || {}).status || '')+'|'+String(item.stage || '');
         if(!row.members.some(function(m){return m.identity===identity;}))row.members.push({key:entry.key,item:item,identity:identity});
         // Real-time observed price takes precedence; do not mix its time with a daily scan price.
-        if(entry.key==='ninepayLive' && item.price!=null){row.price=item.price;row.changeRate=item.changeRate;row._quoteBasis='9Pay 수신 '+npTime(item.at);}
+        if(entry.key==='ninepayLive' && item.price!=null && !item._observationStale){row.price=item.price;row.changeRate=item.changeRate;row._quoteBasis='9Pay 수신 '+npTime(item.at);}
+        if(!row._quoteBasis && item._observationStale)row._quoteBasis='마지막 관측·기록 '+(item.lastObservedAt ? npTime(item.lastObservedAt) : item.date || '시각 미확인');
       });
     });
     return order;
@@ -1258,6 +1260,15 @@
       var items=key==='ninepayLive' ? (ninepayData && ninepayData.ruleVersion==='ab70-v1' ? (ninepayData.items || []).concat((ninepayData.signals || []).map(function(r){return Object.assign({stage:'signaled'},r);})) : [])
         : key==='gongpasan' ? gpAllItems() : key==='volumeBreakout' && liveSurgeInfo && (liveSurgeInfo.active || (liveSurgeInfo.items || []).length) ? liveSurgeInfo.items || [] : patterns[key] || [];
       if(key==='longTermQuality')items=items.filter(function(r){return r.financialScreen && r.financialScreen.passed===true && scanData && scanData.longTermFilter && scanData.longTermFilter.version===1;});
+      items=items.map(function(r){
+        var stamp=key==='ninepayLive'?(r.sampleAt || r.at):key==='volumeBreakout'?r.lastObservedAt:(r.scannedAt || (r.patternDetail || {}).scanned_at);
+        var ms=typeof stamp==='number'?stamp*1000:Date.parse(stamp || ''), age=Date.now()-ms;
+        var rankAge=Date.now()-Date.parse((ninepayData || {}).rankAt || '');
+        var stale=key==='ninepayLive' ? (!ninepayData.active || !!ninepayError || !!ninepayData.rankError || !!ninepayData.persistenceError || !isFinite(age) || age<0 || age>90000 || !isFinite(rankAge) || rankAge<0 || rankAge>120000)
+          : key==='volumeBreakout' && liveSurgeInfo ? (!liveSurgeInfo.active || !!liveSurgeInfo.error || !!r.observationStale || !isFinite(age) || age<0 || age>90000)
+          : (!isFinite(age) || age<0 || age>36*3600000);
+        return Object.assign({},r,{_observationStale:stale});
+      });
       return {key:key,items:items};
     }));
   }
@@ -1279,6 +1290,7 @@
   }
   function memberTagHtml(member) {
     var it=member.item, detail=detailFor(it);
+    if(it._observationStale)return '<span>'+memberTagHtml(Object.assign({},member,{item:Object.assign({},it,{_observationStale:false})}))+'<small>마지막 관측·기록 (신규 실시간 아님)</small></span>';
     if(member.key==='ninepayLive') {
       var labels={watch:'감시',volume_met:'70% 충족',pullback:'첫 눌림',signaled:'신호 확인',invalidated:'재이탈·종료'};
       var branches=it.branches && it.branches.length ? it.branches.join('/') : 'A/B 대기';
@@ -1306,8 +1318,11 @@
     var notice='';
     if(activeTab==='liveFlow') {
       var n=ninepayData;
-      notice='<div class="ps-unified-note">9Pay: '+escapeHtml(ninepayError || (!n?'수신 대기':n.ruleVersion!=='ab70-v1'?'구버전·표시 제외':n.active?'장중 감시':'장외·마지막 관측'))
-        +' · '+escapeHtml(liveSurgeInfo?(liveSurgeInfo.active?'거래량 장중 감시':'거래량 장외·일봉/마지막 기록'):'거래량 수신 대기')
+      notice='<div class="ps-unified-note">9Pay: '+escapeHtml(ninepayError || (!n?'수신 대기':n.ruleVersion!=='ab70-v1'?'구버전·표시 제외':n.active && !n.rankError && n.rankAt && Date.now()-Date.parse(n.rankAt)<=120000?'장중 감시':'실시간 확인 불가·마지막 기록'))
+        +' · '+escapeHtml(liveSurgeInfo?(liveSurgeInfo.active && liveSurgeInfo.dataBasis && liveSurgeInfo.dataBasis.realtime?'거래량 장중 감시':'거래량 실시간 확인 불가·마지막 기록'):'거래량 수신 대기')
+        +(n && n.rankError?' · 순위 API 장애: '+escapeHtml(n.rankError):'')
+        +(n && n.rankAt?' · 순위 관측 '+escapeHtml(n.rankAt):'')
+        +(liveSurgeInfo && liveSurgeInfo.error?' · 거래량 API 부분/전체 장애: '+escapeHtml(liveSurgeInfo.error):'')
         +' · A/B 첫70% '+(n?'기존 09:30 이전 관측 기준 유지':'미확인')+' · 주문·체결 미연동'
         +(n && n.persistenceError?' · 저장 오류: '+escapeHtml(n.persistenceError):'')
         +(n && n.queueDropped?' · 수신 누락 '+escapeHtml(n.queueDropped):'')+'</div>';

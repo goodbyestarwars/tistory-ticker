@@ -5,6 +5,7 @@
 
 import math
 import re
+import scan_indicators
 
 import numpy as np
 import pandas as pd
@@ -307,6 +308,9 @@ def moving_average(win, field, period):
     기준으로 삼는 비교에서 부동소수점 오차만으로 크로스 유무가 뒤집히는 경우를
     회귀 테스트로 발견했다(diff_test_targeted.py). 그 경로가 있는 한 값 자체보다
     연산 순서를 원본과 동일하게 유지하는 게 더 중요해서 그대로 둔다."""
+    found, slot = scan_indicators.lookup(win, field, period)
+    if found is not None:
+        return found
     n = len(win)
     ma = [None] * n
     s = 0.0
@@ -316,6 +320,7 @@ def moving_average(win, field, period):
             s -= win[i - period][field]
         if i >= period - 1:
             ma[i] = s / period
+    scan_indicators.store(slot, ma)
     return ma
 
 
@@ -750,6 +755,9 @@ def annotate_pattern_scan_details(pattern_results, scanned_at, pullback_matches=
             if detail is not None:
                 detail['scanned_at'] = scanned_at
             item['scannedAt'] = scanned_at
+            item['dataAsOf'] = item.get('date')
+            item['lastObservedAt'] = scanned_at
+            item['sourceAsOf'] = None  # OHLC date is known; exchange delivery time isn't.
 
 
 def build_pattern_match(stock, daily, detail):
@@ -2229,6 +2237,7 @@ def check_market_regime(index_daily, ma_period=20):
     }
 
 
+@scan_indicators.shared
 def scan_stock(stock, daily, pattern_results, pullback_matches, market_cap_getter=None,
                require_common_market_cap=False):
     """단일 종목의 daily(OHLC)로 6종 패턴을 판정해 pattern_results/pullback_matches에

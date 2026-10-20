@@ -87,5 +87,6 @@ quant-autotrade/**/orderbook*/
 scripts/cloud-vm/market_halt_kis_events.json
 scripts/cloud-vm/vi_today_events.json
 scripts/cloud-vm/option_flow_scope.json
+scanner_observation.json*
 quant-autotrade/**/order_names.json
 quant-autotrade/**/order_fills.json

@@ -12,6 +12,7 @@ import threading
 import time
 
 import kiwoom_9pay_observer as logic
+import scanner_observation as scan_observation
 
 logger = logging.getLogger('kiwoom_9pay_live')
 KST = timezone(timedelta(hours=9))
@@ -133,6 +134,11 @@ def _record(record):
         logger.exception('9Pay research log write failed')
 
 
+@scan_observation.measured('kiwoom.amount_rank')
+def _amount_rank(client, token):
+    return logic.fetch_amount_top(client, token, limit=60)
+
+
 def _rank(appkey, secretkey):
     import db_schema
     import kiwoom_client
@@ -145,13 +151,16 @@ def _rank(appkey, secretkey):
         raise ValueError('empty volume ranking')
     fallback = False
     try:
-        amount = logic.fetch_amount_top(kiwoom_client.call_tr, token, limit=60)
+        amount = _amount_rank(kiwoom_client.call_tr, token)
         if not amount:
             raise ValueError('empty amount ranking')
     except Exception as exc:
         logger.info('9Pay amount rank unavailable: %s', type(exc).__name__)
         amount, fallback = None, True
     rows = logic.candidates(volume, amount, limit=MAX_CODES)
+    # Passive union BEFORE the unchanged 20-slot trading-compatible selection.
+    scan_observation.observe('kiwoom', volume + (amount or []),
+                             errors=['amount_unavailable'] if fallback else [])
     now = datetime.now(KST)
     previous, contexts = {}, {}
     conn = db_schema.get_conn()
@@ -220,6 +229,7 @@ async def _run(appkey, secretkey):
                     pinned = sorted((code for code, track in ws.tracks.items() if track.first70_at),
                                     key=lambda code: (not bool(ws.tracks[code].first80_at), ws.tracks[code].first70_at))
                     codes = list(dict.fromkeys(pinned + codes))[:MAX_CODES]
+                    scan_observation.selection(codes)
                     omitted = [code for code in ranked_codes if code not in codes]
                     metadata = {row['code']: row for row in health_snapshot()['candidateDetails']}
                     metadata.update({row['code']: row for row in details})
@@ -247,6 +257,7 @@ async def _run(appkey, secretkey):
                              'amountFallback': fallback, 'prevVolumeKnown': len(previous)})
                 except Exception as exc:
                     logger.exception('9Pay rank refresh failed')
+                    scan_observation.failure('kiwoom', type(exc).__name__)
                     _set(rankError=type(exc).__name__)
             if now >= next_kis:
                 next_kis = now + KIS_INTERVAL

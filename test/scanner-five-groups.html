@@ -7,7 +7,9 @@
 <script>
 var mode=new URLSearchParams(location.search).get('mode')||'active', now=Date.now()/1000;
 var fixtureRow={code:'005930',name:'삼성전자',price:71000,changeRate:2.1,at:now-2,sampleAt:now-3,volumeRatio:.82,first70At:now-240,priority80:true,stage:'signaled',branches:['A','B'],signalAt:now-30,signalPrice:70800};
-var fixture={ruleVersion:mode==='legacy'?'old':'ab70-v1',running:true,active:mode!=='closed',items:[fixtureRow],signals:[fixtureRow]};
+var fixture={ruleVersion:mode==='legacy'?'old':'ab70-v1',running:true,active:mode!=='closed',rankAt:new Date().toISOString(),items:[fixtureRow],signals:[fixtureRow]};
+if(mode==='delayed'){fixtureRow.at=fixtureRow.sampleAt=now-300;fixture.rankAt=new Date((now-300)*1000).toISOString();}
+if(mode==='partial')fixture.rankError='합성 순위 장애';
 var base={code:'005930',name:'삼성전자',price:70000,changeRate:1,date:'2026-10-16',score:80,reasons:['합성 근거'],interpretation:'검증용',miniChart:Array.from({length:20},(_,i)=>({date:'2026-10-'+String(i+1).padStart(2,'0'),close:69000+i*100})),patternDetail:{status:'BREAKOUT_NEW',resistance:72000}};
 var patterns={};['risingLows','shortTermMaBreakout','maCloudBreakout','doubleBottom','invHeadShoulders','boxRangeLow','pullback','firstPullbackBreakout','angleMomentum','gongpasan','openingGap'].forEach(k=>patterns[k]=[JSON.parse(JSON.stringify(base))]);
 patterns.volumeBreakout=[Object.assign({},base,{patternDetail:{live:true,signals:[{type:'EARLY_PACE',status:'early'},{type:'REALTIME_ACCUM',status:'confirmed'},{type:'OLD_BAR_REBREAK',stage:'REBREAK'}]}})];
@@ -17,6 +19,7 @@ if(['missing','stale','loss'].includes(mode)){patterns.longTermQuality=[];filter
 var scan={patterns:patterns,longTermFilter:filter,scannedAt:'2026-10-19T11:10:00Z',firstPullbackBreakoutReady:true,gongpasanStages:{status:'ok',stages:{WATCH_ACCUM:[JSON.parse(JSON.stringify(base))],BREAKOUT:[JSON.parse(JSON.stringify(base))],WAIT_PULLBACK:[JSON.parse(JSON.stringify(base))]}}};
 window.qaRequests=[];window.qaErrors=[];window.addEventListener('error',e=>{if(e.message)qaErrors.push(e.message)});
 window.fetch=function(url){var u=String(url);qaRequests.push(u);if(mode==='error'&&u.includes('/health/realtime'))return Promise.reject(Error('합성 API 오류'));
-var data=u.includes('/health/realtime')?{ninePayResearch:fixture}:u.includes('/pattern-scan')?scan:u.includes('/volume-surge-live')?{active:true,items:patterns.volumeBreakout}:u.includes('/pattern-tracks')?{tracks:[],stats:{total:3,active:1,success:1,failed:1,days:90}}:{hits:[],tracks:[],items:[],daily:[]};
+var surgeItems=patterns.volumeBreakout.map(r=>Object.assign({},r,{lastObservedAt:mode==='delayed'?now-300:now-2}));
+var data=u.includes('/health/realtime')?{ninePayResearch:fixture}:u.includes('/pattern-scan')?scan:u.includes('/volume-surge-live')?{active:true,dataBasis:{realtime:!['partial','delayed'].includes(mode)},error:mode==='partial'?'합성 KIS 부분 장애':null,items:surgeItems}:u.includes('/pattern-tracks')?{tracks:[],stats:{total:3,active:1,success:1,failed:1,days:90}}:{hits:[],tracks:[],items:[],daily:[]};
 return Promise.resolve({ok:true,json:()=>Promise.resolve({success:true,data:data})});};
 </script><script src="../js/pattern-scan.js"></script></body></html>

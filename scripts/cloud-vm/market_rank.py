@@ -28,6 +28,7 @@ import time
 
 import kiwoom_client
 import polling
+from scanner_observation import measured, count_cache
 
 logger = logging.getLogger('market_rank')
 
@@ -53,7 +54,9 @@ def get_cached(limit):
     with _cache_lock:
         data = _cache['data']
     if not data:
+        count_cache('kiwoom.sidebar', False)
         return None
+    count_cache('kiwoom.sidebar', True)
     return {key: rows[:limit] for key, rows in data.items()}
 
 
@@ -114,6 +117,7 @@ def _first_list_field(res, tr_id):
     return [], None
 
 
+@measured('kiwoom.volume_rank')
 def fetch_volume_top(token, limit=5):
     """당일거래량상위요청(ka10030). kiwoom_api.md 문서의 필수 파라미터 목록 기준 - 미검증
     (2026-07-22, 위 모듈 docstring 참고). '전체/제외 안 함' 계열 값은 이 파일의 ka10017

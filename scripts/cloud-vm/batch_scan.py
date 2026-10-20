@@ -211,6 +211,8 @@ def scan_fundamentals(codes_map, candidate_only=False):
             priority = [(r['code'], codes_map[r['code']]) for r in raw if r.get('code') in codes_map]
         except (OSError, ValueError, TypeError):
             priority = []
+    technical_codes = {code for code, _ in priority} if not candidate_only else set(codes_map)
+    visited = set()
     while priority or i < len(items):
         if time.time() - started_at > FUNDAMENTALS_TIME_BUDGET_SEC:
             stop_reason = '시간예산 초과로 중단'
@@ -218,10 +220,15 @@ def scan_fundamentals(codes_map, candidate_only=False):
 
         is_priority = bool(priority)
         code, name = priority.pop(0) if is_priority else items[i]
+        if code in visited:
+            if not is_priority: i += 1
+            continue
+        visited.add(code)
+        needs_screening = code in technical_codes
         # Dividend screening was added after the original fundamentals cache.
         # Revisit legacy entries once, then let the normal 90-day freshness
         # window apply even when DART has no dividend rows for that company.
-        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and fundamentals.screening_cache_fresh(cache.get(code)):
+        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code))):
             skipped_count += 1
             if not is_priority: i += 1
             continue
@@ -231,8 +238,11 @@ def scan_fundamentals(codes_map, candidate_only=False):
             if not is_priority: i += 1
             continue
         try:
-            result = fundamentals.fetch_stock(dart_key, corp_code)
+            result = fundamentals.fetch_stock(dart_key, corp_code, include_screening=needs_screening)
             if result:
+                if not needs_screening and (cache.get(code) or {}).get('screening'):
+                    # Retain old evidence with its original date; never refresh it by association.
+                    result['screening'] = cache[code]['screening']
                 cache[code] = result
                 fetched_at[code] = datetime.now(timezone.utc).isoformat()
                 new_count += 1

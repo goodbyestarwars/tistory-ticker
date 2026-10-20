@@ -30,6 +30,7 @@ from datetime import datetime, timedelta, timezone
 
 import volume_accumulation as va
 import volume_surge_history
+import scanner_observation as scan_observation
 
 logger = logging.getLogger('volume_surge_live')
 
@@ -211,7 +212,9 @@ def build_item(det, price_now, change_now, now_t):
 def _prev_volume(conn, date_str, code):
     key = (date_str, code)
     if key in _prev_cache:
+        scan_observation.count_cache('kis.previous_daily', True)
         return _prev_cache[key]
+    scan_observation.count_cache('kis.previous_daily', False)
     row = conn.execute(
         'SELECT volume, date FROM daily_prices WHERE code=? AND date<? AND volume>0 ORDER BY date DESC LIMIT 1',
         (code, date_str)).fetchone()
@@ -224,7 +227,9 @@ def _avg_stats(conn, date_str, code):
     """(20일 평균 거래량, 20일 평균 거래대금) - 오늘 제외 최근 20거래일. 15일 미만이면 None(판정 보류)."""
     key = (date_str, code)
     if key in _stats_cache:
+        scan_observation.count_cache('kis.daily_stats', True)
         return _stats_cache[key]
+    scan_observation.count_cache('kis.daily_stats', False)
     rows = conn.execute('SELECT volume, close FROM daily_prices WHERE code=? AND date<? AND volume>0 ORDER BY date DESC LIMIT 20', (code, date_str)).fetchall()
     value = None
     if len(rows) >= 15:
@@ -236,8 +241,11 @@ def _avg_stats(conn, date_str, code):
 def _recent_bars(conn, date_str, code):
     key = (date_str, code)
     if key not in _bars_cache:
+        scan_observation.count_cache('kis.daily_bars', False)
         rows = conn.execute('SELECT date, open, high, low, close, volume FROM daily_prices WHERE code=? AND date<? ORDER BY date DESC LIMIT 60', (code, date_str)).fetchall()
         _bars_cache[key] = [{'date': r[0], 'open': r[1], 'high': r[2], 'low': r[3], 'close': r[4], 'volume': r[5]} for r in reversed(rows)]
+    else:
+        scan_observation.count_cache('kis.daily_bars', True)
     return _bars_cache[key]
 
 
@@ -520,8 +528,9 @@ def _merge_accumulation(early_items, now_t):
 
 def _data_basis(now_t):
     """장중/장마감에 쓸 수 있는 데이터 구분(화면 안내용)."""
-    live = in_poll_window(datetime.fromtimestamp(now_t, KST))
-    return {'realtime': live, 'realtimeNote': '장중 30초 순위 표본으로 만든 5분봉·RVOL(장 마감 뒤에는 마지막 장중 판정만 남음)' if live else '장 마감: 일봉 기반 매집봉 추적과 마지막 장중 판정만 표시',
+    live = (in_poll_window(datetime.fromtimestamp(now_t, KST)) and not _state['error']
+            and _state['updatedAt'] is not None and 0 <= now_t-_state['updatedAt'] <= 90)
+    return {'realtime': live, 'realtimeNote': '장중 30초 순위 표본으로 만든 5분봉·RVOL(장 마감 뒤에는 마지막 장중 판정만 남음)' if live else '실시간 확인 불가: 장외·수신 지연·API 장애 여부와 마지막 관측시각을 확인하세요.',
             'dailyNote': '기존 매집봉 재상승은 일봉(확정 종가) 기준이며 장중에는 현재가·거래량으로 갱신'}
 
 
@@ -546,12 +555,20 @@ def get_payload(now_t=None):
         items.append((status, det, item))
     items.sort(key=lambda x: (0 if x[0] == 'early' else 1, -x[1]['peakPace3']))
     merged = _merge_accumulation([(it[0], it[1], it[2]) for it in items], now_t)
+    display_items = []
+    for original in merged[:MAX_ITEMS]:
+        item = dict(original)
+        samples = _samples.get(item['code'])
+        observed = samples[-1][0] if samples else None
+        item.update(lastObservedAt=observed, sourceAsOf=None, apiError=error,
+                    observationStale=bool(error) or observed is None or now_t-observed>90)
+        display_items.append(item)
     return {
         'active': in_poll_window(datetime.fromtimestamp(now_t, KST)),
         'date': day,
         'updatedAt': datetime.fromtimestamp(updated, timezone.utc).isoformat() if updated else None,
         'intervalSec': POLL_SEC,
-        'items': merged[:MAX_ITEMS],
+        'items': display_items,
         'dataBasis': _data_basis(now_t),
         'ranCount': ran,
         'expiredCount': expired,
@@ -569,16 +586,19 @@ def _fetch_rows(appkey, appsecret):
     import market_board
     token = kis_client.get_token(appkey, appsecret)
     rows = []
+    errors = []
     for sort_code in ('0', '1', '3'):
         try:
             rows.extend(kis_client.fetch_domestic_volume_rank(
                 token, appkey, appsecret, sort_code=sort_code, limit=RANK_LIMIT, exclude_etf=True))
         except Exception as exc:
+            errors.append('volume_'+sort_code+'_'+type(exc).__name__)
             logger.info('거래량 순위 조회 실패(%s): %s', sort_code, exc)
     try:
         rows.extend(kis_client.fetch_domestic_fluctuation_rank(
             token, appkey, appsecret, limit=RANK_LIMIT, sort_code='0', exclude_etf=True))
     except Exception as exc:
+        errors.append('fluctuation_'+type(exc).__name__)
         logger.info('상승률 순위 조회 실패: %s', exc)
     out = []
     for raw in rows:
@@ -588,7 +608,13 @@ def _fetch_rows(appkey, appsecret):
             # price*volume fallback; the KIS unit remains unverified.
             item['_history_cum_value_raw'] = raw.get('acml_tr_pbmn')
             out.append(item)
-    return out
+    scan_observation.observe('kis', out, errors=errors)
+    # Keep a list-compatible return so existing fixtures and consumers work.
+    class RankRows(list):
+        pass
+    result = RankRows(out)
+    result.errors = errors
+    return result
 
 
 def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
@@ -601,6 +627,7 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
     try:
         rows = (fetcher or _fetch_rows)(appkey, appsecret)
     except Exception as exc:
+        scan_observation.failure('kis', type(exc).__name__)
         with _lock:
             _state['error'] = str(exc)[:200]
         logger.info('거래량 사전포착 순위 조회 실패: %s', exc)
@@ -622,7 +649,7 @@ def refresh_once(appkey, appsecret, now_kst=None, fetcher=None):
         conn.close()
     with _lock:
         _state['updatedAt'] = now_kst.timestamp()
-        _state['error'] = None
+        _state['error'] = ','.join(getattr(rows,'errors',[])) or None
         _state['polls'] += 1
     _save()
     return True

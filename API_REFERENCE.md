@@ -335,6 +335,7 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 |---|---|---|---|---|
 | GET | `/health` | 불필요 | - | 헬스체크, `{"status":"ok"}` + 배포 확인용 `deployedCommit`(deploy_check.sh가 처리한 master SHA)·`deployRecordedAt`·`processStartedAt`(2026-09-15) |
 | GET | `/health/load` | 불필요 | - | VM 부하 스냅샷(읽기 전용): load average, 메모리·스왑, FastAPI 스레드별 누적 CPU 초, 다른 파이썬 프로세스(스캔 등)의 스크립트 이름·RSS·누적 CPU 초. 두 번 불러 차이로 본다(2026-09-15) |
+| GET | `/health/scanner` | 불필요 | 메모리/로컬 상태 읽기 | 스캐너 순위 읽기 함수 호출·오류/시간·메모리 캐시 적중/미적중·전체 수신 후보 대비 기존20칸 누락 관찰. `mode:observation-only`, 원천시각 미확인=null, 부분장애 누락률=null. 매매 후보/구독 변경 없음. 프로세스별 계수는 재시작 시 초기화. [정의·제약](docs/SCANNER_EFFICIENCY_2026-10-20.md) |
 | GET | `/futures/avg` | 불필요 | 없음(즉시계산) | 쿼리 `symbol`(필수) · `days`(1~1000, 기본365) - 지정 심볼의 장기평균/최고/최저 |
 | GET | `/naver-news` | **필요** | 없음 | 쿼리 `query`(필수, 1~100자) - 네이버 뉴스검색 프록시, 호출마다 네이버 API 쿼터 소모 |
 | GET | `/investor-flow-batch` | **필요** | 하루 1회(`batch_scan.py`) | 섹터 풀(238종목) 공매도/대차/연기금 배치 캐시 |

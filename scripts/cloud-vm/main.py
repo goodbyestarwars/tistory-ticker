@@ -1410,6 +1410,14 @@ def health_realtime():
     return envelope(snapshot)
 
 
+@app.get('/health/scanner')
+def health_scanner(request: Request):
+    """Passive existing-rank/cache diagnostics; never calls a broker API."""
+    _check_rate_limit('health_scanner', request, max_per_window=20)
+    import scanner_observation
+    return envelope(scanner_observation.snapshot())
+
+
 @app.get('/health/latency')
 def latency_health(lines: int = Query(50, ge=1, le=500)):
     """latency_monitor.py(deploy_check.sh가 5분마다 백그라운드로 실행)가 남기는 로컬

@@ -51,7 +51,7 @@ async def main():
                 return r['result'].get('value')
 
             reports=[]
-            for mode,width in [('active',1440),('active',390),('closed',390),('missing',390),('stale',390),('loss',390),('error',390),('legacy',1440)]:
+            for mode,width in [('active',1440),('active',390),('closed',390),('missing',390),('stale',390),('loss',390),('error',390),('legacy',1440),('delayed',1440),('partial',390)]:
                 await call('Emulation.setDeviceMetricsOverride',{'width':width,'height':1100,'deviceScaleFactor':1,'mobile':width<500})
                 await call('Page.navigate',{'url':(REPO/'test/scanner-five-groups.html').as_uri()+'?mode='+mode})
                 await asyncio.sleep(.6)
@@ -70,6 +70,10 @@ async def main():
                         png=(await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':False}))['data']
                         (ROOT/'outputs'/f'{tab}-{width}.png').write_bytes(base64.b64decode(png))
                     if tab=='longTermQuality' and mode in ['missing','stale','loss']:assert result['rows']==[],result
+                    if tab=='liveFlow' and mode in ['delayed','partial']:
+                        assert '마지막 관측·기록 (신규 실시간 아님)' in result['text'],result
+                        assert '실시간 확인 불가' in result['text'],result
+                        if mode=='partial':assert '부분/전체 장애' in result['text'],result
                     reports.append({'mode':mode,'width':width,'tab':tab,'rows':result['rows'],'overflow':result['overflow']})
                 # History/forward performance endpoints must keep the selected original key.
                 await click('[data-horizon="swing"]')

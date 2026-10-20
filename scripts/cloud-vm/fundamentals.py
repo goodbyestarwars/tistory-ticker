@@ -235,7 +235,7 @@ def fetch_dividend_history(api_key, corp_code, current_year=None):
     return None
 
 
-def fetch_stock(api_key, corp_code):
+def fetch_stock(api_key, corp_code, include_screening=True):
     annual = fetch_annual_series(api_key, corp_code)
     time.sleep(THROTTLE_SEC)
     latest_quarter = fetch_latest_quarter(api_key, corp_code)
@@ -244,6 +244,8 @@ def fetch_stock(api_key, corp_code):
     if annual is None and latest_quarter is None:
         return None
     result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    if not include_screening:
+        return result
     try:
         result['screening'] = fetch_screening(api_key, corp_code, annual, latest_quarter)
     except Exception:
