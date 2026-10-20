@@ -101,7 +101,8 @@ def acquire_lock(path, now_epoch=None):
     now_epoch = time.time() if now_epoch is None else now_epoch
     if os.path.exists(path):
         try:
-            pid = int(open(path).read().strip() or 0)
+            with open(path) as stream:
+                pid = int(stream.read().strip() or 0)
         except (OSError, ValueError):
             pid = 0
         if pid and pid != os.getpid() and pid_alive(pid) and now_epoch - os.path.getmtime(path) < LOCK_STALE_SEC:
@@ -304,14 +305,22 @@ def main():
     if not acquire_lock(lock):
         logger.info('이미 실행 중인 프로세스가 있어 종료')
         return
+    conn = None
     try:
         conn = cg.connect(os.path.join(out_dir, 'research.db'))
         prune(conn)
         run_cycle(conn, cg.fetch_scan, make_daily_source(), lambda: datetime.now(KST), time.sleep, out_dir=out_dir,
                   mode='once' if '--once' in sys.argv else None, disk_ok=lambda: dir_size(out_dir) < DISK_LIMIT_BYTES)
-    except Exception:
+    except Exception as exc:
         logger.exception('실행 실패')
+        status = load_status(out_dir)
+        status.update({'runner': 'error', 'updatedAt': datetime.now(KST).isoformat(timespec='seconds'),
+                       'lastError': type(exc).__name__})
+        write_status(out_dir, status)
+        raise
     finally:
+        if conn is not None:
+            conn.close()
         try:
             os.remove(lock)
         except OSError:

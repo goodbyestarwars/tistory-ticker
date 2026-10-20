@@ -18,6 +18,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import parse_qs, urlparse
 
 from bot import CODE_RE, HERE, STOP_FLAG, engine_excluded, live_sell_enabled
+import schedule_status_pc
 
 TOKEN_PATH = os.path.join(HERE, '.token')
 RESEARCH_DIR = os.path.join(HERE, 'research')
@@ -402,6 +403,8 @@ def make_handler(bot, store, token):
                 return self._send(200, {'orders': orders[:limit]})
             if url.path == '/api/research':
                 return self._send(200, research_status())
+            if url.path == '/api/schedules':
+                return self._send(200, schedule_status_pc.snapshot(RESEARCH_DIR))
             if url.path == '/api/events':
                 return self._send(200, {'events': store.events(limit, (query.get('type') or [None])[0])})
             self._send(404, {'error': 'not found'})

@@ -22,6 +22,10 @@
   var root = null;
   var typeFilter = '';
   var anaCache = {};
+  var scheduleCache = null;
+  var scheduleCacheAt = 0;
+  var schedulePromise = null;
+  var scheduleExpanded = false;
 
   function esc(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
@@ -31,9 +35,9 @@
   function getToken() { try { return global.localStorage.getItem(TOKEN_KEY) || ''; } catch (e) { return ''; } }
   function setToken(v) { try { if (v) global.localStorage.setItem(TOKEN_KEY, v); else global.localStorage.removeItem(TOKEN_KEY); } catch (e) { /* */ } }
 
-  function api(path, method, body) {
+  function api(path, method, body, timeoutMs) {
     var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var t = controller ? setTimeout(function () { controller.abort(); }, 4000) : null;
+    var t = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 4000) : null;
     var headers = { 'X-AutoTrader-Token': getToken() };
     var init = { method: method || 'GET', headers: headers, cache: 'no-store', signal: controller ? controller.signal : undefined };
     if (body !== undefined) { headers['Content-Type'] = 'application/json'; init.body = JSON.stringify(body); }
@@ -51,6 +55,65 @@
   function pct(v) { return v == null ? '-' : (v > 0 ? '+' : '') + Number(v).toFixed(2) + '%'; }
   function tone(v) { return v > 0 ? 'at-up' : v < 0 ? 'at-down' : ''; }
   function hhmm(ts) { return ts ? String(ts).slice(11, 19) : '-'; }
+
+  function scheduleTime(value) {
+    if (!value) return '-';
+    var date = new Date(value);
+    return isNaN(date.getTime()) ? String(value) : date.toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }).slice(0, 16);
+  }
+
+  function scheduleHtml(items) {
+    var rows = (items || []).map(function (j) {
+      return '<tr><td>' + esc(j.group) + '</td><td>' + esc(j.name) + '</td><td>' + esc(j.state || '미확인')
+        + '</td><td>' + esc(scheduleTime(j.lastSuccessAt))
+        + '</td><td>' + esc(j.nextRunAt ? scheduleTime(j.nextRunAt) : '변경 시') + '</td></tr>';
+    }).join('');
+    return '<section class="at-box at-orders-wide"><div class="at-hd"><h3>갱신·스케줄 상태</h3><span>시각 KST · 작업 결과 기준 · 계좌 정보 제외</span></div>'
+      + '<details data-schedule-details' + (scheduleExpanded ? ' open' : '') + '><summary>사이트 · Actions · GAS · VM · PC 확인</summary><div class="at-month-wrap"><table><thead><tr><th>영역</th><th>작업</th><th>상태</th><th>마지막 성공</th><th>다음 실행</th></tr></thead><tbody>'
+      + (rows || '<tr><td colspan="5">상태를 확인하는 중입니다.</td></tr>') + '</tbody></table></div></details></section>';
+  }
+
+  function loadSchedules() {
+    if (scheduleCache && Date.now() - scheduleCacheAt < 600000) return Promise.resolve(scheduleCache);
+    if (schedulePromise) return schedulePromise;
+    var gh = 'https://api.github.com/repos/goodbyestarwars/tistory-ticker/actions/workflows/';
+    var workflows = [
+      { id: 379360767, name: 'DCF 공시', next: '매시 :17·:47' },
+      { id: 377890694, name: '5년 차트', next: '토 09:15' },
+      { id: 333930783, name: 'GAS 배포', next: '변경 시' },
+      { id: 308765062, name: 'Pages 배포', next: '변경 시' }
+    ];
+    schedulePromise = Promise.all([
+      api('/api/schedules', 'GET', undefined, 15000).catch(function () { return { jobs: [] }; }),
+      getJson(VM + '/health/schedules').catch(function () { return { jobs: [] }; }),
+      Promise.all(workflows.map(function (w) {
+        return getJson(gh + w.id + '/runs?per_page=10').then(function (res) {
+          var run = (res.workflow_runs || [])[0];
+          var lastGood = (res.workflow_runs || []).filter(function (item) { return item.conclusion === 'success'; })[0];
+          return { group: w.name === 'GAS 배포' ? 'GAS' : '사이트', name: w.name,
+            state: !run ? '미확인' : run.conclusion === 'success' ? '정상' : run.conclusion === 'failure' ? '오류' : '지연',
+            lastSuccessAt: lastGood ? lastGood.updated_at : null, nextRunAt: w.next };
+        }).catch(function () { return { group: '사이트', name: w.name, state: '미확인', nextRunAt: w.next }; });
+      })),
+      getJson('https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec?codes=005930')
+        .then(function () { return { group: 'GAS', name: '시세 프록시 응답', state: '정상', lastSuccessAt: new Date().toISOString(), nextRunAt: '요청 시' }; })
+        .catch(function () { return { group: 'GAS', name: '시세 프록시 응답', state: '미확인', nextRunAt: '요청 시' }; })
+    ]).then(function (out) {
+      var items = [{ group: '사이트', name: '운영 화면', state: '정상', lastSuccessAt: new Date().toLocaleString('sv-SE', { timeZone: 'Asia/Seoul' }), nextRunAt: '요청 시' }];
+      (out[2] || []).forEach(function (j) { items.push(j); });
+      items.push(out[3]);
+      var vmSchedule = out[1].data || out[1];
+      (vmSchedule.jobs || []).forEach(function (j) { items.push(Object.assign({ group: 'VM' }, j)); });
+      (out[0].jobs || []).forEach(function (j) { items.push(Object.assign({ group: 'PC' }, j)); });
+      if (!(out[0].jobs || []).length) items.push({ group: 'PC', name: '작업 스케줄러', state: '미확인' });
+      if (!(vmSchedule.jobs || []).length) items.push({ group: 'VM', name: 'systemd', state: '미확인' });
+      scheduleCache = items;
+      scheduleCacheAt = Date.now();
+      schedulePromise = null;
+      return items;
+    }, function () { schedulePromise = null; return []; });
+    return schedulePromise;
+  }
 
   var TYPE_LABEL = { SIGNAL: '신호', SELL_SENT: '매도 전송', POSITION_CLOSED: '보유 종료', SKIP: '건너뜀',
     ERROR: '오류', CRITICAL: '긴급', START: '시작', STOP: '정지', RESUME: '재개', WATCH_ADD: '감시 추가', WATCH_REMOVE: '감시 해제',
@@ -523,6 +586,7 @@
       + topbarHtml(d.status, balance) + engineConflictHtml(d) + kpiHtml(d.status, d.holdings, d.orders, balance) + monthSummaryHtml(d.orders, String(d.status.now || '').slice(0, 10))
       // 주문 기록은 표가 넓어(11칸) 두 칼럼 안에 두면 줄바꿈이 심해 전체 폭 구역으로 올렸다(2026-10-16).
       + '<section class="at-box at-orders-wide"><div class="at-hd"><h3>주문 기록</h3><span>최근 주문 먼저 · 전송과 체결은 구분</span></div>' + ordersHtml(d.orders, String(d.status.now || '').slice(0, 10), d) + '</section>'
+      + scheduleHtml(d.schedules)
       + '<div class="at-grid"><div class="at-col">'
       + '<section class="at-box"><div class="at-hd"><h3>보유 종목</h3><span>키움 잔고 기준 · 장전에도 조회(주문 없음) · 마지막 정상 ' + esc(hhmm(balance && balance.last_ok)) + '</span></div>'
       + holdingsHtml(d.holdings, balance, d.status) + '</section>'
@@ -535,6 +599,8 @@
   function post(path, body) { return api(path, 'POST', body).then(refresh).catch(refresh); }
 
   function wire(d) {
+    var scheduleDetails = root.querySelector('[data-schedule-details]');
+    if (scheduleDetails) scheduleDetails.addEventListener('toggle', function () { scheduleExpanded = scheduleDetails.open; });
     var tdy = String(d.status.now || '').slice(0, 10);
     var mon = root.querySelector('[data-month]');
     if (mon) mon.addEventListener('change', function (e) { if (/^\d{4}-\d{2}$/.test(e.target.value)) { selMonth = e.target.value; selDay = null; monthScroll = null; render(d); } });
@@ -657,6 +723,7 @@
         var d = { status: out[0], watch: out[1].watch || [], holdings: holdings, holdingsMeta: out[2] || {}, orders: out[3].orders || [],
           events: out[4].events || [], analysis: out[5].analysis || [], analysisResult: lastAnalysis, legacy: legacy };
         render(d);
+        loadSchedules().then(function (items) { d.schedules = items; render(d); });
         runAnalysis(d).then(function () { lastAnalysis = d.analysisResult; if (d.analysis.length) render(d); });
       })
       .catch(function (error) {

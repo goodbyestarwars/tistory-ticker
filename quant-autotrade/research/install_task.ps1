@@ -40,14 +40,20 @@ $settings = New-ScheduledTaskSettingsSet -StartWhenAvailable -ExecutionTimeLimit
   -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun:$false
 $desc = 'Autotrader research candidates (read-only, Mon-Fri 20:15 KST; poll every 10 min until 08:15)'
 $mode = 'S4U (runs when logged off)'
+$existing = Get-ScheduledTask -TaskName 'AutotraderResearch' -ErrorAction SilentlyContinue
 try {
-  $principal = New-ScheduledTaskPrincipal -UserId $user -LogonType S4U -RunLevel Limited
+  # Updating a task must not silently change its logon/credential mode.
+  $principal = if ($existing) { $existing.Principal } else { New-ScheduledTaskPrincipal -UserId $user -LogonType S4U -RunLevel Limited }
+  if ($existing) { $mode = "preserved $($existing.Principal.LogonType)" }
   Register-ScheduledTask -TaskName 'AutotraderResearch' -Action $action -Trigger @($t1, $t2) -Settings $settings -Principal $principal -Description $desc -Force | Out-Null
 } catch {
   $mode = 'interactive only (S4U was refused: ' + $_.Exception.Message + ')'
   Register-ScheduledTask -TaskName 'AutotraderResearch' -Action $action -Trigger @($t1, $t2) -Settings $settings -Description $desc -Force | Out-Null
 }
 $info = Get-ScheduledTaskInfo -TaskName 'AutotraderResearch'
+$installed = Get-ScheduledTask -TaskName 'AutotraderResearch'
+$logonTriggers = @($installed.Triggers | Where-Object { $_.CimClass.CimClassName -eq 'MSFT_TaskLogonTrigger' })
+if ($logonTriggers.Count -ne 1) { throw "Expected one logon trigger; found $($logonTriggers.Count)" }
 Write-Host "Registered AutotraderResearch - logon mode: $mode"
 Write-Host "Next run: $($info.NextRunTime)"
 Write-Host "Data/log folder: $(Join-Path $dataDir 'research')"

@@ -287,17 +287,19 @@ run_off_hours_maintenance_if_due() {
   fi
   (
     flock -n 211 || exit 0
-    # 2026-09-17 장애: 03:00 정리 작업이 아직 끝나지 않은 저녁 스캔과 겹쳐 스왑이 바닥났다.
-    # 잠금을 기다리지 않는다(-n) - 기다리면 스캔이 늦어진 밤에 유지보수가 낮까지 밀린다.
-    # 창이 05:00까지라 이번 회차를 건너뛰어도 5분 뒤 다시 시도한다.
-    if flock -n -E 76 "$APP_DIR/.scan_serial.lock" "$PYTHON" "$APP_DIR/maintenance.py"; then
+    # 03:00의 대기자 하나가 공용 잠금에 줄을 선다. -n 재시도는 긴 스캔과 뉴스
+    # 모멘텀 슬라이스 사이의 짧은 틈을 계속 놓쳐 9/27 이후 백업이 멈췄다.
+    # 별도 트리거 잠금(211)이 중복 대기를 막고, 최대 4시간 기다린다. 실제 유지보수는
+    # 여전히 스캔과 겹치지 않으며 09:00 장 시작 전 off-hours 가드도 유지한다.
+    maint_wait_started="$(date +%s)"
+    if flock -w 14400 -E 76 "$APP_DIR/.scan_serial.lock" "$PYTHON" "$APP_DIR/maintenance.py"; then
       printf '%s\n' "$today_kst" > "$MAINTENANCE_MARKER.tmp"
       mv "$MAINTENANCE_MARKER.tmp" "$MAINTENANCE_MARKER"
-      echo "장외 VM 유지보수 완료: $today_kst"
+      echo "장외 VM 유지보수 완료: $today_kst wait_plus_run_sec=$(($(date +%s) - maint_wait_started))"
     else
       maint_status=$?
       if [ "$maint_status" = "76" ]; then
-        echo "스캔 실행 중 - 장외 유지보수는 다음 회차로 미룸"
+        echo "스캔 잠금 대기 4시간 초과 - 다음 회차에서 재시도"
         # 2026-10-11: 9/27 이후 매일 03~05시에 이 문구만 남고 유지보수·백업이 멈춘 원인(누가 .scan_serial.lock을 쥐는지)을
         # 알 수 없어 진단 한 줄을 남긴다. 판정 로직은 바꾸지 않는다.
         echo "  lock holder: $( (fuser -v "$APP_DIR/.scan_serial.lock" 2>&1; ps -eo pid,etime,cmd | grep -E '[s]can|[b]atch' | head -3) | tr '
@@ -374,6 +376,9 @@ if [ "$LAST_DEPLOYED" != "$REMOTE" ]; then
   fi
 fi
 
+# 유지보수 대기자를 먼저 등록해 뉴스 모멘텀의 연속 슬라이스가 백업을 굶기지 않게 한다.
+# 두 작업은 같은 스캔 잠금 아래에서만 실제 실행된다.
+run_off_hours_maintenance_if_due || true
 # 실패해도 위 배포 결과와 FastAPI 재시작 성공을 되돌리거나 비정상 종료시키지 않는다.
 run_news_momentum_if_due "$DEPLOY_OCCURRED" || true
 run_price_recap_cleanup_once || true
@@ -381,7 +386,6 @@ run_price_recap_cleanup_once || true
 ensure_volume_breakout_timer || true
 stop_piled_up_scans_once || true
 ensure_scan_timers_current || true
-run_off_hours_maintenance_if_due || true
 
 # 2026-08-03: 주요 엔드포인트 로컬 응답시간을 5분마다 기록(GET /health/latency로 노출) -
 # VM 장애 진단 때 "느려진 것 같다"를 매번 SSH로 curl -w 재던 걸 자동화한 것. 엔드포인트가

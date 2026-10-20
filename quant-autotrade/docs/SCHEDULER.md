@@ -1,5 +1,7 @@
 # 연구 후보 생성기 — Windows 작업 스케줄러 운영 문서
 
+2026-10-20 통합: `AutotraderResearch`가 후보 생성과 별개의 모의 분석을 함께 담당한다. 과거 `AutotraderCandidates`는 동일한 `/pattern-scan`과 `research.db`에 후보를 쓰던 중복 예약 작업이라, XML·설치 소스·DB 백업 후 **예약만 비활성화**한다. 코드의 레거시 진입점도 공용 잠금이 있는 `research_job.py`로 위임한다. `consolidate_tasks.ps1`로 적용·원상복구한다. 상태는 토큰 인증 `GET /api/schedules`와 `GET /api/research`에서 확인한다. 실거래·모의실시간 예약 작업은 이 통합 대상이 아니다.
+
 읽기 전용 작업이다. 키움 주문 API는 호출하지 않고, 키움 **일봉 조회**(모의 진입·청산 판정용)와 운영 서버의 공개 `GET /pattern-scan`만 쓴다.
 
 ## 동작

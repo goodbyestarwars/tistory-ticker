@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""Read-only nightly scanner ingestion. No paper trades, broker access, or orders."""
+"""Legacy entry point; scheduled candidate production belongs to research_job."""
 import os
 import sys
 import time
@@ -29,16 +29,10 @@ def run(conn, now_fn=None, sleep_fn=time.sleep, interval=60):
 
 
 def main():
-    root = os.environ.get('AUTOTRADER_DIR') or os.path.expanduser('~/autotrader')
-    out_dir = os.path.join(root, 'research')
-    os.makedirs(out_dir, exist_ok=True)
-    db = os.path.join(out_dir, 'research.db')
-    conn = cg.connect(db)
-    try:
-        result = run(conn)
-        print('candidate ingestion: %s (%s), new=%d' % ('ok' if result['ok'] else 'waiting ended', result['reason'], result['created']))
-    finally:
-        conn.close()
+    # Keep the old executable safe if an exported task is restored. Both names
+    # then use research.lock, research.db and the same status/paper workflow.
+    import research_job
+    research_job.main()
 
 
 if __name__ == '__main__':

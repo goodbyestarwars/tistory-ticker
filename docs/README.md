@@ -29,6 +29,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | `ACCUMULATION_BAR_CONTEXT_2026-10-17.md` | 차트 매집봉 후보 표시의 기준·5년 일봉 맥락별 사후 성과(후속 확인·상승 뒤 털기?)와 화면 반영 | 차트 매집봉 작업 |
 | `AI_COLLABORATION.md` | ChatGPT·Claude Code 공동 개발 협업 규약(Issue 논의·PR 검토·합의/미합의·실계좌 승인) | AI가 Issue/PR로 협업할 때 |
 | `WORK_HISTORY.md` | 중요한 기능·구조·배포 이력(최근 50건) | 이력 확인·갱신 시 |
+| `SCHEDULER_CONSOLIDATION_2026-10-20.md` | PC·VM·Actions·GAS 스케줄 통합 근거, 기준 성능, 원상복구 | 스케줄러 운영·점검 |
 | `history/WORK_HISTORY_*.md` | 옮겨 둔 지난 이력 | 과거 항목을 `grep`으로 찾을 때만 |
 | `GAS_AUTO_DEPLOY.md` | GAS 자동 배포(GitHub Actions+clasp) 설정·확인 절차 | GAS 배포 작업 |
 | `MARKET_CHART_HISTORY.md` | 시장지표 5년 이력·VM 부하·용량·갱신 | 장기 차트 수정 |

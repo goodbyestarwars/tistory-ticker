@@ -80,6 +80,7 @@ import theme_flow
 import money_picks
 import volume_profile_collector
 import scan_forward
+import schedule_health
 import sector_cards
 import swing_model
 import us_analysis
@@ -825,6 +826,12 @@ def health():
         'deployRecordedAt': recorded_at,
         'processStartedAt': _PROCESS_STARTED_AT,
     })
+
+
+@app.get('/health/schedules')
+def health_schedules():
+    """Expose only timer names and execution times; no commands, paths or credentials."""
+    return envelope(schedule_health.snapshot())
 
 
 @app.get('/health/load')

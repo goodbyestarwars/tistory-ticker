@@ -73,6 +73,7 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/health/load` | 없음 | VM 부하 스냅샷: loadAvg, 메모리·스왑(MB), FastAPI 스레드별 누적 CPU 초(상위 12), 다른 파이썬 프로세스의 .py 이름·RSS·누적 CPU 초·경과 초(상위 10). 명령줄 인자는 내보내지 않음. 분당 20회 제한 |
 | GET | `/health/latency` | 없음 | VM 지연 모니터 최근 로그 |
 | GET | `/health/realtime` | 없음 | KIS·키움 실시간 공유 허브와 9Pay 읽기 전용 관찰기 상태. A/B 계약 `ruleVersion=ab70-v1`·후보 `items`·최초 충족·신호·결측·저장 오류는 [별도 명세](NINEPAY_SCANNER_AB_2026-10-19.md). 계좌·주문 미연동 |
+| GET | `/health/schedules` | 없음 | VM systemd 예약·최근 결과·다음 실행 및 장외 유지보수 날짜 마커의 비밀정보 없는 상태. 60초 캐시; 실제 백업 성공은 별도 무결성 로그로 확인 |
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
 | GET | `/money-picks` | 없음 | 증시온도 '돈이 몰린 섹터' 대표 종목의 최근 14일 기록 `{history:[{date,code,name,theme,rank,rec_price}],windowDays,recordAfter,perTheme}`. 기준가만 주며 수익률은 화면이 현재가로 계산 |
 | GET | `/theme-list` | 없음 | 키움 전체 테마 목록 `{themes:[{code,name,stock_count,change_rate}],count}`(카테고리 추가 후보, 3분 백그라운드 값) |
