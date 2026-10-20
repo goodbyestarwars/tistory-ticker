@@ -43,4 +43,6 @@ python test/qa_chart_observation_live.py
 
 ## 배포 결과
 
-배포 전 PC·모바일 검증 완료. master/Pages 반영 후 실제 운영 QA를 재실행해 결과를 기록한다.
+구현 `fdf1a3c9`·박스 중립 문구 보정 `e7afbd33`을 master에 push했고 GitHub Pages `built`를 확인했다. 2026-10-20 운영 차트검색/종목분석 각각 PC1440·모바일390에서 로컬 자산 대체 없이4조합 재검증을 통과했다. 실제 십자선·모바일 터치 날짜, 1/3/5년 범위, 반복 토글, MA/흔적 존속, 확대/축소 복원·localStorage 무변경을 확인했다. `chart-core.js`·`chart-wave-overlay.js`·`stock-search.js`·`foreign-flow.js` 공개 응답 HTTP200과 Git blob SHA256/바이트 일치4/4를 확인했다. 스킨 수동 반영 없음. 실계좌 A/B·주문·VM 피드 변경 없음.
+
+스크린샷·상세 JSON은 이번 작업 출력의 `major-wave-20261020/`에 저장했다. 넓은 Python UI의 기존34실패는 변경 전과 동일하게 남아 있다.
