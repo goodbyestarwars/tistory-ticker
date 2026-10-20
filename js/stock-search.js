@@ -1265,11 +1265,7 @@
         hideSearch: true,
         quoteOnly: isIndependentChartMode(),
         onQuote: function (quote) { applyRealtimeQuote(container, quote); },
-        onSummary: function (summary,code) { if(code===state.selectedCode)renderSessionCandle(container,summary); },
-        onBookStatus: function (message,code) {
-          var note=container.querySelector('#ssBookStatus');
-          if(note && code===state.selectedCode){note.textContent=message;note.hidden=!message;}
-        }
+        onSummary: function (summary,code) { if(code===state.selectedCode)renderSessionCandle(container,summary); }
       });
       state.ladderMounted = true;
     }
@@ -1294,7 +1290,6 @@
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
       + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
-      + '<div id="ssBookStatus" class="ss-book-status" role="status" hidden></div>'
       + '<div class="ss-summary-reason" id="ssSummaryReason">'
       + '<span class="ss-reason-badge">AI</span>'
       + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
@@ -1305,8 +1300,11 @@
   function renderSessionCandle(container,summary) {
     var box=container.querySelector('#ssSessionCandle');if(!box)return;
     var o=Number(summary.open),h=Number(summary.high),l=Number(summary.low),c=Number(summary.current);
+    var price=container.querySelector('.ss-summary-price'),rate=container.querySelector('.ss-summary-change');
+    if(price && c>0)price.textContent=fmtPrice(c)+'원';
+    if(summary.changeRate!=null){var tone=signClass(summary.changeRate);if(price)price.className='ss-summary-price '+tone;if(rate){rate.textContent=fmtSignedPct(summary.changeRate);rate.className='ss-summary-change '+tone;}}
     var valid=[o,h,l,c].every(function(v){return Number.isFinite(v) && v>0;}) && h>=Math.max(o,c) && l<=Math.min(o,c);
-    var labels=[['시가',summary.open],['고가',summary.high],['저가',summary.low],['현재가',summary.current]];
+    var labels=[['시가',summary.open],['고가',summary.high],['저가',summary.low]];
     var values='<div class="ss-session-values">'+labels.map(function(item){return '<div><span>'+item[0]+'</span><b>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
     var glyph='';
     if(valid){
@@ -1316,6 +1314,7 @@
         +'<line x1="22" x2="22" y1="'+y(h)+'" y2="'+y(l)+'" stroke="'+color+'" stroke-width="2"/>'
         +'<rect x="15" width="14" y="'+Math.min(y(o),y(c))+'" height="'+Math.max(1.5,Math.abs(y(o)-y(c)))+'" fill="'+color+'"/></svg>';
     }
+    box.title=(summary.date || '')+' 일봉 · 봉 몸통은 시가에서 현재가까지';
     box.innerHTML=glyph+values+'<span class="ss-session-date">'+escapeHtml(summary.date || '')+' 일봉'+(valid?' · 시가→현재가':' · 봉 자료 부족')+'</span>';
   }
 

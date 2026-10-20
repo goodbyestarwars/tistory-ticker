@@ -301,9 +301,10 @@
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
-    board.hidden = !!state.onBookStatus;
+    board.hidden = false;
     if(state.onBookStatus)state.onBookStatus('호가 불러오는 중…', code);
     board.innerHTML = '<div class="ob-hint"><svg class="ob-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
+    if(state.onSummary)setBookHint(board,'호가 불러오는 중…');
     var toast = container.querySelector('#obToast');
     if (toast) { toast.className = 'ob-toast'; toast.textContent = ''; }
     var milestoneBox = container.querySelector('#obMilestones');
@@ -473,8 +474,9 @@
     bids.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
     asks = validDepth(asks);
     bids = validDepth(bids);
+    if(!asks.length && !bids.length){setBookHint(board,'호가 미수신 · 마지막 수신 호가가 있으면 그대로 표시합니다.');return;}
     // 공급자가 이전 REST보다 많은/적은 단계를 보내면 행 구조만 다시 만든다.
-    if (board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
+    if (board.getAttribute('data-unavailable')==='true' || board.hasAttribute('data-stale') || board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
         || board.querySelectorAll('.ob-row-bid').length !== Math.min(bids.length, 10)) {
       renderBoard(container, { asks: asks, bids: bids }, state.lastRealtimeQuote);
       state.previousDepth = null; // 새 행에는 직전 동일 가격 비교가 아직 없다.
@@ -693,7 +695,7 @@
       .catch(function () {
         if (state.code !== code) return;
         var board = container.querySelector('#obBoard');
-        if (board && !board.querySelector('.ob-table')) {
+        if (board && (state.onSummary || !board.querySelector('.ob-table'))) {
           setBookHint(board,'호가를 불러오지 못했습니다. 다음 갱신에 자동으로 재시도합니다.');
         }
       });
@@ -1295,7 +1297,7 @@
       + '<div class="ob-footer-bar"><span class="ob-footer-bar-ask" style="width:' + askPct + '%"></span><span class="ob-footer-bar-bid" style="width:' + bidPct + '%"></span></div>'
       + '</div>';
 
-    board.hidden=false;
+    board.hidden=false;board.setAttribute('data-unavailable','false');board.removeAttribute('data-stale');
     if(state.onBookStatus)state.onBookStatus('',state.code);
     board.innerHTML = (state.onSummary ? '' : headerHtml + summaryHtml)
       + '<div class="ob-table ob-table-pairs" aria-label="매도 최대 10호가와 매수 최대 10호가">'
@@ -1307,9 +1309,27 @@
     rememberDepth(asks, bids);
   }
 
+  // 장외/장애에도 호가창의 자리와 10+10 행을 보존한다. 미수신 가격은 만들지 않는다.
   function setBookHint(board,message) {
-    if(state.onBookStatus){board.innerHTML='';board.hidden=true;state.onBookStatus(message,state.code);}
-    else {board.hidden=false;board.innerHTML='<div class="ob-hint">'+escapeHtml(message)+'</div>';}
+    board.hidden=false;
+    if(state.onBookStatus)state.onBookStatus(message,state.code);
+    if(!state.onSummary){board.innerHTML='<div class="ob-hint">'+escapeHtml(message)+'</div>';return;}
+    var prior=board.querySelector('.ob-table-pairs');
+    if(prior && board.getAttribute('data-unavailable')==='false'){
+      board.setAttribute('data-stale','true');
+      var existing=board.querySelector('.ob-book-status');
+      if(!existing){existing=document.createElement('div');existing.className='ob-book-status';board.prepend(existing);}
+      existing.textContent='마지막 수신 호가 · '+message;
+      return;
+    }
+    board.setAttribute('data-unavailable','true');
+    var rows=function(side){var html='';for(var i=0;i<10;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
+    var summary=buildSummaryView(),price=summary.current>0?Math.round(summary.current).toLocaleString('ko-KR')+'원':'—';
+    board.innerHTML='<div class="ob-book-status" role="status">'+escapeHtml(message)+'</div>'
+      +'<div class="ob-table ob-table-pairs" aria-label="매도 10호가와 매수 10호가 · 호가 미수신">'
+      +'<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량</span><span>가격</span><span class="ob-ask-text">매도 잔량</span></div>'
+      +rows('ask')+'<div class="ob-current-row" data-field="current-row"><span data-field="current-price">'+price+'</span> <span class="ob-current-change" data-field="current-change"></span></div>'
+      +rows('bid')+'</div>';
   }
 
   function buildSummaryView(quote) {
@@ -1323,6 +1343,7 @@
       : null;
     return {
       date: summary.date || null,
+      changeRate: numericOrNull(quote && quote.changeRate) != null ? numericOrNull(quote.changeRate) : numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.changeRate),
       current: numericOrNull(quote && quote.price) || numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.price) || numericOrNull(summary.close),
       open: numericOrNull(summary.open),
       high: numericOrNull(summary.high),
@@ -1356,6 +1377,7 @@
     var summary = buildSummaryView(quote);
     if(state.onSummary)state.onSummary(summary,state.code);
     if (!board) return;
+    if(board.getAttribute('data-unavailable')==='true'){var price=board.querySelector('[data-field="current-price"]');if(price)price.textContent=summary.current>0?Math.round(summary.current).toLocaleString('ko-KR')+'원':'—';}
     var fields = {
       '시가': summary.open == null ? '-' : fmtPrice(summary.open),
       '고가': summary.high == null ? '-' : fmtPrice(summary.high),

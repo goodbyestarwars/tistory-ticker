@@ -963,19 +963,50 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 /* 호가 폭 480→394px(약18%) 축소. 숫자와 콘텐츠는 유지한다. */
 #stock-search .ss-panel-left { padding: 10px; }
 
-/* 종목 요약 한 곳에 일봉 OHLC와 호가 안내를 모은다. */
-#stock-search .ss-session { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:9px 0; font-size:12px; color:#666; }
-#stock-search .ss-session-glyph { width:44px; height:64px; flex:0 0 44px; }
-#stock-search .ss-session-values { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; flex:1; min-width:220px; }
-#stock-search .ss-session-values span { display:block; font-size:11px; color:#888; margin-bottom:3px; }
-#stock-search .ss-session-values b { font-size:14px; color:#222; font-variant-numeric:tabular-nums; white-space:nowrap; }
-#stock-search .ss-session-date { font-size:10px; color:#888; }
-#stock-search .ss-book-status { font-size:12px; line-height:1.5; color:#777; margin:4px 0 9px; }
-#stock-search #obBoard[hidden] { display:none; }
+/* 종목 정보는 압축된 도구줄, 호가/차트는 본문 높이를 사용한다. */
+#stock-search .ss-summary { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 18px; padding:8px 10px; margin-bottom:8px; border-radius:6px; }
+#stock-search .ss-summary-head { margin:0; gap:6px; }
+#stock-search .ss-summary-name { font-size:14px; }
+#stock-search .ss-summary-price { font-size:16px; }
+#stock-search .ss-summary-change { font-size:12px; }
+#stock-search .ss-analysis-link { min-height:26px; padding:0 8px; font-size:11px; }
+#stock-search .ss-session { display:flex; align-items:center; gap:6px; font-size:11px; color:#777; }
+#stock-search .ss-session-glyph { width:18px; height:32px; flex:0 0 18px; }
+#stock-search .ss-session-values { display:flex; gap:12px; }
+#stock-search .ss-session-values div { display:flex; align-items:baseline; gap:4px; }
+#stock-search .ss-session-values span { font-size:10px; color:#888; }
+#stock-search .ss-session-values b { font-size:12px; color:#222; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#stock-search .ss-session-date { display:none; }
+#stock-search .ss-summary-reason { grid-column:1/-1; font-size:11px; line-height:1.35; }
+#stock-search .ss-reason-badge { font-size:9px; padding:1px 5px; }
+#stock-search .ss-panel-left, #stock-search .ss-panel-right { padding:8px; border-radius:6px; }
+#stock-search .ss-panel-title { margin-bottom:6px; }
+#stock-search #order-book .ob-board { border-radius:3px; }
+#stock-search #order-book .ob-hud { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 10px; padding:5px 6px; margin-bottom:5px; border-radius:3px; }
+#stock-search #order-book .ob-hud-row { display:grid; grid-template-columns:1fr auto; gap:2px; margin:0; font-size:10px; }
+#stock-search #order-book .ob-hud-label { width:auto; font-size:10px; }
+#stock-search #order-book .ob-hud-val { width:auto; font-size:10px; }
+#stock-search #order-book .ob-hud-bar { grid-column:1/-1; grid-row:2; height:3px; }
+#stock-search #order-book .ob-hud-note { grid-column:1/-1; font-size:10px; padding:0; }
+#stock-search #order-book .ob-book-status { padding:4px 6px; font-size:10px; line-height:1.3; color:#777; }
+#stock-search #order-book .ob-table-pairs > .ob-row { min-height:22px; padding-block:0; }
+#stock-search #order-book .ob-depth { height:21px; }
+#stock-search #order-book .ob-current-row { padding:5px 4px; font-size:15px; }
+#stock-search #order-book .ob-spread { padding:2px 4px; font-size:9px; }
+#stock-search #order-book .ob-footer { padding:6px; }
+#stock-search #order-book .ob-row-unavailable { opacity:.65; }
+#stock-search #order-book [data-stale=true] .ob-table-pairs { opacity:.65; }
+@media(max-width:1000px){
+  #stock-search .ss-summary { grid-template-columns:1fr; gap:3px; }
+  #stock-search .ss-session { margin:0; }
+}
 @media(max-width:600px){
-  #stock-search .ss-session { gap:8px; }
-  #stock-search .ss-session-values { gap:8px; min-width:0; }
-  #stock-search .ss-session-values b { font-size:12px; }
-  #stock-search .ss-session-date { width:100%; }
+  #stock-search .ss-summary-head { gap:4px; }
+  #stock-search .ss-summary-name { font-size:13px; }
+  #stock-search .ss-summary-code { font-size:10px; }
+  #stock-search .ss-summary-price { font-size:14px; }
+  #stock-search .ss-summary-change { font-size:11px; }
+  #stock-search .ss-analysis-link { min-height:22px; padding:0 5px; }
+  #stock-search .ss-session-values { gap:12px; }
 }
 html.dark #stock-search .ss-session-values b { color:#f5efe0 !important; }

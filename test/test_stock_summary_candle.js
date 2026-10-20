@@ -3,7 +3,7 @@ const document={readyState:'loading',addEventListener(){}};
 let win={addEventListener(){}};
 let source=fs.readFileSync('js/stock-search.js','utf8').replace("  'use strict';","  'use strict'; global.testSession=renderSessionCandle;");
 vm.runInNewContext(source,{window:win,document,setTimeout,clearTimeout,setInterval,clearInterval,URL,URLSearchParams});
-const box={innerHTML:''},container={querySelector:()=>box};
+const box={innerHTML:''},container={querySelector:(selector)=>selector==='#ssSessionCandle'?box:null};
 win.testSession(container,{open:100,high:120,low:90,current:110,date:'2026-10-20'});
 assert.ok(box.innerHTML.includes('양봉') && box.innerHTML.includes('#d24f45'));assert.ok(!box.innerHTML.includes('거래량'));
 win.testSession(container,{open:110,high:120,low:90,current:100});assert.ok(box.innerHTML.includes('음봉') && box.innerHTML.includes('#1261c4'));
@@ -12,7 +12,7 @@ win.testSession(container,{open:null,high:120,low:90,current:110});assert.ok(!bo
 win={addEventListener(){}};
 source=fs.readFileSync('js/order-book.js','utf8').replace('global.OrderBook = OrderBook;', 'global.testBoard={state,renderBoard,updateSummary};global.OrderBook = OrderBook;');
 vm.runInNewContext(source,{window:win,document,setTimeout,clearTimeout,setInterval,clearInterval});
-const t=win.testBoard,board={innerHTML:'',hidden:false,querySelector:()=>null};
+const attrs={};const t=win.testBoard,board={innerHTML:'',hidden:false,querySelector:()=>null,setAttribute(k,v){attrs[k]=v;},getAttribute(k){return attrs[k];},removeAttribute(k){delete attrs[k];}};
 const host={querySelector:()=>board},asks=Array.from({length:10},(_,i)=>({price:101+i,qty:100+i})),bids=Array.from({length:10},(_,i)=>({price:100-i,qty:200+i}));
 t.state.code='005930';t.state.summary={open:100,high:120,low:90,close:110,date:'2026-10-20'};
 const quote={price:110,changeRate:-1,change:-1};
@@ -22,7 +22,7 @@ assert.ok(board.innerHTML.lastIndexOf('ob-row-ask')<board.innerHTML.indexOf('ob-
 assert.ok(board.innerHTML.indexOf('ob-current-row')<board.innerHTML.indexOf('ob-row-bid'));
 let view,status;
 t.state.onSummary=(v,code)=>{view=v;assert.equal(code,'005930');};t.state.onBookStatus=(v)=>status=v;
-t.renderBoard(host,{asks:[],bids:[]},quote);assert.equal(board.hidden,true);assert.equal(board.innerHTML,'');assert.ok(status);assert.equal(view.current,110);
+t.renderBoard(host,{asks:[],bids:[]},quote);assert.equal(board.hidden,false);assert.ok(board.innerHTML.includes('ob-table-pairs') && board.innerHTML.includes('호가 미수신'));assert.equal((board.innerHTML.match(/ob-row-unavailable/g)||[]).length,20);assert.ok(status);assert.equal(view.current,110);
 t.renderBoard(host,{asks,bids},quote);assert.equal(board.hidden,false);assert.equal(status,'');assert.ok(!board.innerHTML.includes('ob-header') && !board.innerHTML.includes('ob-summary'));assert.equal((board.innerHTML.match(/ob-row-ask/g)||[]).length,10);
 t.updateSummary(board,{price:111});assert.equal(view.current,111);
 console.log('PASS consolidated summary, up/down/doji/missing candle, 10+10 current boundary, empty/recovery, shared quote and standalone preservation');
