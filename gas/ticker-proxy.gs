@@ -3924,9 +3924,21 @@ function getFundamentals_(code) {
 // DART 재무는 하루 1회 갱신이라 종목별로 캐시해도 신선도 손실이 없다.
 var FUNDAMENTALS_CACHE_SEC = 6 * 60 * 60;
 
+// 2026-10-20: 캐시 키에 VM 펀더멘탈 배치의 generatedAt(갱신 시각)을 넣어, 배치가 새 공시를
+// 반영해 저장하면 6시간을 기다리지 않고 바로 새 값을 받는다. 버전 조회는 5분만 캐시한다.
+function getFundamentalsVersion_() {
+  var cache = CacheService.getScriptCache();
+  var hit = cache.get('fundamentals_ver');
+  if (hit) return hit;
+  var meta = kiwoomVmFetch_('/fundamentals-meta');
+  var ver = (meta && meta.generatedAt) ? String(meta.generatedAt).replace(/[^0-9A-Za-z]/g, '') : 'nometa';
+  try { cache.put('fundamentals_ver', ver, 300); } catch (err) {}
+  return ver;
+}
+
 function fetchFundamentalsForCode_(code) {
   var cache = CacheService.getScriptCache();
-  var cacheKey = 'fundamentals_v1_' + code;
+  var cacheKey = 'fundamentals_v2_' + getFundamentalsVersion_() + '_' + code;
   var cached = cache.get(cacheKey);
   if (cached) {
     try {

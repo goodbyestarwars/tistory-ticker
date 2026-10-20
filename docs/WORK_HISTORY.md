@@ -1,3 +1,7 @@
+**2026-10-20 종목분석 펀더멘탈 신규·정정 공시 반영**
+
+90일(`FUNDAMENTALS_STALE_DAYS`) 안에 수집한 종목은 신규 분기·반기·사업보고서나 정정공시가 나와도 재수집되지 않던 문제를 고쳤다. `batch_scan.py`가 2일(`DISCLOSURE_CHECK_DAYS`)마다 DART 공시목록 1회만 호출해 접수번호가 바뀐 종목만 재수집하고, 변화 없으면 확인 시각만 갱신한다(DART 장애 시 기존 데이터 유지). `fundamentals.py`는 최근 분기에 접수일·BPS(지배주주지분÷(발행−자기주식), 같은 보고서 기준, 근거 부족 시 `null`+사유)와 `disclosure`(상태 ok/pending/unverified) 를 넣는다. VM `/fundamentals/{code}`는 `collected_at`을, 신규 `/fundamentals-meta`는 배치 `generatedAt`을 내려주고 GAS 종목별 캐시 키가 이를 포함해 배치 저장 즉시 무효화된다(캐시 5분 버전 조회). 종목분석 화면에 재무 기준 분기·연결/별도·공시일·수집 시각과 BPS/PBR 기준 구분을 표시한다. 테스트 `test/test_fundamentals_disclosure.py` 18건과 기존 전략·장기 재무 필터 테스트 통과. 삼성전자 실데이터 대조는 이 환경에 DART 키·아웃바운드가 없어 미수행(배포 후 api-probe로 확인 필요). 신규 `stockTotqySttus` 필드(`istc_totqy`·`tesstk_co`·`se`)는 DART 공개 명세 기준이며 운영 응답 실측 전이다. VM 자동배포·GAS(clasp) 자동배포 대상.
+
 **2026-10-20 스케줄러 통합·상태 표시**
 
 PC 연구/후보 작업의 동일 `/pattern-scan` 중복 생성을 연구 작업 하나로 통합하고 로그인 트리거 2개를 1개로 줄였다. 기존 후보 작업은 XML·설치 소스·무결성 확인된 연구 DB 백업 후 비활성화했고, 모의분석과 원본 DB·로그는 유지했다. VM 후속 스캔은 공용 잠금 아래 당일 기본 일봉 완료를 확인하며 각 독립 판정·고유 주기를 보존한다. 03~05시 유지보수는 대기자 하나가 잠금을 기다리도록 바꿔 장기 잠금 기아를 완화한다. 운영센터에 인증된 PC, 공개 VM·Actions·GAS 상태를 시각 KST로 표시한다. 실계좌 작업·주문·A/B·자금·청산 규칙과 LivePaper 상태는 변경하지 않았다. 관련 Python 60개, Bash/JS 구문 통과. 현장 검증·배포 결과는 `SCHEDULER_CONSOLIDATION_2026-10-20.md`에 기록한다.

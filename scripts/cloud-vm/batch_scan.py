@@ -31,6 +31,7 @@ OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'investor
 FUNDAMENTALS_OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cache.json')
 FUNDAMENTALS_CURSOR_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'fundamentals_cursor.json')
 THROTTLE_SEC = 0.25
+DISCLOSURE_CHECK_DAYS = 2           # 90일 이내 수집분도 이 주기로 DART 공시목록(1회 호출)만 확인해 신규·정정 공시를 잡는다
 FUNDAMENTALS_STALE_DAYS = 90       # 분기보고서 공시 주기(연 4회)에 맞춰 재조회 스킵 기간 설정
 FUNDAMENTALS_TIME_BUDGET_SEC = 20 * 60  # 이 실행에서 펀더멘탈 스캔에 쓸 시간 예산(넘으면 커서 저장하고 중단)
 
@@ -170,6 +171,34 @@ def is_stale(fetched_at, code):
     return age_days >= FUNDAMENTALS_STALE_DAYS
 
 
+def disclosure_due(entry, now=None):
+    """마지막 공시 확인 후 DISCLOSURE_CHECK_DAYS가 지났는지(확인 기록이 없으면 True)."""
+    now = now or datetime.now(timezone.utc)
+    stamp = ((entry or {}).get('disclosure') or {}).get('checked_at')
+    try:
+        return (now - datetime.fromisoformat(stamp)).total_seconds() / 86400 >= DISCLOSURE_CHECK_DAYS
+    except (TypeError, ValueError):
+        return True
+
+
+def disclosure_needs_refetch(dart_key, corp_code, entry):
+    """90일 안에 수집한 항목에 신규/정정 정기공시가 있는지 DART 공시목록 1회로 확인한다.
+    변화 없으면 확인 시각만 갱신하고 전체 재수집은 하지 않는다. DART 장애 시엔 기존 데이터를 유지한다."""
+    try:
+        filing = fundamentals.latest_periodic_filing(
+            dart_client.call_periodic_reports(dart_key, corp_code, datetime.now(timezone.utc).date()))
+    except dart_client.DartRateLimitError:
+        raise
+    except Exception:
+        return False
+    if fundamentals.disclosure_check(entry, filing) == 'refetch':
+        return True
+    disc = dict(entry.get('disclosure') or fundamentals.make_disclosure(filing, entry.get('latest_quarter')))
+    disc['checked_at'] = datetime.now(timezone.utc).isoformat()
+    entry['disclosure'] = disc
+    return False
+
+
 def scan_fundamentals(codes_map, candidate_only=False):
     """DART 재무제표(5년 실적 추세 + 최근 분기 YoY) - 이 배치(하루 1회) 안에서 이어서 실행.
     이미 최근(FUNDAMENTALS_STALE_DAYS 이내)에 수집한 종목은 재조회하지 않고, 하루 안에
@@ -228,12 +257,24 @@ def scan_fundamentals(codes_map, candidate_only=False):
         # Dividend screening was added after the original fundamentals cache.
         # Revisit legacy entries once, then let the normal 90-day freshness
         # window apply even when DART has no dividend rows for that company.
-        if not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code))):
+        corp_code = corp_map.get(code)
+        fresh = not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code)))
+        if fresh and corp_code and disclosure_due(cache.get(code)):
+            # 90일 이내라도 신규 분기·반기·사업보고서나 정정공시가 나왔으면 다시 수집한다.
+            try:
+                if disclosure_needs_refetch(dart_key, corp_code, cache[code]):
+                    fresh = False
+                    log('[펀더멘탈] %s(%s) 신규/정정 정기공시 감지 - 재수집' % (name, code))
+                time.sleep(THROTTLE_SEC)
+            except dart_client.DartRateLimitError as e:
+                log('[펀더멘탈] 공시 확인 중 DART 한도 초과 추정: %s - 오늘은 중단' % e)
+                stop_reason = '한도 초과로 중단'
+                break
+        if fresh:
             skipped_count += 1
             if not is_priority: i += 1
             continue
 
-        corp_code = corp_map.get(code)
         if not corp_code:
             if not is_priority: i += 1
             continue

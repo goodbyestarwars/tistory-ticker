@@ -2255,12 +2255,12 @@
 
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">최근 실적</div>'
-      + (quarter ? buildQuarterBlock(quarter) : '<div class="ff-hint">최근 분기 실적 데이터가 없습니다.</div>')
+      + (quarter ? buildQuarterBlock(quarter, fundamentals) : '<div class="ff-hint">최근 분기 실적 데이터가 없습니다.</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'
       + '<div class="ff-fund-title">투자지표</div>'
-      + (valuation ? buildValuationGrid(valuation) : '<div class="ff-hint">실시간 PER·PBR·EPS 데이터가 없습니다. 재무 실적 기준 지표는 위 연간 실적을 확인해주세요.</div>')
+      + (valuation ? buildValuationGrid(valuation, quarter) : '<div class="ff-hint">실시간 PER·PBR·EPS 데이터가 없습니다. 재무 실적 기준 지표는 위 연간 실적을 확인해주세요.</div>')
       + '</div>';
 
     html += '<div class="ff-footnote">재무 데이터와 밸류에이션은 참고용이며, 투자판단 및 그에 따른 책임은 본인에게 있습니다.</div>';
@@ -2456,16 +2456,22 @@
     }).join('') + '</div>';
   }
 
-  function buildValuationGrid(v) {
+  // PBR·EPS·BPS(시세)는 시세 응답 기준이라 결산 기준일을 알 수 없다. 공시 BPS는 DART 지배주주지분÷
+  // (발행주식-자기주식)로 해당 분기 기준일 때만 표시하고, 근거가 없으면 '-'로 둔다.
+  function buildValuationGrid(v, quarter) {
+    var dartBps = quarter && quarter.bps != null && isFinite(quarter.bps) ? quarter.bps : null;
     var rows = [
       ['PER', v.per == null ? '-' : v.per.toFixed(2) + '배'],
-      ['PBR', v.pbr == null ? '-' : v.pbr.toFixed(2) + '배'],
-      ['EPS', fmtWon(v.eps)],
-      ['BPS', fmtWon(v.bps)]
+      ['PBR(시세 기준)', v.pbr == null ? '-' : v.pbr.toFixed(2) + '배'],
+      ['EPS(시세 기준)', fmtWon(v.eps)],
+      [dartBps != null ? 'BPS(' + quarterBasisLabel(quarter) + ' 공시)' : 'BPS(시세 응답·기준일 미확인)',
+        dartBps != null ? fmtWon(Math.round(dartBps)) : fmtWon(v.bps)]
     ];
     return '<div class="ff-fund-grid">' + rows.map(function (r) {
       return '<div class="ff-fund-cell"><span class="ff-fund-label">' + r[0] + '</span><span class="ff-fund-val">' + r[1] + '</span></div>';
-    }).join('') + '</div>';
+    }).join('') + '</div>'
+      + '<div class="ff-hint">PER·PBR·EPS는 시세 응답 기준(결산 기준일 별도), 공시 BPS는 지배주주 자기자본÷(발행주식 − 자기주식)'
+      + (quarter && dartBps == null ? ' — 근거 데이터가 부족해 공시 BPS는 표시하지 않습니다.' : '') + '</div>';
   }
 
   // 2026-07-20(3차): "업종"은 원래 data/sectors-v3.js(수작업 큐레이션, ~266종목)의 업종성
@@ -2625,13 +2631,45 @@
     return '<div class="ff-chart-block"><div class="ff-chart-title">' + escapeHtml(title) + '</div>' + svgBarChart(items, '#d24f45', '#1261c4') + '</div>';
   }
 
-  function buildQuarterBlock(q) {
+  // 2026-10-20: 재무 기준 분기·공시일·수집 시각·연결/별도 표시. 공시 목록과 어긋나면(pending) 안내한다.
+  function fmtYmd(v) {
+    var t = String(v || '');
+    if (/^\d{8}/.test(t)) return t.slice(0, 4) + '-' + t.slice(4, 6) + '-' + t.slice(6, 8);
+    return '';
+  }
+  function fmtCollectedAt(iso) {
+    var d = iso ? new Date(iso) : null;
+    if (!d || isNaN(d.getTime())) return '';
+    var k = new Date(d.getTime() + 9 * 3600 * 1000).toISOString();
+    return k.slice(0, 10) + ' ' + k.slice(11, 16);
+  }
+  function quarterBasisLabel(q) {
+    var name = {'11013': '1분기', '11012': '반기', '11014': '3분기', '11011': '사업보고서(연간)'}[q.reprt_code] || q.label || '';
+    return q.year ? q.year + '년 ' + name : (name || '');
+  }
+  function buildFundamentalsBasis(q, f) {
+    var parts = [];
+    var label = quarterBasisLabel(q);
+    if (label) parts.push('재무 기준 ' + label);
+    parts.push(q.fs_div === 'CFS' ? '연결' : (q.fs_div === 'OFS' ? '별도' : '연결/별도 미확인'));
+    var filed = fmtYmd(q.rcept_dt || q.rcept_no);
+    if (filed) parts.push('공시일 ' + filed);
+    var collected = fmtCollectedAt(f && (f.collected_at));
+    if (collected) parts.push('수집 ' + collected);
+    var disc = f && f.disclosure;
+    var warn = '';
+    if (disc && disc.status === 'pending') warn = ' <b>더 최신 정기공시가 확인되어 갱신 대기 중입니다.</b>';
+    else if (disc && disc.status === 'unverified') warn = ' 최신 공시 여부는 확인하지 못했습니다.';
+    return '<div class="ff-hint ff-fund-basis">' + escapeHtml(parts.join(' · ')) + warn + '</div>';
+  }
+
+  function buildQuarterBlock(q, fundamentalsMeta) {
     var rows = [
       ['매출액', fmtWonAmount(q.revenue), fmtSignedPct(q.revenue_yoy_pct)],
       ['영업이익', fmtWonAmount(q.operating_income), fmtSignedPct(q.operating_income_yoy_pct)],
       ['당기순이익', fmtWonAmount(q.net_income), fmtSignedPct(q.net_income_yoy_pct)]
     ];
-    var tableHtml = '<div class="ff-quarter-label">' + escapeHtml(q.period_label || q.label || '') + ' (전년 동기 대비 YoY)</div>'
+    var tableHtml = buildFundamentalsBasis(q, fundamentalsMeta) + '<div class="ff-quarter-label">' + escapeHtml(q.period_label || q.label || '') + ' (전년 동기 대비 YoY)</div>'
       + '<table class="ff-fund-table"><thead><tr><th>구분</th><th>금액</th><th>YoY</th></tr></thead><tbody>'
       + rows.map(function (r) {
         var cls = r[2] === '-' ? 'ff-flat' : (r[2].indexOf('-') === 0 ? 'ff-sell' : 'ff-buy');

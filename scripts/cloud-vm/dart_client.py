@@ -111,6 +111,22 @@ def call_fnltt(api_key, corp_code, bsns_year, reprt_code, fs_div='CFS'):
     return data.get('list') or []
 
 
+def call_stock_totqy(api_key, corp_code, bsns_year, reprt_code):
+    """주식의 총수 현황(stockTotqySttus) - 발행주식총수·자기주식수. 없으면 빈 리스트."""
+    params = {'crtfc_key': api_key, 'corp_code': corp_code,
+              'bsns_year': str(bsns_year), 'reprt_code': reprt_code}
+    data = json.loads(_fetch(BASE_URL + '/stockTotqySttus.json?' + urllib.parse.urlencode(params)).decode('utf-8'))
+    status = data.get('status')
+    if status == '013':
+        return []
+    if status != '000':
+        message = data.get('message') or ''
+        if '한도' in message or '제한' in message:
+            raise DartRateLimitError('DART stockTotqySttus status %s: %s' % (status, message))
+        raise RuntimeError('DART stockTotqySttus status %s: %s' % (status, message))
+    return data.get('list') or []
+
+
 def call_alot_matter(api_key, corp_code, bsns_year, reprt_code='11011'):
     """Return DART's annual dividend indicators (alotMatter)."""
     params = {

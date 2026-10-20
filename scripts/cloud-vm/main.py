@@ -2599,6 +2599,7 @@ def load_fundamentals_cache_cached():
             cached = json.load(f)
         _fundamentals_cache_mem = {
             'signature': signature,
+            'generatedAt': cached.get('generatedAt'),
             'data': cached.get('data') or {},
             'fetchedAt': cached.get('fetchedAt') or {},
         }
@@ -2616,11 +2617,25 @@ def fundamentals_single(code: str = Path(..., min_length=6, max_length=6),
     cache = load_fundamentals_cache_cached()
     if cache is None:
         raise HTTPException(status_code=503, detail='펀더멘탈 캐시가 아직 생성되지 않았습니다(batch_scan.py 첫 실행 대기 중).')
+    entry = cache['data'].get(code)
+    fetched_at = cache['fetchedAt'].get(code)
+    if isinstance(entry, dict):
+        # 화면 표시용 수집 시각(원본 캐시는 건드리지 않고 사본에만 넣는다).
+        entry = dict(entry, collected_at=fetched_at)
     return envelope({
         'code': code,
-        'fundamentals': cache['data'].get(code),
-        'fetchedAt': cache['fetchedAt'].get(code),
+        'fundamentals': entry,
+        'fetchedAt': fetched_at,
     })
+
+
+@app.get('/fundamentals-meta')
+def fundamentals_meta(x_api_key: str = Header(default=None)):
+    """GAS 캐시 무효화용 가벼운 버전 확인. generatedAt이 바뀌면(배치가 새로 저장하면) GAS의
+    종목별 펀더멘탈 캐시 키가 바뀌어 새 공시가 6시간을 기다리지 않고 반영된다."""
+    require_api_key(x_api_key)
+    cache = load_fundamentals_cache_cached()
+    return envelope({'generatedAt': (cache or {}).get('generatedAt')})
 
 
 @app.get('/daily-scan-batch')

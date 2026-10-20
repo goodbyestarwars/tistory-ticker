@@ -18,6 +18,7 @@ NET_INCOME_IDS = ('ifrs-full_ProfitLoss',)
 EQUITY_IDS = ('ifrs-full_Equity',)
 LIABILITIES_IDS = ('ifrs-full_Liabilities',)
 ASSETS_IDS = ('ifrs-full_Assets',)
+PARENT_EQUITY_IDS = ('ifrs-full_EquityAttributableToOwnersOfParent',)
 
 QUARTER_LABEL = {'11013': '1분기', '11012': '반기', '11014': '3분기', '11011': '사업보고서(연간)'}
 
@@ -126,6 +127,56 @@ def fetch_annual_series(api_key, corp_code, current_year=None):
     }
 
 
+def rcept_dt_from_no(rcept_no):
+    """DART 접수번호 앞 8자리는 접수일(YYYYMMDD)."""
+    r = str(rcept_no or '')
+    return r[:8] if len(r) >= 8 and r[:8].isdigit() else None
+
+
+def adjusted_share_count(share_rows):
+    """stockTotqySttus 행에서 (발행주식총수 - 자기주식수)를 구한다. '합계' 행이 있으면 그것을,
+    없으면 보통주+우선주 행을 더한다. 필요한 값이 하나라도 없거나 결과가 0 이하면 None."""
+    def pick(rows):
+        issued = treasury = 0
+        for r in rows:
+            i, t = to_num(r.get('istc_totqy')), to_num(r.get('tesstk_co'))
+            if i is None:
+                return None
+            issued += i
+            treasury += t or 0
+        return issued - treasury if rows and issued - treasury > 0 else None
+    total = [r for r in share_rows if (r.get('se') or '').strip() in ('합계', '합 계')]
+    if total:
+        return pick(total[:1])
+    kinds = [r for r in share_rows if any(k in (r.get('se') or '') for k in ('보통주', '우선주'))]
+    return pick(kinds)
+
+
+def compute_bps(api_key, corp_code, bs_rows, year, reprt_code):
+    """BPS = 지배기업 소유주지분 / (발행주식총수 - 자기주식수). 같은 보고서(year·reprt_code)의
+    재무상태표와 주식총수 현황을 쓴다. 근거가 부족하면 값을 만들지 않고 reason을 남긴다."""
+    if bs_rows and bs_rows[0].get('fs_div') == 'OFS':
+        # 별도재무제표엔 지배/비지배 구분이 없어 자본총계가 곧 주주지분이다.
+        equity = extract_amount(bs_rows, EQUITY_IDS, '자본총계', ('BS',), 'thstrm_amount')
+    else:
+        equity = extract_amount(bs_rows, PARENT_EQUITY_IDS, '지배기업 소유주지분', ('BS',), 'thstrm_amount')
+    if equity is None and not (bs_rows and bs_rows[0].get('fs_div') == 'OFS'):
+        equity = extract_amount(bs_rows, PARENT_EQUITY_IDS, '지배기업의 소유주에게 귀속되는 자본', ('BS',), 'thstrm_amount')
+    if equity is None:
+        return {'bps': None, 'reason': 'PARENT_EQUITY_MISSING'}
+    try:
+        time.sleep(THROTTLE_SEC)
+        shares = adjusted_share_count(dart_client.call_stock_totqy(api_key, corp_code, year, reprt_code))
+    except dart_client.DartRateLimitError:
+        raise
+    except Exception:
+        return {'bps': None, 'reason': 'SHARES_LOOKUP_FAILED'}
+    if not shares:
+        return {'bps': None, 'reason': 'SHARES_MISSING'}
+    return {'bps': equity / shares, 'parent_equity': equity, 'shares': shares,
+            'basis': 'parent_equity/(issued-treasury)', 'year': year, 'reprt_code': reprt_code}
+
+
 def fetch_latest_quarter(api_key, corp_code, current_year=None):
     """가장 최근에 공시됐을 보고서를 최신 것부터 순서대로 시도해 매출/영업이익/순이익 + YoY를 뽑는다.
     분기 보고서는 frmtrm_q_amount(전년 동기 3개월)를, 사업보고서는 frmtrm_amount(전기)를 비교값으로 쓴다."""
@@ -155,10 +206,15 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
         op, op_prior = metric(OPERATING_INCOME_IDS, '영업이익')
         net, net_prior = metric(NET_INCOME_IDS, '당기순이익')
 
+        bps_info = compute_bps(api_key, corp_code, rows, yr, reprt_code)
+        rcept_no = row.get('rcept_no')
         return {
             'year': yr,
             'reprt_code': reprt_code,
-            'rcept_no': row.get('rcept_no'),
+            'rcept_no': rcept_no,
+            'rcept_dt': rcept_dt_from_no(rcept_no),
+            'bps': bps_info.get('bps'),
+            'bps_detail': bps_info,
             'fs_div': row.get('fs_div'),
             'amount_basis': 'annual' if reprt_code == '11011' else 'standalone_3m',
             'label': QUARTER_LABEL.get(reprt_code, reprt_code),
@@ -244,6 +300,16 @@ def fetch_stock(api_key, corp_code, include_screening=True):
     if annual is None and latest_quarter is None:
         return None
     result = {'annual': annual, 'latest_quarter': latest_quarter, 'dividend': dividend}
+    filing = None
+    try:
+        time.sleep(THROTTLE_SEC)
+        filing = latest_periodic_filing(dart_client.call_periodic_reports(api_key, corp_code, datetime.now(timezone.utc).date()))
+        result['disclosure'] = make_disclosure(filing, latest_quarter)
+    except dart_client.DartRateLimitError:
+        raise
+    except Exception:
+        # 공시 목록 조회 실패는 재무 수집을 막지 않는다. disclosure가 없으면 다음 점검 때 다시 확인한다.
+        pass
     if not include_screening:
         return result
     try:
@@ -252,6 +318,27 @@ def fetch_stock(api_key, corp_code, include_screening=True):
         # 기존 재무 표시/배치는 보존하되 검증 실패를 통과로 만들지 않는다.
         result['screening'] = {'version': 1, 'error': 'LATEST_DISCLOSURE_UNVERIFIED', 'checked_at': datetime.now(timezone.utc).isoformat()}
     return result
+
+
+def make_disclosure(filing, quarter, now=None):
+    """수집 시점에 확인한 최신 정기공시와 재무 데이터의 일치 여부. status:
+    ok(같은 접수번호) / pending(공시가 더 새로움: 재수집 필요) / unverified(공시목록 없음)."""
+    now = (now or datetime.now(timezone.utc)).isoformat()
+    status = 'unverified'
+    if filing and quarter:
+        status = 'ok' if quarter.get('rcept_no') == filing.get('rcept_no') else 'pending'
+    return {'filing': filing, 'status': status, 'checked_at': now, 'collected_at': now}
+
+
+def disclosure_check(entry, filing, now=None):
+    """기존 캐시 항목이 최신 공시를 반영하는지: 'refetch'(접수번호가 달라짐) / 'keep'(그대로).
+    마지막으로 반영한 접수번호(disclosure.filing, 없으면 latest_quarter.rcept_no)와 비교하므로
+    정정공시도 잡히고, 같은 공시로 반복 재수집하지는 않는다."""
+    if not filing or not filing.get('rcept_no'):
+        return 'keep'
+    seen = (((entry or {}).get('disclosure') or {}).get('filing') or {}).get('rcept_no') \
+        or ((entry or {}).get('latest_quarter') or {}).get('rcept_no')
+    return 'keep' if seen == filing['rcept_no'] else 'refetch'
 
 
 SCREENING_VERSION = 1
