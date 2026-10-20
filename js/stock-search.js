@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261020-major-context1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-summary-ui1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -505,7 +505,6 @@
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
-      + '<label class="nine-trace-mode"><span class="nine-trace-mode-label">표시 범위</span> <select id="ssSupplyMode" aria-label="거래량·가격 흔적 표시 범위"><option value="detail">상세 · 관찰 전체</option><option value="important">중요 · 검증 통과 없음</option></select></label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -1265,7 +1264,12 @@
       global.OrderBook.init('#order-book', {
         hideSearch: true,
         quoteOnly: isIndependentChartMode(),
-        onQuote: function (quote) { applyRealtimeQuote(container, quote); }
+        onQuote: function (quote) { applyRealtimeQuote(container, quote); },
+        onSummary: function (summary,code) { if(code===state.selectedCode)renderSessionCandle(container,summary); },
+        onBookStatus: function (message,code) {
+          var note=container.querySelector('#ssBookStatus');
+          if(note && code===state.selectedCode){note.textContent=message;note.hidden=!message;}
+        }
       });
       state.ladderMounted = true;
     }
@@ -1289,10 +1293,30 @@
       + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
+      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
+      + '<div id="ssBookStatus" class="ss-book-status" role="status" hidden></div>'
       + '<div class="ss-summary-reason" id="ssSummaryReason">'
       + '<span class="ss-reason-badge">AI</span>'
       + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
       + '</div>';
+  }
+
+  // 동일한 호가 위젯의 자료를 재사용한다. 봉 색은 전일 대비가 아니라 현재가와 시가의 차이다.
+  function renderSessionCandle(container,summary) {
+    var box=container.querySelector('#ssSessionCandle');if(!box)return;
+    var o=Number(summary.open),h=Number(summary.high),l=Number(summary.low),c=Number(summary.current);
+    var valid=[o,h,l,c].every(function(v){return Number.isFinite(v) && v>0;}) && h>=Math.max(o,c) && l<=Math.min(o,c);
+    var labels=[['시가',summary.open],['고가',summary.high],['저가',summary.low],['현재가',summary.current]];
+    var values='<div class="ss-session-values">'+labels.map(function(item){return '<div><span>'+item[0]+'</span><b>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
+    var glyph='';
+    if(valid){
+      var y=function(price){return h===l?32:6+(h-price)/(h-l)*52;};
+      var color=c>o?'#d24f45':c<o?'#1261c4':'#777';
+      glyph='<svg class="ss-session-glyph" viewBox="0 0 44 64" role="img" aria-label="'+(c>o?'양봉':c<o?'음봉':'보합봉')+' · 고가에서 저가까지 꼬리, 시가에서 현재가까지 몸통">'
+        +'<line x1="22" x2="22" y1="'+y(h)+'" y2="'+y(l)+'" stroke="'+color+'" stroke-width="2"/>'
+        +'<rect x="15" width="14" y="'+Math.min(y(o),y(c))+'" height="'+Math.max(1.5,Math.abs(y(o)-y(c)))+'" fill="'+color+'"/></svg>';
+    }
+    box.innerHTML=glyph+values+'<span class="ss-session-date">'+escapeHtml(summary.date || '')+' 일봉'+(valid?' · 시가→현재가':' · 봉 자료 부족')+'</span>';
   }
 
   // 2026-07-28 사용자 요청: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 대신 오늘
@@ -1577,8 +1601,6 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
-    var supplyModeSelect=container.querySelector('#ssSupplyMode');
-    if(supplyModeSelect){supplyModeSelect.value=state.supplyMode;supplyModeSelect.onchange=function(){state.supplyMode=supplyModeSelect.value==='detail'?'detail':'important';renderChartForCode(container,state.selectedCode);};}
     var vpToggle = container.querySelector('#ssVolumeProfileToggle, [data-chart-vp-toggle]');
     if (vpToggle) {
       vpToggle.checked = state.volumeProfileEnabled;

@@ -962,3 +962,20 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 
 /* 호가 폭 480→394px(약18%) 축소. 숫자와 콘텐츠는 유지한다. */
 #stock-search .ss-panel-left { padding: 10px; }
+
+/* 종목 요약 한 곳에 일봉 OHLC와 호가 안내를 모은다. */
+#stock-search .ss-session { display:flex; align-items:center; gap:16px; flex-wrap:wrap; padding:9px 0; font-size:12px; color:#666; }
+#stock-search .ss-session-glyph { width:44px; height:64px; flex:0 0 44px; }
+#stock-search .ss-session-values { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:24px; flex:1; min-width:220px; }
+#stock-search .ss-session-values span { display:block; font-size:11px; color:#888; margin-bottom:3px; }
+#stock-search .ss-session-values b { font-size:14px; color:#222; font-variant-numeric:tabular-nums; white-space:nowrap; }
+#stock-search .ss-session-date { font-size:10px; color:#888; }
+#stock-search .ss-book-status { font-size:12px; line-height:1.5; color:#777; margin:4px 0 9px; }
+#stock-search #obBoard[hidden] { display:none; }
+@media(max-width:600px){
+  #stock-search .ss-session { gap:8px; }
+  #stock-search .ss-session-values { gap:8px; min-width:0; }
+  #stock-search .ss-session-values b { font-size:12px; }
+  #stock-search .ss-session-date { width:100%; }
+}
+html.dark #stock-search .ss-session-values b { color:#f5efe0 !important; }

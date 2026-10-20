@@ -14,7 +14,7 @@ import websockets
 REPO=Path(__file__).resolve().parents[1]
 OUT=REPO.parents[1]/'outputs/major-wave-20261020'
 LOCAL=os.environ.get('CHART_OBS_LOCAL')=='1'
-ASSETS=['js/chart-core.js','js/chart-wave-overlay.js','js/stock-search.js','js/foreign-flow.js','css/stock-search.css','css/order-book.css']
+ASSETS=['js/order-book.js','js/chart-core.js','js/chart-wave-overlay.js','js/stock-search.js','js/foreign-flow.js','css/stock-search.css','css/order-book.css']
 if LOCAL:OUT=OUT/'preflight'
 
 
@@ -63,7 +63,7 @@ async def main():
                         await wait('!!document.querySelector("#foreign-flow [data-view=chart]")')
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!window.NineChartCore && !!document.querySelector("#'+host+' canvas")')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-major-context-8'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-21-summary-ui-9'
                     assert await ev('document.querySelectorAll("[id$=TrendToggle], .nine-trend-bands, .nine-trend-boxes").length')==0
                     await ev('NineChartCore.loadModule("wave")')
                     await ev('window.qaWave=null;window.qaOpts=null;let attach=NineChartWave.attach;NineChartWave.attach=function(opts){qaOpts=opts;qaWave=attach(opts);return qaWave;}')

@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-major-context-8';
+  var VERSION = '2026-10-21-summary-ui-9';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -1127,8 +1127,8 @@
     if(enabled && holder.container){
       var legend=document.createElement('div');legend.className='nine-trace-legend';
       legend.dataset.study='trace';
-      legend.innerHTML='<span style="color:'+SUPPLY_TRACES.color+'">● 거래량</span> <span style="color:#7950b2">■ 장기선</span> <span style="color:'+CANDLE_UP+'">▲ 회복</span>';
-      legend.title='일봉 OHLCV 관찰값이며 실제 수급 주체를 뜻하지 않습니다. 장기선은 112/224/448봉 자료가 필요합니다.'+(mode==='important'?' 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다.':'');
+      legend.innerHTML='<span style="color:'+SUPPLY_TRACES.color+'">● 거래량</span> <span style="color:#7950b2">■ 112·224·448선</span> <span style="color:'+CANDLE_UP+'">▲ 고가 재돌파</span>';
+      legend.title='일봉 OHLCV 관찰값이며 실제 수급 주체를 뜻하지 않습니다. 장기선은 112/224/448일 단순이동평균입니다. 고가 재돌파는 대량 윗꼬리봉 이후 저점 방어와 그 봉의 고가를 종가로 다시 넘긴 관찰값이며, 장기선 회복과 다릅니다.'+(mode==='important'?' 중요 모드는 검증 통과 유형만 표시하며 현재 통과 유형은 없습니다.':'');
       legend.style.cssText='position:absolute;z-index:8;left:8px;right:76px;font-size:11px;line-height:1.5;white-space:normal;';
       holder.container.appendChild(legend);
       var legendFrame=global.requestAnimationFrame(function(){

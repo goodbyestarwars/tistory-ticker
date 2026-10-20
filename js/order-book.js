@@ -104,6 +104,8 @@
     summary: null,
     summaryGeneration: 0,
     quoteOnly: false,
+    onSummary: null,    // 상위 종목 요약에 OHLC를 전달하면 위젯의 중복 머리글/요약을 생략한다.
+    onBookStatus: null, // 호가 없음/오류 안내도 상위 요약 한 곳에서 표시한다.
     onQuote: null // 2026-08-05: 이 위젯을 임베드하는 상위 페이지(js/stock-search.js)가 자기
                   // 화면의 가격 표시도 같은 틱으로 갱신하고 싶을 때 쓰는 훅. 상위 페이지가
                   // 별도로 wss://.../ws/quotes 소켓을 또 열면(같은 코드에 소켓 2개) 두 소켓의
@@ -136,6 +138,8 @@
     container.innerHTML = buildShell(opts);
     state.onQuote = (opts && opts.onQuote) || null;
     state.quoteOnly = !!(opts && opts.quoteOnly);
+    state.onSummary = opts && opts.onSummary;
+    state.onBookStatus = opts && opts.onBookStatus;
     if (!opts || !opts.hideSearch) wireSearch(container);
     document.addEventListener('visibilitychange', function () {
       if (document.hidden) stopRealtimeQuote();
@@ -297,6 +301,8 @@
     if (state.timer) clearInterval(state.timer);
 
     var board = container.querySelector('#obBoard');
+    board.hidden = !!state.onBookStatus;
+    if(state.onBookStatus)state.onBookStatus('호가 불러오는 중…', code);
     board.innerHTML = '<div class="ob-hint"><svg class="ob-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(name) + ' 호가 불러오는 중...</div>';
     var toast = container.querySelector('#obToast');
     if (toast) { toast.className = 'ob-toast'; toast.textContent = ''; }
@@ -318,7 +324,8 @@
       state.summary = summary;
       updateSummary(container.querySelector('#obBoard'));
     }).catch(function () {
-      // The order book remains usable when the summary endpoint is temporarily unavailable.
+      // 요약 실패 시 로딩 문구를 남기지 않고 결측값으로 표시한다. 종목 전환 후 응답은 무시한다.
+      if(state.code===code && state.summaryGeneration===summaryGeneration)updateSummary(container.querySelector('#obBoard'));
     });
   }
 
@@ -687,7 +694,7 @@
         if (state.code !== code) return;
         var board = container.querySelector('#obBoard');
         if (board && !board.querySelector('.ob-table')) {
-          board.innerHTML = '<div class="ob-hint ob-error">호가 데이터를 불러오지 못했어요. 다음 갱신에 자동으로 재시도합니다.</div>';
+          setBookHint(board,'호가를 불러오지 못했습니다. 다음 갱신에 자동으로 재시도합니다.');
         }
       });
   }
@@ -1218,6 +1225,8 @@
         var previous = daily.length > 1 ? daily[daily.length - 2] : null;
         if (!latest) throw new Error('summary data unavailable');
         return {
+          date: latest.date,
+          close: numericOrNull(latest.close),
           open: numericOrNull(latest.open),
           high: numericOrNull(latest.high),
           low: numericOrNull(latest.low),
@@ -1232,15 +1241,16 @@
 
   function renderBoard(container, book, quote) {
     var board = container.querySelector('#obBoard');
+    updateSummary(board,quote);
     if (!book || (!(book.asks || []).length && !(book.bids || []).length)) {
-      board.innerHTML = '<div class="ob-hint">호가 정보가 없는 종목이거나 장 운영시간이 아니에요.</div>';
+      setBookHint(board,'호가 정보가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.');
       return;
     }
 
     var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     var bids = validDepth(book.bids).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     if (!asks.length && !bids.length) {
-      board.innerHTML = '<div class="ob-hint">현재 수신된 유효 호가가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.</div>';
+      setBookHint(board,'현재 수신된 유효 호가가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.');
       return;
     }
     var maxQty = 0;
@@ -1264,7 +1274,13 @@
 
     var summaryHtml = buildSummaryHtml(buildSummaryView(quote));
 
+    var currentRowHtml = '<div class="ob-current-row ' + priceCls + '" data-field="current-row">'
+      + '<span data-field="current-price">' + priceNum + '</span>'
+      + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
+      + '</div>';
+
     var ladderRows = asks.map(function (row, index) { return rowHtml(row, maxQty, 'ask', index + 1); }).join('');
+    ladderRows += currentRowHtml;
     ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계">매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가</div>';
     ladderRows += bids.map(function (row, index) { return rowHtml(row, maxQty, 'bid', index + 1); }).join('');
 
@@ -1279,12 +1295,9 @@
       + '<div class="ob-footer-bar"><span class="ob-footer-bar-ask" style="width:' + askPct + '%"></span><span class="ob-footer-bar-bid" style="width:' + bidPct + '%"></span></div>'
       + '</div>';
 
-    board.innerHTML = headerHtml
-      + summaryHtml
-      + '<div class="ob-current-row ' + priceCls + '" data-field="current-row">'
-      + '<span data-field="current-price">' + priceNum + '</span>'
-      + ' <span class="ob-current-change" data-field="current-change">' + (changeText || '') + '</span>'
-      + '</div>'
+    board.hidden=false;
+    if(state.onBookStatus)state.onBookStatus('',state.code);
+    board.innerHTML = (state.onSummary ? '' : headerHtml + summaryHtml)
       + '<div class="ob-table ob-table-pairs" aria-label="매도 최대 10호가와 매수 최대 10호가">'
       + '<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량 · 증감</span><span>가격</span><span class="ob-ask-text">매도 잔량 · 증감</span></div>'
       + ladderRows + '</div>'
@@ -1292,6 +1305,11 @@
       + buildTradesHtml();
     drawSilhouette(board, asks, bids);
     rememberDepth(asks, bids);
+  }
+
+  function setBookHint(board,message) {
+    if(state.onBookStatus){board.innerHTML='';board.hidden=true;state.onBookStatus(message,state.code);}
+    else {board.hidden=false;board.innerHTML='<div class="ob-hint">'+escapeHtml(message)+'</div>';}
   }
 
   function buildSummaryView(quote) {
@@ -1304,6 +1322,8 @@
       ? (liveVolume - previousVolume) / previousVolume * 100
       : null;
     return {
+      date: summary.date || null,
+      current: numericOrNull(quote && quote.price) || numericOrNull(state.lastRealtimeQuote && state.lastRealtimeQuote.price) || numericOrNull(summary.close),
       open: numericOrNull(summary.open),
       high: numericOrNull(summary.high),
       low: numericOrNull(summary.low),
@@ -1333,8 +1353,9 @@
   }
 
   function updateSummary(board, quote) {
-    if (!board) return;
     var summary = buildSummaryView(quote);
+    if(state.onSummary)state.onSummary(summary,state.code);
+    if (!board) return;
     var fields = {
       '시가': summary.open == null ? '-' : fmtPrice(summary.open),
       '고가': summary.high == null ? '-' : fmtPrice(summary.high),
