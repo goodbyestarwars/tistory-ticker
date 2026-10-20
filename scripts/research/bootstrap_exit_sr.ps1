@@ -1,53 +1,57 @@
-# 지지·저항 청산 연구 - 원클릭 실행(읽기 전용). 저장소 위치를 자동 확인하고, 없으면 별도 연구 폴더에 받은 뒤 한 번에 실행한다.
-# 운영 폴더(autotrader)는 읽기만 한다. 주문·엔진 파일·예약 작업·원장 쓰기 없음. 부족한 조건이 있으면 정확한 원인만 출력하고 중단한다.
+﻿# Exit support/resistance study - one-click runner (read-only). ASCII-only on purpose: Windows PowerShell 5.1 misreads
+# BOM-less UTF-8 Korean text and breaks parsing. Korean explanations are in docs/EXIT_SR_LOCAL_AGENT.md.
+# Reads C:\Users\goodb\autotrader only. No orders, no engine/scheduler changes, no DB writes there.
 param(
   [string]$Autotrader = 'C:\Users\goodb\autotrader',
   [string]$Work = 'C:\Users\goodb\exit_sr_study',
   [string]$Branch = 'research/exit-support-resistance',
   [string]$Remote = 'https://github.com/goodbyestarwars/tistory-ticker.git',
-  [string]$Mode = 'all',          # universe(검색기 포착 이력 전체, 우선) | ledger(실제 원장) | all
-  [string]$HitsFile = '',         # 전체 포착 이력 JSON(선택). 없으면 공개 API(검색기당 최대 1500건)
+  [string]$Mode = 'all',          # audit | universe | ledger | all | diagnose
+  [string]$HitsFile = '',
   [int]$HoldDays = 4,
-  [string]$RealCost = '',        # diagnose 모드: 실제 계좌에서 확인한 왕복 수수료+세금(%)
+  [string]$RealCost = '',
   [switch]$AllowMarketHours
 )
 $ErrorActionPreference = 'Stop'
-function Fail($code, $msg) { Write-Host "[실행 불가:$code] $msg"; exit 2 }
+function Fail($code, $msg) { Write-Host "[CANNOT RUN:$code] $msg"; exit 2 }
 
-if ($Work.TrimEnd('\').ToLower().StartsWith($Autotrader.TrimEnd('\').ToLower())) { Fail 'WORK_INSIDE_AUTOTRADER' "작업 폴더가 운영 폴더 안입니다: $Work" }
-if (-not (Test-Path -LiteralPath $Autotrader)) { Fail 'NO_AUTOTRADER_DIR' "운영 폴더가 없습니다: $Autotrader" }
+if ($Work.TrimEnd('\').ToLower().StartsWith($Autotrader.TrimEnd('\').ToLower())) { Fail 'WORK_INSIDE_AUTOTRADER' "Work folder is inside the live folder: $Work" }
+if (($Mode -ne 'diagnose') -and (-not (Test-Path -LiteralPath $Autotrader))) { Fail 'NO_AUTOTRADER_DIR' "Live folder not found: $Autotrader" }
 
-# 1) python
+# 1) python (3.8+)
 $py = $null
 foreach ($c in @('py -3', 'python', 'python3')) {
   $exe = $c.Split(' ')[0]
   if (Get-Command $exe -ErrorAction SilentlyContinue) {
     $v = (& cmd /c "$c --version 2>&1")
-    if ($v -match 'Python 3\.(\d+)' -and [int]$Matches[1] -ge 8) { $py = $c; break }
+    if ($v -match 'Python 3\.(\d+)') {
+      if ([int]$Matches[1] -ge 8) { $py = $c; break }
+    }
   }
 }
-if (-not $py) { Fail 'NO_PYTHON' 'Python 3.8 이상을 찾지 못했습니다(py -3 / python / python3 모두 실패). 설치 후 PATH에 등록하세요' }
+if (-not $py) { Fail 'NO_PYTHON' 'Python 3.8+ not found (tried py -3, python, python3). Install it and add to PATH.' }
 
-# 2) 저장소 위치: 연구 폴더의 전용 사본을 쓴다(사용자의 다른 clone·작업 중 변경은 건드리지 않는다)
+# 2) research-only clone under the work folder (your other clones are never touched)
 $repo = Join-Path $Work 'repo'
 New-Item -ItemType Directory -Force -Path $Work | Out-Null
-if (-not (Test-Path (Join-Path $repo '.git'))) {
-  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Fail 'NO_GIT' 'git 이 없습니다. Git for Windows 설치 후 다시 실행하세요' }
+$haveRepo = Test-Path (Join-Path $repo '.git')
+if (-not $haveRepo) {
+  if (-not (Get-Command git -ErrorAction SilentlyContinue)) { Fail 'NO_GIT' 'git not found. Install Git for Windows and retry.' }
   & git clone --branch $Branch --single-branch $Remote $repo 2>&1 | Out-Host
-  if ($LASTEXITCODE -ne 0) { Fail 'CLONE_FAILED' "clone 실패(저장소 접근 권한/네트워크 확인): $Remote" }
-} else {
+  if ($LASTEXITCODE -ne 0) { Fail 'CLONE_FAILED' "git clone failed (check repo access/network): $Remote" }
+}
+if ($haveRepo) {
   & git -C $repo fetch origin $Branch 2>&1 | Out-Host
-  if ($LASTEXITCODE -ne 0) { Fail 'FETCH_FAILED' 'git fetch 실패(네트워크/권한)' }
+  if ($LASTEXITCODE -ne 0) { Fail 'FETCH_FAILED' 'git fetch failed (network/permission)' }
   & git -C $repo checkout $Branch 2>&1 | Out-Host
   & git -C $repo merge --ff-only "origin/$Branch" 2>&1 | Out-Host
-  if ($LASTEXITCODE -ne 0) { Fail 'REPO_DIVERGED' "연구 전용 사본이 원격과 갈라졌습니다. $repo 를 지우고 다시 실행하세요(연구 사본이라 안전)" }
+  if ($LASTEXITCODE -ne 0) { Fail 'REPO_DIVERGED' "Research clone diverged from remote. Delete $repo and rerun (it is a research-only copy)." }
 }
-Write-Host ("연구 코드 버전: " + (& git -C $repo log --oneline -1))
+Write-Host ('code version: ' + (& git -C $repo log --oneline -1))
 
-# 3) 실행 (사전점검 -> 스냅샷 -> 일봉 캐시 자동 확보 -> 분봉 조회 전용 -> 분석 -> RESULT.md)
+# 3) run
 $script = Join-Path $repo 'scripts\research\exit_sr_run_all.py'
-$cmd = "$py `"$script`" --autotrader `"$Autotrader`" --work `"$Work`""
-$cmd += " --mode $Mode --hold-days $HoldDays"
+$cmd = "$py `"$script`" --autotrader `"$Autotrader`" --work `"$Work`" --mode $Mode --hold-days $HoldDays"
 if ($HitsFile) { $cmd += " --hits-file `"$HitsFile`"" }
 if ($RealCost) { $cmd += " --real-cost $RealCost" }
 if ($AllowMarketHours) { $cmd += ' --allow-market-hours' }
