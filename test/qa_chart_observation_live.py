@@ -2,6 +2,7 @@
 import asyncio
 import base64
 import json
+import os
 from pathlib import Path
 import subprocess
 import urllib.request
@@ -9,6 +10,8 @@ import websockets
 
 REPO=Path(__file__).resolve().parents[1]
 OUT=REPO.parents[1]/'outputs/chart-regime-traces-20261020'
+LOCAL=os.environ.get('CHART_OBS_LOCAL')=='1'
+if LOCAL:OUT=OUT/'preflight'
 
 
 async def main():
@@ -27,6 +30,12 @@ async def main():
                 seq+=1;await ws.send(json.dumps({'id':seq,'method':method,'params':params or {}}))
                 while True:
                     result=json.loads(await ws.recv())
+                    if result.get('method')=='Fetch.requestPaused':
+                        p=result['params'];filename=next((f for f in ['js/chart-core.js','js/stock-search.js','js/foreign-flow.js'] if '/'+f in p['request']['url']),None)
+                        if filename:
+                            params={'requestId':p['requestId'],'responseCode':200,'responseHeaders':[{'name':'Content-Type','value':'application/javascript; charset=utf-8'}], 'body':base64.b64encode((REPO/filename).read_bytes()).decode()}
+                            await ws.send(json.dumps({'id':100000+seq,'method':'Fetch.fulfillRequest','params':params}))
+                        else:await ws.send(json.dumps({'id':200000+seq,'method':'Fetch.continueRequest','params':{'requestId':p['requestId']}}))
                     if result.get('id')==seq:return result.get('result',{})
             async def ev(source):
                 r=await call('Runtime.evaluate',{'expression':source,'returnByValue':True,'awaitPromise':True})
@@ -38,6 +47,7 @@ async def main():
                     await asyncio.sleep(.5)
                 raise AssertionError(source)
             await call('Network.enable');await call('Network.setCacheDisabled',{'cacheDisabled':True})
+            if LOCAL:await call('Fetch.enable',{'patterns':[{'urlPattern':'*://goodbyestarwars.github.io/tistory-ticker/js/'+f+'*'} for f in ['chart-core.js','stock-search.js','foreign-flow.js']]})
             results=[]
             for width in (1440,390):
                 await call('Emulation.setDeviceMetricsOverride',{'width':width,'height':1100,'deviceScaleFactor':1,'mobile':False})
@@ -48,7 +58,7 @@ async def main():
                         await ev('document.querySelector("#foreign-flow [data-view=chart]").click()')
                     await wait('!!document.querySelector("#'+host+' .nine-trend-bands")')
                     await ev('window.qaLiveChart=null;window.qaLiveBars=0;let register=NineChartCore.registerChart;NineChartCore.registerChart=function(el,chart,opts){if(el.id==="'+host+'"){qaLiveChart=chart;qaLiveBars=opts.bars;}return register.apply(this,arguments);}')
-                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces-2'
+                    assert await ev('NineChartCore.VERSION')=='2026-10-20-regime-traces-3'
                     defaults=await ev('({trend:document.getElementById("'+prefix+'TrendToggle").checked,traces:document.getElementById("'+prefix+'AccumulationToggle").checked,mode:document.getElementById("'+prefix+'SupplyMode").value})')
                     assert defaults=={'trend':True,'traces':True,'mode':'important'},defaults
                     assert await ev('document.querySelectorAll("#'+host+' .nine-supply-tip").length')==0
@@ -67,7 +77,7 @@ async def main():
                         await wait('!!window.qaLiveChart')
                         visible=await ev('(()=>{let r=qaLiveChart.timeScale().getVisibleRange();function day(t){if(typeof t==="string")return Date.parse(t);if(typeof t==="number")return t*1000;return Date.UTC(t.year,t.month-1,t.day);}return {bars:qaLiveBars,spanDays:(day(r.to)-day(r.from))/86400000,from:r.from,to:r.to};})()')
                         expected={'1y':365,'3y':1095,'5y':1825}[period]
-                        assert visible['spanDays']>=expected*.85,(screen,width,period,visible)
+                        assert visible['spanDays']>=expected*.97,(screen,width,period,visible)
                         ranges.append({'period':period,**visible})
                     await ev('document.getElementById("'+prefix+'TrendToggle").click()')
                     await wait('!document.querySelector("#'+host+' .nine-trend-bands")')

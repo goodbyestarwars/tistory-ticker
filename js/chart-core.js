@@ -12,7 +12,7 @@
 (function (global) {
   'use strict';
 
-  var VERSION = '2026-10-20-regime-traces-2';
+  var VERSION = '2026-10-20-regime-traces-3';
   var LWC_URL = 'https://unpkg.com/lightweight-charts@5.2.0/dist/lightweight-charts.standalone.production.js';
   var CANDLE_UP = '#d24f45';       // 상승 빨강
   var CANDLE_DOWN = '#1261c4';     // 하락 파랑
@@ -130,7 +130,7 @@
     },
     analysis: {
       font: true, enableResize: true, margins: { top: 0.06, bottom: 0.36 },
-      timeScale: function () { return { rightOffset: 6, minBarSpacing: 0.1, timeVisible: false, secondsVisible: false }; },
+      timeScale: function () { return { rightOffset: 6, minBarSpacing: 0.1, lockVisibleTimeRangeOnResize:true, timeVisible: false, secondsVisible: false }; },
       handleScroll: null,
       handleScale: { axisPressedMouseMove: { time: true, price: true }, mouseWheel: true, pinch: true }
     }

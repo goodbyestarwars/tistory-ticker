@@ -11,6 +11,7 @@ const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_c
 // Approved 2026-10-20 UI change: fit 1/3/5-year daily ranges on narrow screens.
 // Preserve the historical fixture and compare every other option unchanged.
 for (const profile of [golden.search,golden.analysis]) for (const opts of Object.values(profile)) opts.timeScale.minBarSpacing=.1;
+for (const opts of Object.values(golden.analysis)) opts.timeScale.lockVisibleTimeRangeOnResize=true;
 const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/flow_chart_005930.json'), 'utf8'));
 const LWC = { CrosshairMode: { Normal: 0 }, LineStyle:{Solid:0}, CandlestickSeries: 'candle', LineSeries: 'line', HistogramSeries: 'hist' };
 
