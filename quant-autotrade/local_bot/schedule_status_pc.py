@@ -29,10 +29,11 @@ _lock = threading.Lock()
 _cache = {'at': 0.0, 'data': None}
 
 
-def summarize(raw, research_status=None, now=None):
+def summarize(raw, research_status=None, now=None, live_status=None):
     now = now or datetime.now(KST)
     by_name = {row['name']: row for row in raw if row.get('name') in NAMES}
     research_status = research_status or {}
+    live_status = live_status or {}
     jobs = []
     for name in NAMES:
         row = by_name.get(name)
@@ -57,6 +58,13 @@ def summarize(raw, research_status=None, now=None):
                     label = '지연'
             except (ValueError, TypeError):
                 label = '미확인' if state != 'Disabled' else label
+        if name == 'AutotraderLiveTrading' and state == 'Running':
+            try:
+                checked = datetime.fromisoformat(live_status['checked_at'])
+                if now - checked <= timedelta(minutes=2) and live_status.get('state') == '9PAY_FEED_UNAVAILABLE':
+                    label = '오류'
+            except (KeyError, ValueError, TypeError):
+                pass
         jobs.append({'id': name, 'name': name, 'state': label, 'lastSuccessAt': last,
                      'nextRunAt': None if state == 'Disabled' else row.get('nextRunAt'), 'lastResultCode': row.get('code'),
                      'triggerCount': row.get('triggerCount')})
@@ -77,7 +85,12 @@ def snapshot(research_dir):
                     research = json.load(stream)
             except (OSError, ValueError):
                 research = {}
-            data = summarize(raw, research)
+            try:
+                with open(os.path.join(os.path.dirname(research_dir), 'live_status.json'), encoding='utf-8') as stream:
+                    live = json.load(stream)
+            except (OSError, ValueError):
+                live = {}
+            data = summarize(raw, research, live_status=live)
         except (OSError, ValueError, subprocess.SubprocessError):
             data = {'asOf': datetime.now(KST).isoformat(timespec='seconds'), 'jobs': [], 'state': '미확인'}
         _cache.update(at=at, data=data)

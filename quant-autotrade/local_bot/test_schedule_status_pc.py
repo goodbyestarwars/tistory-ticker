@@ -26,6 +26,15 @@ class PcScheduleTests(unittest.TestCase):
         self.assertEqual(jobs['AutotraderCandidates']['state'], '정상')
         self.assertNotIn('action', str(jobs))
 
+    def test_running_live_task_shows_fresh_feed_failure(self):
+        now = datetime(2026, 10, 20, 9, 40, tzinfo=timezone(timedelta(hours=9)))
+        rows = [{'name': 'AutotraderLiveTrading', 'state': 'Running', 'code': 267009,
+                 'lastRunAt': '2026-10-20T08:55:00+09:00', 'nextRunAt': '2026-10-21T08:55:00+09:00'}]
+        fresh = {'checked_at': '2026-10-20T09:39:30+09:00', 'state': '9PAY_FEED_UNAVAILABLE'}
+        stale = {'checked_at': '2026-10-20T09:20:00+09:00', 'state': '9PAY_FEED_UNAVAILABLE'}
+        self.assertEqual(schedule_status_pc.summarize(rows, now=now, live_status=fresh)['jobs'][-1]['state'], '오류')
+        self.assertEqual(schedule_status_pc.summarize(rows, now=now, live_status=stale)['jobs'][-1]['state'], '정상')
+
 
 if __name__ == '__main__':
     unittest.main()

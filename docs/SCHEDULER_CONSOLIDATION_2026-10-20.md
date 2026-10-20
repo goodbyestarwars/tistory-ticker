@@ -77,3 +77,4 @@ PC 적용 스크립트 `quant-autotrade/research/consolidate_tasks.ps1`는 두 �
 | 비ETF 전략 | 5시간14분51초 | 52분15초 |
 
 배포 직전 VM `/health/load`는 RSS 197.6MB·가용 메모리 468.8MB·1분 부하 1.65, 복구 직후는 RSS 192.4MB·가용 523.6MB·부하 1.84였다. 부하 값은 시점 차이가 있어 효율 개선 증거가 아니다. API 재시작 중 일시 502가 발생했고 이후 `/health`, `/health/schedules`, `/health/realtime`은 200으로 복구했다. 실거래 PC PID는 13616으로 유지됐으나 09:34~09:36 `live_status.json`은 `9PAY_FEED_UNAVAILABLE`; VM 관측의 `queueDropped=473`이 남아 있어 신규 신호는 안전 차단 중이다. 재시작과의 인과관계는 미확인이다. 장중 VM 추가 재시작은 피하고 이 장애를 별도로 추적한다.
+PC 상태 API는 실행 중 실거래 작업의 최근 신호 피드 장애도 읽기 전용으로 확인해 `오류`로 표시한다. 작업 프로세스 자체가 살아 있다는 사실과 신호 사용 가능성을 혼동하지 않도록 한 표시 변경이며 주문 판단은 바꾸지 않는다.
