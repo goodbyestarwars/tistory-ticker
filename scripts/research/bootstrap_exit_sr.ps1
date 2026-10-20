@@ -5,6 +5,9 @@ param(
   [string]$Work = 'C:\Users\goodb\exit_sr_study',
   [string]$Branch = 'research/exit-support-resistance',
   [string]$Remote = 'https://github.com/goodbyestarwars/tistory-ticker.git',
+  [string]$Mode = 'all',          # universe(검색기 포착 이력 전체, 우선) | ledger(실제 원장) | all
+  [string]$HitsFile = '',         # 전체 포착 이력 JSON(선택). 없으면 공개 API(검색기당 최대 1500건)
+  [int]$HoldDays = 4,
   [switch]$AllowMarketHours
 )
 $ErrorActionPreference = 'Stop'
@@ -43,6 +46,8 @@ Write-Host ("연구 코드 버전: " + (& git -C $repo log --oneline -1))
 # 3) 실행 (사전점검 -> 스냅샷 -> 일봉 캐시 자동 확보 -> 분봉 조회 전용 -> 분석 -> RESULT.md)
 $script = Join-Path $repo 'scripts\research\exit_sr_run_all.py'
 $cmd = "$py `"$script`" --autotrader `"$Autotrader`" --work `"$Work`""
+$cmd += " --mode $Mode --hold-days $HoldDays"
+if ($HitsFile) { $cmd += " --hits-file `"$HitsFile`"" }
 if ($AllowMarketHours) { $cmd += ' --allow-market-hours' }
 & cmd /c $cmd
 exit $LASTEXITCODE

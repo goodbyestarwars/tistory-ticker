@@ -20,6 +20,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import exit_ledger_adapter as la  # noqa: E402
 import exit_sr_local as loc  # noqa: E402
+import exit_sr_universe as uni  # noqa: E402
 
 KST = timezone(timedelta(hours=9))
 REPO_ENGINE = os.path.join(HERE, '..', '..', 'quant-autotrade', 'local_bot', 'live_engine.py')
@@ -99,6 +100,90 @@ def ensure_daily_cache(work, trades):
     return out, report
 
 
+def probe_minute_window(client, out_dir, calendar, ensure_bars, probe_code='005930', stop_after=3):
+    """유동성 큰 종목(기본 삼성전자)으로 키움 1분봉이 실제로 거슬러 올라가는 가장 이른 날을 찾는다. 연속 빈 날 stop_after 번이면 멈춘다."""
+    earliest, empties = None, 0
+    for d in reversed(calendar):
+        try:
+            ensure_bars(client, out_dir, probe_code, d)
+        except Exception:
+            empties += 1
+            if empties >= stop_after:
+                break
+            continue
+        import exit_strategy_study as xs
+        if xs.load_day(out_dir, probe_code, d):
+            earliest, empties = d, 0
+        else:
+            empties += 1
+            if empties >= stop_after:
+                break
+    return earliest
+
+
+def run_universe(work, autotrader, cache, api, hits_file, hold_days, kiwoom_factory=None, ensure_bars=None):
+    """검색기 포착 이력 전체 가상 백테스트(실제 매수 여부와 무관). 실제 원장 결과와 섞지 않고 out_universe 에 따로 쓴다."""
+    out = os.path.join(work, 'out_universe')
+    os.makedirs(out, exist_ok=True)
+    rdb = os.path.join(work, 'snapshots', 'research.db')
+    hits, rep = uni.collect_hits(api=api, hits_file=hits_file, research_db=rdb if os.path.exists(rdb) else None)
+    json.dump(rep, open(os.path.join(out, 'hits_report.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    if not hits:
+        return 'NO_HITS', rep
+    calendar = loc.calendar_from(cache)
+    plans, plan_ex = uni.plan_entries(hits, calendar, hold_days)
+    codes = sorted({e['code'] for e in plans})
+    for c in codes:
+        ensure_daily_cache_one(cache, c)
+    minbars = os.path.join(work, 'minbars')
+    os.makedirs(minbars, exist_ok=True)
+    if kiwoom_factory:
+        client = kiwoom_factory()
+        earliest = probe_minute_window(client, minbars, calendar, ensure_bars)
+        rep['minute_window_earliest_day'] = earliest
+        keep = []
+        for e in plans:
+            if earliest is None or e['entry_day'] < earliest:
+                plan_ex['BEYOND_MINUTE_DATA_WINDOW'] = plan_ex.get('BEYOND_MINUTE_DATA_WINDOW', 0) + 1
+            else:
+                keep.append(e)
+        need = sorted({(e['code'], d) for e in keep for d in e['days'] if d <= calendar[-1]})
+        for i, (code, day) in enumerate(need, 1):
+            try:
+                ensure_bars(client, minbars, code, day)
+            except Exception as exc:
+                print('fail', code, day, type(exc).__name__)
+            if i % 100 == 0:
+                print('bars %d/%d' % (i, len(need)), flush=True)
+        plans = keep
+    entries, path_ex = uni.attach_paths(plans, minbars, cache, calendar)
+    if not entries:
+        json.dump({'hits': rep, 'plan_exclusions': plan_ex, 'path_exclusions': path_ex}, open(os.path.join(out, 'summary.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+        return 'NO_ENTRIES', {'plan': plan_ex, 'path': path_ex}
+    S, res = uni.analyze(entries, cache, plan_ex, path_ex, rep, hold_days)
+    json.dump(S, open(os.path.join(out, 'summary.json'), 'w', encoding='utf-8'), ensure_ascii=False, indent=1)
+    import csv
+    rows = uni_rows(entries, res)
+    with open(os.path.join(out, 'trades_abc.csv'), 'w', encoding='utf-8-sig', newline='') as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0]))
+        w.writeheader()
+        w.writerows(rows)
+    text = uni.render(S)
+    open(os.path.join(out, 'RESULT_UNIVERSE.md'), 'w', encoding='utf-8').write(text)
+    return 'OK', text
+
+
+def uni_rows(entries, res):
+    import exit_sr_study as sr
+    sel = [dict(e, scanner='+'.join(e['scanners'])) for e in entries]
+    return sr.trade_diff_rows(res, sel)
+
+
+def ensure_daily_cache_one(cache, code):
+    ok, info = fetch_daily(code, cache)
+    return ok
+
+
 def pct(x):
     return '-' if x is None else '%+.2f%%' % x
 
@@ -148,6 +233,10 @@ def main(argv=None):
     ap.add_argument('--autotrader', default=r'C:\Users\goodb\autotrader')
     ap.add_argument('--work', default=r'C:\Users\goodb\exit_sr_study')
     ap.add_argument('--allow-market-hours', action='store_true')
+    ap.add_argument('--mode', choices=('all', 'universe', 'ledger'), default='all', help='universe=검색기 포착 이력 전체 가상 백테스트(우선), ledger=실제 원장 거래, all=둘 다(결과는 따로)')
+    ap.add_argument('--api', default='https://goodbyestar.cloud', help='공개 /scan-performance-public 로 포착 이력을 받는다(검색기당 최대 1500건)')
+    ap.add_argument('--hits-file', default=None, help='전체 포착 이력 JSON(예: VM scan_hits 덤프). 있으면 API 상한을 넘는 이력까지 쓴다')
+    ap.add_argument('--hold-days', type=int, default=4)
     a = ap.parse_args(argv)
     problems = preflight(a.autotrader, a.work, a.allow_market_hours)
     if problems:
@@ -164,10 +253,21 @@ def main(argv=None):
     if '005930' in fails:
         print('실행 불가 - 일봉 캐시(거래일 달력) 확보 실패:', fails['005930'], '(네이버 fchart 접속 확인)')
         return 3
-    loc.cmd_bars(a.work, os.path.join(a.autotrader, '.env'), cache)
-    loc.cmd_analyze(a.work, cache, list(CASES))
-    print(render_result(os.path.join(a.work, 'out')))
-    print('\n결과 파일: %s' % os.path.join(a.work, 'out', 'RESULT.md'))
+    if a.mode in ('all', 'universe'):
+        sys.path.insert(0, os.path.join(HERE, '..', '..', 'quant-autotrade', 'local_bot'))
+        from kiwoom import KiwoomClient
+        import exit_strategy_calibrate as cal
+        keys = loc.xc.read_env_keys(os.path.join(a.autotrader, '.env'))
+        status, payload = run_universe(a.work, a.autotrader, cache, a.api, a.hits_file, a.hold_days,
+                                       lambda: KiwoomClient(keys.get('KIWOOM_APPKEY'), keys.get('KIWOOM_SECRETKEY')), cal.ensure_bars)
+        print('=== 검색기 포착 이력 전체 가상 백테스트 ===')
+        print(payload if status == 'OK' else '결과 없음(%s): %s' % (status, json.dumps(payload, ensure_ascii=False)))
+    if a.mode in ('all', 'ledger'):
+        loc.cmd_bars(a.work, os.path.join(a.autotrader, '.env'), cache)
+        loc.cmd_analyze(a.work, cache, list(CASES))
+        print('=== 실제 원장 거래 ===')
+        print(render_result(os.path.join(a.work, 'out')))
+    print('\n결과 폴더: %s (out_universe\\RESULT_UNIVERSE.md, out\\RESULT.md)' % a.work)
     return 0
 
 

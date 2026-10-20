@@ -9,6 +9,13 @@ PR #794(`research/exit-support-resistance`)는 **병합 보류**다. 이 문서�
 > ```
 > 금지: `C:\Users\goodb\autotrader` 파일 수정/삭제, 실제 주문, `AutotraderLiveTrading` 예약 작업 변경·재시작, 운영 DB 쓰기, `.env`/원장/분봉 내용 출력·업로드, 스크립트 수정. 실패하면 출력된 `[실행 불가:코드]` 메시지만 그대로 보고한다.
 
+## 연구 범위 (2026-10-21 수정: 검색기 전체 우선)
+- **universe(우선)**: 실제 매수 여부와 무관하게 검색기 4종(pullback·maCloudBreakout·doubleBottom·invHeadShoulders)의 과거 포착 이력 전체를 같은 진입(다음 거래일 09:01 시가+0.1%, 기준가 +2% 이상 갭 제외)·같은 비용에서 A / A_cycle / B_SR / C_SR로 비교한다. 결과: `out_universe\RESULT_UNIVERSE.md`(전체·검색기별 A/B/C 표, 동시 보유 3슬롯 반영, 워크포워드, 국면별, 최종 판정 4택1).
+- **ledger**: 실제 원장 거래 분석(`out\RESULT.md`, 하이브·파인엠텍·제주항공은 해석용 사례). universe와 섞지 않는다.
+- 포착 이력은 공개 `/scan-performance-public`(검색기당 최대 1500건)에서 받는다. 더 긴 이력이 필요하면 VM `scan_hits` 전체 덤프 JSON을 `-HitsFile`로 준다(원장·키가 아니라 포착 이력만; 업로드 불필요, PC 안에서만 사용).
+- 9Pay A/B 장중 단타와 4종 외 검색기는 진입 시각을 검증할 수 없어 제외 사유로 건수만 기록한다(9Pay A/B 과거 신호 이력이 PC에 있으면 별도 집단으로 추가 가능 - 현재 미구현).
+- 분봉은 키움이 제공하는 기간까지만 있다. 그 이전은 일봉·5분봉으로 대체하지 않고 `BEYOND_MINUTE_DATA_WINDOW`로 제외하며 보유 기간을 결과에 표기한다. 검증 100건·3개월·분봉 충족률 70% 미만이면 **판정 보류**다.
+
 ## 스크립트가 하는 일
 1. 점검: Python 3.8+, git, 운영 폴더·`live_orders.db`·`.env` 변수 이름(값은 읽지 않음), 장중 여부(평일 08:50~15:40에는 키움 토큰 발급이 가동 중인 엔진과 겹칠 수 있어 중단; 장 마감 후 실행), 작업 폴더가 운영 폴더 밖인지.
 2. 저장소: `C:\Users\goodb\exit_sr_study\repo` 전용 사본(기존 clone·작업 중 변경은 건드리지 않음).
