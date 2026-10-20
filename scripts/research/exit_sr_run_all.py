@@ -307,11 +307,15 @@ def main(argv=None):
     ap.add_argument('--autotrader', default=r'C:\Users\goodb\autotrader')
     ap.add_argument('--work', default=r'C:\Users\goodb\exit_sr_study')
     ap.add_argument('--allow-market-hours', action='store_true')
-    ap.add_argument('--mode', choices=('all', 'universe', 'ledger', 'audit'), default='all', help='universe=검색기 포착 이력 전체 가상 백테스트(우선), ledger=실제 원장 거래, all=둘 다(결과는 따로)')
+    ap.add_argument('--mode', choices=('all', 'universe', 'ledger', 'audit', 'diagnose'), default='all', help='universe=검색기 포착 이력 전체 가상 백테스트(우선), ledger=실제 원장 거래, all=둘 다(결과는 따로)')
     ap.add_argument('--api', default='https://goodbyestar.cloud', help='공개 /scan-performance-public 로 포착 이력을 받는다(검색기당 최대 1500건)')
     ap.add_argument('--hits-file', default=None, help='전체 포착 이력 JSON(예: VM scan_hits 덤프). 있으면 API 상한을 넘는 이력까지 쓴다')
     ap.add_argument('--hold-days', type=int, default=4)
+    ap.add_argument('--real-cost', type=float, default=None, help='diagnose 모드: 실제 계좌에서 확인한 왕복 수수료+세금(%%)')
     a = ap.parse_args(argv)
+    if a.mode == 'diagnose':        # 기존 산출물만 읽는 분석: 키움·운영 폴더 접근 없음(장중에도 가능), 새 파일은 out_diagnose 에만 쓴다
+        import exit_sr_diagnose as dg
+        return dg.main([a.work, '--hold-days', str(a.hold_days)] + (['--real-cost', str(a.real_cost)] if a.real_cost is not None else []))
     problems = preflight(a.autotrader, a.work, a.allow_market_hours)
     if problems:
         print('실행 불가 - 아래 조건이 충족되지 않았습니다(아무것도 변경하지 않았습니다):')

@@ -29,3 +29,10 @@ PR #794(`research/exit-support-resistance`)는 **병합 보류**다. 이 문서�
 6. `C:\Users\goodb\exit_sr_study\out\RESULT.md`: 하이브·파인엠텍·제주항공 + A/B/C 비교만 정리. 같은 폴더의 `summary.json`·`trades_abc.csv`·`cases.json`·`coverage.json`과 `..\engine_check.json`이 익명 요약이다.
 
 종료 코드: 0 성공, 2 조건 미충족(원인 출력), 3 일봉 캐시 확보 실패.
+
+## 백테스트 수치 신뢰성 진단 (`-Mode diagnose`)
+이미 만들어 둔 `exit_sr_study` 산출물(`out_universe\trades_abc.csv`, `minbars`, `naver`)만 읽어 `out_diagnose\DIAGNOSIS.md`·`diagnose.json`을 새로 만든다. 키움 재수집·운영 폴더 접근 없음(장중에도 가능). 비용 분해(원가격→슬리피지→비용), 분포, 엔진 필터 부분집합, 단순 보유 기준, 상관·중복, 시뮬레이터 현실성, MDD 해석을 담는다.
+```powershell
+powershell -ExecutionPolicy Bypass -File "C:\Users\goodb\exit_sr_study\repo\scripts\research\bootstrap_exit_sr.ps1" -Mode diagnose
+# 실제 계좌 왕복 비용(수수료+세금, %)을 확인했다면: -RealCost 0.25  (확인 전에는 쓰지 말 것)
+```

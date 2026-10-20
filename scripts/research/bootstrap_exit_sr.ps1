@@ -8,6 +8,7 @@ param(
   [string]$Mode = 'all',          # universe(검색기 포착 이력 전체, 우선) | ledger(실제 원장) | all
   [string]$HitsFile = '',         # 전체 포착 이력 JSON(선택). 없으면 공개 API(검색기당 최대 1500건)
   [int]$HoldDays = 4,
+  [string]$RealCost = '',        # diagnose 모드: 실제 계좌에서 확인한 왕복 수수료+세금(%)
   [switch]$AllowMarketHours
 )
 $ErrorActionPreference = 'Stop'
@@ -48,6 +49,7 @@ $script = Join-Path $repo 'scripts\research\exit_sr_run_all.py'
 $cmd = "$py `"$script`" --autotrader `"$Autotrader`" --work `"$Work`""
 $cmd += " --mode $Mode --hold-days $HoldDays"
 if ($HitsFile) { $cmd += " --hits-file `"$HitsFile`"" }
+if ($RealCost) { $cmd += " --real-cost $RealCost" }
 if ($AllowMarketHours) { $cmd += ' --allow-market-hours' }
 & cmd /c $cmd
 exit $LASTEXITCODE
