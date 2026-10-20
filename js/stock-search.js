@@ -1296,26 +1296,17 @@
       + '</div>';
   }
 
-  // 동일한 호가 위젯의 자료를 재사용한다. 봉 색은 전일 대비가 아니라 현재가와 시가의 차이다.
+  // 같은 호가 자료로 상단 현재가를 맞추고, 보조 영역에는 시가·고가·저가만 표시한다.
   function renderSessionCandle(container,summary) {
     var box=container.querySelector('#ssSessionCandle');if(!box)return;
-    var o=Number(summary.open),h=Number(summary.high),l=Number(summary.low),c=Number(summary.current);
+    var c=Number(summary.current);
     var price=container.querySelector('.ss-summary-price'),rate=container.querySelector('.ss-summary-change');
     if(price && c>0)price.textContent=fmtPrice(c)+'원';
     if(summary.changeRate!=null){var tone=signClass(summary.changeRate);if(price)price.className='ss-summary-price '+tone;if(rate){rate.textContent=fmtSignedPct(summary.changeRate);rate.className='ss-summary-change '+tone;}}
-    var valid=[o,h,l,c].every(function(v){return Number.isFinite(v) && v>0;}) && h>=Math.max(o,c) && l<=Math.min(o,c);
     var labels=[['시가',summary.open],['고가',summary.high],['저가',summary.low]];
     var values='<div class="ss-session-values">'+labels.map(function(item){return '<div><span>'+item[0]+'</span><b>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
-    var glyph='';
-    if(valid){
-      var y=function(price){return h===l?32:6+(h-price)/(h-l)*52;};
-      var color=c>o?'#d24f45':c<o?'#1261c4':'#777';
-      glyph='<svg class="ss-session-glyph" viewBox="0 0 44 64" role="img" aria-label="'+(c>o?'양봉':c<o?'음봉':'보합봉')+' · 고가에서 저가까지 꼬리, 시가에서 현재가까지 몸통">'
-        +'<line x1="22" x2="22" y1="'+y(h)+'" y2="'+y(l)+'" stroke="'+color+'" stroke-width="2"/>'
-        +'<rect x="15" width="14" y="'+Math.min(y(o),y(c))+'" height="'+Math.max(1.5,Math.abs(y(o)-y(c)))+'" fill="'+color+'"/></svg>';
-    }
-    box.title=(summary.date || '')+' 일봉 · 봉 몸통은 시가에서 현재가까지';
-    box.innerHTML=glyph+values+'<span class="ss-session-date">'+escapeHtml(summary.date || '')+' 일봉'+(valid?' · 시가→현재가':' · 봉 자료 부족')+'</span>';
+    box.title=(summary.date || '')+' 일봉 기준';
+    box.innerHTML=values;
   }
 
   // 2026-07-28 사용자 요청: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 대신 오늘
