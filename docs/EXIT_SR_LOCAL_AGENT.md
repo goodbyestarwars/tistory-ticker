@@ -36,3 +36,10 @@ PR #794(`research/exit-support-resistance`)는 **병합 보류**다. 이 문서�
 powershell -ExecutionPolicy Bypass -File "C:\Users\goodb\exit_sr_study\repo\scripts\research\bootstrap_exit_sr.ps1" -Mode diagnose
 # 실제 계좌 왕복 비용(수수료+세금, %)을 확인했다면: -RealCost 0.25  (확인 전에는 쓰지 말 것)
 ```
+
+## 최종 판단 보고서 (`-Mode decision`)
+기존 산출물(`out_universe\trades_abc.csv`, `minbars`, `naver`, `out\summary.json`)만 읽어 `out_decision\SCANNER_EXIT_DECISION.md` 하나를 만든다(키움·운영 폴더 접근 없음, 장중에도 가능). 선별 후보 점수 5개를 학습 구간에서 하나로 고정해 검증 구간에 적용하고, 같은 종목에서 A/B/C 청산을 비교하며, 실제 원장 재현이 70% 미만이면 청산 우열을 판정하지 않는다.
+```powershell
+git -C C:\Users\goodb\exit_sr_study\repo pull --ff-only
+powershell -ExecutionPolicy Bypass -File "C:\Users\goodb\exit_sr_study\repo\scripts\research\bootstrap_exit_sr.ps1" -Mode decision
+```
