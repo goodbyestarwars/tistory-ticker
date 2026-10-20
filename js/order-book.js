@@ -285,6 +285,7 @@
     state.lastRealtimeAt = 0;
     state.lastWsBook = null;
     state.lastWsBookAt = 0;
+    state.lastBookNote = null;
     state.previousDepth = null;
     state.lastWsAnalysisAt = 0;
     state.lastStrength = null;
@@ -474,7 +475,7 @@
     bids.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
     asks = validDepth(asks);
     bids = validDepth(bids);
-    if(!asks.length && !bids.length){setBookHint(board,'호가 미수신 · 마지막 수신 호가가 있으면 그대로 표시합니다.');return;}
+    if(!asks.length && !bids.length){setBookHint(board,state.lastBookNote || '호가 미수신 · 마지막 수신 호가가 있으면 그대로 표시합니다.');return;}
     // 공급자가 이전 REST보다 많은/적은 단계를 보내면 행 구조만 다시 만든다.
     if (board.getAttribute('data-unavailable')==='true' || board.hasAttribute('data-stale') || board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
         || board.querySelectorAll('.ob-row-bid').length !== Math.min(bids.length, 10)) {
@@ -1244,15 +1245,16 @@
   function renderBoard(container, book, quote) {
     var board = container.querySelector('#obBoard');
     updateSummary(board,quote);
+    if(book && Object.prototype.hasOwnProperty.call(book,'note'))state.lastBookNote=book.note || null;
     if (!book || (!(book.asks || []).length && !(book.bids || []).length)) {
-      setBookHint(board,'호가 정보가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.');
+      setBookHint(board,book && book.note || '호가 정보가 없습니다. 공급자 재조회 중입니다.');
       return;
     }
 
     var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     var bids = validDepth(book.bids).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     if (!asks.length && !bids.length) {
-      setBookHint(board,'현재 수신된 유효 호가가 없습니다. 장외 또는 공급자 자료 누락일 수 있습니다.');
+      setBookHint(board,book.note || '현재 수신된 유효 호가가 없습니다. 공급자 재조회 중입니다.');
       return;
     }
     var maxQty = 0;

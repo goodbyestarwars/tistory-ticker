@@ -277,3 +277,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 
 ### 환율 탭 인증키 (2026-10-11)
 VM `.env`(`/home/goodbyestarwars/kiwoom-api/.env`)의 `KOREAEXIM_API_KEY`(한국수출입은행 환율정보 인증키)와 선택 `KOREAEXIM_DAILY_BUDGET`(하루 호출 상한, 기본 300). 서비스 재시작 없이 다음 주기(최대 15분)에 읽는다. 키가 없으면 `/fx-rates`가 `state:no_key`. 점검은 `GET /fx-rates`의 `state`·`lastSuccessAt`. [FX_KOREAEXIM.md](FX_KOREAEXIM.md).
+
+### 호가 장전·미수신 구분 (2026-10-21)
+
+`order_book.py`는0원 필드가 있다는 이유만으로 정상 호가로 판정하지 않는다. 한쪽 유효 호가도 정상으로 인정하고, 운영시간 중 빈KIS응답은 키움으로 재조회한다. 양쪽 공급자 모두 빈 경우 `available:false/status:unavailable`, 장전은 `preopen`, 장외/휴장은 `closed`다. TTL1.5초·2초 폴링·프로세스/타이머/DB 구조는 그대로다. `checkedAt`은 조회시각이며 호가발생시각이 아니다. 공식시간: NXT 대상종목08:00, KRX정규호가08:30. 관련 주문/9Pay 신호 모듈은 호출하지 않는다.

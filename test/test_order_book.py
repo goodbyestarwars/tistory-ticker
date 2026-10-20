@@ -22,7 +22,7 @@ class OrderBookTests(unittest.TestCase):
 
     def test_kis_is_primary_and_kiwoom_is_not_called_when_kis_succeeds(self):
         kis_book = {
-            'code': '005930', 'asks': [], 'bids': [],
+            'code': '005930', 'asks': [{'price':70100,'qty':10}], 'bids': [{'price':70000,'qty':20}],
             'totalAskQty': 0, 'totalBidQty': 0,
             'source': '한국투자증권 Open API',
         }
@@ -43,7 +43,7 @@ class OrderBookTests(unittest.TestCase):
 
     def test_kiwoom_is_used_only_when_kis_fails(self):
         kiwoom_book = {
-            'code': '005930', 'asks': [], 'bids': [],
+            'code': '005930', 'asks': [{'price':70100,'qty':10}], 'bids': [{'price':70000,'qty':20}],
             'totalAskQty': 0, 'totalBidQty': 0,
             'source': '키움증권 REST API',
         }
@@ -62,6 +62,44 @@ class OrderBookTests(unittest.TestCase):
         self.assertEqual(data['trade']['price'], 69900)
         fetch_book.assert_called_once_with('kiwoom-token', '005930')
         fetch_trade.assert_called_once_with('kiwoom-token', '005930')
+
+    def test_empty_kis_during_open_uses_secondary(self):
+        empty = {'asks':[{'price':0,'qty':0}], 'bids':[]}
+        valid = {'asks':[{'price':100,'qty':20}], 'bids':[], 'source':'secondary'}
+        with mock.patch.object(order_book, '_market_phase', return_value='open'), \
+             mock.patch.object(order_book, 'fetch_kis_order_book', return_value=empty), \
+             mock.patch.object(order_book, 'fetch_order_book', return_value=valid) as secondary, \
+             mock.patch.object(order_book, 'fetch_kis_trade', return_value=None), \
+             mock.patch.object(order_book, 'fetch_execution_strength', return_value=None):
+            data=order_book.fetch_order_book_full('005930','key','secret','token')
+        self.assertTrue(data['available']); self.assertEqual(data['source'],'secondary')
+        secondary.assert_called_once()
+
+    def test_empty_before_open_is_explicit_without_extra_query(self):
+        empty = {'asks':[{'price':0,'qty':0}], 'bids':[]}
+        with mock.patch.object(order_book, '_market_phase', return_value='preopen'), \
+             mock.patch.object(order_book, 'fetch_kis_order_book', return_value=empty), \
+             mock.patch.object(order_book, 'fetch_order_book') as secondary, \
+             mock.patch.object(order_book, 'fetch_kis_trade', return_value=None), \
+             mock.patch.object(order_book, 'fetch_execution_strength', return_value=None):
+            data=order_book.fetch_order_book_full('005930','key','secret','token')
+        self.assertFalse(data['available']);self.assertEqual(data['status'],'preopen')
+        self.assertIn('08:00',data['note']);secondary.assert_not_called()
+
+    def test_both_empty_is_not_available(self):
+        empty = {'asks':[{'price':0,'qty':0}], 'bids':[]}
+        with mock.patch.object(order_book, '_market_phase', return_value='open'), \
+             mock.patch.object(order_book, 'fetch_kis_order_book', return_value=empty), \
+             mock.patch.object(order_book, 'fetch_order_book', return_value=empty), \
+             mock.patch.object(order_book, 'fetch_kis_trade', return_value=None), \
+             mock.patch.object(order_book, 'fetch_execution_strength', return_value=None):
+            data=order_book.fetch_order_book_full('005930','key','secret','token')
+        self.assertFalse(data['available']);self.assertEqual(data['status'],'unavailable')
+
+    def test_one_sided_depth_is_valid_and_never_invents_other_side(self):
+        book={'asks':[], 'bids':[{'price':100,'qty':5}]}
+        data=order_book._annotate_availability(book,'open')
+        self.assertTrue(data['available']);self.assertEqual(data['asks'],[])
 
 
 if __name__ == '__main__':

@@ -275,6 +275,8 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 
 ### `GET /order-book/{code}`
 
+2026-10-21: 응답의 `available`은 양쪽 중 한쪽이라도 유효 가격이 있는지를 뜻한다. `status`는 `available/preopen/closed/unavailable`, `session`은 `preopen/closed/open`, `checkedAt`은 조회 완료 시각(호가 발생 시각 아님), `note`는 안내다. 운영시간 중 KIS0원 호가는 키움으로 재조회하며 장전/장외에는 불필요한 대체 조회를 추가하지 않는다. 07시대 LG전자/삼성전자/한화오션 KIS UN/J/NX 및 키움 직접조회가 모두0원임을 확인했다. 장전에는 NXT 대상08:00/KRX08:30 접수 안내를 표시하며 실호가가 있다고 주장하지 않는다.
+
 | 항목 | 내용 |
 |---|---|
 | 인증 필요 여부 | **불필요** (공개, CORS 제한) |

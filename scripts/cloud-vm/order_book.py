@@ -238,6 +238,37 @@ def fetch_execution_strength(token, code):
     }
 
 
+def _has_valid_depth(book):
+    return any(_num(row.get('price')) > 0 for side in ('asks', 'bids')
+               for row in (book.get(side) or []) if isinstance(row, dict))
+
+
+def _market_phase(now=None):
+    import market_clock
+    now = now or market_clock.kst_now()
+    if not market_clock.is_kr_trading_day(now) or now.hour >= 20:
+        return 'closed'
+    return 'preopen' if now.hour < 8 else 'open'
+
+
+def _annotate_availability(book, phase):
+    import market_clock
+    available = _has_valid_depth(book)
+    book['available'] = available
+    book['session'] = phase
+    book['checkedAt'] = market_clock.kst_now().isoformat(timespec='seconds')
+    book['status'] = 'available' if available else phase if phase != 'open' else 'unavailable'
+    if available:
+        book['note'] = ''
+    elif phase == 'preopen':
+        book['note'] = '장전 · 호가 접수 전입니다. NXT 대상 종목 08:00 / KRX 08:30부터 접수합니다.'
+    elif phase == 'closed':
+        book['note'] = '호가 운영시간 외 · 공급자가 유효 호가를 제공하지 않습니다.'
+    else:
+        book['note'] = '운영시간 중 호가 미수신 · 공급자 재조회 중입니다.'
+    return book
+
+
 def fetch_order_book_full(code, kis_appkey=None, kis_appsecret=None, kiwoom_token=None):
     """KIS 호가/체결을 1차로 조회하고, 항목별로 키움에 폴백한다.
 
@@ -251,15 +282,30 @@ def fetch_order_book_full(code, kis_appkey=None, kis_appsecret=None, kiwoom_toke
     캐시 미스마다(_ORDER_BOOK_TTL 만료) 지연이 그대로 누적됐음. 2초 간격으로
     폴링하는 위젯이라 체감 지연이 특히 컸다).
     """
+    phase = _market_phase()
+
     def _fetch_book():
+        primary = None
         if kis_appkey and kis_appsecret:
             try:
-                return fetch_kis_order_book(kis_appkey, kis_appsecret, code)
-            except Exception as exc:
-                logger.warning('KIS 호가(%s) 실패, 키움 폴백: %s', code, exc)
-        if not kiwoom_token:
-            raise RuntimeError('KIS·키움 호가 인증정보가 모두 없습니다.')
-        return fetch_order_book(kiwoom_token, code)
+                primary = fetch_kis_order_book(kis_appkey, kis_appsecret, code)
+                # 0원 필드가 존재한다는 이유만으로 정상 수신으로 보지 않는다.
+                if _has_valid_depth(primary) or phase != 'open':
+                    return primary
+            except Exception:
+                logger.warning('KIS 호가(%s) 조회 실패, 대체 공급자 재조회', code)
+        if kiwoom_token:
+            try:
+                secondary = fetch_order_book(kiwoom_token, code)
+                if _has_valid_depth(secondary) or primary is None:
+                    return secondary
+            except Exception:
+                if primary is None:
+                    raise
+                logger.warning('대체 호가(%s) 조회 실패, 미수신 상태 유지', code)
+        if primary is not None:
+            return primary
+        raise RuntimeError('사용 가능한 호가 공급자가 없습니다.')
 
     def _fetch_trade():
         if kis_appkey and kis_appsecret:
@@ -290,4 +336,4 @@ def fetch_order_book_full(code, kis_appkey=None, kis_appsecret=None, kiwoom_toke
         data = book_future.result()  # 호가 실패는 원본과 동일하게 예외를 그대로 전파
         data['trade'] = trade_future.result()
         data['strength'] = strength_future.result()
-    return data
+    return _annotate_availability(data, phase)
