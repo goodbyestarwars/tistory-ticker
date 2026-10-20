@@ -936,18 +936,18 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
 /* ---- 차트 매물대 분석 패널(2026-10-19): 화면에 보이는 봉 기준 비중·가까운 지지/저항 후보 ---- */
 #stock-search .ss-vp-panel { margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }
 #stock-search .ss-vp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
-#stock-search .ss-vp-head > strong { font-size: 13px; color: #1f2d3d; }
+#stock-search .ss-vp-head > strong { font-weight: 500; font-size: 13px; color: #1f2d3d; }
 #stock-search .ss-vp-head > span { color: #6b7a8a; font-size: 11px; }
 #stock-search .ss-vp-items { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; margin-top: 6px; }
-#stock-search .ss-vp-item b { margin-right: 4px; color: #1f2d3d; }
+#stock-search .ss-vp-item b { font-weight: 500; margin-right: 4px; color: #1f2d3d; }
 #stock-search .ss-vp-item em { font-style: normal; font-weight: 700; color: #526173; }
 #stock-search .ss-vp-state { margin: 8px 0 0; padding: 7px 10px; border-radius: 8px; background: #f1f4f7; }
 #stock-search .ss-vp-hover { margin: 6px 0 0; color: #6b7a8a; font-size: 11px; min-height: 17px; }
 #stock-search .ss-vp-thin { margin-top: 6px; }
-#stock-search .ss-vp-thin summary { cursor: pointer; font-weight: 700; color: #526173; }
+#stock-search .ss-vp-thin summary { cursor: pointer; font-weight: 500; color: #526173; }
 #stock-search .ss-vp-thin ul { margin: 4px 0 0; padding-left: 18px; }
 html.dark #stock-search .ss-vp-panel { border-color: rgba(245,239,224,.14); background: #24292d; color: #d9dde1; }
-html.dark #stock-search .ss-vp-head > strong, html.dark #stock-search .ss-vp-item b { color: #f5efe0; }
+html.dark #stock-search .ss-vp-head > strong, html.dark #stock-search .ss-vp-item b { font-weight: 500; color: #f5efe0; }
 html.dark #stock-search .ss-vp-state { background: #2c3236; }
 @media (max-width: 720px) {
   #stock-search .ss-vp-items { grid-template-columns: minmax(0, 1fr); }
