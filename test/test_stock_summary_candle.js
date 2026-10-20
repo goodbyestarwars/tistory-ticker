@@ -22,7 +22,7 @@ assert.ok(board.innerHTML.lastIndexOf('ob-row-ask')<board.innerHTML.indexOf('ob-
 assert.ok(board.innerHTML.indexOf('ob-current-row')<board.innerHTML.indexOf('ob-row-bid'));
 let view,status;
 t.state.onSummary=(v,code)=>{view=v;assert.equal(code,'005930');};t.state.onBookStatus=(v)=>status=v;
-t.renderBoard(host,{asks:[],bids:[]},quote);assert.equal(board.hidden,false);assert.ok(board.innerHTML.includes('ob-table-pairs') && board.innerHTML.includes('호가 미수신'));assert.equal((board.innerHTML.match(/ob-row-unavailable/g)||[]).length,20);assert.ok(status);assert.equal(view.current,110);
+t.renderBoard(host,{asks:[],bids:[]},quote);assert.equal(board.hidden,false);assert.ok(board.innerHTML.includes('ob-table-pairs') && board.innerHTML.includes('호가 미수신'));assert.equal((board.innerHTML.match(/ob-row-unavailable/g)||[]).length,20);assert.ok(status);assert.equal(view.current,110);assert.ok(board.innerHTML.includes('ob-trades') && board.innerHTML.includes('체결 수신 대기 중'));
 t.renderBoard(host,{asks,bids},quote);assert.equal(board.hidden,false);assert.equal(status,'');assert.ok(!board.innerHTML.includes('ob-header') && !board.innerHTML.includes('ob-summary'));assert.equal((board.innerHTML.match(/ob-row-ask/g)||[]).length,10);
 t.updateSummary(board,{price:111});assert.equal(view.current,111);
 console.log('PASS consolidated summary, three OHLC fields without duplicate current price or candle, 10+10 current boundary, empty/recovery, shared quote and standalone preservation');

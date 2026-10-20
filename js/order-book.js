@@ -1331,7 +1331,7 @@
       +'<div class="ob-table ob-table-pairs" aria-label="매도 10호가와 매수 10호가 · 호가 미수신">'
       +'<div class="ob-pair-head"><span class="ob-bid-text">매수 잔량</span><span>가격</span><span class="ob-ask-text">매도 잔량</span></div>'
       +rows('ask')+'<div class="ob-current-row" data-field="current-row"><span data-field="current-price">'+price+'</span> <span class="ob-current-change" data-field="current-change"></span></div>'
-      +rows('bid')+'</div>';
+      +rows('bid')+'</div>'+buildTradesHtml();
   }
 
   function buildSummaryView(quote) {
@@ -1448,7 +1448,8 @@
           ? '키움 0B 개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
           : 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
         + state.tradeFeedStatus + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
-      : 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus;
+      : state.trades.length ? 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus
+      : state.tradeFeedStatus + ' · 수신한 체결부터 표시';
     return '<div class="ob-trades">'
       + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(' + note + ')</span></div>'
       + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span><span>체결 방향</span></div>'
