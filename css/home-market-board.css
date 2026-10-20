@@ -250,6 +250,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-alert.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }
 .vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }
 .vol-alert.is-vi { flex: 0 0 auto; min-height: 0; gap: 1px; padding: 8px 14px; border-color: var(--hmb-line, #e2e8f0); background: var(--np-paper, #fffefc); color: var(--hmb-ink, #1a1a1a); }   /* 바탕색(크림) 박스, 내용 크기에 맞춤 */
+.vol-alert.is-vi { margin-left: auto; }
 .vol-alert:focus-visible, .vol-history-link:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .vol-history-link { padding: 0; border: 0; background: none; color: var(--hmb-mute, #64748b); font: 500 11px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .vol-history-link[hidden] { display: none; }
@@ -271,7 +272,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-list .vol-state { font-size: 11px; color: var(--hmb-mute, #64748b); }
 .vol-list li.is-active .vol-state { color: #b45309; }
 .vol-note, .vol-src { display: block; margin: 6px 0 0; color: var(--hmb-mute, #64748b); font-size: 11px; line-height: 1.5; }
-@media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-alert.is-vi { width: auto; align-self: flex-start; } .vol-panel { left: 0; right: auto; } }
+@media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-alert.is-vi { width: auto; align-self: flex-end; margin-left: 0; } .vol-panel { left: 0; right: auto; } }
 html.dark .vol-panel { background: #1e1e1e; border-color: rgba(245, 239, 224, .14); }
 html.dark .vol-seg-btn.is-on { background: #F5EFE0; color: #1e1e1e; }
 html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
@@ -283,3 +284,10 @@ html.dark .vol-alert.is-vi { background: var(--np-paper, #1A1A1A); border-color:
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-chart.has-session-chart { height: auto; overflow: visible; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-controls { display:flex; align-items:center; justify-content:flex-end; gap:5px; color:var(--hmb-mute); font:400 11px/1.4 var(--font-ui,system-ui,sans-serif); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-controls > span:first-child { margin-right:auto; }
+
+/* 2026-10-20 관심종목 공시 수동 넘김(이전/다음) */
+.home-disclosure-nav { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; }
+.home-disclosure-nav[hidden] { display: none; }
+.home-disclosure-nav button { width: 26px; height: 26px; padding: 0; border: 1px solid var(--hmb-line, #e2e8f0); border-radius: 2px; background: transparent; color: inherit; font: 600 15px/1 var(--font-ui, system-ui, sans-serif); cursor: pointer; }
+.home-disclosure-nav small { min-width: 30px; text-align: center; color: var(--hmb-faint, #94a3b8); font: 500 11px/1 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
+.home-disclosure-nav button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }

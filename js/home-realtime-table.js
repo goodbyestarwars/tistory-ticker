@@ -516,10 +516,11 @@
       industry = global.WICS_MAP[code].industry || global.WICS_MAP[code].sector || '';
     }
     var strength = item.execution_strength == null || item.execution_strength === '' ? null : number(item.execution_strength);
+    if (strength != null && strength >= 999.99) strength = null;   // 999.99%는 상한 표시값(무의미)이라 감춘다
     var strengthTone = strength > 100 ? 'hrt-up' : strength != null && strength < 100 ? 'hrt-down' : 'hrt-flat';
     var cells = {
       volumePower: '<td data-field="volumePower" class="' + strengthTone + '">'
-        + (strength == null ? '미수신' : strength.toFixed(2) + '%') + '</td>',
+        + (strength == null ? '-' : strength.toFixed(2) + '%') + '</td>',
       stock: '<td class="hrt-stock"><span class="hrt-rank">' + rank + '</span>' + stockIconHtml(item) + '<a href="/page/stock-search?code=' + encodeURIComponent(code)
         + '&name=' + encodeURIComponent(displayName) + '"><strong>' + escapeHtml(displayName) + '</strong><small>'
         + escapeHtml(item.symbol || code) + '</small></a></td>',

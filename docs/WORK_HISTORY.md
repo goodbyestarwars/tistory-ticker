@@ -1,3 +1,7 @@
+**2026-10-20 메인 공시 수동 넘김·VI 배치·종목판 52주/체결강도**
+
+관심종목 주간 공시 카드에 이전/다음 버튼과 n/N 표시를 추가했다(누르면 5초 자동 순환 타이머 재시작). 변동성 모니터는 서킷브레이커→사이드카 카드가 왼쪽부터, VI 카드는 오른쪽 끝에 놓이게 했다. 실시간 종목판 국내 행의 52주 최고·최저가는 KIS 시세에서 못 받으면 자체 일봉 DB(`daily_prices` 최근 250거래일)로 채우고(일봉이 없으면 비움), 체결강도 999.99% 이상은 `-`로 숨긴다. 검증: 시장판 관련 단위 테스트 통과, 일봉 보강 함수 임시 DB 실측. 배포: GitHub Pages·VM 자동배포(수동 반영 없음).
+
 **2026-10-20 종목분석 펀더멘탈 신규·정정 공시 반영**
 
 90일(`FUNDAMENTALS_STALE_DAYS`) 안에 수집한 종목은 신규 분기·반기·사업보고서나 정정공시가 나와도 재수집되지 않던 문제를 고쳤다. `batch_scan.py`가 2일(`DISCLOSURE_CHECK_DAYS`)마다 DART 공시목록 1회만 호출해 접수번호가 바뀐 종목만 재수집하고, 변화 없으면 확인 시각만 갱신한다(DART 장애 시 기존 데이터 유지). `fundamentals.py`는 최근 분기에 접수일·BPS(지배주주지분÷(발행−자기주식), 같은 보고서 기준, 근거 부족 시 `null`+사유)와 `disclosure`(상태 ok/pending/unverified) 를 넣는다. VM `/fundamentals/{code}`는 `collected_at`을, 신규 `/fundamentals-meta`는 배치 `generatedAt`을 내려주고 GAS 종목별 캐시 키가 이를 포함해 배치 저장 즉시 무효화된다(캐시 5분 버전 조회). 종목분석 화면에 재무 기준 분기·연결/별도·공시일·수집 시각과 BPS/PBR 기준 구분을 표시한다. 테스트 `test/test_fundamentals_disclosure.py` 18건과 기존 전략·장기 재무 필터 테스트 통과. 삼성전자 실데이터 대조는 이 환경에 DART 키·아웃바운드가 없어 미수행(배포 후 api-probe로 확인 필요). 신규 `stockTotqySttus` 필드(`istc_totqy`·`tesstk_co`·`se`)는 DART 공개 명세 기준이며 운영 응답 실측 전이다. VM 자동배포·GAS(clasp) 자동배포 대상.

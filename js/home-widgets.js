@@ -698,18 +698,57 @@
     disclosureTickerIndex = 0;
   }
 
+  var disclosureTickerRender = null;
+
+  function showDisclosureAt(index) {
+    var n = disclosureTickerItems.length;
+    if (!n || !disclosureTickerRender) return;
+    disclosureTickerIndex = ((index % n) + n) % n;
+    disclosureTickerRender(disclosureTickerItems[disclosureTickerIndex]);
+    var count = document.querySelector('[data-disclosure-count]');
+    if (count) count.textContent = (disclosureTickerIndex + 1) + '/' + n;
+  }
+
+  function restartDisclosureTimer() {
+    if (disclosureTickerTimer) clearInterval(disclosureTickerTimer);
+    disclosureTickerTimer = null;
+    if (disclosureTickerItems.length < 2) return;
+    disclosureTickerTimer = setInterval(function () {
+      if (document.hidden) return;
+      showDisclosureAt(disclosureTickerIndex + 1);
+    }, 5000);
+  }
+
+  // 2026-10-20 수동 넘김: 머리말에 이전/다음 버튼을 한 번만 만들고, 누르면 자동 순환 타이머를 다시 시작한다.
+  function ensureDisclosureNav() {
+    var head = document.querySelector('[data-home-disclosure-section] .home-top-disclosures-head');
+    if (!head) return null;
+    var nav = head.querySelector('[data-disclosure-nav]');
+    if (nav) return nav;
+    head.insertAdjacentHTML('beforeend', '<span class="home-disclosure-nav" data-disclosure-nav>'
+      + '<button type="button" data-disclosure-step="-1" aria-label="이전 공시">‹</button>'
+      + '<small data-disclosure-count></small>'
+      + '<button type="button" data-disclosure-step="1" aria-label="다음 공시">›</button></span>');
+    nav = head.querySelector('[data-disclosure-nav]');
+    nav.addEventListener('click', function (event) {
+      var btn = event.target.closest ? event.target.closest('[data-disclosure-step]') : null;
+      if (!btn) return;
+      showDisclosureAt(disclosureTickerIndex + Number(btn.getAttribute('data-disclosure-step')));
+      restartDisclosureTimer();
+    });
+    return nav;
+  }
+
   function startDisclosureTicker(items, renderItem) {
     stopDisclosureTicker();
     disclosureTickerItems = (items || []).slice();
     if (!disclosureTickerItems.length) return;
     setDisclosureVisible(true);
-    renderItem(disclosureTickerItems[0]);
-    if (disclosureTickerItems.length < 2) return;
-    disclosureTickerTimer = setInterval(function () {
-      if (document.hidden) return;
-      disclosureTickerIndex = (disclosureTickerIndex + 1) % disclosureTickerItems.length;
-      renderItem(disclosureTickerItems[disclosureTickerIndex]);
-    }, 5000);
+    disclosureTickerRender = renderItem;
+    var nav = ensureDisclosureNav();
+    if (nav) nav.hidden = disclosureTickerItems.length < 2;
+    showDisclosureAt(0);
+    restartDisclosureTimer();
   }
 
   function renderDomesticDisclosureRow(item) {

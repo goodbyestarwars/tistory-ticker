@@ -296,6 +296,43 @@ def _kis_week52_quote(token, appkey, appsecret, code):
     return data
 
 
+def _fill_week52_from_daily_db(rows):
+    """KIS 시세에서 52주 값을 못 받은 국내 종목은 자체 일봉 DB(daily_prices) 최근 250거래일의
+    최고가·최저가로 채운다(현재가도 범위에 포함). 일봉이 없으면 그대로 비워 둔다 - 값을 만들어 내지 않는다."""
+    missing = [r for r in rows if r.get('code') and (r.get('week52_high') is None or r.get('week52_low') is None)]
+    if not missing:
+        return rows
+    try:
+        import sqlite3
+        import db_schema
+        # 배치가 DB를 오래 쥐고 있어도 종목판 응답이 막히지 않도록 짧은 timeout으로 읽는다.
+        conn = sqlite3.connect(db_schema.DB_FILE, timeout=2)
+    except Exception as exc:
+        logger.info('52주 일봉 DB 보강 불가: %s', exc)
+        return rows
+    out = {}
+    try:
+        for row in missing:
+            hit = conn.execute(
+                'SELECT MAX(high), MIN(low), COUNT(*) FROM (SELECT high, low FROM daily_prices '
+                'WHERE code=? AND high > 0 AND low > 0 ORDER BY date DESC LIMIT 250)', (row['code'],)).fetchone()
+            if not hit or not hit[2] or hit[0] is None or hit[1] is None:
+                continue
+            item = dict(row)
+            price = _positive_number(row.get('price'))
+            if item.get('week52_high') is None:
+                item['week52_high'] = max(hit[0], price) if price else hit[0]
+            if item.get('week52_low') is None:
+                item['week52_low'] = min(hit[1], price) if price else hit[1]
+            out[row['code']] = item
+    except Exception as exc:
+        logger.info('52주 일봉 DB 보강 실패: %s', exc)
+    finally:
+        try: conn.close()
+        except Exception: pass
+    return [out.get(r.get('code'), r) for r in rows]
+
+
 def _enrich_domestic_kis_week52(token, appkey, appsecret, rows, codes):
     selected = set(codes)
     targets = [row for row in rows if row.get('code') in selected
@@ -599,6 +636,7 @@ def fetch_domestic_kis(appkey, appsecret, limit=20, wics_map=None):
         rows_with_week52 = _enrich_domestic_kis_week52(
             kis_token, appkey, appsecret, list(merged.values()), quote_codes,
         )
+    rows_with_week52 = _fill_week52_from_daily_db(rows_with_week52)
     merged = {row['code']: row for row in rows_with_week52 if row.get('code')}
     sections = _sections(list(merged.values()))
     sections['volumePower'] = []
