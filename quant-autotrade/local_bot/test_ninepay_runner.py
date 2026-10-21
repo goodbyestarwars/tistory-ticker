@@ -161,3 +161,25 @@ class SharedEngineTests(Base):
 
 if __name__ == '__main__':
     unittest.main()
+
+
+class NetworkRecoveryTests(unittest.TestCase):
+    def test_retryable_transport_failure_without_uncertain_order(self):
+        from live_runner_9pay import cycle_error_state
+        from urllib.error import URLError
+        from http.client import RemoteDisconnected
+        ledger = Mock()
+        ledger.has_uncertain.return_value = False
+        for exc in (TimeoutError(), ConnectionResetError(), URLError('offline'), RemoteDisconnected()):
+            with self.subTest(kind=type(exc).__name__):
+                self.assertTrue(cycle_error_state(exc, ledger).startswith('NETWORK_RETRY_'))
+
+    def test_uncertain_order_stays_stopped(self):
+        from live_runner_9pay import cycle_error_state
+        ledger = Mock()
+        ledger.has_uncertain.return_value = True
+        self.assertEqual(cycle_error_state(TimeoutError(), ledger), 'DISABLED_OR_UNCERTAIN')
+
+    def test_non_transport_error_stays_fatal(self):
+        from live_runner_9pay import cycle_error_state
+        self.assertEqual(cycle_error_state(ValueError(), Mock()), 'ERROR_ValueError')
