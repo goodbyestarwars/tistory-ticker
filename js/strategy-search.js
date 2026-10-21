@@ -70,7 +70,11 @@
     ['KODEX', '삼성자산운용'], ['TIGER', '미래에셋자산운용'], ['ACE', '한국투자신탁운용'],
     ['HANARO', 'NH-Amundi자산운용'], ['RISE', 'KB자산운용'], ['KBSTAR', 'KB자산운용'],
     ['PLUS', '한화자산운용'], ['ARIRANG', '한화자산운용'], ['SOL', '신한자산운용'],
-    ['KOSEF', '키움투자자산운용'], ['TIMEFOLIO', '타임폴리오자산운용'], ['1Q', '하나자산운용'],
+    // KIWOOM consolidated the former KOSEF/HEROES ETF brands on 2025-01-14.
+    // Keep historical prefixes for older scanner snapshots and cached names.
+    ['KIWOOM', '키움투자자산운용'], ['KOSEF', '키움투자자산운용'],
+    ['히어로즈', '키움투자자산운용'], ['HEROES', '키움투자자산운용'],
+    ['TIMEFOLIO', '타임폴리오자산운용'], ['1Q', '하나자산운용'],
     ['FOCUS', '브이아이자산운용']
   ];
 
@@ -828,7 +832,13 @@
     normalized.id = firstValue(item, ['id', 'code', 'symbol', 'srtnCd']) || code || name;
     normalized.name = name;
     normalized.code = code;
-    normalized.provider = firstValue(item, ['provider', 'issuer', 'assetManager', 'managementCompany']) || providerFromName(name);
+    // Some saved ETF scans carry a literal '-'/'—' placeholder. firstValue()
+    // treats those as present; recover the manager from the ETF brand instead.
+    // A confirmed, non-placeholder provider from the API always wins.
+    var rawProvider = firstValue(item, ['provider', 'issuer', 'assetManager', 'managementCompany']);
+    var provider = String(rawProvider == null ? '' : rawProvider).trim();
+    normalized.provider = (!provider || /^(?:-|—|–|N\/A|NA|UNKNOWN|미확인|정보없음)$/i.test(provider))
+      ? providerFromName(name) : provider;
     normalized.sector = firstValue(item, ['sector', 'industry', 'middleCategory', 'categoryMiddle', 'category']) || '—';
     normalized.price = firstValue(item, ['price', 'currentPrice', 'close', 'stckPrpr']);
     normalized.changeRate = firstValue(item, ['changeRate', 'change_rate', 'changeRatePct', 'rate', 'prdyCrt']);
