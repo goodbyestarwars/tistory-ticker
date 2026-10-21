@@ -7580,7 +7580,7 @@ html.dark {
 /* ── 1. 카드 : 애플 + KB자산운용 스타일 — 큰 모서리(20px)와 아주 옅은 1px 선, 그림자 없음 ── */
 html body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
   .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
-  #stock-search .ss-summary, #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
+  #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
   border: 1px solid rgba(var(--np-ink), .09) !important;
   border-radius: 20px !important;
   box-shadow: none !important;

@@ -1,3 +1,7 @@
+**2026-10-22 종목검색 AI 한 줄 요약 줄의 둥근 모서리 제거(style.css @layer np 목록)**
+
+사용자 지적(PR #815 후에도 AI 줄 모서리가 둥글게 보임). 원인은 `style.css` `@layer np`의 공통 카드 규칙이 `#stock-search .ss-summary`에 `border-radius: 20px !important`를 걸어 `css/stock-search.css`의 `!important`를 이긴 것. 해당 선택자를 목록에서 뺐다(결과 표 카드 `.ss-overview-active`는 stock-search.css에서 0). 호가·차트 패널 카드는 변경 없음. 운영 화면에서 computed 값 확인 필요.
+
 **2026-10-22 종목검색 결과·AI 한 줄 요약 카드 모서리 제거**
 
 사용자 요청(AI 한 줄 요약 줄의 둥근 모서리를 결과 표처럼 사각형으로). 결과 표와 AI 줄을 감싸는 카드(`.ss-overview-active`)의 radius 12px를 0으로. 호가·차트 패널 카드는 변경 없음. 화면 확인 필요.
