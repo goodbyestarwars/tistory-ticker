@@ -25,7 +25,7 @@ assert(wave.includes("data-wave-trend"));
 expect('중파동');
 expect('파동 분석');
 expect('확정된 뒤');
-expect('실시간 호가');
+expect('REST 표본');
 assert(!guide.includes('<tr><td>이동평균선 표시</td>'), 'obsolete MA guide row');
 const anchors = [...guide.matchAll(/href="#([^"]+)"/g)].map(m => m[1]);
 anchors.forEach(id => assert(guide.includes('id="' + id + '"'), 'broken fragment: ' + id));
