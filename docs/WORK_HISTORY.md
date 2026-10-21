@@ -1,3 +1,7 @@
+**2026-10-22 파인엠텍형 장기 바닥·상승 수렴 연구 검색기 및 종목 사례 누적 시작**
+
+사용자 선호 차트 파인엠텍(441270, 10/21 제공 차트)을 관찰 사례 1호로 `research_data/rising_base_2026-10-22/cases.json`에 등록하고, 연구 전용 `scripts/research/rising_base_scan.py`를 추가했다. 장기 조정·확정 저점 3개 상승·수렴 저항 터치·224일선 회복·돌파 전후 3단계를 오프라인 일봉 JSON에서 판정하고, CSV/JSON 후보·사례 및 선택적 과거 D5/20/60 결과를 내보낸다. 실제 종목의 판정/성과는 기존 5년 연구 캐시가 필요해 아직 미확인. 기존 `ascending_triangle.py`(돌파형)와 향후 비교·실패 사례 수집. 운영 VM·검색기 5개·API·타이머·PC 실거래·자동매매는 변경/연동하지 않았다.
+
 **2026-10-22 종목검색 AI 한 줄 요약 줄의 둥근 모서리 제거(style.css @layer np 목록)**
 
 사용자 지적(PR #815 후에도 AI 줄 모서리가 둥글게 보임). 원인은 `style.css` `@layer np`의 공통 카드 규칙이 `#stock-search .ss-summary`에 `border-radius: 20px !important`를 걸어 `css/stock-search.css`의 `!important`를 이긴 것. 해당 선택자를 목록에서 뺐다(결과 표 카드 `.ss-overview-active`는 stock-search.css에서 0). 호가·차트 패널 카드는 변경 없음. 운영 화면에서 computed 값 확인 필요.

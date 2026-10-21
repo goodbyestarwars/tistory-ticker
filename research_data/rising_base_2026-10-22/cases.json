@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "pattern": "long_base_rising_convergence_v0",
+  "updatedAt": "2026-10-22",
+  "cases": [
+    {
+      "code": "441270",
+      "name": "파인엠텍",
+      "observedAt": "2026-10-21",
+      "role": "preferred_reference",
+      "status": "관찰·가설 단계",
+      "source": "사용자가 제공한 9Pay 5년 일봉 차트 이미지",
+      "features": [
+        "장기 큰 조정 후 바닥 회복",
+        "중요 저점 상승",
+        "상단 반복 저항·수렴",
+        "224일선 회복",
+        "상단 돌파 시도"
+      ],
+      "note": "좋아하는 차트의 첫 기준 사례. 돌파 성공 확정 아님; 당일 거래량/실제 이후 성과 미검증. 모든 종목의 좋고 나쁜 결과를 함께 수집."
+    }
+  ]
+}
