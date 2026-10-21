@@ -291,8 +291,9 @@
 
 #stock-search .ss-panels {
   display: grid;
-  /* 호가창 기본 폭은 내용에 맞춰 340~440px(패널 영역의 28%, 2026-10-21; 이전 394px 고정). 드래그하면 px로 바뀐다. 하한300px, 좁은 화면은1열로 전환한다. */
-  --ss-left-width: clamp(340px, 28%, 440px);
+  /* Slightly narrower default: prioritize chart space while retaining 300px
+     minimum for 10+10 orderbook levels. Manual resize still works. */
+  --ss-left-width: clamp(308px, 25%, 396px);
   grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);
   column-gap: 0;
   row-gap: 16px;
@@ -1088,3 +1089,52 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
 #stock-search #order-book .ob-hud-val { font-size: 14px; }
 #stock-search #order-book .ob-hud-bar { grid-column: auto; grid-row: auto; height: 8px; }
 #stock-search #order-book .ob-breakout-note .ob-breakout-sub { margin-top: 6px; font-size: 12px; line-height: 1.8; }
+
+/* 2026-10-21: compact stock header / orderbook layout (screenshot follow-up).
+   Scope all changes to stock-search so standalone order-book remains unchanged. */
+#stock-search .ss-panel-head { padding-inline: 14px; }
+#stock-search .ss-results-collapsed {
+  padding: 6px 10px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+#stock-search .ss-summary {
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 8px 12px;
+}
+#stock-search .ss-summary-head { min-width: 0; gap: 5px 7px; }
+#stock-search .ss-session-values { gap: 9px; }
+#stock-search .ss-session-values div { gap: 3px; }
+/* Reduce excess spacing without shrinking the key orderflow numbers or
+   clipping the variable-length support/resistance analysis messages. */
+#stock-search #order-book .ob-hud {
+  padding: 5px 6px;
+  gap: 3px 7px;
+}
+#stock-search #order-book .ob-hud-row { gap: 1px 4px; margin: 0; font-size: 11px; }
+#stock-search #order-book .ob-hud-label,
+#stock-search #order-book .ob-hud-val {
+  width: auto;
+  min-width: 0;
+  font-size: 11px;
+}
+#stock-search #order-book .ob-hud-val { text-align: right; }
+#stock-search #order-book .ob-hud-note,
+#stock-search #order-book .ob-breakout-note:not(:empty) {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+#stock-search #order-book .ob-abnormal-badges:not(:empty) { gap: 2px 4px; }
+@media (max-width: 860px) {
+  #stock-search .ss-panel-head { padding-inline: 12px; }
+}
+@media (max-width: 600px) {
+  #stock-search .ss-summary { grid-template-columns: minmax(0, 1fr); padding: 8px 10px; }
+  #stock-search .ss-summary-head { gap: 4px 6px; }
+  #stock-search .ss-summary-price { margin-left: auto; }
+  #stock-search .ss-session-values { gap: 8px; flex-wrap: wrap; }
+  #stock-search .ss-panel-head { padding-inline: 12px; }
+}
