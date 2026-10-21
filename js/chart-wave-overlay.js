@@ -23,6 +23,7 @@
     wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
+  var CHANNEL_COLOR = { up: '#d62524', down: '#1558c9' };   // 추세선(채널)은 박스 색보다 진하게
   var TREND_TIP = '박스 안의 한 단계 아래 규모 고점끼리·저점끼리 이은 선(채널). 아래 규모 점이 2개 미만이거나 소파동·횡보 박스는 선을 긋지 않습니다. 진행 중 박스의 선은 점선입니다. 관찰용이며 매수·매도 신호가 아닙니다.';
   var TIP = '실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다.';
 
@@ -231,18 +232,18 @@
         var box = rectOf(wave) || { x1: 0, y1: 0, x2: view.width, y2: view.height };
         ctx.save();
         ctx.beginPath(); ctx.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1); ctx.clip();
-        ctx.strokeStyle = st.stroke;
-        ctx.lineWidth = 1.6;
-        ctx.setLineDash(ch.confirmed ? [] : [6, 4]);
+        ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke;   // 박스 테두리보다 진한 색·굵은 선(2026-10-22 사용자 요청)
+        ctx.lineWidth = 2.6;
+        ctx.setLineDash(ch.confirmed ? [] : [8, 4]);
         ctx.beginPath(); ctx.moveTo(u0.x, u0.y); ctx.lineTo(u1.x, u1.y); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
         ctx.setLineDash([]);
         ctx.restore();
         [[u0, u1], [l0, l1]].forEach(function (pair) {
           pair.forEach(function (pt) {
             if (pt.x < box.x1 || pt.x > box.x2 || pt.y < box.y1 || pt.y > box.y2) return;
-            ctx.beginPath(); ctx.arc(pt.x, pt.y, 3, 0, Math.PI * 2);
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.6, 0, Math.PI * 2);
             ctx.fillStyle = '#fff'; ctx.fill();
-            ctx.strokeStyle = st.stroke; ctx.lineWidth = 1.5; ctx.stroke();
+            ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke; ctx.lineWidth = 2; ctx.stroke();
           });
         });
       });
