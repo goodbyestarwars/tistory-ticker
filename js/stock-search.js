@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-order1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vp500';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -2461,29 +2461,40 @@
   // 막대 길이는 프레임마다 목표값으로 조금씩(easing) 다가가 부드럽게 움직인다. 계산 결과는
   // window.__ssVolumeProfile로 내보내고 'ss-volume-profile' 이벤트를 쏴서 호가창(order-book.js)이
   // 매물대 구간의 호가를 주황으로 표시한다.
-  var VP_BAR_PX = 10;
   var VP_CORE_RATIO = 0.85;  // 핵심 매물대 기준(거래량 최대 대비)
-  var VP_MAX_WIDTH_RATIO = 0.16;
-
-  function vpTickSize(price) {
-    if (price < 2000) return 1;
-    if (price < 5000) return 5;
-    if (price < 20000) return 10;
-    if (price < 50000) return 50;
-    if (price < 200000) return 100;
-    if (price < 500000) return 500;
-    return 1000;
-  }
+  var VP_MAX_WIDTH_RATIO = 0.22;   // 가장 긴 막대가 차트 폭에서 차지하는 비율(왼쪽에서 오른쪽으로 뻗는다)
+  var VP_MAX_BINS = 300;           // 아주 긴 기간을 한 번에 볼 때 막대가 너무 가늘어지지 않게 하는 상한
 
   function vpRound(v) { return Math.round(v * 1e6) / 1e6; }
+
+  // 2026-10-22 사용자 요청("토스처럼 왼쪽에 500원 단위로"): 구간 크기를 확대·축소가 아니라 가격대로 고정한다.
+  // 현재가의 약 0.3%에 가장 가까운 '깔끔한' 값(국내 1·5·10·50·100·500·1,000·5,000·10,000원, 미국 0.01~10달러)을 고르므로
+  // 18만원대 종목은 500원, 7만원대는 100원, 5천원대는 10원 단위가 된다. 기간이 너무 길어 구간이 300개를 넘으면 정수배로 키운다.
+  var VP_STEPS_KR = [1, 5, 10, 50, 100, 500, 1000, 5000, 10000];
+  var VP_STEPS_US = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10];
+  function vpFixedStep(price, isUs) {
+    var table = isUs ? VP_STEPS_US : VP_STEPS_KR;
+    var target = Math.max(price, table[0]) * 0.003;
+    var best = table[0], bestGap = Infinity;
+    table.forEach(function (v) {
+      var gap = Math.abs(Math.log(v / target));
+      if (gap < bestGap) { bestGap = gap; best = v; }
+    });
+    return best;
+  }
 
   function computeVolumeProfile(bars, binCount, isUs) {
     if (!bars || bars.length < 2) return null;
     var lo = Infinity, hi = -Infinity;
     bars.forEach(function (d) { if (d.low < lo) lo = d.low; if (d.high > hi) hi = d.high; });
     if (!(hi > lo)) return null;
-    var unit = isUs ? 0.01 : Math.max(5, vpTickSize(hi));
-    var step = vpRound(Math.max(1, Math.ceil((hi - lo) / binCount / unit - 1e-9)) * unit);
+    var lastClose = Number(bars[bars.length - 1].close);
+    var step = vpFixedStep(lastClose > 0 ? lastClose : hi, isUs);
+    var ratio = (hi - lo) / step / VP_MAX_BINS;
+    if (ratio > 1) {
+      var factor = [2, 5, 10, 20, 50, 100, 200, 500].filter(function (f) { return f >= ratio; })[0] || Math.ceil(ratio);
+      step = vpRound(step * factor);
+    }
     var bottom = vpRound(Math.floor(lo / step + 1e-9) * step);
     var top = vpRound(Math.ceil(hi / step - 1e-9) * step);
     if (!(top > bottom)) top = vpRound(bottom + step);
@@ -2567,7 +2578,7 @@
       ? '<details class="ss-vp-thin"><summary>거래량이 적은 가격대 ' + analysis.thin.length + '곳</summary><ul>' + analysis.thin.map(function (t) {
         return '<li>' + vpEsc(VP.thinText(t, opts)) + '</li>';
       }).join('') + '</ul></details>' : '';
-    var html = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 확대·축소하면 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
+    var html = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 가격 구간 ' + (info.step != null ? Number(info.step).toLocaleString('ko-KR') + (info.isUs ? '달러' : '원') : '') + ' 단위 · 확대·축소하면 기간이 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
       + '<div class="ss-vp-items">'
       + zone('가까운 저항 후보', analysis.resistance, analysis.resistanceGap, '+')
       + zone('가까운 지지 후보', analysis.support, analysis.supportGap, '-')
@@ -2622,7 +2633,7 @@
         var price = Number(live != null ? live : bars[bars.length - 1].close);
         if (!VP || !(price > 0)) { renderVpPanel(this._panel, null); return null; }
         var analysis = VP.analyze(profile.bins, price, bars.slice(0, to + 1).map(function (b) { return b.close; }), { format: function (v) { return chartPriceText(v, isUs); } });
-        renderVpPanel(this._panel, analysis, { isUs: isUs, barCount: to - from + 1, unit: unit || '봉' });
+        renderVpPanel(this._panel, analysis, { isUs: isUs, barCount: to - from + 1, unit: unit || '봉', step: profile.binSize });
         return analysis;
       },
       _profileFor: function (heightPx) {
@@ -2636,12 +2647,10 @@
         var win = bars.slice(from, to + 1);
         var lo = Infinity, hi = -Infinity;
         win.forEach(function (d) { if (d.low < lo) lo = d.low; if (d.high > hi) hi = d.high; });
-        var rawStep = Math.abs(pTop - pBottom) / Math.max(1, heightPx / VP_BAR_PX);
-        var binCount = rawStep > 0 ? Math.min(160, Math.max(6, Math.round((hi - lo) / rawStep))) : 24;
-        var key = from + '|' + to + '|' + binCount;
+        var key = from + '|' + to;   // 구간 크기는 가격대로 고정이라 화면 높이·확대에는 다시 계산하지 않는다
         if (key !== this._key) {
           this._key = key;
-          this._profile = computeVolumeProfile(win, binCount, isUs);
+          this._profile = computeVolumeProfile(win, 0, isUs);
           this._analysis = this._profile ? this._analyze(win, this._profile, from, to) : null;
           if (!this._profile) renderVpPanel(this._panel, null);
           publishVolumeProfile(code, this._profile);
@@ -2683,8 +2692,8 @@
                     // 핵심 매물대(최다 구간 포함 최대 2구간)만 주황, 나머지는 회색
                     ctx.fillStyle = b.core ? (i === profile.pocIndex ? 'rgba(232,89,12,0.42)' : 'rgba(232,89,12,0.30)') : 'rgba(130,130,130,0.17)';
                     ctx.beginPath();
-                    if (ctx.roundRect) ctx.roundRect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2), [3 * hR, 0, 0, 3 * hR]);
-                    else ctx.rect(paneWidth - barPx, top + gap, barPx, Math.max(1, h - gap * 2));
+                    if (ctx.roundRect) ctx.roundRect(0, top + gap, barPx, Math.max(1, h - gap * 2), [0, 3 * hR, 3 * hR, 0]);   // 왼쪽 끝에서 오른쪽으로
+                    else ctx.rect(0, top + gap, barPx, Math.max(1, h - gap * 2));
                     ctx.fill();
                     // 가장 가까운 저항 후보(파랑)·지지 후보(빨강) 구간은 테두리로 구별한다(최대 매물대 주황과 별개).
                     var edge = an && an.resistance && i >= an.resistance.from && i <= an.resistance.to ? 'rgba(18,97,196,0.9)'
