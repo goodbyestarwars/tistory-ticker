@@ -313,6 +313,10 @@
     var maxSpan = Math.max(minSpan, Math.min(2000, rightLimit - leftLimit));
     var target = null, frame = 0, disposed = false;
     var lastFrameTime = null, lastDirection = 0, lastGesture = null;
+    // 네이버·토스처럼(2026-10-22): 휠을 빠르게 돌리면 점점 더 크게 움직이고(가속), 최신 봉 근처에서 확대하면 최신 봉을 오른쪽에 붙여 둔다.
+    // 드래그로 밀다 놓으면 관성으로 조금 더 미끄러진다.
+    var lastWheelAt = 0, streak = 0;
+    var drag = null, inertia = null, inertiaFrame = 0, ignoreRange = false;
 
     function bounded(from, span) {
       span = Math.max(minSpan, Math.min(maxSpan, span));
@@ -322,6 +326,11 @@
       return { from: from, to: to };
     }
 
+    function stopInertia() {
+      if (inertiaFrame) global.cancelAnimationFrame(inertiaFrame);
+      inertiaFrame = 0;
+      inertia = null;
+    }
     function stop() {
       if (frame) global.cancelAnimationFrame(frame);
       frame = 0;
@@ -329,6 +338,9 @@
       lastFrameTime = null;
       lastDirection = 0;
       lastGesture = null;
+      streak = 0;
+      lastWheelAt = 0;
+      stopInertia();
     }
 
     function animate(timestamp) {
@@ -352,6 +364,7 @@
     function onWheel(event) {
       if (disposed) return;
       if (event.target && event.target.closest && event.target.closest('button, a, input, textarea, select, [data-no-wheel-zoom]')) return;
+      stopInertia();
       var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (element.clientHeight || 400) : 1;
       // 마우스 노치/고해상도 트랙패드 모두 입력 강도에 비례하도록 제한한다.
       var dx = Math.max(-240, Math.min(240, (Number(event.deltaX) || 0) * unit));
@@ -381,23 +394,83 @@
         // 마우스 아래 논리적 봉 위치를 줌 중심으로 보존한다.
         var ratio = typeof event.clientX === 'number'
           ? Math.max(0, Math.min(1, (event.clientX - rect.left) / width)) : 0.5;
+        // 최신 봉이 보이고 커서가 오른쪽 가장자리 쪽이면 오른쪽 끝을 고정해 최신 봉이 화면 밖으로 밀리지 않게 한다.
+        if (live.to >= total - 1 - 0.5 && ratio > 0.8) ratio = 1;
         var anchor = live.from + ratio * (live.to - live.from);
-        var nextSpan = span * Math.exp(dy * 0.00125);
+        // 빠르게 이어 돌리면 가속(최대 1.8배), 잠깐 멈췄다 돌리면 처음 속도로 돌아간다.
+        var stamp = typeof event.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : Date.now();
+        streak = stamp - lastWheelAt < 120 ? Math.min(5, streak + 1) : 0;
+        lastWheelAt = stamp;
+        var boost = 1 + streak * 0.16;
+        var nextSpan = span * Math.exp(dy * 0.0014 * boost);
         nextSpan = Math.max(minSpan, Math.min(maxSpan, nextSpan));
         target = bounded(anchor - ratio * nextSpan, nextSpan);
       }
       if (!frame) frame = global.requestAnimationFrame(animate);
     }
 
+    // 드래그 관성: 누른 채 좌우로 밀다 놓으면 놓기 직전 속도로 조금 더 미끄러지며 감속한다(시간 폭 변화 없는 이동만).
+    function onRangeChange() {
+      if (!drag || ignoreRange) return;
+      var r = scale.getVisibleLogicalRange();
+      if (!r || !isFinite(r.from) || !isFinite(r.to)) return;
+      var t = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+      drag.samples.push({ t: t, from: r.from, span: r.to - r.from });
+      while (drag.samples.length > 2 && t - drag.samples[0].t > 120) drag.samples.shift();
+    }
+    function onPointerDown(event) {
+      stop();
+      drag = { samples: [] };
+    }
+    function onPointerUp() {
+      var d = drag;
+      drag = null;
+      if (!d || d.samples.length < 2 || disposed) return;
+      var a = d.samples[0], b = d.samples[d.samples.length - 1];
+      var dt = b.t - a.t;
+      if (!(dt > 8) || Math.abs(b.span - a.span) > 0.5) return;   // 확대·축소 드래그는 관성 없음
+      var v = (b.from - a.from) / dt;                              // 봉/ms
+      if (!isFinite(v) || Math.abs(v) < 0.006) return;
+      v = Math.max(-0.6, Math.min(0.6, v));
+      inertia = { v: v, span: b.span };
+      var last = null;
+      function glide(timestamp) {
+        inertiaFrame = 0;
+        if (disposed || !inertia) return;
+        var stamp = Number.isFinite(timestamp) ? timestamp : (last == null ? 0 : last + 1000 / 60);
+        var elapsed = last == null ? 1000 / 60 : Math.max(0, Math.min(64, stamp - last));
+        last = stamp;
+        var now = scale.getVisibleLogicalRange();
+        if (!now || !isFinite(now.from)) { inertia = null; return; }
+        var desired = now.from + inertia.v * elapsed;
+        var next = bounded(desired, inertia.span);
+        var hitEdge = Math.abs(next.from - desired) > 1e-6;   // 기록된 범위 끝에 닿으면 멈춘다
+        inertia.v *= Math.exp(-elapsed / 260);
+        ignoreRange = true;
+        scale.setVisibleLogicalRange(next);
+        ignoreRange = false;
+        if (Math.abs(inertia.v) < 0.004 || hitEdge) { inertia = null; return; }
+        inertiaFrame = global.requestAnimationFrame(glide);
+      }
+      inertiaFrame = global.requestAnimationFrame(glide);
+    }
+    var upTarget = global.addEventListener ? global : element;   // 요소 밖에서 놓아도 받는다
+    var rangeSub = typeof scale.subscribeVisibleLogicalRangeChange === 'function';
+    if (rangeSub) scale.subscribeVisibleLogicalRangeChange(onRangeChange);
     element.addEventListener('wheel', onWheel, { passive: false });
-    element.addEventListener('pointerdown', stop, { passive: true });
+    element.addEventListener('pointerdown', onPointerDown, { passive: true });
     element.addEventListener('touchstart', stop, { passive: true });
+    upTarget.addEventListener('pointerup', onPointerUp, { passive: true });
+    upTarget.addEventListener('pointercancel', onPointerUp, { passive: true });
     return function () {
       disposed = true;
       stop();
+      if (rangeSub && typeof scale.unsubscribeVisibleLogicalRangeChange === 'function') scale.unsubscribeVisibleLogicalRangeChange(onRangeChange);
       element.removeEventListener('wheel', onWheel);
-      element.removeEventListener('pointerdown', stop);
+      element.removeEventListener('pointerdown', onPointerDown);
       element.removeEventListener('touchstart', stop);
+      upTarget.removeEventListener('pointerup', onPointerUp);
+      upTarget.removeEventListener('pointercancel', onPointerUp);
     };
   }
 

@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-rsioff';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-wheel2';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -6120,9 +6120,14 @@
       var fontFamily = global.getComputedStyle ? global.getComputedStyle(container).fontFamily : '';
 
       var daily = chartData.daily;
-      var chart = LWC.createChart(container, core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily }));
+      var flowOptions = core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily });
+      // 라이브러리 기본 휠 대신 차트검색과 같은 부드러운 휠(커서 기준 확대·가속·관성)을 쓴다(2026-10-22).
+      flowOptions.handleScale.mouseWheel = false;
+      flowOptions.handleScroll.mouseWheel = false;
+      var chart = LWC.createChart(container, flowOptions);
       lwcChart = chart;
       lwcChartContainer = container;
+      scope.add(core.installSmoothWheelZoom(chart, container, { bars: daily.length }));
       scope.add(core.registerChart(container, chart, { bars: daily.length, timeframe: 'day' }));
       scope.add(core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
