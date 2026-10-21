@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-rsiopt';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-rsioff';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -122,7 +122,7 @@
     supplyMode: 'detail',
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
-    rsiEnabled: true,              // RSI(14) 서브패널
+    rsiEnabled: false,             // RSI(14) 서브패널(기본 끔)
     rsiDivergenceEnabled: false,   // RSI 다이버전스(js/chart-divergence.js)
     volumeMultipleEnabled: false,   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
@@ -546,7 +546,7 @@
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
-      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle checked /> RSI</label>'
+      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
       + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
       + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
@@ -2202,7 +2202,7 @@
       + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
-      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle checked /> RSI</label>'
+      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
       + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
       + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
