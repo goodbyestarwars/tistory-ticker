@@ -137,4 +137,23 @@ assert(css.includes('#stock-search .ss-overview .ss-summary[hidden]'));
 assert(css.includes('#stock-search .ss-overview.ss-overview-selected .ss-summary-price'));
 assert(css.includes('#stock-search .ss-panel-head { padding-inline: 12px; }'));
 assert(css.includes('@media (max-width: 860px)'));
+
+// One continuous search card: no nested rounded/bordered card or empty second row.
+// CSS at the end of the file overrides earlier summary rules, including cached legacy styles.
+const endCss = css.slice(css.indexOf('검색 결과와 선택 종목은 바깥 한 카드만 사용한다'));
+assert(endCss.includes('#stock-search #ssOverview #ssSummary {'));
+assert(endCss.includes('border: 0 !important;'));
+assert(endCss.includes('border-radius: 0 !important;'));
+assert(endCss.includes('box-shadow: none !important;'));
+assert(endCss.includes('padding: 7px 12px !important;'));
+assert(endCss.includes('grid-template-columns: minmax(0, 1fr) auto;'));
+const mainReason = endCss.split('#stock-search #ssOverview #ssSummary .ss-summary-reason {')[1].split('}')[0];
+const mainHead = endCss.split('#stock-search #ssOverview #ssSummary .ss-summary-head {')[1].split('}')[0];
+assert(mainReason.includes('grid-column: 1;') && mainReason.includes('grid-row: 1;'));
+assert(mainHead.includes('grid-column: 2;') && mainHead.includes('grid-row: 1;'));
+assert(endCss.includes('#stock-search #ssOverview:not(.ss-overview-selected) #ssSummary .ss-summary-head'));
+assert(endCss.includes('html.dark #stock-search #ssOverview #ssSummary'));
+assert(endCss.includes('@media (max-width: 600px)'));
+assert(endCss.includes('#stock-search #ssOverview.ss-overview-selected #ssSummary .ss-summary-head'));
+
 console.log('stock-search unified results/detail card: ok');

@@ -1374,3 +1374,109 @@ html.dark #stock-search .ss-panel-left > .ss-session {
 /* The footer now holds the analysis link and reason without an empty OHLC slot. */
 #stock-search .ss-overview .ss-summary-head { grid-column: 1 / -1; }
 #stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason { grid-row: 2; }
+
+/* 2026-10-21: 검색 결과와 선택 종목은 바깥 한 카드만 사용한다.
+   선택 행 바로 아래에 AI 이유(왼쪽)와 종목분석(오른쪽)을 같은 한 줄로 붙인다.
+   내부 요약의 옛 border/radius/margin은 다른 테마 규칙보다 확실히 끈다. */
+#stock-search #ssOverview.ss-overview-active {
+  background: rgb(255, 254, 252);
+  overflow: hidden;
+}
+#stock-search #ssOverview .ss-results-table,
+#stock-search #ssOverview .ss-results-collapsed {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+#stock-search #ssOverview #ssSummary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
+  padding: 7px 12px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid #e5e7eb !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+#stock-search #ssOverview #ssSummary .ss-summary-reason {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.35;
+}
+#stock-search #ssOverview #ssSummary .ss-summary-head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0;
+  min-width: 0;
+  gap: 6px;
+}
+#stock-search #ssOverview #ssSummary .ss-analysis-link {
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #333;
+  font-size: 11.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+#stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
+  background: #e5e7eb;
+  color: #111;
+  transform: none;
+}
+/* 목록을 직접 접으면 검색 행 대신 선택 종목명·현재가를 위에 다시 표시한다. */
+#stock-search #ssOverview:not(.ss-overview-selected) #ssSummary .ss-summary-head {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: stretch;
+  justify-content: flex-start;
+}
+#stock-search #ssOverview:not(.ss-overview-selected) #ssSummary .ss-summary-reason {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+html.dark #stock-search #ssOverview.ss-overview-active {
+  background: #1a1a1a;
+}
+html.dark #stock-search #ssOverview #ssSummary {
+  border-top-color: rgba(245, 239, 224, .16) !important;
+}
+html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link {
+  background: #303030;
+  border-color: rgba(245, 239, 224, .18);
+  color: #f5efe0;
+}
+html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
+  background: #424242;
+  color: #fff;
+}
+@media (max-width: 600px) {
+  #stock-search #ssOverview.ss-overview-selected #ssSummary {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 5px;
+    padding: 7px 10px !important;
+  }
+  #stock-search #ssOverview.ss-overview-selected #ssSummary .ss-summary-reason {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #stock-search #ssOverview.ss-overview-selected #ssSummary .ss-summary-head {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+  }
+}
