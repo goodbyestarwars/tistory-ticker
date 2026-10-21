@@ -1064,7 +1064,7 @@ html.dark #stock-search .ss-index-wave-group [data-index-wave-level] {
 @media (max-width: 1100px) { #stock-search .ss-vp-items { grid-template-columns: repeat(2, minmax(0, 1fr)); } #stock-search .ss-vp-panel { height: 170px; } }
 #stock-search .ss-vp-item b { font-weight: 500; margin-right: 4px; color: #1f2d3d; }
 #stock-search .ss-vp-dot { display: inline-block; width: 8px; height: 8px; margin-right: 5px; border-radius: 2px; vertical-align: 0; }
-#stock-search .ss-vp-dot-poc { background: rgba(232, 89, 12, .85); }
+#stock-search .ss-vp-dot-poc { background: rgba(236, 72, 153, .85); }
 #stock-search .ss-vp-dot-res { background: rgba(18, 97, 196, .75); }
 #stock-search .ss-vp-dot-sup { background: rgba(210, 79, 69, .75); }
 #stock-search .ss-vp-item em { font-style: normal; font-weight: 700; color: #526173; }

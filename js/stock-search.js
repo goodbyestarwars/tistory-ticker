@@ -2462,7 +2462,7 @@
   // window.__ssVolumeProfile로 내보내고 'ss-volume-profile' 이벤트를 쏴서 호가창(order-book.js)이
   // 매물대 구간의 호가를 주황으로 표시한다.
   var VP_CORE_RATIO = 0.85;  // 핵심 매물대 기준(거래량 최대 대비)
-  var VP_MAX_WIDTH_RATIO = 0.22;   // 가장 긴 막대가 차트 폭에서 차지하는 비율(왼쪽에서 오른쪽으로 뻗는다)
+  var VP_MAX_WIDTH_RATIO = 0.50;   // 가장 긴 막대가 차트 폭에서 차지하는 비율(왼쪽에서 오른쪽으로 뻗는다)
   var VP_MAX_BINS = 300;           // 아주 긴 기간을 한 번에 볼 때 막대가 너무 가늘어지지 않게 하는 상한
 
   function vpRound(v) { return Math.round(v * 1e6) / 1e6; }
@@ -2483,14 +2483,16 @@
     return best;
   }
 
-  function computeVolumeProfile(bars, binCount, isUs) {
+  function computeVolumeProfile(bars, binCount, isUs, displayBins) {
     if (!bars || bars.length < 2) return null;
     var lo = Infinity, hi = -Infinity;
     bars.forEach(function (d) { if (d.low < lo) lo = d.low; if (d.high > hi) hi = d.high; });
     if (!(hi > lo)) return null;
     var lastClose = Number(bars[bars.length - 1].close);
     var step = vpFixedStep(lastClose > 0 ? lastClose : hi, isUs);
-    var ratio = (hi - lo) / step / VP_MAX_BINS;
+    // 차트 오버레이는 약 12개의 넓은 가격 구간으로 표시한다. 기본 계산의 가격 단위는 유지한다.
+    var limit = displayBins > 1 ? displayBins - 1 : VP_MAX_BINS;
+    var ratio = (hi - lo) / step / limit;
     if (ratio > 1) {
       var factor = [2, 5, 10, 20, 50, 100, 200, 500].filter(function (f) { return f >= ratio; })[0] || Math.ceil(ratio);
       step = vpRound(step * factor);
@@ -2562,7 +2564,7 @@
     var opts = { format: fmt };
     var core = global.NineChartCore;
     function vol(v) { return (core && core.compactVolume ? core.compactVolume(v) : Math.round(v).toLocaleString('ko-KR')) + '주'; }
-    // 색 점은 차트 막대 색과 같다: 최대 매물대 주황 · 저항 후보 파랑 · 지지 후보 빨강(2026-10-22 사용자 질문 "헷갈려")
+    // 최대 매물대 색 점은 차트와 같은 분홍색. 저항·지지 후보의 패널 의미색은 유지한다.
     function dot(kind) { return '<i class="ss-vp-dot ss-vp-dot-' + kind + '"></i>'; }
     function zone(label, z, g, sign) {
       var kind = label.indexOf('저항') >= 0 ? 'res' : 'sup';
@@ -2659,7 +2661,7 @@
         var key = from + '|' + to;   // 구간 크기는 가격대로 고정이라 화면 높이·확대에는 다시 계산하지 않는다
         if (key !== this._key) {
           this._key = key;
-          this._profile = computeVolumeProfile(win, 0, isUs);
+          this._profile = computeVolumeProfile(win, 0, isUs, 12);
           this._analysis = this._profile ? this._analyze(win, this._profile, from, to) : null;
           if (!this._profile) renderVpPanel(this._panel, null);
           publishVolumeProfile(code, this._profile);
@@ -2683,7 +2685,6 @@
                   var maxBarPx = paneWidth * VP_MAX_WIDTH_RATIO;
                   if (self._step !== profile.binSize) { self._shown = {}; self._step = profile.binSize; }
                   var next = {}, moving = false;
-                  var an = self._analysis;
                   ctx.save();
                   profile.bins.forEach(function (b, i) {
                     var t = b.volume / profile.maxVolume;
@@ -2697,17 +2698,9 @@
                     if (yTop == null || yBottom == null) return;
                     var barPx = Math.max(2 * hR, cur * maxBarPx);
                     var top = yTop * vR, h = Math.max(1, (yBottom - yTop) * vR);
-                    var gap = h > 4 * vR ? vR : 0;
-                    // 색 규칙(패널의 색 점과 같다): 최대 매물대(핵심 최대 2구간) 주황 > 가까운 저항 후보 구간 파랑 > 가까운 지지 후보 구간 빨강 > 그 밖 회색.
-                    // 후보 구간은 막대마다 테두리를 두르지 않고 면 색으로만 구별한다(테두리가 겹쳐 굵은 선처럼 보이던 문제).
-                    var inRes = an && an.resistance && i >= an.resistance.from && i <= an.resistance.to;
-                    var inSup = an && an.support && i >= an.support.from && i <= an.support.to;
-                    ctx.fillStyle = b.core ? (i === profile.pocIndex ? 'rgba(232,89,12,0.55)' : 'rgba(232,89,12,0.38)')
-                      : inRes ? 'rgba(18,97,196,0.34)' : inSup ? 'rgba(210,79,69,0.34)' : 'rgba(130,130,130,0.17)';
-                    ctx.beginPath();
-                    if (ctx.roundRect) ctx.roundRect(0, top + gap, barPx, Math.max(1, h - gap * 2), [0, 3 * hR, 3 * hR, 0]);   // 왼쪽 끝에서 오른쪽으로
-                    else ctx.rect(0, top + gap, barPx, Math.max(1, h - gap * 2));
-                    ctx.fill();
+                    // 캔들 뒤에 빈틈 없는 사각형으로 표시하고 최대 거래량 구간만 분홍색으로 강조한다.
+                    ctx.fillStyle = i === profile.pocIndex ? 'rgba(236,72,153,0.42)' : 'rgba(56,169,225,0.28)';
+                    ctx.fillRect(0, top, barPx, h);
                   });
                   ctx.restore();
                   self._shown = next;
