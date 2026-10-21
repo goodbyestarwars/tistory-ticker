@@ -597,6 +597,22 @@
     });
   }
 
+  // 거래량 체감 배수(2026-10-21): 그 봉의 거래량 / 직전 20봉 평균. 그날 알 수 있는 값만 쓰며(오늘 봉은 평균에서 뺀다)
+  // 직전 봉이 10개 미만이거나 평균이 0이면 null. 막대 진하기(2배↑·3배↑)와 3배↑ 숫자 라벨에 쓴다.
+  var VOLUME_SPIKE = { strong: 2, label: 3, maxLabels: 60 };
+  function volumeSpikeMultiples(bars) {
+    return bars.map(function (bar, i) {
+      var sum = 0, n = 0;
+      for (var j = Math.max(0, i - 20); j < i; j++) {
+        var v = Number(bars[j].volume);
+        if (isFinite(v) && bars[j].volume !== '' && bars[j].volume != null) { sum += v; n++; }
+      }
+      var vol = Number(bar.volume);
+      if (n < 10 || !(sum > 0) || !isFinite(vol) || bar.volume === '' || bar.volume == null) return null;
+      return vol / (sum / n);
+    });
+  }
+
   // 거래량 막대 + 거래량 평균선. opts: { pane, scaleId, margins(거래량 축 설정), ma5(5일 평균선 추가), volumeMa20 색 등 }
   function addVolumePane(chart, LWC, bars, opts) {
     opts = opts || {};
@@ -605,9 +621,24 @@
     if (opts.scaleId) hist.priceScaleId = opts.scaleId;
     var volume = chart.addSeries(LWC.HistogramSeries, hist, pane);
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
-    volume.setData(bars.map(function (d) {
-      return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
+    // 상승 빨강·하락 파랑은 그대로 두고, 평균 대비 2배↑는 진하게·3배↑는 가장 진하게(색 의미를 바꾸지 않는다).
+    var multiples = volumeSpikeMultiples(bars);
+    volume.setData(bars.map(function (d, i) {
+      var m = multiples[i], up = d.close >= d.open;
+      var alpha = m != null && m >= VOLUME_SPIKE.label ? 1 : (m != null && m >= VOLUME_SPIKE.strong ? 0.85 : 0.5);
+      return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: (up ? 'rgba(210,79,69,' : 'rgba(18,97,196,') + alpha + ')' };
     }));
+    var spikeMarkers = [];
+    if (opts.multipleLabels !== false && typeof LWC.createSeriesMarkers === 'function') {
+      bars.forEach(function (d, i) {
+        var m = multiples[i];
+        if (m == null || m < VOLUME_SPIKE.label) return;
+        spikeMarkers.push({ time: d.date, position: 'aboveBar', shape: 'circle', size: 0, color: d.close >= d.open ? '#d24f45' : '#1261c4', text: (Math.round(m * 10) / 10) + '배' });
+      });
+      // 겹침을 피하려고 가장 최근 것만 남긴다.
+      if (spikeMarkers.length > VOLUME_SPIKE.maxLabels) spikeMarkers = spikeMarkers.slice(-VOLUME_SPIKE.maxLabels);
+      if (spikeMarkers.length) { try { LWC.createSeriesMarkers(volume, spikeMarkers); } catch (e) { /* 라벨만 빠진다 */ } }
+    }
     function avgLine(period, color, width) {
       var pts = movingAveragePoints(bars, 'volume', period);
       var line = chart.addSeries(LWC.LineSeries, {
@@ -1278,7 +1309,7 @@
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    volumeSpikeMultiples: volumeSpikeMultiples, accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);
