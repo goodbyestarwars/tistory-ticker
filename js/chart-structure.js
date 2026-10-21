@@ -21,9 +21,9 @@
 
   function profile(options) {
     var tf = options && options.timeframe;
-    if (tf === 'week' || tf === 'month') return { k: 4, maxBars: 260, boxRange: 0.25, boxMin: 10, boxMax: 80, unit: tf === 'week' ? '주' : '개월' };
+    if (tf === 'week' || tf === 'month') return { k: 4, maxBars: 260, boxRange: 0.30, boxMin: 10, boxMax: 80, unit: tf === 'week' ? '주' : '개월' };
     if (tf === 'minute') return { k: 5, maxBars: 400, boxRange: 0.04, boxMin: 30, boxMax: 200, unit: '봉' };
-    return { k: 6, maxBars: 300, boxRange: 0.15, boxMin: 15, boxMax: 160, unit: '일' };
+    return { k: 6, maxBars: 300, boxRange: 0.20, boxMin: 15, boxMax: 160, unit: '일' };
   }
 
   function num(v) { var n = Number(v); return Number.isFinite(n) ? n : null; }
@@ -81,23 +81,51 @@
     return null;
   }
 
+  // 횡보 채널: 최근 스윙 저점 둘·고점 둘이 각각 3% 안에서 같은 높이일 때만(수평선). base 는 두 저점의 평균 높이 수평선.
+  function flatChannel(sw, arr) {
+    function lastPair(points) {
+      for (var b = points.length - 1; b >= 1; b--) {
+        for (var a = b - 1; a >= 0 && b - a <= 3; a--) {
+          var p1 = points[a], p2 = points[b];
+          if (p2.i - p1.i >= MIN_ANCHOR_GAP && Math.abs(p2.price - p1.price) / p1.price < MIN_SLOPE_PCT) return [p1, p2];
+        }
+      }
+      return null;
+    }
+    var lo = lastPair(sw.lows), hi = lastPair(sw.highs);
+    if (!lo || !hi) return null;
+    var level = (lo[0].price + lo[1].price) / 2, topLevel = (hi[0].price + hi[1].price) / 2;
+    if (topLevel <= level || (topLevel - level) / level < MIN_CHANNEL_PCT) return null;
+    var i1 = Math.min(lo[0].i, hi[0].i);
+    return { base: { i1: i1, p1: level, i2: lo[1].i, p2: level, slope: 0 } };
+  }
+
   function analyzeTrend(arr, cfg) {
     var sw = swings(arr, cfg.k);
     var up = pickLine(sw.lows, true, arr);
     var down = pickLine(sw.highs, false, arr);
-    var base = null, kind = null;
-    if (up && down) { if (up.i2 >= down.i2) { base = up; kind = 'up'; } else { base = down; kind = 'down'; } }
+    var base = null, kind = null, second = null;
+    if (up && down) {
+      // 두 선이 함께 있으면(쐐기·삼각 수렴) 최근에 확정된 쪽이 주 추세선, 다른 쪽은 보조선으로 같이 그린다.
+      if (up.i2 >= down.i2) { base = up; kind = 'up'; second = { kind: 'down', base: down }; }
+      else { base = down; kind = 'down'; second = { kind: 'up', base: up }; }
+    }
     else if (up) { base = up; kind = 'up'; }
     else if (down) { base = down; kind = 'down'; }
-    if (!base) return null;
+    else {
+      // 오르는 저점도 내리는 고점도 없으면 횡보: 최근 두 저점끼리·두 고점끼리 거의 같은 높이인 수평 채널
+      var fl = flatChannel(sw, arr);
+      if (!fl) return null;
+      base = fl.base; kind = 'flat';
+    }
     var last = arr.length - 1;
     function lineAt(i) { return base.p1 + base.slope * (i - base.i1); }
     // 평행선: 상승 추세선은 구간 안 최고 고가까지, 하락 추세선은 최저 저가까지 같은 기울기로 옮긴다.
     var offset = 0;
     for (var j = base.i1; j <= last; j++) {
-      var d = kind === 'up' ? num(arr[j].high) - lineAt(j) : num(arr[j].low) - lineAt(j);
+      var d = kind === 'down' ? num(arr[j].low) - lineAt(j) : num(arr[j].high) - lineAt(j);
       if (!Number.isFinite(d)) continue;
-      if (kind === 'up' ? d > offset : d < offset) offset = d;
+      if (kind === 'down' ? d < offset : d > offset) offset = d;
     }
     var lastClose = num(arr[last].close) || base.p2;
     var channel = Math.abs(offset) / lastClose >= MIN_CHANNEL_PCT;
@@ -109,16 +137,16 @@
       if (c == null) continue;
       var v = lineAt(i);
       if (!lineBreak) {
-        if (kind === 'up' && c < v * (1 - BREAK_PCT)) { events.push({ i: i, dir: 'down', label: '추세선 이탈', price: c, vol: volMultiple(arr, i) }); lineBreak = true; }
+        if ((kind === 'up' || kind === 'flat') && c < v * (1 - BREAK_PCT)) { events.push({ i: i, dir: 'down', label: '추세선 이탈', price: c, vol: volMultiple(arr, i) }); lineBreak = true; }
         if (kind === 'down' && c > v * (1 + BREAK_PCT)) { events.push({ i: i, dir: 'up', label: '추세선 돌파', price: c, vol: volMultiple(arr, i) }); lineBreak = true; }
       }
       if (channel && !topBreak) {
         var edge = v + offset;
-        if (kind === 'up' && c > edge * (1 + BREAK_PCT)) { events.push({ i: i, dir: 'up', label: '채널 상단 돌파', price: c, vol: volMultiple(arr, i) }); topBreak = true; }
+        if ((kind === 'up' || kind === 'flat') && c > edge * (1 + BREAK_PCT)) { events.push({ i: i, dir: 'up', label: '채널 상단 돌파', price: c, vol: volMultiple(arr, i) }); topBreak = true; }
         if (kind === 'down' && c < edge * (1 - BREAK_PCT)) { events.push({ i: i, dir: 'down', label: '채널 하단 이탈', price: c, vol: volMultiple(arr, i) }); topBreak = true; }
       }
     }
-    return { kind: kind, base: base, offset: offset, channel: channel, events: events, last: last };
+    return { kind: kind, base: base, offset: offset, channel: channel, events: events, last: last, second: second };
   }
 
   function boxEndingAt(arr, end, cfg) {
@@ -313,7 +341,21 @@
             ctx.strokeStyle = 'rgba(' + TREND_COLOR + ',1)'; ctx.lineWidth = 1.5; ctx.stroke();
           });
           var tx = Math.max(4, Math.min(right - 4, xe - 10));
-          label((trend.kind === 'up' ? '상승 추세선' : '하락 추세선') + (trend.channel ? '·채널' : ''), tx, Math.max(12, Math.min(height - 12, ye + (trend.kind === 'up' ? 14 : -14))), TREND_COLOR, 'right');
+          label((trend.kind === 'up' ? '상승 추세선' : trend.kind === 'down' ? '하락 추세선' : '횡보 채널') + (trend.channel && trend.kind !== 'flat' ? '·채널' : ''), tx, Math.max(12, Math.min(height - 12, ye + (trend.kind === 'down' ? -14 : 14))), TREND_COLOR, 'right');
+        }
+        if (trend.second) {
+          // 보조선: 얇은 파선(채널 없음). 쐐기·삼각 수렴처럼 위·아래 선이 같이 있을 때 보인다.
+          var b2 = trend.second.base;
+          var xs2 = xAt(b2.i1), xe2 = rightIdx != null ? xAt(rightIdx) : null;
+          var ys3 = series.priceToCoordinate(b2.p1), ye3 = series.priceToCoordinate(b2.p1 + b2.slope * (rightIdx - b2.i1));
+          if (xs2 != null && xe2 != null && Number.isFinite(ys3) && Number.isFinite(ye3)) {
+            ctx.strokeStyle = 'rgba(' + TREND_COLOR + ',.8)';
+            ctx.lineWidth = 1.2;
+            ctx.setLineDash([3, 3]);
+            ctx.beginPath(); ctx.moveTo(xs2, ys3); ctx.lineTo(xe2, ye3); ctx.stroke();
+            ctx.setLineDash([]);
+            label(trend.second.kind === 'up' ? '상승 추세선' : '하락 추세선', Math.max(4, Math.min(right - 4, xe2 - 10)), Math.max(12, Math.min(height - 12, ye3 + (trend.second.kind === 'down' ? -14 : 14))), TREND_COLOR, 'right');
+          }
         }
         trend.events.forEach(function (ev) {
           var px = xAt(ev.i), py = series.priceToCoordinate(ev.price);
@@ -346,7 +388,7 @@
   function summary(result) {
     if (!result) return '';
     var parts = [];
-    if (result.trend) parts.push((result.trend.kind === 'up' ? '상승' : '하락') + ' 추세선' + (result.trend.channel ? '·채널' : ''));
+    if (result.trend) parts.push(result.trend.kind === 'flat' ? '횡보 채널' : (result.trend.kind === 'up' ? '상승' : '하락') + ' 추세선' + (result.trend.channel ? '·채널' : '') + (result.trend.second ? ' + ' + (result.trend.second.kind === 'up' ? '상승' : '하락') + '선' : ''));
     if (result.box) parts.push('박스 ' + result.box.bars + result.unit + (result.box.ongoing ? ' 진행' : ' 이탈'));
     return parts.length ? parts.join(' / ') : '<b>해당 없음</b>';
   }
