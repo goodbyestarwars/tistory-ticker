@@ -8076,6 +8076,9 @@ html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-m
 @media (max-width: 720px) {
   html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 56px 16px 14px !important; }
   html body .home-widget-actions { top: 8px !important; right: 10px !important; }
+  /* 2026-10-22 사용자 신고(모바일): 시장판 머리글의 오른쪽 글자(나스닥 종합 · S&P500 현물)가 이동·메뉴 버튼 두 개와 겹침.
+     버튼 줄(약 40px)만큼 머리글을 아래로 내려 겹치지 않게 한다. PC는 겹치지 않아 그대로 둔다. */
+  html body #homeMarketBoard .home-card-heading { padding-top: 30px !important; }
 }
 
 /* 모바일 다듬기(2026-10-03): ★ 관심 버튼이 좁은 표 칸에서 잘리지 않게 30px로, 우측 서랍 손잡이는 얇게 */
