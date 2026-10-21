@@ -151,3 +151,29 @@ assert.ok(chd && chd.upper.m < 0 && chd.lower.m < 0 && chd.confirmed === false);
 const outside = Wave.channelOf({ kind: 'up', start: 20, end: 40, low: 110, high: 140, confirmed: true }, lowerOk);
 outside && outside.lows.concat(outside.highs).forEach((q) => assert.ok(q.i >= 20 && q.i <= 40));
 console.log('wave channel OK');
+
+// ---- RSI 다이버전스(js/chart-divergence.js) ----
+require('../js/chart-divergence.js');
+const Div = globalThis.NineChartDivergence;
+const rsiv = new Array(120).fill(50);
+const wres = { levels: { medium: [
+  { kind: 'up', start: 0, end: 20, low: 100, high: 120, confirmed: true, confirmedIndex: 24 },
+  { kind: 'down', start: 20, end: 35, high: 120, low: 108, confirmed: true, confirmedIndex: 38 },
+  { kind: 'up', start: 35, end: 60, low: 108, high: 130, confirmed: true, confirmedIndex: 64 },   // 가격 고점 120 -> 130
+  { kind: 'down', start: 60, end: 80, high: 130, low: 98, confirmed: true, confirmedIndex: 84 },   // 가격 저점 108 -> 98
+  { kind: 'up', start: 80, end: 95, low: 98, high: 115, confirmed: false },                        // 진행 중은 제외
+] } };
+rsiv[20] = 74; rsiv[60] = 66;   // 고점: 가격↑ RSI↓ -> 약세
+rsiv[35] = 38; rsiv[80] = 44;   // 저점: 가격↓ RSI↑ -> 강세
+const dl = Div.find(new Array(120).fill({}), rsiv, wres, 'medium');
+assert.strictEqual(dl.length, 2);
+const bear = dl.find((d) => d.kind === 'bear'), bull = dl.find((d) => d.kind === 'bull');
+assert.ok(bear && bear.a.i === 20 && bear.b.i === 60 && bear.ra === 74 && bear.rb === 66);
+assert.strictEqual(bear.confirmedIndex, 64, '선은 두 번째 극점이 확정된 뒤');
+assert.ok(bull && bull.a.i === 35 && bull.b.i === 80);
+// RSI 차이가 2 이하이거나 극점 간격이 8봉 미만이면 만들지 않는다
+rsiv[60] = 73;
+assert.strictEqual(Div.find(new Array(120).fill({}), rsiv, wres, 'medium').filter((d) => d.kind === 'bear').length, 0);
+assert.deepStrictEqual(Div.find([], null, wres, 'medium'), []);
+assert.deepStrictEqual(Div.find(new Array(5).fill({}), rsiv, null, 'medium'), []);
+console.log('rsi divergence OK');
