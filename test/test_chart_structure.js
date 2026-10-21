@@ -100,3 +100,31 @@ assert.strictEqual(S.analyze([], { timeframe: 'day' }).trend, null);
 assert.strictEqual(S.analyze(null, { timeframe: 'day' }).box, null);
 assert.ok(typeof S.summary(S.analyze([], {})) === 'string');
 console.log('chart structure OK');
+
+// ---- 거래량 체감 배수(js/chart-core.js volumeSpikeMultiples) ----
+globalThis.document = { currentScript: null, documentElement: { classList: { contains: () => false } }, head: { appendChild() {} }, querySelector: () => null, createElement: () => ({ setAttribute() {}, remove() {}, addEventListener() {} }) };
+globalThis.MutationObserver = class { observe() {} disconnect() {} };
+globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} };
+require('../js/chart-core.js');
+const Core = globalThis.NineChartCore;
+const vb = [];
+for (let i = 0; i < 30; i++) vb.push({ date: day(i), open: 100, high: 101, low: 99, close: 100, volume: 1000 });
+vb[25].volume = 3200;
+vb[3].volume = null;
+const mult = Core.volumeSpikeMultiples(vb);
+assert.strictEqual(mult[0], null, '직전 봉이 10개 미만이면 null');
+assert.strictEqual(mult[3], null, '빈 거래량은 null');
+assert.ok(Math.abs(mult[25] - 3.2) < 0.01, '3.2배');
+assert.ok(Math.abs(mult[26] - 1000 / ((3200 + 19 * 1000) / 20)) < 0.01 || mult[26] < 1, '오늘 봉은 평균에서 뺀다');
+// 막대·라벨: 가짜 차트로 addVolumePane 호출
+const pushed = [];
+const fakeLWC = { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: (series, markers) => { pushed.push({ series, markers }); } };
+const histData = [];
+const fakeChart = { addSeries: (kind) => ({ kind, setData: (d) => { if (kind === 'hist') histData.push(...d); }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
+Core.addVolumePane(fakeChart, fakeLWC, vb, { pane: 1 });
+assert.strictEqual(pushed.length, 1);
+assert.strictEqual(pushed[0].markers.length, 1);
+assert.strictEqual(pushed[0].markers[0].text, '3.2배');
+assert.ok(/,1\)$/.test(histData[25].color), '3배↑ 막대는 가장 진하게');
+assert.ok(/,0\.5\)$/.test(histData[10].color), '보통 막대는 그대로');
+console.log('volume multiple OK');
