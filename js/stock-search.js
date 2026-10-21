@@ -490,7 +490,9 @@
       // ID로 마운트하면 스타일이 하나도 안 먹음 - 실측으로 발견) 마운트 id를 그대로
       // "order-book"으로 맞춰 기존 CSS를 손대지 않고 재사용한다. 이 페이지엔 이 위젯이
       // 하나뿐이라 중복 id 걱정은 없다.
-      + '<div class="ss-panel-left"><div class="ss-panel-head"><h4>호가</h4></div><div id="order-book"></div></div>'
+      + '<div class="ss-panel-left"><div class="ss-panel-head"><h4>호가</h4></div>'
+      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
+      + '<div id="order-book"></div></div>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-panel-head"><h4>차트</h4></div>'
@@ -1373,6 +1375,7 @@
       }
       if (summaryBox) summaryBox.hidden = false;
       renderSummary(container, item);
+      renderSessionCandle(container, {});
       loadPriceReason(container, item);
       syncOverviewSelection(container);
     }
@@ -1407,14 +1410,13 @@
       + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
-      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
       + '<div class="ss-summary-reason" id="ssSummaryReason">'
       + '<span class="ss-reason-badge">AI</span>'
       + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
       + '</div>';
   }
 
-  // 같은 호가 자료로 상단 현재가를 맞추고, 보조 영역에는 시가·고가·저가만 표시한다.
+  // 같은 호가 자료로 상단 현재가를 맞추고, 호가 패널 위에 시가·고가·저가를 표시한다.
   function renderSessionCandle(container,summary) {
     var box=container.querySelector('#ssSessionCandle');if(!box)return;
     var c=Number(summary.current);

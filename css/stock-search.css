@@ -1246,7 +1246,7 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
 
 
 /* 2026-10-21: one card for result table + selected-stock supplementary info.
-   The data row remains fully visible; OHLC/AI/analysis occupy its detail footer. */
+   The data row remains fully visible; AI/analysis occupy its detail footer. */
 #stock-search .ss-panel-head { padding-inline: 12px; }
 #stock-search .ss-overview[hidden],
 #stock-search .ss-overview .ss-summary[hidden] { display: none !important; }
@@ -1349,3 +1349,28 @@ html.dark #stock-search .ss-overview .ss-summary {
     gap: 6px 10px;
   }
 }
+
+/* Session prices belong to the order-book panel, above the ladder. */
+#stock-search .ss-panel-left > .ss-session {
+  margin: 0 0 8px;
+  padding: 4px 2px 8px;
+  min-width: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+#stock-search .ss-panel-left > .ss-session .ss-session-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  gap: 6px;
+}
+#stock-search .ss-panel-left > .ss-session .ss-session-values div {
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 2px 4px;
+}
+html.dark #stock-search .ss-panel-left > .ss-session {
+  border-color: rgba(245, 239, 224, .16);
+}
+/* The footer now holds the analysis link and reason without an empty OHLC slot. */
+#stock-search .ss-overview .ss-summary-head { grid-column: 1 / -1; }
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason { grid-row: 2; }

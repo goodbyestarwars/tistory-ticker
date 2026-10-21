@@ -449,8 +449,8 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
 #order-book .ob-trade-direction { text-align: right; white-space: nowrap; }
 #order-book .ob-trade-empty { padding: 8px 0; color: #9ca3af; font-size: 12px; }
 #order-book .ob-trades-list {
-  max-height: 220px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 #order-book .ob-trade-time { color: #9ca3af; }
 #order-book .ob-trade-time,
@@ -631,4 +631,14 @@ html.dark #order-book .ob-spread { background: #29313b; color: #cbd5e1; }
   #stock-search #order-book .ob-pair-head,
   #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 2px; }
   #stock-search #order-book .ob-depth { flex-wrap: wrap; height: auto; min-height: 24px; gap: 1px 3px; }
+}
+
+/* Keep all four trade columns inside narrow mobile panels. */
+@media (max-width: 600px) {
+  #order-book .ob-trades-header,
+  #order-book .ob-trade-row {
+    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr) 68px;
+    gap: 4px;
+    font-size: 11px;
+  }
 }

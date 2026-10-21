@@ -94,7 +94,11 @@ assert(html.includes('108,100'));
 assert(html.includes('160,794'));
 assert(html.includes('173.8억'));
 assert(html.includes('ss-fav-btn')); // favorite preserved
-assert(summary.innerHTML.includes('ssSessionCandle'));
+assert(!summary.innerHTML.includes('ssSessionCandle'));
+const leftPanel = shell.slice(shell.indexOf('class="ss-panel-left"'), shell.indexOf('class="ss-resize-handle"'));
+assert(leftPanel.indexOf('ssSessionCandle') > leftPanel.indexOf('<h4>호가</h4>'));
+assert(leftPanel.indexOf('ssSessionCandle') < leftPanel.indexOf('id="order-book"'));
+assert.equal((shell.match(/id="ssSessionCandle"/g) || []).length, 1);
 assert(summary.innerHTML.includes('ssSummaryReason'));
 assert(summary.innerHTML.includes('종목분석'));
 assert(classes.has('ss-overview-active'));
