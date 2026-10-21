@@ -935,6 +935,111 @@ html.dark #stock-search .ss-index-result { border-color: rgba(245,239,224,.2); c
 .ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
 html.dark #stock-search .ss-index-tools button { border-color: rgba(245,239,224,.25); }
 html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: #f5efe0; color: #1a1a1a; }
+
+/* Compact HTS-style index controls: two tidy rows, not oversized floating buttons. */
+#stock-search .ss-index-controls {
+  margin: 12px 0 8px;
+  border: 1px solid #e3e8ef;
+  border-radius: 9px;
+  background: #fafbfd;
+  min-width: 0;
+}
+#stock-search .ss-index-controls .ss-index-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px 12px;
+  margin: 0;
+  padding: 7px 10px;
+}
+#stock-search .ss-index-tools .ss-timeframe-tools { flex: 0 0 auto; gap: 4px; }
+#stock-search .ss-index-tools .ss-drawing-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: 0;
+}
+#stock-search .ss-index-tools button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+#stock-search .ss-index-controls .ss-index-studies {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #e3e8ef;
+}
+#stock-search .ss-index-studies label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+#stock-search .ss-index-studies input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
+}
+#stock-search .ss-index-wave-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+#stock-search .ss-index-wave-group [data-index-wave-level] {
+  display: block;
+  box-sizing: border-box;
+  width: 124px;
+  min-width: 124px;
+  max-width: none;
+  height: 32px;
+  padding: 4px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+html.dark #stock-search .ss-index-controls {
+  border-color: rgba(245,239,224,.2);
+  background: #222;
+}
+html.dark #stock-search .ss-index-controls .ss-index-studies {
+  border-top-color: rgba(245,239,224,.18);
+}
+html.dark #stock-search .ss-index-tools button {
+  background: #1a1a1a;
+  border-color: rgba(245,239,224,.25);
+}
+html.dark #stock-search .ss-index-wave-group [data-index-wave-level] {
+  background: #1a1a1a;
+  color: #f5efe0;
+  border-color: rgba(245,239,224,.3);
+}
+@media (max-width: 900px) {
+  #stock-search .ss-index-tools .ss-drawing-tools {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
 @media (max-width: 720px) {
   .ss-chart-tabs .ss-drawing-tools,
   #stock-search .ss-index-tools .ss-drawing-tools { width: 100%; justify-content: flex-start; margin-left: 0; }
