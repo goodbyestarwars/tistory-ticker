@@ -1,5 +1,6 @@
 """Home price charts: existing US quote observations and actual night minute bars."""
 import math
+import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 import db_schema
@@ -93,6 +94,68 @@ def record(conn, symbol, quote, now=None):
     return True
 
 
+# ---- 야간선물 시세 관측(2026-10-22) ----
+# 야간선물 분봉(KIS 분봉 조회)이 자정 이후 멈춰 홈 차트가 23:58에서 끊긴 일이 있었다(시세 틱은 06:00까지 계속 들어왔다).
+# 그래서 이미 잘 들어오는 실시간 시세 틱을 30분 구간 관측값으로도 남기고, 분봉이 없는 구간만 차트에서 이 관측값으로 채운다.
+# 틱마다 DB 에 쓰지 않도록 구간별로 모아 두었다가 구간이 바뀌거나 _NIGHT_FLUSH_SEC 가 지나면 한 번에 쓴다.
+_NIGHT = 'KOSPI200_NIGHT'
+_NIGHT_FLUSH_SEC = 10.0
+_night_pending = None
+_night_flushed_at = 0.0
+
+
+def _flush_night(conn):
+    global _night_pending, _night_flushed_at
+    p = _night_pending
+    if not p:
+        return False
+    conn.execute('''INSERT INTO home_session_prices
+        (symbol,session,slot,open,high,low,close,ts) VALUES (?,?,?,?,?,?,?,?)
+        ON CONFLICT(symbol,session,slot) DO UPDATE SET
+        high=MAX(high,excluded.high),low=MIN(low,excluded.low),
+        close=CASE WHEN excluded.ts>=ts THEN excluded.close ELSE close END,
+        ts=MAX(ts,excluded.ts)''',
+        (_NIGHT, p['session'], p['slot'], p['open'], p['high'], p['low'], p['close'], p['ts']))
+    conn.commit()
+    _night_flushed_at = time.monotonic()
+    p['dirty'] = False
+    return True
+
+
+def record_night_tick(conn, price, moment=None, flush_sec=None):
+    """야간선물 실시간 틱 가격을 30분 구간 관측값으로 쌓는다. 야간 세션 시간 밖·비정상 값은 버린다."""
+    global _night_pending
+    try:
+        price = float(price)
+    except (TypeError, ValueError):
+        return False
+    if not math.isfinite(price) or price <= 0:
+        return False
+    moment = moment or datetime.now(timezone.utc)
+    meta = session(_NIGHT, moment)
+    if not meta:
+        return False
+    ts = int(moment.timestamp())
+    p = _night_pending
+    if p and (p['session'], p['slot']) == (meta['date'], meta['slot']):
+        p['high'] = max(p['high'], price)
+        p['low'] = min(p['low'], price)
+        p['close'] = price
+        p['ts'] = max(p['ts'], ts)
+        p['dirty'] = True
+    else:
+        if p and p.get('dirty'):
+            _flush_night(conn)           # 이전 구간을 먼저 저장
+        _night_pending = dict(session=meta['date'], slot=meta['slot'], open=price, high=price, low=price,
+                              close=price, ts=ts, dirty=True)
+        _flush_night(conn)               # 새 구간의 첫 관측은 바로 저장
+        return True
+    limit = _NIGHT_FLUSH_SEC if flush_sec is None else flush_sec
+    if time.monotonic() - _night_flushed_at >= limit:
+        _flush_night(conn)
+    return True
+
+
 def get_results():
     conn = db_schema.get_conn()
     try:
@@ -147,8 +210,18 @@ def get_results():
                 point = buckets[slot]
                 point.update(high=max(point['high'], row['high']), low=min(point['low'], row['low']),
                              close=row['close'], ts=row['ts'])
-        output.append(dict(symbol='KOSPI200_NIGHT', rows=list(buckets.values()), session=latest,
-                           basis='실제 분봉 + 같은 세션 최신 시세', intervalMinutes=30))
+        # 분봉이 없는 구간은 실시간 시세 관측값으로 채운다. 분봉이 있는 구간은 분봉을 우선한다.
+        if not latest:
+            last_tick = conn.execute('SELECT MAX(ts) FROM home_session_prices WHERE symbol=?', (_NIGHT,)).fetchone()
+            if last_tick and last_tick[0]:
+                latest = session(_NIGHT, datetime.fromtimestamp(float(last_tick[0]), timezone.utc))
+        if latest:
+            for slot, o, h, l, c, ts in conn.execute('''SELECT slot,open,high,low,close,ts FROM home_session_prices
+                    WHERE symbol=? AND session=? ORDER BY slot''', (_NIGHT, latest['date'])).fetchall():
+                if slot not in buckets:
+                    buckets[slot] = dict(ts=ts, open=o, high=h, low=l, close=c, slot=slot)
+        output.append(dict(symbol='KOSPI200_NIGHT', rows=sorted(buckets.values(), key=lambda r: r['slot']), session=latest,
+                           basis='실제 분봉 + 분봉이 없는 구간은 시세 수집 관측값 + 같은 세션 최신 시세', intervalMinutes=30))
         return output
     finally:
         conn.close()
