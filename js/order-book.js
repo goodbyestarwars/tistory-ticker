@@ -492,7 +492,8 @@
 
     function updateSide(rows, side) {
       board.querySelectorAll('.ob-row-' + side).forEach(function (line) {
-        line.hidden = Number(line.getAttribute('data-level')) > rows.length;
+        var level = Number(line.getAttribute('data-level'));
+        line.hidden = level > rows.length || isTenthHidden(side, level, rows.length);
       });
       rows.forEach(function (row, index) {
         var line = board.querySelector('.ob-row-' + side + '[data-level="' + (index + 1) + '"]');
@@ -970,14 +971,12 @@
     var main;
     if (remaining <= 0) {
       main = up
-        ? '🏰 ' + priceLabel + '원 성벽(매도벽)이 거의 무너졌어요. 곧 위로 뚫려요.'
-        : '🛡️ ' + priceLabel + '원 방패가 버텼어요. 곧 다시 올라설 수 있어요.';
+        ? '🏰 ' + priceLabel + '원 매도벽 거의 소진'
+        : '🛡️ ' + priceLabel + '원 지지 방어 성공';
     } else if (up) {
-      main = '🏰 ' + priceLabel + '원 성벽(매도벽)을 ' + fmtQty(remaining)
-        + '주만 더 깎으면 위로 뚫려요(근사치).';
+      main = '🏰 ' + priceLabel + '원 매도벽 · ' + fmtQty(remaining) + '주 남음';
     } else {
-      main = '🛡️ ' + priceLabel + '원 방패가 버티는 중이에요. ' + fmtQty(remaining)
-        + '주 더 받아내면 반등 신호예요(근사치).';
+      main = '🛡️ ' + priceLabel + '원 지지 · ' + fmtQty(remaining) + '주 더 받으면 반등';
     }
     el.textContent = main;
     if (trend) {
@@ -1035,17 +1034,17 @@
     var needText = fmtQty(Math.round(need)) + '주';
     var now = Date.now();
     var spanMs = Math.min(WALL_WINDOW_MS, state.volSince ? now - state.volSince : 0);
-    if (spanMs < WALL_MIN_SPAN_MS) return '📊 위로 가려면 약 ' + needText + ' 체결돼야 해요(체결 속도 집계 중).';
+    if (spanMs < WALL_MIN_SPAN_MS) return '📊 필요 ' + needText + ' · 속도 집계 중';
     var cutoff = now - spanMs;
     var buyQty = state.volFlow.reduce(function (sum, f) { return sum + (f.buy && f.t >= cutoff ? f.qty : 0); }, 0);
     var rate = buyQty / (spanMs / 1000);
-    if (rate <= 0) return '📊 위로 가려면 약 ' + needText + ' 필요한데, 최근 ' + Math.round(spanMs / 1000) + '초 매수 체결이 없어요. 못 뚫을 가능성이 높아요.';
+    if (rate <= 0) return '📊 필요 ' + needText + ' · 최근 ' + Math.round(spanMs / 1000) + '초 매수 체결 없음';
     var eta = need / rate;
     var etaText = eta < 60 ? Math.max(1, Math.round(eta)) + '초' : Math.floor(eta / 60) + '분 ' + Math.round(eta % 60) + '초';
-    var head = '📊 위로 가려면 약 ' + needText + ' 필요 · 지금 속도(초당 ' + fmtQty(Math.round(rate)) + '주)면 약 ' + etaText;
-    if (eta <= 30) return head + ' → 이 속도면 이어갈 만해요.';
-    if (eta <= 300) return head + ' → 거래량이 좀 부족해요.';
-    return head + ' → 거래량 부족해요. 못 뚫을 가능성이 높아요.';
+    var head = '📊 필요 ' + needText + ' · 초당 ' + fmtQty(Math.round(rate)) + '주 · 약 ' + etaText;
+    if (eta <= 30) return head + ' → 가능';
+    if (eta <= 300) return head + ' → 다소 부족';
+    return head + ' → 부족';
   }
 
   function wallTrend(wall, currQty, breakThreshold) {
@@ -1060,15 +1059,15 @@
     var spanSec = Math.round(spanMs / 1000);
     var delta = first.qty - currQty; // 양수 = 성벽이 깎임
     var noise = Math.max(1, wall.peakQty * 0.02);
-    if (Math.abs(delta) < noise) return '⏸ 최근 ' + spanSec + '초간 성벽 그대로예요. 아직 안 깎였어요.';
-    if (delta < 0) return '▲ 최근 ' + spanSec + '초간 ' + fmtQty(-delta) + '주 더 쌓였어요. 성벽이 두꺼워지는 중이에요.';
+    if (Math.abs(delta) < noise) return '⏸ ' + spanSec + '초간 변화 없음';
+    if (delta < 0) return '▲ ' + spanSec + '초간 +' + fmtQty(-delta) + '주 (벽 두꺼워짐)';
     var execQty = tr.execs.reduce(function (sum, e) { return sum + e.qty; }, 0);
     var execPct = Math.max(0, Math.min(100, Math.round(execQty / delta * 100)));
-    var text = '▼ 최근 ' + spanSec + '초간 ' + fmtQty(delta) + '주 깎임 (체결 ' + execPct + '% · 취소 ' + (100 - execPct) + '%)';
+    var text = '▼ ' + spanSec + '초간 -' + fmtQty(delta) + '주 (체결 ' + execPct + '% · 취소 ' + (100 - execPct) + '%)';
     var remaining = currQty - breakThreshold;
     var etaSec = remaining > 0 ? remaining / (delta / (spanMs / 1000)) : 0;
-    if (etaSec > 0 && etaSec <= 300) text += ' · 이 속도면 약 ' + Math.max(1, Math.round(etaSec)) + '초 뒤 뚫려요';
-    if (execPct <= 30) text += ' ⚠️ 대부분 주문 취소예요. 뚫린 게 아니라 벽이 빠지는 중일 수 있어요.';
+    if (etaSec > 0 && etaSec <= 300) text += ' · 약 ' + Math.max(1, Math.round(etaSec)) + '초 뒤 소진';
+    if (execPct <= 30) text += ' ⚠️ 취소 위주';
     return text;
   }
 
@@ -1105,11 +1104,11 @@
       if (maxAsk === 0 && maxBid === 0) {
         note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
       } else if (maxAsk > maxBid * 1.3) {
-        note.textContent = '저항(매도벽)이 지지보다 두꺼워요 - 위로 뚫기 쉽지 않을 수 있어요.';
+        note.textContent = '저항 우세 (매도벽 > 매수벽)';
       } else if (maxBid > maxAsk * 1.3) {
-        note.textContent = '지지(매수벽)가 저항보다 두꺼워요 - 아래쪽 방어가 튼튼해 보여요.';
+        note.textContent = '지지 우세 (매수벽 > 매도벽)';
       } else {
-        note.textContent = '저항과 지지가 팽팽해요.';
+        note.textContent = '저항·지지 균형';
       }
       // 2026-08-05: 실제 체결강도(키움 ka10046)가 있으면 이걸 우선 설명한다 - 100 기준
       // 매수/매도 우위를 그대로 알려주는 값이라 매도벽 소진 근사치보다 정확함.
@@ -1118,15 +1117,15 @@
       // 표현만 다르게) - 이건 실제 체결강도가 없을 때(장 시간 외 등)의 근사치 폴백에만 적용.
       if (realStrength) {
         var v = realStrength.value;
-        if (v >= 130) note.textContent += ' 체결강도: 🔥 매수세 강한 우위(' + v.toFixed(0) + '%).';
-        else if (v >= 100) note.textContent += ' 체결강도: 매수 우위(' + v.toFixed(0) + '%).';
-        else if (v >= 70) note.textContent += ' 체결강도: 매도 우위(' + v.toFixed(0) + '%).';
-        else note.textContent += ' 체결강도: 🔥 매도세 강한 우위(' + v.toFixed(0) + '%).';
+        if (v >= 130) note.textContent += ' · 체결강도 🔥매수 강세 ' + v.toFixed(0) + '%';
+        else if (v >= 100) note.textContent += ' · 체결강도 매수 우위 ' + v.toFixed(0) + '%';
+        else if (v >= 70) note.textContent += ' · 체결강도 매도 우위 ' + v.toFixed(0) + '%';
+        else note.textContent += ' · 체결강도 🔥매도 강세 ' + v.toFixed(0) + '%';
       } else if (strength) {
         var up = isUpCandle(quote);
-        if (strength.growing) note.textContent += ' 체결강도: 매도벽이 오히려 두꺼워지는 중.';
-        else if (score >= 70) note.textContent += up ? ' 체결강도: 🔥 매도벽을 강하게 미는 중.' : ' 체결강도: 🔥 지지라인이 강하게 흔들리는 중.';
-        else if (score >= 30) note.textContent += up ? ' 체결강도: 매도벽을 서서히 미는 중.' : ' 체결강도: 지지라인이 서서히 흔들리는 중.';
+        if (strength.growing) note.textContent += ' · 매도벽 두꺼워지는 중';
+        else if (score >= 70) note.textContent += up ? ' · 🔥매도벽 강하게 소진' : ' · 🔥지지 강하게 흔들림';
+        else if (score >= 30) note.textContent += up ? ' · 매도벽 서서히 소진' : ' · 지지 서서히 흔들림';
       }
     }
   }
@@ -1307,11 +1306,24 @@
       + ladderRows + '</div>'
       + footerHtml
       + buildTradesHtml();
+    hideTenthRows(board);
     drawSilhouette(board, asks, bids);
     rememberDepth(asks, bids);
   }
 
   // 장외/장애에도 호가창의 자리와 10+10 행을 보존한다. 미수신 가격은 만들지 않는다.
+  // 2026-10-21 UI: 매도 10호가(가장 먼 매도, 맨 위 행)와 매수 10호가(가장 먼 매수, 맨 아래 행)는 표시하지 않는다. 수신·계산 데이터는 그대로다.
+  function isTenthHidden(side, level, count) {
+    return count >= 10 && ((side === 'ask' && level === 1) || (side === 'bid' && level === 10));
+  }
+
+  function hideTenthRows(board) {
+    ['ask', 'bid'].forEach(function (side) {
+      var rows = board.querySelectorAll('.ob-row-' + side);
+      rows.forEach(function (line) { line.hidden = isTenthHidden(side, Number(line.getAttribute('data-level')), rows.length); });
+    });
+  }
+
   function setBookHint(board,message) {
     board.hidden=false;
     if(state.onBookStatus)state.onBookStatus(message,state.code);
@@ -1325,7 +1337,7 @@
       return;
     }
     board.setAttribute('data-unavailable','true');
-    var rows=function(side){var html='';for(var i=0;i<10;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
+    var rows=function(side){var html='';for(var i=0;i<9;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
     var summary=buildSummaryView(),price=summary.current>0?Math.round(summary.current).toLocaleString('ko-KR')+'원':'—';
     board.innerHTML='<div class="ob-book-status" role="status">'+escapeHtml(message)+'</div>'
       +'<div class="ob-table ob-table-pairs" aria-label="매도 10호가와 매수 10호가 · 호가 미수신">'
