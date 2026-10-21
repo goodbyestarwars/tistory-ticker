@@ -5003,7 +5003,7 @@
           + (reference
             ? '<strong>' + fmt(reference.bin.low) + '~' + fmt(reference.bin.high) + '</strong>'
               + '<small>참고 매물대 · 현재가에서 ' + reference.pct.toFixed(1) + '% ' + (sign === '+' ? '위' : '아래') + '</small>'
-              + '<small>집중 구간 기준 미달 · 확정 지지·저항 후보 아님</small>'
+              + '<small>독립된 지지·저항 후보 아님 · 참고 가격대</small>'
             : '<strong>조건 충족 후보 없음</strong><small>현재가 ' + main.settings.nearPct + '% 이내에 참고할 가격대도 없습니다</small>')
           + '</div>';
       }
