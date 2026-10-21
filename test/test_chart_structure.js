@@ -123,7 +123,7 @@ function runVolume(bars, timeScale) {
   const hist = [];
   const chart = { addSeries: (kind) => ({ kind, setData: (d) => { if (kind === 'hist') hist.push(...d); }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
   if (timeScale) chart.timeScale = () => timeScale(state);
-  Core.addVolumePane(chart, fakeLWC, bars, { pane: 1 });
+  Core.addVolumePane(chart, fakeLWC, bars, { pane: 1, multiples: true });
   state.hist = hist;
   return state;
 }
@@ -151,7 +151,7 @@ const toggled = (function () {
   const st = { last: null, hist: null };
   const fakeLWC = { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: () => ({ setMarkers: (m) => { st.last = m; } }) };
   const chart = { addSeries: (kind) => ({ setData: (d) => { if (kind === 'hist') st.hist = d; }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
-  st.pane = Core.addVolumePane(chart, fakeLWC, vb, { pane: 1 });
+  st.pane = Core.addVolumePane(chart, fakeLWC, vb, { pane: 1, multiples: true });
   return st;
 })();
 assert.ok(toggled.last.length === 1 && /,1\)$/.test(toggled.hist[25].color));
@@ -161,3 +161,9 @@ assert.ok(/,0\.5\)$/.test(toggled.hist[25].color), '끄면 급증 봉도 보통 
 toggled.pane.setMultiples(true);
 assert.strictEqual(toggled.last.length, 1);
 console.log('volume multiple OK');
+// 기본은 끔: multiples 를 주지 않으면 막대는 보통 진하기이고 라벨이 없다
+const offState = { last: [], hist: null };
+Core.addVolumePane({ addSeries: (kind) => ({ setData: (d) => { if (kind === 'hist') offState.hist = d; }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) },
+  { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: () => ({ setMarkers: (m) => { offState.last = m; } }) }, vb, { pane: 1 });
+assert.ok(/,0\.5\)$/.test(offState.hist[25].color) && offState.last.length === 0, '기본은 끔');
+console.log('volume multiple default off OK');

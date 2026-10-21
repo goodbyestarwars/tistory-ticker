@@ -623,7 +623,7 @@
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
     // 상승 빨강·하락 파랑은 그대로 두고, 평균 대비 2배↑는 진하게·3배↑는 가장 진하게(색 의미를 바꾸지 않는다).
     var multiples = volumeSpikeMultiples(bars);
-    var multiplesOn = opts.multiples !== false;   // 켜고 끄는 옵션(setMultiples). 기본은 켬
+    var multiplesOn = opts.multiples === true;   // 켜고 끄는 옵션(setMultiples). 기본은 끔(호출자가 true 를 줄 때만 켠다)
     function volumeData() {
       return bars.map(function (d, i) {
         var m = multiplesOn ? multiples[i] : null, up = d.close >= d.open;
@@ -682,7 +682,7 @@
     var ma5 = opts.ma5 ? avgLine(5, '#f59e0b', 1.6) : null;
     // 차트를 다시 만들지 않고 체감 배수(진한 막대·라벨)만 켜고 끈다.
     function setMultiples(on) {
-      multiplesOn = on !== false;
+      multiplesOn = on === true;
       volume.setData(volumeData());
       if (relabelFn) relabelFn();
     }

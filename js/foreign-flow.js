@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult2';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult3';
   var CHART_OPTIONAL = ['drawing', 'sr', 'structure', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4526,7 +4526,7 @@
   // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
   var supportResistanceEnabled = false;
-  var volumeMultipleEnabled = true;   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
+  var volumeMultipleEnabled = false;   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
   var flowVolumePane = null;
   var structureEnabled = false;   // 추세선·채널·박스권(js/chart-structure.js)
   var flowStructureCleanup = null;
