@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vp500';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpcolor';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -2562,9 +2562,12 @@
     var opts = { format: fmt };
     var core = global.NineChartCore;
     function vol(v) { return (core && core.compactVolume ? core.compactVolume(v) : Math.round(v).toLocaleString('ko-KR')) + '주'; }
+    // 색 점은 차트 막대 색과 같다: 최대 매물대 주황 · 저항 후보 파랑 · 지지 후보 빨강(2026-10-22 사용자 질문 "헷갈려")
+    function dot(kind) { return '<i class="ss-vp-dot ss-vp-dot-' + kind + '"></i>'; }
     function zone(label, z, g, sign) {
-      if (!z) return '<span class="ss-vp-item"><b>' + label + '</b> 뚜렷한 구간 없음</span>';
-      return '<span class="ss-vp-item"><b>' + label + '</b> ' + fmt(z.low) + '~' + fmt(z.high)
+      var kind = label.indexOf('저항') >= 0 ? 'res' : 'sup';
+      if (!z) return '<span class="ss-vp-item"><b>' + dot(kind) + label + '</b> 뚜렷한 구간 없음</span>';
+      return '<span class="ss-vp-item"><b>' + dot(kind) + label + '</b> ' + fmt(z.low) + '~' + fmt(z.high)
         + (g ? ' <em>(' + sign + g.pct.toFixed(1) + '%)</em>' : ' <em>(현재가 포함)</em>')
         + ' · ' + vol(z.volume) + ' · ' + z.share.toFixed(1) + '%</span>';
     }
@@ -2578,16 +2581,22 @@
       ? '<details class="ss-vp-thin"><summary>거래량이 적은 가격대 ' + analysis.thin.length + '곳</summary><ul>' + analysis.thin.map(function (t) {
         return '<li>' + vpEsc(VP.thinText(t, opts)) + '</li>';
       }).join('') + '</ul></details>' : '';
-    var html = '<div class="ss-vp-head"><strong>매물대 분석</strong><span>화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 가격 구간 ' + (info.step != null ? Number(info.step).toLocaleString('ko-KR') + (info.isUs ? '달러' : '원') : '') + ' 단위 · 확대·축소하면 기간이 바뀝니다 · 고가~저가에 거래량을 나눈 추정치(체결가 기준 아님)</span></div>'
+    // 2026-10-22 사용자 요청(설명이 길다): 머리글은 짧게(긴 설명은 마우스를 올리면 툴팁), 상태 문장은 첫 문장만(전체는 툴팁),
+    // 호가형 항목 4개는 한 줄에, 안내 문구는 한 줄로 줄인다. 패널 높이는 고정이라 내용이 바뀌어도 차트가 들썩이지 않는다.
+    var stepText = info.step != null ? Number(info.step).toLocaleString('ko-KR') + (info.isUs ? '달러' : '원') : '';
+    var headTip = '화면에 보이는 ' + info.barCount + '개 ' + info.unit + ' 기준 · 가격 구간 ' + stepText + ' 단위 · 확대·축소하면 기간이 바뀝니다 · 고가~저가에 거래량을 나눈 추정치이며 체결가 기준이 아닙니다.';
+    var stateText = analysis.state ? String(analysis.state.text || '') : '';
+    var firstSentence = (stateText.match(/^.*?(?:입니다|습니다|있습니다)\./) || [stateText])[0];
+    var html = '<div class="ss-vp-head"><strong>매물대 분석</strong><span title="' + vpEsc(headTip) + '">' + info.unit + ' ' + info.barCount + '개 · 구간 ' + stepText + ' · 추정치</span></div>'
       + '<div class="ss-vp-items">'
-      + zone('가까운 저항 후보', analysis.resistance, analysis.resistanceGap, '+')
-      + zone('가까운 지지 후보', analysis.support, analysis.supportGap, '-')
-      + '<span class="ss-vp-item"><b>최대 매물대</b> ' + fmt(poc.low) + '~' + fmt(poc.high)
+      + zone('저항 후보', analysis.resistance, analysis.resistanceGap, '+')
+      + zone('지지 후보', analysis.support, analysis.supportGap, '-')
+      + '<span class="ss-vp-item"><b>' + dot('poc') + '최대 매물대</b> ' + fmt(poc.low) + '~' + fmt(poc.high)
       + (pg ? ' <em>(' + (pg.where === 'above' ? '+' : '-') + pg.pct.toFixed(1) + '%)</em>' : ' <em>(현재가 포함)</em>')
       + ' · ' + vol(poc.volume) + ' · ' + poc.share.toFixed(1) + '%</span>'
-      + '<span class="ss-vp-item"><b>현재가 위·아래</b> ' + analysis.aboveShare.toFixed(0) + '% / ' + analysis.belowShare.toFixed(0) + '%</span></div>'
-      + (analysis.state ? '<p class="ss-vp-state"><b>' + vpEsc(analysis.state.label) + '</b> ' + vpEsc(analysis.state.text) + '</p>' : '')
-      + '<p class="ss-vp-hover" data-vp-hover>막대 쪽에 마우스를 올리면 그 가격대의 추정 거래량 비중이 보입니다.</p>' + thin;
+      + '<span class="ss-vp-item"><b>위·아래</b> ' + analysis.aboveShare.toFixed(0) + '% / ' + analysis.belowShare.toFixed(0) + '%</span></div>'
+      + (analysis.state ? '<p class="ss-vp-state" title="' + vpEsc(stateText) + '"><b>' + vpEsc(analysis.state.label) + '</b> ' + vpEsc(firstSentence) + '</p>' : '')
+      + '<p class="ss-vp-hover" data-vp-hover>막대에 마우스를 올리면 구간별 추정 거래량이 보입니다.</p>' + thin;
     if (panel.__vpHtml !== html) {                                   // 내용이 같으면 DOM 을 건드리지 않는다(펼침·호버 문구 유지)
       panel.innerHTML = thinOpen ? html.replace('<details class="ss-vp-thin">', '<details class="ss-vp-thin" open>') : html;
       panel.__vpHtml = html;
@@ -2608,7 +2617,7 @@
         this._onCross = function (param) {
           var line = self._panel && self._panel.querySelector('[data-vp-hover]');
           if (!line || !self._profile || !self._series) return;
-          if (!param || !param.point) { line.textContent = '막대 쪽에 마우스를 올리면 그 가격대의 추정 거래량 비중이 보입니다.'; return; }
+          if (!param || !param.point) { line.textContent = '막대에 마우스를 올리면 구간별 추정 거래량이 보입니다.'; return; }
           var price = self._series.coordinateToPrice(param.point.y);
           var hit = null;
           if (price != null) self._profile.bins.forEach(function (b) { if (price >= b.low && price < b.high) hit = b; });
@@ -2689,16 +2698,16 @@
                     var barPx = Math.max(2 * hR, cur * maxBarPx);
                     var top = yTop * vR, h = Math.max(1, (yBottom - yTop) * vR);
                     var gap = h > 4 * vR ? vR : 0;
-                    // 핵심 매물대(최다 구간 포함 최대 2구간)만 주황, 나머지는 회색
-                    ctx.fillStyle = b.core ? (i === profile.pocIndex ? 'rgba(232,89,12,0.42)' : 'rgba(232,89,12,0.30)') : 'rgba(130,130,130,0.17)';
+                    // 색 규칙(패널의 색 점과 같다): 최대 매물대(핵심 최대 2구간) 주황 > 가까운 저항 후보 구간 파랑 > 가까운 지지 후보 구간 빨강 > 그 밖 회색.
+                    // 후보 구간은 막대마다 테두리를 두르지 않고 면 색으로만 구별한다(테두리가 겹쳐 굵은 선처럼 보이던 문제).
+                    var inRes = an && an.resistance && i >= an.resistance.from && i <= an.resistance.to;
+                    var inSup = an && an.support && i >= an.support.from && i <= an.support.to;
+                    ctx.fillStyle = b.core ? (i === profile.pocIndex ? 'rgba(232,89,12,0.55)' : 'rgba(232,89,12,0.38)')
+                      : inRes ? 'rgba(18,97,196,0.34)' : inSup ? 'rgba(210,79,69,0.34)' : 'rgba(130,130,130,0.17)';
                     ctx.beginPath();
                     if (ctx.roundRect) ctx.roundRect(0, top + gap, barPx, Math.max(1, h - gap * 2), [0, 3 * hR, 3 * hR, 0]);   // 왼쪽 끝에서 오른쪽으로
                     else ctx.rect(0, top + gap, barPx, Math.max(1, h - gap * 2));
                     ctx.fill();
-                    // 가장 가까운 저항 후보(파랑)·지지 후보(빨강) 구간은 테두리로 구별한다(최대 매물대 주황과 별개).
-                    var edge = an && an.resistance && i >= an.resistance.from && i <= an.resistance.to ? 'rgba(18,97,196,0.9)'
-                      : an && an.support && i >= an.support.from && i <= an.support.to ? 'rgba(210,79,69,0.9)' : null;
-                    if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1, hR); ctx.stroke(); }
                   });
                   ctx.restore();
                   self._shown = next;
