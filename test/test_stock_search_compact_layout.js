@@ -39,9 +39,10 @@ const overview = {
     }
   }
 };
-const summary = { hidden: true, innerHTML: '' };
+const summary = { hidden: true, innerHTML: '', classList: { toggle() {} }, querySelectorAll() { return []; }, replaceChildren() { this.innerHTML = ''; } };
 const result = {
   hidden: false,
+  replaceChildren() { this.innerHTML = ''; },
   get innerHTML() { return html; },
   set innerHTML(markup) {
     html = markup; handlers = {};
@@ -54,6 +55,7 @@ const result = {
         addEventListener(k, cb) { rowHandlers[k] = cb; },
         classList: {
           add() { active = true; }, remove() { active = false; },
+          toggle(key, value) { active = value; },
           contains() { return active; }
         }
       };
@@ -62,6 +64,7 @@ const result = {
   querySelector(selector) {
     if (selector === '.ss-results-toggle' && html.includes('ss-results-toggle'))
       return { addEventListener(type, callback) { handlers[type] = callback; } };
+    if (selector === '.ss-result-row.active') return rows.find(r => r.classList.contains()) || null;
     if (selector === '.ss-result-row') return rows[0] || null;
     const match = /\.ss-result-row\[data-idx="(\d+)"\]/.exec(selector);
     return match ? rows.find(r => r.index === Number(match[1])) || null : null;
@@ -73,7 +76,7 @@ const result = {
 };
 const container = {
   querySelector(selector) {
-    return selector === '#ssResults' ? result :
+    return selector === '.ss-result-row.active' ? result.querySelector(selector) : selector === '#ssResults' ? result :
       selector === '#ssOverview' ? overview :
       selector === '#ssSummary' ? summary : null;
   }
@@ -88,17 +91,22 @@ app.state.resultsCollapsed = false;
 app.renderResults(container, [stock]);
 app.renderSummary(container, stock);
 assert.equal(app.state.resultsCollapsed, false);
-assert(html.includes('ss-results-table')); // not collapsed
-assert(html.includes('에코프로비엠'));
-assert(html.includes('108,100'));
-assert(html.includes('160,794'));
-assert(html.includes('173.8억'));
-assert(html.includes('ss-fav-btn')); // favorite preserved
+assert.equal(html, ''); // No table/row is rendered for a single match.
+assert(summary.innerHTML.includes('에코프로비엠'));
+assert(summary.innerHTML.includes('108,100'));
+assert(summary.innerHTML.includes('160,794'));
+assert(summary.innerHTML.includes('173.8억'));
+assert(summary.innerHTML.includes('ss-fav-btn')); // favorite preserved
 assert(summary.innerHTML.includes('ssSessionCandle'));
 assert(summary.innerHTML.includes('ssSummaryReason'));
 assert(summary.innerHTML.includes('종목분석'));
 assert(classes.has('ss-overview-active'));
-assert(classes.has('ss-overview-selected')); // CSS suppresses duplicated name/price
+assert(summary.innerHTML.includes('ss-card-primary'));
+assert(summary.innerHTML.includes('ss-card-secondary'));
+assert.equal((summary.innerHTML.match(/ss-summary-name/g) || []).length, 1);
+assert(!css.includes('ss-overview-selected .ss-summary-price'));
+app.renderSummary(container, { ...stock, sectors: ['-'] });
+assert(!summary.innerHTML.includes('ss-card-sector'));
 assert(!html.includes('목록 다시 보기'));
 
 // Selecting from multiple matches also keeps the complete search table visible.
@@ -114,23 +122,14 @@ assert.equal(app.state.resultsCollapsed, false);
 assert(html.includes('ss-results-table'));
 assert(classes.has('ss-overview-selected'));
 
-// For long lists manual collapse is still reversible, showing the selected
-// identity in summary while the table is folded.
-assert.equal(typeof handlers.click, 'function');
-handlers.click();
-assert.equal(app.state.resultsCollapsed, true);
-assert(classes.has('ss-overview-selected') === false);
-assert(html.includes('목록 다시 보기'));
-assert.equal(typeof handlers.click, 'function');
-handlers.click();
-assert.equal(app.state.resultsCollapsed, false);
-assert(classes.has('ss-overview-selected'));
-assert(html.includes('ss-results-table'));
-
-// Responsive layout and title padding: 12px exactly on both panels.
-assert(css.includes('#stock-search .ss-overview.ss-overview-active'));
-assert(css.includes('#stock-search .ss-overview .ss-summary[hidden]'));
-assert(css.includes('#stock-search .ss-overview.ss-overview-selected .ss-summary-price'));
-assert(css.includes('#stock-search .ss-panel-head { padding-inline: 12px; }'));
-assert(css.includes('@media (max-width: 860px)'));
+// Multiple matches keep their list; selected details contain only OHLC/AI/actions.
+app.renderSummary(container, second);
+assert(!summary.innerHTML.includes('ss-summary-name'));
+assert(!summary.innerHTML.includes('ss-summary-price'));
+assert(summary.innerHTML.includes('ssSessionCandle'));
+assert(summary.innerHTML.includes('ssSummaryReason'));
+assert(summary.innerHTML.includes('종목분석'));
+assert(!html.includes('목록 접기'));
+assert(css.includes('padding: 12px 16px'));
+assert(css.includes('@media (max-width: 600px)'));
 console.log('stock-search unified results/detail card: ok');

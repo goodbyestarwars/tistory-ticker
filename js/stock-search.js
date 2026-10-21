@@ -1207,67 +1207,46 @@
     return out;
   }
 
-  // Search results remain in the same card as selected-stock details.
-  // For long lists collapse stays an explicit user action.
-  function renderResults(container, items, userExpanded) {
+  // One match renders the complete stock card directly; multiple matches retain their list.
+  function renderResults(container, items) {
     var resultsBox = container.querySelector('#ssResults');
     var overview = container.querySelector('#ssOverview');
-
+    state.lastResults = items;
+    state.resultsCollapsed = false;
     if (isIndependentChartMode() && items.length) {
-      state.lastResults = items;
       resultsBox.hidden = true;
       selectStock(container, items[0]);
       return;
     }
-
-    if (overview && items.length) overview.classList.add('ss-overview-active');
-    if (state.resultsCollapsed) {
-      // The selected stock's name/price live in the detailed summary below.
-      // Keep only a small results navigation control instead of a duplicate stock header.
-      resultsBox.innerHTML = '<div class="ss-results-collapsed">'
-        + '<span>검색 결과 ' + items.length + '건</span>'
-        + '<button type="button" class="ss-results-toggle" data-action="expand">목록 다시 보기 ▾</button>'
-        + '</div>';
-      var expandBtn = resultsBox.querySelector('.ss-results-toggle');
-      if (expandBtn) expandBtn.addEventListener('click', function () {
-        state.resultsCollapsed = false;
-        renderResults(container, items, true);
-      });
-      syncOverviewSelection(container);
+    resultsBox.hidden = false;
+    if (overview) {
+      overview.classList.toggle('ss-overview-active', items.length > 0);
+      overview.classList.toggle('ss-overview-single', items.length === 1);
+    }
+    if (items.length === 1) {
+      resultsBox.replaceChildren();
+      selectStock(container, items[0]);
       return;
     }
-
-    resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건'
-      + (items.length > 1 ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
-      + '</div>'
-      + '<div class="ss-results-table">'
-      + '<div class="ss-results-head">'
-      + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>거래대금</span><span>업종</span><span>관심</span>'
-      + '</div>'
-      + items.map(function (it, idx) { return resultRowHtml(it, idx); }).join('')
-      + '</div>';
-
-    var collapseBtn = resultsBox.querySelector('.ss-results-toggle');
-    if (collapseBtn) collapseBtn.addEventListener('click', function () {
-      state.resultsCollapsed = true;
-      renderResults(container, items);
-    });
-
+    var summary = container.querySelector('#ssSummary');
+    if (summary) { summary.replaceChildren(); summary.hidden = true; }
+    resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건</div>'
+      + '<div class="ss-results-table"><div class="ss-results-head">'
+      + '<span>종목</span><span>현재가</span><span>등락률</span><span>거래량</span><span>거래대금</span><span>업종</span><span>관심</span></div>'
+      + items.map(function (it, idx) { return resultRowHtml(it, idx); }).join('') + '</div>';
     resultsBox.querySelectorAll('.ss-result-row').forEach(function (row) {
       row.addEventListener('click', function () {
-        var idx = Number(row.getAttribute('data-idx'));
-        selectStock(container, items[idx]);
-        resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
-        row.classList.add('active');
-        // Keep the selected row visible; collapse is an explicit user action.
+        selectStock(container, items[Number(row.getAttribute('data-idx'))]);
+        resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.toggle('active', r === row); });
         syncOverviewSelection(container);
       });
     });
+    wireFavoriteButtons(resultsBox);
+    syncOverviewSelection(container);
+  }
 
-    // 2026-07-27: "9Pay 증권" 개편 작업지시서 #11 - 검색 결과의 ⭐ 버튼으로 관심종목(MY)에
-    // 바로 등록. js/watchlist.js가 이 페이지에 없으면(로드 순서 누락 등) 버튼을 눌러도
-    // 조용히 무시되게 존재 체크만 하고 에러는 안 던진다.
-    resultsBox.querySelectorAll('.ss-fav-btn').forEach(function (btn) {
+  function wireFavoriteButtons(element) {
+    element.querySelectorAll('.ss-fav-btn').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.stopPropagation();
         if (!global.Watchlist) return;
@@ -1282,30 +1261,14 @@
           else if (result.reason === 'login') alert('로그인 후 관심종목을 저장할 수 있습니다.');
           else if (result.reason === 'full') alert('관심종목은 최대 ' + global.Watchlist.MAX_ITEMS + '개까지 담을 수 있습니다.');
         }
+        btn.setAttribute('aria-pressed', String(global.Watchlist.has(code)));
       });
     });
-
-    // One result: show the complete table row and OHLC/AI/analysis together.
-    if (items.length === 1) {
-      selectStock(container, items[0]);
-      var onlyRow = resultsBox.querySelector('.ss-result-row');
-      if (onlyRow) onlyRow.classList.add('active');
-    }
-    syncOverviewSelection(container);
   }
 
   function syncOverviewSelection(container) {
     var overview = container.querySelector('#ssOverview');
-    var resultsBox = container.querySelector('#ssResults');
-    if (!overview || !resultsBox) return;
-    var index = (state.lastResults || []).findIndex(function (item) {
-      return item.code === state.selectedCode;
-    });
-    var visible = !state.resultsCollapsed && !resultsBox.hidden && index >= 0
-      && !!resultsBox.querySelector('.ss-result-row[data-idx="' + index + '"]');
-    // Show the name/price/change in the table only while its row is visible.
-    // When a long list is manually collapsed, the summary restores them.
-    overview.classList.toggle('ss-overview-selected', !!visible);
+    if (overview) overview.classList.toggle('ss-overview-selected', !!container.querySelector('.ss-result-row.active'));
   }
 
   function resultRowHtml(it, idx) {
@@ -1390,21 +1353,29 @@
   function renderSummary(container, item) {
     var box = container.querySelector('#ssSummary');
     var cls = signClass(item.changeRate);
-    box.innerHTML = ''
-      + '<div class="ss-summary-head">'
-      + stockIconHtml(item.code)
-      + '<span class="ss-summary-name">' + escapeHtml(item.name) + '</span>'
-      + '<span class="ss-summary-code">(' + escapeHtml(item.code) + ')</span>'
-      + '<span class="ss-summary-price ' + cls + '">' + fmtPrice(item.price) + '원</span>'
-      + '<span class="ss-summary-change ' + cls + '">' + fmtSignedPct(item.changeRate) + '</span>'
-      + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
-      + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
-      + '</div>'
-      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
-      + '<div class="ss-summary-reason" id="ssSummaryReason">'
-      + '<span class="ss-reason-badge">AI</span>'
-      + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
-      + '</div>';
+    var single = (state.lastResults || []).length === 1;
+    var isFav = !!(global.Watchlist && global.Watchlist.has(item.code));
+    var analysis = '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
+      + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>';
+    var sectors = (item.sectors || []).filter(function (sector) { return sector && sector !== '-'; });
+    box.classList.toggle('ss-summary-single', single);
+    // The table owns identity and quote fields for multiple matches. Do not render duplicates.
+    var primary = single ? '<div class="ss-card-primary' + (sectors.length ? '' : ' ss-card-no-sector') + '">'
+      + '<div class="ss-card-identity">' + stockIconHtml(item.code)
+      + '<span class="ss-summary-name">' + escapeHtml(item.name) + '<small class="ss-summary-code">(' + escapeHtml(item.code) + ')</small></span></div>'
+      + '<div class="ss-card-field ss-card-price"><span>현재가</span><strong class="ss-summary-price ' + cls + '">' + fmtPrice(item.price) + '원</strong></div>'
+      + '<div class="ss-card-field"><span>등락률</span><strong class="ss-summary-change ' + cls + '">' + fmtSignedPct(item.changeRate) + '</strong></div>'
+      + '<div class="ss-card-field"><span>거래량</span><b class="ss-summary-volume">' + fmtQty(item.volume) + '</b></div>'
+      + '<div class="ss-card-field"><span>거래대금</span><b class="ss-summary-value">' + fmtEok(item.tradingValue) + '</b></div>'
+      + (sectors.length ? '<div class="ss-card-field ss-card-sector"><span>업종</span><b>' + escapeHtml(sectors.slice(0, 2).join(' · ')) + '</b></div>' : '')
+      + '<div class="ss-card-actions"><button type="button" class="ss-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(item.code) + '" data-name="' + escapeAttr(item.name) + '" aria-label="관심종목 토글" aria-pressed="' + isFav + '" title="관심종목에 추가/제거">★</button>'
+      + analysis + '</div></div>' : '';
+    box.innerHTML = primary
+      + '<div class="ss-card-secondary"><div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
+      + '<div class="ss-summary-reason" id="ssSummaryReason"><span class="ss-reason-badge">AI</span>'
+      + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span></div>'
+      + (single ? '' : analysis) + '</div>';
+    wireFavoriteButtons(box);
   }
 
   // 같은 호가 자료로 상단 현재가를 맞추고, 보조 영역에는 시가·고가·저가만 표시한다.
@@ -1592,6 +1563,11 @@
     var cls = signClass(quote.changeRate);
     var priceEl = box && box.querySelector('.ss-summary-price');
     if (priceEl) { priceEl.textContent = fmtPrice(quote.price) + '원'; priceEl.className = 'ss-summary-price ' + cls; }
+    var resultItem = resultIndex >= 0 ? state.lastResults[resultIndex] : null;
+    var volumeEl = box && box.querySelector('.ss-summary-volume');
+    var valueEl = box && box.querySelector('.ss-summary-value');
+    if (resultItem && volumeEl) volumeEl.textContent = fmtQty(resultItem.volume);
+    if (resultItem && valueEl) valueEl.textContent = fmtEok(resultItem.tradingValue);
     var changeEl = box && box.querySelector('.ss-summary-change');
     if (changeEl) { changeEl.textContent = fmtSignedPct(quote.changeRate); changeEl.className = 'ss-summary-change ' + cls; }
     document.dispatchEvent(new CustomEvent('nine-stock-quote', { detail: {
