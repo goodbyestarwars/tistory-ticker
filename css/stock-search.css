@@ -1138,3 +1138,109 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
   #stock-search .ss-session-values { gap: 8px; flex-wrap: wrap; }
   #stock-search .ss-panel-head { padding-inline: 12px; }
 }
+
+
+/* 2026-10-21: one card for result table + selected-stock supplementary info.
+   The data row remains fully visible; OHLC/AI/analysis occupy its detail footer. */
+#stock-search .ss-panel-head { padding-inline: 12px; }
+#stock-search .ss-overview[hidden],
+#stock-search .ss-overview .ss-summary[hidden] { display: none !important; }
+#stock-search .ss-overview.ss-overview-active {
+  border: 1px solid #e5e5e5;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+#stock-search .ss-overview .ss-results-count {
+  margin: 0;
+  padding: 5px 12px 3px;
+}
+#stock-search .ss-overview .ss-results-table {
+  border: 0;
+  border-radius: 0;
+}
+#stock-search .ss-overview .ss-results-collapsed {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+#stock-search .ss-overview .ss-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0;
+}
+#stock-search .ss-overview .ss-session {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  margin: 0;
+}
+#stock-search .ss-overview .ss-summary-head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  justify-content: flex-end;
+  margin: 0;
+  min-width: 0;
+}
+#stock-search .ss-overview .ss-summary-reason {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 2px;
+  min-width: 0;
+}
+#stock-search .ss-overview.ss-overview-selected .ss-summary-head > .ss-icon,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-name,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-code,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-price,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-change {
+  display: none;
+}
+/* If the user manually folds a multi-result table, show the selected stock's
+   name and current price in the same card instead of hiding the information. */
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-head {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: stretch;
+  justify-content: flex-start;
+}
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-session {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason {
+  grid-row: 3;
+}
+html.dark #stock-search .ss-overview.ss-overview-active {
+  border-color: rgba(245, 239, 224, .2);
+}
+html.dark #stock-search .ss-overview .ss-summary {
+  border-top-color: rgba(245, 239, 224, .16);
+}
+@media (max-width: 860px) {
+  #stock-search .ss-overview .ss-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #stock-search .ss-overview .ss-session {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #stock-search .ss-overview .ss-summary-head {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  #stock-search .ss-overview .ss-summary-reason {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  #stock-search .ss-overview .ss-session-values {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+}
