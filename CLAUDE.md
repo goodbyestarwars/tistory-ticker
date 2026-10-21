@@ -62,7 +62,54 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 **차트 공통 기능은 한 번만 수정한다:** `js/chart-core.js`·`chart-data.js`·`chart-drawing.js`·`chart-wave-overlay.js`·`chart-sr.js`. 메뉴 링크는 `/page`와 `/pages`가 혼재하므로 임의 통일하지 말고 실제 운영 주소를 확인한다.
 
-### 2. DB·캐시에 어떤 정보가 있는가 (VM 파일과 공개 정적 자료를 구분)
+### 2. 데이터 출처·폴백(대체 공급처) 운영 지도 — 첫 인수인계 때 반드시 확인
+
+**용어:** **1차**=기본 수집처, **폴백**=1차가 실패·미설정·유효값 없음 등 **해당 코드의 조건을 만족할 때만** 쓰는 대체 경로, **캐시 유지**=같은 공급자의 과거 성공값(신규 실시간값 아님), **보강**=다른 필드만 채우는 추가 공급처(폴백과 다름), **없음**=없는 자료를 다른 원천으로 채우지 않음. 아래는 **2026-10-21 `master` 구현 기준**이며, 실제 선택된 공급처·수신시각은 운영 응답 `source/provider`·`updated_at/asOf/date` 및 로그로 확인한다. **빈값·늦은 자료·통신 실패를 정상 실시간/0건으로 바꾸지 않는다.** 같은 공급자도 화면/API마다 우선순위가 다르다.
+
+#### 한국 시장·시세·호가
+
+| 기능/화면·API | 1차 데이터 공급처·경로 | 폴백·미수신 처리(중요) | 실제 소스 |
+|---|---|---|---|
+| **국내 개별종목 현재가** `/quote/{code}` | **KIS 통합 국내 현재가(UN)** | **키움 REST `ka10001` → 공공데이터포털(data.go.kr) 주식시세/증권상품시세**(양 증권사 모두 실패할 때만). 모두 실패하면 오류, 임의 종가 생성 금지 | `main.py`, `kis_client.py`, `kiwoom_client.py`, `public_data.py` |
+| **국내 체결/호가 WebSocket** `/ws/quotes` | **KIS 공용 실시간 허브**(`H0UNCNT0` 체결, `H0UNASP0` 통합호가) | 등록 누락·WS 미수신 종목은 **키움 공용 WS 허브** → 그래도 실시간 등록 불가하면 **KIS REST 통합 현재가**, 반드시 `delayed`/coverage로 지연 표시. REST는 실시간 틱이나 체결 내역을 대신하지 않음 | `realtime_quotes.py`, `kis_ws_hub.py`, `kiwoom_ws_hub.py`, `rest_quote_fallback.py` |
+| **호가 10+10 및 최근 체결** `/order-book/{code}` | **KIS REST 호가/체결**(호가·체결 각각 독립 조회) | 해당 항목 실패/운영시간 중 0원·미수신 시 **키움 REST `ka10004`(호가), `ka10003`(체결)**. 체결강도 별도 **키움 `ka10046`**; 유효 호가가 없으면 `available:false`·세션별 `preopen/closed/unavailable`. 10+10 틀은 유지, 없는 가격을 만들지 않음 | `order_book.py`, `js/order-book.js` |
+| **홈/종목판 국내·미국 랭킹** `/market-board` | 기본 **KIS 순위 TR**(시장별 거래량·거래대금·상승·하락·회전율·체결강도 등) | KIS 전체 오류는 **키움 순위/기본정보**로 폴백; 미국판은 일부 빈 지표만 키움 순위로 보강. 키움 국내 순위까지 비면 미리 지정한 종목의 키움 개별 현재가를 조회하는 축소 폴백. `MARKET_BOARD_SOURCE=kiwoom`은 운영 선택 스위치(평소 자동 폴백이 아님) | `main.py` `market_board_endpoint`, `market_board.py`, `market_rank.py` |
+| **코스피·코스닥 현재지수** `/domestic-market-indicators` | 국내시장지표 숫자 카드 **KIS 업종 현재지수** | 이 카드의 실패는 미수신 처리. 별도의 홈/선물 지수 폴러에서 **네이버 지수 시세**를 모으는 경로와 혼동하지 말 것 | `domestic_market_indicators.py`, `domestic_futures.py` |
+| **코스피·코스닥 지수 차트** `/domestic-market-indicators/chart` | **KIS 일봉·주봉·분봉** | **분봉만** KIS 부족/오류 시 **네이버 지수 분봉**으로 폴백. **일봉·주봉은 네이버로 바꾸지 않음**(단일 소스 유지); 결과 `source`와 빈 `rows` 확인 | `domestic_market_indicators.py` `fetch_chart` |
+| **국내 종목 일봉/장기 차트** `/ohlc/{code}`, `/flow-chart` | **키움 `ka10081` 수정주가 일봉**, 필요하면 SQLite `chart_daily_prices`·`daily_prices` 기존 캐시 | **API에 따라 다름:** `/ohlc/{code}`는 키움 실패 시 **data.go.kr 주식 일봉**; `/flow-chart` 내부의 일봉 읽기는 **저장된 `daily_prices`(최대 약 260봉)** 보조 경로. `/flow-chart` 장기 이력은 SQLite 우선/키움 부족 구간 온디맨드 수집. 다른 API의 폴백을 그대로 옮겨 적지 말 것 | `main.py` `ohlc`·`_load_flow_chart_daily`, `chart_history.py`, `kiwoom_market.py`, `public_data.py` |
+| **종목별 외국인·기관 수급** `/foreign-flow/{code}` 및 일일 스캔 | **KIS 종목별투자자매매동향(UN, 확정 일별)**; 오늘 잠정은 키움 `ka10059`로 별도 보강, 외국인 보유비중은 키움 `ka10008` | KIS 실패/00:00~15:40 제한 시 **최근 성공 KIS SQLite 캐시(20시간 이내) → 키움 `ka10045`**. 키움 확정 폴백은 NXT 미포함으로 거래량/수급 차이 가능. 오늘 잠정치를 확정 과거와 혼동 금지 | `kiwoom_market.py` `fetch_foreign_inst_daily`, `db_schema.py` `kis_flow_cache`, `daily_scan.py` |
+| **시장별 투자자 순매수 추이** `/investor-trend` | **KIS `FHPTJ04040000`**(KOSPI·KOSDAQ 일별 순매수, 장중 갱신) | **현재 활성 경로는 다른 공급자 폴백 없음.** 실패 시 직전 KIS SQLite 행 보존. 소스 안의 오래된 네이버/키움 함수는 실행 중인 대체 우선순위로 간주하지 말 것 | `investor_trend.py`, `db_schema.py` |
+| **증시온도** `/market-temp` | 가격·섹터 거래대금은 **네이버 국내 종목 polling**+정적 섹터 풀; KODEX200 외국인·기관 수급은 **네이버**, 위험축의 VIX·선물·환율은 VM 기존 저장 관측값; 신용융자·예탁금 위험은 **data.go.kr KOFIA** | 네이버 실패 배치는 누락/미확인, 전체 등락종목 수 **KIS 업종지수** 실패 시 별도 자료로 전시장 수치를 꾸미지 않음. KOFIA 날짜/단위 불일치 시 신용위험은 **미검증·점수에서 제외**, 지난 `market_temp_cache.json`을 보일 땐 마지막 계산 시각 표시. **위험축은 종합 방향점수에 포함되지 않음** | `market_temp.py`, `market_temp_data.py`, `market_temp_score.py`, `public_data.py`, `docs/MARKET_TEMP_METHOD.md` |
+| **국내시장지표의 신용잔고·고객예탁금** `/domestic-market-indicators` `funds` | **KIS `FHKST649100C0`** 시장자금: 신용융자잔고·투자자예탁금, **억원 단위**, 날짜 포함 | **KOFIA 자동 폴백 없음(2026-08-12에 제거).** KIS 실패 시 `available:false`, 오래된 KOFIA 값으로 끼워 넣지 않음. 단, **신용대주잔고·예탁증권담보융자**는 KIS가 제공하지 않아 **KOFIA 독립 보강 카드**(`fetch_leverage_detail`), 해당 카드만 비울 수 있음 | `domestic_market_indicators.py` `fetch_funds`·`fetch_leverage_detail`, `public_data.py`, `js/domestic-market-indicators.js` |
+| **코스피 프로그램매매(차익·비차익)** 동일 API `programTrading` | **KIS 일별 프로그램매매 약 1년 이력** | **현재 활성 `fetch_program_trading`에는 키움 자동 폴백 없음**. 소스의 `_fetch_kiwoom_program_trading_with_history`는 과거/비활성 보조 코드일 뿐 현재 호출 경로에 연결되지 않음. 실패 시 `available:false` | `domestic_market_indicators.py` |
+| **주식 52주 최고/최저** 종목판 | **KIS 국내 시세 `w52_hgpr/w52_lwpr` 등** | 결측은 **자체 `daily_prices` 최근 250거래일 최고/최저**로 계산하여 보강. DB가 부족하면 빈값; 과거 52주를 임의 생성하지 않음 | `market_board.py`, `db_schema.py` |
+| **일일 검색/전략 스캔** `/pattern-scan` | **키움 `ka10081` 일봉 + KIS/키움 수급 + DART 재무 캐시**를 VM SQLite/JSON에 정규 저장 | 종목 목록은 GitHub 정적 목록 실패 시 **KRX 공공데이터** 제한적 폴백. 개별 종목 시세/필터 오류는 누락·부분 실패를 기록, **과거 스캔 결과를 오늘 신규 신호로 간주하지 않음**. 재무·DART 실패는 검증을 통과로 뒤집지 않음 | `daily_scan.py`, `pattern_detect.py`, `batch_scan.py`, `scan_prereq.py` |
+| **시장조치/사이드카/VI** `/api/circuit-breaker` | 시장 전체 조치는 **KIS 장운영정보 WS `H0STMKO0`** 및 **KRX KIND 공시**(허용된 공시 경로); 개별 VI는 KIS 계열 이벤트 | KIND는 VM 접속이 403으로 막힌 사례가 있어 **KIS 경로가 독립 검증/보완**. 두 경로 모두 미수신이면 `available`/마지막 수신시각을 그대로 노출, 사이드카를 추정 발동시키지 않음. VI를 KIND에서 만들어내지 않음 | `market_halt_kis.py`, `market_halt_kind.py`, `circuit_breaker.py`, `vi_kis.py` |
+
+#### 미국·글로벌·경제·기타
+
+| 기능/화면·API | 1차 데이터 공급처 | 폴백·제한·참조 소스 |
+|---|---|---|
+| **미국 개별주식 현재가** `/us-quote` 등 | **KIS 해외주식 현재가 → 키움 미국 REST → Yahoo Finance 차트 메타** | 최종 Yahoo는 **지연 보조값**(장전/장후/정규장 구분·시각 검증). `us_stocks.py` 상단에 남은 과거 “키움 우선” 주석보다 **실제 `quote()` 호출 순서**를 기준으로 판단 |
+| **미국주식 차트** | **일봉(약 2년) Yahoo Finance** 직접; 분봉은 **키움 미국 차트** | 분봉 키움 실패 시 Yahoo Finance 차트(해당 기간만). 주봉/월봉 UI는 확보된 일봉 재가공 여부 확인. 없는 3/5년 데이터를 만들지 않음. `us_stocks.py` `chart` |
+| **미국 실시간 호가·체결** | KIS 공용 해외주식 WS 및 `finnhub_realtime.py` 별도 공유 Finnhub 스트림 등 **기능/화면별** | WS 미수신 시 화면마다 REST 시세와 last-known/지연 표기를 구분. 미국 10호가 보유를 가정하지 않음. `realtime_quotes.py`, `finnhub_realtime.py`, `us_stocks.py` |
+| **미국 재무·실적·기관 의견·내부자 거래** `/us-analysis` | **Finnhub**(metric, reported-financials, earnings, recommendations, insider, profile) | `us_analysis_cache.db` 정상 6시간·일부 미확보 5분. **기관별 upgrade/downgrade 403 접근 제한**은 `access_denied`/미제공이지 다른 기관 추정 폴백 아님. SEC 원문 링크는 출처 연결이며 실시간 데이터 대체 아님. **미국 ETF 실보유명세는 별도 라이선스 미연결로 미제공**. `us_analysis.py`, `us_etf_holdings.py`, `docs/US_ETF_DATA.md` |
+| **미국/글로벌 뉴스** | 국내·미국 종목 기본 **NAVER API HUB**(`naver_news.py`, VM IP 허용) + 뉴스 통합기: Google News RSS, **선택형 Alpha Vantage·Finnhub**, CNBC/Bloomberg RSS 및 SEC 공시 피드(용도별) | 한 소스 실패 시 **다른 실제 공급자의 기사만** 병합, 본문/기사·출처 창작 금지. `us_news_cache.db` 마지막 정상 캐시/TTL, 없으면 빈 목록·사유. `news_aggregator.py`, `naver_news.py`, `domestic_news.py` |
+| **국내 공시·재무·일정** | **DART OpenAPI** 재무제표·정정/신규 보고서, **KRX/KIND 공개 공시·RSS**, **Google Calendar** 이벤트 | 재무는 **연결(CFS) → 별도(OFS)** 같은 DART 내부 폴백; 새 공시 확인 불가·자료 오래됨은 미확인/후보 제외. GAS/VM 기존 캐시가 남아도 최신 공식값으로 속이지 않음. `dart_client.py`, `fundamentals.py`, `earnings_calendar.py`, `js/stock-calendar.js` |
+| **KOSPI200 주간·야간 선물/옵션** | **KIS 선물 WS**(설정 시), KIS 옵션 전광판·옵션 호가/WS | 주간 선물은 KIS WS 시작 불가 시 **네이버 선물 polling** 경로 존재. **야간선물 분봉은 `night_futures_ws.py` KIS 단일 수집 원칙**, 없는 분봉을 다른 날짜·현물로 채우지 않음. 옵션 ATM 창 부족 시 **동일 KIS 옵션 전광판 상위 100행**으로 범위 축소(다른 공급자 아님). `domestic_futures.py`, `night_futures_ws.py`, `option_flow.py` |
+| **해외 지수·VIX·원/달러 장중** | **네이버 `polling.finance.naver.com` / `api.stock.naver.com`** 수집(글로벌 지수/선물·환율 등 종목별 소스 차이) | 저장된 마지막 정상값·수신시각/휴장 여부 표시. VIX는 증시온도에서 기존 VM 폴러값을 재사용하며 GAS 옛 Yahoo 직접조회와 구분. `foreign_futures.py`, `domestic_futures.py`, `market_temp_data.py` |
+| **한국 국고채·미국채·미국 주요 경제발표** | 국고3년 **네이버 `KFIA103000` JSON**; 미국채 2/10/30년·CPI/PPI/고용 등은 **FRED 공식 CSV** | 실패하면 이전 확정일/자료없음 처리; 다른 나라 금리나 발표값으로 대체 금지. FRED 데이터는 실제 관측일·단위와 발표일을 분리. `bond_yield.py` |
+| **한국수출입은행 공식 고시환율 탭** `/fx-rates` | **한국수출입은행 OpenAPI**(영업일 고시 환율) → `fx_koreaexim.db` | 주말/휴일/미고시일에는 **직전 실제 고시일값 + `baseDate/pendingToday`**. 네이버의 장중 USDKRW 시장환율과 서로 대체하지 않음(서로 다른 정의). `fx_koreaexim.py`, `docs/FX_KOREAEXIM.md` |
+| **원자재 선물** | **브렌트유(ICE)는 권한 확인된 KIS**, **WTI·금은 네이버 비공식 선물 시세** | 브렌트 KIS 실패·20분 이상 오래됨: **다른 원유/현물로 폴백 없음**, `stale`·미수신. WTI·금에 미권한 KIS 상품을 시험 삼아 붙이지 않음. `foreign_futures.py`, `commodity_kis.py`, `docs/COMMODITY_SOURCES.md` |
+| **비트코인/이더리움·주식토큰 참고시세** | BTC/ETH **업비트 공개시세**; 별도 주식토큰은 **Binance 관련 수집 경로** | Binance 지역 제한·공급 실패 시 새 값 날조 금지, 재시도 시간/제한·저장된 실제 시각 명시. 주식토큰은 실제 한국 주식 체결/수급과 다름. `btc_futures.py`, `binance_flow.py`, `binance_client.py` |
+| **AI 참고의견/번역** | **Groq API**(GAS 프록시, 시황·종목/뉴스 해설); 뉴스 제목 번역은 별도 번역캐시·보조 API | **AI는 시세·재무의 데이터 공급처/폴백이 아님**. 생성 오류 시 참고의견만 빠지고 원본 수치·기사 유지. 캐시 생성시각/TTL·출처 표기. `gas/ticker-proxy.gs`, `news_aggregator.py` |
+| **5년 차트/DCF 정적 원본** | GitHub Actions가 **공개 시장 데이터·DART 공시**를 가져와 `data/chart-history/*.js`, `dcf-data/` 갱신 | 서버 실시간 값으로 과거 미수집 구간을 임의 복원하지 않음. 마지막 성공한 정적 자료/기간 표시. 공급자·커서·갱신주기는 `scripts/build_market_history.py`, `scripts/build_dcf_data.py`, `.github/workflows/*` 확인 |
+
+**대표 원천 URL·API 찾는 법:** 네이버 시세 `polling.finance.naver.com`/`api.stock.naver.com`; KIS/키움은 `kis_client.py`/`kiwoom_client.py`에 인증된 REST/WS TR 정의; 공공데이터포털 `public_data.py`; DART `dart_client.py`; Finnhub `us_analysis.py`; FRED `bond_yield.py`; 업비트 `btc_futures.py`; 한국수출입은행 `fx_koreaexim.py`. **도메인/호출 허가만으로 수집·재게시 라이선스가 확보된 것은 아니다.**
+
+**데이터·폴백 수정 전 확인 순서:** ① 메뉴 → 브라우저 JS URL → FastAPI `main.py` 라우트 → 해당 실제 함수(독스트링보다 호출 코드 우선), ② 성공 판정(0원/빈배열/오래된 값·기준시각·단위), ③ 폴백 발동 조건·동일 종목/시장·유통시장 KRX/NXT/통합 구분, ④ 원본 `source/provider/status/asOf/checkedAt`를 실제 응답으로 검증, ⑤ 새 API 호출·비용·시세 계약·레이트리밋·VM 1GB 부하, ⑥ 사용자 요청 없이 임의 공급자 교체/폴백 추가/스케줄 변경하지 않기. 새 기능을 개발할 때는 이 표와 `docs/API_OPERATION_SPEC.md`, `docs/ARCHITECTURE_SPEC.md`, 관련 공급자·실측 문서를 같이 업데이트한다.
+
+### 3. DB·캐시에 어떤 정보가 있는가 (VM 파일과 공개 정적 자료를 구분)
 
 | 저장소/실행 위치 | 대표 테이블·내용 | 읽기/쓰기 주체·주의 |
 |---|---|---|
@@ -79,7 +126,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 **DB 작업 시:** `docs/DB_SPEC.md` + `scripts/cloud-vm/db_schema.py` 및 관련 모듈이 원본이다. `*.db`, `.env`, 토큰·계좌·체결 원본·로그는 Git에 올리지 않는다. 백업은 장외 유지보수와 무결성 검사를 확인하고 임의 삭제/초기화하지 않는다. **신용잔고·예탁금**은 `/domestic-market-indicators`의 `funds.credit`/`funds.market_funds`와 날짜·단위를 대조한다. `/market-temp`의 `creditRisk`는 별도 위험축이며 방향 점수에 넣지 않는다.
 
-### 3. 예약 작업 총지도 (일/주/월 + 상시)
+### 4. 예약 작업 총지도 (일/주/월 + 상시)
 
 아래는 **예약 설정/문서상 주기**이지 10/21 현재 성공 보장이 아니다. 후속 스캔은 `.scan_serial.lock`으로 **직렬**이며 설정 시간과 실제 계산 시작/종료가 다를 수 있다. 거래일/휴장 처리도 각 스크립트에서 확인해야 한다.
 
@@ -111,7 +158,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 **스케줄 최신 상태는** VM 공개 `GET /health/schedules`(systemd·다음 시각·최근 결과), `/health/load`, 로컬 봇 인증 `GET /api/schedules`, GitHub Actions 실제 실행 기록, GAS 편집기 트리거에서 확인. Windows 작업 등록 상태/지연·마지막 성공은 Git만으로 확인 불가. `docs/SCHEDULER_CONSOLIDATION_2026-10-20.md`의 10/20 실측과 `quant-autotrade/docs/SCHEDULER.md`를 먼저 대조한다.
 
-### 4. 자동매매 — 운영 실계좌와 연구용을 반드시 나눠서 이해
+### 5. 자동매매 — 운영 실계좌와 연구용을 반드시 나눠서 이해
 
 | 분류 | 마지막 문서화된 구현/현황 (상태 기준일 표시) | 제한·실행 경계 |
 |---|---|---|
@@ -124,7 +171,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 **안전 원칙:** 실계좌 관련 코드는 **문서/테스트만 바꾼 것과 PC 운영 파일 설치를 구분**한다. 사용자의 **구체적인 실계좌 주문·활성화·정책 변경 승인 없이** 실행·재시작·매수/매도·스위치 변경 금지. 장중(특히 평일 08~20시) VM 백엔드 재시작은 피드 단절 위험. 절대 피드 큐 누락값을 임의 초기화해서 매수 재개하지 않는다. 최신 규칙: `docs/NINEPAY_LIVE_TRADING.md`, `docs/NINEPAY_FEED_INCIDENT_2026-10-20.md`, `quant-autotrade/docs/LIVE_EXIT_RULES_2026-10-16.md`.
 
-### 5. 작업 시작·완료 체크리스트 (ChatGPT/Claude 공통)
+### 6. 작업 시작·완료 체크리스트 (ChatGPT/Claude 공통)
 
 1. **읽기 순서:** 지금 이 `CLAUDE.md` → `docs/README.md` 문서 지도 → `docs/WORK_HISTORY.md` **맨 위 필요한 일부만** → 최신 `docs/HANDOFF_*.md` 1개(현재 저장소 최신 파일명이 반드시 최신 *작업*이라는 뜻은 아님) → 해당 작업의 원본 SPEC/API/소스. 처음부터 전체 이력/과거 인수인계 통독 금지.
 2. **수정 위치 찾기:** 위 메뉴 표로 해당 JS·API·DB 소유 경계를 찾는다. 프론트만 고쳐야 할지 GAS/VM/skin 마크업도 필요한지 먼저 판단. 소스/문서가 충돌하면 실제 코드/운영 수신 실측을 우선한다.
