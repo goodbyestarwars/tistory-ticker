@@ -1059,6 +1059,8 @@
             + '<div class="ss-index-quote ' + signClass(item.change_rate) + '">' + (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR'))
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
             + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공</div>'
+            // Compact index toolbar; small controls and a comfortably wide wave selector.
+            + '<div class="ss-index-controls" role="group" aria-label="지수 차트 설정">'
             + '<div class="ss-index-tools">'
             + '<div class="ss-timeframe-tools">'
             + '<button type="button" class="active" data-index-tf="day">일봉</button>'
@@ -1073,14 +1075,15 @@
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
             + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
-            + '<div class="ss-chart-studies">'
+            + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
             + [['ma', '이동평균선 표시'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
               return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
             }).join('')
-            + '<label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
-            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select>'
+            + '<span class="ss-index-wave-group"><label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
+            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select></span>'
             + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 매물대 표시</label>'
             + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량·가격 흔적</label></div>'
+            + '</div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
           panel.querySelectorAll('[data-index-study]').forEach(function (input) {
             input.addEventListener('change', function () {
