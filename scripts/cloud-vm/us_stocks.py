@@ -44,6 +44,7 @@ YAHOO_CHART_URL = 'https://query1.finance.yahoo.com/v8/finance/chart/'
 _cache_lock = threading.Lock()
 _search_cache = {}
 _quote_cache = {}
+_regular_close_cache = {}
 _chart_cache = {}
 _symbol_cache = {'saved_at': 0, 'rows': [], 'loading': False}
 _symbol_cache_lock = threading.Lock()
@@ -771,6 +772,18 @@ def _yahoo_quote(symbol):
         price = _number(meta.get('postMarketPrice'))
         change = _number(meta.get('postMarketChange'))
         change_rate = _number(meta.get('postMarketChangePercent'))
+    if price is None and state == 'post':
+        end = _number(((meta.get('currentTradingPeriod') or {}).get('regular') or {}).get('end'))
+        timestamps = result.get('timestamp') or []
+        closes = (((result.get('indicators') or {}).get('quote') or [{}])[0]).get('close') or []
+        for index in range(len(timestamps) - 1, -1, -1):
+            stamp = _number(timestamps[index])
+            value = _number(_series_value(closes, index))
+            if (end and stamp and end <= stamp <= time.time() and value and value > 0
+                    and datetime.fromtimestamp(stamp, NY_TZ).date().isoformat() == _session_date()):
+                price = value
+                break
+    has_extended_price = price is not None and state in ('pre', 'post')
     if price is None:
         price = _number(meta.get('regularMarketPrice'))
         change = None
@@ -790,13 +803,16 @@ def _yahoo_quote(symbol):
         change = price - previous_close if previous_close is not None else None
     if change_rate is None:
         change_rate = change / previous_close * 100 if change is not None and previous_close else None
-    return _normalize_quote({
+    data = _normalize_quote({
         'price': price,
         'previous_close': previous_close,
         'change': change,
         'change_rate': change_rate,
         'name': meta.get('longName') or meta.get('shortName') or symbol,
     }, symbol, 'Yahoo Finance 현재가 폴백', meta.get('exchangeName') or 'US')
+    if state in ('pre', 'post') and not has_extended_price:
+        data['market_state'] = 'closed'  # Only a regular close was available, not a live extended quote.
+    return _with_session_comparison(data, meta)
 
 
 def _series_value(values, index):
@@ -834,6 +850,52 @@ def _kis_quote(symbol):
     raise UsStockUnavailable('한국투자증권 미국주식 현재가 조회 실패') from last_error
 
 
+def _with_session_comparison(data, metadata=None):
+    """Keep legacy day change fields; add an explicit same-day post-market baseline."""
+    if data.get('market_state') != 'post' or 'regular_session' in data:
+        return data
+    data = dict(data)
+    data['regular_session'] = None
+    data['session_change'] = None
+    data['session_change_rate'] = None
+    symbol = data['symbol']
+    session = data.get('session_date')
+    key = (symbol, session)
+    reference = _cache_get(_regular_close_cache, key, 300)
+    if reference is None:
+        reference = {}
+        try:
+            meta = metadata
+            if meta is None:
+                query = urllib.parse.urlencode({'range': '1d', 'interval': '5m', 'includePrePost': 'true'})
+                payload = _get_yahoo_json(YAHOO_CHART_URL + urllib.parse.quote(symbol, safe='') + '?' + query)
+                result = ((payload.get('chart') or {}).get('result') or [{}])[0]
+                meta = result.get('meta') or {}
+            price = _number(meta.get('regularMarketPrice'))
+            previous = _number(meta.get('previousClose'))
+            stamp = _number(meta.get('regularMarketTime'))
+            period_end = _number(((meta.get('currentTradingPeriod') or {}).get('regular') or {}).get('end'))
+            # Reject yesterday's close, an unfinished regular session and mismatched symbols.
+            if (str(meta.get('symbol', '')).upper() == symbol and price and price > 0
+                    and stamp and period_end and period_end <= time.time()
+                    and period_end - 60 <= stamp <= period_end
+                    and datetime.fromtimestamp(stamp, NY_TZ).date().isoformat() == session):
+                reference = {'price': price, 'previous_close': previous,
+                             'change': price - previous if previous else None,
+                             'change_rate': (price / previous - 1) * 100 if previous else None,
+                             'as_of': int(stamp), 'session_date': session,
+                             'source': 'Yahoo Finance regular session'}
+        except Exception as exc:
+            logger.warning('Regular-session reference unavailable for %s: %s', symbol, type(exc).__name__)
+        # Cache failures too: a missing reference must not amplify outbound calls.
+        _cache_put(_regular_close_cache, key, reference)
+    if reference:
+        data['regular_session'] = reference
+        data['session_change'] = data['price'] - reference['price']
+        data['session_change_rate'] = data['session_change'] / reference['price'] * 100
+    return data
+
+
 def quote(symbol):
     symbol = normalize_symbol(symbol)
     cached = _cache_get(_quote_cache, symbol, QUOTE_TTL_SEC)
@@ -845,14 +907,14 @@ def quote(symbol):
     # 데이터 보조 경로다.
     for fetcher in (_kis_quote, _kiwoom_quote):
         try:
-            data = fetcher(symbol)
+            data = _with_session_comparison(fetcher(symbol))
             _cache_put(_quote_cache, symbol, data)
             return data
         except Exception as exc:
             errors.append(str(exc))
             logger.warning('%s quote failed for %s: %s', getattr(fetcher, '__name__', 'broker'), symbol, exc)
     try:
-        data = _yahoo_quote(symbol)
+        data = _with_session_comparison(_yahoo_quote(symbol))
         _cache_put(_quote_cache, symbol, data)
         return data
     except Exception as exc:

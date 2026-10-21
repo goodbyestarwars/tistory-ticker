@@ -1,0 +1,17 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const src = fs.readFileSync('js/us-stocks.js', 'utf8');
+const code = src.slice(src.indexOf('  function quoteSessionRate('), src.indexOf('  function refreshQuote()'));
+const state = { symbol: 'TSLA', lastQuote: {symbol:'TSLA', price:378.49, market_state:'post', session_date:'2026-10-21', regular_session:{price:386.47,session_date:'2026-10-21'}} };
+let updated;
+const chart = [];
+const api = new Function('state', 'document', 'global', 'updateQuoteFields', code + '; return {quoteSessionRate,applyRealtimeQuote};')(state,{querySelector:()=>({})},{StockSearchChart:{updateQuote:(...args)=>chart.push(args)}},q=>{updated=q;});
+assert(Math.abs(api.quoteSessionRate(state.lastQuote) + 2.0648433) < 1e-6);
+api.applyRealtimeQuote({code:'US:TSLA',price:378.24,changeRate:1.21});
+assert.equal(updated.price,378.24);
+assert(api.quoteSessionRate(updated)<-2.1,'day-positive stream must remain negative against regular close');
+assert.equal(chart[0][1].price,378.24);
+assert.equal(api.quoteSessionRate({...updated,regular_session:null}),null);
+assert.equal(api.quoteSessionRate({...updated,session_date:'2026-10-22'}),null);
+assert.equal(api.quoteSessionRate({market_state:'regular',change_rate:3.41}),3.41);
+console.log('US quote session comparison: REST + WebSocket baseline, stale/missing reference ok');

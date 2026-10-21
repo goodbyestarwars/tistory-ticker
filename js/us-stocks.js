@@ -268,7 +268,7 @@
 
   function resultRowHtml(item) {
     var quote = item.quote || {};
-    var cls = signClass(quote.change_rate);
+    var cls = signClass(quoteSessionRate(quote));
     var symbol = String(item.row.symbol || '').toUpperCase();
     var code = 'US:' + symbol;
     var isFav = !!(global.Watchlist && global.Watchlist.has(code));
@@ -277,7 +277,7 @@
     return '<div role="button" tabindex="0" class="us-stocks-result-row" data-symbol="' + escapeAttr(symbol) + '">'
       + '<span class="us-stocks-result-name"><b>' + escapeHtml(item.row.symbol) + '</b><small>' + escapeHtml(displayName) + '</small></span>'
       + '<span class="' + cls + '">' + formatPrice(quote.price) + '</span>'
-      + '<span class="' + cls + '">' + formatPercent(quote.change_rate) + '</span>'
+      + '<span class="' + cls + '">' + formatPercent(quoteSessionRate(quote)) + '</span>'
       + '<span>' + formatVolume(quote.volume) + '</span>'
       + '<span class="us-stocks-result-market">' + escapeHtml(exchange) + '</span>'
       + '<span class="us-stocks-result-favorite"><button type="button" class="us-stocks-fav-btn' + (isFav ? ' active' : '') + '" data-code="' + escapeAttr(code) + '" data-name="' + escapeAttr(displayName) + '" title="관심종목에 추가/제거" aria-label="관심종목 토글">★</button></span>'
@@ -470,6 +470,16 @@
     connect();
   }
 
+  // Broker day changes use the previous day's close. After hours use today's regular close.
+  function quoteSessionRate(quote) {
+    if (quote.market_state === 'post') {
+      var ref = quote.regular_session;
+      if (!ref || ref.session_date !== quote.session_date || !(ref.price > 0)) return null;
+      return (Number(quote.price) / ref.price - 1) * 100;
+    }
+    return quote.change_rate;
+  }
+
   function applyRealtimeQuote(quote) {
     if (!quote || quote.code !== 'US:' + state.symbol || !Number.isFinite(Number(quote.price))) return;
     var merged = Object.assign({}, state.lastQuote || {}, quote);
@@ -543,6 +553,7 @@
         + '<div class="us-stocks-live-head"><div class="us-stocks-identity">' + stockIconHtml(quote.symbol) + '<div><span class="us-stocks-market-badge">미국주식</span><h3 data-us-name></h3><p data-us-symbol></p></div></div>'
         + '<span class="us-stocks-market-state" data-us-state></span></div>'
         + '<div class="us-stocks-live-price" data-us-price-wrap><span data-us-price></span><span data-us-change></span></div>'
+        + '<div class="us-stocks-quote-line" data-us-session-comparison hidden></div>'
         + '<div class="us-stocks-metrics">'
         + metric('시가', '', 'open')
         + metric('전일 종가', '', 'previous')
@@ -581,6 +592,7 @@
       + '<span class="ss-summary-price" data-us-price-wrap><span data-us-price></span></span>'
       + '<span class="ss-summary-change" data-us-change></span>'
       + '</div>'
+      + '<div class="us-stocks-quote-line" data-us-session-comparison hidden></div>'
       + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span><span data-us-basis></span></span></div>'
       // 위쪽 카드는 한 줄 요약(전일 종가·52주 범위·상장주식 수), 시가·고가·저가·거래량·전일 거래량 대비는 아래 "세부 시세" 칸에(2026-10-05 사용자 요청)
       + '<div class="us-stocks-quote-line" aria-label="전일 종가·52주 범위·상장주식 수">'
@@ -617,12 +629,13 @@
 
   function updateQuoteFields(quote, detail) {
     document.dispatchEvent(new CustomEvent('nine-stock-quote', { detail: {
-      code: 'US:' + quote.symbol, price: quote.price, changeRate: quote.change_rate
+      code: 'US:' + quote.symbol, price: quote.price, changeRate: quoteSessionRate(quote)
     } }));
     var card = detail.querySelector('.us-stocks-live-card');
     if (!card) return;
+    var rate = quoteSessionRate(quote);
     var priceWrap = card.querySelector('[data-us-price-wrap]');
-    applyTone(priceWrap, quote.change_rate);
+    applyTone(priceWrap, rate);
     card.querySelector('[data-us-name]').textContent = localizedUsName(quote.symbol, quote.name);
     card.querySelector('[data-us-symbol]').textContent = quote.symbol + ' · ' + exchangeLabel(quote.exchange);
     card.querySelector('[data-us-state]').textContent = marketStateLabel(quote.market_state);
@@ -630,8 +643,16 @@
     if (basisNode) basisNode.textContent = basisLabel(quote);
     card.querySelector('[data-us-price]').textContent = formatPrice(quote.price);
     var changeNode = card.querySelector('[data-us-change]');
-    changeNode.textContent = formatPercent(quote.change_rate);
-    applyTone(changeNode, quote.change_rate);
+    changeNode.textContent = formatPercent(rate);
+    applyTone(changeNode, rate);
+    var sessionNode = card.querySelector('[data-us-session-comparison]');
+    if (sessionNode) {
+      sessionNode.hidden = quote.market_state !== 'post';
+      var ref = quote.regular_session;
+      sessionNode.textContent = quote.market_state === 'post' && ref && ref.session_date === quote.session_date
+        ? '정규장 종가 ' + formatPrice(ref.price) + ' (' + formatPercent(ref.change_rate) + ') · 시간외 등락은 정규장 종가 대비'
+        : '시간외 등락 기준 확인 중';
+    }
     var values = {
       open: formatPrice(quote.open),
       previous: formatPrice(quote.previous_close),

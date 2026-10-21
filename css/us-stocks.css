@@ -329,3 +329,5 @@ html.dark .us-stocks-analysis-card a { color: #93c5fd; }
  .us-stocks-analysis-card .us-consensus { flex-direction: column; gap: 3px; }
  .us-stocks-analysis-card .us-consensus-legend { width: 100%; gap: 4px; }
 }
+
+.us-stocks-quote-line[data-us-session-comparison][hidden] { display: none; }
