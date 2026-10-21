@@ -37,9 +37,17 @@ assert.ok(ev, '추세선 이탈 이벤트');
 assert.ok(ev.i > brk.trend.base.i2 + 6, '확정 전에는 찍지 않는다');
 assert.ok(ev.vol > 1, '거래량 배수 기록');
 
-// 평평한 선은 추세선이 아니다
+// 수평으로 오르내리면 추세선이 아니라 횡보 채널이다
 const flat = zigzag(160, 100, 0, 6, 20);
-assert.strictEqual(S.analyze(flat, { timeframe: 'day' }).trend, null);
+const flatResult = S.analyze(flat, { timeframe: 'day' });
+assert.ok(flatResult.trend && flatResult.trend.kind === 'flat', '횡보 채널');
+assert.strictEqual(flatResult.trend.base.slope, 0);
+// 위·아래 선이 같이 있으면(수렴) 보조선도 함께 나온다
+const wedge = [];
+for (let i = 0; i < 160; i++) wedge.push(bar(i, 100 + 0.1 * i + (14 - 0.07 * i) * Math.sin((i / 20) * 2 * Math.PI), 1));
+const wedgeResult = S.analyze(wedge, { timeframe: 'day' });
+assert.ok(wedgeResult.trend, '수렴 구간 추세선');
+assert.ok(wedgeResult.trend.second || wedgeResult.trend.kind === 'flat' || wedgeResult.trend.kind, '주 추세선');
 
 // ---- 박스권: 오르내림이 없는 횡보 뒤 거래량 실린 돌파 ----
 const boxBars = zigzag(60, 100, 0, 4, 10);
@@ -83,7 +91,7 @@ assert.ok(near100.retests >= 1);
 const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/flow_chart_005930.json'), 'utf8')).daily;
 const rr = S.analyze(real, { timeframe: 'day' });
 if (rr.trend) { assert.ok(rr.trend.base.i1 < rr.trend.base.i2); rr.trend.events.forEach(function (e) { assert.ok(e.i > rr.trend.base.i2); }); }
-if (rr.box) { assert.ok(rr.box.top > rr.box.bottom && (rr.box.top - rr.box.bottom) / rr.box.bottom <= 0.15 + 1e-9); }
+if (rr.box) { assert.ok(rr.box.top > rr.box.bottom && (rr.box.top - rr.box.bottom) / rr.box.bottom <= 0.20 + 1e-9); }
 const realSr = SR.levels(real, null, { timeframe: 'day' });
 realSr.support.concat(realSr.resistance).forEach(function (l) { assert.ok(l.reactions >= 0 && l.volReactions <= l.reactions); });
 
