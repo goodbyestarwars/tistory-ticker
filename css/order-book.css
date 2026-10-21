@@ -403,16 +403,28 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
   border-top: 1px solid #eee;
 }
 #order-book .ob-trades-title {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
   padding-top: 12px;
   font-size: 12px;
   font-weight: 700;
   color: #666;
   margin-bottom: 6px;
 }
+#order-book .ob-trades-label { flex: 0 0 auto; white-space: nowrap; }
 #order-book .ob-trades-note {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 400;
   color: #999;
   font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  hyphens: none;
 }
 #order-book .ob-trades-header,
 #order-book .ob-trade-row {

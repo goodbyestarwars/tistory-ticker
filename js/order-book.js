@@ -1443,15 +1443,32 @@
         + '<span class="ob-trade-direction ' + cls + '">' + direction + '</span>'
         + '</div>';
     }).join('');
-    var note = live
+    // 긴 원본/수신 상세는 툴팁에, 본문에는 최대 두 줄로 읽히는 핵심만 표시한다.
+    var detail = live
       ? (state.liveTradeProvider === 'Kiwoom'
           ? '키움 0B 개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
           : 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
         + state.tradeFeedStatus + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
       : state.trades.length ? 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus
       : state.tradeFeedStatus + ' · 수신한 체결부터 표시';
+    var note = live
+      ? (state.liveTradeProvider === 'Kiwoom'
+          ? '키움 0B 실시간 · FID 15 방향 · 중복·누락 가능'
+          : 'KIS 실시간 · 호가 기준 방향 추정 · 중복·누락 가능')
+      : state.trades.length ? 'REST 2초 표본 · 방향 판정불가 · 전체 체결 아님'
+      : '체결 수신 대기 중';
+    if (state.tradeFeedStatus.indexOf('재연결 중') !== -1) {
+      note = '실시간 재연결 중 · 기존 체결 일부 누락 가능';
+    } else if (state.tradeFeedStatus.indexOf('REST 시세 폴백') !== -1) {
+      note = 'REST 시세 대체 수신 · 새 개별 체결 없음';
+    } else if (state.tradeFeedStatus.indexOf('연결 중단') !== -1) {
+      note = '실시간 연결 중단 · 기존 체결만 표시';
+    } else if (!live && !state.trades.length && state.tradeFeedStatus) {
+      note = state.tradeFeedStatus;
+    }
     return '<div class="ob-trades">'
-      + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(' + note + ')</span></div>'
+      + '<div class="ob-trades-title"><span class="ob-trades-label">최근 체결</span>'
+      + '<span class="ob-trades-note" title="' + escapeAttr(detail) + '">' + escapeHtml(note) + '</span></div>'
       + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span><span>체결 방향</span></div>'
       + '<div class="ob-trades-list">' + (rows || '<div class="ob-trade-empty">체결 수신 대기 중</div>') + '</div>'
       + '</div>';
