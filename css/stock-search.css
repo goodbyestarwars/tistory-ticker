@@ -291,8 +291,8 @@
 
 #stock-search .ss-panels {
   display: grid;
-  /* 호가창 기본394px. 드래그 하한300px, 좁은 화면은1열로 전환한다. */
-  --ss-left-width: 394px;
+  /* 호가창 기본 폭은 패널 영역의 38%(2026-10-21, 가독성 개선: 이전 394px 고정). 드래그하면 px로 바뀐다. 하한300px, 좁은 화면은1열로 전환한다. */
+  --ss-left-width: 38%;
   grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);
   column-gap: 0;
   row-gap: 16px;
@@ -979,7 +979,7 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search .ss-session-date { display:none; }
 #stock-search .ss-summary-reason { grid-column:1/-1; font-size:11px; line-height:1.35; }
 #stock-search .ss-reason-badge { font-size:9px; padding:1px 5px; }
-#stock-search .ss-panel-left, #stock-search .ss-panel-right { padding:8px; border-radius:6px; }
+#stock-search .ss-panel-left, #stock-search .ss-panel-right { padding:6px; border-radius:6px; }
 #stock-search .ss-panel-title { margin-bottom:6px; }
 #stock-search #order-book .ob-board { border-radius:3px; }
 #stock-search #order-book .ob-hud { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 10px; padding:5px 6px; margin-bottom:5px; border-radius:3px; }
@@ -989,9 +989,19 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search #order-book .ob-hud-bar { grid-column:1/-1; grid-row:2; height:3px; }
 #stock-search #order-book .ob-hud-note { grid-column:1/-1; font-size:10px; padding:0; }
 #stock-search #order-book .ob-book-status { padding:4px 6px; font-size:10px; line-height:1.3; color:#777; }
-#stock-search #order-book .ob-table-pairs > .ob-row { min-height:22px; padding-block:0; }
-#stock-search #order-book .ob-depth { height:21px; }
-#stock-search #order-book .ob-current-row { padding:5px 4px; font-size:15px; }
+#stock-search #order-book .ob-table-pairs > .ob-row { min-height:27px; padding-block:0; }
+#stock-search #order-book .ob-depth { height:26px; }
+/* 2026-10-21 호가창 가독성: 행 27px, 가격 칸 확대, 잔량·증감 글자 키움. 데이터·계산은 그대로. */
+#stock-search #order-book .ob-pair-head, #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 104px minmax(0,1fr); column-gap: 6px; padding-inline: 6px; }
+#stock-search #order-book .ob-table-pairs .ob-price { font-size: 14px; font-weight: 700; letter-spacing: .1px; }
+#stock-search #order-book .ob-depth .ob-qty { font-size: 12.5px; font-variant-numeric: tabular-nums; }
+#stock-search #order-book .ob-depth .ob-delta { font-size: 11px; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
+#stock-search #order-book .ob-row-bid .ob-depth .ob-delta { text-align: left; }
+#stock-search #order-book .ob-hud { gap: 4px 14px; padding: 6px 8px; }
+#stock-search #order-book .ob-hud-row, #stock-search #order-book .ob-hud-label, #stock-search #order-book .ob-hud-val { font-size: 11px; }
+#stock-search #order-book .ob-hud-note { font-size: 11px; line-height: 1.45; white-space: normal; overflow-wrap: anywhere; }
+#stock-search #order-book .ob-book-status { font-size: 11px; line-height: 1.4; }
+#stock-search #order-book .ob-current-row { padding:4px 4px; font-size:16px; }
 #stock-search #order-book .ob-spread { padding:2px 4px; font-size:9px; }
 #stock-search #order-book .ob-footer { padding:6px; }
 #stock-search #order-book .ob-row-unavailable { opacity:.65; }

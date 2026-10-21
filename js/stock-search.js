@@ -550,7 +550,10 @@
 
     function currentWidth() {
       var raw = getComputedStyle(panels).getPropertyValue('--ss-left-width');
-      return clampWidth(parseFloat(raw) || 394);
+      // 기본값이 %이면 숫자만 읽으면 틀리므로 실제 좌측 패널 폭을 잰다.
+      if (/px\s*$/.test(raw)) return clampWidth(parseFloat(raw) || 394);
+      var left = panels.querySelector('.ss-panel-left');
+      return clampWidth((left && left.getBoundingClientRect().width) || 394);
     }
 
     function updateAria(width) {
