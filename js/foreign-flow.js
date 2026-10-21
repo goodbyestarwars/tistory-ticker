@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-ma448';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-legendline';
   var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4445,13 +4445,13 @@
 
   function buildLwLegend() {
     return '<div class="ff-legend">'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma3 + '"></i>3일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma112 + '"></i>112일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
-      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma448 + '"></i>448일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma3" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma3 + '"></i>3일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma5" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma20" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma60" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma112" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma112 + '"></i>112일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma224" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
+      + '<span class="ff-legend-item ff-legend-click" data-line-key="ma448" title="눌러서 이 선을 굵게"><i class="ff-dot" style="background:' + MA_COLORS.ma448 + '"></i>448일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       // 2026-09-01: 범례는 실제 그려지는 것만 둔다(그려지지도 않는 공시·실적을 광고하던
@@ -4461,7 +4461,8 @@
 
   var movingAverageShortEnabled = true;   // 단기 3·5·20·60일선
   var movingAverageLongEnabled = true;    // 장기 112·224·448일선
-  var movingAverageOverlaySeries = [];    // [{ series, group }]
+  var movingAverageOverlaySeries = [];    // [{ key, group, series, base }]
+  var flowLineHighlight = {};             // 범례를 눌러 굵게 표시한 이동평균선 키(2026-10-22)
   var bollingerEnabled = false;
   var bollingerOverlaySeries = [];
   // 예전 추세 배지의 잔여 DOM만 정리한다. 보조 설명은 대파동에 통합한다.
@@ -4486,7 +4487,24 @@
     bollingerOverlaySeries = global.NineChartCore.addBollingerBands(lwcChart, global.LightweightCharts, daily);
   }
 
+  // 범례의 이동평균 항목을 누르면 해당 선을 굵게, 다시 누르면 원래 굵기로(2026-10-22 사용자 요청).
+  function applyFlowLineHighlight() {
+    movingAverageOverlaySeries.forEach(function (item) {
+      try { item.series.applyOptions({ lineWidth: flowLineHighlight[item.key] ? item.base + 2.5 : item.base }); } catch (e) { /* 제거된 차트면 무시 */ }
+    });
+    document.querySelectorAll('#foreign-flow .ff-legend [data-line-key]').forEach(function (el) {
+      el.classList.toggle('is-on', !!flowLineHighlight[el.getAttribute('data-line-key')]);
+    });
+  }
   function wireMovingAverageToggle(box) {
+    var legend = box.querySelector('.ff-legend');
+    if (legend) legend.addEventListener('click', function (event) {
+      var hit = event.target.closest ? event.target.closest('[data-line-key]') : null;
+      if (!hit) return;
+      var key = hit.getAttribute('data-line-key');
+      flowLineHighlight[key] = !flowLineHighlight[key];
+      applyFlowLineHighlight();
+    });
     function apply() {
       movingAverageOverlaySeries.forEach(function (item) {
         var on = item.group === 'short' ? movingAverageShortEnabled : movingAverageLongEnabled;
@@ -6135,8 +6153,10 @@
         }
         if (!pts.length) return;
         var on = study.group === 'short' ? movingAverageShortEnabled : movingAverageLongEnabled;
-        movingAverageOverlaySeries.push({ group: study.group, series: core.addMovingAverageLine(chart, LWC, study, pts, { visible: on }) });
+        var maLine = core.addMovingAverageLine(chart, LWC, study, pts, { visible: on });
+        movingAverageOverlaySeries.push({ key: study.key, group: study.group, series: maLine, base: study.width || 1 });
       });
+      applyFlowLineHighlight();   // 범례에서 굵게 켜 둔 선은 새 차트에도 이어서 적용
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
       if (bollingerEnabled) addBollingerOverlay(daily);
