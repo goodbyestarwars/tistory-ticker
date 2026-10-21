@@ -1252,7 +1252,7 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
 #stock-search .ss-overview .ss-summary[hidden] { display: none !important; }
 #stock-search .ss-overview.ss-overview-active {
   border: 1px solid #e5e5e5;
-  border-radius: 12px;
+  border-radius: 0;   /* 2026-10-22 사용자 요청: 결과 표와 AI 한 줄 요약 카드를 모서리 없는 사각형으로 */
   overflow: hidden;
   margin-bottom: 8px;
 }
