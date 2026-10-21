@@ -591,9 +591,10 @@
       + '<span class="ss-summary-code" data-us-symbol></span>'
       + '<span class="ss-summary-price" data-us-price-wrap><span data-us-price></span></span>'
       + '<span class="ss-summary-change" data-us-change></span>'
+      + '<span class="us-stocks-market-state" data-us-state aria-live="polite"></span>'
       + '</div>'
       + '<div class="us-stocks-quote-line" data-us-session-comparison hidden></div>'
-      + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식 · <span data-us-state></span><span data-us-basis></span></span></div>'
+      + '<div class="ss-summary-reason"><span class="ss-reason-badge">US</span><span class="ss-reason-text">미국주식<span data-us-basis></span></span></div>'
       // 위쪽 카드는 한 줄 요약(전일 종가·52주 범위·상장주식 수), 시가·고가·저가·거래량·전일 거래량 대비는 아래 "세부 시세" 칸에(2026-10-05 사용자 요청)
       + '<div class="us-stocks-quote-line" aria-label="전일 종가·52주 범위·상장주식 수">'
       + '<span>전일 종가 <b data-us-metric="previous">-</b></span>'
@@ -1347,10 +1348,10 @@
       var when = sessionDateLabel(quote.session_date);
       return when ? when + ' 장 마감' : '장 마감';
     }
-    return formatUpdated(quote && quote.updated_at);
+    return marketStateLabel(quote && quote.market_state) + ' · ' + formatUpdated(quote && quote.updated_at);
   }
   function marketStateLabel(value) {
-    return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[value] || '시장 상태 확인 중';
+    return { pre: '프리마켓', regular: '정규장', post: '애프터마켓', closed: '장 마감' }[value] || '시장 상태 확인 중';
   }
   function signClass(value) { return value > 0 ? 'us-up' : value < 0 ? 'us-down' : 'us-flat'; }
   function applyTone(node, value) {
