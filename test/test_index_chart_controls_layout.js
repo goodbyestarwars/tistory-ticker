@@ -24,8 +24,8 @@ function renderIndexControls() {
     () => 'ss-down',
     s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'),
     n => String(n) + '%',
-    { ma: true, cloud: false, bollinger: false, sr: false },
-    { enabled: true, level: 'medium' }
+    { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false },
+    { enabled: true, level: 'medium', trend: false }
   );
 }
 
@@ -39,13 +39,14 @@ test('toolbar really has two contained rows, saved controls and no missing tools
   const c = html.indexOf('class="ss-index-chart"');
   assert(a < b && b < c, 'timeframe/actions first; indicators second; chart below');
   for (const label of ['일봉', '주봉', '월봉', '분봉', '직선', '동그라미', '박스',
-    '가로선', '측정', '연필', '지우기', '이동평균선 표시', '일목균형표(구름) 표시',
-    '볼린저 밴드', '지지·저항 표시', '파동 분석', '매물대 표시', '거래량·가격 흔적']) {
+    '가로선', '측정', '연필', '지우기', '단기 이평선(3·5·20·60)', '장기 이평선(112·224·448)', '일목균형표(구름) 표시',
+    '볼린저 밴드', '지지·저항 표시', '파동 분석', '추세선', '거래량 배수 표시', '매물대 표시', '거래량·가격 흔적']) {
     assert(html.includes(label), 'missing control: ' + label);
   }
   assert(html.includes('class="ss-index-wave-group"'), 'wave checkbox and level grouped');
   assert(html.includes('data-index-wave-level'), 'native select preserved');
-  assert(html.includes('data-index-study="ma" checked'));
+  assert(html.includes('data-index-study="maShort" checked'));
+  assert(html.includes('data-index-study="maLong" checked'));
   assert(html.includes('data-index-study="wave" checked'));
   assert(html.includes('<option value="medium">중파동</option>'));
   assert(html.includes('disabled title="이 지수의 실제 분봉 원본이 없습니다"'), 'no fabricated minute data');
