@@ -679,3 +679,5 @@ fetched_at INTEGER NOT NULL)` 하나를 사용한다. `/us-analysis/{symbol}`에
 
 ### home_session_prices (2026-10-16)
 홈 미국 현물 2종·CME 선물 2종의 기존 시세 폴러 관측을 30분별로 보존. PK `(symbol,session,slot)`, `open/high/low/close`는 실제 수집 표본, `ts`는 공급자 시세 UTC 초. 같은 구간 최신 시세로 종가 갱신·고저 보존, 역순 시세로 종가 후퇴 없음. 14일 전 날짜 삭제. 새 외부 호출/스레드 없음. 야간은 별도 저장 없이 `future_chart_minute`를 읽어 집계한다.
+
+2026-10-22 추가: `symbol='KOSPI200_NIGHT'`도 저장한다. 야간선물 실시간 틱(`night_futures_ws._upsert_tick` → `home_session_chart.record_night_tick`)을 같은 30분 구간 관측값으로 모아(구간별 10초마다 저장) 두고, 홈 야간선물 차트(`get_results`)가 **KIS 분봉(`future_chart_minute`)이 없는 구간만** 이 관측값으로 채운다(분봉 우선, 틈은 틈으로 유지). 분봉 수집이 자정 이후 멈춰 차트가 23:58에서 끊긴 사고 대응이며, 새 외부 공급자를 쓰지 않고 이미 수신 중인 같은 KIS 틱만 쓴다.
