@@ -38,6 +38,7 @@
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261020-us-ranges' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261022-trend2', needs: ['data', 'autowave'] },
+    divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
     sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength2' },
