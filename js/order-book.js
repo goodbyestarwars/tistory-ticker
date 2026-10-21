@@ -512,8 +512,6 @@
     }
     updateSide(asks, 'ask');
     updateSide(bids, 'bid');
-    var spread = board.querySelector('.ob-spread');
-    if (spread) spread.textContent = '매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가';
     var totalAsk = asks.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
     var totalBid = bids.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
     var total = totalAsk + totalBid || 1;
@@ -1284,7 +1282,6 @@
 
     var ladderRows = asks.map(function (row, index) { return rowHtml(row, maxQty, 'ask', index + 1); }).join('');
     ladderRows += currentRowHtml;
-    ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계"></div>';
     ladderRows += bids.map(function (row, index) { return rowHtml(row, maxQty, 'bid', index + 1); }).join('');
 
     var totalAsk = asks.reduce(function (sum, row) { return sum + row.qty; }, 0);
