@@ -1208,9 +1208,10 @@
     }
 
     if (state.resultsCollapsed) {
-      var selected = items.filter(function (it) { return it.code === state.selectedCode; })[0];
+      // The selected stock's name/price live in the detailed summary below.
+      // Keep only a small results navigation control instead of a duplicate stock header.
       resultsBox.innerHTML = '<div class="ss-results-collapsed">'
-        + '<span>검색 결과 ' + items.length + '건' + (selected ? ' · 선택: ' + escapeHtml(selected.name) : '') + '</span>'
+        + '<span>검색 결과 ' + items.length + '건</span>'
         + '<button type="button" class="ss-results-toggle" data-action="expand">목록 다시 보기 ▾</button>'
         + '</div>';
       var expandBtn = resultsBox.querySelector('.ss-results-toggle');
@@ -1276,8 +1277,11 @@
     // 결과가 1건뿐이면(코드 직접 입력 등) 바로 상세까지 보여준다
     if (items.length === 1) {
       selectStock(container, items[0]);
-      var onlyRow = resultsBox.querySelector('.ss-result-row');
-      if (onlyRow) onlyRow.classList.add('active');
+      // A single selected result already has a complete detail header.
+      // Collapse the redundant full-width price/volume row, preserving a way
+      // to reopen the list and access the favorite-star action.
+      state.resultsCollapsed = true;
+      renderResults(container, items);
     }
   }
 
