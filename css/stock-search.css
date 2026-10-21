@@ -965,7 +965,10 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
   padding: 5px 10px;
   border-radius: 6px;
   background: #fff;
-  font: 600 12px/1.35 inherit;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
   white-space: nowrap;
 }
 #stock-search .ss-index-controls .ss-index-studies {
@@ -1009,7 +1012,10 @@ html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .
   border-radius: 6px;
   background: #fff;
   color: #1f2937;
-  font: 600 12.5px/1.4 inherit;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
   cursor: pointer;
 }
 html.dark #stock-search .ss-index-controls {
