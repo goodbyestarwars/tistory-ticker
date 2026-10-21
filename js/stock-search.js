@@ -377,8 +377,10 @@
   function setMarketMode(container, isUs) {
     var usModule = container.querySelector('#ssUsModule');
     var results = container.querySelector('#ssResults');
+    var overview = container.querySelector('#ssOverview');
     var detail = container.querySelector('#ssDetail');
     if (usModule) usModule.hidden = !isUs;
+    if (overview) overview.hidden = !!isUs;
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
@@ -473,11 +475,14 @@
       + '</div>'
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
       + '</div>'
+      // One shared card: complete search result table + OHLC/analysis/AI details.
+      + '<div id="ssOverview" class="ss-overview">'
       + '<div id="ssResults" class="ss-results"></div>'
+      + '<div id="ssSummary" class="ss-summary" hidden></div>'
+      + '</div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<section id="ssIndexPanel" class="ss-index-panel" hidden></section>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
-      + '<div id="ssSummary" class="ss-summary"></div>'
       + '<div class="ss-panels">'
       // css/order-book.css의 모든 규칙이 "#order-book .ob-xxx"로 ID에 고정돼 있어(다른
       // ID로 마운트하면 스타일이 하나도 안 먹음 - 실측으로 발견) 마운트 id를 그대로
@@ -762,6 +767,10 @@
   function runSearch(container, query) {
     var searchId = ++stockSearchRequestId;
     var resultsBox = container.querySelector('#ssResults');
+    var summary = container.querySelector('#ssSummary');
+    var detail = container.querySelector('#ssDetail');
+    if (summary) summary.hidden = true;
+    if (detail) detail.hidden = true;
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
     var chosenIndex = exactIndex(query);
     if (chosenIndex) { openIndex(container, chosenIndex); return; }
@@ -996,6 +1005,8 @@
     setMarketMode(container, false);
     var panel = container.querySelector('#ssIndexPanel');
     container.querySelector('#ssResults').hidden = true;
+    var overview = container.querySelector('#ssOverview');
+    if (overview) overview.hidden = true;
     container.querySelector('#ssDetail').hidden = true;
     panel.hidden = false;
     panel.innerHTML = '<div class="ss-hint">지수 시세와 차트를 불러오는 중...</div>';
@@ -1193,12 +1204,12 @@
     return out;
   }
 
-  // 2026-07-28: 검색 결과가 많을 때(예: "삼성" 30건) 종목을 하나 골라도 목록이 화면에
-  // 계속 남아있어 "없어지질 않는다"는 리포트가 있었음 - 종목을 고르면 목록을 접어
-  // "검색 결과 N건 (다시 보기)" 한 줄로 줄인다(재조회 없이 state.lastResults로 다시
-  // 펼칠 수 있음). 선택된 종목이 어떤 건지 잊지 않도록 접힌 줄에도 이름을 같이 보여준다.
+  // Search results remain in the same card as selected-stock details.
+  // For long lists collapse stays an explicit user action.
   function renderResults(container, items, userExpanded) {
     var resultsBox = container.querySelector('#ssResults');
+    var overview = container.querySelector('#ssOverview');
+    if (overview && items.length) overview.classList.add('ss-overview-active');
 
     if (isIndependentChartMode() && items.length) {
       state.lastResults = items;
@@ -1219,11 +1230,12 @@
         state.resultsCollapsed = false;
         renderResults(container, items, true);
       });
+      syncOverviewSelection(container);
       return;
     }
 
     resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건'
-      + (items.length > 1 || userExpanded ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
+      + (items.length > 1 ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
       + '</div>'
       + '<div class="ss-results-table">'
       + '<div class="ss-results-head">'
@@ -1244,12 +1256,8 @@
         selectStock(container, items[idx]);
         resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
         row.classList.add('active');
-        // 종목을 골랐으면 목록을 접어서 화면을 계속 차지하지 않게 한다(사용자 리포트) -
-        // 결과가 1건뿐일 때는 접을 목록 자체가 무의미하니 그대로 둠.
-        if (items.length > 1) {
-          state.resultsCollapsed = true;
-          renderResults(container, items);
-        }
+        // Keep the selected row visible; collapse is an explicit user action.
+        syncOverviewSelection(container);
       });
     });
 
@@ -1274,20 +1282,27 @@
       });
     });
 
-    // 결과가 1건뿐이면(코드 직접 입력 등) 바로 상세까지 보여준다
+    // One result: show the complete table row and OHLC/AI/analysis together.
     if (items.length === 1) {
-      if (userExpanded) {
-        var onlyRow = resultsBox.querySelector('.ss-result-row');
-        if (onlyRow && state.selectedCode === items[0].code) onlyRow.classList.add('active');
-      } else {
-        selectStock(container, items[0]);
-        // A single selected result already has a complete detail header.
-        // Collapse the redundant full-width price/volume row, but allow
-        // reopening it for the favorite-star action without re-collapsing.
-        state.resultsCollapsed = true;
-        renderResults(container, items);
-      }
+      selectStock(container, items[0]);
+      var onlyRow = resultsBox.querySelector('.ss-result-row');
+      if (onlyRow) onlyRow.classList.add('active');
     }
+    syncOverviewSelection(container);
+  }
+
+  function syncOverviewSelection(container) {
+    var overview = container.querySelector('#ssOverview');
+    var resultsBox = container.querySelector('#ssResults');
+    if (!overview || !resultsBox) return;
+    var index = (state.lastResults || []).findIndex(function (item) {
+      return item.code === state.selectedCode;
+    });
+    var visible = !state.resultsCollapsed && !resultsBox.hidden && index >= 0
+      && !!resultsBox.querySelector('.ss-result-row[data-idx="' + index + '"]');
+    // Show the name/price/change in the table only while its row is visible.
+    // When a long list is manually collapsed, the summary restores them.
+    overview.classList.toggle('ss-overview-selected', !!visible);
   }
 
   function resultRowHtml(it, idx) {
@@ -1340,8 +1355,16 @@
     wirePanelResize(container);
 
     if (!isIndependentChartMode()) {
+      var summaryBox = container.querySelector('#ssSummary');
+      var overview = container.querySelector('#ssOverview');
+      if (overview) {
+        overview.hidden = false;
+        overview.classList.add('ss-overview-active');
+      }
+      if (summaryBox) summaryBox.hidden = false;
       renderSummary(container, item);
       loadPriceReason(container, item);
+      syncOverviewSelection(container);
     }
 
     var ladderBox = container.querySelector('#order-book');
