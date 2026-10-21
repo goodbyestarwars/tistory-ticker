@@ -4979,8 +4979,34 @@
     var fmt = opts.format;
     function vol(v) { return compactChartVolume(v) + '주'; }
 
+    // The official support/resistance candidates require strong price-volume
+    // concentration. If none qualifies, show a *reference bin* from the
+    // underlying distribution rather than a fabricated "confirmed" level.
+    // Restrict nearby reference candidates to the stated 5% proximity window.
+    function nearbyReference(side) {
+      var candidates = main.bins.filter(function (b) {
+        return b.density > 0 && (side === 'above' ? b.low > price : b.high < price);
+      }).map(function (b) {
+        var diff = side === 'above' ? b.low - price : price - b.high;
+        return { bin: b, diff: diff, pct: price > 0 ? diff / price * 100 : Infinity };
+      }).filter(function (c) { return c.pct <= main.settings.nearPct; });
+      candidates.sort(function (a, b) {
+        return b.bin.density - a.bin.density || a.diff - b.diff;
+      });
+      return candidates[0] || null;
+    }
+
     function card(cls, title, zone, gapInfo, sign) {
-      if (!zone) return '<div class="ff-vp-an-card ' + cls + ' is-empty"><span>' + title + '</span><strong>뚜렷한 구간 없음</strong><small>기준 이상 집중된 구간이 없습니다</small></div>';
+      if (!zone) {
+        var reference = nearbyReference(sign === '+' ? 'above' : 'below');
+        return '<div class="ff-vp-an-card ' + cls + ' is-empty"><span>' + title + '</span>'
+          + (reference
+            ? '<strong>' + fmt(reference.bin.low) + '~' + fmt(reference.bin.high) + '</strong>'
+              + '<small>참고 매물대 · 현재가에서 ' + reference.pct.toFixed(1) + '% ' + (sign === '+' ? '위' : '아래') + '</small>'
+              + '<small>집중 구간 기준 미달 · 확정 지지·저항 후보 아님</small>'
+            : '<strong>조건 충족 후보 없음</strong><small>현재가 ' + main.settings.nearPct + '% 이내에 참고할 가격대도 없습니다</small>')
+          + '</div>';
+      }
       var distance = gapInfo ? sign + gapInfo.pct.toFixed(1) + '% (' + fmt(gapInfo.diff) + ' ' + (sign === '+' ? '위' : '아래') + ')' : '현재가가 구간 안';
       return '<div class="ff-vp-an-card ' + cls + '"><span>' + title + '</span><strong>' + fmt(zone.low) + '~' + fmt(zone.high) + '</strong>'
         + '<small>현재가 대비 ' + distance + '</small><small>추정 ' + vol(zone.volume) + ' · 전체의 ' + zone.share.toFixed(1) + '%</small></div>';
@@ -4999,11 +5025,25 @@
     var included = estimate.daysIncluded;
     var shortNote = included < entry.lookback ? ' 요청 ' + entry.lookback + '거래일 중 자료가 있는 <b>' + included + '거래일</b>만 포함했습니다.' : '';
 
+    // Provide an explicitly labelled relative-low-volume reference if the
+    // strict thin-zone rule (35% of mean plus near a major zone) finds none.
+    // This is not a breakout signal, and no extra bin enters the analysis.
+    var meanDensity = main.bins.length ? main.bins.reduce(function (sum, b) { return sum + b.density; }, 0) / main.bins.length : 0;
+    var thinRef = !main.thin.length && meanDensity > 0 ? main.bins.map(function (b) {
+      var diff = price < b.low ? b.low - price : price > b.high ? price - b.high : 0;
+      return { bin: b, pct: price > 0 ? diff / price * 100 : Infinity };
+    }).filter(function (entry) {
+      return entry.bin.density > 0 && entry.bin.density < meanDensity && entry.pct <= main.settings.nearPct;
+    }).sort(function (a, b) {
+      return a.bin.density - b.bin.density || a.pct - b.pct;
+    })[0] : null;
     var thinHtml = main.thin.length
       ? '<ul class="ff-vp-an-thin">' + main.thin.map(function (t) {
         return '<li>' + escapeHtml(VP.thinText(t, opts)) + ' 현재가에서 ' + (t.contains ? '구간 안' : t.distancePct.toFixed(1) + '% ' + (t.where === 'above' ? '위' : '아래')) + '입니다.</li>';
       }).join('') + '</ul><p class="ff-vp-an-caution">거래량이 적다는 것은 그 가격대에서 거래가 적었다는 뜻일 뿐, 빠른 상승이나 하락을 뜻하지 않습니다.</p>'
-      : '<p class="ff-vp-an-empty">주요 구간 가까이에서 뚜렷하게 얇은 가격대는 발견되지 않았습니다.</p>';
+      : thinRef
+        ? '<p class="ff-vp-an-empty"><b>참고 가격대 ' + fmt(thinRef.bin.low) + '~' + fmt(thinRef.bin.high) + '</b> · 평균 밀도 대비 ' + (thinRef.bin.density / meanDensity * 100).toFixed(0) + '% · 현재가에서 ' + thinRef.pct.toFixed(1) + '% 떨어진 구간. <b>엄격한 얇은 구간 기준은 미충족</b>이며 주가 방향 신호가 아닙니다.</p>'
+        : '<p class="ff-vp-an-empty">엄격한 얇은 구간 기준에 맞는 가격대가 없습니다. 현재가 ' + main.settings.nearPct + '% 안에서 평균보다 거래량 밀도가 낮은 참고 가격대도 확인되지 않았습니다.</p>';
 
     // 기간 비교(20/60/120): 같은 구간 수로 각각 다시 계산한다.
     var cmp = VP_PERIODS.map(function (days) {
