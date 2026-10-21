@@ -12,42 +12,51 @@ const S = globalThis.NineChartStructure, SR = globalThis.NineChartSR;
 function day(i) { const d = new Date(Date.UTC(2024, 0, 1 + i)); return d.toISOString().slice(0, 10); }
 function bar(i, c, spread, vol) { return { date: day(i), open: c, high: c + spread, low: c - spread, close: c, volume: vol == null ? 1000 : vol }; }
 
-// ---- 상승 추세: 지그재그로 저점이 계속 높아진다 ----
+// ---- 추세 구간: 저점·고점이 함께 높아지면 상승, 함께 낮아지면 하락 ----
 function zigzag(n, base, drift, amp, period) {
   const out = [];
   for (let i = 0; i < n; i++) out.push(bar(i, base + drift * i + amp * Math.sin((i / period) * 2 * Math.PI), 1));
   return out;
 }
-const up = zigzag(160, 100, 0.5, 6, 20);
+const up = zigzag(160, 100, 0.5, 14, 20);
 const upResult = S.analyze(up, { timeframe: 'day' });
-assert.ok(upResult.trend, '상승 추세선이 잡혀야 한다');
-assert.strictEqual(upResult.trend.kind, 'up');
-assert.ok(upResult.trend.base.slope > 0);
-assert.ok(upResult.trend.base.i2 - upResult.trend.base.i1 >= 8);
-
-// 미래 비참조: 마지막 봉을 떼어 내도 이미 확정된 선·이벤트(마지막 봉 이전 것)는 같다.
+assert.ok(upResult.trends.length >= 1, '상승 구간이 잡혀야 한다');
+const lastUp = upResult.trends[upResult.trends.length - 1];
+assert.strictEqual(lastUp.kind, 'up');
+assert.ok(lastUp.slope > 0 && lastUp.pct >= 0.2);
+// 채널은 구간의 모든 저점 아래·모든 고점 위를 지난다
+upResult.trends.forEach(function (ph) {
+  ph.pivots.forEach(function (q) {
+    const v = ph.slope * q.i + (q.type === 'L' ? ph.bLow : ph.bHigh);
+    if (q.type === 'L') assert.ok(q.p >= v - 1e-9, '저점은 아래선 위');
+    else assert.ok(q.p <= v + 1e-9, '고점은 위선 아래');
+  });
+});
+// 미래 비참조: 마지막 봉 몇 개를 떼어 내도 이미 확정된 첫 구간은 같다.
 const cut = S.analyze(up.slice(0, -5), { timeframe: 'day' });
-assert.deepStrictEqual(cut.trend.base, upResult.trend.base);
+assert.strictEqual(cut.trends[0].start, upResult.trends[0].start);
+assert.strictEqual(cut.trends[0].bLow, upResult.trends[0].bLow);
 
-// 추세선 이탈: 상승 뒤 급락하면 이탈 점이 찍히고, 그 위치는 선이 확정된 다음 봉 이후여야 한다.
+// 하락 구간
+const down = zigzag(160, 200, -0.5, 14, 20);
+const downResult = S.analyze(down, { timeframe: 'day' });
+assert.ok(downResult.trends.length >= 1);
+assert.strictEqual(downResult.trends[downResult.trends.length - 1].kind, 'down');
+assert.ok(downResult.trends[downResult.trends.length - 1].pct < 0);
+
+// 현재 상승 구간 이탈: 추세선 아래로 종가가 1% 넘게 빠지면 점과 거래량 배수가 붙고, 그 봉은 구간 끝 확정점 뒤여야 한다.
 const broken = up.concat([bar(160, 150, 1, 4000), bar(161, 120, 1, 4000), bar(162, 100, 1, 4000)]);
 const brk = S.analyze(broken, { timeframe: 'day' });
-const ev = brk.trend.events.find(function (e) { return e.dir === 'down'; });
-assert.ok(ev, '추세선 이탈 이벤트');
-assert.ok(ev.i > brk.trend.base.i2 + 6, '확정 전에는 찍지 않는다');
+const cur = brk.trends[brk.trends.length - 1];
+const ev = cur.events[0];
+assert.ok(ev && ev.dir === 'down', '상승 추세 이탈 이벤트');
+assert.ok(ev.i > cur.pivots[cur.pivots.length - 1].i, '확정점 뒤에만 찍는다');
 assert.ok(ev.vol > 1, '거래량 배수 기록');
+assert.strictEqual(cur.active, false);
 
-// 수평으로 오르내리면 추세선이 아니라 횡보 채널이다
-const flat = zigzag(160, 100, 0, 6, 20);
-const flatResult = S.analyze(flat, { timeframe: 'day' });
-assert.ok(flatResult.trend && flatResult.trend.kind === 'flat', '횡보 채널');
-assert.strictEqual(flatResult.trend.base.slope, 0);
-// 위·아래 선이 같이 있으면(수렴) 보조선도 함께 나온다
-const wedge = [];
-for (let i = 0; i < 160; i++) wedge.push(bar(i, 100 + 0.1 * i + (14 - 0.07 * i) * Math.sin((i / 20) * 2 * Math.PI), 1));
-const wedgeResult = S.analyze(wedge, { timeframe: 'day' });
-assert.ok(wedgeResult.trend, '수렴 구간 추세선');
-assert.ok(wedgeResult.trend.second || wedgeResult.trend.kind === 'flat' || wedgeResult.trend.kind, '주 추세선');
+// 수평으로만 오르내리면 추세 구간이 아니다(횡보는 박스·지지저항으로 본다)
+const flat = zigzag(160, 100, 0, 14, 20);
+assert.strictEqual(S.analyze(flat, { timeframe: 'day' }).trends.length, 0);
 
 // ---- 박스권: 오르내림이 없는 횡보 뒤 거래량 실린 돌파 ----
 const boxBars = zigzag(60, 100, 0, 4, 10);
@@ -90,13 +99,13 @@ assert.ok(near100.retests >= 1);
 // ---- 실제 일봉 픽스처: 예외 없이, 값은 범위 안 ----
 const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/flow_chart_005930.json'), 'utf8')).daily;
 const rr = S.analyze(real, { timeframe: 'day' });
-if (rr.trend) { assert.ok(rr.trend.base.i1 < rr.trend.base.i2); rr.trend.events.forEach(function (e) { assert.ok(e.i > rr.trend.base.i2); }); }
+rr.trends.forEach(function (ph) { assert.ok(ph.start < ph.end && ph.pivots.length >= 4); });
 if (rr.box) { assert.ok(rr.box.top > rr.box.bottom && (rr.box.top - rr.box.bottom) / rr.box.bottom <= 0.20 + 1e-9); }
 const realSr = SR.levels(real, null, { timeframe: 'day' });
 realSr.support.concat(realSr.resistance).forEach(function (l) { assert.ok(l.reactions >= 0 && l.volReactions <= l.reactions); });
 
 // 짧은 배열·빈 입력은 조용히 비어 있다
-assert.strictEqual(S.analyze([], { timeframe: 'day' }).trend, null);
+assert.strictEqual(S.analyze([], { timeframe: 'day' }).trends.length, 0);
 assert.strictEqual(S.analyze(null, { timeframe: 'day' }).box, null);
 assert.ok(typeof S.summary(S.analyze([], {})) === 'string');
 console.log('chart structure OK');
