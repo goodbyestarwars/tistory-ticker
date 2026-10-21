@@ -564,9 +564,12 @@ html.dark #order-book .ob-trade-direction.ob-flat { color: rgba(245, 239, 224, 0
    막대 끝점을 이은 빛나는 선. 매물대(벽) 호가는 주황. 선은 클릭을 막지 않는다. */
 #order-book .ob-table-pairs { position: relative; }
 #order-book .ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
-#order-book .ob-sil-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-#order-book .ob-sil-bid { stroke: #ff2d2d; filter: drop-shadow(0 0 3px rgba(255, 45, 45, .75)); }
-#order-book .ob-sil-ask { stroke: #1e7bff; filter: drop-shadow(0 0 3px rgba(30, 123, 255, .75)); }
+#order-book .ob-sil-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+/* 빛나는 효과(2026-10-22): 좁은 광채 + 넓은 광채를 겹쳐 밝은 배경에서도 번져 보이게 한다. 매수 빨강·매도 파랑. */
+#order-book .ob-sil-bid { stroke: #ff3b3b; filter: drop-shadow(0 0 2px rgba(255, 59, 59, .95)) drop-shadow(0 0 7px rgba(255, 59, 59, .65)); }
+#order-book .ob-sil-ask { stroke: #2f8cff; filter: drop-shadow(0 0 2px rgba(47, 140, 255, .95)) drop-shadow(0 0 7px rgba(47, 140, 255, .65)); }
+#order-book .ob-sil-end-bid { fill: #ff3b3b; filter: drop-shadow(0 0 4px rgba(255, 59, 59, .9)); }
+#order-book .ob-sil-end-ask { fill: #2f8cff; filter: drop-shadow(0 0 4px rgba(47, 140, 255, .9)); }
 #order-book .ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
 #order-book .ob-pair .ob-row-odd .ob-bar-bid,
 #order-book .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }

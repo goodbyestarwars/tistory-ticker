@@ -618,20 +618,34 @@
     var walls = { ask: findWallLevels(asks), bid: findWallLevels(bids) };
     var lines = '', dots = '';
     ['bid', 'ask'].forEach(function (side) {
-      var pts = [];
+      var items = [];
       table.querySelectorAll('.ob-row-' + side + ':not([hidden])').forEach(function (row) {
         var level = Number(row.getAttribute('data-level'));
         var odd = !!walls[side][level];
         row.classList.toggle('ob-row-odd', odd);
         var bar = row.querySelector('.ob-bar-wrap > span');
         if (!bar) return;
-        var br = bar.getBoundingClientRect();
-        var rr = row.getBoundingClientRect();
+        items.push({ br: bar.getBoundingClientRect(), rr: row.getBoundingClientRect(), odd: odd });
+      });
+      // 막대가 어느 쪽에 붙어 자라는지는 화면 배치(CSS)에 따라 다르다. 같은 쪽 막대들의 왼쪽·오른쪽 끝을 비교해
+      // 모두 같은 쪽 끝이면 그쪽이 고정된 뿌리이고 반대쪽 끝이 잔량 끝점이다(2026-10-22: 뿌리를 이어 선이 세로로 곧게 나오던 문제).
+      var anchorRight = side === 'ask';   // 판단할 수 없을 때(막대가 하나뿐 등)의 기본값
+      if (items.length > 1) {
+        var lefts = items.map(function (it) { return it.br.left; }), rights = items.map(function (it) { return it.br.right; });
+        var spread = function (arr) { return Math.max.apply(null, arr) - Math.min.apply(null, arr); };
+        var sl = spread(lefts), sr = spread(rights);
+        if (sr < 1.5 && sl >= 1.5) anchorRight = true;
+        else if (sl < 1.5 && sr >= 1.5) anchorRight = false;
+      }
+      var pts = [];
+      items.forEach(function (it) {
         // 선이 막대 바로 바깥에 놓이도록 2px 밀어 막대·글자 뒤로 숨지 않게 한다
-        var x = (side === 'bid' ? br.left - 2 : br.right + 2) - tr.left;
-        var y = rr.top + rr.height / 2 - tr.top;
+        var x = (anchorRight ? it.br.left - 2 : it.br.right + 2) - tr.left;
+        var y = it.rr.top + it.rr.height / 2 - tr.top;
         pts.push([x, y]);
-        if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
+        // 막대 끝점마다 빛나는 작은 점(매수 빨강·매도 파랑), 매물대 호가는 주황 큰 점
+        if (it.odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
+        else dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.6" class="ob-sil-end ob-sil-end-' + side + '"/>';
       });
       if (pts.length > 1) {
         lines += '<polyline class="ob-sil-line ob-sil-' + side + '" points="'
