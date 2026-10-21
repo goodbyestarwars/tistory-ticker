@@ -19,11 +19,15 @@
   var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)';
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
   var ICHIMOKU = { tenkan: 9, kijun: 26, senkouB: 52, displacement: 26 };
+  // group: 화면의 이동평균선 옵션 두 개(단기 3·5·20·60 / 장기 112·224·448). legacy: 그룹을 주지 않는 옛 호출(지수 차트 등)이 쓰는 4개.
   var MA_STUDIES = [
-    { key: 'ma5', period: 5, color: '#d24f45', width: 1 },
-    { key: 'ma20', period: 20, color: '#1261c4', width: 1 },
-    { key: 'ma60', period: 60, color: '#0ca678', width: 1 },
-    { key: 'ma224', period: 224, color: null, width: 3 }   // 224일선은 테마에 따라 검정/밝은 회색
+    { key: 'ma3', period: 3, color: '#f08c00', width: 1, group: 'short' },
+    { key: 'ma5', period: 5, color: '#d24f45', width: 1, group: 'short', legacy: true },
+    { key: 'ma20', period: 20, color: '#1261c4', width: 1, group: 'short', legacy: true },
+    { key: 'ma60', period: 60, color: '#0ca678', width: 1, group: 'short', legacy: true },
+    { key: 'ma112', period: 112, color: '#7048e8', width: 1.5, group: 'long' },
+    { key: 'ma224', period: 224, color: null, width: 3, group: 'long', legacy: true },   // 224일선은 테마에 따라 검정/밝은 회색(굵게)
+    { key: 'ma448', period: 448, color: '#6b7280', width: 2, group: 'long' }
   ];
 
   // ---- 자산 주소(이 스크립트가 실제로 내려온 곳 기준 - 운영은 GitHub Pages, 로컬 점검은 로컬 서버) ----
@@ -33,11 +37,10 @@
   var MODULES = {
     data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261020-us-ranges' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
-    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261020-major-context1', needs: ['data', 'autowave'] },
+    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261022-trend1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
     sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength2' },
-    structure: { file: 'js/chart-structure.js', global: 'NineChartStructure', v: '20261021-st3' },
     vp: { file: 'js/volume-profile-analysis.js', global: 'NineVolumeProfile', v: '20261019-vp1' }
   };
 
@@ -591,8 +594,11 @@
     return series;
   }
 
-  function maStudies(dark) {
-    return MA_STUDIES.map(function (s) {
+  // groups 를 주면(['short'], ['long'], 둘 다) 그 그룹의 선만, 안 주면 예전 4개(5·20·60·224)만 돌려준다.
+  function maStudies(dark, groups) {
+    return MA_STUDIES.filter(function (s) {
+      return groups ? groups.indexOf(s.group) >= 0 : s.legacy === true;
+    }).map(function (s) {
       return { key: s.key, period: s.period, width: s.width, color: s.key === 'ma224' ? ma224Color(dark) : s.color };
     });
   }

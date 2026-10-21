@@ -1,78 +1,15 @@
-/* 추세선·채널·박스권(js/chart-structure.js)과 지지·저항 강도·전환(js/chart-sr.js enrichLevel) 검증(브라우저 없이).
- *  - 합성 시계열로 정의대로 나오는지, 미래 봉을 보지 않는지(잘라도 같은 선·같은 이벤트), 실제 일봉 픽스처가 깨지지 않는지. */
+/* 지지·저항 강도·전환(js/chart-sr.js enrichLevel), 거래량 체감 배수(chart-core), 이동평균선 그룹(chart-core),
+ * 파동 박스 안 추세선(chart-wave-overlay channelOf) 검증(브라우저 없이). */
 const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 globalThis.window = globalThis;
 globalThis.document = {};
 require('../js/chart-sr.js');
-require('../js/chart-structure.js');
-const S = globalThis.NineChartStructure, SR = globalThis.NineChartSR;
+const SR = globalThis.NineChartSR;
 
 function day(i) { const d = new Date(Date.UTC(2024, 0, 1 + i)); return d.toISOString().slice(0, 10); }
 function bar(i, c, spread, vol) { return { date: day(i), open: c, high: c + spread, low: c - spread, close: c, volume: vol == null ? 1000 : vol }; }
-
-// ---- 추세 구간: 저점·고점이 함께 높아지면 상승, 함께 낮아지면 하락 ----
-function zigzag(n, base, drift, amp, period) {
-  const out = [];
-  for (let i = 0; i < n; i++) out.push(bar(i, base + drift * i + amp * Math.sin((i / period) * 2 * Math.PI), 1));
-  return out;
-}
-const up = zigzag(160, 100, 0.5, 14, 20);
-const upResult = S.analyze(up, { timeframe: 'day' });
-assert.ok(upResult.trends.length >= 1, '상승 구간이 잡혀야 한다');
-const lastUp = upResult.trends[upResult.trends.length - 1];
-assert.strictEqual(lastUp.kind, 'up');
-assert.ok(lastUp.slope > 0 && lastUp.pct >= 0.2);
-// 채널은 구간의 모든 저점 아래·모든 고점 위를 지난다
-upResult.trends.forEach(function (ph) {
-  ph.pivots.forEach(function (q) {
-    const v = ph.slope * q.i + (q.type === 'L' ? ph.bLow : ph.bHigh);
-    if (q.type === 'L') assert.ok(q.p >= v - 1e-9, '저점은 아래선 위');
-    else assert.ok(q.p <= v + 1e-9, '고점은 위선 아래');
-  });
-});
-// 미래 비참조: 마지막 봉 몇 개를 떼어 내도 이미 확정된 첫 구간은 같다.
-const cut = S.analyze(up.slice(0, -5), { timeframe: 'day' });
-assert.strictEqual(cut.trends[0].start, upResult.trends[0].start);
-assert.strictEqual(cut.trends[0].bLow, upResult.trends[0].bLow);
-
-// 하락 구간
-const down = zigzag(160, 200, -0.5, 14, 20);
-const downResult = S.analyze(down, { timeframe: 'day' });
-assert.ok(downResult.trends.length >= 1);
-assert.strictEqual(downResult.trends[downResult.trends.length - 1].kind, 'down');
-assert.ok(downResult.trends[downResult.trends.length - 1].pct < 0);
-
-// 현재 상승 구간 이탈: 추세선 아래로 종가가 1% 넘게 빠지면 점과 거래량 배수가 붙고, 그 봉은 구간 끝 확정점 뒤여야 한다.
-const broken = up.concat([bar(160, 150, 1, 4000), bar(161, 120, 1, 4000), bar(162, 100, 1, 4000)]);
-const brk = S.analyze(broken, { timeframe: 'day' });
-const cur = brk.trends[brk.trends.length - 1];
-const ev = cur.events[0];
-assert.ok(ev && ev.dir === 'down', '상승 추세 이탈 이벤트');
-assert.ok(ev.i > cur.pivots[cur.pivots.length - 1].i, '확정점 뒤에만 찍는다');
-assert.ok(ev.vol > 1, '거래량 배수 기록');
-assert.strictEqual(cur.active, false);
-
-// 수평으로만 오르내리면 추세 구간이 아니다(횡보는 박스·지지저항으로 본다)
-const flat = zigzag(160, 100, 0, 14, 20);
-assert.strictEqual(S.analyze(flat, { timeframe: 'day' }).trends.length, 0);
-
-// ---- 박스권: 오르내림이 없는 횡보 뒤 거래량 실린 돌파 ----
-const boxBars = zigzag(60, 100, 0, 4, 10);
-const boxResult = S.analyze(boxBars, { timeframe: 'day' });
-assert.ok(boxResult.box, '박스');
-assert.ok(boxResult.box.ongoing);
-assert.ok(boxResult.box.bars >= 15);
-const exitBars = boxBars.concat([bar(60, 112, 1, 5000), bar(61, 113, 1, 3000)]);
-const exitResult = S.analyze(exitBars, { timeframe: 'day' });
-assert.ok(exitResult.box && exitResult.box.exit && exitResult.box.exit.dir === 'up', '박스 상단 돌파');
-assert.ok(exitResult.box.exit.vol >= 4);
-// 박스 범위 안에 있던 봉들만 박스 구간이다(이탈 봉은 포함하지 않는다)
-assert.ok(exitResult.box.end < exitResult.box.exit.i);
-
-// 완만한 한 방향 추세는 박스가 아니다
-assert.strictEqual(S.analyze(zigzag(80, 100, 0.6, 1, 10), { timeframe: 'day' }).box, null);
 
 // ---- 지지·저항 강도·전환 ----
 // 저항 100 부근에서 여러 번 막히다가 돌파하고, 되돌려 100을 건드리고 지지받는다.
@@ -98,17 +35,11 @@ assert.ok(near100.retests >= 1);
 
 // ---- 실제 일봉 픽스처: 예외 없이, 값은 범위 안 ----
 const real = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/flow_chart_005930.json'), 'utf8')).daily;
-const rr = S.analyze(real, { timeframe: 'day' });
-rr.trends.forEach(function (ph) { assert.ok(ph.start < ph.end && ph.pivots.length >= 4); });
-if (rr.box) { assert.ok(rr.box.top > rr.box.bottom && (rr.box.top - rr.box.bottom) / rr.box.bottom <= 0.20 + 1e-9); }
 const realSr = SR.levels(real, null, { timeframe: 'day' });
 realSr.support.concat(realSr.resistance).forEach(function (l) { assert.ok(l.reactions >= 0 && l.volReactions <= l.reactions); });
 
 // 짧은 배열·빈 입력은 조용히 비어 있다
-assert.strictEqual(S.analyze([], { timeframe: 'day' }).trends.length, 0);
-assert.strictEqual(S.analyze(null, { timeframe: 'day' }).box, null);
-assert.ok(typeof S.summary(S.analyze([], {})) === 'string');
-console.log('chart structure OK');
+console.log('support/resistance strength OK');
 
 // ---- 거래량 체감 배수(js/chart-core.js volumeSpikeMultiples) ----
 globalThis.document = { currentScript: null, documentElement: { classList: { contains: () => false } }, head: { appendChild() {} }, querySelector: () => null, createElement: () => ({ setAttribute() {}, remove() {}, addEventListener() {} }) };
@@ -176,3 +107,47 @@ Core.addVolumePane({ addSeries: (kind) => ({ setData: (d) => { if (kind === 'his
   { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: () => ({ setMarkers: (m) => { offState.last = m; } }) }, vb, { pane: 1 });
 assert.ok(/,0\.5\)$/.test(offState.hist[25].color) && offState.last.length === 0, '기본은 끔');
 console.log('volume multiple default off OK');
+
+// ---- 이동평균선: 단기(3·5·20·60)·장기(112·224·448) 그룹, 그룹을 안 주면 예전 4개 ----
+const keys = (arr) => arr.map((x) => x.key).join(',');
+assert.strictEqual(keys(Core.maStudies(false, ['short'])), 'ma3,ma5,ma20,ma60');
+assert.strictEqual(keys(Core.maStudies(false, ['long'])), 'ma112,ma224,ma448');
+assert.strictEqual(keys(Core.maStudies(false)), 'ma5,ma20,ma60,ma224', '그룹을 안 주면 예전 4개');
+const m224 = Core.maStudies(false, ['long']).find((x) => x.key === 'ma224');
+assert.strictEqual(m224.width, 3);
+assert.strictEqual(m224.color, '#000000', '224일선은 검정 굵게');
+assert.strictEqual(Core.maStudies(true, ['long']).find((x) => x.key === 'ma224').color, '#f1f3f5', '다크모드는 밝은 회색');
+assert.deepStrictEqual(Core.maStudies(false, []).length, 0);
+console.log('moving average groups OK');
+
+// ---- 파동 박스 안 추세선(채널) ----
+require('../js/chart-wave-overlay.js');
+const Wave = globalThis.NineChartWave;
+const upWave = { kind: 'up', start: 0, end: 60, low: 100, high: 160, confirmed: true };
+const lowerOk = [
+  { kind: 'up', start: 0, end: 15, low: 100, high: 125 }, { kind: 'down', start: 15, end: 25, high: 125, low: 112 },
+  { kind: 'up', start: 25, end: 40, low: 112, high: 140 }, { kind: 'down', start: 40, end: 48, high: 140, low: 128 },
+  { kind: 'up', start: 48, end: 60, low: 128, high: 160 }
+];
+const ch = Wave.channelOf(upWave, lowerOk);
+assert.ok(ch, '채널이 만들어진다');
+assert.ok(ch.upper.m > 0 && ch.lower.m > 0, '상승 파동의 위·아래선은 오른쪽으로 오른다');
+// 위선은 모든 고점 위, 아래선은 모든 저점 아래
+ch.highs.forEach((q) => assert.ok(q.p <= ch.upper.m * q.i + ch.upper.b + 1e-9));
+ch.lows.forEach((q) => assert.ok(q.p >= ch.lower.m * q.i + ch.lower.b - 1e-9));
+assert.strictEqual(Wave.channelOf(upWave, [{ kind: 'up', start: 0, end: 60, low: 100, high: 160 }]), null, '아래 규모 점이 2개 미만이면 선을 긋지 않는다');
+assert.strictEqual(Wave.channelOf({ kind: 'side', isBox: true, start: 0, end: 60 }, lowerOk), null, '횡보 박스는 선을 긋지 않는다');
+assert.strictEqual(Wave.channelOf(upWave, []), null);
+// 하락 파동
+const downWave = { kind: 'down', start: 0, end: 60, high: 160, low: 100, confirmed: false };
+const lowerDown = [
+  { kind: 'down', start: 0, end: 15, high: 160, low: 140 }, { kind: 'up', start: 15, end: 25, low: 140, high: 152 },
+  { kind: 'down', start: 25, end: 45, high: 152, low: 118 }, { kind: 'up', start: 45, end: 52, low: 118, high: 128 },
+  { kind: 'down', start: 52, end: 60, high: 128, low: 100 }
+];
+const chd = Wave.channelOf(downWave, lowerDown);
+assert.ok(chd && chd.upper.m < 0 && chd.lower.m < 0 && chd.confirmed === false);
+// 박스 밖 점은 쓰지 않는다
+const outside = Wave.channelOf({ kind: 'up', start: 20, end: 40, low: 110, high: 140, confirmed: true }, lowerOk);
+outside && outside.lows.concat(outside.highs).forEach((q) => assert.ok(q.i >= 20 && q.i <= 40));
+console.log('wave channel OK');

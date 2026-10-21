@@ -96,7 +96,7 @@
   var PAD = { l: 68, r: 16, t: 16, b: 30 };
 
   var FCHART_H = 360;
-  var MA_COLORS = { ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678' };
+  var MA_COLORS = { ma3: '#f08c00', ma5: '#d24f45', ma20: '#1261c4', ma60: '#0ca678', ma112: '#7048e8', ma448: '#6b7280' };
   var MA_WIDTHS = { ma5: 1, ma20: 1, ma60: 1, ma224: 3 };
   var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)'; // 2026-08-22 요청: "더 진한 색으로" - 옅은 하늘색 0.24 알파에서 더 짙고 채도 높은 파랑 0.4 알파로 조정
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
@@ -115,8 +115,8 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-phase1';
-  var CHART_OPTIONAL = ['drawing', 'sr', 'structure', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-ma448';
+  var CHART_OPTIONAL = ['drawing', 'sr', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
   var lwcChart = null;         // 현재 렌더된 차트 인스턴스(재검색 시 정리용)
@@ -4405,11 +4405,11 @@
       body = '<div class="ff-error">' + escapeHtml((chartData && chartData.message) || '차트 데이터를 불러오지 못했어요.') + '</div>';
     } else {
       body = '<div class="ff-price-chart-panel"><div class="ff-chart-toggles">'
-        + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffMovingAverageToggle"' + (movingAverageEnabled ? ' checked' : '') + ' /> 이동평균선 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="3·5·20·60일선"><input type="checkbox" id="ffMaShortToggle"' + (movingAverageShortEnabled ? ' checked' : '') + ' /> 단기 이평선(3·5·20·60)</label>'
+        + '<label class="ff-ichimoku-toggle" title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" id="ffMaLongToggle"' + (movingAverageLongEnabled ? ' checked' : '') + ' /> 장기 이평선(112·224·448)</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffIchimokuToggle"' + (ichimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
-        + '<label class="ff-ichimoku-toggle" title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" id="ffStructureToggle"' + (structureEnabled ? ' checked' : '') + ' /> 추세선·박스 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" id="ffVolMultToggle"' + (volumeMultipleEnabled ? ' checked' : '') + ' /> 거래량 배수 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
@@ -4445,10 +4445,13 @@
 
   function buildLwLegend() {
     return '<div class="ff-legend">'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma3 + '"></i>3일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma5 + '"></i>5일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma20 + '"></i>20일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma60 + '"></i>60일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma112 + '"></i>112일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + ma224Color() + '"></i>224일선</span>'
+      + '<span class="ff-legend-item"><i class="ff-dot" style="background:' + MA_COLORS.ma448 + '"></i>448일선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#1261c4"></i>지지선</span>'
       + '<span class="ff-legend-item"><i class="ff-dot" style="background:#d24f45"></i>저항선</span>'
       // 2026-09-01: 범례는 실제 그려지는 것만 둔다(그려지지도 않는 공시·실적을 광고하던
@@ -4456,8 +4459,9 @@
       + '</div>';
   }
 
-  var movingAverageEnabled = true;
-  var movingAverageOverlaySeries = [];
+  var movingAverageShortEnabled = true;   // 단기 3·5·20·60일선
+  var movingAverageLongEnabled = true;    // 장기 112·224·448일선
+  var movingAverageOverlaySeries = [];    // [{ series, group }]
   var bollingerEnabled = false;
   var bollingerOverlaySeries = [];
   // 예전 추세 배지의 잔여 DOM만 정리한다. 보조 설명은 대파동에 통합한다.
@@ -4483,14 +4487,15 @@
   }
 
   function wireMovingAverageToggle(box) {
-    var toggle = box.querySelector('#ffMovingAverageToggle');
-    if (!toggle) return;
-    toggle.addEventListener('change', function () {
-      movingAverageEnabled = toggle.checked;
-      movingAverageOverlaySeries.forEach(function (series) {
-        try { series.applyOptions({ visible: movingAverageEnabled }); } catch (e) { /* 제거된 차트면 무시 */ }
+    function apply() {
+      movingAverageOverlaySeries.forEach(function (item) {
+        var on = item.group === 'short' ? movingAverageShortEnabled : movingAverageLongEnabled;
+        try { item.series.applyOptions({ visible: on }); } catch (e) { /* 제거된 차트면 무시 */ }
       });
-    });
+    }
+    var shortToggle = box.querySelector('#ffMaShortToggle'), longToggle = box.querySelector('#ffMaLongToggle');
+    if (shortToggle) shortToggle.addEventListener('change', function () { movingAverageShortEnabled = shortToggle.checked; apply(); });
+    if (longToggle) longToggle.addEventListener('change', function () { movingAverageLongEnabled = longToggle.checked; apply(); });
   }
 
   // 자동 파동 체크·규모 선택: 분석은 캐시를 재사용하고 규모만 바꿔 다시 그린다(chart-wave-overlay 가 연결).
@@ -4528,8 +4533,6 @@
   var supportResistanceEnabled = false;
   var volumeMultipleEnabled = false;   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
   var flowVolumePane = null;
-  var structureEnabled = false;   // 추세선·채널·박스권(js/chart-structure.js)
-  var flowStructureCleanup = null;
   var flowSrCtx = null;
   var ichimokuOverlaySeries = [];
   var ichimokuCloudPrimitive = null; // { series, primitive }
@@ -4623,17 +4626,6 @@
       volMultToggle.addEventListener('change', function () {
         volumeMultipleEnabled = volMultToggle.checked;
         if (flowVolumePane && typeof flowVolumePane.setMultiples === 'function') flowVolumePane.setMultiples(volumeMultipleEnabled);
-      });
-    }
-    var structureToggle = box.querySelector('#ffStructureToggle');
-    if (structureToggle) {
-      structureToggle.addEventListener('change', function () {
-        structureEnabled = structureToggle.checked;
-        if (!structureEnabled) {
-          if (flowStructureCleanup) { flowStructureCleanup(); flowStructureCleanup = null; }
-        } else if (flowSrCtx && lwcChart === flowSrCtx.chart) {
-          setupFlowStructure(flowSrCtx.container, flowSrCtx.chart, flowSrCtx.series, flowSrCtx.daily);
-        }
       });
     }
     var toggle = box.querySelector('#ffIchimokuToggle');
@@ -6021,14 +6013,6 @@
     flowSrCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); }, { isUs: false });
   }
 
-  function setupFlowStructure(container, chart, series, daily) {
-    if (!structureEnabled || flowStructureCleanup) return;
-    var api = global.NineChartStructure;
-    if (!api) return;   // 모듈을 못 받았으면 이 표시만 빠진다
-    var result = api.analyze(daily, { timeframe: 'day' });
-    flowStructureCleanup = api.install(container, chart, series, result, function (p) { return chartPriceFormatter(p); }, { isUs: false });
-  }
-
   function updateFlowSrReference(referencePrice) {
     var price = Number(referencePrice);
     if (!Number.isFinite(price) || price <= 0) return;
@@ -6046,7 +6030,6 @@
     flowMarkerHolder = null; flowMarkerCtx = null;
     flowRenderId++;
     if (flowSrCleanup) { flowSrCleanup(); flowSrCleanup = null; }
-    if (flowStructureCleanup) { flowStructureCleanup(); flowStructureCleanup = null; }
     destroyFlowMemo();
     destroyFlowOverlays();
     if (lwcScope) { lwcScope.dispose(); lwcScope = null; }
@@ -6137,18 +6120,22 @@
 
       var levels = chartData.levels || {};
       setupFlowSupportResistance(container, chart, candleSeries, daily, levels, LWC, currentPrice);
-      setupFlowStructure(container, chart, candleSeries, daily);
 
       // 이동평균선: 서버가 계산한 값(데이터 앞쪽의 부분 창 구간 포함)을 그대로 그린다. 시리즈 생성은 공용 부품.
-      core.maStudies().forEach(function (study) {
+      core.maStudies(undefined, ['short', 'long']).forEach(function (study) {
         var values = (chartData.ma && chartData.ma[study.key]) || [];
-        if (!values.length) return;
         var pts = [];
-        daily.forEach(function (d, i) {
-          if (values[i] == null) return;
-          pts.push({ time: d.date, value: values[i] });
-        });
-        movingAverageOverlaySeries.push(core.addMovingAverageLine(chart, LWC, study, pts, { visible: movingAverageEnabled }));
+        if (values.length) {
+          daily.forEach(function (d, i) {
+            if (values[i] == null) return;
+            pts.push({ time: d.date, value: values[i] });
+          });
+        } else {
+          pts = core.movingAveragePoints(daily, 'close', study.period);   // 서버가 주지 않는 3·112·448일선은 종가 단순이동평균으로 계산
+        }
+        if (!pts.length) return;
+        var on = study.group === 'short' ? movingAverageShortEnabled : movingAverageLongEnabled;
+        movingAverageOverlaySeries.push({ group: study.group, series: core.addMovingAverageLine(chart, LWC, study, pts, { visible: on }) });
       });
 
       if (ichimokuEnabled) addIchimokuOverlay(daily);
