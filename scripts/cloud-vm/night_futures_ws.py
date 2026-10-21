@@ -20,6 +20,7 @@ from datetime import datetime, timedelta, timezone
 import websockets
 
 import db_schema
+import home_session_chart
 import kis_client
 import kis_ws_hub
 import night_futures_code
@@ -90,6 +91,11 @@ def _upsert_tick(conn, row):
         pass
     db_schema.upsert_future_price(conn, SYMBOL_KEY, DISPLAY_NAME, price, change, change_rate, high, low, now_iso,
                                    oi=oi, oi_change=oi_change)
+    # 홈 야간선물 차트: 분봉이 멈춰도 이 틱을 30분 구간 관측값으로 남겨 차트가 끊기지 않게 한다(실패해도 시세 저장에는 영향 없음).
+    try:
+        home_session_chart.record_night_tick(conn, price)
+    except Exception:
+        logger.exception('night futures tick session record failed')
 
 
 def _fetch_history_chunk(token, appkey, appsecret, code, date1, date2):

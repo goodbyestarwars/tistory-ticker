@@ -84,6 +84,42 @@ class SessionCharts(unittest.TestCase):
         self.assertEqual([p['slot'] for p in r['rows']], [10, 14])
         self.assertEqual((r['rows'][0]['high'], r['rows'][0]['low'], r['rows'][0]['close']), (117, 109, 116))
 
+    def test_night_tick_observations_fill_slots_after_midnight_when_minute_bars_stop(self):
+        charts._night_pending = None
+        def at(stamp):
+            return datetime.fromisoformat(stamp)
+        # 분봉은 23:58 까지만 있고(자정 이후 수집 중단), 시세 틱은 계속 들어온 상황
+        db_schema.upsert_future_chart_minute_rows(self.conn, 'KOSPI200_NIGHT', [
+            dict(ts=int(at('2026-10-21T23:58:00+09:00').timestamp()), open=886.0, high=889.8, low=885.2, close=886.65)])
+        ticks = [('2026-10-22T00:05:00+09:00', 887.0), ('2026-10-22T00:20:00+09:00', 889.5), ('2026-10-22T00:25:00+09:00', 886.5),
+                 ('2026-10-22T01:10:00+09:00', 880.0), ('2026-10-22T05:55:00+09:00', 888.3)]
+        for stamp, price in ticks:
+            self.assertTrue(charts.record_night_tick(self.conn, price, at(stamp), flush_sec=0))
+        r = self.get('KOSPI200_NIGHT')
+        slots = {row['slot']: row for row in r['rows']}
+        self.assertEqual(r['session']['date'], '2026-10-21')
+        self.assertEqual([row['slot'] for row in r['rows']], sorted(slots))
+        self.assertEqual(slots[11]['close'], 886.65, 'minute bar wins where it exists')
+        self.assertEqual((slots[12]['open'], slots[12]['high'], slots[12]['low'], slots[12]['close']), (887.0, 889.5, 886.5, 886.5))
+        self.assertIn(14, slots)   # 01:10
+        self.assertIn(23, slots)   # 05:55
+        self.assertNotIn(13, slots, 'gaps stay gaps')
+
+    def test_night_tick_rejects_daytime_and_invalid_and_throttles_writes(self):
+        charts._night_pending = None
+        self.assertFalse(charts.record_night_tick(self.conn, 880, datetime.fromisoformat('2026-10-22T10:00:00+09:00')))
+        self.assertFalse(charts.record_night_tick(self.conn, float('nan'), datetime.fromisoformat('2026-10-22T01:00:00+09:00')))
+        self.assertFalse(charts.record_night_tick(self.conn, -1, datetime.fromisoformat('2026-10-22T01:00:00+09:00')))
+        self.assertFalse(charts.record_night_tick(self.conn, 'x', datetime.fromisoformat('2026-10-22T01:00:00+09:00')))
+        base = datetime.fromisoformat('2026-10-22T01:00:00+09:00')
+        self.assertTrue(charts.record_night_tick(self.conn, 880, base, flush_sec=3600))
+        self.assertTrue(charts.record_night_tick(self.conn, 885, base + timedelta(seconds=5), flush_sec=3600))
+        count = lambda: self.conn.execute("SELECT high FROM home_session_prices WHERE symbol='KOSPI200_NIGHT'").fetchone()
+        self.assertEqual(count()[0], 880, 'second tick in the same slot is buffered, not written yet')
+        self.assertTrue(charts.record_night_tick(self.conn, 870, base + timedelta(minutes=31), flush_sec=3600))
+        rows = self.conn.execute("SELECT slot,high,low,close FROM home_session_prices WHERE symbol='KOSPI200_NIGHT' ORDER BY slot").fetchall()
+        self.assertEqual(rows[0][1:], (885, 880, 885), 'previous slot flushed when the slot changes')
+
     def test_provider_metadata_is_used_without_extra_requests(self):
         fixture = {'datas': [dict(closePriceRaw='100', compareToPreviousClosePriceRaw='1', fluctuationsRatioRaw='1',
             highPriceRaw='102', lowPriceRaw='99', localTradedAt='2026-10-15T10:01:00-04:00', marketStatus='OPEN')]}
