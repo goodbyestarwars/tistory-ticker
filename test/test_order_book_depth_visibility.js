@@ -129,4 +129,21 @@ t.setBookHint(board, '호가 미수신');
 assert.strictEqual((board.innerHTML.match(/ob-row-ask ob-row-unavailable/g) || []).length, 10);
 assert.strictEqual((board.innerHTML.match(/ob-row-bid ob-row-unavailable/g) || []).length, 10);
 
+
+// 호가 매수/가격/매도 3열은 PC·모바일 모두 1 : 1.5 : 1 비율.
+// 과거 px 고정폭이 뒤쪽 CSS에서 우선 적용되면 스크린샷처럼 현재가 칸이 다시 좁아진다.
+const orderBookCss = fs.readFileSync('css/order-book.css', 'utf8');
+const stockSearchCss = fs.readFileSync('css/stock-search.css', 'utf8');
+const centerRatio = /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(0,\s*1\.5fr\)\s+minmax\(0,\s*1fr\)/g;
+const checkRatio = (css, expected, name) => {
+  const matches = css.match(centerRatio) || [];
+  assert.strictEqual(matches.length, expected, name + ' PC/mobile column ratio');
+};
+checkRatio(orderBookCss, 4, 'order-book');
+checkRatio(stockSearchCss, 1, 'stock-search');
+assert(!/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+\d+px\s+minmax\(0,\s*1fr\)/.test(orderBookCss),
+  'order-book fixed center width override must not remain');
+assert(!/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+\d+px\s+minmax\(0,\s*1fr\)/.test(stockSearchCss),
+  'stock-search fixed center width override must not remain');
+
 console.log('order-book 10+10 visible depth: ok');

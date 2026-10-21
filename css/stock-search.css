@@ -1098,7 +1098,7 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search #order-book .ob-table-pairs > .ob-row { min-height:27px; padding-block:0; }
 #stock-search #order-book .ob-depth { height:26px; }
 /* 2026-10-21 호가창 가독성: 행 27px, 가격 칸 확대, 잔량·증감 글자 키움. 데이터·계산은 그대로. */
-#stock-search #order-book .ob-pair-head, #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 88px minmax(0,1fr); column-gap: 4px; padding-inline: 4px; }
+#stock-search #order-book .ob-pair-head, #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 4px; padding-inline: 4px; }
 #stock-search #order-book .ob-table-pairs .ob-price { font-size: 14px; font-weight: 700; letter-spacing: .1px; }
 #stock-search #order-book .ob-depth .ob-qty { font-size: 12.5px; font-variant-numeric: tabular-nums; }
 #stock-search #order-book .ob-depth .ob-delta { font-size: 11px; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
