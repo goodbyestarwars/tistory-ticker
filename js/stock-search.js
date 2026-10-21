@@ -1209,7 +1209,6 @@
   function renderResults(container, items, userExpanded) {
     var resultsBox = container.querySelector('#ssResults');
     var overview = container.querySelector('#ssOverview');
-    if (overview && items.length) overview.classList.add('ss-overview-active');
 
     if (isIndependentChartMode() && items.length) {
       state.lastResults = items;
@@ -1218,6 +1217,7 @@
       return;
     }
 
+    if (overview && items.length) overview.classList.add('ss-overview-active');
     if (state.resultsCollapsed) {
       // The selected stock's name/price live in the detailed summary below.
       // Keep only a small results navigation control instead of a duplicate stock header.
