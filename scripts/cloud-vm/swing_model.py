@@ -462,7 +462,8 @@ def classify_wave_structure(daily: List[Dict[str, Any]],
     prior_ma60_slope = _slope_at(ma60_values, len(closes) - 11, 10) or 0
     short_trigger = short_signal['key'] in ('ma5_recovery', 'ma20_breakout')
     short_transition = bool(short_trigger and ma5_slope > 0)
-    current = closes[-1]
+    # Missing OHLC must remain insufficient, without inventing a closing price.
+    current = closes[-1] if closes else None
     current_ma20 = ma20_values[-1] if ma20_values else None
     mid_transition = bool(
         current_ma20 is not None and current >= current_ma20

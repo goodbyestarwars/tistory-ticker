@@ -20,6 +20,20 @@ def bars(values):
 
 
 class SwingModelTests(unittest.TestCase):
+    def test_missing_valid_closes_remain_insufficient_without_entry(self):
+        for daily in ([], None, bars([0, -1]), [{'close': None}]):
+            with self.subTest(daily=daily):
+                assessment = swing_model.build_swing_assessment(
+                    daily, flow_score=95, foreign_inst_score=95,
+                    fundamental_score=95)
+                waves = assessment['waves']
+                self.assertEqual(waves['actionKey'], 'insufficient')
+                for layer in ('big', 'mid', 'small'):
+                    self.assertFalse(waves[layer]['available'])
+                    self.assertEqual(waves[layer]['sampleDays'], 0)
+                self.assertFalse(any(item['active'] for item in waves['transitions'].values()))
+                self.assertFalse(swing_model.is_two_week_candidate(assessment))
+
     def test_rising_trend_never_outputs_reduce_or_sell(self):
         assessment = swing_model.build_swing_assessment(
             bars([100 + index for index in range(260)]), flow_score=80,
