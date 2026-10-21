@@ -295,6 +295,91 @@
     return true;
   }
 
+  // ---- 마우스 휠: 커서 아래 봉을 유지하며 rAF마다 점진 확대·축소 ----
+  // 설치한 화면에서만 라이브러리 기본 wheel scale/scroll을 비활성화한다.
+  // 드래그·핀치·가격축·보조지표·작도는 별도 기본 이벤트를 계속 사용한다.
+  function installSmoothWheelZoom(chart, element, opts) {
+    if (!chart || !chart.timeScale || !element || !element.addEventListener) return function () {};
+    opts = opts || {};
+    var scale = chart.timeScale();
+    var total = Math.max(1, Number(opts.bars) || 250);
+    var edge = 12, minSpan = 12;
+    var leftLimit = -edge, rightLimit = total - 1 + edge;
+    var maxSpan = Math.max(minSpan, Math.min(2000, rightLimit - leftLimit));
+    var target = null, frame = 0, disposed = false;
+
+    function bounded(from, span) {
+      span = Math.max(minSpan, Math.min(maxSpan, span));
+      var to = from + span;
+      if (from < leftLimit) { from = leftLimit; to = from + span; }
+      if (to > rightLimit) { to = rightLimit; from = to - span; }
+      return { from: from, to: to };
+    }
+
+    function stop() {
+      if (frame) global.cancelAnimationFrame(frame);
+      frame = 0;
+      target = null;
+    }
+
+    function animate() {
+      frame = 0;
+      if (disposed || !target) return;
+      var now = scale.getVisibleLogicalRange();
+      if (!now || !isFinite(now.from) || !isFinite(now.to)) { target = null; return; }
+      var from = now.from + (target.from - now.from) * 0.34;
+      var to = now.to + (target.to - now.to) * 0.34;
+      var done = Math.abs(target.from - from) < 0.035 && Math.abs(target.to - to) < 0.035;
+      scale.setVisibleLogicalRange(done ? target : { from: from, to: to });
+      if (done) target = null;
+      else frame = global.requestAnimationFrame(animate);
+    }
+
+    function onWheel(event) {
+      if (disposed) return;
+      if (event.target && event.target.closest && event.target.closest('button, a, input, textarea, select, [data-no-wheel-zoom]')) return;
+      var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (element.clientHeight || 400) : 1;
+      // 마우스 노치/고해상도 트랙패드 모두 입력 강도에 비례하도록 제한한다.
+      var dx = Math.max(-240, Math.min(240, (Number(event.deltaX) || 0) * unit));
+      var dy = Math.max(-240, Math.min(240, (Number(event.deltaY) || 0) * unit));
+      if (!dx && !dy) return;
+      var rect = element.getBoundingClientRect ? element.getBoundingClientRect() : { left: 0 };
+      var width = typeof scale.width === 'function' ? scale.width() : element.clientWidth;
+      if (!(width > 0) || (typeof event.clientX === 'number' && event.clientX > rect.left + width)) return;
+      var live = scale.getVisibleLogicalRange();
+      if (!live || !isFinite(live.from) || !isFinite(live.to) || live.to <= live.from) return;
+      if (event.cancelable !== false && event.preventDefault) event.preventDefault();
+
+      var base = target || live;
+      var span = base.to - base.from;
+      if (Math.abs(dx) > Math.abs(dy) || event.shiftKey) {
+        // 트랙패드 가로 스크롤/Shift+휠은 시간축 좌우 이동.
+        var move = (dx || dy) * span / width;
+        target = bounded(base.from + move, span);
+      } else {
+        // 마우스 아래 논리적 봉 위치를 줌 중심으로 보존한다.
+        var ratio = typeof event.clientX === 'number'
+          ? Math.max(0, Math.min(1, (event.clientX - rect.left) / width)) : 0.5;
+        var anchor = base.from + ratio * span;
+        var nextSpan = span * Math.exp(dy * 0.00125);
+        nextSpan = Math.max(minSpan, Math.min(maxSpan, nextSpan));
+        target = bounded(anchor - ratio * nextSpan, nextSpan);
+      }
+      if (!frame) frame = global.requestAnimationFrame(animate);
+    }
+
+    element.addEventListener('wheel', onWheel, { passive: false });
+    element.addEventListener('pointerdown', stop, { passive: true });
+    element.addEventListener('touchstart', stop, { passive: true });
+    return function () {
+      disposed = true;
+      stop();
+      element.removeEventListener('wheel', onWheel);
+      element.removeEventListener('pointerdown', stop);
+      element.removeEventListener('touchstart', stop);
+    };
+  }
+
   // ---- 데이터 보조(순수 함수) ----
   function movingAveragePoints(bars, field, period) {
     var sum = 0, points = [];
@@ -1171,7 +1256,7 @@
     isDark: isDark, themeColors: themeColors, chartOptions: chartOptions, themeUpdateOptions: themeUpdateOptions, profiles: PROFILES,
     ma224Color: ma224Color, maStudies: maStudies,
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
-    registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars,
+    registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars, installSmoothWheelZoom: installSmoothWheelZoom,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,

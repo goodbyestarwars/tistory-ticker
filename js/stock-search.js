@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-summary-ui1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-smooth-wheel1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -145,6 +145,7 @@
   var supplyMarkerHolder = null;
   var lwcOhlcTooltipCleanup = null;
   var stockPanCleanup = null;
+  var stockWheelCleanup = null;
   var stockChartRegistryOff = null;
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
@@ -168,6 +169,7 @@
   var indexChart = null;
   var indexSeries = null;
   var indexOhlcTooltipCleanup = null;
+  var indexWheelCleanup = null;
   var indexDrawingCtl = null;
   var indexBars = [];
   var indexTimeframe = 'day';
@@ -898,6 +900,7 @@
     if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
+    if (indexWheelCleanup) { indexWheelCleanup(); indexWheelCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     indexBars = [];
@@ -919,6 +922,7 @@
     if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
+    if (indexWheelCleanup) { indexWheelCleanup(); indexWheelCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     var host = panel.querySelector('#ssIndexChart');
@@ -941,7 +945,10 @@
         layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
         // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { borderVisible: false } });
+        timeScale: { borderVisible: false },
+        handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true },
+        handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: true } });
+      indexWheelCleanup = global.NineChartCore.installSmoothWheelZoom(indexChart, host, { bars: bars.length });
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
@@ -2641,6 +2648,7 @@
     supplyMarkerHolder = null;
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
+    if (stockWheelCleanup) { stockWheelCleanup(); stockWheelCleanup = null; }
     if (stockChartRegistryOff) { stockChartRegistryOff(); stockChartRegistryOff = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
@@ -2655,13 +2663,18 @@
       var core = global.NineChartCore;
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
-      var chart = LWC.createChart(container, core.chartOptions(LWC, 'search', {
+      var options = core.chartOptions(LWC, 'search', {
         timeframe: timeframe,
         fontFamily: global.getComputedStyle ? global.getComputedStyle(document.body).fontFamily : "'MaruBuri', Georgia, serif",
         autoSize: false,
         width: Math.max(1, Math.floor(container.clientWidth)),
         height: Math.max(1, Math.floor(container.clientHeight || 420))
-      }));
+      });
+      // 라이브러리 기본 휠 스크롤/확대와 중복되지 않도록 이 화면에서만 비활성화.
+      options.handleScale.mouseWheel = false;
+      options.handleScroll.mouseWheel = false;
+      var chart = LWC.createChart(container, options);
+      stockWheelCleanup = core.installSmoothWheelZoom(chart, container, { bars: bars.length });
       lwcChart = chart;
       lwcChartContainer = container;
       stockChartRegistryOff = core.registerChart(container, chart, { bars: bars.length, timeframe: timeframe });
