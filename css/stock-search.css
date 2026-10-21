@@ -1051,7 +1051,9 @@ html.dark #stock-search .ss-index-wave-group [data-index-wave-level] {
 }
 
 /* ---- 차트 매물대 분석 패널(2026-10-19): 화면에 보이는 봉 기준 비중·가까운 지지/저항 후보 ---- */
-#stock-search .ss-vp-panel { margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }
+/* 높이를 고정한다(2026-10-22 사용자 신고: 매물대를 켜면 화면이 흔들림). 내용 길이(지지·저항 유무, 상태 문장, 접힌 목록)가 바뀔 때마다
+   패널 높이가 달라지면 차트 영역이 줄었다 늘었다 하며 차트가 다시 계산돼 떨렸다. 넘치면 패널 안에서만 스크롤한다. */
+#stock-search .ss-vp-panel { box-sizing: border-box; height: 200px; overflow-y: auto; overscroll-behavior: contain; margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }
 #stock-search .ss-vp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 #stock-search .ss-vp-head > strong { font-weight: 500; font-size: 13px; color: #1f2d3d; }
 #stock-search .ss-vp-head > span { color: #6b7a8a; font-size: 11px; }
@@ -1484,4 +1486,8 @@ html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
     grid-row: 2;
     justify-self: end;
   }
+}
+
+@media (max-width: 720px) {
+  #stock-search .ss-vp-panel { height: 270px; }
 }
