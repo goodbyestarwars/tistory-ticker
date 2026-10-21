@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult3';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult4';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -523,7 +523,7 @@
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" data-chart-structure-toggle /> 추세선·박스 표시</label>'
-      + '<label title="거래량이 직전 20봉 평균의 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
+      + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
@@ -2155,7 +2155,7 @@
       + '<label><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
       + '<label title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" data-chart-structure-toggle /> 추세선·박스 표시</label>'
-      + '<label title="거래량이 직전 20봉 평균의 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
+      + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
