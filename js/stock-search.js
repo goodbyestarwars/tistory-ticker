@@ -1870,8 +1870,10 @@
       var height = container.clientHeight;
       if (!width || !height) return;
       var ratio = Math.max(1, global.devicePixelRatio || 1);
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
+      // Resizing clears/reallocates the backing store: only do it on actual resize.
+      var pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
       var ctx = canvas.getContext('2d');
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -1902,8 +1904,7 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (!frameId) frameId = global.requestAnimationFrame(draw);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
@@ -1976,8 +1977,10 @@
       positionLwcPaneLabels(container, panes, mainHeight, volumeHeight);
 
       var ratio = Math.max(1, global.devicePixelRatio || 1);
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
+      // Resizing clears/reallocates the backing store: only do it on actual resize.
+      var pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
       var ctx = canvas.getContext('2d');
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -1999,8 +2002,7 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (!frameId) frameId = global.requestAnimationFrame(draw);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);

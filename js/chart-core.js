@@ -307,6 +307,7 @@
     var leftLimit = -edge, rightLimit = total - 1 + edge;
     var maxSpan = Math.max(minSpan, Math.min(2000, rightLimit - leftLimit));
     var target = null, frame = 0, disposed = false;
+    var lastFrameTime = null, lastDirection = 0, lastGesture = null;
 
     function bounded(from, span) {
       span = Math.max(minSpan, Math.min(maxSpan, span));
@@ -320,18 +321,26 @@
       if (frame) global.cancelAnimationFrame(frame);
       frame = 0;
       target = null;
+      lastFrameTime = null;
+      lastDirection = 0;
+      lastGesture = null;
     }
 
-    function animate() {
+    function animate(timestamp) {
       frame = 0;
       if (disposed || !target) return;
       var now = scale.getVisibleLogicalRange();
       if (!now || !isFinite(now.from) || !isFinite(now.to)) { target = null; return; }
-      var from = now.from + (target.from - now.from) * 0.34;
-      var to = now.to + (target.to - now.to) * 0.34;
+      // Use elapsed time so 60/120/144Hz displays have the same gesture response.
+      var stamp = Number.isFinite(timestamp) ? timestamp : (lastFrameTime == null ? 0 : lastFrameTime + 1000 / 60);
+      var elapsed = lastFrameTime == null ? 1000 / 60 : Math.max(0, Math.min(64, stamp - lastFrameTime));
+      lastFrameTime = stamp;
+      var alpha = 1 - Math.exp(-elapsed / 60);
+      var from = now.from + (target.from - now.from) * alpha;
+      var to = now.to + (target.to - now.to) * alpha;
       var done = Math.abs(target.from - from) < 0.035 && Math.abs(target.to - to) < 0.035;
       scale.setVisibleLogicalRange(done ? target : { from: from, to: to });
-      if (done) target = null;
+      if (done) { target = null; lastFrameTime = null; }
       else frame = global.requestAnimationFrame(animate);
     }
 
@@ -350,9 +359,16 @@
       if (!live || !isFinite(live.from) || !isFinite(live.to) || live.to <= live.from) return;
       if (event.cancelable !== false && event.preventDefault) event.preventDefault();
 
+      var panning = Math.abs(dx) > Math.abs(dy) || event.shiftKey;
+      var direction = Math.sign(panning ? (dx || dy) : dy);
+      var gesture = panning ? 'pan' : 'zoom';
+      // Reverse from the visible position immediately; discard the old momentum.
+      if (target && (gesture !== lastGesture || direction !== lastDirection)) target = null;
+      lastDirection = direction;
+      lastGesture = gesture;
       var base = target || live;
       var span = base.to - base.from;
-      if (Math.abs(dx) > Math.abs(dy) || event.shiftKey) {
+      if (panning) {
         // 트랙패드 가로 스크롤/Shift+휠은 시간축 좌우 이동.
         var move = (dx || dy) * span / width;
         target = bounded(base.from + move, span);
@@ -360,7 +376,7 @@
         // 마우스 아래 논리적 봉 위치를 줌 중심으로 보존한다.
         var ratio = typeof event.clientX === 'number'
           ? Math.max(0, Math.min(1, (event.clientX - rect.left) / width)) : 0.5;
-        var anchor = base.from + ratio * span;
+        var anchor = live.from + ratio * (live.to - live.from);
         var nextSpan = span * Math.exp(dy * 0.00125);
         nextSpan = Math.max(minSpan, Math.min(maxSpan, nextSpan));
         target = bounded(anchor - ratio * nextSpan, nextSpan);

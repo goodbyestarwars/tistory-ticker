@@ -15,10 +15,10 @@ let nextId = 1;
 const queue = new Map();
 global.requestAnimationFrame = fn => { const id = nextId++; queue.set(id, fn); return id; };
 global.cancelAnimationFrame = id => { queue.delete(id); };
-function frame() {
+function frame(timestamp) {
   if (!queue.size) return false;
   const [id, cb] = queue.entries().next().value;
-  queue.delete(id); cb(); return true;
+  queue.delete(id); cb(timestamp); return true;
 }
 function settle() {
   let n = 0;
@@ -67,6 +67,39 @@ const beforePan = { ...range };
 wheel(1, 80); settle();
 assert(range.from > beforePan.from, 'horizontal trackpad scroll pans to the right');
 assert(Math.abs((range.to - range.from) - (beforePan.to - beforePan.from)) < .1);
+// A direction reversal must respond on the very next frame, not finish the old zoom.
+range = { from: 60, to: 160 };
+wheel(-200); frame();
+const reversingSpan = range.to - range.from;
+wheel(40); frame();
+assert(range.to - range.from > reversingSpan, 'reverse input responds immediately');
+settle();
+// Switching from zoom to pan keeps the current scale instead of finishing the zoom.
+wheel(-200); frame();
+const panSpan = range.to - range.from;
+wheel(0, 40); settle();
+assert(Math.abs(range.to - range.from - panSpan) < .001);
+// Moving the cursor during an active animation anchors the next gesture to the visible candle.
+range = { from: 60, to: 160 };
+wheel(-100, 0, 160); frame();
+const anchor = range.from + .75 * (range.to - range.from);
+wheel(-100, 0, 460); settle();
+assert(Math.abs(range.from + .75 * (range.to - range.from) - anchor) < .001);
+// Equal elapsed time gives equal response on displays with different refresh rates.
+function responseAt(hz) {
+  events.pointerdown.callback({}); range = { from: 60, to: 160 };
+  wheel(-100); frame(0);
+  for (let i = 1; i <= hz / 10; i++) frame(i * 1000 / hz);
+  return range.to - range.from;
+}
+const at60 = responseAt(60), at120 = responseAt(120);
+assert(Math.abs(at60 - at120) < 1e-8, 'time based response at 60/120Hz');
+settle();
+// Repeated input remains inside the loaded history and min zoom limits.
+for (let i=0;i<100;i++) wheel(-240);
+settle(); assert(range.to - range.from >= 12 - .001);
+for (let i=0;i<100;i++) wheel(240);
+settle(); assert(range.from >= -12 && range.to <= 311);
 // Button/controls, click-and-drag, and teardown must not be intercepted.
 const before = draws;
 wheel(-120, 0, 310, { target: { closest() { return {}; } }, preventDefault() { throw new Error('blocked control'); } });
