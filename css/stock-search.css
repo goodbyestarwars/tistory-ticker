@@ -417,8 +417,11 @@ html body .ss-chart-tabs.ss-chart-tabs {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 18px;
-  margin: -2px 0 8px;
+  margin: 8px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, .08);   /* 기간 버튼 아래·옵션 위 구분선(2026-10-22) */
 }
+html.dark #stock-search .ss-chart-studies { border-top-color: rgba(245, 239, 224, .16); }
 #stock-search .ss-chart-studies label {
   display: inline-flex;
   align-items: center;

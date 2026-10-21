@@ -770,8 +770,12 @@ html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  margin-top: 8px;
   margin-bottom: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, .08);   /* 기간 버튼 아래·옵션 위 구분선(2026-10-22) */
 }
+html.dark #foreign-flow .ff-chart-toggles { border-top-color: rgba(245, 239, 224, .16); }
 #foreign-flow .ff-chart-toggles .ff-ichimoku-toggle { margin-bottom: 0; }
 #foreign-flow .ff-draw-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
 #foreign-flow .ff-price-chart-panel { width:100%; min-width:0; }
