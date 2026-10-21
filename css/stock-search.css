@@ -1033,3 +1033,58 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
   #stock-search .ss-session-values { gap:12px; }
 }
 html.dark #stock-search .ss-session-values b { color:#f5efe0 !important; }
+
+/* Main chart order book: readable labels and quantity-side shading. */
+#stock-search #order-book .ob-hud-row { font-size: 14px; }
+#stock-search #order-book .ob-hud-label { width: 86px; }
+#stock-search #order-book .ob-hud-val { width: 60px; }
+#stock-search #order-book .ob-hud-note,
+#stock-search #order-book .ob-breakout-note:not(:empty) { font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
+#stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.13); }
+#stock-search #order-book .ob-current-row[data-dominance="ask"] { background: rgba(18,97,196,.13); }
+html.dark #stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.23) !important; }
+html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { background: rgba(18,97,196,.23) !important; }
+#stock-search #order-book .ob-depth .ob-bar-wrap > span { border-radius: 3px; }
+#stock-search #order-book .ob-trades-title,
+#stock-search #order-book .ob-trades-note { white-space: normal; word-break: keep-all; overflow-wrap: normal; hyphens: none; }
+
+/* Give the main order-book summary room between metrics and explanations. */
+#stock-search #order-book .ob-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+#stock-search #order-book .ob-hud-row {
+  display: grid;
+  grid-template-columns: 86px minmax(24px, 1fr) 60px;
+  gap: 10px;
+  min-height: 24px;
+  margin: 0;
+}
+#stock-search #order-book .ob-hud-note { padding-top: 2px; line-height: 1.8; }
+#stock-search #order-book .ob-breakout-note:not(:empty) { margin: 0; padding-top: 12px; line-height: 1.8; }
+#stock-search #order-book .ob-breakout-sub { margin-top: 6px; font-size: 12px; line-height: 1.8; }
+#stock-search #order-book .ob-abnormal-badges:not(:empty) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+}
+#stock-search #order-book .ob-abnormal-badge {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  border-radius: 8px;
+}
+
+#stock-search #order-book .ob-hud-label,
+#stock-search #order-book .ob-hud-val { font-size: 14px; }
+#stock-search #order-book .ob-hud-bar { grid-column: auto; grid-row: auto; height: 8px; }
+#stock-search #order-book .ob-breakout-note .ob-breakout-sub { margin-top: 6px; font-size: 12px; line-height: 1.8; }

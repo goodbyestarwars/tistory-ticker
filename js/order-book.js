@@ -1284,7 +1284,7 @@
 
     var ladderRows = asks.map(function (row, index) { return rowHtml(row, maxQty, 'ask', index + 1); }).join('');
     ladderRows += currentRowHtml;
-    ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계">매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가</div>';
+    ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계"></div>';
     ladderRows += bids.map(function (row, index) { return rowHtml(row, maxQty, 'bid', index + 1); }).join('');
 
     var totalAsk = asks.reduce(function (sum, row) { return sum + row.qty; }, 0);
@@ -1306,6 +1306,8 @@
       + ladderRows + '</div>'
       + footerHtml
       + buildTradesHtml();
+    var currentRow = board.querySelector('[data-field="current-row"]');
+    if (currentRow) currentRow.setAttribute('data-dominance', totalBid > totalAsk ? 'bid' : totalAsk > totalBid ? 'ask' : 'balanced');
     hideTenthRows(board);
     drawSilhouette(board, asks, bids);
     rememberDepth(asks, bids);

@@ -8169,7 +8169,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-foo
 }
 html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
 html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(var(--np-ink),.55)!important; }
-html body .learn-intro h2 { margin:32px 0 24px!important; font-size:clamp(32px,3.5vw,52px)!important; line-height:1.4!important; font-family:"MaruBuriBold","MaruBuri",serif!important; color:rgb(var(--np-ink))!important; }
+html body .learn-intro h2 { margin:32px 0 24px!important; font-size:40px!important; line-height:1.4!important; font-family:"MaruBuriBold","MaruBuri",serif!important; color:rgb(var(--np-ink))!important; }
 html body .learn-intro p { margin:0!important; font-size:17px!important; line-height:1.8!important; color:rgba(var(--np-ink),.65)!important; }
 html body .learn-intro-note { display:block; margin-top:48px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
 html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:18px!important; min-width:0; counter-reset:story; }
@@ -8193,7 +8193,7 @@ html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(
 @media(max-width:1100px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; gap:24px!important; }
   html body .learn-intro { padding:0!important; }
-  html body .learn-intro h2 { margin:16px 0!important; font-size:36px!important; }
+  html body .learn-intro h2 { margin:16px 0!important; font-size:40px!important; }
   html body .learn-intro h2 br,html body .learn-intro p br { display:none; }
   html body .learn-intro-note { margin-top:16px; }
 }

@@ -112,11 +112,11 @@
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
     minuteScope: '1',
-    studyOrder: ['ma','trace'],
+    studyOrder: ['ma'],
     movingAverageEnabled: true,
     ichimokuEnabled: false,
     bollingerEnabled: false,
-    accumulationEnabled: true,
+    accumulationEnabled: false,
     supplyMode: 'detail',
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
@@ -159,6 +159,12 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
+  var indexStudies = { ma: true, cloud: false, bollinger: false, sr: false };
+  var indexWaveState = { enabled: false, level: 'medium' };
+  var indexStudySeries = [];
+  var indexSrCleanup = null;
+  var indexWaveHandle = null;
+  var indexStudyUpdate = null;
   var indexChart = null;
   var indexSeries = null;
   var indexOhlcTooltipCleanup = null;
@@ -504,7 +510,7 @@
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
+      + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -856,7 +862,7 @@
       var next = indexLiveBar(row.code, last, quote.price, kstToday());
       if (next && (next.close !== last.close || next.high !== last.high || next.low !== last.low)) {
         indexBars[indexBars.length - 1] = next;
-        if (indexTimeframe === 'day' && indexSeries) indexSeries.update({ time: next.date, open: next.open, high: next.high, low: next.low, close: next.close });
+        if (indexTimeframe === 'day' && indexSeries) { indexSeries.update({ time: next.date, open: next.open, high: next.high, low: next.low, close: next.close }); if (typeof indexStudyUpdate === 'function') indexStudyUpdate(); }
       }
     };
     socket.onerror = function () { /* onclose 에서 재연결 */ };
@@ -877,6 +883,10 @@
     closeIndexSocket();
     indexRefreshNow = null;
     indexRenderId += 1;
+    indexStudyUpdate = null;
+    indexStudySeries = [];
+    if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
+    if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
@@ -894,6 +904,10 @@
 
   function renderIndexChart(panel, symbol) {
     var renderId = ++indexRenderId;
+    indexStudyUpdate = null;
+    indexStudySeries = [];
+    if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
+    if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
@@ -904,6 +918,12 @@
     host.style.position = 'relative';
     host.textContent = '차트를 불러오는 중...';
     chartReady().then(function (LWC) {
+      var core = global.NineChartCore;
+      return Promise.all([
+        indexStudies.sr ? core.loadModule('sr') : Promise.resolve(),
+        indexWaveState.enabled ? core.loadModule('wave') : Promise.resolve()
+      ]).then(function () { return LWC; });
+    }).then(function (LWC) {
       if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
       var bars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
       var dark = document.documentElement.classList.contains('dark');
@@ -934,6 +954,39 @@
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
         style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
       });
+      indexStudyUpdate = function () {
+        if (renderId !== indexRenderId) return;
+        var core = global.NineChartCore;
+        var currentBars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
+        indexStudySeries.forEach(function (line) { indexChart.removeSeries(line); });
+        indexStudySeries = [];
+        if (indexStudies.ma) core.maStudies(dark).forEach(function (study) {
+          indexStudySeries.push(core.addMovingAverageLine(indexChart, LWC, study, core.movingAveragePoints(currentBars, 'close', study.period)));
+        });
+        if (indexStudies.bollinger) indexStudySeries = indexStudySeries.concat(core.addBollingerBands(indexChart, LWC, currentBars));
+        if (indexStudies.cloud) {
+          var cloud = core.ichimokuCloudPoints(currentBars, indexTimeframe);
+          ['spanA', 'spanB'].forEach(function (key) {
+            var line = indexChart.addSeries(LWC.LineSeries, { color: '#939ca8', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            line.setData(cloud.map(function (point) { return { time: point.time, value: point[key] }; }));
+            indexStudySeries.push(line);
+          });
+          if (indexStudySeries.length && cloud.length) indexStudySeries[indexStudySeries.length - 1].attachPrimitive(core.createCloudPrimitive(cloud.map(function (point) { return { time: point.time, a: point.spanA, b: point.spanB }; }), 'rgba(147,156,168,0.15)'));
+        }
+        if (indexStudies.sr && global.NineChartSR) {
+          var result = global.NineChartSR.levels(currentBars, null, { timeframe: indexTimeframe });
+          if (indexSrCleanup) indexSrCleanup.update(result);
+          else indexSrCleanup = global.NineChartSR.install(host, indexChart, series, result, function (price) { return Number(price).toLocaleString('ko-KR', { maximumFractionDigits: 2 }); });
+        }
+        if (indexDrawingCtl) indexDrawingCtl.shapes.bars = currentBars;
+        if (indexWaveState.enabled && indexDrawingCtl && global.NineChartWave) {
+          if (indexWaveHandle) indexWaveHandle.detach();
+          indexWaveHandle = global.NineChartWave.attach({ core: core, ctl: indexDrawingCtl, key: 'INDEX:' + symbol, timeframe: indexTimeframe, bars: currentBars, state: indexWaveState, font: 'MaruBuri, serif' });
+          indexWaveHandle.apply();
+        }
+      };
+      indexStudyUpdate();
+      indexChart.timeScale().fitContent();
     }).catch(function () { if (renderId === indexRenderId) host.textContent = '차트를 불러오지 못했습니다.'; });
   }
 
@@ -983,6 +1036,7 @@
                 indexBars = bars;
                 if (indexTimeframe === 'day' && indexSeries) {
                   indexSeries.update({ time: latest.date, open: latest.open, high: latest.high, low: latest.low, close: latest.close });
+                  if (typeof indexStudyUpdate === 'function') indexStudyUpdate();
                 } else {
                   renderIndexChart(panel, row.code);
                 }
@@ -1008,7 +1062,26 @@
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
             + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
+            + '<div class="ss-chart-studies">'
+            + [['ma', '이동평균선 표시'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
+              return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
+            }).join('')
+            + '<label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
+            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 매물대 표시</label>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량·가격 흔적</label></div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
+          panel.querySelectorAll('[data-index-study]').forEach(function (input) {
+            input.addEventListener('change', function () {
+              var key = input.getAttribute('data-index-study');
+              if (key === 'wave') indexWaveState.enabled = input.checked;
+              else indexStudies[key] = input.checked;
+              renderIndexChart(panel, row.code);
+            });
+          });
+          var waveLevel = panel.querySelector('[data-index-wave-level]');
+          waveLevel.value = indexWaveState.level;
+          waveLevel.addEventListener('change', function () { indexWaveState.level = waveLevel.value; if (indexWaveState.enabled) renderIndexChart(panel, row.code); });
           panel.querySelectorAll('[data-index-tf]').forEach(function (button) {
             button.addEventListener('click', function () {
               indexTimeframe = button.getAttribute('data-index-tf');
