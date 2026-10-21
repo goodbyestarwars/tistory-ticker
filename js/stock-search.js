@@ -1197,7 +1197,7 @@
   // 계속 남아있어 "없어지질 않는다"는 리포트가 있었음 - 종목을 고르면 목록을 접어
   // "검색 결과 N건 (다시 보기)" 한 줄로 줄인다(재조회 없이 state.lastResults로 다시
   // 펼칠 수 있음). 선택된 종목이 어떤 건지 잊지 않도록 접힌 줄에도 이름을 같이 보여준다.
-  function renderResults(container, items) {
+  function renderResults(container, items, userExpanded) {
     var resultsBox = container.querySelector('#ssResults');
 
     if (isIndependentChartMode() && items.length) {
@@ -1217,13 +1217,13 @@
       var expandBtn = resultsBox.querySelector('.ss-results-toggle');
       if (expandBtn) expandBtn.addEventListener('click', function () {
         state.resultsCollapsed = false;
-        renderResults(container, items);
+        renderResults(container, items, true);
       });
       return;
     }
 
     resultsBox.innerHTML = '<div class="ss-results-count">검색 결과 ' + items.length + '건'
-      + (items.length > 1 ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
+      + (items.length > 1 || userExpanded ? '<button type="button" class="ss-results-toggle" data-action="collapse">목록 접기 ▴</button>' : '')
       + '</div>'
       + '<div class="ss-results-table">'
       + '<div class="ss-results-head">'
@@ -1276,12 +1276,17 @@
 
     // 결과가 1건뿐이면(코드 직접 입력 등) 바로 상세까지 보여준다
     if (items.length === 1) {
-      selectStock(container, items[0]);
-      // A single selected result already has a complete detail header.
-      // Collapse the redundant full-width price/volume row, preserving a way
-      // to reopen the list and access the favorite-star action.
-      state.resultsCollapsed = true;
-      renderResults(container, items);
+      if (userExpanded) {
+        var onlyRow = resultsBox.querySelector('.ss-result-row');
+        if (onlyRow && state.selectedCode === items[0].code) onlyRow.classList.add('active');
+      } else {
+        selectStock(container, items[0]);
+        // A single selected result already has a complete detail header.
+        // Collapse the redundant full-width price/volume row, but allow
+        // reopening it for the favorite-star action without re-collapsing.
+        state.resultsCollapsed = true;
+        renderResults(container, items);
+      }
     }
   }
 
