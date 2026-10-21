@@ -3226,3 +3226,8 @@ html.dark .ff-vp-an-table tr.on { background: #2b2620; }
   .ff-vp-an-table td::before { content: attr(data-label) " "; color: #8a97a5; font-size: 11px; font-weight: 400; margin-right: 6px; }
   .ff-vp-an-table th, .ff-vp-an-table td { border-bottom: 0; padding: 3px 8px; }
 }
+
+/* 범례를 눌러 이동평균선을 굵게(2026-10-22) */
+#foreign-flow .ff-legend .ff-legend-click { cursor: pointer; border-radius: 3px; padding: 0 3px; }
+#foreign-flow .ff-legend .ff-legend-click:hover { background: rgba(120, 120, 120, .14); }
+#foreign-flow .ff-legend .ff-legend-click.is-on { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; background: rgba(120, 120, 120, .18); }

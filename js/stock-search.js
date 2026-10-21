@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-ma448';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-legendline';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -113,6 +113,7 @@
     timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
     minuteScope: '1',
     studyOrder: ['ma'],
+    lineHighlight: {},   // 범례를 눌러 굵게 표시한 선(키: ma5·ma224·bollinger 등), 종목을 바꿔도 유지
     movingAverageShortEnabled: true,   // 단기 이동평균선 3·5·20·60일
     movingAverageLongEnabled: true,    // 장기 이동평균선 112·224·448일
     ichimokuEnabled: false,
@@ -141,6 +142,25 @@
   var lwcVolumePane = null;
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
+  // 범례 항목(MA3·MA5·…·볼린저)을 누르면 해당 선을 굵게 표시하고 다시 누르면 원래 굵기로 돌린다(2026-10-22 사용자 요청).
+  function lineEntries(seriesList) {
+    return [].concat(seriesList).map(function (series) {
+      var base = 1;
+      try { base = series.options().lineWidth || 1; } catch (e) { /* 옵션을 못 읽으면 1px 기준 */ }
+      return { series: series, base: base };
+    });
+  }
+  function applyLineHighlight(lines, legendEl) {
+    Object.keys(lines).forEach(function (key) {
+      var on = !!state.lineHighlight[key];
+      lines[key].forEach(function (item) {
+        try { item.series.applyOptions({ lineWidth: on ? item.base + 2.5 : item.base }); } catch (e) { /* 이미 제거된 차트면 무시 */ }
+      });
+    });
+    if (legendEl) legendEl.querySelectorAll('[data-line-key]').forEach(function (el) {
+      el.classList.toggle('is-on', !!state.lineHighlight[el.getAttribute('data-line-key')]);
+    });
+  }
   function rememberStudyToggle(key,enabled) {
     var i=state.studyOrder.indexOf(key);if(i>=0)state.studyOrder.splice(i,1);
     if(enabled)state.studyOrder.push(key);
@@ -2743,6 +2763,7 @@
       if (state.liveQuotes[state.selectedCode]) updateLiveChartQuote(state.selectedCode, state.liveQuotes[state.selectedCode]);
 
       var priceLegendHtml = [];
+      var legendLines = {};   // 범례 키 -> 선 시리즈(굵게 표시용)
       var maGroups = [];
       if (state.movingAverageShortEnabled) maGroups.push('short');
       if (state.movingAverageLongEnabled) maGroups.push('long');
@@ -2750,7 +2771,7 @@
         core.maStudies(undefined, maGroups).forEach(function (study) {
           var points = core.movingAveragePoints(bars, 'close', study.period);
           if (!points.length) return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
-          core.addMovingAverageLine(chart, LWC, study, points, {
+          var maSeries = core.addMovingAverageLine(chart, LWC, study, points, {
             priceScaleId: 'right',
             priceFormat: {
               type: 'custom',
@@ -2759,7 +2780,8 @@
             }
           });
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
-          priceLegendHtml.push('<span data-study="ma" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
+          legendLines[study.key] = lineEntries(maSeries);
+          priceLegendHtml.push('<span data-study="ma" data-line-key="' + study.key + '" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
       var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, studyOrder:state.studyOrder, timeframe:timeframe };
@@ -2769,8 +2791,8 @@
         priceLegendHtml.push('<span style="color:' + core.SUPPLY_TRACES.color + '">거래량·가격 흔적은 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
-        core.addBollingerBands(chart, LWC, bars);
-        priceLegendHtml.push('<span data-study="bollinger" style="color:#d9a600">볼린저 20·2</span>');
+        legendLines.bollinger = lineEntries(core.addBollingerBands(chart, LWC, bars));
+        priceLegendHtml.push('<span data-study="bollinger" data-line-key="bollinger" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:#d9a600">볼린저 20·2</span>');
       }
 
       // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
@@ -2818,6 +2840,14 @@
         priceLegend.innerHTML = priceLegendHtml.join('');
         Array.from(priceLegend.children).sort(function(a,b){return state.studyOrder.indexOf(a.dataset.study)-state.studyOrder.indexOf(b.dataset.study);}).forEach(function(el){priceLegend.appendChild(el);});
         container.appendChild(priceLegend);
+        priceLegend.addEventListener('click', function (event) {
+          var hit = event.target.closest ? event.target.closest('[data-line-key]') : null;
+          if (!hit) return;
+          var key = hit.getAttribute('data-line-key');
+          state.lineHighlight[key] = !state.lineHighlight[key];
+          applyLineHighlight(legendLines, priceLegend);
+        });
+        applyLineHighlight(legendLines, priceLegend);
       }
 
       // TradingView v5의 독립 패널: 거래량(1) · RSI(2).
