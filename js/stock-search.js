@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-wheel2';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpfix';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -2546,7 +2546,7 @@
   function renderVpPanel(panel, analysis, info) {
     if (!panel) return;
     var VP = global.NineVolumeProfile;
-    if (!analysis || !VP) { panel.hidden = true; panel.innerHTML = ''; panel.__vpHtml = null; return; }
+    if (!analysis || !VP) { panel.style.visibility = 'hidden'; panel.innerHTML = ''; panel.__vpHtml = null; return; }   // hidden 이 아니라 visibility: 높이를 유지해 차트 영역이 들썩이지 않게 한다
     var fmt = function (v) { return chartPriceText(v, info.isUs); };
     var opts = { format: fmt };
     var core = global.NineChartCore;
@@ -2582,6 +2582,7 @@
       panel.__vpHtml = html;
     }
     panel.hidden = false;
+    panel.style.visibility = '';
   }
 
   function createVolumeProfilePrimitive(bars, isUs, code, container, unit) {
