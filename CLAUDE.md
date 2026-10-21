@@ -190,7 +190,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 - VM은 e2-micro(메모리 1GB)다. 새 수집은 별도 프로세스·타이머 대신 FastAPI 안의 가벼운 스레드로, 국내 장이 닫힌 시간엔 느린 주기로 둔다(`market_clock.py`). 예: 바이낸스 국내주식 토큰 참고 시세 `binance_flow.py`(2026-09-15)
 - 메인 VI·사이드카 배지 API는 `GET /api/circuit-breaker`(서버 1곳 20초 폴링 캐시). 스키마 `sidecar{available,active,market,triggered_at,note}`·`vi_active_count`·`vi_list[{code,name,status,triggered_at,released_at}]`. 사이드카는 검증된 증권사 필드가 없어 `available=false`로 두고 배지를 숨긴다(2026-09-15)
 
-- 차트검색(`js/stock-search.js`)·종목분석(`js/foreign-flow.js`) 차트의 공통 기능은 `js/chart-core.js`·`chart-data.js`·`chart-drawing.js`·`chart-wave-overlay.js`·`chart-sr.js`·`chart-structure.js`(추세선·채널·박스권) 한 곳에만 있다. 차트 기능을 고칠 때 두 화면에 같은 코드를 따로 쓰지 않는다(`docs/UI_GUIDE.md` '차트 공통 엔진').
+- 차트검색(`js/stock-search.js`)·종목분석(`js/foreign-flow.js`) 차트의 공통 기능은 `js/chart-core.js`·`chart-data.js`·`chart-drawing.js`·`chart-wave-overlay.js`·`chart-sr.js` 한 곳에만 있다. 차트 기능을 고칠 때 두 화면에 같은 코드를 따로 쓰지 않는다(`docs/UI_GUIDE.md` '차트 공통 엔진').
 
 ## 필수 규칙
 
