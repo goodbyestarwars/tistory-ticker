@@ -117,14 +117,47 @@ assert.strictEqual(mult[3], null, '빈 거래량은 null');
 assert.ok(Math.abs(mult[25] - 3.2) < 0.01, '3.2배');
 assert.ok(Math.abs(mult[26] - 1000 / ((3200 + 19 * 1000) / 20)) < 0.01 || mult[26] < 1, '오늘 봉은 평균에서 뺀다');
 // 막대·라벨: 가짜 차트로 addVolumePane 호출
-const pushed = [];
-const fakeLWC = { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: (series, markers) => { pushed.push({ series, markers }); } };
-const histData = [];
-const fakeChart = { addSeries: (kind) => ({ kind, setData: (d) => { if (kind === 'hist') histData.push(...d); }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
-Core.addVolumePane(fakeChart, fakeLWC, vb, { pane: 1 });
-assert.strictEqual(pushed.length, 1);
-assert.strictEqual(pushed[0].markers.length, 1);
-assert.strictEqual(pushed[0].markers[0].text, '3.2배');
-assert.ok(/,1\)$/.test(histData[25].color), '3배↑ 막대는 가장 진하게');
-assert.ok(/,0\.5\)$/.test(histData[10].color), '보통 막대는 그대로');
+function runVolume(bars, timeScale) {
+  const state = { last: null, subs: [] };
+  const fakeLWC = { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: () => ({ setMarkers: (m) => { state.last = m; } }) };
+  const hist = [];
+  const chart = { addSeries: (kind) => ({ kind, setData: (d) => { if (kind === 'hist') hist.push(...d); }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
+  if (timeScale) chart.timeScale = () => timeScale(state);
+  Core.addVolumePane(chart, fakeLWC, bars, { pane: 1 });
+  state.hist = hist;
+  return state;
+}
+const one = runVolume(vb, null);
+assert.strictEqual(one.last.length, 1);
+assert.strictEqual(one.last[0].text, '3.2배');
+assert.ok(/,1\)$/.test(one.hist[25].color), '3배↑ 막대는 가장 진하게');
+assert.ok(/,0\.5\)$/.test(one.hist[10].color), '보통 막대는 그대로');
+
+// 겹침 방지: 가까운 급증 봉이 많으면 폭을 넓게 본 화면에서 큰 배수만 남는다.
+const dense = [];
+for (let i = 0; i < 200; i++) dense.push({ date: day(i), open: 100, high: 101, low: 99, close: 101, volume: 1000 });
+[100, 102, 104, 150].forEach((i, k) => { dense[i].volume = 4000 + k * 500; });
+let visible = { from: 0, to: 199 };
+const wide = runVolume(dense, (st) => ({ getVisibleLogicalRange: () => visible, width: () => 400, subscribeVisibleLogicalRangeChange: (fn) => st.subs.push(fn) }));
+// 400px / 200봉 = 2px/봉 -> 라벨 44px = 22봉 간격 -> 100·102·104 중 배수가 가장 큰(100) 하나와 150
+assert.deepStrictEqual(wide.last.map((m) => m.time), [dense[100].date, dense[150].date]);
+// 확대하면(봉이 넓어지면) 가까운 것도 다시 나온다
+visible = { from: 95, to: 110 };
+const wideState = wide;
+wideState.subs.forEach((fn) => fn());
+assert.deepStrictEqual(wideState.last.map((m) => m.time), [dense[100].date, dense[102].date, dense[104].date]);
+// 켜고 끄기: 끄면 막대는 보통 진하기, 라벨은 비움 / 다시 켜면 복원
+const toggled = (function () {
+  const st = { last: null, hist: null };
+  const fakeLWC = { HistogramSeries: 'hist', LineSeries: 'line', createSeriesMarkers: () => ({ setMarkers: (m) => { st.last = m; } }) };
+  const chart = { addSeries: (kind) => ({ setData: (d) => { if (kind === 'hist') st.hist = d; }, priceScale: () => ({ applyOptions() {} }) }), priceScale: () => ({ applyOptions() {} }) };
+  st.pane = Core.addVolumePane(chart, fakeLWC, vb, { pane: 1 });
+  return st;
+})();
+assert.ok(toggled.last.length === 1 && /,1\)$/.test(toggled.hist[25].color));
+toggled.pane.setMultiples(false);
+assert.strictEqual(toggled.last.length, 0);
+assert.ok(/,0\.5\)$/.test(toggled.hist[25].color), '끄면 급증 봉도 보통 진하기');
+toggled.pane.setMultiples(true);
+assert.strictEqual(toggled.last.length, 1);
 console.log('volume multiple OK');

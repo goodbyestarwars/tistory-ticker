@@ -115,7 +115,7 @@
     var m = src && src.match(/^(.*\/)js\/foreign-flow\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-volmult2';
   var CHART_OPTIONAL = ['drawing', 'sr', 'structure', 'memo'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다)
   // 매물대 분석 공통 계산(js/volume-profile-analysis.js, 차트검색과 같은 파일). 못 받으면 분석 패널만 빠진다.
   var VP_ANALYSIS_URL = CHART_BASE + 'js/volume-profile-analysis.js?v=20261019-vp1';
@@ -4410,6 +4410,7 @@
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffBollingerToggle"' + (bollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffSupportResistanceToggle"' + (supportResistanceEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" id="ffStructureToggle"' + (structureEnabled ? ' checked' : '') + ' /> 추세선·박스 표시</label>'
+        + '<label class="ff-ichimoku-toggle" title="거래량이 직전 20봉 평균의 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다."><input type="checkbox" id="ffVolMultToggle"' + (volumeMultipleEnabled ? ' checked' : '') + ' /> 거래량 배수 표시</label>'
         + '<label class="ff-ichimoku-toggle"><input type="checkbox" id="ffVolumeProfileToggle"' + (vpEnabled ? ' checked' : '') + ' /> 매물대 표시</label>'
         + '<label class="ff-ichimoku-toggle" title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ffAccumulationToggle"' + (accumulationEnabled ? ' checked' : '') + ' /> 거래량·가격 흔적</label>'
         + '<label class="ff-ichimoku-toggle" title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ffWaveToggle" data-chart-wave-toggle' + (waveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
@@ -4525,6 +4526,8 @@
   // 일목균형표는 캔들과 겹치는 별도 보조지표라 체크박스로 켜고 끈다(기본 꺼짐).
   var ichimokuEnabled = false;
   var supportResistanceEnabled = false;
+  var volumeMultipleEnabled = true;   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
+  var flowVolumePane = null;
   var structureEnabled = false;   // 추세선·채널·박스권(js/chart-structure.js)
   var flowStructureCleanup = null;
   var flowSrCtx = null;
@@ -4613,6 +4616,13 @@
         } else if (flowSrCtx && lwcChart === flowSrCtx.chart) {
           setupFlowSupportResistance(flowSrCtx.container, flowSrCtx.chart, flowSrCtx.series, flowSrCtx.daily, flowSrCtx.levels, flowSrCtx.LWC);
         }
+      });
+    }
+    var volMultToggle = box.querySelector('#ffVolMultToggle');
+    if (volMultToggle) {
+      volMultToggle.addEventListener('change', function () {
+        volumeMultipleEnabled = volMultToggle.checked;
+        if (flowVolumePane && typeof flowVolumePane.setMultiples === 'function') flowVolumePane.setMultiples(volumeMultipleEnabled);
       });
     }
     var structureToggle = box.querySelector('#ffStructureToggle');
@@ -6147,7 +6157,8 @@
 
       // 실시간 시세와 같은 하단 30% 거래량 영역. 전체 localization formatter를 쓰지
       // 않고 시리즈별 포맷을 적용해야 우측 값이 가격처럼 보이지 않고 K/M/B로 축약된다.
-      var volumePane = core.addVolumePane(chart, LWC, daily, { pane: 1 });
+      var volumePane = core.addVolumePane(chart, LWC, daily, { pane: 1, multiples: volumeMultipleEnabled });
+      flowVolumePane = volumePane;
       var volumeMaPoints = volumePane.ma20.points;
 
       var flowMap = {};

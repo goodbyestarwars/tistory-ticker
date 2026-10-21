@@ -599,7 +599,7 @@
 
   // 거래량 체감 배수(2026-10-21): 그 봉의 거래량 / 직전 20봉 평균. 그날 알 수 있는 값만 쓰며(오늘 봉은 평균에서 뺀다)
   // 직전 봉이 10개 미만이거나 평균이 0이면 null. 막대 진하기(2배↑·3배↑)와 3배↑ 숫자 라벨에 쓴다.
-  var VOLUME_SPIKE = { strong: 2, label: 3, maxLabels: 60 };
+  var VOLUME_SPIKE = { strong: 2, label: 3, maxLabels: 60, labelPx: 44 };
   function volumeSpikeMultiples(bars) {
     return bars.map(function (bar, i) {
       var sum = 0, n = 0;
@@ -623,21 +623,51 @@
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
     // 상승 빨강·하락 파랑은 그대로 두고, 평균 대비 2배↑는 진하게·3배↑는 가장 진하게(색 의미를 바꾸지 않는다).
     var multiples = volumeSpikeMultiples(bars);
-    volume.setData(bars.map(function (d, i) {
-      var m = multiples[i], up = d.close >= d.open;
-      var alpha = m != null && m >= VOLUME_SPIKE.label ? 1 : (m != null && m >= VOLUME_SPIKE.strong ? 0.85 : 0.5);
-      return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: (up ? 'rgba(210,79,69,' : 'rgba(18,97,196,') + alpha + ')' };
-    }));
-    var spikeMarkers = [];
+    var multiplesOn = opts.multiples !== false;   // 켜고 끄는 옵션(setMultiples). 기본은 켬
+    function volumeData() {
+      return bars.map(function (d, i) {
+        var m = multiplesOn ? multiples[i] : null, up = d.close >= d.open;
+        var alpha = m != null && m >= VOLUME_SPIKE.label ? 1 : (m != null && m >= VOLUME_SPIKE.strong ? 0.85 : 0.5);
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: (up ? 'rgba(210,79,69,' : 'rgba(18,97,196,') + alpha + ')' };
+      });
+    }
+    volume.setData(volumeData());
+    var relabelFn = null;
+    // 3배 이상 봉에 `3.2배` 라벨. 5년처럼 넓게 보면 라벨이 겹쳐 읽히지 않으므로, 보이는 범위의 봉 간격(px)으로
+    // 라벨 폭만큼 떨어진 것만 남긴다(겹치면 배수가 큰 쪽 우선). 확대·이동 때마다 다시 고른다.
     if (opts.multipleLabels !== false && typeof LWC.createSeriesMarkers === 'function') {
+      var spikes = [];
       bars.forEach(function (d, i) {
         var m = multiples[i];
         if (m == null || m < VOLUME_SPIKE.label) return;
-        spikeMarkers.push({ time: d.date, position: 'aboveBar', shape: 'circle', size: 0, color: d.close >= d.open ? '#d24f45' : '#1261c4', text: (Math.round(m * 10) / 10) + '배' });
+        spikes.push({ i: i, m: m, time: d.date, color: d.close >= d.open ? '#d24f45' : '#1261c4', text: (Math.round(m * 10) / 10) + '배' });
       });
-      // 겹침을 피하려고 가장 최근 것만 남긴다.
-      if (spikeMarkers.length > VOLUME_SPIKE.maxLabels) spikeMarkers = spikeMarkers.slice(-VOLUME_SPIKE.maxLabels);
-      if (spikeMarkers.length) { try { LWC.createSeriesMarkers(volume, spikeMarkers); } catch (e) { /* 라벨만 빠진다 */ } }
+      function toMarker(c) { return { time: c.time, position: 'aboveBar', shape: 'circle', size: 0, color: c.color, text: c.text }; }
+      var markerPlugin = null;
+      try { markerPlugin = LWC.createSeriesMarkers(volume, []); } catch (e) { markerPlugin = null; }
+      var hasScale = typeof chart.timeScale === 'function' && markerPlugin && typeof markerPlugin.setMarkers === 'function';
+      var relabel = function () {
+        if (!markerPlugin) return;
+        if (!multiplesOn) { try { markerPlugin.setMarkers([]); } catch (e) { /* 무시 */ } return; }
+        var chosen = spikes;
+        if (hasScale) {
+          var ts = chart.timeScale(), range = ts.getVisibleLogicalRange(), width = ts.width();
+          if (!range || !(width > 0)) return;
+          var spacing = width / Math.max(1, range.to - range.from);
+          var gap = Math.max(1, Math.ceil(VOLUME_SPIKE.labelPx / spacing));
+          chosen = [];
+          spikes.filter(function (c) { return c.i >= range.from - 1 && c.i <= range.to + 1; })
+            .sort(function (x, y) { return y.m - x.m; })
+            .forEach(function (c) { if (!chosen.some(function (k) { return Math.abs(k.i - c.i) < gap; })) chosen.push(c); });
+          chosen.sort(function (x, y) { return x.i - y.i; });
+        } else if (chosen.length > VOLUME_SPIKE.maxLabels) chosen = chosen.slice(-VOLUME_SPIKE.maxLabels);
+        try { markerPlugin.setMarkers(chosen.map(toMarker)); } catch (e) { /* 라벨만 빠진다 */ }
+      };
+      if (spikes.length) {
+        if (hasScale) chart.timeScale().subscribeVisibleLogicalRangeChange(relabel);
+        relabel();
+      }
+      relabelFn = relabel;
     }
     function avgLine(period, color, width) {
       var pts = movingAveragePoints(bars, 'volume', period);
@@ -650,7 +680,13 @@
     }
     var ma20 = avgLine(20, '#3b82f6', 2);
     var ma5 = opts.ma5 ? avgLine(5, '#f59e0b', 1.6) : null;
-    return { volume: volume, ma20: ma20, ma5: ma5 };
+    // 차트를 다시 만들지 않고 체감 배수(진한 막대·라벨)만 켜고 끈다.
+    function setMultiples(on) {
+      multiplesOn = on !== false;
+      volume.setData(volumeData());
+      if (relabelFn) relabelFn();
+    }
+    return { volume: volume, ma20: ma20, ma5: ma5, setMultiples: setMultiples };
   }
 
   // ---- 일목균형표(전환 9·기준 26·선행B 52, 26봉 선행) ----
