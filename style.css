@@ -8694,9 +8694,11 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .memo-fab.memo-fab { width: 38px !important; height: 38px !important; }
 }}}
 
-/* 차트 기간 버튼(1개월·3개월…전체) 묶음을 작게(2026-10-22 사용자 요청, PC·모바일 공통): 묶음 46→36px, 버튼 34→28px·글자 13→12px.
-   기본 탭 규칙(.nine-range-btn 34px/13px)이 @layer np 안에 있어 하위 np 레이어에서 더 구체적으로 덮는다. */
+/* 차트 기간 버튼(1개월·3개월…전체)을 일봉·주봉(.ss-tf-btn)과 똑같은 크기·모양으로(2026-10-22 사용자 요청, PC·모바일 공통):
+   트랙(배경·패딩) 없음, 버튼 높이 26px·글자 12px·좌우 9px·모서리 7px, 선택은 연한 회색 면(그림자 없음), 간격 4px.
+   기본 탭 규칙(.nine-range-btn 34px/13px, 묶음 트랙)이 @layer np 안에 있어 하위 np 레이어에서 더 구체적으로 덮는다. */
 @layer np { @layer np {
-  html body .nine-chart-ranges.nine-chart-ranges { padding: 4px !important; gap: 2px !important; border-radius: 12px !important; }
-  html body .nine-chart-ranges.nine-chart-ranges > .nine-range-btn { min-height: 28px !important; height: 28px !important; padding: 0 10px !important; font-size: 12px !important; border-radius: 8px !important; }
+  html body .nine-chart-ranges.nine-chart-ranges { padding: 0 !important; gap: 4px !important; background: transparent !important; border-radius: 0 !important; }
+  html body .nine-chart-ranges.nine-chart-ranges > .nine-range-btn { min-height: 26px !important; height: 26px !important; padding: 0 9px !important; font-size: 12px !important; border-radius: 7px !important; }
+  html body .nine-chart-ranges.nine-chart-ranges > .nine-range-btn:where(.active, [aria-pressed="true"]) { background: rgba(var(--np-ink), .07) !important; box-shadow: none !important; }
 }}
