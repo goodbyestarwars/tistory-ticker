@@ -318,11 +318,15 @@
     var lastWheelAt = 0, streak = 0;
     var drag = null, inertia = null, inertiaFrame = 0, ignoreRange = false;
 
+    function rightMaxFor(span) { return Math.max(rightLimit, total - 1 + span * 0.75); }
     function bounded(from, span) {
       span = Math.max(minSpan, Math.min(maxSpan, span));
       var to = from + span;
+      // 오른쪽은 마지막 봉 뒤 빈 공간까지 볼 수 있어야 한다(2026-10-22 사용자 요청): 마지막 봉이 화면 왼쪽 1/4까지 올 수 있게
+      // 화면 폭의 75%만큼 허용한다(기존 12봉 고정이면 휠·관성이 그보다 더 간 빈 공간을 되돌려 놓았다).
+      var rightMax = rightMaxFor(span);
       if (from < leftLimit) { from = leftLimit; to = from + span; }
-      if (to > rightLimit) { to = rightLimit; from = to - span; }
+      if (to > rightMax) { to = rightMax; from = to - span; }
       return { from: from, to: to };
     }
 
@@ -442,6 +446,8 @@
         last = stamp;
         var now = scale.getVisibleLogicalRange();
         if (!now || !isFinite(now.from)) { inertia = null; return; }
+        // 사용자가 이미 한도를 넘겨 끌어 둔 위치라면(라이브러리는 더 멀리 허용) 관성으로 되돌려 놓지 않고 그대로 멈춘다.
+        if (now.to > rightMaxFor(inertia.span) + 1e-6 || now.from < leftLimit - 1e-6) { inertia = null; return; }
         var desired = now.from + inertia.v * elapsed;
         var next = bounded(desired, inertia.span);
         var hitEdge = Math.abs(next.from - desired) > 1e-6;   // 기록된 범위 끝에 닿으면 멈춘다
