@@ -42,8 +42,34 @@ assert.strictEqual(t.state.liveTrades[0].date, '20261014');
 t.state.liveTradeProvider = 'Kiwoom';
 t.state.liveTrades = [];
 t.recordLiveTrade({ direction: 'sell', directionSource: 'provider', time: '093456', price: 176100, qty: 3, market: '1' });
-assert(t.buildTradesHtml().includes('키움 0B 개별 수신 체결'));
-assert(t.buildTradesHtml().includes('▼ 매도주도'));
+const kiwoomHtml = t.buildTradesHtml();
+const visibleNote = html => {
+  const fragment = html.split('class="ob-trades-note"')[1];
+  assert(fragment, 'short trade note exists');
+  return fragment.split('>')[1].split('<')[0];
+};
+assert(visibleNote(kiwoomHtml).includes('키움 0B 실시간 · FID 15 방향'));
+assert(visibleNote(kiwoomHtml).includes('중복·누락 가능'));
+assert(!visibleNote(kiwoomHtml).includes('거래소 원본값 수신'));
+assert(visibleNote(kiwoomHtml).length <= 35, 'note is compact enough for one or two lines');
+assert(kiwoomHtml.includes('title="키움 0B 개별 수신 체결'));
+assert(kiwoomHtml.includes('▼ 매도주도'));
+t.state.liveTradeProvider = 'KIS';
+assert(visibleNote(t.buildTradesHtml()).includes('호가 기준 방향 추정'));
+t.state.tradeFeedStatus = '실시간 재연결 중 · 누락 가능';
+assert(visibleNote(t.buildTradesHtml()).includes('재연결 중'));
+t.state.tradeFeedStatus = 'REST 시세 폴백 · 개별 체결 없음';
+assert(visibleNote(t.buildTradesHtml()).includes('새 개별 체결 없음'));
+t.state.tradeFeedStatus = '실시간 연결 중단';
+assert(visibleNote(t.buildTradesHtml()).includes('연결 중단'));
+t.state.tradeFeedStatus = '실시간 체결 대기 중';
+t.state.liveTradeProvider = 'Kiwoom';
+const styles = fs.readFileSync('css/order-book.css', 'utf8');
+const noteStyles = styles.split('#order-book .ob-trades-note {')[1].split('}')[0];
+assert(noteStyles.includes('word-break: keep-all'));
+assert(noteStyles.includes('white-space: normal'));
+assert(!noteStyles.includes('line-clamp'));
+
 
 // REST 표본은 방향을 추측하거나 실시간 목록과 합치지 않는다.
 t.recordTrade({ trade: { time: '093116', price: 69900, qty: 50, up: true, down: false } });

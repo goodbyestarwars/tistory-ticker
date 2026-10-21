@@ -23,6 +23,8 @@
     wide: { stroke: '#7c6f9a', fill: 'rgba(124,111,154,.10)', label: '변동성 큰 박스권' },
     unk: { stroke: '#a0a0a0', fill: 'rgba(160,160,160,.05)', label: '방향 미확정' }
   };
+  var CHANNEL_COLOR = { up: '#d62524', down: '#1558c9' };   // 추세선(채널)은 박스 색보다 진하게
+  var TREND_TIP = '박스 안의 한 단계 아래 규모 고점끼리·저점끼리 이은 선(채널). 아래 규모 점이 2개 미만이거나 소파동·횡보 박스는 선을 긋지 않습니다. 진행 중 박스의 선은 점선입니다. 관찰용이며 매수·매도 신호가 아닙니다.';
   var TIP = '실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다.';
 
   // ---- 분석 결과 캐시(페이지 안의 모든 차트가 공유) ----
@@ -62,8 +64,10 @@
   function pickLevel(result, level) {
     var lv = result.levels && result.levels[level] ? level : 'medium';
     var parentName = lv === 'minor' ? 'medium' : (lv === 'medium' ? 'major' : null);
+    var lowerName = lv === 'major' ? 'medium' : (lv === 'medium' ? 'minor' : null);
     return {
       level: lv,
+      lower: lowerName ? (result.levels[lowerName] || []) : [],   // 추세선(채널)을 긋는 재료: 한 단계 아래 규모의 모든 파동(가려진 것 포함)
       waves: (result.levels[lv] || []).filter(function (w) { return !w.suppressed; }),
       parents: parentName ? (result.levels[parentName] || []).filter(function (w) { return !w.suppressed; }) : [],
       summary: result.state ? result.state.summaryText : ''
@@ -72,12 +76,13 @@
 
   // ---- 마크업·제어 ----
   // 규모 선택 묶음. prefix 는 화면별 CSS 이름(ss → ss-wave-level / ff → ff-wave-level). 파동 분석이 꺼져 있으면 숨긴다.
-  function levelHtml(prefix, enabled, level) {
+  function levelHtml(prefix, enabled, level, trendOn) {
     return '<span class="' + prefix + '-wave-level" data-chart-wave-level role="group" aria-label="파동 규모"' + (enabled ? '' : ' hidden') + '>'
       + LEVELS.map(function (lv) {
         var on = lv.key === level;
         return '<button type="button" class="' + prefix + '-wave-btn' + (on ? ' active' : '') + '" data-wave-level="' + lv.key + '" aria-pressed="' + on + '" title="' + lv.tip + '">' + lv.label + '</button>';
-      }).join('') + '</span>';
+      }).join('')
+      + '<label class="' + prefix + '-wave-trend" style="margin-left:8px;font-size:12px;white-space:nowrap" title="' + TREND_TIP + '"><input type="checkbox" data-wave-trend' + (trendOn ? ' checked' : '') + ' /> 추세선</label></span>';
   }
 
   // 체크박스 + 규모 단추를 연결한다. state: { enabled, level }(화면이 들고 있는 값). onChange(kind) 는 'toggle' | 'level'.
@@ -87,7 +92,7 @@
     var box = root.querySelector('[data-chart-wave-level]');
     if (box && !box.querySelector('[data-wave-level]')) {
       var p = prefix || (box.className.match(/([a-z]+)-wave-level/) || [])[1] || 'ss';
-      box.innerHTML = levelHtml(p, state.enabled, state.level).replace(/^<span[^>]*>/, '').replace(/<\/span>$/, '');
+      box.innerHTML = levelHtml(p, state.enabled, state.level, state.trend).replace(/^<span[^>]*>/, '').replace(/<\/span>$/, '');
     }
     function sync() {
       if (!box) return;
@@ -104,6 +109,12 @@
     }
     if (box) {
       sync();
+      box.onchange = function (event) {
+        var chk = event.target && event.target.matches && event.target.matches('[data-wave-trend]') ? event.target : null;
+        if (!chk) return;
+        state.trend = chk.checked;
+        onChange('trend');   // 분석은 그대로, 채널만 다시 그린다
+      };
       box.onclick = function (event) {
         var btn = event.target.closest ? event.target.closest('[data-wave-level]') : null;
         if (!btn) return;
@@ -113,6 +124,41 @@
       };
     }
     return { sync: sync };
+  }
+
+  // ---- 박스 안 추세선(채널) ----
+  // 상승·하락 파동 하나(wave)에 대해, 그 안에 들어 있는 한 단계 아래 규모의 확정·진행 중 고점·저점으로 위선·아래선을 긋는다.
+  // 위선은 모든 고점 위를, 아래선은 모든 저점 아래를 지나는 최소제곱선이라 두 선이 평행하지 않아도 된다(쐐기·확장 그대로).
+  // 박스에 고점·저점이 각각 2개 미만이면 선을 긋지 않는다(null). 계산은 이미 정해진 파동 정보만 쓰며 새 봉을 보지 않는다.
+  function fitLine(points, above) {
+    var n = points.length, sx = 0, sy = 0, sxx = 0, sxy = 0;
+    points.forEach(function (q) { sx += q.i; sy += q.p; sxx += q.i * q.i; sxy += q.i * q.p; });
+    var d = n * sxx - sx * sx;
+    var m = d === 0 ? 0 : (n * sxy - sx * sy) / d;
+    var b = above ? -Infinity : Infinity;
+    points.forEach(function (q) { var r = q.p - m * q.i; b = above ? Math.max(b, r) : Math.min(b, r); });
+    return { m: m, b: b };
+  }
+  function channelOf(wave, lowerWaves) {
+    if (!wave || wave.isBox || (wave.kind !== 'up' && wave.kind !== 'down') || !lowerWaves || !lowerWaves.length) return null;
+    var seen = {}, lows = [], highs = [];
+    function add(i, p, type) {
+      if (i < wave.start || i > wave.end || !isFinite(p)) return;
+      var k = type + i;
+      if (seen[k]) return;
+      seen[k] = true;
+      (type === 'L' ? lows : highs).push({ i: i, p: p });
+    }
+    // 이 파동 자신의 양 끝도 점으로 쓴다(한 단계 아래 규모의 점과 겹치면 한 번만 센다).
+    if (wave.kind === 'up') { add(wave.start, wave.low, 'L'); add(wave.end, wave.high, 'H'); }
+    else { add(wave.start, wave.high, 'H'); add(wave.end, wave.low, 'L'); }
+    lowerWaves.forEach(function (w) {
+      if (w.isBox || (w.kind !== 'up' && w.kind !== 'down')) return;
+      if (w.kind === 'up') { add(w.start, w.low, 'L'); add(w.end, w.high, 'H'); }
+      else { add(w.start, w.high, 'H'); add(w.end, w.low, 'L'); }
+    });
+    if (lows.length < 2 || highs.length < 2) return null;
+    return { kind: wave.kind, start: wave.start, end: wave.end, confirmed: !!wave.confirmed, upper: fitLine(highs, true), lower: fitLine(lows, false), lows: lows, highs: highs };
   }
 
   // ---- 그리기(오버레이 층용) ----
@@ -173,6 +219,35 @@
       // 소파동은 박스가 아주 많아 라벨이 겹치므로 어느 정도 폭이 있을 때만 쓴다.
       if (x2 - lx > (level === 'minor' ? 34 : 12)) ctx.fillText(text, lx, y1 + 3);
     });
+    // 추세선(채널): 박스 안에서만, 박스와 같은 색(상승 빨강·하락 파랑). 진행 중 박스는 점선.
+    if (picked.trend && picked.lower && picked.lower.length) {
+      waves.forEach(function (wave) {
+        var ch = channelOf(wave, picked.lower), st = STYLE[wave.kind], b0 = bars[wave.start], b1 = bars[wave.end];
+        if (!ch || !st || !b0 || !b1) return;
+        var u0 = view.coord({ time: b0.date, price: ch.upper.m * wave.start + ch.upper.b }), u1 = view.coord({ time: b1.date, price: ch.upper.m * wave.end + ch.upper.b });
+        var l0 = view.coord({ time: b0.date, price: ch.lower.m * wave.start + ch.lower.b }), l1 = view.coord({ time: b1.date, price: ch.lower.m * wave.end + ch.lower.b });
+        if (!u0 || !u1 || !l0 || !l1) return;
+        if (Math.max(u0.x, u1.x, l0.x, l1.x) < 0 || Math.min(u0.x, u1.x, l0.x, l1.x) > view.width) return;
+        // 선이 박스 밖으로 나가 보이지 않게 박스 안으로 자른다(기울기 때문에 한쪽 끝이 박스 위·아래를 넘을 수 있다).
+        var box = rectOf(wave) || { x1: 0, y1: 0, x2: view.width, y2: view.height };
+        ctx.save();
+        ctx.beginPath(); ctx.rect(box.x1, box.y1, box.x2 - box.x1, box.y2 - box.y1); ctx.clip();
+        ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke;   // 박스 테두리보다 진한 색·굵은 선(2026-10-22 사용자 요청)
+        ctx.lineWidth = 2.6;
+        ctx.setLineDash(ch.confirmed ? [] : [8, 4]);
+        ctx.beginPath(); ctx.moveTo(u0.x, u0.y); ctx.lineTo(u1.x, u1.y); ctx.moveTo(l0.x, l0.y); ctx.lineTo(l1.x, l1.y); ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+        [[u0, u1], [l0, l1]].forEach(function (pair) {
+          pair.forEach(function (pt) {
+            if (pt.x < box.x1 || pt.x > box.x2 || pt.y < box.y1 || pt.y > box.y2) return;
+            ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.6, 0, Math.PI * 2);
+            ctx.fillStyle = '#fff'; ctx.fill();
+            ctx.strokeStyle = CHANNEL_COLOR[wave.kind] || st.stroke; ctx.lineWidth = 2; ctx.stroke();
+          });
+        });
+      });
+    }
     ctx.font = '10px ' + (summaryFont || 'sans-serif');
     ctx.fillStyle = 'rgba(100,100,100,.85)';
     ctx.textBaseline = 'top';
@@ -285,6 +360,7 @@
         if (!resultNow) return;
         clearTip();
         pickedNow = pickLevel(resultNow, state.level);
+        pickedNow.trend = !!state.trend;
         if(state.level==='major' && core.trendRegimes && core.majorWaveContext){
           var lanes=core.trendRegimes(opts.bars,opts.timeframe);
           pickedNow.support=core.majorWaveContext(lanes,activeMajor(resultNow),resultNow.asOf);
@@ -312,7 +388,7 @@
   global.NineChartWave = {
     LEVELS: LEVELS, LEVEL_NAME: LEVEL_NAME, STYLE: STYLE, TIP: TIP,
     analysis: analysis, pickLevel: pickLevel, fingerprintOf: fingerprintOf,
-    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
+    levelHtml: levelHtml, wireControls: wireControls, drawWaves: drawWaves, channelOf: channelOf, attach: attach, activeMajor:activeMajor, majorTooltipHtml:majorTooltipHtml,
     _cache: getCache
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartWave;

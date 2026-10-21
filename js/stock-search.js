@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-summary-ui1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-order1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -112,14 +112,19 @@
     ladderMounted: false,
     timeframe: 'day', // 'day' | 'week' | 'month' | 'minute'
     minuteScope: '1',
-    studyOrder: ['ma','trace'],
-    movingAverageEnabled: true,
+    studyOrder: ['ma'],
+    lineHighlight: {},   // 범례를 눌러 굵게 표시한 선(키: ma5·ma224·bollinger 등), 종목을 바꿔도 유지
+    movingAverageShortEnabled: true,   // 단기 이동평균선 3·5·20·60일
+    movingAverageLongEnabled: true,    // 장기 이동평균선 112·224·448일
     ichimokuEnabled: false,
     bollingerEnabled: false,
-    accumulationEnabled: true,
+    accumulationEnabled: false,
     supplyMode: 'detail',
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
+    rsiEnabled: false,             // RSI(14) 서브패널(기본 끔)
+    rsiDivergenceEnabled: false,   // RSI 다이버전스(js/chart-divergence.js)
+    volumeMultipleEnabled: false,   // 거래량 체감 배수(진한 막대·3배↑ 라벨)
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
@@ -136,8 +141,29 @@
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcSrCleanup = null;
+  var lwcVolumePane = null;
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
+  var lwcDivergenceCleanup = null;
+  // 범례 항목(MA3·MA5·…·볼린저)을 누르면 해당 선을 굵게 표시하고 다시 누르면 원래 굵기로 돌린다(2026-10-22 사용자 요청).
+  function lineEntries(seriesList) {
+    return [].concat(seriesList).map(function (series) {
+      var base = 1;
+      try { base = series.options().lineWidth || 1; } catch (e) { /* 옵션을 못 읽으면 1px 기준 */ }
+      return { series: series, base: base };
+    });
+  }
+  function applyLineHighlight(lines, legendEl) {
+    Object.keys(lines).forEach(function (key) {
+      var on = !!state.lineHighlight[key];
+      lines[key].forEach(function (item) {
+        try { item.series.applyOptions({ lineWidth: on ? item.base + 2.5 : item.base }); } catch (e) { /* 이미 제거된 차트면 무시 */ }
+      });
+    });
+    if (legendEl) legendEl.querySelectorAll('[data-line-key]').forEach(function (el) {
+      el.classList.toggle('is-on', !!state.lineHighlight[el.getAttribute('data-line-key')]);
+    });
+  }
   function rememberStudyToggle(key,enabled) {
     var i=state.studyOrder.indexOf(key);if(i>=0)state.studyOrder.splice(i,1);
     if(enabled)state.studyOrder.push(key);
@@ -145,6 +171,7 @@
   var supplyMarkerHolder = null;
   var lwcOhlcTooltipCleanup = null;
   var stockPanCleanup = null;
+  var stockWheelCleanup = null;
   var stockChartRegistryOff = null;
   var lwcRenderId = 0;
   var drawingCtl = null;     // chart-drawing 컨트롤러(차트 하나당 하나)
@@ -159,9 +186,16 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
+  var indexStudies = { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
+  var indexWaveState = { enabled: false, level: 'medium', trend: false };   // trend: 파동 박스 안 추세선
+  var indexStudySeries = [];
+  var indexSrCleanup = null;
+  var indexWaveHandle = null;
+  var indexStudyUpdate = null;
   var indexChart = null;
   var indexSeries = null;
   var indexOhlcTooltipCleanup = null;
+  var indexWheelCleanup = null;
   var indexDrawingCtl = null;
   var indexBars = [];
   var indexTimeframe = 'day';
@@ -371,8 +405,10 @@
   function setMarketMode(container, isUs) {
     var usModule = container.querySelector('#ssUsModule');
     var results = container.querySelector('#ssResults');
+    var overview = container.querySelector('#ssOverview');
     var detail = container.querySelector('#ssDetail');
     if (usModule) usModule.hidden = !isUs;
+    if (overview) overview.hidden = !!isUs;
     if (!isUs && global.UsStocks && typeof global.UsStocks.pause === 'function') global.UsStocks.pause();
     if (results) results.hidden = !!isUs;
     if (detail && isUs) detail.hidden = true;
@@ -467,17 +503,22 @@
       + '</div>'
       + '<button type="button" id="ssGoBtn" class="ss-go-btn">검색</button>'
       + '</div>'
+      // One shared card: complete search result table + OHLC/analysis/AI details.
+      + '<div id="ssOverview" class="ss-overview">'
       + '<div id="ssResults" class="ss-results"></div>'
+      + '<div id="ssSummary" class="ss-summary" hidden></div>'
+      + '</div>'
       + '<div id="ssUsModule" class="ss-us-module" hidden></div>'
       + '<section id="ssIndexPanel" class="ss-index-panel" hidden></section>'
       + '<div id="ssDetail" class="ss-detail" hidden>'
-      + '<div id="ssSummary" class="ss-summary"></div>'
       + '<div class="ss-panels">'
       // css/order-book.css의 모든 규칙이 "#order-book .ob-xxx"로 ID에 고정돼 있어(다른
       // ID로 마운트하면 스타일이 하나도 안 먹음 - 실측으로 발견) 마운트 id를 그대로
       // "order-book"으로 맞춰 기존 CSS를 손대지 않고 재사용한다. 이 페이지엔 이 위젯이
       // 하나뿐이라 중복 id 걱정은 없다.
-      + '<div class="ss-panel-left"><div class="ss-panel-head"><h4>호가</h4></div><div id="order-book"></div></div>'
+      + '<div class="ss-panel-left"><div class="ss-panel-head"><h4>호가</h4></div>'
+      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
+      + '<div id="order-book"></div></div>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-panel-head"><h4>차트</h4></div>'
@@ -499,12 +540,16 @@
       + '</div></div>'
       + '<div class="ss-minute-scope-wrap" data-minute-scope-wrap hidden>' + minuteScopeControlHtml() + '</div>'
       + '<div class="ss-chart-studies">'
-      + '<label><input type="checkbox" id="ssMovingAverageToggle" checked /> 이동평균선 표시</label>'
-      + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
-      + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
-      + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
-      + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
-      + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" checked /> 거래량·가격 흔적</label>'
+      + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
+      + '<label title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" data-chart-ma-long-toggle checked /> 장기 이평선(112·224·448)</label>'
+      + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
+      + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
+      + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
+      + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
+      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
+      + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
+      + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
+      + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
@@ -756,6 +801,10 @@
   function runSearch(container, query) {
     var searchId = ++stockSearchRequestId;
     var resultsBox = container.querySelector('#ssResults');
+    var summary = container.querySelector('#ssSummary');
+    var detail = container.querySelector('#ssDetail');
+    if (summary) summary.hidden = true;
+    if (detail) detail.hidden = true;
     if (!query) { resultsBox.innerHTML = '<div class="ss-hint">종목명 또는 코드를 입력해주세요.</div>'; return; }
     var chosenIndex = exactIndex(query);
     if (chosenIndex) { openIndex(container, chosenIndex); return; }
@@ -856,7 +905,7 @@
       var next = indexLiveBar(row.code, last, quote.price, kstToday());
       if (next && (next.close !== last.close || next.high !== last.high || next.low !== last.low)) {
         indexBars[indexBars.length - 1] = next;
-        if (indexTimeframe === 'day' && indexSeries) indexSeries.update({ time: next.date, open: next.open, high: next.high, low: next.low, close: next.close });
+        if (indexTimeframe === 'day' && indexSeries) { indexSeries.update({ time: next.date, open: next.open, high: next.high, low: next.low, close: next.close }); if (typeof indexStudyUpdate === 'function') indexStudyUpdate(); }
       }
     };
     socket.onerror = function () { /* onclose 에서 재연결 */ };
@@ -877,8 +926,13 @@
     closeIndexSocket();
     indexRefreshNow = null;
     indexRenderId += 1;
+    indexStudyUpdate = null;
+    indexStudySeries = [];
+    if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
+    if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
+    if (indexWheelCleanup) { indexWheelCleanup(); indexWheelCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     indexBars = [];
@@ -894,8 +948,13 @@
 
   function renderIndexChart(panel, symbol) {
     var renderId = ++indexRenderId;
+    indexStudyUpdate = null;
+    indexStudySeries = [];
+    if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
+    if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
     if (indexOhlcTooltipCleanup) { indexOhlcTooltipCleanup(); indexOhlcTooltipCleanup = null; }
+    if (indexWheelCleanup) { indexWheelCleanup(); indexWheelCleanup = null; }
     if (indexChart) { indexChart.remove(); indexChart = null; }
     indexSeries = null;
     var host = panel.querySelector('#ssIndexChart');
@@ -904,6 +963,12 @@
     host.style.position = 'relative';
     host.textContent = '차트를 불러오는 중...';
     chartReady().then(function (LWC) {
+      var core = global.NineChartCore;
+      return Promise.all([
+        indexStudies.sr ? core.loadModule('sr') : Promise.resolve(),
+        indexWaveState.enabled ? core.loadModule('wave') : Promise.resolve()
+      ]).then(function () { return LWC; });
+    }).then(function (LWC) {
       if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
       var bars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
       var dark = document.documentElement.classList.contains('dark');
@@ -912,7 +977,10 @@
         layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
         // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
         crosshair: { mode: LWC.CrosshairMode.Normal },
-        timeScale: { borderVisible: false } });
+        timeScale: { borderVisible: false },
+        handleScroll: { mouseWheel: false, pressedMouseMove: true, horzTouchDrag: true },
+        handleScale: { mouseWheel: false, pinch: true, axisPressedMouseMove: true } });
+      indexWheelCleanup = global.NineChartCore.installSmoothWheelZoom(indexChart, host, { bars: bars.length });
       var series = indexChart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45', downColor: '#1261c4', borderVisible: false,
         wickUpColor: '#d24f45', wickDownColor: '#1261c4',
@@ -934,6 +1002,44 @@
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
         style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
       });
+      indexStudyUpdate = function () {
+        if (renderId !== indexRenderId) return;
+        var core = global.NineChartCore;
+        var currentBars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
+        indexStudySeries.forEach(function (line) { indexChart.removeSeries(line); });
+        indexStudySeries = [];
+        var indexMaGroups = [];
+        if (indexStudies.maShort) indexMaGroups.push('short');
+        if (indexStudies.maLong) indexMaGroups.push('long');
+        if (indexMaGroups.length) core.maStudies(dark, indexMaGroups).forEach(function (study) {
+          var maPoints = core.movingAveragePoints(currentBars, 'close', study.period);
+          if (!maPoints.length) return;   // 봉이 모자라 계산할 수 없는 선(예: 448일)은 그리지 않는다
+          indexStudySeries.push(core.addMovingAverageLine(indexChart, LWC, study, maPoints));
+        });
+        if (indexStudies.bollinger) indexStudySeries = indexStudySeries.concat(core.addBollingerBands(indexChart, LWC, currentBars));
+        if (indexStudies.cloud) {
+          var cloud = core.ichimokuCloudPoints(currentBars, indexTimeframe);
+          ['spanA', 'spanB'].forEach(function (key) {
+            var line = indexChart.addSeries(LWC.LineSeries, { color: '#939ca8', lineWidth: 1, lastValueVisible: false, priceLineVisible: false, crosshairMarkerVisible: false });
+            line.setData(cloud.map(function (point) { return { time: point.time, value: point[key] }; }));
+            indexStudySeries.push(line);
+          });
+          if (indexStudySeries.length && cloud.length) indexStudySeries[indexStudySeries.length - 1].attachPrimitive(core.createCloudPrimitive(cloud.map(function (point) { return { time: point.time, a: point.spanA, b: point.spanB }; }), 'rgba(147,156,168,0.15)'));
+        }
+        if (indexStudies.sr && global.NineChartSR) {
+          var result = global.NineChartSR.levels(currentBars, null, { timeframe: indexTimeframe });
+          if (indexSrCleanup) indexSrCleanup.update(result);
+          else indexSrCleanup = global.NineChartSR.install(host, indexChart, series, result, function (price) { return Number(price).toLocaleString('ko-KR', { maximumFractionDigits: 2 }); });
+        }
+        if (indexDrawingCtl) indexDrawingCtl.shapes.bars = currentBars;
+        if (indexWaveState.enabled && indexDrawingCtl && global.NineChartWave) {
+          if (indexWaveHandle) indexWaveHandle.detach();
+          indexWaveHandle = global.NineChartWave.attach({ core: core, ctl: indexDrawingCtl, key: 'INDEX:' + symbol, timeframe: indexTimeframe, bars: currentBars, state: indexWaveState, font: 'MaruBuri, serif' });
+          indexWaveHandle.apply();
+        }
+      };
+      indexStudyUpdate();
+      indexChart.timeScale().fitContent();
     }).catch(function () { if (renderId === indexRenderId) host.textContent = '차트를 불러오지 못했습니다.'; });
   }
 
@@ -943,6 +1049,8 @@
     setMarketMode(container, false);
     var panel = container.querySelector('#ssIndexPanel');
     container.querySelector('#ssResults').hidden = true;
+    var overview = container.querySelector('#ssOverview');
+    if (overview) overview.hidden = true;
     container.querySelector('#ssDetail').hidden = true;
     panel.hidden = false;
     panel.innerHTML = '<div class="ss-hint">지수 시세와 차트를 불러오는 중...</div>';
@@ -983,6 +1091,7 @@
                 indexBars = bars;
                 if (indexTimeframe === 'day' && indexSeries) {
                   indexSeries.update({ time: latest.date, open: latest.open, high: latest.high, low: latest.low, close: latest.close });
+                  if (typeof indexStudyUpdate === 'function') indexStudyUpdate();
                 } else {
                   renderIndexChart(panel, row.code);
                 }
@@ -994,6 +1103,8 @@
             + '<div class="ss-index-quote ' + signClass(item.change_rate) + '">' + (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR'))
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
             + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공</div>'
+            // Compact index toolbar; small controls and a comfortably wide wave selector.
+            + '<div class="ss-index-controls" role="group" aria-label="지수 차트 설정">'
             + '<div class="ss-index-tools">'
             + '<div class="ss-timeframe-tools">'
             + '<button type="button" class="active" data-index-tf="day">일봉</button>'
@@ -1008,7 +1119,31 @@
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
             + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
+            + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
+            + [['maShort', '단기 이평선(3·5·20·60)'], ['maLong', '장기 이평선(112·224·448)'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
+              return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
+            }).join('')
+            + '<span class="ss-index-wave-group"><label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
+            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select>'
+            + '<label title="선택한 규모의 상승·하락 파동 박스 안에 한 단계 아래 규모의 고점·저점을 이은 선을 긋습니다"><input type="checkbox" data-index-wave-trend' + (indexWaveState.trend ? ' checked' : '') + ' /> 추세선</label></span>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량 배수 표시</label>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 매물대 표시</label>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량·가격 흔적</label></div>'
+            + '</div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
+          panel.querySelectorAll('[data-index-study]').forEach(function (input) {
+            input.addEventListener('change', function () {
+              var key = input.getAttribute('data-index-study');
+              if (key === 'wave') indexWaveState.enabled = input.checked;
+              else indexStudies[key] = input.checked;
+              renderIndexChart(panel, row.code);
+            });
+          });
+          var waveLevel = panel.querySelector('[data-index-wave-level]');
+          waveLevel.value = indexWaveState.level;
+          waveLevel.addEventListener('change', function () { indexWaveState.level = waveLevel.value; if (indexWaveState.enabled) renderIndexChart(panel, row.code); });
+          var waveTrend = panel.querySelector('[data-index-wave-trend]');
+          if (waveTrend) waveTrend.addEventListener('change', function () { indexWaveState.trend = waveTrend.checked; if (indexWaveState.enabled) renderIndexChart(panel, row.code); });
           panel.querySelectorAll('[data-index-tf]').forEach(function (button) {
             button.addEventListener('click', function () {
               indexTimeframe = button.getAttribute('data-index-tf');
@@ -1120,12 +1255,11 @@
     return out;
   }
 
-  // 2026-07-28: 검색 결과가 많을 때(예: "삼성" 30건) 종목을 하나 골라도 목록이 화면에
-  // 계속 남아있어 "없어지질 않는다"는 리포트가 있었음 - 종목을 고르면 목록을 접어
-  // "검색 결과 N건 (다시 보기)" 한 줄로 줄인다(재조회 없이 state.lastResults로 다시
-  // 펼칠 수 있음). 선택된 종목이 어떤 건지 잊지 않도록 접힌 줄에도 이름을 같이 보여준다.
-  function renderResults(container, items) {
+  // Search results remain in the same card as selected-stock details.
+  // For long lists collapse stays an explicit user action.
+  function renderResults(container, items, userExpanded) {
     var resultsBox = container.querySelector('#ssResults');
+    var overview = container.querySelector('#ssOverview');
 
     if (isIndependentChartMode() && items.length) {
       state.lastResults = items;
@@ -1134,17 +1268,20 @@
       return;
     }
 
+    if (overview && items.length) overview.classList.add('ss-overview-active');
     if (state.resultsCollapsed) {
-      var selected = items.filter(function (it) { return it.code === state.selectedCode; })[0];
+      // The selected stock's name/price live in the detailed summary below.
+      // Keep only a small results navigation control instead of a duplicate stock header.
       resultsBox.innerHTML = '<div class="ss-results-collapsed">'
-        + '<span>검색 결과 ' + items.length + '건' + (selected ? ' · 선택: ' + escapeHtml(selected.name) : '') + '</span>'
+        + '<span>검색 결과 ' + items.length + '건</span>'
         + '<button type="button" class="ss-results-toggle" data-action="expand">목록 다시 보기 ▾</button>'
         + '</div>';
       var expandBtn = resultsBox.querySelector('.ss-results-toggle');
       if (expandBtn) expandBtn.addEventListener('click', function () {
         state.resultsCollapsed = false;
-        renderResults(container, items);
+        renderResults(container, items, true);
       });
+      syncOverviewSelection(container);
       return;
     }
 
@@ -1170,12 +1307,8 @@
         selectStock(container, items[idx]);
         resultsBox.querySelectorAll('.ss-result-row').forEach(function (r) { r.classList.remove('active'); });
         row.classList.add('active');
-        // 종목을 골랐으면 목록을 접어서 화면을 계속 차지하지 않게 한다(사용자 리포트) -
-        // 결과가 1건뿐일 때는 접을 목록 자체가 무의미하니 그대로 둠.
-        if (items.length > 1) {
-          state.resultsCollapsed = true;
-          renderResults(container, items);
-        }
+        // Keep the selected row visible; collapse is an explicit user action.
+        syncOverviewSelection(container);
       });
     });
 
@@ -1200,12 +1333,27 @@
       });
     });
 
-    // 결과가 1건뿐이면(코드 직접 입력 등) 바로 상세까지 보여준다
+    // One result: show the complete table row and OHLC/AI/analysis together.
     if (items.length === 1) {
       selectStock(container, items[0]);
       var onlyRow = resultsBox.querySelector('.ss-result-row');
       if (onlyRow) onlyRow.classList.add('active');
     }
+    syncOverviewSelection(container);
+  }
+
+  function syncOverviewSelection(container) {
+    var overview = container.querySelector('#ssOverview');
+    var resultsBox = container.querySelector('#ssResults');
+    if (!overview || !resultsBox) return;
+    var index = (state.lastResults || []).findIndex(function (item) {
+      return item.code === state.selectedCode;
+    });
+    var visible = !state.resultsCollapsed && !resultsBox.hidden && index >= 0
+      && !!resultsBox.querySelector('.ss-result-row[data-idx="' + index + '"]');
+    // Show the name/price/change in the table only while its row is visible.
+    // When a long list is manually collapsed, the summary restores them.
+    overview.classList.toggle('ss-overview-selected', !!visible);
   }
 
   function resultRowHtml(it, idx) {
@@ -1258,8 +1406,17 @@
     wirePanelResize(container);
 
     if (!isIndependentChartMode()) {
+      var summaryBox = container.querySelector('#ssSummary');
+      var overview = container.querySelector('#ssOverview');
+      if (overview) {
+        overview.hidden = false;
+        overview.classList.add('ss-overview-active');
+      }
+      if (summaryBox) summaryBox.hidden = false;
       renderSummary(container, item);
+      renderSessionCandle(container, {});
       loadPriceReason(container, item);
+      syncOverviewSelection(container);
     }
 
     var ladderBox = container.querySelector('#order-book');
@@ -1292,14 +1449,13 @@
       + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
-      + '<div id="ssSessionCandle" class="ss-session">시가·고가·저가 자료를 불러오는 중…</div>'
       + '<div class="ss-summary-reason" id="ssSummaryReason">'
       + '<span class="ss-reason-badge">AI</span>'
       + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
       + '</div>';
   }
 
-  // 같은 호가 자료로 상단 현재가를 맞추고, 보조 영역에는 시가·고가·저가만 표시한다.
+  // 같은 호가 자료로 상단 현재가를 맞추고, 호가 패널 위에 시가·고가·저가를 표시한다.
   function renderSessionCandle(container,summary) {
     var box=container.querySelector('#ssSessionCandle');if(!box)return;
     var c=Number(summary.current);
@@ -1558,15 +1714,37 @@
       };
     });
     if (minuteScopeWrap) minuteScopeWrap.hidden = state.timeframe !== 'minute';
-    var movingAverageToggle = container.querySelector('#ssMovingAverageToggle, [data-chart-ma-toggle]');
-    if (movingAverageToggle) {
-      movingAverageToggle.checked = state.movingAverageEnabled;
-      movingAverageToggle.onchange = function () {
-        state.movingAverageEnabled = movingAverageToggle.checked;
-        rememberStudyToggle('ma',state.movingAverageEnabled);
+    var rsiToggle = container.querySelector('[data-chart-rsi-toggle]');
+    var rsiDivToggle = container.querySelector('[data-chart-rsidiv-toggle]');
+    if (rsiToggle) {
+      rsiToggle.checked = state.rsiEnabled;
+      rsiToggle.onchange = function () {
+        state.rsiEnabled = rsiToggle.checked;
+        if (!state.rsiEnabled) { state.rsiDivergenceEnabled = false; if (rsiDivToggle) rsiDivToggle.checked = false; }   // 다이버전스는 RSI 패널이 있어야 그린다
         renderChartForCode(container, state.selectedCode);
       };
     }
+    if (rsiDivToggle) {
+      rsiDivToggle.checked = state.rsiDivergenceEnabled;
+      rsiDivToggle.onchange = function () {
+        state.rsiDivergenceEnabled = rsiDivToggle.checked;
+        if (state.rsiDivergenceEnabled && !state.rsiEnabled) { state.rsiEnabled = true; if (rsiToggle) rsiToggle.checked = true; }
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var maShortToggle = container.querySelector('[data-chart-ma-short-toggle]');
+    var maLongToggle = container.querySelector('[data-chart-ma-long-toggle]');
+    function wireMaToggle(toggle, key) {
+      if (!toggle) return;
+      toggle.checked = state[key];
+      toggle.onchange = function () {
+        state[key] = toggle.checked;
+        rememberStudyToggle('ma', state.movingAverageShortEnabled || state.movingAverageLongEnabled);
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
+    wireMaToggle(maShortToggle, 'movingAverageShortEnabled');
+    wireMaToggle(maLongToggle, 'movingAverageLongEnabled');
     var ichimokuToggle = container.querySelector('#ssIchimokuToggle, [data-chart-ichimoku-toggle]');
     if (ichimokuToggle) {
       ichimokuToggle.checked = state.ichimokuEnabled;
@@ -1623,6 +1801,14 @@
         state.supportResistanceEnabled = srToggle.checked;
         rememberStudyToggle('sr',state.supportResistanceEnabled);
         renderChartForCode(container, state.selectedCode);
+      };
+    }
+    var volMultToggle = container.querySelector('[data-chart-volmult-toggle]');
+    if (volMultToggle) {
+      volMultToggle.checked = state.volumeMultipleEnabled;
+      volMultToggle.onchange = function () {
+        state.volumeMultipleEnabled = volMultToggle.checked;
+        if (lwcVolumePane && typeof lwcVolumePane.setMultiples === 'function') lwcVolumePane.setMultiples(state.volumeMultipleEnabled);
       };
     }
     var memoButton = container.querySelector('.ss-memo-toggle');
@@ -1753,8 +1939,10 @@
       var height = container.clientHeight;
       if (!width || !height) return;
       var ratio = Math.max(1, global.devicePixelRatio || 1);
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
+      // Resizing clears/reallocates the backing store: only do it on actual resize.
+      var pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
       var ctx = canvas.getContext('2d');
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -1785,8 +1973,7 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (!frameId) frameId = global.requestAnimationFrame(draw);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
@@ -1859,8 +2046,10 @@
       positionLwcPaneLabels(container, panes, mainHeight, volumeHeight);
 
       var ratio = Math.max(1, global.devicePixelRatio || 1);
-      canvas.width = Math.round(width * ratio);
-      canvas.height = Math.round(height * ratio);
+      // Resizing clears/reallocates the backing store: only do it on actual resize.
+      var pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+      if (canvas.width !== pixelWidth) canvas.width = pixelWidth;
+      if (canvas.height !== pixelHeight) canvas.height = pixelHeight;
       var ctx = canvas.getContext('2d');
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
@@ -1882,8 +2071,7 @@
       }
     }
     function scheduleDraw() {
-      if (frameId) global.cancelAnimationFrame(frameId);
-      frameId = global.requestAnimationFrame(draw);
+      if (!frameId) frameId = global.requestAnimationFrame(draw);
     }
 
     chart.timeScale().subscribeVisibleLogicalRangeChange(scheduleDraw);
@@ -2008,11 +2196,15 @@
       + '</div></div>'
       + '<div class="ss-minute-scope-wrap" data-minute-scope-wrap hidden>' + minuteScopeControlHtml() + '</div>'
       + '<div class="ss-chart-studies">'
-      + '<label><input type="checkbox" data-chart-ma-toggle checked /> 이동평균선 표시</label>'
-      + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
-      + '<label><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
-      + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
-      + '<label><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
+      + '<label title="3·5·20·60일선"><input type="checkbox" data-chart-ma-short-toggle checked /> 단기 이평선(3·5·20·60)</label>'
+      + '<label title="112·224·448일선. 224일선은 굵은 검정"><input type="checkbox" data-chart-ma-long-toggle checked /> 장기 이평선(112·224·448)</label>'
+      + '<label title="전환선(9)·기준선(26)·선행스팬(52, 26봉 앞)으로 그린 구름대입니다. 구름 위는 상승 우위, 아래는 하락 우위로 읽습니다. 참고용이며 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
+      + '<label title="20일 이동평균을 가운데로 위아래 표준편차 2배 폭의 밴드입니다. 밴드가 좁아지면 변동성 수축, 넓어지면 확대를 뜻합니다."><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
+      + '<label title="과거에 가격이 반응했던 가격대를 가로 띠로 표시합니다. 반응 횟수·최근 반응일·거래량 동반 여부로 선 굵기가 달라지고, 보라색 파선은 지지와 저항이 바뀐 가격대입니다."><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
+      + '<label title="배수 = 그 봉 거래량 ÷ 바로 앞 20봉(일봉이면 20일) 평균 거래량(그 봉 제외). 2배 이상이면 막대를 진하게, 3배 이상이면 `3.2배`처럼 숫자를 붙입니다. 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-volmult-toggle /> 거래량 배수 표시</label>'
+      + '<label title="RSI(14) 보조 패널을 표시합니다. 70 이상은 과매수, 30 이하는 과매도 구간으로 색을 입힙니다. 끄면 패널이 사라지고 RSI 다이버전스도 함께 꺼집니다."><input type="checkbox" data-chart-rsi-toggle /> RSI</label>'
+      + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
+      + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
@@ -2354,7 +2546,7 @@
   function renderVpPanel(panel, analysis, info) {
     if (!panel) return;
     var VP = global.NineVolumeProfile;
-    if (!analysis || !VP) { panel.hidden = true; panel.innerHTML = ''; panel.__vpHtml = null; return; }
+    if (!analysis || !VP) { panel.style.visibility = 'hidden'; panel.innerHTML = ''; panel.__vpHtml = null; return; }   // hidden 이 아니라 visibility: 높이를 유지해 차트 영역이 들썩이지 않게 한다
     var fmt = function (v) { return chartPriceText(v, info.isUs); };
     var opts = { format: fmt };
     var core = global.NineChartCore;
@@ -2390,6 +2582,7 @@
       panel.__vpHtml = html;
     }
     panel.hidden = false;
+    panel.style.visibility = '';
   }
 
   function createVolumeProfilePrimitive(bars, isUs, code, container, unit) {
@@ -2527,12 +2720,14 @@
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
+    if (lwcDivergenceCleanup) { lwcDivergenceCleanup(); lwcDivergenceCleanup = null; }
     if (supplyMarkerHolder && supplyMarkerHolder.legendCleanup) supplyMarkerHolder.legendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.tipCleanup) supplyMarkerHolder.tipCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.densityCleanup) supplyMarkerHolder.densityCleanup();
     supplyMarkerHolder = null;
     if (lwcOhlcTooltipCleanup) { lwcOhlcTooltipCleanup(); lwcOhlcTooltipCleanup = null; }
     if (stockPanCleanup) { stockPanCleanup(); stockPanCleanup = null; }
+    if (stockWheelCleanup) { stockWheelCleanup(); stockWheelCleanup = null; }
     if (stockChartRegistryOff) { stockChartRegistryOff(); stockChartRegistryOff = null; }
     if (lwcChart) { try { lwcChart.remove(); } catch (e) { /* 이미 제거된 DOM이면 무시 */ } lwcChart = null; }
     lwcChartContainer = null;
@@ -2541,19 +2736,27 @@
 
     chartReady().then(function (LWC) {
       // 지지·저항은 체크했을 때만 모듈이 필요하다
-      return (state.supportResistanceEnabled ? global.NineChartCore.loadModule('sr').catch(function () { return null; }) : Promise.resolve()).then(function () { return LWC; });
+      var studyLoads = [];
+      if (state.supportResistanceEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
+      if (state.rsiDivergenceEnabled) studyLoads.push(global.NineChartCore.loadModule('divergence').catch(function () { return null; }));
+      return Promise.all(studyLoads).then(function () { return LWC; });
     }).then(function (LWC) {
       if (renderId !== lwcRenderId || !document.body.contains(container)) return;
       var core = global.NineChartCore;
       if (container.querySelector('.ss-hint')) container.innerHTML = '';
 
-      var chart = LWC.createChart(container, core.chartOptions(LWC, 'search', {
+      var options = core.chartOptions(LWC, 'search', {
         timeframe: timeframe,
         fontFamily: global.getComputedStyle ? global.getComputedStyle(document.body).fontFamily : "'MaruBuri', Georgia, serif",
         autoSize: false,
         width: Math.max(1, Math.floor(container.clientWidth)),
         height: Math.max(1, Math.floor(container.clientHeight || 420))
-      }));
+      });
+      // 라이브러리 기본 휠 스크롤/확대와 중복되지 않도록 이 화면에서만 비활성화.
+      options.handleScale.mouseWheel = false;
+      options.handleScroll.mouseWheel = false;
+      var chart = LWC.createChart(container, options);
+      stockWheelCleanup = core.installSmoothWheelZoom(chart, container, { bars: bars.length });
       lwcChart = chart;
       lwcChartContainer = container;
       stockChartRegistryOff = core.registerChart(container, chart, { bars: bars.length, timeframe: timeframe });
@@ -2588,10 +2791,15 @@
       if (state.liveQuotes[state.selectedCode]) updateLiveChartQuote(state.selectedCode, state.liveQuotes[state.selectedCode]);
 
       var priceLegendHtml = [];
-      if (state.movingAverageEnabled) {
-        core.maStudies().forEach(function (study) {
+      var legendLines = {};   // 범례 키 -> 선 시리즈(굵게 표시용)
+      var maGroups = [];
+      if (state.movingAverageShortEnabled) maGroups.push('short');
+      if (state.movingAverageLongEnabled) maGroups.push('long');
+      if (maGroups.length) {
+        core.maStudies(undefined, maGroups).forEach(function (study) {
           var points = core.movingAveragePoints(bars, 'close', study.period);
-          core.addMovingAverageLine(chart, LWC, study, points, {
+          if (!points.length) return;   // 봉이 모자라(예: 448일선) 그릴 수 없는 선은 범례도 만들지 않는다
+          var maSeries = core.addMovingAverageLine(chart, LWC, study, points, {
             priceScaleId: 'right',
             priceFormat: {
               type: 'custom',
@@ -2600,7 +2808,8 @@
             }
           });
           var latest = points.length ? chartPriceText(points[points.length - 1].value, isUsChart) : '—';
-          priceLegendHtml.push('<span data-study="ma" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
+          legendLines[study.key] = lineEntries(maSeries);
+          priceLegendHtml.push('<span data-study="ma" data-line-key="' + study.key + '" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:' + study.color + '">MA' + study.period + ' <b>' + latest + '</b></span>');
         });
       }
       var markHolder = supplyMarkerHolder = { chart: chart, container: container, supplyEnabled: false, supplyMode:state.supplyMode, studyOrder:state.studyOrder, timeframe:timeframe };
@@ -2610,8 +2819,8 @@
         priceLegendHtml.push('<span style="color:' + core.SUPPLY_TRACES.color + '">거래량·가격 흔적은 국내 일봉에서만 표시됩니다</span>');
       }
       if (state.bollingerEnabled) {
-        core.addBollingerBands(chart, LWC, bars);
-        priceLegendHtml.push('<span data-study="bollinger" style="color:#d9a600">볼린저 20·2</span>');
+        legendLines.bollinger = lineEntries(core.addBollingerBands(chart, LWC, bars));
+        priceLegendHtml.push('<span data-study="bollinger" data-line-key="bollinger" class="ss-legend-click" title="눌러서 이 선을 굵게" style="color:#d9a600">볼린저 20·2</span>');
       }
 
       // futureBarTimes가 분봉 간격을 모르는 채로 하루씩 미래 날짜를 만들어버리므로
@@ -2659,6 +2868,14 @@
         priceLegend.innerHTML = priceLegendHtml.join('');
         Array.from(priceLegend.children).sort(function(a,b){return state.studyOrder.indexOf(a.dataset.study)-state.studyOrder.indexOf(b.dataset.study);}).forEach(function(el){priceLegend.appendChild(el);});
         container.appendChild(priceLegend);
+        priceLegend.addEventListener('click', function (event) {
+          var hit = event.target.closest ? event.target.closest('[data-line-key]') : null;
+          if (!hit) return;
+          var key = hit.getAttribute('data-line-key');
+          state.lineHighlight[key] = !state.lineHighlight[key];
+          applyLineHighlight(legendLines, priceLegend);
+        });
+        applyLineHighlight(legendLines, priceLegend);
       }
 
       // TradingView v5의 독립 패널: 거래량(1) · RSI(2).
@@ -2670,38 +2887,41 @@
       // 눈금 라벨과 겹친다. 같은 값은 이미 아래 .ss-volume-study-label(커스텀 범례)이
       // 텍스트로 보여주고 있어 중복이라, 다른 보조지표 시리즈(MA/일목균형표)와 동일하게 끈다.
       var volumePane = core.addVolumePane(chart, LWC, bars, {
-        pane: 1, scaleId: 'volume', ma5: true,
+        pane: 1, scaleId: 'volume', ma5: true, multiples: state.volumeMultipleEnabled,
         // 막대를 항상 패널 하단(기준선 0)에 붙이고 위쪽 15%만 비워 범례가 막대 바로 위에 오게 한다(2026-08-14).
         scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
       });
       var volumeMaPoints = volumePane.ma20.points;
       var volumeMa5Points = volumePane.ma5.points;
 
-      var rsiValues = stockRsi(bars);
-      // 첨부 화면과 같은 RSI(14) 검정 단일선. 색상은 50 기준으로 나누지 않고,
-      // 과매수·과매도 구간만 선과 70/30 기준선 사이를 배경으로 강조한다.
-      var rsiSeries = chart.addSeries(LWC.LineSeries, {
-        color: '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false,
-        crosshairMarkerVisible: false,
-        priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
-      }, 2);
-      rsiSeries.setData(bars.map(function (bar, index) {
-        return rsiValues[index] == null ? null : { time: bar.date, value: rsiValues[index] };
-      }).filter(Boolean));
-      // 2026-09-16 민원("차트 안 글자가 겹쳐 보임"): 축 라벨 칩('70'·'30')이 가격축 눈금(70.0·30.0)
-      // 바로 옆에 겹쳐 찍혀 같은 숫자가 두 번 보였다. 점선은 그대로 두고 중복 칩만 끈다.
-      rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
-      rsiSeries.createPriceLine({ price: 50, color: '#6b7280', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '50' });
-      rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
-      // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
-      // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널
-      // 자체를 없애고 거래량·RSI 2개만 남긴다.
+      var rsiValues = state.rsiEnabled ? stockRsi(bars) : null;
+      var rsiSeries = null;
+      if (state.rsiEnabled) {
+        // 첨부 화면과 같은 RSI(14) 검정 단일선. 색상은 50 기준으로 나누지 않고,
+        // 과매수·과매도 구간만 선과 70/30 기준선 사이를 배경으로 강조한다.
+        rsiSeries = chart.addSeries(LWC.LineSeries, {
+          color: '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false,
+          crosshairMarkerVisible: false,
+          priceFormat: { type: 'custom', minMove: 0.1, formatter: function (v) { return Number(v).toFixed(1); } }
+        }, 2);
+        rsiSeries.setData(bars.map(function (bar, index) {
+          return rsiValues[index] == null ? null : { time: bar.date, value: rsiValues[index] };
+        }).filter(Boolean));
+        // 2026-09-16 민원("차트 안 글자가 겹쳐 보임"): 축 라벨 칩('70'·'30')이 가격축 눈금(70.0·30.0)
+        // 바로 옆에 겹쳐 찍혀 같은 숫자가 두 번 보였다. 점선은 그대로 두고 중복 칩만 끈다.
+        rsiSeries.createPriceLine({ price: 70, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '70' });
+        rsiSeries.createPriceLine({ price: 50, color: '#6b7280', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '50' });
+        rsiSeries.createPriceLine({ price: 30, color: '#d9d9d9', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false, title: '30' });
+        // 2026-08-14 요청: 거래량/RSI/MACD 3개 서브패널이 좁은 공간에서 라벨·배지가 계속
+        // 겹쳐 보인다는 리포트가 반복돼(패널 위치 계산을 두 차례 고쳐도 재현) MACD 패널
+        // 자체를 없애고 거래량·RSI 2개만 남긴다.
+      }
 
       var paneLabels = document.createElement('div');
       paneLabels.className = 'ss-lwc-pane-labels';
       paneLabels.style.visibility = 'hidden';
       paneLabels.innerHTML = '<span>RSI(14)</span>';
-      container.appendChild(paneLabels);
+      if (state.rsiEnabled) container.appendChild(paneLabels);
 
       var latestBar = bars[bars.length - 1] || {};
       var previousBar = bars.length > 1 ? bars[bars.length - 2] : null;
@@ -2755,8 +2975,15 @@
         formatPrice: function (p) { return chartPriceText(p, isUsChart); },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
       });
+      lwcVolumePane = volumePane;
       lwcSrCleanup = global.NineChartSR ? global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }, { isUs: isUsChart }) : null;
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
+      // RSI 다이버전스: 자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간(분봉 제외)
+      if (state.rsiEnabled && state.rsiDivergenceEnabled && timeframe !== 'minute' && global.NineChartDivergence && global.NineChartWave && global.AutoWave) {
+        var divResult = global.NineChartWave.analysis(bars, state.selectedCode, timeframe);
+        var divList = global.NineChartDivergence.find(bars, rsiValues, divResult, state.wave.level || 'medium');
+        lwcDivergenceCleanup = global.NineChartDivergence.install({ container: container, chart: chart, candleSeries: candleSeries, rsiSeries: rsiSeries, panes: panes, bars: bars, list: divList });
+      }
       setupStockOverlays(container, chart, candleSeries, timeframe, bars);
       resizeStockChart();
     }).catch(function () {

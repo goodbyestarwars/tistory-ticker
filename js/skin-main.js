@@ -881,6 +881,12 @@ document.documentElement.classList.add('skin-ready');
       if (title) title.textContent = isUs ? '미국 시장 요약' : '시장 핵심 지표';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
       if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
+      // Outside the US cash session, the large "시장 방향" headline already
+      // shows the same "본장 개장 전 / 본장 마감 / 미국장 휴장" label.
+      // Hide only the duplicate small row, not the headline or live futures.
+      // Restore it for the US regular session (breadth) and domestic market (temperature).
+      var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict .hmb2-temp');
+      if (secondaryMarketStatus) secondaryMarketStatus.hidden = !!(isUs && usSession && !usSession.open);
       if (investorTrend) investorTrend.hidden = isUs;
       // 시장 내부 흐름(상승·하락 비중)은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
       var breadthBlock = dashboardSection.querySelector('[data-home-breadth]');

@@ -68,6 +68,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > div { display: block; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction { order: 1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp { order: 2; display: flex !important; align-items: baseline; gap: 8px; }
+/* The old flex !important rule must not override the semantic hidden attribute. */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp[hidden] { display: none !important; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict dt {
   margin: 0; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); letter-spacing: .02em;
 }

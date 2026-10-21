@@ -222,6 +222,13 @@
       wrap.className = 'nine-chart-ranges';   // 모양은 css/ui-system.css(.nine-chart-ranges) - 사이트 탭(.ss-tf-btn)과 같은 스타일
       parent.insertBefore(wrap, chartElement);
     }
+    // 2026-10-22 사용자 요청: 기간 버튼(1개월~전체)을 보조지표 옵션 줄 위로 올린다(봉 주기·도구 → 기간 → 가로선 → 옵션 → 차트 순서).
+    var optionsRow = null;
+    for (var oi = 0; oi < parent.children.length; oi++) {
+      var kid = parent.children[oi];
+      if (kid.classList && (kid.classList.contains('ss-chart-studies') || kid.classList.contains('ff-chart-toggles'))) { optionsRow = kid; break; }
+    }
+    if (optionsRow && (wrap.compareDocumentPosition(optionsRow) & 2)) parent.insertBefore(wrap, optionsRow);   // 2 = 옵션 줄이 기간 묶음보다 앞에 있음
     wrap.hidden = false;
     var options = isUs ? RANGE_OPTIONS.filter(function (o) { return o[0] !== '3y' && o[0] !== '5y'; }) : RANGE_OPTIONS;
     wrap.innerHTML = options.map(function (o) {

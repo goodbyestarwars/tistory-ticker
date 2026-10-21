@@ -1,0 +1,141 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="920" height="1116" viewBox="0 0 920 1116" role="img" aria-labelledby="t d">
+<title id="t">상승 시도 호가창에서 확인할 다섯 가지</title>
+<desc id="d">왼쪽은 5200원 주변의 매도와 매수 10호가, 오른쪽은 매도 호가의 두께, 매수 받침, 실제 체결, 거래량 확인 요령을 설명한다. 매매 추천이나 상승 예측이 아니다.</desc>
+<style>text{font-family:"Pretendard","Malgun Gothic",Arial,sans-serif}.ink{fill:#283342}.muted{fill:#64748b}.blue{fill:#1261c4}.red{fill:#c43c33}.line{stroke:#e5e7eb}.price{font-weight:700;font-size:17px}.small{font-size:13px}.explain{font-size:15px}</style>
+<rect width="920" height="1116" fill="#fefdfa"/>
+<text x="25" y="47" class="ink" font-weight="700" font-size="29">호가창에서 볼 만한 상승 시도 구조</text>
+<text x="27" y="76" class="muted" font-size="15">매도 잔량 · 매수 받침 · 체결 흐름을 함께 본다</text>
+<text x="27" y="101" class="muted small">호가창 한 장은 순간 기록이다. 변화를 보려면 시간순 데이터를 확인해야 한다.</text>
+<path d="M25 119H895" stroke="#e0e5eb"/>
+<rect x="24" y="145" width="438" height="920" rx="8" fill="#fffefc" stroke="#d9e0e8"/>
+<text x="42" y="181" class="ink" font-weight="700" font-size="18">호가창 예시</text>
+<text x="442" y="179" class="muted small" text-anchor="end">잔량 단위 · 주</text>
+<text x="42" y="210" class="red small" font-weight="700">매수 잔량</text>
+<text x="217" y="210" class="muted small" font-weight="700" text-anchor="middle">가격</text>
+<text x="440" y="210" class="blue small" font-weight="700" text-anchor="end">매도 잔량</text>
+<path class="line" d="M39 218H448"/>
+<g id="sell-rows">
+<text x="217" y="243" class="blue price" text-anchor="middle">5,350</text>
+<text x="439" y="243" class="blue price" text-anchor="end">201</text>
+<path class="line" d="M39 251H448"/>
+<rect x="39" y="251" width="409" height="28" fill="#f7f9fb"/>
+<text x="217" y="272" class="blue price" text-anchor="middle">5,340</text>
+<text x="439" y="272" class="blue price" text-anchor="end">10</text>
+<path class="line" d="M39 280H448"/>
+<text x="217" y="301" class="blue price" text-anchor="middle">5,300</text>
+<text x="439" y="301" class="blue price" text-anchor="end">248</text>
+<path class="line" d="M39 309H448"/>
+<rect x="39" y="309" width="409" height="28" fill="#f7f9fb"/>
+<text x="217" y="330" class="blue price" text-anchor="middle">5,270</text>
+<text x="439" y="330" class="blue price" text-anchor="end">219</text>
+<path class="line" d="M39 338H448"/>
+<text x="217" y="359" class="blue price" text-anchor="middle">5,260</text>
+<text x="439" y="359" class="blue price" text-anchor="end">170</text>
+<path class="line" d="M39 367H448"/>
+<rect x="39" y="367" width="409" height="28" fill="#f7f9fb"/>
+<text x="217" y="388" class="blue price" text-anchor="middle">5,250</text>
+<text x="439" y="388" class="blue price" text-anchor="end">200</text>
+<path class="line" d="M39 396H448"/>
+<rect x="324" y="397" width="122" height="26" rx="3" fill="#e6f1fd"/>
+<text x="217" y="417" class="blue price" text-anchor="middle">5,240</text>
+<text x="439" y="417" class="blue price" text-anchor="end">20</text>
+<path class="line" d="M39 425H448"/>
+<rect x="39" y="425" width="409" height="28" fill="#f7f9fb"/>
+<rect x="324" y="426" width="122" height="26" rx="3" fill="#e6f1fd"/>
+<text x="217" y="446" class="blue price" text-anchor="middle">5,230</text>
+<text x="439" y="446" class="blue price" text-anchor="end">42</text>
+<path class="line" d="M39 454H448"/>
+<text x="217" y="475" class="blue price" text-anchor="middle">5,220</text>
+<text x="439" y="475" class="blue price" text-anchor="end">228</text>
+<path class="line" d="M39 483H448"/>
+<rect x="39" y="483" width="409" height="28" fill="#f7f9fb"/>
+<text x="217" y="504" class="blue price" text-anchor="middle">5,210</text>
+<text x="439" y="504" class="blue price" text-anchor="end">349</text>
+<path class="line" d="M39 512H448"/>
+</g>
+<rect x="39" y="523" width="409" height="45" rx="5" fill="#ebf0f6"/>
+<text x="50" y="551" class="ink" font-weight="700" font-size="15">현재가</text>
+<text x="218" y="553" class="blue" font-weight="750" font-size="23" text-anchor="middle">5,200원</text>
+<text x="439" y="550" class="blue small" text-anchor="end">-3.53%</text>
+<g id="buy-rows">
+<rect x="39" y="575" width="126" height="26" rx="3" fill="#fce9e6"/>
+<text x="48" y="595" class="red price">1,169</text>
+<text x="217" y="595" class="red price" text-anchor="middle">5,190</text>
+<path class="line" d="M39 603H448"/>
+<rect x="39" y="603" width="409" height="28" fill="#fcf8f7"/>
+<rect x="39" y="604" width="126" height="26" rx="3" fill="#fce9e6"/>
+<text x="48" y="624" class="red price">1,261</text>
+<text x="217" y="624" class="red price" text-anchor="middle">5,180</text>
+<path class="line" d="M39 632H448"/>
+<text x="48" y="653" class="red price">247</text>
+<text x="217" y="653" class="red price" text-anchor="middle">5,170</text>
+<path class="line" d="M39 661H448"/>
+<rect x="39" y="661" width="409" height="28" fill="#fcf8f7"/>
+<text x="48" y="682" class="red price">974</text>
+<text x="217" y="682" class="red price" text-anchor="middle">5,160</text>
+<path class="line" d="M39 690H448"/>
+<text x="48" y="711" class="red price">642</text>
+<text x="217" y="711" class="red price" text-anchor="middle">5,150</text>
+<path class="line" d="M39 719H448"/>
+<rect x="39" y="719" width="409" height="28" fill="#fcf8f7"/>
+<text x="48" y="740" class="red price">984</text>
+<text x="217" y="740" class="red price" text-anchor="middle">5,140</text>
+<path class="line" d="M39 748H448"/>
+<text x="48" y="769" class="red price">109</text>
+<text x="217" y="769" class="red price" text-anchor="middle">5,130</text>
+<path class="line" d="M39 777H448"/>
+<rect x="39" y="777" width="409" height="28" fill="#fcf8f7"/>
+<text x="48" y="798" class="red price">225</text>
+<text x="217" y="798" class="red price" text-anchor="middle">5,120</text>
+<path class="line" d="M39 806H448"/>
+<text x="48" y="827" class="red price">128</text>
+<text x="217" y="827" class="red price" text-anchor="middle">5,110</text>
+<path class="line" d="M39 835H448"/>
+<rect x="39" y="835" width="409" height="28" fill="#fcf8f7"/>
+<text x="48" y="856" class="red price">263</text>
+<text x="217" y="856" class="red price" text-anchor="middle">5,100</text>
+<path class="line" d="M39 864H448"/>
+</g>
+<text x="42" y="899" class="muted" font-size="14">표시된 10호가 잔량 합계</text>
+<text x="42" y="929" class="blue" font-size="17" font-weight="700">매도 1,687</text>
+<text x="442" y="929" class="red" font-size="17" font-weight="700" text-anchor="end">매수 6,002</text>
+<rect x="42" y="945" width="89" height="10" rx="4" fill="#1261c4"/>
+<rect x="131" y="945" width="316" height="10" rx="4" fill="#d24f45"/>
+<text x="43" y="992" class="muted small">매수 잔량이 더 많지만 주문은 언제든 취소될 수 있다.</text>
+<text x="43" y="1018" class="muted small">잔량 합계만으로 급등을 판단하지 않는다.</text>
+<rect x="486" y="145" width="409" height="145" rx="8" fill="#fffefc" stroke="#dde3e9"/>
+<circle cx="519" cy="183" r="19" fill="#1261c4" opacity=".1"/>
+<text x="519" y="189" fill="#1261c4" text-anchor="middle" font-size="18" font-weight="750">1</text>
+<text x="550" y="188" class="ink" font-size="17" font-weight="700">매도호가가 얇은 구간</text>
+<text x="550" y="228" class="muted explain">5,230원에 42주, 5,240원에 20주.</text>
+<text x="550" y="252" class="muted explain">즉시 매수량에 따라 빠르게 지나갈 수 있다.</text>
+<rect x="486" y="304" width="409" height="145" rx="8" fill="#fffefc" stroke="#dde3e9"/>
+<circle cx="519" cy="342" r="19" fill="#c43c33" opacity=".1"/>
+<text x="519" y="348" fill="#c43c33" text-anchor="middle" font-size="18" font-weight="750">2</text>
+<text x="550" y="347" class="ink" font-size="17" font-weight="700">아래에 쌓인 매수 주문</text>
+<text x="550" y="387" class="muted explain">5,190원과 5,180원에 매수 주문이</text>
+<text x="550" y="411" class="muted explain">상대적으로 많지만 언제든 바뀔 수 있다.</text>
+<rect x="486" y="463" width="409" height="145" rx="8" fill="#fffefc" stroke="#dde3e9"/>
+<circle cx="519" cy="501" r="19" fill="#1261c4" opacity=".1"/>
+<text x="519" y="507" fill="#1261c4" text-anchor="middle" font-size="18" font-weight="750">3</text>
+<text x="550" y="506" class="ink" font-size="17" font-weight="700">매도벽이 실제로 소화됐나</text>
+<text x="550" y="546" class="muted explain">호가 수량이 줄어든 원인이 실제 체결인지,</text>
+<text x="550" y="570" class="muted explain">주문 취소인지 구분해야 한다.</text>
+<rect x="486" y="622" width="409" height="145" rx="8" fill="#fffefc" stroke="#dde3e9"/>
+<circle cx="519" cy="660" r="19" fill="#c43c33" opacity=".1"/>
+<text x="519" y="666" fill="#c43c33" text-anchor="middle" font-size="18" font-weight="750">4</text>
+<text x="550" y="665" class="ink" font-size="17" font-weight="700">한 칸씩 올라가는 체결</text>
+<text x="550" y="705" class="muted explain">5,210원 위의 호가를 매수 주문이</text>
+<text x="550" y="729" class="muted explain">실제로 체결하며 올라가는지 확인한다.</text>
+<rect x="486" y="781" width="409" height="145" rx="8" fill="#fffefc" stroke="#dde3e9"/>
+<circle cx="519" cy="819" r="19" fill="#1261c4" opacity=".1"/>
+<text x="519" y="825" fill="#1261c4" text-anchor="middle" font-size="18" font-weight="750">5</text>
+<text x="550" y="824" class="ink" font-size="17" font-weight="700">다른 지표와 함께 확인</text>
+<text x="550" y="864" class="muted explain">체결강도와 거래량, 호가 재충전을</text>
+<text x="550" y="888" class="muted explain">함께 보고 단순 잔량 비율에 의존하지 않는다.</text>
+<rect x="486" y="948" width="409" height="117" rx="8" fill="#f6f4ef" stroke="#dcd7cd"/>
+<text x="505" y="979" class="ink" font-size="18" font-weight="700">주의</text>
+<text x="505" y="1010" class="muted" font-size="14">정적인 호가 스냅샷은 상승 신호가 아니다.</text>
+<text x="505" y="1035" class="muted" font-size="14">허수 주문과 지연 시세, 거래량을 확인한다.</text>
+<text x="27" y="1095" class="muted small">9Pay 증권 · 교육용으로 재구성한 가상 호가 예시 · 투자 권유 아님</text>
+</svg>

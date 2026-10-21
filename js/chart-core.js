@@ -19,11 +19,15 @@
   var ICHIMOKU_CLOUD_FILL = 'rgba(90,170,215,0.4)';
   var ICHIMOKU_BORDER_COLOR = 'rgba(0,0,0,0)';
   var ICHIMOKU = { tenkan: 9, kijun: 26, senkouB: 52, displacement: 26 };
+  // group: 화면의 이동평균선 옵션 두 개(단기 3·5·20·60 / 장기 112·224·448). legacy: 그룹을 주지 않는 옛 호출(지수 차트 등)이 쓰는 4개.
   var MA_STUDIES = [
-    { key: 'ma5', period: 5, color: '#d24f45', width: 1 },
-    { key: 'ma20', period: 20, color: '#1261c4', width: 1 },
-    { key: 'ma60', period: 60, color: '#0ca678', width: 1 },
-    { key: 'ma224', period: 224, color: null, width: 3 }   // 224일선은 테마에 따라 검정/밝은 회색
+    { key: 'ma3', period: 3, color: '#f08c00', width: 1, group: 'short' },
+    { key: 'ma5', period: 5, color: '#d24f45', width: 1, group: 'short', legacy: true },
+    { key: 'ma20', period: 20, color: '#1261c4', width: 1, group: 'short', legacy: true },
+    { key: 'ma60', period: 60, color: '#0ca678', width: 1, group: 'short', legacy: true },
+    { key: 'ma112', period: 112, color: '#7048e8', width: 1.5, group: 'long' },
+    { key: 'ma224', period: 224, color: null, width: 3, group: 'long', legacy: true },   // 224일선은 테마에 따라 검정/밝은 회색(굵게)
+    { key: 'ma448', period: 448, color: '#6b7280', width: 2, group: 'long' }
   ];
 
   // ---- 자산 주소(이 스크립트가 실제로 내려온 곳 기준 - 운영은 GitHub Pages, 로컬 점검은 로컬 서버) ----
@@ -31,12 +35,13 @@
   var SELF_SRC = (DOC && DOC.currentScript && DOC.currentScript.src) || '';
   var ROOT = (SELF_SRC.match(/^(.*\/)js\/chart-core\.js/) || [])[1] || 'https://goodbyestarwars.github.io/tistory-ticker/';
   var MODULES = {
-    data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261020-us-ranges' },
+    data: { file: 'js/chart-data.js', global: 'NineChartData', v: '20261022-order1' },
     drawing: { file: 'js/chart-drawing.js', global: 'NineChartDrawing', v: '20261014-core1' },
-    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261020-major-context1', needs: ['data', 'autowave'] },
+    wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261022-trend2', needs: ['data', 'autowave'] },
+    divergence: { file: 'js/chart-divergence.js', global: 'NineChartDivergence', v: '20261022-div1', needs: ['wave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
-    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261018-sr-trend' },
+    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength2' },
     vp: { file: 'js/volume-profile-analysis.js', global: 'NineVolumeProfile', v: '20261019-vp1' }
   };
 
@@ -295,6 +300,186 @@
     return true;
   }
 
+  // ---- 마우스 휠: 커서 아래 봉을 유지하며 rAF마다 점진 확대·축소 ----
+  // 설치한 화면에서만 라이브러리 기본 wheel scale/scroll을 비활성화한다.
+  // 드래그·핀치·가격축·보조지표·작도는 별도 기본 이벤트를 계속 사용한다.
+  function installSmoothWheelZoom(chart, element, opts) {
+    if (!chart || !chart.timeScale || !element || !element.addEventListener) return function () {};
+    opts = opts || {};
+    var scale = chart.timeScale();
+    var total = Math.max(1, Number(opts.bars) || 250);
+    var edge = 12, minSpan = 12;
+    var leftLimit = -edge, rightLimit = total - 1 + edge;
+    var maxSpan = Math.max(minSpan, Math.min(2000, rightLimit - leftLimit));
+    var target = null, frame = 0, disposed = false;
+    var lastFrameTime = null, lastDirection = 0, lastGesture = null;
+    // 네이버·토스처럼(2026-10-22): 휠을 빠르게 돌리면 점점 더 크게 움직이고(가속), 최신 봉 근처에서 확대하면 최신 봉을 오른쪽에 붙여 둔다.
+    // 드래그로 밀다 놓으면 관성으로 조금 더 미끄러진다.
+    var lastWheelAt = 0, streak = 0;
+    var drag = null, inertia = null, inertiaFrame = 0, ignoreRange = false;
+
+    function rightMaxFor(span) { return Math.max(rightLimit, total - 1 + span * 0.75); }
+    function bounded(from, span) {
+      span = Math.max(minSpan, Math.min(maxSpan, span));
+      var to = from + span;
+      // 오른쪽은 마지막 봉 뒤 빈 공간까지 볼 수 있어야 한다(2026-10-22 사용자 요청): 마지막 봉이 화면 왼쪽 1/4까지 올 수 있게
+      // 화면 폭의 75%만큼 허용한다(기존 12봉 고정이면 휠·관성이 그보다 더 간 빈 공간을 되돌려 놓았다).
+      var rightMax = rightMaxFor(span);
+      if (from < leftLimit) { from = leftLimit; to = from + span; }
+      if (to > rightMax) { to = rightMax; from = to - span; }
+      return { from: from, to: to };
+    }
+
+    function stopInertia() {
+      if (inertiaFrame) global.cancelAnimationFrame(inertiaFrame);
+      inertiaFrame = 0;
+      inertia = null;
+    }
+    function stop() {
+      if (frame) global.cancelAnimationFrame(frame);
+      frame = 0;
+      target = null;
+      lastFrameTime = null;
+      lastDirection = 0;
+      lastGesture = null;
+      streak = 0;
+      lastWheelAt = 0;
+      stopInertia();
+    }
+
+    function animate(timestamp) {
+      frame = 0;
+      if (disposed || !target) return;
+      var now = scale.getVisibleLogicalRange();
+      if (!now || !isFinite(now.from) || !isFinite(now.to)) { target = null; return; }
+      // Use elapsed time so 60/120/144Hz displays have the same gesture response.
+      var stamp = Number.isFinite(timestamp) ? timestamp : (lastFrameTime == null ? 0 : lastFrameTime + 1000 / 60);
+      var elapsed = lastFrameTime == null ? 1000 / 60 : Math.max(0, Math.min(64, stamp - lastFrameTime));
+      lastFrameTime = stamp;
+      var alpha = 1 - Math.exp(-elapsed / 60);
+      var from = now.from + (target.from - now.from) * alpha;
+      var to = now.to + (target.to - now.to) * alpha;
+      var done = Math.abs(target.from - from) < 0.035 && Math.abs(target.to - to) < 0.035;
+      scale.setVisibleLogicalRange(done ? target : { from: from, to: to });
+      if (done) { target = null; lastFrameTime = null; }
+      else frame = global.requestAnimationFrame(animate);
+    }
+
+    function onWheel(event) {
+      if (disposed) return;
+      if (event.target && event.target.closest && event.target.closest('button, a, input, textarea, select, [data-no-wheel-zoom]')) return;
+      stopInertia();
+      var unit = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? (element.clientHeight || 400) : 1;
+      // 마우스 노치/고해상도 트랙패드 모두 입력 강도에 비례하도록 제한한다.
+      var dx = Math.max(-240, Math.min(240, (Number(event.deltaX) || 0) * unit));
+      var dy = Math.max(-240, Math.min(240, (Number(event.deltaY) || 0) * unit));
+      if (!dx && !dy) return;
+      var rect = element.getBoundingClientRect ? element.getBoundingClientRect() : { left: 0 };
+      var width = typeof scale.width === 'function' ? scale.width() : element.clientWidth;
+      if (!(width > 0) || (typeof event.clientX === 'number' && event.clientX > rect.left + width)) return;
+      var live = scale.getVisibleLogicalRange();
+      if (!live || !isFinite(live.from) || !isFinite(live.to) || live.to <= live.from) return;
+      if (event.cancelable !== false && event.preventDefault) event.preventDefault();
+
+      var panning = Math.abs(dx) > Math.abs(dy) || event.shiftKey;
+      var direction = Math.sign(panning ? (dx || dy) : dy);
+      var gesture = panning ? 'pan' : 'zoom';
+      // Reverse from the visible position immediately; discard the old momentum.
+      if (target && (gesture !== lastGesture || direction !== lastDirection)) target = null;
+      lastDirection = direction;
+      lastGesture = gesture;
+      var base = target || live;
+      var span = base.to - base.from;
+      if (panning) {
+        // 트랙패드 가로 스크롤/Shift+휠은 시간축 좌우 이동.
+        var move = (dx || dy) * span / width;
+        target = bounded(base.from + move, span);
+      } else {
+        // 마우스 아래 논리적 봉 위치를 줌 중심으로 보존한다.
+        var ratio = typeof event.clientX === 'number'
+          ? Math.max(0, Math.min(1, (event.clientX - rect.left) / width)) : 0.5;
+        // 최신 봉이 보이고 커서가 오른쪽 가장자리 쪽이면 오른쪽 끝을 고정해 최신 봉이 화면 밖으로 밀리지 않게 한다.
+        if (live.to >= total - 1 - 0.5 && ratio > 0.8) ratio = 1;
+        var anchor = live.from + ratio * (live.to - live.from);
+        // 빠르게 이어 돌리면 가속(최대 1.8배), 잠깐 멈췄다 돌리면 처음 속도로 돌아간다.
+        var stamp = typeof event.timeStamp === 'number' && event.timeStamp > 0 ? event.timeStamp : Date.now();
+        streak = stamp - lastWheelAt < 120 ? Math.min(5, streak + 1) : 0;
+        lastWheelAt = stamp;
+        var boost = 1 + streak * 0.16;
+        var nextSpan = span * Math.exp(dy * 0.0014 * boost);
+        nextSpan = Math.max(minSpan, Math.min(maxSpan, nextSpan));
+        target = bounded(anchor - ratio * nextSpan, nextSpan);
+      }
+      if (!frame) frame = global.requestAnimationFrame(animate);
+    }
+
+    // 드래그 관성: 누른 채 좌우로 밀다 놓으면 놓기 직전 속도로 조금 더 미끄러지며 감속한다(시간 폭 변화 없는 이동만).
+    function onRangeChange() {
+      if (!drag || ignoreRange) return;
+      var r = scale.getVisibleLogicalRange();
+      if (!r || !isFinite(r.from) || !isFinite(r.to)) return;
+      var t = typeof performance !== 'undefined' && performance.now ? performance.now() : Date.now();
+      drag.samples.push({ t: t, from: r.from, span: r.to - r.from });
+      while (drag.samples.length > 2 && t - drag.samples[0].t > 120) drag.samples.shift();
+    }
+    function onPointerDown(event) {
+      stop();
+      drag = { samples: [] };
+    }
+    function onPointerUp() {
+      var d = drag;
+      drag = null;
+      if (!d || d.samples.length < 2 || disposed) return;
+      var a = d.samples[0], b = d.samples[d.samples.length - 1];
+      var dt = b.t - a.t;
+      if (!(dt > 8) || Math.abs(b.span - a.span) > 0.5) return;   // 확대·축소 드래그는 관성 없음
+      var v = (b.from - a.from) / dt;                              // 봉/ms
+      if (!isFinite(v) || Math.abs(v) < 0.006) return;
+      v = Math.max(-0.6, Math.min(0.6, v));
+      inertia = { v: v, span: b.span };
+      var last = null;
+      function glide(timestamp) {
+        inertiaFrame = 0;
+        if (disposed || !inertia) return;
+        var stamp = Number.isFinite(timestamp) ? timestamp : (last == null ? 0 : last + 1000 / 60);
+        var elapsed = last == null ? 1000 / 60 : Math.max(0, Math.min(64, stamp - last));
+        last = stamp;
+        var now = scale.getVisibleLogicalRange();
+        if (!now || !isFinite(now.from)) { inertia = null; return; }
+        // 사용자가 이미 한도를 넘겨 끌어 둔 위치라면(라이브러리는 더 멀리 허용) 관성으로 되돌려 놓지 않고 그대로 멈춘다.
+        if (now.to > rightMaxFor(inertia.span) + 1e-6 || now.from < leftLimit - 1e-6) { inertia = null; return; }
+        var desired = now.from + inertia.v * elapsed;
+        var next = bounded(desired, inertia.span);
+        var hitEdge = Math.abs(next.from - desired) > 1e-6;   // 기록된 범위 끝에 닿으면 멈춘다
+        inertia.v *= Math.exp(-elapsed / 260);
+        ignoreRange = true;
+        scale.setVisibleLogicalRange(next);
+        ignoreRange = false;
+        if (Math.abs(inertia.v) < 0.004 || hitEdge) { inertia = null; return; }
+        inertiaFrame = global.requestAnimationFrame(glide);
+      }
+      inertiaFrame = global.requestAnimationFrame(glide);
+    }
+    var upTarget = global.addEventListener ? global : element;   // 요소 밖에서 놓아도 받는다
+    var rangeSub = typeof scale.subscribeVisibleLogicalRangeChange === 'function';
+    if (rangeSub) scale.subscribeVisibleLogicalRangeChange(onRangeChange);
+    element.addEventListener('wheel', onWheel, { passive: false });
+    element.addEventListener('pointerdown', onPointerDown, { passive: true });
+    element.addEventListener('touchstart', stop, { passive: true });
+    upTarget.addEventListener('pointerup', onPointerUp, { passive: true });
+    upTarget.addEventListener('pointercancel', onPointerUp, { passive: true });
+    return function () {
+      disposed = true;
+      stop();
+      if (rangeSub && typeof scale.unsubscribeVisibleLogicalRangeChange === 'function') scale.unsubscribeVisibleLogicalRangeChange(onRangeChange);
+      element.removeEventListener('wheel', onWheel);
+      element.removeEventListener('pointerdown', onPointerDown);
+      element.removeEventListener('touchstart', stop);
+      upTarget.removeEventListener('pointerup', onPointerUp);
+      upTarget.removeEventListener('pointercancel', onPointerUp);
+    };
+  }
+
   // ---- 데이터 보조(순수 함수) ----
   function movingAveragePoints(bars, field, period) {
     var sum = 0, points = [];
@@ -489,9 +674,28 @@
     return series;
   }
 
-  function maStudies(dark) {
-    return MA_STUDIES.map(function (s) {
+  // groups 를 주면(['short'], ['long'], 둘 다) 그 그룹의 선만, 안 주면 예전 4개(5·20·60·224)만 돌려준다.
+  function maStudies(dark, groups) {
+    return MA_STUDIES.filter(function (s) {
+      return groups ? groups.indexOf(s.group) >= 0 : s.legacy === true;
+    }).map(function (s) {
       return { key: s.key, period: s.period, width: s.width, color: s.key === 'ma224' ? ma224Color(dark) : s.color };
+    });
+  }
+
+  // 거래량 체감 배수(2026-10-21): 그 봉의 거래량 / 직전 20봉 평균. 그날 알 수 있는 값만 쓰며(오늘 봉은 평균에서 뺀다)
+  // 직전 봉이 10개 미만이거나 평균이 0이면 null. 막대 진하기(2배↑·3배↑)와 3배↑ 숫자 라벨에 쓴다.
+  var VOLUME_SPIKE = { strong: 2, label: 3, maxLabels: 60, labelPx: 44 };
+  function volumeSpikeMultiples(bars) {
+    return bars.map(function (bar, i) {
+      var sum = 0, n = 0;
+      for (var j = Math.max(0, i - 20); j < i; j++) {
+        var v = Number(bars[j].volume);
+        if (isFinite(v) && bars[j].volume !== '' && bars[j].volume != null) { sum += v; n++; }
+      }
+      var vol = Number(bar.volume);
+      if (n < 10 || !(sum > 0) || !isFinite(vol) || bar.volume === '' || bar.volume == null) return null;
+      return vol / (sum / n);
     });
   }
 
@@ -503,9 +707,54 @@
     if (opts.scaleId) hist.priceScaleId = opts.scaleId;
     var volume = chart.addSeries(LWC.HistogramSeries, hist, pane);
     if (opts.scaleId && opts.scaleOptions) chart.priceScale(opts.scaleId).applyOptions(opts.scaleOptions);
-    volume.setData(bars.map(function (d) {
-      return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: d.close >= d.open ? 'rgba(210,79,69,0.5)' : 'rgba(18,97,196,0.5)' };
-    }));
+    // 상승 빨강·하락 파랑은 그대로 두고, 평균 대비 2배↑는 진하게·3배↑는 가장 진하게(색 의미를 바꾸지 않는다).
+    var multiples = volumeSpikeMultiples(bars);
+    var multiplesOn = opts.multiples === true;   // 켜고 끄는 옵션(setMultiples). 기본은 끔(호출자가 true 를 줄 때만 켠다)
+    function volumeData() {
+      return bars.map(function (d, i) {
+        var m = multiplesOn ? multiples[i] : null, up = d.close >= d.open;
+        var alpha = m != null && m >= VOLUME_SPIKE.label ? 1 : (m != null && m >= VOLUME_SPIKE.strong ? 0.85 : 0.5);
+        return { time: d.date, value: Math.max(0, Number(d.volume) || 0), color: (up ? 'rgba(210,79,69,' : 'rgba(18,97,196,') + alpha + ')' };
+      });
+    }
+    volume.setData(volumeData());
+    var relabelFn = null;
+    // 3배 이상 봉에 `3.2배` 라벨. 5년처럼 넓게 보면 라벨이 겹쳐 읽히지 않으므로, 보이는 범위의 봉 간격(px)으로
+    // 라벨 폭만큼 떨어진 것만 남긴다(겹치면 배수가 큰 쪽 우선). 확대·이동 때마다 다시 고른다.
+    if (opts.multipleLabels !== false && typeof LWC.createSeriesMarkers === 'function') {
+      var spikes = [];
+      bars.forEach(function (d, i) {
+        var m = multiples[i];
+        if (m == null || m < VOLUME_SPIKE.label) return;
+        spikes.push({ i: i, m: m, time: d.date, color: d.close >= d.open ? '#d24f45' : '#1261c4', text: (Math.round(m * 10) / 10) + '배' });
+      });
+      function toMarker(c) { return { time: c.time, position: 'aboveBar', shape: 'circle', size: 0, color: c.color, text: c.text }; }
+      var markerPlugin = null;
+      try { markerPlugin = LWC.createSeriesMarkers(volume, []); } catch (e) { markerPlugin = null; }
+      var hasScale = typeof chart.timeScale === 'function' && markerPlugin && typeof markerPlugin.setMarkers === 'function';
+      var relabel = function () {
+        if (!markerPlugin) return;
+        if (!multiplesOn) { try { markerPlugin.setMarkers([]); } catch (e) { /* 무시 */ } return; }
+        var chosen = spikes;
+        if (hasScale) {
+          var ts = chart.timeScale(), range = ts.getVisibleLogicalRange(), width = ts.width();
+          if (!range || !(width > 0)) return;
+          var spacing = width / Math.max(1, range.to - range.from);
+          var gap = Math.max(1, Math.ceil(VOLUME_SPIKE.labelPx / spacing));
+          chosen = [];
+          spikes.filter(function (c) { return c.i >= range.from - 1 && c.i <= range.to + 1; })
+            .sort(function (x, y) { return y.m - x.m; })
+            .forEach(function (c) { if (!chosen.some(function (k) { return Math.abs(k.i - c.i) < gap; })) chosen.push(c); });
+          chosen.sort(function (x, y) { return x.i - y.i; });
+        } else if (chosen.length > VOLUME_SPIKE.maxLabels) chosen = chosen.slice(-VOLUME_SPIKE.maxLabels);
+        try { markerPlugin.setMarkers(chosen.map(toMarker)); } catch (e) { /* 라벨만 빠진다 */ }
+      };
+      if (spikes.length) {
+        if (hasScale) chart.timeScale().subscribeVisibleLogicalRangeChange(relabel);
+        relabel();
+      }
+      relabelFn = relabel;
+    }
     function avgLine(period, color, width) {
       var pts = movingAveragePoints(bars, 'volume', period);
       var line = chart.addSeries(LWC.LineSeries, {
@@ -517,7 +766,13 @@
     }
     var ma20 = avgLine(20, '#3b82f6', 2);
     var ma5 = opts.ma5 ? avgLine(5, '#f59e0b', 1.6) : null;
-    return { volume: volume, ma20: ma20, ma5: ma5 };
+    // 차트를 다시 만들지 않고 체감 배수(진한 막대·라벨)만 켜고 끈다.
+    function setMultiples(on) {
+      multiplesOn = on === true;
+      volume.setData(volumeData());
+      if (relabelFn) relabelFn();
+    }
+    return { volume: volume, ma20: ma20, ma5: ma5, setMultiples: setMultiples };
   }
 
   // ---- 일목균형표(전환 9·기준 26·선행B 52, 26봉 선행) ----
@@ -1171,12 +1426,12 @@
     isDark: isDark, themeColors: themeColors, chartOptions: chartOptions, themeUpdateOptions: themeUpdateOptions, profiles: PROFILES,
     ma224Color: ma224Color, maStudies: maStudies,
     onThemeChange: onThemeChange, observeResize: observeResize, createScope: createScope,
-    registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars,
+    registerChart: registerChart, zoomBars: zoomBars, fitBars: fitBars, installSmoothWheelZoom: installSmoothWheelZoom,
     movingAveragePoints: movingAveragePoints, bollingerPoints: bollingerPoints, addBollingerBands: addBollingerBands, installVerticalPan: installVerticalPan, chartDate: chartDate, compactVolume: compactVolume,
     candleOptions: candleOptions, addCandles: addCandles, addMovingAverageLine: addMovingAverageLine, addVolumePane: addVolumePane,
     futureBarTimes: futureBarTimes, rollingMidpoint: rollingMidpoint, ichimokuCloudPoints: ichimokuCloudPoints, createCloudPrimitive: createCloudPrimitive,
     priceText: priceText, mergeOptions: mergeOptions,
-    accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
+    volumeSpikeMultiples: volumeSpikeMultiples, accumulationBars: accumulationBars, accumulationMarkers: accumulationMarkers, accumulationSummary: accumulationSummary, accumulationLegendHtml: accumulationLegendHtml, volumeMultiples: volumeMultiples, trendStates: trendStates, trendSummary: trendSummary, trendMarkers: trendMarkers, trendLegendHtml: trendLegendHtml, setTrendMarkers: setTrendMarkers, TREND: TREND, attachAccumulationTooltip: attachAccumulationTooltip, setAccumulationMarkers: setAccumulationMarkers, ACCUMULATION: ACCUMULATION
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.NineChartCore;
 })(typeof window !== 'undefined' ? window : globalThis);

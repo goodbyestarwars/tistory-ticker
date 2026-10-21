@@ -403,16 +403,28 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
   border-top: 1px solid #eee;
 }
 #order-book .ob-trades-title {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
   padding-top: 12px;
   font-size: 12px;
   font-weight: 700;
   color: #666;
   margin-bottom: 6px;
 }
+#order-book .ob-trades-label { flex: 0 0 auto; white-space: nowrap; }
 #order-book .ob-trades-note {
+  flex: 1 1 auto;
+  min-width: 0;
   font-weight: 400;
   color: #999;
   font-size: 11px;
+  line-height: 1.45;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  hyphens: none;
 }
 #order-book .ob-trades-header,
 #order-book .ob-trade-row {
@@ -437,8 +449,8 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
 #order-book .ob-trade-direction { text-align: right; white-space: nowrap; }
 #order-book .ob-trade-empty { padding: 8px 0; color: #9ca3af; font-size: 12px; }
 #order-book .ob-trades-list {
-  max-height: 220px;
-  overflow-y: auto;
+  max-height: none;
+  overflow: visible;
 }
 #order-book .ob-trade-time { color: #9ca3af; }
 #order-book .ob-trade-time,
@@ -552,9 +564,12 @@ html.dark #order-book .ob-trade-direction.ob-flat { color: rgba(245, 239, 224, 0
    막대 끝점을 이은 빛나는 선. 매물대(벽) 호가는 주황. 선은 클릭을 막지 않는다. */
 #order-book .ob-table-pairs { position: relative; }
 #order-book .ob-sil { position: absolute; left: 0; top: 0; pointer-events: none; overflow: visible; }
-#order-book .ob-sil-line { fill: none; stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
-#order-book .ob-sil-bid { stroke: #ff2d2d; filter: drop-shadow(0 0 3px rgba(255, 45, 45, .75)); }
-#order-book .ob-sil-ask { stroke: #1e7bff; filter: drop-shadow(0 0 3px rgba(30, 123, 255, .75)); }
+#order-book .ob-sil-line { fill: none; stroke-width: 2.4; stroke-linejoin: round; stroke-linecap: round; }
+/* 빛나는 효과(2026-10-22): 좁은 광채 + 넓은 광채를 겹쳐 밝은 배경에서도 번져 보이게 한다. 매수 빨강·매도 파랑. */
+#order-book .ob-sil-bid { stroke: #ff3b3b; filter: drop-shadow(0 0 2px rgba(255, 59, 59, .95)) drop-shadow(0 0 7px rgba(255, 59, 59, .65)); }
+#order-book .ob-sil-ask { stroke: #2f8cff; filter: drop-shadow(0 0 2px rgba(47, 140, 255, .95)) drop-shadow(0 0 7px rgba(47, 140, 255, .65)); }
+#order-book .ob-sil-end-bid { fill: #ff3b3b; filter: drop-shadow(0 0 4px rgba(255, 59, 59, .9)); }
+#order-book .ob-sil-end-ask { fill: #2f8cff; filter: drop-shadow(0 0 4px rgba(47, 140, 255, .9)); }
 #order-book .ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
 #order-book .ob-pair .ob-row-odd .ob-bar-bid,
 #order-book .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }
@@ -574,7 +589,7 @@ html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
 #order-book .ob-pair-head,
 #order-book .ob-table-pairs > .ob-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 92px minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr);
   column-gap: 6px;
   align-items: center;
 }
@@ -605,7 +620,7 @@ html.dark #order-book .ob-table-pairs > .ob-row-ask { background: rgba(60,130,22
 html.dark #order-book .ob-table-pairs > .ob-row-bid { background: rgba(220,90,90,.08); }
 html.dark #order-book .ob-spread { background: #29313b; color: #cbd5e1; }
 @media (max-width: 420px) {
-  #order-book .ob-pair-head, #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0, 1fr) 78px minmax(0, 1fr); column-gap: 3px; }
+  #order-book .ob-pair-head, #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 3px; }
   #order-book .ob-depth { gap: 3px; }
   #order-book .ob-depth .ob-qty, #order-book .ob-depth .ob-delta { font-size: 10px; }
 }
@@ -613,10 +628,20 @@ html.dark #order-book .ob-spread { background: #29313b; color: #cbd5e1; }
 /* 호가 압축: 가격 글꼴·10단계·잔량·체결내역은 유지하고 막대 여백만 줄인다. */
 #stock-search #order-book .ob-table-pairs { padding: 4px 4px 6px; }
 #stock-search #order-book .ob-pair-head,
-#stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 84px minmax(0,1fr); column-gap: 3px; padding-inline: 4px; }
+#stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 3px; padding-inline: 4px; }
 #stock-search #order-book .ob-depth { gap: 3px; }
 @media (max-width: 420px) {
   #stock-search #order-book .ob-pair-head,
-  #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 78px minmax(0,1fr); column-gap: 2px; }
+  #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 2px; }
   #stock-search #order-book .ob-depth { flex-wrap: wrap; height: auto; min-height: 24px; gap: 1px 3px; }
+}
+
+/* Keep all four trade columns inside narrow mobile panels. */
+@media (max-width: 600px) {
+  #order-book .ob-trades-header,
+  #order-book .ob-trade-row {
+    grid-template-columns: 48px minmax(0, 1fr) minmax(0, 1fr) 68px;
+    gap: 4px;
+    font-size: 11px;
+  }
 }

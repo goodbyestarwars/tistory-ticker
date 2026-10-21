@@ -291,8 +291,9 @@
 
 #stock-search .ss-panels {
   display: grid;
-  /* 호가창 기본 폭은 내용에 맞춰 340~440px(패널 영역의 28%, 2026-10-21; 이전 394px 고정). 드래그하면 px로 바뀐다. 하한300px, 좁은 화면은1열로 전환한다. */
-  --ss-left-width: clamp(340px, 28%, 440px);
+  /* Slightly narrower default: prioritize chart space while retaining 300px
+     minimum for 10+10 orderbook levels. Manual resize still works. */
+  --ss-left-width: clamp(308px, 25%, 396px);
   grid-template-columns: minmax(300px, var(--ss-left-width)) 16px minmax(0, 1fr);
   column-gap: 0;
   row-gap: 16px;
@@ -416,8 +417,11 @@ html body .ss-chart-tabs.ss-chart-tabs {
   flex-wrap: wrap;
   align-items: center;
   gap: 8px 18px;
-  margin: -2px 0 8px;
+  margin: 8px 0 8px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, .08);   /* 기간 버튼 아래·옵션 위 구분선(2026-10-22) */
 }
+html.dark #stock-search .ss-chart-studies { border-top-color: rgba(245, 239, 224, .16); }
 #stock-search .ss-chart-studies label {
   display: inline-flex;
   align-items: center;
@@ -475,6 +479,11 @@ html body .ss-chart-tabs.ss-chart-tabs {
   pointer-events: none;
 }
 #stock-search .ss-price-study-label b { font-weight: 600; }
+/* 범례를 눌러 선을 굵게(2026-10-22): 범례 줄은 차트 입력을 막지 않도록 pointer-events:none 이라 누를 항목만 켠다. */
+#stock-search .ss-price-study-label .ss-legend-click { pointer-events: auto; cursor: pointer; border-radius: 3px; padding: 0 2px; }
+#stock-search .ss-price-study-label .ss-legend-click:hover { background: rgba(120, 120, 120, .14); }
+#stock-search .ss-price-study-label .ss-legend-click.is-on { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; background: rgba(120, 120, 120, .18); }
+#stock-search .ss-price-study-label .ss-legend-click.is-on b { font-weight: 800; }
 #stock-search .nine-trace-mode { display:inline-flex;align-items:center;gap:4px; }
 #stock-search .nine-trace-mode select { max-width:210px;min-height:26px;padding:2px 5px;border:1px solid #aaa;border-radius:4px;font:inherit;background:transparent;color:inherit; }
 #stock-search .nine-trace-mode select:focus-visible { outline:2px solid #1261c4;outline-offset:2px; }
@@ -934,13 +943,120 @@ html.dark #stock-search .ss-index-result { border-color: rgba(245,239,224,.2); c
 .ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
 html.dark #stock-search .ss-index-tools button { border-color: rgba(245,239,224,.25); }
 html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: #f5efe0; color: #1a1a1a; }
+
+/* Compact HTS-style index controls: two tidy rows, not oversized floating buttons. */
+#stock-search .ss-index-controls {
+  margin: 12px 0 8px;
+  border: 1px solid #e3e8ef;
+  border-radius: 9px;
+  background: #fafbfd;
+  min-width: 0;
+}
+#stock-search .ss-index-controls .ss-index-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px 12px;
+  margin: 0;
+  padding: 7px 10px;
+}
+#stock-search .ss-index-tools .ss-timeframe-tools { flex: 0 0 auto; gap: 4px; }
+#stock-search .ss-index-tools .ss-drawing-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: 0;
+}
+#stock-search .ss-index-tools button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+#stock-search .ss-index-controls .ss-index-studies {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #e3e8ef;
+}
+#stock-search .ss-index-studies label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+#stock-search .ss-index-studies input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
+}
+#stock-search .ss-index-wave-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+#stock-search .ss-index-wave-group [data-index-wave-level] {
+  display: block;
+  box-sizing: border-box;
+  width: 124px;
+  min-width: 124px;
+  max-width: none;
+  height: 32px;
+  padding: 4px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #fff;
+  color: #1f2937;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  cursor: pointer;
+}
+html.dark #stock-search .ss-index-controls {
+  border-color: rgba(245,239,224,.2);
+  background: #222;
+}
+html.dark #stock-search .ss-index-controls .ss-index-studies {
+  border-top-color: rgba(245,239,224,.18);
+}
+html.dark #stock-search .ss-index-tools button {
+  background: #1a1a1a;
+  border-color: rgba(245,239,224,.25);
+}
+html.dark #stock-search .ss-index-wave-group [data-index-wave-level] {
+  background: #1a1a1a;
+  color: #f5efe0;
+  border-color: rgba(245,239,224,.3);
+}
+@media (max-width: 900px) {
+  #stock-search .ss-index-tools .ss-drawing-tools {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
 @media (max-width: 720px) {
   .ss-chart-tabs .ss-drawing-tools,
   #stock-search .ss-index-tools .ss-drawing-tools { width: 100%; justify-content: flex-start; margin-left: 0; }
 }
 
 /* ---- 차트 매물대 분석 패널(2026-10-19): 화면에 보이는 봉 기준 비중·가까운 지지/저항 후보 ---- */
-#stock-search .ss-vp-panel { margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }
+/* 높이를 고정한다(2026-10-22 사용자 신고: 매물대를 켜면 화면이 흔들림). 내용 길이(지지·저항 유무, 상태 문장, 접힌 목록)가 바뀔 때마다
+   패널 높이가 달라지면 차트 영역이 줄었다 늘었다 하며 차트가 다시 계산돼 떨렸다. 넘치면 패널 안에서만 스크롤한다. */
+#stock-search .ss-vp-panel { box-sizing: border-box; height: 200px; overflow-y: auto; overscroll-behavior: contain; margin-top: 8px; padding: 10px 12px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; color: #33475b; font-size: 12px; line-height: 1.55; }
 #stock-search .ss-vp-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; }
 #stock-search .ss-vp-head > strong { font-weight: 500; font-size: 13px; color: #1f2d3d; }
 #stock-search .ss-vp-head > span { color: #6b7a8a; font-size: 11px; }
@@ -992,7 +1108,7 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search #order-book .ob-table-pairs > .ob-row { min-height:27px; padding-block:0; }
 #stock-search #order-book .ob-depth { height:26px; }
 /* 2026-10-21 호가창 가독성: 행 27px, 가격 칸 확대, 잔량·증감 글자 키움. 데이터·계산은 그대로. */
-#stock-search #order-book .ob-pair-head, #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) 88px minmax(0,1fr); column-gap: 4px; padding-inline: 4px; }
+#stock-search #order-book .ob-pair-head, #stock-search #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0,1fr) minmax(0,1.5fr) minmax(0,1fr); column-gap: 4px; padding-inline: 4px; }
 #stock-search #order-book .ob-table-pairs .ob-price { font-size: 14px; font-weight: 700; letter-spacing: .1px; }
 #stock-search #order-book .ob-depth .ob-qty { font-size: 12.5px; font-variant-numeric: tabular-nums; }
 #stock-search #order-book .ob-depth .ob-delta { font-size: 11px; min-width: 38px; text-align: right; font-variant-numeric: tabular-nums; }
@@ -1033,3 +1149,348 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
   #stock-search .ss-session-values { gap:12px; }
 }
 html.dark #stock-search .ss-session-values b { color:#f5efe0 !important; }
+
+/* Main chart order book: readable labels and quantity-side shading. */
+#stock-search #order-book .ob-hud-row { font-size: 14px; }
+#stock-search #order-book .ob-hud-label { width: 86px; }
+#stock-search #order-book .ob-hud-val { width: 60px; }
+#stock-search #order-book .ob-hud-note,
+#stock-search #order-book .ob-breakout-note:not(:empty) { font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
+#stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.13); }
+#stock-search #order-book .ob-current-row[data-dominance="ask"] { background: rgba(18,97,196,.13); }
+html.dark #stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.23) !important; }
+html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { background: rgba(18,97,196,.23) !important; }
+#stock-search #order-book .ob-depth .ob-bar-wrap > span { border-radius: 3px; }
+#stock-search #order-book .ob-trades-title,
+#stock-search #order-book .ob-trades-note { white-space: normal; word-break: keep-all; overflow-wrap: normal; hyphens: none; }
+
+/* Give the main order-book summary room between metrics and explanations. */
+#stock-search #order-book .ob-hud {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+#stock-search #order-book .ob-hud-row {
+  display: grid;
+  grid-template-columns: 86px minmax(24px, 1fr) 60px;
+  gap: 10px;
+  min-height: 24px;
+  margin: 0;
+}
+#stock-search #order-book .ob-hud-note { padding-top: 2px; line-height: 1.8; }
+#stock-search #order-book .ob-breakout-note:not(:empty) { margin: 0; padding-top: 12px; line-height: 1.8; }
+#stock-search #order-book .ob-breakout-sub { margin-top: 6px; font-size: 12px; line-height: 1.8; }
+#stock-search #order-book .ob-abnormal-badges:not(:empty) {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  margin: 0;
+  padding-top: 12px;
+}
+#stock-search #order-book .ob-abnormal-badge {
+  box-sizing: border-box;
+  max-width: 100%;
+  padding: 5px 10px;
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: normal;
+  border-radius: 8px;
+}
+
+#stock-search #order-book .ob-hud-label,
+#stock-search #order-book .ob-hud-val { font-size: 14px; }
+#stock-search #order-book .ob-hud-bar { grid-column: auto; grid-row: auto; height: 8px; }
+#stock-search #order-book .ob-breakout-note .ob-breakout-sub { margin-top: 6px; font-size: 12px; line-height: 1.8; }
+
+/* 2026-10-21: compact stock header / orderbook layout (screenshot follow-up).
+   Scope all changes to stock-search so standalone order-book remains unchanged. */
+#stock-search .ss-panel-head { padding-inline: 14px; }
+#stock-search .ss-results-collapsed {
+  padding: 6px 10px;
+  margin-bottom: 7px;
+  font-size: 11.5px;
+  border-radius: 8px;
+}
+#stock-search .ss-summary {
+  column-gap: 12px;
+  row-gap: 4px;
+  padding: 8px 12px;
+}
+#stock-search .ss-summary-head { min-width: 0; gap: 5px 7px; }
+#stock-search .ss-session-values { gap: 9px; }
+#stock-search .ss-session-values div { gap: 3px; }
+/* Reduce excess spacing without shrinking the key orderflow numbers or
+   clipping the variable-length support/resistance analysis messages. */
+#stock-search #order-book .ob-hud {
+  padding: 5px 6px;
+  gap: 3px 7px;
+}
+#stock-search #order-book .ob-hud-row { gap: 1px 4px; margin: 0; font-size: 11px; }
+#stock-search #order-book .ob-hud-label,
+#stock-search #order-book .ob-hud-val {
+  width: auto;
+  min-width: 0;
+  font-size: 11px;
+}
+#stock-search #order-book .ob-hud-val { text-align: right; }
+#stock-search #order-book .ob-hud-note,
+#stock-search #order-book .ob-breakout-note:not(:empty) {
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+  word-break: keep-all;
+}
+#stock-search #order-book .ob-abnormal-badges:not(:empty) { gap: 2px 4px; }
+@media (max-width: 860px) {
+  #stock-search .ss-panel-head { padding-inline: 12px; }
+}
+@media (max-width: 600px) {
+  #stock-search .ss-summary { grid-template-columns: minmax(0, 1fr); padding: 8px 10px; }
+  #stock-search .ss-summary-head { gap: 4px 6px; }
+  #stock-search .ss-summary-price { margin-left: auto; }
+  #stock-search .ss-session-values { gap: 8px; flex-wrap: wrap; }
+  #stock-search .ss-panel-head { padding-inline: 12px; }
+}
+
+
+/* 2026-10-21: one card for result table + selected-stock supplementary info.
+   The data row remains fully visible; AI/analysis occupy its detail footer. */
+#stock-search .ss-panel-head { padding-inline: 12px; }
+#stock-search .ss-overview[hidden],
+#stock-search .ss-overview .ss-summary[hidden] { display: none !important; }
+#stock-search .ss-overview.ss-overview-active {
+  border: 1px solid #e5e5e5;
+  border-radius: 0;   /* 2026-10-22 사용자 요청: 결과 표와 AI 한 줄 요약 카드를 모서리 없는 사각형으로 */
+  overflow: hidden;
+  margin-bottom: 8px;
+}
+#stock-search .ss-overview .ss-results-count {
+  margin: 0;
+  padding: 5px 12px 3px;
+}
+#stock-search .ss-overview .ss-results-table {
+  border: 0;
+  border-radius: 0;
+}
+#stock-search .ss-overview .ss-results-collapsed {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+#stock-search .ss-overview .ss-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 10px;
+  margin: 0;
+  padding: 9px 12px;
+  border: 0;
+  border-top: 1px solid #e5e7eb;
+  border-radius: 0;
+}
+#stock-search .ss-overview .ss-session {
+  grid-column: 1;
+  grid-row: 1;
+  min-width: 0;
+  margin: 0;
+}
+#stock-search .ss-overview .ss-summary-head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  justify-content: flex-end;
+  margin: 0;
+  min-width: 0;
+}
+#stock-search .ss-overview .ss-summary-reason {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin-top: 2px;
+  min-width: 0;
+}
+#stock-search .ss-overview.ss-overview-selected .ss-summary-head > .ss-icon,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-name,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-code,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-price,
+#stock-search .ss-overview.ss-overview-selected .ss-summary-change {
+  display: none;
+}
+/* If the user manually folds a multi-result table, show the selected stock's
+   name and current price in the same card instead of hiding the information. */
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-head {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: stretch;
+  justify-content: flex-start;
+}
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-session {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason {
+  grid-row: 3;
+}
+html.dark #stock-search .ss-overview.ss-overview-active {
+  border-color: rgba(245, 239, 224, .2);
+}
+html.dark #stock-search .ss-overview .ss-summary {
+  border-top-color: rgba(245, 239, 224, .16);
+}
+@media (max-width: 860px) {
+  #stock-search .ss-overview .ss-summary {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  #stock-search .ss-overview .ss-session {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #stock-search .ss-overview .ss-summary-head {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: start;
+  }
+  #stock-search .ss-overview .ss-summary-reason {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  #stock-search .ss-overview .ss-session-values {
+    flex-wrap: wrap;
+    gap: 6px 10px;
+  }
+}
+
+/* Session prices belong to the order-book panel, above the ladder. */
+#stock-search .ss-panel-left > .ss-session {
+  margin: 0 0 8px;
+  padding: 4px 2px 8px;
+  min-width: 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+#stock-search .ss-panel-left > .ss-session .ss-session-values {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  width: 100%;
+  gap: 6px;
+}
+#stock-search .ss-panel-left > .ss-session .ss-session-values div {
+  flex-wrap: wrap;
+  min-width: 0;
+  gap: 2px 4px;
+}
+html.dark #stock-search .ss-panel-left > .ss-session {
+  border-color: rgba(245, 239, 224, .16);
+}
+/* The footer now holds the analysis link and reason without an empty OHLC slot. */
+#stock-search .ss-overview .ss-summary-head { grid-column: 1 / -1; }
+#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason { grid-row: 2; }
+
+/* 2026-10-21: 검색 결과와 선택 종목은 바깥 한 카드만 사용한다.
+   선택 행 바로 아래에 AI 이유(왼쪽)와 종목분석(오른쪽)을 같은 한 줄로 붙인다.
+   내부 요약의 옛 border/radius/margin은 다른 테마 규칙보다 확실히 끈다. */
+#stock-search #ssOverview.ss-overview-active {
+  background: rgb(255, 254, 252);
+  overflow: hidden;
+}
+#stock-search #ssOverview .ss-results-table,
+#stock-search #ssOverview .ss-results-collapsed {
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+}
+#stock-search #ssOverview #ssSummary {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+  row-gap: 0;
+  padding: 7px 12px !important;
+  margin: 0 !important;
+  border: 0 !important;
+  border-top: 1px solid #e5e7eb !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+}
+#stock-search #ssOverview #ssSummary .ss-summary-reason {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  line-height: 1.35;
+}
+#stock-search #ssOverview #ssSummary .ss-summary-head {
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: end;
+  justify-content: flex-end;
+  align-items: center;
+  margin: 0;
+  min-width: 0;
+  gap: 6px;
+}
+#stock-search #ssOverview #ssSummary .ss-analysis-link {
+  min-height: 30px;
+  padding: 4px 11px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #f3f4f6;
+  color: #333;
+  font-size: 11.5px;
+  line-height: 1.2;
+  white-space: nowrap;
+  transition: background .15s ease;
+}
+#stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
+  background: #e5e7eb;
+  color: #111;
+  transform: none;
+}
+/* 목록을 직접 접으면 검색 행 대신 선택 종목명·현재가를 위에 다시 표시한다. */
+#stock-search #ssOverview:not(.ss-overview-selected) #ssSummary .ss-summary-head {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: stretch;
+  justify-content: flex-start;
+}
+#stock-search #ssOverview:not(.ss-overview-selected) #ssSummary .ss-summary-reason {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+html.dark #stock-search #ssOverview.ss-overview-active {
+  background: #1a1a1a;
+}
+html.dark #stock-search #ssOverview #ssSummary {
+  border-top-color: rgba(245, 239, 224, .16) !important;
+}
+html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link {
+  background: #303030;
+  border-color: rgba(245, 239, 224, .18);
+  color: #f5efe0;
+}
+html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
+  background: #424242;
+  color: #fff;
+}
+@media (max-width: 600px) {
+  #stock-search #ssOverview.ss-overview-selected #ssSummary {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 5px;
+    padding: 7px 10px !important;
+  }
+  #stock-search #ssOverview.ss-overview-selected #ssSummary .ss-summary-reason {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  #stock-search #ssOverview.ss-overview-selected #ssSummary .ss-summary-head {
+    grid-column: 1;
+    grid-row: 2;
+    justify-self: end;
+  }
+}
+
+@media (max-width: 720px) {
+  #stock-search .ss-vp-panel { height: 270px; }
+}

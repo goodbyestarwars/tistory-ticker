@@ -770,8 +770,12 @@ html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
   display: flex;
   flex-wrap: wrap;
   gap: 16px;
+  margin-top: 8px;
   margin-bottom: 4px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(0, 0, 0, .08);   /* 기간 버튼 아래·옵션 위 구분선(2026-10-22) */
 }
+html.dark #foreign-flow .ff-chart-toggles { border-top-color: rgba(245, 239, 224, .16); }
 #foreign-flow .ff-chart-toggles .ff-ichimoku-toggle { margin-bottom: 0; }
 #foreign-flow .ff-draw-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin:8px 0; }
 #foreign-flow .ff-price-chart-panel { width:100%; min-width:0; }
@@ -3182,14 +3186,14 @@ html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14
 .ff-vp-an-basis { margin: 6px 0 10px; color: #6b7a8a; font-size: 12px; }
 .ff-vp-an-basis b { font-weight: 400; }
 .ff-vp-an-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
-.ff-vp-an-card { min-width: 0; padding: 10px 11px; border: 1px solid #e3e8ee; border-left-width: 4px; border-radius: 10px; background: #f8fafc; display: flex; flex-direction: column; gap: 2px; }
+.ff-vp-an-card { min-width: 0; padding: 10px 11px; border: 1px solid #e3e8ee; border-radius: 10px; background: #f8fafc; display: flex; flex-direction: column; gap: 2px; }
 .ff-vp-an-card > span { color: #6b7a8a; font-size: 11px; font-weight: 400; }
 .ff-vp-an-card > strong { color: #1f2d3d; font-size: 14px; overflow-wrap: anywhere; }
 .ff-vp-an-card > small { color: #526173; font-size: 11px; }
-.ff-vp-an-card.resist { border-left-color: #1261c4; }
-.ff-vp-an-card.support { border-left-color: #d24f45; }
-.ff-vp-an-card.poc { border-left-color: #e8590c; }
-.ff-vp-an-card.current { border-left-color: #526173; }
+/* resist card: remove colored left bracket; preserve a uniform 1px border. */
+/* support card: remove colored left bracket; preserve a uniform 1px border. */
+/* poc card: remove colored left bracket; preserve a uniform 1px border. */
+/* current card: remove colored left bracket; preserve a uniform 1px border. */
 .ff-vp-an-card.is-empty > strong { color: #8a97a5; font-weight: 600; }
 .ff-vp-an-state { margin: 10px 0 0; padding: 9px 11px; border-radius: 10px; background: #f1f4f7; }
 .ff-vp-an-state.up { background: #fff0ee; }
@@ -3226,3 +3230,8 @@ html.dark .ff-vp-an-table tr.on { background: #2b2620; }
   .ff-vp-an-table td::before { content: attr(data-label) " "; color: #8a97a5; font-size: 11px; font-weight: 400; margin-right: 6px; }
   .ff-vp-an-table th, .ff-vp-an-table td { border-bottom: 0; padding: 3px 8px; }
 }
+
+/* 범례를 눌러 이동평균선을 굵게(2026-10-22) */
+#foreign-flow .ff-legend .ff-legend-click { cursor: pointer; border-radius: 3px; padding: 0 3px; }
+#foreign-flow .ff-legend .ff-legend-click:hover { background: rgba(120, 120, 120, .14); }
+#foreign-flow .ff-legend .ff-legend-click.is-on { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; background: rgba(120, 120, 120, .18); }

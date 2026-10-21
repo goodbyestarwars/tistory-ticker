@@ -473,8 +473,10 @@
     // 거꾸로 뒤집혀 최우선 매도호가가 맨 위(매수 1호가와 100원 떨어진 줄)로 간다(셀바스AI).
     asks.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
     bids.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
-    asks = validDepth(asks);
-    bids = validDepth(bids);
+    // Keep the ten closest sell prices (the provider may send more than ten).
+    // Both the DOM and footer must use the same full, visible ten-level depth.
+    asks = validDepth(asks).slice(-10);
+    bids = validDepth(bids).slice(0, 10);
     if(!asks.length && !bids.length){setBookHint(board,state.lastBookNote || '호가 미수신 · 마지막 수신 호가가 있으면 그대로 표시합니다.');return;}
     // 공급자가 이전 REST보다 많은/적은 단계를 보내면 행 구조만 다시 만든다.
     if (board.getAttribute('data-unavailable')==='true' || board.hasAttribute('data-stale') || board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
@@ -482,8 +484,6 @@
       renderBoard(container, { asks: asks, bids: bids }, state.lastRealtimeQuote);
       state.previousDepth = null; // 새 행에는 직전 동일 가격 비교가 아직 없다.
     }
-    asks = asks.slice(0, 10);
-    bids = bids.slice(0, 10);
     var maxQty = 1;
     asks.concat(bids).forEach(function (row) {
       var qty = numericOrNull(row.qty);
@@ -493,7 +493,7 @@
     function updateSide(rows, side) {
       board.querySelectorAll('.ob-row-' + side).forEach(function (line) {
         var level = Number(line.getAttribute('data-level'));
-        line.hidden = level > rows.length || isTenthHidden(side, level, rows.length);
+        line.hidden = level > rows.length;
       });
       rows.forEach(function (row, index) {
         var line = board.querySelector('.ob-row-' + side + '[data-level="' + (index + 1) + '"]');
@@ -512,8 +512,6 @@
     }
     updateSide(asks, 'ask');
     updateSide(bids, 'bid');
-    var spread = board.querySelector('.ob-spread');
-    if (spread) spread.textContent = '매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가';
     var totalAsk = asks.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
     var totalBid = bids.reduce(function (sum, row) { return sum + Number(row.qty); }, 0);
     var total = totalAsk + totalBid || 1;
@@ -620,20 +618,34 @@
     var walls = { ask: findWallLevels(asks), bid: findWallLevels(bids) };
     var lines = '', dots = '';
     ['bid', 'ask'].forEach(function (side) {
-      var pts = [];
+      var items = [];
       table.querySelectorAll('.ob-row-' + side + ':not([hidden])').forEach(function (row) {
         var level = Number(row.getAttribute('data-level'));
         var odd = !!walls[side][level];
         row.classList.toggle('ob-row-odd', odd);
         var bar = row.querySelector('.ob-bar-wrap > span');
         if (!bar) return;
-        var br = bar.getBoundingClientRect();
-        var rr = row.getBoundingClientRect();
+        items.push({ br: bar.getBoundingClientRect(), rr: row.getBoundingClientRect(), odd: odd });
+      });
+      // 막대가 어느 쪽에 붙어 자라는지는 화면 배치(CSS)에 따라 다르다. 같은 쪽 막대들의 왼쪽·오른쪽 끝을 비교해
+      // 모두 같은 쪽 끝이면 그쪽이 고정된 뿌리이고 반대쪽 끝이 잔량 끝점이다(2026-10-22: 뿌리를 이어 선이 세로로 곧게 나오던 문제).
+      var anchorRight = side === 'ask';   // 판단할 수 없을 때(막대가 하나뿐 등)의 기본값
+      if (items.length > 1) {
+        var lefts = items.map(function (it) { return it.br.left; }), rights = items.map(function (it) { return it.br.right; });
+        var spread = function (arr) { return Math.max.apply(null, arr) - Math.min.apply(null, arr); };
+        var sl = spread(lefts), sr = spread(rights);
+        if (sr < 1.5 && sl >= 1.5) anchorRight = true;
+        else if (sl < 1.5 && sr >= 1.5) anchorRight = false;
+      }
+      var pts = [];
+      items.forEach(function (it) {
         // 선이 막대 바로 바깥에 놓이도록 2px 밀어 막대·글자 뒤로 숨지 않게 한다
-        var x = (side === 'bid' ? br.left - 2 : br.right + 2) - tr.left;
-        var y = rr.top + rr.height / 2 - tr.top;
+        var x = (anchorRight ? it.br.left - 2 : it.br.right + 2) - tr.left;
+        var y = it.rr.top + it.rr.height / 2 - tr.top;
         pts.push([x, y]);
-        if (odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
+        // 막대 끝점마다 빛나는 작은 점(매수 빨강·매도 파랑), 매물대 호가는 주황 큰 점
+        if (it.odd) dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="4" class="ob-sil-dot"/>';
+        else dots += '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.6" class="ob-sil-end ob-sil-end-' + side + '"/>';
       });
       if (pts.length > 1) {
         lines += '<polyline class="ob-sil-line ob-sil-' + side + '" points="'
@@ -1250,7 +1262,7 @@
       return;
     }
 
-    var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
+    var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(-10);
     var bids = validDepth(book.bids).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     if (!asks.length && !bids.length) {
       setBookHint(board,book.note || '현재 수신된 유효 호가가 없습니다. 공급자 재조회 중입니다.');
@@ -1284,7 +1296,6 @@
 
     var ladderRows = asks.map(function (row, index) { return rowHtml(row, maxQty, 'ask', index + 1); }).join('');
     ladderRows += currentRowHtml;
-    ladderRows += '<div class="ob-spread" aria-label="매도와 매수 호가 경계">매도 ' + asks.length + '호가 · 매수 ' + bids.length + '호가</div>';
     ladderRows += bids.map(function (row, index) { return rowHtml(row, maxQty, 'bid', index + 1); }).join('');
 
     var totalAsk = asks.reduce(function (sum, row) { return sum + row.qty; }, 0);
@@ -1306,23 +1317,14 @@
       + ladderRows + '</div>'
       + footerHtml
       + buildTradesHtml();
-    hideTenthRows(board);
+    var currentRow = board.querySelector('[data-field="current-row"]');
+    if (currentRow) currentRow.setAttribute('data-dominance', totalBid > totalAsk ? 'bid' : totalAsk > totalBid ? 'ask' : 'balanced');
     drawSilhouette(board, asks, bids);
     rememberDepth(asks, bids);
   }
 
-  // 장외/장애에도 호가창의 자리와 10+10 행을 보존한다. 미수신 가격은 만들지 않는다.
-  // 2026-10-21 UI: 매도 10호가(가장 먼 매도, 맨 위 행)와 매수 10호가(가장 먼 매수, 맨 아래 행)는 표시하지 않는다. 수신·계산 데이터는 그대로다.
-  function isTenthHidden(side, level, count) {
-    return count >= 10 && ((side === 'ask' && level === 1) || (side === 'bid' && level === 10));
-  }
-
-  function hideTenthRows(board) {
-    ['ask', 'bid'].forEach(function (side) {
-      var rows = board.querySelectorAll('.ob-row-' + side);
-      rows.forEach(function (line) { line.hidden = isTenthHidden(side, Number(line.getAttribute('data-level')), rows.length); });
-    });
-  }
+  // 장외/장애에도 매도·매수 각 10단계 자리를 보존한다. 미수신 가격은 만들지 않는다.
+  // 현재가 행은 별도의 참고 행이므로 10개 호가 행을 숨기거나 대체하지 않는다.
 
   function setBookHint(board,message) {
     board.hidden=false;
@@ -1337,7 +1339,7 @@
       return;
     }
     board.setAttribute('data-unavailable','true');
-    var rows=function(side){var html='';for(var i=0;i<9;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
+    var rows=function(side){var html='';for(var i=0;i<10;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
     var summary=buildSummaryView(),price=summary.current>0?Math.round(summary.current).toLocaleString('ko-KR')+'원':'—';
     board.innerHTML='<div class="ob-book-status" role="status">'+escapeHtml(message)+'</div>'
       +'<div class="ob-table ob-table-pairs" aria-label="매도 10호가와 매수 10호가 · 호가 미수신">'
@@ -1455,15 +1457,32 @@
         + '<span class="ob-trade-direction ' + cls + '">' + direction + '</span>'
         + '</div>';
     }).join('');
-    var note = live
+    // 긴 원본/수신 상세는 툴팁에, 본문에는 최대 두 줄로 읽히는 핵심만 표시한다.
+    var detail = live
       ? (state.liveTradeProvider === 'Kiwoom'
           ? '키움 0B 개별 수신 체결 · FID 15 부호 기준 방향 · 거래소 원본값 수신 · '
           : 'KIS 개별 수신 체결 · 통합 시장 방향은 동시 호가 기준 추정 · 거래소별 구분 미제공 · ')
         + state.tradeFeedStatus + ' · 원본 이벤트 ID 없음(중복·누락 가능)'
       : state.trades.length ? 'REST 2초 표본(전체 체결 아님) · 방향 판정불가 · ' + state.tradeFeedStatus
       : state.tradeFeedStatus + ' · 수신한 체결부터 표시';
+    var note = live
+      ? (state.liveTradeProvider === 'Kiwoom'
+          ? '키움 0B 실시간 · FID 15 방향 · 중복·누락 가능'
+          : 'KIS 실시간 · 호가 기준 방향 추정 · 중복·누락 가능')
+      : state.trades.length ? 'REST 2초 표본 · 방향 판정불가 · 전체 체결 아님'
+      : '체결 수신 대기 중';
+    if (state.tradeFeedStatus.indexOf('재연결 중') !== -1) {
+      note = '실시간 재연결 중 · 기존 체결 일부 누락 가능';
+    } else if (state.tradeFeedStatus.indexOf('REST 시세 폴백') !== -1) {
+      note = 'REST 시세 대체 수신 · 새 개별 체결 없음';
+    } else if (state.tradeFeedStatus.indexOf('연결 중단') !== -1) {
+      note = '실시간 연결 중단 · 기존 체결만 표시';
+    } else if (!live && !state.trades.length && state.tradeFeedStatus) {
+      note = state.tradeFeedStatus;
+    }
     return '<div class="ob-trades">'
-      + '<div class="ob-trades-title">최근 체결 <span class="ob-trades-note">(' + note + ')</span></div>'
+      + '<div class="ob-trades-title"><span class="ob-trades-label">최근 체결</span>'
+      + '<span class="ob-trades-note" title="' + escapeAttr(detail) + '">' + escapeHtml(note) + '</span></div>'
       + '<div class="ob-trades-header"><span>시간</span><span>체결가</span><span>체결량</span><span>체결 방향</span></div>'
       + '<div class="ob-trades-list">' + (rows || '<div class="ob-trade-empty">체결 수신 대기 중</div>') + '</div>'
       + '</div>';
