@@ -36,7 +36,7 @@
     wave: { file: 'js/chart-wave-overlay.js', global: 'NineChartWave', v: '20261020-major-context1', needs: ['data', 'autowave'] },
     autowave: { file: 'js/auto-wave.js', global: 'AutoWave', v: '20261013-hier' },
     memo: { file: 'js/chart-memo.js', global: 'NineChartMemo', v: '' },
-    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength' },
+    sr: { file: 'js/chart-sr.js', global: 'NineChartSR', v: '20261021-sr-strength2' },
     structure: { file: 'js/chart-structure.js', global: 'NineChartStructure', v: '20261021-st1' },
     vp: { file: 'js/volume-profile-analysis.js', global: 'NineVolumeProfile', v: '20261019-vp1' }
   };

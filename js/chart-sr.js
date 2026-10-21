@@ -312,11 +312,18 @@
         var left = Math.max(2, right - tw - 4);
         // 보조 문구는 화면이 넉넉할 때만 이름표 왼쪽에 둔다(좁은 모바일은 생략).
         if (item.detail && right > 420) {
-          ctx.font = '500 10.5px Pretendard, "Malgun Gothic", sans-serif';
-          var dw = ctx.measureText(item.detail).width;
-          ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
-          ctx.fillText(item.detail, Math.max(2, left - dw - 6), ly + 0.5);
+          // 선 위에 글씨만 얹으면 점선·음영에 묻혀 읽기 어려워(2026-10-21 사용자 지적) 가격 배지와 같은 불투명 배지로 그린다.
           ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
+          var dw = ctx.measureText(item.detail).width + 14;
+          var dl = Math.max(2, left - dw - 4);
+          roundedBox(ctx, dl, ly - 10, dw, 20, 10);
+          ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.96)' : 'rgba(255,254,252,.96)';
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(' + item.c + ',.55)';
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.fillStyle = 'rgba(' + item.c + ',1)';
+          ctx.fillText(item.detail, dl + 7, ly + 0.5);
         }
         // 종류·순위와 가격 범위를 서로 다른 둥근 배지로 나눠 가격축 숫자와 혼동되지 않게 한다.
         roundedBox(ctx, left, ly - 10, nameWidth, 20, 10);
