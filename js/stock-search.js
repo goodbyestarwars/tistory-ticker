@@ -163,8 +163,8 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
-  var indexStudies = { ma: true, cloud: false, bollinger: false, sr: false };
-  var indexWaveState = { enabled: false, level: 'medium' };
+  var indexStudies = { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
+  var indexWaveState = { enabled: false, level: 'medium', trend: false };   // trend: 파동 박스 안 추세선
   var indexStudySeries = [];
   var indexSrCleanup = null;
   var indexWaveHandle = null;
@@ -983,8 +983,13 @@
         var currentBars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
         indexStudySeries.forEach(function (line) { indexChart.removeSeries(line); });
         indexStudySeries = [];
-        if (indexStudies.ma) core.maStudies(dark).forEach(function (study) {
-          indexStudySeries.push(core.addMovingAverageLine(indexChart, LWC, study, core.movingAveragePoints(currentBars, 'close', study.period)));
+        var indexMaGroups = [];
+        if (indexStudies.maShort) indexMaGroups.push('short');
+        if (indexStudies.maLong) indexMaGroups.push('long');
+        if (indexMaGroups.length) core.maStudies(dark, indexMaGroups).forEach(function (study) {
+          var maPoints = core.movingAveragePoints(currentBars, 'close', study.period);
+          if (!maPoints.length) return;   // 봉이 모자라 계산할 수 없는 선(예: 448일)은 그리지 않는다
+          indexStudySeries.push(core.addMovingAverageLine(indexChart, LWC, study, maPoints));
         });
         if (indexStudies.bollinger) indexStudySeries = indexStudySeries.concat(core.addBollingerBands(indexChart, LWC, currentBars));
         if (indexStudies.cloud) {
@@ -1090,11 +1095,13 @@
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
             + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
             + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
-            + [['ma', '이동평균선 표시'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
+            + [['maShort', '단기 이평선(3·5·20·60)'], ['maLong', '장기 이평선(112·224·448)'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
               return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
             }).join('')
             + '<span class="ss-index-wave-group"><label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
-            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select></span>'
+            + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select>'
+            + '<label title="선택한 규모의 상승·하락 파동 박스 안에 한 단계 아래 규모의 고점·저점을 이은 선을 긋습니다"><input type="checkbox" data-index-wave-trend' + (indexWaveState.trend ? ' checked' : '') + ' /> 추세선</label></span>'
+            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량 배수 표시</label>'
             + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 매물대 표시</label>'
             + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량·가격 흔적</label></div>'
             + '</div>'
@@ -1110,6 +1117,8 @@
           var waveLevel = panel.querySelector('[data-index-wave-level]');
           waveLevel.value = indexWaveState.level;
           waveLevel.addEventListener('change', function () { indexWaveState.level = waveLevel.value; if (indexWaveState.enabled) renderIndexChart(panel, row.code); });
+          var waveTrend = panel.querySelector('[data-index-wave-trend]');
+          if (waveTrend) waveTrend.addEventListener('change', function () { indexWaveState.trend = waveTrend.checked; if (indexWaveState.enabled) renderIndexChart(panel, row.code); });
           panel.querySelectorAll('[data-index-tf]').forEach(function (button) {
             button.addEventListener('click', function () {
               indexTimeframe = button.getAttribute('data-index-tf');
