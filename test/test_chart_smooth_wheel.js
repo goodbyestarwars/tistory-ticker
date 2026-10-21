@@ -112,6 +112,60 @@ cleanup();
 assert.equal(events.wheel, undefined);
 assert.equal(events.pointerdown, undefined);
 assert.equal(events.touchstart, undefined);
+
+// ---- 네이버·토스식 보강(2026-10-22): 가속, 최신 봉 고정, 드래그 관성 ----
+{
+  const ev2 = {};
+  const el2 = { clientWidth: 600, clientHeight: 400, getBoundingClientRect() { return { left: 10, top: 0 }; },
+    addEventListener(type, cb, o) { ev2[type] = { cb, o }; }, removeEventListener(type) { delete ev2[type]; } };
+  let r2 = { from: 100, to: 200 };
+  const listeners = [];
+  const sc2 = { width() { return 600; }, getVisibleLogicalRange() { return { ...r2 }; }, setVisibleLogicalRange(v) { r2 = { ...v }; },
+    subscribeVisibleLogicalRangeChange(fn) { listeners.push(fn); }, unsubscribeVisibleLogicalRangeChange(fn) { const i = listeners.indexOf(fn); if (i >= 0) listeners.splice(i, 1); } };
+  const cl2 = core.installSmoothWheelZoom({ timeScale() { return sc2; } }, el2, { bars: 300 });
+  function w2(dy, x, ts) { ev2.wheel.cb({ deltaX: 0, deltaY: dy, deltaMode: 0, clientX: x, timeStamp: ts, cancelable: true, target: { closest() { return null; } }, preventDefault() {} }); }
+  // 가속: 같은 노치 수라도 빠르게 이어 돌리면 더 많이 확대된다.
+  r2 = { from: 100, to: 200 }; ev2.pointerdown.cb({});
+  w2(-100, 310, 1000); settle(); const slowSpan = r2.to - r2.from;
+  r2 = { from: 100, to: 200 }; ev2.pointerdown.cb({});
+  w2(-100, 310, 5000); w2(-100, 310, 5040); w2(-100, 310, 5080); settle(); const fastSpan = r2.to - r2.from;
+  assert(fastSpan < slowSpan * slowSpan / 100 * 0.999, 'three quick notches zoom more than three separate ones would');
+  // 최신 봉 고정: 최신 봉이 보이고 커서가 오른쪽 끝 쪽이면 오른쪽 끝이 움직이지 않는다.
+  r2 = { from: 200, to: 300 }; ev2.pointerdown.cb({});
+  w2(-200, 560, 9000); settle();
+  assert(Math.abs(r2.to - 300) < 0.05, 'right edge stays pinned near the latest bar');
+  // 관성: 드래그로 오른쪽(과거 방향)으로 밀다 놓으면 속도가 있으면 더 미끄러지고 감속해 멈춘다.
+  r2 = { from: 100, to: 200 }; ev2.pointerdown.cb({});
+  const perf = global.performance; let clock = 0;
+  Object.defineProperty(global, 'performance', { value: { now: () => clock }, configurable: true });
+  clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  clock = 40; r2 = { from: 96, to: 196 }; listeners.forEach((fn) => fn());
+  clock = 80; r2 = { from: 92, to: 192 }; listeners.forEach((fn) => fn());
+  ev2.pointerup.cb({});
+  const releasedAt = r2.from;
+  let n = 0; while (frame(n * 16)) { n++; if (n > 400) break; }
+  assert(r2.from < releasedAt - 1, 'continues sliding after release');
+  assert(n < 400, 'inertia decays and stops');
+  // 확대·축소 드래그(폭이 바뀜)와 속도가 없는 드래그는 관성이 없다.
+  ev2.pointerdown.cb({}); clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  clock = 40; r2 = { from: 90, to: 210 }; listeners.forEach((fn) => fn());
+  ev2.pointerup.cb({});
+  assert.equal(queue.size, 0, 'zoom drag has no inertia');
+  ev2.pointerdown.cb({}); clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  clock = 80; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  ev2.pointerup.cb({});
+  assert.equal(queue.size, 0, 'still drag has no inertia');
+  // 새 입력은 관성을 즉시 끊는다.
+  ev2.pointerdown.cb({}); clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  clock = 40; r2 = { from: 96, to: 196 }; listeners.forEach((fn) => fn()); ev2.pointerup.cb({});
+  assert.equal(queue.size, 1);
+  ev2.pointerdown.cb({});
+  assert.equal(queue.size, 0, 'pointerdown stops inertia');
+  cl2();
+  assert.equal(listeners.length, 0, 'range subscription released');
+  assert.equal(ev2.pointerup, undefined);
+  if (perf) Object.defineProperty(global, 'performance', { value: perf, configurable: true });
+}
 global.requestAnimationFrame = prevRaf;
 global.cancelAnimationFrame = prevCancel;
 console.log('chart smooth wheel: ok');
