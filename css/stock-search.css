@@ -1269,83 +1269,63 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
   border-radius: 0;
   margin: 0;
 }
+/* Real two-row card markup, shared by single-result and selected-list details. */
 #stock-search .ss-overview .ss-summary {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 4px 10px;
+  display: block;
   margin: 0;
-  padding: 9px 12px;
+  padding: 12px 16px;
   border: 0;
   border-top: 1px solid #e5e7eb;
   border-radius: 0;
 }
-#stock-search .ss-overview .ss-session {
-  grid-column: 1;
-  grid-row: 1;
-  min-width: 0;
-  margin: 0;
+#stock-search .ss-overview-single .ss-summary { border-top: 0; }
+#stock-search .ss-card-primary {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(88px, 1fr)) minmax(70px, .8fr) auto;
+  align-items: center;
+  gap: 8px 16px;
 }
-#stock-search .ss-overview .ss-summary-head {
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: end;
-  justify-content: flex-end;
-  margin: 0;
-  min-width: 0;
+#stock-search .ss-card-primary.ss-card-no-sector { grid-template-columns: minmax(180px, 1.6fr) repeat(4, minmax(88px, 1fr)) auto; }
+#stock-search .ss-card-identity { display: flex; align-items: center; gap: 8px; min-width: 0; }
+#stock-search .ss-card-identity .ss-summary-name { font-size: 16px; white-space: normal; overflow-wrap: anywhere; }
+#stock-search .ss-card-identity .ss-summary-code { display: inline; margin-left: 4px; font-size: 12px; font-weight: 400; white-space: nowrap; }
+#stock-search .ss-card-field { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-size: 13px; }
+#stock-search .ss-card-field > span { font-size: 11px; color: #777; }
+#stock-search .ss-card-field > b, #stock-search .ss-card-field > strong { white-space: nowrap; font-variant-numeric: tabular-nums; }
+#stock-search .ss-card-field .ss-summary-price { margin: 0; font-size: 18px; }
+#stock-search .ss-card-field .ss-summary-change { font-size: 14px; }
+#stock-search .ss-card-sector > b { white-space: normal; word-break: keep-all; overflow-wrap: anywhere; }
+#stock-search .ss-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+#stock-search .ss-card-primary .ss-analysis-link { margin: 0; white-space: nowrap; }
+#stock-search .ss-card-secondary { display: flex; align-items: baseline; gap: 8px 20px; min-width: 0; }
+#stock-search .ss-card-primary + .ss-card-secondary { margin-top: 8px; }
+#stock-search .ss-overview .ss-session { margin: 0; min-width: 0; flex: 0 0 auto; }
+#stock-search .ss-overview .ss-session-values { gap: 16px; flex-wrap: wrap; }
+#stock-search .ss-overview .ss-summary-reason { margin: 0; min-width: 0; flex: 1; font-size: 12px; line-height: 1.6; word-break: keep-all; overflow-wrap: anywhere; }
+html.dark #stock-search .ss-overview.ss-overview-active { border-color: rgba(245, 239, 224, .2); }
+html.dark #stock-search .ss-overview .ss-summary { border-top-color: rgba(245, 239, 224, .16); }
+html.dark #stock-search .ss-card-field > span { color: rgba(245, 239, 224, .6); }
+@media (max-width: 1100px) {
+  #stock-search .ss-card-primary,
+  #stock-search .ss-card-primary.ss-card-no-sector { grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); }
+  #stock-search .ss-card-primary .ss-card-identity { grid-column: span 2; }
+  #stock-search .ss-card-secondary { flex-wrap: wrap; }
+  #stock-search .ss-overview .ss-summary-reason { flex-basis: 240px; }
 }
-#stock-search .ss-overview .ss-summary-reason {
-  grid-column: 1 / -1;
-  grid-row: 2;
-  margin-top: 2px;
-  min-width: 0;
+@media (max-width: 600px) {
+  #stock-search .ss-card-primary,
+  #stock-search .ss-card-primary.ss-card-no-sector { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px 12px; }
+  #stock-search .ss-card-primary .ss-card-identity { grid-column: 1 / -1; }
+  #stock-search .ss-card-identity .ss-summary-name { font-size: 15px; }
+  #stock-search .ss-card-primary .ss-card-actions { grid-column: 1 / -1; justify-self: end; }
+  #stock-search .ss-card-actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+#stock-search .ss-card-primary .ss-analysis-link { justify-self: end; }
+  #stock-search .ss-overview .ss-session { flex: 1 1 100%; }
+  #stock-search .ss-overview .ss-summary-reason { flex-basis: 100%; }
 }
-#stock-search .ss-overview.ss-overview-selected .ss-summary-head > .ss-icon,
-#stock-search .ss-overview.ss-overview-selected .ss-summary-name,
-#stock-search .ss-overview.ss-overview-selected .ss-summary-code,
-#stock-search .ss-overview.ss-overview-selected .ss-summary-price,
-#stock-search .ss-overview.ss-overview-selected .ss-summary-change {
-  display: none;
-}
-/* If the user manually folds a multi-result table, show the selected stock's
-   name and current price in the same card instead of hiding the information. */
-#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-head {
-  grid-column: 1 / -1;
-  grid-row: 1;
-  justify-self: stretch;
-  justify-content: flex-start;
-}
-#stock-search .ss-overview:not(.ss-overview-selected) .ss-session {
-  grid-column: 1 / -1;
-  grid-row: 2;
-}
-#stock-search .ss-overview:not(.ss-overview-selected) .ss-summary-reason {
-  grid-row: 3;
-}
-html.dark #stock-search .ss-overview.ss-overview-active {
-  border-color: rgba(245, 239, 224, .2);
-}
-html.dark #stock-search .ss-overview .ss-summary {
-  border-top-color: rgba(245, 239, 224, .16);
-}
-@media (max-width: 860px) {
-  #stock-search .ss-overview .ss-summary {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  #stock-search .ss-overview .ss-session {
-    grid-column: 1;
-    grid-row: 1;
-  }
-  #stock-search .ss-overview .ss-summary-head {
-    grid-column: 1;
-    grid-row: 2;
-    justify-self: start;
-  }
-  #stock-search .ss-overview .ss-summary-reason {
-    grid-column: 1;
-    grid-row: 3;
-  }
-  #stock-search .ss-overview .ss-session-values {
-    flex-wrap: wrap;
-    gap: 6px 10px;
-  }
+
+/* The global np card layer also targets .ss-summary: the overview owns its border. */
+@layer np {
+  #stock-search .ss-overview .ss-summary { border: 0 !important; border-radius: 0 !important; }
+  #stock-search .ss-overview:not(.ss-overview-single) .ss-summary { border-top: 1px solid rgba(var(--np-ink), .12) !important; }
 }
