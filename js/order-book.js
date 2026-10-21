@@ -473,8 +473,10 @@
     // 거꾸로 뒤집혀 최우선 매도호가가 맨 위(매수 1호가와 100원 떨어진 줄)로 간다(셀바스AI).
     asks.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
     bids.sort(function (a, b) { return (numericOrNull(b.price) || 0) - (numericOrNull(a.price) || 0); });
-    asks = validDepth(asks);
-    bids = validDepth(bids);
+    // Keep the ten closest sell prices (the provider may send more than ten).
+    // Both the DOM and footer must use the same full, visible ten-level depth.
+    asks = validDepth(asks).slice(-10);
+    bids = validDepth(bids).slice(0, 10);
     if(!asks.length && !bids.length){setBookHint(board,state.lastBookNote || '호가 미수신 · 마지막 수신 호가가 있으면 그대로 표시합니다.');return;}
     // 공급자가 이전 REST보다 많은/적은 단계를 보내면 행 구조만 다시 만든다.
     if (board.getAttribute('data-unavailable')==='true' || board.hasAttribute('data-stale') || board.querySelectorAll('.ob-row-ask').length !== Math.min(asks.length, 10)
@@ -482,8 +484,6 @@
       renderBoard(container, { asks: asks, bids: bids }, state.lastRealtimeQuote);
       state.previousDepth = null; // 새 행에는 직전 동일 가격 비교가 아직 없다.
     }
-    asks = asks.slice(0, 10);
-    bids = bids.slice(0, 10);
     var maxQty = 1;
     asks.concat(bids).forEach(function (row) {
       var qty = numericOrNull(row.qty);
@@ -493,7 +493,7 @@
     function updateSide(rows, side) {
       board.querySelectorAll('.ob-row-' + side).forEach(function (line) {
         var level = Number(line.getAttribute('data-level'));
-        line.hidden = level > rows.length || isTenthHidden(side, level, rows.length);
+        line.hidden = level > rows.length;
       });
       rows.forEach(function (row, index) {
         var line = board.querySelector('.ob-row-' + side + '[data-level="' + (index + 1) + '"]');
@@ -1248,7 +1248,7 @@
       return;
     }
 
-    var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
+    var asks = validDepth(book.asks).sort(function (a, b) { return b.price - a.price; }).slice(-10);
     var bids = validDepth(book.bids).sort(function (a, b) { return b.price - a.price; }).slice(0, 10);
     if (!asks.length && !bids.length) {
       setBookHint(board,book.note || '현재 수신된 유효 호가가 없습니다. 공급자 재조회 중입니다.');
@@ -1305,23 +1305,12 @@
       + buildTradesHtml();
     var currentRow = board.querySelector('[data-field="current-row"]');
     if (currentRow) currentRow.setAttribute('data-dominance', totalBid > totalAsk ? 'bid' : totalAsk > totalBid ? 'ask' : 'balanced');
-    hideTenthRows(board);
     drawSilhouette(board, asks, bids);
     rememberDepth(asks, bids);
   }
 
-  // 장외/장애에도 호가창의 자리와 10+10 행을 보존한다. 미수신 가격은 만들지 않는다.
-  // 2026-10-21 UI: 매도 10호가(가장 먼 매도, 맨 위 행)와 매수 10호가(가장 먼 매수, 맨 아래 행)는 표시하지 않는다. 수신·계산 데이터는 그대로다.
-  function isTenthHidden(side, level, count) {
-    return count >= 10 && ((side === 'ask' && level === 1) || (side === 'bid' && level === 10));
-  }
-
-  function hideTenthRows(board) {
-    ['ask', 'bid'].forEach(function (side) {
-      var rows = board.querySelectorAll('.ob-row-' + side);
-      rows.forEach(function (line) { line.hidden = isTenthHidden(side, Number(line.getAttribute('data-level')), rows.length); });
-    });
-  }
+  // 장외/장애에도 매도·매수 각 10단계 자리를 보존한다. 미수신 가격은 만들지 않는다.
+  // 현재가 행은 별도의 참고 행이므로 10개 호가 행을 숨기거나 대체하지 않는다.
 
   function setBookHint(board,message) {
     board.hidden=false;
@@ -1336,7 +1325,7 @@
       return;
     }
     board.setAttribute('data-unavailable','true');
-    var rows=function(side){var html='';for(var i=0;i<9;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
+    var rows=function(side){var html='';for(var i=0;i<10;i++)html+='<div class="ob-row ob-row-'+side+' ob-row-unavailable"><span class="ob-depth">—</span><span class="ob-price">—</span><span class="ob-depth">—</span></div>';return html;};
     var summary=buildSummaryView(),price=summary.current>0?Math.round(summary.current).toLocaleString('ko-KR')+'원':'—';
     board.innerHTML='<div class="ob-book-status" role="status">'+escapeHtml(message)+'</div>'
       +'<div class="ob-table ob-table-pairs" aria-label="매도 10호가와 매수 10호가 · 호가 미수신">'
