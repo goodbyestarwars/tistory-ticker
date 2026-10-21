@@ -835,10 +835,16 @@
     // Some saved ETF scans carry a literal '-'/'—' placeholder. firstValue()
     // treats those as present; recover the manager from the ETF brand instead.
     // A confirmed, non-placeholder provider from the API always wins.
-    var rawProvider = firstValue(item, ['provider', 'issuer', 'assetManager', 'managementCompany']);
-    var provider = String(rawProvider == null ? '' : rawProvider).trim();
-    normalized.provider = (!provider || /^(?:-|—|–|N\/A|NA|UNKNOWN|미확인|정보없음)$/i.test(provider))
-      ? providerFromName(name) : provider;
+    var providerFields = ['provider', 'issuer', 'assetManager', 'managementCompany'];
+    var provider = '';
+    for (var i = 0; i < providerFields.length; i += 1) {
+      var candidate = String(item[providerFields[i]] == null ? '' : item[providerFields[i]]).trim();
+      if (candidate && !/^(?:-|—|–|N\/A|NA|UNKNOWN|미확인|정보없음)$/i.test(candidate)) {
+        provider = candidate;
+        break;
+      }
+    }
+    normalized.provider = provider || providerFromName(name);
     normalized.sector = firstValue(item, ['sector', 'industry', 'middleCategory', 'categoryMiddle', 'category']) || '—';
     normalized.price = firstValue(item, ['price', 'currentPrice', 'close', 'stckPrpr']);
     normalized.changeRate = firstValue(item, ['changeRate', 'change_rate', 'changeRatePct', 'rate', 'prdyCrt']);
