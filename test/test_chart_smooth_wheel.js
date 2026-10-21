@@ -166,6 +166,36 @@ assert.equal(events.touchstart, undefined);
   assert.equal(ev2.pointerup, undefined);
   if (perf) Object.defineProperty(global, 'performance', { value: perf, configurable: true });
 }
+
+// ---- 마지막 봉 뒤 빈 공간(2026-10-22) ----
+{
+  const ev3 = {};
+  const el3 = { clientWidth: 600, clientHeight: 400, getBoundingClientRect() { return { left: 10, top: 0 }; },
+    addEventListener(type, cb, o) { ev3[type] = { cb, o }; }, removeEventListener(type) { delete ev3[type]; } };
+  let r3 = { from: 200, to: 300 };
+  const subs3 = [];
+  const sc3 = { width() { return 600; }, getVisibleLogicalRange() { return { ...r3 }; }, setVisibleLogicalRange(v) { r3 = { ...v }; },
+    subscribeVisibleLogicalRangeChange(fn) { subs3.push(fn); }, unsubscribeVisibleLogicalRangeChange() {} };
+  const cl3 = core.installSmoothWheelZoom({ timeScale() { return sc3; } }, el3, { bars: 300 });
+  function w3(dx) { ev3.wheel.cb({ deltaX: dx, deltaY: 0, deltaMode: 0, clientX: 310, timeStamp: 1, cancelable: true, target: { closest() { return null; } }, preventDefault() {} }); }
+  for (let i = 0; i < 40; i++) w3(200);
+  settle();
+  assert(r3.to > 299 + 12, 'can pan further than 12 bars past the last bar');
+  assert(r3.to <= 299 + 100 * 0.75 + 0.05, 'but no further than 75% of the visible span');
+  // 이미 한도보다 더 끌어 둔 위치에서 드래그를 놓아도 관성이 되돌려 놓지 않는다.
+  const perf2 = global.performance; let clk = 0;
+  Object.defineProperty(global, 'performance', { value: { now: () => clk }, configurable: true });
+  ev3.pointerdown.cb({});
+  r3 = { from: 300, to: 400 }; clk = 0; subs3.forEach((fn) => fn());
+  r3 = { from: 306, to: 406 }; clk = 40; subs3.forEach((fn) => fn());
+  r3 = { from: 312, to: 412 }; clk = 80; subs3.forEach((fn) => fn());
+  ev3.pointerup.cb({});
+  const placed = { ...r3 };
+  settle();
+  assert.deepEqual(r3, placed, 'inertia does not pull a far blank-space position back');
+  cl3();
+  if (perf2) Object.defineProperty(global, 'performance', { value: perf2, configurable: true });
+}
 global.requestAnimationFrame = prevRaf;
 global.cancelAnimationFrame = prevCancel;
 console.log('chart smooth wheel: ok');
