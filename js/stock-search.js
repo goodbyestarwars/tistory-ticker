@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-smooth-wheel1';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261021-structure1';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -120,6 +120,7 @@
     supplyMode: 'detail',
     volumeProfileEnabled: false,
     supportResistanceEnabled: false,
+    structureEnabled: false,   // 추세선·채널·박스권(js/chart-structure.js)
     wave: { enabled: false, level: 'medium' },   // 자동 파동: 대파동 major · 중파동 medium(기본) · 소파동 minor
     chartCache: {},   // code -> flowChart 응답(daily/ma/levels) 5분 캐시
     minuteCache: {},  // code|scope -> { t, bars(LWC 형식으로 변환 완료) }
@@ -136,6 +137,7 @@
   var lwcLiveTimeframe = null;
   var lwcCloudCleanup = null;
   var lwcSrCleanup = null;
+  var lwcStructureCleanup = null;
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
   function rememberStudyToggle(key,enabled) {
@@ -518,6 +520,7 @@
       + '<label><input type="checkbox" id="ssIchimokuToggle" /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" id="ssBollingerToggle" /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" id="ssSupportResistanceToggle" /> 지지·저항 표시</label>'
+      + '<label title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" data-chart-structure-toggle /> 추세선·박스 표시</label>'
       + '<label><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
@@ -1742,6 +1745,15 @@
         renderChartForCode(container, state.selectedCode);
       };
     }
+    var structureToggle = container.querySelector('[data-chart-structure-toggle]');
+    if (structureToggle) {
+      structureToggle.checked = state.structureEnabled;
+      structureToggle.onchange = function () {
+        state.structureEnabled = structureToggle.checked;
+        rememberStudyToggle('structure', state.structureEnabled);
+        renderChartForCode(container, state.selectedCode);
+      };
+    }
     var memoButton = container.querySelector('.ss-memo-toggle');
     if (memoButton && memoButton.getAttribute('data-memo-wired') !== '1') {
       memoButton.setAttribute('data-memo-wired', '1');
@@ -2131,6 +2143,7 @@
       + '<label><input type="checkbox" data-chart-ichimoku-toggle /> 일목균형표(구름) 표시</label>'
       + '<label><input type="checkbox" data-chart-bollinger-toggle /> 볼린저 밴드</label>'
       + '<label><input type="checkbox" data-chart-sr-toggle /> 지지·저항 표시</label>'
+      + '<label title="스윙 저점·고점을 이은 추세선과 평행 채널, 횡보 박스권의 상·하단과 이탈 봉을 표시합니다(매수·매도 신호 아님)."><input type="checkbox" data-chart-structure-toggle /> 추세선·박스 표시</label>'
       + '<label><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
       + '</div>'
@@ -2644,6 +2657,7 @@
     stockChartMeasuredHeight = 0;
     if (lwcCloudCleanup) { lwcCloudCleanup(); lwcCloudCleanup = null; }
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
+    if (lwcStructureCleanup) { lwcStructureCleanup(); lwcStructureCleanup = null; }
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
     if (supplyMarkerHolder && supplyMarkerHolder.legendCleanup) supplyMarkerHolder.legendCleanup();
@@ -2661,7 +2675,10 @@
 
     chartReady().then(function (LWC) {
       // 지지·저항은 체크했을 때만 모듈이 필요하다
-      return (state.supportResistanceEnabled ? global.NineChartCore.loadModule('sr').catch(function () { return null; }) : Promise.resolve()).then(function () { return LWC; });
+      var studyLoads = [];
+      if (state.supportResistanceEnabled) studyLoads.push(global.NineChartCore.loadModule('sr').catch(function () { return null; }));
+      if (state.structureEnabled) studyLoads.push(global.NineChartCore.loadModule('structure').catch(function () { return null; }));
+      return Promise.all(studyLoads).then(function () { return LWC; });
     }).then(function (LWC) {
       if (renderId !== lwcRenderId || !document.body.contains(container)) return;
       var core = global.NineChartCore;
@@ -2777,6 +2794,10 @@
       if (state.supportResistanceEnabled) {
         priceLegendHtml.push('<span data-study="sr" class="ss-sr-label">' + stockSrLegendHtml(srResult, isUsChart) + '</span>');
       }
+      var structureResult = state.structureEnabled && global.NineChartStructure ? global.NineChartStructure.analyze(bars, { timeframe: timeframe }) : null;
+      if (structureResult) {
+        priceLegendHtml.push('<span data-study="structure" class="ss-structure-label">추세선·박스 ' + global.NineChartStructure.summary(structureResult) + '</span>');
+      }
 
       if (priceLegendHtml.length || (state.accumulationEnabled && timeframe === 'day' && !isUsChart)) {
         var priceLegend = document.createElement('div');
@@ -2880,6 +2901,7 @@
         formatPrice: function (p) { return chartPriceText(p, isUsChart); },
         isDrawing: function () { return !!(drawingCtl && drawingCtl.mode()); }
       });
+      lwcStructureCleanup = structureResult ? global.NineChartStructure.install(container, chart, candleSeries, structureResult, function (p) { return chartPriceText(p, isUsChart); }, { isUs: isUsChart }) : null;
       lwcSrCleanup = global.NineChartSR ? global.NineChartSR.install(container, chart, candleSeries, srResult, function (p) { return chartPriceText(p, isUsChart); }, { isUs: isUsChart }) : null;
       lwcRsiZonesCleanup = installRsiZoneCanvas(container, chart, rsiSeries, panes, bars, rsiValues);
       setupStockOverlays(container, chart, candleSeries, timeframe, bars);
