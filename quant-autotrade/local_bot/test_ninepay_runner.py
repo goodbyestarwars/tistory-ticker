@@ -159,10 +159,6 @@ class SharedEngineTests(Base):
         self.assertEqual(self.buy(b), 'DISABLED_OR_UNCERTAIN')
 
 
-if __name__ == '__main__':
-    unittest.main()
-
-
 class NetworkRecoveryTests(unittest.TestCase):
     def test_retryable_transport_failure_without_uncertain_order(self):
         from live_runner_9pay import cycle_error_state
@@ -183,3 +179,7 @@ class NetworkRecoveryTests(unittest.TestCase):
     def test_non_transport_error_stays_fatal(self):
         from live_runner_9pay import cycle_error_state
         self.assertEqual(cycle_error_state(ValueError(), Mock()), 'ERROR_ValueError')
+
+
+if __name__ == '__main__':
+    unittest.main()
