@@ -1015,8 +1015,8 @@
       }));
       indexOhlcTooltipCleanup = installStockOhlcTooltip(host, indexChart, series, false);
       var volumePane = null;
-      if (bars.some(function (bar) { return bar.volume > 0; })) {
-        volumePane = core.addVolumePane(indexChart, LWC, bars, {
+      if (bars.some(function (bar) { return bar.volume > 0; })) try {
+        volumePane = global.NineChartCore.addVolumePane(indexChart, LWC, bars, {
           pane: 1, scaleId: 'volume', ma5: true, multiples: false,
           scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
         });
@@ -1034,7 +1034,7 @@
         indexChart.subscribeCrosshairMove(function (param) {
           showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : bars[bars.length - 1].volume);
         });
-      }
+      } catch (volumeError) { /* 거래량 패널 실패가 캔들 차트를 막지 않게 한다 */ }
       indexChart.timeScale().fitContent();
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
