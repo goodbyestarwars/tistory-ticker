@@ -71,7 +71,7 @@
     var us = data.market === 'us';
     var help = us ? US_HELP : HELP;
     host.innerHTML = '<div class="hsr-head"><div><div class="hsr-title-row"><strong>' + (us ? '미국 업종 로테이션' : '업종 로테이션') + '</strong>'
-      + '<button type="button" class="hsr-help" aria-label="업종 로테이션 설명" title="' + esc(help) + '" data-hsr-help>ⓘ</button></div>'
+      + (document.body && document.body.id === 'tt-body-index' ? '' : '<button type="button" class="hsr-help" aria-label="업종 로테이션 설명" title="' + esc(help) + '" data-hsr-help>ⓘ</button>') + '</div>'
       + '<p class="hsr-desc">' + (us ? 'S&P500 섹터 ETF를 SPY 대비 상대강도와 최근 순위 변화로 분류합니다.' : '시장 대비 상대강도와 최근 순위 변화를 기준으로 업종 흐름을 분류합니다.') + '</p></div>'
       + '<span class="hsr-meta">5일 기준 · ' + esc(dateLabel(data.date)) + (us ? ' 미국' : '') + ' 종가' + (data.final ? '' : ' (잠정)') + '</span></div>'
       + '<div class="hsr-help-pop" data-hsr-pop hidden>' + esc(help) + '</div>'

@@ -123,7 +123,7 @@
   function actionHtml(id) {
     var label = LABELS[id];
     return '<div class="home-widget-actions">'
-      + '<button type="button" class="home-widget-drag" draggable="true" aria-label="' + label + ' 카드 이동" title="드래그해서 이동">⋮⋮</button>'
+      + '<button type="button" class="home-widget-drag" draggable="true" aria-label="' + label + ' 카드 이동">⋮⋮</button>'
       + '<button type="button" class="home-widget-menu-button" aria-label="' + label + ' 위젯 메뉴" aria-expanded="false">⋮</button>'
       + '<div class="home-widget-menu" hidden>'
       + '<button type="button" data-widget-action="top">맨 위로 이동</button>'
@@ -761,7 +761,7 @@
     return '<a class="home-disclosure-row" href="' + escapeHtml(disclosureHref(item)) + '"'
       + ' data-disclosure-modal="1" data-disclosure-stock="' + escapeHtml(item.stockName || item.corp || '') + '"'
       + ' data-disclosure-alternate-link="' + escapeHtml(item.alternateLink || '') + '"'
-      + ' title="DART 원문 보기" draggable="false">'
+      + ' draggable="false">'
       + '<strong>' + escapeHtml(item.stockName || item.corp || '관심종목 공시') + '</strong>'
       + '<span>' + escapeHtml(shortDisclosure(item.title)) + ' <small class="home-disclosure-source">' + escapeHtml(status) + '</small></span>'
       + (time ? '<time>' + escapeHtml(time) + '</time>' : '') + '</a>';

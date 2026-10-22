@@ -857,9 +857,7 @@ document.documentElement.classList.add('skin-ready');
       if (placeholderOnly) fullText = '';
       element.textContent = fullText;
       element.hidden = placeholderOnly;
-      // 업종명은 카드 폭에 맞춰 말줄임표로 보이지만, hover/focus 시 전체 문구를
-      // 확인할 수 있도록 native tooltip과 접근성 레이블을 함께 유지한다.
-      element.title = fullText;
+      // 2026-10-23 사용자 요청: hover 설명(native tooltip, '?' 커서)은 없애고 접근성 레이블만 유지한다.
       element.setAttribute('aria-label', fullText);
       element.classList.remove('home-positive', 'home-negative', 'home-neutral');
       if (tone) element.classList.add(tone);
@@ -1485,7 +1483,6 @@ document.documentElement.classList.add('skin-ready');
       }
       element.setAttribute('data-history-count', String(values.length));
       element.setAttribute('data-history-range', caption);
-      element.setAttribute('title', caption);
       var note = element.nextElementSibling;
       if (!note || !note.classList.contains('home-index-history-caption')) {
         note = document.createElement('small'); note.className = 'home-index-history-caption'; element.insertAdjacentElement('afterend', note);
