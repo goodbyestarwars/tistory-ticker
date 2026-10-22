@@ -176,7 +176,7 @@
   padding: 4px 0; /* 폰트가 커진 만큼 줄간격도 살짝 늘림 */
   font-size: 13px; /* 2026-07-18: 10.5px -> 13px, 폰트가 너무 작다는 피드백 */
   font-weight: 500;
-  color: #333;
+  color: #4b5563;
   line-height: 1.3;
   white-space: nowrap;
   overflow: hidden;
@@ -285,7 +285,7 @@ html.dark .qi-card-group {
 
 .qi-card-label {
   font-weight: 700;
-  color: #222; /* 13차: #888 -> 검정 계열(사용자 요청) */
+  color: #1f2937; /* 13차: #888 -> 검정 계열(사용자 요청) */
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -315,7 +315,7 @@ html.dark .qi-card-group {
 .qi-card-price {
   /* 10차: 700 -> 500 (사용자 피드백: "숫자를 저렇게 굵게 할 필요 없어") */
   font-weight: 500;
-  color: #222;
+  color: #4b5563;
   line-height: 1.1;
   white-space: nowrap;
 }
