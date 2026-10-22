@@ -2835,3 +2835,54 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-indicator-group h4 { display: flex; justify-content: space-between; align-items: center !important; }
   html body #market-temp .mt-indicator-group h4 small { font-size: 10px !important; font-weight: 400; color: var(--pulse-sub) !important; }
 }
+
+/* 지표명 : 상태 · 금액을 한 줄로 읽는 시장판 */
+@layer np.np {
+  html body #market-temp .mt-glance-list { display: grid; gap: 5px !important; }
+  html body #market-temp .mt-glance-row { display: block !important; width: 100%; min-height: 48px; padding: 8px 11px !important; }
+  html body #market-temp .mt-glance-line { display: flex; align-items: baseline !important; flex-wrap: wrap; gap: 5px !important; min-width: 0; line-height: 1.5; }
+  html body #market-temp .mt-glance-label { color: var(--pulse-ink) !important; font-size: 12px !important; font-weight: 550; }
+  html body #market-temp .mt-glance-colon { color: var(--pulse-sub) !important; }
+  html body #market-temp .mt-glance-state { font-size: 13px !important; font-weight: 700; color: var(--pulse-ink) !important; }
+  html body #market-temp .mt-glance-state.is-positive { color: var(--pulse-red) !important; }
+  html body #market-temp .mt-glance-state.is-negative { color: var(--pulse-blue) !important; }
+  html body #market-temp .mt-glance-amount { font-size: 12px !important; color: var(--pulse-ink) !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  html body #market-temp .mt-glance-share { margin-left: auto !important; font-size: 11px; font-style: normal; color: var(--pulse-sub) !important; font-variant-numeric: tabular-nums; }
+  html body #market-temp .mt-glance-meta { display: block; margin-top: 2px !important; color: var(--pulse-sub) !important; font-size: 10px !important; font-weight: 400; line-height: 1.5; }
+  html body #market-temp .mt-investor-share { padding: 6px 11px 9px !important; }
+  html body #market-temp .mt-share-head { display: flex; justify-content: space-between; align-items: center !important; margin-bottom: 6px !important; font-size: 10px !important; color: var(--pulse-sub) !important; }
+  html body #market-temp .mt-share-head b { font-weight: 500; }
+  html body #market-temp .mt-share-bar { display: flex; width: 100%; height: 9px; gap: 2px !important; overflow: hidden; border-radius: 4px; }
+  html body #market-temp .mt-share-bar span { height: 100%; min-width: 0; }
+  html body #market-temp .mt-share-bar .is-positive { background: var(--pulse-red) !important; }
+  html body #market-temp .mt-share-bar .is-negative { background: var(--pulse-blue) !important; }
+  html body #market-temp .mt-share-bar .is-neutral { background: var(--pulse-sub) !important; }
+  html body #market-temp .mt-share-note { margin: 5px 0 0 !important; color: var(--pulse-sub) !important; font-size: 9px !important; line-height: 1.6; }
+  html body #market-temp .mt-fx-row { padding-bottom: 7px !important; }
+  html body #market-temp .mt-fx-balance { display: block; max-width: 320px; margin: 1px auto 0 !important; }
+  html body #market-temp .mt-fx-balance svg { display: block; width: 100%; height: 90px; overflow: visible; }
+  html body #market-temp :is(.mt-fx-beam, .mt-fx-stand) { fill: none !important; stroke: var(--pulse-sub) !important; stroke-width: 3px; stroke-linecap: round; }
+  html body #market-temp .mt-fx-pan { color: var(--pulse-blue) !important; }
+  html body #market-temp .mt-fx-pan.is-heavy { color: var(--pulse-red) !important; }
+  html body #market-temp .mt-fx-pan path { fill: none !important; stroke: currentColor !important; stroke-width: 1.5px; }
+  html body #market-temp .mt-fx-pan .mt-fx-bowl { fill: currentColor !important; stroke: none !important; opacity: .22; }
+  html body #market-temp .mt-fx-pan.is-heavy .mt-fx-bowl { opacity: .65; }
+  html body #market-temp .mt-fx-pan text { fill: currentColor !important; font-size: 14px; font-weight: 650; text-anchor: middle; }
+  html body #market-temp [data-fx-stronger="unavailable"] .mt-fx-pan,
+  html body #market-temp [data-fx-stronger="balanced"] .mt-fx-pan { color: var(--pulse-sub) !important; }
+  html body #market-temp .mt-extra-heading { margin: 0 !important; padding: 17px 0 12px !important; font-size: 13px !important; font-weight: 600; color: var(--pulse-ink, #27364b) !important; }
+  html body #market-temp .mt-front-tools .mt-ai-panel { margin-top: 20px !important; padding-top: 5px !important; border-top: 1px solid var(--pulse-line, #e7edf5) !important; }
+  @media (min-width: 761px) {
+    html body #market-temp .mt-glance-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    html body #market-temp .mt-glance-list > :nth-child(n+5) { grid-column: 1 / -1; }
+    html body #market-temp .mt-glance-row { min-height: 44px; padding-top: 6px !important; padding-bottom: 6px !important; }
+    html body #market-temp .mt-indicator-history .mt-flow-svg { height: 360px !important; }
+  }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-glance-row { padding: 8px 9px !important; }
+    html body #market-temp .mt-glance-line { gap: 4px !important; }
+    html body #market-temp .mt-glance-label { font-size: 11px !important; }
+    html body #market-temp .mt-glance-state { font-size: 12px !important; }
+    html body #market-temp .mt-glance-amount { font-size: 11px !important; }
+  }
+}
