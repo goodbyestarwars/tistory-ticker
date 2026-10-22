@@ -238,10 +238,12 @@ class EntryRecordTests(Base):
             self.cycle(b)
         self.assertIn(('*', 'SLOTS_FULL'), self.skips())
 
-    def test_default_count_cap_removed_without_changing_capital_limits(self):
-        self.assertIsNone(le.MAX_STOCKS)
-        self.assertFalse(le.slots_full(100))
-        self.assertEqual((le.BUDGET, le.RESERVE, le.PER_STOCK), (1000000,100000,300000))
+    def test_slots_follow_budget_tiers_one_stock_per_started_million(self):
+        self.assertEqual((le.BUDGET, le.RESERVE, le.MAX_STOCKS, le.PER_STOCK), (1000000, 100000, 1, 900000))
+        for budget, slots in ((500000, 1), (1000000, 1), (1000001, 2), (2000000, 2), (2000001, 3), (3000000, 3)):
+            self.assertEqual(-(-budget // 1_000_000), slots)
+        self.assertTrue(le.slots_full(1))
+        self.assertFalse(le.slots_full(0))
 
     def test_excluded_candidate_is_recorded_as_excluded(self):
         self.clear()

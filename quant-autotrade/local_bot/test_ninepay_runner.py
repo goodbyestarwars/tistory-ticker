@@ -103,16 +103,26 @@ class SharedEngineTests(Base):
     def test_pending_legacy_position_reserves_shared_capital(self):
         self.position('000660', 89, 10000, 'PENDING')
         b = self.broker([holding('000660', 89, 10000, 10000)])
-        self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
+        with patch.object(engine, 'MAX_STOCKS', None):  # isolate the shared-capital limit from the slot rule
+            self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
         self.assertEqual(b.buys, [('005930', 1, 10000)])  # 900,000 committed cap
 
-    def test_three_existing_positions_do_not_block_fourth_within_budget(self):
+    def test_existing_positions_block_new_entry_until_closed_under_one_slot(self):
         for code in ('000001', '000002', '000003'):
             self.position(code, 1, 10000)
         b = self.broker([holding(c, 1, 10000, 10000) for c in ('000001','000002','000003')])
-        self.assertIsNone(engine.MAX_STOCKS)
+        self.assertEqual(engine.MAX_STOCKS, 1)  # 2026-10-22: one stock per started 1M budget
+        self.assertEqual(self.buy(b), 'BUDGET_OR_SLOTS_FULL')
+        self.assertEqual(b.buys, [])
+        with patch.object(engine, 'MAX_STOCKS', None):
+            self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
+        self.assertEqual(b.buys, [('005930', 87, 10000)])  # per-stock cap = budget - reserve; only committed capital limits
+
+    def test_single_stock_uses_whole_budget_minus_reserve(self):
+        b = self.broker()
+        self.assertEqual(engine.PER_STOCK, engine.BUDGET - engine.RESERVE)
         self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
-        self.assertEqual(b.buys, [('005930', 30, 10000)])
+        self.assertEqual(b.buys, [('005930', 90, 10000)])
 
     def test_no_count_cap_never_overrides_budget(self):
         self.position('000660', 90, 10000)
