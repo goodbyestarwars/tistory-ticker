@@ -126,6 +126,29 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
         self.assertEqual(request.call_count, 2)
         self.assertEqual(request.call_args_list[1].kwargs['tr_cont'], 'N')
 
+    def test_long_range_daily_chart_uses_three_year_window_and_separate_cache(self):
+        calls = []
+
+        def fake_period(_token, _key, _secret, _code, start, end, period, **kwargs):
+            calls.append((start, end, period, kwargs))
+            return {}, [{'stck_bsop_date': '20260820', 'stck_oprc': '1', 'stck_hgpr': '2',
+                         'stck_lwpr': '1', 'stck_clpr': '2', 'acml_vol': '500'},
+                        {'stck_bsop_date': '20260821', 'stck_oprc': '1', 'stck_hgpr': '2',
+                         'stck_lwpr': '1', 'stck_clpr': '2', 'acml_vol': '600'}]
+
+        with patch.object(kis_client, 'get_token', return_value='t'), \
+                patch.object(kis_client, 'fetch_index_period_chart', side_effect=fake_period):
+            dmi._chart_cache.clear()
+            normal = dmi.fetch_chart('k', 's', 'KOSPI', 'day')
+            long_rows = dmi.fetch_chart('k', 's', 'KOSPI', 'day', long_range=True)
+            week = dmi.fetch_chart('k', 's', 'KOSPI', 'week', long_range=True)
+            dmi._chart_cache.clear()
+        self.assertEqual(calls[0][3], {})
+        self.assertEqual(calls[1][3], {'max_pages': dmi.CHART_LONG_MAX_PAGES})
+        self.assertEqual(calls[2][3], {})   # 주봉은 긴 범위를 쓰지 않는다
+        self.assertEqual([r['volume'] for r in long_rows['rows']], [500.0, 600.0])
+        self.assertTrue(normal['rows'] and week['rows'])
+
     def test_kis_index_period_chart_backtracks_when_continuation_header_is_missing(self):
         pages = [
             ({'output1': {'name': 'KOSPI'}, 'output2': [
