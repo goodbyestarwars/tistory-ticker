@@ -16,6 +16,8 @@ import json
 import os
 import sys
 import unittest
+from collections import OrderedDict
+from unittest.mock import Mock, patch
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'scripts', 'cloud-vm'))
 
@@ -82,6 +84,55 @@ class FuturesCacheTtlTests(unittest.TestCase):
     def test_ttl_stays_short_enough_to_look_live(self):
         # 너무 길면 "실시간"이라고 부르기 어려워진다 - 프론트 폴링(20~30초)과 같은 눈금.
         self.assertLessEqual(main._FUTURES_TTL, 60)
+
+
+class StoredFuturesReadTests(unittest.TestCase):
+    def setUp(self):
+        self.quote = {'symbol': 'USDKRW', 'name': '원/달러', 'price': 1300,
+                      'change': 1, 'change_rate': .1, 'high': None, 'low': None,
+                      'updated_at': '2026-10-22T04:00:00+00:00'}
+        self.chart = [{'date': '20261022', 'close': 1300, 'high': 1301, 'low': 1299}]
+        self.conn = Mock()
+        self.patches = [patch.object(main, '_futures_cache', OrderedDict()),
+                        patch.object(main, '_check_rate_limit'),
+                        patch.object(main.db_schema, 'get_conn', return_value=self.conn),
+                        patch.object(main.db_schema, 'load_all_future_prices', return_value=[self.quote]),
+                        patch.object(main.db_schema, 'load_future_chart', return_value=self.chart),
+                        patch.object(main.domestic_futures, 'fetch_fx_realtime', return_value={'price': 1400})]
+        self.mocks = [p.start() for p in self.patches]
+        for p in self.patches:
+            self.addCleanup(p.stop)
+
+    def read(self, stored):
+        response = main.futures(FakeRequest(), symbols='USDKRW', stored_only=stored)
+        return response, json.loads(response.body)['data'][0]
+
+    def test_stored_reads_skip_provider_and_reuse_cached_bytes(self):
+        response, row = self.read(True)
+        again, _ = self.read(True)
+        self.mocks[-1].assert_not_called()
+        self.assertEqual(row['price'], 1300)
+        self.assertEqual(row['updated_at'], self.quote['updated_at'])
+        self.assertEqual(row['chart'], self.chart)
+        self.assertEqual(response.headers['x-market-read-mode'], 'stored')
+        self.assertIs(response.body, again.body)
+        self.mocks[2].assert_called_once()
+
+    def test_live_and_stored_caches_do_not_contaminate_each_other(self):
+        response, live = self.read(False)
+        _, stored = self.read(True)
+        self.assertEqual(live['price'], 1400)
+        self.assertEqual(stored['price'], 1300)
+        self.assertNotIn('x-market-read-mode', response.headers)
+        self.mocks[-1].assert_called_once()
+
+    def test_missing_stored_quote_does_not_fetch_or_invent_price(self):
+        self.mocks[3].return_value = []
+        self.mocks[4].return_value = []
+        _, row = self.read(True)
+        self.assertIsNone(row['price'])
+        self.assertEqual(row['chart'], [])
+        self.mocks[-1].assert_not_called()
 
 
 if __name__ == '__main__':
