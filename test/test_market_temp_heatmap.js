@@ -88,7 +88,7 @@ assert.strictEqual(t.historyDays_({ scoreMethod: 'old', recentDays: days([50], 1
 assert.ok(/새 기준으로 다시 계산할 수 있는 기록이 없습니다/.test(t.buildSparklineContent({ scoreMethod: 'old', recentDays: days([50], 1) }, 5)));
 
 // 4) 위험도는 방향 점수 근거와 분리, 서버 경계와 같은 값
-assert.ok(src.indexOf('방향 점수 근거 (수급·가격)') > 0 && src.indexOf('시장 위험도 · 높을수록 위험') > 0);
+assert.ok(src.indexOf('수급·가격 근거와 시장 위험 지표') > 0 && src.indexOf('시장 위험 · 점수와 별도') > 0);
 const py = fs.readFileSync('scripts/cloud-vm/market_temp_score.py', 'utf8');
 assert.ok(/\(30, \{'emoji': '🔵', 'label': '공포'/.test(py) && /\(70, \{'emoji': '⚪', 'label': '보통'/.test(py));
 console.log('market-temp heatmap 검증 통과');
