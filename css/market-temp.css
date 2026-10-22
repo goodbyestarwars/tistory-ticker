@@ -2938,6 +2938,8 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 
 @layer np.np {
   html body #market-temp .mt-intro-line { display: flex; flex-wrap: wrap; align-items: baseline !important; gap: 5px 14px !important; margin: 10px 0 0 !important; }
+  html body #market-temp .mt-live-status { margin: 0 0 12px !important; color: #778396 !important; font-family: var(--font-ui, sans-serif); font-size: 10px !important; line-height: 1.6; }
+  html.dark body #market-temp .mt-live-status { color: #9aa8bb !important; }
   html body #market-temp .mt-intro-line .mt-front-headline,
   html body #market-temp .mt-intro-line .mt-front-lead { margin: 0 !important; }
   html body #market-temp .mt-direct-overview > .mt-breadth-visual { margin: 0 0 20px !important; padding: 0 0 17px !important; border-bottom: 1px solid var(--pulse-line) !important; }
