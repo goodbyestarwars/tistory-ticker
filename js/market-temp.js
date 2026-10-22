@@ -2048,15 +2048,20 @@
     var flat = typeof b.flat === 'number' && isFinite(b.flat) && b.flat >= 0 ? b.flat : null;
     var text = '상승 ' + b.up.toLocaleString('ko-KR') + '개 · 하락 ' + b.down.toLocaleString('ko-KR') + '개';
     if (flat != null) text += ' · 보합 ' + flat.toLocaleString('ko-KR') + '개';
+    // 숫자는 수급 비중 막대처럼 구간 안에 쓴다. 좁은 구간은 숫자만, 4% 미만이면 막대 밖 작은 줄로 옮겨 정보가 사라지지 않게 한다.
+    var smallFlat = 0;
+    function segment(cls, label, count) {
+      if (count == null) return '<i class="' + cls + '" style="width:0%"></i>';
+      var pct = count / b.total * 100, style = ' style="width:' + pct.toFixed(3) + '%"';
+      if (pct < 4) { if (cls === 'is-flat') smallFlat = count; return '<i class="' + cls + '"' + style + '></i>'; }
+      return '<i class="' + cls + (pct < 14 ? ' is-small' : '') + '"' + style + ' title="' + label + ' ' + count.toLocaleString('ko-KR') + '">'
+        + (pct < 14 ? '' : label + ' ') + count.toLocaleString('ko-KR') + '</i>';
+    }
     return '<section class="mt-breadth-visual"><div class="mt-visual-title"><h3>오른 종목과 내린 종목</h3><small>'
       + (story.wholeMarket ? '코스피·코스닥' : '분석 대상 종목') + '</small></div>'
-      + '<div class="mt-breadth-counts"><span class="mt-count-up">상승 <b>' + b.up.toLocaleString('ko-KR') + '</b></span>'
-      + (flat != null ? '<span class="mt-count-flat">보합 ' + flat.toLocaleString('ko-KR') + '</span>' : '')
-      + '<span class="mt-count-down">하락 <b>' + b.down.toLocaleString('ko-KR') + '</b></span></div>'
       + '<div class="mt-breadth-track" role="img" aria-label="' + escapeHtml(text) + '">'
-      + '<i class="is-up" style="width:' + (b.up / b.total * 100).toFixed(3) + '%"></i>'
-      + '<i class="is-flat" style="width:' + ((b.total - b.up - b.down) / b.total * 100).toFixed(3) + '%"></i>'
-      + '<i class="is-down" style="width:' + (b.down / b.total * 100).toFixed(3) + '%"></i></div></section>';
+      + segment('is-up', '상승', b.up) + segment('is-flat', '보합', flat) + segment('is-down', '하락', b.down) + '</div>'
+      + (smallFlat ? '<small class="mt-breadth-flat-note">보합 ' + smallFlat.toLocaleString('ko-KR') + '</small>' : '') + '</section>';
   }
 
   function buildFlowSnapshot_(data) {
