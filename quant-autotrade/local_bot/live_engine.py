@@ -15,8 +15,9 @@ from datetime import datetime, timedelta, timezone
 KST = timezone(timedelta(hours=9))
 BUDGET = 1_000_000
 RESERVE = 100_000
-PER_STOCK = 300_000
-MAX_STOCKS = None  # 2026-10-19 user removed the count cap; shared capital limits remain.
+# 2026-10-22 user rule: budget <=1M -> 1 stock, <=2M -> 2 stocks, <=3M -> 3 stocks (one stock per started 1M).
+MAX_STOCKS = -(-BUDGET // 1_000_000)
+PER_STOCK = (BUDGET - RESERVE) // MAX_STOCKS  # reserve is taken once from the whole budget
 # Conservative round-trip cost allowance until actual account fees/taxes are verified.
 COST_PCT = 0.7
 CODE_RE = re.compile(r'^\d{6}$')
