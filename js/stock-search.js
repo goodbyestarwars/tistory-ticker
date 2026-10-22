@@ -943,8 +943,30 @@
     return (rows || []).map(function (row) {
       var d = String(row.date || '');
       var time = d.length === 8 ? d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6) : d;
-      return { date: time, open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close) };
+      return { date: time, open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close),
+        volume: Number(row.volume) > 0 ? Number(row.volume) : 0 };
     }).filter(function (row) { return /^\d{4}-\d{2}-\d{2}$/.test(row.date) && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0; });
+  }
+
+  // 코스피·코스닥만 KIS 지수 일봉의 거래량(최근 약 1년)이 있다. 날짜로 합치고, 없는 봉은 0(막대 없음)으로 둔다.
+  // 단위는 공급자 응답 그대로다(미검증이라 단위 문구를 붙이지 않는다).
+  function loadIndexVolume(symbol) {
+    if (symbol !== 'KOSPI' && symbol !== 'KOSDAQ') return Promise.resolve(null);
+    return fetchJson('https://goodbyestar.cloud/domestic-market-indicators/chart?market=' + encodeURIComponent(symbol) + '&interval=day')
+      .then(function (payload) {
+        var data = payload && (payload.data || payload);
+        var map = {};
+        ((data && data.rows) || []).forEach(function (r) {
+          var d = String(r.date || '').replace(/-/g, '');
+          if (/^\d{8}$/.test(d) && Number(r.volume) > 0) map[d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6)] = Number(r.volume);
+        });
+        return map;
+      }).catch(function () { return null; });
+  }
+  function applyIndexVolume(bars, volumeMap) {
+    if (!volumeMap) return bars;
+    bars.forEach(function (bar) { if (volumeMap[bar.date]) bar.volume = volumeMap[bar.date]; });
+    return bars;
   }
 
   function renderIndexChart(panel, symbol) {
@@ -992,6 +1014,27 @@
         return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
       }));
       indexOhlcTooltipCleanup = installStockOhlcTooltip(host, indexChart, series, false);
+      var volumePane = null;
+      if (bars.some(function (bar) { return bar.volume > 0; })) {
+        volumePane = core.addVolumePane(indexChart, LWC, bars, {
+          pane: 1, scaleId: 'volume', ma5: true, multiples: false,
+          scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
+        });
+        var sizes = sizeStockChartPanes(indexChart.panes(), 440, false);
+        var volLegend = document.createElement('div');
+        volLegend.className = 'ss-volume-study-label';
+        volLegend.style.top = (sizes.mainHeight + 6) + 'px';
+        var volByTime = {};
+        bars.forEach(function (bar) { volByTime[bar.date] = bar.volume; });
+        var showVolume = function (value) {
+          volLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + (value > 0 ? Math.round(value).toLocaleString('ko-KR') : '-') + '</b></span>';
+        };
+        showVolume(bars[bars.length - 1].volume);
+        host.appendChild(volLegend);
+        indexChart.subscribeCrosshairMove(function (param) {
+          showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : bars[bars.length - 1].volume);
+        });
+      }
       indexChart.timeScale().fitContent();
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
@@ -1069,13 +1112,14 @@
       if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
       Promise.all([
         fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
-        loadIndexHistory(row.code).catch(function () { return null; })
+        loadIndexHistory(row.code).catch(function () { return null; }),
+        loadIndexVolume(row.code)
       ]).then(function (results) {
-          var body = results[0], history = results[1];
+          var body = results[0], history = results[1], volumeMap = results[2];
           if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
-          var bars = indexChartRows(indexThreeYearRows(row.code, item.chart, history));
+          var bars = applyIndexVolume(indexChartRows(indexThreeYearRows(row.code, item.chart, history)), volumeMap);
           if (panel.querySelector('.ss-index-heading')) {
             var quote = panel.querySelector('.ss-index-quote');
             var note = panel.querySelector('.ss-index-note');
@@ -1085,7 +1129,7 @@
             if (bars.length) {
               var latest = bars[bars.length - 1];
               var old = indexBars[indexBars.length - 1];
-              if (!old || latest.date !== old.date) {
+              if (!old || latest.date !== old.date || (latest.volume || 0) !== (old.volume || 0) && indexTimeframe !== 'day') {
                 indexBars = bars;
                 renderIndexChart(panel, row.code);
               } else if (latest.open !== old.open || latest.high !== old.high || latest.low !== old.low || latest.close !== old.close) {
