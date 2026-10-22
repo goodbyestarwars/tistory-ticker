@@ -4104,6 +4104,7 @@ def domestic_market_indicators_chart_endpoint(
     request: Request,
     market: str = Query(...),
     interval: str = Query('minute'),
+    long: int = Query(0),
 ):
     """코스피·코스닥 현물 분봉 온디맨드 조회 (2026-08-23 신설).
 
@@ -4125,6 +4126,7 @@ def domestic_market_indicators_chart_endpoint(
     try:
         data = domestic_market_indicators.fetch_chart(
             os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'), market, interval,
+            long_range=bool(long),
         )
     except Exception as exc:
         logging.getLogger('main').warning('domestic market chart failed: %s', exc, exc_info=True)

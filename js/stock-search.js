@@ -952,7 +952,7 @@
   // 단위는 공급자 응답 그대로다(미검증이라 단위 문구를 붙이지 않는다).
   function loadIndexVolume(symbol) {
     if (symbol !== 'KOSPI' && symbol !== 'KOSDAQ') return Promise.resolve(null);
-    return fetchJson('https://goodbyestar.cloud/domestic-market-indicators/chart?market=' + encodeURIComponent(symbol) + '&interval=day')
+    return fetchJson('https://goodbyestar.cloud/domestic-market-indicators/chart?market=' + encodeURIComponent(symbol) + '&interval=day&long=1')
       .then(function (payload) {
         var data = payload && (payload.data || payload);
         var map = {};

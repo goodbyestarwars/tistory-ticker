@@ -36,6 +36,11 @@ EAGER_INTERVALS = ('day',)
 # KIS 국내업종 기간별 시세는 페이지당 약 50개 일봉을 반환한다. 연속조회와 함께
 # 약 1년(250영업일)을 확보하려면 달력 기준으로 1년보다 조금 넉넉해야 한다.
 CHART_LOOKBACK_DAYS = 370
+# 종목검색 지수 차트(3년 일봉)가 거래량까지 쓰려고 요청할 때만 쓰는 긴 일봉 범위. 대시보드(60초 갱신)는 기존 370일을 그대로 쓴다.
+# KIS는 한 번에 약 50봉이라 3년(약 750봉)은 16쪽 안팎이다.
+CHART_LONG_LOOKBACK_DAYS = 1100
+CHART_LONG_MAX_PAGES = 20
+CHART_LONG_MAX_BARS = 900
 CHART_MINUTE_MAX_BARS = 1500
 
 
@@ -174,16 +179,21 @@ def _fetch_kiwoom(token, market, interval):
     return points
 
 
-def _fetch_kis(token, appkey, appsecret, market, interval):
+def _fetch_kis(token, appkey, appsecret, market, interval, long_range=False):
     code = MARKETS[market]['kis_code']
     if interval == 'minute':
         _, rows = kis_client.fetch_index_time_chart(token, appkey, appsecret, code, '60')
         return _sort_rows(rows, minute=True, limit=CHART_MINUTE_MAX_BARS, market=market)
-    start = (datetime.now(KST) - timedelta(days=CHART_LOOKBACK_DAYS)).strftime('%Y%m%d')
+    if long_range and interval == 'day':
+        lookback, kwargs, limit = CHART_LONG_LOOKBACK_DAYS, {'max_pages': CHART_LONG_MAX_PAGES}, CHART_LONG_MAX_BARS
+    else:
+        lookback, kwargs, limit = CHART_LOOKBACK_DAYS, {}, 600
+    start = (datetime.now(KST) - timedelta(days=lookback)).strftime('%Y%m%d')
     end = datetime.now(KST).strftime('%Y%m%d')
     _, rows = kis_client.fetch_index_period_chart(
-        token, appkey, appsecret, code, start, end, 'W' if interval == 'week' else 'D')
-    return _sort_rows(rows, minute=False, limit=600, since_date=_chart_cutoff_date(), market=market)
+        token, appkey, appsecret, code, start, end, 'W' if interval == 'week' else 'D', **kwargs)
+    cutoff = (datetime.now(KST) - timedelta(days=lookback)).strftime('%Y-%m-%d')
+    return _sort_rows(rows, minute=False, limit=limit, since_date=cutoff, market=market)
 
 
 def _sort_normalised(rows, key, limit, since_date=None):
@@ -253,21 +263,28 @@ _CHART_TTL = {'minute': 60, 'day': 300, 'week': 300}
 _chart_cache = {}
 
 
-def fetch_chart(kis_appkey, kis_appsecret, market, interval):
-    """코스피·코스닥 차트(인터벌별 TTL 캐시). 아래 _fetch_chart_uncached가 실제 조회."""
-    key = (market, interval)
+def fetch_chart(kis_appkey, kis_appsecret, market, interval, long_range=False):
+    """코스피·코스닥 차트(인터벌별 TTL 캐시). 아래 _fetch_chart_uncached가 실제 조회.
+
+    long_range=True는 일봉만 3년치(종목검색 지수 차트용)이며 별도 캐시 키를 쓴다.
+    """
+    long_range = bool(long_range) and interval == 'day'
+    key = (market, interval, 'long') if long_range else (market, interval)
     ttl = _CHART_TTL.get(interval, 60)
     hit = _chart_cache.get(key)
     if hit and time.time() - hit['t'] < ttl:
         return hit['data']
-    result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval)
+    if long_range:
+        result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval, long_range=True)
+    else:
+        result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval)
     # 빈 결과는 캐시하지 않는다 - 일시 실패를 TTL 내내 붙들고 있으면 안 된다.
     if result.get('rows'):
         _chart_cache[key] = {'t': time.time(), 'data': result}
     return result
 
 
-def _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval):
+def _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval, long_range=False):
     """코스피·코스닥 차트. 일봉·주봉은 KIS 단일 소스, 분봉만 네이버 폴백을 둔다.
 
     2026-09-01: 분봉 탭이 빈 화면이었다(실측 응답
@@ -284,7 +301,7 @@ def _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval):
         return {'source': 'kis', 'rows': [], 'errors': ['KIS credentials unavailable']}
     try:
         kis_token = kis_client.get_token(kis_appkey, kis_appsecret)
-        rows = _fetch_kis(kis_token, kis_appkey, kis_appsecret, market, interval)
+        rows = _fetch_kis(kis_token, kis_appkey, kis_appsecret, market, interval, long_range=long_range)
         if len(rows) < 2:
             raise RuntimeError('KIS returned too few %s %s candles' % (market, interval))
         return {'source': 'kis', 'rows': rows, 'errors': []}
