@@ -1954,14 +1954,51 @@
     return { headline: headline, lead: lead, flow: flowText, breadth: breadth, wholeMarket: broad };
   }
 
+  function buildMarketIntro_(data) {
+    var story = frontPageStory_(data), tone = scoreTone_(score100(data));
+    return '<header class="mt-market-intro mt-market-' + tone + '">'
+      + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span>시장 한눈에 보기</span></div>'
+      + '<h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
+      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p></header>';
+  }
+
+  function buildBreadthVisual_(story) {
+    var b = story.breadth;
+    if (!b) return '<div class="mt-breadth-visual mt-visual-empty">상승·하락 종목 집계를 확인하고 있습니다.</div>';
+    var flat = typeof b.flat === 'number' && isFinite(b.flat) && b.flat >= 0 ? b.flat : null;
+    var text = '상승 ' + b.up.toLocaleString('ko-KR') + '개 · 하락 ' + b.down.toLocaleString('ko-KR') + '개';
+    if (flat != null) text += ' · 보합 ' + flat.toLocaleString('ko-KR') + '개';
+    return '<section class="mt-breadth-visual"><div class="mt-visual-title"><h3>오른 종목과 내린 종목</h3><small>'
+      + (story.wholeMarket ? '코스피·코스닥' : '분석 대상 종목') + '</small></div>'
+      + '<div class="mt-breadth-counts"><span class="mt-count-up">상승 <b>' + b.up.toLocaleString('ko-KR') + '</b></span>'
+      + (flat != null ? '<span class="mt-count-flat">보합 ' + flat.toLocaleString('ko-KR') + '</span>' : '')
+      + '<span class="mt-count-down">하락 <b>' + b.down.toLocaleString('ko-KR') + '</b></span></div>'
+      + '<div class="mt-breadth-track" role="img" aria-label="' + escapeHtml(text) + '">'
+      + '<i class="is-up" style="width:' + (b.up / b.total * 100).toFixed(3) + '%"></i>'
+      + '<i class="is-flat" style="width:' + ((b.total - b.up - b.down) / b.total * 100).toFixed(3) + '%"></i>'
+      + '<i class="is-down" style="width:' + (b.down / b.total * 100).toFixed(3) + '%"></i></div></section>';
+  }
+
+  function buildFlowSnapshot_(data) {
+    var flow = (data.components || {}).flow || {};
+    function actor(key, label) {
+      var v = flow[key] && flow[key].ratio;
+      var valid = typeof v === 'number' && isFinite(v);
+      var kind = !valid || Math.abs(v) <= 0.05 ? 'flat' : v > 0 ? 'up' : 'down';
+      var word = !valid ? '확인 중' : kind === 'up' ? '순매수' : kind === 'down' ? '순매도' : '중립';
+      return '<div class="mt-flow-actor"><span>' + label + '</span><b class="mt-flow-status is-' + kind + '">'
+        + (kind === 'up' ? '↗ ' : kind === 'down' ? '↘ ' : '') + word + '</b></div>';
+    }
+    return '<section class="mt-flow-snapshot"><div class="mt-visual-title"><h3>외국인·기관 수급</h3><small>최근 5거래일</small></div>'
+      + '<div class="mt-flow-actors">' + actor('foreign', '외국인') + actor('inst', '기관') + '</div></section>';
+  }
+
   function buildSummaryCard(data) {
     var story = frontPageStory_(data);
     var value = score100(data), tone = scoreTone_(value);
     var delta = data.scoreDelta != null && isFinite(Number(data.scoreDelta)) ? Number(data.scoreDelta) : null;
     var deltaText = delta == null ? '비교 기록 없음' : delta === 0 ? '변화 없음' : (delta > 0 ? '+' : '') + delta.toFixed(0) + '점';
     var deltaClass = delta > 0 ? 'mt-val-pos' : delta < 0 ? 'mt-val-neg' : '';
-    var b = story.breadth;
-    var breadthText = b ? '상승 ' + b.up.toLocaleString('ko-KR') + ' · 하락 ' + b.down.toLocaleString('ko-KR') : '집계 확인 중';
     var axes = data.axes || {};
     var risk = axes.risk && axes.risk.value;
     var riskAlert = typeof risk === 'number' && isFinite(risk) && risk >= 65
@@ -1975,15 +2012,14 @@
           + (item.key === 'risk' ? text : escapeHtml(text)) + '</p></li>';
       }).join('');
     }
-    return '<article class="mt-section mt-card mt-summary-card mt-front-story">'
-      + '<div class="mt-front-kicker">오늘의 증시 <span>시장 한눈에 보기</span></div>'
-      + '<h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
-      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p>'
+    return '<article class="mt-section mt-card mt-summary-card mt-front-story mt-market-' + tone + '">'
+      + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3><small>수급·가격 기준</small></div>'
       + '<div class="mt-front-facts" role="group" aria-label="시장 핵심 숫자">'
-      + '<div><small>시장 흐름</small><b>' + Math.round(value) + '<em>/100</em></b><span class="mt-rib-tone-' + tone + '">' + escapeHtml(marketMood_(value).word) + '</span></div>'
-      + '<div><small>전 거래일 대비</small><b class="' + deltaClass + '">' + escapeHtml(deltaText) + '</b><span>' + (data.scoreDeltaFrom ? escapeHtml(shortDate_(data.scoreDeltaFrom)) + ' 기준' : '이전 기록과 비교') + '</span></div>'
-      + '<div><small>' + (story.wholeMarket ? '코스피·코스닥' : '분석 대상 종목') + '</small><strong>' + escapeHtml(breadthText) + '</strong><span>종목 수 기준</span></div></div>'
-      + '<div class="mt-front-brief"><h3>수급은 어떤가</h3><p>' + escapeHtml(story.flow) + '</p></div>'
+      + '<div class="mt-fact-score"><small>시장 흐름</small><b>' + Math.round(value) + '<em>/100</em></b><span class="mt-rib-tone-' + tone + '">' + escapeHtml(marketMood_(value).word) + '</span></div>'
+      + '<div class="mt-fact-change"><small>전 거래일 대비</small><b class="' + deltaClass + '">' + escapeHtml(deltaText) + '</b><span>' + (data.scoreDeltaFrom ? escapeHtml(shortDate_(data.scoreDeltaFrom)) + ' 기준' : '이전 기록과 비교') + '</span></div>'
+      + '</div>'
+      + buildBreadthVisual_(story)
+      + buildFlowSnapshot_(data)
       + riskAlert
       + '<details class="mt-front-details"><summary>수급·가격 근거와 시장 위험 지표</summary>'
       + buildKpiStrip_(data)
@@ -2319,39 +2355,54 @@
   // 2026-10-16: 최근 단기흐름을 막대 칸에서 선 그래프로 바꿨다(사용자 시안 A: 구간 배경 + 선).
   // 공포·보통·과열 띠 위에 점수 선과 점을 그리고 점 색은 scoreTone_ 구간색을 따른다. 정확한 값은 hover/탭 툴팁.
   function buildFlowChart_(shown) {
-    var W = 360, H = 190, L = 26, R = 10, T = 14, B = 24, n = shown.length;
+    var W = 480, H = 230, L = 32, R = 18, T = 16, B = 28, n = shown.length;
     function X(i) { return n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1); }
     function Y(v) { return T + (100 - Math.max(0, Math.min(100, v))) * (H - T - B) / 100; }
-    var cuts = SCORE_CUT_;
-    function band(from, to, tone) {
-      return '<rect class="mt-fc-band mt-fc-band-' + tone + '" x="' + L + '" y="' + Y(to).toFixed(1) + '" width="' + (W - L - R) + '" height="' + (Y(from) - Y(to)).toFixed(1) + '"/>';
+    var points = shown.map(function (day, i) { return { x: X(i), y: Y(day.score) }; });
+    var slopes = [], tangents = [];
+    for (var i = 0; i < n - 1; i++) slopes.push((points[i + 1].y - points[i].y) / (points[i + 1].x - points[i].x));
+    for (var j = 0; j < n; j++) {
+      var left = slopes[j - 1], right = slopes[j];
+      tangents[j] = j === 0 ? (right || 0) : j === n - 1 ? (left || 0)
+        : left * right <= 0 ? 0 : 2 * left * right / (left + right);
     }
-    var grid = band(cuts.greed, 100, 'greed') + band(cuts.fear, cuts.greed, 'neutral') + band(0, cuts.fear, 'fear')
-      + [0, cuts.fear, cuts.greed, 100].map(function (v) {
-        return '<text class="mt-fc-axis" x="' + (L - 5) + '" y="' + (Y(v) + 3.5).toFixed(1) + '" text-anchor="end">' + v + '</text>';
-      }).join('');
-    var step = n > 10 ? Math.ceil(n / 6) : 1;
-    var xlabels = shown.map(function (day, i) {
-      if (i !== n - 1 && (i % step !== 0 || n - 1 - i < step / 2)) return '';
-      return '<text class="mt-fc-axis" x="' + X(i).toFixed(1) + '" y="' + (H - 7) + '" text-anchor="middle">' + escapeHtml(shortDate_(day.date)) + '</text>';
+    var line = 'M' + points[0].x.toFixed(2) + ',' + points[0].y.toFixed(2);
+    for (var k = 1; k < n; k++) {
+      var a = points[k - 1], b = points[k], dx = (b.x - a.x) / 3;
+      line += ' C' + (a.x + dx).toFixed(2) + ',' + (a.y + tangents[k - 1] * dx).toFixed(2)
+        + ' ' + (b.x - dx).toFixed(2) + ',' + (b.y - tangents[k] * dx).toFixed(2)
+        + ' ' + b.x.toFixed(2) + ',' + b.y.toFixed(2);
+    }
+    var cuts = SCORE_CUT_;
+    var grid = [0, cuts.fear, cuts.greed, 100].map(function (v) {
+      return '<line class="mt-fc-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(2) + '" y2="' + Y(v).toFixed(2) + '"/>';
     }).join('');
-    var line = shown.map(function (day, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(day.score).toFixed(1); }).join('');
-    var dots = shown.map(function (day, i) {
-      return '<circle class="mt-fc-dot mt-rib-tone-' + scoreTone_(day.score) + '" cx="' + X(i).toFixed(1) + '" cy="' + Y(day.score).toFixed(1) + '" r="' + (i === n - 1 ? 5 : 3) + '"/>';
+    var labels = [0, cuts.fear, cuts.greed, 100].map(function (v) {
+      return '<span class="mt-fc-ylabel" style="top:' + (Y(v) / H * 100).toFixed(2) + '%">' + v + '</span>';
     }).join('');
-    var last = shown[n - 1];
-    var lastY = Y(last.score);
-    var lastLabel = '<text class="mt-fc-last mt-rib-tone-' + scoreTone_(last.score) + '" x="' + (X(n - 1) - 8).toFixed(1) + '" y="' + (lastY > T + 16 ? lastY - 10 : lastY + 18).toFixed(1) + '" text-anchor="end">'
-      + Math.round(last.score) + '점 ' + marketMood_(last.score).word + '</text>';
-    var pts = shown.map(function (day, i) {
-      return { x: Number(X(i).toFixed(1)), y: Number(Y(day.score).toFixed(1)), t: day.date + ' · ' + Math.round(day.score) + '점 · ' + marketMood_(day.score).word, k: scoreTone_(day.score) };
+    var step = n > 6 ? Math.ceil(n / 5) : 1;
+    labels += shown.map(function (day, index) {
+      if (index !== n - 1 && (index % step !== 0 || n - 1 - index < step / 2)) return '';
+      return '<span class="mt-fc-xlabel" style="left:' + (X(index) / W * 100).toFixed(2) + '%">' + escapeHtml(shortDate_(day.date)) + '</span>';
+    }).join('');
+    var dots = shown.map(function (day, index) {
+      return '<circle class="mt-fc-dot mt-rib-tone-' + scoreTone_(day.score) + '" cx="' + X(index).toFixed(2) + '" cy="' + Y(day.score).toFixed(2) + '" r="' + (index === n - 1 ? 4.5 : 2.8) + '"/>';
+    }).join('');
+    var last = shown[n - 1], tone = scoreTone_(last.score);
+    var fillId = 'mt-flow-fill-' + n + '-' + String(last.date).replace(/[^0-9]/g, '');
+    var area = line + ' L' + X(n - 1).toFixed(2) + ',' + (H - B) + ' L' + X(0).toFixed(2) + ',' + (H - B) + ' Z';
+    var pts = shown.map(function (day, index) {
+      return { x: Number(X(index).toFixed(2)), y: Number(Y(day.score).toFixed(2)), t: day.date + ' · ' + Math.round(day.score) + '점 · ' + marketMood_(day.score).word, k: scoreTone_(day.score) };
     });
     var summary = '최근 ' + n + '거래일 시장 방향 점수: ' + shown.map(function (d) { return shortDate_(d.date) + ' ' + Math.round(d.score); }).join(', ');
-    return '<div class="mt-flow-chart" data-mt-flow-chart data-w="' + W + '" data-h="' + H + '" data-pts="' + escapeHtml(JSON.stringify(pts)) + '">'
-      + '<svg class="mt-flow-svg" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + escapeHtml(summary) + '">'
-      + grid + '<path class="mt-fc-line" d="' + line + '"/>' + dots + lastLabel + xlabels
+    return '<div class="mt-flow-chart mt-chart-' + tone + '" data-mt-flow-chart data-w="' + W + '" data-h="' + H + '" data-pts="' + escapeHtml(JSON.stringify(pts)) + '">'
+      + '<svg class="mt-flow-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + escapeHtml(summary) + '">'
+      + '<defs><linearGradient id="' + fillId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".22"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'
+      + grid + '<path class="mt-fc-area" d="' + area + '" fill="url(#' + fillId + ')"/>'
+      + '<path class="mt-fc-line" d="' + line + '"/>'
+      + '<circle class="mt-fc-halo" cx="' + X(n - 1).toFixed(2) + '" cy="' + Y(last.score).toFixed(2) + '" r="11"/>' + dots
       + '<line class="mt-fc-cursor" y1="' + T + '" y2="' + (H - B) + '" hidden></line></svg>'
-      + '<div class="mt-fc-tip" hidden></div></div>';
+      + labels + '<div class="mt-fc-tip" hidden></div></div>';
   }
   function wireFlowChart_(root) {
     root.querySelectorAll('[data-mt-flow-chart]').forEach(function (box) {
@@ -2368,14 +2419,15 @@
         var best = 0;
         pts.forEach(function (p, i) { if (Math.abs(p.x - x) < Math.abs(pts[best].x - x)) best = i; });
         var p = pts[best];
-        cur.setAttribute('x1', p.x); cur.setAttribute('x2', p.x); cur.hidden = false;
+        cur.setAttribute('x1', p.x); cur.setAttribute('x2', p.x); cur.removeAttribute('hidden');
         tip.textContent = p.t;
         tip.className = 'mt-fc-tip mt-rib-tone-' + p.k;
         tip.hidden = false;
-        tip.style.left = (p.x / W * rect.width) + 'px';
+        var halfTip = tip.getBoundingClientRect().width / 2;
+        tip.style.left = Math.max(halfTip + 4, Math.min(rect.width - halfTip - 4, p.x / W * rect.width)) + 'px';
         tip.style.top = (p.y / H * rect.height) + 'px';
       }
-      function hide() { tip.hidden = true; cur.hidden = true; }
+      function hide() { tip.hidden = true; cur.setAttribute('hidden', ''); }
       svg.addEventListener('pointermove', show);
       svg.addEventListener('pointerdown', show);
       svg.addEventListener('pointerleave', hide);
@@ -2398,10 +2450,13 @@
     var stats = '선택 기간 평균 ' + avg + ' · 최고 ' + Math.max.apply(null, scores) + ' · 최저 ' + Math.min.apply(null, scores);
     function range_(lo, hi) { return lo + '~' + hi; }
     var cuts = SCORE_CUT_;
-    return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일 · 수급·가격 점수</span>'
-      + '<b class="mt-rib-tone-' + scoreTone_(latest.score) + '">' + Math.round(latest.score) + '점' + changeHtml + '</b></div>'
+    return '<div class="mt-history-chart-meta"><div class="mt-chart-current"><b class="mt-rib-tone-' + scoreTone_(latest.score) + '">'
+      + Math.round(latest.score) + '<small>점</small></b><span class="mt-chart-grade mt-rib-tone-' + scoreTone_(latest.score) + '">' + marketMood_(latest.score).word + '</span>' + changeHtml + '</div>'
+      + '<span class="mt-chart-date">최근 ' + shown.length + '거래일 · ' + escapeHtml(shortDate_(latest.date)) + ' 기준</span></div>'
       + chart
-      + '<details class="mt-front-chart-details"><summary>기간 통계·점수 읽는 법</summary>'
+      + '<div class="mt-chart-zones"><span class="is-fear">공포 0–29</span><span class="is-neutral">보통 30–69</span><span class="is-greed">과열 70–100</span></div>'
+      + '<div class="mt-chart-range"><span>기간 평균 <b>' + avg + '</b></span><span>최고 <b>' + Math.max.apply(null, scores) + '</b></span><span>최저 <b>' + Math.min.apply(null, scores) + '</b></span></div>'
+      + '<details class="mt-front-chart-details"><summary>점수 읽는 법</summary>'
       + '<p class="mt-heat-stats">최신 거래일 ' + escapeHtml(shortDate_(latest.date)) + ' · ' + stats + '</p>'
       + '<p class="mt-heat-legend"><span class="mt-rib-tone-fear">■ 공포 ' + range_(0, cuts.fear - 1) + '</span><span class="mt-rib-tone-neutral">■ 보통 ' + range_(cuts.fear, cuts.greed - 1)
       + '</span><span class="mt-rib-tone-greed">■ 과열 ' + range_(cuts.greed, 100) + '</span></p>'
@@ -3927,7 +3982,7 @@
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
       buildPageHead_(data),
-      '<div class="mt-summary-trend-row mt-front-page">' + buildSummaryCard(data) + buildSparkline(data, false) + '</div>',
+      '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + buildSparkline(data, false) + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><details class="mt-front-extra"><summary>다음 거래일 출발 · 미국장 기준</summary>' + buildTomorrowCard_() + '</details>',
       '<details class="mt-detail-fold"><summary>점수 산정 근거 · 세부 지표</summary>' + buildBars(data) + '</details>',

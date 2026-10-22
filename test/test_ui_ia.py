@@ -1640,7 +1640,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function buildScoreGauge(value, tone)", source)
         self.assertNotIn('<text class="mt-gauge-digital-num"', source)
         self.assertNotIn('<span class="mt-rib-now-label', source)
-        self.assertIn("수급은 어떤가", source)
+        self.assertIn("외국인·기관 수급", source)
         self.assertIn("<summary>투자 체크리스트 · AI 시장 해석</summary>", source)
         self.assertIn('id="mt-ant-guide"', source)
         self.assertIn("오늘 투자 체크포인트", source)
