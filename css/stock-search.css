@@ -1133,8 +1133,9 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search #order-book .ob-toast.show { padding: 4px 10px; margin-bottom: 4px; font-size: 12px; }
 #stock-search #order-book .ob-milestones { margin-top: 4px; }
 #stock-search #order-book .ob-book-status { font-size: 11px; line-height: 1.4; }
-#stock-search #order-book .ob-current-row { display:flex; flex-wrap:wrap; justify-content:center; align-items:baseline; gap:0 8px; padding:3px 4px; font-size:15px; line-height:1.3; }
-#stock-search #order-book .ob-current-change { font-size:11.5px; white-space:nowrap; }
+/* 2026-10-22 사용자 요청: 중앙 현재가 줄을 더 크게(약 1.5배 높이). 호가 행 높이는 그대로, 이 줄만 키운다. */
+#stock-search #order-book .ob-current-row { display:flex; flex-wrap:wrap; justify-content:center; align-items:center; gap:0 10px; padding:11px 6px; min-height:46px; box-sizing:border-box; font-size:18px; font-weight:700; line-height:1.3; }
+#stock-search #order-book .ob-current-change { font-size:13px; white-space:nowrap; }
 #stock-search #order-book .ob-spread { padding:2px 4px; font-size:9px; }
 #stock-search #order-book .ob-footer { padding:4px 6px 6px; }
 #stock-search #order-book .ob-footer-label { margin-bottom:3px; }
