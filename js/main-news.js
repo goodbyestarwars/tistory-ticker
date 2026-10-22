@@ -210,7 +210,7 @@
       }).join('') + '</div>'
       + '<div class="mn-refresh-row">'
       + '<button type="button" class="mn-tab mn-refresh-btn" data-mn-refresh aria-label="주요 뉴스 새로고침">'
-      + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11a8 8 0 1 0 2 5.5M20 4v7h-7"/></svg><span data-mn-refresh-label>갱신</span></button>'
+      + '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg><span data-mn-refresh-label>갱신</span></button>'
       + '<small data-mn-updated>자동 갱신 대기 중</small></div></div>'
       + '</div>'
       + '<div class="mn-list" data-mn-list><p class="mn-state">뉴스를 불러오는 중입니다.</p></div>';
