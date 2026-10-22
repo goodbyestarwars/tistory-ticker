@@ -1660,3 +1660,6 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     height: 16px !important;
   }
 } }
+
+/* Unsupported index studies stay out of the option row. */
+#stock-search .ss-index-studies label[hidden] { display: none !important; }
