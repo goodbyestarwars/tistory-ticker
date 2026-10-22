@@ -5,6 +5,8 @@ import json
 import sqlite3
 import sys
 import time
+from urllib.error import URLError
+from http.client import RemoteDisconnected
 from datetime import datetime, timedelta, timezone
 
 from live_engine import Ledger, readiness, trade_once
@@ -112,6 +114,15 @@ def run_cycle(client, ledger, daily, folder, now, existing_due, *,
     return state
 
 
+def cycle_error_state(exc, ledger):
+    """Retry transport failures only before any uncertain order; never resend orders."""
+    if isinstance(exc, (TimeoutError, ConnectionError, URLError, RemoteDisconnected)):
+        if ledger.has_uncertain():
+            return 'DISABLED_OR_UNCERTAIN'
+        return 'NETWORK_RETRY_' + type(exc).__name__
+    return 'ERROR_' + type(exc).__name__
+
+
 def main():
     from live_kiwoom import KiwoomClient
     from main import load_env
@@ -131,6 +142,7 @@ def main():
     daily_cache = {}
     feed_report = FeedDiagnostics(HERE)
     next_existing_cycle = 0.0
+    result = 'WAIT'
     def daily(code):
         if code not in daily_cache:
             daily_cache[code] = client.daily(code)
@@ -149,14 +161,15 @@ def main():
                 result = run_cycle(client, ledger, daily, HERE, now, existing_due,
                                    feed_report=feed_report)
             except Exception as exc:
-                result = 'ERROR_' + type(exc).__name__
+                result = cycle_error_state(exc, ledger)
+                next_existing_cycle = 0.0
             with open(os.path.join(HERE, 'live_status.json'), 'w', encoding='utf-8') as f:
                 json.dump({'checked_at': now.isoformat(), 'state': result,
                            'feed': feed_report.latest}, f)
             if result in ('DISABLED_OR_UNCERTAIN', 'BUY_FILL_UNCONFIRMED',
                           'SELL_FILL_UNCONFIRMED', 'FOREIGN_HOLDINGS') or result.startswith('ERROR_'):
                 return 0
-        time.sleep(3)
+        time.sleep(15 if result.startswith('NETWORK_RETRY_') else 3)
 
 
 if __name__ == '__main__':
