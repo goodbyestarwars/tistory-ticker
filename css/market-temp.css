@@ -2676,3 +2676,52 @@ html body #market-temp .mt-cp-call .mt-strategy-action { white-space: nowrap !im
     html body #market-temp .mt-cp-call .mt-strategy-action { font-size: clamp(9px, calc(4.6vw - 3.5px), 15px) !important; }
   }
 }
+/* 2026-10-22: 오늘의 증시를 기사 제목·핵심 숫자·작은 흐름 그래프로 읽는다. */
+#market-temp .mt-front-page { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 32px; border-top: 2px solid var(--mt2-text, #222); border-bottom: 1px solid var(--mt2-line, #ddd); margin: 8px 0 18px; padding: 22px 0; }
+#market-temp .mt-front-page > .mt-card { border: 0 !important; border-radius: 0 !important; background: transparent !important; padding: 0 !important; box-shadow: none !important; }
+#market-temp .mt-front-kicker { display: flex; align-items: baseline; flex-wrap: wrap; gap: 12px; color: var(--mt2-text, #222); font-size: 14px; font-weight: 700; letter-spacing: .02em; }
+#market-temp .mt-front-kicker span { color: var(--mt2-sub, #777); font-size: 12px; font-weight: 400; }
+#market-temp .mt-front-headline { margin: 14px 0 12px; padding: 0; border: 0; color: var(--mt2-text, #222); font-size: clamp(25px, 2.8vw, 36px); font-weight: 700; line-height: 1.35; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: anywhere; }
+#market-temp .mt-front-lead { margin: 0; color: var(--mt2-sub, #667); font-size: 15px; line-height: 1.7; word-break: keep-all; }
+#market-temp .mt-front-facts { display: grid; grid-template-columns: 1fr 1fr 1.4fr; gap: 16px; margin: 22px 0 18px; padding: 16px 0; border-top: 1px solid var(--mt2-line, #ddd); border-bottom: 1px solid var(--mt2-line, #ddd); }
+#market-temp .mt-front-facts > div { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; gap: 6px; }
+#market-temp .mt-front-facts small { font-size: 12px; color: var(--mt2-sub, #667); }
+#market-temp .mt-front-facts b { font-size: 29px; line-height: 1.2; font-weight: 700; font-variant-numeric: tabular-nums; }
+#market-temp .mt-front-facts b em { margin-left: 3px; font-size: 14px; font-style: normal; font-weight: 400; }
+#market-temp .mt-front-facts strong { padding-top: 4px; font-size: 16px; line-height: 1.4; font-weight: 600; font-variant-numeric: tabular-nums; }
+#market-temp .mt-front-facts span { font-size: 12px; color: var(--mt2-sub, #667); }
+#market-temp .mt-front-brief h3 { margin: 0 0 6px; color: var(--mt2-text, #222); font-size: 15px; font-weight: 700; }
+#market-temp .mt-front-brief p { margin: 0 0 12px; color: var(--mt2-sub, #667); font-size: 14px; line-height: 1.6; }
+#market-temp .mt-front-risk { margin: 0 0 12px; font-size: 13px; line-height: 1.6; color: var(--mt2-text, #222); font-weight: 600; }
+#market-temp .mt-front-details { margin-top: auto; }
+#market-temp .mt-front-details > summary, #market-temp .mt-front-chart-details > summary, #market-temp .mt-front-extra > summary { cursor: pointer; min-height: 44px; padding: 12px 0; box-sizing: border-box; color: var(--mt2-text, #222); font-size: 13px; line-height: 1.5; }
+#market-temp .mt-front-details[open] > summary, #market-temp .mt-front-extra[open] > summary { font-weight: 700; }
+#market-temp .mt-front-method { color: var(--mt2-sub, #667); font-size: 12px; line-height: 1.7; }
+#market-temp .mt-front-details .mt-axis-reason { display: block; -webkit-line-clamp: unset; overflow: visible; white-space: normal; }
+#market-temp .mt-front-details .mt-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+#market-temp .mt-front-page .mt-history-tail-head { margin: 0 0 12px; }
+#market-temp .mt-front-page .mt-history-chart-meta { flex-direction: column; align-items: flex-start; gap: 8px; font-size: 12px; }
+#market-temp .mt-front-page .mt-flow-chart { margin-top: 16px; }
+#market-temp .mt-front-extra { border-top: 1px solid var(--mt2-line, #ddd); }
+#market-temp .mt-front-extra > summary { font-size: 14px; }
+@media (max-width: 760px) {
+  #market-temp .mt-front-page { grid-template-columns: minmax(0, 1fr); gap: 24px; padding: 18px 0; }
+  #market-temp .mt-front-page > [data-mt-history-panel] { border-top: 1px solid var(--mt2-line, #ddd) !important; padding-top: 18px !important; }
+  #market-temp .mt-front-facts { gap: 10px; grid-template-columns: 1fr 1fr 1.25fr; margin: 18px 0 16px; }
+  #market-temp .mt-front-facts b { font-size: 25px; }
+  #market-temp .mt-front-facts strong { font-size: 13px; }
+  #market-temp .mt-front-facts small, #market-temp .mt-front-facts span { font-size: 11px; }
+}
+/* 기존 스킨의 중요 카드 규칙과 같은 레이어에서 1면의 평면 지면을 유지한다. */
+@layer np.np {
+  html body #market-temp .mt-front-page > .mt-card { border: 0 !important; border-radius: 0 !important; background: transparent !important; box-shadow: none !important; padding: 0 !important; }
+  html body #market-temp :is(.mt-front-extra, .mt-front-tools > .mt-detail-fold) { margin: 0 !important; padding: 0 !important; border: 0 !important; border-top: 1px solid var(--mt2-line, #ddd) !important; border-radius: 0 !important; background: transparent !important; }
+  html body #market-temp :is(.mt-front-extra, .mt-front-tools > .mt-detail-fold) > summary { margin: 0 !important; padding: 12px 0 !important; }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-front-page > [data-mt-history-panel] { border-top: 1px solid var(--mt2-line, #ddd) !important; padding-top: 18px !important; }
+  }
+}
+@layer np.np {
+  html body #market-temp .mt-front-facts :is(b:not(.mt-val-pos):not(.mt-val-neg), strong, em) { color: var(--mt2-text, #222) !important; }
+  html.dark body #market-temp .mt-front-facts :is(b:not(.mt-val-pos):not(.mt-val-neg), strong, em) { color: var(--mt2-text, #F5EFE0) !important; }
+}

@@ -1544,7 +1544,11 @@
     [80, 900, 2200].forEach(function (ms) {
       setTimeout(function () {
         var target = container.querySelector('#' + hash);
-        if (target && target.scrollIntoView) target.scrollIntoView({ block: 'start' });
+        if (target && target.scrollIntoView) {
+          var parent = target.parentElement;
+          while (parent && parent !== container) { if (parent.tagName === 'DETAILS') parent.open = true; parent = parent.parentElement; }
+          target.scrollIntoView({ block: 'start' });
+        }
       }, ms);
     });
   }
@@ -1912,37 +1916,82 @@
       + '</div></div>';
   }
 
+  // Headlines describe the observed universe; the score is supporting evidence, not a forecast.
+  function frontPageStory_(data) {
+    var components = data.components || {};
+    var whole = data.marketBreadth && data.marketBreadth.total;
+    var sample = components.riseRatio;
+    function valid(b) {
+      return b && typeof b.total === 'number' && b.total > 0
+        && typeof b.up === 'number' && isFinite(b.up) && b.up >= 0
+        && typeof b.down === 'number' && isFinite(b.down) && b.down >= 0
+        && b.up + b.down <= b.total;
+    }
+    var broad = valid(whole), breadth = broad ? whole : valid(sample) ? sample : null;
+    var headline = '오늘 시장 흐름을 확인하세요';
+    var lead = '상승·하락 종목 집계를 확인하고 있습니다.';
+    var scope = broad ? '코스피·코스닥 집계' : '분석 대상';
+    function number(v) { return v.toLocaleString('ko-KR'); }
+    if (breadth) {
+      if (breadth.down > breadth.up * 1.5) {
+        headline = '하락 종목 ' + number(breadth.down) + '개, 내림세 우세';
+        lead = scope + ' 종목 중 ' + Math.round(breadth.down / breadth.total * 100) + '%가 하락했습니다.';
+      } else if (breadth.up > breadth.down * 1.5) {
+        headline = '상승 종목 ' + number(breadth.up) + '개, 오름세 우세';
+        lead = scope + ' 종목 중 ' + Math.round(breadth.up / breadth.total * 100) + '%가 상승했습니다.';
+      } else {
+        headline = breadth.up + breadth.down === 0 ? '가격 변화 없이 보합인 시장' : '상승·하락 종목이 엇갈린 시장';
+        lead = scope + '에서 상승 ' + number(breadth.up) + '개, 하락 ' + number(breadth.down) + '개로 집계됐습니다.';
+      }
+    }
+    var flow = components.flow || {};
+    var foreign = flow.foreign && flow.foreign.ratio, inst = flow.inst && flow.inst.ratio;
+    var flowText = '수급 집계를 확인하고 있습니다.';
+    if (typeof foreign === 'number' && isFinite(foreign) && typeof inst === 'number' && isFinite(inst)) {
+      function direction(v) { return v > 0.05 ? '순매수' : v < -0.05 ? '순매도' : '중립'; }
+      flowText = '최근 5일 외국인 ' + direction(foreign) + ' · 기관 ' + direction(inst);
+    }
+    return { headline: headline, lead: lead, flow: flowText, breadth: breadth, wholeMarket: broad };
+  }
+
   function buildSummaryCard(data) {
-    var guide = antGuide(data);
+    var story = frontPageStory_(data);
+    var value = score100(data), tone = scoreTone_(value);
+    var delta = data.scoreDelta != null && isFinite(Number(data.scoreDelta)) ? Number(data.scoreDelta) : null;
+    var deltaText = delta == null ? '비교 기록 없음' : delta === 0 ? '변화 없음' : (delta > 0 ? '+' : '') + delta.toFixed(0) + '점';
+    var deltaClass = delta > 0 ? 'mt-val-pos' : delta < 0 ? 'mt-val-neg' : '';
+    var b = story.breadth;
+    var breadthText = b ? '상승 ' + b.up.toLocaleString('ko-KR') + ' · 하락 ' + b.down.toLocaleString('ko-KR') : '집계 확인 중';
     var axes = data.axes || {};
-    // 2026-10-05: 점수·등급·전일 대비·계기판·돈/가격/위험 막대는 위 KPI 줄과 겹쳐 뺐다. 여기엔 KPI 줄에 없는 것만 둔다 -
-    // 오늘 분위기 한 줄, "그래서?", 축마다 무엇이 어떤지(근거 문장), 상승·하락 종목 수, 점수 설명.
-    // 2026-10-16: 방향 점수에 실제로 쓰인 축(수급·가격)만 '점수 근거'에 둔다. 위험도는 점수에 들어가지 않으므로 아래에 따로 적는다.
-    function reasonItems_(keys) {
+    var risk = axes.risk && axes.risk.value;
+    var riskAlert = typeof risk === 'number' && isFinite(risk) && risk >= 65
+      ? '<p class="mt-front-risk">시장 위험 지표 ' + Math.round(risk) + '점 · 위험 지표에서 근거를 확인하세요.</p>' : '';
+    function reasons(keys) {
       return AXIS_ORDER.filter(function (item) { return keys.indexOf(item.key) >= 0; }).map(function (item) {
-        var axis = axes[item.key];
-        if (!axis) return '';
-        var text = item.key === 'risk' ? axisReason_('risk', data) : escapeHtml(axisReason_(item.key, data));
+        if (!axes[item.key]) return '';
+        var text = axisReason_(item.key, data);
         if (!text) return '';
-        return '<li><span class="mt-reason-name">' + item.icon + ' ' + escapeHtml(axis.label || '') + '</span>'
-          + '<p class="mt-axis-reason">' + text + '</p></li>';
+        return '<li><span class="mt-reason-name">' + escapeHtml(axes[item.key].label || '') + '</span><p class="mt-axis-reason">'
+          + (item.key === 'risk' ? text : escapeHtml(text)) + '</p></li>';
       }).join('');
     }
-    var reasons = reasonItems_(['money', 'price']);
-    var riskReasons = reasonItems_(['risk']);
-    return ''
-      + '<div class="mt-section mt-card mt-summary-card mt-summary-' + guide.tone + '">'
-      + '<div class="mt-summary-topline"><span class="mt-summary-kicker">시장온도 분석</span><span>현재 시장의 종합 투자심리 지표</span></div>'
-      + '<div class="mt-summary-mood">' + escapeHtml(guide.mood) + '</div>'
-      // "그래서 뭐 어쩌라는거지?"에 대한 답을 한 줄로 둔다. 자세한 점검표는 아래 카드.
-      + '<div class="mt-summary-sowhat"><b>그래서?</b><span>' + escapeHtml(guide.short || guide.title || '') + '</span>'
-      + '<a href="#mt-ant-guide">체크리스트 ↓</a></div>'
-      + (reasons ? '<div class="mt-summary-section-title">방향 점수 근거 (수급·가격)</div><ul class="mt-reason-list">' + reasons + '</ul>' : '')
-      + (riskReasons ? '<div class="mt-summary-section-title">시장 위험도 · 높을수록 위험 (방향 점수에는 들어가지 않음)</div><ul class="mt-risk-list">' + riskReasons + '</ul>' : '')
-      // 상승·하락 종목 수는 2026-09-02 사용자 요청으로 들어간 기능이라 버리지 않는다.
+    return '<article class="mt-section mt-card mt-summary-card mt-front-story">'
+      + '<div class="mt-front-kicker">오늘의 증시 <span>시장 한눈에 보기</span></div>'
+      + '<h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
+      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p>'
+      + '<div class="mt-front-facts" role="group" aria-label="시장 핵심 숫자">'
+      + '<div><small>시장 흐름</small><b>' + Math.round(value) + '<em>/100</em></b><span class="mt-rib-tone-' + tone + '">' + escapeHtml(marketMood_(value).word) + '</span></div>'
+      + '<div><small>전 거래일 대비</small><b class="' + deltaClass + '">' + escapeHtml(deltaText) + '</b><span>' + (data.scoreDeltaFrom ? escapeHtml(shortDate_(data.scoreDeltaFrom)) + ' 기준' : '이전 기록과 비교') + '</span></div>'
+      + '<div><small>' + (story.wholeMarket ? '코스피·코스닥' : '분석 대상 종목') + '</small><strong>' + escapeHtml(breadthText) + '</strong><span>종목 수 기준</span></div></div>'
+      + '<div class="mt-front-brief"><h3>수급은 어떤가</h3><p>' + escapeHtml(story.flow) + '</p></div>'
+      + riskAlert
+      + '<details class="mt-front-details"><summary>수급·가격 근거와 시장 위험 지표</summary>'
+      + buildKpiStrip_(data)
+      + '<ul class="mt-reason-list">' + reasons(['money', 'price']) + '</ul>'
+      + '<h3 class="mt-summary-section-title">시장 위험 · 점수와 별도</h3><ul class="mt-risk-list">' + reasons(['risk']) + '</ul>'
       + buildBreadth(data)
-      + '<div class="mt-summary-note"><b>이 점수는 오늘 시장의 분위기를 읽는 값이고, 내일 방향을 맞히는 값이 아닙니다.</b> 내일은 위 "그래서 내일은?"을 보세요. ' + zoneRangeText_() + '입니다. <b>수급과 가격 방향</b>을 같은 비중으로 읽습니다. 거래대금은 방향이 없으며, VIX·환율·금리·빚투는 별도 위험도로 표시합니다. 공포에는 후보를 고르고 환희에는 수익을 지키는 역발상 기준입니다.</div>'
-      + '</div>';
+      + '<p class="mt-front-method">시장 흐름은 수급·가격 방향을 합친 점수입니다. 내일의 상승·하락을 예측하는 값은 아닙니다. ' + zoneRangeText_() + '. 위험도는 별도 지표입니다.</p>'
+      + '</details></article>';
   }
 
   function fmtContribution(c) {
@@ -2349,13 +2398,15 @@
     var stats = '선택 기간 평균 ' + avg + ' · 최고 ' + Math.max.apply(null, scores) + ' · 최저 ' + Math.min.apply(null, scores);
     function range_(lo, hi) { return lo + '~' + hi; }
     var cuts = SCORE_CUT_;
-    return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일 · 날짜별 시장 방향 점수 · 최신 거래일 ' + escapeHtml(shortDate_(latest.date)) + '</span>'
-      + '<b class="mt-rib-tone-' + scoreTone_(latest.score) + '">최신 ' + Math.round(latest.score) + '점 · ' + marketMood_(latest.score).word + changeHtml + '</b></div>'
+    return '<div class="mt-history-chart-meta"><span>최근 ' + shown.length + '거래일 · 수급·가격 점수</span>'
+      + '<b class="mt-rib-tone-' + scoreTone_(latest.score) + '">' + Math.round(latest.score) + '점' + changeHtml + '</b></div>'
       + chart
-      + '<p class="mt-heat-stats">' + stats + '</p>'
+      + '<details class="mt-front-chart-details"><summary>기간 통계·점수 읽는 법</summary>'
+      + '<p class="mt-heat-stats">최신 거래일 ' + escapeHtml(shortDate_(latest.date)) + ' · ' + stats + '</p>'
       + '<p class="mt-heat-legend"><span class="mt-rib-tone-fear">■ 공포 ' + range_(0, cuts.fear - 1) + '</span><span class="mt-rib-tone-neutral">■ 보통 ' + range_(cuts.fear, cuts.greed - 1)
       + '</span><span class="mt-rib-tone-greed">■ 과열 ' + range_(cuts.greed, 100) + '</span></p>'
-      + '<p class="mt-heat-note">색과 숫자는 수급·가격 방향 점수입니다. 위험도(VIX·환율·금리·빚투, 높을수록 위험)는 방향 점수에 들어가지 않으며 별도 위험 지표에서 확인하세요. 날짜에 마우스를 올리거나 탭하면 정확한 점수를 볼 수 있습니다.</p>';
+      + '<p class="mt-heat-note">수급·가격 방향의 변화입니다. 위험도는 별도 지표이며 높을수록 위험합니다. 방향 점수에 포함되지 않습니다. 날짜를 누르거나 마우스를 올리면 점수를 확인할 수 있습니다.</p></details>';
+
   }
   // 선 그리기(stroke-dasharray)와 리본·날씨 줄 등장 효과. rAF나 문서 타임라인이 안 도는 환경(백그라운드
   // 탭 등)에서도 결국 정답 상태로 보이게 setTimeout으로 마무리한다(countUp과 같은 이유).
@@ -2398,7 +2449,7 @@
         + ' aria-label="최근 ' + period + '일 흐름" aria-selected="' + (selected === period ? 'true' : 'false') + '">' + period + '일</button>';
     }).join('');
     return '<div class="' + frameClass + '" data-mt-history-panel>'
-      + '<div class="mt-history-tail-head"><div class="mt-card-title">최근 단기흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
+      + '<div class="mt-history-tail-head"><div class="mt-card-title">최근 시장 흐름</div><div class="mt-flow-periods" role="tablist" aria-label="단기흐름 기간">' + buttons + '</div></div>'
       + '<div data-mt-history-content>' + buildSparklineContent(data, selected) + '</div>'
       + '</div>';
   }
@@ -3812,7 +3863,7 @@
     var value = score100(data);
     var grade = data.grade3 || data.grade || { emoji: '', label: '' };
     var axes = data.axes || {};
-    var delta = Number(data.scoreDelta);
+    var delta = data.scoreDelta != null ? Number(data.scoreDelta) : NaN;
     function cell(label, num, sub, cls, unit, extra, attrs) {
       return '<div class="mt-kpi' + (attrs && attrs.cls ? ' ' + attrs.cls : '') + '"' + (attrs && attrs.title ? ' title="' + escapeHtml(attrs.title) + '"' : '') + '>'
         + '<span class="mt-kpi-label">' + escapeHtml(label) + '</span>'
@@ -3848,7 +3899,7 @@
   function buildPageHead_(data) {
     var m = /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}:\d{2}))?/.exec(String(data.updatedAt || ''));
     var dateText = m ? m[1] + '.' + m[2] + '.' + m[3] : '';
-    return '<div class="mt-page-head"><span>' + escapeHtml(dateText) + (dateText ? ' · ' : '') + '실시간 시세 기준</span>'
+    return '<div class="mt-page-head"><span>' + escapeHtml(dateText) + (dateText ? ' · ' : '') + '시장 자료 기준</span>'
       + (m && m[4] ? '<span>마지막 업데이트 ' + escapeHtml(m[4]) + '</span>' : '') + '</div>';
   }
 
@@ -3875,23 +3926,15 @@
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
-      buildPageHead_(data),                         // 0-a. 기준일·업데이트 시각
-      '<div class="mt-hot-strip" data-hot-theme hidden></div>',   // 0-a2. 오늘의 HOT 테마(섹터 자금 흐름 응답으로 채움)
-      buildTomorrowCard_(),                         // 0. 그래서 내일은? (2026-10-04 - 첫 화면의 답)
-      buildKpiStrip_(data),                         // 0-b. 핵심 숫자 한 줄 요약
-      // 2026-09-13 사용자 요청("정보가 너무 가로로 길게 되어 있어, PC에선 가독성이 떨어져.
-      // 밑에 최근 단기흐름이랑 1:1 비율로 합쳐도 좋을꺼 같아"): ①②를 PC에서 한 줄에 1:1로
-      // 둔다. 760px 이하에서는 예전처럼 위아래로 쌓는다(css .mt-summary-trend-row).
-      '<div class="mt-summary-trend-row">'
-        + buildSummaryCard(data)                    // ① 종합점수 · 어제 대비 · 돈/가격/위험
-        + buildSparkline(data, false)               // ② 최근 추이
-        + '</div>',
-      '<details class="mt-detail-fold"><summary>자세히 - 지표 10개</summary>'
-        + buildBars(data) + '</details>',           // ③ 접힌 상세
-      buildBriefingStrategy(data),                  // ④ 시장 브리핑
-      buildTemperatureActions(),                    // ⑤ 돈이 몰리는 차트
-      buildRotationSlot_(),                         // ⑤-2 업종 로테이션(2026-10-05 홈에서 이동)
-      buildIndexFlow_(),                            // ⑥ 대표 지수 흐름
+      buildPageHead_(data),
+      '<div class="mt-summary-trend-row mt-front-page">' + buildSummaryCard(data) + buildSparkline(data, false) + '</div>',
+      '<div class="mt-hot-strip" data-hot-theme hidden></div>',
+      '<div class="mt-front-tools"><details class="mt-front-extra"><summary>다음 거래일 출발 · 미국장 기준</summary>' + buildTomorrowCard_() + '</details>',
+      '<details class="mt-detail-fold"><summary>점수 산정 근거 · 세부 지표</summary>' + buildBars(data) + '</details>',
+      '<details class="mt-front-extra"><summary>투자 체크리스트 · AI 시장 해석</summary>' + buildBriefingStrategy(data) + '</details></div>',
+      buildTemperatureActions(),
+      buildRotationSlot_(),
+      buildIndexFlow_(),
     ];
 
     return ''

@@ -1640,8 +1640,8 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("function buildScoreGauge(value, tone)", source)
         self.assertNotIn('<text class="mt-gauge-digital-num"', source)
         self.assertNotIn('<span class="mt-rib-now-label', source)
-        self.assertIn("그래서?", source)
-        self.assertIn('<a href="#mt-ant-guide">', source)
+        self.assertIn("수급은 어떤가", source)
+        self.assertIn("<summary>투자 체크리스트 · AI 시장 해석</summary>", source)
         self.assertIn('id="mt-ant-guide"', source)
         self.assertIn("오늘 투자 체크포인트", source)
         self.assertIn("지금 할 것", source)
@@ -2601,7 +2601,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         for token in ("{ key: 'money'", "{ key: 'price'", "{ key: 'risk'"):
             self.assertIn(token, source)
         # 10개 컴포넌트는 사라지지 않고 접힌다.
-        self.assertIn("<summary>자세히 - 지표 10개</summary>", source)
+        self.assertIn("<summary>점수 산정 근거 · 세부 지표</summary>", source)
         # 레이더 차트와 2열 래퍼는 화면에서 뺐다.
         self.assertNotIn("function buildRadar(", source)
         self.assertNotIn("function row2col(", source)
@@ -3459,7 +3459,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 종목명도 등락 방향색(상승 빨강·하락 파랑)을 따른다.
         self.assertIn("'<span><b class=\"' + stockTone_(rate) + '\">'", source)
         # 2026-09-13: 종합점수(돈·가격·위험)와 최근 단기흐름을 PC에서 1:1로 둔다.
-        self.assertIn("'<div class=\"mt-summary-trend-row\">'", source)
+        self.assertIn("'<div class=\"mt-summary-trend-row mt-front-page\">'", source)
         # 2026-09-14: 순위 변화 기준은 서버의 직전 거래일 순위(없을 때만 브라우저 저장분),
         # 비교할 날이 아예 없으면 전부 NEW로 칠하지 않는다.
         self.assertIn("function renderIndustryFlow_(mount, rows, dateKey, serverPrevious)", source)
