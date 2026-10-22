@@ -147,7 +147,8 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
   --font-data: "Pretendard", "Malgun Gothic", sans-serif;
   --page-bg: rgb(254, 253, 250); /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
   --surface: #FFFEFC;
-  --text-main: #171717;
+  --text-main: #4b5563; /* 2026-10-23 본문 회색(흰 바탕 7.6:1). 굵은 글자는 --text-strong */
+  --text-strong: #1f2937;
   --text-sub: #6F7480;
   --rule: #D8D8D8;
   --up: #B42318;
@@ -247,7 +248,7 @@ a { text-decoration: none; color: inherit; }
 .nav-logo-name {
   display: block;
   font-family: 'MaruBuri', Georgia, serif !important;
-  color: #000;
+  color: #1f2937;
   font-size: 17px;
   font-weight: 800;
   letter-spacing: -0.5px;
@@ -741,7 +742,7 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
   transition: box-shadow .2s ease, transform .2s ease;
 }
 .home-briefing-more span { color:#827e77; font-size:10px; letter-spacing:.08em; }
-.home-briefing-more strong { color:var(--text-main); font-size:14px; }
+.home-briefing-more strong { color:var(--text-strong); font-size:14px; }
 .home-briefing-more i { position:absolute; right:20px; top:50%; transform:translateY(-50%); width:40px; height:40px; display:grid; place-items:center; border:1px solid rgba(255,255,255,.95); border-radius:50%; background:rgb(255, 254, 252); box-shadow:7px 8px 13px rgba(79,69,54,.14), -2px -2px 6px #fff, inset 0 0 0 1px rgba(116,108,95,.06); color:#706d69; font-size:23px; font-style:normal; }
 .home-briefing-more:hover { background:rgb(255, 254, 252); transform:translateY(-1px); box-shadow:6px 8px 17px rgba(79,69,54,.1), -3px -3px 10px rgba(255,255,255,.8), inset 0 1px 0 #fff; }
 .home-briefing-more:focus-visible { outline:2px solid #706d69; outline-offset:4px; }
@@ -994,7 +995,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   gap: 8px;
 }
 .home-card-heading strong {
-  color: #171717;
+  color: #1f2937;
   font-size: 15px;
   font-weight: 600;
 }
@@ -1188,7 +1189,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #171717;
+  color: #1f2937;
   font-size: 13px;
   font-weight: 600;
   line-height: 1.25;
@@ -1352,7 +1353,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
 }
 .home-pattern-row strong,
 .home-pattern-new strong {
-  color: #171717;
+  color: #1f2937;
   font-size: 13px;
   font-weight: 600;
 }
@@ -1401,7 +1402,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   border-bottom: 1px solid #eceeed;
 }
 .home-pattern-preview-heading strong {
-  color: #171717;
+  color: #1f2937;
   font-size: 14px;
   font-weight: 600;
 }
@@ -1442,7 +1443,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
 }
 .home-pattern-stock strong {
   overflow: hidden;
-  color: #171717;
+  color: #1f2937;
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -1490,7 +1491,7 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
-  color: #171717;
+  color: #1f2937;
   font-size: 12.5px;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -1751,7 +1752,7 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-settings-panel > strong {
   display: block;
   margin-bottom: 9px;
-  color: #171717;
+  color: #1f2937;
   font-size: 12px;
 }
 .home-hidden-widgets {
@@ -1934,7 +1935,7 @@ html.dark .home-my-row.is-delayed [data-field="price"]::after { background: rgba
 .home-my-row strong,
 .home-disclosure-row strong {
   overflow: hidden;
-  color: #171717;
+  color: #1f2937;
   font-size: 12px;
   font-weight: 600;
   text-overflow: ellipsis;
@@ -2324,7 +2325,7 @@ html.dark .home-hidden-widgets button:hover { background: rgba(245, 239, 224, .0
 }
 .category-masthead h1 {
   margin: 0;
-  color: var(--text-main);
+  color: var(--text-strong);
   font: 700 24px/1.15 var(--font-title);
   letter-spacing: -.04em;
 }
@@ -4794,6 +4795,7 @@ html.dark body { background: #1A1A1A; color: #F5EFE0; }
    body의 자체 글자색은 위 줄(literal 값)이 이미 이기고 있어 영향 없음. */
 html.dark {
   --text-main: #F5EFE0;
+  --text-strong: #F5EFE0;
   --text-sub: rgba(245, 239, 224, 0.65);
   --rule: rgba(245, 239, 224, 0.16);
   --page-bg: #1A1A1A;
@@ -5097,7 +5099,7 @@ body#tt-body-page .sidebar-right { display: none; }
 .sidebar-left .nav-primary-item:hover { background: rgba(23, 23, 23, .03); }
 .sidebar-left .nav-primary-item.nav-item-active {
   border-bottom-color: #171717;
-  color: #171717;
+  color: #1f2937;
   font-weight: 600;
 }
 .sidebar-left .nav-primary-item .nav-item-label {
@@ -5673,7 +5675,7 @@ html:not(.font-gothic) body .sidebar-left .nav-primary-item.nav-item-active,
 html:not(.font-gothic) body .sidebar-left .nav-primary-item[aria-expanded="true"] {
   background: transparent !important;
   border-bottom-color: #111 !important;
-  color: #111 !important;
+  color: #4b5563 !important;
 }
 /* 같은 이유로 다크모드에서 활성·hover 메뉴 글자도 #111로 눌려 있었다(실측). 위 4633행의
    html.dark 규칙(#F5EFE0)은 명조 규칙보다 구체성이 낮아 밀리므로 같은 강도로 되돌린다. */
@@ -5943,7 +5945,7 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
 }
 .home-editorial-page .home-closed-lead h1 {
   margin: 0 0 12px;
-  color: var(--text-main);
+  color: var(--text-strong);
   font: 400 clamp(36px, 5vw, 58px)/1.1 var(--font-title);
 }
 .home-editorial-page .home-closed-lead p {
@@ -5960,7 +5962,7 @@ body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
   font: 400 13px/1.6 var(--font-ui);
 }
 .home-editorial-page .home-closed-note strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-weight: 700;
 }
 @media (max-width: 640px) {
@@ -6016,7 +6018,7 @@ body#tt-body-index .home-editorial-page .home-closed-lock.is-bull { color: #d24f
 body#tt-body-index .home-editorial-page .home-closed-lock.is-bear { color: #1261c4; }
 body#tt-body-index .home-editorial-page .home-closed-kicker h1 {
   margin: 0;
-  color: #111827;
+  color: #1f2937;
   font: 650 clamp(36px, 4.5vw, 54px)/1.02 "Arial", "Helvetica Neue", sans-serif;
   letter-spacing: -.045em;
 }
@@ -6034,7 +6036,7 @@ body#tt-body-index .home-editorial-page .home-closed-status {
   border-left: 2px solid #111827;
 }
 body#tt-body-index .home-editorial-page .home-closed-status strong {
-  color: #111827;
+  color: #1f2937;
   font: 700 15px/1.3 var(--font-ui);
   letter-spacing: -.04em;
 }
@@ -6122,7 +6124,7 @@ body#tt-body-index .home-editorial-page .home-card-heading > div {
 }
 body#tt-body-index .home-editorial-page .home-card-heading strong,
 body#tt-body-index .home-editorial-page .hen-head strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-title) !important;
   font-size: 29px;
   font-weight: 700;
@@ -6187,7 +6189,7 @@ body#tt-body-index .home-editorial-page .home-index-price-row {
   margin-top: 8px;
 }
 body#tt-body-index .home-editorial-page .home-index-price-row strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-data) !important;
   font-size: 25px;
   font-weight: 700;
@@ -6209,7 +6211,7 @@ body#tt-body-index .home-editorial-page .hmb-summary-head {
   border-bottom: 1px solid var(--rule);
 }
 body#tt-body-index .home-editorial-page .hmb-summary-head strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-title) !important;
   font-size: 14px;
 }
@@ -6256,7 +6258,7 @@ body#tt-body-index .home-editorial-page .home-top-disclosures {
   border-top: 1px solid var(--rule);
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-title) !important;
   font-size: 15px;
 }
@@ -6338,7 +6340,7 @@ body#tt-body-index .home-editorial-page .hen-breaking-row:last-child {
   border-bottom: 0;
 }
 body#tt-body-index .home-editorial-page .hen-breaking-row strong {
-  color: var(--text-main);
+  color: var(--text-strong);
 }
 body#tt-body-index .home-editorial-page .hen-list {
   margin-top: 0;
@@ -6374,7 +6376,7 @@ body#tt-body-index .home-editorial-page .hen-main em {
 }
 body#tt-body-index .home-editorial-page .app-news-body > strong,
 body#tt-body-index .home-editorial-page .app-news-body > b {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-title) !important;
   font-size: 13px;
 }
@@ -6396,7 +6398,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head {
   border-bottom: 1px solid var(--rule);
 }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong {
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-title) !important;
   font-size: 25px;
 }
@@ -6557,7 +6559,7 @@ body#tt-body-index .home-editorial-page .home-disclosure-more,
 body#tt-body-index .home-editorial-page .home-news-more,
 body#tt-body-index .home-editorial-page .hrt-more {
   display: inline-block;
-  color: var(--text-main);
+  color: var(--text-strong);
   font-family: var(--font-ui) !important;
   font-size: 12px;
   font-weight: 700;
@@ -7120,7 +7122,7 @@ body#tt-body-index .home-editorial-page .home-scoreboard-list.is-flipping .home-
   animation: home-scoreboard-flip .42s ease both;
 }
 body#tt-body-index .home-editorial-page .home-scoreboard-list .home-disclosure-row strong {
-  color: #111827 !important;
+  color: #1f2937 !important;
   font-size: 12px !important;
   font-weight: 700 !important;
 }
@@ -8817,4 +8819,10 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 }
 @media (max-width: 360px) {
   @layer np { @layer np { html body .site-footer-learn .learn-card-grid a.learn-card { height: 252px !important; } } }
+}
+
+/* 2026-10-23 글자색: 본문 회색(--text-main #4b5563), 굵은 글자 진한 회색(--text-strong #1f2937).
+   층 안 일반 선언이라 이미 색을 지정한 규칙(의미색·링크·배지)은 건드리지 않고 상속만 바뀐다. */
+@layer np.np {
+  html:not(.dark) body :is(strong, b, th) { color: var(--text-strong); }
 }
