@@ -296,25 +296,37 @@
   }
 
   function installPaneLabelSync(container, panes, sizes) {
-    var frame = 0;
+    var frame = 0, disposed = false;
     function schedule() {
-      if (frame) return;
+      if (disposed || frame) return;
       frame = global.requestAnimationFrame(function () {
-        frame = 0;
-        positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
+        // resize/stretch layout can itself be queued for this frame. Read the
+        // pane heights on the next frame, after that layout has settled.
+        frame = global.requestAnimationFrame(function () {
+          frame = 0;
+          if (!disposed) positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
+        });
       });
     }
-    // Stretch factors take effect during the chart's next layout. Read heights
-    // after that layout, including when RSI is disabled or a divider is dragged.
-    panes.forEach(function (pane) {
-      if (pane.subscribeSizeChange) pane.subscribeSizeChange(schedule);
-    });
+    // LWC 5.2 panes have getHTMLElement(), not subscribeSizeChange(). Observe
+    // real pane elements so fullscreen, restoration and divider drags all sync.
+    var observer = typeof global.ResizeObserver === 'function' ? new global.ResizeObserver(schedule) : null;
+    if (observer) {
+      observer.observe(container);
+      panes.forEach(function (pane) {
+        var element = pane.getHTMLElement ? pane.getHTMLElement() : null;
+        if (element) observer.observe(element);
+      });
+    }
+    global.addEventListener('tistory-chart-resize', schedule);
+    global.addEventListener('resize', schedule);
     schedule();
     return function () {
+      disposed = true;
       if (frame) global.cancelAnimationFrame(frame);
-      panes.forEach(function (pane) {
-        if (pane.unsubscribeSizeChange) pane.unsubscribeSizeChange(schedule);
-      });
+      if (observer) observer.disconnect();
+      global.removeEventListener('tistory-chart-resize', schedule);
+      global.removeEventListener('resize', schedule);
     };
   }
 
