@@ -2912,11 +2912,10 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-breadth-track .is-down { background: color-mix(in srgb, var(--pulse-blue) 45%, transparent) !important; }
   html body #market-temp .mt-checkpoint-facts { --cp-ink: #202b3b; --cp-sub: #778396; --cp-line: #e7edf5; }
   html.dark body #market-temp .mt-checkpoint-facts { --cp-ink: #edf2f9; --cp-sub: #9aa8bb; --cp-line: #313d4e; }
-  html body #market-temp .mt-checkpoint-facts .mt-cp-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 30px !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-body { display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr) !important; gap: 30px !important; }
   html body #market-temp .mt-checkpoint-facts .mt-cp-call { padding: 5px 24px 5px 0 !important; border-right: 1px solid var(--cp-line) !important; container-type: normal; }
   html body #market-temp .mt-checkpoint-facts .mt-strategy-action { white-space: normal !important; font-size: 21px !important; line-height: 1.65; letter-spacing: -.035em; word-break: keep-all; color: var(--cp-ink) !important; }
   html body #market-temp .mt-checkpoint-facts .mt-ant-mood { margin: 12px 0 16px !important; font-size: 13px !important; line-height: 1.8; color: var(--cp-sub) !important; }
-  html body #market-temp .mt-cp-context { font-size: 11px; color: var(--cp-sub) !important; }
   html body #market-temp .mt-cp-next { min-width: 0; }
   html body #market-temp .mt-cp-next h3 { margin: 0 0 12px !important; font-size: 14px !important; color: var(--cp-ink) !important; }
   html body #market-temp .mt-cp-next ol { margin: 0 !important; padding: 0 !important; list-style: none; counter-reset: checkpoint; }
@@ -2931,8 +2930,43 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
   @media (max-width: 760px) {
     html body #market-temp .mt-front-headline { font-size: 17px !important; }
-    html body #market-temp .mt-checkpoint-facts .mt-cp-body { grid-template-columns: minmax(0, 1fr); gap: 20px !important; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-body { grid-template-columns: minmax(0, 1fr) !important; gap: 20px !important; }
     html body #market-temp .mt-checkpoint-facts .mt-cp-call { padding: 0 0 18px !important; border-right: 0 !important; border-bottom: 1px solid var(--cp-line) !important; }
     html body #market-temp .mt-checkpoint-facts .mt-strategy-action { font-size: 19px !important; }
+  }
+}
+
+@layer np.np {
+  html body #market-temp .mt-intro-line { display: flex; flex-wrap: wrap; align-items: baseline !important; gap: 5px 14px !important; margin: 10px 0 0 !important; }
+  html body #market-temp .mt-intro-line .mt-front-headline,
+  html body #market-temp .mt-intro-line .mt-front-lead { margin: 0 !important; }
+  html body #market-temp .mt-direct-overview > .mt-breadth-visual { margin: 0 0 20px !important; padding: 0 0 17px !important; border-bottom: 1px solid var(--pulse-line) !important; }
+  html body #market-temp .mt-investor-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px !important; min-width: 0; }
+  html body #market-temp .mt-investor-row .mt-glance-line { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px !important; }
+  html body #market-temp .mt-investor-row .mt-glance-label { grid-column: 1; white-space: nowrap; }
+  html body #market-temp .mt-investor-row .mt-glance-colon { display: none; }
+  html body #market-temp .mt-investor-row .mt-glance-state { grid-column: 2; white-space: nowrap; }
+  html body #market-temp .mt-investor-row .mt-glance-amount { grid-column: 1; }
+  html body #market-temp .mt-investor-row .mt-glance-share { grid-column: 2; margin: 0 !important; text-align: right; }
+  html body #market-temp .mt-cp-actions { min-width: 0; grid-column: auto !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-call { grid-column: auto !important; }
+  html body #market-temp .mt-cp-avoid { margin-top: 10px !important; padding-top: 16px !important; border-top: 1px solid var(--cp-line) !important; }
+  html body #market-temp .mt-cp-avoid h3 { margin: 0 0 10px !important; font-size: 14px !important; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-cp-avoid ul { margin: 0 !important; padding-left: 18px !important; }
+  html body #market-temp .mt-cp-avoid li { margin: 0 0 7px !important; padding: 0 !important; font-size: 12px; line-height: 1.8; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-temperature-money-flow .mt-section-head h2 { font-family: var(--font-ui, -apple-system, 'Malgun Gothic', sans-serif) !important; font-size: 18px !important; font-weight: 700 !important; font-style: normal !important; line-height: 1.5 !important; letter-spacing: -.02em; }
+  html body #market-temp .mt-indicator-history .mt-flow-svg { height: auto !important; aspect-ratio: 480 / 230; }
+  @media (min-width: 761px) {
+    html body #market-temp .mt-front-page { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; }
+  }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-investor-row .mt-glance-row { padding: 8px 5px !important; }
+    html body #market-temp .mt-investor-row :is(.mt-glance-label, .mt-glance-state, .mt-glance-amount) { font-size: 10px !important; }
+    html body #market-temp .mt-investor-row .mt-flow-arrow { font-size: 10px !important; }
+    html body #market-temp .mt-investor-row .mt-glance-meta { font-size: 9px !important; }
+    html body #market-temp .mt-investor-row .mt-glance-share { font-size: 9px !important; }
+  }
+  @media (max-width: 350px) {
+    html body #market-temp .mt-investor-row :is(.mt-glance-label, .mt-glance-state) { grid-column: 1 / -1; }
   }
 }
