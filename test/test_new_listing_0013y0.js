@@ -19,7 +19,7 @@ for (const name of files) {
   assert(source.includes('applyDomesticListingFallbacks()'), name + ': runtime map not applied');
 }
 const stockSrc = fs.readFileSync('js/stock-search.js', 'utf8');
-assert(stockSrc.includes('/^[0-9A-Z]{6}$/i.test(String(state.selectedCode ||')),'detail excludes alphanumeric code from chart ranges');
+assert(stockSrc.includes('/^[0-9A-Z]{6}$/i.test(String(state.selectedCode ||'), 'detail excludes alphanumeric code from chart ranges');
 assert(stockSrc.includes('신규상장 종목의 시세가 아직 수신되지 않았습니다.'),'missing explicit pending quote state');
 assert(stockSrc.includes('it.price = null; it.change = null; it.changeRate = null;'),'pending quote may be fabricated');
 const chartSrc = fs.readFileSync('js/chart-data.js', 'utf8');
