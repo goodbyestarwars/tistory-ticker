@@ -79,8 +79,14 @@
   }
   function stockIconHtml(item) {
     var code = item && item.code || '';
-    return '<span class="my-watchlist-icon"><span>' + stockInitials(item) + '</span><img src="' + escapeAttr(stockIconUrl(code)) + '" alt="" loading="lazy" onerror="this.hidden=true;this.previousElementSibling.hidden=false" onload="this.previousElementSibling.hidden=true"></span>';
+    return '<span class="my-watchlist-icon"><span>' + stockInitials(item) + '</span><img data-icon-code="' + escapeAttr(code) + '" src="' + escapeAttr(stockIconUrl(code)) + '" alt="" loading="lazy" onerror="window.MyStockIconFallback(this)" onload="this.hidden=false;this.previousElementSibling.hidden=true"></span>';
   }
+  global.MyStockIconFallback = function (image) {
+    if (global.StockIconFallback) { global.StockIconFallback(image); return; }
+    if (global.__stockIconFallback) { global.__stockIconFallback(image); return; }
+    image.hidden = true;
+    if (image.previousElementSibling) image.previousElementSibling.hidden = false;
+  };
   function number(value, fallback) {
     if (value == null || value === '') return fallback == null ? null : fallback;
     var normalized = typeof value === 'string'
@@ -236,9 +242,14 @@
     image.hidden = true;
     initials.hidden = false;
     if (value.code) {
-      image.src = stockIconUrl(value.code);
+      image.setAttribute('data-icon-code', value.code);
+      image.removeAttribute('data-icon-stage');
+      image.removeAttribute('data-icon-naver-code');
+      image.removeAttribute('data-fb');
+      image.style.display = '';
       image.onload = function () { image.hidden = false; initials.hidden = true; };
-      image.onerror = function () { image.hidden = true; initials.hidden = false; };
+      image.onerror = function () { global.MyStockIconFallback(image); };
+      image.src = stockIconUrl(value.code);
     }
   }
   function resolveInput(query) {
