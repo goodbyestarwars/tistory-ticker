@@ -8740,3 +8740,81 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { margin-top: 0 !important; }
   } }
 }
+
+/* 2026-10-23 사용자 요청: 홈 "마켓브리핑"과 "이야기 시리즈" 두 섹션을 전체적으로 약 10% 줄임(제목·카드·여백·글자 함께, 가로세로 비율 유지).
+   실측(1440px) 브리핑 카드 380x460/패딩30/제목26px/섹션제목40px, 이야기 카드 309.6x260/패딩24/제목23px/섹션제목40px.
+   기존 규칙이 @layer np 및 unlayered의 !important라 np 하위 레이어에서 같은 선택자로 덮는다. 작은 글씨(12px 이하)는 가독성 때문에 11~12px 아래로 내리지 않는다.
+   이야기 카드는 폭이 격자 비율로 정해지므로 소개:카드 열 비율을 1fr:1.8fr로 바꿔 카드 폭도 약 10% 줄인다(오른쪽 끝은 그대로 맞춤). */
+@layer np { @layer np {
+  /* 마켓브리핑 */
+  html body#tt-body-index .home-editorial-page .home-briefing-section { padding: 36px 4px !important; }
+  html body#tt-body-index .home-editorial-page .briefing-intro { gap: 22px; padding: 22px 0 25px !important; }
+  html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: 36px !important; }
+  html body#tt-body-index .briefing-intro p { font-size: 14.4px !important; }
+  html body#tt-body-index .briefing-intro .learn-eyebrow { font-size: 12px !important; }
+  html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
+  html body#tt-body-index .briefing-intro .briefing-archive-icon { width: 20px; height: 20px; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: 22px !important; padding: 11px 0 22px !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; padding: 27px !important; border-radius: 25px !important; }
+  html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
+  html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 18px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-title { font-size: 23.4px !important; margin: 0 0 22px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-footer { padding-top: 18px !important; }
+  html body#tt-body-index .briefing-carousel-controls { gap: 25px; padding: 7px 50px 14px 0 !important; }
+  html body#tt-body-index .briefing-carousel-controls > div { gap: 11px; }
+  html body#tt-body-index .briefing-carousel-controls button { width: 41px; height: 41px; font-size: 20px; }
+
+  /* 이야기 시리즈 */
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(240px, 1fr) minmax(0, 1.8fr) !important; gap: 43px !important; margin: 43px auto 14px !important; }
+  html body .learn-intro { padding: 22px 0 !important; }
+  html body .learn-eyebrow { font-size: 12px !important; }
+  html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: 36px !important; }
+  html body .learn-intro p { font-size: 15.3px !important; }
+  html body .learn-intro-note { margin-top: 43px; font-size: 11px !important; }
+  html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - (var(--learn-columns) - 1) * 16px) / var(--learn-columns)) !important; column-gap: 16px !important; row-gap: 16px !important; }
+  html body .site-footer-learn a.learn-card { grid-template-rows: 50px auto minmax(0, 1fr) auto !important; height: 234px !important; padding: 22px !important; gap: 9px !important; border-radius: 25px !important; }
+  html body .site-footer-learn a.learn-card::before { top: 23px; right: 22px; font-size: 12.6px !important; }
+  html body .site-footer-learn a.learn-card::after { bottom: 25px; right: 22px; font-size: 16px !important; }
+  html body .site-footer-learn a.learn-card svg { top: 22px !important; left: 22px !important; width: 43px !important; height: 43px !important; padding: 9px !important; }
+  html body .site-footer-learn a.learn-card b { font-size: 20.7px !important; }
+  html body .site-footer-learn a.learn-card small { padding-right: 22px; font-size: 12px !important; }
+  html body .site-footer-learn .learn-description { font-size: 12px !important; }
+} }
+@media (max-width: 1100px) {
+  @layer np { @layer np {
+    html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns: minmax(0, 1fr) !important; gap: 22px !important; }
+    html body .learn-intro { padding: 0 !important; }
+    html body .learn-intro h2 { margin: 14px 0 !important; font-size: 36px !important; }
+  } }
+}
+@media (max-width: 720px) {
+  @layer np { @layer np {
+    /* 마켓브리핑(모바일): 카드 폭 calc(100vw - 72px) → 90% */
+    html body#tt-body-index .home-editorial-page .home-briefing-section { padding: 36px 0 !important; }
+    html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
+    html body#tt-body-index .briefing-intro strong { font-size: 20px !important; }
+    html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
+    html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
+    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: 387px !important; padding: 23px !important; border-radius: 22px !important; }
+    html body#tt-body-index .briefing-carousel-track .post-title { font-size: 16.2px !important; }
+    html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
+    html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
+    /* 이야기 시리즈(모바일) */
+    html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { margin-top: 29px !important; gap: 22px !important; }
+    html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - 11px) / 2) !important; column-gap: 11px !important; row-gap: 11px !important; }
+    html body .learn-intro h2 { margin: 14px 0 !important; font-size: 21.6px !important; }
+    html body .learn-intro p { font-size: 13.5px !important; }
+    html body .site-footer-learn a.learn-card { grid-template-rows: 36px auto minmax(0, 1fr) auto !important; height: 216px !important; padding: 20px 14px !important; gap: 7px !important; border-radius: 20px !important; }
+    html body .site-footer-learn a.learn-card svg { top: 18px !important; left: 14px !important; width: 36px !important; height: 36px !important; padding: 7px !important; }
+    html body .site-footer-learn a.learn-card b { font-size: 16.2px !important; }
+    html body .site-footer-learn a.learn-card small { padding-right: 20px; font-size: 11px !important; }
+    html body .site-footer-learn .learn-description { font-size: 11px !important; }
+    html body .site-footer-learn a.learn-card::before { top: 21px; right: 14px; font-size: 11px !important; }
+    html body .site-footer-learn a.learn-card::after { bottom: 20px; right: 14px; }
+  } }
+}
+@media (max-width: 360px) {
+  @layer np { @layer np { html body .site-footer-learn .learn-card-grid a.learn-card { height: 252px !important; } } }
+}
