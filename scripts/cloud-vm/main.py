@@ -3087,11 +3087,15 @@ def _futures_entry(result):
 
 def _futures_response(request, entry):
     accepts_gzip = 'gzip' in (request.headers.get('accept-encoding') or '').lower() if request else False
+    headers = {'Vary': 'Accept-Encoding'}
+    if entry.get('stored_only'):
+        headers['X-Market-Read-Mode'] = 'stored'
     if accepts_gzip:
+        headers['Content-Encoding'] = 'gzip'
         return Response(content=entry['gzip'], media_type='application/json',
-                        headers={'Content-Encoding': 'gzip', 'Vary': 'Accept-Encoding'})
+                        headers=headers)
     return Response(content=entry['raw'], media_type='application/json',
-                    headers={'Vary': 'Accept-Encoding'})
+                    headers=headers)
 
 
 @app.get('/home-session-chart')
@@ -3102,10 +3106,11 @@ def home_session_prices(request: Request):
 
 
 @app.get('/futures')
-def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = ''):
+def futures(request: Request, interval: str = 'day', days: int = 90, symbols: str = '', stored_only: bool = False):
     """보조지수/코스피 선물 페이지 전용 - 미국 현물지수 3종+선물 3종/SOX/VIX/WTI(네이버) +
     코스피200 주간/야간선물(네이버+KIS) + 원/달러 환율(네이버) 현재가+최근 일봉을 하나로 묶어
-    반환. 방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
+    반환. stored_only=True는 기존 DB/캐시만 읽으며 환율 현재가 보강 외부 호출도 하지 않는다.
+    방문자 브라우저가 직접 호출(인증 없음, CORS로 블로그 도메인만 제한) - /investor-flow와
     동일한 패턴.
     2026-07-16: order에 'DOW'가 빠져 있던 버그 수정(foreign_futures.py의 SYMBOLS에는 있었지만
     이 목록에 반영이 안 돼 DOW 카드가 계속 '데이터 없음'이었을 것) + domestic_futures.py의
@@ -3137,7 +3142,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
     _check_rate_limit('futures', request, max_per_window=30)
     days = max(1, min(days, 500))
     started = time.time()
-    cache_key = (interval, days, symbols)
+    cache_key = (interval, days, symbols, stored_only)
     cached = _futures_cache.get(cache_key)
     if cached is not None and started - cached['t'] < _FUTURES_TTL:
         _futures_cache.move_to_end(cache_key)
@@ -3163,7 +3168,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
         # 사이에 /futures가 이전 고시값을 내보내면 두 화면이 1416/1418처럼 갈라지므로,
         # 환율이 응답에 포함될 때만 현재값을 짧은 /futures 캐시 안에서 한 번 보강한다.
         live_fx = None
-        if 'USDKRW' in order:
+        if 'USDKRW' in order and not stored_only:
             try:
                 live_fx = domestic_futures.fetch_fx_realtime()
             except Exception:
@@ -3223,6 +3228,8 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 quote.setdefault('high', None)
                 quote.setdefault('low', None)
                 quote.setdefault('updated_at', None)
+                for field in ('oi', 'oi_change', 'ask_price', 'bid_price', 'ask_qty', 'bid_qty'):
+                    quote.setdefault(field, None)
                 p = quote
             commodity_source = {'WTI': 'Naver 비공식 선물 시세', 'GOLD': 'Naver 비공식 선물 시세',
                                 'BRENT': 'KIS 공식 해외선물 시세'}.get(symbol)
@@ -3259,6 +3266,7 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
     finally:
         conn.close()
     entry = _futures_entry(result)
+    entry['stored_only'] = stored_only
     entry['t'] = started
     _futures_cache[cache_key] = entry
     _futures_cache.move_to_end(cache_key)

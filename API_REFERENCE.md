@@ -254,6 +254,8 @@ KIS `FHPTJ04400000` 장중 가집계의 외국인·기관 종목별 순매수·�
 
 ### `GET /futures`
 
+`stored_only=true`는 DB에 이미 저장된 시세·이력과30초 응답 캐시만 읽는다. 환율 현재가 보강 외부 호출을 생략하며 일반 응답과 캐시 키를 분리한다. 미수집 가격은 null이고 원래 기준시각을 보존한다. 응답 헤더 `X-Market-Read-Mode: stored`로 적용 여부를 확인할 수 있다. 반복 화면 갱신용이며 수집 주기를 변경하지 않는다. 기본값 false의 기존 동작은 유지한다.
+
 미국 경제 발표 탭의 수동 갱신은 `PUT /futures/refresh-macro`로 FRED 거시지표 11종 수집을 요청한다. 응답 `data`에는 `running`, `started_at`(Unix 초), `checked_at`(UTC ISO), `success`·`failed`(확인한 계열 수), `error`가 있다. 진행 상태는 `GET /futures/refresh-macro`로 읽는다. 동시 요청은 한 작업으로 합치고 시작 간격은 서버 전체에서 최소 5분이다. 공개 라우트이며 기존 CORS와 IP별 요청 제한을 적용한다. 수집이 끝나면 `/futures`의 30초 메모리 캐시를 비운다. 발표가 없으면 기존 관측값이 유지된다.
 
 | 항목 | 내용 |
