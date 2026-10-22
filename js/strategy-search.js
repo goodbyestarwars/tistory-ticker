@@ -357,7 +357,7 @@
     var scanAt = activeKey === 'etfReturn' && scanData.etfScannedAt
       ? scanData.etfScannedAt : scanData.scannedAt;
     var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신' : '전략 주 1회 갱신';
-    var text = '스캔 기준시각 ' + scanAt + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
+    var text = ((window.NineTime && window.NineTime.updated(scanAt)) || ('스캔 기준시각 ' + scanAt)) + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
     if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
     meta.textContent = text;
   }
@@ -465,7 +465,7 @@
         kpi('1년 수익률', pctSigned(item.returnRate12mPct), item.returnRate12mPct == null ? '' : chgClass(item.returnRate12mPct))], sub: sub.join(' · ') };
     }
     if (key === 'nationalPension') {
-      if (item.asOf) sub.push(item.asOf + ' 기준');
+      if (item.asOf) sub.push((window.NineTime && window.NineTime.asOf(item.asOf)) || (item.asOf + ' 기준'));
       if (item.weightPct != null) sub.push('펀드 내 비중 ' + fmtPctExact(item.weightPct));
       if (analystTargetPriceText(item)) sub.push(analystTargetPriceText(item));
       return { kpis: [kpi('보유 지분율', fmtPctExact(item.holdingPct)), kpi('평가액', item.evaluationAmountEok == null ? '—' : fmt(item.evaluationAmountEok) + '억원')], sub: sub.join(' · ') };
