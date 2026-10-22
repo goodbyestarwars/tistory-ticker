@@ -31,10 +31,10 @@ function renderIndexControls() {
 
 test('toolbar really has two contained rows, saved controls and no missing tools', () => {
   const html = renderIndexControls();
-  assert(html.includes('class="ss-index-controls"'));
-  assert(html.includes('class="ss-index-tools"'));
+  assert(html.includes('class="ss-index-controls ss-stock-controls"'));
+  assert(html.includes('class="ss-index-tools ss-chart-tabs"'));
   assert(html.includes('class="ss-chart-studies ss-index-studies"'));
-  const a = html.indexOf('class="ss-index-tools"');
+  const a = html.indexOf('class="ss-index-tools ss-chart-tabs"');
   const b = html.indexOf('class="ss-chart-studies ss-index-studies"');
   const c = html.indexOf('class="ss-index-chart"');
   assert(a < b && b < c, 'timeframe/actions first; indicators second; chart below');

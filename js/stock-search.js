@@ -188,7 +188,7 @@
     { code: 'DOW_INDEX', name: '다우존스', aliases: 'dow 다우 다우존스' },
     { code: 'SOX', name: '필라델피아 반도체지수', aliases: 'sox phlx 필라델피아 필라델피아반도체 반도체지수' }
   ];
-  var indexStudies = { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
+  var indexStudies = { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false, rsi: false, divergence: false, volmult: false, vp: false, trace: false };   // 이동평균선은 단기(3·5·20·60)·장기(112·224·448) 두 옵션
   var indexWaveState = { enabled: false, level: 'medium', trend: false };   // trend: 파동 박스 안 추세선
   var indexStudySeries = [];
   var indexSrCleanup = null;
@@ -199,8 +199,20 @@
   var indexOhlcTooltipCleanup = null;
   var indexWheelCleanup = null;
   var indexDrawingCtl = null;
+  var indexExtraCleanup = [];
+  function clearIndexExtras() { indexExtraCleanup.splice(0).forEach(function (off) { off(); }); }
+  function indexVolumeAvailable(bars) { return (bars || []).filter(function (b) { return b.volume > 0; }).length >= 21; }
+  function syncIndexCapabilities(panel, bars) {
+    var available = indexVolumeAvailable(bars);
+    panel.querySelectorAll('[data-index-volume]').forEach(function (input) {
+      input.disabled = !available;
+      input.parentElement.hidden = !available;
+      input.parentElement.title = available ? "수신된 거래량이 있는 봉 기준" : "이 지수의 거래량 자료가 없습니다";
+    });
+  }
   var indexBars = [];
   var indexTimeframe = 'day';
+  var indexRangeDays = 0;
   var indexRenderId = 0;
   var indexTimer = null;
   // 지수 실시간(2026-10-19): 서버 /ws/market-indicators 가 5초마다 보내는 최신 스냅샷(VM 수집값 중계)으로 시세 숫자를 갱신한다.
@@ -952,6 +964,7 @@
     indexRenderId += 1;
     indexStudyUpdate = null;
     indexStudySeries = [];
+    clearIndexExtras();
     if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
     if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
@@ -1008,10 +1021,12 @@
     return bars;
   }
 
-  function renderIndexChart(panel, symbol) {
+  function renderIndexChart(panel, symbol, resetView) {
+    var previousIndexRange = !resetView && indexChart ? indexChart.timeScale().getVisibleLogicalRange() : null;
     var renderId = ++indexRenderId;
     indexStudyUpdate = null;
     indexStudySeries = [];
+    clearIndexExtras();
     if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
     if (indexWaveHandle) { indexWaveHandle.detach(); indexWaveHandle = null; }
     if (indexDrawingCtl) { indexDrawingCtl.detach(); indexDrawingCtl = null; }
@@ -1028,12 +1043,15 @@
       var core = global.NineChartCore;
       return Promise.all([
         indexStudies.sr ? core.loadModule('sr') : Promise.resolve(),
-        indexWaveState.enabled ? core.loadModule('wave') : Promise.resolve()
+        indexWaveState.enabled ? core.loadModule('wave') : Promise.resolve(),
+        indexStudies.divergence ? core.loadModule('divergence') : Promise.resolve()
       ]).then(function () { return LWC; });
     }).then(function (LWC) {
       if (renderId !== indexRenderId || state.selectedCode !== 'INDEX:' + symbol || panel.hidden) return;
+      var core = global.NineChartCore;
       var bars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
       var dark = document.documentElement.classList.contains('dark');
+      syncIndexCapabilities(panel, bars);
       host.textContent = '';
       indexChart = LWC.createChart(host, { autoSize: true, height: 440,
         layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
@@ -1056,7 +1074,7 @@
       var volumePane = null;
       if (bars.some(function (bar) { return bar.volume > 0; })) try {
         volumePane = global.NineChartCore.addVolumePane(indexChart, LWC, bars, {
-          pane: 1, scaleId: 'volume', ma5: true, multiples: false,
+          pane: 1, scaleId: 'volume', ma5: true, multiples: indexStudies.volmult,
           scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
         });
         var sizes = sizeStockChartPanes(indexChart.panes(), 440, false);
@@ -1074,6 +1092,28 @@
           showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : bars[bars.length - 1].volume);
         });
       } catch (volumeError) { /* 거래량 패널 실패가 캔들 차트를 막지 않게 한다 */ }
+      if (indexStudies.vp && indexVolumeAvailable(bars)) {
+        series.attachPrimitive(createVolumeProfilePrimitive(bars, false, 'INDEX:' + symbol, host, indexTimeframe, { index: true }));
+      }
+      if (indexStudies.trace && indexVolumeAvailable(bars)) {
+        var traceHolder = { chart: indexChart, container: host, supplyMode: 'detail', timeframe: indexTimeframe };
+        core.setSupplyTraceMarkers(LWC, series, bars, true, traceHolder);
+        indexExtraCleanup.push(function () {
+          ['legendCleanup', 'tipCleanup', 'densityCleanup'].forEach(function (key) { if (traceHolder[key]) traceHolder[key](); });
+        });
+      }
+      if (indexStudies.rsi || indexStudies.divergence) {
+        var rsiValues = stockRsi(bars);
+        var rsi = indexChart.addSeries(LWC.LineSeries, { color: dark ? '#f5efe0' : '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false }, volumePane ? 2 : 1);
+        rsi.setData(bars.map(function (bar, i) { return rsiValues[i] == null ? null : { time: bar.date, value: rsiValues[i] }; }).filter(Boolean));
+        [30, 50, 70].forEach(function (value) { rsi.createPriceLine({ price: value, color: '#9ca3af', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false }); });
+        sizeStockChartPanes(indexChart.panes(), 440, false);
+        if (indexStudies.divergence && global.NineChartDivergence && global.NineChartWave) {
+          var analysis = global.NineChartWave.analysis(bars, 'INDEX:' + symbol, indexTimeframe);
+          var list = global.NineChartDivergence.find(bars, rsiValues, analysis, indexWaveState.level || 'medium');
+          indexExtraCleanup.push(global.NineChartDivergence.install({ container: host, chart: indexChart, candleSeries: series, rsiSeries: rsi, panes: indexChart.panes(), bars: bars, list: list }));
+        }
+      }
       indexChart.timeScale().fitContent();
       var Drawing = global.NineChartDrawing;
       if (Drawing) indexDrawingCtl = Drawing.attach({
@@ -1085,8 +1125,10 @@
         buttons: stockDrawingButtons(host), store: STOCK_DRAWING_STORE,
         style: { stroke: '#e11d48', dots: true, previewDash: true }, sync: false
       });
+      var initializingIndexStudies = true;
       indexStudyUpdate = function () {
         if (renderId !== indexRenderId) return;
+        if (!initializingIndexStudies && (indexStudies.rsi || indexStudies.divergence || indexStudies.vp || indexStudies.trace || indexStudies.volmult)) { renderIndexChart(panel, symbol); return; }
         var core = global.NineChartCore;
         var currentBars = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
         indexStudySeries.forEach(function (line) { indexChart.removeSeries(line); });
@@ -1122,7 +1164,12 @@
         }
       };
       indexStudyUpdate();
-      indexChart.timeScale().fitContent();
+      initializingIndexStudies = false;
+      if (previousIndexRange) indexChart.timeScale().setVisibleLogicalRange(previousIndexRange);
+      else if (indexRangeDays) {
+        var end = new Date(bars[bars.length - 1].date + 'T00:00:00Z'); end.setUTCDate(end.getUTCDate() - indexRangeDays);
+        indexChart.timeScale().setVisibleRange({ from: [end.toISOString().slice(0, 10), bars[0].date].sort()[1], to: bars[bars.length - 1].date });
+      } else indexChart.timeScale().fitContent();
     }).catch(function () { if (renderId === indexRenderId) host.textContent = '차트를 불러오지 못했습니다.'; });
   }
 
@@ -1140,6 +1187,7 @@
     state.selectedCode = 'INDEX:' + row.code;
     state.selectedName = row.name;
     indexTimeframe = 'day';
+    indexRangeDays = 0;
     try {
       var url = new URL(location.href);
       url.searchParams.set('code', 'INDEX:' + row.code);
@@ -1193,8 +1241,8 @@
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
             + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공</div>'
             // Compact index toolbar; small controls and a comfortably wide wave selector.
-            + '<div class="ss-index-controls" role="group" aria-label="지수 차트 설정">'
-            + '<div class="ss-index-tools">'
+            + '<div class="ss-index-controls ss-stock-controls" role="group" aria-label="지수 차트 설정">'
+            + '<div class="ss-index-tools ss-chart-tabs">'
             + '<div class="ss-timeframe-tools">'
             + '<button type="button" class="active" data-index-tf="day">일봉</button>'
             + '<button type="button" data-index-tf="week">주봉</button>'
@@ -1208,6 +1256,7 @@
             + '<button type="button" class="ss-measure-toggle" title="고점에서 저점까지 끌면 변화율(%)을 보여 줍니다">측정</button>'
             + '<button type="button" class="ss-pencil-toggle">연필</button>'
             + '<button type="button" class="ss-draw-clear">지우기</button></div></div>'
+            + '<div class="nine-chart-ranges">' + [[30, '1개월'], [90, '3개월'], [180, '6개월'], [365, '1년'], [1095, '3년'], [0, '전체']].map(function (range) { return '<button type="button" class="nine-range-btn" data-index-range="' + range[0] + '">' + range[1] + '</button>'; }).join('') + '</div>'
             + '<div class="ss-chart-studies ss-index-studies" role="group" aria-label="차트 보조지표">'
             + [['maShort', '단기 이평선(3·5·20·60)'], ['maLong', '장기 이평선(112·224·448)'], ['cloud', '일목균형표(구름) 표시'], ['bollinger', '볼린저 밴드'], ['sr', '지지·저항 표시']].map(function (option) {
               return '<label><input type="checkbox" data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
@@ -1215,17 +1264,32 @@
             + '<span class="ss-index-wave-group"><label><input type="checkbox" data-index-study="wave"' + (indexWaveState.enabled ? ' checked' : '') + ' /> 파동 분석</label>'
             + '<select data-index-wave-level aria-label="파동 규모"><option value="major">대파동</option><option value="medium">중파동</option><option value="minor">소파동</option></select>'
             + '<label title="선택한 규모의 상승·하락 파동 박스 안에 한 단계 아래 규모의 고점·저점을 이은 선을 긋습니다"><input type="checkbox" data-index-wave-trend' + (indexWaveState.trend ? ' checked' : '') + ' /> 추세선</label></span>'
-            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량 배수 표시</label>'
-            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 매물대 표시</label>'
-            + '<label title="지수 원본에 거래량 데이터가 없습니다"><input type="checkbox" disabled /> 거래량·가격 흔적</label></div>'
+            + '<label><input type="checkbox" data-index-study="rsi"' + (indexStudies.rsi ? ' checked' : '') + ' /> RSI</label>'
+            + '<label><input type="checkbox" data-index-study="divergence"' + (indexStudies.divergence ? ' checked' : '') + ' /> RSI 다이버전스</label>'
+            + [['volmult', '거래량 배수 표시'], ['vp', '매물대 표시'], ['trace', '거래량·가격 흔적']].map(function (option) {
+              return '<label><input type="checkbox" data-index-volume data-index-study="' + option[0] + '"' + (indexStudies[option[0]] ? ' checked' : '') + ' /> ' + option[1] + '</label>';
+            }).join('') + '</div>'
             + '</div>'
             + '<div class="ss-index-chart" id="ssIndexChart"></div>';
+          syncIndexCapabilities(panel, bars);
           panel.querySelectorAll('[data-index-study]').forEach(function (input) {
             input.addEventListener('change', function () {
               var key = input.getAttribute('data-index-study');
               if (key === 'wave') indexWaveState.enabled = input.checked;
               else indexStudies[key] = input.checked;
+              if (key === 'divergence' && input.checked) indexStudies.rsi = true;
+              if (key === 'rsi' && !input.checked) indexStudies.divergence = false;
+              panel.querySelectorAll('[data-index-study]').forEach(function (control) { var name = control.getAttribute('data-index-study'); control.checked = name === 'wave' ? indexWaveState.enabled : !!indexStudies[name]; });
               renderIndexChart(panel, row.code);
+            });
+          });
+          panel.querySelectorAll('[data-index-range]').forEach(function (button) {
+            button.addEventListener('click', function () {
+              indexRangeDays = Number(button.getAttribute('data-index-range'));
+              if (!indexChart || !indexBars.length) return;
+              if (!indexRangeDays) indexChart.timeScale().fitContent();
+              else { var last = indexBars[indexBars.length - 1].date, start = new Date(last + 'T00:00:00Z'); start.setUTCDate(start.getUTCDate() - indexRangeDays); indexChart.timeScale().setVisibleRange({ from: [start.toISOString().slice(0, 10), indexBars[0].date].sort()[1], to: last }); }
+              panel.querySelectorAll('[data-index-range]').forEach(function (control) { control.classList.toggle('active', control === button); control.setAttribute('aria-pressed', control === button ? 'true' : 'false'); });
             });
           });
           var waveLevel = panel.querySelector('[data-index-wave-level]');
@@ -1237,7 +1301,7 @@
             button.addEventListener('click', function () {
               indexTimeframe = button.getAttribute('data-index-tf');
               panel.querySelectorAll('[data-index-tf]').forEach(function (b) { b.classList.toggle('active', b === button); });
-              renderIndexChart(panel, row.code);
+              renderIndexChart(panel, row.code, true);
             });
           });
           indexBars = bars;
@@ -2718,7 +2782,9 @@
     panel.style.visibility = '';
   }
 
-  function createVolumeProfilePrimitive(bars, isUs, code, container, unit) {
+  function createVolumeProfilePrimitive(bars, isUs, code, container, unit, context) {
+    var isIndex = context && context.index;
+    var profilePrice = function (value) { return isIndex ? Number(value).toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + 'pt' : chartPriceText(value, isUs); };
     return {
       _series: null, _chart: null, _requestUpdate: null,
       _key: null, _profile: null, _shown: {}, _step: null,
@@ -2737,8 +2803,8 @@
           var all = self._profile.bins.reduce(function (sum, b) { return sum + b.volume; }, 0);
           if (!hit || !(all > 0)) { line.textContent = '이 가격대에는 집계된 추정 거래량이 없습니다.'; return; }
           var core = global.NineChartCore;
-          line.textContent = chartPriceText(hit.low, isUs) + '~' + chartPriceText(hit.high, isUs) + ' · 추정 거래량 '
-            + (core && core.compactVolume ? core.compactVolume(hit.volume) : Math.round(hit.volume)) + '주 · 전체의 '
+          line.textContent = profilePrice(hit.low) + '~' + profilePrice(hit.high) + ' · 추정 거래량 '
+            + (core && core.compactVolume ? core.compactVolume(hit.volume) : Math.round(hit.volume)) + (isIndex ? ' (원본 단위) · 전체의 ' : '주 · 전체의 ')
             + (hit.volume / all * 100).toFixed(1) + '% · 최대 구간 대비 ' + Math.round(hit.volume / self._profile.maxVolume * 100) + '%';
         };
         try { params.chart.subscribeCrosshairMove(this._onCross); } catch (e) { /* 구버전은 호버 문구만 빠진다 */ }
@@ -2750,6 +2816,11 @@
       },
       updateAllViews: function () {},
       _analyze: function (win, profile, from, to) {
+        if (isIndex) {
+          this._panel.innerHTML = '<div class="ss-vp-head"><strong>지수 구간별 추정 거래량</strong></div><p>거래량이 수신된 ' + win.filter(function (bar) { return bar.volume > 0; }).length + '봉의 고가·저가에 비례 배분한 추정치입니다. 실제 가격별 체결량·보유 주식 물량이 아닙니다.</p><div data-vp-hover>막대에 마우스를 올리면 구간별 비중이 보입니다.</div>';
+          this._panel.style.visibility = 'visible';
+          return null;
+        }
         var VP = global.NineVolumeProfile;
         var live = lwcLiveBars.length ? lwcLiveBars[lwcLiveBars.length - 1].close : null;
         var price = Number(live != null ? live : bars[bars.length - 1].close);
