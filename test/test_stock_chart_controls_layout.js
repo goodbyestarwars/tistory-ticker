@@ -1,0 +1,13 @@
+const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
+const {chromium}=require('playwright');
+const source=fs.readFileSync('js/stock-search.js','utf8');
+const window={addEventListener(){}};
+vm.runInNewContext(source.replace('global.StockSearch = { init: init };','global.__test={buildShell};global.StockSearch = { init: init };'),{window,document:{readyState:'loading',addEventListener(){}},URLSearchParams});
+const from=source.indexOf("container.innerHTML = ''",source.indexOf('function mountExternalChart'));
+const to=source.indexOf(';',source.indexOf("+ '<div class=\"ss-chart-legend\">미국 일봉",from));
+const external=new Function('minuteScopeControlHtml','waveLevelHtml','return '+source.slice(from+'container.innerHTML = '.length,to))(()=>'',()=>'<span data-chart-wave-level hidden></span>');
+(async()=>{const browser=await chromium.launch({channel:'msedge',headless:true});try{const page=await browser.newPage();for(const [market,html] of [['domestic',window.__test.buildShell()],['US',external]]){
+await page.setContent('<style>'+fs.readFileSync('style.css','utf8')+fs.readFileSync('css/stock-search.css','utf8')+'</style><div id="stock-search">'+html+'</div>');
+await page.evaluate(()=>{const detail=document.querySelector('#ssDetail');if(detail)detail.hidden=false;const controls=document.querySelector('.ss-stock-controls');document.querySelector('#stock-search').replaceChildren(controls);const full=document.createElement('button');full.className='de-expand-inline';full.textContent='⛶ 독립 차트';controls.querySelector('.ss-drawing-tools').append(full);});
+for(const width of [1000,650,390,320]){await page.setViewportSize({width,height:900});for(const dark of [false,true]){await page.evaluate(d=>document.documentElement.classList.toggle('dark',d),dark);const result=await page.evaluate(()=>{const box=document.querySelector('.ss-stock-controls'),tools=box.querySelector('.ss-chart-tabs'),studies=box.querySelector('.ss-chart-studies');return {contained:box.contains(studies),order:tools.getBoundingClientRect().bottom<=studies.getBoundingClientRect().top+1,overflow:box.scrollWidth>box.clientWidth+1,border:getComputedStyle(studies).borderTopWidth,labels:studies.querySelectorAll('input').length,buttons:tools.querySelectorAll('button').length};});assert(result.contained&&result.order&&!result.overflow,JSON.stringify({market,width,dark,...result}));assert.equal(result.border,'1px');assert(result.labels>=10&&result.buttons>=12);}}
+}console.log('PASS domestic/US tools: two rows, all controls retained, no overflow at 1000/650/390/320px in light/dark');}finally{await browser.close();}})().catch(e=>{console.error(e);process.exitCode=1});

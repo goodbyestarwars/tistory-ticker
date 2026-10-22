@@ -1500,3 +1500,113 @@ html.dark #stock-search #ssOverview #ssSummary .ss-analysis-link:hover {
 @media (max-width: 720px) {
   #stock-search .ss-vp-panel { height: 210px; }
 }
+
+/* Stock/US chart tools use the same two-row frame as the index chart. */
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls {
+  margin: 12px 0 8px;
+  border: 1px solid #e3e8ef;
+  border-radius: 9px;
+  background: #fafbfd;
+  min-width: 0;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-tabs.ss-chart-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 7px 12px;
+  margin: 0;
+  padding: 7px 10px;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs .ss-timeframe-tools { flex: 0 0 auto; gap: 4px; }
+html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs .ss-drawing-tools {
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-left: 0;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  background: #fff;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  white-space: nowrap;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-studies {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 7px 14px;
+  margin: 0;
+  padding: 8px 10px;
+  border-top: 1px solid #e3e8ef;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-chart-studies label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-chart-studies input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: #2563eb;
+}
+
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls {
+  border-color: rgba(245,239,224,.2);
+  background: #222;
+}
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-studies {
+  border-top-color: rgba(245,239,224,.18);
+}
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs button {
+  background: #1a1a1a;
+  border-color: rgba(245,239,224,.25);
+}
+
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-tabs.ss-chart-tabs {
+  box-sizing: border-box;
+  align-items: center !important;
+  padding: 7px 10px !important;
+  margin: 0;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-drawing-tools button {
+  min-height: 30px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.35;
+}
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-minute-scope-wrap {
+  margin: 0;
+  padding: 4px 10px;
+}
+@media (max-width: 720px) {
+  html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-drawing-tools {
+    flex-basis: 100%;
+    justify-content: flex-start;
+  }
+}
+
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button.active,
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button.is-active,
+html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[aria-pressed="true"] {
+  background: #e5e7eb;
+  color: #111827;
+  border-color: #cbd5e1;
+}
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button.active,
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button.is-active,
+html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[aria-pressed="true"] {
+  background: #424242;
+  color: #f5efe0;
+}

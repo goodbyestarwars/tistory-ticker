@@ -5,7 +5,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 
-const js = fs.readFileSync('js/stock-search.js', 'utf8');
+const js = fs.readFileSync('js/stock-search.js', 'utf8').replace(/\r\n/g, '\n');
 const css = fs.readFileSync('css/stock-search.css', 'utf8');
 
 function renderIndexControls() {

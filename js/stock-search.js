@@ -545,6 +545,7 @@
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<div class="ss-panel-right">'
       + '<div class="ss-panel-head"><h4>차트</h4></div>'
+      + '<div class="ss-stock-controls" role="group" aria-label="종목 차트 설정">'
       + '<div class="ss-chart-tabs">'
       + '<div class="ss-timeframe-tools">'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
@@ -574,7 +575,7 @@
       + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" id="ssVolumeProfileToggle" /> 매물대 표시</label>'
       + '<label title="일봉 OHLCV 관찰용. 상세 모드는 3배 거래량·장기선 접근/공방·회복의 원 관측을 하루 한 기호로 표시합니다. 축소 시 일부 기호를 생략하며 확대하면 다시 보입니다. 모든 조건은 십자선 툴팁에 있습니다. 실제 수급 주체를 뜻하지 않습니다."><input type="checkbox" id="ssAccumulationToggle" /> 거래량·가격 흔적</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" id="ssAutoWaveToggle" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
-      + '</div>'
+      + '</div></div>'
       + '<div id="ssChartNotice" class="ss-chart-legend" hidden></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">거래량은 캔들 아래 막대로 표시됩니다.</div>'
@@ -2266,6 +2267,7 @@
     state.minuteScope = '1';
     state.externalMinuteLoader = function (scope) { return options.load('minute', scope); };
     container.innerHTML = ''
+      + '<div class="ss-stock-controls" role="group" aria-label="종목 차트 설정">'
       + '<div class="ss-chart-tabs">'
       + '<div class="ss-timeframe-tools">'
       + '<button type="button" class="ss-tf-btn active" data-tf="day">일봉</button>'
@@ -2294,7 +2296,7 @@
       + '<label title="자동 파동이 확정한 고점·저점끼리 가격과 RSI의 방향이 엇갈린 구간에 선을 긋습니다. 과거 구조를 보여 줄 뿐 매수·매도 신호가 아닙니다."><input type="checkbox" data-chart-rsidiv-toggle /> RSI 다이버전스</label>'
       + '<label title="가격대별로 거래량이 많이 쌓인 구간을 차트 옆 막대로 보여 줍니다. 매물이 많이 걸린 가격대를 찾을 때 씁니다."><input type="checkbox" data-chart-vp-toggle /> 매물대 표시</label>'
       + '<label title="실험 기능: 가격 움직임의 구조를 상승(빨강)·하락(파랑)·횡보(회색)·변동성 큰 박스권(보라 회색) 박스로 나눠 보여줍니다. 대·중·소 규모를 고를 수 있고(기본 중파동) 한 단계 위 규모는 옅은 점선 윤곽으로 함께 보입니다. 극점은 되돌림이 확인된 뒤에 확정되고, 점선(진행 중·방향 미확정) 구간은 새 봉이 들어오면 바뀔 수 있습니다. 매수·매도 추천이 아닙니다."><input type="checkbox" data-chart-wave-toggle /> 파동 분석</label>' + waveLevelHtml()
-      + '</div>'
+      + '</div></div>'
       + '<div id="ssChart" class="ss-chart"><div class="ss-hint"><svg class="ss-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div>'
       + '<div class="ss-chart-legend">미국 일봉은 제공된 약 2년 자료 범위에서 기간을 선택합니다. 전체 = 수신한 자료 전체.</div>';
 
