@@ -65,7 +65,8 @@
   // 2026-10-06 틱 매매용: 성벽(추적 중인 매도벽) 잔량 변화를 이 시간(ms) 창으로 본다.
   var WALL_WINDOW_MS = 10000;
   var WALL_MIN_SPAN_MS = 2000;      // 이 시간보다 짧은 창은 추세·속도를 말하지 않는다
-  var WS_BOOK_FRESH_MS = 3000;      // WS 호가가 이 안에 왔으면 REST 폴링 호가 대신 WS 호가로 분석한다
+  var WS_BOOK_FRESH_MS = 3000;
+  var WALL_EVIDENCE_MS = 10000; // 실시간 체결/호가 신선도 한계      // WS 호가가 이 안에 왔으면 REST 폴링 호가 대신 WS 호가로 분석한다
   var WS_ANALYSIS_MIN_MS = 250;     // WS 호가가 빨라도 분석·문구 갱신은 이 간격 이상으로만
 
   var state = {
@@ -100,7 +101,10 @@
     lastQuoteVolume: null, // 직전 WS 시세의 누적 거래량(차이는 여러 체결의 합일 수 있음)
     volFlow: [],         // 매도벽 소진 보조 근사치 전용. buy:false를 매도주도로 해석하지 않는다.
     volSince: 0,
-    wallTrack: null,     // { price, samples:[{t,qty}], execs:[{t,qty}] } - 성벽 잔량 변화·체결량 창
+    wallTrack: null,     // 매도벽 동일 가격 관측
+    bidWallTrack: null,  // 매수벽 독립 추적
+    lastBookMeta: null,  // 호가 원천/수신 또는 조회 시각
+    lastExpected: null,  // 장전·장마감 예상체결 스냅샷
     summary: null,
     summaryGeneration: 0,
     quoteOnly: false,
@@ -162,6 +166,7 @@
       + '<div class="ob-hud-row"><span class="ob-hud-label ob-bid-text">지지(매수벽)</span><div class="ob-hud-bar"><span id="obSupportBar" class="ob-hud-fill ob-hud-fill-bid"></span></div><span id="obSupportVal" class="ob-hud-val">-</span></div>'
       + '<div class="ob-hud-row"><span class="ob-hud-label">체결강도</span><div class="ob-hud-bar"><span id="obStrengthBar" class="ob-hud-fill ob-hud-fill-strength"></span></div><span id="obStrengthVal" class="ob-hud-val">-</span></div>'
       + '<div id="obHudNote" class="ob-hud-note">종목을 선택하면 실시간으로 계산됩니다.</div>'
+      + '<div id="obBookProvenance" class="ob-book-provenance" role="status">호가 출처·수신 시각 확인 중</div>'
       + '<div id="obBreakoutNote" class="ob-breakout-note"></div>'
       + '<div id="obAbnormalBadges" class="ob-abnormal-badges"></div>'
       + '</div>'
@@ -292,6 +297,9 @@
     state.lastRealStrength = null;
     state.lastQuoteVolume = null;
     state.wallTrack = null;
+    state.bidWallTrack = null;
+    state.lastBookMeta = null;
+    state.lastExpected = null;
     state.volFlow = [];
     state.volSince = 0;
     state.summary = null;
@@ -427,9 +435,10 @@
     }
     if (state.liveTradeProvider === 'Kiwoom') state.tradeFeedStatus = '키움 실시간 체결 수신';
     if (quote.delayed || quote.source === 'Kiwoom WebSocket') scheduleTradeRender(container);
-    recordWallExec(quote);
     state.lastRealtimeQuote = quote;
     state.lastRealtimeAt = Date.now();
+    recordWallExec(quote);
+    renderBookProvenance(container, state.lastBookMeta, quote);
 
     var board = container.querySelector('#obBoard');
     if (!board) return;
@@ -535,13 +544,16 @@
       bids: wsBids.filter(function (r) { return r.price != null; })
     };
     state.lastWsBookAt = Date.now();
+    state.lastBookMeta = { source: orderbook.source || 'KIS WebSocket', ws: true, at: state.lastWsBookAt, market: 'KRX+NXT 통합' };
+    renderBookProvenance(container, state.lastBookMeta, state.lastRealtimeQuote);
     var nowMs = state.lastWsBookAt;
     if (nowMs - state.lastWsAnalysisAt < WS_ANALYSIS_MIN_MS) return;
     state.lastWsAnalysisAt = nowMs;
     if (!state.lastWsBook.asks.length && !state.lastWsBook.bids.length) return;
     var quote = state.lastRealtimeQuote && state.lastRealtimeQuote.code === state.code ? state.lastRealtimeQuote : null;
-    checkWallBreakthrough(container, state.lastWsBook, quote);
-    updateHud(container, state.lastWsBook, state.lastStrength, quote, state.lastRealStrength);
+    if (wallEvidenceReady(quote)) checkWallBreakthrough(container, state.lastWsBook, quote);
+    else { state.trackedWall = null; state.wallTrack = null; state.bidWallTrack = null; }
+    updateHud(container, state.lastWsBook, wallEvidenceReady(quote) ? state.lastStrength : null, quote, state.lastRealStrength);
     updateBreakoutNote(container, state.lastWsBook, quote);
     renderAbnormalBadges(container, state.lastWsBook, quote);
   }
@@ -685,24 +697,33 @@
         // WS 호가가 방금 왔으면 2초 전 스냅샷인 REST 호가 대신 그걸로 분석·렌더한다(깜빡임·지연 방지).
         if (book && state.lastWsBook && Date.now() - state.lastWsBookAt < WS_BOOK_FRESH_MS
             && state.lastWsBook.asks.length && state.lastWsBook.bids.length) {
-          book = Object.assign({}, book, { asks: state.lastWsBook.asks, bids: state.lastWsBook.bids });
+          book = Object.assign({}, book, { asks: state.lastWsBook.asks, bids: state.lastWsBook.bids, source: 'KIS WebSocket' });
         }
         if (book && (book.asks.length || book.bids.length)) {
+          if (book.expected) {
+            var expected = normalizeExpected(book.expected);
+            state.lastExpected = expected ? { value: expected, at: Date.now() } : null;
+          }
+          state.lastBookMeta = book.source === 'KIS WebSocket'
+            ? { source: 'KIS WebSocket', ws: true, at: state.lastWsBookAt, market: 'KRX+NXT 통합' }
+            : { source: book.source || '미확인', ws: false, at: Date.now(), checkedAt: book.checkedAt || null, market: '시장 구분 미확인', stexTp: book.stexTp || null };
           recordSnapshot(book, quote);
           // 강도 계산은 checkWallBreakthrough가 trackedWall을 초기화(돌파 시 null)하기 전에
           // 먼저 계산해야 "돌파 직전 100에 가까운 강도"가 자연스럽게 찍힌다.
           var strength = computeExecutionStrength();
           state.lastStrength = strength;
           state.lastRealStrength = book.strength || null;
-          checkWallBreakthrough(container, book, quote);
+          if (wallEvidenceReady(quote)) checkWallBreakthrough(container, book, quote);
+          else { state.trackedWall = null; state.wallTrack = null; state.bidWallTrack = null; }
           // 2026-08-05: 키움 ka10046(체결강도추이시간별)이 진짜 체결강도(book.strength, 틱
           // 기준)를 주면 그걸 우선 쓰고, 장 시간 외라 비어있으면(정상) 기존 매도벽 소진
           // 근사치(strength)로 폴백한다 - updateHud 참고.
-          updateHud(container, book, strength, quote, book.strength);
+          updateHud(container, book, wallEvidenceReady(quote) ? strength : null, quote, book.strength);
           updateBreakoutNote(container, book, quote);
           renderAbnormalBadges(container, book, quote);
         }
         renderBoard(container, book, quote);
+        renderBookProvenance(container, state.lastBookMeta, quote);
         // 새 이벤트가 없어도 상대시간(예: 10초 전)이 폴링 주기마다 계속 갱신되도록 한다.
         renderMilestoneLog(container);
       })
@@ -856,23 +877,34 @@
     return !quote || quote.changeRate == null || quote.changeRate >= 0;
   }
 
+  // 호가 10단계 밖으로 이동한 가격은 '돌파'가 아니므로 기록하지 않는다.
+  // 실제 체결 관측 없이는 취소·정정·매매 체결을 구별할 수 없다.
   function checkWallBreakthrough(container, book, quote) {
     var asks = book.asks || [];
     if (!state.trackedWall) {
       var candidate = findWallCandidate(asks);
-      if (candidate) state.trackedWall = { price: candidate.price, peakQty: candidate.qty };
+      if (candidate) {
+        state.trackedWall = { price: candidate.price, peakQty: candidate.qty };
+        wallTrack(state.trackedWall, 'ask');
+      }
       return;
     }
-
-    var found = asks.filter(function (r) { return r.price === state.trackedWall.price; })[0];
-    if (found) {
-      if (found.qty > state.trackedWall.peakQty) state.trackedWall.peakQty = found.qty;
-      if (found.qty > Math.max(1, state.trackedWall.peakQty * WALL_BREAK_RATIO)) return; // 아직 안 무너짐
-    }
-    // found가 없으면(그 가격대가 더 이상 매도 사다리에 없음 = 현재가가 완전히 지나감) 또는
-    // 잔량이 임계치 밑으로 줄었으면 이벤트로 판정(문구는 캔들 방향에 따라 분기).
-    recordMilestone(container, state.trackedWall.price, isUpCandle(quote));
+    var wall = state.trackedWall;
+    var found = asks.filter(function (r) { return r.price === wall.price; })[0];
+    if (!found) { state.trackedWall = null; state.wallTrack = null; return; }
+    if (found.qty > wall.peakQty) wall.peakQty = found.qty;
+    if (found.qty > Math.max(1, wall.peakQty * WALL_BREAK_RATIO)) return;
+    var tr = state.wallTrack;
+    var now = Date.now();
+    var observed = tr && tr.price === wall.price ? tr.execs
+      .filter(function (e) { return now - e.t <= WALL_EVIDENCE_MS; })
+      .reduce(function (sum, e) { return sum + e.qty; }, 0) : 0;
+    var fall = Math.max(0, wall.peakQty - found.qty);
+    // 가격이 매도벽 이상에 형성되고 감소량 대부분이 동일가 체결로 관측된 경우만.
+    if (fall > 0 && observed >= fall * 0.8 && quote && quote.price >= wall.price
+        && wallEvidenceReady(quote)) recordMilestone(container, wall.price, true);
     state.trackedWall = null;
+    state.wallTrack = null;
   }
 
   function recordMilestone(container, price, up) {
@@ -920,9 +952,9 @@
     }, TOAST_MS);
   }
 
-  // ---- 체결강도(근사치) - 추적 중인 매도벽이 최근 한 틱 사이 얼마나 줄었는지로 추정 ----
+  // ---- 과거 호환용 매도벽 잔량 변화 추정치 (실제 체결강도는 book.strength) ----
   function computeExecutionStrength() {
-    if (!state.trackedWall || state.history.length < 2) return null;
+    if (!state.trackedWall || state.history.length < 2 || !state.lastWsBook || Date.now() - state.lastWsBookAt > WS_BOOK_FRESH_MS) return null;
     var wall = state.trackedWall;
     var latest = state.history[state.history.length - 1];
     var prev = state.history[state.history.length - 2];
@@ -951,6 +983,8 @@
     if (breakoutNote) breakoutNote.textContent = '';
     var abnormalBox = container.querySelector('#obAbnormalBadges');
     if (abnormalBox) abnormalBox.innerHTML = '';
+    var meta = container.querySelector('#obBookProvenance');
+    if (meta) meta.textContent = '호가 출처·수신 시각 확인 중';
   }
 
   // 2026-07-28: "체결량이 얼마 정도면 뚫을 수 있는지"(사용자 요청) - 추적 중인 매도벽이
@@ -970,73 +1004,92 @@
   function updateBreakoutNote(container, book, quote) {
     var el = container.querySelector('#obBreakoutNote');
     if (!el) return;
+    el.textContent = '';
+    if (!isWallSession()) return;
+    if (isAuctionWindow()) {
+      el.textContent = '⏳ 단일가/시장 전환 구간 · 체결·취소 원인 판정 보류';
+      return;
+    }
+    if (!wallEvidenceReady(quote)) {
+      el.textContent = '⚠️ 실시간 통합 호가·체결 미동기 · 잔량 변화 원인 판정 보류';
+      return;
+    }
     var wall = state.trackedWall;
-    if (!wall || !isWallSession()) { el.textContent = ''; return; }
-    var level = (book.asks || []).filter(function (r) { return r.price === wall.price; })[0];
-    var currQty = level ? level.qty : 0;
-    var breakThreshold = Math.max(1, Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
-    var remaining = currQty - breakThreshold;
-    var up = isUpCandle(quote);
-    var priceLabel = Math.round(wall.price).toLocaleString('ko-KR');
-    var trend = wallTrend(wall, currQty, breakThreshold);
-    // 2026-10-06 사용자 요청: 직설적으로, 성벽(위 매도벽)/방패(아래 지지) 비유로 쓴다.
-    var main;
-    if (remaining <= 0) {
-      main = up
-        ? '🏰 ' + priceLabel + '원 매도벽 거의 소진'
-        : '🛡️ ' + priceLabel + '원 지지 방어 성공';
-    } else if (up) {
-      main = '🏰 ' + priceLabel + '원 매도벽 · ' + fmtQty(remaining) + '주 남음';
-    } else {
-      main = '🛡️ ' + priceLabel + '원 지지 · ' + fmtQty(remaining) + '주 더 받으면 반등';
+    if (wall) {
+      var level = (book.asks || []).filter(function (r) { return r.price === wall.price; })[0];
+      if (level) {
+        var remain = Math.max(0, level.qty - Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
+        el.textContent = '🏰 ' + Math.round(wall.price).toLocaleString('ko-KR')
+          + '원 매도벽 ' + fmtQty(level.qty) + '주 · 임계까지 ' + fmtQty(remain) + '주';
+        var trend = wallTrend(wall, level.qty, 0, 'ask');
+        if (trend) appendWallSub(el, trend);
+      }
     }
-    el.textContent = main;
-    if (trend) {
-      var sub = document.createElement('div');
-      sub.className = 'ob-breakout-sub';
-      sub.textContent = trend;
-      el.appendChild(sub);
-    }
-    if (up && remaining > 0) {
-      var need = document.createElement('div');
-      need.className = 'ob-breakout-sub';
-      need.textContent = volumeNeedLine(book, wall, remaining);
-      el.appendChild(need);
-    }
+    var bid = findWallCandidate(book.bids || []);
+    if (bid) {
+      var bidTrend = wallTrend(bid, bid.qty, 0, 'bid');
+      appendWallSub(el, '🛡️ ' + Math.round(bid.price).toLocaleString('ko-KR')
+        + '원 매수벽 ' + fmtQty(bid.qty) + '주'
+        + (bidTrend ? ' · ' + bidTrend : ' · 관측 시작'));
+    } else state.bidWallTrack = null;
   }
 
-  // 성벽(추적 중인 매도벽) 잔량을 최근 WALL_WINDOW_MS 동안 기록하고, 줄었으면
-  // "얼마나/체결 vs 취소/이 속도면 몇 초 뒤"를 한 줄로 만든다. 체결량은 WS 체결(applyRealtimeQuote)에서
-  // 성벽 가격과 같은 가격으로 찍힌 거래량 증가분만 센다 - 성벽이 최우선 매도호가가 아니면 체결이 올 수 없어
-  // 줄어든 만큼은 전부 취소로 본다. 호가 스냅샷 간격 사이의 체결은 근사치다.
-  function wallTrack(wall) {
-    if (!state.wallTrack || state.wallTrack.price !== wall.price) {
-      state.wallTrack = { price: wall.price, samples: [], execs: [] };
-    }
-    return state.wallTrack;
+  function appendWallSub(el, text) {
+    var sub = document.createElement('div');
+    sub.className = 'ob-breakout-sub';
+    sub.textContent = text;
+    el.appendChild(sub);
   }
 
+  // 동일 가격대의 양쪽 벽을 따로 관측한다. 실시간 개별 체결을 확인한 수량과
+  // 취소·정정·호가 이동 등을 구별할 수 없는 잔량 감소분을 확실히 분리한다.
+  function wallTrack(wall, side) {
+    var key = side === 'bid' ? 'bidWallTrack' : 'wallTrack';
+    if (!state[key] || state[key].price !== wall.price) {
+      state[key] = { price: wall.price, samples: [], execs: [] };
+    }
+    return state[key];
+  }
+
+  function isAuctionWindow() {
+    var kst = new Date(Date.now() + 9 * 3600000);
+    var day = kst.getUTCDay(), minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    return day >= 1 && day <= 5 && ((minutes >= 510 && minutes < 540)
+      || (minutes >= 920 && minutes < 940)); // 08:30~09:00, 15:20~15:40
+  }
+
+  function wallEvidenceReady(quote) {
+    return !isAuctionWindow() && state.lastWsBook
+      && Date.now() - state.lastWsBookAt <= WS_BOOK_FRESH_MS
+      && quote && !quote.delayed && quote.source === 'KIS WebSocket'
+      && state.lastRealtimeQuote && Date.now() - state.lastRealtimeAt <= WALL_EVIDENCE_MS;
+  }
+
+  // 누적 거래량 차이는 중간 가격의 여러 체결 합이다. 그것을 벽 소진에 대입하지 않는다.
+  // 동일가 '개별 체결'을 관측했어도 벽 체결의 인과관계까지 증명하지 못한다.
   function recordWallExec(quote) {
-    var vol = Number(quote.volume);
-    var prev = state.lastQuoteVolume;
+    var vol = Number(quote.volume), prev = state.lastQuoteVolume;
     if (Number.isFinite(vol) && vol > 0) state.lastQuoteVolume = vol;
-    if (prev == null || !Number.isFinite(vol) || vol <= prev) return;
-    var now = Date.now();
-    var qty = vol - prev;
-    var price = Number(quote.price);
-    // 매도벽 소진 보조 근사치다. 누적량 차이는 여러 체결의 합일 수 있고
-    // buy:false는 매도주도가 아니라 매수 근거를 확인하지 못했다는 뜻이다.
-    var bestAsk = null;
-    if (state.lastWsBook) {
-      state.lastWsBook.asks.forEach(function (r) { if (bestAsk == null || r.price < bestAsk) bestAsk = r.price; });
+    if (prev != null && Number.isFinite(vol) && vol > prev) {
+      var now = Date.now(), price = Number(quote.price), bestAsk = null;
+      if (state.lastWsBook) state.lastWsBook.asks.forEach(function (r) {
+        if (bestAsk == null || r.price < bestAsk) bestAsk = r.price;
+      });
+      if (!state.volSince) state.volSince = now;
+      state.volFlow.push({ t: now, qty: vol - prev, buy: bestAsk != null && price >= bestAsk });
+      while (state.volFlow.length && now - state.volFlow[0].t > WALL_WINDOW_MS) state.volFlow.shift();
     }
-    if (!state.volSince) state.volSince = now;
-    state.volFlow.push({ t: now, qty: qty, buy: bestAsk != null && price >= bestAsk });
-    while (state.volFlow.length && now - state.volFlow[0].t > WALL_WINDOW_MS) state.volFlow.shift();
-    var wall = state.trackedWall;
-    if (!wall || !state.wallTrack || state.wallTrack.price !== wall.price) return;
-    if (price !== wall.price) return;
-    state.wallTrack.execs.push({ t: now, qty: qty });
+    if (!wallEvidenceReady(quote) || !quote.trade) return;
+    var tradePrice = Number(quote.trade.price), tradeQty = Number(quote.trade.qty);
+    if (!(tradePrice > 0 && tradeQty > 0)) return;
+    ['ask','bid'].forEach(function (side) {
+      var track = side === 'ask' ? state.wallTrack : state.bidWallTrack;
+      if (!track || track.price !== tradePrice) return;
+      // 공급자가 방향을 제공하거나 호가로 추정한 방향이 반대라면 집계하지 않는다.
+      if (quote.trade.direction === (side === 'ask' ? 'sell' : 'buy')) return;
+      track.execs.push({ t: Date.now(), qty: tradeQty });
+      while (track.execs.length && Date.now() - track.execs[0].t > WALL_WINDOW_MS) track.execs.shift();
+    });
   }
 
   // 위로 가는 데 필요한 체결량(현재가~성벽 사이 매도 잔량 + 성벽 소진 임계까지) ÷ 최근 매수 체결 속도.
@@ -1059,28 +1112,56 @@
     return head + ' → 부족';
   }
 
-  function wallTrend(wall, currQty, breakThreshold) {
-    var tr = wallTrack(wall);
-    var now = Date.now();
+  function wallTrend(wall, currQty, breakThreshold, side) {
+    var tr = wallTrack(wall, side), now = Date.now();
+    tr.peakQty = Math.max(tr.peakQty || 0, currQty);
     tr.samples.push({ t: now, qty: currQty });
     while (tr.samples.length > 1 && now - tr.samples[0].t > WALL_WINDOW_MS) tr.samples.shift();
     while (tr.execs.length && now - tr.execs[0].t > WALL_WINDOW_MS) tr.execs.shift();
-    var first = tr.samples[0];
-    var spanMs = now - first.t;
+    var first = tr.samples[0], spanMs = now - first.t;
     if (spanMs < WALL_MIN_SPAN_MS) return '';
-    var spanSec = Math.round(spanMs / 1000);
-    var delta = first.qty - currQty; // 양수 = 성벽이 깎임
-    var noise = Math.max(1, wall.peakQty * 0.02);
-    if (Math.abs(delta) < noise) return '⏸ ' + spanSec + '초간 변화 없음';
-    if (delta < 0) return '▲ ' + spanSec + '초간 +' + fmtQty(-delta) + '주 (벽 두꺼워짐)';
-    var execQty = tr.execs.reduce(function (sum, e) { return sum + e.qty; }, 0);
-    var execPct = Math.max(0, Math.min(100, Math.round(execQty / delta * 100)));
-    var text = '▼ ' + spanSec + '초간 -' + fmtQty(delta) + '주 (체결 ' + execPct + '% · 취소 ' + (100 - execPct) + '%)';
-    var remaining = currQty - breakThreshold;
-    var etaSec = remaining > 0 ? remaining / (delta / (spanMs / 1000)) : 0;
-    if (etaSec > 0 && etaSec <= 300) text += ' · 약 ' + Math.max(1, Math.round(etaSec)) + '초 뒤 소진';
-    if (execPct <= 30) text += ' ⚠️ 취소 위주';
-    return text;
+    var sec = Math.round(spanMs / 1000), delta = first.qty - currQty;
+    if (Math.abs(delta) < Math.max(1, tr.peakQty * 0.02)) return '⏸ ' + sec + '초간 변화 없음';
+    if (delta < 0) return '▲ ' + sec + '초간 +' + fmtQty(-delta) + '주 (주문 증가)';
+    var observed = tr.execs.filter(function (e) { return e.t >= first.t; })
+      .reduce(function (sum, e) { return sum + e.qty; }, 0);
+    var matched = Math.min(delta, observed), other = Math.max(0, delta - matched);
+    return '▼ ' + sec + '초간 -' + fmtQty(delta)
+      + '주 · 동일가 체결 관측 ' + fmtQty(matched) + '주 · 미확인 감소 '
+      + fmtQty(other) + '주 (취소·정정·호가 이동 등 포함)';
+  }
+
+  function normalizeExpected(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    var price = Number(raw.antc_cnpr), volume = Number(raw.antc_vol);
+    if (!(price > 0 && Number.isFinite(price))) return null;
+    return { price: price, volume: Number.isFinite(volume) && volume >= 0 ? volume : null };
+  }
+
+  function renderBookProvenance(container, meta, quote) {
+    var el = container.querySelector('#obBookProvenance');
+    if (!el) return;
+    if (!meta) { el.textContent = '호가 출처·기준시각 미수신'; return; }
+    var stamp = meta.ws ? new Date(meta.at).toLocaleTimeString('ko-KR', { timeZone:'Asia/Seoul', hour12:false })
+      : (meta.checkedAt ? String(meta.checkedAt).slice(11,19) : '미확인');
+    var age = Date.now() - meta.at;
+    var source = meta.ws ? 'KIS 통합 WS' : (meta.source || 'REST');
+    var status = age > WALL_EVIDENCE_MS ? ' · ⚠️ 오래된 호가'
+      : meta.ws ? ' · 실시간 수신' : ' · 조회시각만 확인(원천시각 미제공)';
+    var market = meta.market || '시장 구분 미확인';
+    if (meta.stexTp) market += ' · 코드 ' + String(meta.stexTp);
+    var text = '📡 ' + source + ' · ' + market + ' · ' + stamp + ' KST' + status;
+    if (isAuctionWindow()) {
+      var ex = state.lastExpected;
+      if (ex && Date.now() - ex.at < WALL_EVIDENCE_MS) {
+        text += ' | 예상체결가 ' + fmtPrice(ex.value.price);
+        if (ex.value.volume != null) text += ' · 예상체결량 ' + fmtQty(ex.value.volume) + '주';
+        text += ' (REST 통합 참고 · 시장별 미검증)';
+      } else text += ' | 예상체결가 미수신';
+    }
+    if (quote && quote.price > 0 && meta.ws && state.lastRealtimeAt
+        && Date.now() - state.lastRealtimeAt > WALL_EVIDENCE_MS) text += ' · ⚠️ 현재가 지연';
+    el.textContent = text;
   }
 
   // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를

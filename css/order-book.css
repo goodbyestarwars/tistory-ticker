@@ -187,6 +187,19 @@
 }
 html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !important; }
 
+/* 2026-10-22: 호가 시장 범위·조회/수신 시각·동시호가 예상체결 표시 */
+#order-book .ob-book-provenance {
+  margin-top: 5px;
+  padding-top: 5px;
+  border-top: 1px dashed #e5e5e5;
+  font-size: 11px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  color: #5b6572;
+  font-variant-numeric: tabular-nums;
+}
+html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
+
 /* 비정상 매물대 배지(2026-09-21) - 매수/매도 잔량 쏠림·특정 호가 벽을 한눈에 보이게 표시 */
 #order-book .ob-abnormal-badges:not(:empty) {
   display: flex;
