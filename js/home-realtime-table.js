@@ -419,7 +419,6 @@
     if (!button) return;
     button.textContent = state.includeEtf ? 'ETF·ETN 포함' : 'ETF·ETN 제외';
     button.setAttribute('aria-pressed', String(state.includeEtf));
-    button.setAttribute('title', state.includeEtf ? 'ETF·ETN을 숨기려면 누르세요.' : 'ETF·ETN을 포함하려면 누르세요.');
   }
 
   function visibleRows(rows) {
@@ -600,7 +599,7 @@
     if (widgetActions) widgetActions.remove();
     mount.setAttribute('data-hrt-active', state.active);
     mount.innerHTML = '<div class="hrt-head"><div><strong>실시간 종목판</strong><span data-hrt-session></span></div>'
-      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false" title="ETF·ETN을 포함하려면 누르세요.">ETF·ETN 제외</button>'
+      + '<div class="hrt-head-actions"><button type="button" class="hrt-etf-toggle" data-hrt-etf-toggle aria-pressed="false">ETF·ETN 제외</button>'
       + '<small data-hrt-updated>시세 확인 중 · <span data-hrt-connection>실시간 연결 중</span></small></div></div>'
       + '<div class="hrt-tabs" role="tablist" aria-label="실시간 종목 정렬">'
       + tabs.map(function (tab) {
