@@ -2864,12 +2864,24 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp :is(.mt-fx-beam, .mt-fx-stand) { fill: none !important; stroke: var(--pulse-sub) !important; stroke-width: 3px; stroke-linecap: round; }
   html body #market-temp .mt-fx-pan { color: var(--pulse-blue) !important; }
   html body #market-temp .mt-fx-pan.is-heavy { color: var(--pulse-red) !important; }
-  html body #market-temp .mt-fx-pan path { fill: none !important; stroke: currentColor !important; stroke-width: 1.5px; }
-  html body #market-temp .mt-fx-pan .mt-fx-bowl { fill: currentColor !important; stroke: none !important; opacity: .22; }
+  html body #market-temp .mt-fx-pan path { fill: none !important; stroke: var(--pulse-blue) !important; stroke-width: 1.5px; }
+  html body #market-temp .mt-fx-pan .mt-fx-bowl { fill: var(--pulse-blue) !important; stroke: none !important; opacity: .22; }
+  html body #market-temp .mt-fx-pan.is-heavy path { stroke: var(--pulse-red) !important; }
+  html body #market-temp .mt-fx-pan.is-heavy .mt-fx-bowl { fill: var(--pulse-red) !important; stroke: none !important; }
   html body #market-temp .mt-fx-pan.is-heavy .mt-fx-bowl { opacity: .65; }
-  html body #market-temp .mt-fx-pan text { fill: currentColor !important; font-size: 14px; font-weight: 650; text-anchor: middle; }
+  html body #market-temp .mt-fx-pan text { fill: var(--pulse-blue) !important; font-size: 14px; font-weight: 650; text-anchor: middle; }
+  html body #market-temp .mt-fx-pan.is-heavy text { fill: var(--pulse-red) !important; }
   html body #market-temp [data-fx-stronger="unavailable"] .mt-fx-pan,
   html body #market-temp [data-fx-stronger="balanced"] .mt-fx-pan { color: var(--pulse-sub) !important; }
+  html body #market-temp :is([data-fx-stronger="unavailable"], [data-fx-stronger="balanced"]) .mt-fx-pan path { stroke: var(--pulse-sub) !important; }
+  html body #market-temp :is([data-fx-stronger="unavailable"], [data-fx-stronger="balanced"]) .mt-fx-pan .mt-fx-bowl,
+  html body #market-temp :is([data-fx-stronger="unavailable"], [data-fx-stronger="balanced"]) .mt-fx-pan text { fill: var(--pulse-sub) !important; }
+  html body #market-temp .mt-chart-negative .mt-fc-line { stroke: var(--pulse-blue) !important; }
+  html body #market-temp .mt-chart-positive .mt-fc-line { stroke: var(--pulse-red) !important; }
+  html body #market-temp .mt-chart-negative :is(.mt-fc-dot, .mt-fc-halo) { fill: var(--pulse-blue) !important; }
+  html body #market-temp .mt-chart-positive :is(.mt-fc-dot, .mt-fc-halo) { fill: var(--pulse-red) !important; }
+  html body #market-temp .mt-chart-negative stop { stop-color: var(--pulse-blue) !important; }
+  html body #market-temp .mt-chart-positive stop { stop-color: var(--pulse-red) !important; }
   html body #market-temp .mt-extra-heading { margin: 0 !important; padding: 17px 0 12px !important; font-size: 13px !important; font-weight: 600; color: var(--pulse-ink, #27364b) !important; }
   html body #market-temp .mt-front-tools .mt-ai-panel { margin-top: 20px !important; padding-top: 5px !important; border-top: 1px solid var(--pulse-line, #e7edf5) !important; }
   @media (min-width: 761px) {
