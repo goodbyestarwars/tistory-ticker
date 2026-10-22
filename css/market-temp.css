@@ -2784,3 +2784,19 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-chart-grade.mt-rib-tone-fear { color: var(--pulse-blue) !important; background: color-mix(in srgb, var(--pulse-blue) 9%, var(--pulse-surface)) !important; }
   html body #market-temp .mt-chart-grade.mt-rib-tone-greed { color: var(--pulse-red) !important; background: color-mix(in srgb, var(--pulse-red) 9%, var(--pulse-surface)) !important; }
 }
+
+/* 2026-10-22 사용자 요청: 글자가 너무 크다 → 헤드라인·종목 수 숫자를 줄이고, 점수 칸을 뺀 자리에 시장 자금·금리 줄을 같은 모양으로 둔다 */
+@layer np.np {
+  html body #market-temp .mt-front-headline { font-size: 22px !important; line-height: 1.4 !important; }
+  html body #market-temp .mt-front-lead { font-size: 13px !important; }
+  html body #market-temp .mt-breadth-counts b { font-size: 15px !important; }
+  html body #market-temp .mt-glance { margin-top: 16px; }
+  html body #market-temp .mt-glance .mt-flow-actors { grid-template-columns: 1fr !important; gap: 6px !important; }
+  html body #market-temp .mt-glance .mt-flow-actor { padding: 10px 12px !important; }
+  html body #market-temp .mt-glance .mt-flow-status { font-size: 12.5px !important; text-align: right; white-space: normal; }
+  html body #market-temp .mt-glance .mt-flow-status small { display: block; font-size: 10.5px; font-weight: 400; color: var(--pulse-sub); }
+  html body #market-temp .mt-glance-empty { padding: 10px 2px; font-size: 12px; color: var(--pulse-sub); }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-front-headline { font-size: 19px !important; }
+  }
+}
