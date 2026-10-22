@@ -2647,8 +2647,10 @@
       }
       // 참고(점수 미반영): 새벽에 마감한 미국 현물 지수와 코스피 야간선물. 기존 응답의 일봉 마지막 두 봉만 쓴다.
       var auxItems = [['S&P 500', by.SP500_INDEX], ['나스닥 종합', by.NASDAQ_INDEX], ['다우존스', by.DOW_INDEX], ['코스피 야간선물', by.KOSPI200_NIGHT]].map(function (it) {
-        var c = lastBarChange_(it[1]);
-        return '<li><span>' + it[0] + '<small>' + (c ? c.date + (it[0] === '코스피 야간선물' ? ' 마감 · ' + c.close.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : ' 마감') : '미수신') + '</small></span>'
+        var c = lastBarChange_(it[1]), dayBar = by.KOSPI200_DAY && by.KOSPI200_DAY.chart && by.KOSPI200_DAY.chart.slice(-1)[0];
+        // 야간선물은 위 참고 문구와 같게 주간선물 마지막 종가 대비로 센다.
+        if (c && it[1] === by.KOSPI200_NIGHT) c = dayBar && Number(dayBar.close) ? { close: c.close, pct: (c.close / Number(dayBar.close) - 1) * 100, date: c.date, vsDay: true } : null;
+        return '<li><span>' + it[0] + '<small>' + (c ? c.date + (it[0] === '코스피 야간선물' ? ' 마감 · ' + c.close.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) + ' · 주간 종가 대비' : ' 마감') : '미수신') + '</small></span>'
           + (c ? '<b class="' + cls(c.pct) + '">' + sgn(c.pct) + '</b>' : '<b class="mt-val-zero">미수신</b>') + '</li>';
       }).join('');
       var auxHtml = '<div class="mt-tm-aux"><b>새벽 마감 · 참고</b><ul class="mt-tm-why mt-tm-aux-list">' + auxItems + '</ul></div>';
