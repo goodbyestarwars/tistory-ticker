@@ -106,3 +106,37 @@ def test_real_loop_drains_973_ticks_during_slow_rank_without_drops(monkeypatch):
             await asyncio.gather(task, return_exceptions=True)
         assert hub.sub.closed
     asyncio.run(scenario())
+
+
+def test_prior_day_drop_does_not_block_new_day(tmp_path, monkeypatch):
+    """Yesterday's confirmed loss is not today's drop; no live feed or order calls."""
+    path = tmp_path / 'state.json'
+    monkeypatch.setattr(live, 'STATE_PATH', str(path))
+    monkeypatch.setattr(live, '_status', dict(live._status, candidateDetails=[],
+                                            observations={}, signals=[],
+                                            queueDropped=473, persistenceError=None))
+    saved = live.logic.Observer([], {})
+    assert live._persist(saved, '2026-10-21')
+    # Same long-lived hub subscription has already seen 473 losses yesterday.
+    baseline_drops, subscription_base = live._start_trading_day(
+        live.logic.Observer([], {}), '2026-10-22', 473, first_day=False)
+    assert baseline_drops == 0 and subscription_base == 473
+    assert live.signal_snapshot()['queueDropped'] == 0
+    assert baseline_drops + (473 - subscription_base) == 0
+    # But even one loss *today* must remain fatal to new entries.
+    assert baseline_drops + (474 - subscription_base) == 1
+
+
+def test_same_day_saved_drop_survives_restart_after_rollover(tmp_path, monkeypatch):
+    path = tmp_path / 'state.json'
+    monkeypatch.setattr(live, 'STATE_PATH', str(path))
+    monkeypatch.setattr(live, '_status', dict(live._status, candidateDetails=[],
+                                            observations={}, signals=[],
+                                            queueDropped=3, persistenceError=None))
+    assert live._persist(live.logic.Observer([], {}), '2026-10-22')
+    # New server process has a new subscription (counter zero).
+    saved, subscriber_base = live._start_trading_day(
+        live.logic.Observer([], {}), '2026-10-22', 0, first_day=True)
+    assert saved == 3 and subscriber_base == 0
+    assert live.signal_snapshot()['queueDropped'] == 3
+    assert saved + (1 - subscriber_base) == 4
