@@ -1513,8 +1513,7 @@
         }
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
-        loadMarketIndicators_(container);
-        loadAiBriefing(container);
+        loadMarketIndicators_(container, data);
         loadTomorrow_(container);
         loadSectorFlow_(container);
         scrollToHash_(container);
@@ -1578,34 +1577,18 @@
   var MARKET_TEMP_URL = 'https://goodbyestar.cloud/market-temp';
 
   function fetchMarketTemp() {
-    return fetchJson_(MARKET_TEMP_URL).then(function (body) {
-      // VM은 {success, updatedAt, data}로 감싸고 GAS는 본문을 그대로 준다 - 이 화면의
-      // 다른 VM 호출부와 같은 방식으로 둘 다 받아넘긴다.
-      return body && body.data ? body.data : body;
-    });
-  }
-
-  // AI 시장 브리핑은 별도 엔드포인트(Groq 호출이라 메인 온도 조회보다 느릴 수 있음) - 메인
-  // 카드 렌더링을 막지 않도록 init()에서 병렬이 아니라 카드가 이미 그려진 뒤 비동기로
-  // 채워넣는다(다른 페이지의 AI요약 박스와 동일한 패턴 - 실패해도 나머지 카드는 정상 표시).
-  function fetchMarketTempBriefing() {
-    return fetchJson_(GAS_TICKER_URL + '?marketTempBriefing=1');
-  }
-
-  function loadAiBriefing(container) {
-    var mount = container.querySelector('#mtAiBriefing');
-    if (!mount) return;
-    MarketTemp.fetchMarketTempBriefing()
-      .then(function (data) {
-        if (data && data.analysis) {
-          mount.innerHTML = '<p class="mt-ai-text">' + escapeHtml(data.analysis) + '</p>';
-        } else {
-          mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">브리핑을 생성하지 못했습니다.</p>';
-        }
-      })
-      .catch(function () {
-        mount.innerHTML = '<p class="mt-ai-text mt-ai-empty">브리핑을 불러오지 못했습니다.</p>';
+    var cached = global.__mtSnapshotFetch;
+    if (!cached || Date.now() - cached.started > 60000) {
+      cached = { started: Date.now() };
+      global.__mtSnapshotFetch = cached;
+      cached.promise = fetchJson_(MARKET_TEMP_URL).then(function (body) {
+        return body && body.data ? body.data : body;
+      }).catch(function (error) {
+        if (global.__mtSnapshotFetch === cached) global.__mtSnapshotFetch = null;
+        throw error;
       });
+    }
+    return cached.promise;
   }
 
   // comp(서버 응답의 지표별 원자료)에서 unit에 맞는 표시 텍스트 + 색상톤을 뽑는다.
@@ -2104,7 +2087,7 @@
       var value = investor && amount != null ? indicatorMoney_(Math.abs(amount)) : m.valueText;
       var note = investor ? m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : '';
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
-        + '<b class="mt-glance-state is-' + tone + '">' + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
+        + '<b class="mt-glance-state is-' + tone + '">' + (investor && amount != null && amount !== 0 ? '<i class="mt-flow-arrow" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : '') + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
         + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(shortDate_(date)) + ' 기준' : '기준일 확인 중') + '</small>';
       var bar = m.id === 'individual' ? renderInvestorShares_(shares) : '';
@@ -2131,7 +2114,7 @@
     var label = shares.items.map(function (r) { return r.label + ' ' + r.percent + '%'; }).join(' · ');
     return '<div class="mt-investor-share"><div class="mt-share-head"><b>수급 비중</b><span>합계 100%</span></div>'
       + '<div class="mt-share-bar" role="img" aria-label="' + escapeHtml(label) + '">' + shares.items.map(function (r) {
-        return '<span class="is-' + (r.value > 0 ? 'positive' : r.value < 0 ? 'negative' : 'neutral') + '" style="width:' + r.percent + '%" title="' + escapeHtml(r.label + ' ' + r.percent + '%') + '"></span>';
+        return '<span class="is-' + (r.value > 0 ? 'positive' : r.value < 0 ? 'negative' : 'neutral') + (Number(r.percent) < 8 ? ' is-small' : '') + '" style="width:' + r.percent + '%" title="' + escapeHtml(r.label + ' ' + r.percent + '%') + '">' + r.percent + '%</span>';
       }).join('') + '</div><p class="mt-share-note">순매수·순매도 금액의 절댓값 합계 기준 · ' + escapeHtml(shortDate_(shares.date)) + '</p></div>';
   }
   function fxBalanceState_(m) {
@@ -2163,7 +2146,7 @@
       + buildFlowChart_(shown, model)
       + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
   }
-  function loadMarketIndicators_(container) {
+  function loadMarketIndicators_(container, data) {
     var panel = container.querySelector('.mt-front-page');
     if (!panel || panel.__indicatorWired) return;
     panel.__indicatorWired = true;
@@ -2204,6 +2187,8 @@
       }
       state.models = buildIndicatorModels_(payload(results[0], {}), payload(results[1], []));
       render();
+      var checkpoint = container.querySelector('[data-market-checkpoint]');
+      if (checkpoint && data) checkpoint.innerHTML = buildStrategy(data, state.models);
     });
   }
 
@@ -2277,15 +2262,6 @@
   var MT_AI_ICON = '<svg class="mt-ai-icon" width="14" height="14" viewBox="0 0 24 24"'
     + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
     + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-
-  function buildAiBriefingShell() {
-    return ''
-      + '<div class="mt-briefing-panel">'
-      + '<div class="mt-briefing-panel-title">' + MT_AI_ICON + ' 참고의견</div>'
-      + '<div id="mtAiBriefing"><div class="mt-hint mt-hint-inline">브리핑 생성 중...</div></div>'
-      + '<small class="mt-ai-model">Groq 모델 생성 · 보조 해석이며 투자 권유가 아닙니다.</small>'
-      + '</div>';
-  }
 
   // ---- ③ 시장 구성 요소: 개인 투자자가 글을 읽지 않아도 "오늘 판단 / 무엇이 점수를
   // 올리고 내렸는지"를 바로 읽도록 양방향 영향도 막대로 압축한다. 상세 기준은 접은 영역에 둔다. ----
@@ -2761,59 +2737,65 @@
 
   // ---- ⑦ 시장 레이더 차트 ----
 
-  // 2026-09-16: 주식/현금 비중 막대를 개인 투자자용 점검표로 바꿨다(ANT_GUIDE_BY_TONE 주석 참고).
-  // 2026-10-04 /page/market-temp 재디자인: 판단 문구 + 점수 3개(시장 체력·위험도·자금 유입) | 지금 할 것 | 주의할 것 한 줄 배치.
-  // 문구·점수는 antGuide/score100/axes가 이미 계산한 값을 그대로 읽는다(계산식·문구 로직 변경 없음).
+  // 체크포인트는 상단과 같은 원자료를 재사용한다. 합성점수 대신 실제 시장 폭과 수급·거래량·환율을 문장으로 읽는다.
   function checkpointDate_(data) {
     var m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(data && data.updatedAt || ''));
     return m ? m[1] + '.' + m[2] + ' 기준' : '';
   }
 
-  function buildStrategy(data) {
-    var guide = antGuide(data);
-    var axes = (data && data.axes) || {};
-    function list(items) {
-      return items.map(function (text) { return '<li>' + emphasizeChecklist_(text) + '</li>'; }).join('');
+  function checkpointFacts_(data, models) {
+    models = models || [];
+    var story = frontPageStory_(data), b = story.breadth, items = [];
+    var down = b && b.down > b.up * 1.5, up = b && b.up > b.down * 1.5;
+    var title = down ? '하락이 넓게 퍼졌습니다. 내 종목의 변화부터 확인하세요.'
+      : up ? '오르는 종목이 많습니다. 수급도 함께 붙는지 살펴보세요.'
+      : b ? '종목마다 방향이 다릅니다. 내 종목의 근거를 먼저 살펴보세요.' : '확인된 시장 자료부터 차례로 살펴보세요.';
+    var shares = investorShares_(models), actors = shares && shares.items;
+    function find(id) { return models.filter(function (m) { return m.id === id; })[0]; }
+    if (actors) {
+      var selling = actors[0].value < 0 && actors[1].value < 0, buying = actors[0].value > 0 && actors[1].value > 0;
+      if (selling && down) title = actors[2].value > 0 ? '개인이 받고, 외국인·기관은 팔고 있습니다.' : '하락 종목이 많고, 외국인·기관은 함께 팔고 있습니다.';
+      else if (selling && up) title = '오르는 종목은 많지만, 외국인·기관 수급은 매도 쪽입니다.';
+      else if (buying && down) title = '하락 종목은 많지만, 외국인·기관은 함께 사고 있습니다.';
+      else if (buying && up) title = '외국인·기관의 순매수와 종목 상승이 함께 나타납니다.';
+      items.push({ label: '누가 사고파는지', evidence: actors.map(function (r) {
+        return r.label + ' ' + (r.value > 0 ? '순매수 ' : r.value < 0 ? '순매도 ' : '순매매 없음 ') + indicatorMoney_(Math.abs(r.value));
+      }).join(' · '), date: shortDate_(shares.date) + ' 기준',
+        check: selling ? '보유 종목의 외국인·기관 수급도 같은 흐름인지 비교하세요.' : buying ? '오르는 종목에도 순매수가 이어지는지 확인하세요.' : '시장 전체의 수급과 보유 종목의 수급을 나란히 확인하세요.' });
     }
-    function metric(label, value, word, tone) {
-      var v = Number(value);
-      return '<div class="mt-cp-metric"><span class="mt-cp-metric-label">' + escapeHtml(label) + '</span>'
-        + '<div class="mt-cp-metric-row"><b>' + (isFinite(v) ? Math.round(v) : '-') + '</b>'
-        + (word ? '<em class="mt-cp-state mt-cp-' + tone + '">' + escapeHtml(word) + '</em>' : '') + '</div>'
-        + '<small>' + escapeHtml(label) + ' ' + (isFinite(v) ? Math.round(v) + '점' : '-') + '</small></div>';
-    }
-    var health = score100(data);
-    var risk = Number(axes.risk && axes.risk.value);
-    var money = Number(axes.money && axes.money.value);
-    function level(v, words) { return !isFinite(v) ? '' : v >= 65 ? words[2] : v >= 35 ? words[1] : words[0]; }
-    function toneOf(v) { return !isFinite(v) ? 'mid' : v >= 65 ? 'hi' : v >= 35 ? 'mid' : 'lo'; }
-    var dateText = checkpointDate_(data);
-    return ''
-      + '<div class="mt-strategy-panel mt-ant-guide mt-ant-' + guide.tone + '" id="mt-ant-guide">'
-      + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트<small>오늘 시장을 어떻게 해석하고 대응할지 정리한 가이드입니다. 지표를 그대로 매수·매도 신호로 해석하지 마세요.</small></div>'
+    var volumes = ['kospi-volume', 'kosdaq-volume'].map(find).filter(function (m) { return m && m.value != null; });
+    if (volumes.length) items.push({ label: '거래가 따라오는지', evidence: volumes.map(function (m) {
+      return m.label + ' ' + m.statusText + ' (' + m.valueText + ', ' + shortDate_(m.date) + ')';
+    }).join(' · '), date: '직전 20개 기록 평균 대비', check: volumes.some(function (m) { return m.intraday; })
+      ? '장중 누적치입니다. 마감 전 수치를 하루 전체 거래량과 구분해서 보세요.'
+      : volumes.some(function (m) { return m.value < 80; }) ? '가격 움직임만 보지 말고, 보유 종목의 거래량도 평소와 비교하세요.' : '시장 거래량과 보유 종목의 거래량이 함께 늘었는지 비교하세요.' });
+    var fx = find('fx');
+    if (fx && fx.value != null && fx.delta != null) items.push({ label: '환율도 같은 방향인지',
+      evidence: (fx.delta > 0 ? '달러 강세' : fx.delta < 0 ? '원화 강세' : '환율 변화 없음') + ' · 1달러 ' + fx.valueText + ' (' + fx.changeText + ')',
+      date: shortDate_(fx.date) + ' 기준', check: '환율 영향을 받는 종목은 주가와 환율이 함께 움직이는지 살펴보세요.' });
+    if (!items.length) items.push({ label: '내 종목과 시장을 구분해서 보기', evidence: b ? story.headline : '상승·하락 종목 집계를 확인하고 있습니다.',
+      date: checkpointDate_(data), check: '시장 전체의 움직임인지, 해당 종목의 뉴스·공시가 원인인지 먼저 확인하세요.' });
+    return { title: title, mood: story.lead, tone: down ? 'negative' : up ? 'positive' : 'neutral', items: items };
+  }
+
+  function buildStrategy(data, models) {
+    var facts = checkpointFacts_(data, models), dateText = checkpointDate_(data);
+    return '<div class="mt-strategy-panel mt-ant-guide mt-checkpoint-facts" id="mt-ant-guide">'
+      + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트</div>'
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
-      + '<div class="mt-cp-body">'
-      + '<div class="mt-strategy-message mt-cp-call">'
-      + '<div class="mt-strategy-action">' + escapeHtml(guide.title) + '</div>'
-      + '<div class="mt-ant-mood">' + escapeHtml(guide.mood) + '</div>'
-      + '<div class="mt-cp-metrics">'
-      + metric('시장 체력', health, level(health, ['약함', '보통', '강함']), toneOf(health))
-      + metric('위험도', risk, level(risk, ['낮음', '보통', '높음']), toneOf(risk))
-      + metric('수급 방향', money, level(money, ['약함', '보통', '강함']), toneOf(money))
-      + '</div></div>'
-      + '<div class="mt-ant-list mt-ant-todo"><b>지금 할 것</b><ul>' + list(guide.todo) + '</ul></div>'
-      + '<div class="mt-ant-list mt-ant-avoid"><b>주의할 것</b><ul>' + list(guide.avoid) + '</ul></div>'
-      + '</div>'
-      + '<div class="mt-cp-foot"><div class="mt-strategy-note">매수·매도 추천이 아니라, 이런 분위기의 날 흔히 하는 실수를 막기 위한 점검표입니다.</div>'
-      + '</div>'
-      + '</div>';
+      + '<div class="mt-cp-body"><div class="mt-strategy-message mt-cp-call is-' + facts.tone + '">'
+      + '<div class="mt-strategy-action">' + escapeHtml(facts.title) + '</div><p class="mt-ant-mood">' + escapeHtml(facts.mood) + '</p>'
+      + '<small class="mt-cp-context">실제 집계로 읽는 오늘의 흐름</small></div>'
+      + '<div class="mt-cp-next"><h3>지금 할 것</h3><ol>' + facts.items.map(function (item) {
+        return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + escapeHtml(item.evidence) + '</p>'
+          + '<small>' + escapeHtml(item.date) + '</small><p class="mt-cp-check">' + escapeHtml(item.check) + '</p></li>';
+      }).join('') + '</ol></div></div></div>';
   }
 
   function buildBriefingStrategy(data) {
     return '<div class="mt-section mt-card mt-briefing-strategy-card">'
       + '<div class="mt-briefing-strategy-grid mt-briefing-single">'
-      + buildStrategy(data)
-      + '<div class="mt-ai-panel" id="mtAiPanel"><h3 class="mt-extra-heading">AI 시장 해석</h3>' + buildAiBriefingShell() + '</div>'
+      + '<div data-market-checkpoint>' + buildStrategy(data) + '</div>'
       + '</div>'
       + '</div>';
   }
@@ -4172,7 +4154,7 @@
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + buildIndicatorHistoryShell_() + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading">다음 거래일 출발 · 미국장 기준</h3>' + buildTomorrowCard_() + '</section>',
-      '<section class="mt-front-extra"><h3 class="mt-extra-heading">투자 체크리스트 · AI 시장 해석</h3>' + buildBriefingStrategy(data) + '</section></div>',
+      '<section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(),
       buildRotationSlot_(),
       buildIndexFlow_(),
@@ -4294,7 +4276,6 @@
   var MarketTemp = {
     init: init,
     fetchMarketTemp: fetchMarketTemp,
-    fetchMarketTempBriefing: fetchMarketTempBriefing,
     // 업종 TOP은 실시간 종목판 응답에서 파생돼 mock만으로는 화면을 못 그린다.
     // 로컬 하네스가 표본 데이터를 직접 넣어 레이아웃을 확인할 수 있게 열어둔다
     // (js/foreign-flow.js의 fetchJson 몽키패치와 같은 취지).

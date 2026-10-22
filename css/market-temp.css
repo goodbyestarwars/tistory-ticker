@@ -2898,3 +2898,41 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
     html body #market-temp .mt-glance-amount { font-size: 11px !important; }
   }
 }
+
+@layer np.np {
+  html body #market-temp .mt-front-headline { font-size: 18px !important; }
+  html body #market-temp .mt-flow-arrow { font-style: normal; font-size: 14px !important; font-weight: 650; }
+  html body #market-temp .mt-share-bar { height: 22px; }
+  html body #market-temp .mt-share-bar span { display: flex; align-items: center !important; justify-content: center; overflow: hidden; white-space: nowrap; font-size: 10px; font-weight: 650; color: var(--pulse-ink) !important; font-variant-numeric: tabular-nums; }
+  html body #market-temp .mt-share-bar .is-positive { background: color-mix(in srgb, var(--pulse-red) 55%, transparent) !important; }
+  html body #market-temp .mt-share-bar .is-negative { background: color-mix(in srgb, var(--pulse-blue) 45%, transparent) !important; }
+  html body #market-temp .mt-share-bar .is-neutral { background: color-mix(in srgb, var(--pulse-sub) 40%, transparent) !important; }
+  html body #market-temp .mt-share-bar .is-small { font-size: 8px; letter-spacing: -.04em; }
+  html body #market-temp .mt-breadth-track .is-up { background: color-mix(in srgb, var(--pulse-red) 55%, transparent) !important; }
+  html body #market-temp .mt-breadth-track .is-down { background: color-mix(in srgb, var(--pulse-blue) 45%, transparent) !important; }
+  html body #market-temp .mt-checkpoint-facts { --cp-ink: #202b3b; --cp-sub: #778396; --cp-line: #e7edf5; }
+  html.dark body #market-temp .mt-checkpoint-facts { --cp-ink: #edf2f9; --cp-sub: #9aa8bb; --cp-line: #313d4e; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 30px !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-call { padding: 5px 24px 5px 0 !important; border-right: 1px solid var(--cp-line) !important; container-type: normal; }
+  html body #market-temp .mt-checkpoint-facts .mt-strategy-action { white-space: normal !important; font-size: 21px !important; line-height: 1.65; letter-spacing: -.035em; word-break: keep-all; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-ant-mood { margin: 12px 0 16px !important; font-size: 13px !important; line-height: 1.8; color: var(--cp-sub) !important; }
+  html body #market-temp .mt-cp-context { font-size: 11px; color: var(--cp-sub) !important; }
+  html body #market-temp .mt-cp-next { min-width: 0; }
+  html body #market-temp .mt-cp-next h3 { margin: 0 0 12px !important; font-size: 14px !important; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-cp-next ol { margin: 0 !important; padding: 0 !important; list-style: none; counter-reset: checkpoint; }
+  html body #market-temp .mt-cp-next li { position: relative; counter-increment: checkpoint; margin: 0 !important; padding: 0 0 14px 30px !important; font-size: 12px; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-cp-next li::before { content: counter(checkpoint); position: absolute; left: 0; top: 1px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #2566d4; background: rgba(37,102,212,.1); font-size: 11px; font-weight: 600; }
+  html.dark body #market-temp .mt-cp-next li::before { color: #79adff; background: rgba(121,173,255,.12); }
+  html body #market-temp .mt-cp-next :is(.mt-cp-evidence, .mt-cp-check) { margin: 5px 0 0 !important; font-size: 12px; line-height: 1.75; word-break: keep-all; }
+  html body #market-temp .mt-cp-next .mt-cp-evidence { color: var(--cp-sub) !important; }
+  html body #market-temp .mt-cp-next small { display: block; margin-top: 3px !important; font-size: 10px; color: var(--cp-sub) !important; }
+  @media (min-width: 761px) {
+    html body #market-temp .mt-front-page { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr) !important; }
+  }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-front-headline { font-size: 17px !important; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-body { grid-template-columns: minmax(0, 1fr); gap: 20px !important; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-call { padding: 0 0 18px !important; border-right: 0 !important; border-bottom: 1px solid var(--cp-line) !important; }
+    html body #market-temp .mt-checkpoint-facts .mt-strategy-action { font-size: 19px !important; }
+  }
+}
