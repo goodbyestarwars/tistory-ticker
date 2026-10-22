@@ -1643,11 +1643,12 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     gap: 2px !important;
     padding: 3px !important;
     border: 1px solid #d9dfe8 !important;
-    border-radius: 9px;
+    border-radius: 0 !important;
     background: #fff !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools button,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
+    border-radius: 7px !important;
     border-color: transparent !important;
     background: transparent !important;
   }
@@ -1679,11 +1680,16 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 0 auto !important;
-    width: auto !important;
+    width: fit-content !important;
     margin: 0 !important;
     overflow: visible !important;
   }
+  html body .ss-stock-controls.ss-stock-controls.ss-index-controls > .nine-chart-ranges.nine-chart-ranges {
+    margin: 0 16px 10px !important;
+    max-width: calc(100% - 32px) !important;
+  }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
+    border-top: 0 !important;
     padding: 12px 16px !important;
     gap: 10px 16px !important;
     flex-wrap: wrap !important;
@@ -1699,8 +1705,7 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     width: 16px !important;
     height: 16px !important;
   }
-  /* 2026-10-22 사용자 스케치: 윗줄 = [일봉~분봉 묶음][분봉 간격] ........ [메모~독립 차트], 가로 구분선, 아랫줄 = [1개월~전체 묶음].
-     같은 줄 안에 다 안 들어가면 그리기 도구가 윗줄 아래로 내려가고(구분선 위), 기간 묶음은 항상 구분선 아래. */
+  /* 봉·작도 도구와 기간 묶음은 줄을 나누되 가로 구분선을 표시하지 않는다. */
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { align-items: center !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-timeframe-tools { order: 1; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-minute-scope-wrap { order: 2; margin: 0 !important; padding: 0 !important; }
@@ -1712,9 +1717,8 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     width: calc(100% + 32px) !important;
     height: 0;
     margin: 0 0 0 -16px !important;
-    border-top: 1px solid #e3e8ef;
+    border-top: 0;
   }
-  html.dark body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs::after { border-top-color: rgba(245, 239, 224, .16); }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .nine-chart-ranges.nine-chart-ranges { order: 5; }
   @media (max-width: 720px) {
     html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { margin-left: 0 !important; justify-content: flex-start !important; }

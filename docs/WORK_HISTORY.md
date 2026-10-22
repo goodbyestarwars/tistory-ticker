@@ -1,6 +1,9 @@
 **2026-10-23 PC에만 있던 주문 클라이언트 live_kiwoom.py를 저장소에 백업**
 
 `live_kiwoom.py`(키움 실계좌 조회·주문 클라이언트)가 git에 없고 PC에만 있어 사용자 지시("올려")로 그대로 복사해 추가(PC 파일 변경 없음, 바이트 동일). 전체 검토: 앱키·시크릿·토큰·계좌번호 하드코딩 없음(키는 `.env`에서 호출부가 전달), 주문 함수는 호출 쪽(`live_engine`·`ninepay_trade`)의 승인·예산·제외 게이트를 통과해야 쓰인다. 저장소가 공개이므로 주문 호출 방식이 노출됨을 사용자가 수용.
+**2026-10-23 관심종목(MY) 느린 로딩: 실시간 연결 대기 제거**
+
+실측(10/23 04:20 KST, 로그인 전 운영): VM `/auth/google/me` 0.5~15.7초, `/health/load` 9~11초(loadAvg 5~7, e2-micro 1코어). 야간 스캔 서비스 5개(etfstrategy·anglemomentum·gongpasan·week52·batch) 실패 상태, `news_momentum_scan --full`, Ubuntu `check-new-release`가 CPU 경쟁. GAS 시세 약 2.4초. 프론트는 시세 REST(GAS+미국, 미국은 타임아웃 없음)가 끝나야 WebSocket을 열어 느린 응답이 실시간 표시를 함께 지연시켰다. `js/watchlist.js`: 국내 전용 목록은 스냅샷과 동시에 WebSocket 연결, WS 체결이 온 카드는 늦은 REST가 덮어쓰지 않음, 미국 시세에 8초 타임아웃. 서버 부하 자체(스캔 실패 원인)는 미수정·별도 조사 필요. 배포·전후 실측은 병합 후 확인.
 
 **2026-10-23 증시온도 지표 상태·3주체 100% 수급·환율 저울**
 
