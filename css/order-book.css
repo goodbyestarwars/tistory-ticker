@@ -153,8 +153,8 @@
   border-radius: 999px;
   transition: width 0.3s ease;
 }
-#order-book .ob-hud-fill-ask { background: #1261c4; }
-#order-book .ob-hud-fill-bid { background: #d24f45; }
+#order-book .ob-hud-fill-ask { background: #9dbbe0; }
+#order-book .ob-hud-fill-bid { background: #e7aaa5; }
 #order-book .ob-hud-fill-strength { background: #0ca678; }
 #order-book .ob-hud-val {
   flex-shrink: 0;
@@ -407,8 +407,8 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   overflow: hidden;
   background: #f0f0f0;
 }
-#order-book .ob-footer-bar-ask { background: #1261c4; }
-#order-book .ob-footer-bar-bid { background: #d24f45; }
+#order-book .ob-footer-bar-ask { background: #9dbbe0; }
+#order-book .ob-footer-bar-bid { background: #e7aaa5; }
 
 /* ---- 최근 체결: KIS 개별 수신 / REST 표본을 구분 ---- */
 #order-book .ob-trades {

@@ -452,9 +452,9 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border-radius: 999px;
 }
 
-.sn-af-bar-fill.sn-af-buy { background: #d24f45; }
+.sn-af-bar-fill.sn-af-buy { background: #e7aaa5; }
 .sn-af-bar-fill.sn-af-flat { background: #9ca3af; }
-.sn-af-bar-fill.sn-af-sell { background: #1261c4; }
+.sn-af-bar-fill.sn-af-sell { background: #9dbbe0; }
 
 .sn-af-desc {
   font-size: 10.5px;

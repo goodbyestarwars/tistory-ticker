@@ -339,8 +339,8 @@
 #kospi-futures .kf-option-profile-head .put-dot {
   display: inline-block; width: 7px; height: 7px; border-radius: 50%; vertical-align: 1px;
 }
-#kospi-futures .kf-option-profile-head .call-dot { background: #d24f45; }
-#kospi-futures .kf-option-profile-head .put-dot { background: #1261c4; }
+#kospi-futures .kf-option-profile-head .call-dot { background: #e7aaa5; }
+#kospi-futures .kf-option-profile-head .put-dot { background: #9dbbe0; }
 #kospi-futures .kf-option-profile-labels { margin: 12px 0 4px; color: #8792a2; font-size: 11px; }
 #kospi-futures .kf-option-profile-labels span { width: calc(50% - 34px); }
 #kospi-futures .kf-option-profile-labels span:first-child { text-align: right; }
