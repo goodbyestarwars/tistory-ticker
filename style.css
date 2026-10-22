@@ -5300,10 +5300,12 @@ html.dark .hrt-delayed .hrt-stock small::after { background: rgba(251,191,36,.18
 .hrt-down { color: #2674d9; }
 .hrt-flat, .hrt-muted { color: #9da5ad; }
 /* 전일 대비 등락률의 현재 부호를 잠깐 강조한다. 크기·정렬은 바꾸지 않는다. */
-.hrt-pill-up { background-color: rgba(227, 77, 75, .18); }
-.hrt-pill-down { background-color: rgba(38, 116, 217, .18); }
-html.dark .hrt-pill-up { background-color: rgba(227, 77, 75, .28); }
-html.dark .hrt-pill-down { background-color: rgba(38, 116, 217, .28); }
+/* 2026-10-22 사용자 요청("음영을 좀 더 크게"): 글자 폭만큼만 칠해져 작아 보였다. box-shadow 확산으로 바깥쪽을 넓혀
+   레이아웃(크기·정렬)은 그대로 두고 음영 면적만 키운다. */
+.hrt-pill-up { background-color: rgba(227, 77, 75, .18); box-shadow: 0 0 0 6px rgba(227, 77, 75, .18); border-radius: 6px; }
+.hrt-pill-down { background-color: rgba(38, 116, 217, .18); box-shadow: 0 0 0 6px rgba(38, 116, 217, .18); border-radius: 6px; }
+html.dark .hrt-pill-up { background-color: rgba(227, 77, 75, .28); box-shadow: 0 0 0 6px rgba(227, 77, 75, .28); }
+html.dark .hrt-pill-down { background-color: rgba(38, 116, 217, .28); box-shadow: 0 0 0 6px rgba(38, 116, 217, .28); }
 .hrt-industry { overflow: hidden; text-overflow: ellipsis; color: #586474; }
 .hrt-state { height: 90px; color: #9da5ad !important; text-align: center !important; }
 .hrt-foot { justify-content: space-between; gap: 12px; padding-top: 10px; color: #a1a9b2; font-size: 10px; }
