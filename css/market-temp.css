@@ -2786,6 +2786,8 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 }
 /* 점수 대신 실제 시장 지표와 연결되는 요약 행 */
 @layer np.np {
+  html body #market-temp .mt-front-lead { font-size: 13px !important; }
+  html body #market-temp .mt-breadth-counts b { font-size: 15px !important; }
   html body #market-temp .mt-front-headline { font-size: 22px !important; line-height: 1.4 !important; margin-top: 10px !important; }
   html body #market-temp .mt-indicator-group { margin: 0 0 13px !important; }
   html body #market-temp .mt-indicator-group h4 { margin: 0 0 6px !important; padding: 0 !important; font-size: 12px !important; font-weight: 600 !important; line-height: 1.5; color: var(--pulse-sub) !important; border: 0 !important; }

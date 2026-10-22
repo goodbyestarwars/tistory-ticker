@@ -2051,7 +2051,9 @@
       var rows = ((item.intervals || {}).day || {}).rows || [];
       var volumes = indicatorPoints_(rows.map(function (r) { return { date: r.date, value: indicatorNumber_(r.volume) > 0 ? r.volume : null }; }));
       var points = volumes.slice(1).map(function (row, i) { return { date: row.date, value: (row.score / volumes[i].score - 1) * 100 }; });
-      model(key.toLowerCase() + '-volume', key === 'KOSPI' ? '코스피 거래량' : '코스닥 거래량', '직전 기록 대비', points,
+      var kst = new Date(Date.now() + 9 * 3600 * 1000).toISOString();
+      var intraday = points.length && points[points.length - 1].date === kst.slice(0, 10) && kst.slice(11, 16) < '15:40';
+      model(key.toLowerCase() + '-volume', key === 'KOSPI' ? '코스피 거래량' : '코스닥 거래량', (intraday ? '장중 누적 · ' : '') + '직전 기록 대비', points,
         function (v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }, true, true, '%p');
     });
     var funds = domestic.funds || {};
@@ -2121,7 +2123,7 @@
       + '<div class="mt-raw-current is-' + model.tone + '"><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div>'
       + '<div class="mt-chart-date">' + escapeHtml(shortDate_(latest.date)) + ' 기준 · 최근 ' + shown.length + '개 기록</div>'
       + buildFlowChart_(shown, model)
-      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '거래량의 직전 기록 대비 증감률(%)입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
+      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '거래량의 직전 기록 대비 증감률(%)입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
   }
   function loadMarketIndicators_(container) {
     var panel = container.querySelector('.mt-front-page');
