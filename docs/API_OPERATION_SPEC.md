@@ -8,6 +8,8 @@
 
 ## 1. 운영 주소와 프로토콜
 
+증시온도 자동 갱신(2026-10-23)은 요청 경로 재수집 없이 `/market-temp`·`/domestic-market-indicators`·`/theme-flow`의 기존 캐시와 `/futures?stored_only=true`의 저장 자료를 읽는다. 브라우저 장중 국내1분/요약·테마3분/해외5분, 장외5분, 숨김·오프라인 중단, 실패 시 최대10분 재시도 지연이다. 원본 폴러 주기·VM 스레드·수집 예산은 변경하지 않았다. futures 저장 모드는 기본 모드와 캐시가 분리되며 `X-Market-Read-Mode: stored`로 적용 여부를 확인한다.
+
 | 항목 | 값 |
 |---|---|
 | Base URL | `https://goodbyestar.cloud` |
