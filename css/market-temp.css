@@ -3019,3 +3019,11 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp :is(.mt-page-head, .mt-page-head *, .mt-live-status, .mt-front-kicker, .mt-front-kicker *, .mt-front-lead, .mt-extra-heading, .mt-section-head, .mt-section-head *) { font-family: 'MaruBuri', Georgia, serif !important; }
   html body #market-temp :is(.mt-front-headline, .mt-extra-heading, .mt-section-head h2, .mt-section-head h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
 }
+
+/* 2026-10-23 섹터 표 행: 암묵 grid 행(22.7+4.7+4.7px)이 아래 여백을 만들어 글자가 위로 쏠렸다 - 한 행으로 고정하고 칸을 세로 중앙 정렬 */
+@layer np.np {
+  @media (min-width: 721px) {
+    html body #market-temp .mt-sf-row.mt-sf-row { grid-template-rows: auto !important; grid-auto-rows: 0; row-gap: 0 !important; align-items: center !important; }
+    html body #market-temp .mt-sf-row.mt-sf-row > * { align-self: center; }
+  }
+}
