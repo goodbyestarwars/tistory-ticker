@@ -2972,3 +2972,34 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
     html body #market-temp .mt-investor-row :is(.mt-glance-label, .mt-glance-state) { grid-column: 1 / -1; }
   }
 }
+
+/* 2026-10-23 체크포인트: 지금 할 것 / 하지 말아야 할 것 나란히, 큰 제목 축소, 두 카드 마루부리, 하락·상승 헤드라인 배지 */
+@layer np.np {
+  @media (min-width: 761px) {
+    html body #market-temp .mt-checkpoint-facts .mt-cp-body { grid-template-columns: minmax(0, .5fr) minmax(0, 1.8fr) !important; gap: 22px !important; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-call { padding-right: 18px !important; }
+    html body #market-temp .mt-checkpoint-facts.mt-checkpoint-facts .mt-cp-call .mt-strategy-action { font-size: 18px !important; }
+  }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid { margin: 0 !important; padding: 0 !important; border-top: 0 !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid h3 { margin: 0 0 12px !important; font-size: 14px !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid ol { margin: 0 !important; padding: 0 !important; list-style: none; counter-reset: checkpoint; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid li { position: relative; counter-increment: checkpoint; margin: 0 !important; padding: 0 0 14px 30px !important; font-size: 12px; line-height: 1.75; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid li::before { content: counter(checkpoint); position: absolute; left: 0; top: 1px; display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; color: #2566d4; background: rgba(37,102,212,.1); font-size: 11px; font-weight: 600; }
+  html.dark body #market-temp .mt-checkpoint-facts .mt-cp-avoid li::before { color: #79adff; background: rgba(121,173,255,.12); }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-avoid .mt-cp-check { margin: 0 !important; color: var(--cp-ink) !important; }
+  html body #market-temp .mt-checkpoint-facts .mt-cp-fx { font-weight: 800; }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-checkpoint-facts .mt-cp-actions { display: block; }
+    html body #market-temp .mt-checkpoint-facts .mt-cp-avoid { margin-top: 6px !important; padding-top: 16px !important; border-top: 1px solid var(--cp-line) !important; }
+  }
+
+  /* 마루부리: 글꼴 CDN은 skin.html이 이미 로드(maru-buri.css). 굵은 글은 MaruBuriBold 글자꼴을 쓴다 */
+  html body #market-temp :is(.mt-checkpoint-facts, .mt-temperature-money-flow, .mt-sf-card) :is(*, *::before) { font-family: 'MaruBuri', Georgia, serif !important; }
+  html body #market-temp :is(.mt-checkpoint-facts, .mt-temperature-money-flow, .mt-sf-card) :is(h2, h3, b, strong, .mt-strategy-panel-title, .mt-strategy-action, .mt-sf-visual-head span) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+
+  /* 하락 빨강 아닌 파랑 / 상승 빨강: 연한 배경 + 글자 */
+  html body #market-temp .mt-front-headline:is(.is-down, .is-up) { display: inline-block; padding: 2px 10px !important; border-radius: 8px; }
+  html body #market-temp .mt-front-headline.is-down { color: var(--pulse-blue) !important; background: color-mix(in srgb, var(--pulse-blue) 12%, transparent) !important; }
+  html body #market-temp .mt-front-headline.is-up { color: var(--pulse-red) !important; background: color-mix(in srgb, var(--pulse-red) 12%, transparent) !important; }
+}

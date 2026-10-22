@@ -1979,6 +1979,15 @@
       + '</div></div>';
   }
 
+  // updatedAt은 수집 시각이다. 장 시작 전(09시 전)·주말에는 시세가 직전 거래일 마감값이므로
+  // 오늘 값처럼 읽히지 않게 기준을 '직전 마감'으로 표시한다(2026-10-23 장전 상승 17·하락 216 문의).
+  function quotesAreStale_(data) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2})/.exec(String(data && data.updatedAt || ''));
+    if (!m) return false;
+    var day = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay();
+    return day === 0 || day === 6 || +m[4] < 9;
+  }
+
   // Headlines describe the observed universe; the score is supporting evidence, not a forecast.
   function frontPageStory_(data) {
     var components = data.components || {};
@@ -1993,7 +2002,7 @@
     var broad = valid(whole), breadth = broad ? whole : valid(sample) ? sample : null;
     var headline = '오늘 시장 흐름을 확인하세요';
     var lead = '상승·하락 종목 집계를 확인하고 있습니다.';
-    var scope = broad ? '코스피·코스닥 집계' : '분석 대상';
+    var scope = (quotesAreStale_(data) ? '직전 마감 기준 ' : '') + (broad ? '코스피·코스닥 집계' : '분석 대상');
     function number(v) { return v.toLocaleString('ko-KR'); }
     if (breadth) {
       if (breadth.down > breadth.up * 1.5) {
@@ -2014,14 +2023,15 @@
       function direction(v) { return v > 0.05 ? '순매수' : v < -0.05 ? '순매도' : '중립'; }
       flowText = '최근 5일 외국인 ' + direction(foreign) + ' · 기관 ' + direction(inst);
     }
-    return { headline: headline, lead: lead, flow: flowText, breadth: breadth, wholeMarket: broad };
+    var dir = !breadth ? '' : breadth.down > breadth.up * 1.5 ? 'down' : breadth.up > breadth.down * 1.5 ? 'up' : '';
+    return { headline: headline, lead: lead, flow: flowText, breadth: breadth, wholeMarket: broad, dir: dir };
   }
 
   function buildMarketIntro_(data) {
     var story = frontPageStory_(data), tone = scoreTone_(score100(data));
     return '<header class="mt-market-intro mt-market-' + tone + '">'
       + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span>시장 한눈에 보기</span></div>'
-      + '<div class="mt-intro-line"><h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
+      + '<div class="mt-intro-line"><h2 class="mt-front-headline' + (story.dir ? ' is-' + story.dir : '') + '">' + escapeHtml(story.headline) + '</h2>'
       + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p></div></header>';
   }
 
@@ -2853,7 +2863,8 @@
   // 체크포인트는 상단과 같은 원자료를 재사용한다. 합성점수 대신 실제 시장 폭과 수급·거래량·환율을 문장으로 읽는다.
   function checkpointDate_(data) {
     var m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(data && data.updatedAt || ''));
-    return m ? m[1] + '.' + m[2] + ' 기준' : '';
+    if (!m) return '';
+    return quotesAreStale_(data) ? '직전 거래일 마감 기준' : m[1] + '.' + m[2] + ' 기준';
   }
 
   function checkpointFacts_(data, models) {
@@ -2890,7 +2901,7 @@
     if (!avoid.length) avoid.push(b ? '시장 분위기만 보고 종목의 뉴스·공시 확인을 건너뛰지 마세요.' : '자료가 없는 항목을 보합이나 수급 균형으로 해석하지 마세요.');
     var fx = find('fx');
     if (fx && fx.value != null && fx.delta != null) items.push({ label: '환율도 같은 방향인지',
-      evidence: (fx.delta > 0 ? '달러 강세' : fx.delta < 0 ? '원화 강세' : '환율 변화 없음') + ' · 1달러 ' + fx.valueText + ' (' + fx.changeText + ')',
+      evidence: (fx.delta > 0 ? '달러 강세' : fx.delta < 0 ? '원화 강세' : '환율 변화 없음') + ' · <strong class="mt-cp-fx">$1 = ₩' + escapeHtml(String(fx.valueText).replace(/원$/, '')) + '</strong> (' + escapeHtml(fx.changeText) + ')', html: true,
       date: shortDate_(fx.date) + ' 기준', check: '환율 영향을 받는 종목은 주가와 환율이 함께 움직이는지 살펴보세요.' });
     if (!items.length) items.push({ label: '내 종목과 시장을 구분해서 보기', evidence: b ? story.headline : '상승·하락 종목 집계를 확인하고 있습니다.',
       date: checkpointDate_(data), check: '시장 전체의 움직임인지, 해당 종목의 뉴스·공시가 원인인지 먼저 확인하세요.' });
@@ -2906,11 +2917,11 @@
       + '<div class="mt-strategy-action">' + escapeHtml(facts.title) + '</div><p class="mt-ant-mood">' + escapeHtml(facts.mood) + '</p>'
       + '</div><div class="mt-cp-actions">'
       + '<div class="mt-cp-next"><h3>지금 할 것</h3><ol>' + facts.items.map(function (item) {
-        return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + escapeHtml(item.evidence) + '</p>'
+        return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + (item.html ? item.evidence : escapeHtml(item.evidence)) + '</p>'
           + '<small>' + escapeHtml(item.date) + '</small><p class="mt-cp-check">' + escapeHtml(item.check) + '</p></li>';
-      }).join('') + '</ol></div><div class="mt-cp-avoid"><h3>지금 하지 말아야 할 것</h3><ul>' + facts.avoid.map(function (text) {
-        return '<li>' + escapeHtml(text) + '</li>';
-      }).join('') + '</ul></div></div></div></div>';
+      }).join('') + '</ol></div><div class="mt-cp-avoid mt-cp-next"><h3>지금 하지 말아야 할 것</h3><ol>' + facts.avoid.map(function (text) {
+        return '<li><p class="mt-cp-check">' + escapeHtml(text) + '</p></li>';
+      }).join('') + '</ol></div></div></div></div>';
   }
 
   function buildBriefingStrategy(data) {
