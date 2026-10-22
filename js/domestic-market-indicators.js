@@ -509,8 +509,24 @@
     if (!row || row.open == null || row.high == null || row.low == null || row.close == null) return null;
     return {
       time: interval === 'minute' ? Number(row.ts) + KST_OFFSET_SEC : row.date,
-      open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close)
+      open: Number(row.open), high: Number(row.high), low: Number(row.low), close: Number(row.close),
+      volume: Number(row.volume) > 0 ? Number(row.volume) : 0
     };
+  }
+
+  // 거래량 숫자: 단위는 공급자 응답 그대로(미검증이라 단위 문구를 붙이지 않는다). 만/억으로만 줄여 읽기 쉽게 한다.
+  function formatVolume(v) {
+    v = Number(v);
+    if (!isFinite(v) || v <= 0) return '-';
+    if (v >= 1e8) return (v / 1e8).toFixed(2).replace(/\.?0+$/, '') + '억';
+    if (v >= 1e4) return (v / 1e4).toFixed(1).replace(/\.0$/, '') + '만';
+    return Math.round(v).toLocaleString('ko-KR');
+  }
+
+  function volumeData(points) {
+    return points.filter(function (p) { return p.volume > 0; }).map(function (p) {
+      return { time: p.time, value: p.volume, color: p.close >= p.open ? 'rgba(210,79,69,.45)' : 'rgba(18,97,196,.45)' };
+    });
   }
 
   function makeChart(key, element, rows, interval) {
@@ -543,6 +559,7 @@
       var current = chartInstances[key];
       if (current && current.interval === interval) {
         current.series.setData(points);
+        if (current.volSeries) { current.volSeries.setData(volumeData(points)); current.points = points; }
         refreshDrawing(key, points);
         return;
       }
@@ -570,8 +587,30 @@
         lastValueVisible: true
       });
       series.setData(points);
+      var volSeries = null;
+      var volRows = volumeData(points);
+      if (volRows.length) {
+        series.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.25 } });
+        volSeries = chart.addSeries(LWC.HistogramSeries, {
+          priceFormat: { type: 'custom', formatter: formatVolume },
+          priceScaleId: 'dmi-vol', lastValueVisible: true, priceLineVisible: false
+        });
+        volSeries.priceScale().applyOptions({ scaleMargins: { top: 0.78, bottom: 0 } });
+        volSeries.setData(volRows);
+        if (getComputedStyle(element).position === 'static') element.style.position = 'relative';
+        var tip = document.createElement('div');
+        tip.className = 'dmi-vol-label';
+        tip.style.cssText = 'position:absolute;left:8px;bottom:4px;z-index:3;font-size:11px;opacity:.8;pointer-events:none';
+        element.appendChild(tip);
+        var lastVol = volRows[volRows.length - 1];
+        tip.textContent = '거래량 ' + formatVolume(lastVol.value);
+        chart.subscribeCrosshairMove(function (param) {
+          var d = param && param.seriesData && param.seriesData.get(volSeries);
+          tip.textContent = '거래량 ' + formatVolume(d ? d.value : lastVol.value);
+        });
+      }
       chart.timeScale().fitContent();
-      chartInstances[key] = { chart: chart, series: series, interval: interval, element: element };
+      chartInstances[key] = { chart: chart, series: series, volSeries: volSeries, interval: interval, element: element };
       setupDrawing(key, element, chart, series, interval, points);
     }).catch(function () {
       element.innerHTML = '<div class="dmi-chart-message">차트 라이브러리를 불러오지 못했습니다.</div>';
