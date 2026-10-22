@@ -1536,7 +1536,7 @@
         replaceMarketNode_(container.querySelector('.mt-page-head'), buildPageHead_(data));
         replaceMarketNode_(container.querySelector('.mt-breadth-visual'), buildBreadthVisual_(frontPageStory_(data)));
         var updated = container.querySelector('.mt-updated');
-        if (updated) updated.textContent = '자료 기준 · ' + (data.updatedAt || '확인 중');
+        if (updated) updated.textContent = (window.NineTime && window.NineTime.updated(data.updatedAt)) || ('자료 기준 · ' + (data.updatedAt || '확인 중'));
         page.indicators.setSnapshot(data);
       }
     }
@@ -2216,7 +2216,7 @@
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
         + '<b class="mt-glance-state is-' + tone + '">' + (investor ? (amount != null && amount !== 0 ? '<i class="mt-flow-arrow is-' + (amount > 0 ? 'up' : 'down') + '" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : wordArrow_(word)) : wordArrow_(word)) + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
-        + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(shortDate_(date)) + ' 기준' : '기준일 확인 중') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
+        + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(asOfText_(date)) : '기준일 확인 중') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
       var bar = m.id === 'individual' ? '</div>' + renderInvestorShares_(shares) : '';
       return (m.id === 'foreign' ? '<div class="mt-investor-row">' : '') + '<button type="button" class="mt-indicator-chip mt-glance-row' + (m.id === 'fx' ? ' mt-fx-row' : '') + (m.id === selected ? ' is-selected' : '') + '" data-market-metric="' + m.id + '" aria-pressed="' + (m.id === selected) + '">' + body + '</button>' + bar;
     }).join('') + '</div>';
@@ -2257,7 +2257,7 @@
       + '<span class="mt-fx-balance" data-fx-stronger="' + state + '"><svg viewBox="0 0 320 120" role="img" aria-label="직전 기록 대비 ' + word + '"><path class="mt-fx-stand" d="M160,42 L160,105 M140,108 L180,108"/>'
       + '<path class="mt-fx-beam" d="M70,' + (47 - tilt * 12) + ' L250,' + (47 + tilt * 12) + '"/>'
       + pan(70, 47 - tilt * 12, state === 'krw', '원화') + pan(250, 47 + tilt * 12, state === 'usd', '달러') + '</svg></span>'
-      + '<small class="mt-glance-meta">' + escapeHtml(m.changeText) + ' · 직전 기록 대비 상대 강도' + (m.date ? ' · ' + escapeHtml(shortDate_(m.date)) + ' 기준' : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
+      + '<small class="mt-glance-meta">' + escapeHtml(m.changeText) + ' · 직전 기록 대비 상대 강도' + (m.date ? ' · ' + escapeHtml(asOfText_(m.date)) : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
   }
   function buildIndicatorHistoryShell_() {
     return '<section class="mt-card mt-indicator-history" data-mt-indicator-panel><div class="mt-history-tail-head"><h3 class="mt-card-title">최근 시장 흐름</h3>'
@@ -2269,7 +2269,7 @@
     var latest = shown[shown.length - 1];
     return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div>'
       + '<div class="mt-raw-current is-' + model.tone + '"><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div>'
-      + '<div class="mt-chart-date">' + escapeHtml(shortDate_(latest.date)) + ' 기준 · 최근 ' + shown.length + '개 기록</div>'
+      + '<div class="mt-chart-date">' + escapeHtml(asOfText_(latest.date)) + ' · 최근 ' + shown.length + '개 기록</div>'
       + buildFlowChart_(shown, model)
       + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
   }
@@ -2507,6 +2507,11 @@
   function scoreTone_(score) {
     var rounded = Math.round(Number(score));
     return rounded < SCORE_CUT_.fear ? 'fear' : rounded < SCORE_CUT_.greed ? 'neutral' : 'greed';
+  }
+
+  // 기준일 문구 "10.22 기준"은 사이트 공용 표기(window.NineTime)로 만든다. 못 읽으면 예전 "10/22 기준".
+  function asOfText_(date) {
+    return (window.NineTime && window.NineTime.asOf(date)) || (shortDate_(date) + ' 기준');
   }
 
   function shortDate_(date) {
@@ -2789,7 +2794,7 @@
     var cuts = SCORE_CUT_;
     return '<div class="mt-history-chart-meta"><div class="mt-chart-current"><b class="mt-rib-tone-' + scoreTone_(latest.score) + '">'
       + Math.round(latest.score) + '<small>점</small></b><span class="mt-chart-grade mt-rib-tone-' + scoreTone_(latest.score) + '">' + marketMood_(latest.score).word + '</span>' + changeHtml + '</div>'
-      + '<span class="mt-chart-date">최근 ' + shown.length + '거래일 · ' + escapeHtml(shortDate_(latest.date)) + ' 기준</span></div>'
+      + '<span class="mt-chart-date">최근 ' + shown.length + '거래일 · ' + escapeHtml(asOfText_(latest.date)) + '</span></div>'
       + chart
       + '<div class="mt-chart-zones"><span class="is-fear">공포 0–29</span><span class="is-neutral">보통 30–69</span><span class="is-greed">과열 70–100</span></div>'
       + '<div class="mt-chart-range"><span>기간 평균 <b>' + avg + '</b></span><span>최고 <b>' + Math.max.apply(null, scores) + '</b></span><span>최저 <b>' + Math.min.apply(null, scores) + '</b></span></div>'
@@ -4318,7 +4323,7 @@
       + axisCell('money', '수급(방향)')
       + axisCell('price', '가격')
       + axisCell('risk', '위험도')
-      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls, isFinite(delta) ? '점' : '', '',
+      + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + asOfText_(data.scoreDeltaFrom) : ''), deltaCls, isFinite(delta) ? '점' : '', '',
         !isFinite(delta) ? { title: '오늘부터 일별 기록을 시작했습니다.' } : null)
       + '</div>';
   }
@@ -4367,7 +4372,7 @@
     return ''
       + '<div class="mt-wrap mt-tone-' + escapeHtml(tone) + '">'
       + sections.join('')
-      + (data.updatedAt ? '<div class="mt-updated">자료 기준 · ' + escapeHtml(data.updatedAt) + '</div>' : '')
+      + (data.updatedAt ? '<div class="mt-updated">' + escapeHtml((window.NineTime && window.NineTime.updated(data.updatedAt)) || ('자료 기준 · ' + data.updatedAt)) + '</div>' : '')
       + '</div>';
   }
 
