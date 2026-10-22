@@ -3027,3 +3027,17 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
     html body #market-temp .mt-sf-row.mt-sf-row > * { align-self: center; }
   }
 }
+
+/* 2026-10-23 그래서 오늘/내일은? 카드: 새벽 마감 참고(미국 현물 지수·코스피 야간선물) 보조 줄 */
+@layer np.np {
+  html body #market-temp .mt-tm-aux { margin: 10px 0 6px; }
+  html body #market-temp .mt-tm-aux > b { display: block; font-size: 13px; color: #475569; }
+  html body #market-temp .mt-tm-aux-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 14px; margin: 6px 0 0; }
+  html body #market-temp .mt-tm-aux-list li { display: block; padding: 8px 2px; font-size: 12.5px; }
+  html body #market-temp .mt-tm-aux-list li b { display: block; margin-top: 2px; font-size: 15px; }
+  html body #market-temp .mt-tm-aux-list li small { display: block; }
+  @media (max-width: 720px) {
+    html body #market-temp .mt-tm-aux-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+}
+html.dark #market-temp .mt-tm-aux > b { color: #cbd5e1; }

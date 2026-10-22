@@ -2180,6 +2180,16 @@
       var rows = (item.chart || []).map(function (r) { return { date: r.date, value: indicatorNumber_(r.close) > 0 ? r.close : null }; });
       model(spec[1], spec[2], spec[3], rows, function (v) { return v.toLocaleString('ko-KR', { minimumFractionDigits: spec[0] === 'US10Y' ? 2 : 1, maximumFractionDigits: spec[0] === 'US10Y' ? 2 : 1 }) + spec[4]; }, false, false, spec[0] === 'US10Y' ? '%p' : '원');
     });
+    var kf = macro.filter(function (r) { return r.symbol === 'KOSPI200_DAY'; })[0], kfPoints = [];
+    if (kf && kf.stale !== true) {
+      var kl = (kf.chart || []).slice(-1)[0], ks = kl ? String(kl.date) : '';
+      var age = kl ? Date.now() - Date.UTC(+ks.slice(0, 4), +ks.slice(4, 6) - 1, +ks.slice(6, 8)) : Infinity;
+      if (age <= 5 * 86400000 + 9 * 3600000) kfPoints = (kf.chart || []).map(function (r) { return { date: r.date, value: indicatorNumber_(r.close) > 0 ? r.close : null }; });
+    }
+    model('kospi-futures', '코스피200 주간선물', '주간선물 일봉 종가', kfPoints, function (v) { return v.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }, false, false);
+    var kfModel = models[models.length - 1];
+    kfModel.statusText = kfModel.delta == null ? '' : kfModel.delta > 0 ? '상승' : kfModel.delta < 0 ? '하락' : '보합';
+    kfModel.noData = macro.length > 0 && kfModel.value == null;
     return models;
   }
   function renderIndicatorRows_(models, selected) {
@@ -2189,10 +2199,10 @@
       var share = shares && shares.items.filter(function (r) { return r.id === m.id; })[0];
       var amount = share ? share.value : m.value, date = share ? shares.date : m.date;
       var tone = investor ? amount == null || amount === 0 ? 'neutral' : amount > 0 ? 'positive' : 'negative' : m.tone;
-      var word = m.value == null ? '확인 중' : investor ? (amount > 0 ? '순매수' : amount < 0 ? '순매도' : '보합') : m.statusText || (m.delta == null ? '확인 중' : m.delta > 0 ? '증가' : m.delta < 0 ? '감소' : '변화 없음');
+      var word = m.value == null ? (m.noData ? '미수신' : '확인 중') : investor ? (amount > 0 ? '순매수' : amount < 0 ? '순매도' : '보합') : m.statusText || (m.delta == null ? '확인 중' : m.delta > 0 ? '증가' : m.delta < 0 ? '감소' : '변화 없음');
       var label = m.id === 'credit' ? '빚투' : m.id === 'deposits' ? '예탁금' : m.id === 'fx' ? '환율' : m.label;
       var value = investor && amount != null ? indicatorMoney_(Math.abs(amount)) : m.valueText;
-      var note = investor ? shares ? '' : m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : '';
+      var note = investor ? shares ? '' : m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : m.id === 'kospi-futures' ? (m.delta == null ? '' : '전일 대비 ' + m.changeText) : '';
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
         + '<b class="mt-glance-state is-' + tone + '">' + (investor && amount != null && amount !== 0 ? '<i class="mt-flow-arrow" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : '') + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
@@ -2307,7 +2317,7 @@
         state.models = buildIndicatorModels_(state.domestic, state.macro).map(function (m) {
           var previous = prior[m.id], missing = m.value == null && previous && previous.value != null;
           if (missing) m = Object.assign({}, previous);
-          m.stale = !!missing || bad[m.id === 'fx' || m.id === 'us-rate' ? 1 : 0];
+          m.stale = !!missing || bad[m.id === 'fx' || m.id === 'us-rate' || m.id === 'kospi-futures' ? 1 : 0];
           return m;
         });
         state.loading = false; render(); checkpoint();
@@ -2542,7 +2552,7 @@
   //  - 신호가 약한 날(약 40%)은 상승 62%로 평소 상승 비율(약 61%)과 같다 = 맞히기 어렵다.
   //  - 전체 "종가 방향" 적중 65%는 아무것도 안 보고 "오른다"만 찍은 63%와 비슷하므로 종가 방향을 크게 내세우지 않는다.
   // 야간선물은 점수에 넣지 않는다: 일봉 자료의 날짜 기준이 확인되지 않아 코스피와의 관계를 검증하지 못했다(참고 표시만).
-  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY&stored_only=true';
+  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
   var TOMORROW_STATS_ = {
     nq: [0.1028, 1.3180], sox: [0.3535, 2.9394], vix: [-0.1265, 7.5421], fx: [0.0290, 0.6312]
   };
@@ -2554,15 +2564,30 @@
     { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 93%', close: '상승 마감 90%', n: 29, avgGap: 2.27 }
   ];
 
-  function nextKospiDay_() {
-    var now = new Date(Date.now() + 9 * 3600000);
-    var d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    var dow = d.getUTCDay();
-    var before9 = now.getUTCHours() < 9;
-    if (!(before9 && dow >= 1 && dow <= 5)) d = new Date(d.getTime() + 86400000);
+  // 조간신문 기준: 평일 15:30 전(장전·장중)에는 오늘 코스피, 마감 후·주말에는 다음 거래일을 가리킨다.
+  // 공휴일은 알 수 없어 평일로 본다. now_는 시험용으로 바꿀 수 있다.
+  function nextKospiDay_(now_) {
+    var now = new Date((now_ == null ? Date.now() : now_) + 9 * 3600000);
+    var today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    var d = today, dow = d.getUTCDay();
+    var open = dow >= 1 && dow <= 5 && now.getUTCHours() * 60 + now.getUTCMinutes() < 15 * 60 + 30;
+    if (!open) d = new Date(d.getTime() + 86400000);
     while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d = new Date(d.getTime() + 86400000);
+    var gap = Math.round((d.getTime() - today.getTime()) / 86400000);
     var ymd = d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0');
-    return { ymd: ymd, label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()] + ')' };
+    return { ymd: ymd, word: gap === 0 ? '오늘' : gap === 1 ? '내일' : '다음 거래일',
+      label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()] + ')' };
+  }
+
+  // 일봉 마지막 두 봉의 종가 변화. 마지막 봉이 5일 넘게 묵었거나 응답이 stale이면 null(= 미수신).
+  function lastBarChange_(row) {
+    var chart = (row && row.chart) || [];
+    if (row && row.stale === true || chart.length < 2) return null;
+    var a = Number(chart[chart.length - 1].close), b = Number(chart[chart.length - 2].close);
+    var ymd = String(chart[chart.length - 1].date), m = /^(\d{4})(\d{2})(\d{2})$/.exec(ymd);
+    if (!a || !b || !m) return null;
+    if (Date.now() - Date.UTC(+m[1], +m[2] - 1, +m[3]) > 5 * 86400000 + 9 * 3600000) return null;
+    return { close: a, pct: (a / b - 1) * 100, date: m[2] + '/' + m[3] };
   }
 
   // target 날짜 이전에 끝난 가장 최근 일봉의 전일 대비 등락률(%)
@@ -2577,7 +2602,7 @@
 
   function buildTomorrowCard_() {
     return '<section class="mt-section mt-card mt-tomorrow-card" data-mt-tomorrow>'
-      + '<div class="mt-tm-head"><strong>그래서 내일은?</strong><small>미국 장 마감 기준으로 본 다음 거래일 출발</small></div>'
+      + '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong><small>미국 장 마감 기준으로 본 코스피 출발</small></div>'
       + '<div class="mt-hint">미국 시장 움직임을 확인하는 중입니다.</div></section>';
   }
 
@@ -2588,13 +2613,14 @@
       var by = {};
       rows.forEach(function (r) { by[r.symbol] = r; });
       var target = nextKospiDay_();
-      var key = JSON.stringify(rows) + target.ymd;
+      var key = JSON.stringify(rows) + target.ymd + target.word;
+      var W = target.word, title = '<strong>그래서 ' + W + '은?</strong>';
       if (mount.__mtTomorrowKey === key) return;
       var nq = lastReturnBefore_(by.NASDAQ100, target.ymd);
       var sox = lastReturnBefore_(by.SOX, target.ymd);
       var vix = lastReturnBefore_(by.VIX, target.ymd);
       var fx = lastReturnBefore_(by.USDKRW, target.ymd);
-      if (!nq || !sox || !vix || !fx) { if (!mount.__mtTomorrowKey) mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 오늘은 판단하지 않습니다.</div>'; return; }
+      if (!nq || !sox || !vix || !fx) { if (!mount.__mtTomorrowKey) mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 판단하지 않습니다.</div>'; return; }
       function z(v, k) { return (v - TOMORROW_STATS_[k][0]) / TOMORROW_STATS_[k][1]; }
       var zsum = z(nq.pct, 'nq') + z(sox.pct, 'sox') + z(-vix.pct, 'vix') + z(-fx.pct, 'fx');
       var bucket = TOMORROW_BUCKETS_.filter(function (b) { return zsum < b.max; })[0] || TOMORROW_BUCKETS_[2];
@@ -2619,19 +2645,26 @@
             + ' <small>(점수에는 반영하지 않습니다: 일봉 날짜 기준을 아직 검증하지 못했습니다)</small></div>';
         }
       }
-      var verdictText = tone === 'up' ? '내일 시초는 올라서 시작할 가능성이 높습니다'
-        : tone === 'down' ? '내일 시초는 내려서 시작할 가능성이 높습니다'
-        : '미국 신호가 약해서 내일 방향은 알 수 없습니다';
-      mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 내일은?</strong><small>' + target.label + ' 코스피 출발 · 미국 장 마감 기준</small></div>'
+      // 참고(점수 미반영): 새벽에 마감한 미국 현물 지수와 코스피 야간선물. 기존 응답의 일봉 마지막 두 봉만 쓴다.
+      var auxItems = [['S&P 500', by.SP500_INDEX], ['나스닥 종합', by.NASDAQ_INDEX], ['다우존스', by.DOW_INDEX], ['코스피 야간선물', by.KOSPI200_NIGHT]].map(function (it) {
+        var c = lastBarChange_(it[1]);
+        return '<li><span>' + it[0] + '<small>' + (c ? c.date + (it[0] === '코스피 야간선물' ? ' 마감 · ' + c.close.toLocaleString('ko-KR', { maximumFractionDigits: 2 }) : ' 마감') : '미수신') + '</small></span>'
+          + (c ? '<b class="' + cls(c.pct) + '">' + sgn(c.pct) + '</b>' : '<b class="mt-val-zero">미수신</b>') + '</li>';
+      }).join('');
+      var auxHtml = '<div class="mt-tm-aux"><b>새벽 마감 · 참고</b><ul class="mt-tm-why mt-tm-aux-list">' + auxItems + '</ul></div>';
+      var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
+        : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
+        : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
+      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + target.label + ' 코스피 출발 · 미국 장 마감 기준</small></div>'
         + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
         + '<ul class="mt-tm-why">' + why + '</ul>'
         + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b> 같은 강도의 신호가 나온 과거 ' + bucket.n + '거래일(최근 220거래일 중)에서 <b>' + bucket.gap + '</b>, ' + bucket.close + '이었습니다.'
         + (tone === 'flat' ? ' 이런 날은 평소 확률과 같아 어느 쪽도 단정할 수 없습니다.' : ' 종가까지 이어질 가능성은 시초보다 낮으니 시초 방향이 장중에 뒤집히는 날도 있다고 봐야 합니다.') + '</div>'
-        + nightHtml
+        + nightHtml + auxHtml
         + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(코스피 220거래일). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
       mount.__mtTomorrowKey = key;
     }).catch(function () {
-      if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 내일은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
+      if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
     });
   }
 
