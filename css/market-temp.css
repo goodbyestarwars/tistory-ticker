@@ -3028,16 +3028,37 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
 }
 
-/* 2026-10-23 그래서 오늘/내일은? 카드: 새벽 마감 참고(미국 현물 지수·코스피 야간선물) 보조 줄 */
+/* 2026-10-23 그래서 오늘/내일은? 카드·체크포인트·섹터 표·업종 로테이션 통일: 마루부리, 진한 회색(#1f2937), 새벽 마감 한 줄, 섹터 행 세로 중앙
+   원인: 카드가 마루부리 규칙 밖이라 #market-temp의 Pretendard를 상속했고, 섹터 표는 .mt-sf-item의 min-height 72px가 52px 행 아래에 20px를 비워 글자가 위로 쏠렸다. */
 @layer np.np {
-  html body #market-temp .mt-tm-aux { margin: 10px 0 6px; }
-  html body #market-temp .mt-tm-aux > b { display: block; font-size: 13px; color: #475569; }
-  html body #market-temp .mt-tm-aux-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 14px; margin: 6px 0 0; }
-  html body #market-temp .mt-tm-aux-list li { display: block; padding: 8px 2px; font-size: 12.5px; }
-  html body #market-temp .mt-tm-aux-list li b { display: block; margin-top: 2px; font-size: 15px; }
-  html body #market-temp .mt-tm-aux-list li small { display: block; }
-  @media (max-width: 720px) {
-    html body #market-temp .mt-tm-aux-list { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  }
+  html body #market-temp .mt-tomorrow-card, html body #market-temp .mt-tomorrow-card * { font-family: 'MaruBuri', Georgia, serif !important; font-variant-numeric: tabular-nums; }
+  html body #market-temp .mt-tomorrow-card :is(strong, b, h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-head strong { font-size: 21px; }
+  html body #market-temp .mt-tm-aux { margin: 10px 0 6px; font-size: 12.5px; line-height: 1.7; color: #1f2937 !important; }
+  html body #market-temp .mt-tm-aux > b:first-child { margin-right: 4px; color: #1f2937 !important; }
+  html body #market-temp .mt-tm-aux i { font-style: normal; color: #94a3b8; }
+  html.dark body #market-temp .mt-tm-aux, html.dark body #market-temp .mt-tm-aux > b:first-child { color: #e2e8f0 !important; }
+  /* 진한 회색 토큰: 거의 검정(#111827)이던 본문을 #1f2937로 */
+  html body #market-temp .mt-tomorrow-card :is(.mt-tm-why li > span, .mt-tm-verdict > span, .mt-tm-proof, .mt-tm-proof > b, .mt-tm-night) { color: #1f2937 !important; }
+  html body #market-temp .mt-checkpoint-facts.mt-checkpoint-facts { --cp-ink: #1f2937; }
+  html body #market-temp .mt-sf-card :is(.mt-sf-row b, .mt-sf-rank, .mt-sf-pick > span, .mt-sf-stock-name) { color: #1f2937 !important; }
+  html.dark body #market-temp .mt-tomorrow-card :is(.mt-tm-why li > span, .mt-tm-verdict > span, .mt-tm-proof, .mt-tm-proof > b, .mt-tm-night), html.dark body #market-temp .mt-sf-card :is(.mt-sf-row b, .mt-sf-rank, .mt-sf-pick > span, .mt-sf-stock-name) { color: #e2e8f0 !important; }
+  /* 섹터 표: 항목 최소 높이를 행이 가지도록 옮겨 위·아래 여백을 같게 */
+  html body #market-temp .mt-sf-card .mt-sf-item.mt-sf-item { min-height: 0 !important; }
+  /* 업종 로테이션: 위 카드들과 같은 형식 */
+  html body #market-temp .mt-rot-wrap .home-sector-rotation, html body #market-temp .mt-rot-wrap .home-sector-rotation :is(*, *::before) { font-family: 'MaruBuri', Georgia, serif !important; }
+  html body #market-temp .mt-rot-wrap .home-sector-rotation :is(.hsr-title-row strong, .hsr-phase, .hsr-detail-head strong, .hsr-detail-grid b) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp .mt-rot-wrap .hsr-head { align-items: flex-start; margin-bottom: 8px; }
+  html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-title-row strong { font-size: 21px !important; letter-spacing: -.02em; color: #666 !important; }
+  html.dark body #market-temp .mt-rot-wrap .hsr-title-row strong { color: #9aa8bb !important; }
+  html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-desc { margin-top: 8px; font-size: 13px !important; line-height: 1.7; color: #778396; }
+  html body #market-temp .mt-rot-wrap .hsr-meta { padding-top: 4px; font-size: 12px; color: #64748b; }
+  html body #market-temp .mt-rot-wrap .hsr-grid { margin-top: 18px; }
+  html body #market-temp .mt-rot-wrap.mt-rot-wrap :is(.hsr-name, .hsr-chg, .hsr-col-head p, .hsr-detail-grid small, .hsr-leaders, .hsr-note) { font-size: 12px !important; }
+  html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-phase { font-size: 14px !important; }
+  html body #market-temp .mt-rot-wrap :is(.hsr-name, .hsr-phase, .hsr-detail-grid b) { color: #1f2937 !important; }
+  html.dark body #market-temp .mt-rot-wrap :is(.hsr-name, .hsr-phase, .hsr-detail-grid b) { color: #e2e8f0 !important; }
+  html body #market-temp .mt-rot-wrap .hsr-item { align-items: center; }
+  /* 헤드라인 배지: 음영을 더 넓게 */
+  html body #market-temp .mt-front-headline.mt-front-headline:is(.is-down, .is-up) { padding: 8px 20px !important; border-radius: 14px; }
 }
-html.dark #market-temp .mt-tm-aux > b { color: #cbd5e1; }
