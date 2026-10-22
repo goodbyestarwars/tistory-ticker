@@ -2197,6 +2197,11 @@
     kfModel.noData = macro.length > 0 && kfModel.value == null;
     return models;
   }
+  // 상태 단어의 방향 화살표(↗ 빨강 · ↘ 파랑 · → 회색). 방향이 없는 단어('장중 집계', '확인 중')에는 붙이지 않는다.
+  function wordArrow_(word) {
+    var kind = /(상승|증가|높음|강세|순매수)/.test(word) ? 'up' : /(하락|감소|낮음|약세|순매도)/.test(word) ? 'down' : /(평소|보합|중립|변화 없음)/.test(word) ? 'flat' : '';
+    return kind ? '<i class="mt-flow-arrow is-' + kind + '" aria-hidden="true">' + { up: '↗', down: '↘', flat: '→' }[kind] + '</i> ' : '';
+  }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
     return '<div class="mt-glance-list">' + models.map(function (m) {
@@ -2209,7 +2214,7 @@
       var value = investor && amount != null ? indicatorMoney_(Math.abs(amount)) : m.valueText;
       var note = investor ? shares ? '' : m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : m.id === 'kospi-futures' ? (m.delta == null ? '' : '전일 대비 ' + m.changeText) : '';
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
-        + '<b class="mt-glance-state is-' + tone + '">' + (investor && amount != null && amount !== 0 ? '<i class="mt-flow-arrow" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : '') + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
+        + '<b class="mt-glance-state is-' + tone + '">' + (investor ? (amount != null && amount !== 0 ? '<i class="mt-flow-arrow is-' + (amount > 0 ? 'up' : 'down') + '" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : wordArrow_(word)) : wordArrow_(word)) + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
         + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(shortDate_(date)) + ' 기준' : '기준일 확인 중') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
       var bar = m.id === 'individual' ? '</div>' + renderInvestorShares_(shares) : '';
@@ -2248,7 +2253,7 @@
     function pan(x, y, heavy, text) {
       return '<g class="mt-fx-pan' + (heavy ? ' is-heavy' : '') + '"><path d="M' + (x - 26) + ',' + (y + 29) + ' L' + x + ',' + y + ' L' + (x + 26) + ',' + (y + 29) + ' Z"/><path class="mt-fx-bowl" d="M' + (x - 29) + ',' + (y + 29) + ' Q' + x + ',' + (y + 53) + ' ' + (x + 29) + ',' + (y + 29) + ' Z"/><text x="' + x + '" y="' + (y + 25) + '">' + text + '</text></g>';
     }
-    return '<span class="mt-glance-line"><span class="mt-glance-label">환율<span class="mt-glance-colon"> : </span></span><b class="mt-glance-state">' + word + '</b><span class="mt-glance-amount">' + (m.value == null ? '확인 중' : '1달러 = ' + escapeHtml(m.valueText)) + '</span></span>'
+    return '<span class="mt-glance-line"><span class="mt-glance-label">환율<span class="mt-glance-colon"> : </span></span><b class="mt-glance-state' + (state === 'usd' ? ' is-positive' : state === 'krw' ? ' is-negative' : '') + '">' + (state === 'usd' ? wordArrow_('상승') : state === 'krw' ? wordArrow_('하락') : state === 'balanced' ? wordArrow_('변화 없음') : '') + word + '</b><span class="mt-glance-amount">' + (m.value == null ? '확인 중' : '1달러 = ' + escapeHtml(m.valueText)) + '</span></span>'
       + '<span class="mt-fx-balance" data-fx-stronger="' + state + '"><svg viewBox="0 0 320 120" role="img" aria-label="직전 기록 대비 ' + word + '"><path class="mt-fx-stand" d="M160,42 L160,105 M140,108 L180,108"/>'
       + '<path class="mt-fx-beam" d="M70,' + (47 - tilt * 12) + ' L250,' + (47 + tilt * 12) + '"/>'
       + pan(70, 47 - tilt * 12, state === 'krw', '원화') + pan(250, 47 + tilt * 12, state === 'usd', '달러') + '</svg></span>'
@@ -2277,7 +2282,7 @@
     function html(node, markup) { if (node.__mtMarkup !== markup) { node.innerHTML = markup; node.__mtMarkup = markup; } }
     function checkpoint() {
       var mount = container.querySelector('[data-market-checkpoint]');
-      if (mount && state.data) html(mount, buildStrategy(state.data, state.models));
+      if (mount && state.data) html(mount, buildStrategy(state.data, state.models, state.macro));
     }
     function render(focusSelector) {
       if (!panel.isConnected) return;
@@ -2663,8 +2668,9 @@
       mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + target.label + ' 코스피 출발 · 미국 장 마감 기준</small></div>'
         + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
         + '<ul class="mt-tm-why">' + why + '</ul>'
-        + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b> 같은 강도의 신호가 나온 과거 ' + bucket.n + '거래일(최근 220거래일 중)에서 <b>' + bucket.gap + '</b>, ' + bucket.close + '이었습니다.'
-        + (tone === 'flat' ? ' 이런 날은 평소 확률과 같아 어느 쪽도 단정할 수 없습니다.' : ' 종가까지 이어질 가능성은 시초보다 낮으니 시초 방향이 장중에 뒤집히는 날도 있다고 봐야 합니다.') + '</div>'
+        + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b>'
+        + '<span class="mt-tm-proof-line">같은 강도 신호 ' + bucket.n + '거래일(최근 220일) 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
+        + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>'
         + nightHtml + auxHtml
         + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(코스피 220거래일). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
       mount.__mtTomorrowKey = key;
@@ -2912,7 +2918,7 @@
     return quotesAreStale_(data) ? '직전 거래일 마감 기준' : m[1] + '.' + m[2] + ' 기준';
   }
 
-  function checkpointFacts_(data, models) {
+  function checkpointFacts_(data, models, macro) {
     models = models || [];
     var story = frontPageStory_(data), b = story.breadth, items = [], avoid = [];
     var down = b && b.down > b.up * 1.5, up = b && b.up > b.down * 1.5;
@@ -2950,11 +2956,31 @@
       date: shortDate_(fx.date) + ' 기준', check: '환율 영향을 받는 종목은 주가와 환율이 함께 움직이는지 살펴보세요.' });
     if (!items.length) items.push({ label: '내 종목과 시장을 구분해서 보기', evidence: b ? story.headline : '상승·하락 종목 집계를 확인하고 있습니다.',
       date: checkpointDate_(data), check: '시장 전체의 움직임인지, 해당 종목의 뉴스·공시가 원인인지 먼저 확인하세요.' });
+    // ---- 오늘 데이터에 따른 추가 규칙(2026-10-23). 값이 없으면 규칙을 건너뛰고 값을 지어내지 않는다. 확인할 점/피할 점 어조만 쓴다. ----
+    var rowBy = {}; (macro || []).forEach(function (r) { if (r && r.symbol) rowBy[r.symbol] = r; });
+    var vixC = lastBarChange_(rowBy.VIX), nqC = lastBarChange_(rowBy.NASDAQ100), soxC = lastBarChange_(rowBy.SOX);
+    var volLow = volumes.some(function (m) { return m.value < 80 && !m.intraday; });
+    var volHigh = volumes.some(function (m) { return m.value >= 180 && !m.intraday; });
+    var fxPct = fx && fx.value != null && fx.delta != null && fx.value - fx.delta ? fx.delta / (fx.value - fx.delta) * 100 : null;
+    function pct(v) { return (v > 0 ? '+' : '') + v.toFixed(1) + '%'; }
+    if (vixC && nqC) items.push({ label: '미국 불안 신호와 선물 방향', evidence: 'VIX ' + pct(vixC.pct) + ' · 나스닥100 선물 ' + pct(nqC.pct) + (soxC ? ' · 반도체지수 ' + pct(soxC.pct) : ''),
+      date: vixC.date + ' 기준', check: vixC.pct >= 10 ? '공포지수가 크게 오른 날입니다. 보유 종목의 변동 폭이 평소보다 큰지 확인하세요.' : nqC.pct <= -2 || nqC.pct >= 2 ? '미국 선물 변동이 큰 날입니다. 내 종목이 미국 흐름에 민감한지 확인하세요.' : '미국 지표가 크지 않게 움직였습니다. 국내 수급과 함께 확인하세요.' });
+    if (down && volLow) {
+      avoid = avoid.filter(function (t) { return t.indexOf('거래가 적은') < 0; });
+      avoid.unshift('하락 속 거래량이 낮은 날은 추세 판단을 미룹니다.');
+    }
+    if (volHigh) avoid.push('거래량이 급증한 날의 큰 움직임을 추세 전환으로 단정하지 마세요.');
+    if (fxPct != null && Math.abs(fxPct) >= 0.5) avoid.push('환율이 크게 움직인 날은 외국인 수급을 환율과 따로 떼어 단정하지 마세요.');
+    if (vixC && vixC.pct >= 10) avoid.push('공포지수가 급등한 하루만 보고 시장 방향을 단정하지 마세요.');
+    if (nqC && Math.abs(nqC.pct) >= 2) avoid.push('미국 선물 움직임을 내 종목에 그대로 옮겨 보지 마세요.');
+    // 같은 문구 제거, 항목은 최대 4개(핵심 순서 유지)
+    avoid = avoid.filter(function (t, i) { return avoid.indexOf(t) === i; }).slice(0, 4);
+    items = items.slice(0, 4);
     return { title: title, mood: story.lead, tone: down ? 'negative' : up ? 'positive' : 'neutral', items: items, avoid: avoid };
   }
 
-  function buildStrategy(data, models) {
-    var facts = checkpointFacts_(data, models), dateText = checkpointDate_(data);
+  function buildStrategy(data, models, macro) {
+    var facts = checkpointFacts_(data, models, macro), dateText = checkpointDate_(data);
     return '<div class="mt-strategy-panel mt-ant-guide mt-checkpoint-facts" id="mt-ant-guide">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트</div>'
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'

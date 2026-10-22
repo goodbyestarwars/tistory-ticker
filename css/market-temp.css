@@ -3070,3 +3070,22 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-breadth-track.mt-breadth-track i.is-small { font-size: 8px; letter-spacing: -.04em; }
   html body #market-temp .mt-breadth-flat-note { display: block; margin-top: 4px; font-size: 10px; color: var(--pulse-sub); text-align: center; }
 }
+
+/* 2026-10-23 그래서 오늘은? 신호 칸 카드형(시장 한눈에 칸과 같은 면 배경), 믿을 만한가 문장 줄바꿈, 상태 화살표 색 */
+@layer np.np {
+  html body #market-temp .mt-tomorrow-card { --mt-soft: #f5f8fd; }
+  html.dark body #market-temp .mt-tomorrow-card { --mt-soft: #283340; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 8px; border-top: 0 !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li { padding: 12px 14px !important; border: 0 !important; border-radius: 9px; background: var(--mt-soft) !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li:first-child { padding-left: 14px !important; }
+  @media (max-width: 720px) {
+    html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+  html body #market-temp .mt-tm-proof { word-break: keep-all; overflow-wrap: break-word; }
+  html body #market-temp .mt-tm-proof-line { display: block; }
+  html body #market-temp .mt-tm-proof > b { display: block; margin-bottom: 2px; }
+  html body #market-temp .mt-tm-aux { margin-bottom: 14px; }
+  html body #market-temp .mt-flow-arrow.is-up { color: var(--pulse-red, #d35159) !important; }
+  html body #market-temp .mt-flow-arrow.is-down { color: var(--pulse-blue, #2566d4) !important; }
+  html body #market-temp .mt-flow-arrow.is-flat { color: var(--pulse-sub, #778396) !important; }
+}

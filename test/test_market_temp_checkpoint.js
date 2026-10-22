@@ -23,7 +23,7 @@ assert(!t.checkpointFacts_(base,mismatch).title.includes('개인이 받고'));
 const intraday=t.checkpointFacts_(base,[{...volume,intraday:true}]);assert(intraday.items[0].check.includes('장중 누적치'));
 const html=t.buildStrategy(base,[...actors,volume,fx]);assert(!/mt-cp-metric|AI 시장|\d+점/.test(html));assert(html.includes('지금 할 것'));
 assert(html.includes('지금 하지 말아야 할 것')&&!html.includes('실제 집계로 읽는 오늘의 흐름'));
-assert(facts.avoid.some(s=>s.includes('순매도')));assert(facts.avoid.some(s=>s.includes('거래가 적은')));
+assert(facts.avoid.some(s=>s.includes('순매도')));assert(facts.avoid.some(s=>s.includes('거래가 적은')||s.includes('하락 속 거래량이 낮은')));
 assert(intraday.avoid.some(s=>s.includes('마감 전')));assert(t.checkpointFacts_({},[]).avoid.some(s=>s.includes('자료가 없는')));
 assert(!src.includes('marketTempBriefing=1')&&!src.includes('loadAiBriefing('));
 (async()=>{
