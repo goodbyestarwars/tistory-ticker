@@ -1931,8 +1931,8 @@
     var story = frontPageStory_(data), tone = scoreTone_(score100(data));
     return '<header class="mt-market-intro mt-market-' + tone + '">'
       + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span>시장 한눈에 보기</span></div>'
-      + '<h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
-      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p></header>';
+      + '<div class="mt-intro-line"><h2 class="mt-front-headline">' + escapeHtml(story.headline) + '</h2>'
+      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p></div></header>';
   }
 
   function buildBreadthVisual_(story) {
@@ -1968,9 +1968,9 @@
 
   function buildSummaryCard(data) {
     return '<article class="mt-section mt-card mt-summary-card mt-front-story mt-direct-overview">'
+      + buildBreadthVisual_(frontPageStory_(data))
       + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3><small>항목을 눌러 추이 보기</small></div>'
       + '<div data-market-indicators>' + renderIndicatorRows_(buildIndicatorModels_({}, []), 'kospi-volume') + '</div>'
-      + buildBreadthVisual_(frontPageStory_(data))
       + '<details class="mt-front-details"><summary>데이터 출처·기준 안내</summary>'
       + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록 대비 상대 강도를 나타냅니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details></article>';
   }
@@ -2085,13 +2085,13 @@
       var word = m.value == null ? '확인 중' : investor ? (amount > 0 ? '순매수' : amount < 0 ? '순매도' : '보합') : m.statusText || (m.delta == null ? '확인 중' : m.delta > 0 ? '증가' : m.delta < 0 ? '감소' : '변화 없음');
       var label = m.id === 'credit' ? '빚투' : m.id === 'deposits' ? '예탁금' : m.id === 'fx' ? '환율' : m.label;
       var value = investor && amount != null ? indicatorMoney_(Math.abs(amount)) : m.valueText;
-      var note = investor ? m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : '';
+      var note = investor ? shares ? '' : m.detail.replace(' 일별 순매수', '') : m.id.indexOf('volume') >= 0 ? '20개 기록 평균 대비' : m.id === 'credit' ? '신용융자 잔액' : m.id === 'deposits' ? '고객예탁금' : m.id === 'us-rate' ? '국채 10년물' : '';
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
         + '<b class="mt-glance-state is-' + tone + '">' + (investor && amount != null && amount !== 0 ? '<i class="mt-flow-arrow" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : '') + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
         + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(shortDate_(date)) + ' 기준' : '기준일 확인 중') + '</small>';
-      var bar = m.id === 'individual' ? renderInvestorShares_(shares) : '';
-      return '<button type="button" class="mt-indicator-chip mt-glance-row' + (m.id === 'fx' ? ' mt-fx-row' : '') + (m.id === selected ? ' is-selected' : '') + '" data-market-metric="' + m.id + '" aria-pressed="' + (m.id === selected) + '">' + body + '</button>' + bar;
+      var bar = m.id === 'individual' ? '</div>' + renderInvestorShares_(shares) : '';
+      return (m.id === 'foreign' ? '<div class="mt-investor-row">' : '') + '<button type="button" class="mt-indicator-chip mt-glance-row' + (m.id === 'fx' ? ' mt-fx-row' : '') + (m.id === selected ? ' is-selected' : '') + '" data-market-metric="' + m.id + '" aria-pressed="' + (m.id === selected) + '">' + body + '</button>' + bar;
     }).join('') + '</div>';
   }
   function investorShares_(models) {
@@ -2107,7 +2107,7 @@
     var remainder = 1000 - tenths.reduce(function (sum, v) { return sum + v; }, 0);
     var order = [0, 1, 2].sort(function (a, b) { return (raw[b] - tenths[b]) - (raw[a] - tenths[a]); });
     for (var i = 0; i < remainder; i++) tenths[order[i % 3]]++;
-    return { date: date, items: actors.map(function (m, i) { return { id: m.id, label: m.label, value: values[i], percent: (tenths[i] / 10).toFixed(1) }; }) };
+    return { date: date, scope: actors[0].detail.replace(' 일별 순매수', ''), items: actors.map(function (m, i) { return { id: m.id, label: m.label, value: values[i], percent: (tenths[i] / 10).toFixed(1) }; }) };
   }
   function renderInvestorShares_(shares) {
     if (!shares) return '<p class="mt-share-note">수급 비중은 세 주체의 같은 날짜 자료가 모이면 표시합니다.</p>';
@@ -2115,7 +2115,7 @@
     return '<div class="mt-investor-share"><div class="mt-share-head"><b>수급 비중</b><span>합계 100%</span></div>'
       + '<div class="mt-share-bar" role="img" aria-label="' + escapeHtml(label) + '">' + shares.items.map(function (r) {
         return '<span class="is-' + (r.value > 0 ? 'positive' : r.value < 0 ? 'negative' : 'neutral') + (Number(r.percent) < 8 ? ' is-small' : '') + '" style="width:' + r.percent + '%" title="' + escapeHtml(r.label + ' ' + r.percent + '%') + '">' + r.percent + '%</span>';
-      }).join('') + '</div><p class="mt-share-note">순매수·순매도 금액의 절댓값 합계 기준 · ' + escapeHtml(shortDate_(shares.date)) + '</p></div>';
+      }).join('') + '</div><p class="mt-share-note">' + escapeHtml(shares.scope) + ' · 순매매 금액 절댓값 합계 기준 · ' + escapeHtml(shortDate_(shares.date)) + '</p></div>';
   }
   function fxBalanceState_(m) {
     return m.value == null || m.delta == null ? 'unavailable' : m.delta > 0 ? 'usd' : m.delta < 0 ? 'krw' : 'balanced';
@@ -2545,7 +2545,7 @@
     }).join('');
     var step = n > 6 ? Math.ceil(n / 5) : 1;
     labels += shown.map(function (day, index) {
-      if (index !== n - 1 && (index % step !== 0 || n - 1 - index < step / 2)) return '';
+      if (index !== n - 1 && (index % step !== 0 || n - 1 - index <= step / 2)) return '';
       return '<span class="mt-fc-xlabel" style="left:' + (X(index) / W * 100).toFixed(2) + '%">' + escapeHtml(shortDate_(day.date)) + '</span>';
     }).join('');
     var dots = shown.map(function (day, index) {
@@ -2745,7 +2745,7 @@
 
   function checkpointFacts_(data, models) {
     models = models || [];
-    var story = frontPageStory_(data), b = story.breadth, items = [];
+    var story = frontPageStory_(data), b = story.breadth, items = [], avoid = [];
     var down = b && b.down > b.up * 1.5, up = b && b.up > b.down * 1.5;
     var title = down ? '하락이 넓게 퍼졌습니다. 내 종목의 변화부터 확인하세요.'
       : up ? '오르는 종목이 많습니다. 수급도 함께 붙는지 살펴보세요.'
@@ -2762,6 +2762,9 @@
         return r.label + ' ' + (r.value > 0 ? '순매수 ' : r.value < 0 ? '순매도 ' : '순매매 없음 ') + indicatorMoney_(Math.abs(r.value));
       }).join(' · '), date: shortDate_(shares.date) + ' 기준',
         check: selling ? '보유 종목의 외국인·기관 수급도 같은 흐름인지 비교하세요.' : buying ? '오르는 종목에도 순매수가 이어지는지 확인하세요.' : '시장 전체의 수급과 보유 종목의 수급을 나란히 확인하세요.' });
+      if (selling) avoid.push('개인의 순매수만 보고 외국인·기관의 순매도를 놓치지 마세요.');
+      else if (buying) avoid.push('외국인·기관이 산다는 이유만으로 이미 오른 종목을 따라 사지 마세요.');
+      else avoid.push('시장 전체의 순매수를 내 종목의 매수 근거로 그대로 옮기지 마세요.');
     }
     var volumes = ['kospi-volume', 'kosdaq-volume'].map(find).filter(function (m) { return m && m.value != null; });
     if (volumes.length) items.push({ label: '거래가 따라오는지', evidence: volumes.map(function (m) {
@@ -2769,13 +2772,16 @@
     }).join(' · '), date: '직전 20개 기록 평균 대비', check: volumes.some(function (m) { return m.intraday; })
       ? '장중 누적치입니다. 마감 전 수치를 하루 전체 거래량과 구분해서 보세요.'
       : volumes.some(function (m) { return m.value < 80; }) ? '가격 움직임만 보지 말고, 보유 종목의 거래량도 평소와 비교하세요.' : '시장 거래량과 보유 종목의 거래량이 함께 늘었는지 비교하세요.' });
+    if (volumes.some(function (m) { return m.intraday; })) avoid.push('마감 전 누적 거래량을 하루 전체 거래량과 비교해 침체로 단정하지 마세요.');
+    else if (volumes.some(function (m) { return m.value < 80; })) avoid.push('거래가 적은 가격 움직임만 보고 추세가 바뀌었다고 단정하지 마세요.');
+    if (!avoid.length) avoid.push(b ? '시장 분위기만 보고 종목의 뉴스·공시 확인을 건너뛰지 마세요.' : '자료가 없는 항목을 보합이나 수급 균형으로 해석하지 마세요.');
     var fx = find('fx');
     if (fx && fx.value != null && fx.delta != null) items.push({ label: '환율도 같은 방향인지',
       evidence: (fx.delta > 0 ? '달러 강세' : fx.delta < 0 ? '원화 강세' : '환율 변화 없음') + ' · 1달러 ' + fx.valueText + ' (' + fx.changeText + ')',
       date: shortDate_(fx.date) + ' 기준', check: '환율 영향을 받는 종목은 주가와 환율이 함께 움직이는지 살펴보세요.' });
     if (!items.length) items.push({ label: '내 종목과 시장을 구분해서 보기', evidence: b ? story.headline : '상승·하락 종목 집계를 확인하고 있습니다.',
       date: checkpointDate_(data), check: '시장 전체의 움직임인지, 해당 종목의 뉴스·공시가 원인인지 먼저 확인하세요.' });
-    return { title: title, mood: story.lead, tone: down ? 'negative' : up ? 'positive' : 'neutral', items: items };
+    return { title: title, mood: story.lead, tone: down ? 'negative' : up ? 'positive' : 'neutral', items: items, avoid: avoid };
   }
 
   function buildStrategy(data, models) {
@@ -2785,11 +2791,13 @@
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
       + '<div class="mt-cp-body"><div class="mt-strategy-message mt-cp-call is-' + facts.tone + '">'
       + '<div class="mt-strategy-action">' + escapeHtml(facts.title) + '</div><p class="mt-ant-mood">' + escapeHtml(facts.mood) + '</p>'
-      + '<small class="mt-cp-context">실제 집계로 읽는 오늘의 흐름</small></div>'
+      + '</div><div class="mt-cp-actions">'
       + '<div class="mt-cp-next"><h3>지금 할 것</h3><ol>' + facts.items.map(function (item) {
         return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + escapeHtml(item.evidence) + '</p>'
           + '<small>' + escapeHtml(item.date) + '</small><p class="mt-cp-check">' + escapeHtml(item.check) + '</p></li>';
-      }).join('') + '</ol></div></div></div>';
+      }).join('') + '</ol></div><div class="mt-cp-avoid"><h3>지금 하지 말아야 할 것</h3><ul>' + facts.avoid.map(function (text) {
+        return '<li>' + escapeHtml(text) + '</li>';
+      }).join('') + '</ul></div></div></div></div>';
   }
 
   function buildBriefingStrategy(data) {
