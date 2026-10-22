@@ -222,7 +222,7 @@
       wrap.className = 'nine-chart-ranges';   // 모양은 css/ui-system.css(.nine-chart-ranges) - 사이트 탭(.ss-tf-btn)과 같은 스타일
       parent.insertBefore(wrap, chartElement);
     }
-    // 2026-10-22 사용자 요청: 기간 버튼(1개월~전체)을 보조지표 옵션 줄 위로 올린다(봉 주기·도구 → 기간 → 가로선 → 옵션 → 차트 순서).
+    // Stock charts keep timeframe and range choices together in the top row.
     var optionsRow = null;
     // Stock controls now contain the studies row; keep ranges inside that frame.
     var controls = parent.querySelector('.ss-stock-controls');
@@ -232,7 +232,9 @@
       var kid = siblings[oi];
       if (kid.classList && (kid.classList.contains('ss-chart-studies') || kid.classList.contains('ff-chart-toggles'))) { optionsRow = kid; break; }
     }
-    if (optionsRow && (wrap.parentElement !== optionsParent || (wrap.compareDocumentPosition && (wrap.compareDocumentPosition(optionsRow) & 2)))) optionsParent.insertBefore(wrap, optionsRow);   // 2 = 옵션 줄이 기간 묶음보다 앞에 있음
+    var toolsRow = controls && controls.querySelector('.ss-chart-tabs');
+    if (toolsRow) toolsRow.insertBefore(wrap, toolsRow.querySelector('.ss-drawing-tools'));
+    else if (optionsRow && (wrap.parentElement !== optionsParent || (wrap.compareDocumentPosition && (wrap.compareDocumentPosition(optionsRow) & 2)))) optionsParent.insertBefore(wrap, optionsRow);
     wrap.hidden = false;
     var options = isUs ? RANGE_OPTIONS.filter(function (o) { return o[0] !== '3y' && o[0] !== '5y'; }) : RANGE_OPTIONS;
     wrap.innerHTML = options.map(function (o) {

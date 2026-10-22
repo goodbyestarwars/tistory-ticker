@@ -1622,12 +1622,17 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     max-width: 100% !important;
     padding: 12px 16px !important;
     gap: 10px 16px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
   html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools {
     gap: 6px !important;
+    flex: 0 0 auto !important;
+    flex-wrap: nowrap !important;
   }
-  html body .ss-stock-controls.ss-stock-controls button {
+  html body .ss-stock-controls.ss-stock-controls button,
+  html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
     box-sizing: border-box;
     min-height: 34px !important;
     height: auto !important;
@@ -1637,11 +1642,12 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   }
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
     display: flex !important;
-    flex-wrap: wrap !important;
+    flex-wrap: nowrap !important;
+    flex: 0 0 auto !important;
     gap: 6px !important;
     width: auto !important;
     margin: 0 !important;
-    padding: 0 16px 12px !important;
+    padding: 0 !important;
     overflow: visible !important;
     background: transparent !important;
     border: 0 !important;
@@ -1649,8 +1655,11 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
     padding: 12px 16px !important;
     gap: 10px 16px !important;
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies label {
+    flex: 0 0 auto;
     font-size: 14px !important;
     line-height: 1.5 !important;
     gap: 6px !important;
