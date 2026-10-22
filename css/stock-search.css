@@ -1622,14 +1622,49 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     max-width: 100% !important;
     padding: 12px 16px !important;
     gap: 10px 16px !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-start !important;
+    overflow-x: visible !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
   html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools {
     gap: 6px !important;
     flex: 0 0 auto !important;
     flex-wrap: nowrap !important;
+  }
+  /* 2026-10-22 사용자 요청: 일봉·주봉·월봉·분봉 / 1개월~전체를 각각 하나의 묶음(세그먼트)으로. 메모~독립 차트(.ss-drawing-tools)는 기존 모양 유지.
+     한 줄에 안 들어가면 그리기 도구 묶음이 다음 줄로 내려가고, 좁은 화면에서는 그 안에서도 줄바꿈한다. */
+  html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools { flex-wrap: wrap !important; }
+  html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
+  html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    align-items: center;
+    gap: 2px !important;
+    padding: 3px !important;
+    border: 1px solid #d9dfe8 !important;
+    border-radius: 9px;
+    background: #fff !important;
+  }
+  html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools button,
+  html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
+    border-color: transparent !important;
+    background: transparent !important;
+  }
+  html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools button.active,
+  html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn.active {
+    border-color: #cbd5e1 !important;
+    background: #e5e7eb !important;
+  }
+  html.dark body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
+  html.dark body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
+    border-color: rgba(245, 239, 224, .16) !important;
+    background: rgba(245, 239, 224, .05) !important;
+  }
+  html.dark body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools button.active,
+  html.dark body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn.active {
+    border-color: rgba(245, 239, 224, .24) !important;
+    background: #424242 !important;
   }
   html body .ss-stock-controls.ss-stock-controls button,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
@@ -1644,19 +1679,15 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     display: flex !important;
     flex-wrap: nowrap !important;
     flex: 0 0 auto !important;
-    gap: 6px !important;
     width: auto !important;
     margin: 0 !important;
-    padding: 0 !important;
     overflow: visible !important;
-    background: transparent !important;
-    border: 0 !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
     padding: 12px 16px !important;
     gap: 10px 16px !important;
-    flex-wrap: nowrap !important;
-    overflow-x: auto !important;
+    flex-wrap: wrap !important;
+    overflow-x: visible !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies label {
     flex: 0 0 auto;
@@ -1667,6 +1698,14 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies input[type="checkbox"] {
     width: 16px !important;
     height: 16px !important;
+  }
+  /* 좁은 화면: 묶음이 화면 폭을 넘으면 묶음 안에서 줄바꿈한다(가로 스크롤 없음). */
+  @media (max-width: 520px) {
+    html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
+    html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
+      flex-wrap: wrap !important;
+      max-width: 100% !important;
+    }
   }
 } }
 
