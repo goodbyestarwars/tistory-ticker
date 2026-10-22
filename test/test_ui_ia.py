@@ -2585,30 +2585,29 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         # 1280이 되어 이 미디어쿼리에 걸리는데 버튼까지 사라지면 되돌릴 수 없다.
         self.assertIn("html:not(.view-pc) .site-footer-viewmode { display: none; }", style)
 
-    def test_market_temp_front_page_is_one_score_and_three_axes(self):
-        """증시온도 단순화(2026-09-07).
-
-        "지표가 10개라 아무도 안 본다"는 사용자 판단. 첫 화면을 종합점수 하나 + 돈·가격·
-        위험 3축으로 줄이고, 10개 컴포넌트 막대는 '자세히'로 접었다. 레이더 차트는 같은
-        값을 막대와 두 번 그리던 것이라 뺐다.
-        """
+    def test_market_temp_front_page_uses_direct_market_indicators(self):
+        """2026-10-23: 점수 없이 실제 지표와 연결되는 그래프를 표시한다."""
         source = self.read("js/market-temp.js")
         self.assertIn("function buildSummaryCard(data)", source)
         # 2026-09-13: 첫 화면 ①종합점수·②최근 단기흐름을 PC에서 1:1로 한 줄에 묶었다.
         self.assertIn("+ buildSummaryCard(data)", source)
-        self.assertIn("+ buildSparkline(data, false)", source)
+        self.assertIn("+ buildIndicatorHistoryShell_()", source)
+        start = source.index("  function buildSummaryCard(data)")
+        summary = source[start:source.index("  function indicatorNumber_", start)]
+        self.assertNotIn("buildKpiStrip_", summary)
+        self.assertNotIn("mt-front-facts", summary)
         self.assertIn("var AXIS_ORDER = [", source)
         for token in ("{ key: 'money'", "{ key: 'price'", "{ key: 'risk'"):
             self.assertIn(token, source)
-        # 10개 컴포넌트는 사라지지 않고 접힌다.
-        self.assertIn("<summary>점수 산정 근거 · 세부 지표</summary>", source)
+        # 실제 지표의 출처와 기준일을 확인할 수 있다.
+        self.assertIn("<summary>데이터 출처·기준 안내</summary>", source)
         # 레이더 차트와 2열 래퍼는 화면에서 뺐다.
         self.assertNotIn("function buildRadar(", source)
         self.assertNotIn("function row2col(", source)
         # 서버가 내려주는 3축 종합점수를 우선 쓴다.
         self.assertIn("var summary = data && data.score100 != null ? Number(data.score100) : NaN;", source)
         # 2026-09-02 요청 기능(상승·하락 코스피/코스닥 따로)은 버리지 않고 요약 카드로 옮겼다.
-        self.assertIn("+ buildBreadth(data)", source)
+        self.assertIn("buildBreadthVisual_(frontPageStory_(data))", source)
         # 비교할 어제가 없는 것과 "어제와 같음"을 뭉뚱그리지 않는다.
         self.assertIn("오늘부터 일별 기록을 시작했습니다.", source)
 

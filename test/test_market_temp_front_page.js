@@ -17,11 +17,9 @@ for(const bad of [{up:null,down:null,total:5},{up:3,down:8,total:10},{up:NaN,dow
  const r=story({marketBreadth:{total:bad}});assert(!r.breadth);assert(r.lead.includes('확인'));
 }
 let html=summary(d);
-assert(html.includes('-29점'));
+assert(!html.includes('/100')&&!html.includes('mt-front-facts'));
+assert(html.includes('data-market-indicators'));
+assert(html.includes('코스피 거래량')&&html.includes('신용융자')&&html.includes('국채 10년물'));
 assert(html.includes('<details class="mt-front-details"><summary>'));
 assert(!html.includes('5일선')&&!html.includes('역발상'));
-assert(!summary({...d,scoreDelta:null}).includes('변화 없음'));
-assert(summary({...d,scoreDelta:null}).includes('비교 기록 없음'));
-assert(summary({...d,axes:{risk:{value:70}}}).includes('mt-front-risk'));
-assert(!summary({...d,axes:{risk:{value:null}}}).includes('<p class="mt-front-risk">'));
-console.log('Market front page: fact-based headlines, scope, missing data, risk and folds ok');
+console.log('Market front page: fact headlines, scope, missing data and score-free summary ok');
