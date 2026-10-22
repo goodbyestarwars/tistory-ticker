@@ -127,6 +127,21 @@ def _restore(observer, day):
         logger.info('9Pay current-day evidence not restored')
 
 
+def _start_trading_day(observer, day, subscription_drops, first_day):
+    """Reset only yesterday's loss counter; restore today's persistent block.
+
+    The hub subscription survives midnight, so its dropped_events accumulates
+    across days. A new day must use a fresh baseline, not yesterday's losses.
+    A process restarted *within* the same day must still restore the saved
+    losses and keep new entries blocked.
+    """
+    _set(queueDropped=0)
+    _restore(observer, day)  # restore_state accepts the requested day only
+    stored = health_snapshot().get('queueDropped', 0)
+    baseline = 0 if first_day else subscription_drops
+    return stored, baseline
+
+
 def _daily_context(conn, now, code):
     import market_clock
     expected = now - timedelta(days=1)
@@ -222,6 +237,7 @@ async def _run(appkey, secretkey):
     rank_started = 0.0
     logged_drops = 0
     restored_drops = 0
+    day_start_subscription_drops = 0
     high_water = 0
     try:
         while True:
@@ -237,10 +253,9 @@ async def _run(appkey, secretkey):
                      signalCount=0, rankAt=None, rankError=None, amountFallback=False,
                      lastEventAt=None)
                 day = today
-                _restore(ws, day)
-                if first_day:
-                    restored_drops = _status.get('queueDropped', 0)
-                    logged_drops = restored_drops
+                restored_drops, day_start_subscription_drops = _start_trading_day(
+                    ws, day, sub.dropped_events, first_day)
+                logged_drops = restored_drops
                 signaled.update(code for code, track in ws.tracks.items() if track.signal_at)
                 candidates = [code for code, track in ws.tracks.items() if track.first70_at][:MAX_CODES]
                 sub.update(candidates)
@@ -248,7 +263,7 @@ async def _run(appkey, secretkey):
                 next_rank = 0
             active = market_open()
             high_water = max(high_water, sub.queue.qsize())
-            total_drops = restored_drops + sub.dropped_events
+            total_drops = restored_drops + max(0, sub.dropped_events - day_start_subscription_drops)
             _set(active=active, queueDropped=total_drops,
                  queueDepth=sub.queue.qsize(), queueHighWater=high_water,
                  rankInFlight=rank_task is not None)
