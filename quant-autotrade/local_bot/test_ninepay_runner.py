@@ -168,6 +168,16 @@ class SharedEngineTests(Base):
         self.assertTrue(self.ledger.has_uncertain())
         self.assertEqual(self.buy(b), 'DISABLED_OR_UNCERTAIN')
 
+class CycleErrorStateTests(unittest.TestCase):
+    def test_network_errors_retry_only_without_uncertain_order(self):
+        import live_runner_9pay as lr
+        class L:
+            def __init__(self, u): self.u = u
+            def has_uncertain(self): return self.u
+        self.assertEqual(lr.cycle_error_state(TimeoutError(), L(False)), 'NETWORK_RETRY_TimeoutError')
+        self.assertEqual(lr.cycle_error_state(TimeoutError(), L(True)), 'DISABLED_OR_UNCERTAIN')
+        self.assertEqual(lr.cycle_error_state(ValueError(), L(False)), 'ERROR_ValueError')
+
 
 if __name__ == '__main__':
     unittest.main()
