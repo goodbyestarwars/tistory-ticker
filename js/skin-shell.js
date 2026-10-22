@@ -322,6 +322,94 @@
   };
 })(window);
 
+/* ───────────────────────────────────────────────────────────
+   갱신·기준 시각 표기 단일 규칙 (2026-10-23)
+   왜 여기 있나: 화면마다 "시황 2026-10-23 오전 07:54:56 기준", "업데이트 오전 08:24",
+   "갱신 10:32:11", "ISO 문자열 그대로"처럼 제각각이었다. 표기는 이 한 곳에서만 만든다.
+   규칙(KST):
+     수집·갱신 시각  → "업데이트 10.23 오전 08:25"  (날짜 항상 표기, 초 없음)
+     기준일(날짜만)   → "10.22 기준"
+     마감 기준일      → "10.22 마감 기준"
+   값(타임스탬프·기준일)은 바꾸지 않고 **보이는 문구만** 만든다. 수집 시각 / 기준일 / 마감
+   시점은 의미가 달라 서로 대신 쓰지 않는다. 시각 숫자를 못 읽으면 빈 문자열을 돌려주니
+   호출부가 원래 문구를 그대로 둔다(없는 시각을 만들지 않는다).
+   스타일은 css/ui-system.css 의 .nt-stamp(12px, 보조 글자색)를 쓴다.
+   ─────────────────────────────────────────────────────────── */
+(function (global) {
+  'use strict';
+  if (global.NineTime) return;
+
+  function parse(value) {
+    if (value == null || value === '') return null;
+    if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
+    if (typeof value === 'number') {
+      var ms = value < 1e11 ? value * 1000 : value;
+      var byNumber = new Date(ms);
+      return isNaN(byNumber.getTime()) ? null : byNumber;
+    }
+    var text = String(value).trim();
+    if (!text) return null;
+    // 시간대 표기가 없는 'YYYY-MM-DD HH:MM(:SS)'·'YYYY-MM-DDTHH:MM'은 KST로 읽는다.
+    var m = text.match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::(\d{2}))?)?$/);
+    if (m) {
+      var iso = m[1] + '-' + m[2] + '-' + m[3] + 'T' + (m[4] || '00') + ':' + (m[5] || '00') + ':' + (m[6] || '00') + '+09:00';
+      var kstDate = new Date(iso);
+      return isNaN(kstDate.getTime()) ? null : kstDate;
+    }
+    var parsed = new Date(text);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  function kstParts(date) {
+    var map = {};
+    new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: true
+    }).formatToParts(date).forEach(function (part) { map[part.type] = part.value; });
+    return map;
+  }
+
+  /* "10.23 오전 08:25" - 접두어 없는 날짜+시각 본문 */
+  function dateTime(value) {
+    var date = parse(value);
+    if (!date) return '';
+    var p = kstParts(date);
+    return p.month + '.' + p.day + ' ' + p.dayPeriod + ' ' + p.hour + ':' + p.minute;
+  }
+
+  /* "업데이트 10.23 오전 08:25" */
+  function updated(value) {
+    var body = dateTime(value);
+    return body ? '업데이트 ' + body : '';
+  }
+
+  /* 기준일(날짜만): 'YYYY-MM-DD'·'YYYYMMDD'·'YYYY.MM.DD'·'MM-DD' → "10.22" */
+  function md(value) {
+    if (value == null) return '';
+    var text = String(value).trim();
+    var full = text.match(/^\d{4}[-./]?(\d{2})[-./]?(\d{2})$/) || text.match(/^(\d{2})[-./](\d{2})$/);
+    if (full) return full[1] + '.' + full[2];
+    if (text.indexOf(':') < 0) return '';   // 날짜만 있는 다른 형식(연월 등)은 날짜로 추측하지 않는다
+    var date = parse(value);
+    if (!date) return '';
+    var p = kstParts(date);
+    return p.month + '.' + p.day;
+  }
+
+  /* "10.22 기준" / "10.22 마감 기준" */
+  function asOf(value) { var d = md(value); return d ? d + ' 기준' : ''; }
+  function closeAsOf(value) { var d = md(value); return d ? d + ' 마감 기준' : ''; }
+
+  global.NineTime = {
+    parse: parse,
+    dateTime: dateTime,
+    updated: updated,
+    formatUpdated: updated,
+    md: md,
+    asOf: asOf,
+    closeAsOf: closeAsOf
+  };
+})(window);
+
 (function () {
   'use strict';
 

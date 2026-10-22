@@ -222,7 +222,7 @@
       + '<div class="mi-sub-title">투자자별 순매수 추이</div>'
       + '<div class="mi-sub-cap">외국인·기관·개인의 순매수를 기간 누적 선으로 봅니다. 시장과 기간을 고르면 아래 그래프와 표가 모두 따라 바뀝니다. 그래프에 마우스를 올리면 그날의 당일 순매수와 기간 누적 순매수가 함께 나옵니다.</div>'
       + '<div class="ifl-controls">' + seg('시장', MARKETS, 'kospi', 'data-if-market') + seg('기간', PERIODS, 'm', 'data-if-period')
-      + '<span class="ifl-asof" data-if-asof></span></div>'
+      + '<span class="ifl-asof nt-stamp" data-if-asof></span></div>'
       + '<div class="ifl-state" data-if-state role="status" hidden></div>'
       + '<section class="ifl-sec"><div class="ifl-sechead"><div class="mi-sub2-title">누적 순매수 추이</div>'
       + '<label class="ifl-check"><input type="checkbox" data-if-index checked /> 지수 겹쳐 보기(오른쪽 축)</label></div>'
@@ -255,7 +255,7 @@
     function renderAsOf() {
       var d = state.data[state.market], el = q('[data-if-asof]');
       if (!d) { el.textContent = ''; return; }
-      el.textContent = '기준일 ' + (d.latestDate || '-') + ' · 갱신 ' + kstStamp(d.asOf) + ' · 자료 ' + d.count + '거래일(' + (d.from || '-') + ' ~ ' + (d.to || '-') + ')';
+      el.textContent = ((window.NineTime && window.NineTime.asOf(d.latestDate)) || ('기준일 ' + (d.latestDate || '-'))) + ' · ' + ((window.NineTime && window.NineTime.updated(d.asOf)) || ('갱신 ' + kstStamp(d.asOf))) + ' · 자료 ' + d.count + '거래일(' + (d.from || '-') + ' ~ ' + (d.to || '-') + ')';
     }
 
     function renderState() {

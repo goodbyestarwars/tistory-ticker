@@ -4327,7 +4327,7 @@
     var m = /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}:\d{2}))?/.exec(String(data.updatedAt || ''));
     var dateText = m ? m[1] + '.' + m[2] + '.' + m[3] : '';
     return '<div class="mt-page-head"><span>' + escapeHtml(dateText) + (dateText ? ' · ' : '') + '시장 자료 기준</span>'
-      + (m && m[4] ? '<span>마지막 업데이트 ' + escapeHtml(m[4]) + '</span>' : '') + '</div>';
+      + (m && m[4] ? '<span class="nt-stamp">' + escapeHtml((window.NineTime && window.NineTime.updated(data.updatedAt)) || ('마지막 업데이트 ' + m[4])) + '</span>' : '') + '</div>';
   }
 
   // 대표 지수(코스피·코스닥) 흐름은 시장지표 페이지가 따로 갖고 있다(증시온도와 데이터·무게를 섞지 않는다는 2026-09-06 결정).

@@ -581,7 +581,7 @@
     if (!items.length) { box.hidden = true; return; }
     grid.innerHTML = items.map(binanceCardHtml).join('');
     var when = data.updatedAt ? new Date(data.updatedAt) : null;
-    note.textContent = (data.note || '') + (when && !isNaN(when) ? ' 갱신 ' + when.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }) : '');
+    note.textContent = (data.note || '') + (when && !isNaN(when) ? ((data.note ? ' · ' : '') + ((window.NineTime && window.NineTime.updated(when)) || ('갱신 ' + when.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })))) : '');
     box.hidden = false;
   }
 
