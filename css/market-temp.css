@@ -3062,3 +3062,11 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   /* 헤드라인 배지: 음영을 더 넓게 */
   html body #market-temp .mt-front-headline.mt-front-headline:is(.is-down, .is-up) { padding: 8px 20px !important; border-radius: 14px; }
 }
+
+/* 2026-10-23 오른 종목과 내린 종목: 숫자를 수급 비중 막대처럼 구간 안에 쓴다(4% 미만 보합은 막대 아래 작은 줄) */
+@layer np.np {
+  html body #market-temp .mt-breadth-track.mt-breadth-track { height: 22px; border-radius: 4px; }
+  html body #market-temp .mt-breadth-track.mt-breadth-track i { display: flex; align-items: center; justify-content: center; overflow: hidden; white-space: nowrap; font-family: var(--font-ui, 'Pretendard', sans-serif) !important; font-size: 10px; font-style: normal; font-weight: 650; color: var(--pulse-ink) !important; font-variant-numeric: tabular-nums; }
+  html body #market-temp .mt-breadth-track.mt-breadth-track i.is-small { font-size: 8px; letter-spacing: -.04em; }
+  html body #market-temp .mt-breadth-flat-note { display: block; margin-top: 4px; font-size: 10px; color: var(--pulse-sub); text-align: center; }
+}
