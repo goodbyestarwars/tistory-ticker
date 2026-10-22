@@ -986,6 +986,22 @@
         return map;
       }).catch(function () { return null; });
   }
+  // 3년 일봉은 서버가 KIS를 여러 번 불러 첫 응답이 약 10초 걸린다(5분 캐시). 차트 그리기를 기다리게 하지 않고,
+  // 캔들을 먼저 그린 뒤 거래량이 도착하면 다시 그린다. 실패하면 1분 뒤 다시 시도한다.
+  var indexVolumeState = { symbol: '', map: null, at: 0, job: null };
+  function ensureIndexVolume(symbol, onReady) {
+    var st = indexVolumeState;
+    if (symbol !== 'KOSPI' && symbol !== 'KOSDAQ') return;
+    if (st.symbol !== symbol) { st.symbol = symbol; st.map = null; st.at = 0; st.job = null; }
+    if (st.job || Date.now() - st.at < (st.map ? 300000 : 60000)) return;
+    st.job = loadIndexVolume(symbol).then(function (map) {
+      st.job = null;
+      st.at = Date.now();
+      if (!map || st.symbol !== symbol) return;
+      st.map = map;
+      onReady(map);
+    });
+  }
   function applyIndexVolume(bars, volumeMap) {
     if (!volumeMap) return bars;
     bars.forEach(function (bar) { if (volumeMap[bar.date]) bar.volume = volumeMap[bar.date]; });
@@ -1133,12 +1149,17 @@
     } catch (err) { /* URL 갱신 실패는 검색 결과와 무관 */ }
     function refresh() {
       if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
+      ensureIndexVolume(row.code, function (map) {
+        if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || !indexBars.length) return;
+        applyIndexVolume(indexBars, map);
+        renderIndexChart(panel, row.code);
+      });
       Promise.all([
         fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
-        loadIndexHistory(row.code).catch(function () { return null; }),
-        loadIndexVolume(row.code)
+        loadIndexHistory(row.code).catch(function () { return null; })
       ]).then(function (results) {
-          var body = results[0], history = results[1], volumeMap = results[2];
+          var body = results[0], history = results[1];
+          var volumeMap = indexVolumeState.symbol === row.code ? indexVolumeState.map : null;
           if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
