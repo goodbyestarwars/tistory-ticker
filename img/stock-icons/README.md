@@ -36,3 +36,5 @@ https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/{종목코드}.
 - 다운로드 API: https://api.iconify.design/simple-icons/{slug}.svg
 
 2026-10-04: 캘린더 미국 실적 대상인 S&P 100 중 아이콘이 없던 86종목을 Parqet 로고 서비스(`https://assets.parqet.com/logos/symbol/{티커}?format=svg`, 복수 클래스는 `BRK-B`)에서 받아 채웠다. SVG는 배경 사각형을 원으로 바꿔 기존 아이콘 모양에 맞췄고, SVG가 없는 10종목(CHTR·COF·EMR·EXC·NOW·SO·SPG·TMUS·USB·WBA)은 받은 PNG(100px)를 그대로 `.png`로 둔다. 파일명은 `BRK.B`처럼 캘린더 심볼 표기를 따른다.
+
+2026-10-22: 모더나 MRNA.svg는 네이버 공개 종목 로고(https://ssl.pstatic.net/imgstock/fn/real/logo/stock/StockMRNA.O.svg)를 저장했다. MY 목록·검색 입력창도 공통 stock-icon.js 폴백을 사용한다. 미국 종목은 로컬·네이버·PNG가 실패하면 티커 기반 Parqet 조회를 자동 시도하며, 모든 공급처 실패 시 티커 배지로 마무리한다. 종목마다 수동 매핑할 필요가 없도록 한다.
