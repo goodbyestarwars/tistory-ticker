@@ -853,7 +853,7 @@
     // formatFunds 는 양수만 단위(조·억)를 줄이므로, 음수(기간 변동 등)는 부호를 떼고 줄인 뒤 다시 붙인다.
     var fmt = spec.signed ? function (v) { return formatSignedFunds(v, spec.unit); } : function (v) { return (v < 0 ? '-' : '') + formatFunds(Math.abs(v), spec.unit); };
     var row = {
-      id: spec.id, group: spec.group, name: spec.label, sub: spec.dateText ? spec.dateText + ' 기준' : '',
+      id: spec.id, group: spec.group, name: spec.label, sub: spec.dateText ? ((window.NineTime && window.NineTime.asOf(spec.dateText)) || (spec.dateText + ' 기준')) : '',
       series: spec.points, fmt: fmt, noRate: !!spec.signed, axisFmt: function (v) { return fundsAxis(v, spec.unit); },
       title: spec.label + ' 추이',
       note: '<div class="ibd-ln">' + escapeHtml(spec.desc) + '</div>' + (spec.extra ? '<div class="ibd-ln"><small>' + escapeHtml(spec.extra) + '</small></div>' : '')

@@ -215,7 +215,7 @@
       + '<div class="sp-card ' + tone + '">'
       + '<div class="sp-header">'
       + '<div class="sp-title">' + escapeHtml(data.name || displayName) + ' 공매도 압박</div>'
-      + '<div class="sp-asof">' + escapeHtml(data.as_of || '') + ' 기준</div>'
+      + '<div class="sp-asof">' + escapeHtml((window.NineTime && window.NineTime.asOf(data.as_of)) || ((data.as_of || '') + ' 기준')) + '</div>'
       + '</div>'
       + '<div class="sp-score-row">'
       + '<div class="sp-score">' + data.pressure.score + '<span class="sp-score-unit">점</span></div>'
