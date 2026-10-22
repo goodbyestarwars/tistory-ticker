@@ -225,9 +225,12 @@ def get_results():
         night_reference = None
         try:
             if quote and latest and quote.get('change') is not None:
-                quote_session = session('KOSPI200_NIGHT', datetime.fromisoformat(str(quote['updated_at']).replace('Z', '+00:00')))
+                moment = datetime.fromisoformat(str(quote['updated_at']).replace('Z', '+00:00'))
                 ref = float(quote['price']) - float(quote['change'])
-                if quote_session and quote_session['date'] == latest['date'] and math.isfinite(ref) and ref > 0:
+                # 마지막 틱이 06:00:00.x에 찍혀 세션 창 밖으로 떨어질 수 있어 종료 10분 뒤까지는 같은 세션으로 본다.
+                in_session = (datetime.fromisoformat(latest['start']) <= moment
+                              <= datetime.fromisoformat(latest['end']) + timedelta(minutes=10))
+                if in_session and math.isfinite(ref) and ref > 0:
                     night_reference = ref
         except (KeyError, TypeError, ValueError):
             night_reference = None

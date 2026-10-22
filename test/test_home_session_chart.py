@@ -152,7 +152,7 @@ class SessionCharts(unittest.TestCase):
         minute_ts = int(datetime.fromisoformat('2026-10-22T23:57:00+09:00').timestamp())
         db_schema.upsert_future_chart_minute_rows(self.conn, 'KOSPI200_NIGHT',
             [dict(ts=minute_ts, open=860, high=861, low=858, close=859)])
-        for stamp, expected in [('2026-10-23T05:59:00+09:00', 857.0), ('2026-10-24T18:30:00+09:00', None)]:
+        for stamp, expected in [('2026-10-23T05:59:00+09:00', 857.0), ('2026-10-23T06:00:00.2+09:00', 857.0), ('2026-10-24T18:30:00+09:00', None)]:
             self.conn.execute('INSERT OR REPLACE INTO future_prices (symbol,name,price,change,updated_at) VALUES (?,?,?,?,?)',
                 ('KOSPI200_NIGHT', 'night', 834.6, -22.4, stamp))
             self.conn.commit()
