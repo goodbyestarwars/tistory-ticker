@@ -1305,7 +1305,7 @@
   function formatUpdated(value) {
     if (value == null) return '업데이트 시각 확인 중';
     var date = new Date(Number(value) * 1000);
-    return isNaN(date.getTime()) ? '업데이트 시각 확인 중' : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' });
+    return isNaN(date.getTime()) ? '업데이트 시각 확인 중' : ((window.NineTime && window.NineTime.updated(date)) || date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit' }));
   }
   // 2026-09-17 사용자 지적: "미국장 인텔 기준으로 아직도 4%대 상승인데? 이거 어제 기준 같은데?"
   // 맞는 지적이었다. 한국 낮 12:40은 뉴욕 수요일 밤 23:40이라 정규장이 7시간 전에 끝나 있다.

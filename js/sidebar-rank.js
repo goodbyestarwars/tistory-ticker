@@ -124,7 +124,7 @@
     return '<div class="card sidebar-card sr-card" data-section="' + activeSection + '">'
       + '<div class="sidebar-title sr-title">'
       + '<div class="sidebar-icon si-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 11h8"/><path d="M7 16h3"/><path d="M7 6h12"/></svg></div>'
-      + '<span class="sr-title-text">실시간 랭킹</span><span class="sr-updated" id="srUpdated"></span>'
+      + '<span class="sr-title-text">실시간 랭킹</span><span class="sr-updated nt-stamp" id="srUpdated"></span>'
       + '</div>'
       + '<div class="sr-tabs" role="tablist" aria-label="실시간 랭킹 기준">' + tabs + '</div>'
       + '<ol class="sr-list" id="srList"><li class="sr-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</li></ol>'
@@ -155,7 +155,7 @@
     if (card) card.setAttribute('data-section', activeSection);
     var list = container.querySelector('#srList');
     var updated = container.querySelector('#srUpdated');
-    if (updated) updated.textContent = fmtTime(new Date());
+    if (updated) updated.textContent = (window.NineTime && window.NineTime.updated(new Date())) || fmtTime(new Date());
     if (!list) return;
     if (!items.length) {
       list.innerHTML = '<li class="sr-hint">' + escapeHtml(s.emptyText) + '</li>';

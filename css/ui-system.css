@@ -235,3 +235,15 @@
 .nine-chart-ranges .nine-chart-range-status { color: #888; font-size: 12px; padding: 0 6px; white-space: nowrap; }
 .nine-chart-ranges .nine-chart-range-status:empty { display: none; }
 html.dark .nine-chart-ranges .nine-chart-range-status { color: rgba(245, 239, 224, 0.6); }
+
+/* 갱신·기준 시각 표기 공통 모양(2026-10-23). 문구는 window.NineTime(js/skin-shell.js)이 만든다.
+   12px · 보조 글자색(밝은 배경 대비 4.5:1 이상) · 숫자 폭 고정. 위치는 각 카드 제목 줄의 오른쪽 끝. */
+html body .nt-stamp {
+  font: 400 12px/1.4 var(--font-ui, "Pretendard", "Malgun Gothic", sans-serif) !important;
+  font-variant-numeric: tabular-nums;
+  color: #6b7280 !important;
+  letter-spacing: 0;
+  text-align: right;
+  white-space: nowrap;
+}
+html.dark body .nt-stamp { color: #a3acb9 !important; }

@@ -52,9 +52,11 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-headi
   font: 400 clamp(28px, 2.6vw, 32px)/1.15 "MaruBuriBold", var(--font-title, "MaruBuri"), Georgia, serif;
   letter-spacing: -.02em; color: var(--hmb-ink);
 }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading > div:first-child { flex: 1 1 auto; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated {
-  font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); white-space: nowrap;
+  font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; white-space: nowrap; margin-left: auto; text-align: right; font-variant-numeric: tabular-nums;
 }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated { color: #a3acb9; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-cb-wrap { display: flex; align-items: center; gap: 8px; flex: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-market-live {
   font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); letter-spacing: .02em;
@@ -111,7 +113,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth { ma
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); text-align: right; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; text-align: right; font-variant-numeric: tabular-nums; }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { color: #a3acb9; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 5px 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row b { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); letter-spacing: .02em; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row.is-total { margin-top: 4px; padding-top: 9px; border-top: 1px dashed var(--hmb-line); }

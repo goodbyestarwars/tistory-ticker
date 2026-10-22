@@ -423,7 +423,7 @@
       var scanned = scan.scanned || signalData.scanned || 0;
       var when = signalData.scannedAt || signalData.generatedAt;
       metaBox.innerHTML = '<div class="ff-explore-meta-copy"><strong>차트 흐름·추세 국면으로 후보를 좁혀보세요.</strong><span>'
-        + (when ? '스캔 기준 ' + escapeHtml(when) + ' · ' : '') + '분석 대상 ' + Number(scanned).toLocaleString('ko-KR') + '종목</span></div>'
+        + (when ? escapeHtml((window.NineTime && window.NineTime.updated(when)) || ('스캔 기준 ' + when)) + ' · ' : '') + '분석 대상 ' + Number(scanned).toLocaleString('ko-KR') + '종목</span></div>'
         + '<small>라인은 흐름 형태 예시이며 실제 종목 차트가 아닙니다.</small>';
     }
     var content = container.querySelector('#ffSigList');
@@ -1669,7 +1669,7 @@
     fetchCompanyProfile(code).then(function (data) {
       if (!box.contains(mount)) return;
       var meta = box.querySelector('[data-company-meta]');
-      if (meta) meta.textContent = '출처 · 네이버 증권 / WISEreport' + (data.asOf ? ' · ' + data.asOf + ' 기준' : '');
+      if (meta) meta.textContent = '출처 · 네이버 증권 / WISEreport' + (data.asOf ? ' · ' + ((window.NineTime && window.NineTime.asOf(data.asOf)) || (data.asOf + ' 기준')) : '');
       var link = box.querySelector('[data-company-source]');
       if (link && /^[0-9A-Z]{6}$/.test(String(data.sourceCode || ''))) {
         link.href = 'https://navercomp.wisereport.co.kr/v2/company/c1010001.aspx?cmp_cd=' + data.sourceCode;
@@ -3811,7 +3811,7 @@
         var foreignLine = isFinite(net) && (f.buyQty != null || f.sellQty != null)
           ? '<div class="ff-members-foreign">외국계 합계 순매수 <b class="' + signClass(net) + '">' + (net > 0 ? '+' : '') + net.toLocaleString('ko-KR') + '주</b></div>' : '';
         mount.innerHTML = '<div class="ff-extra-card ff-members-card">'
-          + '<div class="ff-members-head"><div class="ff-extra-card-title">거래원 매매 상위</div><span class="ff-members-asof">' + escapeHtml(String(d.asOf || '').slice(5).replace('-', '.')) + ' 기준</span></div>'
+          + '<div class="ff-members-head"><div class="ff-extra-card-title">거래원 매매 상위</div><span class="ff-members-asof">' + escapeHtml((window.NineTime && window.NineTime.asOf(d.asOf)) || (String(d.asOf || '').slice(5).replace('-', '.') + ' 기준')) + '</span></div>'
           + '<p class="ff-members-desc">거래소 회원사(증권사)별 누적 매수·매도 수량 상위 5곳입니다.</p>'
           + '<div class="ff-members-grid">' + membersSideHtml_('매수 상위 5', d.buy, 'buy') + membersSideHtml_('매도 상위 5', d.sell, 'sell') + '</div>'
           + foreignLine + '</div>';

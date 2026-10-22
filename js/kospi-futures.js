@@ -374,7 +374,7 @@
       + '<div class="kf-opt-row"><span>거래량</span><b>' + Math.round(row.volume || 0).toLocaleString('ko-KR') + '</b></div>'
       + '<div class="kf-opt-row"><span>미결제약정(OI)</span><b>' + Math.round(row.oi || 0).toLocaleString('ko-KR') + '</b></div>'
       + '<div class="kf-opt-row"><span>OI 증감</span><b class="' + t.cls + '">' + sign + Math.round(row.oi_change || 0).toLocaleString('ko-KR') + '</b></div>'
-      + '<div class="kf-opt-updated">업데이트 ' + fmtTime(row.updated_at) + '</div>'
+      + '<div class="kf-opt-updated nt-stamp">' + ((window.NineTime && window.NineTime.updated(row.updated_at)) || ('업데이트 ' + fmtTime(row.updated_at))) + '</div>'
       + '</div>';
   }
 

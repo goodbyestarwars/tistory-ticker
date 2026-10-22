@@ -245,7 +245,7 @@
           + '</div></a>';
       }).join('') + '</div>';
     }).join('') + '</div>';
-    if (updated) updated.textContent = '업데이트 ' + new Date().toLocaleTimeString('ko-KR', { timeZone: market === 'us' ? 'America/New_York' : 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: true });
+    if (updated) updated.textContent = (window.NineTime && window.NineTime.updated(new Date())) || '';
   }
 
   function fetchJson(url) {

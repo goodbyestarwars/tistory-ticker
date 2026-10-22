@@ -413,7 +413,7 @@
         '</div>' +
         '<div class="mcb-canvas"><div class="mcb-tooltip" hidden></div></div>' +
         '<div class="mcb-legend"></div>' +
-        '<div class="mcb-updated"></div>';
+        '<div class="mcb-updated nt-stamp"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
       svg.appendChild(svgEl('g', { class: 'mcb-cells' }));
       svg.appendChild(svgEl('g', { class: 'mcb-cluster-labels' }));
@@ -428,7 +428,7 @@
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
     }
 
-    container.querySelector('.mcb-updated').textContent = updatedAt ? updatedAt + ' 기준 (준실시간)' : '';
+    container.querySelector('.mcb-updated').textContent = updatedAt ? ((window.NineTime && window.NineTime.updated(updatedAt)) || (updatedAt + ' 기준')) + ' · 준실시간' : '';
     container.querySelector('.mcb-legend').innerHTML = legendHtml;
 
     var tooltip = container.querySelector('.mcb-tooltip');

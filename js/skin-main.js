@@ -772,7 +772,7 @@ document.documentElement.classList.add('skin-ready');
         + '</section>'
         + '</section>'
         + '<section class="home-economic-news editorial-section" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
-        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small class="nt-stamp" data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보" hidden>'
         + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 거시경제 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list></div>'
@@ -1069,7 +1069,7 @@ document.documentElement.classList.add('skin-ready');
             exchangeRate > 0 ? 'home-positive' : exchangeRate < 0 ? 'home-negative' : 'home-neutral');
         }
         var updated = document.getElementById('hmbUpdated');
-        if (updated && market.updatedAt) updated.textContent = '시황 ' + formatHomeTimestamp(market.updatedAt) + ' 기준';
+        if (updated && market.updatedAt) updated.textContent = window.NineTime.updated(market.updatedAt) || ('시황 ' + formatHomeTimestamp(market.updatedAt) + ' 기준');
       }
     }
 
@@ -1105,7 +1105,7 @@ document.documentElement.classList.add('skin-ready');
       if (totalEntry && typeof totalEntry.up === 'number' && typeof totalEntry.down === 'number') rows += breadthRowHtml('전체', totalEntry, 'is-total');
       if (!rows || !bars) { block.hidden = true; return; }
       bars.innerHTML = rows;
-      if (basis) basis.textContent = (updatedAt ? '종목 수 ' + formatHomeTimestamp(updatedAt) + ' 기준 · ' : '') + (source ? '집계: ' + source : '');
+      if (basis) basis.textContent = (updatedAt ? (window.NineTime.updated(updatedAt) || ('종목 수 ' + formatHomeTimestamp(updatedAt) + ' 기준')) + (source ? ' · ' : '') : '') + (source ? '집계: ' + source : '');
       block.hidden = homeMarketSession().market !== 'domestic';
     }
 
@@ -1292,7 +1292,7 @@ document.documentElement.classList.add('skin-ready');
       setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
       setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
       var updated = document.getElementById('hmbUpdated');
-      if (updated && summary.updatedAt) updated.textContent = formatHomeTimestamp(summary.updatedAt) + ' 기준';
+      if (updated && summary.updatedAt) updated.textContent = window.NineTime.updated(summary.updatedAt) || (formatHomeTimestamp(summary.updatedAt) + ' 기준');
     }
 
     function renderMarketSectors(bubble) {
