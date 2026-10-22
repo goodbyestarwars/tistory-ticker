@@ -39,7 +39,7 @@
   var monthFetchInflight = {};
   // 미국 실적 일정은 전 종목을 그대로 펼치지 않고 대형 대표주인 S&P 100 구성종목만
   // 남긴다. 복수 클래스(BRK.B/GOOGL 등)를 포함하며 API 심볼의 '-'와 '.' 표기를 함께 받는다.
-  var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM').split(' '));
+  var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM WDC').split(' '));
   var US_COMPANY_NAME_MAP = {
     AAPL: '애플', ABBV: '애브비', ABT: '애보트', ACN: '액센츄어', ADBE: '어도비', AIG: 'AIG',
     AMD: 'AMD', AMGN: '암젠', AMT: '아메리칸타워', AMZN: '아마존', AVGO: '브로드컴', AXP: '아메리칸익스프레스',
@@ -60,7 +60,7 @@
     SCHW: '찰스슈왑', SO: '서던컴퍼니', SPG: '사이먼프로퍼티', T: 'AT&T',
     TGT: '타깃', TMO: '써모피셔', TMUS: 'T모바일', TSLA: '테슬라', TXN: '텍사스인스트루먼트',
     UNH: '유나이티드헬스', UNP: '유니언퍼시픽', UPS: 'UPS', USB: 'US뱅코프', V: '비자',
-    VZ: '버라이즌', WBA: '월그린스부츠', WFC: '웰스파고', WMT: '월마트', XOM: '엑슨모빌',
+    VZ: '버라이즌', WBA: '월그린스부츠', WFC: '웰스파고', WDC: '웨스턴디지털', WMT: '월마트', XOM: '엑슨모빌',
     ANEB: '애네벡스'
   };
 

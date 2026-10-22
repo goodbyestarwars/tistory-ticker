@@ -1,3 +1,7 @@
+**2026-10-23 캘린더 미국 실적에 WDC 예외 추가**
+
+사용자 지시로 S&P 100 필터 예외로 WDC(웨스턴디지털)를 서버(`sp500_constituents.SP100_SYMBOLS`)와 프런트(`js/stock-calendar.js` `SP100_SYMBOLS`·한글명)에 추가. 검증: 파이썬 import·`node --check`. 배포: js는 Pages 자동, 서버는 VM 자동 배포(평일 08~20시 보류, 응답 캐시 10분). 오늘 WDC 발표분은 Finnhub가 해당 일정/결과를 제공해야 표시된다.
+
 **2026-10-23 캘린더 공시 완료를 국내/미국으로 구분 + WDC 미표시 원인 확인**
 
 사용자 요청. `js/stock-calendar.js` 공시 완료 영역이 DART(국내)만 담던 것을 Finnhub 발표 완료(미국)까지 포함하고 영역 안에서 국내/미국 소제목으로 나눈다(`css/stock-calendar.css` 소제목). 필터·일정 클릭·반응형·색 규칙 불변. WDC 미표시는 버그가 아니라 10/04 사용자 지시의 미국=S&P 100 필터(`sp500_constituents.SP100_SYMBOLS`, 프런트 `SP100_SYMBOLS`)에 WDC가 없기 때문: 운영 `/earnings-calendar?year=2026&month=10` 응답(cached:true)에 WDC 항목 없음. 서버 코드는 미변경. 검증: `node --check`, 운영 응답 실측. 배포: js/css는 Pages 자동.
