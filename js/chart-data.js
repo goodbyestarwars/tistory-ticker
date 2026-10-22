@@ -215,7 +215,7 @@
   function installRangeButtons(chartElement, code, getData, onData) {
     var parent = chartElement && chartElement.parentElement;
     var isUs = /^US:[A-Z0-9.\-]+$/i.test(code);
-    if (!parent || (!/^[0-9]{6}$/.test(code) && !isUs)) return;
+    if (!parent || (!/^[0-9A-Z]{6}$/i.test(code) && !isUs)) return;
     var wrap = parent.querySelector('.nine-chart-ranges');
     if (!wrap) {
       wrap = document.createElement('div');
@@ -271,7 +271,7 @@
     };
   }
   function loadOnLeftScroll(chart, chartElement, code, getData) {
-    if (!chart || !chart.timeScale || !/^[0-9]{6}$/.test(code)) return;
+    if (!chart || !chart.timeScale || !/^[0-9A-Z]{6}$/i.test(code)) return;
     var seenAwayFromStart = false;
     chart.timeScale().subscribeVisibleLogicalRangeChange(function (range) {
       if (range && range.from > 20) seenAwayFromStart = true;

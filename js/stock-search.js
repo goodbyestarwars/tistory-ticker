@@ -86,7 +86,8 @@
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
-    { code: '468670', name: '브릴스', aliases: '브릴스 brils' }
+    { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
+    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' }
   ];
   var MINUTE_REFRESH_MS = 60000; // 분봉 자동 재조회 간격 - kospi-futures.js와 동일하게 최소 60초
   var MINUTE_SCOPES = ['1', '3', '5', '30', '60'];
@@ -1205,7 +1206,28 @@
       })
       .catch(function () {
         if (searchId !== stockSearchRequestId) return;
-        resultsBox.innerHTML = '<div class="ss-hint ss-error">시세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        // A newly listed stock can be known before the quote provider publishes its first tick.
+        // Preserve an explicit no-price state and let the user open orderbook/minute chart.
+        var listingPending = items.some(function (it) {
+          return DOMESTIC_LISTING_FALLBACKS.some(function (row) { return row.code === it.code; });
+        });
+        if (!listingPending) {
+          resultsBox.innerHTML = '<div class="ss-hint ss-error">시세를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+          return;
+        }
+        items.forEach(function (it) {
+          it.price = null; it.change = null; it.changeRate = null;
+          it.volume = null; it.tradingValue = null; it.sectors = lookupSectors(it.code);
+        });
+        state.lastResults = items;
+        state.resultsCollapsed = false;
+        renderResults(container, items);
+        if (!isIndependentChartMode()) {
+          var notice = document.createElement('p');
+          notice.className = 'ss-hint ss-error';
+          notice.textContent = '신규상장 종목의 시세가 아직 수신되지 않았습니다. 종목 화면은 열 수 있지만 가격 정보는 미제공입니다.';
+          resultsBox.insertBefore(notice, resultsBox.firstChild);
+        }
       });
   }
 
@@ -2964,7 +2986,7 @@
       container.appendChild(volumeLegend);
 
       chart.timeScale().fitContent();
-      if (timeframe !== 'minute' && global.NineChartData && (/^[0-9]{6}$/.test(String(state.selectedCode || '')) || isUsChart)) {
+      if (timeframe !== 'minute' && global.NineChartData && (/^[0-9A-Z]{6}$/i.test(String(state.selectedCode || '')) || isUsChart)) {
         var visibleDates = global.NineChartData.rangeDates(bars, state.selectedCode);
         if (visibleDates) chart.timeScale().setVisibleRange(visibleDates);
         if (!isUsChart) global.NineChartData.loadOnLeftScroll(chart, container, state.selectedCode,

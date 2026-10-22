@@ -61,7 +61,8 @@
     { code: '486510', name: '글로벌테크놀로지', aliases: '글로벌 테크놀로지 global technology' },
     { code: '0035S0', name: '빅웨이브로보틱스', aliases: '빅웨이브 로보틱스 bigwave robotics big wave robotics' },
     { code: '266690', name: '덕산넵코어스', aliases: '덕산 넵코어스 덕산넵코어스 duksan navcours navcours' },
-    { code: '468670', name: '브릴스', aliases: '브릴스 brils' }
+    { code: '468670', name: '브릴스', aliases: '브릴스 brils' },
+    { code: '0013Y0', name: '엠에스바이오', aliases: '엠에스 바이오 msbio ms bio' }
   ];
 
   function applyDomesticListingFallbacks() {
