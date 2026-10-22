@@ -25,6 +25,19 @@ def make_conn():
 
 
 class SnapshotTests(unittest.TestCase):
+    def test_last_saved_breadth_returns_prior_real_row_with_as_of(self):
+        conn = make_conn()
+        summary = {'score100': 50.0, 'axes': {}}
+        zero = {'total': {'up': 0, 'down': 0, 'flat': 0, 'total': 0}}
+        real = {'total': {'up': 400, 'down': 1500, 'flat': 90, 'total': 1990}}
+        market_temp.record_component_snapshot(conn, '2026-10-21', True, summary, {}, real)
+        market_temp.record_component_snapshot(conn, '2026-10-22', True, summary, {}, zero)
+        got = market_temp.last_saved_breadth(conn, '2026-10-23')
+        self.assertEqual(got['asOf'], '2026-10-21')
+        self.assertEqual(got['total']['down'], 1500)
+        self.assertTrue(got['stale'])
+        self.assertIsNone(market_temp.last_saved_breadth(conn, '2026-10-21'))
+
     def test_component_snapshot_is_one_row_per_day_and_overwritten(self):
         conn = make_conn()
         summary = {'score100': 52.0, 'axes': {'money': {'value': 18.0}}}
