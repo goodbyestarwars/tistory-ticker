@@ -9,7 +9,7 @@ domestic.indices.KOSDAQ.intervals.day.rows=volumes(180);
 domestic.investor.KOSPI.rows[0].individual=-50;
 domestic.investor.KOSDAQ.rows[0].individual=80;
 const models=t.buildIndicatorModels_(domestic,macro),m=id=>models.find(x=>x.id===id);
-assert.equal(models.length,9);assert.equal(m('kospi-volume').value,20);assert.equal(m('kosdaq-volume').value,180);
+assert.equal(models.length,10);assert.equal(m('kospi-volume').value,20);assert.equal(m('kosdaq-volume').value,180);
 assert.equal(m('kospi-volume').statusText,'극도로 낮음');assert.equal(m('kosdaq-volume').statusText,'극도로 높음');
 for(const [value,label] of [[49.9,'극도로 낮음'],[50,'낮음'],[79.9,'낮음'],[80,'평소 수준'],[119.9,'평소 수준'],[120,'높음'],[179.9,'높음'],[180,'극도로 높음']]){
  const d=JSON.parse(JSON.stringify(domestic));d.indices.KOSPI.intervals.day.rows=volumes(value);
@@ -54,4 +54,4 @@ assert(unavailable.every(m=>m.value===null&&m.valueText==='확인 중'));
 const partial=t.buildIndicatorModels_(domestic,[]);assert(partial.find(x=>x.id==='credit').value>0);assert.equal(partial.find(x=>x.id==='fx').value,null);
 const unknownUnit=t.buildIndicatorModels_({funds:{...domestic.funds,credit_unit:'unknown'}},[]);assert.equal(unknownUnit.find(x=>x.id==='credit').value,null);assert(unknownUnit.find(x=>x.id==='deposits').value>0);
 assert(!t.buildSummaryCard({}).includes('mt-front-facts'));
-console.log('Direct indicators: 9 metrics, volume levels, 100% shares, currency balance, units, dates and missing data ok');
+console.log('Direct indicators: 10 metrics, volume levels, 100% shares, currency balance, units, dates and missing data ok');
