@@ -8727,3 +8727,16 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .nine-chart-ranges.nine-chart-ranges > .nine-range-btn { min-height: 26px !important; height: 26px !important; padding: 0 9px !important; font-size: 12px !important; border-radius: 7px !important; }
   html body .nine-chart-ranges.nine-chart-ranges > .nine-range-btn:where(.active, [aria-pressed="true"]) { background: rgba(var(--np-ink), .07) !important; box-shadow: none !important; }
 }}
+
+/* 2026-10-23 사용자 지적(푸터 링크 구분자 | 좌우·상하 여백이 안 맞음). 실측(1440px): 글자→구분선 24px, 구분선→다음 글자 40px
+   (구분선 ::after 기본 margin-right 10px + 링크 padding-right 24px이 더해짐), 링크 줄 위쪽 25px, 아래쪽 50px
+   (nav padding-bottom 24 + 회사 블록 margin-top 12 + 푸터 row-gap 14). 구분선 오른쪽 여백을 0으로 24/24, 아래쪽을
+   11px+0으로 25/25로 맞춘다. 기존 규칙이 @layer np 안쪽 np 하위 레이어의 !important라 같은 하위 레이어에 덮는다.
+   PC 전용(모바일은 구분선이 없고 2열 그리드). */
+@media (min-width: 721px) {
+  @layer np { @layer np {
+    html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after { margin-right: 0 !important; }
+    html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { padding-bottom: 11px !important; }
+    html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { margin-top: 0 !important; }
+  } }
+}
