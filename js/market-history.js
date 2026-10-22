@@ -51,7 +51,7 @@
       d.setUTCDate(d.getUTCDate()-((d.getUTCDay()+6)%7));
       var key = d.toISOString().slice(0,10), bar = byWeek[key];
       if (!bar) byWeek[key] = Object.assign({},r,{date:key});
-      else { bar.high=Math.max(bar.high,r.high); bar.low=Math.min(bar.low,r.low); bar.close=r.close; }
+      else { bar.high=Math.max(bar.high,r.high); bar.low=Math.min(bar.low,r.low); bar.close=r.close; bar.volume=(bar.volume||0)+(r.volume||0); }
     });
     return Object.keys(byWeek).sort().map(function (key) { return byWeek[key]; });
   }
