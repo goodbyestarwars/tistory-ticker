@@ -200,7 +200,7 @@
   }
 
   var DEFAULT_TITLES = {
-    hline: '차트를 누르면 가로선이 생기고, 선을 끌면 이동, 금액 표시를 누르면 금액을 직접 입력할 수 있습니다.',
+    hline: '점선으로 위치를 미리 보고 클릭하면 가로선이 완성됩니다. 선을 끌면 이동하고 금액 표시를 누르면 직접 입력할 수 있습니다.',
     box: '끌어서 박스를 그리면 이름을 입력할 수 있습니다(구조·파동 구간 표시용).',
     line: '왼쪽 시작점에서 오른쪽 끝점까지 끌면 직선이 완성됩니다.',
     circle: '왼쪽 위에서 오른쪽 아래로 끌면 동그라미가 완성됩니다.',
@@ -258,7 +258,7 @@
       key: opts.key, timeframe: opts.timeframe, chart: chart, series: series, bars: opts.bars || [],
       sync: opts.sync === true,
       lines: saved.lines, paths: saved.paths, circles: saved.circles, hlines: saved.hlines, boxes: saved.boxes,
-      pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null, measure: null
+      pending: null, preview: null, activePath: null, mode: null, enabled: false, dragHline: null, hlinePreview: null, hlineDraft: null, measure: null
     };
     var detached = false, frame = 0, lastSig = '', layers = [], bounds = { w: 0, h: 0 };
     var buttons = opts.buttons || {};
@@ -405,6 +405,18 @@
         ctx.fillStyle = stroke; ctx.fillRect(width - tw - 4, y - 18, tw, 16);
         ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(txt, width - tw + 1, y - 10);
       });
+      if (d.mode === 'hline' && d.hlinePreview != null && !d.dragHline) {
+        var previewY = series.priceToCoordinate(d.hlinePreview);
+        if (previewY != null) {
+          ctx.save(); ctx.setLineDash([5, 4]); ctx.globalAlpha = 0.65;
+          ctx.beginPath(); ctx.strokeStyle = stroke; ctx.lineWidth = 1.5;
+          ctx.moveTo(0, previewY); ctx.lineTo(width, previewY); ctx.stroke();
+          ctx.setLineDash([]); ctx.font = '700 11px sans-serif'; ctx.fillStyle = stroke;
+          ctx.textBaseline = 'bottom';
+          ctx.fillText(d.hlinePreview >= 1000 ? Math.round(d.hlinePreview).toLocaleString('ko-KR') : String(Math.round(d.hlinePreview * 100) / 100), 8, previewY - 4);
+          ctx.restore();
+        }
+      }
       // 측정: 끝난 측정과 끄는 중인 미리보기. 시작점에서 가로 점선, 끝점 x 에 세로 자(눈금 양끝 표시), 오른쪽(가장자리면 왼쪽)에 % 라벨.
       var measureShown = d.measure, measureLive = false;
       if (d.mode === 'measure' && d.pending && d.preview && d.previewPoint) { measureShown = { start: d.pending, end: d.previewPoint }; measureLive = true; }
@@ -467,8 +479,10 @@
 
     function setMode(mode) {
       mode = tools.indexOf(mode) > -1 ? mode : null;
+      if (d.dragHline) d.dragHline.hl.price = d.dragHline.originalPrice;
+      overlay.style.cursor = '';
       d.mode = mode; d.enabled = !!mode;
-      d.pending = null; d.preview = null; d.previewPoint = null; d.activePath = null; d.dragHline = null;
+      d.pending = null; d.preview = null; d.previewPoint = null; d.activePath = null; d.dragHline = null; d.hlinePreview = null; d.hlineDraft = null;
       if (overlay.classList) { overlay.classList.toggle('is-active', !!mode); overlay.classList.toggle('is-pencil', mode === 'pencil'); }
       paintButtons(mode);
       var titles = opts.titles || DEFAULT_TITLES;
@@ -479,7 +493,7 @@
 
     function clearAll() {
       d.lines = []; d.paths = []; d.circles = []; d.hlines = []; d.boxes = []; d.measure = null;
-      d.pending = null; d.preview = null; d.activePath = null;
+      d.pending = null; d.preview = null; d.activePath = null; d.hlinePreview = null; d.hlineDraft = null;
       persist();
       redraw();
     }
@@ -492,8 +506,8 @@
       // 그리기(가로선·박스·직선·동그라미·연필)는 마우스 왼쪽 버튼으로만. 오른쪽·휠 클릭은 무시한다(2026-10-10 요청).
       if (event.button != null && event.button !== 0) return;
       var rect = overlay.getBoundingClientRect();
-      var point = pointFromEvent(event, strict);
-      if (!point) return;
+      var point = d.mode === 'hline' ? { price: Number(series.coordinateToPrice(event.clientY - rect.top)) } : pointFromEvent(event, strict);
+      if (!point || !isFinite(point.price)) return;
       event.preventDefault();
       if (d.mode === 'pencil') d.activePath = [point];
       else if (d.mode === 'hline') {
@@ -507,13 +521,16 @@
           else if (Math.abs(py - hl._y) <= 6) hit = hl;
         });
         if (hit) {
-          d.dragHline = { hl: hit, onLabel: onLabel, startY: py, moved: false };
+          d.hlinePreview = null;
+          d.dragHline = { hl: hit, onLabel: onLabel, startY: py, moved: false, originalPrice: hit.price };
+          overlay.style.cursor = 'ns-resize';
           if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
           return;
         }
         if (!(point.price > 0)) return;   // 가격축 밖(0 이하)을 눌러 생긴 음수 가로선은 만들지 않는다
-        d.hlines.push({ price: point.price });
-        persist();
+        d.hlineDraft = point.price;
+        d.hlinePreview = point.price;
+        if (overlay.setPointerCapture) overlay.setPointerCapture(event.pointerId);
         redraw();
         return;
       } else if (d.mode === 'measure') {
@@ -534,6 +551,16 @@
           if (moved != null && isFinite(Number(moved)) && Number(moved) > 0) d.dragHline.hl.price = Number(moved);
           redraw();
         }
+        return;
+      }
+      if (d.mode === 'hline') {
+        var hoverY = event.clientY - rect.top;
+        var hoverPrice = series.coordinateToPrice(hoverY);
+        var inside = event.clientX >= rect.left && event.clientX <= rect.right && hoverY >= 0 && hoverY <= rect.height;
+        var nearLine = d.hlines.some(function (hl) { var y = series.priceToCoordinate(hl.price); return y != null && Math.abs(y - hoverY) <= 6; });
+        overlay.style.cursor = nearLine ? 'ns-resize' : 'crosshair';
+        d.hlinePreview = inside && !nearLine && Number(hoverPrice) > 0 && isFinite(Number(hoverPrice)) ? Number(hoverPrice) : null;
+        redraw();
         return;
       }
       if ((d.mode === 'line' || d.mode === 'circle' || d.mode === 'box' || d.mode === 'measure') && d.pending) {
@@ -560,6 +587,8 @@
       if (d.dragHline) {
         var dragged = d.dragHline;
         d.dragHline = null;
+        overlay.style.cursor = '';
+        if (cancelled) { dragged.hl.price = dragged.originalPrice; redraw(); return; }
         if (!dragged.moved && dragged.onLabel && !cancelled) {
           var current = dragged.hl.price, typed = null;
           try { typed = global.prompt('가로선 금액을 입력하세요(비우면 선을 삭제합니다)', current >= 1000 ? String(Math.round(current)) : String(Math.round(current * 100) / 100)); } catch (e) { typed = null; }
@@ -570,6 +599,18 @@
           }
         }
         persist();
+        redraw();
+        return;
+      }
+      if (d.mode === 'hline' && d.hlineDraft != null) {
+        var hRect = overlay.getBoundingClientRect();
+        var inPlot = event.clientX >= hRect.left && event.clientX <= hRect.right && event.clientY >= hRect.top && event.clientY <= hRect.bottom;
+        var hPrice = series.coordinateToPrice(event.clientY - hRect.top);
+        if (!cancelled && inPlot && Number(hPrice) > 0 && isFinite(Number(hPrice))) {
+          d.hlines.push({ price: Number(hPrice) });
+          persist();
+        }
+        d.hlineDraft = null; d.hlinePreview = null;
         redraw();
         return;
       }
@@ -625,7 +666,7 @@
     scope.on(overlay, 'contextmenu', function (event) { if (d.enabled) event.preventDefault(); });
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
-      d.preview = null;
+      d.preview = null; d.hlinePreview = null;
       redraw();
     });
     scope.on(overlay, 'pointerdown', onPointerDown);

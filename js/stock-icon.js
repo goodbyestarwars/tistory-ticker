@@ -12,6 +12,7 @@
   var NAVER_BASE = 'https://ssl.pstatic.net/imgstock/fn/real/logo/stock/Stock';
   var ICONIFY_BASE = 'https://api.iconify.design/';
   var FAVICON_BASE = 'https://icons.duckduckgo.com/ip3/';
+  var SYMBOL_BASE = 'https://assets.parqet.com/logos/symbol/';
 
   var BRAND_ICON_MAP = {
     AAPL: ['simple-icons', 'apple'], MSFT: ['simple-icons', 'microsoft'],
@@ -36,7 +37,7 @@
   function codeOf(image) {
     var explicit = image.getAttribute('data-icon-code');
     if (explicit) return String(explicit).replace(/^US:/i, '').toUpperCase();
-    var match = String(image.src || '').match(/stock-icons\/([^./?]+)\.(?:svg|png)/i);
+    var match = String(image.src || '').match(/stock-icons\/([^/?]+)\.(?:svg|png)/i);
     return match ? decodeURIComponent(match[1]).replace(/^US:/i, '').toUpperCase() : '';
   }
 
@@ -87,12 +88,17 @@
       image.src = LOCAL_BASE + encodeURIComponent(code) + '.png';
       return;
     }
-    if (stage === 'png' && brand) {
+    if (stage === 'png' && market === 'us') {
+      setStage(image, 'symbol');
+      image.src = SYMBOL_BASE + encodeURIComponent(code.replace(/\./g, '-')) + '?format=svg';
+      return;
+    }
+    if ((stage === 'png' || stage === 'symbol') && brand) {
       setStage(image, 'iconify');
       image.src = ICONIFY_BASE + encodeURIComponent(brand[0]) + '/' + encodeURIComponent(brand[1]) + '.svg';
       return;
     }
-    if ((stage === 'png' || stage === 'iconify') && domain) {
+    if ((stage === 'png' || stage === 'symbol' || stage === 'iconify') && domain) {
       setStage(image, 'favicon');
       image.src = FAVICON_BASE + encodeURIComponent(domain) + '.ico';
       return;
@@ -102,6 +108,6 @@
 
   // Loaded before page modules in skin.html. Modules keep their local fallback
   // for standalone test pages, but production pages use this shared version.
-  if (!global.__stockIconFallback) global.__stockIconFallback = fallback;
+  global.__stockIconFallback = fallback;
   global.StockIconFallback = fallback;
 })(window);

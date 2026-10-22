@@ -145,6 +145,7 @@
   var lwcVolumePane = null;
   var memoCtl = null;
   var lwcRsiZonesCleanup = null;
+  var lwcPaneLabelsCleanup = null;
   var lwcDivergenceCleanup = null;
   // 범례 항목(MA3·MA5·…·볼린저)을 누르면 해당 선을 굵게 표시하고 다시 누르면 원래 굵기로 돌린다(2026-10-22 사용자 요청).
   function lineEntries(seriesList) {
@@ -282,9 +283,30 @@
     fitVolumeLegend(volumeLegend, actualVolumeHeight);
   }
 
-  // 2026-09-16 사용자 민원("차트 안 글자가 겹쳐 보임"): 폭이 좁으면 거래량 범례가 4~5줄(실측 66px)로
-  // 접혀 거래량 패널(실측 그보다 얕음)을 넘어 RSI 패널 위까지 덮었다. 패널 높이에 맞을 때까지
-  // 덜 중요한 것부터 단계적으로 접는다 - 자리가 넉넉한 PC에서는 지금 정보가 그대로 남는다.
+  function installPaneLabelSync(container, panes, sizes) {
+    var frame = 0;
+    function schedule() {
+      if (frame) return;
+      frame = global.requestAnimationFrame(function () {
+        frame = 0;
+        positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
+      });
+    }
+    // Stretch factors take effect during the chart's next layout. Read heights
+    // after that layout, including when RSI is disabled or a divider is dragged.
+    panes.forEach(function (pane) {
+      if (pane.subscribeSizeChange) pane.subscribeSizeChange(schedule);
+    });
+    schedule();
+    return function () {
+      if (frame) global.cancelAnimationFrame(frame);
+      panes.forEach(function (pane) {
+        if (pane.unsubscribeSizeChange) pane.unsubscribeSizeChange(schedule);
+      });
+    };
+  }
+
+  // 좁은 화면에서는 범례를 거래량 패널 높이에 맞게 단계적으로 접는다.
   function fitVolumeLegend(volumeLegend, volumeHeight) {
     if (!volumeLegend || !Number.isFinite(volumeHeight) || volumeHeight <= 0) return;
     var budget = volumeHeight - 8;
@@ -2797,6 +2819,7 @@
     if (lwcSrCleanup) { lwcSrCleanup(); lwcSrCleanup = null; }
     if (memoCtl) { memoCtl.dispose(); memoCtl = null; }
     if (lwcRsiZonesCleanup) { lwcRsiZonesCleanup(); lwcRsiZonesCleanup = null; }
+    if (lwcPaneLabelsCleanup) { lwcPaneLabelsCleanup(); lwcPaneLabelsCleanup = null; }
     if (lwcDivergenceCleanup) { lwcDivergenceCleanup(); lwcDivergenceCleanup = null; }
     if (supplyMarkerHolder && supplyMarkerHolder.legendCleanup) supplyMarkerHolder.legendCleanup();
     if (supplyMarkerHolder && supplyMarkerHolder.tipCleanup) supplyMarkerHolder.tipCleanup();
@@ -3045,6 +3068,7 @@
       // 전체화면으로 열고 닫을 때도 동일하게 다시 맞춰야 해서 resizeStockChart()와
       // positionLwcPaneLabels() 함수를 공유한다.
       positionLwcPaneLabels(container, panes, sizes.mainHeight, sizes.subHeight);
+      lwcPaneLabelsCleanup = installPaneLabelSync(container, panes, sizes);
       lwcCloudCleanup = installIchimokuCloudCanvas(container, chart, candleSeries, cloudPoints);
       memoCtl = timeframe === 'minute' || !global.NineChartMemo ? null : global.NineChartMemo.install({
         container: container, chart: chart, series: candleSeries, bars: bars, timeframe: timeframe,

@@ -13,7 +13,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const frames=new Map();let next=1,calls=[],factorWrites=0;
 const panes=[0,1,2].map(()=>({factor:1,getStretchFactor(){return this.factor;},
  setStretchFactor(v){factorWrites++;this.factor=v;},getHeight(){return 200;}}));
-const container={clientWidth:600,clientHeight:760,querySelector(){return null;}};
+const container={clientWidth:600,clientHeight:760,querySelector(){return null;},closest(){return null;}};
 const window={addEventListener(){},requestAnimationFrame(cb){let id=next++;frames.set(id,cb);return id;},
  cancelAnimationFrame(id){frames.delete(id);}};
 const context={window,document:{readyState:'loading',addEventListener(){}},URL,Date,Number,Promise,console};vm.createContext(context);
