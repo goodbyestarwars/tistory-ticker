@@ -792,11 +792,15 @@
     codes.forEach(function (code) {
       if (cachedQuotes[code]) updateCard(container, code, cachedQuotes[code]);
     });
+    // 국내 종목만이면 WebSocket을 스냅샷과 동시에 연다. GAS 스냅샷(실측 2~8초)이나
+    // 느린 VM 응답을 기다리느라 실시간 연결이 늦어지지 않게 한다.
+    var hasUs = codes.some(function (code) { return /^US:/i.test(code); });
+    if (!hasUs) startRealtimeQuotes(container, codes);
     Watchlist.fetchQuotes(codes)
       .then(function (quoteByCode) {
         writeQuoteCache(quoteByCode);
         list.forEach(function (it) {
-          if (quoteByCode[it.code]) updateCard(container, it.code, quoteByCode[it.code]);
+          if (quoteByCode[it.code] && !isLiveCard(container, it.code)) updateCard(container, it.code, quoteByCode[it.code]);
         });
       })
       .catch(function () {
@@ -805,8 +809,14 @@
       .then(function () {
         // 미국 REST가 확인한 실제 거래소를 서버가 실시간 등록키에 재사용한다.
         // 초기 스냅샷 뒤 연결해야 미국 종목을 NAS/NYS/AMS에 중복 등록하지 않는다.
-        startRealtimeQuotes(container, codes);
+        if (hasUs) startRealtimeQuotes(container, codes);
       });
+  }
+
+  // WebSocket 체결이 이미 들어온 카드는 늦게 도착한 REST 스냅샷이 덮어쓰지 않는다.
+  function isLiveCard(container, code) {
+    var card = container.querySelector('.wl-card[data-code="' + cssEscape(code) + '"]');
+    return !!card && card.getAttribute('data-live') === '1';
   }
 
   // 목록 구성(종목 추가/삭제/그룹)은 그대로고 실시간 연결만 재개하면 되는 경로(탭 재방문)
@@ -1004,7 +1014,11 @@
         if (generation !== realtimeGeneration) return;
         try {
           var quote = JSON.parse(event.data);
-          if (quote.type === 'quote' && quote.code) updateCard(container, quote.code, quote);
+          if (quote.type === 'quote' && quote.code) {
+            updateCard(container, quote.code, quote);
+            var liveCard = container.querySelector('.wl-card[data-code="' + cssEscape(quote.code) + '"]');
+            if (liveCard) liveCard.setAttribute('data-live', '1');
+          }
           else if (quote.type === 'coverage') markDelayedCards_(container, quote.delayed);
         } catch (err) {}
       };
@@ -1304,9 +1318,17 @@
 
     return Promise.all([
       fetchDomesticQuotes(domesticCodes).catch(function () { return {}; }),
-      fetchUsQuotes(usCodes)
+      withTimeout(fetchUsQuotes(usCodes), FETCH_TIMEOUT_MS).catch(function () { return {}; })
     ]).then(function (parts) {
       return Object.assign({}, parts[0], parts[1]);
+    });
+  }
+
+  // 미국 시세 요청에는 타임아웃이 없어 VM이 느리면 국내 시세 표시까지 함께 붙잡았다.
+  function withTimeout(promise, ms) {
+    return new Promise(function (resolve, reject) {
+      var timer = setTimeout(function () { reject(new Error('timeout')); }, ms);
+      promise.then(function (v) { clearTimeout(timer); resolve(v); }, function (e) { clearTimeout(timer); reject(e); });
     });
   }
 
