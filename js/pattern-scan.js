@@ -387,7 +387,7 @@
       ((data.patterns[key]) || []).forEach(function (row) { if (row && row.date && String(row.date) > latest) latest = String(row.date); });
     });
     var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(latest);
-    return m ? m[1] + '.' + m[2] + '.' + m[3] + ' 종가 기준(장 마감 후 1회 스캔) · ' : '';
+    return m ? ((window.NineTime && window.NineTime.closeAsOf(latest)) || (m[1] + '.' + m[2] + '.' + m[3] + ' 종가 기준')) + '(장 마감 후 1회 스캔) · ' : '';
   }
 
   function loadScan(container) {
@@ -449,10 +449,10 @@
         ? new Date(t.getTime() + 9 * 3600000).toISOString().slice(11, 19)
         : '';
       meta.textContent = liveSurgeInfo.active
-        ? '장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · 마지막 ' + hhmm : '')
+        ? '장중 ' + (liveSurgeInfo.intervalSec || 30) + '초마다 갱신' + (hhmm ? ' · ' + ((window.NineTime && window.NineTime.updated(liveSurgeInfo.updatedAt)) || ('마지막 ' + hhmm)) : '')
           + ' · 이미 많이 오른 ' + (liveSurgeInfo.ranCount || 0) + '종목은 제외 · 실시간 매집 의심은 순위권 종목의 5분봉·RVOL 근사 기반'
         : '장이 열려 있지 않아요(평일 09:00~15:35 감시). 일봉 기반 매집봉과 마지막 장중 판정을 보여줍니다(실시간 아님).'
-          + (scanData && scanData.volumeBreakoutScannedAt ? ' · 기록 시각 ' + kstText(scanData.volumeBreakoutScannedAt) : '');
+          + (scanData && scanData.volumeBreakoutScannedAt ? ' · ' + ((window.NineTime && window.NineTime.updated(scanData.volumeBreakoutScannedAt)) || ('기록 시각 ' + kstText(scanData.volumeBreakoutScannedAt))) : '');
       return;
     }
     var own = scanData && (activeTab === 'angleMomentum' ? scanData.angleMomentumScannedAt

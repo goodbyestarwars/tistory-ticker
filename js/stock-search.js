@@ -949,7 +949,7 @@
       var quoteEl = panel.querySelector('.ss-index-quote');
       var noteEl = panel.querySelector('.ss-index-note');
       if (quoteEl) { quoteEl.innerHTML = Number(quote.price).toLocaleString('ko-KR') + ' <small>' + fmtSignedPct(quote.change_rate) + '</small>'; quoteEl.className = 'ss-index-quote ' + signClass(quote.change_rate); }
-      if (noteEl) noteEl.textContent = '현물 지수 · 실시간 연결(5초) · 갱신 ' + (quote.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
+      if (noteEl) noteEl.textContent = '현물 지수 · 실시간 연결(5초) · ' + ((window.NineTime && window.NineTime.updated(quote.updated_at)) || ('갱신 ' + (quote.updated_at || '시각 미확인'))) + ' · 실제 분봉 원본 미제공';
       var last = indexBars.length ? indexBars[indexBars.length - 1] : null;
       var next = indexLiveBar(row.code, last, quote.price, kstToday());
       if (next && (next.close !== last.close || next.high !== last.high || next.low !== last.low)) {
@@ -1230,7 +1230,7 @@
             var note = panel.querySelector('.ss-index-note');
             if (quote) quote.innerHTML = (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR')) + ' <small>' + fmtSignedPct(item.change_rate) + '</small>';
             if (quote) quote.className = 'ss-index-quote ' + signClass(item.change_rate);
-            if (note) note.textContent = '현물 지수 · ' + (indexSocket && indexSocket.readyState === 1 ? '실시간 연결(5초) · ' : '') + '갱신 ' + (item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공';
+            if (note) note.textContent = '현물 지수 · ' + (indexSocket && indexSocket.readyState === 1 ? '실시간 연결(5초) · ' : '') + ((window.NineTime && window.NineTime.updated(item.updated_at)) || ('갱신 ' + (item.updated_at || '시각 미확인'))) + ' · 실제 분봉 원본 미제공';
             if (bars.length) {
               var latest = bars[bars.length - 1];
               var old = indexBars[indexBars.length - 1];
@@ -1252,7 +1252,7 @@
           panel.innerHTML = '<div class="ss-index-heading"><strong>' + escapeHtml(row.name) + '</strong><span>' + escapeHtml(row.code) + '</span></div>'
             + '<div class="ss-index-quote ' + signClass(item.change_rate) + '">' + (item.price == null ? '시세 없음' : Number(item.price).toLocaleString('ko-KR'))
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
-            + '<div class="ss-index-note">현물 지수 · 갱신 ' + escapeHtml(item.updated_at || '시각 미확인') + ' · 실제 분봉 원본 미제공</div>'
+            + '<div class="ss-index-note">현물 지수 · ' + escapeHtml((window.NineTime && window.NineTime.updated(item.updated_at)) || ('갱신 ' + (item.updated_at || '시각 미확인'))) + ' · 실제 분봉 원본 미제공</div>'
             // Compact index toolbar; small controls and a comfortably wide wave selector.
             + '<div class="ss-index-controls ss-stock-controls" role="group" aria-label="지수 차트 설정">'
             + '<div class="ss-index-tools ss-chart-tabs">'
