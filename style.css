@@ -1196,7 +1196,6 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   text-align: left;
   white-space: nowrap;
 }
-.hmb-list dd[title] { cursor: help; }
 .hmb-list dd[data-market-field="nightFutures"] { text-align: right; }
 /* 2026-08-31 사용자 요구("단어 잘림 허용 안 되게"): 위 규칙이 nowrap + ellipsis라
    모바일 3열(칸 폭 약 170px)에서 업종 목록이 잘렸다(실측:
