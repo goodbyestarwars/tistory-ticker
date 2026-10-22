@@ -1116,13 +1116,14 @@
 
   function wallTrend(wall, currQty, breakThreshold, side) {
     var tr = wallTrack(wall, side), now = Date.now();
+    tr.peakQty = Math.max(tr.peakQty || 0, currQty);
     tr.samples.push({ t: now, qty: currQty });
     while (tr.samples.length > 1 && now - tr.samples[0].t > WALL_WINDOW_MS) tr.samples.shift();
     while (tr.execs.length && now - tr.execs[0].t > WALL_WINDOW_MS) tr.execs.shift();
     var first = tr.samples[0], spanMs = now - first.t;
     if (spanMs < WALL_MIN_SPAN_MS) return '';
     var sec = Math.round(spanMs / 1000), delta = first.qty - currQty;
-    if (Math.abs(delta) < Math.max(1, wall.peakQty * 0.02)) return '⏸ ' + sec + '초간 변화 없음';
+    if (Math.abs(delta) < Math.max(1, tr.peakQty * 0.02)) return '⏸ ' + sec + '초간 변화 없음';
     if (delta < 0) return '▲ ' + sec + '초간 +' + fmtQty(-delta) + '주 (주문 증가)';
     var observed = tr.execs.filter(function (e) { return e.t >= first.t; })
       .reduce(function (sum, e) { return sum + e.qty; }, 0);
