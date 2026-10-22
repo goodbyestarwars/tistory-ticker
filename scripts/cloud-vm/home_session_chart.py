@@ -220,7 +220,19 @@ def get_results():
                     WHERE symbol=? AND session=? ORDER BY slot''', (_NIGHT, latest['date'])).fetchall():
                 if slot not in buckets:
                     buckets[slot] = dict(ts=ts, open=o, high=h, low=l, close=c, slot=slot)
+        # 야간 차트 기준선: 같은 세션의 시세가 담고 있는 전일 종가(price - change). 다른 세션의 값은 빌리지 않는다.
+        # 이 값이 없으면 홈 차트가 모든 막대를 중립(회색)으로 칠했다(2026-10-23 확인).
+        night_reference = None
+        try:
+            if quote and latest and quote.get('change') is not None:
+                quote_session = session('KOSPI200_NIGHT', datetime.fromisoformat(str(quote['updated_at']).replace('Z', '+00:00')))
+                ref = float(quote['price']) - float(quote['change'])
+                if quote_session and quote_session['date'] == latest['date'] and math.isfinite(ref) and ref > 0:
+                    night_reference = ref
+        except (KeyError, TypeError, ValueError):
+            night_reference = None
         output.append(dict(symbol='KOSPI200_NIGHT', rows=sorted(buckets.values(), key=lambda r: r['slot']), session=latest,
+                           reference=night_reference,
                            basis='실제 분봉 + 분봉이 없는 구간은 시세 수집 관측값 + 같은 세션 최신 시세', intervalMinutes=30))
         return output
     finally:
