@@ -3003,3 +3003,19 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-front-headline.is-down { color: var(--pulse-blue) !important; background: color-mix(in srgb, var(--pulse-blue) 12%, transparent) !important; }
   html body #market-temp .mt-front-headline.is-up { color: var(--pulse-red) !important; background: color-mix(in srgb, var(--pulse-red) 12%, transparent) !important; }
 }
+
+/* 2026-10-23 후속: 두 카드 제목 형식 통일(카드 안 머리글+기준일+부제), 섹터 표 12px, 카드 밖 머리글 마루부리 */
+@layer np.np {
+  html body #market-temp .mt-sf-card.mt-sf-card .mt-cp-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; margin: 0; }
+  html body #market-temp .mt-sf-card.mt-sf-card .mt-cp-head .mt-strategy-panel-title { margin: 0; padding: 0; border: 0; background: transparent; font-size: 21px; font-weight: 400 !important; letter-spacing: -.02em; color: #666; }
+  html.dark body #market-temp .mt-sf-card.mt-sf-card .mt-cp-head .mt-strategy-panel-title { color: #9aa8bb; }
+  html body #market-temp :is(.mt-sf-card, .mt-checkpoint-facts) .mt-cp-sub { margin: 8px 0 0; font-size: 13px; line-height: 1.7; color: #778396; word-break: keep-all; }
+  html.dark body #market-temp :is(.mt-sf-card, .mt-checkpoint-facts) .mt-cp-sub { color: #9aa8bb; }
+  html body #market-temp .mt-sf-card .mt-sf-visual-head { margin: 18px 0 6px; text-align: left; }
+  html body #market-temp .mt-briefing-strategy-card::after { content: none !important; display: none !important; }
+  /* 표 글자 = 체크포인트 본문(.mt-cp-check, 실측 12px) */
+  html body #market-temp .mt-sf-card :is(.mt-sf-row, .mt-sf-row *, .mt-sf-thead, .mt-sf-thead *, .mt-sf-visual-head small, .mt-sf-note, .mt-sf-disclaimer) { font-size: 12px !important; }
+  /* 카드 밖 머리글·설명 */
+  html body #market-temp :is(.mt-page-head, .mt-page-head *, .mt-live-status, .mt-front-kicker, .mt-front-kicker *, .mt-front-lead, .mt-extra-heading, .mt-section-head, .mt-section-head *) { font-family: 'MaruBuri', Georgia, serif !important; }
+  html body #market-temp :is(.mt-front-headline, .mt-extra-heading, .mt-section-head h2, .mt-section-head h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+}

@@ -204,6 +204,25 @@ def record_component_snapshot(conn, today, trading_day, summary, components, mar
     return True
 
 
+def last_saved_breadth(conn, today):
+    """장전·휴장에 KIS 업종지수 등락 종목 수가 0이면, 이미 저장해 둔 직전 거래일 값을 asOf 날짜와 함께 돌려준다.
+    새로 만든 값이 아니라 market_temp_snapshot.breadth_json에 남은 실제 집계다. 없으면 None."""
+    try:
+        rows = conn.execute(
+            'SELECT date, breadth_json FROM market_temp_snapshot WHERE date < ? AND breadth_json IS NOT NULL '
+            'ORDER BY date DESC LIMIT 5', (today,)).fetchall()
+    except Exception:
+        return None
+    for date, raw in rows:
+        try:
+            saved = json.loads(raw)
+            if saved['total']['total'] > 0:
+                return dict(saved, asOf=date, stale=True)
+        except (TypeError, ValueError, KeyError):
+            continue
+    return None
+
+
 def record_night_futures_close(conn, now_kst):
     """화~토 오전 6~9시에 야간선물 마지막 분봉과 직전 주간선물 종가를 그날 날짜로 남긴다.
 
@@ -350,9 +369,12 @@ def build(conn, week52_cache_file, kofia, now_kst=None):
     # '평소 대비 배수'는 daily_prices에서 종목별 20일 평균 거래대금을 읽어 붙인다(DB만 읽음).
     industry_flow = data.build_industry_flow(quotes, universe)
     market_breadth = data.fetch_market_breadth()
+    live_breadth = market_breadth
+    if not (market_breadth and (market_breadth.get('total') or {}).get('total')):
+        market_breadth = last_saved_breadth(conn, today) or market_breadth
     # 검증용 보관(2026-10-04) - 실패해도 화면 계산은 그대로 낸다.
     try:
-        record_component_snapshot(conn, today, trading_day, summary, components, market_breadth)
+        record_component_snapshot(conn, today, trading_day, summary, components, live_breadth)
         record_night_futures_close(conn, now_kst)
     except Exception:
         LOGGER.exception('증시온도 구성값/야간선물 마감 보관 실패 - 점수 계산에는 영향 없음')

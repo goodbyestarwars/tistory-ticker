@@ -1440,7 +1440,11 @@
     var tracking = mount.querySelector('[data-pick-track]');
     var trackingHtml = tracking && tracking.outerHTML;
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
+    var sfDate = mount.getAttribute('data-sf-date');
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
+      + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 거래대금 상위 섹터</div>'
+      + (sfDate ? '<span class="mt-cp-date">' + escapeHtml(sfDate) + '</span>' : '') + '</div>'
+      + '<p class="mt-cp-sub">거래대금 순위와 평균 등락률을 함께 봅니다. 거래대금만으로 매수 주도 여부는 알 수 없습니다.</p>'
       + '<div class="mt-sf-visual-head"><span>오늘 거래대금 상위 섹터</span><small>막대 = 1위 대비 거래대금 · 빨강 상승 · 파랑 하락</small></div>'
       + '<div class="mt-sf-thead" aria-hidden="true"><span>순위</span><span>섹터명</span><span class="mt-sf-th-meta"><span>거래대금</span><span>등락률(평균)</span></span><span>거래대금 집중도</span><span>대표 종목 (등락률)</span></div>'
       + '<div class="mt-sf-grid">'
@@ -2000,17 +2004,20 @@
         && b.up + b.down <= b.total;
     }
     var broad = valid(whole), breadth = broad ? whole : valid(sample) ? sample : null;
+    function number(v) { return v.toLocaleString('ko-KR'); }
     var headline = '오늘 시장 흐름을 확인하세요';
     var lead = '상승·하락 종목 집계를 확인하고 있습니다.';
-    var scope = (quotesAreStale_(data) ? '직전 마감 기준 ' : '') + (broad ? '코스피·코스닥 집계' : '분석 대상');
-    function number(v) { return v.toLocaleString('ko-KR'); }
+    var asOf = broad && breadth.asOf ? String(breadth.asOf).slice(5).replace('-', '/') : '';
+    var scope = (asOf ? asOf + ' 마감 ' : quotesAreStale_(data) ? '직전 마감 기준 ' : '') + (broad ? '코스피·코스닥 전체 집계' : '분석 대상 ' + (breadth ? number(breadth.total) : '') + '종목');
     if (breadth) {
+      // 분석 대상(섹터 풀 표본)은 시장 전체가 아니므로 문구에 모수를 밝힌다.
+      var pool = broad ? '' : '분석 대상 ' + number(breadth.total) + '종목 중 ';
       if (breadth.down > breadth.up * 1.5) {
-        headline = '하락 종목 ' + number(breadth.down) + '개, 내림세 우세';
-        lead = scope + ' 종목 중 ' + Math.round(breadth.down / breadth.total * 100) + '%가 하락했습니다.';
+        headline = broad ? '하락 종목 ' + number(breadth.down) + '개, 내림세 우세' : pool + number(breadth.down) + '개 하락';
+        lead = scope + ' 중 ' + Math.round(breadth.down / breadth.total * 100) + '%가 하락했습니다.';
       } else if (breadth.up > breadth.down * 1.5) {
-        headline = '상승 종목 ' + number(breadth.up) + '개, 오름세 우세';
-        lead = scope + ' 종목 중 ' + Math.round(breadth.up / breadth.total * 100) + '%가 상승했습니다.';
+        headline = broad ? '상승 종목 ' + number(breadth.up) + '개, 오름세 우세' : pool + number(breadth.up) + '개 상승';
+        lead = scope + ' 중 ' + Math.round(breadth.up / breadth.total * 100) + '%가 상승했습니다.';
       } else {
         headline = breadth.up + breadth.down === 0 ? '가격 변화 없이 보합인 시장' : '상승·하락 종목이 엇갈린 시장';
         lead = scope + '에서 상승 ' + number(breadth.up) + '개, 하락 ' + number(breadth.down) + '개로 집계됐습니다.';
@@ -2913,6 +2920,7 @@
     return '<div class="mt-strategy-panel mt-ant-guide mt-checkpoint-facts" id="mt-ant-guide">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트</div>'
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
+      + '<p class="mt-cp-sub">오늘 시장 흐름을 요약하고 현재 온도에 맞는 참고용 대응 방향을 함께 보여줍니다.</p>'
       + '<div class="mt-cp-body"><div class="mt-strategy-message mt-cp-call is-' + facts.tone + '">'
       + '<div class="mt-strategy-action">' + escapeHtml(facts.title) + '</div><p class="mt-ant-mood">' + escapeHtml(facts.mood) + '</p>'
       + '</div><div class="mt-cp-actions">'
@@ -2950,11 +2958,10 @@
     document.head.appendChild(script);
   }
 
-  function buildTemperatureActions() {
+  function buildTemperatureActions(data) {
     return '<div class="mt-temperature-actions">'
       + '<section class="mt-section-block mt-temperature-money-flow" id="mt-money-flow">'
-      + '<div class="mt-section-head"><h2>오늘 거래대금 상위 섹터</h2><p>거래대금 순위와 평균 등락률을 함께 봅니다. 거래대금만으로 매수 주도 여부는 알 수 없습니다.</p></div>'
-      + '<div data-sector-flow><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
+      + '<div data-sector-flow data-sf-date="' + escapeHtml(checkpointDate_(data)) + '"><div class="mt-hint">오늘 자금 흐름을 불러오는 중입니다.</div></div>'
       + '</section></div>';
   }
 
@@ -4288,7 +4295,7 @@
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading">다음 거래일 출발 · 미국장 기준</h3>' + buildTomorrowCard_() + '</section>',
       '<section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
-      buildTemperatureActions(),
+      buildTemperatureActions(data),
       buildRotationSlot_(),
       buildIndexFlow_(),
     ];
