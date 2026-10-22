@@ -199,7 +199,7 @@
       + '<div class="pf-card">'
       + '<div class="pf-header">'
       + '<div class="pf-title">' + escapeHtml(data.name || displayName) + ' 기관 수급 동향<span class="pf-title-sub">(연기금 단독 아님, 기관 합산 추정치)</span></div>'
-      + '<div class="pf-asof">' + escapeHtml(data.as_of || '') + ' 기준</div>'
+      + '<div class="pf-asof">' + escapeHtml((window.NineTime && window.NineTime.asOf(data.as_of)) || ((data.as_of || '') + ' 기준')) + '</div>'
       + '</div>'
       + '<div class="pf-streak-row">'
       + '<span class="pf-streak-emoji">' + streakEmoji + '</span>'

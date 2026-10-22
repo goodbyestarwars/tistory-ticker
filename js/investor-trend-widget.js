@@ -266,6 +266,7 @@
     if (!iso) return '';
     var d = new Date(iso);
     if (isNaN(d.getTime())) return '';
+    if (window.NineTime && window.NineTime.updated(d)) return window.NineTime.updated(d);
     var kst = new Date(d.getTime() + 9 * 3600 * 1000);
     var mm = String(kst.getUTCMonth() + 1).padStart(2, '0');
     var dd = String(kst.getUTCDate()).padStart(2, '0');
