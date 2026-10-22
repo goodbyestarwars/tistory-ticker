@@ -78,21 +78,23 @@
   // 2026-10-03 사용자 요청(참고 이미지: 호버하면 아래로 둥근 카드가 펼쳐지고 항목마다 둥근 아이콘 타일):
   // PC(721px 이상)에서는 2차 메뉴 줄 대신 1차 메뉴 아래에 하위 메뉴 카드(.nav-dropdown)를 띄운다.
   // 모바일은 예전처럼 2차 메뉴 줄을 쓴다(카드는 CSS로 숨긴다).
+  // 2026-10-23 아이콘 정비: Lucide(ISC, legal/opensource-license.html) 24x24 격자·선 1.75로 통일하고 항목 뜻에 맞췄다.
   var NAV_ICON_PATHS = {
-    briefing: '<path d="M7 3h8l4 4v14H7z"/><path d="M15 3v4h4M10 12h6M10 16h6"/>',
-    news: '<path d="M5 5h11v14H7a2 2 0 0 1-2-2z"/><path d="M16 9h3v8a2 2 0 0 1-2 2"/><path d="M8 9h5M8 13h5"/>',
-    temp: '<path d="M12 4a2 2 0 0 0-2 2v7.5a4 4 0 1 0 4 0V6a2 2 0 0 0-2-2z"/><path d="M12 9v6"/>',
-    indicators: '<path d="M5 20V10M12 20V4M19 20v-7"/>',
-    stocks: '<rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/>',
-    analysis: '<circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5M8.5 12.5l2-2 1.5 1.5 2-2.5"/>',
-    pattern: '<path d="M8 4v16M16 6v14"/><rect x="6" y="8" width="4" height="7" rx="1"/><rect x="14" y="10" width="4" height="6" rx="1"/>',
-    strategy: '<circle cx="12" cy="12" r="8"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
-    valuation: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h2M14 11h2M8 15h2M14 15h2M8 18h2M14 18h2"/>',
-    independentChart: '<path d="M4 19V5h16v14z"/><path d="M7 15l3-4 3 2 4-6"/>',
-    averaging: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M8 7h8M8 11h8M8 15h3M14 15h2M8 18h3M14 18h2"/>',
-    nasdaqFx: '<circle cx="9" cy="9" r="5"/><path d="M7 9h4M9 7v4M14 15h5M16.5 12.5v5"/><path d="M4 20h16"/>',
+    briefing: '<path d="M2 6h4"/><path d="M2 10h4"/><path d="M2 14h4"/><path d="M2 18h4"/><rect width="16" height="20" x="4" y="2" rx="2"/><path d="M9.5 8h5"/><path d="M9.5 12H16"/><path d="M9.5 16H14"/>',
+    news: '<path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-4 0v-9a2 2 0 0 1 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/>',
+    temp: '<path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/>',
+    indicators: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+    stocks: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 11h8"/><path d="M7 16h3"/><path d="M7 6h12"/>',
+    analysis: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/><path d="m7.5 13 2.5-2.5 1.5 1.5L14.5 8.5"/>',
+    pattern: '<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/>',
+    strategy: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/>',
+    valuation: '<circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/>',
+    independentChart: '<path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/>',
+    averaging: '<rect width="16" height="20" x="4" y="2" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="16" x2="16" y1="14" y2="18"/><path d="M16 10h.01"/><path d="M12 10h.01"/><path d="M8 10h.01"/><path d="M12 14h.01"/><path d="M8 14h.01"/><path d="M12 18h.01"/><path d="M8 18h.01"/>',
+    nasdaqFx: '<path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/>',
     dot: '<circle cx="12" cy="12" r="3"/>'
   };
+
 
   function navIconKey(item) {
     var href = String(item.href || '');
@@ -117,7 +119,7 @@
       return '<a class="nav-dd-item' + (active ? ' active' : '') + '" href="' + child.href + '" role="menuitem"'
         + (child.tool ? ' data-invest-tool="' + child.tool + '"' : '')
         + (active ? ' aria-current="page"' : '') + '>'
-        + '<span class="nav-dd-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">'
+        + '<span class="nav-dd-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">'
         + NAV_ICON_PATHS[navIconKey(child)] + '</svg></span><span class="nav-dd-label">' + child.label + '</span></a>';
     }).join('');
     return '<div class="nav-dropdown"><div class="nav-dd-card" role="menu" aria-label="' + item.label + ' 하위 메뉴">' + links + '</div></div>';

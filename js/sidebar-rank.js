@@ -123,7 +123,7 @@
     }).join('');
     return '<div class="card sidebar-card sr-card" data-section="' + activeSection + '">'
       + '<div class="sidebar-title sr-title">'
-      + '<div class="sidebar-icon si-blue"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.1-4-4L3 15.5"/></svg></div>'
+      + '<div class="sidebar-icon si-blue"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M7 11h8"/><path d="M7 16h3"/><path d="M7 6h12"/></svg></div>'
       + '<span class="sr-title-text">실시간 랭킹</span><span class="sr-updated" id="srUpdated"></span>'
       + '</div>'
       + '<div class="sr-tabs" role="tablist" aria-label="실시간 랭킹 기준">' + tabs + '</div>'
