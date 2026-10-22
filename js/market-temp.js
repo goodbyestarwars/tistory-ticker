@@ -1513,6 +1513,7 @@
         }
         container.innerHTML = buildCard(data);
         wireAnimations(container, data);
+        fillGlance_(container);
         // AI 시장 해석은 보조 콘텐츠라 기본 접힘, 버튼으로 펼친다(내용은 위 loadAiBriefing이 미리 채운다).
         container.addEventListener('click', function (event) {
           var toggle = event.target.closest && event.target.closest('[data-ai-toggle]');
@@ -2014,12 +2015,10 @@
     }
     return '<article class="mt-section mt-card mt-summary-card mt-front-story mt-market-' + tone + '">'
       + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3><small>수급·가격 기준</small></div>'
-      + '<div class="mt-front-facts" role="group" aria-label="시장 핵심 숫자">'
-      + '<div class="mt-fact-score"><small>시장 흐름</small><b>' + Math.round(value) + '<em>/100</em></b><span class="mt-rib-tone-' + tone + '">' + escapeHtml(marketMood_(value).word) + '</span></div>'
-      + '<div class="mt-fact-change"><small>전 거래일 대비</small><b class="' + deltaClass + '">' + escapeHtml(deltaText) + '</b><span>' + (data.scoreDeltaFrom ? escapeHtml(shortDate_(data.scoreDeltaFrom)) + ' 기준' : '이전 기록과 비교') + '</span></div>'
-      + '</div>'
+      // 2026-10-22 사용자 요청: 점수 칸은 뺐다. 점수·전일 대비는 아래 '근거' 접힘 안에 남아 있다.
       + buildBreadthVisual_(story)
       + buildFlowSnapshot_(data)
+      + buildGlanceSection_()
       + riskAlert
       + '<details class="mt-front-details"><summary>수급·가격 근거와 시장 위험 지표</summary>'
       + buildKpiStrip_(data)
@@ -3949,6 +3948,112 @@
       + cell('전일 대비', isFinite(delta) ? (delta > 0 ? '+' : '') + delta.toFixed(0) : '-', deltaText + (data.scoreDeltaFrom ? ' · ' + shortDate_(data.scoreDeltaFrom) + ' 기준' : ''), deltaCls, isFinite(delta) ? '점' : '', '',
         !isFinite(delta) ? { title: '오늘부터 일별 기록을 시작했습니다.' } : null)
       + '</div>';
+  }
+
+  // ---- 시장 한눈에 (2026-10-22 사용자 요청: 점수 대신 거래량·빚투·예탁금·외국인 자금·미국 금리·환율을 직관적으로) ----
+  // 값은 기존 공개 API(/domestic-market-indicators, /futures)가 내려준 것만 읽는다. 거래량은 단위가 확정되지 않아 평균 대비 비율로만 보인다.
+  var GLANCE_INDICATORS_URL_ = 'https://goodbyestar.cloud/domestic-market-indicators';
+  var GLANCE_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=12&symbols=US10Y,USDKRW';
+
+  // 외국인·기관 수급 줄(buildFlowSnapshot_)과 같은 모양으로 아래에 붙는다.
+  function buildGlanceSection_() {
+    return '<section class="mt-flow-snapshot mt-glance" data-mt-glance>'
+      + '<div class="mt-visual-title"><h3>시장 자금·금리</h3><small>최근 5거래일</small></div>'
+      + '<div class="mt-flow-actors mt-glance-rows"><div class="mt-glance-empty">지표 불러오는 중...</div></div></section>';
+  }
+
+  // 상승 빨강·하락 파랑 의미색. dir: 1 상승, -1 하락, 0 변화 없음/미확인
+  function glanceRow_(label, value, sub, dir) {
+    var kind = dir > 0 ? 'up' : dir < 0 ? 'down' : 'flat';
+    return '<div class="mt-flow-actor"><span>' + escapeHtml(label) + '</span>'
+      + '<b class="mt-flow-status is-' + kind + '">' + (dir > 0 ? '↗ ' : dir < 0 ? '↘ ' : '') + escapeHtml(value)
+      + (sub ? '<small>' + escapeHtml(sub) + '</small>' : '') + '</b></div>';
+  }
+
+  function glanceSign_(n) { return n > 0 ? 1 : n < 0 ? -1 : 0; }
+  function glancePct_(n) { return (n > 0 ? '+' : '') + n.toFixed(1) + '%'; }
+  function glanceEok_(v) {
+    var a = Math.abs(v);
+    return a >= 10000 ? (a / 10000).toFixed(1) + '조' : Math.round(a).toLocaleString('ko-KR') + '억';
+  }
+
+  function glanceVolume_(d, key, name) {
+    var idx = d && d.indices && d.indices[key];
+    var rows = idx && idx.intervals && idx.intervals.day && idx.intervals.day.rows;
+    var label = name + ' 거래량';
+    if (!rows || rows.length < 6) return glanceRow_(label, '확인 중', '', 0);
+    var last = rows[rows.length - 1];
+    var prev = rows.slice(-21, -1).map(function (r) { return Number(r.volume); }).filter(function (v) { return v > 0; });
+    var lv = Number(last.volume);
+    if (!prev.length || !(lv > 0)) return glanceRow_(label, '확인 중', '', 0);
+    var avg = prev.reduce(function (a, b) { return a + b; }, 0) / prev.length;
+    var pct = (lv / avg - 1) * 100;
+    // 장중에는 오늘 누적치라 종일 평균보다 작게 보일 수 있어 방향 색을 쓰지 않는다.
+    var kst = new Date(Date.now() + 9 * 3600 * 1000).toISOString();
+    var live = String(last.date) === kst.slice(0, 10) && kst.slice(11, 16) < '15:40';
+    return glanceRow_(label, '평소 대비 ' + glancePct_(pct), (live ? '장중 누적 · ' : '') + '최근 ' + prev.length + '일 평균', live ? 0 : glanceSign_(pct));
+  }
+
+  function glanceBalance_(label, funds, getter, unitKey) {
+    var vals = (funds.series || []).map(getter).filter(function (v) { return isFinite(v) && v > 0; });
+    if (vals.length < 2 || funds[unitKey] !== 'hundred_million_krw') return glanceRow_(label, '확인 중', '', 0);
+    var last = vals[vals.length - 1], ref = vals[Math.max(0, vals.length - 6)];
+    var pct = (last / ref - 1) * 100;
+    return glanceRow_(label, glanceEok_(last) + '원', '5일 ' + glancePct_(pct), glanceSign_(pct));
+  }
+
+  function glanceForeign_(d) {
+    var inv = d && d.investor;
+    var label = '외국인 순매수 금액';
+    if (!inv) return glanceRow_(label, '확인 중', '', 0);
+    var byDate = {}, order = [];
+    ['KOSPI', 'KOSDAQ'].forEach(function (m) {
+      ((inv[m] && inv[m].rows) || []).forEach(function (r) {
+        var v = Number(r.foreign);
+        if (!isFinite(v)) return;
+        if (!(r.label in byDate)) { byDate[r.label] = 0; order.push(r.label); }
+        byDate[r.label] += v;
+      });
+    });
+    if (!order.length) return glanceRow_(label, '확인 중', '', 0);
+    var today = byDate[order[order.length - 1]];
+    var five = order.slice(-5).reduce(function (s, k) { return s + byDate[k]; }, 0);
+    function word(v) { return (v >= 0 ? '순매수 ' : '순매도 ') + glanceEok_(v); }
+    return glanceRow_(label, word(today), '5일 ' + word(five), glanceSign_(today));
+  }
+
+  function glanceFutures_(items, symbol, label, fmt, unit) {
+    var it = (items || []).filter(function (x) { return x.symbol === symbol; })[0];
+    if (!it || !isFinite(Number(it.price))) return glanceRow_(label, '확인 중', '', 0);
+    var chart = it.chart || [];
+    var price = Number(it.price);
+    var ref = chart.length >= 6 ? Number(chart[chart.length - 6].close) : NaN;
+    var diff = isFinite(ref) ? price - ref : Number(it.change);
+    return glanceRow_(label, fmt(price) + unit, (isFinite(ref) ? '5일 ' : '전일 ') + (diff > 0 ? '+' : '') + fmt(diff) + unit, glanceSign_(diff));
+  }
+
+  function fillGlance_(container) {
+    var card = container.querySelector('[data-mt-glance]');
+    if (!card) return;
+    var mount = card.querySelector('.mt-glance-rows');
+    Promise.all([
+      fetchJson_(GLANCE_INDICATORS_URL_).then(function (b) { return b && b.data; }).catch(function () { return null; }),
+      fetchJson_(GLANCE_FUTURES_URL_).then(function (b) { return b && b.data; }).catch(function () { return null; })
+    ]).then(function (res) {
+      var d = res[0], f = res[1] || [];
+      if (!d && !f.length) { mount.innerHTML = '<div class="mt-glance-empty">지표를 불러오지 못했습니다.</div>'; return; }
+      var funds = d && d.funds && d.funds.available ? d.funds : null;
+      var none = function (label) { return glanceRow_(label, '확인 중', '', 0); };
+      mount.innerHTML = [
+        glanceVolume_(d, 'KOSPI', '코스피'),
+        glanceVolume_(d, 'KOSDAQ', '코스닥'),
+        funds ? glanceBalance_('빚투 (신용잔고)', funds, function (r) { return Number(r.credit); }, 'credit_unit') : none('빚투 (신용잔고)'),
+        funds ? glanceBalance_('예탁금', funds, function (r) { return Number(r.market_funds && r.market_funds.investor_deposits); }, 'market_funds_unit') : none('예탁금'),
+        glanceForeign_(d),
+        glanceFutures_(f, 'US10Y', '미국 금리 (10년)', function (v) { return v.toFixed(2); }, '%'),
+        glanceFutures_(f, 'USDKRW', '환율 (원/달러)', function (v) { return Math.abs(v) < 100 ? v.toFixed(1) : Math.round(v).toLocaleString('ko-KR'); }, '원')
+      ].join('');
+    });
   }
 
   function buildPageHead_(data) {
