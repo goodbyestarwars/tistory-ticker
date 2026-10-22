@@ -1,3 +1,7 @@
+**2026-10-23 PC 운영 runner를 저장소에 동기화**
+
+점검 중 PC의 `live_runner.py`(설치 시 `live_runner_9pay.py`의 이름)가 저장소보다 앞서 있음을 확인: 네트워크 오류 재시도(`cycle_error_state`, 미확정 주문이 있으면 재시도 금지)가 PC에만 있었다. 저장소 `live_runner_9pay.py`를 PC본으로 맞추고 테스트 추가(PC 파일 변경 없음). `ninepay_signal_client.py`는 줄바꿈만 다름. 참고: 주문 클라이언트 `live_kiwoom.py`는 저장소에 없고 PC에만 있다(미커밋, 의도 확인 필요).
+
 **2026-10-22 자동매매 종목 수·종목당 한도: 100만원당 1종목(코드·테스트만)**
 
 사용자 지시(예산 100만 이하 1종목·초과 200만 이하 2종목·300만 이하 3종목, 종목당 한도는 예산-유보). `live_engine.py` `MAX_STOCKS=ceil(BUDGET/100만)`=1, `PER_STOCK=(BUDGET-RESERVE)//MAX_STOCKS`=90만원. 관련 테스트 갱신·추가, `quant-autotrade/local_bot` 전체 211개 통과. PC 설치·master 병합 미수행(사용자 승인 대기). 같은 날 점검: 봇 계좌의 수동 보유 080220이 장부 밖이라 `FOREIGN_HOLDINGS`로 신규 매수가 막힌 것을 확인, PC에서 제외목록+장부 CLOSED 행 추가(백업 `backup_excl_080220_20261022`).
