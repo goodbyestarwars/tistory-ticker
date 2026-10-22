@@ -82,7 +82,7 @@
 .my-flow-legend { display: flex; flex-wrap: wrap; gap: 7px 11px; margin-top: 1px; color: #64748b; font-size: 9px; }
 .my-flow-legend span { display: inline-flex; align-items: center; gap: 4px; }
 .my-flow-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; }
-.my-flow-dot-ind { background: #d24f45; }
+.my-flow-dot-ind { background: #e7aaa5; }
 .my-flow-dot-foreign { background: #2563eb; }
 .my-flow-dot-inst { background: #0f9f75; }
 .my-volume-highlight { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 12px; border-radius: 10px; background: #f7faff; color: #64748b; font-size: 11px; }

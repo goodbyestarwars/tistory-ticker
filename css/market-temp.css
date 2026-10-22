@@ -342,8 +342,8 @@
 #market-temp .mt-driver-label small { display: block; overflow: hidden; color: #9098a4; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
 #market-temp .mt-driver-track { height: 7px; overflow: hidden; border-radius: 99px; background: #edf0f2; }
 #market-temp .mt-driver-fill { display: block; height: 100%; border-radius: inherit; }
-#market-temp .mt-driver-up .mt-driver-fill { background: #d24f45; }
-#market-temp .mt-driver-down .mt-driver-fill { background: #1261c4; }
+#market-temp .mt-driver-up .mt-driver-fill { background: #e7aaa5; }
+#market-temp .mt-driver-down .mt-driver-fill { background: #9dbbe0; }
 #market-temp .mt-driver-row b { font-size: 11px; text-align: right; }
 #market-temp .mt-driver-up b { color: #d24f45; }
 #market-temp .mt-driver-down b { color: #1261c4; }
@@ -368,8 +368,8 @@
 #market-temp .mt-score-method li small { color: #9aa1ab; font-size: 10px; }
 
 /* 색상 모디파이어(그리드 카드/오늘의전략 등 여러 base 클래스에서 공유) */
-#market-temp .mt-bar-vix { background: #d24f45; }
-#market-temp .mt-bar-flow { background: #1261c4; }
+#market-temp .mt-bar-vix { background: #e7aaa5; }
+#market-temp .mt-bar-flow { background: #9dbbe0; }
 #market-temp .mt-bar-rise { background: var(--mt-red); }
 #market-temp .mt-bar-vol { background: var(--mt-yellow); }
 #market-temp .mt-bar-fx { background: var(--mt-blue); }
@@ -457,8 +457,8 @@ html.dark #market-temp .mt-heat-note { color:#b8c2cc; }
 #market-temp .mt-wave-segment-pos { stroke: #d24f45; }
 #market-temp .mt-wave-segment-neg { stroke: #1261c4; }
 #market-temp .mt-wave-segment-zero { stroke: #8d96a1; }
-#market-temp .mt-wave-dot-pos { fill: #d24f45; }
-#market-temp .mt-wave-dot-neg { fill: #1261c4; }
+#market-temp .mt-wave-dot-pos { fill: #e7aaa5; }
+#market-temp .mt-wave-dot-neg { fill: #9dbbe0; }
 #market-temp .mt-wave-dot-zero { fill: #8d96a1; }
 #market-temp .mt-wave-legend { margin-top: 3px; }
 #market-temp .mt-wave-legend span { display: inline-flex; align-items: center; gap: 4px; }
@@ -790,8 +790,8 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
 #market-temp .sector-bubble-chart-meta { display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 3px 8px; color:#94a3b8; font-size:10px; }
 #market-temp .sector-bubble-chart-meta > span:last-child { display:inline-flex; align-items:center; gap:4px; white-space:nowrap; }
 #market-temp .sector-bubble-chart-meta i { display:inline-block; width:7px; height:7px; border-radius:50%; }
-#market-temp .sector-bubble-legend-up { margin-left:4px; background:#d24f45; }
-#market-temp .sector-bubble-legend-down { margin-left:6px; background:#1261c4; }
+#market-temp .sector-bubble-legend-up { margin-left:4px; background:#e7aaa5; }
+#market-temp .sector-bubble-legend-down { margin-left:6px; background:#9dbbe0; }
 #market-temp .sector-bubble-stage { display:flex; min-height:220px; align-items:center; justify-content:center; align-content:center; flex-wrap:wrap; gap:9px; padding:12px 8px; border-radius:11px; background-image:linear-gradient(rgba(148,163,184,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,.08) 1px, transparent 1px); background-size:36px 36px; }
 #market-temp .sector-chart-bubble { display:inline-flex; width:var(--bubble-size); height:var(--bubble-size); flex:0 0 var(--bubble-size); box-sizing:border-box; align-items:center; justify-content:center; flex-direction:column; gap:2px; overflow:hidden; padding:9px; border:2px solid rgba(148,163,184,.3); border-radius:50%; background:rgba(148,163,184,.15); color:#334155; text-align:center; transition:transform .16s ease, box-shadow .16s ease; }
 #market-temp button.sector-chart-bubble { font:inherit; cursor:pointer; }
@@ -930,9 +930,9 @@ html.dark #market-temp .mt-comp-visual-raw { color: #F5EFE0 !important; }
 html.dark #market-temp .mt-comp-bar-track { background: rgba(245, 239, 224, 0.14) !important; }
 html.dark #market-temp .mt-bar-vix,
 html.dark #market-temp .mt-bar-rise,
-html.dark #market-temp .mt-bar-risk { background: #ff8a83 !important; }
+html.dark #market-temp .mt-bar-risk { background: #d79b96 !important; }
 html.dark #market-temp .mt-bar-flow,
-html.dark #market-temp .mt-bar-fx { background: #80b8ff !important; }
+html.dark #market-temp .mt-bar-fx { background: #94b2d7 !important; }
 html.dark #market-temp .mt-bar-vol { background: #f2c35d !important; }
 html.dark #market-temp .mt-val-pos { color: #ff6b5b !important; }
 html.dark #market-temp .mt-val-neg { color: #4d9fff !important; }
@@ -1413,9 +1413,9 @@ html.dark #market-temp .mt-money-flow-grid .mt-industry-flow-row.is-open { backg
 
 html.dark #market-temp .mt-summary-head { border-bottom-color: rgba(245, 239, 224, .18) !important; }
 html.dark #market-temp .mt-axis-bar { background: rgba(245, 239, 224, .14) !important; }
-html.dark #market-temp .mt-axis-good { background: #ff8a83 !important; }
+html.dark #market-temp .mt-axis-good { background: #d79b96 !important; }
 html.dark #market-temp .mt-axis-mid { background: #f2c35d !important; }
-html.dark #market-temp .mt-axis-bad { background: #80b8ff !important; }
+html.dark #market-temp .mt-axis-bad { background: #94b2d7 !important; }
 html.dark #market-temp .mt-summary-score small,
 html.dark #market-temp .mt-axis-word,
 html.dark #market-temp .mt-summary-note { color: rgba(245, 239, 224, .55) !important; }
@@ -1720,9 +1720,9 @@ html.dark #market-temp .mt-score-zone-label.is-active { color: #26313b !importan
 html.dark #market-temp .mt-gauge-digital-num { fill: #20262d !important; }
 html.dark #market-temp .mt-gauge-digital-unit { fill: #7d8792 !important; }
 html.dark #market-temp .mt-axis-bar { background: #edf0f2 !important; }
-html.dark #market-temp .mt-axis-good { background: #ff8a83 !important; }
+html.dark #market-temp .mt-axis-good { background: #d79b96 !important; }
 html.dark #market-temp .mt-axis-mid { background: #f2c35d !important; }
-html.dark #market-temp .mt-axis-bad { background: #80b8ff !important; }
+html.dark #market-temp .mt-axis-bad { background: #94b2d7 !important; }
 html.dark #market-temp .mt-axis-word,
 html.dark #market-temp .mt-axis-name small,
 html.dark #market-temp .mt-summary-note,
@@ -1994,8 +1994,8 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
 #market-temp .mt-track-daybox > summary b { text-align: right; font-variant-numeric: tabular-nums; }
 #market-temp .mt-track-bar { display: block; height: 6px; border-radius: 3px; background: rgba(17, 17, 17, .05); overflow: hidden; }
 #market-temp .mt-track-bar i { display: block; height: 100%; border-radius: 3px; }
-#market-temp .mt-track-bar i.is-up { background: #d24f45; }
-#market-temp .mt-track-bar i.is-down { background: #1261c4; }
+#market-temp .mt-track-bar i.is-up { background: #e7aaa5; }
+#market-temp .mt-track-bar i.is-down { background: #9dbbe0; }
 #market-temp .mt-track-bar i.is-flat { background: #94a3b8; }
 #market-temp .mt-track-daybox .mt-track-row { padding-left: 54px; }
 

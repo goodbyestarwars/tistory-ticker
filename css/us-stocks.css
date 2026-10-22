@@ -96,8 +96,8 @@
 .us-stocks-level-row i { flex: 1 1 auto; height: 8px; overflow: hidden; border-radius: 999px; background: #eef2f7; }
 .us-stocks-level-row em { display: block; height: 100%; border-radius: inherit; }
 .us-stocks-level-row b { flex: 0 0 52px; text-align: right; font-variant-numeric: tabular-nums; }
-.us-book-ask-fill { background: #1261c4; }
-.us-book-bid-fill { background: #d24f45; }
+.us-book-ask-fill { background: #9dbbe0; }
+.us-book-bid-fill { background: #e7aaa5; }
 .us-book-strength-fill { background: #0ca678; }
 .us-book-ask-text, .us-book-ask-price { color: #1261c4; }
 .us-book-bid-text, .us-book-bid-price { color: #d24f45; }

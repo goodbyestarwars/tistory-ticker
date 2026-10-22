@@ -732,8 +732,8 @@
 #foreign-flow .ff-rsi-mid { stroke: #6b7280; stroke-width: 1.2; }   /* 2026-10-18: RSI 50 선을 70·30보다 진하게 */
 html.dark #foreign-flow .ff-rsi-mid { stroke: #a3a3a3; }
 #foreign-flow .ff-rsi-fill { fill-opacity: 0.55; stroke: none; }
-#foreign-flow .ff-rsi-fill-above { fill: #d24f45; }
-#foreign-flow .ff-rsi-fill-below { fill: #1261c4; }
+#foreign-flow .ff-rsi-fill-above { fill: #e7aaa5; }
+#foreign-flow .ff-rsi-fill-below { fill: #9dbbe0; }
 /* 2026-07-20: 업종/테마 분리 - 각 줄(.ff-sector-row)이 라벨("업종"/"테마") + 태그 목록을
    한 줄에 놓는다. 예전엔 .ff-sector-tags 하나가 라벨 없이 업종만 보여줬음. */
 #foreign-flow .ff-sector-row {
@@ -1027,8 +1027,8 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
 #foreign-flow .ff-sim-line.ff-sell { stroke: #1261c4; }
 #foreign-flow .ff-sim-dot { fill: #111827; stroke: #fff; stroke-width: 1.5; }
 #foreign-flow .ff-sim-mark { stroke: #fff; stroke-width: 1.2; }
-#foreign-flow .ff-sim-mark-peak { fill: #d24f45; }
-#foreign-flow .ff-sim-mark-trough { fill: #1261c4; }
+#foreign-flow .ff-sim-mark-peak { fill: #e7aaa5; }
+#foreign-flow .ff-sim-mark-trough { fill: #9dbbe0; }
 #foreign-flow .ff-sim-mark-label { font-weight: 800; font-size: 10.5px; }
 #foreign-flow .ff-sim-axis-label { font-weight: 700; fill: #666; }
 /* 축 최고/최저 금액·원금·날짜 라벨만 1px 축소(최고/최저 마커 글자는 제외) - 2026-08-13 요청 */
@@ -1087,9 +1087,9 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   background: #eee;
 }
 #foreign-flow .ff-opinion-bar { height: 100%; }
-#foreign-flow .ff-opinion-bar.buy { background: #d24f45; }
+#foreign-flow .ff-opinion-bar.buy { background: #e7aaa5; }
 #foreign-flow .ff-opinion-bar.hold { background: #999; }
-#foreign-flow .ff-opinion-bar.sell { background: #1261c4; }
+#foreign-flow .ff-opinion-bar.sell { background: #9dbbe0; }
 #foreign-flow .ff-opinion-bar.other { background: #d8dee6; }
 #foreign-flow .ff-opinion-legend {
   display: flex;
@@ -1100,9 +1100,9 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   color: #666;
 }
 #foreign-flow .ff-opinion-legend span { display: inline-flex; align-items: center; gap: 5px; }
-#foreign-flow .ff-dot-buy { background: #d24f45; }
+#foreign-flow .ff-dot-buy { background: #e7aaa5; }
 #foreign-flow .ff-dot-hold { background: #999; }
-#foreign-flow .ff-dot-sell { background: #1261c4; }
+#foreign-flow .ff-dot-sell { background: #9dbbe0; }
 #foreign-flow .ff-dot-other { background: #d8dee6; }
 
 /* 2026-08-25 - 평균 투자의견을 카드형 설명문에서 신문 지면형 요약으로 개편.
