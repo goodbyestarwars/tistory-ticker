@@ -1,3 +1,7 @@
+**2026-10-22 9Pay WebSocket 이벤트 누락 건수 거래일 경계 오류 수정 (#841, master 병합·VM 장외 배포 대기)**
+
+전날 발생한 `queueDropped` 값이 다음 거래일까지 누적되어 9Pay 및 기존 검색기 신규 매수를 차단할 수 있는 문제 수정. `scripts/cloud-vm/kiwoom_9pay_live.py`가 한국시간 날짜 전환에서 살아 있는 WebSocket 구독 객체의 누적 누락 기준값을 새로 잡고, 저장 파일에서는 당일 누락 증거만 복원한다. 당일 신규 누락 1건 이상이면 기존 차단 유지, 당일 3건 누락 상태의 재시작 복원도 유지. GitHub Actions 신규 회귀 파이프라인의 Python 컴파일 및 `test/test_kiwoom_9pay_queue.py` 테스트 **5개 통과** 후 PR #841을 `master`에 squash 병합(`dbe8d1d`). PC 주문 코드·계좌·승인·자금·STOP·청산 정책 변경 없음. **VM 자동배포는 평일 08:00~20:00 KST에 보류**하는 운영 정책 유지; 병합만으로 VM 적용 또는 실거래 복구를 확정하지 않는다. 장외 배포 후 `/health/9pay`의 당일 `queueDropped`·피드·랭킹 시각 실측 필요.
+
 **2026-10-22 종목검색 지수 차트(코스피·코스닥) 거래량 패널**
 
 `/page/stock-search?code=INDEX:KOSPI` 차트에는 거래량이 없었다(`/futures` 일봉·5년 정적 이력에 거래량 없음). 시장지표용 `/domestic-market-indicators/chart?interval=day`(KIS 지수 일봉, 실측 약 1년치 volume 포함)를 날짜로 합쳐 공통 `addVolumePane`으로 거래량 막대·5/20 평균선과 거래량 숫자 범례를 추가(주봉·월봉은 기존 집계가 합산). 거래량이 없는 과거 봉·나스닥 등 해외지수는 막대 없음. 단위는 응답 그대로 표기(미검증). 검증: JS 구문검사, API 응답 실측(api-probe). 배포: Pages 자동. 초판은 범위 밖 변수(`core`) 참조로 차트 전체가 '불러오지 못했습니다'였고(사용자 제보), 수정판은 `global.NineChartCore`로 바꾸고 거래량 패널을 try/catch로 분리해 실패해도 캔들은 유지. 수정판 검증: 실제 lightweight-charts 5.2.0+chart-core 헤드리스 Chromium에서 `addVolumePane` 2패널 생성·오류 없음(사이트 전체 화면은 CDN 차단으로 미확인).
