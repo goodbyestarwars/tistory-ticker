@@ -553,7 +553,7 @@
     var quote = state.lastRealtimeQuote && state.lastRealtimeQuote.code === state.code ? state.lastRealtimeQuote : null;
     if (wallEvidenceReady(quote)) checkWallBreakthrough(container, state.lastWsBook, quote);
     else { state.trackedWall = null; state.wallTrack = null; state.bidWallTrack = null; }
-    updateHud(container, state.lastWsBook, state.lastStrength, quote, state.lastRealStrength);
+    updateHud(container, state.lastWsBook, wallEvidenceReady(quote) ? state.lastStrength : null, quote, state.lastRealStrength);
     updateBreakoutNote(container, state.lastWsBook, quote);
     renderAbnormalBadges(container, state.lastWsBook, quote);
   }
@@ -952,7 +952,7 @@
     }, TOAST_MS);
   }
 
-  // ---- 체결강도(근사치) - 추적 중인 매도벽이 최근 한 틱 사이 얼마나 줄었는지로 추정 ----
+  // ---- 과거 호환용 매도벽 잔량 변화 추정치 (실제 체결강도는 book.strength) ----
   function computeExecutionStrength() {
     if (!state.trackedWall || state.history.length < 2 || !state.lastWsBook || Date.now() - state.lastWsBookAt > WS_BOOK_FRESH_MS) return null;
     var wall = state.trackedWall;
@@ -1041,10 +1041,8 @@
     el.appendChild(sub);
   }
 
-  // 성벽(추적 중인 매도벽) 잔량을 최근 WALL_WINDOW_MS 동안 기록하고, 줄었으면
-  // "얼마나/체결 vs 취소/이 속도면 몇 초 뒤"를 한 줄로 만든다. 체결량은 WS 체결(applyRealtimeQuote)에서
-  // 성벽 가격과 같은 가격으로 찍힌 거래량 증가분만 센다 - 성벽이 최우선 매도호가가 아니면 체결이 올 수 없어
-  // 줄어든 만큼은 전부 취소로 본다. 호가 스냅샷 간격 사이의 체결은 근사치다.
+  // 동일 가격대의 양쪽 벽을 따로 관측한다. 실시간 개별 체결을 확인한 수량과
+  // 취소·정정·호가 이동 등을 구별할 수 없는 잔량 감소분을 확실히 분리한다.
   function wallTrack(wall, side) {
     var key = side === 'bid' ? 'bidWallTrack' : 'wallTrack';
     if (!state[key] || state[key].price !== wall.price) {
