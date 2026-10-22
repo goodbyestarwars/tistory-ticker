@@ -469,7 +469,9 @@
     var terms = String(state.disclosureQuery || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
     var seen = new Set();
     var completed = (state.events || []).filter(function (event) {
-      if (!event || String(event.source || event.provider || '').toLowerCase() !== 'dart'
+      var source = event ? String(event.source || event.provider || '').toLowerCase() : '';
+      // 공시 완료는 국내 DART 공시와 미국 Finnhub 발표 완료 실적을 함께 담고 아래에서 국내/미국으로 나눈다.
+      if (!event || (source !== 'dart' && source !== 'finnhub')
         || event.status !== 'reported' || String(event.start || '').slice(0, 7) !== monthKey) return false;
       var key = calendarEventKey(event);
       if (seen.has(key)) return false;
@@ -479,17 +481,26 @@
       if (!terms.every(function (term) { return searchText.indexOf(term) !== -1; })) return false;
       return true;
     }).sort(function (a, b) { return String(b.start).localeCompare(String(a.start)); });
-    var cards = completed.map(function (event) {
+    function cardHtml(event) {
       return '<article class="sc-completed-card"><div class="sc-completed-card-head">'
         + '<span class="sc-completed-badge">공시 완료</span><time datetime="' + escapeHtml(String(event.start).slice(0, 10)) + '">'
         + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>' + renderEventRow(event) + '</article>';
-    }).join('');
+    }
+    var groups = [
+      { label: '국내', rows: completed.filter(function (e) { return !isUsStockEvent(e, null); }) },
+      { label: '미국', rows: completed.filter(function (e) { return isUsStockEvent(e, null); }) }
+    ];
+    var body = completed.length ? groups.map(function (group) {
+      return '<div class="sc-completed-group" data-completed-group="' + (group.label === '미국' ? 'us' : 'domestic') + '">'
+        + '<h3 class="sc-completed-group-title">' + group.label + ' <span>' + group.rows.length + '건</span></h3>'
+        + (group.rows.length ? '<div class="sc-completed-grid">' + group.rows.map(cardHtml).join('') + '</div>'
+          : '<div class="sc-empty">' + group.label + ' 완료 공시가 없어.</div>')
+        + '</div>';
+    }).join('') : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.' : '표시할 완료 공시가 없어.') + '</div>';
     return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
       + '<h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2><p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
-      + '월 · 최근 공시부터 보여줘.</p></div>'
-      + (cards ? '<div class="sc-completed-grid">' + cards + '</div>'
-        : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.' : '표시할 완료 공시가 없어.') + '</div>')
-      + '</section>';
+      + '월 · 국내와 미국으로 나눠 최근 공시부터 보여줘.</p></div>'
+      + body + '</section>';
   }
 
   function init() {
