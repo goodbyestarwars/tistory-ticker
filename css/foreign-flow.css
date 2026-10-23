@@ -102,7 +102,7 @@
   height: 42px;
   margin: 0 auto 8px;
   overflow: visible;
-  color: #1261c4;
+  color: var(--num-down);
 }
 #foreign-flow .ff-spinner polyline {
   fill: none;
@@ -341,11 +341,11 @@
 /* .ff-related-quote는 document.body 직속이라 #foreign-flow 스코프의 .ff-buy/.ff-sell이
    안 먹는다 - signClass()가 붙이는 클래스명 그대로 여기서 다시 색을 정의한다. */
 .ff-related-rate { font-weight: 700; }
-.ff-related-rate.ff-buy { color: #d24f45; }
-.ff-related-rate.ff-sell { color: #1261c4; }
+.ff-related-rate.ff-buy { color: var(--num-up); }
+.ff-related-rate.ff-sell { color: var(--num-down); }
 .ff-related-rate.ff-flat { color: #666; }
-#foreign-flow .ff-badge-buy { background: #fdeceb; color: #d24f45; border: 1px solid #f2c3bf; }
-#foreign-flow .ff-badge-sell { background: #e9f1fb; color: #1261c4; border: 1px solid #bdd6f2; }
+#foreign-flow .ff-badge-buy { background: #fdeceb; color: var(--num-up); border: 1px solid #f2c3bf; }
+#foreign-flow .ff-badge-sell { background: #e9f1fb; color: var(--num-down); border: 1px solid #bdd6f2; }
 #foreign-flow .ff-badge-shift { background: #fff5e0; color: #b0761a; border: 1px solid #f0dcae; }
 #foreign-flow .ff-badge-neutral { background: #f1f1f1; color: #666; border: 1px solid #ddd; }
 /* 2026-07-20: 테마(2차전지/로봇 등, 내러티브 중심 - 업종과 성격이 달라 구분되는 색으로) */
@@ -379,8 +379,8 @@
   text-align: center;
   background: #fafafa;
 }
-#foreign-flow .ff-buy { color: #d24f45; }
-#foreign-flow .ff-sell { color: #1261c4; }
+#foreign-flow .ff-buy { color: var(--num-up); }
+#foreign-flow .ff-sell { color: var(--num-down); }
 #foreign-flow .ff-flat { color: #666; }
 
 /* ---- 공매도/대차거래/연기금 (INVESTOR_FLOW_CACHE, PC 로컬 스냅샷) ---- */
@@ -466,7 +466,7 @@
   font-size: 11px;
   font-weight: 700;
   background: #e9f1fb;
-  color: #1261c4;
+  color: var(--num-down);
   border: 1px solid #bdd6f2;
 }
 #foreign-flow .ff-extra-streak { margin-bottom: 8px; }
@@ -1051,7 +1051,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
   margin: 6px 0 2px;
 }
 #foreign-flow .ff-sim-patience-item b { font-weight: 800; margin: 0 2px; }
-#foreign-flow .ff-sim-patience-good { color: #d24f45; font-weight: 700; }
+#foreign-flow .ff-sim-patience-good { color: var(--num-up); font-weight: 700; }
 #foreign-flow .ff-sim-patience-sub { color: #999; font-size: 11.5px; }
 #foreign-flow .ff-sim-result { font-size: 13.5px; margin: 8px 0 6px; line-height: 1.6; }
 
@@ -1154,7 +1154,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
 #foreign-flow .ff-opinion-meta time { color: #969da3; font-size: 11px; }
 #foreign-flow .ff-opinion-latest { font-size: 15px; }
 #foreign-flow .ff-opinion-latest.ff-buy { color: #c7463d; }
-#foreign-flow .ff-opinion-latest.ff-sell { color: #1261c4; }
+#foreign-flow .ff-opinion-latest.ff-sell { color: var(--num-down); }
 #foreign-flow .ff-opinion-latest.ff-flat { color: #66717a; }
 #foreign-flow .ff-opinion-target {
   display: grid;
@@ -1396,9 +1396,9 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
 #foreign-flow .ff-momentum-status.status-active { border-color: rgba(29, 158, 117, .35); color: #147a5b; background: rgba(29, 158, 117, .08); }
 #foreign-flow .ff-momentum-status.status-cooling { border-color: rgba(239, 159, 39, .4); color: #9a5d00; background: rgba(239, 159, 39, .08); }
 #foreign-flow .ff-momentum-sentiment.sentiment-positive,
-#foreign-flow .sentiment-positive { color: #d24f45; }
+#foreign-flow .sentiment-positive { color: var(--num-up); }
 #foreign-flow .ff-momentum-sentiment.sentiment-negative,
-#foreign-flow .sentiment-negative { color: #1261c4; }
+#foreign-flow .sentiment-negative { color: var(--num-down); }
 #foreign-flow .ff-momentum-metrics {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1431,7 +1431,7 @@ html.dark #foreign-flow .ff-draw-tools .is-active { background:#F5EFE0; border-c
 }
 #foreign-flow .ff-momentum-change.status-new { color: #7452a8; background: rgba(116, 82, 168, .1); }
 #foreign-flow .ff-momentum-change.status-expanding { color: #b43d34; background: rgba(210, 79, 69, .1); }
-#foreign-flow .ff-momentum-change.status-declining { color: #1261c4; background: rgba(18, 97, 196, .1); }
+#foreign-flow .ff-momentum-change.status-declining { color: var(--num-down); background: rgba(18, 97, 196, .1); }
 #foreign-flow .ff-momentum-change.status-persistent { color: #147a5b; background: rgba(29, 158, 117, .1); }
 #foreign-flow .ff-momentum-change.status-unknown { color: #667085; }
 #foreign-flow .ff-momentum-trend {
@@ -1700,9 +1700,9 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
   cursor: pointer;
   white-space: nowrap;
 }
-#foreign-flow .ff-sig-grade.grade-buy { background: rgba(210, 79, 69, .10); border-color: rgba(210, 79, 69, .3); color: #d24f45; }
+#foreign-flow .ff-sig-grade.grade-buy { background: rgba(210, 79, 69, .10); border-color: rgba(210, 79, 69, .3); color: var(--num-up); }
 #foreign-flow .ff-sig-grade.grade-hold { background: rgba(239, 159, 39, .14); border-color: rgba(239, 159, 39, .4); color: #b5720f; }
-#foreign-flow .ff-sig-grade.grade-sell { background: rgba(18, 97, 196, .10); border-color: rgba(18, 97, 196, .3); color: #1261c4; }
+#foreign-flow .ff-sig-grade.grade-sell { background: rgba(18, 97, 196, .10); border-color: rgba(18, 97, 196, .3); color: var(--num-down); }
 #foreign-flow .ff-sig-grade.active {
   box-shadow: 0 0 0 1.5px currentColor inset;
 }
@@ -1791,8 +1791,8 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-flow-card-copy b { color: #0c447c; font-size: 13px; }
 #foreign-flow .ff-flow-card-copy small { color: #64748b; font-size: 11px; line-height: 1.45; }
 #foreign-flow .ff-flow-line { flex: 0 0 86px; width: 86px; height: 44px; }
-#foreign-flow .ff-flow-line.up { color: #d24f45; }
-#foreign-flow .ff-flow-line.down { color: #1261c4; }
+#foreign-flow .ff-flow-line.up { color: var(--num-up); }
+#foreign-flow .ff-flow-line.down { color: var(--num-down); }
 #foreign-flow .ff-flow-line.neutral { color: #8b95a1; }
 #foreign-flow .ff-flow-empty { display: flex; align-items: center; justify-content: center; min-height: 54px; margin-top: 12px; padding: 12px 14px; border: 1px dashed #dbe3ec; border-radius: 10px; color: #64748b; font-size: 12px; line-height: 1.45; text-align: center; }
 #foreign-flow .ff-flow-results { margin-top: 18px; }
@@ -1824,7 +1824,7 @@ html.dark .ff-related-rate.ff-flat { color: rgba(245, 239, 224, 0.6) !important;
 #foreign-flow .ff-flow-location { color: #475569; font-size: 11.5px; line-height: 1.45; }
 #foreign-flow .ff-flow-risk { color: #64748b; font-size: 11.5px; line-height: 1.45; }
 #foreign-flow .ff-flow-risk.warn { color: #b42318; font-weight: 700; }
-#foreign-flow .ff-flow-more { display: block; width: 100%; margin-top: 9px; padding: 10px; border: 1px solid #dbe3ec; border-radius: 8px; background: rgb(255, 254, 252); color: #1261c4; font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+#foreign-flow .ff-flow-more { display: block; width: 100%; margin-top: 9px; padding: 10px; border: 1px solid #dbe3ec; border-radius: 8px; background: rgb(255, 254, 252); color: var(--num-down); font-family: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
 #foreign-flow .ff-flow-more span { margin-left: 5px; color: #94a3b8; font-size: 10.5px; font-weight: 500; }
 #foreign-flow .ff-industry-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; }
 #foreign-flow .ff-industry-card { display: flex; align-items: flex-start; flex-direction: column; gap: 3px; }
@@ -1951,8 +1951,8 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   padding: 3px 10px;
   border-radius: 999px;
 }
-#foreign-flow .ff-sig-badge.ff-buy { background: rgba(210, 79, 69, .14); color: #d24f45; }
-#foreign-flow .ff-sig-badge.ff-sell { background: rgba(18, 97, 196, .14); color: #1261c4; }
+#foreign-flow .ff-sig-badge.ff-buy { background: rgba(210, 79, 69, .14); color: var(--num-up); }
+#foreign-flow .ff-sig-badge.ff-sell { background: rgba(18, 97, 196, .14); color: var(--num-down); }
 #foreign-flow .ff-sig-badge.ff-flat { background: rgba(102, 102, 102, .14); color: #666; }
 #foreign-flow .ff-sig-banner-icon {
   flex-shrink: 0;
@@ -2134,7 +2134,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   padding: 11px 8px;
   font-size: 12.5px;
   font-weight: 700;
-  color: #1261c4;
+  color: var(--num-down);
   background: rgba(255, 255, 255, 0.97);
   border: none;
   border-top: 1px solid #eee;
@@ -2231,8 +2231,8 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
 #foreign-flow .ff-metric-sub { margin-top: 3px; }
 /* .ff-buy/.ff-sell/.ff-flat 기본 정의(파일 상단)와 동일 specificity라 소스 순서상 이 규칙이
    이겨버려서 색이 안 먹던 문제 - 클래스 조합 셀렉터로 specificity를 올려서 확실히 이기게 함. */
-#foreign-flow .ff-metric-val.ff-buy { color: #d24f45; }
-#foreign-flow .ff-metric-val.ff-sell { color: #1261c4; }
+#foreign-flow .ff-metric-val.ff-buy { color: var(--num-up); }
+#foreign-flow .ff-metric-val.ff-sell { color: var(--num-down); }
 #foreign-flow .ff-metric-val.ff-flat { color: #666; }
 #foreign-flow .ff-metric-val.ff-warn { color: #EF9F27; font-weight: 800; }
 /* 2026-07-21: 점수 카드에 "왜 이 점수인지" 근거 문구 + 판정 기준 범례 추가(사용자 피드백 -
@@ -2253,8 +2253,8 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
 #foreign-flow .ff-chart-card-full { grid-column: 1 / -1; }
 #foreign-flow .ff-chart-card-label { font-size: 10.5px; color: #9ca3af; margin-bottom: 3px; }
 #foreign-flow .ff-chart-card-val { font-size: 13px; font-weight: 700; color: #222; }
-#foreign-flow .ff-chart-card-val.ff-buy { color: #d24f45; }
-#foreign-flow .ff-chart-card-val.ff-sell { color: #1261c4; }
+#foreign-flow .ff-chart-card-val.ff-buy { color: var(--num-up); }
+#foreign-flow .ff-chart-card-val.ff-sell { color: var(--num-down); }
 #foreign-flow .ff-chart-card-val.ff-flat { color: #666; }
 #foreign-flow .ff-chart-card-sub { font-size: 11px; color: #888; margin-top: 2px; }
 
@@ -2305,7 +2305,7 @@ html.dark #foreign-flow .ff-flow-row { border-color: rgba(245,239,224,.12); }
   font-size: 12.5px;
   font-weight: 700;
   text-align: center;
-  color: #1261c4;
+  color: var(--num-down);
   background: #eef4fc;
   border: 1px solid #bdd6f2;
   border-radius: 8px;
@@ -2588,8 +2588,8 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary .ff-apt-personal-summary > span { color: #664595; font-weight: 800; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary .ff-apt-personal-summary > strong { color: #503277; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small { display: block; margin-top: 4px; color: #71588d; font-size: 10px; line-height: 1.35; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.up { color: #d24f45; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.down { color: #1261c4; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.up { color: var(--num-up); }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-personal-summary small.down { color: var(--num-down); }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-summary span {
   display: block;
   margin-bottom: 3px;
@@ -2657,9 +2657,9 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
   white-space: nowrap;
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.up,
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.up { color: #d24f45; background: #fff0ee; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.up { color: var(--num-up); background: #fff0ee; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.down,
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.down { color: #1261c4; background: #eaf2fd; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.down { color: var(--num-down); background: #eaf2fd; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-signal.neutral,
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-note strong.neutral { color: #526173; background: #f1f4f7; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits {
@@ -2678,8 +2678,8 @@ html.dark #foreign-flow .ff-apt-illustration-building.poc-band > rect:first-chil
 }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .basis { color: #7b8794; background: transparent; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .open { color: #647180; background: #f1f4f7; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: #1261c4; background: #eaf2fd; }
-:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: #d24f45; background: #fff0ee; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .lower { color: var(--num-down); background: #eaf2fd; }
+:is(#foreign-flow, .ff-vp-host) .ff-apt-simple-limits .upper { color: var(--num-up); background: #fff0ee; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-chart { display: grid; gap: 3px; }
 :is(#foreign-flow, .ff-vp-host) .ff-apt-simple-side-heading {
   display: flex;
@@ -3036,7 +3036,7 @@ html.dark #foreign-flow .ss-memo-pop-actions [data-memo-save] { background: #0a8
 html body #foreign-flow .ff-swing-summary strong,
 html body #foreign-flow .ff-swing-summary b,
 html body #foreign-flow .ff-swing-summary :is(strong,b) { font-family:var(--font-ui)!important; font-weight:700!important; font-synthesis:none; }
-#foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45; }
+#foreign-flow .ff-swing-summary strong.ff-tone-up { color: var(--num-up); }
 #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827; }
 #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: #111827; }
 #foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; border: 0 !important; padding: 0 0 2px !important; }
@@ -3080,8 +3080,8 @@ html.dark #foreign-flow .ff-company-profile-head a:focus-visible { background: r
 #foreign-flow .ff-apt-simple-chart { display: flex; flex-direction: column; gap: 6px; padding: 6px 2px; }
 #foreign-flow .ff-apt-simple-side-heading { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 4px 2px; font-size: 12.5px; color: #64748b; }
 #foreign-flow .ff-apt-simple-side-heading strong { font-size: 13px; color: #111827; }
-#foreign-flow .ff-apt-simple-side-heading.above strong { color: #1261c4; }
-#foreign-flow .ff-apt-simple-side-heading.below strong { color: #d24f45; }
+#foreign-flow .ff-apt-simple-side-heading.above strong { color: var(--num-down); }
+#foreign-flow .ff-apt-simple-side-heading.below strong { color: var(--num-up); }
 #foreign-flow .ff-apt-simple-row {
   display: grid !important; grid-template-columns: 112px minmax(0, 1fr) 82px auto; gap: 12px; align-items: center;
   padding: 7px 10px !important; border: 0 !important; border-radius: 14px; background: transparent !important; position: relative;
@@ -3141,16 +3141,16 @@ html.dark #foreign-flow .ff-company-profile-head a:focus-visible { background: r
 #foreign-flow .ff-members-name small { margin-left: 5px; font-size: 10.5px; font-weight: 600; color: #8b95a5; }
 #foreign-flow .ff-members-bar { display: block; min-width: 0; }
 #foreign-flow .ff-members-bar b { display: block; box-sizing: border-box; min-width: 86px; max-width: 100%; padding: 7px 10px; border-radius: 6px; font-size: 14px; font-weight: 600; white-space: nowrap; font-variant-numeric: tabular-nums; }
-#foreign-flow .ff-members-buy b { background: #fdecea; color: #d24f45; }
-#foreign-flow .ff-members-sell b { background: #e8f0fc; color: #1261c4; }
+#foreign-flow .ff-members-buy b { background: #fdecea; color: var(--num-up); }
+#foreign-flow .ff-members-sell b { background: #e8f0fc; color: var(--num-down); }
 #foreign-flow .ff-members-empty { font-size: 13px; color: #8b95a5; }
 #foreign-flow .ff-members-foreign { margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(17, 17, 17, .06); font-size: 12.5px; color: #667085; }
 #foreign-flow .ff-members-foreign b { font-weight: 700; }
 html.dark #foreign-flow .ff-members-desc, html.dark #foreign-flow .ff-members-foreign, html.dark #foreign-flow .ff-members-list i { color: rgba(245, 239, 224, .6); }
 html.dark #foreign-flow .ff-members-col + .ff-members-col { border-left-color: rgba(245, 239, 224, .12); }
 html.dark #foreign-flow .ff-members-foreign { border-top-color: rgba(245, 239, 224, .1); }
-html.dark #foreign-flow .ff-members-buy b { background: rgba(255, 138, 131, .14); color: #ff8a83; }
-html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14); color: #80b8ff; }
+html.dark #foreign-flow .ff-members-buy b { background: rgba(255, 138, 131, .14); color: var(--num-up); }
+html.dark #foreign-flow .ff-members-sell b { background: rgba(128, 184, 255, .14); color: var(--num-down); }
 @media (max-width: 720px) {
   #foreign-flow .ff-members-grid { grid-template-columns: minmax(0, 1fr); row-gap: 18px; }
   #foreign-flow .ff-members-col + .ff-members-col { padding-left: 0; margin-left: 0; border-left: 0; }

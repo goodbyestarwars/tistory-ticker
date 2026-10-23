@@ -29,7 +29,7 @@
   height: 64px;
   margin: 0 auto 8px;
   overflow: visible;
-  color: #d24f45;
+  color: var(--num-up);
 }
 
 /* 2026-10-05 사용자 요청("심장박동 대신 송골매가 쑥~ 날아오면서 한 바퀴 싹 도는 모습, 특수효과"):
@@ -584,8 +584,8 @@ html.dark .nav-icon-btn svg { stroke: #F5EFE0; }
 }
 .nav-search-rate-badge:empty { display: none; }
 .nav-search-rate-badge:not(:empty) { padding: 2px 5px; background: #f1f0ea; }
-.nav-search-rate-badge.rate-up { color: #d24f45; background: #fdebea; }
-.nav-search-rate-badge.rate-down { color: #1261c4; background: #eaf1fb; }
+.nav-search-rate-badge.rate-up { color: var(--num-up); background: #fdebea; }
+.nav-search-rate-badge.rate-down { color: var(--num-down); background: #eaf1fb; }
 .nav-search-current-price {
   flex-shrink: 0;
   min-width: 68px;
@@ -788,7 +788,7 @@ html.dark .home-briefing-more i { background:#1A1A1A; border-color:rgba(245,239,
   flex-direction: column;
 }
 .home-market-live {
-  color: #d24f45;
+  color: var(--num-up);
   font-size: 10px;
   font-weight: 700;
   letter-spacing: .2px;
@@ -846,9 +846,9 @@ html.dark .home-briefing-more i { background:#1A1A1A; border-color:rgba(245,239,
 .home-halt li.is-ended b { font-weight: 700; }
 html.dark .home-halt { border-color: rgba(245, 239, 224, .18); background: rgba(255, 255, 255, .04); color: #cbd5e1; }
 html.dark .home-halt.is-unknown { background: transparent; }
-html.dark .home-halt.is-cb-active { border-color: rgba(255, 138, 131, .5); background: rgba(210, 79, 69, .16); color: #ff8a83; }
+html.dark .home-halt.is-cb-active { border-color: rgba(255, 138, 131, .5); background: rgba(210, 79, 69, .16); color: var(--num-up); }
 html.dark .home-halt.is-sidecar-active { border-color: rgba(245, 158, 11, .5); background: rgba(245, 158, 11, .14); color: #fbbf24; }
-html.dark .home-halt li.is-cb.is-active { color: #ff8a83; }
+html.dark .home-halt li.is-cb.is-active { color: var(--num-up); }
 html.dark .home-halt li.is-sidecar.is-active { color: #fbbf24; }
 html.dark .home-halt li.is-ended { color: #94a3b8; }
 .home-cb-dropdown {
@@ -1267,8 +1267,8 @@ html.dark .home-cb-dropdown li.is-released time { color: rgba(245, 239, 224, .4)
   color: #a0a7b0;
   font-size: 10px;
 }
-.home-positive { color: #d24f45 !important; }
-.home-negative { color: #1261c4 !important; }
+.home-positive { color: var(--num-up) !important; }
+.home-negative { color: var(--num-down) !important; }
 .home-neutral { color: #555 !important; }
 .hmb-interpretation {
   margin-top: auto;
@@ -3694,7 +3694,7 @@ html.dark .post-card.feed-headline-item { border-bottom-color: rgba(245, 239, 22
   row-gap: 8px;
 }
 .site-footer-version { display: flex; flex: 0 0 100%; align-items: center; justify-content: center; gap: 8px; color: #8b929d; font: 700 10px/1.4 var(--font-ui); letter-spacing: .04em; }
-.site-footer-version span { padding: 3px 6px; border: 1px solid var(--up); color: var(--up); font-size: 9px; letter-spacing: .08em; }
+.site-footer-version span { padding: 3px 6px; border: 1px solid var(--up); color: var(--num-up); font-size: 9px; letter-spacing: .08em; }
 .site-footer-version small { font-size: 10px; font-weight: 600; letter-spacing: 0; }
 .site-footer-links {
   display: flex;
@@ -5486,8 +5486,8 @@ html.dark .app-news-market--미국 { color: #93c5fd; background: rgba(29, 78, 21
 .app-news-footer { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
 .app-news-footer > a, .app-news-open { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 999px; color: #64748b; font-size: 9px; text-decoration: none; }
 .app-news-quote { display: inline-flex; align-items: baseline; gap: 6px; color: #334155; font-size: 10px; font-variant-numeric: tabular-nums; }
-.app-news-quote .is-up { color: #d24f45; }
-.app-news-quote .is-down { color: #1261c4; }
+.app-news-quote .is-up { color: var(--num-up); }
+.app-news-quote .is-down { color: var(--num-down); }
 .app-news-event:hover { background: #fafbff; }
 /* 2026-09-24 사용자 스크린샷: 다크모드에서 뉴스 행 하나가 밝은 흰 배경으로 남아 있었다
    - 모바일은 탭한 요소의 :hover가 다음 탭 전까지 그대로 유지되는 경우가 많아, 이 hover
@@ -5812,13 +5812,13 @@ html:not(.font-gothic) body .ps-up,
 html:not(.font-gothic) body .hrt-up,
 html:not(.font-gothic) body .om-pos,
 html:not(.font-gothic) body .dmi-positive,
-html:not(.font-gothic) body .is-up { color: var(--up) !important; }
+html:not(.font-gothic) body .is-up { color: var(--num-up) !important; }
 html:not(.font-gothic) body .ss-down,
 html:not(.font-gothic) body .ps-down,
 html:not(.font-gothic) body .hrt-down,
 html:not(.font-gothic) body .om-neg,
 html:not(.font-gothic) body .dmi-negative,
-html:not(.font-gothic) body .is-down { color: var(--down) !important; }
+html:not(.font-gothic) body .is-down { color: var(--num-down) !important; }
 html:not(.font-gothic) body .ss-flat,
 html:not(.font-gothic) body .ps-flat,
 html:not(.font-gothic) body .hrt-flat,
@@ -6317,7 +6317,7 @@ body#tt-body-index .home-editorial-page .hen-breaking-head {
   border-bottom: 1px solid var(--rule);
 }
 body#tt-body-index .home-editorial-page .hen-breaking-head strong {
-  color: var(--up);
+  color: var(--num-up);
   font-family: var(--font-ui) !important;
   font-size: 11px;
 }
@@ -6443,8 +6443,8 @@ body#tt-body-index .home-editorial-page .hrt-stock strong {
 body#tt-body-index .home-editorial-page .hrt-price {
   color: var(--text-main);
 }
-body#tt-body-index .home-editorial-page .hrt-up { color: var(--up); }
-body#tt-body-index .home-editorial-page .hrt-down { color: var(--down); }
+body#tt-body-index .home-editorial-page .hrt-up { color: var(--num-up); }
+body#tt-body-index .home-editorial-page .hrt-down { color: var(--num-down); }
 body#tt-body-index .home-editorial-page .hrt-foot {
   color: var(--text-sub);
 }
@@ -8407,7 +8407,7 @@ html body#tt-body-index .home-editorial-page .home-closed-lead {
 }
 
 /* ── 27. 종목분석 판정 글자색 (2026-10-04): 공통 제목 색 규칙(!important)을 이기려고 같은 레이어에서 지정 ── */
-html body #foreign-flow .ff-swing-summary strong.ff-tone-up { color: #d24f45 !important; }
+html body #foreign-flow .ff-swing-summary strong.ff-tone-up { color: var(--num-up) !important; }
 html body #foreign-flow .ff-swing-summary strong.ff-tone-down { color: #111827 !important; }  /* 2026-10-04 사용자 요청: 파랑 대신 검정 */
 
 /* ── 28. 휴장 안내를 말풍선으로 (2026-10-04 사용자 요청) ── */
@@ -8488,14 +8488,14 @@ body#tt-body-index .home-editorial-page .hmb-etf-name span { overflow: hidden; w
 body#tt-body-index .home-editorial-page .hmb-etf-card > strong { display: block; margin-top: 4px; font-size: 16px; font-weight: 700; line-height: 1.25; font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page .hmb-etf-card > p { display: flex; justify-content: space-between; gap: 6px; margin: 4px 0 0; font-size: 11px; line-height: 1.3; color: #8b95a5; white-space: nowrap; font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page .hmb-etf-card em { font-style: normal; font-weight: 600; }
-body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: #d24f45; }
-body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: #1261c4; }
+body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: var(--num-up); }
+body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: var(--num-down); }
 body#tt-body-index .home-editorial-page .hmb-etf-card .home-neutral { color: #6b7684; }
 html.dark body#tt-body-index .home-editorial-page .hmb-etf-card { border-color: rgba(245, 239, 224, .12); background: rgba(245, 239, 224, .03); }
 html.dark body#tt-body-index .home-editorial-page .hmb-etf-name b { color: rgba(245, 239, 224, .92); }
 html.dark body#tt-body-index .home-editorial-page :is(.hmb-etf-name span, .hmb-etf-card > p) { color: rgba(245, 239, 224, .5); }
-html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: #ff8a83; }
-html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: #80b8ff; }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-positive { color: var(--num-up); }
+html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative { color: var(--num-down); }
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page .hmb-etf-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

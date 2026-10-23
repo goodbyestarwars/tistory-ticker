@@ -120,8 +120,8 @@
 }
 #pension-fund .pf-metric-label { font-size: 11.5px; color: #888; margin-bottom: 2px; }
 #pension-fund .pf-metric-value { font-size: 14px; font-weight: 700; }
-#pension-fund .pf-up { color: #d24f45; }
-#pension-fund .pf-down { color: #1261c4; }
+#pension-fund .pf-up { color: var(--num-up); }
+#pension-fund .pf-down { color: var(--num-down); }
 
 #pension-fund .pf-interp {
   padding: 10px 12px;

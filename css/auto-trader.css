@@ -12,7 +12,7 @@ html.dark #auto-trader { --at-up: #ff8a83; --at-down: #80b8ff; }
 #auto-trader h3 { margin: 0; font: 400 20px/1.4 "MaruBuriBold", "MaruBuri", serif; color: var(--at-ink) !important; }
 #auto-trader h3 small { margin-left: 8px; font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); }
 #auto-trader .at-badge { margin-left: 8px; padding: 3px 10px; border: 1px solid var(--at-line); border-radius: 999px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); vertical-align: middle; }
-#auto-trader .at-badge.is-live { border-color: var(--at-up); color: var(--at-up); }
+#auto-trader .at-badge.is-live { border-color: var(--at-up); color: var(--num-up); }
 #auto-trader .at-note { margin: 14px 0 0; font-size: 12.5px; line-height: 1.7; color: var(--at-mute); }
 #auto-trader .at-mute { color: var(--at-mute); }
 #auto-trader .at-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -25,8 +25,8 @@ html.dark #auto-trader { --at-up: #ff8a83; --at-down: #80b8ff; }
 #auto-trader .at-kv { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px 22px; margin: 16px 0 0; }
 #auto-trader .at-kv dt { font-size: 12px; color: var(--at-mute); }
 #auto-trader .at-kv dd { margin: 3px 0 0; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
-#auto-trader .at-up { color: var(--at-up); }
-#auto-trader .at-down { color: var(--at-down); }
+#auto-trader .at-up { color: var(--num-up); }
+#auto-trader .at-down { color: var(--num-down); }
 #auto-trader button, #auto-trader select, #auto-trader input { font: inherit; }
 #auto-trader .at-actions button { min-width: 84px; padding: 9px 18px; border: 1px solid var(--at-ink); border-radius: 999px; background: transparent; color: var(--at-ink); cursor: pointer; font-weight: 700; }
 #auto-trader .at-actions button.is-stop:hover { background: var(--at-down); border-color: var(--at-down); color: #fff; }
@@ -109,8 +109,8 @@ html.dark #auto-trader { --at-panel: #1a1a1a; --at-warn: #f0b35c; --at-ok: #5fcf
   #auto-trader .at-box .at-table td { white-space: nowrap; }
 }
 html.dark #auto-trader .at-token button { color: #1a1a1a; }
-html.dark body #auto-trader .at-table td.at-up, html.dark body #auto-trader .at-kpi b.at-up, html.dark body #auto-trader dd.at-up { color: var(--at-up); }
-html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .at-kpi b.at-down { color: var(--at-down); }
+html.dark body #auto-trader .at-table td.at-up, html.dark body #auto-trader .at-kpi b.at-up, html.dark body #auto-trader dd.at-up { color: var(--num-up); }
+html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .at-kpi b.at-down { color: var(--num-down); }
 
 /* ── 연구 기능 통합 (2026-10-11): 새 카드를 만들지 않고 기존 .at-box 안에서 상태 태그·게이지·구분 행만 추가 ── */
 #auto-trader .at-tag { display: inline-block; padding: 1px 7px; border-radius: 5px; background: rgba(var(--np-ink, 26, 26, 26), .07); color: var(--at-mute); font-size: 11.5px; font-weight: 650; }
@@ -156,8 +156,8 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 #auto-trader .at-st small { color: var(--at-mute); font-size: 11px; }
 #auto-trader .at-banner { margin: 10px 0 0; padding: 9px 14px; border: 1px solid var(--at-line); border-radius: 10px; font-size: 12.5px; line-height: 1.6; }
 #auto-trader .at-banner.is-wait { border-color: var(--at-warn); color: var(--at-warn); }
-#auto-trader .at-banner.is-bad { border-color: var(--at-up); color: var(--at-up); }
-#auto-trader .is-bad { color: var(--at-up); }
+#auto-trader .at-banner.is-bad { border-color: var(--at-up); color: var(--num-up); }
+#auto-trader .is-bad { color: var(--num-up); }
 #auto-trader .at-note.is-wait { color: var(--at-warn); }
 #auto-trader .at-note-top { margin: 8px 0 4px; }
 #auto-trader .at-warn-text { color: var(--at-warn); font-size: 11.5px; }
@@ -167,7 +167,7 @@ html.dark body #auto-trader .at-table td.at-down, html.dark body #auto-trader .a
 #auto-trader .at-badge2.is-analysis { border-color: var(--at-ok); color: var(--at-ok); }
 #auto-trader .at-badge2.is-ok { border-color: var(--at-ok); color: var(--at-ok); }
 #auto-trader .at-badge2.is-wait { border-color: var(--at-warn); color: var(--at-warn); }
-#auto-trader .at-badge2.is-bad { border-color: var(--at-up); color: var(--at-up); }
+#auto-trader .at-badge2.is-bad { border-color: var(--at-up); color: var(--num-up); }
 #auto-trader .at-stack { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
 #auto-trader .at-stack small { max-width: 28em; white-space: normal; }
 #auto-trader .at-mini { padding: 3px 10px; border: 1px solid var(--at-line); border-radius: 8px; background: transparent; color: var(--at-ink); cursor: pointer; font-size: 11.5px; font-weight: 650; }

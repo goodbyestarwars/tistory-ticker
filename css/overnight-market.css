@@ -188,8 +188,8 @@
   margin-top: 2px;
 }
 
-:is(#overnight-market, #crypto-market) .om-pos { color: #d24f45; }
-:is(#overnight-market, #crypto-market) .om-neg { color: #1261c4; }
+:is(#overnight-market, #crypto-market) .om-pos { color: var(--num-up); }
+:is(#overnight-market, #crypto-market) .om-neg { color: var(--num-down); }
 :is(#overnight-market, #crypto-market) .om-zero { color: #666; }
 
 :is(#overnight-market, #crypto-market) .om-chart {

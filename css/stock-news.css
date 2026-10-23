@@ -314,8 +314,8 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   font-weight: 700;
 }
 
-.sn-wl-rate.sn-up { color: #d24f45; }
-.sn-wl-rate.sn-down { color: #1261c4; }
+.sn-wl-rate.sn-up { color: var(--num-up); }
+.sn-wl-rate.sn-down { color: var(--num-down); }
 .sn-wl-rate.sn-flat { color: #9ca3af; }
 .sn-wl-item.active .sn-wl-rate.sn-up { color: #ff8a80; }
 .sn-wl-item.active .sn-wl-rate.sn-down { color: #82b1ff; }
@@ -435,9 +435,9 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   margin-bottom: 4px;
 }
 
-.sn-af-score.sn-af-buy { color: #d24f45; }
+.sn-af-score.sn-af-buy { color: var(--num-up); }
 .sn-af-score.sn-af-flat { color: #6b7280; }
-.sn-af-score.sn-af-sell { color: #1261c4; }
+.sn-af-score.sn-af-sell { color: var(--num-down); }
 
 .sn-af-bar {
   height: 4px;
@@ -523,8 +523,8 @@ html.dark #stock-news .sn-analysis-entry span { color: rgba(245,239,224,.6) !imp
   border-radius: 999px;
 }
 
-.sn-disc-market.sn-disc-kospi { background: #fee2e2; color: #d24f45; }
-.sn-disc-market.sn-disc-kosdaq { background: #dbeafe; color: #1261c4; }
+.sn-disc-market.sn-disc-kospi { background: #fee2e2; color: var(--num-up); }
+.sn-disc-market.sn-disc-kosdaq { background: #dbeafe; color: var(--num-down); }
 .sn-disc-market.sn-disc-news { background: #f1f5f9; color: #6b7280; }
 
 .sn-disc-corp {

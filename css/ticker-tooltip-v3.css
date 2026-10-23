@@ -25,11 +25,11 @@
 }
 
 .ticker-badge.ticker-up {
-  color: #d24f45;
+  color: var(--num-up);
   background: rgba(210, 79, 69, 0.08);
 }
 .ticker-badge.ticker-down {
-  color: #1261c4;
+  color: var(--num-down);
   background: rgba(18, 97, 196, 0.08);
 }
 .ticker-badge.ticker-flat {
@@ -95,8 +95,8 @@
   text-align: right;
 }
 
-.ticker-tooltip-value.ticker-up { color: #d24f45; }
-.ticker-tooltip-value.ticker-down { color: #1261c4; }
+.ticker-tooltip-value.ticker-up { color: var(--num-up); }
+.ticker-tooltip-value.ticker-down { color: var(--num-down); }
 .ticker-tooltip-value.ticker-flat { color: #6b7280; }
 
 .ticker-tooltip-link {
@@ -216,6 +216,6 @@ html.dark .post-single-body .ticker-badge.ticker-up { color: #e8776d !important;
 html.dark .post-single-body .ticker-badge.ticker-down { color: #6fa8e8 !important; background: rgba(111, 168, 232, 0.14) !important; }
 html.dark .post-single-body .ticker-badge.ticker-flat { color: #b9c0cc !important; background: rgba(185, 192, 204, 0.12) !important; }
 
-html.dark .post-single-body .ticker-mentioned-box .ticker-badge.ticker-up { color: #d24f45 !important; background: rgba(210, 79, 69, 0.10) !important; }
-html.dark .post-single-body .ticker-mentioned-box .ticker-badge.ticker-down { color: #1261c4 !important; background: rgba(18, 97, 196, 0.10) !important; }
+html.dark .post-single-body .ticker-mentioned-box .ticker-badge.ticker-up { color: var(--num-up) !important; background: rgba(210, 79, 69, 0.10) !important; }
+html.dark .post-single-body .ticker-mentioned-box .ticker-badge.ticker-down { color: var(--num-down) !important; background: rgba(18, 97, 196, 0.10) !important; }
 html.dark .post-single-body .ticker-mentioned-box .ticker-badge.ticker-flat { color: #55523f !important; background: rgba(0, 0, 0, 0.06) !important; }

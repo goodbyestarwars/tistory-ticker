@@ -129,8 +129,8 @@
   border-radius: 999px;
   white-space: nowrap;
 }
-#sidebar-rank .sr-rate.sr-up { background: #fdeceb; color: #d24f45; }
-#sidebar-rank .sr-rate.sr-down { background: #e9f1fb; color: #1261c4; }
+#sidebar-rank .sr-rate.sr-up { background: #fdeceb; color: var(--num-up); }
+#sidebar-rank .sr-rate.sr-down { background: #e9f1fb; color: var(--num-down); }
 #sidebar-rank .sr-rate.sr-flat { background: #f1f1f1; color: #666; }
 
 #sidebar-rank .sr-amount {
@@ -248,8 +248,8 @@
 .sr-modal-list .sr-quote { flex-shrink: 0; display: flex; flex-direction: row; align-items: center; gap: 8px; }
 .sr-modal-list .sr-price { font-weight: 400; font-size: 14px; color: #222; white-space: nowrap; }
 .sr-modal-list .sr-rate { font-weight: 400; font-size: 13px; padding: 3px 8px; border-radius: 999px; white-space: nowrap; }
-.sr-modal-list .sr-rate.sr-up { background: #fdeceb; color: #d24f45; }
-.sr-modal-list .sr-rate.sr-down { background: #e9f1fb; color: #1261c4; }
+.sr-modal-list .sr-rate.sr-up { background: #fdeceb; color: var(--num-up); }
+.sr-modal-list .sr-rate.sr-down { background: #e9f1fb; color: var(--num-down); }
 .sr-modal-list .sr-rate.sr-flat { background: #f1f1f1; color: #666; }
 .sr-modal-list .sr-amount { flex-shrink: 0; min-width: 72px; text-align: right; font-size: 13.5px; color: #555; }
 .sr-modal-list .sr-hint { font-size: 14px; color: #9ca3af; padding: 10px; }

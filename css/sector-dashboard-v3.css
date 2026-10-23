@@ -139,8 +139,8 @@ html.dark .sector-row.is-delayed .sector-row-name::after { background: rgba(251,
   font-weight: 600;
 }
 
-.sector-row-rate.sector-up { color: #d24f45; }
-.sector-row-rate.sector-down { color: #1261c4; }
+.sector-row-rate.sector-up { color: var(--num-up); }
+.sector-row-rate.sector-down { color: var(--num-down); }
 .sector-row-rate.sector-flat { color: #9ca3af; }
 
 .sector-loading,
@@ -196,8 +196,8 @@ button.sector-stock-bubble { font: inherit; cursor: pointer; }
 .sector-stock-bubble strong { font-size: 12px; }
 .sector-stock-bubble small { color: #64748b; font-size: 10px; }
 .sector-stock-bubble em { font-size: 11px; font-style: normal; font-weight: 700; }
-.sector-stock-bubble .sector-up { color: #d24f45; }
-.sector-stock-bubble .sector-down { color: #1261c4; }
+.sector-stock-bubble .sector-up { color: var(--num-up); }
+.sector-stock-bubble .sector-down { color: var(--num-down); }
 .sector-stock-bubble .sector-flat { color: #94a3b8; }
 .sector-stock-bubble.is-recommended,
 .sector-stock-bubble.is-muted { border-style: dashed; border-color: #cbd5e1; background: #f1f5f9; color: #94a3b8; }

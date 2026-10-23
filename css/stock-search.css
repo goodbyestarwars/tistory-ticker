@@ -98,7 +98,7 @@
   height: 42px;
   margin: 0 auto 8px;
   overflow: visible;
-  color: #1261c4;
+  color: var(--num-down);
 }
 #stock-search .ss-spinner polyline {
   fill: none;
@@ -514,7 +514,7 @@ html.dark #stock-search .ss-chart-studies { border-top-color: rgba(245, 239, 224
 #stock-search .ss-ohlc-tooltip .ss-ohlc-close { color: #0f172a; }
 #stock-search .ss-ohlc-tooltip .ss-ohlc-volume { flex: 0 0 100%; white-space: normal; }
 #stock-search .ss-ohlc-tooltip .ss-ohlc-volume i { font-style: normal; opacity: .75; }
-#stock-search .ss-ohlc-tooltip .ss-ohlc-close em { color: #d24f45; }
+#stock-search .ss-ohlc-tooltip .ss-ohlc-close em { color: var(--num-up); }
 /* 2026-08-13 사용자 리포트로 position:absolute 등 배치 속성이 아예 빠져 있던 걸 발견
    (display:none만 있어 사실상 항상 숨겨진 상태) - ss-price-study-label과 같은 구조로
    채우고 표시한다. top은 기본값(패널 높이 비례 추정치)이며 실제 위치는 차트 렌더링 시
@@ -553,8 +553,8 @@ html.dark #stock-search .ss-chart-studies { border-top-color: rgba(245, 239, 224
 #stock-search .ss-volume-study-label .ss-volume-ma5-value { color: #b45309; }
 #stock-search .ss-volume-study-label .ss-volume-ma-value { color: #2563eb; }
 #stock-search .ss-volume-study-label .ss-volume-day-label { margin-left: 3px; color: #8a9099; }
-#stock-search .ss-volume-study-label .ss-volume-day-change.is-up { color: #d24f45; }
-#stock-search .ss-volume-study-label .ss-volume-day-change.is-down { color: #1261c4; }
+#stock-search .ss-volume-study-label .ss-volume-day-change.is-up { color: var(--num-up); }
+#stock-search .ss-volume-study-label .ss-volume-day-change.is-down { color: var(--num-down); }
 #stock-search .ss-volume-study-label .ss-volume-day-change.is-flat { color: #8a9099; }
 #stock-search .ss-volume-dot {
   display: inline-block;
@@ -810,7 +810,7 @@ html.dark #stock-search .ss-price-study-label .ss-ichimoku-label { color: rgba(2
 html.dark #stock-search .ss-ohlc-tooltip { border-color: rgba(245,239,224,.24); background: rgba(26,26,26,.94); color: rgba(245,239,224,.68); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
 html.dark #stock-search .ss-ohlc-tooltip > b,
 html.dark #stock-search .ss-ohlc-tooltip em { color: #F5EFE0; }
-html.dark #stock-search .ss-ohlc-tooltip .ss-ohlc-close em { color: #ff8a83; }
+html.dark #stock-search .ss-ohlc-tooltip .ss-ohlc-close em { color: var(--num-up); }
 html.dark #stock-search .ss-volume-study-label { color: rgba(245, 239, 224, 0.5) !important; }
 html.dark #stock-search .ss-volume-study-label > span,
 html.dark #stock-search .ss-volume-study-label > b { background: rgba(26, 26, 26, .72) !important; }
@@ -844,8 +844,8 @@ html.dark #stock-search .ss-fav-btn.active { color: #e0b040 !important; border-c
   pointer-events: none;
 }
 #stock-search .ss-sr-label { color: #374151; }
-#stock-search .ss-sr-label .ss-sr-support { color: #d24f45; }
-#stock-search .ss-sr-label .ss-sr-resistance { color: #1261c4; }
+#stock-search .ss-sr-label .ss-sr-support { color: var(--num-up); }
+#stock-search .ss-sr-label .ss-sr-resistance { color: var(--num-down); }
 
 /* 차트 메모(2026-10-03): 봉에 다는 핀과 입력·보기 창 */
 #stock-search .ss-memo-layer { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
@@ -1620,15 +1620,15 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
     box-sizing: border-box;
     width: 100% !important;
     max-width: 100% !important;
-    padding: 12px 16px !important;
-    gap: 10px 16px !important;
+    padding: 8px 12px !important;
+    gap: 6px 10px !important;
     flex-wrap: wrap !important;
     justify-content: flex-start !important;
     overflow-x: visible !important;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-timeframe-tools,
   html body .ss-stock-controls.ss-stock-controls .ss-drawing-tools {
-    gap: 6px !important;
+    gap: 4px !important;
     flex: 0 0 auto !important;
     flex-wrap: nowrap !important;
   }
@@ -1670,11 +1670,11 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls button,
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges button.nine-range-btn {
     box-sizing: border-box;
-    min-height: 34px !important;
-    height: auto !important;
-    padding: 6px 11px !important;
-    font-size: 14px !important;
-    line-height: 1.4 !important;
+    min-height: 26px !important;
+    height: 26px !important;
+    padding: 0 9px !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
   }
   html body .ss-stock-controls.ss-stock-controls .nine-chart-ranges.nine-chart-ranges {
     display: flex !important;
@@ -1690,8 +1690,8 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-studies {
     border-top: 0 !important;
-    padding: 12px 16px !important;
-    gap: 10px 16px !important;
+    padding: 8px 12px !important;
+    gap: 8px 14px !important;
     flex-wrap: wrap !important;
     overflow-x: visible !important;
   }
@@ -1709,14 +1709,14 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { align-items: center !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-timeframe-tools { order: 1; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-minute-scope-wrap { order: 2; margin: 0 !important; padding: 0 !important; }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { order: 3; margin-left: auto !important; justify-content: flex-end !important; }
+  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { order: 3; margin-left: 0 !important; justify-content: flex-start !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs::after {
     content: '';
     order: 4;
     flex: none !important;
-    width: calc(100% + 32px) !important;
+    width: calc(100% + 24px) !important;
     height: 0;
-    margin: 0 0 0 -16px !important;
+    margin: 0 0 0 -12px !important;
     border-top: 0;
   }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .nine-chart-ranges.nine-chart-ranges { order: 5; }

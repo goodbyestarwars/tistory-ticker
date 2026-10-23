@@ -37,8 +37,8 @@ html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-line: rgba(245, 239, 224, .12);
   --hmb-flat: rgba(245, 239, 224, .22);
 }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-positive) { color: var(--hmb-up); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-negative) { color: var(--hmb-down); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-positive) { color: var(--num-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-negative) { color: var(--num-down); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-neutral) { color: var(--hmb-ink); }
 
 /* ── A. 시장 헤더: 큰 제목 · 작은 회색 갱신 시각 · 오른쪽 끝 상태 ── */
@@ -218,8 +218,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosu
 
 @layer np {
   /* 옛 규칙의 글꼴·높이 !important를 같은 층에서 덮는다(제목·시장 방향 글꼴, 칸 최소 높이). */
-  html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-positive { color: var(--hmb-up) !important; }
-  html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-negative { color: var(--hmb-down) !important; }
+  html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-positive { color: var(--num-up) !important; }
+  html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row :is(strong, em).home-negative { color: var(--num-down) !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong {
     font-family: "MaruBuriBold", "MaruBuri", Georgia, serif !important; font-weight: 400 !important;
     font-size: clamp(28px, 2.6vw, 32px) !important; line-height: 1.15 !important; letter-spacing: -.02em !important;

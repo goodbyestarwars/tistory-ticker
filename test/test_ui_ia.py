@@ -1485,7 +1485,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
             self.assertIn(token, my)
         self.assertNotIn("Google 계정에 저장", my)
         self.assertNotIn("Groq ·", my)
-        for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", ".my-watchlist-wrap", ".my-watchlist-show", ".my-watchlist-add", ".my-watchlist-modal", ".my-flow-chart", ".my-flow-svg", "#my-dashboard .is-up { color: #d24f45; }"):
+        for token in ("#my-dashboard", ".my-analysis-grid", ".my-watchlist-group-toggle", ".my-watchlist-wrap", ".my-watchlist-show", ".my-watchlist-add", ".my-watchlist-modal", ".my-flow-chart", ".my-flow-svg", "#my-dashboard .is-up { color: var(--num-up); }"):
             self.assertIn(token, my_style)
         self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr));", my_style)
 
@@ -3010,8 +3010,8 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("var dailyChangeClass = signClass(dailyChangeRate);", source)
         self.assertIn('class="my-selected-title \' + dailyChangeClass', source)
         self.assertNotIn("metrics.rate > 0 ? ' is-profit'", source)
-        self.assertIn(".my-selected-title.is-up .my-selected-name { color: #d24f45; }", style)
-        self.assertIn(".my-selected-title.is-down .my-selected-name { color: #1261c4; }", style)
+        self.assertIn(".my-selected-title.is-up .my-selected-name { color: var(--num-up); }", style)
+        self.assertIn(".my-selected-title.is-down .my-selected-name { color: var(--num-down); }", style)
 
     def test_weekly_report_uses_recognizable_bull_and_bear_labels(self):
         source = self.read("js/home-weekly-report.js")

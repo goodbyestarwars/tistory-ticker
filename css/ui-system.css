@@ -247,3 +247,8 @@ html body .nt-stamp {
   white-space: nowrap;
 }
 html.dark body .nt-stamp { color: #a3acb9 !important; }
+
+/* 오르내림 숫자 글자색 단일 기준(2026-10-23 사용자 지시: "관측 고점/저점 색으로 모든 붉은·파란 숫자 통일").
+   기준은 홈 관측 고점(#ad706b)·저점(#6386b2). 글자색(color)에만 쓴다 - 막대·선·배경 채움은 각자의 기존 색을 유지한다. */
+:root { --num-up: #ad706b; --num-down: #6386b2; }
+html.dark { --num-up: #d8aba6; --num-down: #a9c3e4; }

@@ -34,8 +34,8 @@ html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; co
 .ifl .ifl-table th.num, .ifl .ifl-table td.num { text-align:right; font-variant-numeric:tabular-nums; }
 .ifl .ifl-table tbody th { text-align:left; font-weight:600; color:rgb(var(--ibd-ink)); white-space:nowrap; }
 .ifl .ifl-table small { font-size:11px; font-weight:400; color:var(--ibd-sub); }
-.ifl .ifl-table td.up, .ifl .ifl-table td.up small { color:var(--ibd-up); }
-.ifl .ifl-table td.down, .ifl .ifl-table td.down small { color:var(--ibd-down); }
+.ifl .ifl-table td.up, .ifl .ifl-table td.up small { color:var(--num-up); }
+.ifl .ifl-table td.down, .ifl .ifl-table td.down small { color:var(--num-down); }
 .ifl .ifl-table .ibd-swatch { margin-right:4px; vertical-align:baseline; }
 
 /* 요약 */
@@ -43,8 +43,8 @@ html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; co
 .ifl .ifl-lines li { display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin:0; padding:8px 2px; border-bottom:1px solid var(--ibd-line); }
 .ifl .ifl-lk { font-size:13.5px; font-weight:600; color:rgb(var(--ibd-ink)); white-space:nowrap; }
 .ifl .ifl-lv { font-size:13.5px; text-align:right; font-variant-numeric:tabular-nums; color:var(--ibd-num); }
-.ifl .ifl-lv.up { color:var(--ibd-up); }
-.ifl .ifl-lv.down { color:var(--ibd-down); }
+.ifl .ifl-lv.up { color:var(--num-up); }
+.ifl .ifl-lv.down { color:var(--num-down); }
 .ifl .ifl-sentence { margin:12px 0 0; font-size:14px; line-height:1.75; color:rgb(var(--ibd-ink)); }
 
 @media (max-width: 760px) {
@@ -63,8 +63,8 @@ html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; co
 /* 다크모드: style.css 의 html.dark .post-single-body * { color: ... !important } 가 이 화면의 글자색을 전부 크림색으로 덮는다.
    선택된 버튼의 반전 글자, 상승(빨강)·하락(파랑) 수치, 보조 글자의 옅은 색을 같은 !important 로 더 높은 명시도에서 되돌린다. */
 html.dark .ifl .ifl-seg-btn.is-active { color: #1A1A1A !important; }
-html.dark html.dark .ifl .ifl-table td.up, html.dark .ifl .ifl-table td.up small, html.dark .ifl .ifl-lv.up { color: var(--ibd-up) !important; }
-html.dark .ifl .ifl-table td.down, html.dark .ifl .ifl-table td.down small, html.dark .ifl .ifl-lv.down { color: var(--ibd-down) !important; }
+html.dark html.dark .ifl .ifl-table td.up, html.dark .ifl .ifl-table td.up small, html.dark .ifl .ifl-lv.up { color: var(--num-up) !important; }
+html.dark .ifl .ifl-table td.down, html.dark .ifl .ifl-table td.down small, html.dark .ifl .ifl-lv.down { color: var(--num-down) !important; }
 html.dark .ifl .ifl-asof, html.dark .ifl .ifl-cap, html.dark .ifl .ifl-note, html.dark .ifl .ifl-minih,
 html.dark .ifl .ifl-table thead th, html.dark .ifl .ifl-table small,
 html.dark .ifl .ibd-axis, html.dark .ifl .ibd-leg-btn.is-off { color: var(--ibd-sub) !important; }
