@@ -2210,15 +2210,45 @@
     { kind: 'gold', name: '금', items: [{ symbol: 'GOLD', label: '금 선물', usd: 1 }] },
     { kind: 'btc', name: '비트코인', items: [{ symbol: 'BTC', label: 'BTC', krw: true }] }
   ];
-  // 그날 움직임에 맞는 짧은 구어체 한 줄(참고 어조, 매수·매도 지시 없음). 등락률 ±0.3% 이내는 변화 없음, 2% 이상은 '많이'.
-  function commodityPhrase_(kind, rate) {
-    if (rate == null || !isFinite(rate)) return '미수신';
-    var subject = { oil: '기름값', gold: '금값', btc: '비트코인' }[kind];
-    var abs = Math.abs(rate), how = abs >= 2 ? '많이 ' : '조금 ';
-    if (abs < 0.3) return subject + (kind === 'btc' ? '은' : '은') + ' 큰 변화 없어요';
-    if (kind === 'oil') return '기름값이 ' + how + (rate > 0 ? '비싸졌어요' : '내렸어요');
-    if (kind === 'gold') return '금값이 ' + how + (rate > 0 ? '올랐어요' : '싸졌어요 — 저가 구간인지 살펴보세요');
-    return '비트코인이 ' + how + (rate > 0 ? '오르고 있어요' : '내리고 있어요');
+  // 공용 코멘트 생성(2026-10-23): 조간신문 칼럼처럼 독자 속마음 같은 한 줄 반응. 수치 설명은 숫자·상세 페이지에 맡긴다.
+  // 선: 특정 자산·종목의 매수·매도를 직접 권유·지시하는 표현(사라/팔아/팔자/사자/매수해/매도해/…해야 돼)은 풀에 넣지 않는다.
+  //     "이거 사야 하나?" 같은 독자 혼잣말(의문·감탄)은 허용. 변형은 날짜+종류 해시로 하루 동안 고정한다.
+  // 강도: 등락률 ±0.3% 이내 flat, 2% 이상 big, 그 사이 mild. 값이 없으면 '미수신'만.
+  var COMMENT_POOLS_ = {
+    oil: {
+      upMild: ['기름값 또 올랐네… 주유소 가기 무섭다', '기름값 슬금슬금 오르네?', '헐, 기름값이 올랐나보네…'],
+      upBig: ['기름값 미쳤네… 주유 게이지 보기 무섭다', '헐, 기름값 폭등이네? 지갑 괜찮아?', '기름값 개 비싸졌네… 차 두고 나갈까?'],
+      downMild: ['기름값 좀 내렸네? 숨통 트인다', '기름값 내려갔나보네… 살 것 같다', '오, 기름값이 살짝 빠졌네?'],
+      downBig: ['기름값 확 빠졌네? 오늘은 가득 넣어도 되나?', '헐, 기름값 폭락이네… 주유소 줄 서겠다', '기름값 개 싸졌네… 이거 실화냐?'],
+      flat: ['기름값 조용하네… 오늘은 평화다', '기름값 그대로네? 별일 없다', '유가는 쉬는 중…']
+    },
+    gold: {
+      upMild: ['금값 또 올랐네… 반지 값부터 확인해야 하나?', '금값 슬금슬금 오르네?', '금값이 올랐나보네…'],
+      upBig: ['금값 개 비싸네… 금반지 있는 사람 웃고 있겠다', '헐, 금값 급등이네?', '금값 미쳤네… 금니 아껴야겠다'],
+      downMild: ['금값 싸졌나보네? 이거 사야 하나?', '금값 살짝 내렸네… 눈여겨봐야 하나?', '금값 빠졌네? 바닥인가?'],
+      downBig: ['금값 확 빠졌네? 바닥인지 눈 크게 뜨고 보자', '헐, 금값 급락이네… 심장 괜찮아?', '금값 폭락이네? 이거 실화냐…'],
+      flat: ['금값 조용하네… 오늘은 구경만 하자', '금값 그대로네? 반짝임도 쉬는 날', '금은 오늘 숨 고르는 중…']
+    },
+    btc: {
+      upMild: ['비트코인 또 오르네… 멀미 난다', '비트코인 슬금슬금 오르네?', '코인판 분위기 좋은가보네…'],
+      upBig: ['비트코인 신났네… 안전벨트 매야겠다', '헐, 비트코인 폭등이네? 멀미 난다', '비트코인 개 올랐네… 이거 꿈 아니지?'],
+      downMild: ['비트코인 내려가네… 심장 붙잡자', '비트코인 살짝 빠졌네?', '코인판이 시무룩한가보네…'],
+      downBig: ['비트코인 폭락이네… 심장 단단히 붙잡자', '헐, 비트코인 뚝 떨어졌네?', '비트코인 개 빠졌네… 오늘 코인판 난리겠다'],
+      flat: ['비트코인 조용하네… 오늘은 숨 고르기?', '비트코인 그대로네? 심장이 쉬는 날', '코인판 잠잠하네…']
+    }
+  };
+  function commentHash_(text) {
+    var h = 0;
+    for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
+    return h;
+  }
+  function marketComment_(kind, rate, dateKey) {
+    var pool = COMMENT_POOLS_[kind];
+    if (!pool || rate == null || !isFinite(rate)) return '미수신';
+    var abs = Math.abs(rate), tier = abs < 0.3 ? 'flat' : (rate > 0 ? 'up' : 'down') + (abs >= 2 ? 'Big' : 'Mild');
+    var list = pool[tier];
+    var key = (dateKey || new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)) + kind;
+    return list[commentHash_(key) % list.length];
   }
   // 환율 저울과 같은 톤의 선 일러스트(currentColor, 외부 의존 없음). 아이콘 경로는 Lucide(ISC) fuel·bitcoin 계열.
   function commodityArt_(kind, tone) {
@@ -2254,8 +2284,9 @@
         var t = v.rate > 0 ? 'positive' : v.rate < 0 ? 'negative' : 'neutral';
         return '<div class="mt-commodity-line"><span>' + it.label + '</span><b>' + escapeHtml(v.text) + '</b><em class="is-' + t + '">' + wordArrow_(v.rate > 0 ? '상승' : v.rate < 0 ? '하락' : '보합') + (v.rate > 0 ? '+' : '') + v.rate.toFixed(2) + '%</em><small>' + v.time + '</small></div>';
       }).join('');
-      return '<div class="mt-commodity-card">' + commodityArt_(g.kind, tone) + '<div class="mt-commodity-body"><b class="mt-commodity-name">' + g.name + '</b>' + lines
-        + '<p class="mt-commodity-say is-' + tone + '">' + escapeHtml(commodityPhrase_(g.kind, mean)) + '</p></div></div>';
+      return '<div class="mt-commodity-card">' + commodityArt_(g.kind, tone) + '<div class="mt-commodity-body"><b class="mt-commodity-name">' + g.name + '</b>'
+        + '<p class="mt-commodity-say is-' + tone + '">' + escapeHtml(marketComment_(g.kind, mean)) + '</p>' + lines
+        + '<a class="mt-commodity-more" href="/pages/overnight-market">시장지표에서 자세히 보기 ›</a></div></div>';
     }).join('');
     return '<section class="mt-commodity-block" aria-label="원자재·가상자산(표시 전용)"><h4 class="mt-commodity-title">원자재·가상자산</h4><div class="mt-commodity-strip">' + cards + '</div></section>';
   }
@@ -4501,6 +4532,7 @@
       buildTemperatureActions(data),
       buildRotationSlot_(),
       buildIndexFlow_(),
+      '<p class="mt-page-disclaimer">참고용 일반 시황 코멘트이며 투자 권유가 아닙니다.</p>',
     ];
 
     return ''
