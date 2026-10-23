@@ -323,7 +323,8 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
         return 'FOREIGN_HOLDINGS'
     if not allow_entries:
         return 'EXITS_CHECKED'
-    slots_used = len(set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'})
+    # 2026-10-23: user-excluded holdings (analysis-only) never occupy an entry slot; the engine does not manage them.
+    slots_used = len((set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'}) - excluded)
     today = now.strftime('%Y-%m-%d')
     if not (9 <= now.hour < 10):
         ledger.skip(today, '*', 'WINDOW_CLOSED', 'entry window 09:00-10:00', once=True)
