@@ -1,3 +1,7 @@
+**2026-10-24 다크모드 홈 시장판의 패널색 띠 제거(`.home-index-strip`·`.hmb-summary-head`)**
+
+사용자 지적(스크린샷: 미국 시장 요약·주요 ETF 수익률·지수 차트 영역이 카드 가장자리까지 번진 짙은 띠로 보이고 위쪽 여백만 있음). 원인: 다크 팔레트 통일(#935) 때 들어간 `html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, …) { background-color: var(--dk-panel) !important }` 일괄 규칙이 이 두 요소에도 패널색을 입혔다(본래 배경 없음, 여백은 위쪽만 있는 구조). `style.css`: 이 규칙에서 `.home-index-strip`과 `.hmb-summary-head`를 뺐다 - 라이트 모드·표 머리글·상태 영역 패널색은 불변. 미확인: 다크 화면 실제 모양. 배포: style.css master 머지 후 Pages 자동.
+
 **2026-10-24 마루부리 제목 글꼴 전체를 Regular에서 Bold로(`--font-title`)**
 
 사용자 지시(전체 전환). `style.css`의 `--font-title`을 `"MaruBuriBold", "MaruBuri", …`로 바꿔 이 변수를 쓰는 곳 전부(학습 문서·전략검색·종목 상세·검색기 제목·방명록 글쓰기 제목·메인 뉴스 머리말 등)가 Bold 파일로 나온다. 글꼴 파일 자체가 굵어서 `font-weight`는 400이어야 해서 `font: 700 …`이던 한 곳(`style.css` 2328행)은 400으로 맞춰 가짜 굵기(이중 굵게)를 막았다. `MaruBuriBold`를 이미 직접 지정한 곳(홈 헤드라인·증시온도 제목 등)은 그대로. 뉴스 기사 제목은 #959에서 이미 Bold. 미확인: 학습 문서 등 변수 사용 화면의 실제 모양(굵기 체감·줄바꿈 폭 변화). 배포: style.css master 머지 후 Pages 자동.
