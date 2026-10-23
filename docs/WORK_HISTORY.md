@@ -1,7 +1,3 @@
-**2026-10-24 최근 시장 흐름 삭제**
-
-사용자 지시. `js/market-temp.js`: `buildSummaryCard`에서 `최근 시장 흐름` 블록(`buildIndicatorHistoryShell_()`)을 지우고, `loadMarketIndicators_`의 `render()`가 그래프 블록이 없으면(`[data-indicator-chart]`) 기간·상세 보기·그래프 갱신을 건너뛰게 했다(없는 노드 접근 오류 방지). `buildIndicatorHistoryShell_`·`renderIndicatorHistory_`·`buildFlowChart_`는 다시 붙일 때를 위해 코드로 남겼고, 그래프 데이터 수집·계산은 변경 없다. 카드를 눌러 선택하던 동작은 남아 있으나 보여 줄 그래프가 없다. `test/test_market_temp_flow_card.js`를 '블록 없음·갱신이 건너뜀'을 검증하도록 바꿨다. market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면(블록 삭제 후 좌우 카드 높이는 기존 stretch 규칙이 맞춘다). 배포: js master 머지 후 Pages 자동.
-
 **2026-10-24 금리 카드 상태를 '수준'으로(높음/보통/낮음), 좌우 카드 높이 일치 유지**
 
 사용자 지적: 금리 카드 상태가 `안정`(오늘 변동 기준)이라 금리가 높은 수준이라는 점이 안 보인다. `js/market-temp.js`: 금리 카드의 상태어를 오늘 움직임이 아니라 **금리 수준(높음/보통/낮음)**으로 바꿨다(기준은 기존 `rateLevelMove_` 그대로: 최근 약 120일 안 위치 상위 1/3=높음·하위 1/3=낮음·중간=보통, 10년 4.5%·30년 5% 이상은 위치가 하위 1/3이 아니면 높음으로 보조). 오늘 움직임은 수치 행의 bp와 하단 안내(`금리 수준 높음(기준 설명) · 오늘 안정 · 기준일 · 5일 …`)에 남긴다. 카드 색은 중립으로 둬 빨강/파랑이 수준 판정으로 오해되지 않게 했다. `css/market-temp.css`: 오른쪽 열이 왼쪽 카드와 같은 높이를 가지되 남는 높이는 카드 안이 아니라 두 블록 사이(`justify-content: space-between`)에 두어 맨 아래 빈 박스가 생기지 않게 했다. 검증: 샘플 왼쪽 카드 1100px에서 좌우 상·하단 일치(66/890), 실제 응답으로 금리 상태 `높음` 확인, market_temp JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면, 모바일 실기. 배포: js/css master 머지 후 Pages 자동.
