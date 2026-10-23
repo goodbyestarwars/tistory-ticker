@@ -2229,6 +2229,25 @@
       downBig: ['금값 확 빠졌네? 바닥인지 눈 크게 뜨고 보자', '헐, 금값 급락이네… 심장 괜찮아?', '금값 폭락이네? 이거 실화냐…'],
       flat: ['금값 조용하네… 오늘은 구경만 하자', '금값 그대로네? 반짝임도 쉬는 날', '금은 오늘 숨 고르는 중…']
     },
+    prog: {
+      buyBig: ['프로그램이 쓸어 담네… 기계가 신났다', '헐, 프로그램 매수 폭발이네?', '비차익 매수 개 많네… 로봇들이 작정했나?'],
+      buyMild: ['프로그램이 슬금슬금 사네…', '기계들이 조금 담았네?', '프로그램 매수 우위네… 흐름 타나?'],
+      sellBig: ['프로그램이 던지네… 기계 눈치 보인다', '헐, 프로그램 매도 폭탄이네?', '비차익 매도 개 많네… 로봇들이 작정했나?'],
+      sellMild: ['프로그램이 슬금슬금 파네…', '기계들이 조금 덜어냈네?', '프로그램 매도 우위네… 눈치 보이네'],
+      flat: ['프로그램은 조용하네… 기계도 쉬나?', '프로그램 매매 잠잠하네?', '기계들 오늘은 한가한가보네…']
+    },
+    putcall: {
+      putHigh: ['풋이 더 많이 오가네… 다들 하락 대비하나?', '풋 거래가 우세네? 불안한 건가…', '헐, 풋이 콜을 앞섰네… 보험 드는 사람 많다'],
+      callHigh: ['콜이 더 많이 오가네… 오를 거라 보는 건가?', '콜 거래 우세네? 분위기 괜찮나…', '콜이 풋을 앞섰네… 낙관이 꽉 찼나?']
+    },
+    rate: {
+      inverted: ['헐, 금리가 거꾸로네? 장단기 역전이다', '장단기 금리 역전이네… 불길한가?', '10년이 2년보다 낮네? 심상치 않다'],
+      widenBig: ['금리차 확 벌어졌네… 헐', '장단기 금리차 개 커졌네?', '금리 확 움직였네… 주식 쪽 눈치 보인다'],
+      widenMild: ['금리차 슬금슬금 벌어지네…', '장단기 금리차 조금 커졌네?', '금리가 살짝 움직였나보네…'],
+      narrowBig: ['금리차 확 좁혀졌네? 헐', '장단기 금리차 훅 줄었네…', '금리 확 내려왔네… 분위기 바뀌나?'],
+      narrowMild: ['금리차 슬금슬금 좁아지네…', '장단기 금리차 조금 줄었네?', '금리가 살짝 내려왔나보네…'],
+      flat: ['금리는 조용하네… 오늘은 평화다', '금리차 그대로네? 별일 없다', '채권쪽은 숨 고르는 중…']
+    },
     btc: {
       upMild: ['비트코인 또 오르네… 멀미 난다', '비트코인 슬금슬금 오르네?', '코인판 분위기 좋은가보네…'],
       upBig: ['비트코인 신났네… 안전벨트 매야겠다', '헐, 비트코인 폭등이네? 멀미 난다', '비트코인 개 올랐네… 이거 꿈 아니지?'],
@@ -2241,6 +2260,13 @@
     var h = 0;
     for (var i = 0; i < text.length; i++) h = (h * 31 + text.charCodeAt(i)) >>> 0;
     return h;
+  }
+  // 티어를 이미 아는 종류(프로그램매매·풋콜·금리)용. tier가 없으면 '미수신'.
+  function marketCommentTier_(kind, tier, dateKey) {
+    var pool = COMMENT_POOLS_[kind], list = pool && tier && pool[tier];
+    if (!list) return '미수신';
+    var key = (dateKey || new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)) + kind;
+    return list[commentHash_(key) % list.length];
   }
   function marketComment_(kind, rate, dateKey) {
     var pool = COMMENT_POOLS_[kind];
@@ -2259,6 +2285,77 @@
       ? '<path d="M3 23h10l1.5-5h-13z"/><path d="M15 23h12l-1.5-5H13.5z" transform="translate(-1 0)"/><path d="M8 18h10l1.5-5h-13z" transform="translate(2 0)"/>'
       : '<circle cx="14" cy="14" r="11"/><path d="M11.8 19.6c3.2.5 4-3.5.8-4M11.8 19.6l-3.6-.6m3.6.6-.3 1.6M12.6 15.6c3.2.5 4-3.5.8-4m-.8 4-2.6-.5m3.4-3.5L9.2 9.7m3.6.6.3-1.6" transform="translate(1.2 -.4) scale(.95)"/>';
     return '<svg class="mt-commodity-art is-' + tone + '" viewBox="0 0 30 26" aria-hidden="true" focusable="false"><circle class="mt-art-tint" cx="15" cy="13" r="12.5"/><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + body + arrow + '</g></svg>';
+  }
+  // ---- 수급·심리·금리 블록(표시 전용, 점수 미반영) ----
+  // 프로그램매매: /domestic-market-indicators의 programTrading(KIS 일별, 코스피 비차익·차익, 단위 백만원). 강도는 응답 history 260거래일의
+  //   비차익 절댓값 분포(중앙값 이상 mild, 90백분위 이상 big)로 정한다.
+  // 옵션: /option-flow(코스피200 옵션 최근월, KIS가 준 콜·풋 각 최대 100행 합계 - 전체시장 합계 아님). 이력이 없어 임계값을 만들지 않고
+  //   풋 거래량이 콜보다 많은지(비율 1 기준)만 쓴다.
+  // 금리: /futures의 US10Y·US2Y·KTB3Y 일봉. 장단기차 = 10년 - 2년, 강도는 일변화 절댓값의 중앙값·90백분위.
+  function percentileOf_(sorted, q) { return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] : null; }
+  function programTradingCard_(pt, now_) {
+    if (!pt || pt.available !== true || !isFinite(Number(pt.nonArbitrage)) || !pt.date) return null;
+    var hist = (pt.history || []).map(function (r) { return Math.abs(Number(r.nonArbitrage)); }).filter(function (v) { return isFinite(v); }).sort(function (a, b) { return a - b; });
+    var v = Number(pt.nonArbitrage), abs = Math.abs(v), p50 = percentileOf_(hist, 0.5), p90 = percentileOf_(hist, 0.9);
+    var tier = hist.length < 60 ? null : abs >= p90 ? (v > 0 ? 'buyBig' : 'sellBig') : abs >= p50 ? (v > 0 ? 'buyMild' : 'sellMild') : 'flat';
+    var eok = function (m) { return (m > 0 ? '+' : m < 0 ? '-' : '') + Math.abs(Math.round(m / 100)).toLocaleString('ko-KR') + '억'; };
+    var kst = new Date((now_ == null ? Date.now() : now_) + 9 * 3600000), today = kst.toISOString().slice(0, 10);
+    var live = pt.date === today && kst.getUTCHours() * 60 + kst.getUTCMinutes() < 15 * 60 + 40;
+    return { kind: 'prog', name: '프로그램매매(코스피)', tone: v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral', tier: tier,
+      lines: [['비차익', eok(v), v], ['차익', eok(Number(pt.arbitrage)), Number(pt.arbitrage)]], time: String(pt.date).slice(5).replace('-', '.') + (live ? ' 장중 집계' : ' 기준') };
+  }
+  function optionCard_(of) {
+    var c = of && of.CALL, q = of && of.PUT;
+    if (!c || !q || !(Number(c.volume) > 0) || !isFinite(Number(q.volume)) || !c.updated_at) return null;
+    var ratio = Number(q.volume) / Number(c.volume), at = Date.parse(c.updated_at);
+    if (!isFinite(at)) return null;
+    var kst = new Date(at + 9 * 3600000), pad = function (n) { return String(n).padStart(2, '0'); };
+    return { kind: 'putcall', name: '옵션 풋/콜(코스피200)', tone: 'neutral', tier: ratio >= 1 ? 'putHigh' : 'callHigh',
+      lines: [['풋/콜 거래량 비율', ratio.toFixed(2), 0], ['풋 ' + Number(q.volume).toLocaleString('ko-KR') + ' · 콜 ' + Number(c.volume).toLocaleString('ko-KR'), '', 0]],
+      time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준(최근월·상위 100행 합)' };
+  }
+  function rateCard_(by) {
+    var a = by.US10Y && by.US10Y.chart, b = by.US2Y && by.US2Y.chart, k = by.KTB3Y;
+    if (!a || !b || a.length < 3 || b.length < 3 || (by.US10Y.stale === true) || (by.US2Y.stale === true)) return null;
+    var m2 = {}; b.forEach(function (r) { m2[r.date] = Number(r.close); });
+    var series = a.filter(function (r) { return isFinite(m2[r.date]) && isFinite(Number(r.close)); }).map(function (r) { return { date: r.date, spread: Number(r.close) - m2[r.date] }; });
+    if (series.length < 3) return null;
+    var last = series[series.length - 1], prev = series[series.length - 2], delta = last.spread - prev.spread;
+    var deltas = []; for (var i = 1; i < series.length; i++) deltas.push(Math.abs(series[i].spread - series[i - 1].spread));
+    deltas.sort(function (x, y) { return x - y; });
+    var p50 = percentileOf_(deltas, 0.5), p90 = percentileOf_(deltas, 0.9), abs = Math.abs(delta);
+    var tier = last.spread < 0 ? 'inverted' : abs >= p90 ? (delta > 0 ? 'widenBig' : 'narrowBig') : abs >= p50 ? (delta > 0 ? 'widenMild' : 'narrowMild') : 'flat';
+    var kr = k && Number(k.price), krc = k && k.chart && k.chart.length >= 2 ? Number(k.chart[k.chart.length - 1].close) - Number(k.chart[k.chart.length - 2].close) : null;
+    var lines = [['미국 10년-2년', (last.spread >= 0 ? '+' : '') + last.spread.toFixed(2) + '%p', delta]];
+    if (kr > 0 && k.stale !== true) lines.push(['한국 국고 3년', kr.toFixed(2) + '%', krc == null ? 0 : krc]);
+    var d = String(last.date);
+    return { kind: 'rate', name: '금리(한·미)', tone: delta > 0 ? 'positive' : delta < 0 ? 'negative' : 'neutral', tier: tier, lines: lines, time: d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준' };
+  }
+  var EXTRA_ART_ = {
+    prog: '<path d="M5 22V13M12 22V6M19 22V16"/><path d="M3 22h18"/>',
+    putcall: '<path d="M8 20V7M4 11l4-4 4 4M20 6v13M16 15l4 4 4-4"/>',
+    rate: '<path d="M3 20 L24 12 M3 20 L24 5"/><path d="M3 22h22"/>'
+  };
+  function extrasBlock_(domestic, macro, optionFlow, now_) {
+    var by = {}; (Array.isArray(macro) ? macro : []).forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
+    var cards = [
+      { kind: 'prog', c: programTradingCard_(domestic && domestic.programTrading, now_), fallback: '프로그램매매(코스피)' },
+      { kind: 'putcall', c: optionCard_(optionFlow), fallback: '옵션 풋/콜(코스피200)' },
+      { kind: 'rate', c: rateCard_(by), fallback: '금리(한·미)' }
+    ];
+    if (!domestic && !optionFlow && !Object.keys(by).length) return '';
+    return '<section class="mt-commodity-block mt-extras-block" aria-label="수급·심리·금리(표시 전용)"><h4 class="mt-commodity-title">수급·심리·금리</h4><div class="mt-commodity-strip">' + cards.map(function (it) {
+      var c = it.c;
+      if (!c) return '<div class="mt-commodity-card"><div class="mt-commodity-body"><b class="mt-commodity-name">' + it.fallback + '</b><p class="mt-commodity-say">미수신</p></div></div>';
+      var lines = c.lines.map(function (l) {
+        var t = l[2] > 0 ? 'positive' : l[2] < 0 ? 'negative' : 'neutral';
+        return '<div class="mt-commodity-line"><span>' + escapeHtml(l[0]) + '</span>' + (l[1] ? '<b>' + escapeHtml(l[1]) + '</b>' : '') + (l[2] ? '<em class="is-' + t + '">' + wordArrow_(l[2] > 0 ? '상승' : '하락') + '</em>' : '') + '</div>';
+      }).join('');
+      return '<div class="mt-commodity-card"><svg class="mt-commodity-art is-' + c.tone + '" viewBox="0 0 30 26" aria-hidden="true" focusable="false"><circle class="mt-art-tint" cx="15" cy="13" r="12.5"/><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + EXTRA_ART_[c.kind] + '</g></svg>'
+        + '<div class="mt-commodity-body"><b class="mt-commodity-name">' + c.name + '</b><p class="mt-commodity-say is-' + c.tone + '">' + escapeHtml(marketCommentTier_(c.kind, c.tier)) + '</p>' + lines
+        + '<div class="mt-commodity-line"><small>' + escapeHtml(c.time) + '</small></div>'
+        + '<a class="mt-commodity-more" href="' + (c.kind === 'rate' ? '/pages/overnight-market' : '/pages/kospi-futures') + '">시장지표에서 자세히 보기 ›</a></div></div>';
+    }).join('') + '</div></section>';
   }
   function commodityStrip_(macro, now_) {
     if (!Array.isArray(macro) || !macro.length) return '';
@@ -2366,7 +2463,7 @@
     if (!panel) return;
     if (panel.__indicatorWired) return panel.__mtIndicators;
     panel.__indicatorWired = true;
-    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [] }, pending = null;
+    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], option: null }, pending = null;
     function html(node, markup) { if (node.__mtMarkup !== markup) { node.innerHTML = markup; node.__mtMarkup = markup; } }
     function checkpoint() {
       var mount = container.querySelector('[data-market-checkpoint]');
@@ -2379,7 +2476,7 @@
         if (active.hasAttribute('data-market-metric')) focusSelector = '[data-market-metric="' + active.getAttribute('data-market-metric') + '"]';
         else if (active.hasAttribute('data-indicator-period')) focusSelector = '[data-indicator-period="' + active.getAttribute('data-indicator-period') + '"]';
       }
-      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + commodityStrip_(state.macro));
+      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + commodityStrip_(state.macro) + extrasBlock_(state.domestic, state.macro, state.option));
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0];
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
       html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
@@ -2400,6 +2497,10 @@
     render();
     function refresh() {
       if (pending) return pending;
+      sharedMarketJson_('__mtOptionFetch', 'https://goodbyestar.cloud/option-flow', 300000).then(function (res) {
+        var body = res && res.data ? res.data : res;
+        if (body && body.CALL && body.PUT) { state.option = body; render(); }
+      }).catch(function () { /* 옵션 값은 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
       pending = Promise.allSettled([
         sharedMarketJson_('__mtDomesticFetch', 'https://goodbyestar.cloud/domestic-market-indicators', 60000),
         sharedMarketJson_('__mtMacroFetch', FUTURES_URL_, 300000)
@@ -2666,7 +2767,7 @@
   //  - 야간 세션이 끝나기 전(D+1 05:05 KST 전)에는 미완성이라 점수에 넣지 않고 참고로만 보여준다.
   // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
   // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
-  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX,WTI,BRENT,GOLD,BTC&stored_only=true';
+  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX,WTI,BRENT,GOLD,BTC,KTB3Y,US2Y,US10Y&stored_only=true';
   // 2026-10-23 신호 구성 변경(사용자 결정): 나스닥100 선물은 24시간 거래라 한국장 시간대와 겹칠 수 있어 빼고, 미국 현물 정규장 종가
   // (S&P 500·나스닥 종합·다우존스)·필라델피아 반도체·VIX·원/달러·야간 코스피200 선물로 바꿨다. 같은 코스피200 선물 232거래일
   // (2025-11-10~2026-10-22)에서 다시 쟀다. 미국 현물 3지수는 서로 상관이 커서 각 1/3 가중(묶어서 1항)으로 합산했다.
