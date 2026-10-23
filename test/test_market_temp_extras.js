@@ -23,7 +23,6 @@ let rc=t.rateCard_(by);assert(rc&&['flat','widenMild','widenBig','narrowMild','n
 by.US10Y=series('US10Y',wide.map(()=>1.5));assert.equal(t.rateCard_(by).tier,'inverted','10년<2년이면 역전');
 assert.equal(t.rateCard_({}),null);
 const html=t.extrasBlock_({programTrading:pt(-950000)},[],{CALL:{volume:1,updated_at:'2026-10-23T06:13:00Z'},PUT:{volume:2,updated_at:'2026-10-23T06:13:00Z'}},now);
-assert(html.includes('수급·심리·금리')&&html.includes('data-xcard="prog"')&&html.includes('data-xcard="rate"')&&html.includes('미수신'),'금리 카드는 응답 없으면 미수신');
-const opened=t.extrasBlock_({programTrading:pt(-950000)},[],null,now,'prog');assert(opened.includes('mt-xpanel')&&opened.includes('data-mt-flow-chart'),'프로그램매매 카드를 열면 추이 그래프');
-const pcOpen=t.extrasBlock_({},[],{CALL:{volume:1,updated_at:'2026-10-23T06:13:00Z'},PUT:{volume:2,updated_at:'2026-10-23T06:13:00Z'}},now,'putcall');assert(pcOpen.includes('mt-pc-bar'),'풋/콜은 비중 막대');
+assert(html.includes('수급·심리·금리')&&html.includes('data-market-metric="x-prog"')&&html.includes('data-market-metric="x-rate"')&&html.includes('미수신'),'금리 카드는 응답 없으면 미수신');
+const sel=t.extrasBlock_({programTrading:pt(-950000)},[],null,now,'x-prog');assert(sel.includes('mt-xcard is-selected')&&sel.includes('data-market-metric="x-prog"'),'프로그램매매 카드는 누르면 최근 시장 흐름으로');
 console.log('extras ok');
