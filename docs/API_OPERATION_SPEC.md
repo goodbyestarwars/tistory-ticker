@@ -8,7 +8,7 @@
 
 ## 1. 운영 주소와 프로토콜
 
-증시온도 자동 갱신(2026-10-23)은 요청 경로 재수집 없이 `/market-temp`·`/domestic-market-indicators`·`/theme-flow`의 기존 캐시와 `/futures?stored_only=true`의 저장 자료를 읽는다. 브라우저 장중 국내1분/요약·테마3분/해외5분, 장외5분, 숨김·오프라인 중단, 실패 시 최대10분 재시도 지연이다. 원본 폴러 주기·VM 스레드·수집 예산은 변경하지 않았다. futures 저장 모드는 기본 모드와 캐시가 분리되며 `X-Market-Read-Mode: stored`로 적용 여부를 확인한다.
+증시온도 갱신(2026-10-23 개정)은 **시장 브리핑(국내 거래일 07:00 서버 확정, `/morning-briefing`)과 장중 레인을 분리**한다. 장중은 요청 경로 재수집 없이 `/market-temp`·`/domestic-market-indicators`·`/theme-flow`의 기존 캐시와 `/futures?stored_only=true`의 저장 자료를 읽으며, 국내 지표 1분·요약/섹터 2분·체크포인트 5분(장중 09:00~15:30), 마감 후 후속 10분(15:30~16:30), 그 뒤·휴장일 중지, 해외·원자재·가상자산·금리는 별도 5분(거래일)/15분(휴장·마감)/30분(주말 휴장창), 숨김·오프라인 중단·실패 시 최대 10분 재시도다. 원본 폴러 주기·VM 스레드·수집 예산은 변경하지 않았다(브리핑 스레드 1개 추가, DB 읽기 위주). 상세 `docs/MARKET_BRIEFING_AND_LIVE_2026-10-23.md`. futures 저장 모드는 기본 모드와 캐시가 분리되며 `X-Market-Read-Mode: stored`로 적용 여부를 확인한다.
 
 | 항목 | 값 |
 |---|---|
@@ -77,7 +77,9 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/health/realtime` | 없음 | KIS·키움 실시간 공유 허브와 9Pay 읽기 전용 관찰기 상태. A/B 계약 `ruleVersion=ab70-v1`·후보 `items`·최초 충족·신호·결측·저장 오류는 [별도 명세](NINEPAY_SCANNER_AB_2026-10-19.md). 계좌·주문 미연동 |
 | GET | `/health/9pay` | 없음 | PC 신호 수신 전용 비동기 메모리 응답. 기존 `data.ninePayResearch` 계약 중 상태·순위 시각·완전성·신호 근거만 반환한다. 다른 허브 스냅샷·동기 API 스레드 풀·외부 조회를 사용하지 않는다. 신호 만료·누락 차단은 PC에서 그대로 검사한다 |
 | GET | `/health/schedules` | 없음 | VM systemd 예약·최근 결과·다음 실행 및 장외 유지보수 날짜 마커의 비밀정보 없는 상태. 60초 캐시; 실제 백업 성공은 별도 무결성 로그로 확인 |
-| GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 |
+| GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 행마다 `rank`·`prev_rank`·`rank_change`·`rank_basis`(직전 갱신 대비 순위 변화) |
+| GET | `/morning-briefing` | 없음 | 시장 브리핑(국내 거래일 07:00 서버 확정 스냅샷) - SQLite `morning_briefing`을 읽기만 한다. 확정본 30초 캐시, 그 외 no-store. 스케줄은 FastAPI 스레드(별도 타이머 없음), `/health/schedules.internalJobs`에 상태 |
+| POST | `/morning-briefing/revise` | API 토큰 | 운영자 정정(최초 확정 시각 유지, 정정 이력 기록) |
 | GET | `/money-picks` | 없음 | 증시온도 '돈이 몰린 섹터' 대표 종목의 최근 14일 기록 `{history:[{date,code,name,theme,rank,rec_price}],windowDays,recordAfter,perTheme}`. 기준가만 주며 수익률은 화면이 현재가로 계산 |
 | GET | `/theme-list` | 없음 | 키움 전체 테마 목록 `{themes:[{code,name,stock_count,change_rate}],count}`(카테고리 추가 후보, 3분 백그라운드 값) |
 | GET | `/theme-stocks?code=` | 없음 | 한 테마의 구성종목 `{code,stocks:[{code,name,price,change_rate}]}`. 목록에 있는 테마코드만, 3분 캐시, 시장(KOSPI/KOSDAQ) 구분 없음 |

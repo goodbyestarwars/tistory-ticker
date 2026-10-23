@@ -11,8 +11,19 @@ const emit=async(map,k)=>{for(const f of [...(map[k]||[])])f();await flush();};
 const advance=async ms=>{const end=now+ms;for(let i=0;i<200;i++){const next=[...timers].filter(([,v])=>v.at<=end).sort((a,b)=>a[1].at-b[1].at)[0];if(!next)break;now=next[1].at;timers.delete(next[0]);next[1].fn();await flush();}now=end;await flush();};
 (async()=>{
  assert.equal(t.marketRefreshDelay_(new Date('2026-10-23T01:00:00Z')),60000);
- for(const date of ['2026-10-22T23:59:00Z','2026-10-23T06:40:00Z','2026-10-24T01:00:00Z'])assert.equal(t.marketRefreshDelay_(new Date(date)),300000);
- win.MarketHours={isKrTradingDay:()=>false};assert.equal(t.marketRefreshDelay_(new Date(now)),300000);delete win.MarketHours;
+ // 단계별 기본 지연: 장중 1분, 마감 후 후속(15:30~16:30) 10분, 개장 전·16:30 이후·휴장일은 예정 없음(null = 타이머 없음, 요청 중지)
+ assert.equal(t.marketRefreshDelay_(new Date('2026-10-23T06:40:00Z')),600000);
+ for(const date of ['2026-10-22T23:59:00Z','2026-10-23T07:40:00Z','2026-10-24T01:00:00Z'])assert.equal(t.marketRefreshDelay_(new Date(date)),null,date);
+ win.MarketHours={isKrTradingDay:()=>false};assert.equal(t.marketRefreshDelay_(new Date(now)),null);delete win.MarketHours;
+ { // 예정이 없으면(null) 타이머를 만들지 않고, 숨김에서 돌아와도 다음 07:00 같은 예정 전에는 요청하지 않는다
+   let n=0,planned=null;const quiet=t.createMarketRefreshLoop_({task:()=>{n++;return Promise.resolve({partial:false});},delay:()=>planned});
+   await quiet.runNow();assert.equal(n,1);const before=timers.size;await advance(3600000);assert.equal(n,1,'null 지연이면 주기 요청 없음');assert.equal(timers.size,before);
+   doc.hidden=true;await emit(docEvents,'visibilitychange');doc.hidden=false;await emit(docEvents,'visibilitychange');assert.equal(n,1,'예정이 없으면 복귀해도 요청하지 않는다');
+   planned=300000;await quiet.runNow();assert.equal(n,2);await advance(299000);assert.equal(n,2);await advance(2000);assert.equal(n,3,'예정 시각에 깨어난다');
+   quiet.stop();
+   let m=0;const failing=t.createMarketRefreshLoop_({task:()=>{m++;return Promise.reject(Error('x'));},delay:()=>null});
+   await failing.runNow();await advance(60000);assert.equal(m,2,'예정이 없어도 실패 중이면 1분 뒤 재시도');failing.stop();
+ }
  let calls=0,release,alive=true;const states=[];
  const loop=t.createMarketRefreshLoop_({alive:()=>alive,task:()=>{calls++;return calls===1?new Promise(r=>release=r):Promise.resolve({partial:false});},onState:s=>states.push(s)});
  const first=loop.runNow();await flush();await loop.runNow();await advance(120000);assert.equal(calls,1,'overlap is forbidden');release({partial:false});await first;

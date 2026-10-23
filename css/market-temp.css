@@ -3408,3 +3408,31 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-front-details > summary { outline: none; border-radius: 6px; }
   html body #market-temp .mt-front-details > summary:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--pulse-blue, #2566d4) 40%, transparent); }
 }
+
+/* 2026-10-23 시장 브리핑(07:00 서버 확정)과 장중 실시간 영역 분리.
+   - 위: 제목 한 줄('시장 브리핑 · 10/26(월)' + '07:00 확정 · 미국장 마감 기준'). 별도 제목 카드·중복 날짜 없음.
+   - 아래: '오늘의 증시' 옆 한 줄 상태('장중 자동 갱신 · 10:24 기준' / 개장 전 / 마감 / 휴장).
+   margin/padding은 style.css 비레이어 리셋을 이기려고 !important. */
+@layer np.np {
+  html body #market-temp .mt-extra-heading[data-mt-tomorrow-heading] { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 0 2px 8px !important; }
+  html body #market-temp .mt-brief-title { font-size: 15px; font-weight: 700; color: var(--pulse-ink, #202b3b); }
+  html body #market-temp .mt-brief-meta { font-size: 12px; font-weight: 500; line-height: 1.5; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-tomorrow-card.is-unconfirmed .mt-tm-verdict { grid-template-columns: minmax(0, 1fr) !important; }
+  html body #market-temp .mt-tm-verdict.is-unconfirmed > span { grid-column: 1; }
+  html body #market-temp .mt-front-kicker .mt-live-status { margin: 0 !important; padding: 0 !important; font-size: 12px !important; line-height: 1.5; font-weight: 500; color: var(--pulse-sub, #778396) !important; }
+  html.dark body #market-temp .mt-front-kicker .mt-live-status { color: #9aa8bb !important; }
+  html body #market-temp .mt-front-kicker { flex-wrap: wrap; }
+  /* 오늘 투자 체크포인트: 07:00 브리핑 줄 / 장중 변화 줄 */
+  html body #market-temp .mt-cp-ctx { display: grid; gap: 4px; margin: 0 0 12px !important; padding: 8px 12px !important; border-radius: 8px; background: var(--mt-soft, #f5f8fd); }
+  html.dark body #market-temp .mt-cp-ctx { background: #283340; }
+  html body #market-temp .mt-cp-ctx-row { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 0 !important; font-size: 13px; line-height: 1.5; color: var(--pulse-ink, #202b3b); }
+  html.dark body #market-temp .mt-cp-ctx-row { color: #e2e8f0; }
+  html body #market-temp .mt-cp-ctx-row > i { flex: 0 0 auto; padding: 0 6px; border-radius: 4px; background: color-mix(in srgb, var(--pulse-sub, #778396) 14%, transparent); font-size: 11px; font-style: normal; font-weight: 700; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-cp-ctx-row.is-live > i { background: color-mix(in srgb, var(--pulse-blue, #2566d4) 14%, transparent); color: var(--pulse-blue, #2566d4); }
+  html body #market-temp .mt-cp-ctx-row.is-quiet > span { color: var(--pulse-sub, #778396); }
+  /* 섹터 순위 변화(직전 갱신 대비): 상승 빨강, 하락 파랑 */
+  html body #market-temp .mt-sf-chg { display: inline-block; margin-left: 6px; font-size: 10.5px; font-style: normal; font-weight: 700; line-height: 1.4; font-variant-numeric: tabular-nums; vertical-align: 1px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-sf-chg.is-up { color: var(--num-up, #d35159); }
+  html body #market-temp .mt-sf-chg.is-down { color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-sf-chg.is-new { padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--num-up, #d35159) 12%, transparent); color: var(--num-up, #d35159); }
+}

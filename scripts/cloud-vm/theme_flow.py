@@ -78,10 +78,15 @@ def build_theme_rows(groups, constituents_by_code, top_n=CANDIDATE_THEMES, stock
             continue
         stocks = []
         upper_limit = 0
+        seen_codes = set()
         for item in constituents_by_code.get(theme_code) or []:
             code = _stock_code(item.get('stk_cd'))
-            if not code:
+            # 2026-10-23: 한 테마 안에서 같은 종목이 거래소 접미사만 다르게(005930_AL/_NX) 두 번 오면 거래대금이
+            # 두 배로 합산된다. 6자리 코드로 한 번만 센다. (여러 '테마'에 같은 종목이 걸리는 것은 정상이며,
+            # 테마끼리의 거래대금은 합산하지 않는다 - 시장 전체 거래대금이 아니다.)
+            if not code or code in seen_codes:
                 continue
+            seen_codes.add(code)
             price = abs(_number(item.get('cur_prc')) or 0)
             volume = abs(_number(item.get('acc_trde_qty')) or 0)
             if str(item.get('flu_sig') or '').strip() == '1':
@@ -113,6 +118,28 @@ def build_theme_rows(groups, constituents_by_code, top_n=CANDIDATE_THEMES, stock
             'codes': [s['code'] for s in stocks],
         })
     rows.sort(key=lambda r: -(r['trade_amount'] or 0))
+    return rows
+
+
+def annotate_rank_change(rows, previous):
+    """행마다 현재 순위(rank)와 직전 갱신 대비 변화를 붙인다(순수 함수).
+
+    previous: 직전 갱신 결과(dict, rows·updatedAt) 또는 None. 같은 거래일의 직전 갱신만 비교 기준으로 쓴다.
+    rank_change: 양수=순위 상승, 음수=하락, 0=변화 없음, None=직전 갱신에 없던 테마(NEW) 또는 비교 불가.
+    prev_rank: 직전 갱신 순위(없으면 None). 비교 기준이 없으면 모든 행이 prev_rank=None, rank_change=None, rank_basis=None.
+    """
+    prev_rank = {}
+    for index, row in enumerate((previous or {}).get('rows') or []):
+        code = str(row.get('theme_code') or '')
+        if code and code not in prev_rank:
+            prev_rank[code] = index + 1
+    basis = (previous or {}).get('updatedAt') if prev_rank else None
+    for index, row in enumerate(rows):
+        row['rank'] = index + 1
+        before = prev_rank.get(str(row.get('theme_code') or ''))
+        row['prev_rank'] = before
+        row['rank_change'] = (before - (index + 1)) if before else None
+        row['rank_basis'] = basis
     return rows
 
 
@@ -220,6 +247,13 @@ def _save_cache_file(result):
 def refresh_once(appkey, secretkey):
     token = kiwoom_client.get_token(appkey, secretkey)
     result = fetch_theme_flow(token)
+    with _lock:
+        previous = _state['result']
+    today = datetime.now(KST).strftime('%Y-%m-%d')
+    if previous and str(previous.get('updatedAt') or '')[:10] != today:
+        previous = None     # 전 거래일 순위와는 비교하지 않는다(직전 갱신 대비만 보여준다)
+    annotate_rank_change(result['rows'], previous)
+    result['rankBasis'] = previous.get('updatedAt') if previous and result['rows'] else None
     with _lock:
         if result['rows'] or _state['result'] is None:
             _state['result'] = result

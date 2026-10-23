@@ -369,6 +369,39 @@ CREATE TABLE IF NOT EXISTS scan_hits (
 );
 CREATE INDEX IF NOT EXISTS idx_scan_hits_scanner_date ON scan_hits(scanner, scan_date);
 CREATE INDEX IF NOT EXISTS idx_scan_hits_code ON scan_hits(code, scan_date);
+
+-- 시장 브리핑(2026-10-23): 국내 거래일 KST 07:00에 서버가 한 번 확정하는 '장 시작 전' 스냅샷.
+-- 거래일(target_date)당 1행. status='final'이면 그 거래일 안에는 새로고침·장중 데이터로 덮어쓰지 않는다
+-- (정정은 morning_briefing.revise()만 하며 first_confirmed_at 은 그대로 두고 revised_at/revision/revisions_json 에 남긴다).
+-- 시각은 전부 KST 'YYYY-MM-DD HH:MM:SS' 문자열. 본문은 snapshot_json(미국 지표·야간선물·신호·통계).
+CREATE TABLE IF NOT EXISTS morning_briefing (
+    target_date TEXT PRIMARY KEY,
+    status TEXT NOT NULL,
+    snapshot_json TEXT,
+    us_session_date TEXT,
+    scheduled_at TEXT NOT NULL,
+    first_confirmed_at TEXT,
+    revised_at TEXT,
+    revision INTEGER NOT NULL DEFAULT 0,
+    revisions_json TEXT,
+    attempts INTEGER NOT NULL DEFAULT 0,
+    last_attempt_at TEXT,
+    next_retry_at TEXT,
+    last_error TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
+-- 실행 이력(복구·감사용). 시도 1회마다 1행, 오래된 행은 morning_briefing.RUN_KEEP 건만 남기고 지운다.
+CREATE TABLE IF NOT EXISTS morning_briefing_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    target_date TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    trigger TEXT NOT NULL,
+    outcome TEXT NOT NULL,
+    detail TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_morning_briefing_runs_date ON morning_briefing_runs(target_date, id);
 '''
 
 

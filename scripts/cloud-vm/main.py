@@ -44,6 +44,7 @@ import foreign_flow_compute
 import foreign_futures
 import home_session_chart
 import market_temp
+import morning_briefing
 import naver_news
 import news_aggregator
 import news_window
@@ -168,6 +169,9 @@ def _start_futures_collectors():
     # 백그라운드로 미리 계산해 두고 /market-temp는 읽기만 한다.
     market_temp.start_background(db_schema.get_conn, WEEK52_CACHE_FILE,
                                  lambda: public_data.fetch_kofia_market(30))
+
+    # 시장 브리핑(국내 거래일 07:00 확정 스냅샷). 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
+    morning_briefing.start_background(db_schema.get_conn)
 
     # 코스피/코스닥 현물 지표도 같은 이유로 요청 경로에서 만들지 않는다
     # (캐시 미스 때 방문자가 8.5초를 물던 구조 - 2026-09-01 사용자 리포트).
@@ -831,7 +835,17 @@ def health():
 @app.get('/health/schedules')
 def health_schedules():
     """Expose only timer names and execution times; no commands, paths or credentials."""
-    return envelope(schedule_health.snapshot())
+    data = dict(schedule_health.snapshot())
+    try:
+        conn = db_schema.get_conn()
+        try:
+            data['internalJobs'] = [morning_briefing.status_summary(conn, market_clock.kst_now())]
+        finally:
+            conn.close()
+    except Exception:
+        logging.getLogger('main').warning('morning briefing status unavailable', exc_info=True)
+        data['internalJobs'] = []
+    return envelope(data)
 
 
 @app.get('/health/load')
@@ -3773,6 +3787,49 @@ def option_flow_endpoint():
     data['source'] = ('KIS 옵션 전광판 REST + KIS WebSocket' if data['websocket']
                       else 'KIS 옵션 전광판 REST (5분 스냅샷)')
     return envelope(data)
+
+
+@app.get('/morning-briefing')
+def morning_briefing_endpoint(request: Request, date: str = Query('', pattern=r'^(\d{4}-\d{2}-\d{2})?$')):
+    """시장 브리핑 - 국내 거래일 07:00에 서버가 확정해 저장한 '장 시작 전' 스냅샷(2026-10-23).
+
+    DB를 읽기만 한다(요청이 계산·외부 호출을 일으키지 않는다). 확정본은 그 거래일 안에 바뀌지 않으므로
+    브라우저·CDN이 짧게 캐시해도 된다. 확정 전(pending)에는 캐시하지 않는다.
+    응답: briefing(없으면 null) / next(다음 브리핑 예정) / session(국내 정규장 단계와 개장·마감 시각).
+    date=YYYY-MM-DD를 주면 그 거래일 행(과거 확인용).
+    """
+    _check_rate_limit('morning_briefing', request, max_per_window=60)
+    conn = db_schema.get_conn()
+    try:
+        data = morning_briefing.current_view(conn, market_clock.kst_now(), date or None)
+    finally:
+        conn.close()
+    final = bool(data['briefing'] and data['briefing']['status'] == 'final')
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
+                    media_type='application/json',
+                    headers={'Cache-Control': 'max-age=30, public' if final else 'no-store'})
+
+
+@app.post('/morning-briefing/revise')
+def morning_briefing_revise(date: str = Query(..., pattern=r'^\d{4}-\d{2}-\d{2}$'),
+                            reason: str = Query('수동 정정', max_length=120),
+                            x_api_key: str = Header(default=None)):
+    """운영자 복구용: 그 거래일 브리핑을 다시 계산해 정정한다(확정 전이면 일반 시도). API 토큰 필요.
+    최초 확정 시각은 유지되고 정정 시각·사유·이전 판정이 기록된다."""
+    require_api_key(x_api_key)
+    try:
+        target = datetime.strptime(date, '%Y-%m-%d').date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail='date 형식이 올바르지 않다.') from None
+    now = market_clock.kst_now()
+    if not market_clock.is_kr_trading_day(datetime(target.year, target.month, target.day, tzinfo=market_clock.KST))             or target > now.date():
+        raise HTTPException(status_code=400, detail='과거·오늘의 국내 거래일만 정정할 수 있다.')
+    conn = db_schema.get_conn()
+    try:
+        row = morning_briefing.revise(conn, target, now, reason)
+        return envelope(morning_briefing.current_view(conn, now, target.strftime('%Y-%m-%d')) if row else None)
+    finally:
+        conn.close()
 
 
 @app.get('/market-temp')
