@@ -101,6 +101,17 @@ def num(value):
     return out if math.isfinite(out) else None
 
 
+def trading_asof(day):
+    """휴장일(주말·공휴일)에 찍힌 수집 시각은 그 값의 기준일이 아니다 - 직전 거래일로 되돌린다(서명이 하루마다 바뀌어 재생성되는 것도 막는다)."""
+    if not day:
+        return day
+    import market_clock
+    d = datetime.strptime(day, '%Y-%m-%d')
+    if market_clock.is_kr_trading_day(d.replace(tzinfo=market_clock.KST)):
+        return day
+    return market_clock.prev_kr_trading_day(d.date()).strftime('%Y-%m-%d')
+
+
 def rnd(value, digits=1):
     value = num(value)
     return None if value is None else round(value, digits)
@@ -415,6 +426,7 @@ def breadth_facts(market_temp):
         return {}
     flat = num(b.get('flat'))
     asof = iso_date((market_temp.get('marketBreadth') or {}).get('asOf')) or iso_date(market_temp.get('date')) or iso_date(market_temp.get('updatedAt'))
+    asof = trading_asof(asof)
     state = 'down' if down > up * 1.5 else 'up' if up > down * 1.5 else 'mixed'
     up_share = up / total * 100
     ctx = {'up_count': int(up), 'down_count': int(down), 'flat_count': int(flat) if flat is not None else None,
@@ -601,7 +613,7 @@ def putcall_facts(option_flow, now):
     ratio = pv / cv
     state = 'put' if ratio >= 1 else 'call'
     bucket = 'lt0.8' if ratio < 0.8 else 'lt1' if ratio < 1 else 'lt1.2' if ratio < 1.2 else 'ge1.2'
-    asof = stamp_kst.strftime('%Y-%m-%d')
+    asof = trading_asof(stamp_kst.strftime('%Y-%m-%d'))
     ctx = {'put_call_ratio_tier': {'lt0.8': '콜이 뚜렷이 우세', 'lt1': '콜이 약간 우세', 'lt1.2': '풋이 약간 우세', 'ge1.2': '풋이 뚜렷이 우세'}[bucket],
            'scope': '최근월물 상위 100행 합계(시장 전체 아님)', 'volume_based': True}
     return {'putcall': make_slot('putcall', asof, state, signature(asof, bucket), {}, ctx,

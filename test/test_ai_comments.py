@@ -199,6 +199,14 @@ class FactsTests(unittest.TestCase):
         self.assertNotIn('oil', f)          # WTI 36시간 초과 + BRENT stale -> 둘 다 미수신
         self.assertIn('gold', f)
 
+    def test_holiday_poll_time_is_not_the_data_as_of(self):
+        sat = kst(2026, 10, 24, 12, 0)
+        opt = {'CALL': {'volume': 100, 'updated_at': sat.astimezone(timezone.utc).isoformat()},
+               'PUT': {'volume': 130, 'updated_at': sat.astimezone(timezone.utc).isoformat()}}
+        self.assertEqual(F.putcall_facts(opt, sat)['putcall']['asof'], '2026-10-23')
+        mt = {'marketBreadth': {'asOf': '2026-10-24', 'total': {'up': 1, 'down': 5, 'flat': 0, 'total': 6}}}
+        self.assertEqual(F.breadth_facts(mt)['breadth']['asof'], '2026-10-23')
+
     def test_unavailable_inputs_give_no_facts(self):
         now = kst(2026, 10, 23, 11, 0)
         self.assertEqual(F.funds_facts({'funds': {'available': False, 'series': []}}, now), {})

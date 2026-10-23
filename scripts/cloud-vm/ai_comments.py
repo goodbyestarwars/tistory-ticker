@@ -265,6 +265,21 @@ def build_prompt(slots, facts_all, histories, angles, feedback, session):
 
 # ---- 모델 호출(GAS 경유 Groq) ---------------------------------------------------------------------------
 
+# Groq 무료/저가 요금제는 분당 토큰(TPM) 한도가 작다. 같은 점검에서 묶음 요청이 연달아 나가면 429로 실패하므로(2026-10-24 운영 첫 실행에서 금리·환율 묶음 실패)
+# 실제 호출 사이에 최소 간격을 둔다. 목 모델(시험)은 이 함수를 거치지 않는다.
+MIN_CALL_SPACING_SEC = 25
+_spacing_lock = threading.Lock()
+_last_call_at = [0.0]
+
+
+def _space_calls():
+    with _spacing_lock:
+        wait = MIN_CALL_SPACING_SEC - (time.time() - _last_call_at[0])
+        if wait > 0:
+            time.sleep(wait)
+        _last_call_at[0] = time.time()
+
+
 def call_gas(system, user, max_tokens=MAX_OUTPUT_TOKENS, timeout=75):
     """GAS 프록시의 marketComments 로 Groq 를 호출한다. 반환 {'content', 'usage', 'model'}. 실패하면 ModelError.
 
@@ -275,6 +290,7 @@ def call_gas(system, user, max_tokens=MAX_OUTPUT_TOKENS, timeout=75):
     if not token:
         raise ModelError('API_TOKEN 미설정', retryable=False)
     url = os.environ.get('AI_COMMENTS_GAS_URL') or DEFAULT_GAS_URL
+    _space_calls()
     body = json.dumps({'action': 'marketComments', 'token': token, 'system': system, 'user': user, 'maxTokens': max_tokens},
                       ensure_ascii=False).encode('utf-8')
     req = urllib.request.Request(url, data=body, method='POST', headers={'Content-Type': 'application/json; charset=utf-8'})
