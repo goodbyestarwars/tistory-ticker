@@ -221,7 +221,7 @@ class EntryRecordTests(Base):
 
     def test_window_closed_is_recorded_once(self):
         from datetime import timedelta
-        late = NOW.replace(hour=11, minute=0)
+        late = NOW.replace(hour=14, minute=0)
         b = FakeBroker([], {})
         for _ in range(3):
             le.trade_once(b, self.ledger, [], lambda c: [], self.dir, late)

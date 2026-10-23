@@ -17,12 +17,13 @@ CODE = re.compile(r'^\d{6}$')
 SIGNAL_ID = re.compile(r'^\d{4}-\d{2}-\d{2}:\d{6}$')
 URL = 'https://goodbyestar.cloud/health/9pay'
 MAX_SIGNAL_AGE_SEC = 10
+ENTRY_END_MINUTE = 14 * 60  # must match the VM observer's cutoff (was 09:30)
 MAX_RANK_AGE_SEC = 120
 RULE_VERSION = 'ab70-v1'
 
 
 def valid_evidence(item, now):
-    """Require current A/B evidence, observed before the 09:30 cutoff."""
+    """Require current A/B evidence, observed before the 14:00 cutoff (2026-10-23: was 09:30)."""
     try:
         first = float(item['first70At'])
         at = float(item['at'])
@@ -44,7 +45,7 @@ def valid_evidence(item, now):
             and price > 0 and ratio >= .7 and first <= at <= now
             and 0 <= now-at <= MAX_SIGNAL_AGE_SEC
             and first_day.date() == signal_day.date() == datetime.fromtimestamp(now, KST).date()
-            and first_day.hour == 9 and first_day.minute < 30)
+            and 540 <= first_day.hour * 60 + first_day.minute < ENTRY_END_MINUTE)
 
 
 class SignalFeedUnavailable(RuntimeError):

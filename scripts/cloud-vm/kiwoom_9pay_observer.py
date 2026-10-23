@@ -13,6 +13,7 @@ import unicodedata
 
 CODE = re.compile(r"^[0-9]{6}$")
 MAX_CANDIDATES = 30
+ENTRY_END_MINUTE = 14 * 60  # 2026-10-23 user: day-trade 70% observation/entry until 14:00 KST (was 09:30)
 
 
 def excluded_product(name):
@@ -163,11 +164,11 @@ class Observer:
         inflow = max(0, volume - t.bases[source]) if volume is not None else None
         ratio = inflow / baseline if inflow is not None and baseline else None
         missing = ratio is None or reset
-        before_deadline = stamp.hour == 9 and stamp.minute < 30
+        before_deadline = 540 <= stamp.hour * 60 + stamp.minute < ENTRY_END_MINUTE
         just_qualified = False
         if t.first70_at is None and not t.excluded:
             if not before_deadline:
-                t.excluded = '09:30 이전 70% 충족 관측 없음'
+                t.excluded = '14:00 이전 70% 충족 관측 없음'
             elif not missing and ratio >= 0.7:
                 t.first70_at, t.stage, t.peak = received_at, 'volume_met', price
                 just_qualified = True
@@ -236,7 +237,7 @@ class Observer:
                 continue
             if t.first70_at:
                 at = datetime.fromtimestamp(t.first70_at, KST)
-                if at.strftime('%Y-%m-%d') != day or at.hour != 9 or at.minute >= 30:
+                if at.strftime('%Y-%m-%d') != day or not 540 <= at.hour * 60 + at.minute < ENTRY_END_MINUTE:
                     continue
             restored[code] = t
         self.tracks = restored
