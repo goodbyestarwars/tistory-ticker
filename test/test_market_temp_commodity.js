@@ -20,7 +20,13 @@ assert.equal(f([],now),'');
 let html=f([row('WTI',99.99,0.52),row('BRENT',113.77,-0.75),row('GOLD',4030.9,-0.73),row('BTC',109358000,0.42)],now);
 assert.equal((html.match(/mt-xcard/g)||[]).length,3,'원유·금·비트코인 3카드');
 assert(html.includes('$99.99')&&html.includes('$113.77')&&html.includes('$4,030.9')&&html.includes('1억 936만원'));
-assert(html.includes('10.23 13:07 기준')&&html.includes('mt-glance-row'),'한눈에 칸과 같은 카드');
+assert(html.includes('10.23 13:07 수신(53분 전)')&&html.includes('mt-glance-row'),'한눈에 칸과 같은 카드 + 수신 시각·경과');
+assert(html.includes('업비트 공개시세'),'BTC 출처 표기');
+{ // 출처·지연 여부는 응답이 준 만큼만 쓴다: 미확인이면 '지연 여부 미확인', 실시간이라고 단정하지 않는다
+  const h2=f([row('WTI',99.99,0.52,{source:'Naver 비공식 선물 시세',source_delay:'미확인'}),row('BRENT',113.77,-0.75,{source:'KIS 공식 해외선물 시세',source_delay:'미확인'}),row('GOLD',4030.9,-0.73),row('BTC',109358000,0.42)],now);
+  assert(h2.includes('Naver 비공식 선물 시세 · 지연 여부 미확인')&&h2.includes('KIS 공식 해외선물 시세'),'원유 출처·지연 여부 표기');
+  assert(!/실시간/.test(h2),'지연 여부를 모르면 실시간이라고 쓰지 않는다');
+}
 assert(html.indexOf('mt-xsay')>html.indexOf('mt-glance-line'),'값 줄 아래에 코멘트 줄');
 assert(!html.includes('mt-xpanel')&&!html.includes('data-mt-flow-chart'),'카드 안에 정적 그래프 없음(누르면 오른쪽 최근 시장 흐름에 표시)');
 assert(html.includes('data-market-metric="x-oil"')&&html.includes('mt-xicon'),'누르면 최근 시장 흐름에 보이는 카드 + 아이콘');

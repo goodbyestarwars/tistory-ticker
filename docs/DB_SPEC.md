@@ -450,6 +450,11 @@ PK `(date, sector)`. 업종(운영 `sector_cards` 설정의 테마, "코스피 3
 
 `date`(PK, 야간장이 끝난 아침의 한국 날짜), `night_close`·`night_ts`(오전 6시 이전 마지막 분봉), `bars`(그 구간 분봉 수 - 자료 완전성 확인용), `day_close`·`day_ts`(직전 주간선물 마지막 분봉), `updated_at`. 화~토 오전 6~9시 계산 주기에 기록한다. `future_chart_minute`는 1500봉만 읽혀 며칠 뒤 마감값이 사라지므로 따로 보관한다.
 
+### 2.24 `morning_briefing` · `morning_briefing_runs` — 시장 브리핑 스냅샷과 실행 이력(2026-10-23)
+
+`morning_briefing`: 국내 거래일(`target_date` PK, KST)당 1행. `status`(`final` 확정 / `pending` 미확정·재시도 중 / `failed` 장 마감 전까지 못 만듦), `snapshot_json`(미국 5지표·원/달러 등락률과 기준일·야간선물 최종 봉·신호 합계·구간·통계 문구·미국 휴장 표기), `us_session_date`, `scheduled_at`(그날 07:00), `first_confirmed_at`(최초 확정 시각, 정정해도 불변), `revised_at`·`revision`·`revisions_json`(정정 시각·횟수·사유·이전 판정), `attempts`·`last_attempt_at`·`next_retry_at`·`last_error`(복구용). 시각은 KST 문자열. `final` 행의 본문은 `morning_briefing.revise()` 외에는 바뀌지 않는다. 400행 보관.
+`morning_briefing_runs`: 시도(`scheduled`/`manual`/`revise`)마다 1행 `target_date`·`started_at`·`finished_at`·`trigger`·`outcome`·`detail`, 600행 보관. 입력은 `future_chart`(SP500_INDEX·NASDAQ_INDEX·DOW_INDEX·SOX·VIX·USDKRW·KOSPI200_DAY·KOSPI200_NIGHT 일봉)를 읽기만 한다. `ohlc_snapshot.db` 안의 테이블이라 DB 파일 수와 백업·정리 대상은 늘지 않는다.
+
 ## 별도 방향 성과 검증용 `hour_validation.db` (2026-10-09)
 
 별도 SQLite WAL/FULL/page-cache1MiB. predictions(내용해시PK·불변verdict/압축snapshot/원시지표), outcomes(prediction_id유일·불변평가), observations(시간/가격별KIS J체결), attempts(재시도), metadata(최초이관). UPDATE/DELETE 차단으로 과거 예측/결과를 보호한다. 초기 기존JSONL은 원본바이트archive 후 v6만 멱등이관, 기존회전파일도 유지. DB와WAL512MiB 도달시 신규기록 실패를 노출하며 기존행은 삭제하지 않는다. 기존장외maintenance에서 무결성검사/최근7개백업, 재배포는.py만복사해DB보존. 복구/정책 상세 [명세](HOUR_DIRECTION_VALIDATION.md).

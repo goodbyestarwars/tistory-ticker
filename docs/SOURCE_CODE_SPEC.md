@@ -201,6 +201,7 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `gap_shadow.py` | 470 | 아침 라이브 갭상승 그림자 검색기(Issue #697) - `volume_surge_live`의 순위 행을 재사용해 신호·가상 진입·장중 경로·D0~D5 성과를 별도 SQLite에 기록(주문 없음) | `step`, `observe`, `update_outcomes`, `maybe_update_outcomes`, `evaluate_trade`, `summarize`, `get_payload` |
 | `load_probe.py` | 160 | `/health/load` VM 부하 스냅샷(/proc 읽기 전용) | `snapshot` |
 | `market_clock.py` | 60 | 국내 장 활성·미국 선물 주말 휴장 판정(수집 주기 완화용) | `kr_market_active`, `us_futures_weekend_closed`, `sleep_seconds` |
+| `morning_briefing.py` | 400 | 시장 브리핑(국내 거래일 07:00 서버 확정): 계산(미국 5지표·원/달러·야간선물 z점수 합), SQLite 저장·재시도·정정, `/morning-briefing` 조회 규칙, 점검 스레드 | `compute`, `attempt`, `revise`, `run_due`, `current_view`, `status_summary`, `start_background` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
 | `night_futures_ws.py` | 263 | 야간선물 실시간(KIS WS)+일/분봉 백필 | `_run_once`, `refresh_minute` |
 | `week52.py` | 28 | 52주 신고가/신저가 순수 계산 | `compute_week52` |

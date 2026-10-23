@@ -78,3 +78,93 @@ def us_futures_weekend_closed(now_kst=None):
 def sleep_seconds(active, active_sec, idle_sec=IDLE_SEC):
     """활성 구간이면 원래 주기, 아니면 느린 주기(원래 주기보다 짧아지지는 않는다)."""
     return active_sec if active else max(active_sec, idle_sec)
+
+
+# ---- 거래소 캘린더(2026-10-23, 시장 브리핑·장중 갱신 분리) -------------------------------------------
+# 한국: 휴장일 표는 market_temp.KRX_HOLIDAYS_2026 하나다. 정규장은 평소 09:00~15:30이고, 수능일처럼
+# 개장이 늦춰진 날만 아래 표에 둔다(개장·마감이 모두 1시간씩 늦다). 표에 없는 날은 평소 시간이다.
+KR_OPEN_MIN = 9 * 60
+KR_CLOSE_MIN = 15 * 60 + 30
+KR_SPECIAL_SESSIONS = {
+    '2026-11-19': (10 * 60, 16 * 60 + 30),   # 2027학년도 대학수학능력시험일 - 해마다 교육부 공고로 확인한다
+}
+# 마감 뒤 늦게 확정되는 자료(투자자 수급 15:40 등)를 위해 마감 후 이 시간까지만 후속 갱신을 허용한다.
+KR_POST_CLOSE_MIN = 60
+
+# 미국(NYSE) 휴장일. js/skin-shell.js MarketHours.US_HOLIDAYS_2026과 같은 표다(해가 바뀌면 둘을 같이 갱신).
+US_HOLIDAYS_2026 = {
+    '2026-01-01': '신정', '2026-01-19': '마틴 루터 킹 데이', '2026-02-16': '대통령의 날',
+    '2026-04-03': '성금요일', '2026-05-25': '메모리얼 데이', '2026-06-19': '준틴스',
+    '2026-07-03': '독립기념일(7/4 대체)', '2026-09-07': '노동절',
+    '2026-11-26': '추수감사절', '2026-12-25': '성탄절',
+}
+
+
+def kr_session_minutes(day):
+    """(개장, 마감) 분(KST 자정 기준). day는 date 또는 'YYYY-MM-DD'."""
+    key = day if isinstance(day, str) else day.strftime('%Y-%m-%d')
+    return KR_SPECIAL_SESSIONS.get(key, (KR_OPEN_MIN, KR_CLOSE_MIN))
+
+
+def kr_market_phase(now_kst=None):
+    """국내 정규장 기준 현재 단계.
+
+    phase: 'holiday'(휴장일) / 'pre'(개장 전) / 'open'(정규장) / 'post'(마감 후 후속 갱신 구간)
+           / 'closed'(그 이후). open_min·close_min은 그날의 실제 개장·마감 분이다.
+    """
+    now_kst = now_kst or kst_now()
+    if not is_kr_trading_day(now_kst):
+        return {'phase': 'holiday', 'tradingDay': False, 'openMin': KR_OPEN_MIN, 'closeMin': KR_CLOSE_MIN}
+    open_min, close_min = kr_session_minutes(now_kst)
+    minutes = now_kst.hour * 60 + now_kst.minute
+    if minutes < open_min:
+        phase = 'pre'
+    elif minutes < close_min:
+        phase = 'open'
+    elif minutes < close_min + KR_POST_CLOSE_MIN:
+        phase = 'post'
+    else:
+        phase = 'closed'
+    return {'phase': phase, 'tradingDay': True, 'openMin': open_min, 'closeMin': close_min}
+
+
+def next_kr_trading_day(day, include_today=False):
+    """day(date) 이후 첫 국내 거래일(date). include_today면 day 자신도 후보."""
+    d = day if include_today else day + timedelta(days=1)
+    for _ in range(400):
+        if is_kr_trading_day(datetime(d.year, d.month, d.day, tzinfo=KST)):
+            return d
+        d += timedelta(days=1)
+    return d
+
+
+def prev_kr_trading_day(day):
+    d = day - timedelta(days=1)
+    for _ in range(400):
+        if is_kr_trading_day(datetime(d.year, d.month, d.day, tzinfo=KST)):
+            return d
+        d -= timedelta(days=1)
+    return d
+
+
+def is_us_trading_day(day):
+    """미국 현지 날짜 기준. 표에 없는 해는 주말만 걸러진다(보수적으로 거래일)."""
+    return day.weekday() < 5 and day.strftime('%Y-%m-%d') not in US_HOLIDAYS_2026
+
+
+def us_session_before_kr_day(target):
+    """한국 거래일 target의 장 시작 전(KST 07:00)에 이미 끝나 있는 가장 최근 미국 정규장 날짜.
+
+    KST 07:00은 뉴욕 전날 17~18시라 target의 전날(달력)이 미국의 '어제'다. 그날이 주말·휴장이면 거슬러 올라간다.
+    반환: (미국 세션 date, 건너뛴 미국 휴장일 [(date, 이름)]).
+    """
+    d = target - timedelta(days=1)
+    skipped = []
+    for _ in range(14):
+        if is_us_trading_day(d):
+            return d, skipped
+        name = US_HOLIDAYS_2026.get(d.strftime('%Y-%m-%d'))
+        if name:
+            skipped.append((d, name))
+        d -= timedelta(days=1)
+    return d, skipped

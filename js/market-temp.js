@@ -1382,7 +1382,7 @@
     return '<div class="mt-sf-item">'
       + '<button type="button" class="mt-sf-row ' + tone + '" data-sf-index="' + index + '" aria-expanded="false">'
       + '<i class="mt-sf-rank">' + rank + '</i>'
-      + '<b>' + escapeHtml(row.industry || '-') + '</b>'
+      + '<b>' + escapeHtml(row.industry || '-') + rankChangeHtml_(row) + '</b>'
       + '<span class="mt-sf-meta">'
       + '<span class="mt-sf-mult">' + escapeHtml(sectorFlowAmountText_(row) || '-') + '</span>'
       + '<span class="mt-sf-rate">' + (isFinite(rate) ? (rate > 0 ? '+' : '') + rate.toFixed(2) + '%' : '-') + '</span>'
@@ -1440,11 +1440,11 @@
     var tracking = mount.querySelector('[data-pick-track]');
     var trackingHtml = tracking && tracking.outerHTML;
     var basis = '키움증권 테마 기준입니다. 오늘 많이 오른 테마 20개 중 구성종목 거래대금(현재가×거래량 추정)이 큰 순서입니다. 막대는 1위 거래대금 대비 비율이며, 행을 누르면 구성종목과 함께 볼 섹터가 열립니다.';
-    var sfDate = mount.getAttribute('data-sf-date');
+    var sfDate = mount.getAttribute('data-sf-date'), rankBasis = rows && rows[0] && rows[0].rank_basis ? stampHm_(rows[0].rank_basis) : '';
     mount.innerHTML = '<div class="mt-section mt-card mt-sf-card">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 거래대금 상위 섹터</div>'
       + (sfDate ? '<span class="mt-cp-date">' + escapeHtml(sfDate) + '</span>' : '') + '</div>'
-      + '<p class="mt-cp-sub">거래대금 순위와 평균 등락률을 함께 봅니다. 거래대금만으로 매수 주도 여부는 알 수 없습니다.</p>'
+      + '<p class="mt-cp-sub">거래대금 순위와 평균 등락률을 함께 봅니다. 거래대금만으로 매수 주도 여부는 알 수 없습니다.' + (rankBasis ? ' 순위 옆 ▲▼는 직전 갱신(' + escapeHtml(rankBasis) + ') 대비 변화입니다.' : '') + '</p>'
       + '<div class="mt-sf-visual-head"><span>오늘 거래대금 상위 섹터</span><small>막대 = 1위 대비 거래대금 · 빨강 상승 · 파랑 하락</small></div>'
       + '<div class="mt-sf-thead" aria-hidden="true"><span>순위</span><span>섹터명</span><span class="mt-sf-th-meta"><span>거래대금</span><span>등락률(평균)</span></span><span>거래대금 집중도</span><span>대표 종목 (등락률)</span></div>'
       + '<div class="mt-sf-grid">'
@@ -1472,12 +1472,15 @@
   function loadSectorFlow_(container) {
     var mount = container.querySelector('[data-sector-flow]');
     if (!mount) return;
-    return sharedMarketJson_('__mtSectorFetch', SECTOR_FLOW_URL, 180000)
+    return sharedMarketJson_('__mtSectorFetch', SECTOR_FLOW_URL, LANE_TTL_.snap)
       .then(function (body) {
         var payload = body && body.data ? body.data : body;
         var rows = (payload && payload.rows) || [];
         if (!rows.length && mount.__mtSectorHasRows) throw new Error('업종 자료 지연');
-        var key = JSON.stringify(rows);
+        // 기준 시각은 서버가 순위를 받아 둔 시각이다(화면을 열어 본 시각이 아니다). 순위가 같아도 시각이 바뀌면 머리말만 갱신한다.
+        var asOf = sectorAsOf_(payload, kstClock_(Date.now()).date);
+        if (asOf) mount.setAttribute('data-sf-date', asOf);
+        var key = JSON.stringify(rows) + '|' + asOf;
         if (mount.__mtSectorKey === key) return;
         // 상세를 읽는 동안 목록을 교체해 포커스·선택한 섹터를 바꾸지 않는다.
         if (mount.__mtTrackingPending || mount.contains(document.activeElement) || mount.querySelector('.mt-sf-row.is-open, details[open]')) return;
@@ -1519,9 +1522,20 @@
       return;
     }
     if (container.__mtLivePage) return;
-    var page = { data: null, indicators: null };
+    // lanes: 레인별 마지막 실행 시각(ms). briefing: /morning-briefing 응답. intraday: 외국인 30분 누적 응답.
+    var page = { data: null, indicators: null, briefing: null, intraday: null, lanes: {}, lastState: null };
     container.__mtLivePage = page;
     container.innerHTML = '<div class="mt-hint">증시온도 불러오는 중...</div>';
+    page.checkContext = function (now) {
+      var ph = marketPhase_(now, sessionOf_(page));
+      return buildCheckContext_(page.briefing, page.indicators && page.indicators.getDomestic && page.indicators.getDomestic(), page.intraday, ph, now, page.lanes.check);
+    };
+    function paintStatus() {
+      var status = container.querySelector('[data-mt-live-status]');
+      if (!status) return;
+      var text = liveStatusText_(page, Date.now(), page.lastState || {});
+      if (status.textContent !== text) status.textContent = text;
+    }
     function apply(data) {
       if (!data || typeof data.temp !== 'number') throw new Error('시장 자료 지연');
       page.data = data;
@@ -1531,38 +1545,49 @@
         page.indicators = loadMarketIndicators_(container, data);
         scrollToHash_(container);
         mountRotation_(container);
+        if (page.briefing) paintBriefing_(container, page.briefing);
       } else {
         replaceMarketNode_(container.querySelector('.mt-market-intro'), buildMarketIntro_(data));
-        replaceMarketNode_(container.querySelector('.mt-page-head'), buildPageHead_(data));
         replaceMarketNode_(container.querySelector('.mt-breadth-visual'), buildBreadthVisual_(frontPageStory_(data)));
-        var updated = container.querySelector('.mt-updated');
-        if (updated) updated.textContent = (window.NineTime && window.NineTime.updated(data.updatedAt)) || ('자료 기준 · ' + (data.updatedAt || '확인 중'));
         page.indicators.setSnapshot(data);
       }
+      paintStatus();
+    }
+    function loadIntradayFlow_(now) {
+      var ph = marketPhase_(now, sessionOf_(page));
+      if (ph.phase !== 'open' && ph.phase !== 'post') return Promise.resolve();       // 장중 변화는 장중·마감 후 후속 구간에서만 확인한다
+      return sharedMarketJson_('__mtIntradayFlow', INTRADAY_FLOW_URL_, LANE_TTL_.check).then(function (res) {
+        var body = res && res.data ? res.data : res;
+        if (body && body.rows) page.intraday = body;
+      });
     }
     page.loop = createMarketRefreshLoop_({
       alive: function () { return container.isConnected; },
+      delay: function () { return Math.max(1000, nextRunAt_(page, Date.now()) - Date.now()); },
       task: function () {
-        var partial = false;
-        return MarketTemp.fetchMarketTemp().then(apply).catch(function () {
+        var now = Date.now(), due = dueLanes_(page, now), partial = false;
+        var has = function (lane) { return due.indexOf(lane) >= 0; };
+        due.forEach(function (lane) { page.lanes[lane] = now; });
+        var first = has('snap') || !page.data ? MarketTemp.fetchMarketTemp().then(apply).catch(function () {
           partial = true;
           if (!page.data) container.innerHTML = '<div class="mt-error">시장 자료를 받지 못했습니다. 자동으로 다시 확인합니다.</div><div data-mt-live-status class="mt-live-status"></div>';
-        }).then(function () {
+        }) : Promise.resolve();
+        return first.then(function () {
           if (!page.indicators) return { partial: true };
-          return Promise.allSettled([page.indicators.refresh(), loadSectorFlow_(container)]).then(function (results) {
+          var before = JSON.stringify(page.briefing && page.briefing.briefing);
+          var jobs = [];
+          if (has('brief')) jobs.push(loadBriefing_(container));
+          if (has('live') || has('macro')) jobs.push(page.indicators.refresh({ live: has('live'), macro: has('macro') }));
+          if (has('sector')) jobs.push(loadSectorFlow_(container));
+          if (has('check')) jobs.push(loadIntradayFlow_(now));
+          return Promise.allSettled(jobs).then(function (results) {
+            // 체크포인트는 5분 레인이 돌 때(또는 브리핑이 새로 확정·정정됐을 때)만 다시 쓴다.
+            if (has('check') || JSON.stringify(page.briefing && page.briefing.briefing) !== before) { page.lanes.check = now; page.indicators.checkpoint(); }
             return { partial: partial || results.some(function (r) { return r.status === 'rejected' || (r.value && r.value.partial); }) };
           });
         });
       },
-      onState: function (state) {
-        var status = container.querySelector('[data-mt-live-status]');
-        if (!status) return;
-        var text = state.paused ? '자동 갱신 대기 · 숨긴 화면/오프라인에서는 요청을 멈춥니다.'
-          : state.busy ? '저장된 시장 자료 확인 중…'
-          : state.partial ? (page.data ? '일부 자료 응답 지연 · 마지막 정상 수신값 유지' : '시장 자료 수신 대기') + ' · 다음 확인 ' + Math.round(state.delay / 60000) + '분 후'
-          : (marketRefreshDelay_() === 60000 ? '자동 갱신 · 국내 지표 1분 / 요약 3분 / 해외 5분' : '자동 갱신 · 장외 5분') + ' · 화면 확인 ' + new Date().toLocaleTimeString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });
-        if (status.textContent !== text) status.textContent = text;
-      }
+      onState: function (state) { page.lastState = state; paintStatus(); }
     });
     page.loop.runNow();
   }
@@ -1571,23 +1596,220 @@
     if (node && node.outerHTML !== html) node.outerHTML = html;
   }
 
-  function marketRefreshDelay_(date) {
-    date = date || new Date();
-    var kst = new Date(date.getTime() + 9 * 3600000), day = kst.getUTCDay(), minutes = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-    var trading = global.MarketHours && global.MarketHours.isKrTradingDay ? global.MarketHours.isKrTradingDay(date) : day > 0 && day < 6;
-    return trading && minutes >= 540 && minutes < 940 ? 60000 : 300000;
+  // ---- 갱신 단계와 레인 (2026-10-23, 시장 브리핑 / 장중 실시간 분리) ----
+  // 모든 데이터를 같은 주기로 가져오지 않는다. 화면 데이터를 '레인'으로 나누고, 레인마다 국내 정규장 단계(휴장·개장 전·장중·마감 후 후속·마감)별
+  // 주기를 둔다. 서버가 수집·캐시한 값을 읽을 뿐이고(키움·KIS·네이버를 브라우저가 직접 부르지 않는다), 같은 응답은 sharedMarketJson_가 공유한다.
+  //   brief  시장 브리핑(/morning-briefing)   07:00 확정 전 1분 확인, 확정 뒤 개장 전 정정만 5분. 장중에는 고정(확정이면 요청하지 않는다)
+  //   live   국내 지표·수급·프로그램매매(/domestic-market-indicators, 서버 60초 수집)  장중 1분
+  //   snap   상승·하락 종목 수·증시온도(/market-temp, 서버 3분 계산)               장중 2분
+  //   sector 거래대금 상위 섹터(/theme-flow, 서버 3분 수집)                          장중 2분
+  //   check  오늘 투자 체크포인트 다시 쓰기(+ 외국인 30분 누적 /investor-trend?period=intraday)  장중 5분
+  //   macro  해외 지수·원자재·가상자산·금리(/futures, /option-flow)                    별도: 거래일 5분, 휴장·마감 15분, 주말 휴장창 30분
+  // 마감 후(15:30~+60분)에는 늦게 확정되는 수급을 위해 10분 간격으로만 후속 갱신하고, 그 뒤와 휴장일에는 요청을 멈춘다(처음 한 번과 단계 전환·다음 07:00 확인만).
+  var LANES_ = ['brief', 'live', 'snap', 'sector', 'macro', 'check'];
+  var LANE_PERIODS_ = {
+    live: { open: 60000, post: 600000 },
+    snap: { open: 120000, post: 600000 },
+    sector: { open: 120000, post: 600000 },
+    check: { open: 300000, post: 600000 }
+  };
+  var INTRADAY_FLOW_URL_ = 'https://goodbyestar.cloud/investor-trend?period=intraday&market=kospi';
+  // 공용 fetch의 재사용 시간은 레인 주기보다 조금 짧게 둔다(같은 순간의 중복 요청만 합치고, 레인이 돌 때는 새로 받는다).
+  // 같은 값(주기와 같은 TTL)이면 레인이 0.5초 일찍 깨어날 때 직전 응답을 재사용해 사실상 갱신이 한 번씩 건너뛰어진다.
+  var LANE_TTL_ = { live: 55000, snap: 110000, check: 295000, macro: 295000 };
+
+  function pad2_(n) { return String(n).padStart(2, '0'); }
+  function kstClock_(ms) {
+    var d = new Date(ms + 9 * 3600000);
+    return { date: d.getUTCFullYear() + '-' + pad2_(d.getUTCMonth() + 1) + '-' + pad2_(d.getUTCDate()), minutes: d.getUTCHours() * 60 + d.getUTCMinutes(), day: d.getUTCDay() };
+  }
+  function hmMin_(text, fallback) { var m = /^(\d{1,2}):(\d{2})$/.exec(String(text || '')); return m ? +m[1] * 60 + +m[2] : fallback; }
+  function kstAt_(dateStr, minutes) { return Date.parse(dateStr + 'T' + pad2_(Math.floor(minutes / 60)) + ':' + pad2_(minutes % 60) + ':00+09:00'); }
+  function stampMs_(stamp) { return Date.parse(String(stamp || '').replace(' ', 'T') + '+09:00'); }
+  function sessionOf_(page) { return page && page.briefing && page.briefing.session || null; }
+
+  // 국내 정규장 단계. 서버가 준 오늘 시간표(session)가 오늘 날짜와 맞으면 그것(휴장일·수능일처럼 개장이 늦은 날 포함)을, 아니면 사이트 공용 휴장표와 09:00~15:30을 쓴다.
+  function marketPhase_(ms, session) {
+    var k = kstClock_(ms), trading, open = 540, close = 930, post = 60;
+    if (session && session.today === k.date) {
+      trading = !!session.tradingDay; open = hmMin_(session.openAt, 540); close = hmMin_(session.closeAt, 930); post = session.postCloseMinutes || 60;
+    } else {
+      trading = global.MarketHours && global.MarketHours.isKrTradingDay ? global.MarketHours.isKrTradingDay(new Date(ms)) : k.day > 0 && k.day < 6;
+    }
+    var phase = !trading ? 'holiday' : k.minutes < open ? 'pre' : k.minutes < close ? 'open' : k.minutes < close + post ? 'post' : 'closed';
+    return { phase: phase, trading: trading, openMin: open, closeMin: close, postEndMin: close + post, minutes: k.minutes, date: k.date };
+  }
+
+  function briefTimeMs_(page, ph) { return ph.trading ? kstAt_(ph.date, 7 * 60) : NaN; }
+
+  function lanePeriod_(lane, page, ph, now) {
+    if (lane === 'brief') {
+      var b = page.briefing && page.briefing.briefing, final = !!(b && b.status === 'final' && b.targetDate === ph.date);   // 오늘 거래일의 확정본인가(어제 것이면 오늘 것을 기다린다)
+      if (!page.briefing) return 60000;                                   // 첫 응답 전(실패 포함): 1분 뒤 재시도, 반복 실패는 루프가 늘려 간다
+      if (ph.phase === 'pre') return now < briefTimeMs_(page, ph) ? null : final ? 300000 : 60000;   // 07:00 전에는 07:00에 맞춰 깨어난다
+      if (ph.phase === 'open') return final ? null : 300000;
+      return null;
+    }
+    if (lane === 'snap' && !page.data) return 60000;                      // 첫 자료를 못 받았으면 단계와 무관하게 재시도
+    if (lane === 'macro') {
+      var weekend = global.MarketHours && global.MarketHours.isWeekendClosed ? global.MarketHours.isWeekendClosed(new Date(now)) : false;
+      return ph.phase === 'holiday' || ph.phase === 'closed' ? (weekend ? 1800000 : 900000) : 300000;
+    }
+    var table = LANE_PERIODS_[lane];
+    return table && table[ph.phase] || null;
+  }
+
+  // 단계가 바뀌거나 브리핑이 확정될 시각(이때 깨어나 레인 주기를 새로 적용한다).
+  function wakeTimes_(page, ph) {
+    var out = [];
+    if (ph.trading) {
+      out.push(kstAt_(ph.date, ph.openMin) + 2000, kstAt_(ph.date, ph.closeMin) + 2000, kstAt_(ph.date, ph.postEndMin) + 2000, kstAt_(ph.date, 7 * 60) + 20000);
+    }
+    var next = page.briefing && page.briefing.next;
+    if (next && next.scheduledAt) out.push(stampMs_(next.scheduledAt) + 20000);
+    return out;
+  }
+
+  function dueLanes_(page, now) {
+    var ph = marketPhase_(now, sessionOf_(page));
+    return LANES_.filter(function (lane) {
+      var last = page.lanes[lane] || 0;
+      if (!last) return true;
+      var period = lanePeriod_(lane, page, ph, now);
+      return !!period && now >= last + period - 500;
+    });
+  }
+
+  // 다음 실행 시각(ms). 예정이 없으면 Infinity(= 타이머 없음: 휴장·마감 뒤에는 요청을 멈춘다).
+  function nextRunAt_(page, now) {
+    var ph = marketPhase_(now, sessionOf_(page)), best = Infinity;
+    LANES_.forEach(function (lane) {
+      var last = page.lanes[lane] || 0;
+      if (!last) { best = Math.min(best, now); return; }
+      var period = lanePeriod_(lane, page, ph, now);
+      if (period) best = Math.min(best, last + period);
+    });
+    wakeTimes_(page, ph).forEach(function (t) { if (t > now) best = Math.min(best, t); });
+    return best;
+  }
+
+  function dataStamp_(page, today) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/.exec(String(page && page.data && page.data.updatedAt || ''));
+    if (!m) return '';
+    return m[1] + '-' + m[2] + '-' + m[3] === today ? m[4] : m[2] + '.' + m[3] + ' ' + m[4];
+  }
+
+  // '오늘의 증시' 아래 한 줄: 지금 실제 상태(개장 전/장중/마감/휴장)와 마지막 갱신 완료 시각.
+  function liveStatusText_(page, now, state) {
+    var ph = marketPhase_(now, sessionOf_(page)), stamp = dataStamp_(page, ph.date), text;
+    if (state && state.paused) return '자동 갱신 대기 · 화면을 숨기거나 오프라인이면 요청을 멈춥니다';
+    var hm = function (min) { return pad2_(Math.floor(min / 60)) + ':' + pad2_(min % 60); };
+    if (ph.phase === 'open') text = '장중 자동 갱신' + (stamp ? ' · ' + stamp + ' 기준' : '');
+    else if (ph.phase === 'pre') text = '장 시작 전 · 국내 지표는 전 거래일 값 · ' + hm(ph.openMin) + ' 개장 후 자동 갱신';
+    else if (ph.phase === 'post') text = '장 마감' + (stamp ? ' · ' + stamp + ' 기준' : '') + ' · 늦게 확정되는 수급은 ' + hm(ph.postEndMin) + '까지 확인';
+    else if (ph.phase === 'closed') text = '장 마감' + (stamp ? ' · ' + stamp + ' 기준' : '') + ' · 마지막 확정 자료 · 자동 갱신 없음';
+    else text = '휴장일 · 마지막 거래일 자료' + (stamp ? ' · ' + stamp + ' 기준' : '') + ' · 자동 갱신 없음';
+    if (state && state.partial) text += ' · ' + (page.data ? '일부 자료 응답 지연 · 마지막 정상 수신값 유지' : '시장 자료 수신 대기') + (state.delay ? ' · 다음 확인 ' + Math.max(1, Math.round(state.delay / 60000)) + '분 후' : '');
+    return text;
+  }
+
+  // 단순 기본 지연(루프 단독 사용/시험용): 장중 1분, 마감 후 후속 10분, 그 밖엔 예정 없음(null).
+  function marketRefreshDelay_(date, session) {
+    var ph = marketPhase_((date || new Date()).getTime(), session);
+    return ph.phase === 'open' ? 60000 : ph.phase === 'post' ? 600000 : null;
+  }
+
+  // ---- 오늘 투자 체크포인트 문맥: 07:00 브리핑 vs 장중 변화 (2026-10-23) ----
+  // 브리핑 전망은 07:00에 서버가 확정한 값이고, 장중 변화는 그 뒤 실제 수집값으로 확인될 때만 적는다(추측·가정 문장 없음).
+  //   외국인 전환: /investor-trend?period=intraday 30분 누적(억원)의 부호가 오늘 안에서 바뀐 가장 최근 시점
+  //   코스피 방향: /domestic-market-indicators 코스피 현재가 등락률이 ±0.5% 이상일 때 브리핑 방향과 같은지/반대인지
+  function intradayChanges_(tone, domestic, flow, today) {
+    var out = [];
+    var rows = flow && flow.state === 'ok' && flow.date === today ? flow.rows || [] : [];
+    if (rows.length >= 2) {
+      var latest = Number(rows[rows.length - 1].frgn), sign = latest > 0 ? 1 : latest < 0 ? -1 : 0;
+      if (sign) {
+        var j = -1;
+        for (var i = rows.length - 2; i >= 0; i--) { var v = Number(rows[i].frgn); if (v && (v > 0 ? 1 : -1) !== sign) { j = i; break; } }
+        if (j >= 0) {
+          var at = stampHm_(String(rows[j + 1].asOf || '').replace('T', ' '));
+          out.push({ at: at, text: '외국인 코스피 누적 순매' + (sign > 0 ? '수' : '도') + ' 전환 (현재 ' + (sign > 0 ? '+' : '') + indicatorMoney_(latest * 1e8) + ')' });
+        }
+      }
+    }
+    var q = domestic && domestic.indices && domestic.indices.KOSPI && domestic.indices.KOSPI.quote, rate = q ? Number(q.change_rate) : NaN;
+    var qAt = q && q.updated_at ? Date.parse(q.updated_at) : NaN;
+    if (isFinite(rate) && isFinite(qAt) && kstClock_(qAt).date === today && Math.abs(rate) >= 0.5 && tone !== 'flat') {
+      var same = (tone === 'up' && rate > 0) || (tone === 'down' && rate < 0);
+      var k = kstClock_(qAt);
+      out.push({ at: pad2_(Math.floor(k.minutes / 60)) + ':' + pad2_(k.minutes % 60),
+        text: '코스피 ' + pctText_(rate) + (same ? ' · 브리핑 방향(' + (tone === 'up' ? '상승' : '하락') + ')과 같은 흐름' : ' · 브리핑 방향(' + (tone === 'up' ? '상승' : '하락') + ')과 반대로 움직이는 중') });
+    }
+    out.sort(function (a, b) { return String(a.at).localeCompare(String(b.at)); });   // 시각 순
+    return out;
+  }
+
+  // 체크포인트 카드 문맥(순수 함수). briefPayload = /morning-briefing 응답, domestic/flow = 장중 응답, ph = marketPhase_ 결과.
+  function buildCheckContext_(briefPayload, domestic, flow, ph, now, checkedAt) {
+    var b = briefPayload && briefPayload.briefing, ctx = { time: '', brief: null, changes: [], changesChecked: false };
+    // 갱신 시각은 장중·마감 후 후속 구간에서만 쓴다(개장 전·휴장에는 새 자료가 아니므로 기존 기준일 문구를 그대로 둔다).
+    if (checkedAt && (ph.phase === 'open' || ph.phase === 'post')) ctx.time = pad2_(kstClock_(checkedAt).minutes / 60 | 0) + ':' + pad2_(kstClock_(checkedAt).minutes % 60);
+    if (b && b.status === 'final' && b.snapshot && b.targetDate === ph.date) {
+      var bucket = b.snapshot.signal.bucket;
+      ctx.brief = { label: stampHm_(b.firstConfirmedAt) + ' 브리핑', text: bucket.label + ' · ' + bucket.gap, tone: b.snapshot.signal.tone };
+      if (ph.phase === 'open' || ph.phase === 'post' || ph.phase === 'closed') {
+        ctx.changes = intradayChanges_(b.snapshot.signal.tone, domestic, flow, ph.date);
+        ctx.changesChecked = !!(flow && flow.state === 'ok' && flow.date === ph.date) || !!(domestic && domestic.indices);
+      }
+    }
+    return ctx;
+  }
+
+  function checkpointContextHtml_(ctx) {
+    if (!ctx) return '';
+    var rows = [];
+    if (ctx.brief) rows.push('<p class="mt-cp-ctx-row is-brief"><i>' + escapeHtml(ctx.brief.label) + '</i><span>' + escapeHtml(ctx.brief.text) + '</span></p>');
+    (ctx.changes || []).forEach(function (c) {
+      rows.push('<p class="mt-cp-ctx-row is-live"><i>' + escapeHtml(c.at || '') + ' 장중 변화</i><span>' + escapeHtml(c.text) + '</span></p>');
+    });
+    if (ctx.brief && ctx.changesChecked && !(ctx.changes || []).length) {
+      rows.push('<p class="mt-cp-ctx-row is-live is-quiet"><i>장중 변화</i><span>브리핑 이후 확인된 뚜렷한 변화 없음 (외국인 수급 전환·코스피 방향 기준)</span></p>');
+    }
+    return rows.length ? '<div class="mt-cp-ctx">' + rows.join('') + '</div>' : '';
+  }
+
+  // 섹터 카드 기준 시각: 서버가 3분마다 받아 둔 순위의 수집 시각(KST). 오늘이면 HH:MM, 아니면 MM.DD HH:MM.
+  function sectorAsOf_(payload, today) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}:\d{2})/.exec(String(payload && payload.updatedAt || ''));
+    if (!m) return '';
+    return (m[1] + '-' + m[2] + '-' + m[3] === today ? m[4] : m[2] + '.' + m[3] + ' ' + m[4]) + ' 기준';
+  }
+
+  function rankChangeHtml_(row) {
+    var change = row && row.rank_change;
+    if (change == null && row && row.rank_basis && row.prev_rank == null) return '<em class="mt-sf-chg is-new" title="직전 갱신에는 순위권 밖">NEW</em>';
+    if (change == null) return '';
+    if (change === 0) return '<em class="mt-sf-chg is-flat" title="직전 갱신과 같은 순위">–</em>';
+    return '<em class="mt-sf-chg ' + (change > 0 ? 'is-up' : 'is-down') + '" title="직전 갱신 ' + row.prev_rank + '위">' + (change > 0 ? '▲' : '▼') + Math.abs(change) + '</em>';
   }
 
   function createMarketRefreshLoop_(options) {
     var timer = null, busy = false, stopped = false, suspended = false, failures = 0, nextAt = 0;
     function paused() { return suspended || document.hidden || (global.navigator && global.navigator.onLine === false); }
-    function delay() { return Math.min(600000, marketRefreshDelay_() * Math.pow(2, Math.min(failures, 4))); }
+    // 다음 실행까지 ms. options.delay()가 null/Infinity면 예정 없음(휴장·마감 뒤) - 실패 중일 때만 1분부터 늘려 가며 다시 시도한다.
+    function delay() {
+      var base = options.delay ? options.delay() : marketRefreshDelay_();
+      var backoff = Math.min(600000, 60000 * Math.pow(2, Math.max(0, Math.min(failures - 1, 4))));
+      if (base == null || !isFinite(base)) return failures ? backoff : null;
+      return Math.max(base, Math.min(600000, base * Math.pow(2, Math.min(failures, 4))));
+    }
     function emit(extra) { if (options.onState) options.onState(Object.assign({ busy: busy, paused: !!paused(), partial: failures > 0, delay: delay() }, extra || {})); }
     function clear() { if (timer != null) clearTimeout(timer); timer = null; }
     function schedule() {
       clear();
       if (stopped || busy || paused()) return;
-      timer = setTimeout(runNow, Math.max(0, nextAt - Date.now()));
+      if (!isFinite(nextAt)) return;
+      timer = setTimeout(runNow, Math.min(2147000000, Math.max(0, nextAt - Date.now())));
     }
     function runNow() {
       clear();
@@ -1597,7 +1819,7 @@
       return Promise.resolve().then(options.task).then(function (result) {
         failures = result && result.partial ? failures + 1 : 0;
       }, function () { failures++; }).then(function () {
-        busy = false; nextAt = Date.now() + delay(); emit(); schedule();
+        busy = false; var wait = delay(); nextAt = wait == null ? Infinity : Date.now() + wait; emit(); schedule();
       });
     }
     function resume() {
@@ -1670,7 +1892,7 @@
   var MARKET_TEMP_URL = 'https://goodbyestar.cloud/market-temp';
 
   function fetchMarketTemp() {
-    return sharedMarketJson_('__mtSnapshotFetch', MARKET_TEMP_URL, 180000).then(function (body) { return body && body.data ? body.data : body; });
+    return sharedMarketJson_('__mtSnapshotFetch', MARKET_TEMP_URL, LANE_TTL_.snap).then(function (body) { return body && body.data ? body.data : body; });
   }
 
   function sharedMarketJson_(key, url, ttl) {
@@ -2037,7 +2259,7 @@
   function buildMarketIntro_(data) {
     var story = frontPageStory_(data), tone = scoreTone_(score100(data));
     return '<header class="mt-market-intro mt-market-' + tone + '">'
-      + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span>시장 한눈에 보기</span></div>'
+      + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span class="mt-live-status" data-mt-live-status role="status">자료 확인 중</span></div>'
       + '<div class="mt-intro-line"><h2 class="mt-front-headline' + (story.dir ? ' is-' + story.dir : '') + '">' + escapeHtml(story.headline) + '</h2>'
       + '<p class="mt-front-lead">' + sentenceHtml_(story.lead) + '</p></div></header>';
   }
@@ -2473,7 +2695,7 @@
     return { kind: 'rate', tone: tone, tier: lm ? lm.tier : null, rows: rows, moveWord: moveWord, levelWord: levelWord, five: five,
       say: rateComment_(lm ? lm.tier : null, s30 ? s30.y : null),
       series: ((by.US10Y && by.US10Y.chart) || (by.US30Y && by.US30Y.chart) || []).slice(-40).map(function (r) { return { date: indicatorDate_(r.date), score: Number(r.close) }; }).filter(function (r) { return r.date && isFinite(r.score); }),
-      time: d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준(FRED)' };
+      time: '일봉 종가 ' + d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준(FRED, 하루 1회 확정)' };
   }
   function extrasBlock_(domestic, macro, optionFlow, now_, selectedId) {
     var by = {}; (Array.isArray(macro) ? macro : []).forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
@@ -2512,6 +2734,10 @@
       : { id: 'rate', icon: 'rate', label: '금리', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     return xBlockHtml_('수급·심리·금리', '수급·심리·금리(표시 전용)', cards, selectedId);
   }
+  function ageText_(ms) {
+    var min = Math.max(0, Math.round(ms / 60000));
+    return min < 1 ? '방금' : min < 60 ? min + '분 전' : min < 48 * 60 ? Math.round(min / 60) + '시간 전' : Math.round(min / 1440) + '일 전';
+  }
   function commodityStrip_(macro, now_, selectedId) {
     if (!Array.isArray(macro) || !macro.length) return '';
     var now = now_ == null ? Date.now() : now_;
@@ -2525,7 +2751,10 @@
       var r = by[it.symbol], price = r ? Number(r.price) : NaN, rate = r ? Number(r.change_rate) : NaN, at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
       if (!(r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000)) return null;
       var kst = new Date(at + 9 * 3600000);
-      return { text: fmt(it, price), rate: rate, time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준' };
+      // 실시간/지연/종가는 응답이 알려 주는 만큼만 적는다: 수신 시각과 경과, 출처, 지연 여부(source_delay)가 '미확인'이면 그대로 '지연 여부 미확인'.
+      var src = r.source || (it.symbol === 'BTC' ? '업비트 공개시세' : ''), delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
+      return { text: fmt(it, price), rate: rate, time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 수신(' + ageText_(now - at) + ')',
+        src: [src, delay].filter(Boolean).join(' · ') };
     }
     var cards = COMMODITY_GROUPS_.map(function (g) {
       var reads = g.items.map(read), have = reads.filter(Boolean);
@@ -2537,7 +2766,7 @@
       var gi = g.items.findIndex(function (it, k) { return reads[k]; }), pts = gi >= 0 ? seriesPoints_(by[g.items[gi].symbol], 40) : [];
       var item = gi >= 0 ? g.items[gi] : g.items[0];
       return { id: g.kind, icon: g.kind, detail: item.label + ' 일봉 종가', label: g.name, tone: tone, state: mean == null ? '미수신' : stateWord_(tone, ['상승', '하락', '보합']), rows: rows,
-        say: marketComment_(g.kind, mean), meta: have.length ? have[0].time : '값을 받지 못했습니다',
+        say: marketComment_(g.kind, mean), meta: have.length ? [have[0].time].concat(have.map(function (v) { return v.src; }).filter(function (t, i, a) { return t && a.indexOf(t) === i; })).join(' · ') : '값을 받지 못했습니다',
         panel: pts.length ? { points: pts, base: medianOf_(pts.map(function (r) { return r.score; })), format: function (v) { return fmt(item, v); } } : null };
     });
     return xBlockHtml_('원자재·가상자산', '원자재·가상자산(표시 전용)', cards, selectedId);
@@ -2623,9 +2852,10 @@
     panel.__indicatorWired = true;
     var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], macroExtra: [], option: null, openX: null, detailOpen: false }, pending = null;
     function html(node, markup) { if (node.__mtMarkup !== markup) { node.innerHTML = markup; node.__mtMarkup = markup; } }
+    // 오늘 투자 체크포인트는 5분 레인(page.lanes.check)만 다시 쓴다. 07:00 브리핑과 장중 변화는 page.checkContext에서 읽는다.
     function checkpoint() {
-      var mount = container.querySelector('[data-market-checkpoint]');
-      if (mount && state.data) html(mount, buildStrategy(state.data, state.models, state.macro));
+      var mount = container.querySelector('[data-market-checkpoint]'), page = container.__mtLivePage;
+      if (mount && state.data) html(mount, buildStrategy(state.data, state.models, state.macro, page && page.checkContext ? page.checkContext(Date.now()) : null));
     }
     function render(focusSelector) {
       if (!panel.isConnected) return;
@@ -2661,22 +2891,28 @@
       if (hist && hist.getBoundingClientRect().top > window.innerHeight - 120 && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     render();
-    function refresh() {
+    // which: { live: 국내 지표(1분 레인), macro: 해외·원자재·가상자산·금리(5분 레인) }. 생략하면 둘 다(첫 로드).
+    // 레인마다 호출 대상이 다르다: live -> /domestic-market-indicators, macro -> /futures(2종) + /option-flow. 같은 응답은 sharedMarketJson_가 공유한다.
+    function refresh(which) {
       if (pending) return pending;
-      sharedMarketJson_('__mtMacroExtraFetch', EXTRA_FUTURES_URL_, 300000).then(function (res) {
-        var rows = res && res.data ? res.data : res;
-        if (Array.isArray(rows) && rows.length) { state.macroExtra = rows; render(); }
-      }).catch(function () { /* 원자재·금리는 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
-      sharedMarketJson_('__mtOptionFetch', 'https://goodbyestar.cloud/option-flow', 300000).then(function (res) {
-        var body = res && res.data ? res.data : res;
-        if (body && body.CALL && body.PUT) { state.option = body; render(); }
-      }).catch(function () { /* 옵션 값은 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
+      var wantLive = !which || which.live, wantMacro = !which || which.macro;
+      if (wantMacro) {
+        sharedMarketJson_('__mtMacroExtraFetch', EXTRA_FUTURES_URL_, LANE_TTL_.macro).then(function (res) {
+          var rows = res && res.data ? res.data : res;
+          if (Array.isArray(rows) && rows.length) { state.macroExtra = rows; render(); }
+        }).catch(function () { /* 원자재·금리는 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
+        sharedMarketJson_('__mtOptionFetch', 'https://goodbyestar.cloud/option-flow', LANE_TTL_.macro).then(function (res) {
+          var body = res && res.data ? res.data : res;
+          if (body && body.CALL && body.PUT) { state.option = body; render(); }
+        }).catch(function () { /* 옵션 값은 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
+      }
       pending = Promise.allSettled([
-        sharedMarketJson_('__mtDomesticFetch', 'https://goodbyestar.cloud/domestic-market-indicators', 60000),
-        sharedMarketJson_('__mtMacroFetch', FUTURES_URL_, 300000)
+        wantLive ? sharedMarketJson_('__mtDomesticFetch', 'https://goodbyestar.cloud/domestic-market-indicators', LANE_TTL_.live) : Promise.resolve(null),
+        wantMacro ? sharedMarketJson_('__mtMacroFetch', FUTURES_URL_, LANE_TTL_.macro) : Promise.resolve(null)
       ]).then(function (results) {
         var bad = [false, false];
         results.forEach(function (result, index) {
+          if (!(index ? wantMacro : wantLive)) return;       // 이번 레인에서 부르지 않은 응답은 이전 값을 그대로 둔다
           var payload = result.status === 'fulfilled' && result.value ? result.value.data || result.value : null;
           var valid = index ? Array.isArray(payload) && payload.length : payload && (payload.indices || payload.funds || payload.investor);
           bad[index] = !valid;
@@ -2691,13 +2927,14 @@
           m.stale = !!missing || bad[m.id === 'fx' || m.id === 'us-rate' || m.id === 'kospi-futures' ? 1 : 0];
           return m;
         });
-        state.loading = false; render(); checkpoint();
-        if (!bad[1]) loadTomorrow_(container, state.macro);
+        state.loading = false; render();
+        if (!state.checkpointShown) { state.checkpointShown = true; checkpoint(); }
         return { partial: bad[0] || bad[1] || state.models.some(function (m) { return m.stale; }) };
       }).then(function (result) { pending = null; return result; }, function (error) { pending = null; throw error; });
       return pending;
     }
-    panel.__mtIndicators = { refresh: refresh, setSnapshot: function (next) { state.data = next; checkpoint(); } };
+    panel.__mtIndicators = { refresh: refresh, checkpoint: checkpoint, getDomestic: function () { return state.domestic; },
+      setSnapshot: function (next) { state.data = next; if (!state.checkpointShown && state.models) { state.checkpointShown = true; checkpoint(); } } };
     return panel.__mtIndicators;
   }
 
@@ -2922,83 +3159,19 @@
   }
 
 
-  // ---- 그래서 내일은? (2026-10-04 사용자 요청) ----
-  // 근거: 2025-11~2026-10 코스피 220거래일을 직접 대조했다(나스닥100 선물·SOX·VIX 변화·원/달러 변화의 z점수 합).
-  //  - 미국 신호가 뚜렷한 날(합 |z|>=1.5, 전체의 약 45%)은 시초 방향이 90% 안팎으로 맞았고, 종가 방향도 74~90%였다.
-  //  - 신호가 약한 날(약 40%)은 상승 62%로 평소 상승 비율(약 61%)과 같다 = 맞히기 어렵다.
-  //  - 전체 "종가 방향" 적중 65%는 아무것도 안 보고 "오른다"만 찍은 63%와 비슷하므로 종가 방향을 크게 내세우지 않는다.
-  // 야간선물(2026-10-23 사용자 지시 "야간선물이 다음날 코스피 방향을 결정해" → 검증 후 점수에 반영):
-  //  - 날짜 기준 확인: KOSPI200_NIGHT 일봉 날짜 D = D 저녁에 시작해 D+1 오전 5시에 끝나는 세션(시작일).
-  //    근거: 야간 시가가 같은 날 주간 종가와 이어지는 평균 차이 1.18%(종료일로 읽으면 3.08%), 야간 종가↔다음 주간 시가 1.71%(2.38%).
-  //  - 신호 = 야간 종가 / 직전 주간 종가 - 1. 코스피200 선물 232거래일(2025-11-10~2026-10-22) 중 다음 날 시초 갭과 상관 0.48,
-  //    방향 적중 70%(|신호|>=2%는 81%). 미국 4항 합과 상관 0.35라 일부는 겹친다.
-  //  - 미국 4항 합에 야간 z점수를 같은 비중(1)으로 더하면 시초 갭 상관 0.742 -> 0.778, 종가 상관 0.527 -> 0.570,
-  //    후반 구간만 0.733 -> 0.793. 합의 표준편차가 3.13 -> 3.60으로 커져 구간 경계를 같은 비율(x1.17)로 키웠다.
-  //  - 야간 세션이 끝나기 전(D+1 05:05 KST 전)에는 미완성이라 점수에 넣지 않고 참고로만 보여준다.
-  // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
-  // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
+  // ---- 시장 브리핑 (2026-10-23) ----
+  // 국내 거래일 KST 07:00에 서버(scripts/cloud-vm/morning_briefing.py)가 확정해 SQLite에 저장한 '장 시작 전' 스냅샷을 그린다.
+  // 브라우저는 신호를 계산하지 않는다 - 예전에는 접속할 때마다 /futures 일봉으로 계산해서 접속 시각·새로고침·장중 값에 따라
+  // 같은 날 결과가 바뀔 수 있었다. 계산식(미국 현물 3지수·SOX·VIX·원/달러·야간선물 z점수 합)과 232거래일 검증 근거는 서버 모듈로 옮겼다.
+  // 한 번 확정된 브리핑은 그 거래일 동안 바뀌지 않으며, 정정이 있으면 최초 확정 시각과 정정 시각을 따로 보여 준다.
+  var BRIEFING_URL_ = 'https://goodbyestar.cloud/morning-briefing';
+  // 아래 두 주소는 시장 한눈에·원자재·금리 카드가 쓴다(브리핑과 무관, 같은 응답을 공유한다).
   var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
   var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,KTB3Y,US2Y,US30Y&stored_only=true';
-  // 2026-10-23 신호 구성 변경(사용자 결정): 나스닥100 선물은 24시간 거래라 한국장 시간대와 겹칠 수 있어 빼고, 미국 현물 정규장 종가
-  // (S&P 500·나스닥 종합·다우존스)·필라델피아 반도체·VIX·원/달러·야간 코스피200 선물로 바꿨다. 같은 코스피200 선물 232거래일
-  // (2025-11-10~2026-10-22)에서 다시 쟀다. 미국 현물 3지수는 서로 상관이 커서 각 1/3 가중(묶어서 1항)으로 합산했다.
-  //  - 시초 갭 상관 0.752(기존 구성 0.779), 방향 적중 75%(79%), 종가 상관 0.548(0.570). 뒤 절반(앞 절반 기준) 상관 0.779 / 적중 72%.
-  //  - 구간 경계는 합의 표준편차 3.53의 0.97배·0.49배(3.42/1.73). 야간선물이 없을 때(6항)는 표준편차 3.08(2.99/1.51).
-  //  - 같은 표본에서 정한 경계·평균이라 표본 안 성적이다. 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안한다.
-  var TOMORROW_STATS7_ = {
-    spx: [0.0751, 0.8105], nas: [0.0927, 1.1704], dji: [0.0638, 0.8084], sox: [0.294, 2.9111],
-    vix: [0.1618, 7.5683], fx: [-0.0377, 0.6251], night: [0.8621, 1.7382]
-  };
-  var TOMORROW_WEIGHTS7_ = { spx: 1 / 3, nas: 1 / 3, dji: 1 / 3, sox: 1, vix: 1, fx: 1, night: 1 };
-  var TOMORROW_SIGN7_ = { spx: 1, nas: 1, dji: 1, sox: 1, vix: -1, fx: -1, night: 1 };
-  var TOMORROW_BUCKETS7_ = [
-    { max: -3.42, key: 'strongDown', label: '강한 하락 신호', gap: '시초 하락 출발 91%', close: '하락 마감 79%', n: 34, span: '최근 232일' },
-    { max: -1.73, key: 'down', label: '하락 우세', gap: '시초 하락 출발 86%', close: '하락 마감 51% · 장중 반등도 잦음', n: 35, span: '최근 232일' },
-    { max: 1.73, key: 'flat', label: '방향 모름', gap: '시초 상승 64%', close: '상승 마감 59%', n: 91, span: '최근 232일' },
-    { max: 3.42, key: 'up', label: '상승 우세', gap: '시초 상승 출발 93%', close: '상승 마감 78%', n: 41, span: '최근 232일' },
-    { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 94%', close: '상승 마감 87%', n: 31, span: '최근 232일' }
-  ];
-  var TOMORROW_BUCKETS6_ = [
-    { max: -2.99, key: 'strongDown', label: '강한 하락 신호', gap: '시초 하락 출발 92%', close: '하락 마감 81%', n: 37, span: '최근 232일' },
-    { max: -1.51, key: 'down', label: '하락 우세', gap: '시초 하락 출발 81%', close: '하락 마감 38% · 장중 반등이 더 많음', n: 26, span: '최근 232일' },
-    { max: 1.51, key: 'flat', label: '방향 모름', gap: '시초 상승 64%', close: '상승 마감 59%', n: 96, span: '최근 232일' },
-    { max: 2.99, key: 'up', label: '상승 우세', gap: '시초 상승 출발 85%', close: '상승 마감 69%', n: 39, span: '최근 232일' },
-    { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 91%', close: '상승 마감 88%', n: 34, span: '최근 232일' }
-  ];
 
-  // 야간선물 신호: target 이전 마지막 주간 거래일 D의 야간 일봉(D 저녁~D+1 05:00)을 D 주간 종가와 비교한다.
-  // 야간 세션이 끝나기 전이거나 날짜가 맞지 않으면 pending/null.
-  function nightSignal_(dayRow, nightRow, ymd, now_) {
-    var dc = (dayRow && dayRow.chart) || [], nc = (nightRow && nightRow.chart) || [];
-    if (!dc.length || !nc.length || (dayRow && dayRow.stale === true) || (nightRow && nightRow.stale === true)) return null;
-    var dBar = null, i;
-    for (i = 0; i < dc.length; i++) { if (String(dc[i].date) < ymd) dBar = dc[i]; }
-    if (!dBar) return null;
-    var nBar = null;
-    for (i = 0; i < nc.length; i++) { if (String(nc[i].date) === String(dBar.date)) nBar = nc[i]; }
-    var dClose = Number(dBar.close), nClose = nBar && Number(nBar.close);
-    if (!(dClose > 0) || !(nClose > 0)) return null;
-    var m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(dBar.date));
-    if (!m) return null;
-    // D 다음 날 오전 5시 05분(KST) 이후에야 야간 세션이 끝난 것으로 본다.
-    var endMs = Date.UTC(+m[1], +m[2] - 1, +m[3] + 1, 5, 5, 0) - 9 * 3600000;
-    return { gap: (nClose / dClose - 1) * 100, date: String(dBar.date), pending: (now_ == null ? Date.now() : now_) < endMs };
-  }
-
-  // 코스피200 야간선물 시세 상태(표시 전용): 값은 /futures의 KOSPI200_NIGHT 행(KIS 야간선물 수집) 그대로이며 주간 선물·현물로 대체하지 않는다.
-  // 야간 세션은 18:00~05:05(KST). 세션 중 5분 이내 갱신=실시간, 5분 넘게 묵음=지연, 세션 밖이거나 12시간 넘게 묵음=최종 마감, 72시간 넘게 묵음·값 없음=null(시세 없음).
-  function nightQuote_(row, now_) {
-    var now = now_ == null ? Date.now() : now_;
-    var price = row ? Number(row.price) : NaN, rate = row ? Number(row.change_rate) : NaN, change = row && row.change != null ? Number(row.change) : NaN;
-    var at = row && row.updated_at ? Date.parse(row.updated_at) : NaN;
-    if (!(row && row.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at)) || now - at > 72 * 3600000) return null;
-    var kst = new Date(now + 9 * 3600000), min = kst.getUTCHours() * 60 + kst.getUTCMinutes();
-    var inSession = min >= 18 * 60 || min <= 5 * 60 + 5, age = now - at;
-    var status = !inSession || age > 12 * 3600000 ? '최종 마감' : age <= 5 * 60000 ? '실시간' : '지연 ' + Math.round(age / 60000) + '분';
-    var k = new Date(at + 9 * 3600000), p2 = function (n) { return String(n).padStart(2, '0'); };
-    return { price: price, rate: rate, change: isFinite(change) ? change : null, status: status,
-      time: p2(k.getUTCMonth() + 1) + '.' + p2(k.getUTCDate()) + ' ' + p2(k.getUTCHours()) + ':' + p2(k.getUTCMinutes()) + ' KST' };
-  }
+  function stampHm_(stamp) { var m = /\s(\d{2}:\d{2})/.exec(String(stamp || '')); return m ? m[1] : ''; }
+  function ymdLabel_(ymd) { var m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(ymd || '')); return m ? (+m[2]) + '/' + (+m[3]) : String(ymd || ''); }
+  function pctText_(v, digits) { return (v > 0 ? '+' : '') + Number(v).toFixed(digits == null ? 2 : digits) + '%'; }
 
   // 다음 거래일 전망 카드의 지표별 한 줄 해설(2026-10-23): 등락률의 부호·크기만 문장으로 옮긴다(신호 계산과 무관, 매매 권유 아님).
   // 크기 구간: 보합 |값|<0.3%, 약/강은 1%(SOX 3%, VIX 2%·5%, 야간선물 0.5%)를 경계로 나눈다.
@@ -3014,39 +3187,138 @@
     if (kind === 'dji') return a >= 1 ? (up ? '다우도 강하게 올랐네' : '다우도 크게 밀렸네') : (up ? '다우 소폭 올랐네' : '다우도 약세 마감');
     return a >= 1 ? (up ? who[1] + ' 강하게 올랐네' : who[1] + '이 크게 밀렸네') : (up ? who[1] + ' 소폭 올랐네' : who[1] + ' 약세, 가볍게 밀렸네');
   }
-  // 신호 계산(순수 함수): by = {심볼: /futures 행}, ymd = 대상 거래일(YYYYMMDD). 미국 현물 3지수·SOX·VIX·원/달러 중 하나라도 없으면 null.
-  // 야간선물은 세션이 끝난 뒤에만 점수에 넣는다(진행 중이면 night.pending).
-  function tomorrowSignal_(by, ymd, now_) {
-    var r = {
-      spx: lastReturnBefore_(by.SP500_INDEX, ymd), nas: lastReturnBefore_(by.NASDAQ_INDEX, ymd), dji: lastReturnBefore_(by.DOW_INDEX, ymd),
-      sox: lastReturnBefore_(by.SOX, ymd), vix: lastReturnBefore_(by.VIX, ymd), fx: lastReturnBefore_(by.USDKRW, ymd)
-    };
-    if (!r.spx || !r.nas || !r.dji || !r.sox || !r.vix || !r.fx) return null;
-    var night = nightSignal_(by.KOSPI200_DAY, by.KOSPI200_NIGHT, ymd, now_), useNight = !!(night && !night.pending);
-    var vals = { spx: r.spx.pct, nas: r.nas.pct, dji: r.dji.pct, sox: r.sox.pct, vix: r.vix.pct, fx: r.fx.pct };
-    if (useNight) vals.night = night.gap;
-    var zsum = 0;
-    Object.keys(vals).forEach(function (k) {
-      zsum += TOMORROW_WEIGHTS7_[k] * TOMORROW_SIGN7_[k] * (vals[k] - TOMORROW_STATS7_[k][0]) / TOMORROW_STATS7_[k][1];
-    });
-    var buckets = useNight ? TOMORROW_BUCKETS7_ : TOMORROW_BUCKETS6_;
-    var bucket = buckets.filter(function (b) { return zsum < b.max; })[0] || buckets[2];
-    return { r: r, night: night, useNight: useNight, zsum: zsum, bucket: bucket, vals: vals };
+  // 화면 제목: '시장 브리핑 · 10/26(월)'. 브리핑이 아직 없으면 다음 예정일.
+  function briefingTitle_(payload) {
+    var b = payload && payload.briefing, next = payload && payload.next;
+    return '시장 브리핑 · ' + (b ? b.targetLabel : next ? next.targetLabel : '');
   }
 
-  // 조간신문 기준: 평일 15:30 전(장전·장중)에는 오늘 코스피, 마감 후·주말에는 다음 거래일을 가리킨다.
-  // 공휴일은 알 수 없어 평일로 본다. now_는 시험용으로 바꿀 수 있다.
-  function nextKospiDay_(now_) {
-    var now = new Date((now_ == null ? Date.now() : now_) + 9 * 3600000);
-    var today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-    var d = today, dow = d.getUTCDay();
-    var open = dow >= 1 && dow <= 5 && now.getUTCHours() * 60 + now.getUTCMinutes() < 15 * 60 + 30;
-    if (!open) d = new Date(d.getTime() + 86400000);
-    while (d.getUTCDay() === 0 || d.getUTCDay() === 6) d = new Date(d.getTime() + 86400000);
-    var gap = Math.round((d.getTime() - today.getTime()) / 86400000);
-    var ymd = d.getUTCFullYear() + String(d.getUTCMonth() + 1).padStart(2, '0') + String(d.getUTCDate()).padStart(2, '0');
-    return { ymd: ymd, word: gap === 0 ? '오늘' : gap === 1 ? '내일' : '다음 거래일',
-      label: (d.getUTCMonth() + 1) + '/' + d.getUTCDate() + '(' + ['일', '월', '화', '수', '목', '금', '토'][d.getUTCDay()] + ')' };
+  // 제목 옆 한 줄 안내: '07:00 확정 · 미국장 마감 기준'. 확정 전·정정·지난 거래일 브리핑은 실제 상태로 바꿔 쓴다.
+  function briefingMeta_(payload) {
+    var b = payload && payload.briefing, next = payload && payload.next, parts = [];
+    if (!b) return '아직 확정된 브리핑이 없습니다 · 다음 ' + (next ? next.targetLabel : '') + ' 07:00 확정 예정';
+    if (b.status === 'final') {
+      var late = stampHm_(b.firstConfirmedAt) > stampHm_(b.scheduledAt) && Date.parse(String(b.firstConfirmedAt).replace(' ', 'T') + '+09:00') - Date.parse(String(b.scheduledAt).replace(' ', 'T') + '+09:00') > 10 * 60000;
+      parts.push(stampHm_(b.firstConfirmedAt) + ' 확정' + (late ? '(지연 생성)' : ''));
+      if (b.revision > 0 && b.revisedAt) {
+        var last = (b.revisions || [])[b.revisions.length - 1];
+        parts.push(stampHm_(b.revisedAt) + ' 정정' + (last && last.reason ? '(' + last.reason + ')' : ''));
+      }
+      parts.push('미국장 마감 기준');
+      if (b.targetDate !== payload.today) {
+        parts.push('지난 거래일 브리핑');
+        if (next && next.targetDate !== b.targetDate) parts.push('다음 ' + next.targetLabel + ' 07:00 확정 예정');
+      }
+      return parts.join(' · ');
+    }
+    if (b.status === 'pending') {
+      return '미확정 · ' + stampHm_(b.scheduledAt) + ' 확정 예정' + (b.nextRetryAt ? ' · ' + stampHm_(b.nextRetryAt) + ' 다시 확인' : '');
+    }
+    return '미확정 · 장 마감 전에 확정하지 못했습니다';
+  }
+
+  function briefingUnconfirmedHtml_(payload) {
+    var b = payload && payload.briefing, next = payload && payload.next;
+    var text, badge = '미확정';
+    if (!b) text = '아직 확정된 브리핑이 없습니다. 다음 ' + (next ? next.targetLabel : '') + ' 07:00에 미국장 마감 자료로 확정됩니다.';
+    else if (b.status === 'pending') text = '미국장 마감 자료를 확인하는 중입니다. 자료가 확인되면 자동으로 확정되고, 그 전에는 전망을 표시하지 않습니다.';
+    else text = '장 마감 전까지 확정하지 못했습니다. 오늘 장 흐름은 아래 오늘의 증시에서 확인하세요.';
+    return '<div class="mt-tm-verdict mt-tm-flat is-unconfirmed"><em class="mt-tm-badge">' + badge + '</em><b>브리핑 미확정</b><span>' + escapeHtml(text) + '</span></div>'
+      + (b && b.lastError ? '<p class="mt-tm-meta">확인 중인 항목: ' + escapeHtml(b.lastError) + '</p>' : '');
+  }
+
+  // 확정된 스냅샷을 카드 본문(결론 패널 + 근거 칸 + 통계 박스)으로 그린다. 수치는 모두 서버 스냅샷 그대로다.
+  function briefingFinalHtml_(b, payload, opts) {
+    var s = b.snapshot, sig = s.signal, bucket = sig.bucket, tone = sig.tone, inp = s.inputs, night = s.night;
+    var W = b.targetDate === payload.today ? '오늘' : b.targetLabel;
+    // 칸 3줄: 이름 / 등락률 / 한 줄 해설(등락률의 부호·크기만 문장으로 옮김, 신호 계산과 무관). 상세는 야간선물 칸에서만 눌러 연다.
+    function item(name, kind, pct, good) {
+      return '<li class="mt-tm-item ' + (good ? 'is-pos' : 'is-neg') + '"><span class="mt-tm-name">' + name + '</span>'
+        + '<b class="' + (good ? 'mt-val-pos' : 'mt-val-neg') + '">' + pctText_(pct) + '</b><span class="mt-tm-say">' + tmComment_(kind, pct) + '</span></li>';
+    }
+    var items = [
+      item('S&P 500', 'spx', inp.spx.pct, inp.spx.pct > 0),
+      item('나스닥 종합', 'nas', inp.nas.pct, inp.nas.pct > 0),
+      item('다우존스', 'dji', inp.dji.pct, inp.dji.pct > 0),
+      item('필라델피아 반도체', 'sox', inp.sox.pct, inp.sox.pct > 0),
+      item('VIX', 'vix', inp.vix.pct, inp.vix.pct < 0)
+    ].join('');
+    // 코스피200 야간선물: 서버가 야간 일봉 종가(D 저녁~D+1 05:00 세션)를 주간 종가와 비교한 값. 없으면 '시세 없음'(주간 선물·현물로 대체하지 않는다).
+    // 기본 카드는 다른 칸과 같은 3줄이고 종가·등락폭·상태·세션·출처·신호 반영 여부는 눌러(details) 연다. 다시 그려도 열림 상태를 유지한다(opts.nightOpen).
+    var drow = function (k, v) { return '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>'; };
+    var open = opts && opts.nightOpen ? ' open' : '';
+    var nightItem;
+    if (night && night.included) {
+      var nr = night.gapPct, cls = nr > 0 ? 'mt-val-pos' : nr < 0 ? 'mt-val-neg' : 'mt-val-zero';
+      nightItem = '<li class="mt-tm-item mt-tm-nightcard ' + (nr > 0 ? 'is-pos' : nr < 0 ? 'is-neg' : '') + '"><details class="mt-tm-nd"' + open + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
+        + '<b class="' + cls + '">' + pctText_(nr) + '</b><span class="mt-tm-say">' + tmComment_('night', nr) + '</span></summary>'
+        + '<dl class="mt-tm-ndetail">' + drow('야간 종가', Number(night.close).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+        + drow('주간 종가 대비', (night.change > 0 ? '+' : '') + Number(night.change).toFixed(2))
+        + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('출처', 'KIS 야간선물') + drow('신호 계산', '반영됨') + '</dl></details></li>';
+    } else {
+      nightItem = '<li class="mt-tm-item mt-tm-nightcard is-none"><details class="mt-tm-nd"' + open + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
+        + '<b class="mt-val-zero">시세 없음</b><span class="mt-tm-say">데이터 확인 중</span></summary>'
+        + '<dl class="mt-tm-ndetail">' + drow('상태', '데이터 확인 중') + drow('안내', '야간선물 최종 봉을 받지 못해 점수에 넣지 않았습니다(주간 선물·현물로 대체하지 않음)') + '</dl></details></li>';
+    }
+    var us3 = [inp.spx.pct, inp.nas.pct, inp.dji.pct], up3 = us3.filter(function (v) { return v > 0; }).length;
+    var briefUs = (up3 === 3 ? '3대 지수 상승' : up3 === 0 ? '3대 지수 하락' : '3대 지수 엇갈림') + ' · 반도체 ' + (inp.sox.pct > 0 ? '강세' : '약세') + ' · VIX ' + (inp.vix.pct > 0 ? '상승' : '하락');
+    var briefKr = '환율 ' + (inp.fx.pct > 0 ? '상승(원화 약세)' : '하락(원화 강세)') + ' · 야간선물 ' + (night && night.included ? pctText_(night.gapPct) : '시세 없음');
+    var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
+      : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
+      : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
+    var badge = tone === 'up' ? '↗ 상승' : tone === 'down' ? '↘ 하락' : '→ 중립';
+    var usDates = [inp.spx.date, inp.nas.date, inp.dji.date].filter(function (d, i, a) { return a.indexOf(d) === i; }).map(ymdLabel_).join('·');
+    var holidayNote = s.usHolidayAssumed ? ' · 미국 휴장 추정, ' + ymdLabel_(s.usHolidayAssumed) + ' 종가 기준'
+      : s.usHoliday && s.usHoliday.length ? ' · 미국 휴장(' + s.usHoliday.map(function (h) { return ymdLabel_(String(h.date).replace(/-/g, '')) + ' ' + h.name; }).join(', ') + ') 직전 거래일 종가 기준' : '';
+    return '<div class="mt-tm-verdict mt-tm-' + tone + '"><em class="mt-tm-badge">' + badge + '</em><b>' + escapeHtml(bucket.label) + '</b><span>' + escapeHtml(verdictText) + '</span>'
+      + '<div class="mt-tm-brief"><p><i>미국장</i>' + briefUs + '</p><p><i>한국장 영향</i>' + briefKr + '</p></div></div>'
+      + '<ul class="mt-tm-why">' + items + nightItem + '</ul>'
+      + '<p class="mt-tm-meta">미국 정규장 종가 ' + usDates + ' · VIX·환율은 일봉 기준 · 오르면 부담(VIX는 위험회피, 환율은 원화 약세) · 반도체는 코스피 비중이 커서 반영' + escapeHtml(holidayNote) + '</p>'
+      + '<div class="mt-tm-proof"><b>이 신호를 믿을 만한 이유</b>'
+      + '<span class="mt-tm-proof-line">같은 강도 신호 <b>' + bucket.n + '거래일</b>(' + escapeHtml(bucket.span || '최근 220일') + ') 중 <b>' + escapeHtml(bucket.gap) + '</b>, ' + escapeHtml(bucket.close) + '.</span>'
+      + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>';
+  }
+
+  // 응답(payload) -> 화면 조각. 순수 함수라 시험에서 그대로 부른다.
+  function renderBriefing_(payload, opts) {
+    var b = payload && payload.briefing;
+    var body = b && b.status === 'final' && b.snapshot ? briefingFinalHtml_(b, payload, opts) : briefingUnconfirmedHtml_(payload);
+    return { title: briefingTitle_(payload), meta: briefingMeta_(payload), body: body, final: !!(b && b.status === 'final') };
+  }
+
+  function buildTomorrowCard_() {
+    return '<section class="mt-section mt-card mt-tomorrow-card" data-mt-tomorrow><div class="mt-hint">시장 브리핑을 불러오는 중입니다.</div></section>';
+  }
+
+  function briefingHeadingHtml_(r) {
+    return '<span class="mt-brief-title">' + escapeHtml(r.title) + '</span><span class="mt-brief-meta">' + escapeHtml(r.meta) + '</span>';
+  }
+
+  function paintBriefing_(container, payload) {
+    var mount = container.querySelector('[data-mt-tomorrow]'), heading = container.querySelector('[data-mt-tomorrow-heading]');
+    if (!mount) return;
+    var r = renderBriefing_(payload, { nightOpen: !!mount.querySelector('.mt-tm-nd[open]') }), key = JSON.stringify(payload.briefing) + '|' + payload.today + '|' + (payload.next && payload.next.targetDate);
+    if (mount.__mtBriefingKey === key) return;
+    if (heading) heading.innerHTML = briefingHeadingHtml_(r);
+    mount.innerHTML = r.body;
+    mount.classList.toggle('is-unconfirmed', !r.final);
+    mount.__mtBriefingKey = key;
+  }
+
+  // 브리핑 읽기: 서버 DB를 읽기만 하는 가벼운 요청이다. 확정 전에는 1분마다 확인하고(07:00 직후·재시도 구간), 확정 뒤에는 서버가 30초 캐시를 허용한다.
+  function loadBriefing_(container) {
+    var page = container.__mtLivePage, final = page && page.briefing && page.briefing.briefing && page.briefing.briefing.status === 'final';
+    return sharedMarketJson_('__mtBriefingFetch', BRIEFING_URL_, final ? LANE_TTL_.macro : LANE_TTL_.live).then(function (res) {
+      var payload = res && res.data ? res.data : res;
+      if (!payload || !payload.session) throw new Error('브리핑 응답 형식 오류');
+      if (page) page.briefing = payload;
+      paintBriefing_(container, payload);
+      return payload;
+    }).catch(function (error) {
+      var mount = container.querySelector('[data-mt-tomorrow]');
+      if (mount && !mount.__mtBriefingKey) mount.innerHTML = '<div class="mt-hint">시장 브리핑을 불러오지 못했습니다. 자동으로 다시 확인합니다.</div>';
+      throw error;
+    });
   }
 
   // 일봉 마지막 두 봉의 종가 변화. 마지막 봉이 5일 넘게 묵었거나 응답이 stale이면 null(= 미수신).
@@ -3058,90 +3330,6 @@
     if (!a || !b || !m) return null;
     if (Date.now() - Date.UTC(+m[1], +m[2] - 1, +m[3]) > 5 * 86400000 + 9 * 3600000) return null;
     return { close: a, pct: (a / b - 1) * 100, date: m[2] + '/' + m[3] };
-  }
-
-  // target 날짜 이전에 끝난 가장 최근 일봉의 전일 대비 등락률(%)
-  function lastReturnBefore_(row, ymd) {
-    var chart = (row && row.chart) || [];
-    var idx = -1;
-    for (var i = 0; i < chart.length; i++) { if (String(chart[i].date) < ymd) idx = i; }
-    if (idx < 1) return null;
-    var a = Number(chart[idx].close), b = Number(chart[idx - 1].close);
-    return a && b ? { pct: (a / b - 1) * 100, date: String(chart[idx].date) } : null;
-  }
-
-  function buildTomorrowCard_() {
-    return '<section class="mt-section mt-card mt-tomorrow-card" data-mt-tomorrow>'
-      + '<div class="mt-tm-head"><strong>' + nextKospiDay_().word + ' 전망</strong><small>미국 현물 마감 기준으로 본 코스피 출발</small></div>'
-      + '<div class="mt-hint">미국 시장 움직임을 확인하는 중입니다.</div></section>';
-  }
-
-  function loadTomorrow_(container, rows) {
-    var mount = container.querySelector('[data-mt-tomorrow]');
-    if (!mount) return;
-    return Promise.resolve(rows || []).then(function (rows) {
-      var by = {};
-      rows.forEach(function (r) { by[r.symbol] = r; });
-      var target = nextKospiDay_();
-      var key = JSON.stringify(rows) + target.ymd + target.word + Math.floor(Date.now() / 60000); // 분 단위 포함: 야간선물 실시간/지연 표시가 시간에 따라 바뀐다
-      var W = target.word, title = '<strong>' + W + ' 전망</strong>';
-      var heading = container.querySelector('[data-mt-tomorrow-heading]');
-      if (heading) heading.textContent = '시장 브리핑 · ' + target.label + ' 출발';
-      if (mount.__mtTomorrowKey === key) return;
-      var sig = tomorrowSignal_(by, target.ymd);
-      if (!sig) { if (!mount.__mtTomorrowKey) mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 판단하지 않습니다.</div>'; return; }
-      var night = sig.night, useNight = sig.useNight, bucket = sig.bucket, r = sig.r;
-      var tone = /up/i.test(bucket.key) ? 'up' : /down/i.test(bucket.key) ? 'down' : 'flat';
-      function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
-      function md(d) { return String(d).slice(4, 6) + '/' + String(d).slice(6, 8); }
-      var why = [
-        { name: 'S&P 500', kind: 'spx', val: r.spx.pct, good: r.spx.pct > 0 },
-        { name: '나스닥 종합', kind: 'nas', val: r.nas.pct, good: r.nas.pct > 0 },
-        { name: '다우존스', kind: 'dji', val: r.dji.pct, good: r.dji.pct > 0 },
-        { name: '필라델피아 반도체', kind: 'sox', val: r.sox.pct, good: r.sox.pct > 0 },
-        { name: 'VIX', kind: 'vix', val: r.vix.pct, good: r.vix.pct < 0 }
-        // 원/달러 칸은 시장 한눈에의 환율 저울과 겹쳐 뺐다(신호 계산에는 r.fx가 그대로 들어간다)
-      ];
-      var usDates = [r.spx.date, r.nas.date, r.dji.date].filter(function (d, i, a) { return a.indexOf(d) === i; }).map(md).join('·');
-      var items = why.map(function (w) {
-        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span class="mt-tm-name">' + w.name + '</span>'
-          + '<b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b><span class="mt-tm-say">' + tmComment_(w.kind, w.val) + '</span></li>';
-      }).join('');
-      // 코스피200 야간선물: 신호 점수 반영 여부와 무관하게 항상 보여준다. 값이 없으면 '시세 없음'(주간 선물·현물로 대체하지 않는다).
-      // 기본 카드는 다른 칸과 같은 3줄이고, 현재가·등락폭·상태·기준 시각·출처·신호 반영 여부는 카드를 눌러(details) 연다. 다시 그려도 열림 상태를 유지한다.
-      var nq = nightQuote_(by.KOSPI200_NIGHT, Date.now());
-      var wasOpen = !!(mount.querySelector && mount.querySelector('.mt-tm-nd[open]'));
-      var nightScore = useNight ? '반영됨' : '참고(야간 세션 종료 05:05 후 반영)';
-      var drow = function (k, v) { return '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>'; };
-      var nightItem = nq
-        ? '<li class="mt-tm-item mt-tm-nightcard ' + (nq.rate > 0 ? 'is-pos' : nq.rate < 0 ? 'is-neg' : '') + '"><details class="mt-tm-nd"' + (wasOpen ? ' open' : '') + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
-          + '<b class="' + (nq.rate > 0 ? 'mt-val-pos' : nq.rate < 0 ? 'mt-val-neg' : 'mt-val-zero') + '">' + sgn(nq.rate) + '</b><span class="mt-tm-say">' + tmComment_('night', nq.rate) + '</span></summary>'
-          + '<dl class="mt-tm-ndetail">' + drow('현재가', nq.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
-          + (nq.change == null ? '' : drow('등락폭', (nq.change > 0 ? '+' : '') + nq.change.toFixed(2)))
-          + drow('상태', nq.status) + drow('기준 시각', nq.time) + drow('출처', 'KIS 야간선물') + drow('신호 계산', nightScore) + '</dl></details></li>'
-        : '<li class="mt-tm-item mt-tm-nightcard is-none"><details class="mt-tm-nd"' + (wasOpen ? ' open' : '') + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
-          + '<b class="mt-val-zero">시세 없음</b><span class="mt-tm-say">데이터 확인 중</span></summary>'
-          + '<dl class="mt-tm-ndetail">' + drow('상태', '데이터 확인 중') + drow('안내', '야간선물 시세를 받지 못했습니다(주간 선물·현물로 대체하지 않음)') + '</dl></details></li>';
-      // 5초 브리핑: 미국장 → 한국장 영향(결론은 위 헤드라인). 값의 부호만 문장으로 옮긴다.
-      var us3 = [r.spx.pct, r.nas.pct, r.dji.pct], up3 = us3.filter(function (v) { return v > 0; }).length;
-      var briefUs = (up3 === 3 ? '3대 지수 상승' : up3 === 0 ? '3대 지수 하락' : '3대 지수 엇갈림') + ' · 반도체 ' + (r.sox.pct > 0 ? '강세' : '약세') + ' · VIX ' + (r.vix.pct > 0 ? '상승' : '하락');
-      var briefKr = '환율 ' + (r.fx.pct > 0 ? '상승(원화 약세)' : '하락(원화 강세)') + ' · 야간선물 ' + (nq ? sgn(nq.rate) : '시세 없음');
-      var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
-        : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
-        : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
-      var badge = tone === 'up' ? '↗ 상승' : tone === 'down' ? '↘ 하락' : '→ 중립';
-      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + (useNight ? '미국 현물 마감 + 야간선물 + VIX·환율 기준' : '미국 현물 마감 + VIX·환율 기준') + '</small></div>'
-        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><em class="mt-tm-badge">' + badge + '</em><b>' + bucket.label + '</b><span>' + verdictText + '</span>'
-        + '<div class="mt-tm-brief"><p><i>미국장</i>' + briefUs + '</p><p><i>한국장 영향</i>' + briefKr + '</p></div></div>'
-        + '<ul class="mt-tm-why">' + items + nightItem + '</ul>'
-        + '<p class="mt-tm-meta">미국 정규장 종가 ' + usDates + ' · VIX·환율은 일봉 기준 · 오르면 부담(VIX는 위험회피, 환율은 원화 약세) · 반도체는 코스피 비중이 커서 반영</p>'
-        + '<div class="mt-tm-proof"><b>이 신호를 믿을 만한 이유</b>'
-        + '<span class="mt-tm-proof-line">같은 강도 신호 <b>' + bucket.n + '거래일</b>(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
-        + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>';
-      mount.__mtTomorrowKey = key;
-    }).catch(function () {
-      if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>' + nextKospiDay_().word + ' 전망</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
-    });
   }
 
   // 2026-10-16: 최근 단기흐름을 막대 칸에서 선 그래프로 바꿨다(사용자 시안 A: 구간 배경 + 선).
@@ -3463,12 +3651,15 @@
     return { title: title, mood: story.lead, tone: down ? 'negative' : up ? 'positive' : 'neutral', items: items, avoid: avoid };
   }
 
-  function buildStrategy(data, models, macro) {
+  // ctx(buildCheckContext_ 결과)가 있으면 07:00 브리핑 전망과 장중 변화를 따로 보여 주고, 제목 옆에 이 카드를 마지막으로 다시 쓴 시각을 적는다(장중 5분 갱신).
+  function buildStrategy(data, models, macro, ctx) {
     var facts = checkpointFacts_(data, models, macro), dateText = checkpointDate_(data);
+    if (ctx && ctx.time) dateText = ctx.time + ' 기준' + (dateText && /직전 거래일/.test(dateText) ? ' · 직전 거래일 자료' : '');
     return '<div class="mt-strategy-panel mt-ant-guide mt-checkpoint-facts" id="mt-ant-guide">'
       + '<div class="mt-cp-head"><div class="mt-strategy-panel-title">오늘 투자 체크포인트</div>'
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
       + '<p class="mt-cp-sub">오늘 시장 흐름을 요약하고 현재 온도에 맞는 참고용 대응 방향을 함께 보여줍니다.</p>'
+      + checkpointContextHtml_(ctx)
       + '<div class="mt-cp-body"><div class="mt-strategy-message mt-cp-call is-' + facts.tone + '">'
       + '<div class="mt-strategy-action">' + sentenceHtml_(facts.title) + '</div><p class="mt-ant-mood">' + sentenceHtml_(facts.mood) + '</p>'
       + '</div><div class="mt-cp-actions">'
@@ -4807,13 +4998,6 @@
       + '</div>';
   }
 
-  function buildPageHead_(data) {
-    var m = /^(\d{4})-(\d{2})-(\d{2})(?:\s+(\d{2}:\d{2}))?/.exec(String(data.updatedAt || ''));
-    var dateText = m ? m[1] + '.' + m[2] + '.' + m[3] : '';
-    return '<div class="mt-page-head"><span>' + escapeHtml(dateText) + (dateText ? ' · ' : '') + '시장 자료 기준</span>'
-      + (m && m[4] ? '<span class="nt-stamp">' + escapeHtml((window.NineTime && window.NineTime.updated(data.updatedAt)) || ('마지막 업데이트 ' + m[4])) + '</span>' : '') + '</div>';
-  }
-
   // 대표 지수(코스피·코스닥) 흐름은 시장지표 페이지가 따로 갖고 있다(증시온도와 데이터·무게를 섞지 않는다는 2026-09-06 결정).
   // 이 페이지 맨 아래에는 그리로 가는 안내만 둔다.
   function buildIndexFlow_() {
@@ -4837,10 +5021,9 @@
     // 숫자 하나 + 3축 + 추이로 줄였다. 10개 컴포넌트 막대는 '자세히'로 접어 내렸고,
     // 레이더 차트는 같은 값을 막대와 두 번 그리던 것이라 뺐다(row2col도 함께 사장).
     var sections = [
-      buildPageHead_(data),
-      '<div class="mt-live-status" data-mt-live-status role="status">자동 갱신 준비 중</div>',
-      // 2026-10-23: 새벽에 접속해 5초 안에 보는 '다음 거래일 전망'(미국장 요약 → 한국장 영향 → 전망, 야간선물 포함)을 페이지 맨 위로 올렸다.
-      '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>시장 브리핑 · ' + nextKospiDay_().label + ' 출발</h3>' + buildTomorrowCard_() + '</section></div>',
+      // 2026-10-23 두 시스템 분리: 위쪽 '시장 브리핑'은 국내 거래일 07:00에 서버가 확정한 장 시작 전 스냅샷(장중에 바뀌지 않음),
+      // 아래 '오늘의 증시' 이하는 장중 주기로 갱신되는 실시간 영역이다. 페이지 날짜·갱신 안내는 각 영역 제목 옆 한 줄로만 둔다(중복 제거).
+      '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading><span class="mt-brief-title">시장 브리핑</span></h3>' + buildTomorrowCard_() + '</section></div>',
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div></div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
@@ -4853,7 +5036,6 @@
     return ''
       + '<div class="mt-wrap mt-tone-' + escapeHtml(tone) + '">'
       + sections.join('')
-      + (data.updatedAt ? '<div class="mt-updated">' + escapeHtml((window.NineTime && window.NineTime.updated(data.updatedAt)) || ('자료 기준 · ' + data.updatedAt)) + '</div>' : '')
       + '</div>';
   }
 
