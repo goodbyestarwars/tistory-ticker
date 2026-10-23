@@ -3482,3 +3482,11 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
   html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="deposits"],
   html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="kospi-futures"] { min-height: 58px; padding-top: 11px !important; padding-bottom: 11px !important; }
 }
+
+/* 2026-10-24 시장 한눈에 헤드라인("하락 종목 …개, 내림세 우세") 글자 2px 축소: PC 18px→16px, 모바일(760px 이하) 17px→15px */
+@layer np.np {
+  html body #market-temp h2.mt-front-headline.mt-front-headline.mt-front-headline { font-size: 16px !important; }
+  @media (max-width: 760px) {
+    html body #market-temp h2.mt-front-headline.mt-front-headline.mt-front-headline { font-size: 15px !important; }
+  }
+}
