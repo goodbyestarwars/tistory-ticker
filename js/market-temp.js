@@ -2333,7 +2333,7 @@
 
   function buildSummaryCard(data) {
     return '<article class="mt-section mt-card mt-summary-card mt-front-story mt-direct-overview">'
-      + buildBreadthVisual_(frontPageStory_(data))
+      // 2026-10-24 사용자 지시: '오른 종목과 내린 종목' 막대 블록은 삭제(buildBreadthVisual_는 남김)
       + aiSayHtml_('market_summary', 'mt-ai-line mt-ai-summary')
       + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3><small>항목을 눌러 추이 보기</small></div>'
       + '<div data-market-indicators>' + renderIndicatorRows_(buildIndicatorModels_({}, []), 'kospi-volume') + '</div>'
