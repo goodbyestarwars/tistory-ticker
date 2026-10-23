@@ -7732,7 +7732,7 @@ html body .hen-breaking { border-bottom-width: 0 !important; }
 html body .hen-breaking + * { border-top-width: 0 !important; }
 
 /* ── 3. 면 : 표 머리·요약 띠는 한 톤 짙은 종이색 ── */
-html body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) {
+html body :where(th, .hrt-head, .ss-summary-reason, .mt-top-note) {
   background-color: var(--np-tint) !important;
 }
 

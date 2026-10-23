@@ -1,3 +1,9 @@
+**2026-10-24 홈 시장판 띠 잔존 원인 수정·안쪽 여백 균일화**
+
+사용자 추가 스크린샷(차트 출처·미국 시장 요약·ETF 제목 주변). 직전 작업은 다크 전용 배경 규칙에서만 두 선택자를 빼서, 공통 `@layer np`의 `--np-tint` 배경(다크에서는 페이지색)이 그대로 남았다. `style.css` 공통 배경 목록에서도 지수 띠·요약 머리말을 제외하고, `css/home-market-board.css` 원래 부품 규칙에 투명 배경을 명시했다. 요약·ETF 머리말의 위쪽 패딩과 margin이 중복되던 빈 공간은 공통 섹션 간격 20px/모바일 16px 한 번으로 정리. 바깥 카드 사방 18px/모바일 14px 유지, 지수 칸 좌우 패딩도 같은 토큰 사용, 좁은 제목·기준일 줄은 wrap 허용. 데이터/차트/표/뉴스 글꼴/스킨 마크업 변경 없음.
+
+검증: 운영 DOM에 후보 CSS를 같은 위치로 적용해 375/390/768/1440px 라이트·다크에서 띠 배경 투명, 카드 사방 14/18px, 가로 넘침 없음 확인. 미국 세션 테스트 5 pass·diff check 통과. 배포: style.css/css의 master→Pages, 티스토리 관리자 수동 반영 없음.
+
 **2026-10-24 다크모드 홈 시장판의 패널색 띠 제거(`.home-index-strip`·`.hmb-summary-head`)**
 
 사용자 지적(스크린샷: 미국 시장 요약·주요 ETF 수익률·지수 차트 영역이 카드 가장자리까지 번진 짙은 띠로 보이고 위쪽 여백만 있음). 원인: 다크 팔레트 통일(#935) 때 들어간 `html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, …) { background-color: var(--dk-panel) !important }` 일괄 규칙이 이 두 요소에도 패널색을 입혔다(본래 배경 없음, 여백은 위쪽만 있는 구조). `style.css`: 이 규칙에서 `.home-index-strip`과 `.hmb-summary-head`를 뺐다 - 라이트 모드·표 머리글·상태 영역 패널색은 불변. 미확인: 다크 화면 실제 모양. 배포: style.css master 머지 후 Pages 자동.

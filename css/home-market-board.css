@@ -86,14 +86,15 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp dd {
 
 /* ── C. KOSPI · KOSDAQ: 지수가 가장 크게, 등락률은 바로 옆, 얇은 세로선으로만 나눈다 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin-top: 24px;
-  padding: 22px 0 0; border: 0; border-top: 1px solid var(--hmb-line);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin-top: var(--ui-section-gap);
+  padding: var(--ui-card-padding) 0 0; border: 0; border-top: 1px solid var(--hmb-line);
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card {
-  min-width: 0; padding: 0 22px 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  min-width: 0; padding: 0 var(--ui-card-padding) 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card {
-  padding: 0 0 0 22px; border-left: 1px solid var(--hmb-line);
+  padding: 0 0 0 var(--ui-card-padding); border-left: 1px solid var(--hmb-line);
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-top strong { font: 700 13px/1.4 var(--font-ui, system-ui, sans-serif); letter-spacing: .04em; color: var(--hmb-mute); }
@@ -128,7 +129,9 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-nums em 
 
 /* ── E. 핵심 시장 지표: 카드 없이 얇은 선과 글자만 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head {
-  display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin: 22px 0 0; padding: 18px 0 0; border: 0; border-top: 1px solid var(--hmb-line);
+  display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px;
+  margin: var(--ui-section-gap) 0 0; padding: 0; border: 0;
+  background: transparent;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
@@ -210,7 +213,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosu
 /* style.css @layer np 안의 !important(카드 border-image·띠 margin-top·머리말 min-height)를 같은 층에서 덮는다. */
 @layer np {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card { border-image: none !important; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { margin-top: 24px !important; border-image: none !important; }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { margin-top: var(--ui-section-gap) !important; border-image: none !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head { border-image: none !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures { margin-top: 22px !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading { min-height: 0 !important; }
