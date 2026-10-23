@@ -3236,5 +3236,5 @@ html.dark .ff-vp-an-table tr.on { background: #2b2620; }
 #foreign-flow .ff-legend .ff-legend-click:hover { background: rgba(120, 120, 120, .14); }
 #foreign-flow .ff-legend .ff-legend-click.is-on { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; background: rgba(120, 120, 120, .18); }
 
-html.dark #foreign-flow .ff-swing-summary strong.ff-tone-down { color: var(--dk-down); }
-html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-flat); }
+html.dark #foreign-flow .ff-swing-summary strong.ff-tone-down { color: var(--dk-down) !important; }
+html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-flat) !important; }

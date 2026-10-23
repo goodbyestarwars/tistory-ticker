@@ -8892,7 +8892,8 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     background-color: var(--dk-card) !important;
   }
   html.dark body#tt-body-index .briefing-intro .home-briefing-more,
-  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { background: var(--dk-card) !important; }
+  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track article.post-card.home-briefing-card,
+  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card.home-briefing-card { background: var(--dk-card) !important; }
   html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
   html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
   html.dark body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-summary-card) { background-color: var(--dk-inner) !important; }
