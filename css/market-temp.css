@@ -3307,7 +3307,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-tomorrow-card .mt-tm-item.is-pos .mt-tm-tag { color: color-mix(in srgb, var(--num-up, #d35159) 80%, var(--mt2-text, #1f2937)); background: color-mix(in srgb, var(--num-up, #d35159) 12%, transparent); }
   html body #market-temp .mt-tomorrow-card .mt-tm-item.is-neg .mt-tm-tag { color: color-mix(in srgb, var(--num-down, #2566d4) 80%, var(--mt2-text, #1f2937)); background: color-mix(in srgb, var(--num-down, #2566d4) 12%, transparent); }
   /* 코스피200 야간선물 칸: 가격·등락폭·상태·시각·출처를 함께 */
-  html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-nightcard { grid-column: span 2; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-nightcard { grid-column: span 3; }
   html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-nightcard .mt-tm-nval { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; width: 100%; }
   html body #market-temp .mt-tomorrow-card .mt-tm-nval b { font-size: 18px !important; font-weight: 700; line-height: 1.2; white-space: nowrap; }
   html body #market-temp .mt-tomorrow-card .mt-tm-nval > span { font-size: 12px; font-weight: 500; font-variant-numeric: tabular-nums; }
@@ -3315,6 +3315,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-tomorrow-card .mt-tm-nightcard.is-none .mt-tm-nval b { font-size: 15px !important; color: var(--mt2-sub, #64748b) !important; }
   @container mttm (max-width: 599px) {
     html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-nightcard, html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item:nth-last-child(2) { grid-column: 1 / -1; }
   }
   /* 사이트 의미색은 옅은 톤이라 결론·수치만 글자색 쪽으로 조금 진하게 섞어 먼저 읽히게 한다 */
   html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-up > b, html body #market-temp .mt-tomorrow-card .mt-tm-item b.mt-val-pos { color: color-mix(in srgb, var(--num-up, #d35159) 78%, var(--mt2-text, #1f2937)) !important; }
