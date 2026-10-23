@@ -4795,7 +4795,7 @@ html.dark body { background: var(--dk-bg); color: var(--dk-text); }
 /* ===== 9Pay 공식 다크 팔레트 (2026-10-23) - 사이트 전체 다크모드의 단일 출처 =====
    다크모드 색은 아래 --dk-* 토큰만 쓴다. 각 css/*.css 의 html.dark 규칙은 이 토큰을 참조하고,
    새 다크 규칙에도 #1a1a1a·#f5efe0·rgba(245,239,224,*) 같은 리터럴 색 대신 토큰을 쓴다.
-   (기존 --text-main/--rule/--page-bg/--np-*/--num-up 은 아래에서 이 토큰으로 연결한다.)
+   (기존 --text-main·--rule·--page-bg·--np-ink·--num-up 은 아래에서 이 토큰으로 연결한다.)
    bg 페이지 배경 / card 주요 카드 / inner 카드 안의 카드·입력 / panel 표 머리글·상세·상태 패널
    line 테두리 / text·sub·mute 글자 3단계 / hover·active 상호작용 / up·down·flat 등락(상승 빨강·하락 파랑) */
 html.dark {
