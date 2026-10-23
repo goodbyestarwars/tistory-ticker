@@ -838,17 +838,18 @@
       var priceLabel = Math.round(candidate.price).toLocaleString('ko-KR');
       var ratioText = (candidate.qty / avgOthers).toFixed(1) + '배';
       var distPct = currentPrice ? Math.abs(candidate.price - currentPrice) / currentPrice * 100 : null;
+      // 2026-10-23 사용자 요청: 이모지 없이 두 줄로 간결하게. 1줄 '매도벽 44,300원', 2줄 '평균 2.8배 · 현가 +0.3%'(부호는 현재가 대비 위/아래).
+      var signed = distPct === null ? '' : (candidate.price >= currentPrice ? '+' : '-');
       if (distPct !== null && distPct >= DISTANT_WALL_PCT) {
         badges.push({
           cls: group.side + ' suspect',
-          text: '🚨 ' + priceLabel + '원 ' + group.label + '벽 · 허수호가 의심\n현재가 대비 ' + distPct.toFixed(0)
-            + '% 거리 · 평균 대비 ' + ratioText,
+          text: group.label + '벽 ' + priceLabel + '원 · 허수 의심\n평균 ' + ratioText + ' · 현가 ' + signed + distPct.toFixed(0) + '%',
         });
       } else {
         badges.push({
           cls: group.side,
-          text: '🧱 ' + priceLabel + '원 ' + group.label + '벽\n평균 대비 ' + ratioText
-            + (distPct !== null ? ' · 현재가 대비 ' + distPct.toFixed(1) + '%' : ''),
+          text: group.label + '벽 ' + priceLabel + '원\n평균 ' + ratioText
+            + (distPct !== null ? ' · 현가 ' + signed + distPct.toFixed(1) + '%' : ''),
         });
       }
     });
@@ -863,7 +864,7 @@
     box.innerHTML = badges.map(function (b) {
       var extraCls = b.cls.split(' ').map(function (c) { return 'ob-abnormal-badge-' + c; }).join(' ');
       // 문자열 안의 줄바꿈은 두 줄로 나눠 보여준다(2026-10-23 사용자 요청: 매도벽·매수벽 모두 두 줄).
-      return '<span class="ob-abnormal-badge ' + extraCls + '">' + String(b.text).split('\n').map(escapeHtml).join('<br>') + '</span>';
+      return '<span class="ob-abnormal-badge ' + extraCls + '">' + String(b.text).split('\n').map(function (line, i) { return '<span class="ob-ab-l' + (i + 1) + '">' + escapeHtml(line) + '</span>'; }).join('') + '</span>';
     }).join('');
   }
 
