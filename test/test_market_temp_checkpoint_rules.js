@@ -7,7 +7,7 @@ const actor=(id,v)=>({id,label:{foreign:'외국인',institution:'기관',individ
 const vol=(v,intraday=false)=>({id:'kospi-volume',label:'코스피 거래량',value:v,valueText:v+'%',date:'2026-10-22',statusText:v<80?'낮음':v>=180?'극도로 높음':'평소 수준',intraday});
 const fx=d=>({id:'fx',value:1330,valueText:'1,330.0원',delta:d,changeText:d+'원',date:'2026-10-22'});
 const row=(symbol,a,b)=>({symbol,chart:[{date:'20261021',close:b},{date:'20261022',close:a}]});
-const macro=(vix,nq,sox)=>[row('VIX',vix[0],vix[1]),row('NASDAQ100',nq[0],nq[1]),row('SOX',sox[0],sox[1])];
+const macro=(vix,nq,sox)=>[row('VIX',vix[0],vix[1]),row('NASDAQ_INDEX',nq[0],nq[1]),row('SOX',sox[0],sox[1])];
 const data=(up,down)=>({updatedAt:'2026-10-23 06:00:00',marketBreadth:{total:{up,down,flat:10,total:up+down+10}}});
 const sell=[actor('foreign',-10e8),actor('institution',-20e8),actor('individual',30e8)];
 const buy=[actor('foreign',10e8),actor('institution',20e8),actor('individual',-30e8)];
