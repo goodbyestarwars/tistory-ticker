@@ -3457,7 +3457,19 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
 
 /* 2026-10-24 카드 안 수신 시각·출처 줄을 블록 아래 작은 한 줄로 묶고, 카드 안을 채우던 빈 공간(남는 높이 분배)을 없앴다 */
 @layer np.np {
-  html body #market-temp .mt-xlist.mt-xlist { align-items: start; }
-  html body #market-temp .mt-xlist.mt-xlist > .mt-xcard.mt-xcard { height: auto; }
+  html body #market-temp .mt-xlist.mt-xlist { align-items: stretch; }
+  html body #market-temp .mt-xlist.mt-xlist > .mt-xcard.mt-xcard { height: 100%; }
   html body #market-temp .mt-xnote { margin: 8px 0 0 !important; font-size: 10.5px; line-height: 1.5; color: var(--pulse-sub, #778396); }
+}
+
+/* 2026-10-24 같은 줄 카드는 높이를 맞추고, 상승=붉은 음영·하락=푸른 음영을 분명히, 카드 테두리는 모두 없앤다(선택·hover 포함, 선택은 배경색으로 구분) */
+@layer np.np {
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard, html body #market-temp .mt-indicator-chip.mt-indicator-chip { border-color: transparent !important; box-shadow: none !important; }
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard.is-positive { background: color-mix(in srgb, var(--pulse-red, #d35159) 11%, var(--pulse-surface, #fff)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard.is-negative { background: color-mix(in srgb, var(--pulse-blue, #2566d4) 11%, var(--pulse-surface, #fff)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard.is-selected { background: color-mix(in srgb, var(--pulse-blue, #2566d4) 14%, var(--pulse-surface, #fff)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard.is-positive.is-selected { background: color-mix(in srgb, var(--pulse-red, #d35159) 17%, var(--pulse-surface, #fff)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.mt-xcard.is-negative.is-selected { background: color-mix(in srgb, var(--pulse-blue, #2566d4) 17%, var(--pulse-surface, #fff)) !important; }
+  html body #market-temp .mt-xstate.is-positive { color: var(--pulse-red, #d35159); }
+  html body #market-temp .mt-xstate.is-negative { color: var(--pulse-blue, #2566d4); }
 }
