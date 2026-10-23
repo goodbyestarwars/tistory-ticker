@@ -3017,7 +3017,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-sf-card :is(.mt-sf-row, .mt-sf-row *, .mt-sf-thead, .mt-sf-thead *, .mt-sf-visual-head small, .mt-sf-note, .mt-sf-disclaimer) { font-size: 12px !important; }
   /* 카드 밖 머리글·설명 */
   html body #market-temp :is(.mt-page-head, .mt-page-head *, .mt-live-status, .mt-front-kicker, .mt-front-kicker *, .mt-front-lead, .mt-section-head p) { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; }
-  html body #market-temp :is(.mt-front-headline, .mt-extra-heading, .mt-section-head h2, .mt-section-head h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp :is(.mt-front-headline, .mt-section-head h2, .mt-section-head h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
 }
 
 /* 2026-10-23 섹터 표 행: 암묵 grid 행(22.7+4.7+4.7px)이 아래 여백을 만들어 글자가 위로 쏠렸다 - 한 행으로 고정하고 칸을 세로 중앙 정렬 */
@@ -3159,4 +3159,9 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-commodity-line > em.is-neutral { color: var(--pulse-sub, #778396); }
   html body #market-temp .mt-commodity-line > small { font-size: 10px; color: var(--pulse-sub, #778396); }
   html body #market-temp .mt-commodity-say { margin: 4px 0 0; font-size: 12px; line-height: 1.5; font-weight: 600; color: var(--pulse-ink, #202b3b); word-break: keep-all; }
+}
+
+/* 2026-10-23 카드 위 소제목은 큰 제목이 아니므로 Pretendard(마루부리는 큰 제목만) */
+@layer np.np {
+  html body #market-temp .mt-extra-heading.mt-extra-heading { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-weight: 700 !important; }
 }
