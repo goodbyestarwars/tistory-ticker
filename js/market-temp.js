@@ -2208,7 +2208,7 @@
     { symbol: 'WTI', label: 'WTI', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
     { symbol: 'BRENT', label: '브렌트유', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
     { symbol: 'GOLD', label: '금', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); } },
-    { symbol: 'BTC', label: '비트코인', fmt: function (v) { return v.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원'; } }
+    { symbol: 'BTC', label: '비트코인', fmt: function (v) { var eok = Math.floor(v / 1e8), man = Math.round((v - eok * 1e8) / 1e4); if (man >= 10000) { eok++; man = 0; } return (eok ? eok + '억 ' : '') + man.toLocaleString('ko-KR') + '만원'; } }
   ];
   function commodityStrip_(macro, now_) {
     if (!Array.isArray(macro) || !macro.length) return '';

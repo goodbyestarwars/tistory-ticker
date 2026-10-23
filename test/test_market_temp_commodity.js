@@ -7,7 +7,7 @@ const now=Date.parse('2026-10-23T05:00:00Z');
 const row=(symbol,price,rate,extra={})=>({symbol,price,change_rate:rate,updated_at:'2026-10-23T04:07:00Z',stale:false,...extra});
 assert.equal(f([],now),'');
 let html=f([row('WTI',99.99,0.52),row('BRENT',113.77,-0.75),row('GOLD',4030.9,0),row('BTC',109358000,0.42)],now);
-assert(html.includes('$99.99')&&html.includes('+0.52%')&&html.includes('-0.75%')&&html.includes('109,358,000원')&&html.includes('$4,030.9'));
+assert(html.includes('$99.99')&&html.includes('+0.52%')&&html.includes('-0.75%')&&html.includes('1억 936만원')&&html.includes('$4,030.9'));
 assert(html.includes('is-positive')&&html.includes('is-negative')&&html.includes('is-neutral'));
 assert(html.includes('10.23 13:07 기준'),'KST 시각');
 html=f([row('WTI',99.99,0.52),row('BRENT',113.77,0.7,{stale:true}),row('GOLD',4030.9,0.1,{updated_at:'2026-10-20T00:00:00Z'}),row('BTC',null,0.4)],now);
