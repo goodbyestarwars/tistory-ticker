@@ -142,7 +142,7 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
      검색창을 두 번째 줄로 내렸다(@media max-width:720px에서만 0이 아닌 값으로 바뀜) -
      그만큼 늘어난 navbar 높이를 page-wrap/sidebar-left 등 아래 오프셋 계산에 더한다. */
   --navbar-mobile-extra-height: 0px;
-  --font-title: "MaruBuri", "Maru Buri", Georgia, serif;
+  --font-title: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; /* 2026-10-24: Regular 대신 Bold 파일(굵은 글꼴이라 font-weight는 400) */
   --font-ui: "Pretendard", "Malgun Gothic", sans-serif;
   --font-data: "Pretendard", "Malgun Gothic", sans-serif;
   --page-bg: rgb(254, 253, 250); /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
@@ -2325,7 +2325,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
 .category-masthead h1 {
   margin: 0;
   color: var(--text-strong);
-  font: 700 24px/1.15 var(--font-title);
+  font: 400 24px/1.15 var(--font-title);
   letter-spacing: -.04em;
 }
 .category-masthead span {
