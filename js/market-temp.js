@@ -1595,6 +1595,7 @@
 
   // AI 코멘트 읽기: 실패해도 금융 데이터·카드 표시에는 영향이 없다(부분 지연으로 표시하지 않고 그냥 해설 없음으로 둔다).
   function loadAiComments_(container) {
+    if (!AI_CARD_COMMENTS_) return Promise.resolve(null);
     return sharedMarketJson_('__mtAiFetch', AI_COMMENTS_URL_, LANE_TTL_.ai).then(function (res) {
       var body = res && res.data ? res.data : res;
       if (!body || typeof body.comments !== 'object' || body.comments === null) return null;
@@ -2470,6 +2471,8 @@
   // 코멘트가 없거나(AI 장애·검증 탈락·현재 상태와 모순·너무 오래됨) 아직 못 받았으면 빈 칸으로 둔다 - 고정 문장으로 채우지 않는다(해설 없음이 안전한 기본값).
   // 이미 지난 거래일에 만든 코멘트를 보여 줄 때는 `· M.D 기준`을 붙이고, 마우스를 올리면 생성 시각·데이터 기준일·모델을 보인다.
   var AI_COMMENTS_URL_ = 'https://goodbyestar.cloud/ai-comments';
+  // 2026-10-24 사용자 지시: 모든 카드는 summary(제목·상태·수치·기준 시각)만 보이고 대화형 코멘트는 삭제한다. false면 코멘트를 그리지도, /ai-comments를 읽지도 않는다(서버 생성·저장은 유지).
+  var AI_CARD_COMMENTS_ = false;
   var AI_STATE_ = { comments: {}, loaded: false };
   function aiComment_(slot) {
     var c = AI_STATE_.comments && AI_STATE_.comments[slot];
@@ -2491,6 +2494,7 @@
   }
   // 카드 높이가 AI 로딩 때문에 흔들리지 않도록 span은 코멘트가 없어도 항상 그린다(CSS가 한 줄 높이를 예약).
   function aiSayHtml_(slot, cls) {
+    if (!AI_CARD_COMMENTS_) return '';
     var title = slot ? aiTitle_(slot) : '';
     return '<span class="' + cls + (slot && aiComment_(slot) ? '' : ' is-empty') + '"' + (slot ? ' data-ai-slot="' + slot + '"' : '') + (title ? ' title="' + escapeHtml(title) + '"' : '') + '>' + (slot ? aiSayInner_(slot) : '') + '</span>';
   }
@@ -2697,7 +2701,7 @@
     cards.push(oc ? { id: 'putcall', icon: 'putcall', detail: '풋·콜 거래량 비중', label: '옵션 풋/콜', tone: oc.tone, state: stateWord_(oc.tone, ['콜 우세', '풋 우세', '비슷']),
       rows: [{ k: '풋/콜', v: oc.ratio.toFixed(2), sub: '풋 ' + oc.put.toLocaleString('ko-KR') + ' · 콜 ' + oc.call.toLocaleString('ko-KR') }],
       ai: 'putcall', meta: '코스피200 · ' + oc.time,
-      panel: { html: '<div class="mt-pc-bar" role="img" aria-label="풋 ' + Math.round(oc.share * 100) + '% 콜 ' + (100 - Math.round(oc.share * 100)) + '%"><i class="put" style="width:' + (oc.share * 100).toFixed(1) + '%"></i><i class="call" style="width:' + ((1 - oc.share) * 100).toFixed(1) + '%"></i></div><p class="mt-indicator-chart-note">풋·콜 거래량 비중입니다. 이력이 없어 날짜별 그래프는 없습니다.</p>' } }
+      panel: { html: '<div class="mt-pc-bar" role="img" aria-label="풋 ' + Math.round(oc.share * 100) + '% 콜 ' + (100 - Math.round(oc.share * 100)) + '%"><i class="put" style="width:' + (oc.share * 100).toFixed(1) + '%"></i><i class="call" style="width:' + ((1 - oc.share) * 100).toFixed(1) + '%"></i></div>' } }
       : { id: 'putcall', icon: 'putcall', label: '옵션 풋/콜', tone: 'neutral', state: '미수신', rows: [], ai: null, meta: '값을 받지 못했습니다', panel: null });
     var rc = rateCard_(by, now_);
     cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 국채 10년 금리(%) · FRED 일봉 · 5거래일 ' + rc.five, label: '금리', tone: rc.tone, state: stateWord_(rc.tone, [rc.moveWord || '확인 중', rc.moveWord || '확인 중', rc.moveWord || '확인 중']),
@@ -3191,9 +3195,10 @@
     var s = b.snapshot, sig = s.signal, bucket = sig.bucket, tone = sig.tone, inp = s.inputs, night = s.night;
     var W = b.targetDate === payload.today ? '오늘' : b.targetLabel;
     // 칸 3줄: 이름 / 등락률 / 한 줄 해설(등락률의 부호·크기만 문장으로 옮김, 신호 계산과 무관). 상세는 야간선물 칸에서만 눌러 연다.
+    function stateWord(pct) { return Math.abs(pct) < 0.3 ? '보합' : pct > 0 ? '상승' : '하락'; }
     function item(name, kind, pct, good) {
       return '<li class="mt-tm-item ' + (good ? 'is-pos' : 'is-neg') + '"><span class="mt-tm-name">' + name + '</span>'
-        + '<b class="' + (good ? 'mt-val-pos' : 'mt-val-neg') + '">' + pctText_(pct) + '</b>' + aiSayHtml_(kind, 'mt-tm-say') + '</li>';
+        + '<b class="' + (good ? 'mt-val-pos' : 'mt-val-neg') + '">' + pctText_(pct) + '</b><span class="mt-tm-say">' + stateWord(pct) + '</span></li>';
     }
     var items = [
       item('S&P 500', 'spx', inp.spx.pct, inp.spx.pct > 0),
@@ -3210,7 +3215,7 @@
     if (night && night.included) {
       var nr = night.gapPct, cls = nr > 0 ? 'mt-val-pos' : nr < 0 ? 'mt-val-neg' : 'mt-val-zero';
       nightItem = '<li class="mt-tm-item mt-tm-nightcard ' + (nr > 0 ? 'is-pos' : nr < 0 ? 'is-neg' : '') + '"><details class="mt-tm-nd"' + open + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
-        + '<b class="' + cls + '">' + pctText_(nr) + '</b>' + aiSayHtml_('night', 'mt-tm-say') + '</summary>'
+        + '<b class="' + cls + '">' + pctText_(nr) + '</b><span class="mt-tm-say">' + stateWord(nr) + '</span></summary>'
         + '<dl class="mt-tm-ndetail">' + drow('야간 종가', Number(night.close).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
         + drow('주간 종가 대비', (night.change > 0 ? '+' : '') + Number(night.change).toFixed(2))
         + drow('상태', '최종 마감') + drow('세션', ymdLabel_(night.sessionDate) + ' 저녁~다음 날 05:00') + drow('출처', 'KIS 야간선물') + drow('신호 계산', '반영됨') + '</dl></details></li>';

@@ -2,10 +2,10 @@
 // 브라우저는 신호를 계산하지 않고 서버 스냅샷을 그리기만 한다. 갱신은 국내 정규장 단계별 레인으로 나뉜다.
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');
 const source = fs.readFileSync('js/market-temp.js', 'utf8').replace('global.MarketTemp = MarketTemp;',
-  'global.MarketTemp = MarketTemp; global.t={renderBriefing_,briefingMeta_,briefingTitle_,marketPhase_,lanePeriod_,nextRunAt_,dueLanes_,liveStatusText_,' +
+  'global.MarketTemp = MarketTemp; global.t={setAiCards:function(v){AI_CARD_COMMENTS_=v;},renderBriefing_,briefingMeta_,briefingTitle_,marketPhase_,lanePeriod_,nextRunAt_,dueLanes_,liveStatusText_,' +
   'buildCheckContext_,checkpointContextHtml_,intradayChanges_,sectorAsOf_,rankChangeHtml_,sharedMarketJson_,loadBriefing_,paintBriefing_,buildStrategy,marketRefreshDelay_,LANE_TTL_,LANE_PERIODS_,AI_STATE_,loadAiComments_};');
 const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: async () => ({ ok: true, json: async () => ({}) }) };
-vm.runInNewContext(source, sb);
+vm.runInNewContext(source, sb); sb.window.t.setAiCards(true); // 표시 계약 시험: 카드 코멘트 표시를 켜고 확인(기본 화면은 꺼져 있다 - test_market_temp_card_summary.js)
 const t = sb.window.t;
 const kst = (y, m, d, hh, mm, ss = 0) => Date.UTC(y, m - 1, d, hh - 9, mm, ss);
 
@@ -27,20 +27,17 @@ assert.equal(r.title, '시장 브리핑 · 10/26(월)');
 assert.equal(r.meta, '07:00 확정 · 미국장 마감 기준');
 assert(r.final && r.body.includes('하락 우세') && r.body.includes('오늘 시초는 내려서 시작할 가능성이 높습니다'), '오늘 브리핑 결론');
 assert(r.body.includes('-1.21%') && r.body.includes('-2.60%') && r.body.includes('+14.09%') && r.body.includes('-6.72%'), '미국 지표 수치');
-assert(r.body.includes('코스피200 야간선물') && r.body.includes('-2.61%') && r.body.includes('data-ai-slot="night"'), '야간선물 칸 기본: 이름·등락률·AI 코멘트 자리');
+assert(r.body.includes('코스피200 야간선물') && r.body.includes('-2.61%') && r.body.includes('mt-tm-say">하락<'), '야간선물 칸 기본: 이름·등락률·상태어(문장 없음)');
 assert(r.body.includes('mt-tm-nd') && r.body.includes('834.60') && r.body.includes('-22.40') && r.body.includes('KIS 야간선물') && r.body.includes('최종 마감') && r.body.includes('반영됨'), '상세에 종가·등락폭·상태·출처');
 assert.equal((r.body.match(/mt-tm-item/g) || []).length, 6, '6칸(S&P·나스닥·다우·SOX·VIX·야간선물)');
 assert(!r.body.includes('mt-tm-nd" open') && t.renderBriefing_(payload(brief()), { nightOpen: true }).body.includes('mt-tm-nd" open'), '야간선물 상세 열림 상태 유지');
 // 지표별 한 줄 해설은 서버 AI 코멘트(GET /ai-comments)다. 코멘트가 없으면 빈 칸(고정 문구로 채우지 않는다).
 assert(!/가까스로 버텼네|기술주 매도세|반도체 급락… 국내도|시장 불안이 커지고 있네/.test(r.body), '고정 해설 문구가 남아 있지 않다');
-assert(['spx', 'nas', 'dji', 'sox', 'vix', 'night'].every((k) => r.body.includes('data-ai-slot="' + k + '"')) && !/data-ai-slot=\"[a-z_]+\"[^>]*>[^<]/.test(r.body.replace(/<small/g, '<')), '코멘트 없음: 자리만 있고 비어 있음');
-t.AI_STATE_.comments = { sox: { text: '반도체가 크게 꺾여서 국내 반도체가 걱정되네', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-23', tradeDate: '2026-10-26', model: 'm' },
-  brief_summary: { text: '미국이 밀려서 시초는 무거울 수 있어 보이네', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-26', tradeDate: '2026-10-26', model: 'm' },
-  nas: { text: '<b>x</b> 기술주 이야기', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-23', tradeDate: '2020-01-02', model: 'm' } };
+// 2026-10-24: 카드에는 문장형 코멘트가 없다 - 칸은 이름·등락률·상태어(상승/하락/보합)만(AI 슬롯 없음). 맨 위 요약 한 줄만 켜면 표시 가능한 슬롯으로 남아 있다.
+assert(!/data-ai-slot="(spx|nas|dji|sox|vix|night)"/.test(r.body) && (r.body.match(/class="mt-tm-say"/g) || []).length === 6, '칸에는 문장 없이 상태어만');
+t.AI_STATE_.comments = { brief_summary: { text: '<b>x</b> 요약', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-23', tradeDate: '2026-10-26', model: 'm' } };
 { const ai = t.renderBriefing_(payload(brief())).body;
-  assert(ai.includes('반도체가 크게 꺾여서') && ai.includes('미국이 밀려서 시초는') && ai.includes('mt-ai-summary'), 'AI 코멘트 표시(칸·요약)');
-  assert(!ai.includes('<b>x</b>') && ai.includes('&lt;b&gt;x&lt;/b&gt;'), 'AI 문장은 HTML 이스케이프');
-  assert(ai.includes('1.2 기준'), '지난 거래일 코멘트는 원래 기준일을 표시: ' + ai.slice(ai.indexOf('data-ai-slot="nas"') - 40, ai.indexOf('data-ai-slot="nas"') + 220));
+  assert(ai.includes('mt-ai-summary') && !ai.includes('<b>x</b>') && ai.includes('&lt;b&gt;x&lt;/b&gt;'), '요약 슬롯은 켜면 표시되고 HTML 이스케이프');
   assert(ai.includes('title="AI 코멘트 · 생성 2026-10-26 07:03:00 · 데이터 기준 2026-10-23 · m"'), '생성 시각·데이터 기준일 툴팁');
   t.AI_STATE_.comments = {};
 }

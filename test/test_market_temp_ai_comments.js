@@ -2,10 +2,10 @@
 // 고정 문구 풀 없음 / 코멘트가 없으면 빈 칸(자리는 예약) / 실패해도 금융 데이터·카드는 그대로 / 지난 거래일 코멘트는 기준일 표시 / HTML 이스케이프.
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');
 const src = fs.readFileSync('js/market-temp.js', 'utf8').replace('global.MarketTemp = MarketTemp;',
-  'global.MarketTemp = MarketTemp; global.t={renderIndicatorRows_,buildIndicatorModels_,buildBreadthVisual_,frontPageStory_,buildSummaryCard,extrasBlock_,commodityStrip_,AI_STATE_,loadAiComments_,aiSayHtml_,lanePeriod_,marketPhase_};');
+  'global.MarketTemp = MarketTemp; global.t={setAiCards:function(v){AI_CARD_COMMENTS_=v;},renderIndicatorRows_,buildIndicatorModels_,buildBreadthVisual_,frontPageStory_,buildSummaryCard,extrasBlock_,commodityStrip_,AI_STATE_,loadAiComments_,aiSayHtml_,lanePeriod_,marketPhase_};');
 let fetchImpl = async () => ({ ok: true, json: async () => ({}) });
 const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: (...a) => fetchImpl(...a) };
-vm.runInNewContext(src, sb);
+vm.runInNewContext(src, sb); sb.window.t.setAiCards(true); // 표시 계약 시험: 카드 코멘트 표시를 켜고 확인(기본 화면은 꺼져 있다 - test_market_temp_card_summary.js)
 const t = sb.window.t;
 
 assert(!/COMMENT_POOLS_|commentHash_|marketComment_|marketCommentTier_|tmComment_|rateComment_|programComment_/.test(src), '미리 쓴 문장 풀·선택 함수가 남아 있지 않다');
