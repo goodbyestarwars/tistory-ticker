@@ -59,3 +59,4 @@ html.dark #dcf .dcf-status-review { color:#e0c17a; }
   #dcf .ui-btn-secondary { background:transparent !important; color:inherit !important; }
   #dcf input:not([type=checkbox]), #dcf select { border-radius:0 !important; box-shadow:none !important; border:1px solid #aaa !important; }
 }
+html.dark #dcf #dcf-suggestions button:hover, html.dark #dcf #dcf-suggestions [aria-selected=true] button { background: var(--dk-hover); }

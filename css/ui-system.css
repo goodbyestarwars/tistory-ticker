@@ -252,3 +252,4 @@ html.dark body .nt-stamp { color: var(--dk-sub) !important; }
    기준은 홈 관측 고점(#ad706b)·저점(#6386b2). 글자색(color)에만 쓴다 - 막대·선·배경 채움은 각자의 기존 색을 유지한다. */
 :root { --num-up: #ad706b; --num-down: #6386b2; }
 html.dark { --num-up: var(--dk-up); --num-down: var(--dk-down); }
+html.dark .ui-btn-c:hover, html.dark .ui-btn-soft:hover { background: var(--dk-hover); }

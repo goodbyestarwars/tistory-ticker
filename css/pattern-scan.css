@@ -1087,3 +1087,7 @@ html.dark #pattern-scan { --ps-ink: var(--dk-text); --ps-muted: var(--dk-sub); -
 
 html.dark #pattern-scan .ps-perf { background: var(--dk-card); }
 html.dark #pattern-scan .ps-track-summary { color: var(--dk-mute); }
+html.dark #pattern-scan .ps-view-tabs, html.dark .ps-view-tabs { background: var(--dk-inner); }
+html.dark .ps-view-tab { color: var(--dk-sub); }
+html.dark .ps-view-tab small { color: var(--dk-mute); }
+html.dark .ps-view-tab.active { background: var(--dk-active); color: var(--dk-text); box-shadow: none; }

@@ -3447,3 +3447,4 @@ html body #market-temp .mt-tomorrow-card .mt-tm-say { min-height: 1.4em; }
 html body #market-temp .mt-ai-asof { margin-left: 4px; font-size: 10px; font-weight: 400; opacity: .75; }
 
 html.dark #market-temp .mt-hot-go { color: var(--dk-bg) !important; }
+html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }

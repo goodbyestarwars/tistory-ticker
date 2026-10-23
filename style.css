@@ -8868,3 +8868,11 @@ html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyri
 html.dark .layer_post { background: var(--dk-inner) !important; border: 1px solid var(--dk-line) !important; }
 html.dark .home-neutral { color: var(--dk-flat) !important; }
 html.dark .briefing-search small { color: var(--dk-mute); }
+
+/* ===== 다크 보정 2 (2026-10-24): 라이트 전용 호버·서랍 흰/검은 면 ===== */
+html.dark body .global-watchlist-toggle { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark body .global-watchlist-panel .wl-input { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark body .global-watchlist-panel .wl-input:focus { border-color: var(--dk-mute) !important; background: var(--dk-inner) !important; }
+html.dark .home-settings-button:hover, html.dark .home-reset-button:hover, html.dark .home-widget-drag:hover, html.dark .home-widget-menu-button:hover, html.dark .home-briefing-more:hover { background: var(--dk-hover) !important; }
+html.dark .guest-section .item_reply:hover, html.dark .guest-section .item_guest:hover, html.dark .guest-section .btn_file:hover, html.dark .guest-section .btn_attach:hover { background: var(--dk-hover) !important; }
+html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.font-gothic) body #strategy-search .ss-tab:hover { background: var(--dk-hover) !important; }

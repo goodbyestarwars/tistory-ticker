@@ -486,3 +486,5 @@ html.dark #watchlist .wl-flow { color: var(--dk-mute) !important; }
   #watchlist .wl-add-btn,
   #watchlist .wl-login-btn { min-height: 44px; }
 }
+html.dark #watchlist .wl-group-add:hover { background: var(--dk-hover); }
+html.dark #watchlist .wl-input:focus { background: var(--dk-inner) !important; }
