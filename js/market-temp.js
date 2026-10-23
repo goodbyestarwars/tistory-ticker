@@ -2868,6 +2868,21 @@
     return { gap: (nClose / dClose - 1) * 100, date: String(dBar.date), pending: (now_ == null ? Date.now() : now_) < endMs };
   }
 
+  // 코스피200 야간선물 시세 상태(표시 전용): 값은 /futures의 KOSPI200_NIGHT 행(KIS 야간선물 수집) 그대로이며 주간 선물·현물로 대체하지 않는다.
+  // 야간 세션은 18:00~05:05(KST). 세션 중 5분 이내 갱신=실시간, 5분 넘게 묵음=지연, 세션 밖이거나 12시간 넘게 묵음=최종 마감, 72시간 넘게 묵음·값 없음=null(시세 없음).
+  function nightQuote_(row, now_) {
+    var now = now_ == null ? Date.now() : now_;
+    var price = row ? Number(row.price) : NaN, rate = row ? Number(row.change_rate) : NaN, change = row && row.change != null ? Number(row.change) : NaN;
+    var at = row && row.updated_at ? Date.parse(row.updated_at) : NaN;
+    if (!(row && row.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at)) || now - at > 72 * 3600000) return null;
+    var kst = new Date(now + 9 * 3600000), min = kst.getUTCHours() * 60 + kst.getUTCMinutes();
+    var inSession = min >= 18 * 60 || min <= 5 * 60 + 5, age = now - at;
+    var status = !inSession || age > 12 * 3600000 ? '최종 마감' : age <= 5 * 60000 ? '실시간' : '지연 ' + Math.round(age / 60000) + '분';
+    var k = new Date(at + 9 * 3600000), p2 = function (n) { return String(n).padStart(2, '0'); };
+    return { price: price, rate: rate, change: isFinite(change) ? change : null, status: status,
+      time: p2(k.getUTCMonth() + 1) + '.' + p2(k.getUTCDate()) + ' ' + p2(k.getUTCHours()) + ':' + p2(k.getUTCMinutes()) + ' KST' };
+  }
+
   // 신호 계산(순수 함수): by = {심볼: /futures 행}, ymd = 대상 거래일(YYYYMMDD). 미국 현물 3지수·SOX·VIX·원/달러 중 하나라도 없으면 null.
   // 야간선물은 세션이 끝난 뒤에만 점수에 넣는다(진행 중이면 night.pending).
   function tomorrowSignal_(by, ymd, now_) {
@@ -2926,7 +2941,7 @@
 
   function buildTomorrowCard_() {
     return '<section class="mt-section mt-card mt-tomorrow-card" data-mt-tomorrow>'
-      + '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong><small>미국 현물 마감 기준으로 본 코스피 출발</small></div>'
+      + '<div class="mt-tm-head"><strong>' + nextKospiDay_().word + ' 전망</strong><small>미국 현물 마감 기준으로 본 코스피 출발</small></div>'
       + '<div class="mt-hint">미국 시장 움직임을 확인하는 중입니다.</div></section>';
   }
 
@@ -2937,8 +2952,8 @@
       var by = {};
       rows.forEach(function (r) { by[r.symbol] = r; });
       var target = nextKospiDay_();
-      var key = JSON.stringify(rows) + target.ymd + target.word;
-      var W = target.word, title = '<strong>그래서 ' + W + '은?</strong>';
+      var key = JSON.stringify(rows) + target.ymd + target.word + Math.floor(Date.now() / 60000); // 분 단위 포함: 야간선물 실시간/지연 표시가 시간에 따라 바뀐다
+      var W = target.word, title = '<strong>' + W + ' 전망</strong>';
       var heading = container.querySelector('[data-mt-tomorrow-heading]');
       if (heading) heading.textContent = target.label + ' 출발';
       if (mount.__mtTomorrowKey === key) return;
@@ -2947,46 +2962,52 @@
       var night = sig.night, useNight = sig.useNight, bucket = sig.bucket, r = sig.r;
       var tone = /up/i.test(bucket.key) ? 'up' : /down/i.test(bucket.key) ? 'down' : 'flat';
       function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
-      function cls(v) { return v > 0 ? 'mt-val-pos' : v < 0 ? 'mt-val-neg' : 'mt-val-zero'; }
       function md(d) { return String(d).slice(4, 6) + '/' + String(d).slice(6, 8); }
       // tag는 값의 부호만으로 정한 짧은 해석 힌트(신호 계산과 무관): good=시초 방향에 우호적인 쪽
       var why = [
-        { name: 'S&P 500', val: r.spx.pct, note: '미국 정규장 종가 · ' + md(r.spx.date), good: r.spx.pct > 0, tag: r.spx.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '나스닥 종합', val: r.nas.pct, note: '미국 정규장 종가 · ' + md(r.nas.date), good: r.nas.pct > 0, tag: r.nas.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '다우존스', val: r.dji.pct, note: '미국 정규장 종가 · ' + md(r.dji.date), good: r.dji.pct > 0, tag: r.dji.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '필라델피아 반도체', val: r.sox.pct, note: '코스피에 반도체 비중이 커서', good: r.sox.pct > 0, tag: r.sox.pct > 0 ? '반도체 강세' : '반도체 약세' },
-        { name: 'VIX', val: r.vix.pct, note: '미국 공포지수 · 오르면 위험회피', good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' },
-        { name: '원/달러', val: r.fx.pct, note: '일봉 기준 · 오르면 원화 약세, 외국인 매도 압력', good: r.fx.pct < 0, tag: r.fx.pct < 0 ? '환율 안정' : '환율 부담' }
+        { name: 'S&P 500', val: r.spx.pct, good: r.spx.pct > 0, tag: r.spx.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '나스닥 종합', val: r.nas.pct, good: r.nas.pct > 0, tag: r.nas.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '다우존스', val: r.dji.pct, good: r.dji.pct > 0, tag: r.dji.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '필라델피아 반도체', val: r.sox.pct, good: r.sox.pct > 0, tag: r.sox.pct > 0 ? '반도체 강세' : '반도체 약세' },
+        { name: 'VIX', val: r.vix.pct, good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' },
+        { name: '원/달러', val: r.fx.pct, good: r.fx.pct < 0, tag: r.fx.pct < 0 ? '환율 안정' : '환율 부담' }
       ];
-      if (useNight) why.push({ name: '야간 코스피200 선물', val: night.gap, note: '주간 종가 대비 · 다음 시초와 가장 가까운 단서', good: night.gap > 0, tag: night.gap > 0 ? '야간 강세' : '야간 약세' });
-      var cols = why.length >= 7 ? 4 : 3;
-      why = why.map(function (w) {
-        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span><span class="mt-tm-name">' + w.name + '</span><small>' + w.note + '</small></span>'
+      var usDates = [r.spx.date, r.nas.date, r.dji.date].filter(function (d, i, a) { return a.indexOf(d) === i; }).map(md).join('·');
+      var items = why.map(function (w) {
+        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span><span class="mt-tm-name">' + w.name + '</span></span>'
           + '<b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b><em class="mt-tm-tag">' + w.tag + '</em></li>';
       }).join('');
-      var nightHtml = '';
-      // 야간선물은 위 7번째 칸으로 점수에 들어간다. 야간 세션이 아직 끝나기 전(다음 날 05:05 KST 전)에만 참고 한 줄로 보여준다.
-      if (night && night.pending) {
-        nightHtml = '<div class="mt-tm-night">참고 · 야간선물 진행 중(지금까지 주간 종가보다 <b class="' + cls(night.gap) + '">' + sgn(night.gap) + '</b>)'
-          + ' <small>야간 세션이 끝나는 오전 5시 이후 점수에 반영합니다</small></div>';
-      }
-      var auxHtml = '';
+      // 코스피200 야간선물: 신호 점수 반영 여부와 무관하게 항상 보여준다. 값이 없으면 '시세 없음'(주간 선물·현물로 대체하지 않는다).
+      var nq = nightQuote_(by.KOSPI200_NIGHT, Date.now());
+      var nightScore = useNight ? '신호 점수에 반영' : '참고 · 점수에는 야간 세션 종료(05:05) 후 반영';
+      var nightItem = nq
+        ? '<li class="mt-tm-item mt-tm-nightcard ' + (nq.rate > 0 ? 'is-pos' : nq.rate < 0 ? 'is-neg' : '') + '"><span><span class="mt-tm-name">코스피200 야간선물</span></span>'
+          + '<span class="mt-tm-nval"><b class="' + (nq.rate > 0 ? 'mt-val-pos' : nq.rate < 0 ? 'mt-val-neg' : 'mt-val-zero') + '">' + sgn(nq.rate) + '</b><span>' + nq.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+          + (nq.change == null ? '' : ' (' + (nq.change > 0 ? '+' : '') + nq.change.toFixed(2) + ')') + '</span></span>'
+          + '<em class="mt-tm-tag">' + nq.status + ' · ' + nq.time + '</em>'
+          + '<small class="mt-tm-nmeta">출처 KIS 야간선물 · ' + nightScore + '</small></li>'
+        : '<li class="mt-tm-item mt-tm-nightcard is-none"><span><span class="mt-tm-name">코스피200 야간선물</span></span>'
+          + '<span class="mt-tm-nval"><b class="mt-val-zero">시세 없음</b></span><em class="mt-tm-tag">데이터 확인 중</em>'
+          + '<small class="mt-tm-nmeta">야간선물 시세를 받지 못했습니다(주간 선물·현물로 대체하지 않음)</small></li>';
+      // 5초 브리핑: 미국장 → 한국장 영향(결론은 위 헤드라인). 값의 부호만 문장으로 옮긴다.
+      var us3 = [r.spx.pct, r.nas.pct, r.dji.pct], up3 = us3.filter(function (v) { return v > 0; }).length;
+      var briefUs = (up3 === 3 ? '3대 지수 상승' : up3 === 0 ? '3대 지수 하락' : '3대 지수 엇갈림') + ' · 반도체 ' + (r.sox.pct > 0 ? '강세' : '약세') + ' · VIX ' + (r.vix.pct > 0 ? '상승' : '하락');
+      var briefKr = '환율 ' + (r.fx.pct > 0 ? '상승(원화 약세)' : '하락(원화 강세)') + ' · 야간선물 ' + (nq ? sgn(nq.rate) : '시세 없음');
       var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
         : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
         : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
-      // 결론(패널) → 근거 지표 → 신뢰도 순. 배지는 방향만(문구는 bucket.label이 이미 강도를 말한다)
       var badge = tone === 'up' ? '↗ 상승' : tone === 'down' ? '↘ 하락' : '→ 중립';
       mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + (useNight ? '미국 현물 마감 + 야간선물 + VIX·환율 기준' : '미국 현물 마감 + VIX·환율 기준') + '</small></div>'
-        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><em class="mt-tm-badge">' + badge + '</em><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
-        + '<ul class="mt-tm-why" style="--mt-tm-cols:' + cols + '">' + why + '</ul>'
+        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><em class="mt-tm-badge">' + badge + '</em><b>' + bucket.label + '</b><span>' + verdictText + '</span>'
+        + '<div class="mt-tm-brief"><p><i>미국장</i>' + briefUs + '</p><p><i>한국장 영향</i>' + briefKr + '</p></div></div>'
+        + '<ul class="mt-tm-why">' + items + nightItem + '</ul>'
+        + '<p class="mt-tm-meta">미국 정규장 종가 ' + usDates + ' · VIX·환율은 일봉 기준 · 오르면 부담(VIX는 위험회피, 환율은 원화 약세) · 반도체는 코스피 비중이 커서 반영</p>'
         + '<div class="mt-tm-proof"><b>이 신호를 믿을 만한 이유</b>'
         + '<span class="mt-tm-proof-line">같은 강도 신호 <b>' + bucket.n + '거래일</b>(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
-        + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>'
-        + nightHtml + auxHtml
-        + '';
+        + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>';
       mount.__mtTomorrowKey = key;
     }).catch(function () {
-      if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
+      if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>' + nextKospiDay_().word + ' 전망</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
     });
   }
 
