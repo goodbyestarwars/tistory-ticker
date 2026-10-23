@@ -3448,3 +3448,11 @@ html body #market-temp .mt-ai-asof { margin-left: 4px; font-size: 10px; font-wei
 
 html.dark #market-temp .mt-hot-go { color: var(--dk-bg) !important; }
 html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
+
+/* 2026-10-24 시장 한눈에 수치 강조: 코멘트가 빠진 만큼 핵심 수치(금액·비중)를 한 단계 키워 한눈에 보이게 한다(PC만, 모바일 줄 수 규칙은 그대로) */
+@layer np.np {
+  @media (min-width: 721px) {
+    html body #market-temp .mt-glance-row:not(.mt-investor-row *) .mt-glance-amount { font-size: 13.5px !important; font-weight: 700; }
+    html body #market-temp .mt-glance-row .mt-glance-state { font-size: 13px !important; }
+  }
+}

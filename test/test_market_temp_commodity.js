@@ -1,8 +1,8 @@
 // 시장 한눈에 원자재·가상자산 블록 + 공용 코멘트 모듈: 값은 /futures 응답 그대로, 없거나 stale이면 '미수신'(대체 금지).
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
-const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={commodityStrip_,AI_STATE_,aiSayHtml_};');
+const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={setAiCards:function(v){AI_CARD_COMMENTS_=v;},commodityStrip_,AI_STATE_,aiSayHtml_};');
 const sb={window:{},document:{readyState:'loading',addEventListener(){}},console,setTimeout,clearTimeout,fetch:async()=>({ok:true,json:async()=>({})})};
-vm.runInNewContext(src,sb);const {commodityStrip_:f,AI_STATE_:ai,aiSayHtml_:say}=sb.window.t;
+vm.runInNewContext(src,sb);sb.window.t.setAiCards(true);const {commodityStrip_:f,AI_STATE_:ai,aiSayHtml_:say}=sb.window.t;
 // 코멘트는 서버가 실제 데이터로 생성·검증한 AI 문장이다. 고정 문구 풀(COMMENT_POOLS_)과 날짜 해시 선택은 없다.
 assert(!/COMMENT_POOLS_|commentHash_|marketComment_/.test(src),'고정 문구 풀 제거');
 assert.equal(say('oil','mt-xsay'),'<span class="mt-xsay is-empty" data-ai-slot="oil"></span>','코멘트가 없으면 빈 자리만(높이 예약, 고정 문장 없음)');
