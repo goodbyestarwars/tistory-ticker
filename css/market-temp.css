@@ -3075,7 +3075,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-tomorrow-card { --mt-soft: #f5f8fd; }
   html.dark body #market-temp .mt-tomorrow-card { --mt-soft: #283340; }
-  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 14px 0 8px; border-top: 0 !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px !important; margin: 14px 0 8px !important; border-top: 0 !important; }
   html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li { padding: 12px 14px !important; border: 0 !important; border-radius: 9px; background: var(--mt-soft) !important; }
   html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li:first-child { padding-left: 14px !important; }
   @media (max-width: 720px) {
@@ -3088,4 +3088,16 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-flow-arrow.is-up { color: var(--pulse-red, #d35159) !important; }
   html body #market-temp .mt-flow-arrow.is-down { color: var(--pulse-blue, #2566d4) !important; }
   html body #market-temp .mt-flow-arrow.is-flat { color: var(--pulse-sub, #778396) !important; }
+}
+
+/* 2026-10-23 사용자 지시: 시장 한눈에 헤드라인("하락 종목 …개, 내림세 우세")은 검은 글자 + Pretendard.
+   방향 배경(연한 파랑·빨강 배지)은 유지하고 글자색·글꼴만 바꾼다. 신호 칸 간격은 위 카드형 규칙에 !important를 붙여
+   레이어 밖 gap:0(2032행)보다 앞서게 했다. */
+@layer np.np {
+  html body #market-temp .mt-front-headline.mt-front-headline.mt-front-headline {
+    font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important;
+    font-weight: 700 !important;
+    color: #111 !important;
+  }
+  html.dark body #market-temp .mt-front-headline.mt-front-headline.mt-front-headline { color: #f5efe0 !important; }
 }
