@@ -501,7 +501,7 @@ html.dark .qi-news { border-color: var(--dk-line) !important; }
 html.dark .qi-news-item { color: var(--dk-text) !important; }
 html.dark .qi-news-item:hover { color: var(--dk-sub) !important; }
 html.dark .qi-news-corp { color: var(--dk-mute) !important; }
-html.dark .qi-news-market-kospi { background: #1c2c4d !important; }
+html.dark .qi-news-market-kospi { background: rgba(var(--dk-down-rgb),.16) !important; }
 html.dark .qi-news-market-kosdaq { background: var(--dk-inner) !important; }
 html.dark .qi-news-market-news { color: var(--dk-sub) !important; background: var(--dk-inner) !important; }
 html.dark .qi-news-loading { color: var(--dk-mute) !important; }

@@ -264,8 +264,8 @@ html.dark #sidebar-rank .sr-tab.active { background: var(--dk-active) !important
 html.dark #sidebar-rank .sr-retry { background: transparent !important; color: var(--dk-text) !important; border-color: var(--dk-line) !important; }
 html.dark #sidebar-rank .sr-name { color: var(--dk-text) !important; }
 html.dark #sidebar-rank .sr-price { color: var(--dk-text) !important; }
-html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: var(--dk-up) !important; }
-html.dark #sidebar-rank .sr-rate.sr-down { background: #20304a !important; color: var(--dk-down) !important; }
+html.dark #sidebar-rank .sr-rate.sr-up { background: rgba(var(--dk-up-rgb),.16) !important; color: var(--dk-up) !important; }
+html.dark #sidebar-rank .sr-rate.sr-down { background: rgba(var(--dk-down-rgb),.16) !important; color: var(--dk-down) !important; }
 html.dark #sidebar-rank .sr-rate.sr-flat { background: var(--dk-hover) !important; color: var(--dk-sub) !important; }
 html.dark #sidebar-rank .sr-amount { color: var(--dk-sub) !important; }
 html.dark #sidebar-rank .sr-hint { color: var(--dk-mute) !important; }
@@ -281,7 +281,7 @@ html.dark .sr-modal-list .sr-price { color: var(--dk-text) !important; }
 html.dark .sr-modal-list .sr-rank { color: var(--dk-mute) !important; }
 html.dark .sr-modal-list .sr-amount { color: var(--dk-sub) !important; }
 html.dark .sr-modal-list .sr-hint { color: var(--dk-mute) !important; }
-html.dark .sr-modal-list .sr-rate.sr-up { background: #3a2523 !important; color: var(--dk-up) !important; }
-html.dark .sr-modal-list .sr-rate.sr-down { background: #20304a !important; color: var(--dk-down) !important; }
+html.dark .sr-modal-list .sr-rate.sr-up { background: rgba(var(--dk-up-rgb),.16) !important; color: var(--dk-up) !important; }
+html.dark .sr-modal-list .sr-rate.sr-down { background: rgba(var(--dk-down-rgb),.16) !important; color: var(--dk-down) !important; }
 html.dark .sr-modal-list .sr-rate.sr-flat { background: var(--dk-hover) !important; color: var(--dk-sub) !important; }
 html.dark .sr-modal-list .sr-row:hover { background: var(--dk-hover) !important; }

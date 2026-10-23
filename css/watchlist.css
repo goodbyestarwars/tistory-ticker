@@ -445,7 +445,7 @@ html.dark #watchlist .wl-suggest-item:hover,
 html.dark #watchlist .wl-suggest-item.active { background: var(--dk-hover) !important; }
 html.dark #watchlist .wl-msg {
   color: var(--dk-up) !important;
-  background: #3a2323 !important;
+  background: rgba(var(--dk-up-rgb),.16) !important;
   border-color: #5a3333 !important;
 }
 html.dark #watchlist .wl-empty { color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
@@ -466,7 +466,7 @@ html.dark #watchlist .wl-remove:hover { background: var(--dk-hover) !important; 
 html.dark #watchlist .wl-name { color: var(--dk-text) !important; }
 html.dark #watchlist .wl-price { color: var(--dk-text) !important; }
 html.dark #watchlist .wl-change { color: var(--dk-mute) !important; background: var(--dk-hover) !important; }
-html.dark #watchlist .wl-change.wl-up { color: var(--dk-up) !important; background: #3a2323 !important; }
+html.dark #watchlist .wl-change.wl-up { color: var(--dk-up) !important; background: rgba(var(--dk-up-rgb),.16) !important; }
 html.dark #watchlist .wl-change.wl-down { color: var(--dk-down) !important; background: var(--dk-card) !important; }
 html.dark #watchlist .wl-session { color: var(--dk-mute) !important; }
 html.dark #watchlist .wl-flow { color: var(--dk-mute) !important; }

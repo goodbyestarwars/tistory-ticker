@@ -237,10 +237,10 @@ html.dark #invest-signal .is-chip {
   color: var(--dk-text) !important;
 }
 html.dark #invest-signal .is-chip b { color: var(--dk-text) !important; }
-html.dark #invest-signal .is-chip-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: var(--dk-up) !important; }
+html.dark #invest-signal .is-chip-buy { background: rgba(var(--dk-up-rgb),.16) !important; border-color: rgba(var(--dk-up-rgb),.4) !important; color: var(--dk-up) !important; }
 html.dark #invest-signal .is-chip-hold { background: #34301f !important; border-color: #5c5335 !important; color: #d9c04a !important; }
 html.dark #invest-signal .is-chip-reduce { background: #3a2f20 !important; border-color: #5c4a35 !important; color: #d9a94a !important; }
-html.dark #invest-signal .is-chip-sell { background: #20304a !important; border-color: #33507a !important; color: var(--dk-down) !important; }
+html.dark #invest-signal .is-chip-sell { background: rgba(var(--dk-down-rgb),.16) !important; border-color: rgba(var(--dk-down-rgb),.4) !important; color: var(--dk-down) !important; }
 html.dark #invest-signal .is-desc-note { color: var(--dk-mute) !important; }
 html.dark #invest-signal .is-error { color: #e8877e !important; }
 

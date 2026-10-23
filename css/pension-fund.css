@@ -168,8 +168,8 @@ html.dark #pension-fund .pf-metrics { background: #1f1f1f !important; }
 html.dark #pension-fund .pf-metric-label { color: var(--dk-mute) !important; }
 html.dark #pension-fund .pf-up { color: var(--dk-up) !important; }
 html.dark #pension-fund .pf-down { color: var(--dk-down) !important; }
-html.dark #pension-fund .pf-interp.pf-tone-very_positive { background: #3a2323 !important; }
-html.dark #pension-fund .pf-interp.pf-tone-positive { background: #362a1f !important; }
+html.dark #pension-fund .pf-interp.pf-tone-very_positive { background: rgba(var(--dk-up-rgb),.16) !important; }
+html.dark #pension-fund .pf-interp.pf-tone-positive { background: rgba(var(--dk-up-rgb),.16) !important; }
 html.dark #pension-fund .pf-interp.pf-tone-neutral_positive { background: #34301f !important; }
 html.dark #pension-fund .pf-interp.pf-tone-caution { background: var(--dk-card) !important; }
 html.dark #pension-fund .pf-interp.pf-tone-neutral { background: var(--dk-inner) !important; }

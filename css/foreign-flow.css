@@ -1506,8 +1506,8 @@ html.dark #foreign-flow .ff-spinner {
   color: var(--dk-text) !important;
 }
 html.dark #foreign-flow .ff-error {
-  background: #3a2523 !important;
-  border-color: #5c3835 !important;
+  background: rgba(var(--dk-up-rgb),.16) !important;
+  border-color: rgba(var(--dk-up-rgb),.4) !important;
   color: #e8877e !important;
 }
 html.dark #foreign-flow .ff-summary { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
@@ -1516,8 +1516,8 @@ html.dark #foreign-flow .ff-stars { color: var(--dk-mute) !important; }
 html.dark #foreign-flow .ff-stars::before { color: #ffb84d !important; }
 html.dark #foreign-flow .ff-verdict-score { color: var(--dk-sub) !important; }
 html.dark #foreign-flow .ff-verdict-box { border-color: var(--dk-line) !important; }
-html.dark #foreign-flow .ff-verdict-box-buy { background: #3a2523 !important; }
-html.dark #foreign-flow .ff-verdict-box-sell { background: #20304a !important; }
+html.dark #foreign-flow .ff-verdict-box-buy { background: rgba(var(--dk-up-rgb),.16) !important; }
+html.dark #foreign-flow .ff-verdict-box-sell { background: rgba(var(--dk-down-rgb),.16) !important; }
 html.dark #foreign-flow .ff-verdict-box-flat { background: var(--dk-inner) !important; }
 html.dark #foreign-flow .ff-extra-help { background: var(--dk-inner) !important; color: var(--dk-sub) !important; }
 html.dark #foreign-flow .ff-header { color: var(--dk-text) !important; }
@@ -1530,8 +1530,8 @@ html.dark #foreign-flow .ff-table .ff-td-label { background: var(--dk-inner) !im
 html.dark #foreign-flow .ff-buy { color: var(--dk-up) !important; }
 html.dark #foreign-flow .ff-sell { color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-flat { color: var(--dk-sub) !important; }
-html.dark #foreign-flow .ff-badge-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: var(--dk-up) !important; }
-html.dark #foreign-flow .ff-badge-sell { background: #20304a !important; border-color: #33507a !important; color: var(--dk-down) !important; }
+html.dark #foreign-flow .ff-badge-buy { background: rgba(var(--dk-up-rgb),.16) !important; border-color: rgba(var(--dk-up-rgb),.4) !important; color: var(--dk-up) !important; }
+html.dark #foreign-flow .ff-badge-sell { background: rgba(var(--dk-down-rgb),.16) !important; border-color: rgba(var(--dk-down-rgb),.4) !important; color: var(--dk-down) !important; }
 html.dark #foreign-flow .ff-badge-shift { background: #3a3220 !important; border-color: #5c5035 !important; color: #d9a94a !important; }
 html.dark #foreign-flow .ff-badge-neutral { background: var(--dk-hover) !important; border-color: var(--dk-line) !important; color: var(--dk-sub) !important; }
 html.dark #foreign-flow .ff-badge-theme { background: #262b52 !important; border-color: #3d4380 !important; color: #a5abf0 !important; }
@@ -1580,8 +1580,8 @@ html.dark #foreign-flow .ff-squeeze-grade { background: var(--dk-inner) !importa
 html.dark #foreign-flow .ff-extra-badge { background: var(--dk-hover) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
 html.dark #foreign-flow .ff-extra-streak { color: var(--dk-text) !important; }
 html.dark #foreign-flow .ff-extra-interp { background: var(--dk-inner) !important; }
-html.dark #foreign-flow .ff-extra-tone-very_positive { background: #3a2323 !important; }
-html.dark #foreign-flow .ff-extra-tone-positive { background: #362a1f !important; }
+html.dark #foreign-flow .ff-extra-tone-very_positive { background: rgba(var(--dk-up-rgb),.16) !important; }
+html.dark #foreign-flow .ff-extra-tone-positive { background: rgba(var(--dk-up-rgb),.16) !important; }
 html.dark #foreign-flow .ff-extra-tone-neutral_positive { background: #34301f !important; }
 html.dark #foreign-flow .ff-extra-tone-caution { background: var(--dk-card) !important; }
 html.dark #foreign-flow .ff-extra-tone-neutral { background: var(--dk-inner) !important; }
@@ -3235,3 +3235,6 @@ html.dark .ff-vp-an-table tr.on { background: #2b2620; }
 #foreign-flow .ff-legend .ff-legend-click { cursor: pointer; border-radius: 3px; padding: 0 3px; }
 #foreign-flow .ff-legend .ff-legend-click:hover { background: rgba(120, 120, 120, .14); }
 #foreign-flow .ff-legend .ff-legend-click.is-on { font-weight: 700; text-decoration: underline; text-underline-offset: 2px; background: rgba(120, 120, 120, .18); }
+
+html.dark #foreign-flow .ff-swing-summary strong.ff-tone-down { color: var(--dk-down); }
+html.dark #foreign-flow .ff-swing-summary strong.ff-tone-flat { color: var(--dk-flat); }

@@ -338,7 +338,7 @@ html.dark .my-search-panel p, html.dark .my-shape-note, html.dark .my-range-labe
 html.dark .my-search-row input, html.dark .my-shape-grid > div, html.dark .my-calc-auto span { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
 html.dark .my-input-logo { background: var(--dk-inner); color: var(--dk-sub); }
 html.dark .my-volume-row > i { background: var(--dk-inner); }
-html.dark .my-shape-badge { background: #1d3158; color: #bfdbfe; }
+html.dark .my-shape-badge { background: rgba(var(--dk-down-rgb),.16); color: #bfdbfe; }
 html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: var(--dk-sub); }
 html.dark .my-calc-auto strong { color: var(--dk-text); }
 html.dark .my-composite-card { background: linear-gradient(135deg, #302522, var(--dk-card)); }
@@ -360,7 +360,7 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
 #my-dashboard .my-shape-badge.is-up { background: #fff0ed; color: var(--num-up); }
 #my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: var(--num-down); }
 html.dark #my-dashboard .my-shape-badge.is-up { background: #49231f; color: #ff9b8f; }
-html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #93c5fd; }
+html.dark #my-dashboard .my-shape-badge.is-down { background: rgba(var(--dk-down-rgb),.16); color: #93c5fd; }
 
 /* 2026-08-23: MY 화면의 확장형 스타일이 카드마다 큰 여백과 큰 글자를 강제해
    정보 밀도가 낮아졌다. 핵심 값은 읽히게 유지하면서 기본 카드 단위로 되돌린다. */

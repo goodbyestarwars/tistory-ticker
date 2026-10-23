@@ -1084,3 +1084,6 @@ html.dark #pattern-scan { --ps-ink: var(--dk-text); --ps-muted: var(--dk-sub); -
 @media(max-width:768px) {
  #pattern-scan .ps-list-head { display: none; }
 }
+
+html.dark #pattern-scan .ps-perf { background: var(--dk-card); }
+html.dark #pattern-scan .ps-track-summary { color: var(--dk-mute); }

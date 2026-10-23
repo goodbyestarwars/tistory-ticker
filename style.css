@@ -4799,8 +4799,8 @@ html.dark body { background: var(--dk-bg); color: var(--dk-text); }
    bg 페이지 배경 / card 주요 카드 / inner 카드 안의 카드·입력 / panel 표 머리글·상세·상태 패널
    line 테두리 / text·sub·mute 글자 3단계 / hover·active 상호작용 / up·down·flat 등락(상승 빨강·하락 파랑) */
 html.dark {
-  --dk-bg: #1a1a1a;
-  --dk-card: #202731;
+  --dk-bg: var(--dk-bg);
+  --dk-card: var(--dk-card);
   --dk-inner: #283340;
   --dk-panel: #272f3a;
   --dk-line: #37424e;
@@ -4809,8 +4809,8 @@ html.dark {
   --dk-mute: #8899ad;
   --dk-hover: #344355;
   --dk-active: #3a4d65;
-  --dk-up: #e28d98;
-  --dk-down: #8aaddf;
+  --dk-up: var(--dk-up);
+  --dk-down: var(--dk-down);
   --dk-flat: #aab6c6;
   --dk-up-rgb: 226, 141, 152;
   --dk-down-rgb: 138, 173, 223;
@@ -5018,7 +5018,7 @@ html.dark .nav-search-suggest-title { color: var(--dk-mute); }
 html.dark .nav-search-suggest-item { color: var(--dk-text); }
 html.dark .nav-search-suggest-item:hover, html.dark .nav-search-suggest-item.active { background: var(--dk-hover); }
 html.dark .nav-search-rate-badge:not(:empty) { background: var(--dk-hover); }
-html.dark .nav-search-rate-badge.rate-up { color: var(--dk-up); background: #3a2323; }
+html.dark .nav-search-rate-badge.rate-up { color: var(--dk-up); background: rgba(var(--dk-up-rgb),.16); }
 html.dark .nav-search-rate-badge.rate-down { color: var(--dk-down); background: var(--dk-card); }
 html.dark .nav-search-current-price { color: var(--dk-text); }
 html.dark .nav-search-suggest-code { color: #93c5fd; }
@@ -5053,7 +5053,7 @@ html.dark .popular-list .pop-item:last-child { border-bottom: none; }
 
 /* 사이드바 아이콘 배경(오늘/전체/글/방명록 4종을 색으로 구분하는 용도) - 카테고리 뱃지와
    같은 이유로 구분색 유지, 배경 통일 대상에서 제외 */
-html.dark .si-blue { background: #1c2c4d; }
+html.dark .si-blue { background: rgba(var(--dk-down-rgb),.16); }
 html.dark .si-amber { background: #2d2410; }
 html.dark .si-purple { background: #251b3d; }
 html.dark .si-green { background: #122b1d; }
@@ -8860,3 +8860,7 @@ html.dark body#tt-body-index .briefing-carousel-controls button { background: va
 @layer np.np {
   html.dark body .site-footer-learn .learn-mobile-controls button { background-color: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
 }
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links a,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
+html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { color: var(--dk-sub) !important; }
