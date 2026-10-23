@@ -3118,3 +3118,8 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html.dark body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-above { fill: #d79b96 !important; }
   html.dark body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-below { fill: #94b2d7 !important; }
 }
+
+/* 2026-10-23 문장 단위 줄바꿈: 헤드라인·설명문은 문장마다 한 줄, 어절 단위로 줄바꿈 */
+@layer np.np {
+  html body #market-temp .mt-sent { display: block; word-break: keep-all; overflow-wrap: break-word; }
+}
