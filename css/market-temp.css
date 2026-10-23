@@ -3186,7 +3186,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-commodity-block { margin-top: 14px; }
   html body #market-temp .mt-commodity-title.mt-commodity-title { margin: 0 0 8px; font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4; color: var(--pulse-ink, #202b3b); }
-  html body #market-temp .mt-xlist { display: grid; gap: 8px !important; }
+  html body #market-temp .mt-xlist.mt-xlist { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 8px !important; }
   html body #market-temp .mt-xwrap { min-width: 0; }
   html body #market-temp .mt-xcard { display: block !important; width: 100%; text-align: left; cursor: pointer; }
   html body #market-temp .mt-xcard .mt-glance-amount { white-space: normal; }

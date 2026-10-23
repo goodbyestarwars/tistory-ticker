@@ -1,3 +1,7 @@
+**2026-10-23 텔레그램: 실계좌 runner 막힘 상태·피드 장애·일일 요약 알림(코드·테스트만, PC 미설치)**
+
+10/22(FOREIGN_HOLDINGS)·10/23(SLOTS_FULL) 연속으로 매수가 막혔는데 사용자가 파일을 직접 열기 전에는 알 수 없었다. 사용자 지시("일일이 확인 못 해, 텔레그램을 쓰자")로 `tg_live_status.py`와 `Monitor.watch_live_status`를 추가: `live_status.json`·`live_orders.db`(intents·skips·positions)를 읽기 전용으로 읽어 ① 막힘 상태(FOREIGN_HOLDINGS·PENDING_ORDERS·체결 미확인·승인 불확실·ERROR_*) 즉시 경고·재알림·복구, ② 9Pay 피드 3분 초과 불가, ③ 장중 상태 파일 5분 무갱신(runner 응답 없음), ④ 평일 09:05 준비 점검·14:05 매수 시간 종료·15:35 장 마감 요약(오늘 주문·열린 포지션·못 산 이유)을 보낸다. runner·엔진·주문 코드는 건드리지 않고 어제 값으로 오늘 경고하지 않는다. 테스트 10개 추가 통과(텔레그램 기존 테스트 3건은 변경 전에도 실패). PC 설치·봇 재시작은 사용자 승인 대기.
+
 **2026-10-23 호가 패널 상단 시가·고가·저가 색**
 
 사용자 지시("고가는 빨간색, 저가는 파란색 - 룰대로"). `js/stock-search.js` renderSessionCandle의 고가·저가 숫자에 `ss-session-high`/`ss-session-low`를 붙이고 `css/stock-search.css`에서 `--num-up`/`--num-down`으로(시가는 그대로 검정).
