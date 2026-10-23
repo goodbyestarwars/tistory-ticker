@@ -1,3 +1,7 @@
+**2026-10-24 홈 대시보드: 국내 `증시온도` 줄 삭제 · 미국 상승 종목 비율 옆 막대**
+
+사용자 지시(스크린샷). `js/skin-main.js`: 국내 시장 탭의 `증시온도 23점 공포` 줄(`.hmb2-temp`)을 숨김(미국 탭은 상승 종목 비율 줄 유지, 미국 개장 전·마감·휴장은 기존대로 숨김). 미국 장중에는 `renderUsMarketSummary`가 상승 종목 비율 옆에 120px 가로 막대(상승=`--num-up` 붉은색, 나머지=`--num-down` 푸른색, 툴팁에 비율)를 그리고 장이 닫히면 숨긴다. `css/home-market-board.css`: 막대 스타일. 증시온도 데이터·계산·증시온도 페이지는 불변. `test_home_us_session_single_status.js`의 국내 복귀 기대값을 `숨김`으로 변경(통과). 기존 실패(test_home_chart_history·investor_chart)는 변경 전부터. 미확인: 홈 화면 실제 렌더(미국 장중 막대는 장이 열린 시간에만 보임). 배포: js/css master 머지 후 Pages 자동.
+
 **2026-10-24 휴장 화면 마켓브리핑을 카드형으로**
 
 사용자 지시(휴장 대시보드의 마켓브리핑이 카드형이 아니다, 한국증시·미국증시 대시보드와 같게). `style.css` 끝: 휴장(`.is-market-closed`)일 때 `.home-briefing-section .home-briefing-card`에 카드 테두리·둥근 모서리 20px·카드 배경·안쪽 여백·옅은 그림자(다크는 `--dk-card`·`--dk-line`)를 적용. 2열 배치·글 내용·장중 화면(캐러셀 카드)은 불변. 미확인: 휴장 화면 실제 렌더(작성 시점 토요일 09:00 전이라 휴장 탭을 직접 못 봤고, `.is-market-closed`가 브리핑 카드의 조상에 붙는지는 코드 추정) - 반영 후 휴장 화면에서 확인 필요. 배포: style.css master 머지 후 Pages 자동.

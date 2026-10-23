@@ -58,9 +58,9 @@ test('US cash market open: restore meaningful advance-decline percentage', () =>
   assert.equal(secondary.hidden,false);
   assert.equal(labels[0].textContent,'상승 종목 비율');
 });
-test('switch back to domestic: restore temperature row', () => {
+test('switch back to domestic: 증시온도 row is removed (2026-10-24), title restored', () => {
   apply({market:'domestic'});
-  assert.equal(secondary.hidden,false);
+  assert.equal(secondary.hidden,true);
   assert.equal(labels[0].textContent,'증시온도');
   assert.equal(summaryTitle.textContent,'시장 핵심 지표');
 });
