@@ -3358,3 +3358,28 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .sector-card.is-mine .sector-card-title::before { display: inline-block; }
   html body #market-temp .mt-tomorrow-flow { border-left: 0 !important; border-radius: 10px; }
 }
+
+/* 2026-10-23 새벽 브리핑을 페이지 맨 위로, 페이지 정렬 통일(섹션 간격 20px·모바일 16px, 상단 카드 안쪽 여백), 모바일은 신문 첫 화면처럼:
+   헤드라인(결론) → 한국장 미리보기(야간선물)를 근거 칸 맨 앞으로 → 미국 지수·반도체·VIX·환율 2열 속보 → 해설. 모서리는 8px로 줄이고 구분은 얇은 선·배경색으로 한다. */
+@layer np.np {
+  html body #market-temp .mt-wrap { gap: 20px !important; }
+  html body #market-temp .mt-front-tools.mt-dawn .mt-front-extra { border-top: 0 !important; }
+  html body #market-temp .mt-front-tools.mt-dawn .mt-extra-heading { padding: 0 0 8px !important; font-size: 13px !important; }
+  html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { padding: 18px 20px 16px !important; }
+  @media (min-width: 761px) {
+    html body #market-temp .mt-front-page > .mt-card { padding: 20px !important; }
+  }
+  @container mttm (max-width: 599px) {
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-nightcard { order: -1; }
+  }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-wrap { gap: 16px !important; }
+    html body #market-temp .mt-front-tools.mt-dawn .mt-extra-heading { padding: 0 2px 6px !important; }
+    html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { padding: 12px !important; border-radius: 8px !important; }
+    html body #market-temp .mt-front-page > .mt-card { padding: 14px !important; border-radius: 8px !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-verdict { padding: 10px 12px !important; border-radius: 8px !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li.mt-tm-item { border-radius: 6px; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-proof { border-radius: 6px; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-verdict > b { font-size: 26px !important; }
+  }
+}

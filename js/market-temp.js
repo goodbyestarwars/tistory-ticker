@@ -2955,7 +2955,7 @@
       var key = JSON.stringify(rows) + target.ymd + target.word + Math.floor(Date.now() / 60000); // 분 단위 포함: 야간선물 실시간/지연 표시가 시간에 따라 바뀐다
       var W = target.word, title = '<strong>' + W + ' 전망</strong>';
       var heading = container.querySelector('[data-mt-tomorrow-heading]');
-      if (heading) heading.textContent = target.label + ' 출발';
+      if (heading) heading.textContent = '시장 브리핑 · ' + target.label + ' 출발';
       if (mount.__mtTomorrowKey === key) return;
       var sig = tomorrowSignal_(by, target.ymd);
       if (!sig) { if (!mount.__mtTomorrowKey) mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 판단하지 않습니다.</div>'; return; }
@@ -4705,10 +4705,11 @@
     var sections = [
       buildPageHead_(data),
       '<div class="mt-live-status" data-mt-live-status role="status">자동 갱신 준비 중</div>',
+      // 2026-10-23: 새벽에 접속해 5초 안에 보는 '다음 거래일 전망'(미국장 요약 → 한국장 영향 → 전망, 야간선물 포함)을 페이지 맨 위로 올렸다.
+      '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>시장 브리핑 · ' + nextKospiDay_().label + ' 출발</h3>' + buildTomorrowCard_() + '</section></div>',
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div>' + buildIndicatorHistoryShell_() + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
-      '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>' + nextKospiDay_().label + ' 출발</h3>' + buildTomorrowCard_() + '</section>',
-      '<section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
+      '<div class="mt-front-tools"><section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(data),
       buildRotationSlot_(),
       buildIndexFlow_(),
