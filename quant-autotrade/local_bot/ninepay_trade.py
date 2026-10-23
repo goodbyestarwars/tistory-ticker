@@ -101,7 +101,7 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
         return 'FOREIGN_HOLDINGS'
     if code in held or code in sent_today or (code in positions and positions[code]['state'] != 'CLOSED'):
         return 'ALREADY_HELD_OR_SENT'
-    slots = len(set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'})
+    slots = len((set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'}) - excluded)  # excluded holdings take no slot
     if ((policy.MAX_STOCKS is not None and slots >= policy.MAX_STOCKS)
             or cash <= policy.RESERVE or committed >= policy.BUDGET - policy.RESERVE):
         return 'BUDGET_OR_SLOTS_FULL'

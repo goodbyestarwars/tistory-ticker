@@ -124,6 +124,19 @@ class SharedEngineTests(Base):
         self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
         self.assertEqual(b.buys, [('005930', 90, 10000)])
 
+    def test_excluded_holding_does_not_take_the_only_slot(self):
+        self.write_exclusions(['080220'])
+        self.position('080220', 4, 69700, 'CLOSED')
+        b = self.broker([holding('080220', 4, 69700, 69700)])
+        self.assertEqual(self.buy(b), '9PAY_BUY_SENT')
+        self.assertEqual(b.buys, [('005930', 90, 10000)])
+
+    def test_non_excluded_holding_still_takes_the_only_slot(self):
+        self.position('000660', 4, 9600)
+        b = self.broker([holding('000660', 4, 9600, 9600)])
+        self.assertEqual(self.buy(b), 'BUDGET_OR_SLOTS_FULL')
+        self.assertEqual(b.buys, [])
+
     def test_no_count_cap_never_overrides_budget(self):
         self.position('000660', 90, 10000)
         b = self.broker([holding('000660',90,10000,10000)])
