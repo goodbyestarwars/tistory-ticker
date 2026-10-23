@@ -8866,3 +8866,4 @@ html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-f
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { color: var(--dk-sub) !important; }
 /* 티스토리 공유 레이어(.layer_post)는 흰 바탕 기본 스타일이라 위 일괄 글자색(밝은색)과 겹쳐 글자가 안 보였다. */
 html.dark .layer_post { background: var(--dk-inner) !important; border: 1px solid var(--dk-line) !important; }
+html.dark .home-neutral { color: var(--dk-flat) !important; }

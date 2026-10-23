@@ -853,3 +853,6 @@ html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, ar
 .home-weekly-report .hwr2-theme-stocks a { color: var(--hw-text); }
 .home-weekly-report .hwr2-theme-us { margin-top: 2px; padding-top: 0; border-top: 0; }
 .hwr2-market-title small { margin-left: 6px; font-size: 12px; font-weight: 400; opacity: .7; }
+html.dark .hwr-fx-status--neutral, html.dark .hwr-fx-status--unknown { color: var(--dk-mute); }
+html.dark .hwr-fx-status--interest { color: var(--dk-down); }
+html.dark .hwr-fx-status--caution { color: #f0b35c; }
