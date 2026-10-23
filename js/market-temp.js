@@ -2202,6 +2202,29 @@
     var kind = /(상승|증가|높음|강세|순매수)/.test(word) ? 'up' : /(하락|감소|낮음|약세|순매도)/.test(word) ? 'down' : /(평소|보합|중립|변화 없음)/.test(word) ? 'flat' : '';
     return kind ? '<i class="mt-flow-arrow is-' + kind + '" aria-hidden="true">' + { up: '↗', down: '↘', flat: '→' }[kind] + '</i> ' : '';
   }
+  // 시장 한눈에 하단 한 줄: 원자재·가상자산(표시 전용, 점수에 넣지 않음). 시장지표 탭과 같은 /futures 응답의 현재값만 쓴다.
+  // 값이 없거나 stale이거나 수신 시각이 36시간 넘게 묵었으면 '미수신'(브렌트도 다른 원유로 대체하지 않는다).
+  var COMMODITY_CELLS_ = [
+    { symbol: 'WTI', label: 'WTI', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
+    { symbol: 'BRENT', label: '브렌트유', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
+    { symbol: 'GOLD', label: '금', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); } },
+    { symbol: 'BTC', label: '비트코인', fmt: function (v) { return v.toLocaleString('ko-KR', { maximumFractionDigits: 0 }) + '원'; } }
+  ];
+  function commodityStrip_(macro, now_) {
+    if (!Array.isArray(macro) || !macro.length) return '';
+    var now = now_ == null ? Date.now() : now_;
+    var by = {}; macro.forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
+    return '<div class="mt-commodity-strip" aria-label="원자재·가상자산(표시 전용)">' + COMMODITY_CELLS_.map(function (c) {
+      var r = by[c.symbol], price = r ? Number(r.price) : NaN, rate = r ? Number(r.change_rate) : NaN, at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
+      var ok = r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000;
+      if (!ok) return '<div class="mt-commodity-cell"><span class="mt-commodity-label">' + c.label + '</span><b class="mt-commodity-value">미수신</b><small>값을 받지 못했습니다</small></div>';
+      var kst = new Date(at + 9 * 3600000), pad = function (n) { return String(n).padStart(2, '0'); };
+      var word = rate > 0 ? '상승' : rate < 0 ? '하락' : '보합';
+      return '<div class="mt-commodity-cell"><span class="mt-commodity-label">' + c.label + '</span><b class="mt-commodity-value">' + escapeHtml(c.fmt(price)) + '</b>'
+        + '<span class="mt-commodity-rate is-' + (rate > 0 ? 'positive' : rate < 0 ? 'negative' : 'neutral') + '">' + wordArrow_(word) + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%</span>'
+        + '<small>' + pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준</small></div>';
+    }).join('') + '</div>';
+  }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
     return '<div class="mt-glance-list">' + models.map(function (m) {
@@ -2291,7 +2314,7 @@
         if (active.hasAttribute('data-market-metric')) focusSelector = '[data-market-metric="' + active.getAttribute('data-market-metric') + '"]';
         else if (active.hasAttribute('data-indicator-period')) focusSelector = '[data-indicator-period="' + active.getAttribute('data-indicator-period') + '"]';
       }
-      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected));
+      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + commodityStrip_(state.macro));
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0];
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
       html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
@@ -2578,7 +2601,7 @@
   //  - 야간 세션이 끝나기 전(D+1 05:05 KST 전)에는 미완성이라 점수에 넣지 않고 참고로만 보여준다.
   // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
   // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
-  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
+  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX,WTI,BRENT,GOLD,BTC&stored_only=true';
   var TOMORROW_STATS_ = {
     nq: [0.1028, 1.3180], sox: [0.3535, 2.9394], vix: [-0.1265, 7.5421], fx: [0.0290, 0.6312],
     night: [0.8621, 1.7345]   // 야간 종가 / 직전 주간 종가 - 1 (%). 평균이 +인 것은 검증 기간의 상승장 때문이다.
