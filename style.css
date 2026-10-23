@@ -8891,9 +8891,6 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     .feed-hero-featured-slot > .post-card, .feed-block-headline, .feed-block-cards > .post-card, .feed-block-duo > .post-card, .feed > .post-card:not(.notice-card)) {
     background-color: var(--dk-card) !important;
   }
-  html.dark body#tt-body-index .briefing-intro .home-briefing-more,
-  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track article.post-card.home-briefing-card,
-  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card.home-briefing-card { background: var(--dk-card) !important; }
   html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
   html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
   html.dark body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-summary-card) { background-color: var(--dk-inner) !important; }
@@ -8903,4 +8900,8 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
   html.dark body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
     .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)
     > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) { background: var(--dk-active) !important; box-shadow: none !important; }
+}
+@layer np.np {
+  html.dark body#tt-body-index .briefing-intro .home-briefing-more,
+  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { background: var(--dk-card) !important; }
 }
