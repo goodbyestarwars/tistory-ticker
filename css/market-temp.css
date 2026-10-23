@@ -3473,3 +3473,12 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
   html body #market-temp .mt-xstate.is-positive { color: var(--pulse-red, #d35159); }
   html body #market-temp .mt-xstate.is-negative { color: var(--pulse-blue, #2566d4); }
 }
+
+/* 2026-10-24 코스피·코스닥 거래량, 빚투, 예탁금, 코스피200 주간선물 칸 높이를 살짝만 키운다(약 +10px) */
+@layer np.np {
+  html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="kospi-volume"],
+  html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="kosdaq-volume"],
+  html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="credit"],
+  html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="deposits"],
+  html body #market-temp .mt-glance-row.mt-glance-row[data-market-metric="kospi-futures"] { min-height: 58px; padding-top: 11px !important; padding-bottom: 11px !important; }
+}
