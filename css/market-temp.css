@@ -3176,3 +3176,8 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-commodity-more:hover { text-decoration: underline; }
   html body #market-temp .mt-page-disclaimer { margin: 12px 0 0; font-size: 11px; color: var(--pulse-sub, #778396); text-align: center; }
 }
+
+/* 2026-10-23 체크포인트 헤드라인 문장 span이 카드 안 Pretendard 규칙에 걸려 마루부리를 잃었다 - 헤드라인(큰 제목) 안에서는 상속 */
+@layer np.np {
+  html body #market-temp .mt-checkpoint-facts .mt-strategy-action .mt-sent { font-family: inherit !important; }
+}
