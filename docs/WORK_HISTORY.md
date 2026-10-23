@@ -1,3 +1,7 @@
+**2026-10-24 뉴스 기사 제목 가독성(마루부리 유지, 크기·행간·색)**
+
+사용자 지적(주요 뉴스·경제 종합뉴스 제목이 가늘게 뭉개져 보임, 애플 스토어와 비교). 원인: 기사 제목만 마루부리 Regular 14px(2026-10 지정 `경제 종합뉴스 기사 제목만 Regular`)라 획이 가늘다. `style.css` 끝: 같은 선택자(`.home-economic-news …`, `#main-news .mn-row-title`)의 제목을 글꼴은 그대로 15px·행간 1.55·짙은 글자색(다크는 `--dk-text`)·`antialiased`로. 글꼴 자체를 Pretendard로 바꾸는 안은 하지 않았다(기존 지정 존중, 필요하면 한 줄로 전환 가능). 미확인: 실제 화면에서 체감. 배포: style.css master 머지 후 Pages 자동.
+
 **2026-10-24 휴장 대시보드 마켓브리핑을 장중 화면과 같은 가로 캐러셀 카드로**
 
 사용자 지시(스크린샷: 장중 화면=가로 넘김 카드가 정상, 휴장 화면=2열 목록). 원인: 휴장이면 브리핑 섹션이 위젯 격자 밖(주간 리포트 아래)으로 옮겨져 `.home-editorial-page .briefing-carousel-track …` 규칙이 닿지 않고 `.home-widget--full .home-briefing-grid` 2열 격자로 풀렸다. `style.css` 끝: 휴장 조건(`body:has(.home-editorial-page.is-market-closed) .home-briefing-section`)으로 같은 트랙(`display:flex; overflow-x:auto; gap`)·카드 크기(PC 342×414px, 모바일 화면폭-72px×430px)를 다시 건다(레이어 안, 카드 테두리·배경은 앞선 휴장 카드 규칙). 글 내용·장중 화면 불변. 미확인: 휴장 화면 실렌더(토요일 휴장 창 안에서 확인 필요, 캐러셀 이동 버튼·진행바 동작은 기존 JS). 배포: style.css master 머지 후 Pages 자동.
