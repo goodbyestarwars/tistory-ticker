@@ -66,8 +66,8 @@
   text-align: center;
 }
 
-#kospi-futures .kf-pos { color: #d24f45; }
-#kospi-futures .kf-neg { color: #1261c4; }
+#kospi-futures .kf-pos { color: var(--num-up); }
+#kospi-futures .kf-neg { color: var(--num-down); }
 #kospi-futures .kf-zero { color: #666; }
 
 #kospi-futures .kf-section {
@@ -256,8 +256,8 @@
 
 #kospi-futures .kf-quote-table .kf-stat-price { font-size: 16px; font-weight: 700; }
 #kospi-futures .kf-quote-table .kf-stat-change { font-weight: 700; }
-#kospi-futures .kf-quote-table .kf-pos { color: #d24f45 !important; }
-#kospi-futures .kf-quote-table .kf-neg { color: #1261c4 !important; }
+#kospi-futures .kf-quote-table .kf-pos { color: var(--num-up) !important; }
+#kospi-futures .kf-quote-table .kf-neg { color: var(--num-down) !important; }
 #kospi-futures .kf-visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 
 /* ---- 참고의견 섹션 내 옵션 수급 원자료(콜/풋) ---- */

@@ -89,8 +89,8 @@
 .dmi-spot-label { display: block; color: #64748b; font-size: 12px; font-weight: 600; }
 .dmi-spot-price { display: block; margin-top: 5px; color: #111827; font-size: 24px; line-height: 1.1; }
 .dmi-spot-change { display: block; margin-top: 5px; color: #64748b; font-size: 12px; font-weight: 600; }
-.dmi-spot-change.dmi-positive { color: #d24f45 !important; }
-.dmi-spot-change.dmi-negative { color: #1261c4 !important; }
+.dmi-spot-change.dmi-positive { color: var(--num-up) !important; }
+.dmi-spot-change.dmi-negative { color: var(--num-down) !important; }
 .dmi-subheading { margin: 28px 0 12px; }
 .dmi-subheading h3 { font-size: 18px; }
 .dmi-muted { color: #000; font-size: 13px; }
@@ -153,8 +153,8 @@
 .dmi-flow-table th:first-child,
 .dmi-flow-table td:first-child { text-align: left; color: #000; }
 .dmi-flow-table th { color: #000; font-weight: 500; }
-.dmi-flow-table td.dmi-positive { color: #d24f45 !important; }
-.dmi-flow-table td.dmi-negative { color: #1261c4 !important; }
+.dmi-flow-table td.dmi-positive { color: var(--num-up) !important; }
+.dmi-flow-table td.dmi-negative { color: var(--num-down) !important; }
 .dmi-fund-card { min-height: 150px; }
 .dmi-fund-label { color: #000; font-size: 14px; font-weight: 700; }
 .dmi-fund-desc { display: block; margin-top: 5px; color: #000; font-size: 12px; line-height: 1.45; }
@@ -164,8 +164,8 @@
    2026-08-21 코드 감사로 그 유니버설 선택자 자체를 걷어냈다(파일 위쪽 참고). !important는
    .dmi-fund-value(단일 클래스)보다 이 규칙(두 클래스)이 이미 명시도가 높아 굳이 필요
    없어졌지만, 회귀 방지 차원에서 그대로 남겨둔다. */
-.dmi-fund-value.dmi-positive { color: #d24f45 !important; }
-.dmi-fund-value.dmi-negative { color: #1261c4 !important; }
+.dmi-fund-value.dmi-positive { color: var(--num-up) !important; }
+.dmi-fund-value.dmi-negative { color: var(--num-down) !important; }
 .dmi-fund-average { display: block; color: #000; font-size: 12px; }
 .dmi-fund-date { display: block; margin-top: 6px; color: #000; font-size: 12px; }
 
@@ -289,8 +289,8 @@ html.dark .dmi-spot-card { background: transparent !important; border-color: rgb
 html.dark .dmi-spot-label,
 html.dark .dmi-spot-price,
 html.dark .dmi-spot-change { color: #F5EFE0 !important; }
-html.dark .dmi-spot-table .dmi-spot-price.dmi-positive { color: #d24f45 !important; }
-html.dark .dmi-spot-table .dmi-spot-price.dmi-negative { color: #1261c4 !important; }
+html.dark .dmi-spot-table .dmi-spot-price.dmi-positive { color: var(--num-up) !important; }
+html.dark .dmi-spot-table .dmi-spot-price.dmi-negative { color: var(--num-down) !important; }
 html.dark .dmi-tab,
 html.dark .dmi-tabs .dmi-draw-toggle,
 html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: rgba(245,239,224,.6) !important; }
@@ -501,10 +501,10 @@ html.dark .dmi-section-collapse {
 .dmi-spot-table .dmi-spot-price { font-size: 16px; font-weight: 700; }
 /* 카드용 `.dmi-spot-price { display: block }`이 표 칸에도 걸려 현재가 칸이 좁아지고 숫자가 칸 밖으로 잘렸다(2026-10-05 모바일). */
 .dmi-spot-table td.dmi-spot-price { display: table-cell; margin-top: 0; }
-.dmi-spot-table .dmi-positive { color: #d24f45; font-weight: 700; }
-.dmi-spot-table .dmi-negative { color: #1261c4; font-weight: 700; }
-.dmi-spot-table .dmi-spot-price.dmi-positive { color: #d24f45; }
-.dmi-spot-table .dmi-spot-price.dmi-negative { color: #1261c4; }
+.dmi-spot-table .dmi-positive { color: var(--num-up); font-weight: 700; }
+.dmi-spot-table .dmi-negative { color: var(--num-down); font-weight: 700; }
+.dmi-spot-table .dmi-spot-price.dmi-positive { color: var(--num-up); }
+.dmi-spot-table .dmi-spot-price.dmi-negative { color: var(--num-down); }
 .dmi-spot-loading { padding: 12px 0; color: #777; font-size: 13px; }
 .dmi-visually-hidden {
   position: absolute;

@@ -34,13 +34,13 @@
 .my-stock-row-price { text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
 .my-stock-row-price small { display: block; margin-top: 2px; }
 .my-stock-row-pnl { text-align: right; font-variant-numeric: tabular-nums; }
-.my-stock-row-pnl.is-up, .my-metric-grid .is-up, .my-flow-row .is-up { color: #d24f45; }
-.my-stock-row-pnl.is-down, .my-metric-grid .is-down, .my-flow-row .is-down { color: #1261c4; }
+.my-stock-row-pnl.is-up, .my-metric-grid .is-up, .my-flow-row .is-up { color: var(--num-up); }
+.my-stock-row-pnl.is-down, .my-metric-grid .is-down, .my-flow-row .is-down { color: var(--num-down); }
 .my-dashboard-detail { min-height: 300px; }
 .my-detail-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 12px; }
 .my-detail-head h3 { margin: 7px 0 0; font-size: 22px; letter-spacing: -.04em; }
-.my-selected-title.is-up .my-selected-name { color: #d24f45; }
-.my-selected-title.is-down .my-selected-name { color: #1261c4; }
+.my-selected-title.is-up .my-selected-name { color: var(--num-up); }
+.my-selected-title.is-down .my-selected-name { color: var(--num-down); }
 .my-detail-head h3 small { color: #9ca3af; font-size: 11px; font-weight: 400; letter-spacing: 0; }
 .my-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .my-detail-actions a { padding: 8px 10px; border: 1px solid #dbe5f2; border-radius: 9px; color: #334155; font-size: 11px; text-decoration: none; }
@@ -49,8 +49,8 @@
 .my-metric-grid > div { min-width: 0; padding: 13px; border: 1px solid #e5e7eb; border-radius: 12px; background: rgb(255, 254, 252); }
 .my-metric-grid span, .my-metric-grid small { display: block; color: #94a3b8; font-size: 10px; }
 .my-metric-grid strong { display: block; margin: 5px 0 3px; font-size: 17px; font-variant-numeric: tabular-nums; }
-.my-metric-grid .is-up { color: #d24f45; }
-.my-metric-grid .is-down { color: #1261c4; }
+.my-metric-grid .is-up { color: var(--num-up); }
+.my-metric-grid .is-down { color: var(--num-down); }
 .my-holding-card, .my-analysis-card { margin-top: 10px; padding: 15px; border: 1px solid #e5e7eb; border-radius: 14px; background: rgb(255, 254, 252); }
 .my-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 11px; }
 .my-card-title strong { font-size: 14px; }
@@ -97,20 +97,20 @@
 .my-opinion-axis-head { display: flex; align-items: baseline; justify-content: space-between; gap: 7px; }
 .my-opinion-axis-head strong { font-size: 13px; }
 .my-opinion-axis-head span { color: #64748b; font-size: 11px; font-weight: 800; white-space: nowrap; }
-.my-opinion-axis-head .is-up { color: #d24f45; }
-.my-opinion-axis-head .is-down { color: #1261c4; }
+.my-opinion-axis-head .is-up { color: var(--num-up); }
+.my-opinion-axis-head .is-down { color: var(--num-down); }
 .my-opinion-axis p { margin: 8px 0 0; color: #475569; font-size: 11px; line-height: 1.55; }
 .my-opinion-verdict { margin-top: 10px; padding: 13px; border: 1px solid #e5e7eb; border-radius: 11px; background: rgb(255, 254, 252); }
 .my-opinion-verdict > span { display: block; color: #64748b; font-size: 11px; }
 .my-opinion-verdict strong { display: block; margin-top: 4px; font-size: 17px; }
 .my-opinion-verdict p { margin: 7px 0 0; color: #334155; font-size: 12px; line-height: 1.6; }
 .my-opinion-verdict small { display: block; margin-top: 8px; color: #94a3b8; font-size: 10px; }
-.my-opinion-verdict.up strong { color: #d24f45; }
-.my-opinion-verdict.down strong { color: #1261c4; }
+.my-opinion-verdict.up strong { color: var(--num-up); }
+.my-opinion-verdict.down strong { color: var(--num-down); }
 .my-position-advice:not(.my-composite-card) { background: rgb(255, 254, 252); }
 .my-position-badge { display: inline-block; margin-bottom: 8px; padding: 7px 11px; border-radius: 999px; background: #eef2f7; color: #334155; font-size: 13px; font-weight: 800; }
 .my-position-advice.up .my-position-badge { background: #fff0ed; color: #c24136; }
-.my-position-advice.down .my-position-badge { background: #eaf2ff; color: #1261c4; }
+.my-position-advice.down .my-position-badge { background: #eaf2ff; color: var(--num-down); }
 .my-position-note { margin: 0; color: #334155; font-size: 12px; line-height: 1.65; }
 .my-calculator { background: #fcfcfd; }
 .my-calc-result { margin-top: 10px; padding: 10px; border-radius: 9px; background: #f1f5f9; color: #64748b; font-size: 11px; }
@@ -213,8 +213,8 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-watchlist-name strong { font-size: 12px; }
 .my-watchlist-name small { margin-top: 2px; color: #94a3b8; font-size: 9px; font-weight: 400; }
 .my-watchlist-table td small { display: block; margin-top: 2px; color: #94a3b8; font-size: 9px; }
-.my-watchlist-table .is-up { color: #d24f45; }
-.my-watchlist-table .is-down { color: #1261c4; }
+.my-watchlist-table .is-up { color: var(--num-up); }
+.my-watchlist-table .is-down { color: var(--num-down); }
 .my-watchlist-icon { position: relative; display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; overflow: hidden; border-radius: 50%; background: #eef2f7; color: #64748b; font-size: 8px; font-weight: 800; }
 .my-watchlist-icon img { position: absolute; inset: 0; display: block; width: 100%; height: 100%; padding: 3px; object-fit: contain; background: rgb(255, 254, 252); }
 .my-watchlist-icon img[hidden], .my-watchlist-icon span[hidden] { display: none; }
@@ -222,8 +222,8 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-holding-preview { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #eef1f4; }
 .my-holding-preview span { display: flex; flex-direction: column; gap: 4px; color: #94a3b8; font-size: 10px; }
 .my-holding-preview strong { color: #334155; font-size: 14px; font-variant-numeric: tabular-nums; }
-.my-holding-preview strong.is-up { color: #d24f45; }
-.my-holding-preview strong.is-down { color: #1261c4; }
+.my-holding-preview strong.is-up { color: var(--num-up); }
+.my-holding-preview strong.is-down { color: var(--num-down); }
 html.dark .my-watchlist-panel { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
 html.dark .my-watchlist-show { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: rgba(245,239,224,.75); }
 html.dark .my-watchlist-show:hover { border-color: rgba(245,239,224,.4); background: #242424; color: #f5efe0; }
@@ -355,10 +355,10 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
 }
 
 /* MY 전역 등락 규칙: 한국 증시 관례에 맞춰 상승=빨강, 하락=파랑. */
-#my-dashboard .is-up { color: #d24f45; }
-#my-dashboard .is-down { color: #1261c4; }
-#my-dashboard .my-shape-badge.is-up { background: #fff0ed; color: #d24f45; }
-#my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: #1261c4; }
+#my-dashboard .is-up { color: var(--num-up); }
+#my-dashboard .is-down { color: var(--num-down); }
+#my-dashboard .my-shape-badge.is-up { background: #fff0ed; color: var(--num-up); }
+#my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: var(--num-down); }
 html.dark #my-dashboard .my-shape-badge.is-up { background: #49231f; color: #ff9b8f; }
 html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #93c5fd; }
 

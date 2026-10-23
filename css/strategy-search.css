@@ -190,8 +190,8 @@
 #strategy-search .ss-row-rate { font-size: 11px; font-weight: 600; }
 #strategy-search .ss-row-basis { color: #94a3b8; font-size: 10.5px; }
 
-#strategy-search .ss-up { color: #d24f45; }
-#strategy-search .ss-down { color: #1261c4; }
+#strategy-search .ss-up { color: var(--num-up); }
+#strategy-search .ss-down { color: var(--num-down); }
 #strategy-search .ss-flat { color: #9ca3af; }
 
 #strategy-search .ss-card-more {
@@ -399,8 +399,8 @@ html.dark #strategy-search .ss-error {
 .ss-etf-comp-rank { color: #94a3b8; font-variant-numeric: tabular-nums; }
 .ss-etf-comp-name { color: #111827; font-weight: 600; }
 .ss-etf-comp-weight { color: #374151; }
-.ss-etf-table .ss-up { color: #d24f45; }
-.ss-etf-table .ss-down { color: #1261c4; }
+.ss-etf-table .ss-up { color: var(--num-up); }
+.ss-etf-table .ss-down { color: var(--num-down); }
 .ss-etf-table .ss-flat { color: #8a9099; }
 
 html.dark .ss-etf-modal { background: #1A1A1A; }
@@ -1235,8 +1235,8 @@ html.dark .ss-dividend-history li b { color: #F5EFE0; }
 /* 2026-09-13 사용자 요청("어제 이 검색기들의 등락을 눈으로 알고 싶어"): 스캔가 대비
    지금 등락 배지. 상승 빨강·하락 파랑(docs/UI_GUIDE.md), 각진 모서리. */
 #strategy-search .ss-scan-gap { display: inline-block; padding: 1px 5px; border-radius: 2px; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-#strategy-search .ss-scan-gap.is-up { color: #d24f45; background: #fff0ee; }
-#strategy-search .ss-scan-gap.is-down { color: #1261c4; background: #eaf2fd; }
+#strategy-search .ss-scan-gap.is-up { color: var(--num-up); background: #fff0ee; }
+#strategy-search .ss-scan-gap.is-down { color: var(--num-down); background: #eaf2fd; }
 #strategy-search .ss-scan-gap.is-flat { color: #64748b; background: #f1f4f7; }
 #strategy-search .ss-scan-ref { margin-left: 5px; color: #94a3b8; font-size: 10px; font-weight: 500; white-space: nowrap; }
 /* 표 뷰는 열이 좁아 스캔일·스캔가를 배지 아래 줄로 내린다. */
@@ -1343,8 +1343,8 @@ html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245
 #strategy-search .ss-top-quote { display: flex; align-items: baseline; gap: 10px; }
 #strategy-search .ss-top-price { font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #strategy-search .ss-top-rate { font-size: 14px; font-style: normal; font-weight: 600; font-variant-numeric: tabular-nums; }
-#strategy-search .ss-top-rate.is-up, #strategy-search .ss-top-gap.is-up, #strategy-search .ss-top-kpis dd.is-up { color: #d24f45; }
-#strategy-search .ss-top-rate.is-down, #strategy-search .ss-top-gap.is-down, #strategy-search .ss-top-kpis dd.is-down { color: #1261c4; }
+#strategy-search .ss-top-rate.is-up, #strategy-search .ss-top-gap.is-up, #strategy-search .ss-top-kpis dd.is-up { color: var(--num-up); }
+#strategy-search .ss-top-rate.is-down, #strategy-search .ss-top-gap.is-down, #strategy-search .ss-top-kpis dd.is-down { color: var(--num-down); }
 #strategy-search .ss-top-rate.is-flat, #strategy-search .ss-top-gap.is-flat { color: #94a3b8; }
 #strategy-search .ss-top-gap { font-size: 13px; font-weight: 600; }
 #strategy-search .ss-top-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 0; padding: 12px 0; border-top: 1px solid #eef0f3; border-bottom: 1px solid #eef0f3; }
@@ -1357,8 +1357,8 @@ html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245
 html.dark #strategy-search .ss-top-card { background: #1b1b1b; border-color: rgba(245, 239, 224, .14); }
 html.dark #strategy-search .ss-top3-head span, html.dark #strategy-search .ss-top-name small, html.dark #strategy-search .ss-top-kpis dt, html.dark #strategy-search .ss-top-sub { color: rgba(245, 239, 224, .6); }
 html.dark #strategy-search .ss-top-kpis, html.dark #strategy-search .ss-top-kpis > div { border-color: rgba(245, 239, 224, .12); }
-html.dark #strategy-search .ss-top-rate.is-up, html.dark #strategy-search .ss-top-gap.is-up, html.dark #strategy-search .ss-top-kpis dd.is-up { color: #ff8a83; }
-html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-top-gap.is-down, html.dark #strategy-search .ss-top-kpis dd.is-down { color: #80b8ff; }
+html.dark #strategy-search .ss-top-rate.is-up, html.dark #strategy-search .ss-top-gap.is-up, html.dark #strategy-search .ss-top-kpis dd.is-up { color: var(--num-up); }
+html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-top-gap.is-down, html.dark #strategy-search .ss-top-kpis dd.is-down { color: var(--num-down); }
 @media (max-width: 720px) {
   /* 모바일: 가로 스와이프 3장 */
   #strategy-search .ss-top3-grid { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }

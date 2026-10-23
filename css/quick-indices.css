@@ -140,7 +140,7 @@
   gap: 5px;
   font-size: 12px; /* 2026-07-18: 10px -> 12px, 폰트가 너무 작다는 피드백 */
   font-weight: 700;
-  color: #d24f45;
+  color: var(--num-up);
   letter-spacing: 0.3px;
   padding-bottom: 3px;
 }
@@ -336,8 +336,8 @@ html.dark .qi-card-group {
 }
 .qi-card-featured .qi-card-chart { margin-top: 6px; }
 
-.qi-pos { color: #d24f45; }
-.qi-neg { color: #1261c4; }
+.qi-pos { color: var(--num-up); }
+.qi-neg { color: var(--num-down); }
 .qi-zero { color: #888; }
 
 /* 스크롤 영역 밖 컨트롤 - 카드가 몇 개든, 얼마나 스크롤됐든 항상 같은 자리(오른쪽 끝).

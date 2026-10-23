@@ -31,8 +31,8 @@
 .hsr-item:hover { background: #f7f8fa; }
 .hsr-name { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-size: 13.5px; font-weight: 500; color: #272b32; }
 .hsr-chg { min-width: 40px; flex-shrink: 0; text-align: right; font-size: 13.5px; font-weight: 600; font-style: normal; font-variant-numeric: tabular-nums; }
-.hsr-chg.is-up { color: #d24f45; }
-.hsr-chg.is-down { color: #1261c4; }
+.hsr-chg.is-up { color: var(--num-up); }
+.hsr-chg.is-down { color: var(--num-down); }
 .hsr-chg.is-flat { color: #98a1ad; }
 .hsr-empty { height: 114px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 4px; }
 .hsr-empty b { font-size: 20px; font-weight: 500; line-height: 1; color: #c3c8d0; }
@@ -45,8 +45,8 @@
 .hsr-detail-grid small, .hsr-leaders small { display: block; font-size: 11.5px; color: #7b8798; }
 .hsr-detail-grid b { font-size: 14px; font-variant-numeric: tabular-nums; }
 .hsr-detail em { font-style: normal; }
-.hsr-detail em.is-up { color: #d24f45; }
-.hsr-detail em.is-down { color: #1261c4; }
+.hsr-detail em.is-up { color: var(--num-up); }
+.hsr-detail em.is-down { color: var(--num-down); }
 .hsr-leaders { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 12px; font-size: 13px; }
 .hsr-leaders small { flex-basis: 100%; }
 .hsr-note { margin-top: 10px; font-size: 11.5px; color: #98a1ad; }
@@ -73,8 +73,8 @@ html.dark .hsr-desc, html.dark .hsr-meta, html.dark .hsr-col-head p, html.dark .
 html.dark .hsr-empty b { color: rgba(245, 239, 224, .3); }
 html.dark .hsr-item + .hsr-item { box-shadow: 0 -1px 0 rgba(245, 239, 224, .07); }
 html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { background: rgba(245, 239, 224, .07); }
-html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: #ff8a83; }
-html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: #80b8ff; }
+html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: var(--num-up); }
+html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-down); }
 @media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: rgba(245, 239, 224, .1); } }
 
 /* 홈 위젯 그리드 안에서는 전체 폭 한 줄을 차지한다(뉴스 줄 아래, 실시간 종목판 위) */

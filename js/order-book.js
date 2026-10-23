@@ -841,13 +841,13 @@
       if (distPct !== null && distPct >= DISTANT_WALL_PCT) {
         badges.push({
           cls: group.side + ' suspect',
-          text: '🚨 ' + priceLabel + '원 ' + group.label + '벽 · 현재가 대비 ' + distPct.toFixed(0)
-            + '% 거리 · 평균 대비 ' + ratioText + ' · 허수호가 의심',
+          text: '🚨 ' + priceLabel + '원 ' + group.label + '벽 · 허수호가 의심\n현재가 대비 ' + distPct.toFixed(0)
+            + '% 거리 · 평균 대비 ' + ratioText,
         });
       } else {
         badges.push({
           cls: group.side,
-          text: '🧱 ' + priceLabel + '원 ' + group.label + '벽 · 평균 대비 ' + ratioText
+          text: '🧱 ' + priceLabel + '원 ' + group.label + '벽\n평균 대비 ' + ratioText
             + (distPct !== null ? ' · 현재가 대비 ' + distPct.toFixed(1) + '%' : ''),
         });
       }
@@ -862,7 +862,8 @@
     if (!badges.length) { box.innerHTML = ''; return; }
     box.innerHTML = badges.map(function (b) {
       var extraCls = b.cls.split(' ').map(function (c) { return 'ob-abnormal-badge-' + c; }).join(' ');
-      return '<span class="ob-abnormal-badge ' + extraCls + '">' + escapeHtml(b.text) + '</span>';
+      // 문자열 안의 줄바꿈은 두 줄로 나눠 보여준다(2026-10-23 사용자 요청: 매도벽·매수벽 모두 두 줄).
+      return '<span class="ob-abnormal-badge ' + extraCls + '">' + String(b.text).split('\n').map(escapeHtml).join('<br>') + '</span>';
     }).join('');
   }
 
@@ -1150,7 +1151,7 @@
       : meta.ws ? ' · 실시간 수신' : ' · 조회시각만 확인(원천시각 미제공)';
     var market = meta.market || '시장 구분 미확인';
     if (meta.stexTp) market += ' · 코드 ' + String(meta.stexTp);
-    var text = '📡 ' + source + ' · ' + market + ' · ' + stamp + ' KST' + status;
+    var text = '📡 ' + source + ' · ' + market + '\n' + stamp + ' KST' + status;
     if (isAuctionWindow()) {
       var ex = state.lastExpected;
       if (ex && Date.now() - ex.at < WALL_EVIDENCE_MS) {
@@ -1161,7 +1162,7 @@
     }
     if (quote && quote.price > 0 && meta.ws && state.lastRealtimeAt
         && Date.now() - state.lastRealtimeAt > WALL_EVIDENCE_MS) text += ' · ⚠️ 현재가 지연';
-    el.textContent = text;
+    el.textContent = text;   // 줄바꿈(\n)은 CSS white-space: pre-line으로 두 줄 표시
   }
 
   // 저항(매도벽)/지지(매수벽) 강도는 "위쪽 매도벽과 아래쪽 매수벽의 높이 차이"(사용자 요청)를

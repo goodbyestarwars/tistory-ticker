@@ -90,7 +90,7 @@
   height: 42px;
   margin: 0 auto 8px;
   overflow: visible;
-  color: #1261c4;
+  color: var(--num-down);
 }
 #order-book .ob-spinner polyline {
   fill: none;
@@ -195,6 +195,7 @@ html.dark #order-book .ob-breakout-note .ob-breakout-sub { color: #e0b560 !impor
   font-size: 11px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  white-space: pre-line;   /* 출처·시장 / 수신 시각·상태 두 줄 */
   color: #5b6572;
   font-variant-numeric: tabular-nums;
 }
@@ -212,12 +213,13 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
 #order-book .ob-abnormal-badge {
   font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 999px;
+  padding: 4px 10px;
+  line-height: 1.4;
+  border-radius: 10px;   /* 두 줄(가격·방향 / 근거 수치)이라 알약 대신 둥근 사각형 */
   white-space: nowrap;
 }
-#order-book .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: #1261c4; }
-#order-book .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: #d24f45; }
+#order-book .ob-abnormal-badge-ask { background: rgba(18, 97, 196, 0.12); color: var(--num-down); }
+#order-book .ob-abnormal-badge-bid { background: rgba(210, 79, 69, 0.12); color: var(--num-up); }
 /* 현재가에서 크게 떨어진 벽(허수호가 의심, 2026-09-21(2차)) - 색을 강하게 채워 일반 벽 배지와 구분 */
 #order-book .ob-abnormal-badge-suspect { background: #b5720f; color: #fff; }
 
@@ -321,10 +323,10 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-#order-book .ob-summary-item b.ob-up { color: #d24f45; }
-#order-book .ob-summary-item b.ob-down { color: #1261c4; }
-#order-book .ob-summary-item b.ob-summary-high { color: #d24f45; }
-#order-book .ob-summary-item b.ob-summary-low { color: #1261c4; }
+#order-book .ob-summary-item b.ob-up { color: var(--num-up); }
+#order-book .ob-summary-item b.ob-down { color: var(--num-down); }
+#order-book .ob-summary-item b.ob-summary-high { color: var(--num-up); }
+#order-book .ob-summary-item b.ob-summary-low { color: var(--num-down); }
 #order-book .ob-summary-volume-change { grid-column: span 2; }
 
 /* 2026-09-01 사용자 리포트("숫자 잘림"). 운영 모바일에서는 본문 폭이 321px라(하네스 375px와
@@ -372,8 +374,8 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
 #order-book .ob-bar-ask { background: rgba(18, 97, 196, 0.22); }
 #order-book .ob-bar-bid { background: rgba(210, 79, 69, 0.22); }
 
-#order-book .ob-ask-text { color: #1261c4; }
-#order-book .ob-bid-text { color: #d24f45; }
+#order-book .ob-ask-text { color: var(--num-down); }
+#order-book .ob-bid-text { color: var(--num-up); }
 
 #order-book .ob-current-row {
   padding: 8px 14px;
@@ -384,8 +386,8 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
   border-top: 1px solid #eee;
   border-bottom: 1px solid #eee;
 }
-#order-book .ob-current-row.ob-up { color: #d24f45; }
-#order-book .ob-current-row.ob-down { color: #1261c4; }
+#order-book .ob-current-row.ob-up { color: var(--num-up); }
+#order-book .ob-current-row.ob-down { color: var(--num-down); }
 #order-book .ob-current-change {
   font-size: 12px;
   font-weight: 600;
@@ -474,10 +476,10 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
 }
 #order-book .ob-trade-price.ob-up,
 #order-book .ob-trade-qty.ob-up,
-#order-book .ob-trade-direction.ob-up { color: #d24f45; }
+#order-book .ob-trade-direction.ob-up { color: var(--num-up); }
 #order-book .ob-trade-price.ob-down,
 #order-book .ob-trade-qty.ob-down,
-#order-book .ob-trade-direction.ob-down { color: #1261c4; }
+#order-book .ob-trade-direction.ob-down { color: var(--num-down); }
 #order-book .ob-trade-price.ob-flat,
 #order-book .ob-trade-qty.ob-flat,
 #order-book .ob-trade-direction.ob-flat { color: #666; }
@@ -620,9 +622,9 @@ html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
 #order-book .ob-depth .ob-qty, #order-book .ob-depth .ob-delta { position: relative; z-index: 1; font-size: 11px; white-space: nowrap; }
 #order-book .ob-depth .ob-qty { font-weight: 700; }
 #order-book .ob-depth .ob-delta { color: #64748b; min-width: 30px; }
-#order-book .ob-depth .ob-delta-up { color: #d24f45; }
-#order-book .ob-depth .ob-delta-down { color: #1261c4; }
-#order-book .ob-row-ask .ob-delta-up { color: #1261c4; }
+#order-book .ob-depth .ob-delta-up { color: var(--num-up); }
+#order-book .ob-depth .ob-delta-down { color: var(--num-down); }
+#order-book .ob-row-ask .ob-delta-up { color: var(--num-down); }
 #order-book .ob-row-bid .ob-delta-down { color: #64748b; }
 #order-book .ob-depth .ob-bar-wrap { position: absolute; inset: 2px 0; height: auto; background: transparent; overflow: visible; z-index: 0; }
 #order-book .ob-depth .ob-bar-wrap > span { position: absolute; height: 100%; top: 0; }
