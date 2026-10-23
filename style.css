@@ -8989,6 +8989,8 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
 html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
   #main-news .mn-row-title) {
+  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-weight: 400 !important;
   font-size: 15px !important;
   line-height: 1.55 !important;
   color: #111827 !important;
