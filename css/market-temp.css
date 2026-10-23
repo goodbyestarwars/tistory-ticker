@@ -3140,7 +3140,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 
 /* 2026-10-23 시장 한눈에 하단 한 줄: 원자재·가상자산(표시 전용). 한눈에 칸과 같은 면 배경·모서리, 모바일 2열 */
 @layer np.np {
-  html body #market-temp .mt-commodity-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(104px, 1fr)); gap: 5px; margin-top: 5px; }
+  html body #market-temp .mt-commodity-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 5px; margin-top: 5px; }
   html body #market-temp .mt-commodity-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 11px; border-radius: 9px; background: var(--pulse-soft, #f5f8fd); }
   html body #market-temp .mt-commodity-label { font-size: 12px; font-weight: 550; color: var(--pulse-ink, #202b3b); }
   html body #market-temp .mt-commodity-value { font-size: 14px; font-weight: 700; color: var(--pulse-ink, #202b3b); font-variant-numeric: tabular-nums; white-space: nowrap; }
