@@ -2084,7 +2084,8 @@
       + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3><small>항목을 눌러 추이 보기</small></div>'
       + '<div data-market-indicators>' + renderIndicatorRows_(buildIndicatorModels_({}, []), 'kospi-volume') + '</div>'
       + '<details class="mt-front-details"><summary>데이터 출처·기준 안내</summary>'
-      + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록 대비 상대 강도를 나타냅니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details></article>';
+      + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록 대비 상대 강도를 나타냅니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details>'
+      + buildIndicatorHistoryShell_() + '</article>';
   }
 
   function indicatorNumber_(value) {
@@ -2598,42 +2599,22 @@
       + pan(70, 47 - tilt * 12, state === 'krw', '원화') + pan(250, 47 + tilt * 12, state === 'usd', '달러') + '</svg></span>'
       + '<small class="mt-glance-meta">' + escapeHtml(m.changeText) + ' · 직전 기록 대비 상대 강도' + (m.date ? ' · ' + escapeHtml(asOfText_(m.date)) : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
   }
+  // 최근 시장 흐름(2026-10-23): 독립 전체 폭 카드를 없애고 '시장 한눈에' 카드 안 데이터 출처 안내 아래로 옮겼다.
+  // 기본은 높이 약 112px 가로형 추세 그래프(핵심 수치 + 기간 5/10/20/40일 + 추세선), '상세 보기'는 같은 그래프를 키우고 축·설명을 더 보여준다(차트는 하나만 그린다).
   function buildIndicatorHistoryShell_() {
-    return '<section class="mt-card mt-indicator-history" data-mt-indicator-panel><div class="mt-history-tail-head"><h3 class="mt-card-title">최근 시장 흐름</h3>'
-      + '<div class="mt-flow-periods" data-indicator-periods></div></div><div data-indicator-chart><p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p></div></section>';
+    return '<section class="mt-indicator-history mt-ih-inline" data-mt-indicator-panel><div class="mt-history-tail-head"><h3 class="mt-card-title">최근 시장 흐름</h3>'
+      + '<div class="mt-flow-periods" data-indicator-periods></div><button type="button" class="mt-ih-toggle" data-ih-toggle aria-expanded="false">상세 보기</button></div>'
+      + '<div data-indicator-chart><p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p></div></section>';
   }
-  // 최근 시장 흐름 기본 화면(2026-10-23): 큰 면적 차트 대신 한 줄 요약 - 핵심 수치 + 최근 7개 기록 초소형 추세선 + 한 줄 해설.
-  // 큰 차트와 5/10/20/40일 전환은 '상세 보기'를 펼칠 때만 쓴다(같은 buildFlowChart_ 한 벌, 차트 인스턴스를 따로 만들지 않는다).
-  function trendSparkHtml_(points, tone, base) {
-    var W = 200, H = 56, n = points.length;
-    if (n < 2) return '';
-    var vals = points.map(function (p) { return p.score; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
-    if (base != null) { lo = Math.min(lo, base); hi = Math.max(hi, base); }
-    if (hi === lo) { hi += 1; lo -= 1; }
-    var pad = (hi - lo) * 0.14; lo -= pad; hi += pad;
-    function X(i) { return 4 + i * (W - 8) / (n - 1); }
-    function Y(v) { return 4 + (hi - v) * (H - 8) / (hi - lo); }
-    var line = points.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(p.score).toFixed(1); }).join(' ');
-    var area = line + ' L' + X(n - 1).toFixed(1) + ',' + (H - 2) + ' L' + X(0).toFixed(1) + ',' + (H - 2) + ' Z';
-    var baseLine = base != null ? '<line class="mt-ts-base" x1="0" x2="' + W + '" y1="' + Y(base).toFixed(1) + '" y2="' + Y(base).toFixed(1) + '"/>' : '';
-    return '<span class="mt-ts-spark is-' + tone + '"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '개 기록 추세">'
-      + baseLine + '<path class="mt-ts-area" d="' + area + '"/><path class="mt-ts-line" d="' + line + '"/></svg>'
-      + '<i class="mt-ts-dot" style="left:' + (X(n - 1) / W * 100).toFixed(1) + '%;top:' + (Y(points[n - 1].score) / H * 100).toFixed(1) + '%"></i></span>';
-  }
-  function renderIndicatorHistory_(model, period, open) {
+  function renderIndicatorHistory_(model, period) {
     var shown = model.points.slice(-period);
     if (model.nohistory) return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div><div class="mt-raw-current is-' + model.tone + '"><b>' + escapeHtml(model.changeText) + '</b></div>' + (model.pcHtml || '');
     if (!shown.length) return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '</div><p class="mt-visual-empty">이 항목의 날짜별 자료를 확인하지 못했습니다.</p>';
-    var latest = shown[shown.length - 1], strip = model.points.slice(-7), fmt = model.format || String;
-    var spark = trendSparkHtml_(strip, model.tone, model.zeroBase ? 0 : null);
-    var trendText = strip.length > 1 ? ' · 최근 ' + strip.length + '개 기록 ' + fmt(strip[0].score) + ' → ' + fmt(strip[strip.length - 1].score) : '';
-    return '<div class="mt-trend-strip is-' + model.tone + '"><div class="mt-ts-main"><div class="mt-ts-label">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div>'
-      + '<div class="mt-ts-value"><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div></div>' + spark + '</div>'
-      + '<p class="mt-ts-note">' + escapeHtml(asOfText_(latest.date)) + trendText + '</p>'
-      + '<details class="mt-ts-detail"' + (open ? ' open' : '') + '><summary>상세 보기<span> · 기간 전환·큰 차트</span></summary>'
+    var latest = shown[shown.length - 1];
+    return '<div class="mt-ih-now is-' + model.tone + '"><span class="mt-ih-name">' + escapeHtml(model.label) + '</span><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div>'
       + '<div class="mt-chart-date">' + escapeHtml(asOfText_(latest.date)) + ' · 최근 ' + shown.length + '개 기록</div>'
-      + buildFlowChart_(shown, model)
-      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p></details>';
+      + buildFlowChart_(shown, model, true)
+      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
   }
   function loadMarketIndicators_(container, data) {
     var panel = container.querySelector('.mt-front-page');
@@ -2658,30 +2639,24 @@
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0] || XMODELS_[state.selected];
       if (!model) { state.selected = 'kospi-volume'; model = state.models[0]; }
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
-      var periodsBox = panel.querySelector('[data-indicator-periods]');
-      periodsBox.style.display = state.detailOpen ? '' : 'none'; // 기간 전환은 상세 보기에서만
-      html(periodsBox, [5, 10, 20, 40].map(function (period) {
+      var histBox = panel.querySelector('.mt-indicator-history'), toggle = panel.querySelector('[data-ih-toggle]');
+      if (histBox) histBox.classList.toggle('is-expanded', state.detailOpen);
+      if (toggle) { toggle.textContent = state.detailOpen ? '간단히 보기' : '상세 보기'; toggle.setAttribute('aria-expanded', String(state.detailOpen)); }
+      html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
         return '<button type="button" class="mt-flow-period' + (period === state.period ? ' active' : '') + '" data-indicator-period="' + period + '" aria-pressed="' + (period === state.period) + '"' + (model.points.length < period ? ' disabled title="' + model.points.length + '개 기록 제공"' : '') + '>' + period + '일</button>';
       }).join(''));
       var content = panel.querySelector('[data-indicator-chart]');
-      html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period, state.detailOpen));
+      html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period));
       wireFlowChart_(content);
       if (focusSelector) { var focus = panel.querySelector(focusSelector); if (focus) focus.focus({ preventScroll: true }); }
     }
-    // <details> toggle은 버블링하지 않아 캡처로 받는다. 열림 상태는 다시 그려도 유지한다.
-    panel.addEventListener('toggle', function (event) {
-      var d = event.target;
-      if (!d || !d.classList || !d.classList.contains('mt-ts-detail') || state.detailOpen === d.open) return;
-      state.detailOpen = d.open;
-      var box = panel.querySelector('[data-indicator-periods]');
-      if (box) box.style.display = state.detailOpen ? '' : 'none';
-    }, true);
     panel.addEventListener('click', function (event) {
-      var metric = event.target.closest('[data-market-metric]'), period = event.target.closest('[data-indicator-period]');
+      var metric = event.target.closest('[data-market-metric]'), period = event.target.closest('[data-indicator-period]'), expand = event.target.closest('[data-ih-toggle]');
       if (metric) state.selected = metric.getAttribute('data-market-metric');
       else if (period) state.period = Number(period.getAttribute('data-indicator-period'));
+      else if (expand) state.detailOpen = !state.detailOpen;
       else return;
-      render(metric ? '[data-market-metric="' + state.selected + '"]' : '[data-indicator-period="' + state.period + '"]');
+      render(metric ? '[data-market-metric="' + state.selected + '"]' : period ? '[data-indicator-period="' + state.period + '"]' : '[data-ih-toggle]');
       var hist = metric && panel.querySelector('.mt-indicator-history');
       if (hist && hist.getBoundingClientRect().top > window.innerHeight - 120 && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
@@ -3155,7 +3130,7 @@
 
   // 2026-10-16: 최근 단기흐름을 막대 칸에서 선 그래프로 바꿨다(사용자 시안 A: 구간 배경 + 선).
   // 공포·보통·과열 띠 위에 점수 선과 점을 그리고 점 색은 scoreTone_ 구간색을 따른다. 정확한 값은 hover/탭 툴팁.
-  function buildFlowChart_(shown, metric) {
+  function buildFlowChart_(shown, metric, compact) {
     var W = 480, H = 230, L = metric ? 72 : 32, R = 18, T = 16, B = 28, n = shown.length;
     function X(i) { return n === 1 ? (L + W - R) / 2 : L + i * (W - L - R) / (n - 1); }
     var values = shown.map(function (r) { return r.score; });
@@ -3185,13 +3160,14 @@
     var cuts = SCORE_CUT_;
     var ticks = metric ? [low, metric.zeroBase && low < 0 && high > 0 ? 0 : low + (high - low) / 2, high] : [0, cuts.fear, cuts.greed, 100];
     if (metric && metric.id.indexOf('volume') >= 0) ticks = [0, 100, high];
+    if (compact && metric) ticks = metric.zeroBase && low < 0 && high > 0 ? [low, 0, high] : metric.id.indexOf('volume') >= 0 ? [0, 100, high] : [low, high];
     var grid = ticks.map(function (v) {
       return '<line class="mt-fc-grid" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(2) + '" y2="' + Y(v).toFixed(2) + '"/>';
     }).join('');
     var labels = ticks.map(function (v) {
       return '<span class="mt-fc-ylabel" style="top:' + (Y(v) / H * 100).toFixed(2) + '%">' + escapeHtml(metric ? (metric.axisFormat || metric.format)(v) : String(v)) + '</span>';
     }).join('');
-    var step = n > 6 ? Math.ceil(n / 5) : 1;
+    var step = compact ? Math.max(n, 2) : n > 6 ? Math.ceil(n / 5) : 1;
     labels += shown.map(function (day, index) {
       if (index !== n - 1 && (index % step !== 0 || n - 1 - index <= step / 2)) return '';
       return '<span class="mt-fc-xlabel" style="left:' + (X(index) / W * 100).toFixed(2) + '%">' + escapeHtml(shortDate_(day.date)) + '</span>';
@@ -4849,7 +4825,7 @@
       '<div class="mt-live-status" data-mt-live-status role="status">자동 갱신 준비 중</div>',
       // 2026-10-23: 새벽에 접속해 5초 안에 보는 '다음 거래일 전망'(미국장 요약 → 한국장 영향 → 전망, 야간선물 포함)을 페이지 맨 위로 올렸다.
       '<div class="mt-front-tools mt-dawn"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>시장 브리핑 · ' + nextKospiDay_().label + ' 출발</h3>' + buildTomorrowCard_() + '</section></div>',
-      '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div>' + buildIndicatorHistoryShell_() + '</div>',
+      '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div></div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(data),

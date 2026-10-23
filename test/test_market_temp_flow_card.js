@@ -1,0 +1,23 @@
+// 최근 시장 흐름: 독립 전체 폭 카드 없이 '시장 한눈에' 카드 안(데이터 출처·기준 안내 아래)에 한 번만 있고, 그래프는 하나만 그려진다.
+const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');
+const raw = fs.readFileSync('js/market-temp.js', 'utf8');
+const calls = raw.match(/buildIndicatorHistoryShell_\(\)/g) || [];
+assert.equal(calls.length, 2, '정의 1 + 호출 1(시장 한눈에 카드 안)');
+const summary = raw.slice(raw.indexOf('function buildSummaryCard(data)'), raw.indexOf('function indicatorNumber_'));
+assert(summary.indexOf('</details>') > 0 && summary.indexOf('buildIndicatorHistoryShell_()') > summary.indexOf('</details>'), '데이터 출처·기준 안내 아래에 배치');
+const frontLine = raw.split('\n').filter((l) => l.includes('mt-summary-trend-row mt-front-page'))[0];
+assert(frontLine && !frontLine.includes('buildIndicatorHistoryShell_'), '앞쪽 그리드에 독립 카드로 다시 넣지 않는다');
+const src = raw.replace('global.MarketTemp = MarketTemp;', 'global.MarketTemp = MarketTemp; global.t={buildIndicatorHistoryShell_,renderIndicatorHistory_};');
+const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: async () => ({ ok: true, json: async () => ({}) }) };
+vm.runInNewContext(src, sb);
+const t = sb.window.t;
+const shell = t.buildIndicatorHistoryShell_();
+assert(shell.includes('data-indicator-periods') && shell.includes('data-ih-toggle') && !/class="mt-card[ "]/.test(shell), '기간 선택·상세 보기 버튼, 독립 카드 아님');
+const pts = Array.from({ length: 12 }, (_, i) => ({ date: '2026-10-' + String(10 + i).padStart(2, '0'), score: 100 + i }));
+const model = { id: 'x-a', label: '지표', detail: '설명', points: pts, format: (v) => v.toFixed(1), axisFormat: (v) => v.toFixed(1), zeroBase: false, base: null, tone: 'positive', valueText: '111.0', changeText: '상승', nohistory: false };
+const html = t.renderIndicatorHistory_(model, 10);
+assert.equal((html.match(/data-mt-flow-chart/g) || []).length, 1, '그래프는 하나만');
+assert(!html.includes('<details') && html.includes('111.0') && html.includes('최근 10개 기록'), '현재 수치·기간');
+assert.equal((html.match(/mt-fc-xlabel/g) || []).length, 2, '컴팩트: x축은 처음·끝만');
+assert.equal((html.match(/mt-fc-ylabel/g) || []).length, 2, '컴팩트: y축은 최소·최대만');
+console.log('flow card ok');
