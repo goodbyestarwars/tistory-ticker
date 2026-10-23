@@ -90,7 +90,7 @@
         var left = Math.max(2, Math.min(width - w - 60, x - w / 2));
         ctx.beginPath();
         if (ctx.roundRect) ctx.roundRect(left, y - 9, w, 18, 9); else ctx.rect(left, y - 9, w, 18);
-        ctx.fillStyle = dark ? 'rgba(26,26,26,.95)' : 'rgba(255,254,252,.95)';
+        ctx.fillStyle = dark ? 'rgba(32,39,49,.95)' : 'rgba(255,254,252,.95)';
         ctx.fill();
         ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.stroke();
         ctx.fillStyle = color;
@@ -110,7 +110,7 @@
         });
         [[xa, pa], [xb, pb], [xa, ya], [xb, yb]].forEach(function (pt) {
           ctx.beginPath(); ctx.arc(pt[0], pt[1], 3.6, 0, Math.PI * 2);
-          ctx.fillStyle = dark ? '#1a1a1a' : '#fff'; ctx.fill();
+          ctx.fillStyle = dark ? '#202731' : '#fff'; ctx.fill();
           ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.stroke();
         });
         // 두 극점의 가격·RSI 짝을 알아보도록 점선으로 가격 패널과 RSI 패널을 잇는다.

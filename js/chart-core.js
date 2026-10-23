@@ -118,8 +118,8 @@
 
   function themeColors(dark) {
     return {
-      text: dark ? '#aaa' : '#555', grid: dark ? '#3a3a3a' : '#eee', border: dark ? '#3a3a3a' : '#ddd',
-      paneSep: dark ? '#3a3a3a' : '#e5e7eb', paneSepHover: dark ? '#666' : '#cbd5e1', label: dark ? '#2a2a2a' : '#555'
+      text: dark ? '#a6b5c5' : '#555', grid: dark ? '#37424e' : '#eee', border: dark ? '#37424e' : '#ddd',
+      paneSep: dark ? '#37424e' : '#e5e7eb', paneSepHover: dark ? '#4b5b70' : '#cbd5e1', label: dark ? '#3a4d65' : '#555'
     };
   }
 
@@ -178,7 +178,7 @@
     return { layout: full.layout, grid: full.grid, rightPriceScale: { borderColor: full.rightPriceScale.borderColor }, timeScale: { borderColor: full.timeScale.borderColor }, crosshair: full.crosshair };
   }
 
-  function ma224Color(dark) { return (dark != null ? dark : isDark()) ? '#f1f3f5' : '#000000'; }
+  function ma224Color(dark) { return (dark != null ? dark : isDark()) ? '#f1f4f8' : '#000000'; }
 
   // 공용 다크모드 감시자: 페이지에 하나만 두고 html.dark 가 실제로 바뀔 때만 구독자를 부른다.
   var themeWatch = { observer: null, last: null, subs: [] };
@@ -1034,8 +1034,8 @@
     tip.hidden = true;
     var dark = isDark();
     tip.style.cssText = 'position:absolute;z-index:8;pointer-events:none;max-width:230px;padding:6px 8px;border-radius:6px;font-size:11px;line-height:1.5;'
-      + 'box-shadow:0 2px 8px rgba(15,23,42,.18);border:1px solid ' + (dark ? 'rgba(245,239,224,.24)' : 'rgba(148,163,184,.52)') + ';'
-      + 'background:' + (dark ? 'rgba(26,26,26,.95)' : 'rgba(255,255,255,.96)') + ';color:' + (dark ? '#F5EFE0' : '#334155') + ';';
+      + 'box-shadow:0 2px 8px rgba(15,23,42,.18);border:1px solid ' + (dark ? '#37424e' : 'rgba(148,163,184,.52)') + ';'
+      + 'background:' + (dark ? '#283340' : 'rgba(255,255,255,.96)') + ';color:' + (dark ? '#f1f4f8' : '#334155') + ';';
     container.appendChild(tip);
     function dateKey(time) {
       if (typeof time === 'string') return time;

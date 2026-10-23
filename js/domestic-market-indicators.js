@@ -204,11 +204,11 @@
     return {
       // Keep the attribution/logo behavior identical to the KOSPI200 futures chart.
       // 코스피·코스닥 주간현물 차트 축/시간축 폰트도 검은색으로 고정한다.
-      layout: { background: { color: 'transparent' }, textColor: '#000', attributionLogo: false },
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#a6b5c5' : '#000', attributionLogo: false },
       // 코스피·코스닥도 선물 차트와 같은 일반적인 캔들 차트로 표시한다.
       grid: {
-        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
-        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+        vertLines: { color: dark ? '#37424e' : '#eee' },
+        horzLines: { color: dark ? '#37424e' : '#eee' }
       },
       // 차트 DOM의 CSS border가 아니라 Lightweight Charts가 canvas 안에 직접 그리는
       // 오른쪽·아래 축 테두리다. 차트를 둘러싼 네모처럼 보이지 않게 둘 다 끈다.
