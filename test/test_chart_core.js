@@ -7,10 +7,7 @@ const assert = require('assert');
 const fs = require('fs');
 const path = require('path');
 
-// Approved 2026-10-23 UI change: official dark palette (style.css --dk-*). The historical fixture keeps the old dark chart
-// literals; map only those dark colours so every other option is still compared unchanged.
-const DARK_CHART_PALETTE = { '#aaa': '#a6b5c5', '#3a3a3a': '#37424e', '#666': '#4b5b70', '#2a2a2a': '#3a4d65' };
-const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/core_golden.json'), 'utf8').replace(/"(#aaa|#3a3a3a|#666|#2a2a2a)"/g, (m, c) => '"' + DARK_CHART_PALETTE[c] + '"'));
+const golden = JSON.parse(fs.readFileSync(path.join(__dirname, 'fixtures/chart_core/core_golden.json'), 'utf8'));
 // Approved 2026-10-20 UI change: fit 1/3/5-year daily ranges on narrow screens.
 // Preserve the historical fixture and compare every other option unchanged.
 for (const profile of [golden.search,golden.analysis]) for (const opts of Object.values(profile)) opts.timeScale.minBarSpacing=.1;

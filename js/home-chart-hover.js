@@ -17,8 +17,8 @@
     + '[data-hover-points] .hch-tip{position:absolute;top:-4px;transform:translateY(-100%);z-index:5;max-width:260px;padding:5px 8px;border-radius:6px;'
     + 'background:rgba(255,255,255,.97);border:1px solid rgba(148,163,184,.6);box-shadow:0 2px 8px rgba(15,23,42,.16);color:#1f2937;'
     + 'font:500 11px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif;white-space:pre;width:max-content;pointer-events:none}'
-    + 'html.dark [data-hover-points] .hch-tip{background:var(--dk-inner);border-color:var(--dk-line);color:var(--dk-text)}'
-    + 'html.dark [data-hover-points] .hch-dot{background:var(--dk-card);border-color:var(--dk-text)}'
+    + 'html.dark [data-hover-points] .hch-tip{background:rgba(26,26,26,.96);border-color:rgba(245,239,224,.24);color:#F5EFE0}'
+    + 'html.dark [data-hover-points] .hch-dot{background:#1a1a1a;border-color:#cbd5e1}'
     + '[data-hover-points] [hidden]{display:none}';
   (document.head || document.documentElement).appendChild(style);
 

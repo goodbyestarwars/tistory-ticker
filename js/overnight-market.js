@@ -761,7 +761,7 @@
     return {
       // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
       // 링크를 사이트 어딘가에 별도로 넣어야 함(사용자가 나중에 문서 만들 예정, 아직 미작성).
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#a6b5c5' : '#555', attributionLogo: false },
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
       grid: { vertLines: { visible: false }, horzLines: { visible: false } }
     };
   }
@@ -870,7 +870,7 @@
       var baseValue = (typeof price === 'number' && typeof change === 'number') ? price - change : normalizedRows[0].close;
       var baseLine = series.createPriceLine({
         price: baseValue,
-        color: isDark() ? '#4b5b70' : '#ccc',
+        color: isDark() ? '#666' : '#ccc',
         lineWidth: 1,
         lineStyle: LWC.LineStyle.Dashed,
         axisLabelVisible: false
@@ -1246,7 +1246,7 @@
       Object.keys(chartInstances).forEach(function (symbol) {
         var inst = chartInstances[symbol];
         inst.chart.applyOptions(chartThemeOptions());
-        if (inst.baseLine) inst.baseLine.applyOptions({ color: isDark() ? '#4b5b70' : '#ccc' });
+        if (inst.baseLine) inst.baseLine.applyOptions({ color: isDark() ? '#666' : '#ccc' });
       });
     });
     themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
