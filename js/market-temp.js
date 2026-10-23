@@ -2339,8 +2339,7 @@
       + '<div data-market-indicators>' + renderIndicatorRows_(buildIndicatorModels_({}, []), 'kospi-volume') + '</div>'
       + '<details class="mt-front-details"><summary>데이터 출처·기준 안내</summary>'
       + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록 대비 상대 강도를 나타냅니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details>'
-      // 2026-10-24 사용자 지시: '최근 시장 흐름'(그래프 블록)은 삭제했다. buildIndicatorHistoryShell_·renderIndicatorHistory_는 다시 붙일 때를 위해 남겨 두었고, 아래 render()는 블록이 없으면 건너뛴다.
-      + '</article>';
+      + buildIndicatorHistoryShell_() + '</article>';
   }
 
   function indicatorNumber_(value) {
@@ -2854,17 +2853,15 @@
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0] || XMODELS_[state.selected];
       if (!model) { state.selected = 'kospi-volume'; model = state.models[0]; }
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
-      if (panel.querySelector('[data-indicator-chart]')) {
-        var histBox = panel.querySelector('.mt-indicator-history'), toggle = panel.querySelector('[data-ih-toggle]');
-        if (histBox) histBox.classList.toggle('is-expanded', state.detailOpen);
-        if (toggle) { toggle.textContent = state.detailOpen ? '간단히 보기' : '상세 보기'; toggle.setAttribute('aria-expanded', String(state.detailOpen)); }
-        html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
-          return '<button type="button" class="mt-flow-period' + (period === state.period ? ' active' : '') + '" data-indicator-period="' + period + '" aria-pressed="' + (period === state.period) + '"' + (model.points.length < period ? ' disabled title="' + model.points.length + '개 기록 제공"' : '') + '>' + period + '일</button>';
-        }).join(''));
-        var content = panel.querySelector('[data-indicator-chart]');
-        html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period));
-        wireFlowChart_(content);
-      }
+      var histBox = panel.querySelector('.mt-indicator-history'), toggle = panel.querySelector('[data-ih-toggle]');
+      if (histBox) histBox.classList.toggle('is-expanded', state.detailOpen);
+      if (toggle) { toggle.textContent = state.detailOpen ? '간단히 보기' : '상세 보기'; toggle.setAttribute('aria-expanded', String(state.detailOpen)); }
+      html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
+        return '<button type="button" class="mt-flow-period' + (period === state.period ? ' active' : '') + '" data-indicator-period="' + period + '" aria-pressed="' + (period === state.period) + '"' + (model.points.length < period ? ' disabled title="' + model.points.length + '개 기록 제공"' : '') + '>' + period + '일</button>';
+      }).join(''));
+      var content = panel.querySelector('[data-indicator-chart]');
+      html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period));
+      wireFlowChart_(content);
       if (focusSelector) { var focus = panel.querySelector(focusSelector); if (focus) focus.focus({ preventScroll: true }); }
     }
     panel.addEventListener('click', function (event) {

@@ -1,6 +1,6 @@
-**2026-10-24 최근 시장 흐름 삭제**
+**2026-10-24 최근 시장 흐름 삭제 원복**
 
-사용자 지시. `js/market-temp.js`: `buildSummaryCard`에서 `최근 시장 흐름` 블록(`buildIndicatorHistoryShell_()`)을 지우고, `loadMarketIndicators_`의 `render()`가 그래프 블록이 없으면(`[data-indicator-chart]`) 기간·상세 보기·그래프 갱신을 건너뛰게 했다(없는 노드 접근 오류 방지). `buildIndicatorHistoryShell_`·`renderIndicatorHistory_`·`buildFlowChart_`는 다시 붙일 때를 위해 코드로 남겼고, 그래프 데이터 수집·계산은 변경 없다. 카드를 눌러 선택하던 동작은 남아 있으나 보여 줄 그래프가 없다. `test/test_market_temp_flow_card.js`를 '블록 없음·갱신이 건너뜀'을 검증하도록 바꿨다. market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면(블록 삭제 후 좌우 카드 높이는 기존 stretch 규칙이 맞춘다). 배포: js master 머지 후 Pages 자동.
+사용자 지시로 #944(최근 시장 흐름 삭제)를 되돌렸다. `시장 한눈에` 카드 안 `최근 시장 흐름`(112px 가로형 그래프·기간 5/10/20/40일·상세 보기)이 다시 보인다. market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면. 배포: js master 머지 후 Pages 자동.
 
 **2026-10-24 금리 카드 상태를 '수준'으로(높음/보통/낮음), 좌우 카드 높이 일치 유지**
 
