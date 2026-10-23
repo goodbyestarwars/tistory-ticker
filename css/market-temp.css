@@ -3350,7 +3350,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
 @layer np.np {
   @media (min-width: 761px) {
     html body #market-temp .mt-front-page.mt-front-page { align-items: stretch !important; }
-    html body #market-temp .mt-front-page > .mt-extras-col.mt-extras-col { align-self: stretch; display: flex !important; flex-direction: column; }
+    html body #market-temp .mt-front-page > .mt-extras-col.mt-extras-col { align-self: stretch; display: flex !important; flex-direction: column; justify-content: space-between; }
   }
 }
 
