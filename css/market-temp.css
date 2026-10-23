@@ -3335,3 +3335,14 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
     html body #market-temp .mt-indicator-history .mt-flow-svg { height: 190px !important; }
   }
 }
+
+/* 2026-10-23 상단 2열 높이 맞춤: 왼쪽 카드와 오른쪽 카드 묶음(원자재·가상자산 + 수급·심리·금리)이 같은 행에서 같은 높이가 되게 stretch.
+   남는 높이는 오른쪽 두 섹션과 그 안의 카드 행이 나눠 갖고(글자 크기·내용은 그대로), 761px 이하 1열에서는 기존처럼 위아래로 쌓는다. */
+@layer np.np {
+  @media (min-width: 761px) {
+    html body #market-temp .mt-front-page.mt-front-page { align-items: stretch !important; }
+    html body #market-temp .mt-front-page > .mt-extras-col.mt-extras-col { align-self: stretch; display: flex !important; flex-direction: column; }
+    html body #market-temp .mt-extras-col .mt-commodity-block { display: flex; flex-direction: column; flex: 1 1 auto; }
+    html body #market-temp .mt-extras-col .mt-xlist.mt-xlist { flex: 1 1 auto; grid-auto-rows: 1fr; }
+  }
+}
