@@ -2949,18 +2949,20 @@
       function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
       function cls(v) { return v > 0 ? 'mt-val-pos' : v < 0 ? 'mt-val-neg' : 'mt-val-zero'; }
       function md(d) { return String(d).slice(4, 6) + '/' + String(d).slice(6, 8); }
+      // tag는 값의 부호만으로 정한 짧은 해석 힌트(신호 계산과 무관): good=시초 방향에 우호적인 쪽
       var why = [
-        { name: 'S&P 500', val: r.spx.pct, note: '미국 정규장 종가 · ' + md(r.spx.date), good: r.spx.pct > 0 },
-        { name: '나스닥 종합', val: r.nas.pct, note: '미국 정규장 종가 · ' + md(r.nas.date), good: r.nas.pct > 0 },
-        { name: '다우존스', val: r.dji.pct, note: '미국 정규장 종가 · ' + md(r.dji.date), good: r.dji.pct > 0 },
-        { name: '필라델피아 반도체지수', val: r.sox.pct, note: '코스피에 반도체 비중이 커서', good: r.sox.pct > 0 },
-        { name: 'VIX(미국 공포지수) 변화', val: r.vix.pct, note: '오르면 위험회피 — 내려야 우호적', good: r.vix.pct < 0 },
-        { name: '원/달러 변화', val: r.fx.pct, note: '일봉 기준 · 오르면(원화 약세) 외국인 매도 압력', good: r.fx.pct < 0 }
+        { name: 'S&P 500', val: r.spx.pct, note: '미국 정규장 종가 · ' + md(r.spx.date), good: r.spx.pct > 0, tag: r.spx.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '나스닥 종합', val: r.nas.pct, note: '미국 정규장 종가 · ' + md(r.nas.date), good: r.nas.pct > 0, tag: r.nas.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '다우존스', val: r.dji.pct, note: '미국 정규장 종가 · ' + md(r.dji.date), good: r.dji.pct > 0, tag: r.dji.pct > 0 ? '상승 우호' : '하락 압력' },
+        { name: '필라델피아 반도체', val: r.sox.pct, note: '코스피에 반도체 비중이 커서', good: r.sox.pct > 0, tag: r.sox.pct > 0 ? '반도체 강세' : '반도체 약세' },
+        { name: 'VIX', val: r.vix.pct, note: '미국 공포지수 · 오르면 위험회피', good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' },
+        { name: '원/달러', val: r.fx.pct, note: '일봉 기준 · 오르면 원화 약세, 외국인 매도 압력', good: r.fx.pct < 0, tag: r.fx.pct < 0 ? '환율 안정' : '환율 부담' }
       ];
-      if (useNight) why.push({ name: '야간 코스피200 선물', val: night.gap, note: '주간 종가 대비 · 다음 시초와 가장 가까운 단서', good: night.gap > 0 });
+      if (useNight) why.push({ name: '야간 코스피200 선물', val: night.gap, note: '주간 종가 대비 · 다음 시초와 가장 가까운 단서', good: night.gap > 0, tag: night.gap > 0 ? '야간 강세' : '야간 약세' });
       var cols = why.length >= 7 ? 4 : 3;
       why = why.map(function (w) {
-        return '<li><span>' + w.name + ' <small>' + w.note + '</small></span><b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b></li>';
+        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span><span class="mt-tm-name">' + w.name + '</span><small>' + w.note + '</small></span>'
+          + '<b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b><em class="mt-tm-tag">' + w.tag + '</em></li>';
       }).join('');
       var nightHtml = '';
       // 야간선물은 위 7번째 칸으로 점수에 들어간다. 야간 세션이 아직 끝나기 전(다음 날 05:05 KST 전)에만 참고 한 줄로 보여준다.
@@ -2972,11 +2974,13 @@
       var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
         : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
         : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
+      // 결론(패널) → 근거 지표 → 신뢰도 순. 배지는 방향만(문구는 bucket.label이 이미 강도를 말한다)
+      var badge = tone === 'up' ? '↗ 상승' : tone === 'down' ? '↘ 하락' : '→ 중립';
       mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + (useNight ? '미국 현물 마감 + 야간선물 + VIX·환율 기준' : '미국 현물 마감 + VIX·환율 기준') + '</small></div>'
-        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
+        + '<div class="mt-tm-verdict mt-tm-' + tone + '"><em class="mt-tm-badge">' + badge + '</em><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
         + '<ul class="mt-tm-why" style="--mt-tm-cols:' + cols + '">' + why + '</ul>'
-        + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b>'
-        + '<span class="mt-tm-proof-line">같은 강도 신호 ' + bucket.n + '거래일(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
+        + '<div class="mt-tm-proof"><b>이 신호를 믿을 만한 이유</b>'
+        + '<span class="mt-tm-proof-line">같은 강도 신호 <b>' + bucket.n + '거래일</b>(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
         + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>'
         + nightHtml + auxHtml
         + '';
