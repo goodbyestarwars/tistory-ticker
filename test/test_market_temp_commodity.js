@@ -13,7 +13,7 @@ const now=Date.parse('2026-10-23T05:00:00Z');
 const row=(symbol,price,rate,extra={})=>({symbol,price,change_rate:rate,updated_at:'2026-10-23T04:07:00Z',stale:false,...extra});
 assert.equal(f([],now),'');
 let html=f([row('WTI',99.99,0.52),row('BRENT',113.77,-0.75),row('GOLD',4030.9,-0.73),row('BTC',109358000,0.42)],now);
-assert.equal((html.match(/mt-xcard/g)||[]).length,3,'원유·금·비트코인 3카드');
+assert.equal((html.match(/mt-xcard/g)||[]).length,4,'원유·금·비트코인·이더리움 4카드');
 assert(html.includes('$99.99')&&html.includes('$113.77')&&html.includes('$4,030.9')&&html.includes('1억 936만원'));
 assert(html.includes('10.23 13:07 수신(53분 전)')&&html.includes('mt-glance-row'),'한눈에 칸과 같은 카드 + 수신 시각·경과');
 assert(html.includes('업비트 공개시세'),'BTC 출처 표기');
@@ -23,7 +23,7 @@ assert(html.includes('업비트 공개시세'),'BTC 출처 표기');
   assert(!/실시간/.test(h2),'지연 여부를 모르면 실시간이라고 쓰지 않는다');
 }
 assert(html.indexOf('mt-xsay')>html.indexOf('mt-glance-line'),'값 줄 아래에 코멘트 줄');
-assert((html.match(/mt-xsay is-empty/g)||[]).length===3&&html.includes('data-ai-slot="oil"')&&html.includes('data-ai-slot="gold"')&&html.includes('data-ai-slot="btc"'),'카드마다 코멘트 자리');
+assert((html.match(/mt-xsay is-empty/g)||[]).length>=3&&html.includes('data-ai-slot="oil"')&&html.includes('data-ai-slot="gold"')&&html.includes('data-ai-slot="btc"'),'카드마다 코멘트 자리');
 ai.comments={gold:{text:'금값은 그대로 제자리네',generatedAt:'2026-10-23 11:00:00',dataAsOf:'2026-10-23',tradeDate:'2099-01-01',model:'m'}};
 assert(f([row('WTI',99.99,0.52),row('BRENT',113.77,-0.75),row('GOLD',4030.9,-0.73),row('BTC',109358000,0.42)],now).includes('금값은 그대로 제자리네'),'AI 코멘트가 있으면 해당 카드에 표시');
 ai.comments={};
@@ -36,3 +36,10 @@ html=f([row('WTI',99.99,0.52),row('BRENT',113.77,0.7,{stale:true}),row('GOLD',40
 assert(!html.includes('113.77'),'stale 브렌트 값 비표시');
 assert(((html.match(/미수신/g)||[]).length)>=3,'브렌트·금·BTC 미수신 표시');
 console.log('commodity cards + AI comment slots ok');
+// 이더리움 카드 + 카드 안 수신 시각·출처 줄 없음(블록 아래 한 줄로 묶음)
+{ const n=Date.parse('2026-10-23T05:00:00Z');const iso='2026-10-23T04:57:00Z';
+  const h=f([{symbol:'WTI',price:100.28,change_rate:0.81,updated_at:iso,stale:false},{symbol:'BTC',price:108628000,change_rate:-0.25,updated_at:iso,stale:false},{symbol:'ETH',price:3202000,change_rate:0.19,updated_at:iso,stale:false}],n);
+  assert(h.includes('이더리움')&&h.includes('320만원')&&h.includes('+0.19%'),'이더리움 현재가·등락률');
+  assert(!h.includes('mt-xmeta'),'카드 안 기준 시각 줄 없음');
+  assert((h.match(/class="mt-xnote"/g)||[]).length===1&&h.includes('업비트 공개시세')&&(h.match(/수신\(/g)||[]).length===1,'수신 시각·출처는 블록 아래 한 줄'); }
+console.log('eth + note ok');

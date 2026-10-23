@@ -2463,7 +2463,8 @@
     { kind: 'oil', name: '원유', items: [
       { symbol: 'WTI', label: 'WTI', usd: 2 }, { symbol: 'BRENT', label: '브렌트유', usd: 2 }] },
     { kind: 'gold', name: '금', items: [{ symbol: 'GOLD', label: '금 선물', usd: 1 }] },
-    { kind: 'btc', name: '비트코인', items: [{ symbol: 'BTC', label: 'BTC', krw: true }] }
+    { kind: 'btc', name: '비트코인', items: [{ symbol: 'BTC', label: 'BTC', krw: true }] },
+    { kind: 'eth', name: '이더리움', items: [{ symbol: 'ETH', label: 'ETH', krw: true }] }
   ];
   // AI 시장 코멘트(2026-10-23): 카드 옆 한 줄 해설은 더 이상 미리 쓴 문장 풀에서 고르지 않는다.
   // 서버(scripts/cloud-vm/ai_comments.py)가 실제 데이터를 정량 분석해 Groq로 생성하고, 숫자·방향·원인 단정·반복을 검증한 확정 코멘트를
@@ -2512,6 +2513,7 @@
   var ART_PATHS_ = {
     oil: '<line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9.83a2 2 0 0 0-.59-1.42L18 5"/>',
     gold: '<path d="M7.5 10h9l-1.2-4H8.7z"/><path d="M2.5 18h9l-1.2-4H3.7z"/><path d="M12.5 18h9l-1.2-4h-6.6z"/>',
+    eth: '<path d="M12 2 5.5 12.2 12 16l6.5-3.8z"/><path d="M5.5 14.2 12 22l6.5-7.8-6.5 3.8z"/>',
     btc: '<circle cx="12" cy="12" r="10"/><g transform="translate(4.8 4.8) scale(.6)"><path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/></g>',
     // 수급·심리·금리: Lucide(ISC) bar-chart-2·activity·percent 계열
     prog: '<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>',
@@ -2548,11 +2550,13 @@
       + '<b class="mt-xstate is-' + c.tone + '">' + escapeHtml(c.state) + '</b></span>'
       + (rows ? '<span class="mt-glance-line mt-xvals">' + rows + '</span>' : '<span class="mt-glance-line mt-xvals is-empty"></span>')
       + aiSayHtml_(c.ai, 'mt-xsay')
-      + '<small class="mt-xmeta">' + escapeHtml(c.meta) + '</small></button>';
+      + '</button>';
   }
-  function xBlockHtml_(title, label, cards, selectedId) {
+  // 기준 시각·출처는 카드마다 반복하지 않고 블록 아래 작은 한 줄로 묶는다(note가 없으면 카드별 meta를 '이름 meta'로 이어 붙인다).
+  function xBlockHtml_(title, label, cards, selectedId, note) {
+    var text = note != null ? note : cards.filter(function (c) { return c.meta && c.meta.indexOf('값을 받지') < 0; }).map(function (c) { return c.label + ' ' + c.meta; }).join(' / ');
     return '<section class="mt-commodity-block" aria-label="' + label + '"><h4 class="mt-commodity-title">' + title + '</h4><div class="mt-glance-list mt-xlist">'
-      + cards.map(function (c) { return xCardHtml_(c, selectedId); }).join('') + '</div></section>';
+      + cards.map(function (c) { return xCardHtml_(c, selectedId); }).join('') + '</div>' + (text ? '<p class="mt-xnote">' + escapeHtml(text) + '</p>' : '') + '</section>';
   }
   function stateWord_(tone, arrowWord) { return tone === 'positive' ? '↗ ' + arrowWord[0] : tone === 'negative' ? '↘ ' + arrowWord[1] : '→ ' + arrowWord[2]; }
   // ---- 수급·심리·금리 블록(표시 전용, 점수 미반영) ----
@@ -2728,7 +2732,7 @@
       if (!(r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000)) return null;
       var kst = new Date(at + 9 * 3600000);
       // 실시간/지연/종가는 응답이 알려 주는 만큼만 적는다: 수신 시각과 경과, 출처, 지연 여부(source_delay)가 '미확인'이면 그대로 '지연 여부 미확인'.
-      var src = r.source || (it.symbol === 'BTC' ? '업비트 공개시세' : ''), delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
+      var src = r.source || (it.symbol === 'BTC' || it.symbol === 'ETH' ? '업비트 공개시세' : ''), delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
       return { text: fmt(it, price), rate: rate, time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 수신(' + ageText_(now - at) + ')',
         src: [src, delay].filter(Boolean).join(' · ') };
     }
@@ -2745,11 +2749,14 @@
         ai: mean == null ? null : g.kind, meta: have.length ? [have[0].time].concat(have.map(function (v) { return v.src; }).filter(function (t, i, a) { return t && a.indexOf(t) === i; })).join(' · ') : '값을 받지 못했습니다',
         panel: pts.length ? { points: pts, base: medianOf_(pts.map(function (r) { return r.score; })), format: function (v) { return fmt(item, v); } } : null };
     });
-    return xBlockHtml_('원자재·가상자산', '원자재·가상자산(표시 전용)', cards, selectedId);
+    var timeNote = '', srcNote = [];
+    cards.forEach(function (c) { var p = (c.meta || '').split(' · '); if (c.meta && c.meta.indexOf('값을 받지') < 0) { if (!timeNote) timeNote = p[0]; p.slice(1).forEach(function (x) { if (x && srcNote.indexOf(x) < 0) srcNote.push(x); }); } });
+    return xBlockHtml_('원자재·가상자산', '원자재·가상자산(표시 전용)', cards, selectedId, timeNote ? [timeNote].concat(srcNote).join(' · ') : '');
   }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
     return '<div class="mt-glance-list">' + models.map(function (m) {
+      if (m.id === 'us-rate') return ''; // 미국 금리는 수급·심리·금리 카드에만(중복 제거, 모델은 시그널이 그대로 사용)
       var investor = ['foreign', 'institution', 'individual'].indexOf(m.id) >= 0;
       var share = shares && shares.items.filter(function (r) { return r.id === m.id; })[0];
       var amount = share ? share.value : m.value, date = share ? shares.date : m.date;
@@ -3144,7 +3151,7 @@
   var BRIEFING_URL_ = 'https://goodbyestar.cloud/morning-briefing';
   // 아래 두 주소는 시장 한눈에·원자재·금리 카드가 쓴다(브리핑과 무관, 같은 응답을 공유한다).
   var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
-  var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,KTB3Y,US2Y,US30Y&stored_only=true';
+  var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,ETH,KTB3Y,US2Y,US30Y&stored_only=true';
 
   function stampHm_(stamp) { var m = /\s(\d{2}:\d{2})/.exec(String(stamp || '')); return m ? m[1] : ''; }
   function ymdLabel_(ymd) { var m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(ymd || '')); return m ? (+m[2]) + '/' + (+m[3]) : String(ymd || ''); }
