@@ -8,6 +8,8 @@
 
 미확인/기존 문제: 사용자 언급 첨부 3장은 대화에 없어서 운영 화면을 기준으로 비교했다. 관심종목은 사이트 계정 비로그인 상태여서 서랍·로그인/빈 상태만 확인(저장·로그인 실행 안 함). 일부 티스토리 페이지 모바일에서 외부 광고 iframe 1200px가 문서 전체를 넘침(9Pay 위젯 본문은 정상), 티스토리 common.js `$ is not a function` 기존 오류가 남음. 차트 모바일→PC 리사이즈 직후 일시적 작은 SVG는 재로딩 후 추가 관찰 필요. 배포 경로는 master의 style.css/css/js → GitHub Pages, VM/GAS 및 티스토리 마크업 변경 없음.
 
+배포 완료 확인: 소스 커밋 5e8ea43d의 Pages build= built/error=null. 공개 style.css·indicator-board.css·market-temp.css·skin-shell.js 응답이 커밋 Git blob과 바이트 일치. 임시 preview CSS 0개인 운영 화면에서 홈 4폭 가로 넘침 없음, 주요 4페이지 본문 폭/scrollWidth 일치 및 제목 PC 24px/모바일 22px·증시온도 카드 14px·투명 송골매 URL을 재확인했다. 티스토리 마크업 수동 조치 없음.
+
 **2026-10-24 미국 종목 요약 카드 시간외 안내 정렬**
 
 사용자 지적(스크린샷: 스페이스X, 애프터마켓). `js/us-stocks.js` embedded 요약 카드의 `data-us-session-comparison`(`정규장 종가 … · 시간외 등락은 정규장 종가 대비`)이 `#stock-search .ss-summary`의 2열 격자 오른쪽 칸에 끼어 헤더 옆에 어긋나 보였다. `css/stock-search.css` 끝에 규칙: 이 줄을 `grid-column:1/-1`로 헤더 아래 전체 폭 왼쪽 정렬 한 줄로(테두리·배경 없음, 12px). 아래 분석 카드 5칸·전일 종가 줄은 변경 없음. 미확인: 실제 화면(시간외 시간대에만 보임). 배포: css master 머지 후 Pages 자동.
