@@ -2708,7 +2708,7 @@
       panel: { html: '<div class="mt-pc-bar" role="img" aria-label="풋 ' + Math.round(oc.share * 100) + '% 콜 ' + (100 - Math.round(oc.share * 100)) + '%"><i class="put" style="width:' + (oc.share * 100).toFixed(1) + '%"></i><i class="call" style="width:' + ((1 - oc.share) * 100).toFixed(1) + '%"></i></div>' } }
       : { id: 'putcall', icon: 'putcall', label: '옵션 풋/콜', tone: 'neutral', state: '미수신', rows: [], ai: null, meta: '값을 받지 못했습니다', panel: null });
     var rc = rateCard_(by, now_);
-    cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 국채 10년 금리(%) · FRED 일봉 · 5거래일 ' + rc.five, label: '금리', tone: 'neutral', state: rc.levelWord || '확인 중',
+    cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 국채 10년 금리(%) · FRED 일봉 · 5거래일 ' + rc.five, label: '금리', tone: rc.levelWord === '높음' ? 'positive' : rc.levelWord === '낮음' ? 'negative' : 'neutral', state: rc.levelWord || '확인 중',
       rows: rc.rows, ai: rc.ai, meta: '금리 수준 ' + (rc.levelWord || '확인 중') + '(최근 120일 상·중·하 위치, 10년 4.5%·30년 5% 이상은 높음 보조) · 오늘 ' + (rc.moveWord || '확인 중') + ' · ' + rc.time + (rc.five ? ' · 5일 ' + rc.five : ''),
       panel: rc.series.length ? { points: rc.series, base: null, zeroBase: false, format: function (v) { return v.toFixed(2) + '%'; } } : null }
       : { id: 'rate', icon: 'rate', label: '금리', tone: 'neutral', state: '미수신', rows: [], ai: null, meta: '값을 받지 못했습니다', panel: null });
