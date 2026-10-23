@@ -22,6 +22,7 @@ from datetime import timedelta
 import tg_data
 import tg_format as F
 import tg_live_orders
+import tg_live_status
 import tg_volume_surge
 from bot import MSG_ORDER_FAILED, MSG_ORDER_REJECTED
 from tg_notify import fmt_duration
@@ -69,7 +70,7 @@ class Monitor:
             self.streaks.clear()           # PC 절전에서 깬 직후의 오래된 값으로 경고를 내지 않는다
         self._last_tick = now
         for name, fn in (('events', self.watch_bot_events), ('positions', self.watch_positions), ('health', self.watch_bot_health),
-                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('liveorders', self.watch_live_orders), ('surge', self.watch_volume_surge), ('scan', self.watch_scan_done),
+                         ('research', self.watch_research), ('researchlog', self.watch_research_log), ('paper', self.watch_paper), ('live', self.watch_live_paper), ('liveorders', self.watch_live_orders), ('livestatus', self.watch_live_status), ('surge', self.watch_volume_surge), ('scan', self.watch_scan_done),
                          ('pc', self.watch_pc)):
             try:
                 fn()
@@ -333,6 +334,59 @@ class Monitor:
                 svc.notifier.notify(key, tg_live_orders.fmt_live_order(data, now_dt), 'order', 'critical')
             except Exception as exc:
                 log.error('실계좌 주문 %s 알림 처리 실패: %s', intent.get('id'), type(exc).__name__)
+
+    # ---- 5-4) 실계좌 runner 상태·요약 (2026-10-23) ----
+    def watch_live_status(self):
+        """live_status.json·오늘 장부를 읽기 전용으로 읽어 막힘 상태·피드 장애·runner 응답 없음을 알리고, 평일 09:05/14:05/15:35 요약을 보낸다.
+        runner·엔진은 건드리지 않는다. 같은 사건은 알림 상태(alerts)와 키로 한 번만 나간다."""
+        svc = self.svc
+        n = svc.notifier
+        status = tg_live_status.read_status(svc.base_dir)
+        if status is None:
+            return
+        now_dt = svc.now_dt()
+        market = bool(svc.bot.status().get('market_open'))
+        state = status.get('state')
+        age = tg_live_status.status_age_sec(status, now_dt)
+        fresh = age is not None and age <= tg_live_status.STALE_SEC
+        # runner 응답 없음(장중에만)
+        if market and age is not None and age > tg_live_status.STALE_SEC:
+            self.streaks['live_stale'] = self.streaks.get('live_stale', 0) + 1
+            if self.streaks['live_stale'] >= 2:
+                n.raise_alert('live_stale', tg_live_status.fmt_stale(age, now_dt), 'critical', 1800)
+        else:
+            self.streaks['live_stale'] = 0
+            if fresh:
+                n.clear_alert('live_stale', 'runner 가 다시 점검을 기록하고 있습니다.')
+        # 막힘 상태(신선한 상태 파일일 때만 - 어제 값으로 오늘 경고하지 않는다)
+        prev = self.streaks.get('live_block_key')
+        key = ('live_state_' + str(state)) if fresh and tg_live_status.is_blocking(state) else None
+        if prev and prev != key:
+            n.clear_alert(prev, 'runner 막힘 상태가 풀렸습니다(현재 상태: %s).' % F.esc(str(state)))
+        if key:
+            level, text = tg_live_status.fmt_blocking(state, now_dt)
+            n.raise_alert(key, text, level, 3600)
+        self.streaks['live_block_key'] = key
+        # 신호 피드 장애(개장 직후 짧은 불가는 무시)
+        fstate, freason = tg_live_status.feed_info(status)
+        down = market and fresh and state == '9PAY_FEED_UNAVAILABLE' and fstate == 'UNAVAILABLE'
+        if down:
+            since = self.streaks.get('live_feed_since') or now_dt
+            self.streaks['live_feed_since'] = since
+            if (now_dt - since).total_seconds() >= tg_live_status.FEED_DOWN_SEC:
+                n.raise_alert('live_feed', tg_live_status.fmt_feed_down(freason, now_dt), 'warn', 3600)
+        else:
+            self.streaks['live_feed_since'] = None
+            if fstate == 'OK':
+                n.clear_alert('live_feed', '9Pay 신호 피드가 정상으로 돌아왔습니다.')
+        # 요약(거래일에만: 장중이거나 오늘 runner 가 점검을 기록했을 때)
+        for slot, label in tg_live_status.due_slots(now_dt):
+            ran_today = status.get('checked_at', '')[:10] == tg_live_status.parse_day(now_dt)
+            if not (market or ran_today):
+                continue
+            today = tg_live_status.read_today(svc.base_dir, tg_live_status.parse_day(now_dt))
+            text = tg_live_status.fmt_summary(label, status, today, now_dt, lambda c: self._name(c) or self._saved_name(c))
+            n.notify('live_sum:%s:%s' % (tg_live_status.day_key(now_dt), slot), text, 'order', 'info')
 
     def _saved_name(self, code):
         """order_names.json(운영센터가 쌓는 종목명 사전). 못 찾으면 None - 알림에는 종목코드가 항상 들어간다."""
