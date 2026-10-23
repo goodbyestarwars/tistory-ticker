@@ -23,6 +23,11 @@ assert(html.includes('$99.99')&&html.includes('$113.77')&&html.includes('$4,030.
 assert(html.includes('10.23 13:07 기준')&&html.includes('<svg')&&html.includes('aria-hidden="true"'));
 assert(html.indexOf('mt-commodity-say')<html.indexOf('mt-commodity-line'),'코멘트가 숫자보다 먼저');
 assert(html.includes('/pages/overnight-market')&&html.includes('자세히 보기'));
+assert(html.includes('mt-cgroup is-positive')&&html.includes('mt-cgroup is-negative')&&html.includes('오르는 중')&&html.includes('내리는 중'),'방향 그룹');
+const chart=Array.from({length:30},(_,i)=>({date:'d'+i,close:100+(i%7)}));
+const withChart=f([row('WTI',99.99,0.52,{chart}),row('BRENT',113.77,-0.75),row('GOLD',4030.9,-0.73,{chart}),row('BTC',109358000,0.42,{chart})],now);
+assert((withChart.match(/class="mt-spark"/g)||[]).length===3&&withChart.includes('role="img"'),'일봉이 있으면 카드마다 추이 그래프(원유·금·BTC)');
+assert(!html.includes('class="mt-spark"'),'일봉이 없으면 그래프를 만들지 않음');
 html=f([row('WTI',99.99,0.52),row('BRENT',113.77,0.7,{stale:true}),row('GOLD',4030.9,0.1,{updated_at:'2026-10-20T00:00:00Z'}),row('BTC',null,0.4)],now);
 assert(!html.includes('113.77'),'stale 브렌트 값 비표시');
 assert.equal((html.match(/미수신/g)||[]).length,5,'브렌트 줄·금 줄+코멘트·BTC 줄+코멘트');
