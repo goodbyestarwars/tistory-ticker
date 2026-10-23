@@ -2543,9 +2543,7 @@
   }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
-    // 원/달러는 '다음 거래일 전망' 카드에 있어 시장 한눈에에서는 그리지 않는다(모델은 시그널·체크포인트가 그대로 쓴다).
     return '<div class="mt-glance-list">' + models.map(function (m) {
-      if (m.id === 'fx') return '';
       var investor = ['foreign', 'institution', 'individual'].indexOf(m.id) >= 0;
       var share = shares && shares.items.filter(function (r) { return r.id === m.id; })[0];
       var amount = share ? share.value : m.value, date = share ? shares.date : m.date;
@@ -3113,8 +3111,8 @@
         { name: '나스닥 종합', val: r.nas.pct, good: r.nas.pct > 0, tag: r.nas.pct > 0 ? '상승 우호' : '하락 압력' },
         { name: '다우존스', val: r.dji.pct, good: r.dji.pct > 0, tag: r.dji.pct > 0 ? '상승 우호' : '하락 압력' },
         { name: '필라델피아 반도체', val: r.sox.pct, good: r.sox.pct > 0, tag: r.sox.pct > 0 ? '반도체 강세' : '반도체 약세' },
-        { name: 'VIX', val: r.vix.pct, good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' },
-        { name: '원/달러', val: r.fx.pct, good: r.fx.pct < 0, tag: r.fx.pct < 0 ? '환율 안정' : '환율 부담' }
+        { name: 'VIX', val: r.vix.pct, good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' }
+        // 원/달러 칸은 시장 한눈에의 환율 저울과 겹쳐 뺐다(신호 계산에는 r.fx가 그대로 들어간다)
       ];
       var usDates = [r.spx.date, r.nas.date, r.dji.date].filter(function (d, i, a) { return a.indexOf(d) === i; }).map(md).join('·');
       var items = why.map(function (w) {
