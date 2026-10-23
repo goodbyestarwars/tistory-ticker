@@ -123,24 +123,24 @@
 .my-detail-frame summary { padding: 13px 15px; color: #334155; cursor: pointer; font-size: 12px; }
 .my-detail-frame iframe { display: block; width: 100%; height: 900px; border: 0; }
 
-html.dark #my-dashboard { color: #f5efe0; }
-html.dark .my-dashboard-head, html.dark .my-dashboard-list, html.dark .my-metric-grid > div, html.dark .my-holding-card, html.dark .my-analysis-card, html.dark .my-detail-frame, html.dark .my-detail-loading, html.dark .my-dashboard-empty { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .my-dashboard-head p, html.dark .my-dashboard-status, html.dark .my-dashboard-storage, html.dark .my-stock-row-name small, html.dark .my-stock-row-price small, html.dark .my-stock-row-pnl, html.dark .my-card-title span, html.dark .my-holding-note, html.dark .my-analysis-footnote, html.dark .my-muted { color: rgba(245,239,224,.55); }
-html.dark .my-stock-row { border-bottom-color: rgba(245,239,224,.1); background: #1a1a1a; color: #f5efe0; }
-html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background: #242424; }
-html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-holding-fields select, html.dark .my-calc-fields input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
-html.dark .my-volume-highlight, html.dark .my-calc-result { background: #242424; color: rgba(245,239,224,.65); }
-html.dark .my-flow-chart { border-top-color: rgba(245,239,224,.1); }
-html.dark .my-flow-chart-head strong { color: #f5efe0; }
-html.dark .my-flow-grid-line { stroke: rgba(245,239,224,.14); }
-html.dark .my-flow-zero-line { stroke: rgba(245,239,224,.35); }
-html.dark .my-flow-axis, html.dark .my-flow-chart-head small, html.dark .my-flow-legend { fill: rgba(245,239,224,.58); color: rgba(245,239,224,.58); }
-html.dark .my-ai-card { background: linear-gradient(135deg, #202b3a, #1a1a1a); }
-html.dark .my-position-advice:not(.my-composite-card) { background: #1a1a1a; }
-html.dark .my-position-note { color: rgba(245,239,224,.8); }
-html.dark .my-ai-card .my-ai-evidence { border-top-color: rgba(245,239,224,.16); color: rgba(245,239,224,.65); }
-html.dark .my-ai-card .my-ai-evidence b { color: #f5efe0; }
-html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,239,224,.8); }
+html.dark #my-dashboard { color: var(--dk-text); }
+html.dark .my-dashboard-head, html.dark .my-dashboard-list, html.dark .my-metric-grid > div, html.dark .my-holding-card, html.dark .my-analysis-card, html.dark .my-detail-frame, html.dark .my-detail-loading, html.dark .my-dashboard-empty { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .my-dashboard-head p, html.dark .my-dashboard-status, html.dark .my-dashboard-storage, html.dark .my-stock-row-name small, html.dark .my-stock-row-price small, html.dark .my-stock-row-pnl, html.dark .my-card-title span, html.dark .my-holding-note, html.dark .my-analysis-footnote, html.dark .my-muted { color: var(--dk-mute); }
+html.dark .my-stock-row { border-bottom-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
+html.dark .my-stock-row:hover, html.dark .my-stock-row.is-selected { background: var(--dk-inner); }
+html.dark .my-detail-actions a, html.dark .my-holding-fields input, html.dark .my-holding-fields select, html.dark .my-calc-fields input { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
+html.dark .my-volume-highlight, html.dark .my-calc-result { background: var(--dk-inner); color: var(--dk-sub); }
+html.dark .my-flow-chart { border-top-color: var(--dk-line); }
+html.dark .my-flow-chart-head strong { color: var(--dk-text); }
+html.dark .my-flow-grid-line { stroke: var(--dk-line); }
+html.dark .my-flow-zero-line { stroke: var(--dk-mute); }
+html.dark .my-flow-axis, html.dark .my-flow-chart-head small, html.dark .my-flow-legend { fill: var(--dk-mute); color: var(--dk-mute); }
+html.dark .my-ai-card { background: linear-gradient(135deg, var(--dk-card), var(--dk-card)); }
+html.dark .my-position-advice:not(.my-composite-card) { background: var(--dk-card); }
+html.dark .my-position-note { color: var(--dk-text); }
+html.dark .my-ai-card .my-ai-evidence { border-top-color: var(--dk-line); color: var(--dk-sub); }
+html.dark .my-ai-card .my-ai-evidence b { color: var(--dk-text); }
+html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: var(--dk-text); }
 
 @media (max-width: 720px) {
   #my-dashboard { margin-top: 18px; }
@@ -224,23 +224,23 @@ html.dark .my-ai-card p, html.dark .my-detail-frame summary { color: rgba(245,23
 .my-holding-preview strong { color: #334155; font-size: 14px; font-variant-numeric: tabular-nums; }
 .my-holding-preview strong.is-up { color: var(--num-up); }
 .my-holding-preview strong.is-down { color: var(--num-down); }
-html.dark .my-watchlist-panel { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .my-watchlist-show { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: rgba(245,239,224,.75); }
-html.dark .my-watchlist-show:hover { border-color: rgba(245,239,224,.4); background: #242424; color: #f5efe0; }
-html.dark .my-watchlist-add { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #bfdbfe; }
-html.dark .my-watchlist-add:hover { border-color: #93c5fd; background: #242424; }
-html.dark .my-watchlist-modal-dialog { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .my-watchlist-modal-head strong { color: #f5efe0; }
-html.dark .my-watchlist-modal-close { background: #303030; color: rgba(245,239,224,.75); }
-html.dark .my-watchlist-modal-dialog > p { color: rgba(245,239,224,.65); }
-html.dark .my-watchlist-modal-row input { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
-html.dark .my-watchlist-group + .my-watchlist-group { border-color: rgba(245,239,224,.12); }
-html.dark .my-watchlist-group-toggle { background: #202020; color: #f5efe0; }
+html.dark .my-watchlist-panel { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .my-watchlist-show { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-sub); }
+html.dark .my-watchlist-show:hover { border-color: var(--dk-mute); background: var(--dk-inner); color: var(--dk-text); }
+html.dark .my-watchlist-add { border-color: var(--dk-line); background: var(--dk-inner); color: #bfdbfe; }
+html.dark .my-watchlist-add:hover { border-color: #93c5fd; background: var(--dk-inner); }
+html.dark .my-watchlist-modal-dialog { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .my-watchlist-modal-head strong { color: var(--dk-text); }
+html.dark .my-watchlist-modal-close { background: var(--dk-inner); color: var(--dk-sub); }
+html.dark .my-watchlist-modal-dialog > p { color: var(--dk-sub); }
+html.dark .my-watchlist-modal-row input { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
+html.dark .my-watchlist-group + .my-watchlist-group { border-color: var(--dk-line); }
+html.dark .my-watchlist-group-toggle { background: var(--dk-card); color: var(--dk-text); }
 html.dark .my-watchlist-group-toggle:hover { background: #282828; }
-html.dark .my-watchlist-panel-head, html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-holding-preview { border-color: rgba(245,239,224,.1); }
-html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-watchlist-name strong, html.dark .my-holding-preview strong { color: #f5efe0; }
-html.dark .my-watchlist-table tbody tr:hover, html.dark .my-watchlist-table tbody tr.is-selected { background: #242424; }
-html.dark .my-watchlist-icon img { background: #242424; }
+html.dark .my-watchlist-panel-head, html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-holding-preview { border-color: var(--dk-line); }
+html.dark .my-watchlist-table th, html.dark .my-watchlist-table td, html.dark .my-watchlist-name strong, html.dark .my-holding-preview strong { color: var(--dk-text); }
+html.dark .my-watchlist-table tbody tr:hover, html.dark .my-watchlist-table tbody tr.is-selected { background: var(--dk-inner); }
+html.dark .my-watchlist-icon img { background: var(--dk-inner); }
 @media (max-width: 720px) {
   .my-watchlist-panel { border-width: 1px; border-radius: 12px; }
   .my-watchlist-show { margin-top: 0; }
@@ -332,19 +332,19 @@ html.dark .my-watchlist-icon img { background: #242424; }
 .my-calc-auto strong { display: block; margin-top: 5px; color: #111827; font-size: 17px; }
 .my-calc-result { font-size: 13px; }
 .my-calc-result strong { font-size: 19px; }
-html.dark .my-search-panel, html.dark .my-dashboard-detail { border-color: rgba(245,239,224,.2); background: #181818; }
-html.dark .my-search-panel label, html.dark .my-shape-note b { color: #f5efe0; }
-html.dark .my-search-panel p, html.dark .my-shape-note, html.dark .my-range-label { color: rgba(245,239,224,.7); }
-html.dark .my-search-row input, html.dark .my-shape-grid > div, html.dark .my-calc-auto span { border-color: rgba(245,239,224,.2); background: #242424; color: #f5efe0; }
-html.dark .my-input-logo { background: rgba(245,239,224,.1); color: rgba(245,239,224,.7); }
-html.dark .my-volume-row > i { background: #303030; }
-html.dark .my-shape-badge { background: #1d3158; color: #bfdbfe; }
-html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: rgba(245,239,224,.65); }
-html.dark .my-calc-auto strong { color: #f5efe0; }
-html.dark .my-composite-card { background: linear-gradient(135deg, #302522, #1a1a1a); }
-html.dark .my-opinion-axis, html.dark .my-opinion-verdict { border-color: rgba(245,239,224,.16); background: #242424; }
-html.dark .my-opinion-axis p, html.dark .my-opinion-verdict p { color: rgba(245,239,224,.78); }
-html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { color: rgba(245,239,224,.55); }
+html.dark .my-search-panel, html.dark .my-dashboard-detail { border-color: var(--dk-line); background: #181818; }
+html.dark .my-search-panel label, html.dark .my-shape-note b { color: var(--dk-text); }
+html.dark .my-search-panel p, html.dark .my-shape-note, html.dark .my-range-label { color: var(--dk-sub); }
+html.dark .my-search-row input, html.dark .my-shape-grid > div, html.dark .my-calc-auto span { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
+html.dark .my-input-logo { background: var(--dk-inner); color: var(--dk-sub); }
+html.dark .my-volume-row > i { background: var(--dk-inner); }
+html.dark .my-shape-badge { background: rgba(var(--dk-down-rgb),.16); color: #bfdbfe; }
+html.dark .my-shape-grid span, html.dark .my-calc-auto span { color: var(--dk-sub); }
+html.dark .my-calc-auto strong { color: var(--dk-text); }
+html.dark .my-composite-card { background: linear-gradient(135deg, #302522, var(--dk-card)); }
+html.dark .my-opinion-axis, html.dark .my-opinion-verdict { border-color: var(--dk-line); background: var(--dk-inner); }
+html.dark .my-opinion-axis p, html.dark .my-opinion-verdict p { color: var(--dk-sub); }
+html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { color: var(--dk-mute); }
 
 @media (max-width: 720px) {
   .my-dashboard-head h2 { font-size: 26px; }
@@ -360,7 +360,7 @@ html.dark .my-opinion-verdict > span, html.dark .my-opinion-verdict small { colo
 #my-dashboard .my-shape-badge.is-up { background: #fff0ed; color: var(--num-up); }
 #my-dashboard .my-shape-badge.is-down { background: #eaf2ff; color: var(--num-down); }
 html.dark #my-dashboard .my-shape-badge.is-up { background: #49231f; color: #ff9b8f; }
-html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #93c5fd; }
+html.dark #my-dashboard .my-shape-badge.is-down { background: rgba(var(--dk-down-rgb),.16); color: #93c5fd; }
 
 /* 2026-08-23: MY 화면의 확장형 스타일이 카드마다 큰 여백과 큰 글자를 강제해
    정보 밀도가 낮아졌다. 핵심 값은 읽히게 유지하면서 기본 카드 단위로 되돌린다. */
@@ -461,7 +461,7 @@ html.dark #my-dashboard .my-shape-badge.is-down { background: #1d3158; color: #9
 #my-dashboard .my-watchlist-table td small { font-size: 8px; }
 html.dark #my-dashboard .my-watchlist-groups { background: #141414; }
 html.dark #my-dashboard .my-watchlist-group,
-html.dark #my-dashboard .my-watchlist-group + .my-watchlist-group { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
+html.dark #my-dashboard .my-watchlist-group + .my-watchlist-group { border-color: var(--dk-line); background: var(--dk-card); }
 
 @media (max-width: 720px) {
   #my-dashboard .my-watchlist-groups { grid-template-columns: 1fr; gap: 8px; padding: 8px; }

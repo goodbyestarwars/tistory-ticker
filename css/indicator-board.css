@@ -3,8 +3,8 @@
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark. 모든 선택자는 .ibd 아래로 한정해 다른 영역에 영향을 주지 않는다. */
 .ibd { min-width:0; margin:0 0 18px; --ibd-ink:13,27,64; --ibd-line:rgba(17,17,17,.13); --ibd-line-strong:rgba(17,17,17,.85);
   --ibd-sub:#64748b; --ibd-num:#374151; --ibd-up:#d24f45; --ibd-down:#1261c4; color:rgb(var(--ibd-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
-html.dark .ibd { --ibd-ink:245,239,224; --ibd-line:rgba(245,239,224,.16); --ibd-line-strong:rgba(245,239,224,.85);
-  --ibd-sub:rgba(245,239,224,.62); --ibd-num:rgba(245,239,224,.88); --ibd-up:#ec6c62; --ibd-down:#5b9bf0; }
+html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-line-strong:var(--dk-text);
+  --ibd-sub:var(--dk-sub); --ibd-num:var(--dk-text); --ibd-up:var(--dk-up); --ibd-down:var(--dk-down); }
 
 .ibd .ibd-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
@@ -43,7 +43,7 @@ html.dark .ibd { --ibd-ink:245,239,224; --ibd-line:rgba(245,239,224,.16); --ibd-
 .ibd .ibd-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ibd .ibd-range-btn:last-child { border-right-width:1px; }
 .ibd .ibd-range-btn.is-active { background:rgb(var(--ibd-ink)); color:#fff; }
-html.dark .ibd .ibd-range-btn.is-active { color:#1A1A1A; }
+html.dark .ibd .ibd-range-btn.is-active { color:var(--dk-bg); }
 .ibd .ibd-chart { position:relative; min-width:0; }
 .ibd .ibd-chart .ibd-empty { padding-top:70px; }
 .ibd .ibd-svg { display:block; width:100%; overflow:visible; touch-action:pan-y; }
@@ -53,11 +53,11 @@ html.dark .ibd .ibd-range-btn.is-active { color:#1A1A1A; }
 .ibd .ibd-area { opacity:.08; stroke:none; }
 .ibd .ibd-cross { stroke:var(--ibd-sub); stroke-width:1; stroke-dasharray:3 3; }
 .ibd .ibd-dot { fill:#fff; stroke-width:2; }
-html.dark .ibd .ibd-dot { fill:#1A1A1A; }
+html.dark .ibd .ibd-dot { fill:var(--dk-bg); }
 .ibd .ibd-hit { fill:transparent; cursor:crosshair; }
 .ibd .ibd-svg [hidden] { display:none; }   /* SVG 요소에는 HTML hidden 속성이 적용되지 않는다 */
 .ibd .ibd-tip { position:absolute; z-index:2; min-width:130px; padding:7px 9px; border:1px solid var(--ibd-line-strong); background:#fff; color:#111; font-size:12px; line-height:1.5; pointer-events:none; }
-html.dark .ibd .ibd-tip { background:#1A1A1A; color:#F5EFE0; }
+html.dark .ibd .ibd-tip { background:var(--dk-card); color:var(--dk-text); }
 .ibd .ibd-tip[hidden] { display:none; }
 .ibd .ibd-stats { display:flex; margin:8px 0 0; padding:0; border-top:1px solid var(--ibd-line); border-bottom:1px solid var(--ibd-line); }
 .ibd .ibd-stats[hidden] { display:none; }
@@ -135,7 +135,7 @@ html.dark .ibd .ibd-tip { background:#1A1A1A; color:#F5EFE0; }
    선택된 기간 버튼의 반전 글자(크림 배경 위 크림 글자로 안 보임), 보조 글자의 옅은 색이 사라진다. 같은 !important 로 더 높은 명시도에서 되돌린다. */
 html.dark .ibd .up, html.dark .ibd .up small, html.dark .ibd td.up b { color: var(--num-up) !important; }
 html.dark .ibd .down, html.dark .ibd .down small, html.dark .ibd td.down b { color: var(--num-down) !important; }
-html.dark .ibd .ibd-range-btn.is-active { color: #1A1A1A !important; }
+html.dark .ibd .ibd-range-btn.is-active { color: var(--dk-bg) !important; }
 html.dark .ibd .ibd-sub, html.dark .ibd .ibd-code, html.dark .ibd .ibd-hint, html.dark .ibd .ibd-table thead th, html.dark .ibd .ibd-section th,
 html.dark .ibd .ibd-stat dt, html.dark .ibd .ibd-stat dd small { color: var(--ibd-sub) !important; }
 

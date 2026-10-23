@@ -234,7 +234,7 @@
 .nine-chart-ranges { margin: 4px 0 6px; }
 .nine-chart-ranges .nine-chart-range-status { color: #888; font-size: 12px; padding: 0 6px; white-space: nowrap; }
 .nine-chart-ranges .nine-chart-range-status:empty { display: none; }
-html.dark .nine-chart-ranges .nine-chart-range-status { color: rgba(245, 239, 224, 0.6); }
+html.dark .nine-chart-ranges .nine-chart-range-status { color: var(--dk-sub); }
 
 /* 갱신·기준 시각 표기 공통 모양(2026-10-23). 문구는 window.NineTime(js/skin-shell.js)이 만든다.
    12px · 보조 글자색(밝은 배경 대비 4.5:1 이상) · 숫자 폭 고정. 위치는 각 카드 제목 줄의 오른쪽 끝. */
@@ -246,9 +246,9 @@ html body .nt-stamp {
   text-align: right;
   white-space: nowrap;
 }
-html.dark body .nt-stamp { color: #a3acb9 !important; }
+html.dark body .nt-stamp { color: var(--dk-sub) !important; }
 
 /* 오르내림 숫자 글자색 단일 기준(2026-10-23 사용자 지시: "관측 고점/저점 색으로 모든 붉은·파란 숫자 통일").
    기준은 홈 관측 고점(#ad706b)·저점(#6386b2). 글자색(color)에만 쓴다 - 막대·선·배경 채움은 각자의 기존 색을 유지한다. */
 :root { --num-up: #ad706b; --num-down: #6386b2; }
-html.dark { --num-up: #d8aba6; --num-down: #a9c3e4; }
+html.dark { --num-up: var(--dk-up); --num-down: var(--dk-down); }

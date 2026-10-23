@@ -118,8 +118,8 @@
 
   function themeColors(dark) {
     return {
-      text: dark ? '#aaa' : '#555', grid: dark ? '#3a3a3a' : '#eee', border: dark ? '#3a3a3a' : '#ddd',
-      paneSep: dark ? '#3a3a3a' : '#e5e7eb', paneSepHover: dark ? '#666' : '#cbd5e1', label: dark ? '#2a2a2a' : '#555'
+      text: dark ? '#a6b5c5' : '#555', grid: dark ? '#37424e' : '#eee', border: dark ? '#37424e' : '#ddd',
+      paneSep: dark ? '#37424e' : '#e5e7eb', paneSepHover: dark ? '#4b5b70' : '#cbd5e1', label: dark ? '#3a4d65' : '#555'
     };
   }
 
@@ -1034,8 +1034,8 @@
     tip.hidden = true;
     var dark = isDark();
     tip.style.cssText = 'position:absolute;z-index:8;pointer-events:none;max-width:230px;padding:6px 8px;border-radius:6px;font-size:11px;line-height:1.5;'
-      + 'box-shadow:0 2px 8px rgba(15,23,42,.18);border:1px solid ' + (dark ? 'rgba(245,239,224,.24)' : 'rgba(148,163,184,.52)') + ';'
-      + 'background:' + (dark ? 'rgba(26,26,26,.95)' : 'rgba(255,255,255,.96)') + ';color:' + (dark ? '#F5EFE0' : '#334155') + ';';
+      + 'box-shadow:0 2px 8px rgba(15,23,42,.18);border:1px solid ' + (dark ? '#37424e' : 'rgba(148,163,184,.52)') + ';'
+      + 'background:' + (dark ? '#283340' : 'rgba(255,255,255,.96)') + ';color:' + (dark ? '#f1f4f8' : '#334155') + ';';
     container.appendChild(tip);
     function dateKey(time) {
       if (typeof time === 'string') return time;

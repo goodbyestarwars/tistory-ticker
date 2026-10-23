@@ -2,8 +2,8 @@
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark 방식. 모든 선택자는 #fx-rates 아래로 한정해 다른 탭에 영향을 주지 않는다. */
 #fx-rates { min-width:0; --fxr-ink:13,27,64; --fxr-line:rgba(17,17,17,.13); --fxr-line-strong:rgba(17,17,17,.85); --fxr-tint:rgba(17,17,17,.045);
   --fxr-sub:#64748b; --fxr-num:#374151; --fxr-up:#d24f45; --fxr-down:#1261c4; color:rgb(var(--fxr-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
-html.dark #fx-rates { --fxr-ink:245,239,224; --fxr-line:rgba(245,239,224,.16); --fxr-line-strong:rgba(245,239,224,.85); --fxr-tint:rgba(245,239,224,.06);
-  --fxr-sub:rgba(245,239,224,.62); --fxr-num:rgba(245,239,224,.88); --fxr-up:#ec6c62; --fxr-down:#5b9bf0; }
+html.dark #fx-rates { --fxr-ink: var(--dk-ink-rgb); --fxr-line:var(--dk-line); --fxr-line-strong:var(--dk-text); --fxr-tint:var(--dk-inner);
+  --fxr-sub:var(--dk-sub); --fxr-num:var(--dk-text); --fxr-up:var(--dk-up); --fxr-down:var(--dk-down); }
 
 #fx-rates .fxr { min-width:0; }
 #fx-rates .fxr-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
@@ -51,7 +51,7 @@ html.dark #fx-rates .fxr-state.is-warn { color:#fbbf24; }
 #fx-rates .fxr-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--fxr-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--fxr-ink)); font:700 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 #fx-rates .fxr-range-btn:last-child { border-right-width:1px; }
 #fx-rates .fxr-range-btn.is-active { background:rgb(var(--fxr-ink)); color:#fff; }
-html.dark #fx-rates .fxr-range-btn.is-active { color:#1A1A1A; }
+html.dark #fx-rates .fxr-range-btn.is-active { color:var(--dk-bg); }
 #fx-rates .fxr-chart { position:relative; min-width:0; height:230px; }
 #fx-rates .fxr-chart .fxr-empty { padding-top:90px; }
 #fx-rates .fxr-svg { display:block; width:100%; height:230px; overflow:visible; touch-action:pan-y; }
@@ -61,11 +61,11 @@ html.dark #fx-rates .fxr-range-btn.is-active { color:#1A1A1A; }
 #fx-rates .fxr-area { opacity:.08; stroke:none; }
 #fx-rates .fxr-cross { stroke:var(--fxr-sub); stroke-width:1; stroke-dasharray:3 3; }
 #fx-rates .fxr-dot { fill:#fff; stroke-width:2; }
-html.dark #fx-rates .fxr-dot { fill:#1A1A1A; }
+html.dark #fx-rates .fxr-dot { fill:var(--dk-bg); }
 #fx-rates .fxr-hit { fill:transparent; cursor:crosshair; }
 #fx-rates .fxr-svg [hidden] { display:none; }   /* SVG 요소에는 HTML hidden 속성이 적용되지 않는다 */
 #fx-rates .fxr-tip { position:absolute; z-index:2; min-width:130px; padding:7px 9px; border:1px solid var(--fxr-line-strong); background:#fff; color:#111; font-size:12px; line-height:1.5; pointer-events:none; }
-html.dark #fx-rates .fxr-tip { background:#1A1A1A; color:#F5EFE0; }
+html.dark #fx-rates .fxr-tip { background:var(--dk-card); color:var(--dk-text); }
 #fx-rates .fxr-tip[hidden] { display:none; }
 #fx-rates .fxr-stats { display:flex; margin:10px 0 0; padding:0; border-top:1px solid var(--fxr-line); border-bottom:1px solid var(--fxr-line); }
 #fx-rates .fxr-stats[hidden] { display:none; }
@@ -106,3 +106,4 @@ html.dark #fx-rates .fxr-tip { background:#1A1A1A; color:#F5EFE0; }
 @layer np {
   #fx-rates th, #fx-rates td { background-color:transparent !important; }
 }
+html.dark #fx-rates .fxr-range-btn.is-active { color: var(--dk-bg) !important; }

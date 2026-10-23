@@ -147,32 +147,32 @@
 }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
-html.dark #short-pressure { color: #ddd !important; }
+html.dark #short-pressure { color: var(--dk-text) !important; }
 html.dark #short-pressure .sp-input {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
-  color: #eee !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }
-html.dark #short-pressure .sp-search-btn { background: #555 !important; color: #eee !important; }
+html.dark #short-pressure .sp-search-btn { background: #555 !important; color: var(--dk-text) !important; }
 html.dark #short-pressure .sp-suggest {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #short-pressure .sp-suggest-item { color: #ddd !important; }
-html.dark #short-pressure .sp-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #short-pressure .sp-suggest-item { color: var(--dk-text) !important; }
+html.dark #short-pressure .sp-suggest-item:hover { background: var(--dk-hover) !important; }
 html.dark #short-pressure .sp-hint,
-html.dark #short-pressure .sp-loading { color: #999 !important; }
+html.dark #short-pressure .sp-loading { color: var(--dk-mute) !important; }
 html.dark #short-pressure .sp-card {
-  background: #262626 !important;
-  border-top-color: #3a3a3a !important;
-  border-right-color: #3a3a3a !important;
-  border-bottom-color: #3a3a3a !important;
+  background: var(--dk-inner) !important;
+  border-top-color: var(--dk-line) !important;
+  border-right-color: var(--dk-line) !important;
+  border-bottom-color: var(--dk-line) !important;
 }
-html.dark #short-pressure .sp-asof { color: #888 !important; }
+html.dark #short-pressure .sp-asof { color: var(--dk-mute) !important; }
 html.dark #short-pressure .sp-grade { color: #bbb !important; }
 html.dark #short-pressure .sp-metrics { background: #1f1f1f !important; }
-html.dark #short-pressure .sp-metric-label { color: #999 !important; }
-html.dark #short-pressure .sp-causes-title { color: #aaa !important; }
-html.dark #short-pressure .sp-cause-score { color: #888 !important; }
-html.dark #short-pressure .sp-conclusion { border-top-color: #3a3a3a !important; }
-html.dark #short-pressure .sp-note { color: #888 !important; }
+html.dark #short-pressure .sp-metric-label { color: var(--dk-mute) !important; }
+html.dark #short-pressure .sp-causes-title { color: var(--dk-sub) !important; }
+html.dark #short-pressure .sp-cause-score { color: var(--dk-mute) !important; }
+html.dark #short-pressure .sp-conclusion { border-top-color: var(--dk-line) !important; }
+html.dark #short-pressure .sp-note { color: var(--dk-mute) !important; }

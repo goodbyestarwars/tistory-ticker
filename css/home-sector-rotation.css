@@ -67,15 +67,15 @@
   .hsr-empty { flex-direction: row; align-items: baseline; gap: 8px; padding: 6px 0; }
   .hsr-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
-html.dark .hsr-col + .hsr-col { border-color: rgba(245, 239, 224, .1); }
-html.dark .hsr-title-row strong, html.dark .hsr-phase, html.dark .hsr-name { color: #F5EFE0; }
-html.dark .hsr-desc, html.dark .hsr-meta, html.dark .hsr-col-head p, html.dark .hsr-empty span { color: rgba(245, 239, 224, .6); }
-html.dark .hsr-empty b { color: rgba(245, 239, 224, .3); }
-html.dark .hsr-item + .hsr-item { box-shadow: 0 -1px 0 rgba(245, 239, 224, .07); }
-html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { background: rgba(245, 239, 224, .07); }
+html.dark .hsr-col + .hsr-col { border-color: var(--dk-line); }
+html.dark .hsr-title-row strong, html.dark .hsr-phase, html.dark .hsr-name { color: var(--dk-text); }
+html.dark .hsr-desc, html.dark .hsr-meta, html.dark .hsr-col-head p, html.dark .hsr-empty span { color: var(--dk-sub); }
+html.dark .hsr-empty b { color: var(--dk-mute); }
+html.dark .hsr-item + .hsr-item { box-shadow: 0 -1px 0 var(--dk-line); }
+html.dark .hsr-item:hover, html.dark .hsr-detail, html.dark .hsr-help-pop { background: var(--dk-hover); }
 html.dark .hsr-chg.is-up, html.dark .hsr-detail em.is-up { color: var(--num-up); }
 html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-down); }
-@media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: rgba(245, 239, 224, .1); } }
+@media (max-width: 560px) { html.dark .hsr-col { border-bottom-color: var(--dk-line); } }
 
 /* 홈 위젯 그리드 안에서는 전체 폭 한 줄을 차지한다(뉴스 줄 아래, 실시간 종목판 위) */
 .home-widget-grid > .home-sector-rotation { grid-column: 1 / -1; }
@@ -85,7 +85,7 @@ html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-
   margin: 24px 0 8px; padding: 30px 36px 26px;
   border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: rgb(254, 253, 250);
 }
-html.dark .home-sector-rotation { border-color: rgba(245, 239, 224, .16); background: #1a1a1a; }
+html.dark .home-sector-rotation { border-color: var(--dk-line); background: var(--dk-card); }
 html body .home-sector-rotation, html body .home-sector-rotation button, html body .home-sector-rotation .hsr-title-row strong { font-family: var(--font-title) !important; }
 html body .home-sector-rotation .hsr-title-row strong { font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
 html body .home-sector-rotation .hsr-phase { font-size: 17px; }

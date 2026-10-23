@@ -493,63 +493,63 @@ html.dark #order-book .ob-book-provenance { color: #b9c5d4 !important; }
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 매도/매수(ob-ask/bid/up/down) 등락색은 의미가 있는
    색이라 유지. */
-html.dark #order-book { color: #F5EFE0 !important; }
-html.dark #order-book .ob-hud { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-hud-bar { background: rgba(245, 239, 224, 0.12) !important; }
-html.dark #order-book .ob-hud-val { color: rgba(245, 239, 224, 0.7) !important; }
-html.dark #order-book .ob-hud-note { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark #order-book .ob-abnormal-badges:not(:empty) { border-top-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark #order-book .ob-milestones-title { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #order-book .ob-milestones-list { color: #F5EFE0 !important; }
-html.dark #order-book .ob-milestone-time { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #order-book .ob-toast { color: #F5EFE0 !important; }
+html.dark #order-book { color: var(--dk-text) !important; }
+html.dark #order-book .ob-hud { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-hud-bar { background: var(--dk-hover) !important; }
+html.dark #order-book .ob-hud-val { color: var(--dk-sub) !important; }
+html.dark #order-book .ob-hud-note { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-breakout-note:not(:empty) { color: #f0b429 !important; border-top-color: var(--dk-line) !important; }
+html.dark #order-book .ob-abnormal-badges:not(:empty) { border-top-color: var(--dk-line) !important; }
+html.dark #order-book .ob-milestones-title { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-milestones-list { color: var(--dk-text) !important; }
+html.dark #order-book .ob-milestone-time { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-toast { color: var(--dk-text) !important; }
 html.dark #order-book .ob-input {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.25) !important;
-  color: #F5EFE0 !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }
 html.dark #order-book .ob-suggest {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.25) !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #order-book .ob-suggest-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
-html.dark #order-book .ob-hint { color: rgba(245, 239, 224, 0.55) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
+html.dark #order-book .ob-suggest-item:hover { background: var(--dk-hover) !important; }
+html.dark #order-book .ob-hint { color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
 html.dark #order-book .ob-spinner {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
-html.dark #order-book .ob-board { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-header { border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-header-code { color: rgba(245, 239, 224, 0.5) !important; }
-html.dark #order-book .ob-summary { background: #202020 !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-summary-item { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.16) !important; color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #order-book .ob-summary-item b { color: #F5EFE0 !important; }
-html.dark #order-book .ob-summary-item b.ob-up { color: #e8776d !important; }
-html.dark #order-book .ob-summary-item b.ob-down { color: #6ea8e8 !important; }
-html.dark #order-book .ob-summary-item b.ob-summary-high { color: #e8776d !important; }
-html.dark #order-book .ob-summary-item b.ob-summary-low { color: #6ea8e8 !important; }
-html.dark #order-book .ob-bar-wrap { background: rgba(245, 239, 224, 0.12) !important; }
-html.dark #order-book .ob-current-row { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-footer-label { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #order-book .ob-footer-bar { background: rgba(245, 239, 224, 0.12) !important; }
-html.dark #order-book .ob-ask-text { color: #6ea8e8 !important; }
-html.dark #order-book .ob-bid-text { color: #e8776d !important; }
-html.dark #order-book .ob-current-row.ob-up { color: #e8776d !important; }
-html.dark #order-book .ob-current-row.ob-down { color: #6ea8e8 !important; }
-html.dark #order-book .ob-trades { border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #order-book .ob-trades-title { color: rgba(245, 239, 224, 0.7) !important; }
-html.dark #order-book .ob-trades-note { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #order-book .ob-trades-header { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #order-book .ob-trade-time { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #order-book .ob-board { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-header { border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-header-code { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-summary { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-summary-item { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-mute) !important; }
+html.dark #order-book .ob-summary-item b { color: var(--dk-text) !important; }
+html.dark #order-book .ob-summary-item b.ob-up { color: var(--dk-up) !important; }
+html.dark #order-book .ob-summary-item b.ob-down { color: var(--dk-down) !important; }
+html.dark #order-book .ob-summary-item b.ob-summary-high { color: var(--dk-up) !important; }
+html.dark #order-book .ob-summary-item b.ob-summary-low { color: var(--dk-down) !important; }
+html.dark #order-book .ob-bar-wrap { background: var(--dk-hover) !important; }
+html.dark #order-book .ob-current-row { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-footer-label { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-footer-bar { background: var(--dk-hover) !important; }
+html.dark #order-book .ob-ask-text { color: var(--dk-down) !important; }
+html.dark #order-book .ob-bid-text { color: var(--dk-up) !important; }
+html.dark #order-book .ob-current-row.ob-up { color: var(--dk-up) !important; }
+html.dark #order-book .ob-current-row.ob-down { color: var(--dk-down) !important; }
+html.dark #order-book .ob-trades { border-color: var(--dk-line) !important; }
+html.dark #order-book .ob-trades-title { color: var(--dk-sub) !important; }
+html.dark #order-book .ob-trades-note { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-trades-header { color: var(--dk-mute) !important; }
+html.dark #order-book .ob-trade-time { color: var(--dk-mute) !important; }
 html.dark #order-book .ob-trade-price.ob-up,
 html.dark #order-book .ob-trade-qty.ob-up,
-html.dark #order-book .ob-trade-direction.ob-up { color: #e8776d !important; }
+html.dark #order-book .ob-trade-direction.ob-up { color: var(--dk-up) !important; }
 html.dark #order-book .ob-trade-price.ob-down,
 html.dark #order-book .ob-trade-qty.ob-down,
-html.dark #order-book .ob-trade-direction.ob-down { color: #6ea8e8 !important; }
+html.dark #order-book .ob-trade-direction.ob-down { color: var(--dk-down) !important; }
 html.dark #order-book .ob-trade-price.ob-flat,
 html.dark #order-book .ob-trade-qty.ob-flat,
-html.dark #order-book .ob-trade-direction.ob-flat { color: rgba(245, 239, 224, 0.7) !important; }
+html.dark #order-book .ob-trade-direction.ob-flat { color: var(--dk-sub) !important; }
 
 
 /* ============================================================
@@ -595,7 +595,7 @@ html.dark #order-book .ob-trade-direction.ob-flat { color: rgba(245, 239, 224, 0
 #order-book .ob-pair .ob-row-odd .ob-bar-ask { background: rgba(255, 138, 0, .26); }
 #order-book .ob-pair .ob-row-odd .ob-price { color: #d97000; }
 html.dark #order-book .ob-pair .ob-row-odd .ob-price { color: #ffa032 !important; }
-html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
+html.dark #order-book .ob-sil-dot { stroke: var(--dk-bg); }
 
 /* 가격은 바깥쪽, 잔량은 가운데 쪽(2026-10-05 사용자 요청). 선은 행(막대·글자) 아래, 주황 점은 위. */
 #order-book .ob-pair .ob-row { z-index: 1; }
@@ -638,7 +638,7 @@ html.dark #order-book .ob-sil-dot { stroke: #1A1A1A; }
 #order-book .ob-spread { padding: 5px 8px; text-align: center; font-size: 10px; font-weight: 700; color: #64748b; background: #f1f5f9; border-block: 1px solid #cbd5e1; }
 html.dark #order-book .ob-table-pairs > .ob-row-ask { background: rgba(60,130,220,.08); }
 html.dark #order-book .ob-table-pairs > .ob-row-bid { background: rgba(220,90,90,.08); }
-html.dark #order-book .ob-spread { background: #29313b; color: #cbd5e1; }
+html.dark #order-book .ob-spread { background: #29313b; color: var(--dk-text); }
 @media (max-width: 420px) {
   #order-book .ob-pair-head, #order-book .ob-table-pairs > .ob-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) minmax(0, 1fr); column-gap: 3px; }
   #order-book .ob-depth { gap: 3px; }

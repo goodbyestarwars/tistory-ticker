@@ -14,12 +14,36 @@
 |---|---|
 | 상승·매수 | 빨강 `#d24f45` |
 | 하락·매도 | 파랑 `#1261c4` |
-| 다크 배경 | `#1A1A1A` |
-| 다크 기본 글자 | `#F5EFE0` |
+| 다크 배경 | `#1A1A1A` (`--dk-bg`) |
+| 다크 기본 글자 | `#F1F4F8` (`--dk-text`) |
 
 - 구조색은 배경과 글자 중심의 2색 체계를 유지한다.
 - 상승·하락, 경고, 등급, 뱃지처럼 의미가 있는 색은 보존한다.
 - 다크모드는 `html.dark` 클래스 방식이다.
+
+### 다크모드 공식 팔레트 (2026-10-23)
+
+다크모드 색은 `style.css`의 `html.dark { --dk-* }` 한 곳이 단일 출처다. 각 `css/*.css`의 `html.dark` 규칙은 리터럴 색(`#1a1a1a`·`#f5efe0`·`rgba(245,239,224,*)`) 대신 이 토큰만 쓴다. 새 다크 규칙도 같다.
+
+| 토큰 | 값 | 쓰임 |
+|---|---|---|
+| `--dk-bg` | `#1a1a1a` | 페이지 배경, 헤더·사이드바·푸터 |
+| `--dk-card` | `#202731` | 주요 카드·패널·드로어·팝업·모달 |
+| `--dk-inner` | `#283340` | 카드 안의 카드, 입력·버튼·탭·칩 기본면 |
+| `--dk-panel` | `#272f3a` | 표 머리글·상세·상태 패널 |
+| `--dk-line` | `#37424e` | 테두리·구분선·차트 격자 |
+| `--dk-text` / `--dk-sub` / `--dk-mute` | `#f1f4f8` / `#a6b5c5` / `#8899ad` | 글자 3단계 |
+| `--dk-hover` / `--dk-active` | `#344355` / `#3a4d65` | 호버·선택면 |
+| `--dk-up` / `--dk-down` / `--dk-flat` | `#e28d98` / `#8aaddf` / `#aab6c6` | 상승(빨강)·하락(파랑)·보합 글자색 |
+| `--dk-up-rgb` / `--dk-down-rgb` / `--dk-ink-rgb` | `226,141,152` / `138,173,223` / `241,244,248` | `rgba(var(--dk-up-rgb), .16)` 같은 투명 틴트·기존 `--np-ink` 연결 |
+
+기존 토큰은 이 팔레트로 연결돼 있다: `--text-main/--text-strong/--text-sub/--rule/--page-bg/--surface`(style.css), `--np-ink/--np-paper/--np-tint`, `--num-up/--num-down`(ui-system.css), 위젯별 `--hw-*`·`--ibd-*`·`--fxr-*`·`--mm-*`·`--pulse-*` 등. 새 변수를 만들기 전에 이 토큰을 쓸 수 있는지 먼저 본다.
+
+- 순수 `#000` 배경 금지. 광고·iframe은 건드리지 않는다.
+- 차트 캔버스 색(축 글자 `#a6b5c5`, 격자·테두리 `#37424e`, 십자선 라벨 `#3a4d65`)은 `js/chart-core.js` `themeColors()` 한 곳에서 정하고, 별도로 차트를 만드는 `kospi-futures.js`·`pattern-scan.js`·`overnight-market.js`·`domestic-market-indicators.js`·`skin-main.js`·`stock-search.js`(지수 차트)도 같은 값을 쓴다.
+- `style.css`의 `@layer np` 안 `!important` 규칙과 `html.dark .post-single-body * { color !important }` 일괄 글자색이 개별 다크 규칙을 이길 수 있다. 반전(밝은 채움) 활성 버튼처럼 어두운 글자가 필요한 곳은 `!important`와 같은 층(`@layer np.np`)·더 높은 명시도로 되돌린다(예: `.mm-tab.is-active`, `#fx-rates .fxr-range-btn.is-active`, `.mt-hot-go`).
+- 라이트모드 규칙은 이번 개편에서 바꾸지 않았다(다크 전용 규칙만 변경).
+- 범위 밖(미적용): `css/legal.css`(약관 정적 문서, OS 설정 기반 자체 다크)·`learn/` 정적 문서는 별도 스타일이라 이 팔레트로 통일하지 않았다.
 
 ## 변경 원칙
 

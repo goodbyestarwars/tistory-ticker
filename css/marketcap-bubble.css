@@ -186,36 +186,36 @@ html.dark #marketcap-bubble .mcb-canvas {
   background: linear-gradient(180deg, #1c1c1e 0%, #131316 100%);
 }
 html.dark #marketcap-bubble .mcb-cell.mcb-c-3 { fill: #2f5fb0; }
-html.dark #marketcap-bubble .mcb-cell.mcb-c-2 { fill: #4dabf7; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-2 { fill: var(--dk-down); }
 html.dark #marketcap-bubble .mcb-cell.mcb-c-1 { fill: #7ec2fa; }
-html.dark #marketcap-bubble .mcb-cell.mcb-c0 { fill: #7c8aa5; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c0 { fill: var(--dk-mute); }
 html.dark #marketcap-bubble .mcb-cell.mcb-c1 { fill: #ff9d90; }
-html.dark #marketcap-bubble .mcb-cell.mcb-c2 { fill: #ff6b6b; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c2 { fill: var(--dk-up); }
 html.dark #marketcap-bubble .mcb-cell.mcb-c3 { fill: #d94a3f; }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-3 { background: #2f5fb0; }
-html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background: #4dabf7; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background: var(--dk-down); }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-1 { background: #7ec2fa; }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c0 { background: #7c8aa5; }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c1 { background: #ff9d90; }
-html.dark #marketcap-bubble .mcb-legend-seg.mcb-c2 { background: #ff6b6b; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c2 { background: var(--dk-up); }
 html.dark #marketcap-bubble .mcb-legend-seg.mcb-c3 { background: #d94a3f; }
 html.dark #marketcap-bubble .mcb-zone-label {
-  fill: rgba(245, 239, 224, 0.55);
+  fill: var(--dk-mute);
 }
 html.dark #marketcap-bubble .mcb-legend {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark #marketcap-bubble .mcb-updated {
-  color: rgba(245, 239, 224, 0.4) !important;
+  color: var(--dk-mute) !important;
 }
 html.dark #marketcap-bubble .mcb-error {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark #marketcap-bubble .mcb-filter-label {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark #marketcap-bubble .mcb-filter-select {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
-  color: #F5EFE0 !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }

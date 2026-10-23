@@ -150,31 +150,31 @@
 .us-stocks-news-item:not(:first-child) .us-stocks-news-time { color: #8b95a1; font-weight: 500; }
 .us-stocks-news-item b { display: -webkit-box; overflow: hidden; text-overflow: ellipsis; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14px; line-height: 1.45; }
 
-html.dark .us-stocks-shell { color: #f5efe0; }
-html.dark .us-stocks-search input, html.dark .us-stocks-suggest, html.dark .us-stocks-result-row, html.dark .us-stocks-fav-btn { border-color: rgba(245,239,224,.2); background: #1a1a1a; color: #f5efe0; }
-html.dark .us-stocks-suggest-item:hover, html.dark .us-stocks-result-row:hover { background: rgba(245,239,224,.08); }
-html.dark .us-stocks-results { border-color: rgba(245,239,224,.2); }
-html.dark .us-stocks-result-count, html.dark .us-stocks-results-head, html.dark .us-stocks-metric { background: rgba(245,239,224,.08); }
-html.dark .us-stocks-result-row { border-top-color: rgba(245,239,224,.12); }
-html.dark .us-stocks-result-name small, html.dark .us-stocks-live-head p, html.dark .us-stocks-note, html.dark .us-stocks-disclaimer, html.dark .us-stocks-metric span, html.dark .us-stocks-live-footer { color: rgba(245,239,224,.6); }
-html.dark .us-stocks-results-head, html.dark .us-stocks-result-market { color: rgba(245,239,224,.62); }
+html.dark .us-stocks-shell { color: var(--dk-text); }
+html.dark .us-stocks-search input, html.dark .us-stocks-suggest, html.dark .us-stocks-result-row, html.dark .us-stocks-fav-btn { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
+html.dark .us-stocks-suggest-item:hover, html.dark .us-stocks-result-row:hover { background: var(--dk-hover); }
+html.dark .us-stocks-results { border-color: var(--dk-line); }
+html.dark .us-stocks-result-count, html.dark .us-stocks-results-head, html.dark .us-stocks-metric { background: var(--dk-inner); }
+html.dark .us-stocks-result-row { border-top-color: var(--dk-line); }
+html.dark .us-stocks-result-name small, html.dark .us-stocks-live-head p, html.dark .us-stocks-note, html.dark .us-stocks-disclaimer, html.dark .us-stocks-metric span, html.dark .us-stocks-live-footer { color: var(--dk-sub); }
+html.dark .us-stocks-results-head, html.dark .us-stocks-result-market { color: var(--dk-sub); }
 html.dark .us-stocks-fav-btn:hover, html.dark .us-stocks-fav-btn.active { border-color: #facc15; color: #facc15; background: rgba(250,204,21,.1); }
-html.dark .us-stocks-live-card { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
-html.dark .us-stocks-analysis-card { border-color: rgba(245,239,224,.15); background: rgba(245,239,224,.06); }
-html.dark .us-stocks-analysis-card span, html.dark .us-stocks-analysis-card small { color: rgba(245,239,224,.62); }
-html.dark .us-stocks-congress-link { border-color: rgba(245,239,224,.15); background: rgba(245,239,224,.06); }
+html.dark .us-stocks-live-card { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .us-stocks-analysis-card { border-color: var(--dk-line); background: var(--dk-inner); }
+html.dark .us-stocks-analysis-card span, html.dark .us-stocks-analysis-card small { color: var(--dk-sub); }
+html.dark .us-stocks-congress-link { border-color: var(--dk-line); background: var(--dk-inner); }
 html.dark .us-stocks-congress-link:hover { border-color: #60a5fa; background: rgba(96,165,250,.12); }
-html.dark .us-stocks-congress-link span, html.dark .us-stocks-congress-note { color: rgba(245,239,224,.62); }
-html.dark .us-stocks-news-group h5 { border-bottom-color: rgba(245,239,224,.15); color: #f5efe0; }
-html.dark .us-stocks-icon { border-color: rgba(245,239,224,.2); background: rgb(255, 254, 252); }
-html.dark .us-stocks-panel { border-color: rgba(245,239,224,.2); background: rgba(245,239,224,.05); }
+html.dark .us-stocks-congress-link span, html.dark .us-stocks-congress-note { color: var(--dk-sub); }
+html.dark .us-stocks-news-group h5 { border-bottom-color: var(--dk-line); color: var(--dk-text); }
+html.dark .us-stocks-icon { border-color: var(--dk-line); background: rgb(255, 254, 252); }
+html.dark .us-stocks-panel { border-color: var(--dk-line); background: var(--dk-card); }
 html.dark .us-stocks-market-grid > .us-stocks-panel { border-color: transparent; background: transparent; }
-html.dark .us-stocks-level-summary { border-color: rgba(245,239,224,.15); background: rgba(245,239,224,.06); }
-html.dark .us-stocks-book-row, html.dark .us-stocks-book-current { border-color: rgba(245,239,224,.12); }
-html.dark .us-stocks-book-current { background: rgba(245,239,224,.06); }
-html.dark .us-stocks-book-row { border-top-color: rgba(245,239,224,.12); }
-html.dark .us-stocks-news-rail::after { background: rgba(245,239,224,.18); }
-html.dark .us-stocks-news-rail i { border-color: rgba(245,239,224,.45); background: #1a1a1a; }
+html.dark .us-stocks-level-summary { border-color: var(--dk-line); background: var(--dk-inner); }
+html.dark .us-stocks-book-row, html.dark .us-stocks-book-current { border-color: var(--dk-line); }
+html.dark .us-stocks-book-current { background: var(--dk-inner); }
+html.dark .us-stocks-book-row { border-top-color: var(--dk-line); }
+html.dark .us-stocks-news-rail::after { background: var(--dk-active); }
+html.dark .us-stocks-news-rail i { border-color: var(--dk-mute); background: var(--dk-card); }
 html.dark .us-stocks-news-rail i.is-latest { border-color: #fb923c; background: #f97316; }
 
 @media (max-width: 700px) {
@@ -224,9 +224,9 @@ html.dark .us-stocks-news-rail i.is-latest { border-color: #fb923c; background: 
 .us-ob-sil-bid { stroke: #ff2d2d; filter: drop-shadow(0 0 3px rgba(255, 45, 45, .75)); }
 .us-ob-sil-ask { stroke: #1e7bff; filter: drop-shadow(0 0 3px rgba(30, 123, 255, .75)); }
 .us-ob-sil-dot { fill: #ff8a00; stroke: #fff; stroke-width: 1.5; }
-html.dark .us-ob-qty { color: rgba(245, 239, 224, .7); }
+html.dark .us-ob-qty { color: var(--dk-sub); }
 html.dark .us-ob-row-odd .us-ob-price { color: #ffa032; }
-html.dark .us-ob-sil-dot { stroke: #1A1A1A; }
+html.dark .us-ob-sil-dot { stroke: var(--dk-bg); }
 
 /* 0DTE 옵션 감마 카드(2026-10-05) - 호가창 아래 */
 .us-opt-card { margin-top: 10px; border-top: 1px solid #eee; font-variant-numeric: tabular-nums; }
@@ -252,37 +252,37 @@ html.dark .us-ob-sil-dot { stroke: #1A1A1A; }
 .us-opt-row.is-wall i { background: rgba(255, 138, 0, .3); }
 .us-opt-cur { padding: 4px 8px; background: #f7f7f8; border-block: 1px solid #eee; text-align: center; font-size: 12.5px; font-weight: 800; }
 .us-opt-note { margin: 6px 8px 4px; font-size: 10.5px; line-height: 1.5; color: #8b95a1; }
-html.dark .us-opt-card { border-top-color: rgba(245, 239, 224, .14); }
-html.dark .us-opt-tiles > div { border-color: rgba(245, 239, 224, .16); }
-html.dark .us-opt-tiles b { color: #F5EFE0; }
-html.dark .us-opt-cur { background: rgba(245, 239, 224, .08); border-color: rgba(245, 239, 224, .16); }
+html.dark .us-opt-card { border-top-color: var(--dk-line); }
+html.dark .us-opt-tiles > div { border-color: var(--dk-line); }
+html.dark .us-opt-tiles b { color: var(--dk-text); }
+html.dark .us-opt-cur { background: var(--dk-inner); border-color: var(--dk-line); }
 .us-opt-sub { padding: 0 6px 6px; font-size: 11px; font-weight: 700; color: #b5720f; }
 .us-opt-n { font-size: 10px; color: #8a9099; white-space: nowrap; }
 .us-opt-n em { font-style: normal; font-weight: 700; color: #b5720f; }
 html.dark .us-opt-sub, html.dark .us-opt-n em { color: #f0b429; }
-html.dark .us-opt-n { color: rgba(245, 239, 224, .55); }
+html.dark .us-opt-n { color: var(--dk-mute); }
 /* 증시검색 안 미국 카드: 국내와 같은 핵심 시세 5칸(2026-10-05) */
 .us-stocks-metrics-core { margin-top: 10px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .us-stocks-metrics-core .us-stocks-metric-wide { grid-column: span 2; }
 .us-stocks-metrics-core .us-stocks-metric b.us-up { color: var(--num-up); }
 .us-stocks-metrics-core .us-stocks-metric b.us-down { color: var(--num-down); }
-html.dark .us-stocks-metrics-core .us-stocks-metric b.us-up { color: #e8776d; }
-html.dark .us-stocks-metrics-core .us-stocks-metric b.us-down { color: #6ea8e8; }
+html.dark .us-stocks-metrics-core .us-stocks-metric b.us-up { color: var(--dk-up); }
+html.dark .us-stocks-metrics-core .us-stocks-metric b.us-down { color: var(--dk-down); }
 :root { --us-tone-up: #d24f45; --us-tone-down: #1261c4; }
-html.dark { --us-tone-up: #e8776d; --us-tone-down: #6ea8e8; }
+html.dark { --us-tone-up: var(--dk-up); --us-tone-down: var(--dk-down); }
 /* 호가·차트 사이 구분 막대: 미국 패널 공통 스타일(테두리·배경·여백)을 받아 흰 알약으로 보이던 것을 국내와 같게(2026-10-05) */
 #stock-search .ss-panels.us-stocks-market-grid > .ss-resize-handle { width: 16px; padding: 0; border: 0; border-radius: 0; background: transparent; }
 /* 세부 시세 한 줄 */
 .us-stocks-quote-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 18px; margin: 12px 0; padding: 10px 14px; border: 1px solid #e5e7eb; border-radius: 11px; background: rgb(255, 254, 252); font-size: 12.5px; color: #69717c; }
 .us-stocks-quote-line > span:first-child { font-weight: 700; color: #374151; }
 .us-stocks-quote-line b { margin-left: 4px; color: #222; font-variant-numeric: tabular-nums; }
-html.dark .us-stocks-quote-line { border-color: rgba(245, 239, 224, .2); background: rgba(245, 239, 224, .05); color: rgba(245, 239, 224, .6); }
-html.dark .us-stocks-quote-line > span:first-child { color: #F5EFE0; }
-html.dark .us-stocks-quote-line b { color: #F5EFE0; }
+html.dark .us-stocks-quote-line { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-sub); }
+html.dark .us-stocks-quote-line > span:first-child { color: var(--dk-text); }
+html.dark .us-stocks-quote-line b { color: var(--dk-text); }
 /* 위쪽 종목 카드 안 한 줄 요약 / 아래 세부 시세 칸(2026-10-05) */
 .us-stocks-live-card .us-stocks-quote-line { margin: 10px 0 0; padding: 10px 0 0; border: 0; border-top: 1px solid #eef0f2; border-radius: 0; background: transparent; }
 .us-stocks-detail-quotes .us-stocks-metrics-core { margin-top: 0; }
-html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: rgba(245, 239, 224, .16); background: transparent; }
+html.dark .us-stocks-live-card .us-stocks-quote-line { border-top-color: var(--dk-line); background: transparent; }
 /* 세부 시세 칸: 좁은 폰에서는 2열(시가·고가 / 저가·거래량 / 전일 거래량 대비 전체 폭) */
 @media (max-width: 480px) {
   .us-stocks-metrics-core { grid-template-columns: repeat(2, minmax(0, 1fr)); }
