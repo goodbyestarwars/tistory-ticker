@@ -1748,3 +1748,7 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
 /* 2026-10-23 매도벽·매수벽 카드는 한 줄에 나란히(위 세로 정렬 규칙을 덮음). 둘이 한 줄에 안 들어가는 좁은 폭·긴 문구(허수 의심)에서만 줄바꿈 */
 #stock-search #order-book .ob-abnormal-badges:not(:empty) { flex-direction: row; flex-wrap: wrap; align-items: stretch; gap: 4px; }
 #stock-search #order-book .ob-abnormal-badge.ob-abnormal-badge { flex: 1 1 0; min-width: max-content; }
+
+/* 2026-10-24 미국 종목 요약 카드: 시간외 안내(`정규장 종가 … · 시간외 등락은 정규장 종가 대비`)가 2열 격자의 오른쪽 칸에 끼어 어긋나 보이던 것을 헤더 아래 전체 폭 한 줄로 */
+#stock-search .ss-summary > .us-stocks-quote-line[data-us-session-comparison] { grid-column: 1 / -1; margin: 0; padding: 4px 0 0; border: 0; border-radius: 0; background: transparent; font-size: 12px; line-height: 1.5; color: var(--text-secondary, #6b7280); text-align: left; }
+#stock-search .ss-summary > .us-stocks-quote-line[data-us-session-comparison][hidden] { display: none; }
