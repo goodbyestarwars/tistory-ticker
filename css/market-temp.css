@@ -3436,3 +3436,11 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-sf-chg.is-down { color: var(--num-down, #2566d4); }
   html body #market-temp .mt-sf-chg.is-new { padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--num-up, #d35159) 12%, transparent); color: var(--num-up, #d35159); }
 }
+
+/* AI 시장 코멘트(2026-10-23): 카드 옆 한 줄 해설(최대 2줄). 비어 있어도 한 줄 높이를 예약해 AI 로딩 때문에 카드가 흔들리지 않게 한다. */
+html body #market-temp .mt-glance-say,
+html body #market-temp .mt-ai-line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; min-height: 1.45em; margin-top: 4px; font-size: 12px; font-weight: 500; line-height: 1.45; text-align: left; word-break: keep-all; color: var(--pulse-sub, #64748b); }
+html body #market-temp .mt-ai-summary { margin: 8px 0 0; color: var(--pulse-ink, #202b3b); }
+html body #market-temp .mt-xsay { min-height: 1.5em; }
+html body #market-temp .mt-tomorrow-card .mt-tm-say { min-height: 1.4em; }
+html body #market-temp .mt-ai-asof { margin-left: 4px; font-size: 10px; font-weight: 400; opacity: .75; }

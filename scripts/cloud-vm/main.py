@@ -45,6 +45,7 @@ import foreign_futures
 import home_session_chart
 import market_temp
 import morning_briefing
+import ai_comments
 import naver_news
 import news_aggregator
 import news_window
@@ -172,6 +173,13 @@ def _start_futures_collectors():
 
     # 시장 브리핑(국내 거래일 07:00 확정 스냅샷). 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
     morning_briefing.start_background(db_schema.get_conn)
+
+    # AI 시장 코멘트(2026-10-23): 서버가 정량 분석한 사실만 Groq(GAS 경유)에 보내 카드별 해설을 만들고, 검증·캐시한다.
+    # 이미 메모리에 있는 국내지표·증시온도 캐시를 읽기만 하며(새 시세 호출 없음) 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
+    ai_comments.start_background(
+        db_schema.get_conn,
+        lambda: (_domestic_market_indicators_cache or {}).get('data'),
+        lambda: market_temp.get_cached().get('result'))
 
     # 코스피/코스닥 현물 지표도 같은 이유로 요청 경로에서 만들지 않는다
     # (캐시 미스 때 방문자가 8.5초를 물던 구조 - 2026-09-01 사용자 리포트).
@@ -832,6 +840,13 @@ def health():
     })
 
 
+def _ai_comments_job_summary(conn):
+    """/health/schedules 의 internalJobs 용 요약(호출량·마지막 성공·오류 상태). 비밀 없음."""
+    s = ai_comments.status_summary(conn, market_clock.kst_now())
+    return {'id': s['id'], 'name': s['name'], 'state': s['state'], 'lastSuccessAt': s['lastSuccessAt'], 'callsToday': s['callsToday'],
+            'tokensToday': s['tokensToday'], 'dailyCallCap': s['dailyCallCap'], 'lastRun': s['lastRun'], 'visibleComments': s['visibleComments']}
+
+
 @app.get('/health/schedules')
 def health_schedules():
     """Expose only timer names and execution times; no commands, paths or credentials."""
@@ -839,7 +854,8 @@ def health_schedules():
     try:
         conn = db_schema.get_conn()
         try:
-            data['internalJobs'] = [morning_briefing.status_summary(conn, market_clock.kst_now())]
+            data['internalJobs'] = [morning_briefing.status_summary(conn, market_clock.kst_now()),
+                                    _ai_comments_job_summary(conn)]
         finally:
             conn.close()
     except Exception:
@@ -3808,6 +3824,33 @@ def morning_briefing_endpoint(request: Request, date: str = Query('', pattern=r'
     return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False),
                     media_type='application/json',
                     headers={'Cache-Control': 'max-age=30, public' if final else 'no-store'})
+
+
+@app.get('/ai-comments')
+def ai_comments_endpoint(request: Request):
+    """카드별 AI 시장 코멘트(2026-10-23) - 서버가 만들어 검증·저장한 확정 코멘트를 읽기만 한다(요청이 AI 호출·계산을 일으키지 않는다).
+
+    현재 시장 상태와 어긋난 코멘트, 너무 오래된 코멘트는 응답에서 빠지고 hidden 에 사유만 남는다. 프런트는 없는 카드를 비워 둔다.
+    """
+    _check_rate_limit('ai_comments', request, max_per_window=60)
+    conn = db_schema.get_conn()
+    try:
+        data = ai_comments.current_view(conn, market_clock.kst_now())
+    finally:
+        conn.close()
+    return Response(content=json.dumps(envelope(data), ensure_ascii=False, allow_nan=False), media_type='application/json',
+                    headers={'Cache-Control': 'max-age=30, public'})
+
+
+@app.get('/health/ai-comments')
+def health_ai_comments(request: Request):
+    """AI 코멘트 호출량·토큰·묶음별 마지막 성공/오류·화면에 보이는 코멘트 수(비밀 없음)."""
+    _check_rate_limit('ai_comments_health', request, max_per_window=30)
+    conn = db_schema.get_conn()
+    try:
+        return envelope(ai_comments.status_summary(conn, market_clock.kst_now()))
+    finally:
+        conn.close()
 
 
 @app.post('/morning-briefing/revise')

@@ -402,6 +402,67 @@ CREATE TABLE IF NOT EXISTS morning_briefing_runs (
     detail TEXT
 );
 CREATE INDEX IF NOT EXISTS idx_morning_briefing_runs_date ON morning_briefing_runs(target_date, id);
+
+-- AI 시장 코멘트(2026-10-23): 서버가 정량 분석한 사실 객체를 Groq(GAS 경유)에 넘겨 만든 카드별 한 줄 해설.
+-- ai_comments: 카드(slot)당 1행 = 지금 화면에 내보낼 확정 코멘트. text 는 검증을 통과한 것만 들어간다.
+--   state/sig = 코멘트를 만들 때의 시장 상태, current_state/current_sig = 가장 최근 점검 때의 상태(둘이 다르면 조회 API가 숨긴다).
+-- ai_comment_history: 통과한 코멘트 전부(최근 14일 반복 방지·감사용). ai_comment_runs: Groq 호출 1회당 1행(호출량·토큰·오류).
+CREATE TABLE IF NOT EXISTS ai_comments (
+    slot TEXT PRIMARY KEY,
+    group_name TEXT NOT NULL,
+    status TEXT NOT NULL,
+    text TEXT,
+    trade_date TEXT,
+    data_asof TEXT,
+    state TEXT,
+    sig TEXT,
+    current_state TEXT,
+    current_sig TEXT,
+    checked_at TEXT,
+    facts_hash TEXT,
+    angle TEXT,
+    model TEXT,
+    prompt_version TEXT,
+    run_id INTEGER,
+    generated_at TEXT,
+    updated_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS ai_comment_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    slot TEXT NOT NULL,
+    trade_date TEXT NOT NULL,
+    text TEXT NOT NULL,
+    angle TEXT,
+    sig TEXT,
+    state TEXT,
+    data_asof TEXT,
+    generated_at TEXT NOT NULL,
+    model TEXT,
+    prompt_version TEXT,
+    run_id INTEGER,
+    similarity REAL
+);
+CREATE INDEX IF NOT EXISTS idx_ai_comment_history_slot ON ai_comment_history(slot, id);
+CREATE TABLE IF NOT EXISTS ai_comment_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    group_name TEXT NOT NULL,
+    trade_date TEXT,
+    trigger TEXT NOT NULL,
+    started_at TEXT NOT NULL,
+    finished_at TEXT,
+    outcome TEXT NOT NULL,
+    calls INTEGER NOT NULL DEFAULT 0,
+    slots_requested TEXT,
+    slots_accepted TEXT,
+    slots_rejected TEXT,
+    prompt_tokens INTEGER NOT NULL DEFAULT 0,
+    completion_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    latency_ms INTEGER,
+    model TEXT,
+    error TEXT
+);
+CREATE INDEX IF NOT EXISTS idx_ai_comment_runs_started ON ai_comment_runs(started_at);
 '''
 
 

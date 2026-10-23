@@ -80,6 +80,8 @@ X-API-Key: <VM_API_TOKEN>
 | GET | `/theme-flow` | 없음 | 국내 주요종목 "오늘 돈이 몰린 섹터" - 키움 테마(ka90001/ka90002) 등락률 상위 20개, 거래대금 순, 3분 백그라운드 행마다 `rank`·`prev_rank`·`rank_change`·`rank_basis`(직전 갱신 대비 순위 변화) |
 | GET | `/morning-briefing` | 없음 | 시장 브리핑(국내 거래일 07:00 서버 확정 스냅샷) - SQLite `morning_briefing`을 읽기만 한다. 확정본 30초 캐시, 그 외 no-store. 스케줄은 FastAPI 스레드(별도 타이머 없음), `/health/schedules.internalJobs`에 상태 |
 | POST | `/morning-briefing/revise` | API 토큰 | 운영자 정정(최초 확정 시각 유지, 정정 이력 기록) |
+| GET | `/ai-comments` | 없음 | AI 시장 코멘트(증시온도 카드별 한 줄 해설) - SQLite `ai_comments`를 읽기만 한다. 반대 극으로 뒤집힌/오래된/입력 미수신 코멘트는 응답에서 빠지고 `hidden`에 사유. 30초 캐시 |
+| GET | `/health/ai-comments` | 없음 | AI 코멘트 호출량·토큰·묶음별 마지막 성공/오류·화면에 보이는 코멘트 수. 스케줄은 FastAPI 스레드 `ai-comments`(별도 타이머 없음), `/health/schedules.internalJobs`에도 요약 |
 | GET | `/money-picks` | 없음 | 증시온도 '돈이 몰린 섹터' 대표 종목의 최근 14일 기록 `{history:[{date,code,name,theme,rank,rec_price}],windowDays,recordAfter,perTheme}`. 기준가만 주며 수익률은 화면이 현재가로 계산 |
 | GET | `/theme-list` | 없음 | 키움 전체 테마 목록 `{themes:[{code,name,stock_count,change_rate}],count}`(카테고리 추가 후보, 3분 백그라운드 값) |
 | GET | `/theme-stocks?code=` | 없음 | 한 테마의 구성종목 `{code,stocks:[{code,name,price,change_rate}]}`. 목록에 있는 테마코드만, 3분 캐시, 시장(KOSPI/KOSDAQ) 구분 없음 |
@@ -285,3 +287,7 @@ VM `.env`(`/home/goodbyestarwars/kiwoom-api/.env`)의 `KOREAEXIM_API_KEY`(한국
 ### 호가 장전·미수신 구분 (2026-10-21)
 
 `order_book.py`는0원 필드가 있다는 이유만으로 정상 호가로 판정하지 않는다. 한쪽 유효 호가도 정상으로 인정하고, 운영시간 중 빈KIS응답은 키움으로 재조회한다. 양쪽 공급자 모두 빈 경우 `available:false/status:unavailable`, 장전은 `preopen`, 장외/휴장은 `closed`다. TTL1.5초·2초 폴링·프로세스/타이머/DB 구조는 그대로다. `checkedAt`은 조회시각이며 호가발생시각이 아니다. 공식시간: NXT 대상종목08:00, KRX정규호가08:30. 관련 주문/9Pay 신호 모듈은 호출하지 않는다.
+
+### AI 시장 코멘트 운영(2026-10-23)
+
+VM이 정량 분석한 사실 객체를 **GAS `doPost`(`?action=marketComments`, 본문 `token`=VM `API_TOKEN`)**로 보내 Groq가 문장을 만들고, VM이 검증·저장한다. Groq 키는 GAS 스크립트 속성(`GROQ_API_KEY`)에만 있으며 VM·브라우저에는 없다. GAS는 토큰을 상수시간 비교하고 프롬프트 길이·출력 토큰·하루 호출(`MARKET_COMMENTS_DAILY_CAP`, 기본 200)을 제한한다. VM 선택 환경변수: `AI_COMMENTS_ENABLED`(`0`이면 끔), `AI_COMMENTS_DAILY_CALLS`(60), `AI_COMMENTS_DAILY_TOKENS`(150000), `AI_COMMENTS_GAS_URL`(기본 운영 웹앱). 점검: `GET /health/ai-comments`(`state`가 `오류`면 `lastRun.error` 확인: `GAS 응답이 JSON 이 아님`=GAS 미배포, `GAS 오류: unauthorized`=토큰 불일치, `daily-cap`=GAS 하루 상한, `groq-failed`=Groq 키/한도). GAS 배포는 master `gas/` 변경 시 `deploy-gas.yml`. 상세 [AI_MARKET_COMMENTS_2026-10-23.md](AI_MARKET_COMMENTS_2026-10-23.md).

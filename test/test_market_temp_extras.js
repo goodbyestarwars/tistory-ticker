@@ -29,7 +29,7 @@ let v10=ramp(4.2,5.13,100).concat([5.13,5.14,5.12,5.13,5.13]);
 let v30=ramp(4.6,5.42,100).concat([5.42,5.43,5.41,5.42,5.42]);
 let rc=t.rateCard_({US10Y:rs('US10Y',v10),US30Y:rs('US30Y',v30),US2Y:rs('US2Y',ramp(4,4.81,105)),KTB3Y:{symbol:'KTB3Y',stale:false,price:3.84}},rnow);
 assert(rc&&rc.tier==='highFlat','높은 수준·안정은 highFlat: '+(rc&&rc.tier));
-assert(!/평화|조용|잠잠/.test(rc.say),'높은 금리에 평화 코멘트 금지: '+rc.say);
+assert.equal(rc.ai,'rate','금리 해설은 서버 AI 코멘트(rate)를 쓴다 - 고정 문구 없음');assert.equal(rc.say,undefined);
 assert.equal(rc.rows[0].k,'미국 10년');assert.equal(rc.rows[0].v,'5.13%');assert.equal(rc.rows[0].d,'0bp');
 assert.equal(rc.rows[1].k,'미국 30년');assert.equal(rc.rows[1].v,'5.42%');
 assert(rc.rows[1].sub.includes('30-10년 차 +29bp')&&rc.rows[1].sub.includes('2년 4.81%')&&rc.rows[1].sub.includes('한국 3년 3.84%'),'30-10년 차(bp)·2년·한국 3년: '+rc.rows[1].sub);
@@ -43,7 +43,7 @@ assert(rc.state===undefined&&rc.moveWord==='급등');
 v10=noise(5.0,100).concat([5.13,5.13,5.13,5.13,5.01]);v30=noise(5.3,100).concat([5.42,5.42,5.42,5.42,5.28]);
 rc=t.rateCard_({US10Y:rs('US10Y',v10),US30Y:rs('US30Y',v30)},rnow);
 assert(/Plunge$/.test(rc.tier)&&rc.rows[0].d==='-12bp','급락: '+rc.tier+' '+rc.rows[0].d);
-assert(!/호재|긍정|좋/.test(rc.say),'금리 하락을 호재로 단정 금지: '+rc.say);
+assert.equal(rc.say,undefined,'금리 문구는 클라이언트에 없다(서버 검증기가 호재 단정을 막는다)');
 // 낮은 수준(구간 하단)은 높음으로 보지 않는다(절대 수준만으로 단정하지 않음)
 v10=ramp(4.0,3.2,105);v30=ramp(4.4,3.6,105);
 rc=t.rateCard_({US10Y:rs('US10Y',v10),US30Y:rs('US30Y',v30)},rnow);

@@ -816,6 +816,120 @@ function callGroq(prompt, temperature) {
 }
 
 // ---------------------------------------------------------------------------
+// AI 시장 코멘트 프록시 (POST action=marketComments) - 2026-10-23
+// 증시온도 카드별 한 줄 해설은 이제 고정 문장 풀이 아니라 VM(scripts/cloud-vm/ai_comments.py)이 실제 데이터를
+// 정량 분석해 만든 '사실 객체'를 Groq 로 보내 생성한다. Groq 키(GROQ_API_KEY)는 이 스크립트 속성에만 있으므로
+// VM 이 프롬프트를 이 경로로 넘기고, 여기서는 Groq 호출 결과(JSON 문자열)만 그대로 돌려준다.
+// 검증(숫자·방향·금융 단정·반복)·캐시·저장은 전부 VM 이 한다 - 이 함수는 인증된 중계일 뿐이다.
+// 인증: 본문 token 이 스크립트 속성 KIWOOM_VM_TOKEN(VM 의 API_TOKEN 과 같은 값)과 같아야 한다. 브라우저는 부르지 않는다.
+// 제한: 프롬프트 길이·출력 토큰 상한, 하루 호출 상한(MARKET_COMMENTS_DAILY_CAP, 기본 200)을 이중으로 건다.
+// ---------------------------------------------------------------------------
+function doPost(e) {
+  var body;
+  try {
+    body = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+  } catch (err) {
+    return jsonResponse({ ok: false, error: 'bad-json' });
+  }
+  if (body && body.action === 'marketComments') {
+    return jsonResponse(marketCommentsProxy_(body));
+  }
+  return jsonResponse({ ok: false, error: 'unknown-action' });
+}
+
+function constantTimeEquals_(a, b) {
+  a = String(a || '');
+  b = String(b || '');
+  var diff = a.length ^ b.length;
+  for (var i = 0; i < Math.max(a.length, b.length); i++) {
+    diff |= (a.charCodeAt(i) || 0) ^ (b.charCodeAt(i) || 0);
+  }
+  return diff === 0;
+}
+
+function marketCommentsProxy_(body) {
+  var props = PropertiesService.getScriptProperties();
+  var expected = props.getProperty('KIWOOM_VM_TOKEN');
+  if (!expected || !constantTimeEquals_(body.token, expected)) return { ok: false, error: 'unauthorized' };
+
+  var system = String(body.system || '');
+  var user = String(body.user || '');
+  if (!user || system.length + user.length > 30000) return { ok: false, error: 'bad-size' };
+  var maxTokens = Math.max(200, Math.min(Number(body.maxTokens) || 1500, 3000));
+
+  var cap = Number(props.getProperty('MARKET_COMMENTS_DAILY_CAP')) || 200;
+  var cache = CacheService.getScriptCache();
+  var dayKey = 'mc_calls_' + Utilities.formatDate(new Date(), 'Asia/Seoul', 'yyyyMMdd');
+  var used = Number(cache.get(dayKey)) || 0;
+  if (used >= cap) return { ok: false, error: 'daily-cap' };
+  cache.put(dayKey, String(used + 1), 21600);
+
+  var res = callGroqJson_(system, user, maxTokens);
+  if (!res) return { ok: false, error: 'groq-failed' };
+  return { ok: true, content: res.content, usage: res.usage, model: GROQ_MODEL };
+}
+
+// Groq chat completions - JSON 객체 출력 전용. callGroq 와 달리 system 메시지, 출력 토큰 상한, 토큰 사용량 반환이 필요하다.
+// 말투 다양성을 위해 temperature 를 높게(0.8) 두지만 사실 검증은 VM 이 한다. gpt-oss 는 추론 토큰이 출력 한도를 쓰므로
+// reasoning_effort 를 낮춘다. 모델이 두 옵션 중 하나를 거부(400)하면 옵션 없이 한 번 더 시도한다.
+function callGroqJson_(system, user, maxTokens) {
+  var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
+  if (!apiKey) {
+    console.log('callGroqJson_: GROQ_API_KEY 스크립트 속성이 비어있음');
+    return null;
+  }
+  var url = 'https://api.groq.com/openai/v1/chat/completions';
+  var messages = [];
+  if (system) messages.push({ role: 'system', content: system });
+  messages.push({ role: 'user', content: user });
+  var variants = [
+    { response_format: { type: 'json_object' }, reasoning_effort: 'low' },
+    {}
+  ];
+  for (var v = 0; v < variants.length; v++) {
+    var payload = { model: GROQ_MODEL, messages: messages, temperature: 0.8, top_p: 0.95, max_tokens: maxTokens };
+    for (var k in variants[v]) payload[k] = variants[v][k];
+    for (var attempt = 0; attempt < 2; attempt++) {
+      if (attempt > 0) Utilities.sleep(1500);
+      var res = UrlFetchApp.fetch(url, {
+        method: 'post',
+        contentType: 'application/json; charset=utf-8',
+        headers: { Authorization: 'Bearer ' + apiKey },
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true
+      });
+      var code = res.getResponseCode();
+      if (code === 429) continue;
+      if (code === 400 && v === 0) break; // 옵션 거부 가능성: 옵션 없이 다시
+      if (code !== 200) {
+        console.log('callGroqJson_: 응답 코드 ' + code + ', 본문: ' + res.getContentText('UTF-8').slice(0, 300));
+        return null;
+      }
+      var data;
+      try {
+        data = JSON.parse(res.getContentText('UTF-8'));
+      } catch (err) {
+        console.log('callGroqJson_: JSON 파싱 실패 - ' + err);
+        return null;
+      }
+      var choice = data && data.choices && data.choices[0];
+      var text = choice && choice.message && choice.message.content;
+      if (!text) {
+        console.log('callGroqJson_: 응답에 content 없음 (finish_reason=' + (choice && choice.finish_reason) + ')');
+        return null;
+      }
+      var u = data.usage || {};
+      return {
+        content: text.trim(),
+        usage: { prompt_tokens: u.prompt_tokens || 0, completion_tokens: u.completion_tokens || 0, total_tokens: u.total_tokens || 0 }
+      };
+    }
+  }
+  console.log('callGroqJson_: 재시도까지 전부 실패');
+  return null;
+}
+
+// ---------------------------------------------------------------------------
 // 종목 수급 요약판 AI 한 줄평 (?action=flowAiSummary)
 // 수급/공매도/연기금/차트패턴 4개 점수는 이미 js/foreign-flow.js가 계산해서(각각
 // getForeignFlow 응답, data/investor-flow-cache.js, ?patternScan=1 결과를 재료로) 쿼리
