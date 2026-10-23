@@ -1450,8 +1450,8 @@
       + '<div class="mt-sf-grid">'
       + shown.map(function (row, i) { return sectorFlowRowHtml_(row, i, rows, maxAmount, picksByRow[i]); }).join('')
       + '</div>'
-      + '<p class="mt-sf-note">' + escapeHtml(basis) + '</p>'
-      + '<p class="mt-sf-disclaimer">' + escapeHtml(MONEY_PICKS_DISCLAIMER) + '</p>'
+      + '<p class="mt-sf-note">' + sentenceHtml_(basis) + '</p>'
+      + '<p class="mt-sf-disclaimer">' + sentenceHtml_(MONEY_PICKS_DISCLAIMER) + '</p>'
       + '<details class="mt-sf-track" data-pick-track><summary>대표 종목 2주 추적 <span data-track-summary>불러오는 중...</span></summary>'
       + '<div data-track-body><div class="mt-hint">기록을 불러오는 중입니다.</div></div></details>'
       + '</div>';

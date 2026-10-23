@@ -3123,3 +3123,17 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-sent { display: block; word-break: keep-all; overflow-wrap: break-word; }
 }
+
+/* 2026-10-23 안내·면책 문구: 박스 안에서 문장마다 줄바꿈(기존 nowrap+글자 축소 규칙을 덮는다) */
+@layer np.np {
+  html body #market-temp .mt-sf-disclaimer.mt-sf-disclaimer, html body #market-temp .mt-sf-note.mt-sf-note { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; max-width: 100%; min-width: 0; box-sizing: border-box; word-break: keep-all; overflow-wrap: break-word; letter-spacing: normal !important; }
+  html body #market-temp .mt-sf-disclaimer.mt-sf-disclaimer { font-size: 12px !important; line-height: 1.75; }
+}
+
+/* 2026-10-23 섹터 표: 콘텐츠 폭이 좁은 PC(721~1250px)에서 칸 최소 폭 합(838px)이 카드를 넘어 대표 종목 칸이 잘렸다 - 최소 폭을 줄인다 */
+@layer np.np {
+  @media (min-width: 721px) and (max-width: 1250px) {
+    html body #market-temp .mt-sf-thead.mt-sf-thead, html body #market-temp .mt-sf-row.mt-sf-row { grid-template-columns: 32px minmax(90px, 1.2fr) 76px 84px minmax(70px, .8fr) minmax(110px, 1.2fr) 14px !important; column-gap: 10px !important; }
+    html body #market-temp .mt-sf-picks-col { flex-wrap: wrap !important; row-gap: 2px; min-width: 0; }
+  }
+}
