@@ -3438,4 +3438,4 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-sf-chg.is-new { padding: 0 4px; border-radius: 4px; background: color-mix(in srgb, var(--num-up, #d35159) 12%, transparent); color: var(--num-up, #d35159); }
 }
 
-html.dark #market-temp .mt-hot-go { color: var(--dk-bg); }
+html.dark #market-temp .mt-hot-go { color: var(--dk-bg) !important; }
