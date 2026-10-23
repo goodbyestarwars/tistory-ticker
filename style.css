@@ -8963,3 +8963,23 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
   }
   html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--dk-card) !important; border-color: var(--dk-line) !important; box-shadow: none !important; }
 }
+
+/* 2026-10-24 휴장 화면의 마켓브리핑도 장중 화면처럼 가로로 넘기는 카드(캐러셀): 휴장 때 브리핑 섹션이 .home-editorial-page 안의
+   위젯 격자 밖으로 옮겨져 위 캐러셀 규칙(.home-editorial-page 하위)이 안 닿고 2열 목록으로 풀렸다. 같은 값을 휴장 조건으로 다시 건다. */
+@layer np.np {
+  html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track {
+    display: flex !important; gap: 24px !important; width: 100%; overflow-x: auto !important; overflow-y: hidden; padding: 12px 0 24px !important;
+    scroll-snap-type: x proximity; scrollbar-width: none; touch-action: pan-x pan-y; cursor: grab; grid-template-columns: none;
+  }
+  html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card {
+    position: relative; display: flex !important; flex: 0 0 380px !important; flex-direction: column !important; width: 380px !important; min-width: 0 !important;
+    height: 460px !important; min-height: 0 !important; overflow: hidden; scroll-snap-align: start;
+  }
+  @media (min-width: 721px) {
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track { gap: 22px !important; padding: 11px 0 22px !important; }
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; }
+  }
+  @media (max-width: 720px) {
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex-basis: calc(100vw - 72px) !important; width: calc(100vw - 72px) !important; height: 430px !important; }
+  }
+}
