@@ -378,71 +378,71 @@
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. */
 html.dark #kospi-futures .kf-quote-table th,
-html.dark #kospi-futures .kf-quote-table td { color: #F5EFE0; border-bottom-color: rgba(245,239,224,.12); }
-html.dark #kospi-futures .kf-quote-table { border-color: rgba(245,239,224,.2); }
-html.dark #kospi-futures .kf-quote-table thead th { color: rgba(245,239,224,.55); }
-html.dark #kospi-futures .kf-stat-status { color: rgba(245, 239, 224, 0.4) !important; }
-html.dark #kospi-futures .kf-stat-updated { color: rgba(245, 239, 224, 0.4) !important; }
-html.dark #kospi-futures .kf-zero { color: #F5EFE0 !important; }
+html.dark #kospi-futures .kf-quote-table td { color: var(--dk-text); border-bottom-color: var(--dk-line); }
+html.dark #kospi-futures .kf-quote-table { border-color: var(--dk-line); }
+html.dark #kospi-futures .kf-quote-table thead th { color: var(--dk-mute); }
+html.dark #kospi-futures .kf-stat-status { color: var(--dk-mute) !important; }
+html.dark #kospi-futures .kf-stat-updated { color: var(--dk-mute) !important; }
+html.dark #kospi-futures .kf-zero { color: var(--dk-text) !important; }
 html.dark #kospi-futures .kf-loading,
 html.dark #kospi-futures .kf-error,
-html.dark #kospi-futures .kf-chart-error { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark #kospi-futures .kf-chart-error { color: var(--dk-mute) !important; }
 html.dark #kospi-futures .kf-chart {
-  background: #1A1A1A !important;
+  background: var(--dk-card) !important;
   border: none !important;
 }
 html.dark #kospi-futures .kf-interval-btn,
 html.dark #kospi-futures .kf-retry-btn {
-  background: rgba(245, 239, 224, 0.08) !important;
-  color: rgba(245, 239, 224, 0.55) !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  background: var(--dk-inner) !important;
+  color: var(--dk-mute) !important;
+  border-color: var(--dk-line) !important;
 }
 html.dark #kospi-futures .kf-interval-btn.active {
-  background: #F5EFE0 !important;
-  color: #1A1A1A !important;
-  border-color: #F5EFE0 !important;
+  background: var(--dk-text) !important;
+  color: var(--dk-bg) !important;
+  border-color: var(--dk-text) !important;
 }
 /* 2026-09-24 다크모드 전수 점검(사용자 요청) - 선 그리기/지우기 버튼이 다크모드
    대응 없이 밝은 회색(#f8fafc)으로 계속 떠 있었다. */
 html.dark #kospi-futures .kf-draw-toggle,
 html.dark #kospi-futures .kf-draw-clear {
-  background: rgba(245, 239, 224, 0.08) !important;
-  color: rgba(245, 239, 224, 0.55) !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  background: var(--dk-inner) !important;
+  color: var(--dk-mute) !important;
+  border-color: var(--dk-line) !important;
 }
 html.dark #kospi-futures .kf-draw-toggle:hover,
 html.dark #kospi-futures .kf-draw-clear:hover {
-  border-color: #F5EFE0 !important;
-  color: #F5EFE0 !important;
+  border-color: var(--dk-text) !important;
+  color: var(--dk-text) !important;
 }
 html.dark #kospi-futures .kf-draw-toggle.is-active {
-  background: #F5EFE0 !important;
-  color: #1A1A1A !important;
-  border-color: #F5EFE0 !important;
+  background: var(--dk-text) !important;
+  color: var(--dk-bg) !important;
+  border-color: var(--dk-text) !important;
 }
 html.dark #kospi-futures .kf-collapse-btn {
   background: transparent !important;
-  color: #F5EFE0 !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  color: var(--dk-text) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #kospi-futures .kf-stat-oi { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #kospi-futures .kf-opt-desc { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #kospi-futures .kf-stat-oi { color: var(--dk-mute) !important; }
+html.dark #kospi-futures .kf-opt-desc { color: var(--dk-mute) !important; }
 html.dark #kospi-futures .kf-opt-card {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.2) !important;
+  background: var(--dk-card) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #kospi-futures .kf-opt-tendency { background: rgba(245, 239, 224, 0.08) !important; }
-html.dark #kospi-futures .kf-opt-row { border-bottom-color: rgba(245, 239, 224, 0.12) !important; }
-html.dark #kospi-futures .kf-opt-updated { color: rgba(245, 239, 224, 0.4) !important; }
-html.dark #kospi-futures .kf-option-profile { border-color: rgba(245, 239, 224, 0.16); background: rgba(245,239,224,.03); }
+html.dark #kospi-futures .kf-opt-tendency { background: var(--dk-inner) !important; }
+html.dark #kospi-futures .kf-opt-row { border-bottom-color: var(--dk-line) !important; }
+html.dark #kospi-futures .kf-opt-updated { color: var(--dk-mute) !important; }
+html.dark #kospi-futures .kf-option-profile { border-color: var(--dk-line); background: var(--dk-card); }
 html.dark #kospi-futures .kf-option-profile-head,
-html.dark #kospi-futures .kf-option-strike { color: #F5EFE0; }
+html.dark #kospi-futures .kf-option-strike { color: var(--dk-text); }
 html.dark #kospi-futures .kf-option-profile-head span,
 html.dark #kospi-futures .kf-option-profile-labels,
 html.dark #kospi-futures .kf-option-profile-empty,
-html.dark #kospi-futures .kf-option-profile-loading { color: rgba(245, 239, 224, 0.55); }
-html.dark #kospi-futures .kf-option-profile-row { border-top-color: rgba(245,239,224,.1); }
-html.dark #kospi-futures .kf-option-bar-wrap { background: rgba(245,239,224,.09); }
+html.dark #kospi-futures .kf-option-profile-loading { color: var(--dk-mute); }
+html.dark #kospi-futures .kf-option-profile-row { border-top-color: var(--dk-line); }
+html.dark #kospi-futures .kf-option-bar-wrap { background: var(--dk-inner); }
 
 /* ── 2026-10-12 국내 탭 큰 블록 통일: 04 KOSPI200 선물지표 · 05 옵션 수급 ──────────────────────────────────────
    번호·제목·설명·구분선은 css/market-indicators.css 의 .mi-block 규격을 따르고, 여기엔 이 모듈 고유 보정만 둔다. */
@@ -468,13 +468,13 @@ html.dark #kospi-futures .kf-option-bar-wrap { background: rgba(245,239,224,.09)
 #kospi-futures .kf-option-profile-head span { display: block; font-size: 12.5px; line-height: 1.6; color: var(--mi-sub, #6b7280); }
 #kospi-futures .kf-opt-desc { margin-top: 22px; font-size: 12px; }
 html.dark #kospi-futures .kf-chart-grid .kf-section + .kf-section,
-html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: rgba(245, 239, 224, 0.2); }
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: var(--dk-line); }
 html.dark #kospi-futures .kf-opt-card { background: transparent !important; border-color: transparent !important; }
-html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #kospi-futures .kf-option-profile { border-top-color: rgba(245, 239, 224, 0.11); background: transparent; }
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-left-color: var(--dk-line) !important; }
+html.dark #kospi-futures .kf-option-profile { border-top-color: var(--dk-line); background: transparent; }
 html.dark #kospi-futures .kf-option-profile-head b,
-html.dark #kospi-futures .kf-chart-grid .kf-section-title { color: #F5EFE0; }
-html.dark #kospi-futures .kf-option-profile-head span { color: rgba(245, 239, 224, 0.64); }
+html.dark #kospi-futures .kf-chart-grid .kf-section-title { color: var(--dk-text); }
+html.dark #kospi-futures .kf-option-profile-head span { color: var(--dk-sub); }
 
 @media (max-width: 760px) {
   #kospi-futures .kf-chart-grid .kf-section { padding: 0 0 18px; }
@@ -487,7 +487,7 @@ html.dark #kospi-futures .kf-option-profile-head span { color: rgba(245, 239, 22
   #kospi-futures .kf-option-profile-head b { font-size: 16px; }
 }
 html.dark #kospi-futures .kf-chart-grid .kf-section + .kf-section,
-html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-top-color: rgba(245, 239, 224, 0.2); }
+html.dark #kospi-futures .kf-opt-card + .kf-opt-card { border-top-color: var(--dk-line); }
 /* 차트 위 컨트롤(기간 탭 + 그리기 도구): 현물 차트(css/domestic-market-indicators.css)와 같은 동작 - 합쳐서 폭을 넘으면 그리기 도구가 다음 줄로 내려간다(2026-10-12).
    예전엔 오른쪽 190px 예약(dashboard-enhancements.js 가 그리기 도구를 옮길 때만 필요)이 이 지면에서는 기간 탭을 짓눌렀다. */
 #kospi-futures .kf-interval-toggle { flex-wrap: wrap; gap: 8px 12px; }

@@ -28,19 +28,19 @@
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact p { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.55; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: #334155; font-size: 11px; font-style: normal; font-weight: 600; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact span { font-size: 12px; }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact { background: rgba(245,239,224,.05); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: rgba(245,239,224,.85); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact { background: var(--dk-card); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: var(--dk-text); }
 :is(#us-macro-indicators, .sc-econ-results) .umi-state { grid-column: 1 / -1; padding: 20px 0; text-align: center; }
-html.dark :is(#us-macro-indicators, .sc-econ-results) { color: #F5EFE0; }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card { border-color: rgba(245,239,224,.18); background: rgba(245,239,224,.04); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) { color: var(--dk-text); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card { border-color: var(--dk-line); background: var(--dk-card); }
 html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--primary { border-color: #4c9aff; box-shadow: 0 8px 20px rgba(76,154,255,.12); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--fomc { background: rgba(35,93,159,.16); border-color: rgba(128,184,255,.28); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading { border-color:rgba(245,239,224,.14); background:rgba(245,239,224,.05); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading > span b, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i b { color:rgba(245,239,224,.82); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--fomc { background: rgba(35,93,159,.16); border-color: rgba(var(--dk-down-rgb),0.28); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading { border-color:var(--dk-line); background:var(--dk-card); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-reading > span b, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i b { color:var(--dk-text); }
 html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card b { color: #b9d7ff; }
 html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card--primary b { color: var(--num-down); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card small, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card span, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i, html.dark :is(#us-macro-indicators, .sc-econ-results) p { color: rgba(245,239,224,.64); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background: rgba(245,239,224,.08); color: #F5EFE0; border-color: rgba(245,239,224,.24); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card small, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card span, html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-card i, html.dark :is(#us-macro-indicators, .sc-econ-results) p { color: var(--dk-sub); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background: var(--dk-inner); color: var(--dk-text); border-color: var(--dk-line); }
 @media (max-width: 720px) { :is(#us-macro-indicators, .sc-econ-results) .umi-head { display: block; } :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { margin-top: 10px; } :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } :is(#us-macro-indicators, .sc-econ-results) .umi-reading { align-items:flex-start; flex-direction:column; } }
 @media (max-width: 480px) { :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: minmax(0, 1fr); } }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
@@ -56,7 +56,7 @@ html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background:
 :is(#us-macro-indicators, .sc-econ-results) .umi-fomc { margin: 0 0 12px; padding: 8px 0; border-top: 1px solid rgba(17,17,17,.13); border-bottom: 1px solid rgba(17,17,17,.13); font-size: 13px; line-height: 1.5; color: #374151; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-fomc b { display: inline; margin: 0; color: #111827; font-size: 13px; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-fomc span { margin-left: 8px; color: #64748b; font-size: 12px; }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc { border-color: rgba(245,239,224,.16); color: rgba(245,239,224,.88); }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc b { color: #F5EFE0; }
-html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc span { color: rgba(245,239,224,.62); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc { border-color: var(--dk-line); color: var(--dk-text); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc b { color: var(--dk-text); }
+html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-fomc span { color: var(--dk-sub); }
 :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { flex: 0 0 auto; white-space: nowrap; }   /* 2026-10-12: 폭이 좁을 때 '갱신'이 두 줄로 꺾이던 것 */

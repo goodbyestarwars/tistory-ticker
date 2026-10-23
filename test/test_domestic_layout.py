@@ -62,7 +62,7 @@ class DomesticLayoutTests(unittest.TestCase):
         self.assertIn('--ibd-secline:var(--mi-idx-ref', css)
         market = read('css/market-indicators.css')
         self.assertIn('--mi-idx-ref: #4b5563', market)
-        self.assertIn('--mi-idx-ref: #c5c9d0', market)  # 다크모드에서도 읽히는 중립 회색
+        self.assertIn('--mi-idx-ref: var(--dk-sub)', market)  # 다크모드에서도 읽히는 중립 회색(공식 다크 팔레트 --dk-sub, 2026-10-23)
 
     def test_section_spacing_divider_and_dark_overrides(self):
         css = read('css/market-indicators.css')

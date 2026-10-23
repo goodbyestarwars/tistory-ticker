@@ -221,46 +221,46 @@
 
 /* ---- 다크모드 (스킨 블랑켓 규칙이 글자색을 덮어써서 !important 필요) ---- */
 
-html.dark #invest-signal .is-meta { color: #999 !important; }
-html.dark #invest-signal .is-section-title { color: #eee !important; }
-html.dark #invest-signal .is-hint { color: #999 !important; }
+html.dark #invest-signal .is-meta { color: var(--dk-mute) !important; }
+html.dark #invest-signal .is-section-title { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-hint { color: var(--dk-mute) !important; }
 html.dark #invest-signal .is-section-desc,
 html.dark #invest-signal .is-rank-desc {
   color: #b3bdcf !important;
   background: #171e2f !important;
   border-color: #263248 !important;
 }
-html.dark #invest-signal .is-desc-label { color: #ccd4e0 !important; }
+html.dark #invest-signal .is-desc-label { color: var(--dk-text) !important; }
 html.dark #invest-signal .is-chip {
   background: #232c40 !important;
   border-color: #33405c !important;
-  color: #ccd4e0 !important;
+  color: var(--dk-text) !important;
 }
-html.dark #invest-signal .is-chip b { color: #eee !important; }
-html.dark #invest-signal .is-chip-buy { background: #3a2523 !important; border-color: #5c3835 !important; color: #e8776d !important; }
+html.dark #invest-signal .is-chip b { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-chip-buy { background: rgba(var(--dk-up-rgb),.16) !important; border-color: rgba(var(--dk-up-rgb),.4) !important; color: var(--dk-up) !important; }
 html.dark #invest-signal .is-chip-hold { background: #34301f !important; border-color: #5c5335 !important; color: #d9c04a !important; }
 html.dark #invest-signal .is-chip-reduce { background: #3a2f20 !important; border-color: #5c4a35 !important; color: #d9a94a !important; }
-html.dark #invest-signal .is-chip-sell { background: #20304a !important; border-color: #33507a !important; color: #6ea8e8 !important; }
-html.dark #invest-signal .is-desc-note { color: #7c8aa5 !important; }
+html.dark #invest-signal .is-chip-sell { background: rgba(var(--dk-down-rgb),.16) !important; border-color: rgba(var(--dk-down-rgb),.4) !important; color: var(--dk-down) !important; }
+html.dark #invest-signal .is-desc-note { color: var(--dk-mute) !important; }
 html.dark #invest-signal .is-error { color: #e8877e !important; }
 
 html.dark #invest-signal .is-bucket {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
 html.dark #invest-signal .is-bucket.active {
   border-color: #eee !important;
   box-shadow: 0 0 0 1px #eee inset !important;
 }
-html.dark #invest-signal .is-bucket-label { color: #eee !important; }
-html.dark #invest-signal .is-bucket-count { color: #ccc !important; }
-html.dark #invest-signal .is-list-head { color: #ccc !important; }
-html.dark #invest-signal .is-list-cap { color: #888 !important; }
+html.dark #invest-signal .is-bucket-label { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-bucket-count { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-list-head { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-list-cap { color: var(--dk-mute) !important; }
 
 html.dark #invest-signal .is-rank-tab {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
-  color: #ccc !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }
 html.dark #invest-signal .is-rank-tab.active {
   background: #eee !important;
@@ -268,16 +268,16 @@ html.dark #invest-signal .is-rank-tab.active {
   color: #111 !important;
 }
 
-html.dark #invest-signal .is-stock-table { border-color: #3a3a3a !important; }
-html.dark #invest-signal .is-stock-row { border-color: #3a3a3a !important; }
-html.dark #invest-signal .is-stock-row:hover { background: #262626 !important; }
-html.dark #invest-signal .is-rank-num { color: #888 !important; }
-html.dark #invest-signal .is-metric-label { color: #888 !important; }
-html.dark #invest-signal .is-metric-val { color: #eee !important; }
-html.dark #invest-signal .is-stock-name { color: #eee !important; }
-html.dark #invest-signal .is-stock-code { color: #888 !important; }
-html.dark #invest-signal .is-stock-price { color: #eee !important; }
-html.dark #invest-signal .is-up { color: #e8776d !important; }
-html.dark #invest-signal .is-down { color: #6ea8e8 !important; }
-html.dark #invest-signal .is-flat { color: #aaa !important; }
-html.dark #invest-signal .is-footnote { color: #888 !important; }
+html.dark #invest-signal .is-stock-table { border-color: var(--dk-line) !important; }
+html.dark #invest-signal .is-stock-row { border-color: var(--dk-line) !important; }
+html.dark #invest-signal .is-stock-row:hover { background: var(--dk-inner) !important; }
+html.dark #invest-signal .is-rank-num { color: var(--dk-mute) !important; }
+html.dark #invest-signal .is-metric-label { color: var(--dk-mute) !important; }
+html.dark #invest-signal .is-metric-val { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-stock-name { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-stock-code { color: var(--dk-mute) !important; }
+html.dark #invest-signal .is-stock-price { color: var(--dk-text) !important; }
+html.dark #invest-signal .is-up { color: var(--dk-up) !important; }
+html.dark #invest-signal .is-down { color: var(--dk-down) !important; }
+html.dark #invest-signal .is-flat { color: var(--dk-sub) !important; }
+html.dark #invest-signal .is-footnote { color: var(--dk-mute) !important; }

@@ -12,7 +12,7 @@
   .mm-more[hidden] { display: none; }
 
   :root { --mm-up: #d24f45; --mm-down: #2f6fd0; --mm-line: rgba(26, 26, 26, .14); --mm-ink: #1a1a1a; --mm-sub: rgba(26, 26, 26, .62); --mm-bg: rgba(26, 26, 26, .035); --mm-act-bg: #1a1a1a; --mm-act-ink: #fffefc; }
-  html.dark { --mm-up: #ff8a83; --mm-down: #5b9bf0; --mm-line: rgba(245, 239, 224, .2); --mm-ink: #f5efe0; --mm-sub: rgba(245, 239, 224, .66); --mm-bg: rgba(245, 239, 224, .05); --mm-act-bg: #f5efe0; --mm-act-ink: #1a1a1a; }
+  html.dark { --mm-up: var(--dk-up); --mm-down: var(--dk-down); --mm-line: var(--dk-line); --mm-ink: var(--dk-text); --mm-sub: var(--dk-sub); --mm-bg: var(--dk-card); --mm-act-bg: var(--dk-text); --mm-act-ink: var(--dk-bg); }
 
   .mm-up { color: var(--num-up) !important; }
   .mm-down { color: var(--num-down) !important; }

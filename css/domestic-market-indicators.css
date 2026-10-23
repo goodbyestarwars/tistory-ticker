@@ -262,8 +262,8 @@
 }
 
 html.dark .dmi-live-status {
-  background: rgba(245, 239, 224, 0.1) !important;
-  color: rgba(245, 239, 224, 0.6) !important;
+  background: var(--dk-inner) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark .dmi-live-status[data-state="live"] {
   background: rgba(74, 222, 128, 0.16) !important;
@@ -280,24 +280,24 @@ html.dark .dmi-panel + .dmi-panel,
 html.dark .dmi-flow-card + .dmi-flow-card,
 html.dark .dmi-fund-card:nth-child(3n + 2),
 html.dark .dmi-fund-card:nth-child(3n + 3),
-html.dark .dmi-ai { border-color: rgba(245,239,224,.2); }
+html.dark .dmi-ai { border-color: var(--dk-line); }
 html.dark .dmi-panel,
 html.dark .dmi-fund-card,
 html.dark .dmi-flow-card,
 html.dark .dmi-ai { background: transparent !important; box-shadow: none !important; }
-html.dark .dmi-spot-card { background: transparent !important; border-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-card { background: transparent !important; border-color: var(--dk-line); }
 html.dark .dmi-spot-label,
 html.dark .dmi-spot-price,
-html.dark .dmi-spot-change { color: #F5EFE0 !important; }
+html.dark .dmi-spot-change { color: var(--dk-text) !important; }
 html.dark .dmi-spot-table .dmi-spot-price.dmi-positive { color: var(--num-up) !important; }
 html.dark .dmi-spot-table .dmi-spot-price.dmi-negative { color: var(--num-down) !important; }
 html.dark .dmi-tab,
 html.dark .dmi-tabs .dmi-draw-toggle,
-html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: rgba(245,239,224,.6) !important; }
+html.dark .dmi-tabs .dmi-draw-clear { background: transparent !important; color: var(--dk-sub) !important; }
 html.dark .dmi-tab.is-active,
 html.dark .dmi-tab:hover,
 html.dark .dmi-tabs .dmi-draw-toggle:hover,
-html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: #F5EFE0; color: #F5EFE0 !important; }
+html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: var(--dk-text); color: var(--dk-text) !important; }
 
 /* 2026-08-22: "코스피·코스닥 주간현물" 헤더의 휴장/장마감 배지 -
    js/kospi-futures.js의 .kf-stat-status와 동일한 톤(회색, 굵게)으로 통일. */
@@ -306,7 +306,7 @@ html.dark .dmi-tabs .dmi-draw-clear:hover { border-color: #F5EFE0; color: #F5EFE
   font-size: 13px;
   color: #94a3b8;
 }
-html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }
+html.dark .dmi-market-status { color: var(--dk-mute) !important; }
 
 /* 2026-08-26: 현물 지수는 투자자별 매매동향과 같은 평평한 2열 지면으로 통일.
    둥근 사각 카드가 제목·구분선에 바로 붙어 보이던 문제를 없애고, 가운데 세로선과
@@ -382,15 +382,15 @@ html.dark .dmi-market-status { color: rgba(245, 239, 224, 0.4) !important; }
   .dmi-fund-card + .dmi-fund-card { border-top: 1px solid #e4eaf2; }
 }
 
-html.dark .dmi-spot-quotes { border-color: rgba(245,239,224,.2); }
-html.dark .dmi-spot-card + .dmi-spot-card { border-left-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-quotes { border-color: var(--dk-line); }
+html.dark .dmi-spot-card + .dmi-spot-card { border-left-color: var(--dk-line); }
 html.dark .dmi-fund-card,
 html.dark .dmi-fund-card:nth-child(3n + 2),
 html.dark .dmi-fund-card:nth-child(3n + 3) {
-  border-color: rgba(245,239,224,.2);
+  border-color: var(--dk-line);
   background: transparent !important;
 }
-html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-card + .dmi-spot-card { border-top-color: var(--dk-line); }
 
 /* 2026-08-26: 현물 차트는 영역 전체의 접기 버튼으로 함께 제어한다.
    개별 차트 버튼은 같은 기능을 중복 제공하므로 화면에서 제거한다. */
@@ -440,8 +440,8 @@ html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-c
 
 html.dark .dmi-section-collapse {
   background: transparent;
-  color: #F5EFE0;
-  border-color: rgba(245,239,224,.2);
+  color: var(--dk-text);
+  border-color: var(--dk-line);
 }
 
 @media (min-width: 761px) {
@@ -574,9 +574,9 @@ html.dark .dmi-section-collapse {
 
 html.dark .dmi-spot-collapse,
 html.dark .dmi-panel .de-draw-controls .dmi-draw-toggle,
-html.dark .dmi-panel .de-draw-controls .dmi-draw-clear { background: transparent; color: #F5EFE0; border-color: rgba(245,239,224,.2); }
+html.dark .dmi-panel .de-draw-controls .dmi-draw-clear { background: transparent; color: var(--dk-text); border-color: var(--dk-line); }
 html.dark .dmi-spot-table th,
-html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2); }
+html.dark .dmi-spot-table td { color: var(--dk-text); border-color: var(--dk-line); }
 
 /* 참고의견과 증시자금 그리드가 맞닿는 곳에 같은 구분선이 두 번 그려지지 않게 한다. */
 .dmi-ai { border-bottom: 0 !important; }
@@ -626,7 +626,7 @@ html.dark .dmi-spot-table td { color: #F5EFE0; border-color: rgba(245,239,224,.2
 #domestic-market-indicators .dmi-draw-toggle:hover,
 #domestic-market-indicators .dmi-draw-clear:hover { border-color: #111; color: #111; }
 
-html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
+html.dark .dmi-mini-chart-guide { stroke: var(--dk-line); }
 
 @media (max-width: 360px) {
   .dmi-spot-table .dmi-spot-price { font-size: 15px; }
@@ -641,7 +641,7 @@ html.dark .dmi-mini-chart-guide { stroke: rgba(245,239,224,.18); }
 .dmi-shell .dmi-balance-sub .dmi-ai { margin-top: 22px; }
 /* 02·03 안의 투자자·잔고 화면이 늦게 올 때의 자리표시·실패 문구 */
 .dmi-invflow-loading, .dmi-invflow-fail { padding: 22px 0; font-size: 13px; color: #6b7280; }
-html.dark .dmi-invflow-loading, html.dark .dmi-invflow-fail { color: rgba(245,239,224,.6); }
+html.dark .dmi-invflow-loading, html.dark .dmi-invflow-fail { color: var(--dk-sub); }
 @media (max-width: 760px) {
   .dmi-shell .dmi-block .dmi-subheading { padding-top: 24px; }
   .dmi-shell .dmi-block.mi-block--first .dmi-subheading { padding-top: 0; }
@@ -657,7 +657,7 @@ html.dark .dmi-invflow-loading, html.dark .dmi-invflow-fail { color: rgba(245,23
 
 /* 다크모드: 02 투자자별 순매수 표의 날짜·헤더가 위쪽 '글자색 #000 !important' 규칙 때문에 어두운 배경 위 검정으로 보이지 않았다. 상승·하락 색 칸은 건드리지 않는다. */
 html.dark .dmi-shell .dmi-flow-table th,
-html.dark .dmi-shell .dmi-flow-table td:not(.dmi-positive):not(.dmi-negative) { color: #F5EFE0 !important; }
+html.dark .dmi-shell .dmi-flow-table td:not(.dmi-positive):not(.dmi-negative) { color: var(--dk-text) !important; }
 
 .dmi-rank-card .ss-table-wrap { overflow-x: auto; scrollbar-width: thin; }
 .dmi-rank-table { min-width: 330px; }

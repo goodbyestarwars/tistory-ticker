@@ -47,7 +47,7 @@
 #dcf #dcf-suggestions[hidden] { display:none; }
 #dcf #dcf-suggestions button { display:block; width:100%; text-align:left; border:0; border-bottom:1px solid #ddd; padding:10px; background:var(--np-paper,#fff); color:inherit; }
 #dcf #dcf-suggestions [aria-selected=true] button, #dcf #dcf-suggestions button:hover { background:var(--np-tint,#eee); }
-html.dark #dcf { color:#f5efe0; background:#1a1a1a; --np-paper:#1a1a1a; --np-tint:#292929; }
+html.dark #dcf { color:var(--dk-text); background:var(--dk-bg); --np-paper:var(--dk-bg); --np-tint:var(--dk-inner); }
 html.dark #dcf .dcf-status-review { color:#e0c17a; }
 @media(max-width:720px) { #dcf h1 { font-size:25px; } #dcf .dcf-assumptions, #dcf .dcf-results { grid-template-columns:repeat(2,minmax(0,1fr)); } #dcf .dcf-table { min-width:1040px; } #dcf dd { font-size:18px; } }
 @media(max-width:420px) { #dcf .dcf-assumptions { grid-template-columns:1fr; } }

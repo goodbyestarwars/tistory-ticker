@@ -8,7 +8,7 @@
 .ifl .ifl-seg-btn { appearance:none; margin:0; padding:6px 13px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12.5px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ifl .ifl-seg-btn:last-child { border-right-width:1px; }
 .ifl .ifl-seg-btn.is-active { background:rgb(var(--ibd-ink)); color:#fff; }
-html.dark .ifl .ifl-seg-btn.is-active { color:#1A1A1A; }
+html.dark .ifl .ifl-seg-btn.is-active { color:var(--dk-bg); }
 .ifl .ifl-seg-btn:disabled { opacity:.35; cursor:not-allowed; }
 /* 투자자 선택 버튼: 색 점 + 선택되면 그 투자자의 색으로 채운다(범례·그래프와 같은 값) */
 html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; color:var(--ibd-sub); font-variant-numeric:tabular-nums; }
@@ -62,7 +62,7 @@ html.dark .ifl .ifl-asof { margin-left:auto; font-size:12px; line-height:1.5; co
 
 /* 다크모드: style.css 의 html.dark .post-single-body * { color: ... !important } 가 이 화면의 글자색을 전부 크림색으로 덮는다.
    선택된 버튼의 반전 글자, 상승(빨강)·하락(파랑) 수치, 보조 글자의 옅은 색을 같은 !important 로 더 높은 명시도에서 되돌린다. */
-html.dark .ifl .ifl-seg-btn.is-active { color: #1A1A1A !important; }
+html.dark .ifl .ifl-seg-btn.is-active { color: var(--dk-bg) !important; }
 html.dark html.dark .ifl .ifl-table td.up, html.dark .ifl .ifl-table td.up small, html.dark .ifl .ifl-lv.up { color: var(--num-up) !important; }
 html.dark .ifl .ifl-table td.down, html.dark .ifl .ifl-table td.down small, html.dark .ifl .ifl-lv.down { color: var(--num-down) !important; }
 html.dark .ifl .ifl-asof, html.dark .ifl .ifl-cap, html.dark .ifl .ifl-note, html.dark .ifl .ifl-minih,
