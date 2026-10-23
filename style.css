@@ -4773,7 +4773,8 @@ body.iframe-mode .notice-card { border-radius: 0; }
 html.dark .nav-dark-btn { background: #22c55e; }
 html.dark .dark-toggle-knob { transform: translateX(20px); }
 
-/* 베이스 - 2026-07-28 사용자 요청으로 다크모드 전체를 배경 #1A1A1A + 글자 #F5EFE0
+/* (2026-10-23 개정: 위 --dk-* 팔레트가 현재 기준이다. 아래 설명은 2026-07-28 당시의 크림 2색 체계 기록이며 색값은 토큰으로 대체됐다.)
+   베이스 - 2026-07-28 사용자 요청으로 다크모드 전체를 배경 #1A1A1A + 글자 #F5EFE0
    두 색 조합으로 통일(기존엔 파일마다 남색/청록/초록 등 제각각 톤을 썼음). 카드처럼
    배경에서 "떠 보여야" 하는 표면은 색을 따로 마련하는 대신 같은 #1A1A1A 위에 크림색
    저채도 테두리/오버레이(rgba(245,239,224, 낮은 알파))만 얹어 2색 체계를 지킨다.
@@ -4815,7 +4816,6 @@ html.dark {
   --dk-up-rgb: 226, 141, 152;
   --dk-down-rgb: 138, 173, 223;
   --dk-ink-rgb: 241, 244, 248;
-  color-scheme: dark;
 }
 html.dark {
   --text-main: var(--dk-text);
