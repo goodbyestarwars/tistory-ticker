@@ -296,3 +296,10 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-control
 .home-disclosure-nav button { width: 26px; height: 26px; padding: 0; border: 1px solid var(--hmb-line, #e2e8f0); border-radius: 2px; background: transparent; color: inherit; font: 600 15px/1 var(--font-ui, system-ui, sans-serif); cursor: pointer; }
 .home-disclosure-nav small { min-width: 30px; text-align: center; color: var(--hmb-faint, #94a3b8); font: 500 11px/1 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; }
 .home-disclosure-nav button:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
+
+/* 2026-10-24 미국 시장: 상승 종목 비율 옆 가로 막대(상승=붉은색, 하락=푸른색, 기존 의미색) */
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar { display: flex; flex: 0 0 120px; align-self: center; width: 120px; height: 8px; overflow: hidden; border-radius: 4px; background: rgba(var(--np-ink), .08); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar[hidden] { display: none !important; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar i { display: block; height: 100%; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: var(--num-up); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: var(--num-down); }

@@ -884,7 +884,8 @@ document.documentElement.classList.add('skin-ready');
       // Hide only the duplicate small row, not the headline or live futures.
       // Restore it for the US regular session (breadth) and domestic market (temperature).
       var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict .hmb2-temp');
-      if (secondaryMarketStatus) secondaryMarketStatus.hidden = !!(isUs && usSession && !usSession.open);
+      // 2026-10-24 사용자 지시: 국내 시장의 '증시온도' 줄은 삭제(미국은 상승 종목 비율 + 막대).
+      if (secondaryMarketStatus) secondaryMarketStatus.hidden = !isUs || !!(usSession && !usSession.open);
       if (investorTrend) investorTrend.hidden = isUs;
       // 시장 내부 흐름(상승·하락 비중)은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
       var breadthBlock = dashboardSection.querySelector('[data-home-breadth]');
@@ -1286,6 +1287,16 @@ document.documentElement.classList.add('skin-ready');
       var sessionOpen = !summary.sessionState || summary.sessionState.open;
       setField('temperature', sessionOpen ? ratio : summary.sessionState.label,
         sessionOpen ? summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral');
+      // 상승 종목 비율 옆 막대: 상승(붉은색)·하락(푸른색) 비중. 장이 열렸을 때만 그린다(보합은 하락 쪽에 합치지 않고 남는 폭으로 둔다).
+      var tempRow = dashboardSection.querySelector('.hmb2-temp'), upBar = tempRow && tempRow.querySelector('[data-hmb-upbar]');
+      if (tempRow && sessionOpen) {
+        if (!upBar) { upBar = document.createElement('span'); upBar.className = 'hmb2-upbar'; upBar.setAttribute('data-hmb-upbar', ''); upBar.innerHTML = '<i class="is-up"></i><i class="is-down"></i>'; tempRow.appendChild(upBar); }
+        var upPct = Math.max(0, Math.min(100, summary.riseRatio * 100));
+        upBar.querySelector('.is-up').style.width = upPct.toFixed(1) + '%';
+        upBar.querySelector('.is-down').style.width = (100 - upPct).toFixed(1) + '%';
+        upBar.setAttribute('title', '상승 종목 ' + upPct.toFixed(1) + '% · 나머지 ' + (100 - upPct).toFixed(1) + '%');
+        upBar.hidden = false;
+      } else if (upBar) upBar.hidden = true;
       setField('direction', summary.direction.label, summary.direction.tone);
       setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
       setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
