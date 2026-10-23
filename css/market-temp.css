@@ -3182,29 +3182,21 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-checkpoint-facts .mt-strategy-action .mt-sent { font-family: inherit !important; }
 }
 
-/* 2026-10-23 원자재·가상자산(오른쪽 열, 최근 시장 흐름 아래) / 수급·심리·금리(왼쪽 열, 한눈에 칸 아래): 방향 그룹, 44px 원 아이콘, 추이 그래프 */
+/* 2026-10-23 원자재·가상자산 / 수급·심리·금리: 시장 한눈에 칸과 같은 카드(간격 있음), 누르면 바로 아래에 추이 그래프 */
 @layer np.np {
-  html body #market-temp .mt-right-col { display: flex; flex-direction: column; gap: 20px; min-width: 0; }
-  html body #market-temp .mt-right-col > .mt-card { margin: 0; }
+  html body #market-temp .mt-commodity-block { margin-top: 14px; }
   html body #market-temp .mt-commodity-title.mt-commodity-title { margin: 0 0 8px; font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4; color: var(--pulse-ink, #202b3b); }
-  html body #market-temp .mt-commodity-strip.mt-commodity-strip { display: block; }
-  html body #market-temp .mt-cgroup { margin: 0 0 8px; padding: 8px 10px 4px; border-radius: 12px; border: 1px solid transparent; }
-  html body #market-temp .mt-cgroup.is-positive { background: color-mix(in srgb, #e7aaa5 14%, transparent); border-color: color-mix(in srgb, #e7aaa5 55%, transparent); }
-  html body #market-temp .mt-cgroup.is-negative { background: color-mix(in srgb, #9dbbe0 16%, transparent); border-color: color-mix(in srgb, #9dbbe0 60%, transparent); }
-  html body #market-temp .mt-cgroup.is-neutral { background: rgba(148, 163, 184, .1); border-color: rgba(148, 163, 184, .35); }
-  html body #market-temp .mt-cgroup-label { display: block; margin: 0 0 4px; font-size: 11px; font-weight: 700; }
-  html body #market-temp .mt-cgroup.is-positive .mt-cgroup-label { color: #b42318; }
-  html body #market-temp .mt-cgroup.is-negative .mt-cgroup-label { color: #245b9e; }
-  html body #market-temp .mt-cgroup.is-neutral .mt-cgroup-label { color: #64748b; }
-  html body #market-temp .mt-cgroup .mt-commodity-card { background: transparent; padding: 10px 2px; border-radius: 0; }
-  html body #market-temp .mt-cgroup .mt-commodity-card + .mt-commodity-card { border-top: 1px solid rgba(100, 116, 139, .18); }
-  html body #market-temp .mt-commodity-art.mt-commodity-art { flex: 0 0 44px; width: 44px; height: 44px; }
-  html body #market-temp .mt-spark { position: relative; height: 56px; margin-top: 8px; }
-  html body #market-temp .mt-spark svg { display: block; width: 100%; height: 100%; overflow: visible; }
-  html body #market-temp .mt-spark-dot { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; border: 1.5px solid #fff; box-sizing: border-box; }
-  html body #market-temp .mt-spark-dot.is-up { background: #d98c85; }
-  html body #market-temp .mt-spark-dot.is-down { background: #7fa6d8; }
-  html body #market-temp .mt-pc-bar { display: flex; height: 10px; margin-top: 8px; border-radius: 5px; overflow: hidden; }
+  html body #market-temp .mt-xlist { display: grid; gap: 8px !important; }
+  html body #market-temp .mt-xwrap { min-width: 0; }
+  html body #market-temp .mt-xcard { display: block !important; width: 100%; text-align: left; cursor: pointer; }
+  html body #market-temp .mt-xcard .mt-glance-amount { white-space: normal; }
+  html body #market-temp .mt-xsay { display: block; margin: 3px 0 2px; font-size: 13px; line-height: 1.5; font-weight: 700; word-break: keep-all; color: var(--pulse-ink, #202b3b); }
+  html body #market-temp .mt-xsay.is-positive { color: #b42318; }
+  html body #market-temp .mt-xsay.is-negative { color: #245b9e; }
+  html body #market-temp .mt-xwrap.is-open .mt-xcard { border-color: color-mix(in srgb, var(--pulse-blue, #2566d4) 42%, transparent) !important; }
+  html body #market-temp .mt-xpanel { margin: 6px 0 0; padding: 12px 8px 8px; border-radius: 9px; background: var(--pulse-soft, #f5f8fd); }
+  html body #market-temp .mt-xpanel .mt-flow-svg { height: 200px !important; }
+  html body #market-temp .mt-pc-bar { display: flex; height: 14px; border-radius: 7px; overflow: hidden; }
   html body #market-temp .mt-pc-bar .put { background: #9dbbe0; }
   html body #market-temp .mt-pc-bar .call { background: #e7aaa5; }
 }
