@@ -14,7 +14,7 @@
   --ui-accent-ink: #4338ca;
   --ui-focus: #1261c4;
   --ui-radius-control: 999px;
-  --ui-radius-module: 4px;
+  --ui-radius-module: var(--ui-radius-card);
   --ui-control-height: 38px;
   --ui-control-gap: 8px;
 }
@@ -143,8 +143,8 @@
 .ui-section-heading-title {
   margin: 0;
   color: var(--ui-ink);
-  font: 700 22px/1.2 var(--font-ui);
-  letter-spacing: -0.04em;
+  font: 600 var(--ui-section-size)/1.4 var(--font-ui);
+  letter-spacing: 0;
 }
 .ui-section-heading-description {
   margin: 0;
@@ -168,7 +168,7 @@
   .ui-btn { min-height: 36px; padding-right: 13px; padding-left: 13px; font-size: 12px; }
   .ui-btn-tab { min-height: 40px; padding-right: 14px; padding-left: 14px; font-size: 14px; }
   .ui-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
-  .ui-section-heading-title { font-size: 19px; }
+  .ui-section-heading-title { font-size: var(--ui-section-size); }
   .ui-section-heading-description { font-size: 12px; }
 }
 

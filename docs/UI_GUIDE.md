@@ -8,6 +8,31 @@
 - 작은 카드는 필요하면 2열로 묶어 정보 밀도를 높인다.
 - 장식보다 데이터의 의미와 가독성을 우선한다.
 
+### 공통 UI 치수 (2026-10-24)
+
+`style.css`의 `--ui-*` 치수가 단일 출처다. 메인 카드 `--ui-radius-card:14px`, 내부 요약
+`--ui-radius-inner:9px`, 카드 패딩 `--ui-card-padding:18px`(760px 이하 14px), 카드 간격
+`--ui-card-gap:10px`, 섹션 간격 `--ui-section-gap:20px`(모바일 16px)를 재사용한다.
+페이지 제목은 24px(모바일 22px), 섹션 제목은 17px·600·Pretendard다. 기사 제목과
+콘텐츠 본문의 의도된 명조는 유지한다. 차트의 기능별 높이와 표의 열 구조는 공통화하지 않는다.
+
+다크 면 토큰은 `--ui-card-surface → --dk-card`, `--ui-inner-surface → --dk-inner`,
+`--ui-panel-surface → --dk-panel`, `--ui-border → --dk-line`으로 연결된다. 라이트 면은
+기존 `--np-paper/--np-tint`를 사용한다. 모바일 토큰 선언은 비레이어 :root 옆에 둔다.
+비레이어 기본값을 레이어 내부의 일반 모바일 선언으로 바꾸면 캐스케이드에서 패배한다.
+
+공통 카드와 타이포 규칙은 기존 `@layer np`/`np.np` 본문에서 관리한다. 파일 끝에
+새 우회 레이어를 쌓지 않는다. 증시자금 등 `IndicatorBoard`는 표 전체를 카드 면으로,
+헤더·그룹 행을 패널 면으로 칠하며 숫자는 오른쪽·tabular-nums, 호버는 `--dk-hover`,
+선택 행은 `--dk-active`다. 행 이름 셀에도 행의 선택 배경을 상속시켜 별도 네이비 칸이
+남지 않게 한다. 모바일은 기존 두 줄 행과 모든 데이터 열을 보존한다.
+
+브랜드 원본은 투명 RGBA `img/falcon-logo-source.webp`다. SVG 송골매 원본은 없으며,
+`brand-banner.png`·favicon·apple-touch-icon은 불투명 이미지다. 헤더는 기존 CSS 배경
+경로에 원본을 참조해 동일 비율로 머리 부분을 크롭한다(400% auto, 0 68%). CSS 색·혼합
+모드로 배경을 감추지 않는다. PC·모바일이 같은 선택자를 쓰고 푸터도 동일 원본을 contain으로
+표시한다. 파비콘은 기존 전용 경량 자산 정책을 유지한다. `skin.html` 수정은 필요하지 않다.
+
 ## 색상
 
 | 의미 | 색상 |

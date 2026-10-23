@@ -3732,7 +3732,8 @@ console.log(JSON.stringify(cases.map(function (iso) {
         # 관리자에만 있어 우리가 못 고친다)이 박아둔 이미지가 먼저 그려졌다가 바뀌며
         # 깜빡였다. 로고는 style.css의 배경으로 옮겨 첫 페인트부터 확정시킨다.
         style = self.read("style.css")
-        self.assertIn("background-image: url(\"https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png", style)
+        # Reuse the original transparent falcon. The old opaque head crop is retired.
+        self.assertIn("background-image: url(\"https://goodbyestarwars.github.io/tistory-ticker/img/falcon-logo-source.webp", style)
         self.assertIn(".nav-logo-emblem img { display: none; }", style)
         self.assertNotIn("document.querySelectorAll('.nav-logo-emblem img, .nav-logo-image')", source)
         # 주석은 왜 걷어냈는지 설명하느라 파일명을 언급하므로 실제 대입만 본다.

@@ -57,13 +57,13 @@
   border-left: 1px solid #e7eaf0;
   border-radius: 0;
   background: #f7f8fa;
-  box-shadow: -12px 0 30px rgba(19, 28, 45, .08);
+  box-shadow: none;
   pointer-events: auto;
   overscroll-behavior: contain;
 }
 
 #watchlist {
-  font-family: 'Maru Buri', 'MaruBuri', 'Pretendard', system-ui, sans-serif;
+  font-family: var(--font-ui);
   color: #222;
   line-height: 1.5;
   width: 100%;
@@ -82,9 +82,9 @@
   border-bottom: 1px solid #e1e5eb;
 }
 #watchlist .wl-title {
-  font-size: 19px;
-  font-weight: 800;
-  letter-spacing: -.04em;
+  font-size: var(--ui-section-size);
+  font-weight: 600;
+  letter-spacing: 0;
 }
 #watchlist .wl-auth { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-basis:100%; order:4; margin-left:0; color:#748095; font-size:11px; }
 #watchlist .wl-auth button { border:1px solid #d1d5db; border-radius:7px; background:rgb(255, 254, 252); color:#374151; padding:5px 8px; cursor:pointer; font:inherit; font-size:11px; transition:border-color .15s ease, background .15s ease; }

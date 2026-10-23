@@ -5257,10 +5257,13 @@ html.dark .sidebar-left .nav-secondary-separator { color: var(--dk-mute) !import
    전신은 34px에서 가는 사선 하나로 뭉개져서 머리만 쓴다. */
 .nav-logo-emblem {
   display: flex; align-items: center; justify-content: center;
-  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/brand-banner.png?v=20261005-falcon");
-  background-size: cover;
-  background-position: center;
-  border-radius: 8px;
+  background-image: url("https://goodbyestarwars.github.io/tistory-ticker/img/falcon-logo-source.webp");
+  /* Same head crop as the previous banner, from the original alpha image.
+     Uniform scale preserves the falcon; no blend/filter/background masking. */
+  background-size: 400% auto;
+  background-repeat: no-repeat;
+  background-position: 0 68%;
+  border-radius: 0;
 }
 .nav-logo-emblem img { display: none; }
 .nav-logo-image {
@@ -7598,55 +7601,76 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .09) 16%, rgba(var(--np-ink), .09) 84%, rgba(var(--np-ink), 0) 100%);
   --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .1) 20%, rgba(var(--np-ink), .1) 80%, rgba(var(--np-ink), 0) 100%);
   --np-btn-h: 34px;
+  /* Shared geometry: page modules, inset summaries and dense data controls. */
+  --ui-radius-card: 14px;
+  --ui-radius-inner: 9px;
+  --ui-card-padding: 18px;
+  --ui-card-gap: 10px;
+  --ui-section-gap: 20px;
+  --ui-title-size: 24px;
+  --ui-section-size: 17px;
+  --ui-card-surface: var(--np-paper);
+  --ui-inner-surface: var(--np-tint);
+  --ui-panel-surface: var(--np-tint);
+  --ui-border: var(--rule);
+
   --rule: rgba(17, 17, 17, .1);
 }
 html.dark {
   --np-ink: var(--dk-ink-rgb);
   --np-paper: var(--dk-bg);
   --np-tint: var(--dk-bg);
+  --ui-card-surface: var(--dk-card);
+  --ui-inner-surface: var(--dk-inner);
+  --ui-panel-surface: var(--dk-panel);
+  --ui-border: var(--dk-line);
   --rule: var(--dk-line);
 }
 
+@media (max-width: 760px) {
+  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-title-size: 22px; }
+}
+
 @layer np {
-/* ── 1. 카드 : 애플 + KB자산운용 스타일 — 큰 모서리(20px)와 아주 옅은 1px 선, 그림자 없음 ── */
+/* ── 1. 공통 카드: geometry/surface tokens; chart and report layouts stay independent. ── */
 html body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
   .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
   #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
-  border: 1px solid rgba(var(--np-ink), .09) !important;
-  border-radius: 20px !important;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: var(--ui-radius-card) !important;
   box-shadow: none !important;
-  background-color: var(--np-paper) !important;
+  background-color: var(--ui-card-surface) !important;
   background-image: none !important;
 }
-html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 24px !important; padding-right: 24px !important; }
+html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: var(--ui-card-padding) !important; padding-right: var(--ui-card-padding) !important; }
 /* 위젯 오른쪽 위의 이동(⋮⋮)·메뉴 버튼 묶음은 카드 안에 떠 있다(absolute). 카드 위 여백이 20px이면 첫 줄의
    '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
-html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 46px 24px 16px !important; }
+html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 46px var(--ui-card-padding) var(--ui-card-padding) !important; }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
-html body .home-widget-grid { gap: 16px !important; }
-/* 홈 리드 두 칸은 카드가 아니라 하나의 금융 리포트 지면이다. */
-html body#tt-body-index .home-editorial-page .home-widget-grid { column-gap: 0 !important; }
+html body .home-widget-grid { gap: var(--ui-card-gap) !important; }
+/* 홈 리드 두 칸은 같은 카드 토큰을 쓰되 각 정보 구조를 유지한다. */
+html body#tt-body-index .home-editorial-page .home-widget-grid { column-gap: var(--ui-card-gap) !important; }
 html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: var(--ui-radius-card) !important;
+  background: var(--ui-card-surface) !important;
   box-shadow: none !important;
-  padding: 28px 30px 30px !important;
+  padding: var(--ui-card-padding) !important;
 }
 html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-news {
-  border-left: 1px solid var(--rule) !important;
+  border-left: 1px solid var(--ui-border) !important;
 }
 @media (max-width: 820px) {
   html body#tt-body-index .home-editorial-page .home-widget-grid > .home-market-board {
-    border-bottom: 1px solid var(--rule) !important;
+    border-bottom: 1px solid var(--ui-border) !important;
   }
   html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-news {
-    border-left: 0 !important;
+    border-left: 1px solid var(--ui-border) !important;
   }
 }
 @media (max-width: 640px) {
   html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
-    padding: 22px 0 24px !important;
+    padding: 14px !important;
   }
 }
 /* 페이지 바탕 상자·블로그 글은 카드가 아니라 위 가는 선만 둔다 */
@@ -7661,6 +7685,31 @@ html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar
   background-position: top left !important;
 }
 
+@layer np {
+/* UI headings only: article titles and news editorial typography remain intact. */
+html body :is(.sector-card-title, .mt-section-title, .dmi-heading h2, .dmi-subheading h3,
+  .kf-section-title, .ibd-subtitle, .home-card-heading strong, .hrt-head strong,
+  .home-section-heading strong, .wl-title, .ps-title, .ss-title, .sc-title,
+  .mt-page-title, .om-title, .mi-title, .hen-head strong, .mi-block-title, .mi-sub-title) {
+  font-family: var(--font-ui) !important;
+  font-weight: 600 !important;
+  font-size: var(--ui-section-size) !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+}
+html body .post-single:has(:is(#market-temp, #pattern-scan, #stock-search, .mi-wrap, #stock-calendar, #foreign-flow)) .post-single-title,
+html body :is(.dmi-heading h2, .mt-page-title, .ps-title, .ss-title, .sc-title) {
+  font-family: var(--font-ui) !important;
+  font-weight: 600 !important;
+  line-height: 1.4 !important;
+  letter-spacing: 0 !important;
+  font-size: var(--ui-title-size) !important;
+}
+html body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-title-size) !important; }
+html body :where(.ibd, .ui-data-table, .hrt-table, .wl-price, .hmb-etf-card) {
+  font-variant-numeric: tabular-nums;
+}
+}
 /* ── 1-1. 헤더 : 선은 한 줄씩만 (예전엔 메뉴바 위·아래, 하위메뉴 위·아래, 네비 그림자가 3~4겹으로 쌓였다) ── */
 html body .navbar { box-shadow: none !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h-soft) 1 !important; }
 html body .sidebar-left { border-top: 0 !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h) 1 !important; box-shadow: none !important; }
@@ -8096,12 +8145,12 @@ html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax
 html body :where(.hwr-schedule, .hwr-news-card, .hwr-columns > article,
   .hwr-outcome-stat, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
   border: 1px solid rgba(var(--np-ink), .09) !important;
-  border-radius: 16px !important;
-  background-color: var(--np-paper) !important;
+  border-radius: var(--ui-radius-card) !important;
+  background-color: var(--ui-card-surface) !important;
   background-image: none !important;
   box-shadow: none !important;
 }
-html body .hwr-outcome-stat { border-radius: 14px !important; }
+html body .hwr-outcome-stat { border-radius: var(--ui-radius-inner) !important; }
 html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
 
 @media (max-width: 720px) {
@@ -8263,7 +8312,7 @@ html body#tt-body-index .briefing-intro .home-briefing-more > i { position:stati
 html body#tt-body-index .home-editorial-page .briefing-carousel-track { display:flex!important; gap:24px!important; width:100%; overflow-x:auto!important; overflow-y:hidden; padding:12px 0 24px!important; scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x pan-y; cursor:grab; }
 html body#tt-body-index .briefing-carousel-track::-webkit-scrollbar { display:none; }
 html body#tt-body-index .briefing-carousel-track.is-dragging { cursor:grabbing; scroll-snap-type:none; user-select:none; }
-html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important; padding:30px!important; overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important; border-radius:28px!important; background:var(--np-paper)!important; box-shadow:0 6px 18px rgba(var(--np-ink),.06)!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
+html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important; padding:var(--ui-card-padding)!important; overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important; border-radius:var(--ui-radius-card)!important; background:var(--np-paper)!important; box-shadow:0 6px 18px rgba(var(--np-ink),.06)!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { content:attr(data-briefing-number); position:absolute; bottom:60px; right:26px; font:400 110px/1 Georgia,serif; color:rgba(var(--np-ink),.045); pointer-events:none; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card:hover { border-color:rgba(var(--np-ink),.2)!important; box-shadow:0 10px 24px rgba(var(--np-ink),.1)!important; }
 html body#tt-body-index .briefing-carousel-track .post-header { display:flex!important; justify-content:flex-start!important; margin:0 0 20px!important; }
@@ -8289,7 +8338,7 @@ html body#tt-body-index .briefing-title-icon, html body .learn-intro h2 > .learn
   html body#tt-body-index .briefing-intro strong { font-size:30px!important; }
   html body#tt-body-index .briefing-intro p { font-size:15px!important; }
   html body#tt-body-index .briefing-intro .home-briefing-more { width:fit-content; margin-top:20px!important; font-size:15px!important; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis:calc(100vw - 72px)!important; width:calc(100vw - 72px)!important; height:430px!important; padding:26px!important; border-radius:24px!important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis:calc(100vw - 72px)!important; width:calc(100vw - 72px)!important; height:430px!important; padding:var(--ui-card-padding)!important; border-radius:var(--ui-radius-card)!important; }
   html body#tt-body-index .briefing-carousel-track .post-title { font-size:22px!important; }
   html body#tt-body-index .briefing-carousel-controls { gap:18px; }
 }
@@ -8335,7 +8384,7 @@ html body .learn-mobile-controls { display:none; }
   html body .site-footer-company .footer-company-copy strong { font-size:14px!important; }
 }
 @media(max-width:360px) { html body .site-footer-learn .learn-card-grid a.learn-card { height:280px!important; } }
-html body .footer-falcon-logo { display:block; width:80px; height:80px; object-fit:cover; border-radius:12px; flex:none; }
+html body .footer-falcon-logo { display:block; width:80px; height:80px; object-fit:contain; border-radius:0; flex:none; }
 html body .footer-company-copy { min-width:0; font:400 14px/1.8 var(--font-ui)!important; color:rgba(var(--np-ink),.65)!important; }
 html body .footer-company-copy strong { display:block; font:600 16px/1.8 var(--font-ui)!important; color:rgb(var(--np-ink))!important; }
 html body .footer-company-copy p { margin:2px 0!important; }
@@ -8358,8 +8407,8 @@ html body .footer-company-copy small { display:block; margin-top:8px; font-size:
       세로 구분선·큰 맨글자 대신: 둥근 유리 카드 안에 [자물쇠 타일 + 제목] 과 오른쪽 안내 카드. 마크업은 그대로. ── */
 html body#tt-body-index .home-editorial-page .home-closed-lead {
   display: grid !important; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px) !important; align-items: center !important; gap: 24px !important;
-  padding: 26px 30px !important; margin: 6px 0 22px !important;
-  border: 1px solid rgba(var(--np-ink), .09) !important; border-radius: 26px !important;
+  padding: var(--ui-card-padding) !important; margin: 0 0 var(--ui-section-gap) !important;
+  border: 1px solid rgba(var(--np-ink), .09) !important; border-radius: var(--ui-radius-card) !important;
   background: rgba(255, 252, 242, .55) !important;
   -webkit-backdrop-filter: blur(14px) saturate(1.3) !important; backdrop-filter: blur(14px) saturate(1.3) !important;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, .7) !important;
@@ -8374,15 +8423,15 @@ html body#tt-body-index .home-editorial-page .home-closed-lock {
   flex: 0 0 auto !important; width: 62px !important; height: 62px !important; padding: 14px !important; box-sizing: border-box !important;
   border-radius: 20px !important; background: rgba(var(--np-ink), .06) !important;
 }
-html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: 46px !important; line-height: 1.08 !important; letter-spacing: -0.025em !important; margin: 0 !important; }
+html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-family: var(--font-ui) !important; font-weight: 600 !important; font-size: var(--ui-title-size) !important; line-height: 1.08 !important; letter-spacing: -0.025em !important; margin: 0 !important; }
 html body#tt-body-index .home-editorial-page .home-closed-kicker p { margin: 12px 0 0 !important; color: rgba(var(--np-ink), .62) !important; font-size: 14px !important; }
 html body#tt-body-index .home-editorial-page .home-closed-status {
   border: 0 !important; border-radius: 20px !important; padding: 18px 20px !important; margin: 0 !important;
   background: rgba(var(--np-ink), .045) !important;
 }
 @media (max-width: 900px) {
-  html body#tt-body-index .home-editorial-page .home-closed-lead { grid-template-columns: minmax(0, 1fr) !important; padding: 20px 18px !important; gap: 16px !important; }
-  html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: 34px !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-lead { grid-template-columns: minmax(0, 1fr) !important; padding: var(--ui-card-padding) !important; gap: 16px !important; }
+  html body#tt-body-index .home-editorial-page .home-closed-kicker h1 { font-size: var(--ui-title-size) !important; }
   html body#tt-body-index .home-editorial-page .home-closed-lock { width: 50px !important; height: 50px !important; padding: 11px !important; border-radius: 16px !important; }
 }
 
@@ -8693,7 +8742,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
    기존 규칙이 @layer np 안쪽 np(하위 레이어)에서 !important 로 정해져 있어 같은 하위 레이어에 더 구체적인 선택자로 덮는다. */
 @layer np { @layer np { @media (max-width: 720px) {
   /* 홈 머리글 계층 */
-  html body#tt-body-index .home-editorial-page.home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: 24px !important; line-height: 1.2 !important; }
+  html body#tt-body-index .home-editorial-page.home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong { font-size: var(--ui-title-size) !important; line-height: 1.2 !important; }
   html body#tt-body-index .home-editorial-page.home-editorial-page .hen-head strong,
   html body#tt-body-index .home-editorial-page.home-editorial-page .home-realtime-board .hrt-head strong { font-size: 18px !important; line-height: 1.25 !important; }
   html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
@@ -8722,15 +8771,14 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   /* 위젯 이동·메뉴 버튼(절대 위치)이 머리글 오른쪽 글자(업데이트 시각 등)와 겹치지 않게 머리글을 버튼 줄 아래에서 시작한다. */
   html body #homeEconomicNews .hen-head,
   html body #homeRealtimeBoard .hrt-head { padding-top: 30px !important; }
-  /* 모바일은 큰 박스(테두리·둥근 모서리·배경)를 없애고 위쪽 가로줄 한 줄로 구분한다(2026-10-22 사용자 요청). 스와이프 카드·게시글 카드·
-     링크 카드(.mm-*·.post-card·.learn-card·.ss-top-card·.sc-completed-card·.home-briefing-more)와 입력·버튼은 그대로 둔다. */
+  /* Mobile keeps the same card hierarchy with compact spacing. */
   html body :where(.home-realtime-board, .home-economic-news,
     #stock-search .ss-overview, #stock-search .ss-panel-left, #stock-search .ss-panel-right, #stock-search .ss-summary,
     #foreign-flow .ff-summary, #foreign-flow .ff-summary-card, #foreign-flow .ff-extra-card,
     #market-temp .mt-section, #market-temp .mt-card, #market-temp .mt-summary-sowhat, #market-temp .mt-sf-disclaimer, #market-temp .mt-sf-track,
     #strategy-search .ss-methodology, #strategy-search .ss-nearmiss, .home-sector-rotation) {
-    border-style: solid !important; border-width: 1px 0 0 0 !important; border-color: rgba(var(--np-ink), .12) !important;
-    border-radius: 0 !important; box-shadow: none !important; background: transparent !important;
+    border-style: solid !important; border-width: 1px !important; border-color: var(--ui-border) !important;
+    border-radius: var(--ui-radius-card) !important; box-shadow: none !important; background: var(--ui-card-surface) !important;
   }
   /* 박스 안쪽의 작은 틀(호가 요약·호가표·차트 틀)은 테두리·모서리·배경만 없앤다(바깥 구분선이 이미 있다). */
   html body :where(#stock-search #order-book .ob-hud, #stock-search #order-book .ob-board, #foreign-flow .ff-chart) {
@@ -8784,7 +8832,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
   html body#tt-body-index .briefing-intro .briefing-archive-icon { width: 20px; height: 20px; }
   html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: 22px !important; padding: 11px 0 22px !important; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; padding: 27px !important; border-radius: 25px !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
   html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
   html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 18px !important; }
   html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }
@@ -8826,7 +8874,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .briefing-intro strong { font-size: 20px !important; }
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
     html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
-    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: 387px !important; padding: 23px !important; border-radius: 22px !important; }
+    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: 387px !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
     html body#tt-body-index .briefing-carousel-track .post-title { font-size: 16.2px !important; }
     html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
@@ -8909,9 +8957,9 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
 /* 2026-10-24 휴장 화면의 마켓브리핑: 장중(한국증시·미국증시) 대시보드와 같은 카드형으로 - 테두리·둥근 모서리·카드 배경·안쪽 여백.
    휴장일 때만(.is-market-closed) 적용하고 2열 배치와 글 내용은 그대로 둔다. */
 @layer np.np {
-  html body#tt-body-index .is-market-closed .home-briefing-section .home-briefing-card {
-    box-sizing: border-box; padding: 24px 26px !important; border: 1px solid rgba(var(--np-ink), .1) !important; border-radius: 20px !important;
-    background: var(--np-paper) !important; box-shadow: 0 6px 18px rgba(var(--np-ink), .06) !important;
+  html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card {
+    box-sizing: border-box; padding: var(--ui-card-padding) !important; border: 1px solid var(--ui-border) !important; border-radius: var(--ui-radius-card) !important;
+    background: var(--np-paper) !important; box-shadow: none !important;
   }
-  html.dark body#tt-body-index .is-market-closed .home-briefing-section .home-briefing-card { background: var(--dk-card) !important; border-color: var(--dk-line) !important; box-shadow: none !important; }
+  html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--dk-card) !important; border-color: var(--dk-line) !important; box-shadow: none !important; }
 }

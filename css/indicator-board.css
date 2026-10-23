@@ -2,16 +2,16 @@
    환율 탭(css/fx-rates.css)과 같은 신문식 표: 카드·둥근 상자·그림자 없이 선과 면으로 구분한다.
    상승 = 빨강, 하락 = 파랑(사이트 공통). 다크모드는 html.dark. 모든 선택자는 .ibd 아래로 한정해 다른 영역에 영향을 주지 않는다. */
 .ibd { min-width:0; margin:0 0 18px; --ibd-ink:13,27,64; --ibd-line:rgba(17,17,17,.13); --ibd-line-strong:rgba(17,17,17,.85);
-  --ibd-sub:#64748b; --ibd-num:#374151; --ibd-up:#d24f45; --ibd-down:#1261c4; color:rgb(var(--ibd-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
+  --ibd-sub:#64748b; --ibd-num:#374151; --ibd-up:#d24f45; --ibd-down:#1261c4; --ibd-surface:transparent; --ibd-panel:transparent; --ibd-hover:rgba(var(--ibd-ink),.03); --ibd-selected:rgba(var(--ibd-ink),.02); color:rgb(var(--ibd-ink)); font-family:Pretendard,"Malgun Gothic",sans-serif; }
 html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-line-strong:var(--dk-text);
-  --ibd-sub:var(--dk-sub); --ibd-num:var(--dk-text); --ibd-up:var(--dk-up); --ibd-down:var(--dk-down); }
+  --ibd-sub:var(--dk-sub); --ibd-num:var(--dk-text); --ibd-up:var(--dk-up); --ibd-down:var(--dk-down); --ibd-surface:var(--dk-card); --ibd-panel:var(--dk-panel); --ibd-hover:var(--dk-hover); --ibd-selected:var(--dk-active); }
 
 .ibd .ibd-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 
 /* 표 */
 .ibd .ibd-tablewrap { min-width:0; }
-.ibd table { width:100%; margin:0; border-collapse:collapse; background:transparent; font-size:14px; }
-.ibd .ibd-table { table-layout:fixed; border-top:2px solid var(--ibd-line-strong); }
+.ibd table { width:100%; margin:0; border-collapse:collapse; background:var(--ibd-surface); font-size:14px; }
+.ibd .ibd-table { table-layout:fixed; border-top:1px solid var(--ibd-line); }
 .ibd .ibd-table thead th { padding:9px 10px; border:0; border-bottom:1px solid var(--ibd-line); background:transparent; text-align:right; font-size:12px; font-weight:700; color:var(--ibd-sub); white-space:nowrap; }
 .ibd .ibd-table thead th.ibd-h-name { width:28%; text-align:left; }
 .ibd .ibd-table tbody th, .ibd .ibd-table tbody td { padding:8px 10px; border:0; border-bottom:1px solid var(--ibd-line); background:transparent; vertical-align:middle; }
@@ -19,9 +19,9 @@ html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-
 .ibd .ibd-section th { padding:12px 10px 6px; text-align:left; font-size:12px; font-weight:700; color:var(--ibd-sub); border-bottom:1px solid var(--ibd-line); background:transparent; }
 .ibd .ibd-section small { margin-left:8px; font-size:11px; font-weight:400; }
 .ibd .ibd-row { cursor:pointer; outline:none; }
-.ibd .ibd-row:hover { background:rgba(var(--ibd-ink),.03); }
+.ibd .ibd-row:hover { background:var(--ibd-hover); }
 .ibd .ibd-row:focus-visible { outline:1px solid var(--ibd-line-strong); outline-offset:-1px; }
-.ibd .ibd-row.is-selected { background:rgba(var(--ibd-ink),.02); }
+.ibd .ibd-row.is-selected { background:var(--ibd-selected); }
 .ibd .ibd-row.is-selected .ibd-nm { font-weight:700; }
 .ibd .ibd-row.is-loading td { color:var(--ibd-sub); }
 .ibd .ibd-name { text-align:left; font-weight:400; }
@@ -36,9 +36,9 @@ html.dark .ibd { --ibd-ink: var(--dk-ink-rgb); --ibd-line:var(--dk-line); --ibd-
 .ibd td.ibd-empty { display:table-cell; }
 
 /* 추이 */
-.ibd .ibd-chartsec { margin-top:22px; border-top:2px solid var(--ibd-line-strong); padding-top:12px; }
+.ibd .ibd-chartsec { margin-top:22px; border-top:1px solid var(--ibd-line); padding-top:12px; }
 .ibd .ibd-charthead { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px 12px; margin-bottom:6px; }
-.ibd .ibd-subtitle { margin:0; font-family:"MaruBuriBold","MaruBuri",serif!important; font-weight:400!important; font-size:18px!important; line-height:1.4!important; color:rgb(var(--ibd-ink))!important; }
+.ibd .ibd-subtitle { margin:0; font-family:var(--font-ui)!important; font-weight:600!important; font-size:18px!important; line-height:1.4!important; color:rgb(var(--ibd-ink))!important; }
 .ibd .ibd-range { display:flex; gap:0; }
 .ibd .ibd-range-btn { appearance:none; margin:0; padding:5px 12px; border:1px solid var(--ibd-line-strong); border-right-width:0; border-radius:0; background:transparent; color:rgb(var(--ibd-ink)); font:700 12px/1.2 Pretendard,"Malgun Gothic",sans-serif; cursor:pointer; }
 .ibd .ibd-range-btn:last-child { border-right-width:1px; }
@@ -98,7 +98,10 @@ html.dark .ibd .ibd-tip { background:var(--dk-card); color:var(--dk-text); }
 /* 공용 스타일의 @layer np 가 모든 th 에 배경을 !important 로 칠한다(html body :where(th){background-color:var(--np-tint)}).
    같은 레이어 안에서 더 높은 명시도로 이 표에서만 되돌린다(레이어 밖 !important 는 레이어 안 !important 를 이기지 못한다). */
 @layer np {
-  .ibd th, .ibd td { background-color:transparent !important; }
+  html body .ibd .ibd-table :is(th, td) { background-color:transparent !important; }
+  html body .ibd .ibd-table thead th,
+  html body .ibd .ibd-table .ibd-section th { background-color:var(--ibd-panel) !important; }
+  html body .ibd .ibd-table .ibd-row th { background-color:inherit !important; }
 }
 
 /* ── createChart(다중 시계열 차트, 2026-10-12) ─────────────────────────────────────────────────────────────

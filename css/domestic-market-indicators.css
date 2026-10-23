@@ -205,7 +205,7 @@
 .dmi-panel,
 .dmi-fund-card,
 .dmi-flow-card { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
-.dmi-panel { padding: 0 22px 18px 0; overflow: visible; }
+.dmi-panel { min-width: 0; padding: 0 22px 18px 0; overflow: visible; }
 .dmi-panel + .dmi-panel { border-left: 1px solid #d8d8d8; padding: 0 0 18px 22px; }
 .dmi-panel-title { padding: 0 0 7px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 18px; }
 .dmi-chart-tools { gap: 10px; }
@@ -246,7 +246,7 @@
   .dmi-spot-price { font-size: 20px; }
   .dmi-heading h2 { font-size: 24px; }
   .dmi-subheading h3 { font-size: 18px; }
-  .dmi-chart-grid { grid-template-columns: 1fr; gap: 0; }
+  .dmi-chart-grid { grid-template-columns: minmax(0, 1fr); gap: 0; }
   .dmi-panel { padding: 0 0 16px; }
   .dmi-panel + .dmi-panel { border-top: 1px solid #d8d8d8; border-left: 0; padding: 16px 0; }
   .dmi-chart { height: 230px; }

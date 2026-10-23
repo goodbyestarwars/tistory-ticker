@@ -66,9 +66,9 @@ class DomesticLayoutTests(unittest.TestCase):
 
     def test_section_spacing_divider_and_dark_overrides(self):
         css = read('css/market-indicators.css')
-        self.assertRegex(css, r'\.mi-wrap \.mi-block \{[^}]*margin: 60px 0 0;[^}]*border-top: 1px solid var\(--mi-rule\)')
+        self.assertRegex(css, r'\.mi-wrap \.mi-block \{[^}]*margin: var\(--ui-section-gap\) 0 0;[^}]*border-top: 1px solid var\(--mi-rule\)')
         self.assertRegex(css, r'\.mi-wrap \.mi-block\.mi-block--first \{[^}]*border-top: 0')
-        self.assertRegex(css, r'@media \(max-width: 760px\) \{\s*\.mi-wrap \.mi-block \{ margin-top: 42px; \}')
+        self.assertRegex(css, r'@media \(max-width: 760px\) \{\s*\.mi-wrap \.mi-block \{ margin-top: var\(--ui-section-gap\); \}')
         self.assertNotRegex(css, r'\.mi-block \{[^}]*(box-shadow:(?!\s*none)|gradient|border-radius:\s*[1-9])', '블록은 카드·그림자·그라데이션·둥근 테두리가 없다')
         self.assertIn('html.dark .mi-wrap .mi-block-no', css)
         # 사이트 공통 제목 규칙(@layer np)이 번호 블록 제목을 명조로 바꾸지 않도록 같은 레이어에서 되돌린다

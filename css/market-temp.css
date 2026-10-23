@@ -2691,7 +2691,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-edition-tag::before { content: ''; width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
   html body #market-temp .mt-front-headline { margin: 12px 0 8px !important; padding: 0 !important; border: 0 !important; font-family: var(--font-ui, sans-serif) !important; font-size: 32px !important; line-height: 1.35 !important; font-weight: 750 !important; letter-spacing: -.035em; word-break: keep-all; overflow-wrap: anywhere; color: var(--pulse-ink) !important; }
   html body #market-temp .mt-front-lead { margin: 0 !important; font-size: 14px !important; line-height: 1.65; color: var(--pulse-sub) !important; }
-  html body #market-temp .mt-front-page > .mt-card { display: block !important; min-width: 0; height: auto !important; margin: 0 !important; padding: 22px !important; border: 1px solid var(--pulse-line) !important; border-radius: 18px !important; background: var(--pulse-surface) !important; box-shadow: 0 4px 22px rgba(34, 66, 110, .035) !important; }
+  html body #market-temp .mt-front-page > .mt-card { display: block !important; min-width: 0; height: auto !important; margin: 0 !important; padding: var(--ui-card-padding) !important; border: 1px solid var(--pulse-line) !important; border-radius: var(--ui-radius-card) !important; background: var(--pulse-surface) !important; box-shadow: none !important; }
   html body #market-temp .mt-visual-title { display: flex; align-items: center !important; justify-content: space-between; gap: 8px !important; margin: 0 0 12px !important; }
   html body #market-temp .mt-visual-title h3 { margin: 0 !important; padding: 0 !important; border: 0 !important; font-size: 14px !important; line-height: 1.5; font-weight: 700 !important; color: var(--pulse-ink) !important; }
   html body #market-temp .mt-visual-title small { font-size: 11px !important; font-weight: 400; color: var(--pulse-sub) !important; }
@@ -2770,7 +2770,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   @media (max-width: 760px) {
     html body #market-temp .mt-front-page { grid-template-columns: minmax(0, 1fr) !important; gap: 16px !important; }
     html body #market-temp .mt-front-headline { font-size: 25px !important; }
-    html body #market-temp .mt-front-page > .mt-card { padding: 18px !important; border-radius: 15px !important; }
+    html body #market-temp .mt-front-page > .mt-card { padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
     html body #market-temp .mt-front-facts b { font-size: 28px !important; }
     html body #market-temp .mt-flow-svg { height: 195px !important; }
     html body #market-temp .mt-front-page .mt-history-chart-meta { align-items: flex-start !important; flex-direction: column; gap: 5px !important; }
@@ -3369,13 +3369,13 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-front-tools.mt-dawn .mt-extra-heading { padding: 0 0 8px !important; font-size: 13px !important; }
   html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { padding: 18px 20px 16px !important; }
   @media (min-width: 761px) {
-    html body #market-temp .mt-front-page > .mt-card { padding: 20px !important; }
+    html body #market-temp .mt-front-page > .mt-card { padding: var(--ui-card-padding) !important; }
   }
   @media (max-width: 760px) {
     html body #market-temp .mt-wrap { gap: 16px !important; }
     html body #market-temp .mt-front-tools.mt-dawn .mt-extra-heading { padding: 0 2px 6px !important; }
     html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { padding: 12px !important; border-radius: 8px !important; }
-    html body #market-temp .mt-front-page > .mt-card { padding: 14px !important; border-radius: 8px !important; }
+    html body #market-temp .mt-front-page > .mt-card { padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
     html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-verdict { padding: 8px 12px !important; border-radius: 8px !important; }
     html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li.mt-tm-item { border-radius: 6px; }
     html body #market-temp .mt-tomorrow-card .mt-tm-proof { border-radius: 6px; }

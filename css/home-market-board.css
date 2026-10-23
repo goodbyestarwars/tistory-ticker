@@ -25,7 +25,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
 }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-chart-up: var(--dk-up);
-  --hmb-chart-line: #9faab8;
+  --hmb-chart-line: var(--dk-sub);
   --hmb-chart-down: var(--dk-down);
   --hmb-chart-up-text: var(--dk-up);
   --hmb-chart-down-text: var(--dk-down);
@@ -49,7 +49,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-headi
   display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; min-width: 0;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong {
-  font: 400 clamp(28px, 2.6vw, 32px)/1.15 "MaruBuriBold", var(--font-title, "MaruBuri"), Georgia, serif;
+  font: 600 var(--ui-section-size)/1.4 var(--font-ui);
   letter-spacing: -.02em; color: var(--hmb-ink);
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading > div:first-child { flex: 1 1 auto; }
