@@ -1,3 +1,7 @@
+**2026-10-24 미국 종목 요약 카드 시간외 안내 정렬**
+
+사용자 지적(스크린샷: 스페이스X, 애프터마켓). `js/us-stocks.js` embedded 요약 카드의 `data-us-session-comparison`(`정규장 종가 … · 시간외 등락은 정규장 종가 대비`)이 `#stock-search .ss-summary`의 2열 격자 오른쪽 칸에 끼어 헤더 옆에 어긋나 보였다. `css/stock-search.css` 끝에 규칙: 이 줄을 `grid-column:1/-1`로 헤더 아래 전체 폭 왼쪽 정렬 한 줄로(테두리·배경 없음, 12px). 아래 분석 카드 5칸·전일 종가 줄은 변경 없음. 미확인: 실제 화면(시간외 시간대에만 보임). 배포: css master 머지 후 Pages 자동.
+
 **2026-10-24 홈 시장 헤더 부제 왼쪽 정렬**
 
 사용자 지시(`미국 지수선물(CME) 거래중 · 현물 지수와 값이 다름(현물 본장 마감)`). `css/home-market-board.css`의 `#hmbUpdated`(제목 아래 부제·갱신 시각)를 `margin-left:auto; text-align:right`에서 `margin-left:0; text-align:left`로 바꿔 제목과 같은 왼쪽 줄에 맞춤(국내·미국 공통, 오른쪽 상태 `나스닥100 · S&P500 선물(CME)`는 그대로). 미확인: 홈 화면. 배포: css master 머지 후 Pages 자동.
