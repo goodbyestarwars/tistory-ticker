@@ -4814,7 +4814,7 @@ html.dark {
   --dk-flat: #aab6c6;
   --dk-up-rgb: 226, 141, 152;
   --dk-down-rgb: 138, 173, 223;
-  --dk-ink-rgb: 166, 181, 197;
+  --dk-ink-rgb: 241, 244, 248;
   color-scheme: dark;
 }
 html.dark {
@@ -4865,6 +4865,9 @@ html.dark .post-single-body,
 html.dark .post-single-body * {
   color: var(--dk-text) !important;
 }
+/* 반전(밝은 채움) 활성 버튼은 위 일괄 글자색을 이기고 어두운 글자를 쓴다. */
+html.dark .post-single-body .mm-tab.is-active,
+html.dark .post-single-body .mm-invbtn.is-active { color: var(--dk-bg) !important; }
 html.dark .post-single-body [style*="d24f45" i],
 html.dark .post-single-body [style*="ff0000" i],
 html.dark .post-single-body [style*="#f00" i],
