@@ -979,6 +979,7 @@
       var el = container.querySelector(sel);
       if (el) el.textContent = '-';
     });
+    state.flatNote = null;
     var note = container.querySelector('#obHudNote');
     if (note) note.textContent = '종목을 선택하면 실시간으로 계산됩니다.';
     var breakoutNote = container.querySelector('#obBreakoutNote');
@@ -1007,6 +1008,7 @@
     var el = container.querySelector('#obBreakoutNote');
     if (!el) return;
     el.textContent = '';
+    state.flatNote = null;
     if (!isWallSession()) return;
     if (isAuctionWindow()) {
       el.textContent = '⏳ 단일가/시장 전환 구간 · 체결·취소 원인 판정 보류';
@@ -1016,24 +1018,29 @@
       el.textContent = '⚠️ 실시간 통합 호가·체결 미동기 · 잔량 변화 원인 판정 보류';
       return;
     }
-    var wall = state.trackedWall;
+    var wall = state.trackedWall, askTrend = null;
     if (wall) {
       var level = (book.asks || []).filter(function (r) { return r.price === wall.price; })[0];
       if (level) {
         var remain = Math.max(0, level.qty - Math.ceil(wall.peakQty * WALL_BREAK_RATIO));
         el.textContent = '🏰 ' + Math.round(wall.price).toLocaleString('ko-KR')
           + '원 매도벽 ' + fmtQty(level.qty) + '주 · 임계까지 ' + fmtQty(remain) + '주';
-        var trend = wallTrend(wall, level.qty, 0, 'ask');
-        if (trend) appendWallSub(el, trend);
+        askTrend = { text: wallTrend(wall, level.qty, 0, 'ask'), tr: wallTrack(wall, 'ask') };
       }
     }
-    var bid = findWallCandidate(book.bids || []);
+    var bid = findWallCandidate(book.bids || []), bidTrend = null;
+    if (bid) bidTrend = { text: wallTrend(bid, bid.qty, 0, 'bid'), tr: wallTrack(bid, 'bid') };
+    else state.bidWallTrack = null;
+    // 매도벽·매수벽이 둘 다 '잔량 변화 없음'이면 같은 문구가 두 번 보이므로 통합 호가 상태 줄(#obBookProvenance)에 한 번만 보인다.
+    // 한쪽만 그렇거나 서로 다르면 합치지 않고 각 벽 줄에 자기 상태를 그대로 쓴다(잘못된 통합 메시지 방지).
+    var bothFlat = !!(askTrend && askTrend.text && askTrend.tr.trendFlat && bidTrend && bidTrend.text && bidTrend.tr.trendFlat);
+    if (bothFlat) state.flatNote = { sec: Math.min(askTrend.tr.trendSec, bidTrend.tr.trendSec), at: Date.now() };
+    if (askTrend && askTrend.text && !bothFlat) appendWallSub(el, askTrend.text);
     if (bid) {
-      var bidTrend = wallTrend(bid, bid.qty, 0, 'bid');
       appendWallSub(el, '🛡️ ' + Math.round(bid.price).toLocaleString('ko-KR')
         + '원 매수벽 ' + fmtQty(bid.qty) + '주'
-        + (bidTrend ? ' · ' + bidTrend : ' · 관측 시작'));
-    } else state.bidWallTrack = null;
+        + (bidTrend && bidTrend.text ? (bothFlat ? '' : ' · ' + bidTrend.text) : ' · 관측 시작'));
+    }
   }
 
   function appendWallSub(el, text) {
@@ -1121,9 +1128,11 @@
     while (tr.samples.length > 1 && now - tr.samples[0].t > WALL_WINDOW_MS) tr.samples.shift();
     while (tr.execs.length && now - tr.execs[0].t > WALL_WINDOW_MS) tr.execs.shift();
     var first = tr.samples[0], spanMs = now - first.t;
+    tr.trendFlat = false; tr.trendSec = 0;
     if (spanMs < WALL_MIN_SPAN_MS) return '';
     var sec = Math.round(spanMs / 1000), delta = first.qty - currQty;
-    if (Math.abs(delta) < Math.max(1, tr.peakQty * 0.02)) return '⏸ ' + sec + '초간 변화 없음';
+    tr.trendSec = sec;
+    if (Math.abs(delta) < Math.max(1, tr.peakQty * 0.02)) { tr.trendFlat = true; return '⏸ ' + sec + '초간 변화 없음'; }
     if (delta < 0) return '▲ ' + sec + '초간 +' + fmtQty(-delta) + '주 (주문 증가)';
     var observed = tr.execs.filter(function (e) { return e.t >= first.t; })
       .reduce(function (sum, e) { return sum + e.qty; }, 0);
@@ -1150,6 +1159,7 @@
     var source = meta.ws ? 'KIS 통합 WS' : (meta.source || 'REST');
     var status = age > WALL_EVIDENCE_MS ? ' · ⚠️ 오래된 호가'
       : meta.ws ? ' · 실시간 수신' : ' · 조회시각만 확인(원천시각 미제공)';
+    if (state.flatNote && Date.now() - state.flatNote.at <= 8000) status += ' · 벽 잔량 변동 없음 (' + state.flatNote.sec + '초)';
     var market = meta.market || '시장 구분 미확인';
     if (meta.stexTp) market += ' · 코드 ' + String(meta.stexTp);
     var text = '📡 ' + source + ' · ' + market + '\n' + stamp + ' KST' + status;
