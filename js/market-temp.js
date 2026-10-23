@@ -2216,7 +2216,7 @@
       var body = m.id === 'fx' ? renderFxBalance_(m) : '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(label) + '<span class="mt-glance-colon"> : </span></span>'
         + '<b class="mt-glance-state is-' + tone + '">' + (investor ? (amount != null && amount !== 0 ? '<i class="mt-flow-arrow is-' + (amount > 0 ? 'up' : 'down') + '" aria-hidden="true">' + (amount > 0 ? '↗' : '↘') + '</i> ' : wordArrow_(word)) : wordArrow_(word)) + escapeHtml(word) + '</b><span class="mt-glance-amount">' + escapeHtml(value) + '</span>'
         + (share ? '<em class="mt-glance-share">' + share.percent + '%</em>' : '') + '</span>'
-        + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(asOfText_(date)) : '기준일 확인 중') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
+        + '<small class="mt-glance-meta">' + escapeHtml(note) + (note ? ' · ' : '') + (date ? escapeHtml(asOfText_(date)) : '기준일 확인 중') + (m.sameTime != null ? '<br>같은 시각 대비 거래대금 ' + m.sameTime + '% (섹터 풀 직전 5거래일)' : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>';
       var bar = m.id === 'individual' ? '</div>' + renderInvestorShares_(shares) : '';
       return (m.id === 'foreign' ? '<div class="mt-investor-row">' : '') + '<button type="button" class="mt-indicator-chip mt-glance-row' + (m.id === 'fx' ? ' mt-fx-row' : '') + (m.id === selected ? ' is-selected' : '') + '" data-market-metric="' + m.id + '" aria-pressed="' + (m.id === selected) + '">' + body + '</button>' + bar;
     }).join('') + '</div>';
@@ -2327,6 +2327,8 @@
         state.models = buildIndicatorModels_(state.domestic, state.macro).map(function (m) {
           var previous = prior[m.id], missing = m.value == null && previous && previous.value != null;
           if (missing) m = Object.assign({}, previous);
+          var tvc = state.data && state.data.components && state.data.components.tradingValue;
+          if (m.id.indexOf('volume') >= 0 && m.intraday && tvc && tvc.mode === 'sameTime' && isFinite(Number(tvc.relative))) m.sameTime = Math.round(Number(tvc.relative) * 100);
           m.stale = !!missing || bad[m.id === 'fx' || m.id === 'us-rate' || m.id === 'kospi-futures' ? 1 : 0];
           return m;
         });
@@ -2767,8 +2769,11 @@
       if (index !== n - 1 && (index % step !== 0 || n - 1 - index <= step / 2)) return '';
       return '<span class="mt-fc-xlabel" style="left:' + (X(index) / W * 100).toFixed(2) + '%">' + escapeHtml(shortDate_(day.date)) + '</span>';
     }).join('');
+    // 기준선(거래량 100% · 순매수 0)이 있으면 선·면·점을 기준 위 옅은 붉은 / 아래 옅은 파랑으로 칠한다. 기준이 없는 항목은 기존 색 유지.
+    var base = metric ? (metric.id.indexOf('volume') >= 0 ? 100 : metric.signed ? 0 : null) : null;
+    var baseY = base == null ? null : Math.max(T, Math.min(H - B, Y(base)));
     var dots = shown.map(function (day, index) {
-      return '<circle class="mt-fc-dot mt-rib-tone-' + (metric ? 'neutral' : scoreTone_(day.score)) + '" cx="' + X(index).toFixed(2) + '" cy="' + Y(day.score).toFixed(2) + '" r="' + (index === n - 1 ? 4.5 : 2.8) + '"/>';
+      return '<circle class="mt-fc-dot mt-rib-tone-' + (metric ? 'neutral' : scoreTone_(day.score)) + (baseY == null ? '' : day.score > base ? ' is-above' : day.score < base ? ' is-below' : '') + '" cx="' + X(index).toFixed(2) + '" cy="' + Y(day.score).toFixed(2) + '" r="' + (index === n - 1 ? 4.5 : 2.8) + '"/>';
     }).join('');
     var last = shown[n - 1], tone = metric ? metric.tone : scoreTone_(last.score);
     var fillId = 'mt-flow-fill-' + (metric ? metric.id + '-' : '') + n + '-' + String(last.date).replace(/[^0-9]/g, '');
@@ -2780,9 +2785,17 @@
     return '<div class="mt-flow-chart' + (metric ? ' mt-chart-metric' : '') + ' mt-chart-' + tone + '" data-mt-flow-chart data-w="' + W + '" data-h="' + H + '" data-pts="' + escapeHtml(JSON.stringify(pts)) + '">'
       + '<svg class="mt-flow-svg" viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="' + escapeHtml(summary) + '">'
       + '<defs><linearGradient id="' + fillId + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="currentColor" stop-opacity=".22"/><stop offset="100%" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>'
-      + grid + '<path class="mt-fc-area" d="' + area + '" fill="url(#' + fillId + ')"/>'
-      + '<path class="mt-fc-line" d="' + line + '"/>'
-      + '<circle class="mt-fc-halo" cx="' + X(n - 1).toFixed(2) + '" cy="' + Y(last.score).toFixed(2) + '" r="11"/>' + dots
+      + (baseY == null ? '' : ['up', 'dn'].map(function (side) {
+        return '<linearGradient id="' + fillId + '-g' + side + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + (side === 'up' ? '#e7aaa5' : '#9dbbe0') + '" stop-opacity=".30"/><stop offset="100%" stop-color="' + (side === 'up' ? '#e7aaa5' : '#9dbbe0') + '" stop-opacity="0"/></linearGradient>';
+      }).join(''))
+      + (baseY == null ? '' : '<clipPath id="' + fillId + '-up"><rect x="0" y="0" width="' + W + '" height="' + baseY.toFixed(2) + '"/></clipPath><clipPath id="' + fillId + '-dn"><rect x="0" y="' + baseY.toFixed(2) + '" width="' + W + '" height="' + (H - baseY).toFixed(2) + '"/></clipPath>')
+      + grid
+      + (baseY == null
+        ? '<path class="mt-fc-area" d="' + area + '" fill="url(#' + fillId + ')"/><path class="mt-fc-line" d="' + line + '"/>'
+        : ['up', 'dn'].map(function (side) {
+          return '<g class="mt-fc-' + side + '" clip-path="url(#' + fillId + '-' + side + ')"><path class="mt-fc-area" d="' + area + '" fill="url(#' + fillId + '-g' + side + ')"/><path class="mt-fc-line" d="' + line + '"/></g>';
+        }).join(''))
+      + '<circle class="mt-fc-halo' + (baseY == null ? '' : last.score > base ? ' is-above' : last.score < base ? ' is-below' : '') + '" cx="' + X(n - 1).toFixed(2) + '" cy="' + Y(last.score).toFixed(2) + '" r="11"/>' + dots
       + '<line class="mt-fc-cursor" y1="' + T + '" y2="' + (H - B) + '" hidden></line></svg>'
       + labels + '<div class="mt-fc-tip" hidden></div></div>';
   }
