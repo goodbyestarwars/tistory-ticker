@@ -3165,3 +3165,14 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-extra-heading.mt-extra-heading { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-weight: 700 !important; }
 }
+
+/* 2026-10-23 코멘트 우선 카드: 반응 한 줄을 가장 크게, 숫자는 보조로 작게, 상세 링크 한 줄 */
+@layer np.np {
+  html body #market-temp .mt-commodity-say { margin: 2px 0 4px; font-size: 14px; line-height: 1.45; font-weight: 700; }
+  html body #market-temp .mt-commodity-say.is-positive { color: #b42318; }
+  html body #market-temp .mt-commodity-say.is-negative { color: #245b9e; }
+  html body #market-temp .mt-commodity-line > b { font-size: 12.5px; }
+  html body #market-temp .mt-commodity-more { display: inline-block; margin-top: 4px; font-size: 11px; color: var(--pulse-sub, #778396); text-decoration: none; }
+  html body #market-temp .mt-commodity-more:hover { text-decoration: underline; }
+  html body #market-temp .mt-page-disclaimer { margin: 12px 0 0; font-size: 11px; color: var(--pulse-sub, #778396); text-align: center; }
+}
