@@ -203,6 +203,57 @@
         }).catch(function () { /* 다음 시도 때 다시 */ });
       });
     }
+    // 핀을 끌어 옮기면 그 자리의 봉 날짜·가격으로 메모 위치를 바꿔 저장한다(2026-10-23 사용자 요청: "메모 위치를 움직일 수 있게").
+    // 4px 미만 움직임은 클릭(내용 보기)으로 둔다. 끌 때는 setPointerCapture로 차트 이동·메모 탭이 같이 반응하지 않게 한다.
+    function enablePinDrag(pin, item) {
+      var drag = null;
+      var suppressClick = false;
+      pin.addEventListener('pointerdown', function (event) {
+        if (event.button != null && event.button !== 0) return;
+        event.stopPropagation();
+        drag = { id: event.pointerId, sx: event.clientX, sy: event.clientY, ox: parseFloat(pin.style.left), oy: parseFloat(pin.style.top), moved: false };
+        try { pin.setPointerCapture(event.pointerId); } catch (e) { /* 지원하지 않으면 그냥 진행 */ }
+      });
+      pin.addEventListener('pointermove', function (event) {
+        if (!drag || event.pointerId !== drag.id) return;
+        var dx = event.clientX - drag.sx, dy = event.clientY - drag.sy;
+        if (!drag.moved) {
+          if (Math.abs(dx) < 4 && Math.abs(dy) < 4) return;
+          drag.moved = true;
+          closePopup();
+          pin.classList.add('is-dragging');
+        }
+        event.preventDefault();
+        pin.style.left = Math.max(0, Math.min(container.clientWidth, drag.ox + dx)) + 'px';
+        pin.style.top = Math.max(0, Math.min(container.clientHeight, drag.oy + dy)) + 'px';
+      });
+      function finish(event, cancelled) {
+        if (!drag || event.pointerId !== drag.id) return;
+        var state = drag;
+        drag = null;
+        pin.classList.remove('is-dragging');
+        try { pin.releasePointerCapture(event.pointerId); } catch (e) { /* 이미 해제됨 */ }
+        if (!state.moved) return;
+        suppressClick = true;
+        global.setTimeout(function () { suppressClick = false; }, 0);
+        var at = cancelled ? null : resolveAt(parseFloat(pin.style.left), parseFloat(pin.style.top));
+        if (!at) { scheduleDraw(); return; }   // 해석할 수 없는 자리면 원래 자리로 되돌린다
+        chartMemoMutate(function (items) {
+          return items.map(function (it) {
+            if (it.id !== item.id) return it;
+            var moved = {};
+            Object.keys(it).forEach(function (k) { moved[k] = it[k]; });
+            moved.date = at.date;
+            moved.price = at.price;
+            moved.updatedAt = new Date().toISOString();
+            return moved;
+          });
+        }).then(scheduleDraw).catch(function () { scheduleDraw(); });
+      }
+      pin.addEventListener('pointerup', function (event) { finish(event, false); });
+      pin.addEventListener('pointercancel', function (event) { finish(event, true); });
+      return function () { return suppressClick; };
+    }
     function draw() {
       frameId = 0;
       if (disposed || !document.body.contains(container)) return;
@@ -219,16 +270,39 @@
         pin.className = 'ss-memo-pin';
         pin.style.left = x + 'px';
         pin.style.top = y + 'px';
-        pin.title = item.date + ' · ' + item.body;
-        pin.setAttribute('aria-label', '차트 메모 보기');
+        pin.title = item.date + ' · ' + item.body + ' (끌어서 옮길 수 있어요)';
+        pin.setAttribute('aria-label', '차트 메모 보기 · 끌어서 위치 이동');
         pin.textContent = '✎';
-        pin.addEventListener('click', function (event) { event.stopPropagation(); openViewer(item, x, y); });
+        var wasDragged = enablePinDrag(pin, item);
+        pin.addEventListener('click', function (event) {
+          event.stopPropagation();
+          if (wasDragged()) return;
+          openViewer(item, x, y);
+        });
         layer.appendChild(pin);
       });
     }
     function scheduleDraw() {
       if (frameId) global.clearTimeout(frameId);
       frameId = global.setTimeout(draw, 16);
+    }
+    // 컨테이너 안 좌표(px, py)에 해당하는 봉 날짜와 가격. 새 메모를 달 때와 핀을 옮길 때 같은 규칙을 쓴다.
+    function resolveAt(px, py) {
+      var time = chart.timeScale().coordinateToTime(px);
+      if (time == null) {
+        // 마지막 봉 오른쪽 빈 공간·왼쪽 끝을 눌러도 가장 가까운 봉에 붙인다(예전엔 아무 반응이 없어 "안 된다"로 보였다).
+        var logical = chart.timeScale().coordinateToLogical(px);
+        if (logical != null && bars.length) time = bars[Math.max(0, Math.min(bars.length - 1, Math.round(logical)))].date;
+      }
+      if (time == null) return null;
+      var price = candleSeries.coordinateToPrice(py);
+      if (!Number.isFinite(price) || price <= 0) {
+        // 거래량·RSI 패널을 눌렀거나 가격축 밖이면 그 봉의 종가에 붙인다.
+        var hit = barFor(chartMemoTimeKey(time));
+        price = hit ? Number(hit.close) : NaN;
+      }
+      if (!Number.isFinite(price) || price <= 0) return null;
+      return { date: chartMemoTimeKey(time), price: Math.round(price * 100) / 100 };
     }
     // 모바일 터치에서는 차트 라이브러리의 click 이벤트가 안정적이지 않아, 컨테이너의 포인터 탭(이동 8px 미만)으로 직접 받는다.
     var downAt = null;
@@ -240,26 +314,14 @@
       downAt = null;
       if (!mode || !start) return;
       if (Math.abs(event.clientX - start.x) > 8 || Math.abs(event.clientY - start.y) > 8 || Date.now() - start.t > 700) return;
-      if (event.target.closest && event.target.closest('.ss-memo-pin, .ss-memo-pop')) return;
+      if (event.target.closest && event.target.closest('.ss-memo-pin, .ss-memo-pop')) return;   // 핀 끌기·클릭은 핀 쪽이 처리
       if (memoDrawingProbe && memoDrawingProbe()) return;
       var box = container.getBoundingClientRect();
       var px = event.clientX - box.left;
       var py = event.clientY - box.top;
-      var time = chart.timeScale().coordinateToTime(px);
-      if (time == null) {
-        // 마지막 봉 오른쪽 빈 공간·왼쪽 끝을 눌러도 가장 가까운 봉에 붙인다(예전엔 아무 반응이 없어 "안 된다"로 보였다).
-        var logical = chart.timeScale().coordinateToLogical(px);
-        if (logical != null && bars.length) time = bars[Math.max(0, Math.min(bars.length - 1, Math.round(logical)))].date;
-      }
-      if (time == null) return;
-      var price = candleSeries.coordinateToPrice(py);
-      if (!Number.isFinite(price) || price <= 0) {
-        // 거래량·RSI 패널을 눌렀거나 가격축 밖이면 그 봉의 종가에 붙인다.
-        var hit = barFor(chartMemoTimeKey(time));
-        price = hit ? Number(hit.close) : NaN;
-      }
-      if (!Number.isFinite(price) || price <= 0) return;
-      openEditor(chartMemoTimeKey(time), Math.round(price * 100) / 100, px, py);
+      var at = resolveAt(px, py);
+      if (!at) return;
+      openEditor(at.date, at.price, px, py);
     }
     container.addEventListener('pointerdown', onDown);
     container.addEventListener('pointerup', onUp);
