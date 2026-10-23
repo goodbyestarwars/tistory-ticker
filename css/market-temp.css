@@ -3209,7 +3209,16 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-xicon.is-negative { color: #2566d4; }
   html body #market-temp .mt-xicon .mt-art-tint { fill: currentColor; stroke: none; opacity: .12; }
   html body #market-temp .mt-xbody { display: block; min-width: 0; flex: 1; }
+}
+
+/* 2026-10-23 배치: [오른 종목과 내린 종목 + 시장 한눈에] | [원자재·가상자산 + 수급·심리·금리], 그 아래 전체 폭 최근 시장 흐름. 여백이 남으면 카드를 2~3개씩 나란히 */
+@layer np.np {
   @media (min-width: 761px) {
-    html body #market-temp .mt-front-page > .mt-indicator-history { position: sticky; top: 76px; align-self: start; }
+    html body #market-temp .mt-front-page > .mt-extras-col.mt-extras-col { grid-column: 2; grid-row: 2; min-width: 0; align-self: start; }
+    html body #market-temp .mt-front-page > .mt-indicator-history.mt-indicator-history { grid-column: 1 / -1; }
   }
+  html body #market-temp .mt-extras-col { padding: 16px 18px; }
+  html body #market-temp .mt-extras-col .mt-commodity-block:first-child { margin-top: 0; }
+  html body #market-temp .mt-extras-col .mt-xlist.mt-xlist { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important; }
+  html body #market-temp .mt-extras-col .mt-xcard { height: 100%; }
 }
