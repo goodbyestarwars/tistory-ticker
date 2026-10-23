@@ -1,3 +1,7 @@
+**2026-10-24 홈 시장 헤더 부제 왼쪽 정렬**
+
+사용자 지시(`미국 지수선물(CME) 거래중 · 현물 지수와 값이 다름(현물 본장 마감)`). `css/home-market-board.css`의 `#hmbUpdated`(제목 아래 부제·갱신 시각)를 `margin-left:auto; text-align:right`에서 `margin-left:0; text-align:left`로 바꿔 제목과 같은 왼쪽 줄에 맞춤(국내·미국 공통, 오른쪽 상태 `나스닥100 · S&P500 선물(CME)`는 그대로). 미확인: 홈 화면. 배포: css master 머지 후 Pages 자동.
+
 **2026-10-24 홈 대시보드: 국내 `증시온도` 줄 삭제 · 미국 상승 종목 비율 옆 막대**
 
 사용자 지시(스크린샷). `js/skin-main.js`: 국내 시장 탭의 `증시온도 23점 공포` 줄(`.hmb2-temp`)을 숨김(미국 탭은 상승 종목 비율 줄 유지, 미국 개장 전·마감·휴장은 기존대로 숨김). 미국 장중에는 `renderUsMarketSummary`가 상승 종목 비율 옆에 120px 가로 막대(상승=`--num-up` 붉은색, 나머지=`--num-down` 푸른색, 툴팁에 비율)를 그리고 장이 닫히면 숨긴다. `css/home-market-board.css`: 막대 스타일. 증시온도 데이터·계산·증시온도 페이지는 불변. `test_home_us_session_single_status.js`의 국내 복귀 기대값을 `숨김`으로 변경(통과). 기존 실패(test_home_chart_history·investor_chart)는 변경 전부터. 미확인: 홈 화면 실제 렌더(미국 장중 막대는 장이 열린 시간에만 보임). 배포: js/css master 머지 후 Pages 자동.
