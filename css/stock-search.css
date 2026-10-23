@@ -1709,7 +1709,7 @@ html.dark body :is(#stock-search, .de-chart-overlay) .ss-stock-controls button[a
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs { align-items: center !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-timeframe-tools { order: 1; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-minute-scope-wrap { order: 2; margin: 0 !important; padding: 0 !important; }
-  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { order: 3; margin-left: 0 !important; justify-content: flex-start !important; }
+  html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs > .ss-drawing-tools { order: 3; margin-left: auto !important; justify-content: flex-end !important; }
   html body .ss-stock-controls.ss-stock-controls .ss-chart-tabs.ss-chart-tabs::after {
     content: '';
     order: 4;
