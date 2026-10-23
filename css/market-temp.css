@@ -3351,8 +3351,6 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   @media (min-width: 761px) {
     html body #market-temp .mt-front-page.mt-front-page { align-items: stretch !important; }
     html body #market-temp .mt-front-page > .mt-extras-col.mt-extras-col { align-self: stretch; display: flex !important; flex-direction: column; }
-    html body #market-temp .mt-extras-col .mt-commodity-block { display: flex; flex-direction: column; flex: 1 1 auto; }
-    html body #market-temp .mt-extras-col .mt-xlist.mt-xlist { flex: 1 1 auto; grid-auto-rows: 1fr; }
   }
 }
 
@@ -3455,4 +3453,11 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
     html body #market-temp .mt-glance-row:not(.mt-investor-row *) .mt-glance-amount { font-size: 13.5px !important; font-weight: 700; }
     html body #market-temp .mt-glance-row .mt-glance-state { font-size: 13px !important; }
   }
+}
+
+/* 2026-10-24 카드 안 수신 시각·출처 줄을 블록 아래 작은 한 줄로 묶고, 카드 안을 채우던 빈 공간(남는 높이 분배)을 없앴다 */
+@layer np.np {
+  html body #market-temp .mt-xlist.mt-xlist { align-items: start; }
+  html body #market-temp .mt-xlist.mt-xlist > .mt-xcard.mt-xcard { height: auto; }
+  html body #market-temp .mt-xnote { margin: 8px 0 0 !important; font-size: 10.5px; line-height: 1.5; color: var(--pulse-sub, #778396); }
 }
