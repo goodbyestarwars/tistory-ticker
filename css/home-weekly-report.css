@@ -70,15 +70,15 @@
 .hwr-loading span { margin-top: 7px; font-size: 11px; }
 .hwr-columns .is-up, .hwr-summary-row .is-up, .hwr-index-card .is-up { color: var(--num-up); }
 .hwr-columns .is-down, .hwr-summary-row .is-down, .hwr-index-card .is-down { color: var(--num-down); }
-html.dark .home-weekly-report { color: #f5efe0; }
+html.dark .home-weekly-report { color: var(--dk-text); }
 /* 2026-08-20: .hwr-head의 라이트모드 테두리(#e5e9ef, 옅은 회색)만 다크모드 대응이
    빠져있어 "한 주 마감 리포트" 제목 아래 구분선이 주변보다 밝게 떠 보였다(사용자
    리포트: "중간에 흰색 줄(진한색) 주위 선색이랑 같게 해줘"). */
-html.dark .hwr-head { border-color: rgba(245,239,224,.16); }
-html.dark .hwr-index-card, html.dark .hwr-summary-row article, html.dark .hwr-columns article, html.dark .hwr-schedule { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .hwr-columns li, html.dark .hwr-schedule-list li, html.dark .hwr-stock-list > li { border-color: rgba(245,239,224,.1); }
-html.dark .hwr-columns li a, html.dark .hwr-loading strong { color: #f5efe0; }
-html.dark .hwr-source-note, html.dark .hwr-loading { border-color: rgba(245,239,224,.2); }
+html.dark .hwr-head { border-color: var(--dk-line); }
+html.dark .hwr-index-card, html.dark .hwr-summary-row article, html.dark .hwr-columns article, html.dark .hwr-schedule { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .hwr-columns li, html.dark .hwr-schedule-list li, html.dark .hwr-stock-list > li { border-color: var(--dk-line); }
+html.dark .hwr-columns li a, html.dark .hwr-loading strong { color: var(--dk-text); }
+html.dark .hwr-source-note, html.dark .hwr-loading { border-color: var(--dk-line); }
 @media (max-width: 720px) {
   .hwr-head { display: block; padding: 18px 0 14px; }
   .hwr-head h2 { font-size: 22px; }
@@ -150,10 +150,10 @@ html.dark .hwr-my-schedule { background: rgba(37,99,235,.12); border-color: rgba
 .hwr-schedule-list small { color: #94a3b8; font-size: 8px; }
 .hwr-schedule .hwr-empty { padding: 8px 0 2px; }
 .hwr-disclaimer { margin-top: 7px; }
-html.dark .hwr-basis { background: rgba(255,255,255,.04); }
-html.dark .hwr-basis b, html.dark .hwr-stock-values > b:first-child, html.dark .hwr-news-row { color: #f5efe0; }
-html.dark .hwr-news-row, html.dark .hwr-schedule-list li { border-color: rgba(245,239,224,.1); }
-html.dark .hwr-news-rail i { background: #1a1a1a; }
+html.dark .hwr-basis { background: var(--dk-card); }
+html.dark .hwr-basis b, html.dark .hwr-stock-values > b:first-child, html.dark .hwr-news-row { color: var(--dk-text); }
+html.dark .hwr-news-row, html.dark .hwr-schedule-list li { border-color: var(--dk-line); }
+html.dark .hwr-news-rail i { background: var(--dk-card); }
 @media (max-width: 720px) {
   .hwr-line-art { display: none; }
   .hwr-head { min-height: 0; }
@@ -204,12 +204,12 @@ html.dark .hwr-news-rail i { background: #1a1a1a; }
 .hwr-news-card .hwr-news-row { background: rgb(255, 254, 252); color: #24324a; }
 .hwr-news-row { grid-template-columns: 9px 32px minmax(0, 1fr) 42px; }
 .hwr-news-row time { justify-self: end; text-align: right; }
-html.dark .hwr-index-summary, html.dark .hwr-fx-card { border-color: rgba(245,239,224,.16); background: #1a1a1a; }
-html.dark .hwr-index-summary small, html.dark .hwr-section-heading strong { color: #f5efe0; }
+html.dark .hwr-index-summary, html.dark .hwr-fx-card { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .hwr-index-summary small, html.dark .hwr-section-heading strong { color: var(--dk-text); }
 /* 2026-08-20: 라이트모드 규칙(위 .hwr-news-card)을 그대로 복붙해와서 다크모드에서도
    흰 배경이 강제되고 있었다(사용자 리포트: "주간 경제 뉴스·이슈... 박스 자체가 다
    흰색이야") - 사이트 공통 다크모드 톤으로 교체. */
-html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: #1A1A1A !important; color: #F5EFE0; }
+html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: var(--dk-card) !important; color: var(--dk-text); }
 @media (max-width: 720px) {
   .hwr-sentiment { margin: 4px 0 0; justify-content: flex-start; }
   .hwr-sentiment svg { width: 88px; height: 44px; }
@@ -239,10 +239,10 @@ html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: #
 .hwr-fx-advice small { color: #64748b; font-size: 9px; }
 .hwr-fx-status { font-size: 10px; font-weight: 800; white-space: nowrap; }
 .hwr-fx-chart--empty { display: flex; align-items: center; color: #94a3b8; font-size: 9px; }
-html.dark .hwr-fx-guide-line { stroke: rgba(245,239,224,.18); }
+html.dark .hwr-fx-guide-line { stroke: var(--dk-line); }
 html.dark .hwr-fx-average-line { stroke: #cbd5e1; }
-html.dark .hwr-fx-legend b { color: #f5efe0; }
-html.dark .hwr-fx-advice small { color: rgba(245,239,224,.65); }
+html.dark .hwr-fx-legend b { color: var(--dk-text); }
+html.dark .hwr-fx-advice small { color: var(--dk-sub); }
 @media (max-width: 720px) {
   .hwr-fx-card .hwr-fx-chart { height: 82px; }
   .hwr-fx-legend { gap: 3px 9px; }
@@ -292,13 +292,13 @@ html.dark .hwr-fx-advice small { color: rgba(245,239,224,.65); }
 .hwr-news-quote .is-up { color: var(--num-up); }
 .hwr-news-quote .is-down { color: var(--num-down); }
 .hwr-news-filter-empty { padding: 18px 0 5px; color: #94a3b8; font-size: 11px; text-align: center; }
-html.dark .hwr-news-filters button { border-color: rgba(245,239,224,.16); background: #1a1a1a; color: #cbd5e1; }
-html.dark .hwr-news-filters button.is-active { border-color: #f5efe0; background: #f5efe0; color: #1a1a1a; }
-html.dark .hwr-news-event { border-color: rgba(245,239,224,.1); }
+html.dark .hwr-news-filters button { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
+html.dark .hwr-news-filters button.is-active { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-bg); }
+html.dark .hwr-news-event { border-color: var(--dk-line); }
 /* 2026-08-20: 라이트모드 색(#24324a, 짙은 남색)을 dark 규칙에도 그대로 복붙해와서 뉴스
    제목이 다크모드 배경 위에서 거의 안 보였다(사용자 리포트: "박스 자체가 다 흰색이야"와
    같은 원인 - .hwr-news-card 수정과 동일 패턴). */
-html.dark .hwr-news-event-body h4 { color: #F5EFE0; }
+html.dark .hwr-news-event-body h4 { color: var(--dk-text); }
 @media (max-width: 720px) {
   .hwr-news-toolbar { display: block; }
   .hwr-news-filters { margin-top: 8px; }
@@ -325,7 +325,7 @@ html.dark .hwr-news-event-body h4 { color: #F5EFE0; }
 .hwr-outcome-values .is-down { color: var(--num-down); }
 .hwr-outcome-values .is-flat { color: #64748b; }
 .hwr-outcome-pending { color: #94a3b8; font-weight: 500; }
-html.dark .hwr-outcome-pending { color: #7d8593; }
+html.dark .hwr-outcome-pending { color: var(--dk-mute); }
 
 /* 2026-08-22(2차) 신설: 목록 위 승률/평균수익률 요약카드("성과지표") - 표본이 200건까지
    넉넉해도 목록엔 최근 8건만 보이므로, 이 카드가 없으면 8건짜리 국지적 결과를 전체
@@ -349,7 +349,7 @@ html.dark .hwr-outcome-stat > b { color: #8b95a5; }
 .hwr-outcome-stat > strong.is-down { color: var(--num-down); }
 .hwr-outcome-stat > strong.is-flat { color: #64748b; }
 .hwr-outcome-stat > span { font-size: 12px; color: #94a3b8; }
-html.dark .hwr-outcome-stat > span { color: #7d8593; }
+html.dark .hwr-outcome-stat > span { color: var(--dk-mute); }
 
 /* 2026-08-31 모바일 가독성: 이 파일의 8~10px 선언은 대부분 미디어쿼리 밖에 있어
    데스크톱 밀도가 모바일에 그대로 적용되고 있었다(홈 375px 실측: 9px 147개, 10px 86개).
@@ -449,7 +449,7 @@ html.dark .hwr-outcome-stat > span { color: #7d8593; }
   max-width: 1200px; margin: 0 auto 72px; padding: 0 4px; color: var(--hw-text);
   font-variant-numeric: tabular-nums;
 }
-html.dark .home-weekly-report { --hw-text: #f5efe0; --hw-sub: rgba(245, 239, 224, .66); --hw-muted: rgba(245, 239, 224, .5); --hw-line: rgba(245, 239, 224, .12); --hw-border: rgba(245, 239, 224, .16); --hw-surface: #1a1a1a; --hw-up: #ff8a83; --hw-down: #80b8ff; }
+html.dark .home-weekly-report { --hw-text: var(--dk-text); --hw-sub: var(--dk-sub); --hw-muted: var(--dk-mute); --hw-line: var(--dk-line); --hw-border: var(--dk-line); --hw-surface: var(--dk-card); --hw-up: var(--dk-up); --hw-down: var(--dk-down); }
 .home-weekly-report .is-up { color: var(--num-up); }
 .home-weekly-report .is-down { color: var(--num-down); }
 .home-weekly-report .is-flat { color: var(--hw-sub); }

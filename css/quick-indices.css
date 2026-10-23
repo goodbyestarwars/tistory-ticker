@@ -232,8 +232,8 @@
   white-space: nowrap;
 }
 html.dark .qi-card-group {
-  background: rgba(245, 239, 224, .1) !important;
-  color: rgba(245, 239, 224, .65) !important;
+  background: var(--dk-inner) !important;
+  color: var(--dk-sub) !important;
 }
 .qi-card.qi-dragging { opacity: 0.4; }
 
@@ -462,7 +462,7 @@ html.dark .qi-card-group {
   }
   html.dark .qi-grid {
     background-image: repeating-linear-gradient(to right,
-      transparent 0, transparent 153.5px, rgba(245, 239, 224, 0.14) 153.5px, rgba(245, 239, 224, 0.14) 154.5px, transparent 154.5px, transparent 158px) !important;
+      transparent 0, transparent 153.5px, var(--dk-hover) 153.5px, var(--dk-hover) 154.5px, transparent 154.5px, transparent 158px) !important;
   }
   .qi-news { display: none; } /* 좁은 화면에서는 카드만으로도 이미 빠듯해서 속보 패널은 숨김 */
 }
@@ -475,36 +475,36 @@ body.iframe-mode .qi-wrap { display: none !important; }
    #1A1A1A 배경 + #F5EFE0 글자 2색 체계로 재통일되면서(style.css 기타 규칙 참고) 이 위젯도
    같은 팔레트로 다시 맞춘다 - 상승/하락(qi-pos/qi-neg)과 코스피/코스닥 구분 배지 색은
    의미가 있는 색이라 그대로 유지. */
-html.dark .qi-wrap { background: #1A1A1A !important; border: 1px solid rgba(245, 239, 224, 0.12) !important; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45) !important; }
-html.dark .qi-scroll::-webkit-scrollbar-thumb { background: rgba(245, 239, 224, 0.25) !important; }
-html.dark .qi-controls { border-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark .qi-card-label { color: #F5EFE0 !important; }
-html.dark .qi-card-status { color: rgba(245, 239, 224, 0.5) !important; }
-html.dark .qi-card-price { color: #F5EFE0 !important; }
-html.dark .qi-card-change { color: rgba(245, 239, 224, 0.65) !important; }
-html.dark .qi-pos { color: #ff6b5b !important; }
-html.dark .qi-neg { color: #4d9fff !important; }
-html.dark .qi-zero { color: rgba(245, 239, 224, 0.65) !important; }
-html.dark .qi-collapse-btn { background: rgba(245, 239, 224, 0.08) !important; border-color: rgba(245, 239, 224, 0.2) !important; color: rgba(245, 239, 224, 0.65) !important; }
-html.dark .qi-collapse-btn:hover { background: rgba(245, 239, 224, 0.16) !important; }
+html.dark .qi-wrap { background: var(--dk-card) !important; border: 1px solid var(--dk-line) !important; box-shadow: 0 1px 8px rgba(0, 0, 0, 0.45) !important; }
+html.dark .qi-scroll::-webkit-scrollbar-thumb { background: var(--dk-active) !important; }
+html.dark .qi-controls { border-color: var(--dk-line) !important; }
+html.dark .qi-card-label { color: var(--dk-text) !important; }
+html.dark .qi-card-status { color: var(--dk-mute) !important; }
+html.dark .qi-card-price { color: var(--dk-text) !important; }
+html.dark .qi-card-change { color: var(--dk-sub) !important; }
+html.dark .qi-pos { color: var(--dk-up) !important; }
+html.dark .qi-neg { color: var(--dk-down) !important; }
+html.dark .qi-zero { color: var(--dk-sub) !important; }
+html.dark .qi-collapse-btn { background: var(--dk-inner) !important; border-color: var(--dk-line) !important; color: var(--dk-sub) !important; }
+html.dark .qi-collapse-btn:hover { background: var(--dk-active) !important; }
 html.dark .qi-grid {
   background-image: repeating-linear-gradient(to right,
-    transparent 0, transparent 205px, rgba(245, 239, 224, 0.14) 205px, rgba(245, 239, 224, 0.14) 206px, transparent 206px, transparent 212px) !important;
+    transparent 0, transparent 205px, var(--dk-hover) 205px, var(--dk-hover) 206px, transparent 206px, transparent 212px) !important;
 }
-html.dark .qi-add-btn { border-color: rgba(245, 239, 224, 0.3) !important; color: rgba(245, 239, 224, 0.65) !important; }
-html.dark .qi-add-btn:hover { background: rgba(245, 239, 224, 0.08) !important; color: #F5EFE0 !important; }
-html.dark .qi-popover { background: #1A1A1A !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark .qi-pop-item { color: #F5EFE0 !important; }
-html.dark .qi-pop-item:hover { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark .qi-add-btn { border-color: var(--dk-line) !important; color: var(--dk-sub) !important; }
+html.dark .qi-add-btn:hover { background: var(--dk-hover) !important; color: var(--dk-text) !important; }
+html.dark .qi-popover { background: var(--dk-card) !important; border-color: var(--dk-line) !important; }
+html.dark .qi-pop-item { color: var(--dk-text) !important; }
+html.dark .qi-pop-item:hover { background: var(--dk-hover) !important; }
 
-html.dark .qi-news { border-color: rgba(245, 239, 224, 0.14) !important; }
-html.dark .qi-news-item { color: #F5EFE0 !important; }
-html.dark .qi-news-item:hover { color: rgba(245, 239, 224, 0.7) !important; }
-html.dark .qi-news-corp { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark .qi-news { border-color: var(--dk-line) !important; }
+html.dark .qi-news-item { color: var(--dk-text) !important; }
+html.dark .qi-news-item:hover { color: var(--dk-sub) !important; }
+html.dark .qi-news-corp { color: var(--dk-mute) !important; }
 html.dark .qi-news-market-kospi { background: #1c2c4d !important; }
-html.dark .qi-news-market-kosdaq { background: rgba(255,255,255,0.07) !important; }
-html.dark .qi-news-market-news { color: rgba(245, 239, 224, 0.65) !important; background: rgba(255,255,255,0.07) !important; }
-html.dark .qi-news-loading { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark .qi-news-market-kosdaq { background: var(--dk-inner) !important; }
+html.dark .qi-news-market-news { color: var(--dk-sub) !important; background: var(--dk-inner) !important; }
+html.dark .qi-news-loading { color: var(--dk-mute) !important; }
 
 /* 2026-07 홈 개편: 시장지표 8개를 같은 폭의 한 줄 미니 티커로 고정한다.
    뉴스·공시·사용자 추가 컨트롤은 렌더링하지 않으며 좁은 화면에서만 가로 스크롤한다. */
@@ -564,7 +564,7 @@ html.dark .qi-grid { background-image: none !important; }
 .qi-card-group,
 .qi-card-status,
 .qi-controls { display: none !important; }
-html.dark .qi-card-grid { border-left-color: rgba(245, 239, 224, .12) !important; }
+html.dark .qi-card-grid { border-left-color: var(--dk-line) !important; }
 
 @media (max-width: 900px) {
   .qi-grid {

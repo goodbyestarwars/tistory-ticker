@@ -223,8 +223,8 @@
 .de-chart-restore { flex: 0 0 auto; padding: 6px 10px; border: 1px solid #bbc5d0; border-radius: 6px; background: transparent; color: inherit; font: inherit; cursor: pointer; white-space: nowrap; }
 .de-chart-restore:hover { border-color: #315b43; color: #315b43; }
 .de-chart-close { border: 0; background: transparent; color: #7e8995; cursor: pointer; font-size: 16px; }
-html.dark .de-chart-restore { border-color: rgba(245,239,224,.32); color: #F5EFE0; }
-html.dark .de-chart-bar-zoom button { border-color: rgba(245,239,224,.32); color: #F5EFE0; }
+html.dark .de-chart-restore { border-color: var(--dk-line); color: var(--dk-text); }
+html.dark .de-chart-bar-zoom button { border-color: var(--dk-line); color: var(--dk-text); }
 .de-chart-modal-body { display: flex; min-width: 0; min-height: 0; flex: 1 1 auto; overflow: auto; padding: 22px 18px 26px; }
 .de-chart-modal-body > #ffLwChart, .de-chart-modal-body > #ssChart, .de-chart-modal-body > .kf-chart, .de-chart-modal-body > .dmi-chart { width: 100%; }
 .de-chart-modal-body > .de-stock-search-scope { display: block; flex: 1 1 100%; width: 100%; min-width: 0; }
@@ -242,12 +242,12 @@ html.dark .de-chart-bar-zoom button { border-color: rgba(245,239,224,.32); color
 .de-chart-modal-body > .ff-apt-chart-wrap { width: 100%; min-width: 0; }
 .de-chart-modal-body > .de-foreign-flow-scope { width: 100%; min-width: 0; }
 .de-chart-placeholder { display: none; }
-html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: #1A1A1A; border-color: rgba(245,239,224,.2); }
-html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: #F5EFE0; }
-html.dark .de-custom-card-toolbar span, html.dark .de-custom-card p, html.dark .de-custom-empty { color: rgba(245,239,224,.55); }
-html.dark .de-custom-input, html.dark .de-custom-icon, html.dark .de-custom-color, html.dark .de-expand-button { background: #242424; border-color: rgba(245,239,224,.24); color: #F5EFE0; }
-html.dark .de-custom-add { background: #1A1A1A; color: #9bd4ad; border-color: #9bd4ad; }
-html.dark .de-chart-modal-body { background: #1A1A1A; }
+html.dark .de-custom-card-toolbar, html.dark .de-custom-editor, html.dark .de-custom-card, html.dark .de-chart-modal { background: var(--dk-card); border-color: var(--dk-line); }
+html.dark .de-custom-card-toolbar strong, html.dark .de-custom-editor-title, html.dark .de-custom-card-heading, html.dark .de-chart-modal-head { color: var(--dk-text); }
+html.dark .de-custom-card-toolbar span, html.dark .de-custom-card p, html.dark .de-custom-empty { color: var(--dk-mute); }
+html.dark .de-custom-input, html.dark .de-custom-icon, html.dark .de-custom-color, html.dark .de-expand-button { background: var(--dk-inner); border-color: var(--dk-line); color: var(--dk-text); }
+html.dark .de-custom-add { background: var(--dk-inner); color: #9bd4ad; border-color: #9bd4ad; }
+html.dark .de-chart-modal-body { background: var(--dk-card); }
 
 /* A small illustrated thermometer for the market-temperature hero. */
 #market-temp .mt-hero-main { align-items: center; }

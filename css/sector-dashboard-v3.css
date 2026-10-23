@@ -39,16 +39,16 @@
    박스 안 텍스트까지 흰색으로 덮어써서 밝은 배경(#eef2ff)과 겹쳐 안 보이던 문제 수정.
    #sector-dashboard로 specificity를 그 규칙보다 높여야 이김(stock-news.css와 동일 패턴). */
 html.dark #sector-dashboard .market-ai-summary {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.2);
+  background: var(--dk-card);
+  border-color: var(--dk-line);
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
 }
 html.dark #sector-dashboard .market-ai-summary .sn-ai-badge {
-  background: rgba(245, 239, 224, 0.85);
-  color: #1A1A1A !important;
+  background: var(--dk-text);
+  color: var(--dk-bg) !important;
 }
 html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
 
 /* 카드 높이가 제각각(4종목 vs 25종목)이라 grid로 하면 옆에 빈 공간이 크게 남는다.
@@ -283,58 +283,58 @@ button.sector-chart-bubble { font: inherit; cursor: pointer; }
    style.css의 블랑켓 규칙이 글자만 흰색으로 덮어써서 흰 배경+흰 글씨로 안 보이던 문제 수정.
    (market-ai-summary와 동일 패턴: #sector-dashboard로 specificity 확보) */
 html.dark #sector-dashboard .sector-card {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.14);
+  background: var(--dk-card);
+  border-color: var(--dk-line);
   box-shadow: none;
 }
 html.dark #sector-dashboard .sector-card-title {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
 html.dark #sector-dashboard .sector-row {
-  border-bottom-color: rgba(245, 239, 224, 0.12);
+  border-bottom-color: var(--dk-line);
 }
 html.dark #sector-dashboard .sector-row-name {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
 html.dark #sector-dashboard .sector-row-price {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
-html.dark #sector-dashboard .sector-row-rate.sector-up { color: #ff6b6b !important; }
-html.dark #sector-dashboard .sector-row-rate.sector-down { color: #4dabf7 !important; }
-html.dark #sector-dashboard .sector-row-rate.sector-flat { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #sector-dashboard .sector-row-rate.sector-up { color: var(--dk-up) !important; }
+html.dark #sector-dashboard .sector-row-rate.sector-down { color: var(--dk-down) !important; }
+html.dark #sector-dashboard .sector-row-rate.sector-flat { color: var(--dk-mute) !important; }
 html.dark #sector-dashboard .sector-loading,
 html.dark #sector-dashboard .sector-error {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark #sector-dashboard .sector-view-btn {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.2);
-  color: rgba(245, 239, 224, 0.65) !important;
+  background: var(--dk-inner);
+  border-color: var(--dk-line);
+  color: var(--dk-sub) !important;
 }
 html.dark #sector-dashboard .sector-view-btn.active {
-  background: rgba(245, 239, 224, 0.22);
-  border-color: rgba(245, 239, 224, 0.4);
-  color: #F5EFE0 !important;
+  background: var(--dk-active);
+  border-color: var(--dk-mute);
+  color: var(--dk-text) !important;
 }
-html.dark #sector-dashboard .sector-row:hover { background: rgba(245,239,224,.08); }
+html.dark #sector-dashboard .sector-row:hover { background: var(--dk-hover); }
 html.dark #sector-dashboard .sector-detail-head > div strong,
-html.dark #sector-dashboard .sector-detail-section-head strong { color: #F5EFE0 !important; }
-html.dark #sector-dashboard .sector-detail-section { border-color: rgba(245,239,224,.14); background: #1A1A1A; }
-html.dark #sector-dashboard .sector-stock-bubble { border-color: rgba(245,239,224,.18); background: #202020; color: #F5EFE0; }
+html.dark #sector-dashboard .sector-detail-section-head strong { color: var(--dk-text) !important; }
+html.dark #sector-dashboard .sector-detail-section { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark #sector-dashboard .sector-stock-bubble { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-text); }
 html.dark #sector-dashboard .sector-stock-bubble small,
 html.dark #sector-dashboard .sector-detail-section-head small,
 html.dark #sector-dashboard .sector-detail-head > div small,
-html.dark #sector-dashboard .sector-detail-note { color: rgba(245,239,224,.58); }
+html.dark #sector-dashboard .sector-detail-note { color: var(--dk-mute); }
 html.dark #sector-dashboard .sector-stock-bubble.is-recommended,
-html.dark #sector-dashboard .sector-stock-bubble.is-muted { border-color: rgba(245,239,224,.2); background: #242424; color: rgba(245,239,224,.55); }
-html.dark #sector-dashboard .sector-bubble-chart { border-color: rgba(245,239,224,.14); background: radial-gradient(circle at 50% 35%, #242424 0, #1a1a1a 72%); }
-html.dark #sector-dashboard .sector-bubble-chart-meta { color: rgba(245,239,224,.58); }
-html.dark #sector-dashboard .sector-bubble-stage { background-image: linear-gradient(rgba(245,239,224,.06) 1px, transparent 1px), linear-gradient(90deg, rgba(245,239,224,.06) 1px, transparent 1px); }
-html.dark #sector-dashboard .sector-chart-bubble.sector-up { border-color: rgba(255,107,107,.55); background: rgba(210,79,69,.22); color: #ff9690; }
-html.dark #sector-dashboard .sector-chart-bubble.sector-down { border-color: rgba(77,171,247,.55); background: rgba(18,97,196,.22); color: #8fc7ff; }
-html.dark #sector-dashboard .sector-chart-bubble.sector-flat { border-color: rgba(245,239,224,.28); background: rgba(245,239,224,.1); color: rgba(245,239,224,.72); }
+html.dark #sector-dashboard .sector-stock-bubble.is-muted { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-mute); }
+html.dark #sector-dashboard .sector-bubble-chart { border-color: var(--dk-line); background: radial-gradient(circle at 50% 35%, var(--dk-inner) 0, var(--dk-card) 72%); }
+html.dark #sector-dashboard .sector-bubble-chart-meta { color: var(--dk-mute); }
+html.dark #sector-dashboard .sector-bubble-stage { background-image: linear-gradient(var(--dk-inner) 1px, transparent 1px), linear-gradient(90deg, var(--dk-inner) 1px, transparent 1px); }
+html.dark #sector-dashboard .sector-chart-bubble.sector-up { border-color: rgba(var(--dk-up-rgb),0.55); background: rgba(210,79,69,.22); color: #ff9690; }
+html.dark #sector-dashboard .sector-chart-bubble.sector-down { border-color: rgba(var(--dk-down-rgb),0.55); background: rgba(18,97,196,.22); color: #8fc7ff; }
+html.dark #sector-dashboard .sector-chart-bubble.sector-flat { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-sub); }
 html.dark #sector-dashboard .sector-chart-bubble.is-recommended,
-html.dark #sector-dashboard .sector-chart-bubble.is-muted { border-color: rgba(245,239,224,.24); background: rgba(245,239,224,.08); color: rgba(245,239,224,.55); }
+html.dark #sector-dashboard .sector-chart-bubble.is-muted { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-mute); }
 
 @media (max-width: 640px) {
   .sector-bubble-chart { padding: 8px; }

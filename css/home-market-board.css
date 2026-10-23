@@ -24,18 +24,18 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   min-width: 0;
 }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
-  --hmb-chart-up: #d79b96;
+  --hmb-chart-up: var(--dk-up);
   --hmb-chart-line: #9faab8;
-  --hmb-chart-down: #94b2d7;
-  --hmb-chart-up-text: #d8aba6;
-  --hmb-chart-down-text: #a9c3e4;
-  --hmb-up: #ff8a83;
-  --hmb-down: #80b8ff;
-  --hmb-ink: #f5efe0;
-  --hmb-mute: rgba(245, 239, 224, .6);
-  --hmb-faint: rgba(245, 239, 224, .4);
-  --hmb-line: rgba(245, 239, 224, .12);
-  --hmb-flat: rgba(245, 239, 224, .22);
+  --hmb-chart-down: var(--dk-down);
+  --hmb-chart-up-text: var(--dk-up);
+  --hmb-chart-down-text: var(--dk-down);
+  --hmb-up: var(--dk-up);
+  --hmb-down: var(--dk-down);
+  --hmb-ink: var(--dk-text);
+  --hmb-mute: var(--dk-sub);
+  --hmb-faint: var(--dk-mute);
+  --hmb-line: var(--dk-line);
+  --hmb-flat: var(--dk-mute);
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-positive) { color: var(--num-up); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-negative) { color: var(--num-down); }
@@ -56,7 +56,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-headi
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated {
   font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; white-space: nowrap; margin-left: auto; text-align: right; font-variant-numeric: tabular-nums;
 }
-html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated { color: #a3acb9; }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated { color: var(--dk-sub); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-cb-wrap { display: flex; align-items: center; gap: 8px; flex: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-market-live {
   font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); letter-spacing: .02em;
@@ -114,7 +114,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth[hidd
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; text-align: right; font-variant-numeric: tabular-nums; }
-html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { color: #a3acb9; }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-subhead span { color: var(--dk-sub); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row { display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 5px 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row b { font: 700 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-mute); letter-spacing: .02em; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row.is-total { margin-top: 4px; padding-top: 9px; border-top: 1px dashed var(--hmb-line); }
@@ -162,7 +162,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extr
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span { white-space: nowrap; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:first-child b { color: var(--hmb-chart-up-text); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-extrema span:last-child b { color: var(--hmb-chart-down-text); }
-html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { box-shadow: 0 0 0 2px #1a1a1a; }
+html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-point { box-shadow: 0 0 0 2px var(--dk-bg); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls { display: flex; align-items: center; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-controls [data-investor-mode] { min-width: 24px; text-align: center; color: var(--hmb-ink); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { display: inline-flex; align-items: center; justify-content: center; min-width: 28px; min-height: 28px; padding: 0; font-size: 20px; }
@@ -278,12 +278,12 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-list li.is-active .vol-state { color: #b45309; }
 .vol-note, .vol-src { display: block; margin: 6px 0 0; color: var(--hmb-mute, #64748b); font-size: 11px; line-height: 1.5; }
 @media (max-width: 720px) { .vol-monitor { flex-direction: column; flex-basis: 100%; max-width: none; margin-left: 0; } .vol-alert { flex: none; width: 100%; } .vol-alert.is-vi { width: auto; align-self: flex-end; margin-left: 0; } .vol-panel { left: 0; right: auto; } }
-html.dark .vol-panel { background: #1e1e1e; border-color: rgba(245, 239, 224, .14); }
-html.dark .vol-seg-btn.is-on { background: #F5EFE0; color: #1e1e1e; }
+html.dark .vol-panel { background: var(--dk-card); border-color: var(--dk-line); }
+html.dark .vol-seg-btn.is-on { background: var(--dk-text); color: #1e1e1e; }
 html.dark .vol-list li.is-active .vol-state { color: #fbbf24; }
-html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(232, 119, 109, .45); color: #f4a39b; }
+html.dark .vol-alert.is-cb { background: rgba(210, 79, 69, .16); border-color: rgba(var(--dk-up-rgb),0.45); color: #f4a39b; }
 html.dark .vol-alert.is-side { background: rgba(245, 158, 11, .14); border-color: rgba(245, 158, 11, .4); color: #fbbf24; }
-html.dark .vol-alert.is-vi { background: var(--np-paper, #1A1A1A); border-color: rgba(245, 239, 224, .2); color: #F5EFE0; }
+html.dark .vol-alert.is-vi { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
 
 /* US/night sessions use the same bar/area controls as investor flow. */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-chart.has-session-chart { height: auto; overflow: visible; }

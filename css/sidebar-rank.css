@@ -257,31 +257,31 @@
 
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 등락 배지(sr-up/down/flat)는 의미가 있는 색이라 유지. */
-html.dark #sidebar-rank .sr-updated { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #sidebar-rank .sr-tabs { background: rgba(245, 239, 224, .08) !important; }
-html.dark #sidebar-rank .sr-tab { color: rgba(245, 239, 224, .65) !important; }
-html.dark #sidebar-rank .sr-tab.active { background: rgba(245, 239, 224, .16) !important; color: #F5EFE0 !important; }
-html.dark #sidebar-rank .sr-retry { background: transparent !important; color: #F5EFE0 !important; border-color: rgba(245,239,224,.25) !important; }
-html.dark #sidebar-rank .sr-name { color: #F5EFE0 !important; }
-html.dark #sidebar-rank .sr-price { color: #F5EFE0 !important; }
-html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }
-html.dark #sidebar-rank .sr-rate.sr-down { background: #20304a !important; color: #6ea8e8 !important; }
-html.dark #sidebar-rank .sr-rate.sr-flat { background: rgba(245, 239, 224, 0.12) !important; color: rgba(245, 239, 224, 0.7) !important; }
-html.dark #sidebar-rank .sr-amount { color: rgba(245, 239, 224, 0.6) !important; }
-html.dark #sidebar-rank .sr-hint { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #sidebar-rank .sr-more { color: rgba(245, 239, 224, 0.65) !important; border-color: rgba(245, 239, 224, 0.2) !important; }
-html.dark #sidebar-rank .sr-more:hover { color: #F5EFE0 !important; }
+html.dark #sidebar-rank .sr-updated { color: var(--dk-mute) !important; }
+html.dark #sidebar-rank .sr-tabs { background: var(--dk-inner) !important; }
+html.dark #sidebar-rank .sr-tab { color: var(--dk-sub) !important; }
+html.dark #sidebar-rank .sr-tab.active { background: var(--dk-active) !important; color: var(--dk-text) !important; }
+html.dark #sidebar-rank .sr-retry { background: transparent !important; color: var(--dk-text) !important; border-color: var(--dk-line) !important; }
+html.dark #sidebar-rank .sr-name { color: var(--dk-text) !important; }
+html.dark #sidebar-rank .sr-price { color: var(--dk-text) !important; }
+html.dark #sidebar-rank .sr-rate.sr-up { background: #3a2523 !important; color: var(--dk-up) !important; }
+html.dark #sidebar-rank .sr-rate.sr-down { background: #20304a !important; color: var(--dk-down) !important; }
+html.dark #sidebar-rank .sr-rate.sr-flat { background: var(--dk-hover) !important; color: var(--dk-sub) !important; }
+html.dark #sidebar-rank .sr-amount { color: var(--dk-sub) !important; }
+html.dark #sidebar-rank .sr-hint { color: var(--dk-mute) !important; }
+html.dark #sidebar-rank .sr-more { color: var(--dk-sub) !important; border-color: var(--dk-line) !important; }
+html.dark #sidebar-rank .sr-more:hover { color: var(--dk-text) !important; }
 
-html.dark .sr-modal { background: #1A1A1A !important; border: 1px solid rgba(245, 239, 224, 0.14) !important; }
-html.dark .sr-modal-header { border-color: rgba(245, 239, 224, 0.14) !important; color: #F5EFE0 !important; }
-html.dark .sr-modal-close { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark .sr-modal-close:hover { color: #F5EFE0 !important; }
-html.dark .sr-modal-list .sr-name { color: #F5EFE0 !important; }
-html.dark .sr-modal-list .sr-price { color: #F5EFE0 !important; }
-html.dark .sr-modal-list .sr-rank { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark .sr-modal-list .sr-amount { color: rgba(245, 239, 224, 0.6) !important; }
-html.dark .sr-modal-list .sr-hint { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark .sr-modal-list .sr-rate.sr-up { background: #3a2523 !important; color: #e8776d !important; }
-html.dark .sr-modal-list .sr-rate.sr-down { background: #20304a !important; color: #6ea8e8 !important; }
-html.dark .sr-modal-list .sr-rate.sr-flat { background: rgba(245, 239, 224, 0.12) !important; color: rgba(245, 239, 224, 0.7) !important; }
-html.dark .sr-modal-list .sr-row:hover { background: rgba(245, 239, 224, 0.08) !important; }
+html.dark .sr-modal { background: var(--dk-card) !important; border: 1px solid var(--dk-line) !important; }
+html.dark .sr-modal-header { border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark .sr-modal-close { color: var(--dk-mute) !important; }
+html.dark .sr-modal-close:hover { color: var(--dk-text) !important; }
+html.dark .sr-modal-list .sr-name { color: var(--dk-text) !important; }
+html.dark .sr-modal-list .sr-price { color: var(--dk-text) !important; }
+html.dark .sr-modal-list .sr-rank { color: var(--dk-mute) !important; }
+html.dark .sr-modal-list .sr-amount { color: var(--dk-sub) !important; }
+html.dark .sr-modal-list .sr-hint { color: var(--dk-mute) !important; }
+html.dark .sr-modal-list .sr-rate.sr-up { background: #3a2523 !important; color: var(--dk-up) !important; }
+html.dark .sr-modal-list .sr-rate.sr-down { background: #20304a !important; color: var(--dk-down) !important; }
+html.dark .sr-modal-list .sr-rate.sr-flat { background: var(--dk-hover) !important; color: var(--dk-sub) !important; }
+html.dark .sr-modal-list .sr-row:hover { background: var(--dk-hover) !important; }

@@ -143,34 +143,34 @@
 }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
-html.dark #pension-fund { color: #ddd !important; }
+html.dark #pension-fund { color: var(--dk-text) !important; }
 html.dark #pension-fund .pf-input {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
-  color: #eee !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }
-html.dark #pension-fund .pf-search-btn { background: #555 !important; color: #eee !important; }
+html.dark #pension-fund .pf-search-btn { background: #555 !important; color: var(--dk-text) !important; }
 html.dark #pension-fund .pf-suggest {
-  background: #2a2a2a !important;
-  border-color: #444 !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #pension-fund .pf-suggest-item { color: #ddd !important; }
-html.dark #pension-fund .pf-suggest-item:hover { background: #3a3a3a !important; }
+html.dark #pension-fund .pf-suggest-item { color: var(--dk-text) !important; }
+html.dark #pension-fund .pf-suggest-item:hover { background: var(--dk-hover) !important; }
 html.dark #pension-fund .pf-hint,
-html.dark #pension-fund .pf-loading { color: #999 !important; }
+html.dark #pension-fund .pf-loading { color: var(--dk-mute) !important; }
 html.dark #pension-fund .pf-card {
-  background: #262626 !important;
-  border-color: #3a3a3a !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #pension-fund .pf-asof { color: #888 !important; }
-html.dark #pension-fund .pf-title-sub { color: #888 !important; }
+html.dark #pension-fund .pf-asof { color: var(--dk-mute) !important; }
+html.dark #pension-fund .pf-title-sub { color: var(--dk-mute) !important; }
 html.dark #pension-fund .pf-metrics { background: #1f1f1f !important; }
-html.dark #pension-fund .pf-metric-label { color: #999 !important; }
-html.dark #pension-fund .pf-up { color: #ff6b5b !important; }
-html.dark #pension-fund .pf-down { color: #4d9fff !important; }
+html.dark #pension-fund .pf-metric-label { color: var(--dk-mute) !important; }
+html.dark #pension-fund .pf-up { color: var(--dk-up) !important; }
+html.dark #pension-fund .pf-down { color: var(--dk-down) !important; }
 html.dark #pension-fund .pf-interp.pf-tone-very_positive { background: #3a2323 !important; }
 html.dark #pension-fund .pf-interp.pf-tone-positive { background: #362a1f !important; }
 html.dark #pension-fund .pf-interp.pf-tone-neutral_positive { background: #34301f !important; }
-html.dark #pension-fund .pf-interp.pf-tone-caution { background: #202a38 !important; }
-html.dark #pension-fund .pf-interp.pf-tone-neutral { background: #2a2a2a !important; }
-html.dark #pension-fund .pf-note { color: #888 !important; }
+html.dark #pension-fund .pf-interp.pf-tone-caution { background: var(--dk-card) !important; }
+html.dark #pension-fund .pf-interp.pf-tone-neutral { background: var(--dk-inner) !important; }
+html.dark #pension-fund .pf-note { color: var(--dk-mute) !important; }

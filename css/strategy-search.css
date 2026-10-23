@@ -266,65 +266,65 @@
    2026-08-21 코드 감사: 이 자리에 있던 .ss-tab/.ss-tab.active 구세대 다크모드 규칙은
    이 파일 하단의 최종 규칙(모든 속성 !important)에 전부 덮어써져 죽어 있어 삭제. */
 html.dark #strategy-search .ss-meta {
-  color: rgba(245, 239, 224, 0.5) !important;
+  color: var(--dk-mute) !important;
 }
 html.dark #strategy-search .ss-intro p,
-html.dark #strategy-search .ss-card-note { color: rgba(245,239,224,.55) !important; }
+html.dark #strategy-search .ss-card-note { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-methodology {
-  color: rgba(245, 239, 224, 0.6) !important;
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.14) !important;
+  color: var(--dk-sub) !important;
+  background: var(--dk-card) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #strategy-search .ss-methodology-summary { color: rgba(245,239,224,.82) !important; }
-html.dark #strategy-search .ss-methodology-full { border-top-color: rgba(245,239,224,.14); }
-html.dark #strategy-search .ss-methodology-label { color: rgba(245,239,224,.82) !important; }
+html.dark #strategy-search .ss-methodology-summary { color: var(--dk-text) !important; }
+html.dark #strategy-search .ss-methodology-full { border-top-color: var(--dk-line); }
+html.dark #strategy-search .ss-methodology-label { color: var(--dk-text) !important; }
 html.dark #strategy-search .ss-etf-search-input {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.2);
-  color: #F5EFE0 !important;
+  background: var(--dk-inner);
+  border-color: var(--dk-line);
+  color: var(--dk-text) !important;
 }
-html.dark #strategy-search .ss-etf-search-input::placeholder { color: rgba(245, 239, 224, 0.4); }
-html.dark #strategy-search .ss-etf-search-input:focus { border-color: rgba(245, 239, 224, 0.6); }
+html.dark #strategy-search .ss-etf-search-input::placeholder { color: var(--dk-mute); }
+html.dark #strategy-search .ss-etf-search-input:focus { border-color: var(--dk-mute); }
 html.dark #strategy-search .ss-card {
-  background: #1A1A1A;
-  border-color: rgba(245, 239, 224, 0.14);
+  background: var(--dk-card);
+  border-color: var(--dk-line);
   box-shadow: none;
 }
 html.dark #strategy-search .ss-card-title {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
 html.dark #strategy-search .ss-row {
-  border-bottom-color: rgba(245, 239, 224, 0.12);
+  border-bottom-color: var(--dk-line);
 }
 html.dark #strategy-search .ss-row:hover {
-  background: rgba(245, 239, 224, 0.06);
+  background: var(--dk-hover);
 }
 html.dark #strategy-search .ss-row-name {
-  color: #F5EFE0 !important;
+  color: var(--dk-text) !important;
 }
 html.dark #strategy-search .ss-row-code {
-  color: rgba(245, 239, 224, 0.5) !important;
+  color: var(--dk-mute) !important;
 }
 html.dark #strategy-search .ss-row-price {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
-html.dark #strategy-search .ss-row-primary { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-row-primary { color: var(--dk-text) !important; }
 html.dark #strategy-search .ss-row-secondary,
-html.dark #strategy-search .ss-row-basis { color: rgba(245,239,224,.55) !important; }
+html.dark #strategy-search .ss-row-basis { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-card-more {
-  background: rgba(245, 239, 224, 0.08);
-  border-color: rgba(245, 239, 224, 0.2);
-  color: #6ea8e8 !important;
+  background: var(--dk-inner);
+  border-color: var(--dk-line);
+  color: var(--dk-down) !important;
 }
 html.dark #strategy-search .ss-card-more:hover {
-  background: rgba(245, 239, 224, 0.14);
+  background: var(--dk-active);
 }
-html.dark #strategy-search .ss-up { color: #ff6b6b !important; }
-html.dark #strategy-search .ss-down { color: #4dabf7 !important; }
-html.dark #strategy-search .ss-flat { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #strategy-search .ss-up { color: var(--dk-up) !important; }
+html.dark #strategy-search .ss-down { color: var(--dk-down) !important; }
+html.dark #strategy-search .ss-flat { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-hint,
 html.dark #strategy-search .ss-error {
-  color: rgba(245, 239, 224, 0.6) !important;
+  color: var(--dk-sub) !important;
 }
 
 /* ============ ETF 구성종목 모달 ============ */
@@ -403,21 +403,21 @@ html.dark #strategy-search .ss-error {
 .ss-etf-table .ss-down { color: var(--num-down); }
 .ss-etf-table .ss-flat { color: #8a9099; }
 
-html.dark .ss-etf-modal { background: #1A1A1A; }
-html.dark .ss-etf-modal-head { border-bottom-color: rgba(245,239,224,.15); color: #F5EFE0; }
-html.dark .ss-etf-modal-close { color: rgba(245,239,224,.55); }
-html.dark .ss-etf-loading, html.dark .ss-etf-empty { color: rgba(245,239,224,.55); }
-html.dark .ss-etf-summary { color: rgba(245,239,224,.55); border-bottom-color: rgba(245,239,224,.12); }
-html.dark .ss-etf-summary b { color: #F5EFE0; }
-html.dark .ss-etf-table th { color: rgba(245,239,224,.45); }
-html.dark .ss-etf-table th, html.dark .ss-etf-table td { border-bottom-color: rgba(245,239,224,.1); }
-html.dark .ss-etf-comp-row:hover { background: rgba(245,239,224,.06); }
-html.dark .ss-etf-comp-rank { color: rgba(245,239,224,.45); }
-html.dark .ss-etf-comp-name { color: #F5EFE0; }
-html.dark .ss-etf-comp-weight { color: rgba(245,239,224,.7); }
-html.dark .ss-etf-table .ss-up { color: #ff6b6b; }
-html.dark .ss-etf-table .ss-down { color: #4dabf7; }
-html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
+html.dark .ss-etf-modal { background: var(--dk-card); }
+html.dark .ss-etf-modal-head { border-bottom-color: var(--dk-line); color: var(--dk-text); }
+html.dark .ss-etf-modal-close { color: var(--dk-mute); }
+html.dark .ss-etf-loading, html.dark .ss-etf-empty { color: var(--dk-mute); }
+html.dark .ss-etf-summary { color: var(--dk-mute); border-bottom-color: var(--dk-line); }
+html.dark .ss-etf-summary b { color: var(--dk-text); }
+html.dark .ss-etf-table th { color: var(--dk-mute); }
+html.dark .ss-etf-table th, html.dark .ss-etf-table td { border-bottom-color: var(--dk-line); }
+html.dark .ss-etf-comp-row:hover { background: var(--dk-hover); }
+html.dark .ss-etf-comp-rank { color: var(--dk-mute); }
+html.dark .ss-etf-comp-name { color: var(--dk-text); }
+html.dark .ss-etf-comp-weight { color: var(--dk-sub); }
+html.dark .ss-etf-table .ss-up { color: var(--dk-up); }
+html.dark .ss-etf-table .ss-down { color: var(--dk-down); }
+html.dark .ss-etf-table .ss-flat { color: var(--dk-mute); }
 
 /* 2026-08 결과 지면: ETF·ETN·배당주는 그룹 카드가 아닌 하나의 순위표다. */
 #strategy-search .ss-product-tabs {
@@ -446,7 +446,7 @@ html.dark .ss-etf-table .ss-flat { color: rgba(245,239,224,.45); }
 #strategy-search .ss-table-wrap::-webkit-scrollbar { height: 8px; }
 #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background: #c7ccd3; border-radius: 4px; }
 #strategy-search .ss-table-wrap::-webkit-scrollbar-track { background: transparent; }
-html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background: rgba(245, 239, 224, 0.25) !important; }
+html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background: var(--dk-active) !important; }
 #strategy-search .ss-comparison-table {
   min-width: 1480px;
   font-size: 12px;
@@ -761,14 +761,14 @@ html.dark #strategy-search .ss-table-wrap::-webkit-scrollbar-thumb { background:
 html.dark #strategy-search .ss-etf-control,
 html.dark #strategy-search .ss-dividend-sort-select,
 html.dark #strategy-search .ss-nps-filter-select,
-html.dark #strategy-search .ss-etf-search-input { background: #1A1A1A; border-color: rgba(245,239,224,.25); color: #F5EFE0; }
-html.dark #strategy-search .ss-nps-filter label { color: rgba(245,239,224,.75); }
-html.dark #strategy-search .ss-nps-filter-meta { color: rgba(245,239,224,.5); }
-html.dark .ss-etf-modal { border-color: rgba(245,239,224,.2); }
-html.dark .ss-etf-facts { border-top-color: rgba(245,239,224,.14); }
-html.dark .ss-etf-facts > div { border-bottom-color: rgba(245,239,224,.1); }
-html.dark .ss-etf-facts dt { color: rgba(245,239,224,.5); }
-html.dark .ss-etf-facts dd { color: #F5EFE0; }
+html.dark #strategy-search .ss-etf-search-input { background: var(--dk-card); border-color: var(--dk-line); color: var(--dk-text); }
+html.dark #strategy-search .ss-nps-filter label { color: var(--dk-sub); }
+html.dark #strategy-search .ss-nps-filter-meta { color: var(--dk-mute); }
+html.dark .ss-etf-modal { border-color: var(--dk-line); }
+html.dark .ss-etf-facts { border-top-color: var(--dk-line); }
+html.dark .ss-etf-facts > div { border-bottom-color: var(--dk-line); }
+html.dark .ss-etf-facts dt { color: var(--dk-mute); }
+html.dark .ss-etf-facts dd { color: var(--dk-text); }
 /* 검색 조건과 관심 등록 컨트롤의 간격을 확보한다. 별표는 네모난
    브라우저 버튼처럼 보이지 않고, 행 안에서 독립된 클릭 영역으로 보인다. */
 #strategy-search .ss-product-toolbar,
@@ -837,15 +837,15 @@ html:not(.font-gothic) body #strategy-search .ss-product-tab.active {
    뒤 `.dark`를 더해 확실히 더 높은 특이도를 줘야 이긴다. */
 html.dark:not(.font-gothic) body #strategy-search .ss-tab,
 html.dark:not(.font-gothic) body #strategy-search .ss-product-tab {
-  border-color: rgba(245,239,224,.24) !important;
-  background: #1A1A1A !important;
-  color: rgba(245,239,224,.78) !important;
+  border-color: var(--dk-line) !important;
+  background: var(--dk-inner) !important;
+  color: var(--dk-sub) !important;
 }
 html.dark:not(.font-gothic) body #strategy-search .ss-tab.active,
 html.dark:not(.font-gothic) body #strategy-search .ss-product-tab.active {
-  border-color: #F5EFE0 !important;
-  background: #F5EFE0 !important;
-  color: #1A1A1A !important;
+  border-color: var(--dk-text) !important;
+  background: var(--dk-text) !important;
+  color: var(--dk-bg) !important;
 }
 
 /* 필드명과 값의 시작점을 같은 컬럼에 맞추고, 데스크톱 표는 사용 가능한 폭을 끝까지 쓴다.
@@ -1191,18 +1191,18 @@ html.dark:not(.font-gothic) body #strategy-search .ss-product-tab.active {
 .ss-dividend-history li { display: flex; justify-content: space-between; gap: 12px; padding: 8px 0; border-bottom: 1px solid #e9edf2; color: #6b7280; font-size: 12px; }
 .ss-dividend-history li b { color: #1f2933; font-variant-numeric: tabular-nums; }
 .ss-dividend-history p { color: #8a9099; font-size: 12px; }
-html.dark .ss-dividend-modal { border-color: rgba(245,239,224,.2); background: #1A1A1A; }
-html.dark .ss-dividend-modal-head { border-bottom-color: rgba(245,239,224,.15); color: #F5EFE0; }
-html.dark .ss-dividend-modal-close { color: rgba(245,239,224,.55); }
-html.dark .ss-dividend-facts { border-top-color: rgba(245,239,224,.14); }
+html.dark .ss-dividend-modal { border-color: var(--dk-line); background: var(--dk-card); }
+html.dark .ss-dividend-modal-head { border-bottom-color: var(--dk-line); color: var(--dk-text); }
+html.dark .ss-dividend-modal-close { color: var(--dk-mute); }
+html.dark .ss-dividend-facts { border-top-color: var(--dk-line); }
 html.dark .ss-dividend-facts > div,
-html.dark .ss-dividend-history li { border-bottom-color: rgba(245,239,224,.1); }
+html.dark .ss-dividend-history li { border-bottom-color: var(--dk-line); }
 html.dark .ss-dividend-facts dt,
 html.dark .ss-dividend-history li,
-html.dark .ss-dividend-history p { color: rgba(245,239,224,.55); }
+html.dark .ss-dividend-history p { color: var(--dk-mute); }
 html.dark .ss-dividend-facts dd,
 html.dark .ss-dividend-history > strong,
-html.dark .ss-dividend-history li b { color: #F5EFE0; }
+html.dark .ss-dividend-history li b { color: var(--dk-text); }
 @media (max-width: 640px) {
   .ss-dividend-modal-overlay { padding: 8px; }
   .ss-dividend-modal { max-height: calc(100vh - 16px); }
@@ -1274,17 +1274,17 @@ html.dark .ss-dividend-history li b { color: #F5EFE0; }
 
 html.dark #strategy-search .ss-price-basis,
 html.dark #strategy-search .ss-row-basis-tag,
-html.dark #strategy-search .ss-price-basis-note { color: rgba(245, 239, 224, 0.5) !important; }
+html.dark #strategy-search .ss-price-basis-note { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-col-price.is-scan .ss-price-basis,
 html.dark #strategy-search .ss-row-quote.is-scan .ss-row-basis-tag,
 html.dark #strategy-search .ss-price-basis-note.is-stale { color: #e0a458 !important; }
-html.dark #strategy-search .ss-scan-gap.is-up { color: #ff6b6b !important; background: rgba(255, 107, 107, 0.14) !important; }
-html.dark #strategy-search .ss-scan-gap.is-down { color: #4dabf7 !important; background: rgba(77, 171, 247, 0.14) !important; }
-html.dark #strategy-search .ss-scan-gap.is-flat { color: rgba(245, 239, 224, 0.6) !important; background: rgba(245, 239, 224, 0.08) !important; }
-html.dark #strategy-search .ss-scan-ref { color: rgba(245, 239, 224, 0.42) !important; }
-html.dark #strategy-search .ss-gap-tools { color: rgba(245, 239, 224, 0.55) !important; }
-html.dark #strategy-search .ss-gap-tools select { background: #241f1c !important; border-color: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
-html.dark #strategy-search .ss-gap-count { color: rgba(245, 239, 224, 0.42) !important; }
+html.dark #strategy-search .ss-scan-gap.is-up { color: var(--dk-up) !important; background: rgba(var(--dk-up-rgb),0.14) !important; }
+html.dark #strategy-search .ss-scan-gap.is-down { color: var(--dk-down) !important; background: rgba(var(--dk-down-rgb),0.14) !important; }
+html.dark #strategy-search .ss-scan-gap.is-flat { color: var(--dk-sub) !important; background: var(--dk-inner) !important; }
+html.dark #strategy-search .ss-scan-ref { color: var(--dk-mute) !important; }
+html.dark #strategy-search .ss-gap-tools { color: var(--dk-mute) !important; }
+html.dark #strategy-search .ss-gap-tools select { background: #241f1c !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark #strategy-search .ss-gap-count { color: var(--dk-mute) !important; }
 
 /* 조건 근접(감시 목록, 2026-09-02). 조건을 통과한 후보 그리드와 시각적으로 확실히
    구분해야 한다 - 같은 카드처럼 보이면 통과한 것으로 읽힌다. 그래서 그리드 밖 접힌
@@ -1312,16 +1312,16 @@ html.dark #strategy-search .ss-gap-count { color: rgba(245, 239, 224, 0.42) !imp
   #strategy-search .ss-nearmiss-reason { grid-column: 1 / -1; }
 }
 
-html.dark #strategy-search .ss-nearmiss { border-color: rgba(245, 239, 224, 0.18) !important; }
-html.dark #strategy-search .ss-nearmiss > summary { color: rgba(245, 239, 224, 0.62) !important; }
+html.dark #strategy-search .ss-nearmiss { border-color: var(--dk-line) !important; }
+html.dark #strategy-search .ss-nearmiss > summary { color: var(--dk-sub) !important; }
 html.dark #strategy-search .ss-nearmiss-note,
 html.dark #strategy-search .ss-nearmiss-sector,
 html.dark #strategy-search .ss-nearmiss-reason,
-html.dark #strategy-search .ss-nearmiss-code { color: rgba(245, 239, 224, 0.45) !important; }
+html.dark #strategy-search .ss-nearmiss-code { color: var(--dk-mute) !important; }
 html.dark #strategy-search .ss-nearmiss-name,
-html.dark #strategy-search .ss-nearmiss-price { color: #F5EFE0 !important; }
+html.dark #strategy-search .ss-nearmiss-price { color: var(--dk-text) !important; }
 html.dark #strategy-search .ss-nearmiss-row:hover,
-html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245, 239, 224, 0.07) !important; }
+html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: var(--dk-hover) !important; }
 
 /* ── 대표 후보 TOP 3 (2026-10-04): 표 위의 하이라이트. 카드 전체 색칠·그림자·그라데이션 없이 순위 chip만 은은하게 ── */
 #strategy-search .ss-top3 { margin: 0 0 28px; }
@@ -1354,9 +1354,9 @@ html.dark #strategy-search .ss-nearmiss-row:focus-visible { background: rgba(245
 #strategy-search .ss-top-kpis dd { margin: 4px 0 0; font-size: 19px; font-weight: 700; font-variant-numeric: tabular-nums; }
 #strategy-search .ss-top-sub { align-self: end; margin: 0; font-size: 12.5px; line-height: 1.5; color: #64748b; }
 #strategy-search .ss-top3-note { margin: 10px 0 0; font-size: 12px; color: #94a3b8; }
-html.dark #strategy-search .ss-top-card { background: #1b1b1b; border-color: rgba(245, 239, 224, .14); }
-html.dark #strategy-search .ss-top3-head span, html.dark #strategy-search .ss-top-name small, html.dark #strategy-search .ss-top-kpis dt, html.dark #strategy-search .ss-top-sub { color: rgba(245, 239, 224, .6); }
-html.dark #strategy-search .ss-top-kpis, html.dark #strategy-search .ss-top-kpis > div { border-color: rgba(245, 239, 224, .12); }
+html.dark #strategy-search .ss-top-card { background: var(--dk-card); border-color: var(--dk-line); }
+html.dark #strategy-search .ss-top3-head span, html.dark #strategy-search .ss-top-name small, html.dark #strategy-search .ss-top-kpis dt, html.dark #strategy-search .ss-top-sub { color: var(--dk-sub); }
+html.dark #strategy-search .ss-top-kpis, html.dark #strategy-search .ss-top-kpis > div { border-color: var(--dk-line); }
 html.dark #strategy-search .ss-top-rate.is-up, html.dark #strategy-search .ss-top-gap.is-up, html.dark #strategy-search .ss-top-kpis dd.is-up { color: var(--num-up); }
 html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-top-gap.is-down, html.dark #strategy-search .ss-top-kpis dd.is-down { color: var(--num-down); }
 @media (max-width: 720px) {
@@ -1364,7 +1364,7 @@ html.dark #strategy-search .ss-top-rate.is-down, html.dark #strategy-search .ss-
   #strategy-search .ss-top3-grid { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; padding-bottom: 6px; }
   #strategy-search .ss-top-card { flex: 0 0 82%; scroll-snap-align: start; }
 }
-html.dark #strategy-search .ss-top-rank { background: rgba(245, 239, 224, .1) !important; color: rgba(245, 239, 224, .8) !important; }
+html.dark #strategy-search .ss-top-rank { background: var(--dk-inner) !important; color: var(--dk-text) !important; }
 html.dark #strategy-search .ss-top-rank.is-gold { background: rgba(214, 177, 92, .22) !important; color: #e8c987 !important; }
 html.dark #strategy-search .ss-top-rank.is-silver { background: rgba(190, 198, 210, .2) !important; color: #cfd6e0 !important; }
 html.dark #strategy-search .ss-top-rank.is-bronze { background: rgba(196, 140, 100, .22) !important; color: #e0b08c !important; }

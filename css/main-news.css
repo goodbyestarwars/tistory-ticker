@@ -129,8 +129,8 @@ html.dark #main-news .mn-market--crypto { color: #c4b5fd; background: rgba(109, 
 }
 #main-news .mn-state--error { color: var(--up); }
 
-html.dark #main-news .mn-tab { border-color: rgba(245,239,224,.24); background: rgba(245,239,224,.04); color: rgba(245,239,224,.68); }
-html.dark #main-news .mn-tab.is-active { border-color: #80b8ff; background: #235d9f; color: #fff; }
+html.dark #main-news .mn-tab { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-sub); }
+html.dark #main-news .mn-tab.is-active { border-color: var(--dk-down); background: #235d9f; color: #fff; }
 
 @media (max-width: 720px) {
   #main-news .mn-row { padding: 10px 0; gap: 0 8px; }

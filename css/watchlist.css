@@ -304,9 +304,9 @@
   font-size: 11px;
 }
 html.dark #watchlist.is-reordering .wl-group-empty {
-  border-color: rgba(245, 239, 224, .28);
-  background: rgba(245, 239, 224, .05);
-  color: rgba(245, 239, 224, .5);
+  border-color: var(--dk-line);
+  background: var(--dk-card);
+  color: var(--dk-mute);
 }
 #watchlist .wl-card:hover {
   background: rgba(255, 255, 255, .56);
@@ -410,45 +410,45 @@ html.dark #watchlist.is-reordering .wl-group-empty {
     box-shadow: 0 6px 18px rgba(15, 23, 42, .18);
   }
 }
-html.dark #watchlist .wl-drag-handle { color: rgba(245, 239, 224, .42); }
-html.dark #watchlist .wl-card.is-touch-dragging { background: rgba(245, 239, 224, .1) !important; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
+html.dark #watchlist .wl-drag-handle { color: var(--dk-mute); }
+html.dark #watchlist .wl-card.is-touch-dragging { background: var(--dk-inner) !important; box-shadow: 0 6px 18px rgba(0, 0, 0, .5); }
 
 /* ---- 다크모드 (9bolt 스킨 html.dark 블랑켓 규칙 오버라이드) ---- */
 /* 2026-07-28: 사이트 다크모드 전체 재통일(style.css 기타 규칙 참고)에 맞춰 #1A1A1A
    배경 + #F5EFE0 글자로 교체. 등락색(wl-up/down)·즐겨찾기 별(gold) 등은 의미가 있는
    색이라 유지. */
-html.dark #watchlist { color: #F5EFE0 !important; }
+html.dark #watchlist { color: var(--dk-text) !important; }
 html.dark .global-watchlist-panel,
-html.dark .global-watchlist-toggle { background: #1A1A1A !important; border-color: rgba(245, 239, 224, .2) !important; color: #F5EFE0 !important; }
-html.dark #watchlist .wl-group-items.is-drag-over { background: rgba(245, 239, 224, .08) !important; box-shadow: inset 0 0 0 1px rgba(245, 239, 224, .2) !important; }
-html.dark #watchlist .wl-count { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark .global-watchlist-toggle { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark #watchlist .wl-group-items.is-drag-over { background: var(--dk-inner) !important; box-shadow: inset 0 0 0 1px var(--dk-line) !important; }
+html.dark #watchlist .wl-count { color: var(--dk-mute) !important; }
 html.dark #watchlist .wl-auth,
-html.dark #watchlist .wl-login-gate p { color: rgba(245, 239, 224, 0.65) !important; }
-html.dark #watchlist .wl-auth button { background:#242424; border-color:rgba(245,239,224,.24); color:#f5efe0; }
-html.dark #watchlist .wl-auth button:hover { background:#2b2b2b; border-color:rgba(245,239,224,.38); }
-html.dark #watchlist .wl-login-gate { background:linear-gradient(135deg,#202b3a 0%,#242424 72%); border-color:rgba(245,239,224,.24); box-shadow:none; }
-html.dark #watchlist .wl-login-gate::before { background:#1a1a1a; border-color:rgba(245,239,224,.2); color:#8ab4f8; }
-html.dark #watchlist .wl-login-gate strong { color:#f5efe0; }
+html.dark #watchlist .wl-login-gate p { color: var(--dk-sub) !important; }
+html.dark #watchlist .wl-auth button { background:var(--dk-inner); border-color:var(--dk-line); color:var(--dk-text); }
+html.dark #watchlist .wl-auth button:hover { background:var(--dk-inner); border-color:var(--dk-mute); }
+html.dark #watchlist .wl-login-gate { background:linear-gradient(135deg,var(--dk-card) 0%,var(--dk-inner) 72%); border-color:var(--dk-line); box-shadow:none; }
+html.dark #watchlist .wl-login-gate::before { background:var(--dk-card); border-color:var(--dk-line); color:#8ab4f8; }
+html.dark #watchlist .wl-login-gate strong { color:var(--dk-text); }
 html.dark #watchlist .wl-login-btn { background:linear-gradient(135deg,#3b82f6,#2563eb); border-color:#3b82f6; }
 html.dark #watchlist .wl-input {
-  background: rgba(245, 239, 224, 0.06) !important;
-  border-color: rgba(245, 239, 224, 0.25) !important;
-  color: #F5EFE0 !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
+  color: var(--dk-text) !important;
 }
-html.dark #watchlist .wl-add-btn { background: rgba(245, 239, 224, 0.2) !important; color: #F5EFE0 !important; }
+html.dark #watchlist .wl-add-btn { background: var(--dk-active) !important; color: var(--dk-text) !important; }
 html.dark #watchlist .wl-suggest {
-  background: #1A1A1A !important;
-  border-color: rgba(245, 239, 224, 0.25) !important;
+  background: var(--dk-inner) !important;
+  border-color: var(--dk-line) !important;
 }
-html.dark #watchlist .wl-suggest-item { color: #F5EFE0 !important; }
+html.dark #watchlist .wl-suggest-item { color: var(--dk-text) !important; }
 html.dark #watchlist .wl-suggest-item:hover,
-html.dark #watchlist .wl-suggest-item.active { background: rgba(245, 239, 224, 0.1) !important; }
+html.dark #watchlist .wl-suggest-item.active { background: var(--dk-hover) !important; }
 html.dark #watchlist .wl-msg {
-  color: #ff8a80 !important;
+  color: var(--dk-up) !important;
   background: #3a2323 !important;
   border-color: #5a3333 !important;
 }
-html.dark #watchlist .wl-empty { color: rgba(245, 239, 224, 0.5) !important; border-color: rgba(245, 239, 224, 0.25) !important; }
+html.dark #watchlist .wl-empty { color: var(--dk-mute) !important; border-color: var(--dk-line) !important; }
 /* 2026-09-14: KIS 실시간 등록 자리에 못 들어가 REST 통합 시세(약 15초)로 갱신되는 종목. */
 #watchlist .wl-card.is-delayed [data-field="price"]::after { content: '지연'; margin-left: 4px; padding: 0 4px; border-radius: 3px; background: #fef3c7; color: #92400e; font-size: 10px; font-weight: 700; }
 html.dark #watchlist .wl-card.is-delayed [data-field="price"]::after { background: rgba(251,191,36,.18); color: #fcd34d; }
@@ -456,20 +456,20 @@ html.dark #watchlist .wl-card.is-delayed [data-field="price"]::after { backgroun
 html.dark #watchlist .wl-card {
   background: transparent !important;
   border: 0 !important;
-  border-bottom: 1px solid rgba(245, 239, 224, 0.16) !important;
+  border-bottom: 1px solid var(--dk-line) !important;
 }
-html.dark #watchlist .wl-card:hover { background: rgba(245, 239, 224, 0.07) !important; }
-html.dark #watchlist .wl-group { border-color: rgba(245, 239, 224, 0.16) !important; }
-html.dark #watchlist .wl-group-add { color: rgba(245, 239, 224, 0.65) !important; }
+html.dark #watchlist .wl-card:hover { background: var(--dk-hover) !important; }
+html.dark #watchlist .wl-group { border-color: var(--dk-line) !important; }
+html.dark #watchlist .wl-group-add { color: var(--dk-sub) !important; }
 html.dark #watchlist .wl-remove { color: #e0b040 !important; }
-html.dark #watchlist .wl-remove:hover { background: rgba(245, 239, 224, 0.08) !important; }
-html.dark #watchlist .wl-name { color: #F5EFE0 !important; }
-html.dark #watchlist .wl-price { color: #F5EFE0 !important; }
-html.dark #watchlist .wl-change { color: rgba(245, 239, 224, 0.55) !important; background: rgba(245, 239, 224, 0.12) !important; }
-html.dark #watchlist .wl-change.wl-up { color: #ff6b5b !important; background: #3a2323 !important; }
-html.dark #watchlist .wl-change.wl-down { color: #4d9fff !important; background: #1f2c3d !important; }
-html.dark #watchlist .wl-session { color: rgba(245, 239, 224, 0.45) !important; }
-html.dark #watchlist .wl-flow { color: rgba(245, 239, 224, 0.55) !important; }
+html.dark #watchlist .wl-remove:hover { background: var(--dk-hover) !important; }
+html.dark #watchlist .wl-name { color: var(--dk-text) !important; }
+html.dark #watchlist .wl-price { color: var(--dk-text) !important; }
+html.dark #watchlist .wl-change { color: var(--dk-mute) !important; background: var(--dk-hover) !important; }
+html.dark #watchlist .wl-change.wl-up { color: var(--dk-up) !important; background: #3a2323 !important; }
+html.dark #watchlist .wl-change.wl-down { color: var(--dk-down) !important; background: var(--dk-card) !important; }
+html.dark #watchlist .wl-session { color: var(--dk-mute) !important; }
+html.dark #watchlist .wl-flow { color: var(--dk-mute) !important; }
 
 
 /* ============================================================

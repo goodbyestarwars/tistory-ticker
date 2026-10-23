@@ -56,7 +56,7 @@
   /* 지수끼리 비교하는 그래프의 지수색. 투자자 그래프에 지수를 겹칠 때는 투자자색과 섞이지 않게 진회색 점선(--mi-idx-ref)을 쓴다. */
   --mi-idx-kospi: #D94F45; --mi-idx-kosdaq: #3273C8; --mi-idx-kospi200: #168B70; --mi-idx-ref: #4b5563;
 }
-html.dark .mi-wrap { --mi-rule: rgba(245,239,224,.26); --mi-rule-soft: rgba(245,239,224,.11); --mi-no: rgba(245,239,224,.42); --mi-sub: rgba(245,239,224,.64); --mi-idx-ref: #c5c9d0; }
+html.dark .mi-wrap { --mi-rule: var(--dk-line); --mi-rule-soft: var(--dk-line); --mi-no: var(--dk-mute); --mi-sub: var(--dk-sub); --mi-idx-ref: var(--dk-text); }
 .mi-wrap .mi-block { position: relative; min-width: 0; margin: 60px 0 0; padding: 0; border: 0; border-top: 1px solid var(--mi-rule); border-radius: 0; background: transparent; box-shadow: none; }
 .mi-wrap .mi-block.mi-block--first { margin-top: 26px; border-top: 0; }
 .mi-wrap .mi-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 30px 0 0; }
