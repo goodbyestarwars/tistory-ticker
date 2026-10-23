@@ -8939,7 +8939,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     .feed-hero-featured-slot > .post-card, .feed-block-headline, .feed-block-cards > .post-card, .feed-block-duo > .post-card, .feed > .post-card:not(.notice-card)) {
     background-color: var(--dk-card) !important;
   }
-  html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
+  html.dark body :where(th, .hrt-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
   html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
   html.dark body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-summary-card) { background-color: var(--dk-inner) !important; }
   html.dark body :where(input[type="search"], input[type="text"], input[type="email"], input[type="password"], select, textarea):not(.nav-search-input),
