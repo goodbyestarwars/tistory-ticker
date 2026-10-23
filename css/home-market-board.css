@@ -54,7 +54,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-headi
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading > div:first-child { flex: 1 1 auto; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated {
-  font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; white-space: nowrap; margin-left: auto; text-align: right; font-variant-numeric: tabular-nums;
+  font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: #6b7280; white-space: nowrap; margin-left: 0; text-align: left; font-variant-numeric: tabular-nums;
 }
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading #hmbUpdated { color: var(--dk-sub); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-cb-wrap { display: flex; align-items: center; gap: 8px; flex: none; }
