@@ -3200,3 +3200,16 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-pc-bar .put { background: #9dbbe0; }
   html body #market-temp .mt-pc-bar .call { background: #e7aaa5; }
 }
+
+/* 2026-10-23 새 카드는 한눈에 칸과 같은 카드, 누르면 오른쪽 '최근 시장 흐름'에 표시. 원자재·가상자산은 선 아이콘+스토리, 스크롤해도 오른쪽 그래프가 따라온다 */
+@layer np.np {
+  html body #market-temp .mt-xcard.has-icon { display: flex !important; align-items: center; gap: 10px; }
+  html body #market-temp .mt-xicon { flex: 0 0 36px; width: 36px; height: 36px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-xicon.is-positive { color: #d35159; }
+  html body #market-temp .mt-xicon.is-negative { color: #2566d4; }
+  html body #market-temp .mt-xicon .mt-art-tint { fill: currentColor; stroke: none; opacity: .12; }
+  html body #market-temp .mt-xbody { display: block; min-width: 0; flex: 1; }
+  @media (min-width: 761px) {
+    html body #market-temp .mt-front-page > .mt-indicator-history { position: sticky; top: 76px; align-self: start; }
+  }
+}
