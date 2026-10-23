@@ -1,3 +1,7 @@
+**2026-10-23 증시온도 "최근 시장 흐름" 그래프 높이 축소**
+
+사용자 지시("그래프 크기 너무 커"). 직전 배치 변경(#921)으로 이 카드가 전체 폭이 되면서 `aspect-ratio: 480 / 230` 규칙이 폭에 비례해 그래프를 450px 넘게 키웠다(샘플 947px 폭에서 454px). `css/market-temp.css` 끝에 규칙 하나: `.mt-indicator-history .mt-flow-svg` 높이 220px(760px 이하 190px)·`aspect-ratio:auto`. SVG는 `preserveAspectRatio="none"`이라 가로로 늘어나며 데이터·축 계산은 그대로(점·후광이 가로로 약간 납작해짐). 검증: 샘플 데이터 하네스(삭제)에서 454px → 220px 확인. 미확인: 운영 화면, 모바일 190px. 배포: css master 머지 후 Pages 자동.
+
 **2026-10-23 호가 매수·매도벽 카드 문구 간결화**
 
 사용자 지시: 레이아웃 확대가 아니라 텍스트 간결화. `js/order-book.js` `computeAbnormalSignals`의 배지 문구만 변경(벽 판정·허수호가 임계·평균 배수 계산은 불변): 이모지(🧱·🚨) 제거, 1줄 `매도벽 44,300원`(허수 의심이면 `· 허수 의심` 덧붙임), 2줄 `평균 2.8배 · 현가 +0.3%`(부호는 현재가 대비 위/아래, 매수벽 동일 형식). `renderAbnormalBadges`는 줄마다 `ob-ab-l1/l2` span으로 렌더. `css/order-book.css`·`css/stock-search.css`: 1줄 11px·2줄 10px, 패딩 5px 8px, line-height 1.25(기존 12px·1.7·패딩 5px 10px 규칙을 덮음) - 카드 높이는 약 51px에서 36px로 줄었고 색은 기존 그대로. 검증: 실제 order-book.js를 `test/order-book.html` mock(매도벽 시나리오)에서 실행해 문구·폰트·패딩·높이 확인, `orderbook-wall-evidence`·`test_order_book*.py`·depth/trade 테스트 통과, `test_ui_ia.py` 변경 전후 동일 37 failed, `test_stock_search_orderbook_layout.js`는 playwright 미설치로 변경 전에도 실행 불가. 미확인: 운영 호가 화면에서 본 모습. 배포: js/css master 머지 후 Pages 자동.

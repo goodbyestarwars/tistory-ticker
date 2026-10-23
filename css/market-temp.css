@@ -3327,3 +3327,11 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-tomorrow-card .mt-tm-proof-line b { font-weight: 700; }
   html body #market-temp .mt-tomorrow-card .mt-tm-night { margin: 10px 0 0 !important; }
 }
+
+/* 2026-10-23 최근 시장 흐름 그래프가 전체 폭이 되면서 480:230 비율을 따라 450px 넘게 커졌다 - 높이를 고정해 줄인다(SVG는 preserveAspectRatio=none이라 가로로 늘어남) */
+@layer np.np {
+  html body #market-temp .mt-indicator-history .mt-flow-svg { height: 220px !important; aspect-ratio: auto !important; }
+  @media (max-width: 760px) {
+    html body #market-temp .mt-indicator-history .mt-flow-svg { height: 190px !important; }
+  }
+}
