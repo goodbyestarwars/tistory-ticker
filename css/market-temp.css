@@ -3101,3 +3101,8 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
   html.dark body #market-temp .mt-front-headline.mt-front-headline.mt-front-headline { color: #f5efe0 !important; }
 }
+
+/* 2026-10-23 사용자 지시: 모바일에서는 "데이터 출처·기준 안내" 접힘 영역을 보여주지 않는다(PC는 그대로). */
+@media (max-width: 720px) {
+  html body #market-temp .mt-front-details { display: none !important; }
+}
