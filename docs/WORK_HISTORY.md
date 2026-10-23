@@ -1,3 +1,9 @@
+**2026-10-23 증시온도: 원자재·가상자산 / 수급·심리·금리 카드 재설계(수치 우선·4단 구조·카드 영역 너비 기준 반응형)**
+
+사용자 작업지시서. 카드 안에 글자가 몰려 수치가 안 보이던 문제를 같은 정보의 구조 변경으로 해결(데이터·계산·상태 판정·코멘트·갱신 로직은 그대로). `js/market-temp.js`: `xCardHtml_`을 ①이름+상태(아이콘 포함) ②핵심 수치 `rows`(이름·값·변동률 열 정렬, 첫 줄 17px) ③코멘트(색 없이 네이비) ④기준 시각 4단으로 재구성, `commodityStrip_`·`extrasBlock_`가 문자열 `amount` 대신 `rows`를 만든다(미수신이면 수치 줄 없음). 수급·심리·금리 3카드에도 아이콘 추가(Lucide 계열), 쓰이지 않던 `EXTRA_ART_` 제거. `css/market-temp.css`: 새 블록 하나(`mt-x*`), 옛 xcard 규칙 14줄 제거. 열 수는 화면이 아니라 `.mt-extras-col` 컨테이너 너비로 결정(<440px 1열, 440px~ 2열·홀수 마지막 카드 전체 폭, 720px~ 3열) - 글자 축소·장평 압축 없음. 상승/하락 색은 사이트 의미색(`--num-up/down`), 카드 바탕은 방향색 5% 틴트. 함정: style.css의 비레이어 `*{margin:0;padding:0}`가 `@layer np` 안 margin/padding을 이기므로 새 블록의 margin/padding에는 `!important`.
+
+검증: `test_market_temp_commodity.js`·`extras.js` 및 market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패), `test_market_temp_cards.py` 16 passed, `test_ui_ia.py`는 변경 전후 동일하게 37 failed. 샘플 데이터 하네스(임시, 삭제)로 560/380/900px·375px 모바일·다크 렌더 확인, 카드 밖 넘침 0. 미확인: 실제 티스토리 콘텐츠 폭과 운영 API 응답으로 본 화면. 배포: js/css는 master 머지 후 Pages 자동, skin.html 변경 없음.
+
 **2026-10-23 텔레그램: 실계좌 runner 막힘 상태·피드 장애·일일 요약 알림(코드·테스트만, PC 미설치)**
 
 10/22(FOREIGN_HOLDINGS)·10/23(SLOTS_FULL) 연속으로 매수가 막혔는데 사용자가 파일을 직접 열기 전에는 알 수 없었다. 사용자 지시("일일이 확인 못 해, 텔레그램을 쓰자")로 `tg_live_status.py`와 `Monitor.watch_live_status`를 추가: `live_status.json`·`live_orders.db`(intents·skips·positions)를 읽기 전용으로 읽어 ① 막힘 상태(FOREIGN_HOLDINGS·PENDING_ORDERS·체결 미확인·승인 불확실·ERROR_*) 즉시 경고·재알림·복구, ② 9Pay 피드 3분 초과 불가, ③ 장중 상태 파일 5분 무갱신(runner 응답 없음), ④ 평일 09:05 준비 점검·14:05 매수 시간 종료·15:35 장 마감 요약(오늘 주문·열린 포지션·못 산 이유)을 보낸다. runner·엔진·주문 코드는 건드리지 않고 어제 값으로 오늘 경고하지 않는다. 테스트 10개 추가 통과(텔레그램 기존 테스트 3건은 변경 전에도 실패). PC 설치·봇 재시작은 사용자 승인 대기.
