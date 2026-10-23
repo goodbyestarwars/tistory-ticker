@@ -2241,12 +2241,21 @@
       callHigh: ['콜이 더 많이 오가네… 오를 거라 보는 건가?', '콜 거래 우세네? 분위기 괜찮나…', '콜이 풋을 앞섰네… 낙관이 꽉 찼나?']
     },
     rate: {
-      inverted: ['헐, 금리가 거꾸로네? 장단기 역전이다', '장단기 금리 역전이네… 불길한가?', '10년이 2년보다 낮네? 심상치 않다'],
-      widenBig: ['금리차 확 벌어졌네… 헐', '장단기 금리차 개 커졌네?', '금리 확 움직였네… 주식 쪽 눈치 보인다'],
-      widenMild: ['금리차 슬금슬금 벌어지네…', '장단기 금리차 조금 커졌네?', '금리가 살짝 움직였나보네…'],
-      narrowBig: ['금리차 확 좁혀졌네? 헐', '장단기 금리차 훅 줄었네…', '금리 확 내려왔네… 분위기 바뀌나?'],
-      narrowMild: ['금리차 슬금슬금 좁아지네…', '장단기 금리차 조금 줄었네?', '금리가 살짝 내려왔나보네…'],
-      flat: ['금리는 조용하네… 오늘은 평화다', '금리차 그대로네? 별일 없다', '채권쪽은 숨 고르는 중…']
+      highSurge: ['장기금리 급등… 증시 부담이 커지네', '금리 확 뛰었네… 높은 자리에서 더 올랐다', '장기금리 급등, 증시엔 부담이다'],
+      highUp: ['장기금리 고공행진… 증시 부담 지속', '높은 금리가 더 오르네… 부담 여전하다', '장기금리 또 올랐네… 부담 이어진다'],
+      highFlat: ['금리 변동 제한적이나 높은 수준 유지', '장기금리 높은 자리 그대로… 부담 여전', '큰 움직임은 없지만 금리 수준이 높다'],
+      highDown: ['금리 내렸지만 수준은 여전히 높다', '장기금리 숨 고르기… 그래도 높은 자리', '부담 다소 덜었지만 아직 높은 수준'],
+      highPlunge: ['장기금리 급락… 안전자산 선호 가능성', '금리 확 빠졌네… 위험회피인지 확인 필요', '급락했지만 수준은 높아, 이유를 봐야 한다'],
+      midSurge: ['금리 급등… 부담이 빠르게 커지네', '금리 확 올랐네… 증시 눈치 보인다', '장기금리 급등세, 부담 커지는 중'],
+      midUp: ['금리 소폭 상승… 부담 조금 커진다', '금리가 슬금슬금 오르네', '장기금리 오름세… 지켜볼 만하다'],
+      midFlat: ['금리는 보통 수준에서 잠잠하다', '금리 변동 적고 수준도 무난하다', '장기금리 별일 없다… 영향 제한적'],
+      midDown: ['금리 내려 부담이 다소 완화됐다', '장기금리 슬그머니 하락… 부담 덜었다', '금리 소폭 하락, 부담 완화 쪽'],
+      midPlunge: ['금리 급락… 위험회피 가능성 살펴야', '장기금리 확 빠졌네… 안전자산 선호일까', '급락, 증시 호재로만 보긴 어렵다'],
+      lowSurge: ['낮은 수준에서 금리 급등… 흐름 주시', '금리 확 뛰었네… 아직 낮은 자리지만 급하다', '장기금리 급등, 수준보다 속도가 문제'],
+      lowUp: ['금리 오르지만 아직 낮은 수준', '낮은 금리가 조금 올랐네', '장기금리 상승, 수준은 부담 낮은 편'],
+      lowFlat: ['금리가 낮은 수준에서 잠잠하다', '장기금리 낮고 조용하다… 부담 적다', '금리 영향 적은 날이다'],
+      lowDown: ['낮은 금리가 더 내렸네… 이유 확인 필요', '금리 하락 이어진다… 경기 신호도 볼 필요', '낮은 수준에서 추가 하락'],
+      lowPlunge: ['낮은 수준에서 급락… 위험회피 가능성', '금리 급락… 경기 불안 신호일 수 있다', '장기금리 급락, 안전자산 선호 쪽']
     },
     btc: {
       upMild: ['비트코인 또 오르네… 멀미 난다', '비트코인 슬금슬금 오르네?', '코인판 분위기 좋은가보네…'],
@@ -2338,6 +2347,47 @@
   //   풋 거래량이 콜보다 많은지(비율 1 기준)만 쓴다.
   // 금리: /futures의 US10Y·US2Y·KTB3Y 일봉. 장단기차 = 10년 - 2년, 강도는 일변화 절댓값의 중앙값·90백분위.
   function percentileOf_(sorted, q) { return sorted.length ? sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))] : null; }
+  // 프로그램매매 20거래일 누적(2026-10-23). 값은 /domestic-market-indicators programTrading.history(KIS 일별, 코스피, 백만원, 차익·비차익 순매수) 그대로.
+  // 일별 순매수 = 차익 + 비차익(한 번만 합산). 외국인·기관 순매매와는 다른 수치다. 매수·매도 거래대금은 이 응답에 없어 수집·표시하지 않는다.
+  // 장중(15:40 전)의 오늘 값은 잠정이라 누적에서 빼고 따로 보인다. 확정 일수가 20 미만이면 '집계 중 (N/20일)'(없는 날을 0으로 채우지 않는다).
+  function moneyKr_(m) {
+    var eok = Math.round(Math.abs(m) / 100), sign = m > 0 && eok ? '+' : m < 0 && eok ? '-' : '';
+    if (eok >= 10000) { var jo = Math.floor(eok / 10000), rest = eok % 10000; return sign + jo + '조' + (rest ? ' ' + rest.toLocaleString('ko-KR') + '억' : ''); }
+    return sign + eok.toLocaleString('ko-KR') + '억';
+  }
+  function programCumulative_(pt, live) {
+    var map = {};
+    (pt.history || []).forEach(function (r) {
+      var a = Number(r && r.arbitrage), n = Number(r && r.nonArbitrage);
+      if (r && r.date && isFinite(a) && isFinite(n)) map[r.date] = { date: r.date, arb: a, non: n };
+    });
+    var tArb = Number(pt.arbitrage), tNon = Number(pt.nonArbitrage);
+    if (pt.date && isFinite(tArb) && isFinite(tNon)) map[pt.date] = { date: pt.date, arb: tArb, non: tNon };
+    var all = Object.keys(map).sort().map(function (d) { return map[d]; });
+    var rows = live ? all.filter(function (r) { return r.date !== pt.date; }) : all;
+    var use = rows.slice(-20);
+    // 달력 간격이 10일을 넘게 벌어진 곳이 있으면 그 앞은 연속 이력이 아니므로 쓰지 않는다(누락일을 0으로 채우지 않는다)
+    for (var i = use.length - 1; i > 0; i--) {
+      if ((Date.parse(use[i].date) - Date.parse(use[i - 1].date)) / 86400000 > 10) { use = use.slice(i); break; }
+    }
+    var totals = use.map(function (r) { return r.arb + r.non; });
+    var sum = function (arr) { return arr.reduce(function (s, v) { return s + v; }, 0); };
+    var absNon = use.map(function (r) { return Math.abs(r.non); });
+    return {
+      all: all, n: use.length, complete: use.length >= 20,
+      cum20: sum(totals), sellDays: totals.filter(function (v) { return v < 0; }).length,
+      buyDays: totals.filter(function (v) { return v > 0; }).length, flatDays: totals.filter(function (v) { return v === 0; }).length,
+      cum5: use.length >= 5 ? sum(totals.slice(-5)) : null, avgAbsNon: absNon.length ? sum(absNon) / absNon.length : 0
+    };
+  }
+  function programComment_(c, todayNon) {
+    if (c.cum5 != null && c.cum5 > 0 && c.cum20 < 0 && c.sellDays > c.buyDays) return '최근 5일 순매수 전환… 매도 압력 완화';
+    if (c.cum5 != null && c.cum5 < 0 && c.cum20 > 0 && c.buyDays > c.sellDays) return '최근 5일 순매도 전환… 매수 우위 약화';
+    if (c.avgAbsNon > 0 && Math.abs(todayNon) >= c.avgAbsNon * 2) return todayNon < 0 ? '비차익 순매도 확대… 수급 부담' : '비차익 순매수 확대… 수급 우호';
+    if (c.cum20 < 0 && c.sellDays > c.buyDays) return '20일 중 ' + c.sellDays + '일 순매도… 매도 우세 지속';
+    if (c.cum20 > 0 && c.buyDays > c.sellDays) return '20일 중 ' + c.buyDays + '일 순매수… 매수 우세 지속';
+    return '20일 수급이 엇갈려 방향이 뚜렷하지 않음';
+  }
   function programTradingCard_(pt, now_) {
     if (!pt || pt.available !== true || !isFinite(Number(pt.nonArbitrage)) || !pt.date) return null;
     var hist = (pt.history || []).map(function (r) { return Math.abs(Number(r.nonArbitrage)); }).filter(function (v) { return isFinite(v); }).sort(function (a, b) { return a - b; });
@@ -2346,8 +2396,9 @@
     var eok = function (m) { return (m > 0 ? '+' : m < 0 ? '-' : '') + Math.abs(Math.round(m / 100)).toLocaleString('ko-KR') + '억'; };
     var kst = new Date((now_ == null ? Date.now() : now_) + 9 * 3600000), today = kst.toISOString().slice(0, 10);
     var live = pt.date === today && kst.getUTCHours() * 60 + kst.getUTCMinutes() < 15 * 60 + 40;
-    var points = (pt.history || []).map(function (r) { return { date: indicatorDate_(r.date), score: Number(r.nonArbitrage) }; }).filter(function (r) { return r.date && isFinite(r.score); }).slice(-40);
-    return { kind: 'prog', points: points, nonArb: v, arb: Number(pt.arbitrage), name: '프로그램매매(코스피)', tone: v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral', tier: tier,
+    var cum = programCumulative_(pt, live);
+    var points = cum.all.map(function (r) { return { date: indicatorDate_(r.date), score: r.arb + r.non }; }).filter(function (r) { return r.date; }).slice(-40);
+    return { kind: 'prog', points: points, nonArb: v, arb: Number(pt.arbitrage), name: '프로그램매매(코스피)', tone: v > 0 ? 'positive' : v < 0 ? 'negative' : 'neutral', tier: tier, live: live, cum: cum,
       lines: [['비차익', eok(v), v], ['차익', eok(Number(pt.arbitrage)), Number(pt.arbitrage)]], time: String(pt.date).slice(5).replace('-', '.') + (live ? ' 장중 집계' : ' 기준') };
   }
   function optionCard_(of) {
@@ -2360,22 +2411,68 @@
       lines: [['풋/콜 거래량 비율', ratio.toFixed(2), 0], ['풋 ' + Number(q.volume).toLocaleString('ko-KR') + ' · 콜 ' + Number(c.volume).toLocaleString('ko-KR'), '', 0]],
       time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준(최근월·상위 100행 합)' };
   }
-  function rateCard_(by) {
-    var a = by.US10Y && by.US10Y.chart, b = by.US2Y && by.US2Y.chart, k = by.KTB3Y;
-    if (!a || !b || a.length < 3 || b.length < 3 || (by.US10Y.stale === true) || (by.US2Y.stale === true)) return null;
-    var m2 = {}; b.forEach(function (r) { m2[r.date] = Number(r.close); });
-    var series = a.filter(function (r) { return isFinite(m2[r.date]) && isFinite(Number(r.close)); }).map(function (r) { return { date: r.date, spread: Number(r.close) - m2[r.date] }; });
-    if (series.length < 3) return null;
-    var last = series[series.length - 1], prev = series[series.length - 2], delta = last.spread - prev.spread;
-    var deltas = []; for (var i = 1; i < series.length; i++) deltas.push(Math.abs(series[i].spread - series[i - 1].spread));
-    deltas.sort(function (x, y) { return x - y; });
-    var p50 = percentileOf_(deltas, 0.5), p90 = percentileOf_(deltas, 0.9), abs = Math.abs(delta);
-    var tier = last.spread < 0 ? 'inverted' : abs >= p90 ? (delta > 0 ? 'widenBig' : 'narrowBig') : abs >= p50 ? (delta > 0 ? 'widenMild' : 'narrowMild') : 'flat';
-    var kr = k && Number(k.price), krc = k && k.chart && k.chart.length >= 2 ? Number(k.chart[k.chart.length - 1].close) - Number(k.chart[k.chart.length - 2].close) : null;
-    var lines = [['미국 10년-2년', (last.spread >= 0 ? '+' : '') + last.spread.toFixed(2) + '%p', delta]];
-    if (kr > 0 && k.stale !== true) lines.push(['한국 국고 3년', kr.toFixed(2) + '%', krc == null ? 0 : krc]);
-    var d = String(last.date);
-    return { kind: 'rate', points: series.slice(-40).map(function (r) { return { date: indicatorDate_(r.date), score: r.spread }; }).filter(function (r) { return r.date; }), spread: last.spread, delta: delta, kr: kr > 0 && k.stale !== true ? kr : null, krc: krc, name: '금리(한·미)', tone: last.spread < 0 ? 'negative' : tier === 'flat' ? 'neutral' : delta > 0 ? 'positive' : 'negative', tier: tier, lines: lines, time: d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준' };
+  // 금리 해설(2026-10-23): 수준(높음/보통/낮음)·단기 움직임(급등/상승/안정/하락/급락)·시장 영향을 따로 판단한다.
+  // 값은 /futures의 미국채 10·30·2년(FRED 일봉)·국고 3년(네이버) 그대로. 수준은 최근 약 120일 안에서의 위치(백분위)로 정하고,
+  // 절대 수준(10년 4.5%·30년 5%)은 보조로만 쓴다(위치가 하위 1/3이면 적용하지 않음). 움직임은 일 변동(bp)을 같은 기간 일 변동의 90백분위로 나눈 값.
+  // 금리가 내렸다고 증시에 호재라고 단정하지 않는다(급락은 위험회피 가능성으로 읽는다).
+  var RATE_ABS_HIGH_ = { US10Y: 4.5, US30Y: 5.0 };
+  function rateStats_(row, now_) {
+    var chart = ((row && row.chart) || []).filter(function (r) { return r && isFinite(Number(r.close)) && Number(r.close) > 0 && /^\d{8}$/.test(String(r.date)); });
+    if (!row || row.stale === true || chart.length < 6) return null;
+    var closes = chart.slice(-120).map(function (r) { return Number(r.close); });
+    var last = chart[chart.length - 1], prev = chart[chart.length - 2], y = Number(last.close);
+    var ds = String(last.date), at = Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8));
+    if ((now_ == null ? Date.now() : now_) - at > 7 * 86400000 + 9 * 3600000) return null;
+    var deltas = [];
+    for (var i = 1; i < closes.length; i++) deltas.push(Math.abs(Math.round((closes[i] - closes[i - 1]) * 100)));
+    deltas.sort(function (a, b) { return a - b; });
+    var below = closes.filter(function (c) { return c <= y + 1e-9; }).length;
+    return { y: y, date: ds, bp: Math.round((y - Number(prev.close)) * 100), bp5: Math.round((y - Number(chart[chart.length - 6].close)) * 100),
+      pct: below / closes.length, n: closes.length, p90: Math.max(3, percentileOf_(deltas, 0.9) || 0), closes: closes };
+  }
+  function rateLevelMove_(s10, s30) {
+    var list = [s10, s30].filter(Boolean);
+    if (!list.length || list.some(function (s) { return s.n < 20; })) return null;
+    var pct = list.reduce(function (sum, s) { return sum + s.pct; }, 0) / list.length;
+    var absHigh = !!((s10 && s10.y >= RATE_ABS_HIGH_.US10Y) || (s30 && s30.y >= RATE_ABS_HIGH_.US30Y));
+    var level = pct >= 0.67 || (absHigh && pct >= 0.34) ? 'high' : pct <= 0.33 && !absHigh ? 'low' : 'mid';
+    var m = list.reduce(function (sum, s) { return sum + s.bp / s.p90; }, 0) / list.length;
+    var move = m >= 1 ? 'Surge' : m >= 0.4 ? 'Up' : m <= -1 ? 'Plunge' : m <= -0.4 ? 'Down' : 'Flat';
+    return { level: level, move: move, tier: level + move, m: m };
+  }
+  function rateComment_(tier, y30, dateKey) {
+    var pool = COMMENT_POOLS_.rate, list = pool && tier && pool[tier] ? pool[tier].slice() : null;
+    if (!list) return '금리 수준을 판단할 기록이 부족합니다';
+    // 30년물이 5%대 이상 높은 수준이면 실제 수준을 문장에 넣은 변형도 후보에 넣는다
+    if (y30 != null && y30 >= 5 && /^high(Flat|Up|Surge)$/.test(tier)) list.push('30년물 ' + Math.floor(y30) + '%대 ' + (tier === 'highFlat' ? '유지' : '지속') + ', 장기금리 부담 여전');
+    var key = (dateKey || new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10)) + 'rate';
+    return list[commentHash_(key) % list.length];
+  }
+  function rateCard_(by, now_) {
+    var s10 = rateStats_(by.US10Y, now_), s30 = rateStats_(by.US30Y, now_);
+    if (!s10 && !s30) return null;
+    var lm = rateLevelMove_(s10, s30), s2 = rateStats_(by.US2Y, now_), k = by.KTB3Y;
+    var main = s10 || s30, bpText = function (v) { return (v > 0 ? '+' : '') + v + 'bp'; };
+    var dir = function (v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : ''; };
+    var rows = [];
+    if (s10) rows.push({ k: '미국 10년', v: s10.y.toFixed(2) + '%', d: bpText(s10.bp), t: dir(s10.bp) });
+    else rows.push({ k: '미국 10년', v: '미수신', miss: true });
+    if (s30) rows.push({ k: '미국 30년', v: s30.y.toFixed(2) + '%', d: bpText(s30.bp), t: dir(s30.bp) });
+    else rows.push({ k: '미국 30년', v: '미수신', miss: true });
+    var sub = [];
+    if (s10 && s30) sub.push('30-10년 차 ' + bpText(Math.round((s30.y - s10.y) * 100)));
+    if (s2) sub.push('2년 ' + s2.y.toFixed(2) + '%');
+    if (k && k.stale !== true && Number(k.price) > 0) sub.push('한국 3년 ' + Number(k.price).toFixed(2) + '%');
+    if (sub.length) rows[rows.length - 1].sub = sub.join(' · ');
+    var five = [s10 && '10년 ' + bpText(s10.bp5), s30 && '30년 ' + bpText(s30.bp5)].filter(Boolean).join(' · ');
+    var moveWord = lm ? { Surge: '급등', Up: '상승', Flat: '안정', Down: '하락', Plunge: '급락' }[lm.move] : null;
+    var levelWord = lm ? { high: '높음', mid: '보통', low: '낮음' }[lm.level] : null;
+    var tone = lm ? (lm.move === 'Surge' || lm.move === 'Up' ? 'positive' : lm.move === 'Down' || lm.move === 'Plunge' ? 'negative' : 'neutral') : 'neutral';
+    var d = String(main.date);
+    return { kind: 'rate', tone: tone, tier: lm ? lm.tier : null, rows: rows, moveWord: moveWord, levelWord: levelWord, five: five,
+      say: rateComment_(lm ? lm.tier : null, s30 ? s30.y : null),
+      series: ((by.US10Y && by.US10Y.chart) || (by.US30Y && by.US30Y.chart) || []).slice(-40).map(function (r) { return { date: indicatorDate_(r.date), score: Number(r.close) }; }).filter(function (r) { return r.date && isFinite(r.score); }),
+      time: d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준(FRED)' };
   }
   function extrasBlock_(domestic, macro, optionFlow, now_, selectedId) {
     var by = {}; (Array.isArray(macro) ? macro : []).forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
@@ -2384,9 +2481,22 @@
     var cards = [];
     var pg = programTradingCard_(domestic && domestic.programTrading, now_);
     var signTone = function (v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : ''; };
-    cards.push(pg ? { id: 'prog', icon: 'prog', detail: '코스피 비차익 순매수', label: '프로그램매매', tone: pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, state: stateWord_(pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, ['순매수', '순매도', '조용']),
-      rows: [{ k: '비차익', v: eok(pg.nonArb), t: signTone(pg.nonArb) }, { k: '차익', v: eok(pg.arb), t: signTone(pg.arb) }], say: marketCommentTier_('prog', pg.tier), meta: '코스피 · ' + pg.time,
-      panel: { points: pg.points, base: 0, zeroBase: true, format: function (v) { return eok(v); } } }
+    var progCard = function (pg) {
+      var c = pg.cum, todayTotal = pg.nonArb + pg.arb, todayRow = { k: pg.live ? '오늘 잠정' : '오늘', v: moneyKr_(todayTotal), t: signTone(todayTotal), sub: '차익 ' + moneyKr_(pg.arb) + ' · 비차익 ' + moneyKr_(pg.nonArb) };
+      var meta = '코스피 · ' + pg.time + ' · KIS 일별' + (pg.live ? ' (오늘 값은 잠정, 누적에서 제외)' : '');
+      var panel = { points: pg.points, base: 0, zeroBase: true, format: function (v) { return moneyKr_(v); } };
+      var detail = '코스피 프로그램매매 일별 순매수(차익+비차익, 외국인·기관 순매매와 다른 수치) · 매수·매도 거래대금은 수집하지 않음';
+      if (!c.complete) {
+        return { id: 'prog', icon: 'prog', detail: detail, label: '프로그램매매', tone: 'neutral', state: '집계 중 (' + c.n + '/20일)', rows: [todayRow],
+          say: '20거래일 확보 전이라 누적은 계산하지 않습니다', meta: meta, panel: panel };
+      }
+      var tone = c.cum20 < 0 && c.sellDays > c.buyDays ? 'negative' : c.cum20 > 0 && c.buyDays > c.sellDays ? 'positive' : 'neutral';
+      var word = tone === 'negative' ? '20일 매도 우세' : tone === 'positive' ? '20일 매수 우세' : '20일 엇갈림';
+      var counts = '순매도 ' + c.sellDays + '일 / 순매수 ' + c.buyDays + '일' + (c.flatDays ? ' / 중립 ' + c.flatDays + '일' : '') + (c.cum5 != null ? ' · 5일 ' + moneyKr_(c.cum5) : '');
+      return { id: 'prog', icon: 'prog', detail: detail, label: '프로그램매매', tone: tone, state: stateWord_(tone, [word, word, word]),
+        rows: [{ k: '20일 누적', v: moneyKr_(c.cum20), t: signTone(c.cum20), sub: counts }, todayRow], say: programComment_(c, pg.nonArb), meta: meta, panel: panel };
+    };
+    cards.push(pg ? progCard(pg)
       : { id: 'prog', icon: 'prog', label: '프로그램매매', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     var oc = optionCard_(optionFlow);
     cards.push(oc ? { id: 'putcall', icon: 'putcall', detail: '풋·콜 거래량 비중', label: '옵션 풋/콜', tone: oc.tone, state: stateWord_(oc.tone, ['콜 우세', '풋 우세', '비슷']),
@@ -2394,10 +2504,10 @@
       say: marketCommentTier_('putcall', oc.tier), meta: '코스피200 · ' + oc.time,
       panel: { html: '<div class="mt-pc-bar" role="img" aria-label="풋 ' + Math.round(oc.share * 100) + '% 콜 ' + (100 - Math.round(oc.share * 100)) + '%"><i class="put" style="width:' + (oc.share * 100).toFixed(1) + '%"></i><i class="call" style="width:' + ((1 - oc.share) * 100).toFixed(1) + '%"></i></div><p class="mt-indicator-chart-note">풋·콜 거래량 비중입니다. 이력이 없어 날짜별 그래프는 없습니다.</p>' } }
       : { id: 'putcall', icon: 'putcall', label: '옵션 풋/콜', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
-    var rc = rateCard_(by);
-    cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 10년-2년 금리차', label: '금리', tone: rc.tone, state: stateWord_(rc.tone, ['차 확대', '차 축소', '변화 적음']),
-      rows: [{ k: '미국 10년-2년', v: (rc.spread >= 0 ? '+' : '') + rc.spread.toFixed(2) + '%p' }].concat(rc.kr ? [{ k: '한국 3년', v: rc.kr.toFixed(2) + '%' }] : []), say: marketCommentTier_('rate', rc.tier), meta: rc.time,
-      panel: { points: rc.points, base: 0, zeroBase: true, format: function (v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%p'; } } }
+    var rc = rateCard_(by, now_);
+    cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 국채 10년 금리(%) · FRED 일봉 · 5거래일 ' + rc.five, label: '금리', tone: rc.tone, state: stateWord_(rc.tone, [rc.moveWord || '확인 중', rc.moveWord || '확인 중', rc.moveWord || '확인 중']),
+      rows: rc.rows, say: rc.say, meta: (rc.levelWord ? '수준 ' + rc.levelWord + ' · ' : '') + rc.time + (rc.five ? ' · 5일 ' + rc.five : ''),
+      panel: rc.series.length ? { points: rc.series, base: null, zeroBase: false, format: function (v) { return v.toFixed(2) + '%'; } } : null }
       : { id: 'rate', icon: 'rate', label: '금리', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     return xBlockHtml_('수급·심리·금리', '수급·심리·금리(표시 전용)', cards, selectedId);
   }
@@ -2433,7 +2543,9 @@
   }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
+    // 원/달러는 '다음 거래일 전망' 카드에 있어 시장 한눈에에서는 그리지 않는다(모델은 시그널·체크포인트가 그대로 쓴다).
     return '<div class="mt-glance-list">' + models.map(function (m) {
+      if (m.id === 'fx') return '';
       var investor = ['foreign', 'institution', 'individual'].indexOf(m.id) >= 0;
       var share = shares && shares.items.filter(function (r) { return r.id === m.id; })[0];
       var amount = share ? share.value : m.value, date = share ? shares.date : m.date;
@@ -2492,23 +2604,45 @@
     return '<section class="mt-card mt-indicator-history" data-mt-indicator-panel><div class="mt-history-tail-head"><h3 class="mt-card-title">최근 시장 흐름</h3>'
       + '<div class="mt-flow-periods" data-indicator-periods></div></div><div data-indicator-chart><p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p></div></section>';
   }
-  function renderIndicatorHistory_(model, period) {
+  // 최근 시장 흐름 기본 화면(2026-10-23): 큰 면적 차트 대신 한 줄 요약 - 핵심 수치 + 최근 7개 기록 초소형 추세선 + 한 줄 해설.
+  // 큰 차트와 5/10/20/40일 전환은 '상세 보기'를 펼칠 때만 쓴다(같은 buildFlowChart_ 한 벌, 차트 인스턴스를 따로 만들지 않는다).
+  function trendSparkHtml_(points, tone, base) {
+    var W = 200, H = 56, n = points.length;
+    if (n < 2) return '';
+    var vals = points.map(function (p) { return p.score; }), lo = Math.min.apply(null, vals), hi = Math.max.apply(null, vals);
+    if (base != null) { lo = Math.min(lo, base); hi = Math.max(hi, base); }
+    if (hi === lo) { hi += 1; lo -= 1; }
+    var pad = (hi - lo) * 0.14; lo -= pad; hi += pad;
+    function X(i) { return 4 + i * (W - 8) / (n - 1); }
+    function Y(v) { return 4 + (hi - v) * (H - 8) / (hi - lo); }
+    var line = points.map(function (p, i) { return (i ? 'L' : 'M') + X(i).toFixed(1) + ',' + Y(p.score).toFixed(1); }).join(' ');
+    var area = line + ' L' + X(n - 1).toFixed(1) + ',' + (H - 2) + ' L' + X(0).toFixed(1) + ',' + (H - 2) + ' Z';
+    var baseLine = base != null ? '<line class="mt-ts-base" x1="0" x2="' + W + '" y1="' + Y(base).toFixed(1) + '" y2="' + Y(base).toFixed(1) + '"/>' : '';
+    return '<span class="mt-ts-spark is-' + tone + '"><svg viewBox="0 0 ' + W + ' ' + H + '" preserveAspectRatio="none" role="img" aria-label="최근 ' + n + '개 기록 추세">'
+      + baseLine + '<path class="mt-ts-area" d="' + area + '"/><path class="mt-ts-line" d="' + line + '"/></svg>'
+      + '<i class="mt-ts-dot" style="left:' + (X(n - 1) / W * 100).toFixed(1) + '%;top:' + (Y(points[n - 1].score) / H * 100).toFixed(1) + '%"></i></span>';
+  }
+  function renderIndicatorHistory_(model, period, open) {
     var shown = model.points.slice(-period);
     if (model.nohistory) return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div><div class="mt-raw-current is-' + model.tone + '"><b>' + escapeHtml(model.changeText) + '</b></div>' + (model.pcHtml || '');
     if (!shown.length) return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '</div><p class="mt-visual-empty">이 항목의 날짜별 자료를 확인하지 못했습니다.</p>';
-    var latest = shown[shown.length - 1];
-    return '<div class="mt-indicator-chart-title">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div>'
-      + '<div class="mt-raw-current is-' + model.tone + '"><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div>'
+    var latest = shown[shown.length - 1], strip = model.points.slice(-7), fmt = model.format || String;
+    var spark = trendSparkHtml_(strip, model.tone, model.zeroBase ? 0 : null);
+    var trendText = strip.length > 1 ? ' · 최근 ' + strip.length + '개 기록 ' + fmt(strip[0].score) + ' → ' + fmt(strip[strip.length - 1].score) : '';
+    return '<div class="mt-trend-strip is-' + model.tone + '"><div class="mt-ts-main"><div class="mt-ts-label">' + escapeHtml(model.label) + '<span>' + escapeHtml(model.detail) + '</span></div>'
+      + '<div class="mt-ts-value"><b>' + escapeHtml(model.valueText) + '</b><small>' + escapeHtml(model.changeText) + '</small></div></div>' + spark + '</div>'
+      + '<p class="mt-ts-note">' + escapeHtml(asOfText_(latest.date)) + trendText + '</p>'
+      + '<details class="mt-ts-detail"' + (open ? ' open' : '') + '><summary>상세 보기<span> · 기간 전환·큰 차트</span></summary>'
       + '<div class="mt-chart-date">' + escapeHtml(asOfText_(latest.date)) + ' · 최근 ' + shown.length + '개 기록</div>'
       + buildFlowChart_(shown, model)
-      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p>';
+      + '<p class="mt-indicator-chart-note">' + (model.id.indexOf('volume') >= 0 ? '직전 20개 일별 기록 평균을 100%로 비교한 거래량입니다. 장중 기록은 마감 전 누적치입니다.' : escapeHtml(model.detail) + ' · 단위는 각 축과 값에 표시했습니다.') + '</p></details>';
   }
   function loadMarketIndicators_(container, data) {
     var panel = container.querySelector('.mt-front-page');
     if (!panel) return;
     if (panel.__indicatorWired) return panel.__mtIndicators;
     panel.__indicatorWired = true;
-    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], macroExtra: [], option: null, openX: null }, pending = null;
+    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], macroExtra: [], option: null, openX: null, detailOpen: false }, pending = null;
     function html(node, markup) { if (node.__mtMarkup !== markup) { node.innerHTML = markup; node.__mtMarkup = markup; } }
     function checkpoint() {
       var mount = container.querySelector('[data-market-checkpoint]');
@@ -2526,14 +2660,24 @@
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0] || XMODELS_[state.selected];
       if (!model) { state.selected = 'kospi-volume'; model = state.models[0]; }
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
-      html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
+      var periodsBox = panel.querySelector('[data-indicator-periods]');
+      periodsBox.style.display = state.detailOpen ? '' : 'none'; // 기간 전환은 상세 보기에서만
+      html(periodsBox, [5, 10, 20, 40].map(function (period) {
         return '<button type="button" class="mt-flow-period' + (period === state.period ? ' active' : '') + '" data-indicator-period="' + period + '" aria-pressed="' + (period === state.period) + '"' + (model.points.length < period ? ' disabled title="' + model.points.length + '개 기록 제공"' : '') + '>' + period + '일</button>';
       }).join(''));
       var content = panel.querySelector('[data-indicator-chart]');
-      html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period));
+      html(content, state.loading ? '<p class="mt-visual-empty">시장 지표를 불러오는 중입니다.</p>' : renderIndicatorHistory_(model, state.period, state.detailOpen));
       wireFlowChart_(content);
       if (focusSelector) { var focus = panel.querySelector(focusSelector); if (focus) focus.focus({ preventScroll: true }); }
     }
+    // <details> toggle은 버블링하지 않아 캡처로 받는다. 열림 상태는 다시 그려도 유지한다.
+    panel.addEventListener('toggle', function (event) {
+      var d = event.target;
+      if (!d || !d.classList || !d.classList.contains('mt-ts-detail') || state.detailOpen === d.open) return;
+      state.detailOpen = d.open;
+      var box = panel.querySelector('[data-indicator-periods]');
+      if (box) box.style.display = state.detailOpen ? '' : 'none';
+    }, true);
     panel.addEventListener('click', function (event) {
       var metric = event.target.closest('[data-market-metric]'), period = event.target.closest('[data-indicator-period]');
       if (metric) state.selected = metric.getAttribute('data-market-metric');
@@ -2821,7 +2965,7 @@
   // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
   // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
   var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
-  var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,KTB3Y,US2Y&stored_only=true';
+  var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,KTB3Y,US2Y,US30Y&stored_only=true';
   // 2026-10-23 신호 구성 변경(사용자 결정): 나스닥100 선물은 24시간 거래라 한국장 시간대와 겹칠 수 있어 빼고, 미국 현물 정규장 종가
   // (S&P 500·나스닥 종합·다우존스)·필라델피아 반도체·VIX·원/달러·야간 코스피200 선물로 바꿨다. 같은 코스피200 선물 232거래일
   // (2025-11-10~2026-10-22)에서 다시 쟀다. 미국 현물 3지수는 서로 상관이 커서 각 1/3 가중(묶어서 1항)으로 합산했다.
