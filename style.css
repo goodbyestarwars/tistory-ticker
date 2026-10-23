@@ -4799,8 +4799,8 @@ html.dark body { background: var(--dk-bg); color: var(--dk-text); }
    bg 페이지 배경 / card 주요 카드 / inner 카드 안의 카드·입력 / panel 표 머리글·상세·상태 패널
    line 테두리 / text·sub·mute 글자 3단계 / hover·active 상호작용 / up·down·flat 등락(상승 빨강·하락 파랑) */
 html.dark {
-  --dk-bg: var(--dk-bg);
-  --dk-card: var(--dk-card);
+  --dk-bg: #1a1a1a;
+  --dk-card: #202731;
   --dk-inner: #283340;
   --dk-panel: #272f3a;
   --dk-line: #37424e;
@@ -4809,8 +4809,8 @@ html.dark {
   --dk-mute: #8899ad;
   --dk-hover: #344355;
   --dk-active: #3a4d65;
-  --dk-up: var(--dk-up);
-  --dk-down: var(--dk-down);
+  --dk-up: #e28d98;
+  --dk-down: #8aaddf;
   --dk-flat: #aab6c6;
   --dk-up-rgb: 226, 141, 152;
   --dk-down-rgb: 138, 173, 223;
