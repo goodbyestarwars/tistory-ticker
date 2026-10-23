@@ -1,3 +1,7 @@
+**2026-10-24 시장 한눈에 5개 칸 높이 소폭 확대**
+
+사용자 지시. `css/market-temp.css` 끝 블록: 코스피 거래량·코스닥 거래량·빚투·예탁금·코스피200 주간선물 칸(`data-market-metric`)만 최소 높이 58px·위아래 패딩 11px로 약 10px 키움(글자·내용 불변, 다른 칸 불변). 미확인: 운영 화면. 배포: css master 머지 후 Pages 자동.
+
 **2026-10-24 `오른 종목과 내린 종목` 블록 삭제**
 
 사용자 지시(스크린샷 붉은 박스). `js/market-temp.js` `buildSummaryCard`에서 `buildBreadthVisual_` 호출을 지워 `시장 한눈에` 카드 맨 위의 상승/보합/하락 종목 막대 블록이 사라졌다(함수와 데이터·상단 헤드라인은 그대로). market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면. 배포: js master 머지 후 Pages 자동.
