@@ -2512,7 +2512,8 @@
         if (active.hasAttribute('data-market-metric')) focusSelector = '[data-market-metric="' + active.getAttribute('data-market-metric') + '"]';
         else if (active.hasAttribute('data-indicator-period')) focusSelector = '[data-indicator-period="' + active.getAttribute('data-indicator-period') + '"]';
       }
-      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + (state.macroExtra.length ? commodityStrip_(state.macro.concat(state.macroExtra), null, state.selected) : '') + extrasBlock_(state.domestic, state.macro.concat(state.macroExtra), state.option, null, state.selected));
+      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected));
+      html(panel.querySelector('[data-market-extras]'), (state.macroExtra.length ? commodityStrip_(state.macro.concat(state.macroExtra), null, state.selected) : '') + extrasBlock_(state.domestic, state.macro.concat(state.macroExtra), state.option, null, state.selected));
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0] || XMODELS_[state.selected];
       if (!model) { state.selected = 'kospi-volume'; model = state.models[0]; }
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
@@ -2530,6 +2531,8 @@
       else if (period) state.period = Number(period.getAttribute('data-indicator-period'));
       else return;
       render(metric ? '[data-market-metric="' + state.selected + '"]' : '[data-indicator-period="' + state.period + '"]');
+      var hist = metric && panel.querySelector('.mt-indicator-history');
+      if (hist && hist.getBoundingClientRect().top > window.innerHeight - 120 && hist.scrollIntoView) hist.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     });
     render();
     function refresh() {
@@ -4668,7 +4671,7 @@
     var sections = [
       buildPageHead_(data),
       '<div class="mt-live-status" data-mt-live-status role="status">자동 갱신 준비 중</div>',
-      '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + buildIndicatorHistoryShell_() + '</div>',
+      '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + '<div class="mt-card mt-extras-col" data-market-extras></div>' + buildIndicatorHistoryShell_() + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
       '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>' + nextKospiDay_().label + ' 출발</h3>' + buildTomorrowCard_() + '</section>',
       '<section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
