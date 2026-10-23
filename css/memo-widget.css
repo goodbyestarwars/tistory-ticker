@@ -195,3 +195,4 @@ html.dark .memo-item-body { color: var(--dk-text); }
   .memo-panel { right: 12px; bottom: 122px; width: calc(100vw - 24px); min-width: 0; resize: vertical; }
   .memo-fab { right: 12px; }
 }
+html.dark .memo-login-btn:hover { background: var(--dk-hover); }
