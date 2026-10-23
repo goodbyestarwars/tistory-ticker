@@ -15,10 +15,12 @@
   font-size: 12px;
   line-height: 20px;
   text-align: center;
-  cursor: pointer;
+  cursor: grab;   /* 끌어서 옮길 수 있다(2026-10-23) */
+  touch-action: none;
   pointer-events: auto;
   box-shadow: 0 1px 4px rgba(0, 0, 0, .18);
 }
+.ss-memo-pin.is-dragging { cursor: grabbing; z-index: 5; box-shadow: 0 4px 12px rgba(0, 0, 0, .28); opacity: .92; }
 .ss-memo-pop {
   position: absolute;
   width: 260px;
