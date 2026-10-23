@@ -326,8 +326,8 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
     # 2026-10-23: user-excluded holdings (analysis-only) never occupy an entry slot; the engine does not manage them.
     slots_used = len((set(held) | {c for c, p in positions.items() if p['state'] != 'CLOSED'}) - excluded)
     today = now.strftime('%Y-%m-%d')
-    if not (9 <= now.hour < 10):
-        ledger.skip(today, '*', 'WINDOW_CLOSED', 'entry window 09:00-10:00', once=True)
+    if not (9 <= now.hour < 14):  # 2026-10-23 user: day-trade entries until 14:00 (was 10:00)
+        ledger.skip(today, '*', 'WINDOW_CLOSED', 'entry window 09:00-14:00', once=True)
         return 'NO_ENTRY'
     if cash <= RESERVE or slots_full(slots_used) or committed >= BUDGET - RESERVE:
         why = 'SLOTS_FULL' if slots_full(slots_used) else 'NO_CASH' if cash <= RESERVE else 'BUDGET_COMMITTED'

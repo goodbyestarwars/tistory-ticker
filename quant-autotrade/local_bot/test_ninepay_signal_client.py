@@ -101,13 +101,18 @@ class SignalClientTests(unittest.TestCase):
             good['data']['ninePayResearch']['signals'][0]['branches'] = branches
             self.assertEqual(len(valid_signals(good, NOW)), 1)
 
-    def test_cutoff_092959_accepted_093000_rejected(self):
+    def test_cutoff_135959_accepted_140000_rejected(self):
+        cut = NOW + 4 * 3600 + 30 * 60  # 14:00:00 KST (2026-10-23 user: was 09:30)
         good = payload()
+        good['data']['ninePayResearch']['rankAt'] = datetime.fromtimestamp(cut, timezone.utc).isoformat()
         item = good['data']['ninePayResearch']['signals'][0]
-        item.update(at=NOW, first70At=NOW-1)
-        self.assertEqual(len(valid_signals(good, NOW)), 1)
-        item['first70At'] = NOW
-        self.assertEqual(valid_signals(good, NOW), [])
+        item.update(at=cut, first70At=cut-1)
+        self.assertEqual(len(valid_signals(good, cut)), 1)
+        item['first70At'] = cut
+        self.assertEqual(valid_signals(good, cut), [])
+        item['first70At'] = NOW  # 09:30 first70 is now valid again
+        item.update(at=cut)
+        self.assertEqual(len(valid_signals(good, cut)), 1)
 
 
 if __name__ == '__main__':

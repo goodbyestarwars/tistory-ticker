@@ -66,7 +66,7 @@ def test_a_only_requires_70_and_rebreak_not_three_percent():
     assert not feed(o, '09:04:00', 112, 830)['signal']
 
 
-@pytest.mark.parametrize('stamp,passed', [('09:29:59', True), ('09:30:00', False)])
+@pytest.mark.parametrize('stamp,passed', [('13:59:59', True), ('14:00:00', False)])
 def test_deadline_boundary(stamp, passed):
     o = observer()
     feed(o, '09:00:00', 100, 0)
@@ -78,10 +78,10 @@ def test_deadline_boundary(stamp, passed):
 def test_no_backdating_on_delayed_poll_or_late_first_discovery():
     o = observer()
     feed(o, '09:00:00', 100, 0)
-    result = feed(o, '09:29:30', 110, 800, received_at=ts('09:30:01'))
+    result = feed(o, '13:59:30', 110, 800, received_at=ts('14:00:01'))
     assert result['excluded'] and result['first70At'] is None
     late = observer()
-    result = feed(late, '09:31:00', 110, 900)
+    result = feed(late, '14:01:00', 110, 900)
     assert result['first70At'] is None
 
 
@@ -137,7 +137,7 @@ def test_b_support_failure_does_not_block_independent_a():
 def test_80_first_observed_after_deadline_is_not_priority():
     o = observer()
     qualify(o)
-    result = feed(o, '09:30:00', 111, 900)
+    result = feed(o, '14:00:00', 111, 900)
     assert result['first70At'] and not result['priority80']
 
 
