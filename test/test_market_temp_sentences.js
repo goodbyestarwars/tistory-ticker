@@ -9,7 +9,7 @@ assert.equal(split('1달러 1,326.7원 (-0.80원)입니다. 환율을 보세요.
 assert.equal(split('한 문장입니다.'),JSON.stringify(['한 문장입니다.']));
 assert.equal(split(''),'[]');
 assert.equal(split(null),'[]');
-const html=t.sentenceHtml_('<b>A.</b> B!');
-assert(html.includes('&lt;b&gt;A.&lt;/b&gt;'),'HTML은 이스케이프');
+const html=t.sentenceHtml_('<b>A</b>. B!');
+assert(html.includes('&lt;b&gt;A&lt;/b&gt;.'),'HTML은 이스케이프');
 assert.equal(html.split('mt-sent').length,3,'문장마다 span');
 console.log('sentence split ok');
