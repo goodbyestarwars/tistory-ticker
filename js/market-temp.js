@@ -2566,10 +2566,20 @@
   //  - 미국 신호가 뚜렷한 날(합 |z|>=1.5, 전체의 약 45%)은 시초 방향이 90% 안팎으로 맞았고, 종가 방향도 74~90%였다.
   //  - 신호가 약한 날(약 40%)은 상승 62%로 평소 상승 비율(약 61%)과 같다 = 맞히기 어렵다.
   //  - 전체 "종가 방향" 적중 65%는 아무것도 안 보고 "오른다"만 찍은 63%와 비슷하므로 종가 방향을 크게 내세우지 않는다.
-  // 야간선물은 점수에 넣지 않는다: 일봉 자료의 날짜 기준이 확인되지 않아 코스피와의 관계를 검증하지 못했다(참고 표시만).
+  // 야간선물(2026-10-23 사용자 지시 "야간선물이 다음날 코스피 방향을 결정해" → 검증 후 점수에 반영):
+  //  - 날짜 기준 확인: KOSPI200_NIGHT 일봉 날짜 D = D 저녁에 시작해 D+1 오전 5시에 끝나는 세션(시작일).
+  //    근거: 야간 시가가 같은 날 주간 종가와 이어지는 평균 차이 1.18%(종료일로 읽으면 3.08%), 야간 종가↔다음 주간 시가 1.71%(2.38%).
+  //  - 신호 = 야간 종가 / 직전 주간 종가 - 1. 코스피200 선물 232거래일(2025-11-10~2026-10-22) 중 다음 날 시초 갭과 상관 0.48,
+  //    방향 적중 70%(|신호|>=2%는 81%). 미국 4항 합과 상관 0.35라 일부는 겹친다.
+  //  - 미국 4항 합에 야간 z점수를 같은 비중(1)으로 더하면 시초 갭 상관 0.742 -> 0.778, 종가 상관 0.527 -> 0.570,
+  //    후반 구간만 0.733 -> 0.793. 합의 표준편차가 3.13 -> 3.60으로 커져 구간 경계를 같은 비율(x1.17)로 키웠다.
+  //  - 야간 세션이 끝나기 전(D+1 05:05 KST 전)에는 미완성이라 점수에 넣지 않고 참고로만 보여준다.
+  // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
+  // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
   var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
   var TOMORROW_STATS_ = {
-    nq: [0.1028, 1.3180], sox: [0.3535, 2.9394], vix: [-0.1265, 7.5421], fx: [0.0290, 0.6312]
+    nq: [0.1028, 1.3180], sox: [0.3535, 2.9394], vix: [-0.1265, 7.5421], fx: [0.0290, 0.6312],
+    night: [0.8621, 1.7345]   // 야간 종가 / 직전 주간 종가 - 1 (%). 평균이 +인 것은 검증 기간의 상승장 때문이다.
   };
   var TOMORROW_BUCKETS_ = [
     { max: -3, key: 'strongDown', label: '강한 하락 신호', gap: '시초 하락 출발 89%', close: '하락 마감 74%', n: 38, avgGap: -1.97 },
@@ -2578,6 +2588,34 @@
     { max: 3, key: 'up', label: '상승 우세', gap: '시초 상승 출발 95%', close: '상승 마감 84%', n: 38, avgGap: 1.69 },
     { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 93%', close: '상승 마감 90%', n: 29, avgGap: 2.27 }
   ];
+
+  // 야간선물까지 넣은 5항 합의 구간(코스피200 선물 232거래일, 경계 -3.5/-1.75/1.75/3.5)
+  var TOMORROW_BUCKETS5_ = [
+    { max: -3.5, key: 'strongDown', label: '강한 하락 신호', gap: '시초 하락 출발 91%', close: '하락 마감 80%', n: 35, avgGap: -2.99, span: '최근 232일' },
+    { max: -1.75, key: 'down', label: '하락 우세', gap: '시초 하락 출발 79%', close: '하락 마감 47% · 장중 반등도 잦음', n: 34, avgGap: -1.09, span: '최근 232일' },
+    { max: 1.75, key: 'flat', label: '방향 모름', gap: '시초 상승 64%', close: '상승 마감 58%', n: 92, avgGap: 0.44, span: '최근 232일' },
+    { max: 3.5, key: 'up', label: '상승 우세', gap: '시초 상승 출발 92%', close: '상승 마감 79%', n: 39, avgGap: 1.80, span: '최근 232일' },
+    { max: 999, key: 'strongUp', label: '강한 상승 신호', gap: '시초 상승 출발 97%', close: '상승 마감 88%', n: 32, avgGap: 3.64, span: '최근 232일' }
+  ];
+
+  // 야간선물 신호: target 이전 마지막 주간 거래일 D의 야간 일봉(D 저녁~D+1 05:00)을 D 주간 종가와 비교한다.
+  // 야간 세션이 끝나기 전이거나 날짜가 맞지 않으면 pending/null.
+  function nightSignal_(dayRow, nightRow, ymd, now_) {
+    var dc = (dayRow && dayRow.chart) || [], nc = (nightRow && nightRow.chart) || [];
+    if (!dc.length || !nc.length || (dayRow && dayRow.stale === true) || (nightRow && nightRow.stale === true)) return null;
+    var dBar = null, i;
+    for (i = 0; i < dc.length; i++) { if (String(dc[i].date) < ymd) dBar = dc[i]; }
+    if (!dBar) return null;
+    var nBar = null;
+    for (i = 0; i < nc.length; i++) { if (String(nc[i].date) === String(dBar.date)) nBar = nc[i]; }
+    var dClose = Number(dBar.close), nClose = nBar && Number(nBar.close);
+    if (!(dClose > 0) || !(nClose > 0)) return null;
+    var m = /^(\d{4})(\d{2})(\d{2})$/.exec(String(dBar.date));
+    if (!m) return null;
+    // D 다음 날 오전 5시 05분(KST) 이후에야 야간 세션이 끝난 것으로 본다.
+    var endMs = Date.UTC(+m[1], +m[2] - 1, +m[3] + 1, 5, 5, 0) - 9 * 3600000;
+    return { gap: (nClose / dClose - 1) * 100, date: String(dBar.date), pending: (now_ == null ? Date.now() : now_) < endMs };
+  }
 
   // 조간신문 기준: 평일 15:30 전(장전·장중)에는 오늘 코스피, 마감 후·주말에는 다음 거래일을 가리킨다.
   // 공휴일은 알 수 없어 평일로 본다. now_는 시험용으로 바꿀 수 있다.
@@ -2638,7 +2676,11 @@
       if (!nq || !sox || !vix || !fx) { if (!mount.__mtTomorrowKey) mount.innerHTML = mount.firstChild.outerHTML + '<div class="mt-hint">미국 시장 자료를 받지 못해 판단하지 않습니다.</div>'; return; }
       function z(v, k) { return (v - TOMORROW_STATS_[k][0]) / TOMORROW_STATS_[k][1]; }
       var zsum = z(nq.pct, 'nq') + z(sox.pct, 'sox') + z(-vix.pct, 'vix') + z(-fx.pct, 'fx');
-      var bucket = TOMORROW_BUCKETS_.filter(function (b) { return zsum < b.max; })[0] || TOMORROW_BUCKETS_[2];
+      var night = nightSignal_(by.KOSPI200_DAY, by.KOSPI200_NIGHT, target.ymd);
+      var useNight = !!(night && !night.pending);
+      if (useNight) zsum += z(night.gap, 'night');
+      var buckets = useNight ? TOMORROW_BUCKETS5_ : TOMORROW_BUCKETS_;
+      var bucket = buckets.filter(function (b) { return zsum < b.max; })[0] || buckets[2];
       var tone = /up/i.test(bucket.key) ? 'up' : /down/i.test(bucket.key) ? 'down' : 'flat';
       function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
       function cls(v) { return v > 0 ? 'mt-val-pos' : v < 0 ? 'mt-val-neg' : 'mt-val-zero'; }
@@ -2647,18 +2689,16 @@
         { name: '필라델피아 반도체지수', val: sox.pct, note: '코스피에 반도체 비중이 커서', good: sox.pct > 0 },
         { name: 'VIX(미국 공포지수) 변화', val: vix.pct, note: '오르면 위험회피 — 내려야 우호적', good: vix.pct < 0 },
         { name: '원/달러 변화', val: fx.pct, note: '오르면(원화 약세) 외국인 매도 압력', good: fx.pct < 0 }
-      ].map(function (w) {
+      ];
+      if (useNight) why.push({ name: '야간 코스피200 선물', val: night.gap, note: '주간 종가 대비 · 다음 시초와 가장 가까운 단서(상관 0.48)', good: night.gap > 0 });
+      why = why.map(function (w) {
         return '<li><span>' + w.name + ' <small>' + w.note + '</small></span><b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b></li>';
       }).join('');
       var nightHtml = '';
-      var night = by.KOSPI200_NIGHT, day = by.KOSPI200_DAY;
-      if (night && day && (night.chart || []).length && (day.chart || []).length) {
-        var nc = Number(night.chart[night.chart.length - 1].close), dc = Number(day.chart[day.chart.length - 1].close);
-        if (nc && dc) {
-          var gap = (nc / dc - 1) * 100;
-          nightHtml = '<div class="mt-tm-night">참고 · 야간선물은 주간선물 마지막 종가보다 <b class="' + cls(gap) + '">' + sgn(gap) + '</b>'
-            + ' <small>(점수에는 반영하지 않습니다: 일봉 날짜 기준을 아직 검증하지 못했습니다)</small></div>';
-        }
+      // 야간선물은 위 5번째 칸으로 점수에 들어간다. 야간 세션이 아직 끝나기 전(다음 날 05:05 KST 전)에만 참고 한 줄로 보여준다.
+      if (night && night.pending) {
+        nightHtml = '<div class="mt-tm-night">참고 · 야간선물 진행 중(지금까지 주간 종가보다 <b class="' + cls(night.gap) + '">' + sgn(night.gap) + '</b>)'
+          + ' <small>야간 세션이 끝나는 오전 5시 이후 점수에 반영합니다</small></div>';
       }
       // 참고(점수 미반영): 새벽에 마감한 미국 현물 지수 한 줄. 기존 응답의 일봉 마지막 두 봉만 쓴다.
       var auxItems = [['S&P 500', by.SP500_INDEX], ['나스닥', by.NASDAQ_INDEX], ['다우', by.DOW_INDEX]].map(function (it) {
@@ -2670,14 +2710,14 @@
       var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
         : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
         : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
-      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + target.label + ' 코스피 출발 · 미국 장 마감 기준</small></div>'
+      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + target.label + ' 코스피 출발 · ' + (useNight ? '미국 장 마감 + 야간선물 기준' : '미국 장 마감 기준') + '</small></div>'
         + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
-        + '<ul class="mt-tm-why">' + why + '</ul>'
+        + '<ul class="mt-tm-why"' + (useNight ? ' style="--mt-tm-cols:5"' : '') + '>' + why + '</ul>'
         + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b>'
-        + '<span class="mt-tm-proof-line">같은 강도 신호 ' + bucket.n + '거래일(최근 220일) 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
+        + '<span class="mt-tm-proof-line">같은 강도 신호 ' + bucket.n + '거래일(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
         + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>'
         + nightHtml + auxHtml
-        + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(코스피 220거래일). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
+        + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(' + (useNight ? '코스피200 선물 232거래일, 미국 4항+야간선물 합' : '코스피 220거래일') + '). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
       mount.__mtTomorrowKey = key;
     }).catch(function () {
       if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';

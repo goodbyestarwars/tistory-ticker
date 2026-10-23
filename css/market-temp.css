@@ -2029,7 +2029,7 @@ html.dark #market-temp { --mt2-text: #F5EFE0; --mt2-sub: rgba(245, 239, 224, .62
 #market-temp .mt-tm-verdict, #market-temp .mt-tm-verdict.mt-tm-up, #market-temp .mt-tm-verdict.mt-tm-down { padding: 0; border-radius: 0; background: transparent !important; gap: 4px 16px; align-items: baseline; }
 #market-temp .mt-tm-verdict b { font-size: 26px; font-weight: 700; }
 #market-temp .mt-tm-verdict span { font-size: 14.5px; color: var(--mt2-sub); }
-#market-temp .mt-tm-why { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 16px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--mt2-line); }
+#market-temp .mt-tm-why { display: grid; grid-template-columns: repeat(var(--mt-tm-cols, 4), minmax(0, 1fr)); gap: 0; margin: 16px 0 0; padding: 0; list-style: none; border-top: 1px solid var(--mt2-line); }
 #market-temp .mt-tm-why li { display: flex; flex-direction: column; justify-content: space-between; gap: 4px; min-height: 0; padding: 12px 16px; border: 0; border-left: 1px solid var(--mt2-line); }
 #market-temp .mt-tm-why li:first-child { border-left: 0; padding-left: 0; }
 #market-temp .mt-tm-why li > span { font-size: 13px; line-height: 1.45; }
@@ -3075,7 +3075,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-tomorrow-card { --mt-soft: #f5f8fd; }
   html.dark body #market-temp .mt-tomorrow-card { --mt-soft: #283340; }
-  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px !important; margin: 14px 0 8px !important; border-top: 0 !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(var(--mt-tm-cols, 4), minmax(0, 1fr)); gap: 8px !important; margin: 14px 0 8px !important; border-top: 0 !important; }
   html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li { padding: 12px 14px !important; border: 0 !important; border-radius: 9px; background: var(--mt-soft) !important; }
   html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li:first-child { padding-left: 14px !important; }
   @media (max-width: 720px) {
