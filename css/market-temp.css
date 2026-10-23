@@ -3263,3 +3263,67 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   html body #market-temp .mt-xsay { display: block; flex: 1 0 auto; margin-top: 12px !important; padding-top: 11px !important; border-top: 1px solid color-mix(in srgb, var(--pulse-ink, #202b3b) 9%, transparent); font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--pulse-ink, #202b3b); overflow-wrap: break-word; }
   html body #market-temp .mt-xmeta { display: block; margin-top: 8px !important; font-size: 11px; font-weight: 400; line-height: 1.45; color: var(--pulse-sub, #778396); }
 }
+
+/* 2026-10-23 그래서 다음 거래일은? 카드 재설계: 결론 패널 → 근거 지표 카드(이름·보조·수치·해석 태그) → 신뢰도 박스.
+   열 수는 이 카드의 실제 너비로 정한다(카드 안쪽 너비 820px~ 기본 3열(야간선물 포함 7칸이면 4열), 600px~ 3열, 380px~ 2열, 그 아래 1열). 글자 축소·장평 압축 없음.
+   margin/padding은 style.css 비레이어 '*{margin:0;padding:0}'를 이기려고 !important. */
+@layer np.np {
+  html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { container-type: inline-size; container-name: mttm; padding: 22px 24px 20px !important; border: 1px solid var(--mt2-line, #e7edf5) !important; border-radius: 14px !important; background: var(--mt2-bg, #fff) !important; }
+  html.dark body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html.dark body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html.dark body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { background: var(--mt2-bg, #1b1b1b) !important; }
+  @media (max-width: 720px) {
+    html body #market-temp .mt-tomorrow-card.mt-tomorrow-card, html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-up), html body #market-temp .mt-tomorrow-card.mt-tomorrow-card:has(.mt-tm-down) { padding: 18px 16px 16px !important; }
+  }
+
+  /* 질문 라벨 + 기준 로직 */
+  html body #market-temp .mt-tomorrow-card .mt-tm-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 6px 12px; margin: 0 0 14px !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-head > strong { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-size: 14px !important; font-weight: 600 !important; line-height: 1.4; color: var(--mt2-sub, #64748b); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-head > small { padding: 3px 10px !important; border: 1px solid var(--mt2-line, #e7edf5); border-radius: 999px; background: var(--mt-soft, #f5f8fd); font-size: 11.5px !important; line-height: 1.4; color: var(--mt2-sub, #64748b); }
+
+  /* 결론 패널 */
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-verdict { display: flex; flex-direction: column; flex-wrap: nowrap !important; align-items: flex-start !important; gap: 8px !important; padding: 18px 20px !important; border: 1px solid var(--mt2-line, #e7edf5); border-radius: 12px !important; background: var(--mt-soft, #f5f8fd) !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-up { background: color-mix(in srgb, var(--num-up, #d35159) 7%, var(--mt2-bg, #fff)) !important; border-color: color-mix(in srgb, var(--num-up, #d35159) 22%, var(--mt2-line, #e7edf5)); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-down { background: color-mix(in srgb, var(--num-down, #2566d4) 7%, var(--mt2-bg, #fff)) !important; border-color: color-mix(in srgb, var(--num-down, #2566d4) 22%, var(--mt2-line, #e7edf5)); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-badge { padding: 3px 10px !important; border-radius: 999px; background: color-mix(in srgb, var(--mt2-sub, #64748b) 14%, transparent); font-size: 12px; font-style: normal; font-weight: 700; line-height: 1.4; color: var(--mt2-sub, #64748b); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-up .mt-tm-badge { background: color-mix(in srgb, var(--num-up, #d35159) 14%, transparent); color: var(--num-up, #d35159); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-down .mt-tm-badge { background: color-mix(in srgb, var(--num-down, #2566d4) 14%, transparent); color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict > b { font-size: clamp(28px, 6cqi, 36px) !important; line-height: 1.15; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict > span { font-size: 15px !important; font-weight: 500; line-height: 1.55; word-break: keep-all; }
+
+  /* 근거 지표 카드 */
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { display: grid; grid-template-columns: repeat(var(--mt-tm-cols, 3), minmax(0, 1fr)) !important; gap: 10px !important; margin: 16px 0 14px !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why li.mt-tm-item { display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 10px; min-width: 0; padding: 14px 16px !important; border: 1px solid var(--mt2-line, #e7edf5) !important; border-radius: 12px; background: var(--mt-soft, #f5f8fd) !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item > span { display: block; flex: 1 0 auto; min-width: 0; width: 100%; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-name { display: block; font-size: 14px; font-weight: 600; line-height: 1.35; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item small { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; margin-top: 3px !important; font-size: 12px; font-weight: 400; line-height: 1.45; color: #64748b; word-break: keep-all; }
+  html.dark body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item small { color: #a8b4c4; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item > b { font-size: 28px !important; font-weight: 700; line-height: 1.1; white-space: nowrap; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-tag { padding: 2px 8px !important; border-radius: 6px; font-size: 11.5px; font-style: normal; font-weight: 600; line-height: 1.5; color: var(--mt2-sub, #64748b); background: color-mix(in srgb, var(--mt2-sub, #64748b) 12%, transparent); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-item.is-pos .mt-tm-tag { color: color-mix(in srgb, var(--num-up, #d35159) 80%, var(--mt2-text, #1f2937)); background: color-mix(in srgb, var(--num-up, #d35159) 12%, transparent); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-item.is-neg .mt-tm-tag { color: color-mix(in srgb, var(--num-down, #2566d4) 80%, var(--mt2-text, #1f2937)); background: color-mix(in srgb, var(--num-down, #2566d4) 12%, transparent); }
+  @container mttm (max-width: 819px) {
+    html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item:last-child:nth-child(3n + 1) { grid-column: 1 / -1; }
+  }
+  @container mttm (max-width: 599px) {
+    html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item:last-child:nth-child(3n + 1) { grid-column: auto; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item:last-child:nth-child(odd) { grid-column: 1 / -1; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item > b { font-size: 26px !important; }
+  }
+  @container mttm (max-width: 379px) {
+    html body #market-temp .mt-tomorrow-card .mt-tm-why.mt-tm-why { grid-template-columns: minmax(0, 1fr) !important; }
+    html body #market-temp .mt-tomorrow-card .mt-tm-why li.mt-tm-item > b { font-size: 28px !important; }
+  }
+
+  /* 사이트 의미색은 옅은 톤이라 결론·수치만 글자색 쪽으로 조금 진하게 섞어 먼저 읽히게 한다 */
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-up > b, html body #market-temp .mt-tomorrow-card .mt-tm-item > b.mt-val-pos { color: color-mix(in srgb, var(--num-up, #d35159) 78%, var(--mt2-text, #1f2937)) !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-down > b, html body #market-temp .mt-tomorrow-card .mt-tm-item > b.mt-val-neg { color: color-mix(in srgb, var(--num-down, #2566d4) 78%, var(--mt2-text, #1f2937)) !important; }
+
+  /* 신뢰도 박스: 결론과 같은 방향색 선으로 이어 붙인다 */
+  html body #market-temp .mt-tomorrow-card .mt-tm-proof { margin: 0 !important; padding: 16px 18px !important; border: 1px solid var(--mt2-line, #e7edf5); border-left: 3px solid var(--mt2-sub, #64748b); border-radius: 12px; background: var(--mt-soft, #f5f8fd); font-size: 13.5px !important; line-height: 1.65 !important; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-up ~ .mt-tm-proof { border-left-color: var(--num-up, #d35159); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-verdict.mt-tm-down ~ .mt-tm-proof { border-left-color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-tomorrow-card .mt-tm-proof > b:first-child { display: block; margin: 0 0 6px !important; font-size: 13px; font-weight: 700; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-proof-line b { font-weight: 700; }
+  html body #market-temp .mt-tomorrow-card .mt-tm-night { margin: 10px 0 0 !important; }
+}
