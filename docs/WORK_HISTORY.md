@@ -1,3 +1,7 @@
+**2026-10-24 뉴스 기사 제목을 마루부리 Regular에서 Bold(MaruBuriBold)로**
+
+사용자 지시(마루부리 Regular 쓰기 싫음). 하드코딩된 Regular는 `style.css`의 경제 종합뉴스·주요 뉴스 기사 제목 규칙(`font-family: "MaruBuri"` + 400) 한 곳이라, 직전 가독성 블록에서 이 제목들을 `MaruBuriBold` 파일(다른 큰 제목과 같은 방식, 파일 자체가 굵은 글꼴이라 `font-weight:400`)로 바꿨다. 크기 15px·행간 1.55·짙은 색은 유지. `--font-title` 변수(Regular, 약 12곳이 참조)는 그대로라 그 화면들(학습 문서·일부 제목)은 아직 Regular다 - 원하면 변수 한 줄로 일괄 전환 가능. 미확인: 실제 체감. 배포: style.css master 머지 후 Pages 자동.
+
 **2026-10-24 뉴스 기사 제목 가독성(마루부리 유지, 크기·행간·색)**
 
 사용자 지적(주요 뉴스·경제 종합뉴스 제목이 가늘게 뭉개져 보임, 애플 스토어와 비교). 원인: 기사 제목만 마루부리 Regular 14px(2026-10 지정 `경제 종합뉴스 기사 제목만 Regular`)라 획이 가늘다. `style.css` 끝: 같은 선택자(`.home-economic-news …`, `#main-news .mn-row-title`)의 제목을 글꼴은 그대로 15px·행간 1.55·짙은 글자색(다크는 `--dk-text`)·`antialiased`로. 글꼴 자체를 Pretendard로 바꾸는 안은 하지 않았다(기존 지정 존중, 필요하면 한 줄로 전환 가능). 미확인: 실제 화면에서 체감. 배포: style.css master 머지 후 Pages 자동.
