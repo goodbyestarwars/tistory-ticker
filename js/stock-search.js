@@ -1650,7 +1650,7 @@
     if(price && c>0)price.textContent=fmtPrice(c)+'원';
     if(summary.changeRate!=null){var tone=signClass(summary.changeRate);if(price)price.className='ss-summary-price '+tone;if(rate){rate.textContent=fmtSignedPct(summary.changeRate);rate.className='ss-summary-change '+tone;}}
     var labels=[['시가',summary.open],['고가',summary.high],['저가',summary.low]];
-    var values='<div class="ss-session-values">'+labels.map(function(item){return '<div><span>'+item[0]+'</span><b>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
+    var values='<div class="ss-session-values">'+labels.map(function(item){var tone=item[0]==='고가'?' class="ss-session-high"':item[0]==='저가'?' class="ss-session-low"':'';return '<div><span>'+item[0]+'</span><b'+tone+'>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
     box.title=(summary.date || '')+' 일봉 기준';
     box.innerHTML=values;
   }
