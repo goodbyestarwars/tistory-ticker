@@ -3138,15 +3138,25 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
 }
 
-/* 2026-10-23 시장 한눈에 하단 한 줄: 원자재·가상자산(표시 전용). 한눈에 칸과 같은 면 배경·모서리, 모바일 2열 */
+/* 2026-10-23 시장 한눈에 하단 별도 블록: 원자재·가상자산 3카드(원유·금·비트코인), 환율 저울과 같은 선 일러스트 */
 @layer np.np {
-  html body #market-temp .mt-commodity-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 5px; margin-top: 5px; }
-  html body #market-temp .mt-commodity-cell { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 8px 11px; border-radius: 9px; background: var(--pulse-soft, #f5f8fd); }
-  html body #market-temp .mt-commodity-label { font-size: 12px; font-weight: 550; color: var(--pulse-ink, #202b3b); }
-  html body #market-temp .mt-commodity-value { font-size: 14px; font-weight: 700; color: var(--pulse-ink, #202b3b); font-variant-numeric: tabular-nums; white-space: nowrap; }
-  html body #market-temp .mt-commodity-rate { font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  html body #market-temp .mt-commodity-rate.is-positive { color: var(--pulse-red, #d35159); }
-  html body #market-temp .mt-commodity-rate.is-negative { color: var(--pulse-blue, #2566d4); }
-  html body #market-temp .mt-commodity-rate.is-neutral { color: var(--pulse-sub, #778396); }
-  html body #market-temp .mt-commodity-cell small { font-size: 10px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-commodity-block { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--pulse-line, #e7edf5); }
+  html body #market-temp .mt-commodity-title { margin: 0 0 8px; font-size: 14px; font-weight: 700; color: var(--pulse-ink, #202b3b); }
+  html body #market-temp .mt-commodity-strip { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 8px; }
+  html body #market-temp .mt-commodity-card { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; border-radius: 9px; background: var(--pulse-soft, #f5f8fd); }
+  html body #market-temp .mt-commodity-art { flex: 0 0 52px; width: 52px; height: 45px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-commodity-art.is-positive { color: #d35159; }
+  html body #market-temp .mt-commodity-art.is-negative { color: #2566d4; }
+  html body #market-temp .mt-commodity-art .mt-art-tint { fill: currentColor; stroke: none; opacity: .12; }
+  html body #market-temp .mt-commodity-body { min-width: 0; flex: 1; }
+  html body #market-temp .mt-commodity-name { display: block; font-size: 12px; font-weight: 700; color: var(--pulse-ink, #202b3b); margin-bottom: 2px; }
+  html body #market-temp .mt-commodity-line { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; min-width: 0; font-size: 12px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-commodity-line > span { color: var(--pulse-ink, #202b3b); font-weight: 550; }
+  html body #market-temp .mt-commodity-line > b { font-size: 14px; font-weight: 700; color: var(--pulse-ink, #202b3b); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  html body #market-temp .mt-commodity-line > em { font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  html body #market-temp .mt-commodity-line > em.is-positive { color: var(--pulse-red, #d35159); }
+  html body #market-temp .mt-commodity-line > em.is-negative { color: var(--pulse-blue, #2566d4); }
+  html body #market-temp .mt-commodity-line > em.is-neutral { color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-commodity-line > small { font-size: 10px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-commodity-say { margin: 4px 0 0; font-size: 12px; line-height: 1.5; font-weight: 600; color: var(--pulse-ink, #202b3b); word-break: keep-all; }
 }
