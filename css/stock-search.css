@@ -1097,6 +1097,9 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 #stock-search .ss-session-values div { display:flex; align-items:baseline; gap:4px; }
 #stock-search .ss-session-values span { font-size:10px; color:#888; }
 #stock-search .ss-session-values b { font-size:12px; color:#222; font-variant-numeric:tabular-nums; white-space:nowrap; }
+/* 시가는 검정, 고가는 빨강·저가는 파랑(오르내림 숫자 색 규칙, 2026-10-23 사용자 지시) */
+html body #stock-search .ss-session-values b.ss-session-high { color: var(--num-up) !important; }
+html body #stock-search .ss-session-values b.ss-session-low { color: var(--num-down) !important; }
 #stock-search .ss-session-date { display:none; }
 #stock-search .ss-summary-reason { grid-column:1/-1; font-size:11px; line-height:1.35; }
 #stock-search .ss-reason-badge { font-size:9px; padding:1px 5px; }

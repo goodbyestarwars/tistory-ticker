@@ -1,3 +1,7 @@
+**2026-10-23 호가 패널 상단 시가·고가·저가 색**
+
+사용자 지시("고가는 빨간색, 저가는 파란색 - 룰대로"). `js/stock-search.js` renderSessionCandle의 고가·저가 숫자에 `ss-session-high`/`ss-session-low`를 붙이고 `css/stock-search.css`에서 `--num-up`/`--num-down`으로(시가는 그대로 검정).
+
 **2026-10-23 차트 메모 핀을 끌어서 옮길 수 있게**
 
 사용자 요청("메모 작성하면 위치가 고정되는데 움직일 수 있게"). 공용 `js/chart-memo.js`(차트검색·종목분석·검색기 공통)의 ✎ 핀을 끌면 그 자리의 봉 날짜·가격으로 메모의 `date`·`price`를 바꿔 같은 저장 경로(`chartMemoMutate`: 로그인=계정 `/memo`, 아니면 브라우저)에 저장한다. 새 메모를 달 때와 같은 좌표 해석(`resolveAt`: 빈 공간은 가장 가까운 봉, 가격축 밖은 그 봉 종가)을 쓴다. 4px 미만 움직임은 기존대로 클릭(내용 보기), 끌고 난 뒤 클릭은 무시, 해석할 수 없는 자리에 놓으면 원래 자리로 복귀. `css/chart-memo.css`: grab 커서·`touch-action:none`·끄는 중 스타일. 메모 내용·상한(종목당 30개)은 그대로. `test/test_chart_memo_drag.js`(구조 고정) 추가.
