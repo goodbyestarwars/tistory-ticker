@@ -317,7 +317,7 @@
           var dw = ctx.measureText(item.detail).width + 14;
           var dl = Math.max(2, left - dw - 4);
           roundedBox(ctx, dl, ly - 10, dw, 20, 10);
-          ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.96)' : 'rgba(255,254,252,.96)';
+          ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(32,39,49,.96)' : 'rgba(255,254,252,.96)';
           ctx.fill();
           ctx.strokeStyle = 'rgba(' + item.c + ',.55)';
           ctx.lineWidth = 1;
@@ -333,7 +333,7 @@
         ctx.fillText(item.name, left + 7, ly + 0.5);
         var priceLeft = left + nameWidth + 4;
         roundedBox(ctx, priceLeft, ly - 10, Math.min(priceWidth, right - priceLeft - 2), 20, 10);
-        ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(26,26,26,.94)' : 'rgba(255,254,252,.94)';
+        ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(32,39,49,.94)' : 'rgba(255,254,252,.94)';
         ctx.fill();
         ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
         ctx.lineWidth = 1;

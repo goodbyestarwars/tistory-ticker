@@ -1067,7 +1067,7 @@
       syncIndexCapabilities(panel, bars);
       host.textContent = '';
       indexChart = LWC.createChart(host, { autoSize: true, height: 440,
-        layout: { background: { color: dark ? '#1a1a1a' : '#ffffff' }, textColor: dark ? '#f5efe0' : '#606b78', attributionLogo: false },
+        layout: { background: { color: dark ? '#202731' : '#ffffff' }, textColor: dark ? '#a6b5c5' : '#606b78', attributionLogo: false },
         // 기본 십자선(Magnet)은 가로줄이 봉 가격에 붙어 마우스를 따라가지 않는다. 종목 차트처럼 자유롭게 따라가게 한다.
         crosshair: { mode: LWC.CrosshairMode.Normal },
         timeScale: { borderVisible: false },
@@ -1117,7 +1117,7 @@
       }
       if (indexStudies.rsi || indexStudies.divergence) {
         var rsiValues = stockRsi(bars);
-        var rsi = indexChart.addSeries(LWC.LineSeries, { color: dark ? '#f5efe0' : '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false }, volumePane ? 2 : 1);
+        var rsi = indexChart.addSeries(LWC.LineSeries, { color: dark ? '#f1f4f8' : '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false }, volumePane ? 2 : 1);
         rsi.setData(bars.map(function (bar, i) { return rsiValues[i] == null ? null : { time: bar.date, value: rsiValues[i] }; }).filter(Boolean));
         [30, 50, 70].forEach(function (value) { rsi.createPriceLine({ price: value, color: '#9ca3af', lineWidth: 1, lineStyle: LWC.LineStyle.Dashed, axisLabelVisible: false }); });
         sizeStockChartPanes(indexChart.panes(), 440, false);
