@@ -1,3 +1,7 @@
+**2026-10-24 AI 시장 코멘트 운영 첫 실행 보정: Groq 호출 간격·휴장일 기준일**
+
+운영 배포(PR #937) 직후 실제 호출: intraday·funds 묶음 정상 생성·표시, macro 묶음은 연속 호출로 `groq-failed`. 실제 호출 사이 최소 25초 간격 추가, 풋/콜·상승하락 비중의 기준일이 휴장일 수집 시각(토요일)이 되는 문제를 직전 거래일로 보정. 검증: `test_ai_comments.py` 48건. 미확인: Groq 한도(요금제), macro 재시도 결과는 배포 후 `/health/ai-comments`.
+
 **2026-10-23 증시온도 AI 시장 코멘트 엔진: 고정 문구 선택 -> 서버 정량 분석 + Groq 생성 + 검증 + 캐시**
 
 사용자 지시. 카드 옆 한 줄 해설이 미리 쓴 문장 배열(`COMMENT_POOLS_`·`marketComment_`·`tmComment_`·`rateComment_`·`programComment_`)에서 고르는 구조라 매일 같은 말이 반복되고 데이터와 무관한 어조였다.
