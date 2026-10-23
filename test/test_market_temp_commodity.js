@@ -1,19 +1,14 @@
 // 시장 한눈에 원자재·가상자산 블록 + 공용 코멘트 모듈: 값은 /futures 응답 그대로, 없거나 stale이면 '미수신'(대체 금지).
-// 코멘트 풀에는 매수·매도를 직접 권유·지시하는 표현이 없어야 한다(의문·감탄 혼잣말은 허용).
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
-const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={commodityStrip_,marketComment_,COMMENT_POOLS_};');
+const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={commodityStrip_,AI_STATE_,aiSayHtml_};');
 const sb={window:{},document:{readyState:'loading',addEventListener(){}},console,setTimeout,clearTimeout,fetch:async()=>({ok:true,json:async()=>({})})};
-vm.runInNewContext(src,sb);const {commodityStrip_:f,marketComment_:mc,COMMENT_POOLS_:pools}=sb.window.t;
-// 금지: 권유·지시형 어미/동사 (독자 혼잣말 '사야 하나?' 는 허용)
-const BANNED=/(사라|팔아|팔자|사자|매수해|매도해|해야 ?돼|사세요|파세요|매수하세요|매도하세요|매수하라|매도하라|지금 사)/;
-let total=0;
-Object.entries(pools).forEach(([kind,tiers])=>Object.entries(tiers).forEach(([tier,list])=>{assert(list.length>=3,kind+tier+' 변형 3개 이상');list.forEach(t=>{total++;assert(!BANNED.test(t),'권유형 금지: '+t)})}));
-assert(total>=45,'문구 풀 규모');
-// 변형은 날짜+종류로 고정되고, 날짜가 바뀌면 바뀔 수 있다
-assert.equal(mc('oil',2.5,'2026-10-23'),mc('oil',2.5,'2026-10-23'));
-const seen=new Set();for(let d=1;d<=28;d++)seen.add(mc('gold',-0.9,'2026-10-'+String(d).padStart(2,'0')));assert(seen.size>=2,'날짜에 따라 변형이 달라짐');
-assert.equal(mc('oil',null,'2026-10-23'),'미수신');assert.equal(mc('xx',1,'2026-10-23'),'미수신');
-assert(pools.oil.flat.includes(mc('oil',0.1,'2026-10-23'))&&pools.btc.upBig.includes(mc('btc',3,'2026-10-23'))&&pools.gold.downMild.includes(mc('gold',-0.8,'2026-10-23')));
+vm.runInNewContext(src,sb);const {commodityStrip_:f,AI_STATE_:ai,aiSayHtml_:say}=sb.window.t;
+// 코멘트는 서버가 실제 데이터로 생성·검증한 AI 문장이다. 고정 문구 풀(COMMENT_POOLS_)과 날짜 해시 선택은 없다.
+assert(!/COMMENT_POOLS_|commentHash_|marketComment_/.test(src),'고정 문구 풀 제거');
+assert.equal(say('oil','mt-xsay'),'<span class="mt-xsay is-empty" data-ai-slot="oil"></span>','코멘트가 없으면 빈 자리만(높이 예약, 고정 문장 없음)');
+ai.comments={oil:{text:'기름값은 잠잠한 편이네',generatedAt:'2026-10-23 11:00:00',dataAsOf:'2026-10-23',tradeDate:'2099-01-01',model:'m'}};
+assert(say('oil','mt-xsay').includes('기름값은 잠잠한 편이네')&&!say('oil','mt-xsay').includes('is-empty')&&say('oil','mt-xsay').includes('title="AI 코멘트 · 생성 2026-10-23 11:00:00 · 데이터 기준 2026-10-23 · m"'));
+ai.comments={};
 const now=Date.parse('2026-10-23T05:00:00Z');
 const row=(symbol,price,rate,extra={})=>({symbol,price,change_rate:rate,updated_at:'2026-10-23T04:07:00Z',stale:false,...extra});
 assert.equal(f([],now),'');
@@ -28,6 +23,10 @@ assert(html.includes('업비트 공개시세'),'BTC 출처 표기');
   assert(!/실시간/.test(h2),'지연 여부를 모르면 실시간이라고 쓰지 않는다');
 }
 assert(html.indexOf('mt-xsay')>html.indexOf('mt-glance-line'),'값 줄 아래에 코멘트 줄');
+assert((html.match(/mt-xsay is-empty/g)||[]).length===3&&html.includes('data-ai-slot="oil"')&&html.includes('data-ai-slot="gold"')&&html.includes('data-ai-slot="btc"'),'카드마다 코멘트 자리');
+ai.comments={gold:{text:'금값은 그대로 제자리네',generatedAt:'2026-10-23 11:00:00',dataAsOf:'2026-10-23',tradeDate:'2099-01-01',model:'m'}};
+assert(f([row('WTI',99.99,0.52),row('BRENT',113.77,-0.75),row('GOLD',4030.9,-0.73),row('BTC',109358000,0.42)],now).includes('금값은 그대로 제자리네'),'AI 코멘트가 있으면 해당 카드에 표시');
+ai.comments={};
 assert(!html.includes('mt-xpanel')&&!html.includes('data-mt-flow-chart'),'카드 안에 정적 그래프 없음(누르면 오른쪽 최근 시장 흐름에 표시)');
 assert(html.includes('data-market-metric="x-oil"')&&html.includes('mt-xicon'),'누르면 최근 시장 흐름에 보이는 카드 + 아이콘');
 const chart=Array.from({length:30},(_,i)=>({date:'202610'+String(i%28+1).padStart(2,'0'),close:100+(i%7)}));
@@ -35,5 +34,5 @@ const rowsC=[row('WTI',99.99,0.52,{chart}),row('BRENT',113.77,-0.75),row('GOLD',
 const sel=f(rowsC,now,'x-oil');assert(sel.includes('mt-xcard is-selected')&&sel.includes('aria-pressed="true"'),'선택된 카드 표시');
 html=f([row('WTI',99.99,0.52),row('BRENT',113.77,0.7,{stale:true}),row('GOLD',4030.9,0.1,{updated_at:'2026-10-20T00:00:00Z'}),row('BTC',null,0.4)],now);
 assert(!html.includes('113.77'),'stale 브렌트 값 비표시');
-assert(((html.match(/미수신/g)||[]).length)>=4,'브렌트·금·BTC 미수신 표시');
-console.log('commodity cards + comment pools ok');
+assert(((html.match(/미수신/g)||[]).length)>=3,'브렌트·금·BTC 미수신 표시');
+console.log('commodity cards + AI comment slots ok');

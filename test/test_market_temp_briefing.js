@@ -3,7 +3,7 @@
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');
 const source = fs.readFileSync('js/market-temp.js', 'utf8').replace('global.MarketTemp = MarketTemp;',
   'global.MarketTemp = MarketTemp; global.t={renderBriefing_,briefingMeta_,briefingTitle_,marketPhase_,lanePeriod_,nextRunAt_,dueLanes_,liveStatusText_,' +
-  'buildCheckContext_,checkpointContextHtml_,intradayChanges_,sectorAsOf_,rankChangeHtml_,sharedMarketJson_,loadBriefing_,paintBriefing_,buildStrategy,marketRefreshDelay_,LANE_TTL_,LANE_PERIODS_,tmComment_};');
+  'buildCheckContext_,checkpointContextHtml_,intradayChanges_,sectorAsOf_,rankChangeHtml_,sharedMarketJson_,loadBriefing_,paintBriefing_,buildStrategy,marketRefreshDelay_,LANE_TTL_,LANE_PERIODS_,AI_STATE_,loadAiComments_};');
 const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: async () => ({ ok: true, json: async () => ({}) }) };
 vm.runInNewContext(source, sb);
 const t = sb.window.t;
@@ -27,15 +27,23 @@ assert.equal(r.title, '시장 브리핑 · 10/26(월)');
 assert.equal(r.meta, '07:00 확정 · 미국장 마감 기준');
 assert(r.final && r.body.includes('하락 우세') && r.body.includes('오늘 시초는 내려서 시작할 가능성이 높습니다'), '오늘 브리핑 결론');
 assert(r.body.includes('-1.21%') && r.body.includes('-2.60%') && r.body.includes('+14.09%') && r.body.includes('-6.72%'), '미국 지표 수치');
-assert(r.body.includes('코스피200 야간선물') && r.body.includes('-2.61%') && r.body.includes('야간선물 하락… 시초 주의'), '야간선물 칸 기본: 이름·등락률·한 줄 해설');
+assert(r.body.includes('코스피200 야간선물') && r.body.includes('-2.61%') && r.body.includes('data-ai-slot="night"'), '야간선물 칸 기본: 이름·등락률·AI 코멘트 자리');
 assert(r.body.includes('mt-tm-nd') && r.body.includes('834.60') && r.body.includes('-22.40') && r.body.includes('KIS 야간선물') && r.body.includes('최종 마감') && r.body.includes('반영됨'), '상세에 종가·등락폭·상태·출처');
 assert.equal((r.body.match(/mt-tm-item/g) || []).length, 6, '6칸(S&P·나스닥·다우·SOX·VIX·야간선물)');
 assert(!r.body.includes('mt-tm-nd" open') && t.renderBriefing_(payload(brief()), { nightOpen: true }).body.includes('mt-tm-nd" open'), '야간선물 상세 열림 상태 유지');
-// 지표별 한 줄 해설(부호·크기만으로 결정, 신호 계산과 무관)
-assert.equal(t.tmComment_('dji', 0.02), '다우는 가까스로 버텼네'); assert.equal(t.tmComment_('nas', -2.6), '기술주 매도세가 강했네');
-assert.equal(t.tmComment_('sox', -6.72), '반도체 급락… 국내도 부담'); assert.equal(t.tmComment_('vix', 3.47), '시장 불안이 커지고 있네');
-assert.equal(t.tmComment_('night', -0.67), '야간선물 하락… 시초 주의'); assert.equal(t.tmComment_('spx', -1.21), '대형주 전반이 크게 밀렸네');
-assert.equal(t.tmComment_('spx', null), '미수신');
+// 지표별 한 줄 해설은 서버 AI 코멘트(GET /ai-comments)다. 코멘트가 없으면 빈 칸(고정 문구로 채우지 않는다).
+assert(!/가까스로 버텼네|기술주 매도세|반도체 급락… 국내도|시장 불안이 커지고 있네/.test(r.body), '고정 해설 문구가 남아 있지 않다');
+assert(['spx', 'nas', 'dji', 'sox', 'vix', 'night'].every((k) => r.body.includes('data-ai-slot="' + k + '"')) && !/data-ai-slot=\"[a-z_]+\"[^>]*>[^<]/.test(r.body.replace(/<small/g, '<')), '코멘트 없음: 자리만 있고 비어 있음');
+t.AI_STATE_.comments = { sox: { text: '반도체가 크게 꺾여서 국내 반도체가 걱정되네', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-23', tradeDate: '2026-10-26', model: 'm' },
+  brief_summary: { text: '미국이 밀려서 시초는 무거울 수 있어 보이네', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-26', tradeDate: '2026-10-26', model: 'm' },
+  nas: { text: '<b>x</b> 기술주 이야기', generatedAt: '2026-10-26 07:03:00', dataAsOf: '2026-10-23', tradeDate: '2020-01-02', model: 'm' } };
+{ const ai = t.renderBriefing_(payload(brief())).body;
+  assert(ai.includes('반도체가 크게 꺾여서') && ai.includes('미국이 밀려서 시초는') && ai.includes('mt-ai-summary'), 'AI 코멘트 표시(칸·요약)');
+  assert(!ai.includes('<b>x</b>') && ai.includes('&lt;b&gt;x&lt;/b&gt;'), 'AI 문장은 HTML 이스케이프');
+  assert(ai.includes('1.2 기준'), '지난 거래일 코멘트는 원래 기준일을 표시: ' + ai.slice(ai.indexOf('data-ai-slot="nas"') - 40, ai.indexOf('data-ai-slot="nas"') + 220));
+  assert(ai.includes('title="AI 코멘트 · 생성 2026-10-26 07:03:00 · 데이터 기준 2026-10-23 · m"'), '생성 시각·데이터 기준일 툴팁');
+  t.AI_STATE_.comments = {};
+}
 assert(r.body.includes('환율 상승(원화 약세)') && !r.body.includes('원/달러</span>'), '원/달러는 한국장 영향 문장에만(칸 없음)');
 assert(r.body.includes('<b>35거래일</b>') && r.body.includes('시초 하락 출발 86%'), '과거 통계');
 // 같은 응답이면 언제 그려도 같다(브라우저 시각·새로고침에 따라 바뀌지 않음)
@@ -97,7 +105,7 @@ assert.equal(P(kst(2026, 11, 19, 16, 0), { today: '2026-11-18', tradingDay: true
 // ---------- 레인: 단계별 주기, 중복·불필요 요청 없음 ----------
 const mkPage = (o = {}) => Object.assign({ data: { updatedAt: '2026-10-26 09:00:10' }, indicators: {}, briefing: payload(brief()), lanes: {} }, o);
 function simulate(page, startMs, endMs) {
-  let now = startMs; const calls = { brief: 0, live: 0, snap: 0, sector: 0, macro: 0, check: 0 }; let guard = 0;
+  let now = startMs; const calls = { brief: 0, live: 0, snap: 0, sector: 0, macro: 0, check: 0, ai: 0 }; let guard = 0;
   while (now <= endMs && guard++ < 5000) {
     t.dueLanes_(page, now).forEach((lane) => { page.lanes[lane] = now; calls[lane]++; });
     const next = t.nextRunAt_(page, now);
@@ -115,11 +123,12 @@ function simulate(page, startMs, endMs) {
   assert(calls.sector >= 29 && calls.sector <= 32, 'sector ' + calls.sector);
   assert(calls.check >= 11 && calls.check <= 13, 'check ' + calls.check);
   assert(calls.macro >= 11 && calls.macro <= 13, 'macro ' + calls.macro);
+  assert(calls.ai >= 29 && calls.ai <= 32, 'AI 코멘트 읽기(DB 읽기만) 장중 2분: ' + calls.ai);
 }
 { // 개장 전(07:10 이후): 처음 한 번 + 브리핑 정정 확인만. 국내 지표 주기 갱신 없음, 09:00:02에 깨어난다
   const page = mkPage();
   let first = simulate(page, kst(2026, 10, 26, 7, 10), kst(2026, 10, 26, 7, 10));
-  assert.deepEqual(Object.values(first.calls), [1, 1, 1, 1, 1, 1], '처음에는 모든 레인을 한 번');
+  assert.deepEqual(Object.values(first.calls), [1, 1, 1, 1, 1, 1, 1], '처음에는 모든 레인을 한 번(AI 코멘트 포함)');
   const { calls } = simulate(page, kst(2026, 10, 26, 7, 10, 2), kst(2026, 10, 26, 8, 58));
   assert.equal(calls.live + calls.snap + calls.sector + calls.check, 0, '개장 전 국내 지표 폴링 없음');
   assert(calls.brief >= 20 && calls.brief <= 24, '정정 확인 5분 간격 ' + calls.brief);
@@ -168,7 +177,7 @@ function simulate(page, startMs, endMs) {
 
 // 공용 fetch 재사용 시간은 레인 주기(레인은 0.5초 일찍 깨어날 수 있다)보다 짧아야 한다 - 아니면 갱신이 한 번씩 건너뛰어진다
 {
-  const periods = { live: Math.min(...Object.values(t.LANE_PERIODS_.live)), snap: Math.min(...Object.values(t.LANE_PERIODS_.snap)), check: Math.min(...Object.values(t.LANE_PERIODS_.check)), macro: 300000 };
+  const periods = { live: Math.min(...Object.values(t.LANE_PERIODS_.live)), snap: Math.min(...Object.values(t.LANE_PERIODS_.snap)), check: Math.min(...Object.values(t.LANE_PERIODS_.check)), macro: 300000, ai: 120000 };
   Object.keys(t.LANE_TTL_).forEach((lane) => assert(t.LANE_TTL_[lane] < periods[lane] - 500, lane + ' TTL < 주기'));
   assert(t.LANE_PERIODS_.sector.open === t.LANE_PERIODS_.snap.open && t.LANE_TTL_.snap < t.LANE_PERIODS_.sector.open - 500, '섹터는 snap TTL을 쓴다');
 }

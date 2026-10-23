@@ -45,7 +45,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | **홈** `/` | 오늘의 시장판, KOSPI/KOSDAQ·미국 지수, 투자자 수급, 실시간 종목 랭킹, 패턴, 관심종목, 일정, 공시, 마켓브리핑 | `js/skin-main.js`, `js/home-widgets.js`, VM 시장/랭킹/투자자 API·GAS |
 | 시장 > **마켓브리핑** `/category/마켓 브리핑` | 작성된 시황 해석·브리핑/주간 콘텐츠 | 티스토리 글 및 뉴스/시장 참고 데이터 |
 | 시장 > **주요 뉴스** `/pages/main-news` | 국내·미국·경제·가상자산 주요 뉴스, 최신 기사 | `js/` 뉴스 모듈, VM 뉴스 캐시·GAS |
-| 시장 > **증시온도** `/page/market-temp` | 맨 위 시장 브리핑(07:00 서버 확정 스냅샷) + 수급 방향·가격 방향의 심리점수(0~100), 별도 위험도, 상승/하락 폭, 업종 자금 흐름, 단기 이력, 개인용 체크리스트 | `js/market-temp.js` → VM `/market-temp`, KOFIA 위험자료; **신용잔고/예탁금은 종합 방향점수가 아닌 위험 축**. `docs/MARKET_TEMP_METHOD.md` |
+| 시장 > **증시온도** `/page/market-temp` | 맨 위 시장 브리핑(07:00 서버 확정 스냅샷) + 수급 방향·가격 방향의 심리점수(0~100), 별도 위험도, 상승/하락 폭, 업종 자금 흐름, 단기 이력, 개인용 체크리스트. **카드 옆 한 줄 해설은 서버가 생성·검증한 AI 코멘트(`/ai-comments`)** | `js/market-temp.js` → VM `/market-temp`, KOFIA 위험자료; **신용잔고/예탁금은 종합 방향점수가 아닌 위험 축**. `docs/MARKET_TEMP_METHOD.md` |
 | 시장 > **시장지표** `/pages/kospi-futures` | 국내 주요 지수·투자자 수급·**증시자금(고객예탁금, 신용잔고, 대주/담보융자)**·프로그램매매, 글로벌 지표·환율·선물·가상자산·미국 주요 발표 및 차트 | `js/kospi-futures.js`, `js/domestic-market-indicators.js` → VM `/domestic-market-indicators`, `/futures`, `/fx-rates` 등. 신용·예탁금은 `funds` 응답의 날짜/단위를 반드시 함께 확인 |
 | 종목 > **국내 주요종목** `/page/market-temp?view=stocks` | 국내 실시간 종목판(거래량·거래대금·회전율·체결강도·상승/하락 등)과 ETF 표시 | 해당 종목판 JS, VM `/market-board` 계열; `docs/DOMESTIC_VOLUME_POWER.md` |
 | 종목 > **종목분석** `/page/foreign-flow` | 국내 수급·재무·공시·뉴스·차트/매물대/파동, 미국 주식 실적·내부자 거래·애널리스트 의견 | `js/foreign-flow.js`, 공통 차트 엔진, VM 분석/재무·DART/미국 공급자 |
@@ -65,6 +65,8 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 ### 2. 데이터 출처·폴백(대체 공급처) 운영 지도 — 첫 인수인계 때 반드시 확인
 
 증시온도 표시(2026-10-23 개정): **`시장 브리핑`(맨 위, 국내 거래일 KST 07:00에 VM이 확정해 SQLite `morning_briefing`에 저장·`GET /morning-briefing`)과 장중 영역(`오늘의 증시`·체크포인트·섹터)을 분리**한다. 브리핑은 미국 정규장 마감 지표(S&P·나스닥·다우·SOX·VIX)·원/달러·코스피200 야간선물 최종 봉으로 서버가 계산하고, 확정된 거래일에는 새로고침·장중 값으로 바뀌지 않으며(정정은 최초 확정 시각과 별도 기록) 브라우저는 계산하지 않는다. 장중은 레인별로 갱신한다: 국내 지표 1분·요약/섹터 2분·체크포인트 5분(09:00~15:30), 마감 후 후속 10분(~16:30) 뒤와 휴장일은 요청 중지, 해외·원자재·가상자산·금리는 별도(거래일 5분/휴장·마감 15분/주말 휴장창 30분). 기존 VM 수집 캐시와 `/futures?stored_only=true`의 DB 자료만 읽고 강제 수집을 요청하지 않으며, 프론트 표시 갱신을 서버 수집·실시간 틱으로 해석하지 않는다. 상세 `docs/MARKET_BRIEFING_AND_LIVE_2026-10-23.md`.
+
+증시온도 **AI 코멘트(2026-10-23)**: 카드 옆 한 줄 해설은 미리 쓴 문장 풀에서 고르지 않는다. VM(`ai_comment_facts.py` 정량 분석 → `ai_comments.py` 묶음 요청 → GAS `doPost action=marketComments`가 Groq 호출(키는 GAS 스크립트 속성뿐) → `ai_comment_validator.py` 검증 → SQLite `ai_comments*` 저장)이 만들고, 브라우저는 `GET /ai-comments`(DB 읽기만)를 그대로 보여 준다. 같은 데이터면 같은 코멘트(서명 sig), 의미 있는 상태 변화에서만 재생성, 최근 14일 문장과 반복 금지, 숫자·방향·원인 단정·금융 단정 검증, 실패 시 **해설 없음**(고정 문구로 채우지 않음, 금융 데이터 표시는 영향 없음). 하루 호출 상한 `AI_COMMENTS_DAILY_CALLS`(60)·토큰 `AI_COMMENTS_DAILY_TOKENS`(150000), 상태 `GET /health/ai-comments`. 상세 `docs/AI_MARKET_COMMENTS_2026-10-23.md`.
 
 **용어:** **1차**=기본 수집처, **폴백**=1차가 실패·미설정·유효값 없음 등 **해당 코드의 조건을 만족할 때만** 쓰는 대체 경로, **캐시 유지**=같은 공급자의 과거 성공값(신규 실시간값 아님), **보강**=다른 필드만 채우는 추가 공급처(폴백과 다름), **없음**=없는 자료를 다른 원천으로 채우지 않음. 아래는 **2026-10-21 `master` 구현 기준**이며, 실제 선택된 공급처·수신시각은 운영 응답 `source/provider`·`updated_at/asOf/date` 및 로그로 확인한다. **빈값·늦은 자료·통신 실패를 정상 실시간/0건으로 바꾸지 않는다.** 같은 공급자도 화면/API마다 우선순위가 다르다.
 
@@ -104,7 +106,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | **한국수출입은행 공식 고시환율 탭** `/fx-rates` | **한국수출입은행 OpenAPI**(영업일 고시 환율) → `fx_koreaexim.db` | 주말/휴일/미고시일에는 **직전 실제 고시일값 + `baseDate/pendingToday`**. 네이버의 장중 USDKRW 시장환율과 서로 대체하지 않음(서로 다른 정의). `fx_koreaexim.py`, `docs/FX_KOREAEXIM.md` |
 | **원자재 선물** | **브렌트유(ICE)는 권한 확인된 KIS**, **WTI·금은 네이버 비공식 선물 시세** | 브렌트 KIS 실패·20분 이상 오래됨: **다른 원유/현물로 폴백 없음**, `stale`·미수신. WTI·금에 미권한 KIS 상품을 시험 삼아 붙이지 않음. `foreign_futures.py`, `commodity_kis.py`, `docs/COMMODITY_SOURCES.md` |
 | **비트코인/이더리움·주식토큰 참고시세** | BTC/ETH **업비트 공개시세**; 별도 주식토큰은 **Binance 관련 수집 경로** | Binance 지역 제한·공급 실패 시 새 값 날조 금지, 재시도 시간/제한·저장된 실제 시각 명시. 주식토큰은 실제 한국 주식 체결/수급과 다름. `btc_futures.py`, `binance_flow.py`, `binance_client.py` |
-| **AI 참고의견/번역** | **Groq API**(GAS 프록시, 시황·종목/뉴스 해설); 뉴스 제목 번역은 별도 번역캐시·보조 API | **AI는 시세·재무의 데이터 공급처/폴백이 아님**. 생성 오류 시 참고의견만 빠지고 원본 수치·기사 유지. 캐시 생성시각/TTL·출처 표기. `gas/ticker-proxy.gs`, `news_aggregator.py` |
+| **AI 참고의견/번역/증시온도 카드 코멘트** | **Groq API**(GAS 프록시, 시황·종목/뉴스 해설); 증시온도 카드 한 줄 해설은 VM이 정량 분석한 사실만 GAS `marketComments`로 Groq에 보내 생성·검증·저장(`ai_comments.py`); 뉴스 제목 번역은 별도 번역캐시·보조 API | **AI는 시세·재무의 데이터 공급처/폴백이 아님**. 생성 오류 시 참고의견만 빠지고 원본 수치·기사 유지. 캐시 생성시각/TTL·출처 표기. `gas/ticker-proxy.gs`, `news_aggregator.py` |
 | **5년 차트/DCF 정적 원본** | GitHub Actions가 **공개 시장 데이터·DART 공시**를 가져와 `data/chart-history/*.js`, `dcf-data/` 갱신 | 서버 실시간 값으로 과거 미수집 구간을 임의 복원하지 않음. 마지막 성공한 정적 자료/기간 표시. 공급자·커서·갱신주기는 `scripts/build_market_history.py`, `scripts/build_dcf_data.py`, `.github/workflows/*` 확인 |
 
 **대표 원천 URL·API 찾는 법:** 네이버 시세 `polling.finance.naver.com`/`api.stock.naver.com`; KIS/키움은 `kis_client.py`/`kiwoom_client.py`에 인증된 REST/WS TR 정의; 공공데이터포털 `public_data.py`; DART `dart_client.py`; Finnhub `us_analysis.py`; FRED `bond_yield.py`; 업비트 `btc_futures.py`; 한국수출입은행 `fx_koreaexim.py`. **도메인/호출 허가만으로 수집·재게시 라이선스가 확보된 것은 아니다.**
@@ -117,7 +119,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 |---|---|---|
 | VM **ohlc_snapshot.db** (핵심 SQLite, WAL) | `daily_prices`(종목 일봉), `chart_daily_prices`(긴 차트 일봉), `fundamentals`(DART 연·분기), `investor_flow_daily`(외국인·기관 일별), `investor_summary`(공매도·대차·연기금), `kis_flow_cache` | `db_schema.py`, `daily_scan.py`, `batch_scan.py`, 온디맨드 조회. 일봉·재무/수급 캐시를 혼동하지 말 것 |
 | 같은 SQLite: 시장·선물·옵션 | `future_prices`, `future_chart`, `future_chart_minute`, `option_flow`, `investor_trend_daily`, `investor_trend_intraday`, `home_session_prices` | 선물·옵션 최신/차트, 투자자 일별/장중 관측, 홈 30분 구간. 기록 전 구간을 보간하지 않음 |
-| 같은 SQLite: 신호·시장·사용자 | `volume_profile_daily`, `scan_hits`, `morning_briefing`·`morning_briefing_runs`(시장 브리핑 07:00 확정본·시도 이력), `swing_recommendation_snapshots`, `market_temp_daily`·`market_temp_snapshot`·`market_temp_intraday`·`market_temp_industry_rank`, `sector_rotation_daily`, `money_sector_picks`, `night_futures_close`, `app_users`·`watchlist_configs`·`user_memos`·`user_sector_cards_config`·`user_top_picks` | 매물대·검색 포착/성과·스윙·증시온도·관심종목/메모. 사용자 데이터와 공개 캐시 경계 확인 |
+| 같은 SQLite: 신호·시장·사용자 | `volume_profile_daily`, `scan_hits`, `morning_briefing`·`morning_briefing_runs`(시장 브리핑 07:00 확정본·시도 이력), `ai_comments`·`ai_comment_history`·`ai_comment_runs`(AI 카드 코멘트·14일 이력·호출/토큰 기록), `swing_recommendation_snapshots`, `market_temp_daily`·`market_temp_snapshot`·`market_temp_intraday`·`market_temp_industry_rank`, `sector_rotation_daily`, `money_sector_picks`, `night_futures_close`, `app_users`·`watchlist_configs`·`user_memos`·`user_sector_cards_config`·`user_top_picks` | 매물대·검색 포착/성과·스윙·증시온도·관심종목/메모. 사용자 데이터와 공개 캐시 경계 확인 |
 | VM **news_momentum.db** | `news_topics`, `news_topic_daily`, `datalab_trends`, `news_stock_coverage` | 뉴스 이슈·일별 빈도·검색 관심도·백필 진행. 뉴스 원문/HTML 저장 아님 |
 | VM 뉴스·미국 캐시 DB | `domestic_news.db`(국내 뉴스·공시), `us_news_cache.db`(미국 뉴스 메타), `us_analysis_cache.db`(미국 프로필/분석) | 공급자별 분리된 SQLite 캐시 |
 | VM 기타 별도 SQLite | `fx_koreaexim.db`(일별 고시환율), `hour_validation.db`(1시간 방향 전진 검증·불변), `gap_shadow.db`(장중 첫 갭상승 후보), `volume_surge_history.db`(장중 거래량 최초 신호 이력) | 일부 DB는 후속 기능에서 추가되어 `DB_SPEC.md` 서두의 “총 5개” 설명보다 종류가 많음. 각 모듈 스키마 확인 |
@@ -147,6 +149,7 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 | **VM 일별** `kiwoom-swingmonitor` | **07:45** | 스윙 후보 D+5/D+10 성과 후속 |
 | **VM 장외 유지보수** (배포 점검 경유) | **03:00~05:00 시작**, 잠금 대기 가능 | SQLite 검증·백업, 로그·뉴스 보존 정리. **10/20 문서상 완료 마커는 9/27로 지연** → 최신 성공 재확인 필수 |
 | **VM FastAPI 내부 스레드** `morning-briefing` | **국내 거래일 07:00**부터(미확정이면 개장 전 5분·장중 30분 재시도, 15:30 뒤 중단) | 미국 마감 지표·야간선물 → `morning_briefing`(거래일당 확정 1회, 별도 systemd 타이머 아님·재시작 후 DB에서 이어서 재시도) |
+| **VM FastAPI 내부 스레드** `ai-comments` | 시작 90초 뒤부터 장중·마감 후 2분 / 그 밖 5분마다 **점검**(호출은 코멘트 서명이 바뀐 카드가 있을 때만, 묶음별 최소 간격·일 상한) | 사실 계산 → GAS→Groq → 검증 → `ai_comments`(별도 systemd 타이머 아님, 재시작해도 DB 유지). 상태 `/health/ai-comments`, 미배포 GAS면 실패 기록 후 코멘트 칸만 빈다 |
 | **VM/FastAPI 경량 폴러** | 기능별 장중 수초~분/장외 느린 주기 | WS, 호가, 랭킹, 뉴스, 환율 등. 별도 systemd 타이머가 아니라 `market_clock.py`/모듈 내부 주기 |
 | **Windows PC** `AutotraderLiveTrading` | **거래일 08:55 예약** | PC 기존 실거래 runner + 9Pay 장중 A/B 피드, 보유·미체결·예산 검사 → 승인된 계좌만 주문 가능 |
 | **Windows PC** `AutotraderBot` | **5분 간격 감시** | 로컬 봇 실행/관제·토큰 인증 운영센터 API |

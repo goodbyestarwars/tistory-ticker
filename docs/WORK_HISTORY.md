@@ -1,3 +1,14 @@
+**2026-10-23 증시온도 AI 시장 코멘트 엔진: 고정 문구 선택 -> 서버 정량 분석 + Groq 생성 + 검증 + 캐시**
+
+사용자 지시. 카드 옆 한 줄 해설이 미리 쓴 문장 배열(`COMMENT_POOLS_`·`marketComment_`·`tmComment_`·`rateComment_`·`programComment_`)에서 고르는 구조라 매일 같은 말이 반복되고 데이터와 무관한 어조였다.
+- **서버(VM)**: 새 `ai_comment_facts.py`(전일 대비·5/20일 추세·평균 대비·연속 일수·수급 우위·지표 간 일치를 AI 호출 전에 계산해 카드별 사실 객체로 만듦; 인용 가능 숫자 `numbers`·상태 `state`·재생성 서명 `sig`), `ai_comment_validator.py`(숫자·방향 모순·원인 단정·매수/매도 권유·카드별 금융 단정·사건 언급·최근 14일 반복 차단), `ai_comments.py`(묶음 4개 brief/intraday/funds/macro를 요청 1회로 생성, 반려 카드만 교정 재요청 1회, 일 호출 60회·150000토큰 상한, 연속 실패 백오프, SQLite 저장·조회·상태, FastAPI 스레드 `ai-comments`). 새 시세 API·새 유료 서비스 없음, 별도 systemd 타이머 없음.
+- **GAS**: `gas/ticker-proxy.gs`에 `doPost action=marketComments`(VM `API_TOKEN` 상수시간 인증, 길이·토큰·하루 200회 상한)와 `callGroqJson_`(JSON 출력, 거부 옵션이면 옵션 없이 재시도). Groq 키는 GAS 스크립트 속성에만 있고 VM·브라우저에는 없다.
+- **DB/API**: `ohlc_snapshot.db`에 `ai_comments`·`ai_comment_history`·`ai_comment_runs`. `GET /ai-comments`(DB 읽기만, 30초 캐시), `GET /health/ai-comments`, `/health/schedules.internalJobs`에 요약.
+- **화면(`js/market-temp.js`, `css/market-temp.css`)**: 고정 문구 풀과 선택 함수 제거. 레인 `ai`(장중 2분/개장 전·마감 후 5분/휴장·마감 뒤 15~30분)로 `/ai-comments`를 읽어 시장 한눈에 행·상승하락 비중·요약 줄·프로그램/풋콜/금리/원유/금/BTC 카드·브리핑 6칸과 브리핑 요약에 표시. 코멘트가 없으면 빈 칸(한 줄 높이 예약, 고정 문구로 채우지 않음), 지난 거래일 코멘트는 `· M.D 기준`·생성 시각 툴팁, 모든 문장 HTML 이스케이프. 실패해도 금융 데이터·카드는 그대로.
+- **검증**: `test/test_ai_comments.py` 47건(Groq 목: 새로고침 동일 코멘트·다음 거래일 새 분석·14일 반복 재시도·장중 외국인 전환·프로그램 20일·예탁금↓신용↑ 구분·원화 강세 수익 표현 차단·금리 원인 단정 차단·Groq 장애 시 정상 표시·휴장일 기준일 유지·상한·비밀 미노출·HTTP 계약), `test_market_temp_ai_comments.js`와 갱신된 `briefing/commodity/extras` JS 테스트. 전체 pytest 실패 목록은 변경 전과 동일(기준선 69건).
+- **미확인/한계**: 운영 GAS의 Groq 호출(`response_format`·`reasoning_effort` 옵션 수용)과 Groq 요금제 한도, 실제 문장 품질은 배포 후 `GET /health/ai-comments`·`/ai-comments`로 확인 필요. GAS가 배포되기 전에는 코멘트 칸만 빈다. 다크모드 CSS 팔레트 작업과 충돌을 피하려고 CSS는 파일 끝 몇 줄만 추가.
+- **배포**: `js/`·`css/` Pages 자동, `scripts/cloud-vm/` 기존 VM 자동 배포, `gas/` `deploy-gas.yml`(clasp). skin.html 변경 없음. 상세 [AI_MARKET_COMMENTS_2026-10-23.md](AI_MARKET_COMMENTS_2026-10-23.md).
+
 **2026-10-23 9Pay 전체 사이트 다크모드 공식 팔레트 통일 (공통 토큰, CSS PR #935 + 차트 JS PR #936)**
 
 사용자 지시(증시온도 다크 스크린샷의 짙은 네이비·차콜 조합을 사이트 전체 공식 다크모드로). 라이트모드·데이터·API·기능은 그대로.

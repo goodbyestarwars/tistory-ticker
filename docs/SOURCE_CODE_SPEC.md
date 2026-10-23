@@ -202,6 +202,9 @@ DB 관점의 상세 스키마는 `DB_SPEC.md` §4를 본다.
 | `load_probe.py` | 160 | `/health/load` VM 부하 스냅샷(/proc 읽기 전용) | `snapshot` |
 | `market_clock.py` | 60 | 국내 장 활성·미국 선물 주말 휴장 판정(수집 주기 완화용) | `kr_market_active`, `us_futures_weekend_closed`, `sleep_seconds` |
 | `morning_briefing.py` | 400 | 시장 브리핑(국내 거래일 07:00 서버 확정): 계산(미국 5지표·원/달러·야간선물 z점수 합), SQLite 저장·재시도·정정, `/morning-briefing` 조회 규칙, 점검 스레드 | `compute`, `attempt`, `revise`, `run_due`, `current_view`, `status_summary`, `start_background` |
+| `ai_comment_facts.py` | 560 | AI 시장 코멘트 1~2단계: 입력 데이터 -> 카드별 사실 객체(전일 대비·5/20일·평균 대비·연속·수급 우위·지표 간 일치, 인용 가능 숫자 numbers, 상태 state·서명 sig). 순수 함수 | `group_facts`, `series_stats`, `program_cumulative`, `rate_stats` |
+| `ai_comment_validator.py` | 220 | AI 문장 검증: 형식·숫자·방향 모순·원인 단정·금융 단정·사건 언급·반복(최근 14일 유사도). 통과 못 하면 쓰지 않음 | `validate`, `parse_model_json`, `similarity` |
+| `ai_comments.py` | 480 | AI 코멘트 오케스트레이터: 프롬프트·GAS 호출·재시도·호출 상한/백오프·SQLite 저장·조회(`/ai-comments`)·상태(`/health/ai-comments`)·점검 스레드 | `run_cycle`, `generate`, `call_gas`, `current_view`, `status_summary`, `start_background` |
 | `night_futures_code.py` | 56 | 코스피200 야간선물 근월물 코드 파싱 | `get_front_month_code` |
 | `night_futures_ws.py` | 263 | 야간선물 실시간(KIS WS)+일/분봉 백필 | `_run_once`, `refresh_minute` |
 | `week52.py` | 28 | 52주 신고가/신저가 순수 계산 | `compute_week52` |
