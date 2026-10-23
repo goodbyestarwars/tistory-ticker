@@ -8853,3 +8853,10 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @layer np.np {
   html:not(.dark) body :is(strong, b, th) { color: var(--text-strong); }
 }
+
+/* ===== 다크 공통 보정 (2026-10-23): 라이트 전용 회색·흰 바탕이 다크에 남던 곳 ===== */
+html.dark .app-news-date strong { color: var(--dk-mute); }
+html.dark body#tt-body-index .briefing-carousel-controls button { background: var(--dk-inner); border-color: var(--dk-line); }
+@layer np.np {
+  html.dark body .site-footer-learn .learn-mobile-controls button { background-color: var(--dk-inner) !important; border-color: var(--dk-line) !important; }
+}

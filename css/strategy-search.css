@@ -1368,3 +1368,5 @@ html.dark #strategy-search .ss-top-rank { background: var(--dk-inner) !important
 html.dark #strategy-search .ss-top-rank.is-gold { background: rgba(214, 177, 92, .22) !important; color: #e8c987 !important; }
 html.dark #strategy-search .ss-top-rank.is-silver { background: rgba(190, 198, 210, .2) !important; color: #cfd6e0 !important; }
 html.dark #strategy-search .ss-top-rank.is-bronze { background: rgba(196, 140, 100, .22) !important; color: #e0b08c !important; }
+
+html.dark #strategy-search .ss-col-code { color: var(--dk-mute) !important; }
