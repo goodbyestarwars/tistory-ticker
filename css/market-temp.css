@@ -3041,6 +3041,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   /* 진한 회색 토큰: 거의 검정(#111827)이던 본문을 #1f2937로 */
   html body #market-temp .mt-tomorrow-card :is(.mt-tm-why li > span, .mt-tm-verdict > span, .mt-tm-proof, .mt-tm-proof > b, .mt-tm-night) { color: #1f2937 !important; }
   html body #market-temp .mt-checkpoint-facts.mt-checkpoint-facts { --cp-ink: #1f2937; }
+  html.dark body #market-temp .mt-checkpoint-facts.mt-checkpoint-facts { --cp-ink: var(--dk-text); }
   html body #market-temp .mt-sf-card :is(.mt-sf-row b, .mt-sf-rank, .mt-sf-pick > span, .mt-sf-stock-name) { color: #1f2937 !important; }
   html.dark body #market-temp .mt-tomorrow-card :is(.mt-tm-why li > span, .mt-tm-verdict > span, .mt-tm-proof, .mt-tm-proof > b, .mt-tm-night), html.dark body #market-temp .mt-sf-card :is(.mt-sf-row b, .mt-sf-rank, .mt-sf-pick > span, .mt-sf-stock-name) { color: var(--dk-text) !important; }
   /* 섹터 표: 항목 최소 높이를 행이 가지도록 옮겨 위·아래 여백을 같게 */
