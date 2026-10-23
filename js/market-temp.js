@@ -3000,6 +3000,20 @@
       time: p2(k.getUTCMonth() + 1) + '.' + p2(k.getUTCDate()) + ' ' + p2(k.getUTCHours()) + ':' + p2(k.getUTCMinutes()) + ' KST' };
   }
 
+  // 다음 거래일 전망 카드의 지표별 한 줄 해설(2026-10-23): 등락률의 부호·크기만 문장으로 옮긴다(신호 계산과 무관, 매매 권유 아님).
+  // 크기 구간: 보합 |값|<0.3%, 약/강은 1%(SOX 3%, VIX 2%·5%, 야간선물 0.5%)를 경계로 나눈다.
+  function tmComment_(kind, pct) {
+    if (pct == null || !isFinite(pct)) return '미수신';
+    var a = Math.abs(pct), up = pct > 0;
+    if (kind === 'sox') return a >= 3 ? (up ? '반도체 급등… 국내 수혜 기대' : '반도체 급락… 국내도 부담') : a >= 1 ? (up ? '반도체 강세… 국내 반도체 기대' : '반도체 약세… 국내 반도체 부담') : a >= 0.3 ? (up ? '반도체 소폭 강세' : '반도체 소폭 약세') : '반도체 보합, 방향 탐색';
+    if (kind === 'vix') return a >= 5 ? (up ? '시장 불안이 확 커졌네' : '불안 심리가 확 풀렸네') : a >= 2 ? (up ? '시장 불안이 커지고 있네' : '시장 불안이 가라앉고 있네') : a >= 0.3 ? (up ? '불안 심리 소폭 증가' : '불안 심리 소폭 완화') : '불안 심리는 잠잠하네';
+    if (kind === 'night') return a >= 0.5 ? (up ? '야간선물 상승… 시초 기대' : '야간선물 하락… 시초 주의') : a >= 0.3 ? (up ? '야간선물 소폭 상승' : '야간선물 소폭 하락') : '야간선물 보합권';
+    var who = { spx: ['대형주', '대형주 전반'], nas: ['기술주', '기술주'], dji: ['다우', '다우'] }[kind] || ['지수', '지수'];
+    if (a < 0.3) return kind === 'dji' ? (up ? '다우는 가까스로 버텼네' : '다우는 거의 제자리네') : who[0] + ' 보합, 눈치 보기네';
+    if (kind === 'nas') return a >= 1 ? (up ? '기술주 매수세가 강했네' : '기술주 매도세가 강했네') : (up ? '기술주 소폭 올랐네' : '기술주 약세로 밀렸네');
+    if (kind === 'dji') return a >= 1 ? (up ? '다우도 강하게 올랐네' : '다우도 크게 밀렸네') : (up ? '다우 소폭 올랐네' : '다우도 약세 마감');
+    return a >= 1 ? (up ? who[1] + ' 강하게 올랐네' : who[1] + '이 크게 밀렸네') : (up ? who[1] + ' 소폭 올랐네' : who[1] + ' 약세, 가볍게 밀렸네');
+  }
   // 신호 계산(순수 함수): by = {심볼: /futures 행}, ymd = 대상 거래일(YYYYMMDD). 미국 현물 3지수·SOX·VIX·원/달러 중 하나라도 없으면 null.
   // 야간선물은 세션이 끝난 뒤에만 점수에 넣는다(진행 중이면 night.pending).
   function tomorrowSignal_(by, ymd, now_) {
@@ -3080,32 +3094,34 @@
       var tone = /up/i.test(bucket.key) ? 'up' : /down/i.test(bucket.key) ? 'down' : 'flat';
       function sgn(v, digits) { return (v > 0 ? '+' : '') + v.toFixed(digits == null ? 2 : digits) + '%'; }
       function md(d) { return String(d).slice(4, 6) + '/' + String(d).slice(6, 8); }
-      // tag는 값의 부호만으로 정한 짧은 해석 힌트(신호 계산과 무관): good=시초 방향에 우호적인 쪽
       var why = [
-        { name: 'S&P 500', val: r.spx.pct, good: r.spx.pct > 0, tag: r.spx.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '나스닥 종합', val: r.nas.pct, good: r.nas.pct > 0, tag: r.nas.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '다우존스', val: r.dji.pct, good: r.dji.pct > 0, tag: r.dji.pct > 0 ? '상승 우호' : '하락 압력' },
-        { name: '필라델피아 반도체', val: r.sox.pct, good: r.sox.pct > 0, tag: r.sox.pct > 0 ? '반도체 강세' : '반도체 약세' },
-        { name: 'VIX', val: r.vix.pct, good: r.vix.pct < 0, tag: r.vix.pct < 0 ? '변동성 완화' : '변동성 확대' }
+        { name: 'S&P 500', kind: 'spx', val: r.spx.pct, good: r.spx.pct > 0 },
+        { name: '나스닥 종합', kind: 'nas', val: r.nas.pct, good: r.nas.pct > 0 },
+        { name: '다우존스', kind: 'dji', val: r.dji.pct, good: r.dji.pct > 0 },
+        { name: '필라델피아 반도체', kind: 'sox', val: r.sox.pct, good: r.sox.pct > 0 },
+        { name: 'VIX', kind: 'vix', val: r.vix.pct, good: r.vix.pct < 0 }
         // 원/달러 칸은 시장 한눈에의 환율 저울과 겹쳐 뺐다(신호 계산에는 r.fx가 그대로 들어간다)
       ];
       var usDates = [r.spx.date, r.nas.date, r.dji.date].filter(function (d, i, a) { return a.indexOf(d) === i; }).map(md).join('·');
       var items = why.map(function (w) {
-        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span><span class="mt-tm-name">' + w.name + '</span></span>'
-          + '<b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b><em class="mt-tm-tag">' + w.tag + '</em></li>';
+        return '<li class="mt-tm-item ' + (w.good ? 'is-pos' : 'is-neg') + '"><span class="mt-tm-name">' + w.name + '</span>'
+          + '<b class="' + (w.good ? 'mt-val-pos' : 'mt-val-neg') + '">' + sgn(w.val) + '</b><span class="mt-tm-say">' + tmComment_(w.kind, w.val) + '</span></li>';
       }).join('');
       // 코스피200 야간선물: 신호 점수 반영 여부와 무관하게 항상 보여준다. 값이 없으면 '시세 없음'(주간 선물·현물로 대체하지 않는다).
+      // 기본 카드는 다른 칸과 같은 3줄이고, 현재가·등락폭·상태·기준 시각·출처·신호 반영 여부는 카드를 눌러(details) 연다. 다시 그려도 열림 상태를 유지한다.
       var nq = nightQuote_(by.KOSPI200_NIGHT, Date.now());
-      var nightScore = useNight ? '신호 점수에 반영' : '참고 · 점수에는 야간 세션 종료(05:05) 후 반영';
+      var wasOpen = !!(mount.querySelector && mount.querySelector('.mt-tm-nd[open]'));
+      var nightScore = useNight ? '반영됨' : '참고(야간 세션 종료 05:05 후 반영)';
+      var drow = function (k, v) { return '<div><dt>' + k + '</dt><dd>' + v + '</dd></div>'; };
       var nightItem = nq
-        ? '<li class="mt-tm-item mt-tm-nightcard ' + (nq.rate > 0 ? 'is-pos' : nq.rate < 0 ? 'is-neg' : '') + '"><span><span class="mt-tm-name">코스피200 야간선물</span></span>'
-          + '<span class="mt-tm-nval"><b class="' + (nq.rate > 0 ? 'mt-val-pos' : nq.rate < 0 ? 'mt-val-neg' : 'mt-val-zero') + '">' + sgn(nq.rate) + '</b><span>' + nq.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-          + (nq.change == null ? '' : ' (' + (nq.change > 0 ? '+' : '') + nq.change.toFixed(2) + ')') + '</span></span>'
-          + '<em class="mt-tm-tag">' + nq.status + ' · ' + nq.time + '</em>'
-          + '<small class="mt-tm-nmeta">출처 KIS 야간선물 · ' + nightScore + '</small></li>'
-        : '<li class="mt-tm-item mt-tm-nightcard is-none"><span><span class="mt-tm-name">코스피200 야간선물</span></span>'
-          + '<span class="mt-tm-nval"><b class="mt-val-zero">시세 없음</b></span><em class="mt-tm-tag">데이터 확인 중</em>'
-          + '<small class="mt-tm-nmeta">야간선물 시세를 받지 못했습니다(주간 선물·현물로 대체하지 않음)</small></li>';
+        ? '<li class="mt-tm-item mt-tm-nightcard ' + (nq.rate > 0 ? 'is-pos' : nq.rate < 0 ? 'is-neg' : '') + '"><details class="mt-tm-nd"' + (wasOpen ? ' open' : '') + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
+          + '<b class="' + (nq.rate > 0 ? 'mt-val-pos' : nq.rate < 0 ? 'mt-val-neg' : 'mt-val-zero') + '">' + sgn(nq.rate) + '</b><span class="mt-tm-say">' + tmComment_('night', nq.rate) + '</span></summary>'
+          + '<dl class="mt-tm-ndetail">' + drow('현재가', nq.price.toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }))
+          + (nq.change == null ? '' : drow('등락폭', (nq.change > 0 ? '+' : '') + nq.change.toFixed(2)))
+          + drow('상태', nq.status) + drow('기준 시각', nq.time) + drow('출처', 'KIS 야간선물') + drow('신호 계산', nightScore) + '</dl></details></li>'
+        : '<li class="mt-tm-item mt-tm-nightcard is-none"><details class="mt-tm-nd"' + (wasOpen ? ' open' : '') + '><summary title="눌러서 상세 보기"><span class="mt-tm-name">코스피200 야간선물</span>'
+          + '<b class="mt-val-zero">시세 없음</b><span class="mt-tm-say">데이터 확인 중</span></summary>'
+          + '<dl class="mt-tm-ndetail">' + drow('상태', '데이터 확인 중') + drow('안내', '야간선물 시세를 받지 못했습니다(주간 선물·현물로 대체하지 않음)') + '</dl></details></li>';
       // 5초 브리핑: 미국장 → 한국장 영향(결론은 위 헤드라인). 값의 부호만 문장으로 옮긴다.
       var us3 = [r.spx.pct, r.nas.pct, r.dji.pct], up3 = us3.filter(function (v) { return v > 0; }).length;
       var briefUs = (up3 === 3 ? '3대 지수 상승' : up3 === 0 ? '3대 지수 하락' : '3대 지수 엇갈림') + ' · 반도체 ' + (r.sox.pct > 0 ? '강세' : '약세') + ' · VIX ' + (r.vix.pct > 0 ? '상승' : '하락');
