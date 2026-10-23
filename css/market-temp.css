@@ -3490,3 +3490,9 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
     html body #market-temp h2.mt-front-headline.mt-front-headline.mt-front-headline { font-size: 15px !important; }
   }
 }
+
+/* 2026-10-24 `대표 지수 흐름`을 위 섹션(업종 로테이션)에서 더 띄우고, 면책 문구는 오른쪽 정렬 */
+@layer np.np {
+  html body #market-temp .mt-section-block.mt-index-flow { margin-top: 32px !important; }
+  html body #market-temp .mt-page-disclaimer.mt-page-disclaimer { text-align: right; }
+}
