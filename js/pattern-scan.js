@@ -2323,13 +2323,13 @@
     return {
       // TODO: attributionLogo:false는 Apache 2.0 라이선스상 NOTICE 고지+tradingview.com
       // 링크를 사이트 어딘가에 별도로 넣어야 함(사용자가 나중에 문서 만들 예정, 아직 미작성).
-      layout: { background: { color: 'transparent' }, textColor: dark ? '#aaa' : '#555', attributionLogo: false },
+      layout: { background: { color: 'transparent' }, textColor: dark ? '#a6b5c5' : '#555', attributionLogo: false },
       grid: {
-        vertLines: { color: dark ? '#3a3a3a' : '#eee' },
-        horzLines: { color: dark ? '#3a3a3a' : '#eee' }
+        vertLines: { color: dark ? '#37424e' : '#eee' },
+        horzLines: { color: dark ? '#37424e' : '#eee' }
       },
-      rightPriceScale: { borderColor: dark ? '#3a3a3a' : '#ddd' },
-      timeScale: { borderColor: dark ? '#3a3a3a' : '#ddd' }
+      rightPriceScale: { borderColor: dark ? '#37424e' : '#ddd' },
+      timeScale: { borderColor: dark ? '#37424e' : '#ddd' }
     };
   }
 
