@@ -2202,28 +2202,62 @@
     var kind = /(상승|증가|높음|강세|순매수)/.test(word) ? 'up' : /(하락|감소|낮음|약세|순매도)/.test(word) ? 'down' : /(평소|보합|중립|변화 없음)/.test(word) ? 'flat' : '';
     return kind ? '<i class="mt-flow-arrow is-' + kind + '" aria-hidden="true">' + { up: '↗', down: '↘', flat: '→' }[kind] + '</i> ' : '';
   }
-  // 시장 한눈에 하단 한 줄: 원자재·가상자산(표시 전용, 점수에 넣지 않음). 시장지표 탭과 같은 /futures 응답의 현재값만 쓴다.
+  // 시장 한눈에 하단 별도 블록: 원자재·가상자산(표시 전용, 점수에 넣지 않음). 시장지표 탭과 같은 /futures 응답의 현재값만 쓴다.
   // 값이 없거나 stale이거나 수신 시각이 36시간 넘게 묵었으면 '미수신'(브렌트도 다른 원유로 대체하지 않는다).
-  var COMMODITY_CELLS_ = [
-    { symbol: 'WTI', label: 'WTI', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
-    { symbol: 'BRENT', label: '브렌트유', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); } },
-    { symbol: 'GOLD', label: '금', fmt: function (v) { return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 }); } },
-    { symbol: 'BTC', label: '비트코인', fmt: function (v) { var eok = Math.floor(v / 1e8), man = Math.round((v - eok * 1e8) / 1e4); if (man >= 10000) { eok++; man = 0; } return (eok ? eok + '억 ' : '') + man.toLocaleString('ko-KR') + '만원'; } }
+  var COMMODITY_GROUPS_ = [
+    { kind: 'oil', name: '원유', items: [
+      { symbol: 'WTI', label: 'WTI', usd: 2 }, { symbol: 'BRENT', label: '브렌트유', usd: 2 }] },
+    { kind: 'gold', name: '금', items: [{ symbol: 'GOLD', label: '금 선물', usd: 1 }] },
+    { kind: 'btc', name: '비트코인', items: [{ symbol: 'BTC', label: 'BTC', krw: true }] }
   ];
+  // 그날 움직임에 맞는 짧은 구어체 한 줄(참고 어조, 매수·매도 지시 없음). 등락률 ±0.3% 이내는 변화 없음, 2% 이상은 '많이'.
+  function commodityPhrase_(kind, rate) {
+    if (rate == null || !isFinite(rate)) return '미수신';
+    var subject = { oil: '기름값', gold: '금값', btc: '비트코인' }[kind];
+    var abs = Math.abs(rate), how = abs >= 2 ? '많이 ' : '조금 ';
+    if (abs < 0.3) return subject + (kind === 'btc' ? '은' : '은') + ' 큰 변화 없어요';
+    if (kind === 'oil') return '기름값이 ' + how + (rate > 0 ? '비싸졌어요' : '내렸어요');
+    if (kind === 'gold') return '금값이 ' + how + (rate > 0 ? '올랐어요' : '싸졌어요 — 저가 구간인지 살펴보세요');
+    return '비트코인이 ' + how + (rate > 0 ? '오르고 있어요' : '내리고 있어요');
+  }
+  // 환율 저울과 같은 톤의 선 일러스트(currentColor, 외부 의존 없음). 아이콘 경로는 Lucide(ISC) fuel·bitcoin 계열.
+  function commodityArt_(kind, tone) {
+    var arrow = tone === 'positive' ? '<path class="mt-art-arrow" d="M17 17 L25 9 M18 9 H25 V16"/>' : tone === 'negative' ? '<path class="mt-art-arrow" d="M17 9 L25 17 M18 17 H25 V10"/>' : '<path class="mt-art-arrow" d="M17 13 H25"/>';
+    var body = kind === 'oil'
+      ? '<path d="M3 23V7a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v16"/><path d="M2 23h12"/><path d="M3 12h10"/><path d="M13 14h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0v-6l-3-3"/>'
+      : kind === 'gold'
+      ? '<path d="M3 23h10l1.5-5h-13z"/><path d="M15 23h12l-1.5-5H13.5z" transform="translate(-1 0)"/><path d="M8 18h10l1.5-5h-13z" transform="translate(2 0)"/>'
+      : '<circle cx="14" cy="14" r="11"/><path d="M11.8 19.6c3.2.5 4-3.5.8-4M11.8 19.6l-3.6-.6m3.6.6-.3 1.6M12.6 15.6c3.2.5 4-3.5.8-4m-.8 4-2.6-.5m3.4-3.5L9.2 9.7m3.6.6.3-1.6" transform="translate(1.2 -.4) scale(.95)"/>';
+    return '<svg class="mt-commodity-art is-' + tone + '" viewBox="0 0 30 26" aria-hidden="true" focusable="false"><circle class="mt-art-tint" cx="15" cy="13" r="12.5"/><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' + body + arrow + '</g></svg>';
+  }
   function commodityStrip_(macro, now_) {
     if (!Array.isArray(macro) || !macro.length) return '';
     var now = now_ == null ? Date.now() : now_;
     var by = {}; macro.forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
-    return '<div class="mt-commodity-strip" aria-label="원자재·가상자산(표시 전용)">' + COMMODITY_CELLS_.map(function (c) {
-      var r = by[c.symbol], price = r ? Number(r.price) : NaN, rate = r ? Number(r.change_rate) : NaN, at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
-      var ok = r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000;
-      if (!ok) return '<div class="mt-commodity-cell"><span class="mt-commodity-label">' + c.label + '</span><b class="mt-commodity-value">미수신</b><small>값을 받지 못했습니다</small></div>';
-      var kst = new Date(at + 9 * 3600000), pad = function (n) { return String(n).padStart(2, '0'); };
-      var word = rate > 0 ? '상승' : rate < 0 ? '하락' : '보합';
-      return '<div class="mt-commodity-cell"><span class="mt-commodity-label">' + c.label + '</span><b class="mt-commodity-value">' + escapeHtml(c.fmt(price)) + '</b>'
-        + '<span class="mt-commodity-rate is-' + (rate > 0 ? 'positive' : rate < 0 ? 'negative' : 'neutral') + '">' + wordArrow_(word) + (rate > 0 ? '+' : '') + rate.toFixed(2) + '%</span>'
-        + '<small>' + pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준</small></div>';
-    }).join('') + '</div>';
+    function pad(n) { return String(n).padStart(2, '0'); }
+    function read(it) {
+      var r = by[it.symbol], price = r ? Number(r.price) : NaN, rate = r ? Number(r.change_rate) : NaN, at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
+      if (!(r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000)) return null;
+      var text;
+      if (it.krw) { var eok = Math.floor(price / 1e8), man = Math.round((price - eok * 1e8) / 1e4); if (man >= 10000) { eok++; man = 0; } text = (eok ? eok + '억 ' : '') + man.toLocaleString('ko-KR') + '만원'; }
+      else text = '$' + price.toLocaleString('en-US', { minimumFractionDigits: it.usd, maximumFractionDigits: it.usd });
+      var kst = new Date(at + 9 * 3600000);
+      return { text: text, rate: rate, time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 기준' };
+    }
+    var cards = COMMODITY_GROUPS_.map(function (g) {
+      var reads = g.items.map(read), have = reads.filter(Boolean);
+      var mean = have.length ? have.reduce(function (sum, v) { return sum + v.rate; }, 0) / have.length : null;
+      var tone = mean == null || Math.abs(mean) < 0.3 ? 'neutral' : mean > 0 ? 'positive' : 'negative';
+      var lines = g.items.map(function (it, k) {
+        var v = reads[k];
+        if (!v) return '<div class="mt-commodity-line"><span>' + it.label + '</span><b>미수신</b><small>값을 받지 못했습니다</small></div>';
+        var t = v.rate > 0 ? 'positive' : v.rate < 0 ? 'negative' : 'neutral';
+        return '<div class="mt-commodity-line"><span>' + it.label + '</span><b>' + escapeHtml(v.text) + '</b><em class="is-' + t + '">' + wordArrow_(v.rate > 0 ? '상승' : v.rate < 0 ? '하락' : '보합') + (v.rate > 0 ? '+' : '') + v.rate.toFixed(2) + '%</em><small>' + v.time + '</small></div>';
+      }).join('');
+      return '<div class="mt-commodity-card">' + commodityArt_(g.kind, tone) + '<div class="mt-commodity-body"><b class="mt-commodity-name">' + g.name + '</b>' + lines
+        + '<p class="mt-commodity-say is-' + tone + '">' + escapeHtml(commodityPhrase_(g.kind, mean)) + '</p></div></div>';
+    }).join('');
+    return '<section class="mt-commodity-block" aria-label="원자재·가상자산(표시 전용)"><h4 class="mt-commodity-title">원자재·가상자산</h4><div class="mt-commodity-strip">' + cards + '</div></section>';
   }
   function renderIndicatorRows_(models, selected) {
     var shares = investorShares_(models);
