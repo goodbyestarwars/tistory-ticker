@@ -3101,3 +3101,15 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
   html.dark body #market-temp .mt-front-headline.mt-front-headline.mt-front-headline { color: #f5efe0 !important; }
 }
+
+/* 2026-10-23 최근 시장 흐름 그래프: 기준선(거래량 100% · 순매수 0) 위 옅은 붉은, 아래 옅은 파랑(홈 차트와 같은 토큰). 기준 없는 항목은 기존 색 유지 */
+@layer np.np {
+  html body #market-temp .mt-flow-chart .mt-fc-up .mt-fc-line { stroke: #e7aaa5 !important; }
+  html body #market-temp .mt-flow-chart .mt-fc-dn .mt-fc-line { stroke: #9dbbe0 !important; }
+  html body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-above { fill: #e7aaa5 !important; }
+  html body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-below { fill: #9dbbe0 !important; }
+  html.dark body #market-temp .mt-flow-chart .mt-fc-up .mt-fc-line { stroke: #d79b96 !important; }
+  html.dark body #market-temp .mt-flow-chart .mt-fc-dn .mt-fc-line { stroke: #94b2d7 !important; }
+  html.dark body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-above { fill: #d79b96 !important; }
+  html.dark body #market-temp .mt-flow-chart :is(.mt-fc-dot, .mt-fc-halo).is-below { fill: #94b2d7 !important; }
+}
