@@ -2463,7 +2463,7 @@
     if (!panel) return;
     if (panel.__indicatorWired) return panel.__mtIndicators;
     panel.__indicatorWired = true;
-    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], option: null }, pending = null;
+    var state = { models: buildIndicatorModels_({}, []), selected: 'kospi-volume', period: 10, loading: true, data: data, domestic: {}, macro: [], macroExtra: [], option: null }, pending = null;
     function html(node, markup) { if (node.__mtMarkup !== markup) { node.innerHTML = markup; node.__mtMarkup = markup; } }
     function checkpoint() {
       var mount = container.querySelector('[data-market-checkpoint]');
@@ -2476,7 +2476,7 @@
         if (active.hasAttribute('data-market-metric')) focusSelector = '[data-market-metric="' + active.getAttribute('data-market-metric') + '"]';
         else if (active.hasAttribute('data-indicator-period')) focusSelector = '[data-indicator-period="' + active.getAttribute('data-indicator-period') + '"]';
       }
-      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + commodityStrip_(state.macro) + extrasBlock_(state.domestic, state.macro, state.option));
+      html(panel.querySelector('[data-market-indicators]'), renderIndicatorRows_(state.models, state.selected) + (state.macroExtra.length ? commodityStrip_(state.macro.concat(state.macroExtra)) : '') + extrasBlock_(state.domestic, state.macro.concat(state.macroExtra), state.option));
       var model = state.models.filter(function (m) { return m.id === state.selected; })[0];
       if (model.points.length && state.period > model.points.length) state.period = [40, 20, 10, 5].filter(function (n) { return n <= model.points.length; })[0] || 5;
       html(panel.querySelector('[data-indicator-periods]'), [5, 10, 20, 40].map(function (period) {
@@ -2497,6 +2497,10 @@
     render();
     function refresh() {
       if (pending) return pending;
+      sharedMarketJson_('__mtMacroExtraFetch', EXTRA_FUTURES_URL_, 300000).then(function (res) {
+        var rows = res && res.data ? res.data : res;
+        if (Array.isArray(rows) && rows.length) { state.macroExtra = rows; render(); }
+      }).catch(function () { /* 원자재·금리는 보조 정보 - 실패하면 카드가 미수신으로 남는다 */ });
       sharedMarketJson_('__mtOptionFetch', 'https://goodbyestar.cloud/option-flow', 300000).then(function (res) {
         var body = res && res.data ? res.data : res;
         if (body && body.CALL && body.PUT) { state.option = body; render(); }
@@ -2767,7 +2771,8 @@
   //  - 야간 세션이 끝나기 전(D+1 05:05 KST 전)에는 미완성이라 점수에 넣지 않고 참고로만 보여준다.
   // 코스피 지수 대신 코스피200 선물 일봉(주간 시가=시초)으로 계산했다. 4항 표를 같은 방식으로 다시 계산하면 기존 표와
   // 거의 같다(강한 하락 시초 하락 92%/종가 하락 78% vs 기존 89%/74%).
-  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=NASDAQ100,SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX,WTI,BRENT,GOLD,BTC,KTB3Y,US2Y,US10Y&stored_only=true';
+  var FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=SOX,VIX,USDKRW,US10Y,KOSPI200_NIGHT,KOSPI200_DAY,SP500_INDEX,NASDAQ_INDEX,DOW_INDEX&stored_only=true';
+  var EXTRA_FUTURES_URL_ = 'https://goodbyestar.cloud/futures?interval=day&days=120&symbols=WTI,BRENT,GOLD,BTC,KTB3Y,US2Y&stored_only=true';
   // 2026-10-23 신호 구성 변경(사용자 결정): 나스닥100 선물은 24시간 거래라 한국장 시간대와 겹칠 수 있어 빼고, 미국 현물 정규장 종가
   // (S&P 500·나스닥 종합·다우존스)·필라델피아 반도체·VIX·원/달러·야간 코스피200 선물로 바꿨다. 같은 코스피200 선물 232거래일
   // (2025-11-10~2026-10-22)에서 다시 쟀다. 미국 현물 3지수는 서로 상관이 커서 각 1/3 가중(묶어서 1항)으로 합산했다.
