@@ -178,7 +178,7 @@
     return { layout: full.layout, grid: full.grid, rightPriceScale: { borderColor: full.rightPriceScale.borderColor }, timeScale: { borderColor: full.timeScale.borderColor }, crosshair: full.crosshair };
   }
 
-  function ma224Color(dark) { return (dark != null ? dark : isDark()) ? '#f1f4f8' : '#000000'; }
+  function ma224Color(dark) { return (dark != null ? dark : isDark()) ? '#f1f3f5' : '#000000'; }
 
   // 공용 다크모드 감시자: 페이지에 하나만 두고 html.dark 가 실제로 바뀔 때만 구독자를 부른다.
   var themeWatch = { observer: null, last: null, subs: [] };
