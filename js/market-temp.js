@@ -2039,7 +2039,7 @@
     return '<header class="mt-market-intro mt-market-' + tone + '">'
       + '<div class="mt-front-kicker"><span class="mt-edition-tag">오늘의 증시</span><span>시장 한눈에 보기</span></div>'
       + '<div class="mt-intro-line"><h2 class="mt-front-headline' + (story.dir ? ' is-' + story.dir : '') + '">' + escapeHtml(story.headline) + '</h2>'
-      + '<p class="mt-front-lead">' + escapeHtml(story.lead) + '</p></div></header>';
+      + '<p class="mt-front-lead">' + sentenceHtml_(story.lead) + '</p></div></header>';
   }
 
   function buildBreadthVisual_(story) {
@@ -2670,6 +2670,8 @@
       var target = nextKospiDay_();
       var key = JSON.stringify(rows) + target.ymd + target.word;
       var W = target.word, title = '<strong>그래서 ' + W + '은?</strong>';
+      var heading = container.querySelector('[data-mt-tomorrow-heading]');
+      if (heading) heading.textContent = target.label + ' 출발 · 미국장 기준';
       if (mount.__mtTomorrowKey === key) return;
       var nq = lastReturnBefore_(by.NASDAQ100, target.ymd);
       var sox = lastReturnBefore_(by.SOX, target.ymd);
@@ -2712,14 +2714,14 @@
       var verdictText = tone === 'up' ? W + ' 시초는 올라서 시작할 가능성이 높습니다'
         : tone === 'down' ? W + ' 시초는 내려서 시작할 가능성이 높습니다'
         : '미국 신호가 약해서 ' + W + ' 방향은 알 수 없습니다';
-      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>' + target.label + ' 코스피 출발 · ' + (useNight ? '미국 장 마감 + 야간선물 기준' : '미국 장 마감 기준') + '</small></div>'
+      mount.innerHTML = '<div class="mt-tm-head">' + title + '<small>코스피 출발 · ' + (useNight ? '미국 장 마감 + 야간선물 기준' : '미국 장 마감 기준') + '</small></div>'
         + '<div class="mt-tm-verdict mt-tm-' + tone + '"><b>' + bucket.label + '</b><span>' + verdictText + '</span></div>'
         + '<ul class="mt-tm-why"' + (useNight ? ' style="--mt-tm-cols:5"' : '') + '>' + why + '</ul>'
         + '<div class="mt-tm-proof"><b>얼마나 믿을 만한가</b>'
         + '<span class="mt-tm-proof-line">같은 강도 신호 ' + bucket.n + '거래일(' + (bucket.span || '최근 220일') + ') 중 <b>' + bucket.gap + '</b>, ' + bucket.close + '.</span>'
         + '<span class="mt-tm-proof-line">' + (tone === 'flat' ? '평소 확률과 같아 방향을 단정할 수 없습니다.' : '종가까지 이어질 가능성은 시초보다 낮습니다.') + '</span></div>'
         + nightHtml + auxHtml
-        + '<div class="mt-tm-note">검증 기간 2025-11~2026-10(' + (useNight ? '코스피200 선물 232거래일, 미국 4항+야간선물 합' : '코스피 220거래일') + '). 같은 기간 코스피가 크게 올라 상승이 많이 나온 구간이라는 점을 감안하세요. 투자 권유가 아닙니다.</div>';
+        + '';
       mount.__mtTomorrowKey = key;
     }).catch(function () {
       if (!mount.__mtTomorrowKey) mount.innerHTML = '<div class="mt-tm-head"><strong>그래서 ' + nextKospiDay_().word + '은?</strong></div><div class="mt-hint">미국 시장 자료를 불러오지 못했습니다.</div>';
@@ -2970,6 +2972,13 @@
   // ---- ⑦ 시장 레이더 차트 ----
 
   // 체크포인트는 상단과 같은 원자료를 재사용한다. 합성점수 대신 실제 시장 폭과 수급·거래량·환율을 문장으로 읽는다.
+  // 문장 끝(.!? 뒤 공백)마다 한 줄씩 보이게 나눈다. 숫자 속 소수점은 뒤에 공백이 없어 나뉘지 않는다.
+  function splitSentences_(text) {
+    return String(text == null ? '' : text).replace(/([.!?])\s+(?=\S)/g, '$1\n').split('\n').filter(function (t) { return t.trim(); });
+  }
+  function sentenceHtml_(text) {
+    return splitSentences_(text).map(function (t) { return '<span class="mt-sent">' + escapeHtml(t) + '</span>'; }).join('');
+  }
   function checkpointDate_(data) {
     var m = /^\d{4}-(\d{2})-(\d{2})/.exec(String(data && data.updatedAt || ''));
     if (!m) return '';
@@ -3044,7 +3053,7 @@
       + (dateText ? '<span class="mt-cp-date">' + escapeHtml(dateText) + '</span>' : '') + '</div>'
       + '<p class="mt-cp-sub">오늘 시장 흐름을 요약하고 현재 온도에 맞는 참고용 대응 방향을 함께 보여줍니다.</p>'
       + '<div class="mt-cp-body"><div class="mt-strategy-message mt-cp-call is-' + facts.tone + '">'
-      + '<div class="mt-strategy-action">' + escapeHtml(facts.title) + '</div><p class="mt-ant-mood">' + escapeHtml(facts.mood) + '</p>'
+      + '<div class="mt-strategy-action">' + sentenceHtml_(facts.title) + '</div><p class="mt-ant-mood">' + sentenceHtml_(facts.mood) + '</p>'
       + '</div><div class="mt-cp-actions">'
       + '<div class="mt-cp-next"><h3>지금 할 것</h3><ol>' + facts.items.map(function (item) {
         return '<li><b>' + escapeHtml(item.label) + '</b><p class="mt-cp-evidence">' + (item.html ? item.evidence : escapeHtml(item.evidence)) + '</p>'
@@ -4415,7 +4424,7 @@
       '<div class="mt-live-status" data-mt-live-status role="status">자동 갱신 준비 중</div>',
       '<div class="mt-summary-trend-row mt-front-page">' + buildMarketIntro_(data) + buildSummaryCard(data) + buildIndicatorHistoryShell_() + '</div>',
       '<div class="mt-hot-strip" data-hot-theme hidden></div>',
-      '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading">다음 거래일 출발 · 미국장 기준</h3>' + buildTomorrowCard_() + '</section>',
+      '<div class="mt-front-tools"><section class="mt-front-extra"><h3 class="mt-extra-heading" data-mt-tomorrow-heading>' + nextKospiDay_().label + ' 출발 · 미국장 기준</h3>' + buildTomorrowCard_() + '</section>',
       '<section class="mt-front-extra">' + buildBriefingStrategy(data) + '</section></div>',
       buildTemperatureActions(data),
       buildRotationSlot_(),
