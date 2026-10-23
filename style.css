@@ -8878,3 +8878,28 @@ html.dark .home-settings-button:hover, html.dark .home-reset-button:hover, html.
 html.dark .guest-section .item_reply:hover, html.dark .guest-section .item_guest:hover, html.dark .guest-section .btn_file:hover, html.dark .guest-section .btn_attach:hover { background: var(--dk-hover) !important; }
 html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.font-gothic) body #strategy-search .ss-tab:hover { background: var(--dk-hover) !important; }
 }
+
+/* ===== 다크 카드 면 통일 (2026-10-24) =====
+   @layer np 의 "둥근 상자 통일"(13번 등)이 카드 바탕을 --np-paper(다크 #1a1a1a = 페이지색) !important 로 박아,
+   각 css 의 html.dark 카드 규칙(--dk-card)이 이기지 못하고 카드가 페이지와 같은 검정으로 남았다.
+   같은 layer 안에서 html.dark 로 한 단계 높게 카드·내부 카드·표 머리글·입력·선택 탭 면을 팔레트로 되돌린다. */
+@layer np {
+  html.dark body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
+    .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
+    #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion,
+    .hwr-schedule, .hwr-news-card, .hwr-columns > article, .hwr-outcome-stat, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary,
+    .feed-hero-featured-slot > .post-card, .feed-block-headline, .feed-block-cards > .post-card, .feed-block-duo > .post-card, .feed > .post-card:not(.notice-card)) {
+    background-color: var(--dk-card) !important;
+  }
+  html.dark body#tt-body-index .briefing-intro .home-briefing-more,
+  html.dark body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { background: var(--dk-card) !important; }
+  html.dark body :where(th, .hrt-head, .home-index-strip, .hmb-summary-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
+  html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
+  html.dark body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-summary-card) { background-color: var(--dk-inner) !important; }
+  html.dark body :where(input[type="search"], input[type="text"], input[type="email"], input[type="password"], select, textarea):not(.nav-search-input),
+  html.dark body #stock-calendar .sc-disclosure-search input[type="search"] { background-color: var(--dk-inner) !important; }
+  html.dark body .mt-view-toggle .mt-view-btn.active,
+  html.dark body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
+    .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)
+    > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) { background: var(--dk-active) !important; box-shadow: none !important; }
+}
