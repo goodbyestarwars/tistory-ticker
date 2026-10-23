@@ -8983,3 +8983,18 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex-basis: calc(100vw - 72px) !important; width: calc(100vw - 72px) !important; height: 430px !important; }
   }
 }
+
+/* 2026-10-24 경제 종합뉴스·주요 뉴스 기사 제목(마루부리 Regular)이 14px에서 획이 가늘어 뭉개져 보인다는 지적:
+   글꼴은 그대로 두고 크기 15px·행간 1.55·짙은 글자색·자간 0으로 가독성을 올린다(굵기는 마루부리 Regular 유지). */
+html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
+  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
+  #main-news .mn-row-title) {
+  font-size: 15px !important;
+  line-height: 1.55 !important;
+  color: #111827 !important;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+html.dark:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
+  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
+  #main-news .mn-row-title) { color: var(--dk-text) !important; }
