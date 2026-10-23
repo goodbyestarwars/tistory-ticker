@@ -3186,13 +3186,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 @layer np.np {
   html body #market-temp .mt-commodity-block { margin-top: 14px; }
   html body #market-temp .mt-commodity-title.mt-commodity-title { margin: 0 0 8px; font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-size: 14px !important; font-weight: 700 !important; line-height: 1.4; color: var(--pulse-ink, #202b3b); }
-  html body #market-temp .mt-xlist.mt-xlist { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 8px !important; }
   html body #market-temp .mt-xwrap { min-width: 0; }
-  html body #market-temp .mt-xcard { display: block !important; width: 100%; text-align: left; cursor: pointer; }
-  html body #market-temp .mt-xcard .mt-glance-amount { white-space: normal; }
-  html body #market-temp .mt-xsay { display: block; margin: 3px 0 2px; font-size: 13px; line-height: 1.5; font-weight: 700; word-break: keep-all; color: var(--pulse-ink, #202b3b); }
-  html body #market-temp .mt-xsay.is-positive { color: #b42318; }
-  html body #market-temp .mt-xsay.is-negative { color: #245b9e; }
   html body #market-temp .mt-xwrap.is-open .mt-xcard { border-color: color-mix(in srgb, var(--pulse-blue, #2566d4) 42%, transparent) !important; }
   html body #market-temp .mt-xpanel { margin: 6px 0 0; padding: 12px 8px 8px; border-radius: 9px; background: var(--pulse-soft, #f5f8fd); }
   html body #market-temp .mt-xpanel .mt-flow-svg { height: 200px !important; }
@@ -3203,12 +3197,6 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
 
 /* 2026-10-23 새 카드는 한눈에 칸과 같은 카드, 누르면 오른쪽 '최근 시장 흐름'에 표시. 원자재·가상자산은 선 아이콘+스토리, 스크롤해도 오른쪽 그래프가 따라온다 */
 @layer np.np {
-  html body #market-temp .mt-xcard.has-icon { display: flex !important; align-items: center; gap: 10px; }
-  html body #market-temp .mt-xicon { flex: 0 0 36px; width: 36px; height: 36px; color: var(--pulse-sub, #778396); }
-  html body #market-temp .mt-xicon.is-positive { color: #d35159; }
-  html body #market-temp .mt-xicon.is-negative { color: #2566d4; }
-  html body #market-temp .mt-xicon .mt-art-tint { fill: currentColor; stroke: none; opacity: .12; }
-  html body #market-temp .mt-xbody { display: block; min-width: 0; flex: 1; }
 }
 
 /* 2026-10-23 배치: [오른 종목과 내린 종목 + 시장 한눈에] | [원자재·가상자산 + 수급·심리·금리], 그 아래 전체 폭 최근 시장 흐름. 여백이 남으면 카드를 2~3개씩 나란히 */
@@ -3219,6 +3207,59 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: #acb9cc; }
   }
   html body #market-temp .mt-extras-col { padding: 16px 18px; }
   html body #market-temp .mt-extras-col .mt-commodity-block:first-child { margin-top: 0; }
-  html body #market-temp .mt-extras-col .mt-xlist.mt-xlist { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)) !important; }
-  html body #market-temp .mt-extras-col .mt-xcard { height: 100%; }
+}
+
+/* 2026-10-23 원자재·가상자산 / 수급·심리·금리 카드 재설계: 이름·상태 / 핵심 수치 / 코멘트 / 기준 시각 4단 구조, 수치를 가장 크게.
+   열 수는 화면이 아니라 이 카드 영역(.mt-extras-col)의 실제 너비로 정한다: 좁으면 1열, 440px~ 2열(홀수 마지막 카드는 전체 폭), 720px~ 3열.
+   글자를 줄이거나 장평을 압축하지 않고 열 수로 해결한다. */
+@layer np.np {
+  html body #market-temp .mt-extras-col { container-type: inline-size; container-name: mtx; }
+  html body #market-temp .mt-extras-col .mt-commodity-block { margin-top: 20px !important; padding-top: 18px !important; border-top: 1px solid var(--pulse-line, #e7edf5); }
+  html body #market-temp .mt-extras-col .mt-commodity-block:first-child { margin-top: 0 !important; padding-top: 0 !important; border-top: 0; }
+  html body #market-temp .mt-commodity-title.mt-commodity-title { margin: 0 0 12px !important; font-size: 15px !important; }
+  html body #market-temp .mt-xlist.mt-xlist { display: grid; grid-template-columns: minmax(0, 1fr) !important; gap: 10px !important; }
+  @container mtx (min-width: 440px) {
+    html body #market-temp .mt-xlist.mt-xlist { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+    html body #market-temp .mt-xlist > .mt-xcard:last-child:nth-child(odd) { grid-column: 1 / -1; }
+  }
+  @container mtx (min-width: 720px) {
+    html body #market-temp .mt-xlist.mt-xlist { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+    html body #market-temp .mt-xlist > .mt-xcard:last-child:nth-child(odd) { grid-column: auto; }
+  }
+
+  html body #market-temp .mt-xcard.mt-xcard { display: flex !important; flex-direction: column; align-items: stretch !important; justify-content: flex-start !important; gap: 0 !important; width: 100%; height: 100%; min-height: 0; padding: 14px 15px 12px !important; border: 1px solid var(--pulse-line, #e7edf5) !important; border-radius: 12px !important; background: var(--pulse-soft, #f5f8fd) !important; text-align: left; cursor: pointer; font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif); letter-spacing: 0; word-break: keep-all; }
+  html body #market-temp .mt-xcard.mt-xcard.is-positive { background: color-mix(in srgb, var(--num-up, #d35159) 5%, var(--pulse-surface, #fff)) !important; border-color: color-mix(in srgb, var(--num-up, #d35159) 18%, var(--pulse-line, #e7edf5)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.is-negative { background: color-mix(in srgb, var(--num-down, #2566d4) 5%, var(--pulse-surface, #fff)) !important; border-color: color-mix(in srgb, var(--num-down, #2566d4) 18%, var(--pulse-line, #e7edf5)) !important; }
+  html body #market-temp .mt-xcard.mt-xcard:hover { border-color: var(--pulse-blue, #2566d4) !important; }
+  html body #market-temp .mt-xcard.mt-xcard.is-selected { border-color: var(--pulse-blue, #2566d4) !important; box-shadow: 0 0 0 1px var(--pulse-blue, #2566d4); }
+
+  /* 1) 이름 + 상태 */
+  html body #market-temp .mt-xhead { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; min-width: 0; }
+  html body #market-temp .mt-xicon { flex: 0 0 34px; width: 34px; height: 34px; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-xicon.is-positive { color: var(--num-up, #d35159); }
+  html body #market-temp .mt-xicon.is-negative { color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-xicon .mt-art-tint { fill: currentColor; stroke: none; opacity: .14; }
+  html body #market-temp .mt-xname { min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.35; color: var(--pulse-ink, #202b3b); }
+  html body #market-temp .mt-xstate { margin-left: auto; font-size: 12.5px; font-weight: 700; line-height: 1.35; white-space: nowrap; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-xstate.is-positive { color: var(--num-up, #d35159); }
+  html body #market-temp .mt-xstate.is-negative { color: var(--num-down, #2566d4); }
+
+  /* 2) 핵심 수치: 이름/값/변동률을 같은 열에 맞춰 세로로 정렬 */
+  html body #market-temp .mt-xvals { display: grid; grid-template-columns: auto auto minmax(0, 1fr); align-items: baseline; column-gap: 8px; row-gap: 4px; margin-top: 12px !important; line-height: 1.3; font-variant-numeric: tabular-nums; }
+  html body #market-temp .mt-xvals.is-empty { display: none; }
+  html body #market-temp .mt-xrow { display: contents; }
+  html body #market-temp .mt-xk { grid-column: 1; font-size: 12px; font-weight: 500; color: var(--pulse-sub, #778396); white-space: nowrap; }
+  html body #market-temp .mt-xv { font-size: 14.5px; font-weight: 700; color: var(--pulse-ink, #202b3b); white-space: nowrap; }
+  html body #market-temp .mt-xrow.is-main .mt-xv { font-size: 17px; }
+  html body #market-temp .mt-xv.is-positive { color: var(--num-up, #d35159); }
+  html body #market-temp .mt-xv.is-negative { color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-xrow.is-miss .mt-xv { font-size: 13px; font-weight: 500; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-xd { font-size: 12.5px; font-style: normal; font-weight: 600; white-space: nowrap; color: var(--pulse-sub, #778396); }
+  html body #market-temp .mt-xd.is-positive { color: var(--num-up, #d35159); }
+  html body #market-temp .mt-xd.is-negative { color: var(--num-down, #2566d4); }
+  html body #market-temp .mt-xsub { grid-column: 1 / -1; font-size: 11.5px; font-weight: 400; color: var(--pulse-sub, #778396); }
+
+  /* 3) 코멘트(색을 입히지 않는다) 4) 기준 시각 */
+  html body #market-temp .mt-xsay { display: block; flex: 1 0 auto; margin-top: 12px !important; padding-top: 11px !important; border-top: 1px solid color-mix(in srgb, var(--pulse-ink, #202b3b) 9%, transparent); font-size: 13px; font-weight: 500; line-height: 1.5; color: var(--pulse-ink, #202b3b); overflow-wrap: break-word; }
+  html body #market-temp .mt-xmeta { display: block; margin-top: 8px !important; font-size: 11px; font-weight: 400; line-height: 1.45; color: var(--pulse-sub, #778396); }
 }

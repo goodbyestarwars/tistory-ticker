@@ -2288,7 +2288,11 @@
   var ART_PATHS_ = {
     oil: '<line x1="3" x2="15" y1="22" y2="22"/><line x1="4" x2="14" y1="9" y2="9"/><path d="M14 22V4a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v18"/><path d="M14 13h2a2 2 0 0 1 2 2v2a2 2 0 0 0 4 0V9.83a2 2 0 0 0-.59-1.42L18 5"/>',
     gold: '<path d="M7.5 10h9l-1.2-4H8.7z"/><path d="M2.5 18h9l-1.2-4H3.7z"/><path d="M12.5 18h9l-1.2-4h-6.6z"/>',
-    btc: '<circle cx="12" cy="12" r="10"/><g transform="translate(4.8 4.8) scale(.6)"><path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/></g>'
+    btc: '<circle cx="12" cy="12" r="10"/><g transform="translate(4.8 4.8) scale(.6)"><path d="M11.767 19.089c4.924.868 6.14-6.025 1.216-6.894m-1.216 6.894L5.86 18.047m5.908 1.042-.347 1.97m1.563-8.864c4.924.869 6.14-6.025 1.215-6.893m-1.215 6.893-3.94-.694m5.155-6.2L8.29 4.26m5.908 1.042.348-1.97M7.48 20.364l3.126-17.727"/></g>',
+    // 수급·심리·금리: Lucide(ISC) bar-chart-2·activity·percent 계열
+    prog: '<line x1="18" x2="18" y1="20" y2="10"/><line x1="12" x2="12" y1="20" y2="4"/><line x1="6" x2="6" y1="20" y2="14"/>',
+    putcall: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+    rate: '<line x1="19" x2="5" y1="5" y2="19"/><circle cx="6.5" cy="6.5" r="2.5"/><circle cx="17.5" cy="17.5" r="2.5"/>'
   };
   // 24x24 Lucide 계열 선 아이콘(선 1.75). 방향색은 바탕 원에만 쓰고 그림은 겹침 없이 단순하게 둔다.
   function commodityIcon_(kind, tone) {
@@ -2308,12 +2312,19 @@
   function xCardHtml_(c, selectedId) {
     XMODELS_['x-' + c.id] = xModel_(c);
     var sel = selectedId === 'x-' + c.id;
-    return '<button type="button" class="mt-indicator-chip mt-glance-row mt-xcard' + (sel ? ' is-selected' : '') + (c.icon ? ' has-icon' : '') + '" data-market-metric="x-' + c.id + '" aria-pressed="' + sel + '">'
-      + (c.icon ? commodityIcon_(c.icon, c.tone) : '') + '<span class="mt-xbody">'
-      + '<span class="mt-glance-line"><span class="mt-glance-label">' + escapeHtml(c.label) + '<span class="mt-glance-colon"> : </span></span>'
-      + '<b class="mt-glance-state is-' + c.tone + '">' + escapeHtml(c.state) + '</b><span class="mt-glance-amount">' + escapeHtml(c.amount) + '</span></span>'
-      + '<span class="mt-xsay is-' + c.tone + '">' + escapeHtml(c.say) + '</span>'
-      + '<small class="mt-glance-meta">' + escapeHtml(c.meta) + '</small></span></button>';
+    // 1줄 이름+상태 / 2 핵심 수치(rows) / 3 코멘트 / 4 기준 시각. 값은 c.rows 그대로 그린다(없으면 수치 줄 자체를 그리지 않음).
+    var rows = (c.rows || []).map(function (r, i) {
+      var cls = 'mt-xrow' + (i === 0 ? ' is-main' : '') + (r.miss ? ' is-miss' : '');
+      return '<span class="' + cls + '"><span class="mt-xk">' + escapeHtml(r.k) + '</span><b class="mt-xv' + (r.t && !r.d ? ' is-' + r.t : '') + '">' + escapeHtml(r.v) + '</b>'
+        + (r.d ? '<em class="mt-xd is-' + (r.t || 'neutral') + '">' + escapeHtml(r.d) + '</em>' : '')
+        + (r.sub ? '<small class="mt-xsub">' + escapeHtml(r.sub) + '</small>' : '') + '</span>';
+    }).join('');
+    return '<button type="button" class="mt-indicator-chip mt-glance-row mt-xcard' + (sel ? ' is-selected' : '') + ' is-' + c.tone + (c.icon ? ' has-icon' : '') + '" data-market-metric="x-' + c.id + '" aria-pressed="' + sel + '">'
+      + '<span class="mt-xhead">' + (c.icon ? commodityIcon_(c.icon, c.tone) : '') + '<span class="mt-xname">' + escapeHtml(c.label) + '</span>'
+      + '<b class="mt-xstate is-' + c.tone + '">' + escapeHtml(c.state) + '</b></span>'
+      + (rows ? '<span class="mt-glance-line mt-xvals">' + rows + '</span>' : '<span class="mt-glance-line mt-xvals is-empty"></span>')
+      + '<span class="mt-xsay">' + escapeHtml(c.say) + '</span>'
+      + '<small class="mt-xmeta">' + escapeHtml(c.meta) + '</small></button>';
   }
   function xBlockHtml_(title, label, cards, selectedId) {
     return '<section class="mt-commodity-block" aria-label="' + label + '"><h4 class="mt-commodity-title">' + title + '</h4><div class="mt-glance-list mt-xlist">'
@@ -2366,31 +2377,28 @@
     var d = String(last.date);
     return { kind: 'rate', points: series.slice(-40).map(function (r) { return { date: indicatorDate_(r.date), score: r.spread }; }).filter(function (r) { return r.date; }), spread: last.spread, delta: delta, kr: kr > 0 && k.stale !== true ? kr : null, krc: krc, name: '금리(한·미)', tone: last.spread < 0 ? 'negative' : tier === 'flat' ? 'neutral' : delta > 0 ? 'positive' : 'negative', tier: tier, lines: lines, time: d.slice(4, 6) + '.' + d.slice(6, 8) + ' 기준' };
   }
-  var EXTRA_ART_ = {
-    prog: '<path d="M5 22V13M12 22V6M19 22V16"/><path d="M3 22h18"/>',
-    putcall: '<path d="M8 20V7M4 11l4-4 4 4M20 6v13M16 15l4 4 4-4"/>',
-    rate: '<path d="M3 20 L24 12 M3 20 L24 5"/><path d="M3 22h22"/>'
-  };
   function extrasBlock_(domestic, macro, optionFlow, now_, selectedId) {
     var by = {}; (Array.isArray(macro) ? macro : []).forEach(function (r) { if (r && r.symbol) by[r.symbol] = r; });
     if (!domestic && !optionFlow && !Object.keys(by).length) return '';
     var eok = function (m) { return (m > 0 ? '+' : m < 0 ? '-' : '') + Math.abs(Math.round(m / 100)).toLocaleString('ko-KR') + '억'; };
     var cards = [];
     var pg = programTradingCard_(domestic && domestic.programTrading, now_);
-    cards.push(pg ? { id: 'prog', detail: '코스피 비차익 순매수', label: '프로그램매매', tone: pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, state: stateWord_(pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, ['순매수', '순매도', '조용']),
-      amount: '비차익 ' + eok(pg.nonArb) + ' · 차익 ' + eok(pg.arb), say: marketCommentTier_('prog', pg.tier), meta: '코스피 · ' + pg.time,
+    var signTone = function (v) { return v > 0 ? 'positive' : v < 0 ? 'negative' : ''; };
+    cards.push(pg ? { id: 'prog', icon: 'prog', detail: '코스피 비차익 순매수', label: '프로그램매매', tone: pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, state: stateWord_(pg.tier === 'flat' || pg.tier == null ? 'neutral' : pg.tone, ['순매수', '순매도', '조용']),
+      rows: [{ k: '비차익', v: eok(pg.nonArb), t: signTone(pg.nonArb) }, { k: '차익', v: eok(pg.arb), t: signTone(pg.arb) }], say: marketCommentTier_('prog', pg.tier), meta: '코스피 · ' + pg.time,
       panel: { points: pg.points, base: 0, zeroBase: true, format: function (v) { return eok(v); } } }
-      : { id: 'prog', label: '프로그램매매', tone: 'neutral', state: '미수신', amount: '', say: '미수신', meta: '값을 받지 못했습니다', panel: null });
+      : { id: 'prog', icon: 'prog', label: '프로그램매매', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     var oc = optionCard_(optionFlow);
-    cards.push(oc ? { id: 'putcall', detail: '풋·콜 거래량 비중', label: '옵션 풋/콜', tone: oc.tone, state: stateWord_(oc.tone, ['콜 우세', '풋 우세', '비슷']), amount: '풋/콜 ' + oc.ratio.toFixed(2) + ' (풋 ' + oc.put.toLocaleString('ko-KR') + ' · 콜 ' + oc.call.toLocaleString('ko-KR') + ')',
+    cards.push(oc ? { id: 'putcall', icon: 'putcall', detail: '풋·콜 거래량 비중', label: '옵션 풋/콜', tone: oc.tone, state: stateWord_(oc.tone, ['콜 우세', '풋 우세', '비슷']),
+      rows: [{ k: '풋/콜', v: oc.ratio.toFixed(2), sub: '풋 ' + oc.put.toLocaleString('ko-KR') + ' · 콜 ' + oc.call.toLocaleString('ko-KR') }],
       say: marketCommentTier_('putcall', oc.tier), meta: '코스피200 · ' + oc.time,
       panel: { html: '<div class="mt-pc-bar" role="img" aria-label="풋 ' + Math.round(oc.share * 100) + '% 콜 ' + (100 - Math.round(oc.share * 100)) + '%"><i class="put" style="width:' + (oc.share * 100).toFixed(1) + '%"></i><i class="call" style="width:' + ((1 - oc.share) * 100).toFixed(1) + '%"></i></div><p class="mt-indicator-chart-note">풋·콜 거래량 비중입니다. 이력이 없어 날짜별 그래프는 없습니다.</p>' } }
-      : { id: 'putcall', label: '옵션 풋/콜', tone: 'neutral', state: '미수신', amount: '', say: '미수신', meta: '값을 받지 못했습니다', panel: null });
+      : { id: 'putcall', icon: 'putcall', label: '옵션 풋/콜', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     var rc = rateCard_(by);
-    cards.push(rc ? { id: 'rate', detail: '미국 10년-2년 금리차', label: '금리', tone: rc.tone, state: stateWord_(rc.tone, ['차 확대', '차 축소', '변화 적음']),
-      amount: '미국 10년-2년 ' + (rc.spread >= 0 ? '+' : '') + rc.spread.toFixed(2) + '%p' + (rc.kr ? ' · 한국 3년 ' + rc.kr.toFixed(2) + '%' : ''), say: marketCommentTier_('rate', rc.tier), meta: rc.time,
+    cards.push(rc ? { id: 'rate', icon: 'rate', detail: '미국 10년-2년 금리차', label: '금리', tone: rc.tone, state: stateWord_(rc.tone, ['차 확대', '차 축소', '변화 적음']),
+      rows: [{ k: '미국 10년-2년', v: (rc.spread >= 0 ? '+' : '') + rc.spread.toFixed(2) + '%p' }].concat(rc.kr ? [{ k: '한국 3년', v: rc.kr.toFixed(2) + '%' }] : []), say: marketCommentTier_('rate', rc.tier), meta: rc.time,
       panel: { points: rc.points, base: 0, zeroBase: true, format: function (v) { return (v >= 0 ? '+' : '') + v.toFixed(2) + '%p'; } } }
-      : { id: 'rate', label: '금리', tone: 'neutral', state: '미수신', amount: '', say: '미수신', meta: '값을 받지 못했습니다', panel: null });
+      : { id: 'rate', icon: 'rate', label: '금리', tone: 'neutral', state: '미수신', rows: [], say: '미수신', meta: '값을 받지 못했습니다', panel: null });
     return xBlockHtml_('수급·심리·금리', '수급·심리·금리(표시 전용)', cards, selectedId);
   }
   function commodityStrip_(macro, now_, selectedId) {
@@ -2413,10 +2421,11 @@
       var mean = have.length ? have.reduce(function (sum, v) { return sum + v.rate; }, 0) / have.length : null;
       var tone = mean == null || Math.abs(mean) < 0.3 ? 'neutral' : mean > 0 ? 'positive' : 'negative';
       var rateText = function (v) { return (v.rate > 0 ? '+' : '') + v.rate.toFixed(2) + '%'; };
-      var amount = g.items.map(function (it, k) { return reads[k] ? it.label + ' ' + reads[k].text + ' ' + rateText(reads[k]) : it.label + ' 미수신'; }).join(' · ');
+      var rowTone = function (v) { return Math.abs(v.rate) < 0.3 ? '' : v.rate > 0 ? 'positive' : 'negative'; };
+      var rows = mean == null ? [] : g.items.map(function (it, k) { return reads[k] ? { k: it.label, v: reads[k].text, d: rateText(reads[k]), t: rowTone(reads[k]) } : { k: it.label, v: '미수신', miss: true }; });
       var gi = g.items.findIndex(function (it, k) { return reads[k]; }), pts = gi >= 0 ? seriesPoints_(by[g.items[gi].symbol], 40) : [];
       var item = gi >= 0 ? g.items[gi] : g.items[0];
-      return { id: g.kind, icon: g.kind, detail: item.label + ' 일봉 종가', label: g.name, tone: tone, state: mean == null ? '미수신' : stateWord_(tone, ['상승', '하락', '보합']), amount: mean == null ? '' : amount,
+      return { id: g.kind, icon: g.kind, detail: item.label + ' 일봉 종가', label: g.name, tone: tone, state: mean == null ? '미수신' : stateWord_(tone, ['상승', '하락', '보합']), rows: rows,
         say: marketComment_(g.kind, mean), meta: have.length ? have[0].time : '값을 받지 못했습니다',
         panel: pts.length ? { points: pts, base: medianOf_(pts.map(function (r) { return r.score; })), format: function (v) { return fmt(item, v); } } : null };
     });
