@@ -106,3 +106,4 @@ html.dark #fx-rates .fxr-tip { background:var(--dk-card); color:var(--dk-text); 
 @layer np {
   #fx-rates th, #fx-rates td { background-color:transparent !important; }
 }
+html.dark #fx-rates .fxr-range-btn.is-active { color: var(--dk-bg) !important; }
