@@ -3,7 +3,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={programTradingCard_,optionCard_,rateCard_,extrasBlock_};');
 const sb={window:{},document:{readyState:'loading',addEventListener(){}},console,setTimeout,clearTimeout,fetch:async()=>({ok:true,json:async()=>({})})};
 vm.runInNewContext(src,sb);const t=sb.window.t;
-const hist=Array.from({length:100},(_,i)=>({date:'d'+i,arbitrage:0,nonArbitrage:(i%2?1:-1)*(i+1)*10000}));// 절댓값 10000..1000000
+const hist=Array.from({length:100},(_,i)=>({date:new Date(Date.UTC(2026,0,1+i)).toISOString().slice(0,10),arbitrage:0,nonArbitrage:(i%2?1:-1)*(i+1)*10000}));// 절댓값 10000..1000000
 const pt=(v,date='2026-10-22')=>({available:true,source:'kis',date,arbitrage:5000,nonArbitrage:v,history:hist});
 const now=Date.parse('2026-10-23T09:00:00Z'); // 18:00 KST
 assert.equal(t.programTradingCard_(pt(-950000),now).tier,'sellBig');
@@ -23,5 +23,7 @@ let rc=t.rateCard_(by);assert(rc&&['flat','widenMild','widenBig','narrowMild','n
 by.US10Y=series('US10Y',wide.map(()=>1.5));assert.equal(t.rateCard_(by).tier,'inverted','10년<2년이면 역전');
 assert.equal(t.rateCard_({}),null);
 const html=t.extrasBlock_({programTrading:pt(-950000)},[],{CALL:{volume:1,updated_at:'2026-10-23T06:13:00Z'},PUT:{volume:2,updated_at:'2026-10-23T06:13:00Z'}},now);
-assert(html.includes('수급·심리·금리')&&html.includes('시장지표에서 자세히 보기')&&html.includes('미수신'),'금리 카드는 응답 없으면 미수신');
+assert(html.includes('수급·심리·금리')&&html.includes('data-xcard="prog"')&&html.includes('data-xcard="rate"')&&html.includes('미수신'),'금리 카드는 응답 없으면 미수신');
+const opened=t.extrasBlock_({programTrading:pt(-950000)},[],null,now,'prog');assert(opened.includes('mt-xpanel')&&opened.includes('data-mt-flow-chart'),'프로그램매매 카드를 열면 추이 그래프');
+const pcOpen=t.extrasBlock_({},[],{CALL:{volume:1,updated_at:'2026-10-23T06:13:00Z'},PUT:{volume:2,updated_at:'2026-10-23T06:13:00Z'}},now,'putcall');assert(pcOpen.includes('mt-pc-bar'),'풋/콜은 비중 막대');
 console.log('extras ok');
