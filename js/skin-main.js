@@ -2438,8 +2438,9 @@ document.documentElement.classList.add('skin-ready');
     // 마켓브리핑만은 상단의 최신 1 + 목록 3개 뒤로 남은 모든 글을 3열 카드로 유지한다.
     // hero/cards/duo 순서가 반복되며 다시 큰 미리보기가 생기지 않게 별도 처리한다.
     if (isMarketBriefing) {
-      var heroTake = Math.min(4, cards.length);
-      renderBlock('briefingHero', cards.slice(0, heroTake), heroTake < cards.length ? cards[heroTake] : tailAnchor);
+      // 2026-10-23 사용자 요청("마켓 브리핑 같은 크기로 나열해줘"): 큰 대표 카드+오른쪽 목록을 없애고
+      // 모든 글을 같은 크기의 3열 카드로 최신순 그대로 나열한다(renderBlock의 briefingHero는 더 쓰지 않는다).
+      var heroTake = 0;
       for (var briefingIndex = heroTake; briefingIndex < cards.length; briefingIndex += 3) {
         var briefingSlice = cards.slice(briefingIndex, briefingIndex + 3);
         var briefingBefore = briefingIndex + briefingSlice.length < cards.length
