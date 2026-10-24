@@ -2356,10 +2356,16 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body :not(.nav-logo, .nav-logo *) {
     font-family: var(--font-ui) !important;
   }
-  /* Explicit exceptions: the existing brand banner and the story section label. */
+  /* Explicit serif exceptions: brand banner, story label and preview titles. */
   html body .nav-logo .nav-logo-name,
   html body .learn-intro h2,
-  html body .learn-intro h2 * {
+  html body .learn-intro h2 *,
+  html body .site-footer-learn a.learn-card b,
+  html body .site-footer-learn a.learn-card b *,
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-title,
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-title *,
+  html body .feed .briefing-shelf .post-title,
+  html body .feed .briefing-shelf .post-title * {
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
   .nav-logo {
