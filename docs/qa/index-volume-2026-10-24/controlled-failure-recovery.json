@@ -1,0 +1,18 @@
+{
+  "controlledFailure": {
+    "query": "코스피",
+    "started": 75680.89999999851,
+    "title": "코스피KOSPI",
+    "priceMs": 267,
+    "volumeMs": 267,
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 마지막 유효 자료 사용 · 수집 2026-10-24T13:46:16.274969+09:00 · 갱신 실패"
+  },
+  "controlledRecovery": {
+    "query": "코스피",
+    "started": 76010.39999999851,
+    "title": "코스피KOSPI",
+    "priceMs": 641,
+    "volumeMs": 641,
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 수집 2026-10-24T13:46:16.274969+09:00"
+  }
+}
