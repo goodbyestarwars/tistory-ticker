@@ -8,7 +8,7 @@ html.dark #fx-rates { --fxr-ink: var(--dk-ink-rgb); --fxr-line:var(--dk-line); -
 #fx-rates .fxr { min-width:0; }
 #fx-rates .fxr-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
 #fx-rates .fxr-head { display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 14px; margin:0 0 6px; }
-#fx-rates .fxr-title, #fx-rates .fxr-subtitle { margin:0; font-family:"MaruBuriBold","MaruBuri",serif!important; font-weight:400!important; font-size:20px!important; line-height:1.4!important; color:rgb(var(--fxr-ink))!important; }
+#fx-rates .fxr-title, #fx-rates .fxr-subtitle { margin:0; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-weight:400!important; font-size:20px!important; line-height:1.4!important; color:rgb(var(--fxr-ink))!important; }
 #fx-rates .fxr-badge { font-size:12px; font-weight:600; color:var(--fxr-sub); }
 #fx-rates .fxr-meta { display:flex; flex-wrap:wrap; gap:2px 16px; margin:0 0 10px; font-size:12px; line-height:1.6; color:var(--fxr-sub); }
 #fx-rates .fxr-meta em { font-style:normal; margin-right:4px; }

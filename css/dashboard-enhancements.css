@@ -7,7 +7,7 @@
 #watchlist *,
 .home-my-card,
 .home-my-card * {
-  font-family: 'Maru Buri', 'MaruBuri', 'Pretendard', system-ui, sans-serif;
+  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif);
 }
 
 /* 2026-08-21 코드 감사: 아래 세 규칙은 예전에 "화려한/neon" 버전(초기 안)과 "차분한"
