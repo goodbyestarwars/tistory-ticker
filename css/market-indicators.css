@@ -91,14 +91,14 @@ html.dark .mi-wrap { --mi-rule: var(--dk-line); --mi-rule-soft: var(--dk-line); 
 .mi-wrap .mi-block.mi-block--first { margin-top: 26px; border-top: 0; }
 .mi-wrap .mi-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: var(--ui-card-padding) 0 0; }
 .mi-wrap .mi-block--first .mi-block-head { padding-top: 0; }
-.mi-wrap .mi-block-title { display: flex; flex: 1 1 auto; align-items: baseline; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; padding: 0; font-family: var(--font-ui); font-size: var(--ui-section-size); font-weight: 600; line-height: 1.35; letter-spacing: -.01em; color: var(--text-main); }
+.mi-wrap .mi-block-title { display: flex; flex: 1 1 auto; align-items: baseline; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; padding: 0; font-family: var(--font-ui); font-size: var(--ui-section-size); font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
 .mi-wrap .mi-block-no { flex: 0 0 auto; font-size: 15px; font-weight: 600; letter-spacing: .02em; line-height: 1; color: var(--mi-no); font-variant-numeric: tabular-nums; }
 .mi-wrap .mi-block-desc { margin: 8px 0 12px; font-size: 13.5px; line-height: 1.6; color: var(--mi-sub); word-break: keep-all; overflow-wrap: break-word; }
 .mi-wrap .mi-sub { min-width: 0; margin: 0; }
 .mi-wrap .mi-sub + .mi-sub { margin-top: 34px; padding-top: 30px; border-top: 1px solid var(--mi-rule-soft); }
-.mi-wrap .mi-sub-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 17px; font-weight: 700; line-height: 1.4; color: var(--text-main); }
+.mi-wrap .mi-sub-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 17px; font-weight: 700; line-height: 1.4; }
 .mi-wrap .mi-sub-cap { margin: 0 0 16px; font-size: 12.5px; line-height: 1.6; color: var(--mi-sub); word-break: keep-all; overflow-wrap: break-word; }
-.mi-wrap .mi-sub2-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 14.5px; font-weight: 700; line-height: 1.4; color: var(--text-main); }
+.mi-wrap .mi-sub2-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 14.5px; font-weight: 700; line-height: 1.4; }
 @media (max-width: 760px) {
   .mi-wrap .mi-block { margin-top: var(--ui-section-gap); }
   .mi-wrap .mi-block.mi-block--first { margin-top: 20px; }
@@ -116,7 +116,7 @@ html.dark .mi-wrap { --mi-rule: var(--dk-line); --mi-rule-soft: var(--dk-line); 
 @layer np {
   html:not(.font-gothic) body .mi-wrap :is(.mi-block-title, .mi-sub-title, .mi-sub2-title, .kf-section-title, .dmi-flow-title, .dmi-panel-title),
   html:not(.font-gothic) body #domestic-market-indicators .dmi-fund-board .ibd-subtitle {
-    font-family: var(--font-ui) !important; font-weight: 700 !important; letter-spacing: -.01em !important;
+    font-family: var(--font-ui) !important; font-weight: 700 !important; letter-spacing: -.01em !important; color: var(--text-strong) !important;
   }
   html:not(.font-gothic) body #domestic-market-indicators .dmi-fund-board .ibd-subtitle { font-size: 15px !important; }
 }
