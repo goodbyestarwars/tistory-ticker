@@ -52,6 +52,9 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard .wd-empty { padding: 14px 0; color: var(--wd-sub); font-size: 13px; }
 .weekend-dashboard .hwr-card-title { display: block; margin: 0; padding: 0; border: 0; }
 .weekend-dashboard .hwr-card-title > span { display: block; font-size: 11px; margin-bottom: 6px; color: var(--wd-sub); }
+.weekend-dashboard .wd-calendar .hwr-card-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; text-align: left; }
+.weekend-dashboard .wd-calendar .hwr-card-title > .wd-panel-head { flex: 1 0 auto; }
+.weekend-dashboard .wd-calendar .hwr-card-title > span { margin-left: auto; max-width: 100%; text-align: right; overflow-wrap: anywhere; }
 .weekend-dashboard .hwr-schedule-list { margin: 0; padding: 0; list-style: none; }
 .weekend-dashboard .hwr-schedule-list li { display: grid; grid-template-columns: 58px 32px minmax(0,1fr); gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--wd-line); color: var(--wd-text); font-size: 13px; }
 .weekend-dashboard .hwr-schedule-list li:last-child { border-bottom: 0; }
