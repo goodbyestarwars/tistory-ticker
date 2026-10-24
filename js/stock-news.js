@@ -14,7 +14,7 @@
   var CONTAINER_SELECTOR = '#stock-news';
   // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목이 "참고의견"/"종합 요약"/"요약"으로
   // 제각각이라는 지적 - js/kospi-futures.js 등이 이미 쓰는 "참고의견" + 말풍선 아이콘으로 통일.
-  var FETCH_TIMEOUT_MS = 15000; // 뉴스 조회 + Groq AI 요약까지 순차로 도는 GAS 응답이라 여유 있게
+  var FETCH_TIMEOUT_MS = 15000; // GAS 뉴스 응답 조회 시간 상한
   var MAX_SUGGESTIONS = 8;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var STORAGE_KEY = 'stock-news-extra-v1';
