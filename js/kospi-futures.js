@@ -289,13 +289,15 @@
 
     // 2026-10-12: 국내 탭의 큰 블록 규격(css/market-indicators.css .mi-block)을 따른다 - 04 선물지표, 05 옵션 수급(buildOptionSection).
     return ''
-      + '<section class="mi-block kf-block" data-mi-block="futures">'
-      + buildBlockHead('03', 'KOSPI200 선물지표')
+      + '<section class="mi-block kf-block kf-section' + (loadCollapsed('futures') ? ' kf-collapsed' : '') + '" data-section-key="futures" data-mi-block="futures">'
+      + buildBlockHead('03', 'KOSPI200 선물지표', '', '<button type="button" class="kf-collapse-btn" data-chart-key="futures" aria-expanded="' + (!loadCollapsed('futures')) + '">' + (loadCollapsed('futures') ? '펼치기' : '숨기기') + '</button>')
+      + '<div class="kf-futures-body"' + (loadCollapsed('futures') ? ' hidden' : '') + '>'
       + '<div class="mi-block-desc">KOSPI200 주간선물(09:00~15:45)과 야간선물(18:00~05:00)의 시세·미결제약정과 차트입니다.</div>'
       + '<div class="mi-sub"><div class="mi-sub-title">주간·야간 선물 시세</div>'
       + '<div class="mi-sub-cap">현재가, 전일 대비, 등락률과 미결제약정(증감)입니다.</div>'
       + '<div class="kf-panel" id="kfPanel">' + panelCards + '</div></div>'
       + '<div class="mi-sub"><div class="kf-chart-grid">' + sections + '</div></div>'
+      + '</div>'
       + '</section>'
       + buildOptionSection();
   }
@@ -980,6 +982,21 @@
     container.querySelectorAll('.kf-collapse-btn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         var key = btn.getAttribute('data-chart-key');
+        if (key === 'futures') {
+          var block = btn.closest('[data-mi-block="futures"]');
+          var body = block && block.querySelector('.kf-futures-body');
+          if (!body) return;
+          var allCollapsed = !body.hidden;
+          body.hidden = allCollapsed;
+          block.classList.toggle('kf-collapsed', allCollapsed);
+          btn.textContent = allCollapsed ? '펼치기' : '숨기기';
+          btn.setAttribute('aria-expanded', String(!allCollapsed));
+          saveCollapsed('futures', allCollapsed);
+          if (!allCollapsed) CHARTS.forEach(function (chart) {
+            if (!loadCollapsed(chart.key)) { destroyChart(chart.key); renderChartPanel(chart); }
+          });
+          return;
+        }
         var section = container.querySelector('.kf-section[data-section-key="' + key + '"]');
         var cfg = CHARTS.filter(function (c) { return c.key === key; })[0];
         if (!section) return;
