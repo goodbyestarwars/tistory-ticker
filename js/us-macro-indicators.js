@@ -426,10 +426,9 @@
   function shell_() {
     var next = nextFomc_();
     return '<section class="umi" aria-label="미국 경제 발표">'
-      + '<div class="umi-head"><div><h2>미국 경제 발표</h2><p><b>CPI를 맨 앞</b>에 두고 물가·고용·경기 발표를 한 번에 봅니다. 최근 평균·5년 흐름과 함께 금리·기업 실적을 거쳐 주식에 미치는 영향을 표시합니다.</p></div>'
+      + '<div class="umi-head"><div><p class="umi-intro mi-tab-explainer">CPI를 먼저 보고 물가·고용·경기 지표를 확인합니다. 각 발표는 예상과의 차이, 최근 평균, 5년 흐름을 함께 살핍니다. 시장 영향은 국채금리와 기업 실적을 거쳐 나타날 수 있으며, 높은 물가와 금리 상승은 성장주에 부담이 될 수 있습니다. 금리 하락도 경기 둔화 때문이라면 기업 실적을 함께 확인하세요. 아래 내용은 일반적인 참고이며 해당 발표에 대한 매매 신호가 아닙니다.</p></div>'
       + '<button type="button" class="umi-refresh" data-umi-refresh>갱신</button></div>'
       + '<p class="umi-refresh-status" data-umi-refresh-status aria-live="polite"></p>'
-      + '<p class="umi-interpret-note">주식은 예상과의 차이에 반응해. 예상보다 물가가 높고 미국채 금리도 오르면 성장주 부담. 물가가 식고 고용이 버티면 주식에 도움. 금리가 내려도 침체 때문에 내리면 기업 실적이 더 중요해. 아래는 일반적인 영향이며, 현재 발표의 예상치 비교나 매수·매도 신호는 아니야.</p>'
       + '<div class="umi-fomc"><b>다음 FOMC 회의 ' + escapeHtml(dateLabel_(next)) + '</b> <span>' + (next ? escapeHtml(next.slice(5).replace('-', '/') + ' 시작 · 연준 공식 일정') : '연준 공식 일정 확인 필요') + '</span></div>'
       + '<div data-umi-board class="umi-board"></div></section>';
   }

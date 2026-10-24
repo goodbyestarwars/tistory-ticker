@@ -171,8 +171,8 @@
 
   function shell() {
     return '<div class="cm-status" role="status">30초마다 시세 갱신 · 추이는 완료 일봉 기준</div>'
+      +'<p class="cm-note mi-tab-explainer">코인은 원화, 토큰은 USDT 기준입니다. 국내주식 토큰은 무기한선물 참고 가격으로 실제 주식 시세와 다릅니다. 차트의 평균은 선택한 기간의 종가 평균입니다.</p>'
       +'<div class="cm-board" data-cm-board></div>'
-      +'<p class="cm-note">코인은 원화, 토큰은 USDT 기준. 국내주식 토큰은 무기한선물 참고 가격이며 실제 주식 시세와 다릅니다. 차트의 평균은 선택한 기간의 종가 평균입니다.</p>'
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
   }
   function coins() {

@@ -74,7 +74,7 @@ html.dark #fx-rates .fxr-tip { background:var(--dk-card); color:var(--dk-text); 
 #fx-rates .fxr-stat dd { margin:2px 0 0; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
 #fx-rates .fxr-stat dd small { display:block; margin-top:1px; font-size:11px; font-weight:400; color:var(--fxr-sub); }
 #fx-rates .fxr-hint { margin:8px 0 0; font-size:12px; line-height:1.55; color:var(--fxr-sub); }
-#fx-rates .fxr-note { margin:22px 0 0; padding-top:12px; border-top:1px solid var(--fxr-line); font-size:12px; line-height:1.65; color:var(--fxr-sub); }
+#fx-rates .fxr-note { margin:10px 0 18px; padding:12px 14px; border:1px solid var(--fxr-line); border-radius:8px; font-size:12px; line-height:1.65; color:var(--fxr-sub); }
 
 /* 모바일: 표를 두 줄 행으로 바꾼다(가로 스크롤 없이 모든 열 유지) */
 @media (max-width:720px) {

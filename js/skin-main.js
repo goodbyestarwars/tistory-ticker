@@ -340,20 +340,20 @@ document.documentElement.classList.add('skin-ready');
       }
     };
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261013-sections';
+    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261025-tab-explainers';
     var TABS = [
       {
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261025-remove-dmi-title',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261025-tab-explainers',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
-        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261025-remove-dmi-title',
+        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
@@ -370,23 +370,23 @@ document.documentElement.classList.add('skin-ready');
         key: 'us-macro', label: '주요 미국 발표', slug: 'us-macro-indicators',
         mountIds: ['us-macro-indicators'],
         globalName: 'UsMacroIndicators',
-        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261016-ppi-final-demand',
-        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261008-five-year-charts', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+        script: ASSET_BASE + 'js/us-macro-indicators.js?v=20261025-tab-explainers',
+        styles: [ASSET_BASE + 'css/us-macro-indicators.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         key: 'crypto', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
-        script: ASSET_BASE + 'js/crypto-market.js?v=20261024-shared-quotes',
+        script: ASSET_BASE + 'js/crypto-market.js?v=20261025-tab-explainers',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
-          ASSET_BASE + 'css/crypto-market.css?v=20261008-news-timeline', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
+          ASSET_BASE + 'css/crypto-market.css?v=20261025-tab-explainers', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
       {
         // 2026-10-11: 한국수출입은행 일별 공식 고시환율. 마운트(#fx-rates)는 아래 build()가 만든다 - skin.html 변경 없음.
         // ?tab=fx 로 이 탭을 바로 열 수 있다. 실시간 원/달러는 글로벌 시장지표 탭이 그대로 담당한다.
         key: 'fx', label: '환율', slug: 'fx-rates',
         mountIds: ['fx-rates'], globalName: 'FxRates',
-        script: ASSET_BASE + 'js/fx-rates.js?v=20261011-fx-rates',
-        styles: [ASSET_BASE + 'css/fx-rates.css?v=20261011-fx-rates']
+        script: ASSET_BASE + 'js/fx-rates.js?v=20261025-tab-explainers',
+        styles: [ASSET_BASE + 'css/fx-rates.css?v=20261025-tab-explainers']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);

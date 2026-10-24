@@ -71,9 +71,9 @@
   /* ---- 화면 뼈대 ---- */
   function shell() {
     return '<div class="fxr">'
-      + '<div class="fxr-head"><h3 class="fxr-title">환율</h3><span class="fxr-badge">한국수출입은행 일별 고시환율 · 실시간 시장환율 아님</span></div>'
       + '<p class="fxr-meta" data-fx-meta>데이터를 불러오는 중입니다.</p>'
       + '<p class="fxr-state" data-fx-state role="status" hidden></p>'
+      + '<p class="fxr-note mi-tab-explainer">한국수출입은행의 일별 고시환율입니다. 영업일 오전 11시 이후 공개되므로 장중 실시간 환율과 다르며, 주말·공휴일에는 직전 고시일 값을 표시합니다. JPY·IDR은 100단위 기준이고 TTB·TTS는 은행 송금 적용 환율입니다. 실시간 원/달러는 글로벌 시장지표에서 확인하세요.</p>'
       + '<div class="fxr-tablewrap"><table class="fxr-table" data-fx-table><caption class="fxr-sr">매매기준율·전일 대비·송금환율 표</caption>'
       + '<thead><tr><th scope="col" class="fxr-h-cur">통화 (기준 단위)</th><th scope="col">매매기준율 (원)</th><th scope="col">전일 대비</th><th scope="col">등락률</th>'
       + '<th scope="col" title="송금 받을 때 적용 환율(TTB)">송금 받을 때</th><th scope="col" title="송금 보낼 때 적용 환율(TTS)">송금 보낼 때</th></tr></thead>'
@@ -86,8 +86,6 @@
       + '<div class="fxr-chart" data-fx-chart><span class="fxr-empty">추이를 불러오는 중</span></div>'
       + '<dl class="fxr-stats" data-fx-stats hidden></dl>'
       + '<p class="fxr-hint" data-fx-hint></p></section>'
-      + '<p class="fxr-note">일별 고시환율은 한국수출입은행이 영업일 오전 11시경 이후 공개하는 값으로, 장중 변동·실시간 환율과 다릅니다. 주말·공휴일에는 새 고시가 없어 직전 정상 고시일 값을 그대로 표시합니다. '
-      + 'JPY·IDR처럼 100단위로 고시되는 통화는 100단위 기준 금액입니다. 송금 받을 때(TTB)·송금 보낼 때(TTS)는 은행이 송금 거래에 적용하는 환율입니다. 실시간 원/달러는 글로벌 시장지표 탭에서 확인하세요.</p>'
       + '</div>';
   }
 

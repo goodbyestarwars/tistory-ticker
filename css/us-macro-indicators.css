@@ -1,6 +1,6 @@
 :is(#us-macro-indicators, .sc-econ-results) { font-family: var(--font-ui, "Pretendard", "Malgun Gothic", sans-serif); color: #111827; }
 :is(#us-macro-indicators, .sc-econ-results) .umi { padding: 4px 0 18px; }
-:is(#us-macro-indicators, .sc-econ-results) .umi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 0; }
 :is(#us-macro-indicators, .sc-econ-results) h2 { margin: 0 0 5px; font-size: 20px; }
 :is(#us-macro-indicators, .sc-econ-results) p { margin: 0; color: #64748b; font-size: 13px; line-height: 1.55; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { min-height: 32px; padding: 0 12px; border: 1px solid #cbd5e1; border-radius: 5px; background: #fff; color: #334155; font: 700 12px/1 var(--font-ui, sans-serif); cursor: pointer; }
@@ -23,7 +23,6 @@
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart circle { fill:#2878cc; stroke:#fff; stroke-width:1.4; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-card i { margin-top: 8px; color: #94a3b8; font-size: 11px; font-style: normal; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-card i b { display:inline; margin:0; color:#64748b; font-size:11px; }
-:is(#us-macro-indicators, .sc-econ-results) .umi-interpret-note { margin: 0 0 14px; font-size: 12px; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact { display: grid; gap: 7px; margin-top: 12px; padding: 10px 11px; border-radius: 7px; background: #f8fafc; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact p { display: grid; grid-template-columns: 58px minmax(0, 1fr); gap: 8px; font-size: 12px; line-height: 1.55; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-impact em { color: #334155; font-size: 11px; font-style: normal; font-weight: 600; }

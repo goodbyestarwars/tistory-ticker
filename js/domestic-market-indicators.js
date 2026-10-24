@@ -90,6 +90,10 @@
 
   function setLiveStatus(text) {
     var node = dmiRoot && dmiRoot.querySelector('[data-dmi-connection]');
+    if (!node && dmiRoot) {
+      var panel = dmiRoot.closest && dmiRoot.closest('.mi-panel');
+      node = panel && panel.querySelector('.mi-tab-summary .om-live-status');
+    }
     if (!node) return;
     node.textContent = text;
     node.setAttribute('data-state', LIVE_STATUS_STATE[text] || 'init');
@@ -1019,10 +1023,10 @@
     if (!root || root.getAttribute('data-dmi-ready') === '1') return;
     root.setAttribute('data-dmi-ready', '1');
     installStyle();
-    root.innerHTML = '<div class="dmi-shell"><div class="dmi-heading"><h2>국내 투자자 수급</h2></div>'
+    root.innerHTML = '<div class="dmi-shell">'
       + '<section class="mi-block mi-block--first dmi-block dmi-investor-section">'
       + '<div class="mi-block-head dmi-subheading"><h3 class="mi-block-title"><span class="mi-block-no">01</span><span class="mi-block-name">투자자별 매매동향</span></h3></div>'
-      + '<div class="mi-block-desc">개인·외국인·기관의 순매수(억원)를 표와 그래프로 봅니다. 양수는 순매수, 음수는 순매도이며 거래일만 표시합니다.</div>'
+      + '<div class="mi-block-desc mi-tab-explainer">개인·외국인·기관의 순매수(억원)를 표와 그래프로 봅니다. 양수는 순매수, 음수는 순매도이며 거래일만 표시합니다.</div>'
       + '<div class="mi-sub"><div class="mi-sub-title">최근 10거래일 순매수</div>'
       + '<div class="mi-sub-cap">KOSPI·KOSDAQ 각각 개인·외국인·기관의 일별 순매수(억원)입니다.</div>'
       + '<div class="dmi-flow-grid"><div class="dmi-flow-card">데이터 준비 중</div><div class="dmi-flow-card">데이터 준비 중</div></div></div>'
@@ -1074,7 +1078,7 @@
       + '<section class="mi-block mi-block--first dmi-block dmi-chart-section dmi-spot-section' + (spotCollapsed ? ' dmi-collapsed' : '') + '">'
       + blockHead('01', '국내 주요 지수', ' <span class="dmi-market-status" data-dmi-market-status></span>',
         '<button type="button" class="dmi-spot-collapse" aria-expanded="' + (spotCollapsed ? 'false' : 'true') + '">' + (spotCollapsed ? '펼치기' : '숨기기') + '</button>')
-      + '<div class="mi-block-desc">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
+      + '<div class="mi-block-desc mi-tab-explainer">KOSPI · KOSDAQ 현물 (09:00~15:45) 지수와 분·일·주 차트입니다.</div>'
       + '<div class="dmi-spot-body"><div class="dmi-spot-quotes"><div class="dmi-spot-loading">불러오는 중...</div></div>'
       + '<div class="dmi-chart-grid">' + chartPanel('KOSPI', { name: 'KOSPI' }) + chartPanel('KOSDAQ', { name: 'KOSDAQ' }) + '</div></div></section>'
       + '<section class="mi-block dmi-block dmi-funds-section' + (fundsCollapsed ? ' dmi-collapsed' : '') + '">'
