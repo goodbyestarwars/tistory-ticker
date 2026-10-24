@@ -2343,7 +2343,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   white-space: nowrap;
 }
 .briefing-search { display:flex; align-items:center; gap:10px; margin:0 0 22px; padding:10px 0; border-bottom:1px solid #e5e7eb; }
-.briefing-search input { flex:1; min-width:0; height:38px; padding:0 12px; border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#172033; font:inherit; font-size:13px; }
+.briefing-search input { flex:0 1 480px; width:min(480px,100%); min-width:0; height:38px; padding:0 12px; border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#172033; font:400 13px/1.4 var(--font-ui, "Pretendard Variable", Pretendard, sans-serif); }
+.briefing-search input::placeholder { color:#9aa3af; opacity:1; font-weight:400; }
 .briefing-search input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
 .briefing-search small { flex:0 0 auto; color:#64748b; font-size:11px; white-space:nowrap; }
 /* Market briefing archive: horizontal editorial shelf, shared carousel controls.
@@ -2356,9 +2357,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body :not(.nav-logo, .nav-logo *) {
     font-family: var(--font-ui) !important;
   }
-  /* Market briefing masthead: keep the three introductory lines in MaruBuri.
-     The search sibling scopes this exception to the market briefing archive. */
-  html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1, span) {
+  /* Market briefing masthead uses the brand serif for its label and title. */
+  html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1) {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
   html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1) {
@@ -2427,10 +2427,12 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;
   }
-  html body .feed > .briefing-search input,
-  html body .feed > .briefing-search input::placeholder {
-    font-weight: 700 !important;
+  html body .feed:has(> .briefing-search) > .category-masthead > div > span {
+    font-family: var(--font-ui, "Pretendard Variable", Pretendard, sans-serif) !important;
+    font-weight: 400 !important;
   }
+  html body .feed > .briefing-search input { font-weight: 400 !important; }
+  html body .feed > .briefing-search input::placeholder { color: #9aa3af !important; font-weight: 400 !important; opacity: 1; }
   /* Editorial hierarchy: page title > section/card title > body > metadata.
      Reuse the shared title token so mobile follows the same 22px scale. */
   html body .feed:has(> .briefing-search) > .category-masthead h1,
@@ -2540,6 +2542,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
 }
 html.dark .briefing-search { border-bottom-color:var(--dk-line); }
 html.dark .briefing-search input { border-color:var(--dk-line); background:var(--dk-inner); color:var(--dk-text); }
+html.dark .briefing-search input::placeholder { color:var(--dk-mute); }
 html.dark .category-masthead { border-bottom-color: var(--dk-mute); }
 html.dark .category-masthead h1 { color: var(--dk-text); }
 html.dark .category-masthead p,

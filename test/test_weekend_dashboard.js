@@ -10,7 +10,7 @@ function fixture() {
   const context = vm.createContext({window,document,console,URL,AbortController,localStorage:{getItem:()=>null},
     setTimeout:()=>1,clearTimeout(){},setInterval:f=>{intervals.push(f);return 1;},clearInterval(){},
     fetch:async url=>{requests.push(url);return {ok:true,json:()=>handler(url)};}});
-  vm.runInContext(original.replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };', 'global.HomeWeeklyReport = {render:render,live:loadWeekendLive,scanner:loadCompactScanner,themes:loadWeekendThemes,weekly:storedWeeklyIndex,card:indexCard};'),context);
+  vm.runInContext(original.replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };', 'global.HomeWeeklyReport = {render:render,live:loadWeekendLive,themes:loadWeekendThemes,weekly:storedWeeklyIndex,card:indexCard};'),context);
   const root={hidden:false,classList:{add(){}},innerHTML:'',querySelector:s=>mounts.get(s)||null};
   return {api:window.HomeWeeklyReport,root,mounts,requests,intervals,handler:f=>handler=f};
 }
@@ -39,17 +39,11 @@ test('partial quote failure preserves only last valid prices and timestamps; hid
   assert.match(mount.innerHTML,/100/);f.root.hidden=true;
   const count=f.requests.length;f.intervals[0]();assert.equal(f.requests.length,count);
 });
-test('candidate panel reuses original server swing results without a new scanner request',async()=>{
-  const f=fixture(), mount={innerHTML:''};f.mounts.set('[data-wd-scanner]',mount);
-  f.api.scanner(f.root,{hotCandidates:{domestic:[{code:'001',name:'원래 후보',price:100,changeRate:2,waves:{mid:'상승 추세'}}],basis:'원래 선정 기준'}});
-  assert.match(mount.innerHTML,/원래 후보/);assert.match(mount.innerHTML,/원래 선정 기준/);assert.match(mount.innerHTML,/stock-search\?code=001/);assert.equal(f.requests.length,0);
-  f.api.scanner(f.root,{hotCandidates:{domestic:[]}});assert.match(mount.innerHTML,/현재 조건 충족 후보 없음/);
-});
 test('news uses attributed linked headlines only and deduplicates across themes',async()=>{
   const f=fixture(), mount={innerHTML:''};f.mounts.set('[data-hwr-themes]',mount);
   const headline={title:'실제 기사',source:'출처',pubDate:'2026-10-23',link:'https://example.com/article'};
   f.handler(async()=>({data:{themes:[{name:'테마1',krSectors:['반도체'],krStocks:[{code:'005930',name:'삼성전자'}],headlines:[headline,{title:'근거 없음'}]},{name:'테마2',headlines:[headline]}]}}));
-  f.api.themes(f.root);await flush();assert.equal((mount.innerHTML.match(/실제 기사<\/a>/g)||[]).length,1);assert.doesNotMatch(mount.innerHTML,/근거 없음|테마2/);assert.match(mount.innerHTML,/class="wd-sector">반도체/);assert.match(mount.innerHTML,/삼성전자/);assert.doesNotMatch(mount.innerHTML,/>AI</);
+  f.api.themes(f.root);await flush();assert.equal((mount.innerHTML.match(/실제 기사<\/a>/g)||[]).length,1);assert.doesNotMatch(mount.innerHTML,/근거 없음|테마2|함께 나온 보도/);assert.match(mount.innerHTML,/class="wd-news-source">출처 · 10\/23/);assert.ok(mount.innerHTML.indexOf('wd-news-source')<mount.innerHTML.indexOf('wd-news-title'));assert.match(mount.innerHTML,/wd-news-summary-empty/);assert.match(mount.innerHTML,/관련 테마/);assert.match(mount.innerHTML,/class="wd-theme-badge">반도체/);assert.match(mount.innerHTML,/관심종목/);assert.match(mount.innerHTML,/삼성전자/);assert.doesNotMatch(mount.innerHTML,/>AI</);
 });
 test('additional stored indices normalize dates, exclude future days and match the original weekly base',()=>{
   const f=fixture(),row={symbol:'DOW_INDEX',name:'다우',chart:[{date:'20261023',close:120},{date:'20261016',close:100},{date:'20261019',close:110},{date:'20261024',close:900}]};

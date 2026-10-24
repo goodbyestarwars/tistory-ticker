@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-black-banner';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-cards';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -395,11 +395,12 @@
         var headline = theme.headlines[0];
         var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
         var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
-        var rest = theme.headlines.slice(1);
-        return '<article class="wd-news-card"><a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener">' + escapeHtml(headline.title_ko || headline.title) + '</a><small class="wd-news-source">' + escapeHtml(headline.source + ' · ' + dateLabel(headline.pubDate)) + '</small>'
-          + '<div class="wd-news-content"><span class="wd-news-label">함께 나온 보도</span>' + (rest.length ? rest.map(function (item) { return '<a href="' + escapeHtml(item.link) + '" target="_blank" rel="noopener">' + escapeHtml(item.title_ko || item.title) + '</a>'; }).join('') : '<p>기사 내용은 제목을 눌러 원문에서 확인하세요.</p>') + '</div>'
-          + '<div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div>'
-          + '<div class="wd-news-stocks"><span class="wd-news-label">주요 종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div><small>뉴스 테마 관련 종목</small></div></article>';
+        var summary = headline.description || headline.summary || headline.snippet || '';
+        return '<article class="wd-news-card"><small class="wd-news-source">' + escapeHtml(headline.source || '출처 미상') + ' · ' + escapeHtml(dateLabel(headline.pubDate)) + '</small>'
+          + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener">' + escapeHtml(headline.title_ko || headline.title) + '</a>'
+          + '<div class="wd-news-content">' + (summary ? '<p>' + escapeHtml(summary) + '</p>' : '<p class="wd-news-summary-empty">요약 내용은 원문에서 확인하세요.</p>') + '</div>'
+          + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
+          + '<div class="wd-news-stocks"><span class="wd-news-label">관심종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div></div></article>';
       }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>') + '<a class="wd-more" href="/pages/main-news">주요 뉴스 전체 →</a>';
       (global.SiteInteractionsReady || Promise.resolve(global.SiteInteractions)).then(function (module) {
         if (!module || !root.contains(mount) || !document.body.contains(root)) return;

@@ -893,14 +893,19 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: 24px; border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); box-shadow: 0 4px 12px rgba(var(--np-ink),.08); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .weekend-dashboard .wd-news-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(var(--np-ink),.14); }
 .weekend-dashboard .wd-news-card .wd-news-title { font-size: 20px; line-height: 1.45; }
-.weekend-dashboard .wd-news-source { display: block; margin-top: 10px; font-size: 11px; }
-.weekend-dashboard .wd-news-content { display: grid; gap: 10px; margin: 24px 0; font-size: 13px; line-height: 1.6; }
+.weekend-dashboard .wd-news-source { display: inline-flex; align-self: flex-start; margin: 0 0 14px; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: var(--wd-sub); font-size: 11px; line-height: 1.4; }
+.weekend-dashboard .wd-news-card .wd-news-title { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 700; }
+.weekend-dashboard .wd-news-content { display: grid; gap: 10px; margin: 18px 0 22px; font-size: 13px; line-height: 1.7; }
 .weekend-dashboard .wd-news-content p { margin: 0; }
+.weekend-dashboard .wd-news-summary-empty { color: var(--wd-sub); }
 .weekend-dashboard .wd-news-label { display: block; font-size: 11px; color: var(--wd-sub); }
-.weekend-dashboard .wd-news-card .wd-tags { margin-top: auto; }
+.weekend-dashboard .wd-news-topics { margin-top: auto; }
+.weekend-dashboard .wd-news-topics .wd-tags { margin-top: 7px; }
 .weekend-dashboard .wd-theme-badge { display: inline-flex; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); font-size: 11px; }
 .weekend-dashboard .wd-news-stocks { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--wd-line); }
 .weekend-dashboard .wd-news-stocks .wd-related { margin: 8px 0; }
+.weekend-dashboard .wd-news-stocks .wd-related a { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: inherit; text-decoration: none; }
+.weekend-dashboard .wd-news-stocks .wd-related a:hover { border-color: var(--wd-sub); }
 .weekend-dashboard .wd-news-stocks > small { font-size: 10px; }
 .weekend-dashboard .wd-news-controls { display: flex; justify-content: flex-end; gap: 10px; }
 .weekend-dashboard .wd-news-controls button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--wd-line); border-radius: 50%; background: var(--wd-inner); font: 400 28px/1 sans-serif; cursor: pointer; }

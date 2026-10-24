@@ -690,7 +690,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261024-native-reading';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261025-weekly-news-cards';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
@@ -2565,7 +2565,7 @@ document.documentElement.classList.add('skin-ready');
       }).catch(function () {});
       var search = document.createElement('label');
       search.className = 'briefing-search';
-      search.innerHTML = '<span class="sr-only">마켓브리핑 검색</span><input type="search" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
+      search.innerHTML = '<input type="search" aria-label="마켓브리핑 제목·내용 검색" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
       feed.insertBefore(search, shelf);
       var input = search.querySelector('input');
       var result = search.querySelector('[data-briefing-search-result]');
