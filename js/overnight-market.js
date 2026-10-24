@@ -408,7 +408,7 @@
   function boardRow(symbol, item, cat) {
     var meta = symbolMeta(symbol);
     var hasPrice = typeof item.price === 'number';
-    var rate = Number(item.change_rate);
+    var rate = item.change_rate == null ? NaN : Number(item.change_rate);
     var t = rate > 0 ? 'up' : rate < 0 ? 'down' : 'flat';
     var arrow = rate > 0 ? '▲ ' : rate < 0 ? '▼ ' : '';
     var high = item.high, low = item.low;
@@ -427,14 +427,15 @@
       note += '<div class="ibd-ln"><small>출처: ' + escapeHtml(item.source)
         + (item.contract_code ? ' · 월물 ' + escapeHtml(item.contract_code) : '')
         + ' · 시세 지연 여부 ' + escapeHtml(item.source_delay || '미확인')
-        + (item.stale ? ' · 최근 체결 시각 초과' : '') + '</small></div>';
+        + (item.market_closed ? ' · 휴장 · 직전 ' + (item.price_kind === 'daily_close' ? 'KIS 일봉 종가' : '유효 시세') + ' · ' + escapeHtml(item.asof_date || '기준일 미확인') : item.stale ? ' · 최근 체결 시각 초과' : '')
+        + '</small></div>';
     }
     return {
       id: symbol, group: cat.key, name: LABELS[symbol], code: BOARD_CODES[symbol] || '',
       loading: !!item._loading,
       cells: hasPrice ? [
         { t: amount(item.price) },
-        { t: arrow + (isFinite(Number(item.change)) ? fmtPrice(Math.abs(Number(item.change)), meta.digits) + meta.changeUnit : '-'), tone: t },
+        { t: arrow + (item.change != null && isFinite(Number(item.change)) ? fmtPrice(Math.abs(Number(item.change)), meta.digits) + meta.changeUnit : '-'), tone: t },
         { t: isFinite(rate) ? fmtSigned(rate, 2) + '%' : '-', tone: t },
         { t: amount(high) }, { t: amount(low) }
       ] : [{ t: item._loading ? '확인 중' : item.stale ? '시세 지연' : '데이터 없음' }, { t: '-' }, { t: '-' }, { t: '-' }, { t: '-' }],
