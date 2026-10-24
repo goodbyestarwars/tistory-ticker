@@ -17,7 +17,7 @@ function renderIndexControls() {
   assert(from !== -1 && to > from, 'index chart markup found');
   const expr = js.slice(from + "panel.innerHTML = ".length, to);
   const makeHtml = new Function('row', 'item', 'signClass', 'escapeHtml', 'fmtSignedPct',
-    'indexStudies', 'indexWaveState', 'return ' + expr + ';');
+    'indexStudies', 'indexWaveState', 'window', 'return ' + expr + ';');
   return makeHtml(
     { code: 'NASDAQ_INDEX', name: '나스닥' },
     { price: 26424.82, change_rate: -0.02, updated_at: '2026-10-21T06:30:53Z' },
@@ -25,7 +25,7 @@ function renderIndexControls() {
     s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'),
     n => String(n) + '%',
     { maShort: true, maLong: true, cloud: false, bollinger: false, sr: false },
-    { enabled: true, level: 'medium', trend: false }
+    { enabled: true, level: 'medium', trend: false }, {}
   );
 }
 

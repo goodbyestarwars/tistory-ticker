@@ -719,15 +719,18 @@
     }
     volume.setData(volumeData());
     var relabelFn = null;
+    var refreshSpikes = null;
+    var rangeSubscribed = false;
     // 3배 이상 봉에 `3.2배` 라벨. 5년처럼 넓게 보면 라벨이 겹쳐 읽히지 않으므로, 보이는 범위의 봉 간격(px)으로
     // 라벨 폭만큼 떨어진 것만 남긴다(겹치면 배수가 큰 쪽 우선). 확대·이동 때마다 다시 고른다.
     if (opts.multipleLabels !== false && typeof LWC.createSeriesMarkers === 'function') {
       var spikes = [];
-      bars.forEach(function (d, i) {
+      refreshSpikes = function () { spikes = []; bars.forEach(function (d, i) {
         var m = multiples[i];
         if (m == null || m < VOLUME_SPIKE.label) return;
         spikes.push({ i: i, m: m, time: d.date, color: d.close >= d.open ? '#d24f45' : '#1261c4', text: (Math.round(m * 10) / 10) + '배' });
-      });
+      }); };
+      refreshSpikes();
       function toMarker(c) { return { time: c.time, position: 'aboveBar', shape: 'circle', size: 0, color: c.color, text: c.text }; }
       var markerPlugin = null;
       try { markerPlugin = LWC.createSeriesMarkers(volume, []); } catch (e) { markerPlugin = null; }
@@ -749,10 +752,8 @@
         } else if (chosen.length > VOLUME_SPIKE.maxLabels) chosen = chosen.slice(-VOLUME_SPIKE.maxLabels);
         try { markerPlugin.setMarkers(chosen.map(toMarker)); } catch (e) { /* 라벨만 빠진다 */ }
       };
-      if (spikes.length) {
-        if (hasScale) chart.timeScale().subscribeVisibleLogicalRangeChange(relabel);
-        relabel();
-      }
+      if (hasScale) { chart.timeScale().subscribeVisibleLogicalRangeChange(relabel); rangeSubscribed = true; }
+      relabel();
       relabelFn = relabel;
     }
     function avgLine(period, color, width) {
@@ -772,7 +773,25 @@
       volume.setData(volumeData());
       if (relabelFn) relabelFn();
     }
-    return { volume: volume, ma20: ma20, ma5: ma5, setMultiples: setMultiples };
+    function updateData(nextBars) {
+      var range = chart.timeScale().getVisibleLogicalRange();
+      bars = nextBars;
+      multiples = volumeSpikeMultiples(bars);
+      volume.setData(volumeData());
+      [ma20, ma5].forEach(function (ma, i) {
+        if (!ma) return;
+        ma.points = movingAveragePoints(bars, 'volume', i ? 5 : 20);
+        ma.series.setData(ma.points.map(function (p) { return {time:p.time, value:Math.max(0, Number(p.value)||0)}; }));
+      });
+      if (refreshSpikes) refreshSpikes();
+      if (range) chart.timeScale().setVisibleLogicalRange(range);
+      if (relabelFn) relabelFn();
+    }
+    function destroy() {
+      if (rangeSubscribed && relabelFn) chart.timeScale().unsubscribeVisibleLogicalRangeChange(relabelFn);
+      rangeSubscribed = false;
+    }
+    return { volume: volume, ma20: ma20, ma5: ma5, setMultiples: setMultiples, updateData: updateData, destroy: destroy };
   }
 
   // ---- 일목균형표(전환 9·기준 26·선행B 52, 26봉 선행) ----

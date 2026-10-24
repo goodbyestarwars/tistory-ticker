@@ -4243,6 +4243,23 @@ def domestic_market_indicators_chart_endpoint(
     return envelope(data)
 
 
+@app.on_event('startup')
+def _start_index_history_warmer():
+    # Read two bounded snapshots. Initial KIS backfill runs in one shared worker;
+    # no request handler or application startup waits for the 3-year download.
+    def run():
+        while True:
+            for market in ('KOSPI', 'KOSDAQ'):
+                try:
+                    domestic_market_indicators.fetch_chart(
+                        os.environ.get('KIS_APPKEY'), os.environ.get('KIS_APPSECRET'),
+                        market, 'day', long_range=True)
+                except Exception:
+                    logging.getLogger('main').exception('index history warmer failed')
+            time.sleep(60)
+    threading.Thread(target=run, name='index-history-warmer', daemon=True).start()
+
+
 @app.get('/market-rank')
 def market_rank_endpoint(request: Request, limit: int = Query(5, ge=1, le=_MARKET_RANK_MAX_LIMIT)):
     """사이드바 실시간 랭킹(거래대금 TOP/상한가/하한가) - 9bolt 우측 사이드바 리디자인
