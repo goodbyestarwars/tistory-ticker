@@ -1,0 +1,16 @@
+{
+  "restartPage": {
+    "symbol": "KOSDAQ",
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 수집 2026-10-24T13:46:24.955851+09:00",
+    "priceMs": 570,
+    "volumeMs": 738,
+    "elapsed": 734
+  },
+  "warmNow": {
+    "symbol": "KOSPI",
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 수집 2026-10-24T13:46:16.274969+09:00",
+    "priceMs": 478,
+    "volumeMs": 644,
+    "elapsed": 643
+  }
+}

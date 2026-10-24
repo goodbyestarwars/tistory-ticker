@@ -1,0 +1,21 @@
+{
+  "rows": 732,
+  "lastAttemptUnchanged": true,
+  "processStartedAt": "2026-10-24T13:49:10+09:00",
+  "cache": {
+    "lastSuccessAt": "2026-10-24T13:46:16.274969+09:00",
+    "lastAttemptAt": "2026-10-24T13:46:06.892124+09:00",
+    "lastError": null,
+    "lastErrorAt": null,
+    "backfillComplete": true,
+    "refreshing": false,
+    "stale": false,
+    "usingLastValid": false,
+    "asOf": "2026-10-23",
+    "volumeUnit": "unverified",
+    "retryAfterMs": 60000,
+    "state": "ready"
+  },
+  "endpointMs": 818,
+  "lastSuccessAt": "2026-10-24T13:46:16.274969+09:00"
+}

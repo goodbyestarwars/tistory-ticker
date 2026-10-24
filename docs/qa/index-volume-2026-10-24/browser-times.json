@@ -1,0 +1,44 @@
+{
+  "unreadyServerWithOldBrowserCache": {
+    "symbol": "KOSDAQ",
+    "priceMs": 30683,
+    "elapsed": 51784
+  },
+  "warmKospi": {
+    "symbol": "KOSPI",
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 수집 2026-10-24T13:46:16.274969+09:00",
+    "priceMs": 519,
+    "volumeMs": 854,
+    "elapsed": 849
+  },
+  "warmKosdaq": {
+    "symbol": "KOSDAQ",
+    "status": "KIS 거래량 · 원본 단위(미확정) · 기준일 2026-10-23 · 수집 2026-10-24T13:46:24.955851+09:00",
+    "priceMs": 480,
+    "volumeMs": 650,
+    "elapsed": 646
+  },
+  "switches": [
+    {
+      "query": "코스피",
+      "started": 685.8000000007451,
+      "title": "코스피KOSPI",
+      "priceMs": 278,
+      "volumeMs": 278
+    },
+    {
+      "query": "코스닥",
+      "started": 1016.2000000029802,
+      "title": "코스닥KOSDAQ",
+      "priceMs": 249,
+      "volumeMs": 249
+    },
+    {
+      "query": "코스피",
+      "started": 1301.5,
+      "title": "코스피KOSPI",
+      "priceMs": 260,
+      "volumeMs": 260
+    }
+  ]
+}

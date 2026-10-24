@@ -1,0 +1,7 @@
+{
+  "type": "controlled empty-cache responses; actual prices and final volume from production API",
+  "backfillDelayMs": 9301,
+  "priceMs": 297,
+  "volumeMs": 10516,
+  "emptyRequests": 5
+}
