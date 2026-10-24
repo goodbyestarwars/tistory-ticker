@@ -67,7 +67,7 @@ function doGet(e) {
   }
 
   if (params.action === 'flowAiSummary') {
-    return jsonResponse(getFlowAiSummary(params));
+    return jsonResponse({summary: null, disabled: true});
   }
 
   if (params.action === 'flowChart') {
