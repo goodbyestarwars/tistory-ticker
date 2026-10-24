@@ -37,6 +37,7 @@ def test_weekly_reader_uses_the_four_part_futures_key():
     assert call.kwargs['stored_only'] is False
     assert call.kwargs['days'] == 365
     assert 'USDKRW' in call.kwargs['symbols'].split(',')
+    assert {'DOW_INDEX', 'SOX'} <= set(call.kwargs['symbols'].split(','))
 
 
 def test_missing_cached_rows_remain_missing():
@@ -58,7 +59,7 @@ def test_invalid_snapshot_version_is_rejected(tmp_path):
                    and any(isinstance(t, ast.Name) and t.id == '_WEEKLY_REPORT_SNAPSHOT_VERSION'
                            for t in n.targets))
     # v9 could permanently retain empty assets for the same completed week.
-    assert version > 9
+    assert version > 10
     loader = next(n for n in tree.body if isinstance(n, ast.FunctionDef)
                   and n.name == '_load_weekly_report_snapshot')
     path = tmp_path / 'weekly_report_cache.json'
@@ -67,6 +68,9 @@ def test_invalid_snapshot_version_is_rejected(tmp_path):
     exec(compile(ast.Module(body=[loader], type_ignores=[]), str(SOURCE), 'exec'), namespace)
     data = {'fx': {'analysis': {'status': 'unknown'}}}
     snapshot = {'version': 9, 'week_end': '2026-10-23', 'data': data}
+    path.write_text(json.dumps(snapshot), encoding='utf-8')
+    assert namespace['_load_weekly_report_snapshot']('2026-10-23') is None
+    snapshot['version'] = 10
     path.write_text(json.dumps(snapshot), encoding='utf-8')
     assert namespace['_load_weekly_report_snapshot']('2026-10-23') is None
     snapshot['version'] = version
