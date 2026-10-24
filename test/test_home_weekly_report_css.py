@@ -41,8 +41,8 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
     def test_row_layout_does_not_depend_on_hwr_columns(self):
         """행이 좌우로 갈리는 건 .hwr-columns li에만 있던 display:flex였다."""
         css = self.css()
-        rule = re.search(r'\.wd-scan li \{([^}]*)\}', css).group(1)
-        for prop in ('display: flex', 'justify-content: space-between', 'gap:'):
+        rule = re.search(r'\.hwr2-rows > li \{([^}]*)\}', css).group(1)
+        for prop in ('display: grid', 'grid-template-columns: 20px minmax(0,1fr) auto', 'gap:'):
             self.assertIn(prop, rule)
 
     def test_dark_mode_border_covers_the_self_contained_list(self):

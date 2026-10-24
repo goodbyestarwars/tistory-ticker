@@ -8296,14 +8296,14 @@ html.search-open body .nav-search-suggest {
 
 /* ── 21. 이야기 시리즈: 큰 소개와 흰색 카드 3열, 모바일 2열 (2026-10-08) ── */
 @media all {
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) {
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) {
     display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
   }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-links:not(.site-footer-learn) { order: 2 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.copyright { order: 3 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > nav.site-footer-learn { order: 1 !important; flex: 0 0 100% !important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > nav.site-footer-links:not(.site-footer-learn) { order: 2 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > *.copyright { order: 3 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > nav.site-footer-learn { order: 1 !important; flex: 0 0 100% !important; }
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
   display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
@@ -8405,10 +8405,10 @@ html body#tt-body-index .briefing-title-icon, html body .learn-intro h2 > .learn
 @media(prefers-reduced-motion:reduce) {
  html body#tt-body-index .briefing-carousel-track .home-briefing-card { transition:none; }
 }
-html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { flex:0 0 100%!important; width:100%!important; justify-content:flex-start!important; padding:24px 0!important; margin:32px 0 0!important; border-top:1px solid rgba(var(--np-ink),.14)!important; }
+html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { flex:0 0 100%!important; width:100%!important; justify-content:flex-start!important; padding:24px 0!important; margin:32px 0 0!important; border-top:1px solid rgba(var(--np-ink),.14)!important; }
 html body .site-footer:has(.site-footer-company) { background:var(--np-paper)!important; }
 html body .site-footer:has(.site-footer-company) > .copyright { display:none!important; }
-html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > .copyright { display:none!important; }
+html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]):has(.site-footer-company) > .copyright { display:none!important; }
 html body .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a { white-space:nowrap; }
 html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { order:4!important; flex:0 0 100%; display:flex; align-items:center; gap:28px; width:100%; padding:32px 0 40px!important; margin-top:12px!important; background:var(--np-paper)!important; border-top:1px solid rgba(var(--np-ink),.14); text-align:left; box-sizing:border-box; }
 html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { display:flex!important; flex-wrap:wrap!important; align-items:center!important; gap:20px 0!important; }
@@ -8435,7 +8435,7 @@ html body .learn-mobile-controls { display:none; }
   html body .site-footer-learn .learn-mobile-controls button { display:grid; place-items:center; width:42px; height:42px; padding:0; border:1px solid rgba(var(--np-ink),.18); border-radius:50%; background:#fff; color:rgba(var(--np-ink),.8); font:400 22px/1 var(--font-ui)!important; border:1px solid rgba(var(--np-ink),.18)!important; border-radius:50%!important; background:#fff!important; width:42px!important; height:42px!important; padding:0!important; }
   html body .site-footer-learn .learn-mobile-controls button:disabled { opacity:.3; }
   html body .site-footer-learn .learn-page-count { font:500 13px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.6)!important; }
-  html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:0 16px!important; margin-top:20px!important; padding:18px 0!important; align-items:center!important; }
+  html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { display:grid!important; grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:0 16px!important; margin-top:20px!important; padding:18px 0!important; align-items:center!important; }
   html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) :is(a,button) { display:flex!important; align-items:center; min-height:42px; padding:0!important; font-size:13px!important; text-align:left; white-space:nowrap; }
   html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after { display:none!important; }
   html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { gap:16px!important; margin-top:0!important; padding:24px 0 28px!important; align-items:flex-start!important; }
@@ -8511,7 +8511,7 @@ html body :where(.ff-opinion-summary-card) { border-bottom: 1px solid rgba(var(-
 
 /* ── 25. 페이지 바탕은 신문지색, 큰 껍데기는 투명 (2026-10-03 사용자: "페이지 전체가 약간 누런 오래된 신문") ── */
 html body :where(.site-footer, .post-single, .post-card, .sidebar-right, .content, .main-content, .container) { background-color: transparent !important; }
-html body .site-footer, html body#tt-body-index .site-footer:not(:has(.site-footer-main)), html body .site-footer:has(.site-footer-learn a.learn-card) { background: transparent !important; background-color: transparent !important; }
+html body .site-footer, html body#tt-body-index .site-footer:not(:has(.site-footer-main)), html body .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) { background: transparent !important; background-color: transparent !important; }
 html body .home-closed-page { background: transparent !important; }
 
 /* ── 26. 정리 묶음 (2026-10-04 사용자 요청) ──
@@ -8873,7 +8873,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @media (min-width: 721px) {
   @layer np { @layer np {
     html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after { margin-right: 0 !important; }
-    html body#tt-body-index .site-footer:has(.site-footer-learn a.learn-card):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { padding-bottom: 11px !important; }
+    html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]):has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) { padding-bottom: 11px !important; }
     html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company { margin-top: 0 !important; }
   } }
 }

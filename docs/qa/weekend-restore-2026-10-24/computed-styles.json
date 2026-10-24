@@ -1,0 +1,434 @@
+[
+  {
+    "width": 1440,
+    "dark": false,
+    "overflow": 0,
+    "height": 3239,
+    "bannerHeight": 142,
+    "indexCards": [
+      {
+        "x": 43,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 269,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 495,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 721,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 947,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 1173,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 1348,
+    "indexTrackScroll": 1348,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(255, 254, 252)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 1514,
+    "footerStories": 0,
+    "footerNavDisplay": "flex",
+    "briefingTitleWidth": 290,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  },
+  {
+    "width": 1440,
+    "dark": true,
+    "overflow": 0,
+    "height": 3239,
+    "bannerHeight": 142,
+    "indexCards": [
+      {
+        "x": 43,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 269,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 495,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 721,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 947,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 1173,
+        "y": 404,
+        "width": 218,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 1348,
+    "indexTrackScroll": 1348,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(32, 39, 49)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 1514,
+    "footerStories": 0,
+    "footerNavDisplay": "flex",
+    "briefingTitleWidth": 290,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  },
+  {
+    "width": 1280,
+    "dark": false,
+    "overflow": 0,
+    "height": 3279,
+    "bannerHeight": 142,
+    "indexCards": [
+      {
+        "x": 16,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 224,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 433,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 641,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 849,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 1058,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 1242,
+    "indexTrackScroll": 1242,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(255, 254, 252)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 1555,
+    "footerStories": 0,
+    "footerNavDisplay": "flex",
+    "briefingTitleWidth": 290,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  },
+  {
+    "width": 1280,
+    "dark": true,
+    "overflow": 0,
+    "height": 3279,
+    "bannerHeight": 142,
+    "indexCards": [
+      {
+        "x": 16,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 224,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 433,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 641,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 849,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 1058,
+        "y": 404,
+        "width": 200,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 1242,
+    "indexTrackScroll": 1242,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(32, 39, 49)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 1555,
+    "footerStories": 0,
+    "footerNavDisplay": "flex",
+    "briefingTitleWidth": 290,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  },
+  {
+    "width": 390,
+    "dark": false,
+    "overflow": 0,
+    "height": 4381,
+    "bannerHeight": 179,
+    "indexCards": [
+      {
+        "x": 16,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 180,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 344,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 508,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 672,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 836,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 352,
+    "indexTrackScroll": 976,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(255, 254, 252)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 2404,
+    "footerStories": 0,
+    "footerNavDisplay": "grid",
+    "briefingTitleWidth": 314,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  },
+  {
+    "width": 390,
+    "dark": true,
+    "overflow": 0,
+    "height": 4371,
+    "bannerHeight": 179,
+    "indexCards": [
+      {
+        "x": 16,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 180,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 344,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 508,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 672,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      },
+      {
+        "x": 836,
+        "y": 440,
+        "width": 156,
+        "height": 135,
+        "font": "20px",
+        "svg": true
+      }
+    ],
+    "indexTrackWidth": 352,
+    "indexTrackScroll": 976,
+    "cryptoSvg": 3,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "cardSurface": "rgb(32, 39, 49)",
+    "bodyFont": "14px",
+    "bodyFamily": "Pretendard, \"Malgun Gothic\", sans-serif",
+    "readingTop": 2394,
+    "footerStories": 0,
+    "footerNavDisplay": "grid",
+    "briefingTitleWidth": 314,
+    "briefingTools": "none",
+    "quoteRefreshes": 3
+  }
+]
