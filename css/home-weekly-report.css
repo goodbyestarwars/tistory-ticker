@@ -729,12 +729,11 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 
 }
 
-/* Black closed-market banner: copy left, live countdown right, metadata below. */
-
 /* ==========================================================================
-   02. 휴장 헤더 · 배지 · 요약 수치
+   15. 휴장 배너 · 플립 카운트다운 후속 보정 (기존 순서 유지)
    ========================================================================== */
 
+/* Black closed-market banner: copy left, live countdown right, metadata below. */
 .weekend-dashboard .wd-header {
   position: relative;
   overflow: hidden;
@@ -837,19 +836,8 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   animation: wd-flip .35s ease-out;
 }
 
-@keyframes wd-flip {
-  from { transform: rotateX(-35deg);
-  opacity: .65;
-  } to { transform: rotateX(0);
-  opacity: 1;
-  };
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .weekend-dashboard .wd-flip-digit.is-changing { animation: none;
-  };
-}
-
+@keyframes wd-flip { from { transform: rotateX(-35deg); opacity: .65; } to { transform: rotateX(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .weekend-dashboard .wd-flip-digit.is-changing { animation: none; } }
 @media (max-width: 767px) {
   .weekend-dashboard .wd-header {
     min-height: 0;
