@@ -9,7 +9,7 @@
    margin-left:auto로 내용 폭만큼만 차지하는 박스를 오른쪽 정렬(js 구조 변경 없이 이
    div 하나에만 스타일 - dmi-live-status처럼 헤딩과 형제 span으로 만드는 구조 변경은
    불필요한 결합도라 피함). */
-:is(#overnight-market, #crypto-market) .om-live-status {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status {
   display: table;
   margin: 0 0 10px auto;
   padding: 3px 10px 3px 8px;
@@ -20,7 +20,7 @@
   font-weight: 600;
   white-space: nowrap;
 }
-:is(#overnight-market, #crypto-market) .om-live-status::before {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status::before {
   content: '';
   display: inline-block;
   width: 6px;
@@ -30,18 +30,18 @@
   background: currentColor;
   vertical-align: middle;
 }
-:is(#overnight-market, #crypto-market) .om-live-status[data-state="live"] {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status[data-state="live"] {
   background: rgba(22, 163, 74, .12);
   color: #16a34a;
 }
-:is(#overnight-market, #crypto-market) .om-live-status[data-state="live"]::before {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status[data-state="live"]::before {
   animation: om-live-pulse 1.6s ease-in-out infinite;
 }
-:is(#overnight-market, #crypto-market) .om-live-status[data-state="stale"] {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status[data-state="stale"] {
   background: rgba(217, 119, 6, .12);
   color: #d97706;
 }
-:is(#overnight-market, #crypto-market) .om-live-status[data-state="retry"] {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-live-status[data-state="retry"] {
   background: rgba(100, 116, 139, .12);
   color: #64748b;
 }
@@ -50,7 +50,7 @@
   50% { opacity: .35; }
 }
 
-:is(#overnight-market, #crypto-market) .om-summary {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary {
   padding: 12px 14px;
   margin-bottom: 14px;
   background: #f7f7f8;
@@ -58,31 +58,31 @@
   font-size: 13px;
 }
 
-:is(#overnight-market, #crypto-market) .om-summary-head {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-head {
   display: flex;
   align-items: center;
   gap: 6px;
   margin-bottom: 8px;
 }
 
-:is(#overnight-market, #crypto-market) .om-summary-icon {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-icon {
   flex: 0 0 auto;
   color: #666;
 }
 
-:is(#overnight-market, #crypto-market) .om-summary-body {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-body {
   color: #111;
 }
 
 /* 카테고리별 한 줄씩 분리(사용자 요청 - 예전엔 " · "로 이어붙인 한 줄이라 단락 구분이
    안 됐음). 라벨(<b>)만 굵게, 본문은 검은색 그대로. */
-:is(#overnight-market, #crypto-market) .om-summary-line {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-line {
   line-height: 1.6;
   margin-bottom: 5px;
 }
-:is(#overnight-market, #crypto-market) .om-summary-line:last-child { margin-bottom: 0; }
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-line:last-child { margin-bottom: 0; }
 
-:is(#overnight-market, #crypto-market) .om-summary-tone {
+:is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-tone {
   margin-top: 8px;
   padding-top: 8px;
   border-top: 1px solid #e5e5e7;
@@ -294,10 +294,10 @@ html.dark :is(#overnight-market, #crypto-market) .om-error,
 html.dark :is(#overnight-market, #crypto-market) .om-chart-error { color: var(--dk-mute) !important; }
 html.dark :is(#overnight-market, #crypto-market) .om-hl { color: var(--dk-mute) !important; }
 html.dark :is(#overnight-market, #crypto-market) .om-zero { color: var(--dk-text) !important; }
-html.dark :is(#overnight-market, #crypto-market) .om-summary { background: var(--dk-inner) !important; }
-html.dark :is(#overnight-market, #crypto-market) .om-summary-icon { color: var(--dk-mute) !important; }
-html.dark :is(#overnight-market, #crypto-market) .om-summary-body { color: var(--dk-text) !important; }
-html.dark :is(#overnight-market, #crypto-market) .om-summary-tone { border-top-color: var(--dk-line) !important; }
+html.dark :is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary { background: var(--dk-inner) !important; }
+html.dark :is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-icon { color: var(--dk-mute) !important; }
+html.dark :is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-body { color: var(--dk-text) !important; }
+html.dark :is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary-tone { border-top-color: var(--dk-line) !important; }
 html.dark :is(#overnight-market, #crypto-market) .om-ai { background: var(--dk-inner) !important; }
 html.dark :is(#overnight-market, #crypto-market) .om-ai-icon { color: var(--dk-text) !important; }
 html.dark :is(#overnight-market, #crypto-market) .om-ai-body { color: var(--dk-text) !important; }
