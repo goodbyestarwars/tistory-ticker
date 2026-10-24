@@ -2386,7 +2386,7 @@ document.documentElement.classList.add('skin-ready');
 
   /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──
      일반 카테고리는 대표 1개 + 헤드라인 최대 4개 뒤에 작은 카드·2열을 반복한다. 다만
-     마켓브리핑은 최신 1개 + 오른쪽 목록 3개를 먼저 두고, 이후 글은 3열 카드로 이어 붙인다.
+     마켓브리핑은 같은 크기의 가로 카드 선반으로 표시한다.
      글은 언제나 최신순 그대로 소비하며 재정렬하지 않는다. */
   (function buildCategoryFeedBlocks() {
     if (location.pathname.indexOf('/category/') !== 0) return;
@@ -2400,8 +2400,8 @@ document.documentElement.classList.add('skin-ready');
       feed.insertBefore(masthead, feed.firstChild);
     }
     var cards = Array.prototype.slice.call(feed.querySelectorAll(':scope > .post-card:not(.notice-card)'));
-    if (cards.length < 2) return; /* 카드가 1개뿐이면 다양화할 의미가 없음 */
     var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';
+    if (!cards.length || (cards.length < 2 && !isMarketBriefing)) return;
 
     var BLOCK_SEQUENCE = [
       { key: 'hero', min: 2, max: 5 },   // 최신 대표 1 + 헤드라인 최대 4
@@ -2446,22 +2446,32 @@ document.documentElement.classList.add('skin-ready');
       });
     }
 
-    // 마켓브리핑만은 상단의 최신 1 + 목록 3개 뒤로 남은 모든 글을 3열 카드로 유지한다.
-    // hero/cards/duo 순서가 반복되며 다시 큰 미리보기가 생기지 않게 별도 처리한다.
+    // 마켓브리핑은 일반 카테고리의 hero/cards/duo 편집과 분리한다.
     if (isMarketBriefing) {
-      // 2026-10-23 사용자 요청("마켓 브리핑 같은 크기로 나열해줘"): 큰 대표 카드+오른쪽 목록을 없애고
-      // 모든 글을 같은 크기의 3열 카드로 최신순 그대로 나열한다(renderBlock의 briefingHero는 더 쓰지 않는다).
-      var heroTake = 0;
-      for (var briefingIndex = heroTake; briefingIndex < cards.length; briefingIndex += 3) {
-        var briefingSlice = cards.slice(briefingIndex, briefingIndex + 3);
-        var briefingBefore = briefingIndex + briefingSlice.length < cards.length
-          ? cards[briefingIndex + briefingSlice.length] : tailAnchor;
-        renderBlock('briefingCards', briefingSlice, briefingBefore);
-      }
+      // Equal-size editorial cards on an Apple-style horizontal shelf. Keep the
+      // original articles, links, dates and order; reuse the shared carousel.
+      var shelf = document.createElement('section');
+      shelf.className = 'briefing-shelf';
+      shelf.innerHTML = '<div class="briefing-shelf-track" tabindex="0" role="region" aria-label="마켓브리핑 카드"></div>'
+        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-prev" data-briefing-shelf-prev aria-label="이전 마켓브리핑">‹</button>'
+        + '<button type="button" class="briefing-shelf-arrow briefing-shelf-next" data-briefing-shelf-next aria-label="다음 마켓브리핑">›</button>'
+        + '<p class="briefing-shelf-empty" hidden>검색 결과가 없습니다.</p>';
+      feed.insertBefore(shelf, cards[0]);
+      var shelfTrack = shelf.querySelector('.briefing-shelf-track');
+      cards.forEach(function (card) {
+        card.classList.add('feed-briefing-cards-item');
+        shelfTrack.appendChild(card);
+      });
+      (window.SiteInteractionsReady || Promise.resolve(window.SiteInteractions)).then(function (module) {
+        if (module) module.carousel(shelf, {
+          track: '.briefing-shelf-track', previous: '[data-briefing-shelf-prev]',
+          next: '[data-briefing-shelf-next]', card: '.feed-briefing-cards-item'
+        });
+      }).catch(function () {});
       var search = document.createElement('label');
       search.className = 'briefing-search';
       search.innerHTML = '<span class="sr-only">마켓브리핑 검색</span><input type="search" placeholder="마켓브리핑 제목·내용 검색" autocomplete="off"><small data-briefing-search-result>전체 ' + cards.length + '건</small>';
-      feed.insertBefore(search, feed.querySelector('.feed-block') || tailAnchor);
+      feed.insertBefore(search, shelf);
       var input = search.querySelector('input');
       var result = search.querySelector('[data-briefing-search-result]');
       input.addEventListener('input', function () {
@@ -2472,9 +2482,7 @@ document.documentElement.classList.add('skin-ready');
           card.hidden = !match;
           if (match) shown += 1;
         });
-        Array.prototype.slice.call(feed.querySelectorAll('.feed-block')).forEach(function (block) {
-          block.hidden = !Array.prototype.some.call(block.querySelectorAll('.post-card'), function (card) { return !card.hidden; });
-        });
+        shelf.querySelector('.briefing-shelf-empty').hidden = shown !== 0;
         result.textContent = query ? shown + '건 검색됨' : '전체 ' + cards.length + '건';
       });
       return;

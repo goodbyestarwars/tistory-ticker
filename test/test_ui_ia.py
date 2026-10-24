@@ -90,7 +90,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("ㄱㅖ조 ㅏ심폐소생술", skin)
         self.assertNotIn("item.textContent = 'ㄱㅖ조 ㅏ심폐소생술'", menu)
 
-    def test_market_briefing_category_uses_stable_newspaper_layout(self):
+    def test_market_briefing_category_uses_shared_horizontal_shelf(self):
         source = self.read("js/skin-main.js")
         style = self.read("style.css")
         start = source.index("function buildCategoryFeedBlocks()")
@@ -100,14 +100,18 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("var BLOCK_SEQUENCE", category_source)
         self.assertIn("sequenceIndex % BLOCK_SEQUENCE.length", category_source)
         self.assertIn("var isMarketBriefing = decodeURIComponent(location.pathname) === '/category/마켓 브리핑';", category_source)
-        self.assertIn("var heroTake = 0;", category_source)
+        self.assertIn("shelf.className = 'briefing-shelf';", category_source)
+        self.assertIn("module.carousel(shelf", category_source)
+        self.assertIn("shelfTrack.appendChild(card);", category_source)
+        self.assertIn("previous: '[data-briefing-shelf-prev]'", category_source)
         self.assertNotIn("renderBlock('briefingHero'", category_source)
-        self.assertIn("renderBlock('briefingCards', briefingSlice, briefingBefore);", category_source)
+        self.assertNotIn("renderBlock('briefingCards', briefingSlice, briefingBefore);", category_source)
         self.assertIn("feed-block-briefing-hero", category_source)
         self.assertIn("feed-block-briefing-cards", category_source)
         self.assertNotIn("Math.random()", category_source)
         self.assertIn(".category-masthead", style)
-        self.assertIn("font: 700 24px/1.15 var(--font-title)", style)
+        self.assertIn(".briefing-shelf-track", style)
+        self.assertIn(".briefing-shelf .post-card[hidden] { display: none !important; }", style)
         self.assertIn(".feed-block-briefing-hero .post-card.feed-headline-item .post-title", style)
         self.assertIn("-webkit-line-clamp: 3;", style)
 

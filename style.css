@@ -2344,6 +2344,66 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
 .briefing-search input { flex:1; min-width:0; height:38px; padding:0 12px; border:1px solid #dbe4ef; border-radius:4px; background:#fff; color:#172033; font:inherit; font-size:13px; }
 .briefing-search input:focus { outline:none; border-color:#2563eb; box-shadow:0 0 0 3px rgba(37,99,235,.1); }
 .briefing-search small { flex:0 0 auto; color:#64748b; font-size:11px; white-space:nowrap; }
+/* Market briefing archive: horizontal editorial shelf, shared carousel controls.
+   The nested layer matches the existing important card/reset contracts. */
+@layer np.np {
+  html body .feed .briefing-shelf {
+    position: relative; min-width: 0; max-width: 100%;
+    padding: 8px 0 0; background: rgba(var(--np-ink), .035); border-radius: 18px;
+  }
+  html body .feed .briefing-shelf-track {
+    display: flex !important; gap: 16px !important; min-width: 0; max-width: 100%;
+    overflow-x: auto; overflow-y: hidden; padding: 16px 24px 24px !important;
+    scroll-snap-type: x proximity; scroll-padding-inline: 24px;
+    scrollbar-width: none; touch-action: pan-x pan-y;
+  }
+  html body .feed .briefing-shelf-track::-webkit-scrollbar { display: none; }
+  html body .feed .briefing-shelf .post-card.feed-briefing-cards-item {
+    display: flex !important; flex-direction: column; flex: 0 0 300px;
+    width: 300px; height: 400px; min-width: 0; margin: 0 !important; padding: 24px !important;
+    border: 0 !important; border-radius: 18px !important;
+    background: var(--ui-card-surface) !important; background-image: none !important;
+    box-shadow: 0 3px 12px rgba(var(--np-ink), .08) !important;
+    scroll-snap-align: start; overflow: hidden;
+  }
+  html body .feed .briefing-shelf .post-card[hidden] { display: none !important; }
+  html body .feed .briefing-shelf .post-header { margin: 0 0 24px !important; justify-content: flex-start !important; }
+  html body .feed .briefing-shelf .post-date { font-size: 11px !important; color: var(--text-sub) !important; }
+  html body .feed .briefing-shelf .post-title {
+    display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 4 !important;
+    overflow: hidden; margin: 0 0 16px !important;
+    font-size: 23px !important; line-height: 1.35 !important; letter-spacing: 0 !important;
+  }
+  html body .feed .briefing-shelf .post-excerpt {
+    display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 5 !important;
+    overflow: hidden; margin: 0 !important; font-size: 13px !important; line-height: 1.65 !important;
+    color: var(--text-sub) !important;
+  }
+  html body .feed .briefing-shelf .post-footer {
+    flex: none; margin-top: auto !important; padding: 18px 0 0 !important;
+    border: 0 !important; background-image: none !important;
+  }
+  html body .feed .briefing-shelf-arrow {
+    position: absolute; top: calc(50% - 22px); z-index: 2;
+    display: grid; place-items: center; width: 44px; height: 44px;
+    padding: 0; border: 0; border-radius: 50%; cursor: pointer;
+    background: var(--ui-card-surface); color: var(--text-main);
+    box-shadow: 0 2px 10px rgba(var(--np-ink), .14); font: 500 32px/1 var(--font-ui);
+  }
+  html body .feed .briefing-shelf-prev { left: 4px; }
+  html body .feed .briefing-shelf-next { right: 4px; }
+  html body .feed .briefing-shelf-arrow:disabled { visibility: hidden; pointer-events: none; }
+  html body .feed .briefing-shelf-arrow:hover { background: rgba(var(--np-ink), .1); }
+  html.dark body .feed .briefing-shelf-arrow:hover { background: var(--dk-hover); }
+  html body .feed .briefing-shelf-empty { padding: 24px; text-align: center; color: var(--text-sub); }
+  @media (max-width: 720px) {
+    html body .feed .briefing-shelf-track { padding: 14px 16px 22px !important; scroll-padding-inline: 16px; }
+    html body .feed .briefing-shelf .post-card.feed-briefing-cards-item {
+      flex-basis: min(300px, calc(100vw - 80px)); width: min(300px, calc(100vw - 80px));
+      height: 400px; padding: 22px !important;
+    }
+  }
+}
 html.dark .briefing-search { border-bottom-color:var(--dk-line); }
 html.dark .briefing-search input { border-color:var(--dk-line); background:var(--dk-inner); color:var(--dk-text); }
 html.dark .category-masthead { border-bottom-color: var(--dk-mute); }
