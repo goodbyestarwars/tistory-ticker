@@ -27,12 +27,14 @@
 .mi-panel[hidden] { display: none; }
 
 /* Tab summaries share a readable heading/body hierarchy. */
-.mi-tab-summary { margin: 0 0 var(--ui-section-gap); padding: 0 0 16px; border-bottom: 1px solid var(--ui-border); }
-.mi-tab-summary h2 { margin: 0 0 8px; }
-.mi-tab-summary ul { margin: 8px 0 0; padding-left: 20px; }
-.mi-tab-summary li { margin: 5px 0; overflow-wrap: anywhere; }
-.mi-summary-note { margin: 0; color: var(--text-sub); }
+.mi-tab-summary { margin: 0; min-width: 0; }
+.mi-tab-summary .om-summary-head h2 { margin: 0; font-weight: 700; }
+.mi-tab-summary .om-summary-line { overflow-wrap: anywhere; }
+.mi-tab-summary .om-summary-tone { color: var(--text-sub); }
+html.dark .mi-tab-summary .om-live-status { background: var(--dk-inner) !important; color: var(--dk-sub) !important; }
+@media (prefers-reduced-motion: reduce) { .mi-tab-summary .om-live-status::before { animation: none !important; } }
 @layer np.np {
+  html body .post-single .mi-wrap .mi-tab-summary .om-summary-head h2 { font-weight: 700 !important; }
   html body .post-single .mi-wrap :is(.dmi-heading h2, .mi-block-title, .mi-block-name,
     .mi-sub-title, .mi-sub2-title, .kf-section-title, .dmi-flow-title,
     #us-macro-indicators .umi-head h2, #fx-rates .fxr-title, #fx-rates .fxr-subtitle,

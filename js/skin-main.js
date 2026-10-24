@@ -497,17 +497,36 @@ document.documentElement.classList.add('skin-ready');
       };
       var summary = document.createElement('section');
       summary.className = 'mi-tab-summary';
+      var status = document.createElement('div');
+      status.className = 'om-live-status';
+      status.setAttribute('role', 'status');
+      status.textContent = {domestic: 'REST 확인 중', investor: '수급 집계', 'us-macro': '발표 자료', crypto: '30초 갱신', fx: '일별 고시'}[tab.key];
+      summary.appendChild(status);
+      var box = document.createElement('div');
+      box.className = 'om-summary';
+      var head = document.createElement('div');
+      head.className = 'om-summary-head';
+      head.innerHTML = '<svg class="om-summary-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="m19 9-5 5-4-4-3 3"/></svg>';
       var heading = document.createElement('h2');
       heading.textContent = tab.label + ' 요약';
-      summary.appendChild(heading);
-      var note = document.createElement('p');
-      note.className = 'mi-summary-note';
-      note.textContent = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.';
-      summary.appendChild(note);
+      head.appendChild(heading);
+      box.appendChild(head);
       var body = document.createElement('div');
-      summary.appendChild(body);
+      body.className = 'om-summary-body';
+      box.appendChild(body);
+      var note = document.createElement('div');
+      note.className = 'mi-summary-note om-summary-tone';
+      note.textContent = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.';
+      box.appendChild(note);
+      summary.appendChild(box);
       panel.insertBefore(summary, panel.firstChild);
       function update() {
+        var connection = panel.querySelector('[data-dmi-connection]');
+        if (connection) {
+          if (status.textContent !== connection.textContent) status.textContent = connection.textContent;
+          var state = connection.getAttribute('data-state') || '';
+          if (status.getAttribute('data-state') !== state) status.setAttribute('data-state', state);
+        }
         var basis = panel.querySelector(tab.key === 'fx' ? '[data-fx-meta]' : '[data-if-asof]');
         var noteText = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.'
           + (basis ? ' ' + basis.textContent.replace(/\s+/g, ' ').trim() : '');
@@ -537,16 +556,25 @@ document.documentElement.classList.add('skin-ready');
           body.appendChild(empty);
           return;
         }
-        var list = document.createElement('ul');
-        lines.forEach(function (line) { var li = document.createElement('li'); li.textContent = line; list.appendChild(li); });
-        body.appendChild(list);
+        lines.forEach(function (line) {
+          var row = document.createElement('div');
+          row.className = 'om-summary-line';
+          var split = line.indexOf(' · ');
+          if (split > 0) {
+            var label = document.createElement('b');
+            label.textContent = line.slice(0, split);
+            row.appendChild(label);
+            row.appendChild(document.createTextNode(' ' + line.slice(split + 3)));
+          } else row.textContent = line;
+          body.appendChild(row);
+        });
       }
       var queued = false;
       new MutationObserver(function (records) {
         if (records.every(function (record) { return summary.contains(record.target); }) || queued) return;
         queued = true;
         requestAnimationFrame(function () { queued = false; update(); });
-      }).observe(panel, { childList: true, characterData: true, subtree: true });
+      }).observe(panel, { childList: true, characterData: true, attributes: true, attributeFilter: ['data-state'], subtree: true });
       update();
     }
 
