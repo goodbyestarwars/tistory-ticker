@@ -406,10 +406,12 @@
 
     function positionTooltip(vx, vy) {
       var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
-      var scale = canvasRect.width / VIEW_W;
-      var left = vx * scale;
-      var top = vy * scale;
-      tooltip.style.left = Math.min(Math.max(left, 0), canvasRect.width - 170) + 'px';
+      var svgRect = svg.getBoundingClientRect();
+      // 모바일에서는 SVG 최소 폭으로 가로 스크롤하므로 container 폭으로 scale하지 않는다.
+      var scale = svgRect.width / VIEW_W;
+      var left = svgRect.left - canvasRect.left + vx * scale;
+      var top = svgRect.top - canvasRect.top + vy * scale;
+      tooltip.style.left = Math.min(Math.max(left, 0), Math.max(canvasRect.width - 170, 0)) + 'px';
       tooltip.style.top = Math.max(top - 64, 0) + 'px';
     }
 
@@ -420,7 +422,7 @@
       var canvasRect = container.querySelector('.mcb-canvas').getBoundingClientRect();
       var left = evt.clientX - canvasRect.left;
       var top = evt.clientY - canvasRect.top;
-      tooltip.style.left = Math.min(Math.max(left, 0), canvasRect.width - 170) + 'px';
+      tooltip.style.left = Math.min(Math.max(left, 0), Math.max(canvasRect.width - 170, 0)) + 'px';
       tooltip.style.top = Math.max(top - 64, 0) + 'px';
     }
 
