@@ -181,6 +181,16 @@
     return 0;
   }
 
+  // 전체보기는 국내·미국을 날짜 순서대로 한 목록에 섞어 보여준다.
+  // marketPriority는 기존 국내/미국 분류 규칙(구글·DART·Finnhub·미국 경제)을 그대로 사용한다.
+  function calendarMarketKey(event) {
+    return marketPriority(event) === 1 ? 'us' : 'domestic';
+  }
+
+  function eventMatchesMarket(event, marketFilter) {
+    return !marketFilter || marketFilter === 'all' || calendarMarketKey(event) === marketFilter;
+  }
+
   function compareEvents(a, b) {
     var startA = String(a && a.start || '');
     var startB = String(b && b.start || '');
@@ -470,43 +480,49 @@
     var seen = new Set();
     var completed = (state.events || []).filter(function (event) {
       var source = event ? String(event.source || event.provider || '').toLowerCase() : '';
-      // 공시 완료는 국내 DART 공시와 미국 Finnhub 발표 완료 실적을 함께 담고 아래에서 국내/미국으로 나눈다.
+      // 원래 DART/Finnhub에서 발표 완료된 공시만 포함하는 조건은 그대로 유지한다.
       if (!event || (source !== 'dart' && source !== 'finnhub')
-        || event.status !== 'reported' || String(event.start || '').slice(0, 7) !== monthKey) return false;
+        || event.status !== 'reported' || String(event.start || '').slice(0, 7) !== monthKey
+        || !eventMatchesMarket(event, state.marketFilter)) return false;
       var key = calendarEventKey(event);
       if (seen.has(key)) return false;
       seen.add(key);
       var searchText = [event.title, event.corp_name, event.report_name, event.result, event.symbol, event.stock_code]
         .map(function (value) { return String(value || ''); }).join(' ').toLowerCase();
-      if (!terms.every(function (term) { return searchText.indexOf(term) !== -1; })) return false;
-      return true;
+      return terms.every(function (term) { return searchText.indexOf(term) !== -1; });
     }).sort(function (a, b) { return String(b.start).localeCompare(String(a.start)); });
     function cardHtml(event) {
+      var market = calendarMarketKey(event);
       return '<article class="sc-completed-card"><div class="sc-completed-card-head">'
-        + '<span class="sc-completed-badge">공시 완료</span><time datetime="' + escapeHtml(String(event.start).slice(0, 10)) + '">'
-        + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>' + renderEventRow(event) + '</article>';
+        + '<span class="sc-completed-badge sc-completed-badge--' + market + '">'
+        + (market === 'us' ? '미국' : '국내') + ' · 공시 완료</span>'
+        + '<time datetime="' + escapeHtml(String(event.start).slice(0, 10)) + '">'
+        + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>'
+        + renderEventRow(event) + '</article>';
     }
-    var groups = [
-      { label: '국내', rows: completed.filter(function (e) { return !isUsStockEvent(e, null); }) },
-      { label: '미국', rows: completed.filter(function (e) { return isUsStockEvent(e, null); }) }
-    ];
-    var body = completed.length ? groups.map(function (group) {
-      return '<div class="sc-completed-group" data-completed-group="' + (group.label === '미국' ? 'us' : 'domestic') + '">'
-        + '<h3 class="sc-completed-group-title">' + group.label + ' <span>' + group.rows.length + '건</span></h3>'
-        + (group.rows.length ? '<div class="sc-completed-grid">' + group.rows.map(cardHtml).join('') + '</div>'
-          : '<div class="sc-empty">' + group.label + ' 완료 공시가 없어.</div>')
-        + '</div>';
-    }).join('') : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.' : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.' : '표시할 완료 공시가 없어.') + '</div>';
+    // 국내 전체 목록 + 그 아래 미국 목록을 연달아 쌓던 구조를 제거한다.
+    // 국가 선택과 무관하게 하나의 날짜 내림차순 그리드만 사용한다.
+    var body = completed.length
+      ? '<div class="sc-completed-grid">' + completed.map(cardHtml).join('') + '</div>'
+      : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.'
+        : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.'
+        : '선택한 시장에 표시할 완료 공시가 없어.') + '</div>';
+    var marketTitle = state.marketFilter === 'us' ? '미국' : state.marketFilter === 'domestic' ? '국내' : '국내·미국';
     return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
-      + '<h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2><p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
-      + '월 · 국내와 미국으로 나눠 최근 공시부터 보여줘.</p></div>'
+      + '<h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2>'
+      + '<p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
+      + '월 · ' + marketTitle + ' 공시를 최신 날짜순으로 보여줘.</p></div>'
       + body + '</section>';
   }
 
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
+    container.innerHTML = '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
+      + '<button type="button" class="sc-market-btn is-active" data-calendar-market="all" aria-pressed="true">전체보기</button>'
+      + '<button type="button" class="sc-market-btn" data-calendar-market="domestic" aria-pressed="false">국내</button>'
+      + '<button type="button" class="sc-market-btn" data-calendar-market="us" aria-pressed="false">미국</button>'
+      + '</nav><div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
       + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 공시 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
       + '<small id="scDisclosureScope"></small></div><div data-calendar-content></div>';
     var calendarContent = container.querySelector('[data-calendar-content]');
@@ -522,9 +538,10 @@
         : '선택한 날짜';
     }
 
-    function hasEventOn(events, key) {
+    function hasEventOn(events, key, marketFilter) {
       return (events || []).some(function (event) {
-        return String(event && event.start || '').slice(0, 10) === key;
+        return eventMatchesMarket(event, marketFilter)
+          && String(event && event.start || '').slice(0, 10) === key;
       });
     }
 
@@ -544,9 +561,9 @@
         if (key === todayKey) classes.push('sc-today');
         if (key === state.selectedKey) classes.push('sc-selected');
         cells.push('<button type="button" class="' + classes.join(' ') + '" data-calendar-date="' + key + '" aria-label="'
-          + (state.viewMonth + 1) + '월 ' + day + '일' + (hasEventOn(state.events, key) ? ', 일정 있음' : '') + '" aria-pressed="'
+          + (state.viewMonth + 1) + '월 ' + day + '일' + (hasEventOn(state.events, key, state.marketFilter) ? ', 일정 있음' : '') + '" aria-pressed="'
           + (key === state.selectedKey ? 'true' : 'false') + '">' + day
-          + (hasEventOn(state.events, key) ? '<span class="sc-dot" aria-hidden="true"></span>' : '')
+          + (hasEventOn(state.events, key, state.marketFilter) ? '<span class="sc-dot" aria-hidden="true"></span>' : '')
           + '</button>');
       }
       while (cells.length % 7) cells.push('<span class="sc-day sc-day-empty" aria-hidden="true"></span>');
@@ -564,8 +581,14 @@
       state.loading = !!loading;
       container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월의 완료 공시에서 검색해.';
       var selectedEvents = (state.events || []).filter(function (event) {
-        return String(event && event.start || '').slice(0, 10) === state.selectedKey;
+        return eventMatchesMarket(event, state.marketFilter)
+          && String(event && event.start || '').slice(0, 10) === state.selectedKey;
       }).sort(compareEvents);
+      Array.prototype.forEach.call(container.querySelectorAll('[data-calendar-market]'), function (button) {
+        var active = button.getAttribute('data-calendar-market') === state.marketFilter;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
       var isToday = state.selectedKey === kstDateKey(new Date());
       var listHtml = loading
         ? '<div class="sc-loading">불러오는 중...</div>'
@@ -595,6 +618,7 @@
       selectedKey: now.year + '-' + now.month + '-' + now.day,
       events: [],
       disclosureQuery: '',
+      marketFilter: 'all', // 기본값: 전체보기(탭 선택은 날짜/월 이동에도 유지)
       loading: false
     };
     var requestId = 0;
@@ -636,7 +660,7 @@
     function findActionTarget(target) {
       while (target && target !== container) {
         if (target.getAttribute && (target.getAttribute('data-calendar-action') || target.getAttribute('data-calendar-date')
-          || target.getAttribute('data-stock-search-code'))) return target;
+          || target.getAttribute('data-calendar-market') || target.getAttribute('data-stock-search-code'))) return target;
         target = target.parentNode;
       }
       return null;
@@ -655,6 +679,12 @@
           + '&name=' + encodeURIComponent(stockSearchName);
         if (stockSearchMarket === 'us') stockSearchUrl += '&market=us';
         global.location.href = stockSearchUrl;
+        return;
+      }
+      var market = target.getAttribute('data-calendar-market');
+      if (market === 'all' || market === 'domestic' || market === 'us') {
+        state.marketFilter = market;
+        renderSchedule(state, state.loading);
         return;
       }
       var action = target.getAttribute('data-calendar-action');
