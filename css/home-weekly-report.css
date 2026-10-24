@@ -1,858 +1,96 @@
-.home-weekly-report { margin: 0 0 22px; color: #152033; }
-.home-weekly-report * { box-sizing: border-box; }
-.hwr-head { display: flex; justify-content: space-between; align-items: end; gap: 18px; padding: 24px 0 17px; border-top: 1px solid #e5e9ef; border-bottom: 1px solid #e5e9ef; }
-.hwr-eyebrow { color: #2563eb; font: 800 10px/1 Arial, sans-serif; letter-spacing: .15em; }
-.hwr-head h2 { margin: 8px 0 5px; font-size: 27px; letter-spacing: -.05em; }
-.hwr-head p { margin: 0; color: #718096; font-size: 12px; }
-.hwr-period { color: #2563eb; font-size: 12px; font-weight: 800; text-align: right; white-space: nowrap; }
-.hwr-period small { display: block; margin-top: 5px; color: #94a3b8; font-size: 10px; font-weight: 500; }
-.hwr-index-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 9px; margin-top: 12px; }
-.hwr-index-card, .hwr-summary-row article, .hwr-columns article, .hwr-schedule { min-width: 0; padding: 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: rgb(255, 254, 252); }
-.hwr-index-card > div:first-child, .hwr-summary-row article { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
-.hwr-index-card > div:first-child strong { font-size: 13px; }
-.hwr-index-card > div:first-child span { font-size: 11px; font-weight: 800; }
-.hwr-index-card > b { display: block; margin-top: 9px; font-size: 18px; font-variant-numeric: tabular-nums; }
-.hwr-index-card > small { color: #94a3b8; font-size: 10px; }
-.hwr-spark { height: 38px; margin: 8px 0 5px; }
-.hwr-spark svg { display: block; width: 100%; height: 100%; }
-.hwr-spark polyline { fill: none; stroke: #2563eb; stroke-width: 1.8; vector-effect: non-scaling-stroke; }
-.hwr-spark svg.is-up polyline, .hwr-fx-spark.is-up polyline { stroke: #d24f45; }
-.hwr-spark svg.is-down polyline, .hwr-fx-spark.is-down polyline { stroke: #1261c4; }
-.hwr-no-chart { display: block; padding-top: 12px; color: #94a3b8; font-size: 10px; }
-.hwr-summary-row { display: grid; grid-template-columns: minmax(180px, .55fr) minmax(0, 1fr); gap: 9px; margin-top: 9px; align-items: stretch; }
-.hwr-summary-row.hwr-asset-row { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.hwr-summary-row article { display: grid; grid-template-columns: 1fr auto auto; gap: 7px; align-items: baseline; }
-.hwr-summary-row article span { color: #64748b; font-size: 11px; }
-.hwr-summary-row article strong { font-size: 17px; }
-.hwr-summary-row article b { font-size: 11px; }
-.hwr-summary-row article small { grid-column: 1 / -1; color: #94a3b8; font-size: 10px; }
-.hwr-source-note { margin: 0; padding: 13px 14px; border: 1px dashed #dbe5f2; border-radius: 12px; color: #718096; font-size: 10px; line-height: 1.7; }
-.hwr-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; margin-top: 9px; }
-.hwr-card-title { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 9px; }
-.hwr-card-title strong { font-size: 13px; }
-.hwr-card-title span { color: #94a3b8; font-size: 10px; }
-.hwr-columns ul, .hwr-schedule ul { list-style: none; margin: 0; padding: 0; }
-.hwr-columns li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f2f5; }
-.hwr-columns li:first-child { border-top: 0; }
-/* 2026-09-12 휴장 대시보드 깨짐: 위 목록 리셋·행 레이아웃이 전부 .hwr-columns(또는
-   .hwr-schedule) 조상에만 걸려 있었다. "지난 2주 스윙 추천 결과"(pastOutcomeList)만
-   <ul>을 .hwr-columns 없이 section 바로 밑에 두는데, 그래서 그 목록만 브라우저 기본
-   불릿 + padding-left 40px + margin-top 16px로 떨어졌다(로컬 실측: list-style disc,
-   padding-left 40px). 리셋을 조상이 아니라 컴포넌트 자신에 걸어 배치와 무관하게 만든다.
-   .hwr-schedule-list는 이미 자기 li 규칙을 갖고 있어 대상이 아니다.
-   아래 .hwr-stock-list li / --four 규칙이 뒤에 와서 align-items·display를 그대로
-   덮어쓰므로 기존 변형들의 모양은 바뀌지 않는다. */
-.hwr-stock-list { list-style: none; margin: 0; padding: 0; }
-.hwr-stock-list > li { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; padding: 8px 0; border-top: 1px solid #f0f2f5; }
-.hwr-stock-list > li:first-child { border-top: 0; }
-.hwr-columns li a { overflow: hidden; color: #24324a; font-size: 11px; line-height: 1.45; text-decoration: none; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-columns li small { display: block; margin-top: 2px; color: #94a3b8; font-size: 9px; }
-.hwr-stock-list li { align-items: center; }
-.hwr-stock-list--four { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); column-gap: 11px; }
-.hwr-stock-list--four li { display: block; min-width: 0; padding: 8px 0; }
-.hwr-stock-list--four li:nth-child(-n+4) { border-top: 0; }
-.hwr-stock-list--four .hwr-stock-reason { display: -webkit-box; min-height: 24px; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-.hwr-stock-list--four .hwr-stock-values { display: flex; justify-content: space-between; gap: 4px; margin-top: 6px; }
-.hwr-stock-name { min-width: 0; }
-.hwr-stock-name strong { display: block; overflow: hidden; font-size: 12px; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-stock-name small { display: block; overflow: hidden; color: #94a3b8; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-stock-list li > b { flex: 0 0 auto; font-size: 11px; }
-.hwr-schedule { margin-top: 9px; }
-.hwr-schedule-list li { display: grid; grid-template-columns: 90px minmax(0, 1fr); gap: 10px; padding: 8px 0; border-top: 1px solid #f0f2f5; font-size: 11px; }
-.hwr-schedule-list li:first-child { border-top: 0; }
-.hwr-schedule-list time { color: #2563eb; font-variant-numeric: tabular-nums; }
-.hwr-schedule-list small { color: #94a3b8; }
-.hwr-empty { margin: 0; padding: 17px 0 6px; color: #94a3b8; font-size: 11px; }
-.hwr-disclaimer { margin: 9px 2px 0; color: #94a3b8; font-size: 10px; line-height: 1.5; }
-.hwr-loading { padding: 28px 18px; border: 1px dashed #dbe5f2; border-radius: 12px; color: #64748b; text-align: center; }
-.hwr-loading strong, .hwr-loading span { display: block; }
-.hwr-loading strong { color: #24324a; font-size: 14px; }
-.hwr-loading span { margin-top: 7px; font-size: 11px; }
-.hwr-columns .is-up, .hwr-summary-row .is-up, .hwr-index-card .is-up { color: var(--num-up); }
-.hwr-columns .is-down, .hwr-summary-row .is-down, .hwr-index-card .is-down { color: var(--num-down); }
-html.dark .home-weekly-report { color: var(--dk-text); }
-/* 2026-08-20: .hwr-head의 라이트모드 테두리(#e5e9ef, 옅은 회색)만 다크모드 대응이
-   빠져있어 "한 주 마감 리포트" 제목 아래 구분선이 주변보다 밝게 떠 보였다(사용자
-   리포트: "중간에 흰색 줄(진한색) 주위 선색이랑 같게 해줘"). */
-html.dark .hwr-head { border-color: var(--dk-line); }
-html.dark .hwr-index-card, html.dark .hwr-summary-row article, html.dark .hwr-columns article, html.dark .hwr-schedule { border-color: var(--dk-line); background: var(--dk-card); }
-html.dark .hwr-columns li, html.dark .hwr-schedule-list li, html.dark .hwr-stock-list > li { border-color: var(--dk-line); }
-html.dark .hwr-columns li a, html.dark .hwr-loading strong { color: var(--dk-text); }
-html.dark .hwr-source-note, html.dark .hwr-loading { border-color: var(--dk-line); }
-@media (max-width: 720px) {
-  .hwr-head { display: block; padding: 18px 0 14px; }
-  .hwr-head h2 { font-size: 22px; }
-  .hwr-period { margin-top: 10px; text-align: left; }
-  .hwr-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hwr-summary-row, .hwr-columns { grid-template-columns: 1fr; }
-  .hwr-stock-list--four { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 12px; }
-  .hwr-stock-list--four li:nth-child(-n+4) { border-top: 1px solid #f0f2f5; }
-  .hwr-stock-list--four li:nth-child(-n+2) { border-top: 0; }
-  .hwr-index-card { padding: 11px; }
-  .hwr-index-card > b { font-size: 16px; }
-  .hwr-source-note { font-size: 10px; }
+/* Weekend dashboard: isolated presentation, existing semantic theme tokens. */
+.home-weekly-report.weekend-dashboard {
+  --wd-surface: var(--ui-card-surface); --wd-inner: var(--ui-inner-surface);
+  --wd-line: var(--ui-border); --wd-text: rgb(var(--np-ink)); --wd-sub: rgba(var(--np-ink), .65);
+  display: grid; gap: var(--ui-section-gap); min-width: 0; margin: 0 0 22px;
+  color: var(--wd-text); font-family: Pretendard, sans-serif; font-size: 13px;
+  font-variant-numeric: tabular-nums; line-height: 1.5;
 }
-
-/* Weekend report stays integrated; the live dashboard remains available below it. */
-.home-weekly-report { margin-bottom: 14px; }
-.hwr-head { position: relative; min-height: 84px; padding: 16px 0 12px; border-top: 0; }
-.hwr-head-copy { min-width: 0; }
-.hwr-head h2 { margin: 5px 0 3px; font-size: 23px; }
-.hwr-head p { font-size: 11px; }
-.hwr-line-art { width: 150px; height: 54px; margin-left: auto; opacity: .8; }
-.hwr-line-art path { fill: none; stroke: #2563eb; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
-.hwr-line-art path:last-child { stroke: #cbd5e1; stroke-width: 1; }
-.hwr-basis { margin: 0 0 9px; padding: 7px 10px; border-left: 2px solid #2563eb; background: #f8fafc; color: #64748b; font-size: 10px; line-height: 1.4; }
-.hwr-basis b { margin-right: 5px; color: #24324a; }
-.hwr-index-grid { gap: 7px; margin-top: 0; }
-.hwr-index-card { padding: 10px 11px; border-radius: 9px; }
-.hwr-index-card > b { margin-top: 6px; font-size: 16px; }
-.hwr-spark { height: 29px; margin: 5px 0 2px; }
-.hwr-summary-row { gap: 7px; margin-top: 7px; }
-.hwr-summary-row article, .hwr-source-note { padding: 10px 11px; border-radius: 9px; }
-.hwr-summary-row article strong { font-size: 15px; }
-.hwr-columns { gap: 7px; margin-top: 7px; }
-.hwr-columns article, .hwr-news-card, .hwr-schedule { padding: 11px; border-radius: 9px; }
-.hwr-card-title { margin-bottom: 5px; }
-.hwr-card-title strong { font-size: 12px; }
-.hwr-card-title span { font-size: 9px; }
-.hwr-columns li { padding: 5px 0; }
-.hwr-stock-name strong { font-size: 11px; }
-.hwr-stock-name small { font-size: 8px; }
-.hwr-stock-values { display: flex; flex: 0 0 auto; align-items: baseline; gap: 7px; font-size: 10px; font-variant-numeric: tabular-nums; }
-.hwr-stock-values > b:first-child { color: #334155; font-weight: 700; }
-.hwr-stock-values > b:last-child { font-size: 10px; }
-.hwr-news-card { margin-top: 7px; }
-.hwr-news-timeline { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
-.hwr-news-row { display: grid; grid-template-columns: 9px 37px 32px minmax(0, 1fr); gap: 6px; align-items: start; min-width: 0; padding: 6px 0; border-top: 1px solid #f0f2f5; color: #24324a; text-decoration: none; }
-.hwr-news-rail { position: relative; display: block; height: 100%; border-left: 1px solid #cbd5e1; }
-.hwr-news-rail i { position: absolute; top: 5px; left: -4px; width: 7px; height: 7px; border: 1px solid #94a3b8; border-radius: 50%; background: rgb(255, 254, 252); }
-.hwr-news-rail i.is-latest { border-color: #2563eb; background: #2563eb; }
-.hwr-news-row time { color: #94a3b8; font-size: 9px; font-variant-numeric: tabular-nums; }
-.hwr-news-market { padding: 2px 3px; border-radius: 3px; font-size: 8px; text-align: center; }
-.hwr-news-market--한국 { color: #b45309; background: #fff7ed; }
-.hwr-news-market--미국 { color: #1d4ed8; background: #eff6ff; }
-.hwr-news-row span:last-child { min-width: 0; }
-.hwr-news-row strong { display: block; overflow: hidden; font-size: 10px; line-height: 1.4; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-news-row small { display: block; margin-top: 2px; color: #94a3b8; font-size: 8px; }
-.hwr-schedule { margin-top: 7px; }
-.hwr-schedule-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 18px; }
-.hwr-schedule-list li { display: grid; grid-template-columns: 38px 28px minmax(0, 1fr); gap: 6px; align-items: start; padding: 6px 0; border-top: 1px solid #f0f2f5; font-size: 10px; }
-.hwr-schedule-list time { color: #2563eb; font-size: 9px; }
-.hwr-schedule-market { color: #64748b; font-size: 8px; font-weight: 600; }
-.hwr-schedule-market--mine { color: #b45309; background: #fff7ed; padding: 1px 3px; border-radius: 3px; }
-/* 2026-08-22(2차) 신설: "내 종목 다음 주 일정" - 관심종목 실적·공시가 있을 때만
-   조건부로 나타나는 카드라 시장 공통 일정(.hwr-schedule)과 구분되도록 연한 강조
-   배경을 준다. 데이터가 없으면 JS가 hidden 속성을 유지해 자리 자체를 만들지 않는다. */
-.hwr-my-schedule { background: #f0f7ff; border-color: #bfdbfe; }
-html.dark .hwr-my-schedule { background: rgba(37,99,235,.12); border-color: rgba(37,99,235,.3); }
-.hwr-schedule-list span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-schedule-list small { color: #94a3b8; font-size: 8px; }
-.hwr-schedule .hwr-empty { padding: 8px 0 2px; }
-.hwr-disclaimer { margin-top: 7px; }
-html.dark .hwr-basis { background: var(--dk-card); }
-html.dark .hwr-basis b, html.dark .hwr-stock-values > b:first-child, html.dark .hwr-news-row { color: var(--dk-text); }
-html.dark .hwr-news-row, html.dark .hwr-schedule-list li { border-color: var(--dk-line); }
-html.dark .hwr-news-rail i { background: var(--dk-card); }
-@media (max-width: 720px) {
-  .hwr-line-art { display: none; }
-  .hwr-head { min-height: 0; }
-  .hwr-news-timeline, .hwr-schedule-list { grid-template-columns: 1fr; }
-  .hwr-news-row strong { white-space: normal; }
+html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub); }
+.weekend-dashboard[hidden] { display: none; }
+.weekend-dashboard :is(a, button) { color: inherit; text-decoration: none; }
+.weekend-dashboard :is(a, button, summary):focus-visible { outline: 2px solid var(--wd-sub); outline-offset: 3px; }
+.weekend-dashboard .wd-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; padding: 20px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); background: linear-gradient(120deg, var(--wd-surface), var(--wd-inner)); }
+.weekend-dashboard .wd-header h2 { margin: 7px 0 4px; color: var(--wd-text); font: 700 24px/1.3 Pretendard, sans-serif; letter-spacing: normal; }
+.weekend-dashboard .wd-header p, .weekend-dashboard small, .weekend-dashboard dt { color: var(--wd-sub); }
+.weekend-dashboard .wd-badge { padding: 4px 8px; background: var(--wd-inner); border: 1px solid var(--wd-line); border-radius: 6px; font-size: 10px; font-weight: 600; letter-spacing: .06em; }
+.weekend-dashboard dl { display: flex; gap: 24px; font-size: 11px; }
+.weekend-dashboard dd { margin: 3px 0 0; font-size: 13px; font-weight: 600; }
+.weekend-dashboard .wd-indices, .weekend-dashboard .wd-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-card-gap); min-width: 0; }
+.weekend-dashboard .wd-index { height: 108px; min-width: 0; display: flex; flex-direction: column; justify-content: center; padding: 12px 18px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); background: var(--wd-surface); }
+.weekend-dashboard .wd-index > span:first-child { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; color: var(--wd-text); }
+.weekend-dashboard .wd-index > b { font-size: 24px; font-weight: 700; line-height: 1.25; }
+.weekend-dashboard .wd-index small { font-size: 10px; font-weight: 400; }
+.weekend-dashboard .wd-index-change { display: flex; gap: 10px; align-items: baseline; font-weight: 600; font-size: 12px; }
+.weekend-dashboard .wd-panel { min-width: 0; padding: var(--ui-card-padding); border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); background: var(--wd-surface); }
+.weekend-dashboard .wd-panel-head { display: grid; gap: 4px; margin-bottom: 12px; }
+.weekend-dashboard .wd-panel-head h3 { color: var(--wd-text); font: 600 17px/1.4 Pretendard, sans-serif; letter-spacing: normal; }
+.weekend-dashboard .wd-panel-head small { font-size: 10px; }
+.weekend-dashboard .wd-list { list-style: none; margin: 0; padding: 0; }
+.weekend-dashboard .wd-list > li { padding: 10px 0; border-bottom: 1px solid var(--wd-line); min-width: 0; }
+.weekend-dashboard .wd-list > li:last-child { border-bottom: 0; }
+.weekend-dashboard .wd-list small { display: block; font-size: 10px; font-weight: 400; }
+.weekend-dashboard .wd-coin { display: grid; grid-template-columns: 30px minmax(55px, 1fr) auto auto; gap: 8px; align-items: center; font-size: 12px; }
+.weekend-dashboard .wd-coin-icon { width: 30px; height: 30px; border-radius: 50%; background: var(--wd-inner); display: grid; place-items: center; font-size: 9px; font-weight: 700; }
+.weekend-dashboard .wd-price { text-align: right; white-space: nowrap; font-size: 12px; }
+.weekend-dashboard .wd-price b small { display: inline; }
+.weekend-dashboard .wd-note { margin-top: 10px; font-size: 10px; color: var(--wd-sub); overflow-wrap: anywhere; }
+.weekend-dashboard .wd-more { display: inline-flex; align-items: center; min-height: 40px; margin-top: 8px; font-size: 11px; }
+.weekend-dashboard .wd-empty { padding: 16px 0; color: var(--wd-sub); font-size: 12px; }
+.weekend-dashboard .hwr-card-title { display: block; margin: 0; padding: 0; border: 0; }
+.weekend-dashboard .hwr-card-title > span { display: block; font-size: 10px; margin-bottom: 8px; color: var(--wd-sub); }
+.weekend-dashboard .hwr-schedule-list { margin: 0; padding: 0; list-style: none; }
+.weekend-dashboard .hwr-schedule-list li { display: grid; grid-template-columns: 58px 30px minmax(0, 1fr); gap: 8px; padding: 10px 0; border-bottom: 1px solid var(--wd-line); color: var(--wd-text); font-size: 12px; }
+.weekend-dashboard .hwr-schedule-list li:last-child { border-bottom: 0; }
+.weekend-dashboard .hwr-schedule-list time { color: var(--wd-sub); font-size: 11px; }
+.weekend-dashboard .hwr-schedule-list li > span { min-width: 0; overflow-wrap: anywhere; }
+.weekend-dashboard .hwr-schedule-market { align-self: start; padding: 2px 3px; border-radius: 4px; background: var(--wd-inner); color: var(--wd-sub); font-size: 9px; text-align: center; }
+.weekend-dashboard .hwr2-cal-link { margin-top: 8px; font-size: 11px; }
+.weekend-dashboard .wd-theme { border-bottom: 1px solid var(--wd-line); }
+.weekend-dashboard .wd-theme:last-child { border-bottom: 0; }
+.weekend-dashboard .wd-theme summary { cursor: pointer; padding: 12px 0; }
+.weekend-dashboard .wd-theme summary small { display: block; margin-left: 15px; font-size: 10px; }
+.weekend-dashboard .wd-theme-preview { display: block; margin: 4px 0 4px 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--wd-sub); font-size: 12px; }
+.weekend-dashboard .wd-theme .wd-list a { display: block; font-size: 12px; }
+.weekend-dashboard .wd-scan li { display: flex; justify-content: space-between; gap: 10px; align-items: center; }
+.weekend-dashboard .wd-track { display: flex; gap: 12px; overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.weekend-dashboard .wd-track::-webkit-scrollbar { display: none; }
+.weekend-dashboard .wd-story { flex: 0 0 82%; min-width: 0; height: 194px; padding: 16px; display: flex; flex-direction: column; gap: 10px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-inner); background: var(--wd-inner); scroll-snap-align: start; }
+.weekend-dashboard .wd-story > strong, .weekend-dashboard .wd-story p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.weekend-dashboard .wd-story > strong { font-size: 14px; font-weight: 600; }
+.weekend-dashboard .wd-story p { font-size: 12px; color: var(--wd-sub); }
+.weekend-dashboard .wd-story > small { font-size: 10px; }
+.weekend-dashboard .wd-story > span { margin-top: auto; font-size: 11px; }
+.weekend-dashboard .wd-controls { display: flex; align-items: center; justify-content: space-between; margin-top: 12px; font-size: 11px; }
+.weekend-dashboard .wd-controls button { width: 44px; height: 44px; border: 1px solid var(--wd-line); border-radius: 50%; background: var(--wd-inner); cursor: pointer; }
+.weekend-dashboard .wd-controls button:disabled { opacity: .4; cursor: default; }
+.weekend-dashboard :is(.wd-index, .wd-story, .wd-controls button, .wd-theme summary):hover { background: var(--np-tint); }
+html.dark .weekend-dashboard :is(.wd-index, .wd-story, .wd-controls button, .wd-theme summary):hover { background: var(--dk-hover); }
+.weekend-dashboard .is-up { color: var(--num-up); }
+.weekend-dashboard .is-down { color: var(--num-down); }
+.weekend-dashboard .is-flat { color: var(--wd-sub); }
+/* Keep the original weekday widgets in their slots, hide only duplicate closed views. */
+.home-dashboard.is-market-closed:has(+ .weekend-dashboard) .home-closed-page,
+.feed:has(> .weekend-dashboard:not([hidden])) > .home-briefing-section,
+body:has(.weekend-dashboard:not([hidden])) .site-footer-learn { display: none !important; }
+/* Site title rules live in np.np with important declarations; match that layer. */
+@layer np.np {
+  html body #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.3 Pretendard, sans-serif !important; }
+  @media (max-width: 767px) {
+    html body #homeWeeklyReport.weekend-dashboard .wd-header h2 { font-size: 22px !important; }
+  }
 }
-
-/* Weekend report presentation: the report is the only visible weekend dashboard. */
-.home-weekend-hidden { display: none !important; }
-.hwr-index-summary { display: flex; align-items: center; flex-wrap: wrap; gap: 7px 12px; margin: 10px 0 7px; padding: 9px 11px; border: 1px solid #e2e8f0; border-radius: 9px; background: rgb(255, 254, 252); }
-.hwr-index-summary > span { color: #64748b; font-size: 10px; font-weight: 700; }
-.hwr-index-summary > b { display: inline-flex; align-items: baseline; gap: 5px; font-size: 11px; }
-.hwr-index-summary small { color: #64748b; font-size: 10px; font-weight: 600; }
-.hwr-index-summary strong { font-size: 11px; }
-.hwr-index-summary .is-up { color: var(--num-up); }
-.hwr-index-summary .is-down { color: var(--num-down); }
-.hwr-sentiment { display: flex; align-items: center; gap: 7px; margin-left: auto; color: var(--num-up); font-size: 10px; font-weight: 800; }
-.hwr-sentiment svg { width: 104px; height: 52px; overflow: visible; }
-.hwr-sentiment svg path, .hwr-sentiment svg circle { fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.hwr-sentiment svg circle { fill: currentColor; stroke-width: 1; }
-.hwr-sentiment--down { color: var(--num-down); }
-.hwr-stock-section { margin-top: 10px; }
-.hwr-section-heading { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
-.hwr-section-heading strong { color: #24324a; font-size: 14px; }
-.hwr-section-heading span { color: #94a3b8; font-size: 10px; }
-.hwr-stock-reason { display: block; margin-top: 2px; color: #64748b; font-size: 9px; font-style: normal; font-weight: 700; line-height: 1.35; }
-.hwr-candidate-section .hwr-card-title strong.is-up { color: var(--num-up); }
-.hwr-candidate-section .hwr-card-title strong.is-down { color: var(--num-down); }
-.hwr-fx-card { min-width: 0; padding: 10px 11px; border: 1px solid #e2e8f0; border-radius: 9px; background: rgb(255, 254, 252); }
-.hwr-fx-card--interest { border-color: #bfdbfe; background: #f5f9ff; }
-.hwr-fx-card--caution { border-color: #fecaca; background: #fff8f7; }
-.hwr-fx-card--neutral, .hwr-fx-card--unknown { background: rgb(255, 254, 252); }
-.hwr-summary-row .hwr-fx-card { display: block; }
-.hwr-fx-card .hwr-card-title { margin-bottom: 3px; }
-.hwr-fx-main { display: flex; align-items: baseline; gap: 8px; }
-.hwr-fx-main > strong { font-size: 19px; font-variant-numeric: tabular-nums; }
-.hwr-fx-main > b { font-size: 10px; }
-.hwr-fx-chart { height: 34px; margin: 4px 0 2px; }
-.hwr-fx-spark { display: block; width: 100%; height: 100%; }
-.hwr-fx-spark polyline { fill: none; stroke: #64748b; stroke-width: 1.5; }
-.hwr-fx-meta { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; color: #94a3b8; font-size: 9px; }
-.hwr-fx-meta > small { max-width: 65%; text-align: right; }
-.hwr-fx-status { display: block; font-size: 10px; font-weight: 800; }
-.hwr-fx-status--caution { color: #b45309; }
-.hwr-fx-status--interest { color: #2563eb; }
-.hwr-fx-status--neutral, .hwr-fx-status--unknown { color: #64748b; }
-.hwr-news-card { background: rgb(255, 254, 252) !important; color: #24324a; }
-.hwr-news-card .hwr-news-row { background: rgb(255, 254, 252); color: #24324a; }
-.hwr-news-row { grid-template-columns: 9px 32px minmax(0, 1fr) 42px; }
-.hwr-news-row time { justify-self: end; text-align: right; }
-html.dark .hwr-index-summary, html.dark .hwr-fx-card { border-color: var(--dk-line); background: var(--dk-card); }
-html.dark .hwr-index-summary small, html.dark .hwr-section-heading strong { color: var(--dk-text); }
-/* 2026-08-20: 라이트모드 규칙(위 .hwr-news-card)을 그대로 복붙해와서 다크모드에서도
-   흰 배경이 강제되고 있었다(사용자 리포트: "주간 경제 뉴스·이슈... 박스 자체가 다
-   흰색이야") - 사이트 공통 다크모드 톤으로 교체. */
-html.dark .hwr-news-card, html.dark .hwr-news-card .hwr-news-row { background: var(--dk-card) !important; color: var(--dk-text); }
-@media (max-width: 720px) {
-  .hwr-sentiment { margin: 4px 0 0; justify-content: flex-start; }
-  .hwr-sentiment svg { width: 88px; height: 44px; }
-  .hwr-index-summary { gap: 5px 8px; }
-  .hwr-index-summary > span { flex-basis: 100%; }
-  .hwr-fx-meta { display: block; }
-  .hwr-fx-meta > small { display: block; max-width: none; margin-top: 3px; text-align: left; }
-  .hwr-news-row { grid-template-columns: 9px 32px minmax(0, 1fr) 40px; }
+.home-weekly-report .hwr-loading { padding: 24px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); background: var(--ui-card-surface); }
+.home-weekly-report .hwr-loading span { display: block; margin-top: 8px; font-size: 12px; }
+@media (max-width: 767px) {
+  .weekend-dashboard .wd-grid { grid-template-columns: minmax(0, 1fr); }
+  .weekend-dashboard .wd-header { padding: 16px; }
+  .weekend-dashboard .wd-header h2 { font-size: 22px; }
+  .weekend-dashboard .wd-header dl { width: 100%; gap: 20px; }
+  .weekend-dashboard .wd-index { padding: 10px 12px; }
+  .weekend-dashboard .wd-index > b { font-size: 21px; }
+  .weekend-dashboard .wd-index-change { flex-wrap: wrap; gap: 0 6px; font-size: 11px; }
+  .weekend-dashboard .wd-coin { gap: 6px; grid-template-columns: 26px minmax(48px, 1fr) auto auto; font-size: 11px; }
+  .weekend-dashboard .wd-coin-icon { width: 26px; height: 26px; }
+  .weekend-dashboard .wd-price { font-size: 11px; }
 }
-
-/* FX card: show the one-year reference line and lower-quartile interest band. */
-.hwr-fx-card .hwr-fx-chart { height: 72px; margin: 8px 0 4px; }
-.hwr-fx-spark { display: block; width: 100%; height: 100%; overflow: visible; }
-.hwr-fx-spark polyline { fill: none; stroke: #64748b; stroke-width: 1.7; vector-effect: non-scaling-stroke; }
-.hwr-fx-guide-line { stroke: #e2e8f0; stroke-width: 1; stroke-dasharray: 2 3; vector-effect: non-scaling-stroke; }
-.hwr-fx-average-line { stroke: #475569; stroke-width: 1; stroke-dasharray: 4 3; vector-effect: non-scaling-stroke; }
-.hwr-fx-interest-band { fill: rgba(255, 205, 90, .24); }
-.hwr-fx-legend { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; color: #64748b; font-size: 9px; line-height: 1.4; }
-.hwr-fx-legend > span { display: inline-flex; align-items: center; gap: 4px; }
-.hwr-fx-legend b { color: #334155; font-weight: 800; }
-.hwr-fx-legend-line, .hwr-fx-legend-swatch { display: inline-block; width: 13px; height: 0; }
-.hwr-fx-legend-line--average { border-top: 1px dashed #475569; }
-.hwr-fx-legend-swatch { height: 7px; border: 1px solid rgba(230, 170, 40, .45); border-radius: 2px; background: rgba(255, 205, 90, .24); }
-.hwr-fx-range { display: flex; justify-content: space-between; gap: 8px; margin-top: 3px; color: #94a3b8; font-size: 8px; font-variant-numeric: tabular-nums; }
-.hwr-fx-meta { display: block; margin-top: 7px; color: #94a3b8; font-size: 9px; }
-.hwr-fx-advice { display: flex; align-items: baseline; gap: 7px; }
-.hwr-fx-advice small { color: #64748b; font-size: 9px; }
-.hwr-fx-status { font-size: 10px; font-weight: 800; white-space: nowrap; }
-.hwr-fx-chart--empty { display: flex; align-items: center; color: #94a3b8; font-size: 9px; }
-html.dark .hwr-fx-guide-line { stroke: var(--dk-line); }
-html.dark .hwr-fx-average-line { stroke: #cbd5e1; }
-html.dark .hwr-fx-legend b { color: var(--dk-text); }
-html.dark .hwr-fx-advice small { color: var(--dk-sub); }
-@media (max-width: 720px) {
-  .hwr-fx-card .hwr-fx-chart { height: 82px; }
-  .hwr-fx-legend { gap: 3px 9px; }
-  .hwr-fx-advice { display: block; }
-  .hwr-fx-advice small { display: block; margin-top: 2px; }
-  /* 2026-08-31 사용자 리포트("숫자 잘림 허용 안 되게"): 환율·금 카드를 모바일에서도 2열로
-     두면 카드 폭이 약 165px라 "1년 저점 1,411원"이 "1," / "411원"으로 숫자 중간에서
-     쪼개졌다. 한 줄에 한 카드로 바꿔 폭을 확보하고, 값은 아래에서 nowrap으로 고정한다. */
-  .hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }
-}
-/* 숫자는 어떤 폭에서도 중간에서 끊기지 않게 한다. 라벨과 값 사이에서만 줄이 바뀌도록
-   값(.hwr-fx-num)을 통째로 nowrap 처리하고, 줄이 모자라면 아이템 단위로 감싼다. */
-.hwr-fx-range { flex-wrap: wrap; }
-.hwr-fx-range > span,
-.hwr-fx-legend > span { min-width: 0; }
-.hwr-fx-num { white-space: nowrap; font-variant-numeric: tabular-nums; }
-
-/* News timeline: date-led cards with compact type filters. */
-.hwr-news-toolbar { display: flex; align-items: flex-end; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.hwr-news-toolbar .hwr-card-title { min-width: 0; margin-bottom: 0; }
-.hwr-news-filters { display: flex; flex: 0 0 auto; gap: 4px; }
-.hwr-news-filters button { padding: 4px 9px; border: 1px solid #e2e8f0; border-radius: 999px; background: rgb(255, 254, 252); color: #94a3b8; cursor: pointer; font: inherit; font-size: 10px; }
-.hwr-news-filters button.is-active { border-color: #24324a; background: #24324a; color: #fff; }
-.hwr-news-timeline { display: grid; grid-template-columns: minmax(0, 1fr); }
-.hwr-news-event { display: grid; grid-template-columns: 48px 13px minmax(0, 1fr); gap: 10px; min-width: 0; padding: 12px 0; border-top: 1px solid #eef1f5; }
-.hwr-news-event:first-child { border-top: 0; }
-.hwr-news-event[hidden], .hwr-news-filter-empty[hidden] { display: none; }
-.hwr-news-date { padding-top: 2px; text-align: right; font-variant-numeric: tabular-nums; }
-.hwr-news-date strong { display: block; color: #64748b; font-size: 11px; }
-.hwr-news-date small { display: block; margin-top: 3px; color: #a0a9b7; font-size: 9px; }
-.hwr-news-event > .hwr-news-rail { position: relative; min-height: 68px; border-left: 1px solid #cbd5e1; }
-.hwr-news-event > .hwr-news-rail i { position: absolute; top: 4px; left: -4px; width: 7px; height: 7px; border: 1px solid #94a3b8; border-radius: 50%; background: rgb(255, 254, 252); }
-.hwr-news-event > .hwr-news-rail i.is-latest { border-color: #2563eb; background: #2563eb; box-shadow: 0 0 0 3px #eff6ff; }
-.hwr-news-event-body { min-width: 0; }
-.hwr-news-event-meta { display: flex; align-items: center; gap: 5px; min-width: 0; }
-.hwr-news-event-meta > small { overflow: hidden; margin-left: 2px; color: #a0a9b7; font-size: 9px; text-overflow: ellipsis; white-space: nowrap; }
-.hwr-news-market, .hwr-news-type { padding: 3px 6px; border-radius: 5px; font-size: 9px; font-weight: 800; }
-.hwr-news-market--한국 { color: #b45309; background: #fff7ed; }
-.hwr-news-market--미국 { color: #1d4ed8; background: #eff6ff; }
-.hwr-news-type--뉴스 { color: #0f766e; background: #ecfdf5; }
-.hwr-news-type--공시 { color: #7c3aed; background: #f5f3ff; }
-.hwr-news-event-body h4 { margin: 6px 0 3px; color: #24324a; font-size: 13px; line-height: 1.45; }
-.hwr-news-event-body p { margin: 0; overflow: hidden; color: #718096; font-size: 11px; line-height: 1.5; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
-.hwr-news-event-footer { display: flex; align-items: center; gap: 8px; margin-top: 8px; }
-.hwr-news-event-footer > a { padding: 4px 8px; border: 1px solid #e2e8f0; border-radius: 999px; color: #64748b; font-size: 9px; text-decoration: none; }
-.hwr-news-quote { display: inline-flex; align-items: baseline; gap: 6px; color: #334155; font-size: 10px; font-variant-numeric: tabular-nums; }
-.hwr-news-quote .is-up { color: var(--num-up); }
-.hwr-news-quote .is-down { color: var(--num-down); }
-.hwr-news-filter-empty { padding: 18px 0 5px; color: #94a3b8; font-size: 11px; text-align: center; }
-html.dark .hwr-news-filters button { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
-html.dark .hwr-news-filters button.is-active { border-color: var(--dk-text); background: var(--dk-text); color: var(--dk-bg); }
-html.dark .hwr-news-event { border-color: var(--dk-line); }
-/* 2026-08-20: 라이트모드 색(#24324a, 짙은 남색)을 dark 규칙에도 그대로 복붙해와서 뉴스
-   제목이 다크모드 배경 위에서 거의 안 보였다(사용자 리포트: "박스 자체가 다 흰색이야"와
-   같은 원인 - .hwr-news-card 수정과 동일 패턴). */
-html.dark .hwr-news-event-body h4 { color: var(--dk-text); }
-@media (max-width: 720px) {
-  .hwr-news-toolbar { display: block; }
-  .hwr-news-filters { margin-top: 8px; }
-  .hwr-news-filters button { flex: 1; }
-  .hwr-news-event { grid-template-columns: 43px 11px minmax(0, 1fr); gap: 8px; padding: 10px 0; }
-  .hwr-news-event-body h4 { font-size: 12px; }
-}
-
-/* Desktop: use the report width for the timeline instead of leaving a large
-   empty right column. Keep one column on phones for the date rail. */
-@media (min-width: 721px) {
-  .hwr-news-timeline { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 22px; }
-  .hwr-news-event { padding-right: 8px; }
-}
-
-/* 2026-08-22 신설: 지난 2주 스윙 추천 결과("기록 공유") 섹션 - T+5/T+10 배지 2개가
-   .hwr-stock-values의 기존 ":first-child는 회색 고정" 규칙과 충돌하지 않도록 별도
-   스코프에서 색상을 다시 정의한다(상승=빨강/하락=파랑, 사이트 공통 규칙). */
-/* 2026-09-12(2차): 값을 오른쪽 끝으로 미는 세로 스택이었는데, --four 안에서는 형제
-   목록과 같이 "이름 아래 가로로" 놓여야 한다(.hwr-stock-list--four .hwr-stock-values가
-   그렇게 정의돼 있다). flex-direction/align-items를 여기서 다시 덮지 않는다. */
-.hwr-outcome-values > b:first-child { color: inherit; font-weight: 600; }
-.hwr-outcome-values .is-up { color: var(--num-up); }
-.hwr-outcome-values .is-down { color: var(--num-down); }
-.hwr-outcome-values .is-flat { color: #64748b; }
-.hwr-outcome-pending { color: #94a3b8; font-weight: 500; }
-html.dark .hwr-outcome-pending { color: var(--dk-mute); }
-
-/* 2026-08-22(2차) 신설: 목록 위 승률/평균수익률 요약카드("성과지표") - 표본이 200건까지
-   넉넉해도 목록엔 최근 8건만 보이므로, 이 카드가 없으면 8건짜리 국지적 결과를 전체
-   성적처럼 오해할 수 있다는 지적을 반영. */
-.hwr-outcome-stats { display: flex; gap: 10px; margin: 10px 0 14px; flex-wrap: wrap; }
-.hwr-outcome-stat {
-  flex: 1 1 160px;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 10px 14px;
-  border-radius: 10px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-}
-html.dark .hwr-outcome-stat { background: #1b212c; border-color: #2b3342; }
-.hwr-outcome-stat > b { font-size: 12px; color: #64748b; font-weight: 600; }
-html.dark .hwr-outcome-stat > b { color: #8b95a5; }
-.hwr-outcome-stat > strong { font-size: 18px; }
-.hwr-outcome-stat > strong.is-up { color: var(--num-up); }
-.hwr-outcome-stat > strong.is-down { color: var(--num-down); }
-.hwr-outcome-stat > strong.is-flat { color: #64748b; }
-.hwr-outcome-stat > span { font-size: 12px; color: #94a3b8; }
-html.dark .hwr-outcome-stat > span { color: var(--dk-mute); }
-
-/* 2026-08-31 모바일 가독성: 이 파일의 8~10px 선언은 대부분 미디어쿼리 밖에 있어
-   데스크톱 밀도가 모바일에 그대로 적용되고 있었다(홈 375px 실측: 9px 147개, 10px 86개).
-   한글은 같은 px에서도 라틴 문자보다 획이 많아 9px는 판독이 어렵다.
-   데스크톱은 그대로 두고 모바일에만 하한선을 둔다 - 9px 이하는 11px, 10px대는 12px로
-   올려 두 단계 위계는 유지한다. */
-@media (max-width: 720px) {
-  .hwr-columns li small,
-  .hwr-stock-name small,
-  .hwr-news-row time,
-  .hwr-news-market,
-  .hwr-news-row small,
-  .hwr-schedule-list time,
-  .hwr-schedule-market,
-  .hwr-schedule-list small,
-  .hwr-stock-reason,
-  .hwr-fx-meta,
-  .hwr-fx-legend,
-  .hwr-fx-range,
-  .hwr-fx-advice small,
-  .hwr-fx-chart--empty,
-  .hwr-news-date small,
-  .hwr-news-event-meta > small,
-  .hwr-news-type,
-  .hwr-news-event-footer > a,
-  .hwr-card-title span { font-size: 11px; }
-
-  .hwr-period small,
-  .hwr-index-card > small,
-  .hwr-no-chart,
-  .hwr-summary-row article small,
-  .hwr-source-note,
-  .hwr-disclaimer,
-  .hwr-basis,
-  .hwr-stock-values,
-  .hwr-stock-values > b:last-child,
-  .hwr-news-row strong,
-  .hwr-schedule-list li,
-  .hwr-index-summary > span,
-  .hwr-index-summary small,
-  .hwr-sentiment,
-  .hwr-section-heading span,
-  .hwr-fx-main > b,
-  .hwr-fx-status,
-  .hwr-news-filters button,
-  .hwr-news-quote { font-size: 12px; }
-}
-
-/* 빛 규칙 시범(2026-10-03): 선 아래 방향색 면 + 선 뒤 후광 + 마지막 점. 상승 빨강·하락 파랑, 보합은 회색. */
-.hwr-spark, .hwr-fx-chart { position: relative; }
-.hwr-glow-top { stop-color: #64748b; stop-opacity: .24; }
-.hwr-glow-bottom { stop-color: #64748b; stop-opacity: 0; }
-.hwr-glow-halo { stroke: #64748b; stroke-opacity: .16; }
-.is-up .hwr-glow-top, .hwr-fx-spark.is-up .hwr-glow-top { stop-color: #d24f45; stop-opacity: .36; }
-.is-up .hwr-glow-bottom, .hwr-fx-spark.is-up .hwr-glow-bottom { stop-color: #d24f45; }
-.is-up .hwr-glow-halo, .hwr-fx-spark.is-up .hwr-glow-halo { stroke: #d24f45; stroke-opacity: .3; }
-.is-down .hwr-glow-top, .hwr-fx-spark.is-down .hwr-glow-top { stop-color: #1261c4; stop-opacity: .36; }
-.is-down .hwr-glow-bottom, .hwr-fx-spark.is-down .hwr-glow-bottom { stop-color: #1261c4; }
-.is-down .hwr-glow-halo, .hwr-fx-spark.is-down .hwr-glow-halo { stroke: #1261c4; stroke-opacity: .3; }
-.hwr-glow-dot {
-  position: absolute;
-  width: 8px; height: 8px;
-  margin: -4px 0 0 -4px;
-  border-radius: 50%;
-  background: rgb(255, 254, 252);
-  border: 2px solid #64748b;
-  box-shadow: 0 0 0 4px rgba(100, 116, 139, .14), 0 0 12px rgba(100, 116, 139, .4);
-  pointer-events: none;
-}
-.hwr-glow-dot.is-up { border-color: #d24f45; box-shadow: 0 0 0 4px rgba(210, 79, 69, .16), 0 0 12px rgba(210, 79, 69, .5); }
-.hwr-glow-dot.is-down { border-color: #1261c4; box-shadow: 0 0 0 4px rgba(18, 97, 196, .16), 0 0 12px rgba(18, 97, 196, .5); }
-
-/* 뜨거웠던·차가웠던 종목(그 밖의 4열 목록 포함) = 카드 (2026-10-03 사용자 요청)
-   방향색 면은 오른쪽 위에서 번지는 옅은 빛, 상승 빨강·하락 파랑. */
-.hwr-stock-list--four { column-gap: 10px; row-gap: 10px; }
-.hwr-stock-list--four > li {
-  position: relative; overflow: hidden;
-  padding: 14px 14px 12px !important;
-  border: 1px solid rgba(17, 17, 17, .09) !important;
-  border-radius: 18px;
-  background: rgb(255, 254, 252);
-}
-.hwr-stock-list--four li:nth-child(-n+4) { border-top: 1px solid rgba(17, 17, 17, .09) !important; }
-.hwr-stock-list--four > li > * { position: relative; }
-.hwr-stock-list--four .hwr-stock-name strong { font-size: 13px; }
-.hwr-stock-list--four .hwr-stock-values { align-items: baseline; margin-top: 10px; }
-.hwr-stock-list--four .hwr-stock-values b:last-child { font-size: 16px; letter-spacing: -0.01em; }
-
-.hwr-stock-list--four .hwr-stock-values b:first-child { font-size: 11px; white-space: nowrap; color: #64748b; font-weight: 500; }
-
-/* ── 주말/휴장 리포트 리디자인 v3 (2026-10-04, 사용자 지시서) ──
-   카드 수를 줄이고(큰 구역 단위만) 종목·뉴스는 한 줄 행으로, 여백을 늘리고 정보 위계를 글자 크기로 만든다.
-   위의 옛 규칙(작은 카드·8~10px 글자)을 같은 선택자 앞에 .home-weekly-report를 붙여 이긴다. 데이터·계산은 그대로. */
-.home-weekly-report {
-  --hw-text: #171a21; --hw-sub: #667085; --hw-muted: #8b95a5; --hw-line: #eaecf0; --hw-border: #e5e7eb; --hw-surface: #ffffff;
-  --hw-up: #d24f45; --hw-down: #1261c4;
-  max-width: 1200px; margin: 0 auto 72px; padding: 0 4px; color: var(--hw-text);
-  font-variant-numeric: tabular-nums;
-}
-html.dark .home-weekly-report { --hw-text: var(--dk-text); --hw-sub: var(--dk-sub); --hw-muted: var(--dk-mute); --hw-line: var(--dk-line); --hw-border: var(--dk-line); --hw-surface: var(--dk-card); --hw-up: var(--dk-up); --hw-down: var(--dk-down); }
-.home-weekly-report .is-up { color: var(--num-up); }
-.home-weekly-report .is-down { color: var(--num-down); }
-.home-weekly-report .is-flat { color: var(--hw-sub); }
-
-/* 머리말 */
-.home-weekly-report .hwr-head { align-items: flex-end; min-height: 0; padding: 12px 0 28px; border: 0; }
-.home-weekly-report .hwr-head h2 { margin: 0; font-size: 28px; font-weight: 700; letter-spacing: -.03em; }
-.home-weekly-report .hwr-head p { margin: 6px 0 0; font-size: 14px; color: var(--hw-sub); }
-.home-weekly-report .hwr-period { font-size: 13px; font-weight: 600; color: var(--hw-sub); }
-.home-weekly-report .hwr-period small { margin-top: 4px; font-size: 12px; color: var(--hw-muted); }
-
-/* 큰 구역(섹션) */
-.hwr2-section { margin-top: 64px; }
-.hwr2-section.hwr2-prep { margin-top: 0; }
-.hwr2-h { margin-bottom: 22px; }
-.hwr2-h h3 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -.02em; }
-.hwr2-h p { margin: 6px 0 0; font-size: 13px; color: var(--hw-sub); }
-.hwr2-h--tools { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; }
-.hwr2-sub { margin: 36px 0 14px; font-size: 17px; font-weight: 650; }
-.hwr2-market + .hwr2-market { margin-top: 36px; }
-.hwr2-market-title { margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--hw-text); font-size: 17px; font-weight: 650; }
-.hwr2-cols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; row-gap: 28px; }
-.hwr2-cols.is-single { grid-template-columns: minmax(0, 1fr); }
-.hwr2-col { min-width: 0; }
-.hwr2-col-title, .hwr2-col-sub { margin: 0 0 6px; font-size: 15px; font-weight: 650; }
-.hwr2-col-sub small { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--hw-muted); }
-.hwr2-col-sub.is-up { color: var(--num-up); }
-.hwr2-col-sub.is-down { color: var(--num-down); }
-
-/* 지수: 한 구역 안의 4개 지표 블록(구분선만) */
-.home-weekly-report .hwr-index-summary { margin: 0 0 14px; padding: 0; border: 0; background: transparent; gap: 4px 18px; }
-.home-weekly-report .hwr-index-summary > span { font-size: 12px; font-weight: 600; color: var(--hw-sub); }
-.home-weekly-report .hwr-index-summary > b { font-size: 12px; }
-.home-weekly-report .hwr-index-grid { gap: 0; margin: 0; border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
-.home-weekly-report .hwr-index-card { display: block; padding: 24px 26px 18px; border: 0; border-left: 1px solid var(--hw-line); border-radius: 0; background: transparent; }
-.home-weekly-report .hwr-index-card:first-child { border-left: 0; }
-.home-weekly-report .hwr2-idx-name { display: block; font-size: 13px; font-weight: 600; color: var(--hw-sub); }
-.home-weekly-report .hwr-index-card > b { display: block; margin-top: 8px; font-size: 28px; font-weight: 700; letter-spacing: -.02em; }
-.home-weekly-report .hwr2-idx-chg { display: block; margin-top: 2px; font-size: 15px; font-weight: 650; }
-.home-weekly-report .hwr-spark { height: 40px; margin: 14px 0 0; }
-
-/* 환율·금: 한 구역 2열, 카드 장식 없이 구분선만 */
-.home-weekly-report .hwr-summary-row.hwr-asset-row { gap: 0; margin: 0; border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
-.home-weekly-report .hwr-asset-row > div + div { border-left: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-fx-card, .home-weekly-report .hwr-fx-card--interest, .home-weekly-report .hwr-fx-card--caution { padding: 24px 26px 20px; border: 0; border-radius: 0; background: transparent; }
-.home-weekly-report .hwr-fx-card .hwr-card-title strong { font-size: 15px; font-weight: 650; }
-.home-weekly-report .hwr-fx-card .hwr-card-title span { font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-fx-main > strong { font-size: 30px; font-weight: 700; letter-spacing: -.02em; }
-.home-weekly-report .hwr-fx-main > b { font-size: 15px; }
-.home-weekly-report .hwr-fx-legend, .home-weekly-report .hwr-fx-range, .home-weekly-report .hwr-fx-advice small { font-size: 12px; }
-.home-weekly-report .hwr-fx-status { font-size: 12px; }
-
-/* 다음 주 핵심 스케줄: 카드가 아니라 구역 하위 목록 */
-.home-weekly-report .hwr-schedule { margin-top: 36px; padding: 0; border: 0; border-radius: 0; background: transparent; }
-.home-weekly-report .hwr-schedule .hwr-card-title { margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--hw-text); }
-.home-weekly-report .hwr-schedule .hwr-card-title strong { font-size: 17px; font-weight: 650; }
-.home-weekly-report .hwr-schedule .hwr-card-title span { font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-schedule-list { column-gap: 40px; }
-.home-weekly-report .hwr-schedule-list li { grid-template-columns: 52px 38px minmax(0, 1fr); gap: 10px; padding: 12px 0; border-top: 1px solid var(--hw-line); font-size: 14px; }
-.home-weekly-report .hwr-schedule-list li:nth-child(-n+2) { border-top: 0; }
-.home-weekly-report .hwr-schedule-list time { font-size: 13px; color: var(--hw-sub); }
-.home-weekly-report .hwr-schedule-market { font-size: 12px; color: var(--hw-muted); }
-.home-weekly-report .hwr-my-schedule { background: transparent; }
-
-/* 종목: 한 줄 행 */
-.hwr2-rows { margin: 0; padding: 0; list-style: none; }
-.hwr2-rows > li { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; align-items: center; column-gap: 12px; min-height: 58px; padding: 10px 0; border-top: 1px solid var(--hw-line); }
-.hwr2-rows > li:first-child { border-top: 0; }
-.hwr2-rows--outcome > li { grid-template-columns: minmax(0, 1fr) auto; }
-.hwr2-rank { font-size: 13px; font-style: normal; font-weight: 700; color: var(--hw-muted); }
-.hwr2-name { min-width: 0; }
-.hwr2-name strong { display: block; overflow: hidden; font-size: 15px; font-weight: 600; text-overflow: ellipsis; white-space: nowrap; }
-.hwr2-name small { display: block; overflow: hidden; margin-top: 2px; font-size: 12px; color: var(--hw-muted); text-overflow: ellipsis; white-space: nowrap; }
-.hwr2-name em { display: block; overflow: hidden; margin-top: 2px; font-size: 12px; font-style: normal; color: var(--hw-sub); text-overflow: ellipsis; white-space: nowrap; }
-.hwr2-rows--candidates .hwr2-name em { white-space: normal; overflow-wrap: anywhere; }
-.hwr2-val { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; }
-.hwr2-val > b { font-size: 17px; font-weight: 700; letter-spacing: -.01em; }
-.hwr2-val > small { font-size: 12px; color: var(--hw-muted); }
-.hwr2-val--pair { flex-direction: row; align-items: baseline; gap: 22px; }
-.hwr2-val--pair > b { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; font-size: 15px; }
-.hwr2-val--pair > b small { font-size: 11px; font-weight: 500; color: var(--hw-muted); }
-.home-weekly-report .hwr-outcome-pending { color: var(--hw-muted); font-weight: 500; }
-.hwr2-stats { display: flex; margin: 4px 0 8px; padding: 10px 0 18px; border-bottom: 1px solid var(--hw-line); }
-.hwr2-stat { flex: 1 1 0; padding: 0 20px; border-left: 1px solid var(--hw-line); }
-.hwr2-stat:first-child { padding-left: 0; border-left: 0; }
-.hwr2-stat > span { display: block; font-size: 13px; color: var(--hw-sub); }
-.hwr2-stat > strong { display: block; margin-top: 4px; font-size: 32px; font-weight: 700; line-height: 1.1; letter-spacing: -.02em; }
-.hwr2-stat > small { display: block; margin-top: 4px; font-size: 12px; }
-
-/* 뉴스: 시간·제목·매체만 */
-.home-weekly-report .hwr-news-filters { gap: 18px; }
-.home-weekly-report .hwr-news-filters button { padding: 4px 0; border: 0; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; font-size: 13px; color: var(--hw-muted); }
-.home-weekly-report .hwr-news-filters button.is-active { border-bottom-color: var(--hw-text); background: transparent; color: var(--hw-text); font-weight: 650; }
-.hwr2-news-list { margin: 0; padding: 0; list-style: none; }
-.hwr2-news-row { display: grid; grid-template-columns: 78px minmax(0, 1fr) auto; column-gap: 14px; align-items: baseline; min-height: 56px; padding: 12px 0; border-top: 1px solid var(--hw-line); }
-.hwr2-news-row:first-child { border-top: 0; }
-.hwr2-news-row[hidden] { display: none; }
-.hwr2-news-row time { font-size: 12px; color: var(--hw-muted); white-space: nowrap; }
-.hwr2-news-main { min-width: 0; }
-.hwr2-news-main a { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14.5px; font-weight: 500; line-height: 1.45; color: var(--hw-text); text-decoration: none; }
-.hwr2-news-main a:hover { text-decoration: underline; }
-.hwr2-news-main small { display: block; margin-top: 3px; font-size: 12px; color: var(--hw-muted); }
-.hwr2-news-quote { font-size: 13px; font-weight: 650; }
-.hwr2-news:not(.is-expanded) .hwr2-news-row.is-extra { display: none; }
-.hwr2-more-wrap { margin-top: 24px; text-align: center; }
-.hwr2-more { padding: 10px 28px; border: 1px solid var(--hw-border); border-radius: 999px; background: transparent; font: inherit; font-size: 14px; font-weight: 600; color: var(--hw-text); cursor: pointer; }
-.hwr2-more:hover { background: var(--hw-line); }
-.home-weekly-report .hwr-news-filter-empty { margin: 16px 0 0; text-align: center; }
-.home-weekly-report .hwr-empty { padding: 18px 0 6px; font-size: 13px; color: var(--hw-muted); }
-.home-weekly-report .hwr-disclaimer { margin: 48px 0 0; font-size: 12px; color: var(--hw-muted); }
-
-/* 태블릿: 지수 2열, 목록 2열 유지 */
-@media (max-width: 960px) {
-  .hwr2-section { margin-top: 56px; }
-  .home-weekly-report .hwr-index-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .home-weekly-report .hwr-index-card:nth-child(odd) { border-left: 0; }
-  .home-weekly-report .hwr-index-card:nth-child(n+3) { border-top: 1px solid var(--hw-line); }
-  .hwr2-cols { column-gap: 28px; }
-}
-/* 모바일: 카드를 줄이지 않고 구조를 쌓는다(상승 → 하락, 국내 → 해외) */
-@media (max-width: 720px) {
-  .home-weekly-report { margin-bottom: 56px; padding: 0; }
-  .home-weekly-report .hwr-head { display: block; padding-bottom: 20px; }
-  .home-weekly-report .hwr-head h2 { font-size: 24px; }
-  .home-weekly-report .hwr-period { margin-top: 10px; text-align: left; }
-  .hwr2-section { margin-top: 48px; }
-  .hwr2-h h3 { font-size: 21px; }
-  .hwr2-h--tools { display: block; }
-  .home-weekly-report .hwr-news-filters { margin-top: 12px; }
-  .home-weekly-report .hwr-news-filters button { flex: 0 0 auto; }
-  .hwr2-cols { grid-template-columns: minmax(0, 1fr); row-gap: 28px; }
-  .home-weekly-report .hwr-index-card { padding: 18px 16px 14px; }
-  .home-weekly-report .hwr-index-card > b { font-size: 22px; }
-  .home-weekly-report .hwr-summary-row.hwr-asset-row { grid-template-columns: minmax(0, 1fr); }
-  .home-weekly-report .hwr-asset-row > div + div { border-left: 0; border-top: 1px solid var(--hw-line); }
-  .home-weekly-report .hwr-fx-card { padding: 20px 18px 16px; }
-  .home-weekly-report .hwr-schedule-list { grid-template-columns: minmax(0, 1fr); }
-  .home-weekly-report .hwr-schedule-list li:nth-child(2) { border-top: 1px solid var(--hw-line); }
-  .hwr2-news-row { grid-template-columns: 64px minmax(0, 1fr) auto; column-gap: 10px; }
-  .hwr2-stat { padding: 0 14px; }
-  .hwr2-stat > strong { font-size: 28px; }
-}
-.home-weekly-report .hwr-fx-card .hwr-fx-num, .home-weekly-report .hwr-fx-card .hwr-fx-legend > span, .home-weekly-report .hwr-fx-card .hwr-fx-range > span { font-size: inherit; }
-.home-weekly-report .hwr-fx-card .hwr-fx-main .hwr-fx-num { color: var(--hw-text); }
-.hwr2-val--pair > b.hwr-outcome-pending { font-size: 13px; font-weight: 500; }
-
-/* ── v4 보정 (2026-10-04, 사용자 지적) ──
-   style.css 13번 공통 규칙(html body :where(.hwr-*) { border/radius/background !important })이 v3의 카드 제거를 덮고 있었다 -
-   같은 !important로 이긴다. 구역 사이 가로줄은 양끝으로 갈수록 옅어지는 1px 선. */
-html body .home-weekly-report :where(.hwr-index-card, .hwr-fx-card, .hwr-index-summary) {
-  border-radius: 0 !important; border-width: 0 !important; background-color: transparent !important;
-}
-html body .home-weekly-report .hwr-index-card { border-left: 1px solid var(--hw-line) !important; }
-html body .home-weekly-report .hwr-index-card:first-child { border-left: 0 !important; }
-html body .home-weekly-report .hwr-asset-row > div + div .hwr-fx-card { border-left: 1px solid var(--hw-line) !important; }
-html body .home-weekly-report .hwr-schedule {
-  margin-top: 36px; padding: 28px 32px 24px !important;
-  border: 1px solid var(--hw-border) !important; border-radius: 18px !important; background-color: var(--hw-surface) !important;
-}
-html body .home-weekly-report .hwr-schedule .hwr-card-title { margin-bottom: 14px; }
-html body .home-weekly-report .hwr-my-schedule { margin-top: 16px; background-color: var(--hw-surface) !important; }
-
-/* 주간 자산 요약: 4개 값을 읽히는 크기로 */
-.home-weekly-report .hwr-index-summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; margin: 18px 0 0; padding: 20px 4px 0 !important; }
-.home-weekly-report .hwr-index-summary > span { grid-column: 1 / -1; margin-bottom: 12px; font-size: 14px; font-weight: 650; color: var(--hw-text); }
-.home-weekly-report .hwr-index-summary > b { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 0 22px; border-left: 1px solid var(--hw-line); }
-.home-weekly-report .hwr-index-summary > b:nth-of-type(1) { padding-left: 0; border-left: 0; }
-.home-weekly-report .hwr-index-summary small { font-size: 13.5px; font-weight: 500; color: var(--hw-sub); }
-.home-weekly-report .hwr-index-summary strong { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
-
-/* 구역 사이 가로줄: 양끝으로 갈수록 옅어짐 */
-.hwr2-section + .hwr2-section::before {
-  content: ""; display: block; height: 1px; margin-bottom: 48px;
-  background: linear-gradient(90deg, transparent 0, var(--hw-border) 24%, var(--hw-border) 76%, transparent 100%);
-}
-@media (max-width: 720px) {
-  .home-weekly-report .hwr-index-summary { grid-template-columns: repeat(2, minmax(0, 1fr)); row-gap: 16px; }
-  .home-weekly-report .hwr-index-summary > b { padding: 0 14px; }
-  .home-weekly-report .hwr-index-summary > b:nth-of-type(odd) { padding-left: 0; border-left: 0; }
-  .home-weekly-report .hwr-index-summary strong { font-size: 19px; }
-  html body .home-weekly-report .hwr-schedule { padding: 20px 18px 16px !important; }
-  html body .home-weekly-report .hwr-index-card:nth-child(odd) { border-left: 0 !important; }
-  html body .home-weekly-report .hwr-asset-row > div + div .hwr-fx-card { border-left: 0 !important; }
-}
-
-/* ── v5 (2026-10-04) ── 주간 자산 요약 아래 여백, 캘린더 연동 일정(전체 보기) */
-html body .home-weekly-report .hwr-index-summary { padding: 22px 4px 24px !important; margin-bottom: 8px; }
-.home-weekly-report .hwr-schedule-list li.is-extra { display: none; }
-.home-weekly-report .hwr-schedule.is-expanded .hwr-schedule-list li.is-extra { display: grid; }
-.home-weekly-report .hwr-schedule-list li > span a { color: inherit; text-decoration: none; }
-.home-weekly-report .hwr-schedule-list li > span a:hover { text-decoration: underline; }
-.home-weekly-report .hwr-schedule-list li > time { white-space: nowrap; }
-.home-weekly-report .hwr-schedule-list li { grid-template-columns: 68px 38px minmax(0, 1fr); }
-.home-weekly-report .hwr-schedule .hwr2-more-wrap { margin-top: 16px; }
-.hwr2-cal-link { margin: 16px 0 0; text-align: right; font-size: 13px; }
-.hwr2-cal-link a { color: var(--hw-text); font-weight: 650; text-decoration: none; }
-.hwr2-cal-link a:hover { text-decoration: underline; }
-
-/* ── v6 (2026-10-04, 사용자 요청) ──
-   ①가로줄은 전부 양끝으로 옅어지게(border-image 그라데이션, 1px 위·아래 선에만 적용)
-   ②주간 자산 요약을 지수 블록과 같은 구역으로 ③주말에도 움직이는 시장(코인·바이낸스 국내주식 토큰)
-   ④주말 미국 뉴스 관심 테마 ⑤다음 주 일정의 주요 경제지표 표시. 색·서체는 기존 변수 그대로. */
-.home-weekly-report { --hw-fade: linear-gradient(90deg, transparent 0, var(--hw-line) 14%, var(--hw-line) 86%, transparent 100%); --hw-fade-strong: linear-gradient(90deg, transparent 0, var(--hw-sub) 12%, var(--hw-sub) 88%, transparent 100%); }
-.home-weekly-report :is(.hwr2-rows > li, .hwr2-news-row, .hwr-schedule-list li, .hwr2-theme-news li) { border-image: var(--hw-fade) 1; }
-.home-weekly-report :is(.hwr2-market-title, .hwr-schedule .hwr-card-title, .hwr2-stats, .hwr2-token-head) { border-image: var(--hw-fade-strong) 1; }
-.home-weekly-report .hwr2-stats { border-image: var(--hw-fade) 1; }
-@media (max-width: 960px) {
-  .home-weekly-report .hwr-index-card:nth-child(n+3) { border-image: var(--hw-fade) 1; }
-}
-.hwr2-section + .hwr2-section::before { background: linear-gradient(90deg, transparent 0, var(--hw-border) 20%, var(--hw-border) 80%, transparent 100%); }
-
-/* 소제목 보조 문구 */
-.hwr2-sub small { margin-left: 8px; font-size: 12px; font-weight: 400; color: var(--hw-muted); }
-
-/* ② 주간 자산 요약: 지수 블록과 같은 4칸 구역 */
-.hwr2-asset-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
-.hwr2-asset { min-width: 0; padding: 20px 24px 16px; border-left: 1px solid var(--hw-line); }
-.hwr2-asset:first-child { border-left: 0; }
-.home-weekly-report .hwr2-asset > b { display: block; margin-top: 6px; font-size: 22px; font-weight: 700; letter-spacing: -.02em; white-space: nowrap; }
-.home-weekly-report .hwr2-asset .hwr2-idx-chg { display: block; margin-top: 2px; font-size: 14px; font-weight: 650; }
-.home-weekly-report .hwr2-asset .hwr-spark { height: 34px; margin-top: 10px; }
-.home-weekly-report .hwr2-asset .hwr-spark svg { height: 34px; }
-.hwr2-idx-name small { margin-left: 4px; font-size: 11px; font-weight: 500; color: var(--hw-muted); }
-
-/* ③ 주말에도 움직이는 시장 */
-.hwr2-live-wrap[hidden], .hwr2-themes[hidden] { display: none !important; }
-.hwr2-live { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); border: 1px solid var(--hw-border); border-radius: 18px; background: var(--hw-surface); overflow: hidden; }
-.hwr2-live-coins { display: grid; grid-template-rows: repeat(2, minmax(0, 1fr)); border-right: 1px solid var(--hw-line); }
-.hwr2-live-coins .hwr2-coin { border-left: 0; padding: 20px 24px 14px; }
-.hwr2-live-coins .hwr2-coin + .hwr2-coin { border-top: 1px solid transparent; border-image: var(--hw-fade) 1; }
-.hwr2-live-chg { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 6px; margin-top: 4px; }
-.hwr2-live-chg em { font-size: 15px; font-style: normal; font-weight: 700; }
-.hwr2-live-chg small { margin-right: 10px; font-size: 11.5px; color: var(--hw-muted); }
-.hwr2-live-tokens { min-width: 0; padding: 14px 24px 10px; }
-.hwr2-token-head, .hwr2-token-rows > li { display: grid; grid-template-columns: minmax(0, 1fr) 92px 82px 70px; align-items: center; column-gap: 12px; }
-.hwr2-token-head { padding: 4px 0 10px; border-bottom: 1px solid transparent; font-size: 12px; font-weight: 600; color: var(--hw-sub); }
-.hwr2-token-head > span:not(:first-child) { text-align: right; }
-.hwr2-token-rows > li { min-height: 46px; padding: 6px 0; }
-.hwr2-token-rows .hwr2-name strong { font-size: 14px; }
-.hwr2-token-rows .hwr2-name small { font-size: 11px; }
-.hwr2-token-price { font-size: 14px; font-weight: 600; text-align: right; white-space: nowrap; }
-.hwr2-token-rows > li > b { font-size: 14.5px; font-weight: 700; text-align: right; white-space: nowrap; }
-.hwr2-token-rows > li > b.hwr2-token-24h { font-size: 13px; font-weight: 600; }
-.hwr2-live-note { margin: 10px 2px 0; font-size: 12px; color: var(--hw-muted); }
-
-/* ④ 주말 미국 뉴스 관심 테마 */
-.hwr2-theme-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
-.hwr2-theme { min-width: 0; padding: 4px 0 26px; }
-.hwr2-theme-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; padding-bottom: 10px; border-bottom: 1px solid transparent; border-image: var(--hw-fade-strong) 1; }
-.hwr2-theme-head strong { font-size: 17px; font-weight: 700; }
-.hwr2-theme-head span { font-size: 12.5px; font-weight: 600; color: var(--hw-sub); white-space: nowrap; }
-.hwr2-theme.is-risk .hwr2-theme-head span { color: var(--num-down); }
-.hwr2-theme-news { margin: 0; padding: 0; list-style: none; }
-.hwr2-theme-news li { padding: 10px 0; border-top: 1px solid transparent; }
-.hwr2-theme-news li:first-child { border-top: 0; }
-.hwr2-theme-news a { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2; font-size: 14px; font-weight: 500; line-height: 1.45; color: var(--hw-text); text-decoration: none; }
-.hwr2-theme-news a:hover { text-decoration: underline; }
-.hwr2-theme-news small { display: block; margin-top: 3px; font-size: 11.5px; color: var(--hw-muted); }
-.hwr2-theme-stocks { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 14px; margin-top: 10px; font-size: 13.5px; }
-.hwr2-theme-stocks em { flex: 0 0 auto; min-width: 52px; font-size: 12px; font-style: normal; font-weight: 600; color: var(--hw-muted); }
-.hwr2-theme-stocks a { font-weight: 650; color: var(--hw-text); text-decoration: none; }
-.hwr2-theme-stocks a:hover { text-decoration: underline; }
-.hwr2-theme-us { margin-top: 4px; }
-.hwr2-theme-us span { font-weight: 600; color: var(--hw-sub); }
-
-/* ⑤ 다음 주 일정: 주요 경제지표 */
-.home-weekly-report .hwr-schedule-market.is-macro { color: var(--hw-text); font-weight: 650; }
-.home-weekly-report .hwr-schedule-list li.is-key > span { font-weight: 650; }
-.home-weekly-report .hwr-schedule-list li.is-key > span::before { content: "●"; margin-right: 6px; font-size: 8px; vertical-align: 2px; color: var(--num-up); }
-
-@media (max-width: 960px) {
-  .hwr2-asset-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .hwr2-asset:nth-child(odd) { border-left: 0; }
-  .hwr2-asset:nth-child(n+3) { border-top: 1px solid transparent; border-image: var(--hw-fade) 1; }
-  .hwr2-live { grid-template-columns: minmax(0, 1fr); }
-  .hwr2-live-coins { grid-template-rows: none; grid-template-columns: repeat(2, minmax(0, 1fr)); border-right: 0; border-bottom: 1px solid var(--hw-line); }
-  .hwr2-live-coins .hwr2-coin + .hwr2-coin { border-top: 0; border-left: 1px solid var(--hw-line); border-image: none; }
-}
-@media (max-width: 720px) {
-  .hwr2-asset { padding: 16px 16px 12px; }
-  .home-weekly-report .hwr2-asset > b { font-size: 19px; }
-  .hwr2-live-coins { grid-template-columns: minmax(0, 1fr); }
-  .hwr2-live-coins .hwr2-coin + .hwr2-coin { border-left: 0; border-top: 1px solid transparent; border-image: var(--hw-fade) 1; }
-  .hwr2-live-coins .hwr2-coin, .hwr2-live-tokens { padding-left: 16px; padding-right: 16px; }
-  .hwr2-token-head, .hwr2-token-rows > li { grid-template-columns: minmax(0, 1fr) 76px 64px; column-gap: 8px; }
-  .hwr2-token-24h { display: none; }
-  .hwr2-theme-grid { grid-template-columns: minmax(0, 1fr); }
-}
-/* 코인 칸은 오른쪽 토큰 8줄 높이만큼 늘어나므로 추이선이 남는 높이를 채운다 */
-.hwr2-live-coins .hwr2-coin { display: flex; flex-direction: column; }
-.home-weekly-report .hwr2-live-coins .hwr2-coin .hwr-spark { flex: 1 1 auto; min-height: 56px; height: auto; margin-top: 12px; }
-.home-weekly-report .hwr2-live-coins .hwr2-coin .hwr-spark svg { height: 100%; min-height: 56px; }
-@media (max-width: 960px) {
-  .home-weekly-report .hwr2-live-coins .hwr2-coin .hwr-spark { flex: 0 0 56px; }
-}
-.hwr2-token-head > span { white-space: nowrap; }
-@media (max-width: 720px) {
-  .hwr2-token-head, .hwr2-token-rows > li { grid-template-columns: minmax(0, 1fr) 72px 70px; }
-}
-/* 뉴스 필터: 다크 모드의 옛 알약 규칙(html.dark … button.is-active, 크림색 채움)이 v3 텍스트 탭을 이기고 있었다 */
-html.dark .home-weekly-report .hwr-news-filters button { border: 0; border-bottom: 2px solid transparent; background: transparent; color: var(--hw-muted); }
-html.dark .home-weekly-report .hwr-news-filters button.is-active { border-bottom-color: var(--hw-text); background: transparent; color: var(--hw-text); }
-
-/* ── v7 (2026-10-04, 사용자 요청) ──
-   ①주간 자산 요약은 "크게 말고 미니멀하게": 이름 · 값 · 주간 등락 한 줄 띠(위아래 옅어지는 선만)
-   ②코인도 국내주식 토큰과 같은 한 줄 행으로, 10개 행을 두 열로
-   ③모바일 점검: 2열 칸의 둘째 줄 세로 구분선(border-image가 왼쪽 선까지 지우던 것), 소제목 보조 문구 줄바꿈,
-     일정 제목 두 줄 꺾임, 테마 기사 2건만 */
-.hwr2-asset-strip {
-  display: flex; flex-wrap: wrap; align-items: center; row-gap: 10px;
-  margin: 22px 0 0; padding: 14px 2px;
-  border-top: 1px solid transparent; border-bottom: 1px solid transparent; border-image: var(--hw-fade) 1;
-}
-.hwr2-strip-label { display: flex; flex-direction: column; gap: 2px; padding-right: 22px; font-size: 13px; font-weight: 650; color: var(--hw-text); }
-.hwr2-strip-label small { font-size: 11px; font-weight: 400; color: var(--hw-muted); }
-.hwr2-strip-item { display: inline-flex; align-items: baseline; gap: 8px; padding: 2px 22px; border-left: 1px solid var(--hw-line); white-space: nowrap; }
-.hwr2-strip-item small { font-size: 12px; color: var(--hw-sub); }
-.hwr2-strip-item b { font-size: 15px; font-weight: 650; letter-spacing: -.01em; }
-.hwr2-strip-item em { font-size: 13px; font-style: normal; font-weight: 600; }
-
-.hwr2-live { grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 40px; padding: 12px 24px 8px; }
-.hwr2-live-col { min-width: 0; }
-
-@media (max-width: 960px) {
-  .home-weekly-report .hwr-index-card:nth-child(n+3) { position: relative; border-image: none; }
-  .home-weekly-report .hwr-index-card:nth-child(n+3)::before { content: ""; position: absolute; top: 0; left: 0; right: 0; height: 1px; }
-  .home-weekly-report .hwr-index-card:nth-child(3)::before { background: linear-gradient(90deg, transparent 0, var(--hw-line) 40%); }
-  .home-weekly-report .hwr-index-card:nth-child(4)::before { background: linear-gradient(90deg, var(--hw-line) 60%, transparent 100%); }
-  .hwr2-live { grid-template-columns: minmax(0, 1fr); }
-  .hwr2-live-col + .hwr2-live-col .hwr2-token-head { display: none; }
-  .hwr2-live-col + .hwr2-live-col .hwr2-token-rows > li:first-child { border-top: 1px solid transparent; }
-}
-@media (max-width: 720px) {
-  .hwr2-asset-strip { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; }
-  .hwr2-strip-label { grid-column: 1 / -1; flex-direction: row; align-items: baseline; gap: 8px; padding: 0; }
-  .hwr2-strip-item { flex-wrap: wrap; gap: 2px 6px; padding: 0 12px; }
-  .hwr2-strip-item:nth-of-type(even) { padding-left: 0; border-left: 0; }  /* 라벨도 span이라 짝수 번째 span이 각 줄 첫 칸 */
-  .hwr2-strip-item small { flex-basis: 100%; }
-  .hwr2-live { padding: 8px 16px 4px; }
-  .hwr2-sub small { display: block; margin: 4px 0 0; }
-  html body .home-weekly-report .hwr-schedule .hwr-card-title { flex-direction: column; align-items: flex-start; gap: 4px; }
-  .home-weekly-report .hwr-schedule .hwr-card-title strong { white-space: nowrap; }
-  .hwr2-theme-news li:nth-child(n+3) { display: none; }
-}
-
-/* ── 주간 알약 (2026-10-05) ── 캡슐 왼쪽 절반 국내·오른쪽 절반 미국, 직전 주 금요일 종가 위에서 끝나면 빨강·아래면 파랑.
-   아래에 시장별 주간 평균 숫자. 문구와 기간 사이는 세로 구분선 */
-.home-weekly-report .hwr-head { align-items: center; }
-.home-weekly-report .hwr-pulse { display: flex; align-items: center; gap: 22px; margin-left: auto; padding-right: 22px; border-right: 1px solid var(--hw-line, rgba(17, 17, 17, .12)); font-size: 12px; }
-.hwr-pill-wrap { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-/* 옛 .hwr-sentiment svg 규칙(104x52·circle fill:currentColor)을 이긴다 */
-.home-weekly-report .hwr-pulse svg.hwr-pill { display: block; width: 168px; height: 64px; overflow: visible; filter: drop-shadow(0 6px 14px rgba(17, 17, 17, .12)); }
-.hwr-pill circle { stroke: none !important; fill: #fff !important; }
-.hwr-pill-labels { display: grid; grid-template-columns: 1fr 1fr; width: 156px; }
-.hwr-pill-labels span { display: flex; flex-direction: column; align-items: center; gap: 1px; line-height: 1.2; }
-.hwr-pill-labels small { font-size: 11px; font-weight: 600; color: var(--hw-muted, #8b95a5); }
-.hwr-pill-labels b { font-size: 13px; font-weight: 700; }
-.hwr-pulse-text { display: flex; flex-direction: column; gap: 4px; white-space: nowrap; }
-.hwr-pulse-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.01em; }
-.hwr-pulse-text em { font-size: 12px; font-style: normal; font-weight: 500; color: var(--hw-sub, #667085); }
-.hwr-pulse-text em b { margin-left: 4px; font-weight: 700; }
-.hwr-pulse.hwr-sentiment--up .hwr-pulse-text em b { color: var(--hw-up, #d24f45); }
-.hwr-pulse.hwr-sentiment--down .hwr-pulse-text em b { color: var(--hw-down, #1261c4); }
-.home-weekly-report .hwr-period { display: flex; flex-direction: column; justify-content: center; align-self: center; }
-html.dark .home-weekly-report .hwr-pulse svg.hwr-pill { filter: drop-shadow(0 0 16px rgba(255, 255, 255, .08)); }
-html.dark .hwr-pill-labels b.is-up { color: var(--num-up) !important; }
-html.dark .hwr-pill-labels b.is-down { color: var(--num-down) !important; }
-html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--up { color: var(--num-up) !important; }
-html.dark .home-weekly-report .hwr-pulse.hwr-sentiment--down { color: var(--num-down) !important; }
-@media (max-width: 720px) {
-  .home-weekly-report .hwr-pulse { margin: 12px 0 14px; padding-right: 0; border-right: 0; justify-content: flex-start; }
-}
-/* 휴장 대시보드 박스(다음주 핵심 스케줄·내 종목 일정·주말 이슈 카드)는 사이트 종이색(크림)이 아닌 순백으로 (2026-10-11, 사용자 요청).
-   style.css의 @layer 안 !important보다 이기도록 선택자를 높인다. 다크모드는 기존 규칙을 따른다. */
-html:not(.dark):not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
-
-/* 이번 주 움직인 종목·주말 이슈 테마·다음 주 체크할 종목도 순백 박스로 (2026-10-11, 사용자 요청). 뉴스 구역은 제외.
-   2026-10-12: '주말 미국 뉴스로 본 관심 테마'(.hwr2-themes)만 박스 없이 사이트 종이색(크림)으로 남아 있어, 사용자 요청("혼자 크림색")으로 같은 순백 박스에 포함한다. */
-.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not([hidden]) {
-  margin-top: 28px; padding: 28px 32px 24px; border: 1px solid var(--hw-border); border-radius: 18px; background-color: var(--hw-surface);
-}
-.home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news)::before, .home-weekly-report .hwr2-news::before { display: none; }
-@media (max-width: 720px) {
-  .home-weekly-report .hwr2-section:not(.hwr2-prep):not(.hwr2-news):not([hidden]) { margin-top: 20px; padding: 20px 16px 16px; border-radius: 14px; }
-}
-
-/* ── 주말 미국 뉴스로 본 관심 테마: 박스 없는 개방형 편집 레이아웃 (2026-10-11) ── */
-.home-weekly-report .hwr2-theme-grid { gap: 0 56px; }
-.home-weekly-report .hwr2-theme { padding: 4px 0 14px; }
-.home-weekly-report .hwr2-theme-head { padding-bottom: 12px; }
-.home-weekly-report .hwr2-theme-head strong { font-size: 18px; }
-.home-weekly-report .hwr2-theme-head span { font-size: 12px; font-weight: 500; color: var(--hw-muted); }
-.home-weekly-report .hwr2-theme-news li { margin: 0 -6px; padding: 0 6px; border-top: 1px solid var(--hw-line); border-image: none; }
-.home-weekly-report .hwr2-theme-news li:first-child { border-top: 0; }
-.home-weekly-report .hwr2-theme-news li:hover { background: color-mix(in srgb, var(--hw-text) 5%, transparent); }
-.home-weekly-report .hwr2-theme-news a { padding: 11px 0 3px; font-size: 14px; line-height: 1.5; color: var(--hw-text); }
-.home-weekly-report .hwr2-theme-news a:hover { text-decoration: none; }
-.home-weekly-report .hwr2-theme-news small { margin-top: 0; padding: 0 0 10px; font-size: 11.5px; color: var(--hw-muted); }
-.home-weekly-report .hwr2-theme-stocks { margin-top: 6px; padding-top: 12px; border-top: 1px solid var(--hw-border); font-size: 13.5px; }
-.home-weekly-report .hwr2-theme-stocks em { font-size: 11.5px; color: var(--hw-muted); }
-.home-weekly-report .hwr2-theme-stocks a { color: var(--hw-text); }
-.home-weekly-report .hwr2-theme-us { margin-top: 2px; padding-top: 0; border-top: 0; }
-.hwr2-market-title small { margin-left: 6px; font-size: 12px; font-weight: 400; opacity: .7; }
-html.dark .hwr-fx-status--neutral, html.dark .hwr-fx-status--unknown { color: var(--dk-mute); }
-html.dark .hwr-fx-status--interest { color: var(--dk-down); }
-html.dark .hwr-fx-status--caution { color: #f0b35c; }

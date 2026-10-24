@@ -34,31 +34,33 @@ class HomeWeeklyReportListStyleTest(unittest.TestCase):
 
     def test_stock_list_resets_itself_not_via_an_ancestor(self):
         css = self.css()
-        self.assertIn('.hwr-stock-list { list-style: none; margin: 0; padding: 0; }', css)
-        self.assertIn('.hwr-stock-list > li {', css)
-        self.assertIn('.hwr-stock-list > li:first-child { border-top: 0; }', css)
+        self.assertIn('.wd-list { list-style: none; margin: 0; padding: 0; }', css)
+        self.assertIn('.wd-list > li {', css)
+        self.assertIn('.wd-list > li:last-child { border-bottom: 0; }', css)
 
     def test_row_layout_does_not_depend_on_hwr_columns(self):
         """행이 좌우로 갈리는 건 .hwr-columns li에만 있던 display:flex였다."""
         css = self.css()
-        rule = re.search(r'\.hwr-stock-list > li \{([^}]*)\}', css).group(1)
-        for prop in ('display: flex', 'justify-content: space-between', 'border-top:'):
+        rule = re.search(r'\.wd-scan li \{([^}]*)\}', css).group(1)
+        for prop in ('display: flex', 'justify-content: space-between', 'gap:'):
             self.assertIn(prop, rule)
 
     def test_dark_mode_border_covers_the_self_contained_list(self):
         """다크모드 테두리 색도 .hwr-columns li에만 걸려 있어 같이 넓혀야 한다 -
         빠지면 어두운 배경에 밝은 구분선이 남는다."""
         css = self.css()
-        line = [l for l in css.splitlines() if 'html.dark .hwr-columns li,' in l]
-        self.assertTrue(line, 'html.dark 구분선 규칙을 못 찾았다')
-        self.assertIn('html.dark .hwr-stock-list > li', line[0])
+        self.assertIn('--wd-line: var(--ui-border)', css)
+        self.assertIn('border-bottom: 1px solid var(--wd-line)', css)
+        theme = (ROOT / 'style.css').read_text(encoding='utf-8')
+        self.assertIn('--ui-border: var(--dk-line)', theme)
 
     def test_component_reset_survives_being_moved_into_a_card(self):
         """리셋을 조상이 아니라 컴포넌트 자신에 걸어 둔 규칙은 그대로 둔다(다시 조상 의존으로 되돌리지 않기 위한 가드).
         2026-10-04 리디자인으로 종목 목록은 hwr2-rows(한 줄 행)가 됐고, 이 리셋은 옛 목록 변형용으로 남는다."""
         css = self.css()
-        self.assertIn('.hwr-stock-list { list-style: none; margin: 0; padding: 0; }', css)
-        self.assertIn('.hwr2-rows { margin: 0; padding: 0; list-style: none; }', css)
+        # 2026-10-24: old mover/outcome sections retired; new compact lists own resets.
+        self.assertIn('.wd-list { list-style: none; margin: 0; padding: 0; }', css)
+        self.assertIn('.hwr-schedule-list { margin: 0; padding: 0; list-style: none; }', css)
 
     def test_outcome_list_is_a_row_list_not_a_card_grid(self):
         """2026-10-04: 종목 하나 = 카드 하나를 금지했다. 지난 신호 성과도 한 줄 행(hwr2-rows--outcome)이다."""

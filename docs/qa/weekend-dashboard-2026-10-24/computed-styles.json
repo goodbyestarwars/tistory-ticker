@@ -1,0 +1,332 @@
+[
+  {
+    "width": 375,
+    "dark": false,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 190,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 507
+      },
+      {
+        "height": 108,
+        "x": 190,
+        "y": 507
+      }
+    ],
+    "panelPadding": "14px",
+    "surface": "rgb(255, 254, 252)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 375,
+    "dark": true,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 190,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 507
+      },
+      {
+        "height": 108,
+        "x": 190,
+        "y": 507
+      }
+    ],
+    "panelPadding": "14px",
+    "surface": "rgb(32, 39, 49)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 390,
+    "dark": false,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 197,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 507
+      },
+      {
+        "height": 108,
+        "x": 197,
+        "y": 507
+      }
+    ],
+    "panelPadding": "14px",
+    "surface": "rgb(255, 254, 252)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 390,
+    "dark": true,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 197,
+        "y": 389
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 507
+      },
+      {
+        "height": 108,
+        "x": 197,
+        "y": 507
+      }
+    ],
+    "panelPadding": "14px",
+    "surface": "rgb(32, 39, 49)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 768,
+    "dark": false,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 386,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 386,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(255, 254, 252)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 768,
+    "dark": true,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 386,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 386,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(32, 39, 49)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 1280,
+    "dark": false,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 642,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 642,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(255, 254, 252)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 1280,
+    "dark": true,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 16,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 642,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 16,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 642,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(32, 39, 49)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 1440,
+    "dark": false,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 43,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 722,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 43,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 722,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(255, 254, 252)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  },
+  {
+    "width": 1440,
+    "dark": true,
+    "overflow": 0,
+    "indices": [
+      {
+        "height": 108,
+        "x": 43,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 722,
+        "y": 350
+      },
+      {
+        "height": 108,
+        "x": 43,
+        "y": 468
+      },
+      {
+        "height": 108,
+        "x": 722,
+        "y": 468
+      }
+    ],
+    "panelPadding": "18px",
+    "surface": "rgb(32, 39, 49)",
+    "titleFont": "Pretendard, sans-serif",
+    "calendarRows": 5,
+    "briefings": 3,
+    "stories": 3
+  }
+]
