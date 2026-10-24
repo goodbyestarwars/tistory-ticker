@@ -43,3 +43,19 @@ console.log('commodity cards + AI comment slots ok');
   assert(!h.includes('mt-xmeta'),'카드 안 기준 시각 줄 없음');
   assert((h.match(/class="mt-xnote"/g)||[]).length===1&&h.includes('업비트 공개시세')&&(h.match(/수신\(/g)||[]).length===1,'수신 시각·출처는 블록 아래 한 줄'); }
 console.log('eth + note ok');
+
+
+{ // 실제 API가 휴장·직전 종가라고 검증한 경우 증시온도에서도 그대로 보여 준다.
+  const n=Date.parse('2026-10-24T11:30:00Z');
+  const old='2026-10-23T02:00:00Z';
+  const closed={symbol:'BRENT',price:103.49,change_rate:3.4,updated_at:old,stale:false,
+    market_closed:true,quote_status:'closed',asof_date:'2026-10-23',price_kind:'last_quote',
+    source:'KIS 공식 해외선물 시세'};
+  const h=f([row('WTI',100,0.5,{updated_at:old}),closed],n);
+  assert(h.includes('$103.49')&&h.includes('브렌트유 (10.23 기준)'),'휴장한 브렌트 종가도 가격 카드에 표시');
+  const chartOnly={...closed,price:101.22,change_rate:null,updated_at:null,price_kind:'daily_close'};
+  const h2=f([chartOnly],n);
+  assert(h2.includes('$101.22')&&!h2.includes('NaN%'),'실제 종가만 있어도 표시하고 변동률은 임의 생성 금지');
+  const rejected=f([{...closed,market_closed:false,stale:true}],n);
+  assert(!rejected.includes('$103.49'),'휴장 판정이 없거나 지연된 가격은 거절');
+}

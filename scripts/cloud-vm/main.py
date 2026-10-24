@@ -29,6 +29,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
 import bond_yield
+import commodity_kis
 import fx_koreaexim
 import btc_futures
 import dart_client
@@ -1750,33 +1751,31 @@ def _market_indicator_snapshot(symbols):
     try:
         latest = {row['symbol']: row for row in db_schema.load_all_future_prices(conn)}
         brent_contract = db_schema.load_future_contract(conn, 'BRENT') if 'BRENT' in wanted else None
+        brent_chart = db_schema.load_future_chart(conn, 'BRENT', limit_days=14) if 'BRENT' in wanted else []
     finally:
         conn.close()
-    brent_stale = True
-    brent = latest.get('BRENT')
-    if brent:
-        try:
-            brent_stale = (datetime.now(timezone.utc) - datetime.fromisoformat(
-                str(brent['updated_at']).replace('Z', '+00:00'))).total_seconds() > 20 * 60
-        except (TypeError, ValueError):
-            pass
-    return [
-        {
+    brent_view = commodity_kis.public_brent_snapshot(latest.get('BRENT'), brent_chart) if 'BRENT' in wanted else {}
+    result = []
+    for symbol in sorted(wanted):
+        row = brent_view if symbol == 'BRENT' else (latest.get(symbol) or {})
+        result.append({
             'symbol': symbol,
             'name': (latest.get(symbol) or {}).get('name'),
-            'price': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('price'),
-            'change': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('change'),
-            'change_rate': None if symbol == 'BRENT' and brent_stale else (latest.get(symbol) or {}).get('change_rate'),
-            'updated_at': (latest.get(symbol) or {}).get('updated_at'),
+            'price': row.get('price'),
+            'change': row.get('change'),
+            'change_rate': row.get('change_rate'),
+            'updated_at': row.get('updated_at'),
             'source': {'WTI': 'Naver 비공식 선물 시세', 'GOLD': 'Naver 비공식 선물 시세',
                        'BRENT': 'KIS 공식 해외선물 시세'}.get(symbol),
             'source_delay': '미확인' if symbol in ('WTI', 'GOLD', 'BRENT') else None,
             'contract_code': brent_contract if symbol == 'BRENT' else None,
-            'stale': brent_stale if symbol == 'BRENT' else False,
-        }
-        for symbol in sorted(wanted)
-    ]
-
+            'stale': row.get('stale', False),
+            'market_closed': row.get('market_closed', False),
+            'quote_status': row.get('quote_status'),
+            'price_kind': row.get('price_kind'),
+            'asof_date': row.get('asof_date'),
+        })
+    return result
 
 # 2026-08-21: 기존엔 연결마다 독립 루프가 5초마다 자기만의 DB 커넥션을 열어 조회했다 -
 # /ws/economic-news처럼 단일 브로드캐스트 루프가 공용 캐시를 한 번만 채우고 연결된 모든
@@ -3265,12 +3264,13 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                                 'BRENT': 'KIS 공식 해외선물 시세'}.get(symbol)
             contract_code = db_schema.load_future_contract(conn, symbol) if symbol == 'BRENT' else None
             stale = False
-            if symbol == 'BRENT' and p:
-                try:
-                    quote_time = datetime.fromisoformat(str(p['updated_at']).replace('Z', '+00:00'))
-                    stale = (datetime.now(timezone.utc) - quote_time).total_seconds() > 20 * 60
-                except (TypeError, ValueError):
-                    stale = True
+            if symbol == 'BRENT':
+                # REST와 WebSocket이 완전히 같은 휴장/지연 판정을 사용한다.
+                # 휴장일 직전 유효 시세 또는 실제 KIS 일봉 종가만 제한적으로 보여 준다.
+                view = commodity_kis.public_brent_snapshot(p, chart)
+                p = dict(p or {})
+                p.update(view)
+                stale = view['stale']
             result.append({
                 'symbol': symbol,
                 'name': p['name'] if p else None,
@@ -3283,6 +3283,10 @@ def futures(request: Request, interval: str = 'day', days: int = 90, symbols: st
                 'source_delay': '미확인' if commodity_source else None,
                 'contract_code': contract_code,
                 'stale': stale,
+                'market_closed': p.get('market_closed', False) if p else False,
+                'quote_status': p.get('quote_status') if p else None,
+                'price_kind': p.get('price_kind') if p else None,
+                'asof_date': p.get('asof_date') if p else None,
                 'high_low_scope': p.get('high_low_scope') if p else None,
                 'updated_at': p['updated_at'] if p else None,
                 'oi': p['oi'] if p else None,

@@ -2729,24 +2729,36 @@
       return '$' + price.toLocaleString('en-US', { minimumFractionDigits: it.usd, maximumFractionDigits: it.usd });
     }
     function read(it) {
-      var r = by[it.symbol], price = r ? Number(r.price) : NaN, rate = r ? Number(r.change_rate) : NaN, at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
-      if (!(r && r.stale !== true && isFinite(price) && price > 0 && isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000)) return null;
-      var kst = new Date(at + 9 * 3600000);
-      // 실시간/지연/종가는 응답이 알려 주는 만큼만 적는다: 수신 시각과 경과, 출처, 지연 여부(source_delay)가 '미확인'이면 그대로 '지연 여부 미확인'.
-      var src = r.source || (it.symbol === 'BTC' || it.symbol === 'ETH' ? '업비트 공개시세' : ''), delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
-      return { text: fmt(it, price), rate: rate, time: pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 수신(' + ageText_(now - at) + ')',
+      var r = by[it.symbol], price = r && r.price != null ? Number(r.price) : NaN,
+          rate = r && r.change_rate != null ? Number(r.change_rate) : NaN,
+          at = r && r.updated_at ? Date.parse(r.updated_at) : NaN;
+      // 브렌트유만: 서버가 실제 시세/일봉을 검증하고 '휴장·직전 종가'로
+      // 명시한 경우 주말의 36시간 제한을 적용하지 않는다. 다른 stale 값은 거절.
+      var closed = it.symbol === 'BRENT' && r && r.market_closed === true && r.quote_status === 'closed'
+        && /^\d{4}-\d{2}-\d{2}$/.test(String(r.asof_date || '')) && r.stale !== true;
+      if (!(r && r.stale !== true && isFinite(price) && price > 0 &&
+            (closed || isFinite(rate) && isFinite(at) && now - at <= 36 * 3600000))) return null;
+      var kst = isFinite(at) ? new Date(at + 9 * 3600000) : null;
+      var dateText = closed ? String(r.asof_date).slice(5).replace('-', '.') : '';
+      var src = r.source || (it.symbol === 'BTC' || it.symbol === 'ETH' ? '업비트 공개시세' : ''),
+          delay = r.source_delay === '미확인' ? '지연 여부 미확인' : r.source_delay || '';
+      return { text: fmt(it, price), rate: isFinite(rate) ? rate : null,
+        closed: closed, asof: dateText,
+        time: closed ? dateText + (r.price_kind === 'daily_close' ? ' KIS 일봉 종가 · 휴장' : ' 마지막 유효 시세 · 휴장') :
+          pad(kst.getUTCMonth() + 1) + '.' + pad(kst.getUTCDate()) + ' ' + pad(kst.getUTCHours()) + ':' + pad(kst.getUTCMinutes()) + ' 수신(' + ageText_(now - at) + ')',
         src: [src, delay].filter(Boolean).join(' · ') };
     }
     var cards = COMMODITY_GROUPS_.map(function (g) {
       var reads = g.items.map(read), have = reads.filter(Boolean);
-      var mean = have.length ? have.reduce(function (sum, v) { return sum + v.rate; }, 0) / have.length : null;
+      var rated = have.filter(function (v) { return v.rate != null; });
+      var mean = rated.length ? rated.reduce(function (sum, v) { return sum + v.rate; }, 0) / rated.length : have.length ? 0 : null;
       var tone = mean == null || Math.abs(mean) < 0.3 ? 'neutral' : mean > 0 ? 'positive' : 'negative';
-      var rateText = function (v) { return (v.rate > 0 ? '+' : '') + v.rate.toFixed(2) + '%'; };
-      var rowTone = function (v) { return Math.abs(v.rate) < 0.3 ? '' : v.rate > 0 ? 'positive' : 'negative'; };
-      var rows = mean == null ? [] : g.items.map(function (it, k) { return reads[k] ? { k: it.label, v: reads[k].text, d: rateText(reads[k]), t: rowTone(reads[k]) } : { k: it.label, v: '미수신', miss: true }; });
+      var rateText = function (v) { return v.rate == null ? '' : (v.rate > 0 ? '+' : '') + v.rate.toFixed(2) + '%'; };
+      var rowTone = function (v) { return v.rate == null || Math.abs(v.rate) < 0.3 ? '' : v.rate > 0 ? 'positive' : 'negative'; };
+      var rows = mean == null ? [] : g.items.map(function (it, k) { return reads[k] ? { k: it.label + (reads[k].closed ? ' (' + reads[k].asof + (by[it.symbol].price_kind === 'daily_close' ? ' 종가)' : ' 기준)') : ''), v: reads[k].text, d: rateText(reads[k]), t: rowTone(reads[k]) } : { k: it.label, v: '미수신', miss: true }; });
       var gi = g.items.findIndex(function (it, k) { return reads[k]; }), pts = gi >= 0 ? seriesPoints_(by[g.items[gi].symbol], 40) : [];
       var item = gi >= 0 ? g.items[gi] : g.items[0];
-      return { id: g.kind, icon: g.kind, detail: item.label + ' 일봉 종가', label: g.name, tone: tone, state: mean == null ? '미수신' : stateWord_(tone, ['상승', '하락', '보합']), rows: rows,
+      return { id: g.kind, icon: g.kind, detail: item.label + ' 일봉 종가', label: g.name, tone: tone, state: mean == null ? '미수신' : have.every(function (v) { return v.closed; }) ? '휴장' : stateWord_(tone, ['상승', '하락', '보합']), rows: rows,
         ai: mean == null ? null : g.kind, meta: have.length ? [have[0].time].concat(have.map(function (v) { return v.src; }).filter(function (t, i, a) { return t && a.indexOf(t) === i; })).join(' · ') : '값을 받지 못했습니다',
         panel: pts.length ? { points: pts, base: medianOf_(pts.map(function (r) { return r.score; })), format: function (v) { return fmt(item, v); } } : null };
     });

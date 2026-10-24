@@ -38,5 +38,54 @@ class CommodityKisTest(unittest.TestCase):
         conn.close()
 
 
+    def test_weekend_last_verified_quote_is_displayed_not_live(self):
+        from datetime import timezone
+        now = datetime(2026, 10, 24, 11, 30, tzinfo=timezone.utc)
+        quote = {'price': 103.4, 'change': 1.2, 'change_rate': 1.17,
+                 'updated_at': '2026-10-23T02:00:00+00:00'}
+        snap = commodity_kis.public_brent_snapshot(quote, now=now, weekend_closed=True)
+        self.assertEqual(snap['price'], 103.4)
+        self.assertTrue(snap['market_closed'])
+        self.assertFalse(snap['stale'])
+        self.assertEqual(snap['quote_status'], 'closed')
+        self.assertEqual(snap['asof_date'], '2026-10-23')
+        self.assertEqual(snap['price_kind'], 'last_quote')
+
+        # A 5-minute-old quote during a declared closure must not say live.
+        fresh = dict(quote, updated_at='2026-10-24T11:26:00+00:00')
+        self.assertEqual(commodity_kis.public_brent_snapshot(
+            fresh, now=now, weekend_closed=True)['quote_status'], 'closed')
+
+    def test_only_closed_market_can_reuse_old_quote(self):
+        from datetime import timezone
+        now = datetime(2026, 10, 24, 11, 30, tzinfo=timezone.utc)
+        quote = {'price': 103.4, 'change': 1.2, 'change_rate': 1.17,
+                 'updated_at': '2026-10-23T02:00:00+00:00'}
+        result = commodity_kis.public_brent_snapshot(quote, now=now, weekend_closed=False)
+        self.assertIsNone(result['price'])
+        self.assertTrue(result['stale'])
+        self.assertEqual(result['quote_status'], 'delayed')
+        old = dict(quote, updated_at='2026-10-15T02:00:00+00:00')
+        result = commodity_kis.public_brent_snapshot(old, now=now, weekend_closed=True)
+        self.assertIsNone(result['price'])
+        self.assertTrue(result['stale'])
+
+    def test_closed_market_falls_back_to_actual_recent_daily_close_only(self):
+        from datetime import timezone
+        now = datetime(2026, 10, 24, 11, 30, tzinfo=timezone.utc)
+        rows = [{'date': '20261022', 'close': 101.1}, {'date': '20261023', 'close': 102.8}]
+        result = commodity_kis.public_brent_snapshot(None, rows, now=now, weekend_closed=True)
+        self.assertEqual(result['price'], 102.8)
+        self.assertIsNone(result['change_rate'])
+        self.assertIsNone(result['updated_at'])
+        self.assertEqual(result['price_kind'], 'daily_close')
+        self.assertEqual(result['asof_date'], '2026-10-23')
+        self.assertFalse(result['stale'])
+        result = commodity_kis.public_brent_snapshot(None, rows, now=now, weekend_closed=False)
+        self.assertIsNone(result['price'])
+        old = [{'date': '20261017', 'close': 104.0}]
+        result = commodity_kis.public_brent_snapshot(None, old, now=now, weekend_closed=True)
+        self.assertIsNone(result['price'])
+
 if __name__ == '__main__':
     unittest.main()

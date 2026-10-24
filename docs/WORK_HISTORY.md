@@ -1,3 +1,9 @@
+**2026-10-24 브렌트유 주말 미수신·시세 지연 상태 통일(PR #965 배포 승인·검증 진행)**
+
+사용자 신고: 증시온도 원유 BRENT '미수신', 시장지표 글로벌 '시세 지연'. 원인: KIS ICE 브렌트유가 주말에 거래하지 않더라도 기존 서버 REST·WebSocket이 **직전 수신 20분 초과시 가격 자체를 null로 설정**하고, UI가 각각 다른 문구로 표시. 신규 수집처나 임의 가격을 만들지 않고 공통 `commodity_kis.public_brent_snapshot`를 도입했다. 거래 중 20분 신선도 규칙은 그대로, 공통 시장시계의 보수적 주말 휴장 구간에 한해서 직전 검증된 KIS 시세(최대96시간) 또는 실제 KIS 최근 일봉 종가(4일 이내)를 가격과 별도 `market_closed/quote_status/price_kind/asof_date` 상태로 노출한다. 종가만 있을 때 변동률은 만들지 않으며 기준 날짜를 표시. 그 외 미수신/권한 실패/오래된 자료는 여전히 결측이다.
+
+`scripts/cloud-vm/main.py`의 /futures·시장지표 WebSocket 판정 공통화, `js/market-temp.js` 원자재 카드의 '휴장·직전 종가' 표시 및 오래됨 예외, `js/overnight-market.js` 시장지표 출처·휴장 상태/빈 변동률 표시 보정. Python·JS 회귀 사례 추가. 2026-10-24 22:27 KST 사용자 배포 승인. 본 항목은 배포 요청 시점의 코드/테스트 기록이며 실제 운영 API·화면 검증 결과는 별도 확인 대상.
+
 **2026-10-24 22:30 KST 휴장 원본 복원·6지수 운영 배포 완료**
 
 사용자 후속 지시 “배포해”에 따라 PR #966 병합, master `31db75b3`. [GitHub Pages build/deploy](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40098340223) 22:30:17 KST 성공·Pages built 확인. 임시 자산 교체 없이 운영 홈을 강력 새로고침하여1440/390 라이트·다크 실측: 지수6개/실제 그래프6개·135px, 원본 브리핑8개·이야기11개/영역1개·하단 중복0·문서 가로 넘침0. 브리핑 다음 버튼348px 이동·미국증시에서 원래 이야기/푸터 복원·휴장 재진입 정상. 실제 시장지표 공유 시세 모듈 로드 확인. [운영 실측](qa/weekend-restore-2026-10-24/deployed-styles.json). 기존 티스토리 common.js 오류와 원본 세로 복원에 따른 전체 높이 증가는 이전 보고대로 남음. 정적 JS/CSS 배포만 수행, skin.html 수동 반영·VM/GAS 배포·서버 재시작 없음.
