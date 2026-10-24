@@ -109,7 +109,7 @@ html.dark #stock-news .sn-analysis-entry span { color: var(--dk-sub) !important;
 }
 
 .sn-rank-num {
-  font-family: "MaruBuri", Georgia, serif;
+  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif);
   font-style: italic;
   font-weight: 700;
   font-size: 20px;

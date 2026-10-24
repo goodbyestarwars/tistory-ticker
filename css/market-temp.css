@@ -2324,7 +2324,7 @@ html.dark #market-temp .mt-history-balance > span { background: transparent !imp
 #market-temp .mt-hot-strip[hidden] { display: none; }
 #market-temp .mt-hot-icon { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; flex-shrink: 0; border-radius: 50%; background: var(--mt2-soft); font-size: 20px; }
 #market-temp .mt-hot-label { font-size: 20px; font-weight: 700; white-space: nowrap; }
-#market-temp .mt-hot-hot { color: var(--num-up); font-family: "MaruBuri", Georgia, serif; letter-spacing: .02em; }
+#market-temp .mt-hot-hot { color: var(--num-up); font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); letter-spacing: .02em; }
 #market-temp .mt-hot-name { color: var(--num-down); font-size: 22px; }
 #market-temp .mt-hot-sep { width: 2px; height: 18px; flex-shrink: 0; background: var(--mt2-line); }
 #market-temp .mt-hot-headline { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 16px; font-weight: 600; }
@@ -2996,7 +2996,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
 
   /* 폰트: 마루부리는 큰 제목(카드 제목·헤드라인)에만, 나머지는 Pretendard(2026-10-23 사용자 방침). 굵은 글자 글꼴은 제목에만 MaruBuriBold */
   html body #market-temp :is(.mt-checkpoint-facts, .mt-temperature-money-flow, .mt-sf-card) :is(*, *::before) { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; }
-  html body #market-temp :is(.mt-checkpoint-facts .mt-cp-head .mt-strategy-panel-title, .mt-checkpoint-facts .mt-cp-call .mt-strategy-action, .mt-sf-card .mt-cp-head .mt-strategy-panel-title) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp :is(.mt-checkpoint-facts .mt-cp-head .mt-strategy-panel-title, .mt-checkpoint-facts .mt-cp-call .mt-strategy-action, .mt-sf-card .mt-cp-head .mt-strategy-panel-title) { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-weight: 400 !important; }
 
   /* 하락 빨강 아닌 파랑 / 상승 빨강: 연한 배경 + 글자 */
   html body #market-temp .mt-front-headline:is(.is-down, .is-up) { display: inline-block; padding: 2px 10px !important; border-radius: 8px; }
@@ -3017,7 +3017,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-sf-card :is(.mt-sf-row, .mt-sf-row *, .mt-sf-thead, .mt-sf-thead *, .mt-sf-visual-head small, .mt-sf-note, .mt-sf-disclaimer) { font-size: 12px !important; }
   /* 카드 밖 머리글·설명 */
   html body #market-temp :is(.mt-page-head, .mt-page-head *, .mt-live-status, .mt-front-kicker, .mt-front-kicker *, .mt-front-lead, .mt-section-head p) { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; }
-  html body #market-temp :is(.mt-front-headline, .mt-section-head h2, .mt-section-head h3) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp :is(.mt-front-headline, .mt-section-head h2, .mt-section-head h3) { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-weight: 400 !important; }
 }
 
 /* 2026-10-23 섹터 표 행: 암묵 grid 행(22.7+4.7+4.7px)이 아래 여백을 만들어 글자가 위로 쏠렸다 - 한 행으로 고정하고 칸을 세로 중앙 정렬 */
@@ -3032,7 +3032,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
    원인: 카드가 마루부리 규칙 밖이라 #market-temp의 Pretendard를 상속했고, 섹터 표는 .mt-sf-item의 min-height 72px가 52px 행 아래에 20px를 비워 글자가 위로 쏠렸다. */
 @layer np.np {
   html body #market-temp .mt-tomorrow-card, html body #market-temp .mt-tomorrow-card * { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; font-variant-numeric: tabular-nums; }
-  html body #market-temp .mt-tomorrow-card :is(.mt-tm-head strong, .mt-tm-verdict > b) { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp .mt-tomorrow-card :is(.mt-tm-head strong, .mt-tm-verdict > b) { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-weight: 400 !important; }
   html body #market-temp .mt-tomorrow-card .mt-tm-head strong { font-size: 21px; }
   html body #market-temp .mt-tm-aux { margin: 10px 0 6px; font-size: 12.5px; line-height: 1.7; color: #1f2937 !important; }
   html body #market-temp .mt-tm-aux > b:first-child { margin-right: 4px; color: #1f2937 !important; }
@@ -3048,7 +3048,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   html body #market-temp .mt-sf-card .mt-sf-item.mt-sf-item { min-height: 0 !important; }
   /* 업종 로테이션: 위 카드들과 같은 형식 */
   html body #market-temp .mt-rot-wrap .home-sector-rotation, html body #market-temp .mt-rot-wrap .home-sector-rotation :is(*, *::before) { font-family: var(--font-ui, 'Pretendard', 'Malgun Gothic', sans-serif) !important; }
-  html body #market-temp .mt-rot-wrap .home-sector-rotation .hsr-title-row strong { font-family: 'MaruBuriBold', 'MaruBuri', Georgia, serif !important; font-weight: 400 !important; }
+  html body #market-temp .mt-rot-wrap .home-sector-rotation .hsr-title-row strong { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-weight: 400 !important; }
   html body #market-temp .mt-rot-wrap .hsr-head { align-items: flex-start; margin-bottom: 8px; }
   html body #market-temp .mt-rot-wrap.mt-rot-wrap .hsr-title-row strong { font-size: 21px !important; letter-spacing: -.02em; color: #666 !important; }
   html.dark body #market-temp .mt-rot-wrap .hsr-title-row strong { color: var(--dk-sub) !important; }

@@ -8,8 +8,8 @@
   --at-up: #d24f45; --at-down: #1261c4; min-width: 0; color: var(--at-ink); font-family: var(--font-ui, system-ui, sans-serif); }
 html.dark #auto-trader { --at-up: var(--dk-up); --at-down: var(--dk-down); }
 #auto-trader .at-card { margin: 0 0 18px; padding: 24px; border: 1px solid var(--at-line); border-radius: 20px; background: var(--np-paper, #fff); }
-#auto-trader h2 { margin: 0; font: 400 26px/1.3 "MaruBuriBold", "MaruBuri", serif; color: var(--at-ink) !important; }
-#auto-trader h3 { margin: 0; font: 400 20px/1.4 "MaruBuriBold", "MaruBuri", serif; color: var(--at-ink) !important; }
+#auto-trader h2 { margin: 0; font: 400 26px/1.3 var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); color: var(--at-ink) !important; }
+#auto-trader h3 { margin: 0; font: 400 20px/1.4 var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); color: var(--at-ink) !important; }
 #auto-trader h3 small { margin-left: 8px; font: 400 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); }
 #auto-trader .at-badge { margin-left: 8px; padding: 3px 10px; border: 1px solid var(--at-line); border-radius: 999px; font: 600 12px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--at-mute); vertical-align: middle; }
 #auto-trader .at-badge.is-live { border-color: var(--at-up); color: var(--num-up); }
@@ -57,7 +57,7 @@ html.dark #auto-trader { --at-up: var(--dk-up); --at-down: var(--dk-down); }
 #auto-trader { --at-panel: #fff; --at-warn: #b45309; --at-ok: #1a7f4b; font-variant-numeric: tabular-nums; font-size: 13.5px; }
 html.dark #auto-trader { --at-panel: var(--dk-card); --at-warn: #f0b35c; --at-ok: #5fcf8f; }
 #auto-trader .at-top { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 14px; padding: 10px 0 12px; border-bottom: 1px solid var(--at-ink); }
-#auto-trader .at-brand { font: 400 20px/1.3 "MaruBuriBold", "MaruBuri", serif; margin-right: 4px; }
+#auto-trader .at-brand { font: 400 20px/1.3 var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); margin-right: 4px; }
 #auto-trader .at-chip2 { padding: 2px 10px; border: 1px solid var(--at-warn); border-radius: 999px; color: var(--at-warn); font-size: 12px; font-weight: 700; }
 #auto-trader .at-chip2.is-live { border-color: var(--at-up); background: var(--at-up); color: #fff; }
 #auto-trader .at-st { display: inline-flex; align-items: center; gap: 6px; color: var(--at-mute); font-size: 12.5px; }

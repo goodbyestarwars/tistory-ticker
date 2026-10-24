@@ -1,5 +1,5 @@
 #dcf { color:var(--np-ink, #242424); background:var(--np-paper, #fff); font-family:Pretendard,sans-serif; max-width:1400px; margin:0 auto; line-height:1.6; }
-#dcf h1, #dcf h2 { font-family:MaruBuriBold,serif; font-weight:400; }
+#dcf h1, #dcf h2 { font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-weight:400; }
 #dcf h1 { font-size:30px; margin:0; }
 #dcf h2 { font-size:21px; margin:0 0 14px; }
 #dcf p { margin:10px 0; }

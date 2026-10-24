@@ -199,15 +199,15 @@
 .dmi-shell { margin-top: 28px; color: #111; }
 .dmi-chart-section { border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
 .dmi-chart-section .dmi-subheading { margin: 0; padding: 16px 0 12px; }
-.dmi-heading h2 { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 28px; letter-spacing: -.03em; }
-.dmi-subheading h3 { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 20px; }
+.dmi-heading h2 { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-size: 28px; letter-spacing: -.03em; }
+.dmi-subheading h3 { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-size: 20px; }
 .dmi-chart-grid { gap: 0; align-items: stretch; }
 .dmi-panel,
 .dmi-fund-card,
 .dmi-flow-card { border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .dmi-panel { min-width: 0; padding: 0 22px 18px 0; overflow: visible; }
 .dmi-panel + .dmi-panel { border-left: 1px solid #d8d8d8; padding: 0 0 18px 22px; }
-.dmi-panel-title { padding: 0 0 7px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 18px; }
+.dmi-panel-title { padding: 0 0 7px; font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-size: 18px; }
 .dmi-chart-tools { gap: 10px; }
 .dmi-chart-tools .dmi-collapse-btn { display: none; }
 .dmi-tabs { flex-wrap: wrap; gap: 8px 15px; margin: 0 0 8px; }
@@ -224,14 +224,14 @@
 .dmi-flow-grid { gap: 0; border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
 .dmi-flow-card { padding: 14px 20px 16px 0; }
 .dmi-flow-card + .dmi-flow-card { border-left: 1px solid #d8d8d8; padding: 14px 0 16px 20px; }
-.dmi-flow-title { margin-bottom: 8px; font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 16px; }
+.dmi-flow-title { margin-bottom: 8px; font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-size: 16px; }
 .dmi-flow-table th,
 .dmi-flow-table td { padding: 7px 5px; border-bottom-color: #e7e7e7; }
 .dmi-fund-grid { gap: 0; border-top: 1px solid #d8d8d8; border-bottom: 1px solid #d8d8d8; }
 .dmi-fund-card { min-height: 0; padding: 14px 18px 16px 0; }
 .dmi-fund-card:nth-child(3n + 2),
 .dmi-fund-card:nth-child(3n + 3) { border-left: 1px solid #d8d8d8; padding-left: 18px; }
-.dmi-fund-label { font-family: 'MaruBuri', 'MaruBuri Bold', serif; font-size: 16px; }
+.dmi-fund-label { font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); font-size: 16px; }
 .dmi-fund-desc { color: #777; font-size: 11px; }
 .dmi-fund-value { margin: 8px 0 2px; font-size: 24px; }
 .dmi-fund-average,
