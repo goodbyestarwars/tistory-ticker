@@ -427,7 +427,7 @@
     function showTooltip(item) {
       // 2026-08-03: item.name/item.breakdown(GAS ?bubble=1 응답)을 이스케이프 없이 innerHTML에
       // 삽입하고 있었다 - 같은 파일에 escapeHtml이 이미 있는데 여기서만 누락돼 있었다.
-      var rateTxt = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
+      var rateTxt = item.changeRate == null ? '등락률 미제공' : (item.changeRate > 0 ? '+' : '') + item.changeRate.toFixed(2) + '%';
       tooltip.innerHTML =
         '<div class="mcb-tt-name">' + escapeHtml(item.name) + '</div>' +
         '<div class="mcb-tt-cap">시가총액 ' + formatCap(item.cap) + '</div>' +
@@ -475,14 +475,13 @@
 
     var seen = {};
     nodes.forEach(function (item) {
-      seen[item.name] = true;
+      seen[item.code || item.name] = true;
 
-      var node = existing[item.name];
+      var node = existing[item.code || item.name];
       if (!node) {
-        node = svgEl('g', { class: 'mcb-node', 'data-name': item.name });
+        node = svgEl('g', { class: 'mcb-node', 'data-name': item.code || item.name });
         node.appendChild(svgEl('rect', { class: 'mcb-cell' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
-        node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
         cellLayer.appendChild(node);
 
@@ -495,13 +494,31 @@
         });
         node.addEventListener('mouseenter', function () { showTooltip(node.__mcbItem); });
         node.addEventListener('mouseleave', hideTooltip);
+        node.addEventListener('dblclick', function (evt) {
+          var item=node.__mcbItem;
+          if (!item || !/^[0-9A-Za-z]{6}$/.test(item.code || '')) return;
+          evt.stopPropagation();
+          global.location.href='/page/stock-search?code='+encodeURIComponent(item.code)+'&name='+encodeURIComponent(item.name);
+        });
+        node.addEventListener('keydown', function(evt) {
+          if (evt.key !== 'Enter' && evt.key !== ' ') return;
+          evt.preventDefault();
+          var item=node.__mcbItem;
+          if (!item) return;
+          if (!/^[0-9A-Za-z]{6}$/.test(item.code || '')) { showTooltip(item); return; }
+          global.location.href='/page/stock-search?code='+encodeURIComponent(item.code)+'&name='+encodeURIComponent(item.name);
+        });
       }
       node.__mcbItem = item;
+      if (item.code && /^[0-9A-Za-z]{6}$/.test(item.code)) {
+        node.setAttribute('role','link'); node.setAttribute('tabindex','0');
+        node.setAttribute('aria-label',item.name+' · '+(item.changeRate == null ? '등락률 미제공' : item.changeRate.toFixed(2)+'%')+' · 상세 이동');
+      } else { node.removeAttribute('role'); node.removeAttribute('tabindex'); }
 
       var dirClass = heatClass(item.changeRate);
-      var big = item.w >= 90 && item.h >= 56;
-      var mid = item.w >= 56 && item.h >= 34;
-      var small = item.w >= 34 && item.h >= 20;
+      var big=item.w >= 85 && item.h >= 54;
+      var mid=item.w >= 52 && item.h >= 32;
+      var small=item.w >= 31 && item.h >= 20;
       var cx = item.x + item.w / 2;
       var cy = item.y + item.h / 2;
 
@@ -515,32 +532,24 @@
 
       // 글자 크기를 3단계 고정값 대신 셀 크기에 비례해 연속적으로 키운다
       // (칸이 클수록 이름/시총/등락률 글자도 그만큼 커짐).
-      var nameFontSize = clamp(Math.min(item.w / 8, item.h / 5), 9, 34);
-      var capFontSize = clamp(nameFontSize * 0.78, 8, 24);
-      var rateFontSize = clamp(nameFontSize * 0.66, 8, 20);
-      var lineGap = nameFontSize * 1.15;
+      var nameFontSize=clamp(Math.min(item.w/8,item.h/4.3),10,24);
+      var rateFontSize=clamp(nameFontSize*0.88,10,20);
+      var lineGap=nameFontSize*1.1;
 
       var labelEl = node.querySelector('.mcb-label');
       labelEl.style.display = small ? '' : 'none';
       labelEl.setAttribute('x', cx);
-      labelEl.setAttribute('y', cy + (big ? -lineGap * 0.85 : (mid ? -lineGap * 0.35 : nameFontSize * 0.32)));
+      labelEl.setAttribute('y', cy + (mid ? -lineGap*0.32 : nameFontSize*0.32));
       labelEl.style.fontSize = nameFontSize + 'px';
       fitText(labelEl, item.name, Math.max(item.w - 6, 0));
-
-      var capEl = node.querySelector('.mcb-cap-label');
-      capEl.style.display = big ? '' : 'none';
-      capEl.setAttribute('x', cx);
-      capEl.setAttribute('y', cy + lineGap * 0.15);
-      capEl.style.fontSize = capFontSize + 'px';
-      capEl.textContent = formatCap(item.cap);
 
       var rateEl = node.querySelector('.mcb-rate-label');
       rateEl.style.display = mid ? '' : 'none';
       rateEl.setAttribute('x', cx);
-      rateEl.setAttribute('y', cy + (big ? lineGap * 1.15 : lineGap * 0.65));
+      rateEl.setAttribute('y', cy + lineGap*0.86);
       rateEl.style.fontSize = rateFontSize + 'px';
       rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
-      rateEl.textContent = (item.changeRate >= 0 ? '+' : '') + item.changeRate.toFixed(1) + '%';
+      rateEl.textContent = item.changeRate == null ? '—' : (item.changeRate > 0 ? '+' : '')+item.changeRate.toFixed(1)+'%';
     });
 
     Object.keys(existing).forEach(function (name) {
