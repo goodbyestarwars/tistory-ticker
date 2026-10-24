@@ -363,11 +363,18 @@
       // 기준으로 absolute 배치가 틀어져 엉뚱한 위치(페이지 상단 등)에 뜬다.
       container.innerHTML =
         '<div class="mcb-filter-bar">' +
-        '<label class="mcb-filter-label" for="mcbSectorFilter">업종</label>' +
+        '<div class="mcb-market-tabs" role="group" aria-label="시장 선택">' +
+        '<button type="button" data-mcb-market="KOSPI">코스피</button>' +
+        '<button type="button" data-mcb-market="KOSDAQ">코스닥</button>' +
+        '<button type="button" data-mcb-market="ALL">전체</button>' +
+        '<button type="button" data-mcb-market="ETF">ETF·레버리지</button></div>' +
+        '<label class="mcb-filter-label" for="mcbSectorFilter">테마</label>' +
         '<select id="mcbSectorFilter" class="mcb-filter-select"><option value="">전체</option></select>' +
+        '<span class="mcb-period" title="현재 수집처는 하루 등락률만 제공합니다.">1일 변동률</span>' +
         '</div>' +
+        '<p class="mcb-explainer">타일 면적 = 실제 시가총액 · 색상 = 전일 대비 등락률 · 더블클릭/더블터치하면 종목 상세</p>' +
         '<div class="mcb-canvas"><div class="mcb-tooltip" hidden></div></div>' +
-        '<div class="mcb-legend"></div>' +
+        '<div class="mcb-foot"><div class="mcb-legend"></div><span class="mcb-stats"></span></div>' +
         '<div class="mcb-updated nt-stamp"></div>';
       svg = svgEl('svg', { class: 'mcb-svg', viewBox: '0 0 ' + VIEW_W + ' ' + viewH });
       svg.appendChild(svgEl('g', { class: 'mcb-cells' }));
@@ -378,6 +385,14 @@
         container.__mcbSectorFilter = e.target.value;
         var lastData = container.__mcbLastData;
         if (lastData) renderFromData(container, lastData, container.__mcbLastUpdatedAt);
+      });
+      Array.prototype.forEach.call(container.querySelectorAll('[data-mcb-market]'), function (button) {
+        button.addEventListener('click', function () {
+          container.__mcbMarketView = button.getAttribute('data-mcb-market');
+          container.__mcbSectorFilter = '';
+          container.querySelector('#mcbSectorFilter').value = '';
+          if (container.__mcbLastData) renderFromData(container,container.__mcbLastData,container.__mcbLastUpdatedAt);
+        });
       });
     } else {
       svg.setAttribute('viewBox', '0 0 ' + VIEW_W + ' ' + viewH);
@@ -556,7 +571,11 @@
   function updateSectorOptions(container, data) {
     var select = container.querySelector('#mcbSectorFilter');
     if (!select) return;
-    var sectors = uniqueSectors(data);
+    var view=container.__mcbMarketView || 'KOSPI';
+    var subset={KOSPI:view === 'KOSDAQ' || view === 'ETF' ? [] : data.KOSPI || [],
+      KOSDAQ:view === 'KOSPI' || view === 'ETF' ? [] : data.KOSDAQ || []};
+    var sectors=uniqueSectors(subset);
+    select.disabled=view === 'ETF';
     var optionsHtml = '<option value="">전체</option>' + sectors.map(function (s) {
       return '<option value="' + escapeAttr(s) + '">' + escapeHtml(s) + '</option>';
     }).join('');
@@ -570,10 +589,17 @@
   function renderFromData(container, data, updatedAt) {
     var sectorFilter = container.__mcbSectorFilter || '';
     var codeFilter = container.__mcbCodeFilter || null;
-    var layout = buildLayout(data, sectorFilter, codeFilter);
-    var legendHtml = buildLegendHtml();
-    render(container, layout.nodes, layout.viewH, updatedAt, legendHtml, layout.clusterLabels);
-    updateSectorOptions(container, data);
+    var layout=buildLayout(data,sectorFilter,codeFilter,container.__mcbMarketView || 'KOSPI');
+    var legendHtml=buildLegendHtml();
+    render(container,layout.nodes,layout.viewH,updatedAt,legendHtml,layout.clusterLabels);
+    updateSectorOptions(container,data);
+    Array.prototype.forEach.call(container.querySelectorAll('[data-mcb-market]'), function(btn) {
+      var on=btn.getAttribute('data-mcb-market')===layout.marketView;
+      btn.classList.toggle('is-active',on);
+      btn.setAttribute('aria-pressed',String(on));
+    });
+    var stats=container.querySelector('.mcb-stats');
+    if(stats) stats.textContent=layout.totalItems.toLocaleString('ko-KR')+'종목 · 표시 시총 '+formatCap(layout.totalCap);
     if (codeFilter && typeof global.CustomEvent === 'function') {
       container.dispatchEvent(new global.CustomEvent('mcb:rendered', { detail: { matched: layout.matched } }));
     }
