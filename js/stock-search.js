@@ -1691,7 +1691,6 @@
       + '<span class="ss-summary-change ' + cls + '">' + fmtSignedPct(item.changeRate) + '</span>'
       + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
-      + '</div>'
       + '</div>';
   }
 
