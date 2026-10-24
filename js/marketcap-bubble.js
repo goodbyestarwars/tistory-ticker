@@ -460,6 +460,7 @@
         t.textContent = cl.label;
         t.style.pointerEvents = 'none';
         labelLayer.appendChild(t);
+        fitText(t,cl.label,Math.max(cl.w-14,0));
       }
     });
 
