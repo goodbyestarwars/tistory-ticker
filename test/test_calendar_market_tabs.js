@@ -98,10 +98,11 @@ test('country tab styles include keyboard focus, dark mode and compact mobile', 
   assert.match(css,/#stock-calendar \.sc-market-btn\.is-active/);
 });
 
-test('market filter is below the month grid inside the calendar column', () => {
+test('market filter is beside the completed disclosure heading', () => {
   const page=mountCalendar();
   assert.doesNotMatch(page.shell,/sc-market-switch/);
-  assert.match(page.html,/<div class="sc-grid">[\s\S]*?<\/div><nav class="sc-market-switch"[\s\S]*?<\/nav><\/aside>/);
+  assert.match(page.html,/<div class="sc-completed-head"><div><h2>공시 완료[\s\S]*?<\/p><\/div><nav class="sc-market-switch"/);
+  assert.doesNotMatch(page.html,/<aside[\s\S]*?sc-market-switch[\s\S]*?<\/aside>/);
   page.click('us');
   assert.match(page.html,/data-calendar-market="all" aria-pressed="false"/);
 });

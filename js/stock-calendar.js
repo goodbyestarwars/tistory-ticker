@@ -474,6 +474,16 @@
       + rowEnd;
   }
 
+  function renderMarketSwitch(state) {
+    return '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
+      + [['all', '전체보기'], ['domestic', '국내'], ['us', '미국']].map(function (tab) {
+        var active = state.marketFilter === tab[0];
+        return '<button type="button" class="sc-market-btn' + (active ? ' is-active' : '')
+          + '" data-calendar-market="' + tab[0] + '" aria-pressed="' + active + '">' + tab[1] + '</button>';
+      }).join('') + '</nav>';
+  }
+
+
   function renderCompletedDisclosures(state, loading) {
     var monthKey = String(state.viewYear) + '-' + String(state.viewMonth + 1).padStart(2, '0');
     var terms = String(state.disclosureQuery || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
@@ -509,9 +519,10 @@
         : '선택한 시장에 표시할 완료 공시가 없어.') + '</div>';
     var marketTitle = state.marketFilter === 'us' ? '미국' : state.marketFilter === 'domestic' ? '국내' : '국내·미국';
     return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
-      + '<h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2>'
+      + '<div><h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2>'
       + '<p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
       + '월 · ' + marketTitle + ' 공시를 최신 날짜순으로 보여줘.</p></div>'
+      + renderMarketSwitch(state) + '</div>'
       + body + '</section>';
   }
 
@@ -573,15 +584,6 @@
         + '<div class="sc-grid">' + cells.join('') + '</div>';
     }
 
-    function renderMarketSwitch(state) {
-      return '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
-        + [['all', '전체보기'], ['domestic', '국내'], ['us', '미국']].map(function (tab) {
-          var active = state.marketFilter === tab[0];
-          return '<button type="button" class="sc-market-btn' + (active ? ' is-active' : '')
-            + '" data-calendar-market="' + tab[0] + '" aria-pressed="' + active + '">' + tab[1] + '</button>';
-        }).join('') + '</nav>';
-    }
-
     function renderSchedule(state, loading) {
       state.loading = !!loading;
       container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월의 완료 공시에서 검색해.';
@@ -600,7 +602,6 @@
         '<div class="sc-layout">'
         + '<aside class="sc-cal-col" aria-label="일정 달력">'
         + renderMonthCalendar(state)
-        + renderMarketSwitch(state)
         + '</aside>'
         + '<section class="sc-list-col" aria-live="polite">'
         + '<div class="sc-today-head"><div><strong>' + (isToday ? '오늘의 일정' : '선택한 날짜 일정') + '</strong><span>' + dateTitle(state.selectedKey) + '</span></div>'

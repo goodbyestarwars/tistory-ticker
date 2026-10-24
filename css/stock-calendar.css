@@ -38,7 +38,7 @@ html.dark #stock-calendar .sc-disclosure-search small { color: var(--dk-sub) !im
 html.dark #stock-calendar .sc-econ-results { border-top-color: var(--dk-line); }
 html.dark #stock-calendar .umi-result-period { color: var(--dk-text); border-color: var(--dk-line); }
 @media (max-width: 480px) { #stock-calendar .sc-econ-head { flex-wrap: wrap; } }
-#stock-calendar .sc-completed-head { margin-bottom: 12px; }
+#stock-calendar .sc-completed-head { display: flex; align-items: center; flex-wrap: wrap; gap: 12px 32px; margin-bottom: 12px; }
 #stock-calendar .sc-completed-head h2 { margin: 0; font-size: 18px; color: #0d1b40; }
 #stock-calendar .sc-completed-head h2 span { margin-left: 6px; color: #64748b; font-size: 12px; font-weight: 500; }
 #stock-calendar .sc-completed-head p { margin: 5px 0 0; font-size: 12px; color: #64748b; }
@@ -266,8 +266,8 @@ html.dark #stock-calendar .sc-error { color: var(--dk-mute) !important; backgrou
 /* 2026-10-24: 캘린더 전체보기/국내/미국 공통 시장 필터.
    다른 페이지의 토글과 독립적이며 일정 수집 경로에는 영향이 없다. */
 #stock-calendar .sc-market-switch {
-  display: flex; align-items: center; gap: 3px; padding: 3px; width: 100%;
-  margin: 16px 0 0; border-radius: 9px; background: #eef1f5;
+  display: flex; align-items: center; gap: 3px; padding: 3px; width: 220px; flex-shrink: 0;
+  margin: 0; border-radius: 9px; background: #eef1f5;
   border: 1px solid #dce2e8; max-width: 100%; box-sizing: border-box;
 }
 #stock-calendar .sc-market-btn {
