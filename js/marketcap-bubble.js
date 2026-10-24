@@ -548,7 +548,8 @@
       capEl.setAttribute('x', cx);
       capEl.setAttribute('y', cy + lineGap*0.3);
       capEl.style.fontSize = rateFontSize + 'px';
-      fitText(capEl, formatCap(item.cap), Math.max(item.w - 6, 0));
+      var tileCap = item.cap >= 1e12 ? Math.round(item.cap / 1e12) + '조' : formatCap(item.cap);
+      fitText(capEl, tileCap, Math.max(item.w - 6, 0));
 
       var rateEl = node.querySelector('.mcb-rate-label');
       rateEl.style.display = mid ? '' : 'none';
