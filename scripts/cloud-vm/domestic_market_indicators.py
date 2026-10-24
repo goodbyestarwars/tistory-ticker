@@ -16,6 +16,7 @@ from datetime import datetime, timedelta, timezone
 
 import domestic_futures
 import investor_trend
+import index_daily_history
 import kis_client
 import kiwoom_client
 import program_trading_history
@@ -264,24 +265,38 @@ _chart_cache = {}
 
 
 def fetch_chart(kis_appkey, kis_appsecret, market, interval, long_range=False):
-    """코스피·코스닥 차트(인터벌별 TTL 캐시). 아래 _fetch_chart_uncached가 실제 조회.
+    """코스피·코스닥 차트: 기본 TTL 캐시, 긴 일봉은 영속 비차단 캐시.
 
-    long_range=True는 일봉만 3년치(종목검색 지수 차트용)이며 별도 캐시 키를 쓴다.
+    long_range=True는 일봉만 3년치(종목검색 지수 차트용)를 백그라운드로 확보한다.
     """
     long_range = bool(long_range) and interval == 'day'
-    key = (market, interval, 'long') if long_range else (market, interval)
+    if long_range:
+        return index_daily_history.get(market, lambda m, start, end: _fetch_kis_history_range(
+            kis_appkey, kis_appsecret, m, start, end))
+    key = (market, interval)
     ttl = _CHART_TTL.get(interval, 60)
     hit = _chart_cache.get(key)
     if hit and time.time() - hit['t'] < ttl:
         return hit['data']
-    if long_range:
-        result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval, long_range=True)
-    else:
-        result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval)
+    result = _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval)
     # 빈 결과는 캐시하지 않는다 - 일시 실패를 TTL 내내 붙들고 있으면 안 된다.
     if result.get('rows'):
         _chart_cache[key] = {'t': time.time(), 'data': result}
     return result
+
+
+def _fetch_kis_history_range(appkey, appsecret, market, start, end):
+    """Backfill once, then request only missing/provisional KIS date ranges."""
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS credentials unavailable')
+    token = kis_client.get_token(appkey, appsecret)
+    _, raw = kis_client.fetch_index_period_chart(
+        token, appkey, appsecret, MARKETS[market]['kis_code'], start.replace('-', ''),
+        end.replace('-', ''), 'D', max_pages=CHART_LONG_MAX_PAGES)
+    # Missing volume is not an actual zero-volume observation.
+    raw = [r for r in raw if _number(r.get('acml_vol')) is not None and _number(r.get('acml_vol')) >= 0]
+    return [r for r in _sort_rows(raw, limit=CHART_LONG_MAX_BARS, market=market)
+            if start <= r['date'] <= end]
 
 
 def _fetch_chart_uncached(kis_appkey, kis_appsecret, market, interval, long_range=False):

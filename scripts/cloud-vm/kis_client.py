@@ -508,6 +508,13 @@ def fetch_index_period_chart(token, appkey, appsecret, iscd, date1, date2, perio
             output1 = data.get('output1') or {}
         page_rows = data.get('output2') or []
         rows.extend(page_rows if isinstance(page_rows, list) else [page_rows])
+        # A short incremental request may still return 50 rows and tr_cont=M.
+        # Its lower bound is already covered: never paginate confirmed history.
+        covered_dates = [str((row or {}).get('stck_bsop_date') or (row or {}).get('dt') or '')[:8]
+                         for row in (page_rows if isinstance(page_rows, list) else [page_rows])]
+        covered_dates = [day for day in covered_dates if len(day) == 8 and day.isdigit()]
+        if period == 'D' and covered_dates and min(covered_dates) <= date1:
+            break
         if str(next_continuation).upper() in ('M', 'F'):
             continuation = 'N'
             used_continuation = True

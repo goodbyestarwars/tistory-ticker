@@ -137,7 +137,9 @@ class DomesticMarketIndicatorsTest(unittest.TestCase):
                          'stck_lwpr': '1', 'stck_clpr': '2', 'acml_vol': '600'}]
 
         with patch.object(kis_client, 'get_token', return_value='t'), \
-                patch.object(kis_client, 'fetch_index_period_chart', side_effect=fake_period):
+                patch.object(kis_client, 'fetch_index_period_chart', side_effect=fake_period), \
+                patch.object(dmi.index_daily_history, 'get', side_effect=lambda market, loader: {
+                    'rows': loader(market, '2023-10-20', '2026-10-24')}):
             dmi._chart_cache.clear()
             normal = dmi.fetch_chart('k', 's', 'KOSPI', 'day')
             long_rows = dmi.fetch_chart('k', 's', 'KOSPI', 'day', long_range=True)

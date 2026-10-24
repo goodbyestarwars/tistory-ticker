@@ -188,6 +188,8 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 ## 핵심 구조
 
+- 주요 지수 거래량(2026-10-24): `long=1` 일봉은 `index_daily_history.py`가 VM 앱 폴더의 지수별 `index_daily_history_*.json` OHLCV를 영속 보존한다. 요청은 파일을 즉시 반환하고 단일 워커가 초기3년 백필/이후 미확정·새 날짜만 갱신한다. 앱 내부 워머60초 확인·실제 장중60초/장외6시간·실패60초. 원단위 미확정·공급 기준일/수집시각/실패 상태 보존, 배포·재시작 때 파일 삭제 금지. [설계·검증](docs/INDEX_VOLUME_CACHE.md).
+
 - 프론트엔드: Tistory 스킨 + GitHub Pages 정적 자산
 - 백엔드: Google Apps Script + GCP VM FastAPI
 - 운영 API: `https://goodbyestar.cloud`

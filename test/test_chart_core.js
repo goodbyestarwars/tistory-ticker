@@ -159,6 +159,15 @@ assert.strictEqual(Core.chartOptions(LWC, 'search', { timeframe: 'day' }).timeSc
   assert.deepStrictEqual(calls.map((c) => c[0] + ':' + (c[1] && c[1].slice ? c[1].slice(0, 4) : '')), ['add:hist', 'scale:volu', 'setData:hist', 'add:line', 'setData:line', 'add:line', 'setData:line']);
   assert.strictEqual(calls[0][2].priceScaleId, 'volume'); assert.strictEqual(calls[0][3], 1);
   assert.strictEqual(vol.ma20.points.length, 41); assert.strictEqual(vol.ma5.points.length, 56);
+  // A late volume response updates existing histogram/averages, preserving zoom.
+  const visible = {from: 10, to: 30}; let restored;
+  chart.timeScale = () => ({getVisibleLogicalRange:()=>visible, setVisibleLogicalRange:r=>{restored=r;}});
+  calls.length = 0;
+  vol.updateData(bars.map(b=>({...b,volume:(b.volume||0)+1})));
+  assert.equal(calls.filter(c=>c[0]==='add').length, 0);
+  assert.equal(calls.filter(c=>c[0]==='setData').length, 3);
+  assert.deepStrictEqual(restored, visible);
+  assert.strictEqual(vol.ma20.points.length, 41);
   calls.length = 0;
   Core.addVolumePane(chart, LWC, bars, { pane: 1 });                    // 종목분석 설정: 거래량 축 id·5일 평균 없음
   assert.strictEqual(calls.filter((c) => c[0] === 'add').length, 2); assert.strictEqual(calls[0][2].priceScaleId, undefined);

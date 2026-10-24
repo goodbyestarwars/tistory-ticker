@@ -44,7 +44,7 @@
     var m = src && src.match(/^(.*\/)js\/stock-search\.js/);
     return m ? m[1] : 'https://goodbyestarwars.github.io/tistory-ticker/';
   }());
-  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261022-vpcolor';
+  var CHART_CORE_URL = CHART_BASE + 'js/chart-core.js?v=20261024-volume-update';
   var CHART_OPTIONAL = ['drawing', 'memo', 'vp'];   // 못 받아도 차트는 그려진다(해당 기능만 빠진다). 지지·저항·파동은 켤 때 받는다
   var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var CONTAINER_SELECTOR = '#stock-search';
@@ -194,6 +194,7 @@
   var indexSrCleanup = null;
   var indexWaveHandle = null;
   var indexStudyUpdate = null;
+  var indexVolumeUpdate = null;
   var indexChart = null;
   var indexSeries = null;
   var indexOhlcTooltipCleanup = null;
@@ -976,6 +977,7 @@
     indexRefreshNow = null;
     indexRenderId += 1;
     indexStudyUpdate = null;
+    indexVolumeUpdate = null;
     indexStudySeries = [];
     clearIndexExtras();
     if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
@@ -997,40 +999,51 @@
     }).filter(function (row) { return /^\d{4}-\d{2}-\d{2}$/.test(row.date) && row.open > 0 && row.high > 0 && row.low > 0 && row.close > 0; });
   }
 
-  // 코스피·코스닥만 KIS 지수 일봉의 거래량(최근 약 1년)이 있다. 날짜로 합치고, 없는 봉은 0(막대 없음)으로 둔다.
+  // 코스피·코스닥만 KIS 영속 일봉 이력의 실제 거래량을 날짜로 합친다.
   // 단위는 공급자 응답 그대로다(미검증이라 단위 문구를 붙이지 않는다).
   function loadIndexVolume(symbol) {
     if (symbol !== 'KOSPI' && symbol !== 'KOSDAQ') return Promise.resolve(null);
     return fetchJson('https://goodbyestar.cloud/domestic-market-indicators/chart?market=' + encodeURIComponent(symbol) + '&interval=day&long=1')
       .then(function (payload) {
         var data = payload && (payload.data || payload);
+        if (!data || data.source !== 'kis') throw new Error('KIS 지수 거래량 미수신');
         var map = {};
         ((data && data.rows) || []).forEach(function (r) {
           var d = String(r.date || '').replace(/-/g, '');
-          if (/^\d{8}$/.test(d) && Number(r.volume) > 0) map[d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6)] = Number(r.volume);
+          if (/^\d{8}$/.test(d) && r.volume != null && isFinite(Number(r.volume)) && Number(r.volume) >= 0) map[d.slice(0, 4) + '-' + d.slice(4, 6) + '-' + d.slice(6)] = Number(r.volume);
         });
-        return map;
-      }).catch(function () { return null; });
+        return {map: Object.keys(map).length ? map : null, meta: data.cache || {asOf: (data.rows || []).slice(-1)[0] && data.rows.slice(-1)[0].date}};
+      });
   }
-  // 3년 일봉은 서버가 KIS를 여러 번 불러 첫 응답이 약 10초 걸린다(5분 캐시). 차트 그리기를 기다리게 하지 않고,
-  // 캔들을 먼저 그린 뒤 거래량이 도착하면 다시 그린다. 실패하면 1분 뒤 다시 시도한다.
-  var indexVolumeState = { symbol: '', map: null, at: 0, job: null };
+  // Independent per-index cache and shared pending requests. Empty backfill
+  // responses retry at the server hint; failures keep the last map for 1 minute.
+  var indexVolumeState = {};
   function ensureIndexVolume(symbol, onReady) {
-    var st = indexVolumeState;
     if (symbol !== 'KOSPI' && symbol !== 'KOSDAQ') return;
-    if (st.symbol !== symbol) { st.symbol = symbol; st.map = null; st.at = 0; st.job = null; }
-    if (st.job || Date.now() - st.at < (st.map ? 300000 : 60000)) return;
-    st.job = loadIndexVolume(symbol).then(function (map) {
-      st.job = null;
-      st.at = Date.now();
-      if (!map || st.symbol !== symbol) return;
-      st.map = map;
-      onReady(map);
-    });
+    var st = indexVolumeState[symbol] || (indexVolumeState[symbol] = {map:null, meta:{}, next:0, job:null});
+    if (st.map) onReady(st.map, st.meta);
+    if (!st.job && Date.now() >= st.next) {
+      st.job = loadIndexVolume(symbol).then(function (result) {
+        if (result.map) st.map = result.map;
+        st.meta = result.meta;
+        st.next = Date.now() + Math.max(1000, Number(st.meta.retryAfterMs) || 60000);
+      }).catch(function () {
+        st.meta = Object.assign({}, st.meta, {refreshing:false, usingLastValid:!!st.map, lastError:'거래량 조회 실패'});
+        st.next = Date.now() + 60000;
+      }).then(function () { st.job = null; });
+    }
+    if (st.job) return st.job.then(function () { onReady(st.map, st.meta); });
+    return Promise.resolve(st.map);
+  }
+  function indexVolumeStatus(meta) {
+    return 'KIS 거래량 · 원본 단위(미확정) · 기준일 ' + (meta.asOf || '확인 중')
+      + (meta.usingLastValid ? ' · 마지막 유효 자료 사용' : '')
+      + (meta.lastSuccessAt ? ' · 수집 ' + meta.lastSuccessAt : '')
+      + (meta.lastError ? ' · 갱신 실패' + (meta.lastErrorAt ? ' ' + meta.lastErrorAt : '') : meta.refreshing ? ' · 백그라운드 갱신 중' : '');
   }
   function applyIndexVolume(bars, volumeMap) {
     if (!volumeMap) return bars;
-    bars.forEach(function (bar) { if (volumeMap[bar.date]) bar.volume = volumeMap[bar.date]; });
+    bars.forEach(function (bar) { if (Object.prototype.hasOwnProperty.call(volumeMap, bar.date)) bar.volume = volumeMap[bar.date]; });
     return bars;
   }
 
@@ -1038,6 +1051,7 @@
     var previousIndexRange = !resetView && indexChart ? indexChart.timeScale().getVisibleLogicalRange() : null;
     var renderId = ++indexRenderId;
     indexStudyUpdate = null;
+    indexVolumeUpdate = null;
     indexStudySeries = [];
     clearIndexExtras();
     if (indexSrCleanup) { indexSrCleanup(); indexSrCleanup = null; }
@@ -1084,37 +1098,63 @@
         return { time: bar.date, open: bar.open, high: bar.high, low: bar.low, close: bar.close };
       }));
       indexOhlcTooltipCleanup = installStockOhlcTooltip(host, indexChart, series, false);
-      var volumePane = null;
-      if (bars.some(function (bar) { return bar.volume > 0; })) try {
-        volumePane = global.NineChartCore.addVolumePane(indexChart, LWC, bars, {
-          pane: 1, scaleId: 'volume', ma5: true, multiples: indexStudies.volmult,
-          scaleOptions: { drawTicks: false, ticksVisible: false, borderVisible: false, scaleMargins: { top: 0.15, bottom: 0 } }
-        });
-        var sizes = sizeStockChartPanes(indexChart.panes(), 440, false);
-        var volLegend = document.createElement('div');
-        volLegend.className = 'ss-volume-study-label';
-        volLegend.style.top = (sizes.mainHeight + 6) + 'px';
-        var volByTime = {};
-        bars.forEach(function (bar) { volByTime[bar.date] = bar.volume; });
-        var showVolume = function (value) {
-          volLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + (value > 0 ? Math.round(value).toLocaleString('ko-KR') : '-') + '</b></span>';
-        };
-        showVolume(bars[bars.length - 1].volume);
-        host.appendChild(volLegend);
-        indexChart.subscribeCrosshairMove(function (param) {
-          showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : bars[bars.length - 1].volume);
-        });
-      } catch (volumeError) { /* 거래량 패널 실패가 캔들 차트를 막지 않게 한다 */ }
-      if (indexStudies.vp && indexVolumeAvailable(bars)) {
-        series.attachPrimitive(createVolumeProfilePrimitive(bars, false, 'INDEX:' + symbol, host, indexTimeframe, { index: true }));
+      var volumePane = null, volLegend = null, volByTime = {}, volumeBars = bars;
+      var volumeProfile = null, traceHolder = null;
+      function clearTrace() {
+        if (traceHolder) ['legendCleanup', 'tipCleanup', 'densityCleanup'].forEach(function (key) { if (traceHolder[key]) traceHolder[key](); });
+        traceHolder = null;
       }
-      if (indexStudies.trace && indexVolumeAvailable(bars)) {
-        var traceHolder = { chart: indexChart, container: host, supplyMode: 'detail', timeframe: indexTimeframe };
-        core.setSupplyTraceMarkers(LWC, series, bars, true, traceHolder);
-        indexExtraCleanup.push(function () {
-          ['legendCleanup', 'tipCleanup', 'densityCleanup'].forEach(function (key) { if (traceHolder[key]) traceHolder[key](); });
-        });
+      function showVolume(value) {
+        if (volLegend) volLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + (value != null ? Math.round(value).toLocaleString('ko-KR') : '-') + '</b></span>';
       }
+      function crosshairVolume(param) {
+        showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : volumeBars[volumeBars.length-1].volume);
+      }
+      indexExtraCleanup.push(function () {
+        clearTrace();
+        if (volumePane && volumePane.destroy) volumePane.destroy();
+        if (volLegend) { indexChart.unsubscribeCrosshairMove(crosshairVolume); volLegend.remove(); }
+      });
+      indexVolumeUpdate = function () {
+        if (renderId !== indexRenderId || !indexChart || state.selectedCode !== 'INDEX:' + symbol) return;
+        var current = global.NineChartData.barsForTimeframe(indexBars, indexTimeframe);
+        syncIndexCapabilities(panel, current);
+        if (!current.some(function (bar) { return bar.volume > 0; })) return;
+        var range = indexChart.timeScale().getVisibleLogicalRange();
+        volumeBars = current;
+        try {
+          if (!volumePane) {
+            // RSI may already own pane 1. Insert a volume pane without replacing
+            // the candle series, drawings, indicators or crosshair subscriptions.
+            if (indexChart.panes().length > 1) indexChart.addPane().moveTo(1);
+            volumePane = core.addVolumePane(indexChart, LWC, current, {
+              pane:1, scaleId:'volume', ma5:true, multiples:indexStudies.volmult,
+              scaleOptions:{drawTicks:false,ticksVisible:false,borderVisible:false,scaleMargins:{top:0.15,bottom:0}}
+            });
+            volLegend = document.createElement('div');
+            volLegend.className = 'ss-volume-study-label';
+            host.appendChild(volLegend);
+            indexChart.subscribeCrosshairMove(crosshairVolume);
+          } else volumePane.updateData(current);
+          var sizes = sizeStockChartPanes(indexChart.panes(), 440, false);
+          volLegend.style.top = (sizes.mainHeight + 6) + 'px';
+          volByTime = {};
+          current.forEach(function (bar) { volByTime[bar.date] = bar.volume; });
+          showVolume(current[current.length-1].volume);
+          if (volumeProfile) { series.detachPrimitive(volumeProfile); volumeProfile = null; }
+          if (indexStudies.vp && indexVolumeAvailable(current)) {
+            volumeProfile = createVolumeProfilePrimitive(current, false, 'INDEX:' + symbol, host, indexTimeframe, {index:true});
+            series.attachPrimitive(volumeProfile);
+          }
+          clearTrace();
+          if (indexStudies.trace && indexVolumeAvailable(current)) {
+            traceHolder = {chart:indexChart,container:host,supplyMode:'detail',timeframe:indexTimeframe};
+            core.setSupplyTraceMarkers(LWC, series, current, true, traceHolder);
+          }
+          if (range) indexChart.timeScale().setVisibleLogicalRange(range);
+        } catch (volumeError) { /* Keep the existing price chart on pane errors. */ }
+      };
+      indexVolumeUpdate();
       if (indexStudies.rsi || indexStudies.divergence) {
         var rsiValues = stockRsi(bars);
         var rsi = indexChart.addSeries(LWC.LineSeries, { color: dark ? '#f1f4f8' : '#333333', lineWidth: 2, lastValueVisible: false, priceLineVisible: false }, volumePane ? 2 : 1);
@@ -1188,6 +1228,7 @@
 
   function openIndex(container, row) {
     stockSearchRequestId += 1;
+    var indexOpenId = stockSearchRequestId;
     hideIndex(container);
     setMarketMode(container, false);
     var panel = container.querySelector('#ssIndexPanel');
@@ -1208,20 +1249,33 @@
       url.searchParams.delete('market');
       history.replaceState(null, '', url.pathname + url.search + url.hash);
     } catch (err) { /* URL 갱신 실패는 검색 결과와 무관 */ }
-    function refresh() {
-      if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
-      ensureIndexVolume(row.code, function (map) {
-        if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden || !indexBars.length) return;
-        applyIndexVolume(indexBars, map);
-        renderIndexChart(panel, row.code);
+    var volumeRetry = null;
+    function refreshVolume() {
+      if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
+      ensureIndexVolume(row.code, function (map, meta) {
+        if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+        var status = panel.querySelector('[data-index-volume-status]');
+        if (status) status.textContent = indexVolumeStatus(meta);
+        if (map && indexBars.length) {
+          applyIndexVolume(indexBars, map);
+          if (indexVolumeUpdate) indexVolumeUpdate();
+        }
+        if (meta.refreshing && !volumeRetry) volumeRetry = setTimeout(function () {
+          volumeRetry = null;
+          if (indexOpenId === stockSearchRequestId && state.selectedCode === 'INDEX:' + row.code && !panel.hidden && !document.hidden) refreshVolume();
+        }, 2000);
       });
+    }
+    function refresh() {
+      if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden || document.hidden) return;
+      refreshVolume();
       Promise.all([
         fetchJson('https://goodbyestar.cloud/futures?symbols=' + encodeURIComponent(row.code) + '&days=500'),
         loadIndexHistory(row.code).catch(function () { return null; })
       ]).then(function (results) {
           var body = results[0], history = results[1];
-          var volumeMap = indexVolumeState.symbol === row.code ? indexVolumeState.map : null;
-          if (state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
+          var volumeMap = indexVolumeState[row.code] && indexVolumeState[row.code].map;
+          if (indexOpenId !== stockSearchRequestId || state.selectedCode !== 'INDEX:' + row.code || panel.hidden) return;
           var item = (Array.isArray(body) ? body : (body && body.data) || []).filter(function (it) { return it.symbol === row.code; })[0];
           if (!item) throw new Error('index missing');
           var bars = applyIndexVolume(indexChartRows(indexThreeYearRows(row.code, item.chart, history)), volumeMap);
@@ -1234,7 +1288,7 @@
             if (bars.length) {
               var latest = bars[bars.length - 1];
               var old = indexBars[indexBars.length - 1];
-              if (!old || latest.date !== old.date || (latest.volume || 0) !== (old.volume || 0) && indexTimeframe !== 'day') {
+              if (!old || latest.date !== old.date) {
                 indexBars = bars;
                 renderIndexChart(panel, row.code);
               } else if (latest.open !== old.open || latest.high !== old.high || latest.low !== old.low || latest.close !== old.close) {
@@ -1254,6 +1308,7 @@
             + ' <small>' + fmtSignedPct(item.change_rate) + '</small></div>'
             + '<div class="ss-index-note">현물 지수 · ' + escapeHtml((window.NineTime && window.NineTime.updated(item.updated_at)) || ('갱신 ' + (item.updated_at || '시각 미확인'))) + ' · 실제 분봉 원본 미제공</div>'
             // Compact index toolbar; small controls and a comfortably wide wave selector.
+            + '<div class="ss-index-note" data-index-volume-status></div>'
             + '<div class="ss-index-controls ss-stock-controls" role="group" aria-label="지수 차트 설정">'
             + '<div class="ss-index-tools ss-chart-tabs">'
             + '<div class="ss-timeframe-tools">'
@@ -1318,9 +1373,11 @@
             });
           });
           indexBars = bars;
+          var volumeState = indexVolumeState[row.code];
+          if (volumeState) { var status = panel.querySelector('[data-index-volume-status]'); if (status) status.textContent = indexVolumeStatus(volumeState.meta); }
           if (bars.length) renderIndexChart(panel, row.code);
           else panel.querySelector('#ssIndexChart').textContent = '차트 이력이 없습니다.';
-        }).catch(function () { if (state.selectedCode === 'INDEX:' + row.code) panel.innerHTML = '<div class="ss-hint ss-error">지수 데이터를 불러오지 못했습니다.</div>'; });
+        }).catch(function () { if (indexOpenId === stockSearchRequestId && state.selectedCode === 'INDEX:' + row.code) panel.innerHTML = '<div class="ss-hint ss-error">지수 데이터를 불러오지 못했습니다.</div>'; });
     }
     indexRefreshNow = refresh;
     refresh();
