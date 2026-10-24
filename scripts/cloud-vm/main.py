@@ -175,12 +175,8 @@ def _start_futures_collectors():
     # 시장 브리핑(국내 거래일 07:00 확정 스냅샷). 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
     morning_briefing.start_background(db_schema.get_conn)
 
-    # AI 시장 코멘트(2026-10-23): 서버가 정량 분석한 사실만 Groq(GAS 경유)에 보내 카드별 해설을 만들고, 검증·캐시한다.
-    # 이미 메모리에 있는 국내지표·증시온도 캐시를 읽기만 하며(새 시세 호출 없음) 별도 타이머 없이 이 프로세스의 가벼운 스레드가 점검한다.
-    ai_comments.start_background(
-        db_schema.get_conn,
-        lambda: (_domestic_market_indicators_cache or {}).get('data'),
-        lambda: market_temp.get_cached().get('result'))
+    # 2026-10-24: Groq 생성 코멘트는 사용자 요청으로 영구 비활성화.
+    # 과거 데이터 조회 엔드포인트는 호환성을 위해 유지하되 백그라운드 Groq 호출은 없음.
 
     # 코스피/코스닥 현물 지표도 같은 이유로 요청 경로에서 만들지 않는다
     # (캐시 미스 때 방문자가 8.5초를 물던 구조 - 2026-09-01 사용자 리포트).
