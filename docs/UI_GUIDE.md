@@ -5,7 +5,8 @@
 ### 공통 글꼴 (2026-10-25, 최신 지침)
 
 상단 브랜드 배너(`.nav-logo`와 하위 요소, 기존 이미지 포함)는 기존 글꼴을 유지한다.
-추가 사용자 지정 예외: **이야기 시리즈 한눈에 보기**(`.learn-intro h2`)는 기존 MaruBuriBold를 쓴다.
+추가 사용자 지정 예외: **휴장 대시보드 배너 제목**(`.wd-header h2`)은 MaruBuriBold를 사용하며 시계·본문은 Pretendard Variable을 유지한다.
+**이야기 시리즈 한눈에 보기**(`.learn-intro h2`)는 기존 MaruBuriBold를 쓴다.
 마켓브리핑 미리보기 카드 제목(홈 캐러셀·아카이브 선반)과 이야기 시리즈 카드 제목은
 사용자 추가 지시에 따라 MaruBuriBold를 쓴다. 카드 설명·본문·날짜 및 각 글 본문은 Pretendard Variable을 유지한다.
 나머지 메뉴·제목·뉴스·숫자·티스토리 글 본문은 모두 **Pretendard Variable**이다.

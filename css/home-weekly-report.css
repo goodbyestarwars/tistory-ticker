@@ -7,7 +7,7 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard :is(a,button,summary):focus-visible { outline: 2px solid var(--wd-sub); outline-offset: 3px; }
 .weekend-dashboard :is(section,article,nav,.wd-reading) { scroll-margin-top: 140px; }
 .weekend-dashboard .wd-header { min-height: 142px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); color: var(--wd-banner-text); background: radial-gradient(ellipse at 80% 0%,var(--wd-banner-end),transparent 65%),linear-gradient(115deg,var(--wd-banner),var(--wd-banner-end)); }
-.weekend-dashboard .wd-header h2 { margin: 8px 0 5px; font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif; letter-spacing: normal; }
+.weekend-dashboard .wd-header h2 { margin: 8px 0 5px; font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif; letter-spacing: normal; }
 .weekend-dashboard .wd-header p, .weekend-dashboard .wd-header dt { color: var(--wd-banner-sub); font-size: 12px; }
 .weekend-dashboard .wd-badge { display: inline-block; padding: 4px 9px; border: 1px solid var(--wd-banner-sub); border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .weekend-dashboard dl { display: flex; gap: 26px; }
@@ -89,7 +89,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background
 /* Original important rules are in np.np. Scope only layout selectors that formerly
    depended on the footer parent; card markup, fonts, icons and controls stay native. */
 @layer np.np {
-  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif !important; color: var(--wd-banner-text) !important; }
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif !important; color: var(--wd-banner-text) !important; }
   html body#tt-body-index #homeWeeklyReport [data-weekend-content] { width: 100% !important; min-width: 0 !important; margin: 0 !important; }
   html body#tt-body-index #homeWeeklyReport .site-footer-learn { display: grid !important; grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important; gap: 24px !important; padding: 16px 0 !important; }
   html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area { min-width: 0; }
@@ -115,3 +115,30 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background
   .weekend-dashboard .wd-price { font-size: 12px; }
   .weekend-dashboard .wd-coin .wd-price > small { font-size: 11px; white-space: normal; }
 }
+
+/* Reference banner artwork stays on the right; live text and digits are separate DOM. */
+.weekend-dashboard .wd-header { position: relative; overflow: hidden; min-height: 350px; padding: 28px; display: block; background: var(--wd-banner); }
+.weekend-dashboard .wd-header::before { content: ""; position: absolute; inset: 0 0 0 48%; background: url('../img/market-closed-reference.png') right center / auto 135% no-repeat; pointer-events: none; }
+.weekend-dashboard .wd-header-copy { position: relative; width: 45%; min-width: 0; }
+.weekend-dashboard .wd-header dl { position: relative; display: flex; gap: 22px; margin: 14px 0 0; width: 45%; }
+.weekend-dashboard .wd-header h2 { font-family: "MaruBuriBold","MaruBuri",serif; }
+.weekend-dashboard .wd-countdown { margin-top: 20px; }
+.weekend-dashboard .wd-countdown-label, .weekend-dashboard [data-wd-open] { display: block; font-size: 11px; color: var(--wd-banner-sub); }
+.weekend-dashboard .wd-flip-clock { display: flex; gap: clamp(6px,1.2vw,16px); margin: 8px 0; }
+.weekend-dashboard .wd-flip-unit { position: relative; min-width: 0; text-align: center; }
+.weekend-dashboard .wd-flip-unit small { display: block; margin-top: 6px; color: #d2ae55; font-size: 10px; }
+.weekend-dashboard .wd-flip-pair { display: flex; gap: 3px; perspective: 300px; }
+.weekend-dashboard .wd-flip-digit { position: relative; display: grid; place-items: center; width: clamp(22px,2.5vw,36px); height: clamp(38px,4vw,54px); border: 1px solid #414141; border-radius: 4px; background: linear-gradient(#252525 0%,#080808 49%,#353535 50%,#161616 100%); color: #f1f4f8; box-shadow: 0 2px 3px #0008,inset 0 0 0 2px #111; font-size: clamp(28px,3.1vw,42px); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+.weekend-dashboard .wd-flip-digit::after { content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #000b; box-shadow: 0 1px #ffffff18; }
+.weekend-dashboard .wd-flip-digit.is-changing { animation: wd-flip .35s ease-out; }
+@keyframes wd-flip { from { transform: rotateX(-35deg); opacity: .65; } to { transform: rotateX(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .weekend-dashboard .wd-flip-digit.is-changing { animation: none; } }
+@media (max-width: 767px) {
+  .weekend-dashboard .wd-header { padding: 18px; padding-top: 228px; }
+  .weekend-dashboard .wd-header::before { inset: 0 0 auto; height: 210px; background-size: auto 270px; background-position: right center; }
+  .weekend-dashboard .wd-header-copy, .weekend-dashboard .wd-header dl { width: 100%; }
+  .weekend-dashboard .wd-flip-clock { gap: clamp(8px,3vw,18px); }
+  .weekend-dashboard .wd-flip-digit { width: clamp(23px,6vw,36px); height: 46px; font-size: 34px; }
+}
+
+.weekend-dashboard .wd-flip-unit + .wd-flip-unit::before { content: ":"; position: absolute; left: -10px; top: 8px; color: var(--wd-banner-sub); font-size: 23px; }
