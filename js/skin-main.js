@@ -346,14 +346,14 @@ document.documentElement.classList.add('skin-ready');
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
         mountIds: ['domestic-market-indicators', 'kospi-futures'],
         globalName: 'KospiFutures',
-        script: ASSET_BASE + 'js/kospi-futures.js?v=20261014-investor-tab',
+        script: ASSET_BASE + 'js/kospi-futures.js?v=20261025-remove-dmi-title',
         // kospi-futures.js·domestic-market-indicators.js는 자기 CSS를 스스로 넣는다. 증시자금 표(indicator-board)만 여기서 미리 넣는다.
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
         key: 'investor', label: '국내 투자자 수급', slug: 'domestic-market-indicators',
         mountIds: ['domestic-investor-flow'], globalName: 'DomesticMarketIndicators', method: 'initInvestor',
-        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261014-investor-tab',
+        script: ASSET_BASE + 'js/domestic-market-indicators.js?v=20261025-remove-dmi-title',
         styles: [ASSET_BASE + 'css/indicator-board.css?v=20261016-no-gross']
       },
       {
