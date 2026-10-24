@@ -7771,7 +7771,7 @@ html body :where(.ibd, .ui-data-table, .hrt-table, .wl-price, .hmb-etf-card) {
 }
 }
 /* ── 1-1. 헤더 : 선은 한 줄씩만 (예전엔 메뉴바 위·아래, 하위메뉴 위·아래, 네비 그림자가 3~4겹으로 쌓였다) ── */
-html body .navbar { box-shadow: none !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h-soft) 1 !important; }
+html body .navbar { box-shadow: none !important; border-bottom: 1px solid transparent !important; border-image: none !important; }
 html body .sidebar-left { border-top: 0 !important; border-bottom: 1px solid transparent !important; border-image: var(--np-line-h) 1 !important; box-shadow: none !important; }
 html body #nav-secondary-row { border-bottom: 0 !important; border-top: 1px solid transparent !important; border-image: var(--np-line-h-soft) 1 !important; }
 
