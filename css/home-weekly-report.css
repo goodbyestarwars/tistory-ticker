@@ -76,7 +76,7 @@ html.dark .weekend-dashboard {
 
 .weekend-dashboard .wd-header h2 {
   margin: 8px 0 5px;
-  font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif;
+  font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif;
   letter-spacing: normal;
 }
 
@@ -609,7 +609,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 
 @layer np.np {
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 {
-    font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif !important;
+    font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif !important;
     color: var(--wd-banner-text) !important;
   }
 
@@ -727,4 +727,168 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     white-space: normal;
   }
 
+}
+
+/* Black closed-market banner: copy left, live countdown right, metadata below. */
+
+/* ==========================================================================
+   02. 휴장 헤더 · 배지 · 요약 수치
+   ========================================================================== */
+
+.weekend-dashboard .wd-header {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  column-gap: 36px;
+  row-gap: 18px;
+  align-items: center;
+  background: #000;
+}
+
+.weekend-dashboard .wd-header-copy {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.weekend-dashboard .wd-header dl {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+  width: auto;
+}
+
+.weekend-dashboard .wd-header h2 {
+  font-family: "MaruBuriBold","MaruBuri",serif;
+}
+
+.weekend-dashboard .wd-countdown {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  margin: 0;
+  text-align: center;
+}
+
+.weekend-dashboard .wd-countdown-label, .weekend-dashboard [data-wd-open] {
+  display: block;
+  font-size: 11px;
+  color: var(--wd-banner-sub);
+}
+
+.weekend-dashboard .wd-flip-clock {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.weekend-dashboard .wd-flip-unit {
+  position: relative;
+  min-width: 0;
+  text-align: center;
+}
+
+.weekend-dashboard .wd-flip-unit small {
+  display: block;
+  margin-top: 6px;
+  color: #d2ae55;
+  font-size: 10px;
+}
+
+.weekend-dashboard .wd-flip-pair {
+  display: flex;
+  gap: 3px;
+  perspective: 300px;
+}
+
+.weekend-dashboard .wd-flip-digit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(22px,2.5vw,36px);
+  height: clamp(38px,4vw,54px);
+  border: 1px solid #414141;
+  border-radius: 4px;
+  background: linear-gradient(#252525 0%,#080808 49%,#353535 50%,#161616 100%);
+  color: #f1f4f8;
+  box-shadow: 0 2px 3px #0008,inset 0 0 0 2px #111;
+  font-size: clamp(28px,3.1vw,42px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekend-dashboard .wd-flip-digit::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #000b;
+  box-shadow: 0 1px #ffffff18;
+}
+
+.weekend-dashboard .wd-flip-digit.is-changing {
+  animation: wd-flip .35s ease-out;
+}
+
+@keyframes wd-flip {
+  from { transform: rotateX(-35deg);
+  opacity: .65;
+  } to { transform: rotateX(0);
+  opacity: 1;
+  };
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .weekend-dashboard .wd-flip-digit.is-changing { animation: none;
+  };
+}
+
+@media (max-width: 767px) {
+  .weekend-dashboard .wd-header {
+    min-height: 0;
+    padding: 22px 18px;
+    grid-template-columns: minmax(0,1fr);
+    gap: 20px;
+  }
+
+  .weekend-dashboard .wd-header-copy, .weekend-dashboard .wd-header dl {
+    width: 100%;
+  }
+
+  .weekend-dashboard .wd-countdown {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .weekend-dashboard .wd-flip-clock {
+    justify-content: flex-start;
+  }
+
+  .weekend-dashboard .wd-flip-clock {
+    gap: clamp(8px,3vw,18px);
+  }
+
+  .weekend-dashboard .wd-flip-digit {
+    width: clamp(23px,6vw,36px);
+    height: 46px;
+    font-size: 34px;
+  }
+
+}
+
+.weekend-dashboard .wd-flip-unit + .wd-flip-unit::before {
+  content: ":";
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  color: var(--wd-banner-sub);
+  font-size: 23px;
 }

@@ -104,6 +104,21 @@
 
   function isKrTradingDay(date) { return !isKrHoliday(date); }
 
+  // The countdown must never assume weekdays are trading days outside the maintained calendar.
+  function nextKrRegularOpen(date) {
+    var now = date ? date.getTime() : Date.now();
+    var k = kst(new Date(now));
+    var day = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
+    for (var i = 0; i < 370; i++) {
+      var open = day + i * 86400000; // 09:00 KST is 00:00 UTC.
+      if (open <= now) continue;
+      var candidate = new Date(open);
+      if (!KRX_HOLIDAYS[String(kst(candidate).year)]) return null;
+      if (isKrTradingDay(candidate)) return candidate;
+    }
+    return null;
+  }
+
   /* 현물 세션. 화면에는 프리마켓·정규장·애프터마켓처럼 시간대 이름을 쓴다.
      거래소별 동시호가·시간외 종가 같은 겹치는 제도는 별도 플래그로 함께 돌려준다. */
   function krCash(date) {
@@ -310,6 +325,7 @@
     kst: kst,
     isKrHoliday: isKrHoliday,
     isKrTradingDay: isKrTradingDay,
+    nextKrRegularOpen: nextKrRegularOpen,
     isNightSessionHoliday: isNightSessionHoliday,
     isUsHoliday: isUsHoliday,
     krCash: krCash,
