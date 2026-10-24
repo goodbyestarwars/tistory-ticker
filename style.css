@@ -2361,6 +2361,10 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1, span) {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
+  /* Market > Main news: the section heading uses MaruBuri. */
+  html body #main-news .mn-head h2 {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+  }
   html body .feed > .briefing-search input,
   html body .feed > .briefing-search input::placeholder {
     font-weight: 700 !important;
