@@ -9,6 +9,32 @@ import weekly_report
 
 
 class WeeklyReportTests(unittest.TestCase):
+    def test_all_six_indices_share_stored_charts_and_previous_week_base(self):
+        symbols = ('KOSPI', 'KOSDAQ', 'NASDAQ_INDEX', 'SP500_INDEX', 'DOW_INDEX', 'SOX')
+        rows = [{'symbol': symbol, 'price': 999, 'change_rate': 99, 'chart': [
+            {'date': '20261016', 'close': 100},
+            {'date': '20261019', 'close': 102},
+            {'date': '2026-10-23', 'close': 105},
+            {'date': '20261026', 'close': 999},
+        ]} for symbol in symbols]
+        result = weekly_report.index_summary(rows, datetime(2026, 10, 19).date(), datetime(2026, 10, 23).date())
+        self.assertEqual([item['symbol'] for item in result], list(symbols))
+        for item in result:
+            self.assertTrue(item['available'])
+            self.assertEqual(item['end'], 105)
+            self.assertEqual(item['base'], 100)
+            self.assertEqual(item['changeRate'], 5)
+            self.assertEqual(len(item['series']), 2)
+
+    def test_dow_and_sox_do_not_invent_weekly_values_from_current_quote(self):
+        rows = [{'symbol': symbol, 'price': 999, 'chart': []} for symbol in ('DOW_INDEX', 'SOX')]
+        result = weekly_report.index_summary(rows, datetime(2026, 10, 19).date(), datetime(2026, 10, 23).date())
+        self.assertEqual(len(result), 2)
+        for item in result:
+            self.assertFalse(item['available'])
+            self.assertIsNone(item['end'])
+            self.assertIsNone(item['changeRate'])
+
     def test_completed_week_resolves_previous_friday_on_weekday(self):
         start, end = weekly_report.completed_week(datetime(2026, 8, 19, tzinfo=timezone.utc))
         self.assertEqual((start.isoformat(), end.isoformat()), ('2026-08-10', '2026-08-14'))

@@ -884,14 +884,24 @@
   }
   function loadExtraIndices(root, data) {
     if (!data.week || !data.week.start || !data.week.end) return;
-    if (!extraIndicesMemo || Date.now()-extraIndicesMemo.t > 300000) extraIndicesMemo = {t:Date.now(),promise:fetchJsonTimeout('https://goodbyestar.cloud/futures?interval=day&days=30&symbols=DOW_INDEX,SOX',8000)};
+    // The weekly API shares the main indicators' stored futures rows. Only old
+    // local reports or incomplete snapshots need this compatibility fallback.
+    var missing = ['DOW_INDEX','SOX'].filter(function (symbol) {
+      return !(data.indices || []).some(function (row) { return row && row.symbol === symbol && num(row.end) != null; });
+    });
+    if (!missing.length) return;
+    if (!extraIndicesMemo || Date.now()-extraIndicesMemo.t > 300000) {
+      extraIndicesMemo = {t:Date.now(),promise:fetchJsonTimeout('https://goodbyestar.cloud/futures?interval=day&days=30&symbols=DOW_INDEX,SOX',8000)};
+      extraIndicesMemo.promise.catch(function () { extraIndicesMemo = null; });
+    }
     extraIndicesMemo.promise.then(function (payload) {
       if (!document.body.contains(root)) return;
       (payload.data || []).forEach(function (row) {
-        if (['DOW_INDEX','SOX'].indexOf(row.symbol) < 0) return;
+        if (missing.indexOf(row.symbol) < 0) return;
         var card = root.querySelector('[data-index-symbol="' + row.symbol + '"]');
         if (card) {
           var summary = storedWeeklyIndex(row,data.week);
+          if (num(summary.end) == null) return;
           summary.name = INDEX_SPECS.filter(function (spec) { return spec[0] === row.symbol; })[0][1];
           card.outerHTML = indexCard(summary);
         }
