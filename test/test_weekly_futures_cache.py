@@ -22,7 +22,7 @@ def load_reader():
     return namespace, cache, request
 
 
-def test_weekly_reader_uses_the_four_part_stored_futures_key():
+def test_weekly_reader_uses_the_four_part_futures_key():
     namespace, cache, request = load_reader()
     rows = [{'symbol': 'USDKRW', 'chart': [{'date': '20261023', 'close': 1300}]}]
 
@@ -34,7 +34,7 @@ def test_weekly_reader_uses_the_four_part_stored_futures_key():
     assert namespace['safe_futures']() is rows
     call = namespace['futures'].call_args
     assert call.args == (request,)
-    assert call.kwargs['stored_only'] is True
+    assert call.kwargs['stored_only'] is False
     assert call.kwargs['days'] == 365
     assert 'USDKRW' in call.kwargs['symbols'].split(',')
 

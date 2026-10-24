@@ -3432,9 +3432,9 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
             # 파이썬 값을 그대로 꺼내 쓴다(바이트를 다시 파싱하지 않는다).
             futures(request, interval='day', days=365,
                     symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC',
-                    stored_only=True)
+                    stored_only=False)
             entry = _futures_cache.get(
-                ('day', 365, 'KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC', True))
+                ('day', 365, 'KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC', False))
             return (entry or {}).get('data') or []
         except Exception as exc:
             logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)

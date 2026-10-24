@@ -154,7 +154,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/weekly-report?fresh=false` | 없음 | 주간 스냅샷 + 15분 메모리 | 지난 주 시장·뉴스·후보·실적 일정 |
 | `/weekend-us-themes` | 없음 | 30분 메모리 | 주말 미국 뉴스 제목 기반 관심 테마·관련 종목(2026-10-04) |
 
-2026-10-24 주간 리포트의 지수·환율 읽기는 futures의 `stored_only=True`와
+2026-10-24 주간 리포트의 지수·환율 읽기는 futures의 기존 기본 모드 `stored_only=False`와
 동일한 `(interval, days, symbols, stored_only)` 4개 캐시 키를 사용한다. 3개 키를 읽던
 구버전에서 빈 자산이 저장될 수 있어 디스크 스냅샷 버전을 10으로 올렸다. v9는 재사용하지
 않으며 다음 조회에서 한 번 재생성한다. 금융 계산식과 DB 수집 주기는 그대로다.
