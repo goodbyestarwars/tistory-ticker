@@ -82,7 +82,7 @@
       var rsiTop = paneHeight(panes[0], height * 0.68) + paneHeight(panes[1], height * 0.14);
       var dark = document.documentElement.classList.contains('dark');
       var ts = chart.timeScale();
-      ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
+      ctx.font = '600 11px Pretendard Variable, Pretendard, "Malgun Gothic", sans-serif';
       ctx.textBaseline = 'middle';
       function xOf(i) { var b = bars[i]; if (!b) return null; var x = ts.timeToCoordinate(b.time != null ? b.time : b.date); return Number.isFinite(x) ? x : null; }
       function pill(text, x, y, color) {

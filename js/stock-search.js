@@ -2987,7 +2987,7 @@
 
       var options = core.chartOptions(LWC, 'search', {
         timeframe: timeframe,
-        fontFamily: global.getComputedStyle ? global.getComputedStyle(document.body).fontFamily : "'MaruBuri', Georgia, serif",
+        fontFamily: global.getComputedStyle ? global.getComputedStyle(document.body).fontFamily : "Pretendard Variable, Pretendard, sans-serif",
         autoSize: false,
         width: Math.max(1, Math.floor(container.clientWidth)),
         height: Math.max(1, Math.floor(container.clientHeight || 420))

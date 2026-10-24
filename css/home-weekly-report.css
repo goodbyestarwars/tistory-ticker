@@ -1,5 +1,5 @@
 /* Weekend-only layout. Original editorial DOM is moved, never rewritten. */
-.home-weekly-report.weekend-dashboard { --wd-surface: var(--ui-card-surface); --wd-inner: var(--ui-inner-surface); --wd-line: var(--ui-border); --wd-text: rgb(var(--np-ink)); --wd-sub: rgba(var(--np-ink),.7); --wd-banner: var(--dk-card,#202731); --wd-banner-end: var(--dk-inner,#283340); --wd-banner-text: var(--dk-text,#f1f4f8); --wd-banner-sub: var(--dk-sub,#a6b5c5); display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; min-width: 0; margin: 0 0 20px; color: var(--wd-text); font: 400 13px/1.5 Pretendard,sans-serif; font-variant-numeric: tabular-nums; }
+.home-weekly-report.weekend-dashboard { --wd-surface: var(--ui-card-surface); --wd-inner: var(--ui-inner-surface); --wd-line: var(--ui-border); --wd-text: rgb(var(--np-ink)); --wd-sub: rgba(var(--np-ink),.7); --wd-banner: var(--dk-card,#202731); --wd-banner-end: var(--dk-inner,#283340); --wd-banner-text: var(--dk-text,#f1f4f8); --wd-banner-sub: var(--dk-sub,#a6b5c5); display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; min-width: 0; margin: 0 0 20px; color: var(--wd-text); font: 400 13px/1.5 "Pretendard Variable",Pretendard,sans-serif; font-variant-numeric: tabular-nums; }
 .weekend-dashboard > * { min-width: 0; }
 html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub); }
 .weekend-dashboard[hidden], .weekend-dashboard [hidden] { display: none !important; }
@@ -7,14 +7,14 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard :is(a,button,summary):focus-visible { outline: 2px solid var(--wd-sub); outline-offset: 3px; }
 .weekend-dashboard :is(section,article,nav,.wd-reading) { scroll-margin-top: 140px; }
 .weekend-dashboard .wd-header { min-height: 142px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); color: var(--wd-banner-text); background: radial-gradient(ellipse at 80% 0%,var(--wd-banner-end),transparent 65%),linear-gradient(115deg,var(--wd-banner),var(--wd-banner-end)); }
-.weekend-dashboard .wd-header h2 { margin: 8px 0 5px; font: 700 24px/1.25 Pretendard,sans-serif; letter-spacing: normal; }
+.weekend-dashboard .wd-header h2 { margin: 8px 0 5px; font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif; letter-spacing: normal; }
 .weekend-dashboard .wd-header p, .weekend-dashboard .wd-header dt { color: var(--wd-banner-sub); font-size: 12px; }
 .weekend-dashboard .wd-badge { display: inline-block; padding: 4px 9px; border: 1px solid var(--wd-banner-sub); border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
 .weekend-dashboard dl { display: flex; gap: 26px; }
 .weekend-dashboard dd { margin: 5px 0 0; font-size: 15px; font-weight: 600; }
 .weekend-dashboard .wd-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; min-width: 0; align-items: start; }
 .weekend-dashboard .wd-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
-.weekend-dashboard .wd-section-head h3 { margin: 0; font: 600 15px/1.4 Pretendard,sans-serif; }
+.weekend-dashboard .wd-section-head h3 { margin: 0; font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif; }
 .weekend-dashboard .wd-section-head a { font-size: 12px; min-height: 32px; display: inline-flex; align-items: center; }
 .weekend-dashboard .wd-indices { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(140px,1fr); gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 4px; scrollbar-width: thin; }
 .weekend-dashboard .wd-index { --wd-tone: var(--wd-sub); position: relative; box-sizing: border-box; height: 135px; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--wd-line); border-radius: 12px; background: linear-gradient(125deg,var(--wd-surface),color-mix(in srgb,var(--wd-tone) 7%,var(--wd-surface))); scroll-snap-align: start; }
@@ -36,7 +36,7 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard .wd-no-series { font-size: 11px; color: var(--wd-sub); }
 .weekend-dashboard .wd-panel { min-width: 0; padding: 14px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); background: var(--wd-surface); }
 .weekend-dashboard .wd-panel-head { display: grid; gap: 5px; margin-bottom: 10px; }
-.weekend-dashboard .wd-panel-head h3 { color: var(--wd-text); font: 600 15px/1.4 Pretendard,sans-serif; letter-spacing: normal; }
+.weekend-dashboard .wd-panel-head h3 { color: var(--wd-text); font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif; letter-spacing: normal; }
 .weekend-dashboard small { color: var(--wd-sub); }
 .weekend-dashboard .wd-panel-head small { font-size: 12px; }
 .weekend-dashboard .wd-list { list-style: none; margin: 0; padding: 0; }
@@ -70,9 +70,9 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard .hwr2-rows { list-style: none; margin: 0; padding: 0; }
 .weekend-dashboard .hwr2-rows > li { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--wd-line); align-items: start; }
 .weekend-dashboard .hwr2-rows > li:last-child { border-bottom: 0; }
-.weekend-dashboard .hwr2-rank { font: 500 12px/1.7 Pretendard,sans-serif; color: var(--wd-sub); }
+.weekend-dashboard .hwr2-rank { font: 500 12px/1.7 "Pretendard Variable",Pretendard,sans-serif; color: var(--wd-sub); }
 .weekend-dashboard .hwr2-name strong { display: block; font-size: 14px; }
-.weekend-dashboard .hwr2-name :is(small,em) { display: block; font: 400 12px/1.5 Pretendard,sans-serif; color: var(--wd-sub); }
+.weekend-dashboard .hwr2-name :is(small,em) { display: block; font: 400 12px/1.5 "Pretendard Variable",Pretendard,sans-serif; color: var(--wd-sub); }
 .weekend-dashboard .hwr2-name strong { display: inline; }
 .weekend-dashboard .hwr2-name small { display: inline; margin-left: 6px; }
 .weekend-dashboard .hwr2-name em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -89,7 +89,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background
 /* Original important rules are in np.np. Scope only layout selectors that formerly
    depended on the footer parent; card markup, fonts, icons and controls stay native. */
 @layer np.np {
-  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.25 Pretendard,sans-serif !important; color: var(--wd-banner-text) !important; }
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.25 "Pretendard Variable",Pretendard,sans-serif !important; color: var(--wd-banner-text) !important; }
   html body#tt-body-index #homeWeeklyReport [data-weekend-content] { width: 100% !important; min-width: 0 !important; margin: 0 !important; }
   html body#tt-body-index #homeWeeklyReport .site-footer-learn { display: grid !important; grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important; gap: 24px !important; padding: 16px 0 !important; }
   html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area { min-width: 0; }

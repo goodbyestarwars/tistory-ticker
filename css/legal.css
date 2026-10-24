@@ -2,14 +2,14 @@
    티스토리 스킨(style.css)과 별개 문서(GitHub Pages 단독 호스팅)라 prefers-color-scheme으로
    다크모드를 판단한다(localStorage 'bolt-dark'는 tistory.com 도메인이라 이 origin에서 못 읽음). */
 
-@import url('https://hangeul.pstatic.net/hangeul_static/css/maru-buri.css');
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 
 * { box-sizing: border-box; }
 
 body {
   margin: 0;
   padding: 48px 20px 80px;
-  font-family: 'MaruBuri', Georgia, serif;
+  font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   font-size: 15px;
   line-height: 1.8;
   color: #374151;
@@ -128,7 +128,7 @@ a { color: #d24f45; }
 .learn-fig--wide a { display:block; width:100%; text-decoration:none; }
 .learn-fig--wide img { display:block; width:100%; max-width:790px; height:auto; margin:0 auto; border:1px solid #dce2e9; border-radius:8px; background:#fefdfa; }
 .learn-fig--wide a:focus-visible { outline:2px solid #1261c4; outline-offset:4px; border-radius:8px; }
-.learn-fig text { font-family: 'MaruBuri', Georgia, serif; }
+.learn-fig text { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; }
 .fig-soft { fill: #ebe0c4; }
 .fig-soft2 { fill: #e2d5b4; }
 .fig-line { fill: none; stroke: #cfcbbb; stroke-width: 1; }

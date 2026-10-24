@@ -269,7 +269,7 @@
       ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
       ctx.clearRect(0, 0, width, height);
       var right = Math.max(0, width - axisWidth());
-      ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
+      ctx.font = '600 11px Pretendard Variable, Pretendard, "Malgun Gothic", sans-serif';
       ctx.textBaseline = 'middle';
       // 라벨은 가격축 안쪽에 두고, 서로 겹치면 위치만 조정한다.
       var placed = all.map(function (item) { return { item: item, y: candleSeries.priceToCoordinate(item.l.price) }; })
@@ -313,7 +313,7 @@
         // 보조 문구는 화면이 넉넉할 때만 이름표 왼쪽에 둔다(좁은 모바일은 생략).
         if (item.detail && right > 420) {
           // 선 위에 글씨만 얹으면 점선·음영에 묻혀 읽기 어려워(2026-10-21 사용자 지적) 가격 배지와 같은 불투명 배지로 그린다.
-          ctx.font = '600 11px Pretendard, "Malgun Gothic", sans-serif';
+          ctx.font = '600 11px Pretendard Variable, Pretendard, "Malgun Gothic", sans-serif';
           var dw = ctx.measureText(item.detail).width + 14;
           var dl = Math.max(2, left - dw - 4);
           roundedBox(ctx, dl, ly - 10, dw, 20, 10);
