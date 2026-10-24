@@ -2362,6 +2362,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
   /* Market > Main news: the section heading uses MaruBuri. */
+  html body:has(#main-news) .post-single-header .post-single-title,
   html body #main-news .mn-head h2 {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
