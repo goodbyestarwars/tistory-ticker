@@ -2370,6 +2370,33 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body .feed > .briefing-search input::placeholder {
     font-weight: 700 !important;
   }
+  /* Editorial hierarchy: page title > section/card title > body > metadata.
+     Reuse the shared title token so mobile follows the same 22px scale. */
+  html body .feed:has(> .briefing-search) > .category-masthead h1,
+  html body:has(#main-news) .post-single-header .post-single-title {
+    font-size: var(--ui-title-size) !important;
+    line-height: 1.4 !important;
+  }
+  html body #main-news .mn-head h2 {
+    font-size: var(--ui-section-size) !important;
+    line-height: 1.4 !important;
+  }
+  html body .feed:has(> .briefing-search) > .category-masthead > div > span,
+  html body .feed > .briefing-search input,
+  html body #main-news .mn-head p,
+  html body #main-news .mn-row-title,
+  html body #main-news .mn-state {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  html body .feed:has(> .briefing-search) > .category-masthead > div > p,
+  html body .feed:has(> .briefing-search) > .category-masthead > small,
+  html body .feed > .briefing-search small,
+  html body #main-news .mn-head small,
+  html body #main-news .mn-row-meta {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+  }
   /* Explicit serif exceptions: brand banner, story label and preview titles. */
   html body .nav-logo .nav-logo-name,
   html body .learn-intro h2,
@@ -2408,15 +2435,15 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   }
   html body .feed .briefing-shelf .post-card[hidden] { display: none !important; }
   html body .feed .briefing-shelf .post-header { margin: 0 0 24px !important; justify-content: flex-start !important; }
-  html body .feed .briefing-shelf .post-date { font-size: 11px !important; color: var(--text-sub) !important; }
+  html body .feed .briefing-shelf .post-date { font-size: 12px !important; line-height: 1.5 !important; color: var(--text-sub) !important; }
   html body .feed .briefing-shelf .post-title {
     display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 4 !important;
     overflow: hidden; margin: 0 0 16px !important;
-    font-size: 23px !important; line-height: 1.35 !important; letter-spacing: 0 !important;
+    font-size: var(--ui-section-size) !important; line-height: 1.4 !important; letter-spacing: 0 !important;
   }
   html body .feed .briefing-shelf .post-excerpt {
     display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 5 !important;
-    overflow: hidden; margin: 0 !important; font-size: 13px !important; line-height: 1.65 !important;
+    overflow: hidden; margin: 0 !important; font-size: 14px !important; line-height: 1.6 !important;
     color: var(--text-sub) !important;
   }
   html body .feed .briefing-shelf .post-footer {
