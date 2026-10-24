@@ -27,15 +27,15 @@ function doGet(e) {
   }
 
   if (params.marketAnalysis === '1') {
-    return jsonResponse(getMarketAnalysis());
+    return jsonResponse({analysis: null, disabled: true});
   }
 
   if (params.action === 'kospiFuturesAnalysis') {
-    return jsonResponse(getKospiFuturesAnalysis());
+    return jsonResponse({analysis: null, disabled: true});
   }
 
   if (params.action === 'subIndexAnalysis') {
-    return jsonResponse(getSubIndexAnalysis());
+    return jsonResponse({analysis: null, disabled: true});
   }
 
   if (params.action === 'domesticFundsAnalysis') {
@@ -67,7 +67,7 @@ function doGet(e) {
   }
 
   if (params.action === 'flowAiSummary') {
-    return jsonResponse(getFlowAiSummary(params));
+    return jsonResponse({summary: null, disabled: true});
   }
 
   if (params.action === 'flowChart') {
@@ -75,7 +75,7 @@ function doGet(e) {
   }
 
   if (params.action === 'priceReason') {
-    return jsonResponse(getPriceMoveReason((params.code || '').trim(), (params.name || '').trim(), params.changeRate));
+    return jsonResponse({reason: null, disabled: true});
   }
 
   if (params.action === 'indexChart') {
@@ -663,10 +663,9 @@ function getStockNews(code, name) {
     items = [];
   }
 
-  var aiSummary = items.length ? safeCall(function () { return summarizeStockNews(name || code, items); }) : null;
-
-  var result = { items: items, aiSummary: aiSummary };
-  var ttl = (items.length && !aiSummary) ? NEWS_FAIL_TTL : NEWS_CACHE_TTL;
+  // AI 참고의견 제거. 뉴스 원문 목록과 캐시만 유지.
+  var result = { items: items };
+  var ttl = NEWS_CACHE_TTL;
   cache.put(cacheKey, JSON.stringify(result), ttl);
   return result;
 }
@@ -756,66 +755,10 @@ var GROQ_NO_ADVICE_GUARD_ = '다만 특정 종목·업종·상품을 지금 매�
 // (실패 캐시 TTL이 짧아서 그래도 안 되면 곧 자동 재시도됨 - Gemini 때와 동일 패턴).
 // temperature 기본 0.5(기존 호출부와 동일 동작 유지) - 2026-07-21 보조지수 해설처럼 숫자를
 // 원본 그대로 베껴야 하는(창작성보다 정확성이 중요한) 호출은 더 낮은 값을 넘겨서 쓴다.
-function callGroq(prompt, temperature) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
-  if (!apiKey) {
-    console.log('callGroq: GROQ_API_KEY 스크립트 속성이 비어있음 - Groq 호출 자체를 안 함');
-    return null;
-  }
+// Groq 참고의견 폐기: 외부 LLM 호출 금지. 과거 호출자와 호환되도록 null 반환.
+function callGroq(prompt, temperature) { return null; }
 
-  var url = 'https://api.groq.com/openai/v1/chat/completions';
-  var payload = JSON.stringify({
-    model: GROQ_MODEL,
-    messages: [{ role: 'user', content: prompt }],
-    temperature: temperature == null ? 0.5 : temperature,
-    max_tokens: 1024
-  });
 
-  for (var attempt = 0; attempt < 2; attempt++) {
-    if (attempt > 0) Utilities.sleep(1500);
-
-    var res = UrlFetchApp.fetch(url, {
-      method: 'post',
-      contentType: 'application/json; charset=utf-8',
-      headers: { Authorization: 'Bearer ' + apiKey },
-      payload: payload,
-      muteHttpExceptions: true
-    });
-
-    if (res.getResponseCode() === 429) continue; // 재시도
-
-    if (res.getResponseCode() !== 200) {
-      // 2026-08-20: "브리핑을 생성하지 못했습니다"가 계속 뜬다는 리포트를 받았는데 GAS
-      // 실행 로그엔 실패(빨간색) 항목이 하나도 없었다 - 이 함수가 예외를 안 던지고 null만
-      // 조용히 반환해서 그렇다. 실제 원인(인증키 오류/레이트리밋/서버 오류 등)을 로그로
-      // 남겨야 다음 실행 로그에서 바로 확인 가능하다.
-      console.log('callGroq: 응답 코드 ' + res.getResponseCode() + ', 본문: '
-        + res.getContentText('UTF-8').slice(0, 500));
-      return null;
-    }
-
-    var body;
-    try {
-      body = JSON.parse(res.getContentText('UTF-8'));
-    } catch (e) {
-      console.log('callGroq: 200 응답인데 JSON 파싱 실패 - ' + e + ', 본문: '
-        + res.getContentText('UTF-8').slice(0, 500));
-      return null;
-    }
-    var choice = body && body.choices && body.choices[0];
-    var text = choice && choice.message && choice.message.content;
-    if (!text) {
-      console.log('callGroq: 200 응답인데 choices[0].message.content가 비어있음 - 본문: '
-        + res.getContentText('UTF-8').slice(0, 500));
-    }
-    return text ? text.trim() : null;
-  }
-
-  console.log('callGroq: 429(레이트리밋)로 재시도까지 전부 실패');
-  return null; // 재시도까지 다 429면 포기(짧은 캐시 TTL 덕에 곧 다시 시도됨)
-}
-
-// ---------------------------------------------------------------------------
 // AI 시장 코멘트 프록시 (POST action=marketComments) - 2026-10-23
 // 증시온도 카드별 한 줄 해설은 이제 고정 문장 풀이 아니라 VM(scripts/cloud-vm/ai_comments.py)이 실제 데이터를
 // 정량 분석해 만든 '사실 객체'를 Groq 로 보내 생성한다. Groq 키(GROQ_API_KEY)는 이 스크립트 속성에만 있으므로
@@ -832,7 +775,7 @@ function doPost(e) {
     return jsonResponse({ ok: false, error: 'bad-json' });
   }
   if (body && body.action === 'marketComments') {
-    return jsonResponse(marketCommentsProxy_(body));
+    return jsonResponse({ok: false, error: 'disabled'});
   }
   return jsonResponse({ ok: false, error: 'unknown-action' });
 }
@@ -872,62 +815,7 @@ function marketCommentsProxy_(body) {
 // Groq chat completions - JSON 객체 출력 전용. callGroq 와 달리 system 메시지, 출력 토큰 상한, 토큰 사용량 반환이 필요하다.
 // 말투 다양성을 위해 temperature 를 높게(0.8) 두지만 사실 검증은 VM 이 한다. gpt-oss 는 추론 토큰이 출력 한도를 쓰므로
 // reasoning_effort 를 낮춘다. 모델이 두 옵션 중 하나를 거부(400)하면 옵션 없이 한 번 더 시도한다.
-function callGroqJson_(system, user, maxTokens) {
-  var apiKey = PropertiesService.getScriptProperties().getProperty('GROQ_API_KEY');
-  if (!apiKey) {
-    console.log('callGroqJson_: GROQ_API_KEY 스크립트 속성이 비어있음');
-    return null;
-  }
-  var url = 'https://api.groq.com/openai/v1/chat/completions';
-  var messages = [];
-  if (system) messages.push({ role: 'system', content: system });
-  messages.push({ role: 'user', content: user });
-  var variants = [
-    { response_format: { type: 'json_object' }, reasoning_effort: 'low' },
-    {}
-  ];
-  for (var v = 0; v < variants.length; v++) {
-    var payload = { model: GROQ_MODEL, messages: messages, temperature: 0.8, top_p: 0.95, max_tokens: maxTokens };
-    for (var k in variants[v]) payload[k] = variants[v][k];
-    for (var attempt = 0; attempt < 2; attempt++) {
-      if (attempt > 0) Utilities.sleep(1500);
-      var res = UrlFetchApp.fetch(url, {
-        method: 'post',
-        contentType: 'application/json; charset=utf-8',
-        headers: { Authorization: 'Bearer ' + apiKey },
-        payload: JSON.stringify(payload),
-        muteHttpExceptions: true
-      });
-      var code = res.getResponseCode();
-      if (code === 429) continue;
-      if (code === 400 && v === 0) break; // 옵션 거부 가능성: 옵션 없이 다시
-      if (code !== 200) {
-        console.log('callGroqJson_: 응답 코드 ' + code + ', 본문: ' + res.getContentText('UTF-8').slice(0, 300));
-        return null;
-      }
-      var data;
-      try {
-        data = JSON.parse(res.getContentText('UTF-8'));
-      } catch (err) {
-        console.log('callGroqJson_: JSON 파싱 실패 - ' + err);
-        return null;
-      }
-      var choice = data && data.choices && data.choices[0];
-      var text = choice && choice.message && choice.message.content;
-      if (!text) {
-        console.log('callGroqJson_: 응답에 content 없음 (finish_reason=' + (choice && choice.finish_reason) + ')');
-        return null;
-      }
-      var u = data.usage || {};
-      return {
-        content: text.trim(),
-        usage: { prompt_tokens: u.prompt_tokens || 0, completion_tokens: u.completion_tokens || 0, total_tokens: u.total_tokens || 0 }
-      };
-    }
-  }
-  console.log('callGroqJson_: 재시도까지 전부 실패');
-  return null;
-}
+function callGroqJson_(system, user, maxTokens) { return null; }
 
 // ---------------------------------------------------------------------------
 // 종목 수급 요약판 AI 한 줄평 (?action=flowAiSummary)

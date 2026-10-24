@@ -1,3 +1,9 @@
+**2026-10-24 주요뉴스 hover 흰색·Groq 참고의견 제거 (PR 작업, 운영 미배포)**
+
+사용자 요청: 시장>주요뉴스 마우스 hover 시 회색이 아닌 흰색, 사이트에서 Groq가 생성하는 참고의견은 전부 삭제. `css/main-news.css` 라이트 hover `#fff`, 다크 `var(--dk-card)`로 변경. `js/stock-news.js` 종목뉴스 AI 의견 카드 제거, `js/stock-search.js` 종목상세 AI 등락 이유 UI·호출 제거, `js/overnight-market.js` 글로벌 지표 참고의견 섹션·GAS 요청 제거, `js/foreign-flow.js` 투자의견 생성 박스·GAS 요청 제거. 기존 시세, 경제뉴스 원문, 규칙기반 요약, 기술적 판정과 수급 계산은 유지.
+
+`gas/ticker-proxy.gs`는 종목뉴스 원자료만 반환하고 AI 전용 action은 null·비활성 응답, `callGroq/callGroqJson_` 공통 함수는 외부 네트워크를 사용하지 않는 null 호환 스텁으로 교체(기존 Groq 호출 전체 중단). `scripts/cloud-vm/main.py` AI 코멘트 백그라운드 시작 제거; 기존 API·DB 스키마는 기존 의존성 보존을 위해 남겨 두며 새 AI 생성은 없다. 이미 `js/market-temp.js` 카드 AI 출력은 false여서 화면에서 비활성 상태. JS 소스 구문 검사 통과, `test/test_no_groq_reference_opinions.js` 정적 회귀 검사 추가. GAS·VM·Pages 실제 배포와 브라우저 확인은 PR 승인 이후 수행, 사용자 승인 없이 master 병합하지 않는다.
+
 **2026-10-24 브렌트유 주말 미수신·시세 지연 상태 통일(PR #965 배포 승인·검증 진행)**
 
 사용자 신고: 증시온도 원유 BRENT '미수신', 시장지표 글로벌 '시세 지연'. 원인: KIS ICE 브렌트유가 주말에 거래하지 않더라도 기존 서버 REST·WebSocket이 **직전 수신 20분 초과시 가격 자체를 null로 설정**하고, UI가 각각 다른 문구로 표시. 신규 수집처나 임의 가격을 만들지 않고 공통 `commodity_kis.public_brent_snapshot`를 도입했다. 거래 중 20분 신선도 규칙은 그대로, 공통 시장시계의 보수적 주말 휴장 구간에 한해서 직전 검증된 KIS 시세(최대96시간) 또는 실제 KIS 최근 일봉 종가(4일 이내)를 가격과 별도 `market_closed/quote_status/price_kind/asof_date` 상태로 노출한다. 종가만 있을 때 변동률은 만들지 않으며 기준 날짜를 표시. 그 외 미수신/권한 실패/오래된 자료는 여전히 결측이다.

@@ -14,10 +14,7 @@
   var CONTAINER_SELECTOR = '#stock-news';
   // 2026-08-14 요청: 사이트 곳곳의 Groq AI 요약 상자 제목이 "참고의견"/"종합 요약"/"요약"으로
   // 제각각이라는 지적 - js/kospi-futures.js 등이 이미 쓰는 "참고의견" + 말풍선 아이콘으로 통일.
-  var SN_AI_ICON = '<svg class="sn-ai-badge-icon" width="12" height="12" viewBox="0 0 24 24"'
-    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
-    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-  var FETCH_TIMEOUT_MS = 15000; // 뉴스 조회 + Groq AI 요약까지 순차로 도는 GAS 응답이라 여유 있게
+  var FETCH_TIMEOUT_MS = 15000; // GAS 뉴스 응답 조회 시간 상한
   var MAX_SUGGESTIONS = 8;
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   var STORAGE_KEY = 'stock-news-extra-v1';
@@ -807,15 +804,6 @@
       + ' <span class="sn-result-code">(' + escapeHtml(stock.code) + ')</span> 관련 뉴스</span></div>';
 
     html += buildSectorTags(stock.code);
-
-    // AI 요약(Groq) - null이면(키 없음/레이트리밋/네트워크 오류) 박스 없이 뉴스만 표시
-    var aiSummary = !Array.isArray(data) && data && data.aiSummary;
-    if (aiSummary) {
-      html += '<div class="sn-ai-summary">'
-        + '<span class="sn-ai-badge">' + SN_AI_ICON + '참고의견</span>'
-        + '<p class="sn-ai-text">' + escapeHtml(aiSummary) + '</p>'
-        + '</div>';
-    }
 
     html += '<div class="app-news-timeline sn-news-timeline">' + list.map(function (item, idx) {
       return buildTimelineEvent(item, idx);
