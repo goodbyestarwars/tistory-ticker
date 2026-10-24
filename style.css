@@ -2380,6 +2380,39 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body#tt-body-index .home-briefing-section .home-section-heading > div > strong {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
+  /* Reading rhythm: paragraphs, divider lines and independent panels need
+     whitespace. Keep table rows, quote cells and chart internals compact. */
+  html body .post-single-body p + p,
+  html body .it-modal p + p {
+    margin-top: var(--ui-paragraph-gap) !important;
+  }
+  html body .post-single-body hr {
+    margin-block: var(--ui-section-gap) !important;
+  }
+  html body#tt-body-index .home-editorial-page .home-widget-grid,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-grid,
+  html body .post-single #market-temp .mt-wrap,
+  html body .it-modal .it-results {
+    gap: var(--ui-section-gap) !important;
+  }
+  html body .post-single .mi-wrap .mi-block + .mi-block {
+    margin-top: var(--ui-section-gap) !important;
+  }
+  html body .post-single #market-temp .mt-section-block + .mt-section-block:not(.mt-index-flow) {
+    margin-top: var(--ui-section-gap) !important;
+    padding-top: var(--ui-card-padding) !important;
+  }
+  html body .post-single .mi-wrap .mi-block > .mi-block-head {
+    padding-top: var(--ui-card-padding) !important;
+  }
+  html body .post-single .mi-wrap .mi-block--first > .mi-block-head {
+    padding-top: 0 !important;
+  }
+  html body .post-single .mi-wrap .mi-tab-summary {
+    margin-bottom: var(--ui-section-gap) !important;
+    padding-bottom: var(--ui-card-padding) !important;
+  }
   /* Domestic stock board: section headings follow the shared subtitle scale. */
   html body .post-single #market-temp .mt-stocks-only :is(.mt-stocks-only-heading h1, .mt-section-head h2) {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
@@ -7754,6 +7787,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-card-padding: 18px;
   --ui-card-gap: 10px;
   --ui-section-gap: 20px;
+  --ui-paragraph-gap: 14px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
   --ui-card-surface: var(--np-paper);
@@ -7775,7 +7809,7 @@ html.dark {
 }
 
 @media (max-width: 760px) {
-  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-title-size: 22px; }
+  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-paragraph-gap: 12px; --ui-title-size: 22px; }
 }
 
 @layer np {
