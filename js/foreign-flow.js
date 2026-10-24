@@ -836,63 +836,10 @@
       + row('ROE', annual && annual.latest_roe_pct != null ? fmtPct(annual.latest_roe_pct) : '-')
       + '</div>';
 
-    // 3.8 투자의견: 파란 배경 카드(#E6F1FB/#0C447C 고정색) + 상세보기 버튼
-    var opinionSection = '<div class="ff-panel-section ff-panel-opinion"><div class="ff-panel-title">투자의견</div>'
-      + '<div class="ff-panel-opinion-text" id="ffPanelOpinion">생성 중...</div>'
-      + '</div>';
-
     var detailLink = '<button type="button" class="ff-panel-detail-link" data-open-detail="' + escapeAttr(data.code) + '" data-open-detail-name="' + escapeAttr(data.name || data.code) + '">수급·차트·펀더멘탈·모멘텀 상세 보기 →</button>';
 
-    box.innerHTML = headerHtml + flowSection + chartSection + fundSection + opinionSection + detailLink;
+    box.innerHTML = headerHtml + flowSection + chartSection + fundSection + detailLink;
 
-    loadPanelOpinion(box, data, entry, techScore, chartData, fundamentals);
-  }
-
-  // 투자의견 한 줄 - loadAiSummary와 같은 GAS(?action=flowAiSummary), 같은 컴포넌트 점수+verdict를
-  // 넘겨 결론이 서로 어긋나지 않게 한다.
-  function loadPanelOpinion(box, data, entry, techScore, chartData, fundamentals) {
-    var el = box.querySelector('#ffPanelOpinion');
-    if (!el) return;
-
-    var shortP = entry && entry.short && entry.short.pressure;
-    var pension = entry && entry.pension;
-    var pensionScore = pension ? computePensionScore(pension) : null;
-    var flowScore = computeFlowScore(data);
-    var foreignInstScore = computeForeignInstScore(data);
-    var shortScore = shortP ? shortP.score : null;
-    var creditScore = computeCreditScore(entry && entry.credit);
-    var fundamentalScore = computeFundamentalScore(fundamentals);
-    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
-
-    var daily = chartData && chartData.daily;
-    var volNote = volumeMultipleText(daily ? computeVolumeMultiple(daily) : null);
-    var rsiNote = daily ? rsiInterpText(daily) : 'RSI 데이터가 부족합니다.';
-
-    var qs = '?action=flowAiSummary'
-      + '&code=' + encodeURIComponent(data.code)
-      + '&name=' + encodeURIComponent(data.name || data.code)
-      + '&flowScore=' + flowScore
-      + '&flowNote=' + encodeURIComponent(flowScoreInterpText(data))
-      + '&foreignInstScore=' + foreignInstScore
-      + '&foreignInstNote=' + encodeURIComponent(foreignInstDescText(data))
-      + '&shortScore=' + (shortScore == null ? '' : shortScore)
-      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
-      + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
-      + '&pensionNote=' + encodeURIComponent(pensionInterpText(pension).text)
-      + '&techScore=' + (techScore ? techScore.score : '')
-      + '&techNote=' + encodeURIComponent(techInterpText(techScore))
-      + '&volNote=' + encodeURIComponent(volNote)
-      + '&rsiNote=' + encodeURIComponent(rsiNote)
-      + '&verdictLabel=' + encodeURIComponent(verdict.label)
-      + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
-
-    fetchJson(GAS_TICKER_URL + qs)
-      .then(function (res) {
-        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
-      })
-      .catch(function () {
-        el.textContent = '요약을 생성하지 못했어요.';
-      });
   }
 
   // ---- 검색/자동완성 (stock-news.js와 동일 패턴) ----
@@ -3539,64 +3486,7 @@
       + '</div>'
       + scoreListHtml
       + gridHtml
-      + '<div class="ff-panel-opinion" id="ffAiSummary">'
-      + '<div class="ff-panel-title">투자의견</div>'
-      + '<div class="ff-panel-opinion-text">생성 중...</div>'
-      + '</div>'
       + '</div>';
-  }
-
-  // AI 한줄요약은 Groq 호출이라 느릴 수 있어 나머지 렌더링을 막지 않고 비동기로 채운다.
-  // 별점 판정(computeVerdict)과 다른 결론을 AI가 스스로 내리는 걸 막기 위해, 여기서도
-  // buildSummaryBox와 똑같이 5개 컴포넌트 점수 + verdict를 구해서 GAS에 "이미 이 결론이다"로
-  // 넘긴다 - LLM은 근거 문장만 쓰고 매수/매도/보유 자체는 다시 판단하지 않는다.
-  function loadAiSummary(box, data, entry, techScore, chartData, fundamentals) {
-    var el = box.querySelector('#ffAiSummary .ff-panel-opinion-text');
-    if (!el) return;
-
-    var shortP = entry && entry.short && entry.short.pressure;
-    var pension = entry && entry.pension;
-    var pensionScore = pension ? computePensionScore(pension) : null;
-    var flowScore = computeFlowScore(data);
-    var foreignInstScore = computeForeignInstScore(data);
-    var shortScore = shortP ? shortP.score : null;
-    var creditP = entry && entry.credit;
-    var creditScore = computeCreditScore(creditP);
-    var fundamentalScore = computeFundamentalScore(fundamentals);
-    var verdict = computeVerdict(flowScore, foreignInstScore, techScore, shortScore, pensionScore, creditScore, fundamentalScore);
-
-    var daily = chartData && chartData.daily;
-    var volNote = volumeMultipleText(daily ? computeVolumeMultiple(daily) : null);
-    var rsiNote = daily ? rsiInterpText(daily) : 'RSI 데이터가 부족합니다.';
-
-    var qs = '?action=flowAiSummary'
-      + '&code=' + encodeURIComponent(data.code)
-      + '&name=' + encodeURIComponent(data.name || data.code)
-      + '&flowScore=' + flowScore
-      + '&flowNote=' + encodeURIComponent(flowScoreInterpText(data))
-      + '&foreignInstScore=' + foreignInstScore
-      + '&foreignInstNote=' + encodeURIComponent(foreignInstDescText(data))
-      + '&shortScore=' + (shortScore == null ? '' : shortScore)
-      + '&shortNote=' + encodeURIComponent(shortInterpText(entry && entry.short, entry && entry.loan))
-      + '&pensionScore=' + (pensionScore == null ? '' : pensionScore)
-      + '&pensionNote=' + encodeURIComponent(pensionInterpText(pension).text)
-      + '&techScore=' + (techScore ? techScore.score : '')
-      + '&techNote=' + encodeURIComponent(techInterpText(techScore))
-      + '&volNote=' + encodeURIComponent(volNote)
-      + '&rsiNote=' + encodeURIComponent(rsiNote)
-      + '&verdictLabel=' + encodeURIComponent(verdict.label)
-      + '&verdictScore=' + (verdict.score == null ? '' : Math.round(verdict.score));
-    // creditScore/fundamentalScore는 verdict 계산엔 이미 반영됐지만, GAS flowAiSummary
-    // 프롬프트(gas/ticker-proxy.gs)는 아직 이 두 값을 안 읽음 - 근거 문장에 반영하려면
-    // GAS 쪽도 별도로 고치고 수동 재배포해야 함(2026-07-19 기준 미착수, 점수 자체는 정확함).
-
-    fetchJson(GAS_TICKER_URL + qs)
-      .then(function (res) {
-        el.textContent = (res && res.summary) || '요약을 생성하지 못했어요.';
-      })
-      .catch(function () {
-        el.textContent = '요약을 생성하지 못했어요.';
-      });
   }
 
   function buildBadges(data) {
