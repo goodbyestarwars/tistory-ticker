@@ -3491,8 +3491,28 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
   }
 }
 
-/* 2026-10-24 `대표 지수 흐름`을 위 섹션(업종 로테이션)에서 더 띄우고, 면책 문구는 오른쪽 정렬 */
+/* 증시온도 제목 위계: 페이지 제목은 style.css, 지정 부제목은 공통 17px. */
 @layer np.np {
-  html body #market-temp .mt-section-block.mt-index-flow { margin-top: 32px !important; }
+  html body .post-single #market-temp .mt-checkpoint-facts .mt-cp-head .mt-strategy-panel-title,
+  html body .post-single #market-temp .mt-checkpoint-facts.mt-checkpoint-facts .mt-cp-call .mt-strategy-action,
+  html body .post-single #market-temp .mt-checkpoint-facts.mt-checkpoint-facts .mt-cp-call .mt-strategy-action .mt-sent,
+  html body .post-single #market-temp .mt-sf-card .mt-cp-head .mt-strategy-panel-title,
+  html body .post-single #market-temp .mt-index-flow .mt-section-head h2 {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-size: var(--ui-section-size) !important;
+    line-height: 1.4 !important;
+  }
+}
+
+/* `대표 지수 흐름`: 위 영역과 구분선/안쪽 여백을 두고, 면책 문구는 오른쪽 정렬. */
+@layer np.np {
+  html body #market-temp .mt-section-block.mt-index-flow {
+    margin-top: 32px !important;
+    padding-top: 20px !important;
+    border-top: 1px solid var(--ui-border) !important;
+    border-image: none !important;
+  }
+  html body #market-temp .mt-index-flow .mt-section-head { padding-top: 0 !important; }
+  html body #market-temp .mt-index-flow .mt-section-head::before { content: none !important; }
   html body #market-temp .mt-page-disclaimer.mt-page-disclaimer { text-align: right; }
 }
