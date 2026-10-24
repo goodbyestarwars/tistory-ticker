@@ -486,6 +486,70 @@ document.documentElement.classList.add('skin-ready');
       activate(key);
     }
 
+    // Summarize the rows already rendered by each tab. No extra data or AI
+    // request: keep labels, values and dates exactly as displayed in the source.
+    function installTabSummary(panel, tab) {
+      if (tab.key === 'global') return; // Its module already renders a rule-based summary first.
+      var selectors = {
+        domestic: '.dmi-spot-table tbody tr, .dmi-fund-board .ibd-row',
+        investor: '.ifl-lines li, .ibd-row',
+        'us-macro': '.ibd-row', crypto: '.ibd-row', fx: '.fxr-table tbody tr'
+      };
+      var summary = document.createElement('section');
+      summary.className = 'mi-tab-summary';
+      var heading = document.createElement('h2');
+      heading.textContent = tab.label + ' 요약';
+      summary.appendChild(heading);
+      var note = document.createElement('p');
+      note.className = 'mi-summary-note';
+      note.textContent = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.';
+      summary.appendChild(note);
+      var body = document.createElement('div');
+      summary.appendChild(body);
+      panel.insertBefore(summary, panel.firstChild);
+      function update() {
+        var basis = panel.querySelector(tab.key === 'fx' ? '[data-fx-meta]' : '[data-if-asof]');
+        var noteText = '현재 탭에 표시된 자료 요약 · 각 항목의 기준일과 단위는 원본 표를 함께 확인하세요.'
+          + (basis ? ' ' + basis.textContent.replace(/\s+/g, ' ').trim() : '');
+        if (note.textContent !== noteText) note.textContent = noteText;
+        var lines = Array.prototype.slice.call(panel.querySelectorAll(selectors[tab.key]));
+        lines = lines.map(function (row) {
+          // IndicatorBoard repeats values in hidden mobile-only copies. Use
+          // table cells once, rather than concatenating responsive duplicates.
+          var cells = row.querySelectorAll(':scope > th, :scope > td');
+          if (cells.length && !Array.prototype.some.call(row.querySelectorAll(':scope > td'), function (cell) {
+            return /\d/.test(cell.textContent);
+          })) return '';
+          var headers = row.closest('table') && row.closest('table').querySelectorAll('thead tr:last-child th');
+          return (cells.length ? Array.prototype.map.call(cells, function (cell, index) {
+            var label = cell.getAttribute('data-label') || (index > 0 && headers && headers[index] ? headers[index].textContent.trim() : '');
+            return (label ? label + ': ' : '') + cell.textContent.replace(/\s+/g, ' ').trim();
+          }).join(' · ') : row.textContent.replace(/\s+/g, ' ').trim());
+        }).filter(function (line) { return /\d/.test(line) && !/불러오는 중|불러오지 못|자료 없음|미수신|확인 중|요약하지 않습니다/.test(line); });
+        lines = lines.filter(function (line, i) { return lines.indexOf(line) === i; }).slice(0, 4);
+        var signature = lines.join('\n');
+        if (body.dataset.signature === signature) return;
+        body.dataset.signature = signature;
+        body.textContent = '';
+        if (!lines.length) {
+          var empty = document.createElement('p');
+          empty.textContent = '요약할 수 있는 수치가 없습니다. 아래 자료의 수신 상태를 확인하세요.';
+          body.appendChild(empty);
+          return;
+        }
+        var list = document.createElement('ul');
+        lines.forEach(function (line) { var li = document.createElement('li'); li.textContent = line; list.appendChild(li); });
+        body.appendChild(list);
+      }
+      var queued = false;
+      new MutationObserver(function (records) {
+        if (records.every(function (record) { return summary.contains(record.target); }) || queued) return;
+        queued = true;
+        requestAnimationFrame(function () { queued = false; update(); });
+      }).observe(panel, { childList: true, characterData: true, subtree: true });
+      update();
+    }
+
     function build() {
       if (document.querySelector('[data-mi-tabs]')) return;
       // 본문에 들어 있는 mount를 기준점으로 삼는다. 둘 다 없으면 이 지면이 아니다.
@@ -535,6 +599,7 @@ document.documentElement.classList.add('skin-ready');
           }
           panel.appendChild(mount);
         });
+        installTabSummary(panel, tab);
       });
 
       bar.addEventListener('click', function (event) {
