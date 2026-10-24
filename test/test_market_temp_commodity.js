@@ -52,7 +52,7 @@ console.log('eth + note ok');
     market_closed:true,quote_status:'closed',asof_date:'2026-10-23',price_kind:'last_quote',
     source:'KIS 공식 해외선물 시세'};
   const h=f([row('WTI',100,0.5,{updated_at:old}),closed],n);
-  assert(h.includes('$103.49')&&h.includes('브렌트유 (10.23 종가)'),'휴장한 브렌트 종가도 가격 카드에 표시');
+  assert(h.includes('$103.49')&&h.includes('브렌트유 (10.23 기준)'),'휴장한 브렌트 종가도 가격 카드에 표시');
   const chartOnly={...closed,price:101.22,change_rate:null,updated_at:null,price_kind:'daily_close'};
   const h2=f([chartOnly],n);
   assert(h2.includes('$101.22')&&!h2.includes('NaN%'),'실제 종가만 있어도 표시하고 변동률은 임의 생성 금지');
