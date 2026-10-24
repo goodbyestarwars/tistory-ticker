@@ -29,6 +29,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import RedirectResponse, Response
 
 import bond_yield
+import commodity_kis
 import fx_koreaexim
 import btc_futures
 import dart_client
