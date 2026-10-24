@@ -2361,15 +2361,21 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1, span) {
     font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
   }
+  html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1) {
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
+  }
   /* Market > Main news: the section heading uses MaruBuri. */
   html body:has(#main-news) .post-single-header .post-single-title,
   html body #main-news .mn-head h2 {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
   }
   html body .post-single:has(.mi-wrap #kospi-futures) .post-single-title,
   html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar)) .post-single-header .post-single-title,
   html body .it-modal :is(#itTitle, #itFxTitle) {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
     font-size: var(--ui-title-size) !important;
     line-height: 1.4 !important;
   }
@@ -2378,7 +2384,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body#tt-body-index #homeEconomicNews .hen-head > div > strong,
   html body#tt-body-index #homeRealtimeBoard .hrt-head > div > strong,
   html body#tt-body-index .home-briefing-section .home-section-heading > div > strong {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
   }
   /* Reading rhythm: paragraphs, divider lines and independent panels need
      whitespace. Keep table rows, quote cells and chart internals compact. */
@@ -2415,7 +2422,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   }
   /* Domestic stock board: section headings follow the shared subtitle scale. */
   html body .post-single #market-temp .mt-stocks-only :is(.mt-stocks-only-heading h1, .mt-section-head h2) {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;
   }
@@ -2461,6 +2469,12 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body .feed .briefing-shelf .post-title,
   html body .feed .briefing-shelf .post-title * {
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  }
+  html body#tt-body-index .home-briefing-section .briefing-carousel-track .post-title,
+  html body .feed .briefing-shelf .post-title,
+  html body .learn-intro h2,
+  html body .site-footer-learn a.learn-card b {
+    font-weight: 700 !important;
   }
   .nav-logo {
     --font-title: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif;
