@@ -206,7 +206,7 @@
       return '<li><i class="hwr2-rank">' + (index < 9 ? '0' : '') + (index + 1) + '</i>'
         + '<span class="hwr2-name"><strong><a href="/page/stock-search?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(item.name) + '">' + escapeHtml(item.name) + '</a></strong><small>' + escapeHtml(item.code) + '</small>'
         + (reasons.length ? '<em>선정 근거 · ' + escapeHtml(reasons.join(' · ')) + '</em>' : '') + '</span>'
-        + '<span class="hwr2-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
+        + '<span class="hwr2-val wd-candidate-val"><b class="' + signClass(item.changeRate) + '">' + signed(item.changeRate) + '</b><small>' + escapeHtml(formatStockPrice(item)) + '</small></span></li>';
     }).join('') + '</ol>';
   }
   // 2026-10-18 사용자 지적("이 섹터는 금요일 기준이 아니라 한 주간 뜨거운 종목인데"): 서버가 순위에 오른 종목을 주간 등락률로 다시 골라
@@ -329,13 +329,56 @@
     });
     return coinModuleJob;
   }
+  // 시장지표 가상자산 3종(업비트 원화) + Binance 공식 주식추종 USDT 무기한선물 2종.
+  // 이 둘은 서로 다른 상품이다. 토큰 가격을 국내 실제 주식의 종가/원화가격으로 표시하지 않는다.
+  var BINANCE_WEEKEND_PAIRS = [['SAMSUNGUSDT', '삼성전자'], ['SKHYNIXUSDT', 'SK하이닉스']];
+  var BINANCE_24H_URL = 'https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=';
+  var BINANCE_SERVER_URL = 'https://goodbyestar.cloud/binance-kr-equity';
+  var lastTokenQuotes = {}, tokenQuoteMemo;
   function coinIcon(symbol) {
     var paths = {
       BTC: '<path d="M10 6v12m4-12v2m0 8v2M8 8h6a2 2 0 0 1 0 4H9m5 0a2 2 0 0 1 0 4H8"/>',
       ETH: '<path d="m12 4-5 8 5 3 5-3-5-8Zm-5 10 5 6 5-6m-5-10v11"/>',
-      USDT: '<path d="M7 7h10m-5 0v12M6 11c0 3 12 3 12 0m-12 0c0-2 12-2 12 0"/>'
+      USDT: '<path d="M7 7h10m-5 0v12M6 11c0 3 12 3 12 0m-12 0c0-2 12-2 12 0"/>',
+      SAMSUNGUSDT: '<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 9h6v6H9zm-1-6v3m5-3v3m5-3v3M8 18v3m5-3v3m5-3v3M3 8h3m-3 5h3m-3 5h3m12-10h3m-3 5h3m-3 5h3"/>',
+      SKHYNIXUSDT: '<rect x="5" y="6" width="14" height="4" rx="1"/><rect x="5" y="12" width="14" height="6" rx="1"/><path d="M9 8h6m-6 7h6M3 7h2m-2 8h2m14-8h2m-2 8h2"/>'
     };
     return '<svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/>' + (paths[symbol] || '') + '</svg>';
+  }
+  function validTokenQuote(item) {
+    if (!item || BINANCE_WEEKEND_PAIRS.every(function (pair) { return pair[0] !== item.symbol; })) return null;
+    var price = num(item.price), rate = num(item.changeRate);
+    var t = Date.parse(item.updatedAt || '');
+    if (price == null || price <= 0 || !isFinite(t) || t > Date.now() + 5 * 60000 || Date.now() - t > 48 * 3600000) return null;
+    return {symbol:item.symbol, price:price, changeRate:rate, updatedAt:item.updatedAt};
+  }
+  function loadBinanceWeekendQuotes() {
+    if (tokenQuoteMemo && (tokenQuoteMemo.pending || Date.now() - tokenQuoteMemo.at < LIVE_REFRESH_MS)) return tokenQuoteMemo.promise;
+    var memo = {at:Date.now(),pending:true};
+    memo.promise = Promise.all(BINANCE_WEEKEND_PAIRS.map(function (pair) {
+      return fetchJsonTimeout(BINANCE_24H_URL + encodeURIComponent(pair[0]), 6000).then(function (item) {
+        var stamp = num(item && item.closeTime);
+        return validTokenQuote({symbol:pair[0],price:item && item.lastPrice,
+          changeRate:item && item.priceChangePercent,
+          updatedAt:new Date(stamp != null && stamp > 0 ? stamp : Date.now()).toISOString()});
+      }).catch(function () { return null; });
+    })).then(function (direct) {
+      var ready = direct.filter(Boolean);
+      if (ready.length === BINANCE_WEEKEND_PAIRS.length) return ready;
+      // 지역 제한(HTTP 451 등)이면 기존 VM 저장 응답으로 폴백한다. 없으면 미수신.
+      return fetchJsonTimeout(BINANCE_SERVER_URL, 6500).then(function (payload) {
+        var data = payload && (payload.data || payload) || {};
+        (data.items || []).forEach(function (item) {
+          if (ready.every(function (row) { return row.symbol !== item.symbol; })) {
+            var checked = validTokenQuote(item);
+            if (checked) ready.push(checked);
+          }
+        });
+        return ready;
+      }).catch(function () { return ready; });
+    }).finally(function () { memo.pending = false; });
+    tokenQuoteMemo = memo;
+    return memo.promise;
   }
   function stopWeekendLive() {
     if (liveTimer) clearInterval(liveTimer);
@@ -356,22 +399,51 @@
       document.addEventListener('visibilitychange', onLiveVisibility);
     }
     liveCtx = {root: root};
-    function paint(pairs, current) {
-      if (!document.body.contains(mount)) return;
+    function paint(coinPairs, currentCoins, currentTokens) {
+      if (!document.body.contains(mount) || liveCtx.root !== root || root.hidden) return;
+      var pairs = coinPairs.concat(BINANCE_WEEKEND_PAIRS);
       var rows = pairs.map(function (pair) {
-        var row = lastLiveQuotes[pair[0]], fresh = current[pair[0]], rate = row && row.change_rate;
-        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b></li>';
+        var token = BINANCE_WEEKEND_PAIRS.some(function (it) { return it[0] === pair[0]; });
+        var row = token ? lastTokenQuotes[pair[0]] : lastLiveQuotes[pair[0]];
+        var fresh = token ? currentTokens[pair[0]] : currentCoins[pair[0]];
+        var rate = row && (token ? row.changeRate : row.change_rate);
+        var quotedAt = row && (token ? row.updatedAt : row.updated_at);
+        var timestamp = quotedAt ? Date.parse(quotedAt) : NaN;
+        var stale = !fresh || (token ? !isFinite(timestamp) || Date.now() - timestamp > 15 * 60000 : !!row.stale);
+        var price = row ? (token
+          ? Number(row.price).toLocaleString('en-US', {minimumFractionDigits:2,maximumFractionDigits:2}) + ' USDT'
+          : formatPrice(row.price) + '원') : '미수신';
+        var source = token ? '바이낸스 선물 · USDT' : '업비트 · KRW';
+        return '<li class="wd-coin' + (token ? ' wd-coin--token' : '') + '" data-weekend-asset="' + pair[0] + '"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span>'
+          + '<span class="wd-coin-name"><strong>' + escapeHtml(pair[1]) + '</strong><small>' + source + '</small></span>'
+          + '<b class="wd-coin-change ' + signClass(rate) + '">' + (rate == null ? '등락 미수신' : direction(rate) + ' ' + signed(rate)) + '</b>'
+          + '<span class="wd-price"><b>' + price + '</b><small>' + (row ? (stale ? '갱신 지연 · ' : '') + (isFinite(timestamp) ? kstTime(timestamp) : '기준 시각 미제공') : '시세 미수신') + '</small></span></li>';
       }).join('');
-      mount.innerHTML = panelHeading('주말에도 움직이는 자산', '시장지표 · 업비트 원화 · 24시간 등락') + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">시장지표 가상자산 자세히 →</a>';
+      mount.innerHTML = panelHeading('주말에도 움직이는 자산', '가상자산 업비트 원화 · 국내주식 추종 바이낸스 선물 USDT')
+        + '<ul class="wd-list">' + rows + '</ul>'
+        + '<p class="wd-note">삼성전자·SK하이닉스는 바이낸스 USDT 무기한선물 참고 시세이며 실제 국내주식 가격이 아닙니다. 등락률은 24시간 기준입니다.</p>'
+        + '<a class="wd-more" href="/pages/kospi-futures?tab=crypto">시장지표 가상자산 자세히 →</a>';
       mount.hidden = false;
     }
+    var coinPairs = [['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']];
+    // Two independent providers; whichever finishes first updates its own rows.
+    var coins = {}, tokens = {};
+    paint(coinPairs, coins, tokens);
     coinModule().then(function (module) {
       return module.fetchCoinQuotes().then(function (rows) {
-        var current = {};
-        rows.forEach(function (row) { if (row && row.price > 0) { current[row.symbol] = row; lastLiveQuotes[row.symbol] = row; } });
-        paint(module.coins, current);
-      }, function () { paint(module.coins, {}); });
-    }).catch(function () { mount.innerHTML = panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세를 불러오지 못했습니다.</p>'; });
+        rows.forEach(function (row) {
+          if (row && num(row.price) > 0 && coinPairs.some(function (p) { return p[0] === row.symbol; })) {
+            coins[row.symbol] = row;
+            lastLiveQuotes[row.symbol] = row;
+          }
+        });
+        paint(coinPairs, coins, tokens);
+      }).catch(function () { paint(coinPairs, coins, tokens); });
+    }).catch(function () { paint(coinPairs, coins, tokens); });
+    loadBinanceWeekendQuotes().then(function (rows) {
+      rows.forEach(function (row) { tokens[row.symbol] = row; lastTokenQuotes[row.symbol] = row; });
+      paint(coinPairs, coins, tokens);
+    }).catch(function () { paint(coinPairs, coins, tokens); });
   }
 
   // 2026-10-04 사용자 요청("미국 주말 뉴스를 보고 주목할 만한 테마나 종목 추천"): /weekend-us-themes(30분 캐시).
@@ -924,7 +996,7 @@
     }).join('');
     root.innerHTML = '<header class="wd-header"><div><span class="wd-badge">MARKET CLOSED</span><h2>휴장 대시보드</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div><dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(data.week && data.week.end || '미확인') + '</dd></div><div><dt>다음 국내 거래일</dt><dd>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
-      + '<div class="wd-grid"><section class="wd-panel" data-hwr-live>' + panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세 확인 중</p></section>'
+      + '<div class="wd-grid wd-grid--market"><section class="wd-panel" data-hwr-live>' + panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세 확인 중</p></section>'
       + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading('다음 주 주요 일정', '시각 KST · 실적은 현지 발표일 / 예정') + '<span></span></div>' + scheduleList(data.schedule) + '<a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section></div>'
       + '<div class="wd-grid"><section class="wd-panel" data-hwr-themes>' + panelHeading('이번 주 주요뉴스', '기존 주말 뉴스와 테마') + '<p class="wd-empty">뉴스 확인 중</p></section><section class="wd-panel" data-wd-scanner>' + panelHeading('다음 주 주목할 종목', '기존 2주 스윙 후보') + '<p class="wd-empty">검색 결과 확인 중</p></section></div>'
       + '<div class="wd-reading" aria-label="마켓브리핑과 이야기 시리즈"><section class="wd-panel" data-wd-briefing hidden></section><section class="wd-panel" data-wd-stories hidden></section></div>';
