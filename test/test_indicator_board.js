@@ -75,6 +75,6 @@ assert.ok(/IndicatorBoard\.create\(/.test(crypto) && /data-cm-board/.test(crypto
 const dmi = fs.readFileSync('js/domestic-market-indicators.js', 'utf8');
 assert.ok(/IndicatorBoard\.create\(/.test(dmi) && /renderFundCards/.test(dmi), 'funds render through the board, old cards kept as fallback');
 const main = fs.readFileSync('js/skin-main.js', 'utf8');
-assert.equal((main.match(/css\/indicator-board\.css/g) || []).length, 4, 'tab loader preloads the board CSS for all four tabs');
+assert.equal((main.match(/css\/indicator-board\.css/g) || []).length, 5, 'tab loader preloads board CSS for funds, investor, global, macro and crypto');
 
-console.log('PASS: indicator board util (dates, series, range cut, stats, ticks, sign), no network in board, four tabs wired');
+console.log('PASS: indicator board util (dates, series, range cut, stats, ticks, sign), no network in board, five tabs wired');

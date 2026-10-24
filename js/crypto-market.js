@@ -8,6 +8,20 @@
   var api = 'https://goodbyestar.cloud';
   var root, tools, timer, busy, board, boardJob, newsAt = 0, history = {};
   var COINS = [['BTC', '비트코인'], ['ETH', '이더리움'], ['USDT', '테더']];
+  // The indicator page and closed home share the same source, units and request.
+  var coinQuoteMemo;
+  function fetchCoinQuotes() {
+    if (coinQuoteMemo && (coinQuoteMemo.pending || Date.now() - coinQuoteMemo.at < 30000)) return coinQuoteMemo.promise;
+    var memo = { at: Date.now(), pending: true }, controller = new AbortController();
+    var timeout = setTimeout(function () { controller.abort(); }, 8000);
+    memo.promise = fetch(api + '/futures?days=365&symbols=BTC,ETH,USDT', {signal: controller.signal})
+      .then(function (response) { if (!response.ok) throw new Error('coin quotes ' + response.status); return response.json(); })
+      .then(function (out) { if (!Array.isArray(out.data)) throw new Error('coin quote payload'); return out.data; })
+      .catch(function (error) { if (coinQuoteMemo === memo) coinQuoteMemo = null; throw error; })
+      .finally(function () { clearTimeout(timeout); memo.pending = false; });
+    coinQuoteMemo = memo;
+    return memo.promise;
+  }
   var COIN_DIGITS = { BTC: 0, ETH: 0, USDT: 2 };
   var coinItems = {}, tokenItems = {}, tokenPairs = [], tokenQuoteAt = '';
   var COLUMNS = [
@@ -162,9 +176,9 @@
       +'<section class="cm-news"><div class="cm-news-head"><h3>가상자산 뉴스</h3><button type="button" data-news-refresh>새로고침</button></div><div data-news-status role="status">뉴스 확인 중...</div><div class="app-news-timeline" data-news-list></div></section>';
   }
   function coins() {
-    return tools.get(api+'/futures?days=365&symbols=BTC,ETH,USDT').then(function (out) {
+    return fetchCoinQuotes().then(function (items) {
       coinItems = { __failed: false };
-      (out.data||[]).forEach(function(item){coinItems[item.symbol]=item;});
+      items.forEach(function(item){coinItems[item.symbol]=item;});
       renderBoard();
     }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);if(!Object.keys(coinItems).length)coinItems.__failed=true;renderBoard();});
   }
@@ -217,6 +231,6 @@
       busy=false;renderBoard();refresh();if(!timer)timer=setInterval(refresh,30000);
     }).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
   }
-  global.CryptoMarket={init:init,dailyStats:dailyStats};
+  global.CryptoMarket={init:init,dailyStats:dailyStats,fetchCoinQuotes:fetchCoinQuotes,coins:COINS};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);

@@ -376,7 +376,7 @@ document.documentElement.classList.add('skin-ready');
       {
         key: 'crypto', label: '가상자산', slug: 'crypto-market',
         mountIds: ['crypto-market'], globalName: 'CryptoMarket',
-        script: ASSET_BASE + 'js/crypto-market.js?v=20261008-news-timeline',
+        script: ASSET_BASE + 'js/crypto-market.js?v=20261024-shared-quotes',
         styles: [ASSET_BASE + 'css/overnight-market.css?v=20261008-five-year-charts',
           ASSET_BASE + 'css/crypto-market.css?v=20261008-news-timeline', ASSET_BASE + 'css/indicator-board.css?v=20261012-board']
       },
@@ -597,7 +597,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261018-week-movers';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261024-native-reading';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
@@ -2337,6 +2337,8 @@ document.documentElement.classList.add('skin-ready');
       if (!section) return;
       var closed = dashboardSection.classList.contains('is-market-closed');
       var report = document.getElementById('homeWeeklyReport');
+      var weekly = window.HomeWeeklyReport;
+      if (report && weekly && weekly.syncContent) { weekly.syncContent(report, closed); return; }
       if (closed) {
         if (!report || !report.parentNode) return;
         if (!section.__homeSlot) {
