@@ -60,8 +60,8 @@ function mountCalendar() {
 
 test('defaults to all, renders domestic and US together, not stacked sections', () => {
   const page=mountCalendar();
-  assert.match(page.shell,/data-calendar-market="all" aria-pressed="true"/);
-  assert.match(page.shell,/>전체보기<\/button>/);
+  assert.match(page.html,/data-calendar-market="all" aria-pressed="true"/);
+  assert.match(page.html,/>전체보기<\/button>/);
   assert.match(page.html,/삼성전자/);
   assert.match(page.html,/Apple/);
   assert.doesNotMatch(page.html,/sc-completed-group/);
@@ -74,13 +74,13 @@ test('country tabs filter selected day and completed disclosures without API ref
   page.click('domestic');
   assert.match(page.html,/삼성전자/);
   assert.doesNotMatch(page.html,/Apple/);
-  assert.equal(page.tabs[1]['aria-pressed'],'true');
+  assert.match(page.html,/data-calendar-market="domestic" aria-pressed="true"/);
   assert.equal((page.html.match(/class="sc-completed-card"/g)||[]).length,1);
 
   page.click('us');
   assert.doesNotMatch(page.html,/삼성전자/);
   assert.match(page.html,/Apple/);
-  assert.equal(page.tabs[2]['aria-pressed'],'true');
+  assert.match(page.html,/data-calendar-market="us" aria-pressed="true"/);
   assert.equal((page.html.match(/class="sc-completed-card"/g)||[]).length,1);
 
   page.click('all');
@@ -96,4 +96,12 @@ test('country tab styles include keyboard focus, dark mode and compact mobile', 
   assert.match(css,/html\.dark #stock-calendar \.sc-market-btn/);
   assert.match(css,/@media \(max-width: 480px\)/);
   assert.match(css,/#stock-calendar \.sc-market-btn\.is-active/);
+});
+
+test('market filter is below the month grid inside the calendar column', () => {
+  const page=mountCalendar();
+  assert.doesNotMatch(page.shell,/sc-market-switch/);
+  assert.match(page.html,/<div class="sc-grid">[\s\S]*?<\/div><nav class="sc-market-switch"[\s\S]*?<\/nav><\/aside>/);
+  page.click('us');
+  assert.match(page.html,/data-calendar-market="all" aria-pressed="false"/);
 });

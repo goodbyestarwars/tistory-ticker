@@ -518,11 +518,7 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
-      + '<button type="button" class="sc-market-btn is-active" data-calendar-market="all" aria-pressed="true">전체보기</button>'
-      + '<button type="button" class="sc-market-btn" data-calendar-market="domestic" aria-pressed="false">국내</button>'
-      + '<button type="button" class="sc-market-btn" data-calendar-market="us" aria-pressed="false">미국</button>'
-      + '</nav><div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
+    container.innerHTML = '<div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
       + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 공시 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
       + '<small id="scDisclosureScope"></small></div><div data-calendar-content></div>';
     var calendarContent = container.querySelector('[data-calendar-content]');
@@ -577,6 +573,15 @@
         + '<div class="sc-grid">' + cells.join('') + '</div>';
     }
 
+    function renderMarketSwitch(state) {
+      return '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
+        + [['all', '전체보기'], ['domestic', '국내'], ['us', '미국']].map(function (tab) {
+          var active = state.marketFilter === tab[0];
+          return '<button type="button" class="sc-market-btn' + (active ? ' is-active' : '')
+            + '" data-calendar-market="' + tab[0] + '" aria-pressed="' + active + '">' + tab[1] + '</button>';
+        }).join('') + '</nav>';
+    }
+
     function renderSchedule(state, loading) {
       state.loading = !!loading;
       container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월의 완료 공시에서 검색해.';
@@ -584,11 +589,6 @@
         return eventMatchesMarket(event, state.marketFilter)
           && String(event && event.start || '').slice(0, 10) === state.selectedKey;
       }).sort(compareEvents);
-      Array.prototype.forEach.call(container.querySelectorAll('[data-calendar-market]'), function (button) {
-        var active = button.getAttribute('data-calendar-market') === state.marketFilter;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-pressed', active ? 'true' : 'false');
-      });
       var isToday = state.selectedKey === kstDateKey(new Date());
       var listHtml = loading
         ? '<div class="sc-loading">불러오는 중...</div>'
@@ -600,6 +600,7 @@
         '<div class="sc-layout">'
         + '<aside class="sc-cal-col" aria-label="일정 달력">'
         + renderMonthCalendar(state)
+        + renderMarketSwitch(state)
         + '</aside>'
         + '<section class="sc-list-col" aria-live="polite">'
         + '<div class="sc-today-head"><div><strong>' + (isToday ? '오늘의 일정' : '선택한 날짜 일정') + '</strong><span>' + dateTitle(state.selectedKey) + '</span></div>'

@@ -479,6 +479,7 @@
         node = svgEl('g', { class: 'mcb-node', 'data-name': item.code || item.name });
         node.appendChild(svgEl('rect', { class: 'mcb-cell' }));
         node.appendChild(svgEl('text', { class: 'mcb-label' }));
+        node.appendChild(svgEl('text', { class: 'mcb-cap-label' }));
         node.appendChild(svgEl('text', { class: 'mcb-rate-label' }));
         cellLayer.appendChild(node);
 
@@ -509,7 +510,7 @@
       node.__mcbItem = item;
       if (item.code && /^[0-9A-Za-z]{6}$/.test(item.code)) {
         node.setAttribute('role','link'); node.setAttribute('tabindex','0');
-        node.setAttribute('aria-label',item.name+' · '+(item.changeRate == null ? '등락률 미제공' : item.changeRate.toFixed(2)+'%')+' · 상세 이동');
+        node.setAttribute('aria-label',item.name+' · 시가총액 '+formatCap(item.cap)+' · '+(item.changeRate == null ? '등락률 미제공' : item.changeRate.toFixed(2)+'%')+' · 상세 이동');
       } else { node.removeAttribute('role'); node.removeAttribute('tabindex'); }
 
       var dirClass = heatClass(item.changeRate);
@@ -536,14 +537,23 @@
       var labelEl = node.querySelector('.mcb-label');
       labelEl.style.display = small ? '' : 'none';
       labelEl.setAttribute('x', cx);
-      labelEl.setAttribute('y', cy + (mid ? -lineGap*0.32 : nameFontSize*0.32));
+      labelEl.setAttribute('y', cy + (big ? -lineGap*0.65 : mid ? -lineGap*0.32 : nameFontSize*0.32));
       labelEl.style.fontSize = nameFontSize + 'px';
       fitText(labelEl, item.name, Math.max(item.w - 6, 0));
+
+      // 세 줄을 읽을 수 있는 타일은 이름·시총·등락률을 함께 표시한다.
+      // 작은 타일의 시총도 기존 툴팁과 접근성 이름으로 확인할 수 있다.
+      var capEl = node.querySelector('.mcb-cap-label');
+      capEl.style.display = big ? '' : 'none';
+      capEl.setAttribute('x', cx);
+      capEl.setAttribute('y', cy + lineGap*0.3);
+      capEl.style.fontSize = rateFontSize + 'px';
+      fitText(capEl, formatCap(item.cap), Math.max(item.w - 6, 0));
 
       var rateEl = node.querySelector('.mcb-rate-label');
       rateEl.style.display = mid ? '' : 'none';
       rateEl.setAttribute('x', cx);
-      rateEl.setAttribute('y', cy + lineGap*0.86);
+      rateEl.setAttribute('y', cy + lineGap*(big ? 1.25 : 0.86));
       rateEl.style.fontSize = rateFontSize + 'px';
       rateEl.setAttribute('class', 'mcb-rate-label ' + dirClass);
       rateEl.textContent = item.changeRate == null ? '—' : (item.changeRate > 0 ? '+' : '')+item.changeRate.toFixed(1)+'%';
