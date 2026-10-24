@@ -2356,6 +2356,100 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   html body :not(.nav-logo, .nav-logo *) {
     font-family: var(--font-ui) !important;
   }
+  /* Market briefing masthead: keep the three introductory lines in MaruBuri.
+     The search sibling scopes this exception to the market briefing archive. */
+  html body .feed:has(> .briefing-search) > .category-masthead > div > :is(p, h1, span) {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+  }
+  /* Market > Main news: the section heading uses MaruBuri. */
+  html body:has(#main-news) .post-single-header .post-single-title,
+  html body #main-news .mn-head h2 {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+  }
+  html body .post-single:has(.mi-wrap #kospi-futures) .post-single-title,
+  html body .post-single:has(:is(#market-temp, #foreign-flow, #pattern-scan, #strategy-search, #stock-search, #stock-calendar)) .post-single-header .post-single-title,
+  html body .it-modal :is(#itTitle, #itFxTitle) {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-size: var(--ui-title-size) !important;
+    line-height: 1.4 !important;
+  }
+  /* Dashboard headings, including the briefing section moved on closed days. */
+  html body#tt-body-index #homeMarketBoard > .home-card-heading strong,
+  html body#tt-body-index #homeEconomicNews .hen-head > div > strong,
+  html body#tt-body-index #homeRealtimeBoard .hrt-head > div > strong,
+  html body#tt-body-index .home-briefing-section .home-section-heading > div > strong {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+  }
+  /* Reading rhythm: paragraphs, divider lines and independent panels need
+     whitespace. Keep table rows, quote cells and chart internals compact. */
+  html body .post-single-body p + p,
+  html body .it-modal p + p {
+    margin-top: var(--ui-paragraph-gap) !important;
+  }
+  html body .post-single-body hr {
+    margin-block: var(--ui-section-gap) !important;
+  }
+  html body#tt-body-index .home-editorial-page .home-widget-grid,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-grid,
+  html body .post-single #market-temp .mt-wrap,
+  html body .it-modal .it-results {
+    gap: var(--ui-section-gap) !important;
+  }
+  html body .post-single .mi-wrap .mi-block + .mi-block {
+    margin-top: var(--ui-section-gap) !important;
+  }
+  html body .post-single #market-temp .mt-section-block + .mt-section-block:not(.mt-index-flow) {
+    margin-top: var(--ui-section-gap) !important;
+    padding-top: var(--ui-card-padding) !important;
+  }
+  html body .post-single .mi-wrap .mi-block > .mi-block-head {
+    padding-top: var(--ui-card-padding) !important;
+  }
+  html body .post-single .mi-wrap .mi-block--first > .mi-block-head {
+    padding-top: 0 !important;
+  }
+  html body .post-single .mi-wrap .mi-tab-summary {
+    margin-bottom: var(--ui-section-gap) !important;
+    padding-bottom: var(--ui-card-padding) !important;
+  }
+  /* Domestic stock board: section headings follow the shared subtitle scale. */
+  html body .post-single #market-temp .mt-stocks-only :is(.mt-stocks-only-heading h1, .mt-section-head h2) {
+    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-size: var(--ui-section-size) !important;
+    line-height: 1.4 !important;
+  }
+  html body .feed > .briefing-search input,
+  html body .feed > .briefing-search input::placeholder {
+    font-weight: 700 !important;
+  }
+  /* Editorial hierarchy: page title > section/card title > body > metadata.
+     Reuse the shared title token so mobile follows the same 22px scale. */
+  html body .feed:has(> .briefing-search) > .category-masthead h1,
+  html body:has(#main-news) .post-single-header .post-single-title {
+    font-size: var(--ui-title-size) !important;
+    line-height: 1.4 !important;
+  }
+  html body #main-news .mn-head h2 {
+    font-size: var(--ui-section-size) !important;
+    line-height: 1.4 !important;
+  }
+  html body .feed:has(> .briefing-search) > .category-masthead > div > span,
+  html body .feed > .briefing-search input,
+  html body #main-news .mn-head p,
+  html body #main-news .mn-row-title,
+  html body #main-news .mn-state {
+    font-size: 14px !important;
+    line-height: 1.6 !important;
+  }
+  html body .feed:has(> .briefing-search) > .category-masthead > div > p,
+  html body .feed:has(> .briefing-search) > .category-masthead > small,
+  html body .feed > .briefing-search small,
+  html body #main-news .mn-head small,
+  html body #main-news .mn-row-meta {
+    font-size: 12px !important;
+    line-height: 1.5 !important;
+  }
   /* Explicit serif exceptions: brand banner, story label and preview titles. */
   html body .nav-logo .nav-logo-name,
   html body .learn-intro h2,
@@ -2394,15 +2488,15 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
   }
   html body .feed .briefing-shelf .post-card[hidden] { display: none !important; }
   html body .feed .briefing-shelf .post-header { margin: 0 0 24px !important; justify-content: flex-start !important; }
-  html body .feed .briefing-shelf .post-date { font-size: 11px !important; color: var(--text-sub) !important; }
+  html body .feed .briefing-shelf .post-date { font-size: 12px !important; line-height: 1.5 !important; color: var(--text-sub) !important; }
   html body .feed .briefing-shelf .post-title {
     display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 4 !important;
     overflow: hidden; margin: 0 0 16px !important;
-    font-size: 23px !important; line-height: 1.35 !important; letter-spacing: 0 !important;
+    font-size: var(--ui-section-size) !important; line-height: 1.4 !important; letter-spacing: 0 !important;
   }
   html body .feed .briefing-shelf .post-excerpt {
     display: -webkit-box !important; -webkit-box-orient: vertical !important; -webkit-line-clamp: 5 !important;
-    overflow: hidden; margin: 0 !important; font-size: 13px !important; line-height: 1.65 !important;
+    overflow: hidden; margin: 0 !important; font-size: 14px !important; line-height: 1.6 !important;
     color: var(--text-sub) !important;
   }
   html body .feed .briefing-shelf .post-footer {
@@ -7693,6 +7787,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-card-padding: 18px;
   --ui-card-gap: 10px;
   --ui-section-gap: 20px;
+  --ui-paragraph-gap: 14px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
   --ui-card-surface: var(--np-paper);
@@ -7714,7 +7809,7 @@ html.dark {
 }
 
 @media (max-width: 760px) {
-  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-title-size: 22px; }
+  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-paragraph-gap: 12px; --ui-title-size: 22px; }
 }
 
 @layer np {

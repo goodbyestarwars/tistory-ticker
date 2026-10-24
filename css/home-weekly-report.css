@@ -1,150 +1,889 @@
+/* 휴장 대시보드 스타일
+ * 섹션은 기존 소스 순서를 따른다. 규칙과 선언을 이동하지 않는다.
+ * 같은 선택자의 후속 규칙 및 np.np / @media 위치는 cascade 보존을 위해 유지한다.
+ */
+
 /* Weekend-only layout. Original editorial DOM is moved, never rewritten. */
-.home-weekly-report.weekend-dashboard { --wd-surface: var(--ui-card-surface); --wd-inner: var(--ui-inner-surface); --wd-line: var(--ui-border); --wd-text: rgb(var(--np-ink)); --wd-sub: rgba(var(--np-ink),.7); --wd-banner: var(--dk-card,#202731); --wd-banner-end: var(--dk-inner,#283340); --wd-banner-text: var(--dk-text,#f1f4f8); --wd-banner-sub: var(--dk-sub,#a6b5c5); display: grid; grid-template-columns: minmax(0,1fr); gap: 14px; min-width: 0; margin: 0 0 20px; color: var(--wd-text); font: 400 13px/1.5 "Pretendard Variable",Pretendard,sans-serif; font-variant-numeric: tabular-nums; }
-.weekend-dashboard > * { min-width: 0; }
-html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub); }
-.weekend-dashboard[hidden], .weekend-dashboard [hidden] { display: none !important; }
-.weekend-dashboard :is(a,button) { color: inherit; text-decoration: none; }
-.weekend-dashboard :is(a,button,summary):focus-visible { outline: 2px solid var(--wd-sub); outline-offset: 3px; }
-.weekend-dashboard :is(section,article,nav,.wd-reading) { scroll-margin-top: 140px; }
-.weekend-dashboard .wd-header { min-height: 142px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 20px; padding: 20px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); color: var(--wd-banner-text); background: radial-gradient(ellipse at 80% 0%,var(--wd-banner-end),transparent 65%),linear-gradient(115deg,var(--wd-banner),var(--wd-banner-end)); }
-.weekend-dashboard .wd-header h2 { margin: 8px 0 5px; font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif; letter-spacing: normal; }
-.weekend-dashboard .wd-header p, .weekend-dashboard .wd-header dt { color: var(--wd-banner-sub); font-size: 12px; }
-.weekend-dashboard .wd-badge { display: inline-block; padding: 4px 9px; border: 1px solid var(--wd-banner-sub); border-radius: 6px; font-size: 11px; font-weight: 600; letter-spacing: .08em; }
-.weekend-dashboard dl { display: flex; gap: 26px; }
-.weekend-dashboard dd { margin: 5px 0 0; font-size: 15px; font-weight: 600; }
-.weekend-dashboard .wd-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; min-width: 0; align-items: start; }
-.weekend-dashboard .wd-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
-.weekend-dashboard .wd-section-head h3 { margin: 0; font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif; }
-.weekend-dashboard .wd-section-head a { font-size: 12px; min-height: 32px; display: inline-flex; align-items: center; }
-.weekend-dashboard .wd-indices { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(140px,1fr); gap: 8px; overflow-x: auto; scroll-snap-type: x mandatory; overscroll-behavior-x: contain; padding-bottom: 4px; scrollbar-width: thin; }
-.weekend-dashboard .wd-index { --wd-tone: var(--wd-sub); position: relative; box-sizing: border-box; height: 135px; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; border: 1px solid var(--wd-line); border-radius: 12px; background: linear-gradient(125deg,var(--wd-surface),color-mix(in srgb,var(--wd-tone) 7%,var(--wd-surface))); scroll-snap-align: start; }
-.weekend-dashboard .wd-index.is-up { --wd-tone: var(--num-up); }
-.weekend-dashboard .wd-index.is-down { --wd-tone: var(--num-down); }
-.weekend-dashboard .wd-index > strong { font-size: 12px; font-weight: 600; color: var(--wd-text); white-space: nowrap; }
-.weekend-dashboard .wd-index > b { font-size: 20px; font-weight: 700; line-height: 1.2; color: var(--wd-text); white-space: nowrap; }
-.weekend-dashboard .wd-index-change { display: flex; align-items: center; flex-wrap: wrap; column-gap: 3px; font-weight: 600; font-size: 13px; white-space: nowrap; }
-.weekend-dashboard .wd-index-change small { color: inherit; font-size: 11px; font-weight: 400; margin-left: auto; }
-.weekend-dashboard .wd-direction { flex: 0 0 16px; width: 16px; height: 16px; }
-.weekend-dashboard .wd-index-spark { position: relative; height: 26px; min-height: 26px; margin-top: auto; color: var(--wd-tone); }
-.weekend-dashboard .wd-index-spark svg { display: block; width: 100%; height: 26px; overflow: visible; }
-.weekend-dashboard .wd-index-spark polyline { stroke: var(--wd-tone); }
-.weekend-dashboard .hwr-glow-halo { display: none; }
-.weekend-dashboard .hwr-glow-top { stop-color: var(--wd-tone); stop-opacity: .22; }
-.weekend-dashboard .hwr-glow-bottom { stop-color: var(--wd-tone); stop-opacity: .02; }
-.weekend-dashboard .hwr-glow-dot { display: none; }
-.weekend-dashboard .wd-index-date { font-size: 10px; line-height: 1.2; color: var(--wd-sub); }
-.weekend-dashboard .wd-no-series { font-size: 11px; color: var(--wd-sub); }
-.weekend-dashboard .wd-panel { min-width: 0; padding: 14px; border: 1px solid var(--wd-line); border-radius: var(--ui-radius-card); background: var(--wd-surface); }
-.weekend-dashboard .wd-panel-head { display: grid; gap: 5px; margin-bottom: 10px; }
-.weekend-dashboard .wd-panel-head h3 { color: var(--wd-text); font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif; letter-spacing: normal; }
-.weekend-dashboard small { color: var(--wd-sub); }
-.weekend-dashboard .wd-panel-head small { font-size: 12px; }
-.weekend-dashboard .wd-list { list-style: none; margin: 0; padding: 0; }
-.weekend-dashboard .wd-list > li { padding: 8px 0; border-bottom: 1px solid var(--wd-line); min-width: 0; }
-.weekend-dashboard .wd-list > li:last-child { border-bottom: 0; }
-.weekend-dashboard .wd-list small { display: block; font-size: 12px; font-weight: 400; }
-.weekend-dashboard .wd-coin { display: grid; grid-template-columns: 32px minmax(48px,1fr) auto auto; gap: 9px; align-items: center; font-size: 13px; }
-.weekend-dashboard .wd-coin-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--wd-inner); display: grid; place-items: center; color: var(--wd-sub); }
-.weekend-dashboard .wd-price { text-align: right; white-space: nowrap; font-size: 13px; }
-.weekend-dashboard .wd-price b small { display: inline; font-size: 11px; }
-.weekend-dashboard .wd-note { margin-top: 8px; font-size: 11px; color: var(--wd-sub); overflow-wrap: anywhere; }
-.weekend-dashboard .wd-more { display: inline-flex; align-items: center; min-height: 40px; margin-top: 6px; font-size: 12px; }
-.weekend-dashboard .wd-empty { padding: 14px 0; color: var(--wd-sub); font-size: 13px; }
-.weekend-dashboard .hwr-card-title { display: block; margin: 0; padding: 0; border: 0; }
-.weekend-dashboard .hwr-card-title > span { display: block; font-size: 11px; margin-bottom: 6px; color: var(--wd-sub); }
-.weekend-dashboard .wd-calendar .hwr-card-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; text-align: left; }
-.weekend-dashboard .wd-calendar .hwr-card-title > .wd-panel-head { flex: 1 0 auto; }
-.weekend-dashboard .wd-calendar .hwr-card-title > span { margin-left: auto; max-width: 100%; text-align: right; overflow-wrap: anywhere; }
-.weekend-dashboard .hwr-schedule-list { margin: 0; padding: 0; list-style: none; }
-.weekend-dashboard .hwr-schedule-list li { display: grid; grid-template-columns: 58px 32px minmax(0,1fr); gap: 8px; padding: 7px 0; border-bottom: 1px solid var(--wd-line); color: var(--wd-text); font-size: 13px; }
-.weekend-dashboard .hwr-schedule-list li:last-child { border-bottom: 0; }
-.weekend-dashboard .hwr-schedule-list li > span { min-width: 0; overflow-wrap: anywhere; }
-.weekend-dashboard .hwr-schedule-list time { color: var(--wd-sub); font-size: 12px; }
-.weekend-dashboard .hwr-schedule-market { align-self: start; padding: 2px 3px; border-radius: 4px; background: var(--wd-inner); color: var(--wd-sub); font-size: 11px; text-align: center; }
-.weekend-dashboard .wd-theme { padding: 9px 0; border-bottom: 1px solid var(--wd-line); }
-.weekend-dashboard .wd-theme:last-of-type { border-bottom: 0; }
-.weekend-dashboard .wd-news-title { display: block; font-size: 14px; font-weight: 600; line-height: 1.45; }
-.weekend-dashboard .wd-theme > small { font-size: 11px; }
-.weekend-dashboard .wd-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin-top: 5px; font-size: 12px; }
-.weekend-dashboard .wd-sector { padding: 2px 8px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: var(--wd-sub); }
-.weekend-dashboard .wd-related { display: flex; flex-wrap: wrap; gap: 5px 10px; margin-top: 5px; font-size: 12px; }
-.weekend-dashboard .wd-theme summary { cursor: pointer; padding: 6px 0; font-size: 12px; color: var(--wd-sub); }
-.weekend-dashboard .wd-theme .wd-list a { font-size: 13px; }
-.weekend-dashboard .hwr2-rows { list-style: none; margin: 0; padding: 0; }
-.weekend-dashboard .hwr2-rows > li { display: grid; grid-template-columns: 20px minmax(0,1fr) auto; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--wd-line); align-items: start; }
-.weekend-dashboard .hwr2-rows > li:last-child { border-bottom: 0; }
-.weekend-dashboard .hwr2-rank { font: 500 12px/1.7 "Pretendard Variable",Pretendard,sans-serif; color: var(--wd-sub); }
-.weekend-dashboard .hwr2-name strong { display: block; font-size: 14px; }
-.weekend-dashboard .hwr2-name :is(small,em) { display: block; font: 400 12px/1.5 "Pretendard Variable",Pretendard,sans-serif; color: var(--wd-sub); }
-.weekend-dashboard .hwr2-name strong { display: inline; }
-.weekend-dashboard .hwr2-name small { display: inline; margin-left: 6px; }
-.weekend-dashboard .hwr2-name em { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.weekend-dashboard .hwr2-val { display: grid; gap: 3px; text-align: right; font-size: 13px; }
-.weekend-dashboard .hwr2-val small { font-size: 12px; }
-.weekend-dashboard .is-up { color: var(--num-up); }
-.weekend-dashboard .is-down { color: var(--num-down); }
-.weekend-dashboard .is-flat { color: var(--wd-sub); }
-.weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background: var(--wd-inner); }
-html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background: var(--dk-hover); }
-.home-dashboard.is-market-closed:has(+ .weekend-dashboard) .home-closed-page { display: none !important; }
-.weekend-dashboard .wd-reading { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; min-width: 0; }
-.weekend-dashboard .wd-reading > .wd-panel { padding: 0; border: 0; background: transparent; }
-/* Original important rules are in np.np. Scope only layout selectors that formerly
-   depended on the footer parent; card markup, fonts, icons and controls stay native. */
-@layer np.np {
-  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 { font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif !important; color: var(--wd-banner-text) !important; }
-  html body#tt-body-index #homeWeeklyReport [data-weekend-content] { width: 100% !important; min-width: 0 !important; margin: 0 !important; }
-  html body#tt-body-index #homeWeeklyReport .site-footer-learn { display: grid !important; grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important; gap: 24px !important; padding: 16px 0 !important; }
-  html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area { min-width: 0; }
-  html body#tt-body-index #homeWeeklyReport .home-widget-actions { display: none !important; }
-  html body#tt-body-index:has(#homeWeeklyReport:not([hidden])) .site-footer { margin-top: 20px !important; padding-top: 20px !important; }
-  @media(max-width:767px) {
-    html body#tt-body-index #homeWeeklyReport .briefing-intro { flex-wrap: wrap !important; gap: 12px !important; }
-    html body#tt-body-index #homeWeeklyReport .briefing-intro > div { flex: 1 1 220px; min-width: 0; }
-    html body#tt-body-index #homeWeeklyReport .briefing-intro .home-briefing-more { margin: 0 !important; }
-    html body#tt-body-index #homeWeeklyReport .site-footer-learn { grid-template-columns: minmax(0,1fr) !important; gap: 16px !important; }
-  }
-}
-.home-weekly-report .hwr-loading { padding: 24px; border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card); background: var(--ui-card-surface); }
-.home-weekly-report .hwr-loading span { display: block; margin-top: 8px; font-size: 12px; }
-@media(max-width:767px) {
-  .weekend-dashboard .wd-grid { grid-template-columns: minmax(0,1fr); }
-  .weekend-dashboard .wd-header { min-height: 142px; padding: 16px; gap: 12px; }
-  .weekend-dashboard .wd-header dl { width: 100%; gap: 22px; }
-  .weekend-dashboard .wd-indices { grid-auto-columns: 156px; }
-  .weekend-dashboard .wd-panel { padding: 14px; }
-  .weekend-dashboard .wd-coin { grid-template-columns: 28px minmax(48px,1fr) auto auto; gap: 6px; font-size: 12px; }
-  .weekend-dashboard .wd-coin-icon { width: 28px; height: 28px; }
-  .weekend-dashboard .wd-price { font-size: 12px; }
-  .weekend-dashboard .wd-coin .wd-price > small { font-size: 11px; white-space: normal; }
+
+/* ==========================================================================
+   01. 공통 토큰 · 기본 레이아웃 · 접근성
+   ========================================================================== */
+
+.home-weekly-report.weekend-dashboard {
+  --wd-surface: var(--ui-card-surface);
+  --wd-inner: var(--ui-inner-surface);
+  --wd-line: var(--ui-border);
+  --wd-text: rgb(var(--np-ink));
+  --wd-sub: rgba(var(--np-ink),.7);
+  --wd-banner: var(--dk-card,#202731);
+  --wd-banner-end: var(--dk-inner,#283340);
+  --wd-banner-text: var(--dk-text,#f1f4f8);
+  --wd-banner-sub: var(--dk-sub,#a6b5c5);
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: 14px;
+  min-width: 0;
+  margin: 0 0 20px;
+  color: var(--wd-text);
+  font: 400 13px/1.5 "Pretendard Variable",Pretendard,sans-serif;
+  font-variant-numeric: tabular-nums;
 }
 
+.weekend-dashboard > * {
+  min-width: 0;
+}
+
+html.dark .weekend-dashboard {
+  --wd-text: var(--dk-text);
+  --wd-sub: var(--dk-sub);
+}
+
+.weekend-dashboard[hidden], .weekend-dashboard [hidden] {
+  display: none !important;
+}
+
+.weekend-dashboard :is(a,button) {
+  color: inherit;
+  text-decoration: none;
+}
+
+.weekend-dashboard :is(a,button,summary):focus-visible {
+  outline: 2px solid var(--wd-sub);
+  outline-offset: 3px;
+}
+
+.weekend-dashboard :is(section,article,nav,.wd-reading) {
+  scroll-margin-top: 140px;
+}
+
+/* ==========================================================================
+   02. 휴장 헤더 · 배지 · 요약 수치
+   ========================================================================== */
+
+.weekend-dashboard .wd-header {
+  min-height: 142px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 20px;
+  border: 1px solid var(--wd-line);
+  border-radius: var(--ui-radius-card);
+  color: var(--wd-banner-text);
+  background: radial-gradient(ellipse at 80% 0%,var(--wd-banner-end),transparent 65%),linear-gradient(115deg,var(--wd-banner),var(--wd-banner-end));
+}
+
+.weekend-dashboard .wd-header h2 {
+  margin: 8px 0 5px;
+  font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif;
+  letter-spacing: normal;
+}
+
+.weekend-dashboard .wd-header p, .weekend-dashboard .wd-header dt {
+  color: var(--wd-banner-sub);
+  font-size: 12px;
+}
+
+.weekend-dashboard .wd-badge {
+  display: inline-block;
+  padding: 4px 9px;
+  border: 1px solid var(--wd-banner-sub);
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+}
+
+.weekend-dashboard dl {
+  display: flex;
+  gap: 26px;
+}
+
+.weekend-dashboard dd {
+  margin: 5px 0 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* ==========================================================================
+   03. 공통 그리드 · 섹션 제목
+   ========================================================================== */
+
+.weekend-dashboard .wd-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+  min-width: 0;
+  align-items: start;
+}
+
+.weekend-dashboard .wd-section-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+  gap: 10px;
+}
+
+.weekend-dashboard .wd-section-head h3 {
+  margin: 0;
+  font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif;
+}
+
+.weekend-dashboard .wd-section-head a {
+  font-size: 12px;
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* ==========================================================================
+   04. 주요 지수 · 등락 · 스파크라인
+   ========================================================================== */
+
+.weekend-dashboard .wd-indices {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(140px,1fr);
+  gap: 8px;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+
+.weekend-dashboard .wd-index {
+  --wd-tone: var(--wd-sub);
+  position: relative;
+  box-sizing: border-box;
+  height: 135px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 10px 12px;
+  border: 1px solid var(--wd-line);
+  border-radius: 12px;
+  background: linear-gradient(125deg,var(--wd-surface),color-mix(in srgb,var(--wd-tone) 7%,var(--wd-surface)));
+  scroll-snap-align: start;
+}
+
+.weekend-dashboard .wd-index.is-up {
+  --wd-tone: var(--num-up);
+}
+
+.weekend-dashboard .wd-index.is-down {
+  --wd-tone: var(--num-down);
+}
+
+.weekend-dashboard .wd-index > strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--wd-text);
+  white-space: nowrap;
+}
+
+.weekend-dashboard .wd-index > b {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--wd-text);
+  white-space: nowrap;
+}
+
+.weekend-dashboard .wd-index-change {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  column-gap: 3px;
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.weekend-dashboard .wd-index-change small {
+  color: inherit;
+  font-size: 11px;
+  font-weight: 400;
+  margin-left: auto;
+}
+
+.weekend-dashboard .wd-direction {
+  flex: 0 0 16px;
+  width: 16px;
+  height: 16px;
+}
+
+.weekend-dashboard .wd-index-spark {
+  position: relative;
+  height: 26px;
+  min-height: 26px;
+  margin-top: auto;
+  color: var(--wd-tone);
+}
+
+.weekend-dashboard .wd-index-spark svg {
+  display: block;
+  width: 100%;
+  height: 26px;
+  overflow: visible;
+}
+
+.weekend-dashboard .wd-index-spark polyline {
+  stroke: var(--wd-tone);
+}
+
+.weekend-dashboard .hwr-glow-halo {
+  display: none;
+}
+
+.weekend-dashboard .hwr-glow-top {
+  stop-color: var(--wd-tone);
+  stop-opacity: .22;
+}
+
+.weekend-dashboard .hwr-glow-bottom {
+  stop-color: var(--wd-tone);
+  stop-opacity: .02;
+}
+
+.weekend-dashboard .hwr-glow-dot {
+  display: none;
+}
+
+.weekend-dashboard .wd-index-date {
+  font-size: 10px;
+  line-height: 1.2;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-no-series {
+  font-size: 11px;
+  color: var(--wd-sub);
+}
+
+/* ==========================================================================
+   05. 공통 패널 · 목록
+   ========================================================================== */
+
+.weekend-dashboard .wd-panel {
+  min-width: 0;
+  padding: 14px;
+  border: 1px solid var(--wd-line);
+  border-radius: var(--ui-radius-card);
+  background: var(--wd-surface);
+}
+
+.weekend-dashboard .wd-panel-head {
+  display: grid;
+  gap: 5px;
+  margin-bottom: 10px;
+}
+
+.weekend-dashboard .wd-panel-head h3 {
+  color: var(--wd-text);
+  font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif;
+  letter-spacing: normal;
+}
+
+.weekend-dashboard small {
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-panel-head small {
+  font-size: 12px;
+}
+
+.weekend-dashboard .wd-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.weekend-dashboard .wd-list > li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--wd-line);
+  min-width: 0;
+}
+
+.weekend-dashboard .wd-list > li:last-child {
+  border-bottom: 0;
+}
+
+.weekend-dashboard .wd-list small {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* ==========================================================================
+   06. 가상자산 · 가격 · 보조 안내
+   ========================================================================== */
+
+.weekend-dashboard .wd-coin {
+  display: grid;
+  grid-template-columns: 32px minmax(48px,1fr) auto auto;
+  gap: 9px;
+  align-items: center;
+  font-size: 13px;
+}
+
+.weekend-dashboard .wd-coin-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--wd-inner);
+  display: grid;
+  place-items: center;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-price {
+  text-align: right;
+  white-space: nowrap;
+  font-size: 13px;
+}
+
+.weekend-dashboard .wd-price b small {
+  display: inline;
+  font-size: 11px;
+}
+
+.weekend-dashboard .wd-note {
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--wd-sub);
+  overflow-wrap: anywhere;
+}
+
+.weekend-dashboard .wd-more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  margin-top: 6px;
+  font-size: 12px;
+}
+
+.weekend-dashboard .wd-empty {
+  padding: 14px 0;
+  color: var(--wd-sub);
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   07. 일정 제목 · 일정 목록
+   ========================================================================== */
+
+.weekend-dashboard .hwr-card-title {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.weekend-dashboard .hwr-card-title > span {
+  display: block;
+  font-size: 11px;
+  margin-bottom: 6px;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .hwr-schedule-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.weekend-dashboard .hwr-schedule-list li {
+  display: grid;
+  grid-template-columns: 58px 32px minmax(0,1fr);
+  gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px solid var(--wd-line);
+  color: var(--wd-text);
+  font-size: 13px;
+}
+
+.weekend-dashboard .hwr-schedule-list li:last-child {
+  border-bottom: 0;
+}
+
+.weekend-dashboard .hwr-schedule-list li > span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.weekend-dashboard .hwr-schedule-list time {
+  color: var(--wd-sub);
+  font-size: 12px;
+}
+
+.weekend-dashboard .hwr-schedule-market {
+  align-self: start;
+  padding: 2px 3px;
+  border-radius: 4px;
+  background: var(--wd-inner);
+  color: var(--wd-sub);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* ==========================================================================
+   08. 뉴스 · 업종 태그 · 관련 종목
+   ========================================================================== */
+
+.weekend-dashboard .wd-theme {
+  padding: 9px 0;
+  border-bottom: 1px solid var(--wd-line);
+}
+
+.weekend-dashboard .wd-theme:last-of-type {
+  border-bottom: 0;
+}
+
+.weekend-dashboard .wd-news-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.weekend-dashboard .wd-theme > small {
+  font-size: 11px;
+}
+
+.weekend-dashboard .wd-tags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.weekend-dashboard .wd-sector {
+  padding: 2px 8px;
+  border: 1px solid var(--wd-line);
+  border-radius: 999px;
+  background: var(--wd-inner);
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-related {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 10px;
+  margin-top: 5px;
+  font-size: 12px;
+}
+
+.weekend-dashboard .wd-theme summary {
+  cursor: pointer;
+  padding: 6px 0;
+  font-size: 12px;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-theme .wd-list a {
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   09. 주목할 종목 · 순위 · 수치
+   ========================================================================== */
+
+.weekend-dashboard .hwr2-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.weekend-dashboard .hwr2-rows > li {
+  display: grid;
+  grid-template-columns: 20px minmax(0,1fr) auto;
+  gap: 8px;
+  padding: 9px 0;
+  border-bottom: 1px solid var(--wd-line);
+  align-items: start;
+}
+
+.weekend-dashboard .hwr2-rows > li:last-child {
+  border-bottom: 0;
+}
+
+.weekend-dashboard .hwr2-rank {
+  font: 500 12px/1.7 "Pretendard Variable",Pretendard,sans-serif;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .hwr2-name strong {
+  display: block;
+  font-size: 14px;
+}
+
+.weekend-dashboard .hwr2-name :is(small,em) {
+  display: block;
+  font: 400 12px/1.5 "Pretendard Variable",Pretendard,sans-serif;
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard .hwr2-name strong {
+  display: inline;
+}
+
+.weekend-dashboard .hwr2-name small {
+  display: inline;
+  margin-left: 6px;
+}
+
+.weekend-dashboard .hwr2-name em {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.weekend-dashboard .hwr2-val {
+  display: grid;
+  gap: 3px;
+  text-align: right;
+  font-size: 13px;
+}
+
+.weekend-dashboard .hwr2-val small {
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   10. 공통 등락 색상 · 호버 상태
+   ========================================================================== */
+
+.weekend-dashboard .is-up {
+  color: var(--num-up);
+}
+
+.weekend-dashboard .is-down {
+  color: var(--num-down);
+}
+
+.weekend-dashboard .is-flat {
+  color: var(--wd-sub);
+}
+
+.weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
+  background: var(--wd-inner);
+}
+
+html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
+  background: var(--dk-hover);
+}
+
+/* ==========================================================================
+   11. 휴장 안내 · 원본 읽기 영역
+   ========================================================================== */
+
+.home-dashboard.is-market-closed:has(+ .weekend-dashboard) .home-closed-page {
+  display: none !important;
+}
+
+.weekend-dashboard .wd-reading {
+  display: grid;
+  grid-template-columns: minmax(0,1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+.weekend-dashboard .wd-reading > .wd-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+/* Original important rules are in np.np. Scope only layout selectors that formerly
+   depended on the footer parent; card markup, fonts, icons and controls stay native. */
+
+/* ==========================================================================
+   12. 원본 콘텐츠 레이어 · 푸터 · 모바일 보정
+   ========================================================================== */
+
+@layer np.np {
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 {
+    font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif !important;
+    color: var(--wd-banner-text) !important;
+  }
+
+  html body#tt-body-index #homeWeeklyReport [data-weekend-content] {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  html body#tt-body-index #homeWeeklyReport .site-footer-learn {
+    display: grid !important;
+    grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important;
+    gap: 24px !important;
+    padding: 16px 0 !important;
+  }
+
+  html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area {
+    min-width: 0;
+  }
+
+  html body#tt-body-index #homeWeeklyReport .home-widget-actions {
+    display: none !important;
+  }
+
+  html body#tt-body-index:has(#homeWeeklyReport:not([hidden])) .site-footer {
+    margin-top: 20px !important;
+    padding-top: 20px !important;
+  }
+
+  @media(max-width:767px) {
+    html body#tt-body-index #homeWeeklyReport .briefing-intro {
+      flex-wrap: wrap !important;
+      gap: 12px !important;
+    }
+
+    html body#tt-body-index #homeWeeklyReport .briefing-intro > div {
+      flex: 1 1 220px;
+      min-width: 0;
+    }
+
+    html body#tt-body-index #homeWeeklyReport .briefing-intro .home-briefing-more {
+      margin: 0 !important;
+    }
+
+    html body#tt-body-index #homeWeeklyReport .site-footer-learn {
+      grid-template-columns: minmax(0,1fr) !important;
+      gap: 16px !important;
+    }
+
+  }
+}
+
+/* ==========================================================================
+   13. 로딩 상태
+   ========================================================================== */
+
+.home-weekly-report .hwr-loading {
+  padding: 24px;
+  border: 1px solid var(--ui-border);
+  border-radius: var(--ui-radius-card);
+  background: var(--ui-card-surface);
+}
+
+.home-weekly-report .hwr-loading span {
+  display: block;
+  margin-top: 8px;
+  font-size: 12px;
+}
+
+/* ==========================================================================
+   14. 모바일 레이아웃 (767px 이하)
+   ========================================================================== */
+
+@media(max-width:767px) {
+  .weekend-dashboard .wd-grid {
+    grid-template-columns: minmax(0,1fr);
+  }
+
+  .weekend-dashboard .wd-header {
+    min-height: 142px;
+    padding: 16px;
+    gap: 12px;
+  }
+
+  .weekend-dashboard .wd-header dl {
+    width: 100%;
+    gap: 22px;
+  }
+
+  .weekend-dashboard .wd-indices {
+    grid-auto-columns: 156px;
+  }
+
+  .weekend-dashboard .wd-panel {
+    padding: 14px;
+  }
+
+  .weekend-dashboard .wd-coin {
+    grid-template-columns: 28px minmax(48px,1fr) auto auto;
+    gap: 6px;
+    font-size: 12px;
+  }
+
+  .weekend-dashboard .wd-coin-icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .weekend-dashboard .wd-price {
+    font-size: 12px;
+  }
+
+  .weekend-dashboard .wd-coin .wd-price > small {
+    font-size: 11px;
+    white-space: normal;
+  }
+
+}
+
+/* ==========================================================================
+   15. 휴장 배너 · 플립 카운트다운 후속 보정 (기존 순서 유지)
+   ========================================================================== */
+
 /* Black closed-market banner: copy left, live countdown right, metadata below. */
-.weekend-dashboard .wd-header { position: relative; overflow: hidden; min-height: 210px; padding: 28px 32px; display: grid; grid-template-columns: minmax(0,1fr) auto; column-gap: 36px; row-gap: 18px; align-items: center; background: #000; }
-.weekend-dashboard .wd-header-copy { grid-column: 1; min-width: 0; }
-.weekend-dashboard .wd-header dl { grid-column: 1; display: flex; flex-wrap: wrap; gap: 12px 24px; margin: 0; width: auto; }
-.weekend-dashboard .wd-header h2 { font-family: "MaruBuriBold","MaruBuri",serif; }
-.weekend-dashboard .wd-countdown { grid-column: 2; grid-row: 1 / 3; margin: 0; text-align: center; }
-.weekend-dashboard .wd-countdown-label, .weekend-dashboard [data-wd-open] { display: block; font-size: 11px; color: var(--wd-banner-sub); }
-.weekend-dashboard .wd-flip-clock { display: flex; justify-content: center; gap: 16px; margin: 12px 0; }
-.weekend-dashboard .wd-flip-unit { position: relative; min-width: 0; text-align: center; }
-.weekend-dashboard .wd-flip-unit small { display: block; margin-top: 6px; color: #d2ae55; font-size: 10px; }
-.weekend-dashboard .wd-flip-pair { display: flex; gap: 3px; perspective: 300px; }
-.weekend-dashboard .wd-flip-digit { position: relative; display: grid; place-items: center; width: clamp(22px,2.5vw,36px); height: clamp(38px,4vw,54px); border: 1px solid #414141; border-radius: 4px; background: linear-gradient(#252525 0%,#080808 49%,#353535 50%,#161616 100%); color: #f1f4f8; box-shadow: 0 2px 3px #0008,inset 0 0 0 2px #111; font-size: clamp(28px,3.1vw,42px); font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
-.weekend-dashboard .wd-flip-digit::after { content: ""; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: #000b; box-shadow: 0 1px #ffffff18; }
-.weekend-dashboard .wd-flip-digit.is-changing { animation: wd-flip .35s ease-out; }
+.weekend-dashboard .wd-header {
+  position: relative;
+  overflow: hidden;
+  min-height: 210px;
+  padding: 28px 32px;
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  column-gap: 36px;
+  row-gap: 18px;
+  align-items: center;
+  background: #000;
+}
+
+.weekend-dashboard .wd-header-copy {
+  grid-column: 1;
+  min-width: 0;
+}
+
+.weekend-dashboard .wd-header dl {
+  grid-column: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+  width: auto;
+}
+
+.weekend-dashboard .wd-header h2 {
+  font-family: "MaruBuriBold","MaruBuri",serif;
+}
+
+.weekend-dashboard .wd-countdown {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  margin: 0;
+  text-align: center;
+}
+
+.weekend-dashboard .wd-countdown-label, .weekend-dashboard [data-wd-open] {
+  display: block;
+  font-size: 11px;
+  color: var(--wd-banner-sub);
+}
+
+.weekend-dashboard .wd-flip-clock {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin: 12px 0;
+}
+
+.weekend-dashboard .wd-flip-unit {
+  position: relative;
+  min-width: 0;
+  text-align: center;
+}
+
+.weekend-dashboard .wd-flip-unit small {
+  display: block;
+  margin-top: 6px;
+  color: #d2ae55;
+  font-size: 10px;
+}
+
+.weekend-dashboard .wd-flip-pair {
+  display: flex;
+  gap: 3px;
+  perspective: 300px;
+}
+
+.weekend-dashboard .wd-flip-digit {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: clamp(22px,2.5vw,36px);
+  height: clamp(38px,4vw,54px);
+  border: 1px solid #414141;
+  border-radius: 4px;
+  background: linear-gradient(#252525 0%,#080808 49%,#353535 50%,#161616 100%);
+  color: #f1f4f8;
+  box-shadow: 0 2px 3px #0008,inset 0 0 0 2px #111;
+  font-size: clamp(28px,3.1vw,42px);
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.weekend-dashboard .wd-flip-digit::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #000b;
+  box-shadow: 0 1px #ffffff18;
+}
+
+.weekend-dashboard .wd-flip-digit.is-changing {
+  animation: wd-flip .35s ease-out;
+}
+
 @keyframes wd-flip { from { transform: rotateX(-35deg); opacity: .65; } to { transform: rotateX(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .weekend-dashboard .wd-flip-digit.is-changing { animation: none; } }
 @media (max-width: 767px) {
-  .weekend-dashboard .wd-header { min-height: 0; padding: 22px 18px; grid-template-columns: minmax(0,1fr); gap: 20px; }
-  .weekend-dashboard .wd-header-copy, .weekend-dashboard .wd-header dl { width: 100%; }
-  .weekend-dashboard .wd-countdown { grid-column: 1; grid-row: 2; text-align: left; }
-  .weekend-dashboard .wd-flip-clock { justify-content: flex-start; }
-  .weekend-dashboard .wd-flip-clock { gap: clamp(8px,3vw,18px); }
-  .weekend-dashboard .wd-flip-digit { width: clamp(23px,6vw,36px); height: 46px; font-size: 34px; }
+  .weekend-dashboard .wd-header {
+    min-height: 0;
+    padding: 22px 18px;
+    grid-template-columns: minmax(0,1fr);
+    gap: 20px;
+  }
+
+  .weekend-dashboard .wd-header-copy, .weekend-dashboard .wd-header dl {
+    width: 100%;
+  }
+
+  .weekend-dashboard .wd-countdown {
+    grid-column: 1;
+    grid-row: 2;
+    text-align: left;
+  }
+
+  .weekend-dashboard .wd-flip-clock {
+    justify-content: flex-start;
+  }
+
+  .weekend-dashboard .wd-flip-clock {
+    gap: clamp(8px,3vw,18px);
+  }
+
+  .weekend-dashboard .wd-flip-digit {
+    width: clamp(23px,6vw,36px);
+    height: 46px;
+    font-size: 34px;
+  }
+
 }
 
-.weekend-dashboard .wd-flip-unit + .wd-flip-unit::before { content: ":"; position: absolute; left: -10px; top: 8px; color: var(--wd-banner-sub); font-size: 23px; }
+.weekend-dashboard .wd-flip-unit + .wd-flip-unit::before {
+  content: ":";
+  position: absolute;
+  left: -10px;
+  top: 8px;
+  color: var(--wd-banner-sub);
+  font-size: 23px;
+}
+
+.weekend-dashboard .wd-calendar .hwr-card-title { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 12px; text-align: left; }
+.weekend-dashboard .wd-calendar .hwr-card-title > .wd-panel-head { flex: 1 0 auto; }
+.weekend-dashboard .wd-calendar .hwr-card-title > span { margin-left: auto; max-width: 100%; text-align: right; overflow-wrap: anywhere; }
 
 /* News themes: editorial cards with the shared briefing carousel interactions. */
 .weekend-dashboard .wd-news-section, .weekend-dashboard .wd-news-shelf { min-width: 0; position: relative; }
