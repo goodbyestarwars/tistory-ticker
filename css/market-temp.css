@@ -3498,7 +3498,8 @@ html.dark #market-temp .sector-row:hover { background: var(--dk-hover); }
   html body .post-single #market-temp .mt-checkpoint-facts.mt-checkpoint-facts .mt-cp-call .mt-strategy-action .mt-sent,
   html body .post-single #market-temp .mt-sf-card .mt-cp-head .mt-strategy-panel-title,
   html body .post-single #market-temp .mt-index-flow .mt-section-head h2 {
-    font-family: "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
     font-size: var(--ui-section-size) !important;
     line-height: 1.4 !important;
   }
