@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261024-weekend-restore';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-flip-countdown';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -809,15 +809,41 @@
   function direction(value) { return value == null ? '' : Number(value) > 0 ? '▲' : Number(value) < 0 ? '▼' : '―'; }
   function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
   function nextTradingDay() {
-    var hours = global.MarketHours;
-    if (!hours || !hours.isKrTradingDay) return '캘린더에서 확인';
-    var k = hours.kst(new Date()), key = k.dateKey;
-    var start = Date.parse(key.slice(0, 4) + '-' + key.slice(4, 6) + '-' + key.slice(6) + 'T12:00:00+09:00');
-    for (var i = 1; i <= 14; i++) {
-      var day = new Date(start + i * 86400000);
-      if (hours.isKrTradingDay(day)) return day.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', weekday: 'short' });
+    var open = global.MarketHours && typeof global.MarketHours.nextKrRegularOpen === 'function' && global.MarketHours.nextKrRegularOpen(new Date());
+    return open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', weekday: 'short' }) : '캘린더에서 확인';
+  }
+  function countdownMarkup() {
+    return '<div class="wd-countdown"><span class="wd-countdown-label">다음 정규장 개장까지</span><div class="wd-flip-clock" role="timer" aria-live="off" aria-label="개장 시간 확인 중">'
+      + ['일', '시간', '분', '초'].map(function (unit, i) {
+        return '<div class="wd-flip-unit"><div class="wd-flip-pair" data-wd-unit="' + i + '" aria-hidden="true"><span class="wd-flip-digit">-</span><span class="wd-flip-digit">-</span></div><small>' + unit + '</small></div>';
+      }).join('') + '</div><small data-wd-open></small></div>';
+  }
+  var countdownTimer = null;
+  function startCountdown(root) {
+    clearTimeout(countdownTimer);
+    function tick() {
+      if (!document.body.contains(root)) return;
+      if (!document.hidden && !root.hidden) {
+        var now = Date.now();
+        var open = global.MarketHours && typeof global.MarketHours.nextKrRegularOpen === 'function' && global.MarketHours.nextKrRegularOpen(new Date(now));
+        var clock = root.querySelector('.wd-flip-clock');
+        if (!clock) return;
+        var total = open ? Math.max(0, Math.ceil((open.getTime() - now) / 1000)) : null;
+        var values = total == null ? ['--', '--', '--', '--'] : [Math.floor(total / 86400), Math.floor(total / 3600) % 24, Math.floor(total / 60) % 60, total % 60];
+        values.forEach(function (value, i) {
+          var pair = clock.querySelector('[data-wd-unit="' + i + '"]');
+          var digits = String(value).padStart(2, '0');
+          if (pair.textContent === digits) return;
+          pair.innerHTML = digits.split('').map(function (digit) { return '<span class="wd-flip-digit is-changing">' + digit + '</span>'; }).join('');
+        });
+        clock.setAttribute('aria-label', total == null ? '거래일 캘린더 확인 필요' : values[0] + '일 ' + values[1] + '시간 ' + values[2] + '분 ' + values[3] + '초 남음');
+        var nextDay = root.querySelector('[data-wd-next-trading]');
+        if (nextDay) nextDay.textContent = nextTradingDay();
+        root.querySelector('[data-wd-open]').textContent = open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }) + ' 09:00 KST' : '거래일 캘린더 업데이트가 필요합니다.';
+      }
+      countdownTimer = setTimeout(tick, 1000 - Date.now() % 1000);
     }
-    return '캘린더에서 확인';
+    tick();
   }
   function loadCompactScanner(root, data) {
     var mount = root.querySelector('[data-wd-scanner]');
@@ -922,7 +948,7 @@
     var indexCards = INDEX_SPECS.map(function (spec) {
       return indexCard(indices.filter(function (row) { return row && row.symbol === spec[0]; })[0] || {symbol: spec[0], name: spec[1]});
     }).join('');
-    root.innerHTML = '<header class="wd-header"><div><span class="wd-badge">MARKET CLOSED</span><h2>휴장 대시보드</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div><dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(data.week && data.week.end || '미확인') + '</dd></div><div><dt>다음 국내 거래일</dt><dd>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
+    root.innerHTML = '<header class="wd-header"><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>휴장 대시보드</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p>' + countdownMarkup() + '</div><dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(data.week && data.week.end || '미확인') + '</dd></div><div><dt>다음 국내 거래일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
       + '<div class="wd-grid"><section class="wd-panel" data-hwr-live>' + panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세 확인 중</p></section>'
       + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading('다음 주 주요 일정', '시각 KST · 실적은 현지 발표일 / 예정') + '<span></span></div>' + scheduleList(data.schedule) + '<a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section></div>'
@@ -931,6 +957,7 @@
     loadNextWeekCalendar(root, data.week && data.week.end);
     loadWeekendLive(root, data.week && data.week.end);
     loadWeekendThemes(root);
+    startCountdown(root);
     loadCompactScanner(root, data);
     loadExtraIndices(root, data);
     syncContent(root);
