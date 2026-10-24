@@ -219,3 +219,82 @@ html.dark #marketcap-bubble .mcb-filter-select {
   border-color: var(--dk-line) !important;
   color: var(--dk-text) !important;
 }
+
+
+/* 2026-10-24 한경 마켓MAP 레퍼런스: 촘촘한 가로 트리맵. 9Pay 컬러(상승 빨강/하락 파랑) 유지. */
+#marketcap-bubble { width:100%; min-width:0; font-family:Pretendard,sans-serif; }
+#marketcap-bubble .mcb-filter-bar { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; margin-bottom:9px; }
+#marketcap-bubble .mcb-market-tabs { display:inline-flex; flex-wrap:wrap; gap:3px; padding:3px; border-radius:10px; background:#edf1f5; }
+#marketcap-bubble .mcb-market-tabs button { border:0; border-radius:7px; background:transparent; color:#586579; padding:6px 10px; font:600 12px/1.25 Pretendard,sans-serif; cursor:pointer; min-height:30px; }
+#marketcap-bubble .mcb-market-tabs button:hover,
+#marketcap-bubble .mcb-market-tabs button:focus-visible { background:#fff; color:#202731; }
+#marketcap-bubble .mcb-market-tabs button.is-active { background:#fff; color:#1a293a; box-shadow:0 1px 4px rgba(0,0,0,.10); }
+#marketcap-bubble .mcb-filter-label { margin-left:auto; color:#465569; }
+#marketcap-bubble .mcb-filter-select { min-height:31px; border-radius:7px; color:#283340; background:#fff; }
+#marketcap-bubble .mcb-period { padding:6px 10px; border:1px solid #d7e0e9; border-radius:7px; color:#32445a; font:700 11px/1.4 Pretendard,sans-serif; white-space:nowrap; }
+#marketcap-bubble .mcb-explainer { margin:0 0 8px; font:400 11px/1.5 Pretendard,sans-serif; color:#748194; }
+#marketcap-bubble .mcb-canvas { border:1px solid #344252; background:#202731; border-radius:6px; }
+#marketcap-bubble .mcb-svg { display:block; width:100%; height:auto; }
+#marketcap-bubble .mcb-cell { stroke:#202731; stroke-width:1; touch-action:manipulation; }
+#marketcap-bubble .mcb-node:focus-visible .mcb-cell,
+#marketcap-bubble .mcb-node:hover .mcb-cell { stroke:#fff; stroke-width:2.5; }
+#marketcap-bubble .mcb-node:focus-visible { outline:none; }
+#marketcap-bubble .mcb-zone-label { fill:#e2e8f0; font:700 12px Pretendard,sans-serif; }
+#marketcap-bubble .mcb-label { fill:#fff; font-weight:700; text-shadow:none; }
+#marketcap-bubble .mcb-rate-label { fill:#f9fafb; font-weight:650; text-shadow:none; }
+#marketcap-bubble .mcb-cell.mcb-c-3 { fill:#244d8a; }
+#marketcap-bubble .mcb-cell.mcb-c-2 { fill:#28599f; }
+#marketcap-bubble .mcb-cell.mcb-c-1 { fill:#4575ac; }
+#marketcap-bubble .mcb-cell.mcb-c0 { fill:#536170; }
+#marketcap-bubble .mcb-cell.mcb-c1 { fill:#a65551; }
+#marketcap-bubble .mcb-cell.mcb-c2 { fill:#ae3935; }
+#marketcap-bubble .mcb-cell.mcb-c3 { fill:#9b2320; }
+#marketcap-bubble .mcb-legend { margin:0; gap:7px; }
+#marketcap-bubble .mcb-foot { display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; gap:8px 18px; margin-top:10px; }
+#marketcap-bubble .mcb-stats { color:#718096; font-size:11.5px; font-variant-numeric:tabular-nums; }
+#marketcap-bubble .mcb-updated { margin-top:4px; }
+#marketcap-bubble .mcb-legend-seg { padding:4px 9px; }
+#marketcap-bubble .mcb-legend-seg.mcb-c-3 { background:#244d8a; }
+#marketcap-bubble .mcb-legend-seg.mcb-c-2 { background:#28599f; }
+#marketcap-bubble .mcb-legend-seg.mcb-c-1 { background:#4575ac; }
+#marketcap-bubble .mcb-legend-seg.mcb-c0 { background:#536170; }
+#marketcap-bubble .mcb-legend-seg.mcb-c1 { background:#a65551; }
+#marketcap-bubble .mcb-legend-seg.mcb-c2 { background:#ae3935; }
+#marketcap-bubble .mcb-legend-seg.mcb-c3 { background:#9b2320; }
+
+html.dark #marketcap-bubble .mcb-canvas { background:var(--dk-card,#202731); border-color:var(--dk-line,#37424e); }
+html.dark #marketcap-bubble .mcb-cell { stroke:var(--dk-card,#202731); }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-3 { fill:#244d8a; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-2 { fill:#28599f; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c-1 { fill:#4575ac; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c0 { fill:#536170; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c1 { fill:#a65551; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c2 { fill:#ae3935; }
+html.dark #marketcap-bubble .mcb-cell.mcb-c3 { fill:#9b2320; }
+html.dark #marketcap-bubble .mcb-market-tabs { background:var(--dk-inner,#283340); }
+html.dark #marketcap-bubble .mcb-market-tabs button { color:var(--dk-sub,#a6b5c5); }
+html.dark #marketcap-bubble .mcb-market-tabs button:hover,
+html.dark #marketcap-bubble .mcb-market-tabs button.is-active,
+html.dark #marketcap-bubble .mcb-market-tabs button:focus-visible { background:var(--dk-active,#3a4d65); color:var(--dk-text,#f1f4f8); }
+html.dark #marketcap-bubble .mcb-period { color:var(--dk-text,#f1f4f8); border-color:var(--dk-line,#37424e); }
+html.dark #marketcap-bubble .mcb-explainer,
+html.dark #marketcap-bubble .mcb-stats { color:var(--dk-sub,#a6b5c5); }
+html.dark #marketcap-bubble .mcb-zone-label { fill:#e2e8f0; }
+html.dark #marketcap-bubble .mcb-label,
+html.dark #marketcap-bubble .mcb-rate-label { fill:#fff; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-3 { background:#244d8a; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-2 { background:#28599f; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c-1 { background:#4575ac; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c0 { background:#536170; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c1 { background:#a65551; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c2 { background:#ae3935; }
+html.dark #marketcap-bubble .mcb-legend-seg.mcb-c3 { background:#9b2320; }
+
+@media(max-width:720px) {
+  #marketcap-bubble .mcb-filter-label { margin-left:0; }
+  #marketcap-bubble .mcb-market-tabs { width:100%; }
+  #marketcap-bubble .mcb-market-tabs button { flex:1; min-width:0; padding:7px 4px; font-size:11px; }
+  #marketcap-bubble .mcb-canvas { overflow-x:auto; overflow-y:hidden; scrollbar-width:thin; }
+  #marketcap-bubble .mcb-svg { min-width:640px; }
+  #marketcap-bubble .mcb-foot { align-items:flex-start; }
+}
