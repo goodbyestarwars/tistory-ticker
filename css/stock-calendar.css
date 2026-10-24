@@ -266,12 +266,13 @@ html.dark #stock-calendar .sc-error { color: var(--dk-mute) !important; backgrou
 /* 2026-10-24: 캘린더 전체보기/국내/미국 공통 시장 필터.
    다른 페이지의 토글과 독립적이며 일정 수집 경로에는 영향이 없다. */
 #stock-calendar .sc-market-switch {
-  display: inline-flex; align-items: center; gap: 3px; padding: 3px;
-  margin: 12px 0 0; border-radius: 9px; background: #eef1f5;
+  display: flex; align-items: center; gap: 3px; padding: 3px; width: 100%;
+  margin: 16px 0 0; border-radius: 9px; background: #eef1f5;
   border: 1px solid #dce2e8; max-width: 100%; box-sizing: border-box;
 }
 #stock-calendar .sc-market-btn {
   appearance: none; border: 0; background: transparent; border-radius: 7px;
+  flex: 1 1 0; min-width: 0; text-align: center;
   color: #64748b; padding: 8px 16px; min-height: 36px;
   font: 600 13px/1.3 Pretendard, sans-serif; cursor: pointer;
   transition: background-color .15s ease, color .15s ease;
