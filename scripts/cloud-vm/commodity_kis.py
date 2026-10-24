@@ -141,7 +141,7 @@ def public_brent_snapshot(quote, chart=None, now=None, weekend_closed=None):
     valid_quote = bool(quote and positive(quote.get('price')) and age is not None
                        and -300 <= age <= 96 * 3600)
 
-    if valid_quote and age <= 20 * 60:
+    if valid_quote and age <= 20 * 60 and not weekend_closed:
         out.update({k: quote.get(k) for k in fields})
         out.update(stale=False, quote_status='live',
                    asof_date=stamp.astimezone(KST).strftime('%Y-%m-%d'))
