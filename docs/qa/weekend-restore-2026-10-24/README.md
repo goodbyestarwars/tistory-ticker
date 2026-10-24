@@ -1,5 +1,11 @@
 # 휴장 대시보드 원본 복원·컴팩트 카드 검증
 
+## 운영 배포 확인 — 2026-10-24 22:30 KST
+
+사용자의 후속 “배포해” 승인에 따라 [PR #966](https://github.com/goodbyestarwars/tistory-ticker/pull/966)을 master `31db75b3`로 병합했다. [Pages build/deploy](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40098340223) 22:30:17 KST 성공·built. 임시 자산 연결 없이 실제 운영 홈에서1440/390 라이트·다크 모두 지수/그래프6개·높이135px·브리핑8개·이야기11개/영역1개·하단 중복0·가로 넘침0 확인. 원래 브리핑 버튼348px 이동, 미국증시/휴장 전환 시 원본 복원, 시장지표 공유 가상자산 모듈 확인. [운영 실측](deployed-styles.json). skin.html 수동 반영이나 VM/GAS 배포는 필요 없다. 아래 내용은 배포 전 검증 기록이며 전체 세로 길이 증가·기존 오류 등의 한계는 유지된다.
+
+## 배포 전 검증 기록
+
 2026-10-24 KST. 브랜치 `fix/weekend-content-restore`. 최신 두 작업지시서의 고정 와이어프레임을 우선했다. **사용자 승인 전 master 병합·운영 배포하지 않는다.**
 
 ## 원인과 복원 근거
