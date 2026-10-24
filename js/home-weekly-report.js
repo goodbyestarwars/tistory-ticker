@@ -954,7 +954,7 @@
     var indexCards = INDEX_SPECS.map(function (spec) {
       return indexCard(indices.filter(function (row) { return row && row.symbol === spec[0]; })[0] || {symbol: spec[0], name: spec[1]});
     }).join('');
-    root.innerHTML = '<header class="wd-header"><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>휴장 대시보드</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 국내 거래일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
+    root.innerHTML = '<header class="wd-header"><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 국내 거래일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
       + '<div class="wd-grid"><section class="wd-panel" data-hwr-live>' + panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세 확인 중</p></section>'
       + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading('다음 주 주요 일정', '시각 KST · 실적은 현지 발표일 / 예정') + '<span></span></div>' + scheduleList(data.schedule) + '<a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section></div>'
