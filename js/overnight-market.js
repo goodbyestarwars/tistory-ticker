@@ -13,9 +13,7 @@
  * 2026-07-16(2차): "간밤 시황"에서 "보조지수"로 개편(파일명은 유지 - URL이 티스토리 HTML에
  * 박제돼 있어 CLAUDE.md 규칙상 변경 불가). 코스피200 야간선물 카드는 별도 페이지
  * (js/kospi-futures.js)로 분리하며 여기서 제거하고, 대신 원/달러 환율 카드를 추가했다.
- * 규칙기반 요약(buildSummaryText)은 그대로 두고 그 아래에 GAS ?action=subIndexAnalysis(Groq)가
- * 만든 AI 해설 문단을 비동기로 붙였다. AI 해설은 30초 데이터 리프레시와 무관하게 페이지 진입 시
- * 1회만 불러온다(Groq 호출량 절약, GAS 쪽도 30분 캐시).
+ * 규칙 기반 요약(buildSummaryText)만 표시한다. Groq 생성 참고의견은 제거했다.
  *
  * 2026-07-16(3차): 사용자 요청으로 "선물만 있고 현물지수가 없다"는 지적을 반영해 미국
  * 현물지수 3종(나스닥종합/S&P500/다우존스)과 BTC를 추가 - 관심지수 리본(js/quick-indices.js)에
@@ -128,7 +126,6 @@
   var FUTURES_API = 'https://goodbyestar.cloud/futures';
   var INDICATORS_WS_URL = 'wss://goodbyestar.cloud/ws/market-indicators';
   var FUTURES_AVG_API = 'https://goodbyestar.cloud/futures/avg';
-  var GAS_TICKER_URL = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
   var FETCH_TIMEOUT_MS = 10000;
   var FUTURES_HISTORY_DAYS = 365;
   // 기존 v1에는 90일 차트가 들어 있으므로, 365일 차트가 섞이지 않도록 캐시 키를 분리한다.
