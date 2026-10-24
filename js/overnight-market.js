@@ -468,7 +468,7 @@
   function buildShell() {
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
-      + '<div class="om-ai" id="omAi" hidden></div>'
+      
       + '<div class="om-board" data-om-board></div>';
   }
 
@@ -492,7 +492,7 @@
     }).join('');
     return '<div class="om-live-status" data-om-connection>REST 확인 중</div>'
       + '<div class="om-summary" id="omSummary" hidden></div>'
-      + '<div class="om-ai" id="omAi" hidden></div>'
+      
       + groups;
   }
 
@@ -986,62 +986,6 @@
       + '</div>';
   }
 
-  // ---- 종합 AI 해설(GAS ?action=subIndexAnalysis, Groq) - 페이지 진입 시 1회만 호출 ----
-
-  function fetchAiSummary() {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(GAS_TICKER_URL + '?action=subIndexAnalysis', hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data && data.analysis;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
-  }
-
-  // 말풍선 아이콘 - om-summary-icon과 같은 톤의 SVG로 통일(이모지 💬 대신).
-  var OM_AI_ICON = '<svg class="om-ai-icon" width="15" height="15" viewBox="0 0 24 24"'
-    + ' fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'
-    + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
-
-  // 2026-07-21: Groq가 돌려주는 AI 해설이 문장 여러 개가 붙은 하나의 blob이라 "단락 구분이
-  // 안 된다"는 지적(글로벌 시장지표 요약 박스와 동일한 요청) - 문장 종결 부호(.!?) + 공백
-  // 기준으로 잘라 문장마다 자기 줄에 그린다.
-  // (2차) 처음엔 "3.5%처럼 숫자 뒤 마침표는 공백이 안 따라와 안 걸린다"고 가정했는데 틀렸음 -
-  // gas/ticker-proxy.gs의 AI 해설 검증 로직을 실제 응답("26,107.01(+0.59%)"처럼 소수점이 낀
-  // 정상 문장)으로 테스트하다가, 옛 정규식이 그 소수점에서 문장을 반토막 내는 걸 발견함(둘이
-  // 완전히 같은 정규식을 썼었음). 소수점(숫자 사이의 '.')은 문장 몸통으로 취급하고, 뒤에
-  // 공백/끝이 오는 '.'만 진짜 문장 종결로 인정하도록 수정 - GAS 쪽과 동일한 패턴으로 맞춤.
-  function splitSentences(text) {
-    var matches = text.match(/(?:[^.!?]|\.(?=\d))+[.!?]+(?!\d)(?:\s+|$)/g);
-    if (!matches) return [text.trim()];
-    return matches.map(function (s) { return s.trim(); }).filter(Boolean);
-  }
-
-  function renderAiSummary(container) {
-    var box = container.querySelector('#omAi');
-    if (!box) return;
-    OvernightMarket.fetchAiSummary()
-      .then(function (text) {
-        if (!text) { box.hidden = true; return; }
-        box.hidden = false;
-        var linesHtml = splitSentences(text).map(function (line) {
-          return '<div class="om-ai-line">' + escapeHtml(line) + '</div>';
-        }).join('');
-        box.innerHTML = '<div class="om-ai-head">' + OM_AI_ICON + '<b>참고의견</b></div>'
-          + '<div class="om-ai-body">' + linesHtml + '</div>';
-      })
-      .catch(function () { box.hidden = true; });
-  }
-
   // 백엔드(KIS stck_bsop_date, 네이버 localDate)는 'YYYYMMDD'를 주고, 과거 BTC DB에는
   // 일부 'YYYY-MM-DD' 행이 남아 있어 두 포맷이 섞일 수 있다. 차트 입력 전 항상 대시를
   // 제거해 한 포맷으로 통일한다.
@@ -1226,7 +1170,6 @@
     indicatorsContainer = container;
     refresh(container);
     connectIndicatorSocket();
-    renderAiSummary(container);
     loadBinance(container, true);
     if (binanceTimer) clearInterval(binanceTimer);
     binanceTimer = setInterval(function () { loadBinance(container); }, BINANCE_REFRESH_MS);
@@ -1257,7 +1200,6 @@
     init: init,
     fetchFutures: fetchFutures,
     fetchFuturesFresh: fetchFuturesFresh,
-    fetchAiSummary: fetchAiSummary,
     fetchBenchmark: fetchBenchmark
   };
   global.OvernightMarket = OvernightMarket;
