@@ -13,6 +13,9 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard dl { display: flex; gap: 26px; }
 .weekend-dashboard dd { margin: 5px 0 0; font-size: 15px; font-weight: 600; }
 .weekend-dashboard .wd-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; min-width: 0; align-items: start; }
+.weekend-dashboard .wd-grid--market { align-items: stretch; }
+.weekend-dashboard .wd-grid--market > .wd-panel { display: flex; flex-direction: column; min-height: 100%; }
+.weekend-dashboard .wd-grid--market .wd-more { margin-top: auto; padding-top: 8px; }
 .weekend-dashboard .wd-section-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 10px; }
 .weekend-dashboard .wd-section-head h3 { margin: 0; font: 600 15px/1.4 Pretendard,sans-serif; }
 .weekend-dashboard .wd-section-head a { font-size: 12px; min-height: 32px; display: inline-flex; align-items: center; }
@@ -43,9 +46,17 @@ html.dark .weekend-dashboard { --wd-text: var(--dk-text); --wd-sub: var(--dk-sub
 .weekend-dashboard .wd-list > li { padding: 8px 0; border-bottom: 1px solid var(--wd-line); min-width: 0; }
 .weekend-dashboard .wd-list > li:last-child { border-bottom: 0; }
 .weekend-dashboard .wd-list small { display: block; font-size: 12px; font-weight: 400; }
-.weekend-dashboard .wd-coin { display: grid; grid-template-columns: 32px minmax(48px,1fr) auto auto; gap: 9px; align-items: center; font-size: 13px; }
+.weekend-dashboard .wd-coin { display: grid; grid-template-columns: 32px minmax(65px,1fr) auto minmax(100px,max-content); gap: 8px; align-items: center; font-size: 13px; }
+.weekend-dashboard .wd-coin-name { min-width: 0; }
+.weekend-dashboard .wd-coin-name strong { display: block; font-size: 13px; }
+.weekend-dashboard .wd-coin-name small { display: block; font-size: 10px; white-space: nowrap; }
+.weekend-dashboard .wd-coin-change { white-space: nowrap; text-align: right; font-size: 12px; font-variant-numeric: tabular-nums; }
+.weekend-dashboard .wd-candidate-val { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: baseline; gap: 5px 8px; }
+.weekend-dashboard .wd-candidate-val small { white-space: nowrap; }
 .weekend-dashboard .wd-coin-icon { width: 32px; height: 32px; border-radius: 50%; background: var(--wd-inner); display: grid; place-items: center; color: var(--wd-sub); }
 .weekend-dashboard .wd-price { text-align: right; white-space: nowrap; font-size: 13px; }
+.weekend-dashboard .wd-price b { display: block; font-weight: 600; white-space: nowrap; }
+.weekend-dashboard .wd-price small { display: block; font-size: 10px; white-space: nowrap; }
 .weekend-dashboard .wd-price b small { display: inline; font-size: 11px; }
 .weekend-dashboard .wd-note { margin-top: 8px; font-size: 11px; color: var(--wd-sub); overflow-wrap: anywhere; }
 .weekend-dashboard .wd-more { display: inline-flex; align-items: center; min-height: 40px; margin-top: 6px; font-size: 12px; }
@@ -110,8 +121,13 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover { background
   .weekend-dashboard .wd-header dl { width: 100%; gap: 22px; }
   .weekend-dashboard .wd-indices { grid-auto-columns: 156px; }
   .weekend-dashboard .wd-panel { padding: 14px; }
-  .weekend-dashboard .wd-coin { grid-template-columns: 28px minmax(48px,1fr) auto auto; gap: 6px; font-size: 12px; }
+  .weekend-dashboard .wd-coin { grid-template-columns: 28px minmax(58px,1fr) auto minmax(84px,max-content); gap: 5px; font-size: 12px; }
+  .weekend-dashboard .wd-coin-name strong { font-size: 12px; }
+  .weekend-dashboard .wd-coin-name small { font-size: 9px; }
+  .weekend-dashboard .wd-coin-change { font-size: 11px; }
+  .weekend-dashboard .wd-grid--market { align-items: start; }
+  .weekend-dashboard .wd-grid--market > .wd-panel { min-height: 0; }
   .weekend-dashboard .wd-coin-icon { width: 28px; height: 28px; }
   .weekend-dashboard .wd-price { font-size: 12px; }
-  .weekend-dashboard .wd-coin .wd-price > small { font-size: 11px; white-space: normal; }
+  .weekend-dashboard .wd-coin .wd-price > small { font-size: 10px; white-space: normal; }
 }
