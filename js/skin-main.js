@@ -332,7 +332,7 @@ document.documentElement.classList.add('skin-ready');
       theme: function (dark) {
         return {
           layout: { background: { color: 'transparent' }, textColor: dark ? '#a6b5c5' : '#64748b',
-            fontFamily: 'Pretendard, Malgun Gothic, sans-serif', fontSize: 12, attributionLogo: false },
+            fontFamily: 'Pretendard Variable, Pretendard, Malgun Gothic, sans-serif', fontSize: 12, attributionLogo: false },
           grid: { vertLines: { visible: false }, horzLines: { visible: false } },
           rightPriceScale: { visible: true, borderVisible: false, scaleMargins: { top: .15, bottom: .15 } },
           timeScale: { visible: true, borderVisible: false }

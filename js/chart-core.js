@@ -152,7 +152,7 @@
       background: { color: 'transparent' }, textColor: c.text, attributionLogo: false,
       panes: { enableResize: p.enableResize, separatorColor: c.paneSep, separatorHoverColor: c.paneSepHover }
     };
-    if (p.font && opts.fontFamily) layout.fontFamily = opts.fontFamily;
+    layout.fontFamily = opts.fontFamily || 'Pretendard Variable, Pretendard, Malgun Gothic, sans-serif';
     var timeScale = p.timeScale(opts.timeframe);
     timeScale.borderColor = c.border;
     var out = {

@@ -55,6 +55,8 @@ for (const dark of [false, true]) for (const tf of ['day', 'minute']) {
 }
 for (const dark of [false, true]) {
   const got = Core.chartOptions(LWC, 'analysis', { dark, autoSize: true, height: 360 });   // 글꼴 지정 없음 = 옛 옵션과 동일
+  assert.strictEqual(got.layout.fontFamily, 'Pretendard Variable, Pretendard, Malgun Gothic, sans-serif');
+  delete got.layout.fontFamily; // 2026-10-25: new shared default; compare all other options unchanged.
   expectEqual(got, golden.analysis[dark ? 'dark' : 'light'], '종목분석 옵션 ' + dark);
   // 글꼴 통일: 종목명에 렌더링되는 글꼴을 차트 글자에도 준다(이것 하나만 다르다)
   const withFont = Core.chartOptions(LWC, 'analysis', { dark, autoSize: true, height: 360, fontFamily: FONT });

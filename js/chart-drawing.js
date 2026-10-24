@@ -386,7 +386,7 @@
         ctx.fillStyle = 'rgba(99,102,241,.12)'; ctx.fillRect(bx, by, bw, bh);
         ctx.strokeStyle = 'rgba(99,102,241,.85)'; ctx.lineWidth = 1.5; ctx.strokeRect(bx, by, bw, bh);
         if (box.label) {
-          ctx.font = '700 12px MaruBuri, serif'; ctx.fillStyle = '#4f46e5'; ctx.textBaseline = 'top';
+          ctx.font = '700 12px Pretendard Variable, Pretendard, sans-serif'; ctx.fillStyle = '#4f46e5'; ctx.textBaseline = 'top';
           var text = String(box.label);
           while (text.length > 1 && ctx.measureText(text).width > bw - 8) text = text.slice(0, -1);
           ctx.fillText(text, bx + 5, by + 4);
@@ -434,14 +434,14 @@
           [ma, mb].forEach(function (pt) { ctx.beginPath(); ctx.arc(pt.x, pt.y, 3.5, 0, Math.PI * 2); ctx.fill(); });
           var lines = measureLabelLines(mm, measureShown.start, measureShown.end);
           var lw = 0;
-          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' MaruBuri, serif'; lw = Math.max(lw, ctx.measureText(t).width); });
+          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' Pretendard Variable, Pretendard, sans-serif'; lw = Math.max(lw, ctx.measureText(t).width); });
           var bw2 = lw + 14, bh2 = 8 + 18 + (lines.length - 1) * 14;
           var bx2 = mb.x + 10 + bw2 > width ? mb.x - 10 - bw2 : mb.x + 10;
           var by2 = Math.max(4, Math.min((bounds.h || 400) - bh2 - 4, (ma.y + mb.y) / 2 - bh2 / 2));
           ctx.fillStyle = 'rgba(255,255,255,.94)'; ctx.fillRect(bx2, by2, bw2, bh2);
           ctx.strokeStyle = mcolor; ctx.lineWidth = 1; ctx.strokeRect(bx2, by2, bw2, bh2);
           ctx.fillStyle = mcolor; ctx.textBaseline = 'top';
-          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' MaruBuri, serif'; ctx.fillText(t, bx2 + 7, i === 0 ? by2 + 5 : by2 + 24 + (i - 1) * 14 - 4); });
+          lines.forEach(function (t, i) { ctx.font = (i === 0 ? '800 14px' : '600 11px') + ' Pretendard Variable, Pretendard, sans-serif'; ctx.fillText(t, bx2 + 7, i === 0 ? by2 + 5 : by2 + 24 + (i - 1) * 14 - 4); });
           ctx.restore();
         }
       }
