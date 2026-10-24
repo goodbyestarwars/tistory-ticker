@@ -478,7 +478,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 9  # 2026-10-04: 지수·금리 주간 등락 기준을 직전 주 마지막 종가로 변경(changeAbs 추가) - 옛 스냅샷 폐기. 이전: # 2026-08-22(2차): pastCandidateOutcomes.stats 추가 +
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 10  # 2026-10-24: futures 캐시 키 변경으로 빈 지수/환율이 저장된 v9 스냅샷 재생성.
 # swing_candidates() reason 문구 축약 - 둘 다 이 버전을 안 올리면 디스크 스냅샷이
 # (week_end가 같은 주말 내내) 옛 내용을 계속 서빙해서 "반영이 안 됐다"고 보임(사용자 리포트).
 _sector_cards_cache = None
@@ -3431,9 +3431,10 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
             # 라우트가 Response(직렬화된 바이트)를 돌려주므로 여기서는 캐시 항목의
             # 파이썬 값을 그대로 꺼내 쓴다(바이트를 다시 파싱하지 않는다).
             futures(request, interval='day', days=365,
-                    symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC')
+                    symbols='KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC',
+                    stored_only=True)
             entry = _futures_cache.get(
-                ('day', 365, 'KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC'))
+                ('day', 365, 'KOSPI,KOSDAQ,NASDAQ_INDEX,SP500_INDEX,USDKRW,US10Y,WTI,GOLD,BTC', True))
             return (entry or {}).get('data') or []
         except Exception as exc:
             logging.getLogger('main').warning('weekly report futures failed: %s', type(exc).__name__)
