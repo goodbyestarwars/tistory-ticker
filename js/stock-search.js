@@ -1659,7 +1659,6 @@
       if (summaryBox) summaryBox.hidden = false;
       renderSummary(container, item);
       renderSessionCandle(container, {});
-      loadPriceReason(container, item);
       syncOverviewSelection(container);
     }
 
@@ -1693,9 +1692,6 @@
       + '<a class="ss-analysis-link" href="/page/foreign-flow?code=' + encodeURIComponent(item.code)
       + '&amp;name=' + encodeURIComponent(item.name) + '">종목분석</a>'
       + '</div>'
-      + '<div class="ss-summary-reason" id="ssSummaryReason">'
-      + '<span class="ss-reason-badge">AI</span>'
-      + '<span class="ss-reason-text">오늘 움직인 이유를 불러오는 중...</span>'
       + '</div>';
   }
 
@@ -1710,26 +1706,6 @@
     var values='<div class="ss-session-values">'+labels.map(function(item){var tone=item[0]==='고가'?' class="ss-session-high"':item[0]==='저가'?' class="ss-session-low"':'';return '<div><span>'+item[0]+'</span><b'+tone+'>'+(item[1]>0?fmtPrice(item[1]):'—')+'</b></div>';}).join('')+'</div>';
     box.title=(summary.date || '')+' 일봉 기준';
     box.innerHTML=values;
-  }
-
-  // 2026-07-28 사용자 요청: "시가총액"/"외국인·기관 수급(5일)" 라인을 없애고, 대신 오늘
-  // 이 종목이 왜 올랐는지/빠졌는지 뉴스 기반 AI 한줄요약으로 교체(GAS ?action=priceReason -
-  // 오늘 발행된 뉴스만 추려 Groq에 한 문장 요약을 요청, js/stock-news.js의 3문장 종합요약과는
-  // 별개의 가벼운 엔드포인트). 오늘 관련 뉴스가 없으면 요약을 만들지 않고 안내 문구만 표시.
-  function loadPriceReason(container, item) {
-    var url = GAS_TICKER_URL + '?action=priceReason&code=' + encodeURIComponent(item.code)
-      + '&name=' + encodeURIComponent(item.name) + '&changeRate=' + encodeURIComponent(item.changeRate);
-    fetchJson(url)
-      .then(function (data) {
-        if (state.selectedCode !== item.code) return; // 그 사이 다른 종목을 골랐으면 무시
-        var el = container.querySelector('#ssSummaryReason .ss-reason-text');
-        if (el) el.textContent = (data && data.reason) ? data.reason : '오늘 이 종목에 대한 특별한 뉴스가 없어요.';
-      })
-      .catch(function () {
-        if (state.selectedCode !== item.code) return;
-        var el = container.querySelector('#ssSummaryReason .ss-reason-text');
-        if (el) el.textContent = '오늘 움직인 이유를 불러오지 못했어요.';
-      });
   }
 
   // ---- 실시간 체결가 ----
