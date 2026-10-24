@@ -30,12 +30,12 @@
     { max: Infinity, cls: 'mcb-c3' }
   ];
 
-  var VIEW_W = 820;
-  var VIEW_H = 1150;      // 세로로 넉넉하게 키워 각 셀이 커지고 종목명이 더 많이 보이게 함
+  var VIEW_W = 1100;
+  var VIEW_H = 740;      // 세로로 넉넉하게 키워 각 셀이 커지고 종목명이 더 많이 보이게 함
 
-  var ZONE_GAP = 6;       // 구역(코스피/코스닥/ETF/레버리지) 사이 간격
+  var ZONE_GAP = 5;       // 구역(코스피/코스닥/ETF/레버리지) 사이 간격
   var ZONE_LABEL_H = 20;  // 구역 이름표가 차지하는 위쪽 띠 높이
-  var CELL_GAP = 3;       // 구역 안 종목 셀 사이 간격
+  var CELL_GAP = 1.5;       // 구역 안 종목 셀 사이 간격
   var MIN_ZONE_H = 140;   // 구역이 아무리 작아도 보장하는 최소 높이(이름표+종목 2줄 볼 공간)
 
   function logError() {
@@ -227,8 +227,8 @@
       // 작아짐. 실제 시총 숫자·정렬·색상은 그대로 두고 "면적 계산에만" 완만한 지수
       // (0.75제곱)를 적용해 큰 값과 작은 값의 격차를 부드럽게 줄인다 — 작은 종목을
       // 억지로 키우는 게 아니라 큰 종목이 차지하는 비중 자체를 낮추는 방식.
-      var areaPower = zoneKey === 'KOSPI' ? 0.75 : 1;
-      var weights = subitems.map(function (it) { return Math.pow(it.cap, areaPower); });
+      // 시총비례 지도: 면적 왜곡(0.75제곱) 금지, 실제 시가총액 정비례.
+      var weights = subitems.map(function (it) { return it.cap; });
       var totalWeight = weights.reduce(function (s, v) { return s + v; }, 0);
       var scale = (sw * sh) / (totalWeight || 1);
       subitems.forEach(function (it, i) { it.value = weights[i] * scale; });
@@ -256,118 +256,73 @@
   // codeFilter({label, codes:{code:true}})는 증시온도 "국내 주요종목"이 TOP10 테마를 골랐을 때
   // 그 테마 구성종목만 한 구역으로 그린다. 시총은 이 풀(sectors-v3 기반)에 있는 종목만 알 수 있어
   // 테마 종목 일부는 빠질 수 있다 - 몇 개가 매칭됐는지는 layout.matched로 돌려준다.
-  function buildLayout(data, sectorFilter, codeFilter) {
-    var zones;
-    var matched = 0;
-    if (codeFilter && codeFilter.codes) {
-      var picked = []
-        .concat(data.KOSPI || [], data.KOSDAQ || [])
-        .filter(function (it) { return codeFilter.codes[it.code]; })
-        .map(function (it) {
-          return { name: it.name, cap: it.cap || 0, changeRate: it.changeRate, category: 'SECTOR' };
-        })
-        .filter(function (it) { return it.cap > 0; });
-      matched = picked.length;
-      var pickedCap = picked.reduce(function (s, it) { return s + it.cap; }, 0);
-      zones = picked.length ? [{ key: 'SECTOR', label: codeFilter.label || '선택 테마', items: picked, cap: pickedCap }] : [];
-    } else if (sectorFilter) {
-      var items = []
-        .concat(data.KOSPI || [], data.KOSDAQ || [])
-        .filter(function (it) { return (it.sectors || []).indexOf(sectorFilter) > -1; })
-        .map(function (it) {
-          return { name: it.name, cap: it.cap || 0, changeRate: it.changeRate, category: 'SECTOR' };
-        })
-        .filter(function (it) { return it.cap > 0; });
-      var totalCap = items.reduce(function (s, it) { return s + it.cap; }, 0);
-      zones = items.length ? [{ key: 'SECTOR', label: sectorFilter, items: items, cap: totalCap }] : [];
-    } else {
-      zones = CATEGORY_ORDER.map(function (cat) {
-        var catItems = (data[cat] || [])
-          .map(function (it) {
-            return {
-              name: it.name,
-              cap: it.cap || 0,
-              changeRate: it.changeRate,
-              breakdown: it.breakdown,
-              category: cat
-            };
-          })
-          .filter(function (it) { return it.cap > 0; });
-        var catTotalCap = catItems.reduce(function (s, it) { return s + it.cap; }, 0);
-        return { key: cat, label: CATEGORY_LABELS[cat] || cat, items: catItems, cap: catTotalCap };
-      }).filter(function (z) { return z.items.length && z.cap > 0; });
+  // 마켓MAP형: 가로형 스퀘어파이드 트리맵. 그룹/개별 종목 면적 모두 실제 시가총액 비례.
+  // sectors는 사이트 자체 테마 분류이며 KRX 공식 업종으로 오인시키지 않는다.
+  function buildLayout(data, sectorFilter, codeFilter, view) {
+    view = ['KOSPI','KOSDAQ','ALL','ETF'].indexOf(view) >= 0 ? view : 'KOSPI';
+    function select(cats) {
+      return cats.reduce(function (acc, cat) {
+        return acc.concat((data[cat] || []).map(function (it) {
+          var cap = Number(it.cap), rate=it.changeRate == null ? null : Number(it.changeRate);
+          if (!isFinite(cap) || cap <= 0) return null;
+          return {code:it.code || '',name:it.name || it.code || '종목 미확인',
+            cap:cap,changeRate:rate != null && isFinite(rate) ? rate : null,
+            breakdown:it.breakdown,category:cat,sectors:it.sectors || []};
+        }).filter(Boolean));
+      },[]);
     }
-
-    if (!zones.length) return { nodes: [], viewH: VIEW_H, clusterLabels: [], matched: matched };
-
-    zones.sort(function (a, b) { return b.cap - a.cap; });
-
-    // 구역(코스피/코스닥/ETF/레버리지)은 스퀘어파이드에 맡기면 코스피가 압도적으로 커서
-    // 나머지 구역이 오른쪽 끝에 얇은 세로줄로 몰려 잘 안 보이는 문제가 있었다 - 대신
-    // 위아래로 전체 폭을 쓰는 가로 띠로 쌓고(큰 구역이 위), 각 구역에 최소 높이를
-    // 보장해 작은 구역도 항상 눈에 띄게 한다.
-    var zoneHeights = sliceZoneHeights(zones, VIEW_H, MIN_ZONE_H);
-    var zy0 = 0;
-    var zoneRects = zones.map(function (z) {
-      var h = zoneHeights[z.key];
-      var rect = { item: z, x: 0, y: zy0, w: VIEW_W, h: h };
-      zy0 += h;
-      return rect;
-    });
-
-    var nodes = [];
-    var clusterLabels = [];
-
-    zoneRects.forEach(function (zr) {
-      var zone = zr.item;
-      var zx = zr.x + ZONE_GAP / 2;
-      var zy = zr.y + ZONE_GAP / 2;
-      var zw = Math.max(zr.w - ZONE_GAP, 1);
-      var zh = Math.max(zr.h - ZONE_GAP, 1);
-
-      var showLabel = zw >= 42 && zh >= ZONE_LABEL_H + 24;
-      var labelH = showLabel ? ZONE_LABEL_H : Math.min(zh, ZONE_LABEL_H);
-
-      clusterLabels.push({
-        key: zone.key,
-        label: zone.label,
-        x: zx,
-        y: zy,
-        w: zw,
-        h: labelH,
-        totalCap: zone.cap,
-        showText: showLabel
+    function zone(key,label,items) {
+      return {key:key,label:label,items:items,cap:items.reduce(function (n,it) { return n+it.cap; },0)};
+    }
+    var zones=[],matched=0,items,groups;
+    if (codeFilter && codeFilter.codes) {
+      items=select(['KOSPI','KOSDAQ']).filter(function (it) { return codeFilter.codes[it.code]; });
+      matched=items.length;
+      if (items.length) zones=[zone('SELECTED',codeFilter.label || '선택 종목',items)];
+    } else if (sectorFilter) {
+      items=select(view==='KOSPI'?['KOSPI']:view==='KOSDAQ'?['KOSDAQ']:['KOSPI','KOSDAQ'])
+        .filter(function (it) { return it.sectors.indexOf(sectorFilter)>=0; });
+      if (items.length) zones=[zone('SECTOR',sectorFilter,items)];
+    } else if (view==='ALL' || view==='ETF') {
+      (view==='ALL'?['KOSPI','KOSDAQ']:['ETF','INVERSE','LEV']).forEach(function (cat) {
+        var list=select([cat]);
+        if(list.length) zones.push(zone(cat,CATEGORY_LABELS[cat] || cat,list));
       });
-
-      var innerX = zx + 1;
-      var innerY = zy + labelH + 1;
-      var innerW = Math.max(zw - 2, 1);
-      var innerH = Math.max(zh - labelH - 2, 1);
-
-      var itemRects = layoutZoneItems(zone.items, innerX, innerY, innerW, innerH, zone.key);
-      itemRects.forEach(function (ir) {
-        var ix = ir.x + CELL_GAP / 2;
-        var iy = ir.y + CELL_GAP / 2;
-        var iw = Math.max(ir.w - CELL_GAP, 1);
-        var ih = Math.max(ir.h - CELL_GAP, 1);
-        nodes.push({
-          name: ir.item.name,
-          cap: ir.item.cap,
-          changeRate: ir.item.changeRate,
-          breakdown: ir.item.breakdown,
-          category: ir.item.category,
-          x: ix,
-          y: iy,
-          w: iw,
-          h: ih
-        });
+    } else {
+      groups={};
+      select([view]).forEach(function (it) {
+        var group=it.sectors.filter(function (name) {
+          return name && !/코스피\s*3대장|시총\s*상위|TOP\s*10/i.test(name);
+        })[0] || it.sectors[0] || '기타';
+        (groups[group] = groups[group] || []).push(it);
+      });
+      var sorted=Object.keys(groups).map(function (key) { return zone(key,key,groups[key]); })
+        .sort(function (a,b) { return b.cap-a.cap; });
+      zones=sorted.slice(0,11);
+      if(sorted.length>11) zones.push(zone('OTHER','기타 테마', [].concat.apply([],sorted.slice(11).map(function(z){return z.items;}))));
+    }
+    zones=zones.filter(function(z){return z.cap>0;}).sort(function(a,b){return b.cap-a.cap;});
+    var totalCap=zones.reduce(function(n,z){return n+z.cap;},0);
+    var totalItems=zones.reduce(function(n,z){return n+z.items.length;},0);
+    if(!zones.length) return {nodes:[],viewH:VIEW_H,clusterLabels:[],matched:matched,totalCap:0,totalItems:0,marketView:view};
+    var zoneRects=squarify(zones.map(function(z){return {value:z.cap/totalCap*VIEW_W*VIEW_H,zone:z};}),0,0,VIEW_W,VIEW_H);
+    var nodes=[],clusterLabels=[];
+    zoneRects.forEach(function(zr){
+      var z=zr.item.zone,x=zr.x+ZONE_GAP/2,y=zr.y+ZONE_GAP/2;
+      var w=Math.max(zr.w-ZONE_GAP,1),h=Math.max(zr.h-ZONE_GAP,1);
+      var show=w>=75 && h>=ZONE_LABEL_H+24,lh=show?ZONE_LABEL_H:0;
+      clusterLabels.push({key:z.key,label:z.label,x:x,y:y,w:w,h:lh,totalCap:z.cap,showText:show});
+      layoutZoneItems(z.items,x+1,y+lh+1,Math.max(w-2,1),Math.max(h-lh-2,1),z.key).forEach(function(rect){
+        nodes.push({code:rect.item.code,name:rect.item.name,cap:rect.item.cap,
+          changeRate:rect.item.changeRate,breakdown:rect.item.breakdown,category:rect.item.category,
+          x:rect.x+CELL_GAP/2,y:rect.y+CELL_GAP/2,
+          w:Math.max(rect.w-CELL_GAP,0.5),h:Math.max(rect.h-CELL_GAP,0.5)});
       });
     });
-
-    return { nodes: nodes, viewH: VIEW_H, clusterLabels: clusterLabels, matched: matched };
+    return {nodes:nodes,viewH:VIEW_H,clusterLabels:clusterLabels,matched:matched,totalCap:totalCap,totalItems:totalItems,marketView:view};
   }
 
-  // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락률 색상 구간(-3%~+3%)만 안내.
+    // 카테고리 구분은 구역 이름표로 하므로, 범례는 등락률 색상 구간(-3%~+3%)만 안내.
   function buildLegendHtml() {
     var ticks = ['-3%', '-2%', '-1%', '0%', '1%', '2%', '3%'];
     var cells = HEAT_BUCKETS.map(function (b, i) {
