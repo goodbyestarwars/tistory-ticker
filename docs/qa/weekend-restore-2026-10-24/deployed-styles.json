@@ -1,0 +1,58 @@
+[
+  {
+    "width": 1440,
+    "dark": false,
+    "overflow": 0,
+    "indexCards": 6,
+    "graphs": 6,
+    "indexHeight": 135,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "footerDuplicates": 0,
+    "footerNav": "flex",
+    "height": 3239
+  },
+  {
+    "width": 1440,
+    "dark": true,
+    "overflow": 0,
+    "indexCards": 6,
+    "graphs": 6,
+    "indexHeight": 135,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "footerDuplicates": 0,
+    "footerNav": "flex",
+    "height": 3239
+  },
+  {
+    "width": 390,
+    "dark": false,
+    "overflow": 0,
+    "indexCards": 6,
+    "graphs": 6,
+    "indexHeight": 135,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "footerDuplicates": 0,
+    "footerNav": "grid",
+    "height": 4381
+  },
+  {
+    "width": 390,
+    "dark": true,
+    "overflow": 0,
+    "indexCards": 6,
+    "graphs": 6,
+    "indexHeight": 135,
+    "briefings": 8,
+    "storyAreas": 1,
+    "stories": 11,
+    "footerDuplicates": 0,
+    "footerNav": "grid",
+    "height": 4381
+  }
+]
