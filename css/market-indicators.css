@@ -77,10 +77,10 @@ html.dark .mi-tab-summary .om-live-status { background: var(--dk-inner) !importa
 .mi-wrap .market-history-caption { display:block; margin:5px 0 8px; color:#64748b; font-size:11px; line-height:1.4; }
 #us-macro-indicators .umi-history-chart { width:100%; height:230px; margin-top:10px; }
 
-/* ── 시장지표 큰 블록(국내 탭 01~05) 공통 규격 (2026-10-12) ─────────────────────────────────────────────
+/* ── 시장지표 큰 블록(국내 탭 01~05) 공통 규격 (2026-10-25) ─────────────────────────────────────────────
    국내시장지표(js/domestic-market-indicators.js)와 선물·옵션(js/kospi-futures.js)이 같은 모양으로 구역을 나누도록
-   여기서 한 번만 정한다. 금융 리서치 보고서처럼 카드·그림자·그라데이션 없이 얇은 가로선과 여백, 번호 + 제목 + 한 줄 설명으로 구분한다.
-   블록 = 위쪽 1px 구분선 + 번호·제목(+우측 버튼) + 한 줄 설명 + 소구역(.mi-sub). 첫 블록은 위 구분선이 없다(.mi-block--first). */
+   여기서 한 번만 정한다. 각 번호가 붙은 문단 전체를 얇은 테두리의 둥근 사각 박스로 감싸고,
+   안에는 번호·제목(+우측 버튼) + 설명 + 소구역(.mi-sub)을 넣는다. */
 .mi-wrap {
   --mi-rule: #d4d7dc; --mi-rule-soft: #e9ebef; --mi-no: #9aa1ab; --mi-sub: #6b7280;
   /* 투자자 구분색(외국인 빨강·기관 파랑·개인 초록)은 모든 투자자별 그래프·범례·툴팁·버튼에 같은 값을 쓴다. 방향(순매수·순매도)은 0선 위아래로만 구분한다. */
@@ -89,9 +89,10 @@ html.dark .mi-tab-summary .om-live-status { background: var(--dk-inner) !importa
   --mi-idx-kospi: #D94F45; --mi-idx-kosdaq: #3273C8; --mi-idx-kospi200: #168B70; --mi-idx-ref: #4b5563;
 }
 html.dark .mi-wrap { --mi-rule: var(--dk-line); --mi-rule-soft: var(--dk-line); --mi-no: var(--dk-mute); --mi-sub: var(--dk-sub); --mi-idx-ref: var(--dk-sub); }
-.mi-wrap .mi-block { position: relative; min-width: 0; margin: var(--ui-section-gap) 0 0; padding: 0; border: 0; border-top: 1px solid var(--mi-rule); border-radius: 0; background: transparent; box-shadow: none; }
-.mi-wrap .mi-block.mi-block--first { margin-top: 26px; border-top: 0; }
-.mi-wrap .mi-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: var(--ui-card-padding) 0 0; }
+.mi-wrap .mi-block { position: relative; min-width: 0; margin: var(--ui-section-gap) 0 0; padding: 16px; border: 1px solid var(--mi-rule-soft); border-radius: 8px; background: transparent; box-shadow: none; }
+.mi-wrap .mi-block.mi-block--first { margin-top: 26px; }
+html.dark .mi-wrap .mi-block { background: var(--dk-card); }
+.mi-wrap .mi-block-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 0; }
 .mi-wrap .mi-block--first .mi-block-head { padding-top: 0; }
 .mi-wrap .mi-block-title { display: flex; flex: 1 1 auto; align-items: baseline; flex-wrap: wrap; gap: 0 16px; min-width: 0; margin: 0; padding: 0; font-family: var(--font-ui); font-size: var(--ui-section-size); font-weight: 600; line-height: 1.35; letter-spacing: -.01em; }
 .mi-wrap .mi-block-no { flex: 0 0 auto; font-size: 15px; font-weight: 600; letter-spacing: .02em; line-height: 1; color: var(--mi-no); font-variant-numeric: tabular-nums; }
@@ -102,9 +103,8 @@ html.dark .mi-wrap { --mi-rule: var(--dk-line); --mi-rule-soft: var(--dk-line); 
 .mi-wrap .mi-sub-cap { margin: 0 0 16px; font-size: 12.5px; line-height: 1.6; color: var(--mi-sub); word-break: keep-all; overflow-wrap: break-word; }
 .mi-wrap .mi-sub2-title { margin: 0 0 4px; font-family: var(--font-ui); font-size: 14.5px; font-weight: 700; line-height: 1.4; }
 @media (max-width: 760px) {
-  .mi-wrap .mi-block { margin-top: var(--ui-section-gap); }
+  .mi-wrap .mi-block { margin-top: var(--ui-section-gap); padding: 12px; }
   .mi-wrap .mi-block.mi-block--first { margin-top: 20px; }
-  .mi-wrap .mi-block-head { padding-top: 24px; }
   .mi-wrap .mi-block-title { gap: 0 12px; font-size: var(--ui-section-size); }
   .mi-wrap .mi-block-no { font-size: 13px; }
   .mi-wrap .mi-block-desc { margin: 6px 0 12px; font-size: 12.5px; }
