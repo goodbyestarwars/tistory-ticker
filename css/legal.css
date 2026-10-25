@@ -118,7 +118,11 @@ a { color: #d24f45; }
      (2) 글자 자체도 조금 키운다(sub 11.5 -> 12.5, ink 13 -> 14)
    결과 실효 크기: 주 라벨 12.5px, 보조 라벨 11.2px. 글자를 크게 올리면 22개 그림에서 잘림과
    겹침이 새로 생기므로, 폭을 먼저 벌고 글자는 8%만 올린다. */
-.learn-fig { margin: 0 0 20px; }
+.learn-fig { position: relative; margin: 0 0 20px; }
+/* 이야기 시리즈의 설명용 그림은 실제 시세와 구분하는 작은 워터마크를 표시한다. */
+.learn-fig:not(.learn-source-chart)::after { content: '가상 예시'; position: absolute; right: 6px; bottom: 26px; padding: 2px 5px; font-size: 10px; line-height: 1.2; color: #64748b; background: rgba(255,253,250,.68); opacity: .78; pointer-events: none; }
+.learn-crossrefs { margin: 28px 0 12px; padding: 12px 0; border-top: 1px solid #e7e4d8; border-bottom: 1px solid #e7e4d8; font-size: 13px; line-height: 1.7; }
+.learn-crossrefs a { overflow-wrap: anywhere; }
 /* PC에서 본문단(680px)을 꽉 채우면 420 단위로 그린 그림이 1.62배로 확대돼 라벨이 20px까지
    커진다(본문 15px). 포스터처럼 보여서 480px로 묶는다 - 배율 1.14, 라벨 14~16px로 본문과
    같은 눈높이가 된다(2026-09-17 실측). 폰에서는 폭이 이보다 좁아 영향이 없다. */
