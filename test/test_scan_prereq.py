@@ -22,6 +22,13 @@ class ScanPrereqTests(unittest.TestCase):
         self.assertEqual(scan_prereq.assess(now, None, lambda _: False)[0], 'holiday')
         self.assertEqual(scan_prereq.assess(now, None, lambda _: True)[0], 'missing')
 
+    def test_explicit_basis_accepts_midnight_completion_but_not_old_or_future(self):
+        now = datetime(2026, 10, 20, 3, 10, tzinfo=KST)
+        completed = '2026-10-19T16:30:00+00:00'
+        self.assertEqual(scan_prereq.assess(now, completed, lambda _: True, '2026-10-19')[0], 'ready')
+        self.assertEqual(scan_prereq.assess(now, completed, lambda _: True, '2026-10-18')[0], 'stale')
+        self.assertEqual(scan_prereq.assess(now, '2026-10-20T16:30:00+00:00', lambda _: True, '2026-10-19')[0], 'stale')
+
 
 if __name__ == '__main__':
     unittest.main()

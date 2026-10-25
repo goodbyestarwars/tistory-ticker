@@ -69,6 +69,7 @@ const realFetchBatch = SD.fetchBatch;
   context.fetch = async url => ({ ok: true, json: async () => ({ data: url.includes('/auth/')
     ? { configured: false, authenticated: false }
     : { sectors: { 반도체: [{ name: '삼성전자', code: '005930' }] } } }) });
+  require('./helpers/load_http_client')(context);
   vm.runInNewContext(source, context);
   let retry;
   const panel = { innerHTML: '', querySelector(selector) { return selector === '[data-sector-cards-retry]'

@@ -5,6 +5,7 @@ const add=(map,k,fn)=>(map[k]||(map[k]=new Set())).add(fn),remove=(map,k,fn)=>ma
 const win={navigator:{onLine:true},addEventListener:(k,f)=>add(winEvents,k,f),removeEventListener:(k,f)=>remove(winEvents,k,f)};
 const doc={hidden:false,readyState:'loading',addEventListener:(k,f)=>add(docEvents,k,f),removeEventListener:(k,f)=>remove(docEvents,k,f)};
 const sb={window:win,document:doc,console,Date:class extends Date{constructor(...args){super(...(args.length?args:[now]));}static now(){return now;}},setTimeout:(fn,ms)=>{const id=++timerId;timers.set(id,{fn,at:now+ms});return id;},clearTimeout:id=>timers.delete(id),fetch:async()=>{network++;return {ok:true,json:async()=>({data:{temp:12}})};}};
+require('./helpers/load_http_client')(sb);
 vm.runInNewContext(source,sb);const t=win.refreshTest;
 const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
 const emit=async(map,k)=>{for(const f of [...(map[k]||[])])f();await flush();};
@@ -39,7 +40,7 @@ const advance=async ms=>{const end=now+ms;for(let i=0;i<200;i++){const next=[...
  await advance(240000);assert.equal(errors.at(-1).delay,480000);await advance(480000);assert.equal(errors.at(-1).delay,600000);retry.stop();
  network=0;const fetch=()=>t.sharedMarketJson_('__testRead','/stored',180000);
  await Promise.all([fetch(),fetch()]);assert.equal(network,1);await advance(60000);await fetch();assert.equal(network,1);await advance(120000);await fetch();assert.equal(network,2);
- let resolve;sb.fetch=()=>{network++;return new Promise(r=>resolve=r);};const pending=t.sharedMarketJson_('__pendingRead','/stored',60000);await advance(300000);assert.equal(t.sharedMarketJson_('__pendingRead','/stored',60000),pending);resolve({ok:true,json:async()=>({data:{}})});await pending;
+ let resolve;sb.fetch=()=>{network++;return new Promise(r=>resolve=r);};const pending=t.sharedMarketJson_('__pendingRead','/stored',60000);const timed=assert.rejects(pending,e=>e.kind==='timeout');await advance(300000);await timed;const retried=t.sharedMarketJson_('__pendingRead','/stored',60000);assert.notEqual(retried,pending);await flush();resolve({ok:true,json:async()=>({data:{}})});await retried;
  assert(source.includes('stored_only=true'));assert(!source.includes('fresh=1'));assert(source.includes('마지막 정상 수신값 유지'));
  console.log('Refresh: market/holiday cadence, no overlap, hidden/offline/bfcache, bounded backoff, shared TTL/in-flight reads, stored-only calls ok');
 })().catch(e=>{console.error(e);process.exit(1)});

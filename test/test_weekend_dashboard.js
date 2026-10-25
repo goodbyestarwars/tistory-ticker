@@ -10,6 +10,7 @@ function fixture() {
   const context = vm.createContext({window,document,console,URL,AbortController,localStorage:{getItem:()=>null},
     setTimeout:()=>1,clearTimeout(){},setInterval:f=>{intervals.push(f);return 1;},clearInterval(){},
     fetch:async url=>{requests.push(url);return {ok:true,json:()=>handler(url)};}});
+  require('./helpers/load_http_client')(context);
   vm.runInContext(original.replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };', 'global.HomeWeeklyReport = {render:render,live:loadWeekendLive,themes:loadWeekendThemes,weekly:storedWeeklyIndex,card:indexCard};'),context);
   const root={hidden:false,classList:{add(){}},innerHTML:'',querySelector:s=>mounts.get(s)||null};
   return {api:window.HomeWeeklyReport,root,mounts,requests,intervals,handler:f=>handler=f};

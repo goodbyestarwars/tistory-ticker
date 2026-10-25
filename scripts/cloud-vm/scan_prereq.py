@@ -9,7 +9,7 @@ import market_clock
 KST = timezone(timedelta(hours=9))
 
 
-def assess(now, generated_at, is_trading_day):
+def assess(now, generated_at, is_trading_day, data_date=None):
     now = now.astimezone(KST)
     basis = now if now.hour >= 20 else now - timedelta(days=1)
     basis_date = basis.date()
@@ -22,17 +22,25 @@ def assess(now, generated_at, is_trading_day):
         actual = generated.astimezone(KST).date()
     except (ValueError, TypeError):
         return 'missing', basis_date.isoformat()
-    return ('ready' if actual == basis_date else 'stale'), basis_date.isoformat()
+    if generated > now + timedelta(minutes=1):
+        return 'stale', basis_date.isoformat()
+    # Completion after midnight still belongs to the explicitly recorded session.
+    # Old snapshots without dataDate keep their original timestamp check.
+    ready = (data_date == basis_date.isoformat() and basis_date <= actual <= now.date()
+             if data_date is not None else actual == basis_date)
+    return ('ready' if ready else 'stale'), basis_date.isoformat()
 
 
 def main():
     path = os.path.join(os.path.dirname(__file__), 'daily_scan_cache.json')
     try:
         with open(path, encoding='utf-8') as stream:
-            generated_at = json.load(stream).get('generatedAt')
+            snapshot = json.load(stream)
     except (OSError, ValueError):
-        generated_at = None
-    outcome, basis = assess(datetime.now(KST), generated_at, market_clock.is_kr_trading_day)
+        snapshot = {}
+    generated_at = snapshot.get('generatedAt')
+    outcome, basis = assess(datetime.now(KST), generated_at, market_clock.is_kr_trading_day,
+                           snapshot.get('dataDate'))
     print('[scan-prereq] state=%s dataDate=%s generatedAt=%s' % (outcome, basis, generated_at), flush=True)
     return 0 if outcome == 'ready' else 3 if outcome == 'holiday' else 75
 

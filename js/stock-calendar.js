@@ -110,15 +110,7 @@
   }
 
   function fetchJson(url, timeoutMs) {
-    var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 7000) : null;
-    return fetch(url, controller ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('캘린더 API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) { if (timer) clearTimeout(timer); return data; })
-      .catch(function (error) { if (timer) clearTimeout(timer); throw error; });
+    return global.NineHttp.json(url, { timeoutMs: timeoutMs || 7000 });
   }
 
   function fetchEarnings(year, month) {

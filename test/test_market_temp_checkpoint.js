@@ -2,6 +2,7 @@ const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 let src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.checkTest={checkpointFacts_,buildStrategy};');
 let requests=0,fail=false;
 const sb={window:{},document:{readyState:'loading',addEventListener(){}},console,setTimeout,clearTimeout,fetch:async()=>{requests++;if(fail)throw Error('offline');return {ok:true,json:async()=>({data:{temp:12}})};}};
+require('./helpers/load_http_client')(sb);
 vm.runInNewContext(src,sb);const t=sb.window.checkTest;
 const base={updatedAt:'2026-10-23T04:00:00+09:00',marketBreadth:{total:{up:10,down:90,total:100}},score100:99};
 const actor=(id,value)=>({id,label:{foreign:'외국인',institution:'기관',individual:'개인'}[id],detail:'코스피·코스닥 일별 순매수',points:[{date:'2026-10-22',score:value}]});

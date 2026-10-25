@@ -26,6 +26,7 @@ import kiwoom_market
 import market_clock
 import public_data
 import scan_forward
+import scan_inputs
 import pattern_detect as pd
 import swing_model
 
@@ -253,15 +254,12 @@ def save_ohlc_snapshot(conn, code, daily):
     conn.executemany(
         'INSERT INTO daily_prices (code, date, open, high, low, close, volume) VALUES (?, ?, ?, ?, ?, ?, ?) '
         'ON CONFLICT(code, date) DO UPDATE SET open=excluded.open, high=excluded.high, low=excluded.low, '
-        'close=excluded.close, volume=excluded.volume',
+        'close=excluded.close, volume=excluded.volume '
+        'WHERE daily_prices.open IS NOT excluded.open OR daily_prices.high IS NOT excluded.high '
+        'OR daily_prices.low IS NOT excluded.low OR daily_prices.close IS NOT excluded.close '
+        'OR daily_prices.volume IS NOT excluded.volume',
         [(code, r['date'], r['open'], r['high'], r['low'], r['close'], r['volume']) for r in daily],
     )
-
-
-def save_investor_flow(conn, code, flow_rows):
-    """flow_rows(fetch_foreign_inst_daily 결과, 개인/외국인/기관 일별 순매매)를 investor_flow_daily에
-    UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
-    db_schema.upsert_investor_flow_daily(conn, code, flow_rows)
 
 
 TIMING_KEYS = ('ohlcApi', 'flowApi', 'ohlcSave', 'flowSave', 'dbRead', 'patternScan', 'throttle')
@@ -337,7 +335,7 @@ def main():
     conn = db_schema.get_conn()
     db_schema.create_schema(conn)
 
-    today_str = datetime.now().strftime('%Y-%m-%d')  # VM 서버 로컬 날짜 - kiwoom_market의 base_dt 계산과 동일 기준
+    today_str = scan_day  # Fixed KST trading date, including runs crossing midnight.
 
     pattern_results = {
         'risingLows': [], 'shortTermMaBreakout': [], 'maCloudBreakout': [], 'doubleBottom': [], 'invHeadShoulders': [],
@@ -354,31 +352,18 @@ def main():
     # 종목당 5.75초 중 throttle 0.5초를 뺀 나머지가 어디로 가는지 몰라서 구간별로 누적한다.
     # perf_counter 덧셈뿐이라 비용은 무시할 수준이다.
     timings = new_timings()
+    inputs = scan_inputs.ScanInputs(conn, today_str, token, kis_appkey, kis_appsecret,
+                                    timings, save_ohlc_snapshot, THROTTLE_SEC)
 
 
     for i, stock in enumerate(universe):
         code, name = stock['code'], stock['name']
         loop_started = time.perf_counter()
         try:
-            _t = time.perf_counter()
-            _latest = db_schema.latest_date(conn, 'daily_prices', code)
-            timings['dbRead'] += time.perf_counter() - _t
-            if _latest == today_str:
-                _t = time.perf_counter()
-                daily = db_schema.load_daily_prices(conn, code)
-                timings['dbRead'] += time.perf_counter() - _t
-                ohlc_skipped += 1
-            else:
-                _t = time.perf_counter()
-                daily = kiwoom_market.fetch_daily_ohlc(token, code, max_days=kiwoom_market.OHLC_SNAPSHOT_DAYS)
-                timings['ohlcApi'] += time.perf_counter() - _t
-                _t = time.perf_counter()
-                save_ohlc_snapshot(conn, code, daily)
-                conn.commit()
-                timings['ohlcSave'] += time.perf_counter() - _t
-                _t = time.perf_counter()
-                time.sleep(THROTTLE_SEC)
-                timings['throttle'] += time.perf_counter() - _t
+            daily = inputs.read(code, 'ohlc')
+            ohlc_skipped = inputs.counts['ohlc']['dbReuse']
+            flow_rows = inputs.read(code, 'flow')
+            flow_skipped = inputs.counts['flow']['dbReuse']
 
             _t = time.perf_counter()
             scanned_p, scanned_pb = pd.scan_stock(
@@ -390,28 +375,8 @@ def main():
             if scanned_pb:
                 pullback_scanned += 1
 
-            _t = time.perf_counter()
-            flow_rows = db_schema.load_investor_flow_daily(conn, code)
-            timings['dbRead'] += time.perf_counter() - _t
-            has_confirmed_individual = bool(flow_rows and flow_rows[0].get('ind_net') is not None)
-            if flow_rows and flow_rows[0].get('date') == today_str and has_confirmed_individual:
-                flow_skipped += 1
-            else:
-                # target_days=25: rolling 20일 합산에 여유분만 더한 최소치(fetch_institution_trend가
-                # 정확도가 떨어져 KIS 기반으로 교체됨, 위 main() 주석 참고) - KIS는 한 번에 약
-                # 30영업일을 주므로 이 정도면 추가 페이지네이션 호출 없이 1콜로 끝난다.
-                _t = time.perf_counter()
-                flow_rows = kiwoom_market.fetch_foreign_inst_daily(token, code, kis_appkey, kis_appsecret, target_days=25)
-                timings['flowApi'] += time.perf_counter() - _t
-                _t = time.perf_counter()
-                save_investor_flow(conn, code, flow_rows)
-                conn.commit()  # 종목마다 즉시 커밋 - 쓰기 트랜잭션을 오래 쥐고 있으면 다른 스크립트(migrate_*.py)가 락에 걸림
-                timings['flowSave'] += time.perf_counter() - _t
-                _t = time.perf_counter()
-                time.sleep(THROTTLE_SEC)
-                timings['throttle'] += time.perf_counter() - _t
             flow = invest_signal.build_flow(flow_rows)
-            if flow:
+            if flow and daily:
                 tech = pd.compute_tech_score(daily)
 
                 entry = flow_cache.get(code)
@@ -541,6 +506,10 @@ def main():
     conn.commit()
     conn.close()
 
+    if any(not (counts['fresh'] + counts['dbReuse']) for counts in inputs.counts.values()):
+        log('원천 도메인 전체 실패 - 이전 스캔 결과 유지: %s' % json.dumps(inputs.summary(), ensure_ascii=False))
+        sys.exit(1)
+
     market_cap_cache.update(market_cap_run_cache)
     save_market_cap_cache(market_cap_cache)
     signal_state['swingCandidates'].sort(
@@ -614,6 +583,8 @@ def main():
     # 채우는 6개 키만 update()해서 다른 스크립트가 채운 키를 보존한다.
     def _apply(existing):
         existing['generatedAt'] = now
+        existing['dataDate'] = today_str
+        existing['scanInputs'] = inputs.summary()
         existing['universe'] = len(universe)
         existing.setdefault('patternScan', {})
         existing['patternScan']['scanned'] = pattern_scanned

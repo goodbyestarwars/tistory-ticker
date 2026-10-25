@@ -1280,14 +1280,7 @@
   }
 
   function fetchJson(url, options) {
-    return fetch(url, options).then(function (response) {
-      if (!response.ok) {
-        var error = new Error('HTTP ' + response.status);
-        error.status = response.status;
-        throw error;
-      }
-      return response.json();
-    }).then(function (body) {
+    return global.NineHttp.json(url, { fetchOptions: options }).then(function (body) {
       if (body && body.success === false) throw new Error('API_ERROR');
       return body && body.data !== undefined ? body.data : body;
     });
