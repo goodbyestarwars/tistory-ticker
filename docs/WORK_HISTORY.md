@@ -1,3 +1,7 @@
+**2026-10-26 공통 표시·API 경로 런타임 선배포**
+
+기존 skin-shell 진입점에 NineUI(이스케이프·숫자·등락률·접근성 로딩/오류)와 NineAPI(공통 envelope 해석·일봉/전략검색 정식 VM 경로·검증된 GAS fallback)를 추가. 소비자 변경은 후속 PR이며 현재 호출 동작은 유지. 결측/0/부호/반올림·HTML 이스케이프·데이터 형식/폴백·실패 검증 및 기존 HTTP 검증 통과. 정적 런타임 선배포 후 캐시 창을 두고 소비자를 반영한다. 스킨/VM/GAS 변경 없음.
+
 **2026-10-25 공통 HTTP 런타임 준비 (작업 브랜치, 운영 미배포)**
 
 기존 공통 진입점 skin-shell.js에 NineHttp를 추가. 전체 응답 시간 제한·AbortController·GET 한정 재시도/Retry-After·inflight dedupe·선택 TTL(최대64개)·인증/개별취소 요청 격리·오류 callback을 한 곳에서 제공한다. 기본 재시도/TTL은0이며 응답 envelope/도메인 fallback은 변경하지 않는다. Node 실패/취소/캐시 검증 통과. 소비자 연결은 후속 PR이며, 운영 반영 시 런타임을 먼저 배포하고 Pages 기존 자산 캐시 창(최대10분) 후 소비자를 반영한다.
