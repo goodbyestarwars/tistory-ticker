@@ -340,7 +340,7 @@ document.documentElement.classList.add('skin-ready');
       }
     };
     var ASSET_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/';
-    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261025-tab-block-boxes';
+    var CSS_URL = ASSET_BASE + 'css/market-indicators.css?v=20261025-plain-explainer-notes';
     var TABS = [
       {
         key: 'domestic', label: '국내 시장지표', slug: 'kospi-futures',
@@ -386,7 +386,7 @@ document.documentElement.classList.add('skin-ready');
         key: 'fx', label: '환율', slug: 'fx-rates',
         mountIds: ['fx-rates'], globalName: 'FxRates',
         script: ASSET_BASE + 'js/fx-rates.js?v=20261025-tab-explainers',
-        styles: [ASSET_BASE + 'css/fx-rates.css?v=20261025-tab-explainers']
+        styles: [ASSET_BASE + 'css/fx-rates.css?v=20261025-plain-explainer-notes']
       }
     ];
     var matched = /^\/(?:page|pages)\/(kospi-futures|overnight-market)\/?$/i.exec(location.pathname);
