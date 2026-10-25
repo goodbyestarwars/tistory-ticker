@@ -397,8 +397,8 @@
         var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
         var summary = headline.description || headline.summary || headline.snippet || '';
         return '<article class="wd-news-card"><small class="wd-news-source">' + escapeHtml(headline.source || '출처 미상') + ' · ' + escapeHtml(dateLabel(headline.pubDate)) + '</small>'
-          + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener">' + escapeHtml(headline.title_ko || headline.title) + '</a>'
-          + '<div class="wd-news-content">' + (summary ? '<p>' + escapeHtml(summary) + '</p>' : '<p class="wd-news-summary-empty">요약 내용은 원문에서 확인하세요.</p>') + '</div>'
+          + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener">' + escapeHtml(headline.title) + '</a>'
+          + (summary ? '<div class="wd-news-content"><p>' + escapeHtml(summary) + '</p></div>' : '')
           + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
           + '<div class="wd-news-stocks"><span class="wd-news-label">관심종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div></div></article>';
       }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>') + '<a class="wd-more" href="/pages/main-news">주요 뉴스 전체 →</a>';
