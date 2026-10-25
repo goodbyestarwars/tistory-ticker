@@ -31,8 +31,8 @@
 .mi-tab-summary .om-summary-head h2 { margin: 0; font-weight: 700; }
 .mi-tab-summary .om-summary-line { overflow-wrap: anywhere; }
 .mi-tab-summary .om-summary-tone { color: var(--text-sub); }
-.mi-wrap .mi-tab-explainer { box-sizing: border-box; margin: 10px 0 18px; padding: 12px 14px; border: 1px solid var(--mi-rule-soft); border-radius: 8px; color: var(--mi-sub); line-height: 1.65; }
-html.dark .mi-wrap .mi-tab-explainer { border-color: var(--dk-line); background: var(--dk-card); color: var(--dk-sub); }
+.mi-wrap .mi-tab-explainer { box-sizing: border-box; margin: 10px 0 12px; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--mi-sub); line-height: 1.65; }
+html.dark .mi-wrap .mi-tab-explainer { background: transparent; color: var(--dk-sub); }
 html.dark .mi-tab-summary .om-live-status { background: var(--dk-inner) !important; color: var(--dk-sub) !important; }
 @media (prefers-reduced-motion: reduce) { .mi-tab-summary .om-live-status::before { animation: none !important; } }
 @layer np.np {
