@@ -1927,7 +1927,8 @@ document.documentElement.classList.add('skin-ready');
         el.innerHTML = '<span class="hsc-label"></span><div class="hsc-clock" aria-hidden="true">'
           + ['일', '시간', '분', '초'].map(function (unit, index) {
             return '<span class="hsc-unit"><span class="hsc-digits" data-hsc-unit="' + index + '">'
-              + '<span class="hsc-digit">0</span><span class="hsc-digit">0</span></span><small>' + unit + '</small></span>';
+              + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span>'
+              + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span></span><small>' + unit + '</small></span>';
           }).join('<span class="hsc-separator">:</span>') + '</div>';
         var switchTabs = document.querySelector('.home-market-switch');
         var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
@@ -1949,11 +1950,27 @@ document.documentElement.classList.add('skin-ready');
           var nextDigit = digits.charAt(i);
           var oldDigit = old ? old.charAt(i) : nextDigit;
           if (oldDigit === nextDigit) return;
-          digit.textContent = nextDigit;
           if (old) {
-            digit.classList.remove('is-flipping');
-            void digit.offsetWidth;
+            var top = digit.querySelector('.hsc-face-top');
+            var bottom = digit.querySelector('.hsc-face-bottom');
+            var topFlap = document.createElement('span');
+            topFlap.className = 'hsc-flap hsc-flap-top';
+            topFlap.innerHTML = '<span>' + oldDigit + '</span>';
+            var bottomFlap = document.createElement('span');
+            bottomFlap.className = 'hsc-flap hsc-flap-bottom';
+            bottomFlap.innerHTML = '<span>' + nextDigit + '</span>';
+            digit.appendChild(topFlap);
+            digit.appendChild(bottomFlap);
             digit.classList.add('is-flipping');
+            window.setTimeout(function () {
+              top.querySelector('span').textContent = nextDigit;
+              bottom.querySelector('span').textContent = nextDigit;
+              digit.classList.remove('is-flipping');
+              topFlap.remove();
+              bottomFlap.remove();
+            }, 440);
+          } else {
+            digit.querySelectorAll('.hsc-face > span').forEach(function (face) { face.textContent = nextDigit; });
           }
         });
         lastDigits[index] = digits;
