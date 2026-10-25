@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 let src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.checkTest={checkpointFacts_,buildStrategy};');
 let requests=0,fail=false;

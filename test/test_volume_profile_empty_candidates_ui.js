@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 // Regression: do not invent formal support/resistance when the histogram
 // lacks separate qualifying zones. Surface distinctly labelled nearby
 // reference bins and explain absent thin areas. Node: node test/test_volume_profile_empty_candidates_ui.js

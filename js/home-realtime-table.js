@@ -176,11 +176,7 @@
     NSC: 'norfolksouthern.com'
   };
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   // 2026-09-04: KIS 해외 순위 응답은 ETF에서 한글명 칸에 영문 정식명을 넣어 보낸다
   // (SOXX -> "ISHARES SEMICONDUCTOR", RDIV -> "INVESCO S&P ULTRA DIVIDEND REVENUE").
@@ -439,7 +435,7 @@
     if (parsed == null) return '-';
     return currency === 'USD'
       ? '$' + parsed.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-      : Math.round(parsed).toLocaleString('ko-KR') + '원';
+      : global.NineUI.number(parsed, {round:true}) + '원';
   }
 
   function fmtCount(value) {
@@ -447,7 +443,7 @@
     if (parsed == null) return '-';
     if (Math.abs(parsed) >= 100000000) return (parsed / 100000000).toFixed(1).replace(/\.0$/, '') + '억';
     if (Math.abs(parsed) >= 10000) return (parsed / 10000).toFixed(1).replace(/\.0$/, '') + '만';
-    return Math.round(parsed).toLocaleString('ko-KR');
+    return global.NineUI.number(parsed, {round:true});
   }
 
   function fmtAmount(value, currency) {
@@ -462,7 +458,7 @@
     // 10^11로 나누면 거래대금·시가총액이 모두 10배 크게 표시된다.
     if (parsed >= 1000000000000) return (parsed / 1000000000000).toFixed(1).replace(/\.0$/, '') + '조';
     if (parsed >= 100000000) return (parsed / 100000000).toFixed(1).replace(/\.0$/, '') + '억';
-    return Math.round(parsed).toLocaleString('ko-KR') + '원';
+    return global.NineUI.number(parsed, {round:true}) + '원';
   }
 
   function fmtMarketCap(value, currency) {
@@ -608,7 +604,7 @@
       + '<div class="hrt-table-wrap"><table><thead><tr>' + columns.map(function (column) {
         return '<th data-field="' + escapeHtml(column[0]) + '">' + column[1] + '</th>';
       }).join('') + '</tr></thead>'
-      + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
+      + '<tbody data-hrt-body><tr><td colspan="' + colspan + '" class="hrt-state">' + global.NineUI.spinner() + '실시간 종목을 불러오는 중입니다.</td></tr></tbody></table></div>'
       + '<div class="hrt-foot"><span data-hrt-foot>체결 발생 행만 갱신</span></div>';
     if (widgetActions) mount.appendChild(widgetActions);
     updateEtfToggle();
@@ -1008,20 +1004,13 @@
     // 별도 요청을 만들지 않고 같은 Promise를 기다린다.
     if (entry.promise) return entry.promise;
     var url = API_URL + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : '');
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timeout = controller ? global.setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
-    entry.promise = fetch(url, controller ? { signal: controller.signal } : undefined).then(function (response) {
-      if (!response.ok) throw new Error('market-board ' + response.status);
-      return response.json();
-    }).then(function (json) {
+    entry.promise = global.NineHttp.json(url, {timeoutMs:REQUEST_TIMEOUT_MS}).then(function (json) {
       entry.data = json;
       entry.updatedAt = Date.now();
       return json;
     }).then(function (json) {
-      if (timeout) global.clearTimeout(timeout);
       return json;
     }, function (error) {
-      if (timeout) global.clearTimeout(timeout);
       throw error;
     });
     entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });

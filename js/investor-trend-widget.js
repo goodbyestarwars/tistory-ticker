@@ -259,7 +259,7 @@
     var sign = v < 0 ? '-' : '+';
     var abs = Math.abs(v);
     if (abs >= 10000) return sign + (abs / 10000).toFixed(1) + '조';
-    return sign + Math.round(abs).toLocaleString('ko-KR') + '억';
+    return sign + global.NineUI.number(abs, {round:true}) + '억';
   }
 
   function fmtAsOf(iso) {
@@ -283,22 +283,7 @@
 
   function fetchOnce(period, market) {
     var url = API_URL + '?period=' + encodeURIComponent(period) + '&market=' + encodeURIComponent(market || DEFAULT_MARKET);
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, 15000) : null;
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('investor-trend API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return (json && json.data) || {};
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, {timeoutMs:15000}).then(function (json) { return (json && json.data) || {}; });
   }
 
   function fetchWithRetry(period, market, attemptsLeft) {

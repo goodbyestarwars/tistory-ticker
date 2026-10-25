@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 /* 지지·저항 강도·전환(js/chart-sr.js enrichLevel), 거래량 체감 배수(chart-core), 이동평균선 그룹(chart-core),
  * 파동 박스 안 추세선(chart-wave-overlay channelOf) 검증(브라우저 없이). */
 const assert = require('assert');

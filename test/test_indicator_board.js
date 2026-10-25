@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // Run: node test/test_indicator_board.js
 // 시장지표 공용 '표 + 추이 차트' 부품(js/indicator-board.js)의 계산·서식과, 네 탭이 이 부품을 쓰도록 연결됐는지 검사한다.
 const assert = require('node:assert/strict');

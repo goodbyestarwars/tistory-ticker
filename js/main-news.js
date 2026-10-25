@@ -74,11 +74,7 @@
     loading: false, view: 'all', items: [], failed: [], cryptoItems: [], cryptoFailed: false, cryptoLoadedAt: 0
   };
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   /* 국내 공시는 YYYYMMDD로 오고 뉴스는 RFC 문자열로 온다(홈 뉴스 모듈과 같은 규약). */
   function parseDate(value) {

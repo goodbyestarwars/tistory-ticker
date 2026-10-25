@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs');
 const js=fs.readFileSync('js/home-weekly-report.js','utf8');
 const block=js.slice(js.indexOf('  var contentSources ='),js.indexOf('  function render(root, payload)'));

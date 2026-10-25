@@ -266,22 +266,13 @@
   function fetchFutures(forceFresh) {
     var cached = readFuturesCache();
     lastFuturesUsedCache = !!(cached && !forceFresh);
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    var request = fetch(futuresRequestUrl(), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('futures API 오류: ' + r.status);
-        return r.json();
-      })
+    var request = global.NineHttp.json(futuresRequestUrl(), {timeoutMs:FETCH_TIMEOUT_MS})
       .then(function (json) {
-        if (timer) clearTimeout(timer);
         var items = json.data || [];
         writeFuturesCache(items);
         return items;
       })
       .catch(function (err) {
-        if (timer) clearTimeout(timer);
         throw err;
       });
     latestFuturesRequest = request;
@@ -313,22 +304,8 @@
   // VIX/환율/채권으로 확장). 객관적인 "적정 수준"은 없어서 대신 실제 수집된 값의 장기 평균을
   // 참고용으로 보여준다. 페이지 진입 시 심볼별로 1회만 호출(AI 해설과 동일 패턴).
   function fetchBenchmark(symbol, days) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(FUTURES_AVG_API + '?symbol=' + symbol + '&days=' + (days || 365), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('futures/avg API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json.data || null;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(FUTURES_AVG_API + '?symbol=' + symbol + '&days=' + (days || 365), {timeoutMs:FETCH_TIMEOUT_MS})
+      .then(function (json) { return json.data || null; });
   }
 
   function fmtPrice(v, digits) {
@@ -343,11 +320,7 @@
     return (v > 0 ? '+' : '') + s;
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
   /* ---- 표 + 추이 차트(2026-10-12) ----
      카드 격자 대신 환율 탭과 같은 표(js/indicator-board.js)로 보여 준다. 시세·차트 이력·WebSocket 갱신 경로는 그대로이고
@@ -479,7 +452,7 @@
         return ''
           + '<div class="om-card" data-symbol="' + symbol + '">'
           + '<div class="om-title">' + escapeHtml(LABELS[symbol]) + '</div>'
-          + '<div class="om-body om-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
+          + '<div class="om-body om-loading">' + global.NineUI.spinner() + '불러오는 중...</div>'
           + '</div>';
       }).join('');
       return '<div class="om-category">'
@@ -584,17 +557,7 @@
   }
 
   function binanceGet(url, timeoutMs) {
-    var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 10000) : null;
-    return fetch(url, controller ? { signal: controller.signal } : {})
-      .then(function (res) {
-        if (timer) clearTimeout(timer);
-        if (!res.ok) { var err = new Error('HTTP ' + res.status); err.status = res.status; throw err; }
-        return res.json();
-      }, function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, {timeoutMs:timeoutMs || 10000});
   }
 
   // 1시간 캔들은 자주 바뀌지 않으므로 30분 동안 다시 부르지 않는다(방문자 브라우저 호출 수 절약).

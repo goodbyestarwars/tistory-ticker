@@ -63,18 +63,13 @@
   function fetchResults_(force) {
     if (!force && resultsCache && Date.now() - resultsCachedAt < REFRESH_MS) return Promise.resolve(resultsCache);
     if (resultsInflight) return resultsInflight;
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = controller ? setTimeout(function () { controller.abort(); }, 20000) : null;
-    resultsInflight = fetch(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')) + (force ? '&_=' + Date.now() : ''),
-      controller ? { signal: controller.signal } : {})
-      .then(function (response) { if (!response.ok) throw new Error('macro response'); return response.json(); })
+    resultsInflight = global.NineHttp.json(API + '?interval=day&days=500&symbols=' + encodeURIComponent(SYMBOLS.join(',')) + (force ? '&_=' + Date.now() : ''), {timeoutMs:20000})
       .then(function (payload) {
         if (!payload || !Array.isArray(payload.data)) throw new Error('macro data');
         resultsCache = payload.data.map(function(item) { return global.MarketChartHistory ? Object.assign({},item,{chart:global.MarketChartHistory.merge(item.symbol,item.chart)}) : item; });
         resultsCachedAt = Date.now();
         return resultsCache;
       }).finally(function () {
-        if (timeout) clearTimeout(timeout);
         resultsInflight = null;
       });
     return resultsInflight;
@@ -102,11 +97,7 @@
     }).join('');
   }
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   function nextFomc_() {
     var now = new Date();

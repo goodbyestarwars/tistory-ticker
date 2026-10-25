@@ -12,13 +12,11 @@
   var coinQuoteMemo;
   function fetchCoinQuotes() {
     if (coinQuoteMemo && (coinQuoteMemo.pending || Date.now() - coinQuoteMemo.at < 30000)) return coinQuoteMemo.promise;
-    var memo = { at: Date.now(), pending: true }, controller = new AbortController();
-    var timeout = setTimeout(function () { controller.abort(); }, 8000);
-    memo.promise = fetch(api + '/futures?days=365&symbols=BTC,ETH,USDT', {signal: controller.signal})
-      .then(function (response) { if (!response.ok) throw new Error('coin quotes ' + response.status); return response.json(); })
+    var memo = { at: Date.now(), pending: true };
+    memo.promise = global.NineHttp.json(api + '/futures?days=365&symbols=BTC,ETH,USDT', {timeoutMs:8000})
       .then(function (out) { if (!Array.isArray(out.data)) throw new Error('coin quote payload'); return out.data; })
       .catch(function (error) { if (coinQuoteMemo === memo) coinQuoteMemo = null; throw error; })
-      .finally(function () { clearTimeout(timeout); memo.pending = false; });
+      .finally(function () { memo.pending = false; });
     coinQuoteMemo = memo;
     return memo.promise;
   }

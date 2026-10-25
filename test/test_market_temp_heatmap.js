@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 /* 증시온도 히트맵(js/market-temp.js) 색·범례·증감 검증 - 실행: node test/test_market_temp_heatmap.js
  * js/market-temp.js 는 IIFE 라 필요한 함수만 소스에서 잘라 vm 에서 실행한다(함수 본문은 그대로). */
 const fs = require('fs'), vm = require('vm'), assert = require('assert');

@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const assert = require('node:assert/strict'), fs = require('node:fs'), vm = require('node:vm');
 const window = {}, document = { readyState: 'loading', addEventListener() {} };
 vm.runInNewContext(fs.readFileSync('js/fx-rates.js', 'utf8'), { window, document, Intl, Number, Date, Math, String, isFinite, isNaN, clearTimeout, setTimeout });

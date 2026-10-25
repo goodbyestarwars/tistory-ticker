@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const src = fs.readFileSync('js/us-stocks.js', 'utf8');

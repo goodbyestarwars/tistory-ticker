@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // Run: node test/test_global_indicator_context.js
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

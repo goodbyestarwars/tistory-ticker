@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // 문장 단위 줄바꿈 공용 함수: .!? 뒤 공백에서만 나누고 소수점·숫자는 유지한다.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={splitSentences_,sentenceHtml_};');

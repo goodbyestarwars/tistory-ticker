@@ -126,6 +126,125 @@
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineHttp */
 
+/* NineUI: shared display primitives. Domain units remain explicit at call sites. */
+(function (global) {
+  'use strict';
+  if (global.NineUI) return;
+  function escape(value) {
+    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function number(value, options) {
+    options = options || {};
+    if (value == null || value === '' || !isFinite(Number(value))) return options.missing == null ? '-' : options.missing;
+    var n = Number(value);
+    if (options.round) n = Math.round(n);
+    var digits = options.digits;
+    return n.toLocaleString(options.locale || 'ko-KR', digits == null ? undefined : {
+      minimumFractionDigits: digits, maximumFractionDigits: digits
+    });
+  }
+  function percent(value, options) {
+    options = options || {};
+    if (value == null || value === '' || !isFinite(Number(value))) return options.missing == null ? '-' : options.missing;
+    var n = Number(value), digits = options.digits == null ? 2 : options.digits;
+    return (n > 0 || (n === 0 && options.plusZero) ? '+' : '') + n.toFixed(digits) + '%';
+  }
+  function spinner() {
+    return '<svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>';
+  }
+  function state(kind, message, className) {
+    var pending = kind === 'loading';
+    return '<div class="' + escape(className || 'ui-state') + '" role="' + (kind === 'error' ? 'alert' : 'status')
+      + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending ? spinner() : '') + escape(message) + '</div>';
+  }
+  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* End NineUI */
+
+/* NineAPI: domain routes and explicit fallbacks, separate from HTTP transport. */
+(function (global) {
+  'use strict';
+  if (global.NineAPI) return;
+  var VM = 'https://goodbyestar.cloud';
+  var GAS = 'https://script.google.com/macros/s/AKfycbzhKxOqOzw6N1xjW0Jhj5tlbiN0PMRdrQQD6nORBTlP0NDAOvtKfidHU2xwMAbV33mOuQ/exec';
+  function unwrap(body) {
+    if (!body || body.success === false || body.error) throw new Error('데이터 응답을 확인할 수 없습니다.');
+    return body.data !== undefined ? body.data : body;
+  }
+  function data(url, options) { return global.NineHttp.json(url, options).then(unwrap); }
+  function domain(path, legacy, validate, options) {
+    options = options || {};
+    var request = options.request || function (url) { return global.NineHttp.json(url, {timeoutMs: options.timeoutMs || 20000}); };
+    function read(url) {
+      return Promise.resolve().then(function () { return request(url); }).then(unwrap).then(function (body) {
+        if (!validate(body)) throw new Error('데이터 형식이 일치하지 않습니다.');
+        return body;
+      });
+    }
+    return read(VM + path).catch(function (error) {
+      if (!legacy || options.fallback === false) throw error;
+      return read(GAS + legacy).then(function (body) {
+        var fallback = Object.assign({}, body, {degraded: true, source: 'gas-vm-derived'});
+        return fallback;
+      });
+    });
+  }
+  function chart(code, options) {
+    code = encodeURIComponent(code);
+    return domain('/flow-chart/' + code, '?action=flowChart&code=' + code, function (body) {
+      return Array.isArray(body.daily) && body.daily.length > 0 && body.daily.every(function (bar) {
+        return bar.date && ['open', 'high', 'low', 'close'].every(function (key) {
+          return bar[key] != null && isFinite(Number(bar[key]));
+        }) && Number(bar.high) >= Number(bar.low);
+      });
+    }, options);
+  }
+  function strategy(options) {
+    return domain('/strategy-scan', '?strategyScan=1', function (body) {
+      return body.categories && typeof body.categories === 'object' && !Array.isArray(body.categories)
+        && Object.prototype.hasOwnProperty.call(body, 'scannedAt');
+    }, options);
+  }
+  function quotes(codes, options) {
+    options = options || {};
+    var ordered = [];
+    (codes || []).forEach(function (code) {
+      code = String(code).toUpperCase();
+      if (!/^[0-9A-Z]{6}$/.test(code)) throw new Error('국내 종목 코드 형식이 올바르지 않습니다.');
+      if (ordered.indexOf(code) < 0) ordered.push(code);
+    });
+    var sorted = ordered.slice().sort(), byCode = Object.create(null), request = options.request || global.NineHttp.json;
+    var pending = Promise.resolve();
+    for (var i = 0; i < sorted.length; i += 300) (function (batch) {
+      pending = pending.then(function () {
+        var path = batch.length <= 30 ? '/domestic-quotes?codes=' : '/sector-quotes?codes=';
+        function read(url) { return Promise.resolve().then(function () { return request(url); }).then(unwrap).then(function (body) {
+          if (!Array.isArray(body)) throw new Error('국내 시세 형식이 올바르지 않습니다.');
+          return body;
+        }); }
+        return read(VM + path + batch.join(',')).then(function (body) {
+          return {body:body, fallback:false};
+        }).catch(function (error) {
+          if (options.fallback === false) throw error;
+          return read(GAS + '?codes=' + batch.join(',')).then(function (body) { return {body:body, fallback:true}; });
+        }).then(function (result) {
+          result.body.forEach(function (row) {
+            if (!row || batch.indexOf(row.code) < 0 || !isFinite(Number(row.price)) || Number(row.price) <= 0) return;
+            if (!byCode[row.code]) byCode[row.code] = Object.assign({}, row, {degraded:result.fallback, transportSource:result.fallback ? 'gas-proxy' : 'vm',
+              dataDate:row.dataDate || null, timeBasis:'retrieval'});
+          });
+        });
+      });
+    })(sorted.slice(i, i + 300));
+    return pending.then(function () { return ordered.map(function (code) { return byCode[code]; }).filter(Boolean); });
+  }
+  global.NineAPI = { vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
+    contracts:{domesticQuotes:{price:'KRW',volume:'shares',changeRate:'percent',time:'retrieval',maxBatch:300}} };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* End NineAPI */
+
 /* ──────────────────────────────────────────────────────────────────────────
    시장 시간 단일 기준 (2026-09-05)
 

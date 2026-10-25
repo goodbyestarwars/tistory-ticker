@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 // Regression for index-chart controls (KOSPI/KOSDAQ/NASDAQ/S&P/DOW/SOX).
 // Run: node test/test_index_chart_controls_layout.js
 const test = require('node:test');

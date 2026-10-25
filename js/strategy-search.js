@@ -81,12 +81,12 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<div class="ss-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
+    container.innerHTML = global.NineUI.state('loading', '불러오는 중...', 'ss-hint');
     loadScan(container);
   }
 
   function loadScan(container) {
-    StrategySearch.fetchJson(GAS_TICKER_URL + '?strategyScan=1')
+    global.NineAPI.strategyScan({request:StrategySearch.fetchJson})
       .then(function (data) {
         scanData = normalizeScanData(data);
         var keys = Object.keys((scanData && scanData.categories) || {});
@@ -359,6 +359,7 @@
     var cadence = activeKey === 'etfReturn' ? 'ETF 매일 갱신' : '전략 주 1회 갱신';
     var text = ((window.NineTime && window.NineTime.updated(scanAt)) || ('스캔 기준시각 ' + scanAt)) + ' · ' + cadence + ' · 전체 대상 ' + (scanData.universe || 0) + '종목';
     if (scanData.skippedIlliquid != null) text += ' · 유동성 부족 제외 ' + scanData.skippedIlliquid + '종목';
+    if (scanData.degraded) text += ' · 대체 경로의 저장 결과';
     meta.textContent = text;
   }
 
@@ -1310,7 +1311,7 @@
     clearTimeout(liveQuoteTimer);
     var seq = ++liveQuoteSeq;
     liveQuoteTimer = setTimeout(function () {
-      StrategySearch.fetchJson(GAS_TICKER_URL + '?codes=' + missing.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
+      global.NineAPI.domesticQuotes(missing.slice(0, LIVE_QUOTE_MAX_CODES), {request:StrategySearch.fetchJson})
         .then(function (list) {
           var byCode = {};
           (list || []).forEach(function (d) {
@@ -1504,13 +1505,9 @@
     var value = Number(n);
     return (value > 0 ? '+' : '') + value.toFixed(1) + '%';
   }
-  function fmtMillion(n) { return n == null ? '-' : Math.round(n).toLocaleString('ko-KR'); }
+  function fmtMillion(n) { return n == null ? '-' : global.NineUI.number(n, {round:true}); }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   // ---- ETF 구성종목 모달 ----
@@ -1595,7 +1592,7 @@
       + escapeAttr(name) + ' 구성종목">'
       + '<div class="ss-etf-modal-head"><strong>' + escapeHtml(name) + ' 구성종목</strong>'
       + '<button type="button" class="ss-etf-modal-close" aria-label="닫기">✕</button></div>'
-      + '<div class="ss-etf-modal-body"><p class="ss-etf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</p></div>'
+      + '<div class="ss-etf-modal-body"><p class="ss-etf-loading">' + global.NineUI.spinner() + '불러오는 중...</p></div>'
       + '</div>';
     document.body.appendChild(overlay);
     etfModalOverlay = overlay;

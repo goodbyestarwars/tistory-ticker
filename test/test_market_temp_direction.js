@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 /* 증시온도 방향 문구(js/market-temp.js directionMood_) - 종합점수가 보통일 때 가격·수급 축을 따로 읽는다.
  * 실행: node test/test_market_temp_direction.js. IIFE 라 필요한 선언만 소스에서 잘라 vm 에서 실행한다. */
 const fs = require('fs'), vm = require('vm'), assert = require('assert');

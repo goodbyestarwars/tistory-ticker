@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.refreshTest={createMarketRefreshLoop_,marketRefreshDelay_,sharedMarketJson_};');
 let now=Date.UTC(2026,9,23,1),timerId=0,network=0;const timers=new Map(),docEvents={},winEvents={};

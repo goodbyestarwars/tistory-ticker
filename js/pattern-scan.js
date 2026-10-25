@@ -1674,7 +1674,7 @@
     clearTimeout(liveQuoteTimer);
     var seq = ++liveQuoteSeq;
     liveQuoteTimer = setTimeout(function () {
-      PatternScan.fetchJson(GAS_TICKER_URL + '?codes=' + missing.slice(0, LIVE_QUOTE_MAX_CODES).join(','))
+      global.NineAPI.domesticQuotes(missing.slice(0, LIVE_QUOTE_MAX_CODES), {request:PatternScan.fetchJson})
         .then(function (list) {
           var byCode = {};
           (list || []).forEach(function (d) {
@@ -2604,20 +2604,12 @@
     var r = parseFloat(rt);
     return r > 0 ? 'ps-up' : (r < 0 ? 'ps-down' : 'ps-flat');
   }
-  function chgSign(rt) {
-    if (rt == null) return '';
-    var r = parseFloat(rt);
-    return (r > 0 ? '+' : '') + r.toFixed(2) + '%';
-  }
-  function fmt(n) { return Math.round(n).toLocaleString('ko-KR'); }
+  function chgSign(rt) { return global.NineUI.signedPercent(rt, {missing:''}); }
+  function fmt(n) { return global.NineUI.number(n, {round:true}); }
   // 캔들차트 축·크로스헤어·패턴선에 표시되는 가격에 천단위 콤마(원화는 소수점 없음)
   function psChartPriceFormatter(v) { return v == null || isNaN(v) ? '' : Math.round(v).toLocaleString(); }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
   global.PatternScan = { init: init, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, menuTabs: MENU_TABS };
 

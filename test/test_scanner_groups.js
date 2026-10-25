@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const assert=require('node:assert/strict'),fs=require('fs'),vm=require('vm');
 const source=fs.readFileSync('js/pattern-scan.js','utf8');
 const ctx={window:{},document:{readyState:'loading',addEventListener(){}},console};vm.runInNewContext(source,ctx);

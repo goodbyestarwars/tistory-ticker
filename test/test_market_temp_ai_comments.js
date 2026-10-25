@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // AI 시장 코멘트 화면 계약 (2026-10-23): 카드 옆 한 줄 해설은 서버가 생성·검증해 저장한 확정 코멘트(GET /ai-comments)를 그대로 보여 준다.
 // 고정 문구 풀 없음 / 코멘트가 없으면 빈 칸(자리는 예약) / 실패해도 금융 데이터·카드는 그대로 / 지난 거래일 코멘트는 기준일 표시 / HTML 이스케이프.
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');

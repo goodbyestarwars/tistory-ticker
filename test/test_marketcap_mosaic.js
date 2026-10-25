@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 // 한경 마켓MAP 스타일 재배치: 실제 시총 비례·종목 누락/중복 방지·필터 계약 회귀.
 const test = require('node:test');
 const assert = require('node:assert/strict');

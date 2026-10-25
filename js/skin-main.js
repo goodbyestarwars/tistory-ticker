@@ -83,22 +83,13 @@ document.documentElement.classList.add('skin-ready');
       var key = year + '-' + monthNum;
       var hit = cache[key];
       if (hit && (hit.inflight || Date.now() - hit.at < TTL_MS)) return hit.promise;
-      var hasAbort = 'AbortController' in window;
-      var controller = hasAbort ? new AbortController() : null;
-      var timer = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
-      var promise = fetch(BASE + '?year=' + year + '&month=' + monthNum, controller ? { signal: controller.signal } : {})
-        .then(function (response) {
-          if (!response.ok) throw new Error('earnings-calendar ' + response.status);
-          return response.json();
-        })
+      var promise = window.NineHttp.json(BASE + '?year=' + year + '&month=' + monthNum, {timeoutMs:15000})
         .then(function (data) {
-          if (timer) clearTimeout(timer);
           var rows = Array.isArray(data) ? data : (data && data.data) || [];
           cache[key] = { promise: Promise.resolve(rows), at: Date.now(), inflight: false };
           return rows;
         })
         .catch(function () {
-          if (timer) clearTimeout(timer);
           delete cache[key];
           return [];
         });
@@ -126,12 +117,8 @@ document.documentElement.classList.add('skin-ready');
       var entry = pool[key] || (pool[key] = {});
       if (!force && entry.data && Date.now() - entry.updatedAt < REFRESH_MS) return Promise.resolve(entry.data);
       if (entry.promise) return entry.promise;
-      var controller = typeof AbortController === 'function' ? new AbortController() : null;
-      var timeout = controller ? setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
-      entry.promise = fetch(BASE + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : ''), controller ? { signal: controller.signal } : undefined)
-        .then(function (response) { if (!response.ok) throw new Error('market-board ' + response.status); return response.json(); })
-        .then(function (json) { entry.data = json; entry.updatedAt = Date.now(); return json; })
-        .then(function (json) { if (timeout) clearTimeout(timeout); return json; }, function (error) { if (timeout) clearTimeout(timeout); throw error; });
+      entry.promise = window.NineHttp.json(BASE + '?market=' + key + '&limit=' + LIMIT + (force ? '&fresh=1' : ''), {timeoutMs:REQUEST_TIMEOUT_MS})
+        .then(function (json) { entry.data = json; entry.updatedAt = Date.now(); return json; });
       entry.promise.then(function () { entry.promise = null; }, function () { entry.promise = null; });
       return entry.promise;
     }

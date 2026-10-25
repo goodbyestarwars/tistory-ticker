@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // 카드는 summary만(2026-10-24 사용자 지시): 제목·상태·수치·기준 시각만 보이고 문장형·대화형 코멘트와 하단 설명 박스는 없다.
 // 서버 AI 코멘트 엔진은 그대로이고 화면 표시(AI_CARD_COMMENTS_)만 꺼져 있다. 꺼진 동안 /ai-comments도 읽지 않는다.
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');

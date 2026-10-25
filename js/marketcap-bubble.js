@@ -43,23 +43,7 @@
   }
 
   function fetchBubbleData() {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(GAS_TICKER_URL + '?bubble=1', hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(GAS_TICKER_URL + '?bubble=1', {timeoutMs:FETCH_TIMEOUT_MS});
   }
 
   // ---------- 스퀘어파이드 트리맵 ----------
@@ -575,11 +559,7 @@
     container.innerHTML = '<div class="mcb-error">' + message + '</div>';
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   // 업종 <select> 옵션을 데이터 기준으로 갱신. 매 tick(45초)마다 통째로 다시 그리면

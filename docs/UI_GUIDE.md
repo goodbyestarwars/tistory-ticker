@@ -139,6 +139,14 @@
 
 ## 공통 UI 모듈 표준
 
+숫자·등락률·HTML 이스케이프·heartbeat 로딩은 기존 공통 진입점 `skin-shell.js`의
+`NineUI.number/signedPercent/escapeHtml/spinner/state`를 쓴다. 원·주·억원 변환과
+반올림 자릿수는 호출부가 명시한다. `null/빈 문자열/NaN`은 결측으로 표시하고 0과 구분한다.
+전송은 `NineHttp`, 도메인 정식 경로는 `NineAPI`를 사용한다(계약은 `API_OPERATION_SPEC.md`).
+현 운영 스킨에서 shell보다 먼저 실행되는 검색 패널/관심종목 bootstrap과 정적 JS 원문을
+읽는 DCF archive는 해당 로드 순서/텍스트 계약을 유지한다. 스킨 순서 변경 전 공통 객체를
+즉시 참조하도록 바꾸지 않는다. 신규 중복 구현은 허용하지 않는다.
+
 마켓브리핑 아카이브(2026-10-24): `.briefing-shelf`는 일반 데이터 카드와 다른 편집 콘텐츠
 역할로 18px 모서리·300×400px 고정 카드·16px 간격·24px 패딩(모바일 22px)을 사용한다.
 가로 트랙 안에서만 스크롤하며 모바일은 다음 카드 일부를 보여 준다. 원형 이동 버튼 44px,

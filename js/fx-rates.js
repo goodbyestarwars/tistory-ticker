@@ -57,15 +57,10 @@
   }
 
   function get(path, timeoutMs) {
-    var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    var timeout = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 15000) : null;
-    return fetch(API + path, controller ? { signal: controller.signal } : {}).then(function (response) {
-      if (!response.ok) throw new Error('http ' + response.status);
-      return response.json();
-    }).then(function (json) {
+    return global.NineHttp.json(API + path, {timeoutMs:timeoutMs || 15000}).then(function (json) {
       if (!json || json.success !== true || !json.data) throw new Error('bad payload');
       return json.data;
-    }).finally(function () { if (timeout) clearTimeout(timeout); });
+    });
   }
 
   /* ---- 화면 뼈대 ---- */

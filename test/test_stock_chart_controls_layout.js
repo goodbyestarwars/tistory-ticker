@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const {chromium}=require('playwright');
 const source=fs.readFileSync('js/stock-search.js','utf8');

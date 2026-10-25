@@ -226,7 +226,7 @@
     var results = document.querySelector('#usStocksResults');
     if (!results) return;
     results.hidden = false;
-    results.innerHTML = '<div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>미국주식 시세를 불러오는 중...</div>';
+    results.innerHTML = '<div class="us-stocks-loading">' + global.NineUI.spinner() + '미국주식 시세를 불러오는 중...</div>';
     searchRows(query, 8)
       .then(function (rows) {
         if (!rows.length) throw new Error('NO_RESULTS');
@@ -351,7 +351,7 @@
     var detail = document.querySelector('#usStocksDetail');
     if (!detail) return;
     detail.hidden = false;
-    detail.innerHTML = '<div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(state.symbol) + ' 시세를 불러오는 중...</div>';
+    detail.innerHTML = '<div class="us-stocks-loading">' + global.NineUI.spinner() + '' + escapeHtml(state.symbol) + ' 시세를 불러오는 중...</div>';
     // 스타일이 붙기 전에 값을 그리면 라벨과 값이 붙어 나오는 화면이 된다(2026-09-02
     // 리포트). 로딩 표시는 그대로 두고, 실제 내용만 스타일시트를 기다렸다 그린다.
     whenStyleReady(function () {
@@ -574,11 +574,11 @@
         + '</div>'
         + '<section class="us-stocks-panel us-stocks-congress-panel"><div class="us-stocks-panel-head"><h4>미국 의회 거래 공시</h4><span>참고용 시그널</span></div><div id="usStocksCongress" class="us-stocks-congress"><div class="us-stocks-loading">의회 거래 공시를 불러오는 중...</div></div></section>'
         + '<div class="us-stocks-market-grid">'
-        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
+        + '<section class="us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
         + '<section class="us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
-        + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
+        + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
         + '</div>'
-        + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>';
+        + '<section class="us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head"><h4>관련 뉴스</h4><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>';
     }
     updateQuoteFields(quote, detail);
   }
@@ -620,11 +620,11 @@
       + '<div class="us-stocks-metric us-stocks-metric-wide"><span>전일 거래량 대비</span><b data-us-metric="volchange">-</b></div>'
       + '</div></section>'
       + '<div class="ss-panels us-stocks-market-grid">'
-      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
+      + '<section class="ss-panel-left us-stocks-panel us-stocks-orderbook-panel"><div class="us-stocks-panel-head"><h4>호가</h4><span data-us-book-status>10단계 호가 · 연결 중</span></div><div id="usStocksOrderbook" class="us-stocks-orderbook"><div class="us-stocks-loading">' + global.NineUI.spinner() + '호가를 불러오는 중...</div></div><div id="usStocksOptions" class="us-opt-card" hidden></div></section>'
       + '<div class="ss-resize-handle" role="separator" aria-orientation="vertical" aria-label="호가창과 차트 폭 조절" tabindex="0"></div>'
       + '<section class="ss-panel-right us-stocks-panel us-stocks-chart-panel"><div class="us-stocks-panel-head"><h4>차트</h4><span>국내 종목 차트와 동일</span></div>'
-      + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>차트를 불러오는 중...</div></div></section>'
-      + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>뉴스를 불러오는 중...</div></div></section>'
+      + '<div id="usStocksChart" class="us-native-chart-mount"><div class="us-stocks-loading">' + global.NineUI.spinner() + '차트를 불러오는 중...</div></div></section>'
+      + '<section class="ss-news-panel us-stocks-panel us-stocks-news-panel"><div class="us-stocks-panel-head ss-news-panel-head"><h3>관련 뉴스</h3><span>최근 24시간</span></div><div id="usStocksNews" class="us-stocks-news"><div class="us-stocks-loading">' + global.NineUI.spinner() + '뉴스를 불러오는 중...</div></div></section>'
       + '</div>';
   }
 

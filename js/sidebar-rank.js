@@ -127,7 +127,7 @@
       + '<span class="sr-title-text">실시간 랭킹</span><span class="sr-updated nt-stamp" id="srUpdated"></span>'
       + '</div>'
       + '<div class="sr-tabs" role="tablist" aria-label="실시간 랭킹 기준">' + tabs + '</div>'
-      + '<ol class="sr-list" id="srList"><li class="sr-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</li></ol>'
+      + '<ol class="sr-list" id="srList"><li class="sr-hint">' + global.NineUI.spinner() + '불러오는 중...</li></ol>'
       + '<button type="button" class="sr-more">전체보기 →</button>'
       + '</div>';
   }
@@ -184,7 +184,7 @@
 
   function fmtPrice(v) {
     if (v == null || isNaN(v)) return '-';
-    return Math.round(v).toLocaleString('ko-KR');
+    return global.NineUI.number(v, {round:true});
   }
 
   // ---- "더보기" 모달(TOP20, 블로그 안에서 보여줌 - 외부 이동 없음) ----
@@ -212,7 +212,7 @@
     overlay.innerHTML = '<div class="sr-modal">'
       + '<div class="sr-modal-header"><span>' + escapeHtml(s.shortTitle) + ' TOP' + MODAL_LIMIT + '</span>'
       + '<button type="button" class="sr-modal-close" aria-label="닫기">✕</button></div>'
-      + '<ol class="sr-list sr-modal-list"><li class="sr-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</li></ol>'
+      + '<ol class="sr-list sr-modal-list"><li class="sr-hint">' + global.NineUI.spinner() + '불러오는 중...</li></ol>'
       + '</div>';
     document.body.appendChild(overlay);
 
@@ -261,22 +261,7 @@
 
   function fetchRank(limit) {
     var url = API_URL + (limit ? '?limit=' + encodeURIComponent(limit) : '');
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, 8000) : null;
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('market-rank API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json.data || {};
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, {timeoutMs:8000}).then(function (json) { return json.data || {}; });
   }
 
   var SidebarRank = {

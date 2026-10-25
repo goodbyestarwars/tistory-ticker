@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // 수급·심리·금리 카드(표시 전용): 값은 응답 그대로, 강도는 응답 이력 분포(백분위)로, 값이 없으면 '미수신'.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={programTradingCard_,optionCard_,rateCard_,extrasBlock_,moneyKr_};');

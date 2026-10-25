@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const assert = require('assert');
 const fs = require('fs');
 const vm = require('vm');
