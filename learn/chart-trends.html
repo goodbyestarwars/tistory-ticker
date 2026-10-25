@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>04-1 · 정배열과 역배열</title>
+<meta name="description" content="이동평균선 정배열·역배열부터 헤드앤숄더·삼각수렴 같은 전문가용 차트 패턴, 거래량과 가격의 상관관계, 호가창 매수·매도 불균형이 생기는 이유, 세력의 매집·분산 사이클을 그림으로 정리한다." />
+<link rel="icon" type="image/svg+xml" href="https://goodbyestarwars.github.io/tistory-ticker/img/heart-monitor.svg?v=20260817-heart-monitor" />
+<link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/legal.css" />
+</head>
+<body>
+<div class="legal-wrap">
+  <a class="legal-back" href="https://ghlee.tistory.com">← 블로그로 돌아가기</a>
+
+  <h1>04-1 · 정배열과 역배열</h1>
+  <p class="legal-effective-date">이동평균선 정배열·역배열, 전문가용 차트 패턴, 거래량 상관관계, 호가창 불균형, 세력의 움직임</p>
+
+  <p>이 글은 캔들 한 개, 이동평균선의 기본 개념을 이미 아는 사람을 대상으로 <b>실전에서 쓰는 형태</b>를 더
+  자세히 본다. 전문가들이 보는 패턴 모양, 거래량이 가격과 어떻게 맞물리는지, 호가창의 불균형이 왜 생기는지,
+  그리고 흔히 "세력"이라 부르는 큰손의 매매가 남기는 흔적까지 다룬다.</p>
+
+  <h2>이동평균선, 정배열과 역배열</h2>
+  <p>이동평균선은 3장에서 "최근 산 사람들의 평균 매수가"라고 배웠다. 여러 기간(5일·20일·60일·120일)의
+  선을 같이 놓고 보면 <b>줄 선 순서</b>가 지금이 상승 추세인지 하락 추세인지를 말해 준다.</p>
+
+  <table class="learn-table">
+    <thead><tr><th>이평선</th><th>보통 부르는 이름</th><th>무엇을 보는가</th></tr></thead>
+    <tbody>
+      <tr><td>5일선</td><td>단기·초단타 기준선</td><td>최근 일주일 심리. 가장 먼저 꺾인다.</td></tr>
+      <tr><td>20일선</td><td>생명선 · 세력선</td><td>한 달 추세. 주가가 이 선 위냐 아래냐로 단기 방향을 가른다.</td></tr>
+      <tr><td>60일선</td><td>수급선</td><td>분기 흐름. 기관·큰손의 평균 매수가로 자주 언급된다.</td></tr>
+      <tr><td>120일선</td><td>경기선</td><td>반년 흐름. 이 선이 뚫리면 추세 자체가 바뀐 것으로 본다.</td></tr>
+    </tbody>
+  </table>
+
+  <figure class="learn-fig">
+    <svg viewBox="0 0 420 250" role="img" aria-label="정배열과 역배열: 이동평균선이 위에서부터 5일선, 20일선, 60일선, 120일선 순서로 늘어선 정배열과 그 반대인 역배열">
+      <text class="fig-sub" x="0" y="14">정배열 - 상승 추세</text>
+      <path class="fig-up-line" d="M0 60 L200 30" />
+      <path class="fig-ink-line" d="M0 70 L200 46" />
+      <path class="fig-line" d="M0 80 L200 62" />
+      <path class="fig-dash" d="M0 90 L200 78" />
+      <text class="fig-sub" x="0" y="102">위에서 5→20→60→120일선</text>
+      <text class="fig-sub" x="0" y="118">짧은 선이 위, 긴 선이 아래</text>
+      <text class="fig-sub" x="0" y="134">최근 산 사람이 더 비싸게 샀다</text>
+
+      <text class="fig-sub" x="220" y="14">역배열 - 하락 추세</text>
+      <path class="fig-down-line" d="M220 30 L420 60" />
+      <path class="fig-ink-line" d="M220 46 L420 70" />
+      <path class="fig-line" d="M220 62 L420 80" />
+      <path class="fig-dash" d="M220 78 L420 90" />
+      <text class="fig-sub" x="220" y="102">위에서 120→60→20→5일선</text>
+      <text class="fig-sub" x="220" y="118">짧은 선이 아래</text>
+      <text class="fig-sub" x="220" y="134">최근 산 사람이 더 싸게 샀다(밀림)</text>
+
+      <text class="fig-sub" x="0" y="166">골든크로스: 짧은 선이 긴 선을 아래에서 위로 뚫는 순간</text>
+      <text class="fig-sub" x="0" y="184">데드크로스: 짧은 선이 긴 선을 위에서 아래로 뚫는 순간</text>
+      <text class="fig-sub" x="0" y="214">역배열에서 정배열로 바뀌는 초입을 노리는 게 "역매공파" 같은</text>
+      <text class="fig-sub" x="0" y="230">바닥권 반등 스캔의 기본 아이디어다.</text>
+    </svg>
+    <figcaption>정배열일수록 최근 매수가가 더 높다는 뜻이라 추세가 강하다. 역배열은 그 반대다.</figcaption>
+  </figure>
+
+  <div class="learn-note">
+    <b>주의</b> 골든크로스가 뜬 순간에는 이미 며칠 전 저가를 놓친 뒤인 경우가 많다. 이동평균선은 지난 가격의
+    평균이라 <b>항상 늦게 반응</b>한다(3장의 "지난 실적을 읽는 도구"라는 원칙과 같다). 크로스 자체보다
+    "지금 몇 번째 이평선을 딛고 있는가"를 같이 본다.
+  </div>
+
+  <figure class="learn-fig"><svg viewBox="0 0 420 151" role="img" aria-label="정배열·역배열: 단기/중기/장기선 방향 모식도와 거래량 막대, 가상 예시"><text class="fig-sub" x="8" y="16">정배열·역배열: 단기/중기/장기선 방향 · 가상 예시</text><path class="fig-ink-line" d="M24 82 L85 66 L150 65 L215 47 L285 36 L389 23 M24 51 L85 61 L150 54 L215 68 L285 78 L389 84" stroke-width="2.5" fill="none"/><path class="fig-dash" d="M14 94 L406 94"/><rect class="fig-soft2" x="26" y="121" width="14" height="14"/><rect class="fig-soft2" x="62" y="115" width="14" height="20"/><rect class="fig-soft2" x="98" y="124" width="14" height="11"/><rect class="fig-soft2" x="134" y="111" width="14" height="24"/><rect class="fig-soft2" x="170" y="120" width="14" height="15"/><rect class="fig-soft2" x="206" y="118" width="14" height="17"/><rect class="fig-soft2" x="242" y="85" width="14" height="50"/><rect class="fig-soft2" x="278" y="117" width="14" height="18"/><rect class="fig-soft2" x="314" y="126" width="14" height="9"/><rect class="fig-soft2" x="350" y="123" width="14" height="12"/><text class="fig-sub" x="8" y="150" font-size="10">아래 막대 = 거래량(모식값)</text></svg><figcaption>모양과 거래량을 함께 봐야 한다. 후보 패턴이며 수익을 보장하지 않는다.</figcaption></figure><div class="learn-nav"><a href="https://goodbyestarwars.github.io/tistory-ticker/learn/etf-market.html">← ETF 이야기</a><a href="https://goodbyestarwars.github.io/tistory-ticker/learn/chart-formations.html">04-2 패턴 4종 →</a></div>
+
+<div class="legal-contact">문의: goodbyestarwars@gmail.com</div>
+</div>
+<script defer src="../js/site-interactions.js"></script>
+</body>
+</html>
