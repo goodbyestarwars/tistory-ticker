@@ -10,12 +10,13 @@
         el = null;
         labelEl = null;
         units = {};
-        el = document.createElement('div');
-        el.className = 'home-switch-countdown';
+        el = document.querySelector('.home-market-toolbar > .home-switch-countdown')
+          || document.createElement('div');
+        el.classList.add('home-switch-countdown');
         el.hidden = true;
         el.setAttribute('role', 'timer');
         el.setAttribute('aria-live', 'off');
-        document.body.appendChild(el);
+        if (!el.isConnected) document.body.appendChild(el);
         el.innerHTML = '<span class="hsc-label"></span><div class="hsc-clock" aria-hidden="true">'
           + ['일', '시간', '분', '초'].map(function (unit, index) {
             return '<span class="hsc-unit"><span class="hsc-digits" data-hsc-unit="' + index + '">'
@@ -33,7 +34,7 @@
             dashboard.insertBefore(toolbar, switchTabs);
             toolbar.appendChild(switchTabs);
           }
-          toolbar.appendChild(el);
+          if (el.parentNode !== toolbar) toolbar.appendChild(el);
         }
         } catch (error) { /* 카운트다운 자체는 툴바 배치 실패와 관계없이 표시한다. */ }
         labelEl = el.querySelector('.hsc-label');
