@@ -1991,7 +1991,8 @@ document.documentElement.classList.add('skin-ready');
         for (var day = 0; day < 15; day++) {
           // UTC 자정은 KST 정규장 개장(09:00)이다. 휴장일은 MarketHours 달력을 따른다.
           var openAt = today + day * 86400000;
-          var closeAt = openAt + (15 * 60 + 30) * 60 * 1000;
+          // openAt은 UTC 자정(한국 09:00)이므로 종가 15:30까지 6시간 30분이다.
+          var closeAt = openAt + (6 * 60 + 30) * 60 * 1000;
           if (closeAt <= now || !marketHours.isKrTradingDay(new Date(openAt))) continue;
           return closeAt;
         }
