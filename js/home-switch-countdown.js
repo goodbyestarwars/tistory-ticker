@@ -1,7 +1,6 @@
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
       var el = null, labelEl = null, units = {}, lastDigits = {};
-      document.documentElement.setAttribute('data-home-countdown-module', 'loaded');
 
       function mount() {
         if (el) return;
@@ -232,14 +231,7 @@
         el.setAttribute('aria-label', marketName + ' ' + targetLabel + ' ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
       }
 
-      function startWhenReady() {
-        if (!document.querySelector('.home-market-switch')) {
-          window.setTimeout(startWhenReady, 250);
-          return;
-        }
-        tick();
-      }
-      startWhenReady();
+      tick();
       // 2026-08-21 코드 감사: 다른 60초 타이머(loadHomeIndices)는 이미 document.hidden을
       // 체크하는데 이 1초 카운트다운만 빠져 있었다 - 백그라운드 탭에서도 계속 돌던 걸
       // 통일. 탭이 다시 보이면 그 즉시 최신 상태로 갱신되도록 visibilitychange에서도
