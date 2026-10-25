@@ -46,6 +46,7 @@ jobs:
           node test/test_shared_ui_api.js
           node test/test_home_market_contract.js
           node test/test_home_countdown_scope.js
+          node test/test_watchlist_session_labels.js
           node test/test_crypto_shared_quotes.js
           node test/test_early_bootstrap.js
           node test/test_chart_core.js
