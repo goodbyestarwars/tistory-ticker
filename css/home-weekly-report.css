@@ -895,9 +895,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-card .wd-news-title { font-size: 20px; line-height: 1.45; }
 .weekend-dashboard .wd-news-source { display: inline-flex; align-self: flex-start; margin: 0 0 14px; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: var(--wd-sub); font-size: 11px; line-height: 1.4; }
 .weekend-dashboard .wd-news-card .wd-news-title { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 700; }
-.weekend-dashboard .wd-news-content { display: grid; gap: 10px; margin: 18px 0 22px; font-size: 13px; line-height: 1.7; }
-.weekend-dashboard .wd-news-content p { margin: 0; }
-.weekend-dashboard .wd-news-summary-empty { color: var(--wd-sub); }
+.weekend-dashboard .wd-news-korean { margin: 8px 0 18px; color: var(--wd-sub); font-size: 13px; line-height: 1.55; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .weekend-dashboard .wd-news-label { display: block; font-size: 11px; color: var(--wd-sub); }
 .weekend-dashboard .wd-news-topics { margin-top: auto; }
 .weekend-dashboard .wd-news-topics .wd-tags { margin-top: 7px; }

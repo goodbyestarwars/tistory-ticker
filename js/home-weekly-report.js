@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-original-arrows';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-korean-line';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -395,10 +395,10 @@
         var headline = theme.headlines[0];
         var sectors = (theme.krSectors || []).filter(function (sector, i, rows) { return typeof sector === 'string' && rows.indexOf(sector) === i; });
         var stocks = (theme.krStocks || []).filter(function (stock) { return stock.code && stock.name; });
-        var summary = headline.description || headline.summary || headline.snippet || '';
+        var koreanLine = headline.summary_ko || headline.description_ko || headline.title_ko || '한국어 뉴스 내용을 준비 중입니다.';
         return '<article class="wd-news-card"><small class="wd-news-source">' + escapeHtml(headline.source || '출처 미상') + ' · ' + escapeHtml(dateLabel(headline.pubDate)) + '</small>'
           + '<a class="wd-news-title" href="' + escapeHtml(headline.link) + '" target="_blank" rel="noopener">' + escapeHtml(headline.title) + '</a>'
-          + (summary ? '<div class="wd-news-content"><p>' + escapeHtml(summary) + '</p></div>' : '')
+          + '<p class="wd-news-korean" title="' + escapeHtml(koreanLine) + '">' + escapeHtml(koreanLine) + '</p>'
           + '<div class="wd-news-topics"><span class="wd-news-label">관련 테마</span><div class="wd-tags"><span class="wd-theme-badge">' + escapeHtml(theme.name) + '</span>' + sectors.map(function (sector) { return '<span class="wd-theme-badge">' + escapeHtml(sector) + '</span>'; }).join('') + (theme.risk ? '<span class="wd-theme-badge">리스크 점검</span>' : '') + '</div></div>'
           + '<div class="wd-news-stocks"><span class="wd-news-label">관심종목</span><div class="wd-related">' + (stocks.length ? stocks.map(function (stock) { return '<a href="/page/stock-search?code=' + encodeURIComponent(stock.code) + '&name=' + encodeURIComponent(stock.name) + '">' + escapeHtml(stock.name) + '</a>'; }).join('') : '<span>연결된 종목 없음</span>') + '</div></div></article>';
       }).join('') + '</div><div class="wd-news-controls"><button type="button" data-wd-news-prev aria-label="이전 뉴스">&#8249;</button><button type="button" data-wd-news-next aria-label="다음 뉴스">&#8250;</button></div></div>' : '<p class="wd-empty">현재 확인된 뉴스 없음</p>') + '<a class="wd-more" href="/pages/main-news">주요 뉴스 전체 →</a>';
