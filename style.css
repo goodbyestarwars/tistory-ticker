@@ -264,7 +264,9 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-search {
   position: absolute;
-  left: 50%;
+  /* Anchor to the viewport center so the search stays centered regardless of
+     the navbar's logo and right-side action widths. */
+  left: 50vw;
   width: min(700px, 52vw);
   max-width: none;
   margin-left: 0;
