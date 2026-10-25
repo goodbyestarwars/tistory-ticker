@@ -852,7 +852,9 @@
       + '<span>' + escapeHtml(group.name) + '</span><span class="wl-group-count">' + items.length + '</span><span class="wl-chevron">⌃</span>'
       + '</button>'
       + (group.id === DEFAULT_GROUP_ID ? '' : '<button type="button" class="wl-group-delete" aria-label="그룹 삭제">삭제</button>')
-      + '</div><div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
+      + '</div>'
+      + (group.name === US_WATCHLIST_GROUP_NAME ? '<p class="wl-us-session-note">NXT는 국내주식만 해당 · 미국 프리마켓은 한국시간 17:00(서머타임) / 18:00(표준시) 시작</p>' : '')
+      + '<div class="wl-group-items" data-group-id="' + escapeAttr(group.id) + '">'
       + (items.length ? items.map(function (it) { return buildCard(it.code, localizedUsName(it.code, it.name)); }).join('') : '<p class="wl-group-empty">이 그룹에 종목이 없습니다.</p>')
       + '</div></section>';
   }
