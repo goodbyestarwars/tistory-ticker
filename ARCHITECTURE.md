@@ -62,7 +62,7 @@
 | `skin.html` | 이 저장소(히스토리/리뷰용) + 티스토리 스킨 편집기 | **티스토리 관리자 → 꾸미기 → 스킨 편집 → HTML 편집에 수동 붙여넣기** | git push는 배포 경로가 아님 |
 | `scripts/fetch_investor_flow.py` | 이 저장소, 실행은 사용자 PC 로컬 | 사용자가 PC에서 하루 1회 수동 실행 → 결과를 git push | 실행 즉시 (수동) |
 
-작업 브랜치는 항상 **최종적으로 `master`에 fast-forward merge**까지 해야 실제로 블로그에
+작업 브랜치는 항상 **최종적으로 `master`에 병합**해야 실제로 블로그에
 반영된다. session 브랜치에만 push하면 GitHub Pages에 안 올라감.
 
 ## 컴포넌트별 상세
@@ -71,6 +71,9 @@
 - 저장소: `goodbyestarwars/tistory-ticker`, `master` 브랜치를 그대로 서빙
 - 파일명 버저닝 금지 — 같은 URL이 티스토리 HTML에 그대로 박혀 있어서, 새 파일을 만들지 않고
   기존 파일을 계속 덮어쓴다
+- `js/skin-shell.js`의 NineHttp(전송)·NineAPI(도메인 경로/검증/대체)·NineUI(표시)를 공유한다.
+  차트는 chart-core/data/drawing 계층을 재사용하고 인스턴스·선택 상태는 화면별로 소유한다.
+  API 계약은 `docs/API_OPERATION_SPEC.md`, 화면 규칙은 `docs/UI_GUIDE.md`가 단일 출처다.
 - 공통 메뉴는 `js/skin-menu.js`가 `#nav-menu-mount`에 렌더링한다. 1차 메뉴는 6개이며
   시장·종목·종목검색은 드롭다운 없이 고정형 2차 메뉴 바를 연다. 관심종목은 메뉴가 아니라
   `js/stock-search-panel.js`가 모든 페이지에 주입하는 우측 고정 드로어로 제공한다.

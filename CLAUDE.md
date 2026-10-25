@@ -17,8 +17,8 @@
 - **같은 기능은 공통 모듈을 재사용한다.** 차트는 `js/chart-core.js`와 그 모듈
   (`chart-data`, `chart-drawing`, `chart-wave-overlay`, `chart-sr` 등), 호가는 `js/order-book.js`,
   표는 `js/indicator-board.js`, 입력 효과/캐러셀은 `js/site-interactions.js`를 먼저 확인한다.
-- 공통 HTTP는 기존 공통 진입점 `js/skin-shell.js`의 `NineHttp.json`이다. 화면별 transport를
-  새로 만들지 않는다. 응답 해석·단위·기준일 검증·도메인별 fallback은 소비자가 소유한다.
+- 공통 진입점 `js/skin-shell.js`의 `NineHttp.json`(전송)·`NineAPI`(정식 경로/공통 계약/fallback)·
+  `NineUI`(포맷/로딩)를 재사용한다. 화면별 transport를 새로 만들지 않고 특수 단위·표시는 호출부가 소유한다.
 - VM/GAS API를 같은 것으로 가정해 바꾸지 않는다. 공급자·시장(KRX/NXT/UN)·페이로드·거래일·
   단위를 확인한다. 지연/결측/실패를 오늘 정상값이나 0으로 바꾸지 않는다.
 - 키·토큰·계좌·IP·`.env`·DB·원시 로그는 Git/문서/공개 응답에 올리지 않는다.
