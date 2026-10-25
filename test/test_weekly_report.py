@@ -39,6 +39,10 @@ class WeeklyReportTests(unittest.TestCase):
         start, end = weekly_report.completed_week(datetime(2026, 8, 19, tzinfo=timezone.utc))
         self.assertEqual((start.isoformat(), end.isoformat()), ('2026-08-10', '2026-08-14'))
 
+    def test_news_window_is_saturday_to_monday(self):
+        start, end = weekly_report.news_window(datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+        self.assertEqual((start.isoformat(), end.isoformat()), ('2026-08-15', '2026-08-17'))
+
     def test_index_summary_uses_week_points_and_change(self):
         rows = [{'symbol': 'KOSPI', 'chart': [
             {'date': '2026-08-10', 'close': 100},
@@ -161,31 +165,31 @@ class WeeklyReportTests(unittest.TestCase):
 
     def test_news_timeline_is_merged_and_week_bounded(self):
         result = weekly_report.news_timeline([
-            {'title': '한국 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
-            {'title': '지난 뉴스', 'pubDate': '2026-08-07T09:00:00+09:00'},
+            {'title': '한국 뉴스', 'pubDate': '2026-08-15T09:00:00+09:00'},
+            {'title': '지난 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
         ], [
-            {'title': '미국 뉴스', 'pubDate': '2026-08-13T09:00:00+09:00'},
-        ], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
-        self.assertEqual([item['title'] for item in result], ['한국 뉴스', '미국 뉴스'])
-        self.assertEqual([item['market'] for item in result], ['한국', '미국'])
+            {'title': '미국 뉴스', 'pubDate': '2026-08-16T09:00:00+09:00'},
+        ], datetime(2026, 8, 15).date(), datetime(2026, 8, 17).date())
+        self.assertEqual([item['title'] for item in result], ['미국 뉴스', '한국 뉴스'])
+        self.assertEqual([item['market'] for item in result], ['미국', '한국'])
 
     def test_news_timeline_accepts_rfc822_dates(self):
         result = weekly_report.news_timeline([
-            {'title': '한국 RFC 뉴스', 'pubDate': 'Fri, 14 Aug 2026 09:00:00 +0900'},
-        ], [], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date())
+            {'title': '한국 RFC 뉴스', 'pubDate': 'Sat, 15 Aug 2026 09:00:00 +0900'},
+        ], [], datetime(2026, 8, 15).date(), datetime(2026, 8, 17).date())
         self.assertEqual(len(result), 1)
 
-    def test_news_timeline_spreads_articles_across_weekdays(self):
+    def test_news_timeline_spreads_articles_across_weekend(self):
         domestic = [
-            {'title': '금요일 주요 뉴스 %d' % index, 'pubDate': '2026-08-14T%02d:00:00+09:00' % (9 + index)}
+            {'title': '토요일 주요 뉴스 %d' % index, 'pubDate': '2026-08-15T%02d:00:00+09:00' % (9 + index)}
             for index in range(10)
         ] + [
-            {'title': '월요일 주요 뉴스', 'pubDate': '2026-08-10T09:00:00+09:00'},
+            {'title': '일요일 주요 뉴스', 'pubDate': '2026-08-16T09:00:00+09:00'},
         ]
         result = weekly_report.news_timeline(
-            domestic, [], datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(), limit=6,
+            domestic, [], datetime(2026, 8, 15).date(), datetime(2026, 8, 17).date(), limit=6,
         )
-        self.assertIn('월요일 주요 뉴스', [item['title'] for item in result])
+        self.assertIn('일요일 주요 뉴스', [item['title'] for item in result])
 
     def test_report_news_basis_does_not_claim_view_counts(self):
         result = weekly_report.build_report(
@@ -194,20 +198,22 @@ class WeeklyReportTests(unittest.TestCase):
         )
         self.assertIn('조회수 미제공', result['news']['basis'])
 
-    def test_report_news_uses_friday_to_sunday_window(self):
+    def test_report_news_uses_saturday_0600_to_monday_0600_kst_window(self):
         domestic = [
-            {'title': '월요일 제외 뉴스', 'pubDate': '2026-08-10T09:00:00+09:00'},
-            {'title': '금요일 뉴스', 'pubDate': '2026-08-14T09:00:00+09:00'},
-            {'title': '토요일 뉴스', 'pubDate': '2026-08-15T09:00:00+09:00'},
+            {'title': '금요일 뉴스', 'pubDate': '2026-08-14T23:59:00+09:00'},
+            {'title': '토요일 6시 전 뉴스', 'pubDate': '2026-08-15T05:59:00+09:00'},
+            {'title': '토요일 6시 뉴스', 'pubDate': '2026-08-15T06:00:00+09:00'},
             {'title': '일요일 뉴스', 'pubDate': '2026-08-16T09:00:00+09:00'},
+            {'title': '월요일 6시 직전 뉴스', 'pubDate': '2026-08-17T05:59:00+09:00'},
+            {'title': '월요일 6시 뉴스 제외', 'pubDate': '2026-08-17T06:00:00+09:00'},
         ]
         result = weekly_report.build_report(
             datetime(2026, 8, 10).date(), datetime(2026, 8, 14).date(),
             futures_rows=[], domestic_news_items=domestic, foreign_news_items=[],
         )
-        self.assertIn('2026-08-14~2026-08-16(KST)', result['news']['basis'])
+        self.assertIn('2026-08-15(토) 06:00~2026-08-17(월) 06:00 KST', result['news']['basis'])
         titles = [item['title'] for item in result['news']['timeline']]
-        self.assertEqual(set(titles), {'금요일 뉴스', '토요일 뉴스', '일요일 뉴스'})
+        self.assertEqual(set(titles), {'토요일 6시 뉴스', '일요일 뉴스', '월요일 6시 직전 뉴스'})
 
     def test_next_week_schedule_filters_outside_window(self):
         result = weekly_report.next_week_schedule([
@@ -339,11 +345,11 @@ class WeeklyReportTests(unittest.TestCase):
             {'title': 'Trump taps Jay Clayton as AI czar', 'pubDate': '2026-10-04 09:30'},  # 같은 제목은 한 번만
             {'title': 'OPEC+ Set to Keep Quotas Steady', 'pubDate': '2026-10-04T07:49:00'},
             {'title': 'Oil slumps on old news', 'pubDate': '2026-09-20'},  # 주말 밖
-            {'title': 'Pope visits Africa', 'pubDate': '2026-10-04'},  # 테마 없음
+            {'title': 'Pope visits Africa', 'pubDate': '2026-10-04T10:00:00'},  # 테마 없음
         ]
         sector_map = {'반도체': [{'name': '삼성전자', 'code': '005930', 'market': 'KOSPI'}],
                       '석유/정유': [{'name': 'S-Oil', 'code': '010950', 'market': 'KOSPI'}]}
-        result = weekly_report.us_news_themes(items, date(2026, 10, 2), date(2026, 10, 4), sector_map)
+        result = weekly_report.us_news_themes(items, date(2026, 10, 3), date(2026, 10, 5), sector_map)
         self.assertEqual(result['articleCount'], 4)
         self.assertEqual([t['key'] for t in result['themes']], ['ai_semi', 'energy'])
         self.assertEqual(result['themes'][0]['count'], 2)
@@ -354,9 +360,9 @@ class WeeklyReportTests(unittest.TestCase):
         from datetime import date
         # "said"/"maid"의 ai, "boil"의 oil 같은 단어 일부는 테마로 세지 않는다.
         # "crude"는 형용사(거친)로도 쓰여 원유 문맥(crude oil 등)일 때만 센다 - 2026-10-04 실제 오탐 제목.
-        items = [{'title': 'Officials said the maid would boil water', 'pubDate': '2026-10-03'},
-                 {'title': 'In crude Ohio rally speech, Trump says he may not help', 'pubDate': '2026-10-04'}]
-        result = weekly_report.us_news_themes(items, date(2026, 10, 2), date(2026, 10, 4))
+        items = [{'title': 'Officials said the maid would boil water', 'pubDate': '2026-10-03T09:00:00'},
+                 {'title': 'In crude Ohio rally speech, Trump says he may not help', 'pubDate': '2026-10-04T09:00:00'}]
+        result = weekly_report.us_news_themes(items, date(2026, 10, 3), date(2026, 10, 5))
         self.assertEqual(result['themes'], [])
 
 

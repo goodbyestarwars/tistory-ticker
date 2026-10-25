@@ -475,7 +475,7 @@ _weekly_report_cache = {}
 _WEEKLY_REPORT_SNAPSHOT_FILE = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), 'weekly_report_cache.json'
 )
-_WEEKLY_REPORT_SNAPSHOT_VERSION = 11  # 다우·SOX가 누락된 v10 주간 스냅샷 재생성.
+_WEEKLY_REPORT_SNAPSHOT_VERSION = 12  # 뉴스 기간을 토 06시~월 06시 KST로 변경한 v11 스냅샷 재생성.
 # swing_candidates() reason 문구 축약 - 둘 다 이 버전을 안 올리면 디스크 스냅샷이
 # (week_end가 같은 주말 내내) 옛 내용을 계속 서빙해서 "반영이 안 됐다"고 보임(사용자 리포트).
 _sector_cards_cache = None

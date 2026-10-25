@@ -6,7 +6,7 @@
 없는 휴일에도 빈 배열로 안전하게 렌더링할 수 있다.
 """
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time as datetime_time, timedelta, timezone
 from email.utils import parsedate_to_datetime
 from math import log1p
 import re
@@ -30,8 +30,8 @@ def completed_week(now=None):
 
 
 def news_window(start, end):
-    """Return the completed Friday-Sunday window used by the weekend news card."""
-    return end, end + timedelta(days=2)
+    """Return the date envelope for the Saturday 06:00 to Monday 06:00 KST news window."""
+    return end + timedelta(days=1), end + timedelta(days=3)
 
 
 def _date_value(value):
@@ -533,18 +533,35 @@ def gold_analysis(row):
     return range_analysis(row, '금값', '1년 금 시세 데이터가 부족합니다.')
 
 
-def _within_week(item, start, end):
-    day = _date_value(item.get('pubDate') or item.get('publishedAt') or item.get('date'))
-    # 주말 리포트는 현재 시점에 들어온 최신 뉴스가 섞이지 않도록
-    # 발행일이 확인되는 항목만 호출부가 지정한 금~일 범위에 포함한다.
-    return day is not None and start <= day <= end
+def _within_news_window(item, start, end):
+    """Require a verifiable publication timestamp inside Sat 06:00–Mon 06:00 KST."""
+    value = str(item.get('pubDate') or item.get('publishedAt') or item.get('date') or '').strip()
+    if not value:
+        return False
+    try:
+        published = datetime.fromisoformat(value.replace('Z', '+00:00'))
+    except ValueError:
+        try:
+            published = parsedate_to_datetime(value)
+        except (TypeError, ValueError, IndexError):
+            return False
+    if published is None:
+        return False
+    kst = timezone(timedelta(hours=9))
+    if published.tzinfo is None:
+        published = published.replace(tzinfo=kst)
+    else:
+        published = published.astimezone(kst)
+    window_start = datetime.combine(start, datetime_time(6), tzinfo=kst)
+    window_end = datetime.combine(end, datetime_time(6), tzinfo=kst)
+    return window_start <= published < window_end
 
 
 def _news(items, start, end, limit):
     result = []
     seen = set()
     for item in items or []:
-        if not isinstance(item, dict) or not item.get('title') or not _within_week(item, start, end):
+        if not isinstance(item, dict) or not item.get('title') or not _within_news_window(item, start, end):
             continue
         key = str(item.get('link') or item.get('title')).strip()
         if key in seen:
@@ -626,7 +643,7 @@ def news_timeline(domestic, us, start, end, limit=20):
 
 
 # 2026-10-04 사용자 요청("미국 주말 뉴스를 보고 주목할 만한 테마나 종목 추천"):
-# 금~일 미국 뉴스 제목에서 테마 키워드가 몇 개의 기사에 나왔는지 센다. 감성(호재·악재)은 판단하지 않고,
+# 토 06:00~월 06:00 KST 미국 뉴스 제목에서 테마 키워드가 몇 개의 기사에 나왔는지 센다. 감성(호재·악재)은 판단하지 않고,
 # 화면에는 근거 기사 제목을 같이 보여준다. 국내 관련 종목은 운영 섹터 분류(sectors-v3)에서 꺼낸다.
 # risk=True 테마는 "살 후보"가 아니라 "조심할 재료"로 표시한다.
 US_NEWS_THEMES = (
@@ -661,12 +678,12 @@ _THEME_PATTERNS = {theme['key']: re.compile('|'.join(theme['kw']), re.I) for the
 
 
 def us_news_themes(items, start, end, sector_map=None, limit=4, headline_limit=3):
-    """금~일 미국 뉴스 제목을 테마별로 세어 상위 테마와 근거 기사·관련 종목을 돌려준다."""
+    """토요일 06시~월요일 06시 KST 미국 뉴스 제목을 테마별로 묶어 돌려준다."""
     sector_map = sector_map or {}
     seen = set()
     articles = []
     for item in items or []:
-        if not isinstance(item, dict) or not item.get('title') or not _within_week(item, start, end):
+        if not isinstance(item, dict) or not item.get('title') or not _within_news_window(item, start, end):
             continue
         key = str(item.get('title')).strip().lower()
         if key in seen:
@@ -770,10 +787,10 @@ def build_report(start, end, futures_rows=None, domestic_news_items=None,
                  foreign_news_items=None, domestic_board=None, us_board=None,
                  schedule_events=None, generated_at=None, domestic_swing_scan=None,
                  past_swing_outcomes=None, weekly_series=None):
-    # 시장 지수·종목 요약은 월~금 기준으로 유지하고, 휴장 화면의 뉴스만
-    # 직전 금요일부터 일요일까지의 주말 구간으로 별도 제한한다.
+    # 시장 지수·종목 요약은 월~금 기준으로 유지하고, 휴장 화면 뉴스만
+    # 토요일 06시~월요일 06시 KST 구간으로 별도 제한한다.
     news_start, news_end = news_window(start, end)
-    news_basis = '%s~%s(KST) 날짜별 주요 뉴스 · 조회수 미제공' % (news_start.isoformat(), news_end.isoformat())
+    news_basis = '%s(토) 06:00~%s(월) 06:00 KST 발행 뉴스 · 조회수 미제공' % (news_start.isoformat(), news_end.isoformat())
     return {
         'week': {'start': start.isoformat(), 'end': end.isoformat(), 'label': '%s ~ %s' % (start.isoformat(), end.isoformat())},
         'indices': index_summary(futures_rows, start, end),
