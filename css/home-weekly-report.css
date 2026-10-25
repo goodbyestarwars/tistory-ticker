@@ -646,6 +646,12 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     color: var(--wd-banner-text) !important;
   }
 
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .briefing-intro strong,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .site-footer-learn .learn-intro h2 {
+    font-size: var(--ui-title-size,24px) !important;
+    letter-spacing: 0 !important;
+  }
+
   html body#tt-body-index #homeWeeklyReport [data-weekend-content] {
     width: 100% !important;
     min-width: 0 !important;
