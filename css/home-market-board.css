@@ -35,7 +35,7 @@ body#tt-body-index .home-editorial-page .home-market-toolbar .home-market-switch
 body#tt-body-index .home-editorial-page .home-switch-countdown {
   position: relative; left: auto; right: auto; top: auto; bottom: auto; z-index: auto;
   display: flex; align-items: center; gap: 12px; flex: 0 0 auto; width: auto; margin: 0; padding: 0;
-  gap: 0; border: 0; border-radius: 0; animation: none;
+  border: 0; border-radius: 0; animation: none;
   background: transparent; color: #20252b; text-align: right; box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
