@@ -364,9 +364,12 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-coin > .is-up,
 .weekend-dashboard .wd-coin > .is-down,
 .weekend-dashboard .wd-coin > .is-flat {
-  justify-self: start;
+  display: block;
+  justify-self: stretch;
+  width: 100%;
   min-width: 0;
-  text-align: left;
+  box-sizing: border-box;
+  text-align: left !important;
   white-space: nowrap;
 }
 
