@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-font-carousel';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekend-assets-rate-first';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -345,6 +345,43 @@
   function onLiveVisibility() {
     if (!document.hidden && liveCtx && !liveCtx.root.hidden) loadWeekendLive(liveCtx.root);
   }
+  var WEEKEND_STOCKS = [
+    {code:'005930',name:'삼성전자',badge:'삼'},
+    {code:'000660',name:'SK하이닉스',badge:'SK'}
+  ];
+  var stockQuoteMemo = {at:0,rows:null,promise:null};
+  var MARKET_BOARD_URL = 'https://goodbyestar.cloud/market-board?market=domestic&limit=40';
+  function weekendStockQuotes() {
+    if (stockQuoteMemo.rows && Date.now() - stockQuoteMemo.at < LIVE_REFRESH_MS) return Promise.resolve(stockQuoteMemo.rows);
+    if (stockQuoteMemo.promise) return stockQuoteMemo.promise;
+    stockQuoteMemo.promise = Promise.resolve().then(function () {
+      return global.HomeMarketBoard && typeof global.HomeMarketBoard.fetch === 'function'
+        ? global.HomeMarketBoard.fetch('domestic')
+        : fetchJsonTimeout(MARKET_BOARD_URL, FETCH_TIMEOUT_MS);
+    }).then(function (payload) {
+      var data = payload && payload.data ? payload.data : payload || {};
+      var quotes = {};
+      (Array.isArray(data.rows) ? data.rows : []).forEach(function (row) {
+        var code = String(row && (row.code || row.symbol) || '').replace(/^A/, '');
+        if (row && row.price > 0 && (code === '005930' || code === '000660')) quotes[code] = row;
+      });
+      if (Object.keys(quotes).length) { stockQuoteMemo.rows = quotes; stockQuoteMemo.at = Date.now(); }
+      return quotes;
+    }).catch(function () {
+      return stockQuoteMemo.rows || {};
+    }).then(function (quotes) {
+      stockQuoteMemo.promise = null;
+      return quotes;
+    });
+    return stockQuoteMemo.promise;
+  }
+  function weekendStockRows(quotes) {
+    return WEEKEND_STOCKS.map(function (stock) {
+      var quote = quotes[stock.code], rate = quote ? num(quote.change_rate) : null;
+      var price = quote ? num(quote.price) : null;
+      return '<li class="wd-coin wd-stock"><span class="wd-coin-icon" aria-hidden="true">' + stock.badge + '</span><span><strong>' + stock.name + '</strong><small>' + stock.code + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (price != null && price > 0 ? formatStockPrice(quote) : '시세 미수신') + '</b><small>최근 거래일</small></span></li>';
+    }).join('');
+  }
   function loadWeekendLive(root) {
     var mount = root.querySelector('[data-hwr-live]');
     if (!mount) return;
@@ -356,21 +393,26 @@
       document.addEventListener('visibilitychange', onLiveVisibility);
     }
     liveCtx = {root: root};
-    function paint(pairs, current) {
+    function paint(pairs, current, stocks) {
       if (!document.body.contains(mount)) return;
       var rows = pairs.map(function (pair) {
         var row = lastLiveQuotes[pair[0]], fresh = current[pair[0]], rate = row && row.change_rate;
-        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b></li>';
+        return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span></li>';
       }).join('');
-      mount.innerHTML = panelHeading('주말에도 움직이는 자산', '시장지표 · 업비트 원화 · 24시간 등락') + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">시장지표 가상자산 자세히 →</a>';
+      mount.innerHTML = panelHeading('주말에도 움직이는 자산', '가상자산 24시간 · 국내 주식 최근 거래일') + '<ul class="wd-list">' + rows + weekendStockRows(stocks) + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">시장지표 가상자산 자세히 →</a>';
       mount.hidden = false;
     }
     coinModule().then(function (module) {
-      return module.fetchCoinQuotes().then(function (rows) {
-        var current = {};
-        rows.forEach(function (row) { if (row && row.price > 0) { current[row.symbol] = row; lastLiveQuotes[row.symbol] = row; } });
-        paint(module.coins, current);
-      }, function () { paint(module.coins, {}); });
+      return Promise.all([
+        module.fetchCoinQuotes().then(function (rows) {
+          var current = {};
+          rows.forEach(function (row) { if (row && row.price > 0) { current[row.symbol] = row; lastLiveQuotes[row.symbol] = row; } });
+          return {current:current};
+        }, function () { return {current:{}}; }),
+        weekendStockQuotes().then(function (stocks) { return stocks; }, function () { return {}; })
+      ]).then(function (results) {
+        paint(module.coins, results[0].current, results[1]);
+      });
     }).catch(function () { mount.innerHTML = panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세를 불러오지 못했습니다.</p>'; });
   }
 
