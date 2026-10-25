@@ -109,7 +109,10 @@
   };
   function stockIconHtml(code) {
     if (!code) return '';
-    var iconCode = String(code).replace(/^US:/i, '').toUpperCase();
+    var rawCode = String(code).replace(/^US:/i, '').toUpperCase();
+    // 국내 대표 종목은 거래소 접두어나 검색 결과 코드가 달라도 전용 로고 자산 사용.
+    var iconCode = /^(005930|A005930)$/.test(rawCode) ? '005930'
+      : (/^(000660|A000660)$/.test(rawCode) ? '000660' : rawCode);
     return '<img class="nav-search-suggest-icon" src="' + STOCK_ICON_BASE + encodeURIComponent(iconCode) + '.svg" alt="" loading="lazy" onerror="window.__stockIconFallback(this)">';
   }
 

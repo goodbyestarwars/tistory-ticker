@@ -544,7 +544,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 .nav-search-suggest-item {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
   gap: 8px;
   padding: 8px;
   border-radius: 7px;
@@ -579,6 +579,9 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 }
 .nav-search-suggest-item:hover, .nav-search-suggest-item.active { background: #f1f5f9; }
 .nav-search-suggest-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0; }
+.nav-search-suggest-item > .nav-search-fav-btn { flex: 0 0 28px; width: 28px; height: 28px; margin-left: auto; display: inline-flex; align-items: center; justify-content: center; }
+.nav-search-suggest-item > .nav-search-rate-badge,
+.nav-search-suggest-item > .nav-search-current-price { flex: 0 0 auto; }
 .nav-search-rate-badge {
   flex-shrink: 0;
   font-size: 11px;
