@@ -1340,24 +1340,11 @@
 
   function fetchDomesticQuotes(codes) {
     if (!codes.length) return Promise.resolve({});
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
+    return global.NineAPI.domesticQuotes(codes, {timeoutMs:FETCH_TIMEOUT_MS})
       .then(function (data) {
-        if (timer) clearTimeout(timer);
         var byCode = {};
         (data || []).forEach(function (q) { byCode[q.code] = q; });
         return byCode;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
       });
   }
 
@@ -1442,11 +1429,7 @@
     return num.toLocaleString('ko-KR');
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
   function cssEscape(s) {
     return String(s).replace(/["\\]/g, '\\$&');
@@ -1469,7 +1452,9 @@
   };
   global.Watchlist = Watchlist;
 
-  if (document.readyState === 'loading') {
+  // defer scripts can run before skin-shell; DOMContentLoaded follows all defer scripts.
+  // Dynamically loaded modules can initialize immediately once the common runtime exists.
+  if (document.readyState === 'loading' || !global.NineAPI) {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
