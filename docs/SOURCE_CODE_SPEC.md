@@ -6,6 +6,33 @@
 
 이 문서는 파일 단위로 "무엇이 있는가"를 정리한다. 인프라·배포 구조는 `ARCHITECTURE_SPEC.md`, DB 스키마는 `DB_SPEC.md`를 본다.
 
+## 공통 기반 개편 (2026-10-25, 작업 브랜치)
+
+| 책임 | 단일 구현 | 소비자/계약 |
+|---|---|---|
+| JSON 전송 | `js/skin-shell.js` `NineHttp.json(url, options)` | 기존 공통 defer 진입점에서 동기 제공. 별도 스킨 태그 없음. 13개 화면 요청 wrapper가 위임 |
+| 차트 | `chart-core` + `chart-data/drawing/wave/sr` | 기존 엔진 유지. 화면별 인스턴스/수급 패널/호가를 하나의 전역 차트 상태로 합치지 않음 |
+| 호가/표/상호작용 | `order-book.js` / `indicator-board.js` / `site-interactions.js` | 기존 구현 재사용. 범용 포맷터·페이지별 로딩/표현의 추가 이관은 후속 |
+| 야간 원천 갱신 | `scan_inputs.py` `ScanInputs` | 종목별 OHLC/수급 독립 읽기·검증·저장. 실패는 기존 DB 행 보존, 오늘 신호에서 제외 |
+| 야간 확정 수급 | `kiwoom_market.fetch_confirmed_scan_flow` | 기존 KIS UN 필드/페이지/20h 캐시 재사용. 성공 시 ka10008/ka10059 생략. KIS/캐시 실패 시 기존 키움 KRX fallback(차이 기록), 잠정 행 병합 없음 |
+
+HTTP 옵션: `timeoutMs`(기본15초, 응답 본문 JSON까지 전체 제한), `signal`, `fetchOptions`,
+`retries`(기본0/최대2, GET의 네트워크 오류·429/502/503/504만), `backoffMs`, `ttlMs`(기본0),
+`dedupe`(기본true), `private`, `onError`. Retry-After를 준수하며 전체 제한 안에서만 재시도한다.
+TTL 성공 응답은 최대64개; 오류 envelope/통신 실패는 저장하지 않는다. 헤더·credentials=include·
+사용자 취소 signal·body·GET 외 요청은 공유/캐시하지 않는다. 전송 모듈은 envelope을 풀거나
+단위/거래일을 바꾸지 않는다. 기존 화면 오류 표시/도메인 fallback이 그대로 오류를 받는다.
+
+`daily_scan_cache.json`에 `dataDate`(고정 KST 거래일), `scanInputs`(도메인별 DB재사용/요청/
+신규/미수신/오류 수·출처·종목별 실패·구간초)를 함께 기록한다. 전체 도메인 실패는 결과 캐시를
+교체하지 않고 journal에 실패 요약 후 exit1. 부분 실패는 해당 종목을 제외하고 근거를 남긴다.
+일봉은 수정주가/신규 상장 이력을 보존하기 위해 기존 최대500봉 단일 응답을 계속 받으며,
+같은 OHLCV 행은 UPDATE하지 않는다. 공급자 조회 자체를 줄인 증분 API라고 주장하지 않는다.
+수급도 날짜/개인·외국인·기관의 유한값을 확인하며 신규 상장 이력을 임의로 채우지 않는다.
+
+후속: `domestic-market-indicators.js`·`my-dashboard.js`의 특수 envelope/인증 요청과 직접 fetch,
+공통 포맷터·로딩 표현, 도메인별 정식 API 경로표, 스케줄 실행 상한의 적용은 별도 단계다.
+
 ## 목차
 
 1. 저장소 구조 개요

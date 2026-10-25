@@ -75,11 +75,13 @@
 콘텐츠 본문의 의도된 명조는 유지한다. 차트의 기능별 높이와 표의 열 구조는 공통화하지 않는다.
 
 다크 면 토큰은 `--ui-card-surface → --dk-card`, `--ui-inner-surface → --dk-inner`,
-`--ui-panel-surface → --dk-panel`, `--ui-border → --dk-line`으로 연결된다. 라이트 면은
-기존 `--np-paper/--np-tint`를 사용한다. 모바일 토큰 선언은 비레이어 :root 옆에 둔다.
+`--ui-panel-surface → --dk-panel`, `--ui-border → --dk-line`으로 연결된다. 라이트 콘텐츠 카드·내부 박스는 `--ui-card-surface/--ui-inner-surface`의 흰색을 사용한다.
+전체 페이지의 `--np-paper/--np-tint`와 의미색은 유지한다. 모바일 토큰 선언은 비레이어 :root 옆에 둔다.
 비레이어 기본값을 레이어 내부의 일반 모바일 선언으로 바꾸면 캐스케이드에서 패배한다.
 
-공통 카드와 타이포 규칙은 기존 `@layer np`/`np.np` 본문에서 관리한다. 파일 끝에
+공통 카드와 타이포 규칙은 기존 `@layer np`/`np.np` 본문에서 관리한다.
+공통 카드 기본 선택자는 `:where(html body) :where(...)`로 명시도0을 유지한다. 기존 레이어의
+필수 important 경계는 유지하며 개별 화면 우회는 시각 대조 후 점진적으로 제거한다. 파일 끝에
 새 우회 레이어를 쌓지 않는다. 증시자금 등 `IndicatorBoard`는 표 전체를 카드 면으로,
 헤더·그룹 행을 패널 면으로 칠하며 숫자는 오른쪽·tabular-nums, 호버는 `--dk-hover`,
 선택 행은 `--dk-active`다. 행 이름 셀에도 행의 선택 배경을 상속시켜 별도 네이비 칸이

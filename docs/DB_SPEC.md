@@ -187,7 +187,9 @@ erDiagram
 | change_pct | REAL | % |
 | foreign_net, inst_net | REAL | 주(순매수, 부호 있음) |
 
-ka10045 기반. 인덱스 `idx_investor_flow_daily_code`. `daily_scan.py`가 투자시그널 계산 과정에서 얻는 값을 버리지 않고 같이 저장.
+KIS UN 확정 일별(키움 KRX fallback)의 주 단위 순매수다. 개인 `ind_net`도 REAL로 보존한다.
+인덱스 `idx_investor_flow_daily_code`. `daily_scan.py`가 공통 원천 계층을 통해 기준일·필수값을 검증한 뒤 저장한다.
+실패/지난 기준일 자료는 기존 성공 행을 덮지 않는다. 소스 차이·실패·구간 비용은 `daily_scan_cache.json.scanInputs`에 기록한다.
 
 ### 2.4 `investor_summary` — 공매도/대차거래/연기금 요약
 

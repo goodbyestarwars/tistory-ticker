@@ -5,7 +5,8 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 | 위치 | 용도 | 로딩 |
 |---|---|---|
 | `../AGENTS.md` | ChatGPT·Codex가 `CLAUDE.md`로 이동하는 진입점 | 에이전트 시작 시 |
-| `../CLAUDE.md` | 모든 AI의 단일 공통 규칙과 문서 지도 | 작업 시작 시 |
+| `../CLAUDE.md` | 짧은 공통 정책·원본 문서 인덱스 | 작업 시작 시 |
+| `SERVICE_MAP.md` | 서비스·메뉴·공급자·DB·스케줄·주문 경계 상세 지도 | 관련 구간만 |
 | `../ARCHITECTURE.md` | 인프라, 호출 흐름, 배포 경로 | 구조·배포 작업 |
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
