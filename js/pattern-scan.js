@@ -1278,7 +1278,7 @@
       trendBreakout:'하락추세선 돌파와 이평 기울기 전환을 구분해 본다.',bottomFormation:'저점상승·쌍바닥·역헤드앤숄더·박스권 하단의 모든 충족 상태를 본다.',
       pullbackRebreak:'이평 눌림·첫 눌림 재돌파·급락 후 첫 눌림의 단계별 후보를 함께 본다.',longTermQuality:'224일선·구름대 응축/돌파 중 최근 연간 영업이익·순이익 흑자와 최신 단독분기 비적자를 확인한 기업만 본다.'};
     var shortPurpose={liveFlow:'거래량·수급·재돌파 신호를 종목별로 확인합니다.',trendBreakout:'추세선 돌파와 이평 기울기 전환을 구분합니다.',bottomFormation:'저점상승·쌍바닥 등 바닥 형성 패턴을 함께 봅니다.',pullbackRebreak:'눌림과 재돌파 후보의 진행 단계를 확인합니다.',longTermQuality:'장기 기술 패턴과 재무 건전성을 함께 확인합니다.'};
-    box.innerHTML='<details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
+    box.innerHTML='<span class="ps-candidate-badge" role="note">후보일 뿐 정답 아니다</span><details class="ps-condition-fold"><summary><span>'+escapeHtml(shortPurpose[activeTab])+'</span><b>조건 보기</b></summary><div class="ps-condition-body">'
       +'<p>'+escapeHtml(purpose[activeTab])+'</p><p>같은 종목은 한 줄에 표시하며 충족 패턴·단계는 모두 표시합니다. 이력·성과는 선택한 개별 검색기 기준으로 집계합니다.</p>'
       +(activeTab==='longTermQuality'?'<p>주가 5,000원 · 시총 3,000억원 · 20일 평균 거래대금 30억원 이상. 거래대금은 종가×거래량 대용값. 누락·오래된 공시는 제외합니다.</p>':'')
       +group.sources.map(function(key){var t=TABS.filter(function(x){return x.key===key;})[0];return '<p><b>'+escapeHtml(sourceLabel(key))+'</b> '+escapeHtml(t?t.desc:'기존 224일선·구름대 조건 + DART 재무 통과')+'</p>';}).join('')+'</div></details>';
