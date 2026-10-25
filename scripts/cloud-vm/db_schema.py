@@ -930,15 +930,20 @@ def latest_date(conn, table, code):
     return row[0] if row else None
 
 
-def load_investor_flow_daily(conn, code):
+def load_investor_flow_daily(conn, code, limit=None):
     """investor_flow_daily에서 종목의 내림차순(최신일 우선) 행을
     kiwoom_market.fetch_foreign_inst_daily()와 동일한 형식({date, close, change_pct,
-    ind_net, foreign_net, inst_net})으로 반환."""
-    rows = conn.execute(
+    ind_net, foreign_net, inst_net})으로 반환. limit은 조회 창만 제한하며 저장 이력은 보존한다."""
+    query = (
         'SELECT date, close, change_pct, ind_net, foreign_net, inst_net FROM investor_flow_daily '
-        'WHERE code=? ORDER BY date DESC',
-        (code,),
-    ).fetchall()
+        'WHERE code=? ORDER BY date DESC')
+    params = (code,)
+    if limit is not None:
+        if int(limit) < 1:
+            raise ValueError('flow window must be positive')
+        query += ' LIMIT ?'
+        params += (int(limit),)
+    rows = conn.execute(query, params).fetchall()
     return [
         {'date': r[0], 'close': r[1], 'change_pct': r[2], 'ind_net': r[3], 'foreign_net': r[4], 'inst_net': r[5]}
         for r in rows

@@ -56,7 +56,10 @@ class ScanInputs:
         evidence = {'source': 'sqlite-existing'}
         rows = []
         try:
-            rows = self.measured('dbRead', lambda: load(self.conn, code))
+            # Validate the same 25-day contract as a fresh acquisition. Missing
+            # older history must not invalidate a complete current scan window.
+            rows = self.measured('dbRead', lambda: load(self.conn, code, limit=kiwoom_market.SCAN_FLOW_DAYS)
+                                 if flow else load(self.conn, code))
             if valid_rows(rows, self.basis, fields, flow):
                 self.counts[domain]['dbReuse'] += 1
                 return rows

@@ -115,6 +115,28 @@ class AcquisitionTest(unittest.TestCase):
         self.assertEqual(db_schema.load_investor_flow_daily(self.conn, '005930'), old)
         self.assertEqual(self.inputs.failures[0]['state'], 'stale')
 
+    def test_older_missing_fields_do_not_invalidate_the_complete_current_window(self):
+        current = fixture()
+        older = dict(current[-1], date='2026-09-01', ind_net=None)
+        db_schema.upsert_investor_flow_daily(self.conn, '005930', current + [older])
+        self.conn.commit()
+        with patch.object(market, 'fetch_confirmed_scan_flow') as fetch:
+            result = self.inputs.read('005930', 'flow')
+        fetch.assert_not_called()
+        self.assertEqual(result, current)
+        self.assertEqual(invest_signal.build_flow(result), invest_signal.build_flow(current))
+        self.assertEqual(len(db_schema.load_investor_flow_daily(self.conn, '005930')), 26)
+        self.assertIsNone(db_schema.load_investor_flow_daily(self.conn, '005930')[-1]['ind_net'])
+
+    def test_missing_fields_inside_current_window_still_require_a_fresh_acquisition(self):
+        cached = fixture()
+        cached[0]['ind_net'] = None
+        db_schema.upsert_investor_flow_daily(self.conn, '005930', cached)
+        self.conn.commit()
+        with patch.object(market, 'fetch_confirmed_scan_flow', return_value=(fixture(), {'source':'kis-un'})) as fetch:
+            self.assertEqual(self.inputs.read('005930', 'flow'), fixture())
+        fetch.assert_called_once()
+
     def test_invalid_partial_and_future_data_cannot_be_saved(self):
         for bad in (None, float('nan'), float('inf')):
             rows = fixture()

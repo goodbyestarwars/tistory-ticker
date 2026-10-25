@@ -25,6 +25,7 @@ FLOW_LOOKBACK_DAYS = 60  # 달력일 기준 - 영업일로 환산하면 40영업
 # 기간 선택 버튼과 무관하게 항상 최신 기준으로 고정이라(foreign_flow_compute.py) 기본
 # 로드 시 최소 63일치가 있어야 3개월 합산이 온전하다.
 FLOW_DEFAULT_DAYS = 63
+SCAN_FLOW_DAYS = 25
 FLOW_MAX_KIS_PAGES = 5  # 최댓값 3개월(63영업일)=KIS 3회 호출이면 충분, 여유분 포함 5회 상한
 KIS_PAGE_THROTTLE_SEC = 0.15
 
@@ -473,7 +474,7 @@ def _merge_live_row(out, live_row, today_str):
         out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))
 
 
-def fetch_confirmed_scan_flow(token, code, basis_date, kis_appkey=None, kis_appsecret=None, target_days=25):
+def fetch_confirmed_scan_flow(token, code, basis_date, kis_appkey=None, kis_appsecret=None, target_days=SCAN_FLOW_DAYS):
     """Nightly scanner input: confirmed daily quantities, without holdings/live TRs.
 
     The interactive API keeps fetch_foreign_inst_daily(). KIS uses the same UN
