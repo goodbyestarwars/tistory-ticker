@@ -324,7 +324,7 @@ html.dark .weekend-dashboard {
 
 .weekend-dashboard .wd-coin {
   display: grid;
-  grid-template-columns: 32px minmax(48px,1fr) auto auto;
+  grid-template-columns: 32px minmax(48px,1fr) 68px max-content;
   gap: 9px;
   align-items: center;
   font-size: 13px;
@@ -334,10 +334,40 @@ html.dark .weekend-dashboard {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background: var(--wd-inner);
+  background: transparent;
   display: grid;
   place-items: center;
   color: var(--wd-sub);
+}
+
+.weekend-dashboard .wd-coin-icon svg {
+  display: block;
+  color: currentColor;
+}
+
+.weekend-dashboard .wd-coin-icon svg circle { fill: currentColor; stroke: none; }
+.weekend-dashboard .wd-coin-icon svg path { stroke: #fff; }
+.weekend-dashboard .wd-list > .wd-coin:nth-child(1) .wd-coin-icon { color: #F7931A; }
+.weekend-dashboard .wd-list > .wd-coin:nth-child(2) .wd-coin-icon { color: #627EEA; }
+.weekend-dashboard .wd-list > .wd-coin:nth-child(3) .wd-coin-icon { color: #26A17B; }
+.weekend-dashboard .wd-list > .wd-stock:nth-child(4) .wd-coin-icon {
+  color: transparent;
+  font-size: 0;
+  background: center / contain no-repeat url("../img/stock-icons/005930.svg");
+}
+.weekend-dashboard .wd-list > .wd-stock:nth-child(5) .wd-coin-icon {
+  color: transparent;
+  font-size: 0;
+  background: center / contain no-repeat url("../img/stock-icons/000660.svg");
+}
+
+.weekend-dashboard .wd-coin > .is-up,
+.weekend-dashboard .wd-coin > .is-down,
+.weekend-dashboard .wd-coin > .is-flat {
+  justify-self: start;
+  min-width: 0;
+  text-align: left;
+  white-space: nowrap;
 }
 
 .weekend-dashboard .wd-price {
@@ -714,7 +744,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   }
 
   .weekend-dashboard .wd-coin {
-    grid-template-columns: 28px minmax(48px,1fr) auto auto;
+    grid-template-columns: 28px minmax(48px,1fr) 64px max-content;
     gap: 6px;
     font-size: 12px;
   }
