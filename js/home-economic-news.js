@@ -249,18 +249,7 @@
   }
 
   function fetchJson(url) {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timeout = controller ? global.setTimeout(function () { controller.abort(); }, REQUEST_TIMEOUT_MS) : null;
-    return fetch(url, controller ? { signal: controller.signal } : undefined).then(function (response) {
-      if (!response.ok) throw new Error('economic-news ' + response.status);
-      return response.json();
-    }).then(function (json) {
-      if (timeout) global.clearTimeout(timeout);
-      return json;
-    }, function (error) {
-      if (timeout) global.clearTimeout(timeout);
-      throw error;
-    });
+    return global.NineHttp.json(url, { timeoutMs: REQUEST_TIMEOUT_MS });
   }
 
   function validKoreanTranslation(original, translated) {

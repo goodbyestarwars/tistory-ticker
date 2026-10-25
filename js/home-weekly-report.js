@@ -308,13 +308,7 @@
 
   // News and stored index requests use the existing public endpoints.
   function fetchJsonTimeout(url, ms) {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timer = setTimeout(function () { if (controller) controller.abort(); }, ms || 6000);
-    return fetch(url, controller ? { signal: controller.signal } : {}).then(function (response) {
-      clearTimeout(timer);
-      if (!response.ok) throw new Error('live ' + response.status);
-      return response.json();
-    }, function (error) { clearTimeout(timer); throw error; });
+    return global.NineHttp.json(url, { timeoutMs: ms || 6000 });
   }
   var lastLiveQuotes = {}, themesMemo, coinModuleJob;
   var LIVE_REFRESH_MS = 30000, liveTimer, liveCtx;

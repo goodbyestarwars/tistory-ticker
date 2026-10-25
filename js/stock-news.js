@@ -723,23 +723,7 @@
   }
 
   function fetchJson(url) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS });
   }
 
   // 2026-07-27: "9Pay 증권" 개편 작업지시서 #10 - 텍스트 위주 나열형을 네이버 증권

@@ -2597,23 +2597,7 @@
   // ---- 유틸 ----
 
   function fetchJson(url, timeoutMs) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs || FETCH_TIMEOUT_MS) : null;
-
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, { timeoutMs: timeoutMs || FETCH_TIMEOUT_MS });
   }
 
   function chgClass(rt) {

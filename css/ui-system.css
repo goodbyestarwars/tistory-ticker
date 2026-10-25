@@ -8,7 +8,7 @@
   --ui-ink: var(--text-main);
   --ui-muted: var(--text-sub);
   --ui-rule: var(--rule);
-  --ui-surface: var(--surface);
+  --ui-surface: var(--ui-card-surface, var(--surface));
   --ui-page: var(--page-bg);
   --ui-accent-soft: #eef2ff;
   --ui-accent-ink: #4338ca;

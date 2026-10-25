@@ -1212,23 +1212,7 @@
 
   function fetchJson(url) {
     if (typeof global.__strategySearchFetch === 'function') return global.__strategySearchFetch(url);
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS });
   }
 
   // ---- 가격 시점 구분: 스캔 시점 스냅샷 vs 지금 ----

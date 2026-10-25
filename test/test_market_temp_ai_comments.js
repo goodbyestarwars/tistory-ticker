@@ -5,6 +5,7 @@ const src = fs.readFileSync('js/market-temp.js', 'utf8').replace('global.MarketT
   'global.MarketTemp = MarketTemp; global.t={setAiCards:function(v){AI_CARD_COMMENTS_=v;},renderIndicatorRows_,buildIndicatorModels_,buildBreadthVisual_,frontPageStory_,buildSummaryCard,extrasBlock_,commodityStrip_,AI_STATE_,loadAiComments_,aiSayHtml_,lanePeriod_,marketPhase_};');
 let fetchImpl = async () => ({ ok: true, json: async () => ({}) });
 const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: (...a) => fetchImpl(...a) };
+require('./helpers/load_http_client')(sb);
 vm.runInNewContext(src, sb); sb.window.t.setAiCards(true); // 표시 계약 시험: 카드 코멘트 표시를 켜고 확인(기본 화면은 꺼져 있다 - test_market_temp_card_summary.js)
 const t = sb.window.t;
 

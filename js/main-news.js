@@ -155,22 +155,14 @@
   }
 
   function fetchJson(url) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(url, controller ? { signal: controller.signal } : {})
-      .then(function (response) {
-        if (!response.ok) throw new Error('뉴스 응답 오류: ' + response.status);
-        return response.json();
-      })
+    return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS })
       .then(function (payload) {
         var data = (payload && payload.data) || payload || {};
         var items = (data.items || []).filter(function (item) { return item && item.title; });
         // 서버가 시간순을 보장하지 않는 경로가 섞여 있어(RSS 합본) 여기서 한 번 더 정렬한다.
         items.sort(function (a, b) { return dateValue(b.pubDate) - dateValue(a.pubDate); });
         return items.slice(0, FETCH_LIMIT);
-      })
-      .finally(function () { if (timer) clearTimeout(timer); });
+      });
   }
 
   function marketOf(item) {

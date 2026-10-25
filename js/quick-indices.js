@@ -251,13 +251,7 @@
   // ---- 데이터 조회 ----
 
   function fetchJson(url) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) { if (!r.ok) throw new Error('응답 오류: ' + r.status); return r.json(); })
-      .then(function (data) { if (timer) clearTimeout(timer); return data; })
-      .catch(function (err) { if (timer) clearTimeout(timer); throw err; });
+    return global.NineHttp.json(url, { timeoutMs: FETCH_TIMEOUT_MS });
   }
 
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }

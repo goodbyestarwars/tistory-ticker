@@ -7823,8 +7823,8 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-paragraph-gap: 14px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
-  --ui-card-surface: var(--np-paper);
-  --ui-inner-surface: var(--np-tint);
+  --ui-card-surface: #fff;
+  --ui-inner-surface: #fff;
   --ui-panel-surface: var(--np-tint);
   --ui-border: var(--rule);
 
@@ -7847,7 +7847,7 @@ html.dark {
 
 @layer np {
 /* ── 1. 공통 카드: geometry/surface tokens; chart and report layouts stay independent. ── */
-html body :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
+:where(html body) :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
   .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
   #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
   border: 1px solid var(--ui-border) !important;

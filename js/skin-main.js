@@ -708,22 +708,7 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function fetchHomeJson(url, timeoutMs) {
-      var hasAbort = 'AbortController' in window;
-      var controller = hasAbort ? new AbortController() : null;
-      var timer = controller ? setTimeout(function () { controller.abort(); }, timeoutMs || 15000) : null;
-      return fetch(url, controller ? { signal: controller.signal } : {})
-        .then(function (response) {
-          if (!response.ok) throw new Error('홈 데이터 응답 오류: ' + response.status);
-          return response.json();
-        })
-        .then(function (data) {
-          if (timer) clearTimeout(timer);
-          return data;
-        })
-        .catch(function (error) {
-          if (timer) clearTimeout(timer);
-          throw error;
-        });
+      return window.NineHttp.json(url, { timeoutMs: timeoutMs || 15000 });
     }
 
     function readHomeDataCache(key, maxAgeMs) {

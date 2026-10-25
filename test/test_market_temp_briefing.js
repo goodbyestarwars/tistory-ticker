@@ -5,6 +5,7 @@ const source = fs.readFileSync('js/market-temp.js', 'utf8').replace('global.Mark
   'global.MarketTemp = MarketTemp; global.t={setAiCards:function(v){AI_CARD_COMMENTS_=v;},renderBriefing_,briefingMeta_,briefingTitle_,marketPhase_,lanePeriod_,nextRunAt_,dueLanes_,liveStatusText_,' +
   'buildCheckContext_,checkpointContextHtml_,intradayChanges_,sectorAsOf_,rankChangeHtml_,sharedMarketJson_,loadBriefing_,paintBriefing_,buildStrategy,marketRefreshDelay_,LANE_TTL_,LANE_PERIODS_,AI_STATE_,loadAiComments_};');
 const sb = { window: {}, document: { readyState: 'loading', addEventListener() {} }, console, setTimeout, clearTimeout, fetch: async () => ({ ok: true, json: async () => ({}) }) };
+require('./helpers/load_http_client')(sb);
 vm.runInNewContext(source, sb); sb.window.t.setAiCards(true); // 표시 계약 시험: 카드 코멘트 표시를 켜고 확인(기본 화면은 꺼져 있다 - test_market_temp_card_summary.js)
 const t = sb.window.t;
 const kst = (y, m, d, hh, mm, ss = 0) => Date.UTC(y, m - 1, d, hh - 9, mm, ss);
