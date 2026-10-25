@@ -6103,7 +6103,14 @@
       setupFlowMemo(container, chart, candleSeries, daily, code);
 
       // html.dark 토글에는 클래스만 바뀌므로 캔버스 차트 색도 같이 갱신한다(공용 감시자 - 차트 수와 무관하게 관찰자는 하나).
-      scope.theme(function () { chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily })); });
+      scope.theme(function () {
+        chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily }));
+        movingAverageOverlaySeries.forEach(function (item) {
+          if (item.key === 'ma224') item.series.applyOptions({ color: core.ma224Color() });
+        });
+        var dot = document.querySelector('#foreign-flow [data-line-key="ma224"] .ff-dot');
+        if (dot) dot.style.background = core.ma224Color();
+      });
     }).catch(function (error) {
       if (global.console) global.console.warn('[foreign-flow] chart rendering failed', error);
       container.innerHTML = '<div class="ff-error">차트를 표시하지 못했습니다. 잠시 후 다시 조회해 주세요.</div>';
