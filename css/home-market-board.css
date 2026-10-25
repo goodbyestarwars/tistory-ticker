@@ -40,6 +40,8 @@ body#tt-body-index .home-editorial-page .home-switch-countdown {
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 body#tt-body-index .home-editorial-page .home-switch-countdown[hidden] { display: none; }
+/* 휴장 지면은 배너 안의 다음 개장 카운트다운만 쓴다. 상단 탭용 시계는 국내/미국 화면에서만 표시한다. */
+.home-dashboard.is-market-closed > .home-market-toolbar > .home-switch-countdown { display: none !important; }
 body#tt-body-index .home-editorial-page .hsc-label { display: block; margin: 0; color: #77808b; font: 500 11px/1.35 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page .hsc-clock { display: flex; align-items: flex-start; justify-content: center; gap: 7px; }
 body#tt-body-index .home-editorial-page .hsc-unit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
