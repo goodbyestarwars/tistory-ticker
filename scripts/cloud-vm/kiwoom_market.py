@@ -338,11 +338,13 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_p
     for dt in sorted(rows_by_date.keys(), reverse=True)[:target_days]:
         r = rows_by_date[dt]
         frgn_row = frgn_by_date.get(dt)
+        close = quantity(r, 'stck_clpr')
+        volume = quantity(r, 'acml_vol')
         out.append({
             'date': '%s-%s-%s' % (dt[0:4], dt[4:6], dt[6:8]),
-            'close': abs(to_num(r.get('stck_clpr'))),
-            'change_pct': to_num(r.get('prdy_ctrt')),
-            'volume': abs(to_num(r.get('acml_vol'))),
+            'close': abs(close) if close is not None else None,
+            'change_pct': quantity(r, 'prdy_ctrt'),
+            'volume': abs(volume) if volume is not None else None,
             'inst_net': quantity(r, 'orgn_ntby_qty'),
             'foreign_net': quantity(r, 'frgn_reg_ntby_qty'),
             'ind_net': quantity(r, 'prsn_ntby_qty'),
@@ -384,7 +386,8 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
                 rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days)
             else:
                 rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days, strict=True)
-                if any(row.get(key) is None for row in rows for key in ('ind_net', 'foreign_net', 'inst_net')):
+                if any(row.get(key) is None for row in rows
+                       for key in ('close', 'change_pct', 'volume', 'ind_net', 'foreign_net', 'inst_net')):
                     raise RuntimeError('KIS confirmed flow incomplete')
             db_schema.upsert_kis_flow_cache(conn, code, target_days, rows, datetime.now(timezone.utc).isoformat())
             if evidence is not None:

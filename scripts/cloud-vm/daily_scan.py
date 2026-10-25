@@ -262,12 +262,6 @@ def save_ohlc_snapshot(conn, code, daily):
     )
 
 
-def save_investor_flow(conn, code, flow_rows):
-    """flow_rows(fetch_foreign_inst_daily 결과, 개인/외국인/기관 일별 순매매)를 investor_flow_daily에
-    UPSERT. 지금까지는 투자시그널 계산에만 쓰고 버렸던 데이터 - OHLC와 동일한 이유로 저장."""
-    db_schema.upsert_investor_flow_daily(conn, code, flow_rows)
-
-
 TIMING_KEYS = ('ohlcApi', 'flowApi', 'ohlcSave', 'flowSave', 'dbRead', 'patternScan', 'throttle')
 
 
