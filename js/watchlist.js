@@ -110,6 +110,7 @@
   var realtimeKeepaliveTimer = null;
   var realtimeKickoffTimer = null;
   var realtimeGeneration = 0;
+  var sessionRefreshTimer = null;
   var draggedCode = null;
   var didDrag = false;
   var remoteState = { items: [], groups: [], revision: 0 };
@@ -138,7 +139,12 @@
     container.innerHTML = buildShell();
     wireEvents(container);
     loadRemoteState(container);
+    // 장 전환 때 REST/WebSocket 새 체결이 없어도 상태 문자만 최신 시간대로 맞춘다.
+    if (!sessionRefreshTimer) sessionRefreshTimer = setInterval(function () {
+      if (!document.hidden && document.contains(container)) refreshSessionLabels(container);
+    }, 15000);
     document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) refreshSessionLabels(container);
       if (document.hidden) stopRealtimeQuotes();
       // 2026-08-14 사용자 리포트: 다른 탭 보고 돌아오면 시세가 "초기화된 것처럼" 보임 -
       // 원인은 render(container)가 카드 그리드 전체를 innerHTML로 갈아엎어 "-"부터 다시
@@ -786,6 +792,7 @@
       return buildGroup(group, items);
     }).join('');
 
+    refreshSessionLabels(container);
     wireCardEvents(container);
     var codes = list.map(function (it) { return it.code; });
     var cachedQuotes = readQuoteCache(codes);
@@ -898,13 +905,12 @@
     card.setAttribute('data-quote-signature', signature);
 
     var isUs = /^US:/i.test(code);
-    // 실시간 WebSocket 시세(quote.type==='quote')는 marketState를 안 실어 보낸다 - REST가
-    // 채워둔 배지를 여기서 지우지 않고 그대로 둔다(marketState가 있을 때만 갱신).
+    // 미국 API market_state는 저장만 하고 표시는 공통 MarketHours의 현재 시각을 우선한다.
+    // 웹소켓 체결에는 상태 필드가 없으므로 가격 갱신과 상태 판정을 분리한다.
     if (sessionEl && isUs && quote.marketState != null) {
-      var sessionLabel = usSessionLabel(quote.marketState);
-      sessionEl.textContent = sessionLabel;
-      sessionEl.hidden = !sessionLabel;
+      card.setAttribute('data-market-state', String(quote.marketState));
     }
+    setCardSession(card, code);
     if (sameSignature) return;
     var price = Number(quote.price);
     priceEl.textContent = isUs && !isNaN(price)
@@ -1418,10 +1424,52 @@
     return '';
   }
 
-  // js/us-stocks.js의 marketStateLabel()과 같은 문구(장전/정규장/장후/장 마감).
+  // ---- 관심종목 행의 거래시장 상태: 공통 MarketHours(휴장일·미국 DST) 기반 ----
   function usSessionLabel(state) {
-    return { pre: '장전', regular: '정규장', post: '장후', closed: '장 마감' }[state] || '';
+    return { pre: '프리마켓', regular: '정규장', post: '애프터마켓',
+      after: '애프터마켓', closed: '장 마감' }[state] || '';
   }
+
+  function watchlistSessionLabel(code, marketState, when) {
+    var mh = global.MarketHours, now = when || new Date();
+    if (/^US:/i.test(String(code || ''))) {
+      // US 원격 캐시의 market_state가 낡아도 최신 뉴욕 현지 세션/DST/휴장 기준으로 표시.
+      if (!mh || typeof mh.us !== 'function') return usSessionLabel(marketState);
+      var us = mh.us(now);
+      return usSessionLabel(us.phase === 'unknown' ? marketState : us.phase);
+    }
+    if (!mh || typeof mh.kst !== 'function' || typeof mh.isKrTradingDay !== 'function') return '';
+    if (!mh.isKrTradingDay(now)) return '장 마감';
+    var k = mh.kst(now);
+    var kstSecond = new Date(now.getTime() + (mh.KST_OFFSET_MS || 32400000)).getUTCSeconds();
+    var seconds = k.minutes * 60 + kstSecond;
+    var t = function (h, m, sec) { return (h * 60 + (m || 0)) * 60 + (sec || 0); };
+    // NXT 거래시간: 프리 08:00-08:50, 메인 09:00:30-15:20, 애프터 15:40-20:00.
+    // 거래소 운영시간 표기이며 개별 종목의 NXT 거래 적격 여부를 뜻하지 않는다.
+    if (seconds >= t(8) && seconds < t(8, 50)) return 'NXT 프리마켓';
+    if (seconds >= t(8, 50) && seconds < t(9)) return 'KRX 동시호가';
+    if (seconds >= t(9) && seconds < t(9, 0, 30)) return 'KRX 정규장';
+    if (seconds >= t(9, 0, 30) && seconds < t(15, 20)) return 'KRX·NXT 정규장';
+    if (seconds >= t(15, 20) && seconds < t(15, 30)) return 'KRX 동시호가';
+    if (seconds >= t(15, 40) && seconds < t(16)) return 'NXT 애프터마켓';
+    if (seconds >= t(16) && seconds < t(20)) return 'KRX·NXT 애프터마켓';
+    return '장 마감';
+  }
+
+  function setCardSession(card, code) {
+    var el = card.querySelector('[data-field="session"]');
+    if (!el) return;
+    var label = watchlistSessionLabel(code, card.getAttribute('data-market-state'));
+    if (el.textContent !== label) el.textContent = label;
+    el.hidden = !label;
+  }
+
+  function refreshSessionLabels(container) {
+    container.querySelectorAll('.wl-card[data-code]').forEach(function (card) {
+      setCardSession(card, card.getAttribute('data-code'));
+    });
+  }
+  // ---- 관심종목 거래시장 상태 끝 ----
 
   function formatNumber(n) {
     var num = Number(n);
