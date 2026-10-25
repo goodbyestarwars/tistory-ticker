@@ -86,8 +86,9 @@ run_news_momentum_if_due() {
     # 2026-09-17 장애: 이 배치가 스캔 공용 잠금 밖에서 돌아 저녁 스캔과 겹쳤다(스왑 2GB 소진).
     # 스캔이 돌고 있으면 이번 회차는 건너뛰고(-n) 5분 뒤 다시 본다 - 커서가 남아 이어서 돈다.
     if flock -n -E 76 "$APP_DIR/.scan_serial.lock" \
+        flock -n -E 76 "$MAINTENANCE_TRIGGER_LOCK" \
         flock -n -E 75 "$MOMENTUM_LOCK" \
-        "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
+        timeout --signal=TERM --kill-after=30s 25m "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
         --full \
         --db "$MOMENTUM_DB" \
         --lock-file "$APP_DIR/.news_momentum_python.lock"; then

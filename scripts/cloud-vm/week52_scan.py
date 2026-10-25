@@ -10,6 +10,7 @@ data/sectors-v3.js 섹터 풀(238종목, 전체 종목이 아님 - gas의 fetchS
 systemd timer로 하루 1회 실행 - main.py의 /week52-batch가 결과를 즉시 서빙한다."""
 
 import json
+from snapshot_io import atomic_json
 import os
 import re
 import sys
@@ -90,8 +91,7 @@ def main():
         'newLowCount': new_low,
         'data': cache,
     }
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False)
+    atomic_json(OUTPUT_FILE, payload)
     log('저장 완료: %s (%d/%d종목, 신고가 %d / 신저가 %d, DB 미보유 스킵 %d)'
         % (OUTPUT_FILE, len(cache), len(codes_map), new_high, new_low, missing))
 

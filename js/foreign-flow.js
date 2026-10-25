@@ -6104,8 +6104,9 @@
 
       // html.dark 토글에는 클래스만 바뀌므로 캔버스 차트 색도 같이 갱신한다(공용 감시자 - 차트 수와 무관하게 관찰자는 하나).
       scope.theme(function () { chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily })); });
-    }).catch(function () {
-      container.innerHTML = '<div class="ff-error">차트 라이브러리를 불러오지 못했어요.</div>';
+    }).catch(function (error) {
+      if (global.console) global.console.warn('[foreign-flow] chart rendering failed', error);
+      container.innerHTML = '<div class="ff-error">차트를 표시하지 못했습니다. 잠시 후 다시 조회해 주세요.</div>';
     });
   }
 

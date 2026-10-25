@@ -9,6 +9,7 @@ import subprocess
 import time
 
 import market_clock
+from snapshot_io import atomic_json
 from market_calendar import is_kr_trading_day
 
 KST = market_clock.KST
@@ -77,9 +78,7 @@ def write_status(folder, job, **values):
         if values.get('state') == 'success':
             row['lastSuccessAt'] = values['finishedAt']
         data[job] = row
-        tmp = folder / ('scheduled_jobs.json.%s.tmp' % os.getpid())
-        tmp.write_text(json.dumps(data, ensure_ascii=False), encoding='utf-8')
-        os.replace(tmp, target)
+        atomic_json(target, data)
 
 
 def stamp():
