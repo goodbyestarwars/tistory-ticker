@@ -23,6 +23,17 @@ def fixture():
 
 
 class ScanFlowTest(unittest.TestCase):
+    def test_partial_scan_response_does_not_overwrite_previous_kis_cache(self):
+        rows = fixture()
+        rows[0]['change_pct'] = None
+        with patch.object(market, '_daily_rows_from_kis', return_value=rows), \
+             patch.object(market.db_schema, 'get_conn'), \
+             patch.object(market.db_schema, 'upsert_kis_flow_cache') as save, \
+             patch.object(market.db_schema, 'load_kis_flow_cache', return_value=(None, None)):
+            with self.assertRaisesRegex(RuntimeError, 'incomplete'):
+                market._daily_rows_from_kis_with_fallback_cache('k', 's', '005930', '20261023', lambda: {}, 25, evidence={})
+        save.assert_not_called()
+
     def test_real_kis_mapping_keeps_missing_quantity_and_uses_same_units(self):
         raw = {'stck_bsop_date': '20261023', 'stck_clpr': '100', 'prdy_ctrt': '1.2',
                'acml_vol': '10000', 'orgn_ntby_qty': '-200', 'frgn_reg_ntby_qty': '300', 'prsn_ntby_qty': ''}
