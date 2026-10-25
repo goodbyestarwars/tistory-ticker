@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-cards';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekly-news-original-arrows';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v4';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
