@@ -1954,9 +1954,22 @@ document.documentElement.classList.add('skin-ready');
         var digits = String(value).padStart(2, '0');
         var old = lastDigits[index];
         if (old === digits) return;
+        // 첫 렌더에서는 애니메이션 없이 현재 숫자를 면에 직접 넣는다.
+        // old가 없을 때 각 자릿수의 oldDigit을 nextDigit으로 두면 아래 비교가
+        // 항상 같아져 초기값(예: 1일, 15시간)이 기본 00으로 남는다.
+        if (!old) {
+          pair.querySelectorAll('.hsc-digit').forEach(function (digit, i) {
+            var valueDigit = digits.charAt(i);
+            digit.querySelectorAll('.hsc-face > span').forEach(function (face) {
+              face.textContent = valueDigit;
+            });
+          });
+          lastDigits[index] = digits;
+          return;
+        }
         pair.querySelectorAll('.hsc-digit').forEach(function (digit, i) {
           var nextDigit = digits.charAt(i);
-          var oldDigit = old ? old.charAt(i) : nextDigit;
+          var oldDigit = old.charAt(i);
           if (oldDigit === nextDigit) return;
           if (old) {
             var top = digit.querySelector('.hsc-face-top');
