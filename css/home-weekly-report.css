@@ -131,6 +131,8 @@ html.dark .weekend-dashboard {
   font: 600 15px/1.4 "Pretendard Variable",Pretendard,sans-serif;
 }
 
+.weekend-dashboard .wd-section-head .wd-index-title-icon { display: inline-block; width: .8em; height: .8em; margin-right: .08em; vertical-align: -.04em; flex: none; }
+
 .weekend-dashboard .wd-section-head a {
   font-size: 12px;
   min-height: 32px;
@@ -644,6 +646,12 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-header h2 {
     font: 700 24px/1.25 "MaruBuriBold","MaruBuri",serif !important;
     color: var(--wd-banner-text) !important;
+  }
+
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-section-head h3 {
+    color: var(--wd-text) !important;
+    font: 700 var(--ui-title-size,24px)/1.25 "MaruBuriBold","MaruBuri","Maru Buri",Georgia,serif !important;
+    letter-spacing: 0 !important;
   }
 
   html body#tt-body-index #homeWeeklyReport.weekend-dashboard .briefing-intro strong,
