@@ -10,6 +10,7 @@
         el = null;
         labelEl = null;
         units = {};
+        lastDigits = {};
         el = document.querySelector('.home-market-toolbar > .home-switch-countdown')
           || document.createElement('div');
         el.classList.add('home-switch-countdown');
