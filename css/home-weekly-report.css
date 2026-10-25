@@ -344,6 +344,8 @@ html.dark .weekend-dashboard {
 
 .weekend-dashboard .wd-coin-icon svg {
   display: block;
+  width: 28.8px;
+  height: 28.8px;
   color: currentColor;
 }
 
@@ -355,12 +357,12 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-list > .wd-stock:nth-child(4) .wd-coin-icon {
   color: transparent;
   font-size: 0;
-  background: center / contain no-repeat url("../img/stock-icons/005930.svg");
+  background: center / 24px 24px no-repeat url("../img/stock-icons/005930.svg");
 }
 .weekend-dashboard .wd-list > .wd-stock:nth-child(5) .wd-coin-icon {
   color: transparent;
   font-size: 0;
-  background: center / contain no-repeat url("../img/stock-icons/000660.svg");
+  background: center / 24px 24px no-repeat url("../img/stock-icons/000660.svg");
 }
 
 .weekend-dashboard .wd-coin > .is-up,
