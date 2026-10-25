@@ -356,6 +356,18 @@ class WeeklyReportTests(unittest.TestCase):
         self.assertEqual(result['themes'][0]['krStocks'][0]['code'], '005930')
         self.assertEqual(result['themes'][1]['count'], 1)
 
+    def test_us_news_themes_default_includes_cards_beyond_four(self):
+        from datetime import date
+        items = [
+            {'title': 'Nvidia chips gain', 'pubDate': '2026-10-24T09:00:00'},
+            {'title': 'Oil prices rise', 'pubDate': '2026-10-24T10:00:00'},
+            {'title': 'Fed interest rate outlook', 'pubDate': '2026-10-25T09:00:00'},
+            {'title': 'Biotech drug trial update', 'pubDate': '2026-10-25T10:00:00'},
+            {'title': 'Tariffs reshape global trade', 'pubDate': '2026-10-25T11:00:00'},
+        ]
+        result = weekly_report.us_news_themes(items, date(2026, 10, 24), date(2026, 10, 26))
+        self.assertEqual(len(result['themes']), 5)
+
     def test_us_news_themes_does_not_match_inside_words(self):
         from datetime import date
         # "said"/"maid"의 ai, "boil"의 oil 같은 단어 일부는 테마로 세지 않는다.
