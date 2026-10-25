@@ -207,7 +207,41 @@
         && Object.prototype.hasOwnProperty.call(body, 'scannedAt');
     }, options);
   }
-  global.NineAPI = { vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy };
+  function quotes(codes, options) {
+    options = options || {};
+    var ordered = [];
+    (codes || []).forEach(function (code) {
+      code = String(code).toUpperCase();
+      if (!/^[0-9A-Z]{6}$/.test(code)) throw new Error('국내 종목 코드 형식이 올바르지 않습니다.');
+      if (ordered.indexOf(code) < 0) ordered.push(code);
+    });
+    var sorted = ordered.slice().sort(), byCode = Object.create(null), request = options.request || global.NineHttp.json;
+    var pending = Promise.resolve();
+    for (var i = 0; i < sorted.length; i += 300) (function (batch) {
+      pending = pending.then(function () {
+        var path = batch.length <= 30 ? '/domestic-quotes?codes=' : '/sector-quotes?codes=';
+        function read(url) { return Promise.resolve().then(function () { return request(url); }).then(unwrap).then(function (body) {
+          if (!Array.isArray(body)) throw new Error('국내 시세 형식이 올바르지 않습니다.');
+          return body;
+        }); }
+        return read(VM + path + batch.join(',')).then(function (body) {
+          return {body:body, fallback:false};
+        }).catch(function (error) {
+          if (options.fallback === false) throw error;
+          return read(GAS + '?codes=' + batch.join(',')).then(function (body) { return {body:body, fallback:true}; });
+        }).then(function (result) {
+          result.body.forEach(function (row) {
+            if (!row || batch.indexOf(row.code) < 0 || !isFinite(Number(row.price)) || Number(row.price) <= 0) return;
+            if (!byCode[row.code]) byCode[row.code] = Object.assign({}, row, {degraded:result.fallback, transportSource:result.fallback ? 'gas-proxy' : 'vm',
+              dataDate:row.dataDate || null, timeBasis:'retrieval'});
+          });
+        });
+      });
+    })(sorted.slice(i, i + 300));
+    return pending.then(function () { return ordered.map(function (code) { return byCode[code]; }).filter(Boolean); });
+  }
+  global.NineAPI = { vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
+    contracts:{domesticQuotes:{price:'KRW',volume:'shares',changeRate:'percent',time:'retrieval',maxBatch:300}} };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineAPI */
 

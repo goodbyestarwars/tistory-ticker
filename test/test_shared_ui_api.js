@@ -32,5 +32,15 @@ assert.equal(api.gasUrl,existingGas,'canonical GAS URL must match the deployed w
  await assert.rejects(api.flowChart('005930',{request:async()=>({daily:[{...row,close:null}]})}));
  const failed=await api.flowChart('005930',{request:async url=>{if(url.startsWith(api.vmUrl))throw Error('offline');return {daily:[row]};}});
  assert.equal(failed.source,'gas-vm-derived');assert.equal(failed.daily[0].date,row.date);
+ const quoteCalls=[];
+ const quotes=await api.domesticQuotes(['005930','000660','005930'],{request:async url=>{quoteCalls.push(url);return {data:[{code:'005930',price:213500,volume:100,changeRate:-.47},{code:'000660',price:0}]};}});
+ assert.equal(quoteCalls.length,1);assert.match(quoteCalls[0],/codes=000660,005930$/);
+ assert.equal(quotes.length,1);assert.equal(quotes[0].dataDate,null);assert.equal(quotes[0].timeBasis,'retrieval');
+ assert.equal(quotes[0].price,213500);assert.equal(quotes[0].changeRate,-.47);
+ const batch=Array.from({length:31},(_,i)=>String(i).padStart(6,'0'));
+ await api.domesticQuotes(batch,{request:async url=>{assert.match(url,/sector-quotes/);return [];}});
+ const legacy=await api.domesticQuotes(['005930'],{request:async url=>{if(url.startsWith(api.vmUrl))throw Error('offline');return [{code:'005930',price:1,time:'2026-10-23 20:00'}];}});
+ assert.equal(legacy[0].degraded,true);assert.equal(legacy[0].transportSource,'gas-proxy');assert.equal(legacy[0].dataDate,null);
+ assert.throws(()=>api.domesticQuotes(['US:AAPL']),/국내 종목 코드/);
  console.log('shared UI/API: escaping, missing/zero/sign/rounding, loading accessibility, canonical routes, envelopes and explicit validated fallbacks passed');
 })().catch(e=>{console.error(e);process.exitCode=1;});
