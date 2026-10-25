@@ -24,18 +24,19 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   min-width: 0;
 }
 
-/* Domestic / US regular-session close clock, placed directly below market tabs. */
+/* 국내·미국 시장 전환선과 같은 상단 줄에 두고, 카운트다운 외곽 박스는 쓰지 않는다. */
+body#tt-body-index .home-editorial-page .home-market-toolbar {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 16px;
+  min-width: 0; margin: 0 0 14px;
+}
+body#tt-body-index .home-editorial-page .home-market-toolbar .home-market-switch {
+  width: auto; min-width: 0; flex: 1 1 auto; margin: 0 !important;
+}
 body#tt-body-index .home-editorial-page .home-switch-countdown {
-  position: relative; left: auto; bottom: auto; z-index: auto; display: block;
-  width: min(390px, 100%);
-  margin: 10px auto 14px;
-  padding: 10px 16px 12px;
-  gap: 0; border: 1px solid rgba(32, 37, 43, .12);
-  border-radius: 10px; animation: none;
-  background: #fffefa;
-  color: #20252b;
-  text-align: center;
-  box-shadow: 0 2px 8px rgba(20, 24, 30, .045);
+  position: relative; left: auto; right: auto; top: auto; bottom: auto; z-index: auto;
+  display: block; flex: 0 0 auto; width: auto; margin: 0; padding: 2px 0 0;
+  gap: 0; border: 0; border-radius: 0; animation: none;
+  background: transparent; color: #20252b; text-align: right; box-shadow: none;
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 body#tt-body-index .home-editorial-page .home-switch-countdown[hidden] { display: none; }
@@ -78,14 +79,16 @@ body#tt-body-index .home-editorial-page .hsc-digit::after {
   content: ""; position: absolute; z-index: 3; left: 0; right: 0; top: 50%; border-top: 1px solid rgba(60, 68, 78, .14);
 }
 body#tt-body-index .home-editorial-page .hsc-separator { margin-top: 5px; color: #9ba2aa; font: 500 17px/1 var(--font-ui, system-ui, sans-serif); }
-html.dark body#tt-body-index .home-editorial-page .home-switch-countdown { background: #fffefa !important; color: #20252b !important; border-color: rgba(32, 37, 43, .12) !important; }
+html.dark body#tt-body-index .home-editorial-page .home-switch-countdown { background: transparent !important; color: #20252b !important; border: 0 !important; box-shadow: none !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-label, html.dark body#tt-body-index .home-editorial-page .hsc-unit small { color: #77808b !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-digit { color: #26303b !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-face, html.dark body#tt-body-index .home-editorial-page .hsc-flap { background: #fff !important; border-color: #d9dce0 !important; color: #26303b !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-face-bottom, html.dark body#tt-body-index .home-editorial-page .hsc-flap-bottom { background: #f2f3f4 !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2aa !important; }
 @media (max-width: 767px) {
-  body#tt-body-index .home-editorial-page .home-switch-countdown { width: min(330px, calc(100% - 12px)); margin: 8px auto 12px; padding: 9px 10px 10px; }
+  body#tt-body-index .home-editorial-page .home-market-toolbar { flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+  body#tt-body-index .home-editorial-page .home-market-toolbar .home-market-switch { flex: 1 1 100%; }
+  body#tt-body-index .home-editorial-page .home-switch-countdown { margin-left: auto; padding-top: 0; }
   body#tt-body-index .home-editorial-page .hsc-clock { gap: 5px; }
   body#tt-body-index .home-editorial-page .hsc-digit { width: 23px; height: 31px; font-size: 23px; line-height: 30px; }
 }

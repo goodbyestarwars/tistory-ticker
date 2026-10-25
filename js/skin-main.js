@@ -880,7 +880,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261025-market-close-flip';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261025-countdown-toolbar';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -1932,8 +1932,16 @@ document.documentElement.classList.add('skin-ready');
           }).join('<span class="hsc-separator">:</span>') + '</div>';
         var switchTabs = document.querySelector('.home-market-switch');
         var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
-        if (dashboard && switchTabs.nextSibling) dashboard.insertBefore(el, switchTabs.nextSibling);
-        else document.body.appendChild(el);
+        if (dashboard && switchTabs) {
+          var toolbar = dashboard.querySelector('.home-market-toolbar');
+          if (!toolbar) {
+            toolbar = document.createElement('div');
+            toolbar.className = 'home-market-toolbar';
+            dashboard.insertBefore(toolbar, switchTabs);
+            toolbar.appendChild(switchTabs);
+          }
+          toolbar.appendChild(el);
+        } else document.body.appendChild(el);
         labelEl = el.querySelector('.hsc-label');
         el.querySelectorAll('[data-hsc-unit]').forEach(function (node) {
           units[node.getAttribute('data-hsc-unit')] = node;
@@ -1977,15 +1985,17 @@ document.documentElement.classList.add('skin-ready');
       }
 
       function nextDomesticClose(now, marketHours) {
-        if (!marketHours || !marketHours.krCash || !marketHours.kst) return null;
-        var date = new Date(now);
-        var state = marketHours.krCash(date);
-        var k = marketHours.kst(date);
-        var todayStart = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
-        if (state && state.open) return todayStart + (15 * 60 + 30) * 60 * 1000;
-        if (typeof marketHours.nextKrRegularOpen !== 'function') return null;
-        var nextOpen = marketHours.nextKrRegularOpen(date);
-        return nextOpen ? nextOpen.getTime() + (6 * 60 + 30) * 60 * 1000 : null;
+        if (!marketHours || !marketHours.kst || !marketHours.isKrTradingDay) return null;
+        var k = marketHours.kst(new Date(now));
+        var today = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
+        for (var day = 0; day < 15; day++) {
+          // UTC 자정은 KST 정규장 개장(09:00)이다. 휴장일은 MarketHours 달력을 따른다.
+          var openAt = today + day * 86400000;
+          var closeAt = openAt + (15 * 60 + 30) * 60 * 1000;
+          if (closeAt <= now || !marketHours.isKrTradingDay(new Date(openAt))) continue;
+          return closeAt;
+        }
+        return null;
       }
 
       function nextUsClose(now, marketHours) {
@@ -2031,7 +2041,7 @@ document.documentElement.classList.add('skin-ready');
         el.hidden = false;
         el.classList.toggle('hsc-to-us', selected === 'us');
         el.classList.toggle('hsc-to-kr', selected === 'domestic');
-        labelEl.textContent = marketName + ' 정규장 마감까지';
+        labelEl.textContent = marketName + ' 정규장 종료까지';
         var total = Math.max(0, Math.ceil((closeAt - now) / 1000));
         var days = Math.floor(total / 86400);
         var hours = Math.floor(total / 3600) % 24;
