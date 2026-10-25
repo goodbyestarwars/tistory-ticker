@@ -95,6 +95,16 @@ html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2a
 @media (prefers-reduced-motion: reduce) {
   body#tt-body-index .home-editorial-page .hsc-digit.is-flipping .hsc-flap { animation-duration: .01ms !important; animation-delay: 0s !important; }
 }
+
+/* 홈 주요 세 영역 제목은 국내 시장 제목 크기를 기준으로 통일한다. */
+@layer np {
+  html body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading strong,
+  html body#tt-body-index .home-editorial-page #homeEconomicNews .hen-head strong,
+  html body#tt-body-index .home-editorial-page #homeRealtimeBoard .hrt-head strong {
+    font-size: var(--ui-title-size) !important;
+    line-height: 1.2 !important;
+  }
+}
 html.dark body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
   --hmb-chart-up: var(--dk-up);
   --hmb-chart-line: var(--dk-sub);
