@@ -332,24 +332,11 @@
     if (!codes.length) return Promise.resolve({});
     var domesticCodes = codes.filter(function (code) { return String(code).indexOf('US:') !== 0; });
     if (!domesticCodes.length) return Promise.resolve({});
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, RATE_FETCH_TIMEOUT_MS) : null;
-
-    return fetch(GAS_TICKER_URL + '?codes=' + domesticCodes.join(','), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
+    return global.NineAPI.domesticQuotes(domesticCodes, {timeoutMs:RATE_FETCH_TIMEOUT_MS})
       .then(function (data) {
-        if (timer) clearTimeout(timer);
         var byCode = {};
         (data || []).forEach(function (q) { byCode[q.code] = q; });
         return byCode;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
       });
   }
 
@@ -712,11 +699,7 @@
 
   // ---- 포맷 유틸 ----
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   // ---- 초기화: skin-menu.js가 먼저 로드됐으면 바로, 아니면 짧게 재시도 ----
@@ -736,7 +719,9 @@
   var StockSearchPanel = { init: init, wireSidebarSearch: wireSidebarSearch, goToStock: goToStock, bootGlobalWatchlist: bootGlobalWatchlist };
   global.StockSearchPanel = StockSearchPanel;
 
-  if (document.readyState === 'loading') {
+  // defer scripts can run before skin-shell; DOMContentLoaded follows all defer scripts.
+  // Dynamically loaded modules can initialize immediately once the common runtime exists.
+  if (document.readyState === 'loading' || !global.NineAPI) {
     document.addEventListener('DOMContentLoaded', init);
   } else {
     init();
