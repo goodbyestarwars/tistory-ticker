@@ -107,7 +107,7 @@
       + '</div>'
       + '<div class="sn-disclosure" id="snDisclosure">'
       + '<div class="sn-disc-title">실시간 공시</div>'
-      + '<div class="sn-disc-list" id="snDiscList"><div class="sn-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
+      + '<div class="sn-disc-list" id="snDiscList"><div class="sn-hint">' + global.NineUI.spinner() + '불러오는 중...</div></div>'
       + '</div>'
       + '</div>'
       + '</div>'
@@ -219,7 +219,7 @@
     var codes = stocksState.map(function (s) { return s.code; });
     if (!codes.length) return;
 
-    fetchJson(GAS_TICKER_URL + '?codes=' + codes.join(','))
+    global.NineAPI.domesticQuotes(codes, {request:fetchJson})
       .then(function (list) {
         var byCode = {};
         (list || []).forEach(function (d) { byCode[d.code] = d; });
@@ -251,7 +251,7 @@
     if (rankLoaded && !force) return;
     var grid = container.querySelector('#snRankGrid');
     if (!grid) return;
-    if (!force) grid.innerHTML = '<div class="sn-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>헤드라인을 불러오는 중...</div>';
+    if (!force) grid.innerHTML = '<div class="sn-hint">' + global.NineUI.spinner() + '헤드라인을 불러오는 중...</div>';
 
     fetchJson(GAS_TICKER_URL + '?rankNews=1')
       .then(function (data) {
@@ -485,7 +485,7 @@
     renderWatchlist(container);
 
     var resultBox = container.querySelector('#snResult');
-    resultBox.innerHTML = '<div class="sn-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + escapeHtml(stock.name) + ' 관련 뉴스를 불러오는 중...</div>';
+    resultBox.innerHTML = '<div class="sn-loading">' + global.NineUI.spinner() + '' + escapeHtml(stock.name) + ' 관련 뉴스를 불러오는 중...</div>';
 
     fetchJson('https://goodbyestar.cloud/domestic-news?code=' + encodeURIComponent(stock.code)
       + '&name=' + encodeURIComponent(stock.name) + '&limit=10')
@@ -547,7 +547,7 @@
     var box = container.querySelector('#snAnalysis');
     if (!box) return;
 
-    box.innerHTML = '<div class="sn-af-title">종목분석 요약</div><div class="sn-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>';
+    box.innerHTML = '<div class="sn-af-title">종목분석 요약</div><div class="sn-loading">' + global.NineUI.spinner() + '불러오는 중...</div>';
     var requestCode = stock.code;
     ensureForeignFlow()
       .then(function (foreignFlow) {
@@ -915,11 +915,7 @@
     if (e.key === 'Escape') closeNewsModal();
   });
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   if (document.readyState === 'loading') {

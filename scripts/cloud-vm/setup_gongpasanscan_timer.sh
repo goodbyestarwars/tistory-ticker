@@ -22,6 +22,8 @@ Description=Kiwoom gongpasan(yeokmaegongpa) scan (full universe, DB-only, no ext
 
 [Service]
 Type=oneshot
+TimeoutStartSec=12h
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
 ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh gongpasanscan $HOME_DIR/venv/bin/python $HOME_DIR/gongpasan_scan.py

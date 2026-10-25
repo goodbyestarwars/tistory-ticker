@@ -150,25 +150,9 @@
   // opts: { symbols: 'A,B'(응답에 실을 심볼 제한), timeoutMs }
   function fetchFutures(interval, days, opts) {
     var options = opts || {};
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timeoutMs = options.timeoutMs || FETCH_TIMEOUT_MS;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, timeoutMs) : null;
     var url = FUTURES_API + '?interval=' + (interval || 'day') + '&days=' + (days || DAY_RANGE)
       + (options.symbols ? '&symbols=' + encodeURIComponent(options.symbols) : '');
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('futures API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json.data || [];
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, {timeoutMs:options.timeoutMs || FETCH_TIMEOUT_MS}).then(function (json) { return json.data || []; });
   }
 
   function fmtPrice(v) {
@@ -197,11 +181,7 @@
     return d.toLocaleTimeString('ko-KR', { hour12: false });
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
   // 2026-08-05 요청: "(장 마감)" 배지 - 주간선물 정규장은 09:00~15:45(옵션 수급 설명문의
   // "정규장(09:00~15:45)"과 동일 값, 사용자 확인).
@@ -321,7 +301,7 @@
     var cards = OPTION_SIDES.map(function (s) {
       return '<div class="kf-opt-card" data-side="' + s.key + '">'
         + '<div class="kf-opt-title">' + escapeHtml(s.label) + '</div>'
-        + '<div class="kf-opt-body kf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'
+        + '<div class="kf-opt-body kf-loading">' + global.NineUI.spinner() + '불러오는 중...</div>'
         + '</div>';
     }).join('');
     var collapsed = loadCollapsed('option');
@@ -335,7 +315,7 @@
       + '<div class="kf-opt-grid" id="kfOptGrid">' + cards + '</div></div>'
       + '<div class="mi-sub kf-option-profile" id="kfOptionProfile">'
       + '<div class="kf-option-profile-head"><b>행사가별 콜·풋 프로파일</b><span>OI · 거래량</span></div>'
-      + '<div class="kf-option-profile-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>행사가별 데이터를 불러오는 중...</div>'
+      + '<div class="kf-option-profile-loading">' + global.NineUI.spinner() + '행사가별 데이터를 불러오는 중...</div>'
       + '</div>'
       + '<div class="kf-opt-desc">투자자 유형(외국인·기관·개인)별 매수·매도 구분 데이터는 제공하는 곳이 없어, '
       + '조회된 콜·풋 미결제약정(OI) 증감을 보여드립니다. OI 증가는 미결제 계약 증가, 감소는 계약 감소이며, '
@@ -381,22 +361,7 @@
   }
 
   function fetchOptionFlow() {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(OPTION_FLOW_API, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('option-flow API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json.data || {};
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(OPTION_FLOW_API, {timeoutMs:FETCH_TIMEOUT_MS}).then(function (json) { return json.data || {}; });
   }
 
   function refreshOptionFlow(container) {

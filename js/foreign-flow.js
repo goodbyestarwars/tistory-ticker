@@ -529,7 +529,7 @@
     });
     if (!codes.length) return;
 
-    fetchJson(GAS_TICKER_URL + '?codes=' + codes.join(','))
+    global.NineAPI.domesticQuotes(codes, {request:fetchJson})
       .then(function (list) {
         var byCode = {};
         (list || []).forEach(function (d) { byCode[d.code] = d; });
@@ -1029,7 +1029,7 @@
 
   function loadRelatedQuotes(overlay, stocks) {
     var codes = stocks.map(function (s) { return s.code; });
-    fetchJson(GAS_TICKER_URL + '?codes=' + encodeURIComponent(codes.join(',')))
+    global.NineAPI.domesticQuotes(codes, {request:fetchJson})
       .then(function (list) {
         if (!document.body.contains(overlay)) return; // 응답 오는 사이 모달을 닫았으면 무시
         var byCode = {};
@@ -1389,22 +1389,9 @@
   }
 
   function requestFlowChart(code) {
-    // 2026-09-03: VM(/flow-chart)을 1차로 쓴다. 예전에는 GAS ?action=flowChart만 썼는데,
-    // GAS는 자체 데이터 없이 이 VM의 /ohlc를 부른 뒤 이평선·지지저항만 계산해 넘겨주는
-    // 중간 경유지였고 그 왕복이 운영 실측에서 28~30초씩 걸리다 타임아웃/404로 끝났다
-    // (2026-09-03 API Probe: 30.4s 타임아웃, 재측정 28.1s -> 404). Promise.all이 이걸
-    // 기다리느라 종목분석 전체가 20초(FETCH_TIMEOUT_MS)를 채우고 있었다.
-    // 응답 형태는 GAS와 동일해서({code, daily, ma, levels}) 렌더 경로는 그대로다.
-    // GAS는 VM이 죽었을 때만 쓰는 폴백으로 남긴다 - /foreign-flow가 네이버를 남겨둔 것과 같다.
-    return fetchJson(KIWOOM_VM_URL + '/flow-chart/' + encodeURIComponent(code), FLOW_CHART_VM_TIMEOUT_MS)
-      .then(function (envelope) {
-        var d = envelope && envelope.data ? envelope.data : envelope;
-        if (!d || d.error || !d.daily || !d.daily.length) throw new Error('VM 가격차트 없음');
-        return d;
-      })
-      .catch(function () {
-        return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), FLOW_CHART_GAS_TIMEOUT_MS);
-      });
+    return global.NineAPI.flowChart(code, {request: function (url) {
+      return fetchJson(url, url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS);
+    }});
   }
 
   // 일부 폴백 소스(네이버 수급 표)는 개인 순매매를 제공하지 않는다. 값을 억지로
@@ -1498,7 +1485,7 @@
     if (!force && hit && Date.now() - hit.t < CLIENT_CACHE_MS) return Promise.resolve(hit.data);
     if (quoteInflight[code]) return quoteInflight[code];
 
-    var p = fetchJson(GAS_TICKER_URL + '?codes=' + encodeURIComponent(code))
+    var p = global.NineAPI.domesticQuotes([code], {request:fetchJson})
       .then(function (list) {
         delete quoteInflight[code];
         var q = (list && list[0]) || null;
@@ -2137,7 +2124,7 @@
   function fmtEokWon(eok) {
     if (eok == null || isNaN(eok)) return '-';
     if (Math.abs(eok) >= 10000) return (eok / 10000).toLocaleString('ko-KR', { maximumFractionDigits: 1 }) + '조원';
-    return Math.round(eok).toLocaleString('ko-KR') + '억원';
+    return global.NineUI.number(eok, {round:true}) + '억원';
   }
   function fmtThousandShares(v) {
     if (v == null || isNaN(v)) return '-';
@@ -3922,13 +3909,12 @@
   function loadSimBenchmark(code, daily) {
     var c = String(code || '');
     if (!/^[0-9A-Za-z]{6}$/.test(c) || /^US:/i.test(c)) return Promise.resolve(null);
-    return fetch(GAS_TICKER_URL + '?codes=' + encodeURIComponent(c))
-      .then(function (r) { return r.json(); })
+    return global.NineAPI.domesticQuotes([c], {request:fetchJson})
       .then(function (rows) {
         var market = rows && rows[0] && rows[0].market;
         var etf = market === 'KOSDAQ' ? { code: '229200', label: '코스닥(KODEX 코스닥150)' } : { code: '069500', label: '코스피(KODEX 200)' };
         if (market !== 'KOSDAQ' && market !== 'KOSPI') return null;      // 시장을 모르면 엉뚱한 지수와 비교하지 않는다
-        return fetch(KIWOOM_VM_URL + '/flow-chart/' + etf.code).then(function (r) { return r.json(); }).then(function (env) {
+        return global.NineAPI.flowChart(etf.code, {request:fetchJson}).then(function (env) {
           var data = env && env.data ? env.data : env;
           var etfDaily = (data && Array.isArray(data.daily) ? data.daily : []).filter(function (row) { return row && row.close; });
           if (etfDaily.length < 20) return null;
@@ -4307,6 +4293,7 @@
         + (chartData.source === 'flow-fallback'
           ? '<div class="ff-hint">일봉 원천 응답이 지연되어 수급 응답의 종가·거래량으로 임시 표시 중입니다. 실제 OHLC가 도착하면 자동으로 교체됩니다.</div>'
           : '')
+        + (chartData.degraded ? '<div class="ff-hint">대체 경로의 일봉을 표시합니다. 데이터 기준일은 차트 날짜를 확인하세요.</div>' : '')
         + buildLwLegend()
         + buildTechBreakdown(techScore)
         + buildRsiSection(chartData.daily);
@@ -5198,9 +5185,9 @@
       var label = map.querySelector('text[data-apt-marker="current"]');
       if (line) { line.setAttribute('y1', y); line.setAttribute('y2', y); }
       if (dot) dot.setAttribute('cy', y);
-      if (label) { label.setAttribute('y', y + 20); label.textContent = '현재가 ' + Math.round(price).toLocaleString('ko-KR') + '원'; }
+      if (label) { label.setAttribute('y', y + 20); label.textContent = '현재가 ' + global.NineUI.number(price, {round:true}) + '원'; }
       var summary = card.querySelector('.ff-apt-summary-current b');
-      if (summary) summary.textContent = Math.round(price).toLocaleString('ko-KR') + '원';
+      if (summary) summary.textContent = global.NineUI.number(price, {round:true}) + '원';
     }
 
     function bandIndexForPrice(profile, price, bandCount) {
@@ -5257,7 +5244,7 @@
       currentPrice = parsed;
       entry.price = parsed;
       var simpleCurrent = card.querySelector('[data-apt-simple-current]');
-      if (simpleCurrent) simpleCurrent.textContent = Math.round(parsed).toLocaleString('ko-KR') + '원';
+      if (simpleCurrent) simpleCurrent.textContent = global.NineUI.number(parsed, {round:true}) + '원';
       var map = card.querySelector('[data-price-map-surface]');
       if (!map) return;
       updateCurrentMarker(map, parsed);
@@ -5997,7 +5984,8 @@
       var flowOptions = core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily });
       // 라이브러리 기본 휠 대신 차트검색과 같은 부드러운 휠(커서 기준 확대·가속·관성)을 쓴다(2026-10-22).
       flowOptions.handleScale.mouseWheel = false;
-      flowOptions.handleScroll.mouseWheel = false;
+      // The analysis profile uses library defaults and may omit handleScroll.
+      flowOptions.handleScroll = Object.assign({}, flowOptions.handleScroll, { mouseWheel: false });
       var chart = LWC.createChart(container, flowOptions);
       lwcChart = chart;
       lwcChartContainer = container;
@@ -6115,9 +6103,17 @@
       setupFlowMemo(container, chart, candleSeries, daily, code);
 
       // html.dark 토글에는 클래스만 바뀌므로 캔버스 차트 색도 같이 갱신한다(공용 감시자 - 차트 수와 무관하게 관찰자는 하나).
-      scope.theme(function () { chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily })); });
-    }).catch(function () {
-      container.innerHTML = '<div class="ff-error">차트 라이브러리를 불러오지 못했어요.</div>';
+      scope.theme(function () {
+        chart.applyOptions(core.themeUpdateOptions(LWC, 'analysis', { fontFamily: fontFamily }));
+        movingAverageOverlaySeries.forEach(function (item) {
+          if (item.key === 'ma224') item.series.applyOptions({ color: core.ma224Color() });
+        });
+        var dot = document.querySelector('#foreign-flow [data-line-key="ma224"] .ff-dot');
+        if (dot) dot.style.background = core.ma224Color();
+      });
+    }).catch(function (error) {
+      if (global.console) global.console.warn('[foreign-flow] chart rendering failed', error);
+      container.innerHTML = '<div class="ff-error">차트를 표시하지 못했습니다. 잠시 후 다시 조회해 주세요.</div>';
     });
   }
 
@@ -6179,7 +6175,7 @@
     var number = Number(value);
     if (!isFinite(number)) return '';
     var absolute = Math.abs(number);
-    if (absolute < 10000) return Math.round(number).toLocaleString('ko-KR');
+    if (absolute < 10000) return global.NineUI.number(number, {round:true});
     var divisor = absolute >= 1e8 ? 1e8 : 1e4;
     var unit = absolute >= 1e8 ? '억' : '만';
     var rounded = Math.round(absolute / divisor * 10) / 10;
@@ -6576,11 +6572,7 @@
     return sign + Math.round(abs).toLocaleString() + '원';
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   var ForeignFlow = {

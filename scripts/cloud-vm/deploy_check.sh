@@ -86,8 +86,9 @@ run_news_momentum_if_due() {
     # 2026-09-17 장애: 이 배치가 스캔 공용 잠금 밖에서 돌아 저녁 스캔과 겹쳤다(스왑 2GB 소진).
     # 스캔이 돌고 있으면 이번 회차는 건너뛰고(-n) 5분 뒤 다시 본다 - 커서가 남아 이어서 돈다.
     if flock -n -E 76 "$APP_DIR/.scan_serial.lock" \
+        flock -n -E 76 "$MAINTENANCE_TRIGGER_LOCK" \
         flock -n -E 75 "$MOMENTUM_LOCK" \
-        "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
+        timeout --signal=TERM --kill-after=30s 25m "$PYTHON" "$APP_DIR/news_momentum_scan.py" \
         --full \
         --db "$MOMENTUM_DB" \
         --lock-file "$APP_DIR/.news_momentum_python.lock"; then
@@ -261,11 +262,11 @@ run_search_scan_refresh_after_deploy() {
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh started"
     # 2026-09-15: 정기 스캔 타이머와 같은 공용 잠금으로 줄 세우고 우선순위를 낮춘다(스캔이 몰려
     # 1코어 VM 응답이 전부 멈췄던 장애). flock은 기다렸다가 차례가 오면 실행한다.
-    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/rescan_patterns.py" \
+    nice -n 10 "$PYTHON" "$APP_DIR/scheduled_job.py" refresh-pattern "$PYTHON" "$APP_DIR/rescan_patterns.py" \
       || echo "pattern cache refresh failed; daily timer will retry" >&2
-    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py" --non-etf \
+    nice -n 10 "$PYTHON" "$APP_DIR/scheduled_job.py" refresh-strategy "$PYTHON" "$APP_DIR/strategy_scan.py" --non-etf \
       || echo "strategy cache refresh failed; strategy timer will retry" >&2
-    flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/etf_strategy_scan.py" \
+    nice -n 10 "$PYTHON" "$APP_DIR/scheduled_job.py" refresh-etf "$PYTHON" "$APP_DIR/etf_strategy_scan.py" \
       || echo "ETF strategy cache refresh failed; ETF strategy timer will retry" >&2
     echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) search scan refresh finished"
   ) 200>&- 210>"$SEARCH_SCAN_LOCK" >>"$SEARCH_SCAN_LOG" 2>&1 &
@@ -292,7 +293,7 @@ run_off_hours_maintenance_if_due() {
     # 별도 트리거 잠금(211)이 중복 대기를 막고, 최대 4시간 기다린다. 실제 유지보수는
     # 여전히 스캔과 겹치지 않으며 09:00 장 시작 전 off-hours 가드도 유지한다.
     maint_wait_started="$(date +%s)"
-    if flock -w 14400 -E 76 "$APP_DIR/.scan_serial.lock" "$PYTHON" "$APP_DIR/maintenance.py"; then
+    if "$PYTHON" "$APP_DIR/scheduled_job.py" maintenance "$PYTHON" "$APP_DIR/maintenance.py"; then
       printf '%s\n' "$today_kst" > "$MAINTENANCE_MARKER.tmp"
       mv "$MAINTENANCE_MARKER.tmp" "$MAINTENANCE_MARKER"
       echo "장외 VM 유지보수 완료: $today_kst wait_plus_run_sec=$(($(date +%s) - maint_wait_started))"

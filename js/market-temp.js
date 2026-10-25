@@ -352,7 +352,7 @@
     if (isFinite(vix) && vix >= 20) avoid.push({ p: vix >= 25 ? 95 : 82, text: 'VIX ' + vix.toFixed(1) + ' - 변동성이 큰 장, **미수·신용**으로 크기를 키우지 않는다' });
     var fx = comps.exchange || {};
     var fxChg = Number(fx.changeRate), fxPrice = Number(fx.price);
-    var fxText = isFinite(fxPrice) ? ' ' + Math.round(fxPrice).toLocaleString('ko-KR') + '원' : '';
+    var fxText = isFinite(fxPrice) ? ' ' + global.NineUI.number(fxPrice, {round:true}) + '원' : '';
     if (isFinite(fxChg) && fxChg >= 0.5) avoid.push({ p: 80, text: '원/달러' + fxText + '(' + pct(fxChg) + ') - 환율이 오르는 날은 외국인 매도가 커질 수 있어 **대형주 추격** 자제' });
     else if (isFinite(fxChg) && fxChg <= -0.5) todo.push({ p: 55, text: '원/달러' + fxText + '(' + pct(fxChg) + ')·원화 강세 - **외국인 수급**이 돌아오는지 확인' });
     var rates = comps.rates || {};
@@ -535,7 +535,7 @@
     }
     function stockPrice_(value) {
       var n = Number(value);
-      return isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') + '원' : '-';
+      return isFinite(n) && n > 0 ? global.NineUI.number(n, {round:true}) + '원' : '-';
     }
     function stockRate_(value) {
       var n = Number(value);
@@ -778,7 +778,7 @@
 
   function priceText_(value) {
     var n = Number(value);
-    return isFinite(n) && n > 0 ? Math.round(n).toLocaleString('ko-KR') : '-';
+    return isFinite(n) && n > 0 ? global.NineUI.number(n, {round:true}) : '-';
   }
 
   function stockLinkHref_(stock) {
@@ -1147,7 +1147,7 @@
   function loadCategoryPanel_(panel, renderer, label) {
     if (panel.__mtLoaded) return;
     panel.__mtLoaded = true;
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>' + label + ' 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '' + label + ' 불러오는 중...</div>';
     Promise.all([fetchSectorConfig_(), loadThemeRows_().catch(function () { return []; })])
       .then(function (values) { return renderer(panel, values[0], values[1]); })
       .catch(function () {
@@ -1200,7 +1200,7 @@
     if (!isFinite(won) || won <= 0) return '';
     var eok = won / 1e8;
     if (eok >= 10000) return (eok / 10000).toFixed(1) + '조';
-    return Math.round(eok).toLocaleString('ko-KR') + '억';
+    return global.NineUI.number(eok, {round:true}) + '억';
   }
 
   function sectorFlowAmountText_(row) {
@@ -3710,7 +3710,6 @@
   var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
   var WICS_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
   var ALL_STOCKS_PAGE_SIZE = 48;
-  var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
   var wicsMapLoadPromise_ = null;
   // 시장판은 순위별 최대 40종목뿐이다. 전종목 스캔으로 주요 종목을 선별하고,
@@ -3809,28 +3808,9 @@
   }
 
   function fetchAllStockQuotes_(codes) {
-    var batches = [];
-    for (var i = 0; i < codes.length; i += ALL_STOCKS_BATCH_SIZE) batches.push(codes.slice(i, i + ALL_STOCKS_BATCH_SIZE));
-    function fetchBatch_(batch, retried) {
-      return fetchJson_(GAS_TICKER_URL + '?codes=' + batch.join(',') + '&_=' + Date.now()).then(function (rows) {
-        if (rows && rows.length) return rows;
-        if (retried) throw new Error('empty quote response');
-        return fetchBatch_(batch, true);
-      }).catch(function (error) {
-        if (retried) throw error;
-        return fetchBatch_(batch, true);
-      });
-    }
-    return Promise.all(batches.map(function (batch) {
-      return fetchBatch_(batch, false);
-    })).then(function (results) {
-      return results.reduce(function (all, rows) { return all.concat(rows || []); }, []);
-    });
+    return global.NineAPI.domesticQuotes(codes, {request:fetchJson_});
   }
 
-  // 보합이라는 이유만으로 활발한 대형주를 버리지 않는다. 종목은 거래대금·실제
-  // 거래량, 섹터는 합계 거래대금과 구성 종목 수로 판단한다. 스캔 폴백에는 거래량
-  // 필드가 없으므로 거래대금만 적용하며, 없는 거래량을 가격으로 역산하지 않는다.
   function activeStockRows_(scan, wicsMap) {
     var board = scan && scan.data && Array.isArray(scan.data.rows);
     var etfNames = {};
@@ -3985,7 +3965,7 @@
   function loadAllStocksPanel(panel) {
     if (!panel || panel.__allStockBrowser) return;
     panel.__allStockBrowser = true;
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>거래가 활발한 주요 섹터를 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '거래가 활발한 주요 섹터를 불러오는 중...</div>';
 
     var snapshotRequest = requestAllStockSnapshot_();
     var categoryConfig = null;
@@ -4237,7 +4217,7 @@
   function loadAllStocksUniversePanel_(panel) {
     if (!panel || panel.__allStockUniverse) return;
     panel.__allStockUniverse = true;
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>전종목 우주를 만드는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '전종목 우주를 만드는 중...</div>';
 
     Promise.all([
       fetchJson_(INVEST_SIGNAL_URL),
@@ -4793,7 +4773,7 @@
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
     if (SD) {
-      panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>종목 카드 불러오는 중...</div>';
+      panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '종목 카드 불러오는 중...</div>';
       fetchSectorConfig_()
         .then(function (config) { return renderCardsPanelFromConfig_(panel, SD, config); })
         .catch(function () { showSectorCardsLoadError_(panel); });
@@ -4809,7 +4789,7 @@
     if (!codes.length) { panel.innerHTML = '<div class="mt-error">종목 카드를 불러오지 못했습니다.</div>'; return; }
 
     if (SD.injectBadgeStyles) SD.injectBadgeStyles();
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>종목 카드 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '종목 카드 불러오는 중...</div>';
     SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
@@ -4832,7 +4812,7 @@
     panel.__mtLoaded = true;
     var SD = global.SectorDashboard;
     if (SD) {
-      panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>히트맵 불러오는 중...</div>';
+      panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '히트맵 불러오는 중...</div>';
       fetchSectorConfig_()
         .then(function (config) { return renderHeatmapPanelFromConfig_(panel, SD, config); })
         .catch(function () { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; });
@@ -4847,7 +4827,7 @@
     var codes = sectorPoolCodes(sectorMap, krxMap);
     if (!codes.length) { panel.innerHTML = '<div class="mt-error">히트맵을 불러오지 못했습니다.</div>'; return; }
 
-    panel.innerHTML = '<div class="mt-hint"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>히트맵 불러오는 중...</div>';
+    panel.innerHTML = '<div class="mt-hint">' + global.NineUI.spinner() + '히트맵 불러오는 중...</div>';
     SD.fetchTickerData(codes).then(function (list) {
       var byCode = {};
       (list || []).forEach(function (item) { if (item && item.code) byCode[item.code] = item; });
@@ -5112,11 +5092,7 @@
     });
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
   var MarketTemp = {
     init: init,

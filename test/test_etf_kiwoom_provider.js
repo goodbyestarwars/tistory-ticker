@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 // Run: node test/test_etf_kiwoom_provider.js
 const test = require('node:test');
 const assert = require('node:assert/strict');

@@ -1,5 +1,7 @@
 // 차트검색 매물대(2026-10-22): 구간 크기는 확대·축소가 아니라 가격대로 고정(18만원대 500원). stock-search.js 안의 순수 함수만 떼어 검증한다.
 'use strict';
+require('./helpers/common_runtime');
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const src = fs.readFileSync('js/stock-search.js', 'utf8');

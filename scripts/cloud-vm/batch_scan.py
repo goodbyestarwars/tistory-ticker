@@ -12,6 +12,7 @@
   그 즉시 중단(dart_client.DartRateLimitError)."""
 
 import json
+from snapshot_io import atomic_json
 import os
 import re
 import sys
@@ -121,8 +122,7 @@ def main():
         'scanned': len(cache),
         'data': cache,
     }
-    with open(OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False)
+    atomic_json(OUTPUT_FILE, payload)
     log('저장 완료: %s (%d/%d종목)' % (OUTPUT_FILE, len(cache), len(codes_map)))
 
     try:
@@ -155,8 +155,7 @@ def load_fundamentals_state():
 
 
 def save_fundamentals_cursor(cursor):
-    with open(FUNDAMENTALS_CURSOR_FILE, 'w', encoding='utf-8') as f:
-        json.dump({'cursor': cursor}, f)
+    atomic_json(FUNDAMENTALS_CURSOR_FILE, {'cursor': cursor})
 
 
 def is_stale(fetched_at, code):
@@ -313,8 +312,7 @@ def scan_fundamentals(codes_map, candidate_only=False):
         'data': cache,
         'fetchedAt': fetched_at,
     }
-    with open(FUNDAMENTALS_OUTPUT_FILE, 'w', encoding='utf-8') as f:
-        json.dump(payload, f, ensure_ascii=False)
+    atomic_json(FUNDAMENTALS_OUTPUT_FILE, payload)
     log('펀더멘탈 저장 완료: %s (누적 %d/%d종목, 이번 실행 신규 %d / 스킵 %d, %s)'
         % (FUNDAMENTALS_OUTPUT_FILE, len(cache), len(items), new_count, skipped_count, stop_reason))
 

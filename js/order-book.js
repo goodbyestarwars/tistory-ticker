@@ -513,7 +513,7 @@
         var priceEl = line.querySelector('.ob-price');
         var bar = line.querySelector('.ob-bar-wrap > span');
         if (qtyEl) qtyEl.textContent = qty == null ? '-' : fmtQty(qty);
-        if (priceEl) priceEl.textContent = price == null ? '-' : Math.round(price).toLocaleString('ko-KR');
+        if (priceEl) priceEl.textContent = price == null ? '-' : global.NineUI.number(price, {round:true});
         if (bar) bar.style.width = Math.max(2, Math.round((qty || 0) / maxQty * 100)) + '%';
         var deltaEl = line.querySelector('.ob-delta');
         if (deltaEl) setDelta(deltaEl, depthDelta(side, price, qty));
@@ -945,8 +945,8 @@
     var toast = container.querySelector('#obToast');
     if (!toast) return;
     toast.textContent = up
-      ? '🎉 ' + Math.round(price).toLocaleString('ko-KR') + '원 돌파!'
-      : '🔄 ' + Math.round(price).toLocaleString('ko-KR') + '원대 지지라인 재구축';
+      ? '🎉 ' + global.NineUI.number(price, {round:true}) + '원 돌파!'
+      : '🔄 ' + global.NineUI.number(price, {round:true}) + '원대 지지라인 재구축';
     toast.className = 'ob-toast show';
     clearTimeout(state.toastTimer);
     state.toastTimer = setTimeout(function () {
@@ -1236,44 +1236,15 @@
   }
 
   function fetchOrderBook(code) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(VM_ORDER_BOOK_URL + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('order-book API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (json) {
-        if (timer) clearTimeout(timer);
-        return json.data || null;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(VM_ORDER_BOOK_URL + encodeURIComponent(code), {timeoutMs:FETCH_TIMEOUT_MS})
+      .then(function (json) { return json.data || null; });
   }
 
   function fetchQuote(code) {
     if (quoteRequests[code]) return quoteRequests[code];
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    var request = fetch('https://goodbyestar.cloud/domestic-quotes?codes=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('현재가 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        delete quoteRequests[code];
-        return (data && data.data && data.data[0]) || null;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        delete quoteRequests[code];
-        throw err;
-      });
+    var request = global.NineAPI.domesticQuotes([code], {timeoutMs:FETCH_TIMEOUT_MS})
+      .then(function (data) { delete quoteRequests[code]; return (data && data[0]) || null; },
+            function (err) { delete quoteRequests[code]; throw err; });
     quoteRequests[code] = request;
     return request;
   }
@@ -1282,15 +1253,7 @@
     var cached = chartResponses[code];
     if (cached && Date.now() - cached.t < 5 * 60 * 1000) return Promise.resolve(cached.data);
     if (chartRequests[code]) return chartRequests[code];
-    var request = requestChart(VM_FLOW_CHART_URL + encodeURIComponent(code))
-      .then(function (json) {
-        var data = json && json.data ? json.data : json;
-        if (!data || !Array.isArray(data.daily) || !data.daily.length) throw new Error('chart unavailable');
-        return data;
-      })
-      .catch(function () {
-        return requestChart(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code));
-      })
+    var request = global.NineAPI.flowChart(code, {request:requestChart})
       .then(function (data) {
         delete chartRequests[code];
         if (data && !data.error && Array.isArray(data.daily) && data.daily.length) {
@@ -1306,22 +1269,7 @@
   }
 
   function requestChart(url) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-    return fetch(url, hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('summary API error: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineHttp.json(url, {timeoutMs:FETCH_TIMEOUT_MS});
   }
 
   function fetchSummary(code) {
@@ -1625,7 +1573,7 @@
 
   function fmtQty(v) {
     if (v == null || isNaN(v)) return '-';
-    return Math.round(v).toLocaleString('ko-KR');
+    return global.NineUI.number(v, {round:true});
   }
 
   function signClass(rate) {
@@ -1634,11 +1582,7 @@
     return 'ob-flat';
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   var OrderBook = { init: init, fetchOrderBook: fetchOrderBook, fetchQuote: fetchQuote, fetchChart: fetchChart, select: selectStock };

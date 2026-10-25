@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 let source=fs.readFileSync('js/kospi-futures.js','utf8').replace('global.KospiFutures = KospiFutures;', 'global.KospiFutures = KospiFutures; global.optTest={tendency:optTendency,section:buildOptionSection};');
 const window={addEventListener(){}};vm.runInNewContext(source,{window,document:{readyState:'loading',addEventListener(){}},localStorage:{getItem(){return null}},console,Date});

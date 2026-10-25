@@ -2,6 +2,8 @@
 // in top/side, detail and analysis views even before quote/index feeds include it.
 // Execute: node test/test_new_listing_0013y0.js
 'use strict';
+require('./helpers/common_runtime');
+
 const fs = require('fs');
 const vm = require('vm');
 const assert = require('node:assert/strict');

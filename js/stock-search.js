@@ -1105,7 +1105,7 @@
         traceHolder = null;
       }
       function showVolume(value) {
-        if (volLegend) volLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + (value != null ? Math.round(value).toLocaleString('ko-KR') : '-') + '</b></span>';
+        if (volLegend) volLegend.innerHTML = '<span class="ss-volume-current-label">거래량 <b>' + (value != null ? global.NineUI.number(value, {round:true}) : '-') + '</b></span>';
       }
       function crosshairVolume(param) {
         showVolume(param && param.time && volByTime[param.time] != null ? volByTime[param.time] : volumeBars[volumeBars.length-1].volume);
@@ -1407,7 +1407,7 @@
     var items = names.map(function (name) { return { name: name, code: map[name] }; });
     var codes = items.map(function (it) { return it.code; });
 
-    fetchJson('https://goodbyestar.cloud/domestic-quotes?codes=' + codes.join(','))
+    global.NineAPI.domesticQuotes(codes, {request:fetchJson})
       .then(function (response) {
         var quotes = response && response.data ? response.data : response;
         if (searchId !== stockSearchRequestId) return;
@@ -2074,9 +2074,7 @@
   function requestFlowChart(code) {
     return global.OrderBook && global.OrderBook.fetchChart
       ? global.OrderBook.fetchChart(code)
-      : fetchJson('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(code))
-        .then(function (json) { return json && json.data ? json.data : json; })
-        .catch(function () { return fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code)); });
+      : global.NineAPI.flowChart(code, {request:fetchJson});
   }
 
   function loadSharedFlowChart(code) {
@@ -2332,7 +2330,7 @@
     if (isUsChart) return '$' + compactVolume(n);
     if (n >= 100000000) return (n / 100000000).toFixed(1) + '억';
     if (n >= 10000) return Math.round(n / 10000).toLocaleString('ko-KR') + '만';
-    return Math.round(n).toLocaleString('ko-KR') + '원';
+    return global.NineUI.number(n, {round:true}) + '원';
   }
 
   function ma224Color() { return global.NineChartCore.ma224Color(); }
@@ -2784,7 +2782,7 @@
     var fmt = function (v) { return chartPriceText(v, info.isUs); };
     var opts = { format: fmt };
     var core = global.NineChartCore;
-    function vol(v) { return (core && core.compactVolume ? core.compactVolume(v) : Math.round(v).toLocaleString('ko-KR')) + '주'; }
+    function vol(v) { return (core && core.compactVolume ? core.compactVolume(v) : global.NineUI.number(v, {round:true})) + '주'; }
     // 최대 매물대 색 점은 차트와 같은 분홍색. 저항·지지 후보의 패널 의미색은 유지한다.
     function dot(kind) { return '<i class="ss-vp-dot ss-vp-dot-' + kind + '"></i>'; }
     function zone(label, z, g, sign) {
@@ -3248,20 +3246,13 @@
     if (rate < 0) return 'ss-down';
     return 'ss-flat';
   }
-  function fmtPrice(v) { return v == null ? '-' : Number(v).toLocaleString('ko-KR'); }
-  function fmtSignedPct(v) {
-    if (v == null || isNaN(v)) return '-';
-    return (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%';
-  }
-  function fmtQty(v) { return v == null ? '-' : Math.round(v).toLocaleString('ko-KR'); }
+  function fmtPrice(v) { return global.NineUI.number(v); }
+  function fmtSignedPct(v) { return global.NineUI.signedPercent(v, {plusZero:true}); }
+  function fmtQty(v) { return global.NineUI.number(v, {round:true}); }
   // 거래대금(원)을 억원 단위로 - 사이트 다른 위젯(마켓 브리핑 등)과 동일한 단위 관례
   function fmtEok(v) { return v == null ? '-' : (v / 1e8).toFixed(1) + '억'; }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   // 전체화면 헤더에서도 같은 종목 선택 경로를 호출한다. 차트 패널은 기존 모달이

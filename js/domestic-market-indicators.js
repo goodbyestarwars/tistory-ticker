@@ -43,17 +43,10 @@
   }
   global.addEventListener('tistory-chart-resize', resizeDmiCharts);
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   function fetchJson() {
-    return fetch(API_URL, { cache: 'no-store' }).then(function (response) {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json();
-    }).then(function (payload) {
+    return global.NineHttp.json(API_URL, {fetchOptions:{cache:'no-store'}}).then(function (payload) {
       if (!payload || payload.success === false) throw new Error('invalid response');
       return payload.data || payload;
     });
@@ -62,10 +55,7 @@
   // 2026-08-23: 분봉 온디맨드 조회 - /domestic-market-indicators/chart?market=&interval=
   function fetchChartInterval(market, interval) {
     var url = CHART_API_URL + '?market=' + encodeURIComponent(market) + '&interval=' + encodeURIComponent(interval);
-    return fetch(url, { cache: 'no-store' }).then(function (response) {
-      if (!response.ok) throw new Error('HTTP ' + response.status);
-      return response.json();
-    }).then(function (payload) {
+    return global.NineHttp.json(url, {fetchOptions:{cache:'no-store'}}).then(function (payload) {
       if (!payload || payload.success === false) throw new Error('invalid response');
       return payload.data || payload;
     });
@@ -524,7 +514,7 @@
     if (!isFinite(v) || v <= 0) return '-';
     if (v >= 1e8) return (v / 1e8).toFixed(2).replace(/\.?0+$/, '') + '억';
     if (v >= 1e4) return (v / 1e4).toFixed(1).replace(/\.0$/, '') + '만';
-    return Math.round(v).toLocaleString('ko-KR');
+    return global.NineUI.number(v, {round:true});
   }
 
   function volumeData(points) {

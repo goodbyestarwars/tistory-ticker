@@ -9,11 +9,7 @@
   'use strict';
   var memoDrawingProbe = null;
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   // ---- 차트 메모 (2026-10-03 사용자 요청: "로그인 안 하면 브라우저에, 로그인하면 DB에") ----
   // 차트의 봉을 눌러 그 날짜·가격에 메모를 단다. 핀으로 표시되고 누르면 내용·삭제가 보인다.

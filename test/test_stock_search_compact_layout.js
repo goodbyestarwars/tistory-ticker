@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 // Regression: search table + stock detail appear in ONE bordered card.
 // No automatic collapsing after selecting a stock. Run with Node.
 const assert = require('node:assert/strict');

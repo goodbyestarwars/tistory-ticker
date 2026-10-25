@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
 const source=fs.readFileSync('js/market-temp.js','utf8');let builds=0,value='';
 const container={querySelector(){return null},querySelectorAll(){return []},get innerHTML(){return value},set innerHTML(v){builds++;value=v}};

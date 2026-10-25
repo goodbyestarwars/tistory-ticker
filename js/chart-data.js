@@ -255,13 +255,7 @@
         loadingRanges[code] = true;
         status.textContent = '과거 데이터 불러오는 중…';
         fetchFlowChart(code, function (c) {
-          var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-          var timer = controller ? setTimeout(function () { controller.abort(); }, 50000) : null;
-          return fetch('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(c) + '?history=5y',
-            controller ? { signal: controller.signal } : {})
-            .then(function (r) { if (!r.ok) throw new Error('HISTORY_HTTP'); return r.json(); })
-            .then(function (r) { return r && r.data ? r.data : r; })
-            .finally(function () { if (timer) clearTimeout(timer); });
+          return global.NineAPI.data('https://goodbyestar.cloud/flow-chart/' + encodeURIComponent(c) + '?history=5y', {timeoutMs:50000});
         }, { adjust: '5y', noSession: true, force: true }).then(function (data) {
           if (data && data.daily && data.daily.length) { data.extendedHistory = !!data.historyAttempted; onData(data); }
           var current = parent.querySelector('.nine-chart-range-status');

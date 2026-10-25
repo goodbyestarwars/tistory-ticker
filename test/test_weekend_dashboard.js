@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm');
 const original = fs.readFileSync('js/home-weekly-report.js', 'utf8');

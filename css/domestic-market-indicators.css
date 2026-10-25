@@ -1,5 +1,5 @@
 .dmi-shell {
-  margin-top: 28px;
+
   color: #000;
 }
 /* 국내시장지표의 세 영역은 스킨의 상속 색상과 무관하게 검은색으로 통일한다.
@@ -84,7 +84,7 @@
 .dmi-subheading h3,
 .dmi-muted,
 .dmi-heading h2 { font-size: 24px; }
-.dmi-spot-quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin: 0 0 18px; }
+.dmi-spot-quotes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px;  }
 .dmi-spot-card { min-width: 0; border: 1px solid #e4eaf2; border-radius: 12px; background: rgb(255, 254, 252); padding: 14px 16px; box-sizing: border-box; }
 .dmi-spot-label { display: block; color: #64748b; font-size: 12px; font-weight: 600; }
 .dmi-spot-price { display: block; margin-top: 5px; color: #111827; font-size: 24px; line-height: 1.1; }
@@ -97,7 +97,7 @@
 .dmi-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 /* 2026-08-14 요청: 증시자금 6개 카드를 2줄x3개로 - 카드 폭이 좁아지는 대신 한 화면에 더
    많이 보인다. 차트 그리드(코스피/코스닥)는 카드가 넓어야 하는 콘텐츠라 계속 2열로 둔다. */
-.dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.dmi-fund-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr));  }
 .dmi-panel,
 .dmi-fund-card,
 .dmi-flow-card { border: 1px solid #e4eaf2; border-radius: 16px; background: rgb(255, 254, 252); padding: 16px; box-sizing: border-box; }
@@ -130,7 +130,7 @@
 .dmi-tabs { display: flex; gap: 6px; margin: 10px 14px; }
 .dmi-tab { border: 1px solid #e2e8f0; border-radius: 999px; background: #f8fafc; color: #000; padding: 4px 12px; cursor: pointer; font: inherit; font-size: 12px; font-weight: 600; }
 .dmi-tab.is-active { background: #222; border-color: #222; color: #fff; }
-.dmi-chart { position: relative; height: 230px; min-height: 230px; }
+.dmi-chart { position: relative;  min-height: 230px; }
 .dmi-chart canvas { touch-action: none; }
 .dmi-chart .dmi-drawing-layer { position: absolute; z-index: 3; inset: 0; width: 100%; height: 100%; pointer-events: none; touch-action: none; }
 .dmi-chart .dmi-drawing-layer.is-active { pointer-events: auto; cursor: crosshair; }
@@ -173,15 +173,14 @@
    구분한다(상승=빨강/하락=파랑, 사이트 공통 규칙을 "평균 대비"로 적용). */
 .dmi-mini-chart { display: block; width: 100%; height: 40px; margin: 8px 0 2px; }
 /* 글로벌시장지표의 평균 참고선과 동일한 주황색 실선으로 통일한다. */
-.dmi-mini-chart-avg { stroke: #c9701f; stroke-width: 1; stroke-dasharray: none; }
+
 .dmi-mini-chart-line { fill: none; stroke-width: 1.6; }
-.dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
-.dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
-.dmi-mini-chart.dmi-flat .dmi-mini-chart-line { stroke: #9ca3af; }
+
+
+
 .dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
 @media (max-width: 760px) {
-  .dmi-flow-grid,
-  .dmi-fund-grid { grid-template-columns: 1fr; }
+
   /* 선물 차트와 같은 모바일 흐름: 제목 → 조작 탭 → 차트. */
   .dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }
   .dmi-panel { border: 0; border-radius: 0; padding: 0; background: transparent; overflow: visible; }
@@ -190,7 +189,7 @@
   .dmi-tab,
   .dmi-tabs .dmi-draw-toggle,
   .dmi-tabs .dmi-draw-clear { padding: 4px 10px; font-size: 11px; }
-  .dmi-chart { height: 230px; min-height: 230px; border: 0; border-radius: 0; background: rgb(255, 254, 252); }
+  .dmi-chart {  min-height: 230px; border: 0; border-radius: 0; background: rgb(255, 254, 252); }
   .dmi-heading h2 { font-size: 21px; }
   .dmi-fund-card, .dmi-flow-card { border-radius: 13px; padding: 12px; }
 }
@@ -313,7 +312,7 @@ html.dark .dmi-market-status { color: var(--dk-mute) !important; }
    좌우 여백으로 코스피·코스닥을 분리한다. */
 .dmi-spot-quotes {
   gap: 0;
-  margin: 0 0 18px;
+
   border-top: 1px solid #d8d8d8;
   border-bottom: 1px solid #d8d8d8;
 }
@@ -354,10 +353,10 @@ html.dark .dmi-market-status { color: var(--dk-mute) !important; }
   border-radius: 4px;
 }
 .dmi-panel .de-draw-controls {
-  justify-content: flex-end;
+
   margin: -4px 0 8px;
 }
-.dmi-mini-chart-line { stroke-width: 1.2; }
+
 .dmi-mini-chart.dmi-positive .dmi-mini-chart-line { stroke: #d24f45; }
 .dmi-mini-chart.dmi-negative .dmi-mini-chart-line { stroke: #1261c4; }
 .dmi-mini-chart.dmi-flat .dmi-mini-chart-line { stroke: #9ca3af; }
@@ -435,8 +434,8 @@ html:not(.font-gothic) body #domestic-market-indicators .dmi-spot-section .dmi-c
 /* 증시자금 그래프는 전체 흐름이 상승이면 빨강, 하락이면 파랑으로 읽는다. */
 .dmi-mini-chart-line { stroke-width: 1.2; }
 .dmi-mini-chart-area { opacity: .10; }
-.dmi-mini-chart.dmi-positive .dmi-mini-chart-area { fill: #d24f45; }
-.dmi-mini-chart.dmi-negative .dmi-mini-chart-area { fill: #1261c4; }
+
+
 
 html.dark .dmi-section-collapse {
   background: transparent;
@@ -447,14 +446,8 @@ html.dark .dmi-section-collapse {
 @media (min-width: 761px) {
   /* 차트 탭은 왼쪽, 그리기 도구는 차트 바로 위 오른쪽으로 분리한다. */
   .dmi-panel { position: relative; }
-  .dmi-panel > .dmi-tabs:has(+ .de-draw-controls) { padding-right: 190px; }
-  .dmi-panel > .de-draw-controls {
-    position: absolute;
-    top: 29px;
-    right: 0;
-    z-index: 4;
-    margin: 0;
-  }
+
+
 }
 
 /* 2026-08-26: 국내 현물은 선물과 구분되는 표형 지수 요약으로 표시한다.

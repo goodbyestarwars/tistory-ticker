@@ -106,10 +106,24 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 
 ### 3.2 국내 종목·분석·검색
 
+브라우저의 정식 도메인 경로는 `skin-shell.js`의 `NineAPI`가 소유한다.
+국내 시세 `domesticQuotes`는 30코드 이하 `/domestic-quotes`, 이상 `/sector-quotes`를
+최대300개씩 순차 사용한다. 같은 네이버 원천·5초 캐시이며 원/주/% 단위다.
+GAS `?codes=`는 실패 시 명시적 대체 경로이고 `degraded/transportSource`를 남긴다.
+`time`은 조회 시각이므로 거래일로 해석하지 않으며 원천 기준일이 없으면 `dataDate:null`이다.
+차트는 `/flow-chart/{code}` → GAS `?action=flowChart`(VM 일봉 파생) 순서이며
+OHLC 유효성을 확인하고 대체임을 표시한다. 확장5년 조회는 기존 별도 이력 옵션을 유지한다.
+전략은 공개 `/strategy-scan` → GAS `?strategyScan=1`이며 같은 저장 파일의 공개 필드만
+반환한다. `scannedAt`을 보존하고 신규 스캔/공급자 조회를 실행하지 않는다.
+홈 온도·방향·환율은 증시온도 페이지와 같은 VM `/market-temp`의 score100/components를 사용한다.
+GAS 온도(℃)와 원천 구성이 달라 대체 점수로 쓰지 않으며 이전 온도 캐시는 재사용하지 않는다.
+GAS 펀더멘털(기본정보+재무 합성), 확정 수급(KIS UN)과 GAS 수급 대체는 서로 다른 계약이므로
+같은 URL로 치환하지 않는다. 인증된 batch·주문 경계도 유지한다.
+
 | Endpoint | 인증 | 캐시/갱신 | 비고 |
 |---|---|---|---|
 | `/quote?code=000000` | API 키 | VM 단기 LRU | 키움 기본정보 원본 가공 응답 |
-| `/sector-quotes?codes=...` | 없음 | 기존 시세 캐시·다운로드 잠금 공유 | 최대300코드·분당20회/IP·60개씩 최대4배치, 모니터링 직접 조회·GAS 장애 폴백, 새 타이머 없음 |
+| `/sector-quotes?codes=...` | 없음 | 기존 시세 캐시·다운로드 잠금 공유 | 최대300코드·분당20회/IP, 공통 국내 시세 클라이언트의 대량 조회, GAS 장애 폴백, 새 타이머 없음 |
 | `/domestic-quotes?codes=083650,006800` | 없음 | 종목별 5초·최대 300개, 다운로드 동시 1건 | 검색·호가 현재가. 최대 30코드·분당 60회/IP, 네이버 직접 조회(장외 NXT 규칙 유지), 타이머 없음 |
 | `/ohlc/{code}` | API 키 | VM 단기 LRU | 국내 일봉 |
 | `/ohlc-minute/{code}` | 없음 | VM 단기 LRU | 국내 분봉 |
@@ -127,6 +141,7 @@ PUT 요청 본문은 JSON 객체여야 하며, revision이 오래된 경우 임�
 | `/fundamentals/{code}` | API 키 | 배치 캐시 읽기 | 종목별 DART 재무제표 |
 | `/daily-scan-batch` | API 키 | VM 일일 스냅샷 | 차트 패턴·스윙 스냅샷 |
 | `/strategy-scan-batch` | API 키 | VM 일일 캐시 | 전략검색 후보군 |
+| `/strategy-scan` | 없음 | 같은 전략 파일 mtime 캐시·gzip | GAS와 같은 공개 projection, 분당30회/IP·원본 batch 인증 유지 |
 | `/week52-batch` | API 키 | VM 일일 캐시 | 52주 신고가·신저가 |
 | `/investor-trend?period=week&market=kospi` | 없음 | SQLite 백그라운드 폴러 | 코스피·코스닥 투자자 동향 |
 | `/market-rank?limit=5` | 없음 | 약 30초 | 거래량·상한가·하한가 |

@@ -54,7 +54,7 @@
   /* 14차(모바일 반응형 검토): overflow:hidden -> 가로 스크롤 허용. 1380px 데스크톱에선
      전부 들어가서 스크롤바가 아예 안 생기고, 모바일/좁은 창에서만 스와이프로 나머지
      카드에 접근할 수 있다(이전엔 넘친 카드를 볼 방법이 없었음 - 375px 실측 확인). */
-  overflow-x: auto;
+
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: thin;
@@ -94,7 +94,7 @@
 .qi-grid {
   flex: 1 1 auto;
   height: 100%;
-  display: grid;
+
   grid-auto-flow: column;
   grid-auto-columns: 200px;
   grid-template-rows: repeat(3, 1fr);
@@ -254,19 +254,19 @@ html.dark .qi-card-group {
 /* 11차: 등락률이 가격 옆(.qi-card-priceline 한 줄)으로 합쳐지면서 3행 -> 2행. */
 .qi-card-grid {
   width: 100%;
-  height: 100%;
+
   min-height: 0;
   padding: 3px 6px;
   cursor: grab;
-  display: grid;
+
   /* 12차: 차트 썸네일 34 -> 68px (사용자 요청: 지금의 2배) */
   grid-template-columns: 68px 1fr;
-  grid-template-rows: auto auto;
+
   column-gap: 6px;
   align-items: center;
 }
-.qi-card-grid .qi-card-top { grid-column: 2; grid-row: 1; }
-.qi-card-grid .qi-card-priceline { grid-column: 2; grid-row: 2; }
+.qi-card-grid .qi-card-top { grid-column: 2;  }
+.qi-card-grid .qi-card-priceline { grid-column: 2;  }
 .qi-card-grid .qi-card-chart { grid-column: 1; grid-row: 1 / span 2; align-self: stretch; margin-top: 0; }
 
 .qi-card-top {
@@ -320,7 +320,7 @@ html.dark .qi-card-group {
   white-space: nowrap;
 }
 .qi-card-featured .qi-card-price { font-size: 22px; }
-.qi-card-grid .qi-card-price { font-size: 13px; }
+
 
 .qi-card-change {
   font-weight: 600;
@@ -445,7 +445,7 @@ html.dark .qi-card-group {
    바꿔야 하는데, 이번 요청 범위 밖이라 일단 보류. */
 @media (max-width: 640px) {
   /* 14차: 모바일에선 리본이 화면 양끝에 붙으므로 라운드 제거, 컨트롤도 좀 더 컴팩트하게 */
-  .qi-wrap { padding: 6px 8px; gap: 6px; border-radius: 0; }
+  .qi-wrap { padding: 6px 8px; gap: 6px;  }
   .qi-controls { padding-left: 6px; }
   .qi-card-featured { width: 150px; }
   /* 14차: 좁은 화면에선 열 폭을 150px로 고정하고 넘치는 만큼 .qi-scroll의 가로

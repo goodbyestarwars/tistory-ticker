@@ -40,11 +40,7 @@
   var state = { selectedCode: null, selectedItem: null, quotes: {}, analyses: {}, requestId: 0, watchlistCollapsed: false };
   var mount = null;
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
   function escapeAttr(value) { return escapeHtml(value); }
   function stockIconUrl(code) {
     var iconCode = String(code || '').replace(/^US:/i, '').toUpperCase();
@@ -124,12 +120,7 @@
     return saved || (state.selectedItem && state.selectedItem.code === code ? state.selectedItem : null);
   }
   function fetchJson(url, options) {
-    return fetch(url, options || {}).then(function (response) {
-      return response.json().catch(function () { return {}; }).then(function (body) {
-        if (!response.ok) throw new Error(body.detail || body.message || ('HTTP ' + response.status));
-        return body;
-      });
-    });
+    return global.NineHttp.json(url, {fetchOptions:options, private:true});
   }
   function loadScript(src, marker) {
     if (global.ForeignFlow && marker === 'foreign-flow') return Promise.resolve(global.ForeignFlow);
@@ -796,7 +787,7 @@
     // 2026-09-15: 매물대가 종목분석과 같은 값이 나오도록 같은 일봉 조회(ForeignFlow.fetchFlowChart)를 쓴다.
     var chartPromise = loadScript(FOREIGN_FLOW_SCRIPT, 'foreign-flow').then(function (flowApi) {
       return flowApi.fetchFlowChart ? flowApi.fetchFlowChart(item.code)
-        : flowApi.fetchJson(GAS_URL + '?action=flowChart&code=' + encodeURIComponent(item.code));
+        : global.NineAPI.flowChart(item.code, {request:flowApi.fetchJson});
     }).catch(function () { return null; });
     var volumePromise = Promise.resolve(null);
     Promise.all([quotePromise, flowPromise, summaryPromise, volumePromise, chartPromise]).then(function (results) {
@@ -821,7 +812,7 @@
     var dailyChangeRate = quoteField(quote, ['changeRate', 'change_rate', 'change_rate_pct']);
     var dailyChangeClass = signClass(dailyChangeRate);
     if (analysis && analysis.loading) {
-      detail.innerHTML = '<div class="my-detail-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><strong>' + escapeHtml(name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
+      detail.innerHTML = '<div class="my-detail-loading">' + global.NineUI.spinner() + '<strong>' + escapeHtml(name) + '</strong><p>차트·수급·매물대 자료를 불러오는 중입니다...</p></div>' + buildHoldingForm(item, metrics);
       return;
     }
     var frameUrl = '/page/foreign-flow?code=' + encodeURIComponent(item.code) + '&name=' + encodeURIComponent(name);

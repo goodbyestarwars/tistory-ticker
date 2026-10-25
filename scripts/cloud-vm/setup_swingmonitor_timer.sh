@@ -40,11 +40,13 @@ Description=Fill T+5/T+10 outcomes for saved swing recommendations
 
 [Service]
 Type=oneshot
+TimeoutStartSec=35min
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
 # -w 1800: 잠금을 최대 30분만 기다린다. -E 76: 못 잡고 끝났을 때의 종료코드(deploy_check.sh가
 # 쓰는 값과 같은 뜻 - "잠금이 바빠서 건너뜀"). SuccessExitStatus로 실패가 아니라고 알려 준다.
-ExecStart=/usr/bin/flock -w 1800 -E 76 $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/monitor_swing_recommendations.py
+ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh swingmonitor $HOME_DIR/venv/bin/python $HOME_DIR/monitor_swing_recommendations.py
 SuccessExitStatus=76
 Nice=10
 CPUWeight=20

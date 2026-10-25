@@ -134,7 +134,7 @@
       return;
     }
 
-    resultBox.innerHTML = '<div class="pf-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>연기금 매매 데이터를 불러오는 중...</div>';
+    resultBox.innerHTML = '<div class="pf-loading">' + global.NineUI.spinner() + '연기금 매매 데이터를 불러오는 중...</div>';
 
     var requestId = ++searchRequestSeq; // 이 검색보다 늦게 도착하는 응답은 무시
     PensionFund.fetchPensionFund(stock.code)
@@ -161,23 +161,13 @@
     }
     if (inflightByCode[code]) return inflightByCode[code];
 
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    var p = fetch(GAS_TICKER_URL + '?action=pensionFund&code=' + encodeURIComponent(code), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
+    var p = global.NineHttp.json(GAS_TICKER_URL + '?action=pensionFund&code=' + encodeURIComponent(code), {timeoutMs:FETCH_TIMEOUT_MS})
       .then(function (data) {
-        if (timer) clearTimeout(timer);
         if (data && !data.error) cacheByCode[code] = { t: Date.now(), data: data };
         delete inflightByCode[code];
         return data;
       })
       .catch(function (err) {
-        if (timer) clearTimeout(timer);
         delete inflightByCode[code];
         throw err;
       });
@@ -228,7 +218,7 @@
 
   function fmtWon(n) {
     if (n == null || isNaN(n)) return '-';
-    return Math.round(n).toLocaleString('ko-KR') + '원';
+    return global.NineUI.number(n, {round:true}) + '원';
   }
   function fmtSignedWon(n) {
     if (n == null || isNaN(n)) return '-';
@@ -240,11 +230,7 @@
     return (n >= 0 ? '+' : '') + n.toFixed(2) + '%';
   }
 
-  function escapeHtml(s) {
-    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
-    });
-  }
+  function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
   function escapeAttr(s) { return escapeHtml(s); }
 
   var PensionFund = {

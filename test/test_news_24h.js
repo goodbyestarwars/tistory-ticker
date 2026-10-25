@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('fs'),vm=require('vm'),assert=require('assert');
 const now=Date.parse('2026-10-08T00:00:00Z');
 class FixedDate extends Date { constructor(...a){super(...(a.length?a:[now]));} static now(){return now;} }

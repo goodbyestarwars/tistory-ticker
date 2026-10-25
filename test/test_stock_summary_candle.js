@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const document={readyState:'loading',addEventListener(){}};
 let win={addEventListener(){}};

@@ -23,6 +23,8 @@ sudo mkdir -p /etc/systemd/system/kiwoom-deploy.service.d
 sudo tee /etc/systemd/system/kiwoom-deploy.service.d/killmode-process.conf > /dev/null << 'CONFEOF'
 [Service]
 KillMode=process
+TimeoutStartSec=30min
+TimeoutStopSec=35
 CONFEOF
 
 sudo systemctl daemon-reload

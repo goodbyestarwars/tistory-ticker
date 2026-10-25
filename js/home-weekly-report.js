@@ -36,39 +36,21 @@
     }
   }
   function fetchReport() {
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timeoutId = setTimeout(function () {
-      if (controller) controller.abort();
-    }, FETCH_TIMEOUT_MS);
-    var options = { cache: 'no-store' };
-    if (controller) options.signal = controller.signal;
-    return fetch(API_URL, options).then(function (response) {
-      if (!response.ok) throw new Error('weekly report ' + response.status);
-      return response.json();
-    }).then(function (payload) {
-      clearTimeout(timeoutId);
+    return global.NineHttp.json(API_URL, {timeoutMs:FETCH_TIMEOUT_MS, fetchOptions:{cache:'no-store'}}).then(function (payload) {
       var data = payload && payload.data;
       if (data && data.gold && (data.gold.price != null || (data.gold.chart && data.gold.chart.length))) return payload;
-      return fetch(GOLD_FALLBACK_URL, { cache: 'no-store' }).then(function (response) {
-        if (!response.ok) throw new Error('gold fallback ' + response.status);
-        return response.json();
-      }).then(function (goldPayload) {
+      return global.NineHttp.json(GOLD_FALLBACK_URL, {timeoutMs:FETCH_TIMEOUT_MS, fetchOptions:{cache:'no-store'}}).then(function (goldPayload) {
         var rows = goldPayload && goldPayload.data;
         var gold = Array.isArray(rows) ? rows.filter(function (row) { return row && row.symbol === 'GOLD'; })[0] : null;
         if (gold && data) { gold.analysis = rangeAnalysis(gold, '1년 금 시세 데이터가 부족합니다.'); data.gold = gold; }
         return payload;
       }).catch(function () { return payload; });
     }, function (error) {
-      clearTimeout(timeoutId);
       throw error;
     });
   }
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (ch) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
   function num(value) {
     if (value == null || value === '') return null;
     var parsed = Number(value);

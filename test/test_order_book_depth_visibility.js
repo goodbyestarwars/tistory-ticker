@@ -1,6 +1,8 @@
 // Regression: current-price highlight must not replace or hide an order-book level.
 // Run: node test/test_order_book_depth_visibility.js
 'use strict';
+require('./helpers/common_runtime');
+
 
 const assert = require('assert');
 const fs = require('fs');

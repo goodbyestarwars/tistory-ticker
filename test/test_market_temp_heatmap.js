@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 /* 증시온도 히트맵(js/market-temp.js) 색·범례·증감 검증 - 실행: node test/test_market_temp_heatmap.js
  * js/market-temp.js 는 IIFE 라 필요한 함수만 소스에서 잘라 vm 에서 실행한다(함수 본문은 그대로). */
 const fs = require('fs'), vm = require('vm'), assert = require('assert');
@@ -32,7 +34,7 @@ const code = [
 ].join('\n');
 // 소스의 SCORE_CUT_ 선언이 위 값과 같은지(복붙 오류 방지)
 assert.ok(src.indexOf('var SCORE_CUT_ = { fear: 30, greed: 70 };') >= 0);
-const sb = {};
+const sb = {global:globalThis};
 vm.runInNewContext(code + '\nthis.t = { scoreTone_, zoneColor_, marketMood_, zoneRangeText_, buildSparklineContent, historyDays_ };', sb);
 const t = sb.t;
 

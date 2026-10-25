@@ -567,7 +567,7 @@ html.dark #order-book .ob-trade-direction.ob-flat { color: var(--dk-sub) !import
    왼쪽 매수(빨강)·오른쪽 매도(파랑). 잔량 막대는 가운데에서 바깥쪽으로 뻗는다. */
 #order-book .ob-table-pairs { display: block; padding: 4px 10px 8px; }
 #order-book .ob-pair-head { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; padding: 6px 8px; font-size: 11px; font-weight: 700; }
-#order-book .ob-pair-head span:last-child { text-align: right; }
+
 #order-book .ob-pair { display: grid; grid-template-columns: 1fr 1fr; column-gap: 6px; }
 #order-book .ob-pair .ob-row {
   position: relative; display: flex; align-items: center; justify-content: space-between; gap: 6px;

@@ -1,5 +1,7 @@
 // 매물대 분석 패널(2026-10-22 줄임): 머리글은 짧게(긴 설명은 title), 상태는 첫 문장만(전체는 title), 안내 문구 한 줄.
 'use strict';
+require('./helpers/common_runtime');
+
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const VP = require('../js/volume-profile-analysis.js');

@@ -641,7 +641,7 @@
     if (Math.abs(n) >= 1000000000) return scaled(1000000000, 'B');
     if (Math.abs(n) >= 1000000) return scaled(1000000, 'M');
     if (Math.abs(n) >= 1000) return scaled(1000, 'K');
-    return Math.round(n).toLocaleString('ko-KR');
+    return global.NineUI.number(n, {round:true});
   }
 
   // ---- 시리즈 부품(옵션·호출 순서는 두 화면이 쓰던 그대로 - 화면은 필요한 순서로 호출만 한다) ----
@@ -885,7 +885,7 @@
   function priceText(value, isUs) {
     var n = Number(value);
     if (!Number.isFinite(n)) return '';
-    return isUs ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : Math.round(n).toLocaleString('ko-KR');
+    return isUs ? '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : global.NineUI.number(n, {round:true});
   }
 
   function mergeOptions(a, b) {

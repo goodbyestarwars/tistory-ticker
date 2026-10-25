@@ -60,11 +60,7 @@
     set: function (value) { safeStorageSet(STORAGE_KEY, value); }
   };
 
-  function escapeHtml(value) {
-    return String(value == null ? '' : value).replace(/[&<>"']/g, function (char) {
-      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char];
-    });
-  }
+  function escapeHtml(value) { return global.NineUI.escapeHtml(value); }
 
   function safeStorageGet(key) {
     try { return localStorage.getItem(key); } catch (err) { return null; }
@@ -143,7 +139,7 @@
   function myCardHtml() {
     return '<article class="card home-mini-card home-my-card">'
       + '<div class="home-card-heading"><div><strong>MY</strong><span>관심종목</span></div></div>'
-      + '<div class="home-my-list" id="homeMyList"><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>관심종목을 확인하는 중...</p></div>'
+      + '<div class="home-my-list" id="homeMyList"><p class="home-card-state">' + global.NineUI.spinner() + '관심종목을 확인하는 중...</p></div>'
       + '<button type="button" class="home-card-more" data-open-global-watchlist>관심종목 열기 →</button>'
       + '</article>';
   }
@@ -1044,8 +1040,7 @@
     ];
     Promise.all(months.map(function (period) {
       if (window.EarningsCalendarFeed) return window.EarningsCalendarFeed.month(period.year, period.month);
-      return fetch(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month)
-        .then(function (response) { if (!response.ok) throw new Error('미국 일정 응답 오류'); return response.json(); })
+      return global.NineHttp.json(EARNINGS_CALENDAR_URL + '?year=' + period.year + '&month=' + period.month, {timeoutMs:15000})
         .then(function (payload) { return Array.isArray(payload) ? payload : (payload && payload.data) || []; })
         .catch(function () { return []; });
     })).then(function (groups) {
@@ -1060,22 +1055,10 @@
 
   function loadDomesticDisclosures() {
     setDisclosureHeader('domestic', '최근 7일');
-    var controller = 'AbortController' in global ? new AbortController() : null;
-    var timer = controller ? setTimeout(function () { controller.abort(); }, 12000) : null;
-    var requestOptions = { credentials: 'include', cache: 'no-store' };
-    if (controller) requestOptions.signal = controller.signal;
-    fetch(WATCHLIST_DISCLOSURES_URL, requestOptions)
-      .then(function (response) {
-        if (response.status === 401) {
-          var loginError = new Error('Google login required');
-          loginError.loginRequired = true;
-          throw loginError;
-        }
-        if (!response.ok) throw new Error('공시 응답 오류');
-        return response.json();
-      })
+    global.NineHttp.json(WATCHLIST_DISCLOSURES_URL, {
+      timeoutMs:12000, private:true, fetchOptions:{credentials:'include', cache:'no-store'}
+    })
       .then(function (payload) {
-        if (timer) clearTimeout(timer);
         var data = payload && payload.data ? payload.data : {};
         var items = Array.isArray(data.items) ? data.items : [];
         var watchlistCount = Number(data.watchlistCount || 0);
@@ -1085,8 +1068,7 @@
           : '국내 관심종목을 등록하면 최근 한 주 공시가 표시됩니다.');
       })
       .catch(function (error) {
-        if (timer) clearTimeout(timer);
-        if (error && error.loginRequired) {
+        if (error && error.status === 401) {
           setDisclosureHeader('domestic', '로그인 필요');
           renderDisclosureLogin();
           return;

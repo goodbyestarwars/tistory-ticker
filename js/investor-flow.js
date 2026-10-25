@@ -308,17 +308,14 @@
       var hit = state.data[market];
       if (!force && hit && Date.now() - hit._at < TTL_MS) return Promise.resolve();
       state.loading = true; renderState();
-      var controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-      var timeout = controller ? setTimeout(function () { controller.abort(); }, 15000) : null;
-      return fetch(api + '/investor-trend/history?market=' + market + '&days=' + HISTORY_DAYS, controller ? { signal: controller.signal } : {})
-        .then(function (r) { if (!r.ok) throw new Error('http ' + r.status); return r.json(); })
+      return global.NineHttp.json(api + '/investor-trend/history?market=' + market + '&days=' + HISTORY_DAYS, {timeoutMs:15000})
         .then(function (json) {
           if (!json || json.success !== true || !json.data || !Array.isArray(json.data.rows)) throw new Error('bad payload');
           json.data._at = Date.now();
           state.data[market] = json.data; state.error = null;
         })
         .catch(function (e) { state.error = e; })
-        .then(function () { if (timeout) clearTimeout(timeout); state.loading = false; renderAll(); });
+        .then(function () { state.loading = false; renderAll(); });
     }
 
     root.addEventListener('click', function (event) {

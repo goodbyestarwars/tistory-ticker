@@ -21,7 +21,7 @@
   overflow: hidden;
   border-width: 1px;
   border-color: #dfe5e8 !important;
-  background: rgb(255, 254, 252);
+
   box-shadow: 0 3px 10px rgba(31,41,55,.05);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }
@@ -318,7 +318,7 @@ html.dark .de-chart-modal-body { background: var(--dk-card); }
 /* Hero alignment: the gauge follows the main reading, while the signal stays centered. */
 #market-temp .mt-wrap.mt-tone-neutral .mt-grade-pill { display: none; }
 #market-temp .mt-hero-row { display: flex; flex-direction: column; align-items: stretch; gap: 18px; }
-#market-temp .mt-hero { width: 100%; flex-basis: auto; }
+#market-temp .mt-hero {  flex-basis: auto; }
 #market-temp .mt-gauge-side {
   flex: 0 0 auto !important;
   width: 100%;

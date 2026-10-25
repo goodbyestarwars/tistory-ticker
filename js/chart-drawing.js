@@ -218,7 +218,7 @@
 
   function measurePriceText(price) {
     var abs = Math.abs(price);
-    return abs >= 1000 ? Math.round(price).toLocaleString('ko-KR') : String(Math.round(price * 100) / 100);
+    return abs >= 1000 ? global.NineUI.number(price, {round:true}) : String(Math.round(price * 100) / 100);
   }
 
   function measureLabelLines(m, start, end) {

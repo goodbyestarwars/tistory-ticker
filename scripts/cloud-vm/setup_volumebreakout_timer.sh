@@ -39,9 +39,11 @@ Description=Kiwoom volume breakout scan (gap-up + half of previous-day volume wi
 
 [Service]
 Type=oneshot
+TimeoutStartSec=6min
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
-ExecStart=$HOME_DIR/venv/bin/python $HOME_DIR/volume_breakout_scan.py
+ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh volumebreakout $HOME_DIR/venv/bin/python $HOME_DIR/volume_breakout_scan.py
 SERVICEEOF
 
 sudo tee /etc/systemd/system/kiwoom-volumebreakout.timer > /dev/null << TIMEREOF

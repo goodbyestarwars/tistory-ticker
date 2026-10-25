@@ -14,9 +14,16 @@ on:
       - 'gas/appsscript.json'
   workflow_dispatch: {}
 
+permissions:
+  contents: read
+concurrency:
+  group: gas-deployment
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 

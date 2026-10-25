@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // 체크포인트 '지금 할 것 / 하지 말아야 할 것' 규칙 시나리오(2026-10-23). 값이 없으면 항목을 빼고 지어내지 않는다.
 const fs=require('fs'),vm=require('vm'),assert=require('node:assert/strict');
 const src=fs.readFileSync('js/market-temp.js','utf8').replace('global.MarketTemp = MarketTemp;','global.MarketTemp = MarketTemp; global.t={checkpointFacts_};');

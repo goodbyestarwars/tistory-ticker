@@ -12,6 +12,7 @@ os.replace로 원자화해 main.py의 /daily-scan-batch가 쓰기 도중 손상�
 
 import fcntl
 import json
+from snapshot_io import atomic_json
 import os
 
 OUTPUT_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'daily_scan_cache.json')
@@ -32,9 +33,6 @@ def update(mutate):
                 with open(OUTPUT_FILE, 'r', encoding='utf-8') as f:
                     existing = json.load(f)
             mutate(existing)
-            tmp_path = OUTPUT_FILE + '.tmp'
-            with open(tmp_path, 'w', encoding='utf-8') as f:
-                json.dump(existing, f, ensure_ascii=False)
-            os.replace(tmp_path, OUTPUT_FILE)
+            atomic_json(OUTPUT_FILE, existing)
         finally:
             fcntl.flock(lock_f, fcntl.LOCK_UN)

@@ -1,7 +1,7 @@
 /**
  * 섹터별 실시간 시세 대시보드 v4
  * window.SECTOR_MAP(sectors-v3.js: 섹터명 -> {name, code, market} 배열)을 읽어
- * GAS 프록시에 배치 조회 후 섹터 카드로 렌더링한다.
+ * 공통 국내 시세 경로에 배치 조회 후 섹터 카드로 렌더링한다.
  * v3 대비: 종목 항목이 객체(code 내장)라 krx_map.js 없이 동작하고,
  * 시장 구분은 카드에서 KOSPI/KOSDAQ 텍스트 뱃지로 구분한다.
  * v2 형식(종목명 문자열 배열 + KRX_MAP)도 하위 호환으로 지원.
@@ -19,10 +19,8 @@
     + ' aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>';
   // GAS 배치 조회는 실측 8.6~9.2초: 8초 제한은 정상 응답도 버렸다.
   var FETCH_TIMEOUT_MS = 20000;
-  // GAS쪽 cacheKeyFor가 200자 넘는 키를 MD5 해시하므로 키 길이 제약은 없어졌고,
-  // 남은 제약은 URL 길이와 브라우저 동시연결(도메인당 6개)뿐이다.
-  // 60개 × 4배치면 전 종목이 한 라운드에 병렬 조회된다 (25개 × 10배치 = 2라운드였음).
-  var BATCH_SIZE = 60;
+  // VM/GAS의 공통 도메인 계약에 맞춰 최대 300개씩 순차 조회한다.
+  var BATCH_SIZE = 300;
   // 카드에 현재 편성된 종목과 별도로, 같은 업종에서 함께 비교할 만하지만
   // 현재 카드에는 넣지 않은 추천 관련 종목을 흐리게 보여준다.
   var RELATED_SECTOR_RECOMMENDATIONS = {
@@ -67,56 +65,24 @@
   }
 
   function fetchBatch(codes) {
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineAPI.domesticQuotes(codes, {timeoutMs:FETCH_TIMEOUT_MS});
   }
 
   function fetchTickerData(codes) {
     codes = codes.filter(function (code, i) { return codes.indexOf(code) === i; });
     if (!codes.length) return Promise.resolve([]);
-    var batches = [];
-    for (var i = 0; i < codes.length; i += 300) batches.push(codes.slice(i, i + 300));
-    var request = Promise.resolve([]);
-    batches.forEach(function (batch) {
-      request = request.then(function (all) {
-        var controller = 'AbortController' in global ? new AbortController() : null;
-        var timer = controller ? setTimeout(function () { controller.abort(); }, 8000) : null;
-        return fetch('https://goodbyestar.cloud/sector-quotes?codes=' + batch.join(','), controller ? { signal: controller.signal } : {})
-          .then(function (response) { if (!response.ok) throw new Error('시세 응답 오류'); return response.json(); })
-          .then(function (response) {
-            var rows = response.data || response;
-            if (!Array.isArray(rows) || !rows.length) throw new Error('시세 응답 없음');
-            // 시세가 없는 행은 카드에서 대기 상태로 보존하고 기존 실시간 연결이 채운다.
-            return all.concat(rows);
-          }).finally(function () { if (timer) clearTimeout(timer); });
-      });
-    });
-    return request.catch(function () { return fetchGasTickerData(codes); });
+    return fetchBatchedQuotes(codes);
   }
 
-  function fetchGasTickerData(codes) {
+  function fetchBatchedQuotes(codes) {
     var batches = [];
     for (var i = 0; i < codes.length; i += BATCH_SIZE) {
       batches.push(codes.slice(i, i + BATCH_SIZE));
     }
-    return Promise.all(batches.map(function (batch) {
+    return batches.reduce(function (chain, batch) {
+      return chain.then(function (results) {
       // 실패 또는 부분 응답일 때 누락 코드만 한 번 복구한다. 전체 풀 재조회는 하지 않는다.
-      return SectorDashboard.fetchBatch(batch).catch(function (err) {
+        return SectorDashboard.fetchBatch(batch).catch(function (err) {
         logError('[sector-dashboard] 배치 조회 실패', err);
         return [];
       }).then(function (rows) {
@@ -134,8 +100,9 @@
           logError('[sector-dashboard] 누락 시세 재조회 실패', err);
           return rows;
         });
+      }).then(function (rows) { return results.concat([rows]); });
       });
-    })).then(function (results) {
+    }, Promise.resolve([])).then(function (results) {
       var rows = results.reduce(function (acc, list) { return acc.concat(list || []); }, []);
       if (codes.length && !rows.length) throw new Error('종목 시세를 불러오지 못했습니다.');
       return rows;
@@ -669,8 +636,7 @@
   }
 
   function fetchMarketAnalysis() {
-    return fetch(GAS_TICKER_URL + '?marketAnalysis=1')
-      .then(function (r) { return r.ok ? r.json() : null; })
+    return global.NineHttp.json(GAS_TICKER_URL + '?marketAnalysis=1', {timeoutMs:15000})
       .then(function (data) { return data && data.analysis; })
       .catch(function () { return null; });
   }
@@ -694,7 +660,7 @@
 
     if (!codes.length) return;
 
-    container.innerHTML = '<div class="sector-loading"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>시세 불러오는 중...</div>';
+    container.innerHTML = '<div class="sector-loading">' + global.NineUI.spinner() + '시세 불러오는 중...</div>';
 
     // AI 시황분석(Groq 캐시 미스 시 수 초)이 시세 표시를 막지 않게 분리:
     // 시세가 오면 즉시 그리고, AI는 도착하는 대로 맨 위에 끼워넣는다.

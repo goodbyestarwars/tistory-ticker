@@ -1,4 +1,6 @@
 'use strict';
+require('./helpers/common_runtime');
+
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const source=fs.readFileSync('js/stock-search.js','utf8');
 function fixture(){

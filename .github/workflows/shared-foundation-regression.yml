@@ -8,6 +8,11 @@ on:
       - 'scripts/cloud-vm/scan_inputs.py'
       - 'scripts/cloud-vm/scan_prereq.py'
       - 'scripts/cloud-vm/kiwoom_market.py'
+      - 'scripts/cloud-vm/scheduled_job.py'
+      - 'scripts/cloud-vm/market_calendar.py'
+      - 'scripts/cloud-vm/main.py'
+      - 'scripts/cloud-vm/setup_*_timer.sh'
+      - 'scripts/cloud-vm/deploy_check.sh'
       - 'test/**'
       - '.github/workflows/shared-foundation-regression.yml'
 permissions:
@@ -34,10 +39,13 @@ jobs:
       - name: Scan freshness, fallback, changed rows, timing and Linux cache locks
         env:
           PYTHONPATH: scripts/cloud-vm:test
-        run: python -m unittest test_scan_inputs test_scan_prereq test_daily_scan_timings test_kiwoom_market test_scan_holiday_skip test_daily_scan_cache test_foreign_flow_timeouts
+        run: python -m unittest test_scan_inputs test_scan_prereq test_daily_scan_timings test_kiwoom_market test_scan_holiday_skip test_daily_scan_cache test_foreign_flow_timeouts test_scheduled_job test_scan_timer_schedule test_schedule_health test_strategy_public_contract test_snapshot_io
       - name: HTTP lifecycle and common chart engine
         run: |
           node test/test_http_client.js
+          node test/test_shared_ui_api.js
+          node test/test_home_market_contract.js
+          node test/test_crypto_shared_quotes.js
           node test/test_chart_core.js
       - name: Page consumer refresh and partial failure behavior
         run: |

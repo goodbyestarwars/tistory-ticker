@@ -1,3 +1,5 @@
+
+require('./helpers/common_runtime');
 // 시장 브리핑(07:00 서버 확정) 화면 + 장중 갱신 레인 계약 (2026-10-23).
 // 브라우저는 신호를 계산하지 않고 서버 스냅샷을 그리기만 한다. 갱신은 국내 정규장 단계별 레인으로 나뉜다.
 const fs = require('fs'), vm = require('vm'), assert = require('node:assert/strict');

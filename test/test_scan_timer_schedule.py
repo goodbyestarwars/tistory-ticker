@@ -58,20 +58,20 @@ class ScanTimerScheduleTest(unittest.TestCase):
         for name in EXPECTED:
             with open(os.path.join(CLOUD_VM, 'setup_%s_timer.sh' % name), encoding='utf-8') as handle:
                 source = handle.read()
-            if name == 'dailyscan':
-                self.assertIn('ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python ', source, name)
-            else:
-                self.assertIn('ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh ', source, name)
+            self.assertIn('ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh ' + name + ' ', source, name)
+            self.assertIn('TimeoutStartSec=12h', source, name)
+            self.assertIn('TimeoutStopSec=35', source, name)
             for line in ('Nice=10', 'CPUWeight=20', 'IOSchedulingClass=idle'):
                 self.assertIn(line + '\n', source, name)
         with open(os.path.join(CLOUD_VM, 'run_after_daily.sh'), encoding='utf-8') as handle:
             runner = handle.read()
-        self.assertIn('flock -w 21600 9', runner)
-        self.assertIn('scan_prereq.py', runner)
+        self.assertIn('scheduled_job.py', runner)
+        self.assertIn('"$@"', runner)
         with open(os.path.join(CLOUD_VM, 'deploy_check.sh'), encoding='utf-8') as handle:
             deploy = handle.read()
-        self.assertIn('flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/rescan_patterns.py"', deploy)
-        self.assertIn('flock "$APP_DIR/.scan_serial.lock" nice -n 10 "$PYTHON" "$APP_DIR/strategy_scan.py"', deploy)
+        self.assertIn('scheduled_job.py" refresh-pattern', deploy)
+        self.assertIn('scheduled_job.py" refresh-strategy', deploy)
+        self.assertIn('scheduled_job.py" maintenance', deploy)
         # 이미 몰려 떠 있던 스캔은 새 유닛 설치 전에 한 번 멈추고, 돌고 있지 않으면 건드리지 않는다.
         start = deploy.index('stop_piled_up_scans_once() {')
         body = deploy[start:deploy.index('\n}\n', start)]
