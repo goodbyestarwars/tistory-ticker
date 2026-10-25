@@ -76,13 +76,17 @@ class InstrumentationContractTest(unittest.TestCase):
         self.assertIn("timings['loop'] += time.perf_counter() - loop_started", self.source)
 
     def test_both_api_calls_are_measured(self):
-        self.assertIn("timings['ohlcApi'] +=", self.source)
-        self.assertIn("timings['flowApi'] +=", self.source)
+        with open(os.path.join(os.path.dirname(SOURCE), 'scan_inputs.py'), encoding='utf-8') as handle:
+            inputs = handle.read()
+        self.assertIn("self.measured('ohlcApi'", inputs)
+        self.assertIn("self.measured('flowApi'", inputs)
+        self.assertIn('self.timings[key] += time.perf_counter() - started', inputs)
 
     def test_both_commits_are_measured(self):
         """종목마다 커밋을 두 번 한다 - 308MB SQLite에 fsync가 종목당 2회다."""
-        self.assertIn("timings['ohlcSave'] +=", self.source)
-        self.assertIn("timings['flowSave'] +=", self.source)
+        with open(os.path.join(os.path.dirname(SOURCE), 'scan_inputs.py'), encoding='utf-8') as handle:
+            inputs = handle.read()
+        self.assertIn("self.measured('flowSave' if flow else 'ohlcSave', save)", inputs)
 
     def test_summary_is_logged_periodically(self):
         self.assertIn('log(format_timings(timings, i + 1))', self.source)

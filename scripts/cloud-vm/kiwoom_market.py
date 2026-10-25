@@ -5,6 +5,7 @@ gas/ticker-proxy.gs의 fetchDailyOhlc_/getForeignFlow(네이버 크롤링)를 �
 공식 키움/KIS API 버전 - daily_scan.py(패턴/눌림목/투자시그널 배치)가 사용한다."""
 
 import logging
+import math
 import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
@@ -282,7 +283,7 @@ def _frgn_by_date_from_ka10008(frgn_res):
     return out
 
 
-def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days=FLOW_DEFAULT_DAYS):
+def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days=FLOW_DEFAULT_DAYS, strict=False):
     """KIS 종목별투자자매매동향(일별)(FHPTJ04160001, FID_COND_MRKT_DIV_CODE=UN)로 종가/거래량/
     개인/기관/외국인을 채운다. 2026-07-19 실측(005930): UN(KRX+NXT 통합)으로 조회하니 종가·
     거래량·개인·기관이 Toss/키움HTS와 정확히 일치했고, 외국인은 frgn_reg_ntby_qty(등록
@@ -324,6 +325,16 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_p
     # 여기서 처음 필요해진다. 위 페이징이 도는 동안 ka10008은 병렬로 끝나 있다.
     frgn_by_date = frgn_by_date_provider()
     out = []
+    def quantity(row, key):
+        value = row.get(key)
+        # A missing scanner quantity must not become a confirmed zero.
+        if strict:
+            try:
+                number = float(str(value).replace(',', '').replace('+', ''))
+                return number if math.isfinite(number) else None
+            except (ValueError, TypeError):
+                return None
+        return to_num(value)
     for dt in sorted(rows_by_date.keys(), reverse=True)[:target_days]:
         r = rows_by_date[dt]
         frgn_row = frgn_by_date.get(dt)
@@ -332,9 +343,9 @@ def _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_p
             'close': abs(to_num(r.get('stck_clpr'))),
             'change_pct': to_num(r.get('prdy_ctrt')),
             'volume': abs(to_num(r.get('acml_vol'))),
-            'inst_net': to_num(r.get('orgn_ntby_qty')),
-            'foreign_net': to_num(r.get('frgn_reg_ntby_qty')),
-            'ind_net': to_num(r.get('prsn_ntby_qty')),
+            'inst_net': quantity(r, 'orgn_ntby_qty'),
+            'foreign_net': quantity(r, 'frgn_reg_ntby_qty'),
+            'ind_net': quantity(r, 'prsn_ntby_qty'),
             'foreign_shares': abs(to_num(frgn_row.get('poss_stkcnt'))) if frgn_row else None,
             'foreign_ratio': to_num(frgn_row.get('wght')) if frgn_row else None,
         })
@@ -358,7 +369,7 @@ def _remerge_foreign_holdings(rows, frgn_by_date):
     return rows
 
 
-def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days):
+def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days, evidence=None):
     """_daily_rows_from_kis()를 호출하되, KIS가 실패하면(특히 00:00~15:40 TIME LIMIT) 키움
     폴백으로 곧장 넘어가는 대신 최근(_KIS_SUCCESS_TTL_SEC 이내) 성공했던 KIS 결과를 먼저
     재사용한다 - 과거 확정일 데이터는 안 바뀌므로 몇 시간 지난 캐시라도 키움 폴백(NXT
@@ -369,8 +380,15 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
     conn = db_schema.get_conn()
     try:
         try:
-            rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days)
+            if evidence is None:
+                rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days)
+            else:
+                rows = _daily_rows_from_kis(kis_appkey, kis_appsecret, code, end_dt, frgn_by_date_provider, target_days, strict=True)
+                if any(row.get(key) is None for row in rows for key in ('ind_net', 'foreign_net', 'inst_net')):
+                    raise RuntimeError('KIS confirmed flow incomplete')
             db_schema.upsert_kis_flow_cache(conn, code, target_days, rows, datetime.now(timezone.utc).isoformat())
+            if evidence is not None:
+                evidence.update(source='kis-un', cached=False)
             return rows
         except Exception as e:
             cached_rows, updated_at = db_schema.load_kis_flow_cache(conn, code, target_days)
@@ -380,6 +398,8 @@ def _daily_rows_from_kis_with_fallback_cache(kis_appkey, kis_appsecret, code, en
             if age_sec >= _KIS_SUCCESS_TTL_SEC:
                 raise
             logger.warning('KIS 실패(%s), %.0f분 전 성공 캐시로 재사용(키움 폴백 대신): %s', code, age_sec / 60, e)
+            if evidence is not None:
+                evidence.update(source='kis-un-cache', cached=True, collectedAt=updated_at)
             return _remerge_foreign_holdings(cached_rows, frgn_by_date_provider())
     finally:
         conn.close()
@@ -448,6 +468,34 @@ def _merge_live_row(out, live_row, today_str):
             out[0]['ind_net'] = confirmed_ind_net
     else:
         out.insert(0, dict(live_row, date=today_str, foreign_shares=None, foreign_ratio=None))
+
+
+def fetch_confirmed_scan_flow(token, code, basis_date, kis_appkey=None, kis_appsecret=None, target_days=25):
+    """Nightly scanner input: confirmed daily quantities, without holdings/live TRs.
+
+    The interactive API keeps fetch_foreign_inst_daily(). KIS uses the same UN
+    fields and pagination. A KIS failure uses its existing 20h cache, then the
+    documented Kiwoom (KRX only) fallback. Never merge a provisional live row.
+    Consumers must validate basis_date before saving or generating signals.
+    """
+    evidence = {'source': 'kiwoom-krx-fallback', 'cached': False}
+    end_dt = basis_date.replace('-', '')
+    if kis_appkey and kis_appsecret:
+        try:
+            rows = _daily_rows_from_kis_with_fallback_cache(
+                kis_appkey, kis_appsecret, code, end_dt, lambda: {}, target_days,
+                evidence=evidence)
+            return rows, evidence
+        except Exception:
+            logger.warning('scan flow KIS/cache unavailable (%s); using Kiwoom KRX fallback', code)
+    # ka10059 supplies confirmed individual quantities for the fallback only.
+    # ka10008 holdings are not used by invest_signal/swing_model.
+    k59 = _fetch_ka10059_rows(token, code, end_dt)
+    rows = _daily_rows_from_kiwoom(token, code, end_dt, k59, {}, target_days)
+    confirmed_individual = _individual_by_date_from(k59)
+    for row in rows:
+        row['ind_net'] = confirmed_individual.get(row['date'].replace('-', ''))
+    return rows, evidence
 
 
 def fetch_foreign_inst_daily(token, code, kis_appkey=None, kis_appsecret=None, target_days=FLOW_DEFAULT_DAYS):

@@ -1,0 +1,50 @@
+name: Shared HTTP and nightly scan regression
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'js/**'
+      - 'scripts/cloud-vm/daily_scan.py'
+      - 'scripts/cloud-vm/scan_inputs.py'
+      - 'scripts/cloud-vm/scan_prereq.py'
+      - 'scripts/cloud-vm/kiwoom_market.py'
+      - 'test/**'
+      - '.github/workflows/shared-foundation-regression.yml'
+permissions:
+  contents: read
+concurrency:
+  group: shared-foundation-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Scan freshness, fallback, changed rows, timing and Linux cache locks
+        env:
+          PYTHONPATH: scripts/cloud-vm:test
+        run: python -m unittest test_scan_inputs test_scan_prereq test_daily_scan_timings test_kiwoom_market test_scan_holiday_skip test_daily_scan_cache test_foreign_flow_timeouts
+      - name: HTTP lifecycle and common chart engine
+        run: |
+          node test/test_http_client.js
+          node test/test_chart_core.js
+      - name: Page consumer refresh and partial failure behavior
+        run: |
+          node test/test_market_temp_ai_comments.js
+          node test/test_market_temp_briefing.js
+          node test/test_market_temp_checkpoint.js
+          node test/test_market_temp_refresh.js
+          node test/test_sector_card_loading.js
+      - name: JavaScript syntax and whitespace
+        run: |
+          for file in js/*.js; do node --check "$file"; done
+          git diff --check HEAD^ HEAD
