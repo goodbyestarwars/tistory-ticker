@@ -326,7 +326,7 @@ html.dark .weekend-dashboard {
 
 .weekend-dashboard .wd-coin {
   display: grid;
-  grid-template-columns: 32px minmax(48px,1fr) 68px max-content;
+  grid-template-columns: 32px minmax(0,44%) 68px minmax(max-content,1fr);
   gap: 9px;
   align-items: center;
   font-size: 13px;
@@ -761,7 +761,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   }
 
   .weekend-dashboard .wd-coin {
-    grid-template-columns: 28px minmax(48px,1fr) 64px max-content;
+    grid-template-columns: 28px minmax(0,36%) 64px minmax(max-content,1fr);
     gap: 6px;
     font-size: 12px;
   }
@@ -780,6 +780,13 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     white-space: normal;
   }
 
+}
+
+@media (max-width: 380px) {
+  .weekend-dashboard .wd-coin {
+    grid-template-columns: 28px minmax(0,30%) 58px minmax(max-content,1fr);
+    gap: 4px;
+  }
 }
 
 /* ==========================================================================
