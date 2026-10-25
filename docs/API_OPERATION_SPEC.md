@@ -115,6 +115,8 @@ GAS `?codes=`는 실패 시 명시적 대체 경로이고 `degraded/transportSou
 OHLC 유효성을 확인하고 대체임을 표시한다. 확장5년 조회는 기존 별도 이력 옵션을 유지한다.
 전략은 공개 `/strategy-scan` → GAS `?strategyScan=1`이며 같은 저장 파일의 공개 필드만
 반환한다. `scannedAt`을 보존하고 신규 스캔/공급자 조회를 실행하지 않는다.
+홈 온도·방향·환율은 증시온도 페이지와 같은 VM `/market-temp`의 score100/components를 사용한다.
+GAS 온도(℃)와 원천 구성이 달라 대체 점수로 쓰지 않으며 이전 온도 캐시는 재사용하지 않는다.
 GAS 펀더멘털(기본정보+재무 합성), 확정 수급(KIS UN)과 GAS 수급 대체는 서로 다른 계약이므로
 같은 URL로 치환하지 않는다. 인증된 batch·주문 경계도 유지한다.
 

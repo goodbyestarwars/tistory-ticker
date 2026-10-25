@@ -44,6 +44,8 @@ jobs:
         run: |
           node test/test_http_client.js
           node test/test_shared_ui_api.js
+          node test/test_home_market_contract.js
+          node test/test_crypto_shared_quotes.js
           node test/test_chart_core.js
       - name: Page consumer refresh and partial failure behavior
         run: |

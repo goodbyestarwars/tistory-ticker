@@ -57,26 +57,7 @@
   }
 
   function fetchTickerData(codes) {
-    if (!GAS_TICKER_URL) {
-      return Promise.reject(new Error('GAS_TICKER_URL이 설정되지 않았습니다'));
-    }
-    var hasAbort = 'AbortController' in global;
-    var controller = hasAbort ? new AbortController() : null;
-    var timer = hasAbort ? setTimeout(function () { controller.abort(); }, FETCH_TIMEOUT_MS) : null;
-
-    return fetch(GAS_TICKER_URL + '?codes=' + codes.join(','), hasAbort ? { signal: controller.signal } : {})
-      .then(function (r) {
-        if (!r.ok) throw new Error('GAS 응답 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        if (timer) clearTimeout(timer);
-        return data;
-      })
-      .catch(function (err) {
-        if (timer) clearTimeout(timer);
-        throw err;
-      });
+    return global.NineAPI.domesticQuotes(codes, {timeoutMs:FETCH_TIMEOUT_MS});
   }
 
   // ---- sessionStorage 캐시 (5분) ----

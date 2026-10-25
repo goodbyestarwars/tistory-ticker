@@ -1242,8 +1242,8 @@
 
   function fetchQuote(code) {
     if (quoteRequests[code]) return quoteRequests[code];
-    var request = global.NineHttp.json('https://goodbyestar.cloud/domestic-quotes?codes=' + encodeURIComponent(code), {timeoutMs:FETCH_TIMEOUT_MS})
-      .then(function (data) { delete quoteRequests[code]; return (data && data.data && data.data[0]) || null; },
+    var request = global.NineAPI.domesticQuotes([code], {timeoutMs:FETCH_TIMEOUT_MS})
+      .then(function (data) { delete quoteRequests[code]; return (data && data[0]) || null; },
             function (err) { delete quoteRequests[code]; throw err; });
     quoteRequests[code] = request;
     return request;

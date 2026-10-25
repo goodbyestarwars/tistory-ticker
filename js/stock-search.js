@@ -1407,7 +1407,7 @@
     var items = names.map(function (name) { return { name: name, code: map[name] }; });
     var codes = items.map(function (it) { return it.code; });
 
-    fetchJson('https://goodbyestar.cloud/domestic-quotes?codes=' + codes.join(','))
+    global.NineAPI.domesticQuotes(codes, {request:fetchJson})
       .then(function (response) {
         var quotes = response && response.data ? response.data : response;
         if (searchId !== stockSearchRequestId) return;

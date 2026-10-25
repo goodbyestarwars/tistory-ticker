@@ -1061,21 +1061,21 @@ document.documentElement.classList.add('skin-ready');
 
     // 2026-10-02 사용자 지적("대시보드는 21.2도 중립인데 증시온도 페이지에는 온도가 없어"): 페이지는
     // 2026-09-07 개편부터 3축 종합점수(score100)를 보여 주는데 대시보드만 GAS 레거시 온도(℃)를 읽고 있었다.
-    // VM /market-temp의 종합점수·3단계 등급을 받으면 그 값을 쓰고, 못 받을 때만 예전 ℃ 표기로 물러난다.
+    // VM /market-temp의 종합점수·3단계 등급만 쓴다. 실패 시 같은 계약의 최근 캐시/지연을 표시한다.
     var homeVmScoreText = '';
 
     function setHomeVmScore(data) {
-      var score = Number(data && data.score100);
-      if (!isFinite(score)) return;
+      if (!data || data.score100 == null || data.score100 === '') return;
+      var score = Number(data.score100);
+      if (!isFinite(score) || score < 0 || score > 100) return;
       var label = data.grade3 && data.grade3.label ? ' ' + data.grade3.label : '';
       homeVmScoreText = Math.round(score) + '점' + label;
       setField('temperature', homeVmScoreText, 'home-neutral');
     }
 
     function renderMarketTemperature(market) {
-      if (market && typeof market.temp === 'number') {
-        var grade = market.grade && market.grade.label ? ' ' + market.grade.label : '';
-        setField('temperature', homeVmScoreText || (market.temp.toFixed(market.temp % 1 ? 1 : 0) + '℃' + grade), 'home-neutral');
+      if (market && typeof market.score100 === 'number' && isFinite(market.score100)) {
+        setHomeVmScore(market);
         var direction = resolveMarketDirection(market);
         setField('direction', direction.label, direction.tone);
         var exchange = market.components && market.components.exchange;
@@ -1130,7 +1130,7 @@ document.documentElement.classList.add('skin-ready');
       if (homeMarketSession().market !== 'domestic') return;
       fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
         var data = body && body.data ? body.data : body;
-        setHomeVmScore(data);
+        renderMarketTemperature(data);
         var byMarket = (data && data.marketBreadth && data.marketBreadth.byMarket)
           || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
           || null;
@@ -1891,7 +1891,7 @@ document.documentElement.classList.add('skin-ready');
     // 환율을 포함한 시장 온도는 현재값이 핵심이다. 예전 캐시를 먼저 그리면
     // 제공처가 바뀌거나 서버가 복구된 뒤에도 오래된 환율이 화면에 남을 수 있다.
     // 키를 올려 기존 값을 폐기하고, 최신 응답을 받은 뒤에만 정상값을 그린다.
-    var marketTempCacheKey = 'home_market_temp_v2';
+    var marketTempCacheKey = 'home_market_temp_vm_v3';
     var marketSectorCacheKey = 'home_market_sectors_v1';
     var cachedMarketTemp = readHomeDataCache(marketTempCacheKey, 2 * 60 * 1000);
     var cachedMarketSectors = readHomeDataCache(marketSectorCacheKey, 5 * 60 * 1000);
@@ -1917,15 +1917,12 @@ document.documentElement.classList.add('skin-ready');
       }
     }
 
-    // 2026-08-05: 8000 -> 20000(js/market-temp.js와 동일 값으로 맞춤). GAS getMarketTemp()는
-    // 캐시(30분 TTL)가 만료되면 VIX/수급/거래대금/평균등락률/섹터강도/52주신고저/환율/미국선물
-    // 9개 지표를 순차로 외부 조회해 8~12초를 넘기기 일쑤였다(js/market-temp.js 상단 주석 참고,
-    // 그 파일은 이미 20000으로 올려둔 상태였는데 이 홈 대시보드 쪽만 12000으로 남아있었다) -
-    // 홈에 "일시 지연"/"데이터 확인 중"이 가끔 뜨던 원인이라 여기도 같은 값으로 맞춘다.
-    // 쿼리 문자열을 매번 바꿔 WebView·중간 캐시가 이전 marketTemp 응답을
-    // 재사용하지 못하게 한다. 환율 카드는 요청 전까지 이전 숫자를 표시하지 않는다.
-    fetchHomeJson(GAS_TICKER_URL + '?marketTemp=1&_ts=' + Date.now(), 20000)
+    // Use the same VM score100/components as the market page. The GAS temperature
+    // model has different inputs and must not silently replace this score.
+    fetchHomeJson(MARKET_TEMP_VM_URL, 12000)
+      .then(function (body) { return body && body.data ? body.data : body; })
       .then(function (market) {
+        if (!market || typeof market.score100 !== 'number' || !isFinite(market.score100)) throw new Error('market score unavailable');
         writeHomeDataCache(marketTempCacheKey, market);
         if (homeMarketSession().market === 'us') renderMarketExchange(market);
         else renderMarketTemperature(market);

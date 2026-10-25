@@ -3710,7 +3710,6 @@
   var KRX_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/krx_map.js';
   var WICS_MAP_JS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/wics-map.js';
   var ALL_STOCKS_PAGE_SIZE = 48;
-  var ALL_STOCKS_BATCH_SIZE = 60;
   var krxMapLoadPromise_ = null;
   var wicsMapLoadPromise_ = null;
   // 시장판은 순위별 최대 40종목뿐이다. 전종목 스캔으로 주요 종목을 선별하고,
@@ -3809,28 +3808,9 @@
   }
 
   function fetchAllStockQuotes_(codes) {
-    var batches = [];
-    for (var i = 0; i < codes.length; i += ALL_STOCKS_BATCH_SIZE) batches.push(codes.slice(i, i + ALL_STOCKS_BATCH_SIZE));
-    function fetchBatch_(batch, retried) {
-      return fetchJson_(GAS_TICKER_URL + '?codes=' + batch.join(',') + '&_=' + Date.now()).then(function (rows) {
-        if (rows && rows.length) return rows;
-        if (retried) throw new Error('empty quote response');
-        return fetchBatch_(batch, true);
-      }).catch(function (error) {
-        if (retried) throw error;
-        return fetchBatch_(batch, true);
-      });
-    }
-    return Promise.all(batches.map(function (batch) {
-      return fetchBatch_(batch, false);
-    })).then(function (results) {
-      return results.reduce(function (all, rows) { return all.concat(rows || []); }, []);
-    });
+    return global.NineAPI.domesticQuotes(codes, {request:fetchJson_});
   }
 
-  // 보합이라는 이유만으로 활발한 대형주를 버리지 않는다. 종목은 거래대금·실제
-  // 거래량, 섹터는 합계 거래대금과 구성 종목 수로 판단한다. 스캔 폴백에는 거래량
-  // 필드가 없으므로 거래대금만 적용하며, 없는 거래량을 가격으로 역산하지 않는다.
   function activeStockRows_(scan, wicsMap) {
     var board = scan && scan.data && Array.isArray(scan.data.rows);
     var etfNames = {};

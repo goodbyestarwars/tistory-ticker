@@ -34,7 +34,7 @@ const code = [
 ].join('\n');
 // 소스의 SCORE_CUT_ 선언이 위 값과 같은지(복붙 오류 방지)
 assert.ok(src.indexOf('var SCORE_CUT_ = { fear: 30, greed: 70 };') >= 0);
-const sb = {};
+const sb = {global:globalThis};
 vm.runInNewContext(code + '\nthis.t = { scoreTone_, zoneColor_, marketMood_, zoneRangeText_, buildSparklineContent, historyDays_ };', sb);
 const t = sb.t;
 

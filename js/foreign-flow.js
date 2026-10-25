@@ -3909,13 +3909,12 @@
   function loadSimBenchmark(code, daily) {
     var c = String(code || '');
     if (!/^[0-9A-Za-z]{6}$/.test(c) || /^US:/i.test(c)) return Promise.resolve(null);
-    return fetch(GAS_TICKER_URL + '?codes=' + encodeURIComponent(c))
-      .then(function (r) { return r.json(); })
+    return global.NineAPI.domesticQuotes([c], {request:fetchJson})
       .then(function (rows) {
         var market = rows && rows[0] && rows[0].market;
         var etf = market === 'KOSDAQ' ? { code: '229200', label: '코스닥(KODEX 코스닥150)' } : { code: '069500', label: '코스피(KODEX 200)' };
         if (market !== 'KOSDAQ' && market !== 'KOSPI') return null;      // 시장을 모르면 엉뚱한 지수와 비교하지 않는다
-        return fetch(KIWOOM_VM_URL + '/flow-chart/' + etf.code).then(function (r) { return r.json(); }).then(function (env) {
+        return global.NineAPI.flowChart(etf.code, {request:fetchJson}).then(function (env) {
           var data = env && env.data ? env.data : env;
           var etfDaily = (data && Array.isArray(data.daily) ? data.daily : []).filter(function (row) { return row && row.close; });
           if (etfDaily.length < 20) return null;
@@ -5985,7 +5984,8 @@
       var flowOptions = core.chartOptions(LWC, 'analysis', { autoSize: true, height: FCHART_H, fontFamily: fontFamily });
       // 라이브러리 기본 휠 대신 차트검색과 같은 부드러운 휠(커서 기준 확대·가속·관성)을 쓴다(2026-10-22).
       flowOptions.handleScale.mouseWheel = false;
-      flowOptions.handleScroll.mouseWheel = false;
+      // The analysis profile uses library defaults and may omit handleScroll.
+      flowOptions.handleScroll = Object.assign({}, flowOptions.handleScroll, { mouseWheel: false });
       var chart = LWC.createChart(container, flowOptions);
       lwcChart = chart;
       lwcChartContainer = container;

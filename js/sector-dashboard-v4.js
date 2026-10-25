@@ -80,9 +80,9 @@
       batches.push(codes.slice(i, i + BATCH_SIZE));
     }
     return batches.reduce(function (chain, batch) {
-      return chain.then(function (results) { return (function () {
+      return chain.then(function (results) {
       // 실패 또는 부분 응답일 때 누락 코드만 한 번 복구한다. 전체 풀 재조회는 하지 않는다.
-      return SectorDashboard.fetchBatch(batch).catch(function (err) {
+        return SectorDashboard.fetchBatch(batch).catch(function (err) {
         logError('[sector-dashboard] 배치 조회 실패', err);
         return [];
       }).then(function (rows) {
@@ -100,8 +100,8 @@
           logError('[sector-dashboard] 누락 시세 재조회 실패', err);
           return rows;
         });
+      }).then(function (rows) { return results.concat([rows]); });
       });
-      })().then(function (rows) { return results.concat([rows]); }); });
     }, Promise.resolve([])).then(function (results) {
       var rows = results.reduce(function (acc, list) { return acc.concat(list || []); }, []);
       if (codes.length && !rows.length) throw new Error('종목 시세를 불러오지 못했습니다.');
