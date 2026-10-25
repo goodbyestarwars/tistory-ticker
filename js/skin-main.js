@@ -2012,6 +2012,12 @@ document.documentElement.classList.add('skin-ready');
         return null;
       }
 
+      function nextDomesticOpen(now, marketHours) {
+        if (!marketHours || typeof marketHours.nextKrRegularOpen !== 'function') return null;
+        var open = marketHours.nextKrRegularOpen(new Date(now));
+        return open ? open.getTime() : null;
+      }
+
       function nextUsClose(now, marketHours) {
         if (!marketHours || !marketHours.us || !marketHours.isUsHoliday) return null;
         var parts = new Intl.DateTimeFormat('en-US', {
@@ -2036,27 +2042,92 @@ document.documentElement.classList.add('skin-ready');
         return null;
       }
 
+      function nextUsOpen(now, marketHours) {
+        if (!marketHours || !marketHours.us || !marketHours.isUsHoliday) return null;
+        var parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(new Date(now)).reduce(function (out, part) {
+          if (part.type !== 'literal') out[part.type] = part.value;
+          return out;
+        }, {});
+        var base = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+        for (var day = 0; day < 15; day++) {
+          var dayStart = base + day * 86400000;
+          var probe = new Date(dayStart + 16 * 60 * 60 * 1000);
+          var weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(probe);
+          if (weekday === 'Sat' || weekday === 'Sun' || marketHours.isUsHoliday(probe)) continue;
+          var session = marketHours.us(probe);
+          if (!session || !session.open) continue;
+          // 09:30 ET: 서머타임은 13:30Z, 표준시는 14:30Z.
+          var openAt = dayStart + ((session.dst ? 13 : 14) * 60 + 30) * 60 * 1000;
+          if (openAt > now) return openAt;
+        }
+        return null;
+      }
+
       function tick() {
         var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
           ? window.HomeMarketSelection.get() : 'domestic';
-        if (selected !== 'domestic' && selected !== 'us') {
-          if (el) el.hidden = true;
-          return;
-        }
         mount();
         var now = Date.now();
         var marketHours = window.MarketHours;
-        var marketName = selected === 'us' ? '미국' : '국내';
-        var closeAt = selected === 'us' ? nextUsClose(now, marketHours) : nextDomesticClose(now, marketHours);
-        if (!closeAt || closeAt <= now) {
+        // 휴장 화면은 국내 시장 기준으로 다음 이벤트를 보여준다. 시장 탭을 바꾸면
+        // 해당 시장의 정규장 시작/종료 단계로 이어진다.
+        var market = selected === 'us' ? 'us' : 'domestic';
+        var marketName = market === 'us' ? '미국' : '국내';
+        var targetAt = null;
+        var targetLabel = '';
+        if (market === 'us') {
+          var usSession = marketHours && marketHours.us ? marketHours.us(new Date(now)) : null;
+          if (usSession && usSession.phase === 'regular') {
+            targetAt = nextUsClose(now, marketHours);
+            targetLabel = '정규장 종료까지';
+          } else {
+            var nyParts = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'America/New_York', weekday: 'short', hour: '2-digit', minute: '2-digit',
+              hour12: false
+            }).formatToParts(new Date(now)).reduce(function (out, part) {
+              if (part.type !== 'literal') out[part.type] = part.value;
+              return out;
+            }, {});
+            var nyMinute = (Number(nyParts.hour) % 24) * 60 + Number(nyParts.minute);
+            var usTradingDate = nyParts.weekday !== 'Sat' && nyParts.weekday !== 'Sun'
+              && !marketHours.isUsHoliday(new Date(now));
+            var usCloseMinute = usSession && usSession.earlyClose ? 13 * 60 : 16 * 60;
+            if (usTradingDate && nyMinute >= usCloseMinute) {
+              targetAt = nextUsClose(now, marketHours);
+              targetLabel = '다음 정규장 종료까지';
+            } else {
+              targetAt = nextUsOpen(now, marketHours);
+              targetLabel = '정규장 시작까지';
+            }
+          }
+        } else {
+          var kstNow = marketHours && marketHours.kst ? marketHours.kst(new Date(now)) : null;
+          var krTradingDay = marketHours && marketHours.isKrTradingDay
+            && marketHours.isKrTradingDay(new Date(now));
+          var krSession = marketHours && marketHours.krCash
+            ? marketHours.krCash(new Date(now)) : null;
+          if (krSession && krSession.phase === 'regular') {
+            targetAt = nextDomesticClose(now, marketHours);
+            targetLabel = '정규장 종료까지';
+          } else if (krTradingDay && kstNow && kstNow.minutes >= 15 * 60 + 30) {
+            targetAt = nextDomesticClose(now, marketHours);
+            targetLabel = '다음 정규장 종료까지';
+          } else {
+            targetAt = nextDomesticOpen(now, marketHours);
+            targetLabel = '정규장 시작까지';
+          }
+        }
+        if (!targetAt || targetAt <= now) {
           el.hidden = true;
           return;
         }
         el.hidden = false;
-        el.classList.toggle('hsc-to-us', selected === 'us');
-        el.classList.toggle('hsc-to-kr', selected === 'domestic');
-        labelEl.textContent = marketName + ' 정규장 종료까지';
-        var total = Math.max(0, Math.ceil((closeAt - now) / 1000));
+        el.classList.toggle('hsc-to-us', market === 'us');
+        el.classList.toggle('hsc-to-kr', market === 'domestic');
+        labelEl.textContent = marketName + ' ' + targetLabel;
+        var total = Math.max(0, Math.ceil((targetAt - now) / 1000));
         var days = Math.floor(total / 86400);
         var hours = Math.floor(total / 3600) % 24;
         var minutes = Math.floor(total / 60) % 60;
@@ -2065,7 +2136,7 @@ document.documentElement.classList.add('skin-ready');
         updateUnit(1, hours);
         updateUnit(2, minutes);
         updateUnit(3, seconds);
-        el.setAttribute('aria-label', marketName + ' 정규장 마감까지 ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
+        el.setAttribute('aria-label', marketName + ' ' + targetLabel + ' ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
       }
 
       tick();
