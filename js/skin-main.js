@@ -1976,6 +1976,42 @@ document.documentElement.classList.add('skin-ready');
         lastDigits[index] = digits;
       }
 
+      function nextDomesticClose(now, marketHours) {
+        if (!marketHours || !marketHours.krCash || !marketHours.kst) return null;
+        var date = new Date(now);
+        var state = marketHours.krCash(date);
+        var k = marketHours.kst(date);
+        var todayStart = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
+        if (state && state.open) return todayStart + (15 * 60 + 30) * 60 * 1000;
+        if (typeof marketHours.nextKrRegularOpen !== 'function') return null;
+        var nextOpen = marketHours.nextKrRegularOpen(date);
+        return nextOpen ? nextOpen.getTime() + (6 * 60 + 30) * 60 * 1000 : null;
+      }
+
+      function nextUsClose(now, marketHours) {
+        if (!marketHours || !marketHours.us || !marketHours.isUsHoliday) return null;
+        var parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit'
+        }).formatToParts(new Date(now)).reduce(function (out, part) {
+          if (part.type !== 'literal') out[part.type] = part.value;
+          return out;
+        }, {});
+        var base = Date.UTC(Number(parts.year), Number(parts.month) - 1, Number(parts.day));
+        for (var day = 0; day < 15; day++) {
+          var dayStart = base + day * 86400000;
+          // 16:00Z는 뉴욕의 오전이므로 같은 현지 날짜의 휴일·거래 여부를 확인하기에 안전하다.
+          var probe = new Date(dayStart + 16 * 60 * 60 * 1000);
+          var weekday = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', weekday: 'short' }).format(probe);
+          if (weekday === 'Sat' || weekday === 'Sun' || marketHours.isUsHoliday(probe)) continue;
+          var session = marketHours.us(probe);
+          if (!session || !session.open) continue;
+          var closeHourUtc = (session.earlyClose ? 13 : 16) + (session.dst ? 4 : 5);
+          var closeAt = dayStart + closeHourUtc * 60 * 60 * 1000;
+          if (closeAt > now) return closeAt;
+        }
+        return null;
+      }
+
       function tick() {
         var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
           ? window.HomeMarketSelection.get() : 'domestic';
@@ -1986,30 +2022,8 @@ document.documentElement.classList.add('skin-ready');
         mount();
         var now = Date.now();
         var marketHours = window.MarketHours;
-        var closeAt = null;
         var marketName = selected === 'us' ? '미국' : '국내';
-        if (selected === 'domestic' && marketHours && marketHours.krCash) {
-          var kr = marketHours.krCash(new Date(now));
-          if (kr && kr.open) {
-            // 정규장 마감 동시호가를 포함해 국내 현물 종가 15:30 KST까지 계산한다.
-            var k = marketHours.kst(new Date(now));
-            var dayStart = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
-            closeAt = dayStart + 6.5 * 60 * 60 * 1000;
-          }
-        } else if (selected === 'us' && marketHours && marketHours.us) {
-          var us = marketHours.us(new Date(now));
-          if (us && us.open) {
-            // 미국 현지 정규장 16:00 ET 종료 (DST는 MarketHours.us가 판정).
-            var etParts = new Intl.DateTimeFormat('en-US', {
-              timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit'
-            }).formatToParts(new Date(now)).reduce(function (out, part) {
-              if (part.type !== 'literal') out[part.type] = part.value;
-              return out;
-            }, {});
-            closeAt = Date.UTC(Number(etParts.year), Number(etParts.month) - 1, Number(etParts.day))
-              + (us.dst ? 20 : 21) * 60 * 60 * 1000;
-          }
-        }
+        var closeAt = selected === 'us' ? nextUsClose(now, marketHours) : nextDomesticClose(now, marketHours);
         if (!closeAt || closeAt <= now) {
           el.hidden = true;
           return;
