@@ -1,3 +1,7 @@
+**2026-10-25 공통 HTTP 런타임 준비 (작업 브랜치, 운영 미배포)**
+
+기존 공통 진입점 skin-shell.js에 NineHttp를 추가. 전체 응답 시간 제한·AbortController·GET 한정 재시도/Retry-After·inflight dedupe·선택 TTL(최대64개)·인증/개별취소 요청 격리·오류 callback을 한 곳에서 제공한다. 기본 재시도/TTL은0이며 응답 envelope/도메인 fallback은 변경하지 않는다. Node 실패/취소/캐시 검증 통과. 소비자 연결은 후속 PR이며, 운영 반영 시 런타임을 먼저 배포하고 Pages 기존 자산 캐시 창(최대10분) 후 소비자를 반영한다.
+
 **2026-10-25 휴장 주요뉴스 폰트 강제 및 화살표 콘텐츠 보강 (작업 브랜치)**
 
 운영 캡처를 확인해 전역 `h3 { font-family: var(--font-title) !important; }`가 뉴스 제목의 MaruBuri CSS를 덮는 원인을 찾아 홈 휴장 뉴스 제목과 기사 제목에 중요 레이어 예외를 추가했다. `/weekend-us-themes`는 상위 테마를 4개만 보내 화면의 네 카드가 모두 보이는 폭에서 스크롤 불가했던 점을 고쳐 최대 8개를 반환한다. 기존 화살표/가로 트랙은 유지한다. skin.html 수정 없음.

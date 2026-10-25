@@ -16,6 +16,116 @@
  * 남아있지만(치환 태그가 없어 존재해도 무해), 굳이 지우려면 skin.html 재배포가 필요해
  * 손대지 않았다.
  */
+/* NineHttp: shared transport in the existing synchronous common entry point.
+ * Consumers keep response envelopes, units and domain fallback decisions.
+ * No new script tag or race with Tistory page modules is introduced.
+ */
+(function (global) {
+  'use strict';
+  if (global.NineHttp) return;
+  var inflight = new Map(), cache = new Map(), MAX_CACHE = 64;
+
+  function error(kind, status) {
+    var e = new Error(kind === 'timeout' ? '데이터 요청 시간이 초과됐습니다.'
+      : kind === 'http' ? '데이터 응답 오류: HTTP ' + status
+      : kind === 'abort' ? '데이터 요청이 취소됐습니다.' : '데이터를 불러오지 못했습니다.');
+    e.name = kind === 'abort' ? 'AbortError' : kind === 'timeout' ? 'TimeoutError' : 'Error';
+    e.kind = kind; e.status = status || 0;
+    return e;
+  }
+
+  function request(url, options) {
+    options = options || {};
+    var init = Object.assign({}, options.fetchOptions || {});
+    var signal = options.signal || init.signal;
+    var method = String(init.method || 'GET').toUpperCase();
+    var timeout = Math.max(1, Number(options.timeoutMs) || 15000);
+    var retries = Math.min(2, Math.max(0, Number(options.retries) || 0));
+    // Pollers already retry on their next tick. Retries and TTL are opt-in.
+    // Authenticated, caller-cancellable and mutation requests never share state.
+    var headers = typeof global.Headers === 'function' ? new global.Headers(init.headers || {}) : null;
+    var headerKey = headers ? JSON.stringify(Array.from(headers.entries()).sort()) : JSON.stringify(init.headers || {});
+    var publicGet = method === 'GET' && !signal && !init.body && init.credentials !== 'include'
+      && !init.headers && !options.private;
+    var ttl = publicGet ? Math.max(0, Number(options.ttlMs) || 0) : 0;
+    var share = publicGet && options.dedupe !== false;
+    var key = JSON.stringify([url, method, init.cache, init.credentials, init.mode, init.redirect,
+      init.referrer, init.integrity, headerKey, timeout, retries, options.backoffMs, ttl]);
+    var now = Date.now(), hit = cache.get(key);
+    if (hit && now >= hit.expires) { cache.delete(key); hit = null; }
+    if (ttl && hit) return observe(Promise.resolve(hit.value));
+    if (share && inflight.has(key)) return observe(inflight.get(key));
+
+    var job = new Promise(function (resolve, reject) {
+      var controller = typeof global.AbortController === 'function' ? new global.AbortController() : null;
+      var settled = false, attempt = 0, retryTimer, deadlineTimer;
+      function finish(e, value) {
+        if (settled) return;
+        settled = true;
+        clearTimeout(deadlineTimer); clearTimeout(retryTimer);
+        if (signal) signal.removeEventListener('abort', abort);
+        e ? reject(e) : resolve(value);
+      }
+      function abort() {
+        finish(error('abort'));
+        if (controller) controller.abort();
+      }
+      if (signal && signal.aborted) { abort(); return; }
+      if (signal) signal.addEventListener('abort', abort, { once: true });
+      deadlineTimer = setTimeout(function () {
+        finish(error('timeout'));
+        if (controller) controller.abort();
+      }, timeout);
+      if (controller) init.signal = controller.signal;
+      else if (signal) init.signal = signal;
+
+      function run() {
+        Promise.resolve().then(function () { return global.fetch(url, init); }).then(function (response) {
+          if (!response.ok) {
+            var e = error('http', response.status);
+            var retryAfter = response.headers && response.headers.get('Retry-After');
+            if (retryAfter) {
+              var seconds = Number(retryAfter);
+              e.retryAfterMs = isFinite(seconds) ? Math.max(0, seconds * 1000) : Math.max(0, Date.parse(retryAfter) - Date.now());
+            }
+            // Release the failed response body before another attempt.
+            if (response.body && response.body.cancel) response.body.cancel().catch(function () {});
+            throw e;
+          }
+          return response.json().catch(function () { throw error('json'); });
+        }).then(function (value) { finish(null, value); }, function (e) {
+          if (settled) return;
+          var transient = e.kind === 'http' ? [429, 502, 503, 504].indexOf(e.status) >= 0 : e instanceof TypeError;
+          if (method === 'GET' && transient && attempt < retries) {
+            var delay = Math.max(e.retryAfterMs || 0, (Number(options.backoffMs) || 300) * Math.pow(2, attempt++));
+            retryTimer = setTimeout(run, delay);
+          } else finish(e);
+        });
+      }
+      run();
+    }).then(function (value) {
+      // Error envelopes must remain visible and may be retried by the caller.
+      if (ttl && value && value.success !== false && !value.error) {
+        cache.set(key, { expires: Date.now() + ttl, value: value });
+        while (cache.size > MAX_CACHE) cache.delete(cache.keys().next().value);
+      }
+      return value;
+    });
+    if (share) inflight.set(key, job);
+    job.then(cleanup, cleanup);
+    function cleanup() { if (inflight.get(key) === job) inflight.delete(key); }
+    return observe(job);
+
+    function observe(promise) {
+      if (!options.onError) return promise;
+      return promise.catch(function (e) { options.onError(e); throw e; });
+    }
+  }
+
+  global.NineHttp = { json: request, clearCache: function () { cache.clear(); } };
+})(typeof window !== 'undefined' ? window : globalThis);
+/* End NineHttp */
+
 /* ──────────────────────────────────────────────────────────────────────────
    시장 시간 단일 기준 (2026-09-05)
 
