@@ -321,7 +321,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         # 임시 대응) - 근본 원인인 유니버설 선택자 자체를 없앴으니 더는 존재하면 안 된다.
         self.assertNotIn(".dmi-fund-card *", style)
         self.assertIn(".dmi-shell .dmi-fund-card,", style)  # 컨테이너 자체의 color:#000은 유지
-        self.assertIn("domestic-market-indicators.css?v=20260827-dmi-chart-controls-v6", frontend)
+        self.assertIn("domestic-market-indicators.css?v=20261025-spot-block-outline", frontend)
         self.assertIn("domestic-market-indicators.js?v=20261008-five-year-charts", loader)
         self.assertIn("kospi-futures.css?v=20260912-remove-ai-section-v1", loader)
         self.assertIn("function installKospiFuturesStyle()", loader)
