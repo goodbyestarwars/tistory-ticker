@@ -1,6 +1,7 @@
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
       var el = null, labelEl = null, units = {}, lastDigits = {};
+      document.documentElement.setAttribute('data-home-countdown-module', 'loaded');
 
       function mount() {
         if (el) return;
@@ -9,6 +10,7 @@
         el.hidden = true;
         el.setAttribute('role', 'timer');
         el.setAttribute('aria-live', 'off');
+        document.body.appendChild(el);
         el.innerHTML = '<span class="hsc-label"></span><div class="hsc-clock" aria-hidden="true">'
           + ['일', '시간', '분', '초'].map(function (unit, index) {
             return '<span class="hsc-unit"><span class="hsc-digits" data-hsc-unit="' + index + '">'
@@ -17,6 +19,7 @@
           }).join('<span class="hsc-separator">:</span>') + '</div>';
         var switchTabs = document.querySelector('.home-market-switch');
         var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
+        try {
         if (dashboard && switchTabs) {
           var toolbar = dashboard.querySelector('.home-market-toolbar');
           if (!toolbar) {
@@ -26,7 +29,8 @@
             toolbar.appendChild(switchTabs);
           }
           toolbar.appendChild(el);
-        } else document.body.appendChild(el);
+        }
+        } catch (error) { /* 카운트다운 자체는 툴바 배치 실패와 관계없이 표시한다. */ }
         labelEl = el.querySelector('.hsc-label');
         el.querySelectorAll('[data-hsc-unit]').forEach(function (node) {
           units[node.getAttribute('data-hsc-unit')] = node;
