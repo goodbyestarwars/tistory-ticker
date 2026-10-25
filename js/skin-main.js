@@ -887,54 +887,6 @@ document.documentElement.classList.add('skin-ready');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
-    // 첫 화면의 편집 순서를 시장 제목 → 요약 → 일정/공시 → 지수 차트로 고정한다.
-    // 기존 데이터 로더와 DOM 선택자는 유지하고, 표시 순서만 여기서 정리한다.
-    var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
-    var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
-    // 2026-10-10 국내 시장 개편: 관심종목 공시는 핵심 시장 지표 아래(마크업 순서 그대로)에 둔다. 지수 띠 위로 올리지 않는다.
-    var latestHomeIndices = [];
-    var latestUsBoardData = null;
-    var weeklyReportModule = null;
-    var weekendReportWindow = isWeekendReportWindow();
-    function syncMarketSwitch() {
-      var selected = window.HomeMarketSelection.get();
-      dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
-        var active = button.getAttribute('data-home-market-switch') === selected;
-        button.classList.toggle('is-active', active);
-        button.setAttribute('aria-selected', active ? 'true' : 'false');
-      });
-    }
-    dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
-      button.addEventListener('click', function () {
-        var market = button.getAttribute('data-home-market-switch');
-        try {
-          window.HomeMarketSelection.set(market);
-        } catch (error) {
-          // 일부 구형 WebView에서 CustomEvent가 실패해도 set()은 선택값을
-          // 먼저 저장하므로, 아래에서 화면을 직접 동기화할 수 있다.
-        }
-        syncMarketSwitch();
-        applyHomeMarketSession(homeMarketSession());
-      });
-    });
-    syncMarketSwitch();
-    window.addEventListener('home-market-change', function () {
-      syncMarketSwitch();
-      // 휴장 탭은 시세 API 응답을 기다리지 않고 준비된 휴장 지면을 즉시 연다.
-      // 이후 아래의 공통 시장 변경 핸들러가 데이터 로더를 갱신한다.
-      applyHomeMarketSession(homeMarketSession());
-      if (weeklyReportModule && weeklyReportModule.init) weeklyReportModule.init();
-    });
-    // 대시보드는 피드 최상단(첫 공지/글 카드 바로 앞)에 넣는다. 예전엔 이제 제거된
-    // #investor-trend-widget mount를 기준점으로 썼는데, 그 mount가 없어도 위치가
-    // 유지되도록 첫 카드를 기준점으로 폴백한다.
-    var dashboardAnchor = investorMount || feed.querySelector('.notice-card, .post-card');
-    if (dashboardAnchor) feed.insertBefore(dashboardSection, dashboardAnchor);
-    else feed.appendChild(dashboardSection);
-    if (investorMount) investorMount.remove();
-    if (rankMount) rankMount.remove();
-    var oldSidebar = document.querySelector('.sidebar-right');
-    if (oldSidebar) oldSidebar.hidden = true;
 
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
@@ -953,8 +905,8 @@ document.documentElement.classList.add('skin-ready');
               + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span>'
               + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span></span><small>' + unit + '</small></span>';
           }).join('<span class="hsc-separator">:</span>') + '</div>';
-        var switchTabs = document.querySelector('.home-market-switch');
-        var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
+        var switchTabs = dashboardSection.querySelector('.home-market-switch');
+        var dashboard = dashboardSection;
         if (dashboard && switchTabs) {
           var toolbar = dashboard.querySelector('.home-market-toolbar');
           if (!toolbar) {
@@ -2151,6 +2103,56 @@ document.documentElement.classList.add('skin-ready');
       loadHomeSessionCharts();
       loadHomeIndexBreadth();
     }, 60 * 1000);
+
+
+    // 첫 화면의 편집 순서를 시장 제목 → 요약 → 일정/공시 → 지수 차트로 고정한다.
+    // 기존 데이터 로더와 DOM 선택자는 유지하고, 표시 순서만 여기서 정리한다.
+    var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
+    var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
+    // 2026-10-10 국내 시장 개편: 관심종목 공시는 핵심 시장 지표 아래(마크업 순서 그대로)에 둔다. 지수 띠 위로 올리지 않는다.
+    var latestHomeIndices = [];
+    var latestUsBoardData = null;
+    var weeklyReportModule = null;
+    var weekendReportWindow = isWeekendReportWindow();
+    function syncMarketSwitch() {
+      var selected = window.HomeMarketSelection.get();
+      dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
+        var active = button.getAttribute('data-home-market-switch') === selected;
+        button.classList.toggle('is-active', active);
+        button.setAttribute('aria-selected', active ? 'true' : 'false');
+      });
+    }
+    dashboardSection.querySelectorAll('[data-home-market-switch]').forEach(function (button) {
+      button.addEventListener('click', function () {
+        var market = button.getAttribute('data-home-market-switch');
+        try {
+          window.HomeMarketSelection.set(market);
+        } catch (error) {
+          // 일부 구형 WebView에서 CustomEvent가 실패해도 set()은 선택값을
+          // 먼저 저장하므로, 아래에서 화면을 직접 동기화할 수 있다.
+        }
+        syncMarketSwitch();
+        applyHomeMarketSession(homeMarketSession());
+      });
+    });
+    syncMarketSwitch();
+    window.addEventListener('home-market-change', function () {
+      syncMarketSwitch();
+      // 휴장 탭은 시세 API 응답을 기다리지 않고 준비된 휴장 지면을 즉시 연다.
+      // 이후 아래의 공통 시장 변경 핸들러가 데이터 로더를 갱신한다.
+      applyHomeMarketSession(homeMarketSession());
+      if (weeklyReportModule && weeklyReportModule.init) weeklyReportModule.init();
+    });
+    // 대시보드는 피드 최상단(첫 공지/글 카드 바로 앞)에 넣는다. 예전엔 이제 제거된
+    // #investor-trend-widget mount를 기준점으로 썼는데, 그 mount가 없어도 위치가
+    // 유지되도록 첫 카드를 기준점으로 폴백한다.
+    var dashboardAnchor = investorMount || feed.querySelector('.notice-card, .post-card');
+    if (dashboardAnchor) feed.insertBefore(dashboardSection, dashboardAnchor);
+    else feed.appendChild(dashboardSection);
+    if (investorMount) investorMount.remove();
+    if (rankMount) rankMount.remove();
+    var oldSidebar = document.querySelector('.sidebar-right');
+    if (oldSidebar) oldSidebar.hidden = true;
 
     // 환율을 포함한 시장 온도는 현재값이 핵심이다. 예전 캐시를 먼저 그리면
     // 제공처가 바뀌거나 서버가 복구된 뒤에도 오래된 환율이 화면에 남을 수 있다.
