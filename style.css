@@ -980,6 +980,8 @@ html.dark .home-cb-dropdown li.is-released time { color: var(--dk-mute) !importa
 }
 .home-switch-countdown.hsc-to-us .hsc-ring-progress { stroke: #d24f45; }
 .home-switch-countdown.hsc-to-kr .hsc-ring-progress { stroke: #1261c4; }
+.home-market-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-bottom: 12px; }
+.home-market-toolbar > .home-switch-countdown { position: relative; inset: auto; z-index: 1; flex: 0 0 auto; margin: 0; }
 .hsc-body { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
 .hsc-label { font-size: 10px; color: #8a9099; white-space: nowrap; }
 .hsc-time {
@@ -4607,16 +4609,16 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .nav-logo-sub { display: none; }
   .navbar .nav-search {
     order: 3;
-    position: fixed;
-    top: 50vh;
-    left: 50vw;
-    flex: 0 1 auto;
-    width: min(560px, calc(100vw - 40px));
+    position: relative;
+    top: auto;
+    left: auto;
+    flex: 1 1 100%;
+    width: min(560px, calc(100% - 24px));
     min-width: 0;
     max-width: none;
-    margin: 0;
-    transform: translate(-50%, -50%);
-    z-index: 400;
+    margin: 0 auto;
+    transform: none;
+    z-index: auto;
   }
   .navbar .nav-search-wrap,
   .navbar .nav-search-input-wrap { width: 100%; min-width: 0; }
