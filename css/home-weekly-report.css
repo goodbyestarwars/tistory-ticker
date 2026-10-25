@@ -626,6 +626,12 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     padding: 16px 0 !important;
   }
 
+  @media(min-width:1101px) {
+    html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-intro {
+      padding-left: 38px !important;
+    }
+  }
+
   html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area {
     min-width: 0;
   }
