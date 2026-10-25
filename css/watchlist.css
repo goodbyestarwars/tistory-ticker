@@ -257,6 +257,9 @@
 #watchlist .wl-group-head { display: flex; align-items: center; gap: 10px; min-height: 42px; }
 #watchlist .wl-group-toggle { display: flex; align-items: center; gap: 7px; flex: 1; padding: 10px 0; border: 0; background: transparent; color: inherit; font: inherit; font-size: 14px; font-weight: 700; text-align: left; cursor: pointer; }
 #watchlist .wl-group-count { color: #9aa0aa; font-size: 11px; font-weight: 500; }
+#watchlist .wl-us-session-note { margin: -2px 0 9px; font-size: 11px; line-height: 1.5; color: #7b8492; }
+#watchlist .wl-group.is-collapsed .wl-us-session-note { display: none; }
+html.dark #watchlist .wl-us-session-note { color: var(--dk-mute) !important; }
 #watchlist .wl-chevron { margin-left: auto; color: #8c939f; transition: transform .15s; }
 #watchlist .wl-group.is-collapsed .wl-chevron { transform: rotate(180deg); }
 #watchlist .wl-group.is-collapsed .wl-group-items { display: none; }
