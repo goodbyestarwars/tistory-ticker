@@ -4,6 +4,7 @@ import re
 import subprocess
 import threading
 import time
+import json
 from datetime import datetime, timezone, timedelta
 
 KST = timezone(timedelta(hours=9))
@@ -53,6 +54,12 @@ def collect(app_dir=None, now=None, units=None):
     now = now or datetime.now(KST)
     units = _read_units() if units is None else units
     rows = []
+    from scheduled_job import CONTRACTS
+    try:
+        with open(os.path.join(app_dir or os.path.dirname(__file__), 'scheduled_jobs.json'), encoding='utf-8') as stream:
+            executions = json.load(stream)
+    except (OSError, ValueError):
+        executions = {}
     for key, label in JOBS:
         service = units.get(f'kiwoom-{key}.service', {})
         timer = units.get(f'kiwoom-{key}.timer', {})
@@ -70,7 +77,8 @@ def collect(app_dir=None, now=None, units=None):
         rows.append({'id': key, 'name': label, 'state': state, 'lastStartedAt': started,
                      'lastSuccessAt': finished if result == 'success' else None,
                      'lastResult': result, 'nextRunAt': _kst_stamp(timer.get('NextElapseUSecRealtime')),
-                     'elapsedSec': duration})
+                     'elapsedSec': duration, 'contract': CONTRACTS.get(key),
+                     'lastExecution': executions.get(key)})
     marker = os.path.join(app_dir or os.path.dirname(__file__), '.off_hours_maintenance_last_run_date')
     try:
         with open(marker, encoding='ascii') as stream:
@@ -85,7 +93,8 @@ def collect(app_dir=None, now=None, units=None):
         next_maintenance += timedelta(days=1)
     rows.append({'id': 'maintenance', 'name': '장외 백업·정리', 'state': maintenance_state,
                  'lastSuccessAt': last_date, 'nextRunAt': next_maintenance.isoformat(timespec='seconds'),
-                 'lastResult': 'success' if last_date else None, 'elapsedSec': None})
+                 'lastResult': 'success' if last_date else None, 'elapsedSec': None,
+                 'contract': CONTRACTS['maintenance'], 'lastExecution': executions.get('maintenance')})
     return {'asOf': now.isoformat(timespec='seconds'), 'jobs': rows}
 
 

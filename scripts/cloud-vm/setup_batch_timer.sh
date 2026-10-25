@@ -17,6 +17,8 @@ Description=Kiwoom investor-flow batch scan (sector pool)
 
 [Service]
 Type=oneshot
+TimeoutStartSec=12h
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
 ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh batch $HOME_DIR/venv/bin/python $HOME_DIR/batch_scan.py

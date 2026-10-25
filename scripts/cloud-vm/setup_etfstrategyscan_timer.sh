@@ -10,6 +10,8 @@ Description=Kiwoom ETF strategy return scan (daily)
 
 [Service]
 Type=oneshot
+TimeoutStartSec=12h
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
 ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh etfstrategyscan $HOME_DIR/venv/bin/python $HOME_DIR/etf_strategy_scan.py

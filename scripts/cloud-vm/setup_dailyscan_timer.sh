@@ -23,9 +23,11 @@ Description=Kiwoom daily scan (chart patterns + pullback + invest signal, full u
 
 [Service]
 Type=oneshot
+TimeoutStartSec=12h
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
-ExecStart=/usr/bin/flock $HOME_DIR/.scan_serial.lock $HOME_DIR/venv/bin/python $HOME_DIR/daily_scan.py
+ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh dailyscan $HOME_DIR/venv/bin/python $HOME_DIR/daily_scan.py
 Nice=10
 CPUWeight=20
 IOSchedulingClass=idle

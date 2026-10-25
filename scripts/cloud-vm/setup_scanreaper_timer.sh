@@ -68,6 +68,8 @@ Description=Stop leftover kiwoom scans at 07:30 KST deadline
 
 [Service]
 Type=oneshot
+TimeoutStartSec=2min
+TimeoutStopSec=35
 Environment=SCAN_HOME=$HOME_DIR
 ExecStart=$REAPER_BIN
 SERVICEEOF

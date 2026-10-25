@@ -2713,7 +2713,7 @@ def load_daily_scan_cache_cached():
 # 응답 형태는 gas/ticker-proxy.gs의 getInvestSignalResult()/getPatternScanResult()와
 # 같아야 한다 - 프론트가 VM과 GAS 두 경로를 같은 렌더 함수로 그리고, VM이 막히면 GAS로
 # 폴백하기 때문이다. 아래 재포장은 그 두 함수를 그대로 옮긴 것이다.
-def _daily_scan_entry(cache_key, build):
+def _daily_scan_entry(cache_key, build, source_file=None):
     """일 1회만 바뀌는 응답을 미리 직렬화·압축해두고 그대로 재사용한다.
 
     2026-09-04 실측(운영, TTFB 기준): /invest-signal이 캐시 파일이 새로 쓰인 뒤
@@ -2732,9 +2732,10 @@ def _daily_scan_entry(cache_key, build):
 
     캐시가 아직 없으면 None. 호출부가 503으로 바꾼다.
     """
-    if not os.path.exists(DAILY_SCAN_CACHE_FILE):
+    source_file = source_file or DAILY_SCAN_CACHE_FILE
+    if not os.path.exists(source_file):
         return None
-    stat = os.stat(DAILY_SCAN_CACHE_FILE)
+    stat = os.stat(source_file)
     signature = (stat.st_mtime_ns, stat.st_size)
     entry = _daily_scan_response_cache.get(cache_key)
     if entry and entry['signature'] == signature:
@@ -2792,8 +2793,8 @@ def _start_daily_scan_warmer():
     threading.Thread(target=run, name='daily-scan-warmer', daemon=True).start()
 
 
-def _daily_scan_json_response(request, cache_key, build):
-    entry = _daily_scan_entry(cache_key, build)
+def _daily_scan_json_response(request, cache_key, build, source_file=None):
+    entry = _daily_scan_entry(cache_key, build, source_file)
     if entry is None:
         raise HTTPException(status_code=503, detail='일일 스캔 캐시가 아직 생성되지 않았습니다(daily_scan.py 첫 실행 대기 중).')
 
@@ -2909,6 +2910,21 @@ def strategy_scan_batch(x_api_key: str = Header(default=None)):
     with open(STRATEGY_SCAN_CACHE_FILE, 'r', encoding='utf-8') as f:
         cached = json.load(f)
     return envelope(cached)
+
+
+def _build_strategy_scan():
+    # Same public field projection as GAS getStrategyScanResult(). No collection.
+    with open(STRATEGY_SCAN_CACHE_FILE, encoding='utf-8') as stream:
+        cached = json.load(stream)
+    fields = ('scanned', 'universe', 'skippedNoData', 'skippedIlliquid', 'skippedNoSector', 'skippedNoFundamentals')
+    return dict(scannedAt=cached.get('scannedAt'), categories=cached.get('categories') or {},
+                **{key: cached.get(key) or 0 for key in fields})
+
+
+@app.get('/strategy-scan')
+def strategy_scan_public(request: Request):
+    _check_rate_limit('strategy_scan', request, max_per_window=30)
+    return _daily_scan_json_response(request, 'strategy_scan', _build_strategy_scan, STRATEGY_SCAN_CACHE_FILE)
 
 
 @app.get('/scan-performance')

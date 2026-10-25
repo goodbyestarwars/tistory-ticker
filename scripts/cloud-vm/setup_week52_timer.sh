@@ -17,6 +17,8 @@ Description=Kiwoom week52 high/low scan (sector pool, 238 stocks)
 
 [Service]
 Type=oneshot
+TimeoutStartSec=12h
+TimeoutStopSec=35
 User=$USER
 WorkingDirectory=$HOME_DIR
 ExecStart=/bin/bash $HOME_DIR/scripts/cloud-vm/run_after_daily.sh week52 $HOME_DIR/venv/bin/python $HOME_DIR/week52_scan.py

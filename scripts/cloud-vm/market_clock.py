@@ -29,8 +29,8 @@ def kst_now():
 
 
 def is_kr_trading_day(now_kst):
-    import market_temp  # 휴장일 표의 단일 출처. 이미 프로세스에 올라와 있는 모듈이다.
-    return market_temp.is_kr_trading_day(now_kst)
+    from market_calendar import is_kr_trading_day as check
+    return check(now_kst)
 
 
 def skip_scan_today(now_kst=None):
@@ -42,6 +42,12 @@ def skip_scan_today(now_kst=None):
     못 준다). 건너뛰면 화면은 직전 거래일 결과와 그때의 스캔 시각을 그대로 유지한다.
     """
     now_kst = now_kst or kst_now()
+    basis = os.environ.get('NINEPAY_SCAN_DATA_DATE')
+    if basis:
+        expected = now_kst if now_kst.hour >= 20 else now_kst - timedelta(days=1)
+        if basis != expected.date().isoformat():
+            raise ValueError('scan data date does not match the nightly session')
+        now_kst = datetime.fromisoformat(basis).replace(tzinfo=KST)
     if os.environ.get(SCAN_FORCE_ENV) == '1':
         return False, now_kst.strftime('%Y-%m-%d')
     return (not is_kr_trading_day(now_kst)), now_kst.strftime('%Y-%m-%d')

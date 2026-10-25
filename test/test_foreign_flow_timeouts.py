@@ -43,10 +43,10 @@ class ForeignFlowTimeoutTest(unittest.TestCase):
         걸린 적이 있다(2026-09-03). renderResult는 차트가 없으면
         buildFlowChartFallback으로 대체하므로 무한정 기다릴 이유가 없다."""
         src = self.read()
-        self.assertIn(
-            "fetchJson(GAS_TICKER_URL + '?action=flowChart&code=' + encodeURIComponent(code), FLOW_CHART_GAS_TIMEOUT_MS)",
-            src,
-        )
+        self.assertIn('global.NineAPI.flowChart(code', src)
+        self.assertIn('url.indexOf(KIWOOM_VM_URL) === 0 ? FLOW_CHART_VM_TIMEOUT_MS : FLOW_CHART_GAS_TIMEOUT_MS', src)
+        shared = (ROOT / 'js' / 'skin-shell.js').read_text(encoding='utf-8')
+        self.assertIn("'?action=flowChart&code=' + code", shared)
         self.assertLessEqual(self.const(src, 'FLOW_CHART_GAS_TIMEOUT_MS'), 10000)
 
     def test_investor_flow_has_a_deadline_but_not_a_tight_one(self):
