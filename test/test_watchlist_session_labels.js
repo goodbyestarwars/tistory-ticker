@@ -16,7 +16,7 @@ context.global = context;
 vm.runInNewContext(shell.slice(0, shellEnd + '})(window);'.length), context, { filename: 'skin-shell.js' });
 vm.runInNewContext(watchlist.slice(helperStart, helperEnd), context, { filename: 'watchlist-session.js' });
 assert(context.MarketHours && context.watchlistSessionLabel);
-const atKst = time => new Date(time + ':00+09:00');
+const atKst = time => new Date(time + (/T\\d{2}:\\d{2}:\\d{2}$/.test(time) ? '+09:00' : ':00+09:00'));
 const cases = [
   ['005930','2026-10-26T07:59','장 마감'],
   ['005930','2026-10-26T08:00','NXT 프리마켓'],
