@@ -49,13 +49,18 @@
         if (!pair) return;
         var digits = String(value).padStart(2, '0');
         var old = lastDigits[index];
-        if (old === digits) return;
+        var currentFaces = Array.from(pair.querySelectorAll('.hsc-face > span'));
+        var renderedMatches = currentFaces.length === 4
+          && currentFaces.every(function (face, i) { return face.textContent === digits.charAt(Math.floor(i / 2)); });
+        if (old === digits && renderedMatches) return;
         // 첫 렌더에서는 애니메이션 없이 현재 숫자를 면에 직접 넣는다.
         // old가 없을 때 각 자릿수의 oldDigit을 nextDigit으로 두면 아래 비교가
         // 항상 같아져 초기값(예: 1일, 15시간)이 기본 00으로 남는다.
-        if (!old) {
+        if (!old || !renderedMatches) {
           pair.querySelectorAll('.hsc-digit').forEach(function (digit, i) {
             var valueDigit = digits.charAt(i);
+            digit.classList.remove('is-flipping');
+            digit.querySelectorAll('.hsc-flap').forEach(function (flap) { flap.remove(); });
             digit.querySelectorAll('.hsc-face > span').forEach(function (face) {
               face.textContent = valueDigit;
             });
