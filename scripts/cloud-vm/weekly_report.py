@@ -677,7 +677,7 @@ US_NEWS_THEMES = (
 _THEME_PATTERNS = {theme['key']: re.compile('|'.join(theme['kw']), re.I) for theme in US_NEWS_THEMES}
 
 
-def us_news_themes(items, start, end, sector_map=None, limit=4, headline_limit=3):
+def us_news_themes(items, start, end, sector_map=None, limit=8, headline_limit=3):
     """토요일 06시~월요일 06시 KST 미국 뉴스 제목을 테마별로 묶어 돌려준다."""
     sector_map = sector_map or {}
     seen = set()

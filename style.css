@@ -2389,6 +2389,13 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
     font-weight: 700 !important;
   }
+  /* The site-wide important h3 rule uses Pretendard. The weekly-news section and
+     English article headlines retain the MaruBuri editorial treatment. */
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-news-section .wd-panel-head h3,
+  html body#tt-body-index #homeWeeklyReport.weekend-dashboard .wd-news-card .wd-news-title {
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
+  }
   /* Reading rhythm: paragraphs, divider lines and independent panels need
      whitespace. Keep table rows, quote cells and chart internals compact. */
   html body .post-single-body p + p,
