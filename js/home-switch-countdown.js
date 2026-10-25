@@ -3,7 +3,13 @@
       var el = null, labelEl = null, units = {}, lastDigits = {};
 
       function mount() {
-        if (el) return;
+        // skin-main.js renders the dashboard asynchronously and may replace its
+        // innerHTML after this deferred module has already mounted. Recreate the
+        // node if that render detached it from the document.
+        if (el && el.isConnected) return;
+        el = null;
+        labelEl = null;
+        units = {};
         el = document.createElement('div');
         el.className = 'home-switch-countdown';
         el.hidden = true;
