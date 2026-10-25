@@ -1012,6 +1012,7 @@ html.dark #pattern-scan { --ps-ink: var(--dk-text); --ps-muted: var(--dk-sub); -
 #pattern-scan .ps-subnav .ps-tab { flex: 0 0 auto; min-height: 36px; padding: 0 0 3px; border: 0; border-radius: 0; background: transparent !important; color: var(--ps-muted) !important; font-size: 13px; font-weight: 500; white-space: nowrap; box-shadow: none; }
 #pattern-scan .ps-subnav .ps-tab.active { color: var(--ps-ink) !important; font-weight: 750; box-shadow: inset 0 -1px var(--ps-ink); }
 #pattern-scan .ps-tab-desc { margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; color: var(--ps-muted); font-size: 12px; }
+#pattern-scan .ps-candidate-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; padding: 2px 8px; margin: 6px 0 2px; border: 1px solid var(--ps-line); color: var(--ps-muted); border-radius: 999px; background: transparent; }
 #pattern-scan .ps-condition-fold { margin: 0; border: 0; padding: 0; }
 #pattern-scan .ps-condition-fold > summary { display: flex; align-items: center; gap: 12px; min-height: 34px; cursor: pointer; list-style: none; }
 #pattern-scan .ps-condition-fold > summary::-webkit-details-marker { display: none; }
