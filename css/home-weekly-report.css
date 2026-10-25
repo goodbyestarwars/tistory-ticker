@@ -907,8 +907,9 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-stocks .wd-related a { display: inline-flex; align-items: center; padding: 4px 10px; border: 1px solid var(--wd-line); border-radius: 999px; background: var(--wd-inner); color: inherit; text-decoration: none; }
 .weekend-dashboard .wd-news-stocks .wd-related a:hover { border-color: var(--wd-sub); }
 .weekend-dashboard .wd-news-stocks > small { font-size: 10px; }
-.weekend-dashboard .wd-news-controls { display: flex; justify-content: flex-end; gap: 10px; }
-.weekend-dashboard .wd-news-controls button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--wd-line); border-radius: 50%; background: var(--wd-inner); font: 400 28px/1 sans-serif; cursor: pointer; }
-.weekend-dashboard .wd-news-controls button:disabled { opacity: .3; cursor: default; }
+.weekend-dashboard .wd-news-controls { position: absolute; z-index: 2; top: 50%; right: 8px; left: 8px; display: flex; justify-content: space-between; transform: translateY(-50%); pointer-events: none; }
+.weekend-dashboard .wd-news-controls button { display: grid; place-items: center; width: 48px; height: 48px; padding: 0 0 3px; border: 0; border-radius: 50%; background: rgba(255,255,255,.82); color: #666; box-shadow: 0 3px 14px rgba(0,0,0,.18); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font: 400 34px/1 Arial,sans-serif; cursor: pointer; pointer-events: auto; transition: background .18s ease, box-shadow .18s ease, opacity .18s ease; }
+.weekend-dashboard .wd-news-controls button:hover:not(:disabled) { background: rgba(255,255,255,.96); box-shadow: 0 4px 16px rgba(0,0,0,.22); }
+.weekend-dashboard .wd-news-controls button:disabled { opacity: .5; cursor: default; }
 @media (max-width: 767px) { .weekend-dashboard .wd-news-card { flex-basis: min(320px,calc(100vw - 76px)); padding: 22px; } }
-@media (prefers-reduced-motion: reduce) { .weekend-dashboard .wd-news-card { transition: none; } .weekend-dashboard .wd-news-card:hover { transform: none; } }
+@media (prefers-reduced-motion: reduce) { .weekend-dashboard .wd-news-card, .weekend-dashboard .wd-news-controls button { transition: none; } .weekend-dashboard .wd-news-card:hover { transform: none; } }
