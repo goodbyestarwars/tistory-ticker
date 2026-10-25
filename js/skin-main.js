@@ -880,7 +880,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261016-us-night-sessions';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261025-market-close-flip';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
@@ -1913,72 +1913,104 @@ document.documentElement.classList.add('skin-ready');
       loadHomeIndexBreadth();
     }, 60 * 1000);
 
-    // ---- 코스피↔나스닥 전환 카운트다운 (2026-08-13 요청) ----
-    // homeMarketSession()이 국내/미국 장을 나누는 기준(09:00·17:00 KST)과 정확히 같은
-    // 시각 3분 전부터만 뜨는 라인아트 링 배지. 위치를 정확히 어디에 둬야 할지 몰라
-    // 화면 좌하단 고정으로 두었다(style.css .home-switch-countdown 주석 참고).
+    // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
-      // KST, MarketHours.homeMarket()과 동일 기준(국내 08:00·미국 20:00).
-      var SWITCH_HOURS = [8, 20];
-      var WARN_SECONDS = 180; // 3분 전부터 노출
-      var RING_R = 16;
-      var RING_C = 2 * Math.PI * RING_R;
-      var el = null, ringProgress = null, labelEl = null, timeEl = null;
-      var wasVisible = false;
+      var el = null, labelEl = null, units = {}, lastDigits = {};
 
       function mount() {
         if (el) return;
         el = document.createElement('div');
         el.className = 'home-switch-countdown';
         el.hidden = true;
-        el.innerHTML = '<svg class="hsc-ring" viewBox="0 0 36 36" aria-hidden="true">'
-          + '<circle class="hsc-ring-track" cx="18" cy="18" r="' + RING_R + '"></circle>'
-          + '<circle class="hsc-ring-progress" cx="18" cy="18" r="' + RING_R + '" style="stroke-dasharray:' + RING_C.toFixed(2) + '"></circle>'
-          + '</svg>'
-          + '<div class="hsc-body"><span class="hsc-label"></span><strong class="hsc-time"></strong></div>';
-        document.body.appendChild(el);
-        ringProgress = el.querySelector('.hsc-ring-progress');
+        el.setAttribute('role', 'timer');
+        el.setAttribute('aria-live', 'off');
+        el.innerHTML = '<span class="hsc-label"></span><div class="hsc-clock" aria-hidden="true">'
+          + ['일', '시간', '분', '초'].map(function (unit, index) {
+            return '<span class="hsc-unit"><span class="hsc-digits" data-hsc-unit="' + index + '">'
+              + '<span class="hsc-digit">0</span><span class="hsc-digit">0</span></span><small>' + unit + '</small></span>';
+          }).join('<span class="hsc-separator">:</span>') + '</div>';
+        var switchTabs = document.querySelector('.home-market-switch');
+        var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
+        if (dashboard && switchTabs.nextSibling) dashboard.insertBefore(el, switchTabs.nextSibling);
+        else document.body.appendChild(el);
         labelEl = el.querySelector('.hsc-label');
-        timeEl = el.querySelector('.hsc-time');
+        el.querySelectorAll('[data-hsc-unit]').forEach(function (node) {
+          units[node.getAttribute('data-hsc-unit')] = node;
+        });
       }
 
-      // 다음 전환(08:00 또는 20:00)까지 남은 초와, 그 전환이 미국장으로 가는 건지 반환.
-      function nextSwitch(kstNowSec) {
-        var best = null;
-        SWITCH_HOURS.forEach(function (hour) {
-          var targetSec = hour * 3600;
-          var diff = targetSec - kstNowSec;
-          if (diff <= 0) diff += 86400;
-          if (!best || diff < best.secondsLeft) best = { hour: hour, secondsLeft: diff };
+      function updateUnit(index, value) {
+        var pair = units[index];
+        if (!pair) return;
+        var digits = String(value).padStart(2, '0');
+        var old = lastDigits[index];
+        if (old === digits) return;
+        pair.querySelectorAll('.hsc-digit').forEach(function (digit, i) {
+          var nextDigit = digits.charAt(i);
+          var oldDigit = old ? old.charAt(i) : nextDigit;
+          if (oldDigit === nextDigit) return;
+          digit.textContent = nextDigit;
+          if (old) {
+            digit.classList.remove('is-flipping');
+            void digit.offsetWidth;
+            digit.classList.add('is-flipping');
+          }
         });
-        return best;
+        lastDigits[index] = digits;
       }
 
       function tick() {
-        var kst = new Date(Date.now() + 9 * 60 * 60 * 1000);
-        var nowSec = kst.getUTCHours() * 3600 + kst.getUTCMinutes() * 60 + kst.getUTCSeconds();
-        var next = nextSwitch(nowSec);
-        var visible = next.secondsLeft <= WARN_SECONDS;
-        if (!visible) {
+        var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
+          ? window.HomeMarketSelection.get() : 'domestic';
+        if (selected !== 'domestic' && selected !== 'us') {
           if (el) el.hidden = true;
-          wasVisible = false;
           return;
         }
         mount();
-        var toUs = next.hour === 20;
-        if (!wasVisible) {
-          // 새로 나타날 때만 innerHTML을 건드려 애니메이션(hscFadeIn)이 다시 재생되게 한다.
-          el.hidden = false;
-          el.classList.toggle('hsc-to-us', toUs);
-          el.classList.toggle('hsc-to-kr', !toUs);
-          labelEl.textContent = toUs ? '미국장 화면 전환까지' : '국내 프리마켓 개장까지';
-          wasVisible = true;
+        var now = Date.now();
+        var marketHours = window.MarketHours;
+        var closeAt = null;
+        var marketName = selected === 'us' ? '미국' : '국내';
+        if (selected === 'domestic' && marketHours && marketHours.krCash) {
+          var kr = marketHours.krCash(new Date(now));
+          if (kr && kr.open) {
+            // 정규장 마감 동시호가를 포함해 국내 현물 종가 15:30 KST까지 계산한다.
+            var k = marketHours.kst(new Date(now));
+            var dayStart = Date.UTC(k.year, Number(k.dateKey.slice(4, 6)) - 1, Number(k.dateKey.slice(6)));
+            closeAt = dayStart + 6.5 * 60 * 60 * 1000;
+          }
+        } else if (selected === 'us' && marketHours && marketHours.us) {
+          var us = marketHours.us(new Date(now));
+          if (us && us.open) {
+            // 미국 현지 정규장 16:00 ET 종료 (DST는 MarketHours.us가 판정).
+            var etParts = new Intl.DateTimeFormat('en-US', {
+              timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit'
+            }).formatToParts(new Date(now)).reduce(function (out, part) {
+              if (part.type !== 'literal') out[part.type] = part.value;
+              return out;
+            }, {});
+            closeAt = Date.UTC(Number(etParts.year), Number(etParts.month) - 1, Number(etParts.day))
+              + (us.dst ? 20 : 21) * 60 * 60 * 1000;
+          }
         }
-        var minutes = Math.floor(next.secondsLeft / 60);
-        var seconds = next.secondsLeft % 60;
-        timeEl.textContent = minutes + ':' + (seconds < 10 ? '0' : '') + seconds;
-        var ratio = next.secondsLeft / WARN_SECONDS; // 1(방금 시작) -> 0(전환 직전)
-        ringProgress.style.strokeDashoffset = (RING_C * (1 - ratio)).toFixed(2);
+        if (!closeAt || closeAt <= now) {
+          el.hidden = true;
+          return;
+        }
+        el.hidden = false;
+        el.classList.toggle('hsc-to-us', selected === 'us');
+        el.classList.toggle('hsc-to-kr', selected === 'domestic');
+        labelEl.textContent = marketName + ' 정규장 마감까지';
+        var total = Math.max(0, Math.ceil((closeAt - now) / 1000));
+        var days = Math.floor(total / 86400);
+        var hours = Math.floor(total / 3600) % 24;
+        var minutes = Math.floor(total / 60) % 60;
+        var seconds = total % 60;
+        updateUnit(0, days);
+        updateUnit(1, hours);
+        updateUnit(2, minutes);
+        updateUnit(3, seconds);
+        el.setAttribute('aria-label', marketName + ' 정규장 마감까지 ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
       }
 
       tick();
@@ -1990,6 +2022,7 @@ document.documentElement.classList.add('skin-ready');
       document.addEventListener('visibilitychange', function () {
         if (!document.hidden) tick();
       });
+      window.addEventListener('home-market-change', tick);
     })();
 
     // 환율을 포함한 시장 온도는 현재값이 핵심이다. 예전 캐시를 먼저 그리면
@@ -2598,7 +2631,6 @@ document.documentElement.classList.add('skin-ready');
       sequenceIndex += 1;
     }
   })();
-
   /* ── 데스크톱 사이드바 토글 (완전 숨김 ↔ 복원, 2026-07-21 사이드바 리디자인 #3)
      조기 적용 스크립트(head)가 이미 html.sidebar-collapsed를 붙여놨을 수 있으므로
      버튼 아이콘(햄버거 ⇄ X) 상태만 여기서 동기화. 모바일 드로어(#mobileMenuBtn)와는
