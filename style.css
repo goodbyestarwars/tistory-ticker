@@ -140,9 +140,8 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
      사라짐). --qi-height를 참조하는 곳은 이제 아래 모바일 padding calc 한 곳뿐이다. */
   --qi-height: 0px;
   --topbar-height: 48px;
-  /* 2026-08-20: 모바일에서 navbar가 로고+검색창을 한 줄에 욱여넣다가 겹쳐 보이는 문제로
-     검색창을 두 번째 줄로 내렸다(@media max-width:720px에서만 0이 아닌 값으로 바뀜) -
-     그만큼 늘어난 navbar 높이를 page-wrap/sidebar-left 등 아래 오프셋 계산에 더한다. */
+  /* 공통 검색창은 메뉴 아래의 독립 행을 사용한다. */
+  --nav-search-row-height: 88px;
   --navbar-mobile-extra-height: 0px;
   --font-title: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; /* Shared title font; explicit serif exceptions live in np.np. */
   --font-ui: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
@@ -264,13 +263,14 @@ a { text-decoration: none; color: inherit; }
 }
 .nav-search {
   position: absolute;
-  /* Anchor to the viewport center so the search stays centered regardless of
-     the navbar's logo and right-side action widths. */
-  left: 50%;
-  width: min(700px, 52vw);
-  max-width: none;
-  margin-left: 0;
-  transform: translateX(-50%);
+  top: calc(100% + var(--topbar-height));
+  left: 0;
+  width: 100%;
+  height: var(--nav-search-row-height);
+  display: flex;
+  align-items: center;
+  padding: 16px 20px;
+  background: var(--page-bg);
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
@@ -284,7 +284,7 @@ a { text-decoration: none; color: inherit; }
    구조가 대신하는데, 옛 "input" 디센던트 셀렉터가 이 안쪽 input에도 그대로 걸려서 바깥
    래퍼와 안쪽 input에 각각 둥근 박스가 이중으로 그려지는 버그가 있었음
    (사용자 리포트: "검색창이 이중으로 되어 있어") - 옛 규칙을 삭제해서 해결) */
-.navbar .nav-search-wrap { padding: 0; border-bottom: none; margin-bottom: 0; }
+.navbar .nav-search-wrap { width: min(700px, 100%); min-width: 0; padding: 0; border-bottom: none; margin: 0 auto; }
 .navbar .nav-search-input-wrap {
   /* 2026-08-20: 네이버 검색창처럼 알약형 테두리 스타일로 변경(사용자 요청 - "이거 Naver
      처럼 해줘 색만 붉은색으로"). 이전엔 밑줄(border-bottom)만 있던 스타일이라
@@ -347,9 +347,8 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
      2026-07-17(9차): disc-ticker(38px)가 없어지면서 base가 94->56으로 줄어 90->52.
      2026-07-17(11차): 바가 navbar에서 6px 떨어지며 52->58.
      2026-07-27: 상단 메뉴바(--topbar-height) 추가로 그만큼 더 밀어냄.
-     2026-08-20: 모바일에서 navbar가 두 줄(로고+아이콘 / 검색창)로 늘어난 만큼
-     --navbar-mobile-extra-height를 더한다(데스크톱은 0이라 영향 없음). */
-  padding-top: calc(58px + var(--navbar-mobile-extra-height) + var(--topbar-height) + var(--qi-height)) !important;
+     검색창은 메뉴 아래 별도 행을 차지하므로 본문 시작도 같은 높이만큼 확보한다. */
+  padding-top: calc(58px + var(--navbar-mobile-extra-height) + var(--topbar-height) + var(--nav-search-row-height) + var(--qi-height)) !important;
   min-height: 100vh;
 }
 .main-layout {
@@ -944,53 +943,7 @@ html.dark .home-cb-dropdown li.is-released time { color: var(--dk-mute) !importa
 .home-night-futures-chart { height: 22px; margin-top: 5px; }
 .home-night-futures-chart .home-index-chart-empty { padding-top: 4px; }
 
-/* 코스피↔나스닥 전환(08:00/20:00 KST) 3분 전부터만 뜨는 라인아트 카운트다운 배지
-   (2026-08-13 요청). 정확한 여백 폭을 알 수 없어 화면 아무 위치에서나 안전한
-   좌하단 고정 배지로 뒀다 - 자리가 안 맞으면 알려주면 옮긴다. */
-.home-switch-countdown {
-  position: fixed;
-  left: 20px;
-  bottom: 22px;
-  z-index: 40;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px 8px 8px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, .92);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-  box-shadow: 0 6px 20px rgba(20, 24, 30, .12);
-  border: 1px solid rgba(32, 37, 43, .08);
-  animation: hscFadeIn .4s ease;
-}
-.home-switch-countdown[hidden] { display: none; }
-@keyframes hscFadeIn {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.hsc-ring { width: 38px; height: 38px; flex: none; transform: rotate(-90deg); }
-.hsc-ring-track { fill: none; stroke: rgba(32, 37, 43, .12); stroke-width: 2.4; }
-.hsc-ring-progress {
-  fill: none;
-  stroke: #20252b;
-  stroke-width: 2.4;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 1s linear;
-}
-.home-switch-countdown.hsc-to-us .hsc-ring-progress { stroke: #d24f45; }
-.home-switch-countdown.hsc-to-kr .hsc-ring-progress { stroke: #1261c4; }
 .home-market-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-bottom: 12px; }
-.home-market-toolbar > .home-switch-countdown { position: relative; inset: auto; z-index: 1; flex: 0 0 auto; margin: 0; }
-.hsc-body { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
-.hsc-label { font-size: 10px; color: #8a9099; white-space: nowrap; }
-.hsc-time {
-  font-size: 16px;
-  font-weight: 700;
-  color: #20252b;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: .3px;
-}
 .home-card-heading {
   display: flex;
   align-items: flex-start;
@@ -1629,17 +1582,6 @@ html.dark .home-index-top strong,
 html.dark .home-index-price-row strong { color: var(--dk-text) !important; }
 html.dark .home-index-top span,
 html.dark .home-index-chart-empty { color: var(--dk-mute) !important; }
-html.dark .home-switch-countdown {
-  background: rgba(26,26,26,0.92) !important;
-  border-color: var(--dk-line) !important;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, .4) !important;
-}
-html.dark .hsc-ring-track { stroke: var(--dk-line) !important; }
-html.dark .hsc-ring-progress { stroke: var(--dk-text) !important; }
-html.dark .home-switch-countdown.hsc-to-us .hsc-ring-progress { stroke: #d24f45 !important; }
-html.dark .home-switch-countdown.hsc-to-kr .hsc-ring-progress { stroke: #1261c4 !important; }
-html.dark .hsc-label { color: var(--dk-mute) !important; }
-html.dark .hsc-time { color: var(--dk-text) !important; }
 html.dark .home-market-live { color: var(--dk-up) !important; }
 html.dark .home-top-disclosures-head strong { color: var(--dk-text) !important; }
 html.dark .home-top-disclosures-head span,
@@ -4556,30 +4498,16 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .sidebar-left { display: flex !important; }
   /* 한글 단어가 글자 단위로 끊겨 보이지 않도록 한다. 긴 라벨은 각 화면에서 말줄임 처리한다. */
   body { word-break: keep-all; overflow-wrap: normal; }
-  /* ── 내비게이션 바 ──
-     2026-08-20: 로고+검색창을 억지로 한 줄에 밀어넣다가(말줄임/잔여폭 트릭) 실제
-     기기에서 로고 글자와 검색창 placeholder가 겹쳐 보인다는 리포트를 반복해서 받았다
-     (사용자 요청: "그냥 두줄로 만들어") - 트릭을 없애고 1줄(로고+아이콘)/2줄(검색창
-     전체폭)로 구조 자체를 나눴다. flex-wrap + order로 DOM 순서(로고→검색→아이콘)는
-     그대로 두고 시각 순서만 로고→아이콘→검색(줄바꿈 유도)으로 바꾼다. */
-  :root { --navbar-mobile-extra-height: 26px; }
-  .navbar { height: auto; flex-wrap: wrap; padding: 8px 12px; gap: 6px 10px; }
+  /* 모바일도 로고 → 메뉴 → 검색 → 본문 순서로 배치한다. */
+  :root { --nav-search-row-height: 80px; }
+  .navbar { padding: 0 12px; gap: 10px; }
   .navbar .nav-logo { order: 1; min-width: 0; max-width: 60vw; }
   .navbar .nav-logo-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .navbar .nav-icons { order: 2; }
   .nav-logo-sub { display: none; }
   .navbar .nav-search {
-    order: 3;
-    position: relative;
-    top: auto;
-    left: auto;
-    flex: 1 1 100%;
-    width: min(560px, calc(100% - 24px));
-    min-width: 0;
-    max-width: none;
-    margin: 0 auto;
-    transform: none;
-    z-index: auto;
+    top: calc(100% + var(--topbar-height) + 10px);
+    padding: 16px;
   }
   .navbar .nav-search-wrap,
   .navbar .nav-search-input-wrap { width: 100%; min-width: 0; }
@@ -4709,14 +4637,8 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
 
 @media (max-width: 430px) {
   .navbar { gap: 6px; padding: 0 8px; }
-  /* 2026-09-04: 34vw(360px 화면에서 122px)였는데 브랜드 표기 "ㄱㅖ조 ㅏ심폐소생술"이
-     15px에서 그보다 넓어 "ㄱㅖ조 ㅏ심폐소…"로 잘렸다(Chromium 360px 실측).
-     34vw는 로고와 검색창이 한 줄을 나눠 쓰던 시절의 값인데, 2026-08-20에 navbar가
-     1줄(로고+아이콘)/2줄(검색창 전체폭)로 갈라지면서 로고가 검색창과 경쟁하지 않게
-     됐다. 게다가 이 구간은 바로 아래에서 보조 아이콘도 감추므로 첫 줄은 사실상
-     로고 전용이다. 아이콘이 다시 보이더라도 겹치지 않게 여유만 남기고 넓힌다. */
+  /* 검색창은 메뉴 아래에 따로 있으므로 로고에는 다크 토글을 제외한 폭을 준다. */
   .navbar .nav-logo { max-width: calc(100% - 44px); }
-  .navbar .nav-search { min-width: 0; margin-left: 2px; }
   /* 작은 화면에서는 폰트·다크 토글과 1차 텍스트 메뉴를 우선한다. MY와 커뮤니티는
      1차 메뉴에서 직접 접근하므로 원형 보조 아이콘은 헤더 폭을 차지하지 않게 한다. */
   .nav-icons > .nav-icon-btn { display: none; }
@@ -4755,7 +4677,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
     left: auto !important;
     right: auto !important;
     width: auto !important;
-    margin: -10px -10px 10px !important;
+    margin: -10px -10px calc(10px + var(--nav-search-row-height)) !important;
   }
   .feed,
   .sidebar-right {
@@ -5001,6 +4923,7 @@ html.dark {
 }
 html.dark ::-webkit-scrollbar-thumb { background: var(--dk-active); }
 html.dark .navbar { background: var(--dk-bg); border-bottom: 1px solid var(--dk-line); }
+html.dark .nav-search { background: var(--dk-bg); }
 html.dark .nav-logo-name { color: var(--dk-text); }
 
 /* 카드 계열 표면 */
@@ -6046,7 +5969,6 @@ html:not(.font-gothic) body .sc-ev-date {
 html:not(.font-gothic) body .sub-filter-bar,
 html:not(.font-gothic) body .nav-search-suggest,
 html:not(.font-gothic) body .post-card,
-html:not(.font-gothic) body .home-switch-countdown,
 html:not(.font-gothic) body .home-widget--summary {
   box-shadow: none !important;
 }

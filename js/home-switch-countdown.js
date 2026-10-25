@@ -1,47 +1,33 @@
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
+      if (!document.body || document.body.id !== 'tt-body-index') return;
       var el = null, labelEl = null, units = {}, lastDigits = {};
 
       function mount() {
         // skin-main.js renders the dashboard asynchronously and may replace its
-        // innerHTML after this deferred module has already mounted. Recreate the
-        // node if that render detached it from the document.
-        if (el && el.isConnected) return;
+        // innerHTML after this deferred module has already mounted. Only bind to
+        // its existing placeholder; never create a floating fallback in body.
+        if (el && el.isConnected) return true;
         el = null;
         labelEl = null;
         units = {};
         lastDigits = {};
-        el = document.querySelector('.home-market-toolbar > .home-switch-countdown')
-          || document.createElement('div');
-        el.classList.add('home-switch-countdown');
+        el = document.querySelector('.home-dashboard .home-market-toolbar > .home-switch-countdown');
+        if (!el) return false;
         el.hidden = true;
         el.setAttribute('role', 'timer');
         el.setAttribute('aria-live', 'off');
-        if (!el.isConnected) document.body.appendChild(el);
         el.innerHTML = '<span class="hsc-label"></span><div class="hsc-clock" aria-hidden="true">'
           + ['일', '시간', '분', '초'].map(function (unit, index) {
             return '<span class="hsc-unit"><span class="hsc-digits" data-hsc-unit="' + index + '">'
               + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span>'
               + '<span class="hsc-digit"><span class="hsc-face hsc-face-top"><span>0</span></span><span class="hsc-face hsc-face-bottom"><span>0</span></span></span></span><small>' + unit + '</small></span>';
           }).join('<span class="hsc-separator">:</span>') + '</div>';
-        var switchTabs = document.querySelector('.home-market-switch');
-        var dashboard = switchTabs && switchTabs.closest('.home-dashboard');
-        try {
-        if (dashboard && switchTabs) {
-          var toolbar = dashboard.querySelector('.home-market-toolbar');
-          if (!toolbar) {
-            toolbar = document.createElement('div');
-            toolbar.className = 'home-market-toolbar';
-            dashboard.insertBefore(toolbar, switchTabs);
-            toolbar.appendChild(switchTabs);
-          }
-          if (el.parentNode !== toolbar) toolbar.appendChild(el);
-        }
-        } catch (error) { /* 카운트다운 자체는 툴바 배치 실패와 관계없이 표시한다. */ }
         labelEl = el.querySelector('.hsc-label');
         el.querySelectorAll('[data-hsc-unit]').forEach(function (node) {
           units[node.getAttribute('data-hsc-unit')] = node;
         });
+        return true;
       }
 
       function updateUnit(index, value) {
@@ -169,7 +155,7 @@
       function tick() {
         var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
           ? window.HomeMarketSelection.get() : 'domestic';
-        mount();
+        if (!mount()) return;
         var now = Date.now();
         var marketHours = window.MarketHours;
         if (!marketHours) {
