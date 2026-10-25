@@ -1,5 +1,5 @@
 .dmi-shell {
-  
+
   color: #000;
 }
 /* 국내시장지표의 세 영역은 스킨의 상속 색상과 무관하게 검은색으로 통일한다.
@@ -180,7 +180,7 @@
 
 .dmi-error { border: 1px solid #f0d4d4; border-radius: 12px; padding: 14px; color: #c14c4c; background: #fff8f8; }
 @media (max-width: 760px) {
-  
+
   /* 선물 차트와 같은 모바일 흐름: 제목 → 조작 탭 → 차트. */
   .dmi-chart-grid { grid-template-columns: 1fr; gap: 14px; }
   .dmi-panel { border: 0; border-radius: 0; padding: 0; background: transparent; overflow: visible; }
@@ -312,7 +312,7 @@ html.dark .dmi-market-status { color: var(--dk-mute) !important; }
    좌우 여백으로 코스피·코스닥을 분리한다. */
 .dmi-spot-quotes {
   gap: 0;
-  
+
   border-top: 1px solid #d8d8d8;
   border-bottom: 1px solid #d8d8d8;
 }
@@ -353,7 +353,7 @@ html.dark .dmi-market-status { color: var(--dk-mute) !important; }
   border-radius: 4px;
 }
 .dmi-panel .de-draw-controls {
-  
+
   margin: -4px 0 8px;
 }
 
@@ -446,8 +446,8 @@ html.dark .dmi-section-collapse {
 @media (min-width: 761px) {
   /* 차트 탭은 왼쪽, 그리기 도구는 차트 바로 위 오른쪽으로 분리한다. */
   .dmi-panel { position: relative; }
-  
-  
+
+
 }
 
 /* 2026-08-26: 국내 현물은 선물과 구분되는 표형 지수 요약으로 표시한다.

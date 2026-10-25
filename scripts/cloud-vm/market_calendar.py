@@ -12,4 +12,3 @@ def is_kr_trading_day(now_kst):
     if now_kst.weekday() >= 5:
         return False
     return now_kst.strftime('%Y-%m-%d') not in KRX_HOLIDAYS_2026
-

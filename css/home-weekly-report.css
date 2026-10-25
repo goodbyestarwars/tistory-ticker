@@ -63,7 +63,7 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-header {
   min-height: 142px;
   display: flex;
-  
+
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 20px;

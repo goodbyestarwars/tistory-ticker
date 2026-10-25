@@ -396,7 +396,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 }
 .sidebar-left .card.nav-menu,
 .sidebar-left .nav-menu {
-  
+
   flex-direction: row;
   align-items: stretch;
   height: 100%;
@@ -413,7 +413,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   /* 데스크톱에서 overflow-x:auto를 주면 CSS 계산상 overflow-y도 auto가 되어,
      position:absolute 드롭다운이 50px 메뉴바 안에서 잘린다. PC는 완전히 열어두고
      가로 스크롤이 필요한 모바일에서만 아래 media query로 다시 활성화한다. */
-  
+
   scrollbar-width: none;
   box-shadow: none;
   border-radius: 0;
@@ -1810,8 +1810,8 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-widget--summary.home-economic-news {
   grid-column: span 6;
   width: 100%;
-  
-  
+
+
 }
 .home-widget--compact.home-mini-card {
   width: 100%;
@@ -4193,24 +4193,24 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
 
 /* Mobile footer final layout override. */
 @media (max-width: 720px) {
-  
-  
-  
-  
-  
-  
-  
-  
+
+
+
+
+
+
+
+
 }
 
 /* 2026-09-20: 모바일 풋터는 링크·안내·버전을 한 화면에 압축한다. */
 @media (max-width: 720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    
+
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-template-areas: "footer-links footer-links" "footer-copyright footer-learn" "footer-version footer-version" !important;
     gap: 10px 18px !important;
-    
+
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
     grid-area: footer-links !important;
@@ -4242,30 +4242,30 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
    구분선은 1px 세로선으로 유지한다. */
 @media (max-width: 720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    
-    
+
+
     grid-template-columns: 1fr;
     grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
     justify-items: center;
     row-gap: 14px;
     padding: 24px 16px 22px;
-    
+
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
     width: min(100%, 360px);
-    
-    
+
+
     gap: 10px 0;
-    
+
   }
-  
-  
-  
+
+
+
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) .site-footer-viewmode {
     grid-column: 1 / -1;
   }
-  
-  
+
+
 }
 
 /* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */
@@ -4347,7 +4347,7 @@ html body .copyright { font-family: var(--font-ui) !important; }
      반응형 블록(720px)에서 재정의. */
   .main-layout { padding: 12px 10px; }
   .post-card { padding: 16px 16px; }
-  
+
   .post-single-title { font-size: 20px; }
 }
 
@@ -4639,7 +4639,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .sidebar-left {
     top: calc(56px + var(--navbar-mobile-extra-height)) !important;
     left: 0 !important; right: 0 !important;
-    
+
     height: 40px !important;
     z-index: 250 !important;
     overflow-y: hidden !important;
@@ -4995,7 +4995,7 @@ html.dark {
   --text-main: var(--dk-text);
   --text-strong: var(--dk-text);
   --text-sub: var(--dk-sub);
-  
+
   --page-bg: var(--dk-bg);
   --surface: var(--dk-bg);
 }
@@ -6469,7 +6469,7 @@ body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
   display: flex;
   flex-direction: column;
-  
+
   margin-top: 5px;
   overflow: visible;
 }
@@ -6837,8 +6837,8 @@ body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news
   min-height: 0 !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news {
-  
-  
+
+
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods {
@@ -6946,15 +6946,15 @@ body#tt-body-index .home-editorial-page .home-disclosure-more { display: none !i
 body#tt-body-index .home-editorial-page .home-economic-news {
   display: block !important;
   height: 430px !important;
-  
+
   overflow: hidden !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
   display: block !important;
   height: 290px !important;
   max-height: 290px !important;
-  
-  
+
+
   overscroll-behavior: contain;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking-list {
@@ -7016,16 +7016,16 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-l
   overflow: visible !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
-  
+
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
   gap: 12px;
   min-height: 52px;
   padding: 8px 0 !important;
-  
+
   border-bottom: 0 !important;
   border-radius: 0 !important;
-  
+
   box-shadow: none !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row strong {
@@ -8170,7 +8170,7 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
   html.nav-secondary-open { --topbar-height: 48px !important; }
   html body .sidebar-left .nav-group { position: relative !important; display: flex !important; align-items: center !important; flex: 0 0 auto !important; }
   html body .sidebar-left .nav-primary-item {
-    
+
     padding: 0 16px !important;
     border: 0 !important;
     border-radius: 18px !important;

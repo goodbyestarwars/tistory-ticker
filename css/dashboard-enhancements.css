@@ -21,7 +21,7 @@
   overflow: hidden;
   border-width: 1px;
   border-color: #dfe5e8 !important;
-  
+
   box-shadow: 0 3px 10px rgba(31,41,55,.05);
   transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
 }

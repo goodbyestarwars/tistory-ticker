@@ -94,13 +94,13 @@ html.dark #auto-trader { --at-panel: var(--dk-card); --at-warn: #f0b35c; --at-ok
   #auto-trader .at-kpi div { border-top: 1px solid var(--at-line); }
   #auto-trader .at-kpi div:nth-child(4n + 1) { border-left: 0; }
   #auto-trader .at-kpi div:nth-child(-n + 4) { border-top: 0; }
-  
+
 }
 @media (max-width: 640px) {
-  
-  
-  
-  
+
+
+
+
   #auto-trader .at-hide-m { display: none; }
   #auto-trader .at-hd { flex-direction: column; gap: 2px; }
 }

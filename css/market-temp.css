@@ -1191,7 +1191,7 @@ html.dark #market-temp .mt-industry-flow-stock .is-flat { color: var(--dk-mute);
    gap: 8px;
   position:relative; isolation:isolate;  min-height: 40px; padding: 8px 4px;
    background: transparent; color: inherit;  font-size: 12.5px;
-   
+
 }
 #market-temp .mt-sf-row > *:not(.mt-sf-fill) { position:relative; z-index:1; }
 #market-temp .mt-sf-fill { position:absolute; z-index:0; left:25px; top:5px; bottom:5px; border-radius:2px; pointer-events:none; }
@@ -1349,11 +1349,11 @@ html.dark #market-temp .mt-money-flow-grid .mt-industry-flow-row.is-open { backg
   gap: 4px 8px;
   margin: 10px 0 0;
   padding: 10px 12px;
-  
+
   background: #f5f6f8;
   color: #333;
   font-size: 13px;
-  
+
 }
 #market-temp .mt-summary-sowhat b { flex: none; font-weight: 800; }
 #market-temp .mt-summary-sowhat span { flex: 1 1 180px;  }
@@ -1363,11 +1363,11 @@ html.dark #market-temp .mt-money-flow-grid .mt-industry-flow-row.is-open { backg
 
 #market-temp .mt-axis-list { padding: 12px 0 4px; }
 #market-temp .mt-axis-row {
-  
+
   /* 이름 · 막대 · 숫자 · 한 단어. 숫자 칸을 고정해야 세 줄의 막대 끝이 맞는다. */
   /* 줄마다 따로 된 grid라 마지막 칸이 auto면 단어 길이만큼 막대 끝이 어긋난다 - 고정폭으로 둔다. */
   grid-template-columns: 92px minmax(0, 1fr) 30px 66px;
-  
+
   gap: 0 8px;
   padding: 5px 0;
 }
@@ -1551,9 +1551,9 @@ html.dark #market-temp .mt-axis-risk-high { background: #ef7773 !important; }
   letter-spacing: .13em;
 }
 #market-temp .mt-summary-main {
-  
+
   grid-template-columns: minmax(108px, .72fr) minmax(0, 1.28fr);
-  
+
   gap: 8px;
   min-height: 142px;
   padding: 9px 0 6px;
@@ -1913,7 +1913,7 @@ html.dark #market-temp .mt-track-row, html.dark #market-temp .mt-track-day { bor
 #market-temp .mt-sf-item:last-of-type { border: 1px solid rgba(17, 17, 17, .09); }
 #market-temp .mt-sf-row {
   display: grid; grid-template-columns: 22px minmax(0, 1fr) 14px; grid-template-rows: auto auto auto;
-  column-gap: 8px; row-gap: 4px; 
+  column-gap: 8px; row-gap: 4px;
   min-height: 0; padding: 14px 14px 12px;
 }
 #market-temp .mt-sf-row:hover, #market-temp .mt-sf-row.is-open { background: transparent; }
@@ -2481,7 +2481,7 @@ html body #market-temp .mt-sf-disclaimer { margin-top: 22px; padding: 16px 20px 
 /* ※ 대표 종목 안내: 한 줄 */
 html body #market-temp .mt-sf-disclaimer {  overflow: hidden; text-overflow: ellipsis; font-size: clamp(9.5px, 0.8vw, 12.5px); letter-spacing: -.02em; }
 @media (max-width: 900px) {
-  
+
 }
 
 /* 돈이 몰린 섹터: 조밀한 표(제목 한 줄, 행 52px, 굵은 집중도 막대, 대표 종목 | 구분) */
@@ -2770,7 +2770,7 @@ html.dark #market-temp .mt-market-neutral { --pulse-accent: var(--dk-sub); }
   @media (max-width: 760px) {
     html body #market-temp .mt-front-page { grid-template-columns: minmax(0, 1fr) !important; gap: 16px !important; }
     html body #market-temp .mt-front-headline { font-size: 25px !important; }
-    
+
     html body #market-temp .mt-front-facts b { font-size: 28px !important; }
     html body #market-temp .mt-flow-svg { height: 195px !important; }
     html body #market-temp .mt-front-page .mt-history-chart-meta { align-items: flex-start !important; flex-direction: column; gap: 5px !important; }

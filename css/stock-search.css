@@ -1185,7 +1185,7 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
   grid-template-columns: 86px minmax(24px, 1fr) 60px;
   gap: 10px;
   min-height: 24px;
-  
+
 }
 #stock-search #order-book .ob-hud-note { padding-top: 2px; line-height: 1.8; }
 #stock-search #order-book .ob-breakout-note:not(:empty) { margin: 0; padding-top: 12px; line-height: 1.8; }
@@ -1518,7 +1518,7 @@ html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-tab
   align-items: center;
   justify-content: space-between;
   gap: 7px 12px;
-  
+
   padding: 7px 10px;
 }
 html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs .ss-timeframe-tools { flex: 0 0 auto; gap: 4px; }
