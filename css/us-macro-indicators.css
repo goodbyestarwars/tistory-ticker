@@ -43,7 +43,7 @@ html.dark :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { background:
 @media (max-width: 720px) { :is(#us-macro-indicators, .sc-econ-results) .umi-head { display: block; } :is(#us-macro-indicators, .sc-econ-results) .umi-refresh { margin-top: 10px; } :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: repeat(2, minmax(0, 1fr)); } :is(#us-macro-indicators, .sc-econ-results) .umi-reading { align-items:flex-start; flex-direction:column; } }
 @media (max-width: 480px) { :is(#us-macro-indicators, .sc-econ-results) .umi-grid, :is(#us-macro-indicators, .sc-econ-results) .umi-grid--data { grid-template-columns: minmax(0, 1fr); } }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-halo { stroke-width:8; stroke-opacity:.2; }
-:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-ring { fill:#2878cc; fill-opacity:.2; stroke:none; }
+:is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-glow-ring { fill:#2878cc;   }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-base { stroke:#64748b; stroke-width:1; stroke-dasharray:3 3; stroke-opacity:.7; vector-effect:non-scaling-stroke; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-up polyline { stroke:#d24f45; }
 :is(#us-macro-indicators, .sc-econ-results) .umi-mini-chart .umi-down polyline { stroke:#1261c4; }

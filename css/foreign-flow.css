@@ -2348,12 +2348,12 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: var(--dk-sub) !importa
 /* 4주 스윙 국면 판정: 별점/합산등급 대신 차트 국면과 보유자·미보유자 행동을
    분리해 표시한다. 224일선 관련 차트 스타일은 위 기존 규칙을 그대로 유지한다. */
 #foreign-flow .ff-swing-summary { padding: 14px; }
-#foreign-flow .ff-swing-regime { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; padding-bottom: 12px; border-bottom: 1px solid #e8ebef; }
+#foreign-flow .ff-swing-regime {   gap: 10px;  padding-bottom: 12px; border-bottom: 1px solid #e8ebef; }
 #foreign-flow .ff-swing-regime .ff-panel-title { margin: 0; }
 #foreign-flow .ff-swing-regime strong { font-size: 20px; color: #0c447c; }
 #foreign-flow .ff-swing-regime small { color: #64748b; }
 #foreign-flow .ff-swing-flow { padding: 12px 0 0; }
-#foreign-flow .ff-swing-flow-track { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-top: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-flow-track { display: grid;  border-top: 1px solid #e1e7ee; border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-step {
   display: grid;
   grid-template-columns: 90px minmax(0, 1fr);
@@ -2363,20 +2363,20 @@ html.dark #foreign-flow .ff-sig-banner-score-sub { color: var(--dk-sub) !importa
   padding: 13px 14px 14px;
 }
 #foreign-flow .ff-swing-step + .ff-swing-step { border-left: 1px solid #e1e7ee; }
-#foreign-flow .ff-swing-step-label { display: inline-flex; align-items: baseline; flex: 0 0 auto; gap: 4px; color: #64748b; font-size: 12px; line-height: 1.35; white-space: nowrap; }
+#foreign-flow .ff-swing-step-label { display: inline-flex;  flex: 0 0 auto; gap: 4px;   line-height: 1.35; white-space: nowrap; }
 #foreign-flow .ff-swing-step-name, #foreign-flow .ff-swing-step-context { display: inline-block; }
 #foreign-flow .ff-swing-step-context { color: #94a3b8; font-size: 11px; }
 #foreign-flow .ff-swing-step strong { display: block; min-width: 0; margin-top: 0; color: #0f4c81; font-size: 15px; line-height: 1.35; }
-#foreign-flow .ff-swing-diagnosis { display: flex; align-items: baseline; gap: 12px; padding: 14px 2px; border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-diagnosis {    padding: 14px 2px; border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-diagnosis span, #foreign-flow .ff-swing-action span { flex: 0 0 auto; color: #64748b; font-size: 12px; }
 #foreign-flow .ff-swing-diagnosis strong { color: #0f4c81; font-size: 16px; line-height: 1.4; }
-#foreign-flow .ff-swing-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); border-bottom: 1px solid #e1e7ee; }
+#foreign-flow .ff-swing-actions { display: grid;  border-bottom: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-action { display: flex; align-items: baseline; gap: 12px; min-width: 0; padding: 13px 2px; }
 #foreign-flow .ff-swing-action + .ff-swing-action { padding-left: 18px; border-left: 1px solid #e1e7ee; }
 #foreign-flow .ff-swing-action strong { min-width: 0; color: #1e293b; font-size: 14px; line-height: 1.45; }
-#foreign-flow .ff-swing-facts { display: flex; flex-wrap: wrap; gap: 0 20px; padding: 12px 2px 4px; }
-#foreign-flow .ff-swing-fact { display: inline-flex; align-items: baseline; gap: 6px; min-width: 0; }
-#foreign-flow .ff-swing-fact small { color: #64748b; font-size: 11px; }
+#foreign-flow .ff-swing-facts { display: flex;  gap: 0 20px; padding: 12px 2px 4px; }
+#foreign-flow .ff-swing-fact {    min-width: 0; }
+
 #foreign-flow .ff-swing-fact b { color: #334155; font-size: 12px; font-weight: 600; }
 #foreign-flow .ff-swing-fact:first-child b { color: #0f4c81; }
 #foreign-flow .ff-swing-reasons, #foreign-flow .ff-swing-invalidation, #foreign-flow .ff-swing-risk-detail { margin-top: 7px; color: #475569; font-size: 12px; line-height: 1.55; }

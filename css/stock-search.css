@@ -430,7 +430,7 @@ html.dark #stock-search .ss-chart-studies { border-top-color: var(--dk-line); }
   color: #555;
   cursor: pointer;
 }
-#stock-search .ss-chart { position: relative; height: 420px; }
+#stock-search .ss-chart {  height: 420px; }
 @media (min-width: 861px) {
   #stock-search .ss-chart { height: 620px; }
 }
@@ -941,7 +941,7 @@ html.dark #stock-search .ss-index-result { border-color: var(--dk-line); color: 
 .ss-index-tools button { padding: 7px 11px; border: 1px solid #dce2e8; border-radius: 6px; background: transparent; color: inherit; cursor: pointer; }
 .ss-index-tools button.active, .ss-index-tools button.is-active { background: #1a1a1a; color: #fff; }
 .ss-index-tools button:disabled { opacity: .45; cursor: not-allowed; }
-html.dark #stock-search .ss-index-tools button { border-color: var(--dk-line); }
+html.dark #stock-search .ss-index-tools button {  }
 html.dark #stock-search .ss-index-tools button.active, html.dark #stock-search .ss-index-tools button.is-active { background: var(--dk-text); color: var(--dk-bg); }
 
 /* Compact HTS-style index controls: two tidy rows, not oversized floating buttons. */
@@ -1106,12 +1106,12 @@ html body #stock-search .ss-session-values b.ss-session-low { color: var(--num-d
 #stock-search .ss-panel-left, #stock-search .ss-panel-right { padding:6px; border-radius:6px; }
 #stock-search .ss-panel-title { margin-bottom:6px; }
 #stock-search #order-book .ob-board { border-radius:3px; }
-#stock-search #order-book .ob-hud { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 10px; padding:5px 6px; margin-bottom:5px; border-radius:3px; }
-#stock-search #order-book .ob-hud-row { display:grid; grid-template-columns:1fr auto; gap:2px; margin:0; font-size:10px; }
+#stock-search #order-book .ob-hud { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:4px 10px;  margin-bottom:5px;  }
+#stock-search #order-book .ob-hud-row {  grid-template-columns:1fr auto; gap:2px;  font-size:10px; }
 #stock-search #order-book .ob-hud-label { width:auto; font-size:10px; }
 #stock-search #order-book .ob-hud-val { width:auto; font-size:10px; }
 #stock-search #order-book .ob-hud-bar { grid-column:1/-1; grid-row:2; height:3px; }
-#stock-search #order-book .ob-hud-note { grid-column:1/-1; font-size:10px; padding:0; }
+#stock-search #order-book .ob-hud-note { grid-column:1/-1; font-size:10px;  }
 #stock-search #order-book .ob-book-status { padding:4px 6px; font-size:10px; line-height:1.3; color:#777; }
 #stock-search #order-book .ob-table-pairs > .ob-row { min-height:27px; padding-block:0; }
 #stock-search #order-book .ob-depth { height:26px; }
@@ -1164,7 +1164,7 @@ html.dark #stock-search .ss-session-values b { color:var(--dk-text) !important; 
 #stock-search #order-book .ob-hud-label { width: 86px; }
 #stock-search #order-book .ob-hud-val { width: 60px; }
 #stock-search #order-book .ob-hud-note,
-#stock-search #order-book .ob-breakout-note:not(:empty) { font-size: 12.5px; line-height: 1.6; word-break: keep-all; }
+#stock-search #order-book .ob-breakout-note:not(:empty) { font-size: 12.5px; line-height: 1.6;  }
 #stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.13); }
 #stock-search #order-book .ob-current-row[data-dominance="ask"] { background: rgba(18,97,196,.13); }
 html.dark #stock-search #order-book .ob-current-row[data-dominance="bid"] { background: rgba(210,79,69,.23) !important; }
@@ -1185,7 +1185,7 @@ html.dark #stock-search #order-book .ob-current-row[data-dominance="ask"] { back
   grid-template-columns: 86px minmax(24px, 1fr) 60px;
   gap: 10px;
   min-height: 24px;
-  margin: 0;
+  
 }
 #stock-search #order-book .ob-hud-note { padding-top: 2px; line-height: 1.8; }
 #stock-search #order-book .ob-breakout-note:not(:empty) { margin: 0; padding-top: 12px; line-height: 1.8; }
@@ -1518,7 +1518,7 @@ html body :is(#stock-search, .de-chart-overlay) .ss-stock-controls .ss-chart-tab
   align-items: center;
   justify-content: space-between;
   gap: 7px 12px;
-  margin: 0;
+  
   padding: 7px 10px;
 }
 html body :is(#stock-search, .de-chart-overlay) .ss-chart-tabs.ss-chart-tabs .ss-timeframe-tools { flex: 0 0 auto; gap: 4px; }

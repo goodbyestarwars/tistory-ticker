@@ -241,7 +241,7 @@
   #strategy-search .ss-etf-search-input {
     margin-left: 0;
     flex: 1 1 100%;
-    min-width: 0;
+    
   }
 }
 @media (max-width: 480px) {
@@ -774,7 +774,7 @@ html.dark .ss-etf-facts dd { color: var(--dk-text); }
 #strategy-search .ss-product-toolbar,
 #strategy-search .ss-dividend-toolbar { column-gap: 14px; row-gap: 10px; }
 #strategy-search .ss-product-toolbar label,
-#strategy-search .ss-dividend-toolbar label { gap: 9px; }
+#strategy-search .ss-dividend-toolbar label {  }
 #strategy-search .ss-etf-search-input { padding-inline: 14px; }
 #strategy-search .ss-watch-toggle {
   appearance: none;

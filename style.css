@@ -396,7 +396,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
 }
 .sidebar-left .card.nav-menu,
 .sidebar-left .nav-menu {
-  display: flex;
+  
   flex-direction: row;
   align-items: stretch;
   height: 100%;
@@ -413,7 +413,7 @@ html.dark .nav-icon-btn svg { stroke: var(--dk-text); }
   /* 데스크톱에서 overflow-x:auto를 주면 CSS 계산상 overflow-y도 auto가 되어,
      position:absolute 드롭다운이 50px 메뉴바 안에서 잘린다. PC는 완전히 열어두고
      가로 스크롤이 필요한 모바일에서만 아래 media query로 다시 활성화한다. */
-  overflow: visible;
+  
   scrollbar-width: none;
   box-shadow: none;
   border-radius: 0;
@@ -1810,8 +1810,8 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-widget--summary.home-economic-news {
   grid-column: span 6;
   width: 100%;
-  height: auto;
-  min-height: 0;
+  
+  
 }
 .home-widget--compact.home-mini-card {
   width: 100%;
@@ -4139,7 +4139,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::
   font-size: 16px;
 }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::before { content: none; display: none; }
-html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn a { font-weight: 700; }
+
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { gap: .5em; }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version span { flex-shrink: 0; }
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small { margin: 0; }
@@ -4193,39 +4193,24 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
 
 /* Mobile footer final layout override. */
 @media (max-width: 720px) {
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    width: 100%; box-sizing: border-box;
-    grid-template-columns: 1fr;
-    grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
-    justify-items: center; row-gap: 14px; padding: 24px 16px 22px; text-align: center;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
-    width: min(100%, 360px); display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 0; justify-items: center;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > * {
-    position: relative; width: 100%; text-align: center;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *::after {
-    display: block; content: ""; position: absolute; top: 50%; right: 0; width: 1px; height: 1.25em;
-    transform: translateY(-50%); background: #cbd0d6;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:nth-child(2n)::after,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > .site-footer-viewmode::after { display: none; }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) .site-footer-viewmode { grid-column: auto !important; }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { justify-self: center; text-align: center; }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version { max-width: 100%; justify-content: center; flex-wrap: wrap; }
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
 /* 2026-09-20: 모바일 풋터는 링크·안내·버전을 한 화면에 압축한다. */
 @media (max-width: 720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    display: grid !important;
+    
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
     grid-template-areas: "footer-links footer-links" "footer-copyright footer-learn" "footer-version footer-version" !important;
     gap: 10px 18px !important;
-    padding: 18px 16px 16px !important;
+    
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
     grid-area: footer-links !important;
@@ -4243,8 +4228,8 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
     text-align: center !important;
     justify-self: stretch !important;
   }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright { grid-area: footer-copyright !important; }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn { grid-area: footer-learn !important; }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright {  }
+  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn {  }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
     grid-area: footer-version !important;
     margin: 2px 0 0 !important;
@@ -4257,54 +4242,30 @@ html.dark body#tt-body-index .home-editorial-page .home-briefing-more { color: v
    구분선은 1px 세로선으로 유지한다. */
 @media (max-width: 720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) {
-    width: 100%;
-    box-sizing: border-box;
+    
+    
     grid-template-columns: 1fr;
     grid-template-areas: "footer-links" "footer-copyright" "footer-learn" "footer-version";
     justify-items: center;
     row-gap: 14px;
     padding: 24px 16px 22px;
-    text-align: center;
+    
   }
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) {
     width: min(100%, 360px);
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    
+    
     gap: 10px 0;
-    justify-items: center;
+    
   }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > * {
-    position: relative;
-    width: 100%;
-    text-align: center;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *::after {
-    display: block;
-    content: "";
-    position: absolute;
-    top: 50%;
-    right: 0;
-    width: 1px;
-    height: 1.25em;
-    transform: translateY(-50%);
-    background: #cbd0d6;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > *:nth-child(2n)::after,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links:not(.site-footer-learn) > .site-footer-viewmode::after { display: none; }
+  
+  
+  
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) .site-footer-viewmode {
     grid-column: 1 / -1;
   }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-learn,
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
-    justify-self: center;
-    text-align: center;
-  }
-  html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version {
-    max-width: 100%;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
+  
+  
 }
 
 /* 모바일 풋터는 오래된 스킨 마크업과 새 마크업 모두 화면 폭 안에서 끝낸다. */
@@ -4386,7 +4347,7 @@ html body .copyright { font-family: var(--font-ui) !important; }
      반응형 블록(720px)에서 재정의. */
   .main-layout { padding: 12px 10px; }
   .post-card { padding: 16px 16px; }
-  .post-single { padding: 18px 16px; }
+  
   .post-single-title { font-size: 20px; }
 }
 
@@ -4678,7 +4639,7 @@ html.dark .account-login-footer { border-color: var(--dk-line); }
   .sidebar-left {
     top: calc(56px + var(--navbar-mobile-extra-height)) !important;
     left: 0 !important; right: 0 !important;
-    width: auto !important;
+    
     height: 40px !important;
     z-index: 250 !important;
     overflow-y: hidden !important;
@@ -5034,7 +4995,7 @@ html.dark {
   --text-main: var(--dk-text);
   --text-strong: var(--dk-text);
   --text-sub: var(--dk-sub);
-  --rule: var(--dk-line);
+  
   --page-bg: var(--dk-bg);
   --surface: var(--dk-bg);
 }
@@ -5521,7 +5482,7 @@ html.dark .sidebar-left .nav-secondary-separator { color: var(--dk-mute) !import
 .hrt-tabs button { flex: 0 0 auto; padding: 8px 13px 10px; border: 0; border-bottom: 2px solid transparent; background: transparent; color: #8d98a5; font: inherit; font-size: 13px; cursor: pointer; }
 .hrt-tabs button.active { border-bottom-color: #263dce; color: #263dce; font-weight: 700; }
 .hrt-table-wrap { overflow-x: auto; }
-.hrt-table-wrap table { width: 100%; min-width: 1120px; border-collapse: collapse; table-layout: fixed; }
+.hrt-table-wrap table { width: 100%;  border-collapse: collapse; table-layout: fixed; }
 .hrt-table-wrap th, .hrt-table-wrap td { padding: 12px 9px; border-bottom: 1px solid #edf0f2; text-align: right; white-space: nowrap; font-size: 13px; }
 .hrt-table-wrap th { color: #8a94a1; font-size: 11px; font-weight: 600; }
 .hrt-table-wrap th:first-child, .hrt-table-wrap td:first-child { text-align: left; }
@@ -6508,7 +6469,7 @@ body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
   display: flex;
   flex-direction: column;
-  gap: 0;
+  
   margin-top: 5px;
   overflow: visible;
 }
@@ -6876,8 +6837,8 @@ body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news
   min-height: 0 !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news {
-  display: block !important;
-  overflow: visible !important;
+  
+  
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list,
 body#tt-body-index .home-editorial-page .home-economic-news .hen-periods {
@@ -6985,15 +6946,15 @@ body#tt-body-index .home-editorial-page .home-disclosure-more { display: none !i
 body#tt-body-index .home-editorial-page .home-economic-news {
   display: block !important;
   height: 430px !important;
-  min-height: 0 !important;
+  
   overflow: hidden !important;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
   display: block !important;
   height: 290px !important;
   max-height: 290px !important;
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
+  
+  
   overscroll-behavior: contain;
 }
 body#tt-body-index .home-editorial-page .home-economic-news .hen-breaking-list {
@@ -7055,16 +7016,16 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-l
   overflow: visible !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
-  display: grid !important;
+  
   grid-template-columns: max-content minmax(0, 1fr) max-content;
   align-items: center;
   gap: 12px;
   min-height: 52px;
   padding: 8px 0 !important;
-  border: 0 !important;
+  
   border-bottom: 0 !important;
   border-radius: 0 !important;
-  background: transparent !important;
+  
   box-shadow: none !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row strong {
@@ -8204,12 +8165,12 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
 
 /* ── 15. 메뉴 : 호버하면 아래로 둥근 유리 카드가 펼쳐지고, 항목마다 둥근 아이콘 타일(PC 721px 이상) ── */
 @media (min-width: 721px) {
-  html body .sidebar-left .nav-primary-row { overflow: visible !important; height: 48px !important; align-items: center !important; gap: 2px !important; }
+  html body .sidebar-left .nav-primary-row { overflow: visible !important; height: 48px !important; align-items: center !important;  }
   html body .sidebar-left .nav-secondary-row { display: none !important; }
   html.nav-secondary-open { --topbar-height: 48px !important; }
   html body .sidebar-left .nav-group { position: relative !important; display: flex !important; align-items: center !important; flex: 0 0 auto !important; }
   html body .sidebar-left .nav-primary-item {
-    height: 36px !important;
+    
     padding: 0 16px !important;
     border: 0 !important;
     border-radius: 18px !important;
@@ -8222,7 +8183,7 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
     background: rgba(var(--np-ink), .07) !important;
     color: rgb(var(--np-ink)) !important;
   }
-  html body .sidebar-left .nav-primary-item.nav-item-active { color: rgb(var(--np-ink)) !important; border-bottom: 0 !important; background: rgba(var(--np-ink), .07) !important; }
+  html body .sidebar-left .nav-primary-item.nav-item-active { color: rgb(var(--np-ink)) !important; border-bottom: 0 !important;  }
   html body .sidebar-left .nav-primary-item.nav-item-active .nav-item-label { font-weight: 600 !important; }
 
   html body .sidebar-left .nav-dropdown {
@@ -8526,7 +8487,7 @@ html body#tt-body-index .briefing-intro .home-briefing-more > i { position:stati
 html body#tt-body-index .home-editorial-page .briefing-carousel-track { display:flex!important; gap:24px!important; width:100%; overflow-x:auto!important; overflow-y:hidden; padding:12px 0 24px!important; scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x pan-y; cursor:grab; }
 html body#tt-body-index .briefing-carousel-track::-webkit-scrollbar { display:none; }
 html body#tt-body-index .briefing-carousel-track.is-dragging { cursor:grabbing; scroll-snap-type:none; user-select:none; }
-html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important; padding:var(--ui-card-padding)!important; overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important; border-radius:var(--ui-radius-card)!important; background:var(--np-paper)!important; box-shadow:0 6px 18px rgba(var(--np-ink),.06)!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
+html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important;  overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important;  background:var(--np-paper)!important; box-shadow:0 6px 18px rgba(var(--np-ink),.06)!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { content:attr(data-briefing-number); position:absolute; bottom:60px; right:26px; font:400 110px/1 Georgia,serif; color:rgba(var(--np-ink),.045); pointer-events:none; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card:hover { border-color:rgba(var(--np-ink),.2)!important; box-shadow:0 10px 24px rgba(var(--np-ink),.1)!important; }
 html body#tt-body-index .briefing-carousel-track .post-header { display:flex!important; justify-content:flex-start!important; margin:0 0 20px!important; }
