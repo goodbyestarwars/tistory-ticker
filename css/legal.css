@@ -85,10 +85,8 @@ a { color: #d24f45; }
 .learn-toc a { font-size: 16px; font-weight: 700; text-decoration: none; }
 .learn-toc small { display: block; margin-top: 2px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 
-/* 이야기 시리즈의 8개 문서만 밝은 블루그레이 톤으로 통일한다.
-   이용안내(legal/guide.html)도 learn-note/fig-*를 사용하므로
-   시리즈 각 문서에 있는 .learn-nav로 범위를 구분한다. */
-.legal-wrap:has(.learn-nav) {
+/* 이야기 시리즈 전체: body.learn-page 표식으로 /legal/ 공통문서와 스타일을 격리한다. */
+body.learn-page .legal-wrap {
   --learn-box: #edf3f8;
   --learn-box-deep: #dfe9f3;
   --learn-box-inset: #fbfcfe;
@@ -101,26 +99,26 @@ a { color: #d24f45; }
 }
 
 /* 이야기 시리즈: 읽기 폭과 실험·심화 학습용 공통 디자인. 이용약관/이용안내와 격리. */
-.legal-wrap:has(.learn-nav) {
+body.learn-page .legal-wrap {
   max-width: 920px;
   font-size: 15.5px;
   word-break: keep-all;
   overflow-wrap: break-word;
 }
-.legal-wrap:has(.learn-nav) > p,
-.legal-wrap:has(.learn-nav) > ul,
-.legal-wrap:has(.learn-nav) > ol { line-height: 1.88; }
-.legal-wrap:has(.learn-nav) .learn-fig svg { max-width: 620px; }
-.legal-wrap:has(.learn-nav) .learn-fig figcaption { max-width: 680px; margin-inline: auto; }
-.legal-wrap:has(.learn-nav) .fig-on-accent { fill: #263445; }
-.legal-wrap:has(.learn-nav) .fig-on-strong { fill: #fff; font-size: 14px; font-weight: 700; }
-.legal-wrap:has(.learn-nav) .learn-nav {
+body.learn-page .legal-wrap > p,
+body.learn-page .legal-wrap > ul,
+body.learn-page .legal-wrap > ol { line-height: 1.88; }
+body.learn-page .legal-wrap .learn-fig svg { max-width: 620px; }
+body.learn-page .legal-wrap .learn-fig figcaption { max-width: 680px; margin-inline: auto; }
+body.learn-page .legal-wrap .fig-on-accent { fill: #263445; }
+body.learn-page .legal-wrap .fig-on-strong { fill: #fff; font-size: 14px; font-weight: 700; }
+body.learn-page .legal-wrap .learn-nav {
   padding: 18px 20px;
   border-top: 1px solid #cbd8e5;
   background: #edf3f8;
   border-radius: 8px;
 }
-.legal-wrap:has(.learn-nav) .legal-contact {
+body.learn-page .legal-wrap .legal-contact {
   margin-top: 14px;
   padding: 15px 20px;
   color: #334155;
@@ -152,22 +150,22 @@ a { color: #d24f45; }
 .learn-deep .learn-fig svg { max-width: 620px; }
 
 @media (prefers-color-scheme: dark) {
-  .legal-wrap:has(.learn-nav) .fig-on-accent { fill: #e8eef7; }
-  .legal-wrap:has(.learn-nav) .fig-on-strong { fill: #fff; }
-  .legal-wrap:has(.learn-nav) .learn-nav,
-  .legal-wrap:has(.learn-nav) .learn-lab,
-  .legal-wrap:has(.learn-nav) .learn-sources { background: #1d2637; border-color: #34415b; }
-  .legal-wrap:has(.learn-nav) .legal-contact { color: #c2d1e2; background: #263245; border-color: #34415b; }
-  .legal-wrap:has(.learn-nav) .learn-grid > div { background: #1b2433; border-color: #34415b; }
-  .legal-wrap:has(.learn-nav) .learn-math { background: #26364b; color: #e8eef7; }
-  .legal-wrap:has(.learn-nav) .learn-lab h3,
-  .legal-wrap:has(.learn-nav) .learn-sources > strong { color: #e8eef7; }
-  .legal-wrap:has(.learn-nav) .learn-sources a { color: #9acfff; }
-  .legal-wrap:has(.learn-nav) .learn-deep > h2 { border-top-color: #34415b; }
+  body.learn-page .legal-wrap .fig-on-accent { fill: #16202f; }
+  body.learn-page .legal-wrap .fig-on-strong { fill: #fff; }
+  body.learn-page .legal-wrap .learn-nav,
+  body.learn-page .legal-wrap .learn-lab,
+  body.learn-page .legal-wrap .learn-sources { background: #1d2637; border-color: #34415b; }
+  body.learn-page .legal-wrap .legal-contact { color: #c2d1e2; background: #263245; border-color: #34415b; }
+  body.learn-page .legal-wrap .learn-grid > div { background: #1b2433; border-color: #34415b; }
+  body.learn-page .legal-wrap .learn-math { background: #26364b; color: #e8eef7; }
+  body.learn-page .legal-wrap .learn-lab h3,
+  body.learn-page .legal-wrap .learn-sources > strong { color: #e8eef7; }
+  body.learn-page .legal-wrap .learn-sources a { color: #9acfff; }
+  body.learn-page .legal-wrap .learn-deep > h2 { border-top-color: #34415b; }
 }
 @media (max-width: 640px) {
-  .legal-wrap:has(.learn-nav) { font-size: 15px; }
-  .legal-wrap:has(.learn-nav) .learn-nav { padding: 14px; flex-wrap: wrap; }
+  body.learn-page .legal-wrap { font-size: 15px; }
+  body.learn-page .legal-wrap .learn-nav { padding: 14px; flex-wrap: wrap; }
   .learn-grid { grid-template-columns: 1fr; }
   .learn-lab { padding: 16px; }
 }
