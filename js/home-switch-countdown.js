@@ -1,5 +1,10 @@
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
+      if (window.HomeSwitchCountdown) { window.HomeSwitchCountdown.refresh(); return; }
+      if (!document.body && document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupHomeSwitchCountdown, { once: true });
+        return;
+      }
       if (!document.body || document.body.id !== 'tt-body-index') return;
       var el = null, labelEl = null, units = {}, lastDigits = {};
 
@@ -168,7 +173,12 @@
         var marketName = market === 'us' ? '미국' : '국내';
         var targetAt = null;
         var targetLabel = '';
-        if (market === 'us') {
+        if (selected === 'closed') {
+          var opening = window.HomeSwitchCountdown.nextOpening(now);
+          targetAt = opening && opening.next.getTime();
+          marketName = opening ? opening.market : '국내·미국';
+          targetLabel = '시작까지';
+        } else if (market === 'us') {
           var usSession = marketHours && marketHours.us ? marketHours.us(new Date(now)) : null;
           if (usSession && usSession.phase === 'regular') {
             targetAt = nextUsClose(now, marketHours);
@@ -230,6 +240,18 @@
         el.setAttribute('aria-label', marketName + ' ' + targetLabel + ' ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
       }
 
+      window.HomeSwitchCountdown = {
+        refresh: tick,
+        nextOpening: function (now) {
+          var hours = window.MarketHours;
+          var candidates = [
+            { next: nextDomesticOpen(now, hours), market: '국내 정규장' },
+            { next: nextUsOpen(now, hours), market: '미국 정규장' }
+          ].filter(function (item) { return item.next && item.next > now; });
+          candidates.sort(function (a, b) { return a.next - b.next; });
+          return candidates.length ? { next: new Date(candidates[0].next), market: candidates[0].market } : null;
+        }
+      };
       tick();
       // 2026-08-21 코드 감사: 다른 60초 타이머(loadHomeIndices)는 이미 document.hidden을
       // 체크하는데 이 1초 카운트다운만 빠져 있었다 - 백그라운드 탭에서도 계속 돌던 걸
