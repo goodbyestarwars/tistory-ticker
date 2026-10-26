@@ -55,6 +55,7 @@ jobs:
           node test/test_watchlist_loading.js
           node test/test_home_countdown_scope.js
           node test/test_home_countdown_restore.js
+          node test/test_weekend_countdown_window.js
           node test/test_home_toolbar_preservation.js
           node test/test_crypto_shared_quotes.js
           node test/test_binance_shared_quotes.js

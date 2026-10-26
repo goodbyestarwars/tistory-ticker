@@ -161,24 +161,24 @@
         var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
           ? window.HomeMarketSelection.get() : 'domestic';
         if (!mount()) return;
+        // The closed-market dashboard owns its weekend clock; the white toolbar
+        // clock belongs exclusively to the domestic and US market views.
+        if (selected === 'closed') {
+          el.hidden = true;
+          return;
+        }
         var now = Date.now();
         var marketHours = window.MarketHours;
         if (!marketHours) {
           el.hidden = true;
           return;
         }
-        // 휴장 화면은 국내 시장 기준으로 다음 이벤트를 보여준다. 시장 탭을 바꾸면
-        // 해당 시장의 정규장 시작/종료 단계로 이어진다.
+        // 한국·미국 탭은 해당 시장의 정규장 시작/종료 단계를 보여준다.
         var market = selected === 'us' ? 'us' : 'domestic';
         var marketName = market === 'us' ? '미국' : '국내';
         var targetAt = null;
         var targetLabel = '';
-        if (selected === 'closed') {
-          var opening = window.HomeSwitchCountdown.nextOpening(now);
-          targetAt = opening && opening.next.getTime();
-          marketName = opening ? opening.market : '국내·미국';
-          targetLabel = '시작까지';
-        } else if (market === 'us') {
+        if (market === 'us') {
           var usSession = marketHours && marketHours.us ? marketHours.us(new Date(now)) : null;
           if (usSession && usSession.phase === 'regular') {
             targetAt = nextUsClose(now, marketHours);

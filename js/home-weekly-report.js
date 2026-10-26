@@ -973,14 +973,16 @@
       if (!document.body.contains(root)) return;
       if (!document.hidden && !root.hidden) {
         var now = Date.now();
-        var state = global.MarketHours && global.MarketHours.restOverview && global.MarketHours.restOverview(new Date(now));
+        var hours = global.MarketHours;
+        var state = hours && hours.restOverview && hours.restOverview(new Date(now));
+        var weekend = hours && hours.isWeekendClosed && hours.isWeekendClosed(new Date(now));
+        var showClock = !!(weekend && state && state.closed);
         var banner = root.querySelector('.wd-header');
-        if (banner) banner.hidden = false;
-        // The user may open the closed-market tab while another market is active.
-        // Keep its clock visible and use the same regular-opening calculation as the toolbar.
-        var opening = state && state.closed && state.next ? state
-          : global.HomeSwitchCountdown && global.HomeSwitchCountdown.nextOpening(now);
-        var open = opening && opening.next;
+        if (banner) banner.hidden = !showClock;
+        if (!showClock) { countdownTimer = setTimeout(tick, 30000); return; }
+        // Weekend starts after the US Friday after-market closes, using the
+        // shared DST-aware calendar. Count to its next confirmed market opening.
+        var open = state.next;
         var clock = root.querySelector('.wd-flip-clock');
         if (!clock) return;
         var total = open ? Math.max(0, Math.ceil((open.getTime() - now) / 1000)) : null;
@@ -994,7 +996,7 @@
         clock.setAttribute('aria-label', total == null ? '거래일 캘린더 확인 필요' : values[0] + '일 ' + values[1] + '시간 ' + values[2] + '분 ' + values[3] + '초 남음');
         var nextDay = root.querySelector('[data-wd-next-trading]');
         if (nextDay) nextDay.textContent = nextTradingDay();
-        root.querySelector('[data-wd-open]').textContent = open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }) + ' ' + open.toLocaleTimeString('en-GB', {timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}) + ' KST · ' + opening.market : '거래일 캘린더 업데이트가 필요합니다.';
+        root.querySelector('[data-wd-open]').textContent = open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }) + ' ' + open.toLocaleTimeString('en-GB', {timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}) + ' KST · ' + state.market : '거래일 캘린더 업데이트가 필요합니다.';
       }
       countdownTimer = setTimeout(tick, 1000 - Date.now() % 1000);
     }
