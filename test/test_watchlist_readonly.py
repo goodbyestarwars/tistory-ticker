@@ -30,7 +30,9 @@ class WatchlistReadOnlyTest(unittest.TestCase):
             find_google_user_id=db_schema.find_google_user_id,
             load_watchlist_config=db_schema.load_watchlist_config,
         )
-        scope = {'db_schema': proxy, 'watchlist': watchlist, 'require_google_user': lambda request: request}
+        # Python 3.12 evaluates the extracted route's Request annotation at exec.
+        scope = {'db_schema': proxy, 'watchlist': watchlist, 'Request': object,
+                 'require_google_user': lambda request: request}
         exec(compile(ast.Module(body=[function], type_ignores=[]), '<watchlist route>', 'exec'), scope)
         self.get_watchlist = scope['_load_user_watchlist']
 

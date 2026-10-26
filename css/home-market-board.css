@@ -38,8 +38,8 @@ body#tt-body-index .home-editorial-page .home-switch-countdown {
   -webkit-backdrop-filter: none; backdrop-filter: none;
 }
 body#tt-body-index .home-editorial-page .home-switch-countdown[hidden] { display: none; }
-/* Keep the toolbar clock until the closed-tab banner has actually rendered its clock. */
-.home-dashboard.is-market-closed:has(.wd-header:not([hidden]) .wd-flip-clock) > .home-market-toolbar > .home-switch-countdown { display: none !important; }
+/* The closed tab always uses its own weekend clock, never the white toolbar clock. */
+.home-dashboard.is-market-closed > .home-market-toolbar > .home-switch-countdown { display: none !important; }
 body#tt-body-index .home-editorial-page .hsc-label { display: block; margin: 0; color: #77808b; font: 500 11px/1.35 var(--font-ui, system-ui, sans-serif); }
 body#tt-body-index .home-editorial-page .hsc-clock { display: flex; align-items: flex-start; justify-content: center; gap: 7px; }
 body#tt-body-index .home-editorial-page .hsc-unit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
