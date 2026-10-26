@@ -129,7 +129,7 @@
 /* NineUI: shared display primitives. Domain units remain explicit at call sites. */
 (function (global) {
   'use strict';
-  if (global.NineUI) return;
+  if (global.NineUI && global.NineUI.loadStyle) return;
   function escape(value) {
     return String(value == null ? '' : value).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -154,12 +154,37 @@
   function spinner() {
     return '<svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>';
   }
-  function state(kind, message, className) {
+  function state(kind, message, className, options) {
     var pending = kind === 'loading';
     return '<div class="' + escape(className || 'ui-state') + '" role="' + (kind === 'error' ? 'alert' : 'status')
-      + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending ? spinner() : '') + escape(message) + '</div>';
+      + '"' + (pending ? ' aria-busy="true"' : '') + '>' + (pending && !(options && options.spinner === false) ? spinner() : '') + escape(message) + '</div>';
   }
-  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state };
+  // Await stylesheet readiness before mounting components containing SVG/canvas.
+  var styleLoads = {};
+  function loadStyle(url) {
+    if (styleLoads[url]) return styleLoads[url];
+    var doc = global.document || (typeof document !== 'undefined' ? document : null);
+    if (!doc) return Promise.reject(new Error('Stylesheet document unavailable'));
+    var existing = Array.prototype.find.call(doc.querySelectorAll('link[rel="stylesheet"]'), function (link) { return link.href === url; });
+    if (existing && existing.sheet) return Promise.resolve(existing);
+    var job = new Promise(function (resolve, reject) {
+      var link = existing || doc.createElement('link'), timer;
+      function done(error) {
+        clearTimeout(timer);
+        link.removeEventListener('load', onload); link.removeEventListener('error', onerror);
+        if (error) { if (!existing) link.remove(); reject(error); } else resolve(link);
+      }
+      function onload() { done(); }
+      function onerror() { done(new Error('Stylesheet load failed')); }
+      link.addEventListener('load', onload); link.addEventListener('error', onerror);
+      timer = setTimeout(onerror, 12000);
+      if (!existing) { link.rel = 'stylesheet'; link.href = url; doc.head.appendChild(link); }
+    });
+    styleLoads[url] = job;
+    job.catch(function () { if (styleLoads[url] === job) delete styleLoads[url]; });
+    return job;
+  }
+  global.NineUI = { escapeHtml: escape, number: number, signedPercent: percent, spinner: spinner, state: state, loadStyle: loadStyle };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineUI */
 
@@ -1110,14 +1135,20 @@
   if (!/\/(?:page|pages)\/(?:pattern-scan|strategy-search)\/?$/.test(location.pathname)) return;
   var source = document.currentScript && document.currentScript.src;
   if (!source || document.querySelector('[data-scanner-progress]')) return;
-  var css = document.createElement('link');
-  css.rel = 'stylesheet';
-  css.href = new URL('../css/scanner-progress.css', source).href;
-  document.head.appendChild(css);
-  var script = document.createElement('script');
-  script.src = new URL('scanner-progress.js', source).href;
-  script.setAttribute('data-scanner-progress', '');
-  document.head.appendChild(script);
+  window.NineUI.loadStyle(new URL('../css/scanner-progress.css', source).href).then(function () {
+    if (document.querySelector('[data-scanner-progress]')) return;
+    var script = document.createElement('script');
+    script.src = new URL('scanner-progress.js', source).href;
+    script.setAttribute('data-scanner-progress', '');
+    document.head.appendChild(script);
+  }).catch(function () {
+    var target = document.querySelector('#pattern-scan, #strategy-search');
+    if (!target || document.getElementById('scanner-progress-status')) return;
+    var note = document.createElement('p');
+    note.id = 'scanner-progress-status'; note.setAttribute('role', 'status');
+    note.textContent = '스캔 상태 화면을 불러오지 못했습니다. 검색 결과는 아래에서 확인하세요.';
+    target.parentNode.insertBefore(note, target);
+  });
 })();
 
 /* Shared interaction dependency, loaded once by the existing global entry point. */

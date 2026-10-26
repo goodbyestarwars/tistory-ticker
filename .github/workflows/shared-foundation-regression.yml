@@ -68,6 +68,7 @@ jobs:
           node test/test_chart_core.js
           node test/test_scanner_progress.js
           node test/test_scanner_dashboard.js
+          node test/test_scanner_loading.js
           node test/test_scanner_groups.js
       - name: Page consumer refresh and partial failure behavior
         run: |
