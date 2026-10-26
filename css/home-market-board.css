@@ -123,6 +123,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-negative
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 :is(.home-neutral) { color: var(--hmb-ink); }
 
 .home-market-overview { display: grid; gap: var(--ui-paragraph-gap); }
+.home-economic-content { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
 
 /* ── A. 시장 개요 블록: 공통 부제목 · 갱신 시각 · 상태 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-card-heading {

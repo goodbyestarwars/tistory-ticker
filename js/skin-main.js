@@ -787,7 +787,7 @@ document.documentElement.classList.add('skin-ready');
         + '<h1>Markets Closed</h1></div><p>주말·한국 공휴일에는 국내 증시가 쉽니다. 미국 증시는 현지 거래일에 운영됩니다.</p></div><a class="home-closed-status" href="/page/stock-calendar" aria-label="캘린더"><strong>다음 거래일을 준비하는 시간입니다.</strong><span>다음 거래일부터 시장 데이터가 업데이트됩니다.</span><small>관심종목 일정과 이전 시장 화면은 위 탭에서 확인할 수 있습니다.</small><span class="home-closed-link">캘린더 →</span></a></div>'
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
-        + '<section class="home-market-board editorial-section hmb2" id="homeMarketBoard">'
+        + '<section class="home-market-board editorial-section hmb2 home-block-column" id="homeMarketBoard">'
         + '<section class="home-market-overview ui-content-block"><div class="home-card-heading"><div><strong class="ui-section-title" data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
         + '<div class="home-cb-wrap"><button type="button" class="vol-history-link" data-vol-open="all" data-vol-history hidden aria-expanded="false" aria-controls="volPanel">오늘 변동성 이력</button><span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
         + '<div class="hmb2-status" data-hmb-status>'
@@ -837,15 +837,15 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
         + '</section>'
         + '</section>'
-        + '<section class="home-economic-news editorial-section" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
+        + '<section class="home-economic-news editorial-section home-block-column" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
         + '<div class="home-economic-disclosures-slot" data-home-disclosure-slot></div>'
-        + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small class="nt-stamp" data-hen-updated>최신 뉴스 확인 중</small></div>'
+        + '<section class="home-economic-content ui-content-block"><div class="hen-head"><div><strong class="ui-section-title">경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small class="nt-stamp" data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보" hidden>'
         + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 거시경제 · 금리</span></div>'
         + '<div class="hen-breaking-list" data-hen-breaking-list></div>'
         + '</div>'
         + '<div class="hen-list" data-hen-list><p class="home-card-state"><svg class="hb-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>경제 뉴스를 불러오는 중입니다.</p></div>'
-        + '</section></div>'
+        + '</section></section></div>'
         + '<section class="home-realtime-board editorial-section" id="homeRealtimeBoard" aria-label="실시간 종목판"></section>'
         + '</section>';
     }
@@ -854,7 +854,7 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261027-content-blocks';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261027-open-block-columns';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
