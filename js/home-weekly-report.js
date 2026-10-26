@@ -978,12 +978,21 @@
         var weekend = hours && hours.isWeekendClosed && hours.isWeekendClosed(new Date(now));
         var showClock = !!(weekend && state && state.closed);
         var banner = root.querySelector('.wd-header');
-        if (banner) banner.hidden = !showClock;
-        if (!showClock) { countdownTimer = setTimeout(tick, 30000); return; }
+        if (banner) banner.hidden = false;
+        var clock = root.querySelector('.wd-flip-clock');
+        var clockLabel = root.querySelector('.wd-countdown-label');
+        if (clock) clock.hidden = !showClock;
+        if (clockLabel) clockLabel.textContent = showClock ? '다음 국내·미국 거래 시작까지'
+          : '주말 미국장 종료 후 카운트다운이 시작됩니다.';
+        if (!showClock) {
+          var openingNote = root.querySelector('[data-wd-open]');
+          if (openingNote) openingNote.textContent = '';
+          countdownTimer = setTimeout(tick, 30000);
+          return;
+        }
         // Weekend starts after the US Friday after-market closes, using the
         // shared DST-aware calendar. Count to its next confirmed market opening.
         var open = state.next;
-        var clock = root.querySelector('.wd-flip-clock');
         if (!clock) return;
         var total = open ? Math.max(0, Math.ceil((open.getTime() - now) / 1000)) : null;
         var values = total == null ? ['--', '--', '--', '--'] : [Math.floor(total / 86400), Math.floor(total / 3600) % 24, Math.floor(total / 60) % 60, total % 60];
