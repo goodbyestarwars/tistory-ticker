@@ -9,7 +9,7 @@ from urllib.error import URLError
 from http.client import RemoteDisconnected
 from datetime import datetime, timedelta, timezone
 
-from live_engine import Ledger, readiness, trade_once
+from live_engine import Ledger, readiness, trade_once, candidate_priority
 from ninepay_signal_client import SignalFeedUnavailable, fetch_signals
 from ninepay_trade import trade_signal_once
 
@@ -76,6 +76,17 @@ def candidates(now):
             "WHERE scan_date=? AND status='NEW'", (expected,))]
 
 
+def nightly_priority_counts(rows):
+    """Only candidate counts, not eligible/live-approved orders; avoids extra price calls."""
+    by_group = {'SWING': set(), 'LONG_TECHNICAL': set(), 'UNCLASSIFIED': set()}
+    for row in rows:
+        if row.get('status') != 'NEW':
+            continue
+        group = candidate_priority(row.get('scanner'))[1]
+        by_group[group].add(str(row.get('code') or ''))
+    return {group: len(codes - {''}) for group, codes in by_group.items()}
+
+
 def run_cycle(client, ledger, daily, folder, now, existing_due, *,
               engine_cycle=trade_once, signal_fetch=fetch_signals,
               signal_trade=trade_signal_once, get_candidates=candidates, feed_report=None):
@@ -90,7 +101,7 @@ def run_cycle(client, ledger, daily, folder, now, existing_due, *,
                              allow_entries=False)
         if state != 'EXITS_CHECKED':
             return state
-    if os.environ.get('NINEPAY_LIVE_TRADING') == '1':
+    if os.environ.get('NINEPAY_LIVE_TRADING') == '1' and 540 <= now.hour * 60 + now.minute < 14 * 60:
         try:
             signals = signal_fetch(now=now.timestamp())
         except SignalFeedUnavailable as exc:
@@ -104,6 +115,18 @@ def run_cycle(client, ledger, daily, folder, now, existing_due, *,
             if state != '9PAY_BUY_SENT':
                 ledger.skip(now.strftime('%Y-%m-%d'), signal.get('code') or '*',
                             '9PAY_' + state, 'signal_id=' + str(signal.get('signalId') or ''))
+            if state == '9PAY_BUY_SENT':
+                # Snapshot only local overnight pool counts, not an eligibility
+                # claim. This makes 9Pay's potential swing/long opportunity cost
+                # visible without rechecking quotes or touching another account.
+                try:
+                    counts = nightly_priority_counts(get_candidates(now))
+                    ledger.skip(now.strftime('%Y-%m-%d'), '*', 'PRIORITY_POOL_AFTER_DAY_BUY',
+                                'swing=%d long_technical=%d unclassified=%d' %
+                                (counts['SWING'], counts['LONG_TECHNICAL'], counts['UNCLASSIFIED']),
+                                once=True)
+                except Exception:
+                    pass  # Telemetry cannot undo or retry a submitted order.
             if state in ('9PAY_BUY_SENT', 'DISABLED_OR_UNCERTAIN', 'PENDING_ORDERS',
                          'BUY_FILL_UNCONFIRMED', 'SELL_FILL_UNCONFIRMED', 'FOREIGN_HOLDINGS'):
                 return state
