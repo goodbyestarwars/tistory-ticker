@@ -1,11 +1,11 @@
 /* Scanner status shared by pattern and strategy screens. */
-.scanner-progress-status { --scan-neon: #00b7ff; display:flex; align-items:center; gap:24px; padding:16px 0 22px; margin:0 0 20px; border-bottom:1px solid #e7e9ed; color:var(--text-main); }
+.scanner-progress-status { --scan-neon: #800020; display:flex; align-items:center; gap:24px; padding:16px 0 22px; margin:0 0 20px; border-bottom:1px solid #e7e9ed; color:var(--text-main); }
 .scanner-progress-status .scan-progress-gauge { position:relative; width:112px; height:138px; flex:0 0 112px; text-align:center; }
 .scanner-progress-status .scan-progress-ring { display:block; width:112px; height:112px; transform:rotate(-90deg); overflow:visible; }
 .scanner-progress-status .scan-progress-ring circle { fill:none; stroke-width:7; }
 .scanner-progress-status .scan-progress-track { stroke:#e8edf0; }
-.scanner-progress-status .scan-progress-value { stroke:var(--scan-neon); stroke-linecap:round; filter:drop-shadow(0 0 4px #00b7ff80); }
-.scanner-progress-status .scan-progress-bolt { position:absolute; width:58px; height:68px; left:27px; top:22px; fill:var(--scan-neon); filter:drop-shadow(0 0 8px #00b7ff99); }
+.scanner-progress-status .scan-progress-value { stroke:var(--scan-neon); stroke-linecap:round; filter:drop-shadow(0 0 4px #80002080); }
+.scanner-progress-status .scan-progress-bolt { position:absolute; width:58px; height:68px; left:27px; top:22px; fill:var(--scan-neon); filter:drop-shadow(0 0 8px #80002099); }
 .scanner-progress-status .scan-progress-percent { display:block; margin-top:5px; font-size:13px; font-variant-numeric:tabular-nums; }
 .scanner-progress-status .scan-progress-copy { display:flex; flex-direction:column; min-width:0; gap:7px; font-size:13px; }
 .scanner-progress-status .scan-progress-label,.scanner-progress-status small { color:var(--text-sub); font-size:12px; }
