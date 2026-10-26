@@ -2340,6 +2340,15 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
     font-weight: 700 !important;
   }
+  /* News article titles use MaruBuriBold within the same important layer as
+     the site-wide UI font reset, so that reset cannot replace them later. */
+  html body#tt-body-index #homeEconomicNews .hen-row .app-news-body > strong,
+  html body #crypto-market .cm-news-item .app-news-body > strong,
+  html body #main-news .mn-row-title {
+    font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+    font-weight: 700 !important;
+    font-synthesis: none !important;
+  }
   /* Reading rhythm: paragraphs, divider lines and independent panels need
      whitespace. Keep table rows, quote cells and chart internals compact. */
   html body .post-single-body p + p,
@@ -7189,12 +7198,8 @@ body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-fu
   }
 }
 
-/* 2026-08-18 home density follow-up: close the blank band between the
-   watchlist disclosure rail and the index strip, and expose one more news row
-   without changing the source/API item limit. */
-body#tt-body-index .home-editorial-page .home-top-disclosures {
-  margin-bottom: 8px !important;
-}
+/* The disclosure rail is inside the news card; keep a compact gap before its heading. */
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin: 0 0 14px !important; padding: 0 0 12px !important; }
 body#tt-body-index .home-editorial-page .home-index-strip {
   margin-top: 10px !important;
 }
@@ -7203,9 +7208,7 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
   max-height: 450px !important;
 }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-top-disclosures {
-    margin-bottom: 8px !important;
-  }
+  body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin-bottom: 10px !important; padding-bottom: 8px !important; }
   body#tt-body-index .home-editorial-page .home-index-strip {
     margin-top: 8px !important;
   }
@@ -7215,10 +7218,9 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
   }
 }
 
-/* 2026-08-18 home disclosure cleanup: the weekly disclosure rail should flow
-   into the index strip without a duplicate bottom rule. */
-body#tt-body-index .home-editorial-page .home-top-disclosures {
-  border-bottom: 0 !important;
+/* The rail now belongs to the economic-news card and separates from its heading. */
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures {
+  border-bottom: 1px solid var(--hmb-line, #e2e8f0) !important;
 }
 
 /* 2026-08-18 economic news rhythm: regular timeline rows use the same base
@@ -8033,12 +8035,14 @@ html body #foreign-flow .ff-swing-summary :is(strong,b) {
   letter-spacing:-.01em!important;
 }
 
-/* 경제 종합뉴스의 기사 제목만 Regular를 사용한다. 출처·시간·시세는 UI 글꼴이다. */
+/* 홈 경제 종합뉴스와 가상자산 뉴스는 기사 제목에만 MaruBuriBold를 쓴다.
+   날짜·카테고리·출처 및 다른 화면의 뉴스 제목은 기존 글꼴을 유지한다. */
 html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
-  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
-  #main-news .mn-row-title) {
-  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important;
-  font-weight: 400 !important;
+  .home-economic-news .hen-row .app-news-body > strong,
+  #main-news .mn-row-title,
+  #crypto-market .cm-news-item .app-news-body > strong) {
+  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-weight: 700 !important;
   font-synthesis: none;
   letter-spacing: 0 !important;
 }
@@ -9085,19 +9089,14 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
   }
 }
 
-/* 2026-10-24 경제 종합뉴스·주요 뉴스 기사 제목(마루부리 Regular)이 14px에서 획이 가늘어 뭉개져 보인다는 지적:
-   글꼴은 그대로 두고 크기 15px·행간 1.55·짙은 글자색·자간 0으로 가독성을 올린다(굵기는 마루부리 Regular 유지). */
+/* 2026-10-26: 요청 범위인 홈 경제 종합뉴스·가상자산의 기사 제목만 서체를 교체한다.
+   기존 크기·행간·색상은 유지하고 뉴스 UI의 메타/다른 제목 선택자는 포함하지 않는다. */
 html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
-  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
-  #main-news .mn-row-title) {
-  font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important;
-  font-weight: 400 !important;
+  .home-economic-news .hen-row .app-news-body > strong,
+  #main-news .mn-row-title,
+  #crypto-market .cm-news-item .app-news-body > strong) {
+  font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
+  font-weight: 700 !important;
   font-size: 15px !important;
   line-height: 1.55 !important;
-  color: #111827 !important;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
-html.dark:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
-  .home-economic-news .app-news-body > strong, .home-economic-news .app-news-body > b,
-  #main-news .mn-row-title) { color: var(--dk-text) !important; }

@@ -838,6 +838,7 @@ document.documentElement.classList.add('skin-ready');
         + '</section>'
         + '</section>'
         + '<section class="home-economic-news editorial-section" id="homeEconomicNews" aria-label="실시간 경제 종합뉴스">'
+        + '<div class="home-economic-disclosures-slot" data-home-disclosure-slot></div>'
         + '<div class="hen-head"><div><strong>경제 종합뉴스</strong><span data-hen-session>국내 · 실시간 타임라인</span></div><small class="nt-stamp" data-hen-updated>최신 뉴스 확인 중</small></div>'
         + '<div class="hen-breaking" data-hen-breaking aria-label="중요 경제 속보" hidden>'
         + '<div class="hen-breaking-head"><strong>속보</strong><span>실적 · 거시경제 · 금리</span></div>'
@@ -1839,11 +1840,11 @@ document.documentElement.classList.add('skin-ready');
     }, 60 * 1000);
 
 
-    // 첫 화면의 편집 순서를 시장 제목 → 요약 → 일정/공시 → 지수 차트로 고정한다.
-    // 기존 데이터 로더와 DOM 선택자는 유지하고, 표시 순서만 여기서 정리한다.
+    // 관심종목 공시 레일은 경제 뉴스 패널의 맨 위에 표시한다.
     var homeMarketBoard = dashboardSection.querySelector('#homeMarketBoard');
     var homeDisclosureSection = homeMarketBoard && homeMarketBoard.querySelector('[data-home-disclosure-section]');
-    // 2026-10-10 국내 시장 개편: 관심종목 공시는 핵심 시장 지표 아래(마크업 순서 그대로)에 둔다. 지수 띠 위로 올리지 않는다.
+    var homeDisclosureSlot = dashboardSection.querySelector('[data-home-disclosure-slot]');
+    if (homeDisclosureSection && homeDisclosureSlot) homeDisclosureSlot.appendChild(homeDisclosureSection);
     var latestHomeIndices = [];
     var latestUsBoardData = null;
     var weeklyReportModule = null;

@@ -263,11 +263,11 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-spar
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-switch { min-width: 44px; min-height: 44px; }
 }
 
-/* ── F. 관심종목 주간 공시: 위젯 최상단이 아니라 핵심 지표 아래, 기존 가로 이동·선택 기능은 그대로 ── */
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures { margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--hmb-line); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures[hidden] { display: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
+/* ── F. 관심종목 주간 공시: 경제 종합뉴스 패널 상단, 기존 가로 이동·선택 기능은 그대로 ── */
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin: 0 0 14px; padding: 0 0 12px; border-bottom: 1px solid var(--hmb-line); }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures[hidden] { display: none; }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head strong { font: 700 15px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-ink); }
+body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-head span { font: 400 11px/1.4 var(--font-ui, system-ui, sans-serif); color: var(--hmb-faint); }
 
 /* ── 반응형 ── */
 @media (max-width: 1100px) and (min-width: 721px) {
@@ -296,7 +296,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosu
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card { border-image: none !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { margin-top: var(--ui-section-gap) !important; border-image: none !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-summary-head { border-image: none !important; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-top-disclosures { margin-top: 22px !important; }
+  body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin-bottom: 14px !important; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 > .home-card-heading { min-height: 0 !important; }
 }
 

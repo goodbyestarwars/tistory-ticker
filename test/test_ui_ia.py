@@ -1385,6 +1385,14 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("text-overflow: ellipsis", style)
         self.assertIn("white-space: nowrap", style)
 
+    def test_home_watchlist_disclosures_are_inside_economic_news_at_top(self):
+        main = self.read("js/skin-main.js")
+        styles = self.read("css/home-market-board.css")
+        self.assertIn("data-home-disclosure-slot", main)
+        self.assertIn("homeDisclosureSlot.appendChild(homeDisclosureSection)", main)
+        self.assertIn("#homeEconomicNews .home-top-disclosures", styles)
+        self.assertNotIn("#homeMarketBoard.hmb2 .home-top-disclosures", styles)
+
     def test_home_disclosure_separator_stays_inside_each_row(self):
         style = self.read("style.css")
         self.assertIn(".home-disclosure-row:not(:last-child)::after", style)
