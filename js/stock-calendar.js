@@ -262,19 +262,23 @@
       + '&timeMin=' + encodeURIComponent(tMin)
       + '&timeMax=' + encodeURIComponent(tMax)
       + '&singleEvents=true&orderBy=startTime&maxResults=' + (month == null ? '2500' : '100');
-    return fetch(url)
-      .then(function (r) {
-        if (!r.ok) throw new Error('Google Calendar API 오류: ' + r.status);
-        return r.json();
-      })
-      .then(function (data) {
-        return (data.items || []).map(function (it) {
+    var seenPages = {};
+    function page(token) {
+      return fetchJson(url + (token ? '&pageToken=' + encodeURIComponent(token) : ''), 8000).then(function (data) {
+        var rows = (data.items || []).map(function (it) {
           var title = it.summary
             ? it.summary
             : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
           return { id: it.id, title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink, source: 'google' };
         });
-      })
+        var next = data.nextPageToken;
+        if (!next) return rows;
+        if (seenPages[next]) throw new Error('calendar repeated page');
+        seenPages[next] = true;
+        return page(next).then(function (more) { return rows.concat(more); });
+      });
+    }
+    return page('')
       .catch(function () { return []; });
 
   }

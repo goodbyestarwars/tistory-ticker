@@ -2451,8 +2451,8 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     display: flex !important; flex-direction: column; flex: 0 0 300px;
     width: 300px; height: 400px; min-width: 0; margin: 0 !important; padding: 24px !important;
     border: 0 !important; border-radius: 18px !important;
-    background: var(--ui-card-surface) !important; background-image: none !important;
-    box-shadow: 0 3px 12px rgba(var(--np-ink), .08) !important;
+    background: var(--wd-glass,var(--ui-card-surface)) !important;
+    box-shadow: var(--wd-glass-shadow,0 3px 12px rgba(var(--np-ink), .08)) !important;
     scroll-snap-align: start; overflow: hidden;
   }
   html body .feed .briefing-shelf .post-card[hidden] { display: none !important; }
@@ -8366,7 +8366,7 @@ html body .site-footer-learn a.learn-card {
   position:relative!important; display:grid!important; grid-template-rows:56px auto minmax(0,1fr) auto!important;
   min-width:0!important; width:100%!important; max-width:none!important; height:260px!important; box-sizing:border-box!important;
   padding:24px!important; gap:10px!important; border:1px solid rgba(var(--np-ink),.14)!important; border-radius:28px!important;
-  background:#fff!important; backdrop-filter:none!important; -webkit-backdrop-filter:none!important; box-shadow:none!important;
+  background:var(--wd-glass,#fff)!important; backdrop-filter:var(--wd-glass-filter,none)!important; -webkit-backdrop-filter:var(--wd-glass-filter,none)!important; box-shadow:var(--wd-glass-shadow,none)!important;
   text-align:left!important; text-decoration:none!important; white-space:normal!important; color:rgb(var(--np-ink))!important;
   transition:border-color .2s,transform .2s!important; counter-increment:story;
 }
@@ -8376,8 +8376,8 @@ html body .site-footer-learn a.learn-card svg { position:absolute!important; top
 html body .site-footer-learn a.learn-card b { grid-row:2; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-size:23px!important; font-weight:400!important; line-height:1.5!important; white-space:normal!important; word-break:keep-all!important; color:rgb(var(--np-ink))!important; text-decoration:none!important; }
 html body .site-footer-learn a.learn-card small { grid-row:4; padding-right:24px; font:400 13px/1.5 var(--font-ui)!important; white-space:normal!important; color:rgba(var(--np-ink),.55)!important; text-decoration:none!important; }
 html body .site-footer-learn .learn-description { grid-row:3; font:400 13px/1.7 var(--font-ui)!important; white-space:normal!important; word-break:keep-all; overflow-wrap:anywhere; color:rgba(var(--np-ink),.7)!important; }
-html body .site-footer-learn a.learn-card:hover { transform:translateY(-3px)!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:none!important; }
-html.dark body .site-footer-learn a.learn-card { background:var(--dk-card)!important; }
+html body .site-footer-learn a.learn-card:hover { transform:translateY(-3px)!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:var(--wd-glass-shadow,none)!important; }
+html.dark body .site-footer-learn a.learn-card { background:var(--wd-glass,var(--dk-card))!important; }
 html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(var(--np-ink)); outline-offset:4px; }
 @media(max-width:1100px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-template-columns:minmax(0,1fr)!important; gap:24px!important; }
@@ -8418,7 +8418,7 @@ html body#tt-body-index .briefing-intro .home-briefing-more > i { position:stati
 html body#tt-body-index .home-editorial-page .briefing-carousel-track { display:flex!important; gap:24px!important; width:100%; overflow-x:auto!important; overflow-y:hidden; padding:12px 0 24px!important; scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x pan-y; cursor:grab; }
 html body#tt-body-index .briefing-carousel-track::-webkit-scrollbar { display:none; }
 html body#tt-body-index .briefing-carousel-track.is-dragging { cursor:grabbing; scroll-snap-type:none; user-select:none; }
-html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important;  overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important;  background:var(--np-paper)!important; box-shadow:0 6px 18px rgba(var(--np-ink),.06)!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
+html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important;  overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important;  background:var(--wd-glass,var(--np-paper))!important; box-shadow:var(--wd-glass-shadow,0 6px 18px rgba(var(--np-ink),.06))!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { content:attr(data-briefing-number); position:absolute; bottom:60px; right:26px; font:400 110px/1 Georgia,serif; color:rgba(var(--np-ink),.045); pointer-events:none; }
 html body#tt-body-index .briefing-carousel-track .home-briefing-card:hover { border-color:rgba(var(--np-ink),.2)!important; box-shadow:0 10px 24px rgba(var(--np-ink),.1)!important; }
 html body#tt-body-index .briefing-carousel-track .post-header { display:flex!important; justify-content:flex-start!important; margin:0 0 20px!important; }
@@ -9064,7 +9064,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     box-sizing: border-box; padding: var(--ui-card-padding) !important; border: 1px solid var(--ui-border) !important; border-radius: var(--ui-radius-card) !important;
     background: var(--np-paper) !important; box-shadow: none !important;
   }
-  html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--dk-card) !important; border-color: var(--dk-line) !important; box-shadow: none !important; }
+  html.dark body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .home-briefing-card { background: var(--wd-glass,var(--dk-card)) !important; border-color: var(--dk-line) !important; box-shadow: var(--wd-glass-shadow,none) !important; }
 }
 
 /* 2026-10-24 휴장 화면의 마켓브리핑도 장중 화면처럼 가로로 넘기는 카드(캐러셀): 휴장 때 브리핑 섹션이 .home-editorial-page 안의

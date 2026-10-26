@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261025-weekend-asset-icons';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-glass-calendar';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -410,11 +410,11 @@
         var row = lastLiveQuotes[pair[0]], fresh = currentCoins[pair[0]], rate = row && row.change_rate;
         return '<li class="wd-coin"><span class="wd-coin-icon">' + coinIcon(pair[0]) + '</span><span><strong>' + escapeHtml(pair[1]) + '</strong><small>' + pair[0] + '</small></span><b class="' + signClass(rate) + '">' + (rate == null ? '미제공' : direction(rate) + ' ' + signed(rate)) + '</b><span class="wd-price"><b>' + (row ? formatPrice(row.price) + '원' : '시세 미수신') + '</b><small>' + (row ? (!fresh || row.stale ? '갱신 지연 · 마지막 가격 ' : '') + (row.updated_at ? kstTime(Date.parse(row.updated_at)) : '기준 시각 미제공') : '') + '</small></span></li>';
       }).join('');
-      mount.innerHTML = '<div class="wd-live-split"><div class="wd-live-group">' + panelHeading('24시간 가상자산', '업비트 · 원화 · 30초마다 조회')
-        + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">가상자산 자세히 →</a></div>'
-        + '<div class="wd-live-group">' + panelHeading('바이낸스 주식·ETF 선물', 'USDT · 24시간 등락률 · 30초마다 조회')
+      mount.innerHTML = '<div class="wd-live-split"><section class="wd-panel wd-live-group">' + panelHeading('24시간 가상자산', '업비트 · 원화 · 30초마다 조회')
+        + '<ul class="wd-list">' + rows + '</ul><a class="wd-more" href="/pages/kospi-futures?tab=crypto">가상자산 자세히 →</a></section>'
+        + '<section class="wd-panel wd-live-group">' + panelHeading('바이낸스 주식·ETF 선물', 'USDT · 24시간 등락률 · 30초마다 조회')
         + weekendTokenRows() + '<p class="wd-note" role="status">' + (tokenState.checkedAt ? (tokenState.failed ? '갱신 지연 · 마지막 조회 ' : '조회 ') + escapeHtml(kstTime(Date.parse(tokenState.checkedAt))) + ' · ' : '')
-        + '국내 현물과 다른 무기한선물 참고 시세입니다.</p></div></div>';
+        + '국내 현물과 다른 무기한선물 참고 시세입니다.</p></section></div>';
       mount.hidden = false;
     }
     coinModule().then(function (module) {
@@ -441,7 +441,7 @@
         tokenState.pending = false; tokenState.failed = true; tokenState.current = {};
         paint(module.coins);
       });
-    }).catch(function () { mount.innerHTML = panelHeading('주말에도 움직이는 자산', '시장지표 가상자산') + '<p class="wd-empty">시세를 불러오지 못했습니다.</p>'; });
+    }).catch(function () { paint([['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']]); });
   }
 
   // 2026-10-04 사용자 요청("미국 주말 뉴스를 보고 주목할 만한 테마나 종목 추천"): /weekend-us-themes(30분 캐시).
@@ -767,7 +767,6 @@
   // /page/stock-calendar가 쓰는 같은 모듈(StockCalendar.fetchEvents: 구글 캘린더+DART+미국 실적)에서 다음 주 월~일 일정을 모두 가져와 보여준다.
   // 모듈이 없거나 일정이 하나도 없으면 서버 일정 목록을 그대로 둔다.
   var CALENDAR_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/stock-calendar.js?v=20261004-econ-sp100-v1';
-  var SCHEDULE_VISIBLE = 5;
   var WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'];
   function loadCalendarModule() {
     if (window.StockCalendar && window.StockCalendar.fetchEvents) return Promise.resolve(window.StockCalendar);
@@ -795,86 +794,71 @@
   }
   // 2026-10-04: "$PEP 실적발표 (장전)"에서 티커만 지워 "실적발표 (장전)"처럼 누구 일정인지 안 보이던 것을
   // 캘린더 모듈의 describe()(한글 회사명·지표 구분)로 바꾼다. 경제지표 시각은 KST로 붙인다.
-  function calendarRow(event, index) {
-    var day = String(event.start || '').slice(0, 10);
+  function calendarDay(event) {
+    var start = String(event && (event.start || event.date) || '');
+    if (!/T/.test(start)) return start.slice(0,10);
+    var date = new Date(start);
+    if (!isFinite(date.getTime())) return '';
+    return new Date(date.getTime() + 9 * 3600000).toISOString().slice(0,10);
+  }
+  function scheduleWindow(date) {
+    var day = new Date(date.getTime() + 9 * 3600000);
+    var weekday = day.getUTCDay();
+    var offset = weekday === 0 ? 1 : weekday === 6 ? 2 : 1 - weekday;
+    var start = new Date(Date.UTC(day.getUTCFullYear(), day.getUTCMonth(), day.getUTCDate() + offset));
+    var end = new Date(start.getTime() + 5 * 86400000);
+    return {start:start, end:end, startIso:start.toISOString().slice(0,10), endIso:end.toISOString().slice(0,10), title:weekday === 0 || weekday === 6 ? '다음 주 주요 일정' : '이번 주 주요 일정'};
+  }
+  function calendarRow(event) {
+    var day = calendarDay(event);
     var parsed = new Date(day + 'T00:00:00+09:00');
     var label = day.slice(5).replace('-', '/') + (isNaN(parsed.getTime()) ? '' : ' ' + WEEKDAY_KO[new Date(day + 'T00:00:00Z').getUTCDay()]);
     var info = window.StockCalendar && window.StockCalendar.describe
       ? window.StockCalendar.describe(event)
       : { kind: calendarMarket(event), text: String(event.title || '').replace(/^\$[A-Z]{1,6}\s+/, ''), important: false };
-    var clock = /T(\d{2}:\d{2})/.exec(String(event.start || ''));
+    var clock = /T/.test(String(event.start || '')) ? new Date(event.start).toLocaleTimeString('en-GB', {timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}) : '';
     var mine = watchlistSymbolMap()[String(event.symbol || '').toUpperCase()];
-    var text = (mine ? '관심 · ' : '') + info.text + (info.kind === '지표' && clock ? ' · ' + clock[1] : '');
+    var text = (mine ? '관심 · ' : '') + info.text + (clock && !event.us_date ? ' · ' + clock : '') + (event.us_date ? ' · 미국 ' + String(event.us_date).slice(5).replace('-', '/') + (event.us_session ? ' ' + event.us_session : '') : '');
     var finnhub = /finnhub\.io/i.test(String(event.link || ''));
     var inner = event.link && !finnhub ? '<a href="' + escapeHtml(event.link) + '" target="_blank" rel="noopener">' + escapeHtml(text) + '</a>' : escapeHtml(text);
-    return '<li class="' + (index >= SCHEDULE_VISIBLE ? 'is-extra' : '') + (info.important ? ' is-key' : '') + '"><time>' + escapeHtml(label) + '</time><b class="hwr-schedule-market' + (info.kind === '지표' ? ' is-macro' : '') + '">' + escapeHtml(info.kind) + '</b><span>' + inner + '</span></li>';
+    return '<li class="' + (info.important ? 'is-key' : '') + '"><time>' + escapeHtml(label) + '</time><b class="hwr-schedule-market' + (info.kind === '지표' ? ' is-macro' : '') + '">' + escapeHtml(info.kind) + '</b><span>' + inner + '</span></li>';
   }
-  function loadNextWeekCalendar(root, weekEndIso) {
+  function loadNextWeekCalendar(root) {
     var box = root.querySelector('[data-hwr-schedule]');
     if (!box) return;
-    var end = weekEndIso ? new Date(weekEndIso + 'T00:00:00+09:00') : new Date();
-    if (isNaN(end.getTime())) return;
-    var nextStart = new Date(end.getTime() + 3 * 86400000);
-    var nextEnd = new Date(nextStart.getTime() + 6 * 86400000);
-    var startIso = fmtIsoDate(nextStart), endIso = fmtIsoDate(nextEnd);
-    var calendar = null;
+    var range = scheduleWindow(new Date()), calendar;
     loadCalendarModule().then(function (module) {
       calendar = module;
-      if (!calendar) return null;
+      if (!calendar) throw new Error('calendar unavailable');
       var months = [];
-      [nextStart, nextEnd].forEach(function (date) {
-        var key = date.getFullYear() + '-' + date.getMonth();
-        if (!months.some(function (m) { return m.key === key; })) months.push({ key: key, year: date.getFullYear(), month: date.getMonth() });
+      [range.start, range.end].forEach(function (date) {
+        var year = date.getUTCFullYear(), month = date.getUTCMonth(), key = year + '-' + month;
+        if (!months.some(function (m) { return m.key === key; })) months.push({key:key, year:year, month:month});
       });
-      return Promise.all(months.map(function (m) { return calendar.fetchEvents(m.year, m.month).catch(function () { return []; }); }));
+      return Promise.all(months.map(function (m) { return calendar.fetchEvents(m.year,m.month); }));
     }).then(function (groups) {
-      if (!groups) return;
-      var merged = [];
-      groups.forEach(function (group) { merged = merged.concat(group || []); });
-      var events = merged.filter(function (event) {
-        var day = String(event && event.start || '').slice(0, 10);
-        return day >= startIso && day <= endIso;
-      });
-      // 같은 날 안에서는 주요 경제지표(CPI·고용·FOMC 등)를 먼저 둔다 - 12건만 보일 때 묻히지 않게.
-      var keyOf = function (event) {
-        var info = calendar.describe ? calendar.describe(event) : {};
-        return (info.important ? '0' : watchlistSymbolMap()[String(event.symbol || '').toUpperCase()] ? '1' : info.kind === '지표' ? '2' : '3') + String(event.start || '');
-      };
-      var seen = {};
-      events = events.filter(function (event) { var key = String(event.start).slice(0, 10) + '|' + String(event.symbol || event.title); if (seen[key]) return false; seen[key] = true; return true; });
-      events = events.map(function (event, i) { return { e: event, k: keyOf(event), i: i }; })
-        .sort(function (a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : a.i - b.i; })
-        .map(function (row) { return row.e; });
-      if (!events.length) return;
+      if (!document.body.contains(box)) return;
+      var seen = {}, events = [].concat.apply([],groups).filter(function (event) {
+        var day = calendarDay(event), key = String(event.start || '') + '|' + String(event.title || '');
+        if (day < range.startIso || day > range.endIso || seen[key]) return false;
+        seen[key] = true; return true;
+      }).sort(function (a,b) { return calendarDay(a).localeCompare(calendarDay(b)) || String(a.start).localeCompare(String(b.start)); });
       var title = box.querySelector('.hwr-card-title > span');
-      if (title) title.textContent = '캘린더 연동 · ' + startIso.slice(5).replace('-', '/') + ' ~ ' + endIso.slice(5).replace('-', '/') + ' · 주요 ' + Math.min(events.length, 5) + '건';
+      if (title) title.textContent = range.startIso.slice(5).replace('-','/') + ' 월 ~ ' + range.endIso.slice(5).replace('-','/') + ' 토 · 확인된 ' + events.length + '건';
       var list = box.querySelector('.hwr-schedule-list') || box.querySelector('.hwr-empty');
-      var html = '<ul class="hwr-schedule-list">' + events.slice(0, SCHEDULE_VISIBLE).map(calendarRow).join('') + '</ul>'
-        ;
-      if (list) list.outerHTML = html; else box.insertAdjacentHTML('beforeend', html);
-      var more = box.querySelector('[data-hwr-schedule-more]');
-      if (more) more.addEventListener('click', function () {
-        var open = !box.classList.contains('is-expanded');
-        box.classList.toggle('is-expanded', open);
-        more.setAttribute('aria-expanded', open ? 'true' : 'false');
-        more.textContent = open ? '접기' : '나머지 ' + (events.length - SCHEDULE_VISIBLE) + '건 더보기';
-      });
-    }).catch(function () { /* 캘린더 연동은 보조 - 실패하면 서버 일정 목록을 그대로 둔다 */ });
+      var html = events.length ? '<ul class="hwr-schedule-list" tabindex="0" aria-label="월요일부터 토요일까지 확인된 국내·미국 일정 전체">' + events.map(calendarRow).join('') + '</ul>' : '<p class="hwr-empty">이 기간에 확인된 일정이 없습니다. 전체 캘린더에서 확인하세요.</p>';
+      if (list) list.outerHTML = html;
+    }).catch(function () {
+      if (!document.body.contains(box)) return;
+      var title = box.querySelector('.hwr-card-title > span');
+      if (title) title.textContent = '기본 일정 일부 · 캘린더 연결 확인 필요';
+    });
   }
   function scheduleList(items) {
-    if (!items || !items.length) return '<p class="hwr-empty">다음 주 M7·금리·주요 기업 일정이 확인되지 않았습니다.</p>';
-    return '<ul class="hwr-schedule-list">' + items.slice(0, SCHEDULE_VISIBLE).map(function (item) {
-      var isUs = item.market === 'us' || /^[A-Z]{1,6}$/.test(String(item.symbol || '')) || /미국|Finnhub|\$[A-Z]/i.test(String(item.title || ''));
-      // 2026-08-23: "$NVDA 실적발표"처럼 티커 앞에 붙는 "$" 캐시태그 표기가 그대로 노출되던
-      // 문제 - 표시용 제목에서만 선행 "$SYMBOL " 접두어를 제거한다(isUs 판별은 원본으로 이미 끝남).
-      var title = String(item.title || '').replace(/^\$[A-Z]{1,6}\s+/, '');
-      // 2026-08-22: 제목에 이미 "$NVDA 실적발표"처럼 심볼이 들어있는데 뒤에 <small>NVDA</small>가
-      // 또 붙어 "$NVDA 실적발표 (장후) NVDA"로 중복 표시되던 문제 - 제목이 이미 그 심볼을
-      // 포함하면 별도 태그를 만들지 않는다.
-      var symbol = String(item.symbol || '');
-      var showSymbolTag = symbol && title.toUpperCase().indexOf(symbol.toUpperCase()) === -1;
-      return '<li><time>' + escapeHtml(String(item.date || '').slice(5)) + '</time><b class="hwr-schedule-market">' + (isUs ? '미국' : '한국') + '</b><span>' + escapeHtml(title) + (showSymbolTag ? ' <small>' + escapeHtml(symbol) + '</small>' : '') + '</span></li>';
-    }).join('') + '</ul>';
+    var range = scheduleWindow(new Date());
+    var events = (items || []).filter(function (item) { var day = calendarDay(item); return day >= range.startIso && day <= range.endIso; })
+      .map(function (item) { return Object.assign({},item,{start:item.start || item.date,source:item.market === 'us' ? 'finnhub' : 'dart'}); });
+    return events.length ? '<ul class="hwr-schedule-list">' + events.map(calendarRow).join('') + '</ul>' : '<p class="hwr-empty">이번 기간의 국내·미국 일정을 확인하고 있습니다.</p>';
   }
   function isWeekendWindow(date) {
     // 2026-09-05: js/skin-shell.js의 MarketHours 하나만 본다. 여기 있던 창(토 07:00~
@@ -914,11 +898,11 @@
     return date.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short' });
   }
   function nextTradingDay() {
-    var open = global.MarketHours && typeof global.MarketHours.nextKrRegularOpen === 'function' && global.MarketHours.nextKrRegularOpen(new Date());
-    return open ? bannerDate(open) : '캘린더에서 확인';
+    var state = global.MarketHours && global.MarketHours.restOverview && global.MarketHours.restOverview(new Date());
+    return state && state.next ? bannerDate(state.next) : '캘린더에서 확인';
   }
   function countdownMarkup() {
-    return '<div class="wd-countdown"><span class="wd-countdown-label">다음 정규장 개장까지</span><div class="wd-flip-clock" role="timer" aria-live="off" aria-label="개장 시간 확인 중">'
+    return '<div class="wd-countdown"><span class="wd-countdown-label">다음 국내·미국 거래 시작까지</span><div class="wd-flip-clock" role="timer" aria-live="off" aria-label="개장 시간 확인 중">'
       + ['일', '시간', '분', '초'].map(function (unit, i) {
         return '<div class="wd-flip-unit"><div class="wd-flip-pair" data-wd-unit="' + i + '" aria-hidden="true"><span class="wd-flip-digit">-</span><span class="wd-flip-digit">-</span></div><small>' + unit + '</small></div>';
       }).join('') + '</div><small data-wd-open></small></div>';
@@ -930,7 +914,11 @@
       if (!document.body.contains(root)) return;
       if (!document.hidden && !root.hidden) {
         var now = Date.now();
-        var open = global.MarketHours && typeof global.MarketHours.nextKrRegularOpen === 'function' && global.MarketHours.nextKrRegularOpen(new Date(now));
+        var state = global.MarketHours && global.MarketHours.restOverview && global.MarketHours.restOverview(new Date(now));
+        var banner = root.querySelector('.wd-header');
+        if (banner) banner.hidden = !state || !state.closed;
+        if (!state || !state.closed) { countdownTimer = setTimeout(tick, 30000); return; }
+        var open = state.next;
         var clock = root.querySelector('.wd-flip-clock');
         if (!clock) return;
         var total = open ? Math.max(0, Math.ceil((open.getTime() - now) / 1000)) : null;
@@ -944,7 +932,7 @@
         clock.setAttribute('aria-label', total == null ? '거래일 캘린더 확인 필요' : values[0] + '일 ' + values[1] + '시간 ' + values[2] + '분 ' + values[3] + '초 남음');
         var nextDay = root.querySelector('[data-wd-next-trading]');
         if (nextDay) nextDay.textContent = nextTradingDay();
-        root.querySelector('[data-wd-open]').textContent = open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }) + ' 09:00 KST' : '거래일 캘린더 업데이트가 필요합니다.';
+        root.querySelector('[data-wd-open]').textContent = open ? open.toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', month: 'long', day: 'numeric', weekday: 'long' }) + ' ' + open.toLocaleTimeString('en-GB', {timeZone:'Asia/Seoul',hour:'2-digit',minute:'2-digit',hour12:false}) + ' KST · ' + state.market : '거래일 캘린더 업데이트가 필요합니다.';
       }
       countdownTimer = setTimeout(tick, 1000 - Date.now() % 1000);
     }
@@ -1058,11 +1046,11 @@
       return indexCard(indices.filter(function (row) { return row && row.symbol === spec[0]; })[0] || {symbol: spec[0], name: spec[1]});
     }).join('');
     var indexTitleIcon = '<svg class="wd-index-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m7 14 4-4 4 4 5-7"/></svg>';
-    root.innerHTML = '<header class="wd-header"><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 국내 거래일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
+    root.innerHTML = '<header class="wd-header" hidden><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 거래 시작일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>' + indexTitleIcon + ' 주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
       + '<div class="wd-grid wd-market-overview"><section class="wd-panel wd-commodities" data-hwr-commodities>' + panelHeading('원유·금', '주말에 확인할 주요 원자재 · USD') + '<p class="wd-empty">시세 확인 중</p></section>'
-      + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading('다음 주 주요 일정', '시각 KST · 실적은 현지 발표일 / 예정') + '<span></span></div>' + scheduleList(data.schedule) + '<a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section>'
-      + '<section class="wd-panel wd-live-panel" data-hwr-live><p class="wd-empty">가상자산·국내 주식 시세 확인 중</p></section></div>'
+      + '<div class="wd-live-panel" data-hwr-live><p class="wd-empty">가상자산·바이낸스 선물 시세 확인 중</p></div>'
+      + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading(scheduleWindow(new Date()).title, '월~토 · 날짜·시각 KST · 미국 실적은 현지 발표일 병기') + '<span>캘린더 연결 중</span></div>' + scheduleList(data.schedule) + '<p class="wd-note">국내 공시·미국 S&amp;P 100 실적·미국 주요 경제지표·등록 캘린더의 확인된 일정입니다. 미발표·미수집 일정은 포함되지 않습니다.</p><a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section></div>'
       + '<section class="wd-news-section" data-hwr-themes>' + newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목') + '<p class="wd-empty">뉴스 확인 중</p></section>'
       + '<div class="wd-reading" aria-label="마켓브리핑과 이야기 시리즈"><section class="wd-panel" data-wd-briefing hidden></section><section class="wd-panel" data-wd-stories hidden></section></div>';
     loadNextWeekCalendar(root, data.week && data.week.end);
