@@ -179,7 +179,7 @@ class Observer:
             change = 100 * (price / t.signal_price - 1)
             t.mfe_pct = max(t.mfe_pct, change)
             t.mae_pct = min(t.mae_pct, change)
-        elif t.first70_at and not just_qualified and not missing and not t.entry_invalid:
+        elif t.first70_at and before_deadline and not just_qualified and not missing and not t.entry_invalid:
             if t.pullback_at is None:
                 t.peak = max(t.peak, price)
                 if price <= t.peak * (1 - self.pullback_pct):
