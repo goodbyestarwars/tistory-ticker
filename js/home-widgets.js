@@ -116,23 +116,10 @@
     layoutStorage.set(JSON.stringify(currentState()));
   }
 
-  function actionHtml(id) {
-    var label = LABELS[id];
-    return '<div class="home-widget-actions">'
-      + '<button type="button" class="home-widget-drag" draggable="true" aria-label="' + label + ' 카드 이동">⋮⋮</button>'
-      + '<button type="button" class="home-widget-menu-button" aria-label="' + label + ' 위젯 메뉴" aria-expanded="false">⋮</button>'
-      + '<div class="home-widget-menu" hidden>'
-      + '<button type="button" data-widget-action="top">맨 위로 이동</button>'
-      + '<button type="button" data-widget-action="bottom">맨 아래로 이동</button>'
-      + '<button type="button" data-widget-action="hide">숨기기</button>'
-      + '</div></div>';
-  }
-
   function decorate(node, id, size) {
     node.classList.add('home-widget', 'home-widget--' + size);
     node.setAttribute('data-widget-id', id);
     node.setAttribute('data-widget-label', LABELS[id]);
-    node.insertAdjacentHTML('beforeend', actionHtml(id));
     registry[id] = node;
   }
 
@@ -1110,8 +1097,6 @@
       observer.observe(registry['market-summary']);
     }
     window.addEventListener('resize', syncEconomicHeight);
-    wireMenus(null);
-    wireDrag();
     loadDisclosures();
   }
 
