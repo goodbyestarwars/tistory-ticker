@@ -55,7 +55,7 @@ class SupportResistanceTest(unittest.TestCase):
         sr = (ROOT / 'js' / 'chart-sr.js').read_text(encoding='utf-8')
         self.assertIn("var SR_SUPPORT_COLOR = '210,79,69';", sr)      # 지지 = 붉은색
         self.assertIn("var SR_RESISTANCE_COLOR = '18,97,196';", sr)   # 저항 = 파란색
-        self.assertIn('ctx.setLineDash([2, 2]);', sr)
+        self.assertIn('ctx.setLineDash(item.l.flip ? [6, 3] : [2, 2]);', sr)
         self.assertIn('var SR_BAND_ALPHA = [0.14, 0.085, 0.045];', sr)
         src = (ROOT / 'js' / 'stock-search.js').read_text(encoding='utf-8')
         self.assertIn('지지·저항 표시', src)
