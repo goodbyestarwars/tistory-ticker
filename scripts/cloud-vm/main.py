@@ -985,11 +985,10 @@ def google_auth_logout(return_to: str = None):
 
 def _load_user_watchlist(request: Request):
     session = require_google_user(request)
-    now = datetime.now(timezone.utc).isoformat()
-    conn = db_schema.get_conn()
+    conn = db_schema.get_conn(read_only=True)
     try:
-        user_id = db_schema.upsert_google_user(conn, session, now)
-        config = db_schema.load_watchlist_config(conn, user_id)
+        user_id = db_schema.find_google_user_id(conn, session)
+        config = db_schema.load_watchlist_config(conn, user_id) if user_id is not None else None
         if config is None:
             config = watchlist.empty_config()
             config.update({'revision': 0, 'updatedAt': None})

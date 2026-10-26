@@ -1,3 +1,9 @@
+**2026-10-26 Google 로그인 후 관심종목 미표시·DB 잠금 대기 수정**
+
+운영 Google 인증200/성공에도 MY가0종목·확인중에 머무는 현상을 재현했다. VM 쓰기잠금1개/최근 DB잠금 오류14건과 읽기전용 사용자 조회20ms를 확인했다. 원인은 GET /watchlist의 불필요한 app_users UPSERT가 공통 DB의600초 쓰기 대기와 경합하는 구조다. 기존 get_conn에 읽기전용 옵션을 더하고 세션 sub로 사용자/목록을 SELECT, 새 계정은 쓰기 없이 빈 설정을 돌려준다. PUT·세션·계정별 접근·저장 형식은 유지한다.
+공통 NineHttp로 인증/목록 GET8초 상한·private credentials/no-store를 사용한다. Watchlist의 상태/refresh를 MY에 공유해 로딩·로그인필요·조회실패·실제 빈 목록을 구분하고 재시도/페이지복원/초점복귀를 지원한다. 일시 오류에는 기존 목록을 보존하고401에는 계정 상태를 비운다. 기존 숨겨진 원본의 오류가 MY에서 사라지던 문제를 해소한다.
+검증: WAL 쓰기잠금 중 기존/신규 계정 조회·읽기전용 수정금지3건, 프런트 정상/지연/재시도/보존/401/중복/MY상태5묶음 및 기존 부트/계정·설정 회귀. 코드·서버 자동배포와 실제 로그인 목록 복구는 배포 후 확인한다.
+
 **2026-10-26 한국·미국·휴장 카운트다운 복구**
 
 직접 원인 추가 확인: home-widgets.buildRegistry가 dashboard.innerHTML 초기화 후 탭(.home-market-switch)만 옮겨 원본 .home-market-toolbar와 시계를 버렸다. 상단 줄 전체 원본을 보존해 탭/시계 노드와 타이머 연결을 유지하고, 구 마크업의 탭 단독 폴백도 유지했다. 실제 DOM 재부모화 회귀로 시계·탭·휴장·기존 카드 동일성을 검증한다.
@@ -266,23 +272,3 @@ NineAPI.domesticQuotes가 국내 코드 검증·중복 제거·정렬된 요청 
 **2026-10-24 뉴스 기사 제목을 마루부리 Regular에서 Bold(MaruBuriBold)로**
 
 사용자 지시(마루부리 Regular 쓰기 싫음). 하드코딩된 Regular는 `style.css`의 경제 종합뉴스·주요 뉴스 기사 제목 규칙(`font-family: "MaruBuri"` + 400) 한 곳이라, 직전 가독성 블록에서 이 제목들을 `MaruBuriBold` 파일(다른 큰 제목과 같은 방식, 파일 자체가 굵은 글꼴이라 `font-weight:400`)로 바꿨다. 크기 15px·행간 1.55·짙은 색은 유지. `--font-title` 변수(Regular, 약 12곳이 참조)는 그대로라 그 화면들(학습 문서·일부 제목)은 아직 Regular다 - 원하면 변수 한 줄로 일괄 전환 가능. 미확인: 실제 체감. 배포: style.css master 머지 후 Pages 자동.
-
-**2026-10-24 뉴스 기사 제목 가독성(마루부리 유지, 크기·행간·색)**
-
-사용자 지적(주요 뉴스·경제 종합뉴스 제목이 가늘게 뭉개져 보임, 애플 스토어와 비교). 원인: 기사 제목만 마루부리 Regular 14px(2026-10 지정 `경제 종합뉴스 기사 제목만 Regular`)라 획이 가늘다. `style.css` 끝: 같은 선택자(`.home-economic-news …`, `#main-news .mn-row-title`)의 제목을 글꼴은 그대로 15px·행간 1.55·짙은 글자색(다크는 `--dk-text`)·`antialiased`로. 글꼴 자체를 Pretendard로 바꾸는 안은 하지 않았다(기존 지정 존중, 필요하면 한 줄로 전환 가능). 미확인: 실제 화면에서 체감. 배포: style.css master 머지 후 Pages 자동.
-
-**2026-10-24 휴장 대시보드 마켓브리핑을 장중 화면과 같은 가로 캐러셀 카드로**
-
-사용자 지시(스크린샷: 장중 화면=가로 넘김 카드가 정상, 휴장 화면=2열 목록). 원인: 휴장이면 브리핑 섹션이 위젯 격자 밖(주간 리포트 아래)으로 옮겨져 `.home-editorial-page .briefing-carousel-track …` 규칙이 닿지 않고 `.home-widget--full .home-briefing-grid` 2열 격자로 풀렸다. `style.css` 끝: 휴장 조건(`body:has(.home-editorial-page.is-market-closed) .home-briefing-section`)으로 같은 트랙(`display:flex; overflow-x:auto; gap`)·카드 크기(PC 342×414px, 모바일 화면폭-72px×430px)를 다시 건다(레이어 안, 카드 테두리·배경은 앞선 휴장 카드 규칙). 글 내용·장중 화면 불변. 미확인: 휴장 화면 실렌더(토요일 휴장 창 안에서 확인 필요, 캐러셀 이동 버튼·진행바 동작은 기존 JS). 배포: style.css master 머지 후 Pages 자동.
-
-**2026-10-24 사이트 공통 UI 치수·표 면·송골매 투명 원본 통일**
-
-사용자 전체 UI 통일 지시. `style.css` 기존 np/np.np 규칙을 직접 수정해 카드 14px·내부 9px·패딩 18/14px·간격 10px·섹션 20/16px·UI 제목 Pretendard 600·24/22px 및 17px 토큰을 정의했다. 홈 미국/국내 시장과 뉴스의 두 칸은 각각 카드 역할을 유지하며 같은 면·테두리·패딩을 사용하고, 휴장·브리핑·주간 리포트·검색기·종목분석 등 공통 카드에 치수를 연결했다. 휴장 브리핑은 실제 DOM에서 `.is-market-closed`의 자손이 아닌 형제여서 기존 규칙이 닿지 않았음: body:has로 상태를 확인하도록 선택자를 수정했다. `indicator-board.css`의 헤더/본문 색 충돌을 부품 안에서 해결(다크 헤더 panel·본문 card·선택 active·호버 hover, 이름 셀 배경은 행 상속), 모바일 전 열·차트 연동 유지. `market-indicators.css`의 과도한 60/42px 섹션 간격은 공통 토큰으로, `domestic-market-indicators.css`의 모바일 차트 그리드 자동 최소폭 넘침은 min-width:0/minmax(0,1fr)로 수정. 관심종목 UI 글꼴·제목·그림자 정리. 새 다크 색상·금융 API/계산/갱신/인증/저장 변경 없음.
-
-로고: 기존 `img/falcon-logo-source.webp`에 실제 alpha가 있어 그대로 재사용. 헤더는 종전 CSS 배경의 불투명 brand-banner 대신 투명 원본 머리 크롭(비율 유지, 배경 마스킹 없음), PC·모바일 공통. `skin-shell.js` 푸터도 동일 원본을 contain으로 표시. 이미지 생성·원본 변조 없음. favicon/터치 아이콘 정책 보존. `skin.html` 변경 없음, 관리자 수동 반영 불필요.
-
-검증: 운영 DOM에 후보 CSS를 같은 위치로 치환해 미국·휴장 375/390/768/1440px 라이트·다크 및 증시자금 4폭 다크·PC 라이트를 확인, computed style 카드 #202731/14px, 표 #202731·헤더 #272f3a, 증시자금 본문 폭=scrollWidth 확인. 표 고객예탁금 선택→차트 제목 변경 확인. 증시온도·검색기·종목분석·캘린더 PC/375px 스모크. 로컬 전후 캡처 보관. `test_domestic_layout`·`test_watchlist_drawer_first_paint` 12 pass, 미국 세션 5 pass, `node --check js/skin-shell.js`·diff check 통과. `test_ui_ia`는 변경 전 HEAD에서 38 failed/140 passed/37 subtests를 재현; 의도된 로고 경로·간격 계약만 갱신한 변경 후 동일 38 failed(합산 152 passed/37 subtests), 신규 실패 없음. `test_indicator_board.js`는 변경 전과 같은 탭 CSS 로더 수 기대 4/실제 5의 기존 실패라 별도 기록.
-
-미확인/기존 문제: 사용자 언급 첨부 3장은 대화에 없어서 운영 화면을 기준으로 비교했다. 관심종목은 사이트 계정 비로그인 상태여서 서랍·로그인/빈 상태만 확인(저장·로그인 실행 안 함). 일부 티스토리 페이지 모바일에서 외부 광고 iframe 1200px가 문서 전체를 넘침(9Pay 위젯 본문은 정상), 티스토리 common.js `$ is not a function` 기존 오류가 남음. 차트 모바일→PC 리사이즈 직후 일시적 작은 SVG는 재로딩 후 추가 관찰 필요. 배포 경로는 master의 style.css/css/js → GitHub Pages, VM/GAS 및 티스토리 마크업 변경 없음.
-
-배포 완료 확인: 소스 커밋 5e8ea43d의 Pages build= built/error=null. 공개 style.css·indicator-board.css·market-temp.css·skin-shell.js 응답이 커밋 Git blob과 바이트 일치. 임시 preview CSS 0개인 운영 화면에서 홈 4폭 가로 넘침 없음, 주요 4페이지 본문 폭/scrollWidth 일치 및 제목 PC 24px/모바일 22px·증시온도 카드 14px·투명 송골매 URL을 재확인했다. 티스토리 마크업 수동 조치 없음.

@@ -338,16 +338,28 @@
     });
     return groups.map(function (group) { return byId[group.id]; }).filter(function (entry) { return entry && entry.items.length; });
   }
+  function watchlistState() {
+    if (global.Watchlist && typeof global.Watchlist.getStatus === 'function') return global.Watchlist.getStatus();
+    return { phase: global.Watchlist && global.Watchlist.isReady() ? 'ready' : 'loading', message: '' };
+  }
+  function watchlistStateHtml(status) {
+    if (status.phase === 'signed-out') return '관심종목을 보려면 Google 또는 네이버로 로그인하세요. <button type="button" data-my-login>로그인</button>';
+    if (status.phase === 'error') return escapeHtml(status.message || '관심종목을 불러오지 못했습니다.') + ' <button type="button" data-my-watchlist-retry>다시 불러오기</button>';
+    return '저장된 관심종목을 불러오는 중입니다.';
+  }
   function buildWatchlistTable(items) {
     var tableMount = mount.querySelector('[data-my-watchlist-table]');
     var count = mount.querySelector('[data-my-watchlist-count]');
     if (global.Watchlist && global.Watchlist.getCachedQuotes) {
       state.quotes = Object.assign({}, global.Watchlist.getCachedQuotes(items.map(function (item) { return item.code; })), state.quotes);
     }
-    if (count) count.textContent = items.length + '종목';
+    var status = watchlistState();
+    if (count) count.textContent = (items.length || status.phase === 'ready') ? items.length + '종목' : status.phase === 'loading' ? '확인 중' : status.phase === 'signed-out' ? '로그인 필요' : '조회 실패';
     if (!tableMount) return;
     if (!items.length) {
-      tableMount.innerHTML = '<div class="my-watchlist-empty">관심종목이 없습니다. 위 검색창으로 종목을 불러오거나 기존 관심종목에 추가하세요.</div>';
+      tableMount.innerHTML = '<div class="my-watchlist-empty" role="status">' + (status.phase === 'ready'
+        ? '관심종목이 없습니다. 위 검색창으로 종목을 불러오거나 기존 관심종목에 추가하세요.'
+        : watchlistStateHtml(status)) + '</div>';
       return;
     }
     tableMount.innerHTML = groupedWatchlist(items).map(function (entry) {
@@ -898,7 +910,10 @@
     buildWatchlistTable(items);
     updateWatchlistVisibility();
     var status = document.getElementById('myDashboardStatus');
-    if (status && !state.selectedCode) status.textContent = global.Watchlist.isReady() ? '분석할 종목을 입력하세요.' : '로그인 상태를 확인하는 중입니다. 분석은 먼저 이용할 수 있습니다.';
+    if (status && !state.selectedCode) {
+      var current = watchlistState();
+      status.innerHTML = current.phase === 'ready' ? '분석할 종목을 입력하세요.' : watchlistStateHtml(current);
+    }
     var item = itemByCode(state.selectedCode);
     var cached = item && state.analyses[item.code];
     renderDetail(item, cached || { loading: true, quote: item && state.quotes[item.code] || {} });
@@ -906,6 +921,16 @@
   }
   function wire() {
     mount.addEventListener('click', function (event) {
+      if (event.target.closest('[data-my-login]')) {
+        if (global.NinePayAccountLogin) global.NinePayAccountLogin.open();
+        else global.location.href = API_BASE + '/auth/google/start?return_to=' + encodeURIComponent(global.location.href);
+        return;
+      }
+      if (event.target.closest('[data-my-watchlist-retry]')) {
+        if (global.Watchlist && global.Watchlist.refresh) global.Watchlist.refresh();
+        else global.location.reload();
+        return;
+      }
       var load = event.target.closest('[data-my-load]');
       if (load) { selectedFromInput(); return; }
       var addWatchlist = event.target.closest('[data-my-watchlist-add]');
@@ -977,6 +1002,9 @@
       if (event.target.id === 'myWatchlistAddInput' && event.key === 'Escape') { event.preventDefault(); closeWatchlistAddModal(); }
     });
     global.addEventListener('watchlist:changed', function () { render(); });
+    global.addEventListener('watchlist:state', function (event) {
+      if (!event.detail || event.detail.phase !== 'ready') render();
+    });
     global.addEventListener('watchlist:quote', function (event) {
       var detail = event && event.detail || {};
       applyWatchlistQuote(detail.code, detail.quote);
