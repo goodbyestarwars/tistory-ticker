@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-rates-fx';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261027-block-subtitles';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -384,7 +384,7 @@
     return {price:byDate[day], date:day, change:days.length > 1 ? byDate[day] - byDate[days[days.length - 2]] : null};
   }
   function treasurySummary(current, failed) {
-    return '<section class="wd-rates" aria-label="미국 국채금리와 원달러 고시환율"><header><h4>미국 국채금리·환율</h4><small>FRED · 수출입은행</small></header><dl class="wd-rate-grid">'
+    return '<section class="wd-rates" aria-label="미국 국채금리와 원달러 고시환율"><header><h4 class="ui-section-title">미국 국채금리·환율</h4><small>FRED · 수출입은행</small></header><dl class="wd-rate-grid">'
       + TREASURIES.map(function (spec) {
         var latest = current[spec.symbol], row = lastTreasuryQuotes[spec.symbol];
         var delayed = failed || !latest || latest.stale || !treasurySnapshot(latest);
@@ -930,7 +930,7 @@
     return new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false }) + ' KST';
   }
   function direction(value) { return value == null ? '' : Number(value) > 0 ? '▲' : Number(value) < 0 ? '▼' : '―'; }
-  function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
+  function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
   function newsPanelHeading(sub) {
     var icon = '<svg class="wd-news-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
     return panelHeading(icon + ' 이번 주 주요뉴스', sub);
