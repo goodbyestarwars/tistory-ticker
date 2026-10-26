@@ -40,6 +40,7 @@ main.py의 /strategy-scan-batch가 이 캐시를 그대로 서빙한다(엔드�
 가리키고 있어서 배포 경로를 유지해야 재등록 없이 그대로 돌아간다)."""
 
 import json
+import math
 import os
 import re
 import sys
@@ -49,6 +50,7 @@ import urllib.request
 from datetime import date, datetime, timezone
 
 import db_schema
+import fundamentals
 import invest_opinion
 import invest_signal
 import kiwoom_client
@@ -111,6 +113,12 @@ DISPARITY_MAX = 90
 # 찍는 것과 다를 바 없다"는 피드백을 그대로 반영해 결과가 20개를 넘을 때만
 # 우량성 점수와 이격도 조건을 단계적으로 강화한다.
 SECTOR_TOP_N = 5
+
+# 성장·저부채 기업 전략: 3개 결산연도 연속 증가 + 최신 단독분기 YoY 증가.
+# 실제 수집 자료 외에 전망치나 결측 대체값을 만들지 않는다.
+EARNINGS_GROWTH_MAX_DEBT_PCT = 100.0
+EARNINGS_GROWTH_YEARS = 3
+FINANCIAL_SECTOR_HINTS = ('은행', '증권', '보험', '금융', '캐피탈')
 
 # 2026-09-02: "조건 근접" 후보. 저평가 게이트는 펀더멘탈 점수와 이격도 두 개뿐인데, 둘
 # 중 하나를 아슬아슬하게 못 넘긴 종목은 그대로 사라져 화면에 흔적이 없었다. 조건을 통과한
@@ -270,6 +278,20 @@ METHODOLOGY_NOTE = methodology(
     ('성격', 'PER·PBR 같은 실제 밸류에이션 데이터가 없어 "장기 추세 대비 가격 눌림"으로 '
              '근사한 값입니다. 진짜 저평가(이익·자산 대비 싼 가격)와는 다를 수 있습니다.'),
 ).format(min_score=FUNDAMENTAL_SCORE_MIN, max_disp=DISPARITY_MAX, top_n=SECTOR_TOP_N)
+
+EARNINGS_GROWTH_METHODOLOGY_NOTE = methodology(
+    ('성장', '최근 {years}개 연속 결산연도의 매출·영업이익이 모두 흑자(양수)이고 매년 증가. '
+             '최근 공시 분기(단독 3개월)의 매출·영업이익도 전년 같은 분기보다 증가해야 합니다.'),
+    ('부채', '최근 결산연도 부채비율 0~{max_debt:.0f}% (부채총계÷자본총계). 금융·은행·증권·보험업은 '
+             '업종별 부채 구조가 달라 이 기준으로 평가하지 않습니다.'),
+    ('검증', 'DART 연간 3개년과 최신 분기 수치의 기간·증가·양수 여부를 확인합니다. '
+             '제출기한 기준보다 오래된 보고서, 최신 공시 반영 대기, 결측은 제외합니다. '
+             '올해 확정 실적을 연간으로 환산하지 않습니다.'),
+    ('제외', 'ETF·ETN·스팩·우선주 등, 주가 1,000원 미만, 최근 20거래일 평균 거래대금 '
+             '10억원 미만.'),
+    ('정렬', '최신 단독분기 영업이익 전년동기 성장률 높은 순, 동률이면 부채비율 낮은 순. '
+             '스캔 주 1회 갱신이며 주가 상승이나 향후 실적 개선을 보장하지 않습니다.'),
+).format(years=EARNINGS_GROWTH_YEARS, max_debt=EARNINGS_GROWTH_MAX_DEBT_PCT)
 
 NEAR_MISS_NOTE = (
     '두 조건(펀더멘탈 {min_score}점 이상, 이격도 {max_disp}% 이하) 중 하나만 '
@@ -701,6 +723,140 @@ def scan(universe, wics_map, fundamentals_cache, conn, theme_codes=None, daily_c
 
     return (sectors, scanned, skipped_no_data, skipped_illiquid, skipped_no_sector,
             skipped_no_fundamentals, near_misses)
+
+
+def _finite_growth_value(value):
+    """결측과 NaN/무한대는 수치 0으로 바꾸지 않고 미검증으로 처리한다."""
+    try:
+        number = float(value)
+        return number if math.isfinite(number) else None
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def earnings_growth_signal(entry, as_of=None):
+    """DART 3개년 매출/영업이익 증가 + 최신 분기 YoY 증가 + 부채비율 검증.
+
+    최신 보고기간은 fundamentals.expected_period와 동일한 12월 결산 제출기한을
+    사용한다. 오래된 분기·결산/단독분기 혼용/결측은 통과시키지 않는다.
+    """
+    as_of = as_of or date.today()
+    entry = entry or {}
+    annual = entry.get('annual') or {}
+    years = annual.get('years') or []
+    if not isinstance(years, list):
+        return None
+    records = {}
+    for row in years:
+        if not isinstance(row, dict):
+            continue
+        try:
+            year = int(row.get('year'))
+        except (TypeError, ValueError, OverflowError):
+            continue
+        records[year] = row
+    if len(records) < EARNINGS_GROWTH_YEARS:
+        return None
+    last_year = max(records)
+    expected_annual_year = as_of.year - (1 if as_of >= date(as_of.year, 4, 1) else 2)
+    if last_year < expected_annual_year or last_year > as_of.year:
+        return None
+    selected = [records.get(year) for year in range(last_year - EARNINGS_GROWTH_YEARS + 1, last_year + 1)]
+    if any(row is None for row in selected):
+        return None
+
+    annual_revenues = [_finite_growth_value(row.get('revenue')) for row in selected]
+    annual_operating = [_finite_growth_value(row.get('operating_income')) for row in selected]
+    if any(value is None or value <= 0 for value in annual_revenues + annual_operating):
+        return None
+    if any(values[i] <= values[i - 1] for values in (annual_revenues, annual_operating)
+           for i in range(1, EARNINGS_GROWTH_YEARS)):
+        return None
+
+    debt_ratio = _finite_growth_value(selected[-1].get('debt_ratio_pct'))
+    if debt_ratio is None or not 0 <= debt_ratio <= EARNINGS_GROWTH_MAX_DEBT_PCT:
+        return None
+
+    # 최신 공시가 확인됐지만 아직 재무 API에 반영되지 않은 종목은 제외한다.
+    if (entry.get('disclosure') or {}).get('status') == 'pending':
+        return None
+
+    quarter = entry.get('latest_quarter') or {}
+    report_order = {'11013': 1, '11012': 2, '11014': 3, '11011': 4}
+    try:
+        period = (int(quarter.get('year')), report_order[quarter.get('reprt_code')])
+    except (TypeError, ValueError, KeyError, OverflowError):
+        return None
+    expected_year, expected_code = fundamentals.expected_period(as_of)
+    if period < (expected_year, report_order[expected_code]) or period[0] > as_of.year:
+        return None
+    basis = 'annual' if quarter['reprt_code'] == '11011' else 'standalone_3m'
+    if quarter.get('amount_basis') != basis:
+        return None
+    quarter_revenue = _finite_growth_value(quarter.get('revenue'))
+    quarter_op = _finite_growth_value(quarter.get('operating_income'))
+    revenue_yoy = _finite_growth_value(quarter.get('revenue_yoy_pct'))
+    op_yoy = _finite_growth_value(quarter.get('operating_income_yoy_pct'))
+    if (quarter_revenue is None or quarter_revenue <= 0 or
+            quarter_op is None or quarter_op <= 0 or
+            revenue_yoy is None or revenue_yoy <= 0 or op_yoy is None or op_yoy <= 0):
+        return None
+
+    quarter_name = {'11013': '1분기', '11012': '2분기', '11014': '3분기', '11011': '연간'}
+    return {
+        'debtRatio': round(debt_ratio, 1),
+        'roe': _finite_growth_value(selected[-1].get('roe_pct')),
+        'annualYears': [last_year - 2, last_year - 1, last_year],
+        'annualRevenueYoYPct': round((annual_revenues[-1] / annual_revenues[-2] - 1) * 100, 1),
+        'annualOperatingIncomeYoYPct': round((annual_operating[-1] / annual_operating[-2] - 1) * 100, 1),
+        'latestQuarter': '%d년 %s' % (period[0], quarter_name[quarter['reprt_code']]),
+        'latestQuarterRevenueYoYPct': round(revenue_yoy, 1),
+        'latestQuarterOperatingIncomeYoYPct': round(op_yoy, 1),
+    }
+
+
+def scan_earnings_growth(universe, wics_map, fundamentals_cache, conn, daily_cache=None, as_of=None):
+    """기존 가격·재무 캐시를 재사용해 성장/저부채 후보를 선별한다(추가 API 호출 없음)."""
+    grouped = {}
+    scanned = 0
+    for stock in universe:
+        code = stock['code']
+        if stock.get('is_etf'):
+            continue
+        daily = _load_daily(conn, code, daily_cache)
+        if len(daily) < MIN_BARS or pattern_detect.is_excluded_stock(stock, daily):
+            continue
+        if pattern_detect.is_etf_name(stock.get('name')) or daily[-1]['close'] < MIN_PRICE:
+            continue
+        volume = pattern_detect.compute_volume_multiple(daily)
+        if not volume or volume['avg20'] < MIN_AVG_TURNOVER:
+            continue
+        wics = wics_map.get(code) or {}
+        sector = wics.get('sector')
+        if not sector or any(label in (sector + ' ' + (wics.get('industry') or ''))
+                             for label in FINANCIAL_SECTOR_HINTS):
+            continue
+        entry = fundamentals_cache.get(code)
+        if not entry:
+            continue
+        scanned += 1
+        signal = earnings_growth_signal(entry, as_of=as_of)
+        if signal is None:
+            continue
+        last = daily[-1]
+        prev = daily[-2]
+        change_rate = ((last['close'] / prev['close'] - 1) * 100) if prev['close'] else None
+        match = {
+            'code': code, 'name': stock['name'], 'sector': sector,
+            'price': last['close'], 'changeRate': change_rate, 'date': last.get('date'),
+        }
+        match.update(signal)
+        grouped.setdefault(sector, []).append(match)
+
+    for sector in grouped:
+        grouped[sector].sort(key=lambda m: (
+            -m['latestQuarterOperatingIncomeYoYPct'], m['debtRatio'], m['code']))
+    return grouped, scanned
 
 
 def scan_bluechip(universe, wics_map, fundamentals_cache, conn, theme_codes=None):
@@ -1392,6 +1548,9 @@ def main():
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
         daily_cache=daily_cache)
 
+    growth_sectors, growth_scanned = scan_earnings_growth(
+        universe, wics_map, fundamentals_cache, conn, daily_cache=daily_cache)
+
     undervalued_category = {
         'name': '저평가 종목',
         'methodology': METHODOLOGY_NOTE,
@@ -1420,6 +1579,14 @@ def main():
         # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
         'categories': {
             'undervalued': undervalued_category,
+            'earningsGrowth': {
+                'name': '실적 우상향 · 저부채',
+                'methodology': EARNINGS_GROWTH_METHODOLOGY_NOTE,
+                'sectors': {
+                    sector: {'name': sector, 'matches': matches}
+                    for sector, matches in growth_sectors.items() if matches
+                },
+            },
             'dividend': {
                 'name': '배당주',
                 'methodology': DIVIDEND_METHODOLOGY_NOTE,
@@ -1431,6 +1598,8 @@ def main():
             },
         },
     }
+
+    output['earningsGrowthScanned'] = growth_scanned
 
     if non_etf_weekly:
         # ETF는 별도 매일 타이머가 갱신한다. 주 1회 본체가 기존 ETF 결과를 덮어쓰지 않는다.
