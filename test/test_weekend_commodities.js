@@ -39,11 +39,34 @@ test('failed, stale or missing rows retain last valid price with delay, never a 
 });
 test('one shared stored-only request, pending dedupe, 60s reuse and malformed-payload recovery',async()=>{
   const f=fixture();f.api.load(f.root);f.api.load(f.root);await flush();assert.equal(f.calls.length,1);
-  assert.match(f.calls[0],/symbols=WTI,BRENT,GOLD&stored_only=true$/);
+  assert.match(f.calls[0],/symbols=WTI,BRENT,GOLD,US2Y,US10Y,US30Y&stored_only=true$/);
   f.resolve({data:[quote('BRENT',117.38)]});await flush();assert.match(f.mount.innerHTML,/\$117\.38/);
   f.time(59999);f.api.load(f.root);await flush();assert.equal(f.calls.length,1);
   f.time(60000);f.api.load(f.root);await flush();assert.equal(f.calls.length,2);
   f.resolve({error:'missing'});await flush();assert.match(f.mount.innerHTML,/갱신 지연/);
   f.api.load(f.root);await flush();assert.equal(f.calls.length,3);
   f.resolve({data:[quote('BRENT',118)]});await flush();assert.match(f.mount.innerHTML,/\$118\.00/);
+});
+
+function treasury(symbol,price,previous=5.13,date='20261022') {
+  return {symbol,price,change_rate:-3.31,change:999,updated_at:'2026-10-26T12:17:17+09:00',stale:false,
+    chart:[{date,close:price},{date:'20261021',close:previous}]};
+}
+test('Treasuries use observed yields and percentage-point changes, not relative percent or retrieval dates',()=>{
+  const f=fixture(),html=f.api.cards([treasury('US30Y',5.29,5.42),treasury('US10Y',4.96),treasury('US2Y',4.65,4.81)],false);
+  assert.ok(html.indexOf('data-rate-symbol="US2Y"')<html.indexOf('data-rate-symbol="US10Y"'));
+  assert.ok(html.indexOf('data-rate-symbol="US10Y"')<html.indexOf('data-rate-symbol="US30Y"'));
+  assert.match(html,/4\.96<small>%/);assert.match(html,/-0\.17%p/);assert.match(html,/-0\.16%p/);assert.match(html,/-0\.13%p/);
+  assert.match(html,/2026\.10\.22 관측/);assert.doesNotMatch(html,/2026\.10\.26 관측|-3\.31%|999%p/);
+  assert.match(html,/연준 기준금리와 다른 국채 수익률/);
+});
+test('Treasuries preserve the last verified observation on stale, missing, malformed and mismatched updates; zero is valid',()=>{
+  const f=fixture();f.api.cards([treasury('US10Y',4.96)],false);
+  for(const row of [{...treasury('US10Y',9),stale:true}, {...treasury('US10Y',9),price:8}, {...treasury('US10Y',9),chart:[]}, treasury('US10Y',9,8,'20260230')]){
+    const html=f.api.cards([row],false);assert.match(html,/4\.96<small>%/);assert.match(html,/2026\.10\.22 관측 · 갱신 지연/);
+  }
+  assert.match(f.api.cards([],true),/4\.96<small>%/);
+  const zero=f.api.cards([treasury('US2Y',0,.1)],false);assert.match(zero,/0\.00<small>%/);assert.match(zero,/-0\.10%p/);
+  const one=f.api.cards([{...treasury('US30Y',5.29),chart:[{date:'20261022',close:5.29}]}],false);
+  assert.match(one,/5\.29<small>%/);assert.match(one,/변화 미제공/);
 });

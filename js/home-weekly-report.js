@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-paired-calendar';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-us-treasury';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -336,13 +336,40 @@
         + (delayed ? '<small class="wd-token-status">갱신 지연' + (row && row.retrievedAt ? ' · 마지막 조회 ' + escapeHtml(kstTime(Date.parse(row.retrievedAt))) : '') + '</small>' : '') + '</li>';
     }).join('') + '</ul>';
   }
-  var COMMODITY_URL = 'https://goodbyestar.cloud/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD&stored_only=true';
+  var COMMODITY_URL = 'https://goodbyestar.cloud/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,US2Y,US10Y,US30Y&stored_only=true';
   var COMMODITIES = [
     {symbol:'WTI', name:'WTI 원유', unit:'달러 / 배럴', source:'네이버 비공식 선물'},
     {symbol:'BRENT', name:'브렌트유', unit:'달러 / 배럴', source:'KIS ICE 선물'},
     {symbol:'GOLD', name:'금 선물', unit:'달러 / 트로이온스', source:'네이버 비공식 선물'}
   ];
-  var commodityMemo, lastCommodityQuotes = {};
+  var TREASURIES = [{symbol:'US2Y',name:'2년물'}, {symbol:'US10Y',name:'10년물'}, {symbol:'US30Y',name:'30년물'}];
+  var commodityMemo, lastCommodityQuotes = {}, lastTreasuryQuotes = {};
+  function treasurySnapshot(row) {
+    if (!row || !Array.isArray(row.chart) || num(row.price) == null) return null;
+    var byDate = {};
+    row.chart.forEach(function (bar) {
+      if (!bar || num(bar.close) == null) return;
+      var day = String(bar.date || '').replace(/^(\d{4})(\d{2})(\d{2})$/, '$1-$2-$3').slice(0,10);
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day)) return;
+      var date = new Date(day + 'T00:00:00Z');
+      if (!isFinite(date.getTime()) || date.toISOString().slice(0,10) !== day) return;
+      byDate[day] = num(bar.close);
+    });
+    var days = Object.keys(byDate).sort(), day = days[days.length - 1];
+    if (!day || Math.abs(byDate[day] - num(row.price)) > .000001) return null;
+    return {price:byDate[day], date:day, change:days.length > 1 ? byDate[day] - byDate[days[days.length - 2]] : null};
+  }
+  function treasurySummary(current, failed) {
+    return '<section class="wd-rates" aria-label="미국 국채금리"><header><h4>미국 국채금리</h4><small>FRED · 일별 관측</small></header><dl class="wd-rate-grid">'
+      + TREASURIES.map(function (spec) {
+        var latest = current[spec.symbol], row = lastTreasuryQuotes[spec.symbol];
+        var delayed = failed || !latest || latest.stale || !treasurySnapshot(latest);
+        var change = row && row.change;
+        return '<div data-rate-symbol="' + spec.symbol + '"><dt>' + spec.name + '</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>%</small>' : '미수신') + '</dd>'
+          + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : direction(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '%p') + '</b>'
+          + '<small>' + (row ? row.date.replace(/-/g,'.') + ' 관측' : '관측일 미제공') + (delayed ? ' · 갱신 지연' : '') + '</small></div>';
+      }).join('') + '</dl><p class="wd-note">직전 관측일 대비 · 연준 기준금리와 다른 국채 수익률입니다.</p></section>';
+  }
   function commodityTime(value) {
     var date = new Date(value);
     if (!value || isNaN(date.getTime())) return '기준 시각 미제공';
@@ -352,7 +379,14 @@
   function commodityCards(rows, failed) {
     var current = {};
     rows.forEach(function (row) {
-      if (!row || !COMMODITIES.some(function (spec) { return spec.symbol === row.symbol; })) return;
+      if (!row) return;
+      if (TREASURIES.some(function (spec) { return spec.symbol === row.symbol; })) {
+        current[row.symbol] = row;
+        var snapshot = treasurySnapshot(row);
+        if (snapshot && !row.stale) lastTreasuryQuotes[row.symbol] = snapshot;
+        return;
+      }
+      if (!COMMODITIES.some(function (spec) { return spec.symbol === row.symbol; })) return;
       current[row.symbol] = row;
       if (num(row.price) > 0 && !row.stale) lastCommodityQuotes[row.symbol] = row;
     });
@@ -371,7 +405,7 @@
         + '<div class="wd-commodity-meta"><span>' + state + '</span><time>' + escapeHtml(commodityTime(row && row.updated_at)) + '</time>'
         + '<small>' + spec.source + (row && row.contract_code ? ' · ' + escapeHtml(row.contract_code) : '') + '</small></div></article>';
     }).join('') + '</div><p class="wd-note">선물 가격 · 공급 시세 지연 여부 미확인. 등락률은 전일 대비이며 주말 수익률이 아닙니다.</p>'
-      + '<a class="wd-more" href="/pages/kospi-futures">원자재 시세 자세히 →</a>';
+      + '<a class="wd-more" href="/pages/kospi-futures">원자재 시세 자세히 →</a>' + treasurySummary(current, failed);
   }
   function loadWeekendCommodities(root) {
     var mount = root.querySelector('[data-hwr-commodities]');
