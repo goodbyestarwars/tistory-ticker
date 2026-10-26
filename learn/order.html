@@ -184,6 +184,45 @@
     <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>의 매물대를 보면 어느 가격대에 주문이 쌓이기 쉬운지 감이 온다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="advanced-order">
+  <h2 id="advanced-order">심화 연구실 · 실제 체결비용은 주문가격보다 복잡하다</h2>
+  <p>전문 거래 분석에서는 주문을 넣은 순간의 가격과 최종 체결가격을 구별한다. 주문이 여러 호가 단계에 걸쳐 체결되면 <b>평균체결가격(VWAP)</b>이 달라진다. 최우선호가만 보고 매수금액을 계산하면 시장 충격과 <b>실행손실(implementation shortfall)</b>을 놓치기 쉽다.</p>
+  <div class="learn-lab">
+    <h3>실전 계산 · 시장가 매수 200주의 미끄러짐</h3>
+    <table class="learn-table"><thead><tr><th>매도호가</th><th>대기 수량</th><th>실제 매수 체결</th></tr></thead><tbody>
+      <tr><td>10,000원</td><td>80주</td><td>80주</td></tr><tr><td>10,010원</td><td>150주</td><td>120주</td></tr>
+      <tr><td><b>결과</b></td><td>총 230주 대기</td><td><b>200주 체결</b></td></tr>
+    </tbody></table>
+    <p class="learn-math">평균 체결가 = (80 × 10,000 + 120 × 10,010) ÷ 200 = 10,006원</p>
+    <p>최우선 매도호가 대비 1주당 6원, 총 1,200원이 더 들었다. 상대 비용은 약 0.06%이며 세금·수수료·추가 가격 충격은 제외했다. 주문량이 늘면 잔량이 변하거나 호가가 취소돼 이 숫자도 변한다.</p>
+  </div>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 520 198" role="img" aria-label="시장가 매수 200주가 첫 매도호가 80주와 다음 매도호가 120주를 순서대로 체결하는 도식">
+      <text class="fig-ink" x="0" y="24">체결 깊이와 가격 충격</text>
+      <rect class="fig-soft" x="0" y="45" width="520" height="42" rx="5"/>
+      <rect class="fig-down" x="0" y="45" width="160" height="42" rx="5"/>
+      <text class="fig-on-strong" x="16" y="70">80주 · 10,000원</text>
+      <text class="fig-sub" x="176" y="70">이 가격대 수량 소진</text>
+      <rect class="fig-soft2" x="0" y="103" width="520" height="42" rx="5"/>
+      <rect class="fig-up" x="0" y="103" width="242" height="42" rx="5"/>
+      <text class="fig-on-strong" x="16" y="129">120주 · 10,010원</text>
+      <text class="fig-sub" x="254" y="129">다음 호가에서 잔량 체결</text>
+      <text class="fig-ink" x="0" y="181">200주 평균 10,006원</text><text class="fig-sub" x="255" y="181">최우선호가 대비 +0.06%</text>
+    </svg>
+    <figcaption>연구 그림 ② 두 가격대에 나뉜 체결. 실제 호가잔량은 주문 도중에도 바뀐다.</figcaption>
+  </figure>
+  <div class="learn-grid">
+    <div><h3>유동성의 세 차원</h3><p><b>스프레드</b>는 당장 사고파는 비용, <b>깊이</b>는 현재 호가에서 감당할 수 있는 수량, <b>회복력</b>은 큰 주문 이후 호가가 얼마나 빨리 복원되는지를 뜻한다. 거래량이 많아도 순간적으로 얕을 수 있다.</p></div>
+    <div><h3>역선택과 정보비대칭</h3><p>누군가 남보다 빠른 정보를 가지고 거래한다면 반대편 주문자는 불리해진다. 시장조성자는 이런 위험을 스프레드에 반영할 수 있다. <b>큰 매수벽 = 안전</b>이라는 해석은 성립하지 않는다.</p></div>
+  </div>
+  <div class="learn-lab"><h3>연구 설계 · 주문 전략 비교하기</h3><p>시장가·지정가·분할주문을 비교할 때는 단순 체결 수수료뿐 아니라 <b>미체결 확률</b>, 기다리는 동안 놓친 상승, 시장 충격을 함께 기록한다. 체결된 주문만 남겨 비교하면 미체결이라는 실패 비용이 사라져 성과가 좋아 보인다.</p></div>
+  <div class="learn-sources"><strong>원문 확인과 추가 독서</strong><ul>
+    <li><a href="https://www.investor.gov/introduction-investing/general-resources/news-alerts/alerts-bulletins/investor-bulletins-14" target="_blank" rel="noopener noreferrer">미국 SEC · 시장가와 지정가 주문의 차이</a></li>
+    <li><a href="https://www.sciencedirect.com/science/article/pii/S1386418104000382" target="_blank" rel="noopener noreferrer">시장미시구조 연구 · 정보비대칭·재고비용·가격 충격</a></li>
+  </ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>호가창은 줄 선 주문이고, 체결은 <b>가격 → 시간</b> 순서로 이뤄지며, 시장가는 편한 대신 <b>미끄러진 값</b>을 낸다.</p>
 
