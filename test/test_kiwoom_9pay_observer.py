@@ -94,6 +94,16 @@ def test_80_priority_and_afternoon_monitoring():
     assert result['signal'] and result['first70At'] == ts('09:01:00')
 
 
+def test_signal_after_1400_is_never_emitted_even_if_70pct_was_earlier():
+    o = observer()
+    qualify(o)
+    feed(o, '13:59:59', 108, 810)  # valid first pullback
+    result = feed(o, '14:00:00', 112, 820)  # would be A breakout
+    assert result['first70At'] == ts('09:01:00')
+    assert not result['signal']
+    assert result['branches'] == []
+
+
 def test_b_rebounds_without_high_rebreak():
     o = observer(True)
     qualify(o)
