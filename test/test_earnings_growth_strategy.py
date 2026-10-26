@@ -82,6 +82,36 @@ class EarningsGrowthSignalTests(unittest.TestCase):
         self.assert_rejected(lambda e: e['annual']['years'][-1].update(year=2024))
 
 
+class EarningsGrowthRecoveryTests(unittest.TestCase):
+    def test_category_recovery_preserves_other_results_and_overall_timestamp(self):
+        import json
+        import tempfile
+        from pathlib import Path
+        for sectors in ({}, {'IT': [{'code': '005930', 'date': '2026-10-23'}]}):
+            with self.subTest(sectors=sectors), tempfile.TemporaryDirectory() as directory:
+                path = Path(directory) / 'strategy.json'
+                previous = {'scannedAt': 'old', 'scanned': 123,
+                            'categories': {'dividend': {'sectors': {'IT': {'matches': [1]}}}}}
+                path.write_text(json.dumps(previous), encoding='utf-8')
+                with patch.object(strategy_scan, 'OUTPUT_FILE', str(path)), \
+                     patch.object(strategy_scan, 'load_full_universe', return_value=[{'code': '005930'}]), \
+                     patch.object(strategy_scan, 'load_wics_map', return_value={'005930': {'sector': 'IT'}}), \
+                     patch.object(strategy_scan, 'load_fundamentals_cache', return_value={'005930': financial_entry()}), \
+                     patch.object(strategy_scan.db_schema, 'get_conn') as connect, \
+                     patch.object(strategy_scan, 'scan_earnings_growth', return_value=(sectors, 1)), \
+                     patch.object(strategy_scan.kiwoom_client, 'get_token', side_effect=AssertionError('no broker calls')):
+                    strategy_scan.refresh_earnings_growth()
+                connect.assert_called_once_with(read_only=True)
+                connect.return_value.close.assert_called_once()
+                result = json.loads(path.read_text(encoding='utf-8'))
+                growth = result['categories'].pop('earningsGrowth')
+                self.assertTrue(growth['scannedAt'])
+                self.assertEqual(growth['scanned'], 1)
+                self.assertEqual(growth['sectors'], {k: {'name': k, 'matches': v} for k, v in sectors.items()})
+                result.pop('earningsGrowthScanned')
+                self.assertEqual(result, previous)
+
+
 class EarningsGrowthScanTests(unittest.TestCase):
     @staticmethod
     def daily():

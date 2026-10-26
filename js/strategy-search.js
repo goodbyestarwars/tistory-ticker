@@ -422,6 +422,12 @@
   function renderMeta(container) {
     var meta = container.querySelector('#ssMeta');
     if (!meta) return;
+    var category = scanData && scanData.categories && scanData.categories[activeKey];
+    if (activeKey === 'earningsGrowth' && category && category.scannedAt) {
+      meta.textContent = ((window.NineTime && window.NineTime.updated(category.scannedAt)) || ('계산 시각 ' + category.scannedAt))
+        + ' · 저장된 일봉·DART 재무 기준 · 재무 조건 검토 ' + (category.scanned || 0) + '종목';
+      return;
+    }
     if (!scanData || !scanData.scannedAt) {
       meta.textContent = '아직 스캔 결과가 없어요.';
       return;

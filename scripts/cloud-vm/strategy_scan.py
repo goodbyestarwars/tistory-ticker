@@ -40,6 +40,7 @@ main.py의 /strategy-scan-batch가 이 캐시를 그대로 서빙한다(엔드�
 가리키고 있어서 배포 경로를 유지해야 재등록 없이 그대로 돌아간다)."""
 
 from scheduled_job import report_progress
+from snapshot_io import atomic_json
 import json
 import math
 import os
@@ -1479,7 +1480,45 @@ def scan_nps_holdings(universe, wics_map, conn, theme_codes=None, daily_cache=No
     return sectors, len(holdings)
 
 
+def earnings_growth_category(sectors, scanned, universe_size):
+    return {
+        'name': '실적 우상향 · 저부채',
+        'methodology': EARNINGS_GROWTH_METHODOLOGY_NOTE,
+        'scannedAt': datetime.now(timezone.utc).isoformat(timespec='seconds').replace('+00:00', 'Z'),
+        'scanned': scanned, 'universe': universe_size,
+        'sectors': {sector: {'name': sector, 'matches': matches}
+                    for sector, matches in sectors.items() if matches},
+    }
+
+
+def refresh_earnings_growth():
+    """Repair this category from saved inputs; caller owns the scan serial lock.
+
+    No broker requests, no fabricated daily completion, no other category changes.
+    Metadata maps reuse the same public stock master as the weekly scan.
+    """
+    with open(OUTPUT_FILE, encoding='utf-8') as handle:
+        output = json.load(handle)
+    universe, wics = load_full_universe(), load_wics_map()
+    financials = load_fundamentals_cache()
+    if not universe or not wics or not financials:
+        raise RuntimeError('Saved scan inputs unavailable; previous results preserved')
+    conn = db_schema.get_conn(read_only=True)
+    try:
+        sectors, scanned = scan_earnings_growth(universe, wics, financials, conn)
+    finally:
+        conn.close()
+    output.setdefault('categories', {})['earningsGrowth'] = earnings_growth_category(sectors, scanned, len(universe))
+    output['earningsGrowthScanned'] = scanned
+    atomic_json(OUTPUT_FILE, output)
+    log('실적 우상향 저장자료 재계산: %d종목 검토 / %d종목 통과' % (
+        scanned, sum(len(rows) for rows in sectors.values())))
+
+
 def main():
+    if '--earnings-growth-only' in sys.argv:
+        refresh_earnings_growth()
+        return
     # 2026-09-16 사용자 지시("휴장은 쉬게 하자"): 휴장일에는 아무것도 저장하지 않고 끝낸다 -
     # 스캔이 끝나면 자기 몫의 결과를 통째로 덮어쓰기 때문에, 그냥 두면 직전 거래일 목록이 사라진다.
     skip_today, scan_day = market_clock.skip_scan_today()
@@ -1586,14 +1625,7 @@ def main():
         # 밑에 넣는다 - 다음 카테고리를 추가할 때 이 딕셔너리에 키 하나만 더 넣으면 된다.
         'categories': {
             'undervalued': undervalued_category,
-            'earningsGrowth': {
-                'name': '실적 우상향 · 저부채',
-                'methodology': EARNINGS_GROWTH_METHODOLOGY_NOTE,
-                'sectors': {
-                    sector: {'name': sector, 'matches': matches}
-                    for sector, matches in growth_sectors.items() if matches
-                },
-            },
+            'earningsGrowth': earnings_growth_category(growth_sectors, growth_scanned, len(universe)),
             'dividend': {
                 'name': '배당주',
                 'methodology': DIVIDEND_METHODOLOGY_NOTE,
