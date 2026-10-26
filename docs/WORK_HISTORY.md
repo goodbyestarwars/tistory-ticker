@@ -1,8 +1,6 @@
-**2026-10-26 단타 > 스윙 > 중장기 후보 우선순위 안전 준비 (작업 브랜치, 운영 미반영)**
+**2026-10-27 자동매매 문서 전용화 / 2026-10-26 우선순위 준비 — Draft PR #1036**
 
-기존 9Pay 단타 신호 우선·매도 선점검을 유지하고, 야간 검색기 후보의 스윙 3키를 중장기 기술형 1키보다 우선 정렬했다. 동일 종목 중복은 높은 그룹 우선, 그룹 내 기존 4요소 점수 순위·단타 신호 증거·자금/손절/주문 안전장치는 유지한다. 선택 주문에 그룹별 후보 수를 기록하고 단타 매수 후 스윙/중장기 야간 원시 후보 수를 별도 집계한다(실제 적격/손익 아님). 단타 14:00시 신규 신호·주문 차단 경계를 서버 관찰기/PC 수신·주문·runner에 일치시켰다.
-
-검증: GitHub Actions `9Pay queue regression` 신규 우선순위·경계·mock 주문 61건 및 하위 26건 통과, 기존 큐 회귀 5건 통과. `Shared HTTP and nightly scan regression` 성공. 실제 PC 설치본/계좌·장중 체결 검증은 수행하지 못했다. GitHub 작업 브랜치에만 커밋했고 master 병합·VM 자동 배포·PC 파일 설치·실계좌 스위치/주문 변경 없음.
+상세 매매규칙·PC 설치 상태·전략 검증·정책/승인 변경을 `quant-autotrade/docs/`의 [TRADING_RULES](../quant-autotrade/docs/TRADING_RULES.md) · [LIVE_OPERATIONS](../quant-autotrade/docs/LIVE_OPERATIONS.md) · [STRATEGY_TESTS](../quant-autotrade/docs/STRATEGY_TESTS.md) · [CHANGELOG](../quant-autotrade/docs/CHANGELOG.md)로 분리. 기존 9Pay 실계좌 문서 전체는 [보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)으로 이동하고 옛 경로는 안내만 남겼다. PR #1036 단타→스윙→중장기 우선순위/14:00 신규 진입 정합화의 CI 61건+하위 26건, 큐 5건 및 공통 회귀 성공 기록은 전용 검증 문서에 둔다. **master·VM·PC 미적용**, 실계좌 파일/설정/주문 불변.
 
 **2026-10-26 여백 공통 디자인 전역 점검·토큰 단일화**
 
