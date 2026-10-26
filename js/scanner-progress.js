@@ -17,24 +17,18 @@
     var updated = Date.parse(stamp || '');
     var age = now - updated;
     var running = state === 'running';
-    // A saved running flag is not a heartbeat. Never infer completion from its age either.
+    // The server owns execution state. Batch progress is reported every 25 stocks; age is advisory only.
     var stale = running && (!Number.isFinite(updated) || age < -60000 || age > 180000);
-    if (stale) state = 'unverified';
-    if (state === 'waiting') {
-      var queued = Date.parse(execution.queuedAt || '');
-      var maxWait = Number((target && target.contract || execution.contract || {}).maxWait) * 1000;
-      if (Number.isFinite(queued) && maxWait > 0 && now - queued > maxWait) { state = 'unverified'; stale = true; }
-    }
     var percent = state === 'success' ? 100 : state === 'running' && validProgress ? Math.min(99, Math.floor(p.processed / p.total * 100)) : null;
     var labels = { running: '스캔 진행 중', waiting: '앞선 스캔 완료 대기', success: '스캔 완료',
       failed: '스캔 오류', timeout: '스캔 시간 초과', interrupted: '스캔 중단', deadline: '스캔 실행창 종료',
       skipped: '스캔 건너뜀', unknown: '스캔 상태 확인 중', unverified: '실행 상태 미확인' };
     var scope = target && target.id === 'strategyscan' ? '전략 배치' : '일봉 배치';
-    var detail = state === 'running' && validProgress ? p.processed.toLocaleString('ko-KR') + ' / ' + p.total.toLocaleString('ko-KR') + (p.unit || '종목') + ' 처리' : '';
+    var detail = state === 'running' && validProgress ? (p.phase ? p.phase + ' · ' : '') + p.processed.toLocaleString('ko-KR') + ' / ' + p.total.toLocaleString('ko-KR') + (p.unit || '종목') + ' 처리' : '';
     return { state: state, percent: percent, compact: state === 'success' || state === 'skipped',
-      title: scope + ' · ' + (state === 'running' && validProgress && p.phase ? p.phase : labels[state] || '스캔 상태 확인 필요'),
-      detail: detail, stale: stale, updatedAt: execution.finishedAt || stamp,
-      note: stale ? '실행 기록 갱신 지연 · 완료 여부 확인 불가'
+      title: scope + ' · ' + (labels[state] || '스캔 상태 확인 필요'),
+      detail: detail, stale: stale, updatedAt: running ? stamp : execution.finishedAt || stamp,
+      note: stale ? '진행 정보 갱신 대기 · 마지막 확인 진행률 유지'
         : strategy && target === daily ? '일봉 데이터 확인 후 전략 계산 · 기존 결과 유지'
         : '장중 단타 감시와 별도인 배치 상태 · 완료 후 검색 결과 갱신' };
 
@@ -50,7 +44,7 @@
   function render(value) {
     strip.classList.toggle('is-complete', value.compact);
     var known = value.percent !== null;
-    var label = known ? value.percent + '%' : value.state === 'unverified' ? '확인 필요' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline/.test(value.state) ? '중단' : '집계 대기';
+    var label = known ? value.percent + '%' : value.state === 'unverified' ? '확인 필요' : value.state === 'running' ? '진행 중' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline/.test(value.state) ? '중단' : '집계 대기';
     var panel = strip.querySelector('.scan-status-panel') || strip;
     strip.setAttribute('data-state', value.state);
     panel.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
