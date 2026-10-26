@@ -4,16 +4,16 @@ const test = require('node:test'), assert = require('node:assert/strict');
 const fs = require('node:fs'), vm = require('node:vm');
 function fixture() {
   let now = 0, respond, calls = [];
-  const mount = {innerHTML:''};
+  const mount = {innerHTML:''},fxMount={innerHTML:''};
   const window = {}, document = {body:{contains:()=>true}};
   const source = fs.readFileSync('js/home-weekly-report.js','utf8').replace(
     'global.HomeWeeklyReport = { init: init, syncContent: syncContent };',
-    'global.HomeWeeklyReport = {cards:commodityCards,load:loadWeekendCommodities};');
+    'global.HomeWeeklyReport = {cards:commodityCards,load:loadWeekendCommodities,fx:loadOfficialFx};');
   const context = {window,document,URL,AbortController,setTimeout,clearTimeout,
     Date:class extends Date {static now(){return now;}},
     fetch:url=>{calls.push(url);return new Promise(resolve=>{respond=data=>resolve({ok:true,json:async()=>data});});}};
   vm.runInNewContext(source,context);
-  return {api:window.HomeWeeklyReport,mount,calls,root:{querySelector:()=>mount},
+  return {api:window.HomeWeeklyReport,mount,calls,root:{querySelector:s=>s==='[data-hwr-commodities]'?mount:null},fxMount,fxRoot:{querySelector:s=>s==='[data-hwr-fx]'?fxMount:null},
     resolve:data=>respond(data),time:value=>{now=value;}};
 }
 function quote(symbol, price) {
@@ -69,4 +69,28 @@ test('Treasuries preserve the last verified observation on stale, missing, malfo
   const zero=f.api.cards([treasury('US2Y',0,.1)],false);assert.match(zero,/0\.00<small>%/);assert.match(zero,/-0\.10%p/);
   const one=f.api.cards([{...treasury('US30Y',5.29),chart:[{date:'20261022',close:5.29}]}],false);
   assert.match(one,/5\.29<small>%/);assert.match(one,/변화 미제공/);
+});
+
+function fxPayload(overrides={}) {
+  return {success:true,data:{official:true,realtime:false,baseDate:'2026-10-26',prevDate:'2026-10-23',state:'ok',pendingToday:false,
+    currencies:[{code:'USD',curUnit:'USD',unit:1,dealBasR:1324.3,prev:1324.6,change:999,changeRate:20}],...overrides}};
+}
+test('official USD/KRW uses one-dollar units, won difference and actual fixing date with 5-minute shared cache',async()=>{
+  const f=fixture();f.api.fx(f.fxRoot);f.api.fx(f.fxRoot);await flush();assert.equal(f.calls.length,1);assert.ok(f.calls[0].endsWith('/fx-rates'));
+  f.resolve(fxPayload());await flush();assert.match(f.fxMount.innerHTML,/1,324\.30<small>원/);assert.match(f.fxMount.innerHTML,/-0\.30원/);
+  assert.match(f.fxMount.innerHTML,/2026\.10\.26 고시/);assert.doesNotMatch(f.fxMount.innerHTML,/999|20%|갱신 지연/);
+  f.time(299999);f.api.fx(f.fxRoot);await flush();assert.equal(f.calls.length,1);
+  assert.match(f.api.cards([],false),/data-hwr-fx/);
+});
+test('official FX rejects mixed markets, wrong units and backwards dates while preserving the last fixing',async()=>{
+  const f=fixture();f.api.fx(f.fxRoot);await flush();f.resolve(fxPayload());await flush();
+  let at=300000;
+  for(const overrides of [{realtime:true},{currencies:[{code:'USD',curUnit:'USD',unit:100,dealBasR:9999}]},{baseDate:'2026-10-23'},{baseDate:'2026-02-30'},{currencies:[]}]){
+    f.time(at);at+=300000;f.api.fx(f.fxRoot);await flush();f.resolve(fxPayload(overrides));await flush();
+    assert.match(f.fxMount.innerHTML,/1,324\.30<small>원/);assert.match(f.fxMount.innerHTML,/2026\.10\.26 고시 · 갱신 지연/);
+  }
+  f.time(at);f.api.fx(f.fxRoot);await flush();f.resolve({success:false});await flush();assert.match(f.fxMount.innerHTML,/갱신 지연/);
+  f.api.fx(f.fxRoot);await flush();f.resolve(fxPayload({pendingToday:true}));await flush();assert.match(f.fxMount.innerHTML,/갱신 지연/);
+  f.time(at+300000);f.api.fx(f.fxRoot);await flush();f.resolve(fxPayload({baseDate:'2026-10-27',prevDate:null}));await flush();
+  assert.match(f.fxMount.innerHTML,/2026\.10\.27 고시/);assert.match(f.fxMount.innerHTML,/변화 미제공/);assert.doesNotMatch(f.fxMount.innerHTML,/갱신 지연/);
 });

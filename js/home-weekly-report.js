@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-us-treasury';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-rates-fx';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -344,6 +344,30 @@
   ];
   var TREASURIES = [{symbol:'US2Y',name:'2년물'}, {symbol:'US10Y',name:'10년물'}, {symbol:'US30Y',name:'30년물'}];
   var commodityMemo, lastCommodityQuotes = {}, lastTreasuryQuotes = {};
+  var lastOfficialFx = null, officialFxDelayed = false;
+  function officialFxMarkup() {
+    var row = lastOfficialFx, change = row && row.change;
+    return '<dt title="1 USD당 원화 매매기준율">원/달러 · 고시</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>원</small>' : '미수신') + '</dd>'
+      + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : direction(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '원') + '</b>'
+      + '<small>' + (row ? row.date.replace(/-/g,'.') + ' 고시' : '고시일 미제공') + (officialFxDelayed ? ' · 갱신 지연' : '') + '</small>';
+  }
+  function loadOfficialFx(root) {
+    if (!root.querySelector('[data-hwr-fx]')) return;
+    global.NineHttp.json('https://goodbyestar.cloud/fx-rates', {timeoutMs:FETCH_TIMEOUT_MS,ttlMs:300000}).then(function (payload) {
+      var data = payload && !payload.error && payload.success !== false && payload.data;
+      var usd = data && Array.isArray(data.currencies) && data.currencies.filter(function (row) { return row && row.code === 'USD' && row.curUnit === 'USD' && row.unit === 1; })[0];
+      var day = data && String(data.baseDate || ''), date = new Date(day + 'T00:00:00Z');
+      if (!data || data.official !== true || data.realtime !== false || !usd || !(num(usd.dealBasR) > 0)
+        || !/^\d{4}-\d{2}-\d{2}$/.test(day) || !isFinite(date.getTime()) || date.toISOString().slice(0,10) !== day
+        || lastOfficialFx && day < lastOfficialFx.date) throw new Error('official USD/KRW contract');
+      var prev = num(usd.prev);
+      lastOfficialFx = {price:num(usd.dealBasR),date:day,change:prev > 0 && /^\d{4}-\d{2}-\d{2}$/.test(String(data.prevDate || '')) && data.prevDate < day ? num(usd.dealBasR) - prev : null};
+      officialFxDelayed = data.state !== 'ok' || !!data.pendingToday;
+    }).catch(function () { officialFxDelayed = true; }).then(function () {
+      var mount = root.querySelector('[data-hwr-fx]');
+      if (mount && document.body.contains(mount)) mount.innerHTML = officialFxMarkup();
+    });
+  }
   function treasurySnapshot(row) {
     if (!row || !Array.isArray(row.chart) || num(row.price) == null) return null;
     var byDate = {};
@@ -360,7 +384,7 @@
     return {price:byDate[day], date:day, change:days.length > 1 ? byDate[day] - byDate[days[days.length - 2]] : null};
   }
   function treasurySummary(current, failed) {
-    return '<section class="wd-rates" aria-label="미국 국채금리"><header><h4>미국 국채금리</h4><small>FRED · 일별 관측</small></header><dl class="wd-rate-grid">'
+    return '<section class="wd-rates" aria-label="미국 국채금리와 원달러 고시환율"><header><h4>미국 국채금리·환율</h4><small>FRED · 수출입은행</small></header><dl class="wd-rate-grid">'
       + TREASURIES.map(function (spec) {
         var latest = current[spec.symbol], row = lastTreasuryQuotes[spec.symbol];
         var delayed = failed || !latest || latest.stale || !treasurySnapshot(latest);
@@ -368,7 +392,7 @@
         return '<div data-rate-symbol="' + spec.symbol + '"><dt>' + spec.name + '</dt><dd>' + (row ? global.NineUI.number(row.price,{digits:2}) + '<small>%</small>' : '미수신') + '</dd>'
           + '<b class="' + signClass(change) + '">' + (change == null ? '변화 미제공' : direction(change) + ' ' + (change > 0 ? '+' : '') + global.NineUI.number(change,{digits:2}) + '%p') + '</b>'
           + '<small>' + (row ? row.date.replace(/-/g,'.') + ' 관측' : '관측일 미제공') + (delayed ? ' · 갱신 지연' : '') + '</small></div>';
-      }).join('') + '</dl><p class="wd-note">직전 관측일 대비 · 연준 기준금리와 다른 국채 수익률입니다.</p></section>';
+      }).join('') + '<div data-hwr-fx aria-label="1 USD당 원화 일별 고시환율">' + officialFxMarkup() + '</div></dl><p class="wd-note">직전 관측/고시일 대비 · 연준 기준금리와 다른 국채 수익률입니다.</p></section>';
   }
   function commodityTime(value) {
     var date = new Date(value);
@@ -422,6 +446,7 @@
     function paint(rows, failed) {
       if (!document.body.contains(mount)) return;
       mount.innerHTML = panelHeading('원유·금', '주말에 확인할 주요 원자재 · USD') + commodityCards(rows, failed);
+      loadOfficialFx(root);
     }
     commodityMemo.promise.then(function (rows) { paint(rows, false); }, function () { paint([], true); });
   }
