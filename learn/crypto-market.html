@@ -175,6 +175,29 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 비트코인(BTC)·이더리움(ETH) 시세와 52주·6개월 평균선을 확인한다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="crypto-advanced">
+  <h2 id="crypto-advanced">심화 연구실 · 공급량이 줄어도 가격은 자동으로 오르지 않는다</h2>
+  <p>비트코인 반감기는 신규 발행 보상의 속도를 낮춘다. 그러나 발행량이 절반으로 줄었다는 이유만으로 가격이 반드시 오르지는 않는다. <b>기존 보유자의 매도, 수요 변화, 거래소 유동성, 현물·선물 포지션, 채굴 비용</b>도 균형가격에 영향을 준다.</p>
+  <div class="learn-lab">
+    <h3>반감기 수치 실험 · 블록 보상과 일일 신규공급</h3>
+    <p>블록 보상이 6.25 BTC에서 3.125 BTC로 낮아지면 1블록당 새 비트코인은 3.125 BTC 줄어든다. 평균 10분당 블록 하나라는 근삿값으로 하루 약 144블록이라면 신규 발행량은 하루 약 900 BTC에서 450 BTC로 감소한다.</p>
+    <p class="learn-math">3.125 BTC × 144블록 ≈ 450 BTC/일 (발행량 근사치)</p>
+    <p>블록 간격은 실제로 일정하지 않고 난이도 조정에 따라 변한다. 이 숫자는 <b>신규발행</b>이지 전체 매도 물량이 아니다. 이미 발행된 물량과 파생상품 시장의 거래는 별도로 존재한다.</p>
+  </div>
+  <figure class="learn-fig"><svg viewBox="0 0 520 185" role="img" aria-label="반감기 전 하루 약 900 BTC, 반감기 후 하루 약 450 BTC 신규발행량을 비교한 막대 그림">
+    <text class="fig-ink" x="0" y="22">발행량의 변화 ≠ 가격 상승의 약속</text>
+    <text class="fig-sub" x="0" y="62">반감기 전</text><rect class="fig-soft" x="114" y="43" width="364" height="30" rx="5"/><rect class="fig-down" x="114" y="43" width="364" height="30" rx="5"/><text class="fig-ink" x="405" y="63">900</text>
+    <text class="fig-sub" x="0" y="112">반감기 후</text><rect class="fig-soft2" x="114" y="91" width="364" height="30" rx="5"/><rect class="fig-up" x="114" y="91" width="182" height="30" rx="5"/><text class="fig-ink" x="309" y="111">450</text>
+    <text class="fig-sub" x="0" y="156">가격은 수요와 기존 재고·신규 공급이 함께 만나는 곳에서 결정된다.</text>
+  </svg><figcaption>심화 그림 ④ 하루 블록 144개를 가정한 단순 발행량 비교.</figcaption></figure>
+  <div class="learn-grid">
+    <div><h3>작업증명과 검증</h3><p>비트코인의 합의는 누가 거래내역을 기록할지 결정하고 중복 지출을 방지하는 체계다. 블록이 추가될수록 거래의 되돌리기 비용이 커지지만 100% 되돌릴 수 없다는 절대 보장은 아니다.</p></div>
+    <div><h3>스테이블코인의 페그</h3><p>1달러 목표 가격은 준비자산의 질, 환매 약속과 실제 환매 능력, 시장 유동성이 뒷받침해야 한다. 발행자가 제시한 준비금 보고서와 독립적 감사는 다르며, 디페깅 위험은 사라지지 않는다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>원문 확인</strong><ul><li><a href="https://bitcoin.org/bitcoin.pdf" target="_blank" rel="noopener noreferrer">Bitcoin 백서 · 분산 합의 설계</a></li><li><a href="https://www.bis.org/" target="_blank" rel="noopener noreferrer">BIS · 스테이블코인 및 지급결제 연구</a></li></ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>거래소는 중앙화(CEX)와 탈중앙화(DEX)로 성격이 다르고, 비트코인은 발행량 상한과 반감기로 공급이
   정해져 있으며, 알트코인은 저마다 다른 목적으로 만들어진다. 스테이블코인은 가격이 고정되도록 설계됐을
