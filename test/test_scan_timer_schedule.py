@@ -37,6 +37,12 @@ def kst_minutes(utc_hm):
 
 
 class ScanTimerScheduleTest(unittest.TestCase):
+    def test_daily_scan_does_not_retry_terminal_scheduler_exits(self):
+        with open(os.path.join(CLOUD_VM, 'setup_dailyscan_timer.sh'), encoding='utf-8') as handle:
+            source = handle.read()
+        self.assertIn('kiwoom-dailyscan.service.d/zz-schedule-contract.conf', source)
+        self.assertIn('[Service]\nRestart=no\nCONTRACTEOF', source)
+
     def test_after_close_scans_use_the_new_slots(self):
         for name, utc_hm in EXPECTED.items():
             expected = 'Mon *-*-* 12:10:00' if name == 'strategyscan' else '*-*-* %s:00' % utc_hm

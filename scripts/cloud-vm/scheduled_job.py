@@ -74,6 +74,9 @@ def write_status(folder, job, **values):
         except (OSError, ValueError):
             data = {}
         row = data.get(job, {})
+        if values.get('state') == 'waiting':
+            for key in ('startedAt', 'finishedAt', 'runSec', 'exitCode', 'waitSec'):
+                row.pop(key, None)
         row.update(values)
         if values.get('state') == 'success':
             row['lastSuccessAt'] = values['finishedAt']

@@ -10,6 +10,20 @@ import scheduled_job
 
 
 class ScanProgressTest(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'posix', 'Linux status file lock')
+    def test_new_run_clears_previous_terminal_fields_but_keeps_last_success(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            scheduled_job.write_status(folder, 'dailyscan', state='success', startedAt='old',
+                                       finishedAt='old-end', exitCode=0, runSec=600, waitSec=3)
+            scheduled_job.write_status(folder, 'dailyscan', state='waiting', queuedAt='new')
+            scheduled_job.write_status(folder, 'dailyscan', state='running', startedAt='new', waitSec=0)
+            row = json.loads((folder / 'scheduled_jobs.json').read_text())['dailyscan']
+            self.assertEqual(row['lastSuccessAt'], 'old-end')
+            self.assertEqual(row['startedAt'], 'new')
+            for key in ('finishedAt', 'exitCode', 'runSec'):
+                self.assertNotIn(key, row)
+
     def test_only_matching_running_snapshot_is_exposed(self):
         with tempfile.TemporaryDirectory() as directory:
             folder = Path(directory)
