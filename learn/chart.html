@@ -436,7 +436,7 @@
       <path class="fig-soft2" d="M140 96 L280 96 L232 148 L188 148 Z" />
       <text class="fig-ink" x="160" y="122">후보 20~40개</text>
       <rect class="fig-up" x="160" y="160" width="100" height="28" />
-      <text class="fig-on-accent" x="172" y="179">내가 볼 3~5개</text>
+      <text class="fig-on-strong" x="172" y="179">내가 볼 3~5개</text>
       <text class="fig-sub" x="286" y="58">기계가 조건으로 거르고</text>
       <text class="fig-sub" x="286" y="122">사람이 이유를 확인하고</text>
       <text class="fig-sub" x="292" y="179">끝까지 남는 건 몇 개뿐</text>
@@ -458,6 +458,52 @@
     <li><a href="https://ghlee.tistory.com/page/foreign-flow">종목 &gt; 종목분석</a>에서 캔들·이동평균선·매물대를 한 화면에서 본다.</li>
     <li><a href="https://ghlee.tistory.com/page/pattern-scan">종목 &gt; 차트검색</a>과 <a href="https://ghlee.tistory.com/page/strategy-search">전략검색</a>에서 후보를 받는다. 결과는 정답이 아니라 <b>관찰 후보</b>다.</li>
   </ul>
+
+
+<section class="learn-deep" aria-labelledby="advanced-chart">
+  <h2 id="advanced-chart">심화 연구실 · 차트 패턴을 검증 가능한 가설로 바꾸기</h2>
+  <p>그림이 그럴듯한 것과 통계적으로 유효한 전략은 다르다. “거래량이 늘어난 망치형 이후 상승한다”는 관찰을 연구하려면 <b>진입 조건, 관찰 가능 시점, 보유기간, 비교 집단, 거래비용, 위험</b>을 먼저 고정해야 한다. 과거를 다 보고 나서 규칙을 고르면 우연한 모양도 실력처럼 보일 수 있다.</p>
+  <div class="learn-grid">
+    <div><h3>수익률을 측정하는 두 방법</h3><p>단순수익률은 (종가 ÷ 전일종가) − 1이다. 로그수익률은 ln(종가 ÷ 전일종가)이다. 짧은 기간에는 비슷하지만 큰 등락이나 여러 기간을 합칠 때 성질이 달라진다. 수정주가, 배당 반영 여부를 섞지 않는다.</p></div>
+    <div><h3>패턴보다 중요한 기준선</h3><p>“10번 중 6번 상승”은 충분하지 않다. 같은 기간 시장 전체가 8번 상승했다면 패턴의 초과성과는 오히려 나쁠 수 있다. 업종·시총·변동성·시장 국면을 맞춘 비교 집단을 사용한다.</p></div>
+  </div>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 520 185" role="img" aria-label="과거 학습 구간, 검증 구간, 미래 테스트 구간을 시간순으로 나눈 도식">
+      <text class="fig-ink" x="0" y="22">데이터를 나누는 연구 설계</text>
+      <rect class="fig-soft" x="0" y="43" width="240" height="66" rx="6"/>
+      <rect class="fig-soft2" x="246" y="43" width="125" height="66" rx="6"/>
+      <rect class="fig-white" x="377" y="43" width="143" height="66" rx="6" stroke="#cbd8e5"/>
+      <text class="fig-ink" x="15" y="68">과거 학습</text><text class="fig-sub" x="15" y="94">규칙 후보 선택</text>
+      <text class="fig-ink" x="257" y="68">검증</text><text class="fig-sub" x="257" y="94">조건 고정</text>
+      <text class="fig-ink" x="388" y="68">미래 테스트</text><text class="fig-sub" x="388" y="94">한 번 평가</text>
+      <path class="fig-ink-line" d="M12 129H509L499 123M509 129L499 135"/>
+      <text class="fig-sub" x="0" y="162">시간의 순서가 뒤집히면 실제로는 알 수 없던 정보를 쓰게 된다.</text>
+    </svg>
+    <figcaption>연구 그림 ③ 학습·검증·최종 테스트를 분리한다. 실전에서는 구간을 앞으로 굴려 가는 워크포워드 검증도 쓴다.</figcaption>
+  </figure>
+  <div class="learn-lab">
+    <h3>사례 · 승률 60%가 손익을 보장하지 않는 이유</h3>
+    <table class="learn-table"><thead><tr><th>전략</th><th>승률</th><th>평균 이익</th><th>평균 손실</th><th>거래 전 기대값</th></tr></thead><tbody>
+      <tr><td>A</td><td>60%</td><td>+3%</td><td>−6%</td><td><b>−0.6%</b></td></tr>
+      <tr><td>B</td><td>40%</td><td>+8%</td><td>−3%</td><td><b>+1.4%</b></td></tr>
+    </tbody></table>
+    <p class="learn-math">거래당 기대값 = 승률 × 평균 이익 − 패배 확률 × 평균 손실폭</p>
+    <p>위 숫자는 이해를 돕기 위한 가상 표본이며 수수료·슬리피지를 빼면 더 나빠진다. 기대값만으로 자본 감소, 손실 연속 발생, 수익률 분포의 꼬리 위험을 알 수 없으므로 최대낙폭(MDD)·변동성·회전율도 따로 본다.</p>
+  </div>
+  <div class="learn-lab">
+    <h3>박사과정의 질문 · 예측인가, 사후 설명인가</h3>
+    <ul>
+      <li><b>미래 정보 누출:</b> 당일 종가로 신호를 만든 후 같은 날 종가에 매수한 것으로 계산하지 않았는가?</li>
+      <li><b>생존자 편향:</b> 지금 살아 있는 종목만 과거 데이터로 뽑아 상장폐지 종목을 제외하지 않았는가?</li>
+      <li><b>다중검정:</b> 수백 개 규칙을 시험한 뒤 가장 높은 것만 보고 우연을 실력이라고 부르지 않는가?</li>
+      <li><b>구조 변화:</b> 금리·시장 제도·개인/기관 거래비중이 바뀐 구간에서도 결과가 유지되는가?</li>
+    </ul>
+  </div>
+  <div class="learn-sources"><strong>원문 확인과 추가 독서</strong><ul>
+    <li><a href="https://www.cfainstitute.org/insights/professional-learning/refresher-readings/2026/backtesting-and-simulation" target="_blank" rel="noopener noreferrer">CFA Institute · 백테스트와 시뮬레이션</a></li>
+    <li><a href="https://rpc.cfainstitute.org/research/foundation/2025/causality-factor-investing" target="_blank" rel="noopener noreferrer">CFA Research Foundation · 상관관계와 인과관계</a></li>
+  </ul></div>
+</section>
 
   <h2>한 줄 정리</h2>
   <p>캔들은 하루의 기록, 이동평균선은 최근 산 사람들의 평균, 거래량은 발자국, 매물대는 사람들이 묶인 지도다.</p>
