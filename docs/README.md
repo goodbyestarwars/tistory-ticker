@@ -8,7 +8,7 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 |---|---|---|
 | `../AGENTS.md` | ChatGPT·Codex가 `CLAUDE.md`로 이동하는 진입점 | 에이전트 시작 시 |
 | `../CLAUDE.md` | 짧은 공통 정책·원본 문서 인덱스 | 작업 시작 시 |
-| `SERVICE_MAP.md` | 서비스·메뉴·공급자·DB·스케줄·주문 경계 상세 지도 | 관련 구간만 |
+| `SERVICE_MAP.md` | 서비스·메뉴·공급자·DB·스케줄·주문 경계 상세 지도(규칙 원문은 자동매매 전용 문서) | 관련 구간만 |\n| `../quant-autotrade/docs/TRADING_RULES.md` | 자동매매 **매매규칙 공식 기준**: 우선순위·매수·청산·자금·주문 게이트 | 자동매매 정책 확인 |\n| `../quant-autotrade/docs/LIVE_OPERATIONS.md` | 실계좌 PC 설치/운영/승인 상태 및 코드·PC 불일치 | 설치·배포·안전 점검 |\n| `../quant-autotrade/docs/STRATEGY_TESTS.md` | 단타·스윙·중장기 모의/회귀/성과 근거와 미검증 항목 | 전략 검증 |\n| `../quant-autotrade/docs/CHANGELOG.md` | 자동매매 변경·승인·검증·적용 상태별 이력 | 정책 변경 시 |
 | `../ARCHITECTURE.md` | 인프라, 호출 흐름, 배포 경로 | 구조·배포 작업 |
 | `../API_REFERENCE.md` | goodbyestar.cloud API 명세 | API 작업 |
 | `API_OPERATION_SPEC.md` | API 인증·WebSocket·운영·장애 대응 | 운영/배포 작업 |
@@ -66,4 +66,4 @@ AI가 시작 토큰을 아끼면서 필요한 정보만 읽도록 문서를 목�
 - 긴 문서를 자동 import하지 않고 필요한 경우에만 읽는다.
 - 문서와 실제 코드가 다르면 코드를 기준으로 문서를 갱신한다.
 
-- 자동매매 프로젝트(별도 폴더·브랜치): `quant-autotrade/README.md`, `quant-autotrade/docs/HANDOFF_2026-10-11.md`
+- 자동매매 프로젝트의 문서 공식 위치: [`quant-autotrade/README.md`](../quant-autotrade/README.md) → [매매규칙](../quant-autotrade/docs/TRADING_RULES.md) · [운영](../quant-autotrade/docs/LIVE_OPERATIONS.md) · [검증](../quant-autotrade/docs/STRATEGY_TESTS.md) · [변경 이력](../quant-autotrade/docs/CHANGELOG.md). 과거 원문은 [전용 보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)에서 확인한다.

@@ -1,3 +1,7 @@
+**2026-10-27 자동매매 규칙·운영·검증·이력 전용화 및 우선순위 PR #1036**
+
+자동매매 기준 문서를 `quant-autotrade/docs/`의 [TRADING_RULES](../quant-autotrade/docs/TRADING_RULES.md) · [LIVE_OPERATIONS](../quant-autotrade/docs/LIVE_OPERATIONS.md) · [STRATEGY_TESTS](../quant-autotrade/docs/STRATEGY_TESTS.md) · [CHANGELOG](../quant-autotrade/docs/CHANGELOG.md)로 통합했다. 9Pay 과거 운영 기록은 [전문 보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)에 남기고 사이트 문서는 안내만 유지한다. PR #1036의 단타→스윙→중장기 우선순위·14시 신규 진입 경계 변경은 mock/회귀 61건+하위 26건, 큐 5건과 공통 검사 성공으로 검증했으나, **실계좌 PC 설치·설정·주문은 변경하지 않으며 VM 실제 배포·장중 신호 검증은 별도**다.
+
 **2026-10-27 검색기 실행 중·마지막 진행률 유지**
 
 사용자 확인(21% 뒤 확인필요 전환): 종목 순차 스캔의25종목 단위 진행 보고 간격을 실행 종료로 해석하지 않는다. 공통 ScannerProgress는 서버 running/waiting을 그대로 유지하고, 오래된 진행 정보는 갱신 대기 안내만 붙인다. 850/3918의21%는 유지하며 완료/오류/시간초과/중단은 서버의 명시 상태만 따른다. 이전 실행의 finishedAt이 응답에 남아도 실행 중 기준 시각은 현재 진행 정보를 사용한다. 지연/누락/신선한 진행·대기·명시적 종료 상태 회귀 및 로딩 검사 통과. 프런트 master→Pages 배포, VM/스캔 실행 변경 없음.

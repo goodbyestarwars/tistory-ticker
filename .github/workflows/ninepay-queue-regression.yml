@@ -6,6 +6,15 @@ on:
       - 'scripts/cloud-vm/kiwoom_9pay_observer.py'
       - 'scripts/cloud-vm/kiwoom_ws_hub.py'
       - 'test/test_kiwoom_9pay_queue.py'
+      - 'test/test_kiwoom_9pay_observer.py'
+      - 'quant-autotrade/local_bot/live_engine.py'
+      - 'quant-autotrade/local_bot/live_runner_9pay.py'
+      - 'quant-autotrade/local_bot/ninepay_signal_client.py'
+      - 'quant-autotrade/local_bot/ninepay_trade.py'
+      - 'quant-autotrade/local_bot/test_entry_priority.py'
+      - 'quant-autotrade/local_bot/test_ninepay_runner.py'
+      - 'quant-autotrade/local_bot/test_ninepay_signal_client.py'
+      - 'quant-autotrade/local_bot/test_ninepay_trade.py'
       - '.github/workflows/ninepay-queue-regression.yml'
   push:
     branches: [master]
@@ -14,6 +23,15 @@ on:
       - 'scripts/cloud-vm/kiwoom_9pay_observer.py'
       - 'scripts/cloud-vm/kiwoom_ws_hub.py'
       - 'test/test_kiwoom_9pay_queue.py'
+      - 'test/test_kiwoom_9pay_observer.py'
+      - 'quant-autotrade/local_bot/live_engine.py'
+      - 'quant-autotrade/local_bot/live_runner_9pay.py'
+      - 'quant-autotrade/local_bot/ninepay_signal_client.py'
+      - 'quant-autotrade/local_bot/ninepay_trade.py'
+      - 'quant-autotrade/local_bot/test_entry_priority.py'
+      - 'quant-autotrade/local_bot/test_ninepay_runner.py'
+      - 'quant-autotrade/local_bot/test_ninepay_signal_client.py'
+      - 'quant-autotrade/local_bot/test_ninepay_trade.py'
       - '.github/workflows/ninepay-queue-regression.yml'
 permissions:
   contents: read
@@ -29,3 +47,7 @@ jobs:
       - run: python -m pip install pytest
       - run: python -m compileall -q scripts/cloud-vm/kiwoom_9pay_live.py test/test_kiwoom_9pay_queue.py
       - run: python -m pytest -q test/test_kiwoom_9pay_queue.py
+      - name: 9Pay priority, cutoff and mock-order safety regressions
+        run: |
+          python -m compileall -q quant-autotrade/local_bot/live_engine.py quant-autotrade/local_bot/live_runner_9pay.py quant-autotrade/local_bot/ninepay_signal_client.py quant-autotrade/local_bot/ninepay_trade.py scripts/cloud-vm/kiwoom_9pay_observer.py
+          python -m pytest -q test/test_kiwoom_9pay_observer.py quant-autotrade/local_bot/test_entry_priority.py quant-autotrade/local_bot/test_ninepay_runner.py quant-autotrade/local_bot/test_ninepay_signal_client.py quant-autotrade/local_bot/test_ninepay_trade.py

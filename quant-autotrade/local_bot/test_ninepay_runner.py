@@ -58,6 +58,34 @@ class OrderingTests(unittest.TestCase):
         self.assertEqual(result, 'BUDGET_OR_SLOTS_FULL')
         self.assertEqual(ledger.skip.call_args.args[1:3], ('010580','9PAY_BUDGET_OR_SLOTS_FULL'))
 
+    def test_9pay_buy_records_only_pool_counts_for_next_tiers(self):
+        ledger = Mock()
+        rows = [
+            {'status': 'NEW', 'scanner': 'pullback', 'code': '000001'},
+            {'status': 'NEW', 'scanner': 'doubleBottom', 'code': '000001'},
+            {'status': 'NEW', 'scanner': 'maCloudBreakout', 'code': '000002'},
+        ]
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            state = run_cycle(None, ledger, None, '.', NOW, False,
+                signal_fetch=lambda **kw: [{}],
+                signal_trade=lambda *args: '9PAY_BUY_SENT',
+                get_candidates=lambda now: rows)
+        self.assertEqual(state, '9PAY_BUY_SENT')
+        self.assertEqual(ledger.skip.call_args.args[2], 'PRIORITY_POOL_AFTER_DAY_BUY')
+        self.assertIn('swing=1 long_technical=1', ledger.skip.call_args.args[3])
+
+    def test_1400_cutoff_still_runs_exits_but_never_fetches_9pay(self):
+        after = NOW.replace(hour=14, minute=0)
+        fn = Mock(side_effect=['EXITS_CHECKED', 'NO_ENTRY'])
+        fetch = Mock()
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            state = run_cycle(None, Mock(), None, '.', after, True,
+                engine_cycle=fn, signal_fetch=fetch, get_candidates=lambda now: [])
+        self.assertEqual(state, 'NO_ENTRY')
+        fetch.assert_not_called()
+        self.assertEqual(fn.call_count, 2)
+        self.assertEqual(fn.call_args.kwargs['manage_exits'], False)
+
     def test_disabled_9pay_keeps_existing_cycle(self):
         fn = Mock(side_effect=['EXITS_CHECKED', 'NO_CANDIDATE'])
         fetch = Mock()

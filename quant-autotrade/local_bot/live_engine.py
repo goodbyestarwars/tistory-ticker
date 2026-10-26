@@ -24,6 +24,22 @@ CODE_RE = re.compile(r'^\d{6}$')
 # 2026-10-15 사용자 승인: 제외 목록의 종목은 이 엔진이 자동매수·자동매도 주문을 절대 내지 않는다(장부 기록·실제 잔고는 건드리지 않음).
 EXCLUSION_FILE = 'engine_excluded.json'
 
+# Candidate groups from docs/SCANNER_FIVE_GROUPS_2026-10-19.md.
+# 9Pay intraday signals are always handled first by live_runner_9pay.py;
+# these are the four *existing* overnight research scanners only.
+# Do not mistake maCloudBreakout's technical pattern for a passed DART quality gate.
+SCANNER_PRIORITY = {
+    'doubleBottom': (2, 'SWING'),
+    'invHeadShoulders': (2, 'SWING'),
+    'pullback': (2, 'SWING'),
+    'maCloudBreakout': (1, 'LONG_TECHNICAL'),
+}
+
+
+def candidate_priority(scanner):
+    """Unknown scanners are unclassified, never silently promoted to a live entry."""
+    return SCANNER_PRIORITY.get(str(scanner or ''), (0, 'UNCLASSIFIED'))
+
 
 def load_exclusions(folder):
     """엔진 제외 종목 집합. 파일이 없거나 형식이 틀리면 None - 호출부는 확인될 때까지 아무 주문도 내지 않는다(fail closed)."""
@@ -86,7 +102,7 @@ def _number(value):
         return 0.0
 
 
-def rank_candidates(rows, get_daily, today, rejected=None):
+def rank_candidates(rows, get_daily, today, rejected=None, *, with_origin=False):
     """Use completed bars only; compare traded value, liquidity, volatility and trend.
 
     rejected: 리스트를 넘기면 탈락한 후보를 (code, 사유, 상세)로 채워 준다(순위 결과에는 영향 없음)."""
@@ -99,6 +115,10 @@ def rank_candidates(rows, get_daily, today, rejected=None):
     for row in rows:
         code = str(row['code'])
         if not CODE_RE.fullmatch(code) or row['status'] != 'NEW' or row['scan_date'] >= today:
+            continue
+        tier, group = candidate_priority(row.get('scanner'))
+        if not tier:
+            reject(code, 'UNCLASSIFIED_SCANNER', 'scanner=%s' % str(row.get('scanner') or 'missing')[:60])
             continue
         bars = [b for b in get_daily(code) if b['date'] <= row['scan_date']]
         if len(bars) < 21 or bars[-1]['date'] != row['scan_date']:
@@ -127,9 +147,16 @@ def rank_candidates(rows, get_daily, today, rejected=None):
         # All four inputs affect ordering. Outliers in volatility are penalized.
         score = (values[-1] / 1e9, avg_value / 1e9, -abs(volatility - 0.035), trend)
         item = (score, code, last['close'], row['scan_date'])
-        if code not in best or score > best[code][0]:
-            best[code] = item
-    return sorted(best.values(), reverse=True)
+        # Group priority wins before liquidity score, including if the same
+        # code appears in a swing and a long-term scanner. Inside each group
+        # the existing score/tie ordering is unchanged.
+        order = (tier, item)
+        if code not in best or order > best[code][0]:
+            best[code] = (order, item, str(row['scanner']), group)
+    ordered = sorted(best.values(), key=lambda entry: entry[0], reverse=True)
+    if with_origin:
+        return [entry[1] + (entry[2], entry[3]) for entry in ordered]
+    return [entry[1] for entry in ordered]
 
 
 class Ledger:
@@ -335,11 +362,14 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
         return 'NO_ENTRY'
     # Existing holdings consume slots and capital even if manually acquired.
     rejected = []
-    ranked = rank_candidates(candidate_rows, get_daily, today, rejected)
+    ranked = rank_candidates(candidate_rows, get_daily, today, rejected, with_origin=True)
     for code_, reason_, detail_ in rejected:
         ledger.skip(today, code_, reason_, detail_)
-    scanner_of = {(str(r.get('code')), str(r.get('scan_date'))): r.get('scanner') for r in candidate_rows}
-    for rank, (score, code, base, scan_date) in enumerate(ranked, 1):
+    pool_counts = {
+        'swing': sum(1 for row in ranked if row[5] == 'SWING'),
+        'long_technical': sum(1 for row in ranked if row[5] == 'LONG_TECHNICAL'),
+    }
+    for rank, (score, code, base, scan_date, scanner, priority_group) in enumerate(ranked, 1):
         if code in excluded:
             ledger.skip(today, code, 'EXCLUDED')
             continue                        # 제외 종목: 자동매수 금지
@@ -358,7 +388,8 @@ def trade_once(client, ledger, candidate_rows, get_daily, folder, now=None, *,
         if qty < 1 or qty * int(price) > PER_STOCK:
             ledger.skip(today, code, 'QTY_OR_PER_STOCK_LIMIT', 'price=%s qty=%s' % (price, qty))
             continue
-        note = {'rank': rank, 'ranked_total': len(ranked), 'scanner': scanner_of.get((code, str(scan_date))), 'scan_date': scan_date,
+        note = {'rank': rank, 'ranked_total': len(ranked), 'scanner': scanner,
+                'priority_group': priority_group, 'candidate_pool_by_group': pool_counts, 'scan_date': scan_date,
                 'base': base, 'entry_vs_base_pct': round((price / _number(base) - 1) * 100, 2) if _number(base) else None,
                 'score': {'traded_value_eok': round(score[0] * 10, 2), 'avg_value_eok': round(score[1] * 10, 2),
                           'volatility_penalty': round(score[2], 4), 'trend_vs_20d': round(score[3], 4)},

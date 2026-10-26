@@ -45,7 +45,8 @@ def valid_evidence(item, now):
             and price > 0 and ratio >= .7 and first <= at <= now
             and 0 <= now-at <= MAX_SIGNAL_AGE_SEC
             and first_day.date() == signal_day.date() == datetime.fromtimestamp(now, KST).date()
-            and 540 <= first_day.hour * 60 + first_day.minute < ENTRY_END_MINUTE)
+            and 540 <= first_day.hour * 60 + first_day.minute < ENTRY_END_MINUTE
+            and 540 <= signal_day.hour * 60 + signal_day.minute < ENTRY_END_MINUTE)
 
 
 class SignalFeedUnavailable(RuntimeError):

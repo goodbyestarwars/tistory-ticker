@@ -52,7 +52,7 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
     minute = now.hour * 60 + now.minute
     if os.environ.get('NINEPAY_LIVE_TRADING') != '1':
         return '9PAY_DISABLED'
-    if now.weekday() >= 5 or not 540 <= minute <= 920 or os.path.exists(os.path.join(folder, 'STOP')):
+    if now.weekday() >= 5 or not 540 <= minute < 14 * 60 or os.path.exists(os.path.join(folder, 'STOP')):
         return 'CLOSED_OR_STOPPED'
     code, sid = str(signal.get('code') or ''), str(signal.get('signalId') or '')
     if not CODE.fullmatch(code) or sid != now.strftime('%Y-%m-%d') + ':' + code:
@@ -119,7 +119,7 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
         return 'QTY_OR_LIMIT'
     order_time = clock() if clock else datetime.now(KST)
     order_minute = order_time.hour * 60 + order_time.minute
-    if (order_time.date() != now.date() or not 540 <= order_minute <= 920
+    if (order_time.date() != now.date() or not 540 <= order_minute < 14 * 60
             or not 0 <= order_time.timestamp() - float(signal['at']) <= MAX_SIGNAL_AGE_SEC):
         return 'STALE_BEFORE_ORDER'
     if (os.environ.get('NINEPAY_LIVE_TRADING') != '1'
@@ -127,7 +127,7 @@ def trade_signal_once(client, ledger, signal, folder, now=None, policy=None, clo
             or not policy.approval_ok(folder, accounts, order_time)
             or ledger.has_uncertain()):
         return 'DISABLED_OR_UNCERTAIN'
-    note = {'scanner': '9Pay intraday', 'signal_id': sid, 'source': signal['source'],
+    note = {'scanner': '9Pay intraday', 'priority_group': 'DAY', 'signal_id': sid, 'source': signal['source'],
             'signal_at': signal['at'], 'signal_price': signal_price,
             'checked_price': price, 'slots_used': slots}
     intent = ledger.reserve(code, 'BUY', qty, price, reason='NINEPAY_ENTRY', note=note)
