@@ -303,9 +303,10 @@ body.learn-page .legal-wrap .legal-contact {
 /* ── 사이트 이용방법(legal/guide.html) 전용 (2026-10-11 전면 개정) ──
    설문에서 "너무 어렵다"는 의견이 나와 예시·그림·단계 중심으로 다시 썼다. 왼쪽 색 막대 없이
    배경만 있는 상자를 쓴다(이야기 시리즈와 같은 원칙). */
-.gd-page { word-break: keep-all; overflow-wrap: break-word; }
+.gd-page { --gd-box-bg: #e8edf3; word-break: keep-all; overflow-wrap: break-word; }
+.gd-page > .gd-lead + .learn-note { background: var(--gd-box-bg); }
 .gd-lead { font-size: 16px; line-height: 1.85; }
-.gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; padding: 14px 16px; list-style: none; background: #f3eede; counter-reset: gdtoc; }
+.gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; padding: 14px 16px; list-style: none; background: var(--gd-box-bg); counter-reset: gdtoc; }
 .gd-toc li { margin: 0; counter-increment: gdtoc; }
 .gd-toc li::before { content: counter(gdtoc) "."; display: inline-block; width: 1.8em; color: #8a6420; font-weight: 700; font-size: 14px; }
 .gd-toc a { color: inherit; font-size: 14px; text-decoration: none; }
@@ -352,6 +353,7 @@ body.learn-page .legal-wrap .legal-contact {
 .gd-faq > div { padding: 0 0 8px; }
 
 @media (prefers-color-scheme: dark) {
+  .gd-page { --gd-box-bg: #161d2c; }
   .gd-toc { background: #161d2c; }
   .gd-toc li::before { color: #e0b25a; }
   .gd-toc a:hover { color: #ff8a80; }

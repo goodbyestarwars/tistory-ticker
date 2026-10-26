@@ -9017,41 +9017,6 @@ html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-f
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-links button,
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer-version small,
 html.dark body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .copyright::after { color: var(--dk-sub) !important; }
-/* 2026-10-26: the actual Tistory footer includes legal links and company details,
-   so give the whole home footer a restrained blue-gray surface. Keep official dark tokens. */
-@layer np.np {
-  html body#tt-body-index .site-footer:has(.site-footer-company) {
-    background: #e8edf3 !important;
-    border-top: 1px solid #cbd5e1 !important;
-  }
-  html.dark body#tt-body-index .site-footer:has(.site-footer-company) {
-    background: var(--dk-bg) !important;
-    border-top-color: var(--dk-line) !important;
-  }
-  html body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company {
-    background: transparent !important;
-    border-top-color: #cbd5e1 !important;
-  }
-  html.dark body#tt-body-index .site-footer:has(.site-footer-company) > .site-footer-company {
-    background: transparent !important;
-    border-top-color: var(--dk-line) !important;
-  }
-  html body#tt-body-index .site-footer:has(.site-footer-company) :is(.site-footer-links a, .site-footer-links button, .site-footer-version small, .copyright::after, .footer-company-copy) {
-    color: #334155 !important;
-  }
-  html body#tt-body-index .site-footer:has(.site-footer-company) .footer-company-copy strong {
-    color: #1e293b !important;
-  }
-  html.dark body#tt-body-index .site-footer:has(.site-footer-company) :is(.site-footer-links a, .site-footer-links button, .site-footer-version small, .copyright::after, .footer-company-copy, .footer-company-copy strong) {
-    color: var(--dk-text) !important;
-  }
-  html body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after {
-    background: #94a3b8 !important;
-  }
-  html.dark body#tt-body-index .site-footer:has(.site-footer-company) > nav.site-footer-links:not(.site-footer-learn) a::after {
-    background: var(--dk-line) !important;
-  }
-}
 /* 티스토리 공유 레이어(.layer_post)는 흰 바탕 기본 스타일이라 위 일괄 글자색(밝은색)과 겹쳐 글자가 안 보였다. */
 html.dark .layer_post { background: var(--dk-inner) !important; border: 1px solid var(--dk-line) !important; }
 html.dark .home-neutral { color: var(--dk-flat) !important; }
