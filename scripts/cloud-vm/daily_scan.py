@@ -464,12 +464,16 @@ def main():
                     coverage['sampleDaysMin'] = sample_days if coverage['sampleDaysMin'] is None else min(coverage['sampleDaysMin'], sample_days)
                     coverage['sampleDaysMax'] = sample_days if coverage['sampleDaysMax'] is None else max(coverage['sampleDaysMax'], sample_days)
                 as_of_date = last.get('date') or today_str
-                db_schema.upsert_swing_snapshot(conn, {
-                    'asOfDate': as_of_date, 'code': code, 'name': name,
-                    'modelVersion': assessment.get('modelVersion'), 'close': last.get('close'),
-                    'createdAt': datetime.now(timezone.utc).isoformat(),
-                    **assessment,
-                })
+                # Release this writer before the next stock's provider/cache read.
+                # KIS uses a separate SQLite connection; retaining this transaction
+                # made that connection wait on our own lock for 600 seconds.
+                with conn:
+                    db_schema.upsert_swing_snapshot(conn, {
+                        'asOfDate': as_of_date, 'code': code, 'name': name,
+                        'modelVersion': assessment.get('modelVersion'), 'close': last.get('close'),
+                        'createdAt': datetime.now(timezone.utc).isoformat(),
+                        **assessment,
+                    })
                 if swing_model.is_two_week_candidate(assessment):
                     signal_state['swingCandidates'].append(row)
                 signal_state['counts'][verdict['label']] = signal_state['counts'].get(verdict['label'], 0) + 1
@@ -500,8 +504,7 @@ def main():
             log('[%d/%d] %s(%s) 실패: %s' % (i + 1, len(universe), name, code, e))
             continue
         finally:
-            if (i + 1) % 25 == 0 or i + 1 == len(universe):
-                report_progress(i + 1, len(universe), '일봉·수급 확인')
+            report_progress(i + 1, len(universe), '일봉·수급 확인')
             # 실패해서 continue로 빠지는 종목도 시간은 센다 - 안 그러면 합계가 어긋난다.
             timings['loop'] += time.perf_counter() - loop_started
             if (i + 1) % 500 == 0 or (i + 1) == len(universe):

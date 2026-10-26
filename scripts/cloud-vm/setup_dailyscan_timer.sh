@@ -33,6 +33,15 @@ CPUWeight=20
 IOSchedulingClass=idle
 SERVICEEOF
 
+# scheduled_job owns bounded execution and retries at the next scheduled run.
+# Override older transport-retry.conf drop-ins which restarted timed-out scans
+# from zero (and looped every 30 seconds after the night window closed).
+sudo mkdir -p /etc/systemd/system/kiwoom-dailyscan.service.d
+sudo tee /etc/systemd/system/kiwoom-dailyscan.service.d/zz-schedule-contract.conf > /dev/null << 'CONTRACTEOF'
+[Service]
+Restart=no
+CONTRACTEOF
+
 sudo tee /etc/systemd/system/kiwoom-dailyscan.timer > /dev/null << TIMEREOF
 [Unit]
 Description=Run kiwoom-dailyscan daily at 20:10 KST (11:10 UTC)

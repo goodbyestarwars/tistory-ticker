@@ -1,3 +1,8 @@
+**2026-10-27 야간 스캔 38% 정체·자기 DB 잠금·반복 재시작 수정**
+
+운영에서 1500/3918(38%), 마지막 진행07:07, 실제 Python 실행5시간과 같은 PID의 DB 쓰기 잠금을 확인했다. 로그의 database is locked 반복·1500종목17805초 중 flowApi17559초(99%)는 스윙 스냅샷의 미커밋 트랜잭션이 다음 종목 KIS 별도 연결의 캐시 저장을600초씩 막은 결과다. daily_scan은 공통 DB 연결의 종목별 짧은 트랜잭션으로 저장/실패 롤백하고 매 종목 실제 처리 건수를 보고한다. scheduled_job은 새 대기 실행에서 이전 종료 필드를 비우되 마지막 성공은 보존한다. VM에만 남은 transport-retry.conf의 Restart=on-failure는 제한시간 종료 뒤 재스캔·창 밖30초 재시도를 만들었으므로 일봉 설치 스크립트의 후순위 drop-in에서 Restart=no 계약을 명시한다.
+검증: 실제 두 SQLite 연결로 기존 잠금 오류 재현, 수정 후 후속 캐시 쓰기·실패 롤백 확인. 관련 로컬 회귀와 Linux CI로 검증한다. 운영 실행은07:20 제한시간 종료 후 재시도 대기를 중단했고 기존 결과·타이머는 보존한다. 다음20:10 정기 스캔의 전수 완료는 아직 검증 전이며 완료로 꾸미지 않는다. master→VM 배포 대상.
+
 **2026-10-27 자동매매 규칙·운영·검증·이력 전용화 및 우선순위 PR #1036**
 
 자동매매 기준 문서를 `quant-autotrade/docs/`의 [TRADING_RULES](../quant-autotrade/docs/TRADING_RULES.md) · [LIVE_OPERATIONS](../quant-autotrade/docs/LIVE_OPERATIONS.md) · [STRATEGY_TESTS](../quant-autotrade/docs/STRATEGY_TESTS.md) · [CHANGELOG](../quant-autotrade/docs/CHANGELOG.md)로 통합했다. 9Pay 과거 운영 기록은 [전문 보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)에 남기고 사이트 문서는 안내만 유지한다. PR #1036의 단타→스윙→중장기 우선순위·14시 신규 진입 경계 변경은 mock/회귀 61건+하위 26건, 큐 5건과 공통 검사 성공으로 검증했으나, **실계좌 PC 설치·설정·주문은 변경하지 않으며 VM 실제 배포·장중 신호 검증은 별도**다.
@@ -260,17 +265,3 @@ NineAPI.domesticQuotes가 국내 코드 검증·중복 제거·정렬된 요청 
 `stock-search.js`: KOSPI/KOSDAQ별 캐시·Promise공유, 화면 세대 ID로 A→B→A 늦은 응답/오류 차단, 백필 중 거래량만2초 후 재조회, 캐시60초·실패60초. 실제0과 날짜 일치 보존, KIS source 검증, 원단위 미확정/기준일/수집시각/지연 표시. `chart-core.js` 공통 거래량 패널 updateData/destroy 추가, 도착 시 캔들/그리기/RSI/툴팁/확대범위 보존하며 거래량만 추가·갱신.
 
 검증: Python56 pass, Node6 pass+공통엔진/범례 검사. 실제 LWC+KIS732봉으로 지연 거래량 추가 후 차트·시리즈·그리기·툴팁 객체 동일/RSI 유지/확대500~600 확인. 운영 VM 분리 캐시 실제 KIS 백필 KOSPI9.3011초/KOSDAQ8.6341초, HTTP용 함수 콜드 반환10.747ms/0.146ms·적중2.427ms/2.341ms. 실제 하루 증분1.3055초·확정732봉 불변, 분리 캐시 실패 주입25.304ms/마지막자료 유지·실제복구0.6079초. 토요일이라 실제 장중 신규 수신은 미검증, 모의 증분/실패 검사와 구분. [구조·검증](INDEX_VOLUME_CACHE.md). 사용자 승인에 따라 PR 생성 후 Pages JS2개·VM Python4개 즉시 배포 대상, skin.html/GAS 수동 반영 없음. 배포 후 실측은 완료 보고에 기록.
-
-**2026-10-24 휴장 대시보드 전면 리디자인 — 별도 PR, 승인 전 미배포**
-
-사용자 신규 지시서에 따라 `feature/weekend-dashboard-redesign`에서 구현. 큰 자물쇠/장식·지수 그래프·중복 자산·종목 성과 지면 대신 compact 헤더, 108px 지수 2×2, 코인/일정, 뉴스/검색기, 마지막 브리핑/이야기 2열 구성. `css/home-weekly-report.css` 옛 누적 규칙을 전용 컴포넌트로 교체하고 공식 UI/다크 토큰·Pretendard 사용. 모바일은 지수만2×2, 나머지 세로 배치. 기존 MarketHours·주간 계산·원본 값 불변.
-
-`js/home-weekly-report.js`: Binance BTC/ETH/SOL(공급 경로 실제 확인) 현물 3회/30초, USDT·24h·공급 시각/KST 명시, 자산별 마지막 유효 값/시각 유지, 숨긴 탭 폴링 중단. 주식 토큰/금요일 기준 봉 요청은 이 요약에서 제외. 기존 StockCalendar 최대5건·중복제거·관심종목 우선, 기존 뉴스 테마에서 출처/날짜/링크 검증·중복제거·펼침, 기존 `/pattern-scan` 저장 결과 5분 공유·5그룹별 첫 후보 최대5개·신호일/가격/스캔시각. 서버 분석/수집/알고리즘 추가 없음. 기존 DOM의 마켓브리핑 최신3개와 사용자 확인한 하단 학습자료 첫3개를 공통 캐러셀로 표시, 원본 학습자료 게시일 미제공 명시. 국내/미국 탭에선 원래 위젯/하단 영역 복원.
-
-검증: 375/390/768/1280/1440 라이트·다크10조합 가로 넘침0·지수108px·모바일패딩14/PC18px·Pretendard·다크카드#202731, 실제 API로 PC/모바일 전후 캡처. 읽기 카드194px/독립이동 및 미국 탭복원 확인. Node23 pass, Python56 pass/65 subtests, 문법/diff check 통과. 기존 옛 CSS 계약4개는 새 목록의 동일 목적 계약으로 전환. [비교 화면·검증·제한](qa/weekend-dashboard-2026-10-24/README.md). 이번 변경은 PR 제출만 하며 master 병합/배포는 사용자 승인 후. skin.html·VM/GAS·거래 기능 변경 없음, 승인 후 Pages JS/CSS만 반영하며 티스토리 수동 스킨 반영 불필요.
-
-**2026-10-24 휴장 리포트 환율 미표시: futures 캐시 키·빈 스냅샷 수정**
-
-사용자 스크린샷(시장 흐름 원/달러 카드가 계속 '-'). 운영 `/weekly-report`의 fx는 unknown/차트 없음인데, `/futures?interval=day&days=365&symbols=USDKRW&stored_only=true`에는 365개 일봉(최종 2026-10-23)이 존재함을 실측. 원인: 10/23 futures 캐시가 `(interval, days, symbols, stored_only)` 4개 키로 바뀌었지만 주간 리포트 내부 `safe_futures`는 3개 키를 계속 읽어 환율·지수 자료를 빈 목록으로 저장했다. 같은 완료 주의 디스크 스냅샷은 TTL과 무관하게 재사용되어 새로고침에도 복구되지 않았다(금은 기존 프론트 보강 경로로 보였음).
-
-`scripts/cloud-vm/main.py`: 내부 호출의 기존 기본 모드(stored_only=False)를 명시하고 동일 4개 캐시 키로 맞춤. 스냅샷 버전 9→10으로 잘못 저장된 주간 리포트를 한 번 재생성. 새 공급자/수집기/DB/타이머/외부 환율 요청 경로 추가 없음, 계산식·프론트·거래 기능 불변. `test/test_weekly_futures_cache.py`: 실제 내부 함수 AST 실행으로 4개 키/기존 모드 유지·미수신·예외·v9 디스크 스냅샷 거절과 새 버전 재사용 검증. 주간 리포트·futures 캐시 포함 47 pass/3 subtests. 배포: master→VM 자동 배포(토요일), 적용 후 운영 응답과 휴장 화면 재확인 대상. 스킨 수동 반영 없음. 운영 확인 완료: d9b8c4f 배포/프로세스 재시작 확인, v10 스냅샷 2026-10-24 11:39 KST 재생성, 환율 365개 일봉·주간 지표 8개 복원. 첫 전체 생성은 게이트웨이 504 후 서버 작업이 완료됐으며 이후 조회는 약 1초. 실제 홈 새로고침에서 환율 숫자·추이 SVG·평균/범위 표시 확인(임시 데이터 주입 없음).

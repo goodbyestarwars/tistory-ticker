@@ -4,6 +4,8 @@ from datetime import date, timedelta
 import pathlib
 import sqlite3
 import sys
+import tempfile
+from datetime import datetime, timezone
 import unittest
 from unittest.mock import patch
 
@@ -14,6 +16,54 @@ import kiwoom_market as market
 from scan_inputs import ScanInputs
 
 BASIS = '2026-10-23'
+
+
+class SnapshotTransactionTest(unittest.TestCase):
+    def test_real_scan_releases_writer_before_next_kis_cache_save(self):
+        path = pathlib.Path(__file__).resolve().parents[1] / 'scripts/cloud-vm/daily_scan.py'
+        tree = ast.parse(path.read_text(encoding='utf-8'))
+        # Run the actual scan's transaction boundary without provider/network calls.
+        statement = next(n for n in ast.walk(tree) if isinstance(n, ast.With)
+                         and any(isinstance(c, ast.Call) and isinstance(c.func, ast.Attribute)
+                                 and c.func.attr == 'upsert_swing_snapshot' for c in ast.walk(n)))
+        compiled = compile(ast.Module(body=[statement], type_ignores=[]), str(path), 'exec')
+        with tempfile.TemporaryDirectory() as directory:
+            database = str(pathlib.Path(directory) / 'scan.db')
+            conn = sqlite3.connect(database, timeout=.05)
+            conn.execute('PRAGMA journal_mode=WAL')
+            db_schema.create_schema(conn)
+            other = sqlite3.connect(database, timeout=.05)
+            try:
+                scope = dict(conn=conn, db_schema=db_schema, as_of_date=BASIS,
+                             code='005930', name='삼성전자', last={'close': 100},
+                             assessment={'modelVersion': 'test'}, datetime=datetime, timezone=timezone)
+                # Reproduce the old uncommitted scan write on two real connections.
+                old = compile(ast.Module(body=statement.body, type_ignores=[]), str(path), 'exec')
+                exec(old, scope)
+                with self.assertRaisesRegex(sqlite3.OperationalError, 'locked'):
+                    db_schema.upsert_kis_flow_cache(other, '005930', 25, fixture(), datetime.now(timezone.utc).isoformat())
+                other.rollback()
+                conn.rollback()
+                exec(compiled, scope)
+                self.assertFalse(conn.in_transaction)
+                self.assertEqual(other.execute('SELECT count(*) FROM swing_recommendation_snapshots').fetchone()[0], 1)
+                db_schema.upsert_kis_flow_cache(other, '005930', 25, fixture(), datetime.now(timezone.utc).isoformat())
+                other.commit()
+                # A failed stock rolls back its own write and also releases the lock.
+                original = db_schema.upsert_swing_snapshot
+                def fail_after_write(*args):
+                    original(*args)
+                    raise RuntimeError('snapshot failed')
+                scope['code'] = '000660'
+                with patch.object(db_schema, 'upsert_swing_snapshot', side_effect=fail_after_write):
+                    with self.assertRaises(RuntimeError):
+                        exec(compiled, scope)
+                self.assertFalse(conn.in_transaction)
+                self.assertEqual(other.execute('SELECT count(*) FROM swing_recommendation_snapshots').fetchone()[0], 1)
+                db_schema.upsert_kis_flow_cache(other, '000660', 25, fixture(), datetime.now(timezone.utc).isoformat())
+            finally:
+                other.close()
+                conn.close()
 
 
 def fixture():
