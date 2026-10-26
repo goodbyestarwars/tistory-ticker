@@ -57,11 +57,11 @@ class LearnFirstPaintContract(unittest.TestCase):
                 html = page.read_text(encoding="utf-8")
                 self.assertIn('class="learn-deep"', html)
 
-    def test_footer_story_palette_uses_soft_slate_tones(self):
+    def test_footer_story_palette_preserves_original_pastel_tones(self):
         footer = (ROOT / "js" / "skin-shell.js").read_text(encoding="utf-8")
         self.assertEqual(footer.count('style="--lc-a:#'), 11)
-        self.assertIn('--lc-a:#e6f1f5;--lc-b:#d1e2ea', footer)
-        self.assertNotIn('--lc-a:#ffe6c2;--lc-b:#f7bf78', footer)
+        self.assertIn('--lc-a:#ffe6c2;--lc-b:#f7bf78', footer)
+        self.assertNotIn('--lc-a:#e6f1f5;--lc-b:#d1e2ea', footer)
 
     def test_interaction_script_does_not_gate_page_render(self):
         script = (ROOT / "js" / "site-interactions.js").read_text(encoding="utf-8")
