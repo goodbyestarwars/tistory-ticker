@@ -51,8 +51,8 @@
 }
 
 :is(#overnight-market, #crypto-market, .mi-tab-summary) .om-summary {
-  padding: 12px 14px;
-  margin-bottom: 14px;
+  padding: var(--ui-card-padding);
+  margin-bottom: var(--ui-section-gap);
   background: #f7f7f8;
   border-radius: 10px;
   font-size: 13px;
@@ -149,14 +149,14 @@
 :is(#overnight-market, #crypto-market) .om-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 16px;
+  gap: var(--ui-section-gap);
 }
 
 :is(#overnight-market, #crypto-market) .om-card {
   min-width: 0;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
-  padding: 14px;
+  padding: var(--ui-card-padding);
   background: rgb(255, 254, 252);
 }
 

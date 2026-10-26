@@ -2210,19 +2210,19 @@ html.dark #foreign-flow .ff-flow-row { border-color: var(--dk-line); }
 #foreign-flow .ff-card {
   border: 1px solid #eee;
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: var(--ui-card-padding);
 }
-#foreign-flow .ff-card-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+#foreign-flow .ff-card-grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--ui-section-gap); }
 #foreign-flow .ff-card-grid2 {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-  padding-top: 8px;
+  gap: var(--ui-section-gap);
+  margin-top: var(--ui-section-gap);
+  padding-top: var(--ui-card-padding);
   border-top: 1px dashed #eee;
 }
 /* buildSummaryBox(⑤ 기존 상세 영역) 7개 컴포넌트 점수 카드용 4열 그리드(2026-07-20 5차) */
-#foreign-flow .ff-card-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px 8px; }
+#foreign-flow .ff-card-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--ui-section-gap); }
 @media (max-width: 480px) {
   #foreign-flow .ff-card-grid4 { grid-template-columns: repeat(2, 1fr); }
 }

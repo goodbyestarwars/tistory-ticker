@@ -19,7 +19,7 @@
 .my-dashboard-storage { flex: 0 0 auto; padding: 8px 11px; border: 1px solid #dbe5f2; border-radius: 999px; color: #64748b; font-size: 11px; }
 .my-dashboard-status { min-height: 20px; padding: 12px 0; color: #64748b; font-size: 12px; }
 .my-dashboard-status a { color: #2563eb; font-weight: 700; }
-.my-dashboard-grid { display: grid; grid-template-columns: minmax(210px, .34fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.my-dashboard-grid { display: grid; grid-template-columns: minmax(210px, .34fr) minmax(0, 1fr); gap: var(--ui-section-gap); align-items: start; }
 .my-dashboard-list, .my-dashboard-detail { min-width: 0; }
 .my-dashboard-list { overflow: hidden; border: 1px solid #e5e7eb; border-radius: 16px; background: rgb(255, 254, 252); }
 .my-dashboard-list-head { display: flex; justify-content: space-between; padding: 14px 15px 10px; border-bottom: 1px solid #eef1f4; font-size: 13px; }
@@ -45,8 +45,8 @@
 .my-detail-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .my-detail-actions a { padding: 8px 10px; border: 1px solid #dbe5f2; border-radius: 9px; color: #334155; font-size: 11px; text-decoration: none; }
 .my-detail-actions a:hover { border-color: #2563eb; color: #2563eb; }
-.my-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
-.my-metric-grid > div { min-width: 0; padding: 13px; border: 1px solid #e5e7eb; border-radius: 12px; background: rgb(255, 254, 252); }
+.my-metric-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ui-section-gap); margin-bottom: var(--ui-section-gap); }
+.my-metric-grid > div { min-width: 0; padding: var(--ui-card-padding); border: 1px solid #e5e7eb; border-radius: 12px; background: rgb(255, 254, 252); }
 .my-metric-grid span, .my-metric-grid small { display: block; color: #94a3b8; font-size: 10px; }
 .my-metric-grid strong { display: block; margin: 5px 0 3px; font-size: 17px; font-variant-numeric: tabular-nums; }
 .my-metric-grid .is-up { color: var(--num-up); }
@@ -285,9 +285,9 @@ html.dark .my-watchlist-icon img { background: var(--dk-inner); }
 .my-dashboard-status { min-height: 26px; padding: 10px 2px; font-size: 14px; }
 .my-dashboard-detail { padding: 20px; border: 2px solid #e3eaf3; border-radius: 18px; background: #fbfdff; }
 .my-detail-head h3 { font-size: 27px; }
-.my-metric-grid { gap: 12px; }
+.my-metric-grid { gap: var(--ui-section-gap); }
 .my-metric-grid > div, .my-holding-card, .my-analysis-card, .my-detail-frame { border-width: 2px; border-color: #dce6f1; border-radius: 15px; }
-.my-metric-grid > div { padding: 17px; }
+.my-metric-grid > div { padding: var(--ui-card-padding); }
 .my-metric-grid strong { font-size: 22px; }
 .my-metric-grid span, .my-metric-grid small { font-size: 13px; }
 .my-card-title strong { font-size: 17px; }

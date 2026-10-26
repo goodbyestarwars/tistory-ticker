@@ -25,7 +25,7 @@
   --wd-glass-shadow: var(--ui-glass-shadow);
   display: grid;
   grid-template-columns: minmax(0,1fr);
-  gap: 14px;
+  gap: var(--ui-section-gap);
   min-width: 0;
   margin: 0 0 20px;
   color: var(--wd-text);
@@ -134,7 +134,7 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-grid {
   display: grid;
   grid-template-columns: repeat(2,minmax(0,1fr));
-  gap: 12px;
+  gap: var(--ui-section-gap);
   min-width: 0;
   align-items: stretch;
 }
@@ -152,7 +152,7 @@ html.dark .weekend-dashboard {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 8px;
+  margin-bottom: var(--ui-paragraph-gap);
   gap: 10px;
 }
 
@@ -195,7 +195,7 @@ html.dark .weekend-dashboard {
   display: flex;
   flex-direction: column;
   gap: 3px;
-  padding: 10px 12px;
+  padding: var(--ui-card-padding);
   border: 1px solid var(--wd-line);
   border-radius: 12px;
   background: var(--wd-surface);
@@ -313,7 +313,7 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-panel-head {
   display: grid;
   gap: 5px;
-  margin-bottom: 10px;
+  margin-bottom: var(--ui-paragraph-gap);
 }
 
 .weekend-dashboard .wd-panel-head h3 {
@@ -819,8 +819,8 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 
   .weekend-dashboard .wd-header {
     min-height: 142px;
-    padding: 16px;
-    gap: 12px;
+    padding: var(--ui-card-padding);
+    gap: var(--ui-section-gap);
   }
 
   .weekend-dashboard .wd-header dl {
@@ -833,7 +833,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   }
 
   .weekend-dashboard .wd-panel {
-    padding: 14px;
+    padding: var(--ui-card-padding);
   }
 
   .weekend-dashboard .wd-coin {
@@ -990,9 +990,9 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 @media (max-width: 767px) {
   .weekend-dashboard .wd-header {
     min-height: 0;
-    padding: 22px 18px;
+    padding: var(--ui-card-padding);
     grid-template-columns: minmax(0,1fr);
-    gap: 20px;
+    gap: var(--ui-section-gap);
   }
 
   .weekend-dashboard .wd-header-copy, .weekend-dashboard .wd-header dl {
@@ -1038,7 +1038,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-section, .weekend-dashboard .wd-news-shelf { min-width: 0; position: relative; }
 .weekend-dashboard .wd-news-section .wd-news-title-icon { display: inline-block; width: .8em; height: .8em; margin-right: .08em; vertical-align: -.04em; flex: none; }
 .weekend-dashboard .wd-news-section > .wd-panel-head h3 { margin: 0; }
-.weekend-dashboard .wd-news-track { box-sizing: border-box; display: flex; width: 100%; max-width: 100%; min-width: 0; gap: 16px; overflow-x: auto; padding: 12px 4px 24px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; scrollbar-width: none; cursor: grab; touch-action: pan-x pan-y; }
+.weekend-dashboard .wd-news-track { box-sizing: border-box; display: flex; width: 100%; max-width: 100%; min-width: 0; gap: var(--ui-section-gap); overflow-x: auto; padding: 12px 4px 24px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; scrollbar-width: none; cursor: grab; touch-action: pan-x pan-y; }
 .weekend-dashboard .wd-news-track::-webkit-scrollbar { display: none; }
 .weekend-dashboard .wd-news-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
 .weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: 24px; border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); background: var(--wd-glass); color: var(--wd-text); box-shadow: var(--wd-glass-shadow); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }

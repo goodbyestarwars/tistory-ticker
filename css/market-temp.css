@@ -33,11 +33,11 @@
 #market-temp .mt-wrap {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: var(--ui-section-gap);
 }
 
 #market-temp .mt-card {
-  padding: 14px 16px;
+  padding: var(--ui-card-padding);
   border: 1px solid #e5e5e5;
   border-radius: 12px;
   background: rgb(255, 254, 252);
@@ -56,7 +56,7 @@
 /* 섹터 자금흐름과 개별 종목 목록은 서로 다른 데이터(테마 랭킹 vs 종목 리스트)라
    같은 카드처럼 붙어 보이지 않도록 섹션 제목·설명으로 구분한다(2026-09-23 사용자 지적:
    "국내주요종목이랑 밑에 카드랑 사실 관계가 없잖아 - 구분 지을 수 있는 게 더 필요해 보인다"). */
-#market-temp .mt-section-block + .mt-section-block { margin-top: 20px; padding-top: 18px; border-top: 1px solid #eef2f7; }
+#market-temp .mt-section-block + .mt-section-block { margin-top: var(--ui-section-gap); padding-top: var(--ui-card-padding); border-top: 1px solid #eef2f7; }
 #market-temp .mt-section-head { margin: 0 0 10px; }
 #market-temp .mt-section-head h2 { margin: 0; color: #1f2937; font-size: 15px;  }
 #market-temp .mt-section-head p { margin: 4px 0 0; color: #7b8490; font-size: 11.5px; line-height: 1.5; }
@@ -66,7 +66,7 @@
 #market-temp .mt-row-2col {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr);
-  gap: 10px;
+  gap: var(--ui-section-gap);
   align-items: stretch;
 }
 #market-temp .mt-row-2col > .mt-card { margin: 0; }
@@ -74,7 +74,7 @@
 /* 2026-09-13 사용자 요청: 종합점수(돈·가격·위험)와 최근 단기흐름을 PC에서 1:1로 나란히 둔다.
    한 카드씩 전체 폭(1,225px)을 쓰면 축 막대가 1,027px까지 늘어져 읽기 어려웠다(라이브 실측).
    760px 이하에서는 위아래로 쌓는다(모바일은 기존 배치가 좋다는 사용자 의견). */
-#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px;  }
+#market-temp .mt-summary-trend-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-section-gap);  }
 #market-temp .mt-summary-trend-row > .mt-card { margin: 0;  }
 @media (max-width: 760px) {
   #market-temp .mt-summary-trend-row { grid-template-columns: 1fr; }
@@ -818,7 +818,7 @@ html.dark #market-temp .sector-row.is-delayed .sector-row-name::after { backgrou
 }
 
 @media (max-width: 640px) {
-  #market-temp .mt-card { padding: 12px 12px; }
+  #market-temp .mt-card { padding: var(--ui-card-padding); }
   #market-temp .mt-industry-flow-card { padding: 12px; }
   #market-temp .mt-industry-flow-head { margin-bottom:10px; }
   #market-temp .mt-industry-flow-head strong { font-size:17px; }
@@ -2016,8 +2016,8 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 .post-single:has(#market-temp) .post-single-meta { display: none; }
 #market-temp .mt-page-head { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: -4px 0 -8px; color: var(--mt2-sub); font-size: 13.5px; }
 
-#market-temp .mt-wrap { gap: 32px !important; }
-#market-temp .mt-card, #market-temp .mt-section.mt-card { padding: 24px !important; border: 1px solid var(--mt2-line) !important; border-radius: 12px !important; background: var(--mt2-bg) !important; box-shadow: none !important; }
+#market-temp .mt-wrap { gap: var(--ui-section-gap) !important; }
+#market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding) !important; border: 1px solid var(--mt2-line) !important; border-radius: 12px !important; background: var(--mt2-bg) !important; box-shadow: none !important; }
 
 /* Market Call: 리서치 리포트의 summary strip - 옅은 방향색 + 왼쪽 3px 선 */
 #market-temp .mt-tomorrow-card { padding: 20px 28px 16px !important; border: 0 !important; border-left: 3px solid #8b95a5 !important; border-radius: 4px !important; background: rgba(100, 116, 139, .06) !important; }
@@ -2049,7 +2049,7 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 #market-temp .mt-kpi-tone-greed { color: var(--num-up); }
 
 /* 2열 분석: 같은 grid, 높이 stretch */
-#market-temp .mt-summary-trend-row { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: stretch; }
+#market-temp .mt-summary-trend-row { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-section-gap); align-items: stretch; }
 #market-temp .mt-summary-trend-row > .mt-card { display: flex; flex-direction: column; min-width: 0; height: auto !important; }
 #market-temp .mt-summary-topline { margin-bottom: 4px; font-size: 13px; }
 #market-temp .mt-summary-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 240px); align-items: center; gap: 12px; margin-bottom: 8px; }
@@ -2152,8 +2152,8 @@ html.dark #market-temp { --mt2-text: var(--dk-text); --mt2-sub: var(--dk-sub); -
 }
 /* 모바일: 2열 -> 1열, 본문 폰트 13px 이상 */
 @media (max-width: 720px) {
-  #market-temp .mt-wrap { gap: 24px !important; }
-  #market-temp .mt-card, #market-temp .mt-section.mt-card { padding: 20px 16px !important; }
+  #market-temp .mt-wrap { gap: var(--ui-section-gap) !important; }
+  #market-temp .mt-card, #market-temp .mt-section.mt-card { padding: var(--ui-card-padding) !important; }
   #market-temp .mt-tomorrow-card { padding: 16px !important; }
   #market-temp .mt-tm-verdict b { font-size: 22px; }
   #market-temp .mt-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }

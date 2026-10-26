@@ -4,6 +4,7 @@
 
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import url('./liquid-glass.css');
+@import url('./ui-spacing.css');
 
 * { box-sizing: border-box; }
 
@@ -76,7 +77,7 @@ h3 {
   margin: 18px 0 6px;
 }
 
-p { margin: 0 0 12px; }
+p { margin: 0 0 var(--ui-paragraph-gap); }
 
 ul, ol { margin: 0 0 12px; padding-left: 20px; }
 li { margin-bottom: 6px; }
@@ -125,7 +126,7 @@ body.learn-page .legal-wrap .learn-fig figcaption { max-width: 680px; margin-inl
 body.learn-page .legal-wrap .fig-on-accent { fill: #263445; }
 body.learn-page .legal-wrap .fig-on-strong { fill: #fff; font-size: 14px; font-weight: 700; }
 body.learn-page .legal-wrap .learn-nav {
-  padding: 18px 20px;
+  padding: var(--ui-card-padding);
   border-top: 1px solid #cbd8e5;
   background: #edf3f8; background-image: var(--ui-glass-sheen);
   border-radius: 8px;
@@ -143,19 +144,19 @@ body.learn-page .legal-wrap .legal-contact {
 .learn-deep > p { line-height: 1.9; }
 .learn-lab {
   margin: 14px 0 22px;
-  padding: 20px 22px;
+  padding: var(--ui-card-padding);
   border: 1px solid #cbd8e5;
   border-radius: 10px;
   background: #f4f8fb;
 }
 .learn-lab h3 { margin: 0 0 12px; font-size: 17px; color: #24364a; }
 .learn-lab p:last-child, .learn-lab ul:last-child { margin-bottom: 0; }
-.learn-math { padding: 12px 16px; margin: 12px 0; border-radius: 7px; background: #e4eef7; background-image: var(--ui-glass-sheen); color: #1e354d; font-size: 15px; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
-.learn-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin: 16px 0 22px; }
-.learn-grid > div { padding: 18px; border: 1px solid #cbd8e5; border-radius: 10px; background: #f8fbfd; background-image: var(--ui-glass-sheen); }
+.learn-math { padding: var(--ui-card-padding); margin: 12px 0; border-radius: 7px; background: #e4eef7; background-image: var(--ui-glass-sheen); color: #1e354d; font-size: 15px; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
+.learn-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--ui-section-gap); margin: 16px 0 22px; }
+.learn-grid > div { padding: var(--ui-card-padding); border: 1px solid #cbd8e5; border-radius: 10px; background: #f8fbfd; background-image: var(--ui-glass-sheen); }
 .learn-grid h3 { margin: 0 0 9px; font-size: 16px; }
 .learn-grid p:last-child { margin-bottom: 0; }
-.learn-sources { margin: 22px 0 16px; padding: 16px 18px; border-radius: 8px; background: #f4f7fb; background-image: var(--ui-glass-sheen); font-size: 13px; }
+.learn-sources { margin: 22px 0 16px; padding: var(--ui-card-padding); border-radius: 8px; background: #f4f7fb; background-image: var(--ui-glass-sheen); font-size: 13px; }
 .learn-sources > strong { color: #334155; }
 .learn-sources ul { margin: 8px 0 0; }
 .learn-sources a { color: #205d8e; }
@@ -177,16 +178,16 @@ body.learn-page .legal-wrap .legal-contact {
 }
 @media (max-width: 640px) {
   body.learn-page .legal-wrap { font-size: 15px; }
-  body.learn-page .legal-wrap .learn-nav { padding: 14px; flex-wrap: wrap; }
+  body.learn-page .legal-wrap .learn-nav { padding: var(--ui-card-padding); flex-wrap: wrap; }
   .learn-grid { grid-template-columns: 1fr; }
-  .learn-lab { padding: 16px; }
+  .learn-lab { padding: var(--ui-card-padding); }
 }
 
 /* 2026-09-17 사용자 지시("AI가 자주 쓰는 저 bar 쓰지마"): 왼쪽 색 막대(border-left 강조) 없이
    배경만 있는 평범한 상자로 둔다. */
 .learn-note {
-  margin: 0 0 16px;
-  padding: 13px 15px;
+  margin: 0 0 var(--ui-section-gap);
+  padding: var(--ui-card-padding);
   background: var(--learn-box, #ebe0c4); background-image: var(--ui-glass-sheen);
   font-size: 14px;
   line-height: 1.7;
@@ -246,8 +247,8 @@ body.learn-page .legal-wrap .legal-contact {
 
 /* 사례 카드(2026-10-04 요청: 절세 이야기에 "Case 1·2" 비교 카드). 인물·태그·활용법·
    일반계좌 대 절세계좌 세금 비교를 한 장에 둔다. 왼쪽 색 막대 없이 배경과 테두리만 쓴다. */
-.learn-cases { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0 0 18px; }
-.learn-case { padding: 18px 16px 16px; border: 1px solid var(--learn-box-border, #e2d5b4); border-radius: 14px; background: var(--learn-case-bg, #fffaf0); background-image: var(--ui-glass-sheen); }
+.learn-cases { display: grid; grid-template-columns: 1fr 1fr; gap: var(--ui-section-gap); margin: 0 0 18px; }
+.learn-case { padding: var(--ui-card-padding); border: 1px solid var(--learn-box-border, #e2d5b4); border-radius: 14px; background: var(--learn-case-bg, #fffaf0); background-image: var(--ui-glass-sheen); }
 .learn-case-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .learn-case-no { padding: 2px 10px; border: 1px solid #1f2937; border-radius: 999px; font-size: 12px; font-weight: 700; }
 .learn-case-tag { padding: 2px 8px; border-radius: 999px; background: var(--learn-box, #ebe0c4); color: var(--learn-case-label, #6b5a2e); font-size: 12px; }
@@ -317,7 +318,7 @@ body.learn-page .legal-wrap .legal-contact {
    배경만 있는 상자를 쓴다(이야기 시리즈와 같은 원칙). */
 .gd-page { word-break: keep-all; overflow-wrap: break-word; }
 .gd-lead { font-size: 16px; line-height: 1.85; }
-.gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; padding: 14px 16px; list-style: none; background: var(--gd-box-bg); background-image: var(--ui-glass-sheen); counter-reset: gdtoc; }
+.gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 var(--ui-section-gap); padding: var(--ui-card-padding); list-style: none; background: var(--gd-box-bg); background-image: var(--ui-glass-sheen); counter-reset: gdtoc; }
 .gd-toc li { margin: 0; counter-increment: gdtoc; }
 .gd-toc li::before { content: counter(gdtoc) "."; display: inline-block; width: 1.8em; color: #8a6420; font-weight: 700; font-size: 14px; }
 .gd-toc a { color: inherit; font-size: 14px; text-decoration: none; }
@@ -332,7 +333,7 @@ body.learn-page .legal-wrap .legal-contact {
 .gd-steps > li::before { content: counter(gds); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; background: #1f2937; color: #f8f0db; font-size: 14px; font-weight: 700; line-height: 27px; text-align: center; }
 
 /* 예시 상자: 설명용 숫자임을 알리는 '예시' 표찰을 단다 */
-.gd-eg { margin: 0 0 16px; padding: 11px 15px 8px; background: var(--learn-box, #e8edf3); background-image: var(--ui-glass-sheen); font-size: 14px; line-height: 1.75; }
+.gd-eg { margin: 0 0 var(--ui-section-gap); padding: var(--ui-card-padding); background: var(--learn-box, #e8edf3); background-image: var(--ui-glass-sheen); font-size: 14px; line-height: 1.75; }
 .gd-eg::before { content: "예시"; display: table; margin: 0 0 6px; padding: 0 9px; border-radius: 999px; background: #1f2937; color: #f8f0db; font-size: 12px; font-weight: 700; line-height: 20px; }
 .gd-eg p:last-child, .gd-eg ul:last-child { margin-bottom: 4px; }
 .gd-eg ul { margin-bottom: 8px; }
@@ -381,7 +382,7 @@ body.learn-page .legal-wrap .legal-contact {
 }
 
 @media (max-width: 480px) {
-  .gd-toc { grid-template-columns: 1fr; padding: 12px 14px; }
+  .gd-toc { grid-template-columns: 1fr; padding: var(--ui-card-padding); }
   .gd-lead { font-size: 15.5px; }
   .gd-page .learn-table th, .gd-page .learn-table td { padding: 6px 7px; }
   .gd-page .learn-table { font-size: 13.5px; }

@@ -1082,7 +1082,7 @@ html.dark #stock-search .ss-vp-state { background: #2c3236; }
 }
 
 /* 호가 폭 480→394px(약18%) 축소. 숫자와 콘텐츠는 유지한다. */
-#stock-search .ss-panel-left { padding: 10px; }
+#stock-search .ss-panel-left { padding: var(--ui-card-padding); }
 
 /* 종목 정보는 압축된 도구줄, 호가/차트는 본문 높이를 사용한다. */
 #stock-search .ss-summary { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:3px 18px; padding:8px 10px; margin-bottom:8px; border-radius:6px; }

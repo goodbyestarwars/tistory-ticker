@@ -55,17 +55,17 @@ html.dark #sector-dashboard .market-ai-summary .sn-ai-text {
    신문 단(column) 방식으로 위에서부터 촘촘히 채운다. */
 .sector-cards-grid {
   columns: 3 220px;
-  column-gap: 14px;
+  column-gap: var(--ui-section-gap);
 }
 
 .sector-card {
   background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: var(--ui-card-padding);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   break-inside: avoid;
-  margin-bottom: 14px;
+  margin-bottom: var(--ui-section-gap);
 }
 
 .sector-card-title {

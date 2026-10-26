@@ -1,5 +1,6 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
 @import url('./css/liquid-glass.css');
+@import url('./css/ui-spacing.css');
 
 /* ============ RESET & BASE ============ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -792,7 +793,7 @@ html.dark .home-briefing-more i { background:var(--dk-card); border-color:var(--
 .home-market-board {
   height: 298px;
   min-width: 0;
-  padding: 18px 20px;
+  padding: var(--ui-card-padding);
   display: flex;
   flex-direction: column;
 }
@@ -7716,10 +7717,6 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   /* Shared geometry: page modules, inset summaries and dense data controls. */
   --ui-radius-card: 14px;
   --ui-radius-inner: 9px;
-  --ui-card-padding: 18px;
-  --ui-card-gap: 10px;
-  --ui-section-gap: 20px;
-  --ui-paragraph-gap: 14px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
   --ui-card-surface: var(--ui-glass-surface);
@@ -7741,7 +7738,7 @@ html.dark {
 }
 
 @media (max-width: 760px) {
-  :root { --ui-card-padding: 14px; --ui-section-gap: 16px; --ui-paragraph-gap: 12px; --ui-title-size: 22px; }
+  :root { --ui-title-size: 22px; }
 }
 
 @layer np {
@@ -7759,7 +7756,9 @@ html.dark {
 html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: var(--ui-card-padding) !important; padding-right: var(--ui-card-padding) !important; }
 /* 위젯 오른쪽 위의 이동(⋮⋮)·메뉴 버튼 묶음은 카드 안에 떠 있다(absolute). 카드 위 여백이 20px이면 첫 줄의
    '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
-html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: var(--ui-card-padding) !important; }
+html body :where(.home-widget, .home-realtime-board, .home-economic-news, .home-mini-card, .mt-card, .mt-section,
+  .sector-card, #strategy-search .ss-card, #foreign-flow .ff-card, .mi-block,
+  .ss-methodology, .ss-nearmiss, .ps-tab-desc, .it-results article) { padding: var(--ui-card-padding) !important; }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: var(--ui-card-gap) !important; }
 /* 홈 리드 두 칸은 같은 카드 토큰을 쓰되 각 정보 구조를 유지한다. */
@@ -7785,7 +7784,7 @@ html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-
 }
 @media (max-width: 640px) {
   html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
-    padding: 14px !important;
+    padding: var(--ui-card-padding) !important;
   }
 }
 /* 페이지 바탕 상자·블로그 글은 카드가 아니라 위 가는 선만 둔다 */
@@ -8193,7 +8192,7 @@ html body .mt-view-toggle .mt-view-btn.active { background: var(--np-paper) !imp
 /* ── 17. 홈 두 열 정렬 : 국내/미국 시장 카드와 경제 종합뉴스 카드의 제목 줄 높이·첫 블록 시작 간격이 달라
       (제목 34/35px, 첫 블록 위 간격 10/14/20px) 가로선이 서로 어긋나던 것을 같은 값으로 맞춘다 ── */
 html body :where(.home-card-heading, .hen-head) { min-height: 36px !important; }
-html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { margin-top: 18px !important; }
+html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { margin-top: var(--ui-section-gap) !important; }
 
 /* ── 18. 기본 버튼 묶음 = 애플 세그먼트 ── 2026-10-03 사용자 지시("이거 좋다, 기본 버튼은 다 이런 식으로"):
       시장지표·차트검색·전략검색 탭, 그 밖의 탭 묶음, 상단 메뉴(PC)를 연한 트랙 + 선택된 것만 바탕색 면으로 통일.
@@ -8366,7 +8365,7 @@ html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(v
 html body .learn-intro h2 { margin:32px 0 24px!important; font-size:40px!important; line-height:1.4!important; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; color:rgb(var(--np-ink))!important; }
 html body .learn-intro p { margin:0!important; font-size:17px!important; line-height:1.8!important; color:rgba(var(--np-ink),.65)!important; }
 html body .learn-intro-note { display:block; margin-top:48px; font-size:12px!important; line-height:1.7; color:rgba(var(--np-ink),.5)!important; }
-html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:18px!important; min-width:0; counter-reset:story; }
+html body .learn-card-grid { display:grid!important; grid-template-columns:repeat(3,minmax(0,1fr))!important; gap:var(--ui-section-gap)!important; min-width:0; counter-reset:story; }
 html body .site-footer-learn a.learn-card {
   position:relative!important; display:grid!important; grid-template-rows:56px auto minmax(0,1fr) auto!important;
   min-width:0!important; width:100%!important; max-width:none!important; height:260px!important; box-sizing:border-box!important;
@@ -8393,7 +8392,7 @@ html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(
 }
 @media(max-width:720px) {
   html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { grid-area:auto!important; margin-top:32px!important; }
-  html body .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:12px!important; }
+  html body .learn-card-grid { grid-template-columns:repeat(2,minmax(0,1fr))!important; gap:var(--ui-section-gap)!important; }
   html body .learn-intro h2 { font-size:30px!important; }
   html body .learn-intro p { font-size:15px!important; }
   html body .site-footer-learn a.learn-card { height:240px!important; grid-template-rows:40px auto minmax(0,1fr) auto!important; padding:22px 16px!important; border-radius:22px!important; gap:8px!important; }
@@ -8479,7 +8478,7 @@ html body .learn-card-area { min-width:0; }
 html body .learn-mobile-controls { display:none; }
 @media(max-width:720px) {
   html body .site-footer-learn .learn-card-area { width:100%; min-width:0; }
-  html body .site-footer-learn .learn-card-grid { display:flex!important; gap:12px!important; overflow-x:auto!important; overflow-y:hidden!important; width:100%!important; min-width:0; padding:4px 0 10px!important; scroll-snap-type:x proximity; scrollbar-width:none; }
+  html body .site-footer-learn .learn-card-grid { display:flex!important; gap:var(--ui-section-gap)!important; overflow-x:auto!important; overflow-y:hidden!important; width:100%!important; min-width:0; padding:4px 0 10px!important; scroll-snap-type:x proximity; scrollbar-width:none; }
   html body .site-footer-learn .learn-card-grid::-webkit-scrollbar { display:none; }
   html body .site-footer-learn .learn-card-grid a.learn-card { flex:0 0 calc((100% - 12px) / 2)!important; width:calc((100% - 12px) / 2)!important; min-width:0!important; scroll-snap-align:start; box-sizing:border-box!important; }
   html body .site-footer-learn .learn-mobile-controls { display:flex; justify-content:center; align-items:center; gap:22px; margin-top:12px; }
@@ -8710,7 +8709,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body .post-single { padding-left: 0 !important; padding-right: 0 !important; }
 
     /* 안쪽 카드 여백 */
-    html body #market-temp :is(.mt-card, .mt-money-card, .mt-explore-card, .mt-sf-card) { padding-left: 16px !important; padding-right: 16px !important; }
+    html body #market-temp :is(.mt-card, .mt-money-card, .mt-explore-card, .mt-sf-card) { padding-left: var(--ui-card-padding) !important; padding-right: var(--ui-card-padding) !important; }
     html body #market-temp :is(.mt-sf-track, .sector-card) { padding-left: 14px !important; padding-right: 14px !important; }
     html body #market-temp .mt-sf-disclaimer { padding-left: 14px !important; padding-right: 14px !important; }
     html body #market-temp .mt-track-daybox .mt-track-row { padding-left: 0 !important; }
@@ -8782,8 +8781,8 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     --learn-columns:3;
     display:grid!important; grid-template-columns:none!important;
     grid-template-rows:repeat(2,auto)!important; grid-auto-flow:column!important;
-    grid-auto-columns:calc((100% - (var(--learn-columns) - 1) * 18px) / var(--learn-columns))!important;
-    column-gap:18px!important; row-gap:18px!important; width:100%!important; overflow-x:auto!important; overflow-y:hidden!important;
+    grid-auto-columns:calc((100% - (var(--learn-columns) - 1) * var(--ui-section-gap)) / var(--learn-columns))!important;
+    column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; width:100%!important; overflow-x:auto!important; overflow-y:hidden!important;
     padding:4px 0 10px!important; scroll-snap-type:x proximity; scrollbar-width:none;
   }
   html body .site-footer-learn .learn-card-grid::-webkit-scrollbar { display:none; }
@@ -8794,7 +8793,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .site-footer-learn .learn-page-count { font:500 13px/1.5 var(--font-ui)!important; color:rgba(var(--np-ink),.6)!important; }
   @media(max-width:720px) {
     html body .site-footer-learn .learn-card-area { --learn-row-height:240px; }
-    html body .site-footer-learn .learn-card-grid { --learn-columns:2; grid-auto-columns:calc((100% - 12px) / 2)!important; column-gap:12px!important; }
+    html body .site-footer-learn .learn-card-grid { --learn-columns:2; grid-auto-columns:calc((100% - var(--ui-section-gap)) / 2)!important; column-gap:var(--ui-section-gap)!important; }
   }
   @media(max-width:360px) { html body .site-footer-learn .learn-card-area { --learn-row-height:280px; } }
   @media(min-width:1024px) and (max-width:1500px) {
@@ -8958,7 +8957,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .learn-intro h2 { margin: 29px 0 22px !important; font-size: 36px !important; }
   html body .learn-intro p { font-size: 15.3px !important; }
   html body .learn-intro-note { margin-top: 43px; font-size: 11px !important; }
-  html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - (var(--learn-columns) - 1) * 16px) / var(--learn-columns)) !important; column-gap: 16px !important; row-gap: 16px !important; }
+  html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - (var(--learn-columns) - 1) * var(--ui-section-gap)) / var(--learn-columns)) !important; column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; }
   html body .site-footer-learn a.learn-card { grid-template-rows: 50px auto minmax(0, 1fr) auto !important; height: 234px !important; padding: 22px !important; gap: 9px !important; border-radius: 25px !important; }
   html body .site-footer-learn a.learn-card::before { top: 23px; right: 22px; font-size: 12.6px !important; }
   html body .site-footer-learn a.learn-card::after { bottom: 25px; right: 22px; font-size: 16px !important; }
@@ -8988,7 +8987,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
     /* 이야기 시리즈(모바일) */
     html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn { margin-top: 29px !important; gap: 22px !important; }
-    html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - 11px) / 2) !important; column-gap: 11px !important; row-gap: 11px !important; }
+    html body .site-footer-learn .learn-card-grid { grid-auto-columns: calc((100% - var(--ui-section-gap)) / 2) !important; column-gap:var(--ui-section-gap)!important; row-gap:var(--ui-section-gap)!important; }
     html body .learn-intro h2 { margin: 14px 0 !important; font-size: 21.6px !important; }
     html body .learn-intro p { font-size: 13.5px !important; }
     html body .site-footer-learn a.learn-card { grid-template-rows: 36px auto minmax(0, 1fr) auto !important; height: 216px !important; padding: 20px 14px !important; gap: 7px !important; border-radius: 20px !important; }

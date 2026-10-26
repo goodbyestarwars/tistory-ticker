@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'js/**'
+      - 'css/**'
+      - 'style.css'
       - 'scripts/cloud-vm/daily_scan.py'
       - 'scripts/cloud-vm/scan_inputs.py'
       - 'scripts/cloud-vm/scan_prereq.py'
@@ -47,6 +49,7 @@ jobs:
           node test/test_http_client.js
           node test/test_shared_ui_api.js
           node test/test_home_market_contract.js
+          python test/test_common_spacing.py
           node test/test_home_countdown_scope.js
           node test/test_crypto_shared_quotes.js
           node test/test_binance_shared_quotes.js

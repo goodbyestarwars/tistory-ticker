@@ -62,14 +62,14 @@
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 14px;
+  padding: var(--ui-card-padding);
+  margin-bottom: var(--ui-section-gap);
   line-height: 1.5;
 }
 #strategy-search .ss-methodology-summary { margin: 0; color: #334155; font-weight: 700; }
 /* 2026-08-22 요청: "조건 자세히" 접이식 토글 제거 - 항상 펼쳐서 보여준다(차트검색
    .ps-tab-desc와 동일 취지). */
-#strategy-search .ss-methodology-full { margin: 7px 0 0; border-top: 1px solid #e2e8f0; padding-top: 7px; }
+#strategy-search .ss-methodology-full { margin: var(--ui-paragraph-gap) 0 0; border-top: 1px solid #e2e8f0; padding-top: var(--ui-card-padding); }
 /* 2026-09-04: 한 문단짜리 조건 설명을 "라벨 + 한 줄"로 바꿨다(목표주가 괴리가 714자
    8문장 한 덩어리였다). 라벨 폭을 고정해 여러 줄이 왼쪽에서 세로로 정렬되게 한다 -
    눈이 걸릴 데가 생겨야 필요한 줄만 골라 읽을 수 있다. */
@@ -112,17 +112,17 @@
    나열되는 상황이라(섹터별) 그 스타일이 그대로 들어맞는다. */
 #strategy-search .ss-cards-grid {
   columns: 3 220px;
-  column-gap: 14px;
+  column-gap: var(--ui-section-gap);
 }
 
 #strategy-search .ss-card {
   background: rgb(255, 254, 252);
   border: 1px solid #e2e8f0;
   border-radius: 12px;
-  padding: 16px 18px;
+  padding: var(--ui-card-padding);
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
   break-inside: avoid;
-  margin-bottom: 14px;
+  margin-bottom: var(--ui-section-gap);
 }
 
 #strategy-search .ss-card-title {
@@ -244,8 +244,8 @@
     columns: 1;
   }
   #strategy-search .ss-card {
-    padding: 10px 11px;
-    margin-bottom: 8px;
+    padding: var(--ui-card-padding);
+    margin-bottom: var(--ui-section-gap);
   }
   #strategy-search .ss-card-title { font-size: 12.5px; }
   #strategy-search .ss-row { padding: 10px 0; font-size: 12px; }
@@ -272,7 +272,7 @@
     font-size: 12px;
   }
   #strategy-search .ss-card {
-    padding: 10px 11px;
+    padding: var(--ui-card-padding);
   }
   #strategy-search .ss-meta { width: 100%; font-size: 10.5px; line-height: 1.4; }
   #strategy-search .ss-methodology { font-size: 11.5px; }

@@ -1,0 +1,16 @@
+/* Shared spacing for the main site and standalone documents.
+   Independent boxes use section-gap; paragraphs use paragraph-gap.
+   Dense table rows, quote cells and chart controls keep their own geometry. */
+:root {
+  --ui-card-padding: 18px;
+  --ui-section-gap: 20px;
+  --ui-paragraph-gap: 14px;
+  --ui-card-gap: var(--ui-section-gap);
+}
+@media (max-width: 760px) {
+  :root {
+    --ui-card-padding: 14px;
+    --ui-section-gap: 16px;
+    --ui-paragraph-gap: 12px;
+  }
+}
