@@ -364,6 +364,7 @@ body.learn-page .legal-wrap .legal-contact {
 
 @media (prefers-color-scheme: dark) {
   body.footer-docs { --learn-box: #161d2c; --learn-box-deep: #1d2637; --learn-box-inset: #0f1420; --learn-box-border: #263048; --gd-box-bg: #161d2c; }
+  body.footer-docs .fig-on-accent { fill: #e8eef7; }
   .gd-toc { background: #161d2c; }
   .gd-toc li::before { color: #e0b25a; }
   .gd-toc a:hover { color: #ff8a80; }
