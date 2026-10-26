@@ -574,17 +574,18 @@
       .catch(function () { return cached ? cached.rows : []; });
   }
 
-  function binanceSymbolItem(pair) {
+  function binanceSymbolItem(pair, quotesOnly) {
     var symbol = pair[0];
     var q = encodeURIComponent(symbol);
     return Promise.all([
       binanceGet(BINANCE_FAPI + '/ticker/24hr?symbol=' + q),
-      binanceGet(BINANCE_FAPI + '/premiumIndex?symbol=' + q).catch(function () { return null; }),
-      binanceKlines(symbol)
+      quotesOnly ? Promise.resolve(null) : binanceGet(BINANCE_FAPI + '/premiumIndex?symbol=' + q).catch(function () { return null; }),
+      quotesOnly ? Promise.resolve([]) : binanceKlines(symbol)
     ]).then(function (res) {
       var ticker = res[0] || {};
       var price = Number(ticker.lastPrice);
-      if (!isFinite(price)) return null;
+      var rate = ticker.priceChangePercent;
+      if (!isFinite(price) || price <= 0 || ticker.symbol !== symbol) return null;
       return {
         symbol: symbol,
         label: pair[1],
@@ -592,24 +593,54 @@
         price: price,
         high: Number(ticker.highPrice),
         low: Number(ticker.lowPrice),
-        changeRate: Number(ticker.priceChangePercent),
+        changeRate: rate == null || rate === '' || !isFinite(Number(rate)) ? null : Number(rate),
         markPrice: res[1] ? Number(res[1].markPrice) : null,
         fundingRate: res[1] ? Number(res[1].lastFundingRate) : null,
+        quoteAsset: 'USDT',
+        quoteTime: Number(ticker.closeTime) || null,
         klines: res[2]
       };
     }).catch(function () { return null; });   // 미상장·지역 제한 등은 그 종목만 조용히 뺀다
   }
 
-  function loadBinanceDirect() {
-    return Promise.all(BINANCE_SYMBOLS.map(binanceSymbolItem)).then(function (items) {
+  var binanceListingsMemo, binanceCompactMemo;
+  function listedBinancePairs() {
+    if (binanceListingsMemo && (binanceListingsMemo.pending || Date.now() - binanceListingsMemo.at < 3600000)) return binanceListingsMemo.promise;
+    var memo = {at:Date.now(), pending:true};
+    memo.promise = binanceGet(BINANCE_FAPI + '/exchangeInfo').then(function (info) {
+      if (!info || !Array.isArray(info.symbols)) throw new Error('Binance listings payload');
+      var trading = {};
+      info.symbols.forEach(function (row) {
+        if (row.status === 'TRADING' && row.quoteAsset === 'USDT'
+          && /^(TRADIFI_)?PERPETUAL$/.test(row.contractType)) trading[row.symbol] = true;
+      });
+      return BINANCE_SYMBOLS.filter(function (pair) { return trading[pair[0]]; });
+    }).catch(function (error) { if (binanceListingsMemo === memo) binanceListingsMemo = null; throw error; })
+      .finally(function () { memo.pending = false; });
+    binanceListingsMemo = memo;
+    return memo.promise;
+  }
+  function loadBinanceDirect(options) {
+    var compact = !!(options && options.quotesOnly);
+    if (compact && binanceCompactMemo && (binanceCompactMemo.pending || Date.now() - binanceCompactMemo.at < 25000)) return binanceCompactMemo.promise;
+    var memo = {at:Date.now(), pending:true};
+    var job = (compact ? listedBinancePairs() : Promise.resolve(BINANCE_SYMBOLS)).then(function (pairs) {
+      return Promise.all(pairs.map(function (pair) { return binanceSymbolItem(pair, compact); })).then(function (items) {
       items = items.filter(Boolean);
-      if (!items.length) return null;
+      if (!compact && !items.length) return null;
       return {
         items: items,
+        symbols: pairs,
         updatedAt: new Date().toISOString(),
         note: '바이낸스 무기한선물(파생상품) 가격을 이 브라우저에서 직접 조회합니다. 실제 주식 수급이 아닌 참고 지표입니다.'
       };
+      });
     });
+    if (!compact) return job;
+    memo.promise = job.catch(function (error) { if (binanceCompactMemo === memo) binanceCompactMemo = null; throw error; })
+      .finally(function () { memo.pending = false; });
+    binanceCompactMemo = memo;
+    return memo.promise;
   }
 
   function loadBinanceFromServer(container) {
