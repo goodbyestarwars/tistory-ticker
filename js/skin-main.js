@@ -861,6 +861,11 @@ document.documentElement.classList.add('skin-ready');
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
+    // Own the dependency at the asynchronous dashboard mount as well as in the skin.
+    // The shared module guards duplicate loads and rebinds its existing timer.
+    loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/home-switch-countdown.js?v=20261026-restore', 'HomeSwitchCountdown')
+      .then(function (countdown) { countdown.refresh(); })
+      .catch(function (error) { console.warn('시장 카운트다운 초기화 실패', error); });
 
     function field(name) {
       return dashboardSection.querySelector('[data-market-field="' + name + '"]');
