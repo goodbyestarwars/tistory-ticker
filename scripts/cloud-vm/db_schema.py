@@ -11,6 +11,7 @@ batch_scan.py의 investor_flow_cache.json에서 이관.
 import os
 import json
 import sqlite3
+from pathlib import Path
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ohlc_snapshot.db')
 
@@ -466,11 +467,15 @@ CREATE INDEX IF NOT EXISTS idx_ai_comment_runs_started ON ai_comment_runs(starte
 '''
 
 
-def get_conn(db_file=None):
+def get_conn(db_file=None, *, read_only=False):
     """timeout=600: daily_scan.py 같은 장시간 배치가 쓰기 트랜잭션을 오래 쥐고 있을 때
     다른 스크립트(migrate_*.py 등)가 즉시 'database is locked' 에러를 내는 대신
     기다렸다가 재시도하도록 함(실제로 겪은 문제 - 2분으로는 부족해서 10분으로 늘림,
     구버전 daily_scan.py가 100종목마다만 커밋해서 API가 느릴 때 그 구간이 5분 넘게 걸림)."""
+    if read_only:
+        # WAL readers must not request a writer lock or change journal mode.
+        uri = Path(db_file or DB_FILE).resolve().as_uri() + '?mode=ro'
+        return sqlite3.connect(uri, uri=True, timeout=5)
     conn = sqlite3.connect(db_file or DB_FILE, timeout=600)
     conn.execute('PRAGMA journal_mode=WAL')
     conn.execute('PRAGMA busy_timeout=600000')
@@ -744,6 +749,12 @@ def delete_user_sector_cards_config(conn, user_id):
     conn.commit()
 
 
+def find_google_user_id(conn, user):
+    row = conn.execute('SELECT id FROM app_users WHERE google_sub=?',
+                       (str(user.get('sub', '')).strip(),)).fetchone()
+    return row[0] if row else None
+
+
 def upsert_google_user(conn, user, updated_at):
     google_sub = str(user.get('sub', '')).strip()
     email = str(user.get('email', '')).strip().lower()
@@ -756,9 +767,9 @@ def upsert_google_user(conn, user, updated_at):
         'ON CONFLICT(google_sub) DO UPDATE SET email=excluded.email, name=excluded.name, updated_at=excluded.updated_at',
         (google_sub, email, name, updated_at, updated_at),
     )
-    row = conn.execute('SELECT id FROM app_users WHERE google_sub=?', (google_sub,)).fetchone()
+    user_id = find_google_user_id(conn, user)
     conn.commit()
-    return row[0]
+    return user_id
 
 
 def load_watchlist_config(conn, user_id):

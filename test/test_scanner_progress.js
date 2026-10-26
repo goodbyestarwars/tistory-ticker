@@ -12,5 +12,20 @@ assert.equal(model([{id:'dailyscan',lastExecution:{state:'failed'}}],false,0).pe
 assert.equal(model([{id:'dailyscan',lastExecution:{state:'success'}}],false,0).percent,100);
 assert.equal(model([run,{id:'strategyscan',lastExecution:{state:'waiting'}}],true,Date.parse('2026-10-26T12:05:00Z')).stale,true);
 assert.equal(model([{...run,progress:{processed:101,total:100}}],false,0).percent,null);
-assert.equal(model([{...run,progress:{processed:100,total:100}}],false,0).percent,99);
+assert.equal(model([{...run,progress:{processed:100,total:100,updatedAt:'2026-10-26T12:00:00Z'}}],false,Date.parse('2026-10-26T12:01:00Z')).percent,99);
 console.log('Scanner progress states passed');
+
+const late=Date.parse('2026-10-26T16:00:00Z');
+const old=model([{id:'dailyscan',lastExecution:{state:'running',startedAt:'2026-10-26T11:10:06Z'},progress:null}],false,late);
+assert.equal(old.state,'running');assert.equal(old.percent,null);assert.ok(old.title.includes('진행 중'));assert.ok(old.note.includes('갱신 대기'));
+assert.equal(model([run],false,Date.parse('2026-10-26T12:05:00Z')).state,'running');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'running',startedAt:'2026-10-26T12:00:00Z'}}],false,Date.parse('2026-10-26T12:01:00Z')).state,'running');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'success',finishedAt:'2026-10-26T12:00:00Z'}}],false,late).state,'success');
+assert.equal(model([{id:'strategyscan',contract:{maxWait:60},lastExecution:{state:'waiting',queuedAt:'2026-10-26T12:00:00Z'}}],true,late).state,'waiting');
+assert.equal(model([{...run,progress:{processed:1}}],false,late).state,'running');
+const paused=model([{id:'dailyscan',lastExecution:{state:'running',startedAt:'2026-10-26T11:00:00Z',finishedAt:'2026-10-26T10:59:00Z'},progress:{processed:850,total:3918,updatedAt:'2026-10-26T12:00:00Z'}}],false,late);
+assert.equal(paused.state,'running');assert.equal(paused.percent,21);assert.equal(paused.stale,true);assert.equal(paused.updatedAt,'2026-10-26T12:00:00Z');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'failed'}}],false,late).state,'failed');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'timeout'}}],false,late).state,'timeout');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'interrupted'}}],false,late).state,'interrupted');
+console.log('PASS delayed 25-stock telemetry retains running/21%; only server terminal states stop it');

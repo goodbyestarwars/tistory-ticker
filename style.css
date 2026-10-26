@@ -971,9 +971,7 @@ html.dark .home-cb-dropdown li.is-released time { color: var(--dk-mute) !importa
   font-weight: 400;
   white-space: nowrap;
 }
-.home-top-disclosures {
-  margin-top: 14px;
-}
+
 .home-top-disclosures-head {
   display: flex;
   align-items: baseline;
@@ -2385,6 +2383,7 @@ html.dark .home-hidden-widgets button:hover { background: var(--dk-hover) !impor
     padding-bottom: var(--ui-card-padding) !important;
   }
   /* Domestic stock board: section headings follow the shared subtitle scale. */
+  html body .ui-section-title,
   html body .post-single #market-temp .mt-stocks-only :is(.mt-stocks-only-heading h1, .mt-section-head h2) {
     font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important;
     font-weight: 700 !important;
@@ -6419,11 +6418,7 @@ body#tt-body-index .home-editorial-page .hmb-investor-loading {
 }
 
 /* 공시는 시장 지면 안의 얇은 목록으로만 남긴다. */
-body#tt-body-index .home-editorial-page .home-top-disclosures {
-  margin-top: 24px;
-  padding-top: 12px;
-  border-top: 1px solid var(--rule);
-}
+
 body#tt-body-index .home-editorial-page .home-top-disclosures-head strong {
   color: var(--text-strong);
   font-family: var(--font-title) !important;
@@ -6836,7 +6831,6 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
 /* 2026-08-18 final density override: keep the home schedule/news as bounded editorial
    columns even after the legacy mobile flow-safety rules above. */
 body#tt-body-index .home-editorial-page .home-top-disclosures {
-  max-height: 270px !important;
   overflow: hidden !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
@@ -6939,7 +6933,7 @@ body#tt-body-index .home-editorial-page .hen-head strong { font-size: 22px !impo
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap th { font-size: 12px; }
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td { font-size: 13px; }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-top-disclosures { max-height: 220px !important; }
+
   body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list { max-height: 165px !important; }
   body#tt-body-index .home-editorial-page .home-economic-news { height: 350px !important; }
   body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
@@ -6956,14 +6950,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-table-wrap td 
 body#tt-body-index .home-editorial-page .home-top-disclosures[hidden] { display: none !important; }
 body#tt-body-index .home-editorial-page .home-top-disclosures {
   display: block !important;
-  max-height: none !important;
   overflow: visible !important;
-  margin: 18px 0 20px !important;
-  padding: 14px 16px 15px !important;
-  border: 1px solid #D8D8D8 !important;
-  border-radius: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
 }
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
   display: block !important;
@@ -7009,10 +6996,7 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-b
   line-height: 1.5 !important;
 }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-top-disclosures {
-    margin: 14px 0 16px !important;
-    padding: 12px 13px 13px !important;
-  }
+
   body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-row {
     grid-template-columns: max-content minmax(0, 1fr) max-content;
     gap: 8px;
@@ -7027,14 +7011,7 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-row .app-news-b
 /* 2026-08-18 home follow-up: keep the full watchlist schedule in a compact
    horizontal rail. It grows sideways, not vertically, and keeps the page
    height/visual weight of the existing schedule area. */
-body#tt-body-index .home-editorial-page .home-top-disclosures {
-  max-height: 82px !important;
-  margin: 14px 0 16px !important;
-  padding: 10px 0 8px !important;
-  border: 0 !important;
-  border-top: 1px solid var(--rule) !important;
-  border-bottom: 1px solid var(--rule) !important;
-}
+
 body#tt-body-index .home-editorial-page .home-top-disclosures .home-top-disclosures-head {
   padding: 0 0 6px !important;
 }
@@ -7105,11 +7082,7 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
 }
 
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-top-disclosures {
-    max-height: 78px !important;
-    margin: 10px 0 14px !important;
-    padding: 8px 0 7px !important;
-  }
+
   body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-list {
     max-height: 50px !important;
   }
@@ -7200,8 +7173,8 @@ body#tt-body-index .home-editorial-page [data-home-night-futures] .home-night-fu
   }
 }
 
-/* The disclosure rail is inside the news card; keep a compact gap before its heading. */
-body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin: 0 0 14px !important; padding: 0 0 12px !important; }
+/* Disclosure block geometry is shared with the other content blocks. */
+
 body#tt-body-index .home-editorial-page .home-index-strip {
   margin-top: 10px !important;
 }
@@ -7210,7 +7183,7 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
   max-height: 450px !important;
 }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures { margin-bottom: 10px !important; padding-bottom: 8px !important; }
+
   body#tt-body-index .home-editorial-page .home-index-strip {
     margin-top: 8px !important;
   }
@@ -7221,9 +7194,6 @@ body#tt-body-index .home-editorial-page .home-economic-news .hen-list {
 }
 
 /* The rail now belongs to the economic-news card and separates from its heading. */
-body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures {
-  border-bottom: 1px solid var(--hmb-line, #e2e8f0) !important;
-}
 
 /* 2026-08-18 economic news rhythm: regular timeline rows use the same base
    geometry as the single-row breaking-news ticker without reducing the list. */
@@ -7746,7 +7716,8 @@ html.dark {
 :where(html body) :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
   .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
   #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion,
-  .mi-block, .home-mini-card, .home-index-card) {
+  .mi-block, .home-mini-card, .home-index-card, .ui-content-block) {
+  min-width: 0;
   border: 1px solid var(--ui-border) !important;
   border-radius: var(--ui-radius-card) !important;
   box-shadow: var(--ui-glass-shadow) !important;
@@ -7758,7 +7729,7 @@ html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: 
    '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
 html body :where(.home-widget, .home-realtime-board, .home-economic-news, .home-mini-card, .mt-card, .mt-section,
   .sector-card, #strategy-search .ss-card, #foreign-flow .ff-card, .mi-block,
-  .ss-methodology, .ss-nearmiss, .ps-tab-desc, .it-results article) { padding: var(--ui-card-padding) !important; }
+  .ss-methodology, .ss-nearmiss, .ps-tab-desc, .it-results article, .ui-content-block) { padding: var(--ui-card-padding) !important; }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: var(--ui-card-gap) !important; }
 /* 홈 리드 두 칸은 같은 카드 토큰을 쓰되 각 정보 구조를 유지한다. */
@@ -7802,7 +7773,7 @@ html body :where(.post-single, .post-card, .card:not(.nav-menu), #stock-calendar
 @layer np {
 /* UI headings only: article titles and news editorial typography remain intact. */
 html body :is(.sector-card-title, .mt-section-title, .dmi-heading h2, .dmi-subheading h3,
-  .kf-section-title, .ibd-subtitle, .home-card-heading strong, .hrt-head strong,
+  .kf-section-title, .ibd-subtitle, .home-card-heading strong:where(:not(.ui-section-title)), .hrt-head strong,
   .home-section-heading strong, .wl-title, .ps-title, .ss-title, .sc-title,
   .mt-page-title, .om-title, .mi-title, .hen-head strong, .mi-block-title, .mi-sub-title) {
   font-family: var(--font-ui) !important;
@@ -8192,7 +8163,7 @@ html body .mt-view-toggle .mt-view-btn.active { background: var(--np-paper) !imp
 /* ── 17. 홈 두 열 정렬 : 국내/미국 시장 카드와 경제 종합뉴스 카드의 제목 줄 높이·첫 블록 시작 간격이 달라
       (제목 34/35px, 첫 블록 위 간격 10/14/20px) 가로선이 서로 어긋나던 것을 같은 값으로 맞춘다 ── */
 html body :where(.home-card-heading, .hen-head) { min-height: 36px !important; }
-html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { margin-top: var(--ui-section-gap) !important; }
+html body :where(.hen-breaking, .home-index-strip) { margin-top: var(--ui-section-gap) !important; }
 
 /* ── 18. 기본 버튼 묶음 = 애플 세그먼트 ── 2026-10-03 사용자 지시("이거 좋다, 기본 버튼은 다 이런 식으로"):
       시장지표·차트검색·전략검색 탭, 그 밖의 탭 묶음, 상단 메뉴(PC)를 연한 트랙 + 선택된 것만 바탕색 면으로 통일.

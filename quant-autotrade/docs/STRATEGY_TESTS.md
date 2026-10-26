@@ -18,7 +18,7 @@
 - [9Pay queue regression (2026-10-26, 성공)](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40335750430): 단타 우선·스윙/중장기 정렬·중복·미분류·유동성 게이트·14:00 이전/이후·단타 A/B·모의 주문 안전성 **61 passed + 26 subtests**, 기존 큐 안전장치 **5 passed**.
 - [Shared HTTP and nightly scan regression (성공)](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40335750317). 기존 공통 API/스캔 테스트이며 매매 성과 검증은 아니다.
 - 우선순위 7건: `local_bot/test_entry_priority.py`. 장중/PC 수신/주문/runner의 경계 사례는 각 `test_ninepay_*.py`, VM 관찰기 `test/test_kiwoom_9pay_observer.py`에 추가.
-- 코드 PR: [Draft PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036). **master/VM/PC 미반영**, 운영 장중·호가/체결 미검증.
+- 코드 PR: [PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036). **실제 VM 배포·PC 설치 상태는 미확인**, 운영 장중·호가/체결 미검증.
 
 ## 3. 단타를 먼저 검증할 때 확인할 항목
 

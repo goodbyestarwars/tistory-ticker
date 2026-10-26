@@ -1,7 +1,7 @@
 # quant-autotrade — 자동매매 연구·운영 프로젝트
 
 개인용 자동매매 프로젝트의 소스·테스트·설계 문서를 한곳에 모은 폴더다. 사이트(Tistory 스킨, GAS, VM FastAPI)와 코드는 섞지 않는다.
-**현재 작업 브랜치 `fix/trade-priority-day-swing-long-20261026`의 [Draft PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036)은 코드·오프라인 검증 단계이며 `master` 병합과 PC/VM 적용은 보류한다.** 연구·모의 매매는 실주문이 아니며, 2026-10-19의 별도 실계좌 활성 승인 이력은 [운영 현황](docs/LIVE_OPERATIONS.md)에서 확인한다. 현재 PC 활성 여부는 미확인이다.
+**[PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036)의 코드·오프라인 검증과 실제 PC/VM 적용은 별개이다.** 연구·모의 매매는 실주문이 아니며, 2026-10-19의 별도 실계좌 활성 승인 이력은 [운영 현황](docs/LIVE_OPERATIONS.md)에서 확인한다. 현재 PC 활성 여부는 미확인이다.
 
 ## 폴더
 

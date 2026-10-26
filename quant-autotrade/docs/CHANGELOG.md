@@ -15,7 +15,7 @@
 | 2026-10-20 | VM 피드 장애 수정 | 순위 조회 중 체결 큐 누락 재현·보호. 실거래 주문 정책 무변경 | [피드 장애 기술 기록](../../docs/NINEPAY_FEED_INCIDENT_2026-10-20.md) |
 | 2026-10-22 | **코드·테스트만** | 100만원당 1종목, 현재 최대 1종목·상한 90만원. **PC 미설치** | [과거 운영 기록](NINEPAY_LIVE_TRADING_HISTORY.md) |
 | 2026-10-23 | **코드·테스트만** | 9Pay 70% 관측 및 기존 엔진 진입 14:00까지 확장. **PC 미설치** | [과거 운영 기록](NINEPAY_LIVE_TRADING_HISTORY.md) |
-| 2026-10-26 | **Draft PR #1036** | 단타→스윙→중장기 순위, 중복 우선순위, 14시 신호·매수 차단 경계 정합화 | [PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036) |
+| 2026-10-26 | **PR #1036** | 단타→스윙→중장기 순위, 중복 우선순위, 14시 신호·매수 차단 경계 정합화 | [PR #1036](https://github.com/goodbyestarwars/tistory-ticker/pull/1036) |
 | 2026-10-26 | **GitHub CI 성공** | 새 오프라인·모의 안전 회귀 61건 + 하위 26건, 큐 5건 및 공통 회귀 통과 | [9Pay Actions](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40335750430) · [공통 Actions](https://github.com/goodbyestarwars/tistory-ticker/actions/runs/40335750317) |
 | 2026-10-27 | **문서 정리만** | `TRADING_RULES` / `LIVE_OPERATIONS` / `STRATEGY_TESTS` / `CHANGELOG`를 정식 문서 체계로 정리, 기존 기록 보존 | 이번 PR 문서 커밋 |
 

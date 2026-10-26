@@ -13,6 +13,7 @@ on:
       - 'scripts/cloud-vm/scheduled_job.py'
       - 'scripts/cloud-vm/market_calendar.py'
       - 'scripts/cloud-vm/main.py'
+      - 'scripts/cloud-vm/db_schema.py'
       - 'scripts/cloud-vm/setup_*_timer.sh'
       - 'scripts/cloud-vm/deploy_check.sh'
       - 'test/**'
@@ -50,7 +51,12 @@ jobs:
           node test/test_shared_ui_api.js
           node test/test_home_market_contract.js
           python test/test_common_spacing.py
+          python test/test_watchlist_readonly.py
+          node test/test_watchlist_loading.js
           node test/test_home_countdown_scope.js
+          node test/test_home_countdown_restore.js
+          node test/test_weekend_countdown_window.js
+          node test/test_home_toolbar_preservation.js
           node test/test_crypto_shared_quotes.js
           node test/test_binance_shared_quotes.js
           node test/test_weekend_calendar_rest.js
@@ -60,6 +66,10 @@ jobs:
           node test/test_weekend_native_content.js
           node test/test_early_bootstrap.js
           node test/test_chart_core.js
+          node test/test_scanner_progress.js
+          node test/test_scanner_dashboard.js
+          node test/test_scanner_loading.js
+          node test/test_scanner_groups.js
       - name: Page consumer refresh and partial failure behavior
         run: |
           node test/test_market_temp_ai_comments.js

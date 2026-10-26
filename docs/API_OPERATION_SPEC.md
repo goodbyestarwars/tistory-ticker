@@ -63,6 +63,7 @@ X-API-Key: <VM_API_TOKEN>
 
 관심종목과 개인 카드 설정은 Google OAuth 로그인 후 HttpOnly·Secure 세션 쿠키로 인증한다.
 `/watchlist`, `/watchlist/disclosures`, `/sector-cards/me`, `/top-picks/me`는 로그인 세션이 필요하다.
+`GET /watchlist`와 공시 조회의 사용자 목록 읽기는 SQLite 읽기 전용 연결로 세션 sub에 해당하는 사용자 ID와 기존 설정을 SELECT한다. 사용자 생성·프로필 갱신을 위해 UPSERT하지 않으며, 신규 로그인 계정의 빈 목록 조회도 쓰지 않는다. 최초 사용자 생성·설정 저장은 기존 PUT 경로가 담당한다. 야간 스캔의 쓰기 잠금이 목록 조회를 막지 않도록 이 경계를 유지한다.
 공용 카드 설정의 PUT은 Google 관리자 허용목록과 `X-API-Key`를 함께 확인한다.
 
 ## 3. 엔드포인트 운영표

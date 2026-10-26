@@ -141,6 +141,7 @@
     var market = overview && overview.querySelector('.home-market-board');
     var economic = overview && overview.querySelector('.home-economic-news');
     var realtime = dashboard.querySelector('.home-realtime-board');
+    var marketToolbar = dashboard.querySelector('.home-market-toolbar');
     var marketSwitch = dashboard.querySelector('.home-market-switch');
     var closedPage = dashboard.querySelector('.home-closed-page');
     if (!market || !options.briefing) return false;
@@ -152,7 +153,9 @@
     });
 
     dashboard.innerHTML = '';
-    if (marketSwitch) dashboard.appendChild(marketSwitch);
+    // Preserve the original toolbar, including its live countdown and bound nodes.
+    if (marketToolbar) dashboard.appendChild(marketToolbar);
+    else if (marketSwitch) dashboard.appendChild(marketSwitch);
     // 휴장 지면은 시장 위젯 그리드에 포함시키지 않는다. 그리드만 재구성하면
     // dashboard.innerHTML 초기화 때 이 섹션이 사라져 휴장 탭을 눌러도 화면이
     // 전환되지 않는 문제가 생긴다.

@@ -1,5 +1,10 @@
     // ---- 국내/미국 정규장 마감 카운트다운 ----
     (function setupHomeSwitchCountdown() {
+      if (window.HomeSwitchCountdown) { window.HomeSwitchCountdown.refresh(); return; }
+      if (!document.body && document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupHomeSwitchCountdown, { once: true });
+        return;
+      }
       if (!document.body || document.body.id !== 'tt-body-index') return;
       var el = null, labelEl = null, units = {}, lastDigits = {};
 
@@ -156,14 +161,19 @@
         var selected = window.HomeMarketSelection && window.HomeMarketSelection.get
           ? window.HomeMarketSelection.get() : 'domestic';
         if (!mount()) return;
+        // The closed-market dashboard owns its weekend clock; the white toolbar
+        // clock belongs exclusively to the domestic and US market views.
+        if (selected === 'closed') {
+          el.hidden = true;
+          return;
+        }
         var now = Date.now();
         var marketHours = window.MarketHours;
         if (!marketHours) {
           el.hidden = true;
           return;
         }
-        // 휴장 화면은 국내 시장 기준으로 다음 이벤트를 보여준다. 시장 탭을 바꾸면
-        // 해당 시장의 정규장 시작/종료 단계로 이어진다.
+        // 한국·미국 탭은 해당 시장의 정규장 시작/종료 단계를 보여준다.
         var market = selected === 'us' ? 'us' : 'domestic';
         var marketName = market === 'us' ? '미국' : '국내';
         var targetAt = null;
@@ -230,6 +240,18 @@
         el.setAttribute('aria-label', marketName + ' ' + targetLabel + ' ' + days + '일 ' + hours + '시간 ' + minutes + '분 ' + seconds + '초');
       }
 
+      window.HomeSwitchCountdown = {
+        refresh: tick,
+        nextOpening: function (now) {
+          var hours = window.MarketHours;
+          var candidates = [
+            { next: nextDomesticOpen(now, hours), market: '국내 정규장' },
+            { next: nextUsOpen(now, hours), market: '미국 정규장' }
+          ].filter(function (item) { return item.next && item.next > now; });
+          candidates.sort(function (a, b) { return a.next - b.next; });
+          return candidates.length ? { next: new Date(candidates[0].next), market: candidates[0].market } : null;
+        }
+      };
       tick();
       // 2026-08-21 코드 감사: 다른 60초 타이머(loadHomeIndices)는 이미 document.hidden을
       // 체크하는데 이 1초 카운트다운만 빠져 있었다 - 백그라운드 탭에서도 계속 돌던 걸

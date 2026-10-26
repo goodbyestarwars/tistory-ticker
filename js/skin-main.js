@@ -194,7 +194,7 @@ document.documentElement.classList.add('skin-ready');
     }
     if (document.querySelector('script[data-my-dashboard]')) return;
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20260829-my-quotes-layout-v1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/my-dashboard.js?v=20261026-watchlist-state-v1';
     script.defer = true;
     script.setAttribute('data-my-dashboard', '1');
     document.body.appendChild(script);
@@ -677,7 +677,7 @@ document.documentElement.classList.add('skin-ready');
     var HOME_CHART_HOVER_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-chart-hover.js?v=20261018-hover';
     var HOME_REALTIME_TABLE_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-realtime-table.js?v=20261020-board-metrics';
     var HOME_ECONOMIC_NEWS_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-economic-news.js?v=20261008-24h-et';
-  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261025-weekend-asset-icons';
+  var HOME_WEEKLY_REPORT_SCRIPT_URL = 'https://goodbyestarwars.github.io/tistory-ticker/js/home-weekly-report.js?v=20261027-block-subtitles';
 
     function isWeekendReportWindow() {
       // 2026-08-22: HomeMarketSelection의 휴장 판정(토요일 07:00~월요일 06:00)과
@@ -788,7 +788,7 @@ document.documentElement.classList.add('skin-ready');
         + '</section>'
         + '<div class="home-overview-grid home-editorial-lead">'
         + '<section class="home-market-board editorial-section hmb2" id="homeMarketBoard">'
-        + '<div class="home-card-heading"><div><strong data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
+        + '<section class="home-market-overview ui-content-block"><div class="home-card-heading"><div><strong class="ui-section-title" data-home-market-field="title">국내 시장</strong><span id="hmbUpdated">오늘의 시장판 · 시세 확인 중</span></div>'
         + '<div class="home-cb-wrap"><button type="button" class="vol-history-link" data-vol-open="all" data-vol-history hidden aria-expanded="false" aria-controls="volPanel">오늘 변동성 이력</button><span class="home-market-live" data-home-market-field="live">실시간</span></div></div>'
         + '<div class="hmb2-status" data-hmb-status>'
         + '<dl class="hmb-list hmb2-verdict">'
@@ -798,7 +798,7 @@ document.documentElement.classList.add('skin-ready');
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
         + '</div>'
-        + '<div class="home-index-strip" aria-label="대표 시장 지수">'
+        + '</section><div class="home-index-strip" aria-label="대표 시장 지수">'
         + '<article class="home-index-card" data-home-index-slot="primary">'
         + '<div class="home-index-top"><strong data-index-field="label">KOSPI</strong><span data-index-field="status">· 확인 중</span></div>'
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
@@ -810,11 +810,11 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
         + '</div>'
-        + '<div class="hmb2-breadth" data-home-breadth hidden>'
-        + '<div class="hmb2-subhead"><strong>시장 내부 흐름</strong><span data-breadth-basis></span></div>'
+        + '<div class="hmb2-breadth ui-content-block" data-home-breadth hidden>'
+        + '<div class="hmb2-subhead"><strong class="ui-section-title">시장 내부 흐름</strong><span data-breadth-basis></span></div>'
         + '<div class="hmb2-bars" data-breadth-bars></div>'
         + '</div>'
-        + '<div class="hmb-summary-head"><strong data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
+        + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
         + '<div class="hmb2-fx"><dt>원/달러</dt><dd data-market-field="exchange">데이터 확인 중</dd></div>'
         + '<div class="hmb2-leaders"><dt>주도 업종</dt><dd data-market-field="leaders">데이터 확인 중</dd></div>'
@@ -827,13 +827,13 @@ document.documentElement.classList.add('skin-ready');
         + '<span data-investor-mode>면적</span><button type="button" class="ui-btn ui-btn-text hmb-investor-switch" data-investor-switch aria-label="막대 차트로 전환">›</button></div></div>'
         + '<div class="hmb-investor-trend-body"><span class="hmb-investor-loading">데이터 확인 중</span></div>'
         + '</div>'
-        + '</dl>'
+        + '</dl></section>'
         // 2026-10-05 사용자 요청("미국시장 밑에 S&P ETF 등 주요 ETF 수익률, 칸에 맞춰서 미니멀하게"): 미국 모드에서만.
         // 시장 요약과 같은 머리말·칸(.hmb-summary-head/.hmb-list)을 그대로 써서 칸 모양을 맞춘다. 값은 /us-etf-returns.
-        + '<div class="hmb-etf" data-home-us-etfs hidden><div class="hmb-summary-head"><strong>주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
+        + '<div class="hmb-etf ui-content-block" data-home-us-etfs hidden><div class="hmb-summary-head"><strong class="ui-section-title">주요 ETF 수익률</strong><span data-home-us-etfs-meta>1일 · 1개월 · 연초 이후</span></div>'
         + '<div class="hmb-etf-cards" data-home-us-etfs-list></div></div>'
-        + '<section class="home-top-disclosures" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
-        + '<div class="home-top-disclosures-head"><strong data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
+        + '<section class="home-top-disclosures ui-content-block" aria-label="관심종목 주간 공시" data-home-disclosure-section hidden>'
+        + '<div class="home-top-disclosures-head"><strong class="ui-section-title" data-home-disclosure-field="title">관심종목 주간 공시</strong><span data-home-disclosure-field="meta">최근 7일</span></div>'
         + '<div class="home-disclosure-list" id="homeDisclosureList"><p class="home-card-state">공시를 확인하는 중...</p></div>'
         + '</section>'
         + '</section>'
@@ -854,13 +854,18 @@ document.documentElement.classList.add('skin-ready');
     if (!document.querySelector('link[data-home-market-board-css]')) {
       var hmbCss = document.createElement('link');
       hmbCss.rel = 'stylesheet';
-      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261026-single-market-tabs';
+      hmbCss.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261027-content-blocks';
       hmbCss.setAttribute('data-home-market-board-css', '1');
       document.head.appendChild(hmbCss);
     }
     var dashboard = document.createElement('div');
     dashboard.innerHTML = dashboardHtml();
     var dashboardSection = dashboard.firstElementChild;
+    // Own the dependency at the asynchronous dashboard mount as well as in the skin.
+    // The shared module guards duplicate loads and rebinds its existing timer.
+    loadHomeScript('https://goodbyestarwars.github.io/tistory-ticker/js/home-switch-countdown.js?v=20261026-restore', 'HomeSwitchCountdown')
+      .then(function (countdown) { countdown.refresh(); })
+      .catch(function (error) { console.warn('시장 카운트다운 초기화 실패', error); });
 
     function field(name) {
       return dashboardSection.querySelector('[data-market-field="' + name + '"]');

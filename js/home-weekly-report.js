@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-rates-fx';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261027-block-subtitles';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -384,7 +384,7 @@
     return {price:byDate[day], date:day, change:days.length > 1 ? byDate[day] - byDate[days[days.length - 2]] : null};
   }
   function treasurySummary(current, failed) {
-    return '<section class="wd-rates" aria-label="미국 국채금리와 원달러 고시환율"><header><h4>미국 국채금리·환율</h4><small>FRED · 수출입은행</small></header><dl class="wd-rate-grid">'
+    return '<section class="wd-rates" aria-label="미국 국채금리와 원달러 고시환율"><header><h4 class="ui-section-title">미국 국채금리·환율</h4><small>FRED · 수출입은행</small></header><dl class="wd-rate-grid">'
       + TREASURIES.map(function (spec) {
         var latest = current[spec.symbol], row = lastTreasuryQuotes[spec.symbol];
         var delayed = failed || !latest || latest.stale || !treasurySnapshot(latest);
@@ -930,7 +930,7 @@
     return new Date(ms).toLocaleTimeString('en-GB', { timeZone: 'Asia/Seoul', hour12: false }) + ' KST';
   }
   function direction(value) { return value == null ? '' : Number(value) > 0 ? '▲' : Number(value) < 0 ? '▼' : '―'; }
-  function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
+  function panelHeading(title, sub) { return '<header class="wd-panel-head"><h3' + (['원유·금','이번 주 주요 일정','다음 주 주요 일정','24시간 가상자산','바이낸스 주식·ETF 선물'].indexOf(title) !== -1 ? ' class="ui-section-title"' : '') + '>' + title + '</h3><small>' + escapeHtml(sub || '') + '</small></header>'; }
   function newsPanelHeading(sub) {
     var icon = '<svg class="wd-news-title-icon" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
     return panelHeading(icon + ' 이번 주 주요뉴스', sub);
@@ -973,12 +973,26 @@
       if (!document.body.contains(root)) return;
       if (!document.hidden && !root.hidden) {
         var now = Date.now();
-        var state = global.MarketHours && global.MarketHours.restOverview && global.MarketHours.restOverview(new Date(now));
+        var hours = global.MarketHours;
+        var state = hours && hours.restOverview && hours.restOverview(new Date(now));
+        var weekend = hours && hours.isWeekendClosed && hours.isWeekendClosed(new Date(now));
+        var showClock = !!(weekend && state && state.closed);
         var banner = root.querySelector('.wd-header');
-        if (banner) banner.hidden = !state || !state.closed;
-        if (!state || !state.closed) { countdownTimer = setTimeout(tick, 30000); return; }
-        var open = state.next;
+        if (banner) banner.hidden = false;
         var clock = root.querySelector('.wd-flip-clock');
+        var clockLabel = root.querySelector('.wd-countdown-label');
+        if (clock) clock.hidden = !showClock;
+        if (clockLabel) clockLabel.textContent = showClock ? '다음 국내·미국 거래 시작까지'
+          : '주말 미국장 종료 후 카운트다운이 시작됩니다.';
+        if (!showClock) {
+          var openingNote = root.querySelector('[data-wd-open]');
+          if (openingNote) openingNote.textContent = '';
+          countdownTimer = setTimeout(tick, 30000);
+          return;
+        }
+        // Weekend starts after the US Friday after-market closes, using the
+        // shared DST-aware calendar. Count to its next confirmed market opening.
+        var open = state.next;
         if (!clock) return;
         var total = open ? Math.max(0, Math.ceil((open.getTime() - now) / 1000)) : null;
         var values = total == null ? ['--', '--', '--', '--'] : [Math.floor(total / 86400), Math.floor(total / 3600) % 24, Math.floor(total / 60) % 60, total % 60];

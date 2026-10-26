@@ -115,6 +115,8 @@
   var remoteState = { items: [], groups: [], revision: 0 };
   var remoteReady = false;
   var authState = { configured: false, authenticated: false, isAdmin: false, email: null };
+  var loadState = { phase: 'loading', message: '' };
+  var loadInFlight = null;
   var saveQueue = Promise.resolve();
   var changeListeners = [];
 
@@ -148,6 +150,12 @@
       // 바꿔 끊김없이 이어지게 한다(render()는 목록 자체가 바뀌는 경로에서만 계속 씀).
       else if (remoteReady && authState.authenticated) resumeQuotesInPlace(container);
       else loadRemoteState(container);
+    });
+    global.addEventListener('focus', function () {
+      if (!document.hidden && !remoteReady) loadRemoteState(container);
+    });
+    global.addEventListener('pageshow', function (event) {
+      if (event.persisted) loadRemoteState(container);
     });
   }
 
@@ -288,10 +296,30 @@
   }
 
   function fetchAuthState() {
-    return fetch(GOOGLE_AUTH_ME_URL, { credentials: 'include', cache: 'no-store' })
-      .then(function (response) { if (!response.ok) throw new Error('auth status HTTP ' + response.status); return response.json(); })
-      .then(function (body) { return body && body.data ? body.data : { configured: false, authenticated: false }; })
-      .catch(function () { return { configured: false, authenticated: false, isAdmin: false, email: null }; });
+    return global.NineHttp.json(GOOGLE_AUTH_ME_URL, {
+      fetchOptions: { credentials: 'include', cache: 'no-store' }, timeoutMs: FETCH_TIMEOUT_MS
+    }).then(function (body) {
+      if (!body || !body.data || typeof body.data.authenticated !== 'boolean') throw new Error('invalid auth response');
+      return body.data;
+    });
+  }
+
+  function setLoadState(phase, message) {
+    loadState = { phase: phase, message: message || '' };
+    try { global.dispatchEvent(new CustomEvent('watchlist:state', { detail: Object.assign({}, loadState) })); } catch (err) {}
+  }
+
+  function renderLoadError(container, message) {
+    var msg = container.querySelector('#wlMsg');
+    if (msg) { msg.textContent = message; msg.hidden = false; }
+    if (remoteReady) return; // Preserve a previously loaded list on transient failures.
+    var grid = container.querySelector('#wlGrid');
+    if (grid) {
+      grid.innerHTML = '<div class="wl-login-gate" role="alert"><strong>관심종목을 불러오지 못했습니다.</strong><p>'
+        + escapeHtml(message) + '</p><button type="button" class="wl-retry-btn">다시 불러오기</button></div>';
+      var retry = grid.querySelector('.wl-retry-btn');
+      if (retry) retry.addEventListener('click', function () { loadRemoteState(container); });
+    }
   }
 
   function renderLoginRequired(container, message) {
@@ -322,10 +350,10 @@
     var input = container.querySelector('#wlInput');
     var add = container.querySelector('#wlAddBtn');
     var groupAdd = container.querySelector('#wlGroupAddBtn');
-    var authenticated = !!(authState.authenticated && authState.email);
-    if (input) input.disabled = !authenticated;
-    if (add) add.disabled = !authenticated;
-    if (groupAdd) groupAdd.disabled = !authenticated;
+    var authenticated = !!authState.authenticated;
+    if (input) input.disabled = !authenticated || !remoteReady;
+    if (add) add.disabled = !authenticated || !remoteReady;
+    if (groupAdd) groupAdd.disabled = !authenticated || !remoteReady;
     var header = container.querySelector('.wl-header');
     if (!header) return;
     var status = header.querySelector('.wl-auth');
@@ -335,7 +363,7 @@
       header.insertBefore(status, header.firstChild);
     }
     status.innerHTML = authenticated
-      ? '<span>Google: ' + escapeHtml(authState.email) + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
+      ? '<span>' + (authState.provider === 'naver' ? '네이버' : 'Google') + ': ' + escapeHtml(authState.email || authState.name || '로그인된 계정') + '</span><button type="button" class="wl-logout-btn">로그아웃</button>'
       : '<span>로그인 필요</span>';
     var logout = status.querySelector('.wl-logout-btn');
     if (logout) logout.addEventListener('click', function () {
@@ -422,28 +450,33 @@
   }
 
   function fetchRemoteWatchlistState() {
-    return fetch(WATCHLIST_API_URL, { credentials: 'include', cache: 'no-store' })
-      .then(function (response) {
-        return response.json().then(function (body) {
-          if (!response.ok) throw new Error(body.detail || '관심종목을 불러오지 못했습니다.');
-          return body.data || {};
-        });
+    return global.NineHttp.json(WATCHLIST_API_URL, {
+      fetchOptions: { credentials: 'include', cache: 'no-store' }, timeoutMs: FETCH_TIMEOUT_MS
+    }).then(function (body) {
+        if (!body || !body.data || !Array.isArray(body.data.items) || !Array.isArray(body.data.groups)) throw new Error('invalid watchlist response');
+        return body.data;
       });
   }
 
   function loadRemoteState(container) {
+    if (loadInFlight) return loadInFlight;
+    setLoadState('loading');
     // 인증 확인과 관심종목 조회는 서로 독립적이므로 동시에 시작해 첫 화면을 빠르게 연다.
-    var remoteDataPromise = fetchRemoteWatchlistState().catch(function () { return null; });
-    fetchAuthState().then(function (nextAuth) {
+    var remoteDataPromise = fetchRemoteWatchlistState().then(function (data) { return { data: data }; }, function (error) { return { error: error }; });
+    loadInFlight = fetchAuthState().then(function (nextAuth) {
       authState = nextAuth;
       renderAuthStatus(container);
       if (!authState.configured || !authState.authenticated) {
+        remoteReady = false;
+        remoteState = { items: [], groups: [], revision: 0 };
+        stopRealtimeQuotes();
         renderLoginRequired(container, authState.configured ? '관심종목을 저장하려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.');
+        setLoadState(authState.configured ? 'signed-out' : 'error', authState.configured ? '관심종목을 보려면 로그인하세요.' : '로그인 서버 설정을 확인 중입니다.');
         return null;
       }
-      return remoteDataPromise.then(function (data) {
-        if (!data) throw new Error('관심종목을 불러오지 못했습니다.');
-        return data;
+      return remoteDataPromise.then(function (result) {
+        if (result.error) throw result.error;
+        return result.data;
       });
     }).then(function (data) {
       if (!data) return;
@@ -463,10 +496,26 @@
       if (!migrateUsWatchlist(container) && migratedLegacy) persistRemoteState(container);
       renderAuthStatus(container);
       render(container);
+      var msg = container.querySelector('#wlMsg');
+      if (msg) msg.hidden = true;
+      setLoadState('ready');
       notifyChanged();
     }).catch(function (error) {
-      renderLoginRequired(container, error.message || '관심종목을 불러오지 못했습니다.');
-    });
+      if (error.status === 401) {
+        authState.authenticated = false;
+        remoteReady = false;
+        remoteState = { items: [], groups: [], revision: 0 };
+        stopRealtimeQuotes();
+        renderAuthStatus(container);
+        renderLoginRequired(container, '로그인 세션을 다시 확인해 주세요.');
+        setLoadState('signed-out', '로그인 세션을 다시 확인해 주세요.');
+      } else {
+        var message = error.kind === 'timeout' ? '서버 응답이 지연되고 있습니다. 잠시 후 다시 불러와 주세요.' : '목록 조회에 실패했습니다. 다시 불러오기를 눌러 주세요.';
+        renderLoadError(container, message);
+        setLoadState('error', message);
+      }
+    }).then(function () { loadInFlight = null; });
+    return loadInFlight;
   }
 
   // ---- 검색/자동완성 (foreign-flow.js와 동일 패턴) ----
@@ -1448,6 +1497,8 @@
     getCachedQuotes: function (codes) { return readQuoteCache(codes || []); },
     onChange: function (listener) { if (typeof listener === 'function') changeListeners.push(listener); },
     isReady: function () { return remoteReady && authState.authenticated; },
+    getStatus: function () { return Object.assign({}, loadState); },
+    refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); return container ? loadRemoteState(container) : Promise.resolve(); },
     MAX_ITEMS: MAX_ITEMS
   };
   global.Watchlist = Watchlist;
