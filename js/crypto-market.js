@@ -32,14 +32,18 @@
   ];
   function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
   function active() { return root && !document.hidden && !root.closest('[hidden]'); }
+  var helperJob;
   function helpers() {
     if (global.OvernightMarket && global.OvernightMarket.cryptoTools) return Promise.resolve(global.OvernightMarket);
-    return new Promise(function (resolve, reject) {
+    if (helperJob) return helperJob;
+    helperJob = new Promise(function (resolve, reject) {
       var script = document.createElement('script');
+      var timeout = setTimeout(function () { reject(new Error('crypto helper timeout')); },10000);
       script.src = base + 'js/overnight-market.js?v=20261008-five-year-charts';
-      script.onload = function () { resolve(global.OvernightMarket); };
-      script.onerror = reject; document.head.appendChild(script);
-    });
+      script.onload = function () { clearTimeout(timeout); global.OvernightMarket && global.OvernightMarket.cryptoTools ? resolve(global.OvernightMarket) : reject(new Error('crypto helper missing')); };
+      script.onerror = function () { clearTimeout(timeout); reject(new Error('crypto helper load')); }; document.head.appendChild(script);
+    }).catch(function (error) { helperJob = null; throw error; });
+    return helperJob;
   }
   function ensureBoard() {
     if (global.IndicatorBoard) return Promise.resolve();
@@ -180,6 +184,9 @@
       renderBoard();
     }).catch(function(error){console.warn('[CryptoMarket] coin quote',error.message);if(!Object.keys(coinItems).length)coinItems.__failed=true;renderBoard();});
   }
+  function fetchTokenQuotes() {
+    return helpers().then(function (module) { return module.cryptoTools.fetchTokens({quotesOnly:true}); });
+  }
   function tokens() {
     return tools.fetchTokens().then(function(data){
       if(data&&data.items.length)return data;
@@ -229,6 +236,6 @@
       busy=false;renderBoard();refresh();if(!timer)timer=setInterval(refresh,30000);
     }).catch(function(){busy=false;root.textContent='가상자산 화면을 불러오지 못했습니다.';});
   }
-  global.CryptoMarket={init:init,dailyStats:dailyStats,fetchCoinQuotes:fetchCoinQuotes,coins:COINS};
+  global.CryptoMarket={init:init,dailyStats:dailyStats,fetchCoinQuotes:fetchCoinQuotes,fetchTokenQuotes:fetchTokenQuotes,coins:COINS};
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
 })(window);
