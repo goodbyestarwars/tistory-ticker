@@ -100,6 +100,78 @@ a { color: #d24f45; }
   --learn-case-good-text: #3b607e;
 }
 
+/* 이야기 시리즈: 읽기 폭과 실험·심화 학습용 공통 디자인. 이용약관/이용안내와 격리. */
+.legal-wrap:has(.learn-nav) {
+  max-width: 920px;
+  font-size: 15.5px;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+.legal-wrap:has(.learn-nav) > p,
+.legal-wrap:has(.learn-nav) > ul,
+.legal-wrap:has(.learn-nav) > ol { line-height: 1.88; }
+.legal-wrap:has(.learn-nav) .learn-fig svg { max-width: 620px; }
+.legal-wrap:has(.learn-nav) .learn-fig figcaption { max-width: 680px; margin-inline: auto; }
+.legal-wrap:has(.learn-nav) .fig-on-accent { fill: #263445; }
+.legal-wrap:has(.learn-nav) .fig-on-strong { fill: #fff; font-size: 14px; font-weight: 700; }
+.legal-wrap:has(.learn-nav) .learn-nav {
+  padding: 18px 20px;
+  border-top: 1px solid #cbd8e5;
+  background: #edf3f8;
+  border-radius: 8px;
+}
+.legal-wrap:has(.learn-nav) .legal-contact {
+  margin-top: 14px;
+  padding: 15px 20px;
+  color: #334155;
+  border-top: 1px solid #cbd8e5;
+  background: #e3edf6;
+  border-radius: 8px;
+}
+.learn-deep { margin: 36px 0 22px; }
+.learn-deep > h2 { border-top: 2px solid #cbd8e5; padding-top: 22px; }
+.learn-deep > p { line-height: 1.9; }
+.learn-lab {
+  margin: 14px 0 22px;
+  padding: 20px 22px;
+  border: 1px solid #cbd8e5;
+  border-radius: 10px;
+  background: #f4f8fb;
+}
+.learn-lab h3 { margin: 0 0 12px; font-size: 17px; color: #24364a; }
+.learn-lab p:last-child, .learn-lab ul:last-child { margin-bottom: 0; }
+.learn-math { padding: 12px 16px; margin: 12px 0; border-radius: 7px; background: #e4eef7; color: #1e354d; font-size: 15px; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
+.learn-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 14px; margin: 16px 0 22px; }
+.learn-grid > div { padding: 18px; border: 1px solid #cbd8e5; border-radius: 10px; background: #f8fbfd; }
+.learn-grid h3 { margin: 0 0 9px; font-size: 16px; }
+.learn-grid p:last-child { margin-bottom: 0; }
+.learn-sources { margin: 22px 0 16px; padding: 16px 18px; border-radius: 8px; background: #f4f7fb; font-size: 13px; }
+.learn-sources > strong { color: #334155; }
+.learn-sources ul { margin: 8px 0 0; }
+.learn-sources a { color: #205d8e; }
+.learn-deep .learn-fig svg { max-width: 620px; }
+
+@media (prefers-color-scheme: dark) {
+  .legal-wrap:has(.learn-nav) .fig-on-accent { fill: #e8eef7; }
+  .legal-wrap:has(.learn-nav) .fig-on-strong { fill: #fff; }
+  .legal-wrap:has(.learn-nav) .learn-nav,
+  .legal-wrap:has(.learn-nav) .learn-lab,
+  .legal-wrap:has(.learn-nav) .learn-sources { background: #1d2637; border-color: #34415b; }
+  .legal-wrap:has(.learn-nav) .legal-contact { color: #c2d1e2; background: #263245; border-color: #34415b; }
+  .legal-wrap:has(.learn-nav) .learn-grid > div { background: #1b2433; border-color: #34415b; }
+  .legal-wrap:has(.learn-nav) .learn-math { background: #26364b; color: #e8eef7; }
+  .legal-wrap:has(.learn-nav) .learn-lab h3,
+  .legal-wrap:has(.learn-nav) .learn-sources > strong { color: #e8eef7; }
+  .legal-wrap:has(.learn-nav) .learn-sources a { color: #9acfff; }
+  .legal-wrap:has(.learn-nav) .learn-deep > h2 { border-top-color: #34415b; }
+}
+@media (max-width: 640px) {
+  .legal-wrap:has(.learn-nav) { font-size: 15px; }
+  .legal-wrap:has(.learn-nav) .learn-nav { padding: 14px; flex-wrap: wrap; }
+  .learn-grid { grid-template-columns: 1fr; }
+  .learn-lab { padding: 16px; }
+}
+
 /* 2026-09-17 사용자 지시("AI가 자주 쓰는 저 bar 쓰지마"): 왼쪽 색 막대(border-left 강조) 없이
    배경만 있는 평범한 상자로 둔다. */
 .learn-note {
