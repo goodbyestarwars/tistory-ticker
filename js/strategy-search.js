@@ -365,6 +365,7 @@
 
   function methodologySummary(key) {
     if (key === 'undervalued') return '재무 조건을 통과한 종목 중 120일선 대비 가격이 눌린 종목을 섹터별로 표시합니다.';
+    if (key === 'earningsGrowth') return '매출과 영업이익이 3개년 연속 증가하고 최근 분기에도 성장한 저부채 기업을 표시합니다.';
     if (key === 'dividend') return '과거 현금배당 공시를 기준으로 배당수익률과 주당 현금배당금을 비교합니다.';
     if (key === 'etfReturn') return '기간 수익률과 편입 구성을 비교하는 화면이며, 매수 의견이 아닙니다.';
     // 2026-08-20: "연 1회 공시 스냅샷" 안내는 요약 줄에서 빼고 아래 라벨 줄에만 남겼다.
@@ -417,7 +418,7 @@
   // 클릭)는 그대로고, 카드는 표가 쓰는 같은 데이터·같은 순서의 앞 3개를 재사용한다(새 데이터 소스·순위 로직 없음).
   // 현재가·등락률은 표와 같은 실시간 갱신(patchLivePrices)을 받고, 순위·전략 KPI는 스캔 시점 값이다.
   function topCandidates(key) {
-    if (key === 'undervalued' || key === 'targetPriceGap') return allMatches(key);
+    if (key === 'undervalued' || key === 'targetPriceGap' || key === 'earningsGrowth') return allMatches(key);
     if (key === 'etfReturn') return sortEtfMatches(etfFilteredMatches(key));
     if (key === 'dividend') return sortedDividendMatches();
     if (key === 'nationalPension') {
@@ -442,6 +443,19 @@
       if (item.fundamentalScore != null) sub.push('재무점수 ' + fmt(item.fundamentalScore));
       if (analystTargetPriceText(item)) sub.push(analystTargetPriceText(item));
       return { kpis: [kpi('120일선 대비', pctSigned(dis), dis == null ? '' : chgClass(dis)), kpi('ROE', fmtPct(item.roe))], sub: sub.join(' · ') };
+    }
+    if (key === 'earningsGrowth') {
+      if (item.debtRatio != null) sub.push('부채비율 ' + fmtPct(item.debtRatio));
+      if (item.annualYears && item.annualYears.length === 3) {
+        sub.push(item.annualYears[0] + '~' + item.annualYears[2] + '년 매출·영업익 연속 증가');
+      }
+      return {
+        kpis: [
+          kpi('영업익 전년동기', pctSigned(item.latestQuarterOperatingIncomeYoYPct), chgClass(item.latestQuarterOperatingIncomeYoYPct)),
+          kpi('매출 전년동기', pctSigned(item.latestQuarterRevenueYoYPct), chgClass(item.latestQuarterRevenueYoYPct)),
+        ],
+        sub: (item.latestQuarter || '최신 분기') + ' · ' + sub.join(' · '),
+      };
     }
     if (key === 'targetPriceGap') {
       var analyst = item.analystTargetGapPct;
@@ -551,7 +565,7 @@
       wrap.innerHTML = renderDividendTable();
       return;
     }
-    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap') {
+    if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth') {
       wrap.innerHTML = renderStrategyTable(activeKey);
       return;
     }
@@ -609,6 +623,9 @@
   }
 
   function strategySignal(item) {
+    if (item.latestQuarterOperatingIncomeYoYPct != null) {
+      return (item.latestQuarter || '최근 분기') + ' 영업이익 YoY +' + fmtPct(item.latestQuarterOperatingIncomeYoYPct);
+    }
     if (item.disparity != null) return '120일선 대비 ' + fmtPctSigned(Number(item.disparity) - 100);
     if (item.envelope && item.envelope.closeDistancePct != null) return '주봉 엔벨로프 하단 ' + fmtPct(item.envelope.closeDistancePct);
     if (item.targetGapPct != null) return '목표가 ' + fmtWon(item.targetPrice) + ' (괴리 +' + fmtPct(item.targetGapPct) + ')';
@@ -633,6 +650,13 @@
 
   function strategyFundamentals(item) {
     var parts = [];
+    if (item.latestQuarterRevenueYoYPct != null) {
+      parts.push('분기 매출 YoY +' + fmtPct(item.latestQuarterRevenueYoYPct));
+      parts.push('연간 매출 YoY +' + fmtPct(item.annualRevenueYoYPct));
+      parts.push('연간 영업익 YoY +' + fmtPct(item.annualOperatingIncomeYoYPct));
+      if (item.debtRatio != null) parts.push('부채비율 ' + fmtPct(item.debtRatio));
+      return parts.join(' · ');
+    }
     if (item.roe != null) parts.push('ROE ' + fmtPct(item.roe));
     if (item.debtRatio != null) parts.push('부채비율 ' + fmtPct(item.debtRatio));
     return parts.join(' · ');
@@ -686,7 +710,7 @@
 
   function renderStrategyTable(key) {
     var matches = allMatches(key || 'undervalued');
-    if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요.</div>';
+    if (!matches.length) return '<div class="ss-hint">지금은 이 카테고리 조건에 맞는 종목이 없어요. 재무 보고서가 미수집·미확정인 종목은 포함되지 않습니다.</div>';
     var showFundamentals = matches.some(function (item) { return item.roe != null || item.debtRatio != null; });
     var splitTargetColumns = key === 'targetPriceGap';
     // 2026-08-23: <th>에도 <td>와 같은 열 클래스를 달아서, 정렬(text-align) CSS가
@@ -797,6 +821,13 @@
         return copy;
       }));
     }, []);
+    if (key === 'earningsGrowth') {
+      return rows.sort(function (a, b) {
+        return Number(b.latestQuarterOperatingIncomeYoYPct) - Number(a.latestQuarterOperatingIncomeYoYPct)
+          || Number(a.debtRatio) - Number(b.debtRatio)
+          || String(a.code).localeCompare(String(b.code));
+      });
+    }
     return key === 'etfReturn'
       ? rows.map(function (item) { return normalizeEtfItem(item, key); })
       : key === 'dividend'
