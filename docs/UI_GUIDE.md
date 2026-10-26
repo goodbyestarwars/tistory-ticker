@@ -102,7 +102,7 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 콘텐츠 본문의 의도된 명조는 유지한다. 차트의 기능별 높이와 표의 열 구조는 공통화하지 않는다.
 
 다크 면 토큰은 `--ui-card-surface → --dk-card`, `--ui-inner-surface → --dk-inner`,
-`--ui-panel-surface → --dk-panel`, `--ui-border → --dk-line`으로 연결된다. 라이트 콘텐츠 카드·내부 박스는 `--ui-card-surface/--ui-inner-surface`의 흰색을 사용한다.
+`--ui-panel-surface → --dk-panel`, `--ui-border → --dk-line`으로 연결된다. 라이트 콘텐츠 카드는 `--ui-card-surface`의 공통 글래스 흰색, 내부 데이터 박스는 `--ui-inner-surface`의 흰색을 사용한다.
 전체 페이지의 `--np-paper/--np-tint`와 의미색은 유지한다. 모바일 토큰 선언은 비레이어 :root 옆에 둔다.
 비레이어 기본값을 레이어 내부의 일반 모바일 선언으로 바꾸면 캐스케이드에서 패배한다.
 
@@ -119,6 +119,15 @@ WTI·브렌트유·금은 `/futures?interval=day&days=30&symbols=WTI,BRENT,GOLD,
 경로에 원본을 참조해 동일 비율로 머리 부분을 크롭한다(400% auto, 0 68%). CSS 색·혼합
 모드로 배경을 감추지 않는다. PC·모바일이 같은 선택자를 쓰고 푸터도 동일 원본을 contain으로
 표시한다. 파비콘은 기존 전용 경량 자산 정책을 유지한다. `skin.html` 수정은 필요하지 않다.
+
+### 전역 글래스 리퀴드 (2026-10-26)
+
+`css/liquid-glass.css`가 공통 재질의 단일 출처이며 `style.css`와 `css/legal.css`에서 불러온다.
+기존 공통 카드 선택자·면 토큰과 휴장 화면의 `--wd-glass*`를 연결한다. 카드에는 반투명 면·고정 반사광·안쪽 광택·그림자를 쓰고 메뉴·로그인·검색 팝업과 이야기 카드에는 배경 블러를 더한다.
+차트·페이지 래퍼에는 필터를 걸지 않아 고정 팝업의 기준 좌표와 차트 조작을 유지한다.
+페이지 배경·글꼴·빨강/파랑 의미색·이야기 아이콘 파스텔·문서 박스 파랑회색은 보존한다.
+다크는 기존 `--dk-card/--dk-panel`에서 재질을 만들며 모바일 블러는6px, PC는12px다.
+필터 미지원·투명도 축소·강제색·인쇄 환경은 불투명 폴백을 쓰고, 동작 축소 설정에서는 카드 이동을 없앤다.
 
 ## 색상
 

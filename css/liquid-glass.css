@@ -1,0 +1,79 @@
+/* Common liquid-glass material. Layout, type, page backgrounds and semantic colors
+   belong to their existing components. Opaque material is the default fallback. */
+:root {
+  --ui-glass-surface: #fff;
+  --ui-glass-panel: #fff;
+  --ui-glass-filter: none;
+  --ui-glass-duration: .2s;
+  --ui-glass-hover-lift: -3px;
+  --ui-glass-sheen: linear-gradient(135deg, rgba(255,255,255,.72), rgba(255,255,255,.08) 42%, rgba(226,232,240,.12));
+  --ui-glass-edge: rgba(255,255,255,.82);
+  --ui-glass-shadow: 0 8px 28px rgba(15,23,42,.065), inset 0 1px 0 var(--ui-glass-edge), inset 0 -1px 0 rgba(148,163,184,.1);
+  --ui-glass-floating-shadow: 0 18px 48px rgba(15,23,42,.14), inset 0 1px 0 var(--ui-glass-edge);
+  /* Existing story/briefing consumers share the same material outside weekends. */
+  --wd-glass: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-surface), var(--ui-glass-surface));
+  --wd-glass-filter: var(--ui-glass-filter);
+  --wd-glass-shadow: var(--ui-glass-shadow);
+}
+html.dark {
+  --ui-glass-surface: var(--dk-card);
+  --ui-glass-panel: var(--dk-panel);
+  --ui-glass-sheen: linear-gradient(135deg, rgba(255,255,255,.075), transparent 44%, rgba(255,255,255,.025));
+  --ui-glass-edge: rgba(255,255,255,.12);
+  --ui-glass-shadow: 0 8px 28px rgba(0,0,0,.24), inset 0 1px 0 var(--ui-glass-edge), inset 0 -1px 0 rgba(0,0,0,.15);
+  --ui-glass-floating-shadow: 0 18px 48px rgba(0,0,0,.4), inset 0 1px 0 var(--ui-glass-edge);
+}
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  :root {
+    --ui-glass-surface: rgba(255,255,255,.88);
+    --ui-glass-panel: rgba(255,255,255,.94);
+    --ui-glass-filter: blur(12px) saturate(118%);
+  }
+  @supports (background: color-mix(in srgb, black, transparent)) {
+    html.dark {
+      --ui-glass-surface: color-mix(in srgb, var(--dk-card) 92%, transparent);
+      --ui-glass-panel: color-mix(in srgb, var(--dk-panel) 96%, transparent);
+    }
+  }
+}
+
+/* Do not filter page wrappers or chart/canvas containers: filters create a
+   containing block for fixed dialogs. Only floating/leaf surfaces need blur. */
+:where(.nav-dd-card, .nav-search-suggest, .account-login-dialog, .account-menu, .home-disclosure-modal-panel,
+  .ssp-dropdown, .ssp-suggest, .site-footer-learn .learn-card) {
+  background-image: var(--ui-glass-sheen);
+  box-shadow: var(--ui-glass-floating-shadow);
+  -webkit-backdrop-filter: var(--ui-glass-filter);
+  backdrop-filter: var(--ui-glass-filter);
+}
+
+/* Standalone legal/learning documents retain their blue-gray box colors. */
+:where(.learn-note, .gd-toc, .gd-eg, .gd-btn, .learn-math, .learn-deep,
+  .learn-practice, .learn-grid > div, .learn-case, .learn-nav, .learn-sources) {
+  background-image: var(--ui-glass-sheen);
+  box-shadow: var(--ui-glass-shadow);
+}
+@media (prefers-color-scheme: dark) {
+  body:not([id]) {
+    --ui-glass-sheen: linear-gradient(135deg, rgba(255,255,255,.07), transparent 44%, rgba(255,255,255,.025));
+    --ui-glass-edge: rgba(255,255,255,.12);
+    --ui-glass-shadow: 0 8px 28px rgba(0,0,0,.24), inset 0 1px 0 var(--ui-glass-edge);
+  }
+}
+@media (max-width: 760px) {
+  :root { --ui-glass-filter: blur(6px) saturate(110%); }
+}
+@media (prefers-reduced-transparency: reduce), (forced-colors: active), print {
+  :root, html.dark, body:not([id]) {
+    --ui-glass-surface: var(--surface, #fff);
+    --ui-glass-panel: var(--surface, #fff);
+    --ui-glass-filter: none;
+    --ui-glass-sheen: none;
+    --ui-glass-shadow: none;
+    --ui-glass-floating-shadow: none;
+  }
+  html.dark { --ui-glass-surface: var(--dk-card); --ui-glass-panel: var(--dk-panel); }
+}
+@media (prefers-reduced-motion: reduce) {
+  :root { --ui-glass-duration: 0s; --ui-glass-hover-lift: 0px; }
+}

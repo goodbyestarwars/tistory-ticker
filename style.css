@@ -1,4 +1,5 @@
 @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
+@import url('./css/liquid-glass.css');
 
 /* ============ RESET & BASE ============ */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -4417,7 +4418,7 @@ body.account-login-open { overflow: hidden; }
 .account-login-modal[hidden] { display: none; }
 .account-login-modal { position: fixed; inset: 0; z-index: 2200; font-family: var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif); }
 .account-login-backdrop { display: grid; place-items: center; min-height: 100%; padding: 24px; box-sizing: border-box; background: rgba(15, 23, 42, .42); backdrop-filter: blur(5px); }
-.account-login-dialog { position: relative; width: min(520px, 100%); box-sizing: border-box; padding: 32px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 24px; background: linear-gradient(145deg, #fff 0%, #f8fbff 100%); box-shadow: 0 24px 70px rgba(15, 23, 42, .24); color: #172033; }
+.account-login-dialog { position: relative; width: min(520px, 100%); box-sizing: border-box; padding: 32px; border: 1px solid rgba(255, 255, 255, .7); border-radius: 24px; background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)); box-shadow: var(--ui-glass-floating-shadow); color: #172033; }
 .account-login-close { position: absolute; top: 18px; right: 18px; width: 34px; height: 34px; border: 1px solid #e2e8f0; border-radius: 50%; background: rgba(255, 255, 255, .8); color: #64748b; font: inherit; font-size: 22px; line-height: 1; cursor: pointer; transition: background .15s ease, color .15s ease, transform .15s ease; }
 .account-login-close:hover { background: #eef3f9; color: #1e293b; transform: rotate(90deg); }
 .account-login-close:focus-visible, .account-login-option:focus-visible { outline: 3px solid rgba(37, 99, 235, .22); outline-offset: 3px; }
@@ -4446,7 +4447,7 @@ body.account-login-open { overflow: hidden; }
 .account-login-google-status { min-height: 18px; margin-top: 16px; color: #64748b; font-size: 11px; line-height: 1.5; }
 .account-login-footer { margin-top: 20px; padding-top: 15px; border-top: 1px solid #e8eef5; color: #94a3b8; font-size: 10px; line-height: 1.5; }
 html.dark .account-login-backdrop { background: rgba(0, 0, 0, .62); }
-html.dark .account-login-dialog { border-color: var(--dk-line); background: linear-gradient(145deg, var(--dk-card) 0%, var(--dk-card) 100%); color: var(--dk-text); box-shadow: 0 24px 70px rgba(0, 0, 0, .5); }
+html.dark .account-login-dialog { border-color: var(--dk-line); background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)); color: var(--dk-text); box-shadow: var(--ui-glass-floating-shadow); }
 html.dark .account-login-close { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-sub); }
 html.dark .account-login-close:hover { background: var(--dk-inner); color: var(--dk-text); }
 html.dark .account-login-heading p, html.dark .account-login-google-status { color: var(--dk-sub); }
@@ -7721,9 +7722,9 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --ui-paragraph-gap: 14px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
-  --ui-card-surface: #fff;
+  --ui-card-surface: var(--ui-glass-surface);
   --ui-inner-surface: #fff;
-  --ui-panel-surface: var(--np-tint);
+  --ui-panel-surface: var(--ui-glass-panel);
   --ui-border: var(--rule);
 
   --rule: rgba(17, 17, 17, .1);
@@ -7732,9 +7733,9 @@ html.dark {
   --np-ink: var(--dk-ink-rgb);
   --np-paper: var(--dk-bg);
   --np-tint: var(--dk-bg);
-  --ui-card-surface: var(--dk-card);
+  --ui-card-surface: var(--ui-glass-surface);
   --ui-inner-surface: var(--dk-inner);
-  --ui-panel-surface: var(--dk-panel);
+  --ui-panel-surface: var(--ui-glass-panel);
   --ui-border: var(--dk-line);
   --rule: var(--dk-line);
 }
@@ -7747,12 +7748,13 @@ html.dark {
 /* ── 1. 공통 카드: geometry/surface tokens; chart and report layouts stay independent. ── */
 :where(html body) :where(.sector-card, .mt-card, .mt-section, .home-widget, .home-realtime-board, .home-economic-news, .home-market-board,
   .ff-card, .ff-flow-card, .ff-chart-card, .ff-extra-card, #stock-search .ss-panel-left, #stock-search .ss-panel-right,
-  #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion) {
+  #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion,
+  .mi-block, .home-mini-card, .home-index-card) {
   border: 1px solid var(--ui-border) !important;
   border-radius: var(--ui-radius-card) !important;
-  box-shadow: none !important;
+  box-shadow: var(--ui-glass-shadow) !important;
   background-color: var(--ui-card-surface) !important;
-  background-image: none !important;
+  background-image: var(--ui-glass-sheen) !important;
 }
 html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: var(--ui-card-padding) !important; padding-right: var(--ui-card-padding) !important; }
 /* 위젯 오른쪽 위의 이동(⋮⋮)·메뉴 버튼 묶음은 카드 안에 떠 있다(absolute). 카드 위 여백이 20px이면 첫 줄의
@@ -7765,8 +7767,9 @@ html body#tt-body-index .home-editorial-page .home-widget-grid { column-gap: var
 html body#tt-body-index .home-editorial-page .home-widget-grid > :is(.home-market-board, .home-economic-news) {
   border: 1px solid var(--ui-border) !important;
   border-radius: var(--ui-radius-card) !important;
-  background: var(--ui-card-surface) !important;
-  box-shadow: none !important;
+  background-color: var(--ui-card-surface) !important;
+  background-image: var(--ui-glass-sheen);
+  box-shadow: var(--ui-glass-shadow) !important;
   padding: var(--ui-card-padding) !important;
 }
 html body#tt-body-index .home-editorial-page .home-widget-grid > .home-economic-news {
@@ -8145,12 +8148,12 @@ html body .hrt-tabs { align-items: center !important; padding: 6px !important; m
     border: 1px solid rgba(var(--np-ink), .08) !important;
     border-radius: 24px !important;
     /* 2026-10-04 사용자 요청("2차메뉴 창을 살짝 투명도 있게"): 불투명도 .8→.66, 흐림 28→12px - 뒤 화면이 옅게 비친다 */
-    background: rgba(255, 254, 252, .66) !important;
-    -webkit-backdrop-filter: blur(12px) saturate(1.4) !important;
-    backdrop-filter: blur(12px) saturate(1.4) !important;
-    box-shadow: 0 18px 48px rgba(0, 0, 0, .13), 0 2px 8px rgba(0, 0, 0, .05) !important;
+    background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important;
+    -webkit-backdrop-filter: var(--ui-glass-filter) !important;
+    backdrop-filter: var(--ui-glass-filter) !important;
+    box-shadow: var(--ui-glass-floating-shadow) !important;
   }
-  html.dark body .sidebar-left .nav-dd-card { background: rgba(32, 32, 32, .64) !important; box-shadow: 0 18px 48px rgba(0, 0, 0, .5) !important; }
+  html.dark body .sidebar-left .nav-dd-card { background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important; box-shadow: var(--ui-glass-floating-shadow) !important; }
   html body .sidebar-left .nav-dd-item {
     display: flex !important;
     align-items: center !important;
@@ -8255,8 +8258,8 @@ html body :where(.hwr-schedule, .hwr-news-card, .hwr-columns > article,
   border: 1px solid rgba(var(--np-ink), .09) !important;
   border-radius: var(--ui-radius-card) !important;
   background-color: var(--ui-card-surface) !important;
-  background-image: none !important;
-  box-shadow: none !important;
+  background-image: var(--ui-glass-sheen) !important;
+  box-shadow: var(--ui-glass-shadow) !important;
 }
 html body .hwr-outcome-stat { border-radius: var(--ui-radius-inner) !important; }
 html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-my-schedule) { background-color: #fff !important; }
@@ -8290,10 +8293,10 @@ html.search-open body .nav-search-wrap {
   overflow: auto !important;
   box-sizing: border-box !important;
   padding: 30px 40px 26px !important;
-  background: rgb(255, 254, 252) !important;
+  background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important;
   border: 2px solid #2563eb !important;
   border-radius: 28px !important;
-  box-shadow: 0 18px 60px rgba(17, 17, 17, .12) !important;
+  box-shadow: var(--ui-glass-floating-shadow) !important;
 }
 html.search-open body .nav-search-input-wrap {
   min-height: 0 !important; height: auto !important; padding: 6px 4px 12px !important;
@@ -8330,7 +8333,7 @@ html.search-open body .nav-search-recent a:hover { background: rgba(var(--np-ink
 html.search-open body .nav-search-recent a { gap: 6px !important; }
 html.search-open body .nav-search-recent .nav-search-suggest-icon { width: 22px !important; height: 22px !important; flex: 0 0 22px !important; margin: 0 !important; object-fit: contain !important; }
 /* 다크 모드: 큰 검색 패널·뒤 가림막이 밝은 종이색으로 박혀 흰 상자 위 흰 글자가 됐다(2026-10-04 확인) */
-html.dark.search-open body .nav-search-wrap { background: var(--dk-card) !important; box-shadow: 0 18px 60px rgba(0, 0, 0, .5) !important; }
+html.dark.search-open body .nav-search-wrap { background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important; box-shadow: var(--ui-glass-floating-shadow) !important; }
 html.dark body .nav-search-backdrop { background: rgba(10, 10, 10, .55) !important; }
 html.search-open body .nav-search-suggest {
   position: static !important; width: auto !important; max-height: 46vh !important; margin-top: 10px !important; overflow-y: auto !important;
@@ -8370,7 +8373,7 @@ html body .site-footer-learn a.learn-card {
   padding:24px!important; gap:10px!important; border:1px solid rgba(var(--np-ink),.14)!important; border-radius:28px!important;
   background:var(--wd-glass,#fff)!important; backdrop-filter:var(--wd-glass-filter,none)!important; -webkit-backdrop-filter:var(--wd-glass-filter,none)!important; box-shadow:var(--wd-glass-shadow,none)!important;
   text-align:left!important; text-decoration:none!important; white-space:normal!important; color:rgb(var(--np-ink))!important;
-  transition:border-color .2s,transform .2s!important; counter-increment:story;
+  transition:border-color var(--ui-glass-duration),transform var(--ui-glass-duration)!important; counter-increment:story;
 }
 html body .site-footer-learn a.learn-card::before { content:counter(story,decimal-leading-zero)!important; display:block!important; position:absolute; top:26px; right:24px; font:14px/1 var(--font-ui)!important; color:rgba(var(--np-ink),.4)!important; }
 html body .site-footer-learn a.learn-card::after { content:"↗"!important; display:block!important; width:auto!important; height:auto!important; background:none!important; border:0!important; position:absolute; bottom:28px; right:24px; margin:0!important; padding:0!important; font-size:18px!important; color:rgba(var(--np-ink),.45)!important; }
@@ -8378,7 +8381,7 @@ html body .site-footer-learn a.learn-card svg { position:absolute!important; top
 html body .site-footer-learn a.learn-card b { grid-row:2; font-family:var(--font-ui, "Pretendard Variable", "Pretendard", sans-serif) !important; font-size:23px!important; font-weight:400!important; line-height:1.5!important; white-space:normal!important; word-break:keep-all!important; color:rgb(var(--np-ink))!important; text-decoration:none!important; }
 html body .site-footer-learn a.learn-card small { grid-row:4; padding-right:24px; font:400 13px/1.5 var(--font-ui)!important; white-space:normal!important; color:rgba(var(--np-ink),.55)!important; text-decoration:none!important; }
 html body .site-footer-learn .learn-description { grid-row:3; font:400 13px/1.7 var(--font-ui)!important; white-space:normal!important; word-break:keep-all; overflow-wrap:anywhere; color:rgba(var(--np-ink),.7)!important; }
-html body .site-footer-learn a.learn-card:hover { transform:translateY(-3px)!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:var(--wd-glass-shadow,none)!important; }
+html body .site-footer-learn a.learn-card:hover { transform:translateY(var(--ui-glass-hover-lift))!important; border-color:rgba(var(--np-ink),.4)!important; box-shadow:var(--wd-glass-shadow,none)!important; }
 html.dark body .site-footer-learn a.learn-card { background:var(--wd-glass,var(--dk-card))!important; }
 html body .site-footer-learn a.learn-card:focus-visible { outline:2px solid rgb(var(--np-ink)); outline-offset:4px; }
 @media(max-width:1100px) {
@@ -8549,9 +8552,9 @@ html body :where(.ff-summary, .ff-summary-card, .ff-swing-summary, .ff-opinion-s
   box-sizing: border-box !important;
   border: 1px solid rgba(var(--np-ink), .09) !important;
   border-radius: 20px !important;
-  background: var(--np-paper) !important;
-  background-image: none !important;
-  box-shadow: none !important;
+  background: var(--ui-card-surface) !important;
+  background-image: var(--ui-glass-sheen) !important;
+  box-shadow: var(--ui-glass-shadow) !important;
   padding: 20px 24px !important;
   margin: 0 0 16px !important;
 }
@@ -8883,7 +8886,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
     #market-temp .mt-section, #market-temp .mt-card, #market-temp .mt-summary-sowhat, #market-temp .mt-sf-disclaimer, #market-temp .mt-sf-track,
     #strategy-search .ss-methodology, #strategy-search .ss-nearmiss, .home-sector-rotation) {
     border-style: solid !important; border-width: 1px !important; border-color: var(--ui-border) !important;
-    border-radius: var(--ui-radius-card) !important; box-shadow: none !important; background: var(--ui-card-surface) !important;
+    border-radius: var(--ui-radius-card) !important; box-shadow: var(--ui-glass-shadow) !important; background: var(--ui-glass-sheen), linear-gradient(var(--ui-card-surface), var(--ui-card-surface)) !important;
   }
   /* 박스 안쪽의 작은 틀(호가 요약·호가표·차트 틀)은 테두리·모서리·배경만 없앤다(바깥 구분선이 이미 있다). */
   html body :where(#stock-search #order-book .ob-hud, #stock-search #order-book .ob-board, #foreign-flow .ff-chart) {
@@ -9042,7 +9045,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
     #strategy-search .ss-card, #pattern-scan .ps-detail, #overnight-market .om-card, .market-discussion,
     .hwr-schedule, .hwr-news-card, .hwr-columns > article, .hwr-outcome-stat, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary,
     .feed-hero-featured-slot > .post-card, .feed-block-headline, .feed-block-cards > .post-card, .feed-block-duo > .post-card, .feed > .post-card:not(.notice-card)) {
-    background-color: var(--dk-card) !important;
+    background-color: var(--ui-card-surface) !important;
   }
   html.dark body :where(th, .hrt-head, .ss-summary-reason, .mt-top-note) { background-color: var(--dk-panel) !important; }
   html.dark body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-flow, .mt-market-decision, .mt-briefing-panel, .mt-sf-disclaimer),
