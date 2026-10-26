@@ -17,6 +17,7 @@ import time
 import urllib.request
 from datetime import datetime, timezone
 
+from scheduled_job import report_progress
 import daily_scan_cache
 import db_schema
 import invest_opinion
@@ -356,6 +357,7 @@ def main():
                                     timings, save_ohlc_snapshot, THROTTLE_SEC)
 
 
+    report_progress(0, len(universe), '일봉·수급 확인')
     for i, stock in enumerate(universe):
         code, name = stock['code'], stock['name']
         loop_started = time.perf_counter()
@@ -498,6 +500,8 @@ def main():
             log('[%d/%d] %s(%s) 실패: %s' % (i + 1, len(universe), name, code, e))
             continue
         finally:
+            if (i + 1) % 25 == 0 or i + 1 == len(universe):
+                report_progress(i + 1, len(universe), '일봉·수급 확인')
             # 실패해서 continue로 빠지는 종목도 시간은 센다 - 안 그러면 합계가 어긋난다.
             timings['loop'] += time.perf_counter() - loop_started
             if (i + 1) % 500 == 0 or (i + 1) == len(universe):

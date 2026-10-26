@@ -39,6 +39,7 @@ main.py의 /strategy-scan-batch가 이 캐시를 그대로 서빙한다(엔드�
 타이머는 바꾸지 않았다 - VM에 이미 등록된 kiwoom-strategyscan.timer가 이 파일명을 그대로
 가리키고 있어서 배포 경로를 유지해야 재등록 없이 그대로 돌아간다)."""
 
+from scheduled_job import report_progress
 import json
 import math
 import os
@@ -1535,22 +1536,28 @@ def main():
     # 로드해 공유한다.
     daily_cache = preload_daily_prices(conn, universe)
 
+    report_progress(0, 6, '재무건전 장기 눌림 계산', '단계')
     (sectors, scanned, skipped_no_data, skipped_illiquid,
      skipped_no_sector, skipped_no_fundamentals, near_misses) = scan(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, daily_cache=daily_cache)
+    report_progress(1, 6, '배당주 계산', '단계')
     dividend_sectors, dividend_scanned = scan_dividend(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
         daily_cache=daily_cache)
+    report_progress(2, 6, 'ETF·국민연금 계산', '단계')
     etf_return_sectors, etf_scanned = ({}, 0) if non_etf_weekly else scan_etf_returns(
         universe, conn, daily_cache=daily_cache)
     nps_sectors, nps_scanned = scan_nps_holdings(universe, wics_map, conn, theme_codes=theme_codes, daily_cache=daily_cache)
+    report_progress(3, 6, '목표주가 전략 계산', '단계')
     target_price_sectors, target_price_scanned = scan_target_price_gap(
         universe, wics_map, fundamentals_cache, conn, theme_codes=theme_codes, kiwoom_token=kiwoom_token,
         daily_cache=daily_cache)
 
+    report_progress(4, 6, '실적 우상향 계산', '단계')
     growth_sectors, growth_scanned = scan_earnings_growth(
         universe, wics_map, fundamentals_cache, conn, daily_cache=daily_cache)
 
+    report_progress(5, 6, '결과 저장', '단계')
     undervalued_category = {
         'name': '저평가 종목',
         'methodology': METHODOLOGY_NOTE,
@@ -1680,6 +1687,7 @@ def main():
     tmp_path = OUTPUT_FILE + '.tmp'
     with open(tmp_path, 'w', encoding='utf-8') as f:
         json.dump(output, f, ensure_ascii=False)
+    report_progress(5, 6, '결과 저장', '단계')
     os.replace(tmp_path, OUTPUT_FILE)  # 원자적 교체 - 쓰는 도중 /strategy-scan-batch가 읽어도 반쪽 파일을 못 봄
 
     # 캐시는 매일 덮어써서 이력이 안 남는다. 조건이 실제로 쓸모 있었는지 나중에 되짚을 수

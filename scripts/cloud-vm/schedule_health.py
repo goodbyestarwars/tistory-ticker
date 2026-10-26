@@ -74,7 +74,22 @@ def collect(app_dir=None, now=None, units=None):
                  '오류' if result and result != 'success' else '정상' if finished else '미확인')
         if state == '정상' and duration is not None and duration > _SLOW_SEC.get(key, 10**9):
             state = '지연'
-        rows.append({'id': key, 'name': label, 'state': state, 'lastStartedAt': started,
+        execution = executions.get(key) or {}
+        progress = None
+        try:
+            with open(os.path.join(app_dir or os.path.dirname(__file__), 'scan_progress_' + key + '.json'), encoding='utf-8') as stream:
+                candidate = json.load(stream)
+            if (candidate.get('runStartedAt') == execution.get('startedAt')
+                    and execution.get('state') == 'running'
+                    and isinstance(candidate.get('processed'), int)
+                    and isinstance(candidate.get('total'), int)
+                    and 0 <= candidate['processed'] <= candidate['total']
+                    and candidate['total'] > 0):
+                progress = {field: candidate.get(field) for field in
+                            ('runStartedAt', 'updatedAt', 'phase', 'processed', 'total', 'unit')}
+        except (OSError, ValueError, AttributeError, TypeError):
+            pass
+        rows.append({'progress': progress, 'id': key, 'name': label, 'state': state, 'lastStartedAt': started,
                      'lastSuccessAt': finished if result == 'success' else None,
                      'lastResult': result, 'nextRunAt': _kst_stamp(timer.get('NextElapseUSecRealtime')),
                      'elapsedSec': duration, 'contract': CONTRACTS.get(key),

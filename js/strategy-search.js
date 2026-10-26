@@ -1729,7 +1729,7 @@
       });
   }
 
-  global.StrategySearch = { init: init, fetchJson: fetchJson };
+  global.StrategySearch = { init: init, refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

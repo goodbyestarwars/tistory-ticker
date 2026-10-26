@@ -1105,6 +1105,21 @@
   }
 })();
 
+/* Scanner status is shared across the two scanner pages and survives result rerenders. */
+(function () {
+  if (!/\/(?:page|pages)\/(?:pattern-scan|strategy-search)\/?$/.test(location.pathname)) return;
+  var source = document.currentScript && document.currentScript.src;
+  if (!source || document.querySelector('[data-scanner-progress]')) return;
+  var css = document.createElement('link');
+  css.rel = 'stylesheet';
+  css.href = new URL('../css/scanner-progress.css', source).href;
+  document.head.appendChild(css);
+  var script = document.createElement('script');
+  script.src = new URL('scanner-progress.js', source).href;
+  script.setAttribute('data-scanner-progress', '');
+  document.head.appendChild(script);
+})();
+
 /* Shared interaction dependency, loaded once by the existing global entry point. */
 (function () {
   if (window.SiteInteractionsReady) return;

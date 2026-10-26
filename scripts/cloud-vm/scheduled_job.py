@@ -81,6 +81,21 @@ def write_status(folder, job, **values):
         atomic_json(target, data)
 
 
+def report_progress(processed, total, phase, unit='종목'):
+    """Optional telemetry, isolated per scheduled run; never blocks a scan on failure."""
+    job = os.environ.get('NINEPAY_PROGRESS_JOB')
+    started = os.environ.get('NINEPAY_PROGRESS_STARTED')
+    if job not in CONTRACTS or not started:
+        return
+    try:
+        atomic_json(Path(__file__).parent / ('scan_progress_' + job + '.json'), {
+            'runStartedAt': started, 'updatedAt': stamp(), 'phase': phase,
+            'processed': int(processed), 'total': int(total), 'unit': unit,
+        })
+    except (OSError, ValueError, TypeError):
+        pass
+
+
 def stamp():
     return datetime.now(KST).isoformat(timespec='seconds')
 
@@ -178,7 +193,10 @@ def run(job, command, folder, contract=None, grace=30, now=None):
             env = dict(os.environ)
             if policy['window'] == 'night':
                 env['NINEPAY_SCAN_DATA_DATE'] = basis
-            write_status(folder, job, state='running', startedAt=stamp(), waitSec=wait, dataDate=basis)
+            run_started = stamp()
+            env['NINEPAY_PROGRESS_JOB'] = job
+            env['NINEPAY_PROGRESS_STARTED'] = run_started
+            write_status(folder, job, state='running', startedAt=run_started, waitSec=wait, dataDate=basis)
             process = None
             started = time.monotonic()
             previous = {}
