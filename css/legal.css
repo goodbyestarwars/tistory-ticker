@@ -352,7 +352,7 @@ body.learn-page .legal-wrap .legal-contact {
 /* 번호 설명(그림의 ①②③과 짝) */
 .gd-legend { list-style: none; margin: 0 0 14px; padding: 0; counter-reset: gdl; }
 .gd-legend > li { position: relative; margin: 0 0 8px; padding-left: 30px; counter-increment: gdl; }
-.gd-legend > li::before { content: counter(gdl); position: absolute; left: 0; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #c08a2b; color: #fffaf0; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
+.gd-legend > li::before { content: counter(gdl); position: absolute; left: 0; top: 3px; width: 20px; height: 20px; border-radius: 50%; background: #1f2937; color: #f8f0db; font-size: 12px; font-weight: 700; line-height: 20px; text-align: center; }
 
 /* 자주 묻는 질문 */
 .gd-faq { margin: 0 0 6px; border-bottom: 1px solid #e7e4d8; }
@@ -375,7 +375,7 @@ body.learn-page .legal-wrap .legal-contact {
   .gd-btn { border-color: #34415b; background: #1d2637; color: #e8eef7; }
   .gd-up { color: #ff8a80; }
   .gd-down { color: #7fb3ff; }
-  .gd-legend > li::before { background: #e0b25a; color: #16202f; }
+  .gd-legend > li::before { background: #d3dbe8; color: #16202f; }
   .gd-faq { border-bottom-color: #263048; }
 }
 
