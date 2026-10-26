@@ -33,13 +33,16 @@
   var document = global.document;
   var strategy = /strategy-search/.test(global.location.pathname);
   var selector = strategy ? '#strategy-search' : '#pattern-scan';
+  var selfUrl = document.currentScript && document.currentScript.src;
   var strip, pending = false, attempts = 0, previousCompletion;
   var esc = function (s) { return global.NineUI.escapeHtml(String(s || '')); };
   function render(value) {
     strip.classList.toggle('is-complete', value.compact);
     var known = value.percent !== null;
     var label = known ? value.percent + '%' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline/.test(value.state) ? '중단' : '집계 대기';
-    strip.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
+    var panel = strip.querySelector('.scan-status-panel') || strip;
+    strip.setAttribute('data-state', value.state);
+    panel.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
       + '<svg class="scan-progress-ring" viewBox="0 0 112 112" aria-hidden="true"><circle class="scan-progress-track" cx="56" cy="56" r="47"/>'
       + '<circle class="scan-progress-value" cx="56" cy="56" r="47" pathLength="100" style="stroke-dasharray:' + (known ? value.percent : 0) + ' 100"/></svg>'
       + '<svg class="scan-progress-bolt" viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 10-13h-8z"/></svg>'
@@ -80,11 +83,17 @@
     if (document.getElementById('scanner-progress-status')) return;
     strip = document.createElement('section');
     strip.id = 'scanner-progress-status';
-    strip.className = 'scanner-progress-status';
+    strip.className = 'scanner-progress-status' + (strategy ? '' : ' is-dashboard');
+    if (!strategy) strip.innerHTML = '<div class="scan-status-panel" aria-live="polite"></div>';
     strip.setAttribute('aria-label', '검색기 업데이트 진행 상황');
     container.parentNode.insertBefore(strip, container);
     render(model([], strategy, Date.now()));
     refresh();
+    if (!strategy && selfUrl) {
+      var dashboard = document.createElement('script');
+      dashboard.src = new URL('scanner-dashboard.js', selfUrl).href;
+      document.head.appendChild(dashboard);
+    }
     global.setInterval(refresh, 60000);
     document.addEventListener('visibilitychange', function () { if (!document.hidden) refresh(); });
   }

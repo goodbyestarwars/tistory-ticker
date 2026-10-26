@@ -27,3 +27,8 @@
 **2026-10-24 홈 대시보드: 국내 `증시온도` 줄 삭제 · 미국 상승 종목 비율 옆 막대**
 
 사용자 지시(스크린샷). `js/skin-main.js`: 국내 시장 탭의 `증시온도 23점 공포` 줄(`.hmb2-temp`)을 숨김(미국 탭은 상승 종목 비율 줄 유지, 미국 개장 전·마감·휴장은 기존대로 숨김). 미국 장중에는 `renderUsMarketSummary`가 상승 종목 비율 옆에 120px 가로 막대(상승=`--num-up` 붉은색, 나머지=`--num-down` 푸른색, 툴팁에 비율)를 그리고 장이 닫히면 숨긴다. `css/home-market-board.css`: 막대 스타일. 증시온도 데이터·계산·증시온도 페이지는 불변. `test_home_us_session_single_status.js`의 국내 복귀 기대값을 `숨김`으로 변경(통과). 기존 실패(test_home_chart_history·investor_chart)는 변경 전부터. 미확인: 홈 화면 실제 렌더(미국 장중 막대는 장이 열린 시간에만 보임). 배포: js/css master 머지 후 Pages 자동.
+
+
+**2026-10-24 미국 종목 요약 카드 시간외 안내 정렬**
+
+사용자 지적(스크린샷: 스페이스X, 애프터마켓). `js/us-stocks.js` embedded 요약 카드의 `data-us-session-comparison`(`정규장 종가 … · 시간외 등락은 정규장 종가 대비`)이 `#stock-search .ss-summary`의 2열 격자 오른쪽 칸에 끼어 헤더 옆에 어긋나 보였다. `css/stock-search.css` 끝에 규칙: 이 줄을 `grid-column:1/-1`로 헤더 아래 전체 폭 왼쪽 정렬 한 줄로(테두리·배경 없음, 12px). 아래 분석 카드 5칸·전일 종가 줄은 변경 없음. 미확인: 실제 화면(시간외 시간대에만 보임). 배포: css master 머지 후 Pages 자동.

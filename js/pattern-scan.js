@@ -1123,6 +1123,7 @@
   }
 
   function paintStageCounts(container) {
+    publishDashboard();
     var key = scannerKey(activeTab);
     var cached = trackedCache[key + '|active'];
     var stats = cached && cached.data && cached.data.stats;
@@ -1343,6 +1344,7 @@
   }
 
   function renderList(container) {
+    publishDashboard();
     var list = container.querySelector('#psList');
     if (!list) return;
     if (groupFor(activeTab)) { renderUnifiedList(container); return; }
@@ -2611,7 +2613,58 @@
 
   function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
-  global.PatternScan = { init: init, refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, menuTabs: MENU_TABS };
+  // Dashboard reads the same selected source, caches and stage rules as the results below.
+  function dashboardSnapshot() {
+    var key = scannerKey(activeTab);
+    var source = key.replace(/^pattern:/, '');
+    var history = scanPerformanceByKey[key];
+    var cache = trackedCache[key + '|active'];
+    var tracks = cache && cache.data;
+    var map = trackMapFor(key);
+    var current = groupFor(activeTab) ? unifiedItems().reduce(function (out, row) {
+      var member = row.members.filter(function (m) { return m.key === source; })[0];
+      if (member) out.push(member.item);
+      return out;
+    }, []) : ((scanData && scanData.patterns && scanData.patterns[source]) || []);
+    var rows = current.map(function (item) {
+      var track = map[item.code];
+      var detail = item.patternDetail || {};
+      var at = item.signalAt || item.firstDetectedAt || item.firstObservedAt || (track && track.created_at)
+        || item.scannedAt || detail.scanned_at || item.lastObservedAt || item.date;
+      var stage = itemStage(item);
+      return { code: String(item.code), name: item.name || item.code, at: at,
+        reason: scannerSignal(item, source), badge: stage.label, stage: stage.key, item: item };
+    });
+    return { source: key, label: sourceLabel(source), current: rows,
+      currentLoaded: source === 'volumeBreakout' ? !!(liveSurgeInfo || scanData) : !!scanData,
+      hits: history && history.hits, stats: tracks && tracks.stats,
+      historyLoaded: !!history, historyLimit: 1500 };
+  }
+  function publishDashboard() {
+    if (typeof global.CustomEvent === 'function') document.dispatchEvent(new global.CustomEvent('pattern-scan-data', { detail: dashboardSnapshot() }));
+  }
+  function showDashboardResults() {
+    var container = document.querySelector(CONTAINER_SELECTOR);
+    if (!container) return;
+    trackView = 'all';
+    container.querySelectorAll('[data-view]').forEach(function (button) {
+      var on = button.getAttribute('data-view') === 'all';
+      button.classList.toggle('active', on); button.setAttribute('aria-selected', String(on));
+    });
+    renderList(container);
+    var list = container.querySelector('#psList');
+    if (list) { list.setAttribute('tabindex', '-1'); list.focus({ preventScroll:true }); list.scrollIntoView({ block:'start', behavior:'auto' }); }
+  }
+  function openDashboardSignal(code, historical) {
+    var snapshot = dashboardSnapshot();
+    var row = snapshot.current.filter(function (r) { return r.code === code; })[0];
+    var hit = (snapshot.hits || []).filter(function (r) { return r.code === code; })[0] || historical;
+    if (rootContainer && (row || hit)) openDetail(rootContainer, Object.assign({}, row ? row.item : {
+      code:hit.code, name:hit.name, date:hit.scanDate || String(hit.at).slice(0,10), price:hit.basePrice
+    }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
+  }
+
+  global.PatternScan = { init: init, refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);
