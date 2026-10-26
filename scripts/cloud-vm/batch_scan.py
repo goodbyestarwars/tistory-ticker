@@ -170,6 +170,15 @@ def is_stale(fetched_at, code):
     return age_days >= FUNDAMENTALS_STALE_DAYS
 
 
+def needs_ytd_backfill(entry, now=None):
+    """신규 올해 누적실적 필드가 없는 기존 분기 캐시를 배치에서 점진적으로 채운다."""
+    now = now or datetime.now(timezone.utc)
+    q = (entry or {}).get('latest_quarter') or {}
+    return (q.get('year') == now.year
+            and q.get('reprt_code') in ('11013', '11012', '11014')
+            and 'ytd' not in q)
+
+
 def disclosure_due(entry, now=None):
     """마지막 공시 확인 후 DISCLOSURE_CHECK_DAYS가 지났는지(확인 기록이 없으면 True)."""
     now = now or datetime.now(timezone.utc)
@@ -257,7 +266,9 @@ def scan_fundamentals(codes_map, candidate_only=False):
         # Revisit legacy entries once, then let the normal 90-day freshness
         # window apply even when DART has no dividend rows for that company.
         corp_code = corp_map.get(code)
-        fresh = not is_stale(fetched_at, code) and 'dividend' in (cache.get(code) or {}) and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code)))
+        fresh = (not is_stale(fetched_at, code) and not needs_ytd_backfill(cache.get(code))
+                 and 'dividend' in (cache.get(code) or {})
+                 and (not needs_screening or fundamentals.screening_cache_fresh(cache.get(code))))
         if fresh and corp_code and disclosure_due(cache.get(code)):
             # 90일 이내라도 신규 분기·반기·사업보고서나 정정공시가 나왔으면 다시 수집한다.
             try:
