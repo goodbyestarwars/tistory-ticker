@@ -177,6 +177,44 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><a href="https://ghlee.tistory.com/page/watchlist">MY</a>에 평단가를 넣으면 평가손익과 물타기 계산을 볼 수 있다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="advanced-risk">
+  <h2 id="advanced-risk">심화 연구실 · 종목이 아니라 포트폴리오가 살아남아야 한다</h2>
+  <p>위험관리는 손절 퍼센트 하나가 아니라 <b>포지션 크기, 자산 간 상관관계, 유동성, 동시에 손실이 발생하는 꼬리 위험</b>을 함께 관리하는 분야다. 위험 지표는 과거 자료에서 추정하므로 미래 손실의 상한선을 보증하지 않는다.</p>
+  <div class="learn-grid">
+    <div><h3>기대수익률과 변동성</h3><p>같은 평균 수익률이라도 매번 ±1% 흔들리는 전략과 ±10% 흔들리는 전략은 자본 관리가 다르다. 수익률 표준편차는 분산 정도를 알려 주지만 급락과 분포의 비대칭을 단독으로 설명하지 못한다.</p></div>
+    <div><h3>상관관계와 집중 위험</h3><p>서로 다른 이름의 ETF 5개를 샀어도 모두 같은 반도체 대형주를 담았다면 분산 효과가 작다. 상관관계와 기초자산 중복, 통화와 산업 노출을 같이 봐야 한다.</p></div>
+  </div>
+  <div class="learn-lab">
+    <h3>계산 실험 · 손실 허용액으로 주문 수량 정하기</h3>
+    <p>총자산이 1,000만 원이고 한 번의 거래에서 감수할 계획 손실을 0.5%(5만 원)로 잡았다고 가정하자. 진입가가 20,000원, 계획 손절가가 19,000원이라면 주당 계획 손실액은 1,000원이고 주문 수량은 50주다.</p>
+    <p class="learn-math">계획 주문 수량 = 계좌 허용 손실액 ÷ (진입가 − 계획 손절가) = 50,000 ÷ 1,000 = 50주</p>
+    <p>실제 손실이 5만 원을 넘지 않는다는 뜻은 아니다. 급락 갭, 가격제한폭, 거래 중단, 주문 체결 지연, 수수료와 슬리피지가 있으면 계획 손절가에 팔지 못할 수 있다.</p>
+  </div>
+  <figure class="learn-fig">
+    <svg viewBox="0 0 520 192" role="img" aria-label="같은 수익률이라도 자산 간 상관관계가 높으면 분산 효과가 약해지는 두 포트폴리오 비교 그림">
+      <text class="fig-ink" x="0" y="23">서로 다른 종목 = 반드시 분산은 아니다</text>
+      <rect class="fig-soft" x="0" y="42" width="246" height="112" rx="6"/>
+      <rect class="fig-soft2" x="274" y="42" width="246" height="112" rx="6"/>
+      <text class="fig-ink" x="16" y="67">유사 업종만 보유</text><text class="fig-ink" x="288" y="67">산업·자산·통화 분산</text>
+      <rect class="fig-down" x="16" y="84" width="214" height="23" rx="3"/>
+      <rect class="fig-down" x="16" y="115" width="214" height="23" rx="3" opacity=".65"/>
+      <rect class="fig-down" x="290" y="84" width="68" height="23" rx="3"/>
+      <rect class="fig-up" x="369" y="84" width="68" height="23" rx="3"/>
+      <rect class="fig-soft" x="448" y="84" width="58" height="23" rx="3"/>
+      <text class="fig-sub" x="290" y="134">상관관계도 점검</text>
+      <text class="fig-sub" x="0" y="178">직사각형은 개념 도식이며 실제 기대수익률·리스크의 크기를 표시하지 않는다.</text>
+    </svg>
+    <figcaption>연구 그림 ⑤ 종목 수가 아니라 위험 요인의 겹침을 평가한다.</figcaption>
+  </figure>
+  <div class="learn-lab">
+    <h3>모델링 심화 · VaR와 기대초과손실(ES)</h3>
+    <p><b>VaR</b>는 일정 기간과 신뢰수준에서 손실이 얼마나 클 수 있는지의 분위수다. 예를 들어 1일 95% VaR가 2%라면 과거 분포를 근거로 5%의 날에는 2%보다 큰 손실이 발생할 수 있다고 추정한다. <b>그 5%의 날에 얼마나 더 크게 잃는지는 VaR가 설명하지 못한다.</b> ES는 그 꼬리 구간의 평균 손실을 보완적으로 살핀다.</p>
+    <p>상관관계도 위기 때 갑자기 높아질 수 있으므로 평상시의 분산 효과를 영구적인 보험처럼 취급하지 않는다.</p>
+  </div>
+  <div class="learn-sources"><strong>더 깊게 읽기</strong><ul><li><a href="https://www.bis.org/bcbs/" target="_blank" rel="noopener noreferrer">국제결제은행(BIS) · 시장 위험과 금융 안정 관련 자료</a></li><li><a href="https://www.cfainstitute.org/" target="_blank" rel="noopener noreferrer">CFA Institute · 포트폴리오 위험관리 학습자료</a></li></ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>크게 잃지 않으면 기회는 다시 온다. 빚내지 않고, 장세에 맞는 행동을 정하고, 기록을 남긴다.</p>
 
