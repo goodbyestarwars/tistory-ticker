@@ -25,6 +25,24 @@
   flex-wrap: wrap;
 }
 
+#strategy-search .ss-tab-pending {
+  display: inline-block;
+  margin-left: 3px;
+  color: #64748b;
+  font-size: 10px;
+  font-weight: 500;
+}
+
+#strategy-search .ss-scan-pending {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  padding: 16px;
+}
+
+#strategy-search .ss-scan-pending strong { color: #334155; }
+#strategy-search .ss-scan-pending span { color: #64748b; }
+
 /* 2026-08-21 코드 감사: .ss-tab/.ss-tab.active의 1세대(알약형, 여기)·2세대(밑줄형,
    "2026-08 결과 정리" 참고)가 지워지지 않고 3세대(다시 알약형, !important, "2026-08:
    전략검색의 전략·상품 선택도..." 참고)로 !important를 총동원해 덮어써지고 있었다 -
