@@ -1195,6 +1195,7 @@
   };
   global.OvernightMarket = OvernightMarket;
   OvernightMarket.cryptoTools = {
+    quoteContractVersion: 1,
     symbols: BINANCE_SYMBOLS, fetchTokens: loadBinanceDirect, get: binanceGet,
     body: buildCardBody, chart: renderSparkline, destroy: destroyChart,
     setAverages: function (symbol, year, half) { benchmarks[symbol] = year; benchmarks6m[symbol] = half; }

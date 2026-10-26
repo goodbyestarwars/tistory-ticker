@@ -48,6 +48,9 @@ jobs:
           node test/test_home_countdown_scope.js
           node test/test_crypto_shared_quotes.js
           node test/test_binance_shared_quotes.js
+          node test/test_weekend_binance.js
+          node test/test_weekend_commodities.js
+          node test/test_weekend_native_content.js
           node test/test_early_bootstrap.js
           node test/test_chart_core.js
       - name: Page consumer refresh and partial failure behavior

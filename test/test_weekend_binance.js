@@ -1,0 +1,34 @@
+'use strict';
+require('./helpers/common_runtime');
+const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const flush=async()=>{for(let i=0;i<40;i++)await Promise.resolve();};
+test('home paints Upbit while Binance is pending; USDT prices survive failures and hidden tabs do not poll',async()=>{
+  let resolveTokens,tokenHandler=()=>new Promise(resolve=>{resolveTokens=resolve;}),coinCalls=0,tokenCalls=0;
+  const intervals=[],mount={innerHTML:''},root={hidden:false,querySelector:s=>s==='[data-hwr-live]'?mount:null};
+  const document={hidden:false,body:{contains:()=>true},addEventListener(){},removeEventListener(){}};
+  const window={CryptoMarket:{quoteContractVersion:1,coins:[['BTC','비트코인']],fetchCoinQuotes:async()=>{coinCalls++;return[{symbol:'BTC',price:1000000,change_rate:0,updated_at:'2026-10-26T00:00:00Z'}];},fetchTokenQuotes:()=>{tokenCalls++;return tokenHandler();}}};
+  const context={window,document,URL,AbortController,setTimeout,clearTimeout,setInterval:fn=>{intervals.push(fn);return 1;},clearInterval(){},fetch:()=>{throw Error('Unexpected domestic/extra API request');}};
+  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };','global.HomeWeeklyReport = {live:loadWeekendLive};');
+  vm.runInNewContext(source,context);window.HomeWeeklyReport.live(root);await flush();
+  assert.match(mount.innerHTML,/1,000,000원/);assert.match(mount.innerHTML,/상장 종목과 시세 확인 중/);
+  resolveTokens({symbols:[['SAMSUNGUSDT','삼성전자'],['KODEX200USDT','KODEX 200']],items:[{symbol:'SAMSUNGUSDT',quoteAsset:'USDT',price:165,changeRate:1.2},{symbol:'KODEX200USDT',quoteAsset:'EUR',price:50,changeRate:2}],updatedAt:'2026-10-26T00:00:00Z'});await flush();
+  assert.match(mount.innerHTML,/165\.00 <small>USDT/);assert.match(mount.innerHTML,/\+1\.20%/);
+  assert.doesNotMatch(mount.innerHTML,/국내 주식 마감|213,500|50\.00/);
+  tokenHandler=async()=>{throw Error('restricted');};window.HomeWeeklyReport.live(root);await flush();
+  assert.match(mount.innerHTML,/165\.00/);assert.match(mount.innerHTML,/갱신 지연/);
+  tokenHandler=async()=>({symbols:[['SAMSUNGUSDT','삼성전자']],items:[],updatedAt:'2026-10-26T00:30:00Z'});window.HomeWeeklyReport.live(root);await flush();
+  assert.match(mount.innerHTML,/165\.00/);assert.doesNotMatch(mount.innerHTML,/09:30:00/);
+  document.hidden=true;const before=[coinCalls,tokenCalls];intervals[0]();await flush();assert.deepEqual([coinCalls,tokenCalls],before);
+  document.hidden=false;tokenHandler=async()=>({symbols:[],items:[],updatedAt:'2026-10-26T00:01:00Z'});window.HomeWeeklyReport.live(root);await flush();
+  assert.doesNotMatch(mount.innerHTML,/data-token-symbol/);assert.match(mount.innerHTML,/현재 거래 가능한 종목이 없습니다/);
+});
+test('home upgrades an already loaded legacy crypto module and retries a mismatched cached script',async()=>{
+  const scripts=[],window={CryptoMarket:{fetchCoinQuotes(){},fetchTokenQuotes(){}}};
+  const document={createElement:()=>({}),head:{appendChild:s=>scripts.push(s)}};
+  const source=fs.readFileSync('js/home-weekly-report.js','utf8').replace('global.HomeWeeklyReport = { init: init, syncContent: syncContent };','global.HomeWeeklyReport = {module:coinModule};');
+  vm.runInNewContext(source,{window,document,URL,AbortController,setTimeout,clearTimeout});
+  const pending=window.HomeWeeklyReport.module();assert.equal(scripts.length,1);assert.match(scripts[0].src,/v=20261026-listed-quotes/);
+  scripts[0].onload();await assert.rejects(pending,/contract/);
+  const retry=window.HomeWeeklyReport.module();assert.equal(scripts.length,2);
+  window.CryptoMarket.quoteContractVersion=1;scripts[1].onload();assert.equal(await retry,window.CryptoMarket);
+});

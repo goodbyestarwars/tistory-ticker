@@ -7,7 +7,7 @@ const original = fs.readFileSync('js/home-weekly-report.js', 'utf8');
 function fixture() {
   const mounts = new Map(), requests = [], intervals = [];
   const document = {hidden:false, body:{contains:()=>true}, querySelector:()=>null, querySelectorAll:()=>[], addEventListener(){},removeEventListener(){}};
-  const window = {MarketHours:{kst:()=>({dateKey:'20261024'}),isKrTradingDay:d=>d.getUTCDay()>0&&d.getUTCDay()<6},CryptoMarket:{coins:[['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']],fetchCoinQuotes:()=>{requests.push('shared-coins');return handler('shared-coins');}}};
+  const window = {MarketHours:{kst:()=>({dateKey:'20261024'}),isKrTradingDay:d=>d.getUTCDay()>0&&d.getUTCDay()<6},CryptoMarket:{quoteContractVersion:1,coins:[['BTC','비트코인'],['ETH','이더리움'],['USDT','테더']],fetchCoinQuotes:()=>{requests.push('shared-coins');return handler('shared-coins');}}};
   let handler = async url => [{symbol:'BTC',price:100,change_rate:1,updated_at:'2026-10-24T12:00:00+09:00'}];
   const context = vm.createContext({window,document,console,URL,AbortController,localStorage:{getItem:()=>null},
     setTimeout:()=>1,clearTimeout(){},setInterval:f=>{intervals.push(f);return 1;},clearInterval(){},

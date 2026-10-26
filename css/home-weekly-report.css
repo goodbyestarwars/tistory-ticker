@@ -118,6 +118,10 @@ html.dark .weekend-dashboard {
   align-items: stretch;
 }
 
+.weekend-dashboard .wd-market-overview { gap: var(--ui-section-gap,20px); }
+.weekend-dashboard .wd-live-panel { grid-column: 1 / -1; }
+.weekend-dashboard .wd-market-overview .hwr-schedule-list li { padding: 12px 0; }
+
 .weekend-dashboard .wd-section-head {
   display: flex;
   justify-content: space-between;
@@ -324,6 +328,40 @@ html.dark .weekend-dashboard {
    06. 가상자산 · 가격 · 보조 안내
    ========================================================================== */
 
+.weekend-dashboard .wd-commodity-cards { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: 18px 0 12px; }
+.weekend-dashboard .wd-commodity { min-width: 0; }
+.weekend-dashboard .wd-commodity + .wd-commodity { border-left: 1px solid var(--wd-line); padding-left: 14px; }
+.weekend-dashboard .wd-commodity-label { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.weekend-dashboard .wd-commodity-label strong { color: var(--wd-text); font-size: 14px; font-weight: 600; }
+.weekend-dashboard .wd-commodity-label small { font-size: 10px; }
+.weekend-dashboard .wd-commodity-value { display: block; color: var(--wd-text); font-size: clamp(21px,1.9vw,26px); font-weight: 650; letter-spacing: -.04em; line-height: 1.3; }
+.weekend-dashboard .wd-commodity-unit { display: block; color: var(--wd-sub); font-size: 10px; margin-top: 3px; }
+.weekend-dashboard .wd-commodity-change { display: flex; align-items: baseline; flex-wrap: wrap; gap: 6px; margin-top: 10px; font-size: 15px; }
+.weekend-dashboard .wd-commodity-change small { color: var(--wd-sub); font-size: 10px; font-weight: 400; }
+.weekend-dashboard .wd-commodity-chart { margin: 14px 0; }
+.weekend-dashboard .wd-commodity-chart svg { display: block; width: 100%; height: 32px; }
+.weekend-dashboard .wd-commodity-chart small { display: block; font-size: 10px; margin-top: 4px; }
+.weekend-dashboard .wd-commodity-meta { display: grid; gap: 3px; color: var(--wd-sub); font-size: 10px; line-height: 1.5; }
+.weekend-dashboard .wd-commodity-meta > span { color: var(--wd-text); }
+.weekend-dashboard .wd-commodity-meta time { white-space: nowrap; }
+.weekend-dashboard .wd-commodity-meta small { font-size: inherit; overflow-wrap: anywhere; }
+.weekend-dashboard .wd-live-split { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 24px; }
+.weekend-dashboard .wd-live-group { min-width: 0; container-type: inline-size; }
+.weekend-dashboard .wd-live-group + .wd-live-group { padding-left: 24px; border-left: 1px solid var(--wd-line); }
+.weekend-dashboard .wd-token-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 18px; list-style: none; margin: 0; padding: 0; }
+.weekend-dashboard .wd-token { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: center; gap: 3px 10px; padding: 9px 0; border-bottom: 1px solid var(--wd-line); min-width: 0; }
+.weekend-dashboard .wd-token-name { min-width: 0; }
+.weekend-dashboard .wd-token-name strong { display: block; color: var(--wd-text); font-size: 13px; font-weight: 600; }
+.weekend-dashboard .wd-token-name small { display: block; font-size: 10px; overflow-wrap: anywhere; }
+.weekend-dashboard .wd-token-quote { text-align: right; white-space: nowrap; }
+.weekend-dashboard .wd-token-quote b { display: block; color: var(--wd-text); font-size: 13px; font-weight: 600; }
+.weekend-dashboard .wd-token-quote b small { font-size: 10px; font-weight: 400; }
+.weekend-dashboard .wd-token-quote em { display: block; font-size: 12px; font-weight: 600; font-style: normal; }
+.weekend-dashboard .wd-token-status { grid-column: 1 / -1; font-size: 10px; }
+@container (max-width:440px) {
+  .weekend-dashboard .wd-token-list { grid-template-columns: minmax(0,1fr); }
+}
+
 .weekend-dashboard .wd-coin {
   display: grid;
   grid-template-columns: 32px minmax(0,44%) 68px minmax(max-content,1fr);
@@ -354,16 +392,6 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-list > .wd-coin:nth-child(1) .wd-coin-icon { color: #F7931A; }
 .weekend-dashboard .wd-list > .wd-coin:nth-child(2) .wd-coin-icon { color: #627EEA; }
 .weekend-dashboard .wd-list > .wd-coin:nth-child(3) .wd-coin-icon { color: #26A17B; }
-.weekend-dashboard .wd-list > .wd-stock:nth-child(4) .wd-coin-icon {
-  color: transparent;
-  font-size: 0;
-  background: center / 24px 24px no-repeat url("../img/stock-icons/005930.svg");
-}
-.weekend-dashboard .wd-list > .wd-stock:nth-child(5) .wd-coin-icon {
-  color: transparent;
-  font-size: 0;
-  background: center / 24px 24px no-repeat url("../img/stock-icons/000660.svg");
-}
 
 .weekend-dashboard .wd-coin > .is-up,
 .weekend-dashboard .wd-coin > .is-down,
@@ -739,6 +767,12 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   .weekend-dashboard .wd-grid {
     grid-template-columns: minmax(0,1fr);
   }
+  .weekend-dashboard .wd-commodity-cards { gap: 12px; }
+  .weekend-dashboard .wd-commodity + .wd-commodity { padding-left: 12px; }
+  .weekend-dashboard .wd-commodity-value { font-size: 20px; }
+  .weekend-dashboard .wd-commodity-meta time { white-space: normal; }
+  .weekend-dashboard .wd-live-split { grid-template-columns: minmax(0,1fr); gap: 18px; }
+  .weekend-dashboard .wd-live-group + .wd-live-group { padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--wd-line); }
 
   .weekend-dashboard .wd-header {
     min-height: 142px;
@@ -760,7 +794,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   }
 
   .weekend-dashboard .wd-coin {
-    grid-template-columns: 28px minmax(0,36%) 64px minmax(max-content,1fr);
+    grid-template-columns: 28px minmax(0,1fr) 60px max-content;
     gap: 6px;
     font-size: 12px;
   }
@@ -781,9 +815,21 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 
 }
 
+@media (max-width: 480px) {
+  .weekend-dashboard .wd-commodity-cards { grid-template-columns: minmax(0,1fr); gap: 0; margin: 6px 0 12px; }
+  .weekend-dashboard .wd-commodity { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: "label value" "change unit" "chart meta"; gap: 6px 16px; padding: 14px 0; }
+  .weekend-dashboard .wd-commodity + .wd-commodity { border-left: 0; border-top: 1px solid var(--wd-line); padding-left: 0; }
+  .weekend-dashboard .wd-commodity-label { grid-area: label; margin: 0; }
+  .weekend-dashboard .wd-commodity-value { grid-area: value; text-align: right; font-size: 24px; }
+  .weekend-dashboard .wd-commodity-unit { grid-area: unit; text-align: right; margin: 0; }
+  .weekend-dashboard .wd-commodity-change { grid-area: change; margin: 0; }
+  .weekend-dashboard .wd-commodity-chart { grid-area: chart; margin: 6px 0 0; }
+  .weekend-dashboard .wd-commodity-meta { grid-area: meta; text-align: right; align-content: center; }
+}
+
 @media (max-width: 380px) {
   .weekend-dashboard .wd-coin {
-    grid-template-columns: 28px minmax(0,30%) 58px minmax(max-content,1fr);
+    grid-template-columns: 28px minmax(0,1fr) 58px max-content;
     gap: 4px;
   }
 }
