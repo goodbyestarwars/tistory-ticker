@@ -379,6 +379,32 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li>NAV·괴리율·총보수는 증권사 앱의 ETF 상세 화면과 운용사 홈페이지에서 확인한다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="etf-advanced">
+  <h2 id="etf-advanced">심화 연구실 · ETF가 지수를 따라가는 메커니즘</h2>
+  <p>ETF 가격이 순자산가치(NAV) 근처에 머무는 이유 중 하나는 지정참가회사(AP) 등의 <b>설정·환매</b>과 시장조성 활동이다. 하지만 해외 기초자산 시장이 닫혔거나 변동성이 커진 날은 추정 NAV 자체가 불확실하므로 괴리율만으로 반드시 차익거래가 가능하다고 판단할 수 없다.</p>
+  <div class="learn-lab">
+    <h3>계산 실험 · NAV 10,000원, 매수호가 10,150원</h3>
+    <p>가상의 ETF 기준가가 10,000원이고 실제 시장에서 매수할 수 있는 가격이 10,150원이라면 즉시 지불하는 프리미엄은 약 <b>1.5%</b>다. 여기에 거래 수수료, 추적 차이, 환율·세금 등을 별도로 따져야 한다.</p>
+    <p class="learn-math">프리미엄 = (ETF 매수 가격 ÷ 기준 NAV − 1) × 100 = 1.5%</p>
+    <p>화면에 나타난 NAV가 실시간으로 계산된 값인지, 전일 확정 값인지 먼저 확인한다. 유동성이 얕으면 호가 간격도 넓어진다.</p>
+  </div>
+  <figure class="learn-fig"><svg viewBox="0 0 520 187" role="img" aria-label="ETF 순자산가치 NAV와 실제 매수호가의 차이를 비교하는 가격 프리미엄 그림">
+    <text class="fig-ink" x="0" y="24">같은 ETF, 기준가와 매수가격을 나란히</text>
+    <rect class="fig-soft" x="0" y="44" width="246" height="115" rx="6"/>
+    <rect class="fig-soft2" x="274" y="44" width="246" height="115" rx="6"/>
+    <text class="fig-ink" x="13" y="74">순자산가치 NAV</text><text class="fig-ink" x="13" y="111">10,000원</text>
+    <text class="fig-ink" x="286" y="74">시장의 매수호가</text><text class="fig-ink" x="286" y="111">10,150원</text>
+    <text class="fig-sub" x="286" y="137">프리미엄 +1.5%</text>
+    <text class="fig-sub" x="0" y="182">이 예시는 NAV 확정 시점과 시장 거래 시점이 같다고 가정한다.</text>
+  </svg><figcaption>심화 그림 ⑥ 화면의 거래가와 기초자산 가치는 시점·거래비용에 따라 달라질 수 있다.</figcaption></figure>
+  <div class="learn-grid">
+    <div><h3>추적 차이와 추적오차</h3><p><b>추적 차이</b>는 일정 기간 ETF 실제 수익률과 기준 지수 수익률의 차이다. <b>추적오차</b>는 그 차이가 얼마나 흔들리는지를 나타내는 통계적 측정이다. 비용, 현금보유, 세금, 리밸런싱, 합성 운용이 영향을 준다.</p></div>
+    <div><h3>일일 2배 ETF의 경로 의존성</h3><p>지수가 첫날 +10%, 다음 날 −9.09%면 원래 수준과 거의 같다. 일일 2배 ETF는 단순 계산으로 +20% 후 −18.18%여서 약 −1.82%다. 두 날 누적 지수 수익의 2배와 같지 않다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>확인 자료</strong><ul><li><a href="https://www.investor.gov/" target="_blank" rel="noopener noreferrer">SEC Investor.gov · ETF 구조와 투자자 위험</a></li><li><a href="https://www.krx.co.kr/" target="_blank" rel="noopener noreferrer">KRX · 국내 ETF 상품·시장 제도</a></li></ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>ETF는 여러 자산을 한 바구니에 담아 주식처럼 거래하는 구조일 뿐이고, 위험은 안에 든 자산과 상품 구조가 정한다.
   살 때는 <b>무엇을 따라가는지 → 괴리율 → 보수 → 거래대금과 호가 간격</b> 순으로 본다. 레버리지와 인버스는 장기 수익률의
