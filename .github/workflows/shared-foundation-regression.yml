@@ -58,6 +58,7 @@ jobs:
       - name: Page consumer refresh and partial failure behavior
         run: |
           node test/test_market_temp_ai_comments.js
+          node test/test_market_temp_indicators.js
           node test/test_market_temp_briefing.js
           node test/test_market_temp_checkpoint.js
           node test/test_market_temp_refresh.js

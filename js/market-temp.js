@@ -2322,7 +2322,7 @@
       + '<div class="mt-visual-title mt-overview-title"><h3>시장 한눈에</h3></div>'
       + '<div data-market-indicators>' + renderIndicatorRows_(buildIndicatorModels_({}, []), 'kospi-volume') + '</div>'
       + '<details class="mt-front-details"><summary>데이터 출처·기준 안내</summary>'
-      + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록 대비 상대 강도를 나타냅니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details>'
+      + '<p class="mt-front-method">거래량은 직전 20개 일별 기록 평균을 100%로 비교합니다. 50% 미만 극도로 낮음, 80% 미만 낮음, 120% 미만 평소 수준, 180% 미만 높음, 그 이상 극도로 높음입니다. 장중에는 마감 전 누적치임을 표시합니다. 수급 비중은 같은 기준일의 외국인·기관·개인 순매매 금액 절댓값 합계입니다. 환율 저울은 직전 일별 기록과 비교한 원/달러 환율의 방향을 보여주며, 실제 변동 금액과 비교 날짜를 함께 표시합니다. 신용융자·예탁금과 수급은 국내 시장지표, 미국채 10년물·원/달러는 글로벌 시장지표를 사용하며 항목별 기준일은 다를 수 있습니다.</p></details>'
       // 2026-10-24 사용자 지시: '최근 시장 흐름'(그래프 블록)은 삭제했다. buildIndicatorHistoryShell_·renderIndicatorHistory_는 다시 붙일 때를 위해 남겨 두었고, 아래 render()는 블록이 없으면 건너뛴다.
       + '</article>';
   }
@@ -2797,6 +2797,16 @@
   function fxBalanceState_(m) {
     return m.value == null || m.delta == null ? 'unavailable' : m.delta > 0 ? 'usd' : m.delta < 0 ? 'krw' : 'balanced';
   }
+  // 원/달러 일봉의 최근 두 유효 기록을 비교한다. 주말·휴장·누락이 있을 수
+  // 있으므로 '어제'로 단정하지 않고 실제 비교 기준일을 명시한다.
+  function fxPreviousChangeText_(m) {
+    if (m.value == null || m.delta == null || !isFinite(m.delta)) return '직전 기록 대비 비교 자료 없음';
+    var points = m.points || [], previous = points.length >= 2 ? points[points.length - 2] : null;
+    var previousDate = previous && previous.date ? '(' + shortDate_(previous.date) + ')' : '';
+    var delta = Math.round(m.delta * 100) / 100;
+    var amount = Math.abs(delta).toLocaleString('ko-KR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return '직전 기록' + previousDate + ' 대비 ' + amount + '원 ' + (delta > 0 ? '상승' : delta < 0 ? '하락' : '변화 없음');
+  }
   function renderFxBalance_(m) {
     var state = fxBalanceState_(m), tilt = state === 'usd' ? 1 : state === 'krw' ? -1 : 0;
     var word = { usd: '달러 강세', krw: '원화 강세', balanced: '변화 없음', unavailable: '비교 자료 확인 중' }[state];
@@ -2807,7 +2817,7 @@
       + '<span class="mt-fx-balance" data-fx-stronger="' + state + '"><svg viewBox="0 0 320 120" role="img" aria-label="직전 기록 대비 ' + word + '"><path class="mt-fx-stand" d="M160,42 L160,105 M140,108 L180,108"/>'
       + '<path class="mt-fx-beam" d="M70,' + (47 - tilt * 12) + ' L250,' + (47 + tilt * 12) + '"/>'
       + pan(70, 47 - tilt * 12, state === 'krw', '원화') + pan(250, 47 + tilt * 12, state === 'usd', '달러') + '</svg></span>'
-      + '<small class="mt-glance-meta">' + escapeHtml(m.changeText) + ' · 직전 기록 대비 상대 강도' + (m.date ? ' · ' + escapeHtml(asOfText_(m.date)) : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>' + aiSayHtml_('fx', 'mt-glance-say');
+      + '<small class="mt-glance-meta">' + escapeHtml(fxPreviousChangeText_(m)) + (m.date ? ' · ' + escapeHtml(asOfText_(m.date)) : '') + (m.stale ? ' · 이전 수신값' : '') + '</small>' + aiSayHtml_('fx', 'mt-glance-say');
   }
   // 최근 시장 흐름(2026-10-23): 독립 전체 폭 카드를 없애고 '시장 한눈에' 카드 안 데이터 출처 안내 아래로 옮겼다.
   // 기본은 높이 약 112px 가로형 추세 그래프(핵심 수치 + 기간 5/10/20/40일 + 추세선), '상세 보기'는 같은 그래프를 키우고 축·설명을 더 보여준다(차트는 하나만 그린다).
