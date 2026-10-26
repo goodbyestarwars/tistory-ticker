@@ -17,7 +17,7 @@
 | 백엔드 API | https://goodbyestar.cloud · GCP e2-micro(메모리 1GB) FastAPI + REST/WS + SQLite/JSON + 배치 | `scripts/cloud-vm/main.py`, `API_REFERENCE.md` |
 | 보조 서버 | Google Apps Script(GAS): VM 호출 중계, 공용 캐시, 뉴스/AI 해설, 로그인·개인 기능 일부 | `gas/ticker-proxy.gs` |
 | 외부 데이터 | 키움·KIS·네이버·DART·KOFIA·KIND·한국수출입은행·미국 데이터 공급자 등 **기능별 상이** | `docs/ARCHITECTURE_SPEC.md`, 해당 소스별 문서 |
-| PC 자동매매 | 사용자 Windows PC의 로컬 봇·실계좌 키움 어댑터·예약 작업. **VM 자체가 주문하지 않음** | `quant-autotrade/local_bot/`, `docs/NINEPAY_LIVE_TRADING.md` |
+| PC 자동매매 | 사용자 Windows PC의 로컬 봇·실계좌 키움 어댑터·예약 작업. **VM 자체가 주문하지 않음** | `quant-autotrade/local_bot/`, `quant-autotrade/docs/TRADING_RULES.md`, `quant-autotrade/docs/LIVE_OPERATIONS.md` |
 | 개발·배포 | `master` = 웹/VM/GAS 배포 기준. 별도 연구 작업 브랜치는 운영과 분리 | `ARCHITECTURE.md`, `docs/API_OPERATION_SPEC.md` |
 
 ~~~text
@@ -163,15 +163,15 @@ Windows PC 연구 스케줄 → 공개 pattern-scan + 조회용 일봉 → 연�
 
 **스케줄 최신 상태는** VM 공개 `GET /health/schedules`(systemd·다음 시각·최근 결과), `/health/load`, 로컬 봇 인증 `GET /api/schedules`, GitHub Actions 실제 실행 기록, GAS 편집기 트리거에서 확인. Windows 작업 등록 상태/지연·마지막 성공은 Git만으로 확인 불가. `docs/SCHEDULER_CONSOLIDATION_2026-10-20.md`의 10/20 실측과 `quant-autotrade/docs/SCHEDULER.md`를 먼저 대조한다.
 
-### 5. 자동매매 — 운영 실계좌와 연구용을 반드시 나눠서 이해
+### 5. 자동매매 — 상세 규칙은 전용 문서를 기준으로 확인
 
-| 분류 | 마지막 문서화된 구현/현황 (상태 기준일 표시) | 제한·실행 경계 |
-|---|---|---|
-| **PC 실계좌 기존 엔진 + 9Pay A/B** | **10/19 사용자 승인으로 `NINEPAY_LIVE_TRADING` 활성화 기록.** PC 예약 작업 08:55 유지. **10/20 21:42 피드 경량화·배포 보호 보정본 PC 설치 기록**, 실주문 수동 실행 없음. **10/21 현재 실행/주문/체결 성공은 이 문서만으로 검증 불가** | 주문은 VM이 아닌 PC. 기존 엔진의 **총 예산 100만원·종목당 30만원·현금 10만원 유보**, 공유 보유/미체결 차감. 10/19 이후 **최대 3종목 제한 해제**(잔여 자금 제약은 유지) |
-| **신규 진입 9Pay 신호** | VM A OR B 연구 관찰 → PC 수신. 장초반 **09:00~09:29:59 최초 70% 관측**, 신호 10초 이내·순위 120초 이내·데이터 완전·큐 누락 없음 등 다중 검증 | 실패/장외/누락/오래된 신호는 **신규 매수 금지**. 피드 불완전 시 기존 신규 매수도 보류, 기존 보유 청산 점검 우선 |
-| **청산(실거래)** | 일반 손절 매입가 대비 **-3% 연속 2회**, 급락 **-5% 즉시**, 최고가 **+3% 달성 후 고점 대비 -2.5% 하락 연속 2회** | 주문 응답 불명확하면 맹목적 재시도 금지. 기존 장부·계좌 승인·STOP·미체결 필수 확인 |
-| **상시 상품 제외** | 인버스·레버리지, CD금리/KOFR·SOFR/MMF/머니마켓/단기채·파킹 등 현금성·금리형 신규 주문 제외. **일반 ETF 전체 제외 아님** | 재부팅·다음 거래일·재설치·롤백에도 유지. VM 후보와 PC 주문 직전 양쪽 검사 |
-| **PC 연구 후보/백테스트/모의** | `quant-autotrade/` 별도 연구 트랙. `AutotraderResearch`가 후보·3종 청산 모의결과를 기록. 10/20 중복 예약 작업 비활성화. 이전 인수인계에는 미배포 UI/별도 브랜치 내용도 있음 | **연구 결과를 실거래 매수 승인으로 해석 금지**. 연구 DB·모의 주문과 실계좌 기록/스위치 분리 |
-| **운영센터/텔레그램** | 관리자 메뉴 `/page/auto-trader`, PC 로컬 봇 `/api/schedules`·`/api/research`·상태 API, 텔레그램 읽기/알림 | 운영센터는 상태 표시; 브라우저의 관리자 메뉴 노출 여부는 권한 검증이 아님. 계좌·원시 로그·토큰 공개 금지 |
+자동매매 전용 문서는 `quant-autotrade/docs/`에서 관리한다. 이 서비스 지도에는 **VM은 신호만 생성하고 실제 주문은 사용자 PC가 수행한다**는 경계만 기록한다.
 
-**안전 원칙:** 실계좌 관련 코드는 **문서/테스트만 바꾼 것과 PC 운영 파일 설치를 구분**한다. 사용자의 **구체적인 실계좌 주문·활성화·정책 변경 승인 없이** 실행·재시작·매수/매도·스위치 변경 금지. 장중(특히 평일 08~20시) VM 백엔드 재시작은 피드 단절 위험. 절대 피드 큐 누락값을 임의 초기화해서 매수 재개하지 않는다. 최신 규칙: `docs/NINEPAY_LIVE_TRADING.md`, `docs/NINEPAY_FEED_INCIDENT_2026-10-20.md`, `quant-autotrade/docs/LIVE_EXIT_RULES_2026-10-16.md`.
+- [현재 GitHub 매매규칙](../quant-autotrade/docs/TRADING_RULES.md) — 단타→스윙→중장기, 자금·손절·익절·상품 제외·차단 조건
+- [실제 PC 운영/설치 이력과 현재 미확인 사항](../quant-autotrade/docs/LIVE_OPERATIONS.md) — 2026-10-19 설치/승인 기록과 10/22~26 코드 변경을 구분
+- [백테스트·모의/CI 검증](../quant-autotrade/docs/STRATEGY_TESTS.md) — 연구 결과를 실계좌 승인으로 해석하지 않음
+- [자동매매 정책·승인 변경 이력](../quant-autotrade/docs/CHANGELOG.md)
+- [2026-10-26까지 9Pay 주문/피드 운영 기록 보존본](../quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md)
+- [VM 장중 피드 장애 기술 분석](NINEPAY_FEED_INCIDENT_2026-10-20.md) — VM 구현·장애 분석은 서비스 문서에 보존
+
+**안전 경계:** 저장소 문서/PR 테스트 통과는 PC 운영 파일 설치나 실주문 승인과 다르다. 사용자 명시 승인 없이 PC 실계좌 실행·재시작·주문·스위치 변경 금지. 장중 VM 재시작 및 당일 피드 누락 계수 임의 초기화 금지.
