@@ -2141,6 +2141,8 @@
     var fundamentals = res && res.fundamentals;
     var annual = fundamentals && fundamentals.annual;
     var quarter = fundamentals && fundamentals.latest_quarter;
+    var ytd = quarter && quarter.ytd && quarter.ytd.through_quarter >= 1
+      && quarter.ytd.through_quarter <= 3 ? quarter.ytd : null;
 
     var valuationHint = valuation
       ? ''
@@ -2162,8 +2164,10 @@
     // (예전에는 여기서 예외가 나면서 탭 전체가 빈 화면이 됐다).
     var hasAnnualYears = !!(annual && annual.years && annual.years.length);
     html += '<div class="ff-fund-section">'
-      + '<div class="ff-fund-title">재무 (최근 5년)</div>'
-      + (hasAnnualYears ? buildAnnualTable(annual) + buildAnnualCharts(annual) : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(공시 미제출 또는 아직 배치 스캔 전).</div>')
+      + '<div class="ff-fund-title">재무 (최근 5년 + 올해 누적)</div>'
+      + ((hasAnnualYears || ytd) ? buildAnnualTable(annual || { years: [] }, ytd)
+          + (hasAnnualYears ? buildAnnualCharts(annual) : '')
+          : '<div class="ff-hint">' + escapeHtml(name || '') + '은(는) 재무 데이터가 없는 종목입니다(공시 미제출 또는 아직 배치 스캔 전).</div>')
       + '</div>';
 
     html += '<div class="ff-fund-section">'
@@ -2464,7 +2468,7 @@
     }).join('') + '</div>';
   }
 
-  function buildAnnualTable(annual) {
+  function buildAnnualTable(annual, ytd) {
     var rows = annual.years.map(function (y) {
       return '<tr><td>' + y.year + '</td>'
         + '<td>' + fmtWonAmount(y.revenue) + '</td>'
@@ -2477,12 +2481,31 @@
         + '<td>' + fmtPct(y.debt_ratio_pct) + '</td>'
         + '</tr>';
     }).join('');
+    // 공시된 1~3분기 누적 금액을 올해 행에 추가한다. 연간 확정값처럼
+    // ROE·ROA·부채비율을 계산하거나 연간 추이 차트에 섞지 않는다.
+    var ytdNote = '올해 누적 실적은 정기 분기보고서에서 확인된 기간까지만 포함합니다. 확정 연간 실적이나 연간 추정치가 아닙니다.';
+    if (ytd) {
+      var label = ytd.year + '년 ' + (ytd.through_quarter === 1 ? '1분기' : '1~' + ytd.through_quarter + '분기') + ' 누적';
+      rows += '<tr><td><strong>' + escapeHtml(label) + '</strong></td>'
+        + '<td>' + fmtWonAmount(ytd.revenue) + '</td>'
+        + '<td>' + fmtWonAmount(ytd.operating_income) + '</td>'
+        + '<td>' + fmtWonAmount(ytd.net_income) + '</td>'
+        + '<td>' + fmtPct(ytd.revenue != null && ytd.operating_income != null && ytd.revenue !== 0 ? ytd.operating_income / ytd.revenue * 100 : null) + '</td>'
+        + '<td>' + fmtPct(ytd.revenue != null && ytd.net_income != null && ytd.revenue !== 0 ? ytd.net_income / ytd.revenue * 100 : null) + '</td>'
+        + '<td>-</td><td>-</td><td>-</td></tr>';
+      ytdNote += ' 전년 같은 기간 대비: 매출액 ' + fmtSignedPct(ytd.revenue_yoy_pct)
+        + ' · 영업이익 ' + fmtSignedPct(ytd.operating_income_yoy_pct)
+        + ' · 순이익 ' + fmtSignedPct(ytd.net_income_yoy_pct) + '.';
+    } else {
+      ytdNote = '올해 누적 실적은 분기 공시와 배치 수집이 완료된 뒤 표시됩니다. 기존 확정 연간 실적은 그대로 유지합니다.';
+    }
     // 2026-09-01 사용자 리포트("숫자가 잘려"): 9열 표가 width:100%로 모바일 폭에 눌려
     // "2,3 / 49 / 억원"처럼 숫자가 세로로 쪼개졌다(연도까지 2/0/2/1로 갈라짐).
     // 저장소의 다른 넓은 표(.hrt-table-wrap)와 같이 가로 스크롤 컨테이너로 감싼다.
     return '<div class="ff-fund-table-wrap"><table class="ff-fund-table"><thead><tr>'
       + '<th>연도</th><th>매출액</th><th>영업이익</th><th>순이익</th><th>영업이익률</th><th>순이익률</th><th>ROE</th><th>ROA</th><th>부채비율</th>'
-      + '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+      + '</tr></thead><tbody>' + rows + '</tbody></table></div>'
+      + '<div class="ff-hint">' + escapeHtml(ytdNote) + '</div>';
   }
 
   var TREND_NEUTRAL_COLOR = '#9ca3af';

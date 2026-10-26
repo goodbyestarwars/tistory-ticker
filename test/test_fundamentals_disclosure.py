@@ -82,6 +82,13 @@ class DisclosureTest(unittest.TestCase):
     def test_no_filing_list_keeps(self):
         self.assertEqual(fundamentals.disclosure_check(self.entry, None), 'keep')
 
+    def test_discovered_filing_is_retried_until_applied(self):
+        pending = {'latest_quarter': {'rcept_no': '20260814000001'},
+                   'disclosure': {'filing': filing('20261114000009', month=9, code='11014'),
+                                  'status': 'pending'}}
+        self.assertEqual(fundamentals.disclosure_check(
+            pending, filing('20261114000009', month=9, code='11014')), 'refetch')
+
     def test_status_values(self):
         q = {'rcept_no': 'A'}
         self.assertEqual(fundamentals.make_disclosure({'rcept_no': 'A'}, q)['status'], 'ok')
@@ -99,6 +106,17 @@ class BatchRefetchTest(unittest.TestCase):
         self.assertFalse(batch_scan.disclosure_due(self.entry(0)))
         self.assertTrue(batch_scan.disclosure_due(self.entry(batch_scan.DISCLOSURE_CHECK_DAYS + 1)))
         self.assertTrue(batch_scan.disclosure_due({'latest_quarter': {}}))
+
+    def test_legacy_current_year_quarter_requires_ytd_backfill(self):
+        now = datetime(2026, 10, 26, tzinfo=timezone.utc)
+        q = {'year': 2026, 'reprt_code': '11012'}
+        self.assertTrue(batch_scan.needs_ytd_backfill({'latest_quarter': q}, now=now))
+        self.assertFalse(batch_scan.needs_ytd_backfill(
+            {'latest_quarter': dict(q, ytd=None)}, now=now))
+        self.assertFalse(batch_scan.needs_ytd_backfill(
+            {'latest_quarter': dict(q, year=2025)}, now=now))
+        self.assertFalse(batch_scan.needs_ytd_backfill(
+            {'latest_quarter': dict(q, reprt_code='11011')}, now=now))
 
     def test_unchanged_stock_is_not_refetched_but_stamped(self):
         e = self.entry(5)
@@ -135,6 +153,52 @@ class QuarterFetchTest(unittest.TestCase):
         self.assertEqual(q['rcept_dt'], '20260814')
         self.assertAlmostEqual(q['bps'], 300 / 1100)
         self.assertEqual(q['fs_div'], 'CFS')
+        self.assertIn('ytd', q)
+
+
+class YearToDateTest(unittest.TestCase):
+    def rows(self, code='11012'):
+        data = [
+            ('ifrs-full_Revenue', '매출액', 120, 210, 100, 150),
+            ('dart_OperatingIncomeLoss', '영업이익', 30, 45, 20, 33),
+            ('ifrs-full_ProfitLoss', '당기순이익', 22, 35, 19, 30),
+        ]
+        return [
+            {'sj_div': 'IS', 'account_id': account_id, 'account_nm': account_nm,
+             'thstrm_amount': str(three_months),
+             'thstrm_add_amount': str(ytd),
+             'frmtrm_q_amount': str(prior_quarter),
+             'frmtrm_add_amount': str(prior_ytd)}
+            for account_id, account_nm, three_months, ytd, prior_quarter, prior_ytd in data
+        ]
+
+    def test_q1_uses_three_months_not_ytd_field(self):
+        ytd = fundamentals.build_current_year_ytd(self.rows(), 2026, '11013')
+        self.assertEqual((ytd['year'], ytd['through_quarter']), (2026, 1))
+        self.assertEqual(ytd['revenue'], 120)
+        self.assertAlmostEqual(ytd['revenue_yoy_pct'], 20)
+
+    def test_q2_uses_cumulative_reported_not_quarter_only(self):
+        ytd = fundamentals.build_current_year_ytd(self.rows(), 2026, '11012')
+        self.assertEqual((ytd['year'], ytd['through_quarter']), (2026, 2))
+        self.assertEqual(ytd['revenue'], 210)
+        self.assertEqual(ytd['operating_income'], 45)
+        self.assertEqual(ytd['net_income'], 35)
+        self.assertAlmostEqual(ytd['revenue_yoy_pct'], 40)
+
+    def test_q3_uses_cumulative_reported(self):
+        ytd = fundamentals.build_current_year_ytd(self.rows(), 2026, '11014')
+        self.assertEqual(ytd['through_quarter'], 3)
+        self.assertEqual(ytd['revenue'], 210)
+
+    def test_missing_cumulative_does_not_mislabel_quarter_as_annual(self):
+        rows = self.rows()
+        for row in rows:
+            row['thstrm_add_amount'] = ''
+        self.assertIsNone(fundamentals.build_current_year_ytd(rows, 2026, '11012'))
+
+    def test_annual_not_reported_as_current_year_ytd(self):
+        self.assertIsNone(fundamentals.build_current_year_ytd(self.rows(), 2026, '11011'))
 
 
 if __name__ == '__main__':

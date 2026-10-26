@@ -177,6 +177,45 @@ def compute_bps(api_key, corp_code, bs_rows, year, reprt_code):
             'basis': 'parent_equity/(issued-treasury)', 'year': year, 'reprt_code': reprt_code}
 
 
+def build_current_year_ytd(rows, year, reprt_code):
+    """현재 연도 1분기부터 공시된 마지막 분기까지의 확정 누적 손익.
+
+    DART 분기 손익계산서의 thstrm_amount는 단독 3개월,
+    thstrm_add_amount는 연초부터 누적액이다. Q1은 둘이 같으므로
+    thstrm_amount를 사용한다. Q2/Q3 누적 누락 시 단독분기를
+    연간 금액처럼 오표시하거나 추정하지 않는다.
+    """
+    periods = {'11013': 1, '11012': 2, '11014': 3}
+    if reprt_code not in periods:
+        return None
+    current_key = 'thstrm_amount' if reprt_code == '11013' else 'thstrm_add_amount'
+    prior_key = 'frmtrm_q_amount' if reprt_code == '11013' else 'frmtrm_add_amount'
+    values = {}
+    for key, ids, name in (
+        ('revenue', REVENUE_IDS, '매출액'),
+        ('operating_income', OPERATING_INCOME_IDS, '영업이익'),
+        ('net_income', NET_INCOME_IDS, '당기순이익'),
+    ):
+        row = find_row(rows, ids, name, ('IS', 'CIS'))
+        current = to_num(row.get(current_key)) if row else None
+        prior = to_num(row.get(prior_key)) if row else None
+        values[key] = current
+        values[key + '_yoy_pct'] = pct_change(current, prior)
+    if all(values[key] is None for key in ('revenue', 'operating_income', 'net_income')):
+        return None
+    return dict(
+        year=year,
+        through_quarter=periods[reprt_code],
+        amount_basis='dart_ytd_reported',
+        revenue=values['revenue'],
+        operating_income=values['operating_income'],
+        net_income=values['net_income'],
+        revenue_yoy_pct=values['revenue_yoy_pct'],
+        operating_income_yoy_pct=values['operating_income_yoy_pct'],
+        net_income_yoy_pct=values['net_income_yoy_pct'],
+    )
+
+
 def fetch_latest_quarter(api_key, corp_code, current_year=None):
     """가장 최근에 공시됐을 보고서를 최신 것부터 순서대로 시도해 매출/영업이익/순이익 + YoY를 뽑는다.
     분기 보고서는 frmtrm_q_amount(전년 동기 3개월)를, 사업보고서는 frmtrm_amount(전기)를 비교값으로 쓴다."""
@@ -225,6 +264,9 @@ def fetch_latest_quarter(api_key, corp_code, current_year=None):
             'revenue_yoy_pct': pct_change(revenue, revenue_prior),
             'operating_income_yoy_pct': pct_change(op, op_prior),
             'net_income_yoy_pct': pct_change(net, net_prior),
+            # 기존 최근 분기(단독 3개월)와 별개로 올해 누적 실적을 함께 보존한다.
+            # 전년 사업보고서 등 다른 연도/연간 자료를 올해로 오인하지 않는다.
+            'ytd': build_current_year_ytd(rows, yr, reprt_code) if yr == y else None,
         }
     return None
 
@@ -332,12 +374,12 @@ def make_disclosure(filing, quarter, now=None):
 
 def disclosure_check(entry, filing, now=None):
     """기존 캐시 항목이 최신 공시를 반영하는지: 'refetch'(접수번호가 달라짐) / 'keep'(그대로).
-    마지막으로 반영한 접수번호(disclosure.filing, 없으면 latest_quarter.rcept_no)와 비교하므로
-    정정공시도 잡히고, 같은 공시로 반복 재수집하지는 않는다."""
+    실제 재무제표에 반영한 latest_quarter.rcept_no와 비교한다.
+    disclosure.filing은 발견만 된 공시일 수 있으므로 그 값과 비교하면
+    DART 재무 원문이 늦게 제공되는 동안 영구히 갱신이 빠질 수 있다."""
     if not filing or not filing.get('rcept_no'):
         return 'keep'
-    seen = (((entry or {}).get('disclosure') or {}).get('filing') or {}).get('rcept_no') \
-        or ((entry or {}).get('latest_quarter') or {}).get('rcept_no')
+    seen = ((entry or {}).get('latest_quarter') or {}).get('rcept_no')
     return 'keep' if seen == filing['rcept_no'] else 'refetch'
 
 
