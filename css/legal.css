@@ -21,6 +21,17 @@ body {
   margin: 0 auto;
 }
 
+/* 푸터에서 여는 문서의 박스만 통일하며 페이지 바탕은 유지한다. */
+body.footer-docs {
+  --learn-box: #e8edf3;
+  --learn-box-deep: #dbe5ef;
+  --learn-box-inset: #f1f5f9;
+  --learn-box-border: #cbd5e1;
+  --gd-box-bg: #e8edf3;
+}
+body.footer-docs .fig-acc { fill: var(--learn-box-deep); }
+body.footer-docs .fig-on-accent { fill: #263445; }
+
 .legal-back {
   display: inline-flex;
   align-items: center;
@@ -303,8 +314,7 @@ body.learn-page .legal-wrap .legal-contact {
 /* ── 사이트 이용방법(legal/guide.html) 전용 (2026-10-11 전면 개정) ──
    설문에서 "너무 어렵다"는 의견이 나와 예시·그림·단계 중심으로 다시 썼다. 왼쪽 색 막대 없이
    배경만 있는 상자를 쓴다(이야기 시리즈와 같은 원칙). */
-.gd-page { --gd-box-bg: #e8edf3; word-break: keep-all; overflow-wrap: break-word; }
-.gd-page > .gd-lead + .learn-note { background: var(--gd-box-bg); }
+.gd-page { word-break: keep-all; overflow-wrap: break-word; }
 .gd-lead { font-size: 16px; line-height: 1.85; }
 .gd-toc { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 20px; margin: 0 0 8px; padding: 14px 16px; list-style: none; background: var(--gd-box-bg); counter-reset: gdtoc; }
 .gd-toc li { margin: 0; counter-increment: gdtoc; }
@@ -321,13 +331,13 @@ body.learn-page .legal-wrap .legal-contact {
 .gd-steps > li::before { content: counter(gds); position: absolute; left: 0; top: 0; width: 27px; height: 27px; border-radius: 50%; background: #1f2937; color: #f8f0db; font-size: 14px; font-weight: 700; line-height: 27px; text-align: center; }
 
 /* 예시 상자: 설명용 숫자임을 알리는 '예시' 표찰을 단다 */
-.gd-eg { margin: 0 0 16px; padding: 11px 15px 8px; background: #f6efd9; font-size: 14px; line-height: 1.75; }
+.gd-eg { margin: 0 0 16px; padding: 11px 15px 8px; background: var(--learn-box, #e8edf3); font-size: 14px; line-height: 1.75; }
 .gd-eg::before { content: "예시"; display: table; margin: 0 0 6px; padding: 0 9px; border-radius: 999px; background: #1f2937; color: #f8f0db; font-size: 12px; font-weight: 700; line-height: 20px; }
 .gd-eg p:last-child, .gd-eg ul:last-child { margin-bottom: 4px; }
 .gd-eg ul { margin-bottom: 8px; }
 
 /* 화면에 실제로 적혀 있는 버튼·메뉴 이름 */
-.gd-btn { display: inline-block; padding: 0 7px; border: 1px solid #cfcbbb; border-radius: 6px; background: #fff8e6; color: #1f2937; font-size: 13px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
+.gd-btn { display: inline-block; padding: 0 7px; border: 1px solid var(--learn-box-border, #cbd5e1); border-radius: 6px; background: var(--learn-box, #e8edf3); color: #1f2937; font-size: 13px; font-weight: 700; line-height: 1.6; white-space: nowrap; }
 .gd-up { color: #d24f45; font-weight: 700; }
 .gd-down { color: #1261c4; font-weight: 700; }
 
@@ -353,7 +363,7 @@ body.learn-page .legal-wrap .legal-contact {
 .gd-faq > div { padding: 0 0 8px; }
 
 @media (prefers-color-scheme: dark) {
-  .gd-page { --gd-box-bg: #161d2c; }
+  body.footer-docs { --learn-box: #161d2c; --learn-box-deep: #1d2637; --learn-box-inset: #0f1420; --learn-box-border: #263048; --gd-box-bg: #161d2c; }
   .gd-toc { background: #161d2c; }
   .gd-toc li::before { color: #e0b25a; }
   .gd-toc a:hover { color: #ff8a80; }

@@ -11,7 +11,7 @@ const core = fs.readFileSync('js/chart-core.js', 'utf8');
 const expect = text => assert(guide.includes(text), 'guide missing: ' + text);
 assert(footer.includes('legal/guide.html'), 'footer still links to guide');
 assert(guide.includes('id="chart"'));
-expect('2026년 10월 22일 업데이트');
+expect('2026년 10월 26일 업데이트');
 [['3·5·20·60','data-chart-ma-short-toggle'],['112·224·448','data-chart-ma-long-toggle'],['RSI 다이버전스','data-chart-rsidiv-toggle'],['거래량 배수 표시','data-chart-volmult-toggle'],['거래량·가격 흔적','ssAccumulationToggle'],['측정','ss-measure-toggle']].forEach(([text,selector]) => {
   expect(text);
   assert(ui.includes(selector), 'ui missing: ' + selector);
