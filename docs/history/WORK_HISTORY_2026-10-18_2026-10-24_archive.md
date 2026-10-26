@@ -727,3 +727,7 @@ PC 엔진 사본을 저장소에서 관리하며 매수/매도 분리 옵션만 
 **2026-10-24 카드 같은 줄 높이 일치 · 상승/하락 음영 강화 · 카드 테두리 삭제 · 금리 높음 붉은색**
 
 사용자 지시(스크린샷). `css/market-temp.css`: 원자재·가상자산/수급·심리·금리 카드를 같은 줄에서 높이 맞춤(`align-items:stretch`), 상승 카드는 붉은 음영·하락 카드는 푸른 음영(`--pulse-red/blue` 11%, 선택 시 17%)으로 분명히, 카드 테두리는 선택·hover 포함 모두 삭제(선택은 배경색으로 구분, `mt-xcard`와 `mt-indicator-chip` 대상). `js/market-temp.js`: 금리 카드 톤을 수준으로 정해 `높음`=붉은색(상승 톤)·`낮음`=푸른색·`보통`=중립. market_temp JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면. 배포: js/css master 머지 후 Pages 자동.
+
+**2026-10-24 `오른 종목과 내린 종목` 블록 삭제**
+
+사용자 지시(스크린샷 붉은 박스). `js/market-temp.js` `buildSummaryCard`에서 `buildBreadthVisual_` 호출을 지워 `시장 한눈에` 카드 맨 위의 상승/보합/하락 종목 막대 블록이 사라졌다(함수와 데이터·상단 헤드라인은 그대로). market_temp 계열 JS 테스트 통과(heatmap 1건은 변경 전부터 실패). 미확인: 운영 화면. 배포: js master 머지 후 Pages 자동.

@@ -373,11 +373,11 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-commodity-meta > span { color: var(--wd-text); }
 .weekend-dashboard .wd-commodity-meta time { white-space: nowrap; }
 .weekend-dashboard .wd-commodity-meta small { font-size: inherit; overflow-wrap: anywhere; }
-.weekend-dashboard .wd-rates { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--wd-line); }
+.weekend-dashboard .wd-rates { container: wd-rates / inline-size; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--wd-line); }
 .weekend-dashboard .wd-rates > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .weekend-dashboard .wd-rates h4 { margin: 0; color: var(--wd-text); font: 600 14px/1.4 "Pretendard Variable",Pretendard,sans-serif; }
 .weekend-dashboard .wd-rates > header small { font-size: 10px; }
-.weekend-dashboard .wd-rate-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 14px; margin: 12px 0 0; }
+.weekend-dashboard .wd-rate-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 14px; margin: 12px 0 0; }
 .weekend-dashboard .wd-rate-grid > div { min-width: 0; }
 .weekend-dashboard .wd-rate-grid > div + div { padding-left: 14px; border-left: 1px solid var(--wd-line); }
 .weekend-dashboard .wd-rate-grid dt { color: var(--wd-sub); font-size: 12px; }
@@ -385,6 +385,10 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-rate-grid dd small { margin-left: 2px; color: inherit; font-size: 13px; }
 .weekend-dashboard .wd-rate-grid b { display: block; font-size: 12px; font-weight: 600; }
 .weekend-dashboard .wd-rate-grid > div > small { display: block; margin-top: 5px; font-size: 10px; overflow-wrap: anywhere; }
+@container wd-rates (max-width:480px) {
+  .weekend-dashboard .wd-rate-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .weekend-dashboard .wd-rate-grid > div:nth-child(3) { padding-left: 0; border-left: 0; }
+}
 .weekend-dashboard .wd-live-split { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 24px; }
 .weekend-dashboard .wd-live-group { min-width: 0; container-type: inline-size; }
 .weekend-dashboard .wd-token-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 18px; list-style: none; margin: 0; padding: 0; }
