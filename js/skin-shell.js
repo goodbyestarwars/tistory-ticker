@@ -527,6 +527,35 @@
     return false;
   }
 
+  // Rest banners include both markets' extended sessions, not just the KRX close.
+  // Keep homeMarket's existing automatic tab selection independent of this display contract.
+  function restOverview(date) {
+    var now = date || new Date(), k = kst(now), american = us(now);
+    var active = krCash(now).phase !== 'closed' || krFutures(now).open
+      || /^(pre|regular|after)$/.test(american.phase);
+    var closed = !active && american.phase !== 'unknown' && !!KRX_HOLIDAYS[String(k.year)]
+      && (isWeekendClosed(now) || isKrHoliday(now) || isUsHoliday(now));
+    if (!closed) return {closed: false, next: null, market: ''};
+    var candidates = [], day = Date.UTC(k.year, Number(k.dateKey.slice(4,6)) - 1, Number(k.dateKey.slice(6)));
+    for (var i = 0; i < 14; i++) {
+      var kr = new Date(day + i * 86400000 - 3600000); // NXT/국내 프리마켓 08:00 KST
+      if (kr > now && KRX_HOLIDAYS[String(kst(kr).year)] && isKrTradingDay(kr)) {
+        candidates.push({next: kr, market: '국내 프리마켓'}); break;
+      }
+    }
+    for (var j = 0; j < 14; j++) {
+      var utcDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + j);
+      var clock = nyClock(new Date(utcDay + 12 * 3600000));
+      if (clock.dateKey.slice(0,4) !== '2026') break; // Unknown holiday year: do not invent an opening.
+      var open = new Date(utcDay + (clock.dst ? 8 : 9) * 3600000); // 04:00 New York
+      if (open > now && clock.weekday !== 'Sat' && clock.weekday !== 'Sun' && !US_HOLIDAYS_2026[clock.dateKey]) {
+        candidates.push({next: open, market: '미국 프리마켓'}); break;
+      }
+    }
+    candidates.sort(function (a,b) { return a.next - b.next; });
+    return {closed: true, next: candidates.length ? candidates[0].next : null, market: candidates.length ? candidates[0].market : ''};
+  }
+
   /* 홈이 국내 화면에서 미국 화면으로 넘어가는 KST 시각.
      KRX 애프터마켓·NXT가 끝나는 20:00부터 바로 미국 화면을 보여준다.
      미국 세션 판정(us(), usPreOpenKstMinutes)은 그대로다. */
@@ -563,6 +592,7 @@
     usPreOpenKstMinutes: usPreOpenKstMinutes,
     weekendStartKstMinutes: weekendStartKstMinutes,
     isWeekendClosed: isWeekendClosed,
+    restOverview: restOverview,
     homeMarket: homeMarket
   };
 })(window);

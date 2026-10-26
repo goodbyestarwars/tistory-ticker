@@ -19,6 +19,10 @@
   --wd-banner-end: var(--dk-inner,#283340);
   --wd-banner-text: var(--dk-text,#f1f4f8);
   --wd-banner-sub: var(--dk-sub,#a6b5c5);
+  --wd-glass: linear-gradient(145deg,color-mix(in srgb,var(--wd-surface) 96%,transparent),color-mix(in srgb,var(--wd-surface) 84%,transparent));
+  --wd-glass-filter: blur(12px) saturate(115%);
+  --wd-glass-edge: rgba(255,255,255,.85);
+  --wd-glass-shadow: 0 8px 24px rgba(var(--np-ink),.06),inset 0 1px 0 var(--wd-glass-edge),inset 0 -1px 0 rgba(var(--np-ink),.035);
   display: grid;
   grid-template-columns: minmax(0,1fr);
   gap: 14px;
@@ -36,6 +40,23 @@
 html.dark .weekend-dashboard {
   --wd-text: var(--dk-text);
   --wd-sub: var(--dk-sub);
+  --wd-glass-edge: rgba(var(--dk-ink-rgb),.16);
+}
+
+/* One restrained glass treatment for all recap cards; opaque surfaces remain the fallback. */
+.weekend-dashboard :is(.wd-panel,.wd-index,.wd-news-card,.post-card,.home-briefing-card,.learn-card) {
+  box-shadow: var(--wd-glass-shadow);
+  -webkit-backdrop-filter: var(--wd-glass-filter);
+  backdrop-filter: var(--wd-glass-filter);
+  outline: 1px solid var(--wd-glass-edge);
+  outline-offset: -2px;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .home-weekly-report.weekend-dashboard { --wd-glass: var(--wd-surface); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  .home-weekly-report.weekend-dashboard { --wd-glass: var(--wd-surface); --wd-glass-filter: none; }
+  .weekend-dashboard :is(.wd-panel,.wd-index,.wd-news-card,.post-card,.home-briefing-card,.learn-card) { -webkit-backdrop-filter: none; backdrop-filter: none; }
 }
 
 .weekend-dashboard[hidden], .weekend-dashboard [hidden] {
@@ -119,7 +140,8 @@ html.dark .weekend-dashboard {
 }
 
 .weekend-dashboard .wd-market-overview { gap: var(--ui-section-gap,20px); }
-.weekend-dashboard .wd-live-panel { grid-column: 1 / -1; }
+.weekend-dashboard :is(.wd-commodities,.wd-live-panel,.wd-calendar) { grid-column: 1 / -1; }
+.weekend-dashboard .wd-calendar .hwr-schedule-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 28px; max-height: 420px; overflow-y: auto; scrollbar-gutter: stable; }
 .weekend-dashboard .wd-market-overview .hwr-schedule-list li { padding: 12px 0; }
 
 .weekend-dashboard .wd-section-head {
@@ -172,7 +194,8 @@ html.dark .weekend-dashboard {
   padding: 10px 12px;
   border: 1px solid var(--wd-line);
   border-radius: 12px;
-  background: linear-gradient(125deg,var(--wd-surface),color-mix(in srgb,var(--wd-tone) 7%,var(--wd-surface)));
+  background: var(--wd-surface);
+  background: var(--wd-glass),linear-gradient(125deg,var(--wd-surface),color-mix(in srgb,var(--wd-tone) 7%,var(--wd-surface)));
   scroll-snap-align: start;
 }
 
@@ -280,6 +303,7 @@ html.dark .weekend-dashboard {
   border: 1px solid var(--wd-line);
   border-radius: var(--ui-radius-card);
   background: var(--wd-surface);
+  background: var(--wd-glass);
 }
 
 .weekend-dashboard .wd-panel-head {
@@ -347,7 +371,6 @@ html.dark .weekend-dashboard {
 .weekend-dashboard .wd-commodity-meta small { font-size: inherit; overflow-wrap: anywhere; }
 .weekend-dashboard .wd-live-split { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); gap: 24px; }
 .weekend-dashboard .wd-live-group { min-width: 0; container-type: inline-size; }
-.weekend-dashboard .wd-live-group + .wd-live-group { padding-left: 24px; border-left: 1px solid var(--wd-line); }
 .weekend-dashboard .wd-token-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 18px; list-style: none; margin: 0; padding: 0; }
 .weekend-dashboard .wd-token { display: grid; grid-template-columns: minmax(0,1fr) max-content; align-items: center; gap: 3px 10px; padding: 9px 0; border-bottom: 1px solid var(--wd-line); min-width: 0; }
 .weekend-dashboard .wd-token-name { min-width: 0; }
@@ -772,7 +795,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   .weekend-dashboard .wd-commodity-value { font-size: 20px; }
   .weekend-dashboard .wd-commodity-meta time { white-space: normal; }
   .weekend-dashboard .wd-live-split { grid-template-columns: minmax(0,1fr); gap: 18px; }
-  .weekend-dashboard .wd-live-group + .wd-live-group { padding: 18px 0 0; border-left: 0; border-top: 1px solid var(--wd-line); }
+  .weekend-dashboard .wd-calendar .hwr-schedule-list { grid-template-columns: minmax(0,1fr); }
 
   .weekend-dashboard .wd-header {
     min-height: 142px;
@@ -849,7 +872,8 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   column-gap: 36px;
   row-gap: 18px;
   align-items: center;
-  background: #000;
+  background: linear-gradient(135deg,var(--wd-banner),var(--wd-banner-end));
+  box-shadow: var(--wd-glass-shadow);
 }
 
 .weekend-dashboard .wd-header-copy {
@@ -997,7 +1021,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-news-track { box-sizing: border-box; display: flex; width: 100%; max-width: 100%; min-width: 0; gap: 16px; overflow-x: auto; padding: 12px 4px 24px; scroll-snap-type: x proximity; scroll-padding-inline: 4px; scrollbar-width: none; cursor: grab; touch-action: pan-x pan-y; }
 .weekend-dashboard .wd-news-track::-webkit-scrollbar { display: none; }
 .weekend-dashboard .wd-news-track.is-dragging { cursor: grabbing; scroll-snap-type: none; user-select: none; }
-.weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: 24px; border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); color: var(--wd-text); box-shadow: 0 4px 12px rgba(var(--np-ink),.08); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
+.weekend-dashboard .wd-news-card { box-sizing: border-box; display: flex; flex-direction: column; flex: 0 0 320px; min-width: 0; min-height: 420px; padding: 24px; border: 1px solid var(--wd-line); border-radius: 18px; background: var(--wd-surface); background: var(--wd-glass); color: var(--wd-text); box-shadow: var(--wd-glass-shadow); scroll-snap-align: start; transition: transform .2s ease, box-shadow .2s ease; overflow-wrap: anywhere; }
 .weekend-dashboard .wd-news-card:hover { transform: translateY(-4px); box-shadow: 0 10px 24px rgba(var(--np-ink),.14); }
 .weekend-dashboard .wd-news-card .wd-news-title { color: var(--wd-text); font-size: 20px; line-height: 1.45; font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-weight: 700; }
 .weekend-dashboard .wd-news-rule { width: 100%; flex: 0 0 auto; margin: 14px 0; border: 0; border-top: 1px solid var(--wd-line); }
