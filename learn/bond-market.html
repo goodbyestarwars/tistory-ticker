@@ -267,6 +267,32 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li><a href="https://ghlee.tistory.com/page/overnight-market">글로벌 시장지표</a>에서 한국 국고채 3년물과 미국 국채 10·2·30년물 금리를 확인한다. 지표별 갱신 시각도 함께 본다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="bond-advanced">
+  <h2 id="bond-advanced">심화 연구실 · 채권의 가격은 금리 하나로 결정되지 않는다</h2>
+  <p>채권의 가격은 약속된 현금흐름을 시점별 할인율로 나눈 합이다. 실무에서는 <b>듀레이션, 볼록성(convexity), 만기별 금리 민감도, 신용 스프레드, 유동성 프리미엄</b>을 구분한다. 쿠폰이 같은 채권도 만기와 수익률곡선 모양에 따라 금리 변화에 다른 반응을 보인다.</p>
+  <div class="learn-lab">
+    <h3>가상 채권 · 금리가 1%p 오르면?</h3>
+    <p>수정듀레이션이 7년인 채권은 수익률이 1%p 오를 때 <b>가격이 약 7% 하락</b>하는 1차 근사가 가능하다. 다만 실제 가격은 비선형이라 볼록성 보정이 필요하며, 이 계산은 금리뿐 아니라 신용스프레드 변화가 동시에 일어나지 않는다고 가정한다.</p>
+    <p class="learn-math">채권가격 변화율 ≈ −수정듀레이션 × 수익률 변화 = −7 × 0.01 = −7%</p>
+    <p>수익률이 1%p 내려가면 같은 1차 근사는 +7%다. 오르고 내릴 때 실제 가격 변화가 완전히 대칭이 아닌 것이 볼록성의 의미다.</p>
+  </div>
+  <figure class="learn-fig"><svg viewBox="0 0 520 195" role="img" aria-label="금리 변화에 따른 채권 가격이 직선이 아닌 굽은 형태로 변하는 도식">
+    <text class="fig-ink" x="0" y="21">금리와 채권가격은 역방향, 하지만 직선은 아니다</text>
+    <path class="fig-ink-line" d="M36 42V158H496"/>
+    <path class="fig-down-line" d="M55 52 C135 75,210 105,294 125 S423 151,485 153"/>
+    <path class="fig-dash" d="M55 52L485 158"/>
+    <text class="fig-sub" x="45" y="173">금리 낮음</text><text class="fig-sub" x="406" y="173">금리 높음</text>
+    <text class="fig-sub" x="70" y="45">가격 높음</text><text class="fig-sub" x="385" y="143">가격 낮음</text>
+    <text class="fig-sub" x="0" y="190">곡선은 개념 그림이며 특정 채권의 실제 금리곡선이 아니다.</text>
+  </svg><figcaption>심화 그림 ③ 수정듀레이션은 접선에 가까운 근사, 볼록성은 곡률을 보정한다.</figcaption></figure>
+  <div class="learn-grid">
+    <div><h3>명목금리와 실질금리</h3><p>명목수익률은 기대 인플레이션과 실질금리, 각종 프리미엄의 영향을 받는다. 물가연동국채와 일반 국채의 차이는 기대 물가만을 순수하게 나타내지 않고 유동성 등에도 영향을 받는다.</p></div>
+    <div><h3>국채와 회사채</h3><p>회사채의 추가 수익률에는 신용 손실 가능성뿐 아니라 유동성·시장 위험 프리미엄이 섞인다. 금리가 같다고 부도 위험도 같은 것은 아니다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>자료 확인</strong><ul><li><a href="https://www.bok.or.kr/" target="_blank" rel="noopener noreferrer">한국은행 · 통화정책과 채권시장 설명</a></li><li><a href="https://home.treasury.gov/" target="_blank" rel="noopener noreferrer">미국 재무부 · 국채 발행과 수익률 자료</a></li></ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>채권가격과 금리는 반대로 움직이고, 만기가 길수록 그 움직임이 더 크며(듀레이션), 신용등급이 낮을수록
   더 높은 금리(신용스프레드)를 요구한다. 금리가 오르면 안전한 대안의 매력이 커지는 동시에 주식의 계산상
