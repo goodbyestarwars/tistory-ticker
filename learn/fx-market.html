@@ -153,6 +153,33 @@ body.learn-page .legal-wrap { max-width: 920px; margin: 0 auto; }
     <li>하루를 넘길 때 붙는 스왑포인트(롤오버 비용)를 수익 계산에 넣는다.</li>
   </ul>
 
+
+<section class="learn-deep" aria-labelledby="fx-advanced">
+  <h2 id="fx-advanced">심화 연구실 · 환율에는 현물환과 선물환이 있다</h2>
+  <p>원/달러 현물환율은 지금 달러 1단위를 원화로 교환하는 가격이다. 만기가 정해진 선물환은 두 통화의 금리, 유동성, 신용·담보 조건 등의 영향을 받는다. 전문 연구에서는 <b>현물(S), 선물환(F), 통화별 금리, 헤지 비용, 실제 거래 스프레드</b>를 구분한다.</p>
+  <div class="learn-lab">
+    <h3>계산 실험 · 금리차로 추정하는 이론적 선물환율</h3>
+    <p>원/달러 현물환율 S=1,300원, 1년 원화 금리 3%, 달러 금리 5%인 <b>가상 완전시장</b>에서 연 단리와 동일한 담보 조건을 가정한 선물환율은 약 1,275.24원이다.</p>
+    <p class="learn-math">F = S × (1 + 원화금리) ÷ (1 + 달러금리) = 1,300 × 1.03 ÷ 1.05 ≈ 1,275.24원</p>
+    <p>이는 <b>보장된 미래 현물환율 예측치가 아니다.</b> 현물과 선물환을 활용하는 차익거래 가격의 단순 근사다. 실제 호가에는 기간·신용·유동성·담보 및 통화베이시스가 반영될 수 있다.</p>
+  </div>
+  <figure class="learn-fig"><svg viewBox="0 0 520 183" role="img" aria-label="원화와 달러의 금리차가 선물환율에 반영되는 관계를 보여주는 도식">
+    <text class="fig-ink" x="0" y="23">환율 움직임과 헤지 비용은 다른 질문</text>
+    <rect class="fig-soft" x="0" y="44" width="155" height="105" rx="6"/>
+    <rect class="fig-soft2" x="182" y="44" width="155" height="105" rx="6"/>
+    <rect class="fig-white" x="365" y="44" width="155" height="105" rx="6" stroke="#cbd8e5"/>
+    <text class="fig-ink" x="12" y="71">현물환율</text><text class="fig-ink" x="12" y="106">1,300원</text>
+    <text class="fig-ink" x="194" y="71">원화 3%</text><text class="fig-ink" x="194" y="106">달러 5%</text>
+    <text class="fig-ink" x="377" y="71">이론 선물환</text><text class="fig-ink" x="377" y="106">1,275.24원</text>
+    <text class="fig-sub" x="0" y="176">실제 은행 호가와 수수료는 이론값과 다를 수 있다.</text>
+  </svg><figcaption>심화 그림 ⑤ 동일 위험·차익거래 조건에서의 금리차 패리티 개념.</figcaption></figure>
+  <div class="learn-grid">
+    <div><h3>환노출과 환헤지</h3><p>해외 주식 투자에 달러가 꼭 ‘추가 수익’인 것은 아니다. 환헤지는 통화 변동을 줄일 수 있지만 헤지 비용과 기간별 롤오버를 동반한다.</p></div>
+    <div><h3>금리만으로 환율을 못 맞히는 이유</h3><p>투자자의 안전자산 수요, 경상수지, 기업의 실수요 환전, 달러 유동성 경색은 이론 금리차와 실제 환율을 다르게 움직이게 한다.</p></div>
+  </div>
+  <div class="learn-sources"><strong>원문과 데이터</strong><ul><li><a href="https://ecos.bok.or.kr/" target="_blank" rel="noopener noreferrer">한국은행 ECOS · 환율과 금리 데이터</a></li><li><a href="https://www.bis.org/" target="_blank" rel="noopener noreferrer">BIS · 외환시장·통화스와프 연구</a></li></ul></div>
+</section>
+
   <h2>한 줄 정리</h2>
   <p>환전은 매매기준율이 아니라 스프레드·우대율까지 봐야 실제 비용을 알 수 있고, 달러 노출 방법은
   외화예금·ETF·FX마진거래마다 수수료·세금·위험이 다르다. 특히 레버리지가 걸린 FX마진거래는 작은 환율
