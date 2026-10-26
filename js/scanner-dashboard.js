@@ -36,13 +36,13 @@
         if (hit.scanDate === today) todayCodes.add(String(hit.code));
       }
       addRecent({ code:String(hit.code), name:hit.name || hit.code, at:hit.scanDate,
-        reason:snapshot.label, badge:'포착 기록', stage:'hold', basePrice:hit.basePrice });
+        reason:snapshot.label, badge:'포착 기록', stage:'hold', origin:'history', basePrice:hit.basePrice });
     });
     current.forEach(function (row) {
       var day = kstDay(row.at);
       if (day === today && timestamp(row.at) <= now) todayCodes.add(String(row.code));
       if (row.stage === 'ready') readyCodes.add(String(row.code));
-      addRecent(row);
+      addRecent(Object.assign({origin:'current'},row));
     });
     var historyDays = Object.keys(buckets).sort();
     var previousDay = historyDays.filter(function (d) { return d < today; }).pop();
@@ -61,6 +61,7 @@
       recent:Object.keys(recent).map(function (code) { return recent[code]; }).sort(function (a,b) {
         return timestamp(b.at) - timestamp(a.at) || a.code.localeCompare(b.code);
       }).slice(0,5), truncated:truncated, partialDay:partialDay,
+      currentCount:new Set(current.filter(function (r) { return r && r.code; }).map(function (r) { return String(r.code); })).size,
       loaded:!!(snapshot.historyLoaded || snapshot.currentLoaded), historyLoaded:!!snapshot.historyLoaded, historyError:!!snapshot.historyError };
   }
   global.ScannerDashboard = { model:model, kstDay:kstDay };
@@ -68,8 +69,9 @@
   var document = global.document, root = document.getElementById('scanner-progress-status');
   if (!root || !root.classList.contains('is-dashboard')) return;
   var esc = function (s) { return global.NineUI.escapeHtml(String(s == null ? '' : s)); };
-  var histories = {}, visibleRows = [];
-  var latest = null, period = 7, chart = null, chartScope = null, chartVersion = 0, signature = '';
+  var selfUrl = document.currentScript && document.currentScript.src;
+  var histories = {}, visibleRows = [], boardJob;
+  var latest = null, period = 7, chart = null, chartVersion = 0, signature = '';
   var panel = document.createElement('div');
   panel.className = 'scan-dashboard-main';
   panel.innerHTML = '<div class="scan-dashboard-stats" aria-label="스캔 요약 통계"></div>'
@@ -78,7 +80,7 @@
     + [7,30,90].map(function (d) { return '<button type="button" data-scan-days="'+d+'" aria-pressed="'+(d===period)+'">'+d+'일</button>'; }).join('')
     + '</div></div><div class="scan-dashboard-plot" aria-label="일별 포착 종목 수"></div><p class="scan-dashboard-chart-note"></p></section>'
     + '<section class="scan-dashboard-recent" aria-labelledby="scan-recent-title"><div class="scan-dashboard-heading"><h3 id="scan-recent-title">최근 포착 신호</h3>'
-    + '<button type="button" class="scan-dashboard-all">전체 보기</button></div><ul class="scan-dashboard-signals"></ul></section></div>'
+    + '<button type="button" class="scan-dashboard-all">전체 보기</button></div><p class="scan-dashboard-chart-note">현재 검색 결과·저장 포착 기록을 구분해 표시합니다.</p><ul class="scan-dashboard-signals"></ul></section></div>'
     + '<p class="scan-dashboard-basis"></p>';
   root.appendChild(panel);
   var statBox = panel.querySelector('.scan-dashboard-stats'), list = panel.querySelector('.scan-dashboard-signals');
@@ -88,44 +90,51 @@
     if (/^\d{4}-\d{2}-\d{2}$/.test(String(at))) return String(at).replace(/-/g,'.') + ' · 시각 미제공';
     return new Date(timestamp(at)).toLocaleString('ko-KR', {timeZone:'Asia/Seoul',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false});
   }
-  function chartTheme(core) {
-    var dark = document.documentElement.classList.contains('dark'), css = global.getComputedStyle(root);
-    return { layout:{background:{color:dark ? css.getPropertyValue('--dk-card').trim() || '#202731' : '#fff'},
-      textColor:dark ? css.getPropertyValue('--dk-mute').trim() || '#a6b5c5' : '#64748b', fontSize:10},
-      grid:{vertLines:{visible:false},horzLines:{color:dark ? css.getPropertyValue('--dk-line').trim() : '#edf0f4'}} };
-  }
-  function seriesTheme() {
-    var color = global.getComputedStyle(root).getPropertyValue('--scan-neon').trim();
-    return {lineColor:color,topColor:color+'26',bottomColor:color+'02'};
+  // Reuse the site's SVG indicator chart; no external chart branding or canvas dependency.
+  function ensureBoard() {
+    if (boardJob) return boardJob;
+    var style = global.NineUI.loadStyle(new URL('../css/indicator-board.css', selfUrl).href);
+    var script = global.IndicatorBoard ? Promise.resolve(global.IndicatorBoard) : new Promise(function (resolve, reject) {
+      var existing = document.querySelector('script[src*="/js/indicator-board.js"]');
+      var tag = existing || document.createElement('script'), timer;
+      function finish(error) {
+        clearTimeout(timer); tag.removeEventListener('load', loaded); tag.removeEventListener('error', failed);
+        if (error) { if (!existing) tag.remove(); reject(error); } else resolve(global.IndicatorBoard);
+      }
+      function loaded() { finish(global.IndicatorBoard ? null : new Error('IndicatorBoard missing')); }
+      function failed() { finish(new Error('IndicatorBoard load failed')); }
+      tag.addEventListener('load', loaded); tag.addEventListener('error', failed);
+      timer = setTimeout(failed,12000);
+      if (!existing) { tag.src = new URL('indicator-board.js', selfUrl).href; document.head.appendChild(tag); }
+    });
+    boardJob = Promise.all([style,script]).then(function (parts) { return parts[1]; });
+    boardJob.catch(function () { boardJob = null; });
+    return boardJob;
   }
   function drawChart(value) {
-    var next = JSON.stringify([value.source,period,value.points,value.historyLoaded,value.historyError]);
+    var next = JSON.stringify([value.source,period,value.points,value.historyLoaded,value.historyError,value.currentCount]);
     if (next === signature) return;
     signature = next;
     var version = ++chartVersion;
-    if (chartScope) { chartScope.dispose(); chartScope = null; }
-    if (chart) { chart.remove(); chart = null; }
+    if (chart) { chart.destroy(); chart = null; }
     plot.innerHTML = '';
+    plot.classList.toggle('is-empty', !value.points.length);
     if (!value.points.length) {
-      plot.textContent = value.historyError && !value.historyLoaded ? '스캔 이력을 불러오지 못했습니다. 기존 검색 결과는 유지됩니다.' : value.historyLoaded ? '선택한 기간에 저장된 스캔 이력이 없습니다.' : '스캔 이력을 확인하고 있습니다.';
+      plot.textContent = value.historyError && !value.historyLoaded ? '일별 저장 이력을 불러오지 못했습니다. 현재 검색 결과는 별도로 유지됩니다.'
+        : !value.historyLoaded ? '일별 저장 이력을 확인하고 있습니다.'
+        : value.currentCount ? '현재 검색 결과 '+value.currentCount+'종목 · 선택한 기간의 일별 저장 이력은 없습니다.'
+        : '선택한 기간에 저장된 일별 스캔 이력이 없습니다.';
       return;
     }
-    var api = global.PatternScan;
-    if (!api || !api.loadChartCore) { plot.textContent = '차트를 불러오지 못했습니다.'; return; }
-    api.loadChartCore().then(function (core) {
-      return core.loadLibrary().then(function (LWC) { return {core:core,LWC:LWC}; });
-    }).then(function (loaded) {
+    ensureBoard().then(function (board) {
       if (version !== chartVersion || !root.isConnected) return;
-      var core = loaded.core, LWC = loaded.LWC;
-      chart = LWC.createChart(plot, Object.assign(chartTheme(core), {autoSize:true,
-        rightPriceScale:{borderVisible:false,entireTextOnly:true}, timeScale:{borderVisible:false,fixLeftEdge:true,fixRightEdge:true,timeVisible:false},
-        handleScroll:false,handleScale:false,localization:{locale:'ko-KR',priceFormatter:function (n) { return Math.round(n).toLocaleString('ko-KR')+'건'; }}}));
-      var series = chart.addSeries(LWC.AreaSeries, Object.assign(seriesTheme(), {lineWidth:2,
-        priceLineVisible:false,lastValueVisible:false,pointMarkersVisible:value.points.length===1,priceFormat:{type:'price',precision:0,minMove:1}}));
-      series.setData(value.points);
-      chart.timeScale().fitContent();
-      chartScope = core.createScope('scanner-dashboard');
-      chartScope.theme(function () { if (chart) { chart.applyOptions(chartTheme(core)); series.applyOptions(seriesTheme()); } });
+      chart = board.createChart(plot, {height:120});
+      chart.update({type:value.points.length===1?'bars':'lines',zero:true,
+        dates:value.points.map(function (p) { return p.time; }),
+        series:[{key:'captures',label:'일별 저장 포착',color:'var(--scan-neon)',values:value.points.map(function (p) { return p.value; })}],
+        fmt:function (n) { return Math.round(n).toLocaleString('ko-KR')+'건'; },
+        axisFmt:function (n) { return Number.isInteger(n) ? n.toLocaleString('ko-KR')+'건' : ''; },
+        guides:{months:false,weeks:false},ariaLabel:'일별 저장된 포착 종목 수'});
     }).catch(function () {
       if (version === chartVersion) { plot.textContent = '추이 차트를 불러오지 못했습니다. 기간을 다시 선택해 주세요.'; signature = ''; }
     });
@@ -137,7 +146,7 @@
     visibleRows = value.recent;
     var labels = ['오늘 포착','돌파 준비','돌파 성공','실패'];
     setHtml(statBox, labels.map(function (label,i) {
-      var note = i===0 ? '오늘 · 종목 중복 제외' : i===1 ? '현재 검색 결과' : '최근 90일 이력';
+      var note = i===0 ? 'KST 오늘 · 현재 결과·저장 기록 중복 제외' : i===1 ? '현재 검색 결과' : '최근 90일 이력';
       if (i===0 && value.delta !== null) note = value.previousDay.slice(5).replace('-','/')+' 대비 '+(value.delta>0?'+':'')+value.delta+'건'
         +(value.deltaPct===null?'':' ('+(value.deltaPct>0?'+':'')+value.deltaPct.toFixed(1)+'%)');
       return '<div class="scan-dashboard-stat"><span>'+label+'</span><strong>'+(value.counts[i]===null?'—':value.counts[i].toLocaleString('ko-KR'))+'</strong><small>'+esc(note)+'</small></div>';
@@ -148,7 +157,7 @@
         + '<span class="scan-dashboard-logo"><span aria-hidden="true">'+esc(String(row.name || code).slice(0,1))+'</span>'
         + (safeCode ? '<img data-icon-code="'+esc(code)+'" data-icon-market="domestic" src="https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/'+encodeURIComponent(code)+'.svg" width="26" height="26" alt="" loading="lazy">' : '')+'</span>'
         + '<span class="scan-dashboard-signal-copy"><span class="scan-dashboard-signal-top"><b>'+esc(row.name)+'</b><time>'+esc(timeLabel(row.at))+'</time></span>'
-        + '<span class="scan-dashboard-reason" title="'+esc(row.reason)+'">'+esc(row.reason)+'</span></span><span class="scan-dashboard-badge">'+esc(row.badge)+'</span></button></li>';
+        + '<span class="scan-dashboard-reason" title="'+esc(row.reason)+'">'+esc(row.reason)+'</span></span><span class="scan-dashboard-badge">'+esc((row.origin==='current'?'현재 결과 · ':'저장 이력 · ')+row.badge)+'</span></button></li>';
     }).join('') : '<li class="scan-dashboard-empty">'+(value.loaded?'최근 포착 신호가 없습니다.':'포착 신호를 확인하고 있습니다.')+'</li>');
     list.querySelectorAll('img').forEach(function (img) {
       img.onerror = function () {
@@ -162,7 +171,7 @@
       if (img.complete && img.naturalWidth) img.onload();
     });
     panel.querySelector('.scan-dashboard-basis').textContent = '이력 기준: '+value.label+' · 오늘은 KST 기준 · 성공·실패는 최근 90일 포착 이력';
-    panel.querySelector('.scan-dashboard-chart-note').textContent = (history && history.error ? '이력 조회 지연 · ' : '')+'일별 포착 종목 수 · 기록이 있는 날짜만 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
+    panel.querySelector('.scan-dashboard-chart-note').textContent = (history && history.error ? '이력 조회 지연 · ' : '')+'일별 저장 포착 수 · 현재 검색 결과는 최근 신호에 별도 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
     drawChart(value);
   }
   panel.querySelectorAll('[data-scan-days]').forEach(function (button) {

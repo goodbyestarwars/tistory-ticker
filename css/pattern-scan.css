@@ -361,32 +361,6 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
   align-items: center;
   gap: 10px;
 }
-/* 2026-08-22 요청: 로딩 표시를 원형 스피너 대신 심장박동 모니터(ECG) 파형으로 교체 -
-   foreign-flow.css와 동일 패턴(pathLength="100" polyline + dashoffset 애니메이션). */
-#pattern-scan .ps-spinner {
-  display: block;
-  width: 108px;
-  height: 42px;
-  margin: 0 auto 8px;
-  overflow: visible;
-  color: var(--num-down);
-}
-#pattern-scan .ps-spinner polyline {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 3;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  stroke-dasharray: 100;
-  stroke-dashoffset: 100;
-  animation: ps-heartbeat 1.6s linear infinite;
-}
-@keyframes ps-heartbeat {
-  0% { stroke-dashoffset: 100; }
-  70% { stroke-dashoffset: 0; }
-  100% { stroke-dashoffset: -20; }
-}
-
 /* ---- 상세(캔들차트) ---- */
 
 #pattern-scan .ps-detail {
@@ -751,9 +725,6 @@ html.dark #pattern-scan .ps-hint,
 html.dark #pattern-scan .ps-loading,
 html.dark #pattern-scan .ps-error {
   color: var(--dk-sub) !important;
-}
-html.dark #pattern-scan .ps-spinner {
-  color: var(--dk-text) !important;
 }
 
 html.dark #pattern-scan .ps-detail {

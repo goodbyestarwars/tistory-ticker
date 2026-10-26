@@ -189,6 +189,7 @@
   var INFO_ROWS = [['purpose', '검색 목적'], ['cond', '패턴 조건'], ['state', '포착 상태'], ['entry', '진입 확인'], ['invalid', '무효 조건'], ['basis', '스캔 기준']];
 
   var scanData = null;
+  var scanSettled = false, scanError = '', liveSurgeSettled = false, liveSurgeError = '';
   var scanPerformanceData = null;
   var activeTab = 'liveFlow';
   var historySource = 'volumeBreakout';
@@ -289,7 +290,7 @@
       }).join('')
       + '</div>'
       + '<details class="ps-review-fold"><summary>상태·성과 자세히</summary><div data-scanner-review></div><div class="ps-track-summary" id="psTrackSummary"></div></details>'
-      + '<div class="ps-list" id="psList"><div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div></div>'
+      + '<div class="ps-list" id="psList">' + global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}) + '</div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
 
@@ -410,7 +411,7 @@
       })
       .catch(function () { return fetchWithRetry(scanUrl, hasPatterns); })
       .then(function (data) {
-        scanData = data;
+        scanData = data; scanSettled = true; scanError = '';
         scanMetaText = data.scannedAt
           ? (baseDateLabel(data) + '스캔 ' + data.scannedAt + ' · 대상 ' + (data.scanned || 0) + '/' + (data.universe || 0) + '종목')
           : '아직 스캔 결과가 없어요. VM 일일 스캔이 한 번 완료되면 표시됩니다.';
@@ -420,6 +421,7 @@
         syncLiveSurge(container);
       })
       .catch(function (err) {
+        scanSettled = true; scanError = (err && err.message) || '스캔 조회 실패';
         var list = container.querySelector('#psList');
         if (!list) return;
         if (activeTab === 'liveFlow') { renderList(container); return; }
@@ -471,7 +473,7 @@
       .then(function (envelope) {
         var data = envelope && envelope.data ? envelope.data : envelope;
         if (!data || !Array.isArray(data.items)) throw new Error('live surge empty');
-        liveSurgeInfo = data;
+        liveSurgeInfo = data; liveSurgeSettled = true; liveSurgeError = '';
         // 2026-10-15: 장이 닫혀 실시간 목록이 비면(전부 만료) 09:05 스냅샷을 덮어쓰지 않는다 - 안내 문구가 "마지막 감지 기록"을
         // 보여준다고 하므로 0건으로 덮으면 문구와 화면이 어긋난다.
         if (scanData && (data.active || data.items.length)) {
@@ -482,8 +484,8 @@
       })
       .catch(function () {
         // 실패하면 서버가 마지막으로 저장한 스냅샷을 그대로 둔다(탭이 비지 않게).
-        liveSurgeInfo = null;
-        if (activeTab === 'volumeBreakout' || activeTab === 'liveFlow') updateMeta(container);
+        liveSurgeInfo = null; liveSurgeSettled = true; liveSurgeError = '장중 검색 결과 조회 실패';
+        if (activeTab === 'volumeBreakout' || activeTab === 'liveFlow') { updateMeta(container); renderList(container); }
       });
   }
 
@@ -1308,6 +1310,21 @@
     return '<span class="ps-financial">연간 '+escapeHtml(a.year)+' · ROE '+val(a.roe_pct)+'% · 부채비율 '+val(a.debt_ratio_pct)+'%<br>영업이익 성장 '+val(a.operating_income_yoy_pct)+'% · 순이익 성장 '+val(a.net_income_yoy_pct)+'%<br>최신 '+escapeHtml(q.year)+' '+escapeHtml(QUARTER_NAMES[q.reprt_code] || '')+' 단독분기 영업/순익 '+val(q.operating_income/1e8)+' / '+val(q.net_income/1e8)+'억원<br>공시 '+escapeHtml((f.filing || {}).rcept_dt || '')+' · 확인 '+escapeHtml(String(f.checked_at || '').slice(0,10))+'</span>';
   }
   var QUARTER_NAMES={'11013':'1분기','11012':'2분기','11014':'3분기','11011':'4분기'};
+  function scannerDataState(source) {
+    if (source === 'ninepayLive') return ninepayData ? 'ready' : ninepayError ? 'error' : 'loading';
+    if (source === 'volumeBreakout') {
+      if (scanData || liveSurgeInfo && (liveSurgeInfo.active || (liveSurgeInfo.items || []).length)) return 'ready';
+      if (!scanSettled || !liveSurgeSettled) return 'loading';
+      return scanError || liveSurgeError ? 'error' : 'ready';
+    }
+    return scanData ? 'ready' : scanSettled ? 'error' : 'loading';
+  }
+  function emptyUnifiedHtml() {
+    var states = groupFor(activeTab).sources.map(scannerDataState);
+    if (states.indexOf('loading') >= 0) return global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false});
+    if (states.indexOf('error') >= 0) return global.NineUI.state('error', '검색 결과를 확인하지 못했습니다. 잠시 후 다시 조회합니다.', 'ps-hint');
+    return '<div class="ps-hint">조건에 맞는 종목이 없다.</div>';
+  }
   function renderUnifiedList(container) {
     var list=container.querySelector('#psList');
     ['#psViewTabs','#psTrackSummary','#psPriceBasis','[data-scanner-review]'].forEach(function(sel){var el=container.querySelector(sel);if(el)el.hidden=false;});
@@ -1333,7 +1350,7 @@
       notice='<div class="ps-unified-note">'+(f?'기술 후보 '+f.technical+' · 통과 '+f.passed+' · 제외 '+f.excluded+'<br>'+Object.keys(f.reasonCounts || {}).map(function(k){return escapeHtml((f.reasonLabels || {})[k] || k)+' '+f.reasonCounts[k];}).join(' · '):'재무 검증 결과를 준비 중이다. 미확인 종목은 표시하지 않는다.')+'</div>';
     }
     if(activeTab==='pullbackRebreak' && scanData && scanData.gongpasanStages && scanData.gongpasanStages.status!=='ok')notice+='<div class="ps-unified-note">급락 후 첫 눌림의 관찰 단계는 자료가 오래돼 숨겼다.</div>';
-    list.innerHTML=notice+(items.length?'<div class="ps-list-head" aria-hidden="true"><span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>패턴·단계</span><span>가격·등락률</span><span>관측·재무</span></div>':'<div class="ps-hint">'+(!scanData && activeTab!=='liveFlow'?'일봉 스캔 수신 대기':'조건에 맞는 종목이 없다.')+'</div>')
+    list.innerHTML=notice+(items.length?'<div class="ps-list-head" aria-hidden="true"><span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>패턴·단계</span><span>가격·등락률</span><span>관측·재무</span></div>':emptyUnifiedHtml())
       +items.map(function(it,i){return '<div class="ps-item ps-unified-item" data-code="'+escapeHtml(it.code)+'" tabindex="0" role="button"><span class="ps-rank">'+(i+1)+'</span><div class="ps-stock"><span class="ps-name">'+stockIconHtml(it.code)+escapeHtml(it.name || it.code)+'</span><span class="ps-code">'+escapeHtml(it.code)+'</span></div><div class="ps-mini-chart-wrap">'+miniChartHtml(it)+'</div><div class="ps-pattern-tags">'+it.members.map(memberTagHtml).join('')+'</div><div class="ps-quote"><span class="ps-price">'+(it.price==null?'미수신':fmt(it.price))+'</span><span class="ps-rate '+chgClass(it.changeRate)+'">'+chgSign(it.changeRate)+'</span><small>'+escapeHtml(it._quoteBasis || (it.date || '')+' 스캔 시점')+'</small></div><div class="ps-observation">'+financialHtml(it)+it.members.filter(function(m){return m.key==='ninepayLive';}).map(function(m){var r=m.item;return '<span>70% 최초 '+npTime(r.first70At)+' · 비율 '+(r.volumeRatio==null?'미수신':'≥'+npNumber(r.volumeRatio*100,'%',1))+'<br>신호 '+npTime(r.signalAt)+' · '+npNumber(r.signalPrice,'원')+' · 수신 '+npTime(r.at)+'<br>'+(r.volumeMissing?'거래량 결측 · ':'')+(r.entryInvalid?'진입 무효 · ':'')+(r.priority80?'80% 우선':'80% 미확인')+'</span>';}).join('')+'<small>원래 패턴별 근거는 상세에서 확인</small></div></div>';}).join('');
     list.querySelectorAll('.ps-item').forEach(function(el){function open(){var row=items.filter(function(it){return it.code===el.getAttribute('data-code');})[0];var chosen=row.members.filter(function(m){return m.key===historySource;})[0]||row.members[0];openDetail(container,Object.assign({},chosen.item,{_sourceKey:chosen.key}));}el.addEventListener('click',open);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});});
     renderTrackSummary(container);
@@ -1352,7 +1369,7 @@
       var el = container.querySelector(selector); if (el) el.hidden = activeTab === 'ninepayLive';
     });
     if (activeTab === 'ninepayLive') { renderNinepay(container); return; }
-    if (!scanData) { list.innerHTML = '<div class="ps-hint"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg>불러오는 중...</div>'; return; }
+    if (!scanData) { list.innerHTML = global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}); return; }
 
     if (trackView === 'success' || trackView === 'failed') { renderTrackedList(container); return; }
     if (activeTab === 'firstPullbackBreakout' && !scanData.firstPullbackBreakoutReady) {
@@ -1707,7 +1724,7 @@
     destroyPsChart();
     psIchimokuEnabled = false;
     detail.hidden = false;
-    detail.innerHTML = '<div class="ps-loading"><svg class="ps-spinner" viewBox="0 0 120 40" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><polyline pathLength="100" points="0,20 24,20 30,6 36,34 42,20 50,20 55,2 60,38 65,20 120,20"/></svg><div>' + escapeHtml(item.name) + ' 차트를 불러오는 중...</div></div>';
+    detail.innerHTML = global.NineUI.state('loading', item.name + ' 차트를 불러오는 중...', 'ps-loading', {spinner:false});
     detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 
     var chartUrl = GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
@@ -2633,10 +2650,10 @@
         || item.scannedAt || detail.scanned_at || item.lastObservedAt || item.date;
       var stage = itemStage(item);
       return { code: String(item.code), name: item.name || item.code, at: at,
-        reason: scannerSignal(item, source), badge: stage.label, stage: stage.key, item: item };
+        reason: scannerSignal(item, source), badge: stage.label, stage: stage.key, origin: 'current', item: item };
     });
     return { source: key, label: sourceLabel(source), current: rows,
-      currentLoaded: source === 'volumeBreakout' ? !!(liveSurgeInfo || scanData) : !!scanData,
+      currentLoaded: scannerDataState(source) === 'ready',
       hits: history && history.hits, stats: tracks && tracks.stats,
       historyLoaded: !!history, historyLimit: 1500 };
   }

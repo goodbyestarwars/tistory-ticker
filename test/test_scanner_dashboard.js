@@ -25,3 +25,13 @@ assert.equal(run({current:Array.from({length:8},(_,i)=>row(String(i),'2026-10-26
 const sourceText=fs.readFileSync('js/pattern-scan.js','utf8');
 assert.ok(sourceText.includes('var SCAN_PERF_WINDOW_DAYS = 35;'),'existing performance window unchanged');
 console.log('PASS dashboard deduplication, missing/zero data, mixed sources, latest five, KST, ranges, deltas and truncation');
+
+const currentOnly=run({hits:[],current:[row('005930','2026-10-26T10:00:00Z')]});
+assert.equal(currentOnly.points.length,0,'current snapshot is not fabricated daily history');
+assert.equal(currentOnly.currentCount,1);assert.equal(currentOnly.recent[0].origin,'current');
+assert.equal(run({hits:[hit('005930','2026-10-25')]}).recent[0].origin,'history');
+const dashboardSource=fs.readFileSync('js/scanner-dashboard.js','utf8');
+assert.ok(dashboardSource.includes('board.createChart(plot'));
+assert.ok(!dashboardSource.includes('LWC.createChart'));assert.ok(!dashboardSource.includes('loadChartCore'));
+assert.ok(dashboardSource.includes('현재 검색 결과')&&dashboardSource.includes('일별 저장 이력'));
+console.log('PASS current vs stored provenance and shared IndicatorBoard chart');
