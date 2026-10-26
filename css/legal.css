@@ -108,7 +108,7 @@ body.learn-page .legal-wrap {
 body.learn-page .legal-wrap > p,
 body.learn-page .legal-wrap > ul,
 body.learn-page .legal-wrap > ol { line-height: 1.88; }
-body.learn-page .legal-wrap .learn-fig svg { max-width: 620px; }
+body.learn-page .legal-wrap .learn-fig svg { max-width: 520px; }
 body.learn-page .legal-wrap .learn-fig figcaption { max-width: 680px; margin-inline: auto; }
 body.learn-page .legal-wrap .fig-on-accent { fill: #263445; }
 body.learn-page .legal-wrap .fig-on-strong { fill: #fff; font-size: 14px; font-weight: 700; }
