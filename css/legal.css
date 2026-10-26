@@ -85,12 +85,27 @@ a { color: #d24f45; }
 .learn-toc a { font-size: 16px; font-weight: 700; text-decoration: none; }
 .learn-toc small { display: block; margin-top: 2px; color: #6b7280; font-size: 13px; line-height: 1.6; }
 
+/* 이야기 시리즈의 8개 문서만 밝은 블루그레이 톤으로 통일한다.
+   이용안내(legal/guide.html)도 learn-note/fig-*를 사용하므로
+   시리즈 각 문서에 있는 .learn-nav로 범위를 구분한다. */
+.legal-wrap:has(.learn-nav) {
+  --learn-box: #edf3f8;
+  --learn-box-deep: #dfe9f3;
+  --learn-box-inset: #fbfcfe;
+  --learn-box-border: #cbd8e5;
+  --learn-case-bg: #f8fafc;
+  --learn-case-label: #475569;
+  --learn-case-good-bg: #e8f1f9;
+  --learn-case-good-line: #a9bfd4;
+  --learn-case-good-text: #3b607e;
+}
+
 /* 2026-09-17 사용자 지시("AI가 자주 쓰는 저 bar 쓰지마"): 왼쪽 색 막대(border-left 강조) 없이
    배경만 있는 평범한 상자로 둔다. */
 .learn-note {
   margin: 0 0 16px;
   padding: 13px 15px;
-  background: #ebe0c4;
+  background: var(--learn-box, #ebe0c4);
   font-size: 14px;
   line-height: 1.7;
 }
@@ -129,10 +144,10 @@ a { color: #d24f45; }
 .learn-fig--wide img { display:block; width:100%; max-width:790px; height:auto; margin:0 auto; border:1px solid #dce2e9; border-radius:8px; background:#fefdfa; }
 .learn-fig--wide a:focus-visible { outline:2px solid #1261c4; outline-offset:4px; border-radius:8px; }
 .learn-fig text { font-family: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; }
-.fig-soft { fill: #ebe0c4; }
-.fig-soft2 { fill: #e2d5b4; }
-.fig-line { fill: none; stroke: #cfcbbb; stroke-width: 1; }
-.fig-dash { fill: none; stroke: #cfcbbb; stroke-width: 1; stroke-dasharray: 4 4; }
+.fig-soft { fill: var(--learn-box, #ebe0c4); }
+.fig-soft2 { fill: var(--learn-box-deep, #e2d5b4); }
+.fig-line { fill: none; stroke: var(--learn-box-border, #cfcbbb); stroke-width: 1; }
+.fig-dash { fill: none; stroke: var(--learn-box-border, #cfcbbb); stroke-width: 1; stroke-dasharray: 4 4; }
 .fig-ink { fill: #1f2937; font-size: 14px; font-weight: 700; }
 .fig-sub { fill: #6b7280; font-size: 12.5px; }
 .fig-up { fill: #d24f45; }
@@ -140,7 +155,7 @@ a { color: #d24f45; }
 .fig-up-line { fill: none; stroke: #d24f45; stroke-width: 2; }
 .fig-down-line { fill: none; stroke: #1261c4; stroke-width: 2; }
 .fig-ink-line { fill: none; stroke: #1f2937; stroke-width: 1.5; }
-.fig-white { fill: #f8f0db; }
+.fig-white { fill: var(--learn-box-inset, #f8f0db); }
 .fig-marker { fill: #1f2937; }
 .fig-acc { fill: #c08a2b; }
 .fig-acc-line { fill: none; stroke: #c08a2b; stroke-width: 2; }
@@ -150,21 +165,21 @@ a { color: #d24f45; }
 /* 사례 카드(2026-10-04 요청: 절세 이야기에 "Case 1·2" 비교 카드). 인물·태그·활용법·
    일반계좌 대 절세계좌 세금 비교를 한 장에 둔다. 왼쪽 색 막대 없이 배경과 테두리만 쓴다. */
 .learn-cases { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 0 0 18px; }
-.learn-case { padding: 18px 16px 16px; border: 1px solid #e2d5b4; border-radius: 14px; background: #fffaf0; }
+.learn-case { padding: 18px 16px 16px; border: 1px solid var(--learn-box-border, #e2d5b4); border-radius: 14px; background: var(--learn-case-bg, #fffaf0); }
 .learn-case-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 12px; }
 .learn-case-no { padding: 2px 10px; border: 1px solid #1f2937; border-radius: 999px; font-size: 12px; font-weight: 700; }
-.learn-case-tag { padding: 2px 8px; border-radius: 999px; background: #ebe0c4; color: #6b5a2e; font-size: 12px; }
+.learn-case-tag { padding: 2px 8px; border-radius: 999px; background: var(--learn-box, #ebe0c4); color: var(--learn-case-label, #6b5a2e); font-size: 12px; }
 .learn-case-who { margin: 0 0 4px; color: #6b7280; font-size: 13px; }
 .learn-case h4 { margin: 0 0 12px; font-size: 17px; line-height: 1.45; }
-.learn-case-how { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: #ebe0c4; font-size: 13px; line-height: 1.65; }
-.learn-case-how b { display: block; margin-bottom: 2px; color: #8a6420; font-size: 12px; }
+.learn-case-how { margin: 0 0 12px; padding: 10px 12px; border-radius: 10px; background: var(--learn-box, #ebe0c4); font-size: 13px; line-height: 1.65; }
+.learn-case-how b { display: block; margin-bottom: 2px; color: var(--learn-case-good-text, #8a6420); font-size: 12px; }
 .learn-case-q { margin: 0 0 8px; font-size: 13.5px; font-weight: 700; text-align: center; }
 .learn-case-vs { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
-.learn-case-vs div { padding: 10px 6px; border: 1px solid #e2d5b4; border-radius: 10px; text-align: center; font-size: 12px; line-height: 1.5; color: #6b7280; }
+.learn-case-vs div { padding: 10px 6px; border: 1px solid var(--learn-box-border, #e2d5b4); border-radius: 10px; text-align: center; font-size: 12px; line-height: 1.5; color: #6b7280; }
 .learn-case-vs strong { display: block; margin: 2px 0; color: #1f2937; font-size: 20px; }
-.learn-case-vs .is-good { border-color: #c08a2b; background: #f6ead0; }
-.learn-case-vs .is-good strong { color: #8a6420; }
-.learn-case-end { margin: 0; color: #8a6420; font-size: 14px; font-weight: 700; text-align: center; }
+.learn-case-vs .is-good { border-color: var(--learn-case-good-line, #c08a2b); background: var(--learn-case-good-bg, #f6ead0); }
+.learn-case-vs .is-good strong { color: var(--learn-case-good-text, #8a6420); }
+.learn-case-end { margin: 0; color: var(--learn-case-good-text, #8a6420); font-size: 14px; font-weight: 700; text-align: center; }
 @media (max-width: 640px) { .learn-cases { grid-template-columns: 1fr; } }
 
 @media (prefers-color-scheme: dark) {
