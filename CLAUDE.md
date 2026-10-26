@@ -61,7 +61,7 @@
 | UI·스킨 | `docs/UI_GUIDE.md`, `docs/SKIN_HTML_PENDING.md`, `skin.html` |
 | GAS | `docs/GAS_AUTO_DEPLOY.md`, `gas/ticker-proxy.gs` |
 | 스케줄 | `docs/SCHEDULER_CONSOLIDATION_2026-10-20.md`, `quant-autotrade/docs/SCHEDULER.md` |
-| 주문/피드 | `docs/NINEPAY_LIVE_TRADING.md`, `docs/NINEPAY_FEED_INCIDENT_2026-10-20.md` |
+| 자동매매 정책·PC 운영·검증·이력 | `quant-autotrade/docs/TRADING_RULES.md`, `quant-autotrade/docs/LIVE_OPERATIONS.md`, `quant-autotrade/docs/STRATEGY_TESTS.md`, `quant-autotrade/docs/CHANGELOG.md` |\n| 피드·과거 거래 기록 | `docs/NINEPAY_FEED_INCIDENT_2026-10-20.md`, `quant-autotrade/docs/NINEPAY_LIVE_TRADING_HISTORY.md` |
 
 경로별 규칙은 `.claude/rules/`, 작업 절차는 `.claude/skills/`를 확인한다.
 
