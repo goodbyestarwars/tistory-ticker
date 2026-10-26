@@ -19,7 +19,6 @@
   var SR_MAX_PER_SIDE = 3;
   var SR_SUPPORT_COLOR = '210,79,69';
   var SR_RESISTANCE_COLOR = '18,97,196';
-  var SR_FLIP_COLOR = '124,77,255';   // 지지↔저항 전환 가격대(2026-10-21)
 
   // 2026-10-18 사용자 요청("지지·저항이 너무 촘촘하다. 단타 관점엔 좋지만 추세 관점엔 너무 짧다"): 일봉·주봉·월봉은 추세 설정을 쓴다.
   // 스윙 판정 폭을 넓히고(일봉 좌우 10봉), 묶는 폭·선 사이 최소 간격을 키우고(일봉 3%·6%), 더 긴 기간(일봉 500봉)을 보며,
@@ -197,19 +196,19 @@
 
   function installSupportResistanceCanvas(container, chart, candleSeries, result, formatPrice, options) {
     options = options || {};
-    // 강도 차이는 신뢰도가 아니라 각 방향에서 현재가와의 거리 순위를 뜻한다.
+    // 색·투명도는 모든 지지에 기존 지지 3, 모든 저항에 기존 저항 2 기준을 적용한다.
     var SR_BAND_ALPHA = [0.14, 0.085, 0.045];
     var SR_LINE_ALPHA = [0.72, 0.50, 0.32];
     var SR_LABEL_ALPHA = [1.0, 0.78, 0.58];
     function itemsFor(current) {
       if (!current) return [];
-      function make(list, color, base) {
+      function make(list, color, base, colorRank) {
         return list.slice(0, SR_MAX_PER_SIDE).map(function (l, i) {
           var flipped = !!l.flip;
-          return { l: l, c: flipped ? SR_FLIP_COLOR : color, name: base + ' ' + (i + 1) + (flipped ? ' · 전환' : ''), rank: i, detail: detailText(l) };
+          return { l: l, c: color, name: base + ' ' + (i + 1) + (flipped ? ' · 전환' : ''), colorRank: colorRank, detail: detailText(l) };
         });
       }
-      return make(current.support, SR_SUPPORT_COLOR, '지지').concat(make(current.resistance, SR_RESISTANCE_COLOR, '저항'));
+      return make(current.support, SR_SUPPORT_COLOR, '지지', 2).concat(make(current.resistance, SR_RESISTANCE_COLOR, '저항', 1));
     }
     function shortDate(d) {
       var m = typeof d === 'string' ? d.match(/^\d{4}-(\d{2})-(\d{2})/) : null;
@@ -292,10 +291,10 @@
         var yBottom = candleSeries.priceToCoordinate(item.l.low);
         if (![y, yTop, yBottom].every(Number.isFinite)) return;
         // 음영: 스윙 고·저점이 모인 가격 폭
-        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_BAND_ALPHA[item.rank] + ')';
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_BAND_ALPHA[item.colorRank] + ')';
         ctx.fillRect(0, Math.max(0, Math.min(yTop, yBottom)), right, Math.max(2, Math.abs(yBottom - yTop)));
         // 가로줄: 점선
-        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LINE_ALPHA[item.rank] + ')';
+        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LINE_ALPHA[item.colorRank] + ')';
         ctx.lineWidth = [1, 1.6, 2.4][item.l.strength || 0];   // 반응이 많고 거래량이 실렸던 선일수록 굵게
         ctx.setLineDash(item.l.flip ? [6, 3] : [2, 2]);
         ctx.beginPath();
@@ -327,7 +326,7 @@
         }
         // 종류·순위와 가격 범위를 서로 다른 둥근 배지로 나눠 가격축 숫자와 혼동되지 않게 한다.
         roundedBox(ctx, left, ly - 10, nameWidth, 20, 10);
-        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.colorRank] + ')';
         ctx.fill();
         ctx.fillStyle = '#fff';
         ctx.fillText(item.name, left + 7, ly + 0.5);
@@ -335,10 +334,10 @@
         roundedBox(ctx, priceLeft, ly - 10, Math.min(priceWidth, right - priceLeft - 2), 20, 10);
         ctx.fillStyle = global.document.documentElement.classList.contains('dark') ? 'rgba(32,39,49,.94)' : 'rgba(255,254,252,.94)';
         ctx.fill();
-        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
+        ctx.strokeStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.colorRank] + ')';
         ctx.lineWidth = 1;
         ctx.stroke();
-        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.rank] + ')';
+        ctx.fillStyle = 'rgba(' + item.c + ',' + SR_LABEL_ALPHA[item.colorRank] + ')';
         ctx.fillText(priceText, priceLeft + 7, ly + 0.5, Math.max(0, right - priceLeft - 11));
       });
     }
