@@ -103,6 +103,26 @@ class TradeTests(unittest.TestCase):
         return trade_signal_once(self.client, self.ledger, sig or signal(), self.folder.name,
                                  NOW, FakePolicy, clock=lambda: NOW)
 
+    def test_no_intraday_buy_at_or_after_1400_even_with_fresh_signal(self):
+        after = NOW.replace(hour=14, minute=0)
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            result = trade_signal_once(self.client, self.ledger,
+                signal(at=after.timestamp()-1, first70At=NOW.timestamp()-60),
+                self.folder.name, after, FakePolicy, clock=lambda: after)
+        self.assertEqual(result, 'CLOSED_OR_STOPPED')
+        self.assertEqual(self.client.orders, [])
+        self.assertEqual(self.ledger.reserved, [])
+
+    def test_signal_expiring_at_order_boundary_does_not_buy(self):
+        before = NOW.replace(hour=13, minute=59, second=59)
+        after = before + timedelta(seconds=1)
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '1'}):
+            result = trade_signal_once(self.client, self.ledger,
+                signal(at=before.timestamp()-1, first70At=NOW.timestamp()-60),
+                self.folder.name, before, FakePolicy, clock=lambda: after)
+        self.assertEqual(result, 'STALE_BEFORE_ORDER')
+        self.assertEqual(self.client.orders, [])
+
     def test_disabled_does_not_touch_broker(self):
         with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING': '0'}):
             self.assertEqual(self.run_trade(), '9PAY_DISABLED')
