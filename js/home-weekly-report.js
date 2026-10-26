@@ -6,7 +6,7 @@
   'use strict';
 
   var API_URL = 'https://goodbyestar.cloud/weekly-report';
-  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-glass-calendar';
+  var CSS_URL = 'https://goodbyestarwars.github.io/tistory-ticker/css/home-weekly-report.css?v=20261026-paired-calendar';
   var LOCAL_CACHE_KEY = 'tistoryTicker:weeklyReport:v5';
   var GOLD_FALLBACK_URL = 'https://goodbyestar.cloud/futures?interval=day&days=365&symbols=GOLD';
   var FETCH_TIMEOUT_MS = 8000;
@@ -1049,8 +1049,8 @@
     root.innerHTML = '<header class="wd-header" hidden><div class="wd-header-copy"><span class="wd-badge">MARKET CLOSED</span><h2>시장도 잠시 쉬어가요</h2><p>한 주를 돌아보고, 다음 거래를 준비하세요.</p></div>' + countdownMarkup() + '<dl><div><dt>이번 주 마감</dt><dd>' + escapeHtml(bannerDate(data.week && data.week.end)) + '</dd></div><div><dt>다음 거래 시작일</dt><dd data-wd-next-trading>' + escapeHtml(nextTradingDay()) + '</dd></div></dl></header>'
       + '<section class="wd-index-section"><div class="wd-section-head"><h3>' + indexTitleIcon + ' 주요 지수</h3><a href="/pages/kospi-futures">전체 지수 보기 →</a></div><div class="wd-indices" tabindex="0" role="region" aria-label="주요 지수 · 직전 주 종가 대비 · 가로 스크롤">' + indexCards + '</div></section>'
       + '<div class="wd-grid wd-market-overview"><section class="wd-panel wd-commodities" data-hwr-commodities>' + panelHeading('원유·금', '주말에 확인할 주요 원자재 · USD') + '<p class="wd-empty">시세 확인 중</p></section>'
-      + '<div class="wd-live-panel" data-hwr-live><p class="wd-empty">가상자산·바이낸스 선물 시세 확인 중</p></div>'
-      + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading(scheduleWindow(new Date()).title, '월~토 · 날짜·시각 KST · 미국 실적은 현지 발표일 병기') + '<span>캘린더 연결 중</span></div>' + scheduleList(data.schedule) + '<p class="wd-note">국내 공시·미국 S&amp;P 100 실적·미국 주요 경제지표·등록 캘린더의 확인된 일정입니다. 미발표·미수집 일정은 포함되지 않습니다.</p><a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section></div>'
+      + '<section class="wd-panel wd-calendar" data-hwr-schedule><div class="hwr-card-title">' + panelHeading(scheduleWindow(new Date()).title, '월~토 · 날짜·시각 KST · 미국 실적은 현지 발표일 병기') + '<span>캘린더 연결 중</span></div>' + scheduleList(data.schedule) + '<p class="wd-note">국내 공시·미국 S&amp;P 100 실적·미국 주요 경제지표·등록 캘린더의 확인된 일정입니다. 미발표·미수집 일정은 포함되지 않습니다.</p><a class="wd-more" href="/page/stock-calendar">전체 캘린더 →</a></section>'
+      + '<div class="wd-live-panel" data-hwr-live><p class="wd-empty">가상자산·바이낸스 선물 시세 확인 중</p></div></div>'
       + '<section class="wd-news-section" data-hwr-themes>' + newsPanelHeading('뉴스로 살펴보는 테마와 주요 종목') + '<p class="wd-empty">뉴스 확인 중</p></section>'
       + '<div class="wd-reading" aria-label="마켓브리핑과 이야기 시리즈"><section class="wd-panel" data-wd-briefing hidden></section><section class="wd-panel" data-wd-stories hidden></section></div>';
     loadNextWeekCalendar(root, data.week && data.week.end);

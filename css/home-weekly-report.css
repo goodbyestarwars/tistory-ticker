@@ -140,9 +140,13 @@ html.dark .weekend-dashboard {
 }
 
 .weekend-dashboard .wd-market-overview { gap: var(--ui-section-gap,20px); }
-.weekend-dashboard :is(.wd-commodities,.wd-live-panel,.wd-calendar) { grid-column: 1 / -1; }
-.weekend-dashboard .wd-calendar .hwr-schedule-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); column-gap: 28px; max-height: 420px; overflow-y: auto; scrollbar-gutter: stable; }
+.weekend-dashboard .wd-live-panel { grid-column: 1 / -1; }
+.weekend-dashboard .wd-calendar { container: wd-calendar / inline-size; }
+.weekend-dashboard .wd-calendar .hwr-schedule-list { display: grid; grid-template-columns: minmax(0,1fr); column-gap: 28px; max-height: 420px; overflow-y: auto; scrollbar-gutter: stable; }
 .weekend-dashboard .wd-market-overview .hwr-schedule-list li { padding: 12px 0; }
+@container wd-calendar (min-width:720px) {
+  .weekend-dashboard .wd-calendar .hwr-schedule-list { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
 
 .weekend-dashboard .wd-section-head {
   display: flex;
