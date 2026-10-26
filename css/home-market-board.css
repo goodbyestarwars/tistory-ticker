@@ -165,17 +165,17 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp dd {
   margin: 0; font: 600 15px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; white-space: normal;
 }
 
-/* ── C. KOSPI · KOSDAQ: 지수가 가장 크게, 등락률은 바로 옆, 얇은 세로선으로만 나눈다 ── */
+/* ── C. 지수 카드: 독립 박스 사이와 박스 안쪽 모두 공통 여백을 유지한다 ── */
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip {
-  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; margin-top: var(--ui-section-gap);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--ui-section-gap); margin-top: var(--ui-section-gap);
   padding: var(--ui-card-padding) 0 0; border: 0; border-top: 1px solid var(--hmb-line);
   background: transparent;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card {
-  min-width: 0; padding: 0 var(--ui-card-padding) 0 0; border: 0; border-radius: 0; background: transparent; box-shadow: none;
+  min-width: 0; padding: var(--ui-card-padding); border: 0; border-radius: 0; background: transparent; box-shadow: none;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card {
-  padding: 0 0 0 var(--ui-card-padding); border-left: 1px solid var(--hmb-line);
+  padding: var(--ui-card-padding);
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-top { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-top strong { font: 700 13px/1.4 var(--font-ui, system-ui, sans-serif); letter-spacing: .04em; color: var(--hmb-mute); }
@@ -276,8 +276,6 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-
 }
 @media (max-width: 720px) {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-price-row strong { font-size: 24px; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card { padding-right: 14px; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { padding-left: 14px; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-core { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-fx { grid-column: 1 / -1; }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-bar-row { grid-template-columns: 46px minmax(0, 1fr); row-gap: 2px; }
@@ -286,8 +284,7 @@ body#tt-body-index .home-editorial-page #homeEconomicNews .home-top-disclosures-
 @media (max-width: 420px) {
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-strip { grid-template-columns: minmax(0, 1fr); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card,
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { padding: 0; border-left: 0; }
-  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--hmb-line); }
+  body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .home-index-card + .home-index-card { padding: var(--ui-card-padding); }
   body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-investor-trend-body { grid-template-columns: minmax(0, 1fr); gap: 12px; }
 }
 
