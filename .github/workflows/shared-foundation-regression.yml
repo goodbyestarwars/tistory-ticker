@@ -42,6 +42,8 @@ jobs:
         run: python -m unittest test_scan_inputs test_scan_prereq test_daily_scan_timings test_kiwoom_market test_scan_holiday_skip test_daily_scan_cache test_foreign_flow_timeouts test_scheduled_job test_scan_timer_schedule test_schedule_health test_strategy_public_contract test_snapshot_io test_fundamentals_disclosure test_earnings_growth_strategy
       - name: HTTP lifecycle and common chart engine
         run: |
+          PYTHONPATH=scripts/cloud-vm:test python -m unittest test_scan_progress
+          node test/test_scanner_progress.js
           node test/test_http_client.js
           node test/test_shared_ui_api.js
           node test/test_home_market_contract.js

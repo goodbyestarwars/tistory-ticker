@@ -2611,7 +2611,7 @@
 
   function escapeHtml(s) { return global.NineUI.escapeHtml(s); }
 
-  global.PatternScan = { init: init, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, menuTabs: MENU_TABS };
+  global.PatternScan = { init: init, refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, menuTabs: MENU_TABS };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

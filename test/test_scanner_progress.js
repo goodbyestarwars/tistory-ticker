@@ -1,0 +1,16 @@
+const assert = require('assert');
+const fs = require('fs');
+const vm = require('vm');
+const context = {};
+vm.createContext(context);
+vm.runInContext(fs.readFileSync('js/scanner-progress.js', 'utf8'), context);
+const model = context.ScannerProgress.model;
+const run = {id:'dailyscan', lastExecution:{state:'running'}, progress:{processed:25,total:100,phase:'일봉',updatedAt:'2026-10-26T12:00:00Z'}};
+assert.equal(model([run], false, Date.parse('2026-10-26T12:01:00Z')).percent,25);
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'running'}}],false,0).percent,null);
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'failed'}}],false,0).percent,null);
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'success'}}],false,0).percent,100);
+assert.equal(model([run,{id:'strategyscan',lastExecution:{state:'waiting'}}],true,Date.parse('2026-10-26T12:05:00Z')).stale,true);
+assert.equal(model([{...run,progress:{processed:101,total:100}}],false,0).percent,null);
+assert.equal(model([{...run,progress:{processed:100,total:100}}],false,0).percent,99);
+console.log('Scanner progress states passed');
