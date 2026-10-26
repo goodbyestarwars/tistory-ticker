@@ -263,14 +263,15 @@ a { text-decoration: none; color: inherit; }
   margin-top: 2px;
 }
 .nav-search {
-  position: absolute;
-  /* Anchor to the viewport center so the search stays centered regardless of
-     the navbar's logo and right-side action widths. */
-  left: 50%;
-  width: min(700px, 52vw);
-  max-width: none;
-  margin-left: 0;
-  transform: translateX(-50%);
+  /* Logo and action buttons reserve their natural widths; search uses only
+     the remaining space, rather than floating over either side. */
+  position: relative;
+  flex: 1 1 0;
+  min-width: 0;
+  width: auto;
+  max-width: 700px;
+  margin: 0 auto;
+  transform: none;
 }
 
 /* 2026-07-28: navbar 안에 종목검색 입력창(js/skin-menu.js의 SEARCH_HTML, 원래는 왼쪽
@@ -1767,13 +1768,8 @@ body#tt-body-index .sidebar-right[hidden] { display: none !important; }
 .home-widget--compact .home-card-heading { padding-right: 38px; }
 
 .home-widget-actions {
-  position: absolute;
-  top: 10px;
-  right: 10px;
-  z-index: 25;
-  display: flex;
-  align-items: center;
-  gap: 2px;
+  /* Legacy cached widget script may still inject these removed controls. */
+  display: none;
 }
 .home-widget-drag,
 .home-widget-menu-button {
@@ -7071,11 +7067,8 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-r
   pointer-events: none;
 }
 
-/* 한국증시·미국증시 전환선과 모든 홈 지면 제목을 같은 높이로 맞춘다. */
-body#tt-body-index .home-editorial-page .home-market-switch {
-  margin-top: -10px !important;
-  margin-bottom: -4px !important;
-}
+/* 홈 전환 탭은 아래 카드와 양의 간격을 유지한다.
+   위쪽/아래쪽 음수 margin은 카드 제목과 시각적으로 겹치므로 사용하지 않는다. */
 body#tt-body-index .home-editorial-page .home-card-heading strong,
 body#tt-body-index .home-editorial-page .hen-head strong,
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
@@ -7109,10 +7102,6 @@ body#tt-body-index .home-editorial-page .home-realtime-board .hrt-foot {
     flex-basis: 78vw !important;
     min-height: 46px !important;
     padding: 4px 12px !important;
-  }
-  body#tt-body-index .home-editorial-page .home-market-switch {
-    margin-top: -7px !important;
-    margin-bottom: -2px !important;
   }
   body#tt-body-index .home-editorial-page .home-card-heading strong,
   body#tt-body-index .home-editorial-page .hen-head strong,
@@ -7762,7 +7751,7 @@ html.dark {
 html body :where(.mt-explore-card, .mt-money-card, .mt-sf-card) { padding-left: var(--ui-card-padding) !important; padding-right: var(--ui-card-padding) !important; }
 /* 위젯 오른쪽 위의 이동(⋮⋮)·메뉴 버튼 묶음은 카드 안에 떠 있다(absolute). 카드 위 여백이 20px이면 첫 줄의
    '장 마감'·'업데이트'·'ETF 제외' 같은 오른쪽 글자와 겹치므로 버튼 줄(25px, 모바일 40px)만큼 위 여백을 둔다. */
-html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: 46px var(--ui-card-padding) var(--ui-card-padding) !important; }
+html body :where(.home-widget, .home-realtime-board, .home-economic-news) { padding: var(--ui-card-padding) !important; }
 html body .home-widget-actions { top: 10px !important; right: 12px !important; }
 html body .home-widget-grid { gap: var(--ui-card-gap) !important; }
 /* 홈 리드 두 칸은 같은 카드 토큰을 쓰되 각 정보 구조를 유지한다. */
@@ -8662,7 +8651,7 @@ html body#tt-body-index .home-editorial-page .home-closed-page {
    두 카드가 같은 grid row에서 같은 위쪽 padding·같은 헤더 체계를 쓰도록 공통 규칙으로 묶는다(개별 margin 보정 없음).
    - 두 카드 모두 row 상단에서 시작(align-self: start), padding-top은 하나의 변수
    - 헤더: 같은 flex·같은 baseline·같은 최소 높이, 제목 기본 margin 제거 */
-body#tt-body-index .home-editorial-page { --home-lead-pt: 46px; --home-lead-head-h: 36px; }
+body#tt-body-index .home-editorial-page { --home-lead-pt: var(--ui-card-padding); --home-lead-head-h: 36px; }
 body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
 body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news { padding-top: var(--home-lead-pt) !important; margin-top: 0 !important; }
 body#tt-body-index .home-editorial-page :is(.home-market-board > .home-card-heading, .home-economic-news > .hen-head) { display: flex; align-items: baseline; justify-content: space-between; min-height: var(--home-lead-head-h); margin-top: 0; padding-top: 0; }
@@ -8885,9 +8874,6 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
   html body .hmb-price-controls .ui-btn::after,
   html body .hmb-investor-controls .ui-btn::after { content: ''; position: absolute; inset: -6px; }
   html body .memo-fab::after { content: ''; position: absolute; inset: -3px; border-radius: 50%; }
-  /* 위젯 이동·메뉴 버튼(절대 위치)이 머리글 오른쪽 글자(업데이트 시각 등)와 겹치지 않게 머리글을 버튼 줄 아래에서 시작한다. */
-  html body #homeEconomicNews .hen-head,
-  html body #homeRealtimeBoard .hrt-head { padding-top: 30px !important; }
   /* Mobile keeps the same card hierarchy with compact spacing. */
   html body :where(.home-realtime-board, .home-economic-news,
     #stock-search .ss-overview, #stock-search .ss-panel-left, #stock-search .ss-panel-right, #stock-search .ss-summary,
