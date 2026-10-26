@@ -61,6 +61,9 @@ jobs:
           node test/test_weekend_native_content.js
           node test/test_early_bootstrap.js
           node test/test_chart_core.js
+          node test/test_scanner_progress.js
+          node test/test_scanner_dashboard.js
+          node test/test_scanner_groups.js
       - name: Page consumer refresh and partial failure behavior
         run: |
           node test/test_market_temp_ai_comments.js

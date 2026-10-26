@@ -27,3 +27,75 @@ html.dark .scanner-progress-status small,html.dark .scanner-progress-status .sca
   .scanner-progress-status strong { font-size:16px; }
   .scanner-progress-status.is-complete .scan-progress-gauge { transform:none; margin-right:0; }
 }
+
+/* Pattern scanner dashboard: scoped variant; strategy page keeps its status strip. */
+.scanner-progress-status.is-dashboard { --scan-neon:#6D233F; --scan-ink:#14243e; --scan-muted:#64748b; --scan-line:#e8eaf0; display:grid; grid-template-columns:minmax(210px, .85fr) minmax(0, 2.4fr); align-items:start; gap:18px; padding:14px; margin-bottom:18px; background:#fff; border:1px solid var(--scan-line); border-radius:12px; color:var(--scan-ink); box-sizing:border-box; }
+.scanner-progress-status.is-dashboard .scan-status-panel { display:flex; align-items:center; gap:12px; padding:8px 0; min-width:0; }
+.scanner-progress-status.is-dashboard .scan-progress-gauge { width:78px; height:98px; flex:0 0 78px; transform:none; margin:0; }
+.scanner-progress-status.is-dashboard .scan-progress-ring { width:78px; height:78px; }
+.scanner-progress-status.is-dashboard .scan-progress-value { filter:drop-shadow(0 0 3px #6D233F40); }
+.scanner-progress-status.is-dashboard .scan-progress-bolt { width:38px; height:46px; left:20px; top:15px; filter:drop-shadow(0 0 5px #6D233F50); }
+.scanner-progress-status.is-dashboard .scan-progress-percent { display:block; margin-top:3px; font-size:11px; color:var(--scan-muted); }
+.scanner-progress-status.is-dashboard .scan-progress-copy { display:flex; flex-direction:column; align-items:flex-start; gap:4px; line-height:1.5; overflow-wrap:anywhere; }
+.scanner-progress-status.is-dashboard .scan-progress-label { display:block; }
+.scanner-progress-status.is-dashboard .scan-progress-copy strong { font-size:17px; color:var(--scan-ink); }
+.scanner-progress-status.is-dashboard small,.scanner-progress-status.is-dashboard .scan-progress-label { color:var(--scan-muted); }
+.scanner-progress-status.is-dashboard[data-state="running"] .scan-progress-bolt { animation:scan-dashboard-pulse 1.6s ease-in-out infinite; }
+.scanner-progress-status .scan-dashboard-main { min-width:0; }
+.scanner-progress-status .scan-dashboard-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.scanner-progress-status .scan-dashboard-stat { min-width:0; padding:9px 10px; border:1px solid var(--scan-line); border-radius:8px; display:grid; grid-template-columns:1fr auto; gap:3px 6px; align-items:center; }
+.scanner-progress-status .scan-dashboard-stat>span { font-size:12px; font-weight:600; }
+.scanner-progress-status .scan-dashboard-stat>strong { color:var(--scan-neon); font:700 22px/1.1 var(--font-body, sans-serif); font-variant-numeric:tabular-nums; }
+.scanner-progress-status .scan-dashboard-stat>small { grid-column:1/-1; font-size:10px; line-height:1.4; overflow-wrap:anywhere; }
+.scanner-progress-status .scan-dashboard-bottom { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,1fr); gap:14px; margin-top:12px; }
+.scanner-progress-status .scan-dashboard-trend,.scanner-progress-status .scan-dashboard-recent { min-width:0; }
+.scanner-progress-status .scan-dashboard-heading { display:flex; align-items:center; justify-content:space-between; gap:6px; flex-wrap:wrap; margin-bottom:5px; }
+.scanner-progress-status .scan-dashboard-heading h3 { margin:0; padding:0; color:var(--scan-ink); font:700 13px/1.5 var(--font-body, sans-serif); }
+.scanner-progress-status .scan-dashboard-periods { display:flex; gap:3px; }
+.scanner-progress-status .scan-dashboard-periods button,.scanner-progress-status .scan-dashboard-all { border:0; border-radius:5px; background:transparent; color:var(--scan-muted); font:inherit; font-size:11px; line-height:1.4; padding:4px 6px; cursor:pointer; }
+.scanner-progress-status .scan-dashboard-periods button[aria-pressed="true"] { color:var(--scan-neon); background:#6D233F0D; font-weight:700; }
+.scanner-progress-status .scan-dashboard-all { padding-right:0; }
+.scanner-progress-status .scan-dashboard-plot { position:relative; width:100%; aspect-ratio:3/1; display:flex; align-items:center; justify-content:center; color:var(--scan-muted); font-size:11px; line-height:1.6; text-align:center; }
+.scanner-progress-status .scan-dashboard-chart-note,.scanner-progress-status .scan-dashboard-basis { margin:5px 0 0; padding:0; color:var(--scan-muted); font-size:10px; line-height:1.5; }
+.scanner-progress-status .scan-dashboard-basis { margin-top:6px; }
+.scanner-progress-status .scan-dashboard-signals { padding:0; margin:0; list-style:none; }
+.scanner-progress-status .scan-dashboard-signals>li { padding:0; margin:0; }
+.scanner-progress-status .scan-dashboard-signal { display:flex; align-items:center; gap:7px; width:100%; min-width:0; padding:2px 0; color:var(--scan-ink); text-align:left; border:0; border-bottom:1px solid var(--scan-line); background:transparent; cursor:pointer; font:inherit; }
+.scanner-progress-status .scan-dashboard-signals>li:last-child .scan-dashboard-signal { border-bottom:0; }
+.scanner-progress-status .scan-dashboard-logo { position:relative; display:grid; place-items:center; width:26px; height:26px; flex:0 0 26px; overflow:hidden; border-radius:50%; background:#f4f6f9; color:var(--scan-muted); font-size:11px; }
+.scanner-progress-status .scan-dashboard-logo img { position:absolute; inset:0; width:26px; height:26px; object-fit:contain; border-radius:50%; }
+.scanner-progress-status .scan-dashboard-logo [hidden] { display:none; }
+.scanner-progress-status .scan-dashboard-signal-copy { flex:1; min-width:0; line-height:1.2; }
+.scanner-progress-status .scan-dashboard-signal-top { display:flex; justify-content:space-between; align-items:baseline; gap:6px; min-width:0; }
+.scanner-progress-status .scan-dashboard-signal-top b { font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.scanner-progress-status .scan-dashboard-signal-top time { flex:0 0 auto; font-size:9px; color:var(--scan-muted); }
+.scanner-progress-status .scan-dashboard-reason { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:10px; line-height:1.5; color:var(--scan-muted); }
+.scanner-progress-status .scan-dashboard-badge { flex:0 1 auto; max-width:70px; border-radius:4px; padding:3px 4px; color:var(--scan-neon); background:#6D233F0D; font-size:9px; line-height:1.3; }
+.scanner-progress-status .scan-dashboard-empty { color:var(--scan-muted); font-size:11px; line-height:1.6; padding:12px 0; }
+.scanner-progress-status.is-dashboard button:focus-visible { outline:2px solid var(--scan-neon); outline-offset:2px; }
+html.dark .scanner-progress-status.is-dashboard { --scan-neon:var(--dk-up); --scan-ink:var(--dk-text); --scan-muted:var(--dk-mute); --scan-line:var(--dk-line); background:var(--dk-card); }
+html.dark .scanner-progress-status .scan-dashboard-badge,html.dark .scanner-progress-status .scan-dashboard-periods button[aria-pressed="true"] { background:var(--dk-inner); }
+html.dark .scanner-progress-status .scan-dashboard-logo { background:var(--dk-inner); }
+@keyframes scan-dashboard-pulse { 50% { opacity:.55; } }
+@media (min-width:761px) and (max-width:1100px) {
+  .scanner-progress-status.is-dashboard { grid-template-columns:minmax(180px,.8fr) minmax(0,2fr); gap:12px; }
+  .scanner-progress-status.is-dashboard .scan-status-panel { flex-direction:column; align-items:flex-start; gap:6px; }
+  .scanner-progress-status .scan-dashboard-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .scanner-progress-status .scan-dashboard-bottom { grid-template-columns:1fr; }
+  .scanner-progress-status .scan-dashboard-signals { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 10px; }
+}
+@media (max-width:760px) {
+  .scanner-progress-status.is-dashboard { grid-template-columns:minmax(0,1fr); gap:12px; padding:12px; }
+  .scanner-progress-status.is-dashboard .scan-status-panel { padding:0; }
+  .scanner-progress-status .scan-dashboard-bottom { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .scanner-progress-status .scan-dashboard-plot { aspect-ratio:3/1; }
+  .scanner-progress-status .scan-dashboard-signal { padding:7px 0; }
+}
+@media (max-width:480px) {
+  .scanner-progress-status .scan-dashboard-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .scanner-progress-status .scan-dashboard-stat { padding:8px; }
+  .scanner-progress-status .scan-dashboard-signal-top time { font-size:9px; }
+}
+@media (prefers-reduced-motion:reduce) {
+  .scanner-progress-status.is-dashboard[data-state="running"] .scan-progress-bolt { animation:none; }
+}
