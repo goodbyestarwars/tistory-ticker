@@ -56,8 +56,8 @@
   border: 0;
   border-left: 1px solid #e7eaf0;
   border-radius: 0;
-  background: #f7f8fa;
-  box-shadow: none;
+  background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel));
+  box-shadow: var(--ui-glass-floating-shadow);
   pointer-events: auto;
   overscroll-behavior: contain;
 }
@@ -419,7 +419,7 @@ html.dark #watchlist .wl-card.is-touch-dragging { background: var(--dk-inner) !i
    색이라 유지. */
 html.dark #watchlist { color: var(--dk-text) !important; }
 html.dark .global-watchlist-panel,
-html.dark .global-watchlist-toggle { background: var(--dk-card) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
+html.dark .global-watchlist-toggle { background: var(--ui-glass-sheen), linear-gradient(var(--ui-glass-panel), var(--ui-glass-panel)) !important; border-color: var(--dk-line) !important; color: var(--dk-text) !important; }
 html.dark #watchlist .wl-group-items.is-drag-over { background: var(--dk-inner) !important; box-shadow: inset 0 0 0 1px var(--dk-line) !important; }
 html.dark #watchlist .wl-count { color: var(--dk-mute) !important; }
 html.dark #watchlist .wl-auth,
