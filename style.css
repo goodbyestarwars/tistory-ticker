@@ -945,7 +945,7 @@ html.dark .home-cb-dropdown li.is-released time { color: var(--dk-mute) !importa
 .home-night-futures-chart { height: 22px; margin-top: 5px; }
 .home-night-futures-chart .home-index-chart-empty { padding-top: 4px; }
 
-.home-market-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; margin-bottom: 12px; }
+.home-market-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; }
 .home-card-heading {
   display: flex;
   align-items: flex-start;
@@ -5573,17 +5573,6 @@ html.dark .hen-period + .hen-period { border-color: var(--dk-line); }
   .hen-main small { display: none; }
   .home-realtime-board { padding: 12px 10px 9px; }
 }
-.home-market-switch { display: inline-flex; align-items: center; gap: 3px; margin-top: -4px; padding: 0 0 4px; }
-.home-market-switch > span { margin-right: 3px; color: #94a3b8; font-size: 9px; }
-.home-market-switch button { padding: 4px 9px; border: 1px solid #dbe3ee; border-radius: 999px; background: rgb(255, 254, 252); color: #64748b; cursor: pointer; font: 700 10px/1.2 inherit; }
-.home-market-switch button:hover { border-color: #93c5fd; color: #1d4ed8; }
-.home-market-switch button.is-active { border-color: #2563eb; background: #2563eb; color: #fff; }
-html.dark .home-market-switch button { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
-html.dark .home-market-switch button.is-active { border-color: #60a5fa; background: #2563eb; color: #fff; }
-@media (max-width: 720px) {
-  .home-market-switch { margin-top: -3px; padding-bottom: 3px; }
-  .home-market-switch button { padding: 4px 8px; font-size: 9.5px; }
-}
 html.dark .navbar .nav-search-icon { color: var(--dk-text); }
 /* 2026-09-22: 등락 의미색(빨강/파랑)을 검색창에 쓰지 않기로 하면서(위 라이트 모드 주석
    참고) 다크모드도 같은 이유로 중립색으로 바꿨다 - 어두운 배경에서 흐릿해지지 않게
@@ -5768,7 +5757,6 @@ html:not(.font-gothic) body table td {
 html:not(.font-gothic) body .sidebar-left .nav-item,
 html:not(.font-gothic) body .cat-custom-list li > a,
 html:not(.font-gothic) body .sub-filter-tab,
-html:not(.font-gothic) body .home-market-switch button,
 html:not(.font-gothic) body #pattern-scan .ps-tab,
 html:not(.font-gothic) body #strategy-search .ss-tab,
 html:not(.font-gothic) body #strategy-search .ss-product-tab,
@@ -5788,7 +5776,6 @@ html:not(.font-gothic) body .sidebar-left .nav-secondary-item {
 html:not(.font-gothic) body .sidebar-left .nav-item:hover,
 html:not(.font-gothic) body .cat-custom-list li > a:hover,
 html:not(.font-gothic) body .sub-filter-tab:hover,
-html:not(.font-gothic) body .home-market-switch button:hover,
 html:not(.font-gothic) body #pattern-scan .ps-tab:hover,
 html:not(.font-gothic) body #strategy-search .ss-tab:hover {
   background: #f1f1ee !important;
@@ -5905,7 +5892,6 @@ html:not(.font-gothic) body .sidebar-left .nav-item-home,
 html:not(.font-gothic) body .sidebar-left .nav-item-home .nav-item-label,
 html:not(.font-gothic) body .cat-custom-list li > a.active,
 html:not(.font-gothic) body .sub-filter-tab.active,
-html:not(.font-gothic) body .home-market-switch button.is-active,
 html:not(.font-gothic) body #pattern-scan .ps-tab.active,
 html:not(.font-gothic) body #strategy-search .ss-tab.active,
 html:not(.font-gothic) body #strategy-search .ss-product-tab.active,
@@ -6021,44 +6007,72 @@ html:not(.font-gothic) body .account-login-dialog {
    홈은 위젯 카드 모음이 아니라 경제신문의 첫 화면처럼 읽힌다. 데이터 바인딩과
    위젯 순서/숨김 기능은 유지하고, 홈에서만 외곽 카드·색면·알약을 제거한다. */
 body#tt-body-index .home-editorial-page {
-  gap: 0;
+  /* One spacing contract for the market tabs, closed page and market cards. */
+  gap: var(--ui-section-gap);
   color: var(--text-main);
 }
+/* Home market switch is an editorial underline tab, not a segmented control.
+   Keep its button baselines and underline positions shared in this block. */
 body#tt-body-index .home-editorial-page .home-market-switch {
-  width: 100%;
-  min-height: 42px;
-  align-items: flex-end;
-  gap: 18px;
+  display: flex;
+  align-items: stretch;
+  align-self: flex-start;
+  width: max-content;
+  max-width: 100%;
+  min-height: 44px;
+  gap: var(--ui-card-gap);
   margin: 0;
-  padding: 0 0 0;
-  border-bottom: 1px solid var(--rule);
-}
-body#tt-body-index .home-editorial-page .home-market-switch > span {
-  margin: 0 8px 10px 0;
-  color: var(--text-sub);
-  font-size: 11px;
-  font-weight: 700;
-}
-body#tt-body-index .home-editorial-page .home-market-switch button {
-  min-height: 42px;
-  padding: 0 1px 10px;
+  padding: 0;
   border: 0;
-  border-bottom: 2px solid transparent;
   border-radius: 0;
   background: transparent;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+body#tt-body-index .home-editorial-page .home-market-switch::-webkit-scrollbar { display: none; }
+body#tt-body-index .home-editorial-page .home-market-switch button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
   color: var(--text-sub);
-  font: 700 12px/1.2 var(--font-ui);
+  font: 600 13px/1.3 var(--font-ui);
+  white-space: nowrap;
+  cursor: pointer;
 }
-body#tt-body-index .home-editorial-page .home-market-switch button:hover {
+body#tt-body-index .home-editorial-page .home-market-switch button::after {
+  content: '';
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 0;
+  height: 2px;
+  background: var(--text-main);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .15s ease;
+}
+body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible) {
   color: var(--text-main);
-  background: transparent !important;
 }
-body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
-  border: 0 !important;
-  border-bottom: 2px solid var(--text-main) !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  color: var(--text-main) !important;
+body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible)::after {
+  opacity: 1;
+}
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button {
+  color: var(--dk-mute);
+}
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible) {
+  color: var(--dk-text);
+}
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button::after {
+  background: var(--dk-text);
 }
 
 /* 주말에는 마지막 시세를 재사용해 평일 화면처럼 보이지 않게 휴장 지면을 연다. */
@@ -6634,8 +6648,6 @@ html.dark body#tt-body-index .home-editorial-page .hrt-stock strong,
 html.dark body#tt-body-index .home-editorial-page .hrt-price {
   color: var(--dk-text) !important;
 }
-html.dark body#tt-body-index .home-editorial-page .home-market-switch button.is-active,
-html.dark body#tt-body-index .home-editorial-page .home-market-switch button:hover,
 html.dark body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs button.active {
   border-bottom-color: var(--dk-text);
   color: var(--dk-text);
@@ -6657,12 +6669,6 @@ html.dark body#tt-body-index .home-editorial-page .home-realtime-board .hrt-tabs
   }
 }
 @media (max-width: 640px) {
-  body#tt-body-index .home-editorial-page .home-market-switch {
-    gap: 14px;
-  }
-  body#tt-body-index .home-editorial-page .home-market-switch > span {
-    margin-right: 2px;
-  }
   body#tt-body-index .home-editorial-page .home-widget--summary.home-market-board,
   body#tt-body-index .home-editorial-page .home-widget--summary.home-economic-news {
     padding: 22px 0 24px;
@@ -7067,8 +7073,6 @@ body#tt-body-index .home-editorial-page .home-top-disclosures .home-disclosure-r
   pointer-events: none;
 }
 
-/* 홈 전환 탭은 아래 카드와 양의 간격을 유지한다.
-   위쪽/아래쪽 음수 margin은 카드 제목과 시각적으로 겹치므로 사용하지 않는다. */
 body#tt-body-index .home-editorial-page .home-card-heading strong,
 body#tt-body-index .home-editorial-page .hen-head strong,
 body#tt-body-index .home-editorial-page .home-realtime-board .hrt-head strong,
@@ -7823,7 +7827,7 @@ html body #nav-secondary-row { border-bottom: 0 !important; border-top: 1px soli
 
 /* ── 2. 선 : 가로는 중앙 진하게, 세로는 위아래 옅게 ── */
 html body :where(.sector-row, .mt-money-row, .post-single-header, .mt-track-row, .mt-track-day,
-  .mt-section-block, .mt-all-stock-divider, .home-market-switch, .home-widget-grid, .home-index-strip, .hmb-summary-head,
+  .mt-section-block, .mt-all-stock-divider, .home-widget-grid, .home-index-strip, .hmb-summary-head,
   .hen-breaking, .hen-breaking-head, .hrt-head, .hrt-tabs, .hrt-stock, .home-section-heading, .home-briefing-section,
   .site-footer, .app-news-event, .post-footer) {
   border-image: var(--np-line-h-soft) 1 !important;
@@ -7906,7 +7910,7 @@ html body :where(.ss-fav-btn, .us-stocks-fav-btn, .ss-watch-toggle, .sc-nav) {
 /* ── 6. 탭 : 애플 세그먼트 스타일 — 알약형, 선택된 탭만 연한 면 ── */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period) {
+  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .hrt-tabs button, .mt-flow-period) {
   min-height: 34px !important;
   padding: 0 14px !important;
   border: 0 !important;
@@ -7919,7 +7923,7 @@ html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .s
 }
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab, .ff-apt-tab,
   .ff-explore-tab, .ff-rank-tab, .dmi-tab, .mi-tab, .mn-tab, .itw-tab, .itw-market-tab, .sr-tab, .kf-interval-btn, .sector-view-btn,
-  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .home-market-switch button, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
+  .ui-btn-tab, .ibd-range-btn, .nine-range-btn, .ifl-seg-btn, .is-rank-tab, .ticker-chart-tab, .hrt-tabs button, .mt-flow-period):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
   background: rgba(var(--np-ink), .07) !important;
   color: rgb(var(--np-ink)) !important;
   font-weight: 600 !important;
@@ -8066,12 +8070,11 @@ html body .dmi-spot-quotes { border: 0 !important; }
 html body .ps-track-summary { border-bottom: 0 !important; }
 html body :where(.sc-day.sc-day-clickable) { border-radius: 10px !important; }
 html body .sc-nav { min-width: 32px !important; padding: 0 !important; border-radius: 50% !important; }
-html body .home-market-switch { border-bottom: 0 !important; }
 html body .home-widget-grid { border-bottom: 0 !important; }
 html body :where(.home-widget-drag, .home-widget-menu-button) { border-radius: 8px !important; background: rgba(var(--np-ink), .07) !important; color: rgb(var(--np-ink)) !important; }
 /* 탭 글자는 줄바꿈하지 않는다(좁은 화면에서 두 줄로 깨지던 것). 넘치면 가로로 민다. */
 html body :where(.mt-view-btn, .ss-tf-btn, .sub-filter-tab, .ps-tab, .ss-tab, .ss-product-tab, .sc-filter-tab, .ff-view-tab,
-  .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .nine-range-btn, .home-market-switch button, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
+  .ff-explore-tab, .mi-tab, .mn-tab, .itw-tab, .nine-range-btn, .mt-flow-period) { white-space: nowrap !important; flex: 0 0 auto !important; }
 html body .mt-view-toggle { overflow-x: auto !important; scrollbar-width: none !important; }
 html body .mt-section-block { border-top: 0 !important; }
 
@@ -8090,8 +8093,6 @@ html body #market-temp :where(.mt-summary-sowhat, .mt-rib-stage, .mt-tomorrow-fl
 html body #market-temp .mt-weather-day { border-radius: 10px !important; }
 html body #market-temp .mt-weather-day.is-today { background-color: rgba(var(--np-ink), .06) !important; border-color: transparent !important; }
 
-/* ── 14. 홈 시장 전환 탭(한국증시/미국증시/휴장) : 선택된 면이 아래 선에 붙어 잘려 보이던 것 → 위아래 여백 ── */
-html body .home-market-switch { height: auto !important; min-height: 0 !important; align-items: center !important; padding: 10px 0 12px !important; }
 html body .hrt-tabs { align-items: center !important; padding: 6px !important; margin-bottom: 8px !important; height: auto !important; }
 
 /* ── 15. 메뉴 : 호버하면 아래로 둥근 유리 카드가 펼쳐지고, 항목마다 둥근 아이콘 타일(PC 721px 이상) ── */
@@ -8191,7 +8192,7 @@ html body :where(.home-top-disclosures, .hen-breaking, .home-index-strip) { marg
       시장지표·차트검색·전략검색 탭, 그 밖의 탭 묶음, 상단 메뉴(PC)를 연한 트랙 + 선택된 것만 바탕색 면으로 통일.
       상단 메뉴의 하위 드롭다운 카드는 건드리지 않는다. ── */
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods) {
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .hrt-tabs, .mt-flow-periods) {
   display: inline-flex !important;
   align-items: center !important;
   width: fit-content !important;
@@ -8207,9 +8208,9 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
   scrollbar-width: none !important;
 }
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)::-webkit-scrollbar { display: none; }
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .hrt-tabs, .mt-flow-periods)::-webkit-scrollbar { display: none; }
 html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)
+  .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .hrt-tabs, .mt-flow-periods)
   > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) {
   background: var(--np-paper) !important;
   color: rgb(var(--np-ink)) !important;
@@ -8244,9 +8245,6 @@ html body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs
 @media (min-width: 721px) {
   html body .sidebar-left .nav-primary-row { align-self: flex-start !important; }
 }
-/* 2026-10-03 사용자 지적: 홈 한국증시·미국증시·휴장 트랙 안쪽 여백(좌우 0)이 세그먼트 규칙(4px)을 이겨
-   '휴장' 선택 면이 트랙 끝에 붙었다 → 트랙 안쪽 여백 4px, 위아래 간격은 바깥 여백으로. */
-html body .home-market-switch { padding: 6px !important; margin: 10px 0 12px !important; }
 html body .hwr-columns:has(> article:only-child) { grid-template-columns: minmax(0, 1fr) !important; }
 html body :where(.hwr-schedule, .hwr-news-card, .hwr-columns > article,
   .hwr-outcome-stat, .ss-methodology, .ss-nearmiss, .ps-tab-desc, .ps-track-summary) {
@@ -9049,7 +9047,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
   html.dark body #stock-calendar .sc-disclosure-search input[type="search"] { background-color: var(--dk-inner) !important; }
   html.dark body .mt-view-toggle .mt-view-btn.active,
   html.dark body :where(.mt-view-toggle, .mi-tabs, .ps-tabs, .ss-tabs, .ss-product-tabs, .dmi-interval-tabs, .kf-interval-tabs, .ff-view-tabs,
-    .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .home-market-switch, .hrt-tabs, .mt-flow-periods)
+    .ff-explore-tabs, .mn-tabs, .sr-tabs, .itw-tabs, .ss-chart-tabs, .nine-chart-ranges, .hrt-tabs, .mt-flow-periods)
     > :where(button, a):where(.active, .is-active, [aria-selected="true"], [aria-pressed="true"]) { background: var(--dk-active) !important; box-shadow: none !important; }
 }
 @layer np.np {
