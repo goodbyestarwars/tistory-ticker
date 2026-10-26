@@ -2814,6 +2814,11 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
             "재무건전 장기 눌림",
             "120일선 대비",
             "배당수익률",
+            "실적 우상향 · 저부채",
+            "준비 중",
+            "스캔 결과를 준비하고 있어요",
+            "PENDING_REFRESH_MS = 60000",
+            "hasPendingCategories(scanData)",
             "주당 현금배당",
             "상위 10종목 비중",
             "ss-etf-comp-row",
@@ -2824,7 +2829,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("dividendMatch", fixture)
         self.assertIn("etfMatch", fixture)
         self.assertNotIn("'이격도 '", source)
-        for token in (".ss-intro", ".ss-methodology-full", ".ss-row-primary", ".ss-row-secondary", "columns: 1;"):
+        for token in (".ss-intro", ".ss-methodology-full", ".ss-row-primary", ".ss-row-secondary", ".ss-scan-pending", "columns: 1;"):
             self.assertIn(token, style)
         self.assertIn(".ss-etf-comp-name .ss-etf-comp-icon", style)
 

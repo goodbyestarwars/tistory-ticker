@@ -30,6 +30,10 @@
 
   var scanData = null;
   var activeKey = null;
+  var refreshTimer = null;
+  var scanRequestPending = false;
+  var pendingCategories = {};
+  var PENDING_REFRESH_MS = 60000;
   var activeEtfSort = 'return1m';
   var activeEtfFilters = { major: '', middle: '', leverage: '' };
   var activeDividendSort = 'yield';
@@ -81,27 +85,93 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
+    pendingCategories = {};
+    pendingCategories.earningsGrowth = {
+      name: '실적 우상향 · 저부채',
+      methodology: 'DART 실제 공시 기준으로 최근 3개년 매출·영업이익이 연속 증가하고, 최신 확정 분기도 성장했으며 부채비율이 100% 이하인 종목을 표시합니다. VM 전략 스캔 결과가 준비되면 목록이 자동으로 갱신됩니다.',
+      sectors: {},
+      pending: true,
+    };
     container.innerHTML = global.NineUI.state('loading', '불러오는 중...', 'ss-hint');
     loadScan(container);
+    if (refreshTimer) global.clearInterval(refreshTimer);
+    refreshTimer = global.setInterval(function () {
+      if (document.hidden || !container.isConnected) return;
+      if (hasPendingCategories(scanData)) loadScan(container);
+    }, PENDING_REFRESH_MS);
   }
 
-  function loadScan(container) {
+  function loadScan(container, options) {
+    if (scanRequestPending) return;
+    scanRequestPending = true;
+    options = options || {};
     global.NineAPI.strategyScan({request:StrategySearch.fetchJson})
       .then(function (data) {
         scanData = normalizeScanData(data);
         var keys = Object.keys((scanData && scanData.categories) || {});
         if (!keys.length) {
-          container.innerHTML = '<div class="ss-error">아직 스캔 결과가 없어요. (VM에서 strategy_scan.py가 한 번 실행돼야 함)</div>';
+          scanData.categories.undervalued = {
+            name: '재무건전 장기 눌림', methodology: '저평가 전략검색', sectors: {},
+          };
+          scanData.categories.dividend = { name: '배당주', methodology: '배당 전략검색', sectors: {} };
+        }
+        var serverHasEarningsGrowth = !!scanData.categories.earningsGrowth;
+        Object.keys(pendingCategories).forEach(function (key) {
+          if (!scanData.categories[key]) scanData.categories[key] = pendingCategories[key];
+        });
+        if (!Object.keys(scanData.categories).length) scanData.categories.undervalued = {
+          name: '재무건전 장기 눌림', methodology: '저평가 전략검색', sectors: {},
+        };
+        var hasRows = Object.keys(((scanData.categories.earningsGrowth || {}).sectors) || {}).some(function (sector) {
+          return ((scanData.categories.earningsGrowth.sectors[sector] || {}).matches || []).length > 0;
+        });
+        if (hasRows || serverHasEarningsGrowth) {
+          delete pendingCategories.earningsGrowth;
+          scanData.categories.earningsGrowth.pending = false;
+        }
+        keys = Object.keys(scanData.categories);
+        if (!activeKey || keys.indexOf(activeKey) === -1) activeKey = keys[0];
+        var hadShell = !!container.querySelector('#ssTabs');
+        if (hadShell) {
+          if (!options.silent) renderAll(container);
+          else renderPendingCategory(container);
           return;
         }
-        if (!activeKey || keys.indexOf(activeKey) === -1) activeKey = keys[0];
         container.innerHTML = buildShell();
         wireContainer(container);
         renderAll(container);
       })
       .catch(function () {
-        container.innerHTML = '<div class="ss-error">스캔 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
-      });
+        if (container.querySelector('#ssTabs')) {
+          scanData = scanData || { categories: {} };
+          Object.keys(pendingCategories).forEach(function (key) {
+            if (!scanData.categories[key]) scanData.categories[key] = pendingCategories[key];
+          });
+          renderAll(container);
+        } else {
+          container.innerHTML = '<div class="ss-error">스캔 결과를 불러오지 못했어요. 잠시 후 다시 시도해주세요.</div>';
+        }
+      })
+      .finally(function () { scanRequestPending = false; });
+  }
+
+  function hasPendingCategories(data) {
+    var categories = data && data.categories || {};
+    return Object.keys(categories).some(function (key) { return categories[key] && categories[key].pending; });
+  }
+
+  function renderPendingCategory(container) {
+    var category = scanData && scanData.categories && scanData.categories.earningsGrowth;
+    if (!category || !category.pending) return;
+    var hasRows = Object.keys(category.sectors || {}).some(function (sector) {
+      return ((category.sectors[sector] || {}).matches || []).length > 0;
+    });
+    if (hasRows) {
+      category.pending = false;
+      delete pendingCategories.earningsGrowth;
+    }
+    renderTabs(container);
+    if (activeKey === 'earningsGrowth') renderCards(container);
   }
 
   // Older VM/GAS caches still contain four separate etf_1m/3m/6m/12m
@@ -204,7 +274,8 @@
   }
 
   function categoryKeys() {
-    return Object.keys(scanData.categories).filter(function (key) { return key !== 'etnReturn'; });
+    var keys = Object.keys(scanData.categories).filter(function (key) { return key !== 'etnReturn'; });
+    return keys.indexOf('earningsGrowth') === -1 ? keys.concat(['earningsGrowth']) : keys;
   }
 
   function categoryLabel(key, category) {
@@ -225,8 +296,9 @@
     if (!tabsEl) return;
     tabsEl.innerHTML = categoryKeys().map(function (key) {
       var c = scanData.categories[key];
-      return '<button type="button" class="ss-tab' + (key === activeKey ? ' active' : '') + '" data-key="' + key + '">'
-        + escapeHtml(categoryLabel(key, c)) + '</button>';
+      return '<button type="button" class="ss-tab' + (key === activeKey ? ' active' : '') + '" data-key="' + key + '"'
+        + (c && c.pending ? ' aria-label="실적 우상향 · 저부채, 스캔 대기 중"' : '') + '>'
+        + escapeHtml(categoryLabel(key, c)) + (c && c.pending ? ' <span class="ss-tab-pending">준비 중</span>' : '') + '</button>';
     }).join('');
   }
 
@@ -566,7 +638,13 @@
       return;
     }
     if (activeKey === 'undervalued' || activeKey === 'targetPriceGap' || activeKey === 'earningsGrowth') {
-      wrap.innerHTML = renderStrategyTable(activeKey);
+      var activeCategory = scanData.categories[activeKey];
+      var categoryHasMatches = Object.keys((activeCategory && activeCategory.sectors) || {}).some(function (sector) {
+        return ((activeCategory.sectors[sector] || {}).matches || []).length > 0;
+      });
+      wrap.innerHTML = activeKey === 'earningsGrowth' && activeCategory && activeCategory.pending && !categoryHasMatches
+        ? '<div class="ss-hint ss-scan-pending" role="status"><strong>실적 우상향 스캔 결과를 준비하고 있어요.</strong><span>VM 스캔이 완료되면 이 탭에 종목이 자동으로 표시됩니다.</span></div>'
+        : renderStrategyTable(activeKey);
       return;
     }
     if (activeKey === 'nationalPension') {
