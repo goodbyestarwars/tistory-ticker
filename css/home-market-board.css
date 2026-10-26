@@ -29,9 +29,7 @@ body#tt-body-index .home-editorial-page .home-market-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   min-width: 0; margin: 0 0 14px;
 }
-body#tt-body-index .home-editorial-page .home-market-toolbar .home-market-switch {
-  width: max-content; min-width: 0; flex: 0 0 auto; margin: 0 !important;
-}
+
 body#tt-body-index .home-editorial-page .home-switch-countdown {
   position: relative; left: auto; right: auto; top: auto; bottom: auto; z-index: auto;
   display: flex; align-items: center; gap: 12px; flex: 0 0 auto; width: auto; margin: 0; padding: 0;
@@ -89,33 +87,12 @@ html.dark body#tt-body-index .home-editorial-page .hsc-face-bottom, html.dark bo
 html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2aa !important; }
 @media (max-width: 767px) {
   body#tt-body-index .home-editorial-page .home-market-toolbar { flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
-  body#tt-body-index .home-editorial-page .home-market-toolbar .home-market-switch { flex: 0 0 auto; }
   body#tt-body-index .home-editorial-page .home-switch-countdown { margin-left: auto; padding-top: 0; }
   body#tt-body-index .home-editorial-page .hsc-clock { gap: 5px; }
   body#tt-body-index .home-editorial-page .hsc-digit { width: 23px; height: 31px; font-size: 23px; line-height: 30px; }
 }
 @media (prefers-reduced-motion: reduce) {
   body#tt-body-index .home-editorial-page .hsc-digit.is-flipping .hsc-flap { animation-duration: .01ms !important; animation-delay: 0s !important; }
-}
-
-/* 공통 세그먼트 탭에서 분리해 홈 시장 선택만 간결한 밑줄 탭으로 표시한다. */
-@layer np {
-  html body#tt-body-index .home-editorial-page .home-market-switch {
-    width: max-content !important; min-height: 0 !important; margin: 0 !important;
-    padding: 0 !important; gap: 14px !important; border: 0 !important;
-    background: transparent !important;
-  }
-  html body#tt-body-index .home-editorial-page .home-market-switch button {
-    min-height: 32px !important; padding: 0 2px !important; border: 0 !important;
-    border-bottom: 2px solid transparent !important; border-radius: 0 !important;
-    background: transparent !important; color: var(--text-sub) !important;
-    box-shadow: none !important; font: 600 12px/1.2 var(--font-ui) !important;
-  }
-  html body#tt-body-index .home-editorial-page .home-market-switch button:hover,
-  html body#tt-body-index .home-editorial-page .home-market-switch button.is-active {
-    border-bottom-color: var(--text-main) !important; background: transparent !important;
-    color: var(--text-main) !important;
-  }
 }
 
 /* 홈 주요 세 영역 제목은 국내 시장 제목 크기를 기준으로 통일한다. */
