@@ -31,9 +31,9 @@ def realtime_ws_enabled():
     2026-09-17 사용자 확인("옵션은 아직 보조로 내가 넣으라고 한건데, 이건 실시간 아니여도 된다").
     콜/풋 상위 각 10계약이 KIS 실시간 등록 자리 40개 중 10개를 상시 차지하고 있었다. 그만큼
     개별 종목이 밀렸고, 사용자가 검색해서 연 종목에 체결이 안 오는 일이 생겼다(단타라 치명적).
-    기본을 끔으로 두고, 되돌리려면 VM `.env`에 `OPTION_REALTIME_WS=1`을 넣는다.
+    400종목 체결 확대를 위해 옵션은 항상 REST 스냅샷으로 갱신한다.
 
-    끄더라도 콜/풋 수급 숫자는 5분 REST 전광판 스냅샷(`_poll_loop`)으로 계속 갱신된다 -
+    끄더라도 콜/풋 수급 숫자는 30분 REST 전광판 스냅샷(`_poll_loop`)으로 갱신된다 -
     코스피200 옵션 수급은 초 단위가 필요한 지표가 아니다.
     """
     # 400-quote feed: option snapshots are 30-minute REST only.
@@ -385,7 +385,7 @@ def start_background(appkey, appsecret):
     if not realtime_ws_enabled():
         # 2026-09-17: 실시간 등록 자리를 개별 종목에 돌려주려고 기본으로 끈다(위 주석 참고).
         logger.info('옵션 실시간 구독 꺼짐 - 30분 REST 전광판 스냅샷으로만 갱신합니다'
-                    ' (되돌리려면 OPTION_REALTIME_WS=1)')
+                    ' (400종목 시세 수신 등록 예산 보존)')
         target = _poll_loop
         name = 'option-flow-poll'
     else:
