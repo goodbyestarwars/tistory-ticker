@@ -6015,6 +6015,9 @@ html:not(.font-gothic) body .account-login-dialog {
   .home-realtime-board:has(.hrt-tabs [data-hrt-tab="industry"].active) .hrt-table-wrap th:nth-child(6) { width: 14%; }
  }
 
+/* Home width is the shared 1440px reading width plus the 16px main-layout gutters. */
+body#tt-body-index .main-layout { max-width: calc(var(--home-content-max) + 32px); }
+
 /* ============ 홈 편집 지면 재설계 ============
    홈은 위젯 카드 모음이 아니라 경제신문의 첫 화면처럼 읽힌다. 데이터 바인딩과
    위젯 순서/숨김 기능은 유지하고, 홈에서만 외곽 카드·색면·알약을 제거한다. */
@@ -6023,68 +6026,46 @@ body#tt-body-index .home-editorial-page {
   gap: var(--ui-section-gap);
   color: var(--text-main);
 }
-/* Home market switch is an editorial underline tab, not a segmented control.
-   Keep its button baselines and underline positions shared in this block. */
+/* Home segmented control; existing market-selection JS and countdown remain unchanged. */
 body#tt-body-index .home-editorial-page .home-market-switch {
-  display: flex;
-  align-items: stretch;
-  align-self: flex-start;
-  width: max-content;
-  max-width: 100%;
-  min-height: 44px;
-  gap: var(--ui-card-gap);
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  overflow-x: auto;
-  scrollbar-width: none;
+  display: inline-flex; align-items: center; align-self: flex-start;
+  width: max-content; max-width: 100%; min-height: 44px;
+  gap: 4px; margin: 0; padding: 4px;
+  border: 1px solid var(--ui-border); border-radius: var(--ui-radius-card);
+  background: rgba(var(--np-ink), .055);
+  overflow-x: auto; scrollbar-width: none;
 }
 body#tt-body-index .home-editorial-page .home-market-switch::-webkit-scrollbar { display: none; }
 body#tt-body-index .home-editorial-page .home-market-switch button {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  min-height: 44px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  color: var(--text-sub);
-  font: 600 13px/1.3 var(--font-ui);
-  white-space: nowrap;
-  cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; flex: 0 0 auto; gap: 6px;
+  min-height: 36px; padding: 0 14px; border: 0; border-radius: 10px;
+  background: transparent; box-shadow: none; color: var(--text-sub);
+  font: 600 13px/1.3 var(--font-ui); white-space: nowrap; cursor: pointer;
+  transition: background-color .18s ease, color .18s ease, box-shadow .18s ease;
 }
-body#tt-body-index .home-editorial-page .home-market-switch button::after {
-  content: '';
-  position: absolute;
-  left: 10px;
-  right: 10px;
-  bottom: 0;
-  height: 2px;
-  background: var(--text-main);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .15s ease;
+body#tt-body-index .home-editorial-page .home-market-switch button:not(.is-active):hover {
+  background: rgba(var(--np-ink), .045); color: var(--text-strong);
 }
-body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible) {
-  color: var(--text-main);
+body#tt-body-index .home-editorial-page .home-market-switch button:is(.is-active, [aria-selected="true"]) {
+  background: var(--ui-inner-surface); color: var(--text-strong); box-shadow: 0 1px 4px rgba(0,0,0,.1);
 }
-body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible)::after {
-  opacity: 1;
+body#tt-body-index .home-editorial-page .home-market-switch button:focus-visible {
+  outline: 2px solid var(--accent-dark); outline-offset: 2px;
 }
-html.dark body#tt-body-index .home-editorial-page .home-market-switch button {
-  color: var(--dk-mute);
+body#tt-body-index .home-editorial-page .home-market-switch-icon { font-size: 15px; line-height: 1; }
+html.dark body#tt-body-index .home-editorial-page .home-market-switch { border-color: var(--dk-line); background: var(--dk-panel); }
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button { color: var(--dk-mute); }
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button:not(.is-active):hover { background: var(--dk-hover); color: var(--dk-text); }
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button:is(.is-active, [aria-selected="true"]) {
+  background: var(--dk-inner); color: var(--dk-text); box-shadow: 0 1px 4px rgba(0,0,0,.2);
 }
-html.dark body#tt-body-index .home-editorial-page .home-market-switch button:is(:hover, .is-active, :focus-visible) {
-  color: var(--dk-text);
+html.dark body#tt-body-index .home-editorial-page .home-market-switch button:focus-visible { outline-color: var(--dk-text); }
+@media (max-width: 480px) {
+  body#tt-body-index .home-editorial-page .home-market-switch button { padding: 0 10px; font-size: 12px; }
+  body#tt-body-index .home-editorial-page .home-market-switch-icon { font-size: 14px; }
 }
-html.dark body#tt-body-index .home-editorial-page .home-market-switch button::after {
-  background: var(--dk-text);
+@media (prefers-reduced-motion: reduce) {
+  body#tt-body-index .home-editorial-page .home-market-switch button { transition: none; }
 }
 
 /* 주말에는 마지막 시세를 재사용해 평일 화면처럼 보이지 않게 휴장 지면을 연다. */
@@ -7688,6 +7669,7 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
   --np-btn-h: 34px;
   /* Shared geometry: page modules, inset summaries and dense data controls. */
   --ui-radius-card: 14px;
+  --home-content-max: 1440px;
   --ui-radius-inner: 9px;
   --ui-title-size: 24px;
   --ui-section-size: 17px;
@@ -8240,7 +8222,6 @@ html:not(.dark) body .home-weekly-report :is(article.hwr-schedule, article.hwr-m
   html body .home-widget-actions { top: 8px !important; right: 10px !important; }
   /* 2026-10-22 사용자 신고(모바일): 시장판 머리글의 오른쪽 글자(나스닥 종합 · S&P500 현물)가 이동·메뉴 버튼 두 개와 겹침.
      버튼 줄(약 40px)만큼 머리글을 아래로 내려 겹치지 않게 한다. PC는 겹치지 않아 그대로 둔다. */
-  html body #homeMarketBoard .home-card-heading { padding-top: 30px !important; }
 }
 
 /* 모바일 다듬기(2026-10-03): ★ 관심 버튼이 좁은 표 칸에서 잘리지 않게 30px로, 우측 서랍 손잡이는 얇게 */
@@ -8321,16 +8302,25 @@ html.search-open body .nav-search-suggest {
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) {
     display: flex !important; flex-wrap: wrap !important; justify-content: center !important; align-items: center !important;
     gap: 14px 6px !important; grid-template-columns: none !important; grid-template-areas: none !important;
+    padding-inline: 16px !important;
   }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > nav.site-footer-links:not(.site-footer-learn) { order: 2 !important; width: auto !important; flex: 0 1 auto !important; grid-column: auto !important; justify-self: auto !important; }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > *.copyright { order: 3 !important; width: auto !important; flex: 0 0 auto !important; margin: 0 !important; justify-self: auto !important; display: block !important; }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > nav.site-footer-learn { order: 1 !important; flex: 0 0 100% !important; }
   html body#tt-body-index .site-footer:is(:has(.site-footer-learn a.learn-card), [data-weekend-learn-slot]) > *.site-footer-version { order: 4 !important; flex: 0 0 100% !important; text-align: center !important; }
 }
+/* Box the original stories nav on weekday and weekend without moving/copying cards. */
+html body#tt-body-index nav.site-footer-learn {
+  box-sizing: border-box;
+  border: 1px solid var(--ui-border) !important;
+  border-radius: var(--ui-radius-card) !important;
+  background: var(--ui-glass-sheen), linear-gradient(var(--ui-card-surface), var(--ui-card-surface)) !important;
+  box-shadow: var(--ui-glass-shadow) !important;
+}
 html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > nav.site-footer-learn {
   display: grid !important; grid-template-columns: minmax(240px, .85fr) minmax(0, 2.15fr) !important;
-  gap: 48px !important; width: 100% !important; max-width: 1440px !important; min-width: 0 !important;
-  margin: 48px auto 16px !important; padding: 0 !important; overflow: visible !important; align-items: start !important; text-align: left !important;
+  gap: 48px !important; width: 100% !important; max-width: var(--home-content-max) !important; min-width: 0 !important;
+  margin: 48px auto 16px !important; padding: var(--ui-section-gap) !important; overflow: visible !important; align-items: start !important; text-align: left !important;
 }
 html body .learn-intro { padding: 24px 0 !important; min-width: 0; }
 html body .learn-eyebrow { display:block; font-size:13px!important; color:rgba(var(--np-ink),.55)!important; }
@@ -9075,18 +9065,12 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   line-height: 1.55 !important;
 }
 
-/* 홈 브리핑과 이야기 시리즈의 제목 시작선을 맞춘다. */
+/* Market, news, real-time, briefing and stories share the same home content width. */
 @layer np.np {
   html body#tt-body-index .home-editorial-page .home-widget-grid > .home-briefing-section {
-    --briefing-drawer-width: 0px;
-    width: min(calc(1440px + 2 * var(--ui-section-gap)), calc(100vw - var(--briefing-drawer-width))) !important;
-    max-width: none !important;
-    justify-self: center !important;
-  }
-  @media (min-width: 1024px) {
-    html body#tt-body-index:has(.global-watchlist-drawer.is-open):not(.iframe-mode):not(:has(:fullscreen)) .home-editorial-page .home-widget-grid > .home-briefing-section,
-    html.wl-open.wl-open body#tt-body-index:not(.iframe-mode):not(:has(:fullscreen)) .home-editorial-page .home-widget-grid > .home-briefing-section {
-      --briefing-drawer-width: 378px;
-    }
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0;
+    justify-self: stretch !important;
   }
 }
