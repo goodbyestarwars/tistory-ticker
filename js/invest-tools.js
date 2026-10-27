@@ -33,6 +33,19 @@
     };
   }
 
+  // 목표 손실률은 총 매입금 대비 평가손실의 비율이며, 현재가 매수 시 손실금은 변하지 않는다.
+  function calculateLossTarget(quantity, average, price, targetPercent) {
+    var q = Number(quantity), a = Number(average), p = Number(price), rate = Number(targetPercent);
+    if (![q, a, p, rate].every(Number.isFinite) || !Number.isSafeInteger(q) || q <= 0 || a <= 0 || p <= 0 || rate <= 0 || rate > 100) return null;
+    var initialCost = q * a, loss = q * Math.max(0, a - p);
+    var rawShares = Math.max(0, (loss / (rate / 100) - initialCost) / p);
+    var shares = Math.ceil(rawShares);
+    if (!Number.isSafeInteger(shares) || !Number.isSafeInteger(q + shares) || !Number.isFinite(initialCost + shares * p)) return { tooLarge: true };
+    var addedCost = shares * p, totalCost = initialCost + addedCost;
+    return { shares: shares, addedCost: addedCost, totalCost: totalCost, loss: loss, lossRate: totalCost ? loss / totalCost * 100 : 0,
+      average: totalCost / (q + shares) };
+  }
+
   function calculateRecovery(quantity, average, price, target) {
     var q = Number(quantity), a = Number(average), p = Number(price), t = Number(target);
     if (![q, a, p, t].every(Number.isFinite) || !Number.isSafeInteger(q) || q <= 0 || a <= 0 || p <= 0 || t <= 0) return null;
@@ -145,12 +158,15 @@
     overlay.className = 'it-overlay';
     overlay.innerHTML = '<section class="it-modal" role="dialog" aria-modal="true" aria-labelledby="itTitle">'
       + '<header><div><span>투자도구</span><h2 id="itTitle">물타기 계산기</h2><p>매수할 때마다 + 버튼으로 항목을 추가해 최종 평균단가를 계산합니다.</p></div><button type="button" class="it-close" aria-label="닫기">✕</button></header>'
-      + '<section class="it-recovery"><h3>목표가 손익분기 계산</h3><p class="it-field-help">현재가로 추가 매수한 뒤 목표가까지 반등할 때 손익이 0원 이상이 되는 최소 수량입니다.</p>'
+      + '<section class="it-recovery"><h3>목표 손실률 자동 계산</h3><p class="it-field-help">현재가로 추가 매수할 때 목표 손실률 이내가 되는 최소 수량과 자금을 계산합니다.</p>'
       + '<div class="it-stock-row"><label>국내 종목명 또는 코드<input type="search" data-it-stock list="itStockOptions" autocomplete="off" placeholder="예: 삼성전자 또는 005930"></label><datalist id="itStockOptions"></datalist><button type="button" class="it-add-more" data-it-load>현재가 불러오기</button></div>'
       + '<p class="it-field-help" data-it-stock-status aria-live="polite">종목을 선택하거나 현재가를 직접 입력하세요.</p>'
-      + '<div class="it-input-grid it-recovery-grid"><label><span>현재가 · 추가 매수가</span><input inputmode="decimal" data-it-recovery="price" placeholder="직접 입력 가능"></label><label><span>목표 반등가</span><input inputmode="decimal" data-it-recovery="target" placeholder="예: 110,000"></label></div>'
-      + '<div class="it-recovery-result" aria-live="polite" data-it-recovery-result>아래 보유 수량과 평균단가, 현재가, 목표가를 입력하세요.</div>'
-      + '<p class="it-field-help">국내 정수주 기준 · 수수료와 세금 제외 · 정수주 올림으로 목표가에서 소액의 이익이 생길 수 있습니다. 현재가는 불러온 시점의 참고값이며 자동 갱신되지 않습니다.</p></section>'
+      + '<div class="it-input-grid it-recovery-grid"><label><span>현재가 · 추가 매수가</span><input inputmode="decimal" data-it-recovery="price" placeholder="직접 입력 가능"></label><label><span>목표 손실률 (−%)</span><input inputmode="decimal" data-it-loss-rate value="1" placeholder="예: 1"></label></div>'
+      + '<div class="it-recovery-result" aria-live="polite" data-it-loss-result>아래 보유 수량과 평균단가를 입력하세요.</div>'
+      + '<p class="it-field-help">현재가가 그대로라면 추가 매수 후에도 기존 평가손실 금액은 그대로이며, 투자금이 늘어 손실률만 낮아집니다. 정수주 기준 · 수수료와 세금 제외.</p>'
+      + '<div class="it-input-grid it-recovery-grid"><label><span>목표 반등가 (선택)</span><input inputmode="decimal" data-it-recovery="target" placeholder="예: 110,000"></label></div>'
+      + '<div class="it-recovery-result" aria-live="polite" data-it-recovery-result>목표 반등가를 입력하면 해당 가격에서 손익 0원 이상이 되는 수량도 계산합니다.</div>'
+      + '<p class="it-field-help">반등가 계산도 수수료·세금 제외, 정수주 기준입니다. 현재가는 불러온 시점의 참고값이며 자동 갱신되지 않습니다.</p></section>'
       + '<div class="it-input-grid it-current-grid">'
       + '<label><span>현재 보유 수량</span><input inputmode="decimal" data-it="currentQuantity" placeholder="예: 10"></label>'
       + '<label><span>현재 평균단가</span><input inputmode="decimal" data-it="currentAverage" placeholder="예: 120,000"></label>'
@@ -221,6 +237,16 @@
       var a = numberValue(overlay.querySelector('[data-it="currentAverage"]'));
       var p = numberValue(overlay.querySelector('[data-it-recovery="price"]'));
       var t = numberValue(overlay.querySelector('[data-it-recovery="target"]'));
+      var rate = numberValue(overlay.querySelector('[data-it-loss-rate]'));
+      var lossBox = overlay.querySelector('[data-it-loss-result]');
+      if (!q || !a || !p) {
+        lossBox.textContent = '보유 수량과 평균단가, 현재가를 입력하세요.';
+      } else {
+        var lossResult = calculateLossTarget(q, a, p, rate);
+        if (!lossResult) lossBox.textContent = '보유 수량은 정수주, 목표 손실률은 0보다 크고 100 이하로 입력하세요.';
+        else if (lossResult.tooLarge) lossBox.textContent = '필요한 수량이 너무 커서 계산할 수 없습니다.';
+        else lossBox.textContent = '추가 매수 ' + formatNumber(lossResult.shares) + '주 · 필요 자금 ' + formatNumber(lossResult.addedCost, 2) + '원 | 총 투자금 ' + formatNumber(lossResult.totalCost, 2) + '원 | 매수 후 평단 ' + formatNumber(lossResult.average, 2) + '원 | 평가손실 ' + formatNumber(lossResult.loss, 2) + '원 · 손실률 ' + (lossResult.loss ? '−' : '') + lossResult.lossRate.toFixed(2) + '%';
+      }
       if (!q || !a || !p || !t) { box.textContent = '아래 보유 수량과 평균단가, 현재가, 목표가를 입력하세요.'; return; }
       var result = calculateRecovery(q, a, p, t);
       if (!result) { box.textContent = '보유 수량은 1 이상의 정수주로, 가격은 0보다 크게 입력하세요.'; return; }
@@ -373,7 +399,7 @@
     overlay.querySelector('[data-it-fx="krw"]').focus();
   }
 
-  var api = { calculateRecovery: calculateRecovery, calculateAverage: calculateAverage, calculateNasdaqFx: calculateNasdaqFx, resolveFxFee: resolveFxFee, openAveraging: openAveraging, openNasdaqFx: openNasdaqFx };
+  var api = { calculateLossTarget: calculateLossTarget, calculateRecovery: calculateRecovery, calculateAverage: calculateAverage, calculateNasdaqFx: calculateNasdaqFx, resolveFxFee: resolveFxFee, openAveraging: openAveraging, openNasdaqFx: openNasdaqFx };
   global.NineInvestTools = api;
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
 })(typeof window !== 'undefined' ? window : globalThis);
