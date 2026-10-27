@@ -913,6 +913,8 @@ document.documentElement.classList.add('skin-ready');
       if (domesticRatios) domesticRatios.hidden = isUs;
       if (investorTrend) investorTrend.hidden = isUs;
       if (nightFutures) nightFutures.hidden = !isUs;
+      var verdict = dashboardSection.querySelector('.hmb2-verdict');
+      if (verdict) verdict.classList.toggle('has-domestic-breadth', !isUs);
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
       if (usEtfs) {
@@ -1102,7 +1104,7 @@ document.documentElement.classList.add('skin-ready');
       var row = targetRow || dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
       var value = row && row.querySelector('dd');
       if (value) {
-        value.textContent = valid ? (upRatio * 100).toFixed(1) + '%' : '데이터 확인 중';
+        value.textContent = valid ? (targetRow ? '상승 ' : '') + (upRatio * 100).toFixed(1) + '%' : '데이터 확인 중';
         value.className = valid ? upRatio >= 0.55 ? 'home-positive' : upRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral';
       }
       var bar = row && row.querySelector('[data-hmb-upbar]');
@@ -1112,12 +1114,14 @@ document.documentElement.classList.add('skin-ready');
         bar = document.createElement('span');
         bar.className = 'hmb2-upbar';
         bar.setAttribute('data-hmb-upbar', '');
-        bar.innerHTML = '<i class="is-up"></i><i class="is-down"></i>';
+        bar.innerHTML = '<i class="is-up"></i><i class="is-flat"></i><i class="is-down"></i>';
         row.appendChild(bar);
       }
       var down = typeof downRatio === 'number' && isFinite(downRatio) ? Math.max(0, Math.min(1 - upRatio, downRatio)) : 0;
       bar.querySelector('.is-up').style.width = (upRatio * 100).toFixed(2) + '%';
       bar.querySelector('.is-down').style.width = (down * 100).toFixed(2) + '%';
+      var flatBar = bar.querySelector('.is-flat');
+      if (flatBar) flatBar.style.width = ((1 - upRatio - down) * 100).toFixed(2) + '%';
       bar.setAttribute('role', 'img');
       bar.setAttribute('aria-label', '상승 ' + (upRatio * 100).toFixed(1) + '% · 하락 ' + (down * 100).toFixed(1) + '% · 나머지 보합·미분류');
       bar.title = bar.getAttribute('aria-label');
@@ -1129,14 +1133,25 @@ document.documentElement.classList.add('skin-ready');
       var byMarket = data && data.marketBreadth && data.marketBreadth.byMarket;
       ['KOSPI', 'KOSDAQ'].forEach(function (key) {
         var row = dashboardSection.querySelector('[data-domestic-ratio="' + key + '"]');
+        if (!row) return;
         var entry = byMarket && byMarket[key];
         if (entry && typeof entry.up === 'number' && typeof entry.down === 'number') {
           var count = typeof entry.total === 'number' ? entry.total : entry.up + entry.down + (entry.flat || 0);
           if (count > 0 && entry.up >= 0 && entry.down >= 0 && entry.up + entry.down <= count) {
+            var flat = typeof entry.flat === 'number' ? entry.flat : null;
+            row.classList.remove('hmb2-temp');
+            row.innerHTML = '<dt>' + (key === 'KOSPI' ? '코스피' : '코스닥') + '</dt>'
+              + '<span class="hmb2-breadth-total">전체 ' + count.toLocaleString('ko-KR') + '종목</span><dd></dd>'
+              + '<span class="hmb2-upbar" data-hmb-upbar><i class="is-up"></i><i class="is-flat"></i><i class="is-down"></i></span>'
+              + '<span class="hmb2-breadth-counts"><span>상승 <b class="home-positive">' + entry.up.toLocaleString('ko-KR') + '</b></span>'
+              + '<span>' + (flat === null ? '미분류' : '보합') + ' <b>' + (flat === null ? count - entry.up - entry.down : flat).toLocaleString('ko-KR') + '</b></span>'
+              + '<span>하락 <b class="home-negative">' + entry.down.toLocaleString('ko-KR') + '</b></span></span>';
             renderHomeRiseRatio(entry.up / count, entry.down / count, row);
             return;
           }
         }
+        row.classList.add('hmb2-temp');
+        row.innerHTML = '<dt>' + (key === 'KOSPI' ? '코스피' : '코스닥') + '</dt><dd></dd>';
         renderHomeRiseRatio(null, null, row);
       });
     }
