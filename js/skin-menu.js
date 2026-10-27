@@ -344,7 +344,7 @@
       return;
     }
     var script = document.createElement('script');
-    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261027-holdings1';
+    script.src = 'https://goodbyestarwars.github.io/tistory-ticker/js/invest-tools.js?v=20261027-closebutton1';
     script.setAttribute('data-invest-tools', '1');
     script.onload = open;
     document.body.appendChild(script);

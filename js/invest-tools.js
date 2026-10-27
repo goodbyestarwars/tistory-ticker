@@ -321,7 +321,6 @@
       renderDesired();
     });
     overlay.querySelector('.it-close').addEventListener('click', close);
-    overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKey);
     renumberRows();
     overlay.querySelector('input').focus();
@@ -411,7 +410,6 @@
       delete feeSettings.rates[brokerInput.value]; applyBrokerFee(); saveFeeSettings(); render();
     });
     overlay.querySelector('.it-close').addEventListener('click', close);
-    overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKey);
     fetch('https://goodbyestar.cloud/fx-rates', { cache: 'no-store' }).then(function (response) {
       if (!response.ok) throw new Error('fx ' + response.status);
