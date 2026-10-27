@@ -698,7 +698,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
 .weekend-dashboard .wd-reading {
   display: grid;
   grid-template-columns: minmax(0,1fr);
-  gap: 16px;
+  gap: var(--ui-section-gap);
   min-width: 0;
 }
 
@@ -739,14 +739,8 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
   html body#tt-body-index #homeWeeklyReport .site-footer-learn {
     display: grid !important;
     grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important;
-    gap: 24px !important;
-    padding: 16px 0 !important;
-  }
-
-  @media(min-width:1101px) {
-    html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-intro {
-      padding-left: 38px !important;
-    }
+    gap: var(--ui-section-gap) !important;
+    padding: var(--ui-section-gap) !important;
   }
 
   html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area {
