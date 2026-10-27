@@ -119,7 +119,10 @@
       if (raf) return;
       raf = global.requestAnimationFrame(function () {
         raf = 0;
-        var i = nearestIndex(host.scrollLeft, offsets());
+        // Slides are fixed 100% width with zero gap: avoid measuring every
+        // slide's bounding rect on every touch-scroll frame.
+        var i = Math.max(0, Math.min(slides.length - 1,
+          Math.round(host.scrollLeft / Math.max(1, host.clientWidth))));
         if (i !== state.current) { mark(i); if (opts.onChange) opts.onChange(i, slides[i]); }
       });
     }
@@ -134,16 +137,23 @@
     });
     prevBtn.addEventListener('click', function () { go(state.current - 1, true); });
     nextBtn.addEventListener('click', function () { go(state.current + 1, true); });
-    host.addEventListener('keydown', function (e) {
+    function onHostKeydown(e) {
       if (e.target !== host) return;
       if (e.key === 'ArrowRight') { e.preventDefault(); go(state.current + 1, true); }
       if (e.key === 'ArrowLeft') { e.preventDefault(); go(state.current - 1, true); }
-    });
+    }
+    host.addEventListener('keydown', onHostKeydown);
     state.go = go; state.mark = mark; state.onScroll = onScroll;
+    state.onHostKeydown = onHostKeydown;
+    state.cancelScroll = function () { if (raf) global.cancelAnimationFrame(raf); raf = 0; };
     host._mmDeck = state;
     mark(0);
     // 그리드→가로 배치로 바뀌면서 차트 폭이 달라지므로 한 번 알린다(기존 차트는 resize 이벤트로 다시 맞춘다)
-    global.setTimeout(function () { global.dispatchEvent(new Event('resize')); }, 60);
+    global.setTimeout(function () {
+      global.dispatchEvent(new Event('resize'));
+      // DMI charts subscribe to this dedicated event, not window.resize.
+      global.dispatchEvent(new Event('tistory-chart-resize'));
+    }, 60);
     return state;
   }
 
@@ -152,6 +162,8 @@
     if (!d) return;
     if (d.nav && d.nav.parentNode) d.nav.parentNode.removeChild(d.nav);
     host.removeEventListener('scroll', d.onScroll);
+    if (d.onHostKeydown) host.removeEventListener('keydown', d.onHostKeydown);
+    if (d.cancelScroll) d.cancelScroll();
     host.classList.remove('mm-deck');
     host.removeAttribute('tabindex'); host.removeAttribute('role'); host.removeAttribute('aria-roledescription'); host.removeAttribute('aria-label');
     Array.prototype.forEach.call(host.children, function (c) { c.classList.remove('mm-slide'); });
