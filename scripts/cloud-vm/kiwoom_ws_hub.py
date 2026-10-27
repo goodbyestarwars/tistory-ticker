@@ -229,9 +229,17 @@ class KiwoomWsHub:
     def _desired(self):
         with self._lock:
             wanted = set()
+            signal_codes = set()
             for sub in self._subs.values():
                 wanted.update(sub.codes)
-            ordered = sorted(wanted, key=lambda code: (self._code_order.get(code, 0), code))
+                # The read-only 9Pay observer requests include_volume=True.
+                # Never evict its 20 candidate codes for a public 400-card view.
+                if sub.include_volume:
+                    signal_codes.update(sub.codes)
+            ordered = sorted(
+                wanted,
+                key=lambda code: (code not in signal_codes, self._code_order.get(code, 0), code),
+            )
         return ordered[:self.max_codes], ordered[self.max_codes:]
 
     # ---- 스레드 수명 ----
