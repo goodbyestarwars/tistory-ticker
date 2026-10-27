@@ -92,6 +92,11 @@ html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2a
   body#tt-body-index .home-editorial-page .hsc-clock { gap: 5px; }
   body#tt-body-index .home-editorial-page .hsc-digit { width: 23px; height: 31px; font-size: 23px; line-height: 30px; }
 }
+@media (max-width: 480px) {
+  body#tt-body-index .home-editorial-page .home-switch-countdown {
+    max-width: 100%; flex-direction: column; align-items: flex-end; gap: 4px;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   body#tt-body-index .home-editorial-page .hsc-digit.is-flipping .hsc-flap { animation-duration: .01ms !important; animation-delay: 0s !important; }
 }

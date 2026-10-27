@@ -740,7 +740,7 @@ html.dark .weekend-dashboard :is(.wd-index,.wd-theme summary):hover {
     display: grid !important;
     grid-template-columns: minmax(200px,1fr) minmax(0,2.3fr) !important;
     gap: var(--ui-section-gap) !important;
-    padding: var(--ui-section-gap) !important;
+    padding: var(--ui-card-padding) !important;
   }
 
   html body#tt-body-index #homeWeeklyReport .site-footer-learn .learn-card-area {
