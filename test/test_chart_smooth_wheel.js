@@ -155,6 +155,13 @@ assert.equal(events.touchstart, undefined);
   clock = 80; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
   ev2.pointerup.cb({});
   assert.equal(queue.size, 0, 'still drag has no inertia');
+  // Mobile touch inertia is already handled by Lightweight Charts.
+  ev2.pointerdown.cb({ pointerType: 'touch' });
+  clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
+  clock = 40; r2 = { from: 96, to: 196 }; listeners.forEach((fn) => fn());
+  clock = 80; r2 = { from: 92, to: 192 }; listeners.forEach((fn) => fn());
+  ev2.pointerup.cb({ pointerType: 'touch' });
+  assert.equal(queue.size, 0, 'touch release must not start custom mouse inertia');
   // 새 입력은 관성을 즉시 끊는다.
   ev2.pointerdown.cb({}); clock = 0; r2 = { from: 100, to: 200 }; listeners.forEach((fn) => fn());
   clock = 40; r2 = { from: 96, to: 196 }; listeners.forEach((fn) => fn()); ev2.pointerup.cb({});

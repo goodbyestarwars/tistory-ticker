@@ -22,8 +22,9 @@
   .mm-deck::-webkit-scrollbar { display: none; }
   .mm-deck:focus-visible { outline: 2px solid var(--mm-ink); outline-offset: 2px; }
   .mm-deck > .mm-slide { flex: 0 0 100% !important; width: 100% !important; max-width: 100% !important; min-width: 0; position: relative; box-sizing: border-box; scroll-snap-align: start; scroll-snap-stop: always; margin: 0 !important; }
-  /* 차트 안의 가로 끌기는 브라우저가 가져가 카드가 넘어가게 하고(세로 스크롤·핀치·길게 눌러 십자선은 그대로), 날짜별 수치는 터치/길게 눌러 본다 */
-  .mm-deck .dmi-chart, .mm-deck .ibd-chart, .mm-deck canvas { touch-action: pan-y pinch-zoom; }
+  /* 모바일 덱에서는 차트 위에서 시작한 한 손가락 가로/세로 스와이프를
+     브라우저가 처리한다. 페이지 핀치 대신 차트의 두 손가락 확대는 유지한다. */
+  .mm-deck .dmi-chart, .mm-deck .ibd-chart, .mm-deck canvas { touch-action: pan-x pan-y; }
 
   .mm-nav { align-items: center; gap: 6px; margin: 8px 0 10px; }
   .mm-tabs { display: flex; flex: 1 1 auto; min-width: 0; gap: 6px; overflow-x: auto; scrollbar-width: none; }

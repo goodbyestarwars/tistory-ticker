@@ -35,12 +35,18 @@ const chart = {
 let drawing = false;
 const detach = core.installVerticalPan(chart, container, { priceSeries: () => candle, isDrawing: () => drawing });
 const candle = chart.addSeries('candle', {});
+assert.equal(container.style.touchAction, 'pan-y', 'chart must allow mobile vertical page scroll');
 const origin = () => candle.options.autoscaleInfoProvider(() => ({ priceRange: { minValue: 0, maxValue: 100 } })).priceRange;
 assert.deepEqual(origin(), { minValue: 0, maxValue: 100 });
 listeners.pointerdown({ button: 0, pointerId: 1, clientY: 100, target: {} });
 listeners.pointermove({ pointerId: 1, clientY: 120 });
 frames.shift()();
 assert.deepEqual(origin(), { minValue: 20, maxValue: 120 });
+// Touch must not trigger the desktop vertical price-pan override.
+listeners['window:pointerup']({ pointerId: 1 });
+listeners.pointerdown({ button: 0, pointerType: 'touch', pointerId: 2, clientY: 100, target: {} });
+listeners.pointermove({ pointerId: 2, clientY: 160 });
+assert.deepEqual(origin(), { minValue: 20, maxValue: 120 }, 'touch does not shift price axis');
 drawing = true;
 listeners.pointermove({ pointerId: 1, clientY: 140 });
 assert.deepEqual(origin(), { minValue: 20, maxValue: 120 });
@@ -50,5 +56,6 @@ frames.shift()();
 assert.deepEqual(origin(), { minValue: 0, maxValue: 100 });
 assert.equal(scaleReset, true);
 detach();
+assert.equal(container.style.touchAction, undefined, 'touch action restored on teardown');
 assert.equal(listeners.pointermove, undefined);
 console.log('chart interactions ok');

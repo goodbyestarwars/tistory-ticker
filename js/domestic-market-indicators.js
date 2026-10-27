@@ -568,7 +568,12 @@
         crosshair: { mode: LWC.CrosshairMode.Normal },
         // 얕은 병합에서 테마의 timeScale 객체를 교체하므로 축선 제거값도 함께 유지한다.
         timeScale: { timeVisible: interval === 'minute', secondsVisible: false, borderVisible: false },
-        localization: { priceFormatter: chartPriceFormatter }
+        localization: { priceFormatter: chartPriceFormatter },
+        // Mobile charts live inside a native horizontal scroll-snap deck.
+        // Do not steal its swipe; desktop charts retain candle panning.
+        handleScroll: { mouseWheel: true, pressedMouseMove: true,
+          horzTouchDrag: !(global.matchMedia && global.matchMedia('(max-width: 767px)').matches),
+          vertTouchDrag: false }
       }));
       var series = chart.addSeries(LWC.CandlestickSeries, {
         upColor: '#d24f45',
