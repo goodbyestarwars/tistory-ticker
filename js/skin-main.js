@@ -794,9 +794,10 @@ document.documentElement.classList.add('skin-ready');
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-domestic-ratios" data-domestic-ratios>'
+        + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
+        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio><dt>집계 종목</dt><dd>데이터 확인 중</dd></div></div>'
         + '</dl>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
@@ -908,13 +909,15 @@ document.documentElement.classList.add('skin-ready');
       // Restore it for the US regular session (breadth) and domestic market (temperature).
       var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
       // 국내·미국이 같은 상승 비율 행과 막대를 공유한다.
-      if (secondaryMarketStatus) secondaryMarketStatus.hidden = !isUs || !!(usSession && !usSession.open);
+      if (secondaryMarketStatus) secondaryMarketStatus.hidden = true;
       var domesticRatios = dashboardSection.querySelector('[data-domestic-ratios]');
       if (domesticRatios) domesticRatios.hidden = isUs;
+      var usRatios = dashboardSection.querySelector('[data-us-ratios]');
+      if (usRatios) usRatios.hidden = !isUs || !!(usSession && !usSession.open);
       if (investorTrend) investorTrend.hidden = isUs;
       if (nightFutures) nightFutures.hidden = !isUs;
       var verdict = dashboardSection.querySelector('.hmb2-verdict');
-      if (verdict) verdict.classList.toggle('has-domestic-breadth', !isUs);
+      if (verdict) verdict.classList.toggle('has-market-breadth', !isUs || !!(usSession && usSession.open));
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
       if (usEtfs) {
@@ -1128,31 +1131,35 @@ document.documentElement.classList.add('skin-ready');
       bar.hidden = false;
     }
 
+    // 국내 전종목 집계와 미국 조회 표본은 같은 표시기를 쓰되 집계 범위를 구분한다.
+    function renderHomeBreadthEntry(row, label, entry, isSample) {
+      if (!row) return;
+      if (entry && typeof entry.up === 'number' && typeof entry.down === 'number') {
+        var count = typeof entry.total === 'number' ? entry.total : entry.up + entry.down + (entry.flat || 0);
+        if (count > 0 && entry.up >= 0 && entry.down >= 0 && entry.up + entry.down <= count) {
+          var flat = typeof entry.flat === 'number' ? entry.flat : null;
+          row.classList.remove('hmb2-temp');
+          row.innerHTML = '<dt>' + label + '</dt>'
+            + '<span class="hmb2-breadth-total">' + (isSample ? '집계 ' : '전체 ') + count.toLocaleString('ko-KR') + '종목</span><dd></dd>'
+            + '<span class="hmb2-upbar" data-hmb-upbar><i class="is-up"></i><i class="is-flat"></i><i class="is-down"></i></span>'
+            + '<span class="hmb2-breadth-counts"><span>상승 <b class="home-positive">' + entry.up.toLocaleString('ko-KR') + '</b></span>'
+            + '<span>' + (flat === null ? '미분류' : '보합') + ' <b>' + (flat === null ? count - entry.up - entry.down : flat).toLocaleString('ko-KR') + '</b></span>'
+            + '<span>하락 <b class="home-negative">' + entry.down.toLocaleString('ko-KR') + '</b></span></span>';
+          renderHomeRiseRatio(entry.up / count, entry.down / count, row);
+          return;
+        }
+      }
+      row.classList.add('hmb2-temp');
+      row.innerHTML = '<dt>' + label + '</dt><dd></dd>';
+      renderHomeRiseRatio(null, null, row);
+    }
+
     function renderDomesticBreadth(data) {
       if (homeMarketSession().market !== 'domestic') return;
       var byMarket = data && data.marketBreadth && data.marketBreadth.byMarket;
       ['KOSPI', 'KOSDAQ'].forEach(function (key) {
         var row = dashboardSection.querySelector('[data-domestic-ratio="' + key + '"]');
-        if (!row) return;
-        var entry = byMarket && byMarket[key];
-        if (entry && typeof entry.up === 'number' && typeof entry.down === 'number') {
-          var count = typeof entry.total === 'number' ? entry.total : entry.up + entry.down + (entry.flat || 0);
-          if (count > 0 && entry.up >= 0 && entry.down >= 0 && entry.up + entry.down <= count) {
-            var flat = typeof entry.flat === 'number' ? entry.flat : null;
-            row.classList.remove('hmb2-temp');
-            row.innerHTML = '<dt>' + (key === 'KOSPI' ? '코스피' : '코스닥') + '</dt>'
-              + '<span class="hmb2-breadth-total">전체 ' + count.toLocaleString('ko-KR') + '종목</span><dd></dd>'
-              + '<span class="hmb2-upbar" data-hmb-upbar><i class="is-up"></i><i class="is-flat"></i><i class="is-down"></i></span>'
-              + '<span class="hmb2-breadth-counts"><span>상승 <b class="home-positive">' + entry.up.toLocaleString('ko-KR') + '</b></span>'
-              + '<span>' + (flat === null ? '미분류' : '보합') + ' <b>' + (flat === null ? count - entry.up - entry.down : flat).toLocaleString('ko-KR') + '</b></span>'
-              + '<span>하락 <b class="home-negative">' + entry.down.toLocaleString('ko-KR') + '</b></span></span>';
-            renderHomeRiseRatio(entry.up / count, entry.down / count, row);
-            return;
-          }
-        }
-        row.classList.add('hmb2-temp');
-        row.innerHTML = '<dt>' + (key === 'KOSPI' ? '코스피' : '코스닥') + '</dt><dd></dd>';
-        renderHomeRiseRatio(null, null, row);
+        renderHomeBreadthEntry(row, key === 'KOSPI' ? '코스피' : '코스닥', byMarket && byMarket[key], false);
       });
     }
 
@@ -1273,7 +1280,7 @@ document.documentElement.classList.add('skin-ready');
       var payload = data && data.data ? data.data : data;
       var rows = payload && payload.rows ? payload.rows : [];
       var valid = rows.map(function (row) {
-        return { rate: Number(row && row.change_rate), industry: String(row && row.industry || '').trim() };
+        return { rate: row && row.change_rate != null && row.change_rate !== '' ? Number(row.change_rate) : NaN, industry: String(row && row.industry || '').trim() };
       }).filter(function (row) { return isFinite(row.rate); });
       if (!valid.length) return null;
       var rising = valid.filter(function (row) { return row.rate > 0; }).length;
@@ -1306,6 +1313,7 @@ document.documentElement.classList.add('skin-ready');
       var usSession = usRegularSessionState();
       return {
         riseRatio: riseRatio,
+        breadth: { up: rising, down: valid.filter(function (row) { return row.rate < 0; }).length, flat: valid.filter(function (row) { return row.rate === 0; }).length, total: valid.length },
         averageRate: averageRate,
         direction: usSession.open ? resolveMarketDirection({ components: {
           riseRatio: { ratio: riseRatio },
@@ -1322,6 +1330,7 @@ document.documentElement.classList.add('skin-ready');
       latestUsBoardData = data;
       var summary = summarizeUsMarket(data, latestHomeIndices);
       if (!summary) {
+        renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '집계 종목', null, true);
         setField('temperature', '데이터 확인 중', 'home-neutral');
         setField('direction', '데이터 확인 중', 'home-neutral');
         setField('leaders', '데이터 확인 중', 'home-neutral');
@@ -1329,7 +1338,7 @@ document.documentElement.classList.add('skin-ready');
         return;
       }
       var sessionOpen = !summary.sessionState || summary.sessionState.open;
-      renderHomeRiseRatio(sessionOpen ? summary.riseRatio : null, sessionOpen ? 1 - summary.riseRatio : null);
+      renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '미국 종목', sessionOpen ? summary.breadth : null, true);
       setField('direction', summary.direction.label, summary.direction.tone);
       setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
       setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
@@ -1980,6 +1989,7 @@ document.documentElement.classList.add('skin-ready');
         : fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=40', 12000))
         .then(renderUsMarketSummary)
         .catch(function () {
+          renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '미국 종목', null, true);
           setField('temperature', '데이터 확인 중', 'home-neutral');
           setField('direction', '데이터 확인 중', 'home-neutral');
           setField('leaders', '데이터 확인 중', 'home-neutral');

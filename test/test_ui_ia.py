@@ -901,7 +901,7 @@ class UiInformationArchitectureTest(unittest.TestCase):
         main = self.read("js/skin-main.js")
         self.assertIn("function renderHomeRiseRatio(upRatio, downRatio, targetRow)", main)
         self.assertIn("renderHomeRiseRatio(entry.up / count, entry.down / count, row)", main)
-        self.assertIn("renderHomeRiseRatio(sessionOpen ? summary.riseRatio", main)
+        self.assertIn("renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]')", main)
         self.assertNotIn('data-home-breadth', main)
         self.assertNotIn('data-index-field="breadth"', main)
 

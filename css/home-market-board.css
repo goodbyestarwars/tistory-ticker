@@ -158,19 +158,19 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict {
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > div { display: block; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction { order: 1; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-domestic-breadth { flex: 1 1 100%; display: grid; grid-template-columns: minmax(90px, .5fr) minmax(0, 2fr); gap: var(--ui-section-gap); align-items: start; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-domestic-ratios { order: 2; display: grid; gap: 18px; min-width: 0; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-domestic-ratios[hidden] { display: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-domestic-ratios > div { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: baseline; min-width: 0; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-domestic-ratios > div > dt { font-weight: 700; color: var(--hmb-ink); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-domestic-ratios dd { margin: 0; font: 600 13px/1.4 var(--font-data); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { flex: 0 1 400px; width: 100%; display: grid; grid-template-columns: 80px minmax(0, 280px); gap: var(--ui-section-gap); align-items: start; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { order: 2; display: grid; gap: 12px; min-width: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios[hidden] { display: none; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div { display: grid; grid-template-columns: auto 1fr auto; gap: 5px 8px; align-items: baseline; min-width: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div > dt { font-weight: 700; color: var(--hmb-ink); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios dd { margin: 0; font: 600 13px/1.4 var(--font-data); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth-total { color: var(--hmb-faint); font: 400 11px/1.4 var(--font-ui); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-domestic-ratios .hmb2-upbar { grid-column: 1 / -1; width: 100%; height: 10px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios .hmb2-upbar { grid-column: 1 / -1; width: 100%; height: 22px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-flat { background: var(--hmb-flat); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth-counts { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; color: var(--hmb-mute); font: 400 11px/1.4 var(--font-data); font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth-counts b { margin-left: 4px; font-weight: 600; font-size: 13px; }
-@media (max-width: 480px) {
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-domestic-breadth { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 380px) {
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
 }
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp { order: 2; display: flex !important; align-items: baseline; gap: 8px; }
