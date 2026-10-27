@@ -8901,21 +8901,21 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
    이야기 카드는 폭이 격자 비율로 정해지므로 소개:카드 열 비율을 1fr:1.8fr로 바꿔 카드 폭도 약 10% 줄인다(오른쪽 끝은 그대로 맞춤). */
 @layer np { @layer np {
   /* 마켓브리핑 */
-  html body#tt-body-index .home-editorial-page .home-briefing-section { padding: 36px 4px !important; }
-  html body#tt-body-index .home-editorial-page .briefing-intro { gap: 22px; padding: 22px 0 25px !important; }
+  html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) 4px !important; }
+  html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: 0 0 var(--ui-section-gap) !important; }
   html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: 36px !important; }
   html body#tt-body-index .briefing-intro p { font-size: 14.4px !important; }
   html body#tt-body-index .briefing-intro .learn-eyebrow { font-size: 12px !important; }
   html body#tt-body-index .briefing-intro .home-briefing-more { min-width: 225px !important; padding: 16px 22px !important; gap: 11px !important; border-radius: 13px !important; font: 700 14.4px/1.5 var(--font-ui) !important; }
   html body#tt-body-index .briefing-intro .briefing-archive-icon { width: 20px; height: 20px; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: 22px !important; padding: 11px 0 22px !important; }
-  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track { gap: var(--ui-card-gap) !important; padding: 0 0 var(--ui-section-gap) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
   html body#tt-body-index .briefing-carousel-track .home-briefing-card::after { bottom: 54px; right: 23px; font-size: 99px; }
-  html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 18px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-header { margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-date { font-size: 11px !important; }
-  html body#tt-body-index .briefing-carousel-track .post-title { font-size: 23.4px !important; margin: 0 0 22px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-title { font-size: 23.4px !important; margin: 0 0 var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
-  html body#tt-body-index .briefing-carousel-track .post-footer { padding-top: 18px !important; }
+  html body#tt-body-index .briefing-carousel-track .post-footer { padding-top: var(--ui-paragraph-gap) !important; }
   html body#tt-body-index .briefing-carousel-controls { gap: 25px; padding: 7px 50px 14px 0 !important; }
   html body#tt-body-index .briefing-carousel-controls > div { gap: 11px; }
   html body#tt-body-index .briefing-carousel-controls button { width: 41px; height: 41px; font-size: 20px; }
@@ -8946,12 +8946,12 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @media (max-width: 720px) {
   @layer np { @layer np {
     /* 마켓브리핑(모바일): 카드 폭 calc(100vw - 72px) → 90% */
-    html body#tt-body-index .home-editorial-page .home-briefing-section { padding: 36px 0 !important; }
+    html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) 0 !important; }
     html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
     html body#tt-body-index .briefing-intro strong { font-size: 20px !important; }
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
     html body#tt-body-index .briefing-intro .home-briefing-more { margin-top: 18px !important; font-size: 13.5px !important; padding: 16px 22px !important; }
-    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: 387px !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
+    html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { flex-basis: calc((100vw - 72px) * .9) !important; width: calc((100vw - 72px) * .9) !important; height: auto !important; padding: var(--ui-card-padding) !important; border-radius: var(--ui-radius-card) !important; }
     html body#tt-body-index .briefing-carousel-track .post-title { font-size: 16.2px !important; }
     html body#tt-body-index .briefing-carousel-track .post-excerpt { font-size: 12.6px !important; }
     html body#tt-body-index .briefing-carousel-controls { gap: 16px; }
@@ -9045,19 +9045,19 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
    위젯 격자 밖으로 옮겨져 위 캐러셀 규칙(.home-editorial-page 하위)이 안 닿고 2열 목록으로 풀렸다. 같은 값을 휴장 조건으로 다시 건다. */
 @layer np.np {
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track {
-    display: flex !important; gap: 24px !important; width: 100%; overflow-x: auto !important; overflow-y: hidden; padding: 12px 0 24px !important;
+    display: flex !important; gap: var(--ui-card-gap) !important; width: 100%; overflow-x: auto !important; overflow-y: hidden; padding: 0 0 var(--ui-section-gap) !important;
     scroll-snap-type: x proximity; scrollbar-width: none; touch-action: pan-x pan-y; cursor: grab; grid-template-columns: none;
   }
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card {
     position: relative; display: flex !important; flex: 0 0 380px !important; flex-direction: column !important; width: 380px !important; min-width: 0 !important;
-    height: 460px !important; min-height: 0 !important; overflow: hidden; scroll-snap-align: start;
+    height: auto !important; min-height: 0 !important; overflow: hidden; scroll-snap-align: start;
   }
   @media (min-width: 721px) {
-    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track { gap: 22px !important; padding: 11px 0 22px !important; }
-    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: 414px !important; }
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track { gap: var(--ui-card-gap) !important; padding: 0 0 var(--ui-section-gap) !important; }
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex: 0 0 342px !important; width: 342px !important; height: auto !important; }
   }
   @media (max-width: 720px) {
-    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex-basis: calc(100vw - 72px) !important; width: calc(100vw - 72px) !important; height: 430px !important; }
+    html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card { flex-basis: calc(100vw - 72px) !important; width: calc(100vw - 72px) !important; height: auto !important; }
   }
 }
 
