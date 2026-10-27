@@ -2670,6 +2670,8 @@ html.dark .post-card.feed-headline-item { border-bottom-color: var(--dk-line) !i
   color: #374151;
   margin-bottom: 24px;
 }
+/* 티스토리 자체 광고 영역만 화면에서 숨긴다. 광고 요청은 그대로 발생한다. */
+.post-single-body > ins.adsbygoogle[data-ad-client="ca-pub-9527582522912841"] { display: none !important; }
 .post-single-body img { max-width: 100%; height: auto; border-radius: 8px; }
 /* 표는 폭이 고정된 채로 넘치면 좁은 화면에서 레이아웃이 깨진다.
    table 자체에 overflow-x:auto를 주면 auto 테이블 레이아웃이 칸 너비를 억지로 욱여넣어
