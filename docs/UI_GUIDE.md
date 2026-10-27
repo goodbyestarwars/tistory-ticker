@@ -18,17 +18,14 @@
 
 이 블록 제목은 공유 `ui-section-title`의 MaruBuriBold·700·`--ui-section-size`(17px)를 쓴다. 휴장 화면의 원유·금, 이번/다음 주 주요 일정, 미국 국채금리·환율, 24시간 가상자산, 바이낸스 주식·ETF 선물에도 같은 부제목만 적용하고 기존 배치는 유지한다. 수치·차트·본문·보조 문구는 기존 UI 글꼴이다.
 
-### 홈 시장 전환 탭 (2026-10-26, 단일 스타일 계약)
+### 홈 시장 전환 세그먼트·너비·여백 (2026-10-27)
 
-`한국증시 / 미국증시 / 휴장`은 공통 알약형 세그먼트가 아닌 홈 전용 **편집형 밑줄 탭**이다.
-`style.css`의 `body#tt-body-index .home-editorial-page .home-market-switch` 블록만
-탭 높이(44px)·텍스트/호버/선택/키보드 포커스·일직선 밑줄(`button::after, bottom:0`)을 정의한다.
-공통 세그먼트/범용 탭 선택자에는 `.home-market-switch`를 추가하지 않는다. `css/home-market-board.css`에도 별도 탭 테두리/밑줄을 두지 않는다.
+`한국증시 / 미국증시 / 휴장`은 홈 전용 3분할 세그먼트 버튼이다. `js/skin-main.js`의 기존 `data-home-market-switch` 값과 클릭·선택·휴장/카운트다운 연결은 그대로 두고, 아이콘은 `aria-hidden`으로 분리한다.
+`style.css`의 `body#tt-body-index .home-editorial-page .home-market-switch`가 트랙·버튼·선택·호버·키보드 포커스·다크·모바일 스크롤을 단독 정의한다. 예전 밑줄 `::after`는 사용하지 않는다. `css/home-market-board.css`에는 별도 탭 스타일을 복제하지 않는다.
 
-탭과 `국내 시장 / 미국 시장` 카드 사이의 수직 간격은 부모 `.home-editorial-page`의
-`gap:var(--ui-section-gap)` 단일 출처를 따른다. 탭/카드 음수 margin·추가 위치 보정 금지.
-PC·모바일·다크모드에서 같은 기준선을 유지하고 화면 폭 부족 시 탭 영역 안에서만 가로 스크롤한다.
-화면 전환 JS, 시세 API 및 홈 위젯 순서 계약은 변경하지 않는다.
+홈의 시장판·경제 종합뉴스·실시간 종목판·마켓브리핑·이야기 시리즈는 공통 `--home-content-max:1440px`을 기준으로 한다. 홈에서만 `.main-layout` 최대폭을 1440px + 좌우 16px으로 설정하고, 예전 마켓브리핑의 뷰포트 밖 확장 규칙은 제거했다. 관심종목 드로어를 열어도 모든 섹션은 남은 콘텐츠 폭을 따른다. 이야기 시리즈 원본 `.site-footer-learn`은 브리핑과 같은 공통 테두리·면·모서리·여백을 적용하며, 휴장 시 원본 노드가 `#homeWeeklyReport`로 이동해도 같은 카드로 표시한다.
+
+모바일 탭-시장 간격은 `.home-editorial-page`의 `--ui-section-gap` 하나만 사용한다. `.home-market-toolbar`의 중복 아래쪽 margin과 시장 제목의 과거 30px 패딩은 제거한다. 작은 화면은 탭 그룹 자체 가로 스크롤을 허용하고 시장 카드·뉴스/브리핑·이야기 카드는 가로 넘침 없이 채운다. PC·모바일·다크모드에서 카드 폭·여백·선택 상태를 함께 확인한다.
 
 ### 공통 글꼴 (2026-10-25, 최신 지침)
 
