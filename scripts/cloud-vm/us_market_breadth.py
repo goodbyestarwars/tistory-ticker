@@ -29,6 +29,7 @@ def parse_breadth(payload):
     up = down = flat = missing = 0
     delay = 0
     relative_volumes = []
+    volume_pairs = []
     for row in rows:
         symbol = row.get('s')
         values = row.get('d') or []
@@ -47,12 +48,23 @@ def parse_breadth(payload):
         relative = values[2] if len(values) > 2 else None
         if not isinstance(relative, bool) and isinstance(relative, (int, float)) and math.isfinite(relative) and relative >= 0:
             relative_volumes.append(relative)
+        current_volume = values[3] if len(values) > 3 else None
+        if (not isinstance(relative, bool) and isinstance(relative, (int, float)) and math.isfinite(relative) and relative > 0
+                and not isinstance(current_volume, bool) and isinstance(current_volume, (int, float)) and math.isfinite(current_volume) and current_volume >= 0):
+            volume_pairs.append((current_volume, current_volume / relative))
         mode = str(values[1] or '')
         if mode.startswith('delayed_streaming_'):
             delay = max(delay, int(mode.rsplit('_', 1)[1]))
     if up + down + flat == 0:
         raise ValueError('no valid prices')
+    current_volume = sum(pair[0] for pair in volume_pairs)
+    baseline_volume = sum(pair[1] for pair in volume_pairs)
+    volume_ok = math.isfinite(current_volume) and math.isfinite(baseline_volume) and baseline_volume > 0 and len(volume_pairs) / expected >= .95
     return {'up': up, 'down': down, 'flat': flat, 'missing': missing, 'total': expected,
+            'volumeIndex': {'current': current_volume, 'baseline': baseline_volume,
+                            'index100': current_volume / baseline_volume * 100 if volume_ok else None,
+                            'eligible': len(volume_pairs), 'total': expected, 'basis': 'same-time-5m-volume-sum',
+                            'lookbackDays': 10, 'status': 'ok' if volume_ok else 'unavailable'},
             'delaySeconds': delay, 'timeBasis': 'retrieval',
             'volumeParticipation': {'eligible': len(relative_volumes), 'total': expected,
                                     'increased': sum(value > 1 for value in relative_volumes),
@@ -64,7 +76,7 @@ def parse_breadth(payload):
 
 def _fetch(index, region='america'):
     payload = {
-        'columns': ['change', 'update_mode', 'relative_volume_intraday|5'],
+        'columns': ['change', 'update_mode', 'relative_volume_intraday|5', 'volume|5'],
         'symbols': {'groups': [{'type': 'index', 'values': [index]}]},
         'range': [0, 10000],
     }

@@ -1,10 +1,10 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const s=fs.readFileSync('js/skin-main.js','utf8');let a=s.indexOf('    function homeParticipationModel(');let source=s.slice(a,s.indexOf('\n    }',a)+6);const c={isFinite};vm.createContext(c);vm.runInContext(source,c);
-const volume={status:'ok',basis:'same-time-5m',eligible:100,total:105,increased:30,ratio:.3};
-const body={byIndex:{KOSPI:{status:'ok',volumeParticipation:volume,delaySeconds:1200}}};
-let rows=c.homeParticipationModel('domestic',body,[{symbol:'KOSPI',change_rate:3}]);
-assert.equal(rows[0].rate,3);assert.equal(rows[0].volume.ratio,.3);assert.equal(rows[1].volume,null);assert.equal(rows[1].rate,null);
-body.byIndex.KOSPI.status='stale';assert.equal(c.homeParticipationModel('domestic',body,[])[0].volume,null);
-body.byIndex.KOSPI.status='ok';volume.basis='daily';assert.equal(c.homeParticipationModel('domestic',body,[])[0].volume,null);
-assert.equal(c.homeParticipationModel('us',null,[{symbol:'SP500_INDEX',change_rate:null}])[0].rate,null);
-console.log('PASS: rising index and weak participation remain separate; missing/stale/wrong-basis never become zero.');
+const s=fs.readFileSync('js/skin-main.js','utf8');function extract(name){const a=s.indexOf('    function '+name+'(');return s.slice(a,s.indexOf('\n    }',a)+6);}
+const c={isFinite};vm.createContext(c);vm.runInContext(['homeParticipationModel','homeVolumeScale'].map(extract).join('\n'),c);
+const volume={status:'ok',basis:'same-time-5m-volume-sum',eligible:100,total:100,baseline:1000,index100:110};
+const body={byIndex:{KOSPI:{status:'ok',volumeIndex:volume},KOSDAQ:{status:'ok',volumeIndex:{...volume,index100:90}}}};
+let rows=c.homeParticipationModel('domestic',body);assert.equal(rows[0].volume.index100,110);assert.equal(rows[1].volume.index100,90);assert.equal(c.homeVolumeScale(rows),20);
+body.byIndex.KOSPI.status='stale';assert.equal(c.homeParticipationModel('domestic',body)[0].volume,null);
+body.byIndex.KOSPI.status='ok';volume.basis='daily';assert.equal(c.homeParticipationModel('domestic',body)[0].volume,null);
+assert.equal(c.homeParticipationModel('us',null)[0].volume,null);
+console.log('PASS: normalized volume uses matching same-time aggregate basis and a shared scale.');

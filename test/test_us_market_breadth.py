@@ -63,3 +63,19 @@ def test_domestic_and_us_have_independent_shared_caches():
         m.get_breadth(1793116801, market='domestic')
         assert fetch.call_count == 4
         assert fetch.call_args[0][1] == 'korea'
+
+def test_volume_index_is_ratio_of_sums_not_mean_of_ratios():
+    data = payload([1, -1])
+    data['data'][0]['d'] += [2.0, 100]
+    data['data'][1]['d'] += [1.0, 900]
+    result = m.parse_breadth(data)['volumeIndex']
+    assert result['current'] == 1000 and result['baseline'] == 950
+    assert result['index100'] == pytest.approx(1000 / 950 * 100)
+    assert result['index100'] != 150
+    assert result['status'] == 'ok'
+
+
+def test_volume_index_never_fills_missing_baseline_with_zero():
+    assert m.parse_breadth(payload([1]))['volumeIndex']['index100'] is None
+    data = payload([1, 1]); data['data'][0]['d'] += [0, 0]; data['data'][1]['d'] += [1, 100]
+    assert m.parse_breadth(data)['volumeIndex']['status'] == 'unavailable'
