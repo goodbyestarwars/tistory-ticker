@@ -1178,7 +1178,11 @@
     container.querySelectorAll('.wl-group-delete').forEach(function (button) {
       button.addEventListener('click', function () {
         var id = button.closest('.wl-group').getAttribute('data-group-id');
-        var groups = loadGroups().filter(function (group) { return group.id !== id; });
+        var groups = loadGroups();
+        var target = groups.find(function (group) { return group.id === id; });
+        if (!target || id === DEFAULT_GROUP_ID) return;
+        if (!global.confirm('“' + target.name + '” 그룹을 삭제할까요?\n그룹 안의 관심종목은 삭제되지 않고 기본 그룹으로 이동합니다.')) return;
+        groups = groups.filter(function (group) { return group.id !== id; });
         var list = loadList();
         list.forEach(function (item) { if ((item.groupId || DEFAULT_GROUP_ID) === id) item.groupId = DEFAULT_GROUP_ID; });
         saveGroups(groups, container);
