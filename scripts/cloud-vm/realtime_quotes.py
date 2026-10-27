@@ -378,7 +378,7 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
     # The existing detail chart needs the KIS trade + 10-level orderbook.
     # Bulk watchlists/boards are deterministic non-overlapping broker regions:
     # [0:200] Kiwoom, [200:400] Toss; KIS covers uncovered codes.
-    kiwoom_primary = [] if include_orderbook else domestic_codes[:200]
+    kiwoom_primary = domestic_codes if include_orderbook else domestic_codes[:200]
     toss_primary = [] if include_orderbook else domestic_codes[200:400]
     kis_primary = domestic_codes if include_orderbook else []
     registrations = [
@@ -443,7 +443,10 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
             if kiwoom_sub is not None:
                 while not kiwoom_sub.queue.empty():
                     event = kiwoom_sub.queue.get_nowait()
-                    if event.get('code') in kiwoom_primary:
+                    if event.get('code') in kiwoom_primary and (
+                        not include_orderbook or
+                        ('H0UNCNT0', event.get('code')) not in kis_live
+                    ):
                         await browser_ws.send_json(event)
                         last_message_at = now
             if toss_sub is not None:
