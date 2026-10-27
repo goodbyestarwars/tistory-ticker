@@ -9074,3 +9074,19 @@ html:not(.font-gothic) body :is(.home-economic-news .hen-main strong,
   font-size: 15px !important;
   line-height: 1.55 !important;
 }
+
+/* 홈 브리핑과 이야기 시리즈의 제목 시작선을 맞춘다. */
+@layer np.np {
+  html body#tt-body-index .home-editorial-page .home-widget-grid > .home-briefing-section {
+    --briefing-drawer-width: 0px;
+    width: min(calc(1440px + 2 * var(--ui-section-gap)), calc(100vw - var(--briefing-drawer-width))) !important;
+    max-width: none !important;
+    justify-self: center !important;
+  }
+  @media (min-width: 1024px) {
+    html body#tt-body-index:has(.global-watchlist-drawer.is-open):not(.iframe-mode):not(:has(:fullscreen)) .home-editorial-page .home-widget-grid > .home-briefing-section,
+    html.wl-open.wl-open body#tt-body-index:not(.iframe-mode):not(:has(:fullscreen)) .home-editorial-page .home-widget-grid > .home-briefing-section {
+      --briefing-drawer-width: 378px;
+    }
+  }
+}
