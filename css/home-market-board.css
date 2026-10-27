@@ -158,7 +158,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict {
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > div { display: block; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction { order: 1; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { flex: 0 1 400px; width: 100%; display: grid; grid-template-columns: 80px minmax(0, 280px); gap: var(--ui-section-gap); align-items: start; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { flex: 1 1 100%; width: 100%; display: grid; grid-template-columns: minmax(120px, 1fr) minmax(0, 280px); gap: var(--ui-section-gap); align-items: start; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { order: 2; display: grid; gap: 12px; min-width: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div { display: grid; grid-template-columns: auto 1fr auto; gap: 5px 8px; align-items: baseline; min-width: 0; }
@@ -170,7 +170,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-fl
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth-counts { grid-column: 1 / -1; display: flex; justify-content: space-between; gap: 8px; color: var(--hmb-mute); font: 400 11px/1.4 var(--font-data); font-variant-numeric: tabular-nums; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-breadth-counts b { margin-left: 4px; font-weight: 600; font-size: 13px; }
 @media (max-width: 380px) {
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: 64px minmax(0, 1fr); gap: 12px; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: 112px minmax(0, 1fr); gap: 12px; }
 }
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp { order: 2; display: flex !important; align-items: baseline; gap: 8px; }
@@ -182,7 +182,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict dt {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dt { margin-bottom: 2px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction dd {
   margin: 0; font: 400 clamp(19px, 1.7vw, 22px)/1.2 var(--font-title, "Pretendard Variable", "Pretendard", sans-serif); letter-spacing: -.01em;
-  overflow: visible; white-space: normal; text-overflow: clip;
+  overflow: visible; white-space: nowrap; text-overflow: clip;
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-temp dd {
   margin: 0; font: 600 15px/1.4 var(--font-ui, system-ui, sans-serif); font-variant-numeric: tabular-nums; white-space: normal;
@@ -383,5 +383,5 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb-price-control
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar { display: flex; flex: 0 0 120px; align-self: center; width: 120px; height: 8px; overflow: hidden; border-radius: 4px; background: rgba(var(--np-ink), .08); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar[hidden] { display: none !important; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar i { display: block; height: 100%; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: var(--num-up); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: var(--num-down); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-up { background: color-mix(in srgb, var(--num-up) 65%, var(--np-paper, #fff)); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-upbar .is-down { background: color-mix(in srgb, var(--num-down) 65%, var(--np-paper, #fff)); }
