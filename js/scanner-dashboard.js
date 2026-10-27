@@ -118,13 +118,13 @@
     var version = ++chartVersion;
     if (chart) { chart.destroy(); chart = null; }
     plot.innerHTML = '';
-    if (progress && progress.state === 'running') {
+    if (value.mode === 'first-stage' || progress && progress.state === 'running') {
       plot.classList.remove('is-empty');
-      var pct = progress.percent;
-      plot.innerHTML = '<div role="status"><strong>일봉 배치 진행 중</strong> · '
-        + esc(pct == null ? '진행률 미수신' : pct + '%')
-        + (progress.detail ? ' · ' + esc(progress.detail) : '')
-        + (progress.stale ? ' · 진행 정보 갱신 대기' : '')
+      var pct = progress && progress.percent;
+      plot.innerHTML = '<div role="status"><strong>' + esc(progress ? progress.title : '일봉 배치 상태 확인 중') + '</strong>'
+        + (pct == null ? '' : ' · ' + esc(pct + '%'))
+        + (progress && progress.detail ? ' · ' + esc(progress.detail) : '')
+        + (progress && progress.stale ? ' · 진행 정보 갱신 대기' : '')
         + (pct == null ? '' : '<progress max="100" value="' + pct + '" aria-label="일봉 배치 진행률"></progress>') + '</div>';
       return;
     }
@@ -156,6 +156,8 @@
     visibleRows = value.recent;
     var labels = value.mode === 'first-stage' ? ['오늘 1차 후보','2차 A/B 신호','돌파 성공','실패'] : ['오늘 포착','돌파 준비','돌파 성공','실패'];
     panel.querySelector('#scan-recent-title').textContent = value.mode === 'first-stage' ? '최근 포착 신호 · 1차 후보' : '최근 포착 신호';
+    panel.querySelector('.scan-dashboard-trend h3').textContent = value.mode === 'first-stage' ? '일봉 배치 진행 상황' : '스캔 추이';
+    panel.querySelector('.scan-dashboard-periods').hidden = value.mode === 'first-stage';
     panel.querySelector('.scan-dashboard-recent .scan-dashboard-chart-note').textContent = value.mode === 'first-stage' ? '장중 70% 최초 관측 후보 · A/B 전 단계' : '현재 검색 결과·저장 포착 기록을 구분해 표시합니다.';
     setHtml(statBox, labels.map(function (label,i) {
       var note = value.mode === 'first-stage' ? (i===0 ? '70% 최초 관측 · KST 오늘' : i===1 ? 'A/B 발생 기록 · 주문과 별도' : '별도 이력 미연동') : i===0 ? 'KST 오늘 · 현재 결과·저장 기록 중복 제외' : i===1 ? '현재 검색 결과' : '최근 90일 이력';
@@ -183,7 +185,7 @@
       if (img.complete && img.naturalWidth) img.onload();
     });
     panel.querySelector('.scan-dashboard-basis').textContent = value.mode === 'first-stage' ? '1차는 70% 관측 후보 · 2차는 A/B 발생 기록 · 실제 주문과 별도' : '이력 기준: '+value.label+' · 오늘은 KST 기준 · 성공·실패는 최근 90일 포착 이력';
-    panel.querySelector('.scan-dashboard-chart-note').textContent = progress && progress.state === 'running' ? '현재 배치 진행 상황 · 장중 감시와 별도' : value.mode === 'first-stage' ? '일봉 배치 진행 중에 진행률을 표시합니다.' : (history && history.error ? '이력 조회 지연 · ' : '')+'일별 저장 포착 수 · 현재 검색 결과는 최근 신호에 별도 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
+    panel.querySelector('.scan-dashboard-chart-note').textContent = progress && progress.state === 'running' ? '현재 배치 진행 상황 · 장중 감시와 별도' : value.mode === 'first-stage' ? '서버에서 확인된 배치 상태 · 장중 감시와 별도' : (history && history.error ? '이력 조회 지연 · ' : '')+'일별 저장 포착 수 · 현재 검색 결과는 최근 신호에 별도 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
     drawChart(value);
   }
   panel.querySelectorAll('[data-scan-days]').forEach(function (button) {
