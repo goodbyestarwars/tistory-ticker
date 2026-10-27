@@ -8391,7 +8391,7 @@ html body#tt-body-index .briefing-intro .home-briefing-more > i { position:stati
 @media(min-width:721px) {
   html body#tt-body-index .briefing-intro > div { min-width:0; }
 }
-html body#tt-body-index .home-editorial-page .briefing-carousel-track { display:flex!important; gap:24px!important; width:100%; overflow-x:auto!important; overflow-y:hidden; padding:12px 0 24px!important; scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x pan-y; cursor:grab; }
+html body#tt-body-index .home-editorial-page .briefing-carousel-track { display:flex!important; align-items:stretch!important; gap:24px!important; width:100%; overflow-x:auto!important; overflow-y:hidden; padding:12px 0 24px!important; scroll-snap-type:x proximity; scrollbar-width:none; touch-action:pan-x pan-y; cursor:grab; }
 html body#tt-body-index .briefing-carousel-track::-webkit-scrollbar { display:none; }
 html body#tt-body-index .briefing-carousel-track.is-dragging { cursor:grabbing; scroll-snap-type:none; user-select:none; }
 html body#tt-body-index .home-editorial-page .briefing-carousel-track .home-briefing-card { position:relative; display:flex!important; flex:0 0 380px!important; flex-direction:column!important; width:380px!important; min-width:0!important; height:460px!important; min-height:0!important;  overflow:hidden; scroll-snap-align:start; border:1px solid rgba(var(--np-ink),.1)!important;  background:var(--wd-glass,var(--np-paper))!important; box-shadow:var(--wd-glass-shadow,0 6px 18px rgba(var(--np-ink),.06))!important; box-sizing:border-box!important; transition:box-shadow .2s ease, border-color .2s ease; }
@@ -8904,7 +8904,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @layer np { @layer np {
   /* 마켓브리핑 */
   html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) 4px !important; }
-  html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: 0 0 var(--ui-section-gap) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: var(--ui-paragraph-gap) 0 var(--ui-section-gap) !important; }
   html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: 36px !important; }
   html body#tt-body-index .briefing-intro p { font-size: 14.4px !important; }
   html body#tt-body-index .briefing-intro .learn-eyebrow { font-size: 12px !important; }
@@ -9047,7 +9047,7 @@ html.dark:not(.font-gothic) body #pattern-scan .ps-tab:hover, html.dark:not(.fon
    위젯 격자 밖으로 옮겨져 위 캐러셀 규칙(.home-editorial-page 하위)이 안 닿고 2열 목록으로 풀렸다. 같은 값을 휴장 조건으로 다시 건다. */
 @layer np.np {
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track {
-    display: flex !important; gap: var(--ui-card-gap) !important; width: 100%; overflow-x: auto !important; overflow-y: hidden; padding: 0 0 var(--ui-section-gap) !important;
+    display: flex !important; align-items: stretch !important; gap: var(--ui-card-gap) !important; width: 100%; overflow-x: auto !important; overflow-y: hidden; padding: 0 0 var(--ui-section-gap) !important;
     scroll-snap-type: x proximity; scrollbar-width: none; touch-action: pan-x pan-y; cursor: grab; grid-template-columns: none;
   }
   html body#tt-body-index:has(.home-editorial-page.is-market-closed) .home-briefing-section .briefing-carousel-track .home-briefing-card {
