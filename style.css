@@ -8903,8 +8903,8 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
    이야기 카드는 폭이 격자 비율로 정해지므로 소개:카드 열 비율을 1fr:1.8fr로 바꿔 카드 폭도 약 10% 줄인다(오른쪽 끝은 그대로 맞춤). */
 @layer np { @layer np {
   /* 마켓브리핑 */
-  html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) 4px !important; }
-  html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: var(--ui-paragraph-gap) 0 var(--ui-section-gap) !important; }
+  html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) !important; }
+  html body#tt-body-index .home-editorial-page .briefing-intro { gap: var(--ui-section-gap); padding: 0 0 var(--ui-section-gap) !important; }
   html body#tt-body-index .briefing-intro strong { margin: 11px 0 !important; font-size: 36px !important; }
   html body#tt-body-index .briefing-intro p { font-size: 14.4px !important; }
   html body#tt-body-index .briefing-intro .learn-eyebrow { font-size: 12px !important; }
@@ -8948,7 +8948,7 @@ html.dark body#tt-body-index .home-editorial-page .hmb-etf-card .home-negative {
 @media (max-width: 720px) {
   @layer np { @layer np {
     /* 마켓브리핑(모바일): 카드 폭 calc(100vw - 72px) → 90% */
-    html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) 0 !important; }
+    html body#tt-body-index .home-editorial-page .home-briefing-section { padding: var(--ui-section-gap) !important; }
     html body#tt-body-index .home-editorial-page.home-editorial-page .home-section-heading strong,
     html body#tt-body-index .briefing-intro strong { font-size: 20px !important; }
     html body#tt-body-index .briefing-intro p { font-size: 13.5px !important; }
