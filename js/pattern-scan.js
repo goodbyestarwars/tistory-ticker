@@ -2679,7 +2679,7 @@
       var allFirst = (candidates || []).concat(events || []);
       var rows1 = allFirst.filter(function (item) { return item && Number(item.first70At) > 0 && item.excluded == null; }).map(function (item) {
         return {code:String(item.code), name:item.name || item.code, at:item.first70At,
-          reason:'장중 거래량 70% 최초 관측', badge:'1차 후보', stage:'first', origin:'current', item:item};
+          reason:'장중 거래량 70% 최초 관측', badge:item.entryInvalid || item.stage === 'invalidated' ? '1차 기록 · 진입 무효' : '1차 후보', stage:'first', origin:'current', item:item};
       });
       return {source:'pattern:ninepayLive', label:'9Pay A/B 1차 후보', mode:'first-stage', current:rows1,
         currentLoaded:!!candidates, secondCount:events === null ? null : twoCodes.size};
