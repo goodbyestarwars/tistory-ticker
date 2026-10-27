@@ -14,6 +14,10 @@
 @view-transition {
   navigation: auto;
 }
+/* Home starts with fresh market cards. Do not overlay the outgoing scanner/chart snapshot. */
+html:has(body#tt-body-index)::view-transition-old(root) {
+  display: none;
+}
 @media (prefers-reduced-motion: reduce) {
   ::view-transition-group(*),
   ::view-transition-old(*),

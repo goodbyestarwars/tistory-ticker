@@ -1393,7 +1393,8 @@ document.documentElement.classList.add('skin-ready');
         var entry = body && body.byIndex && body.byIndex[definition[0]];
         var volume = entry && entry.volumeParticipation;
         var valid = entry && entry.status === 'ok' && volume && volume.status === 'ok'
-          && volume.basis === 'same-time-5m' && volume.eligible > 0 && typeof volume.ratio === 'number';
+          && volume.basis === 'same-time-5m' && volume.eligible > 0 && typeof volume.ratio === 'number'
+          && isFinite(volume.ratio) && volume.ratio >= 0 && volume.ratio <= 1;
         return {label: definition[1], rate: typeof rate === 'number' && isFinite(rate) ? rate : null,
           volume: valid ? volume : null, status: entry && entry.status, delaySeconds: entry && entry.delaySeconds};
       });
@@ -1405,13 +1406,17 @@ document.documentElement.classList.add('skin-ready');
       var market = homeMarketSession().market === 'us' ? 'us' : 'domestic';
       target.hidden = market === 'us' && !usRegularSessionState().open;
       var models = homeParticipationModel(market, (latestHomeParticipation || {})[market], latestHomeIndices);
-      target.innerHTML = models.map(function (model) {
+      target.innerHTML = '<div class="hmp-chart-title">거래량 증가 종목 비율</div>' + models.map(function (model) {
         var tone = model.rate === null || model.rate === 0 ? 'home-neutral' : model.rate > 0 ? 'home-positive' : 'home-negative';
         var price = model.rate === null ? '확인 중' : (model.rate > 0 ? '+' : '') + model.rate.toFixed(2) + '%';
         var volume = model.volume;
+        var percent = volume ? (volume.ratio * 100).toFixed(1) + '%' : model.status === 'stale' ? '갱신 지연' : '확인 중';
         return '<div class="hmp-item"><div class="hmp-heading"><span>' + escapeHomeHtml(model.label) + '</span><b class="' + tone + '">' + price + '</b></div>'
-          + '<div class="hmp-volume">거래량 증가 종목 <b>' + (volume ? (volume.ratio * 100).toFixed(1) + '%' : model.status === 'stale' ? '갱신 지연' : '확인 중') + '</b></div>'
-          + (volume ? '<div class="hmp-note">' + volume.increased.toLocaleString('ko-KR') + '/' + volume.eligible.toLocaleString('ko-KR') + '종목' + (volume.eligible < volume.total ? ' · 구성 ' + volume.total.toLocaleString('ko-KR') : '') + '</div>' : '') + '</div>';
+          + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(model.label) + ' 거래량 증가 종목 ' + percent + '">'
+          + '<b class="hmp-column-value">' + percent + '</b><div class="hmp-column-track">'
+          + (volume ? '<i class="hmp-column" style="height:' + (volume.ratio * 100).toFixed(2) + '%"></i>' : '') + '</div></div>'
+          + (volume ? '<div class="hmp-note">' + volume.increased.toLocaleString('ko-KR') + '/' + volume.eligible.toLocaleString('ko-KR') + '종목'
+            + (volume.eligible < volume.total ? ' · 구성 ' + volume.total.toLocaleString('ko-KR') : '') + '</div>' : '') + '</div>';
       }).join('');
       var basis = dashboardSection.querySelector('[data-participation-basis]');
       if (basis) {
