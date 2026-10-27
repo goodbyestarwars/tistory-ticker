@@ -424,6 +424,9 @@
     }
     function onPointerDown(event) {
       stop();
+      // Lightweight Charts already provides native touch inertia. Applying our
+      // mouse momentum to touch as well causes a second glide on mobile.
+      if (event && event.pointerType === 'touch') return;
       drag = { samples: [] };
     }
     function onPointerUp() {
@@ -542,7 +545,9 @@
     var originalAdd = chart.addSeries.bind(chart);
     var originalRemove = chart.removeSeries.bind(chart);
     var originalTouchAction = container.style.touchAction;
-    container.style.touchAction = 'none';
+    // Leave vertical page scrolling to the browser on phones while preserving
+    // horizontal candle drag and chart-managed two-finger pinch.
+    container.style.touchAction = 'pan-y';
     var watched = [], offset = 0, pointer = null, frame = 0;
     chart.addSeries = function (type, options, paneIndex) {
       var next = Object.assign({}, options || {});
@@ -576,7 +581,9 @@
     function requestRefresh() { if (!frame) frame = global.requestAnimationFrame(refresh); }
     function priceSeries() { return opts.priceSeries && opts.priceSeries(); }
     function down(event) {
-      if (event.button !== 0 || (opts.isDrawing && opts.isDrawing())) return;
+      // Single-finger touch belongs to the chart's horizontal navigation or
+      // the page's vertical scroll, never to desktop-only vertical price pan.
+      if (event.pointerType === 'touch' || event.button !== 0 || (opts.isDrawing && opts.isDrawing())) return;
       if (event.target.closest && event.target.closest('button,input,select,textarea')) return;
       pointer = { id: event.pointerId, y: event.clientY };
     }
