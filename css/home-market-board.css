@@ -28,7 +28,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 {
 /* 국내·미국 시장 전환선과 같은 상단 줄에 두고, 카운트다운 외곽 박스는 쓰지 않는다. */
 body#tt-body-index .home-editorial-page .home-market-toolbar {
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
-  min-width: 0; margin: 0 0 14px;
+  min-width: 0; margin: 0;
 }
 
 body#tt-body-index .home-editorial-page .home-switch-countdown {
@@ -87,7 +87,7 @@ html.dark body#tt-body-index .home-editorial-page .hsc-face, html.dark body#tt-b
 html.dark body#tt-body-index .home-editorial-page .hsc-face-bottom, html.dark body#tt-body-index .home-editorial-page .hsc-flap-bottom { background: #f2f3f4 !important; }
 html.dark body#tt-body-index .home-editorial-page .hsc-separator { color: #9ba2aa !important; }
 @media (max-width: 767px) {
-  body#tt-body-index .home-editorial-page .home-market-toolbar { flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+  body#tt-body-index .home-editorial-page .home-market-toolbar { flex-wrap: wrap; gap: 4px 12px; }
   body#tt-body-index .home-editorial-page .home-switch-countdown { margin-left: auto; padding-top: 0; }
   body#tt-body-index .home-editorial-page .hsc-clock { gap: 5px; }
   body#tt-body-index .home-editorial-page .hsc-digit { width: 23px; height: 31px; font-size: 23px; line-height: 30px; }
