@@ -78,6 +78,10 @@ assert.ok(!/setInterval/.test(js), '자동 슬라이드 금지');
 assert.ok(!/perspective|rotateY|translate3d/.test(css), '3D 효과 금지');
 assert.ok(/prefers-reduced-motion/.test(css) && /reduceMotion\(\)/.test(js), '움직임 줄이기 설정 존중');
 assert.ok(/min-height: 44px/.test(css) && /width: 44px/.test(css), '터치 영역 44px');
+assert.ok(/touch-action:\s*pan-x pan-y/.test(css), '차트 위에서도 네이티브 가로 카드 스와이프 허용');
+assert.ok(/Math\.round\(host\.scrollLeft \/ Math\.max\(1, host\.clientWidth\)\)/.test(js), 'scroll 중 매 프레임 DOM offset 측정 금지');
+assert.ok(/tistory-chart-resize/.test(js), '덱 레이아웃 변경 후 DMI 차트 리사이즈 알림');
+assert.ok(/removeEventListener\('keydown', d\.onHostKeydown\)/.test(js), '덱 교체 시 이전 키보드 리스너 해제');
 
 // 5) 누적 표 칸 이름(모바일 카드용 data-label)이 원본 열 그대로 있다
 const flow = fs.readFileSync('js/investor-flow.js', 'utf8');
