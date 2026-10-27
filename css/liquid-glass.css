@@ -6,7 +6,7 @@
   --ui-glass-filter: none;
   --ui-glass-duration: .2s;
   --ui-glass-hover-lift: -3px;
-  --ui-glass-sheen: linear-gradient(135deg, rgba(255,255,255,.72), rgba(255,255,255,.08) 42%, rgba(226,232,240,.12));
+  --ui-glass-sheen: linear-gradient(#fff, #fff);
   --ui-glass-edge: rgba(255,255,255,.82);
   --ui-glass-shadow: 0 8px 28px rgba(15,23,42,.065), inset 0 1px 0 var(--ui-glass-edge), inset 0 -1px 0 rgba(148,163,184,.1);
   --ui-glass-floating-shadow: 0 18px 48px rgba(15,23,42,.14), inset 0 1px 0 var(--ui-glass-edge);
@@ -25,8 +25,8 @@ html.dark {
 }
 @supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
   :root {
-    --ui-glass-surface: rgba(255,255,255,.88);
-    --ui-glass-panel: rgba(255,255,255,.94);
+    --ui-glass-surface: #fff;
+    --ui-glass-panel: #fff;
     --ui-glass-filter: blur(12px) saturate(118%);
   }
   @supports (background: color-mix(in srgb, black, transparent)) {
@@ -47,7 +47,7 @@ html.dark {
   backdrop-filter: var(--ui-glass-filter);
 }
 
-/* Standalone legal/learning documents retain their blue-gray box colors. */
+/* Standalone documents share the opaque white light-mode box material. */
 :where(.learn-note, .gd-toc, .gd-eg, .gd-btn, .learn-math, .learn-deep,
   .learn-practice, .learn-grid > div, .learn-case, .learn-nav, .learn-sources) {
   background-image: var(--ui-glass-sheen);

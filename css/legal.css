@@ -25,11 +25,11 @@ body {
 
 /* 푸터에서 여는 문서의 박스만 통일하며 페이지 바탕은 유지한다. */
 body.footer-docs {
-  --learn-box: #e8edf3;
+  --learn-box: var(--ui-glass-surface);
   --learn-box-deep: #dbe5ef;
-  --learn-box-inset: #f1f5f9;
+  --learn-box-inset: var(--ui-glass-surface);
   --learn-box-border: #cbd5e1;
-  --gd-box-bg: #e8edf3;
+  --gd-box-bg: var(--ui-glass-surface);
 }
 body.footer-docs .fig-acc { fill: var(--learn-box-deep); }
 body.footer-docs .fig-on-accent { fill: #263445; }
@@ -100,11 +100,11 @@ a { color: #d24f45; }
 
 /* 이야기 시리즈 전체: body.learn-page 표식으로 /legal/ 공통문서와 스타일을 격리한다. */
 body.learn-page .legal-wrap {
-  --learn-box: #edf3f8;
+  --learn-box: var(--ui-glass-surface);
   --learn-box-deep: #dfe9f3;
-  --learn-box-inset: #fbfcfe;
+  --learn-box-inset: var(--ui-glass-surface);
   --learn-box-border: #cbd8e5;
-  --learn-case-bg: #f8fafc;
+  --learn-case-bg: var(--ui-glass-surface);
   --learn-case-label: #475569;
   --learn-case-good-bg: #e8f1f9;
   --learn-case-good-line: #a9bfd4;
@@ -128,7 +128,7 @@ body.learn-page .legal-wrap .fig-on-strong { fill: #fff; font-size: 14px; font-w
 body.learn-page .legal-wrap .learn-nav {
   padding: var(--ui-card-padding);
   border-top: 1px solid #cbd8e5;
-  background: #edf3f8; background-image: var(--ui-glass-sheen);
+  background: var(--ui-glass-surface); background-image: var(--ui-glass-sheen);
   border-radius: 8px;
 }
 body.learn-page .legal-wrap .legal-contact {
@@ -136,7 +136,7 @@ body.learn-page .legal-wrap .legal-contact {
   padding: 15px 20px;
   color: #334155;
   border-top: 1px solid #cbd8e5;
-  background: #e3edf6;
+  background: var(--ui-glass-surface);
   border-radius: 8px;
 }
 .learn-deep { margin: 36px 0 22px; }
@@ -147,16 +147,16 @@ body.learn-page .legal-wrap .legal-contact {
   padding: var(--ui-card-padding);
   border: 1px solid #cbd8e5;
   border-radius: 10px;
-  background: #f4f8fb;
+  background: var(--ui-glass-surface);
 }
 .learn-lab h3 { margin: 0 0 12px; font-size: 17px; color: #24364a; }
 .learn-lab p:last-child, .learn-lab ul:last-child { margin-bottom: 0; }
-.learn-math { padding: var(--ui-card-padding); margin: 12px 0; border-radius: 7px; background: #e4eef7; background-image: var(--ui-glass-sheen); color: #1e354d; font-size: 15px; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
+.learn-math { padding: var(--ui-card-padding); margin: 12px 0; border-radius: 7px; background: var(--ui-glass-surface); background-image: var(--ui-glass-sheen); color: #1e354d; font-size: 15px; font-weight: 700; line-height: 1.7; overflow-wrap: anywhere; }
 .learn-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: var(--ui-section-gap); margin: 16px 0 22px; }
-.learn-grid > div { padding: var(--ui-card-padding); border: 1px solid #cbd8e5; border-radius: 10px; background: #f8fbfd; background-image: var(--ui-glass-sheen); }
+.learn-grid > div { padding: var(--ui-card-padding); border: 1px solid #cbd8e5; border-radius: 10px; background: var(--ui-glass-surface); background-image: var(--ui-glass-sheen); }
 .learn-grid h3 { margin: 0 0 9px; font-size: 16px; }
 .learn-grid p:last-child { margin-bottom: 0; }
-.learn-sources { margin: 22px 0 16px; padding: var(--ui-card-padding); border-radius: 8px; background: #f4f7fb; background-image: var(--ui-glass-sheen); font-size: 13px; }
+.learn-sources { margin: 22px 0 16px; padding: var(--ui-card-padding); border-radius: 8px; background: var(--ui-glass-surface); background-image: var(--ui-glass-sheen); font-size: 13px; }
 .learn-sources > strong { color: #334155; }
 .learn-sources ul { margin: 8px 0 0; }
 .learn-sources a { color: #205d8e; }

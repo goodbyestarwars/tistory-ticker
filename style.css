@@ -149,8 +149,8 @@ html.dark :is(#stock-search .ss-spinner, #order-book .ob-spinner, #foreign-flow 
   --font-title: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif; /* Shared title font; explicit serif exceptions live in np.np. */
   --font-ui: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
   --font-data: "Pretendard Variable", "Pretendard", "Malgun Gothic", sans-serif;
-  --page-bg: rgb(254, 253, 250); /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
-  --surface: #FFFEFC;
+  --page-bg: #FEFDFA; /* 2026-10-04 최종: 페이지 바탕만 거의 흰색(254,253,250). 카드·상자는 --surface/흰색 계열 */
+  --surface: #fff;
   --text-main: #4b5563; /* 2026-10-23 본문 회색(흰 바탕 7.6:1). 굵은 글자는 --text-strong */
   --text-strong: #1f2937;
   --text-sub: #6F7480;
@@ -203,7 +203,7 @@ html {
    #initial-paint-guard 주석). 무스타일 페인트는 위젯별로 막는다 - 예: 주간 리포트는
    js/home-weekly-report.js가 자기 CSS 도착 뒤에 그리고 SVG에 프레젠테이션 속성을 같이
    박는다. 배경색만 첫 페인트 색 튐 방지용으로 남긴다. */
-html:not(.skin-ready) { background: rgb(255, 254, 252) !important; }
+html:not(.skin-ready) { background: var(--page-bg) !important; }
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-thumb { background: #bdc8e0; border-radius: 4px; }
 button, input, textarea { font-family: inherit; }
@@ -7661,8 +7661,8 @@ html body#tt-body-index .site-footer:not(:has(.site-footer-main)) > .site-footer
    ========================================================================== */
 :root {
   --np-ink: 17, 17, 17;
-  --np-paper: rgb(255, 254, 252);
-  --np-tint: rgb(255, 254, 252);
+  --np-paper: var(--ui-glass-surface);
+  --np-tint: var(--ui-glass-surface);
   --np-line-h: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .15) 16%, rgba(var(--np-ink), .15) 84%, rgba(var(--np-ink), 0) 100%);
   --np-line-h-soft: linear-gradient(90deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .09) 16%, rgba(var(--np-ink), .09) 84%, rgba(var(--np-ink), 0) 100%);
   --np-line-v: linear-gradient(180deg, rgba(var(--np-ink), 0) 0%, rgba(var(--np-ink), .1) 20%, rgba(var(--np-ink), .1) 80%, rgba(var(--np-ink), 0) 100%);

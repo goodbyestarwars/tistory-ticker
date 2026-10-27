@@ -15,10 +15,10 @@
   --wd-line: var(--ui-border);
   --wd-text: rgb(var(--np-ink));
   --wd-sub: rgba(var(--np-ink),.7);
-  --wd-banner: var(--dk-card,#202731);
-  --wd-banner-end: var(--dk-inner,#283340);
-  --wd-banner-text: var(--dk-text,#f1f4f8);
-  --wd-banner-sub: var(--dk-sub,#a6b5c5);
+  --wd-banner: var(--ui-card-surface);
+  --wd-banner-end: var(--ui-card-surface);
+  --wd-banner-text: var(--wd-text);
+  --wd-banner-sub: var(--wd-sub);
   --wd-glass: var(--ui-glass-sheen), linear-gradient(var(--wd-surface), var(--wd-surface));
   --wd-glass-filter: var(--ui-glass-filter);
   --wd-glass-edge: var(--ui-glass-edge);
