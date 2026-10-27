@@ -1319,6 +1319,11 @@
       var at=Number(item.signalAt)*1000, first=Number(item.first70At)*1000, price=Number(item.signalPrice), current=Number(item.price), stop=Number(item.pullbackLow);
       var day=function(ms){return new Date(ms+9*3600000).toISOString().slice(0,10);};
       if(!Number.isFinite(rankAge)||rankAge<0||rankAge>120000||!Number.isFinite(sample)||now-sample<0||now-sample>10000)return null;
+      if(review && review.version==='confirmation-shadow-v1' && review.strategy==='short' && review.mode==='shadow' && review.orderAuthorized===false && review.confirmed===true && review.entryValid===true && review.checks && Object.keys(review.checks).length && Object.keys(review.checks).every(function(k){return review.checks[k]===true;})) {
+        var shadowAge=now-Number(review.confirmedAt)*1000;
+        if(Number.isFinite(shadowAge)&&shadowAge>=0&&shadowAge<=10000&&review.signalPrice>0&&review.invalidationPrice>0&&current>review.invalidationPrice&&current<=review.signalPrice*1.003)
+          return {at:review.confirmedAt,price:review.signalPrice,stop:review.invalidationPrice,entry:'1차 Shadow · 주문 불가',basis:'실시간 수신 · Shadow',pattern:'9Pay 1차 검증',shadow:true};
+      }
       if(!Number.isFinite(at)||at<=0||now-at<0||now-at>10000||!Number.isFinite(first)||first<=0||first>at||day(at)!==day(now)||day(first)!==day(now))return null;
       var minute=new Date(at+9*3600000);minute=minute.getUTCHours()*60+minute.getUTCMinutes();
       var ratio=Number(item.volumeRatio), firstMinute=new Date(first+9*3600000);firstMinute=firstMinute.getUTCHours()*60+firstMinute.getUTCMinutes();
