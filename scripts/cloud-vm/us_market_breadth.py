@@ -1,11 +1,13 @@
 """Index membership breadth, fetched twice per shared cache refresh (no per-symbol calls)."""
+import json
 import math
 import threading
 import time
 from datetime import datetime, timezone
 from zoneinfo import ZoneInfo
 
-import requests
+import urllib.error
+import urllib.request
 
 SOURCE = 'TradingView index components'
 INDEXES = {'SP500': ('SP:SPX', 'S&P 500'), 'NASDAQ': ('NASDAQ:IXIC', '나스닥 종합')}
@@ -46,13 +48,17 @@ def parse_breadth(payload):
 
 
 def _fetch(index):
-    response = requests.post('https://scanner.tradingview.com/america/scan', json={
+    payload = {
         'columns': ['change', 'update_mode'],
         'symbols': {'groups': [{'type': 'index', 'values': [index]}]},
         'range': [0, 10000],
-    }, timeout=(3, 7))
-    response.raise_for_status()
-    entry = parse_breadth(response.json())
+    }
+    request = urllib.request.Request('https://scanner.tradingview.com/america/scan',
+                                     data=json.dumps(payload).encode('utf-8'),
+                                     headers={'Content-Type': 'application/json', 'User-Agent': 'Mozilla/5.0'},
+                                     method='POST')
+    with urllib.request.urlopen(request, timeout=7) as response:
+        entry = parse_breadth(json.load(response))
     entry['retrievedAt'] = datetime.now(timezone.utc).isoformat()
     return entry
 
@@ -73,7 +79,7 @@ def get_breadth(now=None):
         for key, (index, label) in INDEXES.items():
             try:
                 entries[key] = dict(_fetch(index), label=label, status='ok')
-            except (requests.RequestException, ValueError, TypeError, KeyError):
+            except (urllib.error.URLError, OSError, ValueError, TypeError, KeyError):
                 old = ((_cache['data'] or {}).get('byIndex') or {}).get(key)
                 if old and now - old.get('cachedAt', 0) < 900:
                     entries[key] = dict(old, status='stale')
