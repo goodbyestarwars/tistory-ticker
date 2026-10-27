@@ -245,7 +245,7 @@
         var lossResult = calculateLossTarget(q, a, p, rate);
         if (!lossResult) lossBox.textContent = '보유 수량은 정수주, 목표 손실률은 0보다 크고 100 이하로 입력하세요.';
         else if (lossResult.tooLarge) lossBox.textContent = '필요한 수량이 너무 커서 계산할 수 없습니다.';
-        else lossBox.textContent = '추가 매수 ' + formatNumber(lossResult.shares) + '주 · 필요 자금 ' + formatNumber(lossResult.addedCost, 2) + '원 | 총 투자금 ' + formatNumber(lossResult.totalCost, 2) + '원 | 매수 후 평단 ' + formatNumber(lossResult.average, 2) + '원 | 평가손실 ' + formatNumber(lossResult.loss, 2) + '원 · 손실률 ' + (lossResult.loss ? '−' : '') + lossResult.lossRate.toFixed(2) + '%';
+        else lossBox.textContent = '추가 매수 ' + formatNumber(lossResult.shares) + '주 · 필요 자금 ' + formatNumber(lossResult.addedCost, 2) + '원 | 총 투자금 ' + formatNumber(lossResult.totalCost, 2) + '원 | 매수 후 평단 ' + formatNumber(lossResult.average, 2) + '원 | ' + (lossResult.loss ? '평가손실 ' + formatNumber(lossResult.loss, 2) + '원 · 손실률 ' + (lossResult.lossRate < 0.000001 ? '0%에 근접' : '−' + formatNumber(lossResult.lossRate, 6) + '%') : '현재 평가손실 없음');
       }
       if (!q || !a || !p || !t) { box.textContent = '아래 보유 수량과 평균단가, 현재가, 목표가를 입력하세요.'; return; }
       var result = calculateRecovery(q, a, p, t);
