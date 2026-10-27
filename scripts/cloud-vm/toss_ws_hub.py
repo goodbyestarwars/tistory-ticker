@@ -14,7 +14,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 logger = logging.getLogger('toss_ws_hub')
 WS_URL = 'wss://openapi-ws.tossinvest.com/ws/v1'
@@ -47,10 +47,18 @@ def _quote(frame):
     except (TypeError, ValueError, KeyError):
         return None
     stamp = str(data.get('timestamp') or '')
+    try:
+        instant = datetime.fromisoformat(stamp.replace('Z', '+00:00'))
+        if instant.tzinfo is None:
+            return None
+        local = instant.astimezone(timezone(timedelta(hours=9)))
+    except ValueError:
+        return None
     return {
         'type': 'quote', 'code': code, 'price': price, 'source': 'Toss WebSocket',
-        'delayed': False, 'trade': {
-            'time': stamp, 'price': price, 'qty': qty,
+        'delayed': False, 'sourceTimestamp': stamp, 'trade': {
+            'time': local.strftime('%H%M%S'), 'date': local.strftime('%Y%m%d'),
+            'price': price, 'qty': qty, 'market': 'UN',
             'direction': 'unknown', 'directionSource': 'unknown',
         },
     }
