@@ -178,11 +178,19 @@ def main():
         if (i + 1) % 300 == 0 or (i + 1) == len(codes):
             log('[%d/%d] 진행 중 (스캔 %d / 후보 %d)' % (i + 1, len(codes), scanned, len(matches)))
 
-    conn.close()
-
     matches = _rank_and_cap(matches)
     backtest_summary = aa.summarize_backtest(net_returns)
     scan_at = datetime.now(timezone.utc).isoformat()
+    pd.annotate_pattern_scan_details({'angleMomentum': matches}, scan_at)
+    try:
+        import signal_review
+        signal_review.review_groups(conn, {'angleMomentum': matches},
+                                   datetime.fromisoformat(scan_at).astimezone(signal_review.KST))
+    except Exception as error:
+        conn.rollback()
+        log('확정 Shadow 검증 실패: %s' % type(error).__name__)
+    finally:
+        conn.close()
 
     # 2026-08-21 코드 감사: 잠금 없는 read-modify-write는 daily_scan.py 등 다른 스크립트와
     # 실행 시간이 겹치면 서로의 결과를 덮어쓸 수 있었다 - daily_scan_cache.update()로 직렬화.

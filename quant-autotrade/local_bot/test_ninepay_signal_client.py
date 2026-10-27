@@ -26,6 +26,18 @@ def payload(**changes):
 
 
 class SignalClientTests(unittest.TestCase):
+    def test_shadow_ui_contract_never_authorizes_orders(self):
+        for change in ({'mode':'shadow'}, {'orderAuthorized':False}, {'signalReview':{'confirmed':True}}, {'entryInvalid':True}):
+            bad=payload()
+            bad['data']['ninePayResearch']['signals'][0].update(change)
+            self.assertEqual(valid_signals(bad,NOW),[])
+
+    def test_same_event_is_deduplicated_after_reconnect(self):
+        data=payload()
+        events=data['data']['ninePayResearch']['signals']
+        events.append(dict(events[0]))
+        self.assertEqual(len(valid_signals(data,NOW)),1)
+
     def test_dedicated_endpoint_keeps_timeout_and_http_status_without_response_body(self):
         seen = []
         def unavailable(url, timeout):

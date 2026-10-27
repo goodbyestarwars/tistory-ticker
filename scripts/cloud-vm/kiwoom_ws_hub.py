@@ -166,6 +166,7 @@ class KiwoomWsHub:
         self._loop = None
         self._wake = None
         self._main_task = None
+        self._last_quote = {}  # bounded receipt evidence, never trade volume
         self._state = {
             'connected': False, 'loggedIn': False, 'connectedAt': None, 'lastFrameAt': None,
             'lastTickAt': None, 'framesThisSession': 0, 'frames': 0, 'ticks': 0, 'pings': 0,
@@ -478,6 +479,12 @@ class KiwoomWsHub:
         with self._lock:
             self._state['lastTickAt'] = now
             self._state['ticks'] += len(events)
+            for event in events:
+                code = event.get('code')
+                if code:
+                    self._last_quote[code] = now
+            while len(self._last_quote) > self.max_codes:
+                self._last_quote.pop(min(self._last_quote, key=self._last_quote.get))
             subs = list(self._subs.values())
         for event in events:
             code = event.get('code')
@@ -517,6 +524,8 @@ class KiwoomWsHub:
             suffix = self._suffix
             fallback_used = self._suffix_fallback_used
             rejected = self._reg_rejected
+            receipts = {code: self._last_quote.get(code) for code in desired}
+            acknowledged = self._reg_acked
         last_tick = state.get('lastTickAt')
         return {
             'running': bool(self._running and self._thread is not None and self._thread.is_alive()),
@@ -529,6 +538,10 @@ class KiwoomWsHub:
             'subscribers': subscribers,
             'desiredCodes': len(desired),
             'registeredCodes': registered,
+            'registrationAcknowledged': acknowledged,
+            'observedFreshCodes': sum(at is not None and 0 <= now-at <= 90 for at in receipts.values()),
+            'quoteReceipts': {code: {'receivedAt': _utc_iso(at), 'ageSec': round(now-at, 1) if at is not None else None}
+                              for code, at in receipts.items()},
             'liveCodes': len(live),
             'maxCodes': self.max_codes,
             'droppedCount': len(dropped),

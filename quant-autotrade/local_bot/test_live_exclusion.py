@@ -152,7 +152,7 @@ class ExcludedBuyTests(Base):
         return out
 
     def candidate(self, code):
-        return {'scan_date': '2026-10-14', 'scanner': 'x', 'code': code, 'base_price': 14750, 'status': 'NEW'}
+        return {'scan_date': '2026-10-14', 'scanner': 'doubleBottom', 'code': code, 'base_price': 14750, 'status': 'NEW'}
 
     def test_excluded_code_is_never_bought_even_as_top_candidate(self):
         with self.ledger.connect() as db:

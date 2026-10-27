@@ -110,7 +110,7 @@ class BrokerAllocationContracts(unittest.TestCase):
         self.assertEqual(domestic_futures._REALTIME_POLL_SEC, 30)
 
     def test_relay_does_not_aggregate_lossy_ticks_into_live_order_signals(self):
-        source = pathlib.Path('scripts/cloud-vm/realtime_quotes.py').read_text()
+        source = pathlib.Path('scripts/cloud-vm/realtime_quotes.py').read_text(encoding='utf-8')
         self.assertIn('toss_hub.subscribe(toss_primary)', source)
         self.assertNotIn('kiwoom_9pay_live.', source)
         self.assertIn("('H0UNCNT0', c)", source)

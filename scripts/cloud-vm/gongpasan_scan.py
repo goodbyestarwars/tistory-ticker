@@ -277,7 +277,18 @@ def main():
         _record_history(conn, as_of, matches, stage_details, current_stage, frames)
     else:
         log('일봉 기준일 %s < 기대 %s - 단계 후보를 신규 결과로 내보내지 않고 이력도 저장하지 않습니다.' % (as_of, expected))
-    conn.close()
+    review_groups = {'gongpasan': matches}
+    review_groups.update({'gongpasan:' + key: items for key, items in stage_items.items()})
+    pd.annotate_pattern_scan_details(review_groups, scan_at)
+    try:
+        import signal_review
+        signal_review.review_groups(conn, review_groups,
+                                   datetime.fromisoformat(scan_at).astimezone(signal_review.KST))
+    except Exception as error:
+        conn.rollback()
+        log('확정 Shadow 검증 실패: %s' % type(error).__name__)
+    finally:
+        conn.close()
     backtest_summary = gp.summarize_backtest(net_returns)
 
     # 2026-08-21 코드 감사: 잠금 없는 read-modify-write는 daily_scan.py 등 다른 스크립트와
