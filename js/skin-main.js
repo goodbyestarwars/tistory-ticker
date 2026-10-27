@@ -794,6 +794,9 @@ document.documentElement.classList.add('skin-ready');
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
         + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-domestic-ratios" data-domestic-ratios>'
+        + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
+        + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
         + '</dl>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
@@ -809,10 +812,6 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="home-index-price-row"><strong data-index-field="price">-</strong><em data-index-field="change">-</em></div>'
         + '<div class="home-index-chart" data-index-field="chart" aria-hidden="true"></div>'
         + '</article>'
-        + '</div>'
-        + '<div class="hmb2-breadth ui-content-block" data-home-breadth hidden>'
-        + '<div class="hmb2-subhead"><strong class="ui-section-title">시장 내부 흐름</strong><span data-breadth-basis></span></div>'
-        + '<div class="hmb2-bars" data-breadth-bars></div>'
         + '</div>'
         + '<section class="home-market-summary ui-content-block"><div class="hmb-summary-head"><strong class="ui-section-title" data-home-summary-field="title">시장 핵심 지표</strong><span data-home-summary-field="meta">최신 데이터</span></div>'
         + '<dl class="hmb-list hmb2-core">'
@@ -902,18 +901,17 @@ document.documentElement.classList.add('skin-ready');
       var nightFutures = dashboardSection.querySelector('[data-home-night-futures]');
       if (title) title.textContent = isUs ? '미국 시장 요약' : '시장 핵심 지표';
       if (meta) meta.textContent = isUs ? '거래대금 상위 종목 기준' : '증시온도·업종 기준';
-      if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : isUs ? '상승 종목 비율' : '증시온도';
+      if (labels[0]) labels[0].textContent = isUs && usSession && !usSession.open ? '시장 상태' : '상승 종목 비율';
       // Outside the US cash session, the large "시장 방향" headline already
       // shows the same "본장 개장 전 / 본장 마감 / 미국장 휴장" label.
       // Hide only the duplicate small row, not the headline or live futures.
       // Restore it for the US regular session (breadth) and domestic market (temperature).
-      var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict .hmb2-temp');
-      // 2026-10-24 사용자 지시: 국내 시장의 '증시온도' 줄은 삭제(미국은 상승 종목 비율 + 막대).
+      var secondaryMarketStatus = dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
+      // 국내·미국이 같은 상승 비율 행과 막대를 공유한다.
       if (secondaryMarketStatus) secondaryMarketStatus.hidden = !isUs || !!(usSession && !usSession.open);
+      var domesticRatios = dashboardSection.querySelector('[data-domestic-ratios]');
+      if (domesticRatios) domesticRatios.hidden = isUs;
       if (investorTrend) investorTrend.hidden = isUs;
-      // 시장 내부 흐름(상승·하락 비중)은 한국 증시 전용이다. 미국 탭에서는 숨긴다.
-      var breadthBlock = dashboardSection.querySelector('[data-home-breadth]');
-      if (breadthBlock && isUs) breadthBlock.hidden = true;
       if (nightFutures) nightFutures.hidden = !isUs;
       homeShowsUs = isUs;
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
@@ -1076,7 +1074,7 @@ document.documentElement.classList.add('skin-ready');
       if (!isFinite(score) || score < 0 || score > 100) return;
       var label = data.grade3 && data.grade3.label ? ' ' + data.grade3.label : '';
       homeVmScoreText = Math.round(score) + '점' + label;
-      setField('temperature', homeVmScoreText, 'home-neutral');
+      renderDomesticBreadth(data);
     }
 
     function renderMarketTemperature(market) {
@@ -1096,53 +1094,61 @@ document.documentElement.classList.add('skin-ready');
       }
     }
 
-    // 시장 내부 흐름의 시장별 막대는 기존 VM 응답을 재사용한다.
     var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';
 
-    // 시장 내부 흐름(D): 이미 받은 byMarket(KOSPI·KOSDAQ)과 total(전체)만으로 상승·보합·하락 비중을 그린다.
-    // 보합이 집계되지 않는 응답(섹터 풀 기준)에서는 보합 구간을 만들지 않고, 보합·미분류를 상승·하락에 합치지 않는다.
-    function breadthRowHtml(name, e, extra) {
-      var flat = typeof e.flat === 'number' ? e.flat : 0;
-      var total = typeof e.total === 'number' && e.total >= e.up + e.down + flat ? e.total : e.up + e.down + flat;
-      if (!(total > 0)) return '';
-      function pct(n) { return (n / total * 100).toFixed(2) + '%'; }
-      return '<div class="hmb2-bar-row' + (extra ? ' ' + extra : '') + '"><b>' + name + '</b>'
-        + '<span class="hmb2-bar" role="img" aria-label="' + name + ' 상승 ' + e.up + ' 보합 ' + flat + ' 하락 ' + e.down + '">'
-        + '<i class="up" style="width:' + pct(e.up) + '"></i>'
-        + (flat ? '<i class="flat" style="width:' + pct(flat) + '"></i>' : '')
-        + '<i class="down" style="width:' + pct(e.down) + '"></i></span>'
-        + '<span class="hmb2-bar-nums"><em class="home-positive">상승 ' + e.up.toLocaleString('ko-KR') + '</em>'
-        + (typeof e.flat === 'number' ? '<span>보합 ' + e.flat.toLocaleString('ko-KR') + '</span>' : '')
-        + '<em class="home-negative">하락 ' + e.down.toLocaleString('ko-KR') + '</em></span></div>';
+    // 공통 요약 막대. 보합·미분류는 배경으로 남겨 하락으로 합치지 않는다.
+    function renderHomeRiseRatio(upRatio, downRatio, targetRow) {
+      var valid = typeof upRatio === 'number' && isFinite(upRatio) && upRatio >= 0 && upRatio <= 1;
+      var row = targetRow || dashboardSection.querySelector('.hmb2-verdict > .hmb2-temp');
+      var value = row && row.querySelector('dd');
+      if (value) {
+        value.textContent = valid ? (upRatio * 100).toFixed(1) + '%' : '데이터 확인 중';
+        value.className = valid ? upRatio >= 0.55 ? 'home-positive' : upRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral';
+      }
+      var bar = row && row.querySelector('[data-hmb-upbar]');
+      if (!valid) { if (bar) bar.hidden = true; return; }
+      if (!row) return;
+      if (!bar) {
+        bar = document.createElement('span');
+        bar.className = 'hmb2-upbar';
+        bar.setAttribute('data-hmb-upbar', '');
+        bar.innerHTML = '<i class="is-up"></i><i class="is-down"></i>';
+        row.appendChild(bar);
+      }
+      var down = typeof downRatio === 'number' && isFinite(downRatio) ? Math.max(0, Math.min(1 - upRatio, downRatio)) : 0;
+      bar.querySelector('.is-up').style.width = (upRatio * 100).toFixed(2) + '%';
+      bar.querySelector('.is-down').style.width = (down * 100).toFixed(2) + '%';
+      bar.setAttribute('role', 'img');
+      bar.setAttribute('aria-label', '상승 ' + (upRatio * 100).toFixed(1) + '% · 하락 ' + (down * 100).toFixed(1) + '% · 나머지 보합·미분류');
+      bar.title = bar.getAttribute('aria-label');
+      bar.hidden = false;
     }
-    function renderHomeBreadthBars(byMarket, totalEntry, source, updatedAt) {
-      var block = dashboardSection.querySelector('[data-home-breadth]');
-      if (!block) return;
-      var bars = block.querySelector('[data-breadth-bars]');
-      var basis = block.querySelector('[data-breadth-basis]');
-      var rows = '';
+
+    function renderDomesticBreadth(data) {
+      if (homeMarketSession().market !== 'domestic') return;
+      var byMarket = data && data.marketBreadth && data.marketBreadth.byMarket;
       ['KOSPI', 'KOSDAQ'].forEach(function (key) {
-        var e = byMarket && byMarket[key];
-        if (e && typeof e.up === 'number' && typeof e.down === 'number') rows += breadthRowHtml(key, e);
+        var row = dashboardSection.querySelector('[data-domestic-ratio="' + key + '"]');
+        var entry = byMarket && byMarket[key];
+        if (entry && typeof entry.up === 'number' && typeof entry.down === 'number') {
+          var count = typeof entry.total === 'number' ? entry.total : entry.up + entry.down + (entry.flat || 0);
+          if (count > 0 && entry.up >= 0 && entry.down >= 0 && entry.up + entry.down <= count) {
+            renderHomeRiseRatio(entry.up / count, entry.down / count, row);
+            return;
+          }
+        }
+        renderHomeRiseRatio(null, null, row);
       });
-      if (totalEntry && typeof totalEntry.up === 'number' && typeof totalEntry.down === 'number') rows += breadthRowHtml('전체', totalEntry, 'is-total');
-      if (!rows || !bars) { block.hidden = true; return; }
-      bars.innerHTML = rows;
-      if (basis) basis.textContent = (updatedAt ? (window.NineTime.updated(updatedAt) || ('종목 수 ' + formatHomeTimestamp(updatedAt) + ' 기준')) + (source ? ' · ' : '') : '') + (source ? '집계: ' + source : '');
-      block.hidden = homeMarketSession().market !== 'domestic';
     }
 
     function loadHomeIndexBreadth() {
       if (homeMarketSession().market !== 'domestic') return;
       fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
+        if (homeMarketSession().market !== 'domestic') return;
         var data = body && body.data ? body.data : body;
         renderMarketTemperature(data);
-        var byMarket = (data && data.marketBreadth && data.marketBreadth.byMarket)
-          || (data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)
-          || null;
-        var breadthTotal = data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.total : null;
-        renderHomeBreadthBars(byMarket, breadthTotal, data && data.marketBreadth && data.marketBreadth.byMarket ? data.marketBreadth.source : '섹터 풀 기준', body && body.updatedAt);
-      }).catch(function () { /* 부가 정보라 실패해도 조용히 넘어간다 */ });
+        renderDomesticBreadth(data);
+      }).catch(function () { /* 기존 정상 표시를 유지한다. */ });
     }
 
     function nyClockParts(now) {
@@ -1307,20 +1313,8 @@ document.documentElement.classList.add('skin-ready');
         setField('cautions', '데이터 확인 중', 'home-neutral');
         return;
       }
-      var ratio = (summary.riseRatio * 100).toFixed(1) + '%';
       var sessionOpen = !summary.sessionState || summary.sessionState.open;
-      setField('temperature', sessionOpen ? ratio : summary.sessionState.label,
-        sessionOpen ? summary.riseRatio >= 0.55 ? 'home-positive' : summary.riseRatio <= 0.45 ? 'home-negative' : 'home-neutral' : 'home-neutral');
-      // 상승 종목 비율 옆 막대: 상승(붉은색)·하락(푸른색) 비중. 장이 열렸을 때만 그린다(보합은 하락 쪽에 합치지 않고 남는 폭으로 둔다).
-      var tempRow = dashboardSection.querySelector('.hmb2-temp'), upBar = tempRow && tempRow.querySelector('[data-hmb-upbar]');
-      if (tempRow && sessionOpen) {
-        if (!upBar) { upBar = document.createElement('span'); upBar.className = 'hmb2-upbar'; upBar.setAttribute('data-hmb-upbar', ''); upBar.innerHTML = '<i class="is-up"></i><i class="is-down"></i>'; tempRow.appendChild(upBar); }
-        var upPct = Math.max(0, Math.min(100, summary.riseRatio * 100));
-        upBar.querySelector('.is-up').style.width = upPct.toFixed(1) + '%';
-        upBar.querySelector('.is-down').style.width = (100 - upPct).toFixed(1) + '%';
-        upBar.setAttribute('title', '상승 종목 ' + upPct.toFixed(1) + '% · 나머지 ' + (100 - upPct).toFixed(1) + '%');
-        upBar.hidden = false;
-      } else if (upBar) upBar.hidden = true;
+      renderHomeRiseRatio(sessionOpen ? summary.riseRatio : null, sessionOpen ? 1 - summary.riseRatio : null);
       setField('direction', summary.direction.label, summary.direction.tone);
       setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
       setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');

@@ -897,18 +897,13 @@ class UiInformationArchitectureTest(unittest.TestCase):
         self.assertIn("keys: ['KOSPI', 'KOSDAQ']", main)
         self.assertIn("keys: ['NASDAQ_INDEX', 'SP500_INDEX']", main)
 
-    def test_home_index_cards_keep_breadth_in_market_flow_only(self):
-        """시장별 종목 수는 카드·상단 요약에서 중복하지 않고 내부 흐름에만 표시한다."""
+    def test_home_breadth_uses_shared_overview_row(self):
         main = self.read("js/skin-main.js")
-        self.assertIn("var MARKET_TEMP_VM_URL = 'https://goodbyestar.cloud/market-temp';", main)
-        self.assertIn("function loadHomeIndexBreadth()", main)
-        self.assertIn("if (homeMarketSession().market !== 'domestic') return;", main)
-        self.assertIn("(data && data.marketBreadth && data.marketBreadth.byMarket)", main)
-        self.assertIn("(data && data.components && data.components.riseRatio && data.components.riseRatio.byMarket)", main)
-        self.assertIn("loadHomeIndexBreadth();", main)
-        self.assertIn("renderHomeBreadthBars(byMarket, breadthTotal", main)
+        self.assertIn("function renderHomeRiseRatio(upRatio, downRatio, targetRow)", main)
+        self.assertIn("renderHomeRiseRatio(entry.up / count, entry.down / count, row)", main)
+        self.assertIn("renderHomeRiseRatio(sessionOpen ? summary.riseRatio", main)
+        self.assertNotIn('data-home-breadth', main)
         self.assertNotIn('data-index-field="breadth"', main)
-        self.assertNotIn('data-hmb-note', main)
 
     def test_us_home_cards_use_spot_index_products_explicitly(self):
         main = self.read("js/skin-main.js")
