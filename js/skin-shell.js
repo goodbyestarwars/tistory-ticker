@@ -265,7 +265,8 @@
     })(sorted.slice(i, i + 300));
     return pending.then(function () { return ordered.map(function (code) { return byCode[code]; }).filter(Boolean); });
   }
-  global.NineAPI = { vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
+  function usMarketBreadth() { return data(VM + '/us-market-breadth', {timeoutMs: 25000}); }
+  global.NineAPI = { usMarketBreadth: usMarketBreadth, vmUrl: VM, gasUrl: GAS, data: data, unwrap: unwrap, flowChart: chart, strategyScan: strategy, domesticQuotes:quotes,
     contracts:{domesticQuotes:{price:'KRW',volume:'shares',changeRate:'percent',time:'retrieval',maxBatch:300}} };
 })(typeof window !== 'undefined' ? window : globalThis);
 /* End NineAPI */

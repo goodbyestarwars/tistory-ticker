@@ -797,7 +797,7 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
-        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio><dt>집계 종목</dt><dd>데이터 확인 중</dd></div></div>'
+        + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
         + '</dl>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
@@ -1330,20 +1330,51 @@ document.documentElement.classList.add('skin-ready');
       latestUsBoardData = data;
       var summary = summarizeUsMarket(data, latestHomeIndices);
       if (!summary) {
-        renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '집계 종목', null, true);
         setField('temperature', '데이터 확인 중', 'home-neutral');
-        setField('direction', '데이터 확인 중', 'home-neutral');
         setField('leaders', '데이터 확인 중', 'home-neutral');
         setField('cautions', '데이터 확인 중', 'home-neutral');
         return;
       }
       var sessionOpen = !summary.sessionState || summary.sessionState.open;
-      renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '미국 종목', sessionOpen ? summary.breadth : null, true);
-      setField('direction', summary.direction.label, summary.direction.tone);
+      if (!sessionOpen) setField('direction', summary.direction.label, summary.direction.tone);
       setField('leaders', sectorSummaryText(summary.leaders, '업종 데이터 없음'), 'home-positive');
       setField('cautions', sectorSummaryText(summary.cautions, '업종 데이터 없음'), 'home-negative');
       var updated = document.getElementById('hmbUpdated');
       if (updated && summary.updatedAt) updated.textContent = window.NineTime.updated(summary.updatedAt) || (formatHomeTimestamp(summary.updatedAt) + ' 기준');
+    }
+
+    function renderUsIndexBreadth(body) {
+      if (homeMarketSession().market !== 'us') return;
+      var notes = [];
+      var ratios = [];
+      ['SP500', 'NASDAQ'].forEach(function (key) {
+        var entry = body && body.byIndex && body.byIndex[key];
+        var label = key === 'SP500' ? 'S&P 500' : '나스닥 종합';
+        var row = dashboardSection.querySelector('[data-us-ratio="' + key + '"]');
+        var valid = entry && entry.status !== 'unavailable' && typeof entry.total === 'number' && entry.total > 0;
+        renderHomeBreadthEntry(row, escapeHomeHtml(label), valid ? entry : null, false);
+        if (valid) {
+          if (entry.missing) notes.push(label + ' 결측 ' + entry.missing + '종목');
+          if (entry.status === 'stale') notes.push(label + ' 갱신 지연');
+          if (entry.status === 'ok') ratios.push(entry.up / entry.total);
+          if (row) row.title = 'TradingView 지수 구성종목 · 지연시세 · 수집 ' + (entry.retrievedAt || '확인 중');
+        }
+      });
+      var meta = dashboardSection.querySelector('[data-us-breadth-meta]');
+      if (meta) meta.textContent = 'TradingView · 지연시세(최대 15분) · 2분 캐시' + (notes.length ? ' · ' + notes.join(' · ') : '');
+      if (usRegularSessionState().open) {
+        // Two index breadth ratios are averaged; overlapping constituents are not presented as a combined stock count.
+        if (ratios.length === 2) {
+          var indexRates = (latestHomeIndices || []).filter(function (item) { return item.symbol === 'NASDAQ_INDEX' || item.symbol === 'SP500_INDEX'; }).map(function (item) { return Number(item.change_rate); }).filter(isFinite);
+          var direction = resolveMarketDirection({components: {riseRatio: {ratio: (ratios[0] + ratios[1]) / 2}, avgChange: {avgChangeRate: indexRates.length ? indexRates.reduce(function (a, b) { return a + b; }, 0) / indexRates.length : 0}}}, indexRates);
+          setField('direction', direction.label, direction.tone);
+        } else setField('direction', '데이터 확인 중', 'home-neutral');
+      }
+    }
+
+    function loadHomeUsIndexBreadth() {
+      var request = window.NineAPI.usMarketBreadth ? window.NineAPI.usMarketBreadth() : window.NineAPI.data(window.NineAPI.vmUrl + '/us-market-breadth', {timeoutMs: 25000});
+      request.then(renderUsIndexBreadth).catch(function () { renderUsIndexBreadth(null); });
     }
 
     function renderMarketSectors(bubble) {
@@ -1984,14 +2015,13 @@ document.documentElement.classList.add('skin-ready');
     };
 
     loadHomeUsSummary = function () {
+      loadHomeUsIndexBreadth();
       (window.HomeMarketBoard
         ? window.HomeMarketBoard.fetch('us')
         : fetchHomeJson('https://goodbyestar.cloud/market-board?market=us&limit=40', 12000))
         .then(renderUsMarketSummary)
         .catch(function () {
-          renderHomeBreadthEntry(dashboardSection.querySelector('[data-us-ratio]'), '미국 종목', null, true);
           setField('temperature', '데이터 확인 중', 'home-neutral');
-          setField('direction', '데이터 확인 중', 'home-neutral');
           setField('leaders', '데이터 확인 중', 'home-neutral');
           setField('cautions', '데이터 확인 중', 'home-neutral');
         });

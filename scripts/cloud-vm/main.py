@@ -4431,6 +4431,15 @@ def _start_domestic_news_warmer():
     logging.getLogger('main').info('domestic-news 캐시 워머 시작(트래픽 있을 때만 45초 주기)')
 
 
+@app.get('/us-market-breadth')
+def us_market_breadth_endpoint(request: Request, response: Response):
+    """S&P 500 and Nasdaq Composite component counts; provider-delayed, shared cache."""
+    _check_rate_limit('us_market_breadth', request, max_per_window=30)
+    response.headers['Cache-Control'] = 'public, max-age=30'
+    import us_market_breadth
+    return envelope(us_market_breadth.get_breadth())
+
+
 @app.get('/market-board')
 def market_board_endpoint(request: Request,
                           response: Response,

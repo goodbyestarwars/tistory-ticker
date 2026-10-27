@@ -496,3 +496,10 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 ### 2026-10-19 검색기 통합 재무 관문
 
 `/pattern-scan`은 기존 개별 patterns를 보존하고 `patterns.longTermQuality`(재무 관문 통과 장기 후보), `longTermFilter`(조건·통과/제외·사유별 건수/종목)를 추가한다. 장기 후보의 `financialScreen`은 연간 비율·이익 성장률·최신 단독분기/공시 접수번호·확인시각을 담는다. 구버전/누락/만료 자료는 통과시키지 않는다. 통합 메뉴 통계는 원래 scanner별로 분리한다. [계산·캐시·검증](docs/SCANNER_FIVE_GROUPS_2026-10-19.md).
+
+
+### GET /us-market-breadth (2026-10-28)
+
+공개 지수 구성종목 집계. `data.byIndex.SP500`은 SP:SPX, `NASDAQ`은 NASDAQ:IXIC 구성 증권이다. 각 항목은 `up/down/flat/missing/total`, `status`(ok/stale/unavailable), `retrievedAt`, `delaySeconds`를 제공한다. total은 기업 수가 아닌 공급자 구성 증권 수(복수 종류주 포함)다. 미국 거래대금 상위 40종목과 별도 경로이며 소규모 순위로 대체하지 않는다.
+
+공급원 TradingView scanner: KIS 순위 API에는 지수 전체 구성종목의 상승·하락 집계가 없어 별도 읽기 전용 공급원을 사용한다. 지수별 요청 1회씩, 미국 평일 09:30~16:00 ET 공유 캐시 120초/그 외 1시간. 새 스케줄·상시 스레드·종목별 조회 없음. 실패 60초 백오프, 최근 성공 최대 15분만 stale로 반환하고 이후 unavailable. 구성 목록 잘림·중복은 거부하며 결측 등락을 보합으로 합치지 않는다. `retrievedAt`은 수집 시각이며 시세 시각이 아니다. 공급자 시세는 최대 15분 지연으로 UI에 명시한다. 브라우저는 NineAPI.usMarketBreadth를 통해 조회한다.
