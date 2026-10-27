@@ -4431,6 +4431,17 @@ def _start_domestic_news_warmer():
     logging.getLogger('main').info('domestic-news 캐시 워머 시작(트래픽 있을 때만 45초 주기)')
 
 
+@app.get('/market-participation')
+def market_participation_endpoint(request: Request, response: Response, market: str = Query('domestic')):
+    """Index member participation; same-time 5m relative volume over the provider's ten-day basis."""
+    if market not in ('domestic', 'us'):
+        raise HTTPException(status_code=400, detail='unsupported market')
+    _check_rate_limit('market_participation', request, max_per_window=30)
+    response.headers['Cache-Control'] = 'public, max-age=30'
+    import us_market_breadth
+    return envelope(us_market_breadth.get_breadth(market=market))
+
+
 @app.get('/us-market-breadth')
 def us_market_breadth_endpoint(request: Request, response: Response):
     """S&P 500 and Nasdaq Composite component counts; provider-delayed, shared cache."""

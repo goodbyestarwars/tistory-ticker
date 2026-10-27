@@ -503,3 +503,10 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 공개 지수 구성종목 집계. `data.byIndex.SP500`은 SP:SPX, `NASDAQ`은 NASDAQ:IXIC 구성 증권이다. 각 항목은 `up/down/flat/missing/total`, `status`(ok/stale/unavailable), `retrievedAt`, `delaySeconds`를 제공한다. total은 기업 수가 아닌 공급자 구성 증권 수(복수 종류주 포함)다. 미국 거래대금 상위 40종목과 별도 경로이며 소규모 순위로 대체하지 않는다.
 
 공급원 TradingView scanner: KIS 순위 API에는 지수 전체 구성종목의 상승·하락 집계가 없어 별도 읽기 전용 공급원을 사용한다. 지수별 요청 1회씩, 미국 평일 09:30~16:00 ET 공유 캐시 120초/그 외 1시간. 새 스케줄·상시 스레드·종목별 조회 없음. 실패 60초 백오프, 최근 성공 최대 15분만 stale로 반환하고 이후 unavailable. 구성 목록 잘림·중복은 거부하며 결측 등락을 보합으로 합치지 않는다. `retrievedAt`은 수집 시각이며 시세 시각이 아니다. 공급자 시세는 최대 15분 지연으로 UI에 명시한다. 브라우저는 NineAPI.usMarketBreadth를 통해 조회한다.
+
+
+### GET /market-participation?market=domestic|us (2026-10-28)
+
+기존 `us_market_breadth`의 공급자·캐시·누락 검증을 공유하며 국내 두 지수만 추가한다. 국내는 TradingView KRX:KOSPI/KRX:KOSDAQ **지수 구성종목**으로, 기존 KIS 시장 전체 상승·하락 집계와 모집단이 다르다(우선주 등 포함 범위 차이). 국내 전체 등락 막대는 기존 KIS 그대로 유지한다. 국내/미국 캐시와 잠금은 독립한다. 각 시장의 본장에는120초, 장외에는3600초 캐시이며 오류는60초 백오프다. 상시 스케줄·프로세스·종목별 조회를 추가하지 않는다.
+
+각 지수의 `volumeParticipation`은 `relative_volume_intraday|5`를 사용한다. 최근10거래일 **동일 시각 5분봉 거래량 평균** 대비 현재5분봉 거래량 배수가1을 초과하는 종목의 비율이다. 누적 하루 거래량/동시각 누적 거래량이 아니며 7일 기준으로 바꾸어 표시하지 않는다. `increased/eligible/total/ratio/median`, `basis=same-time-5m`, `lookbackDays=10`, `status`를 반환한다. 결측은 분모에서 제외하고 eligible/total 분석 범위를 표시한다. 매수 자금 유입이나 상승을 뜻하지 않으며 지수 등락·상승 종목 비율과 독립 표시한다. 국내 최대20분/미국 최대15분 지연. 미국 기존 `/us-market-breadth`에도 같은 필드가 추가되어 별도 호출 없이 재사용된다.

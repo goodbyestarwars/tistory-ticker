@@ -793,11 +793,12 @@ document.documentElement.classList.add('skin-ready');
         + '<div class="hmb2-status" data-hmb-status>'
         + '<dl class="hmb-list hmb2-verdict">'
         + '<div class="hmb2-temp"><dt>증시온도</dt><dd data-market-field="temperature">데이터 확인 중</dd></div>'
-        + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd></div>'
+        + '<div class="hmb2-direction"><dt>시장 방향</dt><dd data-market-field="direction">데이터 확인 중</dd><div class="hmb2-participation" data-home-participation aria-label="지수 등락률과 거래량 증가 종목"></div></div>'
         + '<div class="hmb2-market-ratios" data-domestic-ratios>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSPI"><dt>코스피</dt><dd>데이터 확인 중</dd></div>'
         + '<div class="hmb2-temp" data-domestic-ratio="KOSDAQ"><dt>코스닥</dt><dd>데이터 확인 중</dd></div></div>'
         + '<div class="hmb2-market-ratios" data-us-ratios hidden><div data-us-ratio="SP500"><dt>S&amp;P 500</dt><dd>데이터 확인 중</dd></div><div data-us-ratio="NASDAQ"><dt>나스닥 종합</dt><dd>데이터 확인 중</dd></div><span class="hmb2-breadth-total" data-us-breadth-meta>지수 구성종목 · 지연시세</span></div>'
+        + '<div class="hmp-basis hmp-note" data-participation-basis></div>'
         + '</dl>'
         // 2026-10-15 시장 변동성 모니터: CB·사이드카·VI를 한 곳에 압축 표시하고 눌러서 상세를 연다(homeCircuitBreakerBadges가 채운다).
         + '<div class="vol-monitor" data-vol-monitor hidden></div>'
@@ -919,6 +920,7 @@ document.documentElement.classList.add('skin-ready');
       var verdict = dashboardSection.querySelector('.hmb2-verdict');
       if (verdict) verdict.classList.toggle('has-market-breadth', !isUs || !!(usSession && usSession.open));
       homeShowsUs = isUs;
+      renderMarketParticipation();
       var usEtfs = dashboardSection.querySelector('[data-home-us-etfs]');
       if (usEtfs) {
         if (!isUs) usEtfs.hidden = true;
@@ -1165,6 +1167,7 @@ document.documentElement.classList.add('skin-ready');
 
     function loadHomeIndexBreadth() {
       if (homeMarketSession().market !== 'domestic') return;
+      loadDomesticParticipation();
       fetchHomeJson(MARKET_TEMP_VM_URL, 12000).then(function (body) {
         if (homeMarketSession().market !== 'domestic') return;
         var data = body && body.data ? body.data : body;
@@ -1344,7 +1347,9 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function renderUsIndexBreadth(body) {
+      latestHomeParticipation.us = body;
       if (homeMarketSession().market !== 'us') return;
+      renderMarketParticipation();
       var notes = [];
       var ratios = [];
       ['SP500', 'NASDAQ'].forEach(function (key) {
@@ -1375,6 +1380,51 @@ document.documentElement.classList.add('skin-ready');
     function loadHomeUsIndexBreadth() {
       var request = window.NineAPI.usMarketBreadth ? window.NineAPI.usMarketBreadth() : window.NineAPI.data(window.NineAPI.vmUrl + '/us-market-breadth', {timeoutMs: 25000});
       request.then(renderUsIndexBreadth).catch(function () { renderUsIndexBreadth(null); });
+    }
+
+    var latestHomeParticipation = {domestic: null, us: null};
+
+    function homeParticipationModel(market, body, indices) {
+      var definitions = market === 'us' ? [['SP500', 'S&P 500', 'SP500_INDEX'], ['NASDAQ', '나스닥 종합', 'NASDAQ_INDEX']]
+        : [['KOSPI', '코스피', 'KOSPI'], ['KOSDAQ', '코스닥', 'KOSDAQ']];
+      return definitions.map(function (definition) {
+        var item = (indices || []).filter(function (index) { return index.symbol === definition[2]; })[0];
+        var rate = item && item.change_rate != null && item.change_rate !== '' ? Number(item.change_rate) : null;
+        var entry = body && body.byIndex && body.byIndex[definition[0]];
+        var volume = entry && entry.volumeParticipation;
+        var valid = entry && entry.status === 'ok' && volume && volume.status === 'ok'
+          && volume.basis === 'same-time-5m' && volume.eligible > 0 && typeof volume.ratio === 'number';
+        return {label: definition[1], rate: typeof rate === 'number' && isFinite(rate) ? rate : null,
+          volume: valid ? volume : null, status: entry && entry.status, delaySeconds: entry && entry.delaySeconds};
+      });
+    }
+
+    function renderMarketParticipation() {
+      var target = dashboardSection.querySelector('[data-home-participation]');
+      if (!target) return;
+      var market = homeMarketSession().market === 'us' ? 'us' : 'domestic';
+      target.hidden = market === 'us' && !usRegularSessionState().open;
+      var models = homeParticipationModel(market, (latestHomeParticipation || {})[market], latestHomeIndices);
+      target.innerHTML = models.map(function (model) {
+        var tone = model.rate === null || model.rate === 0 ? 'home-neutral' : model.rate > 0 ? 'home-positive' : 'home-negative';
+        var price = model.rate === null ? '확인 중' : (model.rate > 0 ? '+' : '') + model.rate.toFixed(2) + '%';
+        var volume = model.volume;
+        return '<div class="hmp-item"><div class="hmp-heading"><span>' + escapeHomeHtml(model.label) + '</span><b class="' + tone + '">' + price + '</b></div>'
+          + '<div class="hmp-volume">거래량 증가 종목 <b>' + (volume ? (volume.ratio * 100).toFixed(1) + '%' : model.status === 'stale' ? '갱신 지연' : '확인 중') + '</b></div>'
+          + (volume ? '<div class="hmp-note">' + volume.increased.toLocaleString('ko-KR') + '/' + volume.eligible.toLocaleString('ko-KR') + '종목' + (volume.eligible < volume.total ? ' · 구성 ' + volume.total.toLocaleString('ko-KR') : '') + '</div>' : '') + '</div>';
+      }).join('');
+      var basis = dashboardSection.querySelector('[data-participation-basis]');
+      if (basis) {
+        basis.hidden = target.hidden;
+        basis.textContent = '거래량 증가: 지수 구성종목 기준 · 동시각 5분봉/최근 10거래일 평균 대비 · ' + (market === 'us' ? '15분' : '20분') + ' 지연';
+      }
+    }
+
+    function loadDomesticParticipation() {
+      var request = window.NineAPI.marketParticipation ? window.NineAPI.marketParticipation('domestic')
+        : window.NineAPI.data(window.NineAPI.vmUrl + '/market-participation?market=domestic', {timeoutMs: 25000});
+      request.then(function (body) { latestHomeParticipation.domestic = body; renderMarketParticipation(); })
+        .catch(function () { latestHomeParticipation.domestic = null; renderMarketParticipation(); });
     }
 
     function renderMarketSectors(bubble) {
@@ -1800,6 +1850,7 @@ document.documentElement.classList.add('skin-ready');
       var bySymbol = {};
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
       latestHomeIndices = items || [];
+      renderMarketParticipation();
       if (session.market === 'us' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
       // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
       // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
