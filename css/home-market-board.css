@@ -158,8 +158,8 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict {
 }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > div { display: block; margin: 0; padding: 0; border: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-direction { order: 1; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { flex: 1 1 100%; width: 100%; display: grid; grid-template-columns: 112px minmax(120px, 150px) minmax(0, 280px); justify-content: space-between; gap: var(--ui-section-gap); align-items: start; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { order: 3; grid-column: 3; display: grid; gap: 12px; min-width: 0; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { flex: 1 1 100%; width: 100%; display: grid; grid-template-columns: 112px minmax(120px, 150px) minmax(0, 1fr); gap: var(--ui-section-gap); align-items: start; }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { order: 3; grid-column: 3; display: grid; gap: 12px; min-width: 0; width: 100%; max-width: 280px; justify-self: end; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios[hidden] { display: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div { display: grid; grid-template-columns: auto 1fr auto; gap: 5px 8px; align-items: baseline; min-width: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div > dt { font-weight: 700; color: var(--hmb-ink); }
@@ -201,7 +201,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .h
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis[hidden] { display: none; }
 @media (max-width: 600px) {
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: 112px minmax(0, 1fr); gap: var(--ui-paragraph-gap); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > [data-us-breadth-meta] { grid-column: 1 / -1; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-heading { min-height: 56px; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > div { grid-template-columns: minmax(0, 1fr) auto; }
