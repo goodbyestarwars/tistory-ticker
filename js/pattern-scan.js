@@ -289,7 +289,6 @@
         return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
       + '</div>'
-      + '<details class="ps-review-fold"><summary>상태·성과 자세히</summary><div data-scanner-review></div><div class="ps-track-summary" id="psTrackSummary"></div></details>'
       + '<div class="ps-list" id="psList">' + global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}) + '</div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
