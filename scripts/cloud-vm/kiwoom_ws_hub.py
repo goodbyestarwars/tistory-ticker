@@ -12,7 +12,7 @@ KIS에 못 들어간 종목을 여기에 구독한다. 키움도 못 받는 종�
 - PING은 받은 텍스트를 그대로 되돌려 보낸다(기존 realtime_quotes._relay_once와 같은 처리).
 
 미검증 사항 - 장중 `/health/realtime`의 `kiwoom` 항목(등록 응답·체결 수)으로 확인한다:
-- 연결당 등록 가능 종목 수: `KIWOOM_WS_MAX_CODES`(기본 100).
+- 연결당 등록 가능 종목 수: `KIWOOM_WS_MAX_CODES`(기본 200).
 - 통합(KRX+NXT) 체결을 받는 종목코드 표기: `KIWOOM_WS_CODE_SUFFIX`(기본 `_AL` - 키움 테마 구성종목
   응답 ka90002에서 `_AL` 접미사가 실제로 왔다). 등록이 거절되면 접미사 없이 한 번 다시 등록한다.
 - 0B 누적거래량은 키움 공식 예제상 FID 13이다. 기존 화면 구독에는 `volume`을 넘기지
@@ -35,7 +35,7 @@ import kiwoom_client
 logger = logging.getLogger('kiwoom_ws_hub')
 
 KIWOOM_WS_URL = 'wss://api.kiwoom.com:10000/api/dostk/websocket'
-DEFAULT_MAX_CODES = 100
+DEFAULT_MAX_CODES = 200
 DEFAULT_CODE_SUFFIX = '_AL'
 DEFAULT_WATCHDOG_SEC = 180
 RECONNECT_MIN_SEC = 5
