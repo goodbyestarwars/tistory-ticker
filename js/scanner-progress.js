@@ -23,6 +23,7 @@
     var labels = { running: '스캔 진행 중', waiting: '앞선 스캔 완료 대기', success: '스캔 완료',
       failed: '스캔 오류', timeout: '스캔 시간 초과', interrupted: '스캔 중단', deadline: '스캔 실행창 종료',
       run_timeout: '스캔 시간 초과', wait_timeout: '스캔 대기 시간 초과', launch_failed: '스캔 실행 실패',
+      outside_window: '실행 시간 밖 종료', holiday: '휴장일 스캔 없음', prerequisite_stale: '선행 데이터 갱신 필요',
       skipped: '스캔 건너뜀', unknown: '스캔 상태 확인 중', unverified: '실행 상태 미확인' };
     var scope = target && target.id === 'strategyscan' ? '전략 배치' : '일봉 배치';
     var detail = state === 'running' && validProgress ? (p.phase ? p.phase + ' · ' : '') + p.processed.toLocaleString('ko-KR') + ' / ' + p.total.toLocaleString('ko-KR') + (p.unit || '종목') + ' 처리' : '';
@@ -30,6 +31,7 @@
       title: scope + ' · ' + (labels[state] || '스캔 상태 확인 필요'),
       detail: detail, stale: stale, updatedAt: running ? stamp : execution.finishedAt || stamp,
       note: stale ? '진행 정보 갱신 대기 · 마지막 확인 진행률 유지'
+        : state === 'outside_window' ? '허용 시간 밖 실행이 종료됨 · 완료 확인 안 됨' + (target && target.nextRunAt && Number.isFinite(Date.parse(target.nextRunAt)) ? ' · 다음 예정 ' + new Date(target.nextRunAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'}) : '')
         : strategy && target === daily ? '일봉 데이터 확인 후 전략 계산 · 기존 결과 유지'
         : '장중 단타 감시와 별도인 배치 상태 · 완료 후 검색 결과 갱신' };
 
@@ -45,7 +47,7 @@
   function render(value) {
     strip.classList.toggle('is-complete', value.compact);
     var known = value.percent !== null;
-    var label = known ? value.percent + '%' : value.state === 'unverified' ? '확인 필요' : value.state === 'running' ? '진행 중' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline/.test(value.state) ? '중단' : '집계 대기';
+    var label = known ? value.percent + '%' : value.state === 'unverified' ? '확인 필요' : value.state === 'running' ? '진행 중' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline|outside_window|prerequisite_stale/.test(value.state) ? '중단' : '집계 대기';
     var panel = strip.querySelector('.scan-status-panel') || strip;
     strip.setAttribute('data-state', value.state);
     global.ScannerProgress.latest = value;
