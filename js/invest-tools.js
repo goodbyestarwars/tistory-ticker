@@ -138,7 +138,7 @@
     if (document.querySelector('link[data-invest-tools-css]')) return;
     var link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/invest-tools.css?v=20261013-tools3';
+    link.href = 'https://goodbyestarwars.github.io/tistory-ticker/css/invest-tools.css?v=20261027-holdings1';
     link.setAttribute('data-invest-tools-css', '1');
     document.head.appendChild(link);
   }
