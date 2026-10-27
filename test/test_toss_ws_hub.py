@@ -85,6 +85,24 @@ class BrokerAllocationContracts(unittest.TestCase):
         self.assertEqual(kiwoom_ws_hub.DEFAULT_MAX_CODES, 200)
         self.assertEqual(toss_ws_hub.MAX_CODES, 200)
 
+    def test_research_volume_feed_wins_when_kiwoom_slots_are_full(self):
+        hub = kiwoom_ws_hub.KiwoomWsHub('fake-id', 'fake-secret', max_codes=3)
+        loop = asyncio.new_event_loop()
+        try:
+            public = hub.subscribe(['000001', '000002', '000003'], loop=loop)
+            signal = hub.subscribe(['000004'], loop=loop, include_volume=True)
+            kept, excess = hub._desired()
+            self.assertIn('000004', kept)
+            self.assertEqual(len(kept), 3)
+            self.assertEqual(excess, ['000003'])
+            signal.close()
+            kept, excess = hub._desired()
+            self.assertEqual(kept, ['000001', '000002', '000003'])
+            self.assertEqual(excess, [])
+            public.close()
+        finally:
+            loop.close()
+
     def test_derivative_slow_snapshot_does_not_slow_indices(self):
         self.assertEqual(option_flow._POLL_INTERVAL_SEC, 1800)
         self.assertFalse(option_flow.realtime_ws_enabled())
