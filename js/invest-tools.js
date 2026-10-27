@@ -157,22 +157,19 @@
     var overlay = document.createElement('div');
     overlay.className = 'it-overlay';
     overlay.innerHTML = '<section class="it-modal" role="dialog" aria-modal="true" aria-labelledby="itTitle">'
-      + '<header><div><span>투자도구</span><h2 id="itTitle">물타기 계산기</h2><p>매수할 때마다 + 버튼으로 항목을 추가해 최종 평균단가를 계산합니다.</p></div><button type="button" class="it-close" aria-label="닫기">✕</button></header>'
-      + '<section class="it-recovery"><h3>목표 손실률 자동 계산</h3><p class="it-field-help">현재가로 추가 매수할 때 목표 손실률 이내가 되는 최소 수량과 자금을 계산합니다.</p>'
+      + '<header><div><span>투자도구</span><h2 id="itTitle">물타기 계산기</h2><p>현재 보유 현황을 계산한 뒤 추가 매수와 목표 평단을 비교합니다.</p></div><button type="button" class="it-close" aria-label="닫기">✕</button></header>'
+      + '<section class="it-recovery"><h3>현재 보유 정보</h3>'
       + '<div class="it-stock-row"><label>국내 종목명 또는 코드<input type="search" data-it-stock list="itStockOptions" autocomplete="off" placeholder="예: 삼성전자 또는 005930"></label><datalist id="itStockOptions"></datalist><button type="button" class="it-add-more" data-it-load>현재가 불러오기</button></div>'
       + '<p class="it-field-help" data-it-stock-status aria-live="polite">종목을 선택하거나 현재가를 직접 입력하세요.</p>'
-      + '<div class="it-input-grid it-recovery-grid"><label><span>현재가 · 추가 매수가</span><input inputmode="decimal" data-it-recovery="price" placeholder="직접 입력 가능"></label><label><span>목표 손실률 (−%)</span><input inputmode="decimal" data-it-loss-rate value="1" placeholder="예: 1"></label></div>'
-      + '<div class="it-recovery-result" aria-live="polite" data-it-loss-result>아래 보유 수량과 평균단가를 입력하세요.</div>'
-      + '<p class="it-field-help">현재가가 그대로라면 추가 매수 후에도 기존 평가손실 금액은 그대로이며, 투자금이 늘어 손실률만 낮아집니다. 정수주 기준 · 수수료와 세금 제외.</p>'
-      + '<div class="it-input-grid it-recovery-grid"><label><span>목표 반등가 (선택)</span><input inputmode="decimal" data-it-recovery="target" placeholder="예: 110,000"></label></div>'
-      + '<div class="it-recovery-result" aria-live="polite" data-it-recovery-result>목표 반등가를 입력하면 해당 가격에서 손익 0원 이상이 되는 수량도 계산합니다.</div>'
-      + '<p class="it-field-help">반등가 계산도 수수료·세금 제외, 정수주 기준입니다. 현재가는 불러온 시점의 참고값이며 자동 갱신되지 않습니다.</p></section>'
-      + '<div class="it-input-grid it-current-grid">'
-      + '<label><span>현재 보유 수량</span><input inputmode="decimal" data-it="currentQuantity" placeholder="예: 10"></label>'
-      + '<label><span>현재 평균단가</span><input inputmode="decimal" data-it="currentAverage" placeholder="예: 120,000"></label>'
-      + '</div>'
+      + '<div class="it-input-grid it-recovery-grid"><label><span>현재가</span><input inputmode="decimal" data-it-recovery="price" placeholder="직접 입력 가능"></label><label><span>현재 보유 수량</span><input inputmode="decimal" data-it="currentQuantity" placeholder="예: 10"></label><label><span>현재 평균단가</span><input inputmode="decimal" data-it="currentAverage" placeholder="예: 120,000"></label><label><span>목표 손실률 (−%)</span><input inputmode="decimal" data-it-loss-rate value="1" placeholder="예: 1"></label></div>'
+      + '<button type="button" class="it-add-more it-calculate" data-it-calculate>계산하기</button>'
+      + '<p class="it-field-help" data-it-calculate-error role="status"></p>'
+      + '<div data-it-summary hidden><div class="it-table-wrap"><table class="it-summary-table"><caption>현재 보유와 목표 손실률 비교</caption><thead><tr><th scope="col">구분</th><th scope="col">보유 수량</th><th scope="col">평균단가</th><th scope="col">투자금</th><th scope="col">평가손익</th><th scope="col">손익률</th></tr></thead><tbody><tr><th scope="row">현재 보유</th><td data-it-cell="currentQuantity"></td><td data-it-cell="currentAverage"></td><td data-it-cell="currentCost"></td><td data-it-cell="currentPnl"></td><td data-it-cell="currentRate"></td></tr><tr><th scope="row">목표 손실률</th><td data-it-cell="targetQuantity"></td><td data-it-cell="targetAverage"></td><td data-it-cell="targetCost"></td><td data-it-cell="targetPnl"></td><td data-it-cell="targetRate"></td></tr></tbody></table></div><div class="it-recovery-result" data-it-loss-result aria-live="polite"></div><p class="it-field-help">현재가로 매수하고 주가가 그대로라면 기존 평가손익 금액은 변하지 않습니다. 목표 손실률은 정수주로 올림해 계산합니다.</p></div>'
+      + '<details class="it-target-detail"><summary>목표 반등가 손익분기 계산</summary><div class="it-input-grid it-recovery-grid"><label><span>목표 반등가</span><input inputmode="decimal" data-it-recovery="target" placeholder="예: 110,000"></label></div><div class="it-recovery-result" aria-live="polite" data-it-recovery-result>목표 반등가를 입력하세요.</div></details></section>'
       + '<div class="it-additions-head"><strong>추가 매수 내역</strong><button type="button" class="it-add-more" aria-label="추가 매수 항목 추가">＋ 추가</button></div>'
       + '<div class="it-additions">' + buyRowHtml(1) + '</div>'
+      + '<div class="it-input-grid it-recovery-grid"><label><span>원하는 새 평균단가 (선택)</span><input inputmode="decimal" data-it-desired-average placeholder="예: 180,000"></label></div><p class="it-field-help">추가 매수가를 입력하면 그 가격으로, 비워두면 현재가로 필요한 최소 수량을 계산합니다.</p><div class="it-recovery-result" data-it-desired-result aria-live="polite">원하는 새 평균단가를 입력하세요.</div>'
+
       + '<div class="it-results" aria-live="polite">'
       + '<article class="it-primary"><span>새 평균단가</span><strong data-it-result="average">-</strong></article>'
       + '<article><span>총 보유 수량</span><strong data-it-result="quantity">-</strong></article>'
@@ -196,7 +193,8 @@
     var stockInput = overlay.querySelector('[data-it-stock]');
     var stockStatus = overlay.querySelector('[data-it-stock-status]');
     var loadButton = overlay.querySelector('[data-it-load]');
-    var requestId = 0;
+    var requestId = 0, summaryReady = false;
+    function invalidateSummary() { summaryReady = false; overlay.querySelector('[data-it-summary]').hidden = true; }
     function updateStockOptions() {
       var query = stockInput.value.trim().toLowerCase(), list = overlay.querySelector('#itStockOptions');
       list.textContent = '';
@@ -214,7 +212,7 @@
       mapScript.onerror = function () { stockStatus.textContent = '종목 목록을 불러오지 못했습니다. 6자리 코드를 입력하거나 현재가를 직접 입력하세요.'; };
       document.head.appendChild(mapScript);
     }
-    stockInput.addEventListener('input', function () { requestId++; overlay.querySelector('[data-it-recovery="price"]').value = ''; updateStockOptions(); renderRecovery(); stockStatus.textContent = '종목을 선택하고 현재가 불러오기를 누르세요.'; });
+    stockInput.addEventListener('input', function () { invalidateSummary(); requestId++; overlay.querySelector('[data-it-recovery="price"]').value = ''; updateStockOptions(); renderRecovery(); stockStatus.textContent = '종목을 선택하고 현재가 불러오기를 누르세요.'; });
     loadButton.addEventListener('click', function () {
       var query = stockInput.value.trim(), map = global.KRX_MAP || {}, name = Object.keys(map).find(function (key) { return key.toLowerCase() === query.toLowerCase(); });
       var code = name ? map[name] : /^[0-9A-Za-z]{6}$/.test(query) ? query.toUpperCase() : '';
@@ -225,7 +223,10 @@
         if (id !== requestId || !overlay.isConnected) return;
         var row = rows && rows[0], price = Number(row && row.price);
         if (!Number.isFinite(price) || price <= 0) throw new Error('no price');
+        invalidateSummary();
         overlay.querySelector('[data-it-recovery="price"]').value = formatNumber(price, 2);
+        render();
+        renderDesired();
         stockStatus.textContent = (name || code) + ' · ' + formatNumber(price, 2) + '원 · 조회 시점 참고가' + (row.degraded ? ' · 대체 경로' : '') + (row.dataDate ? ' · 기준 ' + row.dataDate : '');
         renderRecovery();
       }).catch(function () { if (id === requestId && overlay.isConnected) stockStatus.textContent = '현재가를 불러오지 못했습니다. 직접 입력하거나 다시 시도하세요.'; })
@@ -239,21 +240,50 @@
       var t = numberValue(overlay.querySelector('[data-it-recovery="target"]'));
       var rate = numberValue(overlay.querySelector('[data-it-loss-rate]'));
       var lossBox = overlay.querySelector('[data-it-loss-result]');
-      if (!q || !a || !p) {
-        lossBox.textContent = '보유 수량과 평균단가, 현재가를 입력하세요.';
-      } else {
+      if (summaryReady) {
         var lossResult = calculateLossTarget(q, a, p, rate);
-        if (!lossResult) lossBox.textContent = '보유 수량은 정수주, 목표 손실률은 0보다 크고 100 이하로 입력하세요.';
-        else if (lossResult.tooLarge) lossBox.textContent = '필요한 수량이 너무 커서 계산할 수 없습니다.';
-        else lossBox.textContent = '추가 매수 ' + formatNumber(lossResult.shares) + '주 · 필요 자금 ' + formatNumber(lossResult.addedCost, 2) + '원 | 총 투자금 ' + formatNumber(lossResult.totalCost, 2) + '원 | 매수 후 평단 ' + formatNumber(lossResult.average, 2) + '원 | ' + (lossResult.loss ? '평가손실 ' + formatNumber(lossResult.loss, 2) + '원 · 손실률 ' + (lossResult.lossRate < 0.000001 ? '0%에 근접' : '−' + formatNumber(lossResult.lossRate, 6) + '%') : '현재 평가손실 없음');
+        if (lossResult && !lossResult.tooLarge) {
+          var pnl = q * (p - a), cost = q * a;
+          function cell(key, value) { overlay.querySelector('[data-it-cell="' + key + '"]').textContent = value; }
+          function signed(value, digits) { return (value > 0 ? '+' : '') + formatNumber(value, digits); }
+          cell('currentQuantity', formatNumber(q) + '주'); cell('currentAverage', formatNumber(a, 2) + '원');
+          cell('currentCost', formatNumber(cost, 2) + '원'); cell('currentPnl', signed(pnl, 2) + '원'); cell('currentRate', signed(pnl / cost * 100, 4) + '%');
+          cell('targetQuantity', formatNumber(q + lossResult.shares) + '주'); cell('targetAverage', formatNumber(lossResult.average, 2) + '원');
+          cell('targetCost', formatNumber(lossResult.totalCost, 2) + '원'); cell('targetPnl', signed(pnl, 2) + '원'); cell('targetRate', signed(pnl / lossResult.totalCost * 100, 4) + '%');
+          lossBox.textContent = '목표 손실률까지 추가 매수 ' + formatNumber(lossResult.shares) + '주 · 필요 자금 ' + formatNumber(lossResult.addedCost, 2) + '원';
+        }
       }
-      if (!q || !a || !p || !t) { box.textContent = '아래 보유 수량과 평균단가, 현재가, 목표가를 입력하세요.'; return; }
+      if (!q || !a || !p || !t) { box.textContent = '현재 보유 정보와 목표 반등가를 입력하세요.'; return; }
       var result = calculateRecovery(q, a, p, t);
       if (!result) { box.textContent = '보유 수량은 1 이상의 정수주로, 가격은 0보다 크게 입력하세요.'; return; }
       if (result.impossible) { box.textContent = '목표가가 현재가 이하이면 추가 매수로 손익분기에 도달할 수 없습니다.'; return; }
       if (result.tooLarge) { box.textContent = '입력값이 너무 커서 계산할 수 없습니다.'; return; }
       box.textContent = result.shares ? '최소 추가 매수 ' + formatNumber(result.shares) + '주 · ' + formatNumber(result.cost) + '원 | 새 평단 ' + formatNumber(result.average, 2) + '원 | 목표가 평가손익 ' + formatNumber(result.pnl, 2) + '원' : '추가 매수 0주 · 목표가가 기존 평단 이상입니다. 목표가 평가손익 ' + formatNumber(result.pnl, 2) + '원';
     }
+    function renderDesired() {
+      var output = overlay.querySelector('[data-it-desired-result]');
+      var q = numberValue(overlay.querySelector('[data-it="currentQuantity"]'));
+      var a = numberValue(overlay.querySelector('[data-it="currentAverage"]'));
+      var desired = numberValue(overlay.querySelector('[data-it-desired-average]'));
+      var buyInput = overlay.querySelector('[data-it-buy-price]');
+      var p = buyInput.value.trim() ? numberValue(buyInput) : numberValue(overlay.querySelector('[data-it-recovery="price"]'));
+      if (!desired) { output.textContent = '원하는 새 평균단가를 입력하세요.'; return; }
+      if (!q || !a || !p) { output.textContent = '보유 수량·평단과 현재가 또는 추가 매수가를 입력하세요.'; return; }
+      var result = calculateRecovery(q, a, p, desired);
+      if (!result) { output.textContent = '수량은 정수주, 가격은 0보다 크게 입력하세요.'; return; }
+      if (result.impossible) { output.textContent = '원하는 평단이 추가 매수가 이하이면 그 가격으로 추가 매수해도 도달할 수 없습니다.'; return; }
+      if (result.tooLarge) { output.textContent = '필요한 수량이 너무 커서 계산할 수 없습니다.'; return; }
+      output.textContent = '추가 매수가 ' + formatNumber(p, 2) + '원 기준 · 최소 ' + formatNumber(result.shares) + '주 · 필요 자금 ' + formatNumber(result.cost, 2) + '원 · 실제 새 평단 ' + formatNumber(result.average, 2) + '원';
+    }
+    overlay.querySelector('[data-it-calculate]').addEventListener('click', function () {
+      var q = numberValue(overlay.querySelector('[data-it="currentQuantity"]'));
+      var a = numberValue(overlay.querySelector('[data-it="currentAverage"]'));
+      var p = numberValue(overlay.querySelector('[data-it-recovery="price"]'));
+      var rate = numberValue(overlay.querySelector('[data-it-loss-rate]'));
+      var r = calculateLossTarget(q, a, p, rate), error = overlay.querySelector('[data-it-calculate-error]');
+      if (!r || r.tooLarge) { invalidateSummary(); error.textContent = r && r.tooLarge ? '입력값이 너무 큽니다.' : '현재가·평단은 0보다 크게, 수량은 정수주, 목표 손실률은 0보다 크고 100 이하로 입력하세요.'; return; }
+      error.textContent = ''; summaryReady = true; overlay.querySelector('[data-it-summary]').hidden = false; renderRecovery();
+    });
     function render() {
       var currentQuantity = numberValue(overlay.querySelector('[data-it="currentQuantity"]'));
       var currentAverage = numberValue(overlay.querySelector('[data-it="currentAverage"]'));
@@ -275,8 +305,8 @@
       set('change', result.averageChangePct == null ? '-' : (result.averageChangePct > 0 ? '+' : '') + result.averageChangePct.toFixed(2) + '%');
       set('recovery', result.recoveryPct == null ? '-' : (result.recoveryPct > 0 ? '+' : '') + result.recoveryPct.toFixed(2) + '%');
     }
-    overlay.addEventListener('input', function (event) { formatInputsOnEdit(event); if (event.target.matches('[data-it-recovery="price"]')) { requestId++; stockStatus.textContent = '직접 입력한 현재가로 계산합니다.'; } render(); renderRecovery(); });
-    overlay.querySelector('.it-add-more').addEventListener('click', function () {
+    overlay.addEventListener('input', function (event) { formatInputsOnEdit(event); if (event.target.matches('[data-it-recovery="price"], [data-it="currentQuantity"], [data-it="currentAverage"], [data-it-loss-rate]')) invalidateSummary(); if (event.target.matches('[data-it-recovery="price"]')) { requestId++; stockStatus.textContent = '직접 입력한 현재가로 계산합니다.'; } render(); renderRecovery(); renderDesired(); });
+    overlay.querySelector('.it-additions-head .it-add-more').addEventListener('click', function () {
       var additions = overlay.querySelector('.it-additions');
       additions.insertAdjacentHTML('beforeend', buyRowHtml(additions.children.length + 1));
       renumberRows();
@@ -288,6 +318,7 @@
       if (overlay.querySelectorAll('[data-it-add-row]').length > 1) remove.closest('[data-it-add-row]').remove();
       renumberRows();
       render();
+      renderDesired();
     });
     overlay.querySelector('.it-close').addEventListener('click', close);
     overlay.addEventListener('click', function (event) { if (event.target === overlay) close(); });

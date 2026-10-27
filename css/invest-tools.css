@@ -20,6 +20,17 @@ html.dark .it-recovery { border-color: var(--dk-line); }
 html.dark .it-stock-row input { border-color: var(--dk-line); background: var(--dk-inner); color: var(--dk-text); }
 html.dark .it-recovery-result { background: #203127; color: #9bd4ad; }
 @media (max-width: 600px) { .it-stock-row { align-items: stretch; flex-direction: column; } }
+ .it-calculate { margin-top: 16px; }
+.it-table-wrap { margin-top: 16px; overflow-x: auto; }
+.it-summary-table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+.it-summary-table caption { text-align: left; font-weight: 700; margin-bottom: 8px; }
+.it-summary-table th, .it-summary-table td { padding: 10px 8px; border: 1px solid #dfe5eb; text-align: right; white-space: nowrap; }
+.it-summary-table th:first-child { text-align: left; }
+.it-summary-table thead th { background: #f7f9fa; }
+.it-target-detail { margin-top: 16px; font-size: 14px; }
+.it-target-detail summary { cursor: pointer; font-weight: 700; }
+html.dark .it-summary-table th, html.dark .it-summary-table td { border-color: var(--dk-line); }
+html.dark .it-summary-table thead th { background: var(--dk-inner); }
 .it-current-grid { margin-bottom: 22px; }
 .it-additions-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .it-additions-head > strong { font-size: 15px; }
