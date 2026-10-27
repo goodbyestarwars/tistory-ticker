@@ -354,6 +354,8 @@
         btn.classList.add('active');
         btn.setAttribute('aria-pressed', 'true');
         activeTab = btn.getAttribute('data-tab');
+        var phaseTab = container.querySelector('[data-view=\"new\"]');
+        if (phaseTab && phaseTab.firstChild) phaseTab.firstChild.nodeValue = activeTab === 'liveFlow' ? '2차 신호 ' : '신규 포착 ';
         var grouped = groupFor(activeTab);
         if (grouped) { historySource = grouped.sources.filter(function(k){return k !== 'ninepayLive';})[0]; trackView = 'all'; scanPerformanceData = null; }
         container.querySelectorAll('.ps-view-tab').forEach(function(b){var on=b.getAttribute('data-view')===trackView;b.classList.toggle('active',on);b.setAttribute('aria-selected',String(on));});
@@ -1255,6 +1257,30 @@
     });
     return order;
   }
+  // Display only actual A/B events emitted by the existing observer. This is
+  // an observation, not a substitute for the PC order gate or a buy instruction.
+  function phaseTwoEvents() {
+    var n = ninepayData;
+    if (!n || ninepayError || !n.running || !n.active || n.ruleVersion !== 'ab70-v1' || !Array.isArray(n.signals) || n.rankError || n.amountFallback || n.persistenceError || n.queueDropped) return null;
+    var rankAt = Date.parse(n.rankAt || ''), rankAge = Date.now() - rankAt;
+    if (!Number.isFinite(rankAge) || rankAge < 0 || rankAge > 120000) return null;
+    var today = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
+    return n.signals.filter(function (s) {
+      if (!s || !/^\d{6}$/.test(String(s.code || '')) || s.ruleVersion !== 'ab70-v1') return false;
+      var at = Number(s.at), first = Number(s.first70At), ratio = Number(s.volumeRatio);
+      if (!Number.isFinite(at) || !Number.isFinite(first) || !Number.isFinite(ratio) || first <= 0 || at < first || at * 1000 > Date.now()) return false;
+      var signalDate = new Date(at * 1000 + 9 * 3600000), firstDate = new Date(first * 1000 + 9 * 3600000);
+      var day = signalDate.toISOString().slice(0, 10), firstDay = firstDate.toISOString().slice(0, 10);
+      var signalMinute = signalDate.getUTCHours() * 60 + signalDate.getUTCMinutes(), firstMinute = firstDate.getUTCHours() * 60 + firstDate.getUTCMinutes();
+      return day === today && firstDay === today && signalMinute >= 540 && signalMinute < 840 && firstMinute >= 540 && firstMinute < 840
+        && Number(s.price) > 0 && ['Kiwoom WebSocket', 'KIS rank polling'].indexOf(s.source) >= 0
+        && s.signalId === today + ':' + s.code && ratio >= 0.7
+        && s.volumeMissing === false && Object.prototype.hasOwnProperty.call(s, 'excluded')
+        && (s.excluded === null || s.excluded === false)
+        && Array.isArray(s.branches) && s.branches.length > 0
+        && s.branches.every(function (b) { return b === 'A' || b === 'B'; });
+    });
+  }
   function unifiedItems() {
     var group=groupFor(activeTab), patterns=(scanData && scanData.patterns) || {};
     if(!group)return [];
@@ -1330,12 +1356,16 @@
     if(trackView==='success'||trackView==='failed'){renderTrackedList(container);return;}
     ensureTrackMap(container);
     var all=unifiedItems();
-    var items=all.filter(function(row){return trackView==='all'||row.members.some(function(m){return m.key===historySource&&itemStage(m.item).key===trackView;});});
+    var phaseTwo = activeTab === 'liveFlow' ? phaseTwoEvents() : null;
+    var phaseTwoCodes = new Set((phaseTwo || []).map(function (e) { return String(e.code); }));
+    var items=all.filter(function(row){return trackView==='all'||(activeTab==='liveFlow' && trackView==='new' ? phaseTwoCodes.has(String(row.code)) : row.members.some(function(m){return m.key===historySource&&itemStage(m.item).key===trackView;}));});
     detailNavItems=items;
     var notice='';
     if(activeTab==='liveFlow') {
+      var tabNew = container.querySelector('[data-view=\"new\"]');
+      if (tabNew && tabNew.firstChild) tabNew.firstChild.nodeValue = '2차 신호 ';
       var n=ninepayData;
-      notice='<div class="ps-unified-note">9Pay: '+escapeHtml(ninepayError || (!n?'수신 대기':n.ruleVersion!=='ab70-v1'?'구버전·표시 제외':n.active && !n.rankError && n.rankAt && Date.now()-Date.parse(n.rankAt)<=120000?'장중 감시':'실시간 확인 불가·마지막 기록'))
+      notice='<div class="ps-unified-note">2차 신호는 A/B 발생 기록입니다. 실제 주문 가능 여부는 PC에서 신호 나이·잔고·제외 조건을 다시 확인합니다. ' + (phaseTwo === null ? '2차 신호 조회 실패 또는 미수신 · ' : '') + '9Pay: '+escapeHtml(ninepayError || (!n?'수신 대기':n.ruleVersion!=='ab70-v1'?'구버전·표시 제외':n.active && !n.rankError && n.rankAt && Date.now()-Date.parse(n.rankAt)<=120000?'장중 감시':'실시간 확인 불가·마지막 기록'))
         +' · '+escapeHtml(liveSurgeInfo?(liveSurgeInfo.active && liveSurgeInfo.dataBasis && liveSurgeInfo.dataBasis.realtime?'거래량 장중 감시':'거래량 실시간 확인 불가·마지막 기록'):'거래량 수신 대기')
         +(n && n.rankError?' · 순위 API 장애: '+escapeHtml(n.rankError):'')
         +(n && n.rankAt?' · 순위 관측 '+escapeHtml(n.rankAt):'')
@@ -1349,13 +1379,14 @@
       notice='<div class="ps-unified-note">'+(f?'기술 후보 '+f.technical+' · 통과 '+f.passed+' · 제외 '+f.excluded+'<br>'+Object.keys(f.reasonCounts || {}).map(function(k){return escapeHtml((f.reasonLabels || {})[k] || k)+' '+f.reasonCounts[k];}).join(' · '):'재무 검증 결과를 준비 중이다. 미확인 종목은 표시하지 않는다.')+'</div>';
     }
     if(activeTab==='pullbackRebreak' && scanData && scanData.gongpasanStages && scanData.gongpasanStages.status!=='ok')notice+='<div class="ps-unified-note">급락 후 첫 눌림의 관찰 단계는 자료가 오래돼 숨겼다.</div>';
-    list.innerHTML=notice+(items.length?'<div class="ps-list-head" aria-hidden="true"><span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>패턴·단계</span><span>가격·등락률</span><span>관측·재무</span></div>':emptyUnifiedHtml())
+    var noRows = activeTab === 'liveFlow' && trackView === 'new' ? (phaseTwo === null ? global.NineUI.state('error', '2차 A/B 신호를 확인하지 못했습니다.', 'ps-hint') : '<div class="ps-hint">확인된 2차 A/B 신호 기록이 없습니다.</div>') : emptyUnifiedHtml();
+    list.innerHTML=notice+(items.length?'<div class="ps-list-head" aria-hidden="true"><span>순번</span><span>종목</span><span>최근 20일 흐름</span><span>패턴·단계</span><span>가격·등락률</span><span>관측·재무</span></div>':noRows)
       +items.map(function(it,i){return '<div class="ps-item ps-unified-item" data-code="'+escapeHtml(it.code)+'" tabindex="0" role="button"><span class="ps-rank">'+(i+1)+'</span><div class="ps-stock"><span class="ps-name">'+stockIconHtml(it.code)+escapeHtml(it.name || it.code)+'</span><span class="ps-code">'+escapeHtml(it.code)+'</span></div><div class="ps-mini-chart-wrap">'+miniChartHtml(it)+'</div><div class="ps-pattern-tags">'+it.members.map(memberTagHtml).join('')+'</div><div class="ps-quote"><span class="ps-price">'+(it.price==null?'미수신':fmt(it.price))+'</span><span class="ps-rate '+chgClass(it.changeRate)+'">'+chgSign(it.changeRate)+'</span><small>'+escapeHtml(it._quoteBasis || (it.date || '')+' 스캔 시점')+'</small></div><div class="ps-observation">'+financialHtml(it)+it.members.filter(function(m){return m.key==='ninepayLive';}).map(function(m){var r=m.item;return '<span>70% 최초 '+npTime(r.first70At)+' · 비율 '+(r.volumeRatio==null?'미수신':'≥'+npNumber(r.volumeRatio*100,'%',1))+'<br>신호 '+npTime(r.signalAt)+' · '+npNumber(r.signalPrice,'원')+' · 수신 '+npTime(r.at)+'<br>'+(r.volumeMissing?'거래량 결측 · ':'')+(r.entryInvalid?'진입 무효 · ':'')+(r.priority80?'80% 우선':'80% 미확인')+'</span>';}).join('')+'<small>원래 패턴별 근거는 상세에서 확인</small></div></div>';}).join('');
     list.querySelectorAll('.ps-item').forEach(function(el){function open(){var row=items.filter(function(it){return it.code===el.getAttribute('data-code');})[0];var chosen=row.members.filter(function(m){return m.key===historySource;})[0]||row.members[0];openDetail(container,Object.assign({},chosen.item,{_sourceKey:chosen.key}));}el.addEventListener('click',open);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});});
     renderTrackSummary(container);
     // Counts refer to the selected original source, never a sum across patterns.
     var cache=trackedCache[scannerKey(activeTab)+'|active'], stats=cache && cache.data && cache.data.stats;
-    var counts={all:all.length,new:all.filter(function(r){return r.members.some(function(m){return m.key===historySource&&itemStage(m.item).key==='new';});}).length,ready:all.filter(function(r){return r.members.some(function(m){return m.key===historySource&&itemStage(m.item).key==='ready';});}).length,success:stats?stats.success:null,failed:stats?stats.failed:null};
+    var counts={all:all.length,new:activeTab==='liveFlow' ? (phaseTwo === null ? null : phaseTwoCodes.size) : all.filter(function(r){return r.members.some(function(m){return m.key===historySource&&itemStage(m.item).key==='new';});}).length,ready:all.filter(function(r){return r.members.some(function(m){return m.key===historySource&&itemStage(m.item).key==='ready';});}).length,success:stats?stats.success:null,failed:stats?stats.failed:null};
     container.querySelectorAll('#psViewTabs [data-count]').forEach(function(el){var n=counts[el.getAttribute('data-count')];el.textContent=n==null?'':' '+n;});
   }
 
@@ -2642,6 +2673,17 @@
       if (member) out.push(member.item);
       return out;
     }, []) : ((scanData && scanData.patterns && scanData.patterns[source]) || []);
+    if (activeTab === 'liveFlow') {
+      var n = ninepayData, events = phaseTwoEvents(), twoCodes = new Set((events || []).map(function (e) { return String(e.code); }));
+      var candidates = n && !ninepayError && n.running && n.active && n.ruleVersion === 'ab70-v1' && !n.rankError && !n.persistenceError && !n.queueDropped && !n.amountFallback && Number.isFinite(Date.parse(n.rankAt || '')) && Date.now() - Date.parse(n.rankAt) >= 0 && Date.now() - Date.parse(n.rankAt) <= 120000 && Array.isArray(n.items) ? n.items : null;
+      var allFirst = (candidates || []).concat(events || []);
+      var rows1 = allFirst.filter(function (item) { return item && Number(item.first70At) > 0 && item.excluded == null; }).map(function (item) {
+        return {code:String(item.code), name:item.name || item.code, at:item.first70At,
+          reason:'장중 거래량 70% 최초 관측', badge:'1차 후보', stage:'first', origin:'current', item:item};
+      });
+      return {source:'pattern:ninepayLive', label:'9Pay A/B 1차 후보', mode:'first-stage', current:rows1,
+        currentLoaded:!!candidates, secondCount:events === null ? null : twoCodes.size};
+    }
     var rows = current.map(function (item) {
       var track = map[item.code];
       var detail = item.patternDetail || {};
@@ -2688,3 +2730,4 @@
     init();
   }
 })(window);
+

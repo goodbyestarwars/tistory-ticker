@@ -22,6 +22,7 @@
     var percent = state === 'success' ? 100 : state === 'running' && validProgress ? Math.min(99, Math.floor(p.processed / p.total * 100)) : null;
     var labels = { running: '스캔 진행 중', waiting: '앞선 스캔 완료 대기', success: '스캔 완료',
       failed: '스캔 오류', timeout: '스캔 시간 초과', interrupted: '스캔 중단', deadline: '스캔 실행창 종료',
+      run_timeout: '스캔 시간 초과', wait_timeout: '스캔 대기 시간 초과', launch_failed: '스캔 실행 실패',
       skipped: '스캔 건너뜀', unknown: '스캔 상태 확인 중', unverified: '실행 상태 미확인' };
     var scope = target && target.id === 'strategyscan' ? '전략 배치' : '일봉 배치';
     var detail = state === 'running' && validProgress ? (p.phase ? p.phase + ' · ' : '') + p.processed.toLocaleString('ko-KR') + ' / ' + p.total.toLocaleString('ko-KR') + (p.unit || '종목') + ' 처리' : '';
@@ -47,6 +48,8 @@
     var label = known ? value.percent + '%' : value.state === 'unverified' ? '확인 필요' : value.state === 'running' ? '진행 중' : value.state === 'waiting' ? '대기' : /failed|timeout|interrupted|deadline/.test(value.state) ? '중단' : '집계 대기';
     var panel = strip.querySelector('.scan-status-panel') || strip;
     strip.setAttribute('data-state', value.state);
+    global.ScannerProgress.latest = value;
+    if (typeof global.CustomEvent === 'function') document.dispatchEvent(new global.CustomEvent('scanner-progress-data', {detail:value}));
     panel.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
       + '<svg class="scan-progress-ring" viewBox="0 0 112 112" aria-hidden="true"><circle class="scan-progress-track" cx="56" cy="56" r="47"/>'
       + '<circle class="scan-progress-value" cx="56" cy="56" r="47" pathLength="100" style="stroke-dasharray:' + (known ? value.percent : 0) + ' 100"/></svg>'
@@ -105,3 +108,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', mount, { once:true });
   else mount();
 })(typeof window === 'undefined' ? globalThis : window);
+

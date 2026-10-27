@@ -15,7 +15,7 @@
     snapshot = snapshot || {};
     days = [7,30,90].indexOf(days) >= 0 ? days : 7;
     var today = kstDay(now), since = kstDay(now - (days - 1) * 86400000);
-    var current = snapshot.current || [], hits = (snapshot.hits || []).filter(function (r) {
+    var current = snapshot.current || [], hits = (snapshot.mode === 'first-stage' ? [] : snapshot.hits || []).filter(function (r) {
       return r && r.scanner === snapshot.source && r.code && /^\d{4}-\d{2}-\d{2}$/.test(r.scanDate);
     });
     var dates = hits.map(function (r) { return r.scanDate; }).sort();
@@ -54,14 +54,14 @@
     var stats = snapshot.stats;
     var todayKnown = (snapshot.historyLoaded || snapshot.currentLoaded) && partialDay !== today;
     return { source:snapshot.source || '', label:snapshot.label || '이력 기준 확인 중', days:days,
-      counts:[todayKnown ? todayCodes.size : null, snapshot.currentLoaded ? readyCodes.size : null,
+      counts:[todayKnown ? todayCodes.size : null, snapshot.mode === 'first-stage' ? snapshot.secondCount : snapshot.currentLoaded ? readyCodes.size : null,
         stats ? count(stats.success) : null, stats ? count(stats.failed) : null],
       delta:delta, deltaPct:previous > 0 ? delta / previous * 100 : null, previousDay:comparable ? previousDay : '',
       points:historyDays.filter(function (d) { return d >= since && d <= today; }).map(function (d) { return {time:d,value:buckets[d].size}; }),
       recent:Object.keys(recent).map(function (code) { return recent[code]; }).sort(function (a,b) {
         return timestamp(b.at) - timestamp(a.at) || a.code.localeCompare(b.code);
       }).slice(0,5), truncated:truncated, partialDay:partialDay,
-      currentCount:new Set(current.filter(function (r) { return r && r.code; }).map(function (r) { return String(r.code); })).size,
+      mode:snapshot.mode || '', currentCount:new Set(current.filter(function (r) { return r && r.code; }).map(function (r) { return String(r.code); })).size,
       loaded:!!(snapshot.historyLoaded || snapshot.currentLoaded), historyLoaded:!!snapshot.historyLoaded, historyError:!!snapshot.historyError };
   }
   global.ScannerDashboard = { model:model, kstDay:kstDay };
@@ -71,7 +71,7 @@
   var esc = function (s) { return global.NineUI.escapeHtml(String(s == null ? '' : s)); };
   var selfUrl = document.currentScript && document.currentScript.src;
   var histories = {}, visibleRows = [], boardJob;
-  var latest = null, period = 7, chart = null, chartVersion = 0, signature = '';
+  var latest = null, period = 7, chart = null, chartVersion = 0, signature = '', progress = global.ScannerProgress && global.ScannerProgress.latest;
   var panel = document.createElement('div');
   panel.className = 'scan-dashboard-main';
   panel.innerHTML = '<div class="scan-dashboard-stats" aria-label="스캔 요약 통계"></div>'
@@ -112,12 +112,22 @@
     return boardJob;
   }
   function drawChart(value) {
-    var next = JSON.stringify([value.source,period,value.points,value.historyLoaded,value.historyError,value.currentCount]);
+    var next = JSON.stringify([value.source,period,value.points,value.historyLoaded,value.historyError,value.currentCount,progress]);
     if (next === signature) return;
     signature = next;
     var version = ++chartVersion;
     if (chart) { chart.destroy(); chart = null; }
     plot.innerHTML = '';
+    if (progress && progress.state === 'running') {
+      plot.classList.remove('is-empty');
+      var pct = progress.percent;
+      plot.innerHTML = '<div role="status"><strong>일봉 배치 진행 중</strong> · '
+        + esc(pct == null ? '진행률 미수신' : pct + '%')
+        + (progress.detail ? ' · ' + esc(progress.detail) : '')
+        + (progress.stale ? ' · 진행 정보 갱신 대기' : '')
+        + (pct == null ? '' : '<progress max="100" value="' + pct + '" aria-label="일봉 배치 진행률"></progress>') + '</div>';
+      return;
+    }
     plot.classList.toggle('is-empty', !value.points.length);
     if (!value.points.length) {
       plot.textContent = value.historyError && !value.historyLoaded ? '일별 저장 이력을 불러오지 못했습니다. 현재 검색 결과는 별도로 유지됩니다.'
@@ -144,9 +154,11 @@
     var history = histories[snapshot && snapshot.source];
     var value = model(Object.assign({}, snapshot, {hits:history && history.data && history.data.hits, historyLoaded:!!(history && history.data), historyError:!!(history && history.error)}),period,Date.now());
     visibleRows = value.recent;
-    var labels = ['오늘 포착','돌파 준비','돌파 성공','실패'];
+    var labels = value.mode === 'first-stage' ? ['오늘 1차 후보','2차 A/B 신호','돌파 성공','실패'] : ['오늘 포착','돌파 준비','돌파 성공','실패'];
+    panel.querySelector('#scan-recent-title').textContent = value.mode === 'first-stage' ? '최근 포착 신호 · 1차 후보' : '최근 포착 신호';
+    panel.querySelector('.scan-dashboard-recent .scan-dashboard-chart-note').textContent = value.mode === 'first-stage' ? '장중 70% 최초 관측 후보 · A/B 전 단계' : '현재 검색 결과·저장 포착 기록을 구분해 표시합니다.';
     setHtml(statBox, labels.map(function (label,i) {
-      var note = i===0 ? 'KST 오늘 · 현재 결과·저장 기록 중복 제외' : i===1 ? '현재 검색 결과' : '최근 90일 이력';
+      var note = value.mode === 'first-stage' ? (i===0 ? '70% 최초 관측 · KST 오늘' : i===1 ? 'A/B 발생 기록 · 주문과 별도' : '별도 이력 미연동') : i===0 ? 'KST 오늘 · 현재 결과·저장 기록 중복 제외' : i===1 ? '현재 검색 결과' : '최근 90일 이력';
       if (i===0 && value.delta !== null) note = value.previousDay.slice(5).replace('-','/')+' 대비 '+(value.delta>0?'+':'')+value.delta+'건'
         +(value.deltaPct===null?'':' ('+(value.deltaPct>0?'+':'')+value.deltaPct.toFixed(1)+'%)');
       return '<div class="scan-dashboard-stat"><span>'+label+'</span><strong>'+(value.counts[i]===null?'—':value.counts[i].toLocaleString('ko-KR'))+'</strong><small>'+esc(note)+'</small></div>';
@@ -170,8 +182,8 @@
       img.onload = function () { img.previousElementSibling.hidden=true; };
       if (img.complete && img.naturalWidth) img.onload();
     });
-    panel.querySelector('.scan-dashboard-basis').textContent = '이력 기준: '+value.label+' · 오늘은 KST 기준 · 성공·실패는 최근 90일 포착 이력';
-    panel.querySelector('.scan-dashboard-chart-note').textContent = (history && history.error ? '이력 조회 지연 · ' : '')+'일별 저장 포착 수 · 현재 검색 결과는 최근 신호에 별도 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
+    panel.querySelector('.scan-dashboard-basis').textContent = value.mode === 'first-stage' ? '1차는 70% 관측 후보 · 2차는 A/B 발생 기록 · 실제 주문과 별도' : '이력 기준: '+value.label+' · 오늘은 KST 기준 · 성공·실패는 최근 90일 포착 이력';
+    panel.querySelector('.scan-dashboard-chart-note').textContent = progress && progress.state === 'running' ? '현재 배치 진행 상황 · 장중 감시와 별도' : value.mode === 'first-stage' ? '일봉 배치 진행 중에 진행률을 표시합니다.' : (history && history.error ? '이력 조회 지연 · ' : '')+'일별 저장 포착 수 · 현재 검색 결과는 최근 신호에 별도 표시'+(value.truncated?' · 최대 1,500건, 가장 오래된 날짜의 부분 집계 제외':'');
     drawChart(value);
   }
   panel.querySelectorAll('[data-scan-days]').forEach(function (button) {
@@ -190,7 +202,7 @@
   });
   function update(snapshot) {
     render(snapshot);
-    if (!snapshot || !snapshot.source || !global.PatternScan) return;
+    if (!snapshot || !snapshot.source || !global.PatternScan || snapshot.mode === 'first-stage') return;
     var key = snapshot.source, cached = histories[key];
     if (cached && (cached.pending || Date.now()-cached.at < 120000)) return;
     cached = histories[key] = {pending:true,at:Date.now(),data:cached && cached.data};
@@ -204,6 +216,8 @@
       if (latest && latest.source===key) render(latest);
     });
   }
+  document.addEventListener('scanner-progress-data',function (event) { progress = event.detail; if (latest) render(latest); });
   document.addEventListener('pattern-scan-data',function (event) { update(event.detail); });
   update(global.PatternScan && global.PatternScan.dashboardSnapshot ? global.PatternScan.dashboardSnapshot() : null);
 })(typeof window === 'undefined' ? globalThis : window);
+
