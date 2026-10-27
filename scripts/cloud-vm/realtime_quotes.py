@@ -17,6 +17,7 @@ import kiwoom_client
 import kis_client
 import kis_ws_hub
 import kiwoom_ws_hub
+import toss_ws_hub
 import rest_quote_fallback
 import us_stocks
 
@@ -29,7 +30,7 @@ _MAX_CODES = 50
 # 한 브라우저 연결이 요청할 수 있는 종목 수. KIS 허브 실시간 등록은 앞의 _MAX_CODES개까지만 하고
 # 나머지는 REST 통합 시세 폴백으로 "지연" 갱신한다. 2026-09-14 라이브: 국내 주요종목 카드가
 # 250종목을 여는데 여기서 50개로 잘려, 나머지 200종목은 소켓이 열린 동안 아무 갱신도 없었다.
-MAX_REQUEST_CODES = 300
+MAX_REQUEST_CODES = 400
 # 허브 쪽 상태를 브라우저에 알리는 주기. 틱이 없는 동안에만 보낸다(화면이 "지연"을 판단할 근거).
 _RELAY_STATUS_INTERVAL_SEC = 15
 # 등록 여부(coverage)를 다시 보는 주기와, 구독 직후 허브가 KIS에 등록할 틈.
@@ -357,7 +358,192 @@ def _kis_us_keys(symbols):
     return keys[:_MAX_CODES]
 
 
+async def _relay_once_three_brokers(browser_ws, domestic_codes, us_symbols):
+    """Share Kiwoom(200) + Toss(2 x 100) + spare KIS slots across the web.
+
+    The 400 limit is a request capacity, not proof of 400 live feeds. Each
+    supplier acknowledges its own registrations; only covered symbols are live.
+    KIS remains first choice for the one-symbol orderbook and US market feed.
+    Toss trades are LOSSY, so never send them to the trade-volume/PC signal path.
+    """
+    appkey = os.environ.get('KIS_APPKEY')
+    appsecret = os.environ.get('KIS_APPSECRET')
+    if not appkey or not appsecret:
+        raise RuntimeError('KIS_APPKEY/KIS_APPSECRET가 설정되지 않았습니다.')
+    kis_hub = kis_ws_hub.start(appkey, appsecret)
+    if kis_hub is None:
+        raise RuntimeError('KIS 공유 WebSocket 허브를 시작하지 못했습니다.')
+
+    include_orderbook = len(domestic_codes) == 1
+    # The existing detail chart needs the KIS trade + 10-level orderbook.
+    # Bulk watchlists/boards are deterministic non-overlapping broker regions:
+    # [0:200] Kiwoom, [200:400] Toss; KIS covers uncovered codes.
+    kiwoom_primary = domestic_codes if include_orderbook else domestic_codes[:200]
+    toss_primary = [] if include_orderbook else domestic_codes[200:400]
+    kis_primary = domestic_codes if include_orderbook else []
+    registrations = [
+        ('H0UNCNT0', code, kis_ws_hub.PRIORITY_QUOTES)
+        for code in kis_primary
+    ]
+    if include_orderbook:
+        registrations += [
+            ('H0UNASP0', code, kis_ws_hub.PRIORITY_ORDERBOOK)
+            for code in domestic_codes
+        ]
+    registrations += [
+        (tr_id, key, kis_ws_hub.PRIORITY_QUOTES)
+        for key, tr_id in _kis_us_keys(us_symbols)
+    ]
+
+    subscription = kis_hub.subscribe(registrations) if registrations else None
+    kiwoom_hub = kiwoom_ws_hub.start(
+        os.environ.get('KIWOOM_APPKEY'), os.environ.get('KIWOOM_SECRETKEY')
+    ) if kiwoom_primary else None
+    kiwoom_sub = kiwoom_hub.subscribe(kiwoom_primary) if kiwoom_hub else None
+    toss_hub = toss_ws_hub.start() if toss_primary else None
+    toss_sub = toss_hub.subscribe(toss_primary) if toss_hub else None
+    fallback = None
+    fallback_codes = set()
+    kis_fallback_codes = frozenset()
+    delayed_sent = None
+    last_fallback_at = {}
+    loop = asyncio.get_running_loop()
+    started = loop.time()
+    last_message_at = started
+    next_coverage_check = started + _COVERAGE_GRACE_SEC
+    wanted = set(domestic_codes) | {'US:' + symbol for symbol in us_symbols}
+    kiwoom_live = frozenset()
+    toss_live = frozenset()
+    kis_live = frozenset()
+    try:
+        await browser_ws.send_json({
+            'type': 'ready',
+            'codes': domestic_codes + ['US:' + symbol for symbol in us_symbols],
+        })
+        while True:
+            # Fast enough to drain active quotes on small VM without extra WS.
+            if subscription is not None:
+                try:
+                    raw = await asyncio.wait_for(subscription.queue.get(), timeout=0.2)
+                except asyncio.TimeoutError:
+                    raw = None
+            else:
+                await asyncio.sleep(0.2)
+                raw = None
+            now = loop.time()
+            if raw is not None:
+                for event in _kis_quote_events(raw):
+                    code = event.get('code')
+                    if code in wanted and (
+                        code not in domestic_codes or include_orderbook
+                        or code not in kiwoom_live | toss_live
+                    ):
+                        await browser_ws.send_json(event)
+                        last_message_at = now
+            if kiwoom_sub is not None:
+                while not kiwoom_sub.queue.empty():
+                    event = kiwoom_sub.queue.get_nowait()
+                    if event.get('code') in kiwoom_primary and (
+                        not include_orderbook or
+                        ('H0UNCNT0', event.get('code')) not in kis_live
+                    ):
+                        await browser_ws.send_json(event)
+                        last_message_at = now
+            if toss_sub is not None:
+                while not toss_sub.queue.empty():
+                    event = toss_sub.queue.get_nowait()
+                    if event.get('code') in toss_primary:
+                        await browser_ws.send_json(event)
+                        last_message_at = now
+            if domestic_codes and now >= next_coverage_check:
+                next_coverage_check = now + _RELAY_TICK_SEC
+                kiwoom_live = kiwoom_hub.live_codes() if kiwoom_hub else frozenset()
+                toss_live = toss_hub.live_codes() if toss_hub else frozenset()
+                kis_live = kis_hub.live_or_pending_keys()
+                not_broker_live = [
+                    c for c in domestic_codes
+                    if c not in kiwoom_live and c not in toss_live
+                    and ('H0UNCNT0', c) not in kis_live
+                ]
+                # Only a bounded KIS supplement; futures, VI and market-halt
+                # events retain their existing priority. Avoid churn on every tick.
+                extra = frozenset(not_broker_live[:24])
+                if extra != kis_fallback_codes:
+                    kis_fallback_codes = extra
+                    needed = list(registrations) + [
+                        ('H0UNCNT0', c, kis_ws_hub.PRIORITY_QUOTES)
+                        for c in sorted(extra)
+                    ]
+                    if subscription is not None:
+                        subscription.close()
+                    subscription = kis_hub.subscribe(needed) if needed else None
+                    kis_live = kis_hub.live_or_pending_keys()
+                delayed = [
+                    code for code in domestic_codes
+                    if code not in kiwoom_live and code not in toss_live
+                    and ('H0UNCNT0', code) not in kis_live
+                ]
+                if delayed != delayed_sent:
+                    if delayed and fallback is None:
+                        fallback = rest_quote_fallback.start(appkey, appsecret)
+                    if fallback is not None:
+                        changed = set(delayed)
+                        if fallback_codes - changed:
+                            fallback.release(fallback_codes - changed)
+                        if changed - fallback_codes:
+                            fallback.want(changed - fallback_codes)
+                        fallback_codes = changed
+                    await browser_ws.send_json({
+                        'type': 'coverage',
+                        'live': [c for c in domestic_codes if c not in set(delayed)],
+                        'delayed': delayed,
+                    })
+                    delayed_sent = delayed
+                    last_message_at = now
+                if fallback is not None:
+                    for code in delayed:
+                        event = fallback.latest(code)
+                        if event and event.get('fetchedAt') != last_fallback_at.get(code):
+                            last_fallback_at[code] = event.get('fetchedAt')
+                            await browser_ws.send_json(event)
+                            last_message_at = now
+            if now - last_message_at >= _RELAY_STATUS_INTERVAL_SEC:
+                status = kis_hub.health()
+                toss_status = toss_hub.health() if toss_hub else {}
+                kiwoom_status = kiwoom_hub.health() if kiwoom_hub else {}
+                ages = [a for a in (
+                    status.get('lastTickAgeSec'),
+                    toss_status.get('lastTickAgeSec'),
+                    kiwoom_status.get('lastTickAgeSec'),
+                ) if isinstance(a, (int, float))]
+                await browser_ws.send_json({
+                    'type': 'status',
+                    'upstream': 'connected' if (
+                        status.get('connected') or toss_status.get('connected')
+                        or kiwoom_status.get('connected')
+                    ) else 'retrying',
+                    'lastTickAgeSec': min(ages) if ages else None,
+                })
+                last_message_at = now
+    finally:
+        if subscription is not None:
+            subscription.close()
+        if kiwoom_sub is not None:
+            kiwoom_sub.close()
+        if toss_sub is not None:
+            toss_sub.close()
+        if fallback is not None and fallback_codes:
+            fallback.release(fallback_codes)
+
+# Keep the battle-tested KIS-first relay if Toss credentials are not yet
+# provisioned on the VM. Only the explicit three-broker path changes defaults.
 async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
+    if os.environ.get('TOSS_CLIENT_ID') and os.environ.get('TOSS_CLIENT_SECRET'):
+        return await _relay_once_three_brokers(browser_ws, domestic_codes, us_symbols)
+    return await _relay_once_kis_legacy(browser_ws, domestic_codes, us_symbols)
+
+
+async def _relay_once_kis_legacy(browser_ws, domestic_codes, us_symbols):
     """KIS 공용 허브에 구독해 이 브라우저 연결이 원한 종목의 체결·호가만 넘긴다."""
     appkey = os.environ.get('KIS_APPKEY')
     appsecret = os.environ.get('KIS_APPSECRET')
@@ -483,6 +669,8 @@ async def _relay_once_kis(browser_ws, domestic_codes, us_symbols):
             kiwoom_sub.close()
         if fallback is not None and fallback_codes:
             fallback.release(fallback_codes)
+
+
 
 
 async def relay_quotes(browser_ws, codes, us_symbols=None):

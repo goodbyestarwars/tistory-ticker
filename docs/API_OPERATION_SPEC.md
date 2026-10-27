@@ -317,3 +317,12 @@ VM `.env`(`/home/goodbyestarwars/kiwoom-api/.env`)의 `KOREAEXIM_API_KEY`(한국
 ### AI 시장 코멘트 운영(2026-10-23)
 
 VM이 정량 분석한 사실 객체를 **GAS `doPost`(`?action=marketComments`, 본문 `token`=VM `API_TOKEN`)**로 보내 Groq가 문장을 만들고, VM이 검증·저장한다. Groq 키는 GAS 스크립트 속성(`GROQ_API_KEY`)에만 있으며 VM·브라우저에는 없다. GAS는 토큰을 상수시간 비교하고 프롬프트 길이·출력 토큰·하루 호출(`MARKET_COMMENTS_DAILY_CAP`, 기본 200)을 제한한다. VM 선택 환경변수: `AI_COMMENTS_ENABLED`(`0`이면 끔), `AI_COMMENTS_DAILY_CALLS`(60), `AI_COMMENTS_DAILY_TOKENS`(150000), `AI_COMMENTS_GAS_URL`(기본 운영 웹앱). 점검: `GET /health/ai-comments`(`state`가 `오류`면 `lastRun.error` 확인: `GAS 응답이 JSON 이 아님`=GAS 미배포, `GAS 오류: unauthorized`=토큰 불일치, `daily-cap`=GAS 하루 상한, `groq-failed`=Groq 키/한도). GAS 배포는 master `gas/` 변경 시 `deploy-gas.yml`. 상세 [AI_MARKET_COMMENTS_2026-10-23.md](AI_MARKET_COMMENTS_2026-10-23.md).
+
+### 400종목 혼합 WebSocket 라우팅 (2026-10-27)
+
+- `MAX_REQUEST_CODES=400`, 키움 한 세션 기본 구독 `KIWOOM_WS_MAX_CODES=200`(공식 허용 범위), 토스 `trade:kr` 공용 허브 2연결×100주제.
+- VM 환경변수 `TOSS_CLIENT_ID`·`TOSS_CLIENT_SECRET`이 모두 설정되어야 새 경로가 켜진다. 허용 IP에 VM 공인 송신 IP 등록 필수. 앱키/시크릿은 코드·Git 기록/브라우저로 전달하지 않는다. 미설정 시 기존 KIS 우선 경로 유지.
+- 주식판 요청 순서 기준 키움 앞200/토스 뒤200, 두 WS 미수신·연결장애는 공유 KIS 남은 등록 슬롯 최대24→기존 KIS REST 지연 시세 순서. 단일 호가화면과 미국 실시간은 KIS 우선. 실제 등록 수/갱신은 `/health/realtime`의 `kis`·`kiwoom`·`toss`와 브라우저 `coverage`를 비교한다.
+- 토스 공식 체결 `trade:kr`은 유실 가능하고 누적거래량/매수매도 방향/등락률 미제공. 시세 표시용 가격/개별체결만 반영; 주문/신호용 틱, 거래량 누적 등에 합산하지 않는다.
+- KIS 옵션 전광판은 WebSocket 대신 **30분 REST**, 코스피200 주간선물 현재가도 **30분 REST**로 조정. KOSPI/KOSDAQ·환율/분봉 기존 스케줄 유지. 야간선물 분봉과 시장정지·VI는 실시간 입력 의존성을 보존한다(해당 KIS WS 계속 사용).
+- 등록 가능 400건은 지연 보장이나 live 400 종목을 의미하지 않는다. 토스 자격증명·현장 구독거부·CPU/메모리/큐 및 장초반 부하 실측 필요.

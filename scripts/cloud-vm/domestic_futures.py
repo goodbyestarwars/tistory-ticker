@@ -80,6 +80,7 @@ CHART_SYMBOLS = {
 }
 
 _REALTIME_POLL_SEC = 30
+_DAY_FUTURES_POLL_SEC = 30 * 60  # KOSPI200 DAY: 30m snapshot, indices still 30s
 _OFF_HOURS_POLL_SEC = 120
 _HISTORY_REFRESH_INTERVAL = 6 * 3600
 
@@ -219,11 +220,13 @@ def fetch_fx_daily_chart(get_json=None, sleep=time.sleep):
     return [by_date[date] for date in sorted(by_date)]
 
 
-def refresh_realtime_all():
+def refresh_realtime_all(include_day_futures=True):
     conn = db_schema.get_conn()
     try:
         now_iso = datetime.now(timezone.utc).isoformat()
         for symbol, (name, code) in REALTIME_SYMBOLS.items():
+            if symbol == 'KOSPI200_DAY' and not include_day_futures:
+                continue
             try:
                 q = fetch_index_realtime(code)
             except Exception:
@@ -289,6 +292,7 @@ def refresh_minute_all():
 
 
 def _poll_loop(use_kis_realtime=False):
+    last_day_futures_refresh = 0
     last_history_refresh = 0
     last_minute_refresh = 0
     import market_clock
@@ -299,7 +303,10 @@ def _poll_loop(use_kis_realtime=False):
             # 단일 실시간 소스가 된다. KOSPI/KOSDAQ/환율은 기존 Naver 수집을
             # 유지하되, FUT만 중복 폴링하지 않는다.
             if not use_kis_realtime:
-                refresh_realtime_all()
+                day_due = time.time() - last_day_futures_refresh >= _DAY_FUTURES_POLL_SEC
+                refresh_realtime_all(include_day_futures=day_due)
+                if day_due:
+                    last_day_futures_refresh = time.time()
             else:
                 for symbol, (name, code) in REALTIME_SYMBOLS.items():
                     if symbol != 'KOSPI200_DAY':
@@ -345,7 +352,9 @@ def _poll_loop(use_kis_realtime=False):
 def start_background():
     kis_appkey = os.environ.get('KIS_APPKEY')
     kis_appsecret = os.environ.get('KIS_APPSECRET')
-    use_kis_realtime = bool(kis_appkey and kis_appsecret)
+    # Free the KIS realtime budget for stock quotes, keeping day futures as
+    # a 30-minute REST snapshot (KOSPI/KOSDAQ and FX retain fast refresh).
+    use_kis_realtime = False
     if use_kis_realtime:
         try:
             import websockets  # noqa: F401

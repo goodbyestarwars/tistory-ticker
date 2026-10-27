@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: '20'
       - name: Install the existing pattern-engine test dependencies
-        run: python -m pip install 'numpy<3' 'pandas<3'
+        run: python -m pip install 'numpy<3' 'pandas<3' 'websockets>=14,<17'
       - name: Scan freshness, fallback, changed rows, timing and Linux cache locks
         env:
           PYTHONPATH: scripts/cloud-vm:test
@@ -46,6 +46,7 @@ jobs:
       - name: HTTP lifecycle and common chart engine
         run: |
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_scan_progress
+          PYTHONPATH=scripts/cloud-vm:test python -m unittest test_toss_ws_hub test_realtime_quotes test_kis_ws_hub test_kiwoom_ws_hub
           node test/test_scanner_progress.js
           node test/test_http_client.js
           node test/test_shared_ui_api.js

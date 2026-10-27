@@ -79,6 +79,7 @@ import kiwoom_9pay_live
 import load_probe
 import market_clock
 import realtime_quotes
+import toss_ws_hub
 import theme_flow
 import money_picks
 import volume_profile_collector
@@ -1445,6 +1446,7 @@ def health_realtime():
     snapshot = kis_ws_hub.health_snapshot()
     # 2026-09-15: KIS 자리를 넘친 종목을 받는 키움 공유 허브 상태(등록 응답·체결 수·접미사)도 함께 본다.
     snapshot['kiwoom'] = kiwoom_ws_hub.health_snapshot()
+    snapshot['toss'] = toss_ws_hub.health_snapshot()
     snapshot['ninePayResearch'] = kiwoom_9pay_live.health_snapshot()
     return envelope(snapshot)
 
