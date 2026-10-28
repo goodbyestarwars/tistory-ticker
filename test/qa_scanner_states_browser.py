@@ -66,6 +66,11 @@ async def main():
                         result=await evaluate('({rows:document.querySelectorAll("#psList .ps-state-row").length,overflow:document.documentElement.scrollWidth>innerWidth,errors:qaErrors,text:document.querySelector("#psList").innerText})')
                         assert not result['overflow'] and not result['errors'], result
                         if not BASELINE:
+                            received=await evaluate('PatternScan.publicSummary.counts')
+                            labels=await evaluate('Object.fromEntries(Array.from(document.querySelectorAll("[data-status-count]")).map(el=>[el.dataset.statusCount,el.textContent]))')
+                            for key in ('all','confirmed','observation','research','excluded','expired'):
+                                expected=sum(received[k] for k in ('confirmed','observation','research')) if key=='all' else received[key]
+                                assert labels[key]=='('+str(expected)+')',(key,labels,received)
                             assert await evaluate('!!document.querySelector(".scan-progress-bolt path")')
                             assert not await evaluate('!!document.querySelector(\'#psList [data-code="399999"],#psList [data-code="388888"]\')')
                             assert not await evaluate('qaRequests.some(u=>/order|buy_limit|sell_limit/.test(u))')
@@ -96,7 +101,8 @@ async def main():
                                     assert await evaluate('qaRefreshes')==1,'a new batch completion must refresh the scanner'
                             if mode in ('partial','error','legacy','missing'):
                                 assert not (await evaluate('PatternScan.publicSummary'))['known']
-                                assert await evaluate('document.querySelector(\'[data-status-count="confirmed"]\').textContent')=='—'
+                                assert await evaluate('document.querySelector(\'[data-status-count="confirmed"]\').textContent')=='('+str((await evaluate('PatternScan.publicSummary'))['counts']['confirmed'])+')'
+                                assert '집계 확인 중' in await evaluate('document.querySelector("#psConfirmationStatus").textContent')
                             if mode in ('delayed','partial','closed','legacy','error'):
                                 assert await evaluate('PatternScan.publicSummary.counts.confirmed')==0
                             if mode=='history':
