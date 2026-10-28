@@ -73,6 +73,8 @@ async def main():
                     await call('Page.navigate',dict(url=(REPO/'test/scanner-states.html').as_uri()+'?mode=inline'))
                     await wait_for('window.mode==="inline" && !!document.querySelector(".ps-state-actions > button")')
                     await evaluate('localStorage.removeItem("tistory-ticker:pattern-drawings:005930:day");'+("document.documentElement.classList.add('dark');" if theme=='dark' else ''))
+                    assert await evaluate('Array.from(document.querySelectorAll(".ps-state-actions")).every(el=>el.querySelectorAll("button").length===1 && !el.querySelector("details"))'),'one shared chart/evidence button per stock'
+                    assert await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"] .ps-reference-change\').textContent')=='기준 대비 +0.14%'
                     before=await evaluate('window.startY=scrollY;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();startY')
                     await wait_for('!!document.querySelector(".ps-drawing-layer") && !document.querySelector("[data-ps-draw=line]").disabled')
                     assert await evaluate('document.querySelector("#psDetail").previousElementSibling.dataset.code')=='005930'
@@ -82,10 +84,18 @@ async def main():
                     assert await evaluate('document.querySelectorAll("#psDetail").length')==1
                     assert await evaluate('document.querySelectorAll("[data-ps-draw]").length')==7
                     assert await evaluate('document.querySelectorAll("[data-ps-ma]").length')==4
+                    assert '패턴별 근거' in await evaluate('document.querySelector(".ps-detail-evidence").innerText')
+                    assert await evaluate('document.querySelectorAll("[data-ps-pattern-select] option").length')>1
+                    await evaluate('document.querySelector("[data-ps-pattern-select]").value="1";document.querySelector("[data-ps-pattern-select]").dispatchEvent(new Event("change",{bubbles:true}))')
+                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("[data-ps-pattern-select]")?.value==="1"')
+                    assert await evaluate('document.querySelector("#psDetail").previousElementSibling.dataset.code')=='005930'
+                    assert not await evaluate('document.querySelector("[data-ps-chart-next]").disabled'),'pattern selection must keep stock navigation available'
+                    await evaluate('document.querySelector("[data-ps-pattern-select]").value="0";document.querySelector("[data-ps-pattern-select]").dispatchEvent(new Event("change",{bubbles:true}))')
+                    await wait_for('!!document.querySelector(".ps-drawing-layer") && document.querySelector("[data-ps-pattern-select]")?.value==="0"')
                     await evaluate('document.querySelector("[data-ps-ma=\\"5\\"]").click()')
-                    assert not await evaluate('qaMaSeries[0].options().visible')
+                    assert not await evaluate('qaMaSeries[qaMaSeries.length-4].options().visible')
                     await evaluate('document.querySelector("[data-ps-ma=\\"5\\"]").click()')
-                    assert await evaluate('qaMaSeries[0].options().visible')
+                    assert await evaluate('qaMaSeries[qaMaSeries.length-4].options().visible')
                     assert await evaluate('qaChart.panes().length')==2
                     await evaluate('document.querySelector("[data-ps-volume]").click()')
                     assert await evaluate('qaChart.panes().length')==1
@@ -146,6 +156,12 @@ async def main():
                     assert await evaluate('document.querySelector("[data-ps-volume]").disabled && qaChart.panes().length===1'),'missing volume must not be drawn as zero'
                     await evaluate('document.querySelector("#psClose").click()')
                     assert not await evaluate('qaErrors')
+                    await evaluate('fixture.items.find(r=>r.code==="000660").price=63720;var equal=fixture.items.find(r=>r.code==="035420");equal.price=equal.signalPrice=181400;NineHttp.clearCache();PatternScan.refresh()')
+                    await wait_for('document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change\')?.textContent==="기준 대비 -10.00%"')
+                    assert await evaluate('!!document.querySelector(\'.ps-state-row[data-code="000660"] .ps-reference-change.ps-down\')')
+                    assert await evaluate('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\').textContent')=='기준 대비 0.00%'
+                    await evaluate('fixture.items.find(r=>r.code==="035420").signalPrice=null;NineHttp.clearCache();PatternScan.refresh()')
+                    await wait_for('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\')?.textContent==="기준 대비 미확인"')
                     results.append(dict(width=width,theme=theme,rowHeight=row_height,inline=True,tools=True,refresh=True,fullscreen=True,staleResponseGuard=True))
             (OUT/'results.json').write_text(json.dumps(results,indent=2),encoding='utf8')
             print('PASS',len(results),'real-engine inline chart cases: layout, controls, drawing, refresh, fullscreen, switching, stale responses')
