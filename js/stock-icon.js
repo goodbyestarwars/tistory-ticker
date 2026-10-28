@@ -27,6 +27,7 @@
   };
 
   var BRAND_DOMAIN_MAP = {
+    CBRS: 'cerebras.ai',
     RGTI: 'rigetti.com', RKLB: 'rocketlabusa.com', ORCL: 'oracle.com',
     LLY: 'lilly.com', DELL: 'dell.com', IONQ: 'ionq.com',
     SKHY: 'skhynix.com', ASTS: 'ast-science.com',
