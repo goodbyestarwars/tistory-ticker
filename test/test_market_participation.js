@@ -25,3 +25,7 @@ for(const change of [{status:'unavailable'},{unit:'million_krw'},{basis:'daily'}
 const onlyVolume=entry();delete onlyVolume.turnoverIndex;assert.equal(model(onlyVolume)[0].volume,null);
 const independent=entry();independent.status='unavailable';assert.equal(model(independent)[0].volume.index100,110);
 console.log('PASS turnover contract, no volume fallback, independent source status');
+// Older backend responses omit turnoverIndex: retain the rest of the card without throwing.
+const absent=entry();delete absent.turnoverIndex;
+assert.doesNotThrow(()=>model(absent));
+assert.equal(model(absent)[0].status,'unavailable');

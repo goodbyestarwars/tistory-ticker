@@ -64,6 +64,22 @@ def test_weekend_preserves_previous_session_date():
     assert result['status']=='ok' and result['asOf']=='2026-10-30T15:30:00+09:00'
 
 
+@pytest.mark.parametrize('hour,minute', [(15,32),(19,0),(23,59)])
+def test_after_close_keeps_final_session_amount(hour, minute):
+    now = NOW.replace(hour=hour, minute=minute)
+    result = m.parse_turnover(rows(NOW, '153000'), now)
+    assert result['status'] == 'ok' and result['index100'] == pytest.approx(110)
+    assert result['sessionClosed'] is True
+    assert result['asOf'] == '2026-10-28T15:30:00+09:00'
+
+
+def test_before_open_keeps_previous_close_and_date():
+    now = NOW.replace(day=29, hour=8, minute=30)
+    result = m.parse_turnover(rows(NOW, '153000'), now)
+    assert result['status'] == 'ok' and result['sessionClosed'] is True
+    assert result['asOf'] == '2026-10-28T15:30:00+09:00'
+
+
 def test_changed_session_hours_do_not_mix():
     with patch.object(m.market_clock,'kr_session_minutes',side_effect=lambda d:(600,990) if d.isoformat()=='2026-10-27' else (540,930)):
         assert m.parse_turnover(rows(),NOW)['reason']=='session-hours-mismatch'

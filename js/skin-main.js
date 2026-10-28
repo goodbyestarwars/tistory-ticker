@@ -1431,7 +1431,7 @@ document.documentElement.classList.add('skin-ready');
             && isFinite(turnoverStamp) && turnoverAge >= -60 && turnoverAge <= (active ? 300 : 3600)
             && isFinite(asOf) && observationAge >= 0 && (!active || observationAge <= 2100);
           return {label: definition[1], volume: valid ? volume : null, participation: ready ? participation : null,
-            entry: entry, status: volume && (volume.status === 'stale' || (isFinite(turnoverStamp) && (turnoverAge > (active ? 300 : 3600) || (active && observationAge > 2100))) ? 'stale' : volume.status),
+            entry: entry, status: volume ? ((volume.status === 'stale' || (isFinite(turnoverStamp) && (turnoverAge > (active ? 300 : 3600) || (active && observationAge > 2100)))) ? 'stale' : volume.status) : 'unavailable',
             participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
         }
         return {label: definition[1], volume: valid ? volume : null, status: entry && entry.status};
@@ -1491,7 +1491,7 @@ document.documentElement.classList.add('skin-ready');
         var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
         var turnover = model.volume;
         var amount = turnover ? (turnover.current / 1000000000000).toLocaleString('ko-KR', {maximumFractionDigits: 2}) + '조원' : model.status === 'stale' ? '갱신 지연' : '확인 중';
-        var cutoff = turnover ? new Date(turnover.asOf).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
+        var cutoff = turnover ? new Date(turnover.asOf).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' + (turnover.sessionClosed ? ' · 정규장 마감 기준' : '') : '확인 중';
         return '<div data-volume-participation="' + (model.label === '코스피' ? 'KOSPI' : 'KOSDAQ') + '">'
           + escapeHomeHtml(model.label) + ' · 누적 거래대금 ' + escapeHomeHtml(amount) + ' · 기준 ' + escapeHomeHtml(cutoff) + ' (KIS·KRX)'
           + '<br>거래량 증가 종목 ' + (p ? percent + '%' : state)

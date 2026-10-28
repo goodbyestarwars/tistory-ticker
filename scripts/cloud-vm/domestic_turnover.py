@@ -50,6 +50,7 @@ def parse_turnover(rows, now):
     if slot < opening:
         result['reason'] = 'first-completed-bar-pending'
         return result
+    result['sessionClosed'] = slot == closing
     dates = []
     previous = day
     for _ in range(LOOKBACK):
