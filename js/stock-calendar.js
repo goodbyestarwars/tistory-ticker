@@ -498,10 +498,11 @@
       .every(function (term) { return haystack.indexOf(term) >= 0; });
   }
 
-  function foldRows(rows, render, limit) {
+  function foldRows(rows, render, limit, extraClass) {
     return rows.slice(0, limit).map(render).join('') + (rows.length > limit
       ? '<details class="sc-more"><summary>나머지 ' + (rows.length - limit) + '건 펼치기</summary>'
-        + rows.slice(limit).map(render).join('') + '</details>' : '');
+        + (extraClass ? '<div class="' + escapeHtml(extraClass) + '">' : '')
+        + rows.slice(limit).map(render).join('') + (extraClass ? '</div>' : '') + '</details>' : '');
   }
 
   function safeLink(url) { return /^https?:\/\//i.test(String(url || '')) ? escapeHtml(url) : ''; }
@@ -658,7 +659,7 @@
       var listHtml = loading
         ? '<div class="sc-loading">불러오는 중...</div>'
         : selectedEvents.length
-          ? '<div class="sc-today-rows">' + foldRows(selectedEvents, renderEventRow, 8) + '</div>'
+          ? '<div class="sc-today-rows">' + foldRows(selectedEvents, renderEventRow, 8, 'sc-today-extra') + '</div>'
           : '<div class="sc-empty">선택한 날짜에 예정된 일정이 없습니다.</div>';
 
       var searching = !!String(state.disclosureQuery || '').trim();

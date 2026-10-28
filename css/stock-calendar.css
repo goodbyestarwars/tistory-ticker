@@ -19,7 +19,16 @@
 #stock-calendar .sc-today-head strong { display: block; color: #0d1b40; font-size: 18px; }
 #stock-calendar .sc-today-head span { display: block; margin-top: 4px; color: #64748b; font-size: 12px; }
 #stock-calendar .sc-today-head small { color: #94a3b8; font-size: 11px; white-space: nowrap; }
-#stock-calendar .sc-today-rows { display: flex; flex-direction: column; gap: 6px; }
+#stock-calendar .sc-today-rows { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#stock-calendar .sc-today-extra { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+#stock-calendar .sc-today-rows .sc-ev-item {
+  display: grid; grid-template-columns: 24px minmax(0, 1fr); gap: 6px;
+  align-content: start; min-width: 0; padding: 8px;
+}
+#stock-calendar .sc-today-rows .sc-ev-date { display: none; }
+#stock-calendar .sc-today-rows .sc-ev-body,
+#stock-calendar .sc-today-rows .sc-ev-time { grid-column: 2; }
+#stock-calendar .sc-today-rows .sc-ev-time { white-space: normal; max-width: none; }
 #stock-calendar .sc-disclosure-search { margin-bottom: var(--ui-section-gap, 20px); display: flex; gap: 8px; flex-wrap: wrap; align-items: end; }
 #stock-calendar .sc-disclosure-search .sc-search { flex: 1 1 220px; min-width: 0; }
 #stock-calendar .sc-disclosure-search small { flex-basis: 100%; }
