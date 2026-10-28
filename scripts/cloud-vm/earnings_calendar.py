@@ -17,8 +17,12 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from html.parser import HTMLParser
 from threading import Lock
+from collections import OrderedDict
 
-from sp500_constituents import SP100_SYMBOLS
+import sp500_constituents
+import calendar_model
+import calendar_sources
+from snapshot_io import atomic_json
 
 BASE_URL = 'https://opendart.fss.or.kr/api/list.json'
 FINANCIALS_URL = 'https://opendart.fss.or.kr/api/fnlttSinglAcnt.json'
@@ -50,6 +54,8 @@ _cache = {}
 _financials_cache = {}
 _viewer_cache = {}
 _finnhub_cache = {}
+_dart_page_states = OrderedDict()
+_dart_page_lock = Lock()
 EARNINGS_STORE_FILE = os.environ.get(
     'EARNINGS_CALENDAR_STORE_FILE',
     os.path.join(os.path.dirname(os.path.abspath(__file__)), 'earnings_calendar_store.json'),
@@ -77,9 +83,7 @@ def _write_persistent_events(events):
     temporary = EARNINGS_STORE_FILE + '.tmp'
     try:
         os.makedirs(directory, exist_ok=True)
-        with open(temporary, 'w', encoding='utf-8') as handle:
-            json.dump(events, handle, ensure_ascii=False, separators=(',', ':'))
-        os.replace(temporary, EARNINGS_STORE_FILE)
+        atomic_json(EARNINGS_STORE_FILE, events)
     except OSError:
         _logger.exception('earnings calendar persistent store write failed')
         try:
@@ -90,6 +94,8 @@ def _write_persistent_events(events):
 
 
 def _event_key(event):
+    if event.get('eventId') or event.get('fiscalPeriod'):
+        return calendar_model.identity(event)
     source = str(event.get('source') or event.get('provider') or 'unknown').strip().lower()
     receipt_no = str(event.get('receipt_no') or '').strip()
     if source == 'dart' and receipt_no:
@@ -110,22 +116,40 @@ def _upsert_persistent_events(events):
         for event in events or []:
             if not isinstance(event, dict):
                 continue
+            event = calendar_model.normalize(event)
+            if event.get('source') == 'finnhub' and not event.get('fiscalPeriod'):
+                confirmed = [v for v in _persistent_events.values() if v.get('market') == 'us'
+                             and v.get('symbol') == event.get('symbol') and v.get('fiscalPeriod')
+                             and v.get('eventDate') == event.get('eventDate')]
+                periods = {v['fiscalPeriod'] for v in confirmed}
+                if len(periods) == 1:
+                    event['fiscalPeriod'] = next(iter(periods))
+                    event['periodEvidenceUrl'] = confirmed[0].get('sourceUrl')
             key = _event_key(event)
+            if event.get('fiscalPeriod') and event.get('source') == 'finnhub':
+                # Upgrade old month-based Finnhub identities without leaving a
+                # duplicate when the provider starts supplying fiscal metadata.
+                aliases = [k for k, v in _persistent_events.items() if k != key
+                           and v.get('source') == 'finnhub' and not v.get('fiscalPeriod')
+                           and calendar_model.symbol(v.get('symbol')) == event['symbol']
+                           and str(v.get('us_date') or v.get('start'))[:7] == str(event.get('us_date') or event.get('start'))[:7]]
+                for alias in aliases:
+                    _persistent_events.setdefault(key, _persistent_events.pop(alias))
             previous = _persistent_events.get(key)
-            if previous != event:
-                _persistent_events[key] = dict(event)
+            merged = calendar_model.reconcile(previous, event)
+            if previous != merged:
+                _persistent_events[key] = merged
                 changed = True
         if changed:
             _write_persistent_events(_persistent_events)
 
 
-def _is_sp100(symbol):
-    symbol = str(symbol or '').strip().upper()
-    return symbol in SP100_SYMBOLS or symbol.replace('-', '.') in SP100_SYMBOLS
+def _is_sp500(symbol):
+    return sp500_constituents.contains(symbol)
 
 
 def _in_scope(event):
-    """국내(DART)는 전부, 미국은 S&P 100 실적만 남긴다.
+    """국내(DART)는 전부, 미국은 S&P 500 실적만 남긴다.
 
     저장소(earnings_calendar_store.json)에는 필터를 넣기 전에 받아 둔 미국 소형주 일정이
     그대로 남아 있어(2026-10 실측: 10월 미국 1,573건) 읽을 때도 같은 범위로 거른다.
@@ -133,10 +157,12 @@ def _in_scope(event):
     """
     source = str(event.get('source') or event.get('provider') or '').strip().lower()
     market = str(event.get('market') or '').strip().lower()
-    if source != 'finnhub' and market not in ('us', 'usa', 'foreign'):
+    if source not in ('finnhub', 'corporate-ir-us'):
+        return True
+    if market not in ('us', 'usa', 'foreign'):
         return True
     symbol = event.get('symbol') or event.get('ticker')
-    return not symbol or _is_sp100(symbol)
+    return not symbol or _is_sp500(symbol)
 
 
 def _stored_events(predicate):
@@ -194,14 +220,28 @@ def _fetch(api_key, start_date, end_date):
         total_pages = int(first.get('total_page') or 1)
     except (TypeError, ValueError):
         total_pages = 1
-    total_pages = max(1, min(DART_LIST_MAX_PAGES, total_pages))
-    if total_pages > 1:
+    total_pages = max(1, total_pages)
+    range_key = (start_date, end_date)
+    with _dart_page_lock:
+        state = _dart_page_states.setdefault(range_key, {'next': 2, 'rows': {}})
+        next_page = state['next'] if state['next'] <= total_pages else 2
+    last_page = min(total_pages, next_page + DART_LIST_MAX_PAGES - 2)
+    if total_pages > 1 and next_page <= last_page:
         # 실적 시즌에는 페이지가 여러 장 생긴다. 1페이지를 받은 뒤 나머지는
         # 병렬 요청해 순차 10페이지 대기 시간을 줄인다.
-        with ThreadPoolExecutor(max_workers=4) as executor:
-            for data in executor.map(lambda page: _fetch_page(api_key, start_date, end_date, page), range(2, total_pages + 1)):
+        with ThreadPoolExecutor(max_workers=2) as executor:
+            for data in executor.map(lambda page: _fetch_page(api_key, start_date, end_date, page), range(next_page, last_page + 1)):
                 rows.extend(data.get('list') or [])
-    return rows
+    with _dart_page_lock:
+        for row in rows:
+            # Keep only calendar candidates while incremental pagination advances.
+            if any(token in row.get('report_nm', '') for token in ('실적', '기업설명회', '사업보고서', '반기보고서', '분기보고서')):
+                state['rows'][row.get('rcept_no') or str(row)] = row
+        state.update(next=last_page + 1, partial=last_page < total_pages, totalPages=total_pages)
+        _dart_page_states.move_to_end(range_key)
+        while len(_dart_page_states) > 8:
+            _dart_page_states.popitem(last=False)
+        return list(state['rows'].values())
 
 
 def _fetch_financials(api_key, corp_code, bsns_year, reprt_code):
@@ -264,7 +304,10 @@ def _fetch_text(url):
     request = urllib.request.Request(url, headers={'User-Agent': '9Pay-stock-calendar/1.0'})
     with urllib.request.urlopen(request, timeout=12) as response:
         charset = response.headers.get_content_charset() or 'utf-8'
-        return response.read().decode(charset, errors='replace')
+        data = response.read(calendar_sources.MAX_BYTES + 1)
+        if len(data) > calendar_sources.MAX_BYTES:
+            raise ValueError('calendar document exceeds size budget')
+        return data.decode(charset, errors='replace')
 
 
 def _viewer_document_url(event):
@@ -380,7 +423,17 @@ def _fetch_dart_viewer_result(event):
     viewer_url = _viewer_document_url(event)
     if not viewer_url:
         return None
-    result = _reported_dart_viewer_result(_fetch_text(viewer_url))
+    body = _fetch_text(viewer_url)
+    result = _reported_dart_viewer_result(body)
+    if result:
+        explicit = calendar_model.period(calendar_sources.text(body))
+        # A period end printed in the actual statement is evidence. Receipt month
+        # is never used to link a scheduled event to a reporting quarter.
+        if not explicit:
+            hit = re.search(r'(20\d{2})[./-](03|06|09|12)[./-](?:30|31)', calendar_sources.text(body))
+            explicit = hit[1] + '-Q' + str(int(hit[2]) // 3) if hit else None
+        if explicit:
+            result['fiscalPeriod'] = explicit
     _viewer_cache[cache_key] = (time.time(), result)
     return result
 
@@ -476,7 +529,11 @@ def _reported_dart_result(rows):
 
 
 def _enrich_dart_event(api_key, event):
-    period = _report_period(event.get('report_name'), event.get('receipt_date'))
+    explicit_period = calendar_model.period(event.get('report_name'))
+    # The receipt month cannot prove the fiscal quarter. Without a period in
+    # the filing name, read the actual filing table rather than borrowing numbers
+    # from an inferred quarterly financial report.
+    period = _report_period(event.get('report_name'), event.get('receipt_date')) if explicit_period else None
     corp_code = event.get('corp_code')
     result = None
     if api_key and corp_code and period:
@@ -550,13 +607,20 @@ def fetch_month(year, month):
         stock_code = (row.get('stock_code') or '').strip()
         if stock_code:
             event['symbol'] = stock_code
+        event['company'] = corp
+        event['eventType'] = 'disclosure' if is_announcement_only(report_name) else 'earnings'
+        event['status'] = 'announced' if is_announcement_only(report_name) else 'reported'
+        if event['status'] == 'announced':
+            event['title'] = '$%s 실적 예고 공지 접수 · %s' % (corp, report_name)
+        event['dateBasis'] = 'disclosure_receipt'
+        event['fiscalPeriod'] = calendar_model.period(report_name)
         events.append(event)
     lookup_events = [
         event for event in events
         if event.get('corp_code') and not is_announcement_only(event.get('report_name'))
     ][:DART_RESULT_LOOKUP_MAX]
     if lookup_events:
-        with ThreadPoolExecutor(max_workers=6) as executor:
+        with ThreadPoolExecutor(max_workers=2) as executor:
             enriched = list(executor.map(lambda item: _enrich_dart_event(api_key, item), lookup_events))
         for event in enriched:
             if event.get('result'):
@@ -570,8 +634,14 @@ def fetch_month(year, month):
 
 def safe_fetch_month(year, month):
     try:
-        return fetch_month(year, month)
-    except Exception:
+        events = fetch_month(year, month)
+        with _dart_page_lock:
+            partial = any(state.get('partial') for dates, state in _dart_page_states.items() if dates[0].startswith('%04d%02d' % (year, month)))
+        state = 'partial' if partial else 'ok'
+        _record_source('dart', year, month, state if os.environ.get('DART_API_KEY') else 'unavailable', len(events))
+        return events
+    except Exception as exc:
+        _record_source('dart', year, month, 'error', error=type(exc).__name__)
         _logger.exception('earnings calendar fetch failed for %s-%s', year, month)
         return []
 
@@ -589,10 +659,9 @@ def _fetch_finnhub(api_key, start_date, end_date):
     )
     with urllib.request.urlopen(request, timeout=12) as response:
         payload = json.loads(response.read().decode('utf-8'))
-    if not isinstance(payload, dict):
-        return []
-    rows = payload.get('earningsCalendar')
-    return rows if isinstance(rows, list) else []
+    if not isinstance(payload, dict) or not isinstance(payload.get('earningsCalendar'), list):
+        raise ValueError('invalid Finnhub calendar response')
+    return payload['earningsCalendar']
 
 
 def _finnhub_hour_label(hour):
@@ -607,12 +676,12 @@ def _finnhub_kst_date(event_date, hour):
     """미국 실적 발표일을 한국 캘린더에 표시할 날짜로 바꾼다.
 
     Finnhub는 미국 현지 날짜와 장전(BMO)/장후(AMC)/장중(DMH) 구분만 주고 정확한
-    시각은 주지 않는다. 장전은 한국시간 같은 날 밤, 장후·장중은 다음 날 새벽에
-    해당하므로 날짜만 보이는 한국 캘린더에서는 후자 둘을 다음 날로 둔다. 원본
+    시각은 주지 않는다. 장후는 한국시간 다음 날이다. 장중은 당일/다음 날이
+    모두 가능하여 원본 현지일에 두고 한국 날짜 미확정을 별도로 표시한다. 원본
     미국 날짜는 ``us_date``로 별도 보존해 화면에서 함께 안내한다.
     """
     local_date = date.fromisoformat(str(event_date)[:10])
-    if str(hour or '').lower() in ('amc', 'dmh'):
+    if str(hour or '').lower() == 'amc':
         local_date += timedelta(days=1)
     return local_date.isoformat()
 
@@ -719,7 +788,7 @@ def fetch_us_month(year, month):
     for row in rows:
         if not isinstance(row, dict):
             continue
-        symbol = str(row.get('symbol') or '').strip().upper()
+        symbol = sp500_constituents.normalize_symbol(row.get('symbol'))
         event_date = str(row.get('date') or '').strip()
         if not symbol or not event_date:
             continue
@@ -728,8 +797,8 @@ def fetch_us_month(year, month):
         # 없어 소형주까지 다 섞여 나온다. DART(국내) 쪽은 그대로 둔다.
         # BRK.B/BF.B처럼 클래스 표기가 있는 종목은 공급자마다 '.'/'-' 표기가
         # 갈려서(BRK.B vs BRK-B) 둘 다 확인한다.
-        # 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 100 정도만"): S&P500 → S&P100으로 더 좁힌다.
-        if not _is_sp100(symbol):
+        # Calendar scope is now the complete validated S&P 500 universe.
+        if not _is_sp500(symbol):
             continue
         try:
             kst_date = _finnhub_kst_date(event_date, row.get('hour'))
@@ -759,6 +828,20 @@ def fetch_us_month(year, month):
             'status': 'scheduled',
         }
         result = _reported_result(row)
+        try:
+            fiscal_year, quarter = int(row.get('year')), int(row.get('quarter'))
+            if 2000 <= fiscal_year <= 2100 and quarter in (1, 2, 3, 4):
+                event['fiscalPeriod'] = str(fiscal_year) + '-Q' + str(quarter)
+        except (TypeError, ValueError):
+            pass
+        event['eventType'] = 'earnings'
+        event['datePrecision'] = 'session' if row.get('hour') else 'date'
+        event['dateConversion'] = 'session_estimate' if row.get('hour') else 'local_date_only'
+        if str(row.get('hour') or '').lower() == 'dmh':
+            event['dateConversion'] = 'kst_date_unconfirmed'
+            event['kstDate'] = None
+            event['releaseTimeNote'] = '미국 장중 발표 · 한국 날짜는 당일/다음 날로 미확정, 미국 현지일에 표시'
+        event['scheduledAt'] = None
         if result:
             event['title'] = '$%s 실적발표 완료 · %s' % (symbol, result['result'])
             event.update(result)
@@ -770,8 +853,11 @@ def fetch_us_month(year, month):
 
 def safe_fetch_us_month(year, month):
     try:
-        return fetch_us_month(year, month)
-    except Exception:
+        events = fetch_us_month(year, month)
+        _record_source('finnhub', year, month, 'ok' if os.environ.get('FINNHUB_API_KEY') else 'unavailable', len(events))
+        return events
+    except Exception as exc:
+        _record_source('finnhub', year, month, 'error', error=type(exc).__name__)
         _logger.exception('Finnhub US earnings calendar fetch failed for %s-%s', year, month)
         return []
 
@@ -834,8 +920,173 @@ def merge_year(year):
 
     # 연간 검색은 12개월을 순차 조회하면 첫 검색이 지나치게 느려질 수 있어
     # 월별 공급자 캐시는 유지하면서 월 조회만 제한적으로 병렬화한다.
-    with ThreadPoolExecutor(max_workers=6) as executor:
+    with ThreadPoolExecutor(max_workers=2) as executor:
         for month_events in executor.map(fetch_month_events, range(1, 13)):
             events.extend(month_events)
     _upsert_persistent_events(events)
     return _stored_events(lambda event: _year_matches(event, year))
+
+
+# Request handlers only read the store and queue a bounded month. The existing
+# daily-scan warmer executes one calendar slice, so no new process/thread is added.
+_pending_months = {}
+_month_attempts = {}
+_source_health = {}
+_health_file = EARNINGS_STORE_FILE + '.health.json'
+try:
+    with open(_health_file, encoding='utf-8') as _handle:
+        _source_health.update({tuple(k.split('|')): v for k, v in json.load(_handle).items()})
+except (OSError, ValueError, TypeError):
+    pass
+_calendar_job_lock = Lock()
+_official_attempt = 0
+_ir_seen = set()
+_ir_attempt = 0
+
+
+def _record_source(source, year, month, state, count=None, error=None):
+    key = '%04d-%02d' % (year, month)
+    previous = _source_health.get((key, source), {})
+    _source_health[(key, source)] = dict(previous, state=state, checkedAt=calendar_model.stamp(),
+        count=count, error=error, lastSuccessAt=calendar_model.stamp() if state == 'ok' else previous.get('lastSuccessAt'))
+
+
+def calendar_health(year, month):
+    key = '%04d-%02d' % (year, month)
+    with _persistent_events_lock:
+        rows = [e for e in _persistent_events.values() if _month_matches(e, year, month) and _in_scope(e)]
+    us_symbols = {e.get('symbol') for e in rows if e.get('market') == 'us'}
+    return {'asOf': calendar_model.stamp(), 'collection': 'scheduled',
+            'pending': (year, month) in _pending_months,
+            'sources': {s: _source_health.get((key, s), {'state': 'pending'}) for s in
+                        ('dart', 'finnhub', 'corporate-ir', 'corporate-hynix', 'corporate-samsung', 'dart-ir', 'official-STX', 'official-HOOD')},
+            'access': {'irgo': 'reuse_not_permitted', 'kind': 'public_rss_unavailable_dart_exchange_copy'},
+            'disclosurePagination': [{'from': k[0], 'to': k[1], 'nextPage': v['next'], 'totalPages': v['totalPages'], 'partial': v['partial']}
+                                     for k, v in list(_dart_page_states.items())],
+            'constituents': sp500_constituents.health(),
+            'coverage': {'universe': len(sp500_constituents.constituents()), 'symbolsWithEvents': len(us_symbols),
+                         'missingSymbols': sorted(set(sp500_constituents.constituents()) - us_symbols),
+                         'meaning': 'no provider event in selected month; not proof of no earnings'}}
+
+
+def read_month(year, month):
+    with _persistent_events_lock:
+        if len(_pending_months) < 6:
+            _pending_months[(year, month)] = True
+    return _stored_events(lambda event: _month_matches(event, year, month))
+
+
+def _collect_domestic_ir(now):
+    global _ir_attempt
+    if now - _ir_attempt < 1800 or not os.environ.get('DART_API_KEY'):
+        return
+    _ir_attempt = now
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    today = datetime.now(ZoneInfo('Asia/Seoul')).date()
+    rows = _fetch(os.environ['DART_API_KEY'], (today - timedelta(days=45)).strftime('%Y%m%d'), today.strftime('%Y%m%d'))
+    candidates = [r for r in rows if any(t in r.get('report_nm', '') for t in ('기업설명회', '실적공시예고'))]
+    # Bounded incremental slices; filings with missing metadata retry after six hours.
+    bucket = int(now // 21600)
+    todo = [r for r in candidates if (r.get('rcept_no'), bucket) not in _ir_seen][:12]
+    for row in todo:
+        receipt = row.get('rcept_no')
+        try:
+            viewer = _viewer_document_url({'receipt_no': receipt})
+            if viewer:
+                event = calendar_sources.parse_ir_disclosure(_fetch_text(viewer), row)
+                if event:
+                    _upsert_persistent_events([event])
+            _ir_seen.add((receipt, bucket))
+        except Exception:
+            _logger.warning('IR metadata unavailable; retaining previous event')
+    if len(_ir_seen) > 2000:
+        _ir_seen.clear()
+
+
+def refresh_due(now=None):
+    """One scheduler slice; API handlers never call this. Sequential bounded I/O."""
+    global _official_attempt
+    now = time.time() if now is None else now
+    if not _calendar_job_lock.acquire(blocking=False):
+        return
+    try:
+        sp500_constituents.refresh(now)
+        from datetime import datetime
+        from zoneinfo import ZoneInfo
+        today = datetime.now(ZoneInfo('Asia/Seoul')).date()
+        defaults = [(today.year, today.month)]
+        for delta in (-1, 1):
+            d = today.replace(day=1) + timedelta(days=-1 if delta < 0 else 32)
+            defaults.append((d.year, d.month))
+        with _persistent_events_lock:
+            requested = list(_pending_months) + defaults
+        target = next((m for m in requested if now - _month_attempts.get(m, 0) >= 1800), None)
+        if target:
+            _month_attempts[target] = now
+            merge_month(*target)
+            _pending_months.pop(target, None)
+        if now - _official_attempt >= 21600:
+            _official_attempt = now
+            # Corporate feed and IR landing page are public published interfaces.
+            failures = 0
+            corporate_count = 0
+            for source, fetch in (
+                ('corporate-hynix', calendar_sources.fetch_hynix),
+                ('corporate-samsung', lambda: calendar_sources.parse_samsung(calendar_sources.read(calendar_sources.SAMSUNG_IR)))):
+                try:
+                    events = fetch()
+                    corporate_count += len(events)
+                    _upsert_persistent_events(events)
+                    for y, m in defaults:
+                        _record_source(source, y, m, 'ok', len(events))
+                except Exception as exc:
+                    failures += 1
+                    for y, m in defaults:
+                        _record_source(source, y, m, 'error', error=type(exc).__name__)
+            for y, m in defaults:
+                _record_source('corporate-ir', y, m, 'error' if failures == 2 else 'partial' if failures else 'ok', corporate_count)
+            for ticker, company, url in calendar_sources.US_IR_SOURCES:
+                try:
+                    events = calendar_sources.fetch_us_notices(ticker, company, url)
+                    _upsert_persistent_events(events)
+                    for y, m in defaults:
+                        _record_source('official-' + ticker, y, m, 'ok', len(events))
+                except Exception as exc:
+                    for y, m in defaults:
+                        _record_source('official-' + ticker, y, m, 'error', error=type(exc).__name__)
+        try:
+            _collect_domestic_ir(now)
+            for y, m in defaults:
+                _record_source('dart-ir', y, m, 'ok' if os.environ.get('DART_API_KEY') else 'unavailable')
+        except Exception as exc:
+            for y, m in defaults:
+                _record_source('dart-ir', y, m, 'error', error=type(exc).__name__)
+    finally:
+        try:
+            atomic_json(_health_file, {'|'.join(k): v for k, v in _source_health.items()})
+        except OSError:
+            _logger.warning('calendar health persistence failed')
+        _calendar_job_lock.release()
+
+
+def _migrate_store():
+    # Revalidate all legacy US events on reads against current membership, while
+    # retaining raw history on disk. Re-key known fiscal periods once in memory.
+    legacy = list(_persistent_events.values())
+    _persistent_events.clear()
+    for event in legacy:
+        normalized = calendar_model.normalize(event)
+        key = _event_key(normalized)
+        _persistent_events[key] = calendar_model.reconcile(_persistent_events.get(key), normalized)
+
+
+_migrate_store()
+
+# These are auditable official observations, not special-case additions to the
+# S&P universe. They remain visible when upstream data has a genuine gap.
+from calendar_verified_events import events as _verified_notices
+for _notice in _verified_notices():
+    _key = calendar_model.identity(_notice)
+    if _key not in _persistent_events:
+        _persistent_events[_key] = calendar_model.reconcile(None, _notice)

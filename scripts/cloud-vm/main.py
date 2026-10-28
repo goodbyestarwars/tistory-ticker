@@ -401,7 +401,7 @@ _domestic_market_indicators_refresher_started = False
 # month(1~12) 조합이 최대 1,212개로 사실상 무한 증가는 아니지만, 나머지 캐시와 동일한
 # 방어 수준으로 맞춘다.
 _earnings_calendar_cache = OrderedDict()
-_EARNINGS_CALENDAR_TTL = 10 * 60
+_EARNINGS_CALENDAR_TTL = 60
 _EARNINGS_CALENDAR_MAX_ENTRIES = 200
 
 # 호가창(js/order-book.js) - 프론트가 2초 간격으로 폴링하므로 서버 캐시는 그보다 짧게 걸어
@@ -2789,6 +2789,10 @@ def _start_daily_scan_warmer():
     def run():
         while True:
             _warm_daily_scan_responses()
+            try:
+                earnings_calendar.refresh_due()
+            except Exception:
+                logging.getLogger('main').exception('calendar scheduled refresh failed; keeping last verified events')
             time.sleep(_DAILY_SCAN_WARM_INTERVAL_SEC)
 
     threading.Thread(target=run, name='daily-scan-warmer', daemon=True).start()
@@ -3361,13 +3365,17 @@ def earnings_calendar_endpoint(request: Request, year: int = Query(..., ge=2000,
     key = '%04d-%02d' % (year, month) if month is not None else '%04d-year' % year
     cached = _earnings_calendar_cache.get(key)
     if cached and time.time() - cached['t'] < _EARNINGS_CALENDAR_TTL:
-        return {'success': True, 'data': cached['data'], 'source': 'dart+finnhub', 'cached': True}
-    data = earnings_calendar.merge_month(year, month) if month is not None else earnings_calendar.merge_year(year)
+        return {'success': True, 'data': cached['data'], 'source': 'dart+finnhub', 'cached': True,
+                'calendarHealth': earnings_calendar.calendar_health(year, month) if month else None}
+    # No external calls in this HTTP path. Legacy year reads expose stored history
+    # only; a browser search must never trigger twelve provider requests.
+    data = earnings_calendar.read_month(year, month) if month is not None else earnings_calendar._stored_events(lambda e: earnings_calendar._year_matches(e, year))
     data = _slim_calendar_events(data)
     _earnings_calendar_cache[key] = {'t': time.time(), 'data': data}
     _earnings_calendar_cache.move_to_end(key)
     _evict_lru(_earnings_calendar_cache, _EARNINGS_CALENDAR_MAX_ENTRIES)
-    return {'success': True, 'data': data, 'source': 'dart+finnhub', 'cached': False}
+    return {'success': True, 'data': data, 'source': 'dart+finnhub', 'cached': False,
+            'calendarHealth': earnings_calendar.calendar_health(year, month) if month else None}
 
 
 def _attach_weekly_news_translations(data):
@@ -3489,7 +3497,7 @@ def weekly_report_endpoint(request: Request, fresh: bool = Query(False)):
         result = []
         for year, month in sorted(months):
             try:
-                result.extend(earnings_calendar.merge_month(year, month))
+                result.extend(earnings_calendar.read_month(year, month))
             except Exception as exc:
                 logging.getLogger('main').warning('weekly report schedule failed: %s', type(exc).__name__)
         return result

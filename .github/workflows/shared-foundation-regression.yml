@@ -13,6 +13,9 @@ on:
       - 'scripts/cloud-vm/scheduled_job.py'
       - 'scripts/cloud-vm/market_calendar.py'
       - 'scripts/cloud-vm/main.py'
+      - 'scripts/cloud-vm/calendar_*.py'
+      - 'scripts/cloud-vm/earnings_calendar.py'
+      - 'scripts/cloud-vm/sp500_constituents.py'
       - 'scripts/cloud-vm/db_schema.py'
       - 'scripts/cloud-vm/setup_*_timer.sh'
       - 'scripts/cloud-vm/deploy_check.sh'
@@ -45,6 +48,8 @@ jobs:
         run: python -m unittest test_scan_inputs test_scan_prereq test_daily_scan_timings test_kiwoom_market test_scan_holiday_skip test_daily_scan_cache test_foreign_flow_timeouts test_scheduled_job test_scan_timer_schedule test_schedule_health test_strategy_public_contract test_snapshot_io test_fundamentals_disclosure test_earnings_growth_strategy
       - name: HTTP lifecycle and common chart engine
         run: |
+          PYTHONPATH=scripts/cloud-vm:test python -m unittest test_calendar_unified test_earnings_calendar test_earnings_calendar_response test_calendar_completed_cards
+          node --test test/test_calendar_market_tabs.js test/test_calendar_economic_results.js
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_scan_progress
           PYTHONPATH=scripts/cloud-vm:test python -m unittest test_toss_ws_hub test_realtime_quotes test_kis_ws_hub test_kiwoom_ws_hub
           node test/test_scanner_progress.js
@@ -86,3 +91,25 @@ jobs:
         run: |
           for file in js/*.js; do node --check "$file"; done
           git diff --check HEAD^ HEAD
+  calendar-browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: Install isolated calendar browser test runtime
+        run: |
+          npm install --prefix "$RUNNER_TEMP/calendar-browser" --no-save playwright
+          "$RUNNER_TEMP/calendar-browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Calendar desktop and mobile interactions
+        env:
+          NINEPAY_QA_CHANNEL: chromium
+          NINEPAY_CALENDAR_QA_DIR: calendar-browser-results
+        run: NODE_PATH="$RUNNER_TEMP/calendar-browser/node_modules" node test/qa_calendar_unified.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: calendar-browser-results
+          path: calendar-browser-results/

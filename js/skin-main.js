@@ -79,24 +79,27 @@ document.documentElement.classList.add('skin-ready');
     var BASE = 'https://goodbyestar.cloud/earnings-calendar';
     var TTL_MS = 60 * 1000;
     var cache = {};
+    var calendarStatus = {};
     function month(year, monthNum) {
       var key = year + '-' + monthNum;
       var hit = cache[key];
       if (hit && (hit.inflight || Date.now() - hit.at < TTL_MS)) return hit.promise;
       var promise = window.NineHttp.json(BASE + '?year=' + year + '&month=' + monthNum, {timeoutMs:15000})
         .then(function (data) {
+          calendarStatus[key] = {state:'ok', health:data && data.calendarHealth};
           var rows = Array.isArray(data) ? data : (data && data.data) || [];
           cache[key] = { promise: Promise.resolve(rows), at: Date.now(), inflight: false };
           return rows;
         })
         .catch(function () {
+          calendarStatus[key] = {state:'error'};
           delete cache[key];
           return [];
         });
       cache[key] = { promise: promise, at: Date.now(), inflight: true };
       return promise;
     }
-    window.EarningsCalendarFeed = { month: month };
+    window.EarningsCalendarFeed = { month: month, status: function (year, monthNum) { return calendarStatus[year + '-' + monthNum] || {state:'pending'}; } };
   }());
 
   /* ── /market-board 공유 로더 ──

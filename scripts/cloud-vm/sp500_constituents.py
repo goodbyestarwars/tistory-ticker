@@ -1,20 +1,10 @@
 # -*- coding: utf-8 -*-
-"""S&P500 구성종목 티커 스냅샷.
+"""S&P 500 calendar membership, one server-side source of truth.
 
-2026-09-23 사용자 요청("캘린더에 가비지 데이터가 너무 많다 - 국장은 무조건 있어야
-하는데, 미국은 S&P만 필터할 수 있겠어?")로 `earnings_calendar.py`의 Finnhub 미국
-실적 일정을 이 목록에 속한 심볼로만 좁히는 데 쓴다. 국내(DART) 쪽은 건드리지 않는다 -
-"국장은 무조건 있어야 한다"는 요청이 명시적이었다.
-
-**정적 스냅샷이다.** en.wikipedia.org/wiki/List_of_S%26P_500_companies 원문 HTML을
-2026-09-23에 직접 받아 표를 그대로 파싱했다(GitHub의 community 데이터셋
-`datasets/s-and-p-500-companies`와 대조해 503개 전부 일치 확인). 지수 구성은
-분기마다 바뀌므로 시간이 지나면 최근 편입 종목이 빠지거나 퇴출 종목이 남아있을 수
-있다 - `data/krx_map.js`와 같은 한계다. 최신 종목 하나가 안 걸러진다고 걱정할 정도는
-아니고, 반대로 최근 편입된 대형주가 이 목록에 없어 걸러져 버리는 쪽이 더 아쉬운
-실패 모드이므로 갱신이 필요하면 이 파일을 통째로 다시 받아 교체한다(전종목 자동
-갱신 스크립트는 아직 없음 - `scripts/fetch_etf_list.py`가 ETF만 갱신하는 것과 같은
-공백).
+The bundled 503-symbol snapshot is the cold-start fallback (2026-09-23).
+Scheduled refresh validates the public datasets/s-and-p-500-companies CSV weekly;
+invalid, partial or unexpectedly large changes retain the last verified file.
+Google, DART and economic-calendar events never use this membership filter.
 """
 
 SP500_SYMBOLS = frozenset((
@@ -60,7 +50,7 @@ SP500_SYMBOLS = frozenset((
 ))
 
 # 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 100 정도만"): 미국 실적 일정을 S&P 100으로 좁힌다.
-# js/stock-calendar.js의 SP100_SYMBOLS와 같은 목록이다(프론트와 서버가 같은 범위를 보도록 둘 다 고친다).
+# Legacy compatibility constant; the calendar does not use this list.
 SP100_SYMBOLS = frozenset((
     'AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR '
     'CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG '
@@ -69,3 +59,84 @@ SP100_SYMBOLS = frozenset((
     'TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM '
     'WDC'  # 2026-10-23 사용자 지시: S&P 100 밖이지만 실적 일정에 포함(웨스턴디지털)
 ).split())
+
+# Calendar membership has one owner. The old SP100 constant above is legacy only.
+import csv
+import io
+import json
+import os
+import re
+import time
+import urllib.request
+from pathlib import Path
+from snapshot_io import atomic_json
+
+CONSTITUENTS_URL = 'https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv'
+STORE = Path(os.environ.get('SP500_STORE_FILE', str(Path(__file__).with_name('sp500_verified.json'))))
+_verified = None
+_retry_at = 0
+_health = {'state': 'snapshot', 'verifiedAt': '2026-09-23', 'sourceUrl': CONSTITUENTS_URL}
+
+
+def normalize_symbol(value):
+    return str(value or '').strip().upper().replace('-', '.')
+
+
+def validate(rows):
+    symbols = [normalize_symbol(r.get('Symbol')) for r in rows]
+    if not 490 <= len(symbols) <= 520 or len(set(symbols)) != len(symbols):
+        raise ValueError('incomplete or duplicated constituent list')
+    if any(not re.fullmatch(r'[A-Z]{1,6}(?:\.[A-Z])?', s) for s in symbols):
+        raise ValueError('invalid constituent symbol')
+    return {normalize_symbol(r['Symbol']): str(r.get('Security') or '') for r in rows}
+
+
+def constituents():
+    global _verified
+    if _verified is None:
+        try:
+            payload = json.loads(STORE.read_text(encoding='utf-8'))
+            _verified = validate([{'Symbol': s, 'Security': n} for s, n in payload['members'].items()])
+            _health.update(state='verified', verifiedAt=payload['verifiedAt'])
+        except (OSError, ValueError, KeyError, TypeError):
+            _verified = {s: '' for s in SP500_SYMBOLS}
+    return dict(_verified)
+
+
+def refresh(now=None):
+    """Weekly, scheduler-only. A failed/invalid download never replaces membership."""
+    global _verified, _retry_at
+    now = time.time() if now is None else now
+    constituents()
+    if now < _retry_at:
+        return
+    _retry_at = now + 3600
+    try:
+        if STORE.exists() and now - STORE.stat().st_mtime < 7 * 86400:
+            return
+        req = urllib.request.Request(CONSTITUENTS_URL, headers={'User-Agent': '9Pay-calendar/2.0'})
+        with urllib.request.urlopen(req, timeout=10) as response:
+            data = response.read(300001)
+        if len(data) > 300000:
+            raise ValueError('constituent download too large')
+        members = validate(list(csv.DictReader(io.StringIO(data.decode('utf-8-sig')))))
+        if len(set(members).symmetric_difference(_verified)) > 50:
+            raise ValueError('membership change requires review')
+        from calendar_model import stamp
+        verified_at = stamp()
+        atomic_json(STORE, {'members': members, 'verifiedAt': verified_at, 'sourceUrl': CONSTITUENTS_URL})
+        _verified = members
+        _health.update(state='verified', verifiedAt=verified_at, error=None)
+    except Exception as exc:
+        _health.update(state='stale', error=type(exc).__name__)
+
+
+def health():
+    constituents()
+    return dict(_health, count=len(_verified))
+
+
+def contains(value):
+    if _verified is None:
+        constituents()
+    return normalize_symbol(value) in _verified
