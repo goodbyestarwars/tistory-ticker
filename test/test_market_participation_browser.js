@@ -3,7 +3,7 @@ const {extract,entry}=require('./test_market_participation');
 const {render}=require('./test_market_participation_bars');
 const {chromium}=require('playwright');
 (async()=>{
- const dir='docs/qa/domestic-participation-2026-10-28';fs.mkdirSync(dir,{recursive:true});
+ const dir=process.env.QA_DIR || 'docs/qa/domestic-participation-2026-10-28';fs.mkdirSync(dir,{recursive:true});
  const old=cp.execFileSync('git',['show','1182b05b:js/skin-main.js'],{encoding:'utf8'});
  const target={innerHTML:''},basis={};const c={isFinite,latestHomeParticipation:{domestic:{byIndex:{KOSPI:entry(),KOSDAQ:entry(1,.8)}}},homeMarketSession:()=>({market:'domestic'}),dashboardSection:{querySelector:s=>s==='[data-home-participation]'?target:basis}};
  vm.createContext(c);vm.runInContext(['escapeHomeHtml','homeParticipationModel','homeVolumeScale','renderMarketParticipation'].map(n=>extract(n,old)).join('\n'),c);c.renderMarketParticipation();
@@ -18,13 +18,14 @@ const {chromium}=require('playwright');
      assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),state+' overflow '+width);
      if(state==='before' || state==='after'){
        const chart=page.locator('[data-home-participation]');
-       const pixels=await chart.screenshot({animations:'disabled'});
+       const pixels=[];
+       for(const graph of await chart.locator('.hmp-column-chart').all()) pixels.push(await graph.screenshot({animations:'disabled'}));
        const geometry=await chart.locator('.hmp-column-track,.hmp-baseline,.hmp-column').evaluateAll(nodes=>nodes.map(n=>{
          const r=n.getBoundingClientRect(),s=getComputedStyle(n);
          return {x:r.x,y:r.y,width:r.width,height:r.height,color:s.backgroundColor,animation:s.animation,transition:s.transition};
        }));
        if(state==='before'){originalPixels=pixels;originalGeometry=geometry;}
-       else {assert.deepEqual(geometry,originalGeometry,'original chart layout/color/animation at '+width);assert(pixels.equals(originalPixels),'pixel-identical original chart at '+width);}
+       else {assert.deepEqual(geometry,originalGeometry,'original chart layout/color/animation at '+width);assert.equal(pixels.length,originalPixels.length);pixels.forEach((image,i)=>assert(image.equals(originalPixels[i]),'pixel-identical original graph '+i+' at '+width));}
      }
      await page.screenshot({path:dir+'/'+state+'-'+width+'.png',fullPage:true});
    }

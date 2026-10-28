@@ -1447,13 +1447,14 @@ document.documentElement.classList.add('skin-ready');
         var value = volume ? normalized.toFixed(1).replace(/\.0$/, '') : model.status === 'stale' ? '갱신 지연' : '확인 중';
         var delta = volume ? normalized - 100 : null;
         var tone = delta === null || Math.abs(delta) < .000001 ? 'home-neutral' : delta > 0 ? 'home-positive' : 'home-negative';
-        var label = model.label + ' 거래량 ' + value + (volume ? ' / 평균 100' : '');
+        var volumeLabel = market === 'domestic' ? '동시간대 5분 거래량' : '거래량';
+        var label = model.label + ' ' + volumeLabel + ' ' + value + (volume ? ' / 평균 100' : '');
         var tooltip = volume ? '평균 100 · 동일 눈금 ±' + scale + ' · 분석 ' + volume.eligible + '/' + volume.total + '종목' : label;
         return '<div class="hmp-item"><div class="hmp-heading">' + escapeHomeHtml(model.label) + '</div>'
           + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(label) + '" title="' + escapeHomeHtml(tooltip) + '">'
           + '<div class="hmp-column-track"><span class="hmp-baseline-label">100</span><span class="hmp-baseline"></span>'
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
-          + '</div></div><div class="hmp-volume-value">거래량<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
+          + '</div></div><div class="hmp-volume-value">' + (market === 'domestic' ? '동시간대<br>5분 거래량' : '거래량') + '<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
       }).join('');
       var basis = dashboardSection.querySelector('[data-participation-basis]');
       if (basis) {
@@ -1481,7 +1482,7 @@ document.documentElement.classList.add('skin-ready');
           + ' · 상대 거래량 중앙값 ' + (p ? p.median.toFixed(2) + '배' : state)
           + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
           + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
-      }).join('') + '<div>막대: 합산 거래량 / 최근 10일 동시간대 5분봉 평균=100(TradingView 설명 기준). '
+      }).join('') + '<div>막대: 해당 5분 구간 합산 거래량 / 최근 10일 동시간대 5분봉 평균=100(TradingView 설명 기준). 당일 누적 거래량이 아님. '
         + '보조 수치: 종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 실제 관측 시각 미제공.</div>';
     }
 
