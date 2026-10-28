@@ -111,7 +111,9 @@ async def main():
                             if mode=='failed':
                                 assert '합성 실행 오류' in await evaluate('document.querySelector(".scan-status-panel").innerText')
                         if mode in ('active','shadow'):
-                            shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':True})
+                            metrics=await call('Page.getLayoutMetrics')
+                            size=metrics['cssContentSize']
+                            shot=await call('Page.captureScreenshot',{'format':'png','captureBeyondViewport':True,'clip':dict(x=0,y=0,width=size['width'],height=size['height'],scale=1)})
                             (OUT/(f'scanner-{width}-{theme}'+('-shadow' if mode=='shadow' else '')+'.png')).write_bytes(base64.b64decode(shot['data']))
                         reports.append(dict(width=width,theme=theme,mode=mode,**result))
             (OUT/'browser-results.json').write_text(json.dumps(reports,ensure_ascii=False,indent=2),encoding='utf8')

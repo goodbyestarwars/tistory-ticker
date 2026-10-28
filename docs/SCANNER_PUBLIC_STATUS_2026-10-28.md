@@ -1,5 +1,7 @@
 # 9Pay 검색기 공개 상태 통합 · 2026-10-28
 
+[단일 PR #1057](https://github.com/goodbyestarwars/tistory-ticker/pull/1057) · [GitHub 검증 현황](https://github.com/goodbyestarwars/tistory-ticker/pull/1057/checks)
+
 기준: `master`의 `6eca1345`. UI·공개 표시 정책만 수정했다. 운영 배포, 서버 재시작, 계좌 설정 변경은 실행하지 않았다. 이 작업은 PR 승인 후 배포한다.
 
 ## 변경 결과
