@@ -562,6 +562,22 @@ def fetch_index_time_chart(token, appkey, appsecret, iscd, interval='60'):
     return {}, data.get('output') or []
 
 
+def fetch_index_turnover_chart(token, appkey, appsecret, iscd):
+    """KIS FHKUP03500200: regular-session 30m bars, cumulative amount in million KRW.
+
+    One bounded page includes enough same-time observations for five preceding
+    sessions; do not add pagination or per-stock requests for the home panel.
+    """
+    data = _get_domestic_quote(
+        token, appkey, appsecret,
+        '/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice',
+        'FHKUP03500200',
+        {'FID_COND_MRKT_DIV_CODE': 'U', 'FID_ETC_CLS_CODE': '1',
+         'FID_INPUT_ISCD': iscd, 'FID_INPUT_HOUR_1': '1800', 'FID_PW_DATA_INCU_YN': 'Y'},
+    )
+    return data.get('output2') or []
+
+
 def fetch_index_price(token, appkey, appsecret, iscd):
     """KIS 국내업종 현재지수(FHPUP02100000)를 반환한다.
 

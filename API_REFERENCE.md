@@ -523,3 +523,14 @@ API는 기존 캐시 결과를 반환 직전에 필터링하며 REST·경제뉴�
 `/market-participation`과 `/us-market-breadth`의 각 구성 집계에 `volumeIndex`를 추가한다. 기존 종목 수 참여비율 계약은 하위 호환으로 유지하지만 홈에서는 표시하지 않는다. 공급자 단일 요청에서 `volume|5`와 `relative_volume_intraday|5`를 같은 행으로 받아, 유효 종목별 현재5분 거래량 v와 동시각 과거평균 b=v/상대거래량을 구한다. 결과는 **100×Σv/Σb**이며 종목별 배수의 단순평균이나 증가 종목 수 비율이 아니다. 현재5분봉/최근10거래일 동시각 평균 기준이며 하루누적 거래량으로 표기하지 않는다.
 
 필드 `current`, `baseline`, `index100`, `eligible`, `total`, `basis=same-time-5m-volume-sum`, `lookbackDays=10`, `status`. 결측 또는 평균 복원이 불가능한 0 상대거래량은 제외한다. 구성 범위의95% 미만이 유효하거나 평균0/비유한 값이면 unavailable, index100=null. 유효 범위는 툴팁에 표시한다. 홈은 시장별 두 지수에 공통 대칭 눈금을 적용하고 100 위의 차이만 전역 빨강, 아래 차이만 전역 파랑으로 그린다. 110과90의 높이는 같으며100은 채움이 없다.
+
+
+### 국내 홈 누적 거래대금 `turnoverIndex` (2026-10-28)
+
+`GET /market-participation?market=domestic`의 `byIndex.KOSPI|KOSDAQ`에 `turnoverIndex`를 추가한다. 기존 `volumeIndex`, `volumeParticipation`, 상승/하락 집계는 유지한다. 미국 응답에는 추가하지 않는다.
+
+- KIS `FHKUP03500200`, `inquire-time-indexchartprice`, 업종0001/1001, 정규장만(`FID_ETC_CLS_CODE=1`),1800초,과거포함Y. 한 페이지102행·지수당1회, 국내 기존 공유캐시120초/장외3600초 안에서 재사용. 종목별조회·별도폴러·DB/수집프로세스 없음. 최종 마감값을 확보하도록 국내 짧은캐시를15:40까지 유지한다.
+- `basis=same-time-cumulative-30m`, `source=KIS`, `market=KRX`, `unit=KRW`, `lookbackDays=5`, `sampleDays`, `baselineDates`, `asOf`(실제 누적구간 끝,KST), `retrievedAt`, `current`(누적원), `baseline`(직전5거래일 같은시각 누적원 평균), `index100=100*current/baseline`, `status`.
+- 현재 진행봉은 제외. 완료30분봉의 `acml_tr_pbmn`(백만원)을 원으로 변환한다. 실측에서14:00시작30분봉=14:29분봉 누적값임을 확인했고 `asOf=14:30`으로 표시한다.2분 확정 유예,15:30종가행은15:32이후 사용. 개장첫32분은 비교대기,장중최대약32분이전 기준이다.
+- 공통 거래일/특별세션으로 직전5거래일을 정확히 지정한다. 같은시각이 없거나 중복·비정상값·기준금액0·5일미달·특별장시간 불일치는unavailable. 과거종가금액/전체하루금액/시간비례추정으로 대신하지 않는다. 장외/휴일은직전거래일종가 기준일을 유지한다.
+- 신규 필드가 아직 운영 서버에 없으면 홈은 거래대금확인중으로 표시하며 기존거래량을 거래대금으로 재표기하지 않는다. 거래량참여도는기존 공급자/기준으로 따로표시한다. 상세 검증/배포 경계: `docs/DOMESTIC_TURNOVER.md`.
