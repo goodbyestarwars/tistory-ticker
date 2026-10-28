@@ -156,9 +156,11 @@
   function render(snapshot) {
     latest = snapshot;
     var history = histories[snapshot && snapshot.source];
-    var value = model(Object.assign({}, snapshot, {hits:history && history.data && history.data.hits, historyLoaded:!!(history && history.data), historyError:!!(history && history.error)}),period,Date.now());
+    var hits=history && history.data && history.data.hits;
+    if(hits && global.PatternScan && global.PatternScan.publicStockVisible)hits=hits.filter(global.PatternScan.publicStockVisible);
+    var value = model(Object.assign({}, snapshot, {hits:hits, historyLoaded:!!(history && history.data), historyError:!!(history && history.error)}),period,Date.now());
     visibleRows = value.recent;
-    var labels = value.mode === 'first-stage' ? ['오늘 1차 후보','2차 A/B 신호','돌파 성공','실패'] : ['오늘 포착','돌파 준비','돌파 성공','실패'];
+    var labels = value.mode === 'first-stage' ? ['오늘 1차 후보','2차 A/B 신호','과거 돌파 성공','과거 돌파 실패'] : ['오늘 포착','돌파 준비','과거 돌파 성공','과거 돌파 실패'];
     panel.querySelector('#scan-recent-title').textContent = value.mode === 'first-stage' ? '최근 포착 신호 · 1차 후보' : '최근 포착 신호';
     panel.querySelector('.scan-dashboard-trend h3').textContent = value.mode === 'first-stage' ? '일봉 배치 진행 상황' : '스캔 추이';
     panel.querySelector('.scan-dashboard-periods').hidden = value.mode === 'first-stage';

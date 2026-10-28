@@ -29,7 +29,7 @@
     var detail = state === 'running' && validProgress ? (p.phase ? p.phase + ' · ' : '') + p.processed.toLocaleString('ko-KR') + ' / ' + p.total.toLocaleString('ko-KR') + (p.unit || '종목') + ' 처리' : '';
     return { state: state, percent: percent, compact: state === 'success' || state === 'skipped',
       title: scope + ' · ' + (labels[state] || '스캔 상태 확인 필요'),
-      detail: detail, stale: stale, updatedAt: running ? stamp : execution.finishedAt || stamp,
+      detail: detail || (execution.reason ? String(execution.reason) : /failed|timeout|interrupted|deadline|outside_window|prerequisite_/.test(state) && Number.isFinite(execution.exitCode) ? '실행 종료 코드 '+execution.exitCode+' · 상세 원인은 실행 로그 확인' : ''), stale: stale, updatedAt: running ? stamp : execution.finishedAt || stamp,
       note: stale ? '진행 정보 갱신 대기 · 마지막 확인 진행률 유지'
         : state === 'outside_window' ? '허용 시간 밖 실행이 종료됨 · 완료 확인 안 됨' + (target && target.nextRunAt && Number.isFinite(Date.parse(target.nextRunAt)) ? ' · 다음 예정 ' + new Date(target.nextRunAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'}) : '')
         : strategy && target === daily ? '일봉 데이터 확인 후 전략 계산 · 기존 결과 유지'
@@ -42,7 +42,13 @@
   var strategy = /strategy-search/.test(global.location.pathname);
   var selector = strategy ? '#strategy-search' : '#pattern-scan';
   var selfUrl = document.currentScript && document.currentScript.src;
-  var strip, pending = false, attempts = 0, previousCompletion;
+  var strip, pending = false, attempts = 0, previousCompletion, publicSummary;
+  function updatePublicCount() {
+    var el=strip && strip.querySelector('.scan-public-count');
+    var summary=publicSummary || global.PatternScan && global.PatternScan.publicSummary;
+    if(el)el.textContent=summary && summary.known?'현재 유효 확정 '+summary.counts.confirmed+'종목':'현재 유효 확정 확인 중';
+  }
+  document.addEventListener('scanner-public-state',function(event){publicSummary=event.detail;updatePublicCount();});
   var esc = function (s) { return global.NineUI.escapeHtml(String(s || '')); };
   function render(value) {
     strip.classList.toggle('is-complete', value.compact);
@@ -52,11 +58,6 @@
     strip.setAttribute('data-state', value.state);
     global.ScannerProgress.latest = value;
     if (typeof global.CustomEvent === 'function') document.dispatchEvent(new global.CustomEvent('scanner-progress-data', {detail:value}));
-    if (!strategy) {
-      panel.textContent = '일봉 배치 · ' + value.title + (known ? ' · ' + label : '')
-        + (value.detail ? ' · ' + value.detail : '');
-      return;
-    }
     panel.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
       + '<svg class="scan-progress-ring" viewBox="0 0 112 112" aria-hidden="true"><circle class="scan-progress-track" cx="56" cy="56" r="47"/>'
       + '<circle class="scan-progress-value" cx="56" cy="56" r="47" pathLength="100" style="stroke-dasharray:' + (known ? value.percent : 0) + ' 100"/></svg>'
@@ -64,9 +65,11 @@
       + '<span class="scan-progress-percent">' + esc(label) + '</span></div>'
       + '<div class="scan-progress-copy"><span class="scan-progress-label">검색기 업데이트</span>'
       + '<strong>' + esc(value.title) + '</strong>'
+      + (!strategy ? '<span>' + esc(label) + ' · <span class="scan-public-count">현재 유효 확정 확인 중</span></span>' : '')
       + (value.detail ? '<span>' + esc(value.detail) + '</span>' : '')
-      + '<small>' + esc(value.note) + '</small>'
-      + (value.updatedAt ? '<small>기준 ' + esc(new Date(value.updatedAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'})) + '</small>' : '') + '</div>';
+      + '<small>' + esc(!strategy && value.note==='장중 단타 감시와 별도인 배치 상태 · 완료 후 검색 결과 갱신'?'배치 완료와 신호 검증은 별도':value.note) + '</small>'
+      + (value.updatedAt && Number.isFinite(Date.parse(value.updatedAt)) ? '<small>' + (value.state==='success'?'마지막 완료 ':'기준 ') + esc(new Date(value.updatedAt).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'})) + '</small>' : '') + '</div>';
+    updatePublicCount();
   }
   function refresh() {
     if (pending || document.hidden || !strip.isConnected) return;
