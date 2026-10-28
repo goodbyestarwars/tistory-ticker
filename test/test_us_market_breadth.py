@@ -79,3 +79,28 @@ def test_volume_index_never_fills_missing_baseline_with_zero():
     assert m.parse_breadth(payload([1]))['volumeIndex']['index100'] is None
     data = payload([1, 1]); data['data'][0]['d'] += [0, 0]; data['data'][1]['d'] += [1, 100]
     assert m.parse_breadth(data)['volumeIndex']['status'] == 'unavailable'
+
+def test_megacap_volume_does_not_weight_participation_or_median():
+    data = payload([1] * 100)
+    for i, row in enumerate(data['data']):
+        row['d'] += [1.2 if i < 50 else .8, 100]
+    before = m.parse_breadth(data)
+    # Samsung/SK-sized volume shocks affect only the two corresponding votes.
+    for row in data['data'][:2]:
+        row['d'][2:] = [1000000, 10**15]
+    after = m.parse_breadth(data)
+    assert before['volumeParticipation']['ratio'] == after['volumeParticipation']['ratio'] == .5
+    assert before['volumeParticipation']['median'] == after['volumeParticipation']['median'] == 1
+    assert after['volumeIndex']['index100'] > before['volumeIndex']['index100']
+
+
+@pytest.mark.parametrize('value', [None, float('nan'), float('inf'), -1, True])
+def test_invalid_relative_volume_is_excluded_without_liquidity_filter(value):
+    data = payload([1, -1, 0])
+    for row, relative in zip(data['data'], [0, 1.2, value]):
+        row['d'] += [relative, 0]
+    result = m.parse_breadth(data)
+    assert result['volumeParticipation']['eligible'] == 2
+    assert result['volumeParticipation']['ratio'] == .5
+    assert result['volumeParticipation']['median'] == .6
+    assert result['volumeIndex']['status'] == 'unavailable'
