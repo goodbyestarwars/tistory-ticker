@@ -52,6 +52,11 @@
     strip.setAttribute('data-state', value.state);
     global.ScannerProgress.latest = value;
     if (typeof global.CustomEvent === 'function') document.dispatchEvent(new global.CustomEvent('scanner-progress-data', {detail:value}));
+    if (!strategy) {
+      panel.textContent = '일봉 배치 · ' + value.title + (known ? ' · ' + label : '')
+        + (value.detail ? ' · ' + value.detail : '');
+      return;
+    }
     panel.innerHTML = '<div class="scan-progress-gauge" role="img" aria-label="' + esc(label) + '">'
       + '<svg class="scan-progress-ring" viewBox="0 0 112 112" aria-hidden="true"><circle class="scan-progress-track" cx="56" cy="56" r="47"/>'
       + '<circle class="scan-progress-value" cx="56" cy="56" r="47" pathLength="100" style="stroke-dasharray:' + (known ? value.percent : 0) + ' 100"/></svg>'

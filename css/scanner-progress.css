@@ -29,7 +29,7 @@ html.dark .scanner-progress-status small,html.dark .scanner-progress-status .sca
 }
 
 /* Pattern scanner dashboard: scoped variant; strategy page keeps its status strip. */
-.scanner-progress-status.is-dashboard { --scan-neon:#6D233F; --scan-ink:#14243e; --scan-muted:#64748b; --scan-line:#e8eaf0; display:grid; grid-template-columns:minmax(210px, .85fr) minmax(0, 2.4fr); align-items:start; gap:18px; padding:14px; margin-bottom:18px; background:#fff; border:1px solid var(--scan-line); border-radius:12px; color:var(--scan-ink); box-sizing:border-box; }
+.scanner-progress-status.is-dashboard { --scan-neon:#6D233F; --scan-ink:#14243e; --scan-muted:#64748b; --scan-line:#e8eaf0; display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:8px; padding:var(--ui-card-padding); margin-bottom:var(--ui-section-gap); background:#fff; border:1px solid var(--scan-line); border-radius:12px; color:var(--scan-ink); box-sizing:border-box; }
 .scanner-progress-status.is-dashboard .scan-status-panel { display:flex; align-items:center; gap:12px; padding:8px 0; min-width:0; }
 .scanner-progress-status.is-dashboard .scan-progress-gauge { width:78px; height:98px; flex:0 0 78px; transform:none; margin:0; }
 .scanner-progress-status.is-dashboard .scan-progress-ring { width:78px; height:78px; }
@@ -41,7 +41,9 @@ html.dark .scanner-progress-status small,html.dark .scanner-progress-status .sca
 .scanner-progress-status.is-dashboard .scan-progress-copy strong { font-size:17px; color:var(--scan-ink); }
 .scanner-progress-status.is-dashboard small,.scanner-progress-status.is-dashboard .scan-progress-label { color:var(--scan-muted); }
 .scanner-progress-status.is-dashboard[data-state="running"] .scan-progress-bolt { animation:scan-dashboard-pulse 1.6s ease-in-out infinite; }
-.scanner-progress-status .scan-dashboard-main { min-width:0; }
+.scanner-progress-status .scan-dashboard-fold { min-width:0; font-size:12px; }
+.scanner-progress-status .scan-dashboard-fold > summary { cursor:pointer; padding:6px 0; }
+.scanner-progress-status .scan-dashboard-main { min-width:0; padding-top:var(--ui-paragraph-gap); }
 .scanner-progress-status .scan-dashboard-stats { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
 .scanner-progress-status .scan-dashboard-stat { min-width:0; padding:9px 10px; border:1px solid var(--scan-line); border-radius:8px; display:grid; grid-template-columns:1fr auto; gap:3px 6px; align-items:center; }
 .scanner-progress-status .scan-dashboard-stat>span { font-size:12px; font-weight:600; }
@@ -80,7 +82,7 @@ html.dark .scanner-progress-status .scan-dashboard-badge,html.dark .scanner-prog
 html.dark .scanner-progress-status .scan-dashboard-logo { background:var(--dk-inner); }
 @keyframes scan-dashboard-pulse { 50% { opacity:.55; } }
 @media (min-width:761px) and (max-width:1100px) {
-  .scanner-progress-status.is-dashboard { grid-template-columns:minmax(180px,.8fr) minmax(0,2fr); gap:12px; }
+  .scanner-progress-status.is-dashboard { grid-template-columns:minmax(0,1fr); gap:8px; }
   .scanner-progress-status.is-dashboard .scan-status-panel { flex-direction:column; align-items:flex-start; gap:6px; }
   .scanner-progress-status .scan-dashboard-stats { grid-template-columns:repeat(2,minmax(0,1fr)); }
   .scanner-progress-status .scan-dashboard-bottom { grid-template-columns:1fr; }

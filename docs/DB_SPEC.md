@@ -1,5 +1,9 @@
 # 9Pay 증권 DB 정의서
 
+## signal_reviews (2026-10-28, 추가 전용)
+
+공통 `db_schema.SIGNAL_REVIEW_SCHEMA`가 소유한다. 기존 OHLC DB에 `signal_id` PK, `data_date`, `evaluated_at`, `payload`를 추가한다. 기준일:종목:패턴:검증버전별 최초 Shadow 평가 JSON을 INSERT OR IGNORE로 보존하며 재시작/재스캔으로 확정 시각을 덮어쓰지 않는다. 180일 보존, 기존 scan_hits/주문/포지션 테이블과 독립. [검증 계약](NINEPAY_INTEGRATED_CONFIRMATION.md).
+
 2026-10-24 국내 지수 long=1 OHLCV: VM 앱 폴더의 `index_daily_history_KOSPI.json` / `index_daily_history_KOSDAQ.json`에 각 최대900봉을 원자 교체로 영속 보존한다. source=kis·collectedAt·confirmed 및 마지막 성공/시도/실패시각 보존, 원단위 미확정. 재시작·배포 때 삭제하지 않는다. 신규 SQLite 테이블/실거래 자료 없음. [증분·재시도·검증](INDEX_VOLUME_CACHE.md).
 
 검색 관찰 전용 `scanner_observation.json`은 소스별 최근 순위 풀과 당일 후보 관측 누계를 보존하고 `scanner_observation.jsonl`은4MiB×2로 회전한다. 기존 응답만 재사용하며 계좌/주문/키/토큰은 저장하지 않는다. 신규 WS/DB/타이머는 없다. `/health/scanner`의 API·캐시 계수는 프로세스 시작 이후이며 재시작 전과 합산하지 않는다. 상태가 복원돼도 오래된 관측은 stale이며 신규 진입 기준으로 재사용하지 않는다. [관찰 범위·정의](SCANNER_EFFICIENCY_2026-10-20.md).

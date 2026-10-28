@@ -114,6 +114,7 @@ class TossWsHub:
         self._reconnects = [0] * SOCKETS
         self._ticks = 0
         self._last_tick_at = None
+        self._last_quote = {}
 
     def _fetch_token(self):
         data = urllib.parse.urlencode({
@@ -198,6 +199,9 @@ class TossWsHub:
         with self._lock:
             self._last_tick_at = now
             self._ticks += 1
+            self._last_quote[event['code']] = now
+            while len(self._last_quote) > MAX_CODES:
+                self._last_quote.pop(min(self._last_quote, key=self._last_quote.get))
             targets = [sub for sub in self._subscribers.values() if event['code'] in sub.codes]
         for sub in targets:
             try:
@@ -294,6 +298,8 @@ class TossWsHub:
     def health(self):
         with self._lock:
             active = set().union(*(s.codes for s in self._subscribers.values()))
+            now = time.time()
+            receipts = {code: self._last_quote.get(code) for code in sorted(active)[:MAX_CODES]}
             return {
                 'running': bool(self._threads),
                 'connected': sum(self._connected),
@@ -301,6 +307,9 @@ class TossWsHub:
                 'desiredCodes': len(active),
                 'maxCodes': MAX_CODES,
                 'registeredCodes': sum(map(len, self._confirmed)),
+                'observedFreshCodes': sum(at is not None and 0 <= now-at <= 90 for at in receipts.values()),
+                'quoteReceipts': {code: {'receivedAt': at, 'ageSec': round(now-at,1) if at is not None else None}
+                                  for code,at in receipts.items()},
                 'liveCodes': len(self.live_codes()),
                 'excessCodes': max(0, len(active) - MAX_CODES),
                 'ticks': self._ticks,

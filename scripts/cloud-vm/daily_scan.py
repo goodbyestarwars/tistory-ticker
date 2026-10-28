@@ -553,6 +553,13 @@ def main():
             groups = dict(pattern_results or {})
             if pullback_matches:
                 groups['pullback'] = pullback_matches
+            import signal_review
+            try:
+                signal_review.review_groups(hits_conn, groups, datetime.fromisoformat(now).astimezone(signal_review.KST))
+            except Exception as error:
+                hits_conn.rollback()
+                # Research failure must not suppress existing scan_hits.
+                log('확정 Shadow 검증 실패: %s' % type(error).__name__)
             recorded = scan_forward.record_grouped_hits(
                 hits_conn, scan_forward.today_kst(), 'pattern', groups)
             if recorded:

@@ -93,6 +93,13 @@ def signal(**changes):
 
 
 class TradeTests(unittest.TestCase):
+    def test_shadow_confirmation_cannot_reserve_or_submit_even_when_live_enabled(self):
+        with patch.dict(os.environ, {'NINEPAY_LIVE_TRADING':'1'}):
+            for change in ({'mode':'shadow'}, {'signalReview':{'confirmed':True}}, {'orderAuthorized':False}):
+                self.assertEqual(self.run_trade(signal(**change)), 'BAD_RULE_EVIDENCE')
+        self.assertEqual(self.client.orders, [])
+        self.assertEqual(self.ledger.reserved, [])
+
     def setUp(self):
         self.client = FakeClient()
         self.ledger = FakeLedger()

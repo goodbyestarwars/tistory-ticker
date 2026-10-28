@@ -1,5 +1,11 @@
 # 클라우드 VM API 레퍼런스 (`goodbyestar.cloud`)
 
+## 확정 검증·수신 증거 추가 계약 (2026-10-28, 작업 PR)
+
+`/pattern-scan` 기존 행에 `signalReview`를 추가한다: version=confirmation-shadow-v1, mode=shadow, orderAuthorized=false, confirmed, entryValid=false(일봉), confirmedAt, signalPrice, invalidationPrice, dataAsOf, evaluatedAt, checks, reasons, legacyConfirmed, signalId. 기존 patterns/status/이력 키는 보존한다.
+
+`/health/realtime`의 ninePayResearch.items에는 수신 당시 1차 Shadow 평가와 confirmationMode=shadow를 추가한다. 키움/Toss 허브에는 quoteReceipts(종목별 receivedAt·ageSec), observedFreshCodes(최근90초 실제 수신), 키움에는 registrationAcknowledged를 추가한다. 기존 등록/liveCodes와 구분한다. 키움 receivedAt은 UTC ISO, Toss는 epoch seconds이며 거래소 전송 시각을 뜻하지 않는다. 기존 `/health/9pay` 주문 피드에는 Shadow를 넣지 않으며 현재 무효화 관측이 있으면 해당 저장 이벤트를 제외한다. [범위·한계](docs/NINEPAY_INTEGRATED_CONFIRMATION.md).
+
 > 운영 기준: 2026-08-17 · `origin/master` 배포 커밋 `0f18642`
 
 운영 절차·인증 경계·WebSocket·장애 대응은 [`docs/API_OPERATION_SPEC.md`](docs/API_OPERATION_SPEC.md)를

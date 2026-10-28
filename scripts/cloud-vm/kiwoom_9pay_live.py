@@ -44,11 +44,17 @@ def _set(**values):
 
 def health_snapshot():
     with _lock:
-        return dict(_status, signals=list(_status['signals']), candidates=list(_status['candidates']),
+        snapshot = dict(_status, signals=list(_status['signals']), candidates=list(_status['candidates']),
                     candidateDetails=[dict(row) for row in _status['candidateDetails']],
                     items=[dict(row, **_status['observations'].get(row['code'], {}))
                            for row in _status['candidateDetails']],
                     observations={code: dict(row) for code, row in _status['observations'].items()})
+    import signal_review
+    now = time.time()
+    for item in snapshot['items']:
+        item['signalReview'] = signal_review.intraday_review(item, snapshot, now)
+    snapshot['confirmationMode'] = 'shadow'
+    return snapshot
 
 
 def signal_snapshot():
@@ -64,7 +70,8 @@ def signal_snapshot():
         state['signals'] = [{key: (list(item[key]) if key == 'branches'
                                   and isinstance(item[key], list) else item[key])
                              for key in signal_keys if key in item}
-                            for item in _status['signals']]
+                            for item in _status['signals']
+                            if not _status['observations'].get(item.get('code'), {}).get('entryInvalid')]
     return state
 
 
@@ -398,6 +405,10 @@ def _consume(result, observer, day, signaled):
     saved = _persist(observer, day) if changed else True
     if changed:
         _record({'type': 'stage', 'evidenceSaved': saved, **result})
+        import signal_review
+        _record({'type': 'confirmation_shadow', 'code': result['code'], 'at': result['at'],
+                 'legacyConfirmed': result.get('stage') == 'signaled',
+                 'review': signal_review.intraday_review(result, health_snapshot(), time.time())})
     if result.get('signal') and saved:
         _handle_signal(result, signaled)
         _persist(observer, day)

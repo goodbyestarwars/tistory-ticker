@@ -82,7 +82,11 @@
     + '<section class="scan-dashboard-recent" aria-labelledby="scan-recent-title"><div class="scan-dashboard-heading"><h3 id="scan-recent-title">최근 포착 신호</h3>'
     + '<button type="button" class="scan-dashboard-all">전체 보기</button></div><p class="scan-dashboard-chart-note">현재 검색 결과·저장 포착 기록을 구분해 표시합니다.</p><ul class="scan-dashboard-signals"></ul></section></div>'
     + '<p class="scan-dashboard-basis"></p>';
-  root.appendChild(panel);
+  var fold=document.createElement('details');
+  fold.className='scan-dashboard-fold';
+  var summary=document.createElement('summary');
+  summary.textContent='스캔 통계·과거 이력 (일봉 배치 진행률)';
+  fold.appendChild(summary);fold.appendChild(panel);root.appendChild(fold);
   var statBox = panel.querySelector('.scan-dashboard-stats'), list = panel.querySelector('.scan-dashboard-signals');
   var plot = panel.querySelector('.scan-dashboard-plot');
   function setHtml(element, html) { if (element.dataset.rendered !== html) { element.innerHTML = html; element.dataset.rendered = html; } }

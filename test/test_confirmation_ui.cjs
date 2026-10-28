@@ -1,0 +1,20 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
+const source=fs.readFileSync('js/pattern-scan.js','utf8');
+const part=source.slice(source.indexOf('  function publicConfirmation('),source.indexOf('  function renderConfirmedList('));
+const ctx={Number,Date,Array,Object,sourceLabel:k=>k};vm.createContext(ctx);vm.runInContext(part,ctx);
+const now=Date.parse('2026-10-28T01:00:00Z');
+const state={running:true,active:true,ruleVersion:'ab70-v1',rankAt:new Date(now-1000).toISOString()};
+const item={price:100,signalPrice:100,pullbackLow:98,at:now/1000-1,sampleAt:now/1000-1,signalAt:now/1000-2,first70At:now/1000-60,ruleVersion:'ab70-v1',source:'Kiwoom WebSocket',volumeMissing:false,excluded:null,volumeRatio:.8,branches:['A']};
+function check(it=item,s=state){return ctx.publicConfirmation({key:'ninepayLive',item:it},s,now);}
+assert(check());
+const firstStage={...item,signalAt:null,signalReview:{version:'confirmation-shadow-v1',strategy:'short',mode:'shadow',orderAuthorized:false,confirmed:true,entryValid:true,confirmedAt:now/1000-1,signalPrice:100,invalidationPrice:98,checks:{liquidity:true,flow:true}}};
+assert.equal(check(firstStage).pattern,'9Pay 1차 검증');
+assert.equal(check({...firstStage,signalReview:{...firstStage.signalReview,checks:{flow:false}}}),null);
+for(const change of [{signalAt:now/1000-11},{sampleAt:now/1000-11},{entryInvalid:true},{stage:'invalidated'},{price:101},{pullbackLow:null},{volumeMissing:true},{branches:[]},{_observationStale:true}])assert.equal(check({...item,...change}),null,JSON.stringify(change));
+for(const change of [{queueDropped:1},{persistenceError:'error'},{rankError:'failed'},{amountFallback:true},{active:false}])assert.equal(check(item,{...state,...change}),null);
+const daily={price:100,signalReview:{version:'confirmation-shadow-v1',mode:'shadow',orderAuthorized:false,confirmed:true,signalPrice:100,invalidationPrice:98,confirmedAt:new Date(now-1000).toISOString(),evaluatedAt:new Date(now-1000).toISOString()}};
+assert(ctx.publicConfirmation({key:'pullback',item:daily},state,now));
+assert.equal(ctx.publicConfirmation({key:'pullback',item:{...daily,signalReview:{...daily.signalReview,confirmed:false}}},state,now),null);
+assert.equal(ctx.publicConfirmation({key:'pullback',item:{...daily,price:97}},state,now),null);
+assert(source.includes('data-include-candidates') && source.includes('if(confirmedOnly'));
+console.log('PASS confirmed-only defaults, expiry, chase, invalidation, missing evidence and shadow separation');

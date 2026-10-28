@@ -24,6 +24,10 @@ RULE_VERSION = 'ab70-v1'
 
 def valid_evidence(item, now):
     """Require current A/B evidence, observed before the 14:00 cutoff (2026-10-23: was 09:30)."""
+    # Display/shadow confirmations are never an alternate order credential.
+    if (item.get('mode') == 'shadow' or item.get('orderAuthorized') is False
+            or item.get('signalReview') is not None or item.get('entryInvalid') is True):
+        return False
     try:
         first = float(item['first70At'])
         at = float(item['at'])
@@ -73,6 +77,7 @@ def valid_signals(payload, now=None):
         raise SignalFeedUnavailable('ranking stale')
     today = datetime.fromtimestamp(now, KST).strftime('%Y-%m-%d')
     accepted = []
+    seen = set()
     for item in state.get('signals') or []:
         if not isinstance(item, dict):
             continue
@@ -80,6 +85,8 @@ def valid_signals(payload, now=None):
         if not CODE.fullmatch(code) or not SIGNAL_ID.fullmatch(sid) or sid != today + ':' + code:
             continue
         if not valid_evidence(item, now):
+            continue
+        if sid in seen:
             continue
         if item.get('source') not in ('Kiwoom WebSocket', 'KIS rank polling'):
             continue
@@ -89,6 +96,7 @@ def valid_signals(payload, now=None):
             continue
         if not 0 <= now - at <= MAX_SIGNAL_AGE_SEC or price <= 0:
             continue
+        seen.add(sid)
         accepted.append({key: item[key] for key in (
             'signalId', 'code', 'at', 'price', 'source', 'ruleVersion',
             'volumeMissing', 'excluded', 'branches', 'first70At', 'volumeRatio')})

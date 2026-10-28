@@ -194,6 +194,7 @@
   var activeTab = 'liveFlow';
   var historySource = 'volumeBreakout';
   var activeGroup = 'short';
+  var confirmedOnly = true;
   var SCANNER_GROUPS = {
     short: ['liveFlow', 'trendBreakout'], swing: ['bottomFormation', 'pullbackRebreak'], long: ['longTermQuality']
   };
@@ -255,6 +256,11 @@
     if (!container) return;
     rootContainer = container;
     container.innerHTML = buildShell();
+    container.querySelector('[data-include-candidates]').addEventListener('change', function(e) {
+      confirmedOnly = !e.target.checked;
+      trackView = 'all';
+      renderList(container);
+    });
     wireTabs(container);
     syncScannerGroup(container);
     renderTabDesc(container);
@@ -276,19 +282,21 @@
     var tabsHtml = MENU_TABS.map(tabButton).join('');
 
     return ''
+      + '<div class="ps-confirmation-status" id="psConfirmationStatus" role="status" aria-live="polite">확정 신호 확인 중</div>'
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
       + [['short','단타'],['swing','스윙'],['long','중장기']].map(function (g) { return '<button class="ps-horizon-tab' + (g[0] === activeGroup ? ' active' : '') + '" role="tab" aria-selected="' + (g[0] === activeGroup) + '" data-horizon="' + g[0] + '">' + g[1] + '</button>'; }).join('') + '</div>'
       + '<nav class="ps-subnav" aria-label="선택 분류의 검색기">' + tabsHtml + '</nav>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
+      + '<details class="ps-research-tools"><summary>연구·과거 기록</summary><label><input type="checkbox" data-include-candidates> 후보·검증 중 포함 (연구용)</label>'
       + '<div class="ps-filterbar"><div class="ps-source-history" id="psSourceHistory"></div>'
       + '<details class="ps-data-fold"><summary>데이터 기준</summary><div class="ps-meta" id="psMeta">불러오는 중...</div><div class="ps-price-basis-note" id="psPriceBasis"></div></details></div>'
       + '<div class="ps-view-tabs" id="psViewTabs" role="tablist" aria-label="포착 상태">'
       + STAGE_VIEWS.map(function (v, i) {
         return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
-      + '</div>'
+      + '</div></details>'
       + '<div class="ps-list" id="psList">' + global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}) + '</div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
@@ -1300,6 +1308,67 @@
       return {key:key,items:items};
     }));
   }
+  function publicConfirmation(member, state, now) {
+    var item=member.item, review=item.signalReview;
+    if(item._observationStale || item.entryInvalid || item.excluded || item.stage==='invalidated')return null;
+    if(member.key==='ninepayLive') {
+      // Existing A/B confirmations stay distinct from experimental first-stage
+      // assessments. Both are read-only; neither is an order permission.
+      if(!state || !state.active || !state.running || state.ruleVersion!=='ab70-v1' || state.rankError || state.amountFallback || state.persistenceError || state.queueDropped)return null;
+      var rankAge=now-Date.parse(state.rankAt || ''), sample=Number(item.sampleAt || item.at)*1000;
+      var at=Number(item.signalAt)*1000, first=Number(item.first70At)*1000, price=Number(item.signalPrice), current=Number(item.price), stop=Number(item.pullbackLow);
+      var day=function(ms){return new Date(ms+9*3600000).toISOString().slice(0,10);};
+      if(!Number.isFinite(rankAge)||rankAge<0||rankAge>120000||!Number.isFinite(sample)||now-sample<0||now-sample>10000)return null;
+      if(review && review.version==='confirmation-shadow-v1' && review.strategy==='short' && review.mode==='shadow' && review.orderAuthorized===false && review.confirmed===true && review.entryValid===true && review.checks && Object.keys(review.checks).length && Object.keys(review.checks).every(function(k){return review.checks[k]===true;})) {
+        var shadowAge=now-Number(review.confirmedAt)*1000;
+        if(Number.isFinite(shadowAge)&&shadowAge>=0&&shadowAge<=10000&&review.signalPrice>0&&review.invalidationPrice>0&&current>review.invalidationPrice&&current<=review.signalPrice*1.003)
+          return {at:review.confirmedAt,price:review.signalPrice,stop:review.invalidationPrice,entry:'1차 Shadow · 주문 불가',basis:'실시간 수신 · Shadow',pattern:'9Pay 1차 검증',shadow:true};
+      }
+      if(!Number.isFinite(at)||at<=0||now-at<0||now-at>10000||!Number.isFinite(first)||first<=0||first>at||day(at)!==day(now)||day(first)!==day(now))return null;
+      var minute=new Date(at+9*3600000);minute=minute.getUTCHours()*60+minute.getUTCMinutes();
+      var ratio=Number(item.volumeRatio), firstMinute=new Date(first+9*3600000);firstMinute=firstMinute.getUTCHours()*60+firstMinute.getUTCMinutes();
+      if(minute<540||minute>=840||firstMinute<540||firstMinute>=840||item.ruleVersion!=='ab70-v1'||['Kiwoom WebSocket','KIS rank polling'].indexOf(item.source)<0||item.volumeMissing!==false||!Object.prototype.hasOwnProperty.call(item,'excluded')||!(item.excluded===null||item.excluded===false)||!Number.isFinite(ratio)||ratio<.7)return null;
+      if(!Array.isArray(item.branches)||!item.branches.length||!item.branches.every(function(b){return b==='A'||b==='B';})||!Number.isFinite(price)||price<=0||!Number.isFinite(current)||current<=0||!Number.isFinite(stop)||stop<=0||current<=stop||current>price*1.003)return null;
+      return {at:item.signalAt,price:price,stop:stop,entry:'시세 기준 유효 · 주문 별도',basis:'실시간 수신',pattern:'9Pay A/B '+item.branches.join('/'),shadow:false};
+    }
+    if(!review||review.version!=='confirmation-shadow-v1'||review.mode!=='shadow'||review.orderAuthorized!==false||review.confirmed!==true||!review.confirmedAt||!(review.signalPrice>0)||!(review.invalidationPrice>0))return null;
+    var age=now-Date.parse(review.evaluatedAt || '');
+    if(!Number.isFinite(age)||age<0||age>36*3600000||item.price<=review.invalidationPrice)return null;
+    return {at:review.confirmedAt,price:review.signalPrice,stop:review.invalidationPrice,entry:'현재 진입 미확인 · 주문 불가',basis:'확정 일봉 '+review.dataAsOf,pattern:sourceLabel(member.key),shadow:true};
+  }
+  function renderConfirmedList(container, all) {
+    var list=container.querySelector('#psList'), now=Date.now(), rows=[];
+    all.forEach(function(row){
+      var members=row.members.map(function(m){
+        var observed=row._quoteBasis && row._quoteBasis.indexOf('9Pay 수신')===0 ? {key:m.key,item:Object.assign({},m.item,{price:row.price})} : m;
+        return {member:m,confirmation:publicConfirmation(observed,ninepayData,now)};
+      }).filter(function(m){return m.confirmation;});
+      if(members.length)rows.push({row:row,members:members});
+    });
+    var states=groupFor(activeTab).sources.map(scannerDataState), n=ninepayData;
+    var issue=states.indexOf('error')>=0 || activeTab==='liveFlow' && (ninepayError || liveSurgeError || liveSurgeInfo && liveSurgeInfo.error || n && (n.rankError || n.persistenceError || n.queueDropped || n.amountFallback));
+    var pending=states.indexOf('loading')>=0;
+    var last=activeTab==='liveFlow' ? n && n.lastEventAt : scanData && scanData.scannedAt;
+    var stale=all.some(function(r){return r.members.some(function(m){return m.item._observationStale;});});
+    if(activeTab==='liveFlow' && n && n.active){var rankAge=now-Date.parse(n.rankAt || '');stale=stale||!Number.isFinite(rankAge)||rankAge<0||rankAge>120000;}
+    var missingReview=all.some(function(r){return r.members.some(function(m){return m.key!=='ninepayLive' && !m.item.signalReview;});});
+    var status=issue?'장애 · 신호 검증 불가':pending?'데이터 수신 대기':stale?'지연 · 만료 신호 제외':'검색 정상';
+    if(!issue&&!pending&&!stale&&missingReview)status='일부 패턴 확정 검증 자료 미수신';
+    if(activeTab==='liveFlow' && n && !n.active)status='장외 · 실시간 신호 대기';
+    var statusBox=container.querySelector('#psConfirmationStatus');
+    if(statusBox)statusBox.textContent=status+' · 유효 확정 '+rows.length+'종목 · 마지막 관측 '+(last?new Date(last).toLocaleString('ko-KR',{timeZone:'Asia/Seoul',hour12:false}):'미수신');
+    var empty=issue?'데이터 장애로 확정 신호를 검증할 수 없습니다.':pending?'확정 검증 자료를 수신하고 있습니다.':stale?'지연·만료된 신호를 제외했습니다. 현재 유효한 확정 신호는 0건입니다.':'현재 유효한 확정 신호가 0건입니다. 미확정 후보는 연구·과거 기록에서 확인할 수 있습니다.';
+    if(!issue&&!pending&&!stale&&missingReview)empty='확정 검증 자료가 없는 패턴은 제외했습니다. 후보·과거 기록과 데이터 기준을 확인하세요.';
+    list.innerHTML='<p class="ps-unified-note">확정 신호만 표시합니다. 일봉 검증은 Shadow Mode이며 실시간 진입·주문·체결을 뜻하지 않습니다.</p>'+(rows.length?'<div class="ps-confirmed-table" role="table" aria-label="유효 확정 신호"><div class="ps-confirmed-head" role="row">'+['종목명·코드','현재가·등락률','확정 패턴','확정 시각','신호 당시 가격','현재 진입 유효성','무효화 기준'].map(function(s){return '<span role="columnheader">'+s+'</span>';}).join('')+'</div>'+rows.map(function(r){var c=r.members[0].confirmation,it=r.row;return '<div class="ps-confirmed-row ps-item" role="row" tabindex="0" data-code="'+escapeHtml(it.code)+'">'
+      +'<span role="cell" data-label="종목"><b>'+escapeHtml(it.name || it.code)+'</b><small>'+escapeHtml(it.code)+'</small></span>'
+      +'<span role="cell" data-label="현재가"><strong class="ps-price">'+fmt(it.price)+'</strong><small class="'+chgClass(it.changeRate)+'">'+chgSign(it.changeRate)+'</small><small>'+escapeHtml(c.basis)+(c.shadow?' · 스캔 가격':'')+'</small></span>'
+      +'<span role="cell" data-label="확정 패턴">'+r.members.map(function(m){return escapeHtml(m.confirmation.pattern);}).join('<br>')+'</span>'
+      +'<span role="cell" data-label="확정 시각">'+escapeHtml(typeof c.at==='number'?npTime(c.at):c.at)+'</span>'
+      +'<span role="cell" data-label="신호가">'+fmt(c.price)+'원</span><span role="cell" data-label="진입 유효성">'+escapeHtml(c.entry)+'</span>'
+      +'<span role="cell" data-label="무효화 기준">'+fmt(c.stop)+'원 이하<small>신호 근거·위험은 종목 선택</small></span></div>';}).join('')+'</div>':global.NineUI.state(issue?'error':pending?'loading':'empty',empty,'ps-hint',{spinner:false}));
+    detailNavItems=rows.map(function(r){return Object.assign({},r.members[0].member.item,{_sourceKey:r.members[0].member.key});});
+    list.querySelectorAll('[data-code]').forEach(function(el){function open(){var it=detailNavItems.filter(function(r){return String(r.code)===el.dataset.code;})[0];openDetail(container,it);}el.addEventListener('click',open);el.addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){e.preventDefault();open();}});});
+  }
   function renderGroupDescription(container) {
     var group=groupFor(activeTab), box=container.querySelector('#psTabDesc');
     var purpose={liveFlow:'9Pay A/B와 장중 급증·매집 의심·재돌파를 종목별로 모은다. 관찰 신호이며 실제 매집·주문·체결을 뜻하지 않는다.',
@@ -1356,6 +1425,7 @@
     if(trackView==='success'||trackView==='failed'){renderTrackedList(container);return;}
     ensureTrackMap(container);
     var all=unifiedItems();
+    if(confirmedOnly && trackView==='all'){renderConfirmedList(container,all);return;}
     var phaseTwo = activeTab === 'liveFlow' ? phaseTwoEvents() : null;
     var phaseTwoCodes = new Set((phaseTwo || []).map(function (e) { return String(e.code); }));
     var items=all.filter(function(row){return trackView==='all'||(activeTab==='liveFlow' && trackView==='new' ? phaseTwoCodes.has(String(row.code)) : row.members.some(function(m){return m.key===historySource&&itemStage(m.item).key===trackView;}));});
@@ -1899,6 +1969,13 @@
     html += buildGpStageBox(data.detail);
     html += buildVolumeAccumBox(data.detail);
     html += buildScoreBox(data.detail);
+    if(item.signalReview) {
+      var review=item.signalReview;
+      var labels={completedPattern:'패턴 완성',dailyTrend:'일봉 추세',support:'지지 유지',stopDistance:'손절 거리',chase:'추격 위험',volumeStructure:'거래량 구조',relativeStrength:'시장 대비 강도',weeklyTrend:'확정 주봉',monthlyTrend:'확정 월봉',longAverage:'장기 이평 방향',longBreakout:'장기 저항 돌파',marketRegime:'시장 환경',financials:'재무 관문',dataFresh:'자료 최신성'};
+      html+='<details class="ps-condition-fold" open><summary>신호 검증 근거 · Shadow Mode</summary><p>기준 '+escapeHtml(review.dataAsOf || '장중 관측')+' · 판정 '+escapeHtml(review.confirmedAt || '미확정')+' · 주문 허가 없음</p><p>'
+        +Object.keys(review.checks || {}).map(function(k){return escapeHtml(labels[k] || k)+': '+(review.checks[k]?'확인':'미충족·미확인');}).join(' · ')
+        +'</p><p>무효화 기준 '+(review.invalidationPrice>0?fmt(review.invalidationPrice)+'원 이하':'미확인')+' · 수익성 미입증 · 실제 체결·비용은 별도 기록</p></details>';
+    }
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
@@ -1913,7 +1990,7 @@
     html += '<div class="ps-chart" id="psChart" style="height:' + chartHeight + 'px"></div>';
     html += (currentDetailItem && currentDetailItem._sourceKey || activeTab) === 'firstPullbackBreakout'
       ? '<div class="ps-footnote">장 마감 후 일봉 종가로 재돌파를 확인한 결과입니다. 다음 거래일 가격과 눌림 저점 이탈 여부를 다시 확인하세요. 테스트 중인 검색 조건이며 1시간 상승 예측이나 승률을 뜻하지 않습니다.</div>'
-      : '<div class="ps-footnote">※ 장 마감 후 확정 일봉 기준이라 실제 진입은 다음 거래일입니다. 다음 날 시가가 2% 이상 갭상승하면 과거 성과가 나빴습니다(백테스트). 패턴 판정은 최근 ' + data.daily.length + '영업일 기준 참고 지표이며, 아직 저항선/넥라인을 못 뚫은 "형성 중" 패턴만 표시됩니다. <b>투자판단 및 그에 따른 책임은 본인에게 있습니다.</b></div>';
+      : '<div class="ps-footnote">확정 일봉 '+data.daily.length+'개와 저장된 신호 근거를 표시합니다. 현재 시세·진입 유효성·주문 허가·실제 체결은 별도이며, 연구 후보와 확정 상태는 검증 근거에서 구분합니다.</div>';
     box.innerHTML = html;
     wireDetailSwitcher(box);
 

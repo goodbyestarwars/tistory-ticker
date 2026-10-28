@@ -14,8 +14,11 @@ import sqlite3
 from pathlib import Path
 
 DB_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'ohlc_snapshot.db')
+SIGNAL_REVIEW_SCHEMA = '''CREATE TABLE IF NOT EXISTS signal_reviews (
+    signal_id TEXT PRIMARY KEY, data_date TEXT NOT NULL,
+    evaluated_at TEXT NOT NULL, payload TEXT NOT NULL)'''
 
-SCHEMA = '''
+SCHEMA = SIGNAL_REVIEW_SCHEMA + ';\n' + '''
 CREATE TABLE IF NOT EXISTS home_session_reference (
     symbol TEXT NOT NULL, session TEXT NOT NULL, reference REAL NOT NULL,
     ts INTEGER NOT NULL, PRIMARY KEY(symbol,session)

@@ -50,6 +50,11 @@ def test_small_feed_keeps_contract_and_missing_evidence(monkeypatch):
     snapshot = observer.signal_snapshot()
     assert 'excluded' not in snapshot['signals'][0]
     assert valid_signals({'data': {'ninePayResearch': snapshot}}, now) == []
+    # A previously emitted A/B event is withdrawn immediately on invalidation.
+    signal['excluded'] = None
+    observer._status['observations'] = {'005930': {'entryInvalid': True}}
+    assert observer.signal_snapshot()['signals'] == []
+    observer._status['observations'] = {}
     for field, value in [('queueDropped', 1), ('persistenceError', 'failure'), ('active', False)]:
         with pytest.raises(SignalFeedUnavailable):
             valid_signals({'data': {'ninePayResearch': {**snapshot, field: value}}}, now)
@@ -152,7 +157,7 @@ def test_log_write_failure_does_not_stop_exit_check(tmp_path, monkeypatch):
     def feed(**kw):
         raise SignalFeedUnavailable('TimeoutError')
     for _ in range(2):
-        assert run_cycle(None, None, None, str(tmp_path), datetime.now(KST), True,
+        assert run_cycle(None, None, None, str(tmp_path), datetime(2026,10,28,10,0,tzinfo=KST), True,
             engine_cycle=exits, signal_fetch=feed, feed_report=report) == '9PAY_FEED_UNAVAILABLE'
     assert calls == [('exits', False), ('exits', False)]
     assert report.latest['reason'] == 'TimeoutError'

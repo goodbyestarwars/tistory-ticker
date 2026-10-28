@@ -157,6 +157,17 @@ def main():
     long_term_filter = pd.apply_long_term_filter(pattern_results, load_fundamentals_cache())
     scan_at = datetime.now(timezone.utc).isoformat()
     pd.annotate_pattern_scan_details(pattern_results, scan_at, pullback_matches)
+    # Same evidence evaluator as nightly scans; no new provider requests.
+    review_conn = db_schema.get_conn()
+    try:
+        import signal_review
+        signal_review.review_groups(review_conn, dict(pattern_results, pullback=pullback_matches),
+                                   datetime.fromisoformat(scan_at).astimezone(signal_review.KST))
+    except Exception as error:
+        review_conn.rollback()
+        log('확정 Shadow 검증 실패: %s' % type(error).__name__)
+    finally:
+        review_conn.close()
 
     # 2026-08-21 코드 감사: patternScan을 통째로 교체하면 angle_momentum_scan.py/
     # gongpasan_scan.py가 patternScan.patterns 밑에 써둔 angleMomentum/gongpasan 섹션이
