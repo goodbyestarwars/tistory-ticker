@@ -2558,6 +2558,8 @@ document.documentElement.classList.add('skin-ready');
       .catch(function () {
         /* 위젯 관리 모듈이 막혀도 기존 고정형 대시보드는 그대로 사용할 수 있게 둔다. */
       });
+    // Publish the complete synchronous layout; do not wait for API or optional widgets.
+    document.documentElement.classList.remove('home-render-pending');
   })();
 
   /* ── 카테고리 글목록: 신문 지면형 고정 편집(2026-08-26) ──

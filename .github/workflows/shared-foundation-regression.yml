@@ -71,6 +71,7 @@ jobs:
           node test/test_weekend_commodities.js
           node test/test_weekend_native_content.js
           node test/test_early_bootstrap.js
+          node test/test_home_first_paint.js
           node test/test_chart_core.js
           node test/test_chart_smooth_wheel.js
           node test/test_chart_interactions.js
