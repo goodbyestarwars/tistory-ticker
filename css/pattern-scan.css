@@ -384,7 +384,7 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 #pattern-scan .ps-chart-options label { display:inline-flex; align-items:center; gap:4px; margin:0; }
 #pattern-scan .ps-detail-evidence { margin:8px 0; font-size:13px; }
 #pattern-scan .ps-detail-evidence p { margin:3px 0; }
-#pattern-scan .ps-detail-evidence select { max-width:100%; font:inherit; color:inherit; background:transparent; border:1px solid var(--ui-border,#e5e7eb); border-radius:6px; padding:4px; }
+#pattern-scan .ps-detail-evidence select { max-width:100%; font:inherit; color:inherit; background:#fff; border:1px solid var(--ui-border,#e5e7eb); border-radius:6px; padding:4px; }
 #pattern-scan .ps-reference-change { white-space:nowrap; font-weight:600; }
 #pattern-scan .ps-analysis-notes { margin:8px 0; font-size:13px; }
 #pattern-scan .ps-analysis-notes > summary { cursor:pointer; }
@@ -763,6 +763,7 @@ html.dark #pattern-scan .ps-detail {
   border-color: var(--dk-line);
 }
 html.dark #pattern-scan .ps-chart-switcher select,
+html.dark #pattern-scan .ps-detail-evidence select,
 html.dark #pattern-scan .ps-chart-nav {
   background: var(--dk-card);
   border-color: var(--dk-line);
