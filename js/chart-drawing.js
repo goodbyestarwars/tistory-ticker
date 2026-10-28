@@ -663,7 +663,12 @@
       if (d.mode === 'measure') d.previewPoint = snapToBarExtreme(d, pointFromEvent(event, strict), d.preview.y);
       redraw();
     });
-    scope.on(overlay, 'contextmenu', function (event) { if (d.enabled) event.preventDefault(); });
+    scope.on(overlay, 'contextmenu', function (event) {
+      if (!d.enabled) return;
+      event.preventDefault();
+      release(event);
+      setMode(null);
+    });
     scope.on(overlay, 'mouseleave', function () {
       if (d.mode === 'pencil' && d.activePath) return;
       d.preview = null; d.hlinePreview = null;

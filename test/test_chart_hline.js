@@ -48,4 +48,23 @@ fire('pointerdown', 190, { clientX: 590 }); fire('pointerup', 190, { clientX: 59
 assert.equal(controller.shapes.hlines[0].price, 325, 'price-label editing remains available');
 controller.setMode(null);
 assert.equal(controller.shapes.hlinePreview, null);
+for (const mode of ['line', 'circle', 'box', 'pencil', 'hline', 'measure']) {
+  controller.setMode(mode);
+  if (mode === 'hline') {
+    fire('pointerdown', 50);
+    assert.notEqual(controller.shapes.hlineDraft, null);
+  }
+  const saved = JSON.stringify(writes.at(-1));
+  let prevented = false;
+  fire('contextmenu', 75, { button: 2, preventDefault() { prevented = true; } });
+  assert(prevented, 'drawing right click suppresses the browser menu');
+  assert.equal(controller.mode(), null, mode + ' returns to the default cursor');
+  assert.equal(controller.shapes.enabled, false);
+  assert.equal(controller.shapes.hlineDraft, null);
+  assert.equal(JSON.stringify(writes.at(-1)), saved, 'right click preserves saved drawings');
+}
+let prevented = false;
+fire('contextmenu', 75, { button: 2, preventDefault() { prevented = true; } });
+assert.equal(prevented, false, 'default cursor keeps the normal context menu');
 console.log('horizontal-line preview, commit, drag, cancel and label editing ok');
+
