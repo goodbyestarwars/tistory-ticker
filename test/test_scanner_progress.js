@@ -28,4 +28,6 @@ assert.equal(paused.state,'running');assert.equal(paused.percent,21);assert.equa
 assert.equal(model([{id:'dailyscan',lastExecution:{state:'failed'}}],false,late).state,'failed');
 assert.equal(model([{id:'dailyscan',lastExecution:{state:'timeout'}}],false,late).state,'timeout');
 assert.equal(model([{id:'dailyscan',lastExecution:{state:'interrupted'}}],false,late).state,'interrupted');
+assert.equal(model([{id:'dailyscan',lastExecution:{state:'holiday',exitCode:0}}],false,late).detail,'');
+assert.ok(model([{id:'dailyscan',lastExecution:{state:'failed',exitCode:127}}],false,late).detail.includes('127'));
 console.log('PASS delayed 25-stock telemetry retains running/21%; only server terminal states stop it');

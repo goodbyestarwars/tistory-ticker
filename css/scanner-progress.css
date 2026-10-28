@@ -31,14 +31,14 @@ html.dark .scanner-progress-status small,html.dark .scanner-progress-status .sca
 /* Pattern scanner dashboard: scoped variant; strategy page keeps its status strip. */
 .scanner-progress-status.is-dashboard { --scan-neon:#6D233F; --scan-ink:#14243e; --scan-muted:#64748b; --scan-line:#e8eaf0; display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:8px; padding:var(--ui-card-padding); margin-bottom:var(--ui-section-gap); background:#fff; border:1px solid var(--scan-line); border-radius:12px; color:var(--scan-ink); box-sizing:border-box; }
 .scanner-progress-status.is-dashboard .scan-status-panel { display:flex; align-items:center; gap:12px; padding:8px 0; min-width:0; }
-.scanner-progress-status.is-dashboard .scan-progress-gauge { width:78px; height:98px; flex:0 0 78px; transform:none; margin:0; }
-.scanner-progress-status.is-dashboard .scan-progress-ring { width:78px; height:78px; }
+.scanner-progress-status.is-dashboard .scan-progress-gauge { width:48px; height:48px; flex:0 0 48px; transform:none; margin:0; }
+.scanner-progress-status.is-dashboard .scan-progress-ring { width:48px; height:48px; }
 .scanner-progress-status.is-dashboard .scan-progress-value { filter:drop-shadow(0 0 3px #6D233F40); }
-.scanner-progress-status.is-dashboard .scan-progress-bolt { width:38px; height:46px; left:20px; top:15px; filter:drop-shadow(0 0 5px #6D233F50); }
-.scanner-progress-status.is-dashboard .scan-progress-percent { display:block; margin-top:3px; font-size:11px; color:var(--scan-muted); }
+.scanner-progress-status.is-dashboard .scan-progress-bolt { width:24px; height:30px; left:12px; top:9px; filter:drop-shadow(0 0 3px #6D233F30); }
+.scanner-progress-status.is-dashboard .scan-progress-percent { display:none; }
 .scanner-progress-status.is-dashboard .scan-progress-copy { display:flex; flex-direction:column; align-items:flex-start; gap:4px; line-height:1.5; overflow-wrap:anywhere; }
-.scanner-progress-status.is-dashboard .scan-progress-label { display:block; }
-.scanner-progress-status.is-dashboard .scan-progress-copy strong { font-size:17px; color:var(--scan-ink); }
+.scanner-progress-status.is-dashboard .scan-progress-label { display:none; }
+.scanner-progress-status.is-dashboard .scan-progress-copy strong { font-size:16px; color:var(--scan-ink); }
 .scanner-progress-status.is-dashboard small,.scanner-progress-status.is-dashboard .scan-progress-label { color:var(--scan-muted); }
 .scanner-progress-status.is-dashboard[data-state="running"] .scan-progress-bolt { animation:scan-dashboard-pulse 1.6s ease-in-out infinite; }
 .scanner-progress-status .scan-dashboard-fold { min-width:0; font-size:12px; }

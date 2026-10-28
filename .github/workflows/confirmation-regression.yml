@@ -52,3 +52,5 @@ jobs:
           node test/test_scanner_loading.js
           node test/test_scanner_dashboard.js
           node test/test_scanner_progress.js
+          node test/test_scanner_public_states.cjs
+          python -m pytest -q test/test_scanner_security_data.py test/test_public_scan_routes.py

@@ -108,12 +108,12 @@ class PublicScanRouteTests(unittest.TestCase):
     def test_pattern_scan_matches_the_gas_shape(self):
         data = self.route_data(main.pattern_scan_result)
         self.assertEqual(sorted(data), ['angleMomentumBacktest', 'angleMomentumScannedAt', 'firstPullbackBreakoutReady', 'gongpasanBacktest',
-                                        'gongpasanScannedAt', 'gongpasanStages', 'patterns',
+                                        'gongpasanScannedAt', 'gongpasanStages', 'longTermFilter', 'patterns',
                                         'pullbackScanned', 'pullbackScannedAt', 'scanned', 'scannedAt',
                                         'universe', 'volumeBreakoutScannedAt'])
         self.assertEqual(sorted(data['patterns']),
                          ['angleMomentum', 'boxRangeLow', 'doubleBottom', 'firstPullbackBreakout', 'gongpasan', 'invHeadShoulders',
-                          'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'shortTermMaBreakout', 'volumeBreakout'])
+                          'longTermQuality', 'maCloudBreakout', 'openingGap', 'pullback', 'risingLows', 'shortTermMaBreakout', 'volumeBreakout'])
         # 2026-09-04: volumeBreakout만 장중 09:10 스냅샷이라 스캔 시각이 따로 온다.
         self.assertEqual(data['volumeBreakoutScannedAt'], CACHE['volumeBreakoutScannedAt'])
         # 눌림목만 patternScan.patterns가 아니라 pullbackScan.matches에서 온다.

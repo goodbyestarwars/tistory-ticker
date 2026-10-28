@@ -16,5 +16,5 @@ const daily={price:100,signalReview:{version:'confirmation-shadow-v1',mode:'shad
 assert(ctx.publicConfirmation({key:'pullback',item:daily},state,now));
 assert.equal(ctx.publicConfirmation({key:'pullback',item:{...daily,signalReview:{...daily.signalReview,confirmed:false}}},state,now),null);
 assert.equal(ctx.publicConfirmation({key:'pullback',item:{...daily,price:97}},state,now),null);
-assert(source.includes('data-include-candidates') && source.includes('if(confirmedOnly'));
-console.log('PASS confirmed-only defaults, expiry, chase, invalidation, missing evidence and shadow separation');
+assert(source.includes("var publicView = 'all'") && source.includes('data-status-count'));
+console.log('PASS existing confirmation validation, expiry, chase, invalidation, missing evidence and shadow separation; unified default');
