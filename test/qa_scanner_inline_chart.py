@@ -29,13 +29,22 @@ async def main():
     '''.replace('QA_STYLE', json.dumps((REPO/'css/dashboard-enhancements.css').as_uri()))
     preload = common+'\n'+library.read_text(encoding='utf8')+'\n'+modules+'\n'+setup+'\n'+(REPO/'js/dashboard-enhancements.js').read_text(encoding='utf8')
     edge = os.environ.get('NINEPAY_QA_BROWSER','C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe')
-    process = subprocess.Popen([edge,'--headless=new','--disable-gpu','--no-first-run','--remote-debugging-port=9261','--user-data-dir='+str(REPO.parent/'edge-scanner-inline'),'--allow-file-access-from-files','about:blank'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    args=[edge,'--headless=new','--disable-gpu','--no-first-run','--remote-debugging-port=9261','--user-data-dir='+str(REPO.parent/'edge-scanner-inline'),'--allow-file-access-from-files']
+    # Match Playwright's isolated Linux runner launch; all market responses are synthetic.
+    if os.environ.get('GITHUB_ACTIONS')=='true':
+        args+=['--no-sandbox','--disable-dev-shm-usage']
+    browser_log=(OUT/'browser-stderr.log').open('w',encoding='utf8')
+    process = subprocess.Popen(args+['about:blank'], stdout=subprocess.DEVNULL, stderr=browser_log)
     try:
+        targets=[]
         for _ in range(80):
             try:
                 targets=json.load(urllib.request.urlopen('http://127.0.0.1:9261/json/list'));break
             except OSError:
+                if process.poll() is not None:
+                    break
                 await asyncio.sleep(.1)
+        assert targets, 'Test browser did not start: '+(OUT/'browser-stderr.log').read_text(encoding='utf8')[-3000:]
         async with websockets.connect(next(t for t in targets if t['type']=='page')['webSocketDebuggerUrl'],max_size=40_000_000) as ws:
             seq=0
             async def call(method,params=None):
@@ -142,6 +151,7 @@ async def main():
             print('PASS',len(results),'real-engine inline chart cases: layout, controls, drawing, refresh, fullscreen, switching, stale responses')
     finally:
         process.terminate()
+        browser_log.close()
 
 
 if __name__=='__main__':
