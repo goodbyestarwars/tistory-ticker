@@ -285,7 +285,7 @@
       + '<nav class="ps-subnav" aria-label="선택 분류의 검색기">' + tabsHtml + '</nav>'
       + '</div>'
       + '<div class="ps-tab-desc" id="psTabDesc"></div>'
-      + '<div class="ps-status-filters" aria-label="현재 신호 상태">' + Object.keys(PUBLIC_LABELS).map(function(k){return '<button type="button" data-status="'+k+'" aria-pressed="'+(k==='all')+'">'+PUBLIC_LABELS[k]+' <span data-status-count="'+k+'">—</span></button>';}).join('') + '</div>'
+      + '<div class="ps-status-filters" aria-label="현재 신호 상태">' + Object.keys(PUBLIC_LABELS).map(function(k){return '<button type="button" data-status="'+k+'" aria-pressed="'+(k==='all')+'">'+PUBLIC_LABELS[k]+' <span data-status-count="'+k+'" title="집계 확인 중 · 수신된 자료 기준">(0)</span></button>';}).join('') + '</div>'
       + '<details class="ps-research-tools"><summary>개별 검색기 이력·성과 및 데이터 기준</summary>'
       + '<div class="ps-filterbar"><div class="ps-source-history" id="psSourceHistory"></div>'
       + '<details class="ps-data-fold"><summary>데이터 기준</summary><div class="ps-meta" id="psMeta">불러오는 중...</div><div class="ps-price-basis-note" id="psPriceBasis"></div><p class="ps-security-basis">종목 유형: '+escapeHtml(global.SCANNER_SECURITY_TYPES ? global.SCANNER_SECURITY_TYPES.source+' · 기준 '+global.SCANNER_SECURITY_TYPES.asOf : '자료 미수신 · 확인 가능한 유형·이름 기준')+'</p></details></div>'
@@ -1489,9 +1489,9 @@
     var visible=model.rows.filter(function(r){return publicView==='all'?['confirmed','observation','research'].indexOf(r.publicStatus.key)>=0:r.publicStatus.key===publicView;});
     var countAll=model.counts.confirmed+model.counts.observation+model.counts.research;
     container.querySelectorAll('[data-status]').forEach(function(button){button.setAttribute('aria-pressed',String(button.getAttribute('data-status')===publicView));});
-    container.querySelectorAll('[data-status-count]').forEach(function(el){var k=el.getAttribute('data-status-count');el.textContent=known?String(k==='all'?countAll:model.counts[k]):'—';});
+    container.querySelectorAll('[data-status-count]').forEach(function(el){var k=el.getAttribute('data-status-count');el.textContent='('+String(k==='all'?countAll:model.counts[k])+')';el.title=known?'조회된 결과 집계':'집계 확인 중 · 수신된 자료 기준 잠정 집계';});
     var summary=container.querySelector('#psConfirmationStatus');
-    summary.textContent=known?'현재 유효 확정 '+model.counts.confirmed+'종목 · 관찰 '+model.counts.observation+'종목 · 연구 '+model.counts.research+'종목':'일부 자료 확인 중 또는 조회 실패 · 아래는 수신된 기록';
+    summary.textContent=known?'현재 유효 확정 '+model.counts.confirmed+'종목 · 관찰 '+model.counts.observation+'종목 · 연구 '+model.counts.research+'종목':'집계 확인 중 · 숫자는 수신된 자료 기준입니다 (일부 조회 실패·누락 가능)';
     global.PatternScan.publicSummary={counts:model.counts,known:known};
     if(typeof global.CustomEvent==='function')document.dispatchEvent(new global.CustomEvent('scanner-public-state',{detail:global.PatternScan.publicSummary}));
     var list=container.querySelector('#psList');
