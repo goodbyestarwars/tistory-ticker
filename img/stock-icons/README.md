@@ -30,6 +30,8 @@ https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/{종목코드}.
 
 ## 미국 종목 아이콘
 
+2026-10-29: `CBRS.png`는 Cerebras 공식 홈페이지의 favicon 원본(`https://cdn.sanity.io/images/e4qjo92p/production/e7a55ae5ab7e2c4fdfd4e66a51f628d1f2f44207-967x967.png`, 128px)을 사용한다. 전역 로컬 PNG 폴백으로 관심종목·MY·검색 등에서 공유하며, 공통 도메인 폴백에도 `cerebras.ai`를 등록한다.
+
 주요 미국 종목 아이콘은 Simple Icons 데이터를 Iconify API에서 SVG로 내려받아 티커명으로 저장합니다. 현재 지원 파일은 `AAPL.svg`, `MSFT.svg`, `NVDA.svg`, `AMZN.svg`, `GOOGL.svg`, `TSLA.svg`, `META.svg`, `AVGO.svg`, `AMD.svg`, `NFLX.svg`입니다.
 
 - 원본 아이콘: https://github.com/simple-icons/simple-icons

@@ -27,6 +27,7 @@
   };
 
   var BRAND_DOMAIN_MAP = {
+    CBRS: 'cerebras.ai',
     RGTI: 'rigetti.com', RKLB: 'rocketlabusa.com', ORCL: 'oracle.com',
     LLY: 'lilly.com', DELL: 'dell.com', IONQ: 'ionq.com',
     SKHY: 'skhynix.com', ASTS: 'ast-science.com',
@@ -65,6 +66,8 @@
   function fallback(image) {
     if (!image) return;
     var code = codeOf(image);
+    // Keep the identity after src moves from the local asset to another host.
+    if (code) image.setAttribute('data-icon-code', code);
     var market = marketOf(image, code);
     var stage = image.getAttribute('data-icon-stage') || 'local';
     var brand = BRAND_ICON_MAP[code];

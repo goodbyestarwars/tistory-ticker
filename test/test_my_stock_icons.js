@@ -18,6 +18,15 @@ function image(code) {
     setAttribute(key, value) { attrs[key] = value; },
     removeAttribute(key) { delete attrs[key]; } };
 }
+// Watchlist markup supplies only a local src; identity must survive each retry.
+const watchIcon = image('');
+watchIcon.src = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/CBRS.svg';
+for (let i = 0; i < 3; i++) window.StockIconFallback(watchIcon);
+assert.equal(watchIcon.getAttribute('data-icon-code'), 'CBRS');
+assert(watchIcon.src.endsWith('/CBRS.png'));
+window.StockIconFallback(watchIcon);
+window.StockIconFallback(watchIcon);
+assert(watchIcon.src.endsWith('/cerebras.ai.ico'));
 // MY uses the common chain for every symbol, including unknown symbols.
 for (const code of ['US:MRNA', 'US:NEWCO', 'US:BRK.B', '005930']) {
   const img = image(code), urls = [];
