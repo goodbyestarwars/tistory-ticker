@@ -1393,7 +1393,7 @@ document.documentElement.classList.add('skin-ready');
         : [['KOSPI', '코스피'], ['KOSDAQ', '코스닥']];
       return definitions.map(function (definition) {
         var entry = body && body.byIndex && body.byIndex[definition[0]];
-        var volume = entry && entry.volumeIndex;
+        var volume = entry && (market === 'domestic' ? entry.turnoverIndex : entry.volumeIndex);
         var valid = entry && entry.status === 'ok' && volume && volume.status === 'ok'
           && volume.basis === 'same-time-5m-volume-sum' && volume.baseline > 0 && volume.eligible > 0
           && typeof volume.index100 === 'number' && isFinite(volume.index100) && volume.index100 >= 0;
@@ -1418,8 +1418,20 @@ document.documentElement.classList.add('skin-ready');
             && number(participation.median) && participation.median >= 0
             && integer(participation.increased) && participation.increased >= 0 && participation.increased <= participation.eligible
             && Math.abs(participation.ratio - participation.increased / participation.eligible) < .000001;
+          var turnoverStamp = volume ? Date.parse(volume.retrievedAt) : NaN;
+          var turnoverAge = (Date.now() - turnoverStamp) / 1000;
+          var asOf = volume ? Date.parse(volume.asOf) : NaN;
+          var observationAge = (Date.now() - asOf) / 1000;
+          valid = volume && volume.status === 'ok' && volume.basis === 'same-time-cumulative-30m'
+            && volume.unit === 'KRW' && volume.source === 'KIS' && volume.market === 'KRX'
+            && volume.lookbackDays === 5 && volume.sampleDays === 5
+            && number(volume.current) && volume.current >= 0 && number(volume.baseline) && volume.baseline > 0
+            && number(volume.index100) && volume.index100 >= 0
+            && Math.abs(volume.index100 - volume.current / volume.baseline * 100) < .000001
+            && isFinite(turnoverStamp) && turnoverAge >= -60 && turnoverAge <= (active ? 300 : 3600)
+            && isFinite(asOf) && observationAge >= 0 && (!active || observationAge <= 2100);
           return {label: definition[1], volume: valid ? volume : null, participation: ready ? participation : null,
-            entry: entry, status: entry && entry.status,
+            entry: entry, status: volume && (volume.status === 'stale' || (isFinite(turnoverStamp) && (turnoverAge > (active ? 300 : 3600) || (active && observationAge > 2100))) ? 'stale' : volume.status),
             participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
         }
         return {label: definition[1], volume: valid ? volume : null, status: entry && entry.status};
@@ -1447,14 +1459,14 @@ document.documentElement.classList.add('skin-ready');
         var value = volume ? normalized.toFixed(1).replace(/\.0$/, '') : model.status === 'stale' ? '갱신 지연' : '확인 중';
         var delta = volume ? normalized - 100 : null;
         var tone = delta === null || Math.abs(delta) < .000001 ? 'home-neutral' : delta > 0 ? 'home-positive' : 'home-negative';
-        var volumeLabel = market === 'domestic' ? '동시간대 5분 거래량' : '거래량';
+        var volumeLabel = market === 'domestic' ? '동시간대 누적 거래대금' : '거래량';
         var label = model.label + ' ' + volumeLabel + ' ' + value + (volume ? ' / 평균 100' : '');
-        var tooltip = volume ? '평균 100 · 동일 눈금 ±' + scale + ' · 분석 ' + volume.eligible + '/' + volume.total + '종목' : label;
+        var tooltip = volume ? (market === 'domestic' ? '최근 5거래일 동시간대 누적 거래대금 평균 100 · 30분 구간 완료 기준 · ' + volume.asOf : '평균 100 · 동일 눈금 ±' + scale + ' · 분석 ' + volume.eligible + '/' + volume.total + '종목') : label;
         return '<div class="hmp-item"><div class="hmp-heading">' + escapeHomeHtml(model.label) + '</div>'
           + '<div class="hmp-column-chart" role="img" aria-label="' + escapeHomeHtml(label) + '" title="' + escapeHomeHtml(tooltip) + '">'
           + '<div class="hmp-column-track"><span class="hmp-baseline-label">100</span><span class="hmp-baseline"></span>'
           + (delta !== null && Math.abs(delta) >= .000001 ? '<i class="hmp-column ' + (delta > 0 ? 'is-up' : 'is-down') + '" style="height:' + (Math.abs(delta) / scale * 50).toFixed(2) + '%"></i>' : '')
-          + '</div></div><div class="hmp-volume-value">' + (market === 'domestic' ? '동시간대<br>5분 거래량' : '거래량') + '<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
+          + '</div></div><div class="hmp-volume-value">' + (market === 'domestic' ? '누적<br>거래대금' : '거래량') + '<br><b class="' + tone + '">' + value + '</b>' + (volume ? ' / 100' : '') + '</div></div>';
       }).join('');
       var basis = dashboardSection.querySelector('[data-participation-basis]');
       if (basis) {
@@ -1474,16 +1486,20 @@ document.documentElement.classList.add('skin-ready');
         var counts = sample && Number.isInteger(sample.eligible) && Number.isInteger(sample.total)
           && sample.eligible >= 0 && sample.eligible <= sample.total ? '유효 ' + sample.eligible + ' / 구성 ' + sample.total + '종목' : '표본 확인 중';
         var delay = entry && typeof entry.delaySeconds === 'number' && isFinite(entry.delaySeconds) && entry.delaySeconds >= 0
-          ? (entry.delaySeconds > 0 ? '공급자 ' + (entry.delaySeconds / 60) + '분 지연' : '공급자 실시간 모드') : '공급자 지연 확인 중';
+          ? (entry.delaySeconds > 0 ? '거래량 공급자 ' + (entry.delaySeconds / 60) + '분 지연' : '거래량 공급자 실시간 모드') : '거래량 공급자 지연 확인 중';
         var stamp = entry ? Date.parse(entry.retrievedAt) : NaN;
         var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
+        var turnover = model.volume;
+        var amount = turnover ? (turnover.current / 1000000000000).toLocaleString('ko-KR', {maximumFractionDigits: 2}) + '조원' : model.status === 'stale' ? '갱신 지연' : '확인 중';
+        var cutoff = turnover ? new Date(turnover.asOf).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
         return '<div data-volume-participation="' + (model.label === '코스피' ? 'KOSPI' : 'KOSDAQ') + '">'
-          + escapeHomeHtml(model.label) + ' · 거래량 증가 종목 ' + (p ? percent + '%' : state)
+          + escapeHomeHtml(model.label) + ' · 누적 거래대금 ' + escapeHomeHtml(amount) + ' · 기준 ' + escapeHomeHtml(cutoff) + ' (KIS·KRX)'
+          + '<br>거래량 증가 종목 ' + (p ? percent + '%' : state)
           + ' · 상대 거래량 중앙값 ' + (p ? p.median.toFixed(2) + '배' : state)
           + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
           + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
-      }).join('') + '<div>막대: 해당 5분 구간 합산 거래량 / 최근 10일 동시간대 5분봉 평균=100(TradingView 설명 기준). 당일 누적 거래량이 아님. '
-        + '보조 수치: 종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 실제 관측 시각 미제공.</div>';
+      }).join('') + '<div>막대: 최근 5거래일 동시간대 누적 거래대금 평균=100 · 완료된 30분 구간 기준(장중 최대 약 32분 전). '
+        + '거래량 보조 수치: TradingView 최근 10일 동시간대 5분봉·종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 거래량 공급자 실제 관측 시각 미제공.</div>';
     }
 
     function loadDomesticParticipation() {

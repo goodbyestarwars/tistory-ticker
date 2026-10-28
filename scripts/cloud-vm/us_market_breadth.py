@@ -95,7 +95,7 @@ def get_breadth(now=None, market='us'):
     region, zone, start, end, indexes = MARKETS[market]
     cache = _caches[market]
     clock = datetime.fromtimestamp(now, ZoneInfo(zone))
-    active = clock.weekday() < 5 and start <= clock.hour * 60 + clock.minute < end
+    active = clock.weekday() < 5 and start <= clock.hour * 60 + clock.minute < end + (10 if market == 'domestic' else 0)
     ttl = 120 if active else 3600
     with _locks[market]:
         if cache['data'] is not None and now - cache['at'] < ttl:
@@ -116,6 +116,9 @@ def get_breadth(now=None, market='us'):
                     entries[key] = {'label': label, 'status': 'unavailable'}
             if entries[key]['status'] == 'ok':
                 entries[key]['cachedAt'] = now
+            if market == 'domestic':
+                from domestic_turnover import fetch_turnover
+                entries[key]['turnoverIndex'] = fetch_turnover(key, now)
         result = {'source': SOURCE, 'byIndex': entries, 'timeBasis': 'retrieval'}
         cache.update(at=now, data=result)
         # Retry failures after 60 seconds, rather than treating an error as an hour-long cache hit.
@@ -131,4 +134,6 @@ def _stale(now, market='us'):
     for key, (_, label) in indexes.items():
         old = ((cache['data'] or {}).get('byIndex') or {}).get(key)
         entries[key] = dict(old, status='stale') if old and now - old.get('cachedAt', 0) < 900 else {'label': label, 'status': 'unavailable'}
+        if entries[key].get('turnoverIndex'):
+            entries[key]['turnoverIndex'] = dict(entries[key]['turnoverIndex'], status='stale')
     return {'source': SOURCE, 'byIndex': entries, 'timeBasis': 'retrieval'}

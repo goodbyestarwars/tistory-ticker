@@ -39,6 +39,11 @@ jobs:
           quant-autotrade/local_bot/test_ninepay_signal_client.py
           quant-autotrade/local_bot/test_ninepay_trade.py
           quant-autotrade/local_bot/test_live_exclusion.py
+      - name: Home cumulative turnover and volume participation
+        run: |
+          python -m pytest -q test/test_domestic_turnover.py test/test_us_market_breadth.py
+          node test/test_market_participation.js
+          node test/test_market_participation_bars.js
       - name: UI data contracts and defaults
         run: |
           node test/test_confirmation_ui.cjs

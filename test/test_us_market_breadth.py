@@ -2,6 +2,8 @@ import importlib.util
 from pathlib import Path
 from unittest.mock import patch
 import pytest
+import sys
+sys.path.insert(0, str(Path(__file__).parents[1] / "scripts/cloud-vm"))
 
 spec = importlib.util.spec_from_file_location('us_market_breadth', Path(__file__).parents[1] / 'scripts/cloud-vm/us_market_breadth.py')
 m = importlib.util.module_from_spec(spec)
@@ -104,3 +106,20 @@ def test_invalid_relative_volume_is_excluded_without_liquidity_filter(value):
     assert result['volumeParticipation']['ratio'] == .5
     assert result['volumeParticipation']['median'] == .6
     assert result['volumeIndex']['status'] == 'unavailable'
+
+def test_domestic_turnover_uses_shared_cache_and_preserves_volume_contracts():
+    import domestic_turnover
+    m._caches['domestic'].update(at=0,attempt=0,data=None)
+    original=m.parse_breadth(payload([1,-1]))
+    now=1793152800
+    with patch.object(m,'_fetch',return_value=original),patch.object(domestic_turnover,'fetch_turnover',return_value={'status':'ok','index100':123}) as fetch:
+        result=m.get_breadth(now,market='domestic')
+        assert result['byIndex']['KOSPI']['turnoverIndex']['index100']==123
+        assert result['byIndex']['KOSPI']['volumeIndex']==original['volumeIndex']
+        assert result['byIndex']['KOSDAQ']['volumeParticipation']==original['volumeParticipation']
+        assert m.get_breadth(now+1,market='domestic') is result
+        assert fetch.call_count==2
+        stale=m._stale(now+2,market='domestic')
+        assert stale['byIndex']['KOSPI']['turnoverIndex']['status']=='stale'
+        assert result['byIndex']['KOSPI']['turnoverIndex']['status']=='ok'
+    m._caches['domestic'].update(at=0,attempt=0,data=None)
