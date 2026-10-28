@@ -661,8 +661,9 @@
           ? '<div class="sc-today-rows">' + foldRows(selectedEvents, renderEventRow, 8) + '</div>'
           : '<div class="sc-empty">선택한 날짜에 예정된 일정이 없습니다.</div>';
 
+      var searching = !!String(state.disclosureQuery || '').trim();
       calendarContent.innerHTML =
-        '<div class="sc-layout">'
+        (searching ? renderCompletedDisclosures(state, loading) : '') + '<div class="sc-layout">'
         + '<aside class="sc-cal-col" aria-label="일정 달력">'
         + renderMonthCalendar(state)
         + '</aside>'
@@ -673,9 +674,9 @@
         + listHtml
         + '</section>'
         + '</div>'
-        + renderCompletedDisclosures(state, loading) + renderSourceHealth(state);
+        + (searching ? '' : renderCompletedDisclosures(state, loading)) + renderSourceHealth(state);
       if (state.highlightEvent) {
-        var row = Array.from(calendarContent.querySelectorAll('[data-event-id]')).find(function (el) { return el.getAttribute('data-event-id') === state.highlightEvent; });
+        var row = Array.from(calendarContent.querySelectorAll('.sc-list-col [data-event-id]')).find(function (el) { return el.getAttribute('data-event-id') === state.highlightEvent; });
         if (row) { var details = row.closest('details'); if (details) details.open = true; row.classList.add('is-highlighted'); row.focus(); }
       }
     }

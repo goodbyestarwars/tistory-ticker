@@ -169,14 +169,7 @@ html.dark #stock-calendar .sc-completed-badge { background: rgba(127, 176, 216, 
   padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 9px;
   background: rgb(255, 254, 252);
 }
-@media (max-width: 480px) {
-  #stock-calendar .sc-search { flex-direction: column; align-items: stretch; }
-  #stock-calendar .sc-ev-item { display: grid; grid-template-columns: 36px 24px minmax(0, 1fr); gap: 6px; }
-  #stock-calendar .sc-ev-body { grid-column: 3; }
-  #stock-calendar .sc-ev-time { grid-column: 3; max-width: none; white-space: normal; }
-  #stock-calendar .sc-completed-card .sc-ev-item { grid-template-columns: 24px minmax(0, 1fr); }
-  #stock-calendar .sc-completed-card .sc-ev-body, #stock-calendar .sc-completed-card .sc-ev-time { grid-column: 2; }
-}
+
 #stock-calendar .sc-search span {
   flex-shrink: 0; color: #64748b; font-size: 12px; font-weight: 700;
 }
@@ -331,6 +324,12 @@ html.dark #stock-calendar .sc-completed-badge--us {
   background: var(--dk-inner) !important; color: var(--dk-text) !important;
 }
 @media (max-width: 480px) {
+  #stock-calendar .sc-search { flex-direction: column; align-items: stretch; }
+  #stock-calendar .sc-ev-item { display: grid; grid-template-columns: 36px 24px minmax(0, 1fr); gap: 6px; }
+  #stock-calendar .sc-ev-body { grid-column: 3; }
+  #stock-calendar .sc-ev-time { grid-column: 3; max-width: none; white-space: normal; }
+  #stock-calendar .sc-completed-card .sc-ev-item { grid-template-columns: 24px minmax(0, 1fr); }
+  #stock-calendar .sc-completed-card .sc-ev-body, #stock-calendar .sc-completed-card .sc-ev-time { grid-column: 2; }
   #stock-calendar .sc-market-switch { width: 100%; }
   #stock-calendar .sc-market-btn { flex: 1 1 0; padding: 9px 6px; min-width: 0; }
 }
