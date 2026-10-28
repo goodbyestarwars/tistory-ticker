@@ -36,7 +36,13 @@ var scheduleState=['running','waiting','failed','holiday','unknown','stale'].inc
 var job={id:'dailyscan',progress:{processed:25,total:100,updatedAt:new Date((now-(mode==='stale'?600:2))*1000).toISOString()},lastExecution:{state:mode==='stale'?'running':scheduleState,finishedAt:new Date((now-30)*1000).toISOString(),startedAt:new Date((now-60)*1000).toISOString(),reason:scheduleState==='failed'?'합성 실행 오류':''}};
 window.qaTimers=[];var realSetInterval=window.setInterval;window.setInterval=function(fn,ms){qaTimers.push({fn:fn,ms:ms});return realSetInterval(fn,ms);};
 window.qaRequests=[];window.qaErrors=[];window.addEventListener('error',e=>{if(e.message)qaErrors.push(e.message)});
+window.qaChartDelay=0;
+window.qaDaily=Array.from({length:500},(_,i)=>{var date=new RealDate(fixedNow-(500-i)*86400000);return {date:date.toISOString().slice(0,10),open:70000+i*10,high:70900+i*10,low:69000+i*10,close:70200+i*10,volume:100000+i*100};}).filter(b=>![0,6].includes(new RealDate(b.date).getUTCDay()));
 window.fetch=function(url){var u=String(url);qaRequests.push(u);if(mode==='error'&&u.includes('/health/realtime'))return Promise.reject(Error('합성 API 오류'));
+if(mode==='inline' && (u.includes('/flow-chart/') || u.includes('patternChart=1'))){
+ var chart={daily:qaDaily.map(b=>Object.assign({},b)),detail:{status:'NECKLINE_READY',reasons:['합성 패턴 근거']}};
+ return new Promise(resolve=>setTimeout(()=>resolve({ok:true,json:()=>Promise.resolve(u.includes('patternChart=1')?chart:{success:true,data:chart})}),qaChartDelay));
+}
 var surgeItems=patterns.volumeBreakout.map(r=>Object.assign({},r,{lastObservedAt:mode==='delayed'?now-300:now-2}));
 var data=u.includes('/health/schedules')?{jobs:[job]}:u.includes('/health/realtime')?{ninePayResearch:fixture}:u.includes('/pattern-scan')?scan:u.includes('/volume-surge-live')?{active:true,dataBasis:{realtime:!['partial','delayed'].includes(mode)},error:mode==='partial'?'합성 KIS 부분 장애':null,items:surgeItems}:u.includes('/pattern-tracks')?{tracks:mode==='history'?[{id:1,code:'012345',name:'과거 성공 합성',scanner:'pattern:volumeBreakout',status:'SUCCESS',detected_date:'2026-10-20',detected_close:100,current_close:105},{id:2,code:'399999',name:'숨김 인수회사',status:'SUCCESS',detected_date:'2026-10-20',detected_close:100}]:[],stats:{total:3,active:1,success:1,failed:1,days:90}}:{hits:[],tracks:[],items:[],daily:[]};
 return Promise.resolve({ok:true,json:()=>Promise.resolve({success:true,data:data})});};

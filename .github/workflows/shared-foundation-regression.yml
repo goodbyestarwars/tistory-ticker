@@ -109,6 +109,22 @@ jobs:
           NINEPAY_QA_CHANNEL: chromium
           NINEPAY_CALENDAR_QA_DIR: calendar-browser-results
         run: NODE_PATH="$RUNNER_TEMP/calendar-browser/node_modules" node test/qa_calendar_unified.cjs
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install scanner browser connection runtime
+        run: python -m pip install 'websockets>=14,<17'
+      - name: Inline scanner real-chart interactions
+        env:
+          SCANNER_INLINE_QA_DIR: scanner-inline-results
+        run: |
+          export NINEPAY_QA_BROWSER="$(NODE_PATH="$RUNNER_TEMP/calendar-browser/node_modules" node -p "require('playwright').chromium.executablePath()")"
+          python test/qa_scanner_inline_chart.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: scanner-inline-results
+          path: scanner-inline-results/
       - uses: actions/upload-artifact@v4
         if: always()
         with:

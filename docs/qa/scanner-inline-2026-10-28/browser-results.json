@@ -1,0 +1,42 @@
+[
+  {
+    "width": 1440,
+    "theme": "light",
+    "rowHeight": 87.28125,
+    "inline": true,
+    "tools": true,
+    "refresh": true,
+    "fullscreen": true,
+    "staleResponseGuard": true
+  },
+  {
+    "width": 1440,
+    "theme": "dark",
+    "rowHeight": 87.28125,
+    "inline": true,
+    "tools": true,
+    "refresh": true,
+    "fullscreen": true,
+    "staleResponseGuard": true
+  },
+  {
+    "width": 375,
+    "theme": "light",
+    "rowHeight": 184.28125,
+    "inline": true,
+    "tools": true,
+    "refresh": true,
+    "fullscreen": true,
+    "staleResponseGuard": true
+  },
+  {
+    "width": 375,
+    "theme": "dark",
+    "rowHeight": 184.28125,
+    "inline": true,
+    "tools": true,
+    "refresh": true,
+    "fullscreen": true,
+    "staleResponseGuard": true
+  }
+]
