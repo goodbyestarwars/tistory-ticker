@@ -26,6 +26,16 @@
       }
     } catch (e) {}
   </script>
+  <!-- Home source cards are regrouped by buildHomeDashboard. Stage only those cards,
+       not the page or the data requests; fail open if the script cannot initialize. -->
+  <script id="home-first-paint">
+    if (location.pathname === '/' || location.pathname === '') {
+      document.documentElement.classList.add('home-render-pending');
+      setTimeout(function () {
+        document.documentElement.classList.remove('home-render-pending');
+      }, 6000);
+    }
+  </script>
   <!-- 2026-08-30: 여기 있던 `html:not(.skin-ready) body { visibility: hidden }`를 제거했다.
        원래 목적은 "위젯 CSS가 늦게 도착할 때의 무스타일 페인트 차단"이었는데 라이브
        측정에서 아무것도 막지 못하면서 첫 화면만 가리고 있었다:
@@ -39,6 +49,12 @@
   <style id="initial-paint-guard">
     html, html body { background: rgb(255, 254, 252); }
     html.dark, html.dark body { background: #1A1A1A; }
+    .feed > .home-boot-status { display: none; }
+    html.home-render-pending .feed > .home-boot-status {
+      display: block; padding: var(--ui-card-padding, 18px);
+      color: var(--text-sub, #666); font: 400 14px/1.6 var(--font-ui, system-ui, sans-serif);
+    }
+    html.home-render-pending .feed > :is(.post-card, .notice-card, .pagination) { display: none; }
   </style>
   <script>
     // skin-ready는 더 이상 화면을 가리지 않지만, style.css가 배경 토큰을 !important로
@@ -56,6 +72,7 @@
   <!-- 스킨 본체 CSS: git push로 수정 (티스토리 CSS 탭 미사용, 2026-07-10 이전) -->
     <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/style.css?v=20261025-center-countdown3" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ui-system.css?v=20260827-ui-system-v1" />
+  <link rel="stylesheet" data-home-market-board-css="1" href="https://goodbyestarwars.github.io/tistory-ticker/css/home-market-board.css?v=20261027-open-block-columns" />
   <link rel="stylesheet" href="https://goodbyestarwars.github.io/tistory-ticker/css/ticker-tooltip-v3.css" />
   <!-- 2026-08-29: sidebar-rank.css / investor-trend-widget.css 제거. 두 위젯은 홈에서만
        쓰였는데 js/skin-main.js buildHomeDashboard가 그 mount(#sidebar-rank /
@@ -176,6 +193,7 @@
 
     <!-- ====== CENTER FEED ====== -->
     <section class="feed">
+      <p class="home-boot-status" role="status">홈 화면 준비 중</p>
 
       <!-- 세부 카테고리 서브 필터: git js/skin-shell.js가 주입, 내용은 skin-main.js가 동적 표시 -->
       <div id="shell-subFilterBar"></div>
