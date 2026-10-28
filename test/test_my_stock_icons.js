@@ -54,4 +54,3 @@ assert.equal(img.getAttribute('data-icon-stage'), null);
 img.onerror();
 assert(img.src.includes('StockBRK.B.O.svg'));
 console.log('MY stock icons: common fallback, unknown/dotted symbols and input reuse passed');
-
