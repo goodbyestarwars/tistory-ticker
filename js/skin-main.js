@@ -3136,8 +3136,7 @@ document.documentElement.classList.add('skin-ready');
     }
     function viCardHtml(v, open) {
       return '<button type="button" class="vol-alert is-vi" data-vol-open="vi" aria-expanded="' + (open ? 'true' : 'false') + '" aria-controls="volPanel">'
-        + '<strong>변동성완화장치 · VI</strong><b class="vol-count">' + v.count + '<small>건 발동 중</small></b>'
-        + '<span>최근 ' + esc(v.time) + ' ' + esc((v.market ? v.market + ' ' : '') + v.name) + '</span></button>';
+        + '<strong>변동성완화장치 VI ' + v.count + '건 발동중</strong></button>';
     }
     function haltHistoryCount(halt) {
       return halt && halt.available ? (halt.events || []).length : 0;

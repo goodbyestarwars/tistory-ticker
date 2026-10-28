@@ -359,8 +359,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict { fl
 .vol-alert span { overflow: hidden; font: 500 12px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); opacity: .85; text-overflow: ellipsis; white-space: nowrap; }
 .vol-alert.is-cb { border-color: #f3b4ae; background: #fdecea; color: #b42318; }
 .vol-alert.is-side { border-color: #f5c98a; background: #fff4e5; color: #b45309; }
-.vol-alert.is-vi { flex: 0 0 auto; min-height: 0; gap: 1px; padding: 8px 14px; border-color: var(--hmb-line, #e2e8f0); background: var(--np-paper, #fffefc); color: var(--hmb-ink, #1a1a1a); }   /* 바탕색(크림) 박스, 내용 크기에 맞춤 */
-.vol-alert.is-vi { margin-left: auto; }
+.vol-alert.is-vi { flex: 0 0 auto; flex-direction: row; min-height: 0; margin-left: auto; padding: 6px 10px; border-color: var(--hmb-line, #e2e8f0); background: var(--np-paper, #fff); color: var(--hmb-ink, #1a1a1a); white-space: nowrap; }
 .vol-alert:focus-visible, .vol-history-link:focus-visible, .vol-seg-btn:focus-visible { outline: 2px solid #2563eb; outline-offset: 2px; }
 .vol-history-link { padding: 0; border: 0; background: none; color: var(--hmb-mute, #64748b); font: 500 11px/1.4 var(--font-ui, "Pretendard", system-ui, sans-serif); text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
 .vol-history-link[hidden] { display: none; }
