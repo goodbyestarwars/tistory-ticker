@@ -66,6 +66,8 @@
   function fallback(image) {
     if (!image) return;
     var code = codeOf(image);
+    // Keep the identity after src moves from the local asset to another host.
+    if (code) image.setAttribute('data-icon-code', code);
     var market = marketOf(image, code);
     var stage = image.getAttribute('data-icon-stage') || 'local';
     var brand = BRAND_ICON_MAP[code];
