@@ -73,6 +73,15 @@ async def main():
                     await call('Page.navigate',dict(url=(REPO/'test/scanner-states.html').as_uri()+'?mode=inline'))
                     await wait_for('window.mode==="inline" && !!document.querySelector(".ps-state-actions > button")')
                     await evaluate('localStorage.removeItem("tistory-ticker:pattern-drawings:005930:day");'+("document.documentElement.classList.add('dark');" if theme=='dark' else ''))
+                    result_box=await evaluate('''(()=>{
+                      var box=document.querySelector('#psList'), reference=document.createElement('div');
+                      reference.className='ps-detail';reference.hidden=true;document.querySelector('#pattern-scan').appendChild(reference);
+                      var actual=getComputedStyle(box), shared=getComputedStyle(reference);
+                      var keys=['backgroundColor','backgroundImage','borderTopColor','borderTopWidth','borderRadius','paddingTop','paddingLeft','paddingRight','paddingBottom','boxShadow'];
+                      var result={commonClass:box.classList.contains('ui-content-block'),actual:{},shared:{}};
+                      keys.forEach(key=>{result.actual[key]=actual[key];result.shared[key]=shared[key];});reference.remove();return result;
+                    })()''')
+                    assert result_box['commonClass'] and result_box['actual']==result_box['shared'],result_box
                     assert await evaluate('Array.from(document.querySelectorAll(".ps-state-actions")).every(el=>el.querySelectorAll("button").length===1 && !el.querySelector("details"))'),'one shared chart/evidence button per stock'
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="005930"] .ps-reference-change\').textContent')=='기준 대비 +0.14%'
                     before=await evaluate('window.startY=scrollY;document.querySelector(\'.ps-state-row[data-code="005930"] .ps-state-actions > button\').click();startY')
@@ -162,7 +171,7 @@ async def main():
                     assert await evaluate('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\').textContent')=='기준 대비 0.00%'
                     await evaluate('fixture.items.find(r=>r.code==="035420").signalPrice=null;NineHttp.clearCache();PatternScan.refresh()')
                     await wait_for('document.querySelector(\'.ps-state-row[data-code="035420"] .ps-reference-change\')?.textContent==="기준 대비 미확인"')
-                    results.append(dict(width=width,theme=theme,rowHeight=row_height,inline=True,tools=True,refresh=True,fullscreen=True,staleResponseGuard=True))
+                    results.append(dict(width=width,theme=theme,rowHeight=row_height,resultBox=result_box['actual'],inline=True,tools=True,refresh=True,fullscreen=True,staleResponseGuard=True))
             (OUT/'results.json').write_text(json.dumps(results,indent=2),encoding='utf8')
             print('PASS',len(results),'real-engine inline chart cases: layout, controls, drawing, refresh, fullscreen, switching, stale responses')
     finally:
