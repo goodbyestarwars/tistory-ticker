@@ -11,6 +11,7 @@ import earnings_calendar
 class EarningsCalendarTests(unittest.TestCase):
     def setUp(self):
         earnings_calendar._cache.clear()
+        earnings_calendar._dart_page_states.clear()
         earnings_calendar._financials_cache.clear()
         earnings_calendar._viewer_cache.clear()
         earnings_calendar._finnhub_cache.clear()
@@ -60,7 +61,7 @@ class EarningsCalendarTests(unittest.TestCase):
                 'corp_code': '00126380',
                 'corp_name': '테스트전자',
                 'stock_code': '000001',
-                'report_nm': '영업(잠정)실적(공정공시)',
+                'report_nm': '반기보고서 (2026.06)',
                 'rcept_dt': '20260811',
                 'rcept_no': '20260811000001',
             }],
@@ -161,13 +162,13 @@ class EarningsCalendarTests(unittest.TestCase):
 
         symbols = [event.get('symbol') for event in events]
         self.assertIn('AAPL', symbols)
-        self.assertIn('BRK-B', symbols)
+        self.assertIn('BRK.B', symbols)
         self.assertNotIn('ZZZZ', symbols)
 
     def test_us_earnings_kst_date_uses_session_boundary(self):
         self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'bmo'), '2026-08-15')
         self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'amc'), '2026-08-16')
-        self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'dmh'), '2026-08-16')
+        self.assertEqual(earnings_calendar._finnhub_kst_date('2026-08-15', 'dmh'), '2026-08-15')
 
     def test_marks_reported_us_earnings_with_eps_and_revenue_results(self):
         rows = [{
@@ -350,6 +351,7 @@ class AnnouncementOnlyTests(unittest.TestCase):
             return event
 
         earnings_calendar._cache.clear()
+        earnings_calendar._dart_page_states.clear()
         with mock.patch.dict(os.environ, {'DART_API_KEY': 'test-key'}), \
              mock.patch.object(earnings_calendar, '_fetch', return_value=rows), \
              mock.patch.object(earnings_calendar, '_enrich_dart_event', side_effect=fake_enrich):

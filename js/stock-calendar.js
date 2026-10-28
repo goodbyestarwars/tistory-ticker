@@ -5,7 +5,7 @@
  * 오늘 날짜의 일정만 보여주되, 월 달력에서 날짜를 선택하면 해당 날짜를 조회한다.
  *
  * 데이터 소스는 구글 캘린더 이벤트(제목+날짜/시간)와 DART 국내 실적공시, Finnhub
- * 미국 예정 실적일정(S&P 100만), 미국 주요 경제지표 발표일(data/us-econ-calendar.js, FRED·연준 공식 일정)이다.
+ * 미국 예정 실적일정(S&P 500만), 미국 주요 경제지표 발표일(data/us-econ-calendar.js, FRED·연준 공식 일정)이다.
  * 예측치/이전치 같은 경제지표 수치는 소스가 없어 표시하지 않는다.
  * 하단 미국 경제 데이터 결과는 기존 /futures의 최신 통계값을 별도로 표시한다.
  * 선택 날짜의 발표 당시 값이 아니라 현재 수정 반영값이며, 통계 기준기간을 표시한다.
@@ -28,18 +28,18 @@
   var API_KEY = 'AIzaSyB9zgyudgEblbLoP-fW231dwf6VjOFK00o';
   var CAL_ID  = encodeURIComponent('405dbd75cc8e798f6dfb0003494d0fa64eecbc00ae2edeb1cdbf6deee0b07f76@group.calendar.google.com');
   var EARNINGS_API = 'https://goodbyestar.cloud/earnings-calendar';
-  // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 100 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
+  // 2026-10-04 사용자 요청("캘린더는 국내주식 + S&P 500 + 미국 경제지표 발표일정"): 발표일은 정적 데이터 파일이다.
   var ECON_DATA_URL = 'https://goodbyestarwars.github.io/tistory-ticker/data/us-econ-calendar.js?v=20261004-econ-v1';
   var ECON_LINKS = { FOMC: 'https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm' };
   var CONTAINER_SELECTOR = '#stock-calendar';
   var STOCK_ICON_BASE = 'https://goodbyestarwars.github.io/tistory-ticker/img/stock-icons/';
   // 미국 장후 실적의 KST 날짜가 달라졌으므로 이전 현지일 캐시와 섞지 않는다.
-  var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v3';
+  var CALENDAR_STORAGE_KEY = 'tistory-ticker:calendar-events:v4';
   var KST_OFFSET_MS = 9 * 60 * 60 * 1000;
   var monthFetchInflight = {};
-  // 미국 실적 일정은 전 종목을 그대로 펼치지 않고 대형 대표주인 S&P 100 구성종목만
-  // 남긴다. 복수 클래스(BRK.B/GOOGL 등)를 포함하며 API 심볼의 '-'와 '.' 표기를 함께 받는다.
-  var SP100_SYMBOLS = new Set(('AAPL ABBV ABT ACN ADBE AIG AMD AMGN AMT AMZN AVGO AXP BA BAC BK BKNG BLK BMY BRK.B C CAT CHTR CL CMCSA COF COP COST CRM CSCO CVS CVX DE DHR DIS DOW DUK EMR EXC F FDX GD GE GILD GM GOOG GOOGL GS HD HON IBM INTC JNJ JPM KHC KO LIN LLY LMT LOW MA MCD MDLZ MDT MET META MMM MO MRK MS MSFT NEE NFLX NKE NOW NVDA ORCL PEP PFE PG PM PYPL QCOM RTX SBUX SCHW SO SPG T TGT TMO TMUS TSLA TXN UNH UNP UPS USB V VZ WBA WFC WMT XOM WDC').split(' '));
+  // Membership is owned by the server; never duplicate the constituent filter here.
+  var sourceHealth = {};
+  var monthCache = {};
   var US_COMPANY_NAME_MAP = {
     AAPL: '애플', ABBV: '애브비', ABT: '애보트', ACN: '액센츄어', ADBE: '어도비', AIG: 'AIG',
     AMD: 'AMD', AMGN: '암젠', AMT: '아메리칸타워', AMZN: '아마존', AVGO: '브로드컴', AXP: '아메리칸익스프레스',
@@ -61,16 +61,11 @@
     TGT: '타깃', TMO: '써모피셔', TMUS: 'T모바일', TSLA: '테슬라', TXN: '텍사스인스트루먼트',
     UNH: '유나이티드헬스', UNP: '유니언퍼시픽', UPS: 'UPS', USB: 'US뱅코프', V: '비자',
     VZ: '버라이즌', WBA: '월그린스부츠', WFC: '웰스파고', WDC: '웨스턴디지털', WMT: '월마트', XOM: '엑슨모빌',
-    ANEB: '애네벡스'
+    STX: '시게이트', HOOD: '로빈후드', ANEB: '애네벡스'
   };
 
-  function isSp100Earnings(event) {
-    var market = String(event && event.market || '').toLowerCase();
-    var source = String(event && (event.source || event.provider) || '').toLowerCase();
-    if (source === 'econ') return true;
-    if (market !== 'us' && market !== 'usa' && market !== 'foreign' && source !== 'finnhub') return true;
-    var symbol = String(event && (event.symbol || event.ticker) || '').toUpperCase().replace('-', '.');
-    return SP100_SYMBOLS.has(symbol);
+  function isCalendarEvent(event) {
+    return !!(event && event.start);
   }
 
   // DART 공시의 정식 회사명이 KRX_MAP(data/krx_map.js)의 약칭 키와 다른 경우의 별칭.
@@ -118,11 +113,12 @@
     // 홈에서 일정 카드·미국 실적·주간 리포트가 같은 월을 각자 fetch 하던 것을 합친다.
     // 전역이 없으면(로드 실패 등) 기존 직접 호출로 폴백한다.
     if (global.EarningsCalendarFeed) return global.EarningsCalendarFeed.month(year, month + 1).then(function (events) {
-      return (events || []).filter(isSp100Earnings);
+      sourceHealth.earnings = global.EarningsCalendarFeed.status ? global.EarningsCalendarFeed.status(year, month + 1) : {state:'unknown'};
+      return (events || []).filter(isCalendarEvent);
     });
     return fetchJson(EARNINGS_API + '?year=' + encodeURIComponent(year) + '&month=' + encodeURIComponent(month + 1), 15000)
-      .then(function (data) { return (Array.isArray(data) ? data : (data && data.data) || []).filter(isSp100Earnings); })
-      .catch(function () { return []; });
+      .then(function (data) { sourceHealth.earnings = {state:'ok', health:data.calendarHealth}; return (Array.isArray(data) ? data : (data && data.data) || []).filter(isCalendarEvent); })
+      .catch(function () { sourceHealth.earnings = {state:'error'}; return []; });
   }
 
   var econLoad = null;
@@ -133,8 +129,8 @@
       var script = document.createElement('script');
       script.src = ECON_DATA_URL;
       script.async = true;
-      script.onload = function () { resolve(global.US_ECON_CALENDAR || null); };
-      script.onerror = function () { econLoad = null; resolve(null); };
+      script.onload = function () { sourceHealth.econ = {state:global.US_ECON_CALENDAR ? 'ok' : 'error'}; resolve(global.US_ECON_CALENDAR || null); };
+      script.onerror = function () { sourceHealth.econ = {state:'error'}; econLoad = null; resolve(null); };
       document.head.appendChild(script);
     });
     return econLoad;
@@ -176,7 +172,7 @@
   // 전체보기는 국내·미국을 날짜 순서대로 한 목록에 섞어 보여준다.
   // marketPriority는 기존 국내/미국 분류 규칙(구글·DART·Finnhub·미국 경제)을 그대로 사용한다.
   function calendarMarketKey(event) {
-    return marketPriority(event) === 1 ? 'us' : 'domestic';
+    return event && event.source === 'econ' ? 'econ' : marketPriority(event) === 1 ? 'us' : 'domestic';
   }
 
   function eventMatchesMarket(event, marketFilter) {
@@ -198,7 +194,7 @@
   function mergeEvents(primary, secondary) {
     var seen = {};
     return (primary || []).concat(secondary || []).filter(function (event) {
-      var key = String(event.start || '') + '|' + String(event.title || '').replace(/\s+/g, ' ').trim();
+      var key = calendarEventKey(event);
       if (seen[key]) return false;
       seen[key] = true;
       return true;
@@ -207,7 +203,8 @@
 
   function calendarEventKey(event) {
     var source = String(event && (event.source || event.provider) || '').toLowerCase();
-    if (event && event.id) return 'google:' + String(event.id);
+    if (event && event.eventId) return event.eventId;
+    if (event && event.id) return String(event.source || 'google') + ':' + String(event.id);
     if (source === 'dart' && event.receipt_no) return 'dart:' + String(event.receipt_no);
     if (source === 'finnhub' && (event.symbol || event.ticker)) {
       // KST 표시일은 장후 실적에서 다음 달이 될 수 있으므로, 원본 미국 날짜로 갱신 키를
@@ -222,7 +219,7 @@
     try {
       var raw = global.localStorage.getItem(CALENDAR_STORAGE_KEY);
       var parsed = raw ? JSON.parse(raw) : [];
-      return Array.isArray(parsed) ? parsed.filter(function (event) { return event && event.start && isSp100Earnings(event); }) : [];
+      return Array.isArray(parsed) ? parsed.filter(function (event) { return event && event.start && isCalendarEvent(event); }) : [];
     } catch (e) {
       return [];
     }
@@ -236,7 +233,7 @@
     var byKey = {};
     loadStoredCalendarEvents().forEach(function (event) { byKey[calendarEventKey(event)] = event; });
     (incoming || []).forEach(function (event) {
-      if (event && event.start && isSp100Earnings(event)) byKey[calendarEventKey(event)] = event;
+      if (event && event.start && isCalendarEvent(event)) byKey[calendarEventKey(event)] = event;
     });
     var stored = Object.keys(byKey).map(function (key) { return byKey[key]; });
     saveStoredCalendarEvents(stored);
@@ -246,7 +243,7 @@
   function storedMonthEvents(year, month) {
     var prefix = String(year) + '-' + String(month + 1).padStart(2, '0');
     return loadStoredCalendarEvents().filter(function (event) {
-      return String(event.start || '').slice(0, 7) === prefix && isSp100Earnings(event);
+      return String(event.start || '').slice(0, 7) === prefix && isCalendarEvent(event);
     });
   }
 
@@ -265,11 +262,13 @@
     var seenPages = {};
     function page(token) {
       return fetchJson(url + (token ? '&pageToken=' + encodeURIComponent(token) : ''), 8000).then(function (data) {
+        sourceHealth.google = {state:'ok'};
         var rows = (data.items || []).map(function (it) {
           var title = it.summary
             ? it.summary
             : (it.visibility === 'private' ? '🔒 비공개 일정' : '(제목 없음)');
-          return { id: it.id, title: title, start: it.start.dateTime || it.start.date, link: it.htmlLink, source: 'google' };
+          var original = it.start.dateTime || it.start.date;
+          return { id: it.id, title: title, start: it.start.dateTime ? kstDateKey(original) + 'T' + kstParts(original).hour + ':' + kstParts(original).minute + ':00+09:00' : original, link: it.htmlLink, source: 'google' };
         });
         var next = data.nextPageToken;
         if (!next) return rows;
@@ -279,7 +278,7 @@
       });
     }
     return page('')
-      .catch(function () { return []; });
+      .catch(function () { sourceHealth.google = {state:'error'}; return []; });
 
   }
 
@@ -291,6 +290,8 @@
   // 홈 일정 카드)를 위해 그대로 둔다.
   function fetchEvents(year, month, onProgress) {
     var key = String(year) + '-' + String(month == null ? 'year' : month);
+    var hit = monthCache[key];
+    if (hit && Date.now() - hit.at < 60000) return Promise.resolve(hit.events);
     if (monthFetchInflight[key]) return monthFetchInflight[key];
     var sources = [fetchGoogleEvents(year, month), fetchEarnings(year, month), fetchEconEvents(year, month)];
     if (typeof onProgress === 'function' && month != null) {
@@ -304,7 +305,9 @@
     var request = Promise.all(sources)
       .then(function (results) {
         upsertStoredCalendarEvents((results[0] || []).concat(results[1] || [], results[2] || []));
-        return mergeEvents(storedMonthEvents(year, month), []);
+        var events = mergeEvents(storedMonthEvents(year, month), []);
+        monthCache[key] = {at:Date.now(), events:events};
+        return events;
       });
     monthFetchInflight[key] = request;
     request.then(function () { delete monthFetchInflight[key]; }, function () { delete monthFetchInflight[key]; });
@@ -376,9 +379,11 @@
   }
 
   function timeOf(ev) {
+    if (ev.scheduledAt) { var actual = kstParts(ev.scheduledAt); return actual.hour + ':' + actual.minute + ' KST'; }
     var usLabel = usDateLabel(ev);
     if (usLabel) return usLabel;
-    if (ev.start.indexOf('T') === -1) return '종일';
+    if (ev.conferenceCallAt) { var call = kstParts(ev.conferenceCallAt); return '콜 ' + call.hour + ':' + call.minute + ' KST'; }
+    if (ev.start.indexOf('T') === -1) return ev.eventType === 'earnings' ? '시각 미확인' : '종일';
     var parts = kstParts(ev.start);
     return parts.hour + ':' + parts.minute;
   }
@@ -458,25 +463,90 @@
       : escapeHtml(meta.text);
     var tagHtml = meta.tag ? '<span class="sc-ev-tag">' + escapeHtml(meta.tag) + '</span>' : '';
     var blockedExternalLink = isFinnhubLink(ev.link);
-    var rowStart = blockedExternalLink
-      ? '<div class="sc-ev-item sc-ev-item-disabled" aria-disabled="true" data-external-link-blocked="finnhub">'
-      : '<a href="' + escapeHtml(ev.link || '#') + '" target="_blank" class="sc-ev-item">';
-    var rowEnd = blockedExternalLink ? '</div>' : '</a>';
+    var rowStart = '<div class="sc-ev-item" data-event-id="' + escapeHtml(calendarEventKey(ev)) + '" tabindex="-1">';
+    var rowEnd = '</div>';
+    var status = {scheduled:'예정',reported:'발표 완료',changed:'변경',cancelled:'취소',announced:'공지 접수'}[ev.status] || '';
+    var proof = renderProvenance(ev, blockedExternalLink);
     return rowStart
       + '<span class="sc-ev-date">' + dateLabelOf(ev) + '</span>'
       + '<span class="' + iconClass + '">' + iconHtml + '</span>'
-      + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span></span>'
+      + '<span class="sc-ev-body"><span class="sc-ev-title">' + titleHtml + tagHtml + '</span>'
+      + (status ? '<span class="sc-event-status">' + escapeHtml(status) + (ev.verification === 'conflict' ? ' · 출처 간 일정 충돌, 확인 필요' : '') + '</span>' : '')
+      + proof + '</span>'
       + '<span class="sc-ev-time">' + timeOf(ev) + '</span>'
       + rowEnd;
   }
 
   function renderMarketSwitch(state) {
     return '<nav class="sc-market-switch" role="group" aria-label="캘린더 시장 선택">'
-      + [['all', '전체보기'], ['domestic', '국내'], ['us', '미국']].map(function (tab) {
+      + [['all', '전체보기'], ['domestic', '국내'], ['us', '미국'], ['econ', '경제']].map(function (tab) {
         var active = state.marketFilter === tab[0];
         return '<button type="button" class="sc-market-btn' + (active ? ' is-active' : '')
           + '" data-calendar-market="' + tab[0] + '" aria-pressed="' + active + '">' + tab[1] + '</button>';
       }).join('') + '</nav>';
+  }
+
+  function matchesQuery(event, query) {
+    var meta = parseEvent(event.title);
+    var symbol = String(event.symbol || event.stock_code || meta.stockName || '').toUpperCase().replace('-', '.');
+    var name = US_COMPANY_NAME_MAP[symbol] || '';
+    var krx = krxCodeFor(event.company || event.corp_name || meta.stockName) || '';
+    var haystack = [event.title, event.company, event.companyName, event.corp_name, event.report_name,
+      event.result, event.symbol, event.stock_code, event.ticker, event.fiscalPeriod, event.code, name, krx]
+      .map(function (x) { return String(x || '').normalize('NFKC').toLowerCase(); }).join(' ');
+    return String(query || '').normalize('NFKC').trim().toLowerCase().split(/\s+/).filter(Boolean)
+      .every(function (term) { return haystack.indexOf(term) >= 0; });
+  }
+
+  function foldRows(rows, render, limit) {
+    return rows.slice(0, limit).map(render).join('') + (rows.length > limit
+      ? '<details class="sc-more"><summary>나머지 ' + (rows.length - limit) + '건 펼치기</summary>'
+        + rows.slice(limit).map(render).join('') + '</details>' : '');
+  }
+
+  function safeLink(url) { return /^https?:\/\//i.test(String(url || '')) ? escapeHtml(url) : ''; }
+  function renderProvenance(ev, blocked) {
+    var source = String(ev.source || '');
+    var parts = [];
+    if (ev.dateBasis === 'disclosure_receipt') parts.push('공시 접수일 기준');
+    if (ev.releaseTimeNote) parts.push(escapeHtml(ev.releaseTimeNote));
+    if (ev.dateConversion === 'session_estimate' || ev.datePrecision === 'session') parts.push('한국 날짜는 미국 세션 기준 · 정확한 발표 시각 미확인');
+    if (ev.verifiedAt) {
+      var verified = Date.parse(ev.verifiedAt);
+      var exactStamp = String(ev.verifiedAt).indexOf('T') >= 0;
+      parts.push('확인 ' + escapeHtml(Number.isFinite(verified) && exactStamp
+        ? new Date(verified).toLocaleString('ko-KR', {timeZone:'Asia/Seoul'}) + ' KST' : String(ev.verifiedAt)));
+      if (Number.isFinite(verified) && Date.now() - verified > 86400000) parts.push('마지막 확인 후 24시간 경과');
+    }
+    var url = safeLink(ev.sourceUrl || ev.link);
+    if (url && !blocked) parts.push('<a href="' + url + '" target="_blank" rel="noopener noreferrer">' + escapeHtml(source || '일정') + ' 원문</a>');
+    else if (source) parts.push(escapeHtml(source));
+    if (safeLink(ev.resultUrl) && ev.resultUrl !== ev.sourceUrl) parts.push('<a href="' + safeLink(ev.resultUrl) + '" target="_blank" rel="noopener noreferrer">발표 결과</a>');
+    if (ev.sources && ev.sources.length > 1) parts.push(ev.sources.map(function (s) {
+      var label = escapeHtml(String(s.source || '') + ' ' + String(s.eventDate || ''));
+      return safeLink(s.url) && !isFinnhubLink(s.url) ? '<a href="' + safeLink(s.url) + '" target="_blank" rel="noopener noreferrer">' + label + '</a>' : label;
+    }).join(' / '));
+    if (ev.conferenceCallAt && ev.market === 'us') {
+      var callAt = kstParts(ev.conferenceCallAt);
+      parts.push('컨퍼런스콜 ' + kstDateKey(ev.conferenceCallAt) + ' ' + callAt.hour + ':' + callAt.minute + ' KST');
+    }
+    return parts.length ? '<small class="sc-event-proof">' + parts.join(' · ') + '</small>' : '';
+  }
+
+  function renderSourceHealth(state) {
+    var e = sourceHealth.earnings || {state: 'pending'};
+    var h = e.health || {};
+    var sources = h.sources || {};
+    var labels = {ok:'정상', partial:'일부 수집 · 다음 회차 계속', error:'수집 실패 · 마지막 확인 자료 유지', unavailable:'미연결', pending:'갱신 대기', unknown:'확인 상태 미제공'};
+    var sourceNames = {dart:'DART 실적 공시', finnhub:'미국 실적', 'corporate-ir':'국내 공식 IR', 'corporate-hynix':'SK하이닉스 공식 IR', 'corporate-samsung':'삼성전자 공식 IR', 'dart-ir':'국내 IR 공시', 'official-STX':'시게이트 공식 IR', 'official-HOOD':'로빈후드 공식 IR'};
+    var parts = Object.keys(sources).map(function (key) { return escapeHtml(sourceNames[key] || key) + ': ' + escapeHtml(labels[sources[key].state] || sources[key].state); });
+    ['google','econ'].forEach(function (key) { if (sourceHealth[key]) parts.push(key + ': ' + (labels[sourceHealth[key].state] || '확인 필요')); });
+    if (e.state === 'error') parts.unshift('실적 API 조회 실패 · 저장된 일정 유지');
+    if (h.pending) parts.unshift('서버 일정 갱신 대기');
+    if (!parts.length) parts.push('공급원 확인 대기 · 일정 0건은 전체 기업의 발표 없음과 다릅니다.');
+    if (h.coverage) parts.push('S&P 500 구성 ' + h.coverage.universe + '종목 중 이달 일정 확인 ' + h.coverage.symbolsWithEvents + '종목 (미확인 ≠ 발표 없음)');
+    if (h.access) parts.push('IRGO는 재사용 제한으로 공식 IR 대체 · KIND 공개 피드 확인 불가 시 DART의 거래소 공시 사본 활용');
+    return '<details class="sc-source-health"><summary>일정 출처·수집 상태</summary><p>' + parts.join('<br>') + '</p></details>';
   }
 
 
@@ -485,39 +555,36 @@
     var terms = String(state.disclosureQuery || '').trim().toLowerCase().split(/\s+/).filter(Boolean);
     var seen = new Set();
     var completed = (state.events || []).filter(function (event) {
-      var source = event ? String(event.source || event.provider || '').toLowerCase() : '';
-      // 원래 DART/Finnhub에서 발표 완료된 공시만 포함하는 조건은 그대로 유지한다.
-      if (!event || (source !== 'dart' && source !== 'finnhub')
-        || event.status !== 'reported' || String(event.start || '').slice(0, 7) !== monthKey
+      if (!event || (!terms.length && event.status !== 'reported') || String(event.start || '').slice(0, 7) !== monthKey
         || !eventMatchesMarket(event, state.marketFilter)) return false;
       var key = calendarEventKey(event);
       if (seen.has(key)) return false;
       seen.add(key);
-      var searchText = [event.title, event.corp_name, event.report_name, event.result, event.symbol, event.stock_code]
-        .map(function (value) { return String(value || ''); }).join(' ').toLowerCase();
-      return terms.every(function (term) { return searchText.indexOf(term) !== -1; });
+      return matchesQuery(event, state.disclosureQuery);
     }).sort(function (a, b) { return String(b.start).localeCompare(String(a.start)); });
     function cardHtml(event) {
       var market = calendarMarketKey(event);
       return '<article class="sc-completed-card"><div class="sc-completed-card-head">'
         + '<span class="sc-completed-badge sc-completed-badge--' + market + '">'
-        + (market === 'us' ? '미국' : '국내') + ' · 공시 완료</span>'
+        + (market === 'us' ? '미국' : market === 'econ' ? '경제' : '국내') + ' · '
+        + escapeHtml({reported:'발표 완료',scheduled:'예정',changed:'변경',cancelled:'취소',announced:'공지 접수'}[event.status] || '일정') + '</span>'
         + '<time datetime="' + escapeHtml(String(event.start).slice(0, 10)) + '">'
         + escapeHtml(String(event.start).slice(0, 10)) + '</time></div>'
+        + (terms.length ? '<button type="button" class="sc-result-jump" data-calendar-result="' + escapeHtml(calendarEventKey(event)) + '">' + escapeHtml(event.start.slice(0,10)) + ' 일정 보기</button>' : '')
         + renderEventRow(event) + '</article>';
     }
     // 국내 전체 목록 + 그 아래 미국 목록을 연달아 쌓던 구조를 제거한다.
     // 국가 선택과 무관하게 하나의 날짜 내림차순 그리드만 사용한다.
     var body = completed.length
-      ? '<div class="sc-completed-grid">' + completed.map(cardHtml).join('') + '</div>'
+      ? '<div class="sc-completed-grid">' + foldRows(completed, cardHtml, 8) + '</div>'
       : '<div class="sc-empty">' + (loading ? '공시를 불러오는 중이야.'
-        : terms.length ? '검색한 공시가 없어. 검색어를 바꾸거나 다른 달을 확인해줘.'
+        : terms.length ? '검색 결과가 없습니다. 종목명·코드·티커를 확인하거나 다른 달을 선택하세요.'
         : '선택한 시장에 표시할 완료 공시가 없어.') + '</div>';
     var marketTitle = state.marketFilter === 'us' ? '미국' : state.marketFilter === 'domestic' ? '국내' : '국내·미국';
     return '<section class="sc-completed" aria-label="공시 완료"><div class="sc-completed-head">'
-      + '<div><h2>공시 완료 <span>' + (terms.length ? '검색결과 ' : '') + completed.length + '건</span></h2>'
+      + '<div><h2>' + (terms.length ? '통합 검색 결과' : '공시 완료') + ' <span>' + completed.length + '건</span></h2>'
       + '<p>' + state.viewYear + '년 ' + (state.viewMonth + 1)
-      + '월 · ' + marketTitle + ' 공시를 최신 날짜순으로 보여줘.</p></div>'
+      + '월 · ' + marketTitle + (terms.length ? ' 전체 일정 검색' : ' 발표 완료 이력') + '</p></div>'
       + renderMarketSwitch(state) + '</div>'
       + body + '</section>';
   }
@@ -525,9 +592,9 @@
   function init() {
     var container = document.querySelector(CONTAINER_SELECTOR);
     if (!container) return;
-    container.innerHTML = '<div class="sc-disclosure-search"><label class="sc-search"><span>공시 검색</span>'
-      + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 공시 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
-      + '<small id="scDisclosureScope"></small></div><div data-calendar-content></div>';
+    container.innerHTML = '<form class="sc-disclosure-search" role="search"><label class="sc-search"><span>일정·실적 통합 검색</span>'
+      + '<input type="search" data-disclosure-search placeholder="종목명 · 종목코드 · 티커 · 일정 제목" autocomplete="off" aria-describedby="scDisclosureScope"></label>'
+      + '<button type="submit" class="sc-search-submit">검색</button><small id="scDisclosureScope"></small></form><div data-calendar-content></div>';
     var calendarContent = container.querySelector('[data-calendar-content]');
     function dateKey(date) {
       return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0')
@@ -582,7 +649,7 @@
 
     function renderSchedule(state, loading) {
       state.loading = !!loading;
-      container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월의 완료 공시에서 검색해.';
+      container.querySelector('#scDisclosureScope').textContent = state.viewYear + '년 ' + (state.viewMonth + 1) + '월 전체 일정에서 검색합니다. 국내·미국 실적, 경제지표, Google 일정 포함.';
       var selectedEvents = (state.events || []).filter(function (event) {
         return eventMatchesMarket(event, state.marketFilter)
           && String(event && event.start || '').slice(0, 10) === state.selectedKey;
@@ -591,11 +658,12 @@
       var listHtml = loading
         ? '<div class="sc-loading">불러오는 중...</div>'
         : selectedEvents.length
-          ? '<div class="sc-today-rows">' + selectedEvents.map(renderEventRow).join('') + '</div>'
+          ? '<div class="sc-today-rows">' + foldRows(selectedEvents, renderEventRow, 8) + '</div>'
           : '<div class="sc-empty">선택한 날짜에 예정된 일정이 없습니다.</div>';
 
+      var searching = !!String(state.disclosureQuery || '').trim();
       calendarContent.innerHTML =
-        '<div class="sc-layout">'
+        (searching ? renderCompletedDisclosures(state, loading) : '') + '<div class="sc-layout">'
         + '<aside class="sc-cal-col" aria-label="일정 달력">'
         + renderMonthCalendar(state)
         + '</aside>'
@@ -606,7 +674,11 @@
         + listHtml
         + '</section>'
         + '</div>'
-        + renderCompletedDisclosures(state, loading);
+        + (searching ? '' : renderCompletedDisclosures(state, loading)) + renderSourceHealth(state);
+      if (state.highlightEvent) {
+        var row = Array.from(calendarContent.querySelectorAll('.sc-list-col [data-event-id]')).find(function (el) { return el.getAttribute('data-event-id') === state.highlightEvent; });
+        if (row) { var details = row.closest('details'); if (details) details.open = true; row.classList.add('is-highlighted'); row.focus(); }
+      }
     }
 
     var now = kstParts(new Date());
@@ -620,11 +692,14 @@
       loading: false
     };
     var requestId = 0;
-    container.querySelector('[data-disclosure-search]').addEventListener('input', function (event) {
-      state.disclosureQuery = event.target.value;
-      var completedPanel = calendarContent.querySelector('.sc-completed');
-      if (completedPanel) completedPanel.outerHTML = renderCompletedDisclosures(state, state.loading);
-    });
+    var input = container.querySelector('[data-disclosure-search]');
+    var composing = false;
+    function applySearch() { state.disclosureQuery = input.value.trim(); state.highlightEvent = null; renderSchedule(state, state.loading); }
+    input.addEventListener('compositionstart', function () { composing = true; });
+    input.addEventListener('compositionend', function () { composing = false; applySearch(); });
+    input.addEventListener('input', function (event) { if (!composing && !event.isComposing) applySearch(); });
+    input.addEventListener('search', applySearch);
+    container.querySelector('form').addEventListener('submit', function (event) { event.preventDefault(); if (!composing) applySearch(); });
 
     function loadMonth(year, month, selected) {
       var target = new Date(year, month, 1);
@@ -658,7 +733,7 @@
     function findActionTarget(target) {
       while (target && target !== container) {
         if (target.getAttribute && (target.getAttribute('data-calendar-action') || target.getAttribute('data-calendar-date')
-          || target.getAttribute('data-calendar-market') || target.getAttribute('data-stock-search-code'))) return target;
+          || target.getAttribute('data-calendar-market') || target.getAttribute('data-calendar-result') || target.getAttribute('data-stock-search-code'))) return target;
         target = target.parentNode;
       }
       return null;
@@ -667,6 +742,12 @@
     container.addEventListener('click', function (event) {
       var target = findActionTarget(event.target);
       if (!target) return;
+      var resultKey = target.getAttribute('data-calendar-result');
+      if (resultKey) {
+        var result = state.events.find(function (ev) { return calendarEventKey(ev) === resultKey; });
+        if (result) { state.selectedKey = result.start.slice(0,10); state.highlightEvent = resultKey; renderSchedule(state, false); }
+        return;
+      }
       var stockSearchCode = target.getAttribute('data-stock-search-code');
       if (stockSearchCode) {
         event.preventDefault();
@@ -680,7 +761,7 @@
         return;
       }
       var market = target.getAttribute('data-calendar-market');
-      if (market === 'all' || market === 'domestic' || market === 'us') {
+      if (market === 'all' || market === 'domestic' || market === 'us' || market === 'econ') {
         state.marketFilter = market;
         renderSchedule(state, state.loading);
         return;
@@ -735,7 +816,7 @@
     return { kind: '일정', text: meta.text, important: meta.tag === '주요' };
   }
 
-  var StockCalendar = { fetchEvents: fetchEvents, describe: describeEvent, init: init };
+  var StockCalendar = { matchesQuery: matchesQuery, eventKey: calendarEventKey, fetchEvents: fetchEvents, describe: describeEvent, init: init };
   global.StockCalendar = StockCalendar;
   document.addEventListener('DOMContentLoaded', init);
 })(window);

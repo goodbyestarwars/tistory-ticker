@@ -2943,7 +2943,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         widgets = self.read("js/home-widgets.js")
         weekly = self.read("js/home-weekly-report.js")
         calendar = self.read("js/stock-calendar.js")
-        self.assertIn("window.EarningsCalendarFeed = { month: month }", home)
+        self.assertIn("window.EarningsCalendarFeed = { month: month, status:", home)
         self.assertIn("window.HomeMarketBoard = { fetch: fetchBoard }", home)
         self.assertIn("window.__homeMarketBoardRequests", home)
         for consumer in (widgets, weekly):
@@ -3280,7 +3280,7 @@ console.log(JSON.stringify([0, -9000, -167262, -363088, -1000000, 123456789].map
         self.assertIn("function kstDateKey(value)", source)
         self.assertIn("function usDateLabel(ev)", source)
         self.assertIn("timeZone: 'Asia/Seoul'", source)
-        self.assertIn("calendar-events:v3", source)
+        self.assertIn("calendar-events:v4", source)
         self.assertIn("calendarEventKey(event)", source)
         self.assertIn("var symbol = String(event && event.symbol || '').trim();", source)
         self.assertIn("var code = meta.isStock ? stockCodeFor(ev, meta.stockName) : null;", source)

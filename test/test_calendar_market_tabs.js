@@ -9,7 +9,8 @@ function mountCalendar() {
   const handlers = {};
   const calendar = {innerHTML: '', querySelector() { return null; }};
   const scope = {textContent: ''};
-  const input = {addEventListener() {}};
+  const input = {value:'',addEventListener() {}};
+  const searchForm = {addEventListener() {}};
   const tabs = ['all','domestic','us'].map(value => ({
     getAttribute(key) { return key === 'data-calendar-market' ? value : null; },
     setAttribute(key, value) { this[key] = value; },
@@ -18,6 +19,7 @@ function mountCalendar() {
   const page = {
     innerHTML: '',
     querySelector(selector) {
+      if (selector === 'form') return searchForm;
       if (selector === '[data-calendar-content]') return calendar;
       if (selector === '#scDisclosureScope') return scope;
       if (selector === '[data-disclosure-search]') return input;

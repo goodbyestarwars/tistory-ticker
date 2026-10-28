@@ -1,0 +1,15 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Calendar QA — synthetic data</title><link rel="stylesheet" href="../css/ui-spacing.css"><link rel="stylesheet" href="../style.css"><link rel="stylesheet" href="../css/stock-calendar.css">
+<style>body{margin:0;padding:16px;background:#fff;color:#172b4d}main{max-width:1200px;margin:auto}#stock-calendar{width:100%}*,*:before,*:after{box-sizing:border-box}</style>
+</head><body><main><h1>일정·실적 캘린더 검증</h1><p>합성 데이터 · 운영 계정·외부 공급자 호출 없음</p><div id="stock-calendar"></div></main>
+<script>
+window.calendarRequests=[];
+window.KRX_MAP={'SK하이닉스':'000660','삼성전자':'005930'};
+window.NineUI={escapeHtml:s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))};
+window.US_ECON_CALENDAR={events:[{code:'FOMC',title:'FOMC 금리 결정',start:'2026-10-29T03:00:00+09:00',us_date:'2026-10-28',importance:3}]};
+const fixture = (symbol, company, date, status='scheduled', market='us')=>({eventId:market+':'+symbol+':2026-Q3:earnings',title:'$'+(market==='us'?symbol:company)+' 2026년 3분기 실적발표',symbol,company,corp_name:company,start:date,eventDate:date,timezone:market==='us'?'America/New_York':'Asia/Seoul',status,market,source:market==='us'?'finnhub':'corporate-ir',eventType:'earnings',fiscalPeriod:'2026-Q3',verifiedAt:'2026-10-28T08:00:00+09:00',sourceUrl:'https://example.com/official-notice'});
+window.fixtureEvents=[fixture('STX','Seagate Technology','2026-10-28'),fixture('HOOD','Robinhood Markets','2026-10-28'),fixture('NVDA','NVIDIA','2026-10-30'),fixture('AAPL','Apple','2026-10-30','reported'),fixture('MSFT','Microsoft','2026-10-29'),fixture('000660','SK하이닉스','2026-10-28','scheduled','domestic'),fixture('005930','삼성전자','2026-10-29','reported','domestic')];
+window.fixtureEvents[5].conferenceCallAt='2026-10-28T09:00:00+09:00';window.fixtureEvents[5].releaseTimeNote='09:00 이전 자료 발표 · 정확한 시각 미확인';
+for(let i=0;i<12;i++)window.fixtureEvents.push({...fixture('TEST'+i,'긴 기업명 테스트 '+i,'2026-10-28','reported','domestic'),title:'$테스트'+i+' 분기보고서 · 긴 제목의 줄바꿈과 전체 일정 펼치기 검증'});
+window.NineHttp={json:async function(url){window.calendarRequests.push(url);if(url.includes('googleapis'))return{items:[{id:'google-1',summary:'Google 투자자 설명회',start:{date:'2026-10-31'},htmlLink:'https://calendar.google.com/'}]};if(url.includes('earnings-calendar')){if(new URLSearchParams(location.search).has('apierror'))throw Error('synthetic outage');return{data:window.fixtureEvents,calendarHealth:{sources:{dart:{state:'ok'},finnhub:{state:new URLSearchParams(location.search).has('error')?'error':'ok'}},coverage:{universe:503,symbolsWithEvents:5}}};}return{};}};
+</script><script src="../js/stock-calendar.js"></script></body></html>
