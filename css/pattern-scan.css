@@ -175,8 +175,7 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 #pattern-scan .ps-list {
   display: flex;
   flex-direction: column;
-  margin-bottom: 14px;
-  border-top: 1px solid #e2e8f0;
+  margin-bottom: var(--ui-section-gap);
 }
 
 #pattern-scan .ps-list-head,
@@ -712,7 +711,6 @@ html.dark #pattern-scan .ps-item {
   border-color: var(--dk-line);
 }
 
-html.dark #pattern-scan .ps-list,
 html.dark #pattern-scan .ps-list-head {
   border-color: var(--dk-line);
 }
