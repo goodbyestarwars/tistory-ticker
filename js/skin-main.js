@@ -1478,7 +1478,9 @@ document.documentElement.classList.add('skin-ready');
 
     function renderDomesticParticipation(models) {
       // Supplementary text stays outside the original chart grid and its 100-based scale.
-      return models.map(function (model) {
+      var closing = models.some(function (model) { return model.volume && model.volume.sessionClosed; });
+      return '<details class="hmp-details"><summary>5일 동시간대 평균 100 · '
+        + (closing ? '정규장 마감 기준' : '30분 구간 기준') + ' · 자세히</summary>' + models.map(function (model) {
         var p = model.participation, entry = model.entry;
         var state = model.participationStatus === 'stale' ? '갱신 지연' : '확인 중';
         var percent = p ? (p.ratio * 100).toFixed(1).replace(/\.0$/, '') : null;
@@ -1499,7 +1501,7 @@ document.documentElement.classList.add('skin-ready');
           + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
           + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
       }).join('') + '<div>막대: 최근 5거래일 동시간대 누적 거래대금 평균=100 · 완료된 30분 구간 기준(장중 최대 약 32분 전). '
-        + '거래량 보조 수치: TradingView 최근 10일 동시간대 5분봉·종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 거래량 공급자 실제 관측 시각 미제공.</div>';
+        + '거래량 보조 수치: TradingView 최근 10일 동시간대 5분봉·종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 거래량 공급자 실제 관측 시각 미제공.</div></details>';
     }
 
     function loadDomesticParticipation() {
