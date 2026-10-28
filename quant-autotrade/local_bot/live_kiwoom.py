@@ -5,6 +5,8 @@
 운영 중 검증된 것과 같다. 키는 환경변수(.env)에서만 읽고 로그·파일에 남기지 않는다.
 """
 import json
+from contextlib import nullcontext
+from kiwoom_balance_gate import balance_request
 import os
 import threading
 import time
@@ -79,18 +81,21 @@ class KiwoomClient:
                                          headers={'User-Agent': UA, 'Content-Type': 'application/json;charset=UTF-8',
                                                   'authorization': 'Bearer ' + token, 'api-id': api_id})
             try:
-                with urllib.request.urlopen(req, timeout=15) as res:
-                    payload = json.loads(res.read().decode('utf-8'))
+                with (balance_request() if api_id == 'kt00018' else nullcontext()):
+                    with urllib.request.urlopen(req, timeout=15) as res:
+                        if api_id == 'kt00018' and str(res.headers.get('cont-yn', '')).upper() == 'Y':
+                            raise RuntimeError('kt00018 incomplete balance')
+                        payload = json.loads(res.read().decode('utf-8'))
             except urllib.error.HTTPError as exc:
                 detail = exc.read().decode('utf-8', 'ignore')[:200]
                 self._last_call = time.time()
-                if exc.code in (401, 403) and not _retried:
+                if exc.code in (401, 403) and not _retried and not api_id.startswith('kt100'):
                     self._get_token(force=True)
                     return self.call(api_id, path, body, True)
                 raise RuntimeError('%s HTTP %s: %s' % (api_id, exc.code, detail))
             self._last_call = time.time()
         # 키움은 토큰이 죽어도 HTTP 200 + return_code로 답한다(8005).
-        if '8005' in str(payload.get('return_msg') or '') and not _retried:
+        if '8005' in str(payload.get('return_msg') or '') and not _retried and not api_id.startswith('kt100'):
             self._get_token(force=True)
             return self.call(api_id, path, body, True)
         return payload
@@ -133,19 +138,26 @@ class KiwoomClient:
           필드가 다르면 RuntimeError로 응답의 실제 키를 알려 준다(`python main.py --check`로 먼저 확인).
         """
         res = self.call('kt00018', '/api/dostk/acnt', {'qry_tp': '1', 'dmst_stex_tp': 'KRX'})
-        if str(res.get('return_code', '0')) not in ('0', ''):
+        if str(res.get('return_code', '')) != '0':
             raise RuntimeError('kt00018 실패: return_code=%s return_msg=%s' % (res.get('return_code'), res.get('return_msg')))
         rows = res.get('acnt_evlt_remn_indv_tot')
-        if rows is None:
+        if not isinstance(rows, list):
             raise RuntimeError('kt00018 응답에 acnt_evlt_remn_indv_tot가 없음. 응답 키: %s' % list(res.keys()))
         out = []
         for r in rows:
+            if not isinstance(r, dict):
+                raise RuntimeError('kt00018 invalid holding')
+            quantity = str(r.get('rmnd_qty', '')).strip().replace(',', '')
+            if not quantity.isascii() or not quantity.isdigit():
+                raise RuntimeError('kt00018 invalid quantity')
             code = str(r.get('stk_cd') or '').strip()
             if code[:1] in ('A', 'a') and len(code) == 7:
                 code = code[1:]
             qty = int(_num(r.get('rmnd_qty')))
-            if not code or qty <= 0:
+            if qty <= 0:
                 continue
+            if len(code) != 6 or not code.isascii() or not code.isdigit():
+                raise RuntimeError('kt00018 invalid holding code')
             sellable = r.get('trde_able_qty')
             out.append({'code': code, 'name': str(r.get('stk_nm') or '').strip(), 'qty': qty,
                         'sellable': int(_num(sellable)) if sellable not in (None, '') else qty,
