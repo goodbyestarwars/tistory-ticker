@@ -1394,6 +1394,31 @@ document.documentElement.classList.add('skin-ready');
         var valid = entry && entry.status === 'ok' && volume && volume.status === 'ok'
           && volume.basis === 'same-time-5m-volume-sum' && volume.baseline > 0 && volume.eligible > 0
           && typeof volume.index100 === 'number' && isFinite(volume.index100) && volume.index100 >= 0;
+        if (market === 'domestic') {
+          var participation = entry && entry.volumeParticipation;
+          var number = function (value) { return typeof value === 'number' && isFinite(value); };
+          var integer = function (value) { return number(value) && Math.floor(value) === value; };
+          var sample = participation && integer(participation.total) && participation.total > 0
+            && participation.total === entry.total && integer(participation.eligible)
+            && participation.eligible > 0 && participation.eligible <= participation.total
+            && participation.eligible / participation.total >= .95;
+          var collected = entry ? Date.parse(entry.retrievedAt) : NaN;
+          var age = (Date.now() - collected) / 1000;
+          // Match the server's longest cache TTL; never relabel retrieval as a quote timestamp.
+          var clock = new Date(Date.now() + 9 * 3600000);
+          var minutes = clock.getUTCHours() * 60 + clock.getUTCMinutes();
+          var active = clock.getUTCDay() > 0 && clock.getUTCDay() < 6 && minutes >= 540 && minutes < 940;
+          var fresh = isFinite(collected) && age >= -60 && age <= (active ? 300 : 3600);
+          var ready = entry && entry.status === 'ok' && fresh && sample
+            && participation.status === 'ok' && participation.basis === 'same-time-5m' && participation.lookbackDays === 10
+            && number(participation.ratio) && participation.ratio >= 0 && participation.ratio <= 1
+            && number(participation.median) && participation.median >= 0
+            && integer(participation.increased) && participation.increased >= 0 && participation.increased <= participation.eligible
+            && Math.abs(participation.ratio - participation.increased / participation.eligible) < .000001;
+          return {label: definition[1], volume: valid ? volume : null, participation: ready ? participation : null,
+            entry: entry, status: entry && entry.status,
+            participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
+        }
         return {label: definition[1], volume: valid ? volume : null, status: entry && entry.status};
       });
     }
@@ -1431,7 +1456,30 @@ document.documentElement.classList.add('skin-ready');
       if (basis) {
         basis.hidden = target.hidden;
         basis.textContent = '거래량: 지수 구성종목 합산 · 동시각 5분봉/최근 10거래일 평균=100 · ' + (market === 'us' ? '15분' : '20분') + ' 지연';
+        if (market === 'domestic') basis.innerHTML = renderDomesticParticipation(models);
       }
+    }
+
+    function renderDomesticParticipation(models) {
+      // Supplementary text stays outside the original chart grid and its 100-based scale.
+      return models.map(function (model) {
+        var p = model.participation, entry = model.entry;
+        var state = model.participationStatus === 'stale' ? '갱신 지연' : '확인 중';
+        var percent = p ? (p.ratio * 100).toFixed(1).replace(/\.0$/, '') : null;
+        var sample = entry && entry.volumeParticipation;
+        var counts = sample && Number.isInteger(sample.eligible) && Number.isInteger(sample.total)
+          && sample.eligible >= 0 && sample.eligible <= sample.total ? '유효 ' + sample.eligible + ' / 구성 ' + sample.total + '종목' : '표본 확인 중';
+        var delay = entry && typeof entry.delaySeconds === 'number' && isFinite(entry.delaySeconds) && entry.delaySeconds >= 0
+          ? (entry.delaySeconds > 0 ? '공급자 ' + (entry.delaySeconds / 60) + '분 지연' : '공급자 실시간 모드') : '공급자 지연 확인 중';
+        var stamp = entry ? Date.parse(entry.retrievedAt) : NaN;
+        var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
+        return '<div data-volume-participation="' + (model.label === '코스피' ? 'KOSPI' : 'KOSDAQ') + '">'
+          + escapeHomeHtml(model.label) + ' · 거래량 증가 종목 ' + (p ? percent + '%' : state)
+          + ' · 상대 거래량 중앙값 ' + (p ? p.median.toFixed(2) + '배' : state)
+          + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
+          + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
+      }).join('') + '<div>막대: 합산 거래량 / 최근 10일 동시간대 5분봉 평균=100(TradingView 설명 기준). '
+        + '보조 수치: 종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 실제 관측 시각 미제공.</div>';
     }
 
     function loadDomesticParticipation() {

@@ -1,10 +1,22 @@
 const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/strict');
-const s=fs.readFileSync('js/skin-main.js','utf8');function extract(name){const a=s.indexOf('    function '+name+'(');return s.slice(a,s.indexOf('\n    }',a)+6);}
-const c={isFinite};vm.createContext(c);vm.runInContext(['homeParticipationModel','homeVolumeScale'].map(extract).join('\n'),c);
-const volume={status:'ok',basis:'same-time-5m-volume-sum',eligible:100,total:100,baseline:1000,index100:110};
-const body={byIndex:{KOSPI:{status:'ok',volumeIndex:volume},KOSDAQ:{status:'ok',volumeIndex:{...volume,index100:90}}}};
-let rows=c.homeParticipationModel('domestic',body);assert.equal(rows[0].volume.index100,110);assert.equal(rows[1].volume.index100,90);assert.equal(c.homeVolumeScale(rows),20);
-body.byIndex.KOSPI.status='stale';assert.equal(c.homeParticipationModel('domestic',body)[0].volume,null);
-body.byIndex.KOSPI.status='ok';volume.basis='daily';assert.equal(c.homeParticipationModel('domestic',body)[0].volume,null);
-assert.equal(c.homeParticipationModel('us',null)[0].volume,null);
-console.log('PASS: normalized volume uses matching same-time aggregate basis and a shared scale.');
+const source=fs.readFileSync('js/skin-main.js','utf8');
+function extract(name,s=source){const a=s.indexOf('    function '+name+'(');assert(a>=0,name);return s.slice(a,s.indexOf('\n    }',a)+6);}
+function entry(ratio=.5,median=1){return {status:'ok',total:100,retrievedAt:new Date().toISOString(),delaySeconds:1200,volumeParticipation:{status:'ok',basis:'same-time-5m',lookbackDays:10,eligible:100,total:100,increased:ratio*100,ratio,median},volumeIndex:{status:'ok',basis:'same-time-5m-volume-sum',eligible:100,total:100,baseline:10,index100:110}};}
+const context={isFinite};vm.createContext(context);vm.runInContext(extract('homeParticipationModel'),context);
+function model(e){return context.homeParticipationModel('domestic',{byIndex:{KOSPI:e,KOSDAQ:entry(1,1.2)}});}
+for(const ratio of [0,.5,1]) for(const median of [0,.8,1,1.2]){const rows=model(entry(ratio,median));assert.equal(rows[0].participation.ratio,ratio);assert.equal(rows[0].participation.median,median);assert.equal(rows[1].participation.ratio,1);}
+for(const value of [null,NaN,Infinity,-1,'0.5',true,1.1]) {const e=entry();e.volumeParticipation.ratio=value;assert.equal(model(e)[0].participation,null);}
+for(const value of [null,NaN,Infinity,-1,'1',true]) {const e=entry();e.volumeParticipation.median=value;assert.equal(model(e)[0].participation,null);}
+for(const change of [{eligible:94},{eligible:101},{eligible:0},{total:101},{status:'unavailable'},{increased:101},{increased:40},{basis:'daily'},{lookbackDays:5}]){const e=entry();Object.assign(e.volumeParticipation,change);assert.equal(model(e)[0].participation,null);}
+const edge=entry();Object.assign(edge.volumeParticipation,{eligible:95,increased:0,ratio:0});assert(model(edge)[0].participation);
+for(const change of [{status:'stale'},{retrievedAt:'invalid'},{retrievedAt:new Date(Date.now()-7200000).toISOString()}]){const e=Object.assign(entry(),change);assert.equal(model(e)[0].participation,null);}
+const separate=entry();separate.volumeIndex.status='unavailable';assert(model(separate)[0].participation);assert.equal(model(separate)[0].volume,null);
+assert.equal(context.homeParticipationModel('domestic',null)[0].participation,null);
+module.exports={extract,entry,source};
+console.log('PASS domestic participation validation, independent markets and sample boundaries');
+// Preserve the US aggregate model contract.
+const usEntry=entry();const us=context.homeParticipationModel('us',{byIndex:{SP500:usEntry,NASDAQ:usEntry}});assert.equal(us[0].volume.index100,110);assert.equal(us[1].label,'나스닥 종합');
+// During a domestic weekday session, an eight-minute-old HTTP cache is suppressed.
+const fixed=Date.parse('2026-10-28T02:00:00Z');
+const dated={Date:class extends Date {static now(){return fixed;}},isFinite};vm.createContext(dated);vm.runInContext(extract('homeParticipationModel'),dated);
+const aged=entry();aged.retrievedAt='2026-10-28T01:52:00Z';assert.equal(dated.homeParticipationModel('domestic',{byIndex:{KOSPI:aged}})[0].participation,null);
