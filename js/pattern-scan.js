@@ -1502,13 +1502,24 @@
         var chosen=r.classified[0].member,it=chosen.item,proof=r.publicStatus.proof || {},review=it.signalReview || {};
         var stamp=it.lastObservedAt || it.sampleAt || it.at || it.scannedAt || (it.patternDetail || {}).scanned_at || it.date;
         var ms=typeof stamp==='number'?stamp*1000:Date.parse(stamp || '');
-        var time=Number.isFinite(ms)?new Date(ms).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'}):'관측 시각 미확인';
+        var time=Number.isFinite(ms)?new Date(ms).toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}):'관측 시각 미확인';
         var base=proof.price || it.signalPrice || review.signalPrice;
         var realtime=chosen.key==='ninepayLive' || chosen.key==='volumeBreakout' && liveSurgeInfo && liveSurgeInfo.active && liveSurgeInfo.dataBasis && liveSurgeInfo.dataBasis.realtime;
         var priceCopy=realtime?'현재가 '+(r.price==null?'미수신':fmt(r.price)):'현재가 미수신 · '+(it.track?'과거 관측가 ':'일봉 관측가 ')+(r.price==null?'미수신':fmt(r.price));
-        return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small><span class="ps-state-badge" data-state="'+k+'">'+PUBLIC_LABELS[k]+'</span></div><div class="ps-state-patterns">'+escapeHtml(r.members.map(function(m){return sourceLabel(m.key);}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' · '))+'</div><p>'+escapeHtml(r.publicStatus.reason)+'</p><div class="ps-state-quotes">'+priceCopy+' · 기준가 '+(base?fmt(base):'미확인')+' · '+escapeHtml(realtime?'실시간 수신':it.track?'과거 기록':'일봉 자료')+'<br><time>'+escapeHtml(time)+'</time>'+(proof.stop || review.invalidationPrice?' · 무효화 기준 '+fmt(proof.stop || review.invalidationPrice):'')+'</div><details><summary>패턴별 근거</summary>'+r.classified.map(function(c,index){return '<p>'+escapeHtml(sourceLabel(c.member.key)+' · '+PUBLIC_LABELS[c.status.key]+' · '+c.status.reason)+' <button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" data-member="'+index+'">이 패턴 분석</button></p>';}).join('')+'</details><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'">상세 분석·추적 보기</button></article>';
+        return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
+          + '<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small><span class="ps-state-badge" data-state="'+k+'">'+PUBLIC_LABELS[k]+'</span></div>'
+          + '<div class="ps-state-patterns">'+escapeHtml(r.members.map(function(m){return sourceLabel(m.key);}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' · '))+'</div><p>'+escapeHtml(r.publicStatus.reason)+'</p></div>'
+          + '<div class="ps-state-quotes">'+priceCopy+' · 기준가 '+(base?fmt(base):'미확인')+'<br>'+escapeHtml(realtime?'실시간 수신':it.track?'과거 기록':'일봉 자료')+' · <time>'+escapeHtml(time)+'</time>'+(proof.stop || review.invalidationPrice?'<br>무효화 기준 '+fmt(proof.stop || review.invalidationPrice):'')+'</div>'
+          + '<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">상세 차트</button><details><summary>패턴별 근거</summary>'
+          + r.classified.map(function(c,index){return '<p>'+escapeHtml(sourceLabel(c.member.key)+' · '+PUBLIC_LABELS[c.status.key]+' · '+c.status.reason)+' <button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" data-member="'+index+'">이 패턴 분석</button></p>';}).join('')+'</details></div></article>';
       }).join('')+'</section>';}).join('');
-    list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){var r=visible.filter(function(row){return row.code===button.getAttribute('data-code');})[0];var m=r.classified[Number(button.getAttribute('data-member') || 0)].member;openDetail(container,Object.assign({},m.item,{_sourceKey:m.key}));});});
+    list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
+      var r=visible.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
+      var m=r.classified[Number(button.getAttribute('data-member') || 0)].member;
+      var detail=document.getElementById('psDetail');
+      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code) && currentDetailItem._sourceKey===m.key){closeDetail(container);return;}
+      openDetail(container,Object.assign({},m.item,{_sourceKey:m.key}));
+    });});
   }
   function renderLegacyUnifiedList(container) {
     var list=container.querySelector('#psList');
@@ -1551,7 +1562,20 @@
     container.querySelectorAll('#psViewTabs [data-count]').forEach(function(el){var n=counts[el.getAttribute('data-count')];el.textContent=n==null?'':' '+n;});
   }
 
+  // Keep one chart alive while live results replace their row markup.
   function renderList(container) {
+    var detail=document.getElementById('psDetail');
+    var placeholder=container.querySelector('#psList .de-chart-placeholder');
+    if(placeholder)container.appendChild(placeholder);
+    if(detail && detail.parentNode!==container && container.contains(detail) && !detail.closest('.de-chart-overlay'))container.appendChild(detail);
+    renderListContent(container);
+    if(placeholder && currentDetailItem){var row=inlineDetailRow(container,currentDetailItem);if(row)row.insertAdjacentElement('afterend',placeholder);}
+    if(currentDetailItem && detail && !detail.hidden && !detail.closest('.de-chart-overlay')){
+      if(!placeInlineDetail(container,currentDetailItem) && detail.dataset.inlineCode)closeDetail(container);
+    }
+  }
+
+  function renderListContent(container) {
     publishDashboard();
     var list = container.querySelector('#psList');
     if (!list) return;
@@ -1905,6 +1929,26 @@
 
   // ---- 상세(캔들차트 + 패턴선) ----
 
+  function inlineDetailRow(container,item) {
+    var rows=container.querySelectorAll('#psList .ps-state-row, #psList .ps-item, #psList .ps-track-row');
+    return Array.prototype.find.call(rows,function(el){return el.getAttribute('data-code')===String(item.code) || item.track && el.getAttribute('data-track-id')===String(item.track.id);});
+  }
+  function placeInlineDetail(container,item) {
+    var detail=document.getElementById('psDetail');
+    if(!detail || detail.closest('.de-chart-overlay'))return false;
+    var row=inlineDetailRow(container,item);
+    container.querySelectorAll('.ps-state-detail').forEach(function(button){
+      var on=!!row && button.closest('.ps-state-row')===row;
+      button.setAttribute('aria-expanded',String(on));
+      button.setAttribute('aria-controls','psDetail');
+      if(!button.hasAttribute('data-member'))button.textContent=on?'차트 닫기':'상세 차트';
+    });
+    if(!row)return false;
+    row.insertAdjacentElement('afterend',detail);
+    detail.dataset.inlineCode=String(item.code);
+    return true;
+  }
+
   function openDetail(container, item) {
     if(!publicStockVisible(item))return;
     var detail = document.getElementById('psDetail');
@@ -1917,7 +1961,7 @@
     psIchimokuEnabled = false;
     detail.hidden = false;
     detail.innerHTML = global.NineUI.state('loading', item.name + ' 차트를 불러오는 중...', 'ps-loading', {spinner:false});
-    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    placeInlineDetail(container,item);
 
     var chartUrl = GAS_TICKER_URL + '?patternChart=1&code=' + encodeURIComponent(item.code)
       + '&pattern=' + encodeURIComponent(requestPattern) + '&scanDate=' + encodeURIComponent(item.date || '');
@@ -1972,9 +2016,12 @@
 
   function closeDetail(container) {
     var detail = document.getElementById('psDetail');
+    var overlay=detail && detail.closest('.de-chart-overlay');
+    if(overlay){var restore=overlay.querySelector('.de-chart-restore');if(restore)restore.click();}
     detailRequestSeq += 1;
     currentDetailItem = null;
-    if (detail) { detail.hidden = true; detail.innerHTML = ''; destroyPsChart(); }
+    if (detail) { detail.hidden = true; detail.innerHTML = ''; delete detail.dataset.inlineCode; destroyPsChart(); }
+    if(container)container.querySelectorAll('.ps-state-detail').forEach(function(button){button.setAttribute('aria-expanded','false');if(!button.hasAttribute('data-member'))button.textContent='상세 차트';});
   }
 
   function detailItemIndex(item) {
@@ -2057,6 +2104,7 @@
       + '<span class="ps-timeframe-badge">일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
+    html += '<details class="ps-analysis-notes"><summary>패턴 분석·검증·추적 근거</summary>';
     if (item.track) html += buildTrackBox(item.track);
     html += buildGpStageBox(data.detail);
     html += buildVolumeAccumBox(data.detail);
@@ -2068,10 +2116,15 @@
         +Object.keys(review.checks || {}).map(function(k){return escapeHtml(labels[k] || k)+': '+(review.checks[k]?'확인':'미충족·미확인');}).join(' · ')
         +'</p><p>무효화 기준 '+(review.invalidationPrice>0?fmt(review.invalidationPrice)+'원 이하':'미확인')+' · 수익성 미입증 · 실제 체결·비용은 별도 기록</p></details>';
     }
+    html += '</details><div class="ps-chart-options" aria-label="차트 표시 옵션">';
     html += buildMovingAverageLegend(data.daily);
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psIchimokuToggle"' + (psIchimokuEnabled ? ' checked' : '') + ' /> 일목균형표(구름) 표시</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psBollingerToggle"' + (psBollingerEnabled ? ' checked' : '') + ' /> 볼린저 밴드</label>';
     html += '<label class="ps-ichimoku-toggle"><input type="checkbox" id="psSupportResistanceToggle"' + (psSrEnabled ? ' checked' : '') + ' /> 지지·저항 표시</label>';
+    var volumeKnown=hasPsVolume(data.daily);
+    html += '<label><input type="checkbox" data-ps-volume'+(psVolumeEnabled && volumeKnown?' checked':'')+(volumeKnown?'':' disabled')+'> 거래량'+(volumeKnown?'':' (자료 미확인)')+'</label></div>';
+    html += '<div class="ps-chart-tools" aria-label="차트 도구">'+[['line','직선'],['pencil','연필'],['circle','원'],['box','박스'],['hline','가로선'],['measure','측정'],['clear','지우기']].map(function(tool){return '<button type="button" class="ui-btn ui-btn-secondary" data-ps-draw="'+tool[0]+'" aria-pressed="false" disabled>'+tool[1]+'</button>';}).join('')
+      + '<button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="0.7" disabled>확대</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-zoom="1.4" disabled>축소</button><button type="button" class="ui-btn ui-btn-secondary" data-ps-fit disabled>전체 보기</button><span data-ps-tools-status role="status">도구 준비 중</span></div>';
     html += buildIchimokuLegend();
     html += '<div class="ps-pattern-legend">'
       + '<span><i class="ps-pattern-line ps-pattern-line-shape"></i>패턴 형성 근거</span>'
@@ -2116,6 +2169,9 @@
       });
     }
 
+    box.onchange=function(event){var input=event.target;if(!input.hasAttribute('data-ps-ma'))return;var period=input.getAttribute('data-ps-ma');psMaVisibility[period]=input.checked;if(psMaSeries[period])psMaSeries[period].applyOptions({visible:input.checked});};
+    var volumeToggle=box.querySelector('[data-ps-volume]');
+    if(volumeToggle)volumeToggle.addEventListener('change',function(){psVolumeEnabled=volumeToggle.checked;setPsVolume(data.daily);});
     psMemoItem = item;
     psTrackCtx = item.track || null;
     wireAutoTradeBar(box, item);
@@ -2129,6 +2185,7 @@
             data.daily = newData.daily;
             data.extendedHistory = !!newData.extendedHistory;
             chartContainer.parentElement.dataset.extendedHistory = data.extendedHistory ? '1' : '';
+            if(volumeToggle){volumeToggle.disabled=!hasPsVolume(data.daily);volumeToggle.checked=psVolumeEnabled && !volumeToggle.disabled;volumeToggle.nextSibling.textContent=volumeToggle.disabled?' 거래량 (자료 미확인)':' 거래량';}
           }
           renderPatternChart(chartContainer, data.daily, data.pattern, data.detail, item.price);
           var legend = box.querySelector('.ps-moving-average-legend');
@@ -2172,8 +2229,8 @@
     return '<div class="ps-moving-average-legend" aria-label="가격 이동평균선">'
       + standardMovingAverageStudies().map(function (study) {
         var latest = latestMovingAverage(daily, study.period);
-        return '<span class="ps-ma-legend-item ps-' + study.key + '"><i></i>'
-          + study.label + ' <b>' + (latest == null ? '—' : psChartPriceFormatter(latest)) + '</b></span>';
+        return '<label class="ps-ma-legend-item ps-' + study.key + '"><input type="checkbox" data-ps-ma="'+study.period+'"'+(psMaVisibility[study.period]!==false?' checked':'')+' disabled><i></i>'
+          + study.label + ' <b>' + (latest == null ? '—' : psChartPriceFormatter(latest)) + '</b></label>';
       }).join('')
       + '</div>';
   }
@@ -2314,6 +2371,7 @@
       button.disabled = false;
       button.onclick = function () {
         var on = !psMemo.isMode();
+        if(on && psDrawingCtl)psDrawingCtl.setMode(null);
         psMemo.setMode(on);
         button.classList.toggle('is-active', on);
         button.setAttribute('aria-pressed', String(on));
@@ -2356,6 +2414,9 @@
   }
 
   function destroyPsChart() {
+    psChartGeneration++;
+    if(psDrawingCtl){psDrawingCtl.detach();psDrawingCtl=null;}
+    clearPsVolume();psMaSeries={};
     if (psChartRegistryOff) { psChartRegistryOff(); psChartRegistryOff = null; }
     if (psPanCleanup) { psPanCleanup(); psPanCleanup = null; }
     if (psSrCleanup) { psSrCleanup(); psSrCleanup = null; }
@@ -2560,12 +2621,56 @@
 
   // 실제 트레이딩뷰 엔진으로 캔들 + MA(눌림목만) + 패턴 오버레이를 렌더링.
   var psPanCleanup = null;
+  var psChartGeneration=0, psDrawingCtl=null, psVolumeCtl=null;
+  var psVolumeEnabled=true, psMaVisibility={}, psMaSeries={};
+  function hasPsVolume(daily) {
+    return daily.length>0 && daily.every(function(bar){
+      var value=bar.volume;
+      return (typeof value==='number' || typeof value==='string' && value.trim()!=='') && Number.isFinite(Number(value)) && Number(value)>=0;
+    });
+  }
+  function clearPsVolume() {
+    if(!psVolumeCtl)return;
+    psVolumeCtl.destroy();
+    [psVolumeCtl.volume,psVolumeCtl.ma20 && psVolumeCtl.ma20.series,psVolumeCtl.ma5 && psVolumeCtl.ma5.series].forEach(function(series){if(series && psLwcChart)try{psLwcChart.removeSeries(series);}catch(e){}});
+    psVolumeCtl=null;
+  }
+  function setPsVolume(daily) {
+    clearPsVolume();
+    if(!psVolumeEnabled || !psLwcChart || !hasPsVolume(daily))return;
+    psVolumeCtl=global.NineChartCore.addVolumePane(psLwcChart,global.LightweightCharts,daily,{pane:1});
+    var panes=psLwcChart.panes();if(panes[1])panes[1].setHeight(90);
+  }
+  function setupPsChartTools(container,chart,series,daily) {
+    var core=global.NineChartCore, box=container.closest('.ps-detail');
+    box.querySelectorAll('[data-ps-ma]').forEach(function(input){input.disabled=!psMaSeries[input.getAttribute('data-ps-ma')];});
+    box.querySelectorAll('[data-ps-zoom]').forEach(function(button){button.disabled=false;button.onclick=function(){core.zoomBars(container,Number(button.getAttribute('data-ps-zoom')));};});
+    var fit=box.querySelector('[data-ps-fit]');fit.disabled=false;fit.onclick=function(){core.fitBars(container);};
+    var status=box.querySelector('[data-ps-tools-status]');
+    core.loadModule('drawing').then(function(Drawing){
+      if(psLwcChart!==chart || !container.isConnected)return;
+      var buttons={};box.querySelectorAll('[data-ps-draw]').forEach(function(button){buttons[button.getAttribute('data-ps-draw')]=button;});
+      psDrawingCtl=Drawing.attach({core:core,container:container,chart:chart,series:series,bars:daily,key:String(currentDetailItem.code),timeframe:'day',
+        className:'ps-drawing-layer',bounds:'pricePane',point:'anchored',tools:['line','pencil','circle','box','hline','measure'],buttons:buttons,
+        store:{key:function(code,tf){return 'tistory-ticker:pattern-drawings:'+code+':'+tf;},kinds:['lines','paths','circles','hlines','boxes'],legacyArray:true},
+        sync:false,disableButtonsOnDetach:true});
+      Object.keys(buttons).forEach(function(key){
+        var button=buttons[key], handler=button.onclick;
+        button.onclick=function(){
+          if(psMemo && psMemo.isMode()){psMemo.setMode(false);var memo=box.querySelector('[data-ps-memo]');memo.classList.remove('is-active');memo.setAttribute('aria-pressed','false');}
+          if(handler)handler.call(button);
+        };
+      });
+      status.textContent='이 브라우저에 저장 · 우클릭으로 그리기 해제';
+    }).catch(function(){if(psLwcChart===chart)status.textContent='그리기 도구를 불러오지 못했습니다. 차트를 다시 열어 주세요.';});
+  }
   // 가로 스크롤 없이 컨테이너 폭에 autoSize로 맞춰 한눈에 들어오게 한다.
   function renderPatternChart(container, daily, pattern, detail, currentPrice) {
     destroyPsChart();
+    var generation=psChartGeneration;
     Promise.all([loadLightweightCharts(), loadPatternChartCore()]).then(function (loaded) {
       var LWC = loaded[0];
-      if (!document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
+      if (generation!==psChartGeneration || !document.body.contains(container)) return; // 로딩 중 다른 종목/탭으로 이동했으면 중단
       var chartHeight = container.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
 
       var chart = LWC.createChart(container, mergeOptions({
@@ -2587,6 +2692,7 @@
       var ma224Series = null;
       standardMovingAverageStudies().forEach(function (study) {
         var series = addMaLine(chart, daily, study.period, study.color);
+        psMaSeries[study.period]=series;if(series)series.applyOptions({visible:psMaVisibility[study.period]!==false});
         if (study.period === 224) ma224Series = series;
       });
 
@@ -2618,6 +2724,8 @@
           function () { return { extendedHistory: !!(container.parentElement && container.parentElement.dataset.extendedHistory) }; });
       }).catch(function () { /* 기존 500봉 뷰 유지 */ });
 
+      setPsVolume(daily);
+      setupPsChartTools(container,chart,candleSeries,daily);
       setupPsMemo(container, chart, candleSeries, daily);
       setupPsSupportResistance(container, chart, candleSeries, daily, currentPrice);
 
@@ -2627,7 +2735,7 @@
       });
       psLwcThemeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     }).catch(function () {
-      container.innerHTML = '<div class="ps-error">차트 라이브러리를 불러오지 못했어요.</div>';
+      if(generation===psChartGeneration && container.isConnected)container.innerHTML = '<div class="ps-error">차트 라이브러리를 불러오지 못했어요.</div>';
     });
   }
 
@@ -2891,8 +2999,13 @@
     }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
   }
 
-  global.PatternScan = { init: init, refresh: function () { var container = document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
+  global.PatternScan = { init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
 
+  global.addEventListener && global.addEventListener('tistory-chart-resize',function(){
+    var detail=document.getElementById('psDetail');
+    if(!rootContainer || !currentDetailItem || !detail || detail.hidden || detail.closest('.de-chart-overlay'))return;
+    if(!placeInlineDetail(rootContainer,currentDetailItem) && detail.dataset.inlineCode)closeDetail(rootContainer);
+  });
   function startWithSecurityTypes(){
     if(global.SCANNER_SECURITY_TYPES){init();return;}
     var started=false;
