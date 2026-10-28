@@ -1504,21 +1504,22 @@
         var ms=typeof stamp==='number'?stamp*1000:Date.parse(stamp || '');
         var time=Number.isFinite(ms)?new Date(ms).toLocaleString('sv-SE',{timeZone:'Asia/Seoul'}):'관측 시각 미확인';
         var base=proof.price || it.signalPrice || review.signalPrice;
+        var change=referenceChange(r.price,base);
+        var changeCopy='<span class="ps-reference-change '+(change?chgClass(change):'')+'">기준 대비 '+global.NineUI.signedPercent(change,{digits:2,missing:'미확인'})+'</span>';
         var realtime=chosen.key==='ninepayLive' || chosen.key==='volumeBreakout' && liveSurgeInfo && liveSurgeInfo.active && liveSurgeInfo.dataBasis && liveSurgeInfo.dataBasis.realtime;
         var priceCopy=realtime?'현재가 '+(r.price==null?'미수신':fmt(r.price)):'현재가 미수신 · '+(it.track?'과거 관측가 ':'일봉 관측가 ')+(r.price==null?'미수신':fmt(r.price));
         return '<article class="ps-state-row" data-code="'+escapeHtml(r.code)+'">'
           + '<div class="ps-state-identity"><div class="ps-state-stock">'+stockIconHtml(r.code)+'<strong>'+escapeHtml(r.name || r.code)+'</strong> <small>'+escapeHtml(r.code)+'</small><span class="ps-state-badge" data-state="'+k+'">'+PUBLIC_LABELS[k]+'</span></div>'
           + '<div class="ps-state-patterns">'+escapeHtml(r.members.map(function(m){return sourceLabel(m.key);}).filter(function(v,i,a){return a.indexOf(v)===i;}).join(' · '))+'</div><p>'+escapeHtml(r.publicStatus.reason)+'</p></div>'
-          + '<div class="ps-state-quotes">'+priceCopy+' · 기준가 '+(base?fmt(base):'미확인')+'<br>'+escapeHtml(realtime?'실시간 수신':it.track?'과거 기록':'일봉 자료')+' · <time>'+escapeHtml(time)+'</time>'+(proof.stop || review.invalidationPrice?'<br>무효화 기준 '+fmt(proof.stop || review.invalidationPrice):'')+'</div>'
-          + '<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">상세 차트</button><details><summary>패턴별 근거</summary>'
-          + r.classified.map(function(c,index){return '<p>'+escapeHtml(sourceLabel(c.member.key)+' · '+PUBLIC_LABELS[c.status.key]+' · '+c.status.reason)+' <button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" data-member="'+index+'">이 패턴 분석</button></p>';}).join('')+'</details></div></article>';
+          + '<div class="ps-state-quotes">'+priceCopy+' · 기준가 '+(base?fmt(base):'미확인')+' · '+changeCopy+'<br>'+escapeHtml(realtime?'실시간 수신':it.track?'과거 기록':'일봉 자료')+' · <time>'+escapeHtml(time)+'</time>'+(proof.stop || review.invalidationPrice?'<br>무효화 기준 '+fmt(proof.stop || review.invalidationPrice):'')+'</div>'
+          + '<div class="ps-state-actions"><button type="button" class="ps-state-detail" data-code="'+escapeHtml(r.code)+'" aria-controls="psDetail" aria-expanded="false">차트·근거 보기</button></div></article>';
       }).join('')+'</section>';}).join('');
     list.querySelectorAll('.ps-state-detail').forEach(function(button){button.addEventListener('click',function(){
       var r=visible.filter(function(row){return row.code===button.getAttribute('data-code');})[0];
-      var m=r.classified[Number(button.getAttribute('data-member') || 0)].member;
+      var m=r.classified[0].member;
       var detail=document.getElementById('psDetail');
-      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code) && currentDetailItem._sourceKey===m.key){closeDetail(container);return;}
-      openDetail(container,Object.assign({},m.item,{_sourceKey:m.key}));
+      if(detail && !detail.hidden && currentDetailItem && String(currentDetailItem.code)===String(r.code)){closeDetail(container);return;}
+      openDetail(container,Object.assign({},m.item,{_sourceKey:m.key,_publicMembers:r.classified,_publicMemberIndex:0}));
     });});
   }
   function renderLegacyUnifiedList(container) {
@@ -1941,7 +1942,7 @@
       var on=!!row && button.closest('.ps-state-row')===row;
       button.setAttribute('aria-expanded',String(on));
       button.setAttribute('aria-controls','psDetail');
-      if(!button.hasAttribute('data-member'))button.textContent=on?'차트 닫기':'상세 차트';
+      button.textContent=on?'차트·근거 닫기':'차트·근거 보기';
     });
     if(!row)return false;
     row.insertAdjacentElement('afterend',detail);
@@ -2021,11 +2022,12 @@
     detailRequestSeq += 1;
     currentDetailItem = null;
     if (detail) { detail.hidden = true; detail.innerHTML = ''; delete detail.dataset.inlineCode; destroyPsChart(); }
-    if(container)container.querySelectorAll('.ps-state-detail').forEach(function(button){button.setAttribute('aria-expanded','false');if(!button.hasAttribute('data-member'))button.textContent='상세 차트';});
+    if(container)container.querySelectorAll('.ps-state-detail').forEach(function(button){button.setAttribute('aria-expanded','false');button.textContent='차트·근거 보기';});
   }
 
   function detailItemIndex(item) {
     for (var i = 0; i < detailNavItems.length; i++) {
+      if(item._publicMembers && String(detailNavItems[i].code)===String(item.code))return i;
       if (detailNavItems[i] === item || (detailNavItems[i].code === item.code && String(detailNavItems[i].date || '') === String(item.date || ''))) return i;
     }
     return -1;
@@ -2048,6 +2050,7 @@
     var select = box.querySelector('[data-ps-chart-select]');
     function openIndex(index) {
       var item = detailNavItems[index];
+      if(item && item.classified && item.classified.length){var chosen=item.classified[0].member;item=Object.assign({},chosen.item,{_sourceKey:chosen.key,_publicMembers:item.classified,_publicMemberIndex:0});}
       if (item) openDetail(rootContainer, item);
     }
     if (select) select.addEventListener('change', function () { openIndex(Number(select.value)); });
@@ -2097,6 +2100,18 @@
     }).catch(function () { /* 봇이 꺼져 있거나 이 PC가 아니면 버튼을 만들지 않는다 */ });
   }
 
+  function referenceChange(observed, reference) {
+    function valid(value){return (typeof value==='number' || typeof value==='string' && value.trim()!=='') && Number.isFinite(Number(value)) && Number(value)>0;}
+    if(!valid(observed) || !valid(reference))return null;
+    var value=(Number(observed)/Number(reference)-1)*100;
+    if(!Number.isFinite(value))return null;
+    var rounded=Math.round(value*100)/100;
+    return Number.isFinite(rounded)?rounded || 0:null;
+  }
+  function evidenceMembers(item) {
+    var row=detailNavItems.filter(function(candidate){return String(candidate.code)===String(item.code);})[0];
+    return item._publicMembers || item.classified || row && row.classified || [];
+  }
   function renderDetail(box, item, data) {
     var chartHeight = box.closest('.de-chart-overlay') ? Math.max(720, Math.round(global.innerHeight * 0.88)) : CHART_H;
     var html = buildDetailSwitcher(item) + '<div class="ps-detail-head">'
@@ -2104,7 +2119,14 @@
       + '<span class="ps-timeframe-badge">일봉 · 1D</span></span>'
       + '<button type="button" class="ps-close" id="psClose">닫기 ✕</button>'
       + '</div>';
-    html += '<details class="ps-analysis-notes"><summary>패턴 분석·검증·추적 근거</summary>';
+    var members=evidenceMembers(item);
+    if(members.length){
+      html+='<section class="ps-detail-evidence" aria-label="패턴별 근거"><strong>패턴별 근거</strong>'
+        +members.map(function(c){return '<p>'+escapeHtml(sourceLabel(c.member.key)+' · '+PUBLIC_LABELS[c.status.key]+' · '+c.status.reason)+'</p>';}).join('');
+      if(members.length>1)html+='<label>분석할 패턴 <select data-ps-pattern-select>'+members.map(function(c,index){return '<option value="'+index+'">'+escapeHtml(sourceLabel(c.member.key)+' · '+PUBLIC_LABELS[c.status.key])+'</option>';}).join('')+'</select></label>';
+      html+='</section>';
+    }
+    html += '<details class="ps-analysis-notes"><summary>상세 검증·추적 기록</summary>';
     if (item.track) html += buildTrackBox(item.track);
     html += buildGpStageBox(data.detail);
     html += buildVolumeAccumBox(data.detail);
@@ -2138,6 +2160,12 @@
       : '<div class="ps-footnote">확정 일봉 '+data.daily.length+'개와 저장된 신호 근거를 표시합니다. 현재 시세·진입 유효성·주문 허가·실제 체결은 별도이며, 연구 후보와 확정 상태는 검증 근거에서 구분합니다.</div>';
     box.innerHTML = html;
     wireDetailSwitcher(box);
+    var patternSelect=box.querySelector('[data-ps-pattern-select]');
+    if(patternSelect){
+      var selected=Number.isInteger(item._publicMemberIndex)?item._publicMemberIndex:members.findIndex(function(c){return c.member.key===(item._sourceKey || (groupFor(activeTab)?historySource:activeTab));});
+      patternSelect.value=String(Math.max(0,selected));
+      patternSelect.addEventListener('change',function(){var index=Number(patternSelect.value), member=members[index].member;openDetail(rootContainer,Object.assign({},member.item,{_sourceKey:member.key,_publicMembers:members,_publicMemberIndex:index}));});
+    }
 
     var closeBtn = box.querySelector('#psClose');
     if (closeBtn) closeBtn.addEventListener('click', function () { closeDetail(rootContainer); });
@@ -2999,7 +3027,7 @@
     }, { _sourceKey:snapshot.source.replace(/^pattern:/, '') }));
   }
 
-  global.PatternScan = { init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
+  global.PatternScan = { init: init, refresh: function () { var container = rootContainer && rootContainer.isConnected ? rootContainer : document.querySelector(CONTAINER_SELECTOR); if (container) loadScan(container); }, fetchJson: fetchJson, mergeScannerRows: mergeScannerRows, referenceChange: referenceChange, publicStockVisible: publicStockVisible, classifyPublicMember: classifyPublicMember, publicModel: publicModel, menuTabs: MENU_TABS, dashboardSnapshot: dashboardSnapshot, showDashboardResults: showDashboardResults, openDashboardSignal: openDashboardSignal, loadChartCore: loadPatternChartCore };
 
   global.addEventListener && global.addEventListener('tistory-chart-resize',function(){
     var detail=document.getElementById('psDetail');

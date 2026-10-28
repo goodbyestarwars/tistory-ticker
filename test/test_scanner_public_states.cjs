@@ -3,6 +3,12 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const context={window:{SCANNER_SECURITY_TYPES:{spacCodes:['399999'],ordinaryCodes:['377777']}},document:{readyState:'loading',addEventListener(){}},console};
 vm.runInNewContext(fs.readFileSync('js/pattern-scan.js','utf8'),context);
 const api=context.window.PatternScan,now=Date.parse('2026-10-28T01:00:00Z');
+assert.equal(api.referenceChange(110,100),10);
+assert.equal(api.referenceChange(90,100),-10);
+assert.equal(api.referenceChange(181400,181400),0);
+assert.equal(api.referenceChange('70900','70800'),0.14);
+assert.equal(api.referenceChange(99.9999,100),0,'do not display negative zero');
+for(const [observed,reference] of [[null,100],[100,null],[100,0],[0,100],['',100],[100,' '],[true,100],[100,Infinity],[1e308,1e3]])assert.equal(api.referenceChange(observed,reference),null,'invalid/missing prices are not zero performance');
 assert(!api.publicStockVisible({code:'399999',name:'합성인수회사'}));
 assert(!api.publicStockVisible({code:'388888',name:'합성제1호스팩'}));
 assert(api.publicStockVisible({code:'377777',name:'스팩트럼'}));

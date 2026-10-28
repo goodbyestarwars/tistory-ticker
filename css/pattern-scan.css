@@ -382,6 +382,10 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 #pattern-scan .ps-list > .ps-detail,#pattern-scan .ps-state-section > .ps-detail { margin:0 0 var(--ui-paragraph-gap); }
 #pattern-scan .ps-chart-options,#pattern-scan .ps-chart-tools { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin:8px 0; font-size:13px; }
 #pattern-scan .ps-chart-options label { display:inline-flex; align-items:center; gap:4px; margin:0; }
+#pattern-scan .ps-detail-evidence { margin:8px 0; font-size:13px; }
+#pattern-scan .ps-detail-evidence p { margin:3px 0; }
+#pattern-scan .ps-detail-evidence select { max-width:100%; font:inherit; color:inherit; background:#fff; border:1px solid var(--ui-border,#e5e7eb); border-radius:6px; padding:4px; }
+#pattern-scan .ps-reference-change { white-space:nowrap; font-weight:600; }
 #pattern-scan .ps-analysis-notes { margin:8px 0; font-size:13px; }
 #pattern-scan .ps-analysis-notes > summary { cursor:pointer; }
 #pattern-scan .ps-drawing-layer { position:absolute; z-index:6; inset:0; width:100%; height:100%; pointer-events:none; touch-action:none; }
@@ -759,6 +763,7 @@ html.dark #pattern-scan .ps-detail {
   border-color: var(--dk-line);
 }
 html.dark #pattern-scan .ps-chart-switcher select,
+html.dark #pattern-scan .ps-detail-evidence select,
 html.dark #pattern-scan .ps-chart-nav {
   background: var(--dk-card);
   border-color: var(--dk-line);
@@ -1098,7 +1103,6 @@ html.dark .ps-view-tab.active { background: var(--dk-active); color: var(--dk-te
 #pattern-scan .ps-state-row { display:grid; grid-template-columns:minmax(0,1fr); align-items:center; gap:4px 16px; padding:10px 0; border-bottom:1px solid var(--ui-border,#e5e7eb); overflow-wrap:anywhere; }
 #pattern-scan .ps-state-identity { min-width:0; }
 #pattern-scan .ps-state-actions { display:flex; align-items:center; flex-wrap:wrap; gap:4px 12px; min-width:0; }
-#pattern-scan .ps-state-actions details[open] { flex-basis:100%; }
 #pattern-scan .ps-state-stock { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
 #pattern-scan .ps-state-stock strong { font-size:16px; }
 #pattern-scan .ps-state-badge { font-size:13px; border:1px solid currentColor; border-radius:5px; padding:1px 6px; color:#6D233F; }
