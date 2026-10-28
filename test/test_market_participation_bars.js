@@ -16,6 +16,9 @@ low.volumeParticipation.eligible=94;assert(render(low).basis.includes('확인 �
 assert(render({...entry(),status:'stale'}).basis.includes('갱신 지연'));
 assert(render(null,null).basis.includes('확인 중'));
 assert(render(entry()).basis.includes('실제 관측 시각 미제공'));
+assert(render(entry()).html.includes('동시간대<br>5분 거래량'));
+assert(render(entry()).html.includes('코스피 동시간대 5분 거래량'));
+assert(render(entry()).basis.includes('당일 누적 거래량이 아님'));
 console.log('PASS original aggregate bars and independent supplementary participation text');
 module.exports={render};
 (async()=>{
