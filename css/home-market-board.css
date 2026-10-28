@@ -202,16 +202,7 @@ body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-note { margin
 
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis { grid-column: 1 / -1; order: 4; margin-top: 0; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmp-basis[hidden] { display: none; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-participation.is-domestic { grid-column: 1 / -1; width: 100%; gap: var(--ui-paragraph-gap); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .is-domestic .hmp-item { text-align: left; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .is-domestic .hmp-heading { font-size: 13px; }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-activity, .hmp-intensity { color: var(--hmb-ink); font: 400 12px/1.6 var(--font-ui); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-ratio-track { height: 10px; margin-top: 6px; border-radius: 3px; overflow: hidden; background: color-mix(in srgb, var(--hmb-flat) 20%, var(--np-paper, #fff)); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-ratio-track i { display: block; height: 100%; background: var(--hmb-mute); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmp-axis { display: flex; justify-content: space-between; color: var(--hmb-faint); font: 400 9px/1.5 var(--font-data); }
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .is-domestic summary { cursor: pointer; }
 @media (max-width: 600px) {
-body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-participation.is-domestic { grid-template-columns: minmax(0, 1fr); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict.has-market-breadth { grid-template-columns: max-content minmax(116px, 1fr); gap: var(--ui-paragraph-gap); }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-verdict > .hmb2-market-ratios { grid-column: 1 / -1; grid-template-columns: repeat(2, minmax(0, 1fr)); max-width: none; }
 body#tt-body-index .home-editorial-page #homeMarketBoard.hmb2 .hmb2-market-ratios > [data-us-breadth-meta] { grid-column: 1 / -1; }

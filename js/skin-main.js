@@ -1415,10 +1415,9 @@ document.documentElement.classList.add('skin-ready');
             && number(participation.median) && participation.median >= 0
             && integer(participation.increased) && participation.increased >= 0 && participation.increased <= participation.eligible
             && Math.abs(participation.ratio - participation.increased / participation.eligible) < .000001;
-          valid = valid && fresh && volume.total === entry.total && integer(volume.eligible)
-            && integer(volume.total) && volume.eligible <= volume.total && volume.eligible / volume.total >= .95;
           return {label: definition[1], volume: valid ? volume : null, participation: ready ? participation : null,
-            entry: entry, status: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
+            entry: entry, status: entry && entry.status,
+            participationStatus: entry && (entry.status === 'stale' || !fresh ? 'stale' : entry.status)};
         }
         return {label: definition[1], volume: valid ? volume : null, status: entry && entry.status};
       });
@@ -1438,11 +1437,6 @@ document.documentElement.classList.add('skin-ready');
       var market = homeMarketSession().market === 'us' ? 'us' : 'domestic';
       target.hidden = market === 'us' && !usRegularSessionState().open;
       var models = homeParticipationModel(market, (latestHomeParticipation || {})[market]);
-      target.classList.toggle('is-domestic', market === 'domestic');
-      if (market === 'domestic') {
-        renderDomesticParticipation(target, models);
-        return;
-      }
       var scale = homeVolumeScale(models);
       target.innerHTML = models.map(function (model) {
         var volume = model.volume;
@@ -1462,13 +1456,15 @@ document.documentElement.classList.add('skin-ready');
       if (basis) {
         basis.hidden = target.hidden;
         basis.textContent = '거래량: 지수 구성종목 합산 · 동시각 5분봉/최근 10거래일 평균=100 · ' + (market === 'us' ? '15분' : '20분') + ' 지연';
+        if (market === 'domestic') basis.innerHTML = renderDomesticParticipation(models);
       }
     }
 
-    function renderDomesticParticipation(target, models) {
-      target.innerHTML = models.map(function (model) {
+    function renderDomesticParticipation(models) {
+      // Supplementary text stays outside the original chart grid and its 100-based scale.
+      return models.map(function (model) {
         var p = model.participation, entry = model.entry;
-        var state = model.status === 'stale' ? '갱신 지연' : '확인 중';
+        var state = model.participationStatus === 'stale' ? '갱신 지연' : '확인 중';
         var percent = p ? (p.ratio * 100).toFixed(1).replace(/\.0$/, '') : null;
         var sample = entry && entry.volumeParticipation;
         var counts = sample && Number.isInteger(sample.eligible) && Number.isInteger(sample.total)
@@ -1476,24 +1472,14 @@ document.documentElement.classList.add('skin-ready');
         var delay = entry && typeof entry.delaySeconds === 'number' && isFinite(entry.delaySeconds) && entry.delaySeconds >= 0
           ? (entry.delaySeconds > 0 ? '공급자 ' + (entry.delaySeconds / 60) + '분 지연' : '공급자 실시간 모드') : '공급자 지연 확인 중';
         var stamp = entry ? Date.parse(entry.retrievedAt) : NaN;
-        var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) : '확인 중';
-        var aggregate = model.volume ? model.volume.index100.toFixed(1) + ' / 100' : state;
-        return '<section class="hmp-item"><div class="hmp-heading">' + escapeHomeHtml(model.label) + '</div>'
-          + '<div class="hmp-activity">거래량 증가 종목 <b>' + (p ? percent + '%' : state) + '</b></div>'
-          + '<div class="hmp-ratio-track" role="img" aria-label="' + escapeHomeHtml(model.label + ' 거래량 증가 종목 ' + (p ? percent + '%' : state)) + '">'
-          + (p ? '<i style="width:' + (p.ratio * 100).toFixed(2) + '%"></i>' : '') + '</div>'
-          + '<div class="hmp-axis"><span>0%</span><span>50%</span><span>100%</span></div>'
-          + '<div class="hmp-intensity">상대 거래량 중앙값 <b>' + (p ? p.median.toFixed(2) + '배' : state) + '</b></div>'
-          + '<div class="hmp-note">기준 대비 증가 ' + (p ? p.increased + ' / ' + p.eligible + '종목' : state) + ' · ' + counts + '</div>'
-          + '<div class="hmp-note">' + escapeHomeHtml(delay + ' · 수집 ' + time + ' KST') + '</div>'
-          + '<details class="hmp-note"><summary>합산 거래량 지수 (보조)</summary><span>' + escapeHomeHtml(aggregate)
-          + ' · 유효 거래량 합계 / 기준 거래량 합계 × 100</span></details></section>';
-      }).join('');
-      var basis = dashboardSection.querySelector('[data-participation-basis]');
-      if (basis) {
-        basis.hidden = false;
-        basis.textContent = '시장 활력 · 종목별 동일 가중 · 지수 구성종목 중 유효 표본 95% 이상에서 표시. 최근 10일 동시간대 5분봉 비교(TradingView 설명 기준). 상승·매수 우위를 뜻하지 않음. 실제 관측 시각 미제공, 수집 시각 표시.';
-      }
+        var time = isFinite(stamp) ? new Date(stamp).toLocaleString('ko-KR', {timeZone: 'Asia/Seoul', hour12: false}) + ' KST' : '확인 중';
+        return '<div data-volume-participation="' + (model.label === '코스피' ? 'KOSPI' : 'KOSDAQ') + '">'
+          + escapeHomeHtml(model.label) + ' · 거래량 증가 종목 ' + (p ? percent + '%' : state)
+          + ' · 상대 거래량 중앙값 ' + (p ? p.median.toFixed(2) + '배' : state)
+          + '<br>' + (p ? '기준 대비 증가 ' + p.increased + ' / ' + p.eligible + '종목 · ' : '') + escapeHomeHtml(counts)
+          + ' · ' + escapeHomeHtml(delay + ' · 수집 ' + time) + '</div>';
+      }).join('') + '<div>막대: 합산 거래량 / 최근 10일 동시간대 5분봉 평균=100(TradingView 설명 기준). '
+        + '보조 수치: 종목별 동일 가중·유효 표본 95% 이상. 상승·매수 우위를 뜻하지 않음. 실제 관측 시각 미제공.</div>';
     }
 
     function loadDomesticParticipation() {
