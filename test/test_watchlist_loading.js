@@ -13,17 +13,19 @@ function fixture() {
   const mount=node(); mount.querySelector=selector=>nodes.get(selector)||null;
   const storage=new Map();
   const window={location:{href:'https://ghlee.tistory.com/page/watchlist'},console,addEventListener(){},dispatchEvent(){}};
-  const state={auth:{configured:true,authenticated:true,email:'fixture@example.test'},reply:{data},status:200,pending:false};
+  const state={auth:{configured:true,authenticated:true,email:'fixture@example.test'},reply:{data},status:200,pending:false,pendingOnce:false,authPendingOnce:false};
   const document={readyState:'interactive',hidden:false,querySelector:()=>mounted?mount:null,addEventListener(){},querySelectorAll(){return [];}};
   const scope=vm.createContext({window,document,console,Promise,Map,Set,Date,Event,CustomEvent,
     localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},
-    setTimeout:(fn,ms)=>ms===8000?setTimeout(fn,15):0,clearTimeout,setInterval:()=>0,clearInterval(){},
+    setTimeout:(fn,ms)=>ms===8000?setTimeout(fn,15):ms===750?setTimeout(fn,1):0,clearTimeout,setInterval:()=>0,clearInterval(){},
     fetch:async (url,options)=>{
       calls.push(url);
       requests.push({url,options});
+      if(url.endsWith('/auth/google/me')&&state.authPendingOnce){state.authPendingOnce=false;return new Promise(()=>{});}
       if(url.endsWith('/auth/google/me'))return {ok:true,json:async()=>({data:state.auth})};
       if(url.endsWith('/watchlist')){
         if(state.pending)return new Promise(()=>{});
+        if(state.pendingOnce){state.pendingOnce=false;return new Promise(()=>{});}
         return {ok:state.status===200,status:state.status,json:async()=>state.reply};
       }
       return {ok:true,json:async()=>({data:[]})};
@@ -66,6 +68,7 @@ test('signed-out and expired sessions clear account data; simultaneous retries s
   assert.equal(a,b);await a;
   assert.equal(f.calls.filter(u=>u.endsWith('/watchlist')).length,1);
   f.state.status=401;await f.window.Watchlist.refresh();
+  assert.equal(f.calls.filter(u=>u.endsWith('/watchlist')).length,2,'401 is not automatically retried');
   assert.equal(f.window.Watchlist.getStatus().phase,'signed-out');
   assert.equal(f.window.Watchlist.getList().length,0);
   assert.equal(f.window.Watchlist.isReady(),false);
@@ -86,4 +89,21 @@ test('MY distinguishes loading/error/signed-out from a successfully loaded empty
     if(phase==='signed-out')assert.match(table.innerHTML,/data-my-login/);
     if(phase==='error')assert.match(table.innerHTML,/data-my-watchlist-retry/);
   }
+});
+
+test('one timed out private list or auth read recovers automatically',async()=>{
+  for(const key of ['pendingOnce','authPendingOnce']) {
+    const f=fixture();f.state[key]=true;await f.window.Watchlist.refresh();
+    assert.equal(f.window.Watchlist.getStatus().phase,'ready');
+    assert.equal(f.window.Watchlist.getList()[0].code,'005930');
+    assert.equal(f.calls.filter(u=>u.endsWith(key==='pendingOnce'?'/watchlist':'/auth/google/me')).length,2);
+  }
+});
+test('permanent timeout has two attempts only, no duplicated error and no save',async()=>{
+  const f=fixture();f.state.pending=true;await f.window.Watchlist.refresh();
+  assert.equal(f.calls.filter(u=>u.endsWith('/watchlist')).length,2);
+  assert.equal(f.window.Watchlist.getStatus().phase,'error');
+  assert.equal(f.nodes.get('#wlMsg').hidden,true);
+  assert.match(f.nodes.get('#wlGrid').innerHTML,/ui-btn ui-btn-secondary/);
+  assert(f.requests.every(r=>!r.options.method||r.options.method==='GET'));
 });
