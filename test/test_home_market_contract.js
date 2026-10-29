@@ -3,12 +3,14 @@ const fs=require('node:fs'),vm=require('node:vm'),assert=require('node:assert/st
 const source=fs.readFileSync('js/skin-main.js','utf8'),fields={};
 const scope={document:{getElementById:()=>null},window:{NineTime:{updated:()=>''}},
   renderDomesticBreadth:data=>{fields.breadth=data;},
+  homeMarketSession:()=>({market:'domestic'}),
+  latestHomeIndices:['KOSPI','KOSDAQ'].map(symbol=>({symbol,change_rate:-2,updated_at:new Date().toISOString()})),
   setField:(name,value)=>{fields[name]=value;}};
 vm.createContext(scope);
 const start=source.indexOf('    function resolveMarketDirection(');
 const end=source.indexOf('    var MARKET_TEMP_VM_URL',start);
 vm.runInContext(source.slice(start,end),scope);
-scope.market={score100:23,grade3:{label:'공포'},temp:17,components:{
+scope.market={marketBreadth:{total:{up:94,down:906,total:1000}},score100:23,grade3:{label:'공포'},temp:17,components:{
   riseRatio:{ratio:.094},avgChange:{avgChangeRate:-2.36},exchange:{price:1326.9,changeRate:.03}}};
 vm.runInContext('renderMarketTemperature(market)',scope);
 assert.equal(scope.homeVmScoreText,'23점 공포');
