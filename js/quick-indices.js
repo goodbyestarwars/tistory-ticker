@@ -255,9 +255,10 @@
   }
 
   function fetchMarket() { return fetchJson(GAS_TICKER_URL + '?market=1'); }
+  // Background pollers own collection; page loads only read their stored quotes.
   function fetchFutures() {
     var cached = readFuturesCache();
-    var request = fetchJson(FUTURES_API + '?symbols=' + encodeURIComponent(FUTURES_SYMBOLS)).then(function (json) {
+    var request = fetchJson(FUTURES_API + '?symbols=' + encodeURIComponent(FUTURES_SYMBOLS) + '&stored_only=true').then(function (json) {
       var items = json.data || [];
       writeFuturesCache(items);
       return items;
