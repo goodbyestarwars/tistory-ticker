@@ -295,10 +295,22 @@
     return { ok: true, collapsed: !!collapsed };
   }
 
+  // Only private, read-only account GETs may retry one timed-out attempt.
+  // Writes and authentication failures never retry through this helper.
+  function fetchAccountRead(url) {
+    function request() {
+      return global.NineHttp.json(url, {
+        fetchOptions: { credentials: 'include', cache: 'no-store' }, timeoutMs: FETCH_TIMEOUT_MS
+      });
+    }
+    return request().catch(function (error) {
+      if (error.kind !== 'timeout') throw error;
+      return new Promise(function (resolve) { setTimeout(resolve, 750); }).then(request);
+    });
+  }
+
   function fetchAuthState() {
-    return global.NineHttp.json(GOOGLE_AUTH_ME_URL, {
-      fetchOptions: { credentials: 'include', cache: 'no-store' }, timeoutMs: FETCH_TIMEOUT_MS
-    }).then(function (body) {
+    return fetchAccountRead(GOOGLE_AUTH_ME_URL).then(function (body) {
       if (!body || !body.data || typeof body.data.authenticated !== 'boolean') throw new Error('invalid auth response');
       return body.data;
     });
@@ -311,12 +323,12 @@
 
   function renderLoadError(container, message) {
     var msg = container.querySelector('#wlMsg');
-    if (msg) { msg.textContent = message; msg.hidden = false; }
+    if (msg) { msg.textContent = message; msg.hidden = !remoteReady; }
     if (remoteReady) return; // Preserve a previously loaded list on transient failures.
     var grid = container.querySelector('#wlGrid');
     if (grid) {
       grid.innerHTML = '<div class="wl-login-gate" role="alert"><strong>관심종목을 불러오지 못했습니다.</strong><p>'
-        + escapeHtml(message) + '</p><button type="button" class="wl-retry-btn">다시 불러오기</button></div>';
+        + escapeHtml(message) + '</p><button type="button" class="wl-retry-btn ui-btn ui-btn-secondary">다시 불러오기</button></div>';
       var retry = grid.querySelector('.wl-retry-btn');
       if (retry) retry.addEventListener('click', function () { loadRemoteState(container); });
     }
@@ -450,9 +462,7 @@
   }
 
   function fetchRemoteWatchlistState() {
-    return global.NineHttp.json(WATCHLIST_API_URL, {
-      fetchOptions: { credentials: 'include', cache: 'no-store' }, timeoutMs: FETCH_TIMEOUT_MS
-    }).then(function (body) {
+    return fetchAccountRead(WATCHLIST_API_URL).then(function (body) {
         if (!body || !body.data || !Array.isArray(body.data.items) || !Array.isArray(body.data.groups)) throw new Error('invalid watchlist response');
         return body.data;
       });
