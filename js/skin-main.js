@@ -1953,6 +1953,8 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function loadHomeSessionCharts() {
+      // These charts and the night-futures panel are only visible in US mode.
+      if (homeMarketSession().market !== 'us' || document.hidden) return;
       if (homeSessionLoading) return;
       homeSessionLoading = true;
       fetchHomeJson('https://goodbyestar.cloud/home-session-chart', 12000)
@@ -2042,7 +2044,7 @@ document.documentElement.classList.add('skin-ready');
       if (session.closed) return;
       var request = window.QuickIndices && typeof window.QuickIndices.fetchFutures === 'function'
         ? window.QuickIndices.fetchFutures()
-        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT', 12000)
+        : fetchHomeJson('https://goodbyestar.cloud/futures?symbols=KOSPI%2CKOSDAQ%2CNASDAQ_INDEX%2CSP500_INDEX%2CNASDAQ100%2CSP500%2CKOSPI200_NIGHT&stored_only=true', 12000)
           .then(function (data) { return data && data.data ? data.data : []; });
       request.then(renderHomeIndices).catch(function () {
         ['primary', 'secondary'].forEach(function (slot) {
@@ -2356,6 +2358,7 @@ document.documentElement.classList.add('skin-ready');
       // 탭 상태만 바꾸면 직전 시장의 지수 카드가 화면에 남는다. 시장을
       // 전환하는 순간 카드의 라벨·값·차트를 함께 초기화하고 다시 조회한다.
       loadHomeIndices();
+      loadHomeSessionCharts();
       loadHomeIndexBreadth();
       loadSummaryForSession(homeMarketSession());
     });
