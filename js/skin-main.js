@@ -1088,11 +1088,46 @@ document.documentElement.classList.add('skin-ready');
       renderDomesticBreadth(data);
     }
 
+    // Domestic headline uses the same two indices and full-market counts shown
+    // below it. The temperature's screened sample is not a market-wide breadth.
+    var homeDomesticMarketTemp = null;
+    function resolveDomesticMarketDirection(market, items) {
+      var rates = ['KOSPI', 'KOSDAQ'].map(function (symbol) {
+        var item = (items || []).find(function (row) { return row && row.symbol === symbol; });
+        if (!item || item.stale || item.change_rate == null || item.change_rate === '') return null;
+        var at = Date.parse(item.updated_at || '');
+        if (!isFinite(at) || Date.now() - at < -60000 || (!item.market_closed && Date.now() - at > 300000)) return null;
+        var rate = Number(item.change_rate);
+        return isFinite(rate) ? rate : null;
+      });
+      if (rates.some(function (rate) { return rate === null; })) return { label: '데이터 확인 중', tone: 'home-neutral' };
+      var total = market && market.marketBreadth && market.marketBreadth.total;
+      var ratio = total && typeof total.up === 'number' && typeof total.down === 'number'
+        && typeof total.total === 'number' && total.total > 0 && total.up >= 0 && total.down >= 0
+        && total.up + total.down <= total.total ? total.up / total.total : null;
+      var down = rates.every(function (rate) { return rate < 0; });
+      var up = rates.every(function (rate) { return rate > 0; });
+      if (!down && !up) return { label: '혼조', tone: 'home-neutral' };
+      if (down) {
+        if (ratio != null && ratio <= 0.15 && rates.every(function (rate) { return rate <= -1; })) return { label: '급락', tone: 'home-negative' };
+        return { label: (ratio != null && ratio <= 0.3) || rates.every(function (rate) { return rate <= -1; }) ? '강한 약세' : '약세 우위', tone: 'home-negative' };
+      }
+      if (ratio != null && ratio >= 0.85 && rates.every(function (rate) { return rate >= 1; })) return { label: '급등', tone: 'home-positive' };
+      if (ratio != null && ratio <= 0.45) return { label: '지수 상승·종목 약세', tone: 'home-neutral' };
+      return { label: ratio != null && ratio >= 0.7 ? '강한 강세' : '상승 우위', tone: 'home-positive' };
+    }
+
+    function renderDomesticDirection(market) {
+      if (homeMarketSession().market !== 'domestic') return;
+      var direction = resolveDomesticMarketDirection(market, latestHomeIndices);
+      setField('direction', direction.label, direction.tone);
+    }
+
     function renderMarketTemperature(market) {
       if (market && typeof market.score100 === 'number' && isFinite(market.score100)) {
         setHomeVmScore(market);
-        var direction = resolveMarketDirection(market);
-        setField('direction', direction.label, direction.tone);
+        homeDomesticMarketTemp = market;
+        renderDomesticDirection(market);
         var exchange = market.components && market.components.exchange;
         if (exchange && typeof exchange.price === 'number') {
           var exchangeRate = Number(exchange.changeRate);
@@ -1935,6 +1970,7 @@ document.documentElement.classList.add('skin-ready');
       (items || []).forEach(function (item) { if (item && item.symbol) bySymbol[item.symbol] = item; });
       latestHomeIndices = items || [];
       renderMarketParticipation();
+      if (session.market === 'domestic') renderDomesticDirection(homeDomesticMarketTemp);
       if (session.market === 'us' && latestUsBoardData) renderUsMarketSummary(latestUsBoardData);
       // 미국 시장 요약 카드의 "코스피 야간선물" 칸 - hidden 상태여도 값은 항상 채워둬서
       // 세션이 전환되는 순간(applyHomeSummarySession) 바로 최신값이 보이게 한다.
@@ -3117,8 +3153,8 @@ document.documentElement.classList.add('skin-ready');
       });
     }
     function isDomesticCard() {
-      var title = q('[data-home-market-field="title"]');
-      return !!title && title.textContent.indexOf('국내') === 0;
+      var selection = window.HomeMarketSelection;
+      return !!selection && typeof selection.get === 'function' && selection.get() === 'domestic';
     }
 
     // 시장 전체 사이드카(주황)·서킷브레이커(빨강). 발동 중이 가장 위, 그 아래 당일 해제·거래재개 이력. 같은 id는 한 번만 그린다.
@@ -3258,6 +3294,7 @@ document.documentElement.classList.add('skin-ready');
     // 해제된 이벤트는 카드에서 빠지고 당일 이력은 상세(카드를 눌러 열거나 헤더의 '오늘 변동성 이력' 링크)에서만 본다.
     function renderAlerts(box, data) {
       if (!box) return;
+      if (!isDomesticCard()) { hideAll(); return; }
       var link = q('[data-vol-history]');
       if (!data) { box.hidden = true; if (link) link.hidden = true; return; }
       lastData = data;
@@ -3301,10 +3338,11 @@ document.documentElement.classList.add('skin-ready');
 
     function hideAll() {
       var box = q('[data-vol-monitor]');
-      if (box) box.hidden = true;
+      if (box) { box.hidden = true; box.innerHTML = ''; }
       var hl = q('[data-vol-history]');
       if (hl) hl.hidden = true;
       panel = null;
+      lastData = null;
     }
 
     function tick() {
@@ -3315,13 +3353,15 @@ document.documentElement.classList.add('skin-ready');
         .then(function (res) { return res.ok ? res.json() : null; })
         .then(function (body) {
           var data = body && body.data ? body.data : body;
-          if (!data || !isDomesticCard()) return;
+          if (!isDomesticCard()) { hideAll(); return; }
+          if (!data) return;
           renderAlerts(q('[data-vol-monitor]'), data);
         })
         .catch(function () { /* 보조 표시라 실패하면 직전 상태를 그대로 둔다 */ });
     }
 
     document.addEventListener('click', function (event) {
+      if (!isDomesticCard()) { hideAll(); return; }
       var t = event.target;
       var open = t.closest && t.closest('[data-vol-open]');
       if (open) { openPanel(open.getAttribute('data-vol-open'), open.getAttribute('data-vol-open')); return; }
@@ -3337,6 +3377,10 @@ document.documentElement.classList.add('skin-ready');
     });
     document.addEventListener('keydown', function (event) {
       if (event.key === 'Escape' && panel) { var was = panel; openPanel(was, was); }
+    });
+    window.addEventListener('home-market-change', function () {
+      if (!isDomesticCard()) hideAll();
+      else tick();
     });
     document.addEventListener('visibilitychange', function () { if (!document.hidden) tick(); });
     setTimeout(tick, 2000);   // 홈 카드가 그려진 뒤 첫 조회
