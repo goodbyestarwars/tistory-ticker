@@ -387,3 +387,12 @@ body.learn-page .legal-wrap .legal-contact {
   .gd-page .learn-table th, .gd-page .learn-table td { padding: 6px 7px; }
   .gd-page .learn-table { font-size: 13.5px; }
 }
+
+/* 2026-10-31: 그림의 번호 원(.fig-marker) 위 숫자. 본문용 .fig-on-accent 덮어쓰기(어두운 글자)가 어두운 원 위에서 숫자를 지웠다.
+   원 바로 뒤 글자만 원과 반대색으로 둔다(라이트: 어두운 원+밝은 글자, 다크: 밝은 원+어두운 글자). */
+body.footer-docs .fig-marker + .fig-on-accent,
+body.learn-page .legal-wrap .fig-marker + .fig-on-accent { fill: #f8f0db; }
+@media (prefers-color-scheme: dark) {
+  body.footer-docs .fig-marker + .fig-on-accent,
+  body.learn-page .legal-wrap .fig-marker + .fig-on-accent { fill: #16202f; }
+}
