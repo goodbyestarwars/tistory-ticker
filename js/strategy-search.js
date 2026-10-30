@@ -245,6 +245,7 @@
     // 페이지 제목은 Tistory 글 제목으로 한 번만 표시한다. 위젯 안에서
     // 같은 제목을 다시 출력하면 "전략은 두뇌다." 제목이 중복된다.
     return ''
+      + '<div class="ss-control-card ui-content-block">'
       + '<div class="ss-intro">'
       + '<p>전략 조건으로 후보군을 찾고, 차트와 종목분석에서 진입 여부를 별도로 확인합니다.</p>'
       + '</div>'
@@ -267,6 +268,7 @@
       + '<option value="desc">스캔 대비 높은 순</option>'
       + '</select></label>'
       + '<span class="ss-gap-count" data-gap-count></span>'
+      + '</div>'
       + '</div>'
       + '</div>'
       + '<div class="ss-methodology" id="ssMethodology"></div>'
