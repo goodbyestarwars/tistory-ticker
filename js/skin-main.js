@@ -1953,8 +1953,8 @@ document.documentElement.classList.add('skin-ready');
     }
 
     function loadHomeSessionCharts() {
-      // These charts and the night-futures panel are only visible in US mode.
-      if (homeMarketSession().market !== 'us' || document.hidden) return;
+      // Home KOSPI/KOSDAQ cards (domestic) and the US panel share this feed; skip it only when the home is closed or the tab is hidden.
+      if (homeMarketSession().closed || document.hidden) return;
       if (homeSessionLoading) return;
       homeSessionLoading = true;
       fetchHomeJson('https://goodbyestar.cloud/home-session-chart', 12000)
