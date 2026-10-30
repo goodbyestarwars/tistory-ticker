@@ -497,15 +497,19 @@
     return !!US_HOLIDAYS_2026[clock.dateKey];
   }
 
-  // Intl의 timeZone을 못 쓰는 구형 WebView 폴백. 미국 서머타임은 3월 둘째 일요일
-  // ~ 11월 첫째 일요일이라 월만으로도 대부분 맞고, 경계 달만 날짜를 따진다.
+  // Intl의 timeZone을 못 쓰는 구형 WebView 폴백. 미국 서머타임은 3월 둘째 일요일 02:00 EST(07:00Z)
+  // 부터 11월 첫째 일요일 02:00 EDT(06:00Z)까지다. 예전에는 월·일자만 보고 "3월 8일부터, 11월 7일까지"로
+  // 어림해서 3월 8~13일·11월 2~7일에 틀렸다(2026: 11/1 종료인데 11/2~7에 서머타임으로 판정).
   function usDstFallback(date) {
     var d = date ? new Date(date.getTime()) : new Date();
-    var month = d.getUTCMonth() + 1;
-    if (month > 3 && month < 11) return true;
-    if (month < 3 || month > 11) return false;
-    var day = d.getUTCDate();
-    return month === 3 ? day >= 8 : day < 8;
+    var year = d.getUTCFullYear();
+    function nthSunday(month, n) {
+      var firstDow = new Date(Date.UTC(year, month, 1)).getUTCDay();
+      return 1 + (7 - firstDow) % 7 + (n - 1) * 7;
+    }
+    var start = Date.UTC(year, 2, nthSunday(2, 2), 7);
+    var end = Date.UTC(year, 10, nthSunday(10, 1), 6);
+    return d.getTime() >= start && d.getTime() < end;
   }
 
   function us(date) {
