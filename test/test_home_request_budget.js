@@ -4,10 +4,10 @@ const home=fs.readFileSync('js/skin-main.js','utf8'),quick=fs.readFileSync('js/q
 function fn(source,name,indent){const a=source.indexOf(indent+'function '+name+'(');assert(a>=0);return source.slice(a,source.indexOf('\n'+indent+'}',a)+indent.length+2);}
 (async()=>{
  let mode='domestic',calls=0,complete;
- const ctx={homeMarketSession:()=>({market:mode}),document:{hidden:false},homeSessionLoading:false,
+ const ctx={homeMarketSession:()=>({market:mode,closed:mode==='closed'}),document:{hidden:false},homeSessionLoading:false,
  homeSessionCharts:{},latestHomeIndices:[],renderHomeIndices(){},fetchHomeJson(){calls++;return new Promise(r=>complete=r);}};
  vm.createContext(ctx);vm.runInContext(fn(home,'loadHomeSessionCharts','    '),ctx);
- ctx.loadHomeSessionCharts();assert.equal(calls,0,'domestic does not request hidden US/night chart');
+ ctx.loadHomeSessionCharts();assert.equal(calls,1,'domestic home KOSPI/KOSDAQ cards request the session chart');complete({data:[]});await new Promise(r=>setImmediate(r));calls=0;
  mode='closed';ctx.loadHomeSessionCharts();assert.equal(calls,0);
  mode='us';ctx.document.hidden=true;ctx.loadHomeSessionCharts();assert.equal(calls,0);
  ctx.document.hidden=false;ctx.loadHomeSessionCharts();ctx.loadHomeSessionCharts();assert.equal(calls,1,'US chart remains available and concurrent calls share existing loading guard');
@@ -24,5 +24,5 @@ function fn(source,name,indent){const a=source.indexOf(indent+'function '+name+'
  assert.equal(stored,payload);assert.equal(stored[0].stale,true,'stored metadata must not become a fabricated live quote');
  cache=payload;reject=true;assert.equal(await q.fetchFutures(),payload,'bounded existing cache survives failed background refresh');
  cache=null;await assert.rejects(q.fetchFutures(),/offline/);
- console.log('PASS hidden-market chart request elimination; US switch/loading preserved; stored-only common quotes; cache/failure/staleness metadata preserved');
+ console.log('PASS closed/hidden chart request elimination; domestic and US session charts load; US switch/loading preserved; stored-only common quotes; cache/failure/staleness metadata preserved');
 })().catch(e=>{console.error(e);process.exitCode=1;});
