@@ -83,7 +83,7 @@ html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-
 /* ── 2026-10-04: 큰 네모박스 + 국내 시장·경제 종합뉴스와 같은 제목 서체(마루부리 = var(--font-title)) ── */
 .home-sector-rotation {
   margin: 24px 0 8px; padding: 30px 36px 26px;
-  border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: rgb(254, 253, 250);
+  border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: var(--ui-card-surface, #fff);
 }
 html.dark .home-sector-rotation { border-color: var(--dk-line); background: var(--dk-card); }
 html body .home-sector-rotation, html body .home-sector-rotation button, html body .home-sector-rotation .hsr-title-row strong { font-family: var(--font-title) !important; }
