@@ -278,6 +278,7 @@
     var tabsHtml = MENU_TABS.map(tabButton).join('');
 
     return ''
+      + '<div class="ps-control-card ui-content-block">'
       + '<div class="ps-confirmation-status" id="psConfirmationStatus" role="status" aria-live="polite">확정 신호 확인 중</div>'
       + '<div class="ps-head">'
       + '<div class="ps-horizon" role="tablist" aria-label="검색 기간">'
@@ -294,6 +295,7 @@
         return '<button type="button" class="ps-view-tab' + (i === 0 ? ' active' : '') + '" role="tab" aria-selected="' + (i === 0) + '" data-view="' + v[0] + '">' + v[1] + '<small data-count="' + v[0] + '"></small></button>';
       }).join('')
       + '</div></details>'
+      + '</div>'
       + '<div class="ps-list ui-content-block" id="psList" role="region" aria-label="검색 결과">' + global.NineUI.state('loading', '검색 결과를 불러오는 중...', 'ps-hint', {spinner:false}) + '</div>'
       + '<div class="ps-detail" id="psDetail" hidden></div>';
   }
