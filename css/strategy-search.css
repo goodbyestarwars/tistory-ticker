@@ -7,6 +7,9 @@
   font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", "맑은 고딕", sans-serif;
 }
 
+/* 2026-10-31: 안내 문구·전략 탭·스캔 대비 필터를 공통 카드(ui-content-block) 한 장으로 묶는다. */
+#strategy-search .ss-control-card { margin: 0 0 var(--ui-section-gap); }
+#strategy-search .ss-control-card .ss-head { margin-bottom: 0; }
 #strategy-search .ss-intro { margin: 0 0 16px; }
 #strategy-search .ss-intro p { margin: 5px 0 0; color: #64748b; font-size: 12.5px; line-height: 1.5; }
 

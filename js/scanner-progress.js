@@ -101,7 +101,7 @@
     if (document.getElementById('scanner-progress-status')) return;
     strip = document.createElement('section');
     strip.id = 'scanner-progress-status';
-    strip.className = 'scanner-progress-status' + (strategy ? '' : ' is-dashboard');
+    strip.className = 'scanner-progress-status' + (strategy ? ' ui-content-block' : ' is-dashboard');
     if (!strategy) strip.innerHTML = '<div class="scan-status-panel" aria-live="polite"></div>';
     strip.setAttribute('aria-label', '검색기 업데이트 진행 상황');
     container.parentNode.insertBefore(strip, container);
