@@ -35,7 +35,11 @@ html.dark #pattern-scan .ps-horizon-tab.active { background: var(--dk-text); col
 }
 
 #pattern-scan .ps-confirmation-status { padding: 10px 0; border-bottom: 1px solid var(--ps-line); font-size: 13px; font-weight: 650; overflow-wrap: anywhere; }
-#pattern-scan .ps-research-tools { margin: var(--ui-section-gap) 0; color: var(--ps-muted); }
+/* 2026-10-31: 단타/스윙/중장기 탭·상태 필터·이력 기준을 공통 카드(ui-content-block) 한 장으로 묶는다. */
+#pattern-scan .ps-control-card { margin: 0 0 var(--ui-section-gap); }
+#pattern-scan .ps-control-card > :first-child { padding-top: 0; }
+#pattern-scan .ps-control-card > :last-child { margin-bottom: 0; }
+#pattern-scan .ps-research-tools { margin: 8px 0 0; color: var(--ps-muted); }
 #pattern-scan .ps-research-tools summary { cursor: pointer; padding: 6px 0; }
 #pattern-scan .ps-confirmed-table { width: 100%; }
 #pattern-scan .ps-confirmed-head,
