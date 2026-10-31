@@ -6012,7 +6012,7 @@
       var chart = LWC.createChart(container, flowOptions);
       lwcChart = chart;
       lwcChartContainer = container;
-      scope.add(core.installSmoothWheelZoom(chart, container, { bars: daily.length }));
+      scope.add(core.installSmoothWheelZoom(chart, container, { bars: daily.length, priceSeries: function () { return lwcCandleSeries; } }));
       scope.add(core.registerChart(container, chart, { bars: daily.length, timeframe: 'day' }));
       scope.add(core.installVerticalPan(chart, container, {
         priceSeries: function () { return lwcCandleSeries; },
