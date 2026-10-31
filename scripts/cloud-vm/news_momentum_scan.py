@@ -212,8 +212,9 @@ def select_universe(universe, args):
     return [by_code[code] for code in requested if code in by_code]
 
 
-def fetch_news_backfill(stock_name, client_id, client_secret, today, backfill_days=90):
-    """최신순 페이지를 최근 90일 경계까지 읽고 실제 커버리지 상태를 함께 반환한다."""
+def fetch_news_backfill(stock_name, client_id, client_secret, today,
+                        backfill_days=news_momentum.BACKFILL_DAYS):
+    """최신순 페이지를 최근 backfill_days일 경계까지 읽고 실제 커버리지 상태를 함께 반환한다."""
     cutoff = (today - timedelta(days=backfill_days - 1)).isoformat()
     items_by_url = {}
     calls = 0
@@ -383,9 +384,9 @@ def run(args):
                             conn, due, trends, start_date, end_date, 'date'
                         )
                 processed += 1
-                print('[%d/%d] %s(%s): 뉴스 %d건 / 이슈 %d개 / 기준일 %s / 90일 백필 %s' % (
+                print('[%d/%d] %s(%s): 뉴스 %d건 / 이슈 %d개 / 기준일 %s / %d일 백필 %s' % (
                     index, len(universe), stock['name'], stock['code'], len(items), len(topics),
-                    coverage['actualEndDate'] or '-',
+                    coverage['actualEndDate'] or '-', coverage['backfillDays'],
                     '완료' if coverage['backfillComplete'] else '부분',
                 ))
             except Exception as exc:

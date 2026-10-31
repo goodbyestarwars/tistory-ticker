@@ -2,6 +2,14 @@
 
 요청: 이야기 25개 문서의 디자인이 제각각이라 통일(단락=흰 둥근 상자, 마루부리·제목만 Bold, 빨강/파랑만 사용), 헤지펀드 이야기 추가, 전체 검색창(가능할 때만). 변경: `learn/*.html` 단락을 `learn-sec` 상자로 묶고 h2 id 부여, `css/legal.css` 이야기 구간에 통일 토큰·상자·검색 스타일 추가(`?v=20261031-story-unify-1`), 신규 `learn/hedge-fund.html`(그림 5개·가상 계산·심화 연구실)과 ETF/기업분석 이전·다음 연결·푸터 카드(12개), `js/learn-search.js` + `scripts/build_learn_search.js` → `data/learn-search.js`(단락 단위+용어사전, 외부 요청 없음), 용어사전 3개 추가. 검증: test_learn_search/first_paint/plain_style/orderbook 14 passed, 이야기 24쪽 SVG 라벨 잘림 점검(1건 수정), 420px 가로 넘침 없음, 검색 동작 확인(공매도·헤지 펀드 띄어쓰기). test_ui_ia 기존 실패 51건은 변경 전과 동일. 배포: 미반영(PR 전).
 
+**2026-11-01 뉴스 모멘텀 보관 30일 조정(코드·테스트, 운영 DB 정리는 미실행)**
+
+목적: 네이버 검색 API 파생 데이터 보관 축소(약관 서버 보관 21일 보도 기준, 원문 미확인). 변경: `news_momentum.RETENTION_DAYS` 90→30(news_topic_daily), `BACKFILL_DAYS` 90→30(수집 기본값·`save_stock_coverage` 기본값·스키마 기본값·스캔 로그), 대표 기사 URL은 토픽 `updated_at` 후 20일 초과 시 `[]`(`updated_at`은 유지), `datalab_trends`는 종료 토픽 90일 기준을 `DATALAB_RETENTION_DAYS`로 분리해 그대로 둠, `news_stock_coverage` 삭제 정책 없음 유지. DataLab 조회 범위(`start_date`=89일)는 변경 없음. 화면: "30일 N건"·"최근 7일 vs 이전 7일" 지표 유지, `js/foreign-flow.js`의 '최근 90일' 문구 3곳을 30일로 정정. 운영 현황(11/1 05:4x KST, 정리 전): news_topic_daily 194,677행(30일 초과 137,222), news_topics 77,962(대표 URL 보유 전부, 20일 초과 갱신 41,216), datalab_trends 39,277(최소 fetched 7/28), news_stock_coverage 3,918(backfill_days 전부 90), 파일 96.8MB. 검증: test_news_momentum·test_maintenance·test_domestic_news 계열 77건 OK, 경계(29/30/31일)·DataLab 90일 유지·URL 20일·삼성전자 패널 데이터 유지 테스트 추가. JS는 node 부재로 구문 검사 못 함. 미완료: 운영 DB 일회성 삭제·VACUUM 미실행(모멘텀 스캔 실행 중 + 실행 권한 거부), 배포(미커밋).
+
+**2026-11-01 국내 뉴스 DB 보관 10일 단축·장외 유지보수 연속 실패 해소**
+
+목적: 개정 네이버 검색 API 약관(서버 보관 이력 조회 목적 최대 21일, 보도 기준·원문 미확인) 대응, 그리고 11/1 03:17부터 5분마다 실패하던 유지보수(주말 OS 로그 정리가 sudo 권한 부족으로 예외를 던져 DB 정리·백업에 도달하지 못함) 해소. 변경: `domestic_news.prune_old_rows`가 kind='news'(네이버 검색 결과)만 `NEWS_RETENTION_DAYS=10`, 공시 등 나머지는 기존 90일. `maintenance.run`은 OS 로그 정리 실패를 경고로 남기고 백업·DB 정리·체크포인트를 계속한다(sudoers 변경 없음). 읽는 쪽 최대 범위는 stale 폴백 24시간·주간 리포트 약 7일이라 10일 초과분을 읽는 코드 없음, kind='news' INSERT는 `normalize_naver` 한 곳. 운영 DB 일회성 정리(백업 없이 지시): news 67,191→10,846건(56,345건 삭제), disclosure 31,666건 유지, VACUUM 후 72.8MB→22.4MB, integrity ok, `/domestic-news` 200. 검증: test_maintenance·test_domestic_news 계열 44건. 배포: 미커밋(master push 시 VM 자동 배포). 미완료: 약관 원문 미확인, news_momentum(90일)·유지보수 마커 정상화는 배포 후 확인 필요.
+
 2026-10-31 | learn/chart-patterns | 차트가 작동하는 심리·통계적 한계 섹션과 그림 9개 추가 | 신규 CSS 없음, 라이트/다크/모바일 렌더 확인 | master push(Pages)
 
 **2026-10-31 Oracle 서버 syslog 로깅·5일 보관**

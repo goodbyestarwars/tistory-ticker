@@ -422,6 +422,96 @@ class NewsMomentumTest(unittest.TestCase):
             'SELECT COUNT(*) FROM news_topics WHERE stock_code=?', ('005380',)
         ).fetchone()[0], 1)
 
+    def test_retention_constants_match_agreed_windows(self):
+        self.assertEqual(news_momentum.RETENTION_DAYS, 30)
+        self.assertEqual(news_momentum.BACKFILL_DAYS, 30)
+        self.assertEqual(news_momentum.REPRESENTATIVE_URL_RETENTION_DAYS, 20)
+        self.assertEqual(news_momentum.DATALAB_RETENTION_DAYS, 90)
+
+    def test_prune_daily_keeps_the_30_day_window_and_deletes_older_rows(self):
+        name, _ = MOCK_NEWS['005380']
+        topic = [{
+            'stock_code': '005380', 'stock_name': name, 'topic_name': '현대차 경계',
+            'label': '경계', 'keywords': ['현대차 경계'], 'sentiment': 'neutral',
+            'daily_counts': {
+                TODAY.isoformat(): 1,
+                (TODAY - timedelta(days=29)).isoformat(): 1,
+                (TODAY - timedelta(days=30)).isoformat(): 1,
+                (TODAY - timedelta(days=31)).isoformat(): 1,
+            },
+            'representative_urls': [],
+        }]
+        news_momentum.upsert_topics(self.conn, '005380', name, topic, today=TODAY)
+        result = news_momentum.prune_old_details(self.conn, today=TODAY)
+        left = {r[0] for r in self.conn.execute('SELECT date FROM news_topic_daily')}
+        self.assertEqual(result['dailyDeleted'], 1)
+        self.assertNotIn((TODAY - timedelta(days=31)).isoformat(), left)
+        # 30일 지표(오늘 포함 30일)와 최근 7일/이전 7일 비교가 읽는 날짜는 모두 남는다.
+        self.assertIn((TODAY - timedelta(days=29)).isoformat(), left)
+        self.assertIn(TODAY.isoformat(), left)
+
+    def test_prune_keeps_datalab_retention_unchanged_at_90_days(self):
+        name, items = MOCK_NEWS['000660']
+        topics = news_momentum.extract_topics('000660', name, items, today=TODAY)
+        rows = news_momentum.upsert_topics(self.conn, '000660', name, topics, today=TODAY)
+        topic = rows[0]
+        news_momentum.save_datalab_trends(
+            self.conn, [topic], {'topic-%s' % topic['id']: [{'period': '2026-07-29', 'ratio': 50.0}]},
+            '2026-07-01', '2026-07-29', now=datetime(2026, 7, 29, tzinfo=timezone.utc),
+        )
+        before = self.conn.execute('SELECT COUNT(*) FROM datalab_trends').fetchone()[0]
+        self.assertGreater(before, 0)
+        # 종료 토픽이라도 마지막 기사로부터 40일(30일 초과, 90일 이하)이면 DataLab은 남는다.
+        self.conn.execute("UPDATE news_topics SET status='ended', last_seen_at=? WHERE id=?",
+                          ((TODAY - timedelta(days=40)).isoformat(), topic['id']))
+        self.conn.commit()
+        result = news_momentum.prune_old_details(self.conn, today=TODAY)
+        self.assertEqual(result['trendsDeleted'], 0)
+        self.assertEqual(self.conn.execute('SELECT COUNT(*) FROM datalab_trends').fetchone()[0], before)
+        self.conn.execute('UPDATE news_topics SET last_seen_at=? WHERE id=?',
+                          ((TODAY - timedelta(days=91)).isoformat(), topic['id']))
+        self.conn.commit()
+        result = news_momentum.prune_old_details(self.conn, today=TODAY)
+        self.assertEqual(result['trendsDeleted'], before)
+
+    def test_prune_clears_representative_urls_only_after_20_days_without_touching_updated_at(self):
+        name, _ = MOCK_NEWS['005380']
+        def make(label, urls):
+            return {
+                'stock_code': '005380', 'stock_name': name, 'topic_name': '현대차 ' + label,
+                'label': label, 'keywords': ['현대차 ' + label], 'sentiment': 'neutral',
+                'daily_counts': {TODAY.isoformat(): 2}, 'representative_urls': urls,
+            }
+        news_momentum.upsert_topics(self.conn, '005380', name,
+                                    [make('최근', ['https://n/a']), make('오래', ['https://n/b'])],
+                                    today=TODAY)
+        stale_stamp = (datetime(2026, 7, 29, tzinfo=timezone.utc) - timedelta(days=21)).isoformat()
+        fresh_stamp = (datetime(2026, 7, 29, tzinfo=timezone.utc) - timedelta(days=20)).isoformat()
+        self.conn.execute("UPDATE news_topics SET updated_at=? WHERE topic_name=?", (stale_stamp, '현대차 오래'))
+        self.conn.execute("UPDATE news_topics SET updated_at=? WHERE topic_name=?", (fresh_stamp, '현대차 최근'))
+        self.conn.commit()
+        result = news_momentum.prune_old_details(self.conn, today=TODAY)
+        rows = {r['topic_name']: (r['representative_urls_json'], r['updated_at'])
+                for r in self.conn.execute('SELECT topic_name,representative_urls_json,updated_at FROM news_topics')}
+        self.assertEqual(result['urlsCleared'], 1)
+        self.assertEqual(rows['현대차 오래'], ('[]', stale_stamp))
+        self.assertIn('https://n/a', rows['현대차 최근'][0])
+
+    def test_momentum_panel_data_stays_populated_after_prune(self):
+        """삼성전자: 정리 뒤에도 30일 건수와 최근 7일/이전 7일 비교, 대표 기사가 남는다."""
+        name, items = MOCK_NEWS['005930']
+        topics = news_momentum.extract_topics('005930', name, items, today=TODAY)
+        news_momentum.upsert_topics(self.conn, '005930', name, topics, today=TODAY)
+        before = news_momentum.load_stock_momentum(self.conn, '005930')
+        news_momentum.prune_old_details(self.conn, today=TODAY)
+        after = news_momentum.load_stock_momentum(self.conn, '005930')
+        self.assertTrue(after['topics'])
+        for old, new in zip(before['topics'], after['topics']):
+            self.assertEqual(new['count30d'], old['count30d'])
+            self.assertEqual(new['count7d'], old['count7d'])
+            self.assertEqual(new['previous7dCount'], old['previous7dCount'])
+            self.assertEqual(new['representativeUrls'], old['representativeUrls'])
+
     def test_stale_topic_status_and_datalab_snapshot_are_bounded(self):
         name, items = MOCK_NEWS['000660']
         topics = news_momentum.extract_topics('000660', name, items, today=TODAY)
@@ -557,12 +647,12 @@ class NewsMomentumTest(unittest.TestCase):
         fixed_kst_today = date(2026, 8, 2)
         with mock.patch.object(news_momentum_scan, 'kst_today', lambda: fixed_kst_today):
             self._run_full_scan(universe, [], status_sink, cursor_path)
-        # requestedStartDate(90일 백필 컷오프)는 today(=today_kst)에서 직접 파생되므로
+        # requestedStartDate(30일 백필 컷오프)는 today(=today_kst)에서 직접 파생되므로
         # 여기서 시스템 로컬 날짜가 아니라 mocked KST 날짜를 기준으로 계산됐는지 확인한다.
         row = self.conn.execute(
             'SELECT requested_start_date FROM news_stock_coverage WHERE stock_code=?', ('005930',)
         ).fetchone()
-        self.assertEqual(row['requested_start_date'], (fixed_kst_today - timedelta(days=89)).isoformat())
+        self.assertEqual(row['requested_start_date'], (fixed_kst_today - timedelta(days=29)).isoformat())
 
     def test_full_scan_throttles_between_stocks(self):
         """2026-08-02 사용자 리포트: --full로 전 종목을 도는 동안 종목 사이 딜레이가
@@ -697,7 +787,7 @@ class NewsMomentumTest(unittest.TestCase):
         self.assertEqual(sorted(news_momentum.load_coverage_dates(self.conn)),
                          ['000001', '000002'])
 
-    def test_90day_backfill_coverage_and_api_metadata(self):
+    def test_30day_backfill_coverage_and_api_metadata(self):
         recent = [
             {'title': '삼성전자 AI 반도체 공급 확대', 'link': 'https://n/%d' % index,
              'pubDate': '2026-07-%02d' % (29 - (index % 20))}
@@ -705,7 +795,7 @@ class NewsMomentumTest(unittest.TestCase):
         ]
         older = [
             {'title': '삼성전자 AI 반도체 신규 수주', 'link': 'https://old/1',
-             'pubDate': '2026-04-30'}
+             'pubDate': '2026-06-20'}
         ]
         with mock.patch.object(
             news_momentum_scan.naver_news,
@@ -717,7 +807,8 @@ class NewsMomentumTest(unittest.TestCase):
             )
         self.assertEqual(search.call_count, 2)
         self.assertTrue(coverage['backfillComplete'])
-        self.assertEqual(coverage['requestedStartDate'], '2026-05-01')
+        self.assertEqual(coverage['requestedStartDate'], '2026-06-30')
+        self.assertEqual(coverage['backfillDays'], 30)
         self.assertEqual(coverage['actualEndDate'], '2026-07-29')
         self.assertEqual(len(items), 100)
 
