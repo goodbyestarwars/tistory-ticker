@@ -86,8 +86,8 @@ html.dark .hsr-chg.is-down, html.dark .hsr-detail em.is-down { color: var(--num-
   border: 1px solid rgba(17, 17, 17, .09); border-radius: 22px; background: var(--ui-card-surface, #fff);
 }
 html.dark .home-sector-rotation { border-color: var(--dk-line); background: var(--dk-card); }
-html body .home-sector-rotation, html body .home-sector-rotation button, html body .home-sector-rotation .hsr-title-row strong { font-family: var(--font-ui) !important; }
-html body .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif !important; font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
+html body .home-sector-rotation, html body .home-sector-rotation button { font-family: var(--font-ui) !important; }
+html body .home-sector-rotation .hsr-title-row strong { font-family: "MaruBuriBold", "MaruBuri", "Maru Buri", Georgia, serif; font-size: 29px; font-weight: 700; letter-spacing: -.8px; }
 html body .home-sector-rotation .hsr-phase { font-size: 17px; }
 html body .home-sector-rotation .hsr-name { font-size: 15px; }
 @media (max-width: 720px) {
