@@ -2994,7 +2994,7 @@
       options.handleScale.mouseWheel = false;
       options.handleScroll.mouseWheel = false;
       var chart = LWC.createChart(container, options);
-      stockWheelCleanup = core.installSmoothWheelZoom(chart, container, { bars: bars.length });
+      stockWheelCleanup = core.installSmoothWheelZoom(chart, container, { bars: bars.length, priceSeries: function () { return lwcCandleSeries; } });
       lwcChart = chart;
       lwcChartContainer = container;
       stockChartRegistryOff = core.registerChart(container, chart, { bars: bars.length, timeframe: timeframe });

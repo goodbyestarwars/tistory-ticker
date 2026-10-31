@@ -365,6 +365,26 @@
       else frame = global.requestAnimationFrame(animate);
     }
 
+    // 오른쪽 가격축 위의 휠: 커서 가격을 기준으로 가격 범위를 늘이고 줄인다(축을 끌어 늘이는 것과 같은 결과, 라이브러리 기본 휠은 꺼 둠).
+    function priceAxisWheel(event, rect) {
+      var series = opts.priceSeries && opts.priceSeries();
+      var ps = chart.priceScale && chart.priceScale('right');
+      if (!series || !ps || !ps.getVisibleRange || !ps.setVisibleRange) return;
+      var range = ps.getVisibleRange();
+      if (!range || !isFinite(range.from) || !isFinite(range.to) || range.to <= range.from) return;
+      var dy = Number(event.deltaY) || 0;
+      if (!dy) return;
+      if (event.cancelable !== false && event.preventDefault) event.preventDefault();
+      var anchor = series.coordinateToPrice(event.clientY - rect.top);
+      if (!isFinite(anchor)) anchor = (range.from + range.to) / 2;
+      anchor = Math.max(range.from, Math.min(range.to, anchor));
+      var unit = event.deltaMode === 1 ? 16 : 1;
+      var f = Math.exp(Math.max(-240, Math.min(240, dy * unit)) * 0.0015);   // 위로 굴리면 확대, 아래로 굴리면 축소
+      var from = anchor - (anchor - range.from) * f, to = anchor + (range.to - anchor) * f;
+      if (!(to - from > 0) || !isFinite(from) || !isFinite(to)) return;
+      ps.setVisibleRange({ from: from, to: to });
+    }
+
     function onWheel(event) {
       if (disposed) return;
       if (event.target && event.target.closest && event.target.closest('button, a, input, textarea, select, [data-no-wheel-zoom]')) return;
@@ -376,7 +396,8 @@
       if (!dx && !dy) return;
       var rect = element.getBoundingClientRect ? element.getBoundingClientRect() : { left: 0 };
       var width = typeof scale.width === 'function' ? scale.width() : element.clientWidth;
-      if (!(width > 0) || (typeof event.clientX === 'number' && event.clientX > rect.left + width)) return;
+      if (!(width > 0)) return;
+      if (typeof event.clientX === 'number' && event.clientX > rect.left + width) { priceAxisWheel(event, rect); return; }
       var live = scale.getVisibleLogicalRange();
       if (!live || !isFinite(live.from) || !isFinite(live.to) || live.to <= live.from) return;
       if (event.cancelable !== false && event.preventDefault) event.preventDefault();
